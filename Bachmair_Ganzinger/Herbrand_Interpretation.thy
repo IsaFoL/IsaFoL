@@ -1,4 +1,4 @@
-(*  Title:       Clausal Logic
+(*  Title:       Herbrand Interpretation
     Author:      Jasmin Blanchette <blanchette at in.tum.de>, 2014
     Author:      Dmitriy Traytel <traytel at in.tum.de>, 2014
     Maintainer:  Jasmin Blanchette <blanchette at in.tum.de>

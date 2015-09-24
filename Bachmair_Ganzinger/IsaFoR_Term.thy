@@ -1,3 +1,8 @@
+(*  Title:       Integration of IsaFoR Terms
+    Author:      Dmitriy Traytel <traytel at in.tum.de>, 2014
+    Maintainer:  Jasmin Blanchette <blanchette at in.tum.de>
+*)
+
 theory IsaFoR_Term
 imports "$ISAFOR/Unification" "$AFP/thys/Derive" Substitution
 begin
