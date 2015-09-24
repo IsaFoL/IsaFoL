@@ -1,4 +1,4 @@
-session "Inferences" (main) = "HOL" +
+session "Weidenbach_Book" (main) = "HOL" +
   options [document = pdf, document_output = "output"]
   theories [document = false]
     "../lib/Multiset_More"
