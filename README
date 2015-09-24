@@ -1,0 +1,11 @@
+This repository contains various ongoing Isabelle formalizations of logical
+calculi, collectively (and tentatively) called
+
+    IsaFoL: Isabelle Formalization of Logic
+
+Authors:
+
+    Jasmin Blanchette <jasmin.blanchette at inria.fr>
+    Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>
+    Anders Schlichtkrull <andschl at dtu.dk>
+    Dmitriy Traytel <traytel at inf.ethz.ch>
