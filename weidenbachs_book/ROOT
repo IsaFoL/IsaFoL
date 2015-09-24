@@ -1,7 +1,7 @@
 session "Inferences" (main) = "HOL" +
   options [document = pdf, document_output = "output"]
   theories [document = false]
-    Multiset_More
+    "../lib/Multiset_More"
   global_theories
     Propo_Logic
     Propo_Abstract_Transformation
