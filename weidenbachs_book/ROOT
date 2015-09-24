@@ -1,0 +1,20 @@
+session "Inferences" (main) = "HOL" +
+  options [document = pdf, document_output = "output"]
+  theories [document = false]
+    Multiset_More
+  global_theories
+    Propo_Logic
+    Propo_Abstract_Transformation
+    Propo_Normalisation
+    Clausal_Logic
+    Propo_Resolution
+    List_More
+    Partial_Annotated_Clausal_Logic
+    Propo_DPLL
+    DPLL_Implementation
+    Propo_CDCL
+    Propo_CDCL_Termination
+    CDCL_Implementation
+  document_files
+    "root.tex"
+    "biblio.bib"
