@@ -1,6 +1,6 @@
 (*  Title:       Integration of IsaFoR Terms
-    Author:      Dmitriy Traytel <traytel at in.tum.de>, 2014
-    Maintainer:  Jasmin Blanchette <blanchette at in.tum.de>
+    Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
+    Maintainer:  Jasmin Blanchette <jasmin.blanchette at inria.fr>
 *)
 
 theory IsaFoR_Term

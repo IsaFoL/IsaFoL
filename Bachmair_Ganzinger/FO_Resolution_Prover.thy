@@ -1,7 +1,7 @@
 (*  Title:       A Simple Resolution Prover for First-Order Clauses
-    Author:      Jasmin Blanchette <blanchette at in.tum.de>, 2014
-    Author:      Dmitriy Traytel <traytel at in.tum.de>, 2014
-    Maintainer:  Jasmin Blanchette <blanchette at in.tum.de>
+    Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
+    Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
+    Maintainer:  Jasmin Blanchette <jasmin.blanchette at inria.fr>
 *)
 
 section {* A Simple Resolution Prover for First-Order Clauses *}

@@ -1,7 +1,7 @@
 (*  Title:       Abstract Substitutions
-    Author:      Dmitriy Traytel <traytel at in.tum.de>, 2014
-    Author:      Jasmin Blanchette <blanchette at in.tum.de>, 2014
-    Maintainer:  Jasmin Blanchette <blanchette at in.tum.de>
+    Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
+    Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
+    Maintainer:  Jasmin Blanchette <jasmin.blanchette at inria.fr>
 *)
 
 section {* Abstract Substitutions *}
