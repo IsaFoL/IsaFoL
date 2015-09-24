@@ -7,7 +7,7 @@
 section {* Clausal Logic *}
 
 theory Clausal_Logic
-imports Multiset_More
+imports "../lib/Multiset_More"
 begin
 
 text {*

@@ -7,7 +7,7 @@
 section {* Clausal Logic *}
 
 theory Herbrand_Interpretation
-imports Multiset_More Clausal_Logic
+imports Clausal_Logic
 begin
 
 text {*
