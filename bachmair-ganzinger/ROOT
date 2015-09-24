@@ -1,0 +1,25 @@
+session Resolution_Base = HOL +
+  theories [document = false]
+    "~~/src/HOL/Library/Multiset"
+    "$AFP/Coinductive/Coinductive_List"
+
+session Resolution = Resolution_Base +
+  options [document = pdf, document_output = "output",
+    document_variants = "document:outline=/proof,/ML"]
+  theories
+    Multiset_More
+    Clausal_Logic
+    Herbrand_Interpretation
+    Inference_System
+    Ground_Resolution_Model
+    Unordered_Ground_Resolution
+    Ordered_Ground_Resolution
+    Lazy_List_Limit
+    Proving_Process
+    Standard_Redundancy
+  theories [quick_and_dirty]
+    Substitution
+    FO_Resolution_Prover
+  document_files
+    "bib.bib"
+    "root.tex"
