@@ -1,0 +1,6 @@
+session Unordered_Resolution = "HOL" +
+   options [
+     document = "pdf",
+     document_output = "generated"]
+   theories
+     Snippet
