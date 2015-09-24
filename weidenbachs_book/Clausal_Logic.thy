@@ -7,7 +7,7 @@
 section {* Clausal Logic *}
 
 theory Clausal_Logic
-imports Multiset_More
+imports "../lib/Multiset_More"
 begin
 
 text {*
@@ -270,11 +270,8 @@ lemma atms_less_imp_lit_less_pos: "(\<And>B. B \<in> atms_of C \<Longrightarrow>
 lemma atms_less_eq_imp_lit_less_eq_neg: "(\<And>B. B \<in> atms_of C \<Longrightarrow> B \<le> A) \<Longrightarrow> L \<in># C \<Longrightarrow> L \<le> Neg A"
   unfolding less_eq_literal_def by (simp add: atm_of_lit_in_atms_of)
 
-lemma atm_of_eq_atm_of:
-  "atm_of L = atm_of L' \<longleftrightarrow> (L = L' \<or> L = -L')"
-  by (metis atm_of_uminus literal.exhaust_sel uminus_Neg uminus_Pos)
-
 lemma atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set:
   "atm_of L \<in> atm_of ` I \<longleftrightarrow> (L \<in> I \<or> -L \<in> I)"
-  by (auto intro: rev_image_eqI simp add: atm_of_eq_atm_of)
+  apply (auto intro: rev_image_eqI)
+  by (cases L; case_tac x) (auto intro: rev_image_eqI)
 end

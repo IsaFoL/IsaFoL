@@ -157,7 +157,7 @@ lemma literal_is_lit_of_marked:
 
 lemma true_annot_iff_marked_or_true_lit:
   "defined_lit L I \<longleftrightarrow> ((lits_of I) \<Turnstile>l L \<or> (lits_of I) \<Turnstile>l -L)"
-  by (auto simp add: lits_of_def defined_lit_def rev_image_eqI dest!: literal_is_lit_of_marked)
+  unfolding defined_lit_def by (auto simp add: lits_of_def rev_image_eqI dest!: literal_is_lit_of_marked)
 
 lemma "consistent_interp (lits_of I) \<Longrightarrow> I \<Turnstile>as N \<Longrightarrow> satisfiable N"
   by (simp add: true_annots_true_cls)
@@ -196,12 +196,10 @@ fun backtrack_split :: "('v, 'l, 'm) annoted_lits \<Rightarrow> ('v, 'l, 'm) ann
 "backtrack_split (Propagated L P # mlits) = apfst ((op #) (Propagated L P)) (backtrack_split mlits)" |
 "backtrack_split (Marked L l # mlits) = ([], Marked L l # mlits)"
 
-lemma backtrack_split_fst_not_marked: 
-  "a \<in> set (fst (backtrack_split l)) \<Longrightarrow> \<not>is_marked a"
+lemma backtrack_split_fst_not_marked: "a \<in> set (fst (backtrack_split l)) \<Longrightarrow> \<not>is_marked a"
   by (induct l, simp) (case_tac aa, auto)
 
-lemma backtrack_split_snd_hd_marked: 
-  "snd (backtrack_split l) \<noteq> [] \<Longrightarrow> is_marked (hd (snd (backtrack_split l)))"
+lemma backtrack_split_snd_hd_marked: "snd (backtrack_split l) \<noteq> [] \<Longrightarrow> is_marked (hd (snd (backtrack_split l)))"
   by (induct l, simp) (case_tac a, auto)
 
 (*TODO as simp rule is nice, but the [symmetric] version might be more interesting as [intro]*)
@@ -527,14 +525,11 @@ next
     }
     also {
       assume n: "n > 0"
-      then obtain Ls1 seen1 l where Ls1: "get_all_marked_decomposition M' = (Ls1, seen1) # l" 
-        using length' by (induct M', simp) (case_tac a, auto)
+      then obtain Ls1 seen1 l where Ls1: "get_all_marked_decomposition M' = (Ls1, seen1) # l" using length' by (induct M', simp) (case_tac a, auto)
 
       have "all_decomposition_implies N (get_all_marked_decomposition M')"
         using Suc.prems unfolding Ls0 all_decomposition_implies_def by auto
-      hence N: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} 
-        \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition M'))" 
-        using IH length' by auto
+      hence N: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition M'))" using IH length' by auto
 
       have l: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<subseteq> N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}" using M'_in_M by auto
       hence \<Psi>N: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition M'))" using true_clss_clss_subset[OF l N] by auto
