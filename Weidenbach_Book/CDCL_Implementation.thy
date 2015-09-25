@@ -229,7 +229,7 @@ lemma find_first_unit_clause_some_is_propagate:
   assumes H: "find_first_unit_clause (N @ U) M = Some (L, C)"
   shows "propagate (toS (M, N, U, k, C_True)) (toS (Propagated L C # M, N, U, k, C_True))"
   using assms
-  apply (auto dest!: find_first_unit_clause_some simp add: propagate_decomp)
+  apply (auto dest!: find_first_unit_clause_some simp add: propagate.simps)
   by (rule exI[of _ "mset C - {#L#}"], simp)+
 
 definition do_propagate_step where
@@ -264,7 +264,7 @@ proof (standard, standard)
     MC: "M \<Turnstile>as CNot C" and
     undef: "undefined_lit L M" and
     CL: "C + {#L#} \<in> N \<union> U"
-    by (auto simp add: propagate_decomp)
+    by (auto simp add: propagate.simps)
   let ?M = "trail S"
   let ?N = "clauses S"
   let ?U = "learned_clauses S"
@@ -313,7 +313,7 @@ lemma find_conflict_None:
 
 lemma find_conflict_None_no_confl:
   "find_conflict M (N@U) = None \<longleftrightarrow> no_step conflict (toS (M, N, U, k, C_True))"
- by (auto simp add: find_conflict_None conflict_decomp)
+ by (auto simp add: find_conflict_None conflict.simps)
 
 definition do_conflict_step where
 "do_conflict_step S =
@@ -327,7 +327,7 @@ definition do_conflict_step where
 lemma do_conflict_step:
   "do_conflict_step S \<noteq> S \<Longrightarrow> conflict (toS S) (toS (do_conflict_step S))"
   apply (cases S, cases "conflicting S")
-  unfolding conflict_decomp do_conflict_step_def
+  unfolding conflict.simps do_conflict_step_def
   by (auto simp add:  dest!:find_conflict_Some  split: option.splits)
 
 lemma do_conflict_step_no_step:
