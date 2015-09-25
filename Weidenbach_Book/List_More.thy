@@ -10,7 +10,6 @@ lemma take_upt[simp]:
   shows "take i [m..<n] = [m ..<m+i]"
   using assms by (induct i) simp_all
 
-
 lemma append_cons_eq_upt:
   assumes "A @ B = [m..<n]"
   shows "A = [m ..<m+length A]" and "B = [m + length A..<n]"
