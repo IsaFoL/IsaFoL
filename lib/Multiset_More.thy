@@ -181,7 +181,7 @@ text {*
 What is it?*)
 setup {*
   map_theory_claset (fn ctxt =>
-    ctxt addbefore ("bspec_mset", fn ctxt' => dresolve_tac ctxt' @{thms bspec} THEN' assume_tac ctxt'))
+    ctxt addbefore ("bspec_mset", fn ctxt' => dresolve_tac ctxt' @{thms bspec_mset} THEN' assume_tac ctxt'))
 *}
 
 
