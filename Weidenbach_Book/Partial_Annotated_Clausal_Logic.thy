@@ -359,7 +359,7 @@ next
     proof (cases L)
       case (Marked a l) note L = this
       hence "L \<in> ?Ls (L#M)" by auto
-      also have "?U (L#M) = ?U M" unfolding L by auto
+      moreover have "?U (L#M) = ?U M" unfolding L by auto
       moreover have "?M M = ?U M \<union> ?Ls M" using Cons.hyps by auto
       ultimately show ?thesis by auto
     next
@@ -427,7 +427,7 @@ next
       using g a by (force intro: get_all_marked_decomposition_decomp)
     hence "tl M = M0' @ M0 \<and> is_marked (hd M)" using g a by auto
   }
-  also {
+  moreover {
     fix L P
     assume a: "a = Propagated L P"
     have "tl M = M0' @ M0 \<and> is_marked (hd M)"
@@ -483,14 +483,14 @@ lemma all_decomposition_implies_cons_pair[iff]:
   unfolding all_decomposition_implies_def by auto
 
 lemma all_decomposition_implies_cons_single[iff]:
-  "all_decomposition_implies N (l # S') \<longleftrightarrow> 
+  "all_decomposition_implies N (l # S') \<longleftrightarrow>
     ((\<lambda>a. {#lit_of a#}) ` set (fst l) \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (snd l) \<and>
-      all_decomposition_implies N S')" 
+      all_decomposition_implies N S')"
   unfolding all_decomposition_implies_def by auto
 
 lemma all_decomposition_implies_trail_is_implied:
   assumes "all_decomposition_implies N (get_all_marked_decomposition M)"
-  shows "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} 
+  shows "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}
     \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition M))"
 using assms
 proof (induct "length (get_all_marked_decomposition M)" arbitrary: M)
@@ -502,7 +502,7 @@ next
     assume "length (get_all_marked_decomposition M) \<le> 1"
     then obtain a b where g: "get_all_marked_decomposition M = (a, b) # []"
       by (case_tac "get_all_marked_decomposition M") auto
-    also {
+    moreover {
       assume "a = []"
       hence ?case using Suc.prems g by auto
     }
@@ -533,7 +533,7 @@ next
       hence "get_all_marked_decomposition M' = []" using length' by auto
       hence ?case using Suc.prems unfolding all_decomposition_implies_def Ls0 by auto
     }
-    also {
+    moreover {
       assume n: "n > 0"
       then obtain Ls1 seen1 l where Ls1: "get_all_marked_decomposition M' = (Ls1, seen1) # l" using length' by (induct M', simp) (case_tac a, auto)
 
@@ -555,27 +555,27 @@ next
           using `is_marked (hd Ls0)` by (metis (mono_tags, lifting) UnCI mem_Collect_eq true_clss_cls_in)
       } note hd_Ls0 = this
 
-      have l: "(\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M')) \<union> {L |L. is_marked L \<and> L \<in> set M'}) =  (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition M')) \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'}" 
+      have l: "(\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M')) \<union> {L |L. is_marked L \<and> L \<in> set M'}) =  (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition M')) \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'}"
         by auto
-      have "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M')) \<union> {L |L. is_marked L \<and> L \<in> set M'})" 
+      have "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M')) \<union> {L |L. is_marked L \<and> L \<in> set M'})"
         unfolding l using N by (auto simp add: all_in_true_clss_clss)
-      hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl Ls0)" 
+      hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl Ls0)"
         using M' unfolding LS LSM  by auto
-      hence t: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl Ls0)" 
+      hence t: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl Ls0)"
         by (blast intro: all_in_true_clss_clss)
-      hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl Ls0)" 
-        using M'_in_M true_clss_clss_subset[OF _ t, 
-            of "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"] 
+      hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl Ls0)"
+        using M'_in_M true_clss_clss_subset[OF _ t,
+            of "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"]
         by auto
-      hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set Ls0" 
+      hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set Ls0"
         using hd_Ls0 by (case_tac Ls0, auto)
 
-      also have "(\<lambda>a. {#lit_of a#}) ` set Ls0 \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen0" 
+      moreover have "(\<lambda>a. {#lit_of a#}) ` set Ls0 \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen0"
         using Suc.prems unfolding Ls0 all_decomposition_implies_def by simp
-      ultimately have \<Psi>: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen0" 
+      ultimately have \<Psi>: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen0"
         by (meson all_in_true_clss_clss true_clss_clss_left_right true_clss_clss_union_and true_clss_clss_union_l_r)
 
-      have "(\<lambda>a. {#lit_of a#}) ` (set seen0 \<union> (\<Union>x\<in>set (get_all_marked_decomposition M'). set (snd x))) =  (\<lambda>a. {#lit_of a#}) ` set seen0 \<union> (\<lambda>a. {#lit_of a#}) ` (\<Union>x\<in>set (get_all_marked_decomposition M'). set (snd x))" 
+      have "(\<lambda>a. {#lit_of a#}) ` (set seen0 \<union> (\<Union>x\<in>set (get_all_marked_decomposition M'). set (snd x))) =  (\<lambda>a. {#lit_of a#}) ` set seen0 \<union> (\<lambda>a. {#lit_of a#}) ` (\<Union>x\<in>set (get_all_marked_decomposition M'). set (snd x))"
         by auto
 
       hence ?case unfolding Ls0 using \<Psi> \<Psi>N by simp
@@ -591,10 +591,10 @@ lemma all_decomposition_implies_propagated_lits_are_implied:
 proof -
   have "?I \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` {L |L. is_marked L \<and> L \<in> set M}"
     by (auto intro: all_in_true_clss_clss)
-  also have "?I \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition M))"
+  moreover have "?I \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition M))"
     using all_decomposition_implies_trail_is_implied assms by blast
-  ultimately have "N \<union> {{#lit_of m#} |m. is_marked m \<and> m \<in> set M} 
-    \<Turnstile>ps (\<lambda>m. {#lit_of m#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition M)) 
+  ultimately have "N \<union> {{#lit_of m#} |m. is_marked m \<and> m \<in> set M}
+    \<Turnstile>ps (\<lambda>m. {#lit_of m#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition M))
       \<union> (\<lambda>m. {#lit_of m#}) ` {m |m. is_marked m \<and> m \<in> set M}"
       by blast
   thus ?thesis
@@ -696,7 +696,7 @@ proof (intro allI impI)
   hence tot_I_A_CC_L: "total_over_m I (A \<union> {CC + {#L#}})"
     using incl tot unfolding total_over_m_def total_over_set_atm_of by auto
   hence "I \<Turnstile> CC + {#L#}" using CC_L cons I unfolding true_clss_cls_def by auto
-  also
+  moreover
     have "total_over_m I (A \<union> CNot CC)"
       using tot_I_A_CC_L by (auto simp add: total_over_m_def)
     hence "I \<Turnstile>s CNot CC" using CNot_CC cons I unfolding true_clss_clss_def by auto
@@ -800,7 +800,7 @@ lemma true_annots_lit_of_notin_skip:
 proof -
   have "\<forall> l. l \<in># A \<longrightarrow> -l \<in> lits_of (L # M)"
     using assms(1) in_CNot_implies_uminus(2) by blast
-  also
+  moreover
     have "atm_of (lit_of L) \<notin> atm_of ` lit_of ` set M"
       using assms(3) by force
     hence "- lit_of L \<notin> lits_of M" unfolding lits_of_def

@@ -144,7 +144,7 @@ lemma wf_conn_not_list_length[simp]:
   by (simp add: length_Suc_conv wf_conn.simps)
 
 
-text \<open>Decomposing the Not into an element is also very useful.\<close>
+text \<open>Decomposing the Not into an element is moreover very useful.\<close>
 lemma wf_conn_Not_decomp:
   fixes l :: "'v propo list" and a :: "'v"
   assumes corr: "wf_conn CNot l"
@@ -195,7 +195,7 @@ next
   case (wf_conn_unary \<psi>')
   hence *: "FNot \<psi>' = conn c \<psi>s" using conn_inj_not eq assms by auto
   hence "c = ca" by (metis conn_inj_not(1) corr' wf_conn_unary(2))
-  also have "\<psi>s = l" using * conn_inj_not(2) corr' wf_conn_unary(1) by force
+  moreover have "\<psi>s = l" using * conn_inj_not(2) corr' wf_conn_unary(1) by force
   ultimately show "ca = c \<and> \<psi>s = l" by auto
 next
   case (wf_conn_binary \<psi>' \<psi>'')
@@ -231,11 +231,11 @@ lemma subformula_in_binary_conn:
   and "g \<preceq> conn c [f, g]"
 proof -
   have a: "wf_conn c (f# [g])" using conn wf_conn_binary binary_connectives_def by auto
-  also have b: "f \<preceq> f" using subformula_refl by auto
+  moreover have b: "f \<preceq> f" using subformula_refl by auto
   ultimately show "f \<preceq> conn c [f, g]" by (metis append_Nil in_set_conv_decomp subformula_into_subformula)
 next
   have a: "wf_conn c ([f] @ [g])" using conn wf_conn_binary binary_connectives_def by auto
-  also have b: "g \<preceq> g" using subformula_refl by auto
+  moreover have b: "g \<preceq> g" using subformula_refl by auto
   ultimately  show "g \<preceq> conn c [f, g]" using subformula_into_subformula by force
 qed
 
@@ -321,7 +321,7 @@ proof -
       apply auto
       using conn_inj by blast
   }
-  also assume "wf_conn c l" and "\<phi> \<preceq> conn c l" and "\<forall>x::'a propo\<in>set l. \<not> \<phi> \<preceq> x"
+  moreover assume "wf_conn c l" and "\<phi> \<preceq> conn c l" and "\<forall>x::'a propo\<in>set l. \<not> \<phi> \<preceq> x"
   ultimately show "\<phi> = conn c l" by metis
 next
   fix \<psi>
@@ -415,7 +415,7 @@ next
   have "{f p |p. p \<in> insert x s} = insert (f x) {f p |p. p\<in> s}" by auto
   hence "card {f p |p. p \<in> insert x s} = 1 + card {f p |p. p \<in> s}"
     using finite card_insert_disjoint f' notin' by auto
-  also have "\<dots> =  card (insert x s)" using notin f IH by auto
+  moreover have "\<dots> =  card (insert x s)" using notin f IH by auto
   finally show "card {f p |p. p \<in> insert x s} = card (insert x s)" .
 qed
 
@@ -438,7 +438,7 @@ lemma card_seperate:
   shows "card ({L # p |p. p \<in> s1} \<union> {R # p |p. p \<in> s2}) = card ({L # p |p. p \<in> s1}) + card({R # p |p. p \<in> s2})" (is "card (?L\<union>?R) = card ?L + card ?R")
 proof -
   have "finite ?L" using assms by auto
-  also have "finite ?R" using assms by auto
+  moreover have "finite ?R" using assms by auto
   moreover have "?L \<inter> ?R = {}" by blast
   ultimately show "?thesis" using assms card_Un_disjoint by blast
 qed
@@ -459,9 +459,9 @@ proof -
   let ?R = "{R # p |p. p \<in> pos \<phi>2}"
   have "card (?L \<union> ?R) =  card ?L +  card ?R"
     using card_seperate finite_pos by blast
-  also have "\<dots> = card (pos \<phi>1) + card (pos \<phi>2)"
+  moreover have "\<dots> = card (pos \<phi>1) + card (pos \<phi>2)"
     by (simp add: cons_inject finite_inj_comp_set finite_pos)
-  also have "\<dots> \<ge> card (vars_of_prop \<phi>1) + card (vars_of_prop \<phi>2)" using IH1 IH2 by arith
+  moreover have "\<dots> \<ge> card (vars_of_prop \<phi>1) + card (vars_of_prop \<phi>2)" using IH1 IH2 by arith
   hence "\<dots> \<ge> card (vars_of_prop \<phi>1 \<union> vars_of_prop \<phi>2)" using card_Un_le le_trans by blast
   ultimately
     show "card (vars_of_prop \<phi>1 \<union> vars_of_prop \<phi>2) \<le> Suc (card (?L \<union> ?R))"
@@ -506,7 +506,7 @@ next
     hence "False" using subformula_into_subformula by auto
     hence "\<exists>p. path_to p (conn c l) \<phi>'" by blast
   }
-  also {
+  moreover {
     assume c: "c = CNot"
     hence "l = [\<psi>]" using wf \<psi> wf_conn_Not_decomp by fastforce
     hence "path_to (L # p) (conn c l) \<phi>'" by (metis c wf_conn_unary p path_to_l)
@@ -567,7 +567,7 @@ proof
       hence "A \<Turnstile> \<psi>" using H unfolding evalf_def by metis
       hence "A \<Turnstile> FImp \<phi> \<psi>" by auto
     }
-    also  {
+    moreover  {
       text \<open>For otherwise, if @{term "A(\<phi>) = 0"}, then @{term "A\<Turnstile> FImp \<phi> \<psi>"} holds by definition, independently of the value of @{term "A \<Turnstile> \<psi>"}.\<close>
       assume "\<not> A \<Turnstile> \<phi>"
       hence "A \<Turnstile> FImp \<phi> \<psi>" by auto
@@ -582,7 +582,7 @@ next
       assume "\<not>\<phi>\<Turnstile>f \<psi>"
       then obtain A where "A \<Turnstile> \<phi> \<and> \<not>A\<Turnstile>\<psi>" using evalf_def by metis
       hence "\<not> A \<Turnstile> FImp \<phi> \<psi>" by auto
-      also assume "\<forall>A. A \<Turnstile> FImp \<phi> \<psi>"
+      moreover assume "\<forall>A. A \<Turnstile> FImp \<phi> \<psi>"
       ultimately show "False" by blast
     qed
 qed

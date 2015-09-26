@@ -281,7 +281,7 @@ next
               length_takeWhile_le)
           hence tr_T: "trail T = drop (length M\<^sub>0) M' @ Marked L i # H @ M" using V by auto
           hence LT: "Marked L i \<in> set (trail T)" by auto
-          also
+          moreover
             have "decided S' T" using o nd tr_T cdcl_o_is_decided by blast
           ultimately  have "decided S' T" using cdcl_o_no_more_Marked_lit[OF o] by blast
           then have 1: "cdcl_s\<^sup>*\<^sup>* S S'" and 2: "decided S' T" and 3: "cdcl_s\<^sup>*\<^sup>* T U"
@@ -327,7 +327,7 @@ next
         10: "cdcl_s\<^sup>*\<^sup>* S''' T"
            by blast
       have "cdcl_s\<^sup>*\<^sup>* S'' U" using s `cdcl_s\<^sup>*\<^sup>* S'' T ` by auto
-      also have "cdcl_s\<^sup>*\<^sup>* S' U" using "8" s by auto
+      moreover have "cdcl_s\<^sup>*\<^sup>* S' U" using "8" s by auto
       moreover have "cdcl_s\<^sup>*\<^sup>* S''' U" using 10 s by auto
       ultimately show ?thesis apply - apply (rule exI[of _ S'], rule exI[of _ S''])
         using 1 2 4 5 6 7 8 9  by blast
@@ -385,7 +385,7 @@ lemma beginning_not_marked_invert:
 proof -
   have "A = drop (length M) (M' @ Marked K i # H)"
     using arg_cong[OF A, of "drop (length M)"] by auto
-  also have "drop (length M) (M' @ Marked K i # H) = drop (length M) M' @ Marked K i # H"
+  moreover have "drop (length M) (M' @ Marked K i # H) = drop (length M) M' @ Marked K i # H"
     using nm by (metis (no_types, lifting) A drop_Cons' drop_append marked_lit.disc(1) not_gr0
       nth_append nth_append_length nth_mem zero_less_diff)
   finally show ?thesis by fast
@@ -495,10 +495,10 @@ proof (induction rule: cdcl_o_induct)
           hence "L' \<in>#  D" using DLD' by (metis add.left_neutral count_single count_union diff_union_cancelR neq0_conv union_single_eq_member)
           hence "get_level L' M \<le> get_maximum_level D M"
             using get_maximum_level_ge_get_level by blast
-          also {
+          moreover {
             have "get_maximum_level D M = get_maximum_level D H"
               using DH unfolding M by (simp add: get_maximum_level_skip_beginning)
-            also
+            moreover
               have "get_all_levels_of_marked M = rev [1..<1 + k]"
                 using lev unfolding cdcl_M_level_inv_def by (auto simp del: upt.simps)
               hence "get_all_levels_of_marked H = rev [1..< i]"
@@ -541,7 +541,7 @@ proof (induction rule: cdcl_o_induct)
             simp del: upt.simps dest!: append_cons_eq_upt_length_i)
         hence False using d by auto
       }
-      also {
+      moreover {
         assume D[simp]: "D' \<noteq> {#}"
         have "i \<le> j"
           using H unfolding M3 d by (auto simp add: rev_swap[symmetric]
@@ -561,7 +561,7 @@ proof (induction rule: cdcl_o_induct)
                 using H unfolding M
                 by (auto simp add: rev_swap[symmetric] simp del: upt.simps
                   dest!: append_cons_eq_upt_length_i)
-              also have "get_level L'' M = get_level L'' H"
+              moreover have "get_level L'' M = get_level L'' H"
                 using L''H unfolding M by simp
               ultimately have False
                 using levD `j>0` get_rev_level_in_levels_of_marked[of L'' 0 "rev H"] `i \<le> j`
@@ -704,7 +704,7 @@ proof -
       have MLs: "M = ?Ls @ dropWhile (Not o is_marked) M"
         by auto
       have "dropWhile (Not o is_marked) M \<noteq> []" unfolding M by auto
-      also from hd_dropWhile[OF this] have "is_marked(hd (dropWhile (Not o is_marked) M))"
+      moreover from hd_dropWhile[OF this] have "is_marked(hd (dropWhile (Not o is_marked) M))"
         by simp
       ultimately obtain K Kk where
         Kk: "dropWhile (Not o is_marked) M = Marked K Kk # tl (dropWhile (Not o is_marked) M)"
@@ -778,7 +778,7 @@ proof -
       using propagate_rule[OF _ DL M1'_D L_trY] Y_CT trY DL by fast
     hence False using `no_step propagate Y` by blast
   }
-  also {
+  moreover {
     assume DL: "D + {#L#} \<notin> clauses Y \<union> learned_clauses Y"
     have lY_lZ: "learned_clauses Y = learned_clauses Z"
       using dec Y'Z rtranclp_cdcl_cp_learned_clause_inv[of Y' Z] unfolding full0_def
@@ -832,7 +832,7 @@ proof -
     using assms simplified_in_build_all unfolding distinct_cdcl_state_def by auto
   hence "card (learned_clauses S) \<le> card (build_all_simple_clss (atms_of_m (learned_clauses S)))"
     by (simp add: build_all_simple_clss_finite card_mono)
-  also have "finite (atms_of_m (learned_clauses S))" using assms(3) by fastforce
+  moreover have "finite (atms_of_m (learned_clauses S))" using assms(3) by fastforce
   ultimately show ?thesis by (meson build_all_simple_clss_card le_less_trans not_less)
 qed
 
@@ -876,7 +876,7 @@ proof (induct rule: cdcl_all_induct)
   thus ?case by simp
 next
   case (decided M N U k L) note p = this(5,6,7)
-  also
+  moreover
     have no_dup: "no_dup (Marked L (k + 1) # M)"
       using decided(7) other[OF cdcl_o.decided[OF deciding[OF _ decided.hyps]]] cdcl_consistent_inv
       unfolding cdcl_M_level_inv_def by fast
@@ -887,7 +887,7 @@ next
   ultimately show ?case unfolding decided.hyps(1) by force
 next
   case (skip M N L C' D k U) note  p = this(5,6,7)
-  also
+  moreover
     have  "atm_of ` lits_of (Propagated L C' # M) \<subseteq> (atms_of_m N)"
       using skip.prems(4) unfolding no_strange_atm_def by auto
     hence "card (atm_of ` lits_of (Propagated L C' # M)) \<le> card (atms_of_m N)"
@@ -909,11 +909,11 @@ next
     using backtrack.prems(3) backtracking[OF _ backtrack.hyps(1-4)] unfolding S by auto
   hence "card (insert (D + {#L#}) U) = Suc (card U)" by (simp add: `finite U`)
   have "distinct_cdcl_state ?S'" using backtrack.prems(9) cdcl_o.backtrack[OF backtracking[OF _ backtrack.hyps]] distinct_cdcl_state_inv cdcl.other by blast
-  also have "\<forall>s\<in>learned_clauses ?S'. \<not> tautology s" using learned_clauses_are_not_tautologies[OF cdcl.other[OF cdcl_o.backtrack[OF backtracking[OF _ backtrack.hyps]]]] backtrack.prems(5,8,10) by auto
+  moreover have "\<forall>s\<in>learned_clauses ?S'. \<not> tautology s" using learned_clauses_are_not_tautologies[OF cdcl.other[OF cdcl_o.backtrack[OF backtracking[OF _ backtrack.hyps]]]] backtrack.prems(5,8,10) by auto
   moreover have "finite (learned_clauses ?S')" using `finite U` by auto
   moreover have "card (atms_of_m (learned_clauses (M, N, U, k, C_Clause (D + {#L#})))) \<le> card (atms_of_m N)" using backtrack.prems(4,6) card_mono[OF backtrack.prems(6)] local.backtrack(1) unfolding no_strange_atm_def by auto
   ultimately have "card (U \<union> {D + {#L#}}) \<le> 3 ^ card (atms_of_m (U \<union> {D + {#L#}}))" using learned_clauses_less_upper_bound[of ?S'] by auto
-  also
+  moreover
     have "atms_of_m (U \<union> {D + {#L#}}) \<subseteq> atms_of_m N" using backtrack.prems(4) local.backtrack(1) unfolding no_strange_atm_def by auto
     hence "card (atms_of_m (U \<union> {D + {#L#}})) \<le> card (atms_of_m N)" using card_mono backtrack.prems(6) unfolding S by fastforce
     hence "(3::nat) ^ card (atms_of_m (U \<union> {D + {#L#}})) \<le> 3 ^ card (atms_of_m N)" by simp
@@ -993,7 +993,7 @@ next
   case (step T U) note st = this(1) and step = this(2) and IH =this(3) and inv = this(4)
   hence "(cdcl_measure T, cdcl_measure S) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3" by blast
 
-  also have "(cdcl_measure U, cdcl_measure T) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3"
+  moreover have "(cdcl_measure U, cdcl_measure T) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3"
     using cdcl_cp_measure_decreasing[OF step] rtranclp_cdcl_all_inv_mes_inv inv
     tranclp_cdcl_cp_tranclp_cdcl[OF st]
     unfolding trans_def rtranclp_unfold
@@ -1026,7 +1026,7 @@ proof -
       have "(cdcl_measure U, cdcl_measure T) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3 \<or>
         cdcl_measure U = cdcl_measure T"
         using cp unfolding full0_def rtranclp_unfold by blast
-      also
+      moreover
         from H have "(cdcl_measure T, cdcl_measure S) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3"
         proof (induction)
           case (decided S T)
@@ -1094,7 +1094,7 @@ shows " wf {(y,h x)| y x. P x \<and> g x y}"
 proof -
   have "wf {(b, h a)|b a. (f b, f (h a)) \<in> r}" using assms(1) wf_if_measure_f_notation2 by auto
   hence "wf {(b, h a)|b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r}" using wf_subset[of _ "{(b, h a)| b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r}"] by auto
-  also have "{(b, h a)|b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r} \<subseteq> {(b, h a)|b a. (f b, f (h a)) \<in> r}" by auto
+  moreover have "{(b, h a)|b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r} \<subseteq> {(b, h a)|b a. (f b, f (h a)) \<in> r}" by auto
   moreover have "{(b, h a)|b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r} = {(b, h a)|b a. P a \<and> g a b}" using H by auto
   ultimately show ?thesis using wf_subset by simp
 qed

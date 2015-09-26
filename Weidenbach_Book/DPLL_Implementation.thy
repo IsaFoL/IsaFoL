@@ -173,7 +173,7 @@ proof -
       using Ms undef C `L \<in> set C` unfolding mem_set_multiset_eq by (auto simp add: C)
     hence ?thesis using Ms'N by auto
   }
-  also
+  moreover
   { assume unit: "find_first_unit_clause N Ms = None"
     assume exC: "\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C)"
     then obtain C where C: "C \<in> set N" and Ms: "Ms \<Turnstile>as CNot (mset C)" by auto
@@ -183,7 +183,7 @@ proof -
     have 1: "dpll (Ms, set (map mset N)) (Propagated (- lit_of L) Proped # M, snd (Ms, set (map mset N)))"
       apply (rule dpll.backtrack[OF _ `is_marked L`, of ])
       using C Ms bt by auto
-    also have "(Ms', N') = (Propagated (- (lit_of L)) Proped # M, N)"
+    moreover have "(Ms', N') = (Propagated (- (lit_of L)) Proped # M, N)"
       using step exC unfolding DPLL_step_def bt prod.case unit by auto
     ultimately have ?thesis by auto
   }
@@ -196,7 +196,7 @@ proof -
     apply (rule dpll.decided[of L ?S], auto)
       using find_first_unused_var_Some[OF unused] apply (metis Marked_Propagated_in_iff_in_lits_of)
     using find_first_unused_var_Some[OF unused] unfolding atms_of_m_def by auto
-   also have "(Ms', N') = (Marked L Level # Ms, N)"
+   moreover have "(Ms', N') = (Marked L Level # Ms, N)"
      using step exC unfolding DPLL_step_def unused prod.case unit by auto
     ultimately have ?thesis by auto
   }
@@ -238,7 +238,7 @@ proof -
   { assume "\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C)"
      hence ?thesis  unfolding final_dpll_state_def using bt backtrack_snd_empty_not_marked[of Ms] by simp (metis (no_types) prod.collapse)
   }
-  also {
+  moreover {
     assume n: "\<not> (\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C))"
     hence "find_first_unused_var N (lits_of Ms) = None"
       using step unfolding DPLL_step_def by (simp add: unit split: option.splits)
@@ -248,7 +248,7 @@ proof -
         fix x
         assume x: "x \<in> snd (toS Ms N)"
         hence "\<not>Ms \<Turnstile>as CNot  x" using n unfolding true_annots_def CNot_def Ball_def by simp blast
-        also have "total_over_m (lits_of Ms) {x}"
+        moreover have "total_over_m (lits_of Ms) {x}"
           using a x unfolding total_over_m_def total_over_set_def lits_of_def apply auto
           using  image_iff in_mono atms_of_s_def lits_of_def by fastforce
         ultimately show " fst (toS Ms N) \<Turnstile>a x" using total_not_CNot_imp[of "lits_of Ms" x] by (simp add: true_annot_def true_annots_true_cls)
@@ -307,10 +307,10 @@ proof (induct rule: DPLL_ci.induct)
   { assume "(Ms', N) \<noteq> (Ms, N)"
     hence "DPLL_ci Ms' N = DPLL_part Ms' N \<and> DPLL_part_dom (Ms', N)" using 1(1)[of _ Ms' N] Ms' 1(2) inv' by auto
     hence "DPLL_part_dom (Ms, N)" using DPLL_part.domintros Ms' by fastforce
-    also have "DPLL_ci Ms N = DPLL_part Ms N" using "1.prems" DPLL_part.psimps Ms' `DPLL_ci Ms' N = DPLL_part Ms' N \<and> DPLL_part_dom (Ms', N)` `DPLL_part_dom (Ms, N)` by auto
+    moreover have "DPLL_ci Ms N = DPLL_part Ms N" using "1.prems" DPLL_part.psimps Ms' `DPLL_ci Ms' N = DPLL_part Ms' N \<and> DPLL_part_dom (Ms', N)` `DPLL_part_dom (Ms, N)` by auto
     ultimately have ?case by blast
   }
-  also {
+  moreover {
     assume "(Ms', N) = (Ms, N)"
     hence ?case using DPLL_part.domintros DPLL_part.psimps Ms' by fastforce
   }
@@ -336,7 +336,7 @@ proof (induct Ms N arbitrary: Ms' N' rule: DPLL_ci.induct)
     hence "(Ms, N) = (Ms', N)" using step by auto
     hence ?case by auto
   }
-  also
+  moreover
   { assume "dpll_all_inv (toS Ms N)"
     and "(S\<^sub>1, S\<^sub>2) = (Ms, N)"
     hence ?case using S step by auto
@@ -344,7 +344,7 @@ proof (induct Ms N arbitrary: Ms' N' rule: DPLL_ci.induct)
   moreover
   { assume "dpll_all_inv (toS Ms N)"
     and "(S\<^sub>1, S\<^sub>2) \<noteq> (Ms, N)"
-    also obtain S\<^sub>1' S\<^sub>2' where "DPLL_ci S\<^sub>1 N = (S\<^sub>1', S\<^sub>2')" by (case_tac "DPLL_ci S\<^sub>1 N") auto
+    moreover obtain S\<^sub>1' S\<^sub>2' where "DPLL_ci S\<^sub>1 N = (S\<^sub>1', S\<^sub>2')" by (case_tac "DPLL_ci S\<^sub>1 N") auto
     moreover have "DPLL_ci Ms N = DPLL_ci S\<^sub>1 N" using DPLL_ci.simps[of Ms N] calculation
       proof -
         have "(case (S\<^sub>1, S\<^sub>2) of (ms, lss) \<Rightarrow> if (ms, lss) = (Ms, N) then (Ms, N) else DPLL_ci ms N) = DPLL_ci Ms N"
@@ -356,7 +356,7 @@ proof (induct Ms N arbitrary: Ms' N' rule: DPLL_ci.induct)
       qed
     ultimately have "dpll\<^sup>*\<^sup>* (toS S\<^sub>1' N) (toS Ms' N)" using IH[of "(S\<^sub>1, S\<^sub>2)" S\<^sub>1 S\<^sub>2] S step by simp
 
-    also have "dpll (toS Ms N) (toS S\<^sub>1 N)" by (metis DPLL_step_is_a_dpll_step S `(S\<^sub>1, S\<^sub>2) \<noteq> (Ms, N)` prod.sel(2) snd_DPLL_step)
+    moreover have "dpll (toS Ms N) (toS S\<^sub>1 N)" by (metis DPLL_step_is_a_dpll_step S `(S\<^sub>1, S\<^sub>2) \<noteq> (Ms, N)` prod.sel(2) snd_DPLL_step)
     ultimately have ?case by (metis (mono_tags, hide_lams) IH S `(S\<^sub>1, S\<^sub>2) \<noteq> (Ms, N)` `DPLL_ci Ms N = DPLL_ci S\<^sub>1 N` `dpll_all_inv (toS Ms N)` converse_rtranclp_into_rtranclp local.step)
   }
   ultimately show ?case by blast
@@ -404,7 +404,7 @@ proof (induct rule: DPLL_ci.induct)
   { assume "\<not> dpll_all_inv (toS Ms N)"
     hence ?case using that by auto
   }
-  also {
+  moreover {
     assume n: "(S, N) \<noteq> (Ms, N)"
     and inv: "dpll_all_inv (toS Ms N)"
     have "\<exists>ms. DPLL_step (Ms, N) = (ms, N)"
@@ -431,7 +431,7 @@ proof (induct arbitrary: Ms' N' rule: DPLL_ci.induct)
   { assume "\<not>dpll_all_inv (toS Ms N)"
     hence ?case using step by auto
   }
-  also {
+  moreover {
     assume "dpll_all_inv (toS Ms N)"
     and "(S\<^sub>1, N) = (Ms, N)"
     hence ?case using S step by auto
@@ -517,11 +517,11 @@ next
   and "x \<noteq> S"
   have "dpll_all_inv (case rough_state_of S of (Ms, N) \<Rightarrow> (Ms, mset ` set N))"
     by (metis (no_types, lifting) case_prodE rough_state_of mem_Collect_eq old.prod.case set_map)
-  also have "dpll (case rough_state_of S of (Ms, N) \<Rightarrow> (Ms, mset ` set N)) (case rough_state_of (DPLL_step' S) of (Ms, N) \<Rightarrow> (Ms, mset ` set N))"
+  moreover have "dpll (case rough_state_of S of (Ms, N) \<Rightarrow> (Ms, mset ` set N)) (case rough_state_of (DPLL_step' S) of (Ms, N) \<Rightarrow> (Ms, mset ` set N))"
     proof -
       obtain Ms N where Ms: "(Ms, N) = rough_state_of S" by (cases "rough_state_of S") auto
       have "dpll_all_inv (toS' (Ms, N))" unfolding Ms by (simp add: calculation)
-      also obtain Ms' N' where Ms': "(Ms', N') = rough_state_of (DPLL_step' S)" by (cases "rough_state_of (DPLL_step' S)") auto
+      moreover obtain Ms' N' where Ms': "(Ms', N') = rough_state_of (DPLL_step' S)" by (cases "rough_state_of (DPLL_step' S)") auto
       ultimately have "dpll_all_inv (toS' (Ms', N'))" unfolding Ms' by (metis (no_types, lifting) case_prod_unfold mem_Collect_eq rough_state_of)
 
       have "dpll (toS Ms N) (toS Ms' N')"
@@ -582,7 +582,7 @@ proof (induction arbitrary: S' rule: DPLL_tot.induct)
   { assume "?x = S"
     then have ?case using 1(2) by simp
   }
-  also {
+  moreover {
     assume S: "?x \<noteq> S"
     have ?case
       by (smt "1.IH" "1.prems" DPLL_step_is_a_dpll_step DPLL_tot.simps rough_state_of_DPLL_step'_DPLL_step rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl rtranclp_idemp splitE2 split_conv)
@@ -602,7 +602,7 @@ lemma DPLL_tot_correct:
   shows "M' \<Turnstile>as N'' \<longleftrightarrow> satisfiable N''"
 proof -
   have "dpll\<^sup>*\<^sup>* (toS' ([], N)) (toS' (M, N'))" using DPLL_tot_star[OF assms(1)] by auto
-  also have "final_dpll_state (toS' (M, N'))" using DPLL_tot_final_state by (metis (mono_tags, lifting) DOPLL_step'_DPLL_tot DPLL_tot.simps assms(1))
+  moreover have "final_dpll_state (toS' (M, N'))" using DPLL_tot_final_state by (metis (mono_tags, lifting) DOPLL_step'_DPLL_tot DPLL_tot.simps assms(1))
   moreover have "finite (set (map mset N))" by auto
   ultimately show ?thesis using dpll_completeness' by (smt DPLL_ci.simps DPLL_ci_dpll_rtranclp assms(2) dpll_all_inv_def prod.case prod.sel(1) prod.sel(2) rtranclp_dpll_inv(3) rtranclp_dpll_inv_starting_from_0)
 qed

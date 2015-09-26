@@ -15,7 +15,7 @@ lemma append_cons_eq_upt:
   shows "A = [m ..<m+length A]" and "B = [m + length A..<n]"
 proof -
   have "take (length A) (A @ B) = A" by auto
-  also
+  moreover
     have "length A \<le> n - m" using assms linear calculation by fastforce
     hence "take (length A) [m..<n] = [m ..<m+length A]" by auto
   ultimately show "A = [m ..<m+length A]" using assms by auto
@@ -51,7 +51,7 @@ lemma append_cons_eq_upt_length_i:
 proof -
   have "A = [m ..< m + length A]" using assms append_cons_eq_upt by auto
   have "(A @ i # B) ! (length A) = i" by auto
-  also have "n - m = length (A @ i # B)"
+  moreover have "n - m = length (A @ i # B)"
     using assms length_upt by presburger
   hence "[m..<n] ! (length A) = m + length A" by simp
   ultimately have "i = m + length A" using assms by auto
@@ -80,7 +80,7 @@ lemma append_cons_eq_upt_length_i_end:
 proof -
   have "B = [Suc m + length A..<n]" using assms append_cons_eq_upt[of "A @ [i]" B m n] by auto
   have "(A @ i # B) ! (length A) = i" by auto
-  also have "n - m = length (A @ i # B)"
+  moreover have "n - m = length (A @ i # B)"
     using assms length_upt by auto
   hence "[m..<n]! (length A) = m + length A" by simp
   ultimately have "i = m + length A" using assms by auto
@@ -118,7 +118,7 @@ proof (intro allI impI)
       case le
       hence "as ! ?k = bs ! ?k" unfolding as bs by (simp add: nth_append)
       hence "(as ! ?k, cs ! ?k) \<in> r" using b'c'r unfolding bs' cs by auto
-      also
+      moreover
         have "length bcs < length as" using le unfolding as by simp
         from id_take_nth_drop[OF this] have "as = take ?k as @ as ! ?k # drop (Suc ?k) as" .
       moreover
@@ -132,7 +132,7 @@ proof (intro allI impI)
       case ge
       hence "bs ! ?k = cs ! ?k" unfolding bs' cs by (simp add: nth_append)
       hence "(as ! ?k, cs ! ?k) \<in> r" using abr unfolding as bs by auto
-      also
+      moreover
         have "length abs < length as" using ge unfolding as by simp
         from id_take_nth_drop[OF this] have "as = take ?k as @ as ! ?k # drop (Suc ?k) as" .
       moreover
@@ -180,7 +180,7 @@ shows " wf {(y,x). P x \<and> g x y}"
 proof -
   have "wf {(b, a). (f b, f a) \<in> r}" using assms(1) wf_if_measure_f by auto
   hence "wf {(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r}" using wf_subset[of _ "{(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r}"] by auto
-  also have "{(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r} \<subseteq> {(b, a). (f b, f a) \<in> r}" by auto
+  moreover have "{(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r} \<subseteq> {(b, a). (f b, f a) \<in> r}" by auto
   moreover have "{(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r} = {(b, a). P a \<and> g a b}" using H by auto
   ultimately show ?thesis using wf_subset by simp
 qed

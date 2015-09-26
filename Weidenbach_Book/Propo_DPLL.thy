@@ -62,7 +62,7 @@ proof (induct rule: dpll.induct)
     using backtrack_split_list_eq[of "trail S", symmetric] unfolding extracted by auto
   hence cons: "consistent_interp (insert (lit_of L) (lits_of M))"
     using consistent_interp_subset cons by blast
-  also
+  moreover
     have "lit_of L \<notin> lits_of M"
       using no_dup backtrack_split_list_eq[of "trail S", symmetric] extracted
       unfolding lits_of_def by force
@@ -85,7 +85,7 @@ proof (induct rule: dpll.induct)
   case (backtrack S M' L M D)
   hence "atm_of (lit_of L) \<in> atms_of_m (clauses S)"
     using backtrack_split_list_eq[of "trail S", symmetric] by auto
-  also
+  moreover
     have "atm_of ` lit_of ` set (trail S) \<subseteq> atms_of_m (clauses S)" using backtrack(5) by simp
     then have "\<And>xb. xb \<in> set M \<Longrightarrow> atm_of (lit_of xb) \<in> atms_of_m (clauses S)"
       using backtrack_split_list_eq[symmetric, of "trail S"] backtrack.hyps(1) by auto
@@ -109,17 +109,17 @@ next
   case (propagate C L S) note inS = this(1) and cnot = this(2) and IH = this(4) and undef = this(3) and atms_incl = this(5)
   let ?I = "set (map (\<lambda>a. {#lit_of a#}) (trail S)) \<union> (clauses S) "
   have "?I \<Turnstile>p C + {#L#}" by (auto simp add: inS)
-  also have "?I \<Turnstile>ps CNot C" using true_annots_true_clss_cls cnot by fastforce
+  moreover have "?I \<Turnstile>ps CNot C" using true_annots_true_clss_cls cnot by fastforce
   ultimately have "?I \<Turnstile>p {#L#}" using true_clss_cls_plus_CNot[of ?I C L] inS by blast
   {
     assume "get_all_marked_decomposition (trail S) = []"
     hence ?case by blast
   }
-  also {
+  moreover {
     assume n: "get_all_marked_decomposition (trail S) \<noteq> []"
     have 1: "\<And>a b. (a, b) \<in> set (tl (get_all_marked_decomposition (trail S))) \<Longrightarrow> ((\<lambda>a. {#lit_of a#}) ` set a \<union> clauses S) \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set b"
       using IH unfolding all_decomposition_implies_def by (fastforce simp add: list.set_sel(2) n)
-    also have 2: "\<And>a c. hd (get_all_marked_decomposition (trail S)) = (a, c) \<Longrightarrow> ((\<lambda>a. {#lit_of a#}) ` set a \<union> clauses S) \<Turnstile>ps ((\<lambda>a. {#lit_of a#}) ` set c)"
+    moreover have 2: "\<And>a c. hd (get_all_marked_decomposition (trail S)) = (a, c) \<Longrightarrow> ((\<lambda>a. {#lit_of a#}) ` set a \<union> clauses S) \<Turnstile>ps ((\<lambda>a. {#lit_of a#}) ` set c)"
       by (metis IH all_decomposition_implies_cons_pair all_decomposition_implies_single list.collapse n)
     moreover have 3: "\<And>a c. hd (get_all_marked_decomposition (trail S)) = (a, c) \<Longrightarrow> ((\<lambda>a. {#lit_of a#}) ` set a \<union> clauses S) \<Turnstile>p {#L#}"
       proof -
@@ -152,7 +152,7 @@ next
     by (metis (no_types) IH extracted get_all_marked_decomposition_backtrack_split list.exhaust_sel)
   hence 1: "(\<lambda>a. {#lit_of a#}) ` set (L # M) \<union> clauses S \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M'"
     by simp
-  also
+  moreover
     have "(\<lambda>a. {#lit_of a#}) ` set (L # M) \<union> (\<lambda>a. {#lit_of a#}) ` set M' \<Turnstile>ps CNot D"
       by (metis (mono_tags, lifting) S Un_commute cons image_Un set_append
         true_annots_true_clss_clss)
@@ -177,7 +177,7 @@ next
         using x
         by (cases "get_all_marked_decomposition ?M'")
            auto
-      also {
+      moreover {
         assume x': "x \<in> set ?tl"
         have L': "Marked (lit_of L) Level = L" using marked by (case_tac L, auto)
         have "x \<in> set (get_all_marked_decomposition (M' @ L # M))"
@@ -207,7 +207,7 @@ next
         hence "M = M0' @ M0" using get_all_marked_decomposition_hd_hd by fastforce
         hence IL':  "(\<lambda>a. {#lit_of a#}) ` set M0 \<union> clauses S \<union> (\<lambda>a. {#lit_of a#}) ` set M0' \<Turnstile>ps  {{#- lit_of L#}}"
           using IL by (simp add: Un_commute Un_left_commute image_Un)
-        also have H: "(\<lambda>a. {#lit_of a#}) ` set M0 \<union> clauses S \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M0'"
+        moreover have H: "(\<lambda>a. {#lit_of a#}) ` set M0 \<union> clauses S \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M0'"
           using IH x'' unfolding all_decomposition_implies_def by (metis (no_types, lifting) L0 S list.set_sel(1) list.set_sel(2) old.prod.case tl tl_Nil)
         ultimately have "case x of (Ls, seen) \<Rightarrow> (\<lambda>a. {#lit_of a#}) ` set Ls \<union> clauses S \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen"
           using true_clss_clss_left_right unfolding x'' by auto
@@ -303,7 +303,7 @@ proof (induct rule: rtranclp.induct)
   and "no_dup (trail S)" by auto
 next
   case (rtrancl_into_rtrancl S S' S'') note dpllStar = this(1) and IH = this(2,3,4,5,6,7) and dpll = this(8)
-  also assume inv: "all_decomposition_implies (clauses S) (get_all_marked_decomposition (trail S))"
+  moreover assume inv: "all_decomposition_implies (clauses S) (get_all_marked_decomposition (trail S))"
   and atm_incl: "atm_of ` lit_of ` (set (trail S))  \<subseteq> atms_of_m (clauses S)"
   and cons: "consistent_interp (lits_of (trail S))"
   and "no_dup (trail S)"
@@ -361,9 +361,9 @@ proof (induct M)
 next
   case (Cons L M)
   hence "undefined_lit L (map (\<lambda>M. Marked M Level) M)" unfolding defined_lit_def consistent_interp_def by auto
-  also have "atm_of L \<in> atms_of_m N" using Cons.prems(3) by auto
+  moreover have "atm_of L \<in> atms_of_m N" using Cons.prems(3) by auto
   ultimately have "dpll (map (\<lambda>M. Marked M Level) M, N) (map (\<lambda>M. Marked M Level) (L # M), N)" using dpll.decided by auto
-  also have "consistent_interp (set M)" and "distinct M" and "atm_of ` set M \<subseteq> atms_of_m N" using Cons.prems unfolding consistent_interp_def by auto
+  moreover have "consistent_interp (set M)" and "distinct M" and "atm_of ` set M \<subseteq> atms_of_m N" using Cons.prems unfolding consistent_interp_def by auto
   ultimately show ?case using Cons.hyps by auto
 qed
 
@@ -393,7 +393,7 @@ proof
   let ?M'= "lits_of M"
   assume ?A
   hence "?M' \<Turnstile>s N" by (simp add: true_annots_true_cls)
-  also have "consistent_interp ?M'" using rtranclp_dpll_inv_starting_from_0[OF assms(1)] assms(3) by auto
+  moreover have "consistent_interp ?M'" using rtranclp_dpll_inv_starting_from_0[OF assms(1)] assms(3) by auto
   ultimately show ?B by auto
 next
   assume ?B
@@ -406,7 +406,7 @@ next
           hence "(\<exists>L. undefined_lit L M \<and> atm_of L \<in> atms_of D) \<or> M \<Turnstile>as CNot D" unfolding true_annots_def Ball_def CNot_def true_annot_def using atm_of_lit_in_atms_of true_annot_iff_marked_or_true_lit true_cls_def by blast
           thus ?thesis using D by auto (metis atms_of_atms_of_m_mono subsetCE)
         qed
-      also {
+      moreover {
         assume "\<exists>L. undefined_lit L M \<and> atm_of L \<in> atms_of_m N"
         hence False using assms(2) decided by fastforce
       }
@@ -415,11 +415,11 @@ next
         then obtain D where DN: "D \<in> N" and MD: "M \<Turnstile>as CNot D" by metis
         {
           assume "\<forall>l \<in> set M. \<not> is_marked l"
-          also have "dpll_all_inv ([], N)" using assms unfolding all_decomposition_implies_def dpll_all_inv_def by auto
+          moreover have "dpll_all_inv ([], N)" using assms unfolding all_decomposition_implies_def dpll_all_inv_def by auto
           ultimately have "unsatisfiable N" using only_propagated_vars_unsat[of M D N] DN MD rtranclp_dpll_all_inv[OF assms(1)] assms(3) by force
           hence False using `?B` by blast
         }
-        also {
+        moreover {
           assume l: "\<exists>l \<in> set M. is_marked l"
           hence False using backtrack[of "(M, N)" _ _ _ D ] DN MD assms(2) backtrack_split_some_is_marked_then_snd_has_hd[OF l] by (metis backtrack_split_snd_hd_marked fst_conv list.distinct(1) list.sel(1) snd_conv)
         }
@@ -477,7 +477,7 @@ proof -
   hence 1: "length (trail S) \<le> card (atms_of_m (clauses S))"
     using distinctcard_atm_of_lit_of_eq_length[OF no_dup] atm_incl card_mono by metis
 
-  also
+  moreover
     have no_dup': "no_dup (trail S')" using dpll dpll_distinctinv no_dup by blast
     have SS': "clauses S' = clauses S" using dpll dpll_same_clauses by blast
     have atm_incl': "atm_of ` lit_of ` (set (trail S'))  \<subseteq> atms_of_m (clauses S')"
@@ -525,7 +525,7 @@ proof
       next
         case (trancl_into_trancl S S' S'')
         hence "(S', S) \<in> {a. case a of (S', S) \<Rightarrow> dpll_all_inv S \<and> dpll S S'}\<^sup>+" by blast
-        also have "dpll_all_inv S'"
+        moreover have "dpll_all_inv S'"
           using rtranclp_dpll_all_inv[OF tranclp_into_rtranclp[OF trancl_into_trancl.hyps(1)]]
           trancl_into_trancl.prems by auto
         ultimately have "(S'', S') \<in> {(pa, p). dpll_all_inv p \<and> dpll p pa}\<^sup>+"
@@ -569,7 +569,7 @@ proof -
     proof (rule ccontr)
       assume not_final: "\<not> ?thesis"
       hence "\<not> trail S \<Turnstile>as clauses S" and "(\<exists>L\<in>set (trail S). is_marked L) \<or> (\<forall>C\<in>clauses S. \<not>trail S \<Turnstile>as CNot C)"  unfolding final_dpll_state_def by auto
-      also {
+      moreover {
         assume "(\<exists>L\<in>set (trail S). is_marked L)"
         then obtain L M' M where L: "backtrack_split (trail S) = (M', L # M)"
           using backtrack_split_some_is_marked_then_snd_has_hd by blast
@@ -579,7 +579,7 @@ proof -
           using vars unfolding atms_of_m_def by blast
         hence "trail S \<Turnstile>as CNot D"
           using all_variables_defined_not_imply_cnot[of D] `\<not> trail S \<Turnstile>a D` by auto
-        also have "is_marked L"
+        moreover have "is_marked L"
           using L by (metis backtrack_split_snd_hd_marked list.distinct(1) list.sel(1) snd_conv)
         ultimately have False
           using assms(1) dpll.backtrack L `D \<in> clauses S` `trail S \<Turnstile>as CNot D` by blast
@@ -607,7 +607,7 @@ proof
   let ?M'= "lits_of M"
   assume ?A
   hence "?M' \<Turnstile>s N" by (simp add: true_annots_true_cls)
-  also have "consistent_interp ?M'"
+  moreover have "consistent_interp ?M'"
     using rtranclp_dpll_inv_starting_from_0[OF assms(1)] assms(3) by auto
   ultimately show ?B by auto
 next
@@ -617,7 +617,7 @@ next
       assume n: "\<not> ?A"
       have no_mark: "\<forall>L\<in>set M. \<not> is_marked L"  "\<exists>C \<in> N. M \<Turnstile>as CNot C"
         using n assms(2) unfolding final_dpll_state_def by auto
-      also obtain D where DN: "D \<in> N" and MD: "M \<Turnstile>as CNot D" using no_mark by metis
+      moreover obtain D where DN: "D \<in> N" and MD: "M \<Turnstile>as CNot D" using no_mark by metis
       ultimately have "unsatisfiable N"
         using only_propagated_vars_unsat rtranclp_dpll_all_inv[OF assms(1)] assms(3)
         unfolding dpll_all_inv_def by force

@@ -70,7 +70,7 @@ lemma no_equiv_elim_equiv_step:
   shows "\<exists>\<psi> \<psi>'. \<psi> \<preceq> \<phi> \<and> elim_equiv \<psi> \<psi>' "
 proof -
   have test_symb_false_nullary: "\<forall>x::'v. no_equiv_symb FF \<and> no_equiv_symb FT \<and> no_equiv_symb (FVar x)" unfolding no_equiv_def by auto
-  also {
+  moreover {
     fix c:: "'v connective" and  l :: "'v propo list" and \<psi> :: "'v propo"
       assume a1: "elim_equiv (conn c l) \<psi>"
       have "\<And>p pa. \<not> elim_equiv (p::'v propo) pa \<or> \<not> no_equiv_symb p"
@@ -163,7 +163,7 @@ lemma no_no_imp_elim_imp_step_exists:
 proof -
   have test_symb_false_nullary: "\<forall>x. no_imp_symb FF \<and> no_imp_symb FT \<and> no_imp_symb (FVar (x:: 'v))"
     by auto
-  also {
+  moreover {
      fix c:: "'v connective" and  l :: "'v propo list" and \<psi> :: "'v propo"
      have H: "elim_imp (conn c l) \<psi> \<Longrightarrow> \<not>no_imp_symb (conn c l)"
        by (auto elim: elim_imp.cases)
@@ -251,7 +251,7 @@ proof (rule ccontr)
   assume n: "\<not> no_T_F_symb (FNot \<phi>)"
   assume "\<not> (\<phi> = FT \<or> \<phi> = FF)"
   hence "\<forall>\<phi>' \<in> set [\<phi>]. \<phi>'\<noteq>FT \<and> \<phi>'\<noteq>FF" by auto
-  also have "wf_conn CNot [\<phi>]" by simp
+  moreover have "wf_conn CNot [\<phi>]" by simp
   ultimately have "no_T_F_symb (FNot \<phi>)"
     using no_T_F_symb.intros by (metis conn.simps(4) connective.distinct(5,17))
   thus "False" using n by blast
@@ -427,7 +427,7 @@ next
     hence "False" using n F\<phi> subformula_all_subformula_st assms by (metis (no_types) no_equiv_eq(1) no_equiv_def no_imp_Imp(1) no_imp_def)
     hence "?case" by blast
   }
-  also {
+  moreover {
     assume \<phi>': "\<phi>' = FAnd \<psi>1 \<psi>2 \<or> \<phi>' = FOr \<psi>1 \<psi>2"
     hence "\<psi>1 = FT \<or> \<psi>2 = FT \<or> \<psi>1 = FF \<or> \<psi>2 = FF"
       using no_T_F_symb_except_toplevel_bin_decom conn.simps(5,6) n unfolding binary_connectives_def by fastforce+
@@ -443,7 +443,7 @@ lemma no_T_F_except_top_level_rew:
   shows "\<exists>\<psi> \<psi>'. \<psi> \<preceq> \<phi> \<and> elimTB \<psi> \<psi>' "
 proof -
   have test_symb_false_nullary: "\<forall>x. no_T_F_symb_except_toplevel (FF:: 'v propo) \<and> no_T_F_symb_except_toplevel FT \<and> no_T_F_symb_except_toplevel (FVar (x:: 'v))" by auto
-  also {
+  moreover {
      fix c:: "'v connective" and  l :: "'v propo list" and \<psi> :: "'v propo"
      have H: "elimTB (conn c l) \<psi> \<Longrightarrow> \<not>no_T_F_symb_except_toplevel (conn c l) "
        by (case_tac "(conn c l)" rule: elimTB.cases, auto)
@@ -571,7 +571,7 @@ lemma simple_not_rew:
   shows "\<exists>\<psi> \<psi>'. \<psi> \<preceq> \<phi> \<and> pushNeg \<psi> \<psi>'"
 proof -
   have "\<forall>x. simple_not_symb (FF:: 'v propo) \<and> simple_not_symb FT \<and> simple_not_symb (FVar (x:: 'v))" by auto
-  also {
+  moreover {
      fix c:: "'v connective" and  l :: "'v propo list" and \<psi> :: "'v propo"
      have H: "pushNeg (conn c l) \<psi> \<Longrightarrow> \<not>simple_not_symb (conn c l)"
        by (case_tac "(conn c l)" rule: pushNeg.cases, simp_all)
@@ -620,11 +620,11 @@ proof -
   and x: "c \<noteq> CF \<and> c \<noteq> CT \<and> \<phi> \<noteq> FF \<and> \<phi> \<noteq> FT \<and> (\<forall>\<psi> \<in> set \<xi> \<union> set \<xi>'. \<psi> \<noteq> FF \<and> \<psi> \<noteq> FT)"
   hence "c \<noteq> CF \<and> c \<noteq> CF \<and> wf_conn c (\<xi> @ \<phi>' # \<xi>')"
     using wf_conn_no_arity_change_helper  wf_conn_no_arity_change by metis
-  also have n': "no_T_F (conn c (\<xi> @ \<phi> # \<xi>'))" using n by (simp add: wf wf_conn_list(1) wf_conn_list(2))
+  moreover have n': "no_T_F (conn c (\<xi> @ \<phi> # \<xi>'))" using n by (simp add: wf wf_conn_list(1) wf_conn_list(2))
   moreover
   {
     have "no_T_F \<phi>" using n' by (metis Un_iff all_subformula_st_decomp list.set_intros(1) local.wf no_T_F_def set_append)
-    also have "no_T_F_symb \<phi>" using calculation by (simp add: all_subformula_st_test_symb_true_phi no_T_F_def)
+    moreover have "no_T_F_symb \<phi>" using calculation by (simp add: all_subformula_st_test_symb_true_phi no_T_F_def)
     ultimately have "\<phi>' \<noteq> FF \<and> \<phi>' \<noteq> FT" using IH no_T_F_symb_false(1) no_T_F_symb_false(2) by blast
     hence "\<forall>\<psi>\<in> set (\<xi> @ \<phi>' # \<xi>'). \<psi> \<noteq> FF \<and> \<psi> \<noteq> FT" using x by auto
   }
@@ -639,7 +639,7 @@ proof (induct rule: propo_rew_step.induct)
 next
   case (propo_rew_one_step_lift \<phi> \<phi>' c \<xi> \<xi>')
   note rel = this(1) and IH = this(2) and wf = this(3) and no_T_F = this(4)
-  also have wf': "wf_conn c (\<xi> @ \<phi>' # \<xi>')" using wf_conn_no_arity_change wf_conn_no_arity_change_helper wf by metis
+  moreover have wf': "wf_conn c (\<xi> @ \<phi>' # \<xi>')" using wf_conn_no_arity_change wf_conn_no_arity_change_helper wf by metis
   ultimately show "no_T_F (conn c (\<xi> @ \<phi>' # \<xi>'))" unfolding no_T_F_def
     apply(simp add: all_subformula_st_decomp wf wf')
     using all_subformula_st_test_symb_true_phi no_T_F_symb_false(1) no_T_F_symb_false(2) by blast
@@ -666,7 +666,7 @@ proof -
             using wf_conn_list(1) wf_conn_list(2) by auto
           hence "no_T_F_except_top_level \<psi>" by blast
         }
-        also {
+        moreover {
           assume "\<phi> \<noteq> FT \<and> \<phi> \<noteq> FF"
           hence "no_T_F \<phi>" by (metis no no_T_F_symb_except_toplevel_all_subformula_st_no_T_F_symb)
           hence "no_T_F \<psi>" using propo_rew_step_pushNeg_no_T_F rel by auto
@@ -675,7 +675,7 @@ proof -
         ultimately show "no_T_F_except_top_level \<psi>" by metis
       qed
   }
-  also {
+  moreover {
      fix c :: "'v connective" and \<xi> \<xi>' :: "'v propo list" and \<zeta> \<zeta>' :: "'v propo"
      assume rel: "propo_rew_step pushNeg \<zeta> \<zeta>'"
      and incl: "\<zeta> \<preceq> \<phi>"
@@ -692,7 +692,7 @@ proof -
          apply (cases rule: pushNeg.cases, auto)
          by (metis assms(4) no_T_F_symb_except_top_level_false_not no_T_F_except_top_level_def all_subformula_st_test_symb_true_phi subformula_in_subformula_not subformula_all_subformula_st  append_is_Nil_conv list.distinct(1) wf_conn_no_arity_change_helper wf_conn_list(1,2) wf_conn_no_arity_change)+
        hence "\<forall>\<phi> \<in> set (\<xi> @ \<zeta>' # \<xi>'). \<phi> \<noteq> FT \<and> \<phi> \<noteq> FF" using l by auto
-       also have "c \<noteq> CT \<and> c \<noteq> CF" using corr by auto
+       moreover have "c \<noteq> CT \<and> c \<noteq> CF" using corr by auto
        ultimately show "no_T_F_symb (conn c (\<xi> @ \<zeta>' # \<xi>'))" by (metis corr no_T_F_symb_comp wf_conn_no_arity_change wf_conn_no_arity_change_helper)
      qed
   }
@@ -798,7 +798,7 @@ proof (induct rule: not_c_in_c'_symb.induct)
 next
   case (not_c_in_c'_symb_l \<phi>' \<phi>'' \<psi>') note H = this
   hence "\<phi> = conn c' [\<phi>', \<phi>'']" using conn_inj by auto
-  also have "wf_conn c [\<psi>', conn c' [\<phi>', \<phi>'']]" using H(1) wf_conn_no_arity_change length_Cons by metis
+  moreover have "wf_conn c [\<psi>', conn c' [\<phi>', \<phi>'']]" using H(1) wf_conn_no_arity_change length_Cons by metis
   ultimately show  "not_c_in_c'_symb c c' (conn c [\<psi>, \<phi>])" using not_c_in_c'_symb.intros(2) conn_inj not_c_in_c'_symb_l.hyps not_c_in_c'_symb_l.prems(1,2) by blast
 qed
 
@@ -812,8 +812,10 @@ lemma not_c_in_c'_comm:
 proof -
   have "?A \<longleftrightarrow> (c_in_c'_symb c c' (conn c [\<phi>, \<psi>]) \<and> (\<forall>\<xi> \<in> set [\<phi>, \<psi>]. all_subformula_st (c_in_c'_symb c c') \<xi>))" using all_subformula_st_decomp wf unfolding c_in_c'_only_def  by fastforce
   also have "\<dots> \<longleftrightarrow> (c_in_c'_symb c c' (conn c [\<psi>, \<phi>]) \<and> (\<forall>\<xi> \<in> set [\<psi>, \<phi>]. all_subformula_st (c_in_c'_symb c c') \<xi>))"  using not_c_in_c'_symb_commute' wf by auto
-  also have "wf_conn c [\<psi>, \<phi>]" using wf_conn_no_arity_change wf by (metis length_Cons)
-  hence "(c_in_c'_symb c c' (conn c [\<psi>, \<phi>]) \<and> (\<forall>\<xi> \<in> set [\<psi>, \<phi>]. all_subformula_st (c_in_c'_symb c c') \<xi>)) \<longleftrightarrow> ?B" using all_subformula_st_decomp  unfolding c_in_c'_only_def by fastforce
+  also
+    have "wf_conn c [\<psi>, \<phi>]" using wf_conn_no_arity_change wf by (metis length_Cons)
+    hence "(c_in_c'_symb c c' (conn c [\<psi>, \<phi>]) \<and> (\<forall>\<xi> \<in> set [\<psi>, \<phi>]. all_subformula_st (c_in_c'_symb c c') \<xi>)) \<longleftrightarrow> ?B"
+      using all_subformula_st_decomp  unfolding c_in_c'_only_def by fastforce
   finally show ?thesis .
 qed
 
@@ -863,7 +865,7 @@ proof -
       using push_conn_inside.intros(1) c c' apply blast
       using push_conn_inside.intros(2) c c' by blast
   }
-  also {
+  moreover {
      assume \<phi>': "\<phi>' \<noteq> conn c [\<psi>1, \<psi>2]"
      have "\<forall>\<phi> c ca. \<exists>\<phi>1 \<psi>1 \<psi>2 \<psi>1' \<psi>2' \<phi>2'. conn (c::'v connective) [\<phi>1, conn ca [\<psi>1, \<psi>2]] = \<phi> \<or> conn c [conn ca [\<psi>1', \<psi>2'], \<phi>2'] = \<phi> \<or> c_in_c'_symb c ca \<phi>" by (metis not_c_in_c'_symb.cases)
      hence "Ex (push_conn_inside c c' \<phi>')"
@@ -917,7 +919,7 @@ next
     hence "False" using wf by auto
     hence "no_T_F (conn c (\<xi> @ \<phi>' # \<xi>'))" by blast
   }
-  also {
+  moreover {
     assume c: "c = CNot"
     hence "\<xi> = []" "\<xi>' = []" using wf by auto
     hence "no_T_F (conn c (\<xi> @ \<phi>' # \<xi>'))" using c by (metis \<phi>' conn.simps(4) no_T_F_symb_false(1,2) no_T_F_symb_fnot no_T_F_def all_subformula_st_decomp_explicit(3) all_subformula_st_test_symb_true_phi self_append_conv2)
@@ -963,7 +965,7 @@ next
       obtain a b where ab: "\<xi> @ \<phi>' # \<xi>' = [a, b]"  using wf ca  list_length2_decomp wf_conn_bin_list_length by (metis (no_types) wf_conn_no_arity_change_helper)
       have "\<forall>\<zeta> \<in> set (\<xi> @ \<phi> # \<xi>'). simple_not \<zeta>" by (metis wf all_subformula_st_decomp simple_not simple_not_def)
       hence "\<forall>\<zeta> \<in> set (\<xi> @ \<phi>' # \<xi>'). simple_not \<zeta>" by (simp add: IH)
-      also have "simple_not_symb (conn ca (\<xi> @ \<phi>' # \<xi>'))" using ca
+      moreover have "simple_not_symb (conn ca (\<xi> @ \<phi>' # \<xi>'))" using ca
         by (metis ab conn.simps(5-8) helper_fact simple_not_symb.simps(5) simple_not_symb.simps(6) simple_not_symb.simps(7) simple_not_symb.simps(8))
       ultimately show "all_subformula_st simple_not_symb (conn ca (\<xi> @ \<phi>' # \<xi>'))" by (simp add: ab all_subformula_st_decomp ca)
     qed
@@ -1065,7 +1067,7 @@ proof -
         hence \<phi>': " all_subformula_st simple_not_symb \<phi>'" using n\<phi> by blast
         obtain a b where ab: "[a, b] = (\<xi> @ \<phi> # \<xi>')" using corr c  list_length2_decomp wf_conn_bin_list_length by metis
         hence "\<xi> @ \<phi>' # \<xi>' = [a, \<phi>'] \<or> (\<xi> @ \<phi>' # \<xi>') = [\<phi>', b]" using ab by (metis (no_types, hide_lams) append_Cons append_Nil append_Nil2 append_is_Nil_conv butlast.simps(2) butlast_append list.sel(3) tl_append2)
-        also
+        moreover
         {
            fix \<chi> :: "'v propo"
            have wf': "wf_conn ca [a, b]"
@@ -1083,7 +1085,7 @@ proof -
         ultimately show "all_subformula_st simple_not_symb (conn ca (\<xi> @ \<phi>' # \<xi>'))" by (metis all_subformula_st_decomp_imp)
       qed
   }
-  also {
+  moreover {
      fix ca :: "'v connective" and \<xi> \<xi>' :: "'v propo list" and \<phi> \<phi>' :: "'v propo"
      have "propo_rew_step (push_conn_inside c c') \<phi> \<phi>' \<Longrightarrow> wf_conn ca (\<xi> @ \<phi> # \<xi>') \<Longrightarrow> simple_not_symb (conn ca (\<xi> @ \<phi> # \<xi>')) \<Longrightarrow> simple_not_symb \<phi>' \<Longrightarrow> simple_not_symb (conn ca (\<xi> @ \<phi>' # \<xi>'))"
        by (metis append_self_conv2 conn.simps(4) conn_inj_not(1) simple_not_symb.elims(3) simple_not_symb.simps(1) simple_propo_rew_step_push_conn_inside_inv wf_conn_no_arity_change_helper wf_conn_list_decomp(4) wf_conn_no_arity_change)
@@ -1098,7 +1100,7 @@ next
         and "no_T_F_except_top_level \<phi>"
         hence "no_T_F \<phi> \<or> \<phi> = FF \<or> \<phi> = FT"
           by (metis no_T_F_symb_except_toplevel_all_subformula_st_no_T_F_symb)
-        also {
+        moreover {
           assume "\<phi> = FF \<or> \<phi> = FT"
           hence False using rel propo_rew_step_push_conn_inside by blast
           hence "no_T_F_except_top_level \<psi>" by blast
@@ -1111,7 +1113,7 @@ next
         ultimately show "no_T_F_except_top_level \<psi>" by blast
       qed
   }
-  also {
+  moreover {
      fix ca :: "'v connective" and \<xi> \<xi>' :: "'v propo list" and \<phi> \<phi>' :: "'v propo"
      assume rel: "propo_rew_step (push_conn_inside c c') \<phi> \<phi>'"
      assume corr: "wf_conn ca (\<xi> @ \<phi> # \<xi>')"
@@ -1126,7 +1128,7 @@ next
          apply (induct rule: propo_rew_step.induct)
          by (metis append_is_Nil_conv conn.simps(2) conn_inj list.distinct(1) wf_conn_helper_facts(3) wf_conn_list(1) wf_conn_no_arity_change wf_conn_no_arity_change_helper push_conn_inside_not_true_false)+
        hence "\<forall>\<zeta> \<in> set (\<xi> @ \<phi>' # \<xi>'). \<zeta> \<noteq> FT \<and> \<zeta> \<noteq> FF" using \<zeta> by auto
-       also have "wf_conn ca (\<xi> @ \<phi>' # \<xi>')" using corr wf_conn_no_arity_change by (metis wf_conn_no_arity_change_helper)
+       moreover have "wf_conn ca (\<xi> @ \<phi>' # \<xi>')" using corr wf_conn_no_arity_change by (metis wf_conn_no_arity_change_helper)
        ultimately show "no_T_F_symb (conn ca (\<xi> @ \<phi>' # \<xi>'))" using no_T_F_symb.intros c by metis
      qed
   }
@@ -1200,7 +1202,7 @@ proof -
   let ?\<psi> = "conn c' l"
   have "simple ?\<psi> \<or> (\<exists> \<phi>'. ?\<psi> = FNot \<phi>' \<and> simple \<phi>') \<or> (\<exists>l. ?\<psi> = conn c l \<and> wf_conn c l)"
     using only_c_inside_decomp only incl by blast
-  also have "\<not> simple ?\<psi>" using wf simple_decomp by (metis c' connective.distinct(19) connective.distinct(7,9,21,29,31) wf_conn_list(1-3))
+  moreover have "\<not> simple ?\<psi>" using wf simple_decomp by (metis c' connective.distinct(19) connective.distinct(7,9,21,29,31) wf_conn_list(1-3))
   moreover
     {
       fix \<phi>'
@@ -1268,11 +1270,11 @@ next
       assume c1c: "c1 = c'"
       then obtain \<xi>1 \<xi>2 where l1: "l1 = [\<xi>1, \<xi>2]" by (metis assms(2) connective.distinct(37,39) helper_fact wf\<phi>1 wf_conn.simps wf_conn_list_decomp(1-3))
       have "c_in_c'_only c c' (conn c [conn c' l1, \<phi>2])" using c1c l only \<phi>1 by auto
-      also have "not_c_in_c'_symb c c' (conn c [conn c' l1, \<phi>2])" using l1 \<phi>1 c1c l local.wf not_c_in_c'_symb_l wf\<phi>1 by blast
+      moreover have "not_c_in_c'_symb c c' (conn c [conn c' l1, \<phi>2])" using l1 \<phi>1 c1c l local.wf not_c_in_c'_symb_l wf\<phi>1 by blast
       ultimately show False using \<phi>1 c1c l l1 local.wf not_c_in_c'_simp(4) wf\<phi>1 by blast
    qed
   hence "(\<phi>1 = conn c l1 \<and> wf_conn c l1) \<or> (\<exists>\<psi>1. \<phi>1 = FNot \<psi>1) \<or> simple \<phi>1" by (metis \<phi>1 assms(1-3) c1_eq c1_imp simple.elims(3) wf\<phi>1 wf_conn_list(4) wf_conn_list(5-7))
-  also {
+  moreover {
     assume "\<phi>1 = conn c l1 \<and> wf_conn c l1"
     hence "only_c_inside c \<phi>1" by (metis IH\<phi>1 \<phi>1 all_subformula_st_decomp_imp inc\<phi>1 no_equiv no_equiv_def no_imp no_imp_def c_in_only\<phi>1 only_c_inside_def only_c_inside_into_only_c_inside simple_not simple_not_def subformula_all_subformula_st)
   }
@@ -1293,11 +1295,11 @@ next
       assume c2c: "c2 = c'"
       then obtain \<xi>1 \<xi>2 where l2: "l2 = [\<xi>1, \<xi>2]" by (metis assms(2) wf\<phi>2 wf_conn.simps connective.distinct(7,9,19,21,29,31,37,39))
       hence "c_in_c'_symb c c' (conn c [\<phi>1, conn c' l2])" using c2c l only \<phi>2 all_subformula_st_test_symb_true_phi unfolding c_in_c'_only_def by auto
-      also have "not_c_in_c'_symb c c' (conn c [\<phi>1, conn c' l2])" using assms(1) c2c l2 not_c_in_c'_symb_r wf\<phi>2 wf_conn_helper_facts(5,6) by metis
+      moreover have "not_c_in_c'_symb c c' (conn c [\<phi>1, conn c' l2])" using assms(1) c2c l2 not_c_in_c'_symb_r wf\<phi>2 wf_conn_helper_facts(5,6) by metis
       ultimately show False by auto
     qed
   hence "(\<phi>2 = conn c l2 \<and> wf_conn c l2) \<or> (\<exists>\<psi>2. \<phi>2 = FNot \<psi>2) \<or> simple \<phi>2" using c2_eq by (metis \<phi>2 assms(1-3) c2_eq c2_imp simple.elims(3) wf\<phi>2 wf_conn_list(4) wf_conn_list(5-7))
-  also {
+  moreover {
     assume "\<phi>2 = conn c l2 \<and> wf_conn c l2"
     hence "only_c_inside c \<phi>2" by (metis IH\<phi>2 \<phi>2 all_subformula_st_decomp inc\<phi>2 no_equiv no_equiv_def no_imp no_imp_def c_in_only\<phi>2 only_c_inside_def only_c_inside_into_only_c_inside simple_not simple_not_def subformula_all_subformula_st)
   }
@@ -1424,7 +1426,7 @@ next
       thus "\<phi> = conn c [\<phi>1, \<phi>2]" and "wf_conn c [\<phi>1, \<phi>2]" using \<phi>_c'' wf l'' by auto
     qed
   have "grouped_by c \<phi>1"  using wf IH\<phi>1 IH\<phi>2 \<phi>_conn only \<phi> unfolding only_c_inside_def by auto
-  also have "grouped_by c \<phi>2" using wf \<phi> IH\<phi>1 IH\<phi>2 \<phi>_conn only unfolding only_c_inside_def  by auto
+  moreover have "grouped_by c \<phi>2" using wf \<phi> IH\<phi>1 IH\<phi>2 \<phi>_conn only unfolding only_c_inside_def  by auto
   ultimately show "?G \<phi>"  using \<phi>_conn connected_is_group local.wf by blast
 qed
 
@@ -1470,7 +1472,7 @@ next
     hence False using no_equiv no_imp by auto
     hence "?S \<phi>" by auto
   }
-  also {
+  moreover {
     assume \<phi>: "\<phi> = conn c' [\<phi>1, \<phi>2] \<and> wf_conn c' [\<phi>1, \<phi>2]"
     have c_in_c'_only: "c_in_c'_only c c' \<phi>1 \<and> c_in_c'_only c c' \<phi>2 \<and> c_in_c'_symb c c' \<phi>" using c_in_c'_only \<phi>' unfolding c_in_c'_only_def by auto
     have "super_grouped_by c c' \<phi>1" using \<phi> c' no_equiv no_imp simpleN IH\<phi>1 c_in_c'_only by auto
@@ -1540,7 +1542,7 @@ proof -
   have noDisj_inv: "no_equiv \<phi>Disj" "no_imp \<phi>Disj" "no_T_F_except_top_level \<phi>Disj" "simple_not \<phi>Disj"
   using pushDisj_inv Disj noNeg noNeg_inv by blast+
 
-  also have "is_conj_with_TF \<phi>Disj" using or_in_and_only_conjunction_in_disj noDisj_inv no_Disj by blast
+  moreover have "is_conj_with_TF \<phi>Disj" using or_in_and_only_conjunction_in_disj noDisj_inv no_Disj by blast
   ultimately show "is_cnf \<phi>Disj" unfolding is_cnf_def by blast
 qed
 
@@ -1641,7 +1643,7 @@ lemma no_T_F_except_top_level_rew':
 proof -
   have test_symb_false_nullary: "\<forall>x. no_T_F_symb_except_toplevel (FF:: 'v propo) \<and> no_T_F_symb_except_toplevel FT \<and> no_T_F_symb_except_toplevel (FVar (x:: 'v))"
     by auto
-  also {
+  moreover {
     fix c:: "'v connective" and  l :: "'v propo list" and \<psi> :: "'v propo"
     have H: "elimTBFull (conn c l) \<psi> \<Longrightarrow> \<not>no_T_F_symb_except_toplevel (conn c l)"
       by (case_tac "(conn c l)" rule: elimTBFull.cases, simp_all)
@@ -1681,7 +1683,7 @@ next
     hence "no_T_F \<phi>" using no_T_F c no_T_F_decomp_not by auto
     hence "no_T_F (conn c (\<xi> @ \<phi>' # \<xi>'))" using c empty no_T_F_comp_not IH by auto
   }
-  also {
+  moreover {
     assume c: "c \<in> binary_connectives"
     obtain a b where ab: "\<xi> @ \<phi> # \<xi>' = [a, b]" using corr c list_length2_decomp wf_conn_bin_list_length by metis
     hence \<phi>: "\<phi> = a \<or> \<phi> = b" by (metis append.simps(1) append_is_Nil_conv list.distinct(1) list.sel(3) nth_Cons_0 tl_append2)
@@ -1690,7 +1692,7 @@ next
     hence \<phi>': "no_T_F \<phi>'" using ab IH \<phi> by auto
     have l': "\<xi> @ \<phi>' # \<xi>' = [\<phi>', b] \<or> \<xi> @ \<phi>' # \<xi>' = [a, \<phi>']" by (metis (no_types, hide_lams) ab append_Cons append_Nil append_Nil2 butlast.simps(2) butlast_append list.distinct(1) list.sel(3))
     hence "\<forall>\<zeta> \<in> set (\<xi> @ \<phi>' # \<xi>'). no_T_F \<zeta>" using \<zeta> \<phi>' ab by fastforce
-    also
+    moreover
       have "\<forall>\<zeta> \<in> set (\<xi> @ \<phi> # \<xi>'). \<zeta> \<noteq> FT \<and> \<zeta> \<noteq> FF" using \<zeta> corr no_T_F no_T_F_except_top_level_false no_T_F_no_T_F_except_top_level by blast
       hence "no_T_F_symb (conn c (\<xi> @ \<phi>' # \<xi>'))"
         by (metis \<phi>' l' ab all_subformula_st_test_symb_true_phi c list.distinct(1) list.set_intros(1,2) no_T_F_symb_except_toplevel_bin_decom no_T_F_symb_except_toplevel_no_T_F_symb no_T_F_symb_false(1,2) no_T_F_def wf_conn_binary wf_conn_list(1,2))
@@ -1723,7 +1725,7 @@ proof -
             using elim_equiv.simps by blast+
           hence "no_T_F_except_top_level \<psi>" by blast
         }
-        also {
+        moreover {
           assume "\<phi> \<noteq> FT \<and> \<phi> \<noteq> FF"
           hence "no_T_F \<phi>" by (metis no no_T_F_symb_except_toplevel_all_subformula_st_no_T_F_symb)
           hence "no_T_F \<psi>" using propo_rew_step_ElimEquiv_no_T_F rel by blast
@@ -1732,7 +1734,7 @@ proof -
         ultimately show "no_T_F_except_top_level \<psi>" by metis
       qed
   }
-  also {
+  moreover {
      fix c :: "'v connective" and \<xi> \<xi>' :: "'v propo list" and \<zeta> \<zeta>' :: "'v propo"
      assume rel: "propo_rew_step elim_equiv \<zeta> \<zeta>'"
      and incl: "\<zeta> \<preceq> \<phi>"
@@ -1749,7 +1751,7 @@ proof -
          apply (cases rule: elim_equiv.cases, auto simp add: elim_equiv.simps)
          by (metis append_is_Nil_conv list.distinct wf_conn_list(1,2) wf_conn_no_arity_change wf_conn_no_arity_change_helper)+
        hence "\<forall>\<phi> \<in> set (\<xi> @ \<zeta>' # \<xi>'). \<phi> \<noteq> FT \<and> \<phi> \<noteq> FF" using l by auto
-       also have "c \<noteq> CT \<and> c \<noteq> CF" using corr by auto
+       moreover have "c \<noteq> CT \<and> c \<noteq> CF" using corr by auto
        ultimately show "no_T_F_symb (conn c (\<xi> @ \<zeta>' # \<xi>'))"
          by (metis corr wf_conn_no_arity_change wf_conn_no_arity_change_helper no_T_F_symb_comp)
      qed
@@ -1772,7 +1774,7 @@ next
     hence "no_T_F \<phi>" using no_T_F c no_T_F_decomp_not by auto
     hence "no_T_F (conn c (\<xi> @ \<phi>' # \<xi>'))" using c empty no_T_F_comp_not IH by auto
   }
-  also {
+  moreover {
     assume c: "c \<in> binary_connectives"
     then obtain a b where ab: "\<xi> @ \<phi> # \<xi>' = [a, b]" using corr list_length2_decomp wf_conn_bin_list_length by metis
     hence \<phi>: "\<phi> = a \<or> \<phi> = b" by (metis append_self_conv2 wf_conn_list_decomp(4) wf_conn_unary list.discI list.sel(3) nth_Cons_0 tl_append2)
@@ -1781,7 +1783,7 @@ next
     hence \<phi>': "no_T_F \<phi>'" using ab IH \<phi>  corr no_T_F no_T_F_def all_subformula_st_decomp_explicit by auto
     have \<chi>: "\<xi> @ \<phi>' # \<xi>' = [\<phi>', b] \<or> \<xi> @ \<phi>' # \<xi>' = [a, \<phi>']" by (metis (no_types, hide_lams) ab append_Cons append_Nil append_Nil2 butlast.simps(2) butlast_append list.distinct(1) list.sel(3))
     hence "\<forall>\<zeta>\<in> set (\<xi> @ \<phi>' # \<xi>'). no_T_F \<zeta>" using \<zeta> \<phi>' ab by fastforce
-    also
+    moreover
       have "no_T_F (last (\<xi> @ \<phi>' # \<xi>'))"  by (simp add: calculation)
       hence "no_T_F_symb (conn c (\<xi> @ \<phi>' # \<xi>'))"
         by (metis \<chi> \<phi>' \<zeta> ab all_subformula_st_test_symb_true_phi c last.simps list.distinct(1) list.set_intros(1) no_T_F_bin_decomp no_T_F_def)
@@ -1820,7 +1822,7 @@ proof -
             by (cases rule: elim_imp.cases, auto simp add: wf_conn_list(1,2))
           hence "no_T_F_except_top_level \<psi>" by blast
         }
-        also {
+        moreover {
           assume "\<phi> \<noteq> FT \<and> \<phi> \<noteq> FF"
           hence "no_T_F \<phi>" by (metis no no_T_F_symb_except_toplevel_all_subformula_st_no_T_F_symb)
           hence "no_T_F \<psi>" using rel propo_rew_step_ElimImp_no_T_F by blast
@@ -1829,7 +1831,7 @@ proof -
         ultimately show "no_T_F_except_top_level \<psi>" by metis
       qed
   }
-  also {
+  moreover {
      fix c :: "'v connective" and \<xi> \<xi>' :: "'v propo list" and \<zeta> \<zeta>' :: "'v propo"
      assume rel: "propo_rew_step elim_imp \<zeta> \<zeta>'"
      and incl: "\<zeta> \<preceq> \<phi>"
@@ -1846,7 +1848,7 @@ proof -
          apply (cases rule: elim_imp.cases, auto)
          using wf_conn_list(1,2) wf_conn_no_arity_change wf_conn_no_arity_change_helper by (metis append_is_Nil_conv list.distinct(1))+
        hence "\<forall>\<phi>\<in>set (\<xi> @ \<zeta>' # \<xi>'). \<phi> \<noteq> FT \<and> \<phi> \<noteq> FF" using l by auto
-       also have "c \<noteq> CT \<and> c \<noteq> CF" using corr by auto
+       moreover have "c \<noteq> CT \<and> c \<noteq> CF" using corr by auto
        ultimately show "no_T_F_symb (conn c (\<xi> @ \<zeta>' # \<xi>'))"
          using corr wf_conn_no_arity_change no_T_F_symb_comp  by (metis wf_conn_no_arity_change_helper)
      qed
