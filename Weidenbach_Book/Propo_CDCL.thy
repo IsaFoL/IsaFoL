@@ -620,9 +620,9 @@ proof (induct rule: cdcl_all_induct)
   show ?case
     using backtrack.prems backtrack.hyps(1) unfolding cdcl_learned_clause_def
     by (force dest: get_all_marked_decomposition_exists_prepend)
-qed (force dest: mk_disjoint_insert
-      simp add: cdcl_learned_clause_def
-      intro: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or)+
+qed (auto dest: mk_disjoint_insert
+      simp add: cdcl_learned_clause_def 
+      intro: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or)
 
 lemma rtranclp_cdcl_learned_clauses:
   assumes "cdcl\<^sup>*\<^sup>* S S'"
@@ -630,17 +630,11 @@ lemma rtranclp_cdcl_learned_clauses:
   shows "cdcl_learned_clause S'"
   using assms by (induction) (auto dest: cdcl_learned_clauses)
 
-(*Move*)
+(*TODO Move*)
 lemma in_implies_atm_of_on_atms_of_m[simp]:
   assumes "C + {#L#} \<in> N"
   shows "atm_of L \<in> atms_of_m N"
   using atms_of_atms_of_m_mono[OF assms] by auto
-
-(*TODO Move *)
-lemma get_all_marked_decomposition_incl:
-  assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
-  shows "set b \<subseteq> set M" and "set a \<subseteq> set M"
-  using assms get_all_marked_decomposition_exists_prepend by fastforce+
 
 subsubsection \<open>No alien atom in the state\<close>
 text \<open>This invariant means that all the literals are in the set of clauses.\<close>

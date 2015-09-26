@@ -445,6 +445,11 @@ lemma get_all_marked_decomposition_exists_prepend:
   by (case_tac aa; case_tac " (get_all_marked_decomposition M)")
      (auto dest!: arg_cong[of "get_all_marked_decomposition _" _ hd] get_all_marked_decomposition_decomp)
 
+lemma get_all_marked_decomposition_incl:
+  assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
+  shows "set b \<subseteq> set M" and "set a \<subseteq> set M"
+  using assms get_all_marked_decomposition_exists_prepend by fastforce+
+
 lemma get_all_marked_decomposition_exists_prepend':
   assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
   obtains c where "M = c @ b @ a"

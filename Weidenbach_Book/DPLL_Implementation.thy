@@ -48,8 +48,7 @@ value "backtrack_split [Marked (Pos (Suc 0)) Level]"
 value "\<exists>C \<in> set [[Pos (Suc 0), Neg (Suc 0)]]. (\<forall>c \<in> set C. -c \<in> lits_of [Marked (Pos (Suc 0)) Level])"
 
 lemma lits_of_unfold[iff]:"(\<forall>c \<in> set C. -c \<in> lits_of Ms) \<longleftrightarrow> Ms \<Turnstile>as CNot (mset C)"
-  unfolding true_annots_def Ball_def true_annot_def CNot_def
-  using mem_set_multiset_eq by force
+  unfolding true_annots_def Ball_def true_annot_def CNot_def mem_set_multiset_eq by auto
 
 definition is_unit_clause :: "'a literal list \<Rightarrow> ('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal option" where
  "is_unit_clause l M =
@@ -171,7 +170,7 @@ proof -
     obtain C where C: "C \<in> set N" and Ms: "Ms \<Turnstile>as CNot (mset C - {#L#})" and undef: "undefined_lit L Ms" and "L \<in> set C" using find_first_unit_clause_some[OF unit] by metis
     have "dpll (Ms, set (map mset N)) (Propagated L Proped # fst (Ms, set (map mset N)), snd (Ms, set (map mset N)))"
       apply (rule dpll.propagate[of "mset C - {#L#}" L ?S])
-      using Ms undef C `L \<in> set C` by (auto simp add: mem_set_multiset_eq)
+      using Ms undef C `L \<in> set C` unfolding mem_set_multiset_eq by (auto simp add: C)
     hence ?thesis using Ms'N by auto
   }
   also
