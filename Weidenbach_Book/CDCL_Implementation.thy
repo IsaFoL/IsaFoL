@@ -1,14 +1,13 @@
 theory CDCL_Implementation
 imports Propo_CDCL Propo_CDCL_Termination (*"~~/src/HOL/Library/Code_Target_Numeral"*)
 begin
+
 (*
 code_pred cdcl_o .
 values [mode: i \<Rightarrow> o] "{S. cdcl_o ([], {{#Pos (1::nat), Pos 2#}, {#Neg 1, Neg 2#}}, {}, 0, C_True) S}"
 *)
 (*TODO Move*)
 declare Multiset.in_multiset_in_set[simp]
-lemma count_mset_0[simp]: "count (mset D) L = 0 \<longleftrightarrow> L \<notin> set D"
-  by (metis in_multiset_in_set not_gr0)
 
 lemma remdups_mset_singleton_sum[simp]:
   "remdups_mset (A+{#a#}) = (if a \<in># A then remdups_mset A else {#a#} + remdups_mset A)"
@@ -25,6 +24,14 @@ lemma distinct_mset_distinct[simp]:
 lemma distinct_mset_set_distinct:
   "distinct_mset_set (mset ` set Cs) \<longleftrightarrow> (\<forall>c\<in> set Cs. distinct c)"
   unfolding distinct_mset_set_def by auto
+
+lemma true_clss_remdups[simp]:
+  "I \<Turnstile>s (mset \<circ> remdups) ` N \<longleftrightarrow>  I \<Turnstile>s mset ` N"
+  by (simp add: true_clss_def)
+
+lemma satisfiable_mset_remdups[simp]:
+  "satisfiable ((mset \<circ> remdups) ` N) \<longleftrightarrow> satisfiable (mset ` N)"
+unfolding satisfiable_carac[symmetric] by simp
 
 definition find_unit where
 "find_unit l = List.find (\<lambda>l. length l = 1) l"
@@ -1247,11 +1254,12 @@ lemma do_all_cdcl_s_is_rtranclp_cdcl_s:
   apply (case_tac "do_cdcl_s_step' S = S")
     apply simp
   by (smt converse_rtranclp_into_rtranclp do_all_cdcl_s.simps do_cdcl_s_step id_of_I_to_def rough_state_of_I_do_cdcl_s_step' toS_rough_state_of_state_of_rough_state_of_I)
-    
+
 lemma DPLL_tot_correct:
   assumes r: "rough_state_of_I (do_all_cdcl_s (state_of_I (([], map remdups N, [], 0, C_True)))) = S" and
   S: "(M', N', U', k, E) = toS S"
-  shows "E \<noteq> C_Clause {#} \<longleftrightarrow> satisfiable N'"
+  shows "(E \<noteq> C_Clause {#} \<and> satisfiable (set (map mset (N)))) 
+    \<or> (E = C_Clause {#} \<and> unsatisfiable (set (map mset ( N))))"
 proof -
   let ?N = "map remdups N"
   have inv: "cdcl_all_inv_mes (toS ([], map remdups N, [], 0, C_True))"
@@ -1259,25 +1267,42 @@ proof -
   hence S0: "rough_state_of (state_of ([], map remdups N, [], 0, C_True)) = ([], map remdups N, [], 0, C_True)" by simp
   have 1: "full0 cdcl_s (toS ([], ?N, [], 0, C_True)) (toS S)"
     unfolding full0_def apply rule
-    using do_all_cdcl_s_is_rtranclp_cdcl_s[of "state_of_I ([], map remdups N, [], 0, C_True)"] inv  unfolding r[symmetric] apply (auto simp del: do_all_cdcl_s.simps simp add: state_of_I_inverse)[1]
+      using do_all_cdcl_s_is_rtranclp_cdcl_s[of "state_of_I ([], map remdups N, [], 0, C_True)"] inv 
+        apply (auto simp del: do_all_cdcl_s.simps simp add: state_of_I_inverse r[symmetric])[1]
     using no_step_cdcl_s_cdcl_all r apply blast
     done
   moreover have 2: "finite (set (map mset ?N))" by auto
   moreover have 3: "distinct_mset_set (set (map mset ?N))"
      unfolding distinct_mset_set_def by auto
-  moreover have 4: "finite (clauses (S0_cdcl (set (map mset ?N))))"
-    by auto
-  have "cdcl_all_inv_mes (toS S)"
-    by (metis (no_types) cdcl_all_inv_mes_rough_state r toS_rough_state_of_state_of_rough_state_of_I)
-  hence cons: "consistent_interp (lits_of M')"
-    unfolding cdcl_all_inv_mes_def cdcl_M_level_inv_def S[symmetric] by auto
-  show ?thesis using full_cdcl_s_normal_forms apply rule
-  using 1 apply simp
-  using 3 apply simp
-  using 2 apply simp
-  using cons apply (auto simp add: S[symmetric] true_annots_true_cls)
-  done
+  moreover 
+    have 4: "finite (clauses (S0_cdcl (set (map mset ?N))))"
+      by auto
+  moreover
+    have "cdcl_all_inv_mes (toS S)"
+      by (metis (no_types) cdcl_all_inv_mes_rough_state r toS_rough_state_of_state_of_rough_state_of_I)
+    hence cons: "consistent_interp (lits_of M')"
+      unfolding cdcl_all_inv_mes_def cdcl_M_level_inv_def S[symmetric] by auto
+  moreover
+    have "clauses (toS ([], ?N, [], 0, C_True)) = clauses (toS S)"
+      apply (rule rtranclp_cdcl_no_more_clauses)
+      using 1 unfolding full0_def by (auto simp add: rtranclp_cdcl_s_rtranclp_cdcl)
+    hence N': "set (map mset ?N) = N'"
+      using S by auto
+  have "(E \<noteq> C_Clause {#} \<and> satisfiable (set (map mset ?N))) 
+    \<or> (E = C_Clause {#} \<and> unsatisfiable (set (map mset ?N)))"
+    using full_cdcl_s_normal_forms unfolding N' apply rule
+        using 1 apply simp
+       using 3 apply simp
+      using 2 apply simp
+     using cons apply (auto simp add: S[symmetric] true_annots_true_cls)
+    done
+  thus ?thesis by auto
+
 qed
+
+
+
+
 
 
 export_code do_cdcl_s_step' in SML

@@ -687,7 +687,7 @@ proof -
     using backtrack_atms_of_D_in_M1[OF _ _ lev', of L D M1 N U i] bt conf S unfolding T i by force
   have "no_dup M" using lev' unfolding S by auto
   hence vars_in_M1: "\<forall>x \<in> atms_of D. x \<notin> atm_of ` lit_of ` set (M2 @ Marked K (i + 1) # [])"
-    using vars_of_D distinctatms_of_incl_not_in_other[of "M2 @ Marked K (i + 1) # []" M1]
+    using vars_of_D distinct_atms_of_incl_not_in_other[of "M2 @ Marked K (i + 1) # []" M1]
     unfolding M by auto
   have M1_D: "M1 \<Turnstile>as CNot D"
     using vars_in_M1 true_annots_remove_if_notin_vars[of "M2 @ Marked K (i + 1) # []" M1 "CNot D"] `M \<Turnstile>as CNot D` unfolding M lits_of_def by simp

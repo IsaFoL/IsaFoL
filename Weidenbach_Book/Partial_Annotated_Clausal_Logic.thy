@@ -504,13 +504,12 @@ next
     moreover {
       assume l: "length a = 1" and m: "is_marked (hd a)" and hd: "hd a \<in> set M"
       hence "(\<lambda>a. {#lit_of a#}) (hd a) \<in> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}" by auto
-      hence "(\<lambda>a. {#lit_of a#}) ` set a \<union> N \<subseteq> N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"
-        using l by (case_tac a, auto)
-      have "(\<lambda>m. {#lit_of m#}) ` set a \<union> N \<Turnstile>ps (\<lambda>m. {#lit_of m#}) ` set b"
-        using Suc.prems unfolding all_decomposition_implies_def g by simp (* 4 ms *)
-      hence ?case
-        unfolding g apply simp
-        using `(\<lambda>a. {#lit_of a#}) \` set a \<union> N \<subseteq> N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}` true_clss_clss_subset by blast
+      hence H: "(\<lambda>a. {#lit_of a#}) ` set a \<union> N \<subseteq> N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"
+        using l by (cases a) auto
+      have f1: "(\<lambda>m. {#lit_of m#}) ` set a \<union> N \<Turnstile>ps (\<lambda>m. {#lit_of m#}) ` set b"
+        using Suc.prems unfolding all_decomposition_implies_def g by simp
+      have ?case
+        unfolding g apply (rule true_clss_clss_subset) using f1 H by auto
     }
     ultimately have ?case using get_all_marked_decomposition_length_1_fst_empty_or_length_1 by blast
   }

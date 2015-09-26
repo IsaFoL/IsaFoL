@@ -555,7 +555,8 @@ lemma rtranclp_cdcl_no_more_clauses:
   shows "clauses S = clauses S'"
   using assms by (induct rule: rtranclp.induct) (auto dest: cdcl_no_more_clauses)
 
-definition "cdcl_M_level_inv (S:: 'v cdcl_state) \<equiv> consistent_interp (lits_of (trail S))
+definition "cdcl_M_level_inv (S:: 'v cdcl_state) \<longleftrightarrow>
+  consistent_interp (lits_of (trail S))
   \<and> no_dup (trail S)
   \<and> backtrack_level S = length (get_all_levels_of_marked (trail S))
   \<and> get_all_levels_of_marked (trail S) = rev ([1..<(1+length (get_all_levels_of_marked (trail S)))])"
@@ -3195,4 +3196,32 @@ lemma full_cdcl_s_normal_forms:
   shows "(conflicting S' = C_Clause {#} \<and> unsatisfiable (clauses S')) \<or> (conflicting S' = C_True \<and> trail S' \<Turnstile>as clauses S')"
   using assms full_cdcl_s_normal_forms_is_one_false full_cdcl_s_normal_forms_non_false by blast
 
+lemma full_cdcl_s_normal_forms':
+  fixes S' :: "'v cdcl_state"
+  assumes full: "full0 cdcl_s (S0_cdcl N) S'"
+  and no_d: "distinct_mset_set N"
+  and finite: "finite (clauses (S0_cdcl N))"
+  shows "(conflicting S' = C_Clause {#} \<and> unsatisfiable (clauses S')) 
+    \<or> (conflicting S' = C_True \<and> trail S' \<Turnstile>as clauses S' \<and> satisfiable (clauses S'))"
+proof -
+  consider 
+      (confl) "conflicting S' = C_Clause {#}" and " unsatisfiable (clauses S')"
+    | (sat) "conflicting S' = C_True" and "trail S' \<Turnstile>as clauses S'"
+    using full_cdcl_s_normal_forms[OF assms] by auto
+  thus ?thesis
+    proof cases
+      case confl
+      thus ?thesis by auto
+    next
+      case sat
+      have "cdcl_M_level_inv (S0_cdcl N)" by auto
+      hence "cdcl_M_level_inv S'" 
+        using full rtranclp_cdcl_s_consistent_inv unfolding full0_def by blast
+      hence "consistent_interp (lits_of (trail S'))" unfolding cdcl_M_level_inv_def by blast
+      also have "lits_of (trail S') \<Turnstile>s clauses S'"
+        using sat(2) by (auto simp add: true_annots_def true_annot_def true_clss_def)
+      ultimately have "satisfiable (clauses S')" by simp
+      thus ?thesis using sat by blast
+    qed
+qed
 end

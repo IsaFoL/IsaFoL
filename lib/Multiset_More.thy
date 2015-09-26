@@ -422,4 +422,7 @@ lemma mset_set_set_mset_empty_mempty[iff]:
   "mset_set (set_mset D) = {#} \<longleftrightarrow> D = {#}"
   by (auto dest: arg_cong[of _ _ set_mset])
 
+lemma count_mset_0[iff]: "count (mset D) L = 0 \<longleftrightarrow> L \<notin> set D"
+  by (metis in_multiset_in_set not_gr0)
+
 end

@@ -534,7 +534,7 @@ proof (intro allI HOL.impI)
       have "\<forall>v. v \<notin> atms_of \<chi>' \<or> Pos v \<in> I \<or> Neg v \<in> I"
         by (meson totI total_over_set_def)
       thus "L \<notin> ?I'"
-        using a1 pos_lit_in_atms_of by force
+        using a1 by (auto dest!: pos_lit_in_atms_of)
     qed
   ultimately show "I \<Turnstile> \<chi>'" unfolding true_cls_def by auto
 qed
@@ -735,7 +735,7 @@ next
   ultimately show ?S unfolding satisfiable_def by blast
 qed
 
-lemma satisfiable_carac'[simp]: "(consistent_interp I \<and> I \<Turnstile>s \<phi>) \<Longrightarrow> satisfiable \<phi>"
+lemma satisfiable_carac'[simp]: "consistent_interp I \<Longrightarrow> I \<Turnstile>s \<phi> \<Longrightarrow> satisfiable \<phi>"
   using satisfiable_carac by metis
 
 
@@ -1107,7 +1107,7 @@ next
         ultimately have False using mL\<chi> by auto
       }
       ultimately show "v \<in> atms_of \<chi> - {atm_of L}"
-        using atm_of_lit_in_atms_of by force
+         by (auto dest: atm_of_lit_in_atms_of split: split_if_asm)
     next
       show "atms_of \<chi> - {atm_of L} \<subseteq> atms_of (\<chi> - {#L#})" using atm\<chi> by auto
     qed
