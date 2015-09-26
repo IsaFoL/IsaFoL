@@ -9,18 +9,19 @@ subsubsection \<open>Datatypes and access functions\<close>
 datatype 'a conflicting_clause = C_True | C_Clause "'a"
 
 type_synonym 'a cdcl_mark = "'a clause"
-type_synonym cdcl_marked_level = "nat"
+type_synonym cdcl_marked_level = nat
 
-type_synonym 'a cdcl_marked_lit = "('a, cdcl_marked_level, 'a cdcl_mark) marked_lit"
-type_synonym 'a cdcl_annoted_lits = "('a, cdcl_marked_level, 'a cdcl_mark) annoted_lits"
-type_synonym 'v cdcl_state = "'v cdcl_annoted_lits \<times> 'v clauses \<times> 'v clauses \<times> nat \<times> 'v clause conflicting_clause"
+type_synonym 'v cdcl_marked_lit = "('v, cdcl_marked_level, 'v cdcl_mark) marked_lit"
+type_synonym 'v cdcl_annoted_lits = "('v, cdcl_marked_level, 'v cdcl_mark) annoted_lits"
+type_synonym 'v cdcl_state = 
+  "'v cdcl_annoted_lits \<times> 'v clauses \<times> 'v clauses \<times> nat \<times> 'v clause conflicting_clause"
 
 abbreviation "trail \<equiv> (\<lambda>(M, N, U, k, D). M)"
 abbreviation "clauses \<equiv> \<lambda>(M, N, U, k, D). N"
 abbreviation "learned_clauses \<equiv> \<lambda>(M, N, U, k, D). U"
 abbreviation "conflicting \<equiv> \<lambda>(M, N, U, k, D). D"
 abbreviation "backtrack_level \<equiv> \<lambda>(M, N, U, k, D). k"
-abbreviation "S0_cdcl (N :: 'a clauses) \<equiv> (([], N, {}, 0, C_True):: 'a cdcl_state)"
+abbreviation "S0_cdcl N \<equiv> (([], N, {}, 0, C_True):: 'v cdcl_state)"
 
 lemma trail_conv: "trail (M, N, U, k, D) = M" and
   clauses_conv: "clauses (M, N, U, k, D) = N" and
@@ -31,16 +32,18 @@ lemma trail_conv: "trail (M, N, U, k, D) = M" and
 
 subsubsection \<open>Level of literals and clauses\<close>
 text \<open>Getting the level of a variable, implies that the list has to be reversed. Here is the funtion after reversing.\<close>
-fun get_rev_level :: "'v literal \<Rightarrow> cdcl_marked_level \<Rightarrow> ('v, cdcl_marked_level, 'a) annoted_lits \<Rightarrow> cdcl_marked_level" where
+fun get_rev_level :: "'v literal \<Rightarrow> cdcl_marked_level \<Rightarrow> ('v, cdcl_marked_level, 'a) annoted_lits
+  \<Rightarrow> cdcl_marked_level" where
 "get_rev_level _ _ [] = 0" |
-"get_rev_level L n (Marked l level # Ls) = (if atm_of l = atm_of L then level else get_rev_level L level Ls)" |
-"get_rev_level L n (Propagated l _ # Ls) =  (if atm_of l = atm_of L then n else get_rev_level L n Ls)"
+"get_rev_level L n (Marked l level # Ls) = 
+  (if atm_of l = atm_of L then level else get_rev_level L level Ls)" |
+"get_rev_level L n (Propagated l _ # Ls) = 
+  (if atm_of l = atm_of L then n else get_rev_level L n Ls)"
 
 abbreviation "get_level L M  \<equiv> get_rev_level L 0 (rev M)"
 
 lemma get_rev_level_uminus[simp]: "get_rev_level (-L) n M = get_rev_level L n M"
-  apply (induct M arbitrary: n, simp)
-  by (case_tac a) auto
+  by (induct M arbitrary: n rule: get_rev_level.induct) auto
 
 lemma atm_of_notin_get_rev_level_eq_0[simp]:
   assumes "atm_of L \<notin> atm_of ` lit_of `set M"
@@ -130,7 +133,8 @@ lemma get_maximum_level_skip_first[simp]:
   assumes "atm_of L \<notin> atms_of D"
   shows "get_maximum_level D (Propagated L C # M) = get_maximum_level D M"
   using assms unfolding get_maximum_level_def
-  by (metis (lifting) atm_of_lit_in_atms_of get_level_skip_beginning marked_lit.sel(2) mem_set_mset_iff multiset.map_cong0)
+  by (metis (lifting) atm_of_lit_in_atms_of get_level_skip_beginning marked_lit.sel(2)
+    mem_set_mset_iff multiset.map_cong0)
 
 lemma get_maximum_level_skip_beginning:
   assumes DH: "atms_of D \<subseteq> atm_of `lits_of H"
@@ -206,6 +210,85 @@ lemma get_all_mark_of_propagated_append[simp]:  "get_all_mark_of_propagated (A @
   apply (induct A, simp)
   by (case_tac a) auto
 
+(*TODO Move to first section*)
+subsubsection \<open>Properties about the levels\<close>
+fun get_all_levels_of_marked :: "('b, 'a, 'c) marked_lit list \<Rightarrow> 'a list"  where
+"get_all_levels_of_marked [] = []" |
+"get_all_levels_of_marked (Marked l level # Ls) = level # get_all_levels_of_marked Ls" |
+"get_all_levels_of_marked (Propagated _ _ # Ls) = get_all_levels_of_marked Ls"
+
+lemma get_all_levels_of_marked_cons:
+  "get_all_levels_of_marked (a # b) = 
+    (if is_marked a then [level_of a] else []) @ get_all_levels_of_marked b"
+  by (case_tac a) simp_all
+
+lemma get_all_levels_of_marked_append[simp]:
+  "get_all_levels_of_marked (a @ b) = get_all_levels_of_marked a @ get_all_levels_of_marked b"
+  by (induct a) (simp_all add: get_all_levels_of_marked_cons)
+
+lemma get_rev_level_less_max_get_all_levels_of_marked:
+  "get_rev_level L n M \<le> Max (set (n # get_all_levels_of_marked M))"
+  by (induct M arbitrary: n rule: get_all_levels_of_marked.induct)
+     (simp_all add: max.coboundedI2)
+
+lemma get_rev_level_ge_min_get_all_levels_of_marked:
+  assumes "atm_of L \<in> atm_of ` lits_of M"
+  shows "get_rev_level L n M \<ge> Min (set (n # get_all_levels_of_marked M))"
+  using assms by (induct M arbitrary: n rule: get_all_levels_of_marked.induct)
+    (auto simp add: min_le_iff_disj)
+
+lemma get_all_levels_of_marked_rev_eq_rev_get_all_levels_of_marked[simp]:
+  "get_all_levels_of_marked (rev M) = rev (get_all_levels_of_marked M)"
+  by (induct M rule: get_all_levels_of_marked.induct)
+     (simp_all add: max.coboundedI2)
+
+lemma get_maximum_possible_level_max_get_all_levels_of_marked:
+  "get_maximum_possible_level M = Max (insert 0 (set (get_all_levels_of_marked M)))"
+  apply (induct M, simp)
+  by (case_tac a) (case_tac "set (get_all_levels_of_marked M) = {}", auto)
+
+lemma get_rev_level_in_levels_of_marked:
+  "get_rev_level L n M \<in> {0, n} \<union> set (get_all_levels_of_marked M)"
+  apply (induction M arbitrary: n)
+   apply auto[1]
+  by (case_tac a)
+    (force simp add: atm_of_eq_atm_of)+
+
+lemma get_rev_level_in_atms_in_levels_of_marked:
+  "atm_of L \<in> atm_of ` (lits_of M) \<Longrightarrow> get_rev_level L n M \<in> {n} \<union> set (get_all_levels_of_marked M)"
+  apply (induction M arbitrary: n)
+   apply auto[1]
+  apply (case_tac a)
+   apply (force simp add: atm_of_eq_atm_of)
+  apply auto
+  done
+
+lemma get_all_levels_of_marked_no_marked:
+  "(\<forall>l\<in>set Ls. \<not> is_marked l) \<longleftrightarrow> get_all_levels_of_marked Ls = []"
+  by (induction Ls) (auto simp add: get_all_levels_of_marked_cons)
+
+lemma get_level_in_levels_of_marked:
+  "get_level L M \<in> {0} \<union> set (get_all_levels_of_marked M)"
+  using get_rev_level_in_levels_of_marked[of L 0 "rev M"] by auto
+
+text \<open>The zero is here to avoid empty-list issues with @{term last}:\<close>
+lemma get_level_get_rev_level_get_all_levels_of_marked:
+  assumes "atm_of L \<notin> atm_of ` (lit_of ` set M)"
+  shows "get_level L (K @ M) = get_rev_level L (last (0 # get_all_levels_of_marked (rev M)))
+    (rev K)"
+  using assms
+proof (induct M arbitrary: K)
+  case Nil
+  thus ?case by auto
+next
+  case (Cons a M)
+  hence H: "\<And>K. get_level L (K @ M) = get_rev_level L (last (0 # get_all_levels_of_marked (rev M))) (rev K)"
+    by auto
+  have "get_level L ((K @ [a])@ M) = get_rev_level L (last (0 # get_all_levels_of_marked (rev M))) (a # rev K)"
+    using H[of "K @ [a]"] by simp
+  thus ?case using Cons(2) by (case_tac a) auto
+qed
+
 subsection \<open>CDCL Rules\<close>
 text \<open>Because of the strategy we will later use, we distinguish propagate, conflict from the other rules\<close>
 inductive propagate :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
@@ -228,12 +311,15 @@ deciding[intro]: "S = (M, N, U, k, C_True) \<Longrightarrow> undefined_lit L M \
 inductive_cases decidedE: "decided S S'"
 
 inductive skip :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
-skipping[intro]: "S = (Propagated L C' # M, N, U, k, C_Clause D) \<Longrightarrow>  -L \<notin># D \<Longrightarrow> D \<noteq> {#} \<Longrightarrow> skip S (M, N, U, k, C_Clause D)"
+skipping[intro]: "S = (Propagated L C' # M, N, U, k, C_Clause D) \<Longrightarrow>  -L \<notin># D \<Longrightarrow> D \<noteq> {#} 
+  \<Longrightarrow> skip S (M, N, U, k, C_Clause D)"
 
 inductive_cases skipE: "skip S S'"
 
 inductive resolve :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
-resolving[intro]: "S = (Propagated L (C + {#L#}) # M, N, U, k, C_Clause (D + {#-L#})) \<Longrightarrow> (get_maximum_level D (Propagated L (C + {#L#}) # M) = k \<or> k= 0) \<Longrightarrow> resolve S (M, N, U, k, C_Clause (remdups_mset (D + C)))"
+resolving[intro]: "S = (Propagated L (C + {#L#}) # M, N, U, k, C_Clause (D + {#-L#})) 
+  \<Longrightarrow> (get_maximum_level D (Propagated L (C + {#L#}) # M) = k \<or> k= 0) 
+  \<Longrightarrow> resolve S (M, N, U, k, C_Clause (remdups_mset (D + C)))"
 
 inductive_cases resolveE: "resolve S S'"
 
@@ -328,8 +414,7 @@ lemma cdcl_o_induct[consumes 1, case_names decided skip resolve backtrack]:
     \<Longrightarrow> P (M, N, U, k, C_Clause (D + {#L#}))
       (Propagated L (D+{#L#}) # M1, N, U \<union> {D +  {#L#}}, i, C_True)"
   shows "P S S'"
-  using cdcl
-  apply (induction rule: cdcl_o.induct)
+  using cdcl apply (induction rule: cdcl_o.induct)
   using assms(2,3,4,5) by (auto elim: btE decidedE skipE resolveE)
 
 lemma level_of_marked_ge_1:
@@ -340,84 +425,6 @@ lemma level_of_marked_ge_1:
     (auto dest!: union_in_get_all_marked_decomposition_is_subset)
 
 subsection \<open>Invariants\<close>
-(*TODO Move to first section*)
-subsubsection \<open>Properties about the levels\<close>
-fun get_all_levels_of_marked :: "('b, 'a, 'c) marked_lit list \<Rightarrow> 'a list"  where
-"get_all_levels_of_marked [] = []" |
-"get_all_levels_of_marked (Marked l level # Ls) = level # get_all_levels_of_marked Ls" |
-"get_all_levels_of_marked (Propagated _ _ # Ls) = get_all_levels_of_marked Ls"
-
-lemma get_all_levels_of_marked_cons:
-  "get_all_levels_of_marked (a # b) = (if is_marked a then [level_of a] else []) @ get_all_levels_of_marked b"
-  by (case_tac a) simp_all
-
-lemma get_all_levels_of_marked_append[simp]:
-  "get_all_levels_of_marked (a @ b) = get_all_levels_of_marked a @ get_all_levels_of_marked b"
-  by (induct a) (simp_all add: get_all_levels_of_marked_cons)
-
-lemma get_rev_level_less_max_get_all_levels_of_marked:
-  "get_rev_level L n M \<le> Max (set (n # get_all_levels_of_marked M))"
-  apply (induct M arbitrary: n, simp)
-  by (case_tac a) (simp_all add: max.coboundedI2)
-
-lemma get_rev_level_ge_min_get_all_levels_of_marked:
-  assumes "atm_of L \<in> atm_of ` lits_of M"
-  shows "get_rev_level L n M \<ge> Min (set (n # get_all_levels_of_marked M))"
-  using assms apply (induct M arbitrary: n, simp)
-  by (case_tac a, auto simp add: min_le_iff_disj)
-
-lemma get_all_levels_of_marked_rev_eq_rev_get_all_levels_of_marked[simp]:
-  "get_all_levels_of_marked (rev M) = rev (get_all_levels_of_marked M)"
-  apply (induct M, simp)
-  by (case_tac a, simp_all add: max.coboundedI2)
-
-lemma get_maximum_possible_level_max_get_all_levels_of_marked:
-  "get_maximum_possible_level M = Max (insert 0 (set (get_all_levels_of_marked M)))"
-  apply (induct M, simp)
-  by (case_tac a) (case_tac "set (get_all_levels_of_marked M) = {}", auto)
-
-lemma get_rev_level_in_levels_of_marked:
-  "get_rev_level L n M \<in> {0, n} \<union> set (get_all_levels_of_marked M)"
-  apply (induction M arbitrary: n)
-   apply auto[1]
-  by (case_tac a)
-    (force simp add: atm_of_eq_atm_of)+
-
-lemma get_rev_level_in_atms_in_levels_of_marked:
-  "atm_of L \<in> atm_of ` (lits_of M) \<Longrightarrow> get_rev_level L n M \<in> {n} \<union> set (get_all_levels_of_marked M)"
-  apply (induction M arbitrary: n)
-   apply auto[1]
-  apply (case_tac a)
-   apply (force simp add: atm_of_eq_atm_of)
-  apply auto
-  done
-
-lemma get_all_levels_of_marked_no_marked:
-  "(\<forall>l\<in>set Ls. \<not> is_marked l) \<longleftrightarrow> get_all_levels_of_marked Ls = []"
-  by (induction Ls) (auto simp add: get_all_levels_of_marked_cons)
-
-lemma get_level_in_levels_of_marked:
-  "get_level L M \<in> {0} \<union> set (get_all_levels_of_marked M)"
-  using get_rev_level_in_levels_of_marked[of L 0 "rev M"] by auto
-
-text \<open>The zero is here to avoid empty-list issues with @{term last}:\<close>
-lemma get_level_get_rev_level_get_all_levels_of_marked:
-  assumes "atm_of L \<notin> atm_of ` (lit_of ` set M)"
-  shows "get_level L (K @ M) = get_rev_level L (last (0 # get_all_levels_of_marked (rev M)))
-    (rev K)"
-  using assms
-proof (induct M arbitrary: K)
-  case Nil
-  thus ?case by auto
-next
-  case (Cons a M)
-  hence H: "\<And>K. get_level L (K @ M) = get_rev_level L (last (0 # get_all_levels_of_marked (rev M))) (rev K)"
-    by auto
-  have "get_level L ((K @ [a])@ M) = get_rev_level L (last (0 # get_all_levels_of_marked (rev M))) (a # rev K)"
-    using H[of "K @ [a]"] by simp
-  thus ?case using Cons(2) by (case_tac a) auto
-qed
-
 lemma cdcl_o_bt:
   assumes "cdcl_o S S'"
   and "backtrack_level S = length (get_all_levels_of_marked (trail S))"
