@@ -1,3 +1,6 @@
+(*  Title:       Partial Clausal Logic
+    Author:      Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>, 2014 
+*)
 theory Partial_Annotated_Clausal_Logic
 imports Partial_Clausal_Logic
 
@@ -102,7 +105,7 @@ lemma true_annot_true_clss_cls:
 lemma true_annots_true_clss_cls:
   "MLs \<Turnstile>as \<psi> \<Longrightarrow> set (map (\<lambda>a. {#lit_of a#}) MLs) \<Turnstile>ps \<psi>"
   by (auto
-    dest!: true_clss_singleton_lit_of_implies_incl
+    dest: true_clss_singleton_lit_of_implies_incl 
     simp add: true_clss_def true_annots_def true_annot_def lits_of_def true_cls_def true_clss_clss_def)
 
 lemma true_annots_marked_true_cls[iff]:
@@ -132,7 +135,7 @@ lemma true_annots_commute:
 
 lemma true_annot_mono:
   "set I \<subseteq> set I' \<Longrightarrow> I \<Turnstile>a N \<Longrightarrow> I' \<Turnstile>a N"
-  using true_cls_mono_l unfolding true_annot_def lits_of_def
+  using true_cls_mono_set_mset_l unfolding true_annot_def lits_of_def
   by (metis (no_types) Un_commute Un_upper1 image_Un sup.orderE)
 
 lemma true_annots_mono:
@@ -671,7 +674,7 @@ qed
 
 lemma consistent_CNot_not_tautology:
   "consistent_interp M \<Longrightarrow> M \<Turnstile>s CNot D \<Longrightarrow> \<not>tautology D"
-  unfolding true_clss_def Ball_def true_cls_def tautology_decomp consistent_interp_def
+  unfolding true_clss_def Ball_def true_cls_def tautology_decomp consistent_interp_def Bex_mset_def
   by (metis count_single in_CNot_uminus nat_neq_iff true_lit_def uminus_Neg uminus_Pos)
 
 lemma atms_of_m_CNot_atms_of_m: "atms_of_m (CNot CC) = atms_of_m {CC}"
@@ -755,7 +758,8 @@ proof (clarify, rule ccontr)
   hence "L \<in> lit_of ` set A \<or> -L \<in> lit_of ` set A" using atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set by metis
   hence "L \<in> lit_of ` set A" using ` \<not> lit_of \` set A \<Turnstile>l - L` by auto
   thus False
-    using LB assms(2) unfolding true_annot_def lits_of_def true_lit_def true_cls_def by blast
+    using LB assms(2) unfolding true_annot_def lits_of_def true_lit_def true_cls_def Bex_mset_def
+    by blast
 qed
 
 subsection \<open>Other\<close>

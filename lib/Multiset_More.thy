@@ -27,6 +27,9 @@ declare
   image_mset_cong [cong]
   image_mset.compositionality [simp]
 
+  (*To have the same rules as the set counter-part*)
+  mset_leD[dest, intro?] (*@{thm subsetD}*)
+
 abbreviation not_Melem where
   "not_Melem x A \<equiv> ~ (x \<in># A)" -- "non-membership"
 
@@ -146,7 +149,6 @@ print_translation {*
   end
 *}
 
-
 print_translation {*
  [Syntax_Trans.preserve_binder_abs2_tr' @{const_syntax Ball_mset} @{syntax_const "_Ball_mset"},
   Syntax_Trans.preserve_binder_abs2_tr' @{const_syntax Bex_mset} @{syntax_const "_Bex_mset"}]
@@ -203,7 +205,6 @@ declaration {* fn _ =>
   Simplifier.map_ss (Simplifier.set_mksimps (mksimps mksimps_pairs_mset))
 *}
 
-
 lemma ball_msetE [elim]: "ALL x:#A. P x ==> (P x ==> Q) ==> (x ~:# A ==> Q) ==> Q"
   by (unfold Ball_mset_def) blast
 
@@ -219,7 +220,7 @@ lemma rev_bex_msetI [intro]: "x:#A ==> P x ==> EX x:#A. P x"
 lemma bex_msetCI: "(ALL x:#A. ~P x ==> P a) ==> a:#A ==> EX x:#A. P x"
   by (unfold Bex_mset_def) blast
 
-lemma bexE [elim!]: "EX x:#A. P x ==> (!!x. x:#A ==> P x ==> Q) ==> Q"
+lemma bex_msetE [elim!]: "EX x:#A. P x ==> (!!x. x:#A ==> P x ==> Q) ==> Q"
   by (unfold Bex_mset_def) blast
 
 lemma ball_mset_triv [simp]: "(ALL x:#A. P) = ((EX x. x:#A) --> P)"
@@ -268,12 +269,12 @@ lemma strong_ball_mset_cong [cong]:
     (ALL x:#A. P x) = (ALL x:#B. Q x)"
   by (simp add: simp_implies_def Ball_mset_def)
 
-lemma bex_cong:
+lemma bex_mset_cong:
   "A = B ==> (!!x. x:#B ==> P x = Q x) ==>
     (EX x:#A. P x) = (EX x:#B. Q x)"
   by (simp add: Bex_mset_def cong: conj_cong)
 
-lemma strong_bex_cong [cong]:
+lemma strong_bex_mset_cong [cong]:
   "A = B ==> (!!x. x:#B =simp=> P x = Q x) ==>
     (EX x:#A. P x) = (EX x:#B. Q x)"
   by (simp add: simp_implies_def Bex_mset_def cong: conj_cong)
@@ -281,13 +282,12 @@ lemma strong_bex_cong [cong]:
 lemma bex1_mset_def: "(\<exists>!x\<in>#X. P x) \<longleftrightarrow> (\<exists>x\<in>#X. P x) \<and> (\<forall>x\<in>#X. \<forall>y\<in>#X. P x \<longrightarrow> P y \<longrightarrow> x = y)"
   by auto
 
-text {* More *}
+text {* More: this rules are here to help the simplifier*}
+lemma Bex_mset_singleton[iff]: "(\<exists>L\<in>#{#a#}. P L) \<longleftrightarrow> P a"
+by (auto split: split_if_asm)
 
-text {*
-  \medskip Eta-contracting these two rules (to remove @{text P})
-  causes them to be ignored because of their interaction with
-  congruence rules.
-*}
+lemma Ball_mset_singleton[iff]: "(\<forall>L\<in>#{#a#}. P L) \<longleftrightarrow> P a"
+by (auto split: split_if_asm)
 
 subsection {* Lemmas about intersection*}
 (* Unsure if suited as simp rules or if only slowing down stuff\<dots>*)
