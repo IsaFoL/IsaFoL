@@ -77,7 +77,7 @@ lemma cdcl_o_new_clause_learned_is_backtrack_step:
   new: "D \<notin> learned_clauses S" and
   cdcl: "cdcl_o S T"
   shows "backtrack S T \<and> conflicting S = C_Clause D"
-  using cdcl learned new by (induction rule: cdcl_o.induct) (auto elim: btE decidedE skipE resolveE)
+  using cdcl learned new by (induction rule: cdcl_o.induct) (auto elim: backtrackE decidedE skipE resolveE)
 
 lemma cdcl_cp_new_clause_learned_has_backtrack_step:
   assumes learned: "D \<in> learned_clauses T" and
@@ -130,9 +130,12 @@ next
         st': "cdcl_s\<^sup>*\<^sup>* S' U" and
         confl: "conflicting T = C_Clause D"
         using cdcl_cp_new_clause_learned_has_backtrack_step[OF D_U False o] by metis
-      hence "cdcl_s\<^sup>*\<^sup>* S T" and "backtrack T S'" and "conflicting T = C_Clause D" and "cdcl_s\<^sup>*\<^sup>* S' U"
+      hence "cdcl_s\<^sup>*\<^sup>* S T" and 
+        "backtrack T S'" and 
+        "conflicting T = C_Clause D" and 
+        "cdcl_s\<^sup>*\<^sup>* S' U"
         using o st by auto
-      thus ?thesis by fast
+      thus ?thesis by blast
     qed
 qed
 
@@ -167,7 +170,7 @@ proof (induct rule: cdcl_o.induct)
   case backtrack
   have H: "\<And>A M M1. M = A @ M1 \<Longrightarrow>  Marked K i \<in> set M1 \<Longrightarrow> Marked K i \<in> set M"  by auto
   show ?case
-    using backtrack(1) by (auto elim!: btE dest!: H get_all_marked_decomposition_exists_prepend)
+    using backtrack(1) by (auto elim!: backtrackE dest!: H get_all_marked_decomposition_exists_prepend)
 qed (fastforce dest!: get_all_marked_decomposition_exists_prepend elim!: skipE resolveE)+
 
 lemma cdcl_new_marked_at_beginning_is_decided:
@@ -438,7 +441,7 @@ next
             decomp: "(Marked K j # MS1, MS2) \<in>
               set (get_all_marked_decomposition MS)" and
             "get_level LS MS = get_maximum_level (D + {#LS#}) MS "
-            using btE[OF bt] by metis
+            using backtrackE[OF bt] by metis
           obtain MS3 where MS3: "MS = MS3 @ MS2 @ Marked K j # MS1"
             using get_all_marked_decomposition_exists_prepend[OF decomp] by metis
           obtain M'' where M'': "MS1 = M'' @ Marked L i # H @ M"
@@ -665,7 +668,7 @@ proof -
     k: "get_level L M = k" and
     level: "get_level L M = get_maximum_level (D+{#L#}) M" and
     i: "get_maximum_level D M = i"
-    using  btE[OF bt] by metis
+    using  backtrackE[OF bt] by metis
   obtain M2 where
     M: "M = M2 @ Marked K (i+1) # M1"
     using get_all_marked_decomposition_exists_prepend[OF decomp] i by (metis Suc_eq_plus1 append_assoc)
@@ -1044,7 +1047,7 @@ proof -
           show ?case
             apply (rule cdcl_measure_decreasing)
             using bt cdcl_o.backtrack other apply blast
-            using bt apply (auto elim: btE)[2]
+            using bt apply (auto elim: backtrackE)[2]
             using inv no_relearn apply (auto simp add: cdcl_all_inv_mes_def)[8]
             done
         qed

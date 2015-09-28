@@ -430,7 +430,8 @@ proof (rule wf_bounded_measure[of _ "\<lambda>S. card (atms_of_m (clauses S))+1"
   hence "cdcl_all_inv_mes S" and "cdcl_cp S S'" by auto
   moreover hence "cdcl_all_inv_mes S'" using rtranclp_cdcl_all_inv_mes_inv cdcl_cp_cdcl_st by blast
   ultimately show ?case
-    by (auto simp add:cdcl_cp.simps elim!: conflictE propagateE dest: cdcl_all_inv_mes_length_trail_le_card_atms_of_clauses)
+    by (auto simp add:cdcl_cp.simps elim!: conflictE propagateE 
+     dest: cdcl_all_inv_mes_length_trail_le_card_atms_of_clauses)
 qed
 
 lemma cdcl_all_inv_mes_rough_state[simp]: "cdcl_all_inv_mes (toS (rough_state_of S))"
@@ -675,7 +676,7 @@ lemma do_backtrack_step_no:
   shows "no_step backtrack (toS S)"
 proof (rule ccontr, cases S, cases "conflicting S", goal_cases)
   case 1
-  thus ?case using db by (auto split: option.splits elim!: btE)
+  thus ?case using db by (auto split: option.splits elim!: backtrackE)
 next
   case (2 M N U k E C) note bt = this(1) and S = this(2) and confl = this(3)
   obtain D L K b z M1 j where
@@ -685,7 +686,7 @@ next
     CE: "convertC E = C_Clause (D + {#L#})" and
     decomp: "(z # M1, b) \<in> set (get_all_marked_decomposition M)" and
     z: "Marked K (Suc j) = convert z" using bt unfolding S
-      by (auto split: option.splits elim!: btE simp add: get_all_marked_decomposition_map_convert)
+      by (auto split: option.splits elim!: backtrackE simp add: get_all_marked_decomposition_map_convert)
   have z: "z = Marked K (Suc j)" using z by (cases z) auto
   obtain c where c: "M = c @ b @ Marked K (Suc j) # M1"
     using get_all_marked_decomposition_exists_prepend[OF decomp] unfolding z by blast
