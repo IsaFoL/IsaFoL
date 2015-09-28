@@ -29,7 +29,7 @@ next
   case (subsumption A B)
   have "A \<noteq> B" using subsumption.hyps(2) by auto
   hence "I \<Turnstile>s N - {B} \<Longrightarrow> I \<Turnstile> A" using `A \<in> N` by (simp add: true_clss_def)
-  moreover have "I \<Turnstile> A \<Longrightarrow> I \<Turnstile> B" using `A <# B` by (meson mset_lessD true_cls_def)
+  moreover have "I \<Turnstile> A \<Longrightarrow> I \<Turnstile> B" using `A <# B` by auto
   ultimately show ?case by (metis insert_Diff_single true_clss_insert)
 qed
 
@@ -202,10 +202,28 @@ next
     fix a a0 :: "'v clause" and A :: "'v clauses" and  y
     have tt2: "a \<in> A \<Longrightarrow> a0 <# a\<Longrightarrow> (\<exists>x \<in> A. subsumes x y) \<longleftrightarrow> (subsumes a y  \<or> (\<exists>x \<in> A. x \<noteq> a \<and> subsumes x y))" by auto
   } note tt2 = this
-  case (subsumption A B)
-  thus ?case
-    apply (simp only:fst_conv snd_conv tt2 ex_member_remove) apply clarify
-    using subset_mset.less_imp_le subsumes_subsumption subsumption.hyps(2) Un_insert_right insert_iff by fast
+  case (subsumption A B) note A = this(1) and AB = this(2) and B = this(3) and inv = this(4)
+  show ?case
+    proof (standard, standard)
+      fix x a b
+      assume x: "x \<in> snd (N - {B}, already_used)" and [simp]: "x = (a, b)"
+      obtain p where p: "Pos p \<in># a \<and> Neg p \<in># b" and 
+        q: "(\<exists>\<chi>\<in>N. subsumes \<chi> (a - {#Pos p#} + (b - {#Neg p#}))) 
+          \<or> tautology (a - {#Pos p#} + (b - {#Neg p#}))"
+        using inv x by fastforce
+      consider (taut) "tautology (a - {#Pos p#} + (b - {#Neg p#}))" |
+        (\<chi>) \<chi> where "\<chi> \<in> N" "subsumes \<chi> (a - {#Pos p#} + (b - {#Neg p#}))" 
+          "\<not>tautology (a - {#Pos p#} + (b - {#Neg p#}))"
+        using q by auto
+      then show "\<exists>p. Pos p \<in># a \<and> Neg p \<in># b \<and> ((\<exists>\<chi>\<in>fst (N - {B}, already_used). subsumes \<chi> (a - {#Pos p#} + (b - {#Neg p#}))) \<or> tautology (a - {#Pos p#} + (b - {#Neg p#})))"
+        proof (cases)
+          case taut
+          thus ?thesis using p by auto
+        next
+          case \<chi> note H = this
+          show ?thesis using p A AB B  subsumes_subsumption[OF _ AB H(3)] H(1,2) by auto
+        qed
+    qed
 next
   case (tautology_deletion C P)
   thus ?case apply clarify
@@ -226,8 +244,8 @@ qed
 lemma factoring_satisfiable: "I \<Turnstile> {#L#} + {#L#} + C \<longleftrightarrow> I \<Turnstile> {#L#} + C"
   and resolution_satisfiable: "consistent_interp I \<Longrightarrow> I \<Turnstile> {#Pos p#} + C \<Longrightarrow> I \<Turnstile> {#Neg p#} + D \<Longrightarrow> I \<Turnstile> C + D"
   and factoring_same_vars: "atms_of ({#L#} + {#L#} + C) = atms_of ({#L#} + C)"
-  unfolding true_cls_def consistent_interp_def by (auto split: split_if_asm)
-
+  unfolding true_cls_def consistent_interp_def by (fastforce split: split_if_asm)+
+  
 lemma inference_increasing:
   assumes "inference S S'" and "\<psi> \<in> fst S"
   shows "\<psi> \<in> fst S'"
@@ -617,7 +635,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
        have Negv: "\<not>Neg v \<in># \<chi>'" using \<chi>' unfolding true_cls_def true_lit_def by auto
        {
          assume Neg\<chi>: "\<not>Neg v \<in># \<chi>"
-         hence "\<not> I \<Turnstile> \<chi>" using \<chi> Posv unfolding true_cls_def true_lit_def by blast
+         hence "\<not> I \<Turnstile> \<chi>" using \<chi> Posv unfolding true_cls_def true_lit_def Bex_mset_def by blast
          moreover have "total_over_m I {\<chi>}" using Posv Neg\<chi> atm_imp_pos_or_neg_lit tot\<chi> unfolding total_over_m_def total_over_set_def by fastforce
          ultimately have "partial_interps Leaf I (fst \<psi>)"
          and "sem_tree_size Leaf < sem_tree_size xs"
@@ -626,7 +644,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
        }
        moreover {
           assume Pos\<chi>: "\<not>Pos v \<in># \<chi>'"
-          hence I\<chi>: "\<not> I \<Turnstile> \<chi>'" using \<chi>' Posv unfolding true_cls_def true_lit_def by blast
+          hence I\<chi>: "\<not> I \<Turnstile> \<chi>'" using \<chi>' Posv unfolding true_cls_def true_lit_def Bex_mset_def by blast
           moreover have "total_over_m I {\<chi>'}" using Negv Pos\<chi> atm_imp_pos_or_neg_lit tot\<chi>' unfolding total_over_m_def total_over_set_def by fastforce
           ultimately have  "partial_interps Leaf I (fst \<psi>)"
           and "sem_tree_size Leaf < sem_tree_size xs"
@@ -676,7 +694,9 @@ proof (induct arbitrary: I rule: sem_tree_size)
 
           have totC: "total_over_m I {C}" using tot_imp\<chi> tot\<chi> tot_over_m_remove[of I "Pos v" C] negC posC unfolding \<chi>2 by (metis total_over_m_sum uminus_Neg uminus_of_uminus_id)
           have totC': "total_over_m I {C'}" using tot_imp\<chi>' tot\<chi>' total_over_m_sum tot_over_m_remove[of I "Neg v" C'] negC' posC' unfolding \<chi>2' by (metis total_over_m_sum uminus_Neg)
-          have "\<not> I \<Turnstile> C + C'" using \<chi> I\<chi> \<chi>' I\<chi>' unfolding \<chi>2 \<chi>2' true_cls_def unfolding true_cls_def by (metis add_gr_0 count_union true_cls_singleton true_cls_union_increase)
+          have "\<not> I \<Turnstile> C + C'" 
+            using \<chi> I\<chi> \<chi>' I\<chi>' unfolding \<chi>2 \<chi>2' true_cls_def Bex_mset_def
+            by (metis add_gr_0 count_union true_cls_singleton true_cls_union_increase)
           hence part_I_\<psi>''': "partial_interps Leaf I (fst \<psi>'' \<union> {C + C'})"
             using totC totC' by simp (metis `\<not> I \<Turnstile> C + C'` atms_of_m_singleton total_over_m_def total_over_m_sum)
           {
@@ -1679,7 +1699,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
        have Negv: "Neg v \<notin># \<chi>'" using \<chi>' unfolding true_cls_def true_lit_def by auto
        {
          assume Neg\<chi>: "\<not>Neg v \<in># \<chi>"
-         hence "\<not> I \<Turnstile> \<chi>" using \<chi> Posv unfolding true_cls_def true_lit_def by blast
+         hence "\<not> I \<Turnstile> \<chi>" using \<chi> Posv unfolding true_cls_def true_lit_def Bex_mset_def by blast
          moreover have "total_over_m I {\<chi>}" using Posv Neg\<chi> atm_imp_pos_or_neg_lit tot\<chi> unfolding total_over_m_def total_over_set_def by fastforce
          ultimately have "partial_interps Leaf I (fst \<psi>)"
          and "sem_tree_size Leaf < sem_tree_size xs"
@@ -1688,7 +1708,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
        }
        moreover {
           assume Pos\<chi>: "\<not>Pos v \<in># \<chi>'"
-          hence I\<chi>: "\<not> I \<Turnstile> \<chi>'" using \<chi>' Posv unfolding true_cls_def true_lit_def by blast
+          hence I\<chi>: "\<not> I \<Turnstile> \<chi>'" using \<chi>' Posv unfolding true_cls_def true_lit_def Bex_mset_def by blast
           moreover have "total_over_m I {\<chi>'}" using Negv Pos\<chi> atm_imp_pos_or_neg_lit tot\<chi>' unfolding total_over_m_def total_over_set_def by fastforce
           ultimately have  "partial_interps Leaf I (fst \<psi>)"
           and "sem_tree_size Leaf < sem_tree_size xs"
@@ -1715,7 +1735,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
 
           have totC: "total_over_m I {C}" using tot\<chi> tot_over_m_remove[of I "Pos v" C] negC posC unfolding \<chi>C by (metis total_over_m_sum uminus_Neg uminus_of_uminus_id)
           have totC': "total_over_m I {C'}" using tot\<chi>' total_over_m_sum tot_over_m_remove[of I "Neg v" C'] negC' posC' unfolding \<chi>C' by (metis total_over_m_sum uminus_Neg)
-          have "\<not> I \<Turnstile> C + C'" using \<chi> \<chi>' \<chi>C \<chi>C' unfolding \<chi> \<chi>' true_cls_def unfolding true_cls_def true_cls_union_increase by auto
+          have "\<not> I \<Turnstile> C + C'" using \<chi> \<chi>' \<chi>C \<chi>C' unfolding \<chi> \<chi>' true_cls_def unfolding true_cls_def true_cls_union_increase Bex_mset_def by auto
           hence part_I_\<psi>''': "partial_interps Leaf I (fst \<psi> \<union> {C + C'})"
             using totC totC' by simp (metis `\<not> I \<Turnstile> C + C'` atms_of_m_singleton total_over_m_def total_over_m_sum)
           {

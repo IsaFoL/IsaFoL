@@ -1,20 +1,14 @@
-(*
 
-    Title: Partial Clausal Logic
-    Author: Mathias Fleury
+(*  Title: Partial Clausal Logic
+    Author: Mathias Fleury <mathias.fleury@mpi-inf.mpg.de>
 
-Based on
-    Title:       Clausal Logic
-    Author:      Jasmin Blanchette <blanchette at in.tum.de>, 2014
-    Author:      Dmitriy Traytel <traytel at in.tum.de>, 2014
-
-
+This theory is based on Blanchette's and Traytel's Clausal logic
 *)
 
 section {* Partial Clausal Logic *}
 
 theory Partial_Clausal_Logic
-imports Clausal_Logic
+imports "../lib/Clausal_Logic"
 begin
 
 text {*
@@ -109,11 +103,11 @@ lemma atms_of_m_plus[simp]:
 lemma atms_of_m_singleton[simp]: "atms_of_m {L} = atms_of L"
   unfolding atms_of_m_def by auto
 
-(*TODO intro/simp/nothing?*)
 lemma atms_of_atms_of_m_mono[simp]:
   "A \<in> \<psi> \<Longrightarrow> atms_of A \<subseteq> atms_of_m \<psi>"
   unfolding atms_of_m_def by fastforce
 
+(*TODO generalise the 2 following lemmas, but the multiset is probably not good enough for [intro].*)
 lemma in_implies_atm_of_on_atms_of_m[simp]:
   assumes "C + {#L#} \<in> N"
   shows "atm_of L \<in> atms_of_m N"
@@ -148,7 +142,7 @@ qed
 
 lemma atm_of_in_atm_of_set_in_uminus:
   "atm_of L' \<in> atm_of ` B \<Longrightarrow> L' \<in> B \<or> - L' \<in> B"
-  using atms_of_s_def by (cases L')  fastforce+
+  using atms_of_s_def by (cases L') fastforce+
 
 subsubsection \<open>Totality\<close>
 definition total_over_set :: "'a interp \<Rightarrow> 'a set \<Rightarrow> bool" where
@@ -233,7 +227,6 @@ lemma total_over_set_atms_of[simp]:
   "total_over_set Ia (atms_of_s Ia)"
   unfolding total_over_set_def atms_of_s_def by (metis image_iff literal.exhaust_sel)
 
-
 lemma total_over_set_literal_defined:
   assumes "{#A#} + D \<in> \<psi>s"
   and "total_over_set I (atms_of_m \<psi>s)"
@@ -250,7 +243,7 @@ proof
   fix l
   assume l: "l \<in> atms_of_m {\<psi>}"
   hence "Pos l \<in> I \<or> Neg l \<in> I \<or> l = atm_of L"
-     using assms unfolding total_over_m_def total_over_set_def by auto
+    using assms unfolding total_over_m_def total_over_set_def by auto
   moreover have "atm_of L \<notin> atms_of_m {\<psi>}"
     proof (rule ccontr)
       assume "\<not> ?thesis"
@@ -276,27 +269,36 @@ lemma total_union_2:
 
 subsubsection \<open>Interpretations\<close>
 definition true_cls :: "'a interp \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>" 50) where
-  "I \<Turnstile> C \<longleftrightarrow> (\<exists>L. L \<in># C \<and> I \<Turnstile>l L)"
+  "I \<Turnstile> C \<longleftrightarrow> (\<exists>L \<in># C. I \<Turnstile>l L)"
 
 lemma true_cls_empty[iff]: "\<not> I \<Turnstile> {#}"
-  unfolding true_cls_def by simp
+  unfolding true_cls_def by auto
 
 lemma true_cls_singleton[iff]: "I \<Turnstile> {#L#} \<longleftrightarrow> I \<Turnstile>l L"
-  unfolding true_cls_def by simp
+  unfolding true_cls_def by (auto split:split_if_asm)
 
 lemma true_cls_union[iff]: "I \<Turnstile> C + D \<longleftrightarrow> I \<Turnstile> C \<or> I \<Turnstile> D"
   unfolding true_cls_def by auto
 
-lemma true_cls_mono: "set_mset C \<subseteq> set_mset D \<Longrightarrow> I \<Turnstile> C \<Longrightarrow> I \<Turnstile> D"
-  unfolding true_cls_def subset_eq by (metis mem_set_mset_iff)
+lemma true_cls_mono_set_mset: "set_mset C \<subseteq> set_mset D \<Longrightarrow> I \<Turnstile> C \<Longrightarrow> I \<Turnstile> D"
+  unfolding true_cls_def subset_eq Bex_mset_def by (metis mem_set_mset_iff)
 
+
+lemma true_cls_mono_leD[dest]: "A \<subseteq># B \<Longrightarrow> I \<Turnstile> A \<Longrightarrow> I \<Turnstile> B"
+  unfolding true_cls_def by auto
+
+(*TODO understand why subset_mset_def is necessary here and why
+A < B \<Longrightarrow> A \<subseteq> B is automatically solved by simp*)
+lemma true_cls_mono[dest]: "A <# B \<Longrightarrow> I \<Turnstile> A \<Longrightarrow> I \<Turnstile> B"
+  by (auto simp add: subset_mset_def)
+  
 lemma
   assumes "I \<Turnstile> \<psi>"
   shows true_cls_union_increase[simp]: "I \<union> I' \<Turnstile> \<psi>"
   and true_cls_union_increase'[simp]: "I' \<union> I \<Turnstile> \<psi>"
   using assms unfolding true_cls_def by auto
 
-lemma true_cls_mono_l:
+lemma true_cls_mono_set_mset_l:
   assumes "A \<Turnstile> \<psi>"
   and "A \<subseteq> B"
   shows "B \<Turnstile> \<psi>"
@@ -364,7 +366,7 @@ lemma notin_vars_union_true_cls_true_cls:
   and "atms_of L \<subseteq> atms_of_m A"
   and "I \<union> I' \<Turnstile> L"
   shows "I \<Turnstile> L"
-  using assms unfolding true_cls_def true_lit_def by (metis Un_iff atm_of_lit_in_atms_of contra_subsetD)
+  using assms unfolding true_cls_def true_lit_def Bex_mset_def by (metis Un_iff atm_of_lit_in_atms_of contra_subsetD)
 
 lemma notin_vars_union_true_clss_true_clss:
   assumes "\<forall>x\<in>I'. atm_of x \<notin> atms_of_m A"
@@ -420,7 +422,7 @@ proof -
   let ?I = "{v \<in> I \<union> I'. atm_of v \<in> atms_of \<psi>}"
   have "?I \<Turnstile> \<psi>" using true_cls_remove_unused II' by blast
   moreover have "?I \<subseteq> I" using H by auto
-  ultimately show ?thesis using true_cls_mono_l by blast
+  ultimately show ?thesis using true_cls_mono_set_mset_l by blast
 qed
 
 lemma multiset_not_empty:
@@ -471,7 +473,7 @@ definition "tautology (\<psi>:: 'v clause) \<equiv> \<forall>I. total_over_set I
 lemma tautology_Pos_Neg[intro]:
   assumes "Pos p \<in># A" and "Neg p \<in># A"
   shows "tautology A"
-  using assms unfolding tautology_def total_over_set_def true_cls_def
+  using assms unfolding tautology_def total_over_set_def true_cls_def Bex_mset_def
   by (meson atm_iff_pos_or_neg_lit true_lit_def)
 
 lemma tautology_minus[simp]:
@@ -488,8 +490,8 @@ proof (rule ccontr)
   have "total_over_set ?I (atms_of \<psi>)"
     unfolding total_over_set_def using atm_imp_pos_or_neg_lit by force
   moreover have "\<not> ?I \<Turnstile> \<psi>"
-    unfolding true_cls_def true_lit_def apply clarify
-    using p by (case_tac La) fastforce+
+    unfolding true_cls_def true_lit_def Bex_mset_def apply clarify
+    using p by (case_tac L) fastforce+
   ultimately show False using assms unfolding tautology_def by auto
 qed
 
@@ -1209,7 +1211,7 @@ lemma entails_empty[simp]:
 lemma entails_single[iff]:
   "I \<Turnstile>es {a} \<longleftrightarrow> I \<Turnstile>e a"
   unfolding entails_def by auto
-
+  
 lemma entails_insert_l[simp]:
   "M \<Turnstile>es A \<Longrightarrow> insert L M \<Turnstile>es A"
   unfolding entails_def by (metis Un_commute entail_union insert_is_Un)
@@ -1240,7 +1242,7 @@ lemma entails_remove_minus[simp]: "I \<Turnstile>es N \<Longrightarrow> I \<Turn
 
 end
 
-interpretation true_cls!: entail "true_cls"
+interpretation true_cls!: entail true_cls
   by standard (auto simp add: true_cls_def)
 
 thm true_cls.entails_def

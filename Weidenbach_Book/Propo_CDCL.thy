@@ -1288,7 +1288,8 @@ proof (rule ccontr)
     fix K
     assume "K \<in># D"
     hence "-K \<in> lits_of M"
-      using D unfolding true_annots_def Ball_def CNot_def true_annot_def true_cls_def true_lit_def by (metis (mono_tags, lifting) count_single less_not_refl mem_Collect_eq)
+      using D unfolding true_annots_def Ball_def CNot_def true_annot_def true_cls_def true_lit_def Bex_mset_def
+      by (metis (mono_tags, lifting) count_single less_not_refl mem_Collect_eq)
     hence " -K \<in> I" using IM true_clss_singleton_lit_of_implies_incl lits_of_def by fastforce
   }
   hence "\<not> I \<Turnstile> D" using cons unfolding true_cls_def true_lit_def consistent_interp_def by auto
@@ -2031,7 +2032,7 @@ proof -
               have ff2: "\<And>a. a \<notin> atm_of ` set_mset D \<or> a \<in> atm_of ` lit_of ` set (trail S)"
                 using a1 by (meson subsetCE) (* 6 ms *)
               have ff3: "\<And>l. l \<notin> lit_of ` set (trail S) \<or> l \<notin># D"
-                using `\<not> ?M \<Turnstile>a D` unfolding true_annot_def Ball_def lits_of_def true_cls_def by (meson true_lit_def) (* 6 ms *)
+                using `\<not> ?M \<Turnstile>a D` unfolding true_annot_def Ball_def lits_of_def true_cls_def Bex_mset_def by (meson true_lit_def) (* 6 ms *)
               have ff4: "\<And>l. is_pos l \<or> Pos (atm_of l::'a) = - l"
                 by (metis Neg_atm_of_iff uminus_Neg) (* 6 ms *)
               have "\<And>l. is_neg l \<or> Neg (atm_of l::'a) = - l"
@@ -2044,7 +2045,7 @@ proof -
                 using ff5 ff1 by (metis (no_types, lifting) true_lit_def zero_less_Suc)
               hence "\<exists>l. mm \<notin> {{#- l#} |l. l \<in># D} \<or> l \<in># mm \<and> lit_of ` set (trail S) \<Turnstile>l l"
                 by blast (* 6 ms *) }
-              thus ?thesis unfolding CNot_def true_annots_def true_annot_def Ball_def lits_of_def true_cls_def atms_of_def
+              thus ?thesis unfolding CNot_def true_annots_def true_annot_def Ball_def lits_of_def true_cls_def atms_of_def Bex_mset_def
                 by presburger (* 6 ms *)
           qed
         hence False
@@ -2482,7 +2483,7 @@ next
               hence "set M \<Turnstile> D" using MN unfolding true_clss_def by auto
               moreover have "set M \<Turnstile>s CNot D"
                 using `M' \<Turnstile>as CNot D` M'
-                by (meson true_annots_true_cls true_cls_mono_l true_clss_def)
+                by (meson true_annots_true_cls true_cls_mono_set_mset_l true_clss_def)
               ultimately have False using cons consistent_CNot_not by blast
             }
             thus ?thesis by (auto simp add: conflict.simps true_clss_def)
@@ -2816,9 +2817,9 @@ proof (induct rule: cdcl_o_induct)
               assume x: "x \<in> {{#- L#} |L. L \<in># D}"
               then obtain L' where L': "x = {#-L'#}" "L' \<in># D" by auto
               obtain L'' where "L'' \<in># x" and "lits_of (Marked L (k + 1) # M) \<Turnstile>l L''"
-                using M_D x unfolding true_annots_def Ball_def true_annot_def CNot_def true_cls_def
+                using M_D x unfolding true_annots_def Ball_def true_annot_def CNot_def true_cls_def Bex_mset_def
                 by blast
-              show "\<exists>L. L \<in># x \<and> lits_of M \<Turnstile>l L"  by (metis `- L \<notin># D` `L'' \<in># x` L' `lits_of (Marked L (k + 1) # M) \<Turnstile>l L''` count_single insertE less_numeral_extra(3) lits_of_cons marked_lit.sel(1) true_lit_def uminus_of_uminus_id)
+              show "\<exists>L \<in># x. lits_of M \<Turnstile>l L" unfolding Bex_mset_def by (metis `- L \<notin># D` `L'' \<in># x` L' `lits_of (Marked L (k + 1) # M) \<Turnstile>l L''` count_single insertE less_numeral_extra(3) lits_of_cons marked_lit.sel(1) true_lit_def uminus_of_uminus_id)
             qed
           thus False using `~M \<Turnstile>as CNot D` by auto
         qed
