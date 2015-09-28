@@ -1,5 +1,5 @@
 session "Weidenbach_Book" (main) = "HOL" +
-  options [document = pdf, document_output = "output"]
+  options [document = pdf, document_output = "output", timeout=230]
   theories [document = false]
     "../lib/Multiset_More"
   global_theories
