@@ -8,7 +8,7 @@ session Bachmair_Ganzinger = Bachmair_Ganzinger_Base +
     document_variants = "document:outline=/proof,/ML"]
   theories
     "../lib/Multiset_More"
-    Clausal_Logic
+    "../lib/Clausal_Logic"
     Herbrand_Interpretation
     Inference_System
     Ground_Resolution_Model

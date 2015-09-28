@@ -1,6 +1,7 @@
 (*  Title:       Clausal Logic
     Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
+    Author:      Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>, 2014 
     Maintainer:  Jasmin Blanchette <jasmin.blanchette at inria.fr>
 *)
 
@@ -60,16 +61,16 @@ lemma uminus_of_uminus_id[simp]:
   by (simp add: uminus_literal_def)
 
 lemma uminus_not_id[simp]:
-  "x \<noteq> - (x:: 'v literal)"  
+  "x \<noteq> - (x:: 'v literal)"
   by (case_tac x, auto)
-  
+
 lemma uminus_not_id'[simp]:
   "- x \<noteq> (x:: 'v literal)"
   by (case_tac x, auto)
-  
+
 lemma uminus_eq_inj[simp]:
   "-(a::'v literal) = -b \<longleftrightarrow> a = b"
-  by (case_tac a) (case_tac b, auto)+
+  by (case_tac a; case_tac b) auto+
 
 instantiation literal :: (preorder) preorder
 begin
@@ -234,6 +235,11 @@ lemma atm_imp_pos_or_neg_lit: "A \<in> atms_of C \<Longrightarrow> Pos A \<in># 
 
 lemma atm_iff_pos_or_neg_lit: "A \<in> atms_of L \<longleftrightarrow> Pos A \<in># L \<or> Neg A \<in># L"
   by (auto intro: pos_lit_in_atms_of neg_lit_in_atms_of dest: atm_imp_pos_or_neg_lit)
+
+lemma atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set:
+  "atm_of L \<in> atm_of ` I \<longleftrightarrow> (L \<in> I \<or> -L \<in> I)"
+  apply (auto intro: rev_image_eqI)
+  by (cases L; case_tac x) (auto intro: rev_image_eqI)
 
 lemma lits_subseteq_imp_atms_subseteq: "set_mset C \<subseteq> set_mset D \<Longrightarrow> atms_of C \<subseteq> atms_of D"
   unfolding atms_of_def by blast

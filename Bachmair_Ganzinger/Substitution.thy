@@ -7,7 +7,7 @@
 section {* Abstract Substitutions *}
 
 theory Substitution
-imports Clausal_Logic
+imports "../lib/Clausal_Logic"
 begin
 
 text {*

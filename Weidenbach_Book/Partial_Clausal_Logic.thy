@@ -62,8 +62,8 @@ lemma consistent_interp_change_insert:
   "a \<notin> A \<Longrightarrow> -a \<notin> A \<Longrightarrow> consistent_interp (insert (-a) A) \<longleftrightarrow> consistent_interp (insert a A)"
   unfolding consistent_interp_def by fastforce
 
-lemma consistent_interp_insert_pos  [simp]:
-  "a \<notin> A \<Longrightarrow> consistent_interp (insert a A) \<longleftrightarrow> consistent_interp A \<and> a \<notin> A \<and> -a \<notin> A"
+lemma consistent_interp_insert_pos[simp]:
+  "a \<notin> A \<Longrightarrow> consistent_interp (insert a A) \<longleftrightarrow> consistent_interp A \<and> -a \<notin> A"
   unfolding consistent_interp_def by auto
 
 lemma consistent_interp_insert_not_in:
