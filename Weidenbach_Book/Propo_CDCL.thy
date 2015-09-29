@@ -3,6 +3,8 @@ imports Partial_Annotated_Clausal_Logic List_More
 
 begin
 
+declare upt.simps(2)[simp del]
+
 section \<open>CDCL\<close>
 subsection \<open>Auxiliary definitions\<close>
 subsubsection \<open>Datatypes and access functions\<close>
@@ -210,7 +212,6 @@ lemma get_all_mark_of_propagated_append[simp]:  "get_all_mark_of_propagated (A @
   apply (induct A, simp)
   by (case_tac a) auto
 
-(*TODO Move to first section*)
 subsubsection \<open>Properties about the levels\<close>
 fun get_all_levels_of_marked :: "('b, 'a, 'c) marked_lit list \<Rightarrow> 'a list"  where
 "get_all_levels_of_marked [] = []" |
@@ -442,7 +443,7 @@ proof (induct rule: cdcl_o_induct)
     using get_all_marked_decomposition_exists_prepend by blast
   have "rev (get_all_levels_of_marked M) = [1..<1+ (length (get_all_levels_of_marked M))]"
     using local.backtrack(6) by (auto simp add: rev_swap[symmetric])
-  thus ?case unfolding M by (auto dest: append_cons_eq_upt_length simp del: upt.simps)
+  thus ?case unfolding M by (auto dest!: append_cons_eq_upt_length simp del: upt_simps)
 qed auto
 
 lemma cdcl_rf_bt:
@@ -487,8 +488,8 @@ next
   then obtain c where M: "M = c @ M2 @ Marked K (i + 1) # M1" using get_all_marked_decomposition_exists_prepend by metis
   have "rev (get_all_levels_of_marked M1) @ Suc i # rev (get_all_levels_of_marked M2) @ rev (get_all_levels_of_marked c) =  [Suc 0..<2+length (get_all_levels_of_marked c) + (length (get_all_levels_of_marked M2) + length (get_all_levels_of_marked M1))]"
     using backtrack.prems(2) backtrack.hyps(1) unfolding M backtrack.hyps(1)
-    by (auto simp add: rev_swap[symmetric] simp del: upt.simps)
-  thus ?case by (auto simp add: rev_swap dest!: append_cons_eq_upt(1) simp del: upt.simps)
+    by (auto simp add: rev_swap[symmetric] simp del: upt_simps)
+  thus ?case by (auto simp add: rev_swap dest!: append_cons_eq_upt(1) simp del: upt_simps)
 qed auto
 
 lemma backtrack_lit_skiped:
@@ -509,7 +510,7 @@ proof
     using L_in_M1 unfolding Mc lits_of_def by auto
   have g: "get_all_levels_of_marked M1 = rev [1..<Suc i]"
     using order unfolding Mc
-    by (auto simp del: upt.simps dest!: append_cons_eq_upt_length_i
+    by (auto simp del: upt_simps dest!: append_cons_eq_upt_length_i
       simp add: rev_swap[symmetric])
   hence "Max (set (0 # get_all_levels_of_marked (rev M1))) < Suc i" by auto
   hence "get_level L M1 < Suc i"
@@ -825,11 +826,10 @@ proof (rule ccontr)
   have "get_level L' M = get_rev_level L' (Suc i) (Marked K (Suc i) # rev M2 @ rev M0)"
     using L_notin_M1 L' M by (auto simp del: get_rev_level.simps)
   then have "get_all_levels_of_marked M = rev [1..<(1+?k)]"
-    using lev unfolding S by (auto simp del: upt.simps)
+    using lev unfolding S by auto
   then have M: "get_all_levels_of_marked M0 @ get_all_levels_of_marked M2 = rev [Suc (Suc i)..<Suc (Suc (length (get_all_levels_of_marked M0) + (length (get_all_levels_of_marked M2) + length (get_all_levels_of_marked M1))))]"
     using lev rev_swap unfolding S M
-    by (auto simp del: upt.simps dest!: append_cons_eq_upt_length_i_end
-      simp add: rev_swap[symmetric])
+    by (auto dest!: append_cons_eq_upt_length_i_end simp add: rev_swap[symmetric])
 
   have "get_rev_level L' (Suc i) (Marked K (Suc i) # rev (M0 @ M2)) \<ge> Min (set ((Suc i) # get_all_levels_of_marked (Marked K (Suc i) # rev (M0 @ M2))))"
     using get_rev_level_ge_min_get_all_levels_of_marked[of L' "rev (M0 @ M2 @ [Marked K (i + 1)])" "Suc i"] L_in unfolding L' by (fastforce simp add: lits_of_def)
@@ -1925,17 +1925,6 @@ proof -
     using f4 assms by (metis (no_types) cdcl_cp.conflict' cdcl_s.conflict' full0_unfold other' propagate_conf' propagate_no_conf') (* 590 ms *)
 qed
 
-(*TODO Move*)
-lemma Max_n_upt: "Max (insert 0 {Suc 0..<n}) = n - Suc 0"
-proof (induct n)
-  case 0
-  thus ?case by simp
-next
-  case (Suc n) note IH = this
-  have i: "insert 0 {Suc 0..<Suc n} = insert 0 {Suc 0..< n} \<union> {n}" by auto
-  show ?case using IH unfolding i by auto
-qed
-
 lemma backtrack_ex_decomp:
   assumes M_l: "cdcl_M_level_inv S"
   and i_S: "i < backtrack_level S"
@@ -1953,8 +1942,8 @@ proof -
         apply (case_tac a, auto)
            apply (fast intro: append_Cons)
         by (metis append_Cons)+
-      have g: "get_all_levels_of_marked (trail S) = rev [Suc 0..<Suc (backtrack_level S)]" using M_l unfolding cdcl_M_level_inv_def by (simp del: upt.simps)
-      show False using i i_S unfolding g by (simp del: upt.simps)
+      have g: "get_all_levels_of_marked (trail S) = rev [Suc 0..<Suc (backtrack_level S)]" using M_l unfolding cdcl_M_level_inv_def by simp
+      show False using i i_S unfolding g by simp
     qed
   obtain M1 M2 where "(Marked K (i + 1) # M1, M2) \<in> set (get_all_marked_decomposition (trail S))"
     unfolding M apply (induct c)
@@ -2082,13 +2071,13 @@ proof -
       assume marked: "is_marked (hd ?M)"
       then obtain k' where k': "k' + 1 = ?k"
         using level_inv M unfolding cdcl_M_level_inv_def
-        by (cases "hd (trail S)"; cases "trail S") (auto simp del: upt.simps)
+        by (cases "hd (trail S)"; cases "trail S") auto 
       obtain L' l' where L': "hd ?M = Marked L' l'" using marked by (case_tac "hd ?M") auto
       have "get_all_levels_of_marked (hd (trail S) # tl (trail S)) = rev [1..<1 + length (get_all_levels_of_marked ?M)]"
         using level_inv `get_level L ?M = ?k` M unfolding cdcl_M_level_inv_def M[symmetric] by blast
-      hence "l' # get_all_levels_of_marked (tl ?M) = rev [1..<1 + length (get_all_levels_of_marked ?M)]" unfolding L' by (simp del: upt.simps)
+      hence "l' # get_all_levels_of_marked (tl ?M) = rev [1..<1 + length (get_all_levels_of_marked ?M)]" unfolding L' by simp
       moreover have "\<dots> = length (get_all_levels_of_marked ?M) # rev [1..<length (get_all_levels_of_marked ?M)]"
-        using M Suc_le_mono calculation by fastforce
+        using M Suc_le_mono calculation by (fastforce simp add: upt.simps(2))
       finally have "l' = ?k" and g_r: "get_all_levels_of_marked (tl (trail S)) = rev [1..<length (get_all_levels_of_marked (trail S))]"
         using level_inv `get_level L ?M = ?k` M unfolding cdcl_M_level_inv_def by auto
       have *: "\<And>list. no_dup list \<Longrightarrow>
@@ -2115,7 +2104,7 @@ proof -
       have g_a_l: "get_all_levels_of_marked ?M = rev [1..<1 + ?k]" using level_inv `get_level L ?M = ?k` M unfolding cdcl_M_level_inv_def by auto
       have g_k: "get_maximum_level D (trail S) \<le> ?k"
         using get_maximum_possible_level_ge_get_maximum_level[of D ?M] get_maximum_possible_level_max_get_all_levels_of_marked[of ?M]
-        by (auto simp del:upt.simps simp add: Max_n_upt g_a_l)
+        by (auto simp add: Max_n_upt g_a_l)
       have "get_maximum_level D (trail S) < ?k"
         proof (rule ccontr)
           assume "\<not> ?thesis"
@@ -2153,7 +2142,7 @@ proof -
         have g_r: "get_all_levels_of_marked (Propagated L' C # tl (trail S)) = rev [Suc 0..<Suc (length (get_all_levels_of_marked (trail S)))]"
           using level_inv M unfolding cdcl_M_level_inv_def by auto
         have "Max (insert 0 (set (get_all_levels_of_marked (Propagated L' C # tl (trail S))))) = ?k"
-          using level_inv M unfolding g_r by (auto simp add:Max_n_upt simp del: upt.simps)
+          using level_inv M unfolding g_r by (auto simp add:Max_n_upt)
         hence "get_maximum_level D' (Propagated L' C # tl ?M) \<le> ?k" using get_maximum_possible_level_ge_get_maximum_level[of D' "Propagated L' C # tl ?M"] unfolding get_maximum_possible_level_max_get_all_levels_of_marked by auto
         have "get_maximum_level D' (Propagated L' C # tl ?M) = ?k \<or> get_maximum_level D' (Propagated L' C # tl ?M) < ?k" using `get_maximum_level D' (Propagated L' C # tl (trail S)) \<le> backtrack_level S` le_neq_implies_less by blast
         moreover {
@@ -2274,7 +2263,7 @@ proof (induct rule: cdcl_o_induct)
           have g_r: "get_all_levels_of_marked M = rev [Suc 0..<Suc k]"
             using lev unfolding cdcl_M_level_inv_def by auto
           have "Max (insert 0 (set (get_all_levels_of_marked M))) = k"
-            using lev unfolding g_r by (simp add: Max_n_upt del: upt.simps)
+            using lev unfolding g_r by (simp add: Max_n_upt)
           hence "get_level L M = 0" using get_maximum_possible_level_ge_get_level[of L M] unfolding get_maximum_possible_level_max_get_all_levels_of_marked `k = 0` by auto
         }
         ultimately show "get_level L M = 0" by blast

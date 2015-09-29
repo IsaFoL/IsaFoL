@@ -472,7 +472,7 @@ proof (induction rule: cdcl_o_induct)
     using decomp get_all_marked_decomposition_exists_prepend by metis
   have M: "M = c @ Marked Kh i # H" using trM by simp
   have H: "get_all_levels_of_marked M = rev [1..<1 + k]"
-    using lev unfolding cdcl_M_level_inv_def by (auto simp del: upt.simps)
+    using lev unfolding cdcl_M_level_inv_def by auto
   obtain d where d: "M1 = d @ Marked Kh i # H"
     using z unfolding M3 trail_conv
     by (metis (no_types, lifting) append_eq_Cons_conv list.inject marked_lit.distinct(1))
@@ -486,7 +486,7 @@ proof (induction rule: cdcl_o_induct)
       have L_cKh: "atm_of L \<in> atm_of `lits_of (c @ [Marked Kh i])"
         using LH learned unfolding M DLD'[symmetric] by (fastforce simp add: image_iff)
       have "get_all_levels_of_marked (M3 @ M2 @ Marked K (j + 1) # M1) = rev [1..<1 + k]"
-        using lev unfolding cdcl_M_level_inv_def M3 by (auto simp del: upt.simps)
+        using lev unfolding cdcl_M_level_inv_def M3 by auto
       from arg_cong[OF this, of "\<lambda>a. (Suc j) \<in> set a"] have "k \<ge> j" by auto
 
       have DD'[simp]: "D = D'"
@@ -500,9 +500,9 @@ proof (induction rule: cdcl_o_induct)
               using DH unfolding M by (simp add: get_maximum_level_skip_beginning)
             moreover
               have "get_all_levels_of_marked M = rev [1..<1 + k]"
-                using lev unfolding cdcl_M_level_inv_def by (auto simp del: upt.simps)
+                using lev unfolding cdcl_M_level_inv_def by auto
               hence "get_all_levels_of_marked H = rev [1..< i]"
-                unfolding M by (auto simp del: upt.simps dest: append_cons_eq_upt_length_i
+                unfolding M by (auto dest: append_cons_eq_upt_length_i
                   simp add: rev_swap[symmetric])
               hence "get_maximum_possible_level H < i"
                 using get_maximum_possible_level_max_get_all_levels_of_marked[of H] `i > 0` by auto
@@ -517,8 +517,7 @@ proof (induction rule: cdcl_o_induct)
           moreover {
             have "get_all_levels_of_marked (c @ [Marked Kh i]) = rev [i..< k+1]"
               using append_cons_eq_upt_length_i_end[of " rev (get_all_levels_of_marked H)" i "rev (get_all_levels_of_marked c)" "Suc 0" "Suc k"] H
-              unfolding M apply (auto simp del: upt.simps
-                  simp add: rev_swap[symmetric])
+              unfolding M apply (auto simp add: rev_swap[symmetric])
                 by (metis (no_types, hide_lams) Nil_is_append_conv Suc_le_eq less_Suc_eq list.sel(1) rev.simps(2) rev_rev_ident upt_Suc upt_rec)
             have "get_level L M  = get_level L (c @ [Marked Kh i])"
               using L_cKh LH unfolding M lits_of_def by simp
@@ -538,17 +537,17 @@ proof (induction rule: cdcl_o_induct)
         have "\<forall>m \<in> set M1. \<not>is_marked m"
           using H unfolding M3 j
           by (auto simp add: rev_swap[symmetric] get_all_levels_of_marked_no_marked
-            simp del: upt.simps dest!: append_cons_eq_upt_length_i)
+            dest!: append_cons_eq_upt_length_i)
         hence False using d by auto
       }
       moreover {
         assume D[simp]: "D' \<noteq> {#}"
         have "i \<le> j"
           using H unfolding M3 d by (auto simp add: rev_swap[symmetric]
-            simp del: upt.simps dest: upt_decomp_lt)
+            dest: upt_decomp_lt)
         have "j > 0" apply (rule ccontr)
           using H ` i > 0` unfolding M3 d
-          by (auto simp del:upt.simps simp add: rev_swap[symmetric] dest!: upt_decomp_lt)
+          by (auto simp add: rev_swap[symmetric] dest!: upt_decomp_lt)
         obtain L'' where "L''\<in>#D'" and L''D': "get_level L'' M = get_maximum_level D' M"
           using get_maximum_level_exists_lit_of_max_level[OF D, of M] by auto
         have L''M: "atm_of L'' \<in> atm_of ` lit_of `set M"
@@ -559,8 +558,7 @@ proof (induction rule: cdcl_o_induct)
               assume L''H: "atm_of L'' \<in> atm_of ` lit_of ` set H"
               have "get_all_levels_of_marked H = rev [1..<i]"
                 using H unfolding M
-                by (auto simp add: rev_swap[symmetric] simp del: upt.simps
-                  dest!: append_cons_eq_upt_length_i)
+                by (auto simp add: rev_swap[symmetric] dest!: append_cons_eq_upt_length_i)
               moreover have "get_level L'' M = get_level L'' H"
                 using L''H unfolding M by simp
               ultimately have False
@@ -679,8 +677,8 @@ proof -
   have lev': "cdcl_M_level_inv S" using invS  unfolding cdcl_all_inv_mes_def by blast
 
   have get_lvls_M: "get_all_levels_of_marked M = rev [1..<Suc k]"
-    using lev' unfolding S cdcl_M_level_inv_def by (auto simp del: upt.simps)
-  hence "k > 0" unfolding M by (auto split: split_if_asm)
+    using lev' unfolding S cdcl_M_level_inv_def by auto
+  hence "k > 0" unfolding M by (auto split: split_if_asm simp add: upt.simps(2))
 
   have lev: "cdcl_M_level_inv R" using invR unfolding cdcl_all_inv_mes_def by blast
   hence vars_of_D: "atms_of D \<subseteq> atm_of ` lit_of ` set M1"
@@ -693,7 +691,7 @@ proof -
     using vars_in_M1 true_annots_remove_if_notin_vars[of "M2 @ Marked K (i + 1) # []" M1 "CNot D"] `M \<Turnstile>as CNot D` unfolding M lits_of_def by simp
 
   have get_lvls_M: "get_all_levels_of_marked M = rev [1..<Suc k]"
-    using lev' unfolding S cdcl_M_level_inv_def by (auto simp del: upt.simps)
+    using lev' unfolding S cdcl_M_level_inv_def by auto
 
   obtain M1' K Ls where
     M': "M = Ls @ Marked K k # M1'" and
@@ -716,7 +714,7 @@ proof -
           apply (subst MLs, subst Kk)
           using calculation(2) by (auto simp add: get_all_levels_of_marked_no_marked)
         hence "Kk =  k"
-        using calculation(2) unfolding get_lvls_M by (auto split: split_if_asm)
+        using calculation(2) unfolding get_lvls_M by (auto split: split_if_asm simp add: upt.simps(2))
       moreover have "set M1 \<subseteq> set (tl (dropWhile (Not o is_marked) M))"
         unfolding M by (induction M2) auto
       ultimately show ?thesis using that MLs by metis
@@ -727,7 +725,7 @@ proof -
   have "-L \<in> lits_of M" using conf unfolding S by auto
   have lvls_M1': "get_all_levels_of_marked M1' = rev [1..<k]"
     using get_lvls_M Ls by (auto simp add: get_all_levels_of_marked_no_marked M'
-      split: split_if_asm)
+      split: split_if_asm simp add: upt.simps(2))
   have L_notin: "atm_of L \<in> atm_of ` lits_of Ls \<or> atm_of L = atm_of K"
     proof (rule ccontr)
       assume "\<not> ?thesis"

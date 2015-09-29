@@ -1,6 +1,12 @@
 theory List_More
 imports Main
 begin
+declare upt.simps(2)[simp del] upt_Suc[simp del]
+declare upt_Suc_append
+lemma upt_Suc_le_append: "\<not>i \<le> j \<Longrightarrow> [i..<Suc j] = []"
+  by (auto simp add: upt.simps(2))
+
+lemmas upt_simps[simp] = upt_Suc_append upt_Suc_le_append
 
 
 text \<open>Move to List\<close>
@@ -85,6 +91,16 @@ proof -
   hence "[m..<n]! (length A) = m + length A" by simp
   ultimately have "i = m + length A" using assms by auto
   thus ?thesis using `B = [Suc m + length A..<n]` by auto
+qed
+
+lemma Max_n_upt: "Max (insert 0 {Suc 0..<n}) = n - Suc 0"
+proof (induct n)
+  case 0
+  thus ?case by simp
+next
+  case (Suc n) note IH = this
+  have i: "insert 0 {Suc 0..<Suc n} = insert 0 {Suc 0..< n} \<union> {n}" by auto
+  show ?case using IH unfolding i by auto
 qed
 
 text \<open>MOVE missing in List.thy (see @{thm lexord_trans})\<close>
@@ -194,4 +210,7 @@ qed
 section \<open>rtranclp\<close>
 lemma rtranclp_unfold: "rtranclp r a b \<longleftrightarrow> (a = b \<or> tranclp r a b)"
   by (meson rtranclp.simps rtranclpD tranclp_into_rtranclp)
+  
+  
+
 end
