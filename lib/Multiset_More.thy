@@ -1,7 +1,7 @@
 (*  Title:       More about Multisets
     Author:      Jasmin Blanchette <blanchette at in.tum.de>, 2014, 2015
     Author:      Dmitriy Traytel <traytel at in.tum.de>, 2014
-    Author:      Mathias Fleury <mathias.fleury@ens-rennes.fr>, 2015
+    Author:      Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>, 2015
     Maintainer:  Jasmin Blanchette <blanchette at in.tum.de>
 *)
 
