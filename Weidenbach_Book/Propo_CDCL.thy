@@ -534,7 +534,7 @@ proof (induct rule: cdcl_all_induct)
   moreover have "atm_of L \<notin> (\<lambda>l. atm_of (lit_of l)) ` set M1"
     using backtrack_lit_skiped[of L "(M, N, U, k, C_Clause (D + {#L#}))" K i M1 M2] L M1 backtrack.prems by (fastforce simp add: lits_of_def)
   ultimately show ?case by simp
-qed (auto simp add: undefined_in_M_implies_not_in_M)
+qed (auto simp add: defined_lit_map)
 
 
 lemma cdcl_consistent_inv_2:
