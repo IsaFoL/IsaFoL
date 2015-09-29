@@ -11,7 +11,15 @@ subsection \<open>Marked Literals\<close>
 subsubsection \<open>Definition\<close>
 datatype ('v, 'l, 'm) marked_lit =
   is_marked: Marked (lit_of: "'v literal") (level_of: "'l") |
-  Propagated (lit_of: "'v literal") (mark_of: 'm)
+  is_proped: Propagated (lit_of: "'v literal") (mark_of: 'm)
+
+lemma marked_lit_list_induct[case_names nil marked proped]:
+  assumes "P []" and
+  "\<And>L l xs. P xs \<Longrightarrow> P (Marked L l # xs)" and
+  "\<And>L m xs. P xs \<Longrightarrow> P (Propagated L m # xs)"
+  shows "P xs"
+  using assms apply (induction xs, simp)
+  by (case_tac a) auto
 
 type_synonym ('v, 'l, 'm) annoted_lits = "('v, 'l, 'm) marked_lit list"
 
@@ -106,7 +114,8 @@ lemma true_annots_true_clss_cls:
   "MLs \<Turnstile>as \<psi> \<Longrightarrow> set (map (\<lambda>a. {#lit_of a#}) MLs) \<Turnstile>ps \<psi>"
   by (auto
     dest: true_clss_singleton_lit_of_implies_incl 
-    simp add: true_clss_def true_annots_def true_annot_def lits_of_def true_cls_def true_clss_clss_def)
+    simp add: true_clss_def true_annots_def true_annot_def lits_of_def true_cls_def
+    true_clss_clss_def)
 
 lemma true_annots_marked_true_cls[iff]:
   "map (\<lambda>M. Marked M a) M \<Turnstile>as N \<longleftrightarrow> set M \<Turnstile>s N"
@@ -133,14 +142,14 @@ lemma true_annots_commute:
   "M @ M' \<Turnstile>as D \<longleftrightarrow> M' @ M \<Turnstile>as D"
   unfolding true_annots_def by (auto simp add: true_annot_commute)
 
-lemma true_annot_mono:
+lemma true_annot_mono[dest]:
   "set I \<subseteq> set I' \<Longrightarrow> I \<Turnstile>a N \<Longrightarrow> I' \<Turnstile>a N"
   using true_cls_mono_set_mset_l unfolding true_annot_def lits_of_def
   by (metis (no_types) Un_commute Un_upper1 image_Un sup.orderE)
 
 lemma true_annots_mono:
   "set I \<subseteq> set I' \<Longrightarrow> I \<Turnstile>as N \<Longrightarrow> I' \<Turnstile>as N"
-  unfolding true_annots_def by (auto intro: true_annot_mono)
+  unfolding true_annots_def by auto
 
 subsubsection \<open>Defined and undefined literals\<close>
 definition defined_lit :: "'a literal \<Rightarrow> ('a, 'l, 'm) marked_lit list  \<Rightarrow> bool" ("|_| \<in>\<^sub>l |_|" 50)
@@ -167,7 +176,7 @@ lemma "consistent_interp (lits_of I) \<Longrightarrow> I \<Turnstile>as N \<Long
   by (simp add: true_annots_true_cls)
 
 lemma defined_lit_map:
-  "defined_lit L Ls \<longleftrightarrow> atm_of L \<in> set (map (atm_of o lit_of) Ls)"
+  "defined_lit L Ls \<longleftrightarrow> atm_of L \<in> (\<lambda>l. atm_of (lit_of l)) ` set Ls"
  unfolding defined_lit_def apply (rule iffI)
    using image_iff apply fastforce
  by (fastforce simp add: atm_of_eq_atm_of dest: atm_imp_marked_or_proped)
@@ -180,10 +189,6 @@ lemma Marked_Propagated_in_iff_in_lits_of:
   "defined_lit L I \<longleftrightarrow> (L \<in> lits_of I \<or> -L \<in> lits_of I)"
   unfolding lits_of_def defined_lit_def
   by (auto simp add: rev_image_eqI) (case_tac x, auto)+
-
-
-lemma undefined_in_M_implies_not_in_M: "undefined_lit L M \<Longrightarrow> atm_of L \<notin> (\<lambda>l. atm_of (lit_of l)) ` set M"
-  using Marked_Propagated_in_iff_in_lits_of defined_lit_map by fastforce
 
 (* TODO: intro rule instead of simp?*)
 lemma consistent_add_undefined_lit_consistent[simp]:
@@ -201,15 +206,15 @@ fun backtrack_split :: "('v, 'l, 'm) annoted_lits \<Rightarrow> ('v, 'l, 'm) ann
 "backtrack_split (Marked L l # mlits) = ([], Marked L l # mlits)"
 
 lemma backtrack_split_fst_not_marked: "a \<in> set (fst (backtrack_split l)) \<Longrightarrow> \<not>is_marked a"
-  by (induct l, simp) (case_tac aa, auto)
+  by (induct l rule: marked_lit_list_induct) auto
 
 lemma backtrack_split_snd_hd_marked: "snd (backtrack_split l) \<noteq> [] \<Longrightarrow> is_marked (hd (snd (backtrack_split l)))"
-  by (induct l, simp) (case_tac a, auto)
+  by (induct l rule: marked_lit_list_induct) auto
 
 (*TODO as simp rule is nice, but the [symmetric] version might be more interesting as [dest!]*)
 lemma backtrack_split_list_eq[simp]:
   "fst (backtrack_split l) @ (snd (backtrack_split l)) = l"
-  by (induct l, simp) (case_tac a, auto)
+  by (induct l rule: marked_lit_list_induct) auto
 
 lemma backtrack_snd_empty_not_marked:
   "backtrack_split M = (M'', []) \<Longrightarrow> \<forall>l\<in>set M. \<not> is_marked l"
@@ -233,6 +238,8 @@ subsection \<open>Decomposition with respect to the marked literals\<close>
 Ideas:
   * swap the side of Marked
   * case on the form of dropWhile (Not o is_marked)
+  
+Split function in 2 + list.product
 *)
 text \<open>The pattern @{term "get_all_marked_decomposition [] = [([], [])]"} is necessary otherwise, we can call the @{term hd} function in the other pattern. \<close>
 fun get_all_marked_decomposition :: "('a, 'l, 'm) annoted_lits \<Rightarrow> (('a, 'l, 'm) annoted_lits \<times> ('a, 'l, 'm) annoted_lits) list" where
@@ -240,6 +247,7 @@ fun get_all_marked_decomposition :: "('a, 'l, 'm) annoted_lits \<Rightarrow> (('
 "get_all_marked_decomposition (Propagated L P# Ls) = (apsnd ((op #) (Propagated L P)) (hd (get_all_marked_decomposition Ls))) # tl (get_all_marked_decomposition Ls)" |
 "get_all_marked_decomposition [] = [([], [])]"
 value "get_all_marked_decomposition [Propagated A5 B5, Marked C4 D4, Propagated A3 B3, Propagated A2 B2, Marked C1 D1, Propagated A0 B0]"
+
 (*
 
 fun get_all_marked_decomp where
@@ -301,16 +309,15 @@ next
       thus ?thesis using Cons by simp
     next
       case (Propagated l mark)
-      thus ?thesis using Cons by (cases " get_all_marked_decomposition M") force+
+      thus ?thesis using Cons by (cases "get_all_marked_decomposition M") force+
     qed
 qed
 
 lemma get_all_marked_decomposition_fst_empty_or_hd_in_M:
   assumes "get_all_marked_decomposition M = (a, b) # l"
   shows "a = [] \<or> (is_marked (hd a) \<and> hd a \<in> set M)"
-  using assms apply (induct M arbitrary: a b)
+  using assms apply (induct M arbitrary: a b rule: marked_lit_list_induct)
     apply simp
-  apply (case_tac a)
     apply auto[1]
   by (metis Un_iff backtrack_split_list_eq backtrack_split_snd_hd_marked list.sel(1) list.set_sel(1)
     get_all_marked_decomposition_backtrack_split set_append snd_conv)
@@ -319,16 +326,15 @@ lemma get_all_marked_decomposition_snd_not_marked:
   assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
   and "L \<in> set b"
   shows "\<not>is_marked L"
-  using assms apply (induct M arbitrary: a b, simp)
-  by (case_tac a; case_tac "get_all_marked_decomposition M") fastforce+
+  using assms apply (induct M arbitrary: a b rule: marked_lit_list_induct, simp)
+  by (case_tac "get_all_marked_decomposition xs"; fastforce)+
 
 lemma tl_get_all_marked_decomposition_skip_some:
   assumes "x \<in> set (tl (get_all_marked_decomposition M1))"
   shows "x \<in> set (tl (get_all_marked_decomposition (M0 @ M1)))"
   using assms
-  apply (induct M0)
-    apply (auto simp add: list.set_sel(2))[1]
-  by (case_tac a, simp_all add: list.set_sel(2))
+  by (induct M0 rule: marked_lit_list_induct)
+     (auto simp add: list.set_sel(2))
 
 lemma hd_get_all_marked_decomposition_skip_some:
   "(x, y) = hd (get_all_marked_decomposition M1) \<Longrightarrow> (x, y) \<in> set (get_all_marked_decomposition (M0 @ Marked K i # M1))"
@@ -381,8 +387,7 @@ qed
 lemma get_all_marked_decomposition_remove_unmarked_length:
   assumes "\<forall>l \<in> set M'. \<not>is_marked l"
   shows "length (get_all_marked_decomposition (M' @ M'')) = length (get_all_marked_decomposition M'')"
-  using assms apply (induct M' arbitrary: M'', auto)
-  by (case_tac a, auto)
+  using assms by (induct M' arbitrary: M'' rule: marked_lit_list_induct) auto
 
 lemma get_all_marked_decomposition_not_is_marked_length:
   assumes "\<forall>l \<in> set M'. \<not>is_marked l"
@@ -394,26 +399,12 @@ lemma get_all_marked_decomposition_last_choice:
   and "\<forall>l \<in> set M'. \<not>is_marked l"
   and "hd (tl (get_all_marked_decomposition (M' @ Marked L l # M))) = (M0', M0)"
   shows "hd (get_all_marked_decomposition (Propagated (-L) P # M)) = (M0', Propagated (-L) P # M0)"
-  using assms
-proof (induct M')
-  case Nil
-  show ?case using Nil(3) by simp
-next
-  case (Cons a M')
-  show ?case using Cons by (cases a) auto
-qed
+  using assms by (induct M' rule: marked_lit_list_induct) auto
 
 lemma get_all_marked_decomposition_except_last_choice_equal:
   assumes "\<forall>l \<in> set M'. \<not>is_marked l"
   shows "tl (get_all_marked_decomposition (Propagated (-L) P # M)) = tl (tl (get_all_marked_decomposition (M' @ Marked L l # M)))"
-  using assms
-proof (induct M')
-  case Nil
-  show ?case by fastforce
-next
-  case (Cons a M')
-  thus ?case by (case_tac a) simp_all
-qed
+  using assms by (induct M'  rule: marked_lit_list_induct) auto
 
 lemma get_all_marked_decomposition_hd_hd:
   assumes "get_all_marked_decomposition Ls = (M, C) # (M0, M0') # l"
@@ -443,10 +434,10 @@ qed
 lemma get_all_marked_decomposition_exists_prepend:
   assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
   shows "\<exists>c. M = c @ b @ a"
-  using assms apply (induct M)
+  using assms apply (induct M rule: marked_lit_list_induct)
     apply simp
-  by (case_tac aa; case_tac " (get_all_marked_decomposition M)")
-     (auto dest!: arg_cong[of "get_all_marked_decomposition _" _ hd] get_all_marked_decomposition_decomp)
+  by (case_tac "get_all_marked_decomposition xs",
+    auto dest!: arg_cong[of "get_all_marked_decomposition _" _ hd] get_all_marked_decomposition_decomp)+
 
 lemma get_all_marked_decomposition_incl:
   assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
@@ -456,11 +447,10 @@ lemma get_all_marked_decomposition_incl:
 lemma get_all_marked_decomposition_exists_prepend':
   assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
   obtains c where "M = c @ b @ a"
-  using assms apply (induct M)
+  using assms apply (induct M rule: marked_lit_list_induct)
     apply auto[1]
-  (*TODO kill the splitting (Eisbach?), that helps auto. Prbably better to redefine the function better.*)
-  by (case_tac aa; case_tac "hd (get_all_marked_decomposition M)")
-     (auto dest!: get_all_marked_decomposition_decomp simp add: list.set_sel(2))
+  by (case_tac "hd (get_all_marked_decomposition xs)",
+    auto dest!: get_all_marked_decomposition_decomp simp add: list.set_sel(2))+
 
 lemma union_in_get_all_marked_decomposition_is_subset:
   assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
