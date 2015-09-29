@@ -30,6 +30,11 @@ declare
   (*To have the same rules as the set counter-part*)
   mset_leD[dest, intro?] (*@{thm subsetD}*)
 
+(*@{thm psubsetE} is the set counter part*)
+lemma subset_msetE [elim!]:
+  "[|A \<subset># B;  [|A \<subseteq># B; ~ (B\<subseteq>#A)|] ==> R|] ==> R"
+  unfolding subseteq_mset_def subset_mset_def by (meson mset_less_eqI subset_mset.eq_iff)
+
 abbreviation not_Melem where
   "not_Melem x A \<equiv> ~ (x \<in># A)" -- "non-membership"
 

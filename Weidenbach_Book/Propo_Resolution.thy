@@ -937,7 +937,7 @@ proof (rule ccontr)
          thus ?case using simplify.condensation[of A L "\<psi>"] incl by blast
        next
          case (subsumption A B)
-         thus ?case using simplify.subsumption[of A "\<psi>" B] incl by blast
+         thus ?case using simplify.subsumption[of A "\<psi>" B] incl by auto
        qed
   thus False using assms(1) by blast
 qed

@@ -283,15 +283,9 @@ lemma true_cls_union[iff]: "I \<Turnstile> C + D \<longleftrightarrow> I \<Turns
 lemma true_cls_mono_set_mset: "set_mset C \<subseteq> set_mset D \<Longrightarrow> I \<Turnstile> C \<Longrightarrow> I \<Turnstile> D"
   unfolding true_cls_def subset_eq Bex_mset_def by (metis mem_set_mset_iff)
 
-
 lemma true_cls_mono_leD[dest]: "A \<subseteq># B \<Longrightarrow> I \<Turnstile> A \<Longrightarrow> I \<Turnstile> B"
   unfolding true_cls_def by auto
 
-(*TODO understand why subset_mset_def is necessary here and why
-A < B \<Longrightarrow> A \<subseteq> B is automatically solved by simp*)
-lemma true_cls_mono[dest]: "A <# B \<Longrightarrow> I \<Turnstile> A \<Longrightarrow> I \<Turnstile> B"
-  by (auto simp add: subset_mset_def)
-  
 lemma
   assumes "I \<Turnstile> \<psi>"
   shows true_cls_union_increase[simp]: "I \<union> I' \<Turnstile> \<psi>"
