@@ -904,18 +904,18 @@ proof (rule ccontr)
           by (metis (no_types) A add.commute tautology_deletion.hyps union_lcomm) (* 116 ms *)
         thus ?thesis
            by (metis simplify.tautology_deletion[of "A+{#l#}" P "{\<psi>}"] add.commute) (* 19 ms *)
-       next
-         case (condensation A L)
-         have "A + {#L#} + {#L#} + {#l#} \<in> {\<psi>}"
-           using A condensation.hyps by blast
-         hence "{#L, L#} + (A + {#l#}) \<in> {\<psi>}"
-           by (metis (no_types) union_assoc union_commute)
-         thus ?case
-           using factoring_imp_simplifier by blast
-       next
-         case (subsumption A B)
-         thus ?case by blast
-       qed
+      next
+        case (condensation A L)
+        have "A + {#L#} + {#L#} + {#l#} \<in> {\<psi>}"
+          using A condensation.hyps by blast
+        hence "{#L, L#} + (A + {#l#}) \<in> {\<psi>}"
+          by (metis (no_types) union_assoc union_commute)
+        thus ?case
+          using factoring_imp_simplifier by blast
+      next
+        case (subsumption A B)
+        thus ?case by blast
+      qed
     hence False using assms(1) by blast
   }
   ultimately show False by auto
@@ -932,13 +932,13 @@ proof (rule ccontr)
       proof (induction rule: simplify.induct)
         case (tautology_deletion A P)
         thus ?thesis using simplify.tautology_deletion[of "A" P "\<psi>"] incl by blast  (* 19 ms *)
-       next
-         case (condensation A L)
-         thus ?case using simplify.condensation[of A L "\<psi>"] incl by blast
-       next
-         case (subsumption A B)
-         thus ?case using simplify.subsumption[of A "\<psi>" B] incl by auto
-       qed
+      next
+        case (condensation A L)
+        thus ?case using simplify.condensation[of A L "\<psi>"] incl by blast
+      next
+        case (subsumption A B)
+        thus ?case using simplify.subsumption[of A "\<psi>" B] incl by auto
+      qed
   thus False using assms(1) by blast
 qed
 
