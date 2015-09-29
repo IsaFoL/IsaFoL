@@ -635,7 +635,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
        have Negv: "\<not>Neg v \<in># \<chi>'" using \<chi>' unfolding true_cls_def true_lit_def by auto
        {
          assume Neg\<chi>: "\<not>Neg v \<in># \<chi>"
-         hence "\<not> I \<Turnstile> \<chi>" using \<chi> Posv unfolding true_cls_def true_lit_def Bex_mset_def by blast
+         have "\<not> I \<Turnstile> \<chi>" using \<chi> Posv unfolding true_cls_def true_lit_def by auto
          moreover have "total_over_m I {\<chi>}" using Posv Neg\<chi> atm_imp_pos_or_neg_lit tot\<chi> unfolding total_over_m_def total_over_set_def by fastforce
          ultimately have "partial_interps Leaf I (fst \<psi>)"
          and "sem_tree_size Leaf < sem_tree_size xs"
@@ -644,7 +644,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
        }
        moreover {
           assume Pos\<chi>: "\<not>Pos v \<in># \<chi>'"
-          hence I\<chi>: "\<not> I \<Turnstile> \<chi>'" using \<chi>' Posv unfolding true_cls_def true_lit_def Bex_mset_def by blast
+          hence I\<chi>: "\<not> I \<Turnstile> \<chi>'" using \<chi>' Posv unfolding true_cls_def true_lit_def by auto
           moreover have "total_over_m I {\<chi>'}" using Negv Pos\<chi> atm_imp_pos_or_neg_lit tot\<chi>' unfolding total_over_m_def total_over_set_def by fastforce
           ultimately have  "partial_interps Leaf I (fst \<psi>)"
           and "sem_tree_size Leaf < sem_tree_size xs"
@@ -904,18 +904,18 @@ proof (rule ccontr)
           by (metis (no_types) A add.commute tautology_deletion.hyps union_lcomm) (* 116 ms *)
         thus ?thesis
            by (metis simplify.tautology_deletion[of "A+{#l#}" P "{\<psi>}"] add.commute) (* 19 ms *)
-       next
-         case (condensation A L)
-         have "A + {#L#} + {#L#} + {#l#} \<in> {\<psi>}"
-           using A condensation.hyps by blast
-         hence "{#L, L#} + (A + {#l#}) \<in> {\<psi>}"
-           by (metis (no_types) union_assoc union_commute)
-         thus ?case
-           using factoring_imp_simplifier by blast
-       next
-         case (subsumption A B)
-         thus ?case by blast
-       qed
+      next
+        case (condensation A L)
+        have "A + {#L#} + {#L#} + {#l#} \<in> {\<psi>}"
+          using A condensation.hyps by blast
+        hence "{#L, L#} + (A + {#l#}) \<in> {\<psi>}"
+          by (metis (no_types) union_assoc union_commute)
+        thus ?case
+          using factoring_imp_simplifier by blast
+      next
+        case (subsumption A B)
+        thus ?case by blast
+      qed
     hence False using assms(1) by blast
   }
   ultimately show False by auto
@@ -932,13 +932,13 @@ proof (rule ccontr)
       proof (induction rule: simplify.induct)
         case (tautology_deletion A P)
         thus ?thesis using simplify.tautology_deletion[of "A" P "\<psi>"] incl by blast  (* 19 ms *)
-       next
-         case (condensation A L)
-         thus ?case using simplify.condensation[of A L "\<psi>"] incl by blast
-       next
-         case (subsumption A B)
-         thus ?case using simplify.subsumption[of A "\<psi>" B] incl by blast
-       qed
+      next
+        case (condensation A L)
+        thus ?case using simplify.condensation[of A L "\<psi>"] incl by blast
+      next
+        case (subsumption A B)
+        thus ?case using simplify.subsumption[of A "\<psi>" B] incl by auto
+      qed
   thus False using assms(1) by blast
 qed
 
@@ -1699,7 +1699,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
        have Negv: "Neg v \<notin># \<chi>'" using \<chi>' unfolding true_cls_def true_lit_def by auto
        {
          assume Neg\<chi>: "\<not>Neg v \<in># \<chi>"
-         hence "\<not> I \<Turnstile> \<chi>" using \<chi> Posv unfolding true_cls_def true_lit_def Bex_mset_def by blast
+         hence "\<not> I \<Turnstile> \<chi>" using \<chi> Posv unfolding true_cls_def true_lit_def by auto
          moreover have "total_over_m I {\<chi>}" using Posv Neg\<chi> atm_imp_pos_or_neg_lit tot\<chi> unfolding total_over_m_def total_over_set_def by fastforce
          ultimately have "partial_interps Leaf I (fst \<psi>)"
          and "sem_tree_size Leaf < sem_tree_size xs"
@@ -1708,7 +1708,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
        }
        moreover {
           assume Pos\<chi>: "\<not>Pos v \<in># \<chi>'"
-          hence I\<chi>: "\<not> I \<Turnstile> \<chi>'" using \<chi>' Posv unfolding true_cls_def true_lit_def Bex_mset_def by blast
+          hence I\<chi>: "\<not> I \<Turnstile> \<chi>'" using \<chi>' Posv unfolding true_cls_def true_lit_def by auto
           moreover have "total_over_m I {\<chi>'}" using Negv Pos\<chi> atm_imp_pos_or_neg_lit tot\<chi>' unfolding total_over_m_def total_over_set_def by fastforce
           ultimately have  "partial_interps Leaf I (fst \<psi>)"
           and "sem_tree_size Leaf < sem_tree_size xs"
@@ -1735,9 +1735,11 @@ proof (induct arbitrary: I rule: sem_tree_size)
 
           have totC: "total_over_m I {C}" using tot\<chi> tot_over_m_remove[of I "Pos v" C] negC posC unfolding \<chi>C by (metis total_over_m_sum uminus_Neg uminus_of_uminus_id)
           have totC': "total_over_m I {C'}" using tot\<chi>' total_over_m_sum tot_over_m_remove[of I "Neg v" C'] negC' posC' unfolding \<chi>C' by (metis total_over_m_sum uminus_Neg)
-          have "\<not> I \<Turnstile> C + C'" using \<chi> \<chi>' \<chi>C \<chi>C' unfolding \<chi> \<chi>' true_cls_def unfolding true_cls_def true_cls_union_increase Bex_mset_def by auto
+          have "\<not> I \<Turnstile> C + C'" 
+            using \<chi> \<chi>' \<chi>C \<chi>C' by auto
           hence part_I_\<psi>''': "partial_interps Leaf I (fst \<psi> \<union> {C + C'})"
-            using totC totC' by simp (metis `\<not> I \<Turnstile> C + C'` atms_of_m_singleton total_over_m_def total_over_m_sum)
+            using totC totC' `\<not> I \<Turnstile> C + C'` by (metis Un_insert_right insertI1
+              partial_interps.simps(1) total_over_m_sum)
           {
             assume "({#Pos v#} + C', {#Neg v#} + C) \<notin> snd \<psi>"
             hence inf'': "inference \<psi> (fst \<psi> \<union> {C + C'}, snd \<psi> \<union> {(\<chi>', \<chi>)})" by (metis \<chi>'\<psi> \<chi>C \<chi>C' \<chi>\<psi> add.commute inference_step prod.collapse resolution)

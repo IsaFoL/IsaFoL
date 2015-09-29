@@ -1,7 +1,7 @@
 (*  Title:       More about Multisets
     Author:      Jasmin Blanchette <blanchette at in.tum.de>, 2014, 2015
     Author:      Dmitriy Traytel <traytel at in.tum.de>, 2014
-    Author:      Mathias Fleury <mathias.fleury@ens-rennes.fr>, 2015
+    Author:      Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>, 2015
     Maintainer:  Jasmin Blanchette <blanchette at in.tum.de>
 *)
 
@@ -29,6 +29,11 @@ declare
 
   (*To have the same rules as the set counter-part*)
   mset_leD[dest, intro?] (*@{thm subsetD}*)
+
+(*@{thm psubsetE} is the set counter part*)
+lemma subset_msetE [elim!]:
+  "[|A \<subset># B;  [|A \<subseteq># B; ~ (B\<subseteq>#A)|] ==> R|] ==> R"
+  unfolding subseteq_mset_def subset_mset_def by (meson mset_less_eqI subset_mset.eq_iff)
 
 abbreviation not_Melem where
   "not_Melem x A \<equiv> ~ (x \<in># A)" -- "non-membership"

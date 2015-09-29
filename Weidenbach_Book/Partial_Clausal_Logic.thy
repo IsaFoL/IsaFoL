@@ -283,15 +283,9 @@ lemma true_cls_union[iff]: "I \<Turnstile> C + D \<longleftrightarrow> I \<Turns
 lemma true_cls_mono_set_mset: "set_mset C \<subseteq> set_mset D \<Longrightarrow> I \<Turnstile> C \<Longrightarrow> I \<Turnstile> D"
   unfolding true_cls_def subset_eq Bex_mset_def by (metis mem_set_mset_iff)
 
-
 lemma true_cls_mono_leD[dest]: "A \<subseteq># B \<Longrightarrow> I \<Turnstile> A \<Longrightarrow> I \<Turnstile> B"
   unfolding true_cls_def by auto
 
-(*TODO understand why subset_mset_def is necessary here and why
-A < B \<Longrightarrow> A \<subseteq> B is automatically solved by simp*)
-lemma true_cls_mono[dest]: "A <# B \<Longrightarrow> I \<Turnstile> A \<Longrightarrow> I \<Turnstile> B"
-  by (auto simp add: subset_mset_def)
-  
 lemma
   assumes "I \<Turnstile> \<psi>"
   shows true_cls_union_increase[simp]: "I \<union> I' \<Turnstile> \<psi>"
@@ -386,7 +380,13 @@ lemma satisfiable_single[simp]:
 abbreviation unsatisfiable :: "'a clause set \<Rightarrow> bool" where
   "unsatisfiable CC \<equiv> \<not> satisfiable CC"
 
-subsubsection \<open>Multiset of clauses\<close>
+(*TODO Move upper*)
+lemma satisfiable_decreasing:
+  assumes "satisfiable (\<psi> \<union> \<psi>')"
+  shows "satisfiable \<psi>"
+  using assms total_over_m_union unfolding satisfiable_def by blast
+
+subsubsection \<open>Entailment for multisets of clauses\<close>
 definition true_cls_mset :: "'a interp \<Rightarrow> 'a clause multiset \<Rightarrow> bool" (infix "\<Turnstile>m" 50) where
   "I \<Turnstile>m CC \<longleftrightarrow> (\<forall>C \<in># CC. I \<Turnstile> C)"
 
@@ -447,7 +447,8 @@ proof (rule ccontr)
   moreover have "\<And>L. \<not> (L \<in> A \<and> -L \<in> I)"
     using disj unfolding atms_of_s_def by (auto simp add: rev_image_eqI)
   ultimately show False
-    using consA consI unfolding consistent_interp_def by (metis (full_types) Un_iff literal.exhaust_sel uminus_Neg uminus_Pos)
+    using consA consI unfolding consistent_interp_def by (metis (full_types) Un_iff
+      literal.exhaust_sel uminus_Neg uminus_Pos)
 qed
 
 lemma total_remove_unused:
@@ -517,12 +518,6 @@ lemma remove_literal_in_model_tautology:
   shows "I \<Turnstile> \<phi> \<or> tautology \<phi>"
   using assms unfolding true_cls_def by auto
 
-(*TODO Move upper*)
-lemma satisfiable_decreasing:
-  assumes "satisfiable (\<psi> \<union> \<psi>')"
-  shows "satisfiable \<psi>"
-  using assms total_over_m_union unfolding satisfiable_def by blast
-
 lemma tautology_imp_tautology:
   fixes \<chi> \<chi>' :: "'v clause"
   assumes "\<forall>I. total_over_m I {\<chi>} \<longrightarrow> I \<Turnstile> \<chi> \<longrightarrow> I \<Turnstile> \<chi>'" and "tautology \<chi>"
@@ -535,18 +530,11 @@ proof (intro allI HOL.impI)
   hence \<chi>: "I \<union> ?I' \<Turnstile> \<chi>" using assms(2) unfolding total_over_m_def tautology_def by simp
   hence "I \<union> (?I'- I) \<Turnstile> \<chi>'" using assms(1) totI' by auto
   moreover have "\<And>L. L \<in># \<chi>' \<Longrightarrow> L \<notin> ?I'"
-    proof -
-      fix L :: "'v literal"
-      assume a1: "L \<in># \<chi>'"
-      have "\<forall>v. v \<notin> atms_of \<chi>' \<or> Pos v \<in> I \<or> Neg v \<in> I"
-        by (meson totI total_over_set_def)
-      thus "L \<notin> ?I'"
-        using a1 by (auto dest!: pos_lit_in_atms_of)
-    qed
+    using totI unfolding total_over_set_def by (auto dest: pos_lit_in_atms_of)
   ultimately show "I \<Turnstile> \<chi>'" unfolding true_cls_def by auto
 qed
 
-subsubsection \<open>Clause and propositions\<close>
+subsubsection \<open>Entailment for clauses and propositions\<close>
 definition true_cls_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>f" 49) where
 "\<psi> \<Turnstile>f \<chi> \<longleftrightarrow> (\<forall>I. total_over_m I ({\<psi>} \<union> {\<chi>}) \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile> \<psi> \<longrightarrow> I \<Turnstile> \<chi>)"
 
@@ -845,10 +833,6 @@ lemma remdups_mset_singleton_sum[simp]:
   "remdups_mset ({#a#} + A) = (if a \<in># A then remdups_mset A else {#a#} + remdups_mset A)"
   unfolding remdups_mset_def by (simp add: insert_absorb)
 
-(*TODO problem in the if the order changes like here, but otherwise the rule seem to be a good idea*)
-lemma "remdups_mset {#1::nat, 1, 2, 3, 1#} = {#1, 2, 3#}"
-  by (auto simp add: multiset_eq_iff)
-
 definition "distinct_mset S \<longleftrightarrow> (\<forall>a. a \<in># S \<longrightarrow> count S a = 1)"
 
 lemma distinct_mset_empty[simp]: "distinct_mset {#}"
@@ -903,8 +887,8 @@ lemma true_cls_remdups_mset[iff]: "I \<Turnstile> remdups_mset C \<longleftright
 lemma true_clss_cls_remdups_mset[iff]: "A \<Turnstile>p remdups_mset C \<longleftrightarrow> A \<Turnstile>p C"
   unfolding true_clss_cls_def total_over_m_def by auto
 
-subsection \<open>Build all simple clauses\<close>
-
+subsection \<open>Set of all simple clauses\<close>
+text \<open>A simple clause contains no duplicate and is not tautology.\<close>
 function build_all_simple_clss :: "'v :: linorder set \<Rightarrow> 'v clause set" where
 "build_all_simple_clss vars =
   (if \<not>finite vars \<or> vars= {}
@@ -1022,18 +1006,18 @@ proof (induct "card (atms \<union> atms')" arbitrary: atms atms')
 next
   case (Suc n atms atms') note IH = this(1) and c = this(2) and disj = this(3) and finite = this(4) and finite' = this(5)
   let ?min = "Min (atms \<union> atms')"
-  have "?min \<in> atms \<or> ?min \<in> atms'" by (metis Min_in Un_iff c card_eq_0_iff nat.distinct(1))
-
+  have m: "?min \<in> atms \<or> ?min \<in> atms'" by (metis Min_in Un_iff c card_eq_0_iff nat.distinct(1)) 
   moreover {
     assume min: "?min \<in> atms'"
     hence min': "?min \<notin> atms" using disj by auto
-    have "atms = atms - {?min}"
-      using min' by fastforce
+    hence "atms = atms - {?min}" by fastforce
     hence "n = card (atms \<union> (atms' - {?min}))"
-      using c min finite by (metis Min_in Un_Diff card_Diff_singleton_if diff_Suc_1 finite' finite_UnI sup_eq_bot_iff)
+      using c min finite finite' by (metis Min_in Un_Diff card_Diff_singleton_if diff_Suc_1
+        finite_UnI sup_eq_bot_iff)
     moreover have "atms \<inter> (atms' - {?min}) = {}" using disj by auto
     moreover have "finite (atms' - {?min})" using finite' by auto
-    ultimately have "build_all_simple_clss atms \<subseteq> build_all_simple_clss (atms \<union> (atms' - {?min}))" using IH[of atms "atms' - {?min}"] finite by metis
+    ultimately have "build_all_simple_clss atms \<subseteq> build_all_simple_clss (atms \<union> (atms' - {?min}))"
+      using IH[of atms "atms' - {?min}"] finite by metis
     moreover have "atms \<union> (atms' - {?min}) = (atms \<union> atms') - {?min}" using min min' by auto
     ultimately have ?case by (metis (no_types, lifting) build_all_simple_clss.simps c card_0_eq
       finite' finite_UnI le_supI2 local.finite nat.distinct(1))
@@ -1144,17 +1128,21 @@ proof (induct rule: finite.induct)
 next
   case (insertI \<psi> \<chi>) note finite = this(1) and IH = this(2) and simp = this(3) and tauto = this(4)
   have "distinct_mset \<chi>" and "\<not>tautology \<chi>" using simp tauto unfolding distinct_mset_set_def by auto
-  from distinct_mset_not_tautology_implies_in_build_all_simple_clss[OF this] have \<chi>: "\<chi> \<in> build_all_simple_clss (atms_of \<chi>)" .
+  from distinct_mset_not_tautology_implies_in_build_all_simple_clss[OF this] 
+  have \<chi>: "\<chi> \<in> build_all_simple_clss (atms_of \<chi>)" .
   hence "\<psi> \<subseteq> build_all_simple_clss (atms_of_m \<psi>)" using IH simp tauto by auto
-  moreover have "atms_of_m \<psi> \<subseteq> atms_of_m (insert \<chi> \<psi>)" unfolding atms_of_m_def atms_of_def by force
-  ultimately have "\<psi> \<subseteq> build_all_simple_clss (atms_of_m (insert \<chi> \<psi>))"
-    by (metis atms_of_m_finite build_all_simple_clss_mono finite.insertI finite order_trans)
+  moreover 
+    have "atms_of_m \<psi> \<subseteq> atms_of_m (insert \<chi> \<psi>)" unfolding atms_of_m_def atms_of_def by force
+  ultimately 
+    have "\<psi> \<subseteq> build_all_simple_clss (atms_of_m (insert \<chi> \<psi>))"
+      by (metis atms_of_m_finite build_all_simple_clss_mono finite.insertI finite order_trans)
   moreover
     have "\<chi> \<in> build_all_simple_clss (atms_of_m (insert \<chi> \<psi>))"
       using \<chi> finite build_all_simple_clss_mono[of "atms_of_m (insert \<chi> \<psi>)"] by auto
   ultimately show ?case by auto
 qed
 
+subsection \<open>Experiment: expressing the entailments as locales (to avoid proof duplication)\<close>
 (* Maybe should become locales at some point of time ?
 Shared prop of \<Turnstile>:
 * I + I' \<Turnstile> A \<longleftrightarrow> I' + I \<Turnstile> A
