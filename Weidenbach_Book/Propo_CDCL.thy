@@ -1473,8 +1473,7 @@ text \<open>We are interested in the stated after applying conflict and propagat
 abbreviation "no_step step S \<equiv> (\<forall>S'. \<not>step S S')"
 
 inductive cdcl_cp :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
-(*TODO intro, not simp*)
-conflict'[simp]: "conflict S S' \<Longrightarrow> cdcl_cp S S'" |
+conflict'[intro]: "conflict S S' \<Longrightarrow> cdcl_cp S S'" |
 propagate_conf': "propagate S S' \<Longrightarrow> no_step conflict S \<Longrightarrow> conflict S' S'' \<Longrightarrow> cdcl_cp S S''" |
 propagate_no_conf': "propagate S S' \<Longrightarrow> no_step conflict S \<Longrightarrow>  no_step conflict S' \<Longrightarrow> cdcl_cp S S'"
 
