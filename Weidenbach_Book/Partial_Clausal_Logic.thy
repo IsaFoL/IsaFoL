@@ -651,6 +651,7 @@ lemma true_clss_clss_insert[iff]:
   "A \<Turnstile>ps insert L Ls \<longleftrightarrow> (A \<Turnstile>p L \<and> A \<Turnstile>ps Ls)"
   using true_clss_clss_union_and[of A "{L}" "Ls"] by auto
 
+(*TODO Mark as [dest]?*)
 lemma true_clss_clss_subset:
   "A \<subseteq> B \<Longrightarrow> A \<Turnstile>ps CC \<Longrightarrow> B \<Turnstile>ps CC"
   by (metis subset_Un_eq true_clss_clss_union_l)

@@ -637,18 +637,17 @@ text \<open>This invariant shows that:
   * the learned clauses are entailed by the initial set of clauses.
   * the conflicting clause is entailed by the initial set of clauses.
   * the marks are entailed by the clauses. A more precise version would be to show that either these marked are learned or are in the set of clauses\<close>
-(*TODO uncomment last + remove the previous + adapt*)
+
 definition "cdcl_learned_clause (S::'v cdcl_state) \<equiv> (clauses S \<Turnstile>ps learned_clauses S
   \<and> (\<forall>T. conflicting S = C_Clause T \<longrightarrow> clauses S \<Turnstile>p T)
-  \<and> (clauses S \<Turnstile>ps set (get_all_mark_of_propagated (trail S)))
-  (*\<and> set (get_all_mark_of_propagated (trail S)) \<subseteq> clauses S \<union> learned_clauses S*))"
+  \<and> set (get_all_mark_of_propagated (trail S)) \<subseteq> clauses S \<union> learned_clauses S)"
 
 lemma cdcl_learned_clause_decomp[dest]:
   assumes "cdcl_learned_clause (S::'v cdcl_state)"
   shows "clauses S \<Turnstile>ps learned_clauses S"
   and "\<forall>T. conflicting S = C_Clause T \<longrightarrow> clauses S \<Turnstile>p T"
-  and "clauses S \<Turnstile>ps set (get_all_mark_of_propagated (trail S))"
-  using assms unfolding cdcl_learned_clause_def by blast+
+  and "clauses S \<union> learned_clauses S \<Turnstile>ps set (get_all_mark_of_propagated (trail S))"
+  using assms unfolding cdcl_learned_clause_def by (auto simp add: all_in_true_clss_clss true_clss_clss_subset)
 
 (*propo 2.10.5.2*)
 lemma cdcl_learned_clause_S0_cdcl[simp]:
@@ -664,7 +663,7 @@ proof (induct rule: cdcl_all_induct)
   case (backtrack M N U k D L K i M1 M2)
   show ?case
     using backtrack.prems backtrack.hyps(1) unfolding cdcl_learned_clause_def
-    by (auto dest: get_all_marked_decomposition_exists_prepend)
+    by (auto dest!: get_all_marked_decomposition_exists_prepend)
 qed (auto dest: mk_disjoint_insert get_all_marked_decomposition_exists_prepend
       simp add: cdcl_learned_clause_def
       intro: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or)
