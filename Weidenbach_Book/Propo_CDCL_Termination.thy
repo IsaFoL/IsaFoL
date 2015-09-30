@@ -198,27 +198,6 @@ next
   thus ?case using cdcl_o_no_more_Marked_lit[OF o] `Marked L i \<notin> set (trail S)` ns by blast
 qed
 
-lemma cdcl_cp_dropWhile_trail':
-  assumes "cdcl_cp S S'"
-  obtains M where "trail S' = M @ trail S" and " (\<forall>l \<in> set M. \<not>is_marked l)"
-  using assms by (induction) fastforce+
-
-lemma rtranclp_cdcl_cp_dropWhile_trail':
-  assumes "cdcl_cp\<^sup>*\<^sup>* S S'"
-  obtains M :: "('a, nat, 'a literal multiset) marked_lit list" where
-    "trail S' = M @ trail S" and "\<forall>l \<in> set M. \<not>is_marked l"
-  using assms by (induction) (fastforce dest!: cdcl_cp_dropWhile_trail')+
-
-lemma cdcl_cp_dropWhile_trail:
-  assumes "cdcl_cp S S'"
-  shows "\<exists>M. trail S' = M @ trail S \<and> (\<forall>l \<in> set M. \<not>is_marked l)"
-  using assms by (induction) fastforce+
-
-lemma rtranclp_cdcl_cp_dropWhile_trail:
-  assumes "cdcl_cp\<^sup>*\<^sup>* S S'"
-  shows "\<exists>M. trail S' = M @ trail S \<and> (\<forall>l \<in> set M. \<not>is_marked l)"
-  using assms by (induction) (fastforce dest: cdcl_cp_dropWhile_trail)+
-
 lemma cdcl_o_is_decided:
   assumes "cdcl_o S' T" and
   "trail T = drop (length M\<^sub>0) M' @ Marked L i # H @ M"and
@@ -973,14 +952,8 @@ proof induction
   case conflict'
   thus ?case using conflict_measure_decreasing by blast
 next
-  case propagate_no_conf'
+  case propagate'
   thus ?case using propagate_measure_decreasing by blast
-next
-  case (propagate_conf' S S' S'') note propa = this(1) and confl = this(3) and inv = this(4)
-  show ?case
-    using propagate_measure_decreasing[OF propa inv] conflict_measure_decreasing[OF confl]
-    cdcl_all_inv_mes_inv[OF propagate[OF propa] inv] trans_le[THEN lexn_trans]
-    unfolding trans_def by blast
 qed
 
 lemma tranclp_cdcl_cp_measure_decreasing:

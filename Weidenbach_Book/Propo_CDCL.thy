@@ -1474,8 +1474,7 @@ abbreviation "no_step step S \<equiv> (\<forall>S'. \<not>step S S')"
 
 inductive cdcl_cp :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
 conflict'[intro]: "conflict S S' \<Longrightarrow> cdcl_cp S S'" |
-propagate_conf': "propagate S S' \<Longrightarrow> no_step conflict S \<Longrightarrow> conflict S' S'' \<Longrightarrow> cdcl_cp S S''" |
-propagate_no_conf': "propagate S S' \<Longrightarrow> no_step conflict S \<Longrightarrow>  no_step conflict S' \<Longrightarrow> cdcl_cp S S'"
+propagate': "propagate S S' \<Longrightarrow> cdcl_cp S S'"
 
 lemma cdcl_cp_conflicting_not_empty[simp]: "conflicting S = C_Clause D  \<Longrightarrow> \<not>cdcl_cp S S'"
 proof
@@ -1488,7 +1487,7 @@ lemma no_step_cdcl_cp_no_conflict_no_propagate:
   assumes "no_step cdcl_cp S"
   shows "no_step conflict S" and "no_step propagate S"
   using assms conflict' apply blast
-  by (meson assms conflict' propagate_conf' propagate_no_conf')
+  by (meson assms conflict' propagate')
 
 text \<open>CDCL with the reasonable strategy: we fully propagate the conflict and propagate, then we apply any other possible rule @{term "cdcl_o S S'"} and re-apply conflict and propagate @{term "full0 cdcl_cp S' S''"}\<close>
 inductive cdcl_s :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
@@ -1513,6 +1512,16 @@ lemma tranclp_cdcl_cp_learned_clause_inv:
   shows "learned_clauses S = learned_clauses S'"
   using assms by (simp add: rtranclp_cdcl_cp_learned_clause_inv tranclp_into_rtranclp)
 
+lemma cdcl_cp_backtrack_level:
+  assumes "cdcl_cp S S'"
+  shows "backtrack_level S = backtrack_level S'"
+  using assms by (induct rule: cdcl_cp.induct) fastforce+
+  
+lemma rtranclp_cdcl_cp_backtrack_level:
+  assumes "cdcl_cp\<^sup>*\<^sup>* S S'"
+  shows "backtrack_level S = backtrack_level S'"
+  using assms by (induct rule: rtranclp.induct) (fastforce dest: cdcl_cp_backtrack_level)+
+
 lemma cdcl_cp_consistent_inv:
   assumes "cdcl_cp S S'"
   and "cdcl_M_level_inv S"
@@ -1522,14 +1531,11 @@ proof (induct rule: cdcl_cp.induct)
   case (conflict')
   thus ?case using cdcl_consistent_inv cdcl.conflict by blast
 next
-  case (propagate_conf' S S' S'')
-  have "cdcl S' S''"
-    using propagate_conf'.hyps(3) conflict by blast
-  thus "cdcl_M_level_inv S''"
-    using propagate_conf'.prems(1) propagate_conf'.hyps(1)  cdcl_consistent_inv propagate by blast
-next
-  case (propagate_no_conf' S S')
-  thus ?case  using cdcl_consistent_inv propagate by blast
+  case (propagate' S S')
+  have "cdcl S S'"
+    using propagate'.hyps(1) propagate by blast
+  thus "cdcl_M_level_inv S'"
+    using propagate'.prems(1)  cdcl_consistent_inv propagate by blast
 qed
 
 lemma full_cdcl_cp_consistent_inv:
@@ -1602,6 +1608,28 @@ lemma rtranclp_cdcl_s_no_more_clauses:
   apply (induct rule: rtranclp.induct, simp)
   using cdcl_s_no_more_clauses by fast
 
+
+lemma cdcl_cp_dropWhile_trail':
+  assumes "cdcl_cp S S'"
+  obtains M where "trail S' = M @ trail S" and " (\<forall>l \<in> set M. \<not>is_marked l)"
+  using assms by (induction) fastforce+
+
+lemma rtranclp_cdcl_cp_dropWhile_trail':
+  assumes "cdcl_cp\<^sup>*\<^sup>* S S'"
+  obtains M :: "('a, nat, 'a literal multiset) marked_lit list" where
+    "trail S' = M @ trail S" and "\<forall>l \<in> set M. \<not>is_marked l"
+  using assms by (induction) (fastforce dest!: cdcl_cp_dropWhile_trail')+
+
+lemma cdcl_cp_dropWhile_trail:
+  assumes "cdcl_cp S S'"
+  shows "\<exists>M. trail S' = M @ trail S \<and> (\<forall>l \<in> set M. \<not>is_marked l)"
+  using assms by (induction) fastforce+
+
+lemma rtranclp_cdcl_cp_dropWhile_trail:
+  assumes "cdcl_cp\<^sup>*\<^sup>* S S'"
+  shows "\<exists>M. trail S' = M @ trail S \<and> (\<forall>l \<in> set M. \<not>is_marked l)"
+  using assms by (induction) (fastforce dest: cdcl_cp_dropWhile_trail)+
+
 text \<open>This theorem can be seen a a termination theorem for @{term cdcl_cp}.\<close>
 lemma always_exists_full_cdcl_cp_step:
   assumes "finite (clauses S)"
@@ -1629,8 +1657,10 @@ proof (induct "card (atms_of_m (clauses S) - atm_of `lits_of (trail S))" arbitra
     using propagate by (auto)
     have "atms_of_m U \<subseteq> atms_of_m N" using alien unfolding S by auto
     hence "atm_of L \<in> atms_of_m (clauses S)"
-      using `C + {#L#} \<in> N \<union> U` image_Un unfolding S atms_of_m_def by (fastforce simp add: atms_of_def)
-    hence False using `undefined_lit L M` unfolding atm unfolding S lits_of_def by (auto simp add: defined_lit_map)
+      using `C + {#L#} \<in> N \<union> U` image_Un unfolding S atms_of_m_def 
+      by (fastforce simp add: atms_of_def)
+    hence False using `undefined_lit L M` unfolding atm unfolding S lits_of_def 
+      by (auto simp add: defined_lit_map)
   }
   ultimately show ?case by (metis cdcl_cp.cases full0_def rtranclp.rtrancl_refl)
 next
@@ -1641,7 +1671,7 @@ next
     hence ?case  unfolding full0_def Ex_def using S' cdcl_cp.conflict' by blast
   }
   moreover {
-    assume a: "\<exists>S'. propagate S S'" and no_confl: "no_step conflict S"
+    assume a: "\<exists>S'. propagate S S'"
     then obtain S' where propagate: "propagate S S'" by blast
     then obtain M N U k C L where S: "S = (M, N, U, k, C_True)"
     and S': "S' = (Propagated L (C + {#L#}) # M, N, U, k, C_True)"
@@ -1671,7 +1701,7 @@ next
           ff1: "cdcl_cp\<^sup>*\<^sup>* S' S'' \<and> no_step cdcl_cp S''"
           using a1 unfolding full0_def by blast
         have "cdcl_cp\<^sup>*\<^sup>* S S''"
-          using ff1 cdcl_cp.intros(2)[OF propagate no_confl] cdcl_cp.intros(3)[OF propagate no_confl] by (metis (no_types) cdcl_cp.simps converse_rtranclpE converse_rtranclp_into_rtranclp)
+          using ff1 cdcl_cp.intros(2)[OF propagate] by (metis (no_types) converse_rtranclp_into_rtranclp)
         hence "\<exists>S''. cdcl_cp\<^sup>*\<^sup>* S S'' \<and> (\<forall>S'''. \<not> cdcl_cp S'' S''')"
           using ff1 by blast
         thus ?thesis unfolding full0_def
@@ -1695,36 +1725,15 @@ lemma not_conflict_not_any_negated_clauses:
   shows "no_clause_is_false S"
   using assms by (fastforce simp add: conflict.simps)
 
-lemma cdcl_cp_not_any_negated_clauses:
-  assumes "cdcl_cp S S'"
+lemma full0_cdcl_cp_not_any_negated_clauses:
+  assumes "full0 cdcl_cp S S'"
   shows "no_clause_is_false S'"
-  using assms
-  by (induct rule: cdcl_cp.induct)
-     (fastforce simp add: not_conflict_not_any_negated_clauses conflict.simps)+
-
-lemma tranclp_cdcl_cp_not_any_negated_clauses:
-  assumes "tranclp cdcl_cp S S'"
-  shows "no_clause_is_false S'"
-  using assms apply (induct rule: tranclp.induct)
-  using cdcl_cp_not_any_negated_clauses by fast+
-
-lemma rtranclp_cdcl_cp_not_any_negated_clauses:
-  assumes "rtranclp cdcl_cp S S'"
-  and "no_clause_is_false S"
-  shows "no_clause_is_false S'"
-  using rtranclp_unfold[of cdcl_cp S] assms tranclp_cdcl_cp_not_any_negated_clauses[of S S'] by fastforce
+  using assms not_conflict_not_any_negated_clauses unfolding full0_def by blast
 
 lemma full_cdcl_cp_not_any_negated_clauses:
   assumes "full cdcl_cp S S'"
   shows "no_clause_is_false S'"
-  by (metis (mono_tags, lifting) assms full_def tranclp_cdcl_cp_not_any_negated_clauses)
-
-
-lemma full0_cdcl_cp_not_any_negated_clauses:
-  assumes "full0 cdcl_cp S S'"
-  shows "no_clause_is_false S'"
-  using assms unfolding full0_def
-  by (metis (mono_tags, lifting) cdcl_cp.conflict' not_conflict_not_any_negated_clauses)
+  using assms not_conflict_not_any_negated_clauses unfolding full_def by blast
 
 lemma cdcl_s_not_non_negated_clauses:
   assumes "cdcl_s S S'"
@@ -1742,31 +1751,8 @@ proof (induct rule: cdcl_cp.induct)
   case conflict'
   thus ?case by auto
 next
-  case propagate_no_conf'
+  case propagate'
   thus ?case by auto
-next
-  case (propagate_conf' S S' S'') note propagate = this(1)
-  obtain M N U k C L where S: "S = (M, N, U, k, C_True)"
-  and S': "S' = (Propagated L (C + {#L#}) # M, N, U, k, C_True)"
-  and "C + {#L#} \<in> N \<union> U"
-  and "M \<Turnstile>as CNot C"
-  and undef: "undefined_lit L M"
-    using propagate by auto
-  let ?M = "Propagated L (C + {#L#}) # M"
-  have "atm_of L \<notin> atm_of ` (lits_of M)"
-    using undef by (auto simp add: Marked_Propagated_in_iff_in_lits_of atm_of_eq_atm_of)
-  hence 1: "get_level L (Propagated L (C + {#L#}) # M) = backtrack_level S'"
-    using propagate_conf'.prems(2) unfolding S' S
-    by (auto simp add: get_rev_level_can_skip_correctly_ordered cdcl_M_level_inv_def)
-  obtain D'' where
-    D'': "D'' \<in> N \<union> U"
-    and MD'': "?M \<Turnstile>as CNot D''"
-    and S'': "S'' = (Propagated L (C + {#L#}) # M, N, U, k, C_Clause D'')" using propagate_conf'.hyps unfolding S' by (auto simp add: conflict.simps)
-  have "\<not>M \<Turnstile>as CNot D''" using propagate_conf'.prems(1) MD'' D'' unfolding S by simp
-  hence 2: "-L \<in># D''"
-    using cdcl_consistent_inv[OF cdcl.propagate[OF propagate] propagate_conf'.prems(2)]
-    true_annots_lit_of_notin_skip[OF MD''] unfolding S' by fastforce
-  show ?case using propagate_conf'.hyps(2) 1 2 unfolding S S' S'' by auto
 qed
 
 lemma no_chained_conflict:
@@ -1775,45 +1761,178 @@ lemma no_chained_conflict:
   shows False
   using assms by auto
 
-lemma rtranclp_cdcl_co_conflict_ex_lit_of_max_level:
-  assumes "rtranclp cdcl_cp S S'"
-  and "no_clause_is_false S"
-  and "conflict_is_false_with_level S"
-  and "cdcl_M_level_inv S"
-  shows "conflict_is_false_with_level S'"
-  using assms
-proof (induct rule: rtranclp.induct)
-  case rtrancl_refl
-  thus ?case by fast
+lemma rtrancl_cdcl_cp_propa_or_propa_confl:
+  assumes "cdcl_cp\<^sup>*\<^sup>* S U"
+  shows "propagate\<^sup>*\<^sup>* S U \<or> (\<exists>T. propagate\<^sup>*\<^sup>* S T  \<and> conflict T U)"
+  using assms 
+proof (induction)
+  case base
+  thus ?case by auto
 next
-  case (rtrancl_into_rtrancl S S' S'')
-  hence "\<forall>T. conflicting S' = C_True \<longrightarrow> (\<forall>D \<in> clauses S' \<union> learned_clauses S'. \<not>trail S' \<Turnstile>as CNot D)"
-    using rtranclp_cdcl_cp_not_any_negated_clauses[OF rtrancl_into_rtrancl.hyps(1)] by presburger
-  moreover have "cdcl_M_level_inv S'"
-    using rtranclp_cdcl_cp_consistent_inv rtrancl_into_rtrancl.hyps(1) rtrancl_into_rtrancl.prems(3)
-    by blast
-  ultimately show ?case
-    using cdcl_s_conflict_ex_lit_of_max_level[OF rtrancl_into_rtrancl.hyps(3)] by meson
+  case (step U V) note SU = this(1) and UV = this(2) and IH = this(3)
+  consider (confl) T where "propagate\<^sup>*\<^sup>* S T" and "conflict T U"
+    | (propa) "propagate\<^sup>*\<^sup>* S U" using IH by auto
+  thus ?case
+    proof cases
+      case confl
+      hence False using UV by auto
+      thus ?thesis by fast
+    next
+      case propa
+      also have "conflict U V \<or> propagate U V" using UV by (auto simp add: cdcl_cp.simps)
+      ultimately show ?thesis by (cases U) auto
+    qed
 qed
 
-lemma tranclp_cdcl_co_conflict_ex_lit_of_max_level:
-  assumes "cdcl_cp\<^sup>+\<^sup>+ S S'"
-  and "no_clause_is_false S"
-  and "cdcl_M_level_inv S"
-  shows "conflict_is_false_with_level S'"
-  using assms
-proof (induct rule: tranclp.induct)
-  case r_into_trancl
-  thus ?case using cdcl_s_conflict_ex_lit_of_max_level by blast
+lemma get_level_skip_beginning_hd_get_all_levels_of_marked:
+  assumes "atm_of L \<notin> atm_of ` lits_of S"
+  and "get_all_levels_of_marked S \<noteq> []"
+  shows "get_level L (M@ S) = get_rev_level L (hd (get_all_levels_of_marked S)) (rev M)"
+  using assms 
+proof (induction S arbitrary: M rule: marked_lit_list_induct)
+  case nil
+  thus ?case by (auto simp add: lits_of_def)
 next
-  case (trancl_into_trancl S S' S'')
-  hence "\<forall>T. conflicting S' = C_True \<longrightarrow> (\<forall>D \<in> clauses S' \<union> learned_clauses S'. \<not>trail S' \<Turnstile>as CNot D)"
-    using tranclp_cdcl_cp_not_any_negated_clauses[OF trancl_into_trancl.hyps(1)] by presburger
-  moreover have "cdcl_M_level_inv S'"
-    using rtranclp_cdcl_cp_consistent_inv[of S S'] trancl_into_trancl.hyps(1) trancl_into_trancl.prems(2) rtranclp_unfold[of cdcl_cp S S'] by auto
-  ultimately show ?case
-    using cdcl_s_conflict_ex_lit_of_max_level[OF trancl_into_trancl.hyps(3)] by meson
+  case (marked K m) note notin = this(2)
+  thus ?case by (auto simp add: lits_of_def)
+next
+  case (proped L l) note IH = this(1) and L = this(2) and neq = this(3)
+  show ?case using IH[of "M@[Propagated L l]"] L neq by (auto simp add: atm_of_eq_atm_of)
 qed
+
+lemma get_level_skip_beginning_not_marked_rev:
+  assumes "atm_of L \<notin> atm_of ` lit_of `(set S)"
+  and "\<forall>s\<in>set S. \<not>is_marked s"
+  shows "get_level L (M @ rev S) = get_level L M"
+  using assms by (induction S rule: marked_lit_list_induct) auto
+
+lemma get_level_skip_beginning_not_marked[simp]:
+  assumes "atm_of L \<notin> atm_of ` lit_of `(set S)"
+  and "\<forall>s\<in>set S. \<not>is_marked s"
+  shows "get_level L (M @ S) = get_level L M"
+  using get_level_skip_beginning_not_marked_rev[of L "rev S" M] assms by auto
+  
+lemma get_rev_level_skip_beginning_not_marked[simp]:
+  assumes "atm_of L \<notin> atm_of ` lit_of `(set S)"
+  and "\<forall>s\<in>set S. \<not>is_marked s"
+  shows "get_rev_level L 0 (rev S @ rev M) = get_level L M"
+  using get_level_skip_beginning_not_marked_rev[of L "rev S" M] assms by auto
+  
+lemma get_all_levels_of_marked_nil_iff_not_is_marked:
+  "get_all_levels_of_marked xs = [] \<longleftrightarrow> (\<forall> x \<in> set xs. \<not>is_marked x)"
+  using assms by (induction xs rule: marked_lit_list_induct) auto
+
+lemma get_level_skip_all_not_marked[simp]:
+  fixes M
+  defines "M' \<equiv> rev M"
+  assumes "\<forall>m\<in>set M. \<not> is_marked m"
+  shows "get_level L M = 0"
+proof -
+  have M: "M = rev M'"
+    unfolding M'_def by auto
+  show ?thesis 
+    using assms unfolding M by (induction M' rule: marked_lit_list_induct) auto
+qed
+
+lemma get_level_skip_in_all_not_marked:
+  fixes M :: "('a, nat, 'b) marked_lit list" and L :: "'a literal"
+  assumes "\<forall>m\<in>set M. \<not> is_marked m"
+  and "atm_of L \<in> atm_of ` lit_of ` (set M)"
+  shows "get_rev_level L n M = n"
+proof -
+  show ?thesis 
+    using assms by (induction M rule: marked_lit_list_induct) auto
+qed
+
+lemma rtranclp_cdcl_co_conflict_ex_lit_of_max_level:
+  assumes full: "full0 cdcl_cp S U"
+  and cls_f: "no_clause_is_false S"
+  and "conflict_is_false_with_level S"
+  and lev: "cdcl_M_level_inv S"
+  shows "conflict_is_false_with_level U"
+proof (intro allI impI)
+  fix D
+  assume confl: "conflicting U = C_Clause D" and
+    D: "D \<noteq> {#}"
+  consider (CT) "conflicting S = C_True" | (SD) D' where "conflicting S = C_Clause D'" 
+    by (cases "conflicting S") auto
+  thus "\<exists>L\<in>#D. get_level L (trail U) = backtrack_level U" 
+    proof (cases)
+      case SD
+      hence "S = U"
+        by (metis (no_types) assms(1) cdcl_cp_conflicting_not_empty full0_def rtranclpD tranclpD) 
+      thus  ?thesis using assms(3) confl D by blast-
+    next
+      case CT
+      have "clauses U = clauses S" and "learned_clauses U = learned_clauses S"
+        using assms(1) unfolding full0_def apply (metis (no_types) rtranclpD tranclp_cdcl_cp_no_more_clauses)
+       by (metis (mono_tags, lifting) assms(1) full0_def rtranclp_cdcl_cp_learned_clause_inv)  
+      obtain T where "propagate\<^sup>*\<^sup>* S T" and TU: "conflict T U"
+        proof -
+          have f5: "U \<noteq> S"
+            using confl CT by force
+          have "\<And>p pa. \<not> propagate p pa \<or> conflicting pa = (C_True::'a literal multiset conflicting_clause)"
+            by auto
+          thus ?thesis
+            using f5 that using full confl CT unfolding full0_def by (metis (no_types) conflicting_clause.distinct(1) rtrancl_cdcl_cp_propa_or_propa_confl rtranclp.simps)
+        qed
+      have "clauses T = clauses S" and "learned_clauses T = learned_clauses S"
+        using TU `clauses U = clauses S` `learned_clauses U = learned_clauses S` by auto
+      hence "D \<in> clauses S \<union> learned_clauses S" 
+        using TU confl by (auto elim!: conflictE)
+      hence  "\<not> trail S \<Turnstile>as CNot D"
+        using cls_f CT by simp
+      moreover
+        obtain M where tr_U: "trail U = M @ trail S" and nm: "\<forall>m\<in>set M. \<not>is_marked m"
+          by (metis (mono_tags, lifting) assms(1) full0_def rtranclp_cdcl_cp_dropWhile_trail)
+        have "trail U \<Turnstile>as CNot D"
+          using TU confl by auto
+      ultimately obtain L where "L \<in># D" and "-L \<in> lits_of M"
+        unfolding tr_U CNot_def true_annots_def Ball_def true_annot_def true_cls_def by auto 
+        
+      moreover have inv_U: "cdcl_M_level_inv U"
+        by (metis cdcl_s.conflict' cdcl_s_consistent_inv full full0_unfold lev)
+      moreover 
+        have "backtrack_level U = backtrack_level S"
+          using full unfolding full0_def by (auto dest: rtranclp_cdcl_cp_backtrack_level)
+          
+      moreover 
+        have "no_dup (trail U)"
+          using inv_U unfolding cdcl_M_level_inv_def by auto
+        hence LS: "atm_of L \<notin> atm_of ` lits_of (trail S)"
+        (*TODO Factor proof*)
+          using `-L \<in> lits_of M` unfolding tr_U lits_of_def apply auto 
+          using IntI empty_iff image_eqI apply (metis IntI atm_of_uminus empty_iff image_eqI)
+          done
+      ultimately have "get_level L (trail U) = backtrack_level U"
+        proof (cases "get_all_levels_of_marked (trail S) \<noteq> []", goal_cases)
+          case 2 note LD = this(1) and LM = this(2) and inv_U = this(3) and US = this(4) and LS = this(5) and ne = this(6)
+          have "backtrack_level S = 0"
+            using lev ne unfolding cdcl_M_level_inv_def by auto
+          moreover have "get_rev_level L 0 (rev M) = 0"
+            using nm by auto
+          ultimately show  ?thesis using LS ne US unfolding tr_U 
+            by (cases S) ( simp add: get_all_levels_of_marked_nil_iff_not_is_marked lits_of_def)
+        next
+          case 1 note LD = this(1) and LM = this(2) and inv_U = this(3) and US = this(4) and LS = this(5) and ne = this(6)
+          
+          have "hd (get_all_levels_of_marked (trail S)) = backtrack_level S"
+            using ne unfolding cdcl_M_level_inv_decomp(4)[OF lev] by auto
+          moreover have "atm_of L \<in> atm_of ` lit_of ` set M "
+            using `-L \<in> lits_of M` by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def)
+          ultimately show ?thesis
+            using nm ne unfolding tr_U
+            using get_level_skip_beginning_hd_get_all_levels_of_marked[OF LS, of M]
+            using get_level_skip_in_all_not_marked[of "rev M" L "backtrack_level S"]
+            unfolding lits_of_def US
+            by auto
+          qed
+      thus "\<exists>L\<in>#D. get_level L (trail U) = backtrack_level U" 
+        using `L \<in># D` by blast
+    qed
+qed
+
+  
 
 subsubsection \<open>Literal of highest level in marked literals\<close>
 definition mark_is_false_with_level :: "'v cdcl_state \<Rightarrow> nat \<Rightarrow> bool" where
@@ -1897,25 +2016,10 @@ lemma cdcl_cp_no_more_propagation_to_do:
   case (conflict' S S')
   thus ?case using conflict_no_more_propagation_to_do[of S S'] by blast
 next
-  case (propagate_conf' S S' S'') note S = this
-  have 1: "no_more_propagation_to_do S'"  "cdcl_M_level_inv S'"
-    using propagate_no_more_propagation_to_do[of S S'] cdcl_consistent_inv[OF cdcl.propagate[of S S']] S(1,4,5) by blast+
-  show ?case
-    apply (rule conflict_no_more_propagation_to_do[of S' S''])
-    using S(3) conflict_no_more_propagation_to_do[of S' S''] cdcl_consistent_inv[OF cdcl.conflict[of S' S'']] 1 by metis+
-next
-  case (propagate_no_conf' S S')
-  thus ?case
-    using propagate_no_more_propagation_to_do[of S S'] cdcl_consistent_inv[OF cdcl.propagate[of S S']] by blast+
+  case (propagate' S S') note S = this
+  show 1: "no_more_propagation_to_do S'" 
+    using propagate_no_more_propagation_to_do[of S S']  S by blast
 qed
-
-lemma cdcl_cp_no_moreste_no_more_propagation_to_do:
-  fixes S :: "'a cdcl_state"
-  assumes termi: "\<forall>S'. \<not>cdcl_cp S S'"
-  and H: "no_more_propagation_to_do S"
-  and M: "cdcl_M_level_inv S"
-  shows "no_more_propagation_to_do S"
-  using assms unfolding no_more_propagation_to_do_def by blast
 
 lemma cdcl_then_exists_cdcl_s_step:
   assumes o: "cdcl_o S S'"
@@ -1929,7 +2033,7 @@ proof -
   hence "full0 cdcl_cp S' (pp S')"
     using assms by (metis (no_types) cdcl_no_more_clauses cdcl_no_strange_atm_inv other) (* 90 ms *)
   thus ?thesis
-    using f4 assms by (metis (no_types) cdcl_cp.conflict' cdcl_s.conflict' full0_unfold other' propagate_conf' propagate_no_conf') (* 590 ms *)
+    using f4 assms by (metis (no_types) cdcl_cp.conflict' cdcl_s.conflict' full0_unfold other' propagate') (* 590 ms *)
 qed
 
 lemma backtrack_ex_decomp:
@@ -2662,11 +2766,8 @@ proof (induct rule: cdcl_cp.induct)
   case (conflict' S S')
   thus ?case using conflict_no_littler_confl_inv[of S S'] by blast
 next
-  case (propagate_conf' S S' S'')
-  thus ?case using propagate_no_littler_confl_inv[of S S'] conflict_no_littler_confl_inv[of S' S''] by fastforce
-next
-  case (propagate_no_conf' S S')
-  thus ?case using propagate_no_littler_confl_inv[of S S'] by metis
+  case (propagate' S S')
+  thus ?case using propagate_no_littler_confl_inv[of S S'] by fastforce
 qed
 
 lemma rtrancp_cdcl_cp_no_littler_confl_inv:
@@ -2733,56 +2834,11 @@ lemma conflict_conflict_is_no_clause_is_false_test:
   using assms
   by auto
 
-lemma cdcl_cp_exists_conflict:
-  assumes "cdcl_cp S' S''"
-  and "\<not>(\<forall>D\<in>clauses S' \<union> learned_clauses S'. \<not> trail S' \<Turnstile>as CNot D)"
-  and "conflicting S' = C_True"
-  shows "conflict S' S''"
-  using assms
-proof (induct rule: cdcl_cp.induct)
-  case (conflict' S S')
-  thus ?case by auto
-next
-  case (propagate_conf' S S')
-  moreover have "\<exists>S'. conflict S S'" using propagate_conf'.prems by (auto simp add: conflict.simps)
-  ultimately show ?case by blast
-next
-  case (propagate_no_conf' S S')
-  moreover have "\<exists>S'. conflict S S'" using propagate_no_conf'.prems by (auto simp add: conflict.simps)
-  ultimately show ?case by blast
-qed
-
 lemma is_conflicting_exists_conflict:
   assumes "\<not>(\<forall>D\<in>clauses S' \<union> learned_clauses S'. \<not> trail S' \<Turnstile>as CNot D)"
   and "conflicting S' = C_True"
   shows "\<exists>S''. conflict S' S''"
   using assms by (auto simp add: conflict.simps)
-
-lemma rtranclp_cdcl_cp_exists_conflict:
-  assumes "cdcl_cp\<^sup>+\<^sup>+ S' S''"
-  and "\<not>(\<forall>D\<in>clauses S' \<union> learned_clauses S'. \<not> trail S' \<Turnstile>as CNot D)"
-  and "conflicting S' = C_True"
-  shows "conflict S' S''"
-  using assms
-proof (induct rule: tranclp.induct)
-  case (r_into_trancl S S')
-  thus ?case using cdcl_cp_exists_conflict[of S S'] by blast
-next
-  case (trancl_into_trancl S S' S'')
-  thus ?case by auto
-qed
-
-lemma full0_cdcl_cp_exists_conflict:
-  assumes "full0 cdcl_cp S' S''"
-  and "\<not>(\<forall>D\<in>clauses S' \<union> learned_clauses S'. \<not> trail S' \<Turnstile>as CNot D)"
-  and "conflicting S' = C_True"
-  shows "conflict S' S''"
-proof -
-  have "\<exists>S''. conflict S' S''" using assms(2,3) by (auto simp add: conflict.simps)
-  hence "cdcl_cp\<^sup>+\<^sup>+ S' S''" using assms(1) cdcl_cp.conflict' unfolding full0_unfold full_def by blast
-  thus ?thesis using rtranclp_cdcl_cp_exists_conflict[OF _ assms(2,3)] by auto
-qed
-
 
 lemma cdcl_o_conflict_is_no_clause_is_false:
   fixes S S' :: "'v cdcl_state"
@@ -2872,11 +2928,11 @@ lemma cdcl_s_no_littler_confl_inv_ex_lit_of_max_level:
 proof (induct rule: cdcl_s.induct)
   case (conflict' S S')
   have "no_littler_confl S'" using conflict'.hyps conflict'.prems(1) full_cdcl_cp_no_littler_confl_inv by blast
-  moreover have "conflict_is_false_with_level S'" using conflict'.hyps conflict'.prems(2-4) rtranclp_cdcl_co_conflict_ex_lit_of_max_level[of S S'] unfolding full_def rtranclp_unfold by blast
+  moreover have "conflict_is_false_with_level S'" using conflict'.hyps conflict'.prems(2-4) rtranclp_cdcl_co_conflict_ex_lit_of_max_level[of S S'] unfolding full0_def full_def rtranclp_unfold by blast
   ultimately show ?case by blast
 next
   case (other' S S' S'')
-  have lev': " cdcl_M_level_inv S'" using cdcl_consistent_inv other other'.hyps(1) other'.prems(3) by blast
+  have lev': "cdcl_M_level_inv S'" using cdcl_consistent_inv other other'.hyps(1) other'.prems(3) by blast
   have "no_littler_confl S''" using cdcl_s_no_littler_confl_inv[OF cdcl_s.other'[OF other'.hyps(1-4)]] other'.prems(1-3) by blast
   moreover
   have "no_clause_is_false S' \<or> (conflicting S' = C_True \<longrightarrow> (\<forall>D\<in>clauses S' \<union> learned_clauses S'. trail S' \<Turnstile>as CNot D \<longrightarrow> (\<exists>L. L \<in># D \<and> get_level L (trail S') = backtrack_level S')))"  using cdcl_o_conflict_is_no_clause_is_false[of S S'] other'.hyps(1) other'.prems(1-4) by fastforce
@@ -2885,9 +2941,9 @@ next
     {
       assume "conflicting S' = C_True"
       hence "conflict_is_false_with_level S'" by auto
-      moreover   have "cdcl_cp\<^sup>*\<^sup>* S' S''"
-        by (metis (no_types) full0_def other'.hyps(4))
-      ultimately have "conflict_is_false_with_level S''" using rtranclp_cdcl_co_conflict_ex_lit_of_max_level[of S' S''] lev' `no_clause_is_false S'` by fastforce
+      moreover have "full0 cdcl_cp S' S''"
+        by (metis (no_types) other'.hyps(4))
+      ultimately have "conflict_is_false_with_level S''" using rtranclp_cdcl_co_conflict_ex_lit_of_max_level[of S' S''] lev' `no_clause_is_false S'` by blast
     }
     moreover
     {
@@ -2904,16 +2960,21 @@ next
     ultimately have "conflict_is_false_with_level S''" by blast
   }
   moreover {
-     assume "conflicting S' = C_True" and D_L: "\<forall>D \<in> clauses S' \<union> learned_clauses S'. trail S' \<Turnstile>as CNot D \<longrightarrow> (\<exists>L. L \<in># D \<and> get_level L (trail S') = backtrack_level S')"
+     assume "conflicting S' = C_True" 
+     and D_L: "\<forall>D \<in> clauses S' \<union> learned_clauses S'. trail S' \<Turnstile>as CNot D \<longrightarrow> (\<exists>L. L \<in># D \<and> get_level L (trail S') = backtrack_level S')"
      { assume "\<forall>D\<in>clauses S' \<union> learned_clauses S'. \<not> trail S' \<Turnstile>as CNot D"
        hence "no_clause_is_false S'" using `conflicting S' = C_True` by simp
        hence "conflict_is_false_with_level S''" using calculation(3) by blast
      }
      moreover {
        assume "\<not>(\<forall>D\<in>clauses S' \<union> learned_clauses S'. \<not> trail S' \<Turnstile>as CNot D)"
-       then obtain D where S'': "S'' = (trail S', clauses S', learned_clauses S', backtrack_level S', C_Clause D)" and "D \<in> clauses S' \<union> learned_clauses S'" and "trail S' \<Turnstile>as CNot D" using full0_cdcl_cp_exists_conflict[OF other'.hyps(4)] `conflicting S' = C_True` by auto
-       then obtain L where "L \<in># D \<and> get_level L (trail S') = backtrack_level S'" using D_L by metis
-       hence "conflict_is_false_with_level S''" unfolding S'' by fast
+       then obtain T where "propagate\<^sup>*\<^sup>* S' T" and "conflict T S''"
+         using other'(4) unfolding full0_def  sorry
+       then obtain D where "D \<in> clauses S' \<union> learned_clauses S'" and "trail S' \<Turnstile>as CNot D" and "conflicting S'' = C_Clause D" using `conflicting S' = C_True` sorry
+       then obtain L where "L \<in># D" and "get_level L (trail S'') = backtrack_level S''" sorry
+       also 
+         have S'': "S'' = (trail S'', clauses S'', learned_clauses S'', backtrack_level S'', C_Clause D)" using `conflicting S'' = C_Clause D` by (cases S'') simp 
+       have "conflict_is_false_with_level S''" apply (subst S'') using `L \<in># D` `get_level L (trail S'') = backtrack_level S''` by auto
      }
      ultimately have "conflict_is_false_with_level S''" by blast
   }
@@ -2962,25 +3023,6 @@ qed
 
 
 
-lemma full_cdcl_cp_exists_conflict:
-  assumes "full cdcl_cp S' S''"
-  and "\<not>(\<forall>D\<in>clauses S' \<union> learned_clauses S'. \<not> trail S' \<Turnstile>as CNot D)"
-  and "conflicting S' = C_True"
-  shows "conflict S' S''"
-proof -
-  have "\<exists>S''. conflict S' S''" using assms(2,3) by (auto simp add:  conflict.simps)
-  hence "cdcl_cp\<^sup>+\<^sup>+ S' S''" using assms(1) cdcl_cp.conflict' unfolding full_def by blast
-  thus ?thesis using rtranclp_cdcl_cp_exists_conflict[OF _ assms(2,3)] by auto
-qed
-
-lemma cdcl_s_exists_conflict:
-  assumes "cdcl_s S' S''"
-  and "\<not>(\<forall>D\<in>clauses S' \<union> learned_clauses S'. \<not> trail S' \<Turnstile>as CNot D)"
-  and "conflicting S' = C_True"
-  shows "conflict S' S''"
-  using assms
-  by (induct rule: cdcl_s.induct)
-     (metis full_cdcl_cp_exists_conflict is_conflicting_exists_conflict)+
 
 lemma cdcl_s_conflict_is_false_with_level_inv:
   assumes "cdcl_s S S'"
@@ -2994,21 +3036,20 @@ lemma cdcl_s_conflict_is_false_with_level_inv:
   using assms
 proof (induct rule: cdcl_s.induct)
   case (conflict' S S')
-  thus ?case unfolding full_def
-    by (metis (mono_tags, lifting) tranclp_cdcl_co_conflict_ex_lit_of_max_level)
+  thus ?case  using rtranclp_cdcl_co_conflict_ex_lit_of_max_level[of S S'] unfolding full0_unfold by blast 
 next
-  case (other' S S' S'') note o = this(1) and st = this(4) and confl = this(5) and no_dup = this(6) and conf = this(7) and lev = this(8) and n_f = this(9) and little = this(10)
-  have st: "cdcl_cp\<^sup>*\<^sup>* S' S''" using st unfolding full0_def by blast
+  case (other' S S' S'') note o = this(1) and full = this(4) and confl = this(5) and no_dup = this(6) and conf = this(7) and lev = this(8) and n_f = this(9) and little = this(10)
+  have st: "cdcl_cp\<^sup>*\<^sup>* S' S''" using full unfolding full0_def by blast
   have confl': "conflict_is_false_with_level S'" using cdcl_o_conflict_is_false_with_level_inv[OF o confl no_dup conf lev] .
   have lev': "cdcl_M_level_inv S'" using cdcl_consistent_inv lev o other by blast
   { assume "no_clause_is_false S'"
-    hence ?case using rtranclp_cdcl_co_conflict_ex_lit_of_max_level[OF st _ confl' lev'] by blast
+    hence ?case using rtranclp_cdcl_co_conflict_ex_lit_of_max_level[OF full _ confl' lev'] by fast
   }
   moreover {
      assume "conflicting S' = C_True" and D_L: "\<forall>D \<in> clauses S' \<union> learned_clauses S'. trail S' \<Turnstile>as CNot D \<longrightarrow> (\<exists>L. L \<in># D \<and> get_level L (trail S') = backtrack_level S')"
      { assume "\<forall>D\<in>clauses S' \<union> learned_clauses S'. \<not> trail S' \<Turnstile>as CNot D"
        hence "no_clause_is_false S'" using `conflicting S' = C_True` by simp
-       hence ?case using rtranclp_cdcl_co_conflict_ex_lit_of_max_level[OF st _ confl' lev'] by blast
+       hence ?case using rtranclp_cdcl_co_conflict_ex_lit_of_max_level[OF full _ confl' lev'] by fast
      }
      moreover {
        assume "\<not>(\<forall>D\<in>clauses S' \<union> learned_clauses S'. \<not> trail S' \<Turnstile>as CNot D)"
@@ -3016,7 +3057,7 @@ next
          "S'' = (trail S', clauses S', learned_clauses S', backtrack_level S', C_Clause D)" and
          "D \<in> clauses S' \<union> learned_clauses S'" and
          "trail S' \<Turnstile>as CNot D"
-         using full0_cdcl_cp_exists_conflict[OF other'.hyps(4)] `conflicting S' = C_True` by auto
+         using `conflicting S' = C_True` sorry
        hence ?case using D_L by fast
      }
      ultimately have ?case by blast
@@ -3025,7 +3066,7 @@ next
   {
     assume "conflicting S' \<noteq> C_True"
     have "no_clause_is_false S'" using `conflicting S' \<noteq> C_True`  by auto
-    hence ?case using rtranclp_cdcl_co_conflict_ex_lit_of_max_level[OF st _ confl' lev'] by blast
+    hence ?case using rtranclp_cdcl_co_conflict_ex_lit_of_max_level[OF full _ confl' lev'] by fast
   }
   ultimately show ?case
     using cdcl_o_conflict_is_no_clause_is_false[OF o confl n_f lev little] by satx
@@ -3112,27 +3153,6 @@ proof -
   ultimately show "full cdcl_cp S S'" unfolding full_def by blast+
 qed
 
-lemma cdcl_cp_conflit_conflict:
-  assumes "cdcl_cp S S''"
-  and "conflict S S'"
-  shows "conflict S S''"
-  using assms by (induct rule: cdcl_cp.induct) blast+
-
-lemma tranclp_cdcl_cp_conflit_conflict:
-  assumes "cdcl_cp\<^sup>+\<^sup>+ S S''"
-  and "conflict S S'"
-  shows "conflict S S''"
-  using assms
-  by (induct rule: tranclp.induct) (force intro: cdcl_cp_conflit_conflict)+
-
-lemma cdcl_s_conflit_conflict:
-  assumes "cdcl_s S S''"
-  and "conflict S S'"
-  shows "conflict S S''"
-  using assms
-  apply (induct rule: cdcl_s.induct)
-  unfolding full_def by (blast intro: tranclp_cdcl_cp_conflit_conflict)+
-
 lemma cdcl_cp_fst_empty_conflicting_false:
   assumes "cdcl_cp S S'"
   and "trail S = []"
@@ -3156,6 +3176,31 @@ lemma cdcl_s_fst_empty_conflicting_false:
   using tranclpD cdcl_cp_fst_empty_conflicting_false unfolding full_def apply fast
   using cdcl_o_fst_empty_conflicting_false by blast
 
+lemma
+  assumes "\<forall> m\<in> set M. \<not>is_marked m"
+  and "M \<Turnstile>as CNot D"
+  and "every_mark_is_a_conflict (M, N, U, 0, C_Clause D)"
+  shows "\<exists>M'. cdcl_s\<^sup>*\<^sup>* (M, N, U, 0, C_Clause D) (M', N, U, 0, C_Clause {#})"
+  using assms
+proof (induction M arbitrary: D)
+  case Nil
+  thus ?case by auto
+next
+  case (Cons L M) note IH = this(1) and nm = this(2) and conf= this(3)
+  obtain K p where "L = Propagated K p"
+    using nm by (cases L) auto
+  
+  consider (D) "D = {#}" | (D') " D \<noteq> {#}" by blast
+  thus ?case 
+    proof cases
+      case (D)
+      thus ?thesis by auto
+    next
+      case (D')
+      show ?thesis sorry
+    qed
+qed
+  
 lemma full_cdcl_s_normal_forms_is_one_false:
   fixes S' :: "'v cdcl_state"
   assumes full: "full0 cdcl_s (S0_cdcl N) S'"
@@ -3173,7 +3218,7 @@ proof -
   have "S' \<noteq> ?S"  using `no_step cdcl_s S'` cdcl_s by blast
   then obtain St where "cdcl_s (S0_cdcl N) St" and "cdcl_s\<^sup>*\<^sup>* St S'"
     using plus_or_eq by (metis (no_types) `cdcl_s\<^sup>*\<^sup>* (S0_cdcl N) S'` converse_rtranclpE)
-  hence conf: "conflict ?S St" using cdcl_s_conflit_conflict `\<exists>S''. conflict ?S S''` by blast
+  hence conf: "conflict ?S St" using `\<exists>S''. conflict ?S S''` sorry
   hence "conflicting St \<noteq> C_True" and "learned_clauses St = {}" and "fst ?S = []" by auto
 
   obtain \<alpha> where \<alpha>: "conflicting St = C_Clause \<alpha>"
@@ -3194,7 +3239,7 @@ lemma full_cdcl_s_normal_forms:
   assumes full: "full0 cdcl_s (S0_cdcl N) S'"
   and no_d: "distinct_mset_set N"
   and finite: "finite (clauses (S0_cdcl N))"
-  shows "(conflicting S' = C_Clause {#} \<and> unsatisfiable (clauses S')) \<or> (conflicting S' = C_True \<and> trail S' \<Turnstile>as clauses S')"
+  shows "(conflicting S' = C_Clause {#} \<and> unsatisfiable (clauses S')) \<or> (conflicting S' = C_True \<and> trail S' \<Turnstile>as clauses S')"                          
   using assms full_cdcl_s_normal_forms_is_one_false full_cdcl_s_normal_forms_non_false by blast
 
 lemma full_cdcl_s_normal_forms':

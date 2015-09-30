@@ -294,6 +294,12 @@ by (auto split: split_if_asm)
 lemma Ball_mset_singleton[iff]: "(\<forall>L\<in>#{#a#}. P L) \<longleftrightarrow> P a"
 by (auto split: split_if_asm)
 
+lemma Bex_mset_mempty[iff]: "(\<exists>L\<in>#{#}. P L) \<longleftrightarrow> False"
+by (auto simp add: Bex_mset_def)
+
+lemma Ball_mset_mempty[iff]: "(\<forall>L\<in>#{#}. P L) \<longleftrightarrow> True"
+by (auto simp add: Bex_mset_def)
+
 subsection {* Lemmas about intersection*}
 (* Unsure if suited as simp rules or if only slowing down stuff\<dots>*)
 lemma mset_inter_single:
