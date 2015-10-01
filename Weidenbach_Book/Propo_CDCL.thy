@@ -2915,6 +2915,62 @@ next
     qed
 qed
 
+(*TODO Move*)
+lemma full_cdcl_cp_exists_conflict_decompose:
+  assumes confl: "\<exists>D\<in>clauses S \<union> learned_clauses S. trail S \<Turnstile>as CNot D"
+  and full: "full0 cdcl_cp S U"
+  and no_confl: "conflicting S = C_True"
+  shows "\<exists>T. propagate\<^sup>*\<^sup>* S T \<and> conflict T U"
+proof -
+  consider (propa) "propagate\<^sup>*\<^sup>* S U" 
+        |  (confl) T where "propagate\<^sup>*\<^sup>* S T" and "conflict T U"
+   using full unfolding full0_def by (blast dest:rtrancl_cdcl_cp_propa_or_propa_confl)
+  thus ?thesis
+    proof cases
+      case confl
+      thus ?thesis by blast
+    next
+      case propa
+      hence "conflicting U = C_True"
+        using no_confl by (induction) auto
+      moreover have [simp]: "learned_clauses U = learned_clauses S" and [simp]: "clauses U = clauses S"
+        using propa by induction auto
+      moreover 
+        obtain D where D: "D\<in>clauses U \<union> learned_clauses U" and 
+          trS: "trail S \<Turnstile>as CNot D"
+          using confl by auto
+        obtain M where M: "trail U = M @ trail S"
+          using full rtranclp_cdcl_cp_dropWhile_trail unfolding full0_def by blast
+        have tr_U: "trail U \<Turnstile>as CNot D"
+          apply (rule true_annots_mono)
+          using trS unfolding M by simp_all  
+      have "\<exists>V. conflict U V"
+        using `conflicting U = C_True`
+        by (metis D not_conflict_not_any_negated_clauses tr_U)
+      hence False using full cdcl_cp.conflict' unfolding full0_def by blast
+      thus ?thesis by fast
+    qed  
+qed
+
+lemma full_cdcl_cp_exists_conflict_full_decompose:
+  assumes confl: "\<exists>D\<in>clauses S \<union> learned_clauses S. trail S \<Turnstile>as CNot D"
+  and full: "full0 cdcl_cp S U"
+  and no_confl: "conflicting S = C_True"
+  shows "\<exists>T D. propagate\<^sup>*\<^sup>* S T \<and> conflict T U 
+    \<and> trail T \<Turnstile>as CNot D \<and> conflicting U = C_Clause D \<and> D \<in> clauses S \<union> learned_clauses S"
+proof -
+  obtain T where propa: "propagate\<^sup>*\<^sup>* S T" and conf: "conflict T U"
+    using full_cdcl_cp_exists_conflict_decompose[OF assms] by blast
+  have p: "learned_clauses T = learned_clauses S" "clauses T = clauses S"
+     using propa by induction auto
+  have c: "learned_clauses U = learned_clauses T" "clauses U = clauses T"
+     using conf by induction auto
+  obtain D where "trail T \<Turnstile>as CNot D \<and> conflicting U = C_Clause D \<and> D \<in> clauses S \<union> learned_clauses S"
+    using conf p c by (auto elim!: conflictE)
+  thus ?thesis
+    using propa conf by blast
+qed  
+
 lemma cdcl_s_no_littler_confl_inv_ex_lit_of_max_level:
   assumes "cdcl_s S S'"
   and n_l: "no_littler_confl S"
@@ -2960,7 +3016,7 @@ next
     ultimately have "conflict_is_false_with_level S''" by blast
   }
   moreover {
-     assume "conflicting S' = C_True" 
+     assume confl: "conflicting S' = C_True" 
      and D_L: "\<forall>D \<in> clauses S' \<union> learned_clauses S'. trail S' \<Turnstile>as CNot D \<longrightarrow> (\<exists>L. L \<in># D \<and> get_level L (trail S') = backtrack_level S')"
      { assume "\<forall>D\<in>clauses S' \<union> learned_clauses S'. \<not> trail S' \<Turnstile>as CNot D"
        hence "no_clause_is_false S'" using `conflicting S' = C_True` by simp
@@ -2968,13 +3024,77 @@ next
      }
      moreover {
        assume "\<not>(\<forall>D\<in>clauses S' \<union> learned_clauses S'. \<not> trail S' \<Turnstile>as CNot D)"
-       then obtain T where "propagate\<^sup>*\<^sup>* S' T" and "conflict T S''"
-         using other'(4) unfolding full0_def  sorry
-       then obtain D where "D \<in> clauses S' \<union> learned_clauses S'" and "trail S' \<Turnstile>as CNot D" and "conflicting S'' = C_Clause D" using `conflicting S' = C_True` sorry
-       then obtain L where "L \<in># D" and "get_level L (trail S'') = backtrack_level S''" sorry
-       also 
-         have S'': "S'' = (trail S'', clauses S'', learned_clauses S'', backtrack_level S'', C_Clause D)" using `conflicting S'' = C_Clause D` by (cases S'') simp 
-       have "conflict_is_false_with_level S''" apply (subst S'') using `L \<in># D` `get_level L (trail S'') = backtrack_level S''` by auto
+       then obtain T D where "propagate\<^sup>*\<^sup>* S' T" and "conflict T S''" and D: "D \<in> clauses S' \<union> learned_clauses S'" and "trail S'' \<Turnstile>as CNot D" and "conflicting S'' = C_Clause D"
+         using full_cdcl_cp_exists_conflict_full_decompose[OF _ other'(4) `conflicting S' = C_True`] 
+         by fast
+       obtain M where M: "trail S'' = M @ trail S'" and nm: "\<forall>m\<in>set M. \<not>is_marked m"   
+         using rtranclp_cdcl_cp_dropWhile_trail other'(4) unfolding full0_def by blast
+       have btS: "backtrack_level S'' = backtrack_level S'"
+         by (metis full0_def other'.hyps(4) rtranclp_cdcl_cp_backtrack_level)
+       have inv: "cdcl_M_level_inv S''"
+         by (metis (no_types) cdcl_s.conflict' cdcl_s_consistent_inv full0_unfold lev' other'.hyps(4))
+       hence nd: "no_dup (trail S'')"
+         by (metis (no_types) cdcl_M_level_inv_decomp(2))
+       have "conflict_is_false_with_level S''"
+         proof (cases)
+           assume "trail S' \<Turnstile>as CNot D"
+           moreover then obtain L where "L \<in># D" and "get_level L (trail S') = backtrack_level S'"
+             using D_L D by blast
+           moreover
+             have LS': "-L \<in> lits_of (trail S')"
+               using `trail S' \<Turnstile>as CNot D` `L \<in># D` in_CNot_implies_uminus(2) by blast
+               (*TODO tune proof*)
+             hence "atm_of L \<notin> atm_of ` lits_of M"
+               using LS' nd unfolding M apply (cases S', auto simp add: lits_of_def )
+               by (metis IntI atm_of_uminus empty_iff image_eqI)
+             hence "get_level L (trail S'') = get_level L (trail S')"
+               unfolding M by (simp add: lits_of_def)
+           ultimately show ?thesis using btS `conflicting S'' = C_Clause D` by auto
+         next
+           assume "\<not>trail S' \<Turnstile>as CNot D"
+           then obtain L where "L \<in># D" and LM: "-L \<in> lits_of M" 
+             using `trail S'' \<Turnstile>as CNot D` 
+               by (auto simp add: CNot_def true_cls_def  M true_annots_def true_annot_def split: split_if_asm)
+           (*TODO tune proof*)
+           hence LS': "atm_of L \<notin> atm_of ` lits_of (trail S')"
+             using nd unfolding M apply (auto simp add: lits_of_def)
+             by (metis IntI atm_of_uminus empty_iff image_eqI)
+           
+           show ?thesis
+             proof (cases)
+               assume ne: "get_all_levels_of_marked (trail S') = []"
+               have "backtrack_level S'' = 0"
+                 using inv ne nm unfolding cdcl_M_level_inv_def M by (simp add: get_all_levels_of_marked_nil_iff_not_is_marked)
+               moreover 
+                 have a1: "get_rev_level L 0 (rev M) = 0"
+                   using nm by auto
+                 hence "get_level L (M @ trail S') = 0"
+                   proof -
+                     have f2: "\<And>ms msa. get_all_levels_of_marked (ms::('a, nat, 'a literal multiset) marked_lit list) = [] \<or> get_all_levels_of_marked (ms @ msa) \<noteq> []"
+                       by simp
+                     have f3: "\<And>ms. get_rev_level L (last (0 # get_all_levels_of_marked (rev (trail S')))) (rev ms) = get_level L (ms @ trail S')"
+                       by (metis (no_types) LS' get_level_get_rev_level_get_all_levels_of_marked lits_of_def)
+                     have "get_all_levels_of_marked (rev (trail S')) = []"
+                       using `trail S'' = M @ trail S'` ne by force (* 3 ms *)
+                     thus ?thesis
+                       using f3 f2 a1 by (metis (no_types) `trail S'' = M @ trail S'` append_Nil2 get_level_get_rev_level_get_all_levels_of_marked get_rev_level_skip_end rev.simps(1) rev_append) 
+                   qed
+               ultimately show ?thesis using `conflicting S'' = C_Clause D` `L \<in># D` unfolding M 
+                 by auto
+           next
+             assume ne: "get_all_levels_of_marked (trail S') \<noteq> []"
+             have "hd (get_all_levels_of_marked (trail S')) = backtrack_level S'"
+               using ne  cdcl_M_level_inv_decomp(4)[OF lev'] M nm by (simp add: get_all_levels_of_marked_nil_iff_not_is_marked[symmetric])
+             moreover have "atm_of L \<in> atm_of ` lit_of ` set M "
+                using `-L \<in> lits_of M` by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def)
+             ultimately show ?thesis
+               using nm ne `L\<in>#D` `conflicting S'' = C_Clause D` unfolding M
+               using get_level_skip_beginning_hd_get_all_levels_of_marked[OF LS', of M]
+               using get_level_skip_in_all_not_marked[of "rev M" L "backtrack_level S'"]
+               unfolding lits_of_def btS
+               by auto
+          qed
+         qed      
      }
      ultimately have "conflict_is_false_with_level S''" by blast
   }
@@ -3054,11 +3174,12 @@ next
      moreover {
        assume "\<not>(\<forall>D\<in>clauses S' \<union> learned_clauses S'. \<not> trail S' \<Turnstile>as CNot D)"
        then obtain D where
-         "S'' = (trail S', clauses S', learned_clauses S', backtrack_level S', C_Clause D)" and
          "D \<in> clauses S' \<union> learned_clauses S'" and
          "trail S' \<Turnstile>as CNot D"
-         using `conflicting S' = C_True` sorry
-       hence ?case using D_L by fast
+         using full_cdcl_cp_exists_conflict_full_decompose[OF _ full `conflicting S' = C_True`] by fast
+       moreover have "S'' = (trail S', clauses S', learned_clauses S', backtrack_level S', C_Clause D)" sorry
+         
+       ultimately have ?case using D_L by fast
      }
      ultimately have ?case by blast
   }
