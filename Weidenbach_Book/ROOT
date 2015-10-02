@@ -1,7 +1,8 @@
 session "Weidenbach_Book" (main) = "HOL" +
-  options [document = pdf, document_output = "output", timeout=230]
+  options [document = pdf, document_output = "output", timeout=300]
   theories [document = false]
     "../lib/Multiset_More"
+    "../lib/Herbrand_Interpretation"
   global_theories
     Propo_Logic
     Propo_Abstract_Transformation
@@ -15,6 +16,7 @@ session "Weidenbach_Book" (main) = "HOL" +
     Propo_CDCL
     Propo_CDCL_Termination
     CDCL_Implementation
+    Propo_Superposition
   document_files
     "root.tex"
     "biblio.bib"
