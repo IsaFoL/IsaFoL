@@ -1,5 +1,5 @@
 theory Propo_Superposition
-imports Partial_Clausal_Logic "../Bachmair_Ganzinger/Herbrand_Interpretation"
+imports Partial_Clausal_Logic "../lib/Herbrand_Interpretation"
 begin
 no_notation Herbrand_Interpretation.true_cls (infix "\<Turnstile>" 50)
 notation Herbrand_Interpretation.true_cls (infix "\<Turnstile>h" 50)
