@@ -355,7 +355,7 @@ lemma do_conflict_step_conflicting[dest]:
 
 definition do_cp_step where
 "do_cp_step S =
-  (do_conflict_step o do_propagate_step o do_conflict_step) S"
+  (do_propagate_step o do_conflict_step) S"
 
 lemma cp_step_is_cdcl_cp:
   assumes H: "do_cp_step S \<noteq> S"
@@ -365,7 +365,7 @@ proof -
   proof (cases "do_conflict_step S \<noteq> S")
     case True
     thus ?thesis
-      by (simp add: do_conflict_step do_conflict_step_conflicting do_cp_step_def)
+      by (auto simp add: do_conflict_step do_conflict_step_conflicting do_cp_step_def)
   next
     case False
     hence confl[simp]: "do_conflict_step S = S" by simp
@@ -382,8 +382,7 @@ proof -
         have propa: "propagate (toS S) ?T" using False do_propgate_step by blast
         moreover have ns: "no_step conflict (toS S)" using confl do_conflict_step_no_step by blast
         ultimately show ?thesis
-          using cdcl_cp.intros(2)[of ?S ?T ?U] cdcl_cp.intros(3)[of ?S ?U] unfolding do_cp_step_def
-          by (metis comp_apply confl do_conflict_step do_conflict_step_no_step)
+          using cdcl_cp.intros(2)[of ?S ?T] confl unfolding do_cp_step_def by auto
       qed
   qed
 qed
