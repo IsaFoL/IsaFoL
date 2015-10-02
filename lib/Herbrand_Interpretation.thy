@@ -7,7 +7,7 @@
 section {* Clausal Logic *}
 
 theory Herbrand_Interpretation
-imports "../lib/Clausal_Logic"
+imports Clausal_Logic
 begin
 
 text {*

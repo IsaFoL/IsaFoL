@@ -7,7 +7,7 @@
 section {* Refutational Inference Systems *}
 
 theory Inference_System
-imports Herbrand_Interpretation
+imports "../lib/Herbrand_Interpretation"
 begin
 
 text {*

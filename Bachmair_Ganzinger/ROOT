@@ -9,7 +9,7 @@ session Bachmair_Ganzinger = Bachmair_Ganzinger_Base +
   theories
     "../lib/Multiset_More"
     "../lib/Clausal_Logic"
-    Herbrand_Interpretation
+    "../lib/Herbrand_Interpretation"
     Inference_System
     Ground_Resolution_Model
     Unordered_Ground_Resolution

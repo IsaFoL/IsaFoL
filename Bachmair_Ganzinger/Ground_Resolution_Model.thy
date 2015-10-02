@@ -7,7 +7,7 @@
 section {* Candidate Models for Ground Resolution *}
 
 theory Ground_Resolution_Model
-imports Herbrand_Interpretation
+imports "../lib/Herbrand_Interpretation"
 begin
 
 text {*
