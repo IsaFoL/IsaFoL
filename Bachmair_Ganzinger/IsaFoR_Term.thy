@@ -4,7 +4,7 @@
 *)
 
 theory IsaFoR_Term
-imports "$ISAFOR/Unification" "$AFP/thys/Derive" Substitution
+imports"$AFP/Deriving/Derive" "$ISAFOR/Rewriting/Unification" Substitution
 begin
 
 hide_const (open) mgu
@@ -13,18 +13,20 @@ derive linorder prod
 derive linorder list
 derive linorder "term"
 
-interpretation substitution_ops "op \<cdot>" Var "op \<circ>s" .
+interpretation substitution_ops "op \<cdot>" Var "op \<circ>\<^sub>s" .
 
-interpretation substitution "op \<cdot>" Var "op \<circ>s"
+interpretation substitution "op \<cdot>" Var "op \<circ>\<^sub>s"
 proof
-  show "\<exists>\<sigma>. is_ground_subst (\<sigma> :: 'b \<Rightarrow> ('a, 'b) term)"
+  fix CC and \<sigma>::"'b \<Rightarrow> ('a, 'b) term"
+  assume "substitution_ops.is_ground_cls_list op \<cdot> (substitution_ops.subst_cls_list op \<cdot> CC \<sigma>) "
+  show "\<exists>\<tau>. is_ground_subst (\<tau> :: 'b \<Rightarrow> ('a, 'b) term)  \<and> substitution_ops.subst_cls_list op \<cdot> CC \<sigma> = substitution_ops.subst_cls_list op \<cdot> CC \<tau>"
   proof
-    def \<sigma> \<equiv> "(\<lambda>x. Fun undefined []) :: ('a, 'b) subst"
+    def \<tau> \<equiv> "(\<lambda>x. Fun undefined []) :: ('a, 'b) subst"
     { fix t :: "('a, 'b) term" and \<tau> :: "('a, 'b) subst"
-      have "t \<cdot> \<sigma> \<cdot> \<tau> = t \<cdot> \<sigma>"
-        by (induct t) (auto simp: \<sigma>_def)
+      have "t \<cdot> \<tau> \<cdot> \<tau> = t \<cdot> \<tau>"
+        by (induct t) (auto simp add: \<tau>_def)
     }
-    thus "is_ground_subst \<sigma>"
+    thus "substitution_ops.is_ground_subst op \<cdot> \<tau> \<and> substitution_ops.subst_cls_list op \<cdot> CC \<sigma> = substitution_ops.subst_cls_list op \<cdot> CC \<tau>"
       unfolding is_ground_subst_def is_ground_atm_def by simp
   qed
 qed (auto intro: subst_term_eqI)
@@ -50,7 +52,7 @@ lemma unifiers_Pairs:
 
 definition "mgu AAA = map_option subst_of (unify (Pairs AAA) [])"
 
-interpretation unification "op \<cdot>" Var "op \<circ>s" mgu
+interpretation unification "op \<cdot>" Var "op \<circ>\<^sub>s" mgu
 proof
   fix AAA :: "('a, 'b) term set set" and \<sigma> :: "('a, 'b) subst"
   assume fin: "finite AAA" "\<forall>AA\<in>AAA. finite AA" and "mgu AAA = Some \<sigma>"
@@ -65,6 +67,6 @@ next
     unfolding is_mgu_def unifiers_Pairs[OF fin] by auto
   then show "\<exists>\<tau>. mgu AAA = Some \<tau>"
     using unify_complete unfolding mgu_def by blast
-qed
+qed auto
 
 end
