@@ -427,7 +427,7 @@ proof (rule ccontr)
   let ?D = "Min {E\<in>N. \<not>?I \<Turnstile>h E}"
   have [simp]: "?D \<in> N" 
     by (metis (mono_tags, lifting) Min_in not_empty finite mem_Collect_eq rev_finite_subset subsetI)
-  have not_d_interp[simp]: "\<not>?I \<Turnstile>h ?D"
+  have not_d_interp: "\<not>?I \<Turnstile>h ?D"
     by (metis (mono_tags, lifting) Min_in finite mem_Collect_eq not_empty rev_finite_subset subsetI)
   have cls_not_D: "\<forall>E. E \<in> N \<longrightarrow> E \<noteq> ?D \<longrightarrow> \<not>?I \<Turnstile>h E \<longrightarrow> ?D \<le> E"
     using finite by (auto simp del: less_eq_multiset)
@@ -495,13 +495,16 @@ proof (rule ccontr)
       then obtain C' where C':"?D = C' + {#Pos P#} + {#Pos P#}"
         unfolding D by (metis P add.left_neutral add_less_cancel_right count_single count_union multi_member_split)
       have "superposition_rules ?D ?D (?D - {#L#})"
-        unfolding C' L by (auto simp add: superposition_rules.simps) 
-      have "abstract_red (?D - {#L#}) N \<Longrightarrow> abstract_red ?D N" 
-        unfolding C' L abstract_red_def clss_lt_def true_clss_cls_def apply safe
-        sorry
+        unfolding C' L by (auto simp add: superposition_rules.simps)
+      have "C' + {#Pos P#}  #\<subset># C' + {#Pos P#} + {#Pos P#}"
+        by auto
+      moreover have "\<not>?I \<Turnstile>h (?D - {#L#})"
+        using not_d_interp unfolding C' L by auto
+      ultimately have "C' + {#Pos P#} \<notin> N"
+        by (metis (no_types, lifting) C' P add_diff_cancel_right' cls_not_D less_multiset
+          multi_self_add_other_not_self not_le)
       have "?D - {#L#} #\<subset># ?D"
         unfolding C' L by auto
-        
       show False sorry
     next
       case Lneg
@@ -552,4 +555,5 @@ begin
 interpretation truc: ground_ordered_resolution_with_redundancy S redundant
   using redundant_is_redundancy_criterion by unfold_locales auto
 end
+
 end
