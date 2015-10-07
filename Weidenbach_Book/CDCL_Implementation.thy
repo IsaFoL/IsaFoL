@@ -1,5 +1,5 @@
 theory CDCL_Implementation
-imports Propo_CDCL Propo_CDCL_Termination (*"~~/src/HOL/Library/Code_Target_Numeral"*)
+imports Propo_CDCL Propo_CDCL_Termination
 begin
 
 (*
@@ -1301,10 +1301,700 @@ proof -
 qed
 
 
+fun gene where
+"gene 0 = [[Pos 0], [Neg 0]]" |
+"gene (Suc n) = map (op # (Pos (Suc n))) (gene n) @ map (op # (Neg (Suc n))) (gene n)"
 
+value "gene 1"
 
+export_code do_all_cdcl_s gene in OCaml
+ML {*
+structure HOL : sig
+  type 'a equal
+  val equal : 'a equal -> 'a -> 'a -> bool
+  val eq : 'a equal -> 'a -> 'a -> bool
+end = struct
 
+type 'a equal = {equal : 'a -> 'a -> bool};
+val equal = #equal : 'a equal -> 'a -> 'a -> bool;
 
-export_code do_cdcl_s_step' in SML
+fun eq A_ a b = equal A_ a b;
 
+end; (*struct HOL*)
+
+structure List : sig
+  val equal_list : 'a HOL.equal -> ('a list) HOL.equal
+  val fold : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
+  val rev : 'a list -> 'a list
+  val find : ('a -> bool) -> 'a list -> 'a option
+  val null : 'a list -> bool
+  val filter : ('a -> bool) -> 'a list -> 'a list
+  val member : 'a HOL.equal -> 'a list -> 'a -> bool
+  val remdups : 'a HOL.equal -> 'a list -> 'a list
+  val remove1 : 'a HOL.equal -> 'a -> 'a list -> 'a list
+  val map : ('a -> 'b) -> 'a list -> 'b list
+  val pred_list : ('a -> bool) -> 'a list -> bool
+end = struct
+
+fun equal_lista A_ [] (x21 :: x22) = false
+  | equal_lista A_ (x21 :: x22) [] = false
+  | equal_lista A_ (x21 :: x22) (y21 :: y22) =
+    HOL.eq A_ x21 y21 andalso equal_lista A_ x22 y22
+  | equal_lista A_ [] [] = true;
+
+fun equal_list A_ = {equal = equal_lista A_} : ('a list) HOL.equal;
+
+fun fold f (x :: xs) s = fold f xs (f x s)
+  | fold f [] s = s;
+
+fun rev xs = fold (fn a => fn b => a :: b) xs [];
+
+fun find uu [] = NONE
+  | find p (x :: xs) = (if p x then SOME x else find p xs);
+
+fun null [] = true
+  | null (x :: xs) = false;
+
+fun filter p [] = []
+  | filter p (x :: xs) = (if p x then x :: filter p xs else filter p xs);
+
+fun member A_ [] y = false
+  | member A_ (x :: xs) y = HOL.eq A_ x y orelse member A_ xs y;
+
+fun remdups A_ [] = []
+  | remdups A_ (x :: xs) =
+    (if member A_ xs x then remdups A_ xs else x :: remdups A_ xs);
+
+fun remove1 A_ x [] = []
+  | remove1 A_ x (y :: xs) =
+    (if HOL.eq A_ x y then xs else y :: remove1 A_ x xs);
+
+fun map f [] = []
+  | map f (x21 :: x22) = f x21 :: map f x22;
+
+fun pred_list p [] = true
+  | pred_list p (x :: xs) = p x andalso pred_list p xs;
+
+end; (*struct List*)
+
+structure Set : sig
+  datatype 'a set = Set of 'a list | Coset of 'a list
+  val image : ('a -> 'b) -> 'a set -> 'b set
+  val member : 'a HOL.equal -> 'a -> 'a set -> bool
+end = struct
+
+datatype 'a set = Set of 'a list | Coset of 'a list;
+
+fun image f (Set xs) = Set (List.map f xs);
+
+fun member A_ x (Coset xs) = not (List.member A_ xs x)
+  | member A_ x (Set xs) = List.member A_ xs x;
+
+end; (*struct Set*)
+
+structure Orderings : sig
+  type 'a ord
+  val less_eq : 'a ord -> 'a -> 'a -> bool
+  val less : 'a ord -> 'a -> 'a -> bool
+  type 'a preorder
+  val ord_preorder : 'a preorder -> 'a ord
+  type 'a order
+  val preorder_order : 'a order -> 'a preorder
+  type 'a linorder
+  val order_linorder : 'a linorder -> 'a order
+  val max : 'a ord -> 'a -> 'a -> 'a
+end = struct
+
+type 'a ord = {less_eq : 'a -> 'a -> bool, less : 'a -> 'a -> bool};
+val less_eq = #less_eq : 'a ord -> 'a -> 'a -> bool;
+val less = #less : 'a ord -> 'a -> 'a -> bool;
+
+type 'a preorder = {ord_preorder : 'a ord};
+val ord_preorder = #ord_preorder : 'a preorder -> 'a ord;
+
+type 'a order = {preorder_order : 'a preorder};
+val preorder_order = #preorder_order : 'a order -> 'a preorder;
+
+type 'a linorder = {order_linorder : 'a order};
+val order_linorder = #order_linorder : 'a linorder -> 'a order;
+
+fun max A_ a b = (if less_eq A_ a b then b else a);
+
+end; (*struct Orderings*)
+
+structure Arith : sig
+  datatype nat = Nat of IntInf.int;
+  val equal_nata : nat -> nat -> bool
+  val equal_nat : nat HOL.equal
+  val less_nat : nat -> nat -> bool
+  val linorder_nat : nat Orderings.linorder
+  type num
+  val plus_nat : nat -> nat -> nat
+  val one_nat : nat
+  val suc : nat -> nat
+  val zero_nat : nat
+  val minus_nat : nat -> nat -> nat
+end = struct
+
+datatype nat = Nat of IntInf.int;
+
+fun integer_of_nat (Nat x) = x;
+
+fun equal_nata m n = (((integer_of_nat m) : IntInf.int) = (integer_of_nat n));
+
+val equal_nat = {equal = equal_nata} : nat HOL.equal;
+
+fun less_eq_nat m n = IntInf.<= (integer_of_nat m, integer_of_nat n);
+
+fun less_nat m n = IntInf.< (integer_of_nat m, integer_of_nat n);
+
+val ord_nat = {less_eq = less_eq_nat, less = less_nat} : nat Orderings.ord;
+
+val preorder_nat = {ord_preorder = ord_nat} : nat Orderings.preorder;
+
+val order_nat = {preorder_order = preorder_nat} : nat Orderings.order;
+
+val linorder_nat = {order_linorder = order_nat} : nat Orderings.linorder;
+
+val ord_integer =
+  {less_eq = (fn a => fn b => IntInf.<= (a, b)),
+    less = (fn a => fn b => IntInf.< (a, b))}
+  : IntInf.int Orderings.ord;
+
+datatype num = One | Bit0 of num | Bit1 of num;
+
+fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
+
+val one_nat : nat = Nat (1 : IntInf.int);
+
+fun suc n = plus_nat n one_nat;
+
+val zero_nat : nat = Nat (0 : IntInf.int);
+
+fun minus_nat m n =
+  Nat (Orderings.max ord_integer (0 : IntInf.int)
+        (IntInf.- (integer_of_nat m, integer_of_nat n)));
+
+end; (*struct Arith*)
+
+structure Multiset : sig
+  datatype 'a multiset = Mset of 'a list
+  val single : 'a -> 'a multiset
+  val set_mset : 'a multiset -> 'a Set.set
+  val image_mset : ('a -> 'b) -> 'a multiset -> 'b multiset
+  val plus_multiset : 'a multiset -> 'a multiset -> 'a multiset
+end = struct
+
+datatype 'a multiset = Mset of 'a list;
+
+fun single x = Mset [x];
+
+fun set_mset (Mset x) = Set.Set x;
+
+fun image_mset f (Mset xs) = Mset (List.map f xs);
+
+fun plus_multiset (Mset xs) (Mset ys) = Mset (xs @ ys);
+
+end; (*struct Multiset*)
+
+structure Clausal_Logic : sig
+  datatype 'a literal = Pos of 'a | Neg of 'a
+  val equal_literala : 'a HOL.equal -> 'a literal -> 'a literal -> bool
+  val equal_literal : 'a HOL.equal -> 'a literal HOL.equal
+  val atm_of : 'a literal -> 'a
+  val uminus_literal : 'a literal -> 'a literal
+end = struct
+
+datatype 'a literal = Pos of 'a | Neg of 'a;
+
+fun equal_literala A_ (Pos x1) (Neg x2) = false
+  | equal_literala A_ (Neg x2) (Pos x1) = false
+  | equal_literala A_ (Neg x2) (Neg y2) = HOL.eq A_ x2 y2
+  | equal_literala A_ (Pos x1) (Pos y1) = HOL.eq A_ x1 y1;
+
+fun equal_literal A_ = {equal = equal_literala A_} : 'a literal HOL.equal;
+
+fun atm_of (Pos x1) = x1
+  | atm_of (Neg x2) = x2;
+
+fun is_pos (Pos x1) = true
+  | is_pos (Neg x2) = false;
+
+fun uminus_literal l = (if is_pos l then Neg else Pos) (atm_of l);
+
+end; (*struct Clausal_Logic*)
+
+structure Partial_Annotated_Clausal_Logic : sig
+  datatype ('a, 'b, 'c) marked_lit = Marked of 'a Clausal_Logic.literal * 'b |
+    Propagated of 'a Clausal_Logic.literal * 'c
+  val equal_marked_lit :
+    'a HOL.equal -> 'b HOL.equal -> 'c HOL.equal ->
+      ('a, 'b, 'c) marked_lit HOL.equal
+  val lits_of : ('a, 'b, 'c) marked_lit list -> 'a Clausal_Logic.literal Set.set
+end = struct
+
+datatype ('a, 'b, 'c) marked_lit = Marked of 'a Clausal_Logic.literal * 'b |
+  Propagated of 'a Clausal_Logic.literal * 'c;
+
+fun equal_marked_lita A_ B_ C_ (Marked (x11, x12)) (Propagated (x21, x22)) =
+  false
+  | equal_marked_lita A_ B_ C_ (Propagated (x21, x22)) (Marked (x11, x12)) =
+    false
+  | equal_marked_lita A_ B_ C_ (Propagated (x21, x22)) (Propagated (y21, y22)) =
+    Clausal_Logic.equal_literala A_ x21 y21 andalso HOL.eq C_ x22 y22
+  | equal_marked_lita A_ B_ C_ (Marked (x11, x12)) (Marked (y11, y12)) =
+    Clausal_Logic.equal_literala A_ x11 y11 andalso HOL.eq B_ x12 y12;
+
+fun equal_marked_lit A_ B_ C_ = {equal = equal_marked_lita A_ B_ C_} :
+  ('a, 'b, 'c) marked_lit HOL.equal;
+
+fun lit_of (Marked (x11, x12)) = x11
+  | lit_of (Propagated (x21, x22)) = x21;
+
+fun lits_of ls = Set.image lit_of (Set.Set ls);
+
+end; (*struct Partial_Annotated_Clausal_Logic*)
+
+structure Lattices_Big : sig
+  val max : 'a Orderings.linorder -> 'a Set.set -> 'a
+end = struct
+
+fun max A_ (Set.Set (x :: xs)) =
+  List.fold
+    (Orderings.max
+      ((Orderings.ord_preorder o Orderings.preorder_order o
+         Orderings.order_linorder)
+        A_))
+    xs x;
+
+end; (*struct Lattices_Big*)
+
+structure Propo_CDCL : sig
+  datatype 'a conflicting_clause = C_True | C_Clause of 'a
+  val equal_conflicting_clause : 'a HOL.equal -> 'a conflicting_clause HOL.equal
+  val get_rev_level :
+    'a HOL.equal ->
+      'a Clausal_Logic.literal ->
+        Arith.nat ->
+          ('a, Arith.nat, 'b) Partial_Annotated_Clausal_Logic.marked_lit list ->
+            Arith.nat
+  val get_maximum_level :
+    'a HOL.equal ->
+      'a Clausal_Logic.literal Multiset.multiset ->
+        ('a, Arith.nat, 'b) Partial_Annotated_Clausal_Logic.marked_lit list ->
+          Arith.nat
+end = struct
+
+datatype 'a conflicting_clause = C_True | C_Clause of 'a;
+
+fun equal_conflicting_clausea A_ C_True (C_Clause x2) = false
+  | equal_conflicting_clausea A_ (C_Clause x2) C_True = false
+  | equal_conflicting_clausea A_ (C_Clause x2) (C_Clause y2) = HOL.eq A_ x2 y2
+  | equal_conflicting_clausea A_ C_True C_True = true;
+
+fun equal_conflicting_clause A_ = {equal = equal_conflicting_clausea A_} :
+  'a conflicting_clause HOL.equal;
+
+fun get_rev_level A_ uu uv [] = Arith.zero_nat
+  | get_rev_level A_ la n
+    (Partial_Annotated_Clausal_Logic.Marked (l, level) :: ls) =
+    (if HOL.eq A_ (Clausal_Logic.atm_of l) (Clausal_Logic.atm_of la) then level
+      else get_rev_level A_ la level ls)
+  | get_rev_level A_ la n
+    (Partial_Annotated_Clausal_Logic.Propagated (l, uw) :: ls) =
+    (if HOL.eq A_ (Clausal_Logic.atm_of l) (Clausal_Logic.atm_of la) then n
+      else get_rev_level A_ la n ls);
+
+fun get_maximum_level A_ d m =
+  Lattices_Big.max Arith.linorder_nat
+    (Multiset.set_mset
+      (Multiset.plus_multiset (Multiset.single Arith.zero_nat)
+        (Multiset.image_mset
+          (fn l => get_rev_level A_ l Arith.zero_nat (List.rev m)) d)));
+
+end; (*struct Propo_CDCL*)
+
+structure Product_Type : sig
+  val equal_proda : 'a HOL.equal -> 'b HOL.equal -> 'a * 'b -> 'a * 'b -> bool
+  val equal_prod : 'a HOL.equal -> 'b HOL.equal -> ('a * 'b) HOL.equal
+end = struct
+
+fun equal_proda A_ B_ (x1, x2) (y1, y2) =
+  HOL.eq A_ x1 y1 andalso HOL.eq B_ x2 y2;
+
+fun equal_prod A_ B_ = {equal = equal_proda A_ B_} : ('a * 'b) HOL.equal;
+
+end; (*struct Product_Type*)
+
+structure CDCL_Implementation : sig
+  datatype cdcl_state_I =
+  ConI of
+    ((Arith.nat, Arith.nat, (Arith.nat Clausal_Logic.literal list))
+       Partial_Annotated_Clausal_Logic.marked_lit list *
+      ((Arith.nat Clausal_Logic.literal list) list *
+        ((Arith.nat Clausal_Logic.literal list) list *
+          (Arith.nat *
+            (Arith.nat Clausal_Logic.literal list)
+              Propo_CDCL.conflicting_clause))));
+  val gene : Arith.nat -> (Arith.nat Clausal_Logic.literal list) list
+  val do_all_cdcl_s : cdcl_state_I -> cdcl_state_I
+end = struct
+
+datatype cdcl_state =
+  Con of
+    ((Arith.nat, Arith.nat, (Arith.nat Clausal_Logic.literal list))
+       Partial_Annotated_Clausal_Logic.marked_lit list *
+      ((Arith.nat Clausal_Logic.literal list) list *
+        ((Arith.nat Clausal_Logic.literal list) list *
+          (Arith.nat *
+            (Arith.nat Clausal_Logic.literal list)
+              Propo_CDCL.conflicting_clause))));
+
+datatype cdcl_state_I =
+  ConI of
+    ((Arith.nat, Arith.nat, (Arith.nat Clausal_Logic.literal list))
+       Partial_Annotated_Clausal_Logic.marked_lit list *
+      ((Arith.nat Clausal_Logic.literal list) list *
+        ((Arith.nat Clausal_Logic.literal list) list *
+          (Arith.nat *
+            (Arith.nat Clausal_Logic.literal list)
+              Propo_CDCL.conflicting_clause))));
+
+fun gene n =
+  (if Arith.equal_nata n Arith.zero_nat
+    then [[Clausal_Logic.Pos Arith.zero_nat],
+           [Clausal_Logic.Neg Arith.zero_nat]]
+    else List.map
+           (fn a =>
+             Clausal_Logic.Pos (Arith.suc (Arith.minus_nat n Arith.one_nat)) ::
+               a)
+           (gene (Arith.minus_nat n Arith.one_nat)) @
+           List.map
+             (fn a =>
+               Clausal_Logic.Neg
+                 (Arith.suc (Arith.minus_nat n Arith.one_nat)) ::
+                 a)
+             (gene (Arith.minus_nat n Arith.one_nat)));
+
+fun bt_cut i (Partial_Annotated_Clausal_Logic.Propagated (uu, uv) :: ls) =
+  bt_cut i ls
+  | bt_cut i (Partial_Annotated_Clausal_Logic.Marked (ka, k) :: ls) =
+    (if Arith.equal_nata k (Arith.suc i)
+      then SOME (Partial_Annotated_Clausal_Logic.Marked (ka, k) :: ls)
+      else bt_cut i ls)
+  | bt_cut i [] = NONE;
+
+fun is_unit_clause_code A_ l m =
+  (case List.filter
+          (fn a =>
+            not (Set.member A_ (Clausal_Logic.atm_of a)
+                  (Set.image Clausal_Logic.atm_of
+                    (Partial_Annotated_Clausal_Logic.lits_of m))))
+          l
+    of [] => NONE
+    | [a] =>
+      (if List.pred_list
+            (fn c =>
+              Set.member (Clausal_Logic.equal_literal A_)
+                (Clausal_Logic.uminus_literal c)
+                (Partial_Annotated_Clausal_Logic.lits_of m))
+            (List.remove1 (Clausal_Logic.equal_literal A_) a l)
+        then SOME a else NONE)
+    | _ :: _ :: _ => NONE);
+
+fun is_unit_clause A_ l m = is_unit_clause_code A_ l m;
+
+fun find_first_unit_clause A_ (a :: l) m =
+  (case is_unit_clause A_ a m of NONE => find_first_unit_clause A_ l m
+    | SOME la => SOME (la, a))
+  | find_first_unit_clause A_ [] uu = NONE;
+
+fun do_propagate_step A_ s =
+  (case s
+    of (m, (n, (u, (k, Propo_CDCL.C_True)))) =>
+      (case find_first_unit_clause A_ (n @ u) m
+        of NONE => (m, (n, (u, (k, Propo_CDCL.C_True))))
+        | SOME (l, c) =>
+          (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: m,
+            (n, (u, (k, Propo_CDCL.C_True)))))
+    | (m, (n, (u, (k, Propo_CDCL.C_Clause ah)))) =>
+      (m, (n, (u, (k, Propo_CDCL.C_Clause ah)))));
+
+fun find_conflict A_ m [] = NONE
+  | find_conflict A_ m (n :: ns) =
+    (if List.pred_list
+          (fn c =>
+            Set.member (Clausal_Logic.equal_literal A_)
+              (Clausal_Logic.uminus_literal c)
+              (Partial_Annotated_Clausal_Logic.lits_of m))
+          n
+      then SOME n else find_conflict A_ m ns);
+
+fun do_conflict_step A_ s =
+  (case s
+    of (m, (n, (u, (k, Propo_CDCL.C_True)))) =>
+      (case find_conflict A_ m (n @ u)
+        of NONE => (m, (n, (u, (k, Propo_CDCL.C_True))))
+        | SOME a => (m, (n, (u, (k, Propo_CDCL.C_Clause a)))))
+    | (m, (n, (u, (k, Propo_CDCL.C_Clause ah)))) =>
+      (m, (n, (u, (k, Propo_CDCL.C_Clause ah)))));
+
+fun do_cp_step A_ s = (do_propagate_step A_ o do_conflict_step A_) s;
+
+fun rough_state_of_I (ConI x) = x;
+
+fun id_of_I_to s = Con (rough_state_of_I s);
+
+fun rough_state_of (Con x) = x;
+
+fun do_cp_stepa s = Con (do_cp_step Arith.equal_nat (rough_state_of s));
+
+fun do_skip_step
+  (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls,
+    (n, (u, (k, Propo_CDCL.C_Clause d))))
+  = (if not (List.member (Clausal_Logic.equal_literal Arith.equal_nat) d
+              (Clausal_Logic.uminus_literal l)) andalso
+          not (List.null d)
+      then (ls, (n, (u, (k, Propo_CDCL.C_Clause d))))
+      else (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls,
+             (n, (u, (k, Propo_CDCL.C_Clause d)))))
+  | do_skip_step ([], va) = ([], va)
+  | do_skip_step (Partial_Annotated_Clausal_Logic.Marked (vd, ve) :: vc, va) =
+    (Partial_Annotated_Clausal_Logic.Marked (vd, ve) :: vc, va)
+  | do_skip_step (v, (vb, (vd, (vf, Propo_CDCL.C_True)))) =
+    (v, (vb, (vd, (vf, Propo_CDCL.C_True))));
+
+fun equal_cdcl_state_I sa s =
+  Product_Type.equal_proda
+    (List.equal_list
+      (Partial_Annotated_Clausal_Logic.equal_marked_lit Arith.equal_nat
+        Arith.equal_nat
+        (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat))))
+    (Product_Type.equal_prod
+      (List.equal_list
+        (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat)))
+      (Product_Type.equal_prod
+        (List.equal_list
+          (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat)))
+        (Product_Type.equal_prod Arith.equal_nat
+          (Propo_CDCL.equal_conflicting_clause
+            (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat))))))
+    (rough_state_of_I sa) (rough_state_of_I s);
+
+fun equal_cdcl_state sa s =
+  Product_Type.equal_proda
+    (List.equal_list
+      (Partial_Annotated_Clausal_Logic.equal_marked_lit Arith.equal_nat
+        Arith.equal_nat
+        (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat))))
+    (Product_Type.equal_prod
+      (List.equal_list
+        (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat)))
+      (Product_Type.equal_prod
+        (List.equal_list
+          (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat)))
+        (Product_Type.equal_prod Arith.equal_nat
+          (Propo_CDCL.equal_conflicting_clause
+            (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat))))))
+    (rough_state_of sa) (rough_state_of s);
+
+fun do_full_cp_step s =
+  let
+    val sa = do_cp_stepa s;
+  in
+    (if equal_cdcl_state s sa then s else do_full_cp_step sa)
+  end;
+
+fun maximum_level_code A_ d m =
+  Propo_CDCL.get_maximum_level A_ (Multiset.Mset d) m;
+
+fun find_level_decomp A_ m [] d k = NONE
+  | find_level_decomp A_ m (l :: ls) d k =
+    let
+      val (i, j) =
+        (Propo_CDCL.get_rev_level A_ l Arith.zero_nat (List.rev m),
+          maximum_level_code A_ (d @ ls) m);
+    in
+      (if Arith.equal_nata i k andalso Arith.less_nat j i then SOME (l, j)
+        else find_level_decomp A_ m ls (l :: d) k)
+    end;
+
+fun do_backtrack_step A_ (m, (n, (u, (k, Propo_CDCL.C_Clause d)))) =
+  (case find_level_decomp A_ m d [] k
+    of NONE => (m, (n, (u, (k, Propo_CDCL.C_Clause d))))
+    | SOME (l, j) =>
+      (case bt_cut j m of NONE => (m, (n, (u, (k, Propo_CDCL.C_Clause d))))
+        | SOME [] => (m, (n, (u, (k, Propo_CDCL.C_Clause d))))
+        | SOME (Partial_Annotated_Clausal_Logic.Marked (_, _) :: ls) =>
+          (Partial_Annotated_Clausal_Logic.Propagated (l, d) :: ls,
+            (n, (d :: u, (j, Propo_CDCL.C_True))))
+        | SOME (Partial_Annotated_Clausal_Logic.Propagated (_, _) :: _) =>
+          (m, (n, (u, (k, Propo_CDCL.C_Clause d))))))
+  | do_backtrack_step A_ (v, (vb, (vd, (vf, Propo_CDCL.C_True)))) =
+    (v, (vb, (vd, (vf, Propo_CDCL.C_True))));
+
+fun do_resolve_step
+  (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls,
+    (n, (u, (k, Propo_CDCL.C_Clause d))))
+  = (if List.member (Clausal_Logic.equal_literal Arith.equal_nat) d
+          (Clausal_Logic.uminus_literal l) andalso
+          (Arith.equal_nata
+             (maximum_level_code Arith.equal_nat
+               (List.remove1 (Clausal_Logic.equal_literal Arith.equal_nat)
+                 (Clausal_Logic.uminus_literal l) d)
+               (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls))
+             k orelse
+            Arith.equal_nata k Arith.zero_nat)
+      then (ls, (n, (u, (k, Propo_CDCL.C_Clause
+                              (List.remdups
+                                (Clausal_Logic.equal_literal Arith.equal_nat)
+                                (List.remove1
+                                   (Clausal_Logic.equal_literal Arith.equal_nat)
+                                   l c @
+                                  List.remove1
+                                    (Clausal_Logic.equal_literal
+                                      Arith.equal_nat)
+                                    (Clausal_Logic.uminus_literal l) d))))))
+      else (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls,
+             (n, (u, (k, Propo_CDCL.C_Clause d)))))
+  | do_resolve_step ([], va) = ([], va)
+  | do_resolve_step (Partial_Annotated_Clausal_Logic.Marked (vd, ve) :: vc, va)
+    = (Partial_Annotated_Clausal_Logic.Marked (vd, ve) :: vc, va)
+  | do_resolve_step (v, (vb, (vd, (vf, Propo_CDCL.C_True)))) =
+    (v, (vb, (vd, (vf, Propo_CDCL.C_True))));
+
+fun find_first_unused_var A_ (a :: l) m =
+  (case List.find
+          (fn lit =>
+            not (Set.member (Clausal_Logic.equal_literal A_) lit m) andalso
+              not (Set.member (Clausal_Logic.equal_literal A_)
+                    (Clausal_Logic.uminus_literal lit) m))
+          a
+    of NONE => find_first_unused_var A_ l m | SOME aa => SOME aa)
+  | find_first_unused_var A_ [] uu = NONE;
+
+fun do_decide_step A_ (m, (n, (u, (k, Propo_CDCL.C_True)))) =
+  (case find_first_unused_var A_ n (Partial_Annotated_Clausal_Logic.lits_of m)
+    of NONE => (m, (n, (u, (k, Propo_CDCL.C_True))))
+    | SOME l =>
+      (Partial_Annotated_Clausal_Logic.Marked (l, Arith.suc k) :: m,
+        (n, (u, (Arith.plus_nat k Arith.one_nat, Propo_CDCL.C_True)))))
+  | do_decide_step A_ (v, (vb, (vd, (vf, Propo_CDCL.C_Clause vh)))) =
+    (v, (vb, (vd, (vf, Propo_CDCL.C_Clause vh))));
+
+fun do_other_step s =
+  let
+    val t = do_skip_step s;
+  in
+    (if not (Product_Type.equal_proda
+              (List.equal_list
+                (Partial_Annotated_Clausal_Logic.equal_marked_lit
+                  Arith.equal_nat Arith.equal_nat
+                  (List.equal_list
+                    (Clausal_Logic.equal_literal Arith.equal_nat))))
+              (Product_Type.equal_prod
+                (List.equal_list
+                  (List.equal_list
+                    (Clausal_Logic.equal_literal Arith.equal_nat)))
+                (Product_Type.equal_prod
+                  (List.equal_list
+                    (List.equal_list
+                      (Clausal_Logic.equal_literal Arith.equal_nat)))
+                  (Product_Type.equal_prod Arith.equal_nat
+                    (Propo_CDCL.equal_conflicting_clause
+                      (List.equal_list
+                        (Clausal_Logic.equal_literal Arith.equal_nat))))))
+              t s)
+      then t
+      else let
+             val u = do_resolve_step t;
+           in
+             (if not (Product_Type.equal_proda
+                       (List.equal_list
+                         (Partial_Annotated_Clausal_Logic.equal_marked_lit
+                           Arith.equal_nat Arith.equal_nat
+                           (List.equal_list
+                             (Clausal_Logic.equal_literal Arith.equal_nat))))
+                       (Product_Type.equal_prod
+                         (List.equal_list
+                           (List.equal_list
+                             (Clausal_Logic.equal_literal Arith.equal_nat)))
+                         (Product_Type.equal_prod
+                           (List.equal_list
+                             (List.equal_list
+                               (Clausal_Logic.equal_literal Arith.equal_nat)))
+                           (Product_Type.equal_prod Arith.equal_nat
+                             (Propo_CDCL.equal_conflicting_clause
+                               (List.equal_list
+                                 (Clausal_Logic.equal_literal
+                                   Arith.equal_nat))))))
+                       u t)
+               then u
+               else let
+                      val v = do_backtrack_step Arith.equal_nat u;
+                    in
+                      (if not (Product_Type.equal_proda
+                                (List.equal_list
+                                  (Partial_Annotated_Clausal_Logic.equal_marked_lit
+                                    Arith.equal_nat Arith.equal_nat
+                                    (List.equal_list
+                                      (Clausal_Logic.equal_literal
+Arith.equal_nat))))
+                                (Product_Type.equal_prod
+                                  (List.equal_list
+                                    (List.equal_list
+                                      (Clausal_Logic.equal_literal
+Arith.equal_nat)))
+                                  (Product_Type.equal_prod
+                                    (List.equal_list
+                                      (List.equal_list
+(Clausal_Logic.equal_literal Arith.equal_nat)))
+                                    (Product_Type.equal_prod Arith.equal_nat
+                                      (Propo_CDCL.equal_conflicting_clause
+(List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat))))))
+                                v u)
+                        then v else do_decide_step Arith.equal_nat v)
+                    end)
+           end)
+  end;
+
+fun do_other_stepa s = Con (do_other_step (rough_state_of s));
+
+fun do_cdcl_s_step s =
+  let
+    val t = do_full_cp_step s;
+  in
+    (if not (equal_cdcl_state t s) then t
+      else let
+             val a = do_other_stepa t;
+           in
+             do_full_cp_step a
+           end)
+  end;
+
+fun do_cdcl_s_stepa s = ConI (rough_state_of (do_cdcl_s_step (id_of_I_to s)));
+fun do_all_cdcl_s s =
+  let
+    val t = do_cdcl_s_stepa s;
+    val _ = writeln "step"
+  in
+    (if equal_cdcl_state_I t s then s else do_all_cdcl_s t)
+  end;
+
+end; (*struct CDCL_Implementation*)
+
+*}
+declare[[ML_print_depth=100]]
+ML {*
+open Clausal_Logic;
+open CDCL_Implementation;
+open Arith;
+let
+  val N = gene (Nat 2)
+  val f = do_all_cdcl_s (ConI ([], (N, ([], (Nat 0, Propo_CDCL.C_True)))))
+  in
+  
+  f
+end
+*}
 end
