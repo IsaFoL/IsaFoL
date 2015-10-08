@@ -780,11 +780,6 @@ qed
 
 
 subsection \<open>Decrease of a measure\<close>
-lemma distinctlength_eq_card_atm_of_lits_of:
-  assumes "no_dup M"
-  shows "length M  = card (atm_of ` lits_of M)"
-  using assms unfolding lits_of_def by (induct M) (auto simp add: image_image)
-
 fun cdcl_measure where
 "cdcl_measure (M, N, U, k, C_True) = [(3::nat) ^(card (atms_of_m N)) - card U, 1, card (atms_of_m N) - length M]" |
 "cdcl_measure (M, N, U, k, _) = [3 ^(card (atms_of_m N)) - card U, 0, length M]"
