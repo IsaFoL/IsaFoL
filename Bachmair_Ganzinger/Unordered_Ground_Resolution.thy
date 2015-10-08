@@ -173,6 +173,6 @@ Theorem 3.12, compactness of clausal logic, has finally been derived for a concr
 system:
 *}
 
-theorems (in ground_resolution_without_selection) clausal_logic_compact = clausal_logic_compact
+lemmas (in ground_resolution_without_selection) clausal_logic_compact = clausal_logic_compact
 
 end
