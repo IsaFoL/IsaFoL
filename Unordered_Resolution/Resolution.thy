@@ -445,6 +445,11 @@ definition resolution :: "   fterm clause \<Rightarrow> fterm clause
                           \<Rightarrow> substitution \<Rightarrow> fterm clause" where
   "resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = (C\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s - L\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s) \<union> (C\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s - L\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s)"
 
+definition lresolution :: "   fterm clause \<Rightarrow> fterm clause 
+                          \<Rightarrow> fterm literal set \<Rightarrow> fterm literal set 
+                          \<Rightarrow> substitution \<Rightarrow> fterm clause" where
+  "lresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = ((C\<^sub>1 - L\<^sub>1) \<union> (C\<^sub>2 - L\<^sub>2)) {\<sigma>}\<^sub>l\<^sub>s"
+
 inductive resolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   resolution_rule: 
     "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<Longrightarrow> 
@@ -452,8 +457,18 @@ inductive resolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<
 | standardize_apart:
     "C \<in> Cs \<Longrightarrow> var_renaming \<sigma> \<Longrightarrow> resolution_step Cs (Cs \<union> {C {\<sigma>}\<^sub>l\<^sub>s})"
 
+inductive lresolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
+  lresolution_rule: 
+    "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<Longrightarrow> 
+       lresolution_step Cs (Cs \<union> {lresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>})"
+| lstandardize_apart:
+    "C \<in> Cs \<Longrightarrow> var_renaming \<sigma> \<Longrightarrow> lresolution_step Cs (Cs \<union> {C {\<sigma>}\<^sub>l\<^sub>s})"
+
 definition resolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "resolution_deriv = star resolution_step"
+
+definition lresolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
+  "lresolution_deriv = star lresolution_step"
 
 (* Very nice lemma, but it is not used. 
   Could be used in a Completeness proof *)
@@ -595,6 +610,35 @@ proof -
   from this l\<^sub>1\<sigma>isl\<^sub>1\<sigma> l\<^sub>2\<sigma>isl\<^sub>2\<sigma> show ?thesis unfolding resolution_def by auto
 qed
 
+lemma lresolution_superset: "resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<subseteq> lresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>"
+ unfolding resolution_def lresolution_def by auto
+
+lemma superset_sound:
+  assumes sup: "C \<subseteq> C'"
+  assumes sat: "evalc F G C"
+  shows "evalc F G C'"
+proof -
+  have "\<forall>E. \<exists>l \<in> C'. evall E F G l"
+    proof
+      fix E
+      from sat have "\<forall>E. \<exists>l \<in> C. evall E F G l" unfolding evalc_def by -
+      then have "\<exists>l \<in> C. evall E F G l" by auto
+      then show "\<exists>l\<in>C'. evall E F G l" using sup by auto
+    qed
+  then show "evalc F G C'" unfolding evalc_def by auto
+qed
+ 
+
+lemma lresolution_sound:
+  assumes sat\<^sub>1: "evalc F G C\<^sub>1"
+  assumes sat\<^sub>2: "evalc F G C\<^sub>2"
+  assumes appl: "applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>"
+  shows "evalc F G (lresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>)"
+proof -
+  from sat\<^sub>1 sat\<^sub>2 appl have "evalc F G (resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>)" using resolution_sound by blast
+  then show ?thesis using superset_sound lresolution_superset by metis
+qed
+
 lemma sound_step: "resolution_step Cs Cs' \<Longrightarrow> evalcs F G Cs \<Longrightarrow> evalcs F G Cs'"
 proof (induction rule: resolution_step.induct)
   case (resolution_rule C\<^sub>1 Cs C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)
@@ -609,6 +653,20 @@ next
   then show ?case using standardize_apart unfolding evalcs_def by auto
 qed
 
+lemma lsound_step: "lresolution_step Cs Cs' \<Longrightarrow> evalcs F G Cs \<Longrightarrow> evalcs F G Cs'"
+proof (induction rule: lresolution_step.induct)
+  case (lresolution_rule C\<^sub>1 Cs C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)
+  then have "evalc F G C\<^sub>1 \<and> evalc F G C\<^sub>2" unfolding evalcs_def by auto
+  then have "evalc F G (lresolution C\<^sub>1 C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)" 
+    using lresolution_sound lresolution_rule by auto
+  then show ?case using lresolution_rule unfolding evalcs_def by auto
+next
+  case (lstandardize_apart C Cs \<sigma>)
+  then have "evalc F G C" unfolding evalcs_def by auto
+  then have "evalc F G (C{\<sigma>}\<^sub>l\<^sub>s)" using subst_sound by auto
+  then show ?case using lstandardize_apart unfolding evalcs_def by auto
+qed
+
 lemma sound_derivation: 
   "resolution_deriv Cs Cs' \<Longrightarrow> evalcs F G Cs \<Longrightarrow> evalcs F G Cs'" 
 unfolding resolution_deriv_def
@@ -616,6 +674,15 @@ proof (induction rule: star.induct)
   case refl then show ?case by auto
 next
   case (step Cs\<^sub>1 Cs\<^sub>2 Cs\<^sub>3) then show ?case using sound_step by auto
+qed
+
+lemma lsound_derivation: 
+  "lresolution_deriv Cs Cs' \<Longrightarrow> evalcs F G Cs \<Longrightarrow> evalcs F G Cs'" 
+unfolding lresolution_deriv_def
+proof (induction rule: star.induct)
+  case refl then show ?case by auto
+next
+  case (step Cs\<^sub>1 Cs\<^sub>2 Cs\<^sub>3) then show ?case using lsound_step by auto
 qed
 
 section {* Enumerations *}
