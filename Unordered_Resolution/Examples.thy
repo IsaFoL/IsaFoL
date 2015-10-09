@@ -1,21 +1,16 @@
 theory Examples imports Resolution begin
 
-text_raw {*\DefineSnippet{term_example}{*}
 value "Var ''x''"
 value "Fun ''one'' []"
 value "Fun ''mul'' [Var ''y'',Var ''y'']"
 value "Fun ''add'' [Fun ''mul'' [Var ''y'',Var ''y''], Fun ''one'' []]"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{literal_example}{*}
 value "Pos ''greater'' [Var ''x'', Var ''y'']"
 value "Neg ''less'' [Var ''x'', Var ''y'']"
 value "Pos ''less'' [Var ''x'', Var ''y'']"
 value "Pos ''equals''
         [Fun ''add''[Fun ''mul''[Var ''y'',Var ''y''], Fun ''one''[]],Var ''x'']"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{Fnat}{*}
 fun F\<^sub>n\<^sub>a\<^sub>t :: "nat fun_denot" where
   " F\<^sub>n\<^sub>a\<^sub>t f [n,m] = 
      (if f = ''add'' then n + m else 
@@ -24,25 +19,19 @@ fun F\<^sub>n\<^sub>a\<^sub>t :: "nat fun_denot" where
      (if f = ''one''  then 1 else
       if f = ''zero'' then 0 else 0)"
 | " F\<^sub>n\<^sub>a\<^sub>t f us = 0"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{Gnat}{*}
 fun G\<^sub>n\<^sub>a\<^sub>t :: "nat pred_denot" where
   "G\<^sub>n\<^sub>a\<^sub>t p [x,y] =
      (if p = ''less'' \<and> x < y then True else
       if p = ''greater'' \<and> x > y then True else 
       if p = ''equals'' \<and> x = y then True else False)"
 | "G\<^sub>n\<^sub>a\<^sub>t p us = False"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{Enat}{*}
 fun E\<^sub>n\<^sub>a\<^sub>t :: "nat var_denot" where
   "E\<^sub>n\<^sub>a\<^sub>t x =
      (if x = ''x'' then 26 else
       if x = ''y'' then 5 else 0)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{term_evalt_example}{*}
 lemma "evalt E\<^sub>n\<^sub>a\<^sub>t F\<^sub>n\<^sub>a\<^sub>t (Var ''x'') = 26" 
   by auto
 lemma "evalt E\<^sub>n\<^sub>a\<^sub>t F\<^sub>n\<^sub>a\<^sub>t (Fun ''one'' []) = 1" 
@@ -52,9 +41,7 @@ lemma "evalt E\<^sub>n\<^sub>a\<^sub>t F\<^sub>n\<^sub>a\<^sub>t (Fun ''mul'' [V
 lemma 
   "evalt E\<^sub>n\<^sub>a\<^sub>t F\<^sub>n\<^sub>a\<^sub>t (Fun ''add'' [Fun ''mul'' [Var ''y'',Var ''y''], Fun ''one'' []]) = 26" 
   by auto
-text_raw {*}%EndSnippet*}  
 
-text_raw {*\DefineSnippet{literal_evall_example}{*}
 lemma "evall E\<^sub>n\<^sub>a\<^sub>t F\<^sub>n\<^sub>a\<^sub>t G\<^sub>n\<^sub>a\<^sub>t (Pos ''greater'' [Var ''x'', Var ''y'']) = True" 
   by auto
 lemma "evall E\<^sub>n\<^sub>a\<^sub>t F\<^sub>n\<^sub>a\<^sub>t G\<^sub>n\<^sub>a\<^sub>t (Neg ''less'' [Var ''x'', Var ''y'']) = True" 
@@ -67,10 +54,8 @@ lemma "evall E\<^sub>n\<^sub>a\<^sub>t F\<^sub>n\<^sub>a\<^sub>t G\<^sub>n\<^sub
          ,Var ''x'']
        ) = True" 
   by auto
-text_raw {*}%EndSnippet*}
 (* value "diag 0" value "diag 1" value "diag 2" value "diag 3" value "diag 4" value "diag_hatom 0" value "undiag_hatom (diag_hatom 0)" value "diag_hatom (undiag_hatom (diag_hatom 0))" value "undiag_hatom (diag_hatom 1)" value "undiag_hatom (diag_hatom 2)" value "diag_hatom 2" value "diag_hatom 3" value "diag_hatom 4" value "diag_hatom 5" value "diag_hatom 90"  *)
 
-text_raw {*\DefineSnippet{PP}{*}
 definition PP :: "fterm literal" where
   "PP = Pos ''P'' [Fun ''c'' []]"
 
@@ -82,34 +67,25 @@ definition NP :: "fterm literal" where
 
 definition NQ :: "fterm literal" where
   "NQ = Neg ''Q'' [Fun ''d'' []]"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{empty_mgu}{*}
 theorem empty_mgu: "unifierls \<epsilon> L \<Longrightarrow> mguls \<epsilon> L"
-text_raw {*}%EndSnippet*}
 unfolding unifierls_def mguls_def apply auto
 apply (rule_tac x=u in exI)
 using empty_comp1 empty_comp2 apply (auto)
 done
 
-text_raw {*\DefineSnippet{unifier_single}{*}
 theorem unifier_single: "unifierls \<sigma> {l}" 
-text_raw {*}%EndSnippet*}
 unfolding unifierls_def by auto
 
-text_raw {*\DefineSnippet{resolution_rule'}{*}
 theorem resolution_rule':
       "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> 
    \<Longrightarrow> C = {resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>} 
    \<Longrightarrow> resolution_step Cs (Cs \<union> C)"
-text_raw {*}%EndSnippet*}
   using resolution_rule by auto
 
-text_raw {*\DefineSnippet{resolution_example1}{*}
 lemma resolution_example1: 
    "\<exists>Cs. resolution_deriv {{NP,PQ},{NQ},{PP,PQ}} 
                               {{NP,PQ},{NQ},{PP,PQ},{NP},{PP},{}}"
-text_raw {*}%EndSnippet*}
 proof -
   have "resolution_step 
           {{NP,PQ},{NQ},{PP,PQ}}
@@ -156,7 +132,6 @@ proof -
   then show ?thesis by auto
 qed
 
-text_raw {*\DefineSnippet{Pa}{*}
 definition Pa :: "fterm literal" where
   "Pa = Pos ''a'' []"
 
@@ -180,14 +155,11 @@ definition Pax :: "fterm literal" where
 
 definition Nax :: "fterm literal" where
   "Nax = Neg ''a'' [Var ''x'']"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{mguPaaPax}{*}
 definition mguPaaPax :: substitution where
   "mguPaaPax = (\<lambda>x. if x = ''x'' then Fun ''a'' [] else Var x)"
 
 lemma mguPaaPax_mgu: "mguls mguPaaPax {Paa,Pax}"
-text_raw {*}%EndSnippet*}
 proof -
   let ?\<sigma> = "\<lambda>x. if x = ''x'' then Fun ''a'' [] else Var x"
   have a: "unifierls (\<lambda>x. if x = ''x'' then Fun ''a'' [] else Var x) {Paa,Pax}" unfolding Paa_def Pax_def unifierls_def by auto
@@ -219,11 +191,9 @@ proof -
    from a b show ?thesis unfolding mguls_def unfolding mguPaaPax_def by auto
 qed
 
-text_raw {*\DefineSnippet{resolution_example2}{*}
 lemma resolution_example2: 
    "\<exists>Cs. resolution_deriv {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa}}
                               {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa},{Na,Pb},{Na},{}}"
-text_raw {*}%EndSnippet*}
 proof -
   have "resolution_step 
           {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa}}
@@ -270,11 +240,9 @@ proof -
   then show ?thesis by auto
 qed
 
-text_raw {*\DefineSnippet{ref_sound}{*}
 lemma ref_sound: 
   assumes deriv: "resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
   shows "\<not>evalcs F G Cs"
-text_raw {*}%EndSnippet*}
 proof -
   from deriv have "evalcs F G Cs \<Longrightarrow> evalcs F G Cs'" using sound_derivation by auto
   moreover
@@ -284,14 +252,10 @@ proof -
   ultimately show ?thesis by auto
 qed
 
-text_raw {*\DefineSnippet{resolution_example1_sem}{*}
 lemma resolution_example1_sem: "\<not>evalcs F G {{NP, PQ}, {NQ}, {PP, PQ}}"
-text_raw {*}%EndSnippet*}
   using resolution_example1 ref_sound by auto
 
-text_raw {*\DefineSnippet{resolution_example2_sem}{*}
 lemma resolution_example2_sem: "\<not>evalcs F G {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa}}"
-text_raw {*}%EndSnippet*}
   using resolution_example2 ref_sound by auto
 
 end
