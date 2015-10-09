@@ -163,6 +163,8 @@ fun subl :: "fterm literal \<Rightarrow> substitution \<Rightarrow> fterm litera
 abbreviation subls :: "fterm literal set \<Rightarrow> substitution \<Rightarrow> fterm literal set" ("_{_}\<^sub>l\<^sub>s" [300,0] 300) where
   "L {\<sigma>}\<^sub>l\<^sub>s \<equiv> (\<lambda>l. l {\<sigma>}\<^sub>l) ` L"
 
+lemma subls_def2: "L {\<sigma>}\<^sub>l\<^sub>s = {l {\<sigma>}\<^sub>l|l. l \<in> L}" by auto
+
 definition instance_oft :: "fterm \<Rightarrow> fterm \<Rightarrow> bool" where
   "instance_oft t\<^sub>1 t\<^sub>2 \<longleftrightarrow> (\<exists>\<sigma>. t\<^sub>1 = t\<^sub>2{\<sigma>}\<^sub>t)"
 
@@ -172,10 +174,8 @@ definition instance_ofts :: "fterm list \<Rightarrow> fterm list \<Rightarrow> b
 definition instance_ofl :: "fterm literal \<Rightarrow> fterm literal \<Rightarrow> bool" where
   "instance_ofl l\<^sub>1 l\<^sub>2 \<longleftrightarrow> (\<exists>\<sigma>. l\<^sub>1 = l\<^sub>2{\<sigma>}\<^sub>l)"
 
-(* Not used
 definition instance_ofls :: "fterm clause \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "instance_ofls C\<^sub>1 C\<^sub>2 \<longleftrightarrow> (\<exists>\<sigma>. C\<^sub>1 = C\<^sub>2{\<sigma>}\<^sub>l\<^sub>s)"
-*)
 
 lemma comp_sub: "(l\<^sup>c) {\<sigma>}\<^sub>l=(l {\<sigma>}\<^sub>l)\<^sup>c" 
 by (cases l) auto
@@ -183,8 +183,8 @@ by (cases l) auto
 (* This definition Could be tighter. For instance with this definition we allow
   x \<rightarrow> Var x
   y \<rightarrow> Var x
-   that two variable point to the same. We Could and should perhaps disallow this.
-   It Could be done something like
+   that two variable point to the same. We could and should perhaps disallow this.
+   It could be done something like
    var_renaming \<sigma> \<longleftrightarrow> (\<exists>b. bijection b (UNIV::var_symbol) (UNIV::var_symbol) \<and> \<forall>x. \<sigma> x = Var (b x))
  *)
 definition var_renaming :: "substitution \<Rightarrow> bool" where
@@ -1140,16 +1140,125 @@ proof -
   then show ?thesis by auto
 qed
 
+lemma project_sub:
+  assumes inst_C:"C {\<mu>}\<^sub>l\<^sub>s = C'" (* lmbd instead of mu would fit better with below proofs *) (* This equality could be removed from the lemma *)
+  assumes L'sub: "L' \<subseteq> C'"
+  shows "\<exists>L \<subseteq> C. L {\<mu>}\<^sub>l\<^sub>s = L' \<and> (C-L) {\<mu>}\<^sub>l\<^sub>s = C' - L'"
+proof -
+  let ?L = "{l \<in> C. \<exists>l' \<in> L'. l {\<mu>}\<^sub>l = l'}"
+  have "?L \<subseteq> C" by auto
+  moreover
+  have "?L {\<mu>}\<^sub>l\<^sub>s = L'"
+    apply auto
+    proof - (* Very ugly *)
+      fix l'
+      assume l'L: "l' \<in> L'"
+      from inst_C have "{l {\<mu>}\<^sub>l|l. l \<in> C} = C'" unfolding subls_def2 by -
+      then have "\<exists>l. l' = l {\<mu>}\<^sub>l \<and> l \<in> C \<and> l{\<mu>}\<^sub>l \<in> L'" using L'sub l'L by auto
+      then show " l' \<in> {l \<in> C. l{\<mu>}\<^sub>l \<in> L'}{\<mu>}\<^sub>l\<^sub>s" by auto
+    qed
+  moreover
+  have "(C-?L) {\<mu>}\<^sub>l\<^sub>s = C' - L'" using inst_C by auto
+  moreover
+  ultimately show ?thesis by auto
+qed
+
+lemma relevant_vars_subt:
+  "\<forall>x \<in> varst t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> t {\<sigma>\<^sub>1}\<^sub>t = t {\<sigma>\<^sub>2}\<^sub>t" (* "\<forall>x \<in> varsts ts. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> ts {\<sigma>\<^sub>1}\<^sub>t\<^sub>s = ts {\<sigma>\<^sub>2}\<^sub>t\<^sub>s"*)
+proof (induction t)
+  case (Fun f ts)
+  have f: "\<And>t. t \<in> set ts \<Longrightarrow> varst t \<subseteq> varsts ts" by (induction ts) auto
+  have "\<forall>t\<in>set ts. t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" 
+    proof
+      fix t
+      assume tints: "t \<in> set ts"
+      then have "\<forall>x\<in>varst t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f Fun(2) by auto
+      then show "t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" using Fun tints by auto
+    qed
+  then have "ts{\<sigma>\<^sub>1}\<^sub>t\<^sub>s = ts{\<sigma>\<^sub>2}\<^sub>t\<^sub>s" by auto
+  then show ?case by auto
+qed auto
+
+lemma relevant_vars_subts: (* copy paste from above proof *)
+  assumes asm: "\<forall>x \<in> varsts ts. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
+  shows "ts {\<sigma>\<^sub>1}\<^sub>t\<^sub>s = ts {\<sigma>\<^sub>2}\<^sub>t\<^sub>s" 
+proof -
+   have f: "\<And>t. t \<in> set ts \<Longrightarrow> varst t \<subseteq> varsts ts" by (induction ts) auto
+   have "\<forall>t\<in>set ts. t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" 
+    proof
+      fix t
+      assume tints: "t \<in> set ts"
+      then have "\<forall>x\<in>varst t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f asm by auto
+      then show "t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" using relevant_vars_subt tints by auto
+    qed
+  then show ?thesis by auto
+qed
+
+lemma relevant_vars_subl:
+  "\<forall>x \<in> varsl l. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> l {\<sigma>\<^sub>1}\<^sub>l = l {\<sigma>\<^sub>2}\<^sub>l"
+proof (induction l)
+  case (Pos p ts)
+  then show ?case using relevant_vars_subts unfolding varsl_def by auto
+next
+  case (Neg p ts)
+  then show ?case using relevant_vars_subts unfolding varsl_def by auto
+qed
+
+lemma relevant_vars_subls: (* in many ways a mirror of relevant_vars_subts  *)
+  assumes asm: "\<forall>x \<in> varsls L. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
+  shows "L {\<sigma>\<^sub>1}\<^sub>l\<^sub>s = L {\<sigma>\<^sub>2}\<^sub>l\<^sub>s"
+proof -
+  have f: "\<And>l. l \<in> L \<Longrightarrow> varsl l \<subseteq> varsls L" unfolding varsls_def by auto
+  have "\<forall>l \<in> L. l {\<sigma>\<^sub>1}\<^sub>l = l {\<sigma>\<^sub>2}\<^sub>l"
+    proof
+      fix l
+      assume linls: "l\<in>L"
+      then have "\<forall>x\<in>varsl l. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f asm by auto
+      then show "l{\<sigma>\<^sub>1}\<^sub>l = l{\<sigma>\<^sub>2}\<^sub>l" using relevant_vars_subl linls by auto
+    qed
+  then show ?thesis by (meson image_cong) 
+qed
+
+lemma (* To prove this I should make a lemma that says literals only care about the variables that are in them *)
+  assumes dist: "varsls C \<inter> varsls D = {}"
+  assumes CC': "C {lmbd}\<^sub>l\<^sub>s = C'"
+  assumes DD': "D {\<mu>}\<^sub>l\<^sub>s = D'"
+  shows "\<exists>\<eta>. C {\<eta>}\<^sub>l\<^sub>s = C' \<and> D {\<eta>}\<^sub>l\<^sub>s = D'"
+proof -
+  let ?\<eta> = "\<lambda>x. if x \<in> varsls C then lmbd x else \<mu> x"
+  have " \<forall>x\<in>varsls C. ?\<eta> x = lmbd x" by auto
+  then have "C {?\<eta>}\<^sub>l\<^sub>s = C {lmbd}\<^sub>l\<^sub>s" using relevant_vars_subls[of C ?\<eta> lmbd] by auto
+  then have "C {?\<eta>}\<^sub>l\<^sub>s = C'" using CC' by auto
+  moreover
+  have " \<forall>x\<in>varsls D. ?\<eta> x = \<mu> x" using dist by auto
+  then have "D {?\<eta>}\<^sub>l\<^sub>s = D {\<mu>}\<^sub>l\<^sub>s" using relevant_vars_subls[of D ?\<eta> \<mu>] by auto
+  then have "D {?\<eta>}\<^sub>l\<^sub>s = D'" using DD' by auto
+  ultimately
+  show ?thesis by auto
+qed
+
 section {* Lifting Lemma *}
 lemma lifting:
-  assumes appart: "varsc c \<inter> varsc d = {}"
-  assumes inst\<^sub>1: "instance_ofc c' c"
-  assumes inst\<^sub>2: "instance_ofc d' d"
-  assumes appl: "applicable c' d' l' m' \<sigma>"
-  shows "\<exists>l m \<tau>. applicable c d l m \<tau> \<and>
-                   instance_ofc (resolution c' d' l' m' \<sigma>) (resolution c d l m \<tau>)"
-oops
+  assumes appart: "varsls C \<inter> varsls D = {}"
+  assumes inst\<^sub>1: "instance_ofls C' C"
+  assumes inst\<^sub>2: "instance_ofls D' D"
+  assumes appl: "applicable C' D' L' M' \<sigma>"
+  shows "\<exists>L M \<tau>. applicable C D L M \<tau> \<and>
+                   instance_ofc (lresolution c' d' l' m' \<sigma>) (lresolution c d l m \<tau>)"
+proof -
+  let ?C'\<^sub>1 = "C' - L'"
+  let ?D'\<^sub>1 = "D' - M'"
 
+  from inst\<^sub>1 obtain lmbd where  "C {lmbd}\<^sub>l\<^sub>s = C'" unfolding instance_ofls_def by auto
+  then have "\<exists>L \<subseteq> C. L {lmbd}\<^sub>l\<^sub>s = L' \<and> (C - L){lmbd}\<^sub>l\<^sub>s = ?C'\<^sub>1" using appl project_sub[of lmbd C C' L'] unfolding applicable_def by auto
+  then obtain L where "L \<subseteq> C \<and> L {lmbd}\<^sub>l\<^sub>s = L' \<and> (C - L){lmbd}\<^sub>l\<^sub>s = ?C'\<^sub>1" by auto
+  let ?C\<^sub>1 = "C - L"
+
+  from inst\<^sub>2 obtain \<mu> where  "D {\<mu>}\<^sub>l\<^sub>s = D'" unfolding instance_ofls_def by auto
+  then have "\<exists>M \<subseteq> D. M {\<mu>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<mu>}\<^sub>l\<^sub>s = ?D'\<^sub>1" using appl project_sub[of \<mu> D D' M'] unfolding applicable_def by auto
+  then obtain M where "M \<subseteq> D \<and> M {\<mu>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<mu>}\<^sub>l\<^sub>s = ?D'\<^sub>1" by auto
+  let ?D\<^sub>1 = "D - M"
+  
 
 section {* Completeness *}
 (* assumes openb: "\<forall>T. \<exists>G. open_branch G T Cs" assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C" shows "\<exists>G. evalcs HFun G Cs" *)
