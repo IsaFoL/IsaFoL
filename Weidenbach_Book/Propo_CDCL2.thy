@@ -157,7 +157,6 @@ subsection\<open>Adding the measure based on Nieuwenhuis et al.\<close>
 abbreviation latm where
   "latm M N \<equiv> card (atms_of_m N) - length M"
 
-value "get_all_marked_decomposition"
 abbreviation synchronise :: "'a \<Rightarrow> 'a list \<Rightarrow> 'b \<Rightarrow> 'b list \<Rightarrow> 'a list \<times> 'b list" where
 "synchronise a l a' l' \<equiv> 
   (take (min (length l) (length l')) l @[a], 
@@ -206,14 +205,14 @@ next
     using IH by (simp add: F')
 qed
 
-lemma 
+lemma dpll_trail_mes_decreasing:
   fixes M :: "('v, 'lvl, 'mark) annoted_lits " and N :: "'v clauses"
   assumes "dpll (M, N) (M', N')" and 
   "atms_of_m N \<subseteq> atms_of_m A" and
   "atm_of ` lits_of M \<subseteq> atms_of_m A" and
   "no_dup M" and
   finite: "finite A"
-  shows "trail_mes_build A (M', N') (M, N) \<in> lenlex {(a, b). a < b}"
+  shows "trail_mes_build A (M', N') (M, N) \<in> lenlex less_than"
   using assms
 proof (induction rule: dpll_all_induct)
   case (propagate C L N M d) note CLN = this(1) and MC =this(2) and undef_L = this(3) and A = this(4) and MA = this(5)
@@ -257,11 +256,11 @@ next
     by (simp add: card_mono)
   hence latm: "latm M A = Suc (latm (Marked L lv # M) A)"
     using b_le_M by force 
-  have " (map (\<lambda>(_, propa). latm propa A) (rev (get_all_marked_decomposition M)) @ [card (atms_of_m A) - Suc (length M)], map (\<lambda>(_, propa). latm propa A) (rev (get_all_marked_decomposition M)) @ [latm M A]) \<in> lenlex {a. case a of (a, b) \<Rightarrow> a < b}"
+  have " (map (\<lambda>(_, propa). latm propa A) (rev (get_all_marked_decomposition M)) @ [card (atms_of_m A) - Suc (length M)], map (\<lambda>(_, propa). latm propa A) (rev (get_all_marked_decomposition M)) @ [latm M A]) \<in> lenlex less_than"
     unfolding M 
     unfolding lenlex_conv lex_conv latm M
     by (auto intro: exI[of _ "map (\<lambda>(_, propa). latm propa A) (rev l) @ [latm b A]"])
-  thus ?case  by simp
+  thus ?case by auto
 next
   case (backjump C N F' K d F L _ lv) note undef_L = this(1) and MC =this(2) and NA = this(3) and A = this(4) and MA = this(5) and nd = this(8)
   have "atms_of_m N' \<subseteq> atms_of_m A"
@@ -297,6 +296,107 @@ next
     by (auto simp add: F latm lenlex_conv lex_conv)
 qed
 
+lemma
+  assumes "trail_mes_build A (M, N) (M', N') \<in> lenlex less_than"
+  and "length M' \<le> n"
+  and "length N' \<le> n"
+  shows False
+  
+  
+  
+coinductive derivation :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool" where
+  singleton: "derivation R (LCons N LNil)"
+| cons: "derivation R Ns \<Longrightarrow> R M (lhd Ns) \<Longrightarrow> derivation R (LCons M Ns)"
+
+lemma
+  derivation_LNil[simp]: "\<not> derivation R LNil" and
+  lnull_derivation: "lnull Ns \<Longrightarrow> \<not> derivation R Ns"
+  by (auto elim: derivation.cases)
+
+lemma derivation_ldropn:
+  assumes "derivation R Ns" and "enat n < llength Ns"
+  shows "derivation R (ldropn n Ns)"
+using assms
+proof (induct n arbitrary: Ns)
+  case 0
+  thus ?case
+    by auto
+next
+  case (Suc n)
+  from Suc.prems(2) have len: "enat n < llength Ns"
+    using Suc_ile_eq less_imp_le by blast
+  hence "derivation R (ldropn n Ns)"
+    using Suc.hyps Suc.prems(1) by blast
+  hence "derivation R (LCons (lnth Ns n) (ldropn (Suc n) Ns))"
+    using len by (simp add: ldropn_Suc_conv_ldropn)
+  thus ?case
+    using Suc.prems(2) by (auto elim: derivation.cases simp: ldropn_eq_LNil)
+qed
+
+lemma derivation_lnth_rel:
+  assumes
+    deriv: "derivation R Ns" and
+    len: "enat (Suc j) < llength Ns"
+  shows "R (lnth Ns j) (lnth Ns (Suc j))"
+proof -
+  def Ms \<equiv> "ldropn j Ns"
+  have "llength Ms > 1"
+    unfolding Ms_def using len
+    by (metis eSuc_enat funpow_swap1 ldropn_0 ldropn_def ldropn_ltl lnull_ldropn not_less one_eSuc
+      zero_enat_def)
+  obtain M0 M1 Ms' where ms: "Ms = LCons M0 (LCons M1 Ms')"
+    unfolding Ms_def by (metis Suc_ile_eq ldropn_Suc_conv_ldropn len less_imp_not_less not_less)
+  have "derivation R Ms"
+  unfolding Ms_def
+  proof -
+    have "Ms \<noteq> LNil" and "lhd Ms = M0"
+      unfolding ms by simp_all
+    thus "derivation R (ldropn j Ns)"
+      unfolding Ms_def using deriv derivation_ldropn ldropn_all not_less by blast
+  qed
+  hence "R M0 M1"
+    unfolding ms by (auto elim: derivation.cases)
+  thus ?thesis
+    using Ms_def unfolding ms by (metis ldropn_Suc_conv_ldropn ldropn_eq_LConsD llist.inject)
+qed
+
+
+lemma
+  assumes "derivation dpll Ns"
+  shows "llength Ns < \<infinity>"
+  using assms
+apply (induction Ns)  
+  apply auto
+  oops
+lemma  
+  assumes fin:  "finite A"
+  shows "wf ({(S', S). (atm_of ` lits_of (fst S) \<subseteq> atms_of_m A \<and> atms_of_m (snd S) \<subseteq> atms_of_m A \<and> no_dup (fst S)) \<and> dpll S S'})"
+  unfolding wf_def apply auto
+sorry
+
+
+
+lemma dpll_forget_disjoint:
+  "dpll S S' \<Longrightarrow> \<not>forget S' S"
+  by (induction rule: dpll.induct) auto
+
+lemma dpll_learn_disjoint:
+  "dpll S S' \<Longrightarrow> \<not>learn S' S"
+  by (induction rule: dpll.induct) (auto elim!: decideE propagateE backjumpE)
+
+lemma "wf ({(S', S). dpll S' S} \<union> {(S', S). forget S' S \<or> learn S S'})"
+oops  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 text \<open>Needs that N is not a tautology\<close>
 lemma
   assumes "I \<Turnstile>s M" and
