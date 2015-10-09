@@ -203,14 +203,46 @@ qed
 
 lemma wf_lex_less: "wf (lex {(a, b). (a::nat) < b})"
 proof -
-  have m: "{(a, b). a < b} = measure id " by auto
+  have m: "{(a, b). a < b} = measure id" by auto
   show ?thesis  apply (rule wf_lex) unfolding m by auto
+qed
+
+lemma wfP_if_measure2: fixes f :: "'a \<Rightarrow> nat"
+shows "(\<And>x y. P x y \<Longrightarrow> g x y  \<Longrightarrow> f x < f y) \<Longrightarrow> wf {(x,y). P x y \<and> g x y}"
+  apply(insert wf_measure[of f])
+  apply(simp only: measure_def inv_image_def less_than_def less_eq)
+  apply(erule wf_subset)
+  apply auto
+  done
+
+lemma lexord_on_finite_set_is_wf:
+  assumes 
+    P_finite: "\<And>U. P U \<longrightarrow> U \<in> A" and
+    finite: "finite A" and
+    wf: "wf R" and
+    trans: "trans R"
+  shows "wf {(T, S). (P S \<and> P T) \<and> (T, S) \<in> lexord R}"
+  proof (rule wfP_if_measure2)  
+    fix T S
+    assume P: "P S \<and> P T" and
+    s_le_t: "(T, S) \<in> lexord R"
+    let ?f = "\<lambda>S. {U. (U, S) \<in> lexord R \<and> P U \<and> P S}"
+    have "?f T \<subseteq> ?f S"
+       using s_le_t P lexord_trans trans by auto
+    moreover have "T \<in> ?f S"
+      using s_le_t P by auto
+    moreover have "T \<notin> ?f T"
+      using s_le_t by (auto simp add: lexord_irreflexive local.wf)
+    ultimately have "{U. (U, T) \<in> lexord R \<and> P U \<and> P T} \<subset> {U. (U, S) \<in> lexord R \<and> P U \<and> P S}"
+      by auto
+    moreover have "finite {U. (U, S) \<in> lexord R \<and> P U \<and> P S}"
+      using finite by (metis (no_types, lifting) P_finite finite_subset mem_Collect_eq subsetI) 
+    ultimately show "card (?f T) < card (?f S)" by (simp add: psubset_card_mono)
 qed
 
 section \<open>rtranclp\<close>
 lemma rtranclp_unfold: "rtranclp r a b \<longleftrightarrow> (a = b \<or> tranclp r a b)"
   by (meson rtranclp.simps rtranclpD tranclp_into_rtranclp)
-  
-  
+
 
 end
