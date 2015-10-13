@@ -192,7 +192,7 @@ using assms
 
 lemma wf_wf_if_measure':
 assumes "wf r" and H: "(\<And>x y. P x \<Longrightarrow> g x y \<Longrightarrow> (f y, f x) \<in> r)"
-shows " wf {(y,x). P x \<and> g x y}"
+shows "wf {(y,x). P x \<and> g x y}"
 proof -
   have "wf {(b, a). (f b, f a) \<in> r}" using assms(1) wf_if_measure_f by auto
   hence "wf {(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r}" using wf_subset[of _ "{(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r}"] by auto
@@ -240,9 +240,20 @@ lemma lexord_on_finite_set_is_wf:
     ultimately show "card (?f T) < card (?f S)" by (simp add: psubset_card_mono)
 qed
 
+
+lemma wf_fst_wf_pair:
+  assumes "wf {(M', M). R M' M} "
+  shows "wf {((M', N'), (M, N)). R M' M}"
+proof -
+  have "wf ({(M', M). R M' M} <*lex*> {})"
+    using assms by auto
+  thus ?thesis 
+    by (rule wf_subset) auto
+qed
+
 section \<open>rtranclp\<close>
+text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and sledgehammer use it), but it makes more sense to duplicate it.\<close>
 lemma rtranclp_unfold: "rtranclp r a b \<longleftrightarrow> (a = b \<or> tranclp r a b)"
   by (meson rtranclp.simps rtranclpD tranclp_into_rtranclp)
-
 
 end
