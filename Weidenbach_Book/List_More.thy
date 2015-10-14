@@ -216,28 +216,28 @@ shows "(\<And>x y. P x y \<Longrightarrow> g x y  \<Longrightarrow> f x < f y) \
   done
 
 lemma lexord_on_finite_set_is_wf:
-  assumes 
+  assumes
     P_finite: "\<And>U. P U \<longrightarrow> U \<in> A" and
     finite: "finite A" and
     wf: "wf R" and
     trans: "trans R"
   shows "wf {(T, S). (P S \<and> P T) \<and> (T, S) \<in> lexord R}"
-  proof (rule wfP_if_measure2)  
-    fix T S
-    assume P: "P S \<and> P T" and
-    s_le_t: "(T, S) \<in> lexord R"
-    let ?f = "\<lambda>S. {U. (U, S) \<in> lexord R \<and> P U \<and> P S}"
-    have "?f T \<subseteq> ?f S"
-       using s_le_t P lexord_trans trans by auto
-    moreover have "T \<in> ?f S"
-      using s_le_t P by auto
-    moreover have "T \<notin> ?f T"
-      using s_le_t by (auto simp add: lexord_irreflexive local.wf)
-    ultimately have "{U. (U, T) \<in> lexord R \<and> P U \<and> P T} \<subset> {U. (U, S) \<in> lexord R \<and> P U \<and> P S}"
-      by auto
-    moreover have "finite {U. (U, S) \<in> lexord R \<and> P U \<and> P S}"
-      using finite by (metis (no_types, lifting) P_finite finite_subset mem_Collect_eq subsetI) 
-    ultimately show "card (?f T) < card (?f S)" by (simp add: psubset_card_mono)
+proof (rule wfP_if_measure2)
+  fix T S
+  assume P: "P S \<and> P T" and
+  s_le_t: "(T, S) \<in> lexord R"
+  let ?f = "\<lambda>S. {U. (U, S) \<in> lexord R \<and> P U \<and> P S}"
+  have "?f T \<subseteq> ?f S"
+     using s_le_t P lexord_trans trans by auto
+  moreover have "T \<in> ?f S"
+    using s_le_t P by auto
+  moreover have "T \<notin> ?f T"
+    using s_le_t by (auto simp add: lexord_irreflexive local.wf)
+  ultimately have "{U. (U, T) \<in> lexord R \<and> P U \<and> P T} \<subset> {U. (U, S) \<in> lexord R \<and> P U \<and> P S}"
+    by auto
+  moreover have "finite {U. (U, S) \<in> lexord R \<and> P U \<and> P S}"
+    using finite by (metis (no_types, lifting) P_finite finite_subset mem_Collect_eq subsetI)
+  ultimately show "card (?f T) < card (?f S)" by (simp add: psubset_card_mono)
 qed
 
 
@@ -247,7 +247,7 @@ lemma wf_fst_wf_pair:
 proof -
   have "wf ({(M', M). R M' M} <*lex*> {})"
     using assms by auto
-  thus ?thesis 
+  thus ?thesis
     by (rule wf_subset) auto
 qed
 
