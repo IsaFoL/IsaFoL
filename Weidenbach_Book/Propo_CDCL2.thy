@@ -166,14 +166,65 @@ lemma wf_distinct_bounded_list_length_decreasing:
   and "finite A"
   shows "wf {(M', M). length M' > length M \<and> P M \<and> P M'}"
   by (rule wf_bounded_measure[of _ "\<lambda>_. card A" length])
-     (metis (mono_tags, lifting) card_mono distinct_card assms mem_Collect_eq order_refl splitD)
+     (metis (mono_tags, lifting) card_mono distinct_card assms mem_Collect_eq order_refl case_prodD)
 
+lemma bounded_distinct_list_finite:
+  "finite {U::nat list. distinct U \<and> (\<forall>n\<in>set U. n < m)}" (is "finite ?U")
+proof (induction m)
+  case 0
+  thus ?case by auto
+next
+  case (Suc n) note IH = this
+  have U: "{U. distinct U \<and> (\<forall>na\<in>set U. na < Suc n)}
+    \<subseteq> {xs @ n # ys| xs ys. distinct (xs @ n # ys) \<and> (\<forall>na\<in>set (xs @ ys). na < n)}
+    \<union> {U. distinct U \<and> (\<forall>na\<in>set U. na < n)}" (is "?U \<subseteq> ?U1 \<union> ?U2")
+    proof
+      fix U
+      assume "U \<in> ?U"
+      hence dist: "distinct U" and u: "\<forall>na\<in>set U. na < Suc n" by auto
+      consider
+        (sucn) "n \<in> set U"
+      | (sucn_n) "n \<notin> set U"
+        by blast
+      thus "U \<in> ?U1 \<union> ?U2"
+        proof cases
+          case sucn_n
+          hence "\<forall>na\<in>set U. na < n" using u less_antisym by blast
+          thus ?thesis using dist u by auto
+        next
+          case sucn
+          then obtain xs ys where xs_ys: "U = xs @ n # ys"
+            by (meson split_list_first)
+          have n_xs: "n \<notin> set xs" and n_ys: "n \<notin> set ys"
+            using dist unfolding xs_ys by auto
+          hence "\<forall>m \<in>set (xs @ ys). m < n"
+            using u less_antisym unfolding xs_ys by fastforce
+          moreover have "distinct (xs @ ys)"
+            using dist unfolding xs_ys by auto
+          ultimately show "U \<in> ?U1 \<union> ?U2"
+            unfolding xs_ys by auto
+        qed
+    qed
+  let ?f = "\<lambda>(a, b). a @ n # b"
+  have "?U1 \<subseteq> ?f ` ({xs. distinct xs \<and> (\<forall>na\<in>set xs. na < n)} \<times> {ys. distinct ys \<and> (\<forall>na\<in>set ys. na < n)})" by auto
+  moreover
+    have "finite {xs. distinct xs \<and> (\<forall>na\<in>set xs. na < n)}" and
+      "finite {ys. distinct ys \<and> (\<forall>na\<in>set ys. na < n)}" using IH by auto
+  ultimately have "finite ?U1" by (simp add: finite_subset)
+  thus ?case using U IH by (simp add: finite_subset)
+qed
+
+lemma wf_bounded_distinct_lexord:
+  "wf {(T, S). ((distinct S \<and> (\<forall>n \<in> set S. n < m)) \<and> (distinct T \<and> (\<forall>n \<in> set T. n < m)))
+    \<and> (T, S) \<in> lexord less_than}"
+  by (rule lexord_on_finite_set_is_wf[of _ "{U::nat list. distinct U \<and> (\<forall>n\<in>set U. n < m)}"])
+     (auto simp add: bounded_distinct_list_finite)
 
 lemma wf_trail_mes_l_bounded:
   assumes H: "\<And>M. P M \<Longrightarrow> distinct M \<and> set M \<subseteq> A"
   shows "wf {(M', M). trail_mes_l A M' M \<and> P M \<and> P M'}"
   by (insert wf_measure[of "\<lambda>M. latm M A"])
-     (auto dest!: assms  intro: wf_subset simp add: measure_def inv_image_def less_than_def less_eq)
+     (auto dest!: assms intro: wf_subset simp add: measure_def inv_image_def less_than_def less_eq)
 (* definition lexord_d :: "(nat list \<times> nat list) set" where
 "lexord_d = lexord less_than \<inter> {((M', N'), (M, N)). \<not>(\<exists>T. M = M' @ T)}"
  *)
