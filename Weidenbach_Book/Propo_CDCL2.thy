@@ -177,12 +177,40 @@ lemma wf_trail_mes_l_bounded:
 (* definition lexord_d :: "(nat list \<times> nat list) set" where
 "lexord_d = lexord less_than \<inter> {((M', N'), (M, N)). \<not>(\<exists>T. M = M' @ T)}"
  *)
-
+thm wf_Int1
+lemma
+  assumes "wf {(a, b). (a, b) \<in> lexord less_than \<and> P a b}" and
+    "wf {(a, b). (a, b) \<in> M \<and> P a b}"
+  shows "wf (
+       {(a, b). (a, b) \<in> M \<and> P a b \<and> (\<exists>T. a = b @ T \<or> b = a @ T)}
+       \<union>
+       {(a, b). (a, b) \<in> lexord less_than \<and> P a b \<and> \<not>(\<exists>T. a = b @ T \<or> b = a @ T)}  )"
+apply (rule wf_Un)
+prefer 3
+apply (auto simp add: lexord_def)[1]
+oops
 
 abbreviation cut_to_shortest :: "'a \<Rightarrow> 'a list \<Rightarrow> 'b \<Rightarrow> 'b list \<Rightarrow> ('a list \<times> 'a) \<times> ('b list \<times> 'b)" where
 "cut_to_shortest a l a' l' \<equiv>
   ((take (min (length l) (length l')) l, a),
     (take (min (length l) (length l')) l', a'))"
+
+text \<open>Prove of equivalence between the actual measure with take (min) and the future one: lexord + one not prefix of the other.\<close>
+lemma "(take (min (length l) (length l')) l, take (min (length l) (length l')) l') \<in> lexord less_than \<Longrightarrow>
+   (l, l') \<in> lexord less_than  \<and> \<not>(\<exists>l''. l = l' @ l'' \<or> l' =l @ l'')"
+   apply (cases "length l \<le> length l'")
+   unfolding lexord_def apply (auto simp add: min_def)[1]
+     apply (metis append_assoc append_eq_conv_conj append_self_conv append_take_drop_id list.simps(3))
+   apply (metis append.simps(2) append_assoc append_take_drop_id)
+
+   apply (auto simp add: min_def)[]
+     apply (metis append_Nil2 append_eq_append_conv diff_diff_cancel le_cases length_drop length_rev list.distinct(1) rev_take)
+   apply (metis append_Cons append_assoc append_take_drop_id)
+   done
+
+lemma "(l, l') \<in> lexord less_than  \<and> \<not>(\<exists>l''. l = l' @ l'' \<or> l' =l @ l'') \<Longrightarrow> (take (min (length l) (length l')) l, take (min (length l) (length l')) l') \<in> lexord less_than"
+   by (fastforce simp add: lexord_def min_def)
+
 
 fun skip_first_if_empty where
 "skip_first_if_empty ((a, []) # l) = l" |
@@ -314,13 +342,12 @@ next
     by (auto simp add: F latm lexord_def lex_conv)
 qed
 
-
-text \<open>Needs that N is not a tautology\<close>
+(*TODO Move somewhere*)
 lemma
   assumes "I \<Turnstile>s M" and
   MN: "M \<Turnstile>p N" and
-  cons: "consistent_interp I"(*  and
-  tauto: "\<not>tautology N" *)
+  cons: "consistent_interp I" and
+  ex: "\<exists>l\<in>#N. l \<in> I"
   shows "I \<Turnstile> N"
 proof -
   let ?I1 = "I \<union> {Pos P| P. P \<in> atms_of_m (M \<union> {N}) \<and> P \<notin> atm_of ` I}"
@@ -354,22 +381,7 @@ proof -
     using MN unfolding true_clss_cls_def total_over_m_def by auto
 
   show "I \<Turnstile> N"
-(*     proof -
-      consider
-         (I) x where "x\<in>#N \<and> x \<in> I"
-        | (taut) x P where
-             "x = Pos P" and
-             "P \<in> atm_of ` set_mset N \<or> P \<in> atms_of_m M" and
-             "P \<notin> atm_of ` I"
-      using 1 unfolding true_cls_def by (auto simp add: atms_of_def)
-    thus ?thesis
-      proof (cases)
-        case (I)
-        thus ?thesis  unfolding true_cls_def by auto
-      next
-        case (taut)
-    sorry *)
-    (*does not work for tautologies*)
-oops
+    using ex unfolding true_cls_def by auto
+qed
 
 end
