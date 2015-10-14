@@ -585,7 +585,7 @@ proof (induction arbitrary: S' rule: DPLL_tot.induct)
   moreover {
     assume S: "?x \<noteq> S"
     have ?case
-      by (smt "1.IH" "1.prems" DPLL_step_is_a_dpll_step DPLL_tot.simps rough_state_of_DPLL_step'_DPLL_step rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl rtranclp_idemp splitE2 split_conv)
+      by (smt "1.IH" "1.prems" DPLL_step_is_a_dpll_step DPLL_tot.simps rough_state_of_DPLL_step'_DPLL_step rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl rtranclp_idemp case_prodE2 split_conv)
   }
   ultimately show ?case by auto
 qed
