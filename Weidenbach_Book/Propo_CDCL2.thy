@@ -169,61 +169,64 @@ lemma wf_distinct_bounded_list_length_decreasing:
      (metis (mono_tags, lifting) card_mono distinct_card assms mem_Collect_eq order_refl case_prodD)
   
   
-lemma bounded_distinct_list_finite:
+lemma all_bounded_list_finite:
   "finite {U::nat list. length U < p \<and> (\<forall>n\<in>set U. n < m)}" (is "finite ?U")
-proof (induction m)
+proof (induction p)
   case 0
   thus ?case by auto
 next
-  case (Suc n) note IH = this
-  have U: "{U. length U < p \<and> (\<forall>na\<in>set U. na < Suc n)}
-    \<subseteq> {xs @ n # ys| xs ys. length (xs @ n # ys) < p \<and> (\<forall>na\<in>set (xs @ ys). na < n)}
-    \<union> {U. length U <p \<and> (\<forall>na\<in>set U. na < n)}" (is "?U \<subseteq> ?U1 \<union> ?U2")
+  case (Suc p) note IH = this
+  have U: "{U. length U < Suc p \<and> (\<forall>na\<in>set U. na < m)}
+    \<subseteq> {n # U| n U. length U < p \<and> (\<forall>na\<in>set (n # U). na < m)}
+    \<union> {[]}" (is "?U \<subseteq> ?U1 \<union> ?U2")
     proof
       fix U
       assume "U \<in> ?U"
-      hence dist: "length U < p" and u: "\<forall>na\<in>set U. na < Suc n" by auto
-      consider
-        (sucn) "n \<in> set U"
-      | (sucn_n) "n \<notin> set U"
-        by blast
-      thus "U \<in> ?U1 \<union> ?U2"
-        proof cases
-          case sucn_n
-          hence "\<forall>na\<in>set U. na < n" using u less_antisym by blast
-          thus ?thesis using dist u by auto
+      hence dist: "length U < Suc p" and u: "\<forall>na\<in>set U. na < m" by auto
+      show "U \<in> ?U1 \<union> ?U2"
+        proof (cases U)
+          case Nil
+          thus ?thesis by auto
         next
-          case sucn
-          then obtain xs ys where xs_ys: "U = xs @ n # ys"
-            by (meson split_list_first)
-          have n_xs: "n \<notin> set xs" and n_ys: "n \<notin> set ys"
-            using dist unfolding xs_ys by auto
-          hence "\<forall>m \<in>set (xs @ ys). m < n"
-            using u less_antisym unfolding xs_ys by fastforce
-          moreover have "distinct (xs @ ys)"
-            using dist unfolding xs_ys by auto
-          ultimately show "U \<in> ?U1 \<union> ?U2"
-            using u unfolding xs_ys by auto
+          case (Cons n Y) note U = this(1)
+          show ?thesis
+            using dist u unfolding U by auto
         qed
     qed
-  let ?f = "\<lambda>(a, b). a @ n # b"
-  have "?U1 \<subseteq> ?f ` ({xs. distinct xs \<and> (\<forall>na\<in>set xs. na < n)} \<times> {ys. distinct ys \<and> (\<forall>na\<in>set ys. na < n)})" by auto
+  have "?U1 \<subseteq> (case_prod Cons) ` ({n. n < m} \<times> {U. length U < p \<and> (\<forall>na\<in>set U. na < m)})" by auto
   moreover
-    have "finite {xs. distinct xs \<and> (\<forall>na\<in>set xs. na < n)}" and
-      "finite {ys. distinct ys \<and> (\<forall>na\<in>set ys. na < n)}" using IH by auto
+    have "finite {n. n < m}" and
+      "finite {U. length U < p \<and> (\<forall>na\<in>set U. na < m)}" using IH by auto
   ultimately have "finite ?U1" by (simp add: finite_subset)
   thus ?case using U IH by (simp add: finite_subset)
 qed
 
-abbreviation bounded_distinct_list :: "nat \<Rightarrow> nat \<Rightarrow> (nat list \<times> nat list) set" where
-"bounded_distinct_list m p \<equiv> 
+abbreviation all_bounded_list :: "nat \<Rightarrow> nat \<Rightarrow> (nat list \<times> nat list) set" where
+"all_bounded_list m p \<equiv> 
   {(T, S). ((length S < p \<and> (\<forall>n \<in> set S. n < m)) \<and> (length T < p \<and> (\<forall>n \<in> set T. n < m)))
     \<and> (T, S) \<in> lexord less_than}"
-lemma wf_bounded_distinct_lexord:
-  "wf(bounded_distinct_list m p)"
-  by (rule lexord_on_finite_set_is_wf[of _ "{U::nat list. length U < p \<and> (\<forall>n\<in>set U. n < m)}"])
-     (auto simp add: bounded_distinct_list_finite)
 
+lemma wf_bounded_distinct_lexord:
+  "wf(all_bounded_list m p)"
+  by (rule lexord_on_finite_set_is_wf[of _ "{U::nat list. length U < p \<and> (\<forall>n\<in>set U. n < m)}"])
+     (auto simp add: all_bounded_list_finite)
+
+
+abbreviation all_bounded_list_different :: "nat \<Rightarrow> nat \<Rightarrow> ((nat list \<times> 'a) \<times> nat list \<times> 'b) set" where
+"all_bounded_list_different m p \<equiv> 
+  {((T, u), (S, y)). ((length S < p \<and> (\<forall>n \<in> set S. n < m)) \<and> (length T < p \<and> (\<forall>n \<in> set T. n < m)))
+     \<and> \<not>(\<exists>S'. T = S @ S') \<and> (T, S) \<in> lexord less_than}"
+
+abbreviation fst_same_beginning_snd_decreasing where
+"fst_same_beginning_snd_decreasing  \<equiv> {((a, b),(c, d)). b < d \<and> (\<exists>l. a = c @ l)}"
+    
+    
+lemma wf_bounded_distinct_different_lexord:
+  "wf(all_bounded_list_different m p)"
+  apply (rule wf_fst_wf_pair)
+  by (rule wf_subset[OF wf_bounded_distinct_lexord])
+     (auto intro: wf_bounded_distinct_lexord)
+    
 lemma wf_trail_mes_l_bounded:
   assumes H: "\<And>M. P M \<Longrightarrow> distinct M \<and> set M \<subseteq> A"
   shows "wf {(M', M). trail_mes_l A M' M \<and> P M \<and> P M'}"
@@ -232,18 +235,7 @@ lemma wf_trail_mes_l_bounded:
 (* definition lexord_d :: "(nat list \<times> nat list) set" where
 "lexord_d = lexord less_than \<inter> {((M', N'), (M, N)). \<not>(\<exists>T. M = M' @ T)}"
  *)
-thm wf_Int1
-lemma
-  assumes "wf {(a, b). (a, b) \<in> lexord less_than \<and> P a b}" and
-    "wf {(a, b). (a, b) \<in> M \<and> P a b}"
-  shows "wf (
-       {(a, b). (a, b) \<in> M \<and> P a b \<and> (\<exists>T. a = b @ T \<or> b = a @ T)}
-       \<union>
-       {(a, b). (a, b) \<in> lexord less_than \<and> P a b \<and> \<not>(\<exists>T. a = b @ T \<or> b = a @ T)}  )"
-apply (rule wf_Un)
-prefer 3
-apply (auto simp add: lexord_def)[1]
-oops
+
 
 abbreviation cut_to_shortest :: "'a \<Rightarrow> 'a list \<Rightarrow> 'b \<Rightarrow> 'b list \<Rightarrow> ('a list \<times> 'a) \<times> ('b list \<times> 'b)" where
 "cut_to_shortest a l a' l' \<equiv>
@@ -285,8 +277,8 @@ lemma length_get_all_marked_decomposition_append_Marked:
     length (get_all_marked_decomposition F')
     + length (get_all_marked_decomposition (Marked K d # F))
     - 1"
-    by (induction F' rule: marked_lit_list_induct)
-      auto
+    by (induction F' rule: marked_lit_list_induct) auto
+
 lemma take_length_get_all_marked_decomposition_marked_sandwich:
   "take (length (get_all_marked_decomposition F))
       (map (\<lambda>(_, propa). latm propa A) (rev (get_all_marked_decomposition (F' @ Marked K d # F))))
@@ -310,6 +302,51 @@ next
     using IH by (simp add: F')
 qed
 
+lemma length_get_all_marked_decomposition_length:
+  "length (get_all_marked_decomposition M) \<le> 1 + length M"
+  by (induction M rule: marked_lit_list_induct) auto
+
+lemma tl_get_all_marked__append_marked_not_nil:
+  "tl (get_all_marked_decomposition (xs @ [Marked K d])) \<noteq> []"
+  by (induction xs rule: marked_lit_list_induct) auto
+lemma
+  "map snd (get_all_marked_decomposition (F' @ Marked K d # F))  =
+    map snd (butlast (get_all_marked_decomposition (F' @ [Marked K d]) )
+    @ (get_all_marked_decomposition F))"
+  apply (induction F' rule: marked_lit_list_induct)
+  apply simp
+  apply simp
+  apply (case_tac "hd (get_all_marked_decomposition (xs @ Marked K d # F))"; 
+     case_tac "get_all_marked_decomposition (xs @ Marked K d # F)")
+  apply (auto simp add: tl_get_all_marked__append_marked_not_nil dest!: arg_cong[of "_#_" _ hd])
+proof -
+  fix xs :: "('a, 'b, 'c) marked_lit list" and a :: "('a, 'b, 'c) marked_lit list" and list :: "(('a, 'b, 'c) marked_lit list \<times> ('a, 'b, 'c) marked_lit list) list"
+  have "butlast (get_all_marked_decomposition (xs @ [Marked K d])) @ [last (get_all_marked_decomposition (xs @ [Marked K d]))] \<noteq> [last (get_all_marked_decomposition (xs @ [Marked K d]))]"
+    by (metis (no_types) append_butlast_last_id get_all_marked_decomposition_never_empty hd_Cons_tl list.inject tl_get_all_marked__append_marked_not_nil) (* 429 ms *)
+  hence "butlast (get_all_marked_decomposition (xs @ [Marked K d])) \<noteq> [] \<and> (\<forall>ps. butlast (get_all_marked_decomposition (xs @ [Marked K d])) \<noteq> last (get_all_marked_decomposition (xs @ [Marked K d])) # ps \<or> ps @ [last (get_all_marked_decomposition (xs @ [Marked K d]))] \<noteq> [])"
+    by force (* 0.9 ms *)
+  thus "hd (map snd (butlast (get_all_marked_decomposition (xs @ [Marked K d]))) @ map snd (get_all_marked_decomposition F)) = snd (hd (get_all_marked_decomposition (xs @ [Marked K d])))"
+    by (metis (no_types) append_butlast_last_id get_all_marked_decomposition_never_empty hd_append hd_map map_is_Nil_conv) (* 664 ms *)
+next
+  
+oops
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 lemma dpll_trail_mes_decreasing':
   fixes M :: "('v, 'lvl, 'mark) annoted_lits " and N :: "'v clauses"
   assumes "dpll (M, N) (M', N')" and
@@ -317,7 +354,9 @@ lemma dpll_trail_mes_decreasing':
   "atm_of ` lits_of M \<subseteq> atms_of_m A" and
   "no_dup M" and
   finite: "finite A"
-  shows "trail_mes_build A (M', N') (M, N) \<in> bounded_distinct_list (card (atms_of_m A)) <*lex*> less_than"
+  shows "((trail_mes A (M', N'), latm M' A), (trail_mes A (M, N), latm M A)) 
+     \<in> all_bounded_list_different (card (atms_of_m A)+2) (card (atms_of_m A)+2) 
+       \<union> fst_same_beginning_snd_decreasing"
   using assms
 proof (induction rule: dpll_all_induct)
   case (propagate C L N M d) note CLN = this(1) and MC =this(2) and undef_L = this(3) and A = this(4) and MA = this(5)
@@ -334,12 +373,14 @@ proof (induction rule: dpll_all_induct)
     using get_all_marked_decomposition_decomp[of M] by (simp add: M)
   have "finite (atms_of_m A)" using finite by simp
 
-  hence "length (Propagated L d # M) \<le>  card (atms_of_m A)"
+  hence l: "length (Propagated L d # M) \<le>  card (atms_of_m A)"
     using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
     by (simp add: card_mono)
   hence latm: "latm b A = Suc (latm (Propagated L d # b) A)"
     using b_le_M by force
-  thus ?case using no_dup
+  moreover have "length l < Suc (card (atms_of_m A))"
+    using length_get_all_marked_decomposition_length[of M] l unfolding M by auto
+  ultimately show ?case using no_dup l
     by (auto simp: lexord_def lex_conv latm M)
 next
   case (decide L M N lv) note undef_L = this(1) and MC =this(2) and NA = this(3) and A = this(4) and MA = this(5)
@@ -356,7 +397,7 @@ next
     using get_all_marked_decomposition_decomp[of M] by (simp add: M)
   have "finite (atms_of_m A)" using finite by simp
 
-  hence "length (Marked L lv # M) \<le>  card (atms_of_m A)"
+  hence l: "length (Marked L lv # M) \<le>  card (atms_of_m A)"
     using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
     by (simp add: card_mono)
   hence latm: "latm M A = Suc (latm (Marked L lv # M) A)"
@@ -381,9 +422,6 @@ next
     using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
     by (simp add: card_mono)
 
-  have min: "min ((length (get_all_marked_decomposition F))) (length (get_all_marked_decomposition (F' @ Marked K d # F))) = length (get_all_marked_decomposition F)"
-    unfolding length_get_all_marked_decomposition_append_Marked by (simp add: min_def)
-
   obtain a b l where F: "get_all_marked_decomposition F = (a, b) # l"
    by (cases "get_all_marked_decomposition F") auto
 
@@ -391,10 +429,31 @@ next
     using get_all_marked_decomposition_decomp[of "Propagated L lv # F" a "Propagated L lv # b"] by simp
   hence latm: "latm b A = Suc (latm (Propagated L lv # b) A)"
      using F_le_A by simp
+  have l_F: "length (F' @ Marked K d # F) \<le> card (atms_of_m A)"
+    by (metis `finite (atms_of_m A)` backjump.prems(2) card_mono distinctlength_eq_card_atm_of_lits_of nd)
+  hence l_g_a: "length (get_all_marked_decomposition (F' @ Marked K d # F)) < Suc (Suc (card (atms_of_m A)))" 
+    using length_get_all_marked_decomposition_length[of "F' @ Marked K d # F"] by auto
+
+  have length_l_A: "length l <  (card (atms_of_m A))"
+    using length_get_all_marked_decomposition_length[of F] unfolding F
+    by (metis F_le_A Groups.add_ac(2) Nat.le_trans One_nat_def Suc_le_lessD 
+      add.right_neutral add_Suc_right list.size(4))    
   show ?case
-    apply (simp add: min)
-    using take_length_get_all_marked_decomposition_marked_sandwich[of F A F' K d]
-    by (auto simp add: F latm lexord_def lex_conv)
+    proof (cases F')
+      case Nil
+      have "((trail_mes A (Propagated L lv # F, N), latm (Propagated L lv # F) A), trail_mes A (F' @ Marked K d # F, N), latm (F' @ Marked K d # F) A)
+    \<in> all_bounded_list_different (card (atms_of_m A) + 2) (card (atms_of_m A) + 2)"
+        using length_l_A by (auto simp add: F latm Nil lexord_def)
+      thus ?thesis by simp
+    next
+      case (Cons f F'') note F' = this(1)
+      have "((trail_mes A (Propagated L lv # F, N), latm (Propagated L lv # F) A), trail_mes A (F' @ Marked K d # F, N), latm (F' @ Marked K d # F) A)
+              \<in> all_bounded_list_different (card (atms_of_m A) + 2) (card (atms_of_m A) + 2)"
+        using l_F l_g_a length_l_A apply (auto simp add: F) 
+        (*some missing simplificqtion*)
+    sorry
+      thus ?thesis by simp
+    qed
 qed
 
 lemma dpll_trail_mes_decreasing:
