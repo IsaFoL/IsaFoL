@@ -167,8 +167,8 @@ lemma wf_distinct_bounded_list_length_decreasing:
   shows "wf {(M', M). length M' > length M \<and> P M \<and> P M'}"
   by (rule wf_bounded_measure[of _ "\<lambda>_. card A" length])
      (metis (mono_tags, lifting) card_mono distinct_card assms mem_Collect_eq order_refl case_prodD)
-  
-  
+
+
 lemma all_bounded_list_finite:
   "finite {U::nat list. length U < p \<and> (\<forall>n\<in>set U. n < m)}" (is "finite ?U")
 proof (induction p)
@@ -202,7 +202,7 @@ next
 qed
 
 abbreviation all_bounded_list :: "nat \<Rightarrow> nat \<Rightarrow> (nat list \<times> nat list) set" where
-"all_bounded_list m p \<equiv> 
+"all_bounded_list m p \<equiv>
   {(T, S). ((length S < p \<and> (\<forall>n \<in> set S. n < m)) \<and> (length T < p \<and> (\<forall>n \<in> set T. n < m)))
     \<and> (T, S) \<in> lexord less_than}"
 
@@ -213,20 +213,20 @@ lemma wf_bounded_distinct_lexord:
 
 
 abbreviation all_bounded_list_different :: "nat \<Rightarrow> nat \<Rightarrow> ((nat list \<times> 'a) \<times> nat list \<times> 'b) set" where
-"all_bounded_list_different m p \<equiv> 
+"all_bounded_list_different m p \<equiv>
   {((T, u), (S, y)). ((length S < p \<and> (\<forall>n \<in> set S. n < m)) \<and> (length T < p \<and> (\<forall>n \<in> set T. n < m)))
      \<and> \<not>(\<exists>S'. T = S @ S') \<and> (T, S) \<in> lexord less_than}"
 
-abbreviation fst_same_beginning_snd_decreasing where
+abbreviation fst_same_beginning_snd_decreasing :: "(('a list \<times> nat) \<times> 'a list \<times> nat) set" where
 "fst_same_beginning_snd_decreasing  \<equiv> {((a, b),(c, d)). b < d \<and> (\<exists>l. a = c @ l)}"
-    
-    
+
+
 lemma wf_bounded_distinct_different_lexord:
   "wf(all_bounded_list_different m p)"
   apply (rule wf_fst_wf_pair)
   by (rule wf_subset[OF wf_bounded_distinct_lexord])
      (auto intro: wf_bounded_distinct_lexord)
-    
+
 lemma wf_trail_mes_l_bounded:
   assumes H: "\<And>M. P M \<Longrightarrow> distinct M \<and> set M \<subseteq> A"
   shows "wf {(M', M). trail_mes_l A M' M \<and> P M \<and> P M'}"
@@ -236,41 +236,25 @@ lemma wf_trail_mes_l_bounded:
 "lexord_d = lexord less_than \<inter> {((M', N'), (M, N)). \<not>(\<exists>T. M = M' @ T)}"
  *)
 
+lemma wf_fst_same_beginning_snd_decreasing:
+  "wf fst_same_beginning_snd_decreasing"
+proof -
+  have "wf {((a, b::nat),(c, d)). b < d}"
+    by (rule wf_snd_wf_pair) (rule Wellfounded.wf_less)
+  thus ?thesis
+    by (rule wf_subset) auto
+qed
 
-abbreviation cut_to_shortest :: "'a \<Rightarrow> 'a list \<Rightarrow> 'b \<Rightarrow> 'b list \<Rightarrow> ('a list \<times> 'a) \<times> ('b list \<times> 'b)" where
-"cut_to_shortest a l a' l' \<equiv>
-  ((take (min (length l) (length l')) l, a),
-    (take (min (length l) (length l')) l', a'))"
+lemma "wf (all_bounded_list_different p m \<union> fst_same_beginning_snd_decreasing)"
+       apply (rule wf_Un[OF wf_bounded_distinct_different_lexord wf_fst_same_beginning_snd_decreasing])
+       apply simp
+       apply auto
+ oops
 
-text \<open>Prove of equivalence between the actual measure with take (min) and the future one: lexord + one not prefix of the other.\<close>
-lemma "(take (min (length l) (length l')) l, take (min (length l) (length l')) l') \<in> lexord less_than \<Longrightarrow>
-   (l, l') \<in> lexord less_than  \<and> \<not>(\<exists>l''. l = l' @ l'' \<or> l' =l @ l'')"
-   apply (cases "length l \<le> length l'")
-   unfolding lexord_def apply (auto simp add: min_def)[1]
-     apply (metis append_assoc append_eq_conv_conj append_self_conv append_take_drop_id list.simps(3))
-   apply (metis append.simps(2) append_assoc append_take_drop_id)
-
-   apply (auto simp add: min_def)[]
-     apply (metis append_Nil2 append_eq_append_conv diff_diff_cancel le_cases length_drop length_rev list.distinct(1) rev_take)
-   apply (metis append_Cons append_assoc append_take_drop_id)
-   done
-
-lemma "(l, l') \<in> lexord less_than  \<and> \<not>(\<exists>l''. l = l' @ l'' \<or> l' =l @ l'') \<Longrightarrow> (take (min (length l) (length l')) l, take (min (length l) (length l')) l') \<in> lexord less_than"
-   by (fastforce simp add: lexord_def min_def)
-
-
-fun skip_first_if_empty where
-"skip_first_if_empty ((a, []) # l) = l" |
-"skip_first_if_empty l = l"
 
 fun trail_mes ::  "'v literal multiset set \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> nat list" where
 "trail_mes A (M, N) =
   (map (\<lambda>(_, propa). latm propa A) (rev (get_all_marked_decomposition M)))"
-
-abbreviation trail_mes_build where
-"trail_mes_build \<equiv> \<lambda>A (M, N) (M', N').
-  (cut_to_shortest (latm M A) (trail_mes A (M, N))
-              (latm M' A) (trail_mes A (M', N)))"
 
 lemma length_get_all_marked_decomposition_append_Marked:
   "length (get_all_marked_decomposition (F' @ Marked K d # F)) =
@@ -309,44 +293,58 @@ lemma length_get_all_marked_decomposition_length:
 lemma tl_get_all_marked__append_marked_not_nil:
   "tl (get_all_marked_decomposition (xs @ [Marked K d])) \<noteq> []"
   by (induction xs rule: marked_lit_list_induct) auto
-lemma
+
+lemma last_tl_get_all_marked_decomposition_propagated_tl:
+  "last (tl (get_all_marked_decomposition (xs @ [Marked K d]))) =
+    last (get_all_marked_decomposition (xs @ [Marked K d]))"
+  by (induction xs rule: marked_lit_list_induct)
+     (simp_all add: tl_get_all_marked__append_marked_not_nil)
+
+lemma last_get_all_marked_decomposition_propagated_empty:
+  "last (get_all_marked_decomposition (xs @ [Marked K d])) = ([], [])"
+  by (induction xs rule: marked_lit_list_induct)
+     (auto simp add: tl_get_all_marked__append_marked_not_nil
+       last_tl_get_all_marked_decomposition_propagated_tl)
+
+lemma "tl (map snd (butlast (get_all_marked_decomposition (xs @ [Marked K d]))))
+  = map snd (butlast (tl (get_all_marked_decomposition (xs @ [Marked K d])))) "
+  by (cases "get_all_marked_decomposition (xs @ [Marked K d])") auto
+
+lemma [simp]: "butlast (get_all_marked_decomposition (F' @ [Marked K d])) \<noteq> []"
+    by (metis append_Nil get_all_marked_decomposition_never_empty list.sel(3) snoc_eq_iff_butlast
+      tl_get_all_marked__append_marked_not_nil)
+
+
+
+lemma map_snd_get_all_marked_decomposition_marked:
   "map snd (get_all_marked_decomposition (F' @ Marked K d # F))  =
     map snd (butlast (get_all_marked_decomposition (F' @ [Marked K d]) )
     @ (get_all_marked_decomposition F))"
-  apply (induction F' rule: marked_lit_list_induct)
-  apply simp
-  apply simp
-  apply (case_tac "hd (get_all_marked_decomposition (xs @ Marked K d # F))"; 
-     case_tac "get_all_marked_decomposition (xs @ Marked K d # F)")
-  apply (auto simp add: tl_get_all_marked__append_marked_not_nil dest!: arg_cong[of "_#_" _ hd])
-proof -
-  fix xs :: "('a, 'b, 'c) marked_lit list" and a :: "('a, 'b, 'c) marked_lit list" and list :: "(('a, 'b, 'c) marked_lit list \<times> ('a, 'b, 'c) marked_lit list) list"
-  have "butlast (get_all_marked_decomposition (xs @ [Marked K d])) @ [last (get_all_marked_decomposition (xs @ [Marked K d]))] \<noteq> [last (get_all_marked_decomposition (xs @ [Marked K d]))]"
-    by (metis (no_types) append_butlast_last_id get_all_marked_decomposition_never_empty hd_Cons_tl list.inject tl_get_all_marked__append_marked_not_nil) (* 429 ms *)
-  hence "butlast (get_all_marked_decomposition (xs @ [Marked K d])) \<noteq> [] \<and> (\<forall>ps. butlast (get_all_marked_decomposition (xs @ [Marked K d])) \<noteq> last (get_all_marked_decomposition (xs @ [Marked K d])) # ps \<or> ps @ [last (get_all_marked_decomposition (xs @ [Marked K d]))] \<noteq> [])"
-    by force (* 0.9 ms *)
-  thus "hd (map snd (butlast (get_all_marked_decomposition (xs @ [Marked K d]))) @ map snd (get_all_marked_decomposition F)) = snd (hd (get_all_marked_decomposition (xs @ [Marked K d])))"
-    by (metis (no_types) append_butlast_last_id get_all_marked_decomposition_never_empty hd_append hd_map map_is_Nil_conv) (* 664 ms *)
+proof (induction F' rule: marked_lit_list_induct)
+  case nil thus ?case by simp
 next
-  
-oops
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  case marked
+  thus ?case by simp
+next
+  case (proped L m F') note IH = this(1)
+  have [simp]: "map snd (butlast (tl (get_all_marked_decomposition (F' @ [Marked K d]))))
+    = tl (map snd (butlast (get_all_marked_decomposition (F' @ [Marked K d]))))"
+    by (cases "get_all_marked_decomposition (F' @ [Marked K d])") auto
+  have [simp]: "snd (hd (get_all_marked_decomposition (F' @ Marked K d # F)))
+    = snd (hd (get_all_marked_decomposition (F' @ [Marked K d])))"
+    by (smt append_butlast_last_id append_is_Nil_conv append_self_conv2 get_all_marked_decomposition_never_empty hd_append list.collapse list.inject list.map_sel(1) proped.IH tl_get_all_marked__append_marked_not_nil)
+
+  obtain a b l where F: "get_all_marked_decomposition (F' @ Marked K d # F) = (a, b) # l"
+    by (cases "get_all_marked_decomposition (F' @ Marked K d # F)") auto
+  thus ?case unfolding F
+    by (auto simp add: map_tl tl_get_all_marked__append_marked_not_nil IH arg_cong[OF IH, of tl] tl_append
+    dest!: arg_cong[of "_#_" _ hd] split: list.split)
+qed
+
+lemma map_latm_pair_map_latm_map_snd:
+  "map (\<lambda>(_, propa). latm propa A) l = map (\<lambda>p. latm p A) (map snd l)"
+ by (fastforce simp: o_def )
+
 lemma dpll_trail_mes_decreasing':
   fixes M :: "('v, 'lvl, 'mark) annoted_lits " and N :: "'v clauses"
   assumes "dpll (M, N) (M', N')" and
@@ -354,8 +352,8 @@ lemma dpll_trail_mes_decreasing':
   "atm_of ` lits_of M \<subseteq> atms_of_m A" and
   "no_dup M" and
   finite: "finite A"
-  shows "((trail_mes A (M', N'), latm M' A), (trail_mes A (M, N), latm M A)) 
-     \<in> all_bounded_list_different (card (atms_of_m A)+2) (card (atms_of_m A)+2) 
+  shows "((trail_mes A (M', N'), latm M' A), (trail_mes A (M, N), latm M A))
+     \<in> all_bounded_list_different (card (atms_of_m A)+2) (card (atms_of_m A)+2)
        \<union> fst_same_beginning_snd_decreasing"
   using assms
 proof (induction rule: dpll_all_induct)
@@ -423,7 +421,7 @@ next
     by (simp add: card_mono)
 
   obtain a b l where F: "get_all_marked_decomposition F = (a, b) # l"
-   by (cases "get_all_marked_decomposition F") auto
+    by (cases "get_all_marked_decomposition F") auto
 
   hence "F = b @ a"
     using get_all_marked_decomposition_decomp[of "Propagated L lv # F" a "Propagated L lv # b"] by simp
@@ -431,13 +429,13 @@ next
      using F_le_A by simp
   have l_F: "length (F' @ Marked K d # F) \<le> card (atms_of_m A)"
     by (metis `finite (atms_of_m A)` backjump.prems(2) card_mono distinctlength_eq_card_atm_of_lits_of nd)
-  hence l_g_a: "length (get_all_marked_decomposition (F' @ Marked K d # F)) < Suc (Suc (card (atms_of_m A)))" 
+  hence l_g_a: "length (get_all_marked_decomposition (F' @ Marked K d # F)) < Suc (Suc (card (atms_of_m A)))"
     using length_get_all_marked_decomposition_length[of "F' @ Marked K d # F"] by auto
 
   have length_l_A: "length l <  (card (atms_of_m A))"
     using length_get_all_marked_decomposition_length[of F] unfolding F
-    by (metis F_le_A Groups.add_ac(2) Nat.le_trans One_nat_def Suc_le_lessD 
-      add.right_neutral add_Suc_right list.size(4))    
+    by (metis F_le_A Groups.add_ac(2) Nat.le_trans One_nat_def Suc_le_lessD
+      add.right_neutral add_Suc_right list.size(4))
   show ?case
     proof (cases F')
       case Nil
@@ -447,100 +445,18 @@ next
       thus ?thesis by simp
     next
       case (Cons f F'') note F' = this(1)
+      have R: "rev (map (\<lambda>(_, propa). latm propa A) (get_all_marked_decomposition (F' @ Marked K d # F))) =
+        rev (map (\<lambda>p. latm p A) (map snd (butlast (get_all_marked_decomposition (F' @ [Marked K d])) @ get_all_marked_decomposition F)))"
+        unfolding map_latm_pair_map_latm_map_snd map_snd_get_all_marked_decomposition_marked
+        by (auto simp: F latm)
       have "((trail_mes A (Propagated L lv # F, N), latm (Propagated L lv # F) A), trail_mes A (F' @ Marked K d # F, N), latm (F' @ Marked K d # F) A)
               \<in> all_bounded_list_different (card (atms_of_m A) + 2) (card (atms_of_m A) + 2)"
-        using l_F l_g_a length_l_A apply (auto simp add: F) 
-        (*some missing simplificqtion*)
-    sorry
+              (* TODO: Improve proof *)
+        using l_F l_g_a length_l_A apply (auto simp add: F rev_map[symmetric])
+        unfolding map_latm_pair_map_latm_map_snd map_snd_get_all_marked_decomposition_marked
+        by (auto simp: F latm lexord_def)
       thus ?thesis by simp
     qed
-qed
-
-lemma dpll_trail_mes_decreasing:
-  fixes M :: "('v, 'lvl, 'mark) annoted_lits " and N :: "'v clauses"
-  assumes "dpll (M, N) (M', N')" and
-  "atms_of_m N \<subseteq> atms_of_m A" and
-  "atm_of ` lits_of M \<subseteq> atms_of_m A" and
-  "no_dup M" and
-  finite: "finite A"
-  shows "trail_mes_build A (M', N') (M, N) \<in> lexord less_than <*lex*> less_than"
-  using assms
-proof (induction rule: dpll_all_induct)
-  case (propagate C L N M d) note CLN = this(1) and MC =this(2) and undef_L = this(3) and A = this(4) and MA = this(5)
-  have "atms_of_m N' \<subseteq> atms_of_m A"
-    using assms(1) assms(2) dpll_atms_of_m_clauses_inv by blast
-  have incl: "atm_of ` lits_of (Propagated L d # M) \<subseteq> atms_of_m A"
-    using dpll_atms_in_trail_in_set bj_propagate propagate.propagate[OF propagate.hyps] A MA by blast
-
-  have no_dup: "no_dup (Propagated L d # M)"
-    using defined_lit_map propagate.prems(3) undef_L by auto
-  obtain a b l where M: "get_all_marked_decomposition M = (a, b) # l"
-    by (case_tac "get_all_marked_decomposition M") auto
-  have b_le_M: "length b \<le> length M"
-    using get_all_marked_decomposition_decomp[of M] by (simp add: M)
-  have "finite (atms_of_m A)" using finite by simp
-
-  hence "length (Propagated L d # M) \<le>  card (atms_of_m A)"
-    using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
-    by (simp add: card_mono)
-  hence latm: "latm b A = Suc (latm (Propagated L d # b) A)"
-    using b_le_M by force
-  thus ?case
-    by (auto simp: lexord_def lex_conv latm M)
-next
-  case (decide L M N lv) note undef_L = this(1) and MC =this(2) and NA = this(3) and A = this(4) and MA = this(5)
-  have "atms_of_m N' \<subseteq> atms_of_m A"
-    using assms(1) assms(2) dpll_atms_of_m_clauses_inv by blast
-  have incl: "atm_of ` lits_of (Marked L lv # M) \<subseteq> atms_of_m A"
-    using dpll_atms_in_trail_in_set bj_decide decide.decide[OF decide.hyps] A MA  NA by blast
-
-  have no_dup: "no_dup (Marked L lv # M)"
-    using defined_lit_map decide.prems(3) undef_L by auto
-  obtain a b l where M: "get_all_marked_decomposition M = (a, b) # l"
-    by (case_tac "get_all_marked_decomposition M") auto
-  have b_le_M: "length b \<le> length M"
-    using get_all_marked_decomposition_decomp[of M] by (simp add: M)
-  have "finite (atms_of_m A)" using finite by simp
-
-  hence "length (Marked L lv # M) \<le>  card (atms_of_m A)"
-    using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
-    by (simp add: card_mono)
-  hence latm: "latm M A = Suc (latm (Marked L lv # M) A)"
-    using b_le_M by force
-  show ?case by (auto simp add: latm)
-next
-  case (backjump C N F' K d F L _ lv) note undef_L = this(1) and MC =this(2) and NA = this(3) and A = this(4) and MA = this(5) and nd = this(8)
-  have "atms_of_m N' \<subseteq> atms_of_m A"
-    using assms(1) assms(2) dpll_atms_of_m_clauses_inv by blast
-  have incl: "atm_of ` lits_of (Propagated L lv # F) \<subseteq> atms_of_m A"
-    using dpll_atms_in_trail_in_set backjump.hyps(4) backjump.prems(1) backjump.prems(2) by auto
-
-  have no_dup: "no_dup (Propagated L lv # F)"
-    using bj_backjump backjump.backjump[OF backjump.hyps] dpll_no_dup nd by blast
-  obtain a b l where M: "get_all_marked_decomposition M = (a, b) # l"
-    by (case_tac "get_all_marked_decomposition M") auto
-  have b_le_M: "length b \<le> length M"
-    using get_all_marked_decomposition_decomp[of M] by (simp add: M)
-  have "finite (atms_of_m A)" using finite by simp
-
-  hence F_le_A: "length (Propagated L lv # F) \<le>  card (atms_of_m A)"
-    using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
-    by (simp add: card_mono)
-
-  have min: "min ((length (get_all_marked_decomposition F))) (length (get_all_marked_decomposition (F' @ Marked K d # F))) = length (get_all_marked_decomposition F)"
-    unfolding length_get_all_marked_decomposition_append_Marked by (simp add: min_def)
-
-  obtain a b l where F: "get_all_marked_decomposition F = (a, b) # l"
-   by (cases "get_all_marked_decomposition F") auto
-
-  hence "F = b @ a"
-    using get_all_marked_decomposition_decomp[of "Propagated L lv # F" a "Propagated L lv # b"] by simp
-  hence latm: "latm b A = Suc (latm (Propagated L lv # b) A)"
-     using F_le_A by simp
-  show ?case
-    apply (simp add: min)
-    using take_length_get_all_marked_decomposition_marked_sandwich[of F A F' K d]
-    by (auto simp add: F latm lexord_def lex_conv)
 qed
 
 (*TODO Move somewhere*)
