@@ -251,6 +251,29 @@ proof -
     by (rule wf_subset) auto
 qed
 
+lemma wf_snd_wf_pair:
+  assumes "wf {(M', M). R M' M} "
+  shows "wf {((M', N'), (M, N)). R N' N}"
+proof -
+  have wf: "wf {((M', N'), (M, N)). R M' M}"
+    using assms wf_fst_wf_pair by auto
+  hence wf: "\<And>P. (\<forall>x. (\<forall>y. (y, x) \<in> {((M', N'), M, N). R M' M} \<longrightarrow> P y) \<longrightarrow> P x) \<Longrightarrow> All P"
+    unfolding wf_def by auto
+  show ?thesis
+    unfolding wf_def
+    proof (intro allI impI)
+      fix P :: "'c \<times> 'a \<Rightarrow> bool" and x :: "'c \<times> 'a"
+      assume H: "\<forall>x. (\<forall>y. (y, x) \<in> {((M', N'), M, y). R N' y} \<longrightarrow> P y) \<longrightarrow> P x"
+      obtain a b where x: "x = (a, b)" by (cases x)
+      have P: "P x = (P \<circ> (\<lambda>(a, b). (b, a))) (b, a)"
+        unfolding x by auto
+      show "P x"
+        using wf[of "P o (\<lambda>(a, b). (b, a))"] apply rule
+          using H apply simp
+        unfolding P by blast
+    qed
+qed
+
 section \<open>rtranclp\<close>
 text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and sledgehammer use it), but it makes more sense to duplicate it.\<close>
 lemma rtranclp_unfold: "rtranclp r a b \<longleftrightarrow> (a = b \<or> tranclp r a b)"
