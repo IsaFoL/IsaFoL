@@ -104,9 +104,9 @@ lemma cdcl_sat_iff:
   shows "I \<Turnstile>s N \<longleftrightarrow> I \<Turnstile>s N'"
   using assms apply (induction rule: cdcl_all_induct)
      using dpll_sat_iff apply blast
-    unfolding true_clss_cls_def total_over_m_def apply (metis atms_of_m_singleton atms_of_m_union 
+    unfolding true_clss_cls_def total_over_m_def apply (metis atms_of_m_singleton atms_of_m_union
       sup.orderE true_clss_insert)
-  unfolding true_clss_insert atms_of_m_singleton atms_of_m_union by (metis atms_of_m_insert 
+  unfolding true_clss_insert atms_of_m_singleton atms_of_m_union by (metis atms_of_m_insert
     insert_Diff total_over_set_union true_clss_insert)
 
 
@@ -118,7 +118,7 @@ lemma dpll_atms_of_m_clauses_inv:
 lemma dpll_atms_of_m_clauses_decreasing:
   assumes "cdcl (M, N) (M', N')"
   shows "atms_of_m N' \<subseteq> atms_of_m N"
-  using assms by (induction rule: cdcl_all_induct) 
+  using assms by (induction rule: cdcl_all_induct)
     (auto dest!: dpll_atms_of_m_clauses_inv simp add: atms_of_m_def)
 
 lemma dpll_atms_in_trail:
@@ -155,7 +155,7 @@ lemma cdcl_atms_in_trail_in_set:
 subsection \<open>Measure\<close>
 
 subsection\<open>Adding the measure based on Nieuwenhuis et al.\<close>
-text \<open>The idea is to measure the \<^emph>\<open>progress\<close> of the proof: we are measuring how many literals are 
+text \<open>The idea is to measure the \<^emph>\<open>progress\<close> of the proof: we are measuring how many literals are
   unassigned, either locally (between two decisions) or globally.\<close>
 abbreviation unassigned_lit ::  "'a list \<Rightarrow> 'b literal multiset set \<Rightarrow> nat" where
   "unassigned_lit M N \<equiv> card (atms_of_m N) - length M"
@@ -221,9 +221,9 @@ abbreviation all_bounded_list_different :: "nat \<Rightarrow> nat \<Rightarrow> 
   {((T, u), (S, y)). ((length S < p \<and> (\<forall>n \<in> set S. n < m)) \<and> (length T < p \<and> (\<forall>n \<in> set T. n < m)))
      \<and> \<not>(\<exists>S'. T = S @ S') \<and> (T, S) \<in> lexord less_than}"
 
-abbreviation fst_same_beginning_snd_decreasing :: 
+abbreviation fst_same_beginning_snd_decreasing ::
   "nat \<Rightarrow> 'c \<Rightarrow> (('c :: ord list \<times> nat) \<times> 'c ::ord list \<times> nat) set" where
-"fst_same_beginning_snd_decreasing \<equiv> (\<lambda>p m. 
+"fst_same_beginning_snd_decreasing \<equiv> (\<lambda>p m.
   {((a, b),(c, d)). ((length a < p \<and> (\<forall>n \<in> set a. n < m)) \<and> (length c < p \<and> (\<forall>n \<in> set c. n < m)))
      \<and> b < d \<and> (\<exists>l. a = c @ l)})"
 
@@ -353,7 +353,7 @@ lemma map_unassigned_lit_pair_map_unassigned_lit_map_snd:
 text \<open>The upper bound is @{term "card (atms_of_m A)+2"}:
   \<^item> @{term "card (atms_of_m A)"} is the total number of atoms
   \<^item> @{term "1"} comes the fact that the bound in @{term all_bounded_list_different} is strict
-  \<^item> the second @{term 1} is here for technical reasons: @{term get_all_marked_decomposition} can 
+  \<^item> the second @{term 1} is here for technical reasons: @{term get_all_marked_decomposition} can
   generate an empty couple at the end of the list.\<close>
 lemma dpll_trail_mes_decreasing':
   fixes M :: "('v, 'lvl, 'mark) annoted_lits " and N :: "'v clauses"
@@ -437,14 +437,14 @@ next
     by (cases "get_all_marked_decomposition F") auto
 
   hence "F = b @ a"
-    using get_all_marked_decomposition_decomp[of "Propagated L lv # F" a "Propagated L lv # b"] 
+    using get_all_marked_decomposition_decomp[of "Propagated L lv # F" a "Propagated L lv # b"]
     by simp
   hence unassigned_lit: "unassigned_lit b A = Suc (unassigned_lit (Propagated L lv # b) A)"
     using F_le_A by simp
   have l_F: "length (F' @ Marked K d # F) \<le> card (atms_of_m A)"
     by (metis `finite (atms_of_m A)` backjump.prems(2) distinctlength_eq_card_atm_of_lits_of nd
       card_mono)
-  hence l_g_a: "length (get_all_marked_decomposition (F' @ Marked K d # F)) 
+  hence l_g_a: "length (get_all_marked_decomposition (F' @ Marked K d # F))
     < Suc (Suc (card (atms_of_m A)))"
     using length_get_all_marked_decomposition_length[of "F' @ Marked K d # F"] by auto
 
