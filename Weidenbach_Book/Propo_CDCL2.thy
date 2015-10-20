@@ -352,13 +352,15 @@ next
     by (cases "get_all_marked_decomposition (F' @ [Marked K d])") auto
   have [simp]: "snd (hd (get_all_marked_decomposition (F' @ Marked K d # F)))
     = snd (hd (get_all_marked_decomposition (F' @ [Marked K d])))"
-    by (smt append_butlast_last_id append_is_Nil_conv append_self_conv2 get_all_marked_decomposition_never_empty hd_append list.collapse list.inject list.map_sel(1) proped.IH tl_get_all_marked_append_marked_not_nil)
+    by (smt append_butlast_last_id append_is_Nil_conv append_self_conv2
+      get_all_marked_decomposition_never_empty hd_append list.collapse list.inject list.map_sel(1)
+      proped.IH tl_get_all_marked_append_marked_not_nil)
 
   obtain a b l where F: "get_all_marked_decomposition (F' @ Marked K d # F) = (a, b) # l"
     by (cases "get_all_marked_decomposition (F' @ Marked K d # F)") auto
   thus ?case unfolding F
-    by (auto simp add: map_tl tl_get_all_marked_append_marked_not_nil IH arg_cong[OF IH, of tl] tl_append
-    dest!: arg_cong[of "_#_" _ hd] split: list.split)
+    by (auto simp add: map_tl tl_get_all_marked_append_marked_not_nil IH arg_cong[OF IH, of tl]
+      tl_append dest!: arg_cong[of "_#_" _ hd] split: list.split)
 qed
 
 lemma map_unassigned_lit_pair_map_unassigned_lit_map_snd:
@@ -371,22 +373,31 @@ abbreviation cut_to_shortest :: "'a list \<Rightarrow> 'b list \<Rightarrow> 'a 
 lemma take_to_drop: "take a l = l' \<Longrightarrow> l = l' @ drop a l"
   by auto
 definition bounded_cut_to_shortest:: "nat \<Rightarrow> nat \<Rightarrow> (nat list \<times> nat list) set" where
-"bounded_cut_to_shortest m p = {(T::nat list, S). ((length S \<le> p \<and> (\<forall>n \<in> set S. n < m)) \<and> (length T \<le> p \<and> (\<forall>n \<in> set T. n < m)))
-    \<and> cut_to_shortest T S \<in> lexord less_than}"
-lemma
+"bounded_cut_to_shortest m p = {(T::nat list, S). ((length S \<le> p \<and> (\<forall>n \<in> set S. n < m))
+   \<and> (length T \<le> p \<and> (\<forall>n \<in> set T. n < m)))
+   \<and> cut_to_shortest T S \<in> lexord less_than}"
+lemma wf_bounded_cut_to_shortest:
   "wf (bounded_cut_to_shortest m p)"
   unfolding bounded_cut_to_shortest_def
-  apply (rule wf_subset[OF wf_bounded_distinct_lexord[of "Suc p" "Suc m"],
-      of "{(T, S). ((length S <= p \<and> (\<forall>n\<in>set S. n < m)) \<and> length T \<le> p \<and> (\<forall>n\<in>set T. n < m)) \<and> cut_to_shortest T S \<in> lexord less_than}"])
+  apply (rule wf_subset[OF wf_bounded_distinct_lexord[of "Suc p" "Suc m"]])
   apply (auto simp:  lexord_def)
-  apply (metis (no_types, lifting) append_Nil2 append_eq_append_conv length_take list.simps(3) min.absorb2 min.cobounded1 min.cobounded2)
+  apply (metis (no_types, lifting) append_Nil2 append_eq_append_conv length_take list.simps(3)
+    min.absorb2 min.cobounded1 min.cobounded2)
   apply (auto dest!: take_to_drop)
   by blast
 
+
+definition bounded_cut_to_shortest':: "nat \<Rightarrow> nat \<Rightarrow> ((nat list \<times> nat) \<times> (nat list \<times> nat)) set"
+  where
+"bounded_cut_to_shortest' m p = {((T::nat list, e), (S, f)). ((length S \<le> p \<and> (\<forall>n \<in> set S. n < m))
+   \<and> (length T \<le> p \<and> (\<forall>n \<in> set T. n < m))) \<and> e < m \<and> f < m
+   \<and> (let (a, b) = cut_to_shortest T S in
+        (a@[e], b@[f]) \<in> lexord less_than)}"
+
 abbreviation trail_mes_build where
 "trail_mes_build \<equiv> \<lambda>A (M, N) (M', N').
-  (let (a, b) = cut_to_shortest (trail_mes A (M, N)) (trail_mes A (M', N')) in
-  ((a, unassigned_lit A M),(b, unassigned_lit A M')))"
+  (let (a, b) = cut_to_shortest (trail_mes A (M, N)) (trail_mes A (M', N)) in
+    ((a, unassigned_lit A M),  (b, unassigned_lit A M')))"
 
 lemma dpll_trail_mes_decreasing:
   fixes M :: "('v, 'lvl, 'mark) annoted_lits " and N :: "'v clauses"
@@ -398,11 +409,13 @@ lemma dpll_trail_mes_decreasing:
   shows "trail_mes_build A (M', N') (M, N) \<in> lexord less_than <*lex*> less_than"
   using assms
 proof (induction rule: dpll_all_induct)
-  case (propagate C L N M d) note CLN = this(1) and MC =this(2) and undef_L = this(3) and A = this(4) and MA = this(5)
+  case (propagate C L N M d) note CLN = this(1) and MC =this(2) and undef_L = this(3) and
+    A = this(4) and MA = this(5)
   have "atms_of_m N' \<subseteq> atms_of_m A"
     using assms(1) assms(2) dpll_atms_of_m_clauses_inv by blast
   have incl: "atm_of ` lits_of (Propagated L d # M) \<subseteq> atms_of_m A"
-    using dpll_atms_in_trail_in_set bj_propagate propagate.propagate[OF propagate.hyps] A MA by blast
+    using dpll_atms_in_trail_in_set bj_propagate propagate.propagate[OF propagate.hyps] A MA
+    by blast
 
   have no_dup: "no_dup (Propagated L d # M)"
     using defined_lit_map propagate.prems(3) undef_L by auto
@@ -420,7 +433,8 @@ proof (induction rule: dpll_all_induct)
   thus ?case
     by (auto simp: lexord_def lex_conv latm M)
 next
-  case (decide L M N lv) note undef_L = this(1) and MC =this(2) and NA = this(3) and A = this(4) and MA = this(5)
+  case (decide L M N lv) note undef_L = this(1) and MC =this(2) and NA = this(3) and A = this(4)
+    and MA = this(5)
   have "atms_of_m N' \<subseteq> atms_of_m A"
     using assms(1) assms(2) dpll_atms_of_m_clauses_inv by blast
   have incl: "atm_of ` lits_of (Marked L lv # M) \<subseteq> atms_of_m A"
@@ -441,7 +455,8 @@ next
     using b_le_M by force
   show ?case by (auto simp add: latm)
 next
-  case (backjump C N F' K d F L _ lv) note undef_L = this(1) and MC =this(2) and NA = this(3) and A = this(4) and MA = this(5) and nd = this(8)
+  case (backjump C N F' K d F L _ lv) note undef_L = this(1) and MC =this(2) and NA = this(3)
+    and A = this(4) and MA = this(5) and nd = this(8)
   have "atms_of_m N' \<subseteq> atms_of_m A"
     using assms(1) assms(2) dpll_atms_of_m_clauses_inv by blast
   have incl: "atm_of ` lits_of (Propagated L lv # F) \<subseteq> atms_of_m A"
@@ -474,8 +489,6 @@ next
     using take_length_get_all_marked_decomposition_marked_sandwich[of F A F' K d]
     by (auto simp add: F latm lexord_def lex_conv)
 qed
-
-
 
 (*TODO Move somewhere*)
 lemma
@@ -520,4 +533,4 @@ proof -
 qed
 
 
-  end
+end
