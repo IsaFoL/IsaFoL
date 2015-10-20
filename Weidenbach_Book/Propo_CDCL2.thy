@@ -6,7 +6,8 @@ begin
 type_synonym ('v, 'lvl, 'mark) cdcl_state = "('v, 'lvl, 'mark) annoted_lits \<times> 'v clauses"
 
 inductive propagate :: "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool" where
-propagate[intro]: "C + {#L#} \<in> N \<Longrightarrow> M \<Turnstile>as CNot C \<Longrightarrow> undefined_lit L M \<Longrightarrow> propagate (M, N) ((Propagated L mark) # M, N)"
+propagate[intro]: "C + {#L#} \<in> N \<Longrightarrow> M \<Turnstile>as CNot C \<Longrightarrow> undefined_lit L M
+  \<Longrightarrow> propagate (M, N) ((Propagated L mark) # M, N)"
 
 inductive_cases propagateE[elim]: "propagate S T"
 thm propagateE
@@ -33,8 +34,10 @@ lemma dpll_all_induct[consumes 1, case_names decide propagate backjump]:
   fixes M :: "('v, 'lvl, 'mark) annoted_lits" and N ::" 'v clauses"
   assumes "dpll (M, N) (M', N')" and
   "\<And>L M N d. undefined_lit L M \<Longrightarrow> atm_of L \<in> atms_of_m N \<Longrightarrow> P M N (Marked L d # M) N" and
-  "\<And>C L N M mark. C + {#L#} \<in> N \<Longrightarrow> M \<Turnstile>as CNot C \<Longrightarrow> undefined_lit L M \<Longrightarrow> P M N ((Propagated L mark) # M) N" and
-  "\<And>C N F' K d F L C' l. C \<in> N \<Longrightarrow> F' @ Marked K d # F \<Turnstile>as CNot C \<Longrightarrow> undefined_lit L (F' @ Marked K d # F)
+  "\<And>C L N M mark. C + {#L#} \<in> N \<Longrightarrow> M \<Turnstile>as CNot C \<Longrightarrow> undefined_lit L M
+    \<Longrightarrow> P M N ((Propagated L mark) # M) N" and
+  "\<And>C N F' K d F L C' l. C \<in> N \<Longrightarrow> F' @ Marked K d # F \<Turnstile>as CNot C
+    \<Longrightarrow> undefined_lit L (F' @ Marked K d # F)
   \<Longrightarrow> atm_of L \<in> atms_of_m N
   \<Longrightarrow> N \<Turnstile>p {#L#} + C'
   \<Longrightarrow> P (F' @ Marked K d # F) N (Propagated L l #  F) N"
@@ -474,14 +477,17 @@ next
     using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
     by (simp add: card_mono)
 
-  have min: "min ((length (get_all_marked_decomposition F))) (length (get_all_marked_decomposition (F' @ Marked K d # F))) = length (get_all_marked_decomposition F)"
+  have min: "min ((length (get_all_marked_decomposition F)))
+                 (length (get_all_marked_decomposition (F' @ Marked K d # F)))
+             = length (get_all_marked_decomposition F)"
     unfolding length_get_all_marked_decomposition_append_Marked by (simp add: min_def)
 
   obtain a b l where F: "get_all_marked_decomposition F = (a, b) # l"
    by (cases "get_all_marked_decomposition F") auto
 
   hence "F = b @ a"
-    using get_all_marked_decomposition_decomp[of "Propagated L lv # F" a "Propagated L lv # b"] by simp
+    using get_all_marked_decomposition_decomp[of "Propagated L lv # F" a "Propagated L lv # b"]
+      by simp
   hence latm: "unassigned_lit A b = Suc (unassigned_lit A (Propagated L lv # b))"
      using F_le_A by simp
   show ?case
@@ -491,7 +497,7 @@ next
 qed
 
 (*TODO Move somewhere*)
-lemma
+lemma true_clss_true_clss_cls_consistent_true_cls:
   assumes "I \<Turnstile>s M" and
   MN: "M \<Turnstile>p N" and
   cons: "consistent_interp I" and
@@ -531,6 +537,5 @@ proof -
   show "I \<Turnstile> N"
     using ex unfolding true_cls_def by auto
 qed
-
 
 end
