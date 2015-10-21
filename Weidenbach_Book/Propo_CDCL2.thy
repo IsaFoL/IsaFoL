@@ -3,6 +3,8 @@ imports Partial_Annotated_Clausal_Logic List_More "../Bachmair_Ganzinger/Lazy_Li
 
 begin
 
+section \<open>CDCL: an other approach\<close>
+subsection\<open>Definition\<close>
 type_synonym ('v, 'lvl, 'mark) cdcl_state = "('v, 'lvl, 'mark) annoted_lits \<times> 'v clauses"
 
 inductive propagate :: "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool" where
@@ -60,6 +62,7 @@ c_dpll:  "dpll S S' \<Longrightarrow> cdcl S S'" |
 c_learn:  "learn S S' \<Longrightarrow> cdcl S S'" |
 c_forget:  "forget S S' \<Longrightarrow> cdcl S S'"
 
+subsection \<open>Basic properties\<close>
 lemmas cdcl_induct = cdcl.induct[split_format(complete)]
 lemma cdcl_all_induct[consumes 1, case_names dpll learn forget]:
   fixes M :: "('v, 'lvl, 'mark) annoted_lits" and N ::" 'v clauses"
@@ -68,10 +71,7 @@ lemma cdcl_all_induct[consumes 1, case_names dpll learn forget]:
   learn: "\<And>M N C. N \<Turnstile>p C \<Longrightarrow> atms_of C \<subseteq> atms_of_m N \<Longrightarrow>  P M N M (insert C N)" and
   "\<And>M N C. N - {C} \<Turnstile>p C \<Longrightarrow> C \<in> N \<Longrightarrow>  P M N M (N - {C})"
   shows "P M N M' N'"
-  using assms(1) by (induction rule: cdcl_induct)
-    (auto intro!: learn dest!: assms(2,3,4))
-
-
+  using assms(1) by (induction rule: cdcl_induct) (auto intro!: learn dest!: assms(2,3,4))
 
 lemma dpll_no_dup:
   assumes "dpll (M, N) (M', N')"
@@ -155,9 +155,8 @@ lemma cdcl_atms_in_trail_in_set:
   by (induction rule: cdcl_all_induct)
      (simp_all add: dpll_atms_in_trail_in_set dpll_atms_of_m_clauses_inv)
 
-subsection \<open>Measure\<close>
+subsection \<open>Termination\<close>
 
-subsection\<open>Adding the measure based on Nieuwenhuis et al.\<close>
 text \<open>The idea is to measure the \<^emph>\<open>progress\<close> of the proof: we are measuring how many literals are
   unassigned, either locally (i.e. comparing the number of proagated literals between two decisions)
   or globally.\<close>
@@ -262,13 +261,12 @@ lemma fst_same_beginning_snd_decreasing_all_bounded_list_different_disj:
  *)
 thm wf_union_compatible
 text \<open>
-
-  \<^item>@{thm wf_union_compatible} \<^emph>\<open>cannot\<close> be applied: @{term "R O S \<subseteq> R"} does not hold.
+  There are a few theorems to show this kind of results in the library:
+  \<^item> @{thm wf_union_compatible} \<^emph>\<open>cannot\<close> be applied: @{term "R O S \<subseteq> R"} does not hold.
 
   For a decide @{term "[]"} to @{term "Marked K 1"} and propagate @{term "[Marked K 1]"} to
   @{term "Propagated L P # Marked K 1 # []"},  but the composition is not in the lexicographic
   ordering.
-
 
   \<^item> @{thm wf_Un} \<^emph>\<open>cannot\<close> be applied because the domain are not disjoint.
   \<close>

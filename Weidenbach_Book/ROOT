@@ -5,7 +5,7 @@ session "Weidenbach_Book" (main) = "HOL" +
     "../lib/Herbrand_Interpretation"
     "../Bachmair_Ganzinger/Lazy_List_Limit"
     "~~/src/HOL/Library/Code_Target_Numeral"
-  global_theories
+  global_theories [document = true]
     Propo_Logic
     Propo_Abstract_Transformation
     Propo_Normalisation
