@@ -699,7 +699,7 @@ proof (induction rule: dpll_all_induct)
     using get_all_marked_decomposition_decomp[of M] by (simp add: M)
   have "finite (atms_of_m A)" using finite by simp
 
-  hence "length (Propagated L d # M) \<le>  card (atms_of_m A)"
+  hence "length (Propagated L d # M) \<le> card (atms_of_m A)"
     using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
     by (simp add: card_mono)
   hence latm: "unassigned_lit A b = Suc (unassigned_lit A (Propagated L d # b))"
@@ -791,35 +791,53 @@ qed
 
 lemma dpll_wf:
   assumes fin: "finite A"
-  shows "wf {((M', N'), (M, N)). dpll (M, N) (M', N') \<and> atms_of_m N \<subseteq> atms_of_m A
-          \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> no_dup M}" (is "wf ?A")
+  shows "wf {((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), (M, N)). dpll (M, N) (M', N') 
+    \<and> atms_of_m N \<subseteq> atms_of_m A \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> no_dup M}" (is "wf ?A")
 proof (rule wf_bounded_measure[of _
       "\<lambda>_. (2 + card (atms_of_m A))^(1 + card (atms_of_m A))"
        "\<lambda>M. \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> (fst M))"])
-  fix a b
+  fix a b :: "('v, 'lvl, 'mark) cdcl_state"
   let ?b = "2+card (atms_of_m A)"
   let ?s = "1+card (atms_of_m A)"
   let ?\<mu> = "\<mu>\<^sub>C ?s ?b"
   assume ab: "(b, a) \<in> {((M', N'), M, N). dpll (M, N) (M', N') \<and> atms_of_m N \<subseteq> atms_of_m A
      \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> no_dup M}"
   obtain M' N' M N where a: "a = (M, N)" and b: "b = (M', N')" by (cases a, cases b)
+  have fin_A: "finite (atms_of_m A)"
+    using fin by auto
   have
-    "dpll (M, N) (M', N')" and
-    "atms_of_m N \<subseteq> atms_of_m A" and
-    "atm_of ` lits_of M \<subseteq> atms_of_m A" and
-    "no_dup M"
+    dpll: "dpll (M, N) (M', N')" and
+    N_A: "atms_of_m N \<subseteq> atms_of_m A" and
+    M_A: "atm_of ` lits_of M \<subseteq> atms_of_m A" and
+    nd: "no_dup M"
     using ab unfolding a b by auto
 
-  from dpll_trail_mes_decreasing_prop[OF this fin]
+  have M'_A: "atm_of ` lits_of M' \<subseteq> atms_of_m A" 
+    by (meson M_A N_A `dpll (M, N) (M', N')` dpll_atms_in_trail_in_set)
+  have nd': "no_dup M'"
+    using `dpll (M, N) (M', N')` dpll_no_dup nd by blast
+  { fix i ::nat and  xs :: "'a list"
+    have "i < length xs \<Longrightarrow> length xs - Suc i < length xs"
+      by auto
+    hence H: "i<length xs \<Longrightarrow>  xs ! i \<in> set xs"
+      using rev_nth[of i xs] unfolding in_set_conv_nth  by (force simp add: in_set_conv_nth)
+  } note H = this
+
+  have l_M_A: "length M \<le> card (atms_of_m A)"
+    by (simp add: fin_A M_A card_mono distinctlength_eq_card_atm_of_lits_of nd)
+  have l_M'_A: "length M' \<le> card (atms_of_m A)"
+    by (simp add: fin_A M'_A card_mono distinctlength_eq_card_atm_of_lits_of nd')
+  have l_\<nu>_M: "length (\<nu> M') \<le> 1+card (atms_of_m A)"
+     using l_M'_A length_get_all_marked_decomposition_length[of M'] by auto
+  have bounded_M: "\<forall>i<length (\<nu> M'). (\<nu> M')! i < card (atms_of_m A) + 2"
+    using length_in_get_all_marked_decomposition_bounded[of _ "M'"] l_M'_A
+    by (metis (no_types, lifting) Nat.le_trans One_nat_def Suc_1 add.right_neutral add_Suc_right
+      le_imp_less_Suc less_eq_Suc_le nth_mem)
+
+  from dpll_trail_mes_decreasing_prop[OF dpll N_A M_A nd fin]
   have "\<mu>\<^sub>C ?s ?b (\<nu> (fst a)) < \<mu>\<^sub>C ?s ?b (\<nu> (fst b))" unfolding a b by simp
-  moreover
-    have
-      "\<forall>i<length (\<nu> M'). \<nu> M' ! i < 2 + card (atms_of_m A)" and
-      "length (\<nu> M') \<le> 1 + card (atms_of_m A)"
-      defer
-      using length_get_all_marked_decomposition_length[of M'] apply simp
-         sorry
-    from \<mu>\<^sub>C_bounded[OF this] have "\<mu>\<^sub>C ?s ?b (\<nu> (fst b)) \<le> ?b ^ ?s" unfolding b by auto
+  moreover from \<mu>\<^sub>C_bounded[OF bounded_M l_\<nu>_M] 
+    have "\<mu>\<^sub>C ?s ?b (\<nu> (fst b)) \<le> ?b ^ ?s" unfolding b by auto
   ultimately show "?b ^ ?s \<le> ?b ^ ?s \<and>
            \<mu>\<^sub>C ?s ?b (\<nu> (fst b)) \<le> ?b ^ ?s \<and>
            \<mu>\<^sub>C ?s ?b (\<nu> (fst a)) < \<mu>\<^sub>C ?s ?b (\<nu> (fst b))"
