@@ -26,6 +26,7 @@ backjump: "C \<in> N \<Longrightarrow> F' @ Marked K d # F \<Turnstile>as CNot C
   \<Longrightarrow> backjump (F' @ Marked K d # F, N) (Propagated L l #  F, N)"
 inductive_cases backjumpE[elim]: "backjump S S'"
 
+text \<open>We define dpll with backjumping:\<close>
 inductive dpll :: "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool" where
 bj_decide:  "decide S S' \<Longrightarrow> dpll S S'" |
 bj_propagate: "propagate S S' \<Longrightarrow> dpll S S'" |
@@ -55,7 +56,11 @@ inductive forget :: "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark
 forget: "N - {C} \<Turnstile>p C \<Longrightarrow> C \<in> N \<Longrightarrow> forget (M, N) (M, N - {C})"
 inductive_cases forgetE[elim]: "forget S S'"
 
-
+inductive learn_or_forget:: "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool" where
+lf_learn:  "learn S S' \<Longrightarrow> learn_or_forget S S'" |
+lf_forget:  "forget S S' \<Longrightarrow> learn_or_forget S S'"
+inductive_cases learn_or_forgetE[elim]: "learn_or_forget S S'"
+declare learn_or_forget.intros[intro]
 
 inductive cdcl:: "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool" where
 c_dpll:  "dpll S S' \<Longrightarrow> cdcl S S'" |
@@ -155,7 +160,9 @@ lemma cdcl_atms_in_trail_in_set:
   by (induction rule: cdcl_all_induct)
      (simp_all add: dpll_atms_in_trail_in_set dpll_atms_of_m_clauses_inv)
 
+
 subsection \<open>Termination\<close>
+subsection\<open>Adding the measure based on Nieuwenhuis et al.\<close>
 
 text \<open>The idea is to measure the \<^emph>\<open>progress\<close> of the proof: we are measuring how many literals are
   unassigned, either locally (i.e. comparing the number of proagated literals between two decisions)
@@ -222,7 +229,7 @@ lemma wf_bounded_distinct_lexord:
 definition all_bounded_list_different :: "nat \<Rightarrow> nat \<Rightarrow> ((nat list \<times> 'a) \<times> nat list \<times> 'b) set" where
 "all_bounded_list_different m p \<equiv>
   {((T, u), (S, y)). ((length S \<le> p \<and> (\<forall>n \<in> set S. n \<le> m)) \<and> (length T \<le> p \<and> (\<forall>n \<in> set T. n \<le> m)))
-     \<and> \<not>(\<exists>S'. S = T @ S') \<and> (T, S) \<in> lexord less_than}"
+     \<and> \<not>(\<exists>S'. T = S @ S') \<and> (T, S) \<in> lexord less_than}"
 
 definition fst_same_beginning_snd_decreasing ::
   "'c::ord \<Rightarrow> nat \<Rightarrow> (('c list \<times> nat) \<times> ('c list \<times> nat)) set" where
@@ -373,27 +380,6 @@ abbreviation cut_to_shortest :: "'a list \<Rightarrow> 'b list \<Rightarrow> 'a 
   (take (min (length l) (length l')) l, take (min (length l) (length l')) l')"
 lemma take_to_drop: "take a l = l' \<Longrightarrow> l = l' @ drop a l"
   by auto
-definition bounded_cut_to_shortest:: "nat \<Rightarrow> nat \<Rightarrow> (nat list \<times> nat list) set" where
-"bounded_cut_to_shortest m p = {(T::nat list, S). ((length S \<le> p \<and> (\<forall>n \<in> set S. n < m))
-   \<and> (length T \<le> p \<and> (\<forall>n \<in> set T. n < m)))
-   \<and> cut_to_shortest T S \<in> lexord less_than}"
-lemma wf_bounded_cut_to_shortest:
-  "wf (bounded_cut_to_shortest m p)"
-  unfolding bounded_cut_to_shortest_def
-  apply (rule wf_subset[OF wf_bounded_distinct_lexord[of "Suc p" "Suc m"]])
-  apply (auto simp:  lexord_def)
-  apply (metis (no_types, lifting) append_Nil2 append_eq_append_conv length_take list.simps(3)
-    min.absorb2 min.cobounded1 min.cobounded2)
-  apply (auto dest!: take_to_drop)
-  by blast
-
-
-definition bounded_cut_to_shortest':: "nat \<Rightarrow> nat \<Rightarrow> ((nat list \<times> nat) \<times> (nat list \<times> nat)) set"
-  where
-"bounded_cut_to_shortest' m p = {((T::nat list, e), (S, f)). ((length S \<le> p \<and> (\<forall>n \<in> set S. n < m))
-   \<and> (length T \<le> p \<and> (\<forall>n \<in> set T. n < m))) \<and> e < m \<and> f < m
-   \<and> (let (a, b) = cut_to_shortest T S in
-        (a@[e], b@[f]) \<in> lexord less_than)}"
 
 abbreviation trail_mes_build where
 "trail_mes_build \<equiv> \<lambda>A (M, N) (M', N').
@@ -493,47 +479,139 @@ next
     using take_length_get_all_marked_decomposition_marked_sandwich[of F A F' K d]
     by (auto simp add: F latm lexord_def lex_conv)
 qed
+subsection \<open>Another try\<close>
 
-(*TODO Move somewhere*)
-lemma true_clss_true_clss_cls_consistent_true_cls:
-  assumes "I \<Turnstile>s M" and
-  MN: "M \<Turnstile>p N" and
-  cons: "consistent_interp I" and
-  ex: "\<exists>l\<in>#N. l \<in> I"
-  shows "I \<Turnstile> N"
-proof -
-  let ?I1 = "I \<union> {Pos P| P. P \<in> atms_of_m (M \<union> {N}) \<and> P \<notin> atm_of ` I}"
-  have "consistent_interp ?I1"
-    using cons unfolding consistent_interp_def
-    apply (auto simp add: atms_of_def atms_of_s_def rev_image_eqI )
-     apply (metis atm_of_uminus image_iff literal.sel(1))+
-    done
-  moreover have "total_over_set ?I1 (atms_of_m (M \<union> {N}))"
-    unfolding total_over_set_def
-      apply auto
-      by (case_tac x, auto)+
+subsection \<open>A slightly different presentation of the invariant: we complete the list instead of 
+  taking only some of the elements\<close>
+abbreviation complete_list_to_size where
+"complete_list_to_size s n l \<equiv> l @ replicate (s - length l) n"
 
-  moreover have "?I1 \<Turnstile>s M" by (simp add: assms(1))
-  ultimately have 1: "?I1 \<Turnstile> N"
-    using MN unfolding true_clss_cls_def total_over_m_def by auto
+lemma dpll_trail_mes_decreasing2:
+  fixes M :: "('v, 'lvl, 'mark) annoted_lits " and N :: "'v clauses"
+  assumes "dpll (M, N) (M', N')" and
+  "atms_of_m N \<subseteq> atms_of_m A" and
+  "atm_of ` lits_of M \<subseteq> atms_of_m A" and
+  "no_dup M" and
+  finite: "finite A"
+  shows "(complete_list_to_size (2 + card (atms_of_m A)) (card (atms_of_m A)) (trail_mes A (M', N'))
+            @ [unassigned_lit A M'],
+          complete_list_to_size (2 + card (atms_of_m A)) (card (atms_of_m A)) (trail_mes A (M, N))
+            @ [unassigned_lit A M])
+          \<in> lexord less_than"
+  using assms
+proof (induction rule: dpll_all_induct)
+  case (propagate C L N M d) note CLN = this(1) and MC =this(2) and undef_L = this(3) and
+    A = this(4) and MA = this(5)
+  have "atms_of_m N' \<subseteq> atms_of_m A"
+    using assms(1) assms(2) dpll_atms_of_m_clauses_inv by blast
+  have incl: "atm_of ` lits_of (Propagated L d # M) \<subseteq> atms_of_m A"
+    using dpll_atms_in_trail_in_set bj_propagate propagate.propagate[OF propagate.hyps] A MA
+    by blast
 
-  let ?I2 = "I \<union> {Neg P| P. P \<in> atms_of_m (M \<union> {N}) \<and> P \<notin> atm_of ` I}"
-  have "consistent_interp ?I2"
-    using cons unfolding consistent_interp_def
-    apply (auto simp add: atms_of_def atms_of_s_def rev_image_eqI)
-    apply (metis atm_of_uminus image_iff literal.sel(2))+
-    done
-  moreover have "total_over_set ?I2 (atms_of_m (M \<union> {N}))"
-    unfolding total_over_set_def
-      apply auto
-      by (case_tac x, auto)+
+  have no_dup: "no_dup (Propagated L d # M)"
+    using defined_lit_map propagate.prems(3) undef_L by auto
+  obtain a b l where M: "get_all_marked_decomposition M = (a, b) # l"
+    by (case_tac "get_all_marked_decomposition M") auto
+  have b_le_M: "length b \<le> length M"
+    using get_all_marked_decomposition_decomp[of M] by (simp add: M)
+  have "finite (atms_of_m A)" using finite by simp
 
-  moreover have "?I2 \<Turnstile>s M" by (simp add: assms(1))
-  ultimately have 2: "?I2 \<Turnstile> N"
-    using MN unfolding true_clss_cls_def total_over_m_def by auto
+  hence "length (Propagated L d # M) \<le>  card (atms_of_m A)"
+    using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
+    by (simp add: card_mono)
+  hence latm: "unassigned_lit A b = Suc (unassigned_lit A (Propagated L d # b))"
+    using b_le_M by force
+  thus ?case
+    by (auto simp: lexord_def lex_conv latm M)
+next
+  case (decide L M N lv) note undef_L = this(1) and MC =this(2) and NA = this(3) and A = this(4)
+    and MA = this(5)
+  have "atms_of_m N' \<subseteq> atms_of_m A"
+    using assms(1) assms(2) dpll_atms_of_m_clauses_inv by blast
+  have incl: "atm_of ` lits_of (Marked L lv # M) \<subseteq> atms_of_m A"
+    using dpll_atms_in_trail_in_set bj_decide decide.decide[OF decide.hyps] A MA  NA by blast
 
-  show "I \<Turnstile> N"
-    using ex unfolding true_cls_def by auto
+  have no_dup: "no_dup (Marked L lv # M)"
+    using defined_lit_map decide.prems(3) undef_L by auto
+  obtain a b l where M: "get_all_marked_decomposition M = (a, b) # l"
+    by (case_tac "get_all_marked_decomposition M") auto
+  have b_le_M: "length b \<le> length M"
+    using get_all_marked_decomposition_decomp[of M] by (simp add: M)
+  have "finite (atms_of_m A)" using finite by simp
+
+  hence length_M_A: "length (Marked L lv # M) \<le> card (atms_of_m A)"
+    using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
+    by (simp add: card_mono)
+  hence latm: "unassigned_lit A M = Suc (unassigned_lit A (Marked L lv # M))"
+    using b_le_M by force
+  have rep: "replicate (Suc (Suc (card (atms_of_m A))) - length (get_all_marked_decomposition M)) 
+                  (card (atms_of_m A)) =
+        card (atms_of_m A) # replicate (Suc (card (atms_of_m A)) - length (get_all_marked_decomposition M)) 
+                  (card (atms_of_m A))"
+    using length_get_all_marked_decomposition_length[of M] length_M_A
+    by (cases "Suc (Suc (card (atms_of_m A))) - length (get_all_marked_decomposition M)") auto
+  hence c: "complete_list_to_size (2 + card (atms_of_m A)) (card (atms_of_m A)) (trail_mes A (Marked L lv # M, N)) 
+    = complete_list_to_size (2 + card (atms_of_m A)) (card (atms_of_m A)) (trail_mes A (M, N))" 
+      by (auto simp add: rep)
+  show ?case unfolding latm lexord_def c by blast
+next
+  case (backjump C N F' K d F L _ lv) note undef_L = this(1) and MC =this(2) and NA = this(3)
+    and A = this(4) and MA = this(5) and nd = this(8)
+  have "atms_of_m N' \<subseteq> atms_of_m A"
+    using assms(1) assms(2) dpll_atms_of_m_clauses_inv by blast
+  have incl: "atm_of ` lits_of (Propagated L lv # F) \<subseteq> atms_of_m A"
+    using dpll_atms_in_trail_in_set backjump.hyps(4) backjump.prems(1) backjump.prems(2) by auto
+
+  have no_dup: "no_dup (Propagated L lv # F)"
+    using bj_backjump backjump.backjump[OF backjump.hyps] dpll_no_dup nd by blast
+  obtain a b l where M: "get_all_marked_decomposition M = (a, b) # l"
+    by (case_tac "get_all_marked_decomposition M") auto
+  have b_le_M: "length b \<le> length M"
+    using get_all_marked_decomposition_decomp[of M] by (simp add: M)
+  have "finite (atms_of_m A)" using finite by simp
+
+  hence F_le_A: "length (Propagated L lv # F) \<le>  card (atms_of_m A)"
+    using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
+    by (simp add: card_mono)
+
+  have min: "min ((length (get_all_marked_decomposition F)))
+                 (length (get_all_marked_decomposition (F' @ Marked K d # F)))
+             = length (get_all_marked_decomposition F)"
+    unfolding length_get_all_marked_decomposition_append_Marked by (simp add: min_def)
+
+  obtain a b l where F: "get_all_marked_decomposition F = (a, b) # l"
+   by (cases "get_all_marked_decomposition F") auto
+
+  hence "F = b @ a"
+    using get_all_marked_decomposition_decomp[of "Propagated L lv # F" a "Propagated L lv # b"]
+      by simp
+  hence latm: "unassigned_lit A b = Suc (unassigned_lit A (Propagated L lv # b))"
+     using F_le_A by simp
+  obtain rem where
+    rem:"(map (unassigned_lit A \<circ> snd) (rev (get_all_marked_decomposition (F' @ Marked K d # F)))) 
+    = map (unassigned_lit A \<circ> snd) (rev (get_all_marked_decomposition F)) @ rem"
+    using take_length_get_all_marked_decomposition_marked_sandwich[of F A F' K d]
+    by (metis append_take_drop_id)
+  show ?case
+    by (auto simp add: min rem F latm lexord_def lex_conv)
 qed
+lemma length_complete_list_to_size:
+  "length (complete_list_to_size s n a) = max s (length a)"
+  by auto
+  
+definition all_bounded_list_different2 :: "nat \<Rightarrow> nat \<Rightarrow> ((nat list \<times> 'a) \<times> nat list \<times> 'b) set" where
+"all_bounded_list_different2 m p \<equiv>
+  {((T, u), (S, y)). ((length S \<le> p \<and> (\<forall>n \<in> set S. n \<le> m)) \<and> (length T \<le> p \<and> (\<forall>n \<in> set T. n \<le> m)))
+     \<and>(T, S) \<in> lexord less_than}"
+
+lemma all_bounded_list_different2_increasing:
+  "p' \<ge> p \<Longrightarrow> m' \<ge> m \<Longrightarrow> all_bounded_list_different2 p m \<subseteq> all_bounded_list_different2 p' m'"
+  by (auto simp add: all_bounded_list_different2_def)
+
+lemma wf_bounded_distinct_different2_lexord:
+  "wf (all_bounded_list_different2 m p)"
+  unfolding all_bounded_list_different2_def
+  apply (rule wf_fst_wf_pair)
+  by (rule wf_subset[OF wf_bounded_distinct_lexord[of "Suc p" "Suc m"]]) auto
 
 end
