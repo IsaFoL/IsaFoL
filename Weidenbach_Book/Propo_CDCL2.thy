@@ -163,7 +163,7 @@ lemma cdcl_atms_in_trail_in_set:
 
 
 subsection \<open>Termination\<close>
-subsection\<open>Adding the measure based on Nieuwenhuis et al.\<close>
+subsubsection\<open>Using the original measure from Nieuwenhuis et al.\<close>
 
 text \<open>The idea is to measure the \<^emph>\<open>progress\<close> of the proof: we are measuring how many literals are
   unassigned, either locally (i.e. comparing the number of proagated literals between two decisions)
@@ -262,11 +262,7 @@ proof -
   thus ?thesis
     by (rule wf_subset) (auto simp add: fst_same_beginning_snd_decreasing_def)
 qed
-(*
-lemma fst_same_beginning_snd_decreasing_all_bounded_list_different_disj:
-  "fst_same_beginning_snd_decreasing r s \<inter> all_bounded_list_different m p = {}"
-  by auto
- *)
+
 thm wf_union_compatible
 text \<open>
   There are a few theorems to show this kind of results in the library:
@@ -476,7 +472,7 @@ next
     by (auto simp add: F latm lexord_def lex_conv)
 qed
 
-subsection \<open>Using a proper measure\<close>
+subsubsection \<open>Using a proper measure\<close>
 definition \<mu>\<^sub>C  :: "nat \<Rightarrow> nat \<Rightarrow> nat list \<Rightarrow> nat" where
 "\<mu>\<^sub>C s b M \<equiv> (\<Sum> i =0..<length M. M!i * b^ (s +i - length M))"
 
@@ -633,7 +629,8 @@ proof -
     qed
 qed
 
-lemma
+text \<open>When @{term "b=0"}, we cannot show that the measure is empty, since @{term "0^0 = 1"}.\<close>
+lemma \<mu>\<^sub>C_base_0:
   assumes "length M \<le> s"
   shows "\<mu>\<^sub>C s 0 M \<le> M!0"
 proof -
@@ -653,6 +650,7 @@ proof -
     hence "\<mu>\<^sub>C s 0 M = 0" unfolding \<mu>\<^sub>C_def by auto}
   ultimately show ?thesis using assms unfolding \<mu>\<^sub>C_def by linarith
 qed
+
 lemma length_in_get_all_marked_decomposition_bounded:
   assumes i:"i \<in> set (\<nu> M)"
   shows "i \<le> Suc (length M)"
@@ -664,14 +662,6 @@ proof -
   then obtain c where "M = c @ b @ a" using get_all_marked_decomposition_exists_prepend' by metis
   from arg_cong[OF this, of length] show ?thesis using i ib by auto
 qed
-
-lemma list_access_to_all_iff_set:
-  "(\<forall>i<length l. P (l ! i)) \<longleftrightarrow> (\<forall>a \<in> set l. P a)"
-  by (metis in_set_conv_nth)
-
-value "int (\<mu>\<^sub>C 3 10 [1,2])"
-thm \<mu>\<^sub>C_append[of "M" "[L]" "3" "10", simplified] \<mu>\<^sub>C_bounded_non_degenerated[of 10 M 2, simplified]
-
 lemma dpll_trail_mes_decreasing_prop:
   fixes M :: "('v, 'lvl, 'mark) annoted_lits " and N :: "'v clauses"
   assumes "dpll (M, N) (M', N')" and
@@ -739,10 +729,6 @@ next
     using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
     by (simp add: card_mono)
 
-  have min: "min ((length (get_all_marked_decomposition F)))
-                 (length (get_all_marked_decomposition (F' @ Marked K d # F)))
-             = length (get_all_marked_decomposition F)"
-    unfolding length_get_all_marked_decomposition_append_Marked by (simp add: min_def)
   obtain a b l where F: "get_all_marked_decomposition F = (a, b) # l"
     by (cases "get_all_marked_decomposition F") auto
   hence "F = b @ a"
@@ -786,7 +772,7 @@ next
       by (force simp add: o_def rem dest!: H intro: length_get_all_marked_decomposition_length)
   ultimately show ?case
     using \<mu>\<^sub>C_bounded[of "rev rem" "card (atms_of_m A)+2" "unassigned_lit A l"]
-    by (simp add: min rem \<mu>\<^sub>C_append \<mu>\<^sub>C_cons F)
+    by (simp add: rem \<mu>\<^sub>C_append \<mu>\<^sub>C_cons F)
 qed
 
 lemma dpll_wf:
