@@ -2,6 +2,7 @@ theory Propo_CDCL2
 imports Partial_Annotated_Clausal_Logic List_More "../Bachmair_Ganzinger/Lazy_List_Limit"
 
 begin
+sledgehammer_params[verbose] 
 
 type_synonym ('v, 'lvl, 'mark) cdcl_state = "('v, 'lvl, 'mark) annoted_lits \<times> 'v clauses"
 
@@ -292,9 +293,9 @@ lemma length_get_all_marked_decomposition_append_Marked:
 
 lemma take_length_get_all_marked_decomposition_marked_sandwich:
   "take (length (get_all_marked_decomposition F))
-      (map (unassigned_lit A o snd) (rev (get_all_marked_decomposition (F' @ Marked K d # F))))
+      (map (f o snd) (rev (get_all_marked_decomposition (F' @ Marked K d # F))))
       =
-     map (unassigned_lit A o snd) (rev (get_all_marked_decomposition F))
+     map (f o snd) (rev (get_all_marked_decomposition F))
     "
 proof (induction F' rule: marked_lit_list_induct)
   case nil
@@ -475,10 +476,9 @@ next
      using F_le_A by simp
   show ?case
     apply (simp add: min)
-    using take_length_get_all_marked_decomposition_marked_sandwich[of F A F' K d]
+    using take_length_get_all_marked_decomposition_marked_sandwich[of F "unassigned_lit A" F' K d]
     by (auto simp add: F latm lexord_def lex_conv)
 qed
-subsection \<open>Another try\<close>
 
 subsection \<open>A slightly different presentation of the invariant: we complete the list instead of 
   taking only some of the elements\<close>
@@ -589,7 +589,7 @@ next
   obtain rem where
     rem:"(map (unassigned_lit A \<circ> snd) (rev (get_all_marked_decomposition (F' @ Marked K d # F)))) 
     = map (unassigned_lit A \<circ> snd) (rev (get_all_marked_decomposition F)) @ rem"
-    using take_length_get_all_marked_decomposition_marked_sandwich[of F A F' K d]
+    using take_length_get_all_marked_decomposition_marked_sandwich[of F "unassigned_lit A" F' K d]
     by (metis append_take_drop_id)
   show ?case
     by (auto simp add: min rem F latm lexord_def lex_conv)
@@ -612,5 +612,335 @@ lemma wf_bounded_distinct_different2_lexord:
   unfolding all_bounded_list_different2_def
   apply (rule wf_fst_wf_pair)
   by (rule wf_subset[OF wf_bounded_distinct_lexord[of "Suc p" "Suc m"]]) auto
+  
+subsection \<open>Using a proper measure\<close>  
+definition \<mu>\<^sub>C  :: "nat \<Rightarrow> nat \<Rightarrow> nat list \<Rightarrow> nat" where
+"\<mu>\<^sub>C s b M \<equiv> (\<Sum> i =0..<length M. M!i * b^ (s +i - length M))"
 
+lemma \<mu>\<^sub>C_nil[simp]:
+  "\<mu>\<^sub>C s b [] = 0"
+  unfolding \<mu>\<^sub>C_def by auto
+  
+lemma \<mu>\<^sub>C_single[simp]:
+  "\<mu>\<^sub>C s b [L] = L * b ^ (s - Suc 0)"
+  unfolding \<mu>\<^sub>C_def by auto
+  
+lemma set_sum_atLeastLessThan_add:
+  "(\<Sum>i=k..<k+(b::nat). f i) = (\<Sum>i=0..<b. f (k+ i))"
+  by (induction b) auto
+
+lemma set_sum_atLeastLessThan_Suc:
+  "(\<Sum>i=1..<Suc j. f i) = (\<Sum>i=0..<j. f (Suc i))"
+  using set_sum_atLeastLessThan_add[of _ 1 j] by auto
+
+lemma \<mu>\<^sub>C_cons:
+  "\<mu>\<^sub>C s b (L # M) = L * b ^ (s - 1 - length M) + \<mu>\<^sub>C s b M"
+proof -
+  have "\<mu>\<^sub>C s b (L # M) = (\<Sum> i =0..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
+    unfolding \<mu>\<^sub>C_def by blast
+  also have "\<dots> = (\<Sum> i =0..<1. (L#M)!i * b^ (s +i - length (L#M)))
+                 + (\<Sum> i =1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
+     by (smt Nat.le_iff_add One_nat_def add.commute le0 list.size(4) setsum_add_nat_ivl)
+  finally have "\<mu>\<^sub>C s b (L # M)= L * b ^ (s - 1 - length M) 
+                  + (\<Sum> i = 1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
+     by auto
+  moreover {
+    have "(\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M))) =
+           (\<Sum>i=0..<length (M). (L#M)!(Suc i) * b^ (s + (Suc i) - length (L#M)))"
+     unfolding length_Cons set_sum_atLeastLessThan_Suc by blast
+    also have " \<dots> = (\<Sum>i=0..<length (M). M!i * b^ (s + i - length M))"
+      by auto
+    finally have "(\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M))) = \<mu>\<^sub>C s b M"
+      unfolding \<mu>\<^sub>C_def .
+    }
+  ultimately show ?thesis by presburger
+qed    
+
+
+lemma \<mu>\<^sub>C_append:
+  assumes "s \<ge> length (M @ M')"
+  shows "\<mu>\<^sub>C s b (M @ M') = \<mu>\<^sub>C (s - length M') b M + \<mu>\<^sub>C s b M'"
+proof -
+  have "\<mu>\<^sub>C s b (M @ M') = (\<Sum> i =0..<length (M @ M'). (M @ M')!i * b^ (s +i - length (M @ M')))"
+    unfolding \<mu>\<^sub>C_def by blast
+  moreover hence "\<dots> = (\<Sum>i =0..< length M. (M @ M')!i * b^ (s +i - length (M @ M')))
+                 + (\<Sum>i =length M..<length (M @ M'). (M @ M')!i * b^ (s +i - length (M @ M')))"
+    unfolding length_append by (smt Nat.le_iff_add One_nat_def add.commute le0 list.size(4)
+      setsum_add_nat_ivl)
+  moreover 
+    have "\<forall>i\<in>{0..< length M}. (M @ M')!i * b^ (s +i - length (M @ M')) = M ! i * b ^ (s - length M'
+      + i - length M)"
+      using \<open>s \<ge> length (M @ M')\<close> by (auto simp add: nth_append ac_simps)
+    hence "\<mu>\<^sub>C (s - length M') b M = (\<Sum>i=0..< length M. (M @ M')!i * b^ (s +i - length (M @ M')))"  
+      unfolding \<mu>\<^sub>C_def by auto
+  ultimately have "\<mu>\<^sub>C s b (M @ M')= \<mu>\<^sub>C (s - length M') b M
+                  + (\<Sum> i =length M..<length (M @ M'). (M @ M')!i * b^ (s +i - length (M @ M')))"
+     by auto
+  moreover {
+    have "(\<Sum>i =length M..<length (M @ M'). (M @ M')!i * b^ (s +i - length (M @ M'))) =
+           (\<Sum>i=0..<length M'. M'!i * b^ (s + i - length M'))"
+     unfolding length_append set_sum_atLeastLessThan_add by auto
+    hence "(\<Sum>i =length M..<length (M @ M'). (M @ M')!i * b^ (s +i - length (M @ M'))) = \<mu>\<^sub>C s b M'"
+      unfolding \<mu>\<^sub>C_def .
+    }
+  ultimately show ?thesis by presburger
+qed    
+
+lemma \<mu>\<^sub>C_cons_non_empty_inf:
+  assumes M_ge_1: "\<forall>i\<in>set M. i \<ge> 1" and M: "M \<noteq> []"
+  shows "\<mu>\<^sub>C s b M \<ge> b ^  (s - length M)"
+  using assms by (cases M) (auto simp: mult_eq_if \<mu>\<^sub>C_cons)
+
+text \<open>Duplicate of "~~/src/HOL/ex/NatSum.thy"\<close>
+lemma sum_of_powers: "0 < k \<Longrightarrow> (k - 1) * (\<Sum>i=0..<n. k^i) = k^n - (1::nat)"
+ by (induct n) (auto simp add: Nat.nat_distrib)
+
+text \<open>We add 1 to count the marked literal\<close>
+abbreviation \<nu> where
+"\<nu> M \<equiv> map ((\<lambda>l. 1 + length l) o snd) (get_all_marked_decomposition M)"
+
+text \<open>In the degenerated cases, we only have the large inequality holds. In the other cases, the 
+  following strict inequality holds:\<close>
+lemma \<mu>\<^sub>C_bounded_non_degenerated:
+  fixes b ::nat
+  assumes
+    "b > 0" and
+    "M \<noteq> []" and
+    M_le: "\<forall>i < length M. M!i < b" and
+    "s \<ge> length M"
+  shows "\<mu>\<^sub>C s b M < b^s"
+proof -
+  consider (b1) "b= 1" | (b) "b>1" using \<open>b>0\<close> by (cases b) auto
+  thus ?thesis
+    proof cases
+      case b1
+      hence "\<forall>i < length M. M!i = 0" using M_le by auto
+      hence "\<mu>\<^sub>C s b M = 0" unfolding \<mu>\<^sub>C_def by auto
+      thus ?thesis using \<open>b > 0\<close> by auto
+    next
+      case b
+      have "\<forall> i \<in> {0..<length M}. M!i * b^ (s +i - length M) \<le> (b-1) * b^ (s +i - length M)"
+        using M_le \<open>b > 1\<close> by auto
+      hence "\<mu>\<^sub>C s b M \<le>  (\<Sum> i =0..<length M. (b-1) * b^ (s +i - length M))"
+         using \<open>M\<noteq>[]\<close> \<open>b>0\<close> unfolding \<mu>\<^sub>C_def by (auto intro: setsum_mono)
+      also 
+        have "\<forall> i \<in> {0..<length M}. (b-1) * b^ (s +i - length M) = (b-1) * b^ i * b^(s - length M)"
+          by (metis Nat.add_diff_assoc2 add.commute assms(4) mult.assoc power_add)
+        hence "(\<Sum>i =0..<length M. (b-1) * b^ (s +i - length M)) 
+          = (\<Sum>i =0..<length M. (b-1)* b^ i * b^(s - length M))"
+          by (auto simp add: ac_simps)
+      also have "\<dots> = (\<Sum>i =0..<length M. b^ i) * b^(s - length M) * (b-1)"
+         by (simp add: setsum_left_distrib setsum_right_distrib ac_simps)
+      finally have "\<mu>\<^sub>C s b M \<le> (\<Sum>i =0..<length M. b^ i) * (b-1) * b^(s - length M)" 
+        by (simp add: ac_simps)
+        
+      also
+        have "(\<Sum>i =0..<length M. b^ i)* (b-1) = b ^ (length M) - 1"
+          using sum_of_powers[of b "length M"] \<open>b>1\<close>
+          by (auto simp add: ac_simps)
+      finally have "\<mu>\<^sub>C s b M \<le> (b ^ (length M) - 1) * b ^ (s - length M)"
+        by auto
+      also have "\<dots> < b ^ (length M) * b ^ (s - length M)"
+        using \<open>b>1\<close> by auto
+      also have "\<dots> = b ^ s"
+        by (metis assms(4) le_add_diff_inverse power_add)
+      finally show ?thesis unfolding \<mu>\<^sub>C_def by (auto simp add: ac_simps)
+    qed   
+qed
+
+text \<open> In the degenerate case @{term "b=0"}, the list @{term M} is empty (since the list cannot 
+  contain any element).\<close>
+lemma \<mu>\<^sub>C_bounded:
+  fixes b ::nat
+  assumes
+    M_le: "\<forall>i < length M. M!i < b" and
+    "s \<ge> length M"
+    "b > 0"
+  shows "\<mu>\<^sub>C s b M < b ^ s"
+proof -
+  consider (M0) "M = []" | (M) "b > 0" and "M \<noteq> []"
+    using M_le by (cases b, cases M) auto
+  thus ?thesis
+    proof cases
+      case M0
+      thus ?thesis using M_le \<open>b > 0\<close> by auto
+    next
+      case M
+      show ?thesis using \<mu>\<^sub>C_bounded_non_degenerated[OF M assms(1,2)] by arith
+    qed
+qed
+lemma \<mu>\<^sub>C_base_is_0:
+  "(\<Sum>i = 0..<n. M ! i * (0::nat) ^ i) \<le> M ! 0"
+  unfolding \<mu>\<^sub>C_def apply (induction n rule: nat_induct)
+  apply simp
+  apply (case_tac n, auto)
+  done
+lemma 
+  assumes "length M \<le> s"
+  shows "\<mu>\<^sub>C s 0 M \<le> M!0"  
+proof -
+  {
+    assume "s = length M"
+    moreover {
+      fix n
+      have "(\<Sum>i = 0..<n. M ! i * (0::nat) ^ i) \<le> M ! 0"
+        apply (induction n rule: nat_induct)
+        apply simp
+        apply (case_tac n, auto)
+        done
+    }
+    ultimately have ?thesis unfolding \<mu>\<^sub>C_def by auto
+  }
+  moreover 
+  {
+    assume "length M < s"
+    hence "\<mu>\<^sub>C s 0 M = 0" unfolding \<mu>\<^sub>C_def by auto}
+  ultimately show ?thesis using assms unfolding \<mu>\<^sub>C_def by linarith
+qed
+lemma length_in_get_all_marked_decomposition_bounded:
+  assumes i:"i \<in> set (\<nu> M)"
+  shows "i \<le> Suc (length M)"
+proof -
+  obtain a b where 
+    "(a, b) \<in> set (get_all_marked_decomposition M)" and
+    ib: "i = Suc (length b)"
+    using i by auto
+  then obtain c where "M = c @ b @ a" using get_all_marked_decomposition_exists_prepend' by metis
+  from arg_cong[OF this, of length] show ?thesis using i ib by auto
+qed
+  
+lemma list_access_to_all_iff_set:
+  "(\<forall>i<length l. P (l ! i)) \<longleftrightarrow> (\<forall>a \<in> set l. P a)" 
+  by (metis in_set_conv_nth)
+
+value "int (\<mu>\<^sub>C 3 10 [1,2])"
+thm \<mu>\<^sub>C_append[of "M" "[L]" "3" "10", simplified] \<mu>\<^sub>C_bounded_non_degenerated[of 10 M 2, simplified]
+
+lemma dpll_trail_mes_decreasing_prop:
+  fixes M :: "('v, 'lvl, 'mark) annoted_lits " and N :: "'v clauses"
+  assumes "dpll (M, N) (M', N')" and
+  "atms_of_m N \<subseteq> atms_of_m A" and
+  "atm_of ` lits_of M \<subseteq> atms_of_m A" and
+  "no_dup M" and
+  finite: "finite A" and
+  at_least_one_lit[simp]: "0 < card (atms_of_m A)"
+  shows "\<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> M') > \<mu>\<^sub>C (1+card (atms_of_m A)) 
+    (2+card (atms_of_m A)) (\<nu> M)"
+  using assms
+proof (induction rule: dpll_all_induct)
+  case (propagate C L N M d) note CLN = this(1) and MC =this(2) and undef_L = this(3) and
+    A = this(4) and MA = this(5)
+  have "atms_of_m N' \<subseteq> atms_of_m A"
+    using assms(1) assms(2) dpll_atms_of_m_clauses_inv by blast
+  have incl: "atm_of ` lits_of (Propagated L d # M) \<subseteq> atms_of_m A"
+    using dpll_atms_in_trail_in_set bj_propagate propagate.propagate[OF propagate.hyps] A MA
+    by blast
+
+  have no_dup: "no_dup (Propagated L d # M)"
+    using defined_lit_map propagate.prems(3) undef_L by auto
+  obtain a b l where M: "get_all_marked_decomposition M = (a, b) # l"
+    by (case_tac "get_all_marked_decomposition M") auto
+  have b_le_M: "length b \<le> length M"
+    using get_all_marked_decomposition_decomp[of M] by (simp add: M)
+  have "finite (atms_of_m A)" using finite by simp
+
+  hence "length (Propagated L d # M) \<le>  card (atms_of_m A)"
+    using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
+    by (simp add: card_mono)
+  hence latm: "unassigned_lit A b = Suc (unassigned_lit A (Propagated L d # b))"
+    using b_le_M by force
+  thus ?case by (auto simp: latm M \<mu>\<^sub>C_cons)
+next
+  case (decide L M N lv) note undef_L = this(1) and MC =this(2) and NA = this(3) and A = this(4)
+    and MA = this(5)
+  have "atms_of_m N' \<subseteq> atms_of_m A"
+    using assms(1) assms(2) dpll_atms_of_m_clauses_inv by blast
+  have incl: "atm_of ` lits_of (Marked L lv # M) \<subseteq> atms_of_m A"
+    using dpll_atms_in_trail_in_set bj_decide decide.decide[OF decide.hyps] A MA  NA by blast
+
+  have no_dup: "no_dup (Marked L lv # M)"
+    using defined_lit_map decide.prems(3) undef_L by auto
+  obtain a b l where M: "get_all_marked_decomposition M = (a, b) # l"
+    by (case_tac "get_all_marked_decomposition M") auto
+  have b_le_M: "length b \<le> length M"
+    using get_all_marked_decomposition_decomp[of M] by (simp add: M)
+  have "finite (atms_of_m A)" using finite by simp
+
+  hence "length (Marked L lv # M) \<le> card (atms_of_m A)"
+    using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
+    by (simp add: card_mono)
+  hence latm: "unassigned_lit A M = Suc (unassigned_lit A (Marked L lv # M))"
+    using b_le_M by force
+  show ?case by (simp add: latm \<mu>\<^sub>C_cons)
+next
+  case (backjump C N F' K d F L _ lv) note undef_L = this(1) and MC =this(2) and NA = this(3)
+    and A = this(4) and MA = this(5) and nd = this(8)
+  have "atms_of_m N' \<subseteq> atms_of_m A"
+    using assms(1) assms(2) dpll_atms_of_m_clauses_inv by blast
+  have incl: "atm_of ` lits_of (Propagated L lv # F) \<subseteq> atms_of_m A"
+    using dpll_atms_in_trail_in_set backjump.hyps(4) backjump.prems(1) backjump.prems(2) by auto
+
+  have no_dup: "no_dup (Propagated L lv # F)"
+    using bj_backjump backjump.backjump[OF backjump.hyps] dpll_no_dup nd by blast
+  obtain a b l where M: "get_all_marked_decomposition M = (a, b) # l"
+    by (case_tac "get_all_marked_decomposition M") auto
+  have b_le_M: "length b \<le> length M"
+    using get_all_marked_decomposition_decomp[of M] by (simp add: M)
+  have "finite (atms_of_m A)" using finite by simp
+
+  hence F_le_A: "length (Propagated L lv # F) \<le>  card (atms_of_m A)"
+    using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
+    by (simp add: card_mono)
+
+  have min: "min ((length (get_all_marked_decomposition F)))
+                 (length (get_all_marked_decomposition (F' @ Marked K d # F)))
+             = length (get_all_marked_decomposition F)"
+    unfolding length_get_all_marked_decomposition_append_Marked by (simp add: min_def)
+
+  obtain a b l where F: "get_all_marked_decomposition F = (a, b) # l"
+    by (cases "get_all_marked_decomposition F") auto
+
+  hence "F = b @ a"
+    using get_all_marked_decomposition_decomp[of "Propagated L lv # F" a "Propagated L lv # b"]
+      by simp
+  hence latm: "unassigned_lit A b = Suc (unassigned_lit A (Propagated L lv # b))"
+     using F_le_A by simp
+  obtain rem where
+    rem:"(map (\<lambda>a. Suc (length (snd a))) (rev (get_all_marked_decomposition (F' @ Marked K d # F)))) 
+    = map (\<lambda>a. Suc (length (snd a))) (rev (get_all_marked_decomposition F)) @ rem"
+    using take_length_get_all_marked_decomposition_marked_sandwich[of F "\<lambda>a. Suc (length a)" F' K d]
+    unfolding o_def
+    by (metis append_take_drop_id)    
+  hence rem: "map (\<lambda>a. Suc (length (snd a))) ((get_all_marked_decomposition (F' @ Marked K d # F))) 
+    = rev rem @ map (\<lambda>a. Suc (length (snd a))) ((get_all_marked_decomposition F))"
+    by (simp add: rev_map[symmetric] rev_swap)
+  have "length (rev rem @ map (\<lambda>a. Suc (length (snd a))) (get_all_marked_decomposition F)) 
+          \<le> Suc (card (atms_of_m A))"
+    by (smt One_nat_def `finite (atms_of_m A)` add_Suc backjump.prems(2) card_mono 
+      distinctlength_eq_card_atm_of_lits_of dual_order.trans le_imp_less_Suc 
+      length_get_all_marked_decomposition_length length_map less_eq_Suc_le nd plus_nat.add_0 rem)
+  moreover have A: "length (Suc (Suc (length (snd (hd (get_all_marked_decomposition F))))) 
+                      # map (\<lambda>a. Suc (length (snd a))) (tl (get_all_marked_decomposition F))) 
+                    \<le> Suc (card (atms_of_m A))" 
+    by (metis F F_le_A One_nat_def add_Suc dual_order.trans le_SucI length_Cons 
+      length_get_all_marked_decomposition_length length_map list.sel(3) plus_nat.add_0)
+  moreover have "length (rev rem) \<le> unassigned_lit A l"
+    using F calculation(1) by auto
+  moreover 
+    { fix i ::nat and  xs :: "'a list"
+      have "i < length xs \<Longrightarrow> length xs - Suc i < length xs"
+        by auto
+      hence H: "i<length xs \<Longrightarrow> rev xs ! i \<in> set xs"
+        using rev_nth[of i xs] unfolding in_set_conv_nth  by (force simp add: in_set_conv_nth)
+    } note H = this
+    have "length (F' @ Marked K d # F)\<le> card (atms_of_m A)"
+      by (metis `finite (atms_of_m A)` backjump.prems(2) distinctlength_eq_card_atm_of_lits_of nd
+        card_mono)
+    hence "\<forall>i<length rem. rev rem ! i < card (atms_of_m A) + 2"
+      using length_in_get_all_marked_decomposition_bounded[of _ "F' @ Marked K d # F"] 
+      by (force simp add: o_def rem dest!: H intro: length_get_all_marked_decomposition_length) 
+  ultimately show ?case
+    using \<mu>\<^sub>C_bounded[of "rev rem" "card (atms_of_m A)+2" "unassigned_lit A l"]
+    by (simp add: min rem \<mu>\<^sub>C_append \<mu>\<^sub>C_cons F)
+qed
 end
