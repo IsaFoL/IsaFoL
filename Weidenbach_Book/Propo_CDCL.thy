@@ -669,7 +669,8 @@ next
   show ?case unfolding all_decomposition_implies_def
     proof
       fix x
-      assume "x \<in> set (get_all_marked_decomposition (trail (Propagated L (D + {#L#}) # M1, N, U \<union> {D + {#L#}}, i, C_True)))"
+      assume "x \<in> set (get_all_marked_decomposition (trail (Propagated L (D + {#L#}) # M1, N, 
+        U \<union> {D + {#L#}}, i, C_True)))"
       hence x: "x \<in> set (get_all_marked_decomposition (Propagated L (D + {#L#}) # M1))" by simp
       let ?m = "get_all_marked_decomposition (Propagated L (D + {#L#}) # M1)"
       let ?hd = "hd ?m"
@@ -680,15 +681,19 @@ next
         assume "x \<in> set ?tl"
         hence "x \<in> set (get_all_marked_decomposition M)"
           using tl_get_all_marked_decomposition_skip_some[of x] by (simp add: list.set_sel(2) M)
-        hence "case x of (Ls, seen) \<Rightarrow> (\<lambda>a. {#lit_of a#}) ` set Ls \<union> clauses (Propagated L (D + {#L#}) # M1, N, U \<union> {D + {#L#}}, i, C_True) \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen"
+        hence "case x of (Ls, seen) \<Rightarrow> (\<lambda>a. {#lit_of a#}) ` set Ls 
+                \<union> clauses (Propagated L (D + {#L#}) # M1, N, U \<union> {D + {#L#}}, i, C_True) 
+                \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen"
           using `x \<in> set ?m` backtrack.prems(1) unfolding all_decomposition_implies_def M by simp
       }
       moreover {
         assume "x = ?hd"
-        obtain M1' M1'' where M1: "hd (get_all_marked_decomposition M1) = (M1', M1'')" by (case_tac "hd (get_all_marked_decomposition M1)")
+        obtain M1' M1'' where M1: "hd (get_all_marked_decomposition M1) = (M1', M1'')"
+          by (cases "hd (get_all_marked_decomposition M1)")
         hence x': "x = (M1', Propagated L (D + {#L#}) # M1'')" using `x= ?hd` by auto
         have "(M1', M1'') \<in> set (get_all_marked_decomposition M)"
-          using M1[symmetric] hd_get_all_marked_decomposition_skip_some[OF M1[symmetric], of "M0 @ M2" _ "i+1"] unfolding M by fastforce
+          using M1[symmetric] hd_get_all_marked_decomposition_skip_some[OF M1[symmetric], 
+            of "M0 @ M2" _ "i+1"] unfolding M by fastforce
         hence 1: "(\<lambda>a. {#lit_of a#}) ` set M1' \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M1''"
           using backtrack.prems(1) unfolding all_decomposition_implies_def by auto
         moreover
@@ -697,16 +702,21 @@ next
             unfolding lits_of_def atms_of_def
             by (meson image_subsetI mem_set_mset_iff true_annots_CNot_all_atms_defined)
           have vars_of_D: "atms_of D \<subseteq> atm_of ` lit_of ` set M1"
-            using backtrack_atms_of_D_in_M1[OF backtracking[OF _ backtrack.hyps] backtrack.prems(3) backtrack.prems(4)] by auto
+            using backtrack_atms_of_D_in_M1[OF backtracking[OF _ backtrack.hyps]
+              backtrack.prems(3,4)] by auto
           have "no_dup M" using backtrack.prems(4) by auto
-          hence vars_in_M1: "\<forall>x \<in> atms_of D. x \<notin> atm_of ` lit_of ` set (M0 @ M2 @ Marked K (i + 1) # [])"
-            using vars_of_D distinct_atms_of_incl_not_in_other[of "M0 @M2 @ Marked K (i + 1) # []" M1]
+          hence vars_in_M1: 
+            "\<forall>x \<in> atms_of D. x \<notin> atm_of ` lit_of ` set (M0 @ M2 @ Marked K (i + 1) # [])"
+            using vars_of_D distinct_atms_of_incl_not_in_other[of "M0 @M2 @ Marked K (i + 1) # []" 
+              M1]
             unfolding M by auto
           have "M1 \<Turnstile>as CNot D"
-            using vars_in_M1 true_annots_remove_if_notin_vars[of "M0 @ M2 @ Marked K (i + 1) # []" M1 "CNot D"] `M \<Turnstile>as CNot D` unfolding M lits_of_def by simp
+            using vars_in_M1 true_annots_remove_if_notin_vars[of "M0 @ M2 @ Marked K (i + 1) # []" 
+              M1 "CNot D"] `M \<Turnstile>as CNot D` unfolding M lits_of_def by simp
           have "M1 = M1'' @ M1'" by (simp add: M1 get_all_marked_decomposition_decomp)
           have TT: "(\<lambda>a. {#lit_of a#}) ` set M1' \<union> N \<Turnstile>ps CNot D"
-            using true_annots_true_clss_cls[OF `M1 \<Turnstile>as CNot D`] true_clss_clss_left_right[OF 1, of "CNot D"] unfolding `M1 = M1'' @ M1'` by (auto simp add: inf_sup_aci(5,7))
+            using true_annots_true_clss_cls[OF `M1 \<Turnstile>as CNot D`] true_clss_clss_left_right[OF 1, 
+              of "CNot D"] unfolding `M1 = M1'' @ M1'` by (auto simp add: inf_sup_aci(5,7))
           have "N \<Turnstile>p D + {#L#}"
             using cdcl.other[OF cdcl_o.backtrack]  backtrack.hyps backtrack.prems(2) by auto
           hence T: "(\<lambda>a. {#lit_of a#}) ` set M1' \<union> N \<Turnstile>p D + {#L#}" by auto
@@ -719,7 +729,9 @@ next
             \<union> clauses (Propagated L (D + {#L#}) # M1, N, U \<union> {D + {#L#}}, i, C_True)
             \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen" unfolding x' by simp
       }
-      ultimately show "case x of (Ls, seen) \<Rightarrow> (\<lambda>a. {#lit_of a#}) ` set Ls \<union> clauses (Propagated L (D + {#L#}) # M1, N, U \<union> {D + {#L#}}, i, C_True) \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen" by blast
+      ultimately show "case x of (Ls, seen) \<Rightarrow> (\<lambda>a. {#lit_of a#}) ` set Ls 
+           \<union> clauses (Propagated L (D + {#L#}) # M1, N, U \<union> {D + {#L#}}, i, C_True) 
+         \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen" by blast
     qed
 qed
 
@@ -3108,7 +3120,8 @@ lemma full_cdcl_s_normal_forms:
   assumes full: "full0 cdcl_s (S0_cdcl N) S'"
   and no_d: "distinct_mset_set N"
   and finite: "finite (clauses (S0_cdcl N))"
-  shows "(conflicting S' = C_Clause {#} \<and> unsatisfiable (clauses S')) \<or> (conflicting S' = C_True \<and> trail S' \<Turnstile>as clauses S')"                          
+  shows "(conflicting S' = C_Clause {#} \<and> unsatisfiable (clauses S')) 
+    \<or> (conflicting S' = C_True \<and> trail S' \<Turnstile>as clauses S')"                          
   using assms full_cdcl_s_normal_forms_is_one_false full_cdcl_s_normal_forms_non_false by blast
 
 lemma full_cdcl_s_normal_forms':
