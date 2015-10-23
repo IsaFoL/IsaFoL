@@ -85,6 +85,13 @@ lemma dpll_no_dup:
   shows "no_dup M'"
   using assms by (induction rule: dpll_all_induct) (auto simp add: defined_lit_map)
 
+lemma rtranclp_dpll_no_dup:
+  assumes "dpll\<^sup>*\<^sup>* (M, N) (M', N')"
+  and "no_dup M"
+  shows "no_dup M'"
+  using assms by (induction rule: rtranclp_induct2) (auto simp add: dpll_no_dup)
+
+  
 lemma cdcl_no_dup:
   assumes "cdcl (M, N) (M', N')"
   and "no_dup M"
@@ -124,6 +131,13 @@ lemma dpll_atms_of_m_clauses_inv:
   shows "atms_of_m N = atms_of_m N'"
   using assms by (induction rule: dpll_all_induct) auto
 
+
+lemma rtranclp_dpll_atms_of_m_clauses_inv:
+  assumes 
+    "dpll\<^sup>*\<^sup>* (M, N) (M', N')" 
+  shows "atms_of_m N = atms_of_m N'"
+  using assms by (induction rule: rtranclp_induct2) (auto dest: dpll_atms_of_m_clauses_inv)
+
 lemma dpll_atms_of_m_clauses_decreasing:
   assumes "cdcl (M, N) (M', N')"
   shows "atms_of_m N' \<subseteq> atms_of_m N"
@@ -131,10 +145,18 @@ lemma dpll_atms_of_m_clauses_decreasing:
     (auto dest!: dpll_atms_of_m_clauses_inv simp add: atms_of_m_def)
 
 lemma dpll_atms_in_trail:
-  assumes "dpll (M, N) (M', N')"
-  and "atm_of ` (lits_of M) \<subseteq> atms_of_m N"
+  assumes 
+    "dpll (M, N) (M', N')" and 
+    "atm_of ` (lits_of M) \<subseteq> atms_of_m N"
   shows "atm_of ` (lits_of M') \<subseteq> atms_of_m N'"
   using assms by (induction rule: dpll_all_induct) auto
+
+lemma rtranclp_dpll_atms_in_trail:
+  assumes 
+    "dpll\<^sup>*\<^sup>* (M, N) (M', N')" and 
+    "atm_of ` (lits_of M) \<subseteq> atms_of_m N"
+  shows "atm_of ` (lits_of M') \<subseteq> atms_of_m N'"
+  using assms by (induction rule: rtranclp_induct2) (auto simp: dpll_atms_in_trail)
 
 lemma dpll_atms_in_trail_in_set:
   assumes "dpll (M, N) (M', N')" and
@@ -142,6 +164,14 @@ lemma dpll_atms_in_trail_in_set:
   "atm_of ` (lits_of M) \<subseteq> A"
   shows "atm_of ` (lits_of M') \<subseteq> A"
   using assms by (induction rule: dpll_all_induct) auto
+
+lemma rtranclp_dpll_atms_in_trail_in_set:
+  assumes "dpll\<^sup>*\<^sup>* (M, N) (M', N')" and
+  "atms_of_m N \<subseteq> A" and
+  "atm_of ` (lits_of M) \<subseteq> A"
+  shows "atm_of ` (lits_of M') \<subseteq> A"
+  using assms by (induction rule: rtranclp_induct2) 
+    (simp_all add: dpll_atms_in_trail_in_set rtranclp_dpll_atms_of_m_clauses_inv)
 
 lemma cdcl_atms_in_trail:
   assumes "cdcl (M, N) (M', N')"
@@ -153,9 +183,10 @@ lemma cdcl_atms_in_trail:
 
 
 lemma cdcl_atms_in_trail_in_set:
-  assumes "cdcl (M, N) (M', N')" and
-  "atms_of_m N \<subseteq> A" and
-  "atm_of ` (lits_of M) \<subseteq> A"
+  assumes 
+    "cdcl (M, N) (M', N')" and
+    "atms_of_m N \<subseteq> A" and
+    "atm_of ` (lits_of M) \<subseteq> A"
   shows "atm_of ` (lits_of M') \<subseteq> A"
   using assms
   by (induction rule: cdcl_all_induct)
@@ -405,7 +436,7 @@ proof (induction rule: dpll_all_induct)
   have "finite (atms_of_m A)" using finite by simp
 
   hence "length (Propagated L d # M) \<le>  card (atms_of_m A)"
-    using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
+    using incl finite unfolding no_dup_length_eq_card_atm_of_lits_of[OF no_dup]
     by (simp add: card_mono)
   hence latm: "unassigned_lit A b = Suc (unassigned_lit A (Propagated L d # b))"
     using b_le_M by force
@@ -417,7 +448,7 @@ next
   have "atms_of_m N' \<subseteq> atms_of_m A"
     using assms(1) assms(2) dpll_atms_of_m_clauses_inv by blast
   have incl: "atm_of ` lits_of (Marked L lv # M) \<subseteq> atms_of_m A"
-    using dpll_atms_in_trail_in_set bj_decide decide.decide[OF decide.hyps] A MA  NA by blast
+    using dpll_atms_in_trail_in_set bj_decide decide.decide[OF decide.hyps] A MA NA by blast
 
   have no_dup: "no_dup (Marked L lv # M)"
     using defined_lit_map decide.prems(3) undef_L by auto
@@ -428,7 +459,7 @@ next
   have "finite (atms_of_m A)" using finite by simp
 
   hence "length (Marked L lv # M) \<le> card (atms_of_m A)"
-    using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
+    using incl finite unfolding no_dup_length_eq_card_atm_of_lits_of[OF no_dup]
     by (simp add: card_mono)
   hence latm: "unassigned_lit A M = Suc (unassigned_lit A (Marked L lv # M))"
     using b_le_M by force
@@ -450,7 +481,7 @@ next
   have "finite (atms_of_m A)" using finite by simp
 
   hence F_le_A: "length (Propagated L lv # F) \<le>  card (atms_of_m A)"
-    using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
+    using incl finite unfolding no_dup_length_eq_card_atm_of_lits_of[OF no_dup]
     by (simp add: card_mono)
 
   have min: "min ((length (get_all_marked_decomposition F)))
@@ -473,8 +504,11 @@ next
 qed
 
 subsubsection \<open>Using a proper measure\<close>
+text \<open>This measure can also be seen as the increasing lexicographic order: it is an order on bounded
+  sequences, when each element is bound. The proof involves a measure like the one defined here (the
+  same?).\<close>
 definition \<mu>\<^sub>C  :: "nat \<Rightarrow> nat \<Rightarrow> nat list \<Rightarrow> nat" where
-"\<mu>\<^sub>C s b M \<equiv> (\<Sum> i =0..<length M. M!i * b^ (s +i - length M))"
+"\<mu>\<^sub>C s b M \<equiv> (\<Sum>i=0..<length M. M!i * b^ (s +i - length M))"
 
 lemma \<mu>\<^sub>C_nil[simp]:
   "\<mu>\<^sub>C s b [] = 0"
@@ -495,19 +529,19 @@ lemma set_sum_atLeastLessThan_Suc:
 lemma \<mu>\<^sub>C_cons:
   "\<mu>\<^sub>C s b (L # M) = L * b ^ (s - 1 - length M) + \<mu>\<^sub>C s b M"
 proof -
-  have "\<mu>\<^sub>C s b (L # M) = (\<Sum> i =0..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
+  have "\<mu>\<^sub>C s b (L # M) = (\<Sum>i=0..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
     unfolding \<mu>\<^sub>C_def by blast
-  also have "\<dots> = (\<Sum> i =0..<1. (L#M)!i * b^ (s +i - length (L#M)))
-                 + (\<Sum> i =1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
+  also have "\<dots> = (\<Sum>i=0..<1. (L#M)!i * b^ (s +i - length (L#M)))
+                 + (\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
      by (smt Nat.le_iff_add One_nat_def add.commute le0 list.size(4) setsum_add_nat_ivl)
   finally have "\<mu>\<^sub>C s b (L # M)= L * b ^ (s - 1 - length M)
-                  + (\<Sum> i = 1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
+                  + (\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
      by auto
   moreover {
     have "(\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M))) =
            (\<Sum>i=0..<length (M). (L#M)!(Suc i) * b^ (s + (Suc i) - length (L#M)))"
      unfolding length_Cons set_sum_atLeastLessThan_Suc by blast
-    also have " \<dots> = (\<Sum>i=0..<length (M). M!i * b^ (s + i - length M))"
+    also have "\<dots> = (\<Sum>i=0..<length (M). M!i * b^ (s + i - length M))"
       by auto
     finally have "(\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M))) = \<mu>\<^sub>C s b M"
       unfolding \<mu>\<^sub>C_def .
@@ -517,29 +551,29 @@ qed
 
 
 lemma \<mu>\<^sub>C_append:
-  assumes "s \<ge> length (M @ M')"
-  shows "\<mu>\<^sub>C s b (M @ M') = \<mu>\<^sub>C (s - length M') b M + \<mu>\<^sub>C s b M'"
+  assumes "s \<ge> length (M@M')"
+  shows "\<mu>\<^sub>C s b (M@M') = \<mu>\<^sub>C (s - length M') b M + \<mu>\<^sub>C s b M'"
 proof -
-  have "\<mu>\<^sub>C s b (M @ M') = (\<Sum> i =0..<length (M @ M'). (M @ M')!i * b^ (s +i - length (M @ M')))"
+  have "\<mu>\<^sub>C s b (M@M') = (\<Sum>i=0..<length (M@M'). (M@M')!i * b^ (s +i - length (M@M')))"
     unfolding \<mu>\<^sub>C_def by blast
-  moreover hence "\<dots> = (\<Sum>i =0..< length M. (M @ M')!i * b^ (s +i - length (M @ M')))
-                 + (\<Sum>i =length M..<length (M @ M'). (M @ M')!i * b^ (s +i - length (M @ M')))"
+  moreover hence "\<dots> = (\<Sum>i=0..< length M. (M@M')!i * b^ (s +i - length (M@M')))
+                 + (\<Sum>i=length M..<length (M@M'). (M@M')!i * b^ (s +i - length (M@M')))"
     unfolding length_append by (smt Nat.le_iff_add One_nat_def add.commute le0 list.size(4)
       setsum_add_nat_ivl)
   moreover
-    have "\<forall>i\<in>{0..< length M}. (M @ M')!i * b^ (s +i - length (M @ M')) = M ! i * b ^ (s - length M'
+    have "\<forall>i\<in>{0..< length M}. (M@M')!i * b^ (s +i - length (M@M')) = M ! i * b ^ (s - length M'
       + i - length M)"
-      using \<open>s \<ge> length (M @ M')\<close> by (auto simp add: nth_append ac_simps)
-    hence "\<mu>\<^sub>C (s - length M') b M = (\<Sum>i=0..< length M. (M @ M')!i * b^ (s +i - length (M @ M')))"
+      using \<open>s \<ge> length (M@M')\<close> by (auto simp add: nth_append ac_simps)
+    hence "\<mu>\<^sub>C (s - length M') b M = (\<Sum>i=0..< length M. (M@M')!i * b^ (s +i - length (M@M')))"
       unfolding \<mu>\<^sub>C_def by auto
-  ultimately have "\<mu>\<^sub>C s b (M @ M')= \<mu>\<^sub>C (s - length M') b M
-                  + (\<Sum> i =length M..<length (M @ M'). (M @ M')!i * b^ (s +i - length (M @ M')))"
+  ultimately have "\<mu>\<^sub>C s b (M@M')= \<mu>\<^sub>C (s - length M') b M
+                  + (\<Sum>i=length M..<length (M@M'). (M@M')!i * b^ (s +i - length (M@M')))"
      by auto
   moreover {
-    have "(\<Sum>i =length M..<length (M @ M'). (M @ M')!i * b^ (s +i - length (M @ M'))) =
+    have "(\<Sum>i=length M..<length (M@M'). (M@M')!i * b^ (s +i - length (M@M'))) =
            (\<Sum>i=0..<length M'. M'!i * b^ (s + i - length M'))"
      unfolding length_append set_sum_atLeastLessThan_add by auto
-    hence "(\<Sum>i =length M..<length (M @ M'). (M @ M')!i * b^ (s +i - length (M @ M'))) = \<mu>\<^sub>C s b M'"
+    hence "(\<Sum>i=length M..<length (M@M'). (M@M')!i * b^ (s +i - length (M@M'))) = \<mu>\<^sub>C s b M'"
       unfolding \<mu>\<^sub>C_def .
     }
   ultimately show ?thesis by presburger
@@ -552,7 +586,7 @@ lemma \<mu>\<^sub>C_cons_non_empty_inf:
 
 text \<open>Duplicate of "~~/src/HOL/ex/NatSum.thy"\<close>
 lemma sum_of_powers: "0 < k \<Longrightarrow> (k - 1) * (\<Sum>i=0..<n. k^i) = k^n - (1::nat)"
- by (induct n) (auto simp add: Nat.nat_distrib)
+  by (induct n) (auto simp add: Nat.nat_distrib)
 
 text \<open>We add 1 to count the marked literal\<close>
 abbreviation \<nu> where
@@ -580,21 +614,21 @@ proof -
       case b
       have "\<forall> i \<in> {0..<length M}. M!i * b^ (s +i - length M) \<le> (b-1) * b^ (s +i - length M)"
         using M_le \<open>b > 1\<close> by auto
-      hence "\<mu>\<^sub>C s b M \<le>  (\<Sum> i =0..<length M. (b-1) * b^ (s +i - length M))"
+      hence "\<mu>\<^sub>C s b M \<le>  (\<Sum>i=0..<length M. (b-1) * b^ (s +i - length M))"
          using \<open>M\<noteq>[]\<close> \<open>b>0\<close> unfolding \<mu>\<^sub>C_def by (auto intro: setsum_mono)
       also
         have "\<forall> i \<in> {0..<length M}. (b-1) * b^ (s +i - length M) = (b-1) * b^ i * b^(s - length M)"
           by (metis Nat.add_diff_assoc2 add.commute assms(4) mult.assoc power_add)
-        hence "(\<Sum>i =0..<length M. (b-1) * b^ (s +i - length M))
-          = (\<Sum>i =0..<length M. (b-1)* b^ i * b^(s - length M))"
+        hence "(\<Sum>i=0..<length M. (b-1) * b^ (s +i - length M))
+          = (\<Sum>i=0..<length M. (b-1)* b^ i * b^(s - length M))"
           by (auto simp add: ac_simps)
-      also have "\<dots> = (\<Sum>i =0..<length M. b^ i) * b^(s - length M) * (b-1)"
+      also have "\<dots> = (\<Sum>i=0..<length M. b^ i) * b^(s - length M) * (b-1)"
          by (simp add: setsum_left_distrib setsum_right_distrib ac_simps)
-      finally have "\<mu>\<^sub>C s b M \<le> (\<Sum>i =0..<length M. b^ i) * (b-1) * b^(s - length M)"
+      finally have "\<mu>\<^sub>C s b M \<le> (\<Sum>i=0..<length M. b^ i) * (b-1) * b^(s - length M)"
         by (simp add: ac_simps)
 
       also
-        have "(\<Sum>i =0..<length M. b^ i)* (b-1) = b ^ (length M) - 1"
+        have "(\<Sum>i=0..<length M. b^ i)* (b-1) = b ^ (length M) - 1"
           using sum_of_powers[of b "length M"] \<open>b>1\<close>
           by (auto simp add: ac_simps)
       finally have "\<mu>\<^sub>C s b M \<le> (b ^ (length M) - 1) * b ^ (s - length M)"
@@ -629,7 +663,8 @@ proof -
     qed
 qed
 
-text \<open>When @{term "b=0"}, we cannot show that the measure is empty, since @{term "0^0 = 1"}.\<close>
+text \<open>When @{term "b=(0::nat)"}, we cannot show that the measure is empty, since @{term "0^0 = 
+  (1::nat)"}.\<close>
 lemma \<mu>\<^sub>C_base_0:
   assumes "length M \<le> s"
   shows "\<mu>\<^sub>C s 0 M \<le> M!0"
@@ -638,7 +673,7 @@ proof -
     assume "s = length M"
     moreover {
       fix n
-      have "(\<Sum>i = 0..<n. M ! i * (0::nat) ^ i) \<le> M ! 0"
+      have "(\<Sum>i=0..<n. M ! i * (0::nat) ^ i) \<le> M ! 0"
         apply (induction n rule: nat_induct)
         by simp (case_tac n, auto)
     }
@@ -662,6 +697,16 @@ proof -
   then obtain c where "M = c @ b @ a" using get_all_marked_decomposition_exists_prepend' by metis
   from arg_cong[OF this, of length] show ?thesis using i ib by auto
 qed
+
+text \<open>The bounds are the following:
+  \<^item> @{term "1+card (atms_of_m A)"} is an upper bound on the length of the list. As
+  @{term get_all_marked_decomposition} appends an possibly empty couple at the end, adding one is
+  needed.
+  \<^item> @{term "2+card (atms_of_m A)"}  is an strict upper bound on the number of elements, where adding
+  one is necessary for the same reason as for the bound on the list, and one is needed to have a
+  strict bound.
+  \<close>
+
 lemma dpll_trail_mes_decreasing_prop:
   fixes M :: "('v, 'lvl, 'mark) annoted_lits " and N :: "'v clauses"
   assumes "dpll (M, N) (M', N')" and
@@ -690,7 +735,7 @@ proof (induction rule: dpll_all_induct)
   have "finite (atms_of_m A)" using finite by simp
 
   hence "length (Propagated L d # M) \<le> card (atms_of_m A)"
-    using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
+    using incl finite unfolding no_dup_length_eq_card_atm_of_lits_of[OF no_dup]
     by (simp add: card_mono)
   hence latm: "unassigned_lit A b = Suc (unassigned_lit A (Propagated L d # b))"
     using b_le_M by force
@@ -699,7 +744,7 @@ next
   case (decide L M N lv) note undef_L = this(1) and MC =this(2) and NA = this(3) and A = this(4)
     and MA = this(5)
   have incl: "atm_of ` lits_of (Marked L lv # M) \<subseteq> atms_of_m A"
-    using dpll_atms_in_trail_in_set bj_decide decide.decide[OF decide.hyps] A MA  NA by blast
+    using dpll_atms_in_trail_in_set bj_decide decide.decide[OF decide.hyps] A MA NA by blast
 
   have no_dup: "no_dup (Marked L lv # M)"
     using defined_lit_map decide.prems(3) undef_L by auto
@@ -707,7 +752,7 @@ next
     by (case_tac "get_all_marked_decomposition M") auto
 
   hence "length (Marked L lv # M) \<le> card (atms_of_m A)"
-    using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
+    using incl finite unfolding no_dup_length_eq_card_atm_of_lits_of[OF no_dup]
     by (simp add: card_mono)
   hence latm: "unassigned_lit A M = Suc (unassigned_lit A (Marked L lv # M))" by force
   show ?case by (simp add: latm \<mu>\<^sub>C_cons)
@@ -726,7 +771,7 @@ next
   have "finite (atms_of_m A)" using finite by simp
 
   hence F_le_A: "length (Propagated L lv # F) \<le>  card (atms_of_m A)"
-    using incl finite unfolding distinctlength_eq_card_atm_of_lits_of[OF no_dup]
+    using incl finite unfolding no_dup_length_eq_card_atm_of_lits_of[OF no_dup]
     by (simp add: card_mono)
 
   obtain a b l where F: "get_all_marked_decomposition F = (a, b) # l"
@@ -748,24 +793,17 @@ next
   have "length (rev rem @ map (\<lambda>a. Suc (length (snd a))) (get_all_marked_decomposition F))
           \<le> Suc (card (atms_of_m A))"
     by (smt One_nat_def `finite (atms_of_m A)` add_Suc backjump.prems(2) card_mono
-      distinctlength_eq_card_atm_of_lits_of dual_order.trans le_imp_less_Suc
+      no_dup_length_eq_card_atm_of_lits_of dual_order.trans le_imp_less_Suc
       length_get_all_marked_decomposition_length length_map less_eq_Suc_le nd plus_nat.add_0 rem)
-  moreover have A: "length (Suc (Suc (length (snd (hd (get_all_marked_decomposition F)))))
-                      # map (\<lambda>a. Suc (length (snd a))) (tl (get_all_marked_decomposition F)))
-                    \<le> Suc (card (atms_of_m A))"
-    by (metis F F_le_A One_nat_def add_Suc dual_order.trans le_SucI length_Cons
-      length_get_all_marked_decomposition_length length_map list.sel(3) plus_nat.add_0)
-  moreover have "length (rev rem) \<le> unassigned_lit A l"
-    using F calculation(1) by auto
   moreover
-    { fix i ::nat and  xs :: "'a list"
+    { fix i :: nat and xs :: "'a list"
       have "i < length xs \<Longrightarrow> length xs - Suc i < length xs"
         by auto
       hence H: "i<length xs \<Longrightarrow> rev xs ! i \<in> set xs"
-        using rev_nth[of i xs] unfolding in_set_conv_nth  by (force simp add: in_set_conv_nth)
+        using rev_nth[of i xs] unfolding in_set_conv_nth by (force simp add: in_set_conv_nth)
     } note H = this
     have "length (F' @ Marked K d # F)\<le> card (atms_of_m A)"
-      by (metis `finite (atms_of_m A)` backjump.prems(2) distinctlength_eq_card_atm_of_lits_of nd
+      by (metis `finite (atms_of_m A)` backjump.prems(2) no_dup_length_eq_card_atm_of_lits_of nd
         card_mono)
     hence "\<forall>i<length rem. rev rem ! i < card (atms_of_m A) + 2"
       using length_in_get_all_marked_decomposition_bounded[of _ "F' @ Marked K d # F"]
@@ -777,11 +815,11 @@ qed
 
 lemma dpll_wf:
   assumes fin: "finite A"
-  shows "wf {((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), (M, N)). dpll (M, N) (M', N') 
+  shows "wf {((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), (M, N)). dpll (M, N) (M', N')
     \<and> atms_of_m N \<subseteq> atms_of_m A \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> no_dup M}" (is "wf ?A")
 proof (rule wf_bounded_measure[of _
-      "\<lambda>_. (2 + card (atms_of_m A))^(1 + card (atms_of_m A))"
-       "\<lambda>M. \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> (fst M))"])
+        "\<lambda>_. (2 + card (atms_of_m A))^(1 + card (atms_of_m A))"
+        "\<lambda>M. \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> (fst M))"])
   fix a b :: "('v, 'lvl, 'mark) cdcl_state"
   let ?b = "2+card (atms_of_m A)"
   let ?s = "1+card (atms_of_m A)"
@@ -798,21 +836,21 @@ proof (rule wf_bounded_measure[of _
     nd: "no_dup M"
     using ab unfolding a b by auto
 
-  have M'_A: "atm_of ` lits_of M' \<subseteq> atms_of_m A" 
+  have M'_A: "atm_of ` lits_of M' \<subseteq> atms_of_m A"
     by (meson M_A N_A `dpll (M, N) (M', N')` dpll_atms_in_trail_in_set)
   have nd': "no_dup M'"
     using `dpll (M, N) (M', N')` dpll_no_dup nd by blast
-  { fix i ::nat and  xs :: "'a list"
+  { fix i :: nat and xs :: "'a list"
     have "i < length xs \<Longrightarrow> length xs - Suc i < length xs"
       by auto
     hence H: "i<length xs \<Longrightarrow>  xs ! i \<in> set xs"
-      using rev_nth[of i xs] unfolding in_set_conv_nth  by (force simp add: in_set_conv_nth)
+      using rev_nth[of i xs] unfolding in_set_conv_nth by (force simp add: in_set_conv_nth)
   } note H = this
 
   have l_M_A: "length M \<le> card (atms_of_m A)"
-    by (simp add: fin_A M_A card_mono distinctlength_eq_card_atm_of_lits_of nd)
+    by (simp add: fin_A M_A card_mono no_dup_length_eq_card_atm_of_lits_of nd)
   have l_M'_A: "length M' \<le> card (atms_of_m A)"
-    by (simp add: fin_A M'_A card_mono distinctlength_eq_card_atm_of_lits_of nd')
+    by (simp add: fin_A M'_A card_mono no_dup_length_eq_card_atm_of_lits_of nd')
   have l_\<nu>_M: "length (\<nu> M') \<le> 1+card (atms_of_m A)"
      using l_M'_A length_get_all_marked_decomposition_length[of M'] by auto
   have bounded_M: "\<forall>i<length (\<nu> M'). (\<nu> M')! i < card (atms_of_m A) + 2"
@@ -822,11 +860,116 @@ proof (rule wf_bounded_measure[of _
 
   from dpll_trail_mes_decreasing_prop[OF dpll N_A M_A nd fin]
   have "\<mu>\<^sub>C ?s ?b (\<nu> (fst a)) < \<mu>\<^sub>C ?s ?b (\<nu> (fst b))" unfolding a b by simp
-  moreover from \<mu>\<^sub>C_bounded[OF bounded_M l_\<nu>_M] 
+  moreover from \<mu>\<^sub>C_bounded[OF bounded_M l_\<nu>_M]
     have "\<mu>\<^sub>C ?s ?b (\<nu> (fst b)) \<le> ?b ^ ?s" unfolding b by auto
   ultimately show "?b ^ ?s \<le> ?b ^ ?s \<and>
            \<mu>\<^sub>C ?s ?b (\<nu> (fst b)) \<le> ?b ^ ?s \<and>
            \<mu>\<^sub>C ?s ?b (\<nu> (fst a)) < \<mu>\<^sub>C ?s ?b (\<nu> (fst b))"
     by blast
 qed
+
+lemma rtranclp_dpll_inv_incl_dpll_inv_trancl:
+  "{((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), (M, N)). dpll\<^sup>+\<^sup>+ (M, N) (M', N')
+    \<and> atms_of_m N \<subseteq> atms_of_m A \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> no_dup M}
+     \<subseteq> {((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), (M, N)). dpll (M, N) (M', N')
+    \<and> atms_of_m N \<subseteq> atms_of_m A \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> no_dup M}\<^sup>+" (is "?A \<subseteq> ?B\<^sup>+")
+proof (standard)
+  fix x
+  assume x_A: "x \<in> ?A"
+  obtain M' M ::"('v, 'lvl, 'mark) annoted_lits" and N' N :: "'v clauses" where 
+    x[simp]: "x = ((M', N'), (M, N))" by (cases x) auto
+  have 
+    "dpll\<^sup>+\<^sup>+ (M, N) (M', N')" and
+    "atms_of_m N \<subseteq> atms_of_m A" and
+    "atm_of ` lits_of M \<subseteq> atms_of_m A" and
+    "no_dup M"
+    using x_A by auto
+  thus "x \<in> ?B\<^sup>+" unfolding x
+    proof (induction rule: tranclp_induct)
+      case base
+      thus ?case by auto
+    next
+      case (step S T) note step = this(1) and ST = this(2) and IH = this(3)[OF this(4-6)] 
+        and N_A = this(4) and M_A = this(5) and nd = this(6)
+        
+      obtain M\<^sub>T M\<^sub>S and N\<^sub>T N\<^sub>S where 
+        T[simp]: "T = (M\<^sub>T, N\<^sub>T)" and 
+        S[simp]: "S = (M\<^sub>S, N\<^sub>S)" by (cases T, cases S)
+      have [simp]: "atms_of_m N\<^sub>S = atms_of_m N"
+        using local.step rtranclp_dpll_atms_of_m_clauses_inv tranclp_into_rtranclp by fastforce
+      have "no_dup M\<^sub>S"
+        using local.step nd rtranclp_dpll_no_dup tranclp_into_rtranclp by fastforce
+      moreover have "atm_of ` (lits_of M\<^sub>S) \<subseteq> atms_of_m A"
+        by (metis M_A N_A S local.step rtranclp_dpll_atms_in_trail_in_set tranclp_into_rtranclp)
+      ultimately have "(T, S) \<in> ?B" using ST N_A M_A by auto
+      thus ?case using IH by (rule trancl_into_trancl2)
+    qed
+qed
+
+lemma tranclp_dpll_wf:
+  assumes fin: "finite A"
+  shows "wf {((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), (M, N)). dpll\<^sup>+\<^sup>+ (M, N) (M', N')
+    \<and> atms_of_m N \<subseteq> atms_of_m A \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> no_dup M}"
+ using wf_trancl[OF dpll_wf[OF fin]] rtranclp_dpll_inv_incl_dpll_inv_trancl by (rule wf_subset)
+
+lemma tranclp_dpll_wf_inital_state:
+  assumes fin: "finite A"
+  shows "wf {((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), ([], N))|M' N' N.
+    dpll\<^sup>+\<^sup>+ ([], N) (M', N') \<and> atms_of_m N \<subseteq> atms_of_m A}"
+  using tranclp_dpll_wf[OF assms] by (rule wf_subset) auto
+
+subsection \<open>Properties of final states\<close>
+lemma
+  assumes
+    "atms_of_m N \<subseteq> atms_of_m A" and
+    "atm_of ` lits_of M \<subseteq> atms_of_m A" and
+    "no_dup M" and
+    "finite A" and 
+    "no_step dpll (M, N)"
+  shows "unsatisfiable N \<or> (M \<Turnstile>as N \<and> satisfiable N)"
+proof -
+  consider 
+      (sat) "satisfiable N" and "M \<Turnstile>as N"
+    | (sat) "satisfiable N" and "\<not> M \<Turnstile>as N"
+    | (unsat) "unsatisfiable N"
+    by auto
+oops
+  
+subsection \<open>CDCL\<close>
+ text \<open>To show that CDCL seen as dpll O (forget  | learn)\<^sup>* terminates:\<close>
+ thm wf_relcomp_compatible
+
+lemma cdcl_in_dpll_learn_forget:
+  "cdcl a b \<Longrightarrow> (a, b) \<in> {(a,b). dpll\<^sup>*\<^sup>* a b} O ({(a,b). forget\<^sup>*\<^sup>* a b \<or> learn\<^sup>*\<^sup>* a b})"
+  by (induction rule:cdcl.induct) auto
+
+lemma rtranclp_cdcl_in_rtrancl_dpll_learn_forget:
+  "cdcl\<^sup>*\<^sup>* a b \<Longrightarrow> (a, b) \<in> ({(a,b). dpll\<^sup>*\<^sup>* a b} O ({(a,b). forget\<^sup>*\<^sup>* a b \<or> learn\<^sup>*\<^sup>* a b}))\<^sup>*"
+  apply (induction rule:rtranclp_induct)
+    apply simp
+  by (drule cdcl_in_dpll_learn_forget) (rule Transitive_Closure.rtrancl.intros(2))
+
+
+lemma dpll_learn_forget_in_cdcl:
+  assumes "(a, b) \<in> {(a,b). dpll\<^sup>*\<^sup>* a b} O ({(a,b). forget\<^sup>*\<^sup>* a b \<or> learn\<^sup>*\<^sup>* a b})"
+  shows "cdcl\<^sup>*\<^sup>* a b"
+proof -
+  have [dest!]: "\<And>S T. dpll\<^sup>*\<^sup>* S T\<Longrightarrow> cdcl\<^sup>*\<^sup>* S T" using mono_rtranclp[of dpll cdcl] c_dpll by auto
+  have [dest]: "\<And>S T. learn\<^sup>*\<^sup>* S T\<Longrightarrow> cdcl\<^sup>*\<^sup>* S T" using mono_rtranclp[of learn cdcl] c_learn by auto
+  have [dest]: "\<And>S T. forget\<^sup>*\<^sup>* S T\<Longrightarrow> cdcl\<^sup>*\<^sup>* S T" 
+    using mono_rtranclp[of forget cdcl] c_forget by auto
+  
+  show ?thesis using assms by auto
+qed
+
+lemma rtrancl_dpll_learn_forget_in_rtranclp_cdcl:
+  "(a, b) \<in> ({(a,b). dpll\<^sup>*\<^sup>* a b} O ({(a,b). forget\<^sup>*\<^sup>* a b \<or> learn\<^sup>*\<^sup>* a b}))\<^sup>* \<Longrightarrow> cdcl\<^sup>*\<^sup>* a b"
+  apply (induction rule:rtrancl_induct)
+    apply simp
+  by (drule dpll_learn_forget_in_cdcl) auto
+
+lemma "{(a,b). cdcl\<^sup>*\<^sup>* a b} = ({(a,b). dpll\<^sup>*\<^sup>* a b} O ({(a,b). forget\<^sup>*\<^sup>* a b \<or> learn\<^sup>*\<^sup>* a b}))\<^sup>*"
+  using rtrancl_dpll_learn_forget_in_rtranclp_cdcl rtranclp_cdcl_in_rtrancl_dpll_learn_forget
+  by blast
+
 end

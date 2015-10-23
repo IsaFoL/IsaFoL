@@ -755,7 +755,7 @@ qed
 subsection \<open>Other\<close>
 abbreviation "no_dup L \<equiv> distinct (map (\<lambda>l. atm_of (lit_of l)) L)"
 
-lemma distinctlength_eq_card_atm_of_lits_of:
+lemma no_dup_length_eq_card_atm_of_lits_of:
   assumes "no_dup M"
   shows "length M  = card (atm_of ` lits_of M)"
   using assms unfolding lits_of_def by (induct M) (auto simp add: image_image)

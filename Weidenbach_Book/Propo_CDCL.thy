@@ -1,5 +1,5 @@
 theory Propo_CDCL
-imports Partial_Annotated_Clausal_Logic List_More Propo_CDCL_Level
+imports Partial_Annotated_Clausal_Logic List_More Propo_CDCL_Level Transition
 
 begin
 
@@ -1145,16 +1145,6 @@ qed
 
 subsection \<open>Higher level strategy\<close>
 subsubsection \<open>Definition\<close>
-(*TODO should be common to the CNF transformation*)
-definition full :: "('v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool) \<Rightarrow> 'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" ("_\<^sup>+\<^sup>\<down>") where
-"full transf = (\<lambda>S S'. tranclp transf S S' \<and> (\<forall>S''. \<not> transf S' S''))"
-
-definition full0 :: "('v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool) \<Rightarrow> 'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool"  ("_\<^sup>\<down>") where
-"full0 transf = (\<lambda>S S'. rtranclp transf S S' \<and> (\<forall>S''. \<not> transf S' S''))"
-
-lemma full0_unfold:
-  "full0 r S S' \<longleftrightarrow> ((S = S' \<and> (\<forall>S''. \<not> r S' S'')) \<or> full r S S')"
-  unfolding full0_def full_def by (auto simp add: Nitpick.rtranclp_unfold)
 
 lemma tranclp_conflict_iff[iff]:
   "full conflict S S' \<longleftrightarrow> (((\<forall>S''. \<not>conflict S' S'') \<and> conflict S S'))"
@@ -1164,9 +1154,6 @@ proof -
   hence "tranclp conflict S S' \<Longrightarrow> conflict S S'" by (meson rtranclpD)
   thus ?thesis unfolding full_def by (meson tranclp.r_into_trancl)
 qed
-
-text \<open>We are interested in the stated after applying conflict and propagate\<close>
-abbreviation "no_step step S \<equiv> (\<forall>S'. \<not>step S S')"
 
 inductive cdcl_cp :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
 conflict'[intro]: "conflict S S' \<Longrightarrow> cdcl_cp S S'" |
@@ -3133,7 +3120,7 @@ lemma full_cdcl_s_normal_forms':
     \<or> (conflicting S' = C_True \<and> trail S' \<Turnstile>as clauses S' \<and> satisfiable (clauses S'))"
 proof -
   consider
-      (confl) "conflicting S' = C_Clause {#}" and " unsatisfiable (clauses S')"
+      (confl) "conflicting S' = C_Clause {#}" and "unsatisfiable (clauses S')"
     | (sat) "conflicting S' = C_True" and "trail S' \<Turnstile>as clauses S'"
     using full_cdcl_s_normal_forms[OF assms] by auto
   thus ?thesis

@@ -412,7 +412,7 @@ proof -
   moreover have "no_dup (trail S)"
     using inv unfolding cdcl_all_inv_mes_def cdcl_M_level_inv_def by auto
     hence "card (atm_of ` (lits_of (trail S))) = length (trail S)"
-      by (simp add: distinctlength_eq_card_atm_of_lits_of)
+      by (simp add: no_dup_length_eq_card_atm_of_lits_of)
   moreover have "finite (atms_of_m (clauses S))"
     using inv unfolding cdcl_all_inv_mes_def by simp
   ultimately show ?thesis by (metis card_mono)

@@ -793,7 +793,7 @@ proof -
   obtain M N U k D where S: "S = (M, N, U, k, D)" by (case_tac S, auto)
   have "finite (atm_of ` lits_of (trail S))" using assms(1,3) unfolding S by (auto simp add: finite_subset)
   have "length (trail S) = card (atm_of ` lits_of (trail S))"
-    using distinctlength_eq_card_atm_of_lits_of no_d by blast
+    using no_dup_length_eq_card_atm_of_lits_of no_d by blast
   thus ?thesis using assms(1) by (auto simp add: assms(3) card_mono)
 qed
 
@@ -853,7 +853,7 @@ proof (induct rule: cdcl_all_induct)
   hence "card (atm_of ` lits_of (Propagated L (C + {#L#}) # M)) \<le> card (atms_of_m N)"
     using card_mono propagate.prems(6) by fastforce
   hence "length (Propagated L (C + {#L#}) # M) \<le> card (atms_of_m N)"
-    using distinctlength_eq_card_atm_of_lits_of no_dup' by fastforce
+    using no_dup_length_eq_card_atm_of_lits_of no_dup' by fastforce
   thus ?case by simp
 next
   case (decided M N U k L) note p = this(5,6,7)
@@ -874,7 +874,7 @@ next
     hence "card (atm_of ` lits_of (Propagated L C' # M)) \<le> card (atms_of_m N)"
       using card_mono skip.prems(6) by fastforce
     hence "length (Propagated L C' # M) \<le> card (atms_of_m N)"
-      using distinctlength_eq_card_atm_of_lits_of skip.prems(5) by fastforce
+      using no_dup_length_eq_card_atm_of_lits_of skip.prems(5) by fastforce
   ultimately show  ?case by simp
 next
   case (conflict M N U k D)
