@@ -61,7 +61,7 @@ text \<open>The following lemma helps to reconstruct @{term no_equiv} expression
   easier to use than the set definition.\<close>
 
 
-lemma all_subformula_st_decomp_explicit_no_equiv[simp]:
+lemma all_subformula_st_decomp_explicit_no_equiv[iff]:
 fixes \<phi> \<psi> :: "'v propo"
 shows
   "no_equiv (FNot \<phi>) \<longleftrightarrow> no_equiv \<phi>"
@@ -134,9 +134,7 @@ fun no_imp_symb where
 
 lemma no_imp_symb_conn_characterization:
   "wf_conn c l \<Longrightarrow> no_imp_symb (conn c l) \<longleftrightarrow> c \<noteq> CImp"
-  by (metis connective.distinct(11,23,33,41) no_imp_symb.elims(3) no_imp_symb.simps(1) wf_conn.cases
-    wf_conn_list(7))
-
+  by (induction rule: wf_conn_induct) auto
 
 definition no_imp where "no_imp \<equiv> all_subformula_st no_imp_symb"
 declare no_imp_def[simp]
@@ -168,8 +166,6 @@ lemma elim_imp_inv:
   shows "no_equiv \<psi>"
   using full0_propo_rew_step_inv_stay_conn[of elim_imp no_equiv_symb \<phi> \<psi>] assms elim_imp_no_equiv
     no_equiv_symb_conn_characterization unfolding no_equiv_def by metis
-
-
 
 lemma no_no_imp_elim_imp_step_exists:
   fixes \<phi> :: "'v propo"
@@ -234,7 +230,7 @@ no_T_F_symb_comp: "c \<noteq> CF \<Longrightarrow> c \<noteq> CT \<Longrightarro
 
 lemma wf_conn_no_T_F_symb_iff[simp]:
   "wf_conn c \<psi>s \<Longrightarrow> no_T_F_symb (conn c \<psi>s) \<longleftrightarrow> (c \<noteq> CF \<and> c \<noteq> CT \<and> (\<forall>\<psi>\<in>set \<psi>s. \<psi> \<noteq> FF \<and> \<psi> \<noteq> FT))"
-  using conn_inj no_T_F_symb.simps by blast
+  using conn_inj no_T_F_symb.simps by smt
 
 lemma wf_conn_no_T_F_symb_iff_explicit[simp]:
 "no_T_F_symb (FAnd \<phi> \<psi>) \<longleftrightarrow> (\<forall>\<chi> \<in> set [\<phi>, \<psi>]. \<chi> \<noteq> FF \<and> \<chi> \<noteq> FT)"
@@ -253,8 +249,7 @@ lemma no_T_F_symb_false[simp]:
   shows
     "\<not>no_T_F_symb (FT :: 'v propo)"
     "\<not>no_T_F_symb (FF :: 'v propo)"
-  using wf_conn_no_T_F_symb_iff wf_conn_nullary by fastforce+
-
+    by (metis (no_types) conn.simps(1,2) wf_conn_no_T_F_symb_iff wf_conn_nullary)+
 
 lemma no_T_F_symb_bool[simp]:
   fixes x :: "'v"
@@ -313,7 +308,7 @@ lemma no_T_F_symb_except_toplevel_if_is_a_true_false:
   and "FT \<in> set l \<or> FF \<in> set l"
   shows "\<not>no_T_F_symb_except_toplevel (conn c l)"
   by (metis assms empty_iff no_T_F_symb_except_toplevel.simps wf_conn_no_T_F_symb_iff set_empty
-    wf_conn_list(1) wf_conn_list(2))
+    wf_conn_list(1,2))
 
 
 lemma no_T_F_symb_except_top_level_false_example[simp]:
@@ -837,7 +832,7 @@ lemma c_in_c'_symb_simp:
   "not_c_in_c'_symb c c' \<xi> \<Longrightarrow> \<xi> = FF \<or> \<xi> = FT \<or> \<xi> = FVar x \<or> \<xi> = FNot FF \<or> \<xi> = FNot FT
     \<or> \<xi> = FNot (FVar x)\<Longrightarrow> False"
   apply (induct rule: not_c_in_c'_symb.induct, auto simp add: wf_conn.simps wf_conn_list(1-3))
-  using conn_inj_not(2) wf_conn_binary by fastforce+
+  using conn_inj_not(2) wf_conn_binary unfolding binary_connectives_def by fastforce+
 
 lemma  c_in_c'_symb_simp'[simp]:
   "\<not>not_c_in_c'_symb c c' FF"
