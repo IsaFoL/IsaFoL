@@ -2,8 +2,8 @@ theory Transition
 imports Main
 
 begin
-
-text \<open>We are interested in the stated after applying conflict and propagate\<close>
+section \<open>Transition\<close>
+text \<open>We define here properties to define properties after all possible transitions.\<close>
 abbreviation "no_step step S \<equiv> (\<forall>S'. \<not>step S S')"
 
 definition full :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" ("_\<^sup>+\<^sup>\<down>") where
