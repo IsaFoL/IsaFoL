@@ -1,5 +1,5 @@
 theory Propo_CDCL2
-imports Partial_Annotated_Clausal_Logic List_More "../Bachmair_Ganzinger/Lazy_List_Limit"
+imports Partial_Annotated_Clausal_Logic List_More (*"../Bachmair_Ganzinger/Lazy_List_Limit"*)
 
 begin
 sledgehammer_params[verbose]
@@ -1025,7 +1025,8 @@ proof -
 oops
   
 subsection \<open>CDCL\<close>
- text \<open>To show that CDCL seen as dpll O (forget  | learn)\<^sup>* terminates:\<close>
+ text \<open>To show that CDCL seen as @{term "{(a,b). dpll\<^sup>*\<^sup>* a b} O {(a,b). forget\<^sup>*\<^sup>* a b \<or> learn\<^sup>*\<^sup>* a b}\<^sup>*"}
+ terminates:\<close>
  thm wf_relcomp_compatible
 
 lemma cdcl_in_dpll_learn_forget:
@@ -1043,12 +1044,12 @@ lemma dpll_learn_forget_in_cdcl:
   assumes "(a, b) \<in> {(a,b). dpll\<^sup>*\<^sup>* a b} O ({(a,b). forget\<^sup>*\<^sup>* a b \<or> learn\<^sup>*\<^sup>* a b})"
   shows "cdcl\<^sup>*\<^sup>* a b"
 proof -
-  have [dest!]: "\<And>S T. dpll\<^sup>*\<^sup>* S T\<Longrightarrow> cdcl\<^sup>*\<^sup>* S T" using mono_rtranclp[of dpll cdcl] c_dpll by auto
+  have [dest]: "\<And>S T. dpll\<^sup>*\<^sup>* S T\<Longrightarrow> cdcl\<^sup>*\<^sup>* S T" using mono_rtranclp[of dpll cdcl] c_dpll by auto
   have [dest]: "\<And>S T. learn\<^sup>*\<^sup>* S T\<Longrightarrow> cdcl\<^sup>*\<^sup>* S T" using mono_rtranclp[of learn cdcl] c_learn by auto
   have [dest]: "\<And>S T. forget\<^sup>*\<^sup>* S T\<Longrightarrow> cdcl\<^sup>*\<^sup>* S T" 
     using mono_rtranclp[of forget cdcl] c_forget by auto
-  
-  show ?thesis using assms by auto
+
+  show ?thesis using assms by fastforce
 qed
 
 lemma rtrancl_dpll_learn_forget_in_rtranclp_cdcl:

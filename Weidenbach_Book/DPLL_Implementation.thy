@@ -247,7 +247,7 @@ proof -
       proof (clarify)
         fix x
         assume x: "x \<in> snd (toS Ms N)"
-        hence "\<not>Ms \<Turnstile>as CNot  x" using n unfolding true_annots_def CNot_def Ball_def by simp blast
+        hence "\<not>Ms \<Turnstile>as CNot  x" using n unfolding true_annots_def CNot_def Ball_def by auto
         moreover have "total_over_m (lits_of Ms) {x}"
           using a x unfolding total_over_m_def total_over_set_def lits_of_def apply auto
           using  image_iff in_mono atms_of_s_def lits_of_def by fastforce
