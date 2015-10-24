@@ -13,7 +13,7 @@ definition full0:: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<
 "full0 transf = (\<lambda>S S'. rtranclp transf S S' \<and> (\<forall>S''. \<not> transf S' S''))"
 
 lemma full0_unfold:
-  "full0 r S S' \<longleftrightarrow> ((S = S' \<and> (\<forall>S''. \<not> r S' S'')) \<or> full r S S')"
+  "full0 r S S' \<longleftrightarrow> ((S = S' \<and> no_step r S') \<or> full r S S')"
   unfolding full0_def full_def by (auto simp add: Nitpick.rtranclp_unfold)
 
 end
