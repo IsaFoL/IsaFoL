@@ -339,6 +339,12 @@ lemma rtranclp_dpll_all_inv:
   shows "dpll_all_inv S'"
   using assms rtranclp_dpll_inv[OF assms(1)] unfolding dpll_all_inv_def by blast
 
+lemma dpll_all_inv:
+  assumes "dpll S S'"
+  and "dpll_all_inv S"
+  shows "dpll_all_inv S'"
+  using assms rtranclp_dpll_all_inv by blast
+
 lemma rtranclp_dpll_inv_starting_from_0:
   assumes "rtranclp dpll S S'"
   and inv: "trail S = []"

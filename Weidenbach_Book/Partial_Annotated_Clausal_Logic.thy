@@ -1,5 +1,5 @@
 (*  Title:       Partial Clausal Logic
-    Author:      Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>, 2014 
+    Author:      Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>, 2014
 *)
 theory Partial_Annotated_Clausal_Logic
 imports Partial_Clausal_Logic
@@ -113,7 +113,7 @@ lemma true_annot_true_clss_cls:
 lemma true_annots_true_clss_cls:
   "MLs \<Turnstile>as \<psi> \<Longrightarrow> set (map (\<lambda>a. {#lit_of a#}) MLs) \<Turnstile>ps \<psi>"
   by (auto
-    dest: true_clss_singleton_lit_of_implies_incl 
+    dest: true_clss_singleton_lit_of_implies_incl
     simp add: true_clss_def true_annots_def true_annot_def lits_of_def true_cls_def
     true_clss_clss_def)
 
@@ -238,7 +238,7 @@ subsection \<open>Decomposition with respect to the marked literals\<close>
 Ideas:
   * swap the side of Marked
   * case on the form of dropWhile (Not o is_marked)
-  
+
 Split function in 2 + list.product
 *)
 text \<open>The pattern @{term "get_all_marked_decomposition [] = [([], [])]"} is necessary otherwise, we can call the @{term hd} function in the other pattern. \<close>
@@ -624,11 +624,17 @@ lemma consistent_CNot_not:
   shows "I \<Turnstile>s CNot \<phi> \<Longrightarrow> \<not>I \<Turnstile> \<phi>"
   using assms unfolding consistent_interp_def true_clss_def true_cls_def CNot_def by auto
 
-lemma total_not_CNot:
-  assumes "total_over_m I {\<phi>}"
-  shows "\<not>I \<Turnstile> \<phi> \<Longrightarrow> I \<Turnstile>s CNot \<phi>"
-  using assms unfolding total_over_m_def total_over_set_def true_clss_def true_cls_def CNot_def apply clarify
+lemma total_not_true_cls_true_clss_CNot:
+  assumes "total_over_m I {\<phi>}" and "\<not>I \<Turnstile> \<phi>"
+  shows "I \<Turnstile>s CNot \<phi>"
+  using assms unfolding total_over_m_def total_over_set_def true_clss_def true_cls_def CNot_def
+    apply clarify
   by (case_tac L) (force intro: pos_lit_in_atms_of neg_lit_in_atms_of)+
+
+lemma total_not_CNot:
+  assumes "total_over_m I {\<phi>}" and "\<not>I \<Turnstile>s CNot \<phi>"
+  shows "I \<Turnstile> \<phi>"
+  using assms total_not_true_cls_true_clss_CNot by auto
 
 lemma atms_of_m_CNot_atms_of[simp]:
   "atms_of_m (CNot C) = atms_of C"

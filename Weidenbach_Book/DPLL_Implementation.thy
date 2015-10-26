@@ -2,9 +2,9 @@ theory DPLL_Implementation
 imports Propo_DPLL "~~/src/HOL/Library/Code_Target_Numeral"
 begin
 
-definition find_unit where
-"find_unit l = List.find (\<lambda>l. length l = 1) l"
+section \<open>Simple Implementation of DPLL\<close>
 
+subsection \<open>Decide\<close>
 fun find_first_unused_var :: "int literal list list \<Rightarrow> int literal set \<Rightarrow> int literal option"  where
 "find_first_unused_var (a # l) M =
   (case List.find (\<lambda>lit. lit \<notin> M \<and> -lit \<notin> M) a of
@@ -12,11 +12,14 @@ fun find_first_unused_var :: "int literal list list \<Rightarrow> int literal se
   | Some a \<Rightarrow> Some a)" |
 "find_first_unused_var [] _ = None"
 
-lemma find_none[iff]: "List.find (\<lambda>lit. lit \<notin> M \<and> -lit \<notin> M) a = None \<longleftrightarrow>  atm_of ` set a \<subseteq> atm_of `  M"
-   apply (induct a, auto)
-   using atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set by (fastforce simp add:  atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)+
+lemma find_none[iff]:
+  "List.find (\<lambda>lit. lit \<notin> M \<and> -lit \<notin> M) a = None \<longleftrightarrow>  atm_of ` set a \<subseteq> atm_of `  M"
+  apply (induct a)
+  using atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+    by (force simp add:  atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)+
 
-lemma find_some: "List.find (\<lambda>lit. lit \<notin> M \<and> -lit \<notin> M) a = Some b \<Longrightarrow> b \<in> set a \<and> b \<notin> M \<and> -b \<notin> M"  by (metis find_Some_iff nth_mem)
+lemma find_some: "List.find (\<lambda>lit. lit \<notin> M \<and> -lit \<notin> M) a = Some b \<Longrightarrow> b \<in> set a \<and> b \<notin> M \<and> -b \<notin> M"
+  by (metis find_Some_iff nth_mem)
 
 lemma find_first_unused_var_None[iff]:
   "find_first_unused_var l M = None \<longleftrightarrow> (\<forall>a \<in> set l. atm_of ` set a \<subseteq> atm_of `  M)"
@@ -32,32 +35,31 @@ lemma find_first_unused_var_undefined:
   "find_first_unused_var l (lits_of Ms) = Some a \<Longrightarrow> undefined_lit a Ms"
   using find_first_unused_var_Some[of l "lits_of Ms" a] Marked_Propagated_in_iff_in_lits_of by blast
 
-lemma dpll_all_inv:
-  assumes "dpll S S'"
-  and "dpll_all_inv S"
-  shows "dpll_all_inv S'"
-  using assms rtranclp_dpll_all_inv by blast
-
-
-lemma atms_of_multiset[simp]: "atms_of (mset a) = atm_of ` set a"
-  by (induct a, auto)
-
-text \<open>This is a very naive implementation without any propagation\<close>
 
 value "backtrack_split [Marked (Pos (Suc 0)) Level]"
-value "\<exists>C \<in> set [[Pos (Suc 0), Neg (Suc 0)]]. (\<forall>c \<in> set C. -c \<in> lits_of [Marked (Pos (Suc 0)) Level])"
+value "\<exists>C \<in> set [[Pos (Suc 0), Neg (Suc 0)]].
+  (\<forall>c \<in> set C. -c \<in> lits_of [Marked (Pos (Suc 0)) Level])"
 
-lemma lits_of_unfold[iff]:"(\<forall>c \<in> set C. -c \<in> lits_of Ms) \<longleftrightarrow> Ms \<Turnstile>as CNot (mset C)"
+subsection \<open>Propagate\<close>
+subsubsection \<open>Detecting unit propagation\<close>
+text \<open>The following theorem holds:\<close>
+lemma lits_of_unfold[iff]:
+  "(\<forall>c \<in> set C. -c \<in> lits_of Ms) \<longleftrightarrow> Ms \<Turnstile>as CNot (mset C)"
   unfolding true_annots_def Ball_def true_annot_def CNot_def mem_set_multiset_eq by auto
+text \<open>The right-hand version is written at a high-level, but only the left-hand side is executable.\<close>
 
-definition is_unit_clause :: "'a literal list \<Rightarrow> ('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal option" where
+text \<open>detecting if a clause is a clause where a single variable remains to decide.\<close>
+definition is_unit_clause :: "'a literal list \<Rightarrow> ('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal option"
+  where
  "is_unit_clause l M =
    (case List.filter (\<lambda>a. atm_of a \<notin> atm_of ` lits_of M) l of
      [] \<Rightarrow> None
    | a # [] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
    | _ \<Rightarrow> None)"
 
-definition is_unit_clause_code :: "'a literal list \<Rightarrow> ('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal option" where
+text \<open>Here is the code equivalent:\<close>
+definition is_unit_clause_code ::
+  "'a literal list \<Rightarrow> ('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal option" where
  "is_unit_clause_code l M =
    (case List.filter (\<lambda>a. atm_of a \<notin> atm_of ` lits_of M) l of
      [] \<Rightarrow> None
@@ -67,33 +69,35 @@ definition is_unit_clause_code :: "'a literal list \<Rightarrow> ('a, 'b, 'c) ma
 lemma [code]:
   "is_unit_clause l M = is_unit_clause_code l M"
 proof -
-  have 1: "\<And>a. (\<forall>c\<in>set (remove1 a l). - c \<in> lits_of M) \<longleftrightarrow> M \<Turnstile>as CNot (mset l - {#a#})" (is "\<And>a. ?P a")
-    proof -
-      fix a
-      show "?P a"
-        using lits_of_unfold[of "remove1 a l", of M] by simp
-    qed
-  thus ?thesis
+  have 1: "\<And>a. (\<forall>c\<in>set (remove1 a l). - c \<in> lits_of M) \<longleftrightarrow> M \<Turnstile>as CNot (mset l - {#a#})"
+    using lits_of_unfold[of "remove1 _ l", of _ M] by simp
+  show ?thesis
     unfolding is_unit_clause_code_def is_unit_clause_def 1 by blast
 qed
 
 lemma is_unit_clause_some_undef: "is_unit_clause l M = Some a \<Longrightarrow> undefined_lit a M"
   unfolding is_unit_clause_def lits_of_def
 proof -
-  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M] of [] \<Rightarrow> None | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
+  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M] of [] \<Rightarrow> None
+        | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
+        | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
   hence "a \<in> set [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M]"
     apply (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M]", auto)
     apply (case_tac list, auto)
     apply (case_tac "M \<Turnstile>as CNot (mset l - {#aa#})")
     by auto
   hence "atm_of a \<notin> atm_of ` lit_of ` set M" by auto
-  thus ?thesis by (simp add: Marked_Propagated_in_iff_in_lits_of atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def)
+  thus ?thesis
+    by (simp add: Marked_Propagated_in_iff_in_lits_of
+      atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def)
 qed
 
 lemma is_unit_clause_some_CNot: "is_unit_clause l M = Some a \<Longrightarrow> M \<Turnstile>as CNot (mset l - {#a#})"
   unfolding is_unit_clause_def lits_of_def
 proof -
-  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M] of [] \<Rightarrow> None | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
+  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M] of [] \<Rightarrow> None
+          | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
+          | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
   thus ?thesis
     apply (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M]", auto)
     apply (case_tac list, auto)
@@ -104,7 +108,9 @@ qed
 lemma is_unit_clause_some_in: "is_unit_clause l M = Some a \<Longrightarrow> a \<in> set l"
   unfolding is_unit_clause_def lits_of_def
 proof -
-  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M] of [] \<Rightarrow> None | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
+  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M] of [] \<Rightarrow> None
+          | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
+          | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
   thus "a \<in> set l"
     apply (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M]", auto)
     apply (case_tac list, auto)
@@ -113,30 +119,31 @@ proof -
     by (metis (no_types, lifting) insertI1 list.simps(15) mem_Collect_eq set_filter)
 qed
 
-lemma [simp]: "is_unit_clause [] M = None"
+lemma is_unit_clause_empty[simp]: "is_unit_clause [] M = None"
   unfolding is_unit_clause_def by auto
 
-
-
-fun find_first_unit_clause :: "'a literal list list \<Rightarrow> ('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal option"  where
+subsubsection \<open>Unit propagation for all clauses\<close>
+text \<open>Finding the first clause to propagate\<close>
+fun find_first_unit_clause
+  :: "'a literal list list \<Rightarrow> ('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal option"  where
 "find_first_unit_clause (a # l) M =
   (case is_unit_clause a M of
     None \<Rightarrow> find_first_unit_clause l M
   | Some a \<Rightarrow> Some a)" |
 "find_first_unit_clause [] _ = None"
 
-lemma find_first_unit_clause_some: "find_first_unit_clause l M = Some a \<Longrightarrow> \<exists>c \<in> set l. M \<Turnstile>as CNot (mset c - {#a#}) \<and> undefined_lit a M \<and> a \<in> set c"
-  apply (induct l, auto)
-  apply (case_tac "is_unit_clause aa M", auto)
-  using is_unit_clause_some_CNot is_unit_clause_some_undef apply blast
-  apply (case_tac "is_unit_clause aa M", auto)
-  using is_unit_clause_some_undef apply blast
-  apply (case_tac "is_unit_clause aa M", auto)
-  using is_unit_clause_some_in by blast
+lemma find_first_unit_clause_some:
+  assumes "find_first_unit_clause l M = Some a"
+  shows "\<exists>c \<in> set l. M \<Turnstile>as CNot (mset c - {#a#}) \<and> undefined_lit a M \<and> a \<in> set c"
+  using assms
+  apply (induct l)
+   apply simp
+  by (case_tac "is_unit_clause aa M")
+     (auto dest: is_unit_clause_some_CNot is_unit_clause_some_undef is_unit_clause_some_in)
 
-
-
-definition DPLL_step :: "int dpll_annoted_lits \<times> int literal list list \<Rightarrow> int dpll_annoted_lits \<times> int literal list list"  where
+subsection \<open>Combining the two steps: a DPLL step\<close>
+definition DPLL_step :: "int dpll_annoted_lits \<times> int literal list list
+  \<Rightarrow> int dpll_annoted_lits \<times> int literal list list"  where
 "DPLL_step = (\<lambda>(Ms, N).
   (case find_first_unit_clause N Ms of
     Some L \<Rightarrow> (Propagated L Proped # Ms, N)
@@ -155,9 +162,14 @@ definition DPLL_step :: "int dpll_annoted_lits \<times> int literal list list \<
 text \<open>Example of propagation:\<close>
 value "DPLL_step ([Marked (Neg 1) Level], [[Pos (1::int), Neg 2]])"
 
-abbreviation "toS \<equiv> \<lambda>(Ms::(int, dpll_marked_level, dpll_mark) marked_lit list) (N:: int literal list list). (Ms, set (map mset N)) "
-abbreviation "toS' \<equiv> \<lambda>(Ms::(int, dpll_marked_level, dpll_mark) marked_lit list, N:: int literal list list). (Ms, set (map mset N)) "
+text \<open>We define the conversion function between the states as defined in \<open>Propo_DPLL\<close> (with
+  multisets) and here (with lists).\<close>
+abbreviation "toS \<equiv> \<lambda>(Ms::(int, dpll_marked_level, dpll_mark) marked_lit list)
+                      (N:: int literal list list). (Ms, set (map mset N)) "
+abbreviation "toS' \<equiv> \<lambda>(Ms::(int, dpll_marked_level, dpll_mark) marked_lit list,
+                          N:: int literal list list). (Ms, set (map mset N)) "
 
+text \<open>Proof of correctness of @{term DPLL_step}\<close>
 lemma DPLL_step_is_a_dpll_step:
   assumes step: "(Ms', N') = DPLL_step (Ms, N)"
   and neq: "(Ms, N) \<noteq> (Ms', N')"
@@ -167,8 +179,13 @@ proof -
   { fix L
     assume unit: "find_first_unit_clause N Ms = Some L"
     hence Ms'N: "(Ms', N') = (Propagated L Proped # Ms, N)" using step unfolding DPLL_step_def by auto
-    obtain C where C: "C \<in> set N" and Ms: "Ms \<Turnstile>as CNot (mset C - {#L#})" and undef: "undefined_lit L Ms" and "L \<in> set C" using find_first_unit_clause_some[OF unit] by metis
-    have "dpll (Ms, set (map mset N)) (Propagated L Proped # fst (Ms, set (map mset N)), snd (Ms, set (map mset N)))"
+    obtain C where
+      C: "C \<in> set N" and
+      Ms: "Ms \<Turnstile>as CNot (mset C - {#L#})" and
+      undef: "undefined_lit L Ms" and
+      "L \<in> set C" using find_first_unit_clause_some[OF unit] by metis
+    have "dpll (Ms, set (map mset N))
+         (Propagated L Proped # fst (Ms, set (map mset N)), snd (Ms, set (map mset N)))"
       apply (rule dpll.propagate[of "mset C - {#L#}" L ?S])
       using Ms undef C `L \<in> set C` unfolding mem_set_multiset_eq by (auto simp add: C)
     hence ?thesis using Ms'N by auto
@@ -178,9 +195,11 @@ proof -
     assume exC: "\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C)"
     then obtain C where C: "C \<in> set N" and Ms: "Ms \<Turnstile>as CNot (mset C)" by auto
     then obtain L M M' where bt: "backtrack_split Ms  = (M', L # M)"
-      using step exC neq unfolding DPLL_step_def prod.case unit apply (case_tac "backtrack_split Ms", case_tac b) by auto
+      using step exC neq unfolding DPLL_step_def prod.case unit
+      by (cases "backtrack_split Ms", case_tac b) auto
     hence "is_marked L" using backtrack_split_snd_hd_marked[of Ms] by auto
-    have 1: "dpll (Ms, set (map mset N)) (Propagated (- lit_of L) Proped # M, snd (Ms, set (map mset N)))"
+    have 1: "dpll (Ms, set (map mset N))
+                  (Propagated (- lit_of L) Proped # M, snd (Ms, set (map mset N)))"
       apply (rule dpll.backtrack[OF _ `is_marked L`, of ])
       using C Ms bt by auto
     moreover have "(Ms', N') = (Propagated (- (lit_of L)) Proped # M, N)"
@@ -191,11 +210,13 @@ proof -
   { assume unit: "find_first_unit_clause N Ms = None"
     assume exC: "\<not> (\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C))"
     obtain L where unused: "find_first_unused_var N (lits_of Ms) = Some L"
-      using step exC neq unfolding DPLL_step_def prod.case unit by (case_tac "find_first_unused_var N (lits_of Ms)") auto
-    have "dpll (Ms, set (map mset N)) (Marked L Level # fst (Ms, set (map mset N)), snd (Ms, set (map mset N)))"
-    apply (rule dpll.decided[of L ?S], auto)
-      using find_first_unused_var_Some[OF unused] apply (metis Marked_Propagated_in_iff_in_lits_of)
-    using find_first_unused_var_Some[OF unused] unfolding atms_of_m_def by auto
+      using step exC neq unfolding DPLL_step_def prod.case unit
+      by (cases "find_first_unused_var N (lits_of Ms)") auto
+    have "dpll (Ms, set (map mset N))
+               (Marked L Level # fst (Ms, set (map mset N)), snd (Ms, set (map mset N)))"
+    apply (rule dpll.decided[of L ?S])
+    using find_first_unused_var_Some[OF unused]
+    by (auto simp add: Marked_Propagated_in_iff_in_lits_of atms_of_m_def)
    moreover have "(Ms', N') = (Marked L Level # Ms, N)"
      using step exC unfolding DPLL_step_def unused prod.case unit by auto
     ultimately have ?thesis by auto
@@ -203,40 +224,37 @@ proof -
   ultimately show ?thesis by blast
 qed
 
-lemma total_not_CNot_imp:
-  assumes "total_over_m I {\<phi>}"
-  shows "\<not>I \<Turnstile>s CNot \<phi> \<Longrightarrow> I \<Turnstile> \<phi>"
-  using assms unfolding CNot_def true_cls_clss_def true_cls_cls_def Ball_def total_over_m_def total_over_set_def  apply (auto simp add: atms_of_def)  using atm_of_lit_in_atms_of atms_of_def literal.exhaust_sel uminus_Neg uminus_Pos zero_neq_one by (smt assms in_CNot_uminus mem_Collect_eq total_not_CNot true_clss_def)
-
 lemma DPLL_step_stuck_final_state:
   assumes step: "(Ms, N) = DPLL_step (Ms, N)"
   shows "final_dpll_state (toS Ms N)"
 proof -
   have unit: "find_first_unit_clause N Ms = None" using step unfolding DPLL_step_def by (auto split:option.splits)
-  have bt: "\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C) \<Longrightarrow> snd (backtrack_split Ms) = []"
-    using step unfolding DPLL_step_def apply (simp add: unit)
+
+  { assume n: "\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C)"
+    hence Ms: "(Ms, N) = (case backtrack_split Ms of (x, []) \<Rightarrow> (Ms, N) | (x, L # M) \<Rightarrow> (Propagated (- lit_of L) Proped # M, N))"
+      using step unfolding DPLL_step_def by (simp add:unit)
+
+  have "snd (backtrack_split Ms) = []"
     proof (cases "backtrack_split Ms", cases "snd (backtrack_split Ms)")
       fix a b
-      assume "(Ms, N) = (case backtrack_split Ms of (x, []) \<Rightarrow> (Ms, N) | (x, L # M) \<Rightarrow> (Propagated (- lit_of L) Proped # M, N))"
-      and "backtrack_split Ms = (a, b)"
-      and "snd (backtrack_split Ms) = []"
+      assume "backtrack_split Ms = (a, b)" and "snd (backtrack_split Ms) = []"
       thus "snd (backtrack_split Ms) = []" by blast
     next
       fix a b aa list
-      assume "(Ms, N) = (case backtrack_split Ms of (x, []) \<Rightarrow> (Ms, N) | (x, L # M) \<Rightarrow> (Propagated (- lit_of L) Proped # M, N))"
-      and bt: "backtrack_split Ms = (a, b)"
-      and bt': "snd (backtrack_split Ms) = aa # list"
-      hence Ms: "Ms = Propagated (- lit_of aa) Proped # list" by auto
+      assume
+        bt: "backtrack_split Ms = (a, b)" and
+        bt': "snd (backtrack_split Ms) = aa # list"
+      hence Ms: "Ms = Propagated (- lit_of aa) Proped # list" using Ms by auto
       have "is_marked aa" using backtrack_split_snd_hd_marked[of Ms] bt bt' by auto
-      moreover have "fst (backtrack_split Ms) @ aa # list = Ms" using backtrack_split_list_eq[of Ms] bt' by auto
+      moreover have "fst (backtrack_split Ms) @ aa # list = Ms"
+        using backtrack_split_list_eq[of Ms] bt' by auto
       ultimately have False unfolding Ms by auto
       thus "snd (backtrack_split Ms) = []" by blast
     qed
-  have "\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C) \<Longrightarrow> \<forall>L\<in>set Ms. \<not>is_marked L"
-    using bt backtrack_snd_empty_not_marked[of Ms] by (metis (no_types) prod.collapse)
 
-  { assume "\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C)"
-     hence ?thesis  unfolding final_dpll_state_def using bt backtrack_snd_empty_not_marked[of Ms] by simp (metis (no_types) prod.collapse)
+    hence ?thesis
+      using n backtrack_snd_empty_not_marked[of Ms] unfolding final_dpll_state_def
+      by (cases "backtrack_split Ms") auto
   }
   moreover {
     assume n: "\<not> (\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C))"
@@ -249,18 +267,20 @@ proof -
         assume x: "x \<in> snd (toS Ms N)"
         hence "\<not>Ms \<Turnstile>as CNot  x" using n unfolding true_annots_def CNot_def Ball_def by auto
         moreover have "total_over_m (lits_of Ms) {x}"
-          using a x unfolding total_over_m_def total_over_set_def lits_of_def apply auto
-          using  image_iff in_mono atms_of_s_def lits_of_def by fastforce
-        ultimately show " fst (toS Ms N) \<Turnstile>a x" using total_not_CNot_imp[of "lits_of Ms" x] by (simp add: true_annot_def true_annots_true_cls)
+          using a x image_iff in_mono atms_of_s_def
+          unfolding total_over_m_def total_over_set_def lits_of_def by fastforce
+        ultimately show "fst (toS Ms N) \<Turnstile>a x"
+          using total_not_CNot[of "lits_of Ms" x] by (simp add: true_annot_def true_annots_true_cls)
       qed
     hence ?thesis unfolding final_dpll_state_def by blast
   }
   ultimately show ?thesis by blast
-
 qed
 
-
-function DPLL_ci:: "int dpll_annoted_lits \<Rightarrow> int literal list list \<Rightarrow> int dpll_annoted_lits \<times> int literal list list" where
+subsection \<open>Adding invariants\<close>
+subsubsection \<open>Invariant tested in the function\<close>
+function DPLL_ci :: "int dpll_annoted_lits \<Rightarrow> int literal list list
+  \<Rightarrow> int dpll_annoted_lits \<times> int literal list list" where
 "DPLL_ci Ms N =
   (if \<not>dpll_all_inv (Ms, set (map mset N))
   then (Ms, N)
@@ -280,10 +300,10 @@ next
   and x: "(xa, y) = x"
   and "(xa, y) \<noteq> (Ms, N)"
   thus "((xa, N), Ms, N) \<in> {(S', S). (toS' S', toS' S) \<in> {(S', S). dpll_all_inv S \<and> dpll S S'}}"
-    apply auto
-    using DPLL_step_is_a_dpll_step[of xa y Ms N] by (metis (no_types) dpll_same_clauses list.set_map snd_conv)
+    using DPLL_step_is_a_dpll_step dpll_same_clauses split_conv by fastforce
 qed
 
+subsubsection \<open>No invariant tested\<close>
 function (domintros) DPLL_part:: "int dpll_annoted_lits \<Rightarrow> int literal list list \<Rightarrow> int dpll_annoted_lits \<times> int literal list list" where
 "DPLL_part Ms N =
   (let (Ms', N') = DPLL_step (Ms, N) in
@@ -303,11 +323,14 @@ proof (induct rule: DPLL_ci.induct)
   case (1 Ms N)
   have "snd (DPLL_step (Ms, N)) = N"  by auto
   then obtain Ms' where Ms': "DPLL_step (Ms, N) = (Ms', N)" by (case_tac "DPLL_step (Ms, N)") auto
-  have inv': "dpll_all_inv (toS Ms' N)" by (metis (mono_tags) "1.prems" DPLL_step_is_a_dpll_step Ms' dpll_all_inv old.prod.inject)
+  have inv': "dpll_all_inv (toS Ms' N)" by (metis (mono_tags) "1.prems" DPLL_step_is_a_dpll_step Ms'
+    dpll_all_inv old.prod.inject)
   { assume "(Ms', N) \<noteq> (Ms, N)"
-    hence "DPLL_ci Ms' N = DPLL_part Ms' N \<and> DPLL_part_dom (Ms', N)" using 1(1)[of _ Ms' N] Ms' 1(2) inv' by auto
+    hence "DPLL_ci Ms' N = DPLL_part Ms' N \<and> DPLL_part_dom (Ms', N)" using 1(1)[of _ Ms' N] Ms'
+      1(2) inv' by auto
     hence "DPLL_part_dom (Ms, N)" using DPLL_part.domintros Ms' by fastforce
-    moreover have "DPLL_ci Ms N = DPLL_part Ms N" using "1.prems" DPLL_part.psimps Ms' `DPLL_ci Ms' N = DPLL_part Ms' N \<and> DPLL_part_dom (Ms', N)` `DPLL_part_dom (Ms, N)` by auto
+    moreover have "DPLL_ci Ms N = DPLL_part Ms N" using "1.prems" DPLL_part.psimps Ms'
+      `DPLL_ci Ms' N = DPLL_part Ms' N \<and> DPLL_part_dom (Ms', N)` `DPLL_part_dom (Ms, N)` by auto
     ultimately have ?case by blast
   }
   moreover {
@@ -316,13 +339,6 @@ proof (induct rule: DPLL_ci.induct)
   }
   ultimately show ?case by blast
 qed
-
-
-
-
-(*TODO move to multiset_more?*)
-lemma count_mset_set_le_1[simp]: "count (mset_set (set C)) L \<le> 1"
-  by (metis List.finite_set One_nat_def count_mset_set(1) count_mset_set(3) le_less_linear less_nat_zero_code less_not_refl)
 
 lemma DPLL_ci_dpll_rtranclp:
   assumes "DPLL_ci Ms N = (Ms', N')"
@@ -347,17 +363,21 @@ proof (induct Ms N arbitrary: Ms' N' rule: DPLL_ci.induct)
     moreover obtain S\<^sub>1' S\<^sub>2' where "DPLL_ci S\<^sub>1 N = (S\<^sub>1', S\<^sub>2')" by (case_tac "DPLL_ci S\<^sub>1 N") auto
     moreover have "DPLL_ci Ms N = DPLL_ci S\<^sub>1 N" using DPLL_ci.simps[of Ms N] calculation
       proof -
-        have "(case (S\<^sub>1, S\<^sub>2) of (ms, lss) \<Rightarrow> if (ms, lss) = (Ms, N) then (Ms, N) else DPLL_ci ms N) = DPLL_ci Ms N"
-          using S DPLL_ci.simps[of Ms N] calculation by presburger (* 7 ms *)
+        have "(case (S\<^sub>1, S\<^sub>2) of (ms, lss) \<Rightarrow>
+          if (ms, lss) = (Ms, N) then (Ms, N) else DPLL_ci ms N) = DPLL_ci Ms N"
+          using S DPLL_ci.simps[of Ms N] calculation by presburger
         hence "(if (S\<^sub>1, S\<^sub>2) = (Ms, N) then (Ms, N) else DPLL_ci S\<^sub>1 N) = DPLL_ci Ms N"
-          by fastforce (* 0.4 ms *)
+          by fastforce
         thus ?thesis
           using calculation(2) by presburger (* 2 ms *)
       qed
     ultimately have "dpll\<^sup>*\<^sup>* (toS S\<^sub>1' N) (toS Ms' N)" using IH[of "(S\<^sub>1, S\<^sub>2)" S\<^sub>1 S\<^sub>2] S step by simp
 
-    moreover have "dpll (toS Ms N) (toS S\<^sub>1 N)" by (metis DPLL_step_is_a_dpll_step S `(S\<^sub>1, S\<^sub>2) \<noteq> (Ms, N)` prod.sel(2) snd_DPLL_step)
-    ultimately have ?case by (metis (mono_tags, hide_lams) IH S `(S\<^sub>1, S\<^sub>2) \<noteq> (Ms, N)` `DPLL_ci Ms N = DPLL_ci S\<^sub>1 N` `dpll_all_inv (toS Ms N)` converse_rtranclp_into_rtranclp local.step)
+    moreover have "dpll (toS Ms N) (toS S\<^sub>1 N)"
+      by (metis DPLL_step_is_a_dpll_step S `(S\<^sub>1, S\<^sub>2) \<noteq> (Ms, N)` prod.sel(2) snd_DPLL_step)
+    ultimately have ?case by (metis (mono_tags, hide_lams) IH S `(S\<^sub>1, S\<^sub>2) \<noteq> (Ms, N)`
+      `DPLL_ci Ms N = DPLL_ci S\<^sub>1 N` `dpll_all_inv (toS Ms N)` converse_rtranclp_into_rtranclp
+      local.step)
   }
   ultimately show ?case by blast
 qed
@@ -380,11 +400,13 @@ proof  -
   have st: "dpll\<^sup>*\<^sup>* (toS Ms N) (toS Ms N)" using DPLL_ci_dpll_rtranclp[OF step] .
   have "DPLL_step (Ms, N) = (Ms, N)"
     proof (rule ccontr)
-      obtain Ms' N' where Ms'N: "(Ms', N') = DPLL_step (Ms, N)" by (case_tac "DPLL_step (Ms, N)") auto
+      obtain Ms' N' where Ms'N: "(Ms', N') = DPLL_step (Ms, N)"
+        by (case_tac "DPLL_step (Ms, N)") auto
       assume "\<not> ?thesis"
       hence "DPLL_ci Ms' N = (Ms, N)" using step inv st Ms'N[symmetric] by fastforce
       hence "dpll\<^sup>+\<^sup>+ (toS Ms N) (toS Ms N)"
-        by (metis DPLL_ci_dpll_rtranclp DPLL_step_is_a_dpll_step Ms'N `DPLL_step (Ms, N) \<noteq> (Ms, N)` prod.sel(2) rtranclp_into_tranclp2 snd_DPLL_step)
+        by (metis DPLL_ci_dpll_rtranclp DPLL_step_is_a_dpll_step Ms'N `DPLL_step (Ms, N) \<noteq> (Ms, N)`
+          prod.sel(2) rtranclp_into_tranclp2 snd_DPLL_step)
       thus False using dpll_all_inv_dpll_tranclp_irrefl inv by auto
     qed
   thus ?thesis using DPLL_step_stuck_final_state[of Ms N] by simp
@@ -442,12 +464,13 @@ proof (induct arbitrary: Ms' N' rule: DPLL_ci.induct)
     obtain S\<^sub>1' where SS: "(S\<^sub>1', N) = DPLL_ci S\<^sub>1 N" using DPLL_ci_obtains by blast
     moreover have "DPLL_ci Ms N = DPLL_ci S\<^sub>1 N"
       proof -
-        have "(case (S\<^sub>1, N) of (ms, lss) \<Rightarrow> if (ms, lss) = (Ms, N) then (Ms, N) else DPLL_ci ms N) = DPLL_ci Ms N"
-          using S DPLL_ci.simps[of Ms N] calculation inv by presburger (* 7 ms *)
+        have "(case (S\<^sub>1, N) of (ms, lss) \<Rightarrow> if (ms, lss) = (Ms, N) then (Ms, N) else DPLL_ci ms N)
+          = DPLL_ci Ms N"
+          using S DPLL_ci.simps[of Ms N] calculation inv by presburger
         hence "(if (S\<^sub>1, N) = (Ms, N) then (Ms, N) else DPLL_ci S\<^sub>1 N) = DPLL_ci Ms N"
-          by fastforce (* 0.4 ms *)
+          by fastforce
         thus ?thesis
-          using calculation n by presburger (* 2 ms *)
+          using calculation n by presburger
       qed
     moreover
       have "DPLL_ci S\<^sub>1' N = (S\<^sub>1', N)" using step IH[OF _ _ S n SS[symmetric]] inv by blast
@@ -458,7 +481,8 @@ qed
 
 
 lemma DPLL_part_dpll_all_inv_final:
-  fixes M Ms':: "(int, dpll_marked_level, dpll_mark) marked_lit list" and N :: "int literal list list"
+  fixes M Ms':: "(int, dpll_marked_level, dpll_mark) marked_lit list" and
+    N :: "int literal list list"
   assumes inv: "dpll_all_inv (Ms, set (map mset N))"
   and MsN: "DPLL_part Ms N = (Ms', N)"
   shows "final_dpll_state (toS Ms' N) \<and> dpll\<^sup>*\<^sup>* (toS Ms N) (toS Ms' N)"
@@ -469,7 +493,11 @@ proof -
   show ?thesis using star DPLL_ci_final_state[OF DPLL_ci_no_more_step inv'] 2 unfolding MsN by blast
 qed
 
-typedef dpll_state =  "{(M::(int, dpll_marked_level, dpll_mark) marked_lit list, N::int literal list list). dpll_all_inv (toS M N)}"
+subsubsection \<open>Embedding the invariant into the type\<close>
+paragraph \<open>Defining the type\<close>
+typedef dpll_state =
+    "{(M::(int, dpll_marked_level, dpll_mark) marked_lit list, N::int literal list list).
+        dpll_all_inv (toS M N)}"
   morphisms rough_state_of state_of
 proof
     show "([],[]) \<in> {(M, N). dpll_all_inv (toS M N)}" by (auto simp add: dpll_all_inv_def)
@@ -478,9 +506,9 @@ qed
 lemma
   assumes "finite (set (map mset N))"
   shows "DPLL_part_dom ([], N)"
-  using assms  dpll_all_inv_implieS_2_eq3_and_dom[of "[]" N] by (simp del:DPLL_ci.simps add: dpll_all_inv_def)
+  using assms  dpll_all_inv_implieS_2_eq3_and_dom[of "[]" N] by (simp add: dpll_all_inv_def)
 
-
+paragraph \<open>Some type classes\<close>
 instantiation dpll_state :: equal
 begin
 definition equal_dpll_state :: "dpll_state \<Rightarrow> dpll_state \<Rightarrow> bool" where
@@ -489,6 +517,7 @@ instance
   by standard (simp add: rough_state_of_inject equal_dpll_state_def)
 end
 
+paragraph \<open>DPLL\<close>
 definition DPLL_step' :: "dpll_state \<Rightarrow> dpll_state" where
   "DPLL_step' S = state_of (DPLL_step (rough_state_of S))"
 
@@ -496,7 +525,8 @@ declare rough_state_of_inverse[simp]
 
 lemma DPLL_step_dpll_conc_inv:
   "DPLL_step (rough_state_of S) \<in> {(M, N). dpll_all_inv (toS M N)}"
-  by (smt DPLL_ci.simps DPLL_ci_dpll_rtranclp case_prodE case_prodI2 rough_state_of mem_Collect_eq old.prod.case prod.sel(2) rtranclp_dpll_all_inv snd_DPLL_step)
+  by (smt DPLL_ci.simps DPLL_ci_dpll_rtranclp case_prodE case_prodI2 rough_state_of
+    mem_Collect_eq old.prod.case prod.sel(2) rtranclp_dpll_all_inv snd_DPLL_step)
 
 lemma rough_state_of_DPLL_step'_DPLL_step[simp]:
   "rough_state_of (DPLL_step' S) = DPLL_step (rough_state_of S)"
@@ -508,8 +538,14 @@ function DPLL_tot:: "dpll_state \<Rightarrow> dpll_state" where
    if S' = S then S else DPLL_tot S')"
   by fast+
 termination
-proof (relation "{(T', T). (rough_state_of T', rough_state_of T) \<in> {(S', S). (toS' S', toS' S) \<in> {(S', S). dpll_all_inv S \<and> dpll S S'}}}")
-  show "wf {(b, a). (rough_state_of b, rough_state_of a) \<in> {(b, a). (toS' b, toS' a) \<in> {(b, a). dpll_all_inv a \<and> dpll a b}}}"
+proof (relation "{(T', T).
+     (rough_state_of T', rough_state_of T)
+        \<in> {(S', S). (toS' S', toS' S)
+              \<in> {(S', S). dpll_all_inv S \<and> dpll S S'}}}")
+  show "wf {(b, a).
+          (rough_state_of b, rough_state_of a)
+            \<in> {(b, a). (toS' b, toS' a)
+              \<in> {(b, a). dpll_all_inv a \<and> dpll a b}}}"
     using  wf_if_measure_f[OF wf_if_measure_f[OF dpll_wf, of "toS'"], of rough_state_of] .
 next
   fix S x
@@ -517,19 +553,23 @@ next
   and "x \<noteq> S"
   have "dpll_all_inv (case rough_state_of S of (Ms, N) \<Rightarrow> (Ms, mset ` set N))"
     by (metis (no_types, lifting) case_prodE rough_state_of mem_Collect_eq old.prod.case set_map)
-  moreover have "dpll (case rough_state_of S of (Ms, N) \<Rightarrow> (Ms, mset ` set N)) (case rough_state_of (DPLL_step' S) of (Ms, N) \<Rightarrow> (Ms, mset ` set N))"
+  moreover have "dpll (case rough_state_of S of (Ms, N) \<Rightarrow> (Ms, mset ` set N))
+                      (case rough_state_of (DPLL_step' S) of (Ms, N) \<Rightarrow> (Ms, mset ` set N))"
     proof -
       obtain Ms N where Ms: "(Ms, N) = rough_state_of S" by (cases "rough_state_of S") auto
       have "dpll_all_inv (toS' (Ms, N))" unfolding Ms by (simp add: calculation)
-      moreover obtain Ms' N' where Ms': "(Ms', N') = rough_state_of (DPLL_step' S)" by (cases "rough_state_of (DPLL_step' S)") auto
-      ultimately have "dpll_all_inv (toS' (Ms', N'))" unfolding Ms' by (metis (no_types, lifting) case_prod_unfold mem_Collect_eq rough_state_of)
+      moreover obtain Ms' N' where Ms': "(Ms', N') = rough_state_of (DPLL_step' S)"
+        by (cases "rough_state_of (DPLL_step' S)") auto
+      ultimately have "dpll_all_inv (toS' (Ms', N'))" unfolding Ms'
+        by (metis (no_types, lifting) case_prod_unfold mem_Collect_eq rough_state_of)
 
       have "dpll (toS Ms N) (toS Ms' N')"
         apply (rule DPLL_step_is_a_dpll_step[of Ms' N' Ms N])
         unfolding Ms Ms' using `x \<noteq> S` rough_state_of_inject x by fastforce+
       thus ?thesis unfolding Ms[symmetric] Ms'[symmetric] by auto
     qed
-  ultimately show "(x, S) \<in> {(T', T). (rough_state_of T', rough_state_of T) \<in> {(S', S). (toS' S', toS' S) \<in> {(S', S). dpll_all_inv S \<and> dpll S S'}}}"
+  ultimately show "(x, S) \<in> {(T', T). (rough_state_of T', rough_state_of T)
+    \<in> {(S', S). (toS' S', toS' S) \<in> {(S', S). dpll_all_inv S \<and> dpll S S'}}}"
     by (auto simp add: x)
 qed
 
@@ -546,8 +586,8 @@ lemma DPLL_tot_DPLL_step_DPLL_tot[simp]: "DPLL_tot (DPLL_step' S) = DPLL_tot S"
 
 lemma DOPLL_step'_DPLL_tot[simp]:
   "DPLL_step' (DPLL_tot S) = DPLL_tot S"
-apply (rule  DPLL_tot.induct[of "\<lambda>S. DPLL_step' (DPLL_tot S) = DPLL_tot S" S])
-by (metis (full_types) DPLL_tot.simps)
+  by (rule  DPLL_tot.induct[of "\<lambda>S. DPLL_step' (DPLL_tot S) = DPLL_tot S" S])
+     (metis (full_types) DPLL_tot.simps)
 (*
 why does this not work?
 proof (induction arbitrary: S rule: DPLL_tot.induct)
@@ -568,8 +608,10 @@ lemma DPLL_tot_final_state:
 proof -
   have "DPLL_step' S =  S" using assms[symmetric] DOPLL_step'_DPLL_tot by metis
   hence "DPLL_step (rough_state_of S) =  (rough_state_of S)"
-    unfolding DPLL_step'_def using DPLL_step_dpll_conc_inv rough_state_of_inverse by (metis rough_state_of_DPLL_step'_DPLL_step)
-  thus ?thesis by (metis (mono_tags, lifting) DPLL_step_stuck_final_state old.prod.exhaust split_conv)
+    unfolding DPLL_step'_def using DPLL_step_dpll_conc_inv rough_state_of_inverse
+    by (metis rough_state_of_DPLL_step'_DPLL_step)
+  thus ?thesis
+    by (metis (mono_tags, lifting) DPLL_step_stuck_final_state old.prod.exhaust split_conv)
 qed
 
 lemma DPLL_tot_star:
@@ -585,7 +627,9 @@ proof (induction arbitrary: S' rule: DPLL_tot.induct)
   moreover {
     assume S: "?x \<noteq> S"
     have ?case
-      by (smt "1.IH" "1.prems" DPLL_step_is_a_dpll_step DPLL_tot.simps rough_state_of_DPLL_step'_DPLL_step rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl rtranclp_idemp case_prodE2 split_conv)
+      by (smt "1.IH" "1.prems" DPLL_step_is_a_dpll_step DPLL_tot.simps
+        rough_state_of_DPLL_step'_DPLL_step rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl
+        rtranclp_idemp case_prodE2 split_conv)
   }
   ultimately show ?case by auto
 qed
@@ -595,20 +639,26 @@ lemma rough_state_of_rough_state_of_nil[simp]:
   apply (rule DPLL_Implementation.dpll_state.state_of_inverse)
   unfolding dpll_all_inv_def by auto
 
-thm DPLL_Implementation.dpll_state.state_of_inverse
+text \<open>Theorem of correctness\<close>
 lemma DPLL_tot_correct:
   assumes "rough_state_of (DPLL_tot (state_of (([], N)))) = (M, N')"
   and "(M', N'') =  toS' (M, N')"
   shows "M' \<Turnstile>as N'' \<longleftrightarrow> satisfiable N''"
 proof -
   have "dpll\<^sup>*\<^sup>* (toS' ([], N)) (toS' (M, N'))" using DPLL_tot_star[OF assms(1)] by auto
-  moreover have "final_dpll_state (toS' (M, N'))" using DPLL_tot_final_state by (metis (mono_tags, lifting) DOPLL_step'_DPLL_tot DPLL_tot.simps assms(1))
+  moreover have "final_dpll_state (toS' (M, N'))"
+    using DPLL_tot_final_state by (metis (mono_tags, lifting) DOPLL_step'_DPLL_tot DPLL_tot.simps
+      assms(1))
   moreover have "finite (set (map mset N))" by auto
-  ultimately show ?thesis using dpll_completeness' by (smt DPLL_ci.simps DPLL_ci_dpll_rtranclp assms(2) dpll_all_inv_def prod.case prod.sel(1) prod.sel(2) rtranclp_dpll_inv(3) rtranclp_dpll_inv_starting_from_0)
+  ultimately show ?thesis using dpll_completeness' by (smt DPLL_ci.simps DPLL_ci_dpll_rtranclp
+    assms(2) dpll_all_inv_def prod.case prod.sel(1) prod.sel(2) rtranclp_dpll_inv(3)
+    rtranclp_dpll_inv_starting_from_0)
 qed
 
-
-definition Con :: "(int, dpll_marked_level, dpll_mark) marked_lit list \<times> int literal list list \<Rightarrow> dpll_state" where
+subsection \<open>Code export\<close>
+subsubsection \<open>A conversion to @{typ dpll_state}\<close>
+definition Con :: "(int, dpll_marked_level, dpll_mark) marked_lit list \<times> int literal list list
+                     \<Rightarrow> dpll_state" where
   "Con xs = state_of (if dpll_all_inv (toS (fst xs) (snd xs)) then xs else ([], []))"
 lemma [code abstype]:
  "Con (rough_state_of S) = S"
@@ -618,18 +668,26 @@ lemma [code abstype]:
 
 lemma [simp]:
   "Con (DPLL_step (rough_state_of s)) = state_of (DPLL_step (rough_state_of s))"
-  unfolding Con_def by (metis (mono_tags, lifting) DPLL_step_dpll_conc_inv mem_Collect_eq prod.case_eq_if)
+  unfolding Con_def by (metis (mono_tags, lifting) DPLL_step_dpll_conc_inv mem_Collect_eq
+    prod.case_eq_if)
 
+text \<open>A slightly different version of @{term DPLL_tot} where the returned boolean indicates the
+  result.\<close>
 definition DPLL_tot_rep where
 "DPLL_tot_rep S =
   (let (M, N) = (rough_state_of (DPLL_tot S)) in (\<forall>A \<in> set N. (\<exists>a\<in>set A. a \<in> lits_of (M)), M))"
 
+text \<open>One version of the generated SML code is here, but not included in the generated document.
+  The only differences are:
+  \<^item> export @{typ "'a literal"}from the SML Module;
+  \<^item> export the constructor @{term Con};
+  \<^item> export the @{term int} constructor.
 
+  All these allows to test on the code on some examples.
+  \<close>
+
+(*<*)
 export_code DPLL_tot_rep in SML
-(*Changes to the generated Code:
-  * export 'a literal
-  * export Con
-  export the int constructor*)
 ML {*
 
 structure HOL : sig
@@ -1026,5 +1084,5 @@ in
 end
 *}
 
-
+(*>*)
 end
