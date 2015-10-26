@@ -30,6 +30,8 @@ declare
   (*To have the same rules as the set counter-part*)
   mset_leD[dest, intro?] (*@{thm subsetD}*)
 
+  Multiset.in_multiset_in_set[simp]
+
 (*@{thm psubsetE} is the set counter part*)
 lemma subset_msetE [elim!]:
   "[|A \<subset># B;  [|A \<subseteq># B; ~ (B\<subseteq>#A)|] ==> R|] ==> R"

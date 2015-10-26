@@ -403,7 +403,7 @@ using res_e proof (cases rule: ground_resolution_with_S.ord_resolve.cases)
   case (ord_resolve Cf' ZZ AA D')
   note e = this(1) and cf' = this(2) and aa = this(3) and cc = this(4) and d = this(5) and
     zz_ne = this(6) and s_d = this(7) and a_max = this(8) and s_cc_e = this(9)
-  note case_prod_self_distrib[simp] = uncurry_distrib[of "case_prod f" for f]
+  note case_prod_self_distrib[simp] = prod.case_distrib[of "case_prod f" for f]
 
   def ZZ_fo \<equiv> "{#(C', A, replicate_mset (Suc m) A). (C', A, m) \<in># ZZ#}"
   def AAA \<equiv> "{#{A}. (C', A, AA') \<in># ZZ_fo#}"
@@ -503,7 +503,7 @@ using res proof (cases rule: ord_resolve_raw.cases)
   note e = this(1) and cf' = this(2) and aa = this(3) and aaa = this(4) and cc = this(5) and
     d = this(6) and zz_ne = this(7) and aa'_ne = this(8) and \<sigma>_mgu = this(9) and s_d = this(10) and
     a_max = this(11) and s_cc_e = this(12)
-  note case_prod_self_distrib[simp] = Product_Type.uncurry_distrib[of "case_prod f" for f]
+  note case_prod_self_distrib[simp] = prod.case_distrib[of "case_prod f" for f]
 
   have "\<forall>(_, _, AA') \<in> set_mset ZZ. \<forall>A. A \<in># AA' \<longrightarrow> is_ground_atm A"
     using gr_cc unfolding cc is_ground_cls_mset_def

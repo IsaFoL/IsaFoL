@@ -375,6 +375,6 @@ text {*
 A second proof of Theorem 3.12, compactness of clausal logic:
 *}
 
-theorems (in ground_resolution_with_selection) clausal_logic_compact = clausal_logic_compact
+lemmas (in ground_resolution_with_selection) clausal_logic_compact = clausal_logic_compact
 
 end

@@ -68,6 +68,13 @@ subsubsection \<open>Atoms\<close>
 definition atms_of_m :: "'a literal multiset set \<Rightarrow> 'a set" where
 "atms_of_m \<psi>s = \<Union>(atms_of ` \<psi>s)"
 
+lemma atms_of_multiset[simp]: "atms_of (mset a) = atm_of ` set a"
+  by (induct a) auto
+
+lemma atms_of_m_mset_unfold:
+  "atms_of_m (mset ` b) =  (\<Union>x\<in>b. atm_of ` set x)"
+  unfolding atms_of_m_def by simp
+
 definition atms_of_s :: "'a literal set \<Rightarrow> 'a set" where
   "atms_of_s C = atm_of ` C"
 
@@ -832,7 +839,12 @@ lemma remdups_mset_eq_empty[iff]:
 
 lemma remdups_mset_singleton_sum[simp]:
   "remdups_mset ({#a#} + A) = (if a \<in># A then remdups_mset A else {#a#} + remdups_mset A)"
-  unfolding remdups_mset_def by (simp add: insert_absorb)
+  "remdups_mset (A+{#a#}) = (if a \<in># A then remdups_mset A else {#a#} + remdups_mset A)"
+  unfolding remdups_mset_def by (simp_all add: insert_absorb)
+
+lemma mset_remdups_remdups_mset[simp]:
+  "mset (remdups D) = remdups_mset (mset D)"
+  by (induction D) (auto simp add: ac_simps Multiset.in_multiset_in_set)
 
 definition "distinct_mset S \<longleftrightarrow> (\<forall>a. a \<in># S \<longrightarrow> count S a = 1)"
 
@@ -873,6 +885,15 @@ lemma in_distinct_mset_set_distinct_mset:
 
 lemma distinct_mset_remdups_mset[simp]: "distinct_mset (remdups_mset S)"
   using count_remdups_mset_eq_1 unfolding distinct_mset_def by metis
+
+lemma distinct_mset_distinct[iff]:
+  "distinct_mset (mset x) = distinct x"
+  unfolding distinct_mset_def 
+  by (induction x) (simp_all add: distinct_count_atmost_1)
+
+lemma distinct_mset_set_distinct:
+  "distinct_mset_set (mset ` set Cs) \<longleftrightarrow> (\<forall>c\<in> set Cs. distinct c)"
+  unfolding distinct_mset_set_def by auto
 
 text \<open>Another characterisation of @{term distinct_mset}\<close>
 lemma distinct_mset_count_less_1:

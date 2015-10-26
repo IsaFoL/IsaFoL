@@ -247,7 +247,7 @@ proof -
       proof (clarify)
         fix x
         assume x: "x \<in> snd (toS Ms N)"
-        hence "\<not>Ms \<Turnstile>as CNot  x" using n unfolding true_annots_def CNot_def Ball_def by simp blast
+        hence "\<not>Ms \<Turnstile>as CNot  x" using n unfolding true_annots_def CNot_def Ball_def by auto
         moreover have "total_over_m (lits_of Ms) {x}"
           using a x unfolding total_over_m_def total_over_set_def lits_of_def apply auto
           using  image_iff in_mono atms_of_s_def lits_of_def by fastforce
@@ -585,7 +585,7 @@ proof (induction arbitrary: S' rule: DPLL_tot.induct)
   moreover {
     assume S: "?x \<noteq> S"
     have ?case
-      by (smt "1.IH" "1.prems" DPLL_step_is_a_dpll_step DPLL_tot.simps rough_state_of_DPLL_step'_DPLL_step rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl rtranclp_idemp splitE2 split_conv)
+      by (smt "1.IH" "1.prems" DPLL_step_is_a_dpll_step DPLL_tot.simps rough_state_of_DPLL_step'_DPLL_step rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl rtranclp_idemp case_prodE2 split_conv)
   }
   ultimately show ?case by auto
 qed

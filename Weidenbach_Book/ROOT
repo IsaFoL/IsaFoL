@@ -3,7 +3,10 @@ session "Weidenbach_Book" (main) = "HOL" +
   theories [document = false]
     "../lib/Multiset_More"
     "../lib/Herbrand_Interpretation"
-  global_theories
+    "../Bachmair_Ganzinger/Lazy_List_Limit"
+    "~~/src/HOL/Library/Code_Target_Numeral"
+  global_theories [document = true]
+    Transition
     Propo_Logic
     Propo_Abstract_Transformation
     Propo_Normalisation
@@ -13,10 +16,12 @@ session "Weidenbach_Book" (main) = "HOL" +
     Partial_Annotated_Clausal_Logic
     Propo_DPLL
     DPLL_Implementation
+    Propo_CDCL_Level
     Propo_CDCL
     Propo_CDCL_Termination
     CDCL_Implementation
-    Propo_Superposition
+  theories
+    Propo_CDCL2
   document_files
     "root.tex"
     "biblio.bib"

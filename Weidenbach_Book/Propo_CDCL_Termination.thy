@@ -780,11 +780,6 @@ qed
 
 
 subsection \<open>Decrease of a measure\<close>
-lemma distinctlength_eq_card_atm_of_lits_of:
-  assumes "no_dup M"
-  shows "length M  = card (atm_of ` lits_of M)"
-  using assms unfolding lits_of_def by (induct M) (auto simp add: image_image)
-
 fun cdcl_measure where
 "cdcl_measure (M, N, U, k, C_True) = [(3::nat) ^(card (atms_of_m N)) - card U, 1, card (atms_of_m N) - length M]" |
 "cdcl_measure (M, N, U, k, _) = [3 ^(card (atms_of_m N)) - card U, 0, length M]"
@@ -798,9 +793,14 @@ proof -
   obtain M N U k D where S: "S = (M, N, U, k, D)" by (case_tac S, auto)
   have "finite (atm_of ` lits_of (trail S))" using assms(1,3) unfolding S by (auto simp add: finite_subset)
   have "length (trail S) = card (atm_of ` lits_of (trail S))"
-    using distinctlength_eq_card_atm_of_lits_of no_d by blast
+    using no_dup_length_eq_card_atm_of_lits_of no_d by blast
   thus ?thesis using assms(1) by (auto simp add: assms(3) card_mono)
 qed
+
+lemma length_model_le_vars_all_inv:
+  assumes "cdcl_all_inv_mes S"
+  shows "length (trail S) \<le> card (atms_of_m (clauses S))"
+  using assms length_model_le_vars[of S] unfolding cdcl_all_inv_mes_def by auto
 
 lemma learned_clauses_less_upper_bound:
   fixes S :: "'v ::linorder cdcl_state"
@@ -853,7 +853,7 @@ proof (induct rule: cdcl_all_induct)
   hence "card (atm_of ` lits_of (Propagated L (C + {#L#}) # M)) \<le> card (atms_of_m N)"
     using card_mono propagate.prems(6) by fastforce
   hence "length (Propagated L (C + {#L#}) # M) \<le> card (atms_of_m N)"
-    using distinctlength_eq_card_atm_of_lits_of no_dup' by fastforce
+    using no_dup_length_eq_card_atm_of_lits_of no_dup' by fastforce
   thus ?case by simp
 next
   case (decided M N U k L) note p = this(5,6,7)
@@ -874,7 +874,7 @@ next
     hence "card (atm_of ` lits_of (Propagated L C' # M)) \<le> card (atms_of_m N)"
       using card_mono skip.prems(6) by fastforce
     hence "length (Propagated L C' # M) \<le> card (atms_of_m N)"
-      using distinctlength_eq_card_atm_of_lits_of skip.prems(5) by fastforce
+      using no_dup_length_eq_card_atm_of_lits_of skip.prems(5) by fastforce
   ultimately show  ?case by simp
 next
   case (conflict M N U k D)
@@ -907,7 +907,6 @@ next
   case (forget M N U C k)
   thus ?case by auto
 qed
-
 
 lemma propagate_measure_decreasing:
   fixes S :: "'v::linorder cdcl_state"
@@ -1078,5 +1077,47 @@ lemma tranclp_cdcl_s_wf:
   apply (rule wf_wf_if_measure'_notation2[of "lexn {(a, b). a < b} 3" _ _ cdcl_measure])
    apply (simp add: wf wf_lexn)
   using tranclp_cdcl_s_S0_decreasing by blast
+
+subsection\<open>Adding the measure based on Nieuwenhuis et al.\<close>
+abbreviation latm where
+  "latm M N \<equiv> card (atms_of_m N) - length M"
+
+value "get_all_marked_decomposition"
+
+lemma "([1, 2, 3], [1,2, 2]) \<in> lenlex ({(b::int, a). b > a})"
+  unfolding lenlex_conv apply auto
+  done
+fun trail_mes ::  "'v::linorder cdcl_state \<Rightarrow> nat list" where
+"trail_mes (M, N, U, k, C) = 
+  rev (map (\<lambda>(_, propa). latm propa N) (get_all_marked_decomposition M)) @ [card U, if C = C_True then 1 else 0]"
+
+lemma 
+  fixes S :: "'v::linorder cdcl_state"
+  assumes "propagate S T" and "cdcl_all_inv_mes S"
+  shows "(trail_mes T, trail_mes S) \<in> lenlex {(a, b). a < b}"
+proof -
+  obtain M N U k C L where
+    T: "T = (Propagated L (C + {#L#}) # M, N, U, k, C_True)" and 
+    S: "S = (M, N, U, k, C_True)" and
+    "C + {#L#} \<in> N \<or> C + {#L#} \<in> U " and
+    C: "M \<Turnstile>as CNot C" and
+    undef: "undefined_lit L M"
+  using assms(1) by (elim propagateE)
+  obtain a b l where M: "get_all_marked_decomposition M = (a, b) # l"
+    by (case_tac "get_all_marked_decomposition M") auto
+  have "length b \<le> length M"
+    using get_all_marked_decomposition_decomp[of M] by (simp add: M)
+    
+  moreover
+    have "cdcl_all_inv_mes T"
+      using assms(1) assms(2) cdcl_all_inv_mes_inv propagate by blast
+    hence "length (Propagated L (C + {#L#}) # M) \<le> card (atms_of_m N)"
+      using length_model_le_vars_all_inv[of T] unfolding T by auto
+    
+  ultimately have "card (atms_of_m N) - length b = Suc(card (atms_of_m N) - Suc (length b))"
+    by simp
+  thus ?thesis
+    unfolding S T lenlex_conv lex_conv by (auto simp add: M)
+qed  
 
 end

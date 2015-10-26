@@ -9,9 +9,9 @@ begin
 section \<open>Partial Clausal Logic\<close>
 subsection \<open>Marked Literals\<close>
 subsubsection \<open>Definition\<close>
-datatype ('v, 'l, 'm) marked_lit =
-  is_marked: Marked (lit_of: "'v literal") (level_of: "'l") |
-  is_proped: Propagated (lit_of: "'v literal") (mark_of: 'm)
+datatype ('v, 'lvl, 'mark) marked_lit =
+  is_marked: Marked (lit_of: "'v literal") (level_of: "'lvl") |
+  is_proped: Propagated (lit_of: "'v literal") (mark_of: 'mark)
 
 lemma marked_lit_list_induct[case_names nil marked proped]:
   assumes "P []" and
@@ -754,6 +754,11 @@ qed
 
 subsection \<open>Other\<close>
 abbreviation "no_dup L \<equiv> distinct (map (\<lambda>l. atm_of (lit_of l)) L)"
+
+lemma no_dup_length_eq_card_atm_of_lits_of:
+  assumes "no_dup M"
+  shows "length M  = card (atm_of ` lits_of M)"
+  using assms unfolding lits_of_def by (induct M) (auto simp add: image_image)
 
 lemma distinctconsistent_interp:
   "no_dup M \<Longrightarrow> consistent_interp (lits_of M)"
