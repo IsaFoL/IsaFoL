@@ -4,17 +4,12 @@ hide_const (open) TermsAndLiterals.Leaf TermsAndLiterals.Branch
 
 section {* Terms and literals *} 
 
-text_raw {*\DefineSnippet{complement}{*}
 fun complement :: "'t literal \<Rightarrow> 't literal" ("_\<^sup>c" [300] 300) where
   "(Pos P ts)\<^sup>c = Neg P ts"  
 | "(Neg P ts)\<^sup>c = Pos P ts"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{cancel_comp1}{*}
 lemma cancel_comp1: "(l\<^sup>c)\<^sup>c = l" by (cases l) auto   
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{cancel_comp2}{*}
 lemma cancel_comp2:
   assumes asm: "l\<^sub>1\<^sup>c = l\<^sub>2\<^sup>c"
   shows "l\<^sub>1 = l\<^sub>2"
@@ -23,20 +18,14 @@ proof -
   then have "l\<^sub>1 = (l\<^sub>2\<^sup>c)\<^sup>c" using cancel_comp1[of l\<^sub>1] by auto
   then show ?thesis using cancel_comp1[of l\<^sub>2] by auto
 qed
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{comp_exi1}{*}
 lemma comp_exi1: "\<exists>l'. l' = l\<^sup>c" by (cases l) auto 
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{comp_exi2}{*}
 lemma comp_exi2: "\<exists>l. l' = l\<^sup>c"
 proof
   show "l' = (l'\<^sup>c)\<^sup>c" using cancel_comp1[of l'] by auto
 qed
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{comp_swap}{*}
 lemma comp_swap: "l\<^sub>1\<^sup>c = l\<^sub>2 \<longleftrightarrow> l\<^sub>1 = l\<^sub>2\<^sup>c" 
 proof -
   have "l\<^sub>1\<^sup>c = l\<^sub>2 \<Longrightarrow> l\<^sub>1 = l\<^sub>2\<^sup>c" using cancel_comp1[of l\<^sub>1] by auto
@@ -45,121 +34,84 @@ proof -
   ultimately
   show ?thesis by auto
 qed
-text_raw {*}%EndSnippet*}
 (* I only use \<longrightarrow> and two cases for pedagogical thesis. A oneliner Could do *)
 
 section {* Clauses *}
 
-text_raw {*\DefineSnippet{clause}{*}
 type_synonym 't clause = "'t literal set"
-text_raw {*}%EndSnippet*}
 (* I Could also use fset or list or (finite) multisets of literals*)
 
-text_raw {*\DefineSnippet{complementls}{*}
 abbreviation complementls :: "'t literal set \<Rightarrow> 't literal set" ("_\<^sup>C" [300] 300) where 
   "L\<^sup>C \<equiv> complement ` L"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{cancel_compls1}{*}
 lemma cancel_compls1: "(L\<^sup>C)\<^sup>C = L"
 apply auto
 apply (simp add: cancel_comp1)
 apply (metis imageI cancel_comp1) 
 done
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{cancel_compls2}{*}
 lemma cancel_compls2:
   assumes asm: "L\<^sub>1\<^sup>C = L\<^sub>2\<^sup>C"
   shows "L\<^sub>1 = L\<^sub>2"
-text_raw {*}%EndSnippet*}
 proof -
   from asm have "(L\<^sub>1\<^sup>C)\<^sup>C = (L\<^sub>2\<^sup>C)\<^sup>C" by auto
   then show ?thesis using cancel_compls1[of L\<^sub>1] cancel_compls1[of L\<^sub>2] by simp
 qed
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{varst}{*}
 fun varst  :: "fterm \<Rightarrow> var_sym set" 
 and varsts :: "fterm list \<Rightarrow> var_sym set" where 
   "varst (Var x) = {x}"
 | "varst (Fun f ts) = varsts ts"
 | "varsts [] = {}"
 | "varsts (t # ts) = (varst t) \<union> (varsts ts)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{varsl}{*}
 definition varsl :: "fterm literal \<Rightarrow> var_sym set" where 
   "varsl l = varsts (get_terms l)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{varsls}{*}
 definition varsls :: "fterm literal set \<Rightarrow> var_sym set" where 
   "varsls L \<equiv> \<Union>l\<in>L. varsl l"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{groundl}{*}
 abbreviation groundl :: "fterm literal \<Rightarrow> bool" where
   "groundl l \<equiv> grounds (get_terms l)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{groundls}{*}
 abbreviation groundls :: "fterm clause \<Rightarrow> bool" where
   "groundls L \<equiv> \<forall> l \<in> L. groundl l"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{ground_comp}{*}
 lemma ground_comp: "groundl (l\<^sup>c) \<longleftrightarrow> groundl l" by (cases l) auto
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{ground_compls}{*}
 lemma  ground_compls: "groundls (L\<^sup>C) \<longleftrightarrow> groundls L" using ground_comp by auto
-text_raw {*}%EndSnippet*}
 
 (* Alternative - Collect variables with vars and see if empty set *)
 
 section {* Semantics *}
 
-text_raw {*\DefineSnippet{denot}{*}
 type_synonym 'u fun_denot  = "fun_sym  \<Rightarrow> 'u list \<Rightarrow> 'u"
 type_synonym 'u pred_denot = "pred_sym \<Rightarrow> 'u list \<Rightarrow> bool"
 type_synonym 'u var_denot  = "var_sym  \<Rightarrow> 'u"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{evalt}{*}
 fun evalt  :: "'u var_denot \<Rightarrow> 'u fun_denot \<Rightarrow> fterm \<Rightarrow> 'u" where
   "evalt E F (Var x) = E x"
 | "evalt E F (Fun f ts) = F f (map (evalt E F) ts)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{evalts}{*}
 abbreviation evalts :: "'u var_denot \<Rightarrow> 'u fun_denot \<Rightarrow> fterm list \<Rightarrow> 'u list" where
   "evalts E F ts \<equiv> map (evalt E F) ts"
-text_raw {*}%EndSnippet*}
 (* I Could Curry here and remove ts *)
 
-text_raw {*\DefineSnippet{evall}{*}
 fun evall :: "'u var_denot \<Rightarrow> 'u fun_denot \<Rightarrow> 'u pred_denot \<Rightarrow> fterm literal \<Rightarrow> bool" where
   "evall E F G (Pos p ts) \<longleftrightarrow>  (G p (evalts E F ts))"
 | "evall E F G (Neg p ts) \<longleftrightarrow> \<not>(G p (evalts E F ts))"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{evalc}{*}
 definition evalc :: "'u fun_denot \<Rightarrow> 'u pred_denot \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "evalc F G C \<longleftrightarrow> (\<forall>E. \<exists>l \<in> C. evall E F G l)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{evalcs}{*}
 definition evalcs :: "'u fun_denot \<Rightarrow> 'u pred_denot \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "evalcs F G Cs \<longleftrightarrow> (\<forall>C \<in> Cs. evalc F G C)"
-text_raw {*}%EndSnippet*}
 
 definition validcs :: "fterm clause set \<Rightarrow> bool" where
   "validcs Cs \<longleftrightarrow> (\<forall>F G. evalcs F G Cs)"
 
 subsection {* Semantics of Ground Terms *}
 
-text_raw {*\DefineSnippet{ground_var_denott}{*}
 lemma ground_var_denott: "ground t \<Longrightarrow> (evalt E F t = evalt E' F t)"
 proof (induction t)
   case (Var x)
@@ -173,17 +125,12 @@ next
   then have "F f (map (evalt E F) ts) = F f (map (evalt E' F) ts)" by metis
   then show ?case by simp
 qed
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{ground_var_denotts}{*}
 lemma ground_var_denotts: "grounds ts \<Longrightarrow> (evalts E F ts = evalts E' F ts)"
-text_raw {*}%EndSnippet*}
   using ground_var_denott by (metis map_eq_conv)
 
 
-text_raw {*\DefineSnippet{ground_var_denot}{*}
 lemma ground_var_denot: "groundl l \<Longrightarrow> (evall E F G l = evall E' F G l)"
-text_raw {*}%EndSnippet*}
 proof (induction l)
   case Pos then show ?case using ground_var_denotts by (metis evall.simps(1) literal.sel(3))
 next
@@ -193,9 +140,7 @@ qed
 
 section {* Substitutions *}
 
-text_raw {*\DefineSnippet{substitution}{*}
 type_synonym substitution = "var_sym \<Rightarrow> fterm" 
-text_raw {*}%EndSnippet*}
 
 (* Alternatives: 
     some more Concrete datastructure, e.g. association list
@@ -204,110 +149,76 @@ text_raw {*}%EndSnippet*}
 *)
 
 (* Another opportunity to use map. Mix-fix? *)
-text_raw {*\DefineSnippet{sub}{*}
 fun sub  :: "fterm \<Rightarrow> substitution \<Rightarrow> fterm" ("_{_}\<^sub>t" [300,0] 300) where
   "(Var x){\<sigma>}\<^sub>t = \<sigma> x"
 | "(Fun f ts){\<sigma>}\<^sub>t = Fun f (map (\<lambda>t. t {\<sigma>}\<^sub>t) ts)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{subs}{*}
 abbreviation subs :: "fterm list \<Rightarrow> substitution \<Rightarrow> fterm list" ("_{_}\<^sub>t\<^sub>s" [300,0] 300) where
   "ts{\<sigma>}\<^sub>t\<^sub>s \<equiv> (map (\<lambda>t. t {\<sigma>}\<^sub>t) ts)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{subl}{*}
 fun subl :: "fterm literal \<Rightarrow> substitution \<Rightarrow> fterm literal" ("_{_}\<^sub>l" [300,0] 300) where
   "(Pos p ts){\<sigma>}\<^sub>l = Pos p (ts{\<sigma>}\<^sub>t\<^sub>s)"
 | "(Neg p ts){\<sigma>}\<^sub>l = Neg p (ts{\<sigma>}\<^sub>t\<^sub>s)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{subls}{*}
 abbreviation subls :: "fterm literal set \<Rightarrow> substitution \<Rightarrow> fterm literal set" ("_{_}\<^sub>l\<^sub>s" [300,0] 300) where
   "L {\<sigma>}\<^sub>l\<^sub>s \<equiv> (\<lambda>l. l {\<sigma>}\<^sub>l) ` L"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{instance_oft}{*}
+lemma subls_def2: "L {\<sigma>}\<^sub>l\<^sub>s = {l {\<sigma>}\<^sub>l|l. l \<in> L}" by auto
+
 definition instance_oft :: "fterm \<Rightarrow> fterm \<Rightarrow> bool" where
   "instance_oft t\<^sub>1 t\<^sub>2 \<longleftrightarrow> (\<exists>\<sigma>. t\<^sub>1 = t\<^sub>2{\<sigma>}\<^sub>t)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{instance_ofts}{*}
 definition instance_ofts :: "fterm list \<Rightarrow> fterm list \<Rightarrow> bool" where
   "instance_ofts ts\<^sub>1 ts\<^sub>2 \<longleftrightarrow> (\<exists>\<sigma>. ts\<^sub>1 = ts\<^sub>2{\<sigma>}\<^sub>t\<^sub>s)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{instance_ofl}{*}
 definition instance_ofl :: "fterm literal \<Rightarrow> fterm literal \<Rightarrow> bool" where
   "instance_ofl l\<^sub>1 l\<^sub>2 \<longleftrightarrow> (\<exists>\<sigma>. l\<^sub>1 = l\<^sub>2{\<sigma>}\<^sub>l)"
-text_raw {*}%EndSnippet*}
 
-(* Not used
-text_raw {*\DefineSnippet{instance_ofls}{*}
 definition instance_ofls :: "fterm clause \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "instance_ofls C\<^sub>1 C\<^sub>2 \<longleftrightarrow> (\<exists>\<sigma>. C\<^sub>1 = C\<^sub>2{\<sigma>}\<^sub>l\<^sub>s)"
-text_raw {*}%EndSnippet*}
-*)
 
-text_raw {*\DefineSnippet{comp_sub}{*}
 lemma comp_sub: "(l\<^sup>c) {\<sigma>}\<^sub>l=(l {\<sigma>}\<^sub>l)\<^sup>c" 
-text_raw {*}%EndSnippet*}
 by (cases l) auto
 
 (* This definition Could be tighter. For instance with this definition we allow
   x \<rightarrow> Var x
   y \<rightarrow> Var x
-   that two variable point to the same. We Could and should perhaps disallow this.
-   It Could be done something like
+   that two variable point to the same. We could and should perhaps disallow this.
+   It could be done something like
    var_renaming \<sigma> \<longleftrightarrow> (\<exists>b. bijection b (UNIV::var_symbol) (UNIV::var_symbol) \<and> \<forall>x. \<sigma> x = Var (b x))
  *)
-text_raw {*\DefineSnippet{var_renaming}{*}
 definition var_renaming :: "substitution \<Rightarrow> bool" where
   "var_renaming \<sigma> \<longleftrightarrow> (\<forall>x. \<exists>y. \<sigma> x = Var y)"
-text_raw {*}%EndSnippet*}
 
 subsection {* The Empty Substitution *}
 
-text_raw {*\DefineSnippet{epsilon}{*}
 abbreviation \<epsilon> :: "substitution" where
   "\<epsilon> \<equiv> Var"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{empty_subt}{*}
 lemma empty_subt: "(t :: fterm){\<epsilon>}\<^sub>t = t" 
-text_raw {*}%EndSnippet*}
 apply (induction t)
 apply (auto simp add: map_idI)
 done
 
-text_raw {*\DefineSnippet{empty_subts}{*}
 lemma empty_subts: "(ts :: fterm list){\<epsilon>}\<^sub>t\<^sub>s = ts" 
-text_raw {*}%EndSnippet*}
 using empty_subt by auto
 
-text_raw {*\DefineSnippet{empty_subl}{*}
 lemma empty_subl: "(l :: fterm literal){\<epsilon>}\<^sub>l = l" 
-text_raw {*}%EndSnippet*}
 using empty_subts by (cases l) auto
 
-text_raw {*\DefineSnippet{instance_oft_self}{*}
 lemma instance_oft_self: "instance_oft t t"
-text_raw {*}%EndSnippet*}
 unfolding instance_oft_def
 proof 
   show "t = t{\<epsilon>}\<^sub>t" using empty_subt by auto
 qed
 
-text_raw {*\DefineSnippet{instance_ofts_self}{*}
 lemma instance_ofts_self: "instance_ofts ts ts"
-text_raw {*}%EndSnippet*}
 unfolding instance_ofts_def
 proof 
   show "ts = ts{\<epsilon>}\<^sub>t\<^sub>s" using empty_subts by auto
 qed
 
-text_raw {*\DefineSnippet{instance_ofl_self}{*}
 lemma instance_ofl_self: "instance_ofl l l"
-text_raw {*}%EndSnippet*}
 unfolding instance_ofl_def
 proof 
   show "l = l{\<epsilon>}\<^sub>l" using empty_subl by auto
@@ -315,28 +226,20 @@ qed
 
 subsection {* Substitutions and Ground Terms *}
 
-text_raw {*\DefineSnippet{ground_sub}{*}
 lemma ground_sub: "ground t \<Longrightarrow> t {\<sigma>}\<^sub>t = t"
-text_raw {*}%EndSnippet*}
 apply (induction t)
 apply (auto simp add: map_idI)
 done
 
-text_raw {*\DefineSnippet{ground_subs}{*}
 lemma ground_subs: "grounds ts \<Longrightarrow> ts {\<sigma>}\<^sub>t\<^sub>s = ts" 
-text_raw {*}%EndSnippet*}
 using ground_sub by (simp add: map_idI)
 
-text_raw {*\DefineSnippet{groundl_subs}{*}
 lemma groundl_subs: "groundl l \<Longrightarrow> l {\<sigma>}\<^sub>l = l" 
-text_raw {*}%EndSnippet*}
 using ground_subs by (cases l) auto
 
-text_raw {*\DefineSnippet{groundls_subc}{*}
 lemma groundls_subls:
   assumes ground: "groundls L"
   shows "L {\<sigma>}\<^sub>l\<^sub>s = L"
-text_raw {*}%EndSnippet*}
 proof -
   {
     fix l
@@ -358,18 +261,14 @@ proof -
   } 
   ultimately show ?thesis by auto
 qed
-text_raw {*}%EndSnippet*}
 
 subsection {* Composition *}
 
 (* apply \<sigma>\<^sub>2 to all the range of \<sigma>\<^sub>1 
   - because of the substitution definition, this is different from (and simpler than) in the books. *)
-text_raw {*\DefineSnippet{composition}{*}
 definition composition :: "substitution \<Rightarrow> substitution \<Rightarrow> substitution"  (infixl "\<cdot>" 55) where
   "(\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2) x = (\<sigma>\<^sub>1 x){\<sigma>\<^sub>2}\<^sub>t"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{composition_conseq2t}{*}
 lemma composition_conseq2t:  "t{\<sigma>\<^sub>1}\<^sub>t{\<sigma>\<^sub>2}\<^sub>t = t{\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2}\<^sub>t" 
 proof (induction t)
   case (Var x) 
@@ -380,25 +279,19 @@ next
   case (Fun t ts)
   then show ?case unfolding composition_def by auto
 qed
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{composition_conseq2ts}{*}
 lemma composition_conseq2ts: "ts{\<sigma>\<^sub>1}\<^sub>t\<^sub>s{\<sigma>\<^sub>2}\<^sub>t\<^sub>s = ts{\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2}\<^sub>t\<^sub>s"
-text_raw {*}%EndSnippet*}
   using composition_conseq2t by auto
 
-text_raw {*\DefineSnippet{composition_conseq2l}{*}
 lemma composition_conseq2l: "l{\<sigma>\<^sub>1}\<^sub>l{\<sigma>\<^sub>2}\<^sub>l = l{\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2}\<^sub>l" 
 text_raw {*}%EndSnippet*} (* This lemma is not used *)
   using composition_conseq2t by (cases l) auto 
 
-text_raw {*\DefineSnippet{composition_assoc}{*}
 lemma composition_assoc: "\<sigma>\<^sub>1 \<cdot> (\<sigma>\<^sub>2 \<cdot> \<sigma>\<^sub>3) = (\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2) \<cdot> \<sigma>\<^sub>3" 
 proof
   fix x
   show "(\<sigma>\<^sub>1 \<cdot> (\<sigma>\<^sub>2 \<cdot> \<sigma>\<^sub>3)) x = ((\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2) \<cdot> \<sigma>\<^sub>3) x" unfolding composition_def using composition_conseq2t by simp
 qed
-text_raw {*}%EndSnippet*}
 
 lemma empty_comp1: "(\<sigma> \<cdot> \<epsilon>) = \<sigma>" 
 proof
@@ -413,7 +306,6 @@ proof
 qed
 
 
-text_raw {*\DefineSnippet{instance_ofts_trans}{*}
 lemma instance_ofts_trans : 
   assumes ts\<^sub>1\<^sub>2: "instance_ofts ts\<^sub>1 ts\<^sub>2"
   assumes ts\<^sub>2\<^sub>3: "instance_ofts ts\<^sub>2 ts\<^sub>3"
@@ -429,29 +321,23 @@ proof -
   then have "ts\<^sub>1 = ts\<^sub>3 {\<sigma>\<^sub>2\<^sub>3 \<cdot> \<sigma>\<^sub>1\<^sub>2}\<^sub>t\<^sub>s" using composition_conseq2ts by simp
   then show ?thesis unfolding instance_ofts_def by auto
 qed
-text_raw {*}%EndSnippet*}
 
 
 section {* Unifiers *}
 
-text_raw {*\DefineSnippet{unifiert}{*}
 definition unifiert :: "substitution \<Rightarrow> fterm set \<Rightarrow> bool" where
   "unifiert \<sigma> ts \<longleftrightarrow> (\<exists>t'. \<forall>t \<in> ts. t{\<sigma>}\<^sub>t = t')"
-text_raw {*}%EndSnippet*}
 (* Alternative:
    \<^sub>1. Define unifier for a pair of formulas. Then extend this to a set by looking at all pairs of the set.
    \<^sub>2. The result is singleton  
  *)
-text_raw {*\DefineSnippet{unifierls}{*}
 definition unifierls :: "substitution \<Rightarrow> fterm literal set \<Rightarrow> bool" where
   "unifierls \<sigma> L \<longleftrightarrow> (\<exists>l'. \<forall>l \<in> L. l{\<sigma>}\<^sub>l = l')"
-text_raw {*}%EndSnippet*}
 
 (* Not used anywhere 
 lemma unifierls_same: "unifierls \<sigma> L \<Longrightarrow> l\<^sub>1  \<in> L  \<Longrightarrow> l\<^sub>2  \<in> L  \<Longrightarrow> l\<^sub>1 {\<sigma>}\<^sub>l = l\<^sub>2 {\<sigma>}\<^sub>l" 
   unfolding unifierls_def by auto
 *)
-text_raw {*\DefineSnippet{unif_sub}{*}
 lemma unif_sub:
   assumes unif: "unifierls \<sigma> L"
   assumes nonempty: "L \<noteq> {}"
@@ -461,9 +347,7 @@ proof -
   from unif this have "L {\<sigma>}\<^sub>l\<^sub>s = {l {\<sigma>}\<^sub>l}" unfolding unifierls_def by auto
   then show ?thesis by auto
 qed
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{unifierls_def2}{*}
 lemma unifierls_def2: 
   assumes L_elem: "L \<noteq> {}"
   shows "unifierls \<sigma> L \<longleftrightarrow> (\<exists>l. L {\<sigma>}\<^sub>l\<^sub>s ={l})"
@@ -478,16 +362,13 @@ next
   then have "\<forall>l' \<in> L. l'{\<sigma>}\<^sub>l = l" by auto
   then show "unifierls \<sigma> L" unfolding unifierls_def by auto
 qed
-text_raw {*}%EndSnippet*}
 (* I Could use this lemma for great effect in the Combining soundness proof *)
 
-text_raw {*\DefineSnippet{groundls_unif_singleton}{*}
 lemma groundls_unif_singleton:
   assumes groundls: "groundls L" 
   assumes unif: "unifierls \<sigma>' L"
   assumes empt: "L \<noteq> {}"
   shows "\<exists>l. L = {l}"
-text_raw {*}%EndSnippet*}
 proof -
   from unif empt have "\<exists>l. L {\<sigma>'}\<^sub>l\<^sub>s = {l}" using unif_sub by auto
   then show ?thesis using groundls_subls groundls by auto
@@ -499,9 +380,7 @@ definition unifiablet :: "fterm set \<Rightarrow> bool" where
 definition unifiablels :: "fterm literal set \<Rightarrow> bool" where
   "unifiablels L \<longleftrightarrow> (\<exists>\<sigma>. unifierls \<sigma> L)"
 
-text_raw {*\DefineSnippet{unifier_comp}{*}
 lemma unifier_comp[simp]: "unifierls \<sigma> (L\<^sup>C) \<longleftrightarrow> unifierls \<sigma> L"
-text_raw {*}%EndSnippet*}
 proof
   assume "unifierls \<sigma> (L\<^sup>C)" 
   then obtain l'' where l''_p: "\<forall>l \<in> L\<^sup>C. l{\<sigma>}\<^sub>l = l''" 
@@ -531,16 +410,12 @@ next
   then show "unifierls \<sigma> (L\<^sup>C)" unfolding unifierls_def by auto
 qed
 
-text_raw {*\DefineSnippet{unifier_sub1}{*}
 lemma unifier_sub1: "unifierls \<sigma> L \<Longrightarrow> L' \<subseteq> L \<Longrightarrow> unifierls \<sigma> L' " 
   unfolding unifierls_def by auto
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{unifier_sub2}{*}
 lemma unifier_sub2: 
   assumes asm: "unifierls \<sigma> (L\<^sub>1 \<union> L\<^sub>2)"
   shows "unifierls \<sigma> L\<^sub>1 \<and> unifierls \<sigma> L\<^sub>2 "
-text_raw {*}%EndSnippet*}
 proof -
   have "L\<^sub>1 \<subseteq> (L\<^sub>1 \<union> L\<^sub>2) \<and> L\<^sub>2 \<subseteq> (L\<^sub>1 \<union> L\<^sub>2)" by simp
   from this asm show ?thesis using unifier_sub1 by auto
@@ -548,19 +423,14 @@ qed
 
 subsection {* Most General Unifiers *}
 
-text_raw {*\DefineSnippet{mgut}{*}
 definition mgut :: "substitution \<Rightarrow> fterm set \<Rightarrow> bool" where
   "mgut \<sigma> fs \<longleftrightarrow> unifiert \<sigma> fs \<and> (\<forall>u. unifiert u fs \<longrightarrow> (\<exists>i. u = \<sigma> \<cdot> i))"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{mguls}{*}
 definition mguls :: "substitution \<Rightarrow> fterm literal set \<Rightarrow> bool" where
   "mguls \<sigma> L \<longleftrightarrow> unifierls \<sigma> L \<and> (\<forall>u. unifierls u L \<longrightarrow> (\<exists>i. u = \<sigma> \<cdot> i))"
-text_raw {*}%EndSnippet*}
 
 section {* Resolution *}
 
-text_raw {*\DefineSnippet{applicable}{*}
 definition applicable :: "   fterm clause \<Rightarrow> fterm clause 
                           \<Rightarrow> fterm literal set \<Rightarrow> fterm literal set 
                           \<Rightarrow> substitution \<Rightarrow> bool" where
@@ -569,28 +439,36 @@ definition applicable :: "   fterm clause \<Rightarrow> fterm clause
      \<and> varsls C\<^sub>1 \<inter> varsls C\<^sub>2 = {} 
      \<and> L\<^sub>1 \<subseteq> C\<^sub>1 \<and> L\<^sub>2 \<subseteq> C\<^sub>2 
      \<and> mguls \<sigma> (L\<^sub>1 \<union> L\<^sub>2\<^sup>C)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{resolution}{*}
 definition resolution :: "   fterm clause \<Rightarrow> fterm clause 
                           \<Rightarrow> fterm literal set \<Rightarrow> fterm literal set 
                           \<Rightarrow> substitution \<Rightarrow> fterm clause" where
   "resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = (C\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s - L\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s) \<union> (C\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s - L\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{resolution_step}{*}
+definition lresolution :: "   fterm clause \<Rightarrow> fterm clause 
+                          \<Rightarrow> fterm literal set \<Rightarrow> fterm literal set 
+                          \<Rightarrow> substitution \<Rightarrow> fterm clause" where
+  "lresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = ((C\<^sub>1 - L\<^sub>1) \<union> (C\<^sub>2 - L\<^sub>2)) {\<sigma>}\<^sub>l\<^sub>s"
+
 inductive resolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   resolution_rule: 
     "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<Longrightarrow> 
        resolution_step Cs (Cs \<union> {resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>})"
 | standardize_apart:
     "C \<in> Cs \<Longrightarrow> var_renaming \<sigma> \<Longrightarrow> resolution_step Cs (Cs \<union> {C {\<sigma>}\<^sub>l\<^sub>s})"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{resolution_deriv}{*}
+inductive lresolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
+  lresolution_rule: 
+    "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<Longrightarrow> 
+       lresolution_step Cs (Cs \<union> {lresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>})"
+| lstandardize_apart:
+    "C \<in> Cs \<Longrightarrow> var_renaming \<sigma> \<Longrightarrow> lresolution_step Cs (Cs \<union> {C {\<sigma>}\<^sub>l\<^sub>s})"
+
 definition resolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "resolution_deriv = star resolution_step"
-text_raw {*}%EndSnippet*}
+
+definition lresolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
+  "lresolution_deriv = star lresolution_step"
 
 (* Very nice lemma, but it is not used. 
   Could be used in a Completeness proof *)
@@ -632,27 +510,19 @@ qed
 section {* Soundness *}
 (* Proving instantiation sound *)
 
-text_raw {*\DefineSnippet{evalsub}{*}
 fun evalsub :: "'u fun_denot \<Rightarrow> 'u var_denot \<Rightarrow> substitution \<Rightarrow> 'u var_denot" where
   "evalsub F E \<sigma> = (evalt E F) \<circ> \<sigma>"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{substitutiont}{*}
 lemma substitutiont: "evalt E F (t {\<sigma>}\<^sub>t) = evalt (evalsub F E \<sigma>) F t"
-text_raw {*}%EndSnippet*}
 apply (induction t)
 apply auto
 apply (metis (mono_tags, lifting) comp_apply map_cong)
 done
 
-text_raw {*\DefineSnippet{substitutionts}{*}
 lemma substitutionts: "evalts E F (ts {\<sigma>}\<^sub>t\<^sub>s) = evalts (evalsub F E \<sigma>) F ts"
-text_raw {*}%EndSnippet*}
 using substitutiont by auto
 
-text_raw {*\DefineSnippet{substitutionl}{*}
 lemma substitutionl: "evall E F G (l {\<sigma>}\<^sub>l) \<longleftrightarrow> evall (evalsub F E \<sigma>) F G l"
-text_raw {*}%EndSnippet*}
 apply (induction l) 
 using substitutionts apply (metis evall.simps(1) subl.simps(1)) 
 using substitutionts apply (metis evall.simps(2) subl.simps(2))
@@ -672,7 +542,6 @@ proof -
  then show "evalc F G (C {\<sigma>}\<^sub>l\<^sub>s)" unfolding evalc_def by auto
 qed
 
-text_raw {*\DefineSnippet{simple_resolution_sound}{*}
 lemma simple_resolution_sound:
   assumes C\<^sub>1sat:  "evalc F G C\<^sub>1"
   assumes C\<^sub>2sat:  "evalc F G C\<^sub>2"
@@ -680,7 +549,6 @@ lemma simple_resolution_sound:
   assumes l\<^sub>2inc\<^sub>2: "l\<^sub>2 \<in> C\<^sub>2"
   assumes Comp: "l\<^sub>1\<^sup>c = l\<^sub>2"
   shows "evalc F G ((C\<^sub>1 - {l\<^sub>1}) \<union> (C\<^sub>2 - {l\<^sub>2}))"
-text_raw {*}%EndSnippet*}
 proof -
   have "\<forall>E. \<exists>l \<in> (((C\<^sub>1 - {l\<^sub>1}) \<union> (C\<^sub>2 - {l\<^sub>2}))). evall E F G l"
     proof
@@ -702,13 +570,11 @@ proof -
   then show ?thesis unfolding evalc_def by simp
 qed
 
-text_raw {*\DefineSnippet{resolution_sound}{*}
 lemma resolution_sound:
   assumes sat\<^sub>1: "evalc F G C\<^sub>1"
   assumes sat\<^sub>2: "evalc F G C\<^sub>2"
   assumes appl: "applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>"
   shows "evalc F G (resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>)"
-text_raw {*}%EndSnippet*}
 proof -
   from sat\<^sub>1 have sat\<^sub>1\<sigma>: "evalc F G (C\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s)" using subst_sound by blast
   from sat\<^sub>2 have sat\<^sub>2\<sigma>: "evalc F G (C\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s)" using subst_sound by blast
@@ -744,9 +610,36 @@ proof -
   from this l\<^sub>1\<sigma>isl\<^sub>1\<sigma> l\<^sub>2\<sigma>isl\<^sub>2\<sigma> show ?thesis unfolding resolution_def by auto
 qed
 
-text_raw {*\DefineSnippet{sound_step}{*}
+lemma lresolution_superset: "resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<subseteq> lresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>"
+ unfolding resolution_def lresolution_def by auto
+
+lemma superset_sound:
+  assumes sup: "C \<subseteq> C'"
+  assumes sat: "evalc F G C"
+  shows "evalc F G C'"
+proof -
+  have "\<forall>E. \<exists>l \<in> C'. evall E F G l"
+    proof
+      fix E
+      from sat have "\<forall>E. \<exists>l \<in> C. evall E F G l" unfolding evalc_def by -
+      then have "\<exists>l \<in> C. evall E F G l" by auto
+      then show "\<exists>l\<in>C'. evall E F G l" using sup by auto
+    qed
+  then show "evalc F G C'" unfolding evalc_def by auto
+qed
+ 
+
+lemma lresolution_sound:
+  assumes sat\<^sub>1: "evalc F G C\<^sub>1"
+  assumes sat\<^sub>2: "evalc F G C\<^sub>2"
+  assumes appl: "applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>"
+  shows "evalc F G (lresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>)"
+proof -
+  from sat\<^sub>1 sat\<^sub>2 appl have "evalc F G (resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>)" using resolution_sound by blast
+  then show ?thesis using superset_sound lresolution_superset by metis
+qed
+
 lemma sound_step: "resolution_step Cs Cs' \<Longrightarrow> evalcs F G Cs \<Longrightarrow> evalcs F G Cs'"
-text_raw {*}%EndSnippet*}
 proof (induction rule: resolution_step.induct)
   case (resolution_rule C\<^sub>1 Cs C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)
   then have "evalc F G C\<^sub>1 \<and> evalc F G C\<^sub>2" unfolding evalcs_def by auto
@@ -760,15 +653,36 @@ next
   then show ?case using standardize_apart unfolding evalcs_def by auto
 qed
 
-text_raw {*\DefineSnippet{sound_derivation}{*} 
+lemma lsound_step: "lresolution_step Cs Cs' \<Longrightarrow> evalcs F G Cs \<Longrightarrow> evalcs F G Cs'"
+proof (induction rule: lresolution_step.induct)
+  case (lresolution_rule C\<^sub>1 Cs C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)
+  then have "evalc F G C\<^sub>1 \<and> evalc F G C\<^sub>2" unfolding evalcs_def by auto
+  then have "evalc F G (lresolution C\<^sub>1 C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)" 
+    using lresolution_sound lresolution_rule by auto
+  then show ?case using lresolution_rule unfolding evalcs_def by auto
+next
+  case (lstandardize_apart C Cs \<sigma>)
+  then have "evalc F G C" unfolding evalcs_def by auto
+  then have "evalc F G (C{\<sigma>}\<^sub>l\<^sub>s)" using subst_sound by auto
+  then show ?case using lstandardize_apart unfolding evalcs_def by auto
+qed
+
 lemma sound_derivation: 
   "resolution_deriv Cs Cs' \<Longrightarrow> evalcs F G Cs \<Longrightarrow> evalcs F G Cs'" 
-text_raw {*}%EndSnippet*}
 unfolding resolution_deriv_def
 proof (induction rule: star.induct)
   case refl then show ?case by auto
 next
   case (step Cs\<^sub>1 Cs\<^sub>2 Cs\<^sub>3) then show ?case using sound_step by auto
+qed
+
+lemma lsound_derivation: 
+  "lresolution_deriv Cs Cs' \<Longrightarrow> evalcs F G Cs \<Longrightarrow> evalcs F G Cs'" 
+unfolding lresolution_deriv_def
+proof (induction rule: star.induct)
+  case refl then show ?case by auto
+next
+  case (step Cs\<^sub>1 Cs\<^sub>2 Cs\<^sub>3) then show ?case using lsound_step by auto
 qed
 
 section {* Enumerations *}
@@ -803,9 +717,7 @@ apply (induction t and ts rule: fterm_of_hterm.induct fterms_of_hterms.induct)
 apply auto
 done
 
-text_raw {*\DefineSnippet{eval_ground}{*}
 lemma eval_ground: "ground t \<Longrightarrow> (evalt E HFun t) = hterm_of_fterm t" "grounds ts \<Longrightarrow> (evalts E HFun ts) = hterms_of_fterms ts"
-text_raw {*}%EndSnippet*}
 apply (induction t and ts rule: hterm_of_fterm.induct hterms_of_fterms.induct)
 apply auto
 done
@@ -821,14 +733,11 @@ qed
 
 section {* Partial Interpretations *}
 
-text_raw {*\DefineSnippet{partial_pred_denot}{*}
 type_synonym partial_pred_denot = "bool list"
-text_raw {*}%EndSnippet*}
 
 (* This definition is quite syntactical. 
    Alternative: Check if an instance is in list. If not return true.
    Otherwise, build an interpretation from the partial interpretation *)
-text_raw {*\DefineSnippet{falsifiesl}{*}
 fun falsifiesl :: "partial_pred_denot \<Rightarrow> fterm literal \<Rightarrow> bool" where
   "falsifiesl G (Pos p ts) = 
      (\<exists>i ts'.  
@@ -842,57 +751,40 @@ fun falsifiesl :: "partial_pred_denot \<Rightarrow> fterm literal \<Rightarrow> 
       \<and> G ! i = True
       \<and> diag_fatom i = Pos p ts'
       \<and> instance_ofts ts' ts)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{falsifiesc}{*}
 abbreviation falsifiesc :: "partial_pred_denot \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "falsifiesc G C \<equiv> (\<forall>l \<in> C. falsifiesl G l)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{falsifiescs}{*}
 abbreviation falsifiescs :: "partial_pred_denot \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "falsifiescs G Cs \<equiv> (\<exists>C \<in> Cs. falsifiesc G C)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{extend}{*}
 abbreviation extend :: "(nat \<Rightarrow> partial_pred_denot) \<Rightarrow> hterm pred_denot" where
   "extend f P ts \<equiv> (
      let n = undiag_hatom (Pos P ts) in
        f (Suc n) ! n
      )"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{sub_of_denot}{*}
 fun sub_of_denot :: "hterm var_denot \<Rightarrow> substitution" where
   "sub_of_denot E = fterm_of_hterm \<circ> E"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{ground_sub_of_denott}{*}
 lemma ground_sub_of_denott: "ground ((t :: fterm) {sub_of_denot E}\<^sub>t)" 
-text_raw {*}%EndSnippet*}
 apply (induction t)
 apply (auto simp add: hterms_ground)
 done
 
-text_raw {*\DefineSnippet{ground_sub_of_denotts}{*}
 lemma ground_sub_of_denotts: "grounds ((ts :: fterm list) {sub_of_denot E}\<^sub>t\<^sub>s)"
-text_raw {*}%EndSnippet*}
 apply auto
 using ground_sub_of_denott apply simp 
 done
 
-text_raw {*\DefineSnippet{ground_sub_of_denotl}{*}
 lemma ground_sub_of_denotl: "groundl ((l :: fterm literal) {sub_of_denot E}\<^sub>l)"
-text_raw {*}%EndSnippet*}
 proof -
   have "grounds (subs (get_terms l :: fterm list) (sub_of_denot E))" 
     using ground_sub_of_denotts by auto
   then show ?thesis by (cases l)  auto
 qed
 
-text_raw {*\DefineSnippet{sub_of_denot_equivx}{*}
 lemma sub_of_denot_equivx: "evalt E HFun (sub_of_denot E x) = E x"
-text_raw {*}%EndSnippet*}
 proof -
   have "ground (sub_of_denot E x)" using hterms_ground by auto
   then
@@ -903,23 +795,17 @@ proof -
   finally show ?thesis by auto
 qed
 
-text_raw {*\DefineSnippet{sub_of_denot_equivt}{*}
 lemma sub_of_denot_equivt:
     "evalt E HFun (t {sub_of_denot E}\<^sub>t) = evalt E HFun t"
-text_raw {*}%EndSnippet*}
 apply (induction t)
 using sub_of_denot_equivx apply auto
 done
 
-text_raw {*\DefineSnippet{sub_of_denot_equivts}{*}
 lemma sub_of_denot_equivts: "evalts E HFun (ts {sub_of_denot E}\<^sub>t\<^sub>s) = evalts E HFun ts"
-text_raw {*}%EndSnippet*}
 using sub_of_denot_equivt apply simp
 done
 
-text_raw {*\DefineSnippet{sub_of_denot_equivl}{*}
 lemma sub_of_denot_equivl: "evall E HFun G (l {sub_of_denot E}\<^sub>l) = evall E HFun G l"
-text_raw {*}%EndSnippet*}
 proof (induction l)
   case (Pos p ts)
   have "evall E HFun G ((Pos p ts) {sub_of_denot E}\<^sub>l) \<longleftrightarrow> G p (evalts E HFun (ts {sub_of_denot E}\<^sub>t\<^sub>s))" by auto
@@ -943,9 +829,7 @@ lemma sub_of_denot_equiv_ground':
   "evall E HFun G l = evall E HFun G (l {sub_of_denot E}\<^sub>l) \<and> groundl (l {sub_of_denot E}\<^sub>l)"
     using sub_of_denot_equivl ground_sub_of_denotl by auto
 
-text_raw {*\DefineSnippet{partial_equiv_subst'}{*}
 lemma partial_equiv_subst': "falsifiesl G ((l ::fterm literal) {\<sigma>}\<^sub>l) \<Longrightarrow> falsifiesl G l"
-text_raw {*}%EndSnippet*}
 proof (induction l) (* Not really induction - just cases *)
   case (Pos P ts)
   then have "falsifiesl G (Pos P (ts{\<sigma>}\<^sub>t\<^sub>s))" by auto
@@ -985,11 +869,9 @@ next
 qed
 
 (* Under an Herbrand interpretation, an environment is "equivalent" to a substitution - also for partial interpretations *)
-text_raw {*\DefineSnippet{partial_equiv_subst}{*}
 lemma partial_equiv_subst:
   assumes asm: "falsifiesc G ((C :: fterm clause) {\<sigma>}\<^sub>l\<^sub>s)"
   shows "falsifiesc G C"
-text_raw {*}%EndSnippet*}
 proof
   fix l
   assume "l \<in> C"
@@ -1005,21 +887,15 @@ lemma sub_of_denot_equiv_ground:
 
 subsection {* Semantic Trees *}
 
-text_raw {*\DefineSnippet{closed_branch}{*}
 abbreviation closed_branch :: "partial_pred_denot \<Rightarrow> tree \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "closed_branch G T Cs \<equiv> branch G T \<and> falsifiescs G Cs"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{open_branch}{*}
 abbreviation open_branch :: "partial_pred_denot \<Rightarrow> tree \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "open_branch G T Cs \<equiv> branch G T \<and> \<not>falsifiescs G Cs"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{closed_tree}{*}
 fun closed_tree :: "tree \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "closed_tree T Cs \<longleftrightarrow> anybranch T (\<lambda>b. closed_branch b T Cs) 
                   \<and> anyinternal T (\<lambda>p. \<not>falsifiescs p Cs)"
-text_raw {*}%EndSnippet*}
 
 
 section {* Herbrand's Theorem *}
@@ -1031,14 +907,12 @@ proof
   from asm show "\<forall>l\<in>C. f l \<le> (Max (f ` C))" by auto
 qed
 
-text_raw {*\DefineSnippet{extend_preserves_model}{*}
 lemma extend_preserves_model:
   assumes f_chain: "list_chain (f :: nat \<Rightarrow> partial_pred_denot)" 
   assumes n_max: "\<forall>l\<in>C. undiag_fatom l \<le> n"
   assumes C_ground: "groundls C"
   assumes C_false: "\<not>evalc HFun (extend f) C"
   shows "falsifiesc (f (Suc n)) C" 
-text_raw {*}%EndSnippet*}
 proof
   let ?F = "HFun" 
   let ?G = "extend f"
@@ -1216,12 +1090,10 @@ proof -
 qed
 
 (* "If all finite semantic trees have an open branch, then the set of clauses has a model." *)
-text_raw {*\DefineSnippet{herbrand'}{*}
 theorem herbrand':
   assumes openb: "\<forall>T. \<exists>G. open_branch G T Cs"
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
   shows "\<exists>G. evalcs HFun G Cs"
-text_raw {*}%EndSnippet*}
 proof -
   (* Show T infinite *)
   let ?tree = "{G. \<not>falsifiescs G Cs}"
@@ -1248,23 +1120,19 @@ proof -
 qed
 (* This lemma is interesting: lemma "\<forall>G. \<not> evalcs F G Cs \<Longrightarrow> \<forall>G. \<not> evalcs HFun G Cs" oops*)
 
-text_raw {*\DefineSnippet{herbrand'_contra}{*}
 theorem herbrand'_contra:
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
   assumes unsat: "\<forall>G. \<not>evalcs HFun G Cs"
   shows "\<exists>T. \<forall>G. branch G T \<longrightarrow> closed_branch G T Cs"
-text_raw {*}%EndSnippet*}
 proof -
   from finite_cs unsat have "\<forall>T. \<exists>G. open_branch G T Cs \<Longrightarrow> \<exists>G. evalcs HFun G Cs" using herbrand' by blast
   then show ?thesis using unsat by blast 
 qed
 
-text_raw {*\DefineSnippet{herbrand}{*}
 theorem herbrand:
   assumes unsat: "\<forall>G. \<not> evalcs HFun G Cs"
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
   shows "\<exists>T. closed_tree T Cs"
-text_raw {*}%EndSnippet*}
 proof -
   from unsat finite_cs obtain T where "anybranch T (\<lambda>b. closed_branch b T Cs)" using herbrand'_contra[of Cs] by blast
   then have "\<exists>T. anybranch T (\<lambda>p. falsifiescs p Cs) \<and> anyinternal T (\<lambda>p. \<not> falsifiescs p Cs)" 
@@ -1272,18 +1140,130 @@ proof -
   then show ?thesis by auto
 qed
 
-section {* Lifting Lemma *}
-text_raw {*\DefineSnippet{lifting}{*}
-lemma lifting:
-  assumes appart: "varsc c \<inter> varsc d = {}"
-  assumes inst\<^sub>1: "instance_ofc c' c"
-  assumes inst\<^sub>2: "instance_ofc d' d"
-  assumes appl: "applicable c' d' l' m' \<sigma>"
-  shows "\<exists>l m \<tau>. applicable c d l m \<tau> \<and>
-                   instance_ofc (resolution c' d' l' m' \<sigma>) (resolution c d l m \<tau>)"
-text_raw {*}%EndSnippet*}
-oops
+lemma project_sub:
+  assumes inst_C:"C {\<mu>}\<^sub>l\<^sub>s = C'" (* lmbd instead of mu would fit better with below proofs *) (* This equality could be removed from the lemma *)
+  assumes L'sub: "L' \<subseteq> C'"
+  shows "\<exists>L \<subseteq> C. L {\<mu>}\<^sub>l\<^sub>s = L' \<and> (C-L) {\<mu>}\<^sub>l\<^sub>s = C' - L'"
+proof -
+  let ?L = "{l \<in> C. \<exists>l' \<in> L'. l {\<mu>}\<^sub>l = l'}"
+  have "?L \<subseteq> C" by auto
+  moreover
+  have "?L {\<mu>}\<^sub>l\<^sub>s = L'"
+    proof (rule Orderings.order_antisym; rule Set.subsetI)
+      fix l'
+      assume l'L: "l' \<in> L'"
+      from inst_C have "{l {\<mu>}\<^sub>l|l. l \<in> C} = C'" unfolding subls_def2 by -
+      then have "\<exists>l. l' = l {\<mu>}\<^sub>l \<and> l \<in> C \<and> l{\<mu>}\<^sub>l \<in> L'" using L'sub l'L by auto
+      then have " l' \<in> {l \<in> C. l{\<mu>}\<^sub>l \<in> L'}{\<mu>}\<^sub>l\<^sub>s" by auto
+      then show " l' \<in> {l \<in> C. \<exists>l'\<in>L'. l{\<mu>}\<^sub>l = l'}{\<mu>}\<^sub>l\<^sub>s" by auto
+    qed auto
+  moreover
+  have "(C-?L) {\<mu>}\<^sub>l\<^sub>s = C' - L'" using inst_C by auto
+  moreover
+  ultimately show ?thesis by auto
+qed
 
+lemma relevant_vars_subt:
+  "\<forall>x \<in> varst t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> t {\<sigma>\<^sub>1}\<^sub>t = t {\<sigma>\<^sub>2}\<^sub>t" (* "\<forall>x \<in> varsts ts. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> ts {\<sigma>\<^sub>1}\<^sub>t\<^sub>s = ts {\<sigma>\<^sub>2}\<^sub>t\<^sub>s"*)
+proof (induction t)
+  case (Fun f ts)
+  have f: "\<And>t. t \<in> set ts \<Longrightarrow> varst t \<subseteq> varsts ts" by (induction ts) auto
+  have "\<forall>t\<in>set ts. t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" 
+    proof
+      fix t
+      assume tints: "t \<in> set ts"
+      then have "\<forall>x\<in>varst t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f Fun(2) by auto
+      then show "t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" using Fun tints by auto
+    qed
+  then have "ts{\<sigma>\<^sub>1}\<^sub>t\<^sub>s = ts{\<sigma>\<^sub>2}\<^sub>t\<^sub>s" by auto
+  then show ?case by auto
+qed auto
+
+lemma relevant_vars_subts: (* copy paste from above proof *)
+  assumes asm: "\<forall>x \<in> varsts ts. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
+  shows "ts {\<sigma>\<^sub>1}\<^sub>t\<^sub>s = ts {\<sigma>\<^sub>2}\<^sub>t\<^sub>s" 
+proof -
+   have f: "\<And>t. t \<in> set ts \<Longrightarrow> varst t \<subseteq> varsts ts" by (induction ts) auto
+   have "\<forall>t\<in>set ts. t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" 
+    proof
+      fix t
+      assume tints: "t \<in> set ts"
+      then have "\<forall>x\<in>varst t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f asm by auto
+      then show "t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" using relevant_vars_subt tints by auto
+    qed
+  then show ?thesis by auto
+qed
+
+lemma relevant_vars_subl:
+  "\<forall>x \<in> varsl l. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> l {\<sigma>\<^sub>1}\<^sub>l = l {\<sigma>\<^sub>2}\<^sub>l"
+proof (induction l)
+  case (Pos p ts)
+  then show ?case using relevant_vars_subts unfolding varsl_def by auto
+next
+  case (Neg p ts)
+  then show ?case using relevant_vars_subts unfolding varsl_def by auto
+qed
+
+lemma relevant_vars_subls: (* in many ways a mirror of relevant_vars_subts  *)
+  assumes asm: "\<forall>x \<in> varsls L. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
+  shows "L {\<sigma>\<^sub>1}\<^sub>l\<^sub>s = L {\<sigma>\<^sub>2}\<^sub>l\<^sub>s"
+proof -
+  have f: "\<And>l. l \<in> L \<Longrightarrow> varsl l \<subseteq> varsls L" unfolding varsls_def by auto
+  have "\<forall>l \<in> L. l {\<sigma>\<^sub>1}\<^sub>l = l {\<sigma>\<^sub>2}\<^sub>l"
+    proof
+      fix l
+      assume linls: "l\<in>L"
+      then have "\<forall>x\<in>varsl l. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f asm by auto
+      then show "l{\<sigma>\<^sub>1}\<^sub>l = l{\<sigma>\<^sub>2}\<^sub>l" using relevant_vars_subl linls by auto
+    qed
+  then show ?thesis by (meson image_cong) 
+qed
+
+lemma merge_sub: (* To prove this I should make a lemma that says literals only care about the variables that are in them *)
+  assumes dist: "varsls C \<inter> varsls D = {}"
+  assumes CC': "C {lmbd}\<^sub>l\<^sub>s = C'"
+  assumes DD': "D {\<mu>}\<^sub>l\<^sub>s = D'"
+  shows "\<exists>\<eta>. C {\<eta>}\<^sub>l\<^sub>s = C' \<and> D {\<eta>}\<^sub>l\<^sub>s = D'"
+proof -
+  let ?\<eta> = "\<lambda>x. if x \<in> varsls C then lmbd x else \<mu> x"
+  have " \<forall>x\<in>varsls C. ?\<eta> x = lmbd x" by auto
+  then have "C {?\<eta>}\<^sub>l\<^sub>s = C {lmbd}\<^sub>l\<^sub>s" using relevant_vars_subls[of C ?\<eta> lmbd] by auto
+  then have "C {?\<eta>}\<^sub>l\<^sub>s = C'" using CC' by auto
+  moreover
+  have " \<forall>x\<in>varsls D. ?\<eta> x = \<mu> x" using dist by auto
+  then have "D {?\<eta>}\<^sub>l\<^sub>s = D {\<mu>}\<^sub>l\<^sub>s" using relevant_vars_subls[of D ?\<eta> \<mu>] by auto
+  then have "D {?\<eta>}\<^sub>l\<^sub>s = D'" using DD' by auto
+  ultimately
+  show ?thesis by auto
+qed
+
+section {* Lifting Lemma *}
+lemma lifting:
+  assumes appart: "varsls C \<inter> varsls D = {}"
+  assumes inst\<^sub>1: "instance_ofls C' C"
+  assumes inst\<^sub>2: "instance_ofls D' D"
+  assumes appl: "applicable C' D' L' M' \<sigma>"
+  shows "\<exists>L M \<tau>. applicable C D L M \<tau> \<and>
+                   instance_ofc (lresolution c' d' l' m' \<sigma>) (lresolution c d l m \<tau>)"
+proof -
+  let ?C'\<^sub>1 = "C' - L'"
+  let ?D'\<^sub>1 = "D' - M'"
+
+  from inst\<^sub>1 obtain lmbd where lmbd_p: "C {lmbd}\<^sub>l\<^sub>s = C'" unfolding instance_ofls_def by auto
+  then have "\<exists>L \<subseteq> C. L {lmbd}\<^sub>l\<^sub>s = L' \<and> (C - L){lmbd}\<^sub>l\<^sub>s = ?C'\<^sub>1" using appl project_sub[of lmbd C C' L'] unfolding applicable_def by auto
+  then obtain L where "L \<subseteq> C \<and> L {lmbd}\<^sub>l\<^sub>s = L' \<and> (C - L){lmbd}\<^sub>l\<^sub>s = ?C'\<^sub>1" by auto
+  let ?C\<^sub>1 = "C - L"
+
+  from inst\<^sub>2 obtain \<mu> where \<mu>_p: "D {\<mu>}\<^sub>l\<^sub>s = D'" unfolding instance_ofls_def by auto
+  then have "\<exists>M \<subseteq> D. M {\<mu>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<mu>}\<^sub>l\<^sub>s = ?D'\<^sub>1" using appl project_sub[of \<mu> D D' M'] unfolding applicable_def by auto
+  then obtain M where "M \<subseteq> D \<and> M {\<mu>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<mu>}\<^sub>l\<^sub>s = ?D'\<^sub>1" by auto
+  let ?D\<^sub>1 = "D - M"
+  
+  (* Now use above lemmas to get \<eta> *)
+  from \<mu>_p lmbd_p appart obtain \<eta> where "C {\<eta>}\<^sub>l\<^sub>s = C' \<and> D {\<eta>}\<^sub>l\<^sub>s = D'" using merge_sub by force
+
+  (* Continue here *)
+oops
 
 section {* Completeness *}
 (* assumes openb: "\<forall>T. \<exists>G. open_branch G T Cs" assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C" shows "\<exists>G. evalcs HFun G Cs" *)
@@ -1299,11 +1279,9 @@ proof -
 qed
 (* lemma completeness': \\  assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C" \\ assumes notLeaf: "T \<noteq> Leaf" \\  assumes closed: "closed_tree T Cs" \\   shows "\<exists>T'. \<exists>c\<^sub>1 \<in> Cs. \<exists>c\<^sub>2 \<in> Cs. \<exists>r. \\            lresolvent r C\<^sub>1 C\<^sub>2\\         \<and> (\<forall>G. branch G T' \<longrightarrow> \<not>open_branch G T' (Cs \<union> {r})) \\         \<and> size T' < size T"\\proof -\\(*  from notLeaf obtain b where "branch (b@[Right]) T \<and> branch (b@[Left]) T" using has_Branch_of_Leafs by blast\\  then have "falsifiescs (b@[True]) Cs \<and> falsifiescs (b@[False]) Cs" using Closed by auto\\  then obtain C\<^sub>1 C\<^sub>2 where "C\<^sub>1 \<in> Cs \<and> C\<^sub>2 \<in> Cs \<and> falsifiesc (b@[True]) C\<^sub>1 \<and> falsifiesc (b@[False]) C\<^sub>2" by auto\\ *) oops *)
 
-text_raw {*\DefineSnippet{completeness'}{*}
 theorem completeness':
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
   shows "closed_tree T Cs \<Longrightarrow> \<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
-text_raw {*}%EndSnippet*}
 proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of size])
   fix T::tree
   fix Cs :: "fterm clause set"
@@ -1313,12 +1291,10 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of size])
   have "True" by auto
   then show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" oops
 
-text_raw {*\DefineSnippet{completeness}{*}
 theorem completeness:
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
   assumes unsat: "\<forall>F G. \<not>evalcs F G Cs"
   shows "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
-text_raw {*}%EndSnippet*}
 oops
 
 end

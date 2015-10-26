@@ -50,38 +50,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 theory TermsAndLiterals imports Main begin
 
 
-text_raw {*\DefineSnippet{symbols}{*}    
 type_synonym var_sym  = string
 type_synonym fun_sym  = string
 type_synonym pred_sym = string
-text_raw {*}%EndSnippet*}
 
 
-text_raw {*\DefineSnippet{fterm}{*}
 datatype fterm = 
   Fun fun_sym "fterm list"
 | Var var_sym
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{ground}{*}
 fun ground :: "fterm \<Rightarrow> bool" where
   "ground (Var x) \<longleftrightarrow> False"
 | "ground (Fun f ts) \<longleftrightarrow> (\<forall>t \<in> set ts. ground t)"
 
 abbreviation grounds :: "fterm list \<Rightarrow> bool" where
   "grounds ts \<equiv> (\<forall>t \<in> set ts. ground t)"
-text_raw {*}%EndSnippet*}
 (* I could use anonymous variables in this definition *)
 
-text_raw {*\DefineSnippet{hterm}{*}
 datatype hterm = HFun fun_sym "hterm list"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{literal}{*}
 datatype 't literal = 
   is_pos: Pos (get_pred: pred_sym) (get_terms: "'t list")
 | Neg (get_pred: pred_sym) (get_terms: "'t list")
-text_raw {*}%EndSnippet*}
 
 (* begin Berghofer *)
 subsection {* Enumerating datatypes *}
@@ -265,18 +255,14 @@ theorem diag_undiag_hterm[simp]:
 
 subsubsection {* Enumerating hatoms *}
 
-text_raw {*\DefineSnippet{undiag_hatom}{*}
 definition undiag_hatom :: "hterm literal \<Rightarrow> nat" where
   "undiag_hatom a \<equiv> undiag (undiag_string (get_pred a), undiag_list undiag_hterm (get_terms a))"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{diag_hatom}{*}
 definition diag_hatom :: "nat \<Rightarrow> hterm literal" where
   "diag_hatom a \<equiv> 
      (let (p,ts) = diag a in
        (Pos (diag_string p) (diag_list diag_hterm ts))
      )"
-text_raw {*}%EndSnippet*}
 
 theorem diag_undiag_hatom[simp]: 
   "is_pos a \<Longrightarrow> diag_hatom (undiag_hatom a) = a"
@@ -284,21 +270,17 @@ theorem diag_undiag_hatom[simp]:
 
 subsubsection {* Enumerating ground terms *}
 
-text_raw {*\DefineSnippet{fterm_of_hterm}{*}
 primrec fterm_of_hterm :: "hterm \<Rightarrow> fterm"
 and fterms_of_hterms :: "hterm list \<Rightarrow> fterm list" where
   "fterm_of_hterm (HFun p ts) = Fun p (fterms_of_hterms ts)"
 | "fterms_of_hterms [] = []"
 | "fterms_of_hterms (t#ts) = fterm_of_hterm t # fterms_of_hterms ts"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{hterm_of_fterm}{*}
 primrec hterm_of_fterm :: "fterm \<Rightarrow> hterm"
 and hterms_of_fterms :: "fterm list \<Rightarrow> hterm list" where
   "hterm_of_fterm (Fun p ts) = HFun p (hterms_of_fterms ts)"
 | "hterms_of_fterms [] = []"
 | "hterms_of_fterms (t#ts) = hterm_of_fterm t # hterms_of_fterms ts"
-text_raw {*}%EndSnippet*}
 
 theorem [simp]: "hterm_of_fterm (fterm_of_hterm t) = t" 
         "hterms_of_fterms (fterms_of_hterms ts) = ts" 
@@ -335,15 +317,11 @@ by auto
 theorem [simp]: "grounds ts \<Longrightarrow> fatom_of_hatom (hatom_of_fatom (Pos p ts)) = Pos p ts"
 by auto
 
-text_raw {*\DefineSnippet{undiag_fatom}{*}
 definition undiag_fatom :: "fterm literal \<Rightarrow> nat" where
   "undiag_fatom t = undiag_hatom (hatom_of_fatom t)"
-text_raw {*}%EndSnippet*}
 
-text_raw {*\DefineSnippet{diag_fatom}{*}
 definition diag_fatom :: "nat \<Rightarrow> fterm literal" where
   "diag_fatom n = fatom_of_hatom (diag_hatom n)"
-text_raw {*}%EndSnippet*}
 
 theorem diag_undiag_fatom[simp]: "grounds ts \<Longrightarrow> diag_fatom (undiag_fatom (Pos p ts)) = Pos p ts"
 unfolding undiag_fatom_def diag_fatom_def by auto

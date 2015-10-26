@@ -2,20 +2,16 @@ theory Tree imports Main begin
 
 (* Sometimes it is nice to think of bool's as directions in a binary tree *)
 hide_const (open) Left Right
-text_raw {*\DefineSnippet{dir}{*}
 type_synonym dir = bool
 definition Left :: bool where "Left = True"
 definition Right :: bool where "Right = False"
-text_raw {*}%EndSnippet*}
 declare Left_def [simp]
 declare Right_def [simp]
 
 (* hide_const (open) Leaf Branch *)
-text_raw {*\DefineSnippet{tree}{*}
 datatype tree =
   Leaf
 | Branch (ltree: tree) (rtree: tree)
-text_raw {*}%EndSnippet*}
 
 section {* Paths *}
 
@@ -61,12 +57,10 @@ qed
       
 section {* Branches *}
 
-text_raw {*\DefineSnippet{branch}{*}
 inductive branch :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
   "branch [] Leaf"    
 | "branch ds l \<Longrightarrow> branch (Left # ds) (Branch l r)"
 | "branch ds r \<Longrightarrow> branch (Right # ds) (Branch l r)"
-text_raw {*}%EndSnippet*}
 
 lemma has_branch: "\<exists>b. branch b T"
 proof (induction T)
@@ -320,16 +314,12 @@ lemma cutoff_branch_internal:
 section {* Possibly Infinite Trees *}
 (* Possibly infinite trees are of type dir list set *)
 
-text_raw {*\DefineSnippet{wf_tree}{*}
 abbreviation wf_tree :: "dir list set \<Rightarrow> bool" where
   "wf_tree T \<equiv> (\<forall>ds d. (ds @ d) \<in> T \<longrightarrow> ds \<in> T)"
-text_raw {*}%EndSnippet*} 
 
 (* The subtree in with root r *)
-text_raw {*\DefineSnippet{subtree}{*}
 fun subtree :: "dir list set \<Rightarrow> dir list \<Rightarrow> dir list set" where 
   "subtree T r = {ds \<in> T. \<exists>ds'. ds = r @ ds'}" 
-text_raw {*}%EndSnippet*} 
 
 (* A subtree of a tree is either in the left branch, the right branch, or is the tree itself *)
 lemma subtree_pos: 
@@ -348,10 +338,8 @@ qed
 (* Infinite paths in trees should probably be nat \<Rightarrow> dir, instead of nat \<Rightarrow> dir list .   The nat \<Rightarrow> dir list are only useful locally.    I do the conversion in Resolution, I think, but I should rather do it here.    I am not 100% sure though. Perhaps this just means I must convert back to nat \<Rightarrow> dir list,    and that would be rather pointless. Perhaps, I could just do the conversion as a    corollary or something.*)
 section {* Infinite Paths *}
 (* aka list-chains *)
-text_raw {*\DefineSnippet{list_chain}{*}
 abbreviation list_chain :: "(nat \<Rightarrow> 'a list) \<Rightarrow> bool" where
   "list_chain f \<equiv> (f 0 = []) \<and> (\<forall>n. \<exists>a. f (Suc n) = (f n) @ [a])"
-text_raw {*}%EndSnippet*} 
 
 lemma chain_length: "list_chain f \<Longrightarrow> length (f n) = n"
 apply (induction n)
@@ -392,11 +380,9 @@ qed
 
 section {* König's Lemma *}
 
-text_raw {*\DefineSnippet{inf_subs}{*}
 lemma inf_subs: 
   assumes inf: "\<not>finite(subtree T ds)"
   shows "\<not>finite(subtree T (ds @ [Left])) \<or> \<not>finite(subtree T (ds @ [Right]))"
-text_raw {*}%EndSnippet*}
 proof -
   let ?subtree = "subtree T"
   {
@@ -409,19 +395,15 @@ proof -
   then show "\<not>finite(?subtree (ds @ [Left])) \<or> \<not>finite(?subtree (ds @ [Right]))" using inf by auto
 qed
 
-text_raw {*\DefineSnippet{buildchain}{*}
 fun buildchain :: "(dir list \<Rightarrow> dir list) \<Rightarrow> nat \<Rightarrow> dir list" where
   "buildchain next 0 = []"
 | "buildchain next (Suc n) = next (buildchain next n)"
-text_raw {*}%EndSnippet*}
 
 (* I have a function intree that checks if a path (node) is in the tree. Assume there are infinite such nodes.  Prove that I can make a chain of paths in the tree*)
-text_raw {*\DefineSnippet{konig}{*}
 lemma konig:
   assumes inf: "\<not>finite T"
   assumes wellformed: "wf_tree T"
   shows "\<exists>c. list_chain c \<and> (\<forall>n. (c n) \<in> T)"
-text_raw {*}%EndSnippet*}
 proof
   let ?subtree = "subtree T"
   let ?nextnode = "\<lambda>ds. (if \<not>finite (subtree T (ds @ [Left])) then ds @ [Left] else ds @ [Right])"  (*?subtree instead of "subtree T" *)
