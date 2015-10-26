@@ -52,6 +52,7 @@ lemma
   uminus_Pos[simp]: "- Pos A = Neg A" and
   uminus_Neg[simp]: "- Neg A = Pos A"
   unfolding uminus_literal_def by simp_all
+
 lemma atm_of_uminus[simp]:
   "atm_of (-L) = atm_of L"
   by (case_tac L, auto)
