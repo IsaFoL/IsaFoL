@@ -15,10 +15,11 @@ session "Weidenbach_Book" (main) = "HOL" +
     List_More
     Partial_Annotated_Clausal_Logic
     Propo_DPLL
-    DPLL_Implementation
     Propo_CDCL_Level
     Propo_CDCL
     Propo_CDCL_Termination
+    DPLL_CDCL_Implementation
+    DPLL_Implementation
     CDCL_Implementation
   theories
     Propo_CDCL2

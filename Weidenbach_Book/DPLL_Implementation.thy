@@ -1,152 +1,14 @@
 theory DPLL_Implementation
-imports Propo_DPLL "~~/src/HOL/Library/Code_Target_Numeral"
+imports DPLL_CDCL_Implementation Propo_DPLL "~~/src/HOL/Library/Code_Target_Numeral"
 begin
 
-section \<open>Simple Implementation of DPLL\<close>
-
-subsection \<open>Decide\<close>
-fun find_first_unused_var :: "int literal list list \<Rightarrow> int literal set \<Rightarrow> int literal option"  where
-"find_first_unused_var (a # l) M =
-  (case List.find (\<lambda>lit. lit \<notin> M \<and> -lit \<notin> M) a of
-    None \<Rightarrow> find_first_unused_var l M
-  | Some a \<Rightarrow> Some a)" |
-"find_first_unused_var [] _ = None"
-
-lemma find_none[iff]:
-  "List.find (\<lambda>lit. lit \<notin> M \<and> -lit \<notin> M) a = None \<longleftrightarrow>  atm_of ` set a \<subseteq> atm_of `  M"
-  apply (induct a)
-  using atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
-    by (force simp add:  atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)+
-
-lemma find_some: "List.find (\<lambda>lit. lit \<notin> M \<and> -lit \<notin> M) a = Some b \<Longrightarrow> b \<in> set a \<and> b \<notin> M \<and> -b \<notin> M"
-  by (metis find_Some_iff nth_mem)
-
-lemma find_first_unused_var_None[iff]:
-  "find_first_unused_var l M = None \<longleftrightarrow> (\<forall>a \<in> set l. atm_of ` set a \<subseteq> atm_of `  M)"
-  apply(induct l, auto split: option.split)
-  using find_some[of M] by (smt atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set image_subset_iff)+
-
-lemma find_first_unused_var_Some:
-  "find_first_unused_var l M = Some a \<Longrightarrow> (\<exists>m \<in> set l. a \<in> set m \<and> a \<notin> M \<and> -a \<notin> M)"
-  apply(induct l, auto split: option.split)
-  using find_some[of M] by (metis (lifting) option.case_eq_if option.collapse)+
-
-lemma find_first_unused_var_undefined:
-  "find_first_unused_var l (lits_of Ms) = Some a \<Longrightarrow> undefined_lit a Ms"
-  using find_first_unused_var_Some[of l "lits_of Ms" a] Marked_Propagated_in_iff_in_lits_of by blast
-
-
-value "backtrack_split [Marked (Pos (Suc 0)) Level]"
-value "\<exists>C \<in> set [[Pos (Suc 0), Neg (Suc 0)]].
-  (\<forall>c \<in> set C. -c \<in> lits_of [Marked (Pos (Suc 0)) Level])"
-
-subsection \<open>Propagate\<close>
-subsubsection \<open>Detecting unit propagation\<close>
-text \<open>The following theorem holds:\<close>
-lemma lits_of_unfold[iff]:
-  "(\<forall>c \<in> set C. -c \<in> lits_of Ms) \<longleftrightarrow> Ms \<Turnstile>as CNot (mset C)"
-  unfolding true_annots_def Ball_def true_annot_def CNot_def mem_set_multiset_eq by auto
-text \<open>The right-hand version is written at a high-level, but only the left-hand side is executable.\<close>
-
-text \<open>detecting if a clause is a clause where a single variable remains to decide.\<close>
-definition is_unit_clause :: "'a literal list \<Rightarrow> ('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal option"
-  where
- "is_unit_clause l M =
-   (case List.filter (\<lambda>a. atm_of a \<notin> atm_of ` lits_of M) l of
-     [] \<Rightarrow> None
-   | a # [] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
-   | _ \<Rightarrow> None)"
-
-text \<open>Here is the code equivalent:\<close>
-definition is_unit_clause_code ::
-  "'a literal list \<Rightarrow> ('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal option" where
- "is_unit_clause_code l M =
-   (case List.filter (\<lambda>a. atm_of a \<notin> atm_of ` lits_of M) l of
-     [] \<Rightarrow> None
-   | a # [] \<Rightarrow> if (\<forall>c \<in>set (remove1 a l). -c \<in> lits_of M) then Some a else None
-   | _ \<Rightarrow> None)"
-
-lemma [code]:
-  "is_unit_clause l M = is_unit_clause_code l M"
-proof -
-  have 1: "\<And>a. (\<forall>c\<in>set (remove1 a l). - c \<in> lits_of M) \<longleftrightarrow> M \<Turnstile>as CNot (mset l - {#a#})"
-    using lits_of_unfold[of "remove1 _ l", of _ M] by simp
-  show ?thesis
-    unfolding is_unit_clause_code_def is_unit_clause_def 1 by blast
-qed
-
-lemma is_unit_clause_some_undef: "is_unit_clause l M = Some a \<Longrightarrow> undefined_lit a M"
-  unfolding is_unit_clause_def lits_of_def
-proof -
-  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M] of [] \<Rightarrow> None
-        | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
-        | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
-  hence "a \<in> set [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M]"
-    apply (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M]", auto)
-    apply (case_tac list, auto)
-    apply (case_tac "M \<Turnstile>as CNot (mset l - {#aa#})")
-    by auto
-  hence "atm_of a \<notin> atm_of ` lit_of ` set M" by auto
-  thus ?thesis
-    by (simp add: Marked_Propagated_in_iff_in_lits_of
-      atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def)
-qed
-
-lemma is_unit_clause_some_CNot: "is_unit_clause l M = Some a \<Longrightarrow> M \<Turnstile>as CNot (mset l - {#a#})"
-  unfolding is_unit_clause_def lits_of_def
-proof -
-  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M] of [] \<Rightarrow> None
-          | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
-          | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
-  thus ?thesis
-    apply (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M]", auto)
-    apply (case_tac list, auto)
-    apply (case_tac "M \<Turnstile>as CNot (mset l - {#aa#})")
-    by auto
-qed
-
-lemma is_unit_clause_some_in: "is_unit_clause l M = Some a \<Longrightarrow> a \<in> set l"
-  unfolding is_unit_clause_def lits_of_def
-proof -
-  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M] of [] \<Rightarrow> None
-          | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
-          | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
-  thus "a \<in> set l"
-    apply (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M]", auto)
-    apply (case_tac list, auto)
-    apply (case_tac "M \<Turnstile>as CNot (mset l - {#aa#})")
-    apply auto
-    by (metis (no_types, lifting) insertI1 list.simps(15) mem_Collect_eq set_filter)
-qed
-
-lemma is_unit_clause_empty[simp]: "is_unit_clause [] M = None"
-  unfolding is_unit_clause_def by auto
-
-subsubsection \<open>Unit propagation for all clauses\<close>
-text \<open>Finding the first clause to propagate\<close>
-fun find_first_unit_clause
-  :: "'a literal list list \<Rightarrow> ('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal option"  where
-"find_first_unit_clause (a # l) M =
-  (case is_unit_clause a M of
-    None \<Rightarrow> find_first_unit_clause l M
-  | Some a \<Rightarrow> Some a)" |
-"find_first_unit_clause [] _ = None"
-
-lemma find_first_unit_clause_some:
-  assumes "find_first_unit_clause l M = Some a"
-  shows "\<exists>c \<in> set l. M \<Turnstile>as CNot (mset c - {#a#}) \<and> undefined_lit a M \<and> a \<in> set c"
-  using assms
-  apply (induct l)
-   apply simp
-  by (case_tac "is_unit_clause aa M")
-     (auto dest: is_unit_clause_some_CNot is_unit_clause_some_undef is_unit_clause_some_in)
-
-subsection \<open>Combining the two steps: a DPLL step\<close>
+subsection \<open>Simple Implementation of DPLL\<close>
+subsubsection \<open>Combining the propagate and decide: a DPLL step\<close>
 definition DPLL_step :: "int dpll_annoted_lits \<times> int literal list list
   \<Rightarrow> int dpll_annoted_lits \<times> int literal list list"  where
 "DPLL_step = (\<lambda>(Ms, N).
   (case find_first_unit_clause N Ms of
-    Some L \<Rightarrow> (Propagated L Proped # Ms, N)
+    Some (L, _) \<Rightarrow> (Propagated L Proped # Ms, N)
   | _ \<Rightarrow>
     if \<exists>C \<in> set N. (\<forall>c \<in> set C. -c \<in> lits_of Ms)
     then
@@ -176,8 +38,8 @@ lemma DPLL_step_is_a_dpll_step:
   shows "dpll (toS Ms N) (toS Ms' N')"
 proof -
   let ?S = "(Ms, set (map mset N))"
-  { fix L
-    assume unit: "find_first_unit_clause N Ms = Some L"
+  { fix L E
+    assume unit: "find_first_unit_clause N Ms = Some (L, E)"
     hence Ms'N: "(Ms', N') = (Propagated L Proped # Ms, N)" using step unfolding DPLL_step_def by auto
     obtain C where
       C: "C \<in> set N" and
@@ -221,17 +83,19 @@ proof -
      using step exC unfolding DPLL_step_def unused prod.case unit by auto
     ultimately have ?thesis by auto
   }
-  ultimately show ?thesis by blast
+  ultimately show ?thesis by (cases "find_first_unit_clause N Ms") auto
 qed
 
 lemma DPLL_step_stuck_final_state:
   assumes step: "(Ms, N) = DPLL_step (Ms, N)"
   shows "final_dpll_state (toS Ms N)"
 proof -
-  have unit: "find_first_unit_clause N Ms = None" using step unfolding DPLL_step_def by (auto split:option.splits)
+  have unit: "find_first_unit_clause N Ms = None" 
+    using step unfolding DPLL_step_def by (auto split:option.splits)
 
   { assume n: "\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C)"
-    hence Ms: "(Ms, N) = (case backtrack_split Ms of (x, []) \<Rightarrow> (Ms, N) | (x, L # M) \<Rightarrow> (Propagated (- lit_of L) Proped # M, N))"
+    hence Ms: "(Ms, N) = (case backtrack_split Ms of (x, []) \<Rightarrow> (Ms, N) 
+                         | (x, L # M) \<Rightarrow> (Propagated (- lit_of L) Proped # M, N))"
       using step unfolding DPLL_step_def by (simp add:unit)
 
   have "snd (backtrack_split Ms) = []"
@@ -260,7 +124,7 @@ proof -
     assume n: "\<not> (\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C))"
     hence "find_first_unused_var N (lits_of Ms) = None"
       using step unfolding DPLL_step_def by (simp add: unit split: option.splits)
-    hence a: "\<forall>a \<in> set N. atm_of ` set a \<subseteq> atm_of `  (lits_of Ms)" by auto
+    hence a: "\<forall>a \<in> set N. atm_of ` set a \<subseteq> atm_of ` (lits_of Ms)" by auto
     have "fst (toS Ms N) \<Turnstile>as snd (toS Ms N)" unfolding true_annots_def CNot_def Ball_def
       proof (clarify)
         fix x
@@ -277,8 +141,8 @@ proof -
   ultimately show ?thesis by blast
 qed
 
-subsection \<open>Adding invariants\<close>
-subsubsection \<open>Invariant tested in the function\<close>
+subsubsection \<open>Adding invariants\<close>
+paragraph \<open>Invariant tested in the function\<close>
 function DPLL_ci :: "int dpll_annoted_lits \<Rightarrow> int literal list list
   \<Rightarrow> int dpll_annoted_lits \<times> int literal list list" where
 "DPLL_ci Ms N =
@@ -303,7 +167,7 @@ next
     using DPLL_step_is_a_dpll_step dpll_same_clauses split_conv by fastforce
 qed
 
-subsubsection \<open>No invariant tested\<close>
+paragraph \<open>No invariant tested\<close>
 function (domintros) DPLL_part:: "int dpll_annoted_lits \<Rightarrow> int literal list list \<Rightarrow> int dpll_annoted_lits \<times> int literal list list" where
 "DPLL_part Ms N =
   (let (Ms', N') = DPLL_step (Ms, N) in
@@ -493,7 +357,7 @@ proof -
   show ?thesis using star DPLL_ci_final_state[OF DPLL_ci_no_more_step inv'] 2 unfolding MsN by blast
 qed
 
-subsubsection \<open>Embedding the invariant into the type\<close>
+paragraph \<open>Embedding the invariant into the type\<close>
 paragraph \<open>Defining the type\<close>
 typedef dpll_state =
     "{(M::(int, dpll_marked_level, dpll_mark) marked_lit list, N::int literal list list).
@@ -655,8 +519,8 @@ proof -
     rtranclp_dpll_inv_starting_from_0)
 qed
 
-subsection \<open>Code export\<close>
-subsubsection \<open>A conversion to @{typ dpll_state}\<close>
+subsubsection \<open>Code export\<close>
+paragraph \<open>A conversion to @{typ dpll_state}\<close>
 definition Con :: "(int, dpll_marked_level, dpll_mark) marked_lit list \<times> int literal list list
                      \<Rightarrow> dpll_state" where
   "Con xs = state_of (if dpll_all_inv (toS (fst xs) (snd xs)) then xs else ([], []))"
