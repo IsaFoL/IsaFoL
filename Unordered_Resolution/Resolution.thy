@@ -1149,14 +1149,14 @@ proof -
   have "?L \<subseteq> C" by auto
   moreover
   have "?L {\<mu>}\<^sub>l\<^sub>s = L'"
-    apply auto
-    proof - (* Very ugly *)
+    proof (rule Orderings.order_antisym; rule Set.subsetI)
       fix l'
       assume l'L: "l' \<in> L'"
       from inst_C have "{l {\<mu>}\<^sub>l|l. l \<in> C} = C'" unfolding subls_def2 by -
       then have "\<exists>l. l' = l {\<mu>}\<^sub>l \<and> l \<in> C \<and> l{\<mu>}\<^sub>l \<in> L'" using L'sub l'L by auto
-      then show " l' \<in> {l \<in> C. l{\<mu>}\<^sub>l \<in> L'}{\<mu>}\<^sub>l\<^sub>s" by auto
-    qed
+      then have " l' \<in> {l \<in> C. l{\<mu>}\<^sub>l \<in> L'}{\<mu>}\<^sub>l\<^sub>s" by auto
+      then show " l' \<in> {l \<in> C. \<exists>l'\<in>L'. l{\<mu>}\<^sub>l = l'}{\<mu>}\<^sub>l\<^sub>s" by auto
+    qed auto
   moreover
   have "(C-?L) {\<mu>}\<^sub>l\<^sub>s = C' - L'" using inst_C by auto
   moreover
@@ -1219,7 +1219,7 @@ proof -
   then show ?thesis by (meson image_cong) 
 qed
 
-lemma (* To prove this I should make a lemma that says literals only care about the variables that are in them *)
+lemma merge_sub: (* To prove this I should make a lemma that says literals only care about the variables that are in them *)
   assumes dist: "varsls C \<inter> varsls D = {}"
   assumes CC': "C {lmbd}\<^sub>l\<^sub>s = C'"
   assumes DD': "D {\<mu>}\<^sub>l\<^sub>s = D'"
@@ -1249,16 +1249,21 @@ proof -
   let ?C'\<^sub>1 = "C' - L'"
   let ?D'\<^sub>1 = "D' - M'"
 
-  from inst\<^sub>1 obtain lmbd where  "C {lmbd}\<^sub>l\<^sub>s = C'" unfolding instance_ofls_def by auto
+  from inst\<^sub>1 obtain lmbd where lmbd_p: "C {lmbd}\<^sub>l\<^sub>s = C'" unfolding instance_ofls_def by auto
   then have "\<exists>L \<subseteq> C. L {lmbd}\<^sub>l\<^sub>s = L' \<and> (C - L){lmbd}\<^sub>l\<^sub>s = ?C'\<^sub>1" using appl project_sub[of lmbd C C' L'] unfolding applicable_def by auto
   then obtain L where "L \<subseteq> C \<and> L {lmbd}\<^sub>l\<^sub>s = L' \<and> (C - L){lmbd}\<^sub>l\<^sub>s = ?C'\<^sub>1" by auto
   let ?C\<^sub>1 = "C - L"
 
-  from inst\<^sub>2 obtain \<mu> where  "D {\<mu>}\<^sub>l\<^sub>s = D'" unfolding instance_ofls_def by auto
+  from inst\<^sub>2 obtain \<mu> where \<mu>_p: "D {\<mu>}\<^sub>l\<^sub>s = D'" unfolding instance_ofls_def by auto
   then have "\<exists>M \<subseteq> D. M {\<mu>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<mu>}\<^sub>l\<^sub>s = ?D'\<^sub>1" using appl project_sub[of \<mu> D D' M'] unfolding applicable_def by auto
   then obtain M where "M \<subseteq> D \<and> M {\<mu>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<mu>}\<^sub>l\<^sub>s = ?D'\<^sub>1" by auto
   let ?D\<^sub>1 = "D - M"
   
+  (* Now use above lemmas to get \<eta> *)
+  from \<mu>_p lmbd_p appart obtain \<eta> where "C {\<eta>}\<^sub>l\<^sub>s = C' \<and> D {\<eta>}\<^sub>l\<^sub>s = D'" using merge_sub by force
+
+  (* Continue here *)
+oops
 
 section {* Completeness *}
 (* assumes openb: "\<forall>T. \<exists>G. open_branch G T Cs" assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C" shows "\<exists>G. evalcs HFun G Cs" *)
