@@ -565,9 +565,6 @@ proof (rule ccontr)
       have ce_lt_d: "C + E #\<subset># D"
         unfolding D L
         by (metis (mono_tags, lifting) Max_pos_neg_less_multiset One_nat_def PMax count_single less_multiset_plus_right_nonempty mult_less_trans single_not_empty union_less_mono2 zero_less_Suc)
-      have "\<not>clss_lt N (E + {#Pos P#}) \<Turnstile>p E + {#Pos P#}"
-      using red unfolding D
-        sorry
       have "\<not>redundant (C + E) N"
         proof (rule ccontr)
           assume red'[simplified]: "\<not> ?thesis"
@@ -583,7 +580,7 @@ proof (rule ccontr)
       have CED: "C + E \<noteq> D"
         using D ce_lt_d by auto
       have interp: "\<not> INTERP N \<Turnstile>h C + E"
-        sorry
+      sorry
       show False using cls_not_D[OF CEN CED interp] ce_lt_d unfolding INTERP_def less_eq_multiset_def by auto
   qed
 qed

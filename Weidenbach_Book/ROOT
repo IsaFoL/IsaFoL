@@ -21,7 +21,7 @@ session "Weidenbach_Book" (main) = "HOL" +
     DPLL_CDCL_Implementation
     DPLL_Implementation
     CDCL_Implementation
-  theories
+  theories [quick_and_dirty]
     Propo_CDCL2
   document_files
     "root.tex"

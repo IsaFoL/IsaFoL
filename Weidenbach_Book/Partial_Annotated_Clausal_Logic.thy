@@ -548,9 +548,15 @@ next
           using `is_marked (hd Ls0)` by (metis (mono_tags, lifting) UnCI mem_Collect_eq true_clss_cls_in)
       } note hd_Ls0 = this
 
-      have l: "(\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M')) \<union> {L |L. is_marked L \<and> L \<in> set M'}) =  (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition M')) \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'}"
+      have l: "(\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M')) 
+          \<union> {L |L. is_marked L \<and> L \<in> set M'}) 
+        = (\<lambda>a. {#lit_of a#}) ` 
+           \<Union>(set ` snd ` set (get_all_marked_decomposition M')) 
+           \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'}"
         by auto
-      have "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M')) \<union> {L |L. is_marked L \<and> L \<in> set M'})"
+      have "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps 
+              (\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M')) 
+                 \<union> {L |L. is_marked L \<and> L \<in> set M'})"
         unfolding l using N by (auto simp add: all_in_true_clss_clss)
       hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl Ls0)"
         using M' unfolding LS LSM  by auto
@@ -565,10 +571,15 @@ next
 
       moreover have "(\<lambda>a. {#lit_of a#}) ` set Ls0 \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen0"
         using Suc.prems unfolding Ls0 all_decomposition_implies_def by simp
-      ultimately have \<Psi>: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen0"
-        by (meson all_in_true_clss_clss true_clss_clss_left_right true_clss_clss_union_and true_clss_clss_union_l_r)
+      ultimately have \<Psi>: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps 
+          (\<lambda>a. {#lit_of a#}) ` set seen0"
+        by (meson all_in_true_clss_clss true_clss_clss_left_right true_clss_clss_union_and 
+          true_clss_clss_union_l_r)
 
-      have "(\<lambda>a. {#lit_of a#}) ` (set seen0 \<union> (\<Union>x\<in>set (get_all_marked_decomposition M'). set (snd x))) =  (\<lambda>a. {#lit_of a#}) ` set seen0 \<union> (\<lambda>a. {#lit_of a#}) ` (\<Union>x\<in>set (get_all_marked_decomposition M'). set (snd x))"
+      have "(\<lambda>a. {#lit_of a#})`(set seen0 
+           \<union> (\<Union>x\<in>set (get_all_marked_decomposition M'). set (snd x))) 
+         = (\<lambda>a. {#lit_of a#}) ` set seen0 
+            \<union> (\<lambda>a. {#lit_of a#}) ` (\<Union>x\<in>set (get_all_marked_decomposition M'). set (snd x))"
         by auto
 
       hence ?case unfolding Ls0 using \<Psi> \<Psi>N by simp
@@ -780,16 +791,6 @@ next
   thus ?case
     using a1 by simp
 qed
-
-
-lemma true_clss_clss_left_right':
-  assumes "A \<Turnstile>ps B"
-  and "A \<union> B \<Turnstile>ps M"
-  and "atms_of_m M \<subseteq> atms_of_m A"
-  and "atms_of_m B \<subseteq> atms_of_m A"
-  shows "A \<Turnstile>ps M"
-  using assms(1,2) unfolding true_clss_clss_def atms_of_m_def atms_of_def
-  by (metis (no_types, hide_lams) assms(3,4) atms_of_m_union sup.orderE total_over_m_def true_clss_union)
 
 lemma distinctget_all_marked_decomposition_no_dup:
   assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
