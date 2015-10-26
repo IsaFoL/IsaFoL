@@ -207,12 +207,12 @@ next
     proof (standard, standard)
       fix x a b
       assume x: "x \<in> snd (N - {B}, already_used)" and [simp]: "x = (a, b)"
-      obtain p where p: "Pos p \<in># a \<and> Neg p \<in># b" and 
-        q: "(\<exists>\<chi>\<in>N. subsumes \<chi> (a - {#Pos p#} + (b - {#Neg p#}))) 
+      obtain p where p: "Pos p \<in># a \<and> Neg p \<in># b" and
+        q: "(\<exists>\<chi>\<in>N. subsumes \<chi> (a - {#Pos p#} + (b - {#Neg p#})))
           \<or> tautology (a - {#Pos p#} + (b - {#Neg p#}))"
         using inv x by fastforce
       consider (taut) "tautology (a - {#Pos p#} + (b - {#Neg p#}))" |
-        (\<chi>) \<chi> where "\<chi> \<in> N" "subsumes \<chi> (a - {#Pos p#} + (b - {#Neg p#}))" 
+        (\<chi>) \<chi> where "\<chi> \<in> N" "subsumes \<chi> (a - {#Pos p#} + (b - {#Neg p#}))"
           "\<not>tautology (a - {#Pos p#} + (b - {#Neg p#}))"
         using q by auto
       then show "\<exists>p. Pos p \<in># a \<and> Neg p \<in># b \<and> ((\<exists>\<chi>\<in>fst (N - {B}, already_used). subsumes \<chi> (a - {#Pos p#} + (b - {#Neg p#}))) \<or> tautology (a - {#Pos p#} + (b - {#Neg p#})))"
@@ -245,7 +245,7 @@ lemma factoring_satisfiable: "I \<Turnstile> {#L#} + {#L#} + C \<longleftrightar
   and resolution_satisfiable: "consistent_interp I \<Longrightarrow> I \<Turnstile> {#Pos p#} + C \<Longrightarrow> I \<Turnstile> {#Neg p#} + D \<Longrightarrow> I \<Turnstile> C + D"
   and factoring_same_vars: "atms_of ({#L#} + {#L#} + C) = atms_of ({#L#} + C)"
   unfolding true_cls_def consistent_interp_def by (fastforce split: split_if_asm)+
-  
+
 lemma inference_increasing:
   assumes "inference S S'" and "\<psi> \<in> fst S"
   shows "\<psi> \<in> fst S'"
@@ -381,7 +381,7 @@ proof (induction)
     have "{Pos P} \<union> I \<Turnstile>s \<psi> - {A + {#Pos P#} + {#Neg P#}}"
       using `I \<Turnstile>s \<psi> - {A + {#Pos P#} + {#Neg P#}}` true_clss_union_increase' by blast
     hence "I \<union> {Pos P} \<Turnstile>s \<psi>"
-      by (metis (no_types) Un_empty_right Un_insert_left Un_insert_right I'A insert_Diff sup_bot.left_neutral tautology_deletion.hyps true_clss_insert) (* 60 ms *)
+      by (metis (no_types) Un_empty_right Un_insert_left Un_insert_right I'A insert_Diff sup_bot.left_neutral tautology_deletion.hyps true_clss_insert)
     ultimately have ?case using satisfiable_carac' by blast
   }
   ultimately show ?case by blast
@@ -681,9 +681,9 @@ proof (induct arbitrary: I rule: sem_tree_size)
               have f2: "\<And>n. (n::nat) - n = 0"
                 by simp (* 0.2 ms *)
               have "Neg v \<notin># \<chi>2' - {#Pos v#}"
-                using Negv \<chi>'\<chi>2_incl by auto (* 14 ms *)
+                using Negv \<chi>'\<chi>2_incl by auto
               thus ?thesis
-                using f2 a1 by (metis add.commute count\<chi>2' count_diff count_single insert_DiffM less_nat_zero_code zero_less_one) (* 41 ms *)
+                using f2 a1 by (metis add.commute count\<chi>2' count_diff count_single insert_DiffM less_nat_zero_code zero_less_one)
             qed
 
           have "already_used_inv \<psi>'"
@@ -694,7 +694,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
 
           have totC: "total_over_m I {C}" using tot_imp\<chi> tot\<chi> tot_over_m_remove[of I "Pos v" C] negC posC unfolding \<chi>2 by (metis total_over_m_sum uminus_Neg uminus_of_uminus_id)
           have totC': "total_over_m I {C'}" using tot_imp\<chi>' tot\<chi>' total_over_m_sum tot_over_m_remove[of I "Neg v" C'] negC' posC' unfolding \<chi>2' by (metis total_over_m_sum uminus_Neg)
-          have "\<not> I \<Turnstile> C + C'" 
+          have "\<not> I \<Turnstile> C + C'"
             using \<chi> I\<chi> \<chi>' I\<chi>' unfolding \<chi>2 \<chi>2' true_cls_def Bex_mset_def
             by (metis add_gr_0 count_union true_cls_singleton true_cls_union_increase)
           hence part_I_\<psi>''': "partial_interps Leaf I (fst \<psi>'' \<union> {C + C'})"
@@ -850,9 +850,9 @@ proof -
     let ?\<chi>' = "\<chi> - {#L, L#}"
     assume "count \<chi> L \<ge> 2"
     hence f1: "count (\<chi> - {#L, L#} + {#L, L#}) L = count \<chi> L"
-      by simp (* 66 ms *)
+      by simp
     hence "L \<in># \<chi> - {#L#}"
-      by simp (* 60 ms *)
+      by simp
     hence \<chi>': "?\<chi>' + {#L#} + {#L#} = \<chi>"
       using f1 by (metis (no_types) diff_diff_add diff_single_eq_union union_assoc union_single_eq_member)
     have "\<exists>\<psi>'. simplify \<psi> \<psi>'" by (metis (no_types, hide_lams) \<chi> \<chi>' add.commute factoring_imp_simplifier union_assoc)
@@ -901,9 +901,9 @@ proof (rule ccontr)
       proof (induction rule: simplify.induct)
         case (tautology_deletion A P)
         have "{#Neg P#} + ({#Pos P#} + (A + {#l#})) \<in> {\<psi>}"
-          by (metis (no_types) A add.commute tautology_deletion.hyps union_lcomm) (* 116 ms *)
+          by (metis (no_types) A add.commute tautology_deletion.hyps union_lcomm)
         thus ?thesis
-           by (metis simplify.tautology_deletion[of "A+{#l#}" P "{\<psi>}"] add.commute) (* 19 ms *)
+           by (metis simplify.tautology_deletion[of "A+{#l#}" P "{\<psi>}"] add.commute)
       next
         case (condensation A L)
         have "A + {#L#} + {#L#} + {#l#} \<in> {\<psi>}"
@@ -931,7 +931,7 @@ proof (rule ccontr)
     hence "\<exists>l'. simplify \<psi> l'"
       proof (induction rule: simplify.induct)
         case (tautology_deletion A P)
-        thus ?thesis using simplify.tautology_deletion[of "A" P "\<psi>"] incl by blast  (* 19 ms *)
+        thus ?thesis using simplify.tautology_deletion[of "A" P "\<psi>"] incl by blast
       next
         case (condensation A L)
         thus ?case using simplify.condensation[of A L "\<psi>"] incl by blast
@@ -1486,11 +1486,11 @@ next
          proof -
            obtain nn :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
              "\<forall>x0 x1. (\<exists>v2. x0 = x1 + v2) = (x0 = x1 + nn x0 x1)"
-             by moura (* 18 ms *)
+             by moura
            hence "\<Xi> F = \<Xi> (A - {a}) + nn (\<Xi> F) (\<Xi> (A - {a}))"
-             using Nat.le_iff_add `\<Xi> (A - {a}) \<le> \<Xi> F` by presburger (* 3 ms *)
+             using Nat.le_iff_add `\<Xi> (A - {a}) \<le> \<Xi> F` by presburger
            thus ?thesis
-             by (metis (no_types) Nat.le_iff_add aA aF add.assoc finite.insertI finite_subset insert.prems local.finite sum_count_ge_2.insert sum_count_ge_2.remove) (* 139 ms *)
+             by (metis (no_types) Nat.le_iff_add aA aF add.assoc finite.insertI finite_subset insert.prems local.finite sum_count_ge_2.insert sum_count_ge_2.remove)
          qed
     qed
 qed
@@ -1537,11 +1537,11 @@ next
        proof -
          obtain ll :: "('a literal \<Rightarrow> nat) \<Rightarrow> ('a literal \<Rightarrow> nat) \<Rightarrow> 'a literal multiset \<Rightarrow> 'a literal" where
            "\<forall>x0 x1 x2. (\<exists>v3. v3 \<in># x2 \<and> x1 v3 \<noteq> x0 v3) = (ll x0 x1 x2 \<in># x2 \<and> x1 (ll x0 x1 x2) \<noteq> x0 (ll x0 x1 x2))"
-           by moura (* 23 ms *)
+           by moura
          hence f1: "\<forall>m f fa. ll fa f m \<in># m \<and> f (ll fa f m) \<noteq> fa (ll fa f m) \<or> image_mset f m = image_mset fa m"
-           by (meson image_mset_cong) (* 103 ms *)
+           by (meson image_mset_cong)
          have "ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} \<notin># {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} \<or> count A (ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#}) + (if L = ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} then 1 else 0) = count A (ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#})"
-           by (simp add:) (* 46 ms *)
+           by (simp add:)
          thus ?thesis
            using f1 by (metis (no_types, lifting))
        qed
@@ -1553,11 +1553,11 @@ next
        proof -
          obtain ll :: "('a literal \<Rightarrow> nat) \<Rightarrow> ('a literal \<Rightarrow> nat) \<Rightarrow> 'a literal multiset \<Rightarrow> 'a literal" where
            "\<forall>x0 x1 x2. (\<exists>v3. v3 \<in># x2 \<and> x1 v3 \<noteq> x0 v3) = (ll x0 x1 x2 \<in># x2 \<and> x1 (ll x0 x1 x2) \<noteq> x0 (ll x0 x1 x2))"
-           by moura (* 3 ms *)
+           by moura
          hence f1: "\<forall>m f fa. ll fa f m \<in># m \<and> f (ll fa f m) \<noteq> fa (ll fa f m) \<or> image_mset f m = image_mset fa m"
-           by (meson image_mset_cong) (* 40 ms *)
+           by (meson image_mset_cong)
          have "ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0) + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} \<notin># {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} \<or> count A (ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0) + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#}) + (if L = ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0) + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} then 1 else 0) + (if L = ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0) + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} then 1 else 0) = count A (ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0) + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#})"
-           by simp (* 30 ms *)
+           by simp
          thus ?thesis
            using f1 by (metis (no_types, lifting)) (* > 1.0 s, timed out *)
        qed
@@ -1573,19 +1573,19 @@ next
       thus ?thesis
         proof -
           have f2: "\<And>m M. insert (m::'a literal multiset) (M - {m}) = M \<union> {} \<or> m \<notin> M"
-            using Un_empty_right insert_Diff by blast (* 6 ms *)
+            using Un_empty_right insert_Diff by blast
           have f3: "\<And>m M Ma. insert (m::'a literal multiset) M - insert m Ma = M - insert m Ma"
-            by simp (* 3 ms *)
+            by simp
           hence f4: "\<And>M m. M - {m::'a literal multiset} = M \<union> {} \<or> m \<in> M"
-            using Diff_insert_absorb Un_empty_right by fastforce (* 6 ms *)
+            using Diff_insert_absorb Un_empty_right by fastforce
           have f5: "insert (A + {#L#} + {#L#}) N = N"
-            using f3 f2 Un_empty_right condensation.hyps insert_iff by fastforce (* 3 ms *)
+            using f3 f2 Un_empty_right condensation.hyps insert_iff by fastforce
           have "\<And>m M. insert (m::'a literal multiset) M = M \<union> {} \<or> m \<notin> M"
-            using f3 f2 Un_empty_right add.right_neutral insert_iff by fastforce (* 3 ms *)
+            using f3 f2 Un_empty_right add.right_neutral insert_iff by fastforce
           hence "\<Xi> (N - {A + {#L#} + {#L#}}) < \<Xi> N"
             using f5 f4 by (metis Un_empty_right `\<Xi> {A + {#L#}} < \<Xi> {A + {#L#} + {#L#}}` add.right_neutral add_diff_cancel_left' add_gr_0 diff_less fin finite.emptyI not_le sum_count_ge_2.empty sum_count_ge_2.insert_remove trans_le_add2) (* 1.0 s *)
           thus ?thesis
-            using f3 f2 a1 by (metis (no_types) Un_empty_right Un_insert_right condensation.hyps insert_iff multi_self_add_other_not_self) (* 180 ms *)
+            using f3 f2 a1 by (metis (no_types) Un_empty_right Un_insert_right condensation.hyps insert_iff multi_self_add_other_not_self)
         qed
     next
       assume "?C' \<notin> N"
@@ -1725,17 +1725,17 @@ proof (induct arbitrary: I rule: sem_tree_size)
                 by simp (* 0.0 ms *)
               obtain mm :: "'v literal multiset \<Rightarrow> 'v literal \<Rightarrow> 'v literal multiset" where
                 f3: "{#Neg v#} + mm \<chi> (Neg v) = \<chi>"
-                by (metis (no_types) `count \<chi> (Neg v) = 1` add.commute multi_member_split zero_less_one) (* 33 ms *)
+                by (metis (no_types) `count \<chi> (Neg v) = 1` add.commute multi_member_split zero_less_one)
               hence "Pos v \<notin># mm \<chi> (Neg v)"
-                using f2 by (metis (no_types) Posv `count \<chi> (Neg v) = 1` add.right_neutral add_left_cancel count_single count_union less_nat_zero_code) (* 106 ms *)
+                using f2 by (metis (no_types) Posv `count \<chi> (Neg v) = 1` add.right_neutral add_left_cancel count_single count_union less_nat_zero_code)
               thus ?thesis
-                using f3 a1 by (metis (no_types) `count \<chi> (Neg v) = 1` add.commute add.right_neutral add_left_cancel count_single count_union less_nat_zero_code) (* 160 ms *)
+                using f3 a1 by (metis (no_types) `count \<chi> (Neg v) = 1` add.commute add.right_neutral add_left_cancel count_single count_union less_nat_zero_code)
             qed
           obtain C' where \<chi>C': "\<chi>' = C' + {#Pos v#}" and posC': "Pos v \<notin># C'"  and negC': "Neg v \<notin># C'" by (metis (no_types, hide_lams) Negv `count \<chi>' (Pos v) = 1` add_diff_cancel_right' cancel_comm_monoid_add_class.diff_cancel count_diff count_single less_nat_zero_code mset_leD mset_le_add_left multi_member_split zero_less_one)
 
           have totC: "total_over_m I {C}" using tot\<chi> tot_over_m_remove[of I "Pos v" C] negC posC unfolding \<chi>C by (metis total_over_m_sum uminus_Neg uminus_of_uminus_id)
           have totC': "total_over_m I {C'}" using tot\<chi>' total_over_m_sum tot_over_m_remove[of I "Neg v" C'] negC' posC' unfolding \<chi>C' by (metis total_over_m_sum uminus_Neg)
-          have "\<not> I \<Turnstile> C + C'" 
+          have "\<not> I \<Turnstile> C + C'"
             using \<chi> \<chi>' \<chi>C \<chi>C' by auto
           hence part_I_\<psi>''': "partial_interps Leaf I (fst \<psi> \<union> {C + C'})"
             using totC totC' `\<not> I \<Turnstile> C + C'` by (metis Un_insert_right insertI1

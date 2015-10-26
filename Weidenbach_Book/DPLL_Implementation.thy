@@ -90,11 +90,11 @@ lemma DPLL_step_stuck_final_state:
   assumes step: "(Ms, N) = DPLL_step (Ms, N)"
   shows "final_dpll_state (toS Ms N)"
 proof -
-  have unit: "find_first_unit_clause N Ms = None" 
+  have unit: "find_first_unit_clause N Ms = None"
     using step unfolding DPLL_step_def by (auto split:option.splits)
 
   { assume n: "\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C)"
-    hence Ms: "(Ms, N) = (case backtrack_split Ms of (x, []) \<Rightarrow> (Ms, N) 
+    hence Ms: "(Ms, N) = (case backtrack_split Ms of (x, []) \<Rightarrow> (Ms, N)
                          | (x, L # M) \<Rightarrow> (Propagated (- lit_of L) Proped # M, N))"
       using step unfolding DPLL_step_def by (simp add:unit)
 
@@ -233,7 +233,7 @@ proof (induct Ms N arbitrary: Ms' N' rule: DPLL_ci.induct)
         hence "(if (S\<^sub>1, S\<^sub>2) = (Ms, N) then (Ms, N) else DPLL_ci S\<^sub>1 N) = DPLL_ci Ms N"
           by fastforce
         thus ?thesis
-          using calculation(2) by presburger (* 2 ms *)
+          using calculation(2) by presburger
       qed
     ultimately have "dpll\<^sup>*\<^sup>* (toS S\<^sub>1' N) (toS Ms' N)" using IH[of "(S\<^sub>1, S\<^sub>2)" S\<^sub>1 S\<^sub>2] S step by simp
 

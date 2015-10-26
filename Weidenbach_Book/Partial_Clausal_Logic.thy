@@ -387,7 +387,6 @@ lemma satisfiable_single[simp]:
 abbreviation unsatisfiable :: "'a clause set \<Rightarrow> bool" where
   "unsatisfiable CC \<equiv> \<not> satisfiable CC"
 
-(*TODO Move upper*)
 lemma satisfiable_decreasing:
   assumes "satisfiable (\<psi> \<union> \<psi>')"
   shows "satisfiable \<psi>"

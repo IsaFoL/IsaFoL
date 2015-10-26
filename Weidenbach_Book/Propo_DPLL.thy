@@ -535,7 +535,7 @@ proof
           using rtranclp_dpll_all_inv[OF tranclp_into_rtranclp[OF trancl_into_trancl.hyps(1)]]
           trancl_into_trancl.prems by auto
         ultimately have "(S'', S') \<in> {(pa, p). dpll_all_inv p \<and> dpll p pa}\<^sup>+"
-          using `dpll_all_inv S'` trancl_into_trancl.hyps(3) by blast (* 3 ms *)
+          using `dpll_all_inv S'` trancl_into_trancl.hyps(3) by blast
         thus ?case
           using `(S', S) \<in> {a. case a of (S', S) \<Rightarrow> dpll_all_inv S \<and> dpll S S'}\<^sup>+` by auto
       qed

@@ -131,9 +131,9 @@ next
         st': "cdcl_s\<^sup>*\<^sup>* S' U" and
         confl: "conflicting T = C_Clause D"
         using cdcl_cp_new_clause_learned_has_backtrack_step[OF D_U False o] by metis
-      hence "cdcl_s\<^sup>*\<^sup>* S T" and 
-        "backtrack T S'" and 
-        "conflicting T = C_Clause D" and 
+      hence "cdcl_s\<^sup>*\<^sup>* S T" and
+        "backtrack T S'" and
+        "conflicting T = C_Clause D" and
         "cdcl_s\<^sup>*\<^sup>* S' U"
         using o st by auto
       thus ?thesis by blast
@@ -282,7 +282,7 @@ next
           hence 5: "trail T = Marked L i # H @ M"and 6: "trail S' = H @ M"
             proof -
               show "trail S' = H @ M"
-                by (metis (no_types) `trail T = Marked L i # trail S'` `trail T = drop (length M\<^sub>0) M' @ Marked L i # H @ M` append_Nil list.sel(3) nd tl_append2) (* 414 ms *)
+                by (metis (no_types) `trail T = Marked L i # trail S'` `trail T = drop (length M\<^sub>0) M' @ Marked L i # H @ M` append_Nil list.sel(3) nd tl_append2)
             next
               show "trail T = Marked L i # H @ M"
                 using append.simps(1) list.sel(3) local.other'(5) tl_append2 by (metis (no_types) `trail T = Marked L i # trail S'` `trail T = drop (length M\<^sub>0) M' @ Marked L i # H @ M` )
@@ -1088,16 +1088,16 @@ lemma "([1, 2, 3], [1,2, 2]) \<in> lenlex ({(b::int, a). b > a})"
   unfolding lenlex_conv apply auto
   done
 fun trail_mes ::  "'v::linorder cdcl_state \<Rightarrow> nat list" where
-"trail_mes (M, N, U, k, C) = 
+"trail_mes (M, N, U, k, C) =
   rev (map (\<lambda>(_, propa). latm propa N) (get_all_marked_decomposition M)) @ [card U, if C = C_True then 1 else 0]"
 
-lemma 
+lemma
   fixes S :: "'v::linorder cdcl_state"
   assumes "propagate S T" and "cdcl_all_inv_mes S"
   shows "(trail_mes T, trail_mes S) \<in> lenlex {(a, b). a < b}"
 proof -
   obtain M N U k C L where
-    T: "T = (Propagated L (C + {#L#}) # M, N, U, k, C_True)" and 
+    T: "T = (Propagated L (C + {#L#}) # M, N, U, k, C_True)" and
     S: "S = (M, N, U, k, C_True)" and
     "C + {#L#} \<in> N \<or> C + {#L#} \<in> U " and
     C: "M \<Turnstile>as CNot C" and
@@ -1107,17 +1107,17 @@ proof -
     by (case_tac "get_all_marked_decomposition M") auto
   have "length b \<le> length M"
     using get_all_marked_decomposition_decomp[of M] by (simp add: M)
-    
+
   moreover
     have "cdcl_all_inv_mes T"
       using assms(1) assms(2) cdcl_all_inv_mes_inv propagate by blast
     hence "length (Propagated L (C + {#L#}) # M) \<le> card (atms_of_m N)"
       using length_model_le_vars_all_inv[of T] unfolding T by auto
-    
+
   ultimately have "card (atms_of_m N) - length b = Suc(card (atms_of_m N) - Suc (length b))"
     by simp
   thus ?thesis
     unfolding S T lenlex_conv lex_conv by (auto simp add: M)
-qed  
+qed
 
 end
