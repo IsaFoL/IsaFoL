@@ -1076,9 +1076,20 @@ proof -
               total_over_set_def uminus_Pos)
           thus False using M by fast
         qed 
-        (* find contradiction with backjump: let C +l be the clause containing the marked literals.
-        We know that N \<Turnstile> CNot C+l, thus we can back-jump.
-        *)
+      then obtain l where "l \<in> set M" "is_marked l" by auto
+      (* find contradiction with backjump: let C +l be the clause containing the marked literals.
+      We know that N \<Turnstile> CNot C+l, thus we can back-jump.
+      *)
+      let ?C = "{L\<in>set M. is_marked L \<and> L\<noteq>l}"
+      have "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M"
+        using all_decomposition_implies_propagated_lits_are_implied[OF decomp] .
+      moreover have "(\<lambda>L. {#lit_of L#}) ` (?C\<union>{l}) = {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"
+        using \<open>l \<in> set M\<close> \<open>is_marked l\<close> by auto
+      ultimately have "N \<union> (\<lambda>L. {#lit_of L#}) ` (?C\<union>{l}) \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M"
+        by auto
+        
+       have "N \<union> (\<lambda>L. {#lit_of L#}) ` (set M) \<Turnstile>ps {{#}}"
+         using M unfolding true_clss_clss_def apply auto sorry
       show ?thesis sorry
     qed auto
 oops

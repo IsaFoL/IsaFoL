@@ -458,21 +458,27 @@ lemma union_in_get_all_marked_decomposition_is_subset:
   using assms by (force dest: get_all_marked_decomposition_exists_prepend)
 
 
-definition all_decomposition_implies :: "'a literal multiset set \<Rightarrow> (('a, 'l, 'm) marked_lit list \<times> ('a, 'l, 'm) marked_lit list) list \<Rightarrow> bool" where
- "all_decomposition_implies N S \<longleftrightarrow> (\<forall>(Ls, seen) \<in> set S. (\<lambda>a. {#lit_of a#}) ` set Ls \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen)"
+definition all_decomposition_implies :: "'a literal multiset set
+  \<Rightarrow> (('a, 'l, 'm) marked_lit list \<times> ('a, 'l, 'm) marked_lit list) list \<Rightarrow> bool" where
+ "all_decomposition_implies N S
+   \<longleftrightarrow> (\<forall>(Ls, seen) \<in> set S. (\<lambda>a. {#lit_of a#}) ` set Ls \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen)"
 
 lemma all_decomposition_implies_empty[iff]:
   "all_decomposition_implies N []" unfolding all_decomposition_implies_def by auto
 
 lemma all_decomposition_implies_single[iff]:
-  "all_decomposition_implies N [(Ls, seen)] \<longleftrightarrow> (\<lambda>a. {#lit_of a#}) ` set Ls \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen" unfolding all_decomposition_implies_def by auto
+  "all_decomposition_implies N [(Ls, seen)]
+    \<longleftrightarrow> (\<lambda>a. {#lit_of a#}) ` set Ls \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen"
+  unfolding all_decomposition_implies_def by auto
 
 lemma all_decomposition_implies_append[iff]:
-  "all_decomposition_implies N (S @ S') \<longleftrightarrow> (all_decomposition_implies N S \<and> all_decomposition_implies N S')"
+  "all_decomposition_implies N (S @ S')
+    \<longleftrightarrow> (all_decomposition_implies N S \<and> all_decomposition_implies N S')"
   unfolding all_decomposition_implies_def by auto
 
 lemma all_decomposition_implies_cons_pair[iff]:
-  "all_decomposition_implies N ((Ls, seen) # S') \<longleftrightarrow> (all_decomposition_implies N [(Ls, seen)] \<and> all_decomposition_implies N S')"
+  "all_decomposition_implies N ((Ls, seen) # S')
+    \<longleftrightarrow> (all_decomposition_implies N [(Ls, seen)] \<and> all_decomposition_implies N S')"
   unfolding all_decomposition_implies_def by auto
 
 lemma all_decomposition_implies_cons_single[iff]:
@@ -548,14 +554,14 @@ next
           using `is_marked (hd Ls0)` by (metis (mono_tags, lifting) UnCI mem_Collect_eq true_clss_cls_in)
       } note hd_Ls0 = this
 
-      have l: "(\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M')) 
-          \<union> {L |L. is_marked L \<and> L \<in> set M'}) 
-        = (\<lambda>a. {#lit_of a#}) ` 
-           \<Union>(set ` snd ` set (get_all_marked_decomposition M')) 
+      have l: "(\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M'))
+          \<union> {L |L. is_marked L \<and> L \<in> set M'})
+        = (\<lambda>a. {#lit_of a#}) `
+           \<Union>(set ` snd ` set (get_all_marked_decomposition M'))
            \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'}"
         by auto
-      have "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps 
-              (\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M')) 
+      have "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps
+              (\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M'))
                  \<union> {L |L. is_marked L \<and> L \<in> set M'})"
         unfolding l using N by (auto simp add: all_in_true_clss_clss)
       hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl Ls0)"
@@ -571,14 +577,14 @@ next
 
       moreover have "(\<lambda>a. {#lit_of a#}) ` set Ls0 \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen0"
         using Suc.prems unfolding Ls0 all_decomposition_implies_def by simp
-      ultimately have \<Psi>: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps 
+      ultimately have \<Psi>: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps
           (\<lambda>a. {#lit_of a#}) ` set seen0"
-        by (meson all_in_true_clss_clss true_clss_clss_left_right true_clss_clss_union_and 
+        by (meson all_in_true_clss_clss true_clss_clss_left_right true_clss_clss_union_and
           true_clss_clss_union_l_r)
 
-      have "(\<lambda>a. {#lit_of a#})`(set seen0 
-           \<union> (\<Union>x\<in>set (get_all_marked_decomposition M'). set (snd x))) 
-         = (\<lambda>a. {#lit_of a#}) ` set seen0 
+      have "(\<lambda>a. {#lit_of a#})`(set seen0
+           \<union> (\<Union>x\<in>set (get_all_marked_decomposition M'). set (snd x)))
+         = (\<lambda>a. {#lit_of a#}) ` set seen0
             \<union> (\<lambda>a. {#lit_of a#}) ` (\<Union>x\<in>set (get_all_marked_decomposition M'). set (snd x))"
         by auto
 
@@ -591,7 +597,8 @@ qed
 
 lemma all_decomposition_implies_propagated_lits_are_implied:
   assumes "all_decomposition_implies N (get_all_marked_decomposition M)"
-  shows "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M" (is "?I \<Turnstile>ps ?A")
+  shows "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M"
+    (is "?I \<Turnstile>ps ?A")
 proof -
   have "?I \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` {L |L. is_marked L \<and> L \<in> set M}"
     by (auto intro: all_in_true_clss_clss)
