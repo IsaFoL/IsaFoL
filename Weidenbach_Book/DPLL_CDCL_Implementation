@@ -1,6 +1,0 @@
-theory DPLL_CDCL_Implementation
-imports Main
-begin
-
-
-end
