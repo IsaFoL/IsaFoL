@@ -21,11 +21,14 @@ decide[intro]: "undefined_lit L M \<Longrightarrow> atm_of L \<in> atms_of_m N \
 inductive_cases decideE[elim]: "decide S S'"
 
 text \<open>We add the condition @{term "atms_of C' \<subseteq> atms_of_m N"} because we need it (to ensure that we 
-  do not add a variable), but this conditions is not restrictive.\<close>
+  do not add a variable), but this conditions is not restrictive.
+  
+  The part of the condition @{term "atm_of L \<in> atm_of ` (lits_of (F' @ Marked K d # F))"} is 
+  important, otherwise you are not sure that you can backtrack.\<close>
 inductive backjump  ::  "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool" where
 backjump: "C \<in> N \<Longrightarrow> F' @ Marked K d # F \<Turnstile>as CNot C
   \<Longrightarrow> undefined_lit L F
-  \<Longrightarrow> atm_of L \<in> atms_of_m N
+  \<Longrightarrow> atm_of L \<in> atms_of_m N \<union> atm_of ` (lits_of (F' @ Marked K d # F))
   \<Longrightarrow> N \<Turnstile>p C' + {#L#}
   \<Longrightarrow> F \<Turnstile>as CNot C'
   \<Longrightarrow> atms_of C' \<subseteq> atms_of_m N
@@ -1005,7 +1008,31 @@ lemma tranclp_dpll_bj_wf_inital_state:
   using tranclp_dpll_bj_wf[OF assms] by (rule wf_subset) auto
 
 subsection \<open>Normal Forms\<close>
+lemma true_clss_clss_union_false_true_clss_clss_cnot:
+  "A \<union> {B} \<Turnstile>ps {{#}} \<longleftrightarrow> A \<Turnstile>ps CNot B"
+  using total_not_CNot consistent_CNot_not unfolding total_over_m_def true_clss_clss_def 
+  by fastforce
+
+lemma atms_of_m_single_set_mset_atns_of[simp]:
+  "atms_of_m (single ` set_mset B) = atms_of B"
+  unfolding atms_of_m_def atms_of_def by auto
+lemma no_dup_cannot_not_lit_and_uminus:
+  "no_dup M \<Longrightarrow> - lit_of xa = lit_of x \<Longrightarrow> x \<in> set M \<Longrightarrow> xa \<in> set M \<Longrightarrow> False"
+  by (metis atm_of_uminus distinct_map inj_on_eq_iff uminus_not_id')
+
+lemma true_clss_single_iff_incl:
+  "I \<Turnstile>s single ` B \<longleftrightarrow> B \<subseteq> I"
+  unfolding true_clss_def by auto
+
+lemma atms_of_m_single_atm_of[simp]:
+  "atms_of_m {{#lit_of L#} |L. P L} 
+    = atm_of `  {lit_of L |L. P L}"
+  unfolding atms_of_m_def by auto
+
+text \<open>Idea of the proof: We have to prove that \<^term>{satisfiable N}, @{term "\<not>M\<Turnstile>as N"} 
+     and there is no remaining step is incompatible \<close>
 lemma
+  fixes N A :: "'v literal multiset set" and M :: "('v, 'lvl, 'mark) marked_lit list"
   assumes
     "atms_of_m N \<subseteq> atms_of_m A" and
     "atm_of ` lits_of M \<subseteq> atms_of_m A" and
@@ -1024,24 +1051,36 @@ proof -
     proof cases
       case sat' note sat = this(1) and M = this(2)
       obtain C where "C \<in> N" and "\<not>M \<Turnstile>a C" using M unfolding true_annots_def by auto
-      obtain I :: " 'a literal set" where 
+      obtain I :: "'v literal set" where 
         "I \<Turnstile>s N" and 
         cons: "consistent_interp I" and 
-        tot: "total_over_m I N" using sat unfolding satisfiable_def by auto
-      let ?I = "I \<union> {Pos P| P. P \<in> atm_of ` lits_of M \<and> P \<notin> atm_of ` I}"
+        tot: "total_over_m I N" and
+        atm_I_N: "atm_of `I \<subseteq> atms_of_m N"
+        using sat unfolding satisfiable_def_min by auto
+      let ?I = "I \<union> {P| P. P \<in> lits_of M \<and> atm_of P \<notin> atm_of ` I}"
+      let ?O = "{{#lit_of L#} |L. is_marked L \<and> L \<in> set M \<and> atm_of (lit_of L) \<notin> atms_of_m N}"
       have cons_I': "consistent_interp ?I"
-        using cons unfolding consistent_interp_def by (smt Un_iff atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set 
-          literal.sel(1) literal.simps(4) mem_Collect_eq uminus_Pos)
-      have I'_N: "?I \<Turnstile>s N"
-        using \<open>I\<Turnstile>s N\<close> by auto
+        using cons using \<open>no_dup M\<close>  unfolding consistent_interp_def 
+        by (auto simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def
+          dest!: no_dup_cannot_not_lit_and_uminus) 
       have tot_I': "total_over_m ?I (N \<union> (\<lambda>a. {#lit_of a#}) ` set M)"
         using tot atms_of_s_def lits_of_def unfolding total_over_m_def total_over_set_def 
         by fastforce
-        
-      have "atms_of_m N \<subseteq> atm_of ` lits_of M"
+      have "{P |P. P \<in> lits_of M \<and> atm_of P \<notin> atm_of ` I} \<Turnstile>s ?O"
+        using \<open>I\<Turnstile>s N\<close> atm_I_N by (auto simp add: atm_of_eq_atm_of true_clss_def lits_of_def)  
+      hence I'_N: "?I \<Turnstile>s N \<union> ?O"
+        using \<open>I\<Turnstile>s N\<close> by auto
+      have tot': "total_over_m ?I (N\<union>?O)"
+      (* TODO tune proof *)
+      apply auto
+        using tot apply (auto simp add: total_union)[]
+        unfolding total_over_m_def total_over_set_def apply auto
+      by (metis image_iff literal.exhaust_sel lits_of_def)+
+      
+      have atms_N_M: "atms_of_m N \<subseteq> atm_of ` lits_of M"
         proof (rule ccontr)
           assume "\<not> ?thesis"
-          then obtain l where 
+          then obtain l :: 'v where 
             l_N: "l \<in> atms_of_m N" and 
             l_M: "l \<notin> atm_of ` lits_of M"
             by auto
@@ -1051,46 +1090,180 @@ proof -
           from bj_decide[OF decide[OF this, of N]] show False
             using l_N  n_s by auto
         qed
-      hence "M \<Turnstile>as CNot C"
-        by (metis `C \<in> N` `\<not> M \<Turnstile>a C` all_variables_defined_not_imply_cnot 
+        
+      have "M \<Turnstile>as CNot C"
+        by (metis atms_N_M `C \<in> N` `\<not> M \<Turnstile>a C` all_variables_defined_not_imply_cnot 
           atms_of_atms_of_m_mono atms_of_m_CNot_atms_of atms_of_m_CNot_atms_of_m lits_of_def
           subsetCE)
-      have "\<exists>l. l \<in> set M \<and> is_marked l"
+      have "\<exists>l. l \<in> set M \<and> is_marked l \<and> atm_of (lit_of l) \<in> atms_of_m N"
         proof (rule ccontr)
+          let ?O = "{{#lit_of L#} |L. is_marked L \<and> L \<in> set M \<and> atm_of (lit_of L) \<notin> atms_of_m N}"
+          have \<theta>[iff]: "\<And>I. total_over_m I (N \<union> ?O \<union> (\<lambda>a. {#lit_of a#}) ` set M)
+            \<longleftrightarrow> total_over_m I (N \<union>(\<lambda>a. {#lit_of a#}) ` set M)"
+            unfolding total_over_set_def total_over_m_def atms_of_m_def by auto
           assume "\<not> ?thesis"
-          hence [simp]:"{{#lit_of L#} |L. is_marked L \<and> L \<in> set M} = {}" by auto
-          hence "N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M"
+          hence [simp]:"{{#lit_of L#} |L. is_marked L \<and> L \<in> set M} 
+            = {{#lit_of L#} |L. is_marked L \<and> L \<in> set M \<and> atm_of (lit_of L) \<notin> atms_of_m N}" by auto
+          hence "N \<union> ?O \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M"
             using all_decomposition_implies_propagated_lits_are_implied[OF decomp] by auto
             
           hence "?I \<Turnstile>s (\<lambda>a. {#lit_of a#}) ` set M"  
-            using cons_I' I'_N tot_I' unfolding true_clss_clss_def by blast 
+            using cons_I' I'_N tot_I' \<open>?I \<Turnstile>s N \<union> ?O\<close> unfolding \<theta> true_clss_clss_def by blast 
           hence "lits_of M \<subseteq> ?I"
             unfolding true_clss_def lits_of_def by auto
           hence "M \<Turnstile>as N"(* TODO tune proof *)
-            using \<open>?I \<Turnstile>s N\<close> unfolding true_clss_def true_annots_def Ball_def true_annot_def 
+            using \<open>?I \<Turnstile>s N \<union> ?O\<close> unfolding true_clss_def true_annots_def Ball_def true_annot_def 
               true_cls_def Bex_mset_def
             apply auto
-            by (smt `C \<in> N` `M \<Turnstile>as CNot C` atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set 
-              atm_of_lit_in_atms_of atms_of_atms_of_m_mono cons_I' consistent_interp_def 
-              contra_subsetD in_CNot_implies_uminus(2) literal.sel(1) sup_ge1 tot total_over_m_def 
-              total_over_set_def uminus_Pos)
+            by (meson UnI1 `C \<in> N` `M \<Turnstile>as CNot C` 
+              `lits_of M \<subseteq> I \<union> {P |P. P \<in> lits_of M \<and> atm_of P \<notin> atm_of \` I}` cons_I' 
+              consistent_interp_def in_CNot_implies_uminus(2) subset_iff)
           thus False using M by fast
         qed 
-      then obtain l where "l \<in> set M" "is_marked l" by auto
+      then obtain K :: "'v literal" and d :: 'lvl and F F' :: "('v, 'lvl, 'mark) marked_lit list" where 
+        M_K: "M = F' @ Marked K d # F" and
+        atm_K_N: "atm_of (lit_of (Marked K d)) \<in> atms_of_m N"
+        sorry
+        let ?K = "Marked K d::('v, 'lvl, 'mark) marked_lit"
+        have "?K \<in> set M"
+          unfolding M_K by auto
       (* find contradiction with backjump: let C +l be the clause containing the marked literals.
       We know that N \<Turnstile> CNot C+l, thus we can back-jump.
       *)
-      let ?C = "{L\<in>set M. is_marked L \<and> L\<noteq>l}"
+      let ?C = "image_mset lit_of {#L\<in>#mset M. is_marked L \<and> L\<noteq>?K#} :: 'v literal multiset"
+      let ?C' = "set_mset (image_mset (\<lambda>L::'v literal. {#L#}) (?C+{#lit_of ?K#}))"
       have "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M"
         using all_decomposition_implies_propagated_lits_are_implied[OF decomp] .
-      moreover have "(\<lambda>L. {#lit_of L#}) ` (?C\<union>{l}) = {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"
-        using \<open>l \<in> set M\<close> \<open>is_marked l\<close> by auto
-      ultimately have "N \<union> (\<lambda>L. {#lit_of L#}) ` (?C\<union>{l}) \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M"
+      moreover have C': "?C' = {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"
+        unfolding M_K apply standard 
+          apply force
+        using IntI by auto
+      ultimately have N_C_M: "N \<union> ?C' \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M"
         by auto
+      have N_M_False: "N \<union> (\<lambda>L. {#lit_of L#}) ` (set M) \<Turnstile>ps {{#}}"
+        (* TODO tune proof *)
+        using M \<open>M \<Turnstile>as CNot C\<close> \<open>C\<in>N\<close> unfolding true_clss_clss_def true_annots_def Ball_def 
+        true_annot_def  apply auto
+        by (metis consistent_CNot_not true_cls_mono_set_mset_l true_clss_def 
+          true_clss_singleton_lit_of_implies_incl) 
         
-       have "N \<union> (\<lambda>L. {#lit_of L#}) ` (set M) \<Turnstile>ps {{#}}"
-         using M unfolding true_clss_clss_def apply auto sorry
-      show ?thesis sorry
+      have "N \<union> ?C' \<Turnstile>ps {{#}}"
+        proof -
+          have A: "N \<union> ?C' \<union> (\<lambda>a. {#lit_of a#}) ` set M  = 
+            N \<union> (\<lambda>a. {#lit_of a#}) ` set M"
+            unfolding M_K by auto
+          show ?thesis
+            using true_clss_clss_left_right[OF N_C_M, of "{{#}}"] N_M_False unfolding A by auto
+        qed
+      have "undefined_lit K F" using \<open>no_dup M\<close> unfolding M_K by (simp add: defined_lit_map)
+      moreover have "atm_of (-K) \<in> atms_of_m N"
+        using atm_K_N by auto
+      moreover have "N \<Turnstile>p image_mset uminus (?C) + {#-K#}"
+      sorry
+ (*         unfolding true_clss_cls_def CNot_def 
+        proof (intro allI impI)
+          fix I
+          let ?E = "image_mset lit_of {# L :# mset M. is_marked L \<and> L \<noteq> Marked K d#}"
+          assume 
+            tot: "total_over_m I (N \<union> {image_mset uminus ?E + {#- K#}})" and
+            "consistent_interp I" and 
+            "I \<Turnstile>s N" 
+          moreover 
+            have A: 
+              "atms_of_m (N \<union> {image_mset uminus ?E + {#- K#}}) =
+            atms_of_m (N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<union> {{#}})" (is "?A = ?B")
+            sorry
+             proof (standard; standard)
+                fix x
+                assume "x \<in> ?A"
+                hence "x \<in> {x. \<exists>xa. xa \<in> atms_of ` N 
+                          \<union> atms_of ` {{#- L#} |L. L \<in>#?E + {#lit_of (Marked K d)#}} \<and> x \<in> xa}"
+                  unfolding Union_eq atms_of_m_def Bex_def image_Un CollectD sorry
+                
+                hence "x \<in> {x. \<exists>xa. xa \<in> atms_of ` N \<and> x \<in> xa} \<or>
+                x \<in> {x. \<exists>xa. xa \<in>atms_of ` {{#- L#} |L. L \<in>#?E + {#lit_of (Marked K d)#}} \<and> x \<in> xa}"
+                  by fast
+                then consider
+                    (N) "x \<in> \<Union>(atms_of ` N)"
+                  | (nN) z :: "'v set" where 
+                       "x \<in> z" and 
+                       "z \<in> atms_of ` ({{#- L#} |L. L \<in># ?E + {#lit_of (Marked K d)#}})"
+                  unfolding Union_eq atms_of_m_def Bex_def image_Un by fast
+                thus "x \<in> ?B"
+                  proof cases
+                    case N
+                    thus ?thesis unfolding Union_eq atms_of_m_def by auto
+                  next
+                    (* TODO report exception in case (nN y) *)
+                    fix z 
+                    assume 
+                      "x \<in> z" and
+                      "z \<in> atms_of ` {{#- L#} |L. L \<in># ?E + {#lit_of (Marked K d)#}}"
+                    hence " x \<in> atms_of_m {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"  
+                      unfolding atms_of_m_def by (force simp add: M_K split: split_if_asm)
+                    thus ?thesis by auto
+                  qed
+              next
+                fix x
+                assume "x \<in> ?B"
+                hence "x \<in> {x. \<exists>xa. xa \<in> atms_of ` N 
+                          \<union> atms_of `{{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<and> x \<in> xa}"
+                  unfolding Union_eq atms_of_m_def Bex_def image_Un CollectD by auto
+                
+                hence "x \<in> {x. \<exists>xa. xa \<in> atms_of ` N \<and> x \<in> xa} \<or>
+                x \<in> {x. \<exists>xa. xa \<in>atms_of ` {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<and> x \<in> xa}"
+                  by blast
+
+                then consider
+                    (N) "x \<in> atms_of_m N"
+                  | (nN) z :: "'v set" where 
+                       "x \<in> z" and 
+                       "z \<in> atms_of ` {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"
+                  unfolding Union_eq atms_of_m_def Bex_def image_Un CollectD by blast
+
+                thus "x \<in> ?A"
+                  proof cases
+                    case N
+                    thus ?thesis unfolding Union_eq atms_of_m_def by auto
+                  next
+                    case (nN y)
+                    then obtain L :: "('v, 'lvl, 'mark) marked_lit" where 
+                      y: "y = {atm_of (lit_of L)}" and 
+                      "is_marked L" and 
+                      "L \<in> set M"
+                      by auto
+                    hence "{#-lit_of L#} \<in> {{#- L#} |L. L \<in># ?E+ {#lit_of (Marked K d)#}}"  
+                      by force
+                    moreover have "x = atm_of (lit_of L)"
+                      using nN(1) unfolding y by auto
+                    ultimately have "x \<in> atms_of_m {{#- L#} |L. L \<in># ?E + {#lit_of (Marked K d)#}}"
+                       (*TODO Jasmin unfolding atms_of_m_def Union_eq sledgehammer[spass, overlord] ( atm_of_uminus atms_of_singleton image_eqI mem_Collect_eq singletonI) *)
+                      unfolding atms_of_m_def Union_eq by (smt atm_of_uminus atms_of_singleton 
+                        image_eqI mem_Collect_eq singletonI) 
+                    thus ?thesis sorry
+                  qed
+              qed
+            hence "total_over_m I (N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<union> {{#}})"
+              using tot unfolding total_over_m_def by auto
+          ultimately have "\<not> I \<Turnstile>s {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} "
+            using \<open>N \<union> ?C' \<Turnstile>ps {{#}}\<close> unfolding C' true_clss_clss_def CNot_def by simp
+          then obtain L where "lit_of L \<notin> I" and "L \<in> set M" and "is_marked L" 
+            unfolding true_clss_def by fastforce
+          hence "-lit_of L \<in> I"
+            using tot unfolding total_over_m_def total_over_set_def apply auto sorry
+          show "I \<Turnstile> image_mset uminus ?E + {#- K#}"
+            unfolding true_clss_def apply auto  sorry
+      qed  *)
+      moreover have "F \<Turnstile>as CNot (image_mset uminus ?C)" 
+        sorry
+      moreover have "atms_of {#- lit_of x. x \<in># {# L :# mset (F' @ Marked K d # F). is_marked L 
+        \<and> L \<noteq> Marked K d#}#} \<subseteq> atms_of_m N " sorry
+      ultimately have False 
+        using bj_backjump[OF backjump[OF \<open>C\<in>N\<close>, of F' K d F "-K" 
+           "image_mset uminus (image_mset lit_of {# L :# mset M. is_marked L \<and> L \<noteq> Marked K d#})"]]
+          n_s \<open>M \<Turnstile>as CNot C\<close> unfolding M_K
+        by simp
+        thus ?thesis by fast
     qed auto
 oops
   
