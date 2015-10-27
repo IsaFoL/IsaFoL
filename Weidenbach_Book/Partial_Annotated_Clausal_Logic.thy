@@ -159,10 +159,14 @@ abbreviation undefined_lit :: "'a literal \<Rightarrow> ('a, 'l, 'm) marked_lit 
 where "undefined_lit L I \<equiv> \<not>defined_lit L I"
 
 lemma atm_imp_marked_or_proped:
-  "x \<in> set I \<Longrightarrow>  (\<exists>l. Marked (- lit_of x) l \<in> set I) \<or> (\<exists>l. Marked (lit_of x) l \<in> set I) \<or> (\<exists>l. Propagated (- lit_of x) l \<in> set I) \<or> (\<exists>l. Propagated (lit_of x) l \<in> set I)"
-  using marked_lit.exhaust_sel by metis
+  assumes "x \<in> set I"
+  shows
+    "(\<exists>l. Marked (- lit_of x) l \<in> set I)
+    \<or> (\<exists>l. Marked (lit_of x) l \<in> set I)
+    \<or> (\<exists>l. Propagated (- lit_of x) l \<in> set I)
+    \<or> (\<exists>l. Propagated (lit_of x) l \<in> set I)"
+  using assms marked_lit.exhaust_sel by metis
 
-(*Marked as [dest]?*)
 lemma literal_is_lit_of_marked:
   assumes "L = lit_of x"
   shows "(\<exists>l. x = Marked L l) \<or> (\<exists>l'. x = Propagated L l')"
@@ -700,7 +704,6 @@ lemma total_over_m_CNot_toal_over_m[simp]: "total_over_m I (CNot C) = total_over
 lemma true_clss_cls_plus_CNot':
   assumes CC_L: "A \<Turnstile>p CC + {#L#}"
   and CNot_CC: "A \<Turnstile>ps CNot CC"
-  and incl: "atms_of (CC + {#L#}) \<subseteq> atms_of_m A"
   shows "A \<Turnstile>p {#L#}"
   unfolding true_clss_clss_def true_clss_cls_def CNot_def total_over_m_def
 proof (intro allI impI)
@@ -708,26 +711,29 @@ proof (intro allI impI)
   assume tot: "total_over_set I (atms_of_m (A \<union> {{#L#}}))"
   and cons: "consistent_interp I"
   and I: "I \<Turnstile>s A"
-  have "total_over_set I (atms_of_m A)" using incl tot unfolding total_over_set_atm_of by auto
-  have "atms_of (CC + {#L#}) \<subseteq> atms_of_m A" using incl unfolding atms_of_m_def by fastforce
-  hence tot_I_A_CC_L: "total_over_m I (A \<union> {CC + {#L#}})"
-    using incl tot unfolding total_over_m_def total_over_set_atm_of by auto
-  hence "I \<Turnstile> CC + {#L#}" using CC_L cons I unfolding true_clss_cls_def by auto
-  moreover
-    have "total_over_m I (A \<union> CNot CC)"
-      using tot_I_A_CC_L by (auto simp add: total_over_m_def)
-    hence "I \<Turnstile>s CNot CC" using CNot_CC cons I unfolding true_clss_clss_def by auto
-    hence "\<not>A \<Turnstile>p CC" by (meson I tot_I_A_CC_L cons consistent_CNot_not total_over_m_sum total_over_m_union true_clss_cls_def)
-    hence "\<not>I \<Turnstile> CC" using `I \<Turnstile>s CNot CC` cons consistent_CNot_not by blast
-  ultimately show "I \<Turnstile> {#L#}" by blast
-qed
+  let ?I = "I \<union> {Pos P|P. P \<in> atms_of CC \<and> P \<notin> atm_of ` I}"
+  have cons': "consistent_interp ?I"
+    using cons unfolding consistent_interp_def
+    by (smt Un_iff atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set consistent_interp_def literal.sel(1) literal.simps(4) mem_Collect_eq uminus_Pos)
+  have I': "?I \<Turnstile>s A"
+    using I true_clss_union_increase by blast
+  have tot_CNot: "total_over_m ?I (A \<union> CNot CC)"
+    using tot atms_of_s_def by (fastforce simp add: total_over_m_def total_over_set_def)
 
-lemma true_clss_cls_plus_CNot:
-  assumes CC_L: "A \<Turnstile>p CC + {#L#}"
-  and CNot_CC: "A \<Turnstile>ps CNot CC"
-  and incl: "CC + {#L#} \<in> A"
-  shows "A \<Turnstile>p {#L#}"
-  using assms(3) atms_of_atms_of_m_mono true_clss_cls_plus_CNot'[OF CC_L CNot_CC] by blast
+  hence tot_I_A_CC_L: "total_over_m ?I (A \<union> {CC + {#L#}})"
+    using tot unfolding total_over_m_def total_over_set_atm_of by auto
+  hence "?I \<Turnstile> CC + {#L#}" using CC_L cons' I' unfolding true_clss_cls_def by blast
+  moreover
+    have "?I \<Turnstile>s CNot CC" using CNot_CC cons' I' tot_CNot unfolding true_clss_clss_def by auto
+    hence "\<not>A \<Turnstile>p CC"
+      by (metis (no_types, lifting) I' cons' consistent_CNot_not tot_I_A_CC_L total_over_m_sum
+        total_over_m_union true_clss_cls_def)
+    hence "\<not>?I \<Turnstile> CC" using `?I \<Turnstile>s CNot CC` cons' consistent_CNot_not by blast
+  ultimately have "?I \<Turnstile> {#L#}" by blast
+  thus "I \<Turnstile> {#L#}"
+    by (metis (no_types, lifting) atms_of_m_union cons' consistent_CNot_not tot total_not_CNot
+      total_over_m_def total_over_set_union true_clss_union_increase)
+qed
 
 lemma true_annots_CNot_lit_of_notin_skip:
   assumes LM: "L # M \<Turnstile>as CNot A" and LA: "lit_of L \<notin># A" "-lit_of L \<notin># A"
@@ -735,10 +741,13 @@ lemma true_annots_CNot_lit_of_notin_skip:
   using LM unfolding true_annots_def Ball_def
 proof (intro allI impI)
   fix l
-  assume H: " \<forall>x. x \<in> CNot A \<longrightarrow> L # M \<Turnstile>a x " and l: "l \<in> CNot A"
+  assume H: "\<forall>x. x \<in> CNot A \<longrightarrow> L # M \<Turnstile>a x " and l: "l \<in> CNot A"
   hence "L # M \<Turnstile>a l" by auto
   thus "M \<Turnstile>a l" using LA l by (cases L) (auto simp add: CNot_def)
-qed
+ qed
+ 
+ lemma true_annot_remove_hd_if_notin_vars:
+modif
 
 lemma true_annot_remove_hd_if_notin_vars:
   assumes "a # M'\<Turnstile>a D"
