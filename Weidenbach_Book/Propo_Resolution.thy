@@ -403,7 +403,7 @@ next
   let ?\<psi>' = "\<psi> - {B}"
   obtain I where I: "I \<Turnstile>s ?\<psi>'" and cons: "consistent_interp I"  and tot: "total_over_m I ?\<psi>'" using sat unfolding satisfiable_def by auto
   have "I \<Turnstile> A" using A I by (metis AB Diff_iff subset_mset.less_irrefl singletonD true_clss_def)
-  hence "I \<Turnstile> B" using AB subset_mset.less_imp_le subsumption_imp_eval by blast
+  hence "I \<Turnstile> B" using AB subset_mset.less_imp_le true_cls_mono_leD by blast
   hence "I \<Turnstile>s \<psi>" using I by (metis insert_Diff_single true_clss_insert)
   thus ?case using cons satisfiable_carac' by blast
 qed
@@ -443,7 +443,7 @@ lemma simplifier_preserve_partial_leaf:
     using union_lcomm apply auto[1]
    apply (simp, metis atms_of_plus total_over_set_union true_cls_union)
   apply simp
-  by (metis atms_of_m_singleton mset_le_exists_conv subset_mset_def subsumption_imp_eval total_over_m_def total_over_m_sum)
+  by (metis atms_of_m_singleton mset_le_exists_conv subset_mset_def true_cls_mono_leD total_over_m_def total_over_m_sum)
 
 
 lemma simplifier_preserve_partial_tree:
@@ -952,7 +952,7 @@ lemma subsumes_imp_formula:
   assumes "\<psi> \<le># \<phi>"
   shows "{\<psi>} \<Turnstile>p \<phi>"
   unfolding true_clss_cls_def apply auto
-  using assms subsumption_imp_eval by blast
+  using assms true_cls_mono_leD by blast
 
 definition full_simplifier ::  "'a clauses \<Rightarrow> 'a clauses \<Rightarrow> bool" ("simp\<^sup>+\<^sup>\<down>")
 where "full_simplifier \<psi> \<psi>' = (simplify\<^sup>+\<^sup>+ \<psi> \<psi>' \<and> simplified \<psi>')"

@@ -233,9 +233,6 @@ next
       show "?I \<Turnstile>p C + {#L#}"
         using propa propagate.prems by (auto dest!: true_clss_clss_in_imp_true_clss_cls)
     next
-      show "atms_of (C + {#L#}) \<subseteq> atms_of_m ((\<lambda>a. {#lit_of a#}) ` set a \<union> N)"
-        by (metis UnI1 atms_of_atms_of_m_mono inf_sup_aci(5) propa)
-    next
       have "(\<lambda>m. {#lit_of m#}) ` set M' \<Turnstile>ps CNot C"
         using `M' \<Turnstile>as CNot C` true_annots_true_clss_clss by blast
       thus "?I \<Turnstile>ps CNot C"
@@ -278,9 +275,9 @@ next
     by (simp add: N_C)
   have "(\<lambda>a. {#lit_of a#}) ` set a \<union> N \<Turnstile>p {#L#}"
     apply (rule true_clss_cls_plus_CNot')
-       using a_N_D_L apply simp
-      using a_N_CNot_D apply simp
-     using L vars_D sorry
+      using a_N_D_L apply simp
+     using a_N_CNot_D apply simp
+    done
   thus ?case using decomp unfolding all_decomposition_implies_def by (auto simp add: F)
 qed
 
@@ -1031,7 +1028,7 @@ lemma atms_of_m_single_atm_of[simp]:
     = atm_of `  {lit_of L |L. P L}"
   unfolding atms_of_m_def by auto
 
-text \<open>Idea of the proof: We have to prove that \<^term>{satisfiable N}, @{term "\<not>M\<Turnstile>as N"}
+text \<open>Idea of the proof: We have to prove that @{term "satisfiable N"}, @{term "\<not>M\<Turnstile>as N"}
      and there is no remaining step is incompatible \<close>
 lemma
   fixes N A :: "'v literal multiset set" and M :: "('v, 'lvl, 'mark) marked_lit list"

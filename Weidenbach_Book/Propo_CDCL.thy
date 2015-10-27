@@ -646,15 +646,6 @@ next
       show "?I \<Turnstile>p C + {#L#}"
         using propa propagate.prems(2) by (auto dest!: true_clss_clss_in_imp_true_clss_cls)
     next
-      have "atm_of L \<notin> atms_of_m N \<Longrightarrow> atm_of L \<in> atm_of ` lit_of ` set a"
-        using alien propa unfolding no_strange_atm_def
-        by (auto dest: in_implies_atm_of_on_atms_of_m)
-      moreover have "\<And>x. x \<in> atms_of C \<Longrightarrow> x \<notin> atms_of_m N \<Longrightarrow> x \<in> atm_of ` lit_of ` set a"
-        using alien `C + {#L#} \<in> N \<union> U` unfolding no_strange_atm_def
-        by (auto dest!: atms_of_atms_of_m_mono)
-      ultimately show "atms_of (C + {#L#}) \<subseteq> atms_of_m ((\<lambda>a. {#lit_of a#}) ` set a \<union> N)"
-        by auto
-    next
       have "(\<lambda>m. {#lit_of m#}) ` set M \<Turnstile>ps CNot C"
         using `M \<Turnstile>as CNot C` true_annots_true_clss_clss by blast
       thus "?I \<Turnstile>ps CNot C"
@@ -859,7 +850,9 @@ proof (induct rule: cdcl_all_induct)
         thus False
           using skip.prems(2) unfolding consistent_interp_def cdcl_M_level_inv_def by auto
       qed
-  ultimately show ?case using skip.hyps(1) by (auto intro: true_annots_CNot_lit_of_notin_skip)
+  ultimately show ?case 
+    using skip.hyps(1) by (metis cdcl_M_level_inv_def conflicting_clause.inject conflicting_conv
+      marked_lit.sel(2) skip.prems(2) trail_conv true_annots_lit_of_notin_skip)
 next
   case (resolve M N L D k U C)
   show ?case unfolding trail_conv

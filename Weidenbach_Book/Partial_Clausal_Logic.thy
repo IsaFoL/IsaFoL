@@ -243,7 +243,7 @@ lemma total_over_set_literal_defined:
 
 lemma tot_over_m_remove:
   assumes "total_over_m (I \<union> {L}) {\<psi>}"
-  and L: "\<not> L \<in># \<psi>""-L \<notin># \<psi>"
+  and L: "\<not> L \<in># \<psi>" "-L \<notin># \<psi>"
   shows "total_over_m I {\<psi>}"
   unfolding total_over_m_def total_over_set_def
 proof
@@ -782,11 +782,6 @@ lemma subsumption_total_over_m:
   shows "total_over_m I {B} \<Longrightarrow> total_over_m I {A}"
   using assms atms_of_m_plus unfolding subset_mset_def total_over_m_def total_over_set_def by (auto simp add: mset_le_exists_conv)
 
-lemma subsumption_imp_eval:
-  assumes "A \<subseteq># B"
-  shows "I \<Turnstile> A \<Longrightarrow> I \<Turnstile> B"
-  using assms by (metis mset_le_exists_conv true_cls_union)
-
 lemma atm_of_eq_atm_of:
   "atm_of L = atm_of L' \<longleftrightarrow> (L = L' \<or> L = -L')"
   by (metis atm_of_uminus literal.exhaust_sel uminus_Neg uminus_Pos)
@@ -806,7 +801,7 @@ proof (induct "card {Pos v | v. v \<in> atms_of D \<and> v \<notin> atms_of C}" 
     assume "card {Pos v |v. v \<in> atms_of D \<and> v \<notin> atms_of C} = 0"
     hence "atms_of D \<subseteq> atms_of C" by auto
     hence "\<forall>I. total_over_m I {C} \<longrightarrow> total_over_m I {D}" unfolding total_over_m_def total_over_set_def by auto
-    moreover have "\<forall>I. I \<Turnstile> C \<longrightarrow> I \<Turnstile> D" using incl subsumption_imp_eval by blast
+    moreover have "\<forall>I. I \<Turnstile> C \<longrightarrow> I \<Turnstile> D" using incl true_cls_mono_leD by blast
     ultimately have ?case using H by auto
 
   }
@@ -878,7 +873,7 @@ lemma remdups_mset_singleton_sum[simp]:
 
 lemma mset_remdups_remdups_mset[simp]:
   "mset (remdups D) = remdups_mset (mset D)"
-  by (induction D) (auto simp add: ac_simps Multiset.in_multiset_in_set)
+  by (induction D) (auto simp add: ac_simps)
 
 definition "distinct_mset S \<longleftrightarrow> (\<forall>a. a \<in># S \<longrightarrow> count S a = 1)"
 
