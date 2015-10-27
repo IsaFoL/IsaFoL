@@ -112,7 +112,7 @@ next
   let ?I = "set (map (\<lambda>a. {#lit_of a#}) (trail S)) \<union> (clauses S) "
   have "?I \<Turnstile>p C + {#L#}" by (auto simp add: inS)
   moreover have "?I \<Turnstile>ps CNot C" using true_annots_true_clss_cls cnot by fastforce
-  ultimately have "?I \<Turnstile>p {#L#}" using true_clss_cls_plus_CNot'[of ?I C L] inS by blast
+  ultimately have "?I \<Turnstile>p {#L#}" using true_clss_cls_plus_CNot[of ?I C L] inS by blast
   {
     assume "get_all_marked_decomposition (trail S) = []"
     hence ?case by blast
@@ -141,7 +141,7 @@ next
           using true_clss_clss_left_right[OF _ I] h "2" by auto
         thus "((\<lambda>a. {#lit_of a#}) ` set a \<union> clauses S) \<Turnstile>p {#L#}"
           using Un_insert_right inS insertI1 mk_disjoint_insert
-          by (blast intro: true_clss_cls_in true_clss_cls_plus_CNot')
+          by (blast intro: true_clss_cls_in true_clss_cls_plus_CNot)
       qed
     ultimately have ?case
       by (case_tac "hd (get_all_marked_decomposition (trail S))")

@@ -229,7 +229,7 @@ next
     unfolding M' by (auto simp add: all_in_true_clss_clss image_Un)
 
   have "(\<lambda>a. {#lit_of a#}) ` set a \<union> N \<Turnstile>p {#L#}" (is "?I \<Turnstile>p _")
-    proof (rule true_clss_cls_plus_CNot')
+    proof (rule true_clss_cls_plus_CNot)
       show "?I \<Turnstile>p C + {#L#}"
         using propa propagate.prems by (auto dest!: true_clss_clss_in_imp_true_clss_cls)
     next
@@ -274,7 +274,7 @@ next
   have a_N_D_L: "(\<lambda>a. {#lit_of a#}) ` set a \<union> N \<Turnstile>p D+{#L#}"
     by (simp add: N_C)
   have "(\<lambda>a. {#lit_of a#}) ` set a \<union> N \<Turnstile>p {#L#}"
-    apply (rule true_clss_cls_plus_CNot')
+    apply (rule true_clss_cls_plus_CNot)
       using a_N_D_L apply simp
      using a_N_CNot_D apply simp
     done

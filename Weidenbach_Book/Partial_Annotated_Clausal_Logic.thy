@@ -701,7 +701,7 @@ lemma atms_of_m_CNot_atms_of_m: "atms_of_m (CNot CC) = atms_of_m {CC}"
 lemma total_over_m_CNot_toal_over_m[simp]: "total_over_m I (CNot C) = total_over_set I (atms_of C)"
   unfolding total_over_m_def total_over_set_def by auto
 
-lemma true_clss_cls_plus_CNot':
+lemma true_clss_cls_plus_CNot:
   assumes CC_L: "A \<Turnstile>p CC + {#L#}"
   and CNot_CC: "A \<Turnstile>ps CNot CC"
   shows "A \<Turnstile>p {#L#}"
@@ -745,9 +745,6 @@ proof (intro allI impI)
   hence "L # M \<Turnstile>a l" by auto
   thus "M \<Turnstile>a l" using LA l by (cases L) (auto simp add: CNot_def)
  qed
- 
- lemma true_annot_remove_hd_if_notin_vars:
-modif
 
 lemma true_annot_remove_hd_if_notin_vars:
   assumes "a # M'\<Turnstile>a D"

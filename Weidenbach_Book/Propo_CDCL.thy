@@ -642,7 +642,7 @@ next
     unfolding M' by (auto simp add: all_in_true_clss_clss image_Un)
 
   have "(\<lambda>a. {#lit_of a#}) ` set a \<union> N \<Turnstile>p {#L#}" (is "?I \<Turnstile>p _")
-    proof (rule true_clss_cls_plus_CNot')
+    proof (rule true_clss_cls_plus_CNot)
       show "?I \<Turnstile>p C + {#L#}"
         using propa propagate.prems(2) by (auto dest!: true_clss_clss_in_imp_true_clss_cls)
     next
@@ -714,7 +714,7 @@ next
           have "atms_of (D + {#L#}) \<subseteq> atms_of_m N"
             using backtrack.prems(5) unfolding no_strange_atm_def by auto
           hence "(\<lambda>a. {#lit_of a#}) ` set M1' \<union> N \<Turnstile>p {#L#}"
-            using true_clss_cls_plus_CNot'[OF T TT] by auto
+            using true_clss_cls_plus_CNot[OF T TT] by auto
         ultimately
           have "case x of (Ls, seen) \<Rightarrow>(\<lambda>a. {#lit_of a#}) ` set Ls
             \<union> clauses (Propagated L (D + {#L#}) # M1, N, U \<union> {D + {#L#}}, i, C_True)
