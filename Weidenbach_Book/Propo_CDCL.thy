@@ -412,11 +412,11 @@ proof (induct rule: cdcl_all_induct)
   case (propagate M N U k C L)
   have "?C (Propagated L (C + {#L#}) # M, N, U, k, C_True)"  by auto
   moreover have "?M (Propagated L (C + {#L#}) # M, N, U, k, C_True)"
-    using propagate.prems(2,3) `C + {#L#} \<in> N \<union> U ` by (fastforce simp add: atms_of_m_def)
+    using propagate.prems(2,3) \<open>C + {#L#} \<in> N \<union> U \<close> by (fastforce simp add: atms_of_m_def)
   moreover have "?U (Propagated L (C + {#L#}) # M, N, U, k, C_True)"
     using propagate.prems(3) by auto
   moreover have "?V (Propagated L (C + {#L#}) # M, N, U, k, C_True)"
-    using `C + {#L#} \<in> N \<union> U` propagate.prems(3,4) unfolding lits_of_def by auto
+    using \<open>C + {#L#} \<in> N \<union> U\<close> propagate.prems(3,4) unfolding lits_of_def by auto
   ultimately show ?case by blast
 next
   case (decided M N U k L)
@@ -427,7 +427,7 @@ next
 next
   case (conflict M N U k D)
   have "atm_of ` set_mset D \<subseteq> \<Union>(atms_of ` N)"
-    using `D \<in> N \<union> U` conflict.prems(3) by (auto simp add: atms_of_def atms_of_m_def)
+    using \<open>D \<in> N \<union> U\<close> conflict.prems(3) by (auto simp add: atms_of_def atms_of_m_def)
   thus ?case using conflict.prems unfolding atms_of_def atms_of_m_def by force
 next
   case (restart M N U k)
@@ -578,9 +578,9 @@ proof (rule ccontr)
     unfolding M by (auto simp add: Un_commute)
   also have "\<dots> = Suc i" by (auto intro: Min_eqI)
   finally have "get_rev_level L' (Suc i) (Marked K (Suc i) # rev (M0 @ M2)) \<ge> Suc i" .
-  hence "get_level L' M \<ge> i + 1" using `get_level L' M = get_rev_level L' (Suc i) (Marked K (Suc i) # rev M2 @ rev M0)` by simp
+  hence "get_level L' M \<ge> i + 1" using \<open>get_level L' M = get_rev_level L' (Suc i) (Marked K (Suc i) # rev M2 @ rev M0)\<close> by simp
   hence "get_maximum_level D M \<ge> i + 1"
-    using get_maximum_level_ge_get_level[OF `L' \<in># D`, of M] by auto
+    using get_maximum_level_ge_get_level[OF \<open>L' \<in># D\<close>, of M] by auto
   thus False using i by auto
 qed
 
@@ -647,7 +647,7 @@ next
         using propa propagate.prems(2) by (auto dest!: true_clss_clss_in_imp_true_clss_cls)
     next
       have "(\<lambda>m. {#lit_of m#}) ` set M \<Turnstile>ps CNot C"
-        using `M \<Turnstile>as CNot C` true_annots_true_clss_clss by blast
+        using \<open>M \<Turnstile>as CNot C\<close> true_annots_true_clss_clss by blast
       thus "?I \<Turnstile>ps CNot C"
         using a_Un_N_M true_clss_clss_left_right true_clss_clss_union_l_r by blast
     qed
@@ -675,13 +675,13 @@ next
         hence "case x of (Ls, seen) \<Rightarrow> (\<lambda>a. {#lit_of a#}) ` set Ls
                 \<union> clauses (Propagated L (D + {#L#}) # M1, N, U \<union> {D + {#L#}}, i, C_True)
                 \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen"
-          using `x \<in> set ?m` backtrack.prems(1) unfolding all_decomposition_implies_def M by simp
+          using \<open>x \<in> set ?m\<close> backtrack.prems(1) unfolding all_decomposition_implies_def M by simp
       }
       moreover {
         assume "x = ?hd"
         obtain M1' M1'' where M1: "hd (get_all_marked_decomposition M1) = (M1', M1'')"
           by (cases "hd (get_all_marked_decomposition M1)")
-        hence x': "x = (M1', Propagated L (D + {#L#}) # M1'')" using `x= ?hd` by auto
+        hence x': "x = (M1', Propagated L (D + {#L#}) # M1'')" using \<open>x= ?hd\<close> by auto
         have "(M1', M1'') \<in> set (get_all_marked_decomposition M)"
           using M1[symmetric] hd_get_all_marked_decomposition_skip_some[OF M1[symmetric],
             of "M0 @ M2" _ "i+1"] unfolding M by fastforce
@@ -703,11 +703,11 @@ next
             unfolding M by auto
           have "M1 \<Turnstile>as CNot D"
             using vars_in_M1 true_annots_remove_if_notin_vars[of "M0 @ M2 @ Marked K (i + 1) # []"
-              M1 "CNot D"] `M \<Turnstile>as CNot D` unfolding M lits_of_def by simp
+              M1 "CNot D"] \<open>M \<Turnstile>as CNot D\<close> unfolding M lits_of_def by simp
           have "M1 = M1'' @ M1'" by (simp add: M1 get_all_marked_decomposition_decomp)
           have TT: "(\<lambda>a. {#lit_of a#}) ` set M1' \<union> N \<Turnstile>ps CNot D"
-            using true_annots_true_clss_cls[OF `M1 \<Turnstile>as CNot D`] true_clss_clss_left_right[OF 1,
-              of "CNot D"] unfolding `M1 = M1'' @ M1'` by (auto simp add: inf_sup_aci(5,7))
+            using true_annots_true_clss_cls[OF \<open>M1 \<Turnstile>as CNot D\<close>] true_clss_clss_left_right[OF 1,
+              of "CNot D"] unfolding \<open>M1 = M1'' @ M1'\<close> by (auto simp add: inf_sup_aci(5,7))
           have "N \<Turnstile>p D + {#L#}"
             using cdcl.other[OF cdcl_o.backtrack]  backtrack.hyps backtrack.prems(2) by auto
           hence T: "(\<lambda>a. {#lit_of a#}) ` set M1' \<union> N \<Turnstile>p D + {#L#}" by auto
@@ -752,7 +752,7 @@ proof (induct rule: cdcl_all_induct)
       }
       moreover {
         assume "a=[]" and "L = L'" and "mark = C + {#L#}" and "b = M"
-        hence "b \<Turnstile>as CNot (mark - {#L#}) \<and> L \<in># mark" using `M \<Turnstile>as CNot C` by auto
+        hence "b \<Turnstile>as CNot (mark - {#L#}) \<and> L \<in># mark" using \<open>M \<Turnstile>as CNot C\<close> by auto
       }
       ultimately show "b \<Turnstile>as CNot (mark - {#L'#}) \<and> L' \<in># mark" by blast
     qed
@@ -816,7 +816,7 @@ next
         hence vars_in_M1: "\<forall>x \<in> atms_of D. x \<notin> atm_of ` lit_of ` set (M0 @ M2 @ Marked K (i + 1) # [])"
           using vars_of_D distinct_atms_of_incl_not_in_other[of "M0 @ M2 @ Marked K (i + 1) # []" M1] unfolding M by auto
         have "M1 \<Turnstile>as CNot D"
-          using vars_in_M1 true_annots_remove_if_notin_vars[of "M0 @ M2 @ Marked K (i + 1) # []" M1 "CNot D"] `M \<Turnstile>as CNot D` unfolding M lits_of_def by simp
+          using vars_in_M1 true_annots_remove_if_notin_vars[of "M0 @ M2 @ Marked K (i + 1) # []" M1 "CNot D"] \<open>M \<Turnstile>as CNot D\<close> unfolding M lits_of_def by simp
         hence "b \<Turnstile>as CNot (mark - {#La#}) \<and> La \<in># mark" using P b by auto
       }
       moreover {
@@ -846,7 +846,7 @@ proof (induct rule: cdcl_all_induct)
         assume "~ ?thesis"
         hence "- L \<in> lits_of M"
           using in_CNot_implies_uminus(2)[of D L "Propagated L C' # M"]
-          `Propagated L C' # M \<Turnstile>as CNot D` by simp
+          \<open>Propagated L C' # M \<Turnstile>as CNot D\<close> by simp
         thus False
           using skip.prems(2) unfolding consistent_interp_def cdcl_M_level_inv_def by auto
       qed
@@ -867,7 +867,7 @@ next
             have "Propagated L (C + {#L#}) # M \<Turnstile>as CNot D \<union> CNot {#- L#}"
               using resolve.prems(1) by force
             thus ?thesis
-              by (metis (no_types) `- L \<notin># D` cdcl_M_level_inv_def resolve(3) marked_lit.sel(2)
+              by (metis (no_types) \<open>- L \<notin># D\<close> cdcl_M_level_inv_def resolve(3) marked_lit.sel(2)
                 trail_conv true_annots_lit_of_notin_skip true_annots_union)
           qed
       moreover assume "conflicting (M, N, U, k, C_Clause (remdups_mset (D + C))) = C_Clause T"
@@ -1332,9 +1332,9 @@ proof (induct "card (atms_of_m (clauses S) - atm_of `lits_of (trail S))" arbitra
     using propagate by (auto)
     have "atms_of_m U \<subseteq> atms_of_m N" using alien unfolding S by auto
     hence "atm_of L \<in> atms_of_m (clauses S)"
-      using `C + {#L#} \<in> N \<union> U` image_Un unfolding S atms_of_m_def
+      using \<open>C + {#L#} \<in> N \<union> U\<close> image_Un unfolding S atms_of_m_def
       by (fastforce simp add: atms_of_def)
-    hence False using `undefined_lit L M` unfolding atm unfolding S lits_of_def
+    hence False using \<open>undefined_lit L M\<close> unfolding atm unfolding S lits_of_def
       by (auto simp add: defined_lit_map)
   }
   ultimately show ?case by (metis cdcl_cp.cases full0_def rtranclp.rtrancl_refl)
@@ -1369,7 +1369,7 @@ next
         using card unfolding S S' trail_conv by simp
 
     moreover have "finite (clauses S')" using finite unfolding S S' by auto
-    ultimately have a1: "Ex (full0 cdcl_cp S')" using IH `no_strange_atm S'` by blast
+    ultimately have a1: "Ex (full0 cdcl_cp S')" using IH \<open>no_strange_atm S'\<close> by blast
     have ?case
       proof -
         obtain S'' :: "'a cdcl_state" where
@@ -1562,7 +1562,7 @@ proof (intro allI impI)
               rtranclp.simps)
         qed
       have "clauses T = clauses S" and "learned_clauses T = learned_clauses S"
-        using TU `clauses U = clauses S` `learned_clauses U = learned_clauses S` by auto
+        using TU \<open>clauses U = clauses S\<close> \<open>learned_clauses U = learned_clauses S\<close> by auto
       hence "D \<in> clauses S \<union> learned_clauses S"
         using TU confl by (auto elim!: conflictE)
       hence  "\<not> trail S \<Turnstile>as CNot D"
@@ -1586,7 +1586,7 @@ proof (intro allI impI)
           using inv_U unfolding cdcl_M_level_inv_def by auto
         hence LS: "atm_of L \<notin> atm_of ` lits_of (trail S)"
         (*TODO Factor proof*)
-          using `-L \<in> lits_of M` unfolding tr_U lits_of_def
+          using \<open>-L \<in> lits_of M\<close> unfolding tr_U lits_of_def
             apply (auto simp add: atm_of_eq_atm_of)
           using IntI empty_iff image_eqI apply (metis IntI atm_of_uminus empty_iff image_eqI)+
           done
@@ -1607,7 +1607,7 @@ proof (intro allI impI)
           have "hd (get_all_levels_of_marked (trail S)) = backtrack_level S"
             using ne unfolding cdcl_M_level_inv_decomp(4)[OF lev] by auto
           moreover have "atm_of L \<in> atm_of ` lit_of ` set M "
-            using `-L \<in> lits_of M` by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+            using \<open>-L \<in> lits_of M\<close> by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
               lits_of_def)
           ultimately show ?thesis
             using nm ne unfolding tr_U
@@ -1617,7 +1617,7 @@ proof (intro allI impI)
             by auto
           qed
       thus "\<exists>L\<in>#D. get_level L (trail U) = backtrack_level U"
-        using `L \<in># D` by blast
+        using \<open>L \<in># D\<close> by blast
     qed
 qed
 
@@ -1658,7 +1658,7 @@ proof -
       and "M1 \<Turnstile>as CNot D"
       and undef: "undefined_lit L' M1"
       have "tl M2 @ M1 = trail S \<or> (M2 = [] \<and> M1 = Propagated L (C + {#L#}) # M)"
-        using `trail S' = M2 @ M1` unfolding S' S by auto (metis list.sel(3) tl_append2)
+        using \<open>trail S' = M2 @ M1\<close> unfolding S' S by auto (metis list.sel(3) tl_append2)
       moreover {
         assume "tl M2 @ M1 = trail S"
         moreover have "D + {#L'#} \<in> clauses S \<union> learned_clauses S" using D_L unfolding S S' by auto
@@ -1666,16 +1666,16 @@ proof -
           using get_max unfolding S S' by auto
         ultimately obtain L' where "L' \<in># D" and
           "get_level L' (trail S) = get_maximum_possible_level M1"
-          using H `M1 \<Turnstile>as CNot D` undef unfolding no_more_propagation_to_do_def by metis
+          using H \<open>M1 \<Turnstile>as CNot D\<close> undef unfolding no_more_propagation_to_do_def by metis
         moreover
           { have "cdcl_M_level_inv S'"
               using cdcl_consistent_inv[OF _ M] cdcl.propagate[OF propagate] by blast
             hence "no_dup ?M'" unfolding S' by auto
             moreover have "atm_of L' \<in> atm_of ` (lits_of M1)"
-              using `L' \<in># D` `M1 \<Turnstile>as CNot D` by (metis atm_of_uminus image_eqI
+              using \<open>L' \<in># D\<close> \<open>M1 \<Turnstile>as CNot D\<close> by (metis atm_of_uminus image_eqI
                 in_CNot_implies_uminus(2))
             hence "atm_of L' \<in> atm_of ` (lits_of M)"
-              using `tl M2 @ M1 = trail S`[symmetric] unfolding S by auto
+              using \<open>tl M2 @ M1 = trail S\<close>[symmetric] unfolding S by auto
             ultimately have "atm_of L \<noteq> atm_of L'" unfolding lits_of_def by auto
         }
         ultimately have "\<exists>L' \<in># D. get_level L' (trail S') = get_maximum_possible_level M1"
@@ -1822,17 +1822,17 @@ proof -
               assume "\<not>?B \<subseteq> ?A"
               then obtain l where "l \<in> ?B" and "l \<notin> ?A" by auto
               hence "undefined_lit (Pos l) ?M"
-                using `l \<notin> ?A` unfolding lits_of_def by (auto simp add: defined_lit_map)
+                using \<open>l \<notin> ?A\<close> unfolding lits_of_def by (auto simp add: defined_lit_map)
               hence "\<exists>S'. cdcl_o S S'"
-                using cdcl_o.decided decided.intros `l \<in> ?B` by (metis `conflicting S = C_True`
+                using cdcl_o.decided decided.intros \<open>l \<in> ?B\<close> by (metis \<open>conflicting S = C_True\<close>
                   cdcl_state_decom literal.sel(1))
               thus False using termi cdcl_then_exists_cdcl_s_step[OF _ alien finite] by metis
             qed
           qed
         obtain D where "\<not> ?M \<Turnstile>a D" and "D \<in> ?N"
-           using `~?M \<Turnstile>as ?N` unfolding lits_of_def true_annots_def Ball_def by auto
+           using \<open>~?M \<Turnstile>as ?N\<close> unfolding lits_of_def true_annots_def Ball_def by auto
         have "atms_of D \<subseteq> atm_of ` (lits_of ?M)"
-          using `D \<in> ?N` unfolding `atm_of \` (lits_of ?M) = atms_of_m ?N` atms_of_m_def
+          using \<open>D \<in> ?N\<close> unfolding \<open>atm_of ` (lits_of ?M) = atms_of_m ?N\<close> atms_of_m_def
           by (auto simp add: atms_of_def)
         hence a1: "atm_of ` set_mset D \<subseteq> atm_of ` lit_of ` set (trail S)"
           by (auto simp add: atms_of_def lits_of_def)
@@ -1845,7 +1845,7 @@ proof -
               have ff2: "\<And>a. a \<notin> atm_of ` set_mset D \<or> a \<in> atm_of ` lit_of ` set (trail S)"
                 using a1 by (meson subsetCE)
               have ff3: "\<And>l. l \<notin> lit_of ` set (trail S) \<or> l \<notin># D"
-                using `\<not> ?M \<Turnstile>a D` unfolding true_annot_def Ball_def lits_of_def true_cls_def
+                using \<open>\<not> ?M \<Turnstile>a D\<close> unfolding true_annot_def Ball_def lits_of_def true_cls_def
                 Bex_mset_def by (meson true_lit_def)
               have ff4: "\<And>l. is_pos l \<or> Pos (atm_of l::'a) = - l"
                 by (metis Neg_atm_of_iff uminus_Neg)
@@ -1871,8 +1871,8 @@ proof -
             hence "S' = S"
               using cdcl_s.conflict'[of S] by (metis (no_types) full0_unfold termi)
             thus ?thesis
-              using f2 by (metis (no_types) UnCI `D \<in> clauses S` `conflicting S = C_True`
-                `trail S \<Turnstile>as CNot D` full0_cdcl_cp_not_any_negated_clauses)
+              using f2 by (metis (no_types) UnCI \<open>D \<in> clauses S\<close> \<open>conflicting S = C_True\<close>
+                \<open>trail S \<Turnstile>as CNot D\<close> full0_cdcl_cp_not_any_negated_clauses)
           qed
     }
     hence "?M \<Turnstile>as ?N" by blast
@@ -1884,7 +1884,7 @@ proof -
       proof -
         obtain mm :: "'a literal multiset" and ll :: "'a literal" where
           f2: "conflicting S = C_Clause (mm + {#ll#})"
-          using `\<exists>D L. conflicting S = C_Clause (D + {#L#})` by force
+          using \<open>\<exists>D L. conflicting S = C_Clause (D + {#L#})\<close> by force
         have "\<forall>m. (conflicting S \<noteq> C_Clause m \<or> m = {#})
           \<or> (\<exists>l. l \<in># m \<and> get_level l (trail S) = backtrack_level S)"
           using confl_k by blast
@@ -1895,7 +1895,7 @@ proof -
     have "?D \<noteq> {#}" by auto
     have "?M \<Turnstile>as CNot ?D" using confl LD unfolding cdcl_conflicting_def by auto
     hence "?M \<noteq> []" unfolding true_annots_def Ball_def true_annot_def true_cls_def by force
-    { have M: "?M = hd ?M # tl ?M" using `?M \<noteq> []` list.collapse by fastforce
+    { have M: "?M = hd ?M # tl ?M" using \<open>?M \<noteq> []\<close> list.collapse by fastforce
       assume marked: "is_marked (hd ?M)"
       then obtain k' where k': "k' + 1 = ?k"
         using level_inv M unfolding cdcl_M_level_inv_def
@@ -1903,7 +1903,7 @@ proof -
       obtain L' l' where L': "hd ?M = Marked L' l'" using marked by (case_tac "hd ?M") auto
       have "get_all_levels_of_marked (hd (trail S) # tl (trail S))
         = rev [1..<1 + length (get_all_levels_of_marked ?M)]"
-        using level_inv `get_level L ?M = ?k` M unfolding cdcl_M_level_inv_def M[symmetric] by blast
+        using level_inv \<open>get_level L ?M = ?k\<close> M unfolding cdcl_M_level_inv_def M[symmetric] by blast
       hence l'_tl: "l' # get_all_levels_of_marked (tl ?M)
         = rev [1..<1 + length (get_all_levels_of_marked ?M)]" unfolding L' by simp
       moreover have "\<dots> = length (get_all_levels_of_marked ?M)
@@ -1913,7 +1913,7 @@ proof -
         "l' = ?k" and
         g_r: "get_all_levels_of_marked (tl (trail S))
           = rev [1..<length (get_all_levels_of_marked (trail S))]"
-        using level_inv `get_level L ?M = ?k` M unfolding cdcl_M_level_inv_def by auto
+        using level_inv \<open>get_level L ?M = ?k\<close> M unfolding cdcl_M_level_inv_def by auto
       have *: "\<And>list. no_dup list \<Longrightarrow>
             - L \<in> lits_of list \<Longrightarrow> atm_of L \<in> atm_of ` lits_of list"
         by (metis atm_of_uminus imageI)
@@ -1936,12 +1936,12 @@ proof -
               by (metis One_nat_def add.right_neutral add_Suc_right diff_add_inverse2
                 get_maximum_possible_level_max_get_all_levels_of_marked k' le_imp_less_Suc
                 list.simps(15))
-          finally show False using `get_level L ?M = ?k` M by auto
+          finally show False using \<open>get_level L ?M = ?k\<close> M by auto
         qed
-      have L: "hd ?M = Marked (-L) ?k"  using `l' = ?k` `L' = -L` L' by auto
+      have L: "hd ?M = Marked (-L) ?k"  using \<open>l' = ?k\<close> \<open>L' = -L\<close> L' by auto
 
       have g_a_l: "get_all_levels_of_marked ?M = rev [1..<1 + ?k]"
-        using level_inv `get_level L ?M = ?k` M unfolding cdcl_M_level_inv_def by auto
+        using level_inv \<open>get_level L ?M = ?k\<close> M unfolding cdcl_M_level_inv_def by auto
       have g_k: "get_maximum_level D (trail S) \<le> ?k"
         using get_maximum_possible_level_ge_get_maximum_level[of D ?M]
           get_maximum_possible_level_max_get_all_levels_of_marked[of ?M]
@@ -1952,14 +1952,14 @@ proof -
           hence "get_maximum_level D (trail S) = ?k" using M g_k unfolding L by auto
           then obtain L' where "L' \<in># D" and L_k: "get_level L' ?M = ?k"
             using get_maximum_level_exists_lit[of ?k D ?M] unfolding k'[symmetric] by auto
-          have "L \<noteq> L'" using no_dup  `L' \<in># D`
+          have "L \<noteq> L'" using no_dup  \<open>L' \<in># D\<close>
             unfolding distinct_cdcl_state_def LD by (metis add.commute add_eq_self_zero
               count_single count_union less_not_refl3 distinct_mset_def union_single_eq_member)
           have "L' = -L"
             proof (rule ccontr)
               assume "\<not> ?thesis"
               hence "get_level L' ?M = get_level L' (tl ?M)"
-                using M `L \<noteq> L'` get_level_skip_beginning[of L' "hd ?M" "tl ?M"] unfolding L
+                using M \<open>L \<noteq> L'\<close> get_level_skip_beginning[of L' "hd ?M" "tl ?M"] unfolding L
                 by (auto simp add: atm_of_eq_atm_of)
               moreover have "\<dots> < ?k"
                 using level_inv g_r get_rev_level_less_max_get_all_levels_of_marked[of L' 0
@@ -1968,29 +1968,29 @@ proof -
               finally show False using L_k by simp
             qed
           hence taut: "tautology (D + {#L#})"
-            using `L' \<in># D` by (metis add.commute mset_leD mset_le_add_left multi_member_this
+            using \<open>L' \<in># D\<close> by (metis add.commute mset_leD mset_le_add_left multi_member_this
               tautology_minus)
           have "consistent_interp (lits_of ?M)" using level_inv by auto
           hence "\<not>?M \<Turnstile>as CNot ?D"
-            using taut by (metis (no_types) `L' = - L` `L' \<in># D` add.commute consistent_interp_def
+            using taut by (metis (no_types) \<open>L' = - L\<close> \<open>L' \<in># D\<close> add.commute consistent_interp_def
               in_CNot_implies_uminus(2) mset_leD mset_le_add_left multi_member_this)
           moreover have "?M \<Turnstile>as CNot ?D"
             using confl no_dup LD unfolding cdcl_conflicting_def by auto
           ultimately show False by blast
         qed
       hence False
-        using backtrack_no_decomp[OF _ `get_level L (trail S) = backtrack_level S` _ level_inv]
+        using backtrack_no_decomp[OF _ \<open>get_level L (trail S) = backtrack_level S\<close> _ level_inv]
         LD  alien local.finite termi by (metis cdcl_state_decom cdcl_then_exists_cdcl_s_step)
     }
     moreover {
       assume "\<not>is_marked (hd ?M)"
       then obtain L' C where L'C: "hd ?M = Propagated L' C" by (case_tac "hd ?M", auto)
-      hence M: "?M = Propagated L' C # tl ?M" using `?M \<noteq> []`  list.collapse by fastforce
+      hence M: "?M = Propagated L' C # tl ?M" using \<open>?M \<noteq> []\<close>  list.collapse by fastforce
       then obtain C' where C': "C = C' + {#L'#}"
         using confl unfolding cdcl_conflicting_def by (metis append_Nil diff_single_eq_union)
       { assume "-L' \<notin># ?D"
         hence False
-          using cdcl_o.skip[OF skipping[OF _ `-L' \<notin># ?D` `?D \<noteq> {#}`, of S C "tl (trail S)" _ ]]
+          using cdcl_o.skip[OF skipping[OF _ \<open>-L' \<notin># ?D\<close> \<open>?D \<noteq> {#}\<close>, of S C "tl (trail S)" _ ]]
           termi cdcl_state_decom[of S] M by (metis LD alien cdcl_then_exists_cdcl_s_step finite)
       }
       moreover {
@@ -2032,7 +2032,7 @@ proof -
               obtain mm :: "'a literal multiset" and ll :: "'a literal" where
                 f2: "conflicting S = C_Clause (mm + {#ll#})"
                     "get_level ll (trail S) = backtrack_level S"
-                using LD `get_level L (trail S) = backtrack_level S` by blast
+                using LD \<open>get_level L (trail S) = backtrack_level S\<close> by blast
               hence f3: "get_maximum_level D' (trail S) \<le> get_level ll (trail S)"
                 using M a1 by force
               have "get_level ll (trail S) \<noteq> get_maximum_level D' (trail S)"
@@ -2044,7 +2044,7 @@ proof -
                  "get_level ll (trail S) = backtrack_level S"
                 using f2 by force+
               have "ll = - L'"
-                by (metis (no_types) D' LD `get_level ll (trail S) \<noteq> get_maximum_level D' (trail S)`
+                by (metis (no_types) D' LD \<open>get_level ll (trail S) \<noteq> get_maximum_level D' (trail S)\<close>
                   conflicting_clause.inject f2 f3 get_maximum_level_ge_get_level insert_noteq_member
                   le_antisym)
               thus ?thesis
@@ -2120,11 +2120,11 @@ proof (induct rule: cdcl_o_induct)
         by blast
       thus ?thesis
         using get_maximum_level_skip_first[of L D "C + {#L#}" M] unfolding atms_of_def
-        by (metis (no_types) `- L \<notin># D` `L \<notin># D` atm_of_eq_atm_of mem_set_mset_iff)
+        by (metis (no_types) \<open>- L \<notin># D\<close> \<open>L \<notin># D\<close> atm_of_eq_atm_of mem_set_mset_iff)
     qed
   { assume "get_maximum_level D (Propagated L (C + {#L#}) # M) = k" and "k > 0"
     hence D: "get_maximum_level D M = k" unfolding g_D by blast
-    hence ?case using `k > 0` get_maximum_level_exists_lit[of k D M] by auto
+    hence ?case using \<open>k > 0\<close> get_maximum_level_exists_lit[of k D M] by auto
   }
   moreover {
     assume [simp]: "k = 0"
@@ -2154,10 +2154,10 @@ next
     have "atm_of La \<noteq> atm_of L"
       proof (rule ccontr)
         assume "\<not> ?thesis"
-        hence La: "La = L" using `La \<in># D` `- L \<notin># D` by (auto simp add: atm_of_eq_atm_of)
+        hence La: "La = L" using \<open>La \<in># D\<close> \<open>- L \<notin># D\<close> by (auto simp add: atm_of_eq_atm_of)
         have "Propagated L C' # M \<Turnstile>as CNot D" using confl by auto
         hence "-L \<in> lits_of M"
-          using `La \<in># D` in_CNot_implies_uminus(2)[of D L "Propagated L C' # M"] unfolding La
+          using \<open>La \<in># D\<close> in_CNot_implies_uminus(2)[of D L "Propagated L C' # M"] unfolding La
           by auto
         thus False using lev unfolding cdcl_M_level_inv_def consistent_interp_def by auto
       qed
@@ -2351,7 +2351,7 @@ next
               assume "D \<in> N" and "M' \<Turnstile>as CNot D"
               hence "set M \<Turnstile> D" using MN unfolding true_clss_def by auto
               moreover have "set M \<Turnstile>s CNot D"
-                using `M' \<Turnstile>as CNot D` M'
+                using \<open>M' \<Turnstile>as CNot D\<close> M'
                 by (meson true_annots_true_cls true_cls_mono_set_mset_l true_clss_def)
               ultimately have False using cons consistent_CNot_not by blast
             }
@@ -2494,7 +2494,7 @@ next
                   \<union> learned_clauses (Propagated L (D + {#L#}) # M1, N, U \<union> {D + {#L#}}, i, C_True)"
       moreover{
         assume "Da \<in> N \<union> U"
-        hence "\<not>M' \<Turnstile>as CNot Da" using IH `tl M'' @ Marked K' ia # M' = M1` unfolding S M by auto
+        hence "\<not>M' \<Turnstile>as CNot Da" using IH \<open>tl M'' @ Marked K' ia # M' = M1\<close> unfolding S M by auto
       }
       moreover {
         assume Da: "Da = D + {#L#}"
@@ -2503,7 +2503,7 @@ next
             assume "\<not> ?thesis"
             hence "-L \<in> lits_of M'" unfolding Da by auto
             hence "-L \<in> lits_of (Propagated L (D + {#L#}) # M1)"
-              using UnI2 `tl M'' @ Marked K' ia # M' = M1` by auto
+              using UnI2 \<open>tl M'' @ Marked K' ia # M' = M1\<close> by auto
             moreover
               have "cdcl_M_level_inv (Propagated L (D + {#L#}) # M1, N, U \<union> {D + {#L#}}, i, C_True)"
                 using cdcl_consistent_inv[OF cdcl.other[OF cdcl_o.backtrack[OF backtracking[
@@ -2539,7 +2539,7 @@ proof (intro allI impI)
     using propagate by auto
   have "tl M'' @ Marked K i # M' = trail S" using M' unfolding S S'
     by (metis append_Nil list.inject list.sel(3) marked_lit.distinct(1) tl_append2 trail_conv)
-  hence "\<not> M' \<Turnstile>as CNot D " using `D \<in> clauses S' \<union> learned_clauses S'` n_l unfolding S S' by auto
+  hence "\<not> M' \<Turnstile>as CNot D " using \<open>D \<in> clauses S' \<union> learned_clauses S'\<close> n_l unfolding S S' by auto
   thus "\<not>M' \<Turnstile>as CNot D" by auto
 qed
 
@@ -2648,7 +2648,7 @@ proof (induct rule: cdcl_o_induct)
       fix D
       assume "D \<in> N \<union> U"
       and M_D: "Marked L (k + 1) # M \<Turnstile>as CNot D"
-      have "~M \<Turnstile>as CNot D" using no_f `D \<in> N \<union> U` unfolding S by auto
+      have "~M \<Turnstile>as CNot D" using no_f \<open>D \<in> N \<union> U\<close> unfolding S by auto
       have "-L \<in># D"
         proof (rule ccontr)
           assume "\<not> ?thesis"
@@ -2662,15 +2662,15 @@ proof (induct rule: cdcl_o_induct)
                 using M_D x unfolding true_annots_def Ball_def true_annot_def CNot_def true_cls_def
                 Bex_mset_def by blast
               show "\<exists>L \<in># x. lits_of M \<Turnstile>l L" unfolding Bex_mset_def
-                by (metis `- L \<notin># D` `L'' \<in># x` L' `lits_of (Marked L (k + 1) # M) \<Turnstile>l L''`
+                by (metis \<open>- L \<notin># D\<close> \<open>L'' \<in># x\<close> L' \<open>lits_of (Marked L (k + 1) # M) \<Turnstile>l L''\<close>
                   count_single insertE less_numeral_extra(3) lits_of_cons marked_lit.sel(1)
                   true_lit_def uminus_of_uminus_id)
             qed
-          thus False using `~M \<Turnstile>as CNot D` by auto
+          thus False using \<open>~M \<Turnstile>as CNot D\<close> by auto
         qed
       have "atm_of L \<notin> atm_of ` (lit_of ` set M)" using undef defined_lit_map by fastforce
       hence "get_level (-L) (Marked L (k + 1) # M) = k + 1" by simp
-      thus "\<exists>La. La \<in># D \<and> get_level La (Marked L (k + 1) # M) = k + 1" using `-L \<in># D` by auto
+      thus "\<exists>La. La \<in># D \<and> get_level La (Marked L (k + 1) # M) = k + 1" using \<open>-L \<in># D\<close> by auto
     qed
 next
   case (resolve L C M N U k D)
@@ -2699,7 +2699,7 @@ next
       }
       moreover {
         assume Da: "Da = D + {#L#}"
-        have "~M1 \<Turnstile>as CNot Da" using `- L \<notin> lits_of M1` unfolding Da by simp
+        have "~M1 \<Turnstile>as CNot Da" using \<open>- L \<notin> lits_of M1\<close> unfolding Da by simp
       }
       ultimately have "~M1 \<Turnstile>as CNot Da" using Da by auto
       hence "-L \<in># Da"
@@ -2713,7 +2713,7 @@ next
         using get_level_get_rev_level_get_all_levels_of_marked[OF L, of "[Propagated L (D + {#L#})]"]
         by (simp add: g_M1 split: if_splits)
       thus "\<exists>La. La \<in># Da \<and> get_level La (Propagated L (D + {#L#}) # M1) = i"
-        using `-L \<in># Da` by auto
+        using \<open>-L \<in># Da\<close> by auto
     qed
 qed
 
@@ -2747,7 +2747,7 @@ proof -
           apply (rule true_annots_mono)
           using trS unfolding M by simp_all
       have "\<exists>V. conflict U V"
-        using `conflicting U = C_True`
+        using \<open>conflicting U = C_True\<close>
         by (metis D not_conflict_not_any_negated_clauses tr_U)
       hence False using full cdcl_cp.conflict' unfolding full0_def by blast
       thus ?thesis by fast
@@ -2812,7 +2812,7 @@ next
       moreover have "full0 cdcl_cp S' S''"
         by (metis (no_types) other'.hyps(4))
       ultimately have "conflict_is_false_with_level S''"
-        using rtranclp_cdcl_co_conflict_ex_lit_of_max_level[of S' S''] lev' `no_clause_is_false S'`
+        using rtranclp_cdcl_co_conflict_ex_lit_of_max_level[of S' S''] lev' \<open>no_clause_is_false S'\<close>
         by blast
     }
     moreover
@@ -2836,7 +2836,7 @@ next
      and D_L: "\<forall>D \<in> clauses S' \<union> learned_clauses S'. trail S' \<Turnstile>as CNot D
          \<longrightarrow> (\<exists>L. L \<in># D \<and> get_level L (trail S') = backtrack_level S')"
      { assume "\<forall>D\<in>clauses S' \<union> learned_clauses S'. \<not> trail S' \<Turnstile>as CNot D"
-       hence "no_clause_is_false S'" using `conflicting S' = C_True` by simp
+       hence "no_clause_is_false S'" using \<open>conflicting S' = C_True\<close> by simp
        hence "conflict_is_false_with_level S''" using calculation(3) by blast
      }
      moreover {
@@ -2847,7 +2847,7 @@ next
          D: "D \<in> clauses S' \<union> learned_clauses S'" and
          "trail S'' \<Turnstile>as CNot D" and
          "conflicting S'' = C_Clause D"
-         using full_cdcl_cp_exists_conflict_full_decompose[OF _ other'(4) `conflicting S' = C_True`]
+         using full_cdcl_cp_exists_conflict_full_decompose[OF _ other'(4) \<open>conflicting S' = C_True\<close>]
          by fast
        obtain M where M: "trail S'' = M @ trail S'" and nm: "\<forall>m\<in>set M. \<not>is_marked m"
          using rtranclp_cdcl_cp_dropWhile_trail other'(4) unfolding full0_def by blast
@@ -2864,18 +2864,18 @@ next
              using D_L D by blast
            moreover
              have LS': "-L \<in> lits_of (trail S')"
-               using `trail S' \<Turnstile>as CNot D` `L \<in># D` in_CNot_implies_uminus(2) by blast
+               using \<open>trail S' \<Turnstile>as CNot D\<close> \<open>L \<in># D\<close> in_CNot_implies_uminus(2) by blast
                (*TODO tune proof*)
              hence "atm_of L \<notin> atm_of ` lits_of M"
                using LS' nd unfolding M apply (cases S', auto simp add: lits_of_def )
                by (metis IntI atm_of_uminus empty_iff image_eqI)
              hence "get_level L (trail S'') = get_level L (trail S')"
                unfolding M by (simp add: lits_of_def)
-           ultimately show ?thesis using btS `conflicting S'' = C_Clause D` by auto
+           ultimately show ?thesis using btS \<open>conflicting S'' = C_Clause D\<close> by auto
          next
            assume "\<not>trail S' \<Turnstile>as CNot D"
            then obtain L where "L \<in># D" and LM: "-L \<in> lits_of M"
-             using `trail S'' \<Turnstile>as CNot D`
+             using \<open>trail S'' \<Turnstile>as CNot D\<close>
                by (auto simp add: CNot_def true_cls_def  M true_annots_def true_annot_def
                      split: split_if_asm)
            (*TODO tune proof*)
@@ -2899,20 +2899,20 @@ next
                      have f3: "\<And>ms. get_rev_level L (last (0 # get_all_levels_of_marked (rev (trail S')))) (rev ms) = get_level L (ms @ trail S')"
                        by (metis (no_types) LS' get_level_get_rev_level_get_all_levels_of_marked lits_of_def)
                      have "get_all_levels_of_marked (rev (trail S')) = []"
-                       using `trail S'' = M @ trail S'` ne by force
+                       using \<open>trail S'' = M @ trail S'\<close> ne by force
                      thus ?thesis
-                       using f3 f2 a1 by (metis (no_types) `trail S'' = M @ trail S'` append_Nil2 get_level_get_rev_level_get_all_levels_of_marked get_rev_level_skip_end rev.simps(1) rev_append)
+                       using f3 f2 a1 by (metis (no_types) \<open>trail S'' = M @ trail S'\<close> append_Nil2 get_level_get_rev_level_get_all_levels_of_marked get_rev_level_skip_end rev.simps(1) rev_append)
                    qed
-               ultimately show ?thesis using `conflicting S'' = C_Clause D` `L \<in># D` unfolding M
+               ultimately show ?thesis using \<open>conflicting S'' = C_Clause D\<close> \<open>L \<in># D\<close> unfolding M
                  by auto
            next
              assume ne: "get_all_levels_of_marked (trail S') \<noteq> []"
              have "hd (get_all_levels_of_marked (trail S')) = backtrack_level S'"
                using ne  cdcl_M_level_inv_decomp(4)[OF lev'] M nm by (simp add: get_all_levels_of_marked_nil_iff_not_is_marked[symmetric])
              moreover have "atm_of L \<in> atm_of ` lit_of ` set M "
-                using `-L \<in> lits_of M` by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def)
+                using \<open>-L \<in> lits_of M\<close> by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def)
              ultimately show ?thesis
-               using nm ne `L\<in>#D` `conflicting S'' = C_Clause D` unfolding M
+               using nm ne \<open>L\<in>#D\<close> \<open>conflicting S'' = C_Clause D\<close> unfolding M
                using get_level_skip_beginning_hd_get_all_levels_of_marked[OF LS', of M]
                using get_level_skip_in_all_not_marked[of "rev M" L "backtrack_level S'"]
                unfolding lits_of_def btS
@@ -2925,7 +2925,7 @@ next
   moreover
   {
     assume "conflicting S' \<noteq> C_True"
-    have "no_clause_is_false S'" using `conflicting S' \<noteq> C_True`  by auto
+    have "no_clause_is_false S'" using \<open>conflicting S' \<noteq> C_True\<close>  by auto
     hence "conflict_is_false_with_level S''" using calculation(3) by blast
   }
   ultimately show ?case by fast
@@ -3010,7 +3010,7 @@ proof -
   have "cdcl_cp S S'" and "conflicting S' \<noteq> C_True" using cp cdcl_cp.intros by auto
   hence "cdcl_cp\<^sup>+\<^sup>+ S S'" by blast
   moreover have "no_step cdcl_cp S'"
-    using `conflicting S' \<noteq> C_True` by (metis cdcl_cp_conflicting_not_empty conflicting_clause.exhaust)
+    using \<open>conflicting S' \<noteq> C_True\<close> by (metis cdcl_cp_conflicting_not_empty conflicting_clause.exhaust)
   ultimately show "full cdcl_cp S S'" unfolding full_def by blast+
 qed
 
@@ -3197,12 +3197,12 @@ proof -
   have "\<exists>S''. conflict ?S S''" using empty by (auto simp add: conflict.simps)
   hence cdcl_s: "\<exists>S'. cdcl_s ?S S'"
     using cdcl_cp.conflict'[of ?S] conflict_is_full_cdcl_cp cdcl_s.intros(1) by metis
-  have "S' \<noteq> ?S"  using `no_step cdcl_s S'` cdcl_s by blast
+  have "S' \<noteq> ?S"  using \<open>no_step cdcl_s S'\<close> cdcl_s by blast
 
   then obtain St:: "'v cdcl_state" where St: "cdcl_s (S0_cdcl N) St" and "cdcl_s\<^sup>*\<^sup>* St S'"
-    using plus_or_eq by (metis (no_types) `cdcl_s\<^sup>*\<^sup>* (S0_cdcl N) S'` converse_rtranclpE)
+    using plus_or_eq by (metis (no_types) \<open>cdcl_s\<^sup>*\<^sup>* (S0_cdcl N) S'\<close> converse_rtranclpE)
   have st: "cdcl\<^sup>*\<^sup>* (S0_cdcl N) St"
-    by (simp add: Nitpick.rtranclp_unfold `cdcl_s (S0_cdcl N) St` cdcl_s_tranclp_cdcl)
+    by (simp add: Nitpick.rtranclp_unfold \<open>cdcl_s (S0_cdcl N) St\<close> cdcl_s_tranclp_cdcl)
 
   have "\<exists>T. conflict (S0_cdcl N) T"
     using empty by (auto simp add: conflict.simps)
@@ -3227,7 +3227,7 @@ proof -
   have 2: "full0 cdcl_s
               (trail St, clauses St, learned_clauses St, 0, conflicting St)
               (trail S', clauses S', learned_clauses S', backtrack_level S', conflicting S')"
-    using `cdcl_s\<^sup>*\<^sup>* St S'` `no_step cdcl_s S'` bt unfolding full0_def by (cases St, cases S') auto
+    using \<open>cdcl_s\<^sup>*\<^sup>* St S'\<close> \<open>no_step cdcl_s S'\<close> bt unfolding full0_def by (cases St, cases S') auto
   have 3: "all_decomposition_implies
       (clauses (trail St, clauses St, learned_clauses St, 0::nat, conflicting St))
       (get_all_marked_decomposition
@@ -3244,11 +3244,11 @@ proof -
   have 8: "cdcl_conflicting (trail St, clauses St, learned_clauses St, 0::nat, conflicting St)"
     using rtranclp_cdcl_all_inv(6)[OF st] finite no_d bt by (cases St) simp
   have "clauses S' = clauses St" and "conflicting S' = C_Clause {#}"
-  using `conflicting St \<noteq> C_True` full0_cdcl_clauses_with_false_normal_form[OF 1 _ 2 3 4 5 6 7 8]
+  using \<open>conflicting St \<noteq> C_True\<close> full0_cdcl_clauses_with_false_normal_form[OF 1 _ 2 3 4 5 6 7 8]
     by (cases "conflicting St", auto)+
 
   moreover have "clauses S' = N"
-    using `cdcl_s\<^sup>*\<^sup>* (S0_cdcl N) S'` rtranclp_cdcl_s_no_more_clauses by fastforce
+    using \<open>cdcl_s\<^sup>*\<^sup>* (S0_cdcl N) S'\<close> rtranclp_cdcl_s_no_more_clauses by fastforce
   moreover have "unsatisfiable N" by (meson empty satisfiable_carac true_cls_empty true_clss_def)
   ultimately show ?thesis by auto
 qed

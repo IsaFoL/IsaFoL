@@ -5,28 +5,28 @@
 This theory is based on Blanchette's and Traytel's Clausal logic
 *)
 
-section {* Partial Clausal Logic *}
+section \<open>Partial Clausal Logic\<close>
 
 theory Partial_Clausal_Logic
 imports "../lib/Clausal_Logic"
 begin
 
-text {*
+text \<open>
 Resolution operates of clauses, which are disjunctions of literals. The material formalized here
 corresponds roughly to Sections 2.1 (``Formulas and Clauses'') and 2.2 (``Herbrand
 Interpretations'') of Bachmair and Ganzinger, excluding the formula and term syntax.
-*}
+\<close>
 
-subsection {* Clauses *}
+subsection \<open>Clauses\<close>
 
-text {*
+text \<open>
 Clauses are (finite) multisets of literals.
-*}
+\<close>
 
 type_synonym 'a clause = "'a literal multiset"
 type_synonym 'v clauses = "'v clause set"
 
-subsection {* Partial Interpretations *}
+subsection \<open>Partial Interpretations\<close>
 
 type_synonym 'a interp = "'a literal set"
 
@@ -726,22 +726,22 @@ proof (intro allI impI)
     assume L: "L \<in> I \<or> -L \<in> I"
     hence "total_over_m I {D + {#- L#}}"
       using tot by (cases L) auto
-    hence "I \<Turnstile> D + {#- L#}" using D `I \<Turnstile>s N` tot `consistent_interp I`
+    hence "I \<Turnstile> D + {#- L#}" using D \<open>I \<Turnstile>s N\<close> tot \<open>consistent_interp I\<close>
       unfolding true_clss_cls_def by auto
     moreover
       have "total_over_m I {C + {#L#}}"
         using L tot by (cases L) auto
       hence "I \<Turnstile> C + {#L#}"
-        using C `I \<Turnstile>s N` tot `consistent_interp I` unfolding true_clss_cls_def by auto
-    ultimately have "I \<Turnstile> D + C" using `consistent_interp I` consistent_interp_def by fastforce
+        using C \<open>I \<Turnstile>s N\<close> tot \<open>consistent_interp I\<close> unfolding true_clss_cls_def by auto
+    ultimately have "I \<Turnstile> D + C" using \<open>consistent_interp I\<close> consistent_interp_def by fastforce
   }
   moreover {
     assume L: "L \<notin> I \<and> -L \<notin> I"
     let ?I' = "I \<union> {L}"
-    have "consistent_interp ?I'" using L `consistent_interp I` by auto
+    have "consistent_interp ?I'" using L \<open>consistent_interp I\<close> by auto
     moreover have "total_over_m ?I' {D + {#- L#}}" using tot unfolding total_over_m_def total_over_set_def by (auto simp add: atms_of_def)
     moreover have "total_over_m ?I' N" using tot using total_union by blast
-    moreover have "?I' \<Turnstile>s N" using `I \<Turnstile>s N` using true_clss_union_increase by blast
+    moreover have "?I' \<Turnstile>s N" using \<open>I \<Turnstile>s N\<close> using true_clss_union_increase by blast
     ultimately have "?I' \<Turnstile> D + {#- L#}"
       using D unfolding true_clss_cls_def by blast
     hence "?I' \<Turnstile> D" using L by auto
@@ -832,7 +832,7 @@ proof (induct "card {Pos v | v. v \<in> atms_of D \<and> v \<notin> atms_of C}" 
     } note H' = this
 
     have "L \<notin># C " and "-L \<notin># C" using L atm_iff_pos_or_neg_lit by force+
-    then have C_in_D': "C \<subseteq># ?D'" using `C \<subseteq># D` by (auto simp add: subseteq_mset_def)
+    then have C_in_D': "C \<subseteq># ?D'" using \<open>C \<subseteq># D\<close> by (auto simp add: subseteq_mset_def)
     have "card {Pos v |v. v \<in> atms_of ?D' \<and> v \<notin> atms_of C} < card {Pos v |v. v \<in> atms_of D \<and> v \<notin> atms_of C}"
       using L by (auto intro!: psubset_card_mono)
     hence "(\<forall>I. total_over_m I {C} \<longrightarrow> I \<Turnstile> C \<longrightarrow> I \<Turnstile> \<phi>) \<or> tautology \<phi>"
@@ -1035,7 +1035,7 @@ proof (induct "card atms" arbitrary: atms rule: nat_less_induct)
         card: "card (atms - {Min atms}) = card atms - 1"
         using finite min by auto
       have card_inf: "card (atms - {Min atms}) < card atms "
-        using card `card atms \<ge>  1` min by auto
+        using card \<open>card atms \<ge>  1\<close> min by auto
       hence "card ?Z \<le> 3 ^ (card atms - 1)" using IH finite' card by metis
     moreover
       have "(3::nat) ^ (card atms - 1) + 3 ^ (card atms - 1) + 3 ^ (card atms - 1)
@@ -1078,7 +1078,7 @@ next
     assume min: "?min \<in> atms"
     moreover have min': "?min \<notin> atms'" using disj min by auto
     moreover have "atms' - {?min} = atms'"
-      using `?min \<notin> atms'` by fastforce
+      using \<open>?min \<notin> atms'\<close> by fastforce
     ultimately have "n = card (atms - {?min} \<union> atms')"
       by (metis Min_in Un_Diff c card_0_eq card_Diff_singleton_if diff_Suc_1 finite' finite_Un local.finite nat.distinct(1))
     moreover have "finite (atms - {?min})" using finite by auto
@@ -1145,7 +1145,7 @@ next
         assume "v = atm_of L"
         hence "L \<in># \<chi> - {#L#} \<or> -L \<in># \<chi> - {#L#}"
           using l' l by (auto simp add: atm_of_eq_atm_of)
-        moreover have "L \<notin># \<chi> - {#L#}" using ` L \<in># \<chi>` simp unfolding distinct_mset_def by auto
+        moreover have "L \<notin># \<chi> - {#L#}" using \<open> L \<in># \<chi>\<close> simp unfolding distinct_mset_def by auto
         ultimately have False using mL\<chi> by auto
       }
       ultimately show "v \<in> atms_of \<chi> - {atm_of L}"

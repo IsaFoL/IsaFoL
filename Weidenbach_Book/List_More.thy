@@ -61,7 +61,7 @@ proof -
     using assms length_upt by presburger
   hence "[m..<n] ! (length A) = m + length A" by simp
   ultimately have "i = m + length A" using assms by auto
-  thus ?thesis using `A = [m ..< m + length A]` by auto
+  thus ?thesis using \<open>A = [m ..< m + length A]\<close> by auto
 qed
 
 lemma append_cons_eq_upt_length:
@@ -90,7 +90,7 @@ proof -
     using assms length_upt by auto
   hence "[m..<n]! (length A) = m + length A" by simp
   ultimately have "i = m + length A" using assms by auto
-  thus ?thesis using `B = [Suc m + length A..<n]` by auto
+  thus ?thesis using \<open>B = [Suc m + length A..<n]\<close> by auto
 qed
 
 lemma Max_n_upt: "Max (insert 0 {Suc 0..<n}) = n - Suc 0"

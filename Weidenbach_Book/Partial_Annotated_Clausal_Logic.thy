@@ -87,7 +87,7 @@ lemma true_annots_insert[iff]:
   "M \<Turnstile>as insert a A \<longleftrightarrow> (M \<Turnstile>a a \<and> M \<Turnstile>as A)"
   unfolding true_annots_def by auto
 
-text \<open>Link between @{text "\<Turnstile>as"} and @{text "\<Turnstile>s"}:\<close>
+text \<open>Link between \<open>\<Turnstile>as\<close> and \<open>\<Turnstile>s\<close>:\<close>
 lemma true_annots_true_cls:
   "I \<Turnstile>as CC \<longleftrightarrow> (lits_of I) \<Turnstile>s CC"
   unfolding true_annots_def Ball_def true_annot_def true_clss_def by auto
@@ -555,7 +555,7 @@ next
         assume "Ls0 \<noteq> []"
         hence "hd Ls0 \<in> set M" using get_all_marked_decomposition_fst_empty_or_hd_in_M Ls0 by blast
         hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>p (\<lambda>a. {#lit_of a#}) (hd Ls0)"
-          using `is_marked (hd Ls0)` by (metis (mono_tags, lifting) UnCI mem_Collect_eq true_clss_cls_in)
+          using \<open>is_marked (hd Ls0)\<close> by (metis (mono_tags, lifting) UnCI mem_Collect_eq true_clss_cls_in)
       } note hd_Ls0 = this
 
       have l: "(\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M'))
@@ -728,7 +728,7 @@ proof (intro allI impI)
     hence "\<not>A \<Turnstile>p CC"
       by (metis (no_types, lifting) I' cons' consistent_CNot_not tot_I_A_CC_L total_over_m_sum
         total_over_m_union true_clss_cls_def)
-    hence "\<not>?I \<Turnstile> CC" using `?I \<Turnstile>s CNot CC` cons' consistent_CNot_not by blast
+    hence "\<not>?I \<Turnstile> CC" using \<open>?I \<Turnstile>s CNot CC\<close> cons' consistent_CNot_not by blast
   ultimately have "?I \<Turnstile> {#L#}" by blast
   thus "I \<Turnstile> {#L#}"
     by (metis (no_types, lifting) atms_of_m_union cons' consistent_CNot_not tot total_not_CNot
@@ -776,7 +776,7 @@ proof (clarify, rule ccontr)
   assume LB: "L \<in># B" and " \<not> lit_of ` set A \<Turnstile>l - L"
   hence "atm_of L \<in> atm_of ` lit_of ` set A" using assms(1) by (simp add: atm_of_lit_in_atms_of)
   hence "L \<in> lit_of ` set A \<or> -L \<in> lit_of ` set A" using atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set by metis
-  hence "L \<in> lit_of ` set A" using ` \<not> lit_of \` set A \<Turnstile>l - L` by auto
+  hence "L \<in> lit_of ` set A" using \<open> \<not> lit_of ` set A \<Turnstile>l - L\<close> by auto
   thus False
     using LB assms(2) unfolding true_annot_def lits_of_def true_lit_def true_cls_def Bex_mset_def
     by blast

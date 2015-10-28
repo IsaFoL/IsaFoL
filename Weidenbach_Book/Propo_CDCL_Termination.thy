@@ -99,8 +99,8 @@ next
   hence "D \<in> learned_clauses S'"
     unfolding full0_def by (auto dest: rtranclp_cdcl_cp_learned_clause_inv)
   thus ?case
-    using  cdcl_o_new_clause_learned_is_backtrack_step[OF _ `D \<notin> learned_clauses S` `cdcl_o S S'`]
-    `full0 cdcl_cp S' S''` by (metis cdcl_s.conflict' full0_unfold r_into_rtranclp
+    using  cdcl_o_new_clause_learned_is_backtrack_step[OF _ \<open>D \<notin> learned_clauses S\<close> \<open>cdcl_o S S'\<close>]
+    \<open>full0 cdcl_cp S' S''\<close> by (metis cdcl_s.conflict' full0_unfold r_into_rtranclp
       rtranclp.rtrancl_refl)
 qed
 
@@ -199,7 +199,7 @@ next
     using no_dup unfolding S S' by (auto simp add: rev_image_eqI)
   hence "Marked L i \<in> set (trail T)"
     using st rtranclp_cdcl_cp_no_more_Marked_lit unfolding full0_def by blast
-  thus ?case using cdcl_o_no_more_Marked_lit[OF o] `Marked L i \<notin> set (trail S)` ns by blast
+  thus ?case using cdcl_o_no_more_Marked_lit[OF o] \<open>Marked L i \<notin> set (trail S)\<close> ns by blast
 qed
 
 lemma cdcl_o_is_decided:
@@ -278,25 +278,25 @@ next
             using st other'.prems(4)
             by (metis cdcl_s.conflict' cp full0_unfold r_into_rtranclp rtranclp.rtrancl_refl)+
           have [simp]: "drop (length M\<^sub>0) M' = []"
-            using `decided S' T` `Marked L i \<in> set (trail T)`  nd tr_T
+            using \<open>decided S' T\<close> \<open>Marked L i \<in> set (trail T)\<close>  nd tr_T
             by (auto simp add: Cons_eq_append_conv)
           have T: "drop (length M\<^sub>0) M' @ Marked L i # H @ M = Marked L i # trail S'"
-            using `decided S' T` `Marked L i \<in> set (trail T)`  nd tr_T
+            using \<open>decided S' T\<close> \<open>Marked L i \<in> set (trail T)\<close>  nd tr_T
             by auto
           have "trail T = Marked L i # trail S'"
-            using `decided S' T` `Marked L i \<in> set (trail T)` tr_T
+            using \<open>decided S' T\<close> \<open>Marked L i \<in> set (trail T)\<close> tr_T
             by auto
           hence 5: "trail T = Marked L i # H @ M"and 6: "trail S' = H @ M"
             proof -
               show "trail S' = H @ M"
-                by (metis (no_types) `trail T = Marked L i # trail S'`
-                  `trail T = drop (length M\<^sub>0) M' @ Marked L i # H @ M` append_Nil list.sel(3) nd
+                by (metis (no_types) \<open>trail T = Marked L i # trail S'\<close>
+                  \<open>trail T = drop (length M\<^sub>0) M' @ Marked L i # H @ M\<close> append_Nil list.sel(3) nd
                   tl_append2)
             next
               show "trail T = Marked L i # H @ M"
                 using append.simps(1) list.sel(3) local.other'(5) tl_append2
-                by (metis (no_types) `trail T = Marked L i # trail S'`
-                  `trail T = drop (length M\<^sub>0) M' @ Marked L i # H @ M` )
+                by (metis (no_types) \<open>trail T = Marked L i # trail S'\<close>
+                  \<open>trail T = drop (length M\<^sub>0) M' @ Marked L i # H @ M\<close> )
             qed
           have 7: "cdcl_s\<^sup>*\<^sup>* S' U" using other'.prems(4) st by auto
           have 8: "cdcl_s S' U" "cdcl_s\<^sup>*\<^sup>* U U"
@@ -320,7 +320,7 @@ next
         9: "cdcl_s S' S'''" and
         10: "cdcl_s\<^sup>*\<^sup>* S''' T"
            by blast
-      have "cdcl_s\<^sup>*\<^sup>* S'' U" using s `cdcl_s\<^sup>*\<^sup>* S'' T ` by auto
+      have "cdcl_s\<^sup>*\<^sup>* S'' U" using s \<open>cdcl_s\<^sup>*\<^sup>* S'' T \<close> by auto
       moreover have "cdcl_s\<^sup>*\<^sup>* S' U" using "8" s by auto
       moreover have "cdcl_s\<^sup>*\<^sup>* S''' U" using 10 s by auto
       ultimately show ?thesis apply - apply (rule exI[of _ S'], rule exI[of _ S''])
@@ -505,13 +505,13 @@ proof (induction rule: cdcl_o_induct)
                 unfolding M by (auto dest: append_cons_eq_upt_length_i
                   simp add: rev_swap[symmetric])
               hence "get_maximum_possible_level H < i"
-                using get_maximum_possible_level_max_get_all_levels_of_marked[of H] `i > 0` by auto
+                using get_maximum_possible_level_max_get_all_levels_of_marked[of H] \<open>i > 0\<close> by auto
             ultimately have "get_maximum_level D M < i"
               by (metis (full_types) dual_order.strict_trans nat_neq_iff not_le
                 get_maximum_possible_level_ge_get_maximum_level) }
           moreover
             have "L \<in># D'"
-              by (metis DLD' `D \<noteq> D'` add.left_neutral count_single count_union diff_union_cancelR
+              by (metis DLD' \<open>D \<noteq> D'\<close> add.left_neutral count_single count_union diff_union_cancelR
                 neq0_conv union_single_eq_member)
             hence "get_maximum_level D' M \<ge> get_level L M"
               using get_maximum_level_ge_get_level by blast
@@ -525,12 +525,12 @@ proof (induction rule: cdcl_o_induct)
             have "get_level L M  = get_level L (c @ [Marked Kh i])"
               using L_cKh LH unfolding M lits_of_def by simp
             have "get_level L (c @ [Marked Kh i]) \<ge> i"
-              using L_cKh `get_all_levels_of_marked (c @ [Marked Kh i]) = rev [i..<k + 1]`
+              using L_cKh \<open>get_all_levels_of_marked (c @ [Marked Kh i]) = rev [i..<k + 1]\<close>
               backtrack.hyps(2) calculation(1,2) by auto
             hence "get_level L M \<ge> i"
-              using M `get_level L M = get_level L (c @ [Marked Kh i])` by auto }
+              using M \<open>get_level L M = get_level L (c @ [Marked Kh i])\<close> by auto }
           moreover have "get_maximum_level D' M < get_level L' M"
-            using `j \<le> k` backtrack.hyps(2,4) calculation(1-4) by linarith
+            using \<open>j \<le> k\<close> backtrack.hyps(2,4) calculation(1-4) by linarith
           ultimately show False using backtrack.hyps(4) by linarith
         qed
       hence LL': "L = L'" using DLD' by auto
@@ -550,12 +550,12 @@ proof (induction rule: cdcl_o_induct)
           using H unfolding M3 d by (auto simp add: rev_swap[symmetric]
             dest: upt_decomp_lt)
         have "j > 0" apply (rule ccontr)
-          using H ` i > 0` unfolding M3 d
+          using H \<open> i > 0\<close> unfolding M3 d
           by (auto simp add: rev_swap[symmetric] dest!: upt_decomp_lt)
         obtain L'' where "L''\<in>#D'" and L''D': "get_level L'' M = get_maximum_level D' M"
           using get_maximum_level_exists_lit_of_max_level[OF D, of M] by auto
         have L''M: "atm_of L'' \<in> atm_of ` lit_of `set M"
-          using get_rev_level_ge_0_atm_of_in[of 0 L'' "rev M"] `j>0` levD L''D' by auto
+          using get_rev_level_ge_0_atm_of_in[of 0 L'' "rev M"] \<open>j>0\<close> levD L''D' by auto
         hence "L'' \<in> lits_of  (Marked Kh i # d)"
           proof -
             {
@@ -566,14 +566,14 @@ proof (induction rule: cdcl_o_induct)
               moreover have "get_level L'' M = get_level L'' H"
                 using L''H unfolding M by simp
               ultimately have False
-                using levD `j>0` get_rev_level_in_levels_of_marked[of L'' 0 "rev H"] `i \<le> j`
+                using levD \<open>j>0\<close> get_rev_level_in_levels_of_marked[of L'' 0 "rev H"] \<open>i \<le> j\<close>
                 unfolding L''D'[symmetric] nd by auto
             }
             then show ?thesis
-              using DD' DH `L'' \<in># D'` atm_of_lit_in_atms_of contra_subsetD lits_of_def by metis
+              using DD' DH \<open>L'' \<in># D'\<close> atm_of_lit_in_atms_of contra_subsetD lits_of_def by metis
           qed
         hence False
-          using DH `L''\<in>#D'` nd unfolding M3 d
+          using DH \<open>L''\<in>#D'\<close> nd unfolding M3 d
           by (auto simp add: lits_of_def atms_of_def image_iff image_subset_iff)
       }
       ultimately show False by blast
@@ -698,7 +698,7 @@ proof -
     unfolding M by auto
   have M1_D: "M1 \<Turnstile>as CNot D"
     using vars_in_M1 true_annots_remove_if_notin_vars[of "M2 @ Marked K (i + 1) # []" M1 "CNot D"]
-    `M \<Turnstile>as CNot D` unfolding M lits_of_def by simp
+    \<open>M \<Turnstile>as CNot D\<close> unfolding M lits_of_def by simp
 
   have get_lvls_M: "get_all_levels_of_marked M = rev [1..<Suc k]"
     using lev' unfolding S cdcl_M_level_inv_def by auto
@@ -731,7 +731,7 @@ proof -
       ultimately show ?thesis using that MLs by metis
     qed
 
-  have M1'_D: "M1' \<Turnstile>as CNot D" using M1_D `set M1 \<subseteq> set M1'` by (auto intro: true_annots_mono)
+  have M1'_D: "M1' \<Turnstile>as CNot D" using M1_D \<open>set M1 \<subseteq> set M1'\<close> by (auto intro: true_annots_mono)
 
   have "-L \<in> lits_of M" using conf unfolding S by auto
   have lvls_M1': "get_all_levels_of_marked M1' = rev [1..<k]"
@@ -743,7 +743,7 @@ proof -
       hence "atm_of L \<notin> atm_of ` lit_of ` set (Marked K k # rev Ls)" by (simp add: lits_of_def)
       hence "get_level L M = get_level L M1'"
         unfolding M' by auto
-      thus False using get_level_in_levels_of_marked[of L M1'] `k > 0` unfolding k lvls_M1' by auto
+      thus False using get_level_in_levels_of_marked[of L M1'] \<open>k > 0\<close> unfolding k lvls_M1' by auto
     qed
   obtain Y Z where
     RY: "cdcl_s\<^sup>*\<^sup>* R Y" and
@@ -773,10 +773,10 @@ proof -
         using Y'Z rtranclp_cdcl_cp_dropWhile_trail' unfolding full0_def by blast
       obtain M''' where "trail Y' = M''' @ Marked K k # M1'"
         using M'' unfolding M
-        by (metis (no_types, lifting) `\<forall>m\<in>set M''. \<not> is_marked m` beginning_not_marked_invert)
+        by (metis (no_types, lifting) \<open>\<forall>m\<in>set M''. \<not> is_marked m\<close> beginning_not_marked_invert)
       thus ?thesis using dec nt  by (induction M''') auto
     qed
-  have Y_CT: "conflicting Y = C_True" using `decided Y Y'` by auto
+  have Y_CT: "conflicting Y = C_True" using \<open>decided Y Y'\<close> by auto
   have "clauses Y = clauses R" using rtranclp_cdcl_s_no_more_clauses[OF RY] ..
   { assume DL: "D + {#L#} \<in> clauses Y \<union> learned_clauses Y"
     have "atm_of L \<notin> atm_of ` lits_of M1"
@@ -785,11 +785,11 @@ proof -
     hence LM1: "undefined_lit L M1"
       by (metis Marked_Propagated_in_iff_in_lits_of atm_of_uminus image_eqI)
     have L_trY: "undefined_lit L (trail Y)"
-      using  L_notin `no_dup M` unfolding defined_lit_map trY M'
+      using  L_notin \<open>no_dup M\<close> unfolding defined_lit_map trY M'
       by (auto simp add: lits_of_def image_iff)
     have "\<exists> Y'. propagate Y Y'"
       using propagate_rule[OF _ DL M1'_D L_trY] Y_CT trY DL by fast
-    hence False using `no_step propagate Y` by blast
+    hence False using \<open>no_step propagate Y\<close> by blast
   }
   moreover {
     assume DL: "D + {#L#} \<notin> clauses Y \<union> learned_clauses Y"
@@ -802,12 +802,12 @@ proof -
     have "D + {#L#} \<notin> learned_clauses (Ls @ Marked K k # M1', N, U, k, C_Clause (D + {#L#}))"
       apply (rule rtranclp_cdcl_s_with_trail_end_has_not_been_learned[OF Z invZ trZ])
          using DL lY_lZ apply simp
-        apply (metis (no_types, lifting) `set M1 \<subseteq> set M1'` image_mono lits_of_def order_trans
+        apply (metis (no_types, lifting) \<open>set M1 \<subseteq> set M1'\<close> image_mono lits_of_def order_trans
           vars_of_D)
-       using L_notin `no_dup M` unfolding M' by (auto simp add: image_iff lits_of_def)
+       using L_notin \<open>no_dup M\<close> unfolding M' by (auto simp add: image_iff lits_of_def)
     hence False
       using already_learned DL confl rtranclp_cdcl_s_no_more_clauses st'
-      unfolding S M' `clauses Y = clauses R` by fastforce
+      unfolding S M' \<open>clauses Y = clauses R\<close> by fastforce
   }
   ultimately show False by blast
 qed
@@ -932,14 +932,14 @@ next
   have "finite U" using backtrack.prems(7) unfolding S by auto
   have "D + {#L#} \<notin> U"
     using backtrack.prems(3) backtracking[OF _ backtrack.hyps(1-4)] unfolding S by auto
-  hence "card (insert (D + {#L#}) U) = Suc (card U)" by (simp add: `finite U`)
+  hence "card (insert (D + {#L#}) U) = Suc (card U)" by (simp add: \<open>finite U\<close>)
   have "distinct_cdcl_state ?S'"
     using backtrack.prems(9) cdcl_o.backtrack[OF backtracking[OF _ backtrack.hyps]]
     distinct_cdcl_state_inv cdcl.other by blast
   moreover have "\<forall>s\<in>learned_clauses ?S'. \<not> tautology s"
     using learned_clauses_are_not_tautologies[OF cdcl.other[OF cdcl_o.backtrack[OF
       backtracking[OF _ backtrack.hyps]]]] backtrack.prems(5,8,10) by auto
-  moreover have "finite (learned_clauses ?S')" using `finite U` by auto
+  moreover have "finite (learned_clauses ?S')" using \<open>finite U\<close> by auto
   moreover have "card (atms_of_m (learned_clauses (M, N, U, k, C_Clause (D + {#L#}))))
     \<le> card (atms_of_m N)"
     using backtrack.prems(4,6) card_mono[OF backtrack.prems(6)] local.backtrack(1)
@@ -953,7 +953,7 @@ next
       using card_mono backtrack.prems(6) unfolding S by fastforce
     hence "(3::nat) ^ card (atms_of_m (U \<union> {D + {#L#}})) \<le> 3 ^ card (atms_of_m N)" by simp
   ultimately have "(3::nat) ^ card (atms_of_m N) \<ge> card (U \<union> {D + {#L#}})" using le_trans by blast
-  thus ?case using backtrack.prems(3) unfolding S by (auto simp add: `finite U` `D + {#L#} \<notin> U`)
+  thus ?case using backtrack.prems(3) unfolding S by (auto simp add: \<open>finite U\<close> \<open>D + {#L#} \<notin> U\<close>)
 next
   case (restart M N U k)
   thus ?case by simp
@@ -1080,11 +1080,11 @@ proof -
          proof -
            have "cdcl_measure U = cdcl_measure T \<longrightarrow> (cdcl_measure U, cdcl_measure S)
              \<in> lexn {p. case p of (n, na) \<Rightarrow> n < na} 3"
-             using `(cdcl_measure T, cdcl_measure S) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3`
+             using \<open>(cdcl_measure T, cdcl_measure S) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3\<close>
              by presburger
            thus ?thesis
-             using lexn_trans[OF trans_le, of 3] `(cdcl_measure T, cdcl_measure S)
-               \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3` le_or_eq unfolding trans_def by blast
+             using lexn_trans[OF trans_le, of 3] \<open>(cdcl_measure T, cdcl_measure S)
+               \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3\<close> le_or_eq unfolding trans_def by blast
          qed
     qed
 qed

@@ -338,10 +338,10 @@ proof (induction S rule: do_resolve_step.induct)
   then obtain C' where C: "mset C = C' + {#L#}"
     by (metis add.commute in_multiset_in_set insert_DiffM)
   obtain D' where D: "mset D = D' + {#-L#}"
-    using `- L \<in> set D` by (metis add.commute in_multiset_in_set insert_DiffM)
+    using \<open>- L \<in> set D\<close> by (metis add.commute in_multiset_in_set insert_DiffM)
   have D'L:  "D' + {#- L#} - {#-L#} = D'" by (auto simp add: multiset_eq_iff)
 
-  have CL: "mset C - {#L#} + {#L#} = mset C" using `L \<in> set C` by (auto simp add: multiset_eq_iff)
+  have CL: "mset C - {#L#} + {#L#} = mset C" using \<open>L \<in> set C\<close> by (auto simp add: multiset_eq_iff)
   have
     "resolve
      (map convert (Propagated L C # M), mset ` set N, mset ` set U, k, C_Clause (mset D))
@@ -469,7 +469,7 @@ lemma do_backtrack_step:
     have "L \<in> set C" and "get_maximum_level (mset (remove1 L C)) M = j"
       using find_level_decomp_some[OF fd] by auto
     obtain C' where C: "mset C = mset C' + {#L#}"
-      using `L \<in> set C` by (metis add.commute ex_mset in_multiset_in_set insert_DiffM)
+      using \<open>L \<in> set C\<close> by (metis add.commute ex_mset in_multiset_in_set insert_DiffM)
     obtain M\<^sub>2 where M\<^sub>2: "bt_cut j M = Some M\<^sub>2"
       using db fd unfolding S E by (auto split: option.splits)
     obtain M1 K where M1: "M\<^sub>2 = Marked K (Suc j) # M1"
@@ -501,7 +501,7 @@ lemma do_backtrack_step:
                              "(\<lambda>(a, b). (map convert a, map convert b))"] M2
          unfolding M1 apply (auto simp add: get_all_marked_decomposition_map_convert)[1]
         using levL apply simp
-      using max_l_j levL `j \<le> k` apply (simp add: get_maximum_level_plus)
+      using max_l_j levL \<open>j \<le> k\<close> apply (simp add: get_maximum_level_plus)
       using max_l_j by simp
     thus ?case
       using M\<^sub>2 fd unfolding S E M1 by auto
@@ -546,7 +546,7 @@ next
     apply rule
     apply (drule find_level_decomp_none[of _ _ _ _ L D'])
       using C apply simp
-    using C `k > j` mset_eq_setD unfolding k[symmetric] D'D j[symmetric] levL by fastforce
+    using C \<open>k > j\<close> mset_eq_setD unfolding k[symmetric] D'D j[symmetric] levL by fastforce
   then obtain L' j' where fd_some: "find_level_decomp M C [] k = Some (L', j')"
     by (cases "find_level_decomp M C [] k") auto
   have L': "L' = L"
@@ -556,7 +556,7 @@ next
         by (metis C D'D fd_some find_level_decomp_some in_multiset_in_set insert_iff list.simps(15))
       hence "get_level L' M \<le> get_maximum_level D M"
         using get_maximum_level_ge_get_level by blast
-      thus False using `k > j` j find_level_decomp_some[OF fd_some] by auto
+      thus False using \<open>k > j\<close> j find_level_decomp_some[OF fd_some] by auto
     qed
   hence j': "j' = j"  using find_level_decomp_some[OF fd_some] j C D'D by auto
 
@@ -1211,7 +1211,7 @@ fun gene where
 value "gene 1"
 
 export_code do_all_cdcl_s gene in OCaml
-ML {*
+ML \<open>
 structure HOL : sig
   type 'a equal
   val equal : 'a equal -> 'a -> 'a -> bool
@@ -1886,9 +1886,9 @@ fun do_all_cdcl_s s =
 
 end; (*struct CDCL_Implementation*)
 
-*}
+\<close>
 declare[[ML_print_depth=100]]
-ML {*
+ML \<open>
 open Clausal_Logic;
 open CDCL_Implementation;
 open Arith;
@@ -1899,7 +1899,7 @@ let
 
   f
 end
-*}
+\<close>
 
 (*>*)
 end

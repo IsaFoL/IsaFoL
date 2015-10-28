@@ -49,7 +49,7 @@ proof -
     have "dpll (Ms, set (map mset N))
          (Propagated L Proped # fst (Ms, set (map mset N)), snd (Ms, set (map mset N)))"
       apply (rule dpll.propagate[of "mset C - {#L#}" L ?S])
-      using Ms undef C `L \<in> set C` unfolding mem_set_multiset_eq by (auto simp add: C)
+      using Ms undef C \<open>L \<in> set C\<close> unfolding mem_set_multiset_eq by (auto simp add: C)
     hence ?thesis using Ms'N by auto
   }
   moreover
@@ -62,7 +62,7 @@ proof -
     hence "is_marked L" using backtrack_split_snd_hd_marked[of Ms] by auto
     have 1: "dpll (Ms, set (map mset N))
                   (Propagated (- lit_of L) Proped # M, snd (Ms, set (map mset N)))"
-      apply (rule dpll.backtrack[OF _ `is_marked L`, of ])
+      apply (rule dpll.backtrack[OF _ \<open>is_marked L\<close>, of ])
       using C Ms bt by auto
     moreover have "(Ms', N') = (Propagated (- (lit_of L)) Proped # M, N)"
       using step exC unfolding DPLL_step_def bt prod.case unit by auto
@@ -194,7 +194,7 @@ proof (induct rule: DPLL_ci.induct)
       1(2) inv' by auto
     hence "DPLL_part_dom (Ms, N)" using DPLL_part.domintros Ms' by fastforce
     moreover have "DPLL_ci Ms N = DPLL_part Ms N" using "1.prems" DPLL_part.psimps Ms'
-      `DPLL_ci Ms' N = DPLL_part Ms' N \<and> DPLL_part_dom (Ms', N)` `DPLL_part_dom (Ms, N)` by auto
+      \<open>DPLL_ci Ms' N = DPLL_part Ms' N \<and> DPLL_part_dom (Ms', N)\<close> \<open>DPLL_part_dom (Ms, N)\<close> by auto
     ultimately have ?case by blast
   }
   moreover {
@@ -238,9 +238,9 @@ proof (induct Ms N arbitrary: Ms' N' rule: DPLL_ci.induct)
     ultimately have "dpll\<^sup>*\<^sup>* (toS S\<^sub>1' N) (toS Ms' N)" using IH[of "(S\<^sub>1, S\<^sub>2)" S\<^sub>1 S\<^sub>2] S step by simp
 
     moreover have "dpll (toS Ms N) (toS S\<^sub>1 N)"
-      by (metis DPLL_step_is_a_dpll_step S `(S\<^sub>1, S\<^sub>2) \<noteq> (Ms, N)` prod.sel(2) snd_DPLL_step)
-    ultimately have ?case by (metis (mono_tags, hide_lams) IH S `(S\<^sub>1, S\<^sub>2) \<noteq> (Ms, N)`
-      `DPLL_ci Ms N = DPLL_ci S\<^sub>1 N` `dpll_all_inv (toS Ms N)` converse_rtranclp_into_rtranclp
+      by (metis DPLL_step_is_a_dpll_step S \<open>(S\<^sub>1, S\<^sub>2) \<noteq> (Ms, N)\<close> prod.sel(2) snd_DPLL_step)
+    ultimately have ?case by (metis (mono_tags, hide_lams) IH S \<open>(S\<^sub>1, S\<^sub>2) \<noteq> (Ms, N)\<close>
+      \<open>DPLL_ci Ms N = DPLL_ci S\<^sub>1 N\<close> \<open>dpll_all_inv (toS Ms N)\<close> converse_rtranclp_into_rtranclp
       local.step)
   }
   ultimately show ?case by blast
@@ -269,7 +269,7 @@ proof  -
       assume "\<not> ?thesis"
       hence "DPLL_ci Ms' N = (Ms, N)" using step inv st Ms'N[symmetric] by fastforce
       hence "dpll\<^sup>+\<^sup>+ (toS Ms N) (toS Ms N)"
-        by (metis DPLL_ci_dpll_rtranclp DPLL_step_is_a_dpll_step Ms'N `DPLL_step (Ms, N) \<noteq> (Ms, N)`
+        by (metis DPLL_ci_dpll_rtranclp DPLL_step_is_a_dpll_step Ms'N \<open>DPLL_step (Ms, N) \<noteq> (Ms, N)\<close>
           prod.sel(2) rtranclp_into_tranclp2 snd_DPLL_step)
       thus False using dpll_all_inv_dpll_tranclp_irrefl inv by auto
     qed
@@ -294,7 +294,7 @@ proof (induct rule: DPLL_ci.induct)
     assume n: "(S, N) \<noteq> (Ms, N)"
     and inv: "dpll_all_inv (toS Ms N)"
     have "\<exists>ms. DPLL_step (Ms, N) = (ms, N)"
-      by (metis `\<And>thesisa. (\<And>S. (S, N) = DPLL_step (Ms, N) \<Longrightarrow> thesisa) \<Longrightarrow> thesisa`)
+      by (metis \<open>\<And>thesisa. (\<And>S. (S, N) = DPLL_step (Ms, N) \<Longrightarrow> thesisa) \<Longrightarrow> thesisa\<close>)
     hence ?thesis
       using IH that by fastforce
   }
@@ -429,7 +429,7 @@ next
 
       have "dpll (toS Ms N) (toS Ms' N')"
         apply (rule DPLL_step_is_a_dpll_step[of Ms' N' Ms N])
-        unfolding Ms Ms' using `x \<noteq> S` rough_state_of_inject x by fastforce+
+        unfolding Ms Ms' using \<open>x \<noteq> S\<close> rough_state_of_inject x by fastforce+
       thus ?thesis unfolding Ms[symmetric] Ms'[symmetric] by auto
     qed
   ultimately show "(x, S) \<in> {(T', T). (rough_state_of T', rough_state_of T)
@@ -552,7 +552,7 @@ text \<open>One version of the generated SML code is here, but not included in t
 
 (*<*)
 export_code DPLL_tot_rep in SML
-ML {*
+ML \<open>
 
 structure HOL : sig
   type 'a equal
@@ -864,9 +864,9 @@ fun dPLL_tot_rep s =
 end; (*struct DPLL_Implementation*)
 
 
-*}
+\<close>
 
-ML {*
+ML \<open>
 open Clausal_Logic;
 open DPLL_Implementation;
 open Arith;
@@ -882,8 +882,8 @@ in
  DPLL_Implementation.dPLL_tot_rep (Con ([], N))
 
 end
-*}
-ML {*
+\<close>
+ML \<open>
 open Clausal_Logic;
 open DPLL_Implementation;
 open Arith;
@@ -902,9 +902,9 @@ let
 in
  DPLL_Implementation.dPLL_tot_rep (Con ([], N))
 end
-*}
+\<close>
 
-ML {*
+ML \<open>
 open Clausal_Logic;
 open DPLL_Implementation;
 open Arith;
@@ -923,9 +923,9 @@ let
 in
  DPLL_Implementation.dPLL_tot_rep (Con ([], N))
 end
-*}
+\<close>
 declare[[ML_print_depth=100]]
-ML {*
+ML \<open>
 open Clausal_Logic;
 open DPLL_Implementation;
 open Arith;
@@ -946,7 +946,7 @@ let
 in
  DPLL_Implementation.dPLL_tot_rep (Con ([], N))
 end
-*}
+\<close>
 
 (*>*)
 end

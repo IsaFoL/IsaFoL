@@ -132,7 +132,7 @@ next
         assume h: "hd (get_all_marked_decomposition (trail S)) = (a, c)"
         have h': "trail S = c @ a" using get_all_marked_decomposition_decomp h by blast
         have I: "set (map (\<lambda>a. {#lit_of a#})  a) \<union> clauses S \<union> (\<lambda>a. {#lit_of a#}) ` set c
-          \<Turnstile>ps CNot C" using `?I \<Turnstile>ps CNot C` unfolding h' by (simp add: Un_commute Un_left_commute)
+          \<Turnstile>ps CNot C" using \<open>?I \<Turnstile>ps CNot C\<close> unfolding h' by (simp add: Un_commute Un_left_commute)
         have "atms_of_m (CNot C) \<subseteq> atms_of_m (set (map (\<lambda>a. {#lit_of a#}) a) \<union> clauses S)" and
           "atms_of_m ((\<lambda>a. {#lit_of a#}) ` set c) \<subseteq> atms_of_m (set (map (\<lambda>a. {#lit_of a#}) a)
             \<union> clauses S)"
@@ -465,7 +465,7 @@ next
           ultimately have "unsatisfiable N"
             using only_propagated_vars_unsat[of M D N] DN MD rtranclp_dpll_all_inv[OF assms(1)]
             assms(3) by force
-          hence False using `?B` by blast
+          hence False using \<open>?B\<close> by blast
         }
         moreover {
           assume l: "\<exists>l \<in> set M. is_marked l"
@@ -599,9 +599,9 @@ proof
           using rtranclp_dpll_all_inv[OF tranclp_into_rtranclp[OF trancl_into_trancl.hyps(1)]]
           trancl_into_trancl.prems by auto
         ultimately have "(S'', S') \<in> {(pa, p). dpll_all_inv p \<and> dpll p pa}\<^sup>+"
-          using `dpll_all_inv S'` trancl_into_trancl.hyps(3) by blast
+          using \<open>dpll_all_inv S'\<close> trancl_into_trancl.hyps(3) by blast
         thus ?case
-          using `(S', S) \<in> {a. case a of (S', S) \<Rightarrow> dpll_all_inv S \<and> dpll S S'}\<^sup>+` by auto
+          using \<open>(S', S) \<in> {a. case a of (S', S) \<Rightarrow> dpll_all_inv S \<and> dpll S S'}\<^sup>+\<close> by auto
       qed
    }
   thus "?B \<subseteq> ?A" by blast
@@ -647,22 +647,22 @@ proof -
         then obtain L M' M where L: "backtrack_split (trail S) = (M', L # M)"
           using backtrack_split_some_is_marked_then_snd_has_hd by blast
         obtain D where "D \<in> clauses S" and "\<not> trail S \<Turnstile>a D"
-          using `\<not> trail S \<Turnstile>as clauses S` unfolding true_annots_def by auto
+          using \<open>\<not> trail S \<Turnstile>as clauses S\<close> unfolding true_annots_def by auto
         hence "\<forall>s\<in>atms_of_m {D}. s \<in> atm_of ` lit_of ` set (trail S)"
           using vars unfolding atms_of_m_def by blast
         hence "trail S \<Turnstile>as CNot D"
-          using all_variables_defined_not_imply_cnot[of D] `\<not> trail S \<Turnstile>a D` by auto
+          using all_variables_defined_not_imply_cnot[of D] \<open>\<not> trail S \<Turnstile>a D\<close> by auto
         moreover have "is_marked L"
           using L by (metis backtrack_split_snd_hd_marked list.distinct(1) list.sel(1) snd_conv)
         ultimately have False
-          using assms(1) dpll.backtrack L `D \<in> clauses S` `trail S \<Turnstile>as CNot D` by blast
+          using assms(1) dpll.backtrack L \<open>D \<in> clauses S\<close> \<open>trail S \<Turnstile>as CNot D\<close> by blast
       }
       moreover {
         assume tr: "\<forall>C\<in>clauses S. \<not>trail S \<Turnstile>as CNot C"
         obtain C where C_in_cls: "C \<in> clauses S" and trC: "\<not> trail S \<Turnstile>a C"
-          using `\<not> trail S \<Turnstile>as clauses S` unfolding true_annots_def by blast
+          using \<open>\<not> trail S \<Turnstile>as clauses S\<close> unfolding true_annots_def by blast
         have "\<forall>s\<in>atms_of_m {C}. s \<in> atm_of ` lit_of ` set (trail S)"
-          using vars `C \<in> clauses S` unfolding atms_of_m_def by blast
+          using vars \<open>C \<in> clauses S\<close> unfolding atms_of_m_def by blast
         hence "trail S \<Turnstile>as CNot C"
           by (meson C_in_cls tr trC all_variables_defined_not_imply_cnot)
         hence False using tr C_in_cls by auto
@@ -694,7 +694,7 @@ next
       ultimately have "unsatisfiable N"
         using only_propagated_vars_unsat rtranclp_dpll_all_inv[OF assms(1)] assms(3)
         unfolding dpll_all_inv_def by force
-      thus False using `?B` by blast
+      thus False using \<open>?B\<close> by blast
     qed
 qed
 

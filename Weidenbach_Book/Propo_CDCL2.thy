@@ -234,7 +234,7 @@ next
         using propa propagate.prems by (auto dest!: true_clss_clss_in_imp_true_clss_cls)
     next
       have "(\<lambda>m. {#lit_of m#}) ` set M' \<Turnstile>ps CNot C"
-        using `M' \<Turnstile>as CNot C` true_annots_true_clss_clss by blast
+        using \<open>M' \<Turnstile>as CNot C\<close> true_annots_true_clss_clss by blast
       thus "?I \<Turnstile>ps CNot C"
         using a_Un_N_M true_clss_clss_left_right true_clss_clss_union_l_r by blast
     qed
@@ -880,7 +880,7 @@ next
     by (simp add: rev_map[symmetric] rev_swap)
   have "length (rev rem @ map (\<lambda>a. Suc (length (snd a))) (get_all_marked_decomposition F))
           \<le> Suc (card (atms_of_m A))"
-    by (smt One_nat_def `finite (atms_of_m A)` add_Suc backjump.prems(2) card_mono
+    by (smt One_nat_def \<open>finite (atms_of_m A)\<close> add_Suc backjump.prems(2) card_mono
       no_dup_length_eq_card_atm_of_lits_of dual_order.trans le_imp_less_Suc
       length_get_all_marked_decomposition_length length_map less_eq_Suc_le nd plus_nat.add_0 rem)
   moreover
@@ -891,7 +891,7 @@ next
         using rev_nth[of i xs] unfolding in_set_conv_nth by (force simp add: in_set_conv_nth)
     } note H = this
     have "length (F' @ Marked K d # F)\<le> card (atms_of_m A)"
-      by (metis `finite (atms_of_m A)` backjump.prems(2) no_dup_length_eq_card_atm_of_lits_of nd
+      by (metis \<open>finite (atms_of_m A)\<close> backjump.prems(2) no_dup_length_eq_card_atm_of_lits_of nd
         card_mono)
     hence "\<forall>i<length rem. rev rem ! i < card (atms_of_m A) + 2"
       using length_in_get_all_marked_decomposition_bounded[of _ "F' @ Marked K d # F"]
@@ -925,9 +925,9 @@ proof (rule wf_bounded_measure[of _
     using ab unfolding a b by auto
 
   have M'_A: "atm_of ` lits_of M' \<subseteq> atms_of_m A"
-    by (meson M_A N_A `dpll_bj (M, N) (M', N')` dpll_bj_atms_in_trail_in_set)
+    by (meson M_A N_A \<open>dpll_bj (M, N) (M', N')\<close> dpll_bj_atms_in_trail_in_set)
   have nd': "no_dup M'"
-    using `dpll_bj (M, N) (M', N')` dpll_bj_no_dup nd by blast
+    using \<open>dpll_bj (M, N) (M', N')\<close> dpll_bj_no_dup nd by blast
   { fix i :: nat and xs :: "'a list"
     have "i < length xs \<Longrightarrow> length xs - Suc i < length xs"
       by auto
@@ -1027,6 +1027,21 @@ lemma atms_of_m_single_atm_of[simp]:
   "atms_of_m {{#lit_of L#} |L. P L}
     = atm_of `  {lit_of L |L. P L}"
   unfolding atms_of_m_def by auto
+(* TODO Move *)
+
+lemma "(\<exists>L. (K = L \<longrightarrow> P L) 
+                         \<and> (K \<noteq> L \<longrightarrow> Q L))
+                 \<longleftrightarrow> ((\<exists>L. (K = L \<and>P L) )
+                         \<or> (\<exists>L. K \<noteq> L \<and> Q L))"
+                         apply standard
+                         apply blast
+                         by blast
+(* TODO get ride of that *)
+lemma exist_decomp_weird:
+    "(\<exists>xa. (\<exists>uu. xa = atms_of uu \<and> (\<exists>L. (K = L \<longrightarrow> P uu L) \<and> (K \<noteq> L \<longrightarrow> Q uu L))) \<and> x \<in> xa) \<longleftrightarrow> 
+  ((\<exists>uu. (P uu K) \<and> x \<in> atms_of uu) 
+    \<or> (\<exists>uu. (\<exists>L. K \<noteq> L \<and> Q uu L) \<and> x \<in> atms_of uu))"
+  by metis
 
 text \<open>Idea of the proof: We have to prove that @{term "satisfiable N"}, @{term "\<not>M\<Turnstile>as N"}
      and there is no remaining step is incompatible \<close>
@@ -1041,7 +1056,7 @@ lemma
     decomp: "all_decomposition_implies N (get_all_marked_decomposition M)"
   shows "unsatisfiable N \<or> (M \<Turnstile>as N \<and> satisfiable N)"
 proof -
-  consider
+consider
       (sat) "satisfiable N" and "M \<Turnstile>as N"
     | (sat') "satisfiable N" and "\<not> M \<Turnstile>as N"
     | (unsat) "unsatisfiable N"
@@ -1091,7 +1106,7 @@ proof -
         qed
 
       have "M \<Turnstile>as CNot C"
-        by (metis atms_N_M `C \<in> N` `\<not> M \<Turnstile>a C` all_variables_defined_not_imply_cnot
+        by (metis atms_N_M \<open>C \<in> N\<close> \<open>\<not> M \<Turnstile>a C\<close> all_variables_defined_not_imply_cnot
           atms_of_atms_of_m_mono atms_of_m_CNot_atms_of atms_of_m_CNot_atms_of_m lits_of_def
           subsetCE)
       have "\<exists>l. l \<in> set M \<and> is_marked l \<and> atm_of (lit_of l) \<in> atms_of_m N"
@@ -1114,18 +1129,18 @@ proof -
             using \<open>?I \<Turnstile>s N \<union> ?O\<close> unfolding true_clss_def true_annots_def Ball_def true_annot_def
               true_cls_def Bex_mset_def
             apply auto
-            by (meson UnI1 `C \<in> N` `M \<Turnstile>as CNot C`
-              `lits_of M \<subseteq> I \<union> {P |P. P \<in> lits_of M \<and> atm_of P \<notin> atm_of \` I}` cons_I'
+            by (meson UnI1 \<open>C \<in> N\<close> \<open>M \<Turnstile>as CNot C\<close>
+              \<open>lits_of M \<subseteq> I \<union> {P |P. P \<in> lits_of M \<and> atm_of P \<notin> atm_of ` I}\<close> cons_I'
               consistent_interp_def in_CNot_implies_uminus(2) subset_iff)
           thus False using M by fast
         qed
       then obtain K :: "'v literal" and d :: 'lvl and F F' :: "('v, 'lvl, 'mark) marked_lit list" where
         M_K: "M = F' @ Marked K d # F" and
         atm_K_N: "atm_of (lit_of (Marked K d)) \<in> atms_of_m N"
-        sorry
-        let ?K = "Marked K d::('v, 'lvl, 'mark) marked_lit"
-        have "?K \<in> set M"
-          unfolding M_K by auto
+        by (metis is_marked_def marked_lit.sel(1) split_list_first)
+      let ?K = "Marked K d::('v, 'lvl, 'mark) marked_lit"
+      have "?K \<in> set M"
+        unfolding M_K by auto
       (* find contradiction with backjump: let C +l be the clause containing the marked literals.
       We know that N \<Turnstile> CNot C+l, thus we can back-jump.
       *)
@@ -1158,8 +1173,7 @@ proof -
       moreover have "atm_of (-K) \<in> atms_of_m N"
         using atm_K_N by auto
       moreover have "N \<Turnstile>p image_mset uminus (?C) + {#-K#}"
-      sorry
- (*         unfolding true_clss_cls_def CNot_def
+        unfolding true_clss_cls_def CNot_def
         proof (intro allI impI)
           fix I
           let ?E = "image_mset lit_of {# L :# mset M. is_marked L \<and> L \<noteq> Marked K d#}"
@@ -1170,18 +1184,17 @@ proof -
           moreover
             have A:
               "atms_of_m (N \<union> {image_mset uminus ?E + {#- K#}}) =
-            atms_of_m (N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<union> {{#}})" (is "?A = ?B")
-            sorry
-             proof (standard; standard)
+                atms_of_m (N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<union> {{#}})" (is "?A = ?B")
+              proof (standard; standard)
                 fix x
                 assume "x \<in> ?A"
-                hence "x \<in> {x. \<exists>xa. xa \<in> atms_of ` N
-                          \<union> atms_of ` {{#- L#} |L. L \<in>#?E + {#lit_of (Marked K d)#}} \<and> x \<in> xa}"
-                  unfolding Union_eq atms_of_m_def Bex_def image_Un CollectD sorry
+                have "x \<in> atms_of_m N \<union> 
+                  {x. \<exists>xa. xa \<in> atms_of ` {{#- L#} |L. L \<in>#?E + {#lit_of (Marked K d)#}} \<and> x \<in> xa}"
+                  using \<open>x \<in> ?A\<close> apply (simp add: Set.image_Collect exist_decomp_weird)
+                  apply (auto simp: atms_of_def)
+                  
+                  sorry
 
-                hence "x \<in> {x. \<exists>xa. xa \<in> atms_of ` N \<and> x \<in> xa} \<or>
-                x \<in> {x. \<exists>xa. xa \<in>atms_of ` {{#- L#} |L. L \<in>#?E + {#lit_of (Marked K d)#}} \<and> x \<in> xa}"
-                  by fast
                 then consider
                     (N) "x \<in> \<Union>(atms_of ` N)"
                   | (nN) z :: "'v set" where
@@ -1252,7 +1265,7 @@ proof -
             using tot unfolding total_over_m_def total_over_set_def apply auto sorry
           show "I \<Turnstile> image_mset uminus ?E + {#- K#}"
             unfolding true_clss_def apply auto  sorry
-      qed  *)
+      qed
       moreover have "F \<Turnstile>as CNot (image_mset uminus ?C)"
         sorry
       moreover have "atms_of {#- lit_of x. x \<in># {# L :# mset (F' @ Marked K d # F). is_marked L
@@ -1260,11 +1273,10 @@ proof -
       ultimately have False
         using bj_backjump[OF backjump[OF \<open>C\<in>N\<close>, of F' K d F "-K"
            "image_mset uminus (image_mset lit_of {# L :# mset M. is_marked L \<and> L \<noteq> Marked K d#})"]]
-          n_s \<open>M \<Turnstile>as CNot C\<close> unfolding M_K
-        by simp
-        thus ?thesis by fast
+          n_s \<open>M \<Turnstile>as CNot C\<close> unfolding M_K sorry
+        thus ?thesis sorry
     qed auto
-oops
+qed
 
 subsection \<open>CDCL\<close>
  text \<open>To show that CDCL seen as @{term "{(a,b). dpll_bj\<^sup>*\<^sup>* a b} O {(a,b). forget\<^sup>*\<^sup>* a b \<or> learn\<^sup>*\<^sup>* a b}\<^sup>*"}

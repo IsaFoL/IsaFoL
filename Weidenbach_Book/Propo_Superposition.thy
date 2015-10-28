@@ -208,13 +208,13 @@ lemma not_produces_imp_notin_production: "\<not> produces C A \<Longrightarrow> 
 lemma not_produces_imp_notin_interp: "(\<And>D. \<not> produces D A) \<Longrightarrow> A \<notin> interp C"
   unfolding interp_def by (fast intro!: in_production_imp_produces)
 
-text {*
+text \<open>
 The results below corresponds to Lemma 3.4.
 
 \begin{nit}
 If $D = D'$ and $D$ is productive, $I^D \subseteq I_{D'}$ does not hold. 
 \end{nit}
-*}
+\<close>
 
 lemma true_Interp_imp_general:
   assumes
@@ -471,7 +471,7 @@ proof (rule ccontr)
       case True
       moreover
         have "?L \<in># D"
-          by (metis (no_types, lifting) Max_in_lits `D \<in> N` empty)
+          by (metis (no_types, lifting) Max_in_lits \<open>D \<in> N\<close> empty)
         hence "D = (D - {#?L#}) + {#?L#}"
           by auto
       ultimately show ?thesis using that by blast
@@ -504,7 +504,7 @@ proof (rule ccontr)
             using not_d_interp true_interp_imp_INTERP ground_resolution_with_selection_axioms 
               by blast
           hence "produces N D P"
-            using not_empty empty finite `D \<in> N` count L 
+            using not_empty empty finite \<open>D \<in> N\<close> count L 
               true_interp_imp_INTERP unfolding production_iff_produces unfolding production_unfold 
             by (auto simp add: max not_empty)
           hence "INTERP N \<Turnstile>h D"
@@ -529,7 +529,7 @@ proof (rule ccontr)
       have c'_p_p: "C' + {#Pos P#} + {#Pos P#} - {#Pos P#} = C' + {#Pos P#}"
         by auto
       have "redundant (C' + {#Pos P#}) N"
-        using saturated red sup `D \<in> N` unfolding saturated_def C' L c'_p_p by blast
+        using saturated red sup \<open>D \<in> N\<close> unfolding saturated_def C' L c'_p_p by blast
       moreover have "C' + {#Pos P#}  \<subseteq># C' + {#Pos P#} + {#Pos P#}"
         by auto
       ultimately show False
@@ -545,7 +545,7 @@ proof (rule ccontr)
       have "superposition_rules (E + {#Pos P#}) (C + {#Neg P#}) (E + C)"
         using superposition_l by fast
       hence "superposition N (N \<union> {E+C})"
-        using DPN `D \<in> N` unfolding D L by (auto simp add: superposition.simps)
+        using DPN \<open>D \<in> N\<close> unfolding D L by (auto simp add: superposition.simps)
       have 
         PMax: "Pos P = MMax (E + {#Pos P#})" and 
         "count (E + {#Pos P#}) (Pos P) \<le> 1" and 

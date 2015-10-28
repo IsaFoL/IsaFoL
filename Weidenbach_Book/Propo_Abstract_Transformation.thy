@@ -11,8 +11,8 @@ text \<open>This file is devoted to abstract properties of the transformations, 
 section \<open>Rewrite systems and properties\<close>
 subsection \<open>Lifting of rewrite rules\<close>
 
-text \<open>We can lift a rewrite relation r over a full formula: the relation @{text r} works on terms,
-  while @{text propo_rew_step} works on formulas.\<close>
+text \<open>We can lift a rewrite relation r over a full formula: the relation \<open>r\<close> works on terms,
+  while \<open>propo_rew_step\<close> works on formulas.\<close>
 
 
 inductive propo_rew_step :: "('v propo \<Rightarrow> 'v propo \<Rightarrow> bool) \<Rightarrow> 'v propo \<Rightarrow> 'v propo \<Rightarrow> bool"
@@ -159,7 +159,7 @@ qed
 
 subsection \<open>Consistency preservation\<close>
 
-text \<open>We define @{text preserves_un_sat}: it means that a relation preserves consistency.\<close>
+text \<open>We define \<open>preserves_un_sat\<close>: it means that a relation preserves consistency.\<close>
 definition preserves_un_sat where
 "preserves_un_sat r \<longleftrightarrow> (\<forall>\<phi> \<psi>. r \<phi> \<psi> \<longrightarrow> (\<forall>A. A \<Turnstile> \<phi> \<longleftrightarrow> A \<Turnstile> \<psi>))"
 
