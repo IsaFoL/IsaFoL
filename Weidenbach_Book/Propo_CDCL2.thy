@@ -7,10 +7,14 @@ sledgehammer_params[verbose]
 type_synonym ('v, 'lvl, 'mark) cdcl_state = "('v, 'lvl, 'mark) annoted_lits \<times> 'v clauses"
 
 section \<open>DPLL with backjumping\<close>
-locale dpll_with_backjumping =
-  fixes backjump  ::  "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool"
+locale dpll_with_backjumping_rules =
+  fixes
+    backjump  ::  "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool" and
+    inv :: "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool"
   assumes backjump:
-    "\<And>M N M' N'. backjump (M, N) (M', N') \<Longrightarrow> \<exists>C F' K d F L.
+    "\<And>M N M' N'. backjump (M, N) (M', N')
+    \<Longrightarrow>  inv (M, N) \<Longrightarrow>
+      \<exists>C F' K d F L.
         M = F' @ Marked K d # F
         \<and> M' = Propagated L l # F
         \<and> N = N'
@@ -22,7 +26,7 @@ locale dpll_with_backjumping =
         \<and> F \<Turnstile>as CNot C'" and
     bj_can_jump:
       "\<And>C F' K d F L.
-        M = F' @ Marked K d # F
+        inv (M, N) \<Longrightarrow> M = F' @ Marked K d # F
         \<Longrightarrow> C \<in> N
         \<Longrightarrow> F' @ Marked K d # F \<Turnstile>as CNot C
         \<Longrightarrow> undefined_lit L F
@@ -59,10 +63,11 @@ bj_propagate: "propagate S S' \<Longrightarrow> dpll_bj S S'" |
 bj_backjump:  "backjump S S' \<Longrightarrow> dpll_bj S S'"
 
 lemmas dpll_bj_induct = dpll_bj.induct[split_format(complete)]
-lemma dpll_bj_all_induct[consumes 1, case_names decide propagate backjump]:
+lemma dpll_bj_all_induct[consumes 2, case_names decide propagate backjump]:
   fixes M :: "('v, 'lvl, 'mark) annoted_lits" and N ::" 'v clauses"
   assumes
     "dpll_bj (M, N) (M', N')" and
+    "inv (M, N)"
     "\<And>L M N d. undefined_lit L M \<Longrightarrow> atm_of L \<in> atms_of_m N \<Longrightarrow> P M N (Marked L d # M) N" and
     "\<And>C L N M mark. C + {#L#} \<in> N \<Longrightarrow> M \<Turnstile>as CNot C \<Longrightarrow> undefined_lit L M
       \<Longrightarrow> P M N ((Propagated L mark) # M) N" and
@@ -73,30 +78,26 @@ lemma dpll_bj_all_induct[consumes 1, case_names decide propagate backjump]:
       \<Longrightarrow> F \<Turnstile>as CNot C'
       \<Longrightarrow> P (F' @ Marked K d # F) N (Propagated L l #  F) N"
   shows "P M N M' N'"
-  apply (induction rule: dpll_bj_induct[OF local.dpll_with_backjumping_axioms assms(1)])
-  apply(force intro!: assms(2,3) dest!: backjump simp add: assms(1))+
+  using assms(2)
+  apply (induction rule: dpll_bj_induct[OF local.dpll_with_backjumping_rules_axioms assms(1)])
+  apply(force intro!: assms(3,4) dest!: backjump simp add: assms(1))+
   apply (drule backjump)
-  using assms(4) by metis
+  using assms(5) by metis+
 
 subsection \<open>Basic properties\<close>
 paragraph \<open>First, some better suited induction principle\<close>
 
 paragraph \<open>No duplicates in the trail\<close>
 lemma dpll_bj_no_dup:
-  assumes "dpll_bj (M, N) (M', N')"
+  assumes "dpll_bj (M, N) (M', N')" and "inv (M,N)"
   and "no_dup M"
   shows "no_dup M'"
   using assms by (induction rule: dpll_bj_all_induct) (auto simp add: defined_lit_map)
 
-lemma rtranclp_dpll_bj_no_dup:
-  assumes "dpll_bj\<^sup>*\<^sup>* (M, N) (M', N')"
-  and "no_dup M"
-  shows "no_dup M'"
-  using assms by (induction rule: rtranclp_induct2) (auto simp add: dpll_bj_no_dup)
 
 paragraph \<open>Valuations\<close>
 lemma dpll_bj_sat_iff:
-  assumes "dpll_bj (M, N) (M', N')"
+  assumes "dpll_bj (M, N) (M', N')" and "inv (M, N)"
   shows "I \<Turnstile>s N \<longleftrightarrow> I \<Turnstile>s N'"
   using assms by (induction rule: dpll_bj_all_induct) auto
 
@@ -108,48 +109,35 @@ lemma total_over_set_in_total:
 
 paragraph \<open>Clauses\<close>
 lemma dpll_bj_atms_of_m_clauses_inv:
-  assumes "dpll_bj (M, N) (M', N')"
+  assumes
+    "dpll_bj (M, N) (M', N')" and
+    "inv (M, N)"
   shows "atms_of_m N = atms_of_m N'"
   using assms by (induction rule: dpll_bj_all_induct) auto
-
-lemma rtranclp_dpll_bj_atms_of_m_clauses_inv:
-  assumes
-    "dpll_bj\<^sup>*\<^sup>* (M, N) (M', N')"
-  shows "atms_of_m N = atms_of_m N'"
-  using assms by (induction rule: rtranclp_induct2) (auto dest: dpll_bj_atms_of_m_clauses_inv)
 
 lemma dpll_bj_atms_in_trail:
   assumes
     "dpll_bj (M, N) (M', N')" and
+    "inv (M, N)" and
     "atm_of ` (lits_of M) \<subseteq> atms_of_m N"
   shows "atm_of ` (lits_of M') \<subseteq> atms_of_m N'"
   using assms by (induction rule: dpll_bj_all_induct) auto
 
-lemma rtranclp_dpll_bj_atms_in_trail:
-  assumes
-    "dpll_bj\<^sup>*\<^sup>* (M, N) (M', N')" and
-    "atm_of ` (lits_of M) \<subseteq> atms_of_m N"
-  shows "atm_of ` (lits_of M') \<subseteq> atms_of_m N'"
-  using assms by (induction rule: rtranclp_induct2) (auto simp: dpll_bj_atms_in_trail)
+
 
 lemma dpll_bj_atms_in_trail_in_set:
-  assumes "dpll_bj (M, N) (M', N')" and
+  assumes "dpll_bj (M, N) (M', N')"and
+    "inv (M, N)" and
   "atms_of_m N \<subseteq> A" and
   "atm_of ` (lits_of M) \<subseteq> A"
   shows "atm_of ` (lits_of M') \<subseteq> A"
   using assms by (induction rule: dpll_bj_all_induct) auto
 
-lemma rtranclp_dpll_bj_atms_in_trail_in_set:
-  assumes "dpll_bj\<^sup>*\<^sup>* (M, N) (M', N')" and
-  "atms_of_m N \<subseteq> A" and
-  "atm_of ` (lits_of M) \<subseteq> A"
-  shows "atm_of ` (lits_of M') \<subseteq> A"
-  using assms by (induction rule: rtranclp_induct2)
-    (simp_all add: dpll_bj_atms_in_trail_in_set rtranclp_dpll_bj_atms_of_m_clauses_inv)
 
 lemma dpll_bj_all_decomposition_implies_inv:
   assumes
     "dpll_bj (M, N) (M', N')" and
+    "inv (M, N)"
     "all_decomposition_implies N (get_all_marked_decomposition M)"
   shows "all_decomposition_implies N' (get_all_marked_decomposition M')"
   using assms
@@ -445,6 +433,7 @@ abbreviation trail_mes_build where
 lemma dpll_bj_trail_mes_decreasing:
   fixes M :: "('v, 'lvl, 'mark) annoted_lits " and N :: "'v clauses"
   assumes "dpll_bj (M, N) (M', N')" and
+    inv: "inv (M, N)"
   "atms_of_m N \<subseteq> atms_of_m A" and
   "atm_of ` lits_of M \<subseteq> atms_of_m A" and
   "no_dup M" and
@@ -455,10 +444,10 @@ proof (induction rule: dpll_bj_all_induct)
   case (propagate C L N M d) note CLN = this(1) and MC =this(2) and undef_L = this(3) and
     A = this(4) and MA = this(5)
   have "atms_of_m N' \<subseteq> atms_of_m A"
-    using assms(1) assms(2) dpll_bj_atms_of_m_clauses_inv by blast
+    using assms(1-3) dpll_bj_atms_of_m_clauses_inv by blast
   have incl: "atm_of ` lits_of (Propagated L d # M) \<subseteq> atms_of_m A"
-    using dpll_bj_atms_in_trail_in_set bj_propagate propagate.propagate[OF propagate.hyps] A MA
-    by blast
+    using dpll_bj_atms_in_trail_in_set bj_propagate propagate.propagate[OF propagate.hyps] A MA inv
+    CLN by auto
 
   have no_dup: "no_dup (Propagated L d # M)"
     using defined_lit_map propagate.prems(3) undef_L by auto
@@ -479,10 +468,9 @@ next
   case (decide L M N lv) note undef_L = this(1) and MC =this(2) and NA = this(3) and A = this(4)
     and MA = this(5)
   have "atms_of_m N' \<subseteq> atms_of_m A"
-    using assms(1) assms(2) dpll_bj_atms_of_m_clauses_inv by blast
+    using assms(1-3) dpll_bj_atms_of_m_clauses_inv by blast
   have incl: "atm_of ` lits_of (Marked L lv # M) \<subseteq> atms_of_m A"
-    using dpll_bj_atms_in_trail_in_set bj_decide decide.decide[OF decide.hyps] A MA NA by blast
-
+    using dpll_bj_atms_in_trail_in_set bj_decide decide.decide[OF decide.hyps] A MA NA MC by auto
   have no_dup: "no_dup (Marked L lv # M)"
     using defined_lit_map decide.prems(3) undef_L by auto
   obtain a b l where M: "get_all_marked_decomposition M = (a, b) # l"
@@ -501,7 +489,7 @@ next
   case (backjump C N F' K d F L _ lv) note undef_L = this(1) and MC =this(2) and NA = this(3)
     and A = this(4) and MA = this(5) and nd = this(9)
   have "atms_of_m N' \<subseteq> atms_of_m A"
-    using assms(1) assms(2) dpll_bj_atms_of_m_clauses_inv by blast
+    using assms(1-3) dpll_bj_atms_of_m_clauses_inv by blast
   have incl: "atm_of ` lits_of (Propagated L lv # F) \<subseteq> atms_of_m A"
     using dpll_bj_atms_in_trail_in_set backjump.hyps(4) backjump.prems(1) backjump.prems(2) by auto
 
@@ -742,7 +730,7 @@ text \<open>The bounds are the following:
 
 lemma dpll_bj_trail_mes_decreasing_prop:
   fixes M :: "('v, 'lvl, 'mark) annoted_lits " and N :: "'v clauses"
-  assumes "dpll_bj (M, N) (M', N')" and
+  assumes "dpll_bj (M, N) (M', N')" and "inv (M, N)"
   "atms_of_m N \<subseteq> atms_of_m A" and
   "atm_of ` lits_of M \<subseteq> atms_of_m A" and
   "no_dup M" and
@@ -754,10 +742,10 @@ proof (induction rule: dpll_bj_all_induct)
   case (propagate C L N M d) note CLN = this(1) and MC =this(2) and undef_L = this(3) and
     A = this(4) and MA = this(5)
   have "atms_of_m N' \<subseteq> atms_of_m A"
-    using assms(1) assms(2) dpll_bj_atms_of_m_clauses_inv by blast
+    using assms(1-3) dpll_bj_atms_of_m_clauses_inv by blast
   have incl: "atm_of ` lits_of (Propagated L d # M) \<subseteq> atms_of_m A"
-    using dpll_bj_atms_in_trail_in_set bj_propagate propagate.propagate[OF propagate.hyps] A MA
-    by blast
+    using dpll_bj_atms_in_trail_in_set bj_propagate propagate.propagate[OF propagate.hyps] A MA CLN
+    by auto
 
   have no_dup: "no_dup (Propagated L d # M)"
     using defined_lit_map propagate.prems(3) undef_L by auto
@@ -777,7 +765,7 @@ next
   case (decide L M N lv) note undef_L = this(1) and MC =this(2) and NA = this(3) and A = this(4)
     and MA = this(5)
   have incl: "atm_of ` lits_of (Marked L lv # M) \<subseteq> atms_of_m A"
-    using dpll_bj_atms_in_trail_in_set bj_decide decide.decide[OF decide.hyps] A MA NA by blast
+    using dpll_bj_atms_in_trail_in_set bj_decide decide.decide[OF decide.hyps] A MA NA MC by auto
 
   have no_dup: "no_dup (Marked L lv # M)"
     using defined_lit_map decide.prems(3) undef_L by auto
@@ -849,7 +837,8 @@ qed
 lemma dpll_bj_wf:
   assumes fin: "finite A"
   shows "wf {((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), (M, N)). dpll_bj (M, N) (M', N')
-    \<and> atms_of_m N \<subseteq> atms_of_m A \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> no_dup M}" (is "wf ?A")
+    \<and> atms_of_m N \<subseteq> atms_of_m A \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> no_dup M \<and> inv (M, N)}"
+  (is "wf ?A")
 proof (rule wf_bounded_measure[of _
         "\<lambda>_. (2 + card (atms_of_m A))^(1 + card (atms_of_m A))"
         "\<lambda>M. \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> (fst M))"])
@@ -858,7 +847,7 @@ proof (rule wf_bounded_measure[of _
   let ?s = "1+card (atms_of_m A)"
   let ?\<mu> = "\<mu>\<^sub>C ?s ?b"
   assume ab: "(b, a) \<in> {((M', N'), M, N). dpll_bj (M, N) (M', N') \<and> atms_of_m N \<subseteq> atms_of_m A
-     \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> no_dup M}"
+     \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> no_dup M \<and> inv (M,N)}"
   obtain M' N' M N where a: "a = (M, N)" and b: "b = (M', N')" by (cases a, cases b)
   have fin_A: "finite (atms_of_m A)"
     using fin by auto
@@ -866,13 +855,14 @@ proof (rule wf_bounded_measure[of _
     dpll_bj: "dpll_bj (M, N) (M', N')" and
     N_A: "atms_of_m N \<subseteq> atms_of_m A" and
     M_A: "atm_of ` lits_of M \<subseteq> atms_of_m A" and
-    nd: "no_dup M"
+    nd: "no_dup M" and
+    inv: "inv (M,N)"
     using ab unfolding a b by auto
 
   have M'_A: "atm_of ` lits_of M' \<subseteq> atms_of_m A"
-    by (meson M_A N_A \<open>dpll_bj (M, N) (M', N')\<close> dpll_bj_atms_in_trail_in_set)
+    by (meson M_A N_A \<open>dpll_bj (M, N) (M', N')\<close> dpll_bj_atms_in_trail_in_set inv)
   have nd': "no_dup M'"
-    using \<open>dpll_bj (M, N) (M', N')\<close> dpll_bj_no_dup nd by blast
+    using \<open>dpll_bj (M, N) (M', N')\<close> dpll_bj_no_dup nd inv by blast
   { fix i :: nat and xs :: "'a list"
     have "i < length xs \<Longrightarrow> length xs - Suc i < length xs"
       by auto
@@ -891,8 +881,8 @@ proof (rule wf_bounded_measure[of _
     by (metis (no_types, lifting) Nat.le_trans One_nat_def Suc_1 add.right_neutral add_Suc_right
       le_imp_less_Suc less_eq_Suc_le nth_mem)
 
-  from dpll_bj_trail_mes_decreasing_prop[OF dpll_bj N_A M_A nd fin]
-  have "\<mu>\<^sub>C ?s ?b (\<nu> (fst a)) < \<mu>\<^sub>C ?s ?b (\<nu> (fst b))" unfolding a b by simp
+  from dpll_bj_trail_mes_decreasing_prop[OF dpll_bj inv N_A M_A nd fin]
+  have "\<mu>\<^sub>C ?s ?b (\<nu> (fst a)) < \<mu>\<^sub>C ?s ?b (\<nu> (fst b))"  unfolding a b by simp
   moreover from \<mu>\<^sub>C_bounded[OF bounded_M l_\<nu>_M]
     have "\<mu>\<^sub>C ?s ?b (\<nu> (fst b)) \<le> ?b ^ ?s" unfolding b by auto
   ultimately show "?b ^ ?s \<le> ?b ^ ?s \<and>
@@ -900,56 +890,6 @@ proof (rule wf_bounded_measure[of _
            \<mu>\<^sub>C ?s ?b (\<nu> (fst a)) < \<mu>\<^sub>C ?s ?b (\<nu> (fst b))"
     by blast
 qed
-
-lemma rtranclp_dpll_bj_inv_incl_dpll_bj_inv_trancl:
-  "{((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), (M, N)). dpll_bj\<^sup>+\<^sup>+ (M, N) (M', N')
-    \<and> atms_of_m N \<subseteq> atms_of_m A \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> no_dup M}
-     \<subseteq> {((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), (M, N)). dpll_bj (M, N) (M', N')
-    \<and> atms_of_m N \<subseteq> atms_of_m A \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> no_dup M}\<^sup>+" (is "?A \<subseteq> ?B\<^sup>+")
-proof (standard)
-  fix x
-  assume x_A: "x \<in> ?A"
-  obtain M' M ::"('v, 'lvl, 'mark) annoted_lits" and N' N :: "'v clauses" where
-    x[simp]: "x = ((M', N'), (M, N))" by (cases x) auto
-  have
-    "dpll_bj\<^sup>+\<^sup>+ (M, N) (M', N')" and
-    "atms_of_m N \<subseteq> atms_of_m A" and
-    "atm_of ` lits_of M \<subseteq> atms_of_m A" and
-    "no_dup M"
-    using x_A by auto
-  thus "x \<in> ?B\<^sup>+" unfolding x
-    proof (induction rule: tranclp_induct)
-      case base
-      thus ?case by auto
-    next
-      case (step S T) note step = this(1) and ST = this(2) and IH = this(3)[OF this(4-6)]
-        and N_A = this(4) and M_A = this(5) and nd = this(6)
-
-      obtain M\<^sub>T M\<^sub>S and N\<^sub>T N\<^sub>S where
-        T[simp]: "T = (M\<^sub>T, N\<^sub>T)" and
-        S[simp]: "S = (M\<^sub>S, N\<^sub>S)" by (cases T, cases S)
-      have [simp]: "atms_of_m N\<^sub>S = atms_of_m N"
-        using local.step rtranclp_dpll_bj_atms_of_m_clauses_inv tranclp_into_rtranclp by fastforce
-      have "no_dup M\<^sub>S"
-        using local.step nd rtranclp_dpll_bj_no_dup tranclp_into_rtranclp by fastforce
-      moreover have "atm_of ` (lits_of M\<^sub>S) \<subseteq> atms_of_m A"
-        by (metis M_A N_A S local.step rtranclp_dpll_bj_atms_in_trail_in_set tranclp_into_rtranclp)
-      ultimately have "(T, S) \<in> ?B" using ST N_A M_A by auto
-      thus ?case using IH by (rule trancl_into_trancl2)
-    qed
-qed
-
-lemma tranclp_dpll_bj_wf:
-  assumes fin: "finite A"
-  shows "wf {((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), (M, N)). dpll_bj\<^sup>+\<^sup>+ (M, N) (M', N')
-    \<and> atms_of_m N \<subseteq> atms_of_m A \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> no_dup M}"
- using wf_trancl[OF dpll_bj_wf[OF fin]] rtranclp_dpll_bj_inv_incl_dpll_bj_inv_trancl by (rule wf_subset)
-
-lemma tranclp_dpll_bj_wf_inital_state:
-  assumes fin: "finite A"
-  shows "wf {((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), ([], N))|M' N' N.
-    dpll_bj\<^sup>+\<^sup>+ ([], N) (M', N') \<and> atms_of_m N \<subseteq> atms_of_m A}"
-  using tranclp_dpll_bj_wf[OF assms] by (rule wf_subset) auto
 
 subsection \<open>Normal Forms\<close>
 lemma true_clss_clss_union_false_true_clss_clss_cnot:
@@ -999,6 +939,7 @@ theorem
     "atm_of ` lits_of M \<subseteq> atms_of_m A" and
     "no_dup M" and
     "finite A" and
+    inv: "inv (M,N)" and
     n_s: "no_step dpll_bj (M, N)" and
     decomp: "all_decomposition_implies N (get_all_marked_decomposition M)"
   shows "unsatisfiable N \<or> (M \<Turnstile>as N \<and> satisfiable N)"
@@ -1162,12 +1103,121 @@ proof -
       moreover have "F \<Turnstile>as CNot (image_mset uminus ?C)"
         using nm unfolding true_annots_def CNot_def M_K by (auto simp add: lits_of_def)
       ultimately have False
-        using bj_can_jump[of "F' @ Marked K d # F" F' K d F C N "-K"
+        using bj_can_jump[of "F' @ Marked K d # F" N F' K d F C "-K"
           "image_mset uminus (image_mset lit_of {# L :# mset M. is_marked L \<and> L \<noteq> Marked K d#})"]
-          \<open>C\<in>N\<close> n_s \<open>M \<Turnstile>as CNot C\<close> bj_backjump unfolding M_K by (auto intro: bj_backjump)
+          \<open>C\<in>N\<close> n_s \<open>M \<Turnstile>as CNot C\<close> bj_backjump inv unfolding M_K by (auto intro: bj_backjump)
         thus ?thesis by fast
     qed auto
 qed
+end
+
+locale dpll_with_backjumping =
+  dpll_with_backjumping_rules backjump inv
+  for
+    backjump  ::  "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool" and
+    inv :: "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool"
+  +
+  assumes dpll_bj_inv:"dpll_bj (M,N) (M', N') \<Longrightarrow> inv(M,N) \<Longrightarrow> inv (M',N')"
+begin
+
+lemma rtranclp_dpll_bj_inv:
+  assumes "dpll_bj\<^sup>*\<^sup>* (M, N) (M', N')" and "inv (M, N)"
+  shows "inv (M', N')"
+  using assms by (induction rule: rtranclp_induct2)
+    (auto simp add: dpll_bj_no_dup intro: dpll_bj_inv)
+
+
+lemma rtranclp_dpll_bj_no_dup:
+  assumes "dpll_bj\<^sup>*\<^sup>* (M, N) (M', N')" and "inv (M, N)"
+  and "no_dup M"
+  shows "no_dup M'"
+  using assms by (induction rule: rtranclp_induct2)
+  (auto simp add: dpll_bj_no_dup dest: rtranclp_dpll_bj_inv dpll_bj_inv)
+
+
+lemma rtranclp_dpll_bj_atms_of_m_clauses_inv:
+  assumes
+    "dpll_bj\<^sup>*\<^sup>* (M, N) (M', N')" and "inv (M, N)"
+  shows "atms_of_m N = atms_of_m N'"
+  using assms by (induction rule: rtranclp_induct2)
+  (auto dest: rtranclp_dpll_bj_inv dpll_bj_atms_of_m_clauses_inv)
+
+lemma rtranclp_dpll_bj_atms_in_trail:
+  assumes
+    "dpll_bj\<^sup>*\<^sup>* (M, N) (M', N')" and
+    "inv (M, N)" and
+    "atm_of ` (lits_of M) \<subseteq> atms_of_m N"
+  shows "atm_of ` (lits_of M') \<subseteq> atms_of_m N'"
+  using assms by (induction rule: rtranclp_induct2)
+  (auto dest: dpll_bj_atms_in_trail dest!: rtranclp_dpll_bj_inv)
+
+lemma rtranclp_dpll_bj_atms_in_trail_in_set:
+  assumes
+    "dpll_bj\<^sup>*\<^sup>* (M, N) (M', N')" and
+    "inv (M, N)"
+    "atms_of_m N \<subseteq> A" and
+    "atm_of ` (lits_of M) \<subseteq> A"
+  shows "atm_of ` (lits_of M') \<subseteq> A"
+  using assms
+    by (induction rule: rtranclp_induct2)
+       (auto dest: rtranclp_dpll_bj_inv
+         simp add: dpll_bj_atms_in_trail_in_set rtranclp_dpll_bj_atms_of_m_clauses_inv
+           rtranclp_dpll_bj_inv)
+
+lemma rtranclp_dpll_bj_inv_incl_dpll_bj_inv_trancl:
+  "{((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), (M, N)). dpll_bj\<^sup>+\<^sup>+ (M, N) (M', N')
+    \<and> atms_of_m N \<subseteq> atms_of_m A \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> no_dup M \<and> inv (M, N)}
+     \<subseteq> {((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), (M, N)). dpll_bj (M, N) (M', N')
+    \<and> atms_of_m N \<subseteq> atms_of_m A \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> no_dup M \<and> inv (M, N)}\<^sup>+"
+    (is "?A \<subseteq> ?B\<^sup>+")
+proof (standard)
+  fix x
+  assume x_A: "x \<in> ?A"
+  obtain M' M ::"('v, 'lvl, 'mark) annoted_lits" and N' N :: "'v clauses" where
+    x[simp]: "x = ((M', N'), (M, N))" by (cases x) auto
+  have
+    "dpll_bj\<^sup>+\<^sup>+ (M, N) (M', N')" and
+    "atms_of_m N \<subseteq> atms_of_m A" and
+    "atm_of ` lits_of M \<subseteq> atms_of_m A" and
+    "no_dup M" and
+     "inv (M, N)"
+    using x_A by auto
+  thus "x \<in> ?B\<^sup>+" unfolding x
+    proof (induction rule: tranclp_induct)
+      case base
+      thus ?case by auto
+    next
+      case (step S T) note step = this(1) and ST = this(2) and IH = this(3)[OF this(4-7)]
+        and N_A = this(4) and M_A = this(5) and nd = this(6) and inv = this(7)
+
+      obtain M\<^sub>T M\<^sub>S and N\<^sub>T N\<^sub>S where
+        T[simp]: "T = (M\<^sub>T, N\<^sub>T)" and
+        S[simp]: "S = (M\<^sub>S, N\<^sub>S)" by (cases T, cases S)
+      have [simp]: "atms_of_m N\<^sub>S = atms_of_m N"
+        using local.step rtranclp_dpll_bj_atms_of_m_clauses_inv tranclp_into_rtranclp inv by fastforce
+      have "no_dup M\<^sub>S"
+        using local.step nd rtranclp_dpll_bj_no_dup tranclp_into_rtranclp inv by fastforce
+      moreover have "atm_of ` (lits_of M\<^sub>S) \<subseteq> atms_of_m A"
+        by (metis inv M_A N_A S local.step rtranclp_dpll_bj_atms_in_trail_in_set tranclp_into_rtranclp)
+      moreover have "inv (M\<^sub>S, N\<^sub>S)"
+         using inv local.step rtranclp_dpll_bj_inv tranclp_into_rtranclp by fastforce
+      ultimately have "(T, S) \<in> ?B" using ST N_A M_A inv by auto
+      thus ?case using IH by (rule trancl_into_trancl2)
+    qed
+qed
+
+lemma tranclp_dpll_bj_wf:
+  assumes fin: "finite A"
+  shows "wf {((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), (M, N)). dpll_bj\<^sup>+\<^sup>+ (M, N) (M', N')
+    \<and> atms_of_m N \<subseteq> atms_of_m A \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> no_dup M \<and> inv(M,N)}"
+ using wf_trancl[OF dpll_bj_wf[OF fin]] rtranclp_dpll_bj_inv_incl_dpll_bj_inv_trancl by (rule wf_subset)
+
+lemma tranclp_dpll_bj_wf_inital_state:
+  assumes fin: "finite A"
+  shows "wf {((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), ([], N))|M' N' N.
+    dpll_bj\<^sup>+\<^sup>+ ([], N) (M', N') \<and> atms_of_m N \<subseteq> atms_of_m A \<and> inv ([], N)}"
+  using tranclp_dpll_bj_wf[OF assms(1)] by (rule wf_subset) auto
+
 end
 
 section \<open>CDCL\<close>
@@ -1189,7 +1239,7 @@ lemma true_clss_imp_true_cls_ext:
   unfolding true_clss_ext_def by (metis sup.orderE true_clss_union_increase')
 
 lemma (in dpll_with_backjumping) dpll_bj_sat_ext_iff:
-  "dpll_bj (M, N) (M', N') \<Longrightarrow> I\<Turnstile>sext N \<longleftrightarrow> I\<Turnstile>sext N'"
+  "dpll_bj (M, N) (M', N') \<Longrightarrow> inv (M, N) \<Longrightarrow> I\<Turnstile>sext N \<longleftrightarrow> I\<Turnstile>sext N'"
   by (simp add: dpll_bj_atms_of_m_clauses_inv dpll_bj_sat_iff total_over_m_def true_clss_ext_def)
 
 
@@ -1256,14 +1306,14 @@ lemma cdcl_all_induct[consumes 1, case_names dpll_bj learn forget]:
     done
 
 lemma cdcl_no_dup:
-  assumes "cdcl (M, N) (M', N')"
+  assumes "cdcl (M, N) (M', N')" and "inv (M, N)"
   and "no_dup M"
   shows "no_dup M'"
   using assms by (induction rule: cdcl_all_induct) (auto intro: dpll_bj_no_dup)
 
 paragraph \<open>Consistency of the trail\<close>
 lemma cdcl_consistent:
-  assumes "cdcl (M, N) (M', N')"
+  assumes "cdcl (M, N) (M', N')"and "inv (M, N)"
   and "no_dup M"
   shows "consistent_interp (lits_of M')"
   using cdcl_no_dup[OF assms] distinctconsistent_interp by fast
@@ -1272,13 +1322,13 @@ text \<open>The subtle problem here is that tautologies can be removed, meaning 
   disappear of the problem\<close>
 
 lemma cdcl_atms_of_m_clauses_decreasing:
-  assumes "cdcl (M, N) (M', N')"
+  assumes "cdcl (M, N) (M', N')"and "inv (M, N)"
   shows "atms_of_m N' \<subseteq> atms_of_m N"
   using assms by (induction rule: cdcl_all_induct)
     (auto dest!: dpll_bj_atms_of_m_clauses_inv simp add: atms_of_m_def)
 
 lemma cdcl_sat_iff:
-  assumes "cdcl (M, N) (M', N')"
+  assumes "cdcl (M, N) (M', N')"and "inv (M, N)"
   and "consistent_interp I" and "total_over_m I N"
   shows "I \<Turnstile>s N \<longleftrightarrow> I \<Turnstile>s N'"
   using assms apply (induction rule: cdcl_all_induct)
@@ -1289,7 +1339,7 @@ lemma cdcl_sat_iff:
     insert_Diff total_over_set_union true_clss_insert)
 
 lemma cdcl_atms_in_trail:
-  assumes "cdcl (M, N) (M', N')"
+  assumes "cdcl (M, N) (M', N')"and "inv (M, N)"
   and "atm_of ` (lits_of M) \<subseteq> atms_of_m N"
   shows "atm_of ` (lits_of M') \<subseteq> atms_of_m N"
   using assms
@@ -1298,7 +1348,7 @@ lemma cdcl_atms_in_trail:
 
 lemma cdcl_atms_in_trail_in_set:
   assumes
-    "cdcl (M, N) (M', N')" and
+    "cdcl (M, N) (M', N')" and "inv (M, N)" and
     "atms_of_m N \<subseteq> A" and
     "atm_of ` (lits_of M) \<subseteq> A"
   shows "atm_of ` (lits_of M') \<subseteq> A"
@@ -1344,7 +1394,7 @@ subsection \<open>Extension of models\<close>
 subsubsection \<open>Definition\<close>
 
 lemma cdcl_bj_sat_ext_iff:
-  assumes "cdcl (M, N) (M', N')"
+  assumes "cdcl (M, N) (M', N')"and "inv (M, N)"
   shows "I\<Turnstile>sext N \<longleftrightarrow> I\<Turnstile>sext N'"
   using assms
 proof (induction rule:cdcl_all_induct)
@@ -1404,6 +1454,10 @@ begin
 inductive backtrack where
 "backtrack_split (fst S)  = (M', L # M) \<Longrightarrow> is_marked L \<Longrightarrow> D \<in> snd S
   \<Longrightarrow> fst S \<Turnstile>as CNot D \<Longrightarrow> backtrack S (Propagated (- (lit_of L)) Proped # M, clauses S)"
+sublocale dpll_with_backjumping backtrack "no_dup o fst"
+apply unfold_locales
+
+oops
 end
 
 end
