@@ -1155,7 +1155,6 @@ proof
   thus False by (induct rule: cdcl_cp.induct) auto
 qed
 
-(*TODO Mark as [dest]?*)
 lemma no_step_cdcl_cp_no_conflict_no_propagate:
   assumes "no_step cdcl_cp S"
   shows "no_step conflict S" and "no_step propagate S"
@@ -1168,8 +1167,7 @@ text \<open>CDCL with the reasonable strategy: we fully propagate the conflict a
 inductive cdcl_s :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
 conflict': "full cdcl_cp S S' \<Longrightarrow> cdcl_s S S'" |
 (*TODO replace no_step propagate S \<Longrightarrow> no_step conflict S by no_step cdcl_cp S*)
-other': "cdcl_o S S'  \<Longrightarrow> no_step propagate S \<Longrightarrow> no_step conflict S \<Longrightarrow> full0 cdcl_cp S' S''
-\<Longrightarrow> cdcl_s S S''"
+other': "cdcl_o S S'  \<Longrightarrow> no_step cdcl_cp S \<Longrightarrow>  full0 cdcl_cp S' S'' \<Longrightarrow> cdcl_s S S''"
 
 subsubsection \<open>Invariants\<close>
 text \<open>These are the same invariants as before, but lifted\<close>
@@ -2387,7 +2385,8 @@ next
         moreover have S'': "S''=  (trail S'', N, {}, backtrack_level S'', C_True)"
           using S'' by induct auto
         hence "cdcl_s\<^sup>*\<^sup>* (S0_cdcl N) (trail S'', N, {}, backtrack_level S'', C_True)"
-          using cdcl_s.intros(2)[OF decided[OF dec] no_step no_confl full0] st by auto
+          using cdcl_s.intros(2)[OF decided[OF dec] _ full0] no_step no_confl st
+          by (metis (no_types, lifting) cdcl_cp.cases rtranclp.rtrancl_into_rtrancl)
         ultimately show ?thesis by blast
       qed
   }
@@ -2612,8 +2611,8 @@ next
   case (other' S S' S'')
   have "no_littler_confl S'"
     using cdcl_o_no_littler_confl_inv[OF other'.hyps(1) other'.prems(2,1,3)]
-    not_conflict_not_any_negated_clauses[OF other'.hyps(3)] by blast
-  thus ?case  using full0_cdcl_cp_no_littler_confl_inv[of S' S''] other'.hyps(4) by blast
+    not_conflict_not_any_negated_clauses other'.hyps(2) by blast
+  thus ?case using full0_cdcl_cp_no_littler_confl_inv[of S' S''] other'.hyps by blast
 qed
 
 
@@ -2798,7 +2797,7 @@ next
   have lev': "cdcl_M_level_inv S'"
     using cdcl_consistent_inv other other'.hyps(1) other'.prems(3) by blast
   have "no_littler_confl S''"
-    using cdcl_s_no_littler_confl_inv[OF cdcl_s.other'[OF other'.hyps(1-4)]] other'.prems(1-3)
+    using cdcl_s_no_littler_confl_inv[OF cdcl_s.other'[OF other'.hyps(1-3)]] other'.prems(1-3)
     by blast
   moreover
   have "no_clause_is_false S'
@@ -2812,7 +2811,7 @@ next
       assume "conflicting S' = C_True"
       hence "conflict_is_false_with_level S'" by auto
       moreover have "full0 cdcl_cp S' S''"
-        by (metis (no_types) other'.hyps(4))
+        by (metis (no_types) other'.hyps(3))
       ultimately have "conflict_is_false_with_level S''"
         using rtranclp_cdcl_co_conflict_ex_lit_of_max_level[of S' S''] lev' \<open>no_clause_is_false S'\<close>
         by blast
@@ -2825,7 +2824,7 @@ next
       hence "conflict_is_false_with_level S'"
         using cdcl_o_conflict_is_false_with_level_inv[OF other'.hyps(1) other'.prems(2)]
         other'.prems(3,5,6) by blast
-      moreover have "cdcl_cp\<^sup>*\<^sup>* S' S''" using other'.hyps(4) unfolding full0_def by auto
+      moreover have "cdcl_cp\<^sup>*\<^sup>* S' S''" using other'.hyps(3) unfolding full0_def by auto
       hence "S' = S''" using c
         by (induct rule: rtranclp.induct)
            (fastforce intro: conflicting_clause.exhaust)+
@@ -2849,14 +2848,14 @@ next
          D: "D \<in> clauses S' \<union> learned_clauses S'" and
          "trail S'' \<Turnstile>as CNot D" and
          "conflicting S'' = C_Clause D"
-         using full_cdcl_cp_exists_conflict_full_decompose[OF _ other'(4) \<open>conflicting S' = C_True\<close>]
-         by fast
+         using full_cdcl_cp_exists_conflict_full_decompose[OF _ _  \<open>conflicting S' = C_True\<close>] 
+         other'(3) by fast
        obtain M where M: "trail S'' = M @ trail S'" and nm: "\<forall>m\<in>set M. \<not>is_marked m"
-         using rtranclp_cdcl_cp_dropWhile_trail other'(4) unfolding full0_def by blast
+         using rtranclp_cdcl_cp_dropWhile_trail other'(3) unfolding full0_def by blast
        have btS: "backtrack_level S'' = backtrack_level S'"
-         by (metis full0_def other'.hyps(4) rtranclp_cdcl_cp_backtrack_level)
+         by (metis full0_def other'.hyps(3) rtranclp_cdcl_cp_backtrack_level)
        have inv: "cdcl_M_level_inv S''"
-         by (metis (no_types) cdcl_s.conflict' cdcl_s_consistent_inv full0_unfold lev' other'.hyps(4))
+         by (metis (no_types) cdcl_s.conflict' cdcl_s_consistent_inv full0_unfold lev' other'.hyps(3))
        hence nd: "no_dup (trail S'')"
          by (metis (no_types) cdcl_M_level_inv_decomp(2))
        have "conflict_is_false_with_level S''"
@@ -3124,7 +3123,8 @@ next
       have no_p: "no_step propagate ?S" and no_c: "no_step conflict ?S"
         by auto
       hence "no_step cdcl_cp ?S" by simp
-      have res_skip: "\<exists>T. (resolve ?S T \<and> no_step skip ?S \<and> full0 cdcl_cp T T) \<or> (skip ?S T \<and> no_step resolve ?S \<and> full0 cdcl_cp T T)"
+      have res_skip: "\<exists>T. (resolve ?S T \<and> no_step skip ?S \<and> full0 cdcl_cp T T) 
+        \<or> (skip ?S T \<and> no_step resolve ?S \<and> full0 cdcl_cp T T)"
         proof cases
           assume "-lit_of L \<notin># D"
           then obtain T where sk: "skip ?S T" and res: "no_step resolve ?S"
@@ -3144,8 +3144,8 @@ next
           thus ?thesis
            using sk res by blast
         qed
-      hence step_s:  "\<exists>T. cdcl_s ?S T"
-        by (meson no_c no_p cdcl_o.simps cdcl_s.simps)
+      hence step_s: "\<exists>T. cdcl_s ?S T"
+        by (meson `no_step cdcl_cp (L # M, N, U, 0, C_Clause D)` cdcl_s.simps resolve skip)
       have "get_all_marked_decomposition (L # M) = [([], L#M)]"
         using nm unfolding K apply (induction M rule: marked_lit_list_induct, simp)
           by (case_tac "hd (get_all_marked_decomposition xs)", auto)+
@@ -3209,7 +3209,7 @@ proof -
   have "\<exists>T. conflict (S0_cdcl N) T"
     using empty by (auto simp add: conflict.simps)
   hence fullSt: "full cdcl_cp (S0_cdcl N) St"
-    using St unfolding cdcl_s.simps by auto
+    using St unfolding cdcl_s.simps by blast
   then have bt: "backtrack_level St = (0::nat)"
     unfolding full_def by (metis backtrack_level_conv rtranclp_cdcl_cp_backtrack_level
       tranclp_into_rtranclp)

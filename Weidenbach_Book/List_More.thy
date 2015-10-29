@@ -274,6 +274,27 @@ proof -
     qed
 qed
 
+lemma wf_if_measure_f_notation2:
+  assumes "wf r"
+  shows "wf {(b, h a)|b a. (f b, f (h a)) \<in> r}"
+  apply (rule wf_subset)
+  using wf_if_measure_f[OF assms, of f] by auto
+
+lemma wf_wf_if_measure'_notation2:
+assumes "wf r" and H: "(\<And>x y. P x \<Longrightarrow> g x y \<Longrightarrow> (f y, f (h x)) \<in> r)"
+shows " wf {(y,h x)| y x. P x \<and> g x y}"
+proof -
+  have "wf {(b, h a)|b a. (f b, f (h a)) \<in> r}" using assms(1) wf_if_measure_f_notation2 by auto
+  hence "wf {(b, h a)|b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r}"
+    using wf_subset[of _ "{(b, h a)| b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r}"] by auto
+  moreover have "{(b, h a)|b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r}
+    \<subseteq> {(b, h a)|b a. (f b, f (h a)) \<in> r}" by auto
+  moreover have "{(b, h a)|b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r} = {(b, h a)|b a. P a \<and> g a b}"
+    using H by auto
+  ultimately show ?thesis using wf_subset by simp
+qed
+
+
 section \<open>rtranclp\<close>
 text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and sledgehammer use it), but it makes more sense to duplicate it.\<close>
 lemma rtranclp_unfold: "rtranclp r a b \<longleftrightarrow> (a = b \<or> tranclp r a b)"

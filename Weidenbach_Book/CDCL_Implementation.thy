@@ -811,7 +811,10 @@ next
     nc: "no_step conflict (toS (rough_state_of S))"
     by (metis True do_cp_step_eq_no_step do_full_cp_step_fix_point_of_do_full_cp_step
        in_clauses_rough_state_of_is_distinct no_cdcl_cp_iff_no_propagate_no_conflict)+
-  moreover have "cdcl_cp\<^sup>\<down> (toS (rough_state_of (do_other_step' S))) (toS (rough_state_of (do_full_cp_step (do_other_step' S))))"
+    hence "no_step cdcl_cp (toS (rough_state_of S))"
+      by (meson cdcl_cp.cases)
+  moreover have "cdcl_cp\<^sup>\<down> (toS (rough_state_of (do_other_step' S)))
+    (toS (rough_state_of (do_full_cp_step (do_other_step' S))))"
     using do_full_cp_step_full0 by auto
   ultimately show ?thesis
     using assms True unfolding do_cdcl_s_step_def
@@ -1061,7 +1064,7 @@ proof -
       using assms unfolding do_cdcl_s_step_def by (metis (full_types) cdcl_all_inv_mes_rough_state
         do_full_cp_step_do_other_step'_normal_form do_other_step_no rough_state_of_do_other_step')
   }
-  ultimately show ?thesis using assms by (auto simp add: cdcl_s.simps)
+  ultimately show ?thesis using assms by (meson cdcl_cp.simps cdcl_s.cases)
 qed
 
 lemma toS_rough_state_of_state_of_rough_state_of_I[simp]:
