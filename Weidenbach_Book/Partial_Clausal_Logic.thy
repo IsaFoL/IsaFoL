@@ -454,6 +454,24 @@ theorem true_cls_remove_unused:
   shows "{v \<in> I. atm_of v \<in> atms_of \<psi>} \<Turnstile> \<psi>"
   using assms unfolding true_cls_def atms_of_def by auto
 
+theorem true_clss_remove_unused:
+  assumes "I \<Turnstile>s \<psi>"
+  shows "{v \<in> I. atm_of v \<in> atms_of_m \<psi>} \<Turnstile>s \<psi>"
+  unfolding true_clss_def atms_of_def Ball_def
+proof (intro allI impI)
+  fix x
+  assume "x \<in> \<psi>"
+  hence "I \<Turnstile> x"
+    using assms unfolding true_clss_def atms_of_def Ball_def by auto
+
+  hence "{v \<in> I. atm_of v \<in> atms_of x} \<Turnstile> x"
+    by (simp only: true_cls_remove_unused[of I])
+  moreover have "{v \<in> I. atm_of v \<in> atms_of x} \<subseteq> {v \<in> I. atm_of v \<in> atms_of_m \<psi>}"
+    using \<open>x \<in> \<psi>\<close> by (auto simp add: atms_of_m_def)
+  ultimately show "{v \<in> I. atm_of v \<in> atms_of_m \<psi>} \<Turnstile> x"
+    using true_cls_mono_set_mset_l by blast
+qed
+
 text \<open>A simple application of the previous theorem:\<close>
 lemma true_clss_union_decrease:
   assumes II': "I \<union> I' \<Turnstile> \<psi>"
