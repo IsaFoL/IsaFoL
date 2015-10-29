@@ -194,7 +194,6 @@ lemma Marked_Propagated_in_iff_in_lits_of:
   unfolding lits_of_def defined_lit_def
   by (auto simp add: rev_image_eqI) (case_tac x, auto)+
 
-(* TODO: intro rule instead of simp?*)
 lemma consistent_add_undefined_lit_consistent[simp]:
   "consistent_interp (lits_of Ls) \<Longrightarrow> undefined_lit L Ls \<Longrightarrow> consistent_interp (insert L (lits_of Ls))"
   unfolding consistent_interp_def by (auto simp add: Marked_Propagated_in_iff_in_lits_of)
@@ -215,7 +214,6 @@ lemma backtrack_split_fst_not_marked: "a \<in> set (fst (backtrack_split l)) \<L
 lemma backtrack_split_snd_hd_marked: "snd (backtrack_split l) \<noteq> [] \<Longrightarrow> is_marked (hd (snd (backtrack_split l)))"
   by (induct l rule: marked_lit_list_induct) auto
 
-(*TODO as simp rule is nice, but the [symmetric] version might be more interesting as [dest!]*)
 lemma backtrack_split_list_eq[simp]:
   "fst (backtrack_split l) @ (snd (backtrack_split l)) = l"
   by (induct l rule: marked_lit_list_induct) auto
@@ -381,13 +379,6 @@ next
     qed
 qed
 
-(*TODO Use Eisbach for the (case_tac aa, case_tac "hd (.. M)",auto):
-  * first match the get_all_marked_decomposition (a # ..) in the assumption or the goal
-  * then case_tac a
-  * then if hd (get_all_marked_decomposition M) / (get_all_marked_decomposition M) is present in the goal/assumption, split on it
-  * else fail/do nothing?
-
-*)
 lemma get_all_marked_decomposition_remove_unmarked_length:
   assumes "\<forall>l \<in> set M'. \<not>is_marked l"
   shows "length (get_all_marked_decomposition (M' @ M'')) = length (get_all_marked_decomposition M'')"
@@ -434,8 +425,7 @@ next
   ultimately show ?case by (cases a) auto
 qed
 
-(* TODO Mark as [dest] ?]*)
-lemma get_all_marked_decomposition_exists_prepend:
+lemma get_all_marked_decomposition_exists_prepend[dest]:
   assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
   shows "\<exists>c. M = c @ b @ a"
   using assms apply (induct M rule: marked_lit_list_induct)
@@ -459,7 +449,7 @@ lemma get_all_marked_decomposition_exists_prepend':
 lemma union_in_get_all_marked_decomposition_is_subset:
   assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
   shows "set a \<union> set b \<subseteq> set M"
-  using assms by (force dest: get_all_marked_decomposition_exists_prepend)
+  using assms by force
 
 
 definition all_decomposition_implies :: "'a literal multiset set
@@ -775,7 +765,8 @@ proof (clarify, rule ccontr)
   fix L
   assume LB: "L \<in># B" and " \<not> lit_of ` set A \<Turnstile>l - L"
   hence "atm_of L \<in> atm_of ` lit_of ` set A" using assms(1) by (simp add: atm_of_lit_in_atms_of)
-  hence "L \<in> lit_of ` set A \<or> -L \<in> lit_of ` set A" using atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set by metis
+  hence "L \<in> lit_of ` set A \<or> -L \<in> lit_of ` set A" 
+    using atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set by metis
   hence "L \<in> lit_of ` set A" using \<open> \<not> lit_of ` set A \<Turnstile>l - L\<close> by auto
   thus False
     using LB assms(2) unfolding true_annot_def lits_of_def true_lit_def true_cls_def Bex_mset_def
@@ -809,7 +800,7 @@ lemma distinctget_all_marked_decomposition_no_dup:
   assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
   and "no_dup M"
   shows "no_dup (a @ b)"
-  using assms by (force dest!: get_all_marked_decomposition_exists_prepend)
+  using assms by force
 
 lemma true_annots_lit_of_notin_skip:
   assumes "L # M \<Turnstile>as CNot A"

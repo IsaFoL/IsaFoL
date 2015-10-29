@@ -178,8 +178,7 @@ lemma cdcl_o_bt:
   using assms
 proof (induct rule: cdcl_o_induct)
   case (backtrack M N U k D L K i M1 M2)
-  then obtain c where M: "M = c @ M2 @ Marked K (i + 1) # M1"
-    using get_all_marked_decomposition_exists_prepend by blast
+  then obtain c where M: "M = c @ M2 @ Marked K (i + 1) # M1" by blast
   have "rev (get_all_levels_of_marked M) = [1..<1+ (length (get_all_levels_of_marked M))]"
     using local.backtrack(6) by (auto simp add: rev_swap[symmetric])
   thus ?case unfolding M by (auto dest!: append_cons_eq_upt_length simp del: upt_simps)
@@ -226,8 +225,10 @@ proof (induct rule: cdcl_all_induct)
   finally show ?case by simp
 next
   case (backtrack M N U k D L K i M1 M2)
-  then obtain c where M: "M = c @ M2 @ Marked K (i + 1) # M1" using get_all_marked_decomposition_exists_prepend by metis
-  have "get_all_levels_of_marked (rev M) = [Suc 0..<2+length (get_all_levels_of_marked c) + (length (get_all_levels_of_marked M2) + length (get_all_levels_of_marked M1))]"
+  then obtain c where M: "M = c @ M2 @ Marked K (i + 1) # M1" by blast
+  have "get_all_levels_of_marked (rev M) 
+    = [Suc 0..<2+length (get_all_levels_of_marked c) + (length (get_all_levels_of_marked M2) 
+                + length (get_all_levels_of_marked M1))]"
     using backtrack.prems(2) unfolding M backtrack.hyps(1)
     by (auto simp add: rev_swap[symmetric] simp del: upt_simps)
   thus ?case by (auto simp add: rev_swap M dest!: append_cons_eq_upt(1) simp del: upt_simps)
@@ -244,8 +245,7 @@ lemma backtrack_lit_skiped:
 proof
   let ?M = "trail S"
   assume L_in_M1: "atm_of L \<in> atm_of ` lits_of M1"
-  obtain c where Mc: "trail S = c @ M2 @ Marked K (i + 1) # M1"
-    using M1 get_all_marked_decomposition_exists_prepend by blast
+  obtain c where Mc: "trail S = c @ M2 @ Marked K (i + 1) # M1" using M1 by blast
   have "atm_of L \<notin> atm_of ` lit_of ` set c"
     using L_in_M1 no_dup mk_disjoint_insert unfolding Mc lits_of_def by force
   have g_M_eq_g_M1: "get_level L ?M = get_level L M1"
@@ -271,9 +271,9 @@ lemma cdcl_distinctinv_1:
 proof (induct rule: cdcl_all_induct)
   case (backtrack M N U k D L K i M1 M2) note M1 = this(1) and L = this(2)
   obtain c where Mc: "M = c @ M2 @ Marked K (i + 1) # M1"
-    using M1 get_all_marked_decomposition_exists_prepend by blast
+    using M1 by blast
   have "no_dup (M2 @ Marked K (i + 1) # M1)"
-    using M1 backtrack.prems(1) get_all_marked_decomposition_exists_prepend by fastforce
+    using M1 backtrack.prems(1) by fastforce
   moreover have "atm_of L \<notin> (\<lambda>l. atm_of (lit_of l)) ` set M1"
     using backtrack_lit_skiped[of L "(M, N, U, k, C_Clause (D + {#L#}))" K i M1 M2] L M1 backtrack.prems by (fastforce simp add: lits_of_def)
   ultimately show ?case by simp
@@ -363,7 +363,7 @@ proof (induct rule: cdcl_all_induct)
   show ?case
     using backtrack.prems backtrack.hyps(1) unfolding cdcl_learned_clause_def
     by (auto dest!: get_all_marked_decomposition_exists_prepend)
-qed (auto dest: mk_disjoint_insert get_all_marked_decomposition_exists_prepend
+qed (auto dest: mk_disjoint_insert
       simp add: cdcl_learned_clause_def
       intro: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or)
 
@@ -440,14 +440,13 @@ next
   have "?C (Propagated L (D+{#L#}) # M1 , N, U \<union> {D +  {#L#}}, i, C_True)"
     using backtrack.prems(3) unfolding S by simp
   moreover have "set M1 \<subseteq> set M"
-    using backtrack.hyps(1) by (auto dest: get_all_marked_decomposition_exists_prepend)
+    using backtrack.hyps(1) by auto
   hence M: "?M (Propagated L (D+{#L#}) # M1 , N, U \<union> {D +  {#L#}}, i, C_True)"
     using backtrack.prems(1,2) by (fastforce simp add: image_subset_iff S)
   moreover have "?U (Propagated L (D+{#L#}) # M1 , N, U \<union> {D +  {#L#}}, i, C_True)"
     using backtrack.prems(1,3) unfolding S by auto
   moreover have "?V (Propagated L (D+{#L#}) # M1 , N, U \<union> {D +  {#L#}}, i, C_True)"
-    using M backtrack.prems(4) backtrack.hyps(1)
-    by (fastforce dest: get_all_marked_decomposition_exists_prepend)
+    using M backtrack.prems(4) backtrack.hyps(1) by fastforce
   ultimately show ?case by blast
 next
   case (resolve M N L D k U C)
@@ -503,7 +502,8 @@ lemma distinct_cdcl_state_inv:
   using assms
 proof (induct rule: cdcl_all_induct)
   case (backtrack M N U k D L K i M1 M2)
-  thus ?case using get_all_marked_decomposition_incl unfolding distinct_cdcl_state_def by fastforce
+  thus ?case 
+    unfolding distinct_cdcl_state_def by (fastforce dest: get_all_marked_decomposition_incl)
 qed (auto simp add: distinct_cdcl_state_def distinct_mset_set_def)
 
 lemma rtanclp_distinct_cdcl_state_inv:
@@ -541,7 +541,7 @@ proof (rule ccontr)
     by (meson image_subsetI mem_set_mset_iff true_annots_CNot_all_atms_defined)
 
   obtain M0 where M: "M = M0 @ M2 @ Marked K (i+1) # M1"
-    using decomp get_all_marked_decomposition_exists_prepend i by blast
+    using decomp i by blast
 
   assume a: "\<not> ?thesis"
   then obtain L where
@@ -655,8 +655,10 @@ next
     using decomp unfolding ay all_decomposition_implies_def by (auto simp add: ay M)
 next
   case (backtrack M N U k D L K i M1 M2)
-  have "\<forall>l \<in> set M2. \<not>is_marked l" using get_all_marked_decomposition_snd_not_marked backtrack.hyps(1) by blast
-  obtain M0 where M: "M = M0 @ M2 @ Marked K (i + 1) # M1" using backtrack.hyps(1) get_all_marked_decomposition_exists_prepend by blast
+  have "\<forall>l \<in> set M2. \<not>is_marked l" 
+    using get_all_marked_decomposition_snd_not_marked backtrack.hyps(1) by blast
+  obtain M0 where M: "M = M0 @ M2 @ Marked K (i + 1) # M1" 
+    using backtrack.hyps(1) by blast
   show ?case unfolding all_decomposition_implies_def
     proof
       fix x
@@ -798,7 +800,7 @@ next
   have "\<forall>l \<in> set M2. \<not>is_marked l"
     using get_all_marked_decomposition_snd_not_marked backtrack.hyps(1) by blast
   obtain M0 where M: "M = M0 @ M2 @ Marked K (i + 1) # M1"
-    using backtrack.hyps(1) get_all_marked_decomposition_exists_prepend by blast
+    using backtrack.hyps(1) by blast
   show ?case unfolding trail_conv
     proof (intro allI impI)
       fix La mark a b
@@ -2480,7 +2482,7 @@ next
   case (backtrack M N U k D L K i M1 M2) note S = this(1) and decomp = this(1) and IH = this(6) and
     lev = this(7)
   obtain c where M: "M = c @ M2 @ Marked K (i+1) # M1"
-    using get_all_marked_decomposition_exists_prepend decomp by blast
+    using decomp by blast
 
   show ?case
     proof (intro allI impI)
@@ -2687,7 +2689,7 @@ next
       assume Da: "Da \<in> N \<union> (U \<union> {D + {#L#}})"
       and M_D: "Propagated L (D + {#L#}) # M1 \<Turnstile>as CNot Da"
       obtain c where M: "M = c @ M2 @ Marked K (i + 1) # M1"
-        using decomp get_all_marked_decomposition_exists_prepend by blast
+        using decomp by blast
       have lev': "cdcl_M_level_inv (Propagated L (D + {#L#}) # M1, N, U \<union> {D + {#L#}}, i, C_True)"
         using cdcl_consistent_inv[OF cdcl.other[OF cdcl_o.backtrack[OF backtracking[
           OF _ backtrack.hyps]]] no_f] by auto

@@ -476,7 +476,7 @@ lemma do_backtrack_step:
       using bt_cut_some_decomp[OF M\<^sub>2] by (cases M\<^sub>2) auto
     obtain c where c: "M = c @ Marked K (Suc j) # M1"
        using bt_cut_in_get_all_marked_decomposition[OF M\<^sub>2]
-         get_all_marked_decomposition_exists_prepend unfolding M1 by fastforce
+       unfolding M1 by fastforce
     have "get_all_levels_of_marked (map convert M) = rev [1..<Suc k]"
       using inv unfolding cdcl_all_inv_mes_def cdcl_M_level_inv_def S by auto
     from arg_cong[OF this, of "\<lambda>a. Suc j \<in> set a"] have "j \<le> k" unfolding c by auto
@@ -530,7 +530,7 @@ next
         simp add: get_all_marked_decomposition_map_convert)
   have z: "z = Marked K (Suc j)" using z by (cases z) auto
   obtain c where c: "M = c @ b @ Marked K (Suc j) # M1"
-    using get_all_marked_decomposition_exists_prepend[OF decomp] unfolding z by blast
+    using decomp unfolding z by blast
   have "get_all_levels_of_marked (map convert M) = rev [1..<Suc k]"
     using inv unfolding cdcl_all_inv_mes_def cdcl_M_level_inv_def S by auto
   from arg_cong[OF this, of "\<lambda>a. Suc j \<in> set a"] have "k > j" unfolding c by auto
@@ -864,15 +864,6 @@ lemma do_full_cp_step_neq_trail_increase:
 apply (induction rule: do_full_cp_step_induct)
 apply (case_tac "do_cp_step' S = S")
   apply (simp add: do_full_cp_step.simps)
-(* TODO Jasmin )sledgehammer[z3, debug, max_facts=100] (do_cp_step_neq_trail_increase do_full_cp_step.simps do_cp_step'_def rough_state_of_state_of_do_cp_step append_assoc             Un_iff  set_append            )
-
-Type unification failed: Clash of types "(_, _, _) marked_lit" and "_ list"
-
-Type error in application: incompatible operand type
-
-Operator:  set :: (nat, nat, nat literal list) marked_lit list \<Rightarrow> (nat, nat, nat literal list) marked_lit set
-Operand:   v1a :: (nat, nat, nat literal list) marked_lit
-*)
 by (smt Un_iff append_assoc do_cp_step'_def do_cp_step_neq_trail_increase do_full_cp_step.simps rough_state_of_state_of_do_cp_step set_append)
 
 thm state_of_inverse
@@ -980,7 +971,6 @@ lemma conflicting_do_backtrack_step_imp[simp]:
   by (cases S rule: do_backtrack_step.cases)
      (auto simp add: Let_def split: list.splits option.splits marked_lit.splits)
 
-   (*TODO swap direction?*)
 lemma do_skip_step_eq_iff_trail_eq:
   "do_skip_step S = S \<longleftrightarrow> trail (do_skip_step S) = trail S"
   by (cases S rule: do_skip_step.cases) auto
@@ -993,7 +983,7 @@ lemma do_backtrack_step_eq_iff_trail_eq:
   "do_backtrack_step S = S \<longleftrightarrow> trail (do_backtrack_step S) = trail S"
   by (cases S rule: do_backtrack_step.cases)
      (auto split: option.split list.splits marked_lit.splits
-       dest!: bt_cut_in_get_all_marked_decomposition get_all_marked_decomposition_exists_prepend)
+       dest!: bt_cut_in_get_all_marked_decomposition)
 
 lemma do_resolve_step_eq_iff_trail_eq:
   "do_resolve_step S = S \<longleftrightarrow> trail (do_resolve_step S) = trail S"
@@ -1142,9 +1132,6 @@ lemma no_step_cdcl_s_cdcl_all:
   apply (induction S rule:do_all_cdcl_s_induct)
   apply (case_tac "do_cdcl_s_step' S \<noteq> S")
     apply (metis (mono_tags, hide_lams) do_all_cdcl_s.simps)
-(*
-TODO Jasmin: exception?
-sledgehammer[verbose,  e spass](do_all_cdcl_s.simps do_cdcl_s_step_no id_of_I_to_def rough_state_of_I_do_cdcl_s_step' rough_state_of_inverse)*)
   by (metis (full_types) do_all_cdcl_s.simps do_cdcl_s_step_no id_of_I_to_def
     rough_state_of_I_do_cdcl_s_step' rough_state_of_inverse)
 

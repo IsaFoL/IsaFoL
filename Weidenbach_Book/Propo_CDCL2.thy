@@ -101,12 +101,6 @@ lemma dpll_bj_sat_iff:
   shows "I \<Turnstile>s N \<longleftrightarrow> I \<Turnstile>s N'"
   using assms by (induction rule: dpll_bj_all_induct) auto
 
-(*TODO Move*)
-lemma total_over_set_in_total:
-  "total_over_set I (atms_of_m N) \<Longrightarrow> C \<in> N \<Longrightarrow> total_over_set I (atms_of C)"
-  unfolding total_over_set_def atms_of_m_def by fastforce
-
-
 paragraph \<open>Clauses\<close>
 lemma dpll_bj_atms_of_m_clauses_inv:
   assumes
