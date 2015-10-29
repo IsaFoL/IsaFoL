@@ -514,7 +514,7 @@ proof -
     using DPLL_tot_final_state by (metis (mono_tags, lifting) DOPLL_step'_DPLL_tot DPLL_tot.simps
       assms(1))
   moreover have "finite (set (map mset N))" by auto
-  ultimately show ?thesis using dpll_completeness' by (smt DPLL_ci.simps DPLL_ci_dpll_rtranclp
+  ultimately show ?thesis using dpll_sound' by (smt DPLL_ci.simps DPLL_ci_dpll_rtranclp
     assms(2) dpll_all_inv_def prod.case prod.sel(1) prod.sel(2) rtranclp_dpll_inv(3)
     rtranclp_dpll_inv_starting_from_0)
 qed
