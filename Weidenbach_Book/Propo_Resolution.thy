@@ -7,9 +7,12 @@ section \<open>Resolution\<close>
 subsection \<open>Simplification Rules\<close>
 
 inductive simplify  :: "'v clauses \<Rightarrow> 'v clauses \<Rightarrow> bool" for N :: "'v clause set" where
-tautology_deletion: "(A + {#Pos P#} + {#Neg P#})\<in> N \<Longrightarrow> simplify  N (N - {A + {#Pos P#} + {#Neg P#}})"|
-condensation: "(A + {#L#} + {#L#}) \<in> N \<Longrightarrow> simplify N ( N- {A + {#L#} + {#L#}} \<union> {A + {#L#}})" |
-subsumption: "A \<in> N \<Longrightarrow> A <# B \<Longrightarrow> B \<in> N \<Longrightarrow> simplify N (N - {B})"
+tautology_deletion:
+    "(A + {#Pos P#} + {#Neg P#})\<in> N \<Longrightarrow> simplify  N (N - {A + {#Pos P#} + {#Neg P#}})"|
+condensation:
+    "(A + {#L#} + {#L#}) \<in> N \<Longrightarrow> simplify N ( N- {A + {#L#} + {#L#}} \<union> {A + {#L#}})" |
+subsumption:
+    "A \<in> N \<Longrightarrow> A \<subset># B \<Longrightarrow> B \<in> N \<Longrightarrow> simplify N (N - {B})"
 
 lemma simplifier_preserves_un_sat':
   fixes N N' :: "'v clauses"
@@ -20,11 +23,13 @@ lemma simplifier_preserves_un_sat':
 proof (induct rule: simplify.induct)
   case (tautology_deletion A P)
   hence "I \<Turnstile> A + {#Pos P#} + {#Neg P#}"
-    by (metis total_over_m_def total_over_set_literal_defined true_cls_singleton true_cls_union true_lit_def uminus_Neg union_commute)
+    by (metis total_over_m_def total_over_set_literal_defined true_cls_singleton true_cls_union
+      true_lit_def uminus_Neg union_commute)
   thus ?case by (metis Un_Diff_cancel2 true_clss_singleton true_clss_union)
 next
   case (condensation A P)
-  thus ?case by (metis Diff_insert_absorb Set.set_insert insertE true_cls_union true_clss_def true_clss_singleton true_clss_union)
+  thus ?case by (metis Diff_insert_absorb Set.set_insert insertE true_cls_union true_clss_def
+    true_clss_singleton true_clss_union)
 next
   case (subsumption A B)
   have "A \<noteq> B" using subsumption.hyps(2) by auto
@@ -77,7 +82,8 @@ proof (induct rule: simplify.induct)
   thus ?case by auto
 next
   case (condensation A P)
-  moreover have "A + {#P#} + {#P#} \<in> \<psi> \<Longrightarrow> \<exists>x\<in>\<psi>. atm_of P \<in> atm_of ` set_mset x" by (metis Un_iff atms_of_def atms_of_plus atms_of_singleton insert_iff)
+  moreover have "A + {#P#} + {#P#} \<in> \<psi> \<Longrightarrow> \<exists>x\<in>\<psi>. atm_of P \<in> atm_of ` set_mset x"
+    by (metis Un_iff atms_of_def atms_of_plus atms_of_singleton insert_iff)
   ultimately show ?case by (auto simp add: atms_of_def)
 next
   case (subsumption A P)
@@ -103,7 +109,9 @@ qed
 subsection \<open>Unconstrained Resolution\<close>
 type_synonym 'v uncon_state = "'v clauses"
 inductive uncon_res :: "'v uncon_state \<Rightarrow> 'v uncon_state \<Rightarrow> bool" where
-resolution: "{#Pos p#} + C \<in> N \<Longrightarrow> {#Neg p#} + D \<in> N \<Longrightarrow> ({#Pos p#} + C, {#Neg p#} + D) \<notin> already_used \<Longrightarrow> uncon_res (N) (N \<union> {C + D})" |
+resolution:
+  "{#Pos p#} + C \<in> N \<Longrightarrow> {#Neg p#} + D \<in> N \<Longrightarrow> ({#Pos p#} + C, {#Neg p#} + D) \<notin> already_used
+    \<Longrightarrow> uncon_res (N) (N \<union> {C + D})" |
 factoring: "{#L#} + {#L#} + C \<in> N \<Longrightarrow> uncon_res N (N \<union>{C + {#L#}})"
 
 lemma uncon_res_increasing:
@@ -118,7 +126,10 @@ lemma rtranclp_uncon_inference_increasing:
 
 subsubsection \<open>Subsumption\<close>
 
-definition "subsumes \<chi> \<chi>' \<equiv> (\<forall>I. total_over_m I {\<chi>'} \<longrightarrow> total_over_m I {\<chi>}) \<and> (\<forall>I. total_over_m I {\<chi>} \<longrightarrow> I \<Turnstile> \<chi> \<longrightarrow> I \<Turnstile> \<chi>')"
+definition  subsumes :: "'a literal multiset \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where
+"subsumes \<chi> \<chi>' \<longleftrightarrow>
+  (\<forall>I. total_over_m I {\<chi>'} \<longrightarrow> total_over_m I {\<chi>})
+  \<and> (\<forall>I. total_over_m I {\<chi>} \<longrightarrow> I \<Turnstile> \<chi> \<longrightarrow> I \<Turnstile> \<chi>')"
 
 lemma subsumes_refl[simp]:
   "subsumes \<chi> \<chi>"
@@ -129,13 +140,8 @@ lemma subsumes_subsumption:
   assumes "subsumes D \<chi>"
   and "C \<subset># D" and "\<not>tautology \<chi>"
   shows "subsumes C \<chi>" unfolding subsumes_def
-proof
-  show "\<forall>I. total_over_m I {\<chi>} \<longrightarrow> total_over_m I {C}"
-    using assms subsumption_total_over_m unfolding subsumes_def by (blast intro: subset_mset.less_imp_le)
-next
-  show "\<forall>I. total_over_m I {C} \<longrightarrow> I \<Turnstile> C \<longrightarrow> I \<Turnstile> \<chi>"
-     using assms subsumption_chained unfolding subsumes_def by (blast intro: subset_mset.less_imp_le)
-qed
+  using assms subsumption_total_over_m subsumption_chained  unfolding subsumes_def
+  by (blast intro: subset_mset.less_imp_le)
 
 lemma subsumes_tautology:
   assumes "subsumes (C + {#Pos P#} + {#Neg P#}) \<chi>"
@@ -145,15 +151,24 @@ lemma subsumes_tautology:
 
 subsection \<open>Inference Rule\<close>
 type_synonym 'v state = "'v clauses \<times> ('v clause \<times> 'v clause) set"
-inductive inference_clause :: "'v state \<Rightarrow> 'v clause \<times> ('v clause \<times> 'v clause) set \<Rightarrow> bool" (infix "\<Rightarrow>\<^sub>\<Res>" 100) where
-resolution: "{#Pos p#} + C \<in> N \<Longrightarrow> {#Neg p#} + D \<in> N \<Longrightarrow> ({#Pos p#} + C, {#Neg p#} + D) \<notin> already_used \<Longrightarrow> inference_clause (N, already_used) (C + D, already_used \<union> {({#Pos p#} + C, {#Neg p#} + D)})" |
+inductive inference_clause :: "'v state \<Rightarrow> 'v clause \<times> ('v clause \<times> 'v clause) set \<Rightarrow> bool"
+  (infix "\<Rightarrow>\<^sub>\<Res>" 100) where
+resolution:
+  "{#Pos p#} + C \<in> N \<Longrightarrow> {#Neg p#} + D \<in> N \<Longrightarrow> ({#Pos p#} + C, {#Neg p#} + D) \<notin> already_used
+  \<Longrightarrow> inference_clause (N, already_used) (C + D, already_used \<union> {({#Pos p#} + C, {#Neg p#} + D)})" |
 factoring: "{#L#} + {#L#} + C \<in> N \<Longrightarrow> inference_clause (N, already_used) (C + {#L#}, already_used)"
 
 inductive inference :: "'v state \<Rightarrow> 'v state \<Rightarrow> bool" where
-inference_step: "inference_clause S (clause, already_used) \<Longrightarrow> inference S (fst S \<union> {clause}, already_used)"
+inference_step: "inference_clause S (clause, already_used)
+  \<Longrightarrow> inference S (fst S \<union> {clause}, already_used)"
 
 
-abbreviation "already_used_inv state \<equiv> (\<forall>(A, B) \<in> snd state. \<exists>p. Pos p \<in># A \<and> Neg p \<in># B \<and> ((\<exists>\<chi> \<in> fst state. subsumes \<chi> ((A - {#Pos p#}) + (B - {#Neg p#}))) \<or> tautology ((A - {#Pos p#}) + (B - {#Neg p#}))))"
+abbreviation already_used_inv
+  :: "'a literal multiset set \<times> ('a literal multiset \<times> 'a literal multiset) set \<Rightarrow> bool" where
+"already_used_inv state \<equiv>
+  (\<forall>(A, B) \<in> snd state. \<exists>p. Pos p \<in># A \<and> Neg p \<in># B \<and>
+          ((\<exists>\<chi> \<in> fst state. subsumes \<chi> ((A - {#Pos p#}) + (B - {#Neg p#})))
+            \<or> tautology ((A - {#Pos p#}) + (B - {#Neg p#}))))"
 
 lemma inference_clause_preserves_already_used_inv:
   assumes "inference_clause S S'"
@@ -169,7 +184,8 @@ lemma inference_preserves_already_used_inv:
   using assms
 proof (induct rule: inference.induct)
   case (inference_step S clause already_used)
-  thus ?case using inference_clause_preserves_already_used_inv[of S "(clause, already_used)"] by simp
+  thus ?case
+    using inference_clause_preserves_already_used_inv[of S "(clause, already_used)"] by simp
 qed
 
 lemma rtranclp_inference_preserves_already_used_inv:
@@ -200,7 +216,9 @@ next
   } note ex_member_remove = this
   {
     fix a a0 :: "'v clause" and A :: "'v clauses" and  y
-    have tt2: "a \<in> A \<Longrightarrow> a0 <# a\<Longrightarrow> (\<exists>x \<in> A. subsumes x y) \<longleftrightarrow> (subsumes a y  \<or> (\<exists>x \<in> A. x \<noteq> a \<and> subsumes x y))" by auto
+    assume "a \<in> A" and "a0 \<subset># a"
+    hence "(\<exists>x \<in> A. subsumes x y) \<longleftrightarrow> (subsumes a y  \<or> (\<exists>x \<in> A. x \<noteq> a \<and> subsumes x y))"
+      by auto
   } note tt2 = this
   case (subsumption A B) note A = this(1) and AB = this(2) and B = this(3) and inv = this(4)
   show ?case
@@ -215,7 +233,10 @@ next
         (\<chi>) \<chi> where "\<chi> \<in> N" "subsumes \<chi> (a - {#Pos p#} + (b - {#Neg p#}))"
           "\<not>tautology (a - {#Pos p#} + (b - {#Neg p#}))"
         using q by auto
-      then show "\<exists>p. Pos p \<in># a \<and> Neg p \<in># b \<and> ((\<exists>\<chi>\<in>fst (N - {B}, already_used). subsumes \<chi> (a - {#Pos p#} + (b - {#Neg p#}))) \<or> tautology (a - {#Pos p#} + (b - {#Neg p#})))"
+      then show
+        "\<exists>p. Pos p \<in># a \<and> Neg p \<in># b
+             \<and> ((\<exists>\<chi>\<in>fst (N - {B}, already_used). subsumes \<chi> (a - {#Pos p#} + (b - {#Neg p#})))
+                 \<or> tautology (a - {#Pos p#} + (b - {#Neg p#})))"
         proof (cases)
           case taut
           thus ?thesis using p by auto
@@ -232,18 +253,29 @@ next
     assume "C + {#Pos P#} + {#Neg P#} \<in> N"
     assume "already_used_inv (N, already_used)"
     and "(a, b) \<in> snd (N - {C + {#Pos P#} + {#Neg P#}}, already_used)"
-    then obtain p where "Pos p \<in># a \<and> Neg p \<in># b \<and> ((\<exists>\<chi>\<in>fst (N \<union> {C + {#Pos P#} + {#Neg P#}}, already_used). subsumes \<chi> (a - {#Pos p#} + (b - {#Neg p#}))) \<or> tautology (a - {#Pos p#} + (b - {#Neg p#})))"
+    then obtain p where
+      "Pos p \<in># a \<and> Neg p \<in># b \<and>
+        ((\<exists>\<chi>\<in>fst (N \<union> {C + {#Pos P#} + {#Neg P#}}, already_used).
+              subsumes \<chi> (a - {#Pos p#} + (b - {#Neg p#})))
+          \<or> tautology (a - {#Pos p#} + (b - {#Neg p#})))"
       by fastforce
     moreover have "tautology (C + {#Pos P#} + {#Neg P#})" by auto
-    ultimately show " \<exists>p. Pos p \<in># a \<and> Neg p \<in># b \<and> ((\<exists>\<chi>\<in>fst (N - {C + {#Pos P#} + {#Neg P#}}, already_used). subsumes \<chi> (a - {#Pos p#} + (b - {#Neg p#}))) \<or> tautology (a - {#Pos p#} + (b - {#Neg p#})))"
-       by (metis (no_types) Diff_iff Un_insert_right empty_iff fst_conv insertE subsumes_tautology sup_bot.right_neutral)
+    ultimately show
+      "\<exists>p. Pos p \<in># a \<and> Neg p \<in># b
+      \<and> ((\<exists>\<chi>\<in>fst (N - {C + {#Pos P#} + {#Neg P#}}, already_used).
+            subsumes \<chi> (a - {#Pos p#} + (b - {#Neg p#})))
+          \<or> tautology (a - {#Pos p#} + (b - {#Neg p#})))"
+      by (metis (no_types) Diff_iff Un_insert_right empty_iff fst_conv insertE subsumes_tautology
+        sup_bot.right_neutral)
   qed
 qed
 
 
-lemma factoring_satisfiable: "I \<Turnstile> {#L#} + {#L#} + C \<longleftrightarrow> I \<Turnstile> {#L#} + C"
-  and resolution_satisfiable: "consistent_interp I \<Longrightarrow> I \<Turnstile> {#Pos p#} + C \<Longrightarrow> I \<Turnstile> {#Neg p#} + D \<Longrightarrow> I \<Turnstile> C + D"
-  and factoring_same_vars: "atms_of ({#L#} + {#L#} + C) = atms_of ({#L#} + C)"
+lemma
+  factoring_satisfiable: "I \<Turnstile> {#L#} + {#L#} + C \<longleftrightarrow> I \<Turnstile> {#L#} + C" and
+  resolution_satisfiable:
+    "consistent_interp I \<Longrightarrow> I \<Turnstile> {#Pos p#} + C \<Longrightarrow> I \<Turnstile> {#Neg p#} + D \<Longrightarrow> I \<Turnstile> C + D" and
+    factoring_same_vars: "atms_of ({#L#} + {#L#} + C) = atms_of ({#L#} + C)"
   unfolding true_cls_def consistent_interp_def by (fastforce split: split_if_asm)+
 
 lemma inference_increasing:
@@ -308,7 +340,8 @@ lemma inference_preserves_total:
   fixes N N' :: "'v clauses"
   assumes "inference (N, already_used) (N', already_used')"
   shows "total_over_m I N \<Longrightarrow> total_over_m I N'"
-  using assms inference_preserves_atms_of_m unfolding total_over_m_def total_over_set_def by fastforce
+    using assms inference_preserves_atms_of_m unfolding total_over_m_def total_over_set_def
+    by fastforce
 
 
 lemma rtranclp_inference_preserves_total:
@@ -346,7 +379,8 @@ lemma inference_preserves_finite_snd:
 lemma rtranclp_inference_preserves_finite:
   assumes "rtranclp inference \<psi> \<psi>'" and "finite (fst \<psi>)"
   shows "finite (fst \<psi>')"
-  using assms by (induct rule: rtranclp.induct, auto simp add: simplifier_preserves_finite inference_preserves_finite)
+  using assms by (induct rule: rtranclp.induct)
+    (auto simp add: simplifier_preserves_finite inference_preserves_finite)
 
 lemma consistent_interp_insert:
   assumes "consistent_interp I"
@@ -368,7 +402,11 @@ proof (induction)
   case (tautology_deletion A P) note AP = this(1) and sat = this(2)
   let ?A' = "A + {#Pos P#} + {#Neg P#}"
   let ?\<psi>' = "\<psi> - {?A'}"
-  obtain I where I: "I \<Turnstile>s ?\<psi>'" and cons: "consistent_interp I"  and tot: "total_over_m I ?\<psi>'" using sat unfolding satisfiable_def by auto
+  obtain I where
+    I: "I \<Turnstile>s ?\<psi>'" and
+    cons: "consistent_interp I"  and
+    tot: "total_over_m I ?\<psi>'"
+    using sat unfolding satisfiable_def by auto
   { assume "Pos P \<in> I \<or> Neg P \<in> I"
     hence "I \<Turnstile> ?A'" by auto
     hence "I \<Turnstile>s \<psi>" using I by (metis insert_Diff tautology_deletion.hyps true_clss_insert)
@@ -381,7 +419,8 @@ proof (induction)
     have "{Pos P} \<union> I \<Turnstile>s \<psi> - {A + {#Pos P#} + {#Neg P#}}"
       using \<open>I \<Turnstile>s \<psi> - {A + {#Pos P#} + {#Neg P#}}\<close> true_clss_union_increase' by blast
     hence "I \<union> {Pos P} \<Turnstile>s \<psi>"
-      by (metis (no_types) Un_empty_right Un_insert_left Un_insert_right I'A insert_Diff sup_bot.left_neutral tautology_deletion.hyps true_clss_insert)
+      by (metis (no_types) Un_empty_right Un_insert_left Un_insert_right I'A insert_Diff
+        sup_bot.left_neutral tautology_deletion.hyps true_clss_insert)
     ultimately have ?case using satisfiable_carac' by blast
   }
   ultimately show ?case by blast
@@ -390,18 +429,23 @@ next
   have f3: "simplify \<psi> (\<psi> - {A + {#L#} + {#L#}} \<union> {A + {#L#}})"
     using AL simplify.condensation by blast
   obtain LL :: "'a literal multiset set \<Rightarrow> 'a literal set" where
-    f4: "LL (\<psi> - {A + {#L#} + {#L#}} \<union> {A + {#L#}}) \<Turnstile>s \<psi> - {A + {#L#} + {#L#}} \<union> {A + {#L#}} \<and> consistent_interp (LL (\<psi> - {A + {#L#} + {#L#}} \<union> {A + {#L#}})) \<and> total_over_m (LL (\<psi> - {A + {#L#} + {#L#}} \<union> {A + {#L#}})) (\<psi> - {A + {#L#} + {#L#}} \<union> {A + {#L#}})"
+    f4: "LL (\<psi> - {A + {#L#} + {#L#}} \<union> {A + {#L#}}) \<Turnstile>s \<psi> - {A + {#L#} + {#L#}} \<union> {A + {#L#}}
+      \<and> consistent_interp (LL (\<psi> - {A + {#L#} + {#L#}} \<union> {A + {#L#}}))
+      \<and> total_over_m (LL (\<psi> - {A + {#L#} + {#L#}}
+                      \<union> {A + {#L#}})) (\<psi> - {A + {#L#} + {#L#}} \<union> {A + {#L#}})"
     using sat by (meson satisfiable_def)
   have f5: "insert (A + {#L#} + {#L#}) (\<psi> - {A + {#L#} + {#L#}}) = \<psi>"
     using AL by fastforce
   have "atms_of (A + {#L#} + {#L#}) = atms_of ({#L#} + A)"
     by simp
   thus ?case
-    using f5 f4 f3 by (metis (no_types) add.commute satisfiable_def simplifier_preserves_un_sat' total_over_m_insert total_over_m_union)
+    using f5 f4 f3 by (metis (no_types) add.commute satisfiable_def simplifier_preserves_un_sat'
+      total_over_m_insert total_over_m_union)
 next
   case (subsumption A B) note A = this(1) and AB = this(2) and B = this(3) and sat = this(4)
   let ?\<psi>' = "\<psi> - {B}"
-  obtain I where I: "I \<Turnstile>s ?\<psi>'" and cons: "consistent_interp I"  and tot: "total_over_m I ?\<psi>'" using sat unfolding satisfiable_def by auto
+  obtain I where I: "I \<Turnstile>s ?\<psi>'" and cons: "consistent_interp I"  and tot: "total_over_m I ?\<psi>'"
+    using sat unfolding satisfiable_def by auto
   have "I \<Turnstile> A" using A I by (metis AB Diff_iff subset_mset.less_irrefl singletonD true_clss_def)
   hence "I \<Turnstile> B" using AB subset_mset.less_imp_le true_cls_mono_leD by blast
   hence "I \<Turnstile>s \<psi>" using I by (metis insert_Diff_single true_clss_insert)
@@ -428,13 +472,15 @@ fun sem_tree_size :: "'v sem_tree \<Rightarrow> nat" where
 "sem_tree_size (Node _ ag ad) = 1 + sem_tree_size ag + sem_tree_size ad"
 
 lemma sem_tree_size[case_names bigger]:
-  "(\<And>xs:: 'v sem_tree. (\<And>ys:: 'v sem_tree. sem_tree_size ys < sem_tree_size xs \<Longrightarrow> P ys) \<Longrightarrow> P xs) \<Longrightarrow> P xs"
+  "(\<And>xs:: 'v sem_tree. (\<And>ys:: 'v sem_tree. sem_tree_size ys < sem_tree_size xs \<Longrightarrow> P ys) \<Longrightarrow> P xs)
+  \<Longrightarrow> P xs"
   by (fact Nat.measure_induct_rule)
 
 
 fun partial_interps :: "'v sem_tree \<Rightarrow> 'v interp \<Rightarrow> 'v clauses \<Rightarrow> bool" where
 "partial_interps Leaf I \<psi> = (\<exists>\<chi>. \<not> I \<Turnstile> \<chi> \<and> \<chi> \<in> \<psi> \<and> total_over_m I {\<chi>})" |
-"partial_interps (Node v ag ad) I \<psi> = (partial_interps ag (I \<union> {Pos v}) \<psi> \<and> partial_interps ad (I\<union> {Neg v}) \<psi>)"
+"partial_interps (Node v ag ad) I \<psi> \<longleftrightarrow>
+  (partial_interps ag (I \<union> {Pos v}) \<psi> \<and> partial_interps ad (I\<union> {Neg v}) \<psi>)"
 
 
 lemma simplifier_preserve_partial_leaf:
@@ -443,7 +489,8 @@ lemma simplifier_preserve_partial_leaf:
     using union_lcomm apply auto[1]
    apply (simp, metis atms_of_plus total_over_set_union true_cls_union)
   apply simp
-  by (metis atms_of_m_singleton mset_le_exists_conv subset_mset_def true_cls_mono_leD total_over_m_def total_over_m_sum)
+  by (metis atms_of_m_singleton mset_le_exists_conv subset_mset_def true_cls_mono_leD
+    total_over_m_def total_over_m_sum)
 
 
 lemma simplifier_preserve_partial_tree:
@@ -451,7 +498,7 @@ lemma simplifier_preserve_partial_tree:
   and "partial_interps t I N"
   shows "partial_interps t I N'"
   using assms apply (induct t arbitrary: I, simp)
-  using  simplifier_preserve_partial_leaf by metis
+  using simplifier_preserve_partial_leaf by metis
 
 
 lemma inference_preserve_partial_tree:
@@ -496,7 +543,8 @@ lemma partial_interps_build_sem_tree_atms_general:
   shows "partial_interps (build_sem_tree atms \<psi>) I \<psi>"
   using assms
 proof (induct arbitrary: I rule: build_sem_tree.induct)
-  case (1 atms \<psi> Ia) note IH1 = this(1) and IH2 = this(2) and unsat = this(3) and finite = this(4) and cons = this(5)  and f = this(6) and un = this(7) and disj = this(8)
+  case (1 atms \<psi> Ia) note IH1 = this(1) and IH2 = this(2) and unsat = this(3) and finite = this(4)
+    and cons = this(5)  and f = this(6) and un = this(7) and disj = this(8)
   {
     assume atms: "atms = {}"
     hence atmsIa: "atms_of_m \<psi> = atms_of_s Ia" using un by auto
@@ -505,7 +553,8 @@ proof (induct arbitrary: I rule: build_sem_tree.induct)
     hence "build_sem_tree atms \<psi> = Leaf" using atms by auto
     moreover
       have tot: "\<And>\<chi>. \<chi> \<in> \<psi> \<Longrightarrow> total_over_m Ia {\<chi>}"
-      unfolding total_over_m_def total_over_set_def atms_of_m_def atms_of_s_def using atmsIa atms_of_m_def by fastforce
+      unfolding total_over_m_def total_over_set_def atms_of_m_def atms_of_s_def
+      using atmsIa atms_of_m_def by fastforce
     have "partial_interps Leaf Ia \<psi>"
       using \<chi> tot by (auto simp add: total_over_m_def total_over_set_def atms_of_m_def)
 
@@ -513,27 +562,36 @@ proof (induct arbitrary: I rule: build_sem_tree.induct)
   }
   moreover {
     assume atms: "atms \<noteq> {}"
-    have "build_sem_tree atms \<psi> = Node (Min atms) (build_sem_tree (Set.remove (Min atms) atms) \<psi>) (build_sem_tree (Set.remove (Min atms) atms) \<psi>)"
+    have "build_sem_tree atms \<psi> = Node (Min atms) (build_sem_tree (Set.remove (Min atms) atms) \<psi>)
+       (build_sem_tree (Set.remove (Min atms) atms) \<psi>)"
       using build_sem_tree.simps[of "atms" \<psi>] f atms by metis
 
     have "consistent_interp (Ia \<union> {Pos (Min atms)})" unfolding consistent_interp_def
-      by (metis Int_iff Min_in Un_iff atm_of_uminus atms cons consistent_interp_def disj empty_iff f in_atms_of_s_decomp insert_iff literal.distinct(1) literal.exhaust_sel literal.sel(2) uminus_Neg uminus_Pos)
+      by (metis Int_iff Min_in Un_iff atm_of_uminus atms cons consistent_interp_def disj empty_iff f
+        in_atms_of_s_decomp insert_iff literal.distinct(1) literal.exhaust_sel literal.sel(2)
+        uminus_Neg uminus_Pos)
     moreover have "atms_of_m \<psi> = Set.remove (Min atms) atms \<union> atms_of_s (Ia \<union> {Pos (Min atms)})"
       using Min_in atms f un by fastforce
     moreover have disj': "Set.remove (Min atms) atms \<inter> atms_of_s (Ia \<union> {Pos (Min atms)}) = {}"
       by simp (metis disj disjoint_iff_not_equal member_remove)
     moreover have "finite (Set.remove (Min atms) atms)" using f by (simp add: remove_def)
-    ultimately have subtree1: "partial_interps (build_sem_tree (Set.remove (Min atms) atms) \<psi>) (Ia \<union> {Pos (Min atms)}) \<psi>"  using IH1[of "Ia \<union> {Pos (Min (atms))}"]  atms f unsat finite by metis
+    ultimately have subtree1: "partial_interps (build_sem_tree (Set.remove (Min atms) atms) \<psi>)
+        (Ia \<union> {Pos (Min atms)}) \<psi>"
+      using IH1[of "Ia \<union> {Pos (Min (atms))}"] atms f unsat finite by metis
 
     have "consistent_interp (Ia \<union> {Neg (Min atms)})" unfolding consistent_interp_def
-      by (metis Int_iff Min_in Un_iff atm_of_uminus atms cons consistent_interp_def disj empty_iff f in_atms_of_s_decomp insert_iff literal.distinct(1) literal.exhaust_sel literal.sel(2) uminus_Neg)
+      by (metis Int_iff Min_in Un_iff atm_of_uminus atms cons consistent_interp_def disj empty_iff f
+        in_atms_of_s_decomp insert_iff literal.distinct(1) literal.exhaust_sel literal.sel(2)
+        uminus_Neg)
     moreover have "atms_of_m \<psi> = Set.remove (Min atms) atms \<union> atms_of_s (Ia \<union> {Neg (Min atms)})"
       using \<open>atms_of_m \<psi> = Set.remove (Min atms) atms \<union> atms_of_s (Ia \<union> {Pos (Min atms)})\<close> by blast
 
     moreover have disj': "Set.remove (Min atms) atms \<inter> atms_of_s (Ia \<union> {Neg (Min atms)}) = {}"
       using disj by auto
     moreover have "finite (Set.remove (Min atms) atms)" using f by (simp add: remove_def)
-    ultimately have subtree2: "partial_interps (build_sem_tree (Set.remove (Min atms) atms) \<psi>) (Ia \<union> {Neg (Min atms)}) \<psi>"  using IH2[of "Ia \<union> {Neg (Min (atms))}"]  atms f unsat finite by metis
+    ultimately have subtree2: "partial_interps (build_sem_tree (Set.remove (Min atms) atms) \<psi>)
+        (Ia \<union> {Neg (Min atms)}) \<psi>"
+      using IH2[of "Ia \<union> {Neg (Min (atms))}"]  atms f unsat finite by metis
 
     hence ?case
       using IH1 subtree1 subtree2 f local.finite unsat atms by simp
@@ -551,14 +609,19 @@ proof -
   moreover have "atms_of_m \<psi> = atms_of_m \<psi> \<union> atms_of_s {}" unfolding atms_of_s_def by auto
   moreover have "atms_of_m \<psi> \<inter> atms_of_s {} = {} " unfolding atms_of_s_def by auto
   moreover have "finite (atms_of_m \<psi>)" unfolding atms_of_m_def using finite by simp
-  ultimately show "partial_interps (build_sem_tree (atms_of_m \<psi>) \<psi>) {} \<psi>"  using partial_interps_build_sem_tree_atms_general[of "\<psi>" "{}" "atms_of_m \<psi>"] assms by metis
+  ultimately show "partial_interps (build_sem_tree (atms_of_m \<psi>) \<psi>) {} \<psi>"
+    using partial_interps_build_sem_tree_atms_general[of "\<psi>" "{}" "atms_of_m \<psi>"] assms by metis
 qed
 
 lemma can_decrease_count:
   fixes \<psi>'' :: "'v clauses \<times> ('v clause \<times> 'v clause \<times> 'v) set"
   assumes "count \<chi> L = n"
   and "L \<in># \<chi>" and "\<chi> \<in> fst \<psi>"
-  shows "\<exists>\<psi>' \<chi>'. inference\<^sup>*\<^sup>* \<psi> \<psi>' \<and> \<chi>' \<in> fst \<psi>' \<and> (\<forall>L. L :# \<chi> \<longleftrightarrow> L :# \<chi>') \<and> count \<chi>' L = 1 \<and> (\<forall>\<phi>. \<phi> \<in> fst \<psi> \<longrightarrow> \<phi> \<in> fst \<psi>') \<and> (I \<Turnstile> \<chi> \<longleftrightarrow> I \<Turnstile> \<chi>') \<and> (\<forall>I'. total_over_m I' {\<chi>} \<longrightarrow> total_over_m I' {\<chi>'})"
+  shows "\<exists>\<psi>' \<chi>'. inference\<^sup>*\<^sup>* \<psi> \<psi>' \<and> \<chi>' \<in> fst \<psi>' \<and> (\<forall>L. L \<in># \<chi> \<longleftrightarrow> L \<in># \<chi>')
+                 \<and> count \<chi>' L = 1
+                 \<and> (\<forall>\<phi>. \<phi> \<in> fst \<psi> \<longrightarrow> \<phi> \<in> fst \<psi>')
+                 \<and> (I \<Turnstile> \<chi> \<longleftrightarrow> I \<Turnstile> \<chi>')
+                 \<and> (\<forall>I'. total_over_m I' {\<chi>} \<longrightarrow> total_over_m I' {\<chi>'})"
   using assms
 proof (induct n arbitrary: \<chi> \<psi>)
   case 0
@@ -578,25 +641,36 @@ next
    }
    moreover {
      assume "n > 0"
-     hence "\<exists>C. \<chi> = C + {#L, L#}" by (metis L One_nat_def add_diff_cancel_right' count_diff count_single diff_Suc_Suc diff_zero local.count multi_member_split union_assoc)
+     hence "\<exists>C. \<chi> = C + {#L, L#}"
+       by (metis L One_nat_def add_diff_cancel_right' count_diff count_single diff_Suc_Suc diff_zero
+         local.count multi_member_split union_assoc)
      then obtain C where C: "\<chi> = C + {#L, L#}" by metis
      let ?\<chi>' = "C +{#L#}"
      let ?\<psi>' = "(fst \<psi> \<union> {?\<chi>'}, snd \<psi>)"
      have \<phi>: "\<forall>\<phi> \<in> fst \<psi>. (\<phi> \<in> fst \<psi> \<or> \<phi> \<noteq> ?\<chi>') \<longleftrightarrow> \<phi> \<in> fst ?\<psi>'" unfolding C by auto
-     have inf: "inference \<psi> ?\<psi>'" using C factoring \<chi> prod.collapse union_commute inference_step by metis
+     have inf: "inference \<psi> ?\<psi>'"
+       using C factoring \<chi> prod.collapse union_commute inference_step by metis
      moreover have count': "count ?\<chi>' L = n" using C count by auto
      moreover have L\<chi>': "L :# ?\<chi>'" by auto
      moreover have \<chi>'\<psi>': "?\<chi>' \<in> fst ?\<psi>'" by auto
      ultimately obtain \<psi>''  and \<chi>''
-     where "inference\<^sup>*\<^sup>* ?\<psi>' \<psi>''" and \<alpha>: "\<chi>'' \<in> fst \<psi>''" and "\<forall>La. (La \<in># ?\<chi>') \<longleftrightarrow> (La \<in># \<chi>'')" and \<beta>: "count \<chi>'' L = (1::nat)" and \<phi>': "\<forall>\<phi>. \<phi> \<in> fst ?\<psi>' \<longrightarrow> \<phi> \<in> fst \<psi>''"
-     and I\<chi>: "I \<Turnstile> ?\<chi>' \<longleftrightarrow> I \<Turnstile> \<chi>''" and tot: "\<forall>I'. total_over_m I' {?\<chi>'} \<longrightarrow> total_over_m I' {\<chi>''}" using IH[of ?\<chi>' ?\<psi>'] count' L\<chi>' \<chi>'\<psi>' by blast
+     where
+       "inference\<^sup>*\<^sup>* ?\<psi>' \<psi>''" and
+       \<alpha>: "\<chi>'' \<in> fst \<psi>''" and
+       "\<forall>La. (La \<in># ?\<chi>') \<longleftrightarrow> (La \<in># \<chi>'')" and
+       \<beta>: "count \<chi>'' L = (1::nat)" and
+       \<phi>': "\<forall>\<phi>. \<phi> \<in> fst ?\<psi>' \<longrightarrow> \<phi> \<in> fst \<psi>''" and
+       I\<chi>: "I \<Turnstile> ?\<chi>' \<longleftrightarrow> I \<Turnstile> \<chi>''" and
+       tot: "\<forall>I'. total_over_m I' {?\<chi>'} \<longrightarrow> total_over_m I' {\<chi>''}"
+       using IH[of ?\<chi>' ?\<psi>'] count' L\<chi>' \<chi>'\<psi>' by blast
 
      hence "inference\<^sup>*\<^sup>* \<psi> \<psi>''"
      and "\<forall>La. (La \<in># \<chi>) \<longleftrightarrow> (La \<in># \<chi>'')"
      using inf unfolding C by auto
      moreover have "\<forall>\<phi>. \<phi> \<in> fst \<psi> \<longrightarrow> \<phi> \<in> fst \<psi>''" using \<phi> \<phi>' by metis
      moreover have "I \<Turnstile> \<chi> \<longleftrightarrow> I \<Turnstile> \<chi>''" using I\<chi> unfolding true_cls_def C by auto
-     moreover have "\<forall>I'. total_over_m I' {\<chi>} \<longrightarrow> total_over_m I' {\<chi>''}" using tot unfolding C total_over_m_def by auto
+     moreover have "\<forall>I'. total_over_m I' {\<chi>} \<longrightarrow> total_over_m I' {\<chi>''}"
+       using tot unfolding C total_over_m_def by auto
      ultimately have ?case using \<phi> \<phi>' \<alpha> \<beta>  by metis
   }
   ultimately show ?case by auto
@@ -606,7 +680,8 @@ lemma can_decrease_tree_size:
   fixes \<psi> :: "'v state" and tree :: "'v sem_tree"
   assumes "finite (fst \<psi>)"  and "already_used_inv \<psi>"
   and "partial_interps tree I (fst \<psi>)"
-  shows "\<exists>(tree':: 'v sem_tree) \<psi>'. inference\<^sup>*\<^sup>* \<psi> \<psi>' \<and> partial_interps tree' I (fst \<psi>') \<and> (sem_tree_size tree' < sem_tree_size tree \<or> sem_tree_size tree = 0)"
+  shows "\<exists>(tree':: 'v sem_tree) \<psi>'. inference\<^sup>*\<^sup>* \<psi> \<psi>' \<and> partial_interps tree' I (fst \<psi>')
+             \<and> (sem_tree_size tree' < sem_tree_size tree \<or> sem_tree_size tree = 0)"
   using assms
 proof (induct arbitrary: I rule: sem_tree_size)
   case (bigger xs I) note IH = this(1) and finite = this(2) and a_u_i = this(3) and part = this(4)
@@ -620,160 +695,207 @@ proof (induct arbitrary: I rule: sem_tree_size)
     assume sn0: "sem_tree_size xs > 0"
     obtain ag ad v where xs: "xs = Node v ag ad" using sn0 by (case_tac xs, auto)
     {
-       assume "sem_tree_size ag = 0" and "sem_tree_size ad = 0"
-       hence ag: "ag = Leaf" and ad: "ad = Leaf" by (case_tac ag,  auto) (case_tac ad,  auto)
+      assume "sem_tree_size ag = 0" and "sem_tree_size ad = 0"
+      hence ag: "ag = Leaf" and ad: "ad = Leaf" by (case_tac ag,  auto) (case_tac ad,  auto)
 
-       then obtain \<chi> \<chi>' where
-         \<chi>: "\<not> I \<union> {Pos v} \<Turnstile> \<chi>" and
-         tot\<chi>: "total_over_m (I \<union> {Pos v}) {\<chi>}" and
-         \<chi>\<psi>: "\<chi> \<in> fst \<psi>" and
-         \<chi>': "\<not> I \<union> {Neg v} \<Turnstile> \<chi>'"  and
-         tot\<chi>': "total_over_m (I \<union> {Neg v}) {\<chi>'}" and
-         \<chi>'\<psi>: "\<chi>' \<in> fst \<psi>"
-         using part unfolding xs by auto
-       have Posv: "\<not>Pos v \<in># \<chi>" using \<chi> unfolding true_cls_def true_lit_def by auto
-       have Negv: "\<not>Neg v \<in># \<chi>'" using \<chi>' unfolding true_cls_def true_lit_def by auto
-       {
-         assume Neg\<chi>: "\<not>Neg v \<in># \<chi>"
-         have "\<not> I \<Turnstile> \<chi>" using \<chi> Posv unfolding true_cls_def true_lit_def by auto
-         moreover have "total_over_m I {\<chi>}" using Posv Neg\<chi> atm_imp_pos_or_neg_lit tot\<chi> unfolding total_over_m_def total_over_set_def by fastforce
-         ultimately have "partial_interps Leaf I (fst \<psi>)"
-         and "sem_tree_size Leaf < sem_tree_size xs"
-         and "inference\<^sup>*\<^sup>* \<psi> \<psi>"
-           unfolding xs by (auto simp add: \<chi>\<psi>)
-       }
-       moreover {
-          assume Pos\<chi>: "\<not>Pos v \<in># \<chi>'"
-          hence I\<chi>: "\<not> I \<Turnstile> \<chi>'" using \<chi>' Posv unfolding true_cls_def true_lit_def by auto
-          moreover have "total_over_m I {\<chi>'}" using Negv Pos\<chi> atm_imp_pos_or_neg_lit tot\<chi>' unfolding total_over_m_def total_over_set_def by fastforce
-          ultimately have  "partial_interps Leaf I (fst \<psi>)"
-          and "sem_tree_size Leaf < sem_tree_size xs"
-          and "inference\<^sup>*\<^sup>* \<psi> \<psi>" using \<chi>'\<psi> I\<chi> unfolding xs by auto
-       }
-       moreover {
-          assume neg: "Neg v \<in># \<chi>" and pos: "Pos v \<in># \<chi>'"
-          then obtain \<psi>' \<chi>2 where inf: "rtranclp inference \<psi> \<psi>'" and \<chi>2incl: "\<chi>2 \<in> fst \<psi>'"
-            and \<chi>\<chi>2_incl: "\<forall>L. L :# \<chi> \<longleftrightarrow> L :# \<chi>2"
-            and count\<chi>2: "count \<chi>2 (Neg v) = 1"
-            and \<phi>: "\<forall>\<phi>::'v literal multiset. \<phi> \<in> fst \<psi> \<longrightarrow> \<phi> \<in> fst \<psi>'"
-            and I\<chi>: "I \<Turnstile> \<chi> \<longleftrightarrow> I \<Turnstile> \<chi>2"
-            and tot_imp\<chi>: "\<forall>I'. total_over_m I' {\<chi>} \<longrightarrow> total_over_m I' {\<chi>2}"
-            using can_decrease_count[of \<chi> "Neg v" "count \<chi> (Neg v)" \<psi> I] \<chi>\<psi> \<chi>'\<psi> by auto
+      then obtain \<chi> \<chi>' where
+        \<chi>: "\<not> I \<union> {Pos v} \<Turnstile> \<chi>" and
+        tot\<chi>: "total_over_m (I \<union> {Pos v}) {\<chi>}" and
+        \<chi>\<psi>: "\<chi> \<in> fst \<psi>" and
+        \<chi>': "\<not> I \<union> {Neg v} \<Turnstile> \<chi>'"  and
+        tot\<chi>': "total_over_m (I \<union> {Neg v}) {\<chi>'}" and
+        \<chi>'\<psi>: "\<chi>' \<in> fst \<psi>"
+        using part unfolding xs by auto
+      have Posv: "\<not>Pos v \<in># \<chi>" using \<chi> unfolding true_cls_def true_lit_def by auto
+      have Negv: "\<not>Neg v \<in># \<chi>'" using \<chi>' unfolding true_cls_def true_lit_def by auto
+      {
+        assume Neg\<chi>: "\<not>Neg v \<in># \<chi>"
+        have "\<not> I \<Turnstile> \<chi>" using \<chi> Posv unfolding true_cls_def true_lit_def by auto
+        moreover have "total_over_m I {\<chi>}"
+          using Posv Neg\<chi> atm_imp_pos_or_neg_lit tot\<chi> unfolding total_over_m_def total_over_set_def
+          by fastforce
+        ultimately have "partial_interps Leaf I (fst \<psi>)"
+        and "sem_tree_size Leaf < sem_tree_size xs"
+        and "inference\<^sup>*\<^sup>* \<psi> \<psi>"
+          unfolding xs by (auto simp add: \<chi>\<psi>)
+      }
+      moreover {
+        assume Pos\<chi>: "\<not>Pos v \<in># \<chi>'"
+        hence I\<chi>: "\<not> I \<Turnstile> \<chi>'" using \<chi>' Posv unfolding true_cls_def true_lit_def by auto
+        moreover have "total_over_m I {\<chi>'}"
+          using Negv Pos\<chi> atm_imp_pos_or_neg_lit tot\<chi>'
+          unfolding total_over_m_def total_over_set_def by fastforce
+        ultimately have "partial_interps Leaf I (fst \<psi>)" and
+          "sem_tree_size Leaf < sem_tree_size xs" and
+          "inference\<^sup>*\<^sup>* \<psi> \<psi>"
+          using \<chi>'\<psi> I\<chi> unfolding xs by auto
+      }
+      moreover {
+        assume neg: "Neg v \<in># \<chi>" and pos: "Pos v \<in># \<chi>'"
+        then obtain \<psi>' \<chi>2 where inf: "rtranclp inference \<psi> \<psi>'" and \<chi>2incl: "\<chi>2 \<in> fst \<psi>'"
+          and \<chi>\<chi>2_incl: "\<forall>L. L :# \<chi> \<longleftrightarrow> L :# \<chi>2"
+          and count\<chi>2: "count \<chi>2 (Neg v) = 1"
+          and \<phi>: "\<forall>\<phi>::'v literal multiset. \<phi> \<in> fst \<psi> \<longrightarrow> \<phi> \<in> fst \<psi>'"
+          and I\<chi>: "I \<Turnstile> \<chi> \<longleftrightarrow> I \<Turnstile> \<chi>2"
+          and tot_imp\<chi>: "\<forall>I'. total_over_m I' {\<chi>} \<longrightarrow> total_over_m I' {\<chi>2}"
+          using can_decrease_count[of \<chi> "Neg v" "count \<chi> (Neg v)" \<psi> I] \<chi>\<psi> \<chi>'\<psi> by auto
 
-          have "\<chi>' \<in> fst \<psi>'" by (simp add: \<chi>'\<psi> \<phi>)
-          with pos
-          obtain \<psi>'' \<chi>2' where
-          inf': "inference\<^sup>*\<^sup>* \<psi>' \<psi>''"
-          and \<chi>2'_incl: "\<chi>2' \<in> fst \<psi>''"
-          and \<chi>'\<chi>2_incl: "\<forall>L::'v literal. (L \<in># \<chi>') = (L \<in># \<chi>2')"
-          and count\<chi>2': "count \<chi>2' (Pos v) = (1::nat)"
-          and \<phi>': "\<forall>\<phi>::'v literal multiset. \<phi> \<in> fst \<psi>' \<longrightarrow> \<phi> \<in> fst \<psi>''"
-          and I\<chi>': "I \<Turnstile> \<chi>' \<longleftrightarrow> I \<Turnstile> \<chi>2'"
-          and tot_imp\<chi>': "\<forall>I'. total_over_m I' {\<chi>'} \<longrightarrow> total_over_m I' {\<chi>2'}"
-          using can_decrease_count[of \<chi>' "Pos v" " count \<chi>' (Pos v)" \<psi>' I] by auto
+        have "\<chi>' \<in> fst \<psi>'" by (simp add: \<chi>'\<psi> \<phi>)
+        with pos
+        obtain \<psi>'' \<chi>2' where
+        inf': "inference\<^sup>*\<^sup>* \<psi>' \<psi>''"
+        and \<chi>2'_incl: "\<chi>2' \<in> fst \<psi>''"
+        and \<chi>'\<chi>2_incl: "\<forall>L::'v literal. (L \<in># \<chi>') = (L \<in># \<chi>2')"
+        and count\<chi>2': "count \<chi>2' (Pos v) = (1::nat)"
+        and \<phi>': "\<forall>\<phi>::'v literal multiset. \<phi> \<in> fst \<psi>' \<longrightarrow> \<phi> \<in> fst \<psi>''"
+        and I\<chi>': "I \<Turnstile> \<chi>' \<longleftrightarrow> I \<Turnstile> \<chi>2'"
+        and tot_imp\<chi>': "\<forall>I'. total_over_m I' {\<chi>'} \<longrightarrow> total_over_m I' {\<chi>2'}"
+        using can_decrease_count[of \<chi>' "Pos v" " count \<chi>' (Pos v)" \<psi>' I] by auto
 
-          obtain C where \<chi>2: "\<chi>2 = C + {#Neg v#}" and negC: "Neg v \<notin># C" and posC: "Pos v \<notin># C"
-            by (metis (no_types, lifting) One_nat_def Posv Suc_inject Suc_pred \<chi>\<chi>2_incl count\<chi>2 count_diff count_single gr0I insert_DiffM insert_DiffM2 multi_member_skip old.nat.distinct(2))
+        obtain C where \<chi>2: "\<chi>2 = C + {#Neg v#}" and negC: "Neg v \<notin># C" and posC: "Pos v \<notin># C"
+          by (metis (no_types, lifting) One_nat_def Posv Suc_inject Suc_pred \<chi>\<chi>2_incl count\<chi>2
+            count_diff count_single gr0I insert_DiffM insert_DiffM2 multi_member_skip
+            old.nat.distinct(2))
 
-          obtain C' where \<chi>2': "\<chi>2' = C' + {#Pos v#}" and posC': "Pos v \<notin># C'"  and negC': "Neg v \<notin># C'"
+        obtain C' where
+          \<chi>2': "\<chi>2' = C' + {#Pos v#}" and
+          posC': "Pos v \<notin># C'" and
+          negC': "Neg v \<notin># C'"
+          proof -
+            assume a1: "\<And>C'. \<lbrakk>\<chi>2' = C' + {#Pos v#}; Pos v \<notin># C'; Neg v \<notin># C'\<rbrakk> \<Longrightarrow> thesis"
+            have f2: "\<And>n. (n::nat) - n = 0"
+              by simp (* 0.2 ms *)
+            have "Neg v \<notin># \<chi>2' - {#Pos v#}"
+              using Negv \<chi>'\<chi>2_incl by auto
+            thus ?thesis
+              using f2 a1 by (metis add.commute count\<chi>2' count_diff count_single insert_DiffM
+                less_nat_zero_code zero_less_one)
+          qed
+
+        have "already_used_inv \<psi>'"
+          using rtranclp_inference_preserves_already_used_inv[of \<psi> \<psi>'] a_u_i inf by blast
+        hence a_u_i_\<psi>'': "already_used_inv \<psi>''"
+          using rtranclp_inference_preserves_already_used_inv a_u_i inf' unfolding tautology_def
+          by simp
+
+        have totC: "total_over_m I {C}"
+          using tot_imp\<chi> tot\<chi> tot_over_m_remove[of I "Pos v" C] negC posC unfolding \<chi>2
+          by (metis total_over_m_sum uminus_Neg uminus_of_uminus_id)
+        have totC': "total_over_m I {C'}"
+          using tot_imp\<chi>' tot\<chi>' total_over_m_sum tot_over_m_remove[of I "Neg v" C'] negC' posC'
+          unfolding \<chi>2' by (metis total_over_m_sum uminus_Neg)
+        have "\<not> I \<Turnstile> C + C'"
+          using \<chi> I\<chi> \<chi>' I\<chi>' unfolding \<chi>2 \<chi>2' true_cls_def Bex_mset_def
+          by (metis add_gr_0 count_union true_cls_singleton true_cls_union_increase)
+        hence part_I_\<psi>''': "partial_interps Leaf I (fst \<psi>'' \<union> {C + C'})"
+          using totC totC' by simp
+            (metis \<open>\<not> I \<Turnstile> C + C'\<close> atms_of_m_singleton total_over_m_def total_over_m_sum)
+        {
+          assume "({#Pos v#} + C', {#Neg v#} + C) \<notin> snd \<psi>''"
+          hence inf'': " inference \<psi>'' (fst \<psi>'' \<union> {C + C'}, snd \<psi>'' \<union> {(\<chi>2', \<chi>2)})"
+            using add.commute \<phi>' \<chi>2incl \<open>\<chi>2' \<in> fst \<psi>''\<close>  unfolding \<chi>2 \<chi>2'
+            by (metis prod.collapse inference_step resolution)
+          have "inference\<^sup>*\<^sup>* \<psi> (fst \<psi>'' \<union> {C + C'}, snd \<psi>'' \<union> {(\<chi>2', \<chi>2)})"
+            using inf inf' inf''  rtranclp_trans by auto
+          moreover have "sem_tree_size Leaf < sem_tree_size xs" unfolding xs by auto
+          ultimately have "?case" using part_I_\<psi>''' by (metis fst_conv)
+        }
+        moreover {
+          assume a: "({#Pos v#} + C', {#Neg v#} + C) \<in> snd \<psi>''"
+          hence "(\<exists>\<chi> \<in> fst \<psi>''. (\<forall>I. total_over_m I {C+C'} \<longrightarrow> total_over_m I {\<chi>})
+                     \<and> (\<forall>I. total_over_m I {\<chi>} \<longrightarrow> I \<Turnstile> \<chi> \<longrightarrow> I \<Turnstile> C' + C))
+                 \<or> tautology (C' + C)"
             proof -
-              assume a1: "\<And>C'. \<lbrakk>\<chi>2' = C' + {#Pos v#}; Pos v \<notin># C'; Neg v \<notin># C'\<rbrakk> \<Longrightarrow> thesis"
-              have f2: "\<And>n. (n::nat) - n = 0"
-                by simp (* 0.2 ms *)
-              have "Neg v \<notin># \<chi>2' - {#Pos v#}"
-                using Negv \<chi>'\<chi>2_incl by auto
-              thus ?thesis
-                using f2 a1 by (metis add.commute count\<chi>2' count_diff count_single insert_DiffM less_nat_zero_code zero_less_one)
+              obtain p where p: "Pos p \<in># ({#Pos v#} + C')" and
+              n: "Neg p \<in># ({#Neg v#} + C)" and
+              decomp: "((\<exists>\<chi>\<in>fst \<psi>''.
+                         (\<forall>I. total_over_m I {({#Pos v#} + C') - {#Pos p#}
+                                 + (({#Neg v#} + C) - {#Neg p#})}
+                            \<longrightarrow> total_over_m I {\<chi>})
+                         \<and> (\<forall>I. total_over_m I {\<chi>} \<longrightarrow> I \<Turnstile> \<chi>
+                            \<longrightarrow> I \<Turnstile> ({#Pos v#} + C') - {#Pos p#} + (({#Neg v#} + C) - {#Neg p#}))
+                        )
+                      \<or> tautology (({#Pos v#} + C') - {#Pos p#} + (({#Neg v#} + C) - {#Neg p#})))"
+                using a by (blast intro: allE[OF a_u_i_\<psi>''[unfolded subsumes_def Ball_def],
+                    of "({#Pos v#} + C', {#Neg v#} + C)"])
+              { assume "p \<noteq> v"
+                hence "Pos p \<in># C' \<and> Neg p \<in># C" using p n by force
+                hence ?thesis by (metis add_gr_0 count_union tautology_Pos_Neg)
+              }
+              moreover {
+                assume "p = v"
+               hence "?thesis" using decomp by (metis add.commute add_diff_cancel_left')
+              }
+              ultimately show ?thesis by auto
             qed
-
-          have "already_used_inv \<psi>'"
-            using rtranclp_inference_preserves_already_used_inv[of \<psi> \<psi>'] a_u_i inf by blast
-          hence a_u_i_\<psi>'': "already_used_inv \<psi>''"
-            using rtranclp_inference_preserves_already_used_inv a_u_i inf' unfolding tautology_def
-            by simp
-
-          have totC: "total_over_m I {C}" using tot_imp\<chi> tot\<chi> tot_over_m_remove[of I "Pos v" C] negC posC unfolding \<chi>2 by (metis total_over_m_sum uminus_Neg uminus_of_uminus_id)
-          have totC': "total_over_m I {C'}" using tot_imp\<chi>' tot\<chi>' total_over_m_sum tot_over_m_remove[of I "Neg v" C'] negC' posC' unfolding \<chi>2' by (metis total_over_m_sum uminus_Neg)
-          have "\<not> I \<Turnstile> C + C'"
-            using \<chi> I\<chi> \<chi>' I\<chi>' unfolding \<chi>2 \<chi>2' true_cls_def Bex_mset_def
-            by (metis add_gr_0 count_union true_cls_singleton true_cls_union_increase)
-          hence part_I_\<psi>''': "partial_interps Leaf I (fst \<psi>'' \<union> {C + C'})"
-            using totC totC' by simp (metis \<open>\<not> I \<Turnstile> C + C'\<close> atms_of_m_singleton total_over_m_def total_over_m_sum)
-          {
-            assume "({#Pos v#} + C', {#Neg v#} + C) \<notin> snd \<psi>''"
-            hence inf'': " inference \<psi>'' (fst \<psi>'' \<union> {C + C'}, snd \<psi>'' \<union> {(\<chi>2', \<chi>2)})" using  add.commute \<phi>' \<chi>2incl \<open>\<chi>2' \<in> fst \<psi>''\<close>  unfolding \<chi>2 \<chi>2' by (metis prod.collapse inference_step resolution)
-            have "inference\<^sup>*\<^sup>* \<psi> (fst \<psi>'' \<union> {C + C'}, snd \<psi>'' \<union> {(\<chi>2', \<chi>2)})" using inf inf' inf''  rtranclp_trans by auto
+          moreover {
+            assume "\<exists>\<chi> \<in> fst \<psi>''. (\<forall>I. total_over_m I {C+C'} \<longrightarrow> total_over_m I {\<chi>})
+              \<and> (\<forall>I. total_over_m I {\<chi>} \<longrightarrow> I \<Turnstile> \<chi> \<longrightarrow> I \<Turnstile> C' + C)"
+            then obtain \<theta> where \<theta>: "\<theta> \<in> fst \<psi>''" and
+              tot_\<theta>_CC': "\<forall>I. total_over_m I {C+C'} \<longrightarrow> total_over_m I {\<theta>}" and
+              \<theta>_inv: "\<forall>I. total_over_m I {\<theta>} \<longrightarrow> I \<Turnstile> \<theta> \<longrightarrow> I \<Turnstile> C' + C" by blast
+            have "partial_interps Leaf I (fst \<psi>'')"
+              using tot_\<theta>_CC' \<theta> \<theta>_inv totC totC' \<open>\<not> I \<Turnstile> C + C'\<close> total_over_m_sum by fastforce
             moreover have "sem_tree_size Leaf < sem_tree_size xs" unfolding xs by auto
-            ultimately have "?case" using part_I_\<psi>''' by (metis fst_conv)
+            ultimately have ?case by (metis inf inf' rtranclp_trans)
           }
           moreover {
-            assume a: "({#Pos v#} + C', {#Neg v#} + C) \<in> snd \<psi>''"
-            hence "(\<exists>\<chi> \<in> fst \<psi>''. (\<forall>I. total_over_m I {C+C'} \<longrightarrow> total_over_m I {\<chi>} ) \<and> (\<forall>I. total_over_m I {\<chi>} \<longrightarrow> I \<Turnstile> \<chi> \<longrightarrow> I \<Turnstile> C' + C)) \<or> tautology (C' + C)"
-              proof -
-                obtain p where p: "Pos p \<in># ({#Pos v#} + C')" and
-                n: "Neg p \<in># ({#Neg v#} + C)" and
-                decomp: "((\<exists>\<chi>\<in>fst \<psi>''. (\<forall>I. total_over_m I {({#Pos v#} + C') - {#Pos p#} + (({#Neg v#} + C) - {#Neg p#})} \<longrightarrow> total_over_m I {\<chi>}) \<and> (\<forall>I. total_over_m I {\<chi>} \<longrightarrow> I \<Turnstile> \<chi> \<longrightarrow> I \<Turnstile> ({#Pos v#} + C') - {#Pos p#} + (({#Neg v#} + C) - {#Neg p#}))) \<or> tautology (({#Pos v#} + C') - {#Pos p#} + (({#Neg v#} + C) - {#Neg p#})))"
-                  using a by (blast intro: allE[OF a_u_i_\<psi>''[unfolded subsumes_def Ball_def], of "({#Pos v#} + C', {#Neg v#} + C)"])
-                { assume "p \<noteq> v"
-                  hence "Pos p \<in># C' \<and> Neg p \<in># C" using p n by force
-                  hence ?thesis by (metis add_gr_0 count_union tautology_Pos_Neg)
-                }
-                moreover {
-                  assume "p = v"
-                 hence "?thesis" using decomp by (metis add.commute add_diff_cancel_left')
-                }
-                ultimately show ?thesis by auto
-              qed
-            moreover {
-              assume "\<exists>\<chi> \<in> fst \<psi>''. (\<forall>I. total_over_m I {C+C'} \<longrightarrow> total_over_m I {\<chi>}) \<and>(\<forall>I. total_over_m I {\<chi>} \<longrightarrow> I \<Turnstile> \<chi> \<longrightarrow> I \<Turnstile> C' + C)"
-              then obtain \<theta> where \<theta>: "\<theta> \<in> fst \<psi>''" and tot_\<theta>_CC': "\<forall>I. total_over_m I {C+C'} \<longrightarrow> total_over_m I {\<theta>}" and \<theta>_inv: "\<forall>I. total_over_m I {\<theta>} \<longrightarrow> I \<Turnstile> \<theta> \<longrightarrow> I \<Turnstile> C' + C" by blast
-              have "partial_interps Leaf I (fst \<psi>'')"using tot_\<theta>_CC' \<theta> \<theta>_inv totC totC'  \<open>\<not> I \<Turnstile> C + C'\<close> total_over_m_sum by fastforce
-              moreover have "sem_tree_size Leaf < sem_tree_size xs" unfolding xs by auto
-              ultimately have ?case by (metis inf inf' rtranclp_trans)
-            }
-            moreover {
-              assume tautCC': "tautology (C' + C)"
-              have "total_over_m I {C'+C}" using totC totC' total_over_m_sum by auto
-              hence "\<not>tautology (C' + C)" using \<open>\<not> I \<Turnstile> C + C'\<close> unfolding add.commute[of C C'] total_over_m_def  unfolding tautology_def by auto
-              hence False using tautCC'  unfolding tautology_def by auto
-            }
-            ultimately have ?case by auto
+            assume tautCC': "tautology (C' + C)"
+            have "total_over_m I {C'+C}" using totC totC' total_over_m_sum by auto
+            hence "\<not>tautology (C' + C)"
+              using \<open>\<not> I \<Turnstile> C + C'\<close> unfolding add.commute[of C C'] total_over_m_def
+              unfolding tautology_def by auto
+            hence False using tautCC'  unfolding tautology_def by auto
           }
           ultimately have ?case by auto
-       }
-       ultimately have ?case using part by (metis (no_types) sem_tree_size.simps(1))
-     }
-     moreover {
-       assume size_ag: "sem_tree_size ag > 0"
-       have "sem_tree_size ag < sem_tree_size xs" unfolding xs by auto
-       moreover have "partial_interps ag (I \<union> {Pos v}) (fst \<psi>)"
-       and partad: "partial_interps ad (I \<union> {Neg v}) (fst \<psi>)" using part partial_interps.simps(2) unfolding xs by metis+
-       moreover have "sem_tree_size ag < sem_tree_size xs \<longrightarrow> finite (fst \<psi>) \<longrightarrow> already_used_inv \<psi> \<longrightarrow> ( partial_interps ag (I \<union> {Pos v}) (fst \<psi>) \<longrightarrow> (\<exists>tree' \<psi>'. inference\<^sup>*\<^sup>* \<psi> \<psi>' \<and> partial_interps tree' (I \<union> {Pos v}) (fst \<psi>') \<and> (sem_tree_size tree' < sem_tree_size ag \<or> sem_tree_size ag = 0)))" using IH by auto
-       ultimately obtain \<psi>' :: "'v state" and  tree' :: "'v sem_tree"  where
-         inf: "inference\<^sup>*\<^sup>* \<psi> \<psi>'"
-         and part: "partial_interps tree' (I \<union> {Pos v}) (fst \<psi>')"
-         and size: "sem_tree_size tree' < sem_tree_size ag \<or> sem_tree_size ag = 0" using finite part rtranclp.rtrancl_refl a_u_i by blast
+        }
+        ultimately have ?case by auto
+      }
+      ultimately have ?case using part by (metis (no_types) sem_tree_size.simps(1))
+    }
+    moreover {
+      assume size_ag: "sem_tree_size ag > 0"
+      have "sem_tree_size ag < sem_tree_size xs" unfolding xs by auto
+      moreover have "partial_interps ag (I \<union> {Pos v}) (fst \<psi>)"
+        and partad: "partial_interps ad (I \<union> {Neg v}) (fst \<psi>)"
+        using part partial_interps.simps(2) unfolding xs by metis+
+      moreover have "sem_tree_size ag < sem_tree_size xs \<longrightarrow> finite (fst \<psi>) \<longrightarrow> already_used_inv \<psi>
+        \<longrightarrow> ( partial_interps ag (I \<union> {Pos v}) (fst \<psi>) \<longrightarrow>
+        (\<exists>tree' \<psi>'. inference\<^sup>*\<^sup>* \<psi> \<psi>' \<and> partial_interps tree' (I \<union> {Pos v}) (fst \<psi>')
+          \<and> (sem_tree_size tree' < sem_tree_size ag \<or> sem_tree_size ag = 0)))"
+          using IH by auto
+      ultimately obtain \<psi>' :: "'v state" and  tree' :: "'v sem_tree"  where
+        inf: "inference\<^sup>*\<^sup>* \<psi> \<psi>'"
+        and part: "partial_interps tree' (I \<union> {Pos v}) (fst \<psi>')"
+        and size: "sem_tree_size tree' < sem_tree_size ag \<or> sem_tree_size ag = 0" using finite part rtranclp.rtrancl_refl a_u_i by blast
 
-       have "partial_interps ad (I \<union> {Neg v}) (fst \<psi>')" using rtranclp_inference_preserve_partial_tree inf partad by metis
-       hence "partial_interps (Node v tree' ad) I (fst \<psi>')" using part by auto
-       hence ?case using inf size size_ag part unfolding xs by fastforce
-     }
-     moreover {
-       assume size_ad: "sem_tree_size ad > 0"
-       have "sem_tree_size ad < sem_tree_size xs" unfolding xs by auto
-       moreover have partag: "partial_interps ag (I \<union> {Pos v}) (fst \<psi>)"
-       and "partial_interps ad (I \<union> {Neg v}) (fst \<psi>)" using part partial_interps.simps(2) unfolding xs by metis+
-       moreover have "sem_tree_size ad < sem_tree_size xs \<longrightarrow> finite (fst \<psi>) \<longrightarrow> already_used_inv \<psi> \<longrightarrow> ( partial_interps ad (I \<union> {Neg v}) (fst \<psi>) \<longrightarrow> (\<exists>tree' \<psi>'. inference\<^sup>*\<^sup>* \<psi> \<psi>' \<and> partial_interps tree' (I \<union> {Neg v}) (fst \<psi>') \<and> (sem_tree_size tree' < sem_tree_size ad \<or> sem_tree_size ad = 0)))" using IH by auto
-       ultimately obtain \<psi>' :: "'v state" and  tree' :: "'v sem_tree"  where
-         inf: "inference\<^sup>*\<^sup>* \<psi> \<psi>'"
-         and part: "partial_interps tree' (I \<union> {Neg v}) (fst \<psi>')"
-         and size: "sem_tree_size tree' < sem_tree_size ad \<or> sem_tree_size ad = 0" using finite part  rtranclp.rtrancl_refl a_u_i by blast
+      have "partial_interps ad (I \<union> {Neg v}) (fst \<psi>')" using rtranclp_inference_preserve_partial_tree inf partad by metis
+      hence "partial_interps (Node v tree' ad) I (fst \<psi>')" using part by auto
+      hence ?case using inf size size_ag part unfolding xs by fastforce
+    }
+    moreover {
+      assume size_ad: "sem_tree_size ad > 0"
+      have "sem_tree_size ad < sem_tree_size xs" unfolding xs by auto
+      moreover have partag: "partial_interps ag (I \<union> {Pos v}) (fst \<psi>)" and
+        "partial_interps ad (I \<union> {Neg v}) (fst \<psi>)"
+        using part partial_interps.simps(2) unfolding xs by metis+
+      moreover have "sem_tree_size ad < sem_tree_size xs \<longrightarrow> finite (fst \<psi>) \<longrightarrow> already_used_inv \<psi>
+        \<longrightarrow> ( partial_interps ad (I \<union> {Neg v}) (fst \<psi>)
+        \<longrightarrow> (\<exists>tree' \<psi>'. inference\<^sup>*\<^sup>* \<psi> \<psi>' \<and> partial_interps tree' (I \<union> {Neg v}) (fst \<psi>')
+            \<and> (sem_tree_size tree' < sem_tree_size ad \<or> sem_tree_size ad = 0)))"
+        using IH by auto
+      ultimately obtain \<psi>' :: "'v state" and  tree' :: "'v sem_tree"  where
+        inf: "inference\<^sup>*\<^sup>* \<psi> \<psi>'"
+        and part: "partial_interps tree' (I \<union> {Neg v}) (fst \<psi>')"
+        and size: "sem_tree_size tree' < sem_tree_size ad \<or> sem_tree_size ad = 0"
+        using finite part  rtranclp.rtrancl_refl a_u_i by blast
 
-       have "partial_interps ag (I \<union> {Pos v}) (fst \<psi>')" using rtranclp_inference_preserve_partial_tree inf partag by metis
-       hence "partial_interps (Node v ag tree') I (fst \<psi>')" using part by auto
-       hence "?case" using inf size size_ad unfolding xs by fastforce
-     }
-     ultimately have ?case by auto
+      have "partial_interps ag (I \<union> {Pos v}) (fst \<psi>')"
+        using rtranclp_inference_preserve_partial_tree inf partag by metis
+      hence "partial_interps (Node v ag tree') I (fst \<psi>')" using part by auto
+      hence "?case" using inf size size_ad unfolding xs by fastforce
+    }
+    ultimately have ?case by auto
   }
   ultimately show ?case by auto
 qed
@@ -783,7 +905,8 @@ lemma inference_completeness_inv:
   assumes unsat: "\<not>satisfiable (fst \<psi>)" and finite: "finite (fst \<psi>)" and a_u_v: "already_used_inv \<psi>"
   shows "\<exists>\<psi>'. (inference\<^sup>*\<^sup>* \<psi> \<psi>' \<and> {#} \<in> fst \<psi>')"
 proof -
-  obtain tree where  "partial_interps tree {} (fst \<psi>)" using partial_interps_build_sem_tree_atms assms by metis
+  obtain tree where  "partial_interps tree {} (fst \<psi>)"
+    using partial_interps_build_sem_tree_atms assms by metis
   thus ?thesis
     using unsat finite a_u_v
     proof (induct tree arbitrary: \<psi> rule: sem_tree_size)
@@ -1984,7 +2107,8 @@ lemma rtranclp_simplify_falsity_in_preserved:
 
 lemma resolution_falsity_get_falsity_alone:
   assumes "finite (fst \<psi>)"
-  shows "(\<exists>\<psi>'. (resolution\<^sup>*\<^sup>* \<psi> \<psi>' \<and> {#} \<in> fst \<psi>')) \<longleftrightarrow> (\<exists>a_u_v. resolution\<^sup>*\<^sup>* \<psi> ({{#}}, a_u_v))" (is "?A \<longleftrightarrow> ?B")
+  shows "(\<exists>\<psi>'. (resolution\<^sup>*\<^sup>* \<psi> \<psi>' \<and> {#} \<in> fst \<psi>')) \<longleftrightarrow> (\<exists>a_u_v. resolution\<^sup>*\<^sup>* \<psi> ({{#}}, a_u_v))"
+    (is "?A \<longleftrightarrow> ?B")
 proof
   assume ?B
   thus ?A by auto
@@ -1999,9 +2123,11 @@ next
     then obtain \<chi>s' where "full_simplifier \<chi>s \<chi>s'"
        by (metis \<chi>s assms finite_simplified_full_simp fst_conv rtranclp_resolution_finite)
     hence "{#} \<in> \<chi>s'"
-      unfolding full_simplifier_def  by (meson F rtranclp_simplify_falsity_in_preserved tranclp_into_rtranclp)
+      unfolding full_simplifier_def  by (meson F rtranclp_simplify_falsity_in_preserved
+        tranclp_into_rtranclp)
     hence ?B
-      by (metis \<chi>s \<open>simp\<^sup>+\<^sup>\<down> \<chi>s \<chi>s'\<close> fst_conv full_simp resolution_always_simplified rtranclp.rtrancl_into_rtrancl simplified_falsity)
+      by (metis \<chi>s \<open>simp\<^sup>+\<^sup>\<down> \<chi>s \<chi>s'\<close> fst_conv full_simp resolution_always_simplified
+        rtranclp.rtrancl_into_rtrancl simplified_falsity)
   }
   ultimately show ?B by blast
 qed
@@ -2011,6 +2137,7 @@ fixes \<psi> :: "'v ::linorder state"
 assumes finite: "finite (fst \<psi>)"
 and snd: "snd \<psi> = {}"
 shows "(\<exists>a_u_v. (resolution\<^sup>*\<^sup>* \<psi> ({{#}}, a_u_v))) \<longleftrightarrow> unsatisfiable (fst \<psi>)"
-  using assms resolution_completeness resolution_soundness resolution_falsity_get_falsity_alone by metis
+  using assms resolution_completeness resolution_soundness resolution_falsity_get_falsity_alone
+  by metis
 
 end
