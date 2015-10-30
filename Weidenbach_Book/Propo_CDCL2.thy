@@ -915,6 +915,9 @@ lemma atms_of_m_single_image_atm_of_lit_of:
   "atms_of_m ((\<lambda>x. {#lit_of x#}) ` A) = atm_of ` (lit_of ` A)"
   unfolding atms_of_m_def by auto
 
+lemma is_marked_ex_Marked:
+  "is_marked L \<Longrightarrow> \<exists>K lvl. L = Marked K lvl"
+  by (cases L) auto
 text \<open>
   We prove that given a normal form of DPLL, with some invariants, the either @{term N} is
   satisfiable and the built valuation @{term M} is a model; or @{term N} is unsatisfiable.
@@ -967,12 +970,9 @@ proof -
       hence I'_N: "?I \<Turnstile>s N \<union> ?O"
         using \<open>I\<Turnstile>s N\<close> by auto
       have tot': "total_over_m ?I (N\<union>?O)"
-        (* TODO tune proof *)
-        apply (standard, standard)
-          using tot apply (auto simp add: total_union)[]
-        unfolding total_over_m_def total_over_set_def apply (auto simp add: image_iff lits_of_def)
-        by (metis literal.exhaust_sel)+
-
+        using atm_I_N tot unfolding total_over_m_def total_over_set_def 
+        by (force simp: image_iff lits_of_def dest!: is_marked_ex_Marked)
+        
       have atms_N_M: "atms_of_m N \<subseteq> atm_of ` lits_of M"
         proof (rule ccontr)
           assume "\<not> ?thesis"
@@ -1007,13 +1007,12 @@ proof -
             using cons_I' I'_N tot_I' \<open>?I \<Turnstile>s N \<union> ?O\<close> unfolding \<theta> true_clss_clss_def by blast
           hence "lits_of M \<subseteq> ?I"
             unfolding true_clss_def lits_of_def by auto
-          hence "M \<Turnstile>as N"(* TODO tune proof *)
-            using \<open>?I \<Turnstile>s N \<union> ?O\<close> unfolding true_clss_def true_annots_def Ball_def true_annot_def
-              true_cls_def Bex_mset_def
-            apply auto
-            by (meson UnI1 \<open>C \<in> N\<close> \<open>M \<Turnstile>as CNot C\<close>
-              \<open>lits_of M \<subseteq> I \<union> {P |P. P \<in> lits_of M \<and> atm_of P \<notin> atm_of ` I}\<close> cons_I'
-              consistent_interp_def in_CNot_implies_uminus(2) subset_iff)
+          hence "M \<Turnstile>as N"
+            using I'_N `C \<in> N` `\<not> M \<Turnstile>a C` cons_I' atms_N_M
+            by (metis (no_types, lifting) atms_of_atms_of_m_mono 
+              atms_of_m_CNot_atms_of atms_of_m_CNot_atms_of_m  consistent_CNot_not 
+              rev_subsetD sup_ge1 total_not_CNot  total_over_set_atm_of 
+               true_cls_mono_set_mset_l true_clss_def true_annot_def total_over_m_def)
           thus False using M by fast
         qed
       from List.split_list_first_propE[OF this] obtain K :: "'v literal" and d :: 'lvl and
