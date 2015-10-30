@@ -1281,7 +1281,7 @@ proof -
   then obtain L where L_p: "L \<subseteq> C \<and> L {\<eta>}\<^sub>l\<^sub>s = L' \<and> (C - L){\<eta>}\<^sub>l\<^sub>s = ?C'\<^sub>1" by auto (* Is it the same M as before, probably, but who cares? I should probably remove the one before*)
   let ?C\<^sub>1 = "C - L"
 
-  from \<eta>_p have "\<exists>M \<subseteq> D. M {\<eta>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<eta>}\<^sub>l\<^sub>s = ?D'\<^sub>1" using appl project_sub[of \<mu> D D' M'] unfolding applicable_def by auto
+  from \<eta>_p have "\<exists>M \<subseteq> D. M {\<eta>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<eta>}\<^sub>l\<^sub>s = ?D'\<^sub>1" using appl project_sub[of \<eta> D D' M'] unfolding applicable_def by auto
   then obtain M where M_p: "M \<subseteq> D \<and> M {\<eta>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<eta>}\<^sub>l\<^sub>s = ?D'\<^sub>1" by auto (* Is it the same M as before, probably, but who cares? I should probably remove the one before*)
   let ?D\<^sub>1 = "D - M"
 
@@ -1308,12 +1308,6 @@ proof -
   from inst appll show ?thesis by auto
 oops
 
-  
-  
-  
-
-  (* Continue here *)
-oops
 
 section {* Completeness *}
 (* assumes openb: "\<forall>T. \<exists>G. open_branch G T Cs" assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C" shows "\<exists>G. evalcs HFun G Cs" *)
