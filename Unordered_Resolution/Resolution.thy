@@ -180,6 +180,13 @@ definition instance_ofls :: "fterm clause \<Rightarrow> fterm clause \<Rightarro
 lemma comp_sub: "(l\<^sup>c) {\<sigma>}\<^sub>l=(l {\<sigma>}\<^sub>l)\<^sup>c" 
 by (cases l) auto
 
+lemma compls_subls: "(L\<^sup>C) {\<sigma>}\<^sub>l\<^sub>s=(L {\<sigma>}\<^sub>l\<^sub>s)\<^sup>C" 
+using comp_sub apply auto
+apply (metis image_eqI)
+done
+
+lemma subls_union: "(L\<^sub>1 \<union> L\<^sub>2) {\<sigma>}\<^sub>l\<^sub>s = L\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s \<union> L\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s" by auto
+
 (* This definition Could be tighter. For instance with this definition we allow
   x \<rightarrow> Var x
   y \<rightarrow> Var x
@@ -284,8 +291,13 @@ lemma composition_conseq2ts: "ts{\<sigma>\<^sub>1}\<^sub>t\<^sub>s{\<sigma>\<^su
   using composition_conseq2t by auto
 
 lemma composition_conseq2l: "l{\<sigma>\<^sub>1}\<^sub>l{\<sigma>\<^sub>2}\<^sub>l = l{\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2}\<^sub>l" 
-text_raw {*}%EndSnippet*} (* This lemma is not used *)
   using composition_conseq2t by (cases l) auto 
+
+lemma composition_conseq2ls: "L{\<sigma>\<^sub>1}\<^sub>l\<^sub>s{\<sigma>\<^sub>2}\<^sub>l\<^sub>s = L{\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2}\<^sub>l\<^sub>s" 
+using composition_conseq2l apply auto
+apply (metis imageI) 
+done
+  
 
 lemma composition_assoc: "\<sigma>\<^sub>1 \<cdot> (\<sigma>\<^sub>2 \<cdot> \<sigma>\<^sub>3) = (\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2) \<cdot> \<sigma>\<^sub>3" 
 proof
@@ -1238,13 +1250,16 @@ proof -
 qed
 
 section {* Lifting Lemma *}
+
+lemma unification: "unifierls \<sigma> L \<Longrightarrow> \<exists>\<theta>. mgu \<theta> L" sorry
+
 lemma lifting:
   assumes appart: "varsls C \<inter> varsls D = {}"
   assumes inst\<^sub>1: "instance_ofls C' C"
   assumes inst\<^sub>2: "instance_ofls D' D"
   assumes appl: "applicable C' D' L' M' \<sigma>"
   shows "\<exists>L M \<tau>. applicable C D L M \<tau> \<and>
-                   instance_ofc (lresolution c' d' l' m' \<sigma>) (lresolution c d l m \<tau>)"
+                   instance_ofls (lresolution C' D' L' M' \<sigma>) (lresolution C D L M \<tau>)"
 proof -
   let ?C'\<^sub>1 = "C' - L'"
   let ?D'\<^sub>1 = "D' - M'"
@@ -1256,11 +1271,46 @@ proof -
 
   from inst\<^sub>2 obtain \<mu> where \<mu>_p: "D {\<mu>}\<^sub>l\<^sub>s = D'" unfolding instance_ofls_def by auto
   then have "\<exists>M \<subseteq> D. M {\<mu>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<mu>}\<^sub>l\<^sub>s = ?D'\<^sub>1" using appl project_sub[of \<mu> D D' M'] unfolding applicable_def by auto
-  then obtain M where "M \<subseteq> D \<and> M {\<mu>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<mu>}\<^sub>l\<^sub>s = ?D'\<^sub>1" by auto
+  then obtain M where M_p: "M \<subseteq> D \<and> M {\<mu>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<mu>}\<^sub>l\<^sub>s = ?D'\<^sub>1" by auto
   let ?D\<^sub>1 = "D - M"
   
   (* Now use above lemmas to get \<eta> *)
-  from \<mu>_p lmbd_p appart obtain \<eta> where "C {\<eta>}\<^sub>l\<^sub>s = C' \<and> D {\<eta>}\<^sub>l\<^sub>s = D'" using merge_sub by force
+  from \<mu>_p lmbd_p appart obtain \<eta> where \<eta>_p: "C {\<eta>}\<^sub>l\<^sub>s = C' \<and> D {\<eta>}\<^sub>l\<^sub>s = D'" using merge_sub by force
+
+  from \<eta>_p have "\<exists>L \<subseteq> C. L {\<eta>}\<^sub>l\<^sub>s = L' \<and> (C - L){\<eta>}\<^sub>l\<^sub>s = ?C'\<^sub>1" using appl project_sub[of \<eta> C C' L'] unfolding applicable_def by auto
+  then obtain L where L_p: "L \<subseteq> C \<and> L {\<eta>}\<^sub>l\<^sub>s = L' \<and> (C - L){\<eta>}\<^sub>l\<^sub>s = ?C'\<^sub>1" by auto (* Is it the same M as before, probably, but who cares? I should probably remove the one before*)
+  let ?C\<^sub>1 = "C - L"
+
+  from \<eta>_p have "\<exists>M \<subseteq> D. M {\<eta>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<eta>}\<^sub>l\<^sub>s = ?D'\<^sub>1" using appl project_sub[of \<mu> D D' M'] unfolding applicable_def by auto
+  then obtain M where M_p: "M \<subseteq> D \<and> M {\<eta>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<eta>}\<^sub>l\<^sub>s = ?D'\<^sub>1" by auto (* Is it the same M as before, probably, but who cares? I should probably remove the one before*)
+  let ?D\<^sub>1 = "D - M"
+
+  from appl have "mguls \<sigma> (L' \<union> M'\<^sup>C)" unfolding applicable_def by auto
+  then have "mguls \<sigma> (L {\<eta>}\<^sub>l\<^sub>s \<union> M {\<eta>}\<^sub>l\<^sub>s\<^sup>C)" using L_p M_p by auto
+  then have "mguls \<sigma> ((L  \<union> M\<^sup>C) {\<eta>}\<^sub>l\<^sub>s)" using compls_subls subls_union by auto
+  then have "unifierls \<sigma> ((L  \<union> M\<^sup>C) {\<eta>}\<^sub>l\<^sub>s)" unfolding mguls_def by auto
+  then have \<eta>\<sigma>uni: "unifierls (\<eta> \<cdot> \<sigma>) (L  \<union> M\<^sup>C)" 
+    unfolding unifierls_def using composition_conseq2l by auto
+  then obtain \<tau> where "mguls \<tau> (L  \<union> M\<^sup>C)" using unification by force
+  then obtain \<phi> where \<phi>_p: "\<tau> \<cdot> \<phi> = \<eta> \<cdot> \<sigma>" using \<eta>\<sigma>uni unfolding mguls_def by auto
+  
+  let ?E = "((C - L)  \<union> (D - M)) {\<tau>}\<^sub>l\<^sub>s"
+  have "?E {\<phi>}\<^sub>l\<^sub>s  = (?C\<^sub>1 \<union> ?D\<^sub>1 ) {\<tau> \<cdot> \<phi>}\<^sub>l\<^sub>s" using subls_union composition_conseq2ls by auto
+  also have "... = (?C\<^sub>1 \<union> ?D\<^sub>1 ) {\<eta> \<cdot> \<sigma>}\<^sub>l\<^sub>s" using \<phi>_p by auto
+  also have "... = (?C\<^sub>1 {\<eta>}\<^sub>l\<^sub>s \<union> ?D\<^sub>1 {\<eta>}\<^sub>l\<^sub>s) {\<sigma>}\<^sub>l\<^sub>s" using subls_union composition_conseq2ls by auto
+  also have "... = (?C'\<^sub>1 \<union> ?D'\<^sub>1) {\<sigma>}\<^sub>l\<^sub>s" using \<eta>_p L_p M_p by auto
+  finally have "?E {\<phi>}\<^sub>l\<^sub>s = ((C' - L') \<union> (D' - M')){\<sigma>}\<^sub>l\<^sub>s" by auto
+  then have inst: "instance_ofls (lresolution C' D' L' M' \<sigma>) (lresolution C D L M \<tau>) "
+    unfolding lresolution_def instance_ofls_def by blast
+
+  have appll: "applicable C D L M \<tau>" sorry
+
+  from inst appll show ?thesis by auto
+oops
+
+  
+  
+  
 
   (* Continue here *)
 oops
