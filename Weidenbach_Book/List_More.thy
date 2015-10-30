@@ -61,7 +61,7 @@ proof -
     using assms length_upt by presburger
   hence "[m..<n] ! (length A) = m + length A" by simp
   ultimately have "i = m + length A" using assms by auto
-  thus ?thesis using `A = [m ..< m + length A]` by auto
+  thus ?thesis using \<open>A = [m ..< m + length A]\<close> by auto
 qed
 
 lemma append_cons_eq_upt_length:
@@ -90,7 +90,7 @@ proof -
     using assms length_upt by auto
   hence "[m..<n]! (length A) = m + length A" by simp
   ultimately have "i = m + length A" using assms by auto
-  thus ?thesis using `B = [Suc m + length A..<n]` by auto
+  thus ?thesis using \<open>B = [Suc m + length A..<n]\<close> by auto
 qed
 
 lemma Max_n_upt: "Max (insert 0 {Suc 0..<n}) = n - Suc 0"
@@ -273,6 +273,27 @@ proof -
         unfolding P by blast
     qed
 qed
+
+lemma wf_if_measure_f_notation2:
+  assumes "wf r"
+  shows "wf {(b, h a)|b a. (f b, f (h a)) \<in> r}"
+  apply (rule wf_subset)
+  using wf_if_measure_f[OF assms, of f] by auto
+
+lemma wf_wf_if_measure'_notation2:
+assumes "wf r" and H: "(\<And>x y. P x \<Longrightarrow> g x y \<Longrightarrow> (f y, f (h x)) \<in> r)"
+shows " wf {(y,h x)| y x. P x \<and> g x y}"
+proof -
+  have "wf {(b, h a)|b a. (f b, f (h a)) \<in> r}" using assms(1) wf_if_measure_f_notation2 by auto
+  hence "wf {(b, h a)|b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r}"
+    using wf_subset[of _ "{(b, h a)| b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r}"] by auto
+  moreover have "{(b, h a)|b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r}
+    \<subseteq> {(b, h a)|b a. (f b, f (h a)) \<in> r}" by auto
+  moreover have "{(b, h a)|b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r} = {(b, h a)|b a. P a \<and> g a b}"
+    using H by auto
+  ultimately show ?thesis using wf_subset by simp
+qed
+
 
 section \<open>rtranclp\<close>
 text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and sledgehammer use it), but it makes more sense to duplicate it.\<close>

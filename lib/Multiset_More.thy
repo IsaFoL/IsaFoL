@@ -190,7 +190,8 @@ text {*
 What is it?*)
 setup {*
   map_theory_claset (fn ctxt =>
-    ctxt addbefore ("bspec_mset", fn ctxt' => dresolve_tac ctxt' @{thms bspec_mset} THEN' assume_tac ctxt'))
+    ctxt addbefore ("bspec_mset", fn ctxt' => dresolve_tac ctxt' @{thms bspec_mset}
+      THEN' assume_tac ctxt'))
 *}
 
 
@@ -437,5 +438,9 @@ lemma mset_set_set_mset_empty_mempty[iff]:
 
 lemma count_mset_0[iff]: "count (mset D) L = 0 \<longleftrightarrow> L \<notin> set D"
   by (metis in_multiset_in_set not_gr0)
+
+lemma count_mset_set_le_1[simp]: "count (mset_set (set C)) L \<le> 1"
+  by (metis List.finite_set One_nat_def count_mset_set(1) count_mset_set(3) le_less_linear
+    less_nat_zero_code less_not_refl)
 
 end

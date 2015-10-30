@@ -1,5 +1,5 @@
 (*  Title:       Partial Clausal Logic
-    Author:      Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>, 2014 
+    Author:      Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>, 2014
 *)
 theory Partial_Annotated_Clausal_Logic
 imports Partial_Clausal_Logic
@@ -87,7 +87,7 @@ lemma true_annots_insert[iff]:
   "M \<Turnstile>as insert a A \<longleftrightarrow> (M \<Turnstile>a a \<and> M \<Turnstile>as A)"
   unfolding true_annots_def by auto
 
-text \<open>Link between @{text "\<Turnstile>as"} and @{text "\<Turnstile>s"}:\<close>
+text \<open>Link between \<open>\<Turnstile>as\<close> and \<open>\<Turnstile>s\<close>:\<close>
 lemma true_annots_true_cls:
   "I \<Turnstile>as CC \<longleftrightarrow> (lits_of I) \<Turnstile>s CC"
   unfolding true_annots_def Ball_def true_annot_def true_clss_def by auto
@@ -113,7 +113,7 @@ lemma true_annot_true_clss_cls:
 lemma true_annots_true_clss_cls:
   "MLs \<Turnstile>as \<psi> \<Longrightarrow> set (map (\<lambda>a. {#lit_of a#}) MLs) \<Turnstile>ps \<psi>"
   by (auto
-    dest: true_clss_singleton_lit_of_implies_incl 
+    dest: true_clss_singleton_lit_of_implies_incl
     simp add: true_clss_def true_annots_def true_annot_def lits_of_def true_cls_def
     true_clss_clss_def)
 
@@ -159,10 +159,14 @@ abbreviation undefined_lit :: "'a literal \<Rightarrow> ('a, 'l, 'm) marked_lit 
 where "undefined_lit L I \<equiv> \<not>defined_lit L I"
 
 lemma atm_imp_marked_or_proped:
-  "x \<in> set I \<Longrightarrow>  (\<exists>l. Marked (- lit_of x) l \<in> set I) \<or> (\<exists>l. Marked (lit_of x) l \<in> set I) \<or> (\<exists>l. Propagated (- lit_of x) l \<in> set I) \<or> (\<exists>l. Propagated (lit_of x) l \<in> set I)"
-  using marked_lit.exhaust_sel by metis
+  assumes "x \<in> set I"
+  shows
+    "(\<exists>l. Marked (- lit_of x) l \<in> set I)
+    \<or> (\<exists>l. Marked (lit_of x) l \<in> set I)
+    \<or> (\<exists>l. Propagated (- lit_of x) l \<in> set I)
+    \<or> (\<exists>l. Propagated (lit_of x) l \<in> set I)"
+  using assms marked_lit.exhaust_sel by metis
 
-(*Marked as [dest]?*)
 lemma literal_is_lit_of_marked:
   assumes "L = lit_of x"
   shows "(\<exists>l. x = Marked L l) \<or> (\<exists>l'. x = Propagated L l')"
@@ -190,7 +194,6 @@ lemma Marked_Propagated_in_iff_in_lits_of:
   unfolding lits_of_def defined_lit_def
   by (auto simp add: rev_image_eqI) (case_tac x, auto)+
 
-(* TODO: intro rule instead of simp?*)
 lemma consistent_add_undefined_lit_consistent[simp]:
   "consistent_interp (lits_of Ls) \<Longrightarrow> undefined_lit L Ls \<Longrightarrow> consistent_interp (insert L (lits_of Ls))"
   unfolding consistent_interp_def by (auto simp add: Marked_Propagated_in_iff_in_lits_of)
@@ -211,7 +214,6 @@ lemma backtrack_split_fst_not_marked: "a \<in> set (fst (backtrack_split l)) \<L
 lemma backtrack_split_snd_hd_marked: "snd (backtrack_split l) \<noteq> [] \<Longrightarrow> is_marked (hd (snd (backtrack_split l)))"
   by (induct l rule: marked_lit_list_induct) auto
 
-(*TODO as simp rule is nice, but the [symmetric] version might be more interesting as [dest!]*)
 lemma backtrack_split_list_eq[simp]:
   "fst (backtrack_split l) @ (snd (backtrack_split l)) = l"
   by (induct l rule: marked_lit_list_induct) auto
@@ -238,7 +240,7 @@ subsection \<open>Decomposition with respect to the marked literals\<close>
 Ideas:
   * swap the side of Marked
   * case on the form of dropWhile (Not o is_marked)
-  
+
 Split function in 2 + list.product
 *)
 text \<open>The pattern @{term "get_all_marked_decomposition [] = [([], [])]"} is necessary otherwise, we can call the @{term hd} function in the other pattern. \<close>
@@ -377,13 +379,6 @@ next
     qed
 qed
 
-(*TODO Use Eisbach for the (case_tac aa, case_tac "hd (.. M)",auto):
-  * first match the get_all_marked_decomposition (a # ..) in the assumption or the goal
-  * then case_tac a
-  * then if hd (get_all_marked_decomposition M) / (get_all_marked_decomposition M) is present in the goal/assumption, split on it
-  * else fail/do nothing?
-
-*)
 lemma get_all_marked_decomposition_remove_unmarked_length:
   assumes "\<forall>l \<in> set M'. \<not>is_marked l"
   shows "length (get_all_marked_decomposition (M' @ M'')) = length (get_all_marked_decomposition M'')"
@@ -430,8 +425,7 @@ next
   ultimately show ?case by (cases a) auto
 qed
 
-(* TODO Mark as [dest] ?]*)
-lemma get_all_marked_decomposition_exists_prepend:
+lemma get_all_marked_decomposition_exists_prepend[dest]:
   assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
   shows "\<exists>c. M = c @ b @ a"
   using assms apply (induct M rule: marked_lit_list_induct)
@@ -455,24 +449,30 @@ lemma get_all_marked_decomposition_exists_prepend':
 lemma union_in_get_all_marked_decomposition_is_subset:
   assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
   shows "set a \<union> set b \<subseteq> set M"
-  using assms by (force dest: get_all_marked_decomposition_exists_prepend)
+  using assms by force
 
 
-definition all_decomposition_implies :: "'a literal multiset set \<Rightarrow> (('a, 'l, 'm) marked_lit list \<times> ('a, 'l, 'm) marked_lit list) list \<Rightarrow> bool" where
- "all_decomposition_implies N S \<longleftrightarrow> (\<forall>(Ls, seen) \<in> set S. (\<lambda>a. {#lit_of a#}) ` set Ls \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen)"
+definition all_decomposition_implies :: "'a literal multiset set
+  \<Rightarrow> (('a, 'l, 'm) marked_lit list \<times> ('a, 'l, 'm) marked_lit list) list \<Rightarrow> bool" where
+ "all_decomposition_implies N S
+   \<longleftrightarrow> (\<forall>(Ls, seen) \<in> set S. (\<lambda>a. {#lit_of a#}) ` set Ls \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen)"
 
 lemma all_decomposition_implies_empty[iff]:
   "all_decomposition_implies N []" unfolding all_decomposition_implies_def by auto
 
 lemma all_decomposition_implies_single[iff]:
-  "all_decomposition_implies N [(Ls, seen)] \<longleftrightarrow> (\<lambda>a. {#lit_of a#}) ` set Ls \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen" unfolding all_decomposition_implies_def by auto
+  "all_decomposition_implies N [(Ls, seen)]
+    \<longleftrightarrow> (\<lambda>a. {#lit_of a#}) ` set Ls \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen"
+  unfolding all_decomposition_implies_def by auto
 
 lemma all_decomposition_implies_append[iff]:
-  "all_decomposition_implies N (S @ S') \<longleftrightarrow> (all_decomposition_implies N S \<and> all_decomposition_implies N S')"
+  "all_decomposition_implies N (S @ S')
+    \<longleftrightarrow> (all_decomposition_implies N S \<and> all_decomposition_implies N S')"
   unfolding all_decomposition_implies_def by auto
 
 lemma all_decomposition_implies_cons_pair[iff]:
-  "all_decomposition_implies N ((Ls, seen) # S') \<longleftrightarrow> (all_decomposition_implies N [(Ls, seen)] \<and> all_decomposition_implies N S')"
+  "all_decomposition_implies N ((Ls, seen) # S')
+    \<longleftrightarrow> (all_decomposition_implies N [(Ls, seen)] \<and> all_decomposition_implies N S')"
   unfolding all_decomposition_implies_def by auto
 
 lemma all_decomposition_implies_cons_single[iff]:
@@ -545,12 +545,18 @@ next
         assume "Ls0 \<noteq> []"
         hence "hd Ls0 \<in> set M" using get_all_marked_decomposition_fst_empty_or_hd_in_M Ls0 by blast
         hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>p (\<lambda>a. {#lit_of a#}) (hd Ls0)"
-          using `is_marked (hd Ls0)` by (metis (mono_tags, lifting) UnCI mem_Collect_eq true_clss_cls_in)
+          using \<open>is_marked (hd Ls0)\<close> by (metis (mono_tags, lifting) UnCI mem_Collect_eq true_clss_cls_in)
       } note hd_Ls0 = this
 
-      have l: "(\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M')) \<union> {L |L. is_marked L \<and> L \<in> set M'}) =  (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition M')) \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'}"
+      have l: "(\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M'))
+          \<union> {L |L. is_marked L \<and> L \<in> set M'})
+        = (\<lambda>a. {#lit_of a#}) `
+           \<Union>(set ` snd ` set (get_all_marked_decomposition M'))
+           \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'}"
         by auto
-      have "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M')) \<union> {L |L. is_marked L \<and> L \<in> set M'})"
+      have "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps
+              (\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M'))
+                 \<union> {L |L. is_marked L \<and> L \<in> set M'})"
         unfolding l using N by (auto simp add: all_in_true_clss_clss)
       hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl Ls0)"
         using M' unfolding LS LSM  by auto
@@ -565,10 +571,15 @@ next
 
       moreover have "(\<lambda>a. {#lit_of a#}) ` set Ls0 \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen0"
         using Suc.prems unfolding Ls0 all_decomposition_implies_def by simp
-      ultimately have \<Psi>: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen0"
-        by (meson all_in_true_clss_clss true_clss_clss_left_right true_clss_clss_union_and true_clss_clss_union_l_r)
+      ultimately have \<Psi>: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps
+          (\<lambda>a. {#lit_of a#}) ` set seen0"
+        by (meson all_in_true_clss_clss true_clss_clss_left_right true_clss_clss_union_and
+          true_clss_clss_union_l_r)
 
-      have "(\<lambda>a. {#lit_of a#}) ` (set seen0 \<union> (\<Union>x\<in>set (get_all_marked_decomposition M'). set (snd x))) =  (\<lambda>a. {#lit_of a#}) ` set seen0 \<union> (\<lambda>a. {#lit_of a#}) ` (\<Union>x\<in>set (get_all_marked_decomposition M'). set (snd x))"
+      have "(\<lambda>a. {#lit_of a#})`(set seen0
+           \<union> (\<Union>x\<in>set (get_all_marked_decomposition M'). set (snd x)))
+         = (\<lambda>a. {#lit_of a#}) ` set seen0
+            \<union> (\<lambda>a. {#lit_of a#}) ` (\<Union>x\<in>set (get_all_marked_decomposition M'). set (snd x))"
         by auto
 
       hence ?case unfolding Ls0 using \<Psi> \<Psi>N by simp
@@ -580,7 +591,8 @@ qed
 
 lemma all_decomposition_implies_propagated_lits_are_implied:
   assumes "all_decomposition_implies N (get_all_marked_decomposition M)"
-  shows "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M" (is "?I \<Turnstile>ps ?A")
+  shows "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M"
+    (is "?I \<Turnstile>ps ?A")
 proof -
   have "?I \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` {L |L. is_marked L \<and> L \<in> set M}"
     by (auto intro: all_in_true_clss_clss)
@@ -624,11 +636,17 @@ lemma consistent_CNot_not:
   shows "I \<Turnstile>s CNot \<phi> \<Longrightarrow> \<not>I \<Turnstile> \<phi>"
   using assms unfolding consistent_interp_def true_clss_def true_cls_def CNot_def by auto
 
-lemma total_not_CNot:
-  assumes "total_over_m I {\<phi>}"
-  shows "\<not>I \<Turnstile> \<phi> \<Longrightarrow> I \<Turnstile>s CNot \<phi>"
-  using assms unfolding total_over_m_def total_over_set_def true_clss_def true_cls_def CNot_def apply clarify
+lemma total_not_true_cls_true_clss_CNot:
+  assumes "total_over_m I {\<phi>}" and "\<not>I \<Turnstile> \<phi>"
+  shows "I \<Turnstile>s CNot \<phi>"
+  using assms unfolding total_over_m_def total_over_set_def true_clss_def true_cls_def CNot_def
+    apply clarify
   by (case_tac L) (force intro: pos_lit_in_atms_of neg_lit_in_atms_of)+
+
+lemma total_not_CNot:
+  assumes "total_over_m I {\<phi>}" and "\<not>I \<Turnstile>s CNot \<phi>"
+  shows "I \<Turnstile> \<phi>"
+  using assms total_not_true_cls_true_clss_CNot by auto
 
 lemma atms_of_m_CNot_atms_of[simp]:
   "atms_of_m (CNot C) = atms_of C"
@@ -673,10 +691,9 @@ lemma atms_of_m_CNot_atms_of_m: "atms_of_m (CNot CC) = atms_of_m {CC}"
 lemma total_over_m_CNot_toal_over_m[simp]: "total_over_m I (CNot C) = total_over_set I (atms_of C)"
   unfolding total_over_m_def total_over_set_def by auto
 
-lemma true_clss_cls_plus_CNot':
+lemma true_clss_cls_plus_CNot:
   assumes CC_L: "A \<Turnstile>p CC + {#L#}"
   and CNot_CC: "A \<Turnstile>ps CNot CC"
-  and incl: "atms_of (CC + {#L#}) \<subseteq> atms_of_m A"
   shows "A \<Turnstile>p {#L#}"
   unfolding true_clss_clss_def true_clss_cls_def CNot_def total_over_m_def
 proof (intro allI impI)
@@ -684,26 +701,29 @@ proof (intro allI impI)
   assume tot: "total_over_set I (atms_of_m (A \<union> {{#L#}}))"
   and cons: "consistent_interp I"
   and I: "I \<Turnstile>s A"
-  have "total_over_set I (atms_of_m A)" using incl tot unfolding total_over_set_atm_of by auto
-  have "atms_of (CC + {#L#}) \<subseteq> atms_of_m A" using incl unfolding atms_of_m_def by fastforce
-  hence tot_I_A_CC_L: "total_over_m I (A \<union> {CC + {#L#}})"
-    using incl tot unfolding total_over_m_def total_over_set_atm_of by auto
-  hence "I \<Turnstile> CC + {#L#}" using CC_L cons I unfolding true_clss_cls_def by auto
-  moreover
-    have "total_over_m I (A \<union> CNot CC)"
-      using tot_I_A_CC_L by (auto simp add: total_over_m_def)
-    hence "I \<Turnstile>s CNot CC" using CNot_CC cons I unfolding true_clss_clss_def by auto
-    hence "\<not>A \<Turnstile>p CC" by (meson I tot_I_A_CC_L cons consistent_CNot_not total_over_m_sum total_over_m_union true_clss_cls_def)
-    hence "\<not>I \<Turnstile> CC" using `I \<Turnstile>s CNot CC` cons consistent_CNot_not by blast
-  ultimately show "I \<Turnstile> {#L#}" by blast
-qed
+  let ?I = "I \<union> {Pos P|P. P \<in> atms_of CC \<and> P \<notin> atm_of ` I}"
+  have cons': "consistent_interp ?I"
+    using cons unfolding consistent_interp_def
+    by (smt Un_iff atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set consistent_interp_def literal.sel(1) literal.simps(4) mem_Collect_eq uminus_Pos)
+  have I': "?I \<Turnstile>s A"
+    using I true_clss_union_increase by blast
+  have tot_CNot: "total_over_m ?I (A \<union> CNot CC)"
+    using tot atms_of_s_def by (fastforce simp add: total_over_m_def total_over_set_def)
 
-lemma true_clss_cls_plus_CNot:
-  assumes CC_L: "A \<Turnstile>p CC + {#L#}"
-  and CNot_CC: "A \<Turnstile>ps CNot CC"
-  and incl: "CC + {#L#} \<in> A"
-  shows "A \<Turnstile>p {#L#}"
-  using assms(3) atms_of_atms_of_m_mono true_clss_cls_plus_CNot'[OF CC_L CNot_CC] by blast
+  hence tot_I_A_CC_L: "total_over_m ?I (A \<union> {CC + {#L#}})"
+    using tot unfolding total_over_m_def total_over_set_atm_of by auto
+  hence "?I \<Turnstile> CC + {#L#}" using CC_L cons' I' unfolding true_clss_cls_def by blast
+  moreover
+    have "?I \<Turnstile>s CNot CC" using CNot_CC cons' I' tot_CNot unfolding true_clss_clss_def by auto
+    hence "\<not>A \<Turnstile>p CC"
+      by (metis (no_types, lifting) I' cons' consistent_CNot_not tot_I_A_CC_L total_over_m_sum
+        total_over_m_union true_clss_cls_def)
+    hence "\<not>?I \<Turnstile> CC" using \<open>?I \<Turnstile>s CNot CC\<close> cons' consistent_CNot_not by blast
+  ultimately have "?I \<Turnstile> {#L#}" by blast
+  thus "I \<Turnstile> {#L#}"
+    by (metis (no_types, lifting) atms_of_m_union cons' consistent_CNot_not tot total_not_CNot
+      total_over_m_def total_over_set_union true_clss_union_increase)
+qed
 
 lemma true_annots_CNot_lit_of_notin_skip:
   assumes LM: "L # M \<Turnstile>as CNot A" and LA: "lit_of L \<notin># A" "-lit_of L \<notin># A"
@@ -711,10 +731,10 @@ lemma true_annots_CNot_lit_of_notin_skip:
   using LM unfolding true_annots_def Ball_def
 proof (intro allI impI)
   fix l
-  assume H: " \<forall>x. x \<in> CNot A \<longrightarrow> L # M \<Turnstile>a x " and l: "l \<in> CNot A"
+  assume H: "\<forall>x. x \<in> CNot A \<longrightarrow> L # M \<Turnstile>a x " and l: "l \<in> CNot A"
   hence "L # M \<Turnstile>a l" by auto
   thus "M \<Turnstile>a l" using LA l by (cases L) (auto simp add: CNot_def)
-qed
+ qed
 
 lemma true_annot_remove_hd_if_notin_vars:
   assumes "a # M'\<Turnstile>a D"
@@ -745,8 +765,9 @@ proof (clarify, rule ccontr)
   fix L
   assume LB: "L \<in># B" and " \<not> lit_of ` set A \<Turnstile>l - L"
   hence "atm_of L \<in> atm_of ` lit_of ` set A" using assms(1) by (simp add: atm_of_lit_in_atms_of)
-  hence "L \<in> lit_of ` set A \<or> -L \<in> lit_of ` set A" using atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set by metis
-  hence "L \<in> lit_of ` set A" using ` \<not> lit_of \` set A \<Turnstile>l - L` by auto
+  hence "L \<in> lit_of ` set A \<or> -L \<in> lit_of ` set A" 
+    using atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set by metis
+  hence "L \<in> lit_of ` set A" using \<open> \<not> lit_of ` set A \<Turnstile>l - L\<close> by auto
   thus False
     using LB assms(2) unfolding true_annot_def lits_of_def true_lit_def true_cls_def Bex_mset_def
     by blast
@@ -775,21 +796,11 @@ next
     using a1 by simp
 qed
 
-
-lemma true_clss_clss_left_right':
-  assumes "A \<Turnstile>ps B"
-  and "A \<union> B \<Turnstile>ps M"
-  and "atms_of_m M \<subseteq> atms_of_m A"
-  and "atms_of_m B \<subseteq> atms_of_m A"
-  shows "A \<Turnstile>ps M"
-  using assms(1,2) unfolding true_clss_clss_def atms_of_m_def atms_of_def
-  by (metis (no_types, hide_lams) assms(3,4) atms_of_m_union sup.orderE total_over_m_def true_clss_union)
-
 lemma distinctget_all_marked_decomposition_no_dup:
   assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
   and "no_dup M"
   shows "no_dup (a @ b)"
-  using assms by (force dest!: get_all_marked_decomposition_exists_prepend)
+  using assms by force
 
 lemma true_annots_lit_of_notin_skip:
   assumes "L # M \<Turnstile>as CNot A"

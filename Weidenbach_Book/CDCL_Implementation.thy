@@ -1,9 +1,10 @@
 theory CDCL_Implementation
-imports Propo_CDCL Propo_CDCL_Termination
+imports DPLL_CDCL_Implementation Propo_CDCL Propo_CDCL_Termination
 begin
 
-section \<open>CDCL Implementation\<close>
-subsection \<open>Definition of the rules\<close>
+subsection \<open>CDCL Implementation\<close>
+subsubsection \<open>Definition of the rules\<close>
+paragraph \<open>Types\<close>
 lemma true_clss_remdups[simp]:
   "I \<Turnstile>s (mset \<circ> remdups) ` N \<longleftrightarrow>  I \<Turnstile>s mset ` N"
   by (simp add: true_clss_def)
@@ -12,136 +13,12 @@ lemma satisfiable_mset_remdups[simp]:
   "satisfiable ((mset \<circ> remdups) ` N) \<longleftrightarrow> satisfiable (mset ` N)"
 unfolding satisfiable_carac[symmetric] by simp
 
-definition find_unit where
-"find_unit l = List.find (\<lambda>l. length l = 1) l"
-
 value "backtrack_split [Marked (Pos (Suc 0)) Level]"
 value "\<exists>C \<in> set [[Pos (Suc 0), Neg (Suc 0)]]. (\<forall>c \<in> set C. -c \<in> lits_of [Marked (Pos (Suc 0)) Level])"
 
-subsubsection \<open>Propagation\<close>
-lemma lits_of_unfold:"(\<forall>c \<in> set C. -c \<in> lits_of Ms) \<longleftrightarrow> Ms \<Turnstile>as CNot (mset C)"
-  unfolding true_annots_def Ball_def true_annot_def CNot_def
-  using mem_set_multiset_eq by force
 
-definition is_unit_clause :: "'a literal list \<Rightarrow> ('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal option"
- where
- "is_unit_clause l M =
-   (case List.filter (\<lambda>a. atm_of a \<notin> atm_of ` lits_of M) l of
-     a # [] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
-   | _ \<Rightarrow> None)"
-
-definition is_unit_clause_code :: "'a literal list \<Rightarrow> ('a, 'b, 'c) marked_lit list
-  \<Rightarrow> 'a literal option" where
- "is_unit_clause_code l M =
-   (case List.filter (\<lambda>a. atm_of a \<notin> atm_of ` lits_of M) l of
-     a # [] \<Rightarrow> if (\<forall>c \<in>set (remove1 a l). -c \<in> lits_of M) then Some a else None
-   | _ \<Rightarrow> None)"
-
-lemma is_unit_clause_is_unit_clause_code[code]:
-  "is_unit_clause l M = is_unit_clause_code l M"
-proof -
-  have 1: "\<And>a. (\<forall>c\<in>set (remove1 a l). - c \<in> lits_of M) \<longleftrightarrow> M \<Turnstile>as CNot (mset l - {#a#})" (is "\<And>a. ?P a")
-    proof -
-      fix a
-      show "?P a"
-        using lits_of_unfold[of "remove1 a l", of M] by simp
-    qed
-  thus ?thesis
-    unfolding is_unit_clause_code_def is_unit_clause_def 1 by blast
-qed
-
-lemma is_unit_clause_some_undef: "is_unit_clause l M = Some a \<Longrightarrow> undefined_lit a M"
-  unfolding is_unit_clause_def lits_of_def
-proof -
-  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M] of [] \<Rightarrow> None | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
-  hence "a \<in> set [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M]"
-    apply (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M]", auto)
-    apply (case_tac list, auto)
-    apply (case_tac "M \<Turnstile>as CNot (mset l - {#aa#})")
-    by auto
-  hence "atm_of a \<notin> atm_of ` lit_of ` set M" by auto
-  thus ?thesis
-     by (simp add: Marked_Propagated_in_iff_in_lits_of
-       atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def)
-qed
-
-lemma is_unit_clause_some_CNot: "is_unit_clause l M = Some a \<Longrightarrow> M \<Turnstile>as CNot (mset l - {#a#})"
-  unfolding is_unit_clause_def lits_of_def
-proof -
-  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M] of [] \<Rightarrow> None | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
-  thus ?thesis
-    apply (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M]", auto)
-    apply (case_tac list, auto)
-    apply (case_tac "M \<Turnstile>as CNot (mset l - {#aa#})")
-    by auto
-qed
-
-lemma is_unit_clause_some_in: "is_unit_clause l M = Some a \<Longrightarrow> a \<in> set l"
-  unfolding is_unit_clause_def lits_of_def
-proof -
-  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M] of [] \<Rightarrow> None | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
-  thus "a \<in> set l"
-    apply (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M]", auto)
-    apply (case_tac list, auto)
-    apply (case_tac "M \<Turnstile>as CNot (mset l - {#aa#})")
-    apply auto
-    by (metis (no_types, lifting) insertI1 list.simps(15) mem_Collect_eq set_filter)
-qed
-
-lemma [simp]: "is_unit_clause [] M = None"
-  unfolding is_unit_clause_def by auto
-
-fun find_first_unit_clause :: "'a literal list list \<Rightarrow> ('a, 'b, 'c) marked_lit list \<Rightarrow> ('a literal \<times> 'a literal list) option"  where
-"find_first_unit_clause (a # l) M =
-  (case is_unit_clause a M of
-    None \<Rightarrow> find_first_unit_clause l M
-  | Some L \<Rightarrow> Some (L, a))" |
-"find_first_unit_clause [] _ = None"
-
-lemma find_first_unit_clause_some: "find_first_unit_clause l M = Some (a, c) \<Longrightarrow> c \<in> set l \<and>  M \<Turnstile>as CNot (mset c - {#a#}) \<and> undefined_lit a M \<and> a \<in> set c"
-  apply (induct l, auto)
-  apply (case_tac "is_unit_clause aa M", auto split: option.splits)
-  using is_unit_clause_some_CNot is_unit_clause_some_undef apply blast
-  using is_unit_clause_some_undef apply blast
-  using is_unit_clause_some_in by blast
-
-lemma propagate_is_unit_clause_not_None:
-  assumes dist: "distinct c" and
-  M: "M \<Turnstile>as CNot (mset c - {#a#})" and
-  undef: "undefined_lit a M" and
-  ac: "a \<in> set c"
-  shows "is_unit_clause c M \<noteq> None"
-proof -
-  have "[a\<leftarrow>c . atm_of a \<notin> atm_of ` lits_of M] = [a]"
-    using assms
-    proof (induction c)
-      case Nil thus ?case by simp
-    next
-      case (Cons ac c)
-      show ?case
-        proof (cases "a = ac")
-          case True
-          thus ?thesis using Cons
-            by (auto simp add: lits_of_unfold[symmetric] Marked_Propagated_in_iff_in_lits_of atm_of_eq_atm_of atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
-        next
-          case False
-          hence T: "mset c + {#ac#} - {#a#} = mset c - {#a#} + {#ac#}"
-            by (auto simp add: multiset_eq_iff)
-
-          show ?thesis using False Cons
-            by (auto simp add: T atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
-        qed
-    qed
-  thus ?thesis
-    using M unfolding is_unit_clause_def by auto
-qed
-
-lemma find_first_unit_clause_none: "distinct c \<Longrightarrow> c \<in> set l \<Longrightarrow>  M \<Turnstile>as CNot (mset c - {#a#}) \<Longrightarrow> undefined_lit a M \<Longrightarrow> a \<in> set c \<Longrightarrow> find_first_unit_clause l M \<noteq> None"
-  by (induction l)
-     (auto split: option.split simp add: propagate_is_unit_clause_not_None)
-
-
-type_synonym cdcl_state_st = "(nat, nat, nat literal list) marked_lit list \<times> nat literal list list \<times> nat literal list list \<times> nat \<times> nat literal list conflicting_clause"
+type_synonym cdcl_state_st = "(nat, nat, nat literal list) marked_lit list \<times> nat literal list list
+  \<times> nat literal list list \<times> nat \<times> nat literal list conflicting_clause"
 
 fun convert where
 "convert (Propagated L C) = Propagated L (mset C)" |
@@ -152,7 +29,7 @@ fun convertC where
 "convertC C_True = C_True"
 
 lemma convert_CTrue[iff]:
-  "convertC e = C_True \<longleftrightarrow> e= C_True"
+  "convertC e = C_True \<longleftrightarrow> e = C_True"
   by (cases e) auto
 
 lemma convert_Propagated[elim!]:
@@ -171,13 +48,16 @@ lemma get_maximum_level_map_convert[simp]:
   "get_maximum_level D (map convert M) = get_maximum_level D M"
   by (induction D)
      (auto simp add: get_maximum_level_plus)
-
+text \<open>Conversion function\<close>
 fun toS :: "cdcl_state_st \<Rightarrow> nat cdcl_state" where
-"toS (M, N, U, k, C) = (map convert M, set (map mset N),  set (map mset U), k, convertC C) "
+"toS (M, N, U, k, C) = (map convert M, set (map mset N),  set (map mset U), k, convertC C)"
+
+text \<open>Definition an abstract type\<close>
 typedef cdcl_state =  "{S::cdcl_state_st. cdcl_all_inv_mes (toS S)}"
   morphisms rough_state_of state_of
 proof
-    show "([],[], [], 0, C_True) \<in> {S. cdcl_all_inv_mes (toS S)}" by (auto simp add: cdcl_all_inv_mes_def)
+    show "([],[], [], 0, C_True) \<in> {S. cdcl_all_inv_mes (toS S)}"
+      by (auto simp add: cdcl_all_inv_mes_def)
 qed
 
 
@@ -188,7 +68,6 @@ definition equal_cdcl_state :: "cdcl_state \<Rightarrow> cdcl_state \<Rightarrow
 instance
   by standard (simp add: rough_state_of_inject equal_cdcl_state_def)
 end
-
 
 lemma lits_of_map_convert[simp]: "lits_of (map convert M) = lits_of M"
   by (induction M rule: marked_lit_list_induct) simp_all
@@ -211,6 +90,7 @@ lemma find_first_unit_clause_some_is_propagate:
   by (auto dest!: find_first_unit_clause_some simp add: propagate.simps
     intro!: exI[of _ "mset C - {#L#}"])
 
+subsubsection \<open>Propagate\<close>
 definition do_propagate_step where
 "do_propagate_step S =
   (case S of
@@ -277,7 +157,7 @@ proof (standard, standard)
   thus False using prop_step S unfolding do_propagate_step_def by (cases S) auto
 qed
 
-subsubsection \<open>Conflict\<close>
+paragraph \<open>Conflict\<close>
 fun find_conflict where
 "find_conflict M [] = None" |
 "find_conflict M (N # Ns) = (if (\<forall>c \<in> set N. -c \<in> lits_of M) then Some N else find_conflict M Ns)"
@@ -406,7 +286,7 @@ proof -
   thus ?thesis by auto
 qed
 
-subsubsection \<open>Skip\<close>
+paragraph \<open>Skip\<close>
 fun do_skip_step :: "cdcl_state_st \<Rightarrow> cdcl_state_st" where
 "do_skip_step (Propagated L C # Ls,N,U,k, C_Clause D) =
   (if -L \<notin> set D \<and> D \<noteq> [] then (Ls, N, U, k, C_Clause D) else (Propagated L C #Ls, N, U, k, C_Clause D))" |
@@ -427,7 +307,7 @@ lemma do_skip_step_trail_is_C_True[iff]:
   by (cases S rule: do_skip_step.cases)
      auto
 
-subsubsection \<open>Resolve\<close>
+paragraph \<open>Resolve\<close>
 fun maximum_level_code:: "'a literal list \<Rightarrow> ('a, nat, 'a literal list) marked_lit list \<Rightarrow> nat"  where
 "maximum_level_code [] _ = 0" |
 "maximum_level_code (L # Ls) M = max (get_level L M) (maximum_level_code Ls M)"
@@ -458,10 +338,10 @@ proof (induction S rule: do_resolve_step.induct)
   then obtain C' where C: "mset C = C' + {#L#}"
     by (metis add.commute in_multiset_in_set insert_DiffM)
   obtain D' where D: "mset D = D' + {#-L#}"
-    using `- L \<in> set D` by (metis add.commute in_multiset_in_set insert_DiffM)
+    using \<open>- L \<in> set D\<close> by (metis add.commute in_multiset_in_set insert_DiffM)
   have D'L:  "D' + {#- L#} - {#-L#} = D'" by (auto simp add: multiset_eq_iff)
 
-  have CL: "mset C - {#L#} + {#L#} = mset C" using `L \<in> set C` by (auto simp add: multiset_eq_iff)
+  have CL: "mset C - {#L#} + {#L#} = mset C" using \<open>L \<in> set C\<close> by (auto simp add: multiset_eq_iff)
   have
     "resolve
      (map convert (Propagated L C # M), mset ` set N, mset ` set U, k, C_Clause (mset D))
@@ -498,7 +378,7 @@ lemma do_resolve_step_trail_is_C_True[iff]:
   by (cases S rule: do_resolve_step.cases)
      auto
 
-subsubsection \<open>Backjumping\<close>
+paragraph \<open>Backjumping\<close>
 fun find_level_decomp where
 "find_level_decomp M [] D k = None" |
 "find_level_decomp M (L # Ls) D k =
@@ -507,7 +387,9 @@ fun find_level_decomp where
   )"
 
 lemma find_level_decomp_some:
-  "find_level_decomp M Ls D k = Some (L, j) \<Longrightarrow> L \<in> set Ls \<and> get_maximum_level (mset (remove1 L (Ls @ D))) M = j \<and> get_level L M = k"
+  assumes "find_level_decomp M Ls D k = Some (L, j)"
+  shows "L \<in> set Ls \<and> get_maximum_level (mset (remove1 L (Ls @ D))) M = j \<and> get_level L M = k"
+  using assms
   apply (induction Ls arbitrary: D)
   apply simp
   apply (auto split: split_if_asm simp add: ac_simps)
@@ -517,17 +399,18 @@ lemma find_level_decomp_some:
   done
 
 lemma find_level_decomp_none:
-  "find_level_decomp M Ls E k = None \<Longrightarrow> mset (L#D) = mset (Ls @ E) \<Longrightarrow> \<not>(L \<in> set Ls \<and> get_maximum_level (mset D) M < k \<and> k = get_level L M)"
+  assumes "find_level_decomp M Ls E k = None" and "mset (L#D) = mset (Ls @ E)"
+  shows "\<not>(L \<in> set Ls \<and> get_maximum_level (mset D) M < k \<and> k = get_level L M)"
+  using assms
 proof (induction Ls arbitrary: E L D)
   case Nil
   thus ?case by simp
 next
   case (Cons L' Ls) note IH = this(1) and find_none = this(2) and LD = this(3)
-  show ?case
-    using find_none
-    using IH[of "L' # E" L D] LD apply (auto simp add: ac_simps split: split_if_asm
-      intro:  add_right_imp_eq)
+  have "mset D + {#L'#} = mset E + (mset Ls + {#L'#})  \<Longrightarrow> mset D = mset E + mset Ls"
     by (metis add_right_imp_eq union_assoc)
+  thus ?case
+    using find_none IH[of "L' # E" L D] LD by (auto simp add: ac_simps split: split_if_asm)
 qed
 
 fun bt_cut where
@@ -540,9 +423,7 @@ lemma bt_cut_some_decomp:
   by (induction i M rule: bt_cut.induct) (auto split: split_if_asm)
 
 lemma bt_cut_not_none: "M = M2 @ Marked K (Suc i) # M' \<Longrightarrow> bt_cut i M \<noteq> None"
-apply (induction M2 arbitrary: M)
-apply simp
-by (case_tac a) auto
+  by (induction M2 arbitrary: M rule: marked_lit_list_induct) auto
 
 lemma get_all_marked_decomposition_ex:
   "\<exists>N. (Marked K (Suc i) # M', N) \<in> set (get_all_marked_decomposition (M2@Marked K (Suc i) # M'))"
@@ -566,10 +447,11 @@ fun do_backtrack_step where
 "do_backtrack_step S = S"
 
 lemma get_all_marked_decomposition_map_convert:
-  "(get_all_marked_decomposition (map convert M)) = map (\<lambda>(a, b). (map convert a, map convert b)) (get_all_marked_decomposition M)"
+  "(get_all_marked_decomposition (map convert M)) =
+    map (\<lambda>(a, b). (map convert a, map convert b)) (get_all_marked_decomposition M)"
   apply (induction M rule: marked_lit_list_induct)
     apply simp
-  by (case_tac "(get_all_marked_decomposition xs)", auto)+
+  by (case_tac "get_all_marked_decomposition xs", auto)+
 
 lemma do_backtrack_step:
   assumes db: "do_backtrack_step S \<noteq> S"
@@ -587,13 +469,14 @@ lemma do_backtrack_step:
     have "L \<in> set C" and "get_maximum_level (mset (remove1 L C)) M = j"
       using find_level_decomp_some[OF fd] by auto
     obtain C' where C: "mset C = mset C' + {#L#}"
-      using `L \<in> set C` by (metis add.commute ex_mset in_multiset_in_set insert_DiffM)
+      using \<open>L \<in> set C\<close> by (metis add.commute ex_mset in_multiset_in_set insert_DiffM)
     obtain M\<^sub>2 where M\<^sub>2: "bt_cut j M = Some M\<^sub>2"
       using db fd unfolding S E by (auto split: option.splits)
     obtain M1 K where M1: "M\<^sub>2 = Marked K (Suc j) # M1"
       using bt_cut_some_decomp[OF M\<^sub>2] by (cases M\<^sub>2) auto
     obtain c where c: "M = c @ Marked K (Suc j) # M1"
-       using bt_cut_in_get_all_marked_decomposition[OF M\<^sub>2] get_all_marked_decomposition_exists_prepend unfolding M1 by fastforce
+       using bt_cut_in_get_all_marked_decomposition[OF M\<^sub>2]
+       unfolding M1 by fastforce
     have "get_all_levels_of_marked (map convert M) = rev [1..<Suc k]"
       using inv unfolding cdcl_all_inv_mes_def cdcl_M_level_inv_def S by auto
     from arg_cong[OF this, of "\<lambda>a. Suc j \<in> set a"] have "j \<le> k" unfolding c by auto
@@ -607,18 +490,19 @@ lemma do_backtrack_step:
           dest!: find_level_decomp_some)[1]
     obtain M2 where M2: "(M\<^sub>2, M2) \<in> set (get_all_marked_decomposition M)"
       using bt_cut_in_get_all_marked_decomposition[OF M\<^sub>2] by metis
-    have "backtrack
-           (map convert M, mset ` set N, mset ` set U, k, C_Clause (mset C))
-           (Propagated L (mset C) # map convert M1, mset ` set N, mset ` set U \<union> {mset C}, j, C_True)"
+    have
+      "backtrack
+        (map convert M, mset ` set N, mset ` set U, k, C_Clause (mset C))
+        (Propagated L (mset C) # map convert M1, mset ` set N, mset ` set U \<union> {mset C}, j, C_True)"
       unfolding C M1 List.list.map set_append
       apply rule
-           apply auto[1]
-          using bt_cut_in_get_all_marked_decomposition[OF M\<^sub>2] unfolding M1 defer
+           apply simp
+         using Set.imageI[of "(M\<^sub>2, M2)" "set (get_all_marked_decomposition M)"
+                             "(\<lambda>(a, b). (map convert a, map convert b))"] M2
+         unfolding M1 apply (auto simp add: get_all_marked_decomposition_map_convert)[1]
         using levL apply simp
-      using max_l_j levL `j \<le> k` apply (simp add: get_maximum_level_plus)
-      using max_l_j apply simp
-      using Set.imageI[of "(M\<^sub>2, M2)" "set (get_all_marked_decomposition M)" "(\<lambda>(a, b). (map convert a, map convert b))", OF M2]
-      unfolding M1 by (auto simp add: get_all_marked_decomposition_map_convert)
+      using max_l_j levL \<open>j \<le> k\<close> apply (simp add: get_maximum_level_plus)
+      using max_l_j by simp
     thus ?case
       using M\<^sub>2 fd unfolding S E M1 by auto
     obtain M2 where "(M\<^sub>2, M2) \<in> set (get_all_marked_decomposition M)"
@@ -646,7 +530,7 @@ next
         simp add: get_all_marked_decomposition_map_convert)
   have z: "z = Marked K (Suc j)" using z by (cases z) auto
   obtain c where c: "M = c @ b @ Marked K (Suc j) # M1"
-    using get_all_marked_decomposition_exists_prepend[OF decomp] unfolding z by blast
+    using decomp unfolding z by blast
   have "get_all_levels_of_marked (map convert M) = rev [1..<Suc k]"
     using inv unfolding cdcl_all_inv_mes_def cdcl_M_level_inv_def S by auto
   from arg_cong[OF this, of "\<lambda>a. Suc j \<in> set a"] have "k > j" unfolding c by auto
@@ -662,7 +546,7 @@ next
     apply rule
     apply (drule find_level_decomp_none[of _ _ _ _ L D'])
       using C apply simp
-    using C `k > j` mset_eq_setD unfolding k[symmetric] D'D j[symmetric] levL by fastforce
+    using C \<open>k > j\<close> mset_eq_setD unfolding k[symmetric] D'D j[symmetric] levL by fastforce
   then obtain L' j' where fd_some: "find_level_decomp M C [] k = Some (L', j')"
     by (cases "find_level_decomp M C [] k") auto
   have L': "L' = L"
@@ -672,7 +556,7 @@ next
         by (metis C D'D fd_some find_level_decomp_some in_multiset_in_set insert_iff list.simps(15))
       hence "get_level L' M \<le> get_maximum_level D M"
         using get_maximum_level_ge_get_level by blast
-      thus False using `k > j` j find_level_decomp_some[OF fd_some] by auto
+      thus False using \<open>k > j\<close> j find_level_decomp_some[OF fd_some] by auto
     qed
   hence j': "j' = j"  using find_level_decomp_some[OF fd_some] j C D'D by auto
 
@@ -690,34 +574,7 @@ lemma rough_state_of_state_of_backtrack[simp]:
   apply (rule state_of_inverse)
   by (metis cdcl.simps cdcl_all_inv_mes_inv do_backtrack_step backtrack mem_Collect_eq)
 
-subsubsection \<open>Decide\<close>
-fun find_first_unused_var :: "'a literal list list \<Rightarrow> 'a literal set \<Rightarrow> 'a literal option"  where
-"find_first_unused_var (a # l) M =
-  (case List.find (\<lambda>lit. lit \<notin> M \<and> -lit \<notin> M) a of
-    None \<Rightarrow> find_first_unused_var l M
-  | Some a \<Rightarrow> Some a)" |
-"find_first_unused_var [] _ = None"
-
-lemma find_none[iff]: "List.find (\<lambda>lit. lit \<notin> M \<and> -lit \<notin> M) a = None \<longleftrightarrow>  atm_of ` set a \<subseteq> atm_of `  M"
-   apply (induct a, auto)
-   using atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set by (fastforce simp add:  atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)+
-
-lemma find_some: "List.find (\<lambda>lit. lit \<notin> M \<and> -lit \<notin> M) a = Some b \<Longrightarrow> b \<in> set a \<and> b \<notin> M \<and> -b \<notin> M"  by (metis find_Some_iff nth_mem)
-
-lemma find_first_unused_var_None:
-  "find_first_unused_var l M = None \<longleftrightarrow> (\<forall>a \<in> set l. atm_of ` set a \<subseteq> atm_of `  M)"
-  apply(induct l, auto split: option.split)
-  using find_some[of M] by (smt atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set image_subset_iff)+
-
-lemma find_first_unused_var_Some:
-  "find_first_unused_var l M = Some a \<Longrightarrow> (\<exists>m \<in> set l. a \<in> set m \<and> a \<notin> M \<and> -a \<notin> M)"
-  apply(induct l, auto split: option.split)
-  using find_some[of M] by (metis (lifting) option.case_eq_if option.collapse)+
-
-lemma find_first_unused_var_undefined:
-  "find_first_unused_var l (lits_of Ms) = Some a \<Longrightarrow> undefined_lit a Ms"
-  using find_first_unused_var_Some[of l "lits_of Ms" a] Marked_Propagated_in_iff_in_lits_of by blast
-
+paragraph \<open>Decide\<close>
 fun do_decide_step where
 "do_decide_step (M, N, U, k, C_True) =
   (case find_first_unused_var N (lits_of M) of
@@ -729,11 +586,15 @@ lemma do_decide_step:
   "do_decide_step S \<noteq> S \<Longrightarrow> decided (toS S) (toS (do_decide_step S))"
   apply (cases S, cases "conflicting S")
   defer
-  apply (auto split: option.splits simp add:  decided.simps Marked_Propagated_in_iff_in_lits_of dest: find_first_unused_var_undefined dest!: find_first_unused_var_Some intro: atms_of_atms_of_m_mono dest: contra_subsetD)[1]
+  apply (auto split: option.splits simp add:  decided.simps Marked_Propagated_in_iff_in_lits_of
+          dest: find_first_unused_var_undefined find_first_unused_var_Some
+          intro: atms_of_atms_of_m_mono)[1]
 proof -
   fix a b c d e
   {
-    fix a :: "(nat, nat, nat literal list) marked_lit list" and b :: "nat literal list list" and c :: "nat literal list list" and d :: nat and x2 :: "nat literal" and m :: "nat literal list"
+    fix a :: "(nat, nat, nat literal list) marked_lit list" and
+        b :: "nat literal list list" and  c :: "nat literal list list" and
+        d :: nat and x2 :: "nat literal" and m :: "nat literal list"
     assume a1: "m \<in> set b"
     assume "x2 \<in> set m"
     hence f2: "atm_of x2 \<in> atms_of (mset m)"
@@ -741,18 +602,20 @@ proof -
     have "\<And>f. (f m::nat literal multiset) \<in> f ` set b"
       using a1 by blast
     hence "\<And>f. (atms_of (f m)::nat set) \<subseteq> atms_of_m (f ` set b)"
-     using atms_of_atms_of_m_mono by blast (* 3 ms *)
+     using atms_of_atms_of_m_mono by blast
     hence "\<And>n f. (n::nat) \<in> atms_of_m (f ` set b) \<or> n \<notin> atms_of (f m)"
-      by (meson contra_subsetD) (* 3 ms *)
+      by (meson contra_subsetD)
     hence "atm_of x2 \<in> atms_of_m (mset ` set b)"
-      using f2 by blast (* 0.0 ms *)
-  }
-  moreover assume  "do_decide_step S \<noteq> S" and
+      using f2 by blast
+  } note H = this
+  assume  "do_decide_step S \<noteq> S" and
      "S = (a, b, c, d, e)" and
      "conflicting S = C_True"
-  ultimately show "decided (toS S) (toS (do_decide_step S))"
-    by (auto split: option.splits simp add: decided.simps Marked_Propagated_in_iff_in_lits_of
-             dest!: find_first_unused_var_Some)
+  then show "decided (toS S) (toS (do_decide_step S))"
+  (* TODO tune proof *)
+    apply (auto split: option.splits simp add: decided.simps Marked_Propagated_in_iff_in_lits_of
+             dest!: find_first_unused_var_Some dest: H)
+    by (meson atm_of_in_atm_of_set_in_uminus contra_subsetD rev_image_eqI)+
 qed
 
 
@@ -760,8 +623,7 @@ lemma do_decide_step_no:
   "do_decide_step S = S \<Longrightarrow> no_step decided (toS S)"
   by (cases S, cases "conflicting S")
     (fastforce
-      simp add: find_first_unused_var_None atms_of_m_mset_unfold atm_of_eq_atm_of
-        Marked_Propagated_in_iff_in_lits_of
+      simp add: atms_of_m_mset_unfold atm_of_eq_atm_of Marked_Propagated_in_iff_in_lits_of
       split: option.splits)+
 
 lemma rough_state_of_state_of_do_decide_step[simp]:
@@ -778,8 +640,8 @@ lemma rough_state_of_state_of_do_skip_step[simp]:
   apply simp
   done
 
-subsection \<open>Code generation\<close>
-subsubsection \<open>Type definition\<close>
+subsubsection \<open>Code generation\<close>
+paragraph \<open>Type definition\<close>
 text \<open>There are two invariants: one while applying conflict and propagate and one for the other
  rules\<close>
 thm rough_state_of_inverse[simp add]
@@ -822,14 +684,14 @@ lemma [code abstract]:
   "rough_state_of (id_of_I_to S) = rough_state_of_I S"
   unfolding id_of_I_to_def using rough_state_of_I by auto
 
-subsubsection \<open>Conflict and Propagate\<close>
+paragraph \<open>Conflict and Propagate\<close>
 function do_full_cp_step :: "cdcl_state \<Rightarrow> cdcl_state" where
 "do_full_cp_step S =
   (let S' = do_cp_step' S in
    if S = S' then S else do_full_cp_step S')"
 by auto
 termination
-proof (relation "{(T', T). (rough_state_of T', rough_state_of T) \<in> {(S', S). 
+proof (relation "{(T', T). (rough_state_of T', rough_state_of T) \<in> {(S', S).
   (toS S', toS S) \<in> {(S', S). cdcl_all_inv_mes S \<and> cdcl_cp S S'}}}", goal_cases)
   case 1
   show ?case
@@ -865,7 +727,7 @@ lemma [code abstract]:
  "rough_state_of (do_cp_step' S) = do_cp_step (rough_state_of S)"
  unfolding do_cp_step'_def by auto
 
-subsubsection \<open>The other rules\<close>
+paragraph \<open>The other rules\<close>
 fun do_other_step where
 "do_other_step S =
    (let T = do_skip_step S in
@@ -931,7 +793,7 @@ lemma toS_do_full_cp_step_not_eq: "do_full_cp_step S \<noteq> S \<Longrightarrow
 text \<open>@{term do_full_cp_step} should not be unfolded anymore:\<close>
 declare do_full_cp_step.simps[simp del]
 
-subsubsection \<open>Correction of the transformation\<close>
+paragraph \<open>Correction of the transformation\<close>
 lemma do_cdcl_s_step:
   assumes "do_cdcl_s_step S \<noteq> S"
   shows "cdcl_s (toS (rough_state_of S)) (toS (rough_state_of (do_cdcl_s_step S)))"
@@ -949,7 +811,10 @@ next
     nc: "no_step conflict (toS (rough_state_of S))"
     by (metis True do_cp_step_eq_no_step do_full_cp_step_fix_point_of_do_full_cp_step
        in_clauses_rough_state_of_is_distinct no_cdcl_cp_iff_no_propagate_no_conflict)+
-  moreover have "cdcl_cp\<^sup>\<down> (toS (rough_state_of (do_other_step' S))) (toS (rough_state_of (do_full_cp_step (do_other_step' S))))"
+    hence "no_step cdcl_cp (toS (rough_state_of S))"
+      by (meson cdcl_cp.cases)
+  moreover have "cdcl_cp\<^sup>\<down> (toS (rough_state_of (do_other_step' S)))
+    (toS (rough_state_of (do_full_cp_step (do_other_step' S))))"
     using do_full_cp_step_full0 by auto
   ultimately show ?thesis
     using assms True unfolding do_cdcl_s_step_def
@@ -1002,15 +867,6 @@ lemma do_full_cp_step_neq_trail_increase:
 apply (induction rule: do_full_cp_step_induct)
 apply (case_tac "do_cp_step' S = S")
   apply (simp add: do_full_cp_step.simps)
-(* TODO Jasmin )sledgehammer[z3, debug, max_facts=100] (do_cp_step_neq_trail_increase do_full_cp_step.simps do_cp_step'_def rough_state_of_state_of_do_cp_step append_assoc             Un_iff  set_append            )
-
-Type unification failed: Clash of types "(_, _, _) marked_lit" and "_ list"
-
-Type error in application: incompatible operand type
-
-Operator:  set :: (nat, nat, nat literal list) marked_lit list \<Rightarrow> (nat, nat, nat literal list) marked_lit set
-Operand:   v1a :: (nat, nat, nat literal list) marked_lit
-*)
 by (smt Un_iff append_assoc do_cp_step'_def do_cp_step_neq_trail_increase do_full_cp_step.simps rough_state_of_state_of_do_cp_step set_append)
 
 thm state_of_inverse
@@ -1026,19 +882,27 @@ lemma do_full_cp_step_conflicting:
      (auto simp add: rough_state_of_inverse do_full_cp_step.simps dest: do_cp_step_conflicting)
 
 lemma do_decide_step_not_conflicting_one_more_decide:
-  "conflicting S = C_True \<Longrightarrow> do_decide_step S \<noteq> S \<Longrightarrow> Suc (length (filter is_marked (trail S))) = length (filter is_marked (trail (do_decide_step S)))"
-  unfolding do_other_step'_def by (cases S)
-    (auto simp add: rough_state_of_inverse Let_def split: split_if_asm option.splits)
+  assumes
+    "conflicting S = C_True" and
+    "do_decide_step S \<noteq> S"
+    shows "Suc (length (filter is_marked (trail S))) = length (filter is_marked (trail (do_decide_step S)))"
+  using assms unfolding do_other_step'_def
+  by (cases S) (auto simp add: rough_state_of_inverse Let_def split: split_if_asm option.splits
+     dest!: find_first_unused_var_Some_not_all_incl)
 
 lemma do_decide_step_not_conflicting_one_more_decide_bt:
-  "conflicting S \<noteq> C_True \<Longrightarrow> do_decide_step S \<noteq> S \<Longrightarrow> length (filter is_marked (trail S)) < length (filter is_marked (trail (do_decide_step S)))"
-  unfolding do_other_step'_def by (cases S, cases "conflicting S", auto simp add: rough_state_of_inverse Let_def split: split_if_asm option.splits)
+  assumes "conflicting S \<noteq> C_True" and
+  "do_decide_step S \<noteq> S"
+  shows "length (filter is_marked (trail S)) < length (filter is_marked (trail (do_decide_step S)))"
+  using assms unfolding do_other_step'_def by (cases S, cases "conflicting S")
+    (auto simp add: rough_state_of_inverse Let_def split: split_if_asm option.splits)
 
 lemma do_other_step_not_conflicting_one_more_decide_bt:
   assumes "conflicting (rough_state_of S) \<noteq> C_True" and
   "conflicting (rough_state_of (do_other_step' S)) = C_True" and
   "do_other_step' S \<noteq> S"
-  shows "length (filter is_marked (trail (rough_state_of S))) > length (filter is_marked (trail (rough_state_of (do_other_step' S))))"
+  shows "length (filter is_marked (trail (rough_state_of S)))
+    > length (filter is_marked (trail (rough_state_of (do_other_step' S))))"
 proof (cases S, goal_cases)
   case (1 y) note S = this(1) and inv = this(2)
   obtain M N U k E where y: "y = (M, N, U, k, C_Clause E)"
@@ -1046,14 +910,16 @@ proof (cases S, goal_cases)
   have M: "rough_state_of (state_of (M, N, U, k,  C_Clause E)) = (M, N, U, k,  C_Clause E)"
     using inv y by (auto simp add: state_of_inverse)
   have bt: "do_other_step' S = state_of (do_backtrack_step (rough_state_of S))"
-    using assms(1,2) apply (cases "rough_state_of (do_other_step' S)", auto simp add: Let_def do_other_step'_def)
+  (* TODO tune proof *)
+    using assms(1,2) apply (cases "rough_state_of (do_other_step' S)")
+      apply(auto simp add: Let_def do_other_step'_def)
     apply (cases "rough_state_of S" rule: do_decide_step.cases)
     apply auto
     done
   show ?case
     using assms(2) S unfolding bt y inv
     apply simp
-    by (force simp add: M
+    by (auto simp add: M
           split: option.splits
           dest: bt_cut_some_decomp arg_cong[of _ _ "\<lambda>u. length (filter is_marked u)"])
 qed
@@ -1080,7 +946,8 @@ proof (cases S, goal_cases)
   have "do_other_step (rough_state_of S) \<noteq> rough_state_of S"
     using assms(2) unfolding S M y do_other_step'_def by (metis (no_types))
   thus ?case
-    using f6 f5 f4 by (simp add: assms(1) do_decide_step_not_conflicting_one_more_decide do_other_step'_def)
+    using f6 f5 f4 by (simp add: assms(1) do_decide_step_not_conflicting_one_more_decide
+      do_other_step'_def)
 qed
 
 lemma rough_state_of_state_of_do_skip_step_rough_state_of[simp]:
@@ -1107,7 +974,6 @@ lemma conflicting_do_backtrack_step_imp[simp]:
   by (cases S rule: do_backtrack_step.cases)
      (auto simp add: Let_def split: list.splits option.splits marked_lit.splits)
 
-   (*TODO swap direction?*)
 lemma do_skip_step_eq_iff_trail_eq:
   "do_skip_step S = S \<longleftrightarrow> trail (do_skip_step S) = trail S"
   by (cases S rule: do_skip_step.cases) auto
@@ -1120,7 +986,7 @@ lemma do_backtrack_step_eq_iff_trail_eq:
   "do_backtrack_step S = S \<longleftrightarrow> trail (do_backtrack_step S) = trail S"
   by (cases S rule: do_backtrack_step.cases)
      (auto split: option.split list.splits marked_lit.splits
-       dest!: bt_cut_in_get_all_marked_decomposition get_all_marked_decomposition_exists_prepend)
+       dest!: bt_cut_in_get_all_marked_decomposition)
 
 lemma do_resolve_step_eq_iff_trail_eq:
   "do_resolve_step S = S \<longleftrightarrow> trail (do_resolve_step S) = trail S"
@@ -1128,7 +994,9 @@ lemma do_resolve_step_eq_iff_trail_eq:
 
 lemma do_other_step_eq_iff_trail_eq:
   "trail (do_other_step S) = trail S \<longleftrightarrow> do_other_step S = S"
-  by (auto simp add: Let_def do_skip_step_eq_iff_trail_eq[symmetric] do_decide_step_eq_iff_trail_eq[symmetric] do_backtrack_step_eq_iff_trail_eq[symmetric] do_resolve_step_eq_iff_trail_eq[symmetric])
+  by (auto simp add: Let_def do_skip_step_eq_iff_trail_eq[symmetric]
+    do_decide_step_eq_iff_trail_eq[symmetric] do_backtrack_step_eq_iff_trail_eq[symmetric]
+    do_resolve_step_eq_iff_trail_eq[symmetric])
 
 
 lemma do_full_cp_step_do_other_step'_normal_form[dest!]:
@@ -1144,7 +1012,8 @@ proof -
     hence "trail (rough_state_of (do_other_step' S)) = trail (rough_state_of S)"
        by (auto simp add: do_full_cp_step_conflicting confl)
     hence "do_other_step' S = S"
-      by (simp add: do_other_step_eq_iff_trail_eq do_other_step'_def rough_state_of_inverse del: do_other_step.simps)
+      by (simp add: do_other_step_eq_iff_trail_eq do_other_step'_def rough_state_of_inverse
+        del: do_other_step.simps)
   }
   moreover {
     assume eq[simp]: "do_other_step' S = S"
@@ -1162,9 +1031,12 @@ proof -
       c: "trail (rough_state_of (do_full_cp_step ?T)) = c @ trail (rough_state_of ?T)" and
       nm: "\<forall>m\<in>set c. \<not> is_marked m"
       using do_full_cp_step_neq_trail_increase by auto
-    have "length (filter is_marked (trail (rough_state_of (do_full_cp_step ?T)))) = length (filter is_marked (trail (rough_state_of ?T)))" using nm unfolding c by force
-    moreover have "length (filter is_marked (trail (rough_state_of S))) \<noteq> length (filter is_marked  (trail (rough_state_of ?T)))"
-      using do_other_step_not_conflicting_one_more_decide[OF _ neq]  do_other_step_not_conflicting_one_more_decide_bt[of S, OF _ confl neq]
+    have "length (filter is_marked (trail (rough_state_of (do_full_cp_step ?T))))
+       = length (filter is_marked (trail (rough_state_of ?T)))" using nm unfolding c by force
+    moreover have "length (filter is_marked (trail (rough_state_of S)))
+       \<noteq> length (filter is_marked  (trail (rough_state_of ?T)))"
+      using do_other_step_not_conflicting_one_more_decide[OF _ neq]
+      do_other_step_not_conflicting_one_more_decide_bt[of S, OF _ confl neq]
       by linarith
     finally have False unfolding H by blast
   }
@@ -1192,7 +1064,7 @@ proof -
       using assms unfolding do_cdcl_s_step_def by (metis (full_types) cdcl_all_inv_mes_rough_state
         do_full_cp_step_do_other_step'_normal_form do_other_step_no rough_state_of_do_other_step')
   }
-  ultimately show ?thesis using assms by (auto simp add: cdcl_s.simps)
+  ultimately show ?thesis using assms by (meson cdcl_cp.simps cdcl_s.cases)
 qed
 
 lemma toS_rough_state_of_state_of_rough_state_of_I[simp]:
@@ -1200,7 +1072,8 @@ lemma toS_rough_state_of_state_of_rough_state_of_I[simp]:
   using rough_state_of_I[of S] by (auto simp add: state_of_inverse)
 
 lemma clauses_toS_rough_state_of_do_cdcl_s_step[simp]:
-  "clauses (toS (rough_state_of (do_cdcl_s_step (state_of (rough_state_of_I S))))) = clauses (toS (rough_state_of_I S))" (is "_ = clauses (toS ?S)")
+  "clauses (toS (rough_state_of (do_cdcl_s_step (state_of (rough_state_of_I S)))))
+    = clauses (toS (rough_state_of_I S))" (is "_ = clauses (toS ?S)")
   by (cases "do_cdcl_s_step (state_of ?S) = state_of ?S")
      (auto dest!: do_cdcl_s_step[of "state_of ?S"] cdcl_s_no_more_clauses)
 
@@ -1211,21 +1084,25 @@ proof -
   let ?S = "(rough_state_of_I S)"
   have "cdcl_s\<^sup>*\<^sup>* (S0_cdcl (clauses (toS (rough_state_of_I S)))) (toS (rough_state_of_I S))"
     using rough_state_of_I[of S] by auto
-  moreover have "cdcl_s\<^sup>*\<^sup>* (toS (rough_state_of_I S)) (toS (rough_state_of (do_cdcl_s_step (state_of (rough_state_of_I S)))))"
+  moreover have "cdcl_s\<^sup>*\<^sup>*
+                  (toS (rough_state_of_I S))
+                  (toS (rough_state_of (do_cdcl_s_step (state_of (rough_state_of_I S)))))"
      using do_cdcl_s_step[of "state_of ?S"]
      by (cases "do_cdcl_s_step (state_of ?S) = state_of ?S") auto
   ultimately show ?thesis
     unfolding do_cdcl_s_step'_def id_of_I_to_def by (auto intro!: state_of_I_inverse)
 qed
 
-subsubsection \<open>All rules together\<close>
+paragraph \<open>All rules together\<close>
 function do_all_cdcl_s where
 "do_all_cdcl_s S =
   (let T = do_cdcl_s_step' S in
   if T = S then S else do_all_cdcl_s T)"
 by fast+
 termination
-proof (relation "{(T, S). (cdcl_measure (toS (rough_state_of_I T)), cdcl_measure (toS (rough_state_of_I S))) \<in> lexn {(a, b). a < b} 3}", goal_cases)
+proof (relation "{(T, S).
+    (cdcl_measure (toS (rough_state_of_I T)), cdcl_measure (toS (rough_state_of_I S)))
+      \<in> lexn {(a, b). a < b} 3}", goal_cases)
   case 1
   show ?case by (auto intro!: wf_if_measure_f wf_lexn wf_less)
 next
@@ -1235,7 +1112,8 @@ next
     using rough_state_of_I[of S] by auto
   moreover have "cdcl_s (toS (rough_state_of_I S)) (toS (rough_state_of_I T))"
     using ST do_cdcl_s_step unfolding T
-    by (smt id_of_I_to_def mem_Collect_eq rough_state_of_I rough_state_of_I_do_cdcl_s_step' rough_state_of_I_inject state_of_inverse)
+    by (smt id_of_I_to_def mem_Collect_eq rough_state_of_I rough_state_of_I_do_cdcl_s_step'
+      rough_state_of_I_inject state_of_inverse)
   moreover
     have "cdcl_all_inv_mes (toS (rough_state_of_I S))"
       using rough_state_of_I[of S] by auto
@@ -1257,10 +1135,8 @@ lemma no_step_cdcl_s_cdcl_all:
   apply (induction S rule:do_all_cdcl_s_induct)
   apply (case_tac "do_cdcl_s_step' S \<noteq> S")
     apply (metis (mono_tags, hide_lams) do_all_cdcl_s.simps)
-(*
-TODO Jasmin: exception?
-sledgehammer[verbose,  e spass](do_all_cdcl_s.simps do_cdcl_s_step_no id_of_I_to_def rough_state_of_I_do_cdcl_s_step' rough_state_of_inverse)*)
-  by (metis (full_types) do_all_cdcl_s.simps do_cdcl_s_step_no id_of_I_to_def rough_state_of_I_do_cdcl_s_step' rough_state_of_inverse)
+  by (metis (full_types) do_all_cdcl_s.simps do_cdcl_s_step_no id_of_I_to_def
+    rough_state_of_I_do_cdcl_s_step' rough_state_of_inverse)
 
 
 lemma do_all_cdcl_s_is_rtranclp_cdcl_s:
@@ -1268,19 +1144,22 @@ lemma do_all_cdcl_s_is_rtranclp_cdcl_s:
   apply (induction S rule: do_all_cdcl_s_induct)
   apply (case_tac "do_cdcl_s_step' S = S")
     apply simp
-  by (smt converse_rtranclp_into_rtranclp do_all_cdcl_s.simps do_cdcl_s_step id_of_I_to_def rough_state_of_I_do_cdcl_s_step' toS_rough_state_of_state_of_rough_state_of_I)
+  by (smt converse_rtranclp_into_rtranclp do_all_cdcl_s.simps do_cdcl_s_step id_of_I_to_def
+    rough_state_of_I_do_cdcl_s_step' toS_rough_state_of_state_of_rough_state_of_I)
 
 text \<open>Final theorem:\<close>
 lemma DPLL_tot_correct:
-  assumes r: "rough_state_of_I (do_all_cdcl_s (state_of_I (([], map remdups N, [], 0, C_True)))) = S" and
-  S: "(M', N', U', k, E) = toS S"
+  assumes
+    r: "rough_state_of_I (do_all_cdcl_s (state_of_I (([], map remdups N, [], 0, C_True)))) = S" and
+    S: "(M', N', U', k, E) = toS S"
   shows "(E \<noteq> C_Clause {#} \<and> satisfiable (set (map mset (N))))
     \<or> (E = C_Clause {#} \<and> unsatisfiable (set (map mset ( N))))"
 proof -
   let ?N = "map remdups N"
   have inv: "cdcl_all_inv_mes (toS ([], map remdups N, [], 0, C_True))"
     unfolding cdcl_all_inv_mes_def distinct_cdcl_state_def distinct_mset_set_def by auto
-  hence S0: "rough_state_of (state_of ([], map remdups N, [], 0, C_True)) = ([], map remdups N, [], 0, C_True)" by simp
+  hence S0: "rough_state_of (state_of ([], map remdups N, [], 0, C_True))
+    = ([], map remdups N, [], 0, C_True)" by simp
   have 1: "full0 cdcl_s (toS ([], ?N, [], 0, C_True)) (toS S)"
     unfolding full0_def apply rule
       using do_all_cdcl_s_is_rtranclp_cdcl_s[of "state_of_I ([], map remdups N, [], 0, C_True)"] inv
@@ -1294,7 +1173,8 @@ proof -
       by auto
   moreover
     have "cdcl_all_inv_mes (toS S)"
-      by (metis (no_types) cdcl_all_inv_mes_rough_state r toS_rough_state_of_state_of_rough_state_of_I)
+      by (metis (no_types) cdcl_all_inv_mes_rough_state r
+        toS_rough_state_of_state_of_rough_state_of_I)
     hence cons: "consistent_interp (lits_of M')"
       unfolding cdcl_all_inv_mes_def cdcl_M_level_inv_def S[symmetric] by auto
   moreover
@@ -1310,7 +1190,7 @@ proof -
   thus ?thesis by auto
 qed
 
-subsubsection \<open>The Code\<close>
+paragraph \<open>The Code\<close>
 text \<open>The SML code is skipped in the documentation, but stays to ensure that some version of the
  exported code is working\<close>
 (*<*)
@@ -1321,7 +1201,7 @@ fun gene where
 value "gene 1"
 
 export_code do_all_cdcl_s gene in OCaml
-ML {*
+ML \<open>
 structure HOL : sig
   type 'a equal
   val equal : 'a equal -> 'a -> 'a -> bool
@@ -1996,9 +1876,9 @@ fun do_all_cdcl_s s =
 
 end; (*struct CDCL_Implementation*)
 
-*}
+\<close>
 declare[[ML_print_depth=100]]
-ML {*
+ML \<open>
 open Clausal_Logic;
 open CDCL_Implementation;
 open Arith;
@@ -2009,7 +1889,7 @@ let
 
   f
 end
-*}
+\<close>
 
 (*>*)
 end
