@@ -12,6 +12,7 @@ session "Weidenbach_Book" (main) = "HOL" +
     Propo_Normalisation
     "../lib/Clausal_Logic"
     Propo_Resolution
+    Propo_Superposition
     List_More
     Partial_Annotated_Clausal_Logic
     Propo_DPLL
