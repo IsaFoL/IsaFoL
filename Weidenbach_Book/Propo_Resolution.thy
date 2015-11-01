@@ -1537,6 +1537,7 @@ lemma wf_always_more_step_False:
   shows "(\<forall>x. \<exists>z. (z, x)\<in>R) \<Longrightarrow> False"
  using assms unfolding wf_def by (meson Domain.DomainI assms wfE_min)
 
+(* TODO Move*)
 lemma wfP_if_measure: fixes f :: "'a \<Rightarrow> nat"
 shows "(\<And>x y. P x \<Longrightarrow> g x y  \<Longrightarrow> f y < f x) \<Longrightarrow> wf {(y,x). P x \<and> g x y}"
   apply(insert wf_measure[of f])

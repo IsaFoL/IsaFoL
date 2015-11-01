@@ -37,6 +37,12 @@ lemma lits_of_append[simp]:
   "lits_of (l @ l') = lits_of l \<union> lits_of l'"
   unfolding lits_of_def by auto
 
+(* TODO introduce unmark
+
+abbreviation unmark where
+"unmark M \<equiv> (\<lambda>a. {#lit_of a#}) ` set M"
+
+*)
 lemma atms_of_m_lambda_lit_of_is_atm_of_lit_of[simp]:
   "atms_of_m ((\<lambda>a. {#lit_of a#}) ` set M') = atm_of ` lit_of ` set M'"
   unfolding atms_of_m_def by auto

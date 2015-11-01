@@ -1,6 +1,10 @@
 theory List_More
 imports Main
 begin
+
+section \<open>More List and Well-foundness Theorems\<close>
+text \<open>This section contains theorems that could move to Isabelle standard library.\<close>
+subsection \<open>More Lists\<close>
 declare upt.simps(2)[simp del] upt_Suc[simp del]
 declare upt_Suc_append
 lemma upt_Suc_le_append: "\<not>i \<le> j \<Longrightarrow> [i..<Suc j] = []"
@@ -175,7 +179,7 @@ proof -
   show ?thesis by (metis append_cons_eq_upt_length_i_end assms lessI less_trans self_append_conv2 upt_eq_Cons_conv upt_rec ys)
 qed
 
-section \<open>Well-foundedness\<close>
+subsection \<open>Well-foundedness\<close>
 lemma wfP_if_measure: fixes f :: "'a \<Rightarrow> nat"
 shows "(\<And>x y. P x \<Longrightarrow> g x y  \<Longrightarrow> f x < f y) \<Longrightarrow> wf {(x,y). P x \<and> g x y}"
   apply(insert wf_measure[of f])
@@ -295,7 +299,7 @@ proof -
 qed
 
 
-section \<open>rtranclp\<close>
+subsection \<open>rtranclp\<close>
 text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and sledgehammer use it), but it makes more sense to duplicate it.\<close>
 lemma rtranclp_unfold: "rtranclp r a b \<longleftrightarrow> (a = b \<or> tranclp r a b)"
   by (meson rtranclp.simps rtranclpD tranclp_into_rtranclp)
