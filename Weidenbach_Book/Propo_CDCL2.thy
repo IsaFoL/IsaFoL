@@ -6,15 +6,48 @@ sledgehammer_params[verbose]
 
 type_synonym ('v, 'lvl, 'mark) cdcl_state = "('v, 'lvl, 'mark) annoted_lits \<times> 'v clauses"
 
+lemma true_clss_clss_union_false_true_clss_clss_cnot:
+  "A \<union> {B} \<Turnstile>ps {{#}} \<longleftrightarrow> A \<Turnstile>ps CNot B"
+  using total_not_CNot consistent_CNot_not unfolding total_over_m_def true_clss_clss_def
+  by fastforce
+
+lemma atms_of_m_single_set_mset_atns_of[simp]:
+  "atms_of_m (single ` set_mset B) = atms_of B"
+  unfolding atms_of_m_def atms_of_def by auto
+lemma no_dup_cannot_not_lit_and_uminus:
+  "no_dup M \<Longrightarrow> - lit_of xa = lit_of x \<Longrightarrow> x \<in> set M \<Longrightarrow> xa \<in> set M \<Longrightarrow> False"
+  by (metis atm_of_uminus distinct_map inj_on_eq_iff uminus_not_id')
+
+lemma true_clss_single_iff_incl:
+  "I \<Turnstile>s single ` B \<longleftrightarrow> B \<subseteq> I"
+  unfolding true_clss_def by auto
+
+lemma atms_of_m_single_atm_of[simp]:
+  "atms_of_m {{#lit_of L#} |L. P L}
+    = atm_of `  {lit_of L |L. P L}"
+  unfolding atms_of_m_def by auto
+
+(* TODO Move?*)
+lemma atms_of_uminus_lit_atm_of_lit_of:
+  "atms_of {#- lit_of x. x \<in># A#} = atm_of ` (lit_of ` (set_mset A))"
+  unfolding atms_of_def by (auto simp add: Fun.image_comp)
+lemma atms_of_m_single_image_atm_of_lit_of:
+  "atms_of_m ((\<lambda>x. {#lit_of x#}) ` A) = atm_of ` (lit_of ` A)"
+  unfolding atms_of_m_def by auto
+
+lemma is_marked_ex_Marked:
+  "is_marked L \<Longrightarrow> \<exists>K lvl. L = Marked K lvl"
+  by (cases L) auto
+
 section \<open>DPLL with backjumping\<close>
-locale dpll_with_backjumping_rules =
+locale dpll_with_backjumping_ops =
   fixes
     backjump  ::  "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool" and
     inv :: "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool"
   assumes backjump:
     "\<And>M N M' N'. backjump (M, N) (M', N')
     \<Longrightarrow>  inv (M, N) \<Longrightarrow>
-      \<exists>C F' K d F L.
+      \<exists>C F' K d F L l C'.
         M = F' @ Marked K d # F
         \<and> M' = Propagated L l # F
         \<and> N = N'
@@ -79,7 +112,7 @@ lemma dpll_bj_all_induct[consumes 2, case_names decide propagate backjump]:
       \<Longrightarrow> P (F' @ Marked K d # F) N (Propagated L l #  F) N"
   shows "P M N M' N'"
   using assms(2)
-  apply (induction rule: dpll_bj_induct[OF local.dpll_with_backjumping_rules_axioms assms(1)])
+  apply (induction rule: dpll_bj_induct[OF local.dpll_with_backjumping_ops_axioms assms(1)])
   apply(force intro!: assms(3,4) dest!: backjump simp add: assms(1))+
   apply (drule backjump)
   using assms(5) by metis+
@@ -93,7 +126,6 @@ lemma dpll_bj_no_dup:
   and "no_dup M"
   shows "no_dup M'"
   using assms by (induction rule: dpll_bj_all_induct) (auto simp add: defined_lit_map)
-
 
 paragraph \<open>Valuations\<close>
 lemma dpll_bj_sat_iff:
@@ -116,7 +148,6 @@ lemma dpll_bj_atms_in_trail:
     "atm_of ` (lits_of M) \<subseteq> atms_of_m N"
   shows "atm_of ` (lits_of M') \<subseteq> atms_of_m N'"
   using assms by (induction rule: dpll_bj_all_induct) auto
-
 
 
 lemma dpll_bj_atms_in_trail_in_set:
@@ -886,38 +917,7 @@ proof (rule wf_bounded_measure[of _
 qed
 
 subsection \<open>Normal Forms\<close>
-lemma true_clss_clss_union_false_true_clss_clss_cnot:
-  "A \<union> {B} \<Turnstile>ps {{#}} \<longleftrightarrow> A \<Turnstile>ps CNot B"
-  using total_not_CNot consistent_CNot_not unfolding total_over_m_def true_clss_clss_def
-  by fastforce
 
-lemma atms_of_m_single_set_mset_atns_of[simp]:
-  "atms_of_m (single ` set_mset B) = atms_of B"
-  unfolding atms_of_m_def atms_of_def by auto
-lemma no_dup_cannot_not_lit_and_uminus:
-  "no_dup M \<Longrightarrow> - lit_of xa = lit_of x \<Longrightarrow> x \<in> set M \<Longrightarrow> xa \<in> set M \<Longrightarrow> False"
-  by (metis atm_of_uminus distinct_map inj_on_eq_iff uminus_not_id')
-
-lemma true_clss_single_iff_incl:
-  "I \<Turnstile>s single ` B \<longleftrightarrow> B \<subseteq> I"
-  unfolding true_clss_def by auto
-
-lemma atms_of_m_single_atm_of[simp]:
-  "atms_of_m {{#lit_of L#} |L. P L}
-    = atm_of `  {lit_of L |L. P L}"
-  unfolding atms_of_m_def by auto
-
-(* TODO Move?*)
-lemma atms_of_uminus_lit_atm_of_lit_of:
-  "atms_of {#- lit_of x. x \<in># A#} = atm_of ` (lit_of ` (set_mset A))"
-  unfolding atms_of_def by (auto simp add: Fun.image_comp)
-lemma atms_of_m_single_image_atm_of_lit_of:
-  "atms_of_m ((\<lambda>x. {#lit_of x#}) ` A) = atm_of ` (lit_of ` A)"
-  unfolding atms_of_m_def by auto
-
-lemma is_marked_ex_Marked:
-  "is_marked L \<Longrightarrow> \<exists>K lvl. L = Marked K lvl"
-  by (cases L) auto
 text \<open>
   We prove that given a normal form of DPLL, with some invariants, the either @{term N} is
   satisfiable and the built valuation @{term M} is a model; or @{term N} is unsatisfiable.
@@ -1050,7 +1050,7 @@ proof -
             show ?thesis
               using true_clss_clss_left_right[OF N_C_M, of "{{#}}"] N_M_False unfolding A by auto
           qed
-        have "N \<Turnstile>p image_mset uminus (?C) + {#-K#}"
+        have "N \<Turnstile>p image_mset uminus ?C + {#-K#}"
           unfolding true_clss_cls_def true_clss_clss_def total_over_m_def
           proof (intro allI impI)
             fix I
@@ -1105,7 +1105,7 @@ qed
 end
 
 locale dpll_with_backjumping =
-  dpll_with_backjumping_rules backjump inv
+  dpll_with_backjumping_ops backjump inv
   for
     backjump  ::  "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool" and
     inv :: "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool"
@@ -1444,12 +1444,154 @@ end
 section \<open>DPLL with simple backtrack\<close>
 locale dpll_with_backtrack
 begin
-inductive backtrack where
+inductive backtrack :: "('v, 'lvl, 'mark) marked_lit list \<times> 'v literal multiset set 
+  \<Rightarrow> ('v, 'lvl, 'mark) marked_lit list \<times> 'v literal multiset set \<Rightarrow> bool" where
 "backtrack_split (fst S)  = (M', L # M) \<Longrightarrow> is_marked L \<Longrightarrow> D \<in> snd S
-  \<Longrightarrow> fst S \<Turnstile>as CNot D \<Longrightarrow> backtrack S (Propagated (- (lit_of L)) Proped # M, clauses S)"
-sublocale dpll_with_backjumping backtrack "no_dup o fst"
-apply unfold_locales
+  \<Longrightarrow> fst S \<Turnstile>as CNot D \<Longrightarrow> backtrack S (Propagated (- (lit_of L)) Proped # M, snd S)"
+value backtrack
+inductive_cases backtrackE[elim]: "backtrack (M, N) (M', N')"
+lemma backtrack_is_backjump:
+  fixes M M' :: "('v, 'lvl, 'mark) marked_lit list"
+  assumes 
+    backtrack: "backtrack (M, N) (M', N')" and
+    no_dup: "(no_dup \<circ> fst) (M, N)" and
+    decomp: "all_decomposition_implies N (get_all_marked_decomposition M)"
+    shows "
+       \<exists>C F' K d F L l C'.
+          M = F' @ Marked K d # F \<and>
+          M' = Propagated L l # F \<and> N = N' \<and> C \<in> N \<and> F' @ Marked K d # F \<Turnstile>as CNot C \<and>
+          undefined_lit L F \<and> atm_of L \<in> atms_of_m N \<union> atm_of ` lits_of (F' @ Marked K d # F) \<and> 
+          N \<Turnstile>p C' + {#L#} \<and> F \<Turnstile>as CNot C'"
+proof -
+  let ?S = "(M, N)"
+  let ?T = "(M', N')"
+  obtain F F' P L D where
+    b_sp: "backtrack_split M = (F', L # F)"  and
+    "is_marked L" and 
+    "D \<in> snd ?S" and
+    "M \<Turnstile>as CNot D" and
+    bt: "backtrack ?S (Propagated (- (lit_of L)) P # F, N)" and
+    M': "M' = Propagated (- (lit_of L)) P # F" and
+    [simp]: "N' = N"
+  using backtrackE[OF backtrack] by (metis backtrack fstI sndI)
+  let ?K = "lit_of L"
+  let ?C = "image_mset lit_of {#K\<in>#mset M. is_marked K \<and> K\<noteq>L#} :: 'v literal multiset"
+  let ?C' = "set_mset (image_mset single (?C+{#?K#}))"
+  obtain K d where L: "L = Marked K d" using \<open>is_marked L\<close> by (cases L) auto
+    
+  have M: "M = F' @ Marked K d # F" 
+    using b_sp  by (metis L backtrack_split_list_eq fst_conv snd_conv)
+  moreover have "F' @ Marked K d # F \<Turnstile>as CNot D"
+    using \<open>M\<Turnstile>as CNot D\<close> unfolding M .
+  moreover have "undefined_lit (-?K) F"
+    using no_dup unfolding M L by (simp add: defined_lit_map)
+  moreover have "atm_of (-K) \<in> atms_of_m N \<union> atm_of ` lits_of (F' @ Marked K d # F)"
+    unfolding lits_of_def by auto
+  moreover
+    have "N \<union> ?C' \<Turnstile>ps {{#}}"
+      proof -
+        have A: "N \<union> ?C' \<union> (\<lambda>a. {#lit_of a#}) ` set M  =
+          N \<union> (\<lambda>a. {#lit_of a#}) ` set M"
+          unfolding M L by auto
+        have "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M"
+          using all_decomposition_implies_propagated_lits_are_implied[OF decomp] .
+        moreover have C': "?C' = {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"
+          unfolding M L apply standard
+            apply force
+          using IntI by auto
+        ultimately have N_C_M: "N \<union> ?C' \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M"
+          by auto
+        have "N \<union> (\<lambda>L. {#lit_of L#}) ` (set M) \<Turnstile>ps {{#}}"
+          (* TODO tune proof *)
+          using \<open>M \<Turnstile>as CNot D\<close> \<open>D\<in>snd ?S\<close> unfolding true_clss_clss_def true_annots_def Ball_def
+           true_annot_def L M apply auto
+          apply (smt consistent_CNot_not image_Un insert_absorb2 insert_def mk_disjoint_insert 
+            sup.absorb_iff2 sup_commute sup_left_commute true_cls_union_increase' true_clss_def 
+            true_clss_singleton_lit_of_implies_incl true_clss_union)+
+          done
+        thus ?thesis
+          using true_clss_clss_left_right[OF N_C_M, of "{{#}}"] unfolding A by auto
+      qed
+    have "N \<Turnstile>p image_mset uminus ?C + {#-?K#}"
+      unfolding true_clss_cls_def true_clss_clss_def total_over_m_def
+      proof (intro allI impI)
+        fix I
+        assume
+          tot: "total_over_set I (atms_of_m (N \<union> {image_mset uminus ?C + {#- ?K#}})) " and
+          cons: "consistent_interp I" and
+          "I \<Turnstile>s N"
+        have "(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)"
+          using cons tot unfolding consistent_interp_def L by (cases K) auto
+        have "total_over_set I (atm_of ` lit_of ` (set M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}))"
+          using tot by (auto simp add: L atms_of_uminus_lit_atm_of_lit_of)
+      
+        hence H: "\<And>x.
+            lit_of x \<notin> I \<Longrightarrow> x \<in> set M \<Longrightarrow>is_marked x
+            \<Longrightarrow> x \<noteq> Marked K d \<Longrightarrow> -lit_of x \<in> I"
+            (* TODO one-liner? *)
+          unfolding total_over_set_def atms_of_s_def
+          proof -
+            fix x :: "('v, 'lvl, 'mark) marked_lit"
+            assume a1: "x \<in> set M"
+            assume a2: "\<forall>l\<in>atm_of ` lit_of ` (set M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}).
+              Pos l \<in> I \<or> Neg l \<in> I"
+            assume a3: "lit_of x \<notin> I"
+            assume a4: "is_marked x"
+            assume a5: "x \<noteq> Marked K d"
+            have f6: "Neg (atm_of (lit_of x)) = - Pos (atm_of (lit_of x))"
+              by simp
+            have "Pos (atm_of (lit_of x)) \<in> I \<or> Neg (atm_of (lit_of x)) \<in> I"
+              using a5 a4 a2 a1 by blast
+            thus "- lit_of x \<in> I"
+              using f6 a3 by (metis (no_types) atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+                literal.sel(1))
+          qed
+        have "\<not>I \<Turnstile>s ?C'"
+          using \<open>N \<union> ?C' \<Turnstile>ps {{#}}\<close> tot cons \<open>I \<Turnstile>s N\<close>
+          unfolding true_clss_clss_def total_over_m_def
+          by (simp add: atms_of_uminus_lit_atm_of_lit_of atms_of_m_single_image_atm_of_lit_of)
+        then show "I \<Turnstile> image_mset uminus ?C + {#- lit_of L#}"
+          unfolding true_clss_def true_cls_def Bex_mset_def
+          using \<open>(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)\<close>
+          unfolding L by (auto dest!: H)
+      qed
+  moreover 
+    have "set F' \<inter> {K. is_marked K \<and> K \<noteq> L} = {}"
+      using backtrack_split_fst_not_marked[of _ M] b_sp by auto
+    hence "F \<Turnstile>as CNot (image_mset uminus ?C)"
+       unfolding M CNot_def true_annots_def by (auto simp add: L lits_of_def)
+  ultimately show ?thesis
+    using M' \<open>D \<in> snd ?S\<close> L by auto
+qed
 
+lemma can_do_bt_step:
+   assumes 
+     M: "M = F' @ Marked K d # F" and
+     "C \<in> N" and
+     C: "F' @ Marked K d # F \<Turnstile>as CNot C"
+   shows "\<not> no_step backtrack (M, N)"
+proof -
+  obtain L G' G where
+    "backtrack_split M = (G', L # G)"
+    unfolding M by (induction F' rule: marked_lit_list_induct) auto
+  moreover hence "is_marked L"
+     by (metis backtrack_split_snd_hd_marked list.distinct(1) list.sel(1) snd_conv)
+  ultimately show ?thesis
+     using backtrack.intros[of "(M, N)" G' L G C] \<open>C \<in> N\<close> C unfolding M by auto
+qed
+
+sublocale dpll_with_backjumping_ops backtrack 
+  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)"
+  apply unfold_locales
+    apply (rule backtrack_is_backjump; simp)
+  apply (rule can_do_bt_step; fast)
+  done
+
+sublocale dpll_with_backjumping backtrack 
+  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)"
+  apply unfold_locales
+  apply standard apply standard 
+  using dpll_bj_no_dup apply fastforce
 oops
 end
 
