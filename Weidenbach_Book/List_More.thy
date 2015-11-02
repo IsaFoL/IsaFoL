@@ -300,8 +300,102 @@ qed
 
 
 subsection \<open>rtranclp\<close>
-text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and sledgehammer use it), but it makes more sense to duplicate it.\<close>
+text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and sledgehammer use it), but 
+  it makes more sense to duplicate it.\<close>
 lemma rtranclp_unfold: "rtranclp r a b \<longleftrightarrow> (a = b \<or> tranclp r a b)"
   by (meson rtranclp.simps rtranclpD tranclp_into_rtranclp)
+
+
+subsubsection \<open>Reflexive bounded closure\<close>
+text \<open>This is the reflexive closure of @{term ntrancl}.\<close>
+definition nrtrancl :: "nat \<Rightarrow> ('a \<times> 'a) set \<Rightarrow> ('a \<times> 'a) set"
+where
+  "nrtrancl n R = (\<Union>i\<in>{i. i \<le> Suc n}. R ^^ i)"
+
+lemma nrtrancl_Id_Un_ntrancl:
+  "nrtrancl n R = Id \<union> ntrancl n R"
+proof -
+  have A: "{i. i \<le> Suc n} = {0} \<union> {i. 0 < i \<and> i \<le> Suc n}"
+    by auto
+  show ?thesis
+    unfolding nrtrancl_def ntrancl_def A by simp
+qed
+    
+lemma nrtrancl_Zero [simp, code]:
+  "nrtrancl 0 R = Id \<union> R"
+  unfolding nrtrancl_Id_Un_ntrancl by auto
+
+lemma nrtrancl_refl[simp]: "(b, b) \<in> nrtrancl n R"
+  unfolding nrtrancl_def by auto
+
+lemma nrtrancl_Suc [simp]:
+  "nrtrancl (Suc n) R = nrtrancl n R O (Id \<union> R)"
+proof (induction n)
+  case 0
+  thus ?case by (simp add: nrtrancl_Id_Un_ntrancl sup_assoc)
+next
+  case (Suc n) note IH = this(1)
+  have A: "{i. i \<le> Suc (Suc (Suc n))} = {i. 0 < i \<and> i \<le> Suc (Suc (Suc n))} \<union> {i. i = 0}"
+    by auto
+  have "(\<Union>x\<in>{i. 0 < i \<and> i \<le> Suc (Suc (Suc n))}. R ^^ x) = 
+           (\<Union>x\<in>{i. i \<le> Suc (Suc n)}. R ^^ (Suc x))"
+    by (auto simp del: relpow.simps simp add:relpow.simps(2)[symmetric] elim: relpow_E2)
+  hence B: "(\<Union>x\<in>{i. 0 < i \<and> i \<le> Suc (Suc (Suc n))}. R ^^ x) 
+      = nrtrancl (Suc n) R O R"
+    unfolding nrtrancl_def A by auto
+    
+  show ?case
+    unfolding nrtrancl_def A apply (simp add: B)
+    unfolding nrtrancl_def[symmetric]  apply auto
+    unfolding IH apply auto
+    proof -
+      fix a :: 'a and b :: 'a
+      assume a1: "(a, b) \<in> nrtrancl n R"
+      assume a2: "(a, b) \<notin> nrtrancl n R O R"
+      assume a3: "(a, b) \<notin> (nrtrancl n R O R) O R"
+      have f4: "(a, b) \<in> Id \<union> ntrancl n R"
+        using a1 by (simp add: nrtrancl_Id_Un_ntrancl) (* 2 ms *)
+      have f5: "\<And>r ra. ({}::('a \<times> 'a) set) \<union> (r::(_ \<times> 'a) set) O ra = r O ra"
+        by simp (* 0.3 ms *)
+      have f6: "(Id \<union> ntrancl n R O (Id \<union> R)) O R = ntrancl n R O (Id \<union> R) O (Id \<union> R)"
+        by (metis (no_types) B O_assoc nrtrancl_Id_Un_ntrancl ntrancl_Suc ntrancl_def) (* 67 ms *)
+      have "(a, b) \<in> (Id \<union> ntrancl n R) O (Id \<union> R) O (Id \<union> R)"
+        using f4 by blast (* 0.9 ms *)
+      hence "(a, b) \<in> (Id \<union> R) O (Id \<union> R)"
+        using f6 f5 a3 a2 by (metis (no_types) Id_O_R O_assoc Un_iff nrtrancl_Id_Un_ntrancl 
+          relcomp_distrib relcomp_distrib2) (* 573 ms *)
+      thus "a = b"
+        using a3 a2 by (simp add: nrtrancl_Id_Un_ntrancl) (* 4 ms *)
+    qed
+qed
+
+lemma [code]:
+  "nrtrancl (Suc n) r = (let r' = nrtrancl n r in r' Un r' O r)"
+unfolding Let_def by auto
+
+subsubsection\<open>bounded transitive closure\<close>
+
+definition ntranclp :: "nat \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> bool) => 'a \<Rightarrow> 'a \<Rightarrow> bool" where
+  "ntranclp n r a b \<longleftrightarrow> (a, b) \<in> ntrancl n {(x, y). r x y}"
+
+lemma ntranclp_Zero[simp, code]:  "ntranclp 0 r = r"
+  by (fastforce simp: ntranclp_def)
+
+lemma ntranclp_Suc [simp]:
+  "ntranclp (Suc n) R = ntranclp n R OO (\<lambda>a b. a = b \<or> R a b)"
+  by (fastforce simp add: ntranclp_def OO_def)
+
+lemma finite_trancl_ntranlP:
+  "finite {(a,b). R a b} \<Longrightarrow> tranclp R = ntranclp (card {(a,b). R a b} - 1) R"
+  by (fastforce simp add: ntranclp_def finite_trancl_ntranl tranclp_unfold OO_def)
+
+lemma ntranclp_ntrancl_eq:
+  "ntranclp n (\<lambda>x y. (x, y) \<in> r) a b \<longleftrightarrow> (a,b) \<in> ntrancl n r"
+  by (simp add: ntranclp_def)
+
+lemma 
+  assumes "wf R"
+  shows "\<exists>n. \<exists>z. (z, a) \<in> R \<longrightarrow> (\<exists>b. (a, b) \<in> ntrancl n R \<and> (\<forall>c. (b, c) \<notin> R))"
+  using assms by induction auto
 
 end

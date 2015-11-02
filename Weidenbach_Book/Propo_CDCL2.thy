@@ -149,7 +149,6 @@ lemma dpll_bj_atms_in_trail:
   shows "atm_of ` (lits_of M') \<subseteq> atms_of_m N'"
   using assms by (induction rule: dpll_bj_all_induct) auto
 
-
 lemma dpll_bj_atms_in_trail_in_set:
   assumes "dpll_bj (M, N) (M', N')"and
     "inv (M, N)" and
@@ -1222,6 +1221,13 @@ locale learn_and_forget =
        \<and> atms_of C \<subseteq> atms_of_m N)" and
     forget: "\<And>M N M' N'. forget (M, N) (M', N') \<Longrightarrow> (\<exists>C. M' = M \<and> N' = N - {C} \<and> N - {C} \<Turnstile>p C
        \<and> C \<in> N \<and> atms_of C \<subseteq> atms_of_m N)"
+begin
+inductive learn_and_forget :: "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool"
+where
+lf_learn: "learn S T \<Longrightarrow> learn_and_forget S T" |
+lf_forget: "forget S T \<Longrightarrow> learn_and_forget S T"
+
+end
 
 definition true_clss_ext (infix "\<Turnstile>sext" 49) where
 "I \<Turnstile>sext N \<longleftrightarrow> (\<forall>J. I \<subseteq> J \<longrightarrow> consistent_interp J \<longrightarrow> total_over_m J N \<longrightarrow> J \<Turnstile>s N)"
@@ -1437,8 +1443,33 @@ next
     apply (simp add: H)
     done
 qed
+  
+  (* TODO: prove wf based on a measure 
+  \<^enum> *)
+
 end
 
+  
+  
+locale restart =
+  assumes "wf (R :: (('v, 'lvl, 'mark) cdcl_state \<times> ('v, 'lvl, 'mark) cdcl_state) set)" and
+  "\<And>n a b. (a, b) \<in> R\<^sup>* \<Longrightarrow> False"
+  fixes f :: "nat \<Rightarrow> nat"
+  assumes "strict_mono f"
+begin
+
+abbreviation restart where
+"restart \<equiv>\<lambda>(M, N). ({}, N)"
+
+inductive relation_with_restart where
+base: "(a, b) \<in> {(a,b). cdcl a b}  \<Longrightarrow> relation_with_restart m 1 a b" |
+step: "relation_with_restart m n a b \<Longrightarrow> (a, b) \<in> ntrancl p {(a,b). cdcl a b} 
+   \<Longrightarrow> relation_with_restart m (n+p) a b" |
+restart: "relation_with_restart m n a b \<Longrightarrow> f n \<ge> m 
+  \<Longrightarrow> relation_with_restart (Suc m) n a (restart b)"
+
+
+end
 
 section \<open>DPLL with simple backtrack\<close>
 locale dpll_with_backtrack
@@ -1578,7 +1609,7 @@ proof -
   ultimately show ?thesis
      using backtrack.intros[of "(M, N)" G' L G C] \<open>C \<in> N\<close> C unfolding M by auto
 qed
-
+ 
 sublocale dpll_with_backjumping_ops backtrack 
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)"
   apply unfold_locales
@@ -1592,6 +1623,12 @@ sublocale dpll_with_backjumping backtrack
   using dpll_bj_no_dup dpll_bj_all_decomposition_implies_inv apply fastforce
   done
 
-end
+lemma tranclp_dpll_wf_inital_state:
+  assumes fin: "finite A"
+  shows "wf {((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), ([], N))|M' N' N.
+    dpll_bj\<^sup>+\<^sup>+ ([], N) (M', N') \<and> atms_of_m N \<subseteq> atms_of_m A}"
+  using tranclp_dpll_bj_wf_inital_state[OF assms(1)] by auto
 
+end
+value wf
 end
