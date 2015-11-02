@@ -158,7 +158,6 @@ lemma dpll_bj_atms_in_trail_in_set:
   shows "atm_of ` (lits_of M') \<subseteq> A"
   using assms by (induction rule: dpll_bj_all_induct) auto
 
-
 lemma dpll_bj_all_decomposition_implies_inv:
   assumes
     "dpll_bj (M, N) (M', N')" and
@@ -1590,9 +1589,9 @@ sublocale dpll_with_backjumping_ops backtrack
 sublocale dpll_with_backjumping backtrack 
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)"
   apply unfold_locales
-  apply standard apply standard 
-  using dpll_bj_no_dup apply fastforce
-oops
+  using dpll_bj_no_dup dpll_bj_all_decomposition_implies_inv apply fastforce
+  done
+
 end
 
 end
