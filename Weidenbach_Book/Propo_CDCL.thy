@@ -33,14 +33,17 @@ lemma trail_conv: "trail (M, N, U, k, D) = M" and
   by auto
 
 subsection \<open>CDCL Rules\<close>
-text \<open>Because of the strategy we will later use, we distinguish propagate, conflict from the other rules\<close>
+text \<open>Because of the strategy we will later use, we distinguish propagate, conflict from the other 
+  rules\<close>
 inductive propagate :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
-propagate_rule[intro]: "S = (M, N, U, k, C_True) \<Longrightarrow>  C + {#L#} \<in> N \<union> U \<Longrightarrow> M \<Turnstile>as CNot C \<Longrightarrow> undefined_lit L (trail S) \<Longrightarrow> propagate S (Propagated L (C + {#L#}) # M, N, U, k, C_True)"
+propagate_rule[intro]: "S = (M, N, U, k, C_True) \<Longrightarrow>  C + {#L#} \<in> N \<union> U \<Longrightarrow> M \<Turnstile>as CNot C 
+  \<Longrightarrow> undefined_lit L (trail S) \<Longrightarrow> propagate S (Propagated L (C + {#L#}) # M, N, U, k, C_True)"
 
 inductive_cases propagateE[elim]: "propagate S T"
 
 inductive conflict ::  "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
-conflict_rule: "S = (M, N, U, k, C_True) \<Longrightarrow> D \<in> N \<union> U \<Longrightarrow> M \<Turnstile>as CNot D \<Longrightarrow> conflict S (M, N, U, k, C_Clause D)"
+conflict_rule: "S = (M, N, U, k, C_True) \<Longrightarrow> D \<in> N \<union> U \<Longrightarrow> M \<Turnstile>as CNot D 
+  \<Longrightarrow> conflict S (M, N, U, k, C_Clause D)"
 
 inductive_cases conflictE[elim]: "conflict S S'"
 

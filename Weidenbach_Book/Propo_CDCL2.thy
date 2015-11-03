@@ -1,5 +1,5 @@
 theory Propo_CDCL2
-imports Partial_Annotated_Clausal_Logic List_More Transition
+imports Partial_Annotated_Clausal_Logic List_More Transition Partial_Clausal_Logic
 begin
 
 sledgehammer_params[verbose]
@@ -968,9 +968,9 @@ proof -
       hence I'_N: "?I \<Turnstile>s N \<union> ?O"
         using \<open>I\<Turnstile>s N\<close> by auto
       have tot': "total_over_m ?I (N\<union>?O)"
-        using atm_I_N tot unfolding total_over_m_def total_over_set_def 
+        using atm_I_N tot unfolding total_over_m_def total_over_set_def
         by (force simp: image_iff lits_of_def dest!: is_marked_ex_Marked)
-        
+
       have atms_N_M: "atms_of_m N \<subseteq> atm_of ` lits_of M"
         proof (rule ccontr)
           assume "\<not> ?thesis"
@@ -1007,9 +1007,9 @@ proof -
             unfolding true_clss_def lits_of_def by auto
           hence "M \<Turnstile>as N"
             using I'_N `C \<in> N` `\<not> M \<Turnstile>a C` cons_I' atms_N_M
-            by (metis (no_types, lifting) atms_of_atms_of_m_mono 
-              atms_of_m_CNot_atms_of atms_of_m_CNot_atms_of_m  consistent_CNot_not 
-              rev_subsetD sup_ge1 total_not_CNot  total_over_set_atm_of 
+            by (metis (no_types, lifting) atms_of_atms_of_m_mono
+              atms_of_m_CNot_atms_of atms_of_m_CNot_atms_of_m  consistent_CNot_not
+              rev_subsetD sup_ge1 total_not_CNot  total_over_set_atm_of
                true_cls_mono_set_mset_l true_clss_def true_annot_def total_over_m_def)
           thus False using M by fast
         qed
@@ -1212,15 +1212,22 @@ lemma tranclp_dpll_bj_wf_inital_state:
 end
 
 section \<open>CDCL\<close>
-locale learn_and_forget =
+locale learn_ops =
   fixes
-    learn :: "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool" and
-    forget :: "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool"
+    learn :: "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool"
   assumes
     learn: "\<And>M N M' N'. learn (M, N) (M', N') \<Longrightarrow> (\<exists>C. M' = M \<and> N' = insert C N \<and> N \<Turnstile>p C
-       \<and> atms_of C \<subseteq> atms_of_m N)" and
+       \<and> atms_of C \<subseteq> atms_of_m N \<union> atm_of ` (lits_of M))"
+locale forget_ops =
+  fixes
+    forget :: "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool"
+  assumes
     forget: "\<And>M N M' N'. forget (M, N) (M', N') \<Longrightarrow> (\<exists>C. M' = M \<and> N' = N - {C} \<and> N - {C} \<Turnstile>p C
-       \<and> C \<in> N \<and> atms_of C \<subseteq> atms_of_m N)"
+       \<and> C \<in> N)"
+
+locale learn_and_forget =
+  learn_ops learn + forget_ops forget
+  for learn forget :: "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool"
 begin
 inductive learn_and_forget :: "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool"
 where
@@ -1295,8 +1302,9 @@ lemma cdcl_all_induct[consumes 1, case_names dpll_bj learn forget]:
   fixes M :: "('v, 'lvl, 'mark) annoted_lits" and N ::"'v clauses"
   assumes "cdcl (M, N) (M', N')" and
     dpll: "\<And>M N M' N'. dpll_bj (M, N) (M', N') \<Longrightarrow> P M N M' N'" and
-    learning: "\<And>M N C. N \<Turnstile>p C \<Longrightarrow> atms_of C \<subseteq> atms_of_m N \<Longrightarrow>  P M N M (insert C N)" and
-    forgetting: "\<And>M N C. N - {C} \<Turnstile>p C \<Longrightarrow> C \<in> N \<Longrightarrow>  P M N M (N - {C})"
+    learning: "\<And>M N C. N \<Turnstile>p C \<Longrightarrow> atms_of C \<subseteq> atms_of_m N  \<union> atm_of ` (lits_of M)
+      \<Longrightarrow>  P M N M (insert C N)" and
+    forgetting: "\<And>M N C. N - {C} \<Turnstile>p C \<Longrightarrow> C \<in> N \<Longrightarrow> P M N M (N - {C})"
   shows "P M N M' N'"
   using assms(1) apply (induction rule: cdcl_induct)
     apply (rule local.conflict_driven_clause_learning_axioms)
@@ -1321,20 +1329,9 @@ text \<open>The subtle problem here is that tautologies can be removed, meaning 
 
 lemma cdcl_atms_of_m_clauses_decreasing:
   assumes "cdcl (M, N) (M', N')"and "inv (M, N)"
-  shows "atms_of_m N' \<subseteq> atms_of_m N"
+  shows "atms_of_m N' \<subseteq> atms_of_m N\<union> atm_of ` (lits_of M)"
   using assms by (induction rule: cdcl_all_induct)
     (auto dest!: dpll_bj_atms_of_m_clauses_inv simp add: atms_of_m_def)
-
-lemma cdcl_sat_iff:
-  assumes "cdcl (M, N) (M', N')"and "inv (M, N)"
-  and "consistent_interp I" and "total_over_m I N"
-  shows "I \<Turnstile>s N \<longleftrightarrow> I \<Turnstile>s N'"
-  using assms apply (induction rule: cdcl_all_induct)
-     using dpll_bj_sat_iff apply blast
-    unfolding true_clss_cls_def total_over_m_def apply (metis atms_of_m_singleton atms_of_m_union
-      sup.orderE true_clss_insert)
-  unfolding true_clss_insert atms_of_m_singleton atms_of_m_union by (metis atms_of_m_insert
-    insert_Diff total_over_set_union true_clss_insert)
 
 lemma cdcl_atms_in_trail:
   assumes "cdcl (M, N) (M', N')"and "inv (M, N)"
@@ -1390,7 +1387,6 @@ lemma "{(a,b). cdcl\<^sup>*\<^sup>* a b} = ({(a,b). dpll_bj\<^sup>*\<^sup>* a b}
 
 subsection \<open>Extension of models\<close>
 subsubsection \<open>Definition\<close>
-
 lemma cdcl_bj_sat_ext_iff:
   assumes "cdcl (M, N) (M', N')"and "inv (M, N)"
   shows "I\<Turnstile>sext N \<longleftrightarrow> I\<Turnstile>sext N'"
@@ -1417,9 +1413,7 @@ next
   show ?case
     apply standard
       apply (simp add: H)
-    apply (metis atms_of_m_insert inf_sup_aci(5) learn.hyps(2) sup.orderE total_over_m_def
-      true_clss_ext_def true_clss_insert)
-    done
+    by (metis Diff_insert_absorb insert_absorb true_clss_ext_decrease_right_remove_r)
 next
   case (forget M N C)
   { fix J
@@ -1443,14 +1437,156 @@ next
     apply (simp add: H)
     done
 qed
-  
-  (* TODO: prove wf based on a measure 
+
+  (* TODO: prove wf based on a measure
   \<^enum> *)
 
 end
 
-  
-  
+
+locale interleaving_of_wf_rules =
+  fixes R :: "('a \<times> 'a) set" and S :: "('a \<times> 'a) set" and
+    \<mu>\<^sub>R :: "'a \<Rightarrow> nat" and \<nu>\<^sub>R :: "'a \<Rightarrow> nat" and
+    \<mu>\<^sub>S :: "'a \<Rightarrow> nat" and \<nu>\<^sub>S :: "'a \<Rightarrow> nat"
+  assumes
+    \<mu>\<^sub>R: "\<And>a b. (b, a) \<in> R \<Longrightarrow> \<mu>\<^sub>R a < \<mu>\<^sub>R b" and
+    \<mu>\<^sub>R_bounded: "\<And>a b. (b, a) \<in> R \<Longrightarrow> \<nu>\<^sub>R a \<ge> \<mu>\<^sub>R b \<and> \<nu>\<^sub>R a \<ge> \<nu>\<^sub>R b" and
+    \<mu>\<^sub>S: "\<And>a b. (b, a) \<in> S \<Longrightarrow> \<mu>\<^sub>S a < \<mu>\<^sub>S b" and
+    \<mu>\<^sub>S_bounded: "\<And>a b. (b, a) \<in> S \<Longrightarrow> \<nu>\<^sub>S a \<ge> \<mu>\<^sub>S b \<and> \<nu>\<^sub>S a \<ge> \<nu>\<^sub>S b" and
+    \<nu>\<^sub>R_S: "\<And>a b. (b, a) \<in> S \<Longrightarrow> \<nu>\<^sub>R a \<ge> \<nu>\<^sub>R b" and
+    \<mu>\<^sub>R_S: "\<And>a b. (b, a) \<in> S \<Longrightarrow> \<mu>\<^sub>R a \<le> \<mu>\<^sub>R b"
+begin
+
+inductive_set interleaving where
+"(a, b) \<in> R \<Longrightarrow> (a, b) \<in> interleaving" |
+"(a,b) \<in> S \<Longrightarrow> (a, b) \<in> interleaving"
+
+lemma list_length2_append_cons:
+  "[c, d] = ys @ y # ys' \<longleftrightarrow> (ys = [] \<and> y = c \<and> ys' = [d]) \<or> (ys = [c] \<and> y = d \<and> ys' = [])"
+  by (cases ys; cases ys') auto
+lemma lexn2_conv:
+  "([a, b], [c, d]) \<in> lexn r 2
+    \<longleftrightarrow> (a, c)\<in>r \<or> (a = c \<and> (b, d)\<in>r)"
+  unfolding lexn_conv by (auto simp add: list_length2_append_cons)
+context
+begin
+private lemma \<nu>\<^sub>R_\<mu>\<^sub>R:
+  "(a, b) \<in> R \<Longrightarrow> \<nu>\<^sub>R a - \<mu>\<^sub>R a < \<nu>\<^sub>R b - \<mu>\<^sub>R b"
+  using \<mu>\<^sub>R[of a b] \<mu>\<^sub>R_bounded[of a b] by auto
+
+private lemma \<nu>\<^sub>S_\<mu>\<^sub>S:
+  "(a, b) \<in> S \<Longrightarrow> \<nu>\<^sub>S a - \<mu>\<^sub>S a < \<nu>\<^sub>S b - \<mu>\<^sub>S b"
+  using \<mu>\<^sub>S[of a b] \<mu>\<^sub>S_bounded[of a b] by auto
+
+private lemma \<nu>\<^sub>R_\<mu>\<^sub>R_S:
+  "(a, b) \<in> S \<Longrightarrow> \<nu>\<^sub>R a - \<mu>\<^sub>R a \<le> \<nu>\<^sub>R b - \<mu>\<^sub>R b"
+  using \<mu>\<^sub>R_S[of a b] \<nu>\<^sub>R_S[of a b] by auto
+
+lemma interleaving_descreasing_order:
+  assumes "(a, b) \<in> interleaving"
+  shows "((\<nu>\<^sub>R a - \<mu>\<^sub>R a, \<nu>\<^sub>S a - \<mu>\<^sub>S a), (\<nu>\<^sub>R b - \<mu>\<^sub>R b, \<nu>\<^sub>S b - \<mu>\<^sub>S b)) \<in> less_than <*lex*> less_than"
+  using assms
+  apply (induction)
+  unfolding lexn2_conv by (auto simp add: \<nu>\<^sub>R_\<mu>\<^sub>R \<nu>\<^sub>S_\<mu>\<^sub>S dest: \<nu>\<^sub>R_\<mu>\<^sub>R_S)
+
+lemma "wf interleaving"
+  apply (rule wf_if_measure_in_wf[of "less_than <*lex*> less_than"])
+  apply auto[]
+  using interleaving_descreasing_order by fast
+end
+
+end -- \<open>end of @{text interleaving_of_wf_rules} locale\<close>
+
+locale conflict_driven_clause_learning_learning_before_backjump_only =
+  forget_ops forget +
+  dpll_with_backjumping backjump
+    for forget backjump
+      ::  "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool" +
+  fixes learn_restrictions :: "'v clause \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool"
+begin
+
+inductive learn
+  ::  "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool" where
+"N \<Turnstile>p C' + {#L#} \<Longrightarrow> F \<Turnstile>as CNot C'
+  \<Longrightarrow> atm_of L \<in> atms_of_m N \<union> atm_of ` lits_of (F' @ Marked K d # F)
+  \<Longrightarrow> C' + {#L#} \<notin> N
+  \<Longrightarrow> learn_restrictions (C' + {#L#}) (M, N)
+  \<Longrightarrow> learn (F' @ Marked K d # F, N) (F' @ Marked K d # F, insert (C' + {#L#}) N)"
+
+inductive_cases learnE:
+  "learn (M, N) (M', N')"
+
+inductive do_not_forget_before_backtracking_clause
+  ::  "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool" where
+"forget (M, N) (M', N - {C}) \<Longrightarrow> \<not>(M = F' @ Marked K d # F \<and> F \<Turnstile>as CNot C)
+  \<Longrightarrow> do_not_forget_before_backtracking_clause (M, N) (M', N - {C})"
+
+lemma do_not_forget_before_backtracking_clause_imp_forget:
+  "do_not_forget_before_backtracking_clause M N \<Longrightarrow> forget M N"
+  by (induction rule: do_not_forget_before_backtracking_clause.induct)
+
+sublocale forget_ops do_not_forget_before_backtracking_clause
+  apply (unfold_locales)
+  using forget do_not_forget_before_backtracking_clause_imp_forget by blast
+
+sublocale learn_ops learn
+  proof unfold_locales
+    fix M M' :: "('v, 'lvl, 'mark) marked_lit list" and N N' :: "'v clauses"
+    assume learn: "learn (M, N) (M', N')"
+    obtain C' K d L and F F' ::  "('v, 'lvl, 'mark) marked_lit list" where
+      N_C': "N \<Turnstile>p C' + {#L#}" and
+      F: "F \<Turnstile>as CNot C'" and
+      L: "atm_of L \<in> atms_of_m N \<union> atm_of ` lits_of (F' @ Marked K d # F)" and
+      M: "M = F' @ Marked K d # F" and
+      M': "M' = F' @ Marked K d # F" and
+      N': "N' = insert (C' + {#L#}) N"
+      using learnE[OF learn, of thesis] by simp
+
+    have "atms_of (C' + {#L#}) \<subseteq> atms_of_m N \<union> atm_of ` lits_of M"
+      using L true_annots_CNot_all_atms_defined[OF F]
+      by (auto simp add: M image_Un atms_of_def lits_of_def)
+
+    thus "\<exists>C. M' = M \<and> N' = insert C N \<and> N \<Turnstile>p C \<and> atms_of C \<subseteq> atms_of_m N \<union> atm_of ` lits_of M"
+      using M M' N' N_C' by blast
+qed
+
+sublocale conflict_driven_clause_learning inv learn
+  do_not_forget_before_backtracking_clause backjump
+  by intro_locales
+
+end
+
+locale conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt =
+  conflict_driven_clause_learning_learning_before_backjump_only inv forget backjump
+    "\<lambda>C S. distinct_mset C \<and> \<not>tautology C \<and>learn_restrictions C S"
+    for forget backjump
+        ::  "('v::linorder, 'lvl, 'mark) cdcl_state \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool" and
+      inv :: "('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool" and
+      learn_restrictions ::  "'v clause \<Rightarrow> ('v, 'lvl, 'mark) cdcl_state \<Rightarrow> bool"
+begin
+
+lemma
+  assumes
+    learn: "learn (M, N) (M', N')" and
+    n_d: "no_dup M" and
+    fin: "finite N"
+  shows "N' - N \<subseteq> build_all_simple_clss (atms_of_m N \<union> atm_of ` lits_of M)"
+proof
+  fix C assume C: "C \<in>  N' - N"
+  hence "distinct_mset C" "\<not>tautology C" using learn by (auto elim!: learnE)
+  hence "C \<in> build_all_simple_clss (atms_of C)"
+    using distinct_mset_not_tautology_implies_in_build_all_simple_clss by blast
+  moreover have "atms_of C \<subseteq> atms_of_m N \<union> atm_of ` lits_of M"
+    using learn C by (force simp add: atms_of_m_def atms_of_def image_Un lits_of_def
+      true_annots_CNot_all_atms_defined elim!: learnE)
+  moreover have "finite (atms_of_m N \<union> atm_of ` lits_of M)"
+    using fin unfolding lits_of_def by auto
+  ultimately show "C \<in> build_all_simple_clss (atms_of_m N \<union> atm_of ` lits_of M)"
+    using build_all_simple_clss_mono  by (metis (no_types) insert_subset mk_disjoint_insert)
+qed
+
+end
+
 locale restart =
   assumes "wf (R :: (('v, 'lvl, 'mark) cdcl_state \<times> ('v, 'lvl, 'mark) cdcl_state) set)" and
   "\<And>n a b. (a, b) \<in> R\<^sup>* \<Longrightarrow> False"
@@ -1459,13 +1595,13 @@ locale restart =
 begin
 
 abbreviation restart where
-"restart \<equiv>\<lambda>(M, N). ({}, N)"
+"restart \<equiv>  \<lambda>(M, N). ({}, N)"
 
 inductive relation_with_restart where
 base: "(a, b) \<in> {(a,b). cdcl a b}  \<Longrightarrow> relation_with_restart m 1 a b" |
-step: "relation_with_restart m n a b \<Longrightarrow> (a, b) \<in> ntrancl p {(a,b). cdcl a b} 
+step: "relation_with_restart m n a b \<Longrightarrow> (a, b) \<in> ntrancl p {(a,b). cdcl a b}
    \<Longrightarrow> relation_with_restart m (n+p) a b" |
-restart: "relation_with_restart m n a b \<Longrightarrow> f n \<ge> m 
+restart: "relation_with_restart m n a b \<Longrightarrow> f n \<ge> m
   \<Longrightarrow> relation_with_restart (Suc m) n a (restart b)"
 
 
@@ -1474,7 +1610,7 @@ end
 section \<open>DPLL with simple backtrack\<close>
 locale dpll_with_backtrack
 begin
-inductive backtrack :: "('v, 'lvl, 'mark) marked_lit list \<times> 'v literal multiset set 
+inductive backtrack :: "('v, 'lvl, 'mark) marked_lit list \<times> 'v literal multiset set
   \<Rightarrow> ('v, 'lvl, 'mark) marked_lit list \<times> 'v literal multiset set \<Rightarrow> bool" where
 "backtrack_split (fst S)  = (M', L # M) \<Longrightarrow> is_marked L \<Longrightarrow> D \<in> snd S
   \<Longrightarrow> fst S \<Turnstile>as CNot D \<Longrightarrow> backtrack S (Propagated (- (lit_of L)) Proped # M, snd S)"
@@ -1482,7 +1618,7 @@ value backtrack
 inductive_cases backtrackE[elim]: "backtrack (M, N) (M', N')"
 lemma backtrack_is_backjump:
   fixes M M' :: "('v, 'lvl, 'mark) marked_lit list"
-  assumes 
+  assumes
     backtrack: "backtrack (M, N) (M', N')" and
     no_dup: "(no_dup \<circ> fst) (M, N)" and
     decomp: "all_decomposition_implies N (get_all_marked_decomposition M)"
@@ -1490,14 +1626,14 @@ lemma backtrack_is_backjump:
        \<exists>C F' K d F L l C'.
           M = F' @ Marked K d # F \<and>
           M' = Propagated L l # F \<and> N = N' \<and> C \<in> N \<and> F' @ Marked K d # F \<Turnstile>as CNot C \<and>
-          undefined_lit L F \<and> atm_of L \<in> atms_of_m N \<union> atm_of ` lits_of (F' @ Marked K d # F) \<and> 
+          undefined_lit L F \<and> atm_of L \<in> atms_of_m N \<union> atm_of ` lits_of (F' @ Marked K d # F) \<and>
           N \<Turnstile>p C' + {#L#} \<and> F \<Turnstile>as CNot C'"
 proof -
   let ?S = "(M, N)"
   let ?T = "(M', N')"
   obtain F F' P L D where
     b_sp: "backtrack_split M = (F', L # F)"  and
-    "is_marked L" and 
+    "is_marked L" and
     "D \<in> snd ?S" and
     "M \<Turnstile>as CNot D" and
     bt: "backtrack ?S (Propagated (- (lit_of L)) P # F, N)" and
@@ -1508,8 +1644,8 @@ proof -
   let ?C = "image_mset lit_of {#K\<in>#mset M. is_marked K \<and> K\<noteq>L#} :: 'v literal multiset"
   let ?C' = "set_mset (image_mset single (?C+{#?K#}))"
   obtain K d where L: "L = Marked K d" using \<open>is_marked L\<close> by (cases L) auto
-    
-  have M: "M = F' @ Marked K d # F" 
+
+  have M: "M = F' @ Marked K d # F"
     using b_sp  by (metis L backtrack_split_list_eq fst_conv snd_conv)
   moreover have "F' @ Marked K d # F \<Turnstile>as CNot D"
     using \<open>M\<Turnstile>as CNot D\<close> unfolding M .
@@ -1535,8 +1671,8 @@ proof -
           (* TODO tune proof *)
           using \<open>M \<Turnstile>as CNot D\<close> \<open>D\<in>snd ?S\<close> unfolding true_clss_clss_def true_annots_def Ball_def
            true_annot_def L M apply auto
-          apply (smt consistent_CNot_not image_Un insert_absorb2 insert_def mk_disjoint_insert 
-            sup.absorb_iff2 sup_commute sup_left_commute true_cls_union_increase' true_clss_def 
+          apply (smt consistent_CNot_not image_Un insert_absorb2 insert_def mk_disjoint_insert
+            sup.absorb_iff2 sup_commute sup_left_commute true_cls_union_increase' true_clss_def
             true_clss_singleton_lit_of_implies_incl true_clss_union)+
           done
         thus ?thesis
@@ -1554,7 +1690,7 @@ proof -
           using cons tot unfolding consistent_interp_def L by (cases K) auto
         have "total_over_set I (atm_of ` lit_of ` (set M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}))"
           using tot by (auto simp add: L atms_of_uminus_lit_atm_of_lit_of)
-      
+
         hence H: "\<And>x.
             lit_of x \<notin> I \<Longrightarrow> x \<in> set M \<Longrightarrow>is_marked x
             \<Longrightarrow> x \<noteq> Marked K d \<Longrightarrow> -lit_of x \<in> I"
@@ -1585,7 +1721,7 @@ proof -
           using \<open>(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)\<close>
           unfolding L by (auto dest!: H)
       qed
-  moreover 
+  moreover
     have "set F' \<inter> {K. is_marked K \<and> K \<noteq> L} = {}"
       using backtrack_split_fst_not_marked[of _ M] b_sp by auto
     hence "F \<Turnstile>as CNot (image_mset uminus ?C)"
@@ -1595,7 +1731,7 @@ proof -
 qed
 
 lemma can_do_bt_step:
-   assumes 
+   assumes
      M: "M = F' @ Marked K d # F" and
      "C \<in> N" and
      C: "F' @ Marked K d # F \<Turnstile>as CNot C"
@@ -1609,26 +1745,30 @@ proof -
   ultimately show ?thesis
      using backtrack.intros[of "(M, N)" G' L G C] \<open>C \<in> N\<close> C unfolding M by auto
 qed
- 
-sublocale dpll_with_backjumping_ops backtrack 
+
+end
+sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops backtrack
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)"
   apply unfold_locales
     apply (rule backtrack_is_backjump; simp)
   apply (rule can_do_bt_step; fast)
   done
 
-sublocale dpll_with_backjumping backtrack 
+sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping backtrack
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)"
   apply unfold_locales
   using dpll_bj_no_dup dpll_bj_all_decomposition_implies_inv apply fastforce
   done
 
-lemma tranclp_dpll_wf_inital_state:
+sublocale dpll_with_backtrack \<subseteq> conflict_driven_clause_learning
+   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)"
+   "\<lambda>_ _. False" "\<lambda>_ _. False" dpll_with_backtrack.backtrack
+   by (unfold_locales)
+      (simp_all add: forget_ops.intro learn_ops.intro)
+
+lemma (in dpll_with_backtrack) tranclp_dpll_wf_inital_state:
   assumes fin: "finite A"
   shows "wf {((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), ([], N))|M' N' N.
     dpll_bj\<^sup>+\<^sup>+ ([], N) (M', N') \<and> atms_of_m N \<subseteq> atms_of_m A}"
   using tranclp_dpll_bj_wf_inital_state[OF assms(1)] by auto
-
-end
-value wf
 end

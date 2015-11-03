@@ -180,6 +180,14 @@ proof -
 qed
 
 subsection \<open>Well-foundedness\<close>
+text \<open>A little list of theorems that could be useful, but are hidden:
+  \<^item> link between @{term wf} and infinite chains: @{thm wf_iff_no_infinite_down_chain}, 
+  @{thm wf_no_infinite_down_chainE}\<close>
+
+lemma wf_if_measure_in_wf:
+  "wf R \<Longrightarrow> (\<And>a b. (a, b) \<in> S \<Longrightarrow> (\<nu> a, \<nu> b)\<in>R) \<Longrightarrow> wf S"
+  by (metis in_inv_image wfE_min wfI_min wf_inv_image)
+  
 lemma wfP_if_measure: fixes f :: "'a \<Rightarrow> nat"
 shows "(\<And>x y. P x \<Longrightarrow> g x y  \<Longrightarrow> f x < f y) \<Longrightarrow> wf {(x,y). P x \<and> g x y}"
   apply(insert wf_measure[of f])
@@ -208,7 +216,7 @@ qed
 lemma wf_lex_less: "wf (lex {(a, b). (a::nat) < b})"
 proof -
   have m: "{(a, b). a < b} = measure id" by auto
-  show ?thesis  apply (rule wf_lex) unfolding m by auto
+  show ?thesis apply (rule wf_lex) unfolding m by auto
 qed
 
 lemma wfP_if_measure2: fixes f :: "'a \<Rightarrow> nat"
@@ -345,6 +353,7 @@ next
     unfolding nrtrancl_def A by auto
     
   show ?case
+    (* TODO tune proof *)
     unfolding nrtrancl_def A apply (simp add: B)
     unfolding nrtrancl_def[symmetric]  apply auto
     unfolding IH apply auto
@@ -393,9 +402,12 @@ lemma ntranclp_ntrancl_eq:
   "ntranclp n (\<lambda>x y. (x, y) \<in> r) a b \<longleftrightarrow> (a,b) \<in> ntrancl n r"
   by (simp add: ntranclp_def)
 
-lemma 
-  assumes "wf R"
-  shows "\<exists>n. \<exists>z. (z, a) \<in> R \<longrightarrow> (\<exists>b. (a, b) \<in> ntrancl n R \<and> (\<forall>c. (b, c) \<notin> R))"
-  using assms by induction auto
+lemma ntranclp_mono:
+   "m \<ge> n \<Longrightarrow> ntranclp n r a b \<Longrightarrow> ntranclp m r a b"
+  apply (induction m)
+   apply auto[]
+  apply (case_tac "n\<le>m")
+   apply auto[]
+  using le_antisym by fastforce
 
 end
