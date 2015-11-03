@@ -634,8 +634,8 @@ proof -
     proof
       fix E
       from sat have "\<forall>E. \<exists>l \<in> C. evall E F G l" unfolding evalc_def by -
-      then have "\<exists>l \<in> C. evall E F G l" by auto
-      then show "\<exists>l\<in>C'. evall E F G l" using sup by auto
+      then have "\<exists>l \<in> C . evall E F G l" by auto
+      then show "\<exists>l \<in> C'. evall E F G l" using sup by auto
     qed
   then show "evalc F G C'" unfolding evalc_def by auto
 qed
@@ -1291,7 +1291,7 @@ proof -
   then have "unifierls \<sigma> ((L  \<union> M\<^sup>C) {\<eta>}\<^sub>l\<^sub>s)" unfolding mguls_def by auto
   then have \<eta>\<sigma>uni: "unifierls (\<eta> \<cdot> \<sigma>) (L  \<union> M\<^sup>C)" 
     unfolding unifierls_def using composition_conseq2l by auto
-  then obtain \<tau> where "mguls \<tau> (L  \<union> M\<^sup>C)" using unification by force
+  then obtain \<tau> where \<tau>_p: "mguls \<tau> (L  \<union> M\<^sup>C)" using unification by force
   then obtain \<phi> where \<phi>_p: "\<tau> \<cdot> \<phi> = \<eta> \<cdot> \<sigma>" using \<eta>\<sigma>uni unfolding mguls_def by auto
   
   let ?E = "((C - L)  \<union> (D - M)) {\<tau>}\<^sub>l\<^sub>s"
@@ -1303,10 +1303,38 @@ proof -
   then have inst: "instance_ofls (lresolution C' D' L' M' \<sigma>) (lresolution C D L M \<tau>) "
     unfolding lresolution_def instance_ofls_def by blast
 
-  have appll: "applicable C D L M \<tau>" sorry
+
+    have C'el: "C' \<noteq> {}" using appl unfolding applicable_def by auto
+    have "instance_ofls C' C" using inst\<^sub>1 by auto (* an assumption*)
+    then have "\<exists>\<sigma>. C' = C{\<sigma>}\<^sub>l\<^sub>s" unfolding instance_ofls_def by auto
+    then have "C \<noteq> {}" using C'el by auto
+  moreover
+    have D'el: "D' \<noteq> {}" using appl unfolding applicable_def by auto
+    have "instance_ofls D' D" using inst\<^sub>2 by auto (* an assumption*)
+    then have "\<exists>\<sigma>. D' = D{\<sigma>}\<^sub>l\<^sub>s" unfolding instance_ofls_def by auto
+    then have "D \<noteq> {}" using D'el by auto
+  moreover
+    have L'el: "L' \<noteq> {}" using appl unfolding applicable_def by auto
+    have " L {\<eta>}\<^sub>l\<^sub>s = L'" using L_p by auto (* an assumption*)
+    then have "L \<noteq> {}" using L'el by auto
+  moreover
+    have M'el: "M' \<noteq> {}" using appl unfolding applicable_def by auto
+    have "M {\<eta>}\<^sub>l\<^sub>s = M'" using M_p by auto (* an assumption*)
+    then have "M \<noteq> {}" using M'el by auto
+  moreover
+    have "varsls C \<inter> varsls D = {}" using appart by auto
+  moreover
+    have "L' \<subseteq> C'" using appl unfolding applicable_def by auto
+    then have "L \<subseteq> C" using L_p by auto
+  moreover
+    have "M' \<subseteq> D'" using appl unfolding applicable_def by auto
+    then have "M \<subseteq> D" using M_p by auto
+  moreover
+    have "mguls \<tau> (L \<union> M\<^sup>C)" using \<tau>_p by auto
+  ultimately have appll: "applicable C D L M \<tau>" unfolding applicable_def by auto
 
   from inst appll show ?thesis by auto
-oops
+qed
 
 
 section {* Completeness *}
