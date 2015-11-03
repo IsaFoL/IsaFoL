@@ -1526,7 +1526,7 @@ lemma backtrack_is_backjump':
     shows "
         \<exists>C F' K d F L l C'.
           fst S = F' @ Marked K d # F \<and>
-          fst T = Propagated L l # F \<and> snd S = snd T \<and> C \<in> snd S \<and> fst S \<Turnstile>as CNot C
+          T = (Propagated L l # F, snd S) \<and> C \<in> snd S \<and> fst S \<Turnstile>as CNot C
           \<and> |L| \<notin>\<^sub>l |F| \<and> atm_of L \<in> atms_of_m (snd S) \<union> atm_of ` lits_of (fst S) \<and>
           snd S \<Turnstile>p C' + {#L#} \<and> F \<Turnstile>as CNot C'"
   apply (cases S, cases T)
@@ -1534,34 +1534,31 @@ lemma backtrack_is_backjump':
 
 lemma can_do_bt_step:
    assumes
-     M: "M = F' @ Marked K d # F" and
-     "C \<in> N" and
-     C: "F' @ Marked K d # F \<Turnstile>as CNot C"
-   shows "\<not> no_step backtrack (M, N)"
+     M: "fst S = F' @ Marked K d # F" and
+     "C \<in> snd S" and
+     C: "fst S \<Turnstile>as CNot C"
+   shows "\<not> no_step backtrack S"
 proof -
   obtain L G' G where
-    "backtrack_split M = (G', L # G)"
+    "backtrack_split (fst S) = (G', L # G)"
     unfolding M by (induction F' rule: marked_lit_list_induct) auto
   moreover hence "is_marked L"
      by (metis backtrack_split_snd_hd_marked list.distinct(1) list.sel(1) snd_conv)
   ultimately show ?thesis
-     using backtrack.intros[of "(M, N)" G' L G C] \<open>C \<in> N\<close> C unfolding M by auto
+     using backtrack.intros[of S G' L G C] \<open>C \<in> snd S\<close> C unfolding M by auto
 qed
 
 end
-sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops fst snd "\<lambda>M (_, N). (M, N)"
+sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops fst snd "\<lambda>M S. (M, snd S)"
   "\<lambda>C (M, N). (M, insert C N)" "\<lambda>C (M, N). (M, N - {C})" backtrack
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)"
   apply unfold_locales
     apply auto[6]
-(*     using backtrack_is_backjump'
-    apply (rule backtrack_is_backjump')
-    defer
+   apply (rule backtrack_is_backjump'; case_tac S; simp)
   apply (rule can_do_bt_step; fast)
-  done *)
-  sorry
+  done 
 
-sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping fst snd "\<lambda>M (_, N). (M, N)"
+sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping  fst snd "\<lambda>M S. (M, snd S)"
   "\<lambda>C (M, N). (M, insert C N)" "\<lambda>C (M, N). (M, N - {C})" backtrack
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)"
   apply unfold_locales
@@ -1569,7 +1566,8 @@ sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping fst snd "\<lambd
   done
 
 sublocale dpll_with_backtrack \<subseteq> conflict_driven_clause_learning
-   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)" fst snd "\<lambda>M (_, N). (M, N)"
+   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)" 
+   fst snd "\<lambda>M S. (M, snd S)"
   "\<lambda>C (M, N). (M, insert C N)" "\<lambda>C (M, N). (M, N - {C})"
    "\<lambda>_ _. False" "\<lambda>_ _. False" dpll_with_backtrack.backtrack
    by (unfold_locales)
