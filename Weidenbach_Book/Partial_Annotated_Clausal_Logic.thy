@@ -37,6 +37,8 @@ lemma lits_of_append[simp]:
   "lits_of (l @ l') = lits_of l \<union> lits_of l'"
   unfolding lits_of_def by auto
 
+lemma finite_lits_of_def[simp]: "finite (lits_of L)"
+  unfolding lits_of_def by auto
 (* TODO introduce unmark
 
 abbreviation unmark where
