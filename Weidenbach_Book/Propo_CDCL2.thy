@@ -1409,6 +1409,7 @@ proof
   ultimately show "C \<in> build_all_simple_clss (atms_of_m (clauses S) \<union> atm_of ` lits_of (trail S))"
     using build_all_simple_clss_mono  by (metis (no_types) insert_subset mk_disjoint_insert)
 qed
+
 definition "conflicting_bj_clss S \<equiv> 
    {C+{#L#}|C L. C+{#L#} \<in> clauses S \<and> distinct_mset (C+{#L#}) \<and> \<not>tautology (C+{#L#})
      \<and> (\<exists>F' K d F. trail S = F' @ Marked K d # F \<and> F \<Turnstile>as CNot C)}"
@@ -1424,6 +1425,7 @@ lemma conflicting_bj_clss_add_cls:
      \<and> (\<exists>F' K d F. trail S = F' @ Marked K d # F \<and> F \<Turnstile>as CNot C)
      then {C'} else {})"
   unfolding conflicting_bj_clss_def by (auto split: split_if_asm) metis+
+
 lemma conflicting_bj_clss_incl_clauses:
    "conflicting_bj_clss S \<subseteq> clauses S"
   unfolding conflicting_bj_clss_def by auto
@@ -1510,8 +1512,11 @@ proof -
   moreover have "conflicting_bj_clss S \<noteq> conflicting_bj_clss T"
     using learn apply induction
   (*TODO DUP excception     sledgehammer[debug, verbose, verit, dont_minimize, overlord, dont_slice] (conflicting_bj_clss_add_cls conflicting_bj_clss_def mem_Collect_eq singletonI subsetCE sup_ge2) 
-  *)
-
+  
+sledgehammer[debug, overlord, verbose, verit, dont_minimize, overlord, dont_slice, isar_proof=true, 
+   dont_compress, dont_preplay] 
+(conflicting_bj_clss_add_cls conflicting_bj_clss_def mem_Collect_eq singletonI subsetCE sup_ge2)
+*)
     apply (auto simp add: set_condition_or_split set_insert_neq conflicting_bj_clss_add_cls )
     apply (fastforce simp add: conflicting_bj_clss_def)+
     done
@@ -1539,6 +1544,7 @@ proof -
     `conflicting_bj_clss S \<subseteq> conflicting_bj_clss T` `finite (conflicting_bj_clss T)` 
     card_seteq diff_less_mono2 le_eq_less_or_eq le_less_trans)
 qed
+
 end
 
 locale restart =
