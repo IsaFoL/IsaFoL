@@ -114,6 +114,10 @@ lemma atms_of_atms_of_m_mono[simp]:
   "A \<in> \<psi> \<Longrightarrow> atms_of A \<subseteq> atms_of_m \<psi>"
   unfolding atms_of_m_def by fastforce
 
+lemma atms_of_m_single_set_mset_atns_of[simp]:
+  "atms_of_m (single ` set_mset B) = atms_of B"
+  unfolding atms_of_m_def atms_of_def by auto
+
 (*TODO generalise the 2 following lemmas, but the multiset is probably not good enough for [intro].*)
 lemma in_implies_atm_of_on_atms_of_m[simp]:
   assumes "C + {#L#} \<in> N"

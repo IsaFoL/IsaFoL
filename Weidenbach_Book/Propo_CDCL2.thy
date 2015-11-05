@@ -539,7 +539,7 @@ text \<open>The bounds are the following:
   \<close>
 abbreviation unassigned_lit ::  "'b literal multiset set \<Rightarrow> 'a list \<Rightarrow> nat" where
   "unassigned_lit N M \<equiv> card (atms_of_m N) - length M"
-lemma dpll_bj_trail_mes_decreasing_prop:
+lemma dpll_bj_trail_mes_increasing_prop:
   fixes M :: "('v, 'lvl, 'mark) annoted_lits " and N :: "'v clauses"
   assumes "dpll_bj S T" and "inv S"
   "atms_of_m (clauses S) \<subseteq> atms_of_m A" and
@@ -689,7 +689,7 @@ proof (rule wf_bounded_measure[of _
     by (metis (no_types, lifting) Nat.le_trans One_nat_def Suc_1 add.right_neutral add_Suc_right
       le_imp_less_Suc less_eq_Suc_le nth_mem)
 
-  from dpll_bj_trail_mes_decreasing_prop[OF dpll_bj inv N_A M_A nd fin]
+  from dpll_bj_trail_mes_increasing_prop[OF dpll_bj inv N_A M_A nd fin]
   have "\<mu>\<^sub>C ?s ?b (\<nu> a) < \<mu>\<^sub>C ?s ?b (\<nu> b)" by simp
   moreover from \<mu>\<^sub>C_bounded[OF bounded_M l_\<nu>_M]
     have "\<mu>\<^sub>C ?s ?b (\<nu> b) \<le> ?b ^ ?s" by auto
@@ -1161,8 +1161,7 @@ lemma cdcl_atms_in_trail_in_set:
   by (induction rule: cdcl_all_induct)
      (simp_all add: dpll_bj_atms_in_trail_in_set dpll_bj_atms_of_m_clauses_inv)
 
-subsection \<open>Extension of models\<close>
-subsubsection \<open>Definition\<close>
+paragraph \<open>Extension of models\<close>
 lemma cdcl_bj_sat_ext_iff:
   assumes "cdcl S T"and "inv S"
   shows "I\<Turnstile>sext clauses S \<longleftrightarrow> I\<Turnstile>sext clauses T"
@@ -1312,6 +1311,8 @@ sublocale learn_ops _ _ _ _ _ learn
       using M M' N' N_C' by blast
 qed
 
+sublocale conflict_driven_clause_learning _ _ _ _ _ _ learn _ _
+  by unfold_locales
 end
 
 locale forget_ops_no_bj_forget =
@@ -1336,7 +1337,7 @@ lemma do_not_forget_before_backtracking_clause_imp_forget:
 sublocale forget_ops _ _ _ _ _ do_not_forget_before_backtracking_clause
   apply (unfold_locales)
   using forget do_not_forget_before_backtracking_clause_imp_forget by blast
-thm do_not_forget_before_backtracking_clause.induct
+
 lemma do_not_forget_before_backtracking_clause_induct[consumes 1, case_names forget]:
   assumes
     "do_not_forget_before_backtracking_clause S T" and
@@ -1434,12 +1435,11 @@ lemma finite_conflicting_bj_clss[simp]:
   "finite (clauses S) \<Longrightarrow> finite (conflicting_bj_clss S)"
   using conflicting_bj_clss_incl_clauses[of S] rev_finite_subset by blast
 
-abbreviation "conflicting_bj_clss_yet S \<equiv> 
-  3^(card (atms_of_m (clauses S) \<union> atm_of ` lits_of (trail S))) 
-      - card (conflicting_bj_clss S)"
+abbreviation "conflicting_bj_clss_yet b S \<equiv> 
+  3 ^ b - card (conflicting_bj_clss S)"
 abbreviation
-  "\<mu>\<^sub>L S \<equiv> 
-    ([conflicting_bj_clss_yet S, card (clauses S)])"
+  "\<mu>\<^sub>L b S \<equiv> 
+    (conflicting_bj_clss_yet b S, card (clauses S))"
 
 lemma do_not_forget_before_backtracking_clause_learned_clause_untouched:
   assumes "do_not_forget_before_backtracking_clause S T"
@@ -1456,29 +1456,18 @@ proof -
     using a2 by (metis (no_types) diff_union_cancelR) (* 67 ms *)
 qed
 
-lemma 
+lemma forget_\<mu>\<^sub>L_decrease:
   assumes forget: "do_not_forget_before_backtracking_clause S T" and
    fin: "finite (clauses S)"
-  shows "(\<mu>\<^sub>L T, \<mu>\<^sub>L S) \<in> lexn less_than 2"
+  shows "(\<mu>\<^sub>L b T, \<mu>\<^sub>L b S) \<in> less_than <*lex*> less_than"
 proof -
   have "card (clauses T) < card (clauses S)"
     using forget fin
     apply (induction rule: do_not_forget_before_backtracking_clause_induct)
     using card_Suc_Diff1 by fastforce
-  moreover have "(atms_of_m (clauses T) \<union> atm_of ` lits_of (trail T)) 
-    \<subseteq> (atms_of_m (clauses S) \<union> atm_of ` lits_of (trail S))"
-    using forget fin
-    apply (induction rule: do_not_forget_before_backtracking_clause_induct)
-    unfolding atms_of_m_def by auto
-  then have "card (atms_of_m (clauses T) \<union> atm_of ` lits_of (trail T)) 
-    \<le> card (atms_of_m (clauses S) \<union> atm_of ` lits_of (trail S))"
-    using fin by (auto intro!: card_mono)
-  hence "(3::nat) ^ card (atms_of_m (clauses T) \<union> atm_of ` lits_of (trail T)) 
-    \<le> 3 ^ card (atms_of_m (clauses S) \<union> atm_of ` lits_of (trail S))"
-    by (auto intro: power_mono)
-  ultimately show ?thesis 
-    unfolding lexn2_conv do_not_forget_before_backtracking_clause_learned_clause_untouched[OF forget] 
-    less_than_iff by linarith
+  then show ?thesis 
+    unfolding do_not_forget_before_backtracking_clause_learned_clause_untouched[OF forget] 
+    less_than_iff by auto 
 qed
 lemma set_condition_or_split:"{a. (a = b \<or> Q a) \<and> S a} = (if S b then {b} else {}) \<union> {a. Q a \<and> S a}"
   by auto
@@ -1486,14 +1475,16 @@ lemma set_condition_or_split:"{a. (a = b \<or> Q a) \<and> S a} = (if S b then {
 lemma set_insert_neq:
   "A \<noteq> insert a A \<longleftrightarrow> a \<notin> A"
   by auto
-lemma 
-  assumes learn: "learn S T" and
-   fin: "finite (clauses S)"
-  shows "(\<mu>\<^sub>L T, \<mu>\<^sub>L S) \<in> lexn less_than 2"
+lemma learn_\<mu>\<^sub>L_decrease:
+  assumes learnST: "learn S T" and
+   fin: "finite (clauses S)" and
+   A: "atms_of_m (clauses S) \<union> atm_of ` lits_of (trail S) \<subseteq> A" and
+   fin_A: "finite A"
+  shows "(\<mu>\<^sub>L (card A) T, \<mu>\<^sub>L (card A) S) \<in> less_than <*lex*> less_than"
 proof -
   have [simp]: "(atms_of_m (clauses T) \<union> atm_of ` lits_of (trail T)) 
     = (atms_of_m (clauses S) \<union> atm_of ` lits_of (trail S))"
-    using learn fin (* TODO tune proof *)
+    using learnST fin (* TODO tune proof *)
     apply (induction)
     unfolding atms_of_m_def apply auto
     apply (metis UnI2 atm_iff_pos_or_neg_lit image_Un literal.sel(1,2) lits_of_def 
@@ -1508,9 +1499,9 @@ proof -
     = 3 ^ card (atms_of_m (clauses S) \<union> atm_of ` lits_of (trail S))"
     by (auto intro: power_mono)
   moreover have "conflicting_bj_clss S \<subseteq> conflicting_bj_clss T"
-    using learn by induction (auto simp add: conflicting_bj_clss_add_cls)
+    using learnST by induction (auto simp add: conflicting_bj_clss_add_cls)
   moreover have "conflicting_bj_clss S \<noteq> conflicting_bj_clss T"
-    using learn apply induction
+    using learnST apply induction
   (*TODO DUP excception     sledgehammer[debug, verbose, verit, dont_minimize, overlord, dont_slice] (conflicting_bj_clss_add_cls conflicting_bj_clss_def mem_Collect_eq singletonI subsetCE sup_ge2) 
   
 sledgehammer[debug, overlord, verbose, verit, dont_minimize, overlord, dont_slice, isar_proof=true, 
@@ -1520,8 +1511,8 @@ sledgehammer[debug, overlord, verbose, verit, dont_minimize, overlord, dont_slic
     apply (auto simp add: set_condition_or_split set_insert_neq conflicting_bj_clss_add_cls )
     apply (fastforce simp add: conflicting_bj_clss_def)+
     done
-  moreover have "finite (conflicting_bj_clss T)"
-    using learn fin by induction (auto simp add: conflicting_bj_clss_add_cls )
+  moreover have fin_T: "finite (conflicting_bj_clss T)"
+    using learnST fin by induction (auto simp add: conflicting_bj_clss_add_cls )
   ultimately have "card (conflicting_bj_clss T) \<ge> card (conflicting_bj_clss S)"
     using card_mono by blast
     
@@ -1532,17 +1523,103 @@ sledgehammer[debug, overlord, verbose, verit, dont_minimize, overlord, dont_slic
       unfolding conflicting_bj_clss_def atms_of_m_def by auto
     have 2: "\<And>x. x\<in> conflicting_bj_clss T \<Longrightarrow> \<not> tautology x \<and> distinct_mset x"
       unfolding conflicting_bj_clss_def by auto
-    have "conflicting_bj_clss T 
+    have T: "conflicting_bj_clss T 
     \<subseteq> build_all_simple_clss (atms_of_m (clauses T) \<union> atm_of ` lits_of (trail T))"
       by standard (meson "1" "2" fin'  `finite (conflicting_bj_clss T)` build_all_simple_clss_mono 
         distinct_mset_set_def  simplified_in_build_all subsetCE sup.coboundedI1)
-  moreover hence #: "3 ^ card (atms_of_m (clauses T) \<union> atm_of ` lits_of (trail T)) \<ge> card (conflicting_bj_clss T)"
+  moreover 
+    hence #: "3 ^ card (atms_of_m (clauses T) \<union> atm_of ` lits_of (trail T)) 
+        \<ge> card (conflicting_bj_clss T)"
       by (meson Nat.le_trans build_all_simple_clss_card build_all_simple_clss_finite card_mono fin')
+    have "atms_of_m (clauses T) \<union> atm_of ` lits_of (trail T) \<subseteq> A"
+      using learn[OF learnST] A by simp
+    hence "3 ^ (card A) \<ge> card (conflicting_bj_clss T)"
+      using # fin_A by (meson build_all_simple_clss_card build_all_simple_clss_finite 
+        build_all_simple_clss_mono calculation(2) card_mono dual_order.trans)
   ultimately show ?thesis 
-    unfolding lexn2_conv less_than_iff 
-  by (smt 3 `conflicting_bj_clss S \<noteq> conflicting_bj_clss T` 
-    `conflicting_bj_clss S \<subseteq> conflicting_bj_clss T` `finite (conflicting_bj_clss T)` 
-    card_seteq diff_less_mono2 le_eq_less_or_eq le_less_trans)
+    using psubset_card_mono[OF fin_T ]
+    unfolding less_than_iff lex_prod_def by clarify
+      (meson `conflicting_bj_clss S \<noteq> conflicting_bj_clss T` 
+        `conflicting_bj_clss S \<subseteq> conflicting_bj_clss T` 
+        diff_less_mono2 le_less_trans not_le psubsetI) 
+qed
+
+
+lemma dpll_bj_trail_mes_decreasing_prop:
+  assumes dpll: "dpll_bj S T"  and inv: "inv S" and
+  N_A: "atms_of_m (clauses S) \<subseteq> atms_of_m A" and
+  M_A: "atm_of ` lits_of (trail S) \<subseteq> atms_of_m A" and
+  nd: "no_dup (trail S)" and
+  fin_A: "finite A"
+  shows "(2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) 
+               - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> T) 
+            < (2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) 
+               - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> S)"
+  using dpll_bj_trail_mes_increasing_prop[OF assms] \<mu>\<^sub>C_bounded 
+proof -
+  let ?b = "2+card (atms_of_m A)"
+  let ?s = "1+card (atms_of_m A)"
+  let ?\<mu> = "\<mu>\<^sub>C ?s ?b"
+  have M'_A: "atm_of ` lits_of (trail T) \<subseteq> atms_of_m A"
+    by (meson M_A N_A dpll dpll_bj_atms_in_trail_in_set inv)
+  have nd': "no_dup (trail T)"
+    using \<open>dpll_bj S T\<close> dpll_bj_no_dup nd inv by blast
+  { fix i :: nat and xs :: "'a list"
+    have "i < length xs \<Longrightarrow> length xs - Suc i < length xs"
+      by auto
+    hence H: "i<length xs \<Longrightarrow>  xs ! i \<in> set xs"
+      using rev_nth[of i xs] unfolding in_set_conv_nth by (force simp add: in_set_conv_nth)
+  } note H = this
+
+  have l_M_A: "length (trail S) \<le> card (atms_of_m A)"
+    by (simp add: fin_A M_A card_mono no_dup_length_eq_card_atm_of_lits_of nd)
+  have l_M'_A: "length (trail T) \<le> card (atms_of_m A)"
+    by (simp add: fin_A M'_A card_mono no_dup_length_eq_card_atm_of_lits_of nd')
+  have l_\<nu>_M: "length (\<nu> T) \<le> 1+card (atms_of_m A)"
+     using l_M'_A length_get_all_marked_decomposition_length[of "trail T"] by auto
+  have bounded_M: "\<forall>i<length (\<nu> T). (\<nu> T)! i < card (atms_of_m A) + 2"
+    using length_in_get_all_marked_decomposition_bounded[of _ T] l_M'_A
+    by (metis (no_types, lifting) Nat.le_trans One_nat_def Suc_1 add.right_neutral add_Suc_right
+      le_imp_less_Suc less_eq_Suc_le nth_mem)
+
+  from dpll_bj_trail_mes_increasing_prop[OF dpll inv N_A M_A nd fin_A]
+  have "\<mu>\<^sub>C ?s ?b (\<nu> S) < \<mu>\<^sub>C ?s ?b (\<nu> T)" by simp
+  moreover from \<mu>\<^sub>C_bounded[OF bounded_M l_\<nu>_M]
+    have "\<mu>\<^sub>C ?s ?b (\<nu> T) \<le> ?b ^ ?s" by auto
+  ultimately show ?thesis by linarith
+qed
+
+lemma 
+  assumes "cdcl S T"  and "inv S"
+  "atms_of_m (clauses S) \<subseteq> atms_of_m A" and
+  "atm_of ` lits_of (trail S) \<subseteq> atms_of_m A" and
+  "no_dup (trail S)" and
+  fin_S: "finite(clauses S)" and
+  fin_A: "finite A"
+  shows "(((2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) 
+               - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> T), 
+            \<mu>\<^sub>L (card (atms_of_m A)) T), 
+          ((2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) 
+               - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> S),
+            \<mu>\<^sub>L (card (atms_of_m A)) S)) 
+            \<in> less_than <*lex*> (less_than <*lex*> less_than)"
+  using assms(1-6)
+proof (induction)
+  case (c_dpll_bj S T)
+  from dpll_bj_trail_mes_decreasing_prop[OF this(1-5) fin_A] show ?case 
+    by (meson in_lex_prod less_than_iff)
+next
+  case (c_learn S T) note learn = this(1) and inv = this(2) and N_A = this(3) and M_A = this(4) and
+    n_d = this(5) and fin = this(6)
+  hence S: "trail S =  trail T"
+    by (induction rule: learn.induct) auto
+  show ?case  
+    using learn_\<mu>\<^sub>L_decrease[OF learn fin _ ] N_A M_A fin_A unfolding S by auto
+next
+  case (c_forget S T) note forget = this(1) and fin = this(6)
+  have "trail S = trail T" using forget by induction auto
+  thus ?case
+    using forget_\<mu>\<^sub>L_decrease[OF forget fin] by auto
 qed
 
 end

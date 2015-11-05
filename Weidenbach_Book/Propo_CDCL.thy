@@ -190,7 +190,7 @@ qed auto
 lemma cdcl_rf_bt:
   assumes "cdcl_rf S S'"
   and "backtrack_level S = length (get_all_levels_of_marked (trail S))"
-  and "get_all_levels_of_marked (trail S) = rev ([1..<(1+length (get_all_levels_of_marked (trail S)))])"
+  and "get_all_levels_of_marked (trail S) = rev [1..<(1+length (get_all_levels_of_marked (trail S)))]"
   shows "backtrack_level S' = length (get_all_levels_of_marked (trail S'))"
   using assms by (induct rule: cdcl_rf.induct) auto
 
