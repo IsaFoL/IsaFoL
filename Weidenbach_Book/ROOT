@@ -24,6 +24,7 @@ session "Weidenbach_Book" (main) = "HOL" +
   theories [quick_and_dirty]
     Propo_CDCL2
     Propo_Superposition
+    Propo_CDCL_CW
   document_files
     "root.tex"
     "biblio.bib"
