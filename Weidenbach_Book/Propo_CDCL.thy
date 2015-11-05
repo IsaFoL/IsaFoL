@@ -33,22 +33,26 @@ lemma trail_conv: "trail (M, N, U, k, D) = M" and
   by auto
 
 subsection \<open>CDCL Rules\<close>
-text \<open>Because of the strategy we will later use, we distinguish propagate, conflict from the other 
+text \<open>Because of the strategy we will later use, we distinguish propagate, conflict from the other
   rules\<close>
 inductive propagate :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
-propagate_rule[intro]: "S = (M, N, U, k, C_True) \<Longrightarrow>  C + {#L#} \<in> N \<union> U \<Longrightarrow> M \<Turnstile>as CNot C 
+propagate_rule[intro]: "S = (M, N, U, k, C_True) \<Longrightarrow>  C + {#L#} \<in> N \<union> U \<Longrightarrow> M \<Turnstile>as CNot C
   \<Longrightarrow> undefined_lit L (trail S) \<Longrightarrow> propagate S (Propagated L (C + {#L#}) # M, N, U, k, C_True)"
 
 inductive_cases propagateE[elim]: "propagate S T"
 
 inductive conflict ::  "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
-conflict_rule: "S = (M, N, U, k, C_True) \<Longrightarrow> D \<in> N \<union> U \<Longrightarrow> M \<Turnstile>as CNot D 
+conflict_rule: "S = (M, N, U, k, C_True) \<Longrightarrow> D \<in> N \<union> U \<Longrightarrow> M \<Turnstile>as CNot D
   \<Longrightarrow> conflict S (M, N, U, k, C_Clause D)"
 
 inductive_cases conflictE[elim]: "conflict S S'"
 
 inductive backtrack ::  "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
-backtracking[intro]: "S = (M, N, U, k, C_Clause (D + {#L#})) \<Longrightarrow> (Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition M) \<Longrightarrow> get_level L M = k \<Longrightarrow> get_level L M = get_maximum_level (D+{#L#}) M \<Longrightarrow> get_maximum_level D M = i \<Longrightarrow> backtrack S (Propagated L (D+{#L#}) # M1 , N, U \<union> {D + {#L#}}, i, C_True)"
+backtracking[intro]: "S = (M, N, U, k, C_Clause (D + {#L#}))
+  \<Longrightarrow> (Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition M)
+  \<Longrightarrow> get_level L M = k \<Longrightarrow> get_level L M = get_maximum_level (D+{#L#}) M
+  \<Longrightarrow> get_maximum_level D M = i
+  \<Longrightarrow> backtrack S (Propagated L (D+{#L#}) # M1 , N, U \<union> {D + {#L#}}, i, C_True)"
 inductive_cases backtrackE[elim]: "backtrack S S'"
 
 inductive decided ::  "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
@@ -229,8 +233,8 @@ proof (induct rule: cdcl_all_induct)
 next
   case (backtrack M N U k D L K i M1 M2)
   then obtain c where M: "M = c @ M2 @ Marked K (i + 1) # M1" by blast
-  have "get_all_levels_of_marked (rev M) 
-    = [Suc 0..<2+length (get_all_levels_of_marked c) + (length (get_all_levels_of_marked M2) 
+  have "get_all_levels_of_marked (rev M)
+    = [Suc 0..<2+length (get_all_levels_of_marked c) + (length (get_all_levels_of_marked M2)
                 + length (get_all_levels_of_marked M1))]"
     using backtrack.prems(2) unfolding M backtrack.hyps(1)
     by (auto simp add: rev_swap[symmetric] simp del: upt_simps)
@@ -505,7 +509,7 @@ lemma distinct_cdcl_state_inv:
   using assms
 proof (induct rule: cdcl_all_induct)
   case (backtrack M N U k D L K i M1 M2)
-  thus ?case 
+  thus ?case
     unfolding distinct_cdcl_state_def by (fastforce dest: get_all_marked_decomposition_incl)
 qed (auto simp add: distinct_cdcl_state_def distinct_mset_set_def)
 
@@ -658,9 +662,9 @@ next
     using decomp unfolding ay all_decomposition_implies_def by (auto simp add: ay M)
 next
   case (backtrack M N U k D L K i M1 M2)
-  have "\<forall>l \<in> set M2. \<not>is_marked l" 
+  have "\<forall>l \<in> set M2. \<not>is_marked l"
     using get_all_marked_decomposition_snd_not_marked backtrack.hyps(1) by blast
-  obtain M0 where M: "M = M0 @ M2 @ Marked K (i + 1) # M1" 
+  obtain M0 where M: "M = M0 @ M2 @ Marked K (i + 1) # M1"
     using backtrack.hyps(1) by blast
   show ?case unfolding all_decomposition_implies_def
     proof
@@ -855,7 +859,7 @@ proof (induct rule: cdcl_all_induct)
         thus False
           using skip.prems(2) unfolding consistent_interp_def cdcl_M_level_inv_def by auto
       qed
-  ultimately show ?case 
+  ultimately show ?case
     using skip.hyps(1) by (metis cdcl_M_level_inv_def conflicting_clause.inject conflicting_conv
       marked_lit.sel(2) skip.prems(2) trail_conv true_annots_lit_of_notin_skip)
 next
@@ -2851,7 +2855,7 @@ next
          D: "D \<in> clauses S' \<union> learned_clauses S'" and
          "trail S'' \<Turnstile>as CNot D" and
          "conflicting S'' = C_Clause D"
-         using full_cdcl_cp_exists_conflict_full_decompose[OF _ _  \<open>conflicting S' = C_True\<close>] 
+         using full_cdcl_cp_exists_conflict_full_decompose[OF _ _  \<open>conflicting S' = C_True\<close>]
          other'(3) by fast
        obtain M where M: "trail S'' = M @ trail S'" and nm: "\<forall>m\<in>set M. \<not>is_marked m"
          using rtranclp_cdcl_cp_dropWhile_trail other'(3) unfolding full0_def by blast
@@ -3126,7 +3130,7 @@ next
       have no_p: "no_step propagate ?S" and no_c: "no_step conflict ?S"
         by auto
       hence "no_step cdcl_cp ?S" by simp
-      have res_skip: "\<exists>T. (resolve ?S T \<and> no_step skip ?S \<and> full0 cdcl_cp T T) 
+      have res_skip: "\<exists>T. (resolve ?S T \<and> no_step skip ?S \<and> full0 cdcl_cp T T)
         \<or> (skip ?S T \<and> no_step resolve ?S \<and> full0 cdcl_cp T T)"
         proof cases
           assume "-lit_of L \<notin># D"
