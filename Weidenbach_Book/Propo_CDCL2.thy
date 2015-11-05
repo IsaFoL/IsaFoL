@@ -30,9 +30,6 @@ lemma true_clss_clss_union_false_true_clss_clss_cnot:
   using total_not_CNot consistent_CNot_not unfolding total_over_m_def true_clss_clss_def
   by fastforce
 
-lemma atms_of_m_single_set_mset_atns_of[simp]:
-  "atms_of_m (single ` set_mset B) = atms_of B"
-  unfolding atms_of_m_def atms_of_def by auto
 lemma no_dup_cannot_not_lit_and_uminus:
   "no_dup M \<Longrightarrow> - lit_of xa = lit_of x \<Longrightarrow> x \<in> set M \<Longrightarrow> xa \<in> set M \<Longrightarrow> False"
   by (metis atm_of_uminus distinct_map inj_on_eq_iff uminus_not_id')

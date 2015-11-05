@@ -639,10 +639,13 @@ lemma CNot_remdups_mset[simp]:
   "CNot (remdups_mset A) = CNot A"
   unfolding CNot_def by auto
 
+lemma Ball_CNot_Ball_mset[simp] :"(\<forall>x\<in>CNot D. P x) \<longleftrightarrow> (\<forall>L\<in># D. P {#-L#})"
+ unfolding CNot_def by auto
+
 lemma consistent_CNot_not:
   assumes "consistent_interp I"
   shows "I \<Turnstile>s CNot \<phi> \<Longrightarrow> \<not>I \<Turnstile> \<phi>"
-  using assms unfolding consistent_interp_def true_clss_def true_cls_def CNot_def by auto
+  using assms unfolding consistent_interp_def true_clss_def true_cls_def by auto
 
 lemma total_not_true_cls_true_clss_CNot:
   assumes "total_over_m I {\<phi>}" and "\<not>I \<Turnstile> \<phi>"
@@ -690,14 +693,17 @@ qed
 
 lemma consistent_CNot_not_tautology:
   "consistent_interp M \<Longrightarrow> M \<Turnstile>s CNot D \<Longrightarrow> \<not>tautology D"
-  unfolding true_clss_def Ball_def true_cls_def tautology_decomp consistent_interp_def Bex_mset_def
-  by (metis count_single in_CNot_uminus nat_neq_iff true_lit_def uminus_Neg uminus_Pos)
+  by (metis atms_of_m_CNot_atms_of consistent_CNot_not satisfiable_carac' satisfiable_def 
+    tautology_def total_over_m_def)
 
 lemma atms_of_m_CNot_atms_of_m: "atms_of_m (CNot CC) = atms_of_m {CC}"
   by simp
 
 lemma total_over_m_CNot_toal_over_m[simp]: "total_over_m I (CNot C) = total_over_set I (atms_of C)"
   unfolding total_over_m_def total_over_set_def by auto
+
+lemma uminus_lit_swap: "-(a::'a literal) = i \<longleftrightarrow> a = -i"
+    by auto
 
 lemma true_clss_cls_plus_CNot:
   assumes CC_L: "A \<Turnstile>p CC + {#L#}"
@@ -712,7 +718,7 @@ proof (intro allI impI)
   let ?I = "I \<union> {Pos P|P. P \<in> atms_of CC \<and> P \<notin> atm_of ` I}"
   have cons': "consistent_interp ?I"
     using cons unfolding consistent_interp_def
-    by (smt Un_iff atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set consistent_interp_def literal.sel(1) literal.simps(4) mem_Collect_eq uminus_Pos)
+    by (auto simp add: uminus_lit_swap atms_of_def rev_image_eqI)
   have I': "?I \<Turnstile>s A"
     using I true_clss_union_increase by blast
   have tot_CNot: "total_over_m ?I (A \<union> CNot CC)"
@@ -816,16 +822,16 @@ lemma true_annots_lit_of_notin_skip:
   and "no_dup (L # M)"
   shows "M \<Turnstile>as CNot A"
 proof -
-  have "\<forall> l. l \<in># A \<longrightarrow> -l \<in> lits_of (L # M)"
+  have "\<forall>l \<in># A. -l \<in> lits_of (L # M)"
     using assms(1) in_CNot_implies_uminus(2) by blast
   moreover
     have "atm_of (lit_of L) \<notin> atm_of ` lit_of ` set M"
       using assms(3) by force
     hence "- lit_of L \<notin> lits_of M" unfolding lits_of_def
       by (metis (no_types) atm_of_uminus imageI)
-  ultimately have "\<forall> l. l \<in># A \<longrightarrow> -l \<in> lits_of M"
-    using assms(2) by (metis insertE lits_of_cons uminus_of_uminus_id)
-  thus ?thesis by (auto simp add: true_annots_def CNot_def)
+  ultimately have "\<forall> l \<in># A. -l \<in> lits_of M"
+    using assms(2) unfolding Ball_mset_def by (metis insertE lits_of_cons uminus_of_uminus_id)
+  thus ?thesis by (auto simp add: true_annots_def)
 qed
 
 end

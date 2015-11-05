@@ -3,14 +3,7 @@ imports Propo_CDCL_Termination
 begin
 sledgehammer_params[verbose]
 
-lemma get_rev_level_skip_beginning:
-  assumes "atm_of L' \<noteq> atm_of (lit_of K)"
-  shows "get_rev_level L' 0 (rev M @ [K]) = get_level L' M"
-  using assms by auto
-lemma Ball_CNot_Ball_mset[simp] :"(\<forall>x\<in>CNot D. P x) \<longleftrightarrow> (\<forall>L\<in># D. P {#-L#})"
- unfolding CNot_def by auto
-
-lemma 
+lemma rtranclp_skip_bqcktrack_backtrack:
   assumes 
     "skip\<^sup>*\<^sup>* S T" and
     "backtrack T W" and
@@ -38,7 +31,7 @@ next
     "V = (M, N, U, k, C_Clause ?D)" and
     "-L' \<notin># ?D" and
     "?D \<noteq> {#}"
-    using skip unfolding V by (fastforce elim!: skipE split: split_if_asm)
+    using skip unfolding V by fastforce
   let ?M =  "Propagated L' C' # M"   
   have inv': "cdcl_all_inv_mes T"
     by (metis (no_types, hide_lams) cdcl_o.skip inv mono_rtranclp other 
@@ -51,7 +44,6 @@ next
     using decomp M_lev unfolding cdcl_M_level_inv_def T by auto
   hence "atm_of L \<in> atm_of ` lit_of `set M"
     using lev_l get_rev_level_ge_0_atm_of_in by fastforce
-     
   hence L_L': "atm_of L \<noteq> atm_of L'"
     using n_d' by auto
   have L'_M: "atm_of L' \<notin> atm_of ` lits_of M"
@@ -65,13 +57,12 @@ next
     
   obtain M2' where  
     "(Marked K (i+1) # M1, M2') \<in> set (get_all_marked_decomposition ?M)"
-    using decomp 
-    by (cases "hd (get_all_marked_decomposition M)", cases "get_all_marked_decomposition M")
-      auto
+    using decomp by (cases "hd (get_all_marked_decomposition M)", 
+      cases "get_all_marked_decomposition M") auto
   moreover 
     from L_L'
     have "get_level L ?M = k" 
-    using lev_l \<open>-L' \<notin># ?D\<close> by (auto split: split_if_asm simp add: get_rev_level_skip_beginning)
+    using lev_l \<open>-L' \<notin># ?D\<close> by (auto split: split_if_asm)
   moreover 
     have "atm_of L' \<notin> atms_of D"
       using \<open>L' \<notin># ?D\<close> \<open>-L' \<notin># ?D\<close> by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set 
@@ -83,4 +74,18 @@ next
   ultimately show ?thesis using inv
     by (metis (no_types, lifting) T Un_insert_right W backtracking i step.IH sup_bot.comm_neutral)
 qed
+
+inductive cdcl_s_sr where
+"full cdcl_cp S T \<Longrightarrow> cdcl_s_sr S T" |
+"decided S T \<Longrightarrow> full cdcl_cp T U \<Longrightarrow> cdcl_s_sr S U" |
+"no_step cdcl_cp S \<Longrightarrow> full (\<lambda>S T. skip S T \<or> resolve S T \<or> backtrack S T) S T 
+  \<Longrightarrow> full cdcl_cp T U 
+  \<Longrightarrow> cdcl_s_sr S U"
+
+lemma 
+  "cdcl_s\<^sup>*\<^sup>* S T \<Longrightarrow> no_step cdcl_s T \<Longrightarrow> cdcl_s_sr\<^sup>*\<^sup>* S T"
+  apply (induction rule: rtranclp_induct)
+  apply simp
+  apply simp
+oops
 end

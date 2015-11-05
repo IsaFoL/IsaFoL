@@ -1173,8 +1173,7 @@ text \<open>CDCL with the reasonable strategy: we fully propagate the conflict a
   @{term "full0 cdcl_cp S' S''"}\<close>
 inductive cdcl_s :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
 conflict': "full cdcl_cp S S' \<Longrightarrow> cdcl_s S S'" |
-(*TODO replace no_step propagate S \<Longrightarrow> no_step conflict S by no_step cdcl_cp S*)
-other': "cdcl_o S S'  \<Longrightarrow> no_step cdcl_cp S \<Longrightarrow>  full0 cdcl_cp S' S'' \<Longrightarrow> cdcl_s S S''"
+other': "cdcl_o S S'  \<Longrightarrow> no_step cdcl_cp S \<Longrightarrow> full0 cdcl_cp S' S'' \<Longrightarrow> cdcl_s S S''"
 
 subsubsection \<open>Invariants\<close>
 text \<open>These are the same invariants as before, but lifted\<close>
