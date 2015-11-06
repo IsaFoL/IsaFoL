@@ -1480,14 +1480,9 @@ proof -
   moreover have "conflicting_bj_clss S \<subseteq> conflicting_bj_clss T"
     using learnST by induction (auto simp add: conflicting_bj_clss_add_cls)
   moreover have "conflicting_bj_clss S \<noteq> conflicting_bj_clss T"
-    using learnST apply induction 
-  (*TODO DUP excception     sledgehammer[debug, verbose, verit, dont_minimize, overlord, dont_slice] (conflicting_bj_clss_add_cls conflicting_bj_clss_def mem_Collect_eq singletonI subsetCE sup_ge2)
 
-sledgehammer[debug, overlord, verbose, verit, dont_minimize, overlord, dont_slice, isar_proof=true,
-   dont_compress, dont_preplay]
-(conflicting_bj_clss_add_cls conflicting_bj_clss_def mem_Collect_eq singletonI subsetCE sup_ge2)
-*)
-    apply (auto simp add: set_condition_or_split set_insert_neq conflicting_bj_clss_add_cls )
+    using learnST apply induction
+    apply (auto simp add: set_condition_or_split set_insert_neq conflicting_bj_clss_add_cls)
     apply (fastforce simp add: conflicting_bj_clss_def)+
     done
   moreover have fin_T: "finite (conflicting_bj_clss T)"
@@ -1630,7 +1625,7 @@ inductive backtrack :: "('v, 'lvl, 'mark) marked_lit list \<times> 'v literal mu
   \<Rightarrow> ('v, 'lvl, 'mark) marked_lit list \<times> 'v literal multiset set \<Rightarrow> bool" where
 "backtrack_split (fst S)  = (M', L # M) \<Longrightarrow> is_marked L \<Longrightarrow> D \<in> snd S
   \<Longrightarrow> fst S \<Turnstile>as CNot D \<Longrightarrow> backtrack S (Propagated (- (lit_of L)) Proped # M, snd S)"
-value backtrack
+
 inductive_cases backtrackE[elim]: "backtrack (M, N) (M', N')"
 lemma backtrack_is_backjump:
   fixes M M' :: "('v, 'lvl, 'mark) marked_lit list"
