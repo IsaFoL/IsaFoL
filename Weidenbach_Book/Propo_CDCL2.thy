@@ -799,11 +799,9 @@ proof -
       ultimately have N_C_M: "?N \<union> ?C' \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set ?M"
         by auto
       have N_M_False: "?N \<union> (\<lambda>L. {#lit_of L#}) ` (set ?M) \<Turnstile>ps {{#}}"
-        (* TODO tune proof *)
         using M \<open>?M \<Turnstile>as CNot C\<close> \<open>C\<in>?N\<close> unfolding true_clss_clss_def true_annots_def Ball_def
-        true_annot_def  apply auto
-        by (metis consistent_CNot_not true_cls_mono_set_mset_l true_clss_def
-          true_clss_singleton_lit_of_implies_incl)
+        true_annot_def by (metis consistent_CNot_not sup.orderE sup_commute true_clss_def
+          true_clss_singleton_lit_of_implies_incl true_clss_union true_clss_union_increase)
 
       have "undefined_lit K F" using \<open>no_dup ?M\<close> unfolding M_K by (simp add: defined_lit_map)
       moreover
@@ -825,30 +823,25 @@ proof -
               "I \<Turnstile>s ?N"
             have "(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)"
               using cons tot unfolding consistent_interp_def by (cases K) auto
-            have "total_over_set I (atm_of ` lit_of ` (set ?M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}))"
+            have tot': "total_over_set I
+               (atm_of ` lit_of ` (set ?M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}))"
               using tot by (auto simp add: atms_of_uminus_lit_atm_of_lit_of)
+            { fix x :: "('v, 'lvl, 'mark) marked_lit"
+              assume
+                a3: "lit_of x \<notin> I" and
+                a1: "x \<in> set ?M" and
+                a4: "is_marked x" and
+                a5: "x \<noteq> Marked K d"
+              hence "Pos (atm_of (lit_of x)) \<in> I \<or> Neg (atm_of (lit_of x)) \<in> I"
+                using a5 a4 tot' a1 unfolding total_over_set_def atms_of_s_def by blast
+              moreover have f6: "Neg (atm_of (lit_of x)) = - Pos (atm_of (lit_of x))"
+                by simp
 
-            hence H: "\<And>x.
-                lit_of x \<notin> I \<Longrightarrow> x \<in> set ?M \<Longrightarrow>is_marked x
-                \<Longrightarrow> x \<noteq> Marked K d \<Longrightarrow> -lit_of x \<in> I"
-                (* TODO one-liner? *)
-              unfolding total_over_set_def atms_of_s_def
-              proof -
-                fix x :: "('v, 'lvl, 'mark) marked_lit"
-                assume a1: "x \<in> set ?M"
-                assume a2: "\<forall>l\<in>atm_of ` lit_of ` (set ?M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}).
-                  Pos l \<in> I \<or> Neg l \<in> I"
-                assume a3: "lit_of x \<notin> I"
-                assume a4: "is_marked x"
-                assume a5: "x \<noteq> Marked K d"
-                have f6: "Neg (atm_of (lit_of x)) = - Pos (atm_of (lit_of x))"
-                  by simp
-                have "Pos (atm_of (lit_of x)) \<in> I \<or> Neg (atm_of (lit_of x)) \<in> I"
-                  using a5 a4 a2 a1 by blast
-                thus "- lit_of x \<in> I"
-                  using f6 a3 by (metis (no_types) atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
-                    literal.sel(1))
-              qed
+              ultimately have "- lit_of x \<in> I"
+                using f6 a3 by (metis (no_types) atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+                  literal.sel(1))
+            } note H = this
+
             have "\<not>I \<Turnstile>s ?C'"
               using \<open>?N \<union> ?C' \<Turnstile>ps {{#}}\<close> tot cons \<open>I \<Turnstile>s ?N\<close>
               unfolding true_clss_clss_def total_over_m_def
@@ -1036,6 +1029,11 @@ lemma (in dpll_with_backjumping) dpll_bj_sat_ext_iff:
   "dpll_bj S T \<Longrightarrow> inv S \<Longrightarrow> I\<Turnstile>sext clauses S \<longleftrightarrow> I\<Turnstile>sext clauses T"
   by (simp add: dpll_bj_atms_of_m_clauses_inv dpll_bj_sat_iff total_over_m_def true_clss_ext_def)
 
+(* TODO Move *)
+lemma uminus_lit_swap:
+  "(a::'a literal) = -b \<longleftrightarrow> -a = b"
+  by auto
+
 lemma true_clss_ext_decrease_right_remove_r:
   assumes "I \<Turnstile>sext N"
   shows "I \<Turnstile>sext N - {C}"
@@ -1049,15 +1047,19 @@ proof (intro allI impI)
   let ?J = "J \<union> {Pos (atm_of P)|P. P \<in># C \<and> atm_of P \<notin> atm_of ` J}"
   have "I \<subseteq> ?J" using \<open>I \<subseteq> J\<close> by auto
   moreover have "consistent_interp ?J"
+    using cons unfolding consistent_interp_def apply -
+    apply (rule allI) by (case_tac L) (fastforce simp add: image_iff)+
+  moreover
+    have ex_or_eq: "\<And>l R J.  \<exists>P. (l = P \<or> l = -P) \<and> P \<in># C \<and> P \<notin> J \<and> - P \<notin> J
+       \<longleftrightarrow>  (l \<in># C \<and> l \<notin> J \<and> - l \<notin> J) \<or> (-l \<in># C \<and> l \<notin> J \<and> - l \<notin> J)"
+       by (metis uminus_of_uminus_id)
+    have "total_over_m ?J N"
     (* TODO tune proof *)
-    using cons unfolding consistent_interp_def  apply auto
-      using image_iff apply fastforce
-    by (metis atm_of_uminus image_iff literal.sel(1))
-  moreover have "total_over_m ?J N"
-    (* TODO tune proof *)
-    using tot unfolding total_over_m_def total_over_set_def atms_of_m_def apply auto
-    by (metis Diff_iff atms_of_def atms_of_s_def empty_iff in_atms_of_s_decomp insert_iff
-      literal.sel(1,2) mem_set_mset_iff)
+    using tot unfolding total_over_m_def total_over_set_def atms_of_m_def
+    apply (auto simp add:atms_of_def)
+    apply (case_tac "a \<in> N - {C}")
+      apply auto[]
+    using atms_of_s_def atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set by fastforce+
   ultimately have "?J \<Turnstile>s N"
     using assms unfolding true_clss_ext_def by blast
   hence "?J \<Turnstile>s N - {C}" by auto
@@ -1066,8 +1068,8 @@ proof (intro allI impI)
       atm_of_in_atm_of_set_in_uminus consistent_interp_def mem_Collect_eq subsetI tot
       total_over_m_def total_over_set_atm_of)
   then show "J \<Turnstile>s N - {C}"
-    using true_clss_remove_unused[OF \<open>?J \<Turnstile>s N - {C}\<close>]
-  by (meson true_cls_mono_set_mset_l true_clss_def)
+    using true_clss_remove_unused[OF \<open>?J \<Turnstile>s N - {C}\<close>] unfolding true_clss_def
+    by (meson true_cls_mono_set_mset_l)
 qed
 
 
@@ -1311,6 +1313,8 @@ begin
 inductive do_not_forget_before_backtracking_clause ::  "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 "forget S (remove_cls C S) \<Longrightarrow> \<not>(\<exists>F' F K d L. trail S = F' @ Marked K d # F \<and> F \<Turnstile>as CNot (C - {#L#}))
   \<Longrightarrow> do_not_forget_before_backtracking_clause S (remove_cls C S)"
+inductive_cases do_not_forget_before_backtracking_clauseE:
+  "do_not_forget_before_backtracking_clause S T"
 
 lemma do_not_forget_before_backtracking_clause_imp_forget:
   "do_not_forget_before_backtracking_clause M N \<Longrightarrow> forget M N"
@@ -1426,17 +1430,10 @@ abbreviation
 lemma do_not_forget_before_backtracking_clause_learned_clause_untouched:
   assumes "do_not_forget_before_backtracking_clause S T"
   shows "conflicting_bj_clss S = conflicting_bj_clss T"
-  using assms apply induction apply auto
-  unfolding conflicting_bj_clss_def (* TODO tune *)
-proof -
-  fix Sa :: 'st and C :: "'v literal multiset"
-  assume a1: "C \<in> {C + {#L#} |C L. C + {#L#} \<in> clauses Sa \<and> distinct_mset (C + {#L#}) \<and> \<not> tautology (C + {#L#}) \<and> (\<exists>F' K d F. trail Sa = F' @ Marked K d # F \<and> F \<Turnstile>as CNot C)}"
-  assume a2: "\<forall>F' F. (\<forall>K d. trail Sa \<noteq> F' @ Marked K d # F) \<or> (\<forall>L. \<not> F \<Turnstile>as CNot (C - {#L#}))"
-  have "\<exists>m l. C = m + {#l#} \<and> m + {#l#} \<in> clauses Sa \<and> distinct_mset (m + {#l#}) \<and> \<not> tautology (m + {#l#}) \<and> (\<exists>ms l la msa. trail Sa = ms @ Marked l la # msa \<and> msa \<Turnstile>as CNot m)"
-    using a1 by force (* 0.6 ms *)
-  thus False
-    using a2 by (metis (no_types) diff_union_cancelR) (* 67 ms *)
-qed
+  using assms apply (elim do_not_forget_before_backtracking_clauseE)
+  unfolding conflicting_bj_clss_def
+  by (metis (mono_tags, hide_lams) Diff_iff diff_union_cancelR dpll_state.clause_remove_clause
+    dpll_state_axioms equals0D insertE update_trail_remove_clauses)
 
 lemma forget_\<mu>\<^sub>L_decrease:
   assumes forget: "do_not_forget_before_backtracking_clause S T" and
@@ -1483,7 +1480,7 @@ proof -
   moreover have "conflicting_bj_clss S \<subseteq> conflicting_bj_clss T"
     using learnST by induction (auto simp add: conflicting_bj_clss_add_cls)
   moreover have "conflicting_bj_clss S \<noteq> conflicting_bj_clss T"
-    using learnST apply induction
+    using learnST apply induction 
   (*TODO DUP excception     sledgehammer[debug, verbose, verit, dont_minimize, overlord, dont_slice] (conflicting_bj_clss_add_cls conflicting_bj_clss_def mem_Collect_eq singletonI subsetCE sup_ge2)
 
 sledgehammer[debug, overlord, verbose, verit, dont_minimize, overlord, dont_slice, isar_proof=true,
