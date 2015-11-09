@@ -54,10 +54,42 @@ lemma atms_of_m_single_image_atm_of_lit_of:
 lemma is_marked_ex_Marked:
   "is_marked L \<Longrightarrow> \<exists>K lvl. L = Marked K lvl"
   by (cases L) auto
+locale propagate_ops = 
+  dpll_state trail clauses update_trail add_cls remove_cls for
+    trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
+    clauses :: "'st \<Rightarrow> 'v clauses" and
+    update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st"
+begin
+inductive propagate :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+propagate[intro]: "C + {#L#} \<in> clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit L (trail S)
+  \<Longrightarrow> propagate S (prepend_trail (Propagated L mark) S)"
+
+inductive_cases propagateE[elim]: "propagate S T"
+thm propagateE
+end
+
+locale decide_ops = 
+  dpll_state trail clauses update_trail add_cls remove_cls for
+    trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
+    clauses :: "'st \<Rightarrow> 'v clauses" and
+    update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st"
+begin
+inductive decide ::  "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+decide[intro]: "undefined_lit L (trail S) \<Longrightarrow> atm_of L \<in> atms_of_m (clauses S)
+  \<Longrightarrow> decide S (prepend_trail (Marked L d) S)"
+
+inductive_cases decideE[elim]: "decide S S'"
+end
 
 section \<open>DPLL with backjumping\<close>
 locale dpll_with_backjumping_ops =
-  dpll_state trail clauses update_trail add_cls remove_cls for
+  dpll_state trail clauses update_trail add_cls remove_cls +
+  propagate_ops trail clauses update_trail add_cls remove_cls +
+  decide_ops trail clauses update_trail add_cls remove_cls for
     trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -97,19 +129,6 @@ text \<open>We cannot add a like condition @{term "atms_of C' \<subseteq> atms_o
   important, otherwise you are not sure that you can backtrack.\<close>
 
 subsection\<open>Definition\<close>
-
-inductive propagate :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
-propagate[intro]: "C + {#L#} \<in> clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit L (trail S)
-  \<Longrightarrow> propagate S (prepend_trail (Propagated L mark) S)"
-
-inductive_cases propagateE[elim]: "propagate S T"
-thm propagateE
-
-inductive decide ::  "'st \<Rightarrow> 'st \<Rightarrow> bool" where
-decide[intro]: "undefined_lit L (trail S) \<Longrightarrow> atm_of L \<in> atms_of_m (clauses S)
-  \<Longrightarrow> decide S (prepend_trail (Marked L d) S)"
-
-inductive_cases decideE[elim]: "decide S S'"
 
 text \<open>We define dpll with backjumping:\<close>
 inductive dpll_bj :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
@@ -1818,5 +1837,41 @@ proof (rule ccontr)
         using mono_f by (induction i) (simp_all add: Suc_le_eq le_less_trans strict_mono_def)
       show "cdcl_with_restart i (g i) (g (Suc i))"
         using g[of i] apply (induction i) apply simp_all *)
+end
+
+
+locale cdcl_merge_conflict_propagate =
+  dpll_state trail clauses update_trail add_cls remove_cls for
+    trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
+    clauses :: "'st \<Rightarrow> 'v clauses" and
+    update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" +
+  fixes inv :: "'st \<Rightarrow> bool"
+  assumes backjump:
+    "\<And>S T. backjump S T \<Longrightarrow>  inv S \<Longrightarrow>
+      \<exists>C F' K d F L l C'.
+        trail S = F' @ Marked K d # F
+        \<and> T = update_trail (Propagated L l # F) S
+        \<and> C \<in> clauses S
+        \<and> trail S \<Turnstile>as CNot C
+        \<and> undefined_lit L F
+        \<and> atm_of L \<in> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))
+        \<and> clauses S \<Turnstile>p C' + {#L#}
+        \<and> F \<Turnstile>as CNot C'" and
+    bj_can_jump:
+      "\<And>S C F' K d F L.
+        inv S
+        \<Longrightarrow> trail S = F' @ Marked K d # F
+        \<Longrightarrow> C \<in> clauses S
+        \<Longrightarrow> trail S \<Turnstile>as CNot C
+        \<Longrightarrow> undefined_lit L F
+        \<Longrightarrow> atm_of L \<in> atms_of_m (clauses S) \<union> atm_of ` (lits_of (F' @ Marked K d # F))
+        \<Longrightarrow> clauses S \<Turnstile>p C' + {#L#}
+        \<Longrightarrow> F \<Turnstile>as CNot C'
+        \<Longrightarrow> \<not>no_step backjump S"
+begin
+
+
 end
 end

@@ -3,7 +3,7 @@ imports Propo_CDCL_Termination
 begin
 sledgehammer_params[verbose]
 
-lemma rtranclp_skip_bqcktrack_backtrack:
+lemma rtranclp_skip_backtrack_backtrack:
   assumes 
     "skip\<^sup>*\<^sup>* S T" and
     "backtrack T W" and
