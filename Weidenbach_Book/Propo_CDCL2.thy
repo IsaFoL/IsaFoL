@@ -54,7 +54,7 @@ lemma atms_of_m_single_image_atm_of_lit_of:
 lemma is_marked_ex_Marked:
   "is_marked L \<Longrightarrow> \<exists>K lvl. L = Marked K lvl"
   by (cases L) auto
-locale propagate_ops = 
+locale propagate_ops =
   dpll_state trail clauses update_trail add_cls remove_cls for
     trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
@@ -70,7 +70,7 @@ inductive_cases propagateE[elim]: "propagate S T"
 thm propagateE
 end
 
-locale decide_ops = 
+locale decide_ops =
   dpll_state trail clauses update_trail add_cls remove_cls for
     trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
@@ -1841,15 +1841,19 @@ end
 
 
 locale cdcl_merge_conflict_propagate =
-  dpll_state trail clauses update_trail add_cls remove_cls for
+  dpll_state trail clauses update_trail add_cls remove_cls +
+  forget_ops trail clauses update_trail add_cls remove_cls +
+  decide_ops trail clauses update_trail add_cls remove_cls +
+  propagate_ops trail clauses update_trail add_cls remove_cls
+  for
     trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
     add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" +
-  fixes inv :: "'st \<Rightarrow> bool"
-  assumes backjump:
-    "\<And>S T. backjump S T \<Longrightarrow>  inv S \<Longrightarrow>
+  fixes inv :: "'st \<Rightarrow> bool" and backjump_l :: "'st \<Rightarrow> 'st \<Rightarrow> bool"
+  assumes backjump_l:
+    "\<And>S T. backjump_l S T \<Longrightarrow>  inv S \<Longrightarrow>
       \<exists>C F' K d F L l C'.
         trail S = F' @ Marked K d # F
         \<and> T = update_trail (Propagated L l # F) S
@@ -1869,9 +1873,21 @@ locale cdcl_merge_conflict_propagate =
         \<Longrightarrow> atm_of L \<in> atms_of_m (clauses S) \<union> atm_of ` (lits_of (F' @ Marked K d # F))
         \<Longrightarrow> clauses S \<Turnstile>p C' + {#L#}
         \<Longrightarrow> F \<Turnstile>as CNot C'
-        \<Longrightarrow> \<not>no_step backjump S"
+        \<Longrightarrow> \<not>no_step backjump_l S"
 begin
 
+inductive cdcl_merged :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+cdcl_merged_decide:  "decide S S' \<Longrightarrow> cdcl_merged S S'" |
+cdcl_merged_propagate: "propagate S S' \<Longrightarrow> cdcl_merged S S'" |
+cdcl_merged_backjump_l:  "backjump_l S S' \<Longrightarrow> cdcl_merged S S'" |
+cdcl_merged_forget: "forget S S' \<Longrightarrow> cdcl_merged S S'"
 
+lemma
+  "cdcl_merged S T \<Longrightarrow>
+  conflict_driven_clause_learning.cdcl trail clauses update_trail (\<lambda>_ _. False)
+    forget backjump_l S T"
+  apply (induction rule: cdcl_merged.induct)
+  apply (rule conflict_driven_clause_learning.c_dpll_bj)
+oops
 end
 end
