@@ -141,7 +141,10 @@ next
     qed
 next
   case (rf S S')
-  thus ?case by (induct rule: cdcl_rf.induct) (fast dest: forget restart)+
+  thus ?case (* TODO investigate exception
+  using [[sledgehammer_isar_trace]] sledgehammer[verit , verbose, debug, dont_minimize](assms(4) assms(5) cdcl_rf.simps) 
+ *)
+by (induct rule: cdcl_rf.induct) (fast dest: forget restart)+
 qed
 
 lemma cdcl_o_induct[consumes 1, case_names decided skip resolve backtrack]:
