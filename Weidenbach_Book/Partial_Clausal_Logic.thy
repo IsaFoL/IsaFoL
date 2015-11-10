@@ -1303,7 +1303,7 @@ lemma entails_remove_minus[simp]: "I \<Turnstile>es N \<Longrightarrow> I \<Turn
 
 end
 
-interpretation true_cls!: entail true_cls
+interpretation true_cls: entail true_cls
   by standard (auto simp add: true_cls_def)
 
 thm true_cls.entails_def
