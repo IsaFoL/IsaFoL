@@ -1851,7 +1851,7 @@ locale cdcl_merge_conflict_propagate =
         \<Longrightarrow> C' + {#L#} \<notin> clauses S
         \<Longrightarrow> \<not>no_step backjump_l S"
 begin
-
+declare conflict_driven_clause_learning_axioms[intro]
 
 inductive cdcl_merged :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 cdcl_merged_decide:  "decide S S' \<Longrightarrow> cdcl_merged S S'" |
@@ -1859,19 +1859,17 @@ cdcl_merged_propagate: "propagate S S' \<Longrightarrow> cdcl_merged S S'" |
 cdcl_merged_backjump_l:  "backjump_l S S' \<Longrightarrow> cdcl_merged S S'" |
 cdcl_merged_forget: "forget S S' \<Longrightarrow> cdcl_merged S S'"
 
-lemma
+lemma cdcl_merged_is_rtranclp_cdcl:
   "cdcl_merged S T \<Longrightarrow> inv S \<Longrightarrow> cdcl\<^sup>*\<^sup>* S T"
 proof (induction rule: cdcl_merged.induct)
   case (cdcl_merged_decide S T)
   hence "cdcl S T"
-    using bj_decide conflict_driven_clause_learning.c_dpll_bj conflict_driven_clause_learning_axioms
-    by fastforce
+    using bj_decide conflict_driven_clause_learning.c_dpll_bj by fastforce
   thus ?case by auto
 next
   case (cdcl_merged_propagate S T)
   hence "cdcl S T"
-    using bj_propagate conflict_driven_clause_learning.c_dpll_bj conflict_driven_clause_learning_axioms
-    by fastforce
+    using bj_propagate conflict_driven_clause_learning.c_dpll_bj by fastforce
   thus ?case by auto
 next
    case (cdcl_merged_forget S T)
