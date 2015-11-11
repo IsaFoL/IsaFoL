@@ -1779,7 +1779,9 @@ end
 locale cdcl_merge_conflict_propagate =
   dpll_state trail clauses update_trail add_cls remove_cls +
   decide_ops trail clauses update_trail add_cls remove_cls +
-  propagate_ops trail clauses update_trail add_cls remove_cls
+  propagate_ops trail clauses update_trail add_cls remove_cls +
+  conflict_driven_clause_learning trail clauses update_trail add_cls remove_cls inv backjump
+    "\<lambda>_ _. True" forget_conds
   for
     trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
@@ -1787,13 +1789,14 @@ locale cdcl_merge_conflict_propagate =
     add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     inv :: "'st \<Rightarrow> bool" and
-    backjump forget :: "'st \<Rightarrow> 'st \<Rightarrow> bool"+
+    backjump :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
+    forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" +
   fixes backjump_l :: "'st \<Rightarrow> 'st \<Rightarrow> bool"
   assumes backjump_l:
     "\<And>S T. backjump_l S T \<Longrightarrow>  inv S \<Longrightarrow>
       \<exists>C F' K d F L l C'.
         trail S = F' @ Marked K d # F
-        \<and> T = update_trail (Propagated L l # F) S
+        \<and> T = update_trail (Propagated L l # F) (add_cls (C' + {#L#}) S)
         \<and> C \<in> clauses S
         \<and> trail S \<Turnstile>as CNot C
         \<and> undefined_lit L F
@@ -1821,9 +1824,50 @@ cdcl_merged_backjump_l:  "backjump_l S S' \<Longrightarrow> cdcl_merged S S'" |
 cdcl_merged_forget: "forget S S' \<Longrightarrow> cdcl_merged S S'"
 
 lemma
-  "cdcl_merged S T \<Longrightarrow> inv S \<Longrightarrow> cdcl S T"
-  apply (induction rule: cdcl_merged.induct)
-  apply unfold_locales
-oops
+  "cdcl_merged S T \<Longrightarrow> inv S \<Longrightarrow> cdcl\<^sup>*\<^sup>* S T"
+proof (induction rule: cdcl_merged.induct)
+  print_cases
+  case (cdcl_merged_decide S T)
+  hence "cdcl S T"
+    by (simp add: bj_decide c_dpll_bj)
+  thus ?case by auto
+next
+  case (cdcl_merged_propagate S T)
+  hence "cdcl S T"
+    by (simp add: bj_propagate c_dpll_bj)
+  thus ?case by auto
+next
+   case (cdcl_merged_forget S T)
+   hence "cdcl S T"
+     using c_forget by blast
+   thus ?case by auto
+next
+   case (cdcl_merged_backjump_l S T) note bt = this(1) and inv = this(2)
+   then obtain C F' K d F L l C' where
+     tr_S: "trail S = F' @ Marked K d # F" and
+     "T = update_trail (Propagated L l # F) (add_cls (C' + {#L#}) S)" and
+     "C \<in> clauses S" and
+     "trail S \<Turnstile>as CNot C" and
+     "undefined_lit L F" and
+     atm_L: "atm_of L \<in> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))" and
+     clss_C: "clauses S \<Turnstile>p C' + {#L#}" and
+     "F \<Turnstile>as CNot C'"
+     using backjump_l by blast
+   have "atms_of C' \<subseteq>  atm_of ` (lits_of F)"
+     proof -
+       obtain ll :: "'v \<Rightarrow> ('v literal \<Rightarrow> 'v) \<Rightarrow> 'v literal set \<Rightarrow> 'v literal" where
+         "\<forall>v f L. v \<notin> f ` L \<or> v = f (ll v f L) \<and> ll v f L \<in> L"
+         by moura
+       thus ?thesis unfolding tr_S
+         by (metis (no_types) `F \<Turnstile>as CNot C'` atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+           atms_of_def in_CNot_implies_uminus(2) mem_set_mset_iff subsetI)
+     qed
+   hence "learn S (add_cls (C' + {#L#}) S)"
+     using clss_C atm_L by (fastforce intro!: learn.intros simp add: tr_S)
+   moreover have "backjump (add_cls (C' + {#L#}) S) T"
+     (* Cannot be shown as of today: needs the most general backjump.  *)
+     sorry
+   ultimately show ?case by (auto dest!: bj_backjump c_learn c_dpll_bj)
+qed
 end
 end
