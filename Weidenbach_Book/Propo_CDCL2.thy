@@ -85,19 +85,17 @@ decide[intro]: "undefined_lit L (trail S) \<Longrightarrow> atm_of L \<in> atms_
 inductive_cases decideE[elim]: "decide S S'"
 end
 
-section \<open>DPLL with backjumping\<close>
-locale dpll_with_backjumping_ops =
-  dpll_state trail clauses update_trail add_cls remove_cls +
-  propagate_ops trail clauses update_trail add_cls remove_cls +
-  decide_ops trail clauses update_trail add_cls remove_cls for
+locale backjumping_ops =
+  dpll_state trail clauses update_trail add_cls remove_cls
+  for
     trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
     add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" +
   fixes
-    backjump  ::  "'st \<Rightarrow> 'st \<Rightarrow> bool" and
-    inv :: "'st \<Rightarrow> bool"
+    inv :: "'st \<Rightarrow> bool" and
+    backjump  ::  "'st \<Rightarrow> 'st \<Rightarrow> bool"
   assumes backjump:
     "\<And>S T. backjump S T \<Longrightarrow>  inv S \<Longrightarrow>
       \<exists>C F' K d F L l C'.
@@ -120,6 +118,21 @@ locale dpll_with_backjumping_ops =
         \<Longrightarrow> clauses S \<Turnstile>p C' + {#L#}
         \<Longrightarrow> F \<Turnstile>as CNot C'
         \<Longrightarrow> \<not>no_step backjump S"
+
+section \<open>DPLL with backjumping\<close>
+locale dpll_with_backjumping_ops =
+  dpll_state trail clauses update_trail add_cls remove_cls +
+  propagate_ops trail clauses update_trail add_cls remove_cls +
+  decide_ops trail clauses update_trail add_cls remove_cls +
+  backjumping_ops trail clauses update_trail add_cls remove_cls inv backjump
+  for
+    trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
+    clauses :: "'st \<Rightarrow> 'v clauses" and
+    update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    inv :: "'st \<Rightarrow> bool" and
+    backjump  ::  "'st \<Rightarrow> 'st \<Rightarrow> bool"
 begin
 
 text \<open>We cannot add a like condition @{term "atms_of C' \<subseteq> atms_of_m N"} because to ensure that we
@@ -239,7 +252,8 @@ next
       have "(\<lambda>m. {#lit_of m#}) ` set ?M' \<Turnstile>ps CNot C"
         using \<open>trail S \<Turnstile>as CNot C\<close> by (auto simp add: true_annots_true_clss_clss)
       have a1: "(\<lambda>m. {#lit_of m#}) ` set a \<union> (\<lambda>m. {#lit_of m#}) ` set (tl y)  \<Turnstile>ps CNot C"
-        by (metis sup_commute image_Un propagate.hyps(2) set_append tr_S true_annots_true_clss_clss)
+        using propagate.hyps(2) tr_S true_annots_true_clss_clss
+        by (force simp add: image_Un sup_commute)
       have a2: "clauses S \<union> (\<lambda>a. {#lit_of a#}) ` set a \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl y)"
         using calculation by (auto simp add: sup_commute)
       show "(\<lambda>m. {#lit_of m#}) ` set a  \<union> clauses S\<Turnstile>ps CNot C"
@@ -882,7 +896,7 @@ qed
 end
 
 locale dpll_with_backjumping =
-  dpll_with_backjumping_ops trail clauses update_trail add_cls remove_cls backjump inv
+  dpll_with_backjumping_ops trail clauses update_trail add_cls remove_cls inv backjump
   for
     trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
@@ -892,7 +906,7 @@ locale dpll_with_backjumping =
     backjump  ::  "'st \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool"
   +
-  assumes dpll_bj_inv:"dpll_bj S T \<Longrightarrow> inv S \<Longrightarrow> inv T"
+  assumes dpll_bj_inv:"\<And>S T. dpll_bj S T \<Longrightarrow> inv S \<Longrightarrow> inv T"
 begin
 
 lemma rtranclp_dpll_bj_inv:
@@ -1005,6 +1019,24 @@ locale learn_ops =
     learn: "\<And>S T. learn S T \<Longrightarrow> (\<exists>C. T = add_cls C S
        \<and> clauses S \<Turnstile>p C \<and> atms_of C \<subseteq> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S)))"
 
+locale most_general_learn =
+  dpll_state trail clauses update_trail add_cls remove_cls
+    for
+    trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
+    clauses :: "'st \<Rightarrow> 'v clauses" and
+    update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st"
+begin
+inductive most_general_learn :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+"clauses S \<Turnstile>p C \<Longrightarrow> atms_of C \<subseteq> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))
+ \<Longrightarrow> most_general_learn S (add_cls C S)"
+inductive_cases most_general_learnE:
+  "most_general_learn S T"
+sublocale learn_ops _ _ _ _ _ most_general_learn
+  by unfold_locales (auto elim!: most_general_learnE)
+end
+
 locale forget_ops =
   dpll_state trail clauses update_trail add_cls remove_cls
   for
@@ -1041,7 +1073,7 @@ definition true_clss_ext (infix "\<Turnstile>sext" 49) where
 "I \<Turnstile>sext N \<longleftrightarrow> (\<forall>J. I \<subseteq> J \<longrightarrow> consistent_interp J \<longrightarrow> total_over_m J N \<longrightarrow> J \<Turnstile>s N)"
 
 lemma true_clss_imp_true_cls_ext:
-   "I\<Turnstile>s N \<Longrightarrow> I \<Turnstile>sext N"
+  "I\<Turnstile>s N \<Longrightarrow> I \<Turnstile>sext N"
   unfolding true_clss_ext_def by (metis sup.orderE true_clss_union_increase')
 
 lemma (in dpll_with_backjumping) dpll_bj_sat_ext_iff:
@@ -1093,20 +1125,18 @@ qed
 
 
 locale conflict_driven_clause_learning =
-  learn_and_forget trail clauses update_trail add_cls remove_cls learn forget +
-  dpll_with_backjumping trail clauses update_trail add_cls remove_cls  backjump
+  dpll_with_backjumping trail clauses update_trail add_cls remove_cls backjump +
+  learn_and_forget trail clauses update_trail add_cls remove_cls learn forget
     for
       trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
       clauses :: "'st \<Rightarrow> 'v clauses" and
       update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
       add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
       remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-
-      learn forget backjump
+      backjump learn forget
         ::  "'st \<Rightarrow> 'st \<Rightarrow> bool"
 begin
 
-declare local.conflict_driven_clause_learning_axioms[simp]
 thm conflict_driven_clause_learning_axioms
 inductive cdcl:: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 c_dpll_bj:  "dpll_bj S S' \<Longrightarrow> cdcl S S'" |
@@ -1214,7 +1244,22 @@ next
 qed
 
 end -- \<open>end of \<open>conflict_driven_clause_learning\<close>\<close>
+locale cdcl_most_general_learn =
+  most_general_learn trail clauses update_trail add_cls remove_cls +
+  conflict_driven_clause_learning inv trail clauses update_trail add_cls remove_cls backjump 
+    most_general_learn forget
+    for
+      inv :: "'st \<Rightarrow> bool" and
+      trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
+      clauses :: "'st \<Rightarrow> 'v clauses" and
+      update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+      add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+      remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+      backjump forget
+        ::  "'st \<Rightarrow> 'st \<Rightarrow> bool"
+begin
 
+end
 locale conflict_driven_clause_learning_learning_before_backjump_only =
   forget_ops trail clauses update_trail add_cls remove_cls  forget +
   dpll_with_backjumping trail clauses update_trail add_cls remove_cls backjump
@@ -1262,7 +1307,7 @@ sublocale learn_ops _ _ _ _ _ learn
       using M M' N' N_C' by blast
 qed
 
-sublocale conflict_driven_clause_learning _ _ _ _ _ _ learn _ _
+sublocale conflict_driven_clause_learning _ _ _ _ _ _ _ learn _
   by unfold_locales
 end
 
@@ -1759,8 +1804,9 @@ qed
 
 end
 sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops fst snd "\<lambda>M S. (M, snd S)"
-  "\<lambda>C (M, N). (M, insert C N)" "\<lambda>C (M, N). (M, N - {C})" backtrack
-  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)"
+  "\<lambda>C (M, N). (M, insert C N)" "\<lambda>C (M, N). (M, N - {C})" 
+  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)" 
+  backtrack
   apply unfold_locales
     apply auto[6]
    apply (rule backtrack_is_backjump'; case_tac S; simp)
@@ -1776,11 +1822,10 @@ sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping  fst snd "\<lamb
 
 sublocale dpll_with_backtrack \<subseteq> conflict_driven_clause_learning
    "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)"
-   fst snd "\<lambda>M S. (M, snd S)"
-  "\<lambda>C (M, N). (M, insert C N)" "\<lambda>C (M, N). (M, N - {C})"
-   "\<lambda>_ _. False" "\<lambda>_ _. False" dpll_with_backtrack.backtrack
-   by (unfold_locales)
-      (simp_all add: forget_ops.intro learn_ops.intro)
+   fst snd "\<lambda>M S. (M, snd S)" "\<lambda>C (M, N). (M, insert C N)" "\<lambda>C (M, N). (M, N - {C})"
+   dpll_with_backtrack.backtrack "\<lambda>_ _. False" "\<lambda>_ _. False" 
+  by (unfold_locales)
+     (simp_all add: forget_ops.intro learn_ops.intro)
 
 lemma (in dpll_with_backtrack) tranclp_dpll_wf_inital_state:
   assumes fin: "finite A"
@@ -1811,47 +1856,46 @@ text \<open>
   \<^item> @{term "m > f n"} ensure that at least one step has been done.\<close>
 (* TODO Check *)
 inductive cdcl_with_restart where
-"(S, T) \<in> ntrancl m {(a, b). cdcl a b}
+"cdcl_with_restart (R, n) (S, Suc n) \<Longrightarrow> (S, T) \<in> ntrancl m {(a, b). cdcl a b}
   \<Longrightarrow> m \<ge> f n \<Longrightarrow> restart T U
-  \<Longrightarrow> cdcl_with_restart (Suc n) S U" |
-"cdcl_with_restart n A S \<Longrightarrow> full cdcl S T \<Longrightarrow> cdcl_with_restart (Suc n) S T" |
-"(S, T) \<in> ntrancl m {(a, b). cdcl a b}
-  \<Longrightarrow> m \<ge> f 0 \<Longrightarrow> restart T U
-  \<Longrightarrow> cdcl_with_restart 0 S U"
-(*
-lemma "wf {(T, S). \<exists>n. cdcl_with_restart n S T}" (is "wf ?A")
+  \<Longrightarrow> cdcl_with_restart (T, Suc n) (U, Suc (Suc n))" |
+"cdcl_with_restart (R, n) (S, Suc n) \<Longrightarrow> full cdcl S T 
+  \<Longrightarrow> cdcl_with_restart (S, Suc n) (T, Suc (Suc n))" |
+"cdcl_with_restart (S, 0) (S, 1)"
+
+lemma cdcl_with_restart_incresaing_number:
+  "cdcl_with_restart S T \<Longrightarrow> snd S < snd T"
+  by (induction rule: cdcl_with_restart.induct) auto
+
+lemma "wf {(T, S). cdcl_with_restart S T}" (is "wf ?A")
 proof (rule ccontr)
   assume "\<not> ?thesis"
-  then obtain g where g: "\<And>i. \<exists>n. cdcl_with_restart n (g i) (g (Suc i)) "
-    unfolding wf_iff_no_infinite_down_chain by blast
-  fix n i
-  have
-    "cdcl_with_restart n (g i) (g (Suc i))  \<Longrightarrow>n \<ge> i"
-      apply (induction i arbitrary: n)
-      apply (auto intro: g)
-      apply (cases rule: cdcl_with_restart.cases)
-      apply (auto simp add: g)
-      using g apply auto
-      fix i::nat
-      have "f i \<ge> i"
-        using mono_f by (induction i) (simp_all add: Suc_le_eq le_less_trans strict_mono_def)
-      show "cdcl_with_restart i (g i) (g (Suc i))"
-        using g[of i] apply (induction i) apply simp_all *)
+  then obtain g where 
+    g: "\<And>i. cdcl_with_restart (g i) (g (Suc i))"
+    unfolding wf_iff_no_infinite_down_chain by fast
+  have "strict_mono (snd o g)"
+    unfolding strict_mono_def apply (intro allI)
+    
+oops
 end
 
 
 locale cdcl_merge_conflict_propagate =
   dpll_state trail clauses update_trail add_cls remove_cls +
-  forget_ops trail clauses update_trail add_cls remove_cls +
   decide_ops trail clauses update_trail add_cls remove_cls +
-  propagate_ops trail clauses update_trail add_cls remove_cls
+  propagate_ops trail clauses update_trail add_cls remove_cls +
+  most_general_learn trail clauses update_trail add_cls remove_cls +
+  conflict_driven_clause_learning inv trail clauses update_trail add_cls remove_cls backjump  
+    most_general_learn forget
   for
     trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
     add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" +
-  fixes inv :: "'st \<Rightarrow> bool" and backjump_l :: "'st \<Rightarrow> 'st \<Rightarrow> bool"
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    inv :: "'st \<Rightarrow> bool" and
+    backjump forget :: "'st \<Rightarrow> 'st \<Rightarrow> bool"+
+  fixes backjump_l :: "'st \<Rightarrow> 'st \<Rightarrow> bool"
   assumes backjump_l:
     "\<And>S T. backjump_l S T \<Longrightarrow>  inv S \<Longrightarrow>
       \<exists>C F' K d F L l C'.
@@ -1876,18 +1920,19 @@ locale cdcl_merge_conflict_propagate =
         \<Longrightarrow> \<not>no_step backjump_l S"
 begin
 
+
 inductive cdcl_merged :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 cdcl_merged_decide:  "decide S S' \<Longrightarrow> cdcl_merged S S'" |
 cdcl_merged_propagate: "propagate S S' \<Longrightarrow> cdcl_merged S S'" |
 cdcl_merged_backjump_l:  "backjump_l S S' \<Longrightarrow> cdcl_merged S S'" |
 cdcl_merged_forget: "forget S S' \<Longrightarrow> cdcl_merged S S'"
-
+thm conflict_driven_clause_learning.c_dpll_bj[OF local.conflict_driven_clause_learning_axioms]
+ 
 lemma
-  "cdcl_merged S T \<Longrightarrow>
-  conflict_driven_clause_learning.cdcl trail clauses update_trail (\<lambda>_ _. False)
-    forget backjump_l S T"
+  "cdcl_merged S T \<Longrightarrow> inv S \<Longrightarrow> cdcl S T"
   apply (induction rule: cdcl_merged.induct)
-  apply (rule conflict_driven_clause_learning.c_dpll_bj)
+  apply (rule_tac conflict_driven_clause_learning.c_dpll_bj[OF local.conflict_driven_clause_learning_axioms])
+  apply unfold_locales
 oops
 end
 end
