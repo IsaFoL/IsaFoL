@@ -28,7 +28,8 @@ lemma get_rev_level_ge_0_atm_of_in:
   using assms apply (induct M arbitrary: n, simp)
   by (case_tac a) fastforce+
 
-text \<open>In @{const get_rev_level} (resp. @{const get_level}), the beginning (resp. the end) can be skipped if the literal is not in the beginning (resp. the end).\<close>
+text \<open>In @{const get_rev_level} (resp. @{const get_level}), the beginning (resp. the end) can be
+  skipped if the literal is not in the beginning (resp. the end).\<close>
 lemma get_rev_level_skip[simp]:
   assumes  "atm_of L \<notin> atm_of ` lit_of ` set M"
   shows "get_rev_level L n (M @ Marked K i # M') = get_rev_level L i (Marked K i # M')"
@@ -56,7 +57,7 @@ lemma get_level_skip_beginning:
 abbreviation "MMax M \<equiv> Max (set_mset M)"
 
 text \<open>the @{term "{#0#}"}  is there to ensures that the set is not empty.\<close>
-definition get_maximum_level :: "'a literal multiset \<Rightarrow> ('a, nat, 'b) marked_lit list \<Rightarrow> nat"  
+definition get_maximum_level :: "'a literal multiset \<Rightarrow> ('a, nat, 'b) marked_lit list \<Rightarrow> nat"
   where
 "get_maximum_level D M = MMax ({#0#} + image_mset (\<lambda>L. get_level L M) D)"
 
@@ -103,9 +104,10 @@ qed
 lemma get_maximum_level_skip_first[simp]:
   assumes "atm_of L \<notin> atms_of D"
   shows "get_maximum_level D (Propagated L C # M) = get_maximum_level D M"
-  using assms unfolding get_maximum_level_def
-  by (metis (lifting) atm_of_lit_in_atms_of get_level_skip_beginning marked_lit.sel(2)
-    mem_set_mset_iff multiset.map_cong0)
+  using assms unfolding get_maximum_level_def atms_of_def
+    atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+  by (smt atm_of_in_atm_of_set_in_uminus get_level_skip_beginning image_iff marked_lit.sel(2)
+    multiset.map_cong0)
 
 lemma get_maximum_level_skip_beginning:
   assumes DH: "atms_of D \<subseteq> atm_of `lits_of H"
@@ -251,10 +253,10 @@ proof (induct M arbitrary: K)
   thus ?case by auto
 next
   case (Cons a M)
-  hence H: "\<And>K. get_level L (K @ M) 
+  hence H: "\<And>K. get_level L (K @ M)
     = get_rev_level L (last (0 # get_all_levels_of_marked (rev M))) (rev K)"
     by auto
-  have "get_level L ((K @ [a])@ M) 
+  have "get_level L ((K @ [a])@ M)
     = get_rev_level L (last (0 # get_all_levels_of_marked (rev M))) (a # rev K)"
     using H[of "K @ [a]"] by simp
   thus ?case using Cons(2) by (case_tac a) auto
@@ -278,14 +280,18 @@ next
       have i: "i = Suc (length (get_all_levels_of_marked M))"
       and "get_all_levels_of_marked M = rev [Suc 0..<Suc (length (get_all_levels_of_marked M))]"
         using Cons.prems(3) unfolding a by auto
-      hence "get_rev_level L 0 (rev M @ (a # K)) = get_rev_level L (length (get_all_levels_of_marked M)) (a # K)" using Cons.hyps Cons.prems by auto
+      hence "get_rev_level L 0 (rev M @ (a # K))
+        = get_rev_level L (length (get_all_levels_of_marked M)) (a # K)"
+        using Cons.hyps Cons.prems by auto
       thus ?case using Cons.prems(2) unfolding a i by auto
     next
       fix L' D
       assume a: "a = Propagated L' D"
       have "get_all_levels_of_marked M = rev [Suc 0..<Suc (length (get_all_levels_of_marked M))]"
         using Cons.prems(3) unfolding a by auto
-      hence "get_rev_level L 0 (rev M @ (a # K)) = get_rev_level L (length (get_all_levels_of_marked M)) (a # K)" using Cons by auto
+      hence "get_rev_level L 0 (rev M @ (a # K))
+        = get_rev_level L (length (get_all_levels_of_marked M)) (a # K)"
+        using Cons by auto
       thus ?case using Cons.prems(2) unfolding a by auto
     qed
 qed

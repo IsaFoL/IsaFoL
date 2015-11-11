@@ -1246,7 +1246,7 @@ qed
 end -- \<open>end of \<open>conflict_driven_clause_learning\<close>\<close>
 locale cdcl_most_general_learn =
   most_general_learn trail clauses update_trail add_cls remove_cls +
-  conflict_driven_clause_learning inv trail clauses update_trail add_cls remove_cls backjump 
+  conflict_driven_clause_learning inv trail clauses update_trail add_cls remove_cls backjump
     most_general_learn forget
     for
       inv :: "'st \<Rightarrow> bool" and
@@ -1804,8 +1804,8 @@ qed
 
 end
 sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops fst snd "\<lambda>M S. (M, snd S)"
-  "\<lambda>C (M, N). (M, insert C N)" "\<lambda>C (M, N). (M, N - {C})" 
-  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)" 
+  "\<lambda>C (M, N). (M, insert C N)" "\<lambda>C (M, N). (M, N - {C})"
+  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)"
   backtrack
   apply unfold_locales
     apply auto[6]
@@ -1823,7 +1823,7 @@ sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping  fst snd "\<lamb
 sublocale dpll_with_backtrack \<subseteq> conflict_driven_clause_learning
    "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)"
    fst snd "\<lambda>M S. (M, snd S)" "\<lambda>C (M, N). (M, insert C N)" "\<lambda>C (M, N). (M, N - {C})"
-   dpll_with_backtrack.backtrack "\<lambda>_ _. False" "\<lambda>_ _. False" 
+   dpll_with_backtrack.backtrack "\<lambda>_ _. False" "\<lambda>_ _. False"
   by (unfold_locales)
      (simp_all add: forget_ops.intro learn_ops.intro)
 
@@ -1859,7 +1859,7 @@ inductive cdcl_with_restart where
 "cdcl_with_restart (R, n) (S, Suc n) \<Longrightarrow> (S, T) \<in> ntrancl m {(a, b). cdcl a b}
   \<Longrightarrow> m \<ge> f n \<Longrightarrow> restart T U
   \<Longrightarrow> cdcl_with_restart (T, Suc n) (U, Suc (Suc n))" |
-"cdcl_with_restart (R, n) (S, Suc n) \<Longrightarrow> full cdcl S T 
+"cdcl_with_restart (R, n) (S, Suc n) \<Longrightarrow> full cdcl S T
   \<Longrightarrow> cdcl_with_restart (S, Suc n) (T, Suc (Suc n))" |
 "cdcl_with_restart (S, 0) (S, 1)"
 
@@ -1870,12 +1870,12 @@ lemma cdcl_with_restart_incresaing_number:
 lemma "wf {(T, S). cdcl_with_restart S T}" (is "wf ?A")
 proof (rule ccontr)
   assume "\<not> ?thesis"
-  then obtain g where 
+  then obtain g where
     g: "\<And>i. cdcl_with_restart (g i) (g (Suc i))"
     unfolding wf_iff_no_infinite_down_chain by fast
   have "strict_mono (snd o g)"
     unfolding strict_mono_def apply (intro allI)
-    
+
 oops
 end
 
@@ -1885,7 +1885,7 @@ locale cdcl_merge_conflict_propagate =
   decide_ops trail clauses update_trail add_cls remove_cls +
   propagate_ops trail clauses update_trail add_cls remove_cls +
   most_general_learn trail clauses update_trail add_cls remove_cls +
-  conflict_driven_clause_learning inv trail clauses update_trail add_cls remove_cls backjump  
+  conflict_driven_clause_learning inv trail clauses update_trail add_cls remove_cls backjump
     most_general_learn forget
   for
     trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
@@ -1927,7 +1927,7 @@ cdcl_merged_propagate: "propagate S S' \<Longrightarrow> cdcl_merged S S'" |
 cdcl_merged_backjump_l:  "backjump_l S S' \<Longrightarrow> cdcl_merged S S'" |
 cdcl_merged_forget: "forget S S' \<Longrightarrow> cdcl_merged S S'"
 thm conflict_driven_clause_learning.c_dpll_bj[OF local.conflict_driven_clause_learning_axioms]
- 
+
 lemma
   "cdcl_merged S T \<Longrightarrow> inv S \<Longrightarrow> cdcl S T"
   apply (induction rule: cdcl_merged.induct)

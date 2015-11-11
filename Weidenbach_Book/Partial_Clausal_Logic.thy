@@ -424,10 +424,7 @@ next
       using tot unfolding total_over_m_def total_over_set_def atms_of_m_def
       by (auto simp add: atms_of_def atms_of_s_def[symmetric])
     have  "atm_of ` ?I = atms_of_m CC"
-      apply standard
-      unfolding atms_of_m_def apply auto[1]
-      using atms_CC_incl by (smt atms_of_m_def image_eqI image_subset_iff mem_Collect_eq subsetCE
-        subset_image_iff)
+      using atms_CC_incl unfolding atms_of_m_def by force
   ultimately show ?B by auto
 qed
 
@@ -442,10 +439,10 @@ lemma true_cls_mset_singleton[iff]: "I \<Turnstile>m {#C#} \<longleftrightarrow>
   unfolding true_cls_mset_def by (auto split: split_if_asm)
 
 lemma true_cls_mset_union[iff]: "I \<Turnstile>m CC + DD \<longleftrightarrow> I \<Turnstile>m CC \<and> I \<Turnstile>m DD"
-  unfolding true_cls_mset_def by auto
+  unfolding true_cls_mset_def by fastforce
 
 lemma true_cls_mset_image_mset[iff]: "I \<Turnstile>m image_mset f A \<longleftrightarrow> (\<forall>x \<in># A. I \<Turnstile> f x)"
-  unfolding true_cls_mset_def by auto
+  unfolding true_cls_mset_def by fastforce
 
 lemma true_cls_mset_mono: "set_mset DD \<subseteq> set_mset CC \<Longrightarrow> I \<Turnstile>m CC \<Longrightarrow> I \<Turnstile>m DD"
   unfolding true_cls_mset_def subset_iff by auto
@@ -806,10 +803,11 @@ lemma subsumption_total_over_m:
 
 lemma atm_of_eq_atm_of:
   "atm_of L = atm_of L' \<longleftrightarrow> (L = L' \<or> L = -L')"
-  by (metis atm_of_uminus literal.exhaust_sel uminus_Neg uminus_Pos)
+  by (cases L; cases L') auto
 
 lemma atms_of_replicate_mset_replicate_mset_uminus[simp]:
-  "atms_of (D - replicate_mset (count D L) L  - replicate_mset (count D (-L)) (-L)) = atms_of D - {atm_of L}"
+  "atms_of (D - replicate_mset (count D L) L  - replicate_mset (count D (-L)) (-L))
+    = atms_of D - {atm_of L}"
   by (auto split: split_if_asm simp add: atm_of_eq_atm_of atms_of_def)
 
 lemma subsumption_chained:
@@ -1178,7 +1176,7 @@ next
 
   let ?s' = "build_all_simple_clss (atms_of (\<chi> - {#L#}))"
   have "card (atms_of (\<chi> - {#L#})) = n"
-    using c finite a\<chi> by (metis L\<chi> atm_of_lit_in_atms_of card_Diff_singleton_if diff_Suc_1)
+    using c finite a\<chi> by (simp add: L\<chi> atm_of_lit_in_atms_of)
   moreover have "distinct_mset (\<chi> - {#L#})" using simp by auto
   moreover have "\<not>tautology (\<chi> - {#L#})"
     by (meson Multiset.diff_le_self mset_leD no_dup tautology_decomp)
@@ -1208,7 +1206,8 @@ next
     have "atms_of_m \<psi> \<subseteq> atms_of_m (insert \<chi> \<psi>)" unfolding atms_of_m_def atms_of_def by force
   ultimately
     have "\<psi> \<subseteq> build_all_simple_clss (atms_of_m (insert \<chi> \<psi>))"
-      by (metis atms_of_m_finite build_all_simple_clss_mono finite.insertI finite order_trans)
+      by (meson atms_of_m_finite build_all_simple_clss_mono dual_order.trans finite.insertI
+        local.finite)
   moreover
     have "\<chi> \<in> build_all_simple_clss (atms_of_m (insert \<chi> \<psi>))"
       using \<chi> finite build_all_simple_clss_mono[of "atms_of_m (insert \<chi> \<psi>)"] by auto

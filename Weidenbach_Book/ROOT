@@ -3,7 +3,6 @@ session "Weidenbach_Book" (main) = "HOL" +
   theories [document = false]
     "../lib/Multiset_More"
     "../lib/Herbrand_Interpretation"
-    "../Bachmair_Ganzinger/Lazy_List_Limit"
     "~~/src/HOL/Library/Code_Target_Numeral"
   global_theories [document = true]
     Transition
