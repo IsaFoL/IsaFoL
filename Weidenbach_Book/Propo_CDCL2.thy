@@ -147,19 +147,38 @@ locale backjumping_ops =
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" +
   fixes
     inv :: "'st \<Rightarrow> bool" and
-    backjump  ::  "'st \<Rightarrow> 'st \<Rightarrow> bool"
-  assumes backjump:
-    "\<And>S T. backjump S T \<Longrightarrow>  inv S \<Longrightarrow>
-      \<exists>C F' K d F L l C'.
-        trail S = F' @ Marked K d # F
-        \<and> T = update_trail (Propagated L l # F) S
-        \<and> C \<in> clauses S
-        \<and> trail S \<Turnstile>as CNot C
-        \<and> undefined_lit L F
-        \<and> atm_of L \<in> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))
-        \<and> clauses S \<Turnstile>p C' + {#L#}
-        \<and> F \<Turnstile>as CNot C'" and
-    bj_can_jump:
+    backjump_cond :: "'st \<Rightarrow> 'st \<Rightarrow> bool"
+begin
+inductive backjump where
+" trail S = F' @ Marked K d # F
+   \<Longrightarrow> T = update_trail (Propagated L l # F) S
+   \<Longrightarrow> C \<in> clauses S
+   \<Longrightarrow> trail S \<Turnstile>as CNot C
+   \<Longrightarrow> undefined_lit L F
+   \<Longrightarrow> atm_of L \<in> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))
+   \<Longrightarrow> clauses S \<Turnstile>p C' + {#L#}
+   \<Longrightarrow> F \<Turnstile>as CNot C'
+   \<Longrightarrow> backjump_cond S T
+   \<Longrightarrow> backjump S T"
+inductive_cases backjumpE: "backjump S T"
+
+end
+section \<open>DPLL with backjumping\<close>
+locale dpll_with_backjumping_ops =
+  dpll_state trail clauses update_trail add_cls remove_cls +
+  propagate_ops trail clauses update_trail add_cls remove_cls +
+  decide_ops trail clauses update_trail add_cls remove_cls +
+  backjumping_ops trail clauses update_trail add_cls remove_cls inv backjump_cond
+  for
+    trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
+    clauses :: "'st \<Rightarrow> 'v clauses" and
+    update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    inv :: "'st \<Rightarrow> bool" and
+    backjump_cond :: "'st \<Rightarrow> 'st \<Rightarrow> bool" +
+  assumes
+      bj_can_jump:
       "\<And>S C F' K d F L.
         inv S
         \<Longrightarrow> trail S = F' @ Marked K d # F
@@ -170,21 +189,6 @@ locale backjumping_ops =
         \<Longrightarrow> clauses S \<Turnstile>p C' + {#L#}
         \<Longrightarrow> F \<Turnstile>as CNot C'
         \<Longrightarrow> \<not>no_step backjump S"
-
-section \<open>DPLL with backjumping\<close>
-locale dpll_with_backjumping_ops =
-  dpll_state trail clauses update_trail add_cls remove_cls +
-  propagate_ops trail clauses update_trail add_cls remove_cls +
-  decide_ops trail clauses update_trail add_cls remove_cls +
-  backjumping_ops trail clauses update_trail add_cls remove_cls inv backjump
-  for
-    trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
-    clauses :: "'st \<Rightarrow> 'v clauses" and
-    update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
-    add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    inv :: "'st \<Rightarrow> bool" and
-    backjump  ::  "'st \<Rightarrow> 'st \<Rightarrow> bool"
 begin
 
 text \<open>We cannot add a like condition @{term "atms_of C' \<subseteq> atms_of_m N"} because to ensure that we
@@ -220,13 +224,8 @@ lemma dpll_bj_all_induct[consumes 2, case_names decide propagate backjump]:
       \<Longrightarrow> P S (update_trail (Propagated L l #  F) S)"
   shows "P S T"
   using assms(2)
-  apply (induction rule: dpll_bj_induct[OF local.dpll_with_backjumping_ops_axioms assms(1)])
-     apply (auto intro!: assms(3,4) dest!: backjump simp add: assms(1))[2]
-  apply (frule backjump, simp)
-  apply clarify
-  apply (rule assms(5))
-  apply auto
-  done
+  by (induction rule: dpll_bj_induct[OF local.dpll_with_backjumping_ops_axioms assms(1)])
+     (auto intro!: assms(3,4) elim!: backjumpE simp add: assms(1,5))[3]
 
 subsection \<open>Basic properties\<close>
 paragraph \<open>First, some better suited induction principle\<close>
@@ -1683,6 +1682,35 @@ lemma backtrack_is_backjump':
   apply (cases S, cases T)
   using backtrack_is_backjump[of "fst S" "snd S" "fst T" "snd T"] assms by fastforce
 
+sublocale dpll_state fst snd "\<lambda>M S. (M, snd S)" "\<lambda>C (M, N). (M, insert C N)"
+  "\<lambda>C (M, N). (M, N - {C})"
+  by unfold_locales auto
+lemma bj_ops: "backjumping_ops fst snd (\<lambda>M S. (M, snd S)) (\<lambda>C (M, N). (M, insert C N))
+  (\<lambda>C (M, N). (M, N - {C}))"
+  by unfold_locales
+lemma backtrack_is_backjump'':
+  fixes M M' :: "('v, 'lvl, 'mark) marked_lit list"
+  assumes
+    backtrack: "backtrack S T" and
+    no_dup: "(no_dup \<circ> fst) S" and
+    decomp: "all_decomposition_implies (snd S) (get_all_marked_decomposition (fst S))"
+    shows "backjumping_ops.backjump fst snd (\<lambda>M S. (M, snd S)) backtrack S T"
+proof -
+  obtain C F' K d F L l C' where
+    1: "fst S = F' @ Marked K d # F" and
+    2: "T = (Propagated L l # F, snd S)" and
+    3: "C \<in> snd S" and
+    4: "fst S \<Turnstile>as CNot C" and
+    5: "undefined_lit L F" and
+    6: "atm_of L \<in> atms_of_m (snd S) \<union> atm_of ` lits_of (fst S)" and
+    7: "snd S \<Turnstile>p C' + {#L#}" and
+    8: "F \<Turnstile>as CNot C'"
+  using backtrack_is_backjump'[OF assms] by blast
+
+  show ?thesis
+    using backjumping_ops.backjump.intros[OF bj_ops 1 2 3 4 5 6 7 8] backtrack by simp
+qed
+
 lemma can_do_bt_step:
    assumes
      M: "fst S = F' @ Marked K d # F" and
@@ -1700,15 +1728,18 @@ proof -
 qed
 
 end
+sublocale dpll_with_backtrack \<subseteq> dpll_state fst snd "\<lambda>M S. (M, snd S)" "\<lambda>C (M, N). (M, insert C N)"
+  "\<lambda>C (M, N). (M, N - {C})"
+  by unfold_locales auto
+
 sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops fst snd "\<lambda>M S. (M, snd S)"
   "\<lambda>C (M, N). (M, insert C N)" "\<lambda>C (M, N). (M, N - {C})"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)"
   backtrack
   apply unfold_locales
-    apply auto[6]
-   apply (rule backtrack_is_backjump'; case_tac S; simp)
-  apply (rule can_do_bt_step; fast)
-  done
+    apply (simp (no_asm))
+   apply (frule can_do_bt_step; simp)
+  using backtrack_is_backjump'' by (smt comp_apply prod.case_eq_if)
 
 sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping  fst snd "\<lambda>M S. (M, snd S)"
   "\<lambda>C (M, N). (M, insert C N)" "\<lambda>C (M, N). (M, N - {C})"
@@ -1779,7 +1810,8 @@ locale cdcl_merge_conflict_propagate =
   dpll_state trail clauses update_trail add_cls remove_cls +
   decide_ops trail clauses update_trail add_cls remove_cls +
   propagate_ops trail clauses update_trail add_cls remove_cls +
-  conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt trail clauses update_trail add_cls remove_cls inv backjump
+  conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt trail clauses
+  update_trail add_cls remove_cls inv "\<lambda>_ _. True"
     "\<lambda>_ _. True" forget_conds
   for
     trail :: "'st \<Rightarrow> ('v::linorder, 'lvl, 'mark) annoted_lits" and
@@ -1788,7 +1820,6 @@ locale cdcl_merge_conflict_propagate =
     add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     inv :: "'st \<Rightarrow> bool" and
-    backjump :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" +
   fixes backjump_l :: "'st \<Rightarrow> 'st \<Rightarrow> bool"
   assumes backjump_l:
@@ -1833,14 +1864,14 @@ lemma
 proof (induction rule: cdcl_merged.induct)
   case (cdcl_merged_decide S T)
   hence "cdcl S T"
-    by (meson bj_decide conflict_driven_clause_learning.cdcl.simps
-      conflict_driven_clause_learning_axioms)
+    using bj_decide conflict_driven_clause_learning.c_dpll_bj conflict_driven_clause_learning_axioms
+    by fastforce
   thus ?case by auto
 next
   case (cdcl_merged_propagate S T)
   hence "cdcl S T"
-    by (meson bj_propagate conflict_driven_clause_learning.c_dpll_bj
-      conflict_driven_clause_learning_axioms)
+    using bj_propagate conflict_driven_clause_learning.c_dpll_bj conflict_driven_clause_learning_axioms
+    by fastforce
   thus ?case by auto
 next
    case (cdcl_merged_forget S T)
@@ -1851,10 +1882,10 @@ next
    case (cdcl_merged_backjump_l S T) note bt = this(1) and inv = this(2)
    obtain C F' K d F L l C' where
      tr_S: "trail S = F' @ Marked K d # F" and
-     "T = update_trail (Propagated L l # F) (add_cls (C' + {#L#}) S)" and
-     "C \<in> clauses S" and
-     "trail S \<Turnstile>as CNot C" and
-     "undefined_lit L F" and
+     T: "T = update_trail (Propagated L l # F) (add_cls (C' + {#L#}) S)" and
+     C_cls_S: "C \<in> clauses S" and
+     tr_S_CNot_C: "trail S \<Turnstile>as CNot C" and
+     undef: "undefined_lit L F" and
      atm_L: "atm_of L \<in> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))" and
      clss_C: "clauses S \<Turnstile>p C' + {#L#}" and
      "F \<Turnstile>as CNot C'" and
@@ -1871,7 +1902,7 @@ next
          by (metis (no_types) `F \<Turnstile>as CNot C'` atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
            atms_of_def in_CNot_implies_uminus(2) mem_set_mset_iff subsetI)
      qed
-   have "learn S (add_cls (C' + {#L#}) S)"
+   have learn: "learn S (add_cls (C' + {#L#}) S)"
      apply (rule learn.intros)
          apply (rule clss_C)
        using atms_C' atm_L apply (fastforce simp add: tr_S)[]
@@ -1884,13 +1915,30 @@ next
      using \<open>F \<Turnstile>as CNot C'\<close> distinct not_tauto not_known by (auto simp: tr_S)
 
 
-   moreover have "backjump (add_cls (C' + {#L#}) S) T"
-     (* Cannot be shown as of today: needs the most general backjump.  *)
-     sorry
+   moreover have bj: "backjump (add_cls (C' + {#L#}) S) T"
+     apply (rule backjump.intros[OF _ T, of F' K d C "C'"])
+     using \<open>F \<Turnstile>as CNot C'\<close> C_cls_S tr_S_CNot_C undef  by (auto simp add: tr_S lits_of_def)
    ultimately show ?case
-     by (meson bj_backjump conflict_driven_clause_learning.c_dpll_bj
-       conflict_driven_clause_learning.cdcl.intros(2) conflict_driven_clause_learning_axioms
-       r_into_rtranclp rtranclp.rtrancl_into_rtrancl)
+     proof -
+       have "\<And>f fa p pa pb. conflict_driven_clause_learning.cdcl trail clauses f add_cls fa p
+       (\<lambda>m s. distinct_mset m \<and> \<not> tautology m \<and> (\<exists>ms. (\<exists>l la msa. trail s = msa @ Marked l la # ms)
+       \<and> (\<exists>ma l. m = ma + {#l#} \<and> ms \<Turnstile>as CNot ma
+       \<and> ma + {#l#} \<notin> clauses s))) pa S (add_cls (C' + {#L#}) S)
+       \<or> \<not> conflict_driven_clause_learning trail clauses f add_cls fa pb p"
+         using learn by (meson conflict_driven_clause_learning.cdcl.intros(2)) (* 13 ms *)
+       hence f3: "\<And>p. conflict_driven_clause_learning.cdcl trail clauses update_trail add_cls
+         remove_cls (\<lambda>s sa. True) (\<lambda>m s. distinct_mset m \<and> \<not> tautology m
+       \<and> (\<exists>ms. (\<exists>l la msa. trail s = msa @ Marked l la # ms) \<and> (\<exists>ma l. m = ma + {#l#}
+       \<and> ms \<Turnstile>as CNot ma \<and> ma + {#l#} \<notin> clauses s))) p S (add_cls (C' + {#L#}) S)"
+         using conflict_driven_clause_learning_axioms by blast (* 3 ms *)
+       have "\<And>p pa. conflict_driven_clause_learning.cdcl trail clauses update_trail add_cls
+         remove_cls (\<lambda>s sa. True) p pa (add_cls (C' + {#L#}) S) T"
+         using bj by (metis (no_types) conflict_driven_clause_learning.c_dpll_bj
+           conflict_driven_clause_learning_axioms dpll_with_backjumping_ops.dpll_bj.intros(3)
+           dpll_with_backjumping_ops_axioms) (* 34 ms *)
+       thus ?thesis
+         using f3 by (meson rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl)
+     qed
 qed
 end
 end
