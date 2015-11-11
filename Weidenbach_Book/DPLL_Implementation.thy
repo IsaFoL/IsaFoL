@@ -40,7 +40,8 @@ proof -
   let ?S = "(Ms, set (map mset N))"
   { fix L E
     assume unit: "find_first_unit_clause N Ms = Some (L, E)"
-    hence Ms'N: "(Ms', N') = (Propagated L Proped # Ms, N)" using step unfolding DPLL_step_def by auto
+    hence Ms'N: "(Ms', N') = (Propagated L Proped # Ms, N)"
+      using step unfolding DPLL_step_def by auto
     obtain C where
       C: "C \<in> set N" and
       Ms: "Ms \<Turnstile>as CNot (mset C - {#L#})" and
@@ -76,11 +77,11 @@ proof -
       by (cases "find_first_unused_var N (lits_of Ms)") auto
     have "dpll (Ms, set (map mset N))
                (Marked L Level # fst (Ms, set (map mset N)), snd (Ms, set (map mset N)))"
-    apply (rule dpll.decided[of L ?S])
-    using find_first_unused_var_Some[OF unused]
-    by (auto simp add: Marked_Propagated_in_iff_in_lits_of atms_of_m_def)
-   moreover have "(Ms', N') = (Marked L Level # Ms, N)"
-     using step exC unfolding DPLL_step_def unused prod.case unit by auto
+      apply (rule dpll.decided[of L ?S])
+      using find_first_unused_var_Some[OF unused]
+      by (auto simp add: Marked_Propagated_in_iff_in_lits_of atms_of_m_def)
+    moreover have "(Ms', N') = (Marked L Level # Ms, N)"
+      using step exC unfolding DPLL_step_def unused prod.case unit by auto
     ultimately have ?thesis by auto
   }
   ultimately show ?thesis by (cases "find_first_unit_clause N Ms") auto
@@ -155,7 +156,6 @@ function DPLL_ci :: "int dpll_annoted_lits \<Rightarrow> int literal list list
 termination
 proof (relation "{(S', S).  (toS' S', toS' S) \<in> {(S', S). dpll_all_inv S \<and> dpll S S'}}")
   show  "wf {(S', S).(toS' S', toS' S) \<in> {(S', S). dpll_all_inv S \<and> dpll S S'}}"
-    apply auto
     using  wf_if_measure_f[OF dpll_wf, of "toS'"] by auto
 next
   fix Ms :: "int dpll_annoted_lits" and N x xa y
@@ -176,8 +176,7 @@ function (domintros) DPLL_part:: "int dpll_annoted_lits \<Rightarrow> int litera
 
 lemma snd_DPLL_step[simp]:
   "snd (DPLL_step (Ms, N)) = N"
-  unfolding DPLL_step_def apply (auto split: split_if option.splits)
-  by (case_tac "backtrack_split Ms", case_tac b, auto)+
+  unfolding DPLL_step_def by (auto split: split_if option.splits prod.splits list.splits)
 
 lemma dpll_all_inv_implieS_2_eq3_and_dom:
   assumes "dpll_all_inv (Ms, set (map mset N))"
@@ -278,9 +277,7 @@ qed
 
 lemma DPLL_step_obtains:
   obtains Ms' where "(Ms', N) = DPLL_step (Ms, N)"
-  unfolding DPLL_step_def apply (auto split: option.split)
-  by (metis (no_types, hide_lams) eq_snd_iff snd_DPLL_step that)
-
+  unfolding DPLL_step_def by (metis (no_types, lifting) DPLL_step_def prod.collapse snd_DPLL_step)
 
 lemma DPLL_ci_obtains:
   obtains Ms' where "(Ms', N) = DPLL_ci Ms N"
@@ -300,8 +297,7 @@ proof (induct rule: DPLL_ci.induct)
   }
   moreover {
     assume n: "(S, N) = (Ms, N)"
-    and inv: "dpll_all_inv (toS Ms N)"
-    have ?case using SN n that by fastforce
+    hence ?case using SN that by fastforce
  }
   ultimately show ?case by blast
 qed
@@ -444,7 +440,7 @@ lemma [code]:
 
 
 lemma DPLL_tot_DPLL_step_DPLL_tot[simp]: "DPLL_tot (DPLL_step' S) = DPLL_tot S"
-  apply (case_tac "DPLL_step' S = S")
+  apply (cases "DPLL_step' S = S")
   apply simp
   unfolding DPLL_tot.simps[of S] by (simp del: DPLL_tot.simps)
 
@@ -525,12 +521,12 @@ definition Con :: "(int, dpll_marked_level, dpll_mark) marked_lit list \<times> 
                      \<Rightarrow> dpll_state" where
   "Con xs = state_of (if dpll_all_inv (toS (fst xs) (snd xs)) then xs else ([], []))"
 lemma [code abstype]:
- "Con (rough_state_of S) = S"
+  "Con (rough_state_of S) = S"
   using rough_state_of[of S] unfolding Con_def by auto
 
   declare rough_state_of_DPLL_step'_DPLL_step[code abstract]
 
-lemma [simp]:
+lemma Con_DPLL_step_rough_state_of_state_of[simp]:
   "Con (DPLL_step (rough_state_of s)) = state_of (DPLL_step (rough_state_of s))"
   unfolding Con_def by (metis (mono_tags, lifting) DPLL_step_dpll_conc_inv mem_Collect_eq
     prod.case_eq_if)

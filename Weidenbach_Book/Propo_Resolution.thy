@@ -1537,6 +1537,7 @@ lemma wf_always_more_step_False:
   shows "(\<forall>x. \<exists>z. (z, x)\<in>R) \<Longrightarrow> False"
  using assms unfolding wf_def by (meson Domain.DomainI assms wfE_min)
 
+(* TODO Move*)
 lemma wfP_if_measure: fixes f :: "'a \<Rightarrow> nat"
 shows "(\<And>x y. P x \<Longrightarrow> g x y  \<Longrightarrow> f y < f x) \<Longrightarrow> wf {(y,x). P x \<and> g x y}"
   apply(insert wf_measure[of f])
@@ -1576,7 +1577,7 @@ definition sum_count_ge_2 :: "'a multiset set \<Rightarrow> nat" ("\<Xi>") where
 
 
 interpretation sum_count_ge_2!: folding "(\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#}))" 0
-where
+rewrites
   "folding.F (\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0 = sum_count_ge_2"
 proof -
   show "folding (\<lambda>\<phi>. op + (msetsum (image_mset (count \<phi>) {# L :# \<phi>. 2 \<le> count \<phi> L#})))"
@@ -1584,10 +1585,6 @@ proof -
   then interpret sum_count_ge_2!: folding "(\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#}))" 0 .
   show "folding.F (\<lambda>\<phi>. op + (msetsum (image_mset (count \<phi>) {# L :# \<phi>. 2 \<le> count \<phi> L#}))) 0 = sum_count_ge_2" by (auto simp add: sum_count_ge_2_def)
 qed
-
-
-
-
 
 lemma finite_incl_le_setsum:
  "finite (B::'a multiset set) \<Longrightarrow> A \<subseteq> B \<Longrightarrow> \<Xi> A \<le> \<Xi> B"

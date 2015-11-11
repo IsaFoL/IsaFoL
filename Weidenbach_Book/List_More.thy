@@ -1,14 +1,24 @@
 theory List_More
 imports Main
 begin
+
+section \<open>More List and Well-foundness Theorems\<close>
+text \<open>This section contains theorems that could move to Isabelle standard library.\<close>
+subsection \<open>More Lists\<close>
 declare upt.simps(2)[simp del] upt_Suc[simp del]
 declare upt_Suc_append
 lemma upt_Suc_le_append: "\<not>i \<le> j \<Longrightarrow> [i..<Suc j] = []"
   by (auto simp add: upt.simps(2))
 
 lemmas upt_simps[simp] = upt_Suc_append upt_Suc_le_append
-
-
+subsubsection \<open>Helper function\<close>
+lemma list_length2_append_cons:
+  "[c, d] = ys @ y # ys' \<longleftrightarrow> (ys = [] \<and> y = c \<and> ys' = [d]) \<or> (ys = [c] \<and> y = d \<and> ys' = [])"
+  by (cases ys; cases ys') auto
+lemma lexn2_conv:
+  "([a, b], [c, d]) \<in> lexn r 2
+    \<longleftrightarrow> (a, c)\<in>r \<or> (a = c \<and> (b, d)\<in>r)"
+  unfolding lexn_conv by (auto simp add: list_length2_append_cons)
 text \<open>Move to List\<close>
 text \<open>The counterpart for this lemma when @{term "i > n-m"} is @{thm take_all}.\<close>
 lemma take_upt[simp]:
@@ -175,7 +185,15 @@ proof -
   show ?thesis by (metis append_cons_eq_upt_length_i_end assms lessI less_trans self_append_conv2 upt_eq_Cons_conv upt_rec ys)
 qed
 
-section \<open>Well-foundedness\<close>
+subsection \<open>Well-foundedness\<close>
+text \<open>A little list of theorems that could be useful, but are hidden:
+  \<^item> link between @{term wf} and infinite chains: @{thm wf_iff_no_infinite_down_chain}, 
+  @{thm wf_no_infinite_down_chainE}\<close>
+
+lemma wf_if_measure_in_wf:
+  "wf R \<Longrightarrow> (\<And>a b. (a, b) \<in> S \<Longrightarrow> (\<nu> a, \<nu> b)\<in>R) \<Longrightarrow> wf S"
+  by (metis in_inv_image wfE_min wfI_min wf_inv_image)
+  
 lemma wfP_if_measure: fixes f :: "'a \<Rightarrow> nat"
 shows "(\<And>x y. P x \<Longrightarrow> g x y  \<Longrightarrow> f x < f y) \<Longrightarrow> wf {(x,y). P x \<and> g x y}"
   apply(insert wf_measure[of f])
@@ -204,7 +222,7 @@ qed
 lemma wf_lex_less: "wf (lex {(a, b). (a::nat) < b})"
 proof -
   have m: "{(a, b). a < b} = measure id" by auto
-  show ?thesis  apply (rule wf_lex) unfolding m by auto
+  show ?thesis apply (rule wf_lex) unfolding m by auto
 qed
 
 lemma wfP_if_measure2: fixes f :: "'a \<Rightarrow> nat"
@@ -295,9 +313,107 @@ proof -
 qed
 
 
-section \<open>rtranclp\<close>
-text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and sledgehammer use it), but it makes more sense to duplicate it.\<close>
+subsection \<open>rtranclp\<close>
+text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and sledgehammer use it), but 
+  it makes more sense to duplicate it.\<close>
 lemma rtranclp_unfold: "rtranclp r a b \<longleftrightarrow> (a = b \<or> tranclp r a b)"
   by (meson rtranclp.simps rtranclpD tranclp_into_rtranclp)
+
+
+subsubsection \<open>Reflexive bounded closure\<close>
+text \<open>This is the reflexive closure of @{term ntrancl}.\<close>
+definition nrtrancl :: "nat \<Rightarrow> ('a \<times> 'a) set \<Rightarrow> ('a \<times> 'a) set"
+where
+  "nrtrancl n R = (\<Union>i\<in>{i. i \<le> Suc n}. R ^^ i)"
+
+lemma nrtrancl_Id_Un_ntrancl:
+  "nrtrancl n R = Id \<union> ntrancl n R"
+proof -
+  have A: "{i. i \<le> Suc n} = {0} \<union> {i. 0 < i \<and> i \<le> Suc n}"
+    by auto
+  show ?thesis
+    unfolding nrtrancl_def ntrancl_def A by simp
+qed
+    
+lemma nrtrancl_Zero [simp, code]:
+  "nrtrancl 0 R = Id \<union> R"
+  unfolding nrtrancl_Id_Un_ntrancl by auto
+
+lemma nrtrancl_refl[simp]: "(b, b) \<in> nrtrancl n R"
+  unfolding nrtrancl_def by auto
+
+lemma nrtrancl_Suc [simp]:
+  "nrtrancl (Suc n) R = nrtrancl n R O (Id \<union> R)"
+proof (induction n)
+  case 0
+  thus ?case by (simp add: nrtrancl_Id_Un_ntrancl sup_assoc)
+next
+  case (Suc n) note IH = this(1)
+  have A: "{i. i \<le> Suc (Suc (Suc n))} = {i. 0 < i \<and> i \<le> Suc (Suc (Suc n))} \<union> {i. i = 0}"
+    by auto
+  have "(\<Union>x\<in>{i. 0 < i \<and> i \<le> Suc (Suc (Suc n))}. R ^^ x) = 
+           (\<Union>x\<in>{i. i \<le> Suc (Suc n)}. R ^^ (Suc x))"
+    by (auto simp del: relpow.simps simp add:relpow.simps(2)[symmetric] elim: relpow_E2)
+  hence B: "(\<Union>x\<in>{i. 0 < i \<and> i \<le> Suc (Suc (Suc n))}. R ^^ x) 
+      = nrtrancl (Suc n) R O R"
+    unfolding nrtrancl_def A by auto
+    
+  show ?case
+    (* TODO tune proof *)
+    unfolding nrtrancl_def A apply (simp add: B)
+    unfolding nrtrancl_def[symmetric]  apply auto
+    unfolding IH apply auto
+    proof -
+      fix a :: 'a and b :: 'a
+      assume a1: "(a, b) \<in> nrtrancl n R"
+      assume a2: "(a, b) \<notin> nrtrancl n R O R"
+      assume a3: "(a, b) \<notin> (nrtrancl n R O R) O R"
+      have f4: "(a, b) \<in> Id \<union> ntrancl n R"
+        using a1 by (simp add: nrtrancl_Id_Un_ntrancl) (* 2 ms *)
+      have f5: "\<And>r ra. ({}::('a \<times> 'a) set) \<union> (r::(_ \<times> 'a) set) O ra = r O ra"
+        by simp (* 0.3 ms *)
+      have f6: "(Id \<union> ntrancl n R O (Id \<union> R)) O R = ntrancl n R O (Id \<union> R) O (Id \<union> R)"
+        by (metis (no_types) B O_assoc nrtrancl_Id_Un_ntrancl ntrancl_Suc ntrancl_def) (* 67 ms *)
+      have "(a, b) \<in> (Id \<union> ntrancl n R) O (Id \<union> R) O (Id \<union> R)"
+        using f4 by blast (* 0.9 ms *)
+      hence "(a, b) \<in> (Id \<union> R) O (Id \<union> R)"
+        using f6 f5 a3 a2 by (metis (no_types) Id_O_R O_assoc Un_iff nrtrancl_Id_Un_ntrancl 
+          relcomp_distrib relcomp_distrib2) (* 573 ms *)
+      thus "a = b"
+        using a3 a2 by (simp add: nrtrancl_Id_Un_ntrancl) (* 4 ms *)
+    qed
+qed
+
+lemma [code]:
+  "nrtrancl (Suc n) r = (let r' = nrtrancl n r in r' Un r' O r)"
+unfolding Let_def by auto
+
+subsubsection\<open>bounded transitive closure\<close>
+
+definition ntranclp :: "nat \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> bool) => 'a \<Rightarrow> 'a \<Rightarrow> bool" where
+  "ntranclp n r a b \<longleftrightarrow> (a, b) \<in> ntrancl n {(x, y). r x y}"
+
+lemma ntranclp_Zero[simp, code]:  "ntranclp 0 r = r"
+  by (fastforce simp: ntranclp_def)
+
+lemma ntranclp_Suc [simp]:
+  "ntranclp (Suc n) R = ntranclp n R OO (\<lambda>a b. a = b \<or> R a b)"
+  by (fastforce simp add: ntranclp_def OO_def)
+
+lemma finite_trancl_ntranlP:
+  "finite {(a,b). R a b} \<Longrightarrow> tranclp R = ntranclp (card {(a,b). R a b} - 1) R"
+  by (fastforce simp add: ntranclp_def finite_trancl_ntranl tranclp_unfold OO_def)
+
+lemma ntranclp_ntrancl_eq:
+  "ntranclp n (\<lambda>x y. (x, y) \<in> r) a b \<longleftrightarrow> (a,b) \<in> ntrancl n r"
+  by (simp add: ntranclp_def)
+
+lemma ntranclp_mono:
+   "m \<ge> n \<Longrightarrow> ntranclp n r a b \<Longrightarrow> ntranclp m r a b"
+  apply (induction m)
+   apply auto[]
+  apply (case_tac "n\<le>m")
+   apply auto[]
+  using le_antisym by fastforce
 
 end

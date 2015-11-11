@@ -71,8 +71,8 @@ proof -
          | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None 
          | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
   thus "a \<in> set l"
-    apply (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M]", auto)
-    by (case_tac list) (fastforce dest: filter_eq_ConsD split: split_if_asm)+
+    by (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M]")
+       (fastforce dest: filter_eq_ConsD split: split_if_asm  split: list.splits)+
 qed
 
 lemma is_unit_clause_nil[simp]: "is_unit_clause [] M = None"
@@ -93,8 +93,7 @@ lemma find_first_unit_clause_some:
   \<Longrightarrow> c \<in> set l \<and>  M \<Turnstile>as CNot (mset c - {#a#}) \<and> undefined_lit a M \<and> a \<in> set c"
   apply (induction l)
     apply simp
-  by (case_tac "is_unit_clause aa M")
-     (auto split: option.splits dest: is_unit_clause_some_in is_unit_clause_some_CNot 
+  by (auto split: option.splits dest: is_unit_clause_some_in is_unit_clause_some_CNot 
          is_unit_clause_some_undef)
 
 lemma propagate_is_unit_clause_not_None:
@@ -121,7 +120,6 @@ proof -
           case False
           hence T: "mset c + {#ac#} - {#a#} = mset c - {#a#} + {#ac#}"
             by (auto simp add: multiset_eq_iff)
-
           show ?thesis using False Cons
             by (auto simp add: T atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
         qed
