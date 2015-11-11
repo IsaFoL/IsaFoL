@@ -1265,24 +1265,16 @@ proof -
   let ?D'\<^sub>1 = "D' - M'"
 
   from inst\<^sub>1 obtain lmbd where lmbd_p: "C {lmbd}\<^sub>l\<^sub>s = C'" unfolding instance_ofls_def by auto
-  then have "\<exists>L \<subseteq> C. L {lmbd}\<^sub>l\<^sub>s = L' \<and> (C - L){lmbd}\<^sub>l\<^sub>s = ?C'\<^sub>1" using appl project_sub[of lmbd C C' L'] unfolding applicable_def by auto
-  then obtain L where "L \<subseteq> C \<and> L {lmbd}\<^sub>l\<^sub>s = L' \<and> (C - L){lmbd}\<^sub>l\<^sub>s = ?C'\<^sub>1" by auto
-  let ?C\<^sub>1 = "C - L"
-
   from inst\<^sub>2 obtain \<mu> where \<mu>_p: "D {\<mu>}\<^sub>l\<^sub>s = D'" unfolding instance_ofls_def by auto
-  then have "\<exists>M \<subseteq> D. M {\<mu>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<mu>}\<^sub>l\<^sub>s = ?D'\<^sub>1" using appl project_sub[of \<mu> D D' M'] unfolding applicable_def by auto
-  then obtain M where M_p: "M \<subseteq> D \<and> M {\<mu>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<mu>}\<^sub>l\<^sub>s = ?D'\<^sub>1" by auto
-  let ?D\<^sub>1 = "D - M"
   
-  (* Now use above lemmas to get \<eta> *)
   from \<mu>_p lmbd_p appart obtain \<eta> where \<eta>_p: "C {\<eta>}\<^sub>l\<^sub>s = C' \<and> D {\<eta>}\<^sub>l\<^sub>s = D'" using merge_sub by force
 
   from \<eta>_p have "\<exists>L \<subseteq> C. L {\<eta>}\<^sub>l\<^sub>s = L' \<and> (C - L){\<eta>}\<^sub>l\<^sub>s = ?C'\<^sub>1" using appl project_sub[of \<eta> C C' L'] unfolding applicable_def by auto
-  then obtain L where L_p: "L \<subseteq> C \<and> L {\<eta>}\<^sub>l\<^sub>s = L' \<and> (C - L){\<eta>}\<^sub>l\<^sub>s = ?C'\<^sub>1" by auto (* Is it the same M as before, probably, but who cares? I should probably remove the one before*)
+  then obtain L where L_p: "L \<subseteq> C \<and> L {\<eta>}\<^sub>l\<^sub>s = L' \<and> (C - L){\<eta>}\<^sub>l\<^sub>s = ?C'\<^sub>1" by auto
   let ?C\<^sub>1 = "C - L"
 
   from \<eta>_p have "\<exists>M \<subseteq> D. M {\<eta>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<eta>}\<^sub>l\<^sub>s = ?D'\<^sub>1" using appl project_sub[of \<eta> D D' M'] unfolding applicable_def by auto
-  then obtain M where M_p: "M \<subseteq> D \<and> M {\<eta>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<eta>}\<^sub>l\<^sub>s = ?D'\<^sub>1" by auto (* Is it the same M as before, probably, but who cares? I should probably remove the one before*)
+  then obtain M where M_p: "M \<subseteq> D \<and> M {\<eta>}\<^sub>l\<^sub>s = M' \<and> (D - M){\<eta>}\<^sub>l\<^sub>s = ?D'\<^sub>1" by auto
   let ?D\<^sub>1 = "D - M"
 
   from appl have "mguls \<sigma> (L' \<union> M'\<^sup>C)" unfolding applicable_def by auto
@@ -1294,6 +1286,7 @@ proof -
   then obtain \<tau> where \<tau>_p: "mguls \<tau> (L  \<union> M\<^sup>C)" using unification by force
   then obtain \<phi> where \<phi>_p: "\<tau> \<cdot> \<phi> = \<eta> \<cdot> \<sigma>" using \<eta>\<sigma>uni unfolding mguls_def by auto
   
+  (* Showing that we have the desired resolvent *)
   let ?E = "((C - L)  \<union> (D - M)) {\<tau>}\<^sub>l\<^sub>s"
   have "?E {\<phi>}\<^sub>l\<^sub>s  = (?C\<^sub>1 \<union> ?D\<^sub>1 ) {\<tau> \<cdot> \<phi>}\<^sub>l\<^sub>s" using subls_union composition_conseq2ls by auto
   also have "... = (?C\<^sub>1 \<union> ?D\<^sub>1 ) {\<eta> \<cdot> \<sigma>}\<^sub>l\<^sub>s" using \<phi>_p by auto
@@ -1303,35 +1296,22 @@ proof -
   then have inst: "instance_ofls (lresolution C' D' L' M' \<sigma>) (lresolution C D L M \<tau>) "
     unfolding lresolution_def instance_ofls_def by blast
 
-
-    have C'el: "C' \<noteq> {}" using appl unfolding applicable_def by auto
-    have "instance_ofls C' C" using inst\<^sub>1 by auto (* an assumption*)
-    then have "\<exists>\<sigma>. C' = C{\<sigma>}\<^sub>l\<^sub>s" unfolding instance_ofls_def by auto
-    then have "C \<noteq> {}" using C'el by auto
-  moreover
-    have D'el: "D' \<noteq> {}" using appl unfolding applicable_def by auto
-    have "instance_ofls D' D" using inst\<^sub>2 by auto (* an assumption*)
-    then have "\<exists>\<sigma>. D' = D{\<sigma>}\<^sub>l\<^sub>s" unfolding instance_ofls_def by auto
-    then have "D \<noteq> {}" using D'el by auto
-  moreover
-    have L'el: "L' \<noteq> {}" using appl unfolding applicable_def by auto
-    have " L {\<eta>}\<^sub>l\<^sub>s = L'" using L_p by auto (* an assumption*)
-    then have "L \<noteq> {}" using L'el by auto
-  moreover
-    have M'el: "M' \<noteq> {}" using appl unfolding applicable_def by auto
-    have "M {\<eta>}\<^sub>l\<^sub>s = M'" using M_p by auto (* an assumption*)
-    then have "M \<noteq> {}" using M'el by auto
-  moreover
-    have "varsls C \<inter> varsls D = {}" using appart by auto
-  moreover
-    have "L' \<subseteq> C'" using appl unfolding applicable_def by auto
-    then have "L \<subseteq> C" using L_p by auto
-  moreover
-    have "M' \<subseteq> D'" using appl unfolding applicable_def by auto
-    then have "M \<subseteq> D" using M_p by auto
-  moreover
-    have "mguls \<tau> (L \<union> M\<^sup>C)" using \<tau>_p by auto
-  ultimately have appll: "applicable C D L M \<tau>" unfolding applicable_def by auto
+  (* Showing that the resolution is applicable: *)
+  {
+    have "C' \<noteq> {}" using appl unfolding applicable_def by auto
+    then have "C \<noteq> {}" using \<eta>_p by auto
+  } moreover {
+    have "D' \<noteq> {}" using appl unfolding applicable_def by auto
+    then have "D \<noteq> {}" using \<eta>_p by auto
+  } moreover {
+    have "L' \<noteq> {}" using appl unfolding applicable_def by auto
+    then have "L \<noteq> {}" using L_p by auto
+  } moreover {
+    have "M' \<noteq> {}" using appl unfolding applicable_def by auto
+    then have "M \<noteq> {}" using M_p by auto
+  }
+  ultimately have appll: "applicable C D L M \<tau>" 
+    using appart L_p M_p \<tau>_p unfolding applicable_def by auto
 
   from inst appll show ?thesis by auto
 qed
