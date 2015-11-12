@@ -1,5 +1,5 @@
 theory DPLL_Implementation
-imports DPLL_CDCL_Implementation Propo_DPLL "~~/src/HOL/Library/Code_Target_Numeral"
+imports DPLL_CDCL_Implementation DPLL "~~/src/HOL/Library/Code_Target_Numeral"
 begin
 
 subsection \<open>Simple Implementation of DPLL\<close>

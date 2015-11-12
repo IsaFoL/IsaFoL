@@ -1,5 +1,5 @@
-theory Propo_CDCL
-imports Partial_Annotated_Clausal_Logic List_More Propo_CDCL_Level Transition
+theory CDCL_CW
+imports Partial_Annotated_Clausal_Logic List_More CDCL_CW_Level Transition
 
 begin
 

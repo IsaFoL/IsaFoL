@@ -149,7 +149,7 @@ lemma find_none[iff]:
     by (force simp add:  atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)+
 
 lemma find_some: "List.find (\<lambda>lit. lit \<notin> M \<and> -lit \<notin> M) a = Some b \<Longrightarrow> b \<in> set a \<and> b \<notin> M \<and> -b \<notin> M" 
-  by (metis find_Some_iff nth_mem)
+  unfolding find_Some_iff by (metis nth_mem)
 
 lemma find_first_unused_var_None[iff]:
   "find_first_unused_var l M = None \<longleftrightarrow> (\<forall>a \<in> set l. atm_of ` set a \<subseteq> atm_of `  M)"

@@ -44,8 +44,7 @@ lemma simplifier_preserves_un_sat:
   and "total_over_m I N"
   shows "I \<Turnstile>s N \<longrightarrow> I \<Turnstile>s N'"
   using assms apply (induct rule: simplify.induct)
-  prefer 2 apply (metis Un_insert_right insert_Diff sup_bot_right true_cls_union true_clss_insert)
-  by simp_all
+  using true_clss_def by fastforce+
 
 lemma simplifier_preserves_un_sat'':
   fixes N N' :: "'v clauses"
@@ -53,8 +52,7 @@ lemma simplifier_preserves_un_sat'':
   and "total_over_m I N'"
   shows "I \<Turnstile>s N \<longrightarrow> I \<Turnstile>s N'"
   using assms apply (induct rule: simplify.induct)
-  prefer 2 apply (metis Un_insert_right insert_Diff sup_bot_right true_cls_union true_clss_insert)
-  by simp_all
+  using true_clss_def by fastforce+
 
 lemma simplifier_preserves_un_sat_eq:
   fixes N N' :: "'v clauses"
@@ -867,9 +865,11 @@ proof (induct arbitrary: I rule: sem_tree_size)
       ultimately obtain \<psi>' :: "'v state" and  tree' :: "'v sem_tree"  where
         inf: "inference\<^sup>*\<^sup>* \<psi> \<psi>'"
         and part: "partial_interps tree' (I \<union> {Pos v}) (fst \<psi>')"
-        and size: "sem_tree_size tree' < sem_tree_size ag \<or> sem_tree_size ag = 0" using finite part rtranclp.rtrancl_refl a_u_i by blast
+        and size: "sem_tree_size tree' < sem_tree_size ag \<or> sem_tree_size ag = 0"
+        using finite part rtranclp.rtrancl_refl a_u_i by blast
 
-      have "partial_interps ad (I \<union> {Neg v}) (fst \<psi>')" using rtranclp_inference_preserve_partial_tree inf partad by metis
+      have "partial_interps ad (I \<union> {Neg v}) (fst \<psi>')"
+        using rtranclp_inference_preserve_partial_tree inf partad by metis
       hence "partial_interps (Node v tree' ad) I (fst \<psi>')" using part by auto
       hence ?case using inf size size_ag part unfolding xs by fastforce
     }
@@ -902,7 +902,10 @@ qed
 
 lemma inference_completeness_inv:
   fixes \<psi> :: "'v ::linorder state"
-  assumes unsat: "\<not>satisfiable (fst \<psi>)" and finite: "finite (fst \<psi>)" and a_u_v: "already_used_inv \<psi>"
+  assumes
+    unsat: "\<not>satisfiable (fst \<psi>)" and
+    finite: "finite (fst \<psi>)" and
+    a_u_v: "already_used_inv \<psi>"
   shows "\<exists>\<psi>'. (inference\<^sup>*\<^sup>* \<psi> \<psi>' \<and> {#} \<in> fst \<psi>')"
 proof -
   obtain tree where  "partial_interps tree {} (fst \<psi>)"
@@ -914,23 +917,27 @@ proof -
       {
         fix \<chi>
         assume tree: "tree = Leaf"
-        obtain \<chi> where \<chi>: "\<not> {} \<Turnstile> \<chi>" and tot\<chi>: "total_over_m {} {\<chi>}" and \<chi>\<psi>: "\<chi> \<in> fst \<psi>" using H unfolding tree by auto
+        obtain \<chi> where \<chi>: "\<not> {} \<Turnstile> \<chi>" and tot\<chi>: "total_over_m {} {\<chi>}" and \<chi>\<psi>: "\<chi> \<in> fst \<psi>"
+          using H unfolding tree by auto
         moreover have "{#} = \<chi>"
-          using H unfolding \<chi> total_over_m_def apply auto
-          using atms_empty_iff_empty tot\<chi> unfolding true_cls_def total_over_m_def total_over_set_def by fastforce
+          using  tot\<chi> unfolding total_over_m_def total_over_set_def by fastforce
         moreover have "inference\<^sup>*\<^sup>* \<psi> \<psi>" by auto
         ultimately have ?case by metis
       }
       moreover {
         fix v tree1 tree2
         assume tree: "tree = Node v tree1 tree2"
-        obtain tree' \<psi>' where inf: "inference\<^sup>*\<^sup>* \<psi> \<psi>'"
-        and part': "partial_interps tree' {} (fst \<psi>')"
-        and decrease: "sem_tree_size tree' < sem_tree_size tree \<or> sem_tree_size tree = 0" using can_decrease_tree_size[of \<psi>] H(2,4,5)  unfolding tautology_def by meson
+        obtain
+          tree' \<psi>' where inf: "inference\<^sup>*\<^sup>* \<psi> \<psi>'" and
+          part': "partial_interps tree' {} (fst \<psi>')" and
+          decrease: "sem_tree_size tree' < sem_tree_size tree \<or> sem_tree_size tree = 0"
+          using can_decrease_tree_size[of \<psi>] H(2,4,5)  unfolding tautology_def by meson
         have "sem_tree_size tree' < sem_tree_size tree" using decrease unfolding tree by auto
         moreover have "finite (fst \<psi>')" using rtranclp_inference_preserves_finite inf H(4) by metis
-        moreover have "unsatisfiable (fst \<psi>')" using inference_preserves_unsat inf bigger.prems(2) by blast
-        moreover have "already_used_inv \<psi>'" using H(5) inf rtranclp_inference_preserves_already_used_inv[of \<psi> \<psi>'] by auto
+        moreover have "unsatisfiable (fst \<psi>')"
+          using inference_preserves_unsat inf bigger.prems(2) by blast
+        moreover have "already_used_inv \<psi>'"
+          using H(5) inf rtranclp_inference_preserves_already_used_inv[of \<psi> \<psi>'] by auto
         ultimately have ?case using inf rtranclp_trans part' H(1) by fastforce
       }
       ultimately show ?case by (case_tac tree, auto)
@@ -952,7 +959,8 @@ lemma inference_soundness:
   fixes \<psi> :: "'v ::linorder state"
   assumes "rtranclp inference \<psi> \<psi>'" and "{#} \<in> fst \<psi>'"
   shows "unsatisfiable (fst \<psi>)"
-  using assms by (meson rtranclp_inference_preserves_un_sat satisfiable_def true_cls_empty true_clss_def)
+  using assms by (meson rtranclp_inference_preserves_un_sat satisfiable_def true_cls_empty
+    true_clss_def)
 
 lemma inference_soundness_and_completeness:
 fixes \<psi> :: "'v ::linorder state"
@@ -977,8 +985,10 @@ proof -
     hence "L \<in># \<chi> - {#L#}"
       by simp
     hence \<chi>': "?\<chi>' + {#L#} + {#L#} = \<chi>"
-      using f1 by (metis (no_types) diff_diff_add diff_single_eq_union union_assoc union_single_eq_member)
-    have "\<exists>\<psi>'. simplify \<psi> \<psi>'" by (metis (no_types, hide_lams) \<chi> \<chi>' add.commute factoring_imp_simplifier union_assoc)
+      using f1 by (metis (no_types) diff_diff_add diff_single_eq_union union_assoc
+        union_single_eq_member)
+    have "\<exists>\<psi>'. simplify \<psi> \<psi>'"
+      by (metis (no_types, hide_lams) \<chi> \<chi>' add.commute factoring_imp_simplifier union_assoc)
     hence False using simp by auto
   }
   thus ?thesis by arith
@@ -1001,7 +1011,8 @@ lemma simplified_not_tautology:
 proof (rule ccontr)
   assume "~ ?thesis"
   then obtain p where "Pos p \<in># \<psi> \<and> Neg p \<in># \<psi>" using tautology_decomp by metis
-  then obtain \<chi> where "\<psi> = \<chi> + {#Pos p#} + {#Neg p#}" by (metis insert_noteq_member literal.distinct(1) multi_member_split)
+  then obtain \<chi> where "\<psi> = \<chi> + {#Pos p#} + {#Neg p#}"
+    by (metis insert_noteq_member literal.distinct(1) multi_member_split)
   hence "~ simplified {\<psi>}" by (auto intro: tautology_deletion)
   thus False using assms by auto
 qed
@@ -1092,7 +1103,9 @@ proof -
     proof (rule ccontr)
       assume "\<not>?thesis"
       then obtain \<chi> where "\<chi> \<in> \<psi>'" and "\<not>distinct_mset \<chi>" unfolding distinct_mset_set_def by auto
-      then obtain L where "count \<chi> L \<ge> 2" unfolding distinct_mset_def by (metis gr_implies_not0 le_antisym less_one not_le simp simplified_count)
+      then obtain L where "count \<chi> L \<ge> 2"
+        unfolding distinct_mset_def by (metis gr_implies_not0 le_antisym less_one not_le simp
+          simplified_count)
       thus False by (metis Suc_1 \<open>\<chi> \<in> \<psi>'\<close> not_less_eq_eq simp simplified_count)
     qed
 qed
@@ -1107,16 +1120,17 @@ subsection \<open>Resolution and Invariants\<close>
 
 inductive resolution :: "'v state \<Rightarrow> 'v state \<Rightarrow> bool" where
 full_simp: "full_simplifier N N' \<Longrightarrow> resolution (N, already_used) (N', already_used)" |
-inferring: "inference (N, already_used) (N', already_used') \<Longrightarrow> simplified N \<Longrightarrow> full0_simplifier N' N'' \<Longrightarrow> resolution (N, already_used) (N'', already_used')"
+inferring: "inference (N, already_used) (N', already_used') \<Longrightarrow> simplified N
+  \<Longrightarrow> full0_simplifier N' N'' \<Longrightarrow> resolution (N, already_used) (N'', already_used')"
 
 subsubsection \<open>Invariants\<close>
 
 lemma resolution_finite:
   assumes "resolution \<psi> \<psi>'" and "finite (fst \<psi>)"
   shows "finite (fst \<psi>')"
-  using assms apply (induct rule: resolution.induct, auto simp add: full_simplifier_def full0_simplifier_def)
-   apply (meson rtranclp_simplifier_preserves_finite tranclp_into_rtranclp )
-  by (metis fst_conv inference_preserves_finite rtranclp_simplifier_preserves_finite)
+  using assms by (induct rule: resolution.induct)
+    (auto simp add: full_simplifier_def full0_simplifier_def  rtranclp_simplifier_preserves_finite
+      dest: tranclp_into_rtranclp inference_preserves_finite)
 
 lemma rtranclp_resolution_finite:
   assumes "resolution\<^sup>*\<^sup>* \<psi> \<psi>'" and "finite (fst \<psi>)"
@@ -1137,7 +1151,8 @@ lemma rtranclp_resolution_finite_snd:
 lemma resolution_always_simplified:
  assumes "resolution \<psi> \<psi>'"
  shows "simplified (fst \<psi>')"
- using assms by (induct rule: resolution.induct, auto simp add: full_simplifier_def full0_simplifier_def)
+ using assms by (induct rule: resolution.induct)
+   (auto simp add: full_simplifier_def full0_simplifier_def)
 
 lemma tranclp_resolution_always_simplified:
   assumes "tranclp resolution \<psi> \<psi>'"
@@ -1408,7 +1423,7 @@ lemma wf_simplified_resolution':
   assumes f_vars: "finite vars"
   shows "wf {(y:: 'v:: linorder state, x). (atms_of_m (fst x) \<subseteq> vars \<and> \<not>simplified (fst x) \<and> finite (snd x) \<and> finite (fst x) \<and> already_used_all_simple (snd x) vars) \<and> resolution x y}"
   unfolding wf_def
-   apply simp
+   apply (simp add: resolution_always_simplified)
   by (metis (mono_tags, hide_lams) fst_conv resolution_always_simplified)
 
 lemma wf_resolution:
@@ -1576,13 +1591,13 @@ definition sum_count_ge_2 :: "'a multiset set \<Rightarrow> nat" ("\<Xi>") where
 "sum_count_ge_2 \<equiv>folding.F (\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0"
 
 
-interpretation sum_count_ge_2!: folding "(\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#}))" 0
+interpretation sum_count_ge_2: folding "(\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#}))" 0
 rewrites
   "folding.F (\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0 = sum_count_ge_2"
 proof -
   show "folding (\<lambda>\<phi>. op + (msetsum (image_mset (count \<phi>) {# L :# \<phi>. 2 \<le> count \<phi> L#})))"
     by standard auto
-  then interpret sum_count_ge_2!: folding "(\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#}))" 0 .
+  then interpret sum_count_ge_2: folding "(\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#}))" 0 .
   show "folding.F (\<lambda>\<phi>. op + (msetsum (image_mset (count \<phi>) {# L :# \<phi>. 2 \<le> count \<phi> L#}))) 0 = sum_count_ge_2" by (auto simp add: sum_count_ge_2_def)
 qed
 
@@ -2050,8 +2065,9 @@ lemma resolution_preserves_sat:
   and "satisfiable (fst S)"
   shows "satisfiable (fst S')"
   using assms apply (induction rule: resolution.induct)
-   using full_simplifier_def rtranclp_preserves_sat tranclp_into_rtranclp apply (fastforce simp add:)
-  by (metis fst_conv full0_simplifier_def inference_preserves_un_sat rtranclp_preserves_sat satisfiable_carac' satisfiable_def)
+   using full_simplifier_def rtranclp_preserves_sat tranclp_into_rtranclp apply fastforce
+  by (metis fst_conv full0_simplifier_def inference_preserves_un_sat rtranclp_preserves_sat
+    satisfiable_carac' satisfiable_def)
 
 
 lemma rtranclp_resolution_preserves_sat:
@@ -2066,7 +2082,8 @@ lemma resolution_soundness:
   fixes \<psi> :: "'v ::linorder state"
   assumes "resolution\<^sup>*\<^sup>* \<psi> \<psi>'" and "{#} \<in> fst \<psi>'"
   shows "unsatisfiable (fst \<psi>)"
-  using assms by (meson rtranclp_resolution_preserves_sat satisfiable_def true_cls_empty true_clss_def)
+  using assms by (meson rtranclp_resolution_preserves_sat satisfiable_def true_cls_empty
+    true_clss_def)
 
 lemma resolution_soundness_and_completeness:
 fixes \<psi> :: "'v ::linorder state"

@@ -1,5 +1,5 @@
-theory Propo_CDCL_Termination
-imports Propo_CDCL
+theory CDCL_CW_Termination
+imports CDCL_CW
 begin
 
 text \<open>The condition that no learned clause is a tautology is overkill (in the sense that the
