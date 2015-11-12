@@ -1,4 +1,4 @@
-theory Propo_CDCL_Level
+theory CDCL_CW_Level
 imports Partial_Annotated_Clausal_Logic
 begin
 

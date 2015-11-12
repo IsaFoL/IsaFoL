@@ -1,4 +1,4 @@
-theory Propo_DPLL
+theory DPLL
 imports Main Partial_Clausal_Logic Partial_Annotated_Clausal_Logic List_More
 
 begin

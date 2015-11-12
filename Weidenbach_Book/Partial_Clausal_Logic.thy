@@ -1305,6 +1305,56 @@ end
 interpretation true_cls: entail true_cls
   by standard (auto simp add: true_cls_def)
 
-thm true_cls.entails_def
-thm true_clss_def
+subsection \<open>Entailment to be extended\<close>
+definition true_clss_ext :: "'a literal set \<Rightarrow> 'a literal multiset set \<Rightarrow> bool" (infix "\<Turnstile>sext" 49)
+where
+"I \<Turnstile>sext N \<longleftrightarrow> (\<forall>J. I \<subseteq> J \<longrightarrow> consistent_interp J \<longrightarrow> total_over_m J N \<longrightarrow> J \<Turnstile>s N)"
+
+lemma true_clss_imp_true_cls_ext:
+  "I\<Turnstile>s N \<Longrightarrow> I \<Turnstile>sext N"
+  unfolding true_clss_ext_def by (metis sup.orderE true_clss_union_increase')
+
+(* TODO Move *)
+lemma uminus_lit_swap:
+  "(a::'a literal) = -b \<longleftrightarrow> -a = b"
+  by auto
+
+lemma true_clss_ext_decrease_right_remove_r:
+  assumes "I \<Turnstile>sext N"
+  shows "I \<Turnstile>sext N - {C}"
+  unfolding true_clss_ext_def
+proof (intro allI impI)
+  fix J
+  assume
+    "I \<subseteq> J" and
+    cons: "consistent_interp J" and
+    tot: "total_over_m J (N - {C})"
+  let ?J = "J \<union> {Pos (atm_of P)|P. P \<in># C \<and> atm_of P \<notin> atm_of ` J}"
+  have "I \<subseteq> ?J" using \<open>I \<subseteq> J\<close> by auto
+  moreover have "consistent_interp ?J"
+    using cons unfolding consistent_interp_def apply -
+    apply (rule allI) by (case_tac L) (fastforce simp add: image_iff)+
+  moreover
+    have ex_or_eq: "\<And>l R J.  \<exists>P. (l = P \<or> l = -P) \<and> P \<in># C \<and> P \<notin> J \<and> - P \<notin> J
+       \<longleftrightarrow>  (l \<in># C \<and> l \<notin> J \<and> - l \<notin> J) \<or> (-l \<in># C \<and> l \<notin> J \<and> - l \<notin> J)"
+       by (metis uminus_of_uminus_id)
+    have "total_over_m ?J N"
+    (* TODO tune proof *)
+    using tot unfolding total_over_m_def total_over_set_def atms_of_m_def
+    apply (auto simp add:atms_of_def)
+    apply (case_tac "a \<in> N - {C}")
+      apply auto[]
+    using atms_of_s_def atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set by fastforce+
+  ultimately have "?J \<Turnstile>s N"
+    using assms unfolding true_clss_ext_def by blast
+  hence "?J \<Turnstile>s N - {C}" by auto
+  have "{v \<in> ?J. atm_of v \<in> atms_of_m (N - {C})} \<subseteq> J"
+    by (smt UnCI `consistent_interp (J \<union> {Pos (atm_of P) |P. P \<in># C \<and> atm_of P \<notin> atm_of \` J})`
+      atm_of_in_atm_of_set_in_uminus consistent_interp_def mem_Collect_eq subsetI tot
+      total_over_m_def total_over_set_atm_of)
+  then show "J \<Turnstile>s N - {C}"
+    using true_clss_remove_unused[OF \<open>?J \<Turnstile>s N - {C}\<close>] unfolding true_clss_def
+    by (meson true_cls_mono_set_mset_l)
+qed
+
 end

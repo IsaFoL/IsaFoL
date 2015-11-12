@@ -1,5 +1,5 @@
-theory Propo_CDCL_CW
-imports Propo_CDCL_Termination
+theory CDCL_CW_NOT
+imports CDCL_CW_Termination
 begin
 sledgehammer_params[verbose]
 

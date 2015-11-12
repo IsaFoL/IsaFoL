@@ -1,57 +1,6 @@
-theory Propo_CDCL2
+theory CDCL_NOT
 imports Partial_Annotated_Clausal_Logic List_More Transition Partial_Clausal_Logic
 begin
-
-definition true_clss_ext (infix "\<Turnstile>sext" 49) where
-"I \<Turnstile>sext N \<longleftrightarrow> (\<forall>J. I \<subseteq> J \<longrightarrow> consistent_interp J \<longrightarrow> total_over_m J N \<longrightarrow> J \<Turnstile>s N)"
-
-lemma true_clss_imp_true_cls_ext:
-  "I\<Turnstile>s N \<Longrightarrow> I \<Turnstile>sext N"
-  unfolding true_clss_ext_def by (metis sup.orderE true_clss_union_increase')
-
-(* TODO Move *)
-lemma uminus_lit_swap:
-  "(a::'a literal) = -b \<longleftrightarrow> -a = b"
-  by auto
-
-lemma true_clss_ext_decrease_right_remove_r:
-  assumes "I \<Turnstile>sext N"
-  shows "I \<Turnstile>sext N - {C}"
-  unfolding true_clss_ext_def
-proof (intro allI impI)
-  fix J
-  assume
-    "I \<subseteq> J" and
-    cons: "consistent_interp J" and
-    tot: "total_over_m J (N - {C})"
-  let ?J = "J \<union> {Pos (atm_of P)|P. P \<in># C \<and> atm_of P \<notin> atm_of ` J}"
-  have "I \<subseteq> ?J" using \<open>I \<subseteq> J\<close> by auto
-  moreover have "consistent_interp ?J"
-    using cons unfolding consistent_interp_def apply -
-    apply (rule allI) by (case_tac L) (fastforce simp add: image_iff)+
-  moreover
-    have ex_or_eq: "\<And>l R J.  \<exists>P. (l = P \<or> l = -P) \<and> P \<in># C \<and> P \<notin> J \<and> - P \<notin> J
-       \<longleftrightarrow>  (l \<in># C \<and> l \<notin> J \<and> - l \<notin> J) \<or> (-l \<in># C \<and> l \<notin> J \<and> - l \<notin> J)"
-       by (metis uminus_of_uminus_id)
-    have "total_over_m ?J N"
-    (* TODO tune proof *)
-    using tot unfolding total_over_m_def total_over_set_def atms_of_m_def
-    apply (auto simp add:atms_of_def)
-    apply (case_tac "a \<in> N - {C}")
-      apply auto[]
-    using atms_of_s_def atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set by fastforce+
-  ultimately have "?J \<Turnstile>s N"
-    using assms unfolding true_clss_ext_def by blast
-  hence "?J \<Turnstile>s N - {C}" by auto
-  have "{v \<in> ?J. atm_of v \<in> atms_of_m (N - {C})} \<subseteq> J"
-    by (smt UnCI `consistent_interp (J \<union> {Pos (atm_of P) |P. P \<in># C \<and> atm_of P \<notin> atm_of \` J})`
-      atm_of_in_atm_of_set_in_uminus consistent_interp_def mem_Collect_eq subsetI tot
-      total_over_m_def total_over_set_atm_of)
-  then show "J \<Turnstile>s N - {C}"
-    using true_clss_remove_unused[OF \<open>?J \<Turnstile>s N - {C}\<close>] unfolding true_clss_def
-    by (meson true_cls_mono_set_mset_l)
-qed
-
 
 sledgehammer_params[verbose]
 
@@ -98,6 +47,7 @@ lemma atms_of_m_single_atm_of[simp]:
 lemma atms_of_uminus_lit_atm_of_lit_of:
   "atms_of {#- lit_of x. x \<in># A#} = atm_of ` (lit_of ` (set_mset A))"
   unfolding atms_of_def by (auto simp add: Fun.image_comp)
+
 lemma atms_of_m_single_image_atm_of_lit_of:
   "atms_of_m ((\<lambda>x. {#lit_of x#}) ` A) = atm_of ` (lit_of ` A)"
   unfolding atms_of_m_def by auto
@@ -161,8 +111,8 @@ inductive backjump where
    \<Longrightarrow> backjump_cond S T
    \<Longrightarrow> backjump S T"
 inductive_cases backjumpE: "backjump S T"
-
 end
+
 section \<open>DPLL with backjumping\<close>
 locale dpll_with_backjumping_ops =
   dpll_state trail clauses update_trail add_cls remove_cls +
@@ -387,7 +337,7 @@ lemma set_sum_atLeastLessThan_add:
 
 lemma set_sum_atLeastLessThan_Suc:
   "(\<Sum>i=1..<Suc j. f i) = (\<Sum>i=0..<j. f (Suc i))"
-  using set_sum_atLeastLessThan_add[of _ 1 j] by auto
+  using set_sum_atLeastLessThan_add[of _ 1 j] by force
 
 lemma \<mu>\<^sub>C_cons:
   "\<mu>\<^sub>C s b (L # M) = L * b ^ (s - 1 - length M) + \<mu>\<^sub>C s b M"
@@ -1299,9 +1249,8 @@ lemma finite_conflicting_bj_clss[simp]:
 
 abbreviation "conflicting_bj_clss_yet b S \<equiv>
   3 ^ b - card (conflicting_bj_clss S)"
-abbreviation
-  "\<mu>\<^sub>L b S \<equiv>
-    (conflicting_bj_clss_yet b S, card (clauses S))"
+abbreviation   \<mu>\<^sub>L :: "nat \<Rightarrow> 'st \<Rightarrow> nat \<times> nat" where
+  "\<mu>\<^sub>L b S \<equiv> (conflicting_bj_clss_yet b S, card (clauses S))"
 
 lemma do_not_forget_before_backtracking_clause_learned_clause_untouched:
   assumes "forget S T"
@@ -1484,14 +1433,28 @@ lemma cdcl_restricted_learning_wf:
     \<and> cdcl S T }"
   by (rule wf_wf_if_measure'[of "less_than <*lex*> (less_than <*lex*> less_than)"])
      (auto intro: cdcl_decreasing_measure[OF _ _ _ _ _ _ assms])
-
-fun decrease_triple :: "nat \<Rightarrow> (nat \<times> nat \<times> nat) \<Rightarrow> (nat \<times> nat \<times> nat)" where
-"decrease_triple n (a, b, c) =
-  (a - (n div (a * b)), b - (n div b) mod a, c - n mod b)"
-lemma decrease_triple_0[simp]:
-   "decrease_triple 0 S = S"
-   by (cases S) auto
-
+definition \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' where
+"\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A N\<^sub>0 T \<equiv> 
+  ((2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) - 
+      \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> T)) * 3^card (atms_of_m A) * 
+        (3^card (atms_of_m A) + N\<^sub>0) 
+   + conflicting_bj_clss_yet (card (atms_of_m A)) T * (3^card (atms_of_m A) + N\<^sub>0) 
+   + card (clauses T)"
+ 
+lemma cdcl_decreasing_measure:
+  assumes "cdcl S T"  and "inv S"
+  "atms_of_m (clauses S) \<subseteq> atms_of_m A" and
+  "card (clauses S) \<le> N\<^sub>0"
+  "atm_of ` lits_of (trail S) \<subseteq> atms_of_m A" and
+  "no_dup (trail S)" and
+  fin_S: "finite(clauses S)" and
+  fin_A: "finite A"
+  shows "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A N\<^sub>0 T < \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A N\<^sub>0 S"
+  using assms unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def
+apply (induction rule: cdcl.induct)
+defer
+apply auto[]
+oops
 lemma cdcl_decreasing_measure:
   assumes
     cdcl: "(cdcl^^n) T U" and "inv S"  and "inv U" (* TODO what is needed here exactly *)

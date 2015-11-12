@@ -1,5 +1,5 @@
-theory CDCL_Implementation
-imports DPLL_CDCL_Implementation Propo_CDCL Propo_CDCL_Termination
+theory CDCL_CW_Implementation
+imports DPLL_CDCL_Implementation CDCL_CW CDCL_CW_Termination
 begin
 
 subsection \<open>CDCL Implementation\<close>
@@ -264,7 +264,7 @@ lemma cdcl_cp_cdcl_st: "cdcl_cp S S' \<Longrightarrow> cdcl\<^sup>*\<^sup>* S S'
      (auto dest!: cdcl.intros)
 
 
-lemma cdcl_cp_wf: "wf {(S', S::'v Propo_CDCL.cdcl_state). cdcl_all_inv_mes S \<and> cdcl_cp S S'}"
+lemma cdcl_cp_wf: "wf {(S', S::'v CDCL_CW.cdcl_state). cdcl_all_inv_mes S \<and> cdcl_cp S S'}"
   (is "wf ?R")
 proof (rule wf_bounded_measure[of _ "\<lambda>S. card (atms_of_m (clauses S))+1" "\<lambda>S. length (trail S) + (if conflicting S = C_True then 0 else 1)"], goal_cases)
   case (1 S S')
@@ -1462,7 +1462,7 @@ fun max A_ (Set.Set (x :: xs)) =
 
 end; (*struct Lattices_Big*)
 
-structure Propo_CDCL : sig
+structure CDCL_CW : sig
   datatype 'a conflicting_clause = C_True | C_Clause of 'a
   val equal_conflicting_clause : 'a HOL.equal -> 'a conflicting_clause HOL.equal
   val get_rev_level :
@@ -1505,7 +1505,7 @@ fun get_maximum_level A_ d m =
         (Multiset.image_mset
           (fn l => get_rev_level A_ l Arith.zero_nat (List.rev m)) d)));
 
-end; (*struct Propo_CDCL*)
+end; (*struct CDCL_CW*)
 
 structure Product_Type : sig
   val equal_proda : 'a HOL.equal -> 'b HOL.equal -> 'a * 'b -> 'a * 'b -> bool
@@ -1519,7 +1519,7 @@ fun equal_prod A_ B_ = {equal = equal_proda A_ B_} : ('a * 'b) HOL.equal;
 
 end; (*struct Product_Type*)
 
-structure CDCL_Implementation : sig
+structure CDCL_CW_Implementation : sig
   datatype cdcl_state_I =
   ConI of
     ((Arith.nat, Arith.nat, (Arith.nat Clausal_Logic.literal list))
@@ -1528,7 +1528,7 @@ structure CDCL_Implementation : sig
         ((Arith.nat Clausal_Logic.literal list) list *
           (Arith.nat *
             (Arith.nat Clausal_Logic.literal list)
-              Propo_CDCL.conflicting_clause))));
+              CDCL_CW.conflicting_clause))));
   val gene : Arith.nat -> (Arith.nat Clausal_Logic.literal list) list
   val do_all_cdcl_s : cdcl_state_I -> cdcl_state_I
 end = struct
@@ -1541,7 +1541,7 @@ datatype cdcl_state =
         ((Arith.nat Clausal_Logic.literal list) list *
           (Arith.nat *
             (Arith.nat Clausal_Logic.literal list)
-              Propo_CDCL.conflicting_clause))));
+              CDCL_CW.conflicting_clause))));
 
 datatype cdcl_state_I =
   ConI of
@@ -1551,7 +1551,7 @@ datatype cdcl_state_I =
         ((Arith.nat Clausal_Logic.literal list) list *
           (Arith.nat *
             (Arith.nat Clausal_Logic.literal list)
-              Propo_CDCL.conflicting_clause))));
+              CDCL_CW.conflicting_clause))));
 
 fun gene n =
   (if Arith.equal_nata n Arith.zero_nat
@@ -1604,14 +1604,14 @@ fun find_first_unit_clause A_ (a :: l) m =
 
 fun do_propagate_step A_ s =
   (case s
-    of (m, (n, (u, (k, Propo_CDCL.C_True)))) =>
+    of (m, (n, (u, (k, CDCL_CW.C_True)))) =>
       (case find_first_unit_clause A_ (n @ u) m
-        of NONE => (m, (n, (u, (k, Propo_CDCL.C_True))))
+        of NONE => (m, (n, (u, (k, CDCL_CW.C_True))))
         | SOME (l, c) =>
           (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: m,
-            (n, (u, (k, Propo_CDCL.C_True)))))
-    | (m, (n, (u, (k, Propo_CDCL.C_Clause ah)))) =>
-      (m, (n, (u, (k, Propo_CDCL.C_Clause ah)))));
+            (n, (u, (k, CDCL_CW.C_True)))))
+    | (m, (n, (u, (k, CDCL_CW.C_Clause ah)))) =>
+      (m, (n, (u, (k, CDCL_CW.C_Clause ah)))));
 
 fun find_conflict A_ m [] = NONE
   | find_conflict A_ m (n :: ns) =
@@ -1625,12 +1625,12 @@ fun find_conflict A_ m [] = NONE
 
 fun do_conflict_step A_ s =
   (case s
-    of (m, (n, (u, (k, Propo_CDCL.C_True)))) =>
+    of (m, (n, (u, (k, CDCL_CW.C_True)))) =>
       (case find_conflict A_ m (n @ u)
-        of NONE => (m, (n, (u, (k, Propo_CDCL.C_True))))
-        | SOME a => (m, (n, (u, (k, Propo_CDCL.C_Clause a)))))
-    | (m, (n, (u, (k, Propo_CDCL.C_Clause ah)))) =>
-      (m, (n, (u, (k, Propo_CDCL.C_Clause ah)))));
+        of NONE => (m, (n, (u, (k, CDCL_CW.C_True))))
+        | SOME a => (m, (n, (u, (k, CDCL_CW.C_Clause a)))))
+    | (m, (n, (u, (k, CDCL_CW.C_Clause ah)))) =>
+      (m, (n, (u, (k, CDCL_CW.C_Clause ah)))));
 
 fun do_cp_step A_ s = (do_propagate_step A_ o do_conflict_step A_) s;
 
@@ -1644,18 +1644,18 @@ fun do_cp_stepa s = Con (do_cp_step Arith.equal_nat (rough_state_of s));
 
 fun do_skip_step
   (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls,
-    (n, (u, (k, Propo_CDCL.C_Clause d))))
+    (n, (u, (k, CDCL_CW.C_Clause d))))
   = (if not (List.member (Clausal_Logic.equal_literal Arith.equal_nat) d
               (Clausal_Logic.uminus_literal l)) andalso
           not (List.null d)
-      then (ls, (n, (u, (k, Propo_CDCL.C_Clause d))))
+      then (ls, (n, (u, (k, CDCL_CW.C_Clause d))))
       else (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls,
-             (n, (u, (k, Propo_CDCL.C_Clause d)))))
+             (n, (u, (k, CDCL_CW.C_Clause d)))))
   | do_skip_step ([], va) = ([], va)
   | do_skip_step (Partial_Annotated_Clausal_Logic.Marked (vd, ve) :: vc, va) =
     (Partial_Annotated_Clausal_Logic.Marked (vd, ve) :: vc, va)
-  | do_skip_step (v, (vb, (vd, (vf, Propo_CDCL.C_True)))) =
-    (v, (vb, (vd, (vf, Propo_CDCL.C_True))));
+  | do_skip_step (v, (vb, (vd, (vf, CDCL_CW.C_True)))) =
+    (v, (vb, (vd, (vf, CDCL_CW.C_True))));
 
 fun equal_cdcl_state_I sa s =
   Product_Type.equal_proda
@@ -1670,7 +1670,7 @@ fun equal_cdcl_state_I sa s =
         (List.equal_list
           (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat)))
         (Product_Type.equal_prod Arith.equal_nat
-          (Propo_CDCL.equal_conflicting_clause
+          (CDCL_CW.equal_conflicting_clause
             (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat))))))
     (rough_state_of_I sa) (rough_state_of_I s);
 
@@ -1687,7 +1687,7 @@ fun equal_cdcl_state sa s =
         (List.equal_list
           (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat)))
         (Product_Type.equal_prod Arith.equal_nat
-          (Propo_CDCL.equal_conflicting_clause
+          (CDCL_CW.equal_conflicting_clause
             (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat))))))
     (rough_state_of sa) (rough_state_of s);
 
@@ -1699,36 +1699,36 @@ fun do_full_cp_step s =
   end;
 
 fun maximum_level_code A_ d m =
-  Propo_CDCL.get_maximum_level A_ (Multiset.Mset d) m;
+  CDCL_CW.get_maximum_level A_ (Multiset.Mset d) m;
 
 fun find_level_decomp A_ m [] d k = NONE
   | find_level_decomp A_ m (l :: ls) d k =
     let
       val (i, j) =
-        (Propo_CDCL.get_rev_level A_ l Arith.zero_nat (List.rev m),
+        (CDCL_CW.get_rev_level A_ l Arith.zero_nat (List.rev m),
           maximum_level_code A_ (d @ ls) m);
     in
       (if Arith.equal_nata i k andalso Arith.less_nat j i then SOME (l, j)
         else find_level_decomp A_ m ls (l :: d) k)
     end;
 
-fun do_backtrack_step A_ (m, (n, (u, (k, Propo_CDCL.C_Clause d)))) =
+fun do_backtrack_step A_ (m, (n, (u, (k, CDCL_CW.C_Clause d)))) =
   (case find_level_decomp A_ m d [] k
-    of NONE => (m, (n, (u, (k, Propo_CDCL.C_Clause d))))
+    of NONE => (m, (n, (u, (k, CDCL_CW.C_Clause d))))
     | SOME (l, j) =>
-      (case bt_cut j m of NONE => (m, (n, (u, (k, Propo_CDCL.C_Clause d))))
-        | SOME [] => (m, (n, (u, (k, Propo_CDCL.C_Clause d))))
+      (case bt_cut j m of NONE => (m, (n, (u, (k, CDCL_CW.C_Clause d))))
+        | SOME [] => (m, (n, (u, (k, CDCL_CW.C_Clause d))))
         | SOME (Partial_Annotated_Clausal_Logic.Marked (_, _) :: ls) =>
           (Partial_Annotated_Clausal_Logic.Propagated (l, d) :: ls,
-            (n, (d :: u, (j, Propo_CDCL.C_True))))
+            (n, (d :: u, (j, CDCL_CW.C_True))))
         | SOME (Partial_Annotated_Clausal_Logic.Propagated (_, _) :: _) =>
-          (m, (n, (u, (k, Propo_CDCL.C_Clause d))))))
-  | do_backtrack_step A_ (v, (vb, (vd, (vf, Propo_CDCL.C_True)))) =
-    (v, (vb, (vd, (vf, Propo_CDCL.C_True))));
+          (m, (n, (u, (k, CDCL_CW.C_Clause d))))))
+  | do_backtrack_step A_ (v, (vb, (vd, (vf, CDCL_CW.C_True)))) =
+    (v, (vb, (vd, (vf, CDCL_CW.C_True))));
 
 fun do_resolve_step
   (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls,
-    (n, (u, (k, Propo_CDCL.C_Clause d))))
+    (n, (u, (k, CDCL_CW.C_Clause d))))
   = (if List.member (Clausal_Logic.equal_literal Arith.equal_nat) d
           (Clausal_Logic.uminus_literal l) andalso
           (Arith.equal_nata
@@ -1738,7 +1738,7 @@ fun do_resolve_step
                (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls))
              k orelse
             Arith.equal_nata k Arith.zero_nat)
-      then (ls, (n, (u, (k, Propo_CDCL.C_Clause
+      then (ls, (n, (u, (k, CDCL_CW.C_Clause
                               (List.remdups
                                 (Clausal_Logic.equal_literal Arith.equal_nat)
                                 (List.remove1
@@ -1749,12 +1749,12 @@ fun do_resolve_step
                                       Arith.equal_nat)
                                     (Clausal_Logic.uminus_literal l) d))))))
       else (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls,
-             (n, (u, (k, Propo_CDCL.C_Clause d)))))
+             (n, (u, (k, CDCL_CW.C_Clause d)))))
   | do_resolve_step ([], va) = ([], va)
   | do_resolve_step (Partial_Annotated_Clausal_Logic.Marked (vd, ve) :: vc, va)
     = (Partial_Annotated_Clausal_Logic.Marked (vd, ve) :: vc, va)
-  | do_resolve_step (v, (vb, (vd, (vf, Propo_CDCL.C_True)))) =
-    (v, (vb, (vd, (vf, Propo_CDCL.C_True))));
+  | do_resolve_step (v, (vb, (vd, (vf, CDCL_CW.C_True)))) =
+    (v, (vb, (vd, (vf, CDCL_CW.C_True))));
 
 fun find_first_unused_var A_ (a :: l) m =
   (case List.find
@@ -1766,14 +1766,14 @@ fun find_first_unused_var A_ (a :: l) m =
     of NONE => find_first_unused_var A_ l m | SOME aa => SOME aa)
   | find_first_unused_var A_ [] uu = NONE;
 
-fun do_decide_step A_ (m, (n, (u, (k, Propo_CDCL.C_True)))) =
+fun do_decide_step A_ (m, (n, (u, (k, CDCL_CW.C_True)))) =
   (case find_first_unused_var A_ n (Partial_Annotated_Clausal_Logic.lits_of m)
-    of NONE => (m, (n, (u, (k, Propo_CDCL.C_True))))
+    of NONE => (m, (n, (u, (k, CDCL_CW.C_True))))
     | SOME l =>
       (Partial_Annotated_Clausal_Logic.Marked (l, Arith.suc k) :: m,
-        (n, (u, (Arith.plus_nat k Arith.one_nat, Propo_CDCL.C_True)))))
-  | do_decide_step A_ (v, (vb, (vd, (vf, Propo_CDCL.C_Clause vh)))) =
-    (v, (vb, (vd, (vf, Propo_CDCL.C_Clause vh))));
+        (n, (u, (Arith.plus_nat k Arith.one_nat, CDCL_CW.C_True)))))
+  | do_decide_step A_ (v, (vb, (vd, (vf, CDCL_CW.C_Clause vh)))) =
+    (v, (vb, (vd, (vf, CDCL_CW.C_Clause vh))));
 
 fun do_other_step s =
   let
@@ -1794,7 +1794,7 @@ fun do_other_step s =
                     (List.equal_list
                       (Clausal_Logic.equal_literal Arith.equal_nat)))
                   (Product_Type.equal_prod Arith.equal_nat
-                    (Propo_CDCL.equal_conflicting_clause
+                    (CDCL_CW.equal_conflicting_clause
                       (List.equal_list
                         (Clausal_Logic.equal_literal Arith.equal_nat))))))
               t s)
@@ -1817,7 +1817,7 @@ fun do_other_step s =
                              (List.equal_list
                                (Clausal_Logic.equal_literal Arith.equal_nat)))
                            (Product_Type.equal_prod Arith.equal_nat
-                             (Propo_CDCL.equal_conflicting_clause
+                             (CDCL_CW.equal_conflicting_clause
                                (List.equal_list
                                  (Clausal_Logic.equal_literal
                                    Arith.equal_nat))))))
@@ -1843,7 +1843,7 @@ Arith.equal_nat)))
                                       (List.equal_list
 (Clausal_Logic.equal_literal Arith.equal_nat)))
                                     (Product_Type.equal_prod Arith.equal_nat
-                                      (Propo_CDCL.equal_conflicting_clause
+                                      (CDCL_CW.equal_conflicting_clause
 (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat))))))
                                 v u)
                         then v else do_decide_step Arith.equal_nat v)
@@ -1874,17 +1874,17 @@ fun do_all_cdcl_s s =
     (if equal_cdcl_state_I t s then s else do_all_cdcl_s t)
   end;
 
-end; (*struct CDCL_Implementation*)
+end; (*struct CDCL_CW_Implementation*)
 
 \<close>
 declare[[ML_print_depth=100]]
 ML \<open>
 open Clausal_Logic;
-open CDCL_Implementation;
+open CDCL_CW_Implementation;
 open Arith;
 let
   val N = gene (Nat 2)
-  val f = do_all_cdcl_s (ConI ([], (N, ([], (Nat 0, Propo_CDCL.C_True)))))
+  val f = do_all_cdcl_s (ConI ([], (N, ([], (Nat 0, CDCL_CW.C_True)))))
   in
 
   f
