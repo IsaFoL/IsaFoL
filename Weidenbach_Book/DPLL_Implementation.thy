@@ -438,7 +438,6 @@ lemma [code]:
   (let S' = DPLL_step' S in
    if S' = S then S else DPLL_tot S')" by auto
 
-
 lemma DPLL_tot_DPLL_step_DPLL_tot[simp]: "DPLL_tot (DPLL_step' S) = DPLL_tot S"
   apply (cases "DPLL_step' S = S")
   apply simp
