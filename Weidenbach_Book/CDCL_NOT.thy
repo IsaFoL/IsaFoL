@@ -4,6 +4,10 @@ begin
 
 sledgehammer_params[verbose]
 
+
+section \<open>Initial definitions\<close>
+subsection \<open>The state\<close>
+text \<open>We define here an abstraction over operation on the state we are manipulating.\<close>
 locale dpll_state =
   fixes
     trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
@@ -23,8 +27,6 @@ abbreviation prepend_trail where
 "prepend_trail L S \<equiv> update_trail (L # trail S) S"
 end
 
-type_synonym ('v, 'lvl, 'mark) cdcl_state = "('v, 'lvl, 'mark) annoted_lits \<times> 'v clauses"
-
 lemma true_clss_clss_union_false_true_clss_clss_cnot:
   "A \<union> {B} \<Turnstile>ps {{#}} \<longleftrightarrow> A \<Turnstile>ps CNot B"
   using total_not_CNot consistent_CNot_not unfolding total_over_m_def true_clss_clss_def
@@ -39,8 +41,7 @@ lemma true_clss_single_iff_incl:
   unfolding true_clss_def by auto
 
 lemma atms_of_m_single_atm_of[simp]:
-  "atms_of_m {{#lit_of L#} |L. P L}
-    = atm_of `  {lit_of L |L. P L}"
+  "atms_of_m {{#lit_of L#} |L. P L} = atm_of ` {lit_of L |L. P L}"
   unfolding atms_of_m_def by auto
 
 (* TODO Move?*)
@@ -56,6 +57,7 @@ lemma is_marked_ex_Marked:
   "is_marked L \<Longrightarrow> \<exists>K lvl. L = Marked K lvl"
   by (cases L) auto
 
+subsection \<open>Definition of the operation\<close>
 locale propagate_ops =
   dpll_state trail clauses update_trail add_cls remove_cls for
     trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
@@ -179,6 +181,10 @@ lemma dpll_bj_all_induct[consumes 2, case_names decide propagate backjump]:
 
 subsection \<open>Basic properties\<close>
 paragraph \<open>First, some better suited induction principle\<close>
+lemma dpll_bj_clauses:
+  assumes "dpll_bj S T" and "inv S"
+  shows "clauses S = clauses T"
+  using assms by (induction rule: dpll_bj_all_induct) auto
 
 paragraph \<open>No duplicates in the trail\<close>
 lemma dpll_bj_no_dup:
@@ -546,12 +552,12 @@ lemma length_get_all_marked_decomposition_length:
   by (induction M rule: marked_lit_list_induct) auto
 
 text \<open>The bounds are the following:
-  \<^item> @{term "1+card (atms_of_m A)"} is an upper bound on the length of the list. As
-  @{term get_all_marked_decomposition} appends an possibly empty couple at the end, adding one is
-  needed.
-  \<^item> @{term "2+card (atms_of_m A)"}  is an strict upper bound on the number of elements, where adding
-  one is necessary for the same reason as for the bound on the list, and one is needed to have a
-  strict bound.
+  \<^item> @{term "1+card (atms_of_m A)"}: @{term "card (atms_of_m A)"} is an upper bound on the length of
+  the list. As @{term get_all_marked_decomposition} appends an possibly empty couple at the end,
+  adding one is needed.
+  \<^item> @{term "2+card (atms_of_m A)"}: @{term "card (atms_of_m A)"} is an upper bound on the number of
+  elements, where adding one is necessary for the same reason as for the bound on the list, and one
+  is needed to have a strict bound.
   \<close>
 abbreviation unassigned_lit ::  "'b literal multiset set \<Rightarrow> 'a list \<Rightarrow> nat" where
   "unassigned_lit N M \<equiv> card (atms_of_m N) - length M"
@@ -727,8 +733,12 @@ text \<open>
      \<^enum> @{term "\<not>M\<Turnstile>as N"} tells us that there is conflict.
      \<^enum> There is at least one decision in the trail (otherwise, @{term M} is a model of @{term N}).
      \<^enum> Now if we build the clause with all the decision literals of the trail, we can apply the
-     @{term backjump} rule.\<close>
-theorem
+     @{term backjump} rule.
+
+
+  The assumption are saying that we have a finite upper bound @{term A} for the literals, that we
+  cannot do any step @{term "no_step dpll_bj S"}\<close>
+theorem dpll_backjump_normal_forms:
   fixes A :: "'v literal multiset set" and S T :: "'st"
   assumes
     "atms_of_m (clauses S) \<subseteq> atms_of_m A" and
@@ -894,6 +904,7 @@ proof -
         thus ?thesis by fast
     qed auto
 qed
+
 end
 
 locale dpll_with_backjumping =
@@ -916,14 +927,12 @@ lemma rtranclp_dpll_bj_inv:
   using assms by (induction rule: rtranclp_induct)
     (auto simp add: dpll_bj_no_dup intro: dpll_bj_inv)
 
-
 lemma rtranclp_dpll_bj_no_dup:
   assumes "dpll_bj\<^sup>*\<^sup>* S T" and "inv S"
   and "no_dup (trail S)"
   shows "no_dup (trail T)"
   using assms by (induction rule: rtranclp_induct)
   (auto simp add: dpll_bj_no_dup dest: rtranclp_dpll_bj_inv dpll_bj_inv)
-
 
 lemma rtranclp_dpll_bj_atms_of_m_clauses_inv:
   assumes
@@ -941,6 +950,12 @@ lemma rtranclp_dpll_bj_atms_in_trail:
   using assms apply (induction rule: rtranclp_induct)
   using dpll_bj_atms_in_trail dpll_bj_atms_of_m_clauses_inv rtranclp_dpll_bj_inv by auto
 
+lemma rtranclp_dpll_bj_sat_iff:
+  assumes "dpll_bj\<^sup>*\<^sup>* S T" and "inv S"
+  shows "I \<Turnstile>s clauses S \<longleftrightarrow> I \<Turnstile>s clauses T"
+  using assms by (induction rule: rtranclp_induct)
+    (auto intro!: dpll_bj_sat_iff simp: rtranclp_dpll_bj_inv)
+
 lemma rtranclp_dpll_bj_atms_in_trail_in_set:
   assumes
     "dpll_bj\<^sup>*\<^sup>* S T" and
@@ -953,6 +968,15 @@ lemma rtranclp_dpll_bj_atms_in_trail_in_set:
        (auto dest: rtranclp_dpll_bj_inv
          simp add: dpll_bj_atms_in_trail_in_set rtranclp_dpll_bj_atms_of_m_clauses_inv
            rtranclp_dpll_bj_inv)
+
+lemma rtranclp_dpll_bj_all_decomposition_implies_inv:
+  assumes
+    "dpll_bj\<^sup>*\<^sup>* S T" and
+    "inv S"
+    "all_decomposition_implies (clauses S) (get_all_marked_decomposition (trail S))"
+  shows "all_decomposition_implies (clauses T) (get_all_marked_decomposition (trail T))"
+  using assms by (induction rule: rtranclp_induct)
+    (auto intro: dpll_bj_all_decomposition_implies_inv simp: rtranclp_dpll_bj_inv)
 
 lemma rtranclp_dpll_bj_inv_incl_dpll_bj_inv_trancl:
   "{(T, S). dpll_bj\<^sup>+\<^sup>+ S T
@@ -1000,12 +1024,47 @@ lemma tranclp_dpll_bj_wf:
   shows "wf {(T, S). dpll_bj\<^sup>+\<^sup>+ S T
     \<and> atms_of_m (clauses S) \<subseteq> atms_of_m A \<and> atm_of ` lits_of (trail S) \<subseteq> atms_of_m A
     \<and> no_dup (trail S) \<and> inv S}"
- using wf_trancl[OF dpll_bj_wf[OF fin]] rtranclp_dpll_bj_inv_incl_dpll_bj_inv_trancl
+  using wf_trancl[OF dpll_bj_wf[OF fin]] rtranclp_dpll_bj_inv_incl_dpll_bj_inv_trancl
   by (rule wf_subset)
 
 lemma dpll_bj_sat_ext_iff:
   "dpll_bj S T \<Longrightarrow> inv S \<Longrightarrow> I\<Turnstile>sext clauses S \<longleftrightarrow> I\<Turnstile>sext clauses T"
   by (simp add: dpll_bj_atms_of_m_clauses_inv dpll_bj_sat_iff total_over_m_def true_clss_ext_def)
+
+lemma rtranclp_dpll_bj_sat_ext_iff:
+  "dpll_bj\<^sup>*\<^sup>* S T \<Longrightarrow> inv S \<Longrightarrow> I\<Turnstile>sext clauses S \<longleftrightarrow> I\<Turnstile>sext clauses T"
+  by (induction rule: rtranclp_induct) (simp_all add: rtranclp_dpll_bj_inv dpll_bj_sat_ext_iff)
+
+theorem full0_dpll_backjump_normal_forms:
+  fixes A :: "'v literal multiset set" and S T :: "'st"
+  assumes
+    full: "full0 dpll_bj S T" and
+    atms_S: "atms_of_m (clauses S) \<subseteq> atms_of_m A" and
+    atms_trail: "atm_of ` lits_of (trail S) \<subseteq> atms_of_m A" and
+    n_d: "no_dup (trail S)" and
+    "finite A" and
+    inv: "inv S" and
+    decomp: "all_decomposition_implies (clauses S) (get_all_marked_decomposition (trail S))"
+  shows "unsatisfiable (clauses S) \<or> (trail T \<Turnstile>as clauses S \<and> satisfiable (clauses S))"
+proof -
+  have st: "dpll_bj\<^sup>*\<^sup>* S T" and "no_step dpll_bj T"
+    using full unfolding full0_def by fast+
+  moreover have "atms_of_m (clauses T) \<subseteq> atms_of_m A"
+    using atms_S inv rtranclp_dpll_bj_atms_of_m_clauses_inv st by blast
+  moreover have "atm_of ` lits_of (trail T) \<subseteq> atms_of_m A"
+     using atms_S atms_trail inv rtranclp_dpll_bj_atms_in_trail_in_set st by auto
+  moreover have "no_dup (trail T)"
+    using n_d inv rtranclp_dpll_bj_no_dup st by blast
+  moreover have inv: "inv T"
+    using inv rtranclp_dpll_bj_inv st by blast
+  moreover
+    have decomp: "all_decomposition_implies (clauses T) (get_all_marked_decomposition (trail T))"
+      using \<open>inv S\<close> decomp rtranclp_dpll_bj_all_decomposition_implies_inv st by blast
+  ultimately have "unsatisfiable (clauses T) \<or> (trail T \<Turnstile>as clauses T \<and> satisfiable (clauses T))"
+    using \<open>finite A\<close> dpll_backjump_normal_forms by force
+  thus ?thesis
+    by (meson \<open>inv S\<close> rtranclp_dpll_bj_sat_iff satisfiable_carac st true_annots_true_cls)
+qed
 
 end
 
@@ -1113,7 +1172,7 @@ lemma cdcl_atms_of_m_clauses_decreasing:
   assumes "cdcl S T"and "inv S"
   shows "atms_of_m (clauses T) \<subseteq> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))"
   using assms by (induction rule: cdcl_all_induct)
-   (auto dest!: dpll_bj_atms_of_m_clauses_inv set_mp simp add: atms_of_m_def Union_eq)
+    (auto dest!: dpll_bj_atms_of_m_clauses_inv set_mp simp add: atms_of_m_def Union_eq)
 
 lemma cdcl_atms_in_trail:
   assumes "cdcl S T"and "inv S"
@@ -1201,8 +1260,28 @@ locale conflict_driven_clause_learning_learning_before_backjump_only_distinct_le
       backjump :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
       learn_restrictions forget_restrictions :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
 begin
+thm learn_ops.learn.cases
+lemma cdcl_learn_all_induct[consumes 1, case_names dpll_bj learn forget]:
+  fixes S T :: "'st"
+  assumes "cdcl S T" and
+    dpll: "\<And>S T. dpll_bj S T \<Longrightarrow> P S T" and
+    learning:
+      "\<And>S C F K d F' C' L. clauses S \<Turnstile>p C \<Longrightarrow> atms_of C \<subseteq> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))
+      \<Longrightarrow>  distinct_mset C \<Longrightarrow> \<not> tautology C \<Longrightarrow> learn_restrictions C S \<Longrightarrow>
+      trail S = F' @ Marked K d # F \<Longrightarrow> C = C' + {#L#} \<Longrightarrow> F \<Turnstile>as CNot C' \<Longrightarrow>
+      C' + {#L#} \<notin> clauses S \<Longrightarrow> P S (add_cls C S)" and
+    forgetting: "\<And>S C. clauses S - {C} \<Turnstile>p C \<Longrightarrow> C \<in> clauses S
+    \<Longrightarrow> \<not>(\<exists>F' F K d L. trail S = F' @ Marked K d # F \<and> F \<Turnstile>as CNot (C - {#L#}))
+    \<Longrightarrow> forget_restrictions C S \<Longrightarrow> P S (remove_cls C S)"
+  shows "P S T"
+  using assms(1)
+  apply (induction rule: cdcl.induct)
+  apply (auto dest: assms(2) simp add: learn_ops_axioms)[]
+  apply (auto elim!: learn_ops.learn.cases[OF learn_ops_axioms] dest: assms(3))[]
+  apply (auto elim!: forget_ops.forget.cases[OF forget_ops_axioms] dest!: assms(4))
+  done
 
-lemma
+lemma learn_always_simple_clauses:
   assumes
     learn: "learn S T" and
     n_d: "no_dup (trail S)" and
@@ -1233,11 +1312,11 @@ lemma conflicting_bj_clss_remove_cls[simp]:
 
 lemma conflicting_bj_clss_add_cls:
   "conflicting_bj_clss (add_cls C' S)
-   = conflicting_bj_clss S
+    = conflicting_bj_clss S
       \<union> (if \<exists>C L. C' = C +{#L#}\<and> distinct_mset (C+{#L#}) \<and> \<not>tautology (C+{#L#})
      \<and> (\<exists>F' K d F. trail S = F' @ Marked K d # F \<and> F \<Turnstile>as CNot C)
      then {C'} else {})"
-  unfolding conflicting_bj_clss_def by (auto split: split_if_asm) metis+
+  unfolding conflicting_bj_clss_def apply (auto split: split_if_asm) by metis+
 
 lemma conflicting_bj_clss_incl_clauses:
    "conflicting_bj_clss S \<subseteq> clauses S"
@@ -1390,7 +1469,7 @@ text \<open>We have to assume the following:
   and in the clauses @{term "atms_of_m (clauses S) \<subseteq> atms_of_m A"}. This can the the set of all the
   literals in the starting set of clauses.
   \<^item> @{term "no_dup (trail S)"}: no duplicate in the trail. This is invariant along the path.
-  \<^item> there is a finite amount of clauses @{term "finite(clauses S)"} (each clause is finite by
+  \<^item> there is a finite amount of clauses @{term "finite(clauses S)"} (each clause being finite by
   definition of multisets)\<close>
 definition \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L where
 "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A T \<equiv> ((2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
@@ -1433,15 +1512,17 @@ lemma cdcl_restricted_learning_wf:
     \<and> cdcl S T }"
   by (rule wf_wf_if_measure'[of "less_than <*lex*> (less_than <*lex*> less_than)"])
      (auto intro: cdcl_decreasing_measure[OF _ _ _ _ _ _ assms])
+definition \<mu>\<^sub>C' where
+"\<mu>\<^sub>C' A T \<equiv> \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> T)"
 definition \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' where
-"\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A N\<^sub>0 T \<equiv> 
-  ((2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) - 
-      \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> T)) * 3^card (atms_of_m A) * 
-        (3^card (atms_of_m A) + N\<^sub>0) 
-   + conflicting_bj_clss_yet (card (atms_of_m A)) T * (3^card (atms_of_m A) + N\<^sub>0) 
+"\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A N\<^sub>0 T \<equiv>
+  ((2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) -
+      \<mu>\<^sub>C' A T) * (1+ 3^card (atms_of_m A)) *
+        (3^card (atms_of_m A) + N\<^sub>0+1)
+   + conflicting_bj_clss_yet (card (atms_of_m A)) T * (3^card (atms_of_m A) + N\<^sub>0+1)
    + card (clauses T)"
- 
-lemma cdcl_decreasing_measure:
+
+lemma cdcl_decreasing_measure':
   assumes "cdcl S T"  and "inv S"
   "atms_of_m (clauses S) \<subseteq> atms_of_m A" and
   "card (clauses S) \<le> N\<^sub>0"
@@ -1450,61 +1531,115 @@ lemma cdcl_decreasing_measure:
   fin_S: "finite(clauses S)" and
   fin_A: "finite A"
   shows "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A N\<^sub>0 T < \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A N\<^sub>0 S"
-  using assms unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def
-apply (induction rule: cdcl.induct)
-defer
-apply auto[]
-oops
-lemma cdcl_decreasing_measure:
-  assumes
-    cdcl: "(cdcl^^n) T U" and "inv S"  and "inv U" (* TODO what is needed here exactly *)
-  "atms_of_m (clauses S) \<subseteq> atms_of_m A" and
-  "atm_of ` lits_of (trail S) \<subseteq> atms_of_m A" and
-  "no_dup (trail S)" and
-  fin_S: "finite(clauses S)" and
-  fin_A: "finite A" and
-  T_le_S: "(\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A T, \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A S)
-            \<in> less_than <*lex*> (less_than <*lex*> less_than)"
-  shows "(\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A U, decrease_triple n (\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A S))
-            \<in> less_than <*lex*> (less_than <*lex*> less_than)"
-  using assms(1)
-(* proof (induction n arbitrary: U)
-  case 0 note T_U= this(1)
-  hence T_U: "T = U" by auto
-  show ?case using T_le_S unfolding T_U by simp
-next
-  case (Suc n) note IH = this(1) and T_U = this(2) and T_le_S = this(2)
-  obtain T' where
-    T': "(cdcl^^n) T T'" and
-    T'_U: "cdcl T' U"
-    using T_U by auto
-  have T'_S: "(\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A T', decrease_triple n (\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A S)) \<in> less_than <*lex*> less_than <*lex*> less_than"
-    using T' IH by fast
-  moreover have "(\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A U, \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A T') \<in> less_than <*lex*> less_than <*lex*> less_than"
-    sorry
+  using assms(1-7)
+proof (induction rule: cdcl_learn_all_induct)
+  case (dpll_bj S T)
+  hence "(2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) - \<mu>\<^sub>C' A T
+    < (2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) - \<mu>\<^sub>C' A S"
+    using dpll_bj_trail_mes_decreasing_prop fin_A unfolding \<mu>\<^sub>C'_def by blast
+  hence "(2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) - \<mu>\<^sub>C' A T + 1
+    \<le> (2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) - \<mu>\<^sub>C' A S"
+    by auto
+  hence  "((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A T) *
+      (1 + 3 ^ card (atms_of_m A)) + (1 + 3 ^ card (atms_of_m A))
+    \<le> ((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A S)
+      * (1 + 3 ^ card (atms_of_m A))"
+    by (smt One_nat_def add.commute add_Suc comm_monoid_add_class.add_0 mult.commute mult_Suc_right
+      mult_le_mono2)
   moreover
-    obtain a b c Sa Sb Sc where
-      \<mu>S: "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A S = (Sa, Sb, Sc)" and
-      a_b_c: "decrease_triple n (\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A S) = (a, b, c)"
-      by (cases "decrease_triple n (\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A S)", cases "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A S")
-    have "decrease_triple (Suc n) (\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A S) =
-       (if b = 0 \<and> c = 0 then a-1 else a,
-        if c > 0 then b else if b > 0 then b - 1 else Sb,
-        if c > 0 then c - 1 else Sc)"
-        using a_b_c unfolding \<mu>S apply simp
-        apply standard
-        apply standard
-        apply standard
-       apply standard
-       apply standard
-        sledgehammer
+    have cl_T_S:  "clauses T = clauses S"
+      using dpll_bj.hyps dpll_bj.prems(1) dpll_bj_clauses by auto
+    have "conflicting_bj_clss_yet (card (atms_of_m A)) S < 1+ 3 ^ card (atms_of_m A)"
+    by simp
+  ultimately have "((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A T)
+      * (1 + 3 ^ card (atms_of_m A)) + conflicting_bj_clss_yet (card (atms_of_m A)) T
+    < ((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A S)  * (1 + 3 ^ card (atms_of_m A))"
+    by linarith
+  hence "((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A T)
+        * (1 + 3 ^ card (atms_of_m A))
+      + conflicting_bj_clss_yet (card (atms_of_m A)) T
+    < ((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A S)
+        * (1 + 3 ^ card (atms_of_m A))
+      + conflicting_bj_clss_yet (card (atms_of_m A)) S"
+    by linarith
+  hence "((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A T)
+      * (1 + 3 ^ card (atms_of_m A)) * (3 ^ card (atms_of_m A) + N\<^sub>0+1)
+    + conflicting_bj_clss_yet (card (atms_of_m A)) T * (3 ^ card (atms_of_m A) + N\<^sub>0 + 1)
+    < ((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A S)
+      * (1 + 3 ^ card (atms_of_m A)) * (3 ^ card (atms_of_m A) + N\<^sub>0+1)
+    + conflicting_bj_clss_yet (card (atms_of_m A)) S * (3 ^ card (atms_of_m A) + N\<^sub>0 + 1)"
+    by (metis Suc_eq_plus1 add_mult_distrib mult_strict_right_mono zero_less_Suc)
+  thus ?case unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def cl_T_S by presburger
+next
+  case (learn S C F' K d F C' L) note dist = this(3) and tauto = this(4) and tr_S = this(6) and
+  C' = this(7) and F_C = this(8)
+  have [simp]: "card (insert C (clauses S)) = Suc (card (clauses S))"
+    by (simp add: C' learn.hyps(9) learn.prems(6))
+  have "insert C (conflicting_bj_clss S) \<subseteq> build_all_simple_clss (atms_of_m A)"
+    proof -
+      have "C \<in>  build_all_simple_clss (atms_of_m A)"
+        by (metis (full_types) Un_subset_iff atms_of_m_finite build_all_simple_clss_mono dist
+          distinct_mset_not_tautology_implies_in_build_all_simple_clss fin_A insert_subset
+          learn.hyps(2) learn.prems(2) learn.prems(4) set_insert_neq sup.orderE tauto)
+      moreover have "conflicting_bj_clss S \<subseteq> build_all_simple_clss (atms_of_m A)"
+        unfolding conflicting_bj_clss_def
+        proof
+          fix x :: "'v literal multiset"
+          assume "x \<in> {C + {#L#} |C L. C + {#L#} \<in> clauses S
+            \<and> distinct_mset (C + {#L#}) \<and> \<not> tautology (C + {#L#})
+            \<and> (\<exists>F' K d F. trail S = F' @ Marked K d # F \<and> F \<Turnstile>as CNot C)}"
+          hence "\<exists>m l. x = m + {#l#} \<and> m + {#l#} \<in> clauses S
+            \<and> distinct_mset (m + {#l#}) \<and> \<not> tautology (m + {#l#})
+            \<and> (\<exists>ms l la msa. trail S = ms @ Marked l la # msa \<and> msa \<Turnstile>as CNot m)"
+            by blast
+          thus "x \<in> build_all_simple_clss (atms_of_m A)"
+            by (meson atms_of_atms_of_m_mono atms_of_m_finite build_all_simple_clss_mono
+              contra_subsetD distinct_mset_not_tautology_implies_in_build_all_simple_clss
+              fin_A learn.prems(2) learn.prems(6)) (* 66 ms *)
+        qed
+      ultimately show ?thesis
+        by auto
+    qed
+  hence "card (insert C (conflicting_bj_clss S)) \<le> 3 ^ (card (atms_of_m A))"
+    by (meson Nat.le_trans atms_of_m_finite build_all_simple_clss_card build_all_simple_clss_finite
+      card_mono fin_A)
+  moreover have [simp]: "card (insert C (conflicting_bj_clss S))
+    = Suc (card ((conflicting_bj_clss S)))"
+    using C' conflicting_bj_clss_incl_clauses contra_subsetD learn.hyps(9) learn.prems(6)
+    by fastforce
+  moreover have [simp]: "conflicting_bj_clss (add_cls C S) = conflicting_bj_clss S \<union> {C}"
+     using dist tauto F_C by (force simp add: ac_simps conflicting_bj_clss_add_cls C' tr_S)
+  ultimately have [simp]: "conflicting_bj_clss_yet (card (atms_of_m A)) S
+    = Suc (conflicting_bj_clss_yet (card (atms_of_m A)) (add_cls C S))"
+      by simp
 
-    have "(\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A T', decrease_triple (Suc n) (\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A S)) \<in> less_than <*lex*> less_than <*lex*>
-      less_than \<or> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A T' = decrease_triple (Suc n) (\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A S)"
-      apply (cases "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A S", cases "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A T'")
-      using T'_S apply (simp add: lex_prod_def)
-  show ?case   *)
-oops
+  have "((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A (add_cls C S))
+    * (1 + 3 ^ card (atms_of_m A)) * (3 ^ card (atms_of_m A) + N\<^sub>0 + 1)
+    = ((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A S)
+    * (1 + 3 ^ card (atms_of_m A)) * (3 ^ card (atms_of_m A) + N\<^sub>0 + 1)"
+      unfolding \<mu>\<^sub>C'_def by auto
+  moreover
+    have "conflicting_bj_clss_yet (card (atms_of_m A)) (add_cls C S)
+        * (3 ^ card (atms_of_m A) + N\<^sub>0 + 1)
+      + card (clauses (add_cls C S))
+      < conflicting_bj_clss_yet (card (atms_of_m A)) S * (3 ^ card (atms_of_m A) + N\<^sub>0 + 1)
+      + card (clauses S)"
+     by auto
+  ultimately show ?case unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def by presburger
+next
+  case (forget S C)
+  have [simp]: "\<mu>\<^sub>C' A (remove_cls C S) =  \<mu>\<^sub>C' A S"
+    unfolding \<mu>\<^sub>C'_def by auto
+  have "forget S (remove_cls C S)"
+    apply (rule forget.intros) using forget by auto
+  hence [simp]: "3 ^ card (atms_of_m A) - card (conflicting_bj_clss S - {C})
+    = conflicting_bj_clss_yet (card (atms_of_m A)) S"
+    using do_not_forget_before_backtracking_clause_learned_clause_untouched
+    by (metis (no_types, lifting) conflicting_bj_clss_remove_cls)
+  have "finite (clauses S)" using forget.prems(6) by blast
+  thus ?case using \<open>C \<in> clauses S\<close> card_Diff1_less unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def by fastforce
+qed
+
 end -- \<open>end of \<open>conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt\<close>\<close>
 
 section \<open>DPLL with simple backtrack\<close>
@@ -1690,6 +1825,7 @@ proof -
      using backtrack.intros[of S G' L G C] \<open>C \<in> snd S\<close> C unfolding M by auto
 qed
 
+
 end
 sublocale dpll_with_backtrack \<subseteq> dpll_state fst snd "\<lambda>M S. (M, snd S)" "\<lambda>C (M, N). (M, insert C N)"
   "\<lambda>C (M, N). (M, N - {C})"
@@ -1717,11 +1853,22 @@ sublocale dpll_with_backtrack \<subseteq> conflict_driven_clause_learning
    dpll_with_backtrack.backtrack "\<lambda>_ _. False" "\<lambda>_ _. False"
    by unfold_locales
 
-lemma (in dpll_with_backtrack) tranclp_dpll_wf_inital_state:
+context dpll_with_backtrack
+begin
+lemma tranclp_dpll_wf_inital_state:
   assumes fin: "finite A"
   shows "wf {((M'::('v, 'lvl, 'mark) annoted_lits, N'::'v clauses), ([], N))|M' N' N.
     dpll_bj\<^sup>+\<^sup>+ ([], N) (M', N') \<and> atms_of_m N \<subseteq> atms_of_m A}"
   using tranclp_dpll_bj_wf[OF assms(1)] by (rule wf_subset) auto
+
+theorem full0_dpll_normal_forms:
+  fixes M M' :: "('a, 'b, 'c) marked_lit list"
+  assumes
+    full: "full0 dpll_bj ([], N) (M', N')" and
+    "finite N"
+  shows "unsatisfiable N \<or> (M' \<Turnstile>as N \<and> satisfiable N)"
+  using assms full0_dpll_backjump_normal_forms[of "([],N)" "(M', N')" N] by auto
+end
 
 section \<open>CDCL with restarts\<close>
 locale cdcl_increasing_restarts =
@@ -1886,17 +2033,17 @@ next
        \<and> (\<exists>ma l. m = ma + {#l#} \<and> ms \<Turnstile>as CNot ma
        \<and> ma + {#l#} \<notin> clauses s))) pa S (add_cls (C' + {#L#}) S)
        \<or> \<not> conflict_driven_clause_learning trail clauses f add_cls fa pb p"
-         using learn by (meson conflict_driven_clause_learning.cdcl.intros(2)) (* 13 ms *)
+         using learn by (meson conflict_driven_clause_learning.cdcl.intros(2))
        hence f3: "\<And>p. conflict_driven_clause_learning.cdcl trail clauses update_trail add_cls
          remove_cls (\<lambda>s sa. True) (\<lambda>m s. distinct_mset m \<and> \<not> tautology m
        \<and> (\<exists>ms. (\<exists>l la msa. trail s = msa @ Marked l la # ms) \<and> (\<exists>ma l. m = ma + {#l#}
        \<and> ms \<Turnstile>as CNot ma \<and> ma + {#l#} \<notin> clauses s))) p S (add_cls (C' + {#L#}) S)"
-         using conflict_driven_clause_learning_axioms by blast (* 3 ms *)
+         using conflict_driven_clause_learning_axioms by blast
        have "\<And>p pa. conflict_driven_clause_learning.cdcl trail clauses update_trail add_cls
          remove_cls (\<lambda>s sa. True) p pa (add_cls (C' + {#L#}) S) T"
          using bj by (metis (no_types) conflict_driven_clause_learning.c_dpll_bj
            conflict_driven_clause_learning_axioms dpll_with_backjumping_ops.dpll_bj.intros(3)
-           dpll_with_backjumping_ops_axioms) (* 34 ms *)
+           dpll_with_backjumping_ops_axioms)
        thus ?thesis
          using f3 by (meson rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl)
      qed
