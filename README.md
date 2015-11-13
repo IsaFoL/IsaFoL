@@ -16,13 +16,14 @@ Authors:
     Anders Schlichtkrull <andschl at dtu.dk>
     Dmitriy Traytel <traytel at inf.ethz.ch>
 
-Additional collaborator:
+Additional Collaborators
 
-    Andrei Popescu <A.Popescu at mdx.ac.uk>
+    Andrei Popescu <A.Popescu shtrudel mdx.ac.uk>
+    Jørgen Villadsen <jovi shtrudel dtu.dk>
 
 Partly based on work by
 
-    Stefan Berghofer <berghofe at in.tum.de>
+    Stefan Berghofer <berghofe shtrudel in.tum.de>
 
 Related entries in the Archive of Formal Proofs:
 
