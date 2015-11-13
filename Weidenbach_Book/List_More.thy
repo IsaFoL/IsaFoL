@@ -319,6 +319,8 @@ text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and s
 lemma rtranclp_unfold: "rtranclp r a b \<longleftrightarrow> (a = b \<or> tranclp r a b)"
   by (meson rtranclp.simps rtranclpD tranclp_into_rtranclp)
 
+lemma tranclp_unfold_end: "tranclp r a b \<longleftrightarrow> (\<exists>a'. rtranclp r a a' \<and> r a' b)"
+  by (metis rtranclp.rtrancl_refl rtranclp_into_tranclp1 tranclp.cases tranclp_into_rtranclp)
 
 subsubsection \<open>Reflexive bounded closure\<close>
 text \<open>This is the reflexive closure of @{term ntrancl}.\<close>
