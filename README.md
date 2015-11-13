@@ -35,6 +35,14 @@ Analysis) at Universität Innsbruck.
 
 ## Publications ##
 
+* Formalization of Resolution Calculus in Isabelle.
+  A. Schlichtkrull.
+  M.Sc. thesis, Danmarks Tekniske Universitet, 2015.
+
+* [Formalisation of Ground Inference Systems in a Proof Assistant](https://bitbucket.org/zmaths/formalisation-of-ground-inference-systems-in-a-proof-assistant).
+  M. Fleury.
+  M.Sc. thesis, École normale supérieure Rennes, 2015.
+
 * [Unified classical logic completeness: A coinductive pearl](http://www.loria.fr/~jablanch/compl.pdf).
   J. C. Blanchette, A. Popescu, and D. Traytel.
   In Demri, S., Kapur, D., Weidenbach, C. (eds) 7th International Joint
