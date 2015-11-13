@@ -1,7 +1,7 @@
 This repository contains various ongoing Isabelle formalizations of logical
 calculi, collectively called
 
-    IsaFoL: Isabelle Formalization of Logic
+    **IsaFoL: Isabelle Formalization of Logic**
 
 The goal is to develop lemma libraries and methodology for formalizing modern
 research in automated reasoning. Our initial focus is on well-established
