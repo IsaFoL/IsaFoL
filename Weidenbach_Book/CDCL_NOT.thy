@@ -1891,8 +1891,11 @@ text \<open>To add restarts we needs some assumptions on the predicate (called @
   @{term cdcl} or a @{term restart} is done. A parameter is given to @{term \<mu>}: for conflict-driven
   clause learning, it is an upper-bound of the clauses. We are assuming that such a bound can be
   found after a restart whenever the invariant holds.
-  \<^item> we also assume that the measure decrease after doing some steps and a restart.
-  \<^item> an invariant on the states @{term cdcl_inv} that also holds after restarts.\<close>
+  \<^item> we also assume that the measure decrease after any @{term cdcl} step.
+  \<^item> an invariant on the states @{term cdcl_inv} that also holds after restarts.
+  \<^item> it is \<^emph>\<open>not required\<close> that the measure decrease with respect to restarts, but the measure has to 
+  be bound by some function @{term \<mu>_bound} taking the same parameter as @{term \<mu>} and the initial 
+  state of the considered @{term cdcl} chain.\<close>
 locale cdcl_increasing_restarts =
   dpll_state trail clauses update_trail add_cls remove_cls for
     trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
@@ -1906,13 +1909,20 @@ locale cdcl_increasing_restarts =
     bound_inv :: "'bound \<Rightarrow> 'st \<Rightarrow> bool" and
     \<mu> :: "'bound \<Rightarrow> 'st \<Rightarrow> nat" and
     cdcl :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
-    cdcl_inv :: "'st \<Rightarrow> bool"
+    cdcl_inv :: "'st \<Rightarrow> bool" and
+    \<mu>_bound :: "'bound \<Rightarrow> 'st \<Rightarrow> nat"
   assumes
     mono_f: "strict_mono f" and
     bound_inv: "\<And>A S T. cdcl_inv S \<Longrightarrow> bound_inv A S \<Longrightarrow> cdcl S T \<Longrightarrow> bound_inv A T" and
     cdcl_measure: "\<And>A S T. cdcl_inv S \<Longrightarrow> bound_inv A S \<Longrightarrow> cdcl S T \<Longrightarrow> \<mu> A T < \<mu> A S" and
-    cdcl_restart: "\<And>A S T U V. cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow>
-      restart S T \<Longrightarrow> cdcl\<^sup>*\<^sup>* T U \<Longrightarrow> restart U V \<Longrightarrow> \<mu> A V \<le> \<mu> A T" and
+    measure_bound: "\<And>A T U V. cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> cdcl\<^sup>*\<^sup>* T U \<Longrightarrow> restart U V 
+       \<Longrightarrow> \<mu> A V \<le> \<mu>_bound A T" and
+    measure_bound2: "\<And>A T U. cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> cdcl\<^sup>*\<^sup>* T U 
+       \<Longrightarrow> \<mu> A U \<le> \<mu>_bound A T" and
+    measure_bound3: "\<And>A T U V. cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> cdcl\<^sup>*\<^sup>* T U \<Longrightarrow> restart U V 
+       \<Longrightarrow> \<mu>_bound A V \<le> \<mu>_bound A T" and
+    measure_bound4: "\<And>A T U. cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> cdcl\<^sup>*\<^sup>* T U 
+       \<Longrightarrow> \<mu>_bound A U \<le> \<mu>_bound A T" and
     cdcl_restart_inv: "\<And>A U V. cdcl_inv U \<Longrightarrow> restart U V \<Longrightarrow> bound_inv A U \<Longrightarrow> bound_inv A V" and
     [simp]: "f 0 = 0" and
     exists_bound: "\<And>R S. cdcl_inv R \<Longrightarrow> restart R S \<Longrightarrow> \<exists>A. bound_inv A S" and
@@ -2059,57 +2069,37 @@ lemma cdcl_with_restart_increasing_number:
   "cdcl_with_restart S T \<Longrightarrow> snd T = 1 + snd S"
   by (induction rule: cdcl_with_restart.induct) auto
 
-lemma cdcl_with_restart_decreasing_measure:
-  assumes
-    "cdcl_with_restart S T" and
-    R\<^sub>0: "cdcl_with_restart R\<^sub>0 S" and
-    b_inv: "bound_inv A (fst S)" and
-    c_inv: "cdcl_inv (fst S)"
-  shows "\<mu> A (fst T) \<le> \<mu> A (fst S)"
-  using assms(1)
-proof (cases rule: cdcl_with_restart.cases)
-  case (1 R n S' m U' T') note S = this(1) and T = this(2) and R_S = this(3) and S_T = this(4) and
-    f= this(5) and restart = this(6)
-  obtain R' where "restart R' S'"
-    using R\<^sub>0 unfolding S apply (cases rule: cdcl_with_restart.cases)
-      apply simp
-     apply (metis S_T f f_Suc_not_zero full_def le_0_eq relpowp_E2)
-    by simp
-  show ?thesis
-    using cdcl_restart[OF _ _ \<open>restart R' S'\<close> _ restart]  S_T relpowp_imp_rtranclp restart
-    c_inv b_inv unfolding S T by fastforce
-next
-  case (2 R n S T)
-  thus ?thesis
-    using R\<^sub>0 c_inv b_inv by (simp add: rtranclp_unfold full_def rtranclp_cdcl_measure)
-next
-  case (3 S' T')
-  thus ?thesis
-    by (metis R\<^sub>0 cdcl_increasing_restarts.cdcl_with_restart_increasing_number
-      cdcl_increasing_restarts_axioms le_numeral_extra(4) not_one_le_zero snd_conv trans_le_add1)
-qed
 
-lemma rtranclp_cdcl_with_restart_decreasing_measure:
-  "cdcl_with_restart\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl_with_restart R S  \<Longrightarrow> bound_inv A (fst S) \<Longrightarrow> cdcl_inv (fst S)
-  \<Longrightarrow> \<mu> A (fst T) \<le> \<mu> A (fst S)"
-proof (induction arbitrary: R rule: rtranclp_induct)
-  case base
-  thus ?case by auto
-next
-  case (step T U) note st = this(1) and cdcl = this(2) and IH = this(3)[OF this(4-6)] and
-    R_S = this(4) and inv = this(5)
-  have inv_T: "bound_inv A (fst T)"
-    using rtranclp_cdcl_with_restart_bound_inv st step.prems by blast
-  obtain R\<^sub>0 where R\<^sub>0: "cdcl_with_restart R\<^sub>0 T"
-    using st unfolding rtranclp_unfold by (metis R_S rtranclp.cases st)
-  have "\<mu> A (fst U) \<le> \<mu> A (fst T)"
-    apply (rule cdcl_with_restart_decreasing_measure)
-      apply (rule cdcl)
-     using R\<^sub>0 apply auto[]
-    using inv_T apply simp
-   using rtranclp_cdcl_with_restart_cdcl_inv st step.prems(3) by blast
-  thus ?case using IH by auto
-qed
+lemma cdcl_with_restarts_\<mu>_bound:
+  "cdcl_with_restart (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> \<mu>_bound A V \<le> \<mu>_bound A T"
+  apply (cases rule: cdcl_with_restart.cases)
+     apply simp
+    using measure_bound3 relpowp_imp_rtranclp apply fastforce
+   apply (metis full0_def full0_unfold measure_bound4 prod.inject)
+  using measure_bound3 by blast
+
+lemma rtranclp_cdcl_with_restarts_\<mu>_bound:
+  "cdcl_with_restart\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> \<mu>_bound A V \<le> \<mu>_bound A T"
+  apply (induction rule: rtranclp_induct2)
+   apply simp
+  by (metis cdcl_with_restarts_\<mu>_bound dual_order.trans fst_conv 
+    rtranclp_cdcl_with_restart_bound_inv rtranclp_cdcl_with_restart_cdcl_inv) 
+
+lemma cdcl_with_restarts_measure_bound:
+  "cdcl_with_restart (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> \<mu> A V \<le> \<mu>_bound A T"
+  apply (cases rule: cdcl_with_restart.cases)
+     apply simp
+    using measure_bound relpowp_imp_rtranclp apply fastforce
+   apply (metis full0_def full0_unfold measure_bound2 prod.inject)
+  using measure_bound by blast
+
+lemma rtranclp_cdcl_with_restarts_measure_bound:
+  "cdcl_with_restart\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> \<mu> A V \<le> \<mu>_bound A T"
+  apply (induction rule: rtranclp_induct2)
+    apply (simp add: measure_bound2)
+  by (metis dual_order.trans fst_conv measure_bound2 r_into_rtranclp rtranclp.rtrancl_refl 
+    rtranclp_cdcl_with_restart_bound_inv rtranclp_cdcl_with_restart_cdcl_inv 
+    rtranclp_cdcl_with_restarts_\<mu>_bound)
 
 lemma "wf {(T, S). cdcl_with_restart S T \<and> cdcl_inv (fst S)}" (is "wf ?A")
 proof (rule ccontr)
@@ -2122,9 +2112,9 @@ proof (rule ccontr)
   have "strict_mono (snd o g)"
     unfolding strict_mono_def by (smt Suc_eq_plus1 cdcl_with_restart_increasing_number comp_def g
       lessI lift_Suc_mono_less semiring_normalization_rules(24))
-  have H: "\<And>T Ta m. (cdcl ^^ m) T Ta \<Longrightarrow> no_step cdcl T \<Longrightarrow> m = 0"
-    apply (case_tac m) apply simp by (meson relpowp_E2)
   { fix i
+    have H: "\<And>T Ta m. (cdcl ^^ m) T Ta \<Longrightarrow> no_step cdcl T \<Longrightarrow> m = 0"
+      apply (case_tac m) apply simp by (meson relpowp_E2)
     have "\<exists> T m. (cdcl ^^ m) (fst (g i)) T \<and> m \<ge> f (snd (g (i)))"
       using g[of i] apply (cases rule: cdcl_with_restart.cases)
          apply auto[]
@@ -2139,7 +2129,7 @@ proof (rule ccontr)
     by (metis One_nat_def exists_bound fst_conv)
   have "strict_mono (\<lambda>j. f (snd (g j)))"
     by (metis `strict_mono (snd \<circ> g)` comp_def mono_f strict_monoD strict_monoI)
-  let ?j = "\<mu> A (fst (g 1)) + 1"
+  let ?j = "\<mu>_bound A (fst (g 1)) + 1"
   have "f ?j \<ge> ?j"
     by (simp add: mono_f strict_mono_ge_id)
   {
@@ -2151,9 +2141,14 @@ proof (rule ccontr)
   } note cdcl_with_restart = this
   have "cdcl_inv (fst (g (Suc 0)))"
     by (simp add: cdcl_inv_g)
-  hence "\<mu> A (fst (g ?j)) \<le> \<mu> A (fst (g 1))"
-     using g[of 0]  \<open>bound_inv A (fst (g 1))\<close> by (auto simp add: cdcl_with_restart
-       intro!: rtranclp_cdcl_with_restart_decreasing_measure)
+  have "cdcl_with_restart\<^sup>*\<^sup>* (fst (g 1), snd (g 1)) (fst (g ?j), snd (g ?j))"
+    by (simp add: cdcl_with_restart)
+  have "\<mu> A (fst (g ?j)) \<le> \<mu>_bound A (fst (g 1))"
+    apply (rule rtranclp_cdcl_with_restarts_measure_bound)
+    using \<open>cdcl_with_restart\<^sup>*\<^sup>* (fst (g 1), snd (g 1)) (fst (g ?j), snd (g ?j))\<close> apply blast
+        apply (simp add: cdcl_inv_g)
+       using \<open>bound_inv A (fst (g 1))\<close> apply simp
+    done
   hence "\<mu> A (fst (g ?j)) \<le> ?j"
     by auto
   have inv: "bound_inv A (fst (g ?j))"
@@ -2168,11 +2163,14 @@ proof (rule ccontr)
     using f_m \<open>f ?j \<ge> ?j\<close> Nat.le_trans `strict_mono (\<lambda>j. f (snd (g j)))` strict_mono_ge_id by blast
   thus False
     proof -
-      have "\<And>n. \<not> n \<le> Suc (\<mu> A (fst (g 1))) \<or> n \<le> m"
-        by (metis Nat.le_trans Suc_eq_plus1 \<open>\<mu> A (fst (g 1)) + 1 \<le> m\<close>) (* 8 ms *)
-      thus ?thesis
-        by (metis Suc_eq_plus1_left Suc_le_mono cdcl_comp_bounded cdcl_inv_g cdcl_m inv
-          \<open>\<mu> A (fst (g (\<mu> A (fst (g 1)) + 1))) \<le> \<mu> A (fst (g 1))\<close>)
+      have "\<And>n. bound_inv A (fst (g (n + 1)))"
+        by (meson \<open>bound_inv A (fst (g 1))\<close> cdcl_inv_g cdcl_with_restart le_add2 
+          rtranclp_cdcl_with_restart_bound_inv)
+      moreover have "\<And>b. \<not> bound_inv b (fst (g (1 + \<mu>_bound A (fst (g 1))))) \<or> \<not> 1 + \<mu> b (fst (g (1 + \<mu>_bound A (fst (g 1))))) \<le> m"
+        using cdcl_comp_bounded cdcl_inv_g cdcl_m by force (* 16 ms *)
+      ultimately show ?thesis
+        using \<open>\<mu> A (fst (g (\<mu>_bound A (fst (g 1)) + 1))) \<le> \<mu>_bound A (fst (g 1))\<close> 
+        \<open>\<mu>_bound A (fst (g 1)) + 1 \<le> m\<close> by fastforce
     qed
 qed
 end
@@ -2325,13 +2323,17 @@ begin
   "\<lambda>A T. (2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
                - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> T)" dpll_bj
   "\<lambda>(M, N). finite N \<and> no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)"
+  "\<lambda>A _.  (2+card (atms_of_m A)) ^ (1+card (atms_of_m A))"
   apply unfold_locales
          apply (rule strict_mono)
         apply (smt dpll_bj_all_decomposition_implies_inv dpll_bj_atms_in_trail_in_set
           dpll_bj_clauses dpll_bj_no_dup prod.case_eq_if)
        apply (rule dpll_bj_trail_mes_decreasing_prop; auto)
-      apply (case_tac S, case_tac U, simp)
+      apply (case_tac T, simp)
      apply (case_tac U, simp)
+    apply (case_tac T; auto)
+    using dpll_bj_clauses dpll_bj_all_decomposition_implies_inv dpll_bj_no_dup apply fastforce
+   apply (case_tac U; auto)
     using f_0 apply simp
    apply (case_tac R; auto)
   using dpll_bj_clauses dpll_bj_all_decomposition_implies_inv dpll_bj_no_dup apply fastforce
@@ -2348,25 +2350,16 @@ begin
   sublocale cdcl_increasing_restarts _ _ _ _ _ f "\<lambda>S T. T = update_trail [] S"
     "\<lambda>A S. atms_of_m (clauses S) \<subseteq> atms_of_m A \<and> atm_of ` lits_of (trail S) \<subseteq> atms_of_m A \<and>
     finite A"
-    \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' cdcl "\<lambda>S. inv S \<and> no_dup (trail S) \<and> finite (clauses S)"
+    \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' cdcl "\<lambda>S. inv S \<and> no_dup (trail S) \<and> finite (clauses S)" 
+    "\<lambda>A S. \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A (update_trail [] S)"
   apply unfold_locales
            apply (simp add: strict_mono)
           apply (smt Un_iff conflict_driven_clause_learning_ops.cdcl_atms_in_trail_in_set
             conflict_driven_clause_learning_ops.cdcl_atms_of_m_clauses_decreasing
             conflict_driven_clause_learning_ops_axioms contra_subsetD subsetI)
          apply (rule cdcl_decreasing_measure'; simp)
+        defer
         unfolding  \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def \<mu>\<^sub>C'_def conflicting_bj_clss_def apply simp
-       defer
-       apply simp
-      using f_0 apply simp
-     apply auto[]
-    defer
-    using inv_restart apply auto[]
-    defer
-    apply standard
-    using conflict_driven_clause_learning_axioms unfolding conflict_driven_clause_learning_axioms_def
-    conflict_driven_clause_learning_def apply fastforce
-
 oops
 end
 end
