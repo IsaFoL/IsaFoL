@@ -334,6 +334,103 @@ proof -
   then show ?thesis unfolding instance_ofts_def by auto
 qed
 
+subsection {* Merging substitutions *}
+lemma project_sub:
+  assumes inst_C:"C {\<mu>}\<^sub>l\<^sub>s = C'" (* lmbd instead of mu would fit better with below proofs *) (* This equality could be removed from the lemma *)
+  assumes L'sub: "L' \<subseteq> C'"
+  shows "\<exists>L \<subseteq> C. L {\<mu>}\<^sub>l\<^sub>s = L' \<and> (C-L) {\<mu>}\<^sub>l\<^sub>s = C' - L'"
+proof -
+  let ?L = "{l \<in> C. \<exists>l' \<in> L'. l {\<mu>}\<^sub>l = l'}"
+  have "?L \<subseteq> C" by auto
+  moreover
+  have "?L {\<mu>}\<^sub>l\<^sub>s = L'"
+    proof (rule Orderings.order_antisym; rule Set.subsetI)
+      fix l'
+      assume l'L: "l' \<in> L'"
+      from inst_C have "{l {\<mu>}\<^sub>l|l. l \<in> C} = C'" unfolding subls_def2 by -
+      then have "\<exists>l. l' = l {\<mu>}\<^sub>l \<and> l \<in> C \<and> l{\<mu>}\<^sub>l \<in> L'" using L'sub l'L by auto
+      then have " l' \<in> {l \<in> C. l{\<mu>}\<^sub>l \<in> L'}{\<mu>}\<^sub>l\<^sub>s" by auto
+      then show " l' \<in> {l \<in> C. \<exists>l'\<in>L'. l{\<mu>}\<^sub>l = l'}{\<mu>}\<^sub>l\<^sub>s" by auto
+    qed auto
+  moreover
+  have "(C-?L) {\<mu>}\<^sub>l\<^sub>s = C' - L'" using inst_C by auto
+  moreover
+  ultimately show ?thesis by auto
+qed
+
+lemma relevant_vars_subt:
+  "\<forall>x \<in> varst t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> t {\<sigma>\<^sub>1}\<^sub>t = t {\<sigma>\<^sub>2}\<^sub>t" (* "\<forall>x \<in> varsts ts. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> ts {\<sigma>\<^sub>1}\<^sub>t\<^sub>s = ts {\<sigma>\<^sub>2}\<^sub>t\<^sub>s"*)
+proof (induction t)
+  case (Fun f ts)
+  have f: "\<And>t. t \<in> set ts \<Longrightarrow> varst t \<subseteq> varsts ts" by (induction ts) auto
+  have "\<forall>t\<in>set ts. t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" 
+    proof
+      fix t
+      assume tints: "t \<in> set ts"
+      then have "\<forall>x\<in>varst t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f Fun(2) by auto
+      then show "t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" using Fun tints by auto
+    qed
+  then have "ts{\<sigma>\<^sub>1}\<^sub>t\<^sub>s = ts{\<sigma>\<^sub>2}\<^sub>t\<^sub>s" by auto
+  then show ?case by auto
+qed auto
+
+lemma relevant_vars_subts: (* copy paste from above proof *)
+  assumes asm: "\<forall>x \<in> varsts ts. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
+  shows "ts {\<sigma>\<^sub>1}\<^sub>t\<^sub>s = ts {\<sigma>\<^sub>2}\<^sub>t\<^sub>s" 
+proof -
+   have f: "\<And>t. t \<in> set ts \<Longrightarrow> varst t \<subseteq> varsts ts" by (induction ts) auto
+   have "\<forall>t\<in>set ts. t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" 
+    proof
+      fix t
+      assume tints: "t \<in> set ts"
+      then have "\<forall>x\<in>varst t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f asm by auto
+      then show "t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" using relevant_vars_subt tints by auto
+    qed
+  then show ?thesis by auto
+qed
+
+lemma relevant_vars_subl:
+  "\<forall>x \<in> varsl l. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> l {\<sigma>\<^sub>1}\<^sub>l = l {\<sigma>\<^sub>2}\<^sub>l"
+proof (induction l)
+  case (Pos p ts)
+  then show ?case using relevant_vars_subts unfolding varsl_def by auto
+next
+  case (Neg p ts)
+  then show ?case using relevant_vars_subts unfolding varsl_def by auto
+qed
+
+lemma relevant_vars_subls: (* in many ways a mirror of relevant_vars_subts  *)
+  assumes asm: "\<forall>x \<in> varsls L. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
+  shows "L {\<sigma>\<^sub>1}\<^sub>l\<^sub>s = L {\<sigma>\<^sub>2}\<^sub>l\<^sub>s"
+proof -
+  have f: "\<And>l. l \<in> L \<Longrightarrow> varsl l \<subseteq> varsls L" unfolding varsls_def by auto
+  have "\<forall>l \<in> L. l {\<sigma>\<^sub>1}\<^sub>l = l {\<sigma>\<^sub>2}\<^sub>l"
+    proof
+      fix l
+      assume linls: "l\<in>L"
+      then have "\<forall>x\<in>varsl l. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f asm by auto
+      then show "l{\<sigma>\<^sub>1}\<^sub>l = l{\<sigma>\<^sub>2}\<^sub>l" using relevant_vars_subl linls by auto
+    qed
+  then show ?thesis by (meson image_cong) 
+qed
+
+lemma merge_sub: (* To prove this I should make a lemma that says literals only care about the variables that are in them *)
+  assumes dist: "varsls C \<inter> varsls D = {}"
+  assumes CC': "C {lmbd}\<^sub>l\<^sub>s = C'"
+  assumes DD': "D {\<mu>}\<^sub>l\<^sub>s = D'"
+  shows "\<exists>\<eta>. C {\<eta>}\<^sub>l\<^sub>s = C' \<and> D {\<eta>}\<^sub>l\<^sub>s = D'"
+proof -
+  let ?\<eta> = "\<lambda>x. if x \<in> varsls C then lmbd x else \<mu> x"
+  have " \<forall>x\<in>varsls C. ?\<eta> x = lmbd x" by auto
+  then have "C {?\<eta>}\<^sub>l\<^sub>s = C {lmbd}\<^sub>l\<^sub>s" using relevant_vars_subls[of C ?\<eta> lmbd] by auto
+  then have "C {?\<eta>}\<^sub>l\<^sub>s = C'" using CC' by auto
+  moreover
+  have " \<forall>x\<in>varsls D. ?\<eta> x = \<mu> x" using dist by auto
+  then have "D {?\<eta>}\<^sub>l\<^sub>s = D {\<mu>}\<^sub>l\<^sub>s" using relevant_vars_subls[of D ?\<eta> \<mu>] by auto
+  then have "D {?\<eta>}\<^sub>l\<^sub>s = D'" using DD' by auto
+  ultimately
+  show ?thesis by auto
+qed
 
 section {* Unifiers *}
 
@@ -1152,102 +1249,6 @@ proof -
   then show ?thesis by auto
 qed
 
-lemma project_sub:
-  assumes inst_C:"C {\<mu>}\<^sub>l\<^sub>s = C'" (* lmbd instead of mu would fit better with below proofs *) (* This equality could be removed from the lemma *)
-  assumes L'sub: "L' \<subseteq> C'"
-  shows "\<exists>L \<subseteq> C. L {\<mu>}\<^sub>l\<^sub>s = L' \<and> (C-L) {\<mu>}\<^sub>l\<^sub>s = C' - L'"
-proof -
-  let ?L = "{l \<in> C. \<exists>l' \<in> L'. l {\<mu>}\<^sub>l = l'}"
-  have "?L \<subseteq> C" by auto
-  moreover
-  have "?L {\<mu>}\<^sub>l\<^sub>s = L'"
-    proof (rule Orderings.order_antisym; rule Set.subsetI)
-      fix l'
-      assume l'L: "l' \<in> L'"
-      from inst_C have "{l {\<mu>}\<^sub>l|l. l \<in> C} = C'" unfolding subls_def2 by -
-      then have "\<exists>l. l' = l {\<mu>}\<^sub>l \<and> l \<in> C \<and> l{\<mu>}\<^sub>l \<in> L'" using L'sub l'L by auto
-      then have " l' \<in> {l \<in> C. l{\<mu>}\<^sub>l \<in> L'}{\<mu>}\<^sub>l\<^sub>s" by auto
-      then show " l' \<in> {l \<in> C. \<exists>l'\<in>L'. l{\<mu>}\<^sub>l = l'}{\<mu>}\<^sub>l\<^sub>s" by auto
-    qed auto
-  moreover
-  have "(C-?L) {\<mu>}\<^sub>l\<^sub>s = C' - L'" using inst_C by auto
-  moreover
-  ultimately show ?thesis by auto
-qed
-
-lemma relevant_vars_subt:
-  "\<forall>x \<in> varst t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> t {\<sigma>\<^sub>1}\<^sub>t = t {\<sigma>\<^sub>2}\<^sub>t" (* "\<forall>x \<in> varsts ts. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> ts {\<sigma>\<^sub>1}\<^sub>t\<^sub>s = ts {\<sigma>\<^sub>2}\<^sub>t\<^sub>s"*)
-proof (induction t)
-  case (Fun f ts)
-  have f: "\<And>t. t \<in> set ts \<Longrightarrow> varst t \<subseteq> varsts ts" by (induction ts) auto
-  have "\<forall>t\<in>set ts. t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" 
-    proof
-      fix t
-      assume tints: "t \<in> set ts"
-      then have "\<forall>x\<in>varst t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f Fun(2) by auto
-      then show "t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" using Fun tints by auto
-    qed
-  then have "ts{\<sigma>\<^sub>1}\<^sub>t\<^sub>s = ts{\<sigma>\<^sub>2}\<^sub>t\<^sub>s" by auto
-  then show ?case by auto
-qed auto
-
-lemma relevant_vars_subts: (* copy paste from above proof *)
-  assumes asm: "\<forall>x \<in> varsts ts. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
-  shows "ts {\<sigma>\<^sub>1}\<^sub>t\<^sub>s = ts {\<sigma>\<^sub>2}\<^sub>t\<^sub>s" 
-proof -
-   have f: "\<And>t. t \<in> set ts \<Longrightarrow> varst t \<subseteq> varsts ts" by (induction ts) auto
-   have "\<forall>t\<in>set ts. t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" 
-    proof
-      fix t
-      assume tints: "t \<in> set ts"
-      then have "\<forall>x\<in>varst t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f asm by auto
-      then show "t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" using relevant_vars_subt tints by auto
-    qed
-  then show ?thesis by auto
-qed
-
-lemma relevant_vars_subl:
-  "\<forall>x \<in> varsl l. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> l {\<sigma>\<^sub>1}\<^sub>l = l {\<sigma>\<^sub>2}\<^sub>l"
-proof (induction l)
-  case (Pos p ts)
-  then show ?case using relevant_vars_subts unfolding varsl_def by auto
-next
-  case (Neg p ts)
-  then show ?case using relevant_vars_subts unfolding varsl_def by auto
-qed
-
-lemma relevant_vars_subls: (* in many ways a mirror of relevant_vars_subts  *)
-  assumes asm: "\<forall>x \<in> varsls L. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
-  shows "L {\<sigma>\<^sub>1}\<^sub>l\<^sub>s = L {\<sigma>\<^sub>2}\<^sub>l\<^sub>s"
-proof -
-  have f: "\<And>l. l \<in> L \<Longrightarrow> varsl l \<subseteq> varsls L" unfolding varsls_def by auto
-  have "\<forall>l \<in> L. l {\<sigma>\<^sub>1}\<^sub>l = l {\<sigma>\<^sub>2}\<^sub>l"
-    proof
-      fix l
-      assume linls: "l\<in>L"
-      then have "\<forall>x\<in>varsl l. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f asm by auto
-      then show "l{\<sigma>\<^sub>1}\<^sub>l = l{\<sigma>\<^sub>2}\<^sub>l" using relevant_vars_subl linls by auto
-    qed
-  then show ?thesis by (meson image_cong) 
-qed
-
-lemma merge_sub: (* To prove this I should make a lemma that says literals only care about the variables that are in them *)
-  assumes dist: "varsls C \<inter> varsls D = {}"
-  assumes CC': "C {lmbd}\<^sub>l\<^sub>s = C'"
-  assumes DD': "D {\<mu>}\<^sub>l\<^sub>s = D'"
-  shows "\<exists>\<eta>. C {\<eta>}\<^sub>l\<^sub>s = C' \<and> D {\<eta>}\<^sub>l\<^sub>s = D'"
-proof -
-  let ?\<eta> = "\<lambda>x. if x \<in> varsls C then lmbd x else \<mu> x"
-  have " \<forall>x\<in>varsls C. ?\<eta> x = lmbd x" by auto
-  then have "C {?\<eta>}\<^sub>l\<^sub>s = C {lmbd}\<^sub>l\<^sub>s" using relevant_vars_subls[of C ?\<eta> lmbd] by auto
-  then have "C {?\<eta>}\<^sub>l\<^sub>s = C'" using CC' by auto
-  moreover
-  have " \<forall>x\<in>varsls D. ?\<eta> x = \<mu> x" using dist by auto
-  then have "D {?\<eta>}\<^sub>l\<^sub>s = D {\<mu>}\<^sub>l\<^sub>s" using relevant_vars_subls[of D ?\<eta> \<mu>] by auto
-  then have "D {?\<eta>}\<^sub>l\<^sub>s = D'" using DD' by auto
-  ultimately
-  show ?thesis by auto
-qed
 
 section {* Lifting Lemma *}
 
