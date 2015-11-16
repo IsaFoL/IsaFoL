@@ -2274,6 +2274,52 @@ inductive cdcl_with_restart where
 "cdcl_with_restart (R, n) (S, Suc n) \<Longrightarrow> full cdcl S T
   \<Longrightarrow> cdcl_with_restart (S, Suc n) (T, Suc (Suc n))" |
 "restart S T \<Longrightarrow> cdcl_with_restart (S, 0) (T, 1)"
+
+lemmas cdcl_with_restart_induct = cdcl_with_restart.induct[split_format(complete),
+  OF cdcl_increasing_restarts_ops_axioms]
+
+lemma cdcl_with_restart_bound_inv:
+  assumes
+    "cdcl_with_restart S T" and
+    "bound_inv A (fst S)" and
+    "cdcl_inv (fst S)"
+  shows "bound_inv A (fst T)"
+  using assms apply (induction rule: cdcl_with_restart.induct)
+    prefer 2 apply (metis Nitpick.rtranclp_unfold fstI full_def rtranclp_cdcl_bound_inv)
+  by (metis cdcl_bound_inv cdcl_cdcl_inv cdcl_restart_inv fst_conv)+
+
+
+lemma cdcl_with_restart_cdcl_inv:
+  assumes
+    "cdcl_with_restart S T" and
+    "cdcl_inv (fst S)"
+  shows "cdcl_inv (fst  T)"
+  using assms apply (induction)
+    apply (metis cdcl_cdcl_inv cdcl_inv_restart fst_conv)
+   apply (metis fstI full0_def full0_unfold rtranclp_cdcl_cdcl_inv)
+  by (simp add: cdcl_inv_restart)
+
+lemma rtranclp_cdcl_with_restart_cdcl_inv:
+  assumes
+    "cdcl_with_restart\<^sup>*\<^sup>* S T" and
+    "cdcl_inv (fst S)"
+  shows "cdcl_inv (fst T)"
+  using assms by (induction) (auto intro: cdcl_with_restart_cdcl_inv)
+
+lemma rtranclp_cdcl_with_restart_bound_inv:
+  assumes
+    "cdcl_with_restart\<^sup>*\<^sup>* S T" and
+    "cdcl_inv (fst S)" and
+    "bound_inv A (fst S)"
+  shows "bound_inv A (fst T)"
+  using assms apply (induction)
+   apply (simp add: cdcl_cdcl_inv cdcl_with_restart_bound_inv)
+  using cdcl_with_restart_bound_inv rtranclp_cdcl_with_restart_cdcl_inv by blast
+
+lemma cdcl_with_restart_increasing_number:
+  "cdcl_with_restart S T \<Longrightarrow> snd T = 1 + snd S"
+  by (induction rule: cdcl_with_restart.induct) auto
+
 end
 
 text \<open>To add restarts we needs some assumptions on the predicate (called @{term cdcl} here):
@@ -2312,47 +2358,6 @@ locale cdcl_increasing_restarts =
         \<Longrightarrow> \<mu>_bound A V \<le> \<mu>_bound A T"
 begin
 
-lemma cdcl_with_restart_bound_inv:
-  assumes
-    "cdcl_with_restart S T" and
-    "bound_inv A (fst S)" and
-    "cdcl_inv (fst S)"
-  shows "bound_inv A (fst T)"
-  using assms apply (induction)
-    prefer 2 apply (metis Nitpick.rtranclp_unfold fstI full_def rtranclp_cdcl_bound_inv)
-  by (metis cdcl_bound_inv cdcl_cdcl_inv cdcl_restart_inv fst_conv)+
-
-
-lemma cdcl_with_restart_cdcl_inv:
-  assumes
-    "cdcl_with_restart S T" and
-    "cdcl_inv (fst S)"
-  shows "cdcl_inv (fst T)"
-  using assms apply (induction)
-    apply (metis cdcl_cdcl_inv cdcl_inv_restart fst_conv)
-   apply (metis fstI full0_def full0_unfold rtranclp_cdcl_cdcl_inv)
-  by (simp add: cdcl_inv_restart)
-
-lemma rtranclp_cdcl_with_restart_cdcl_inv:
-  assumes
-    "cdcl_with_restart\<^sup>*\<^sup>* S T" and
-    "cdcl_inv (fst S)"
-  shows "cdcl_inv (fst T)"
-  using assms by (induction) (auto intro: cdcl_with_restart_cdcl_inv)
-
-lemma rtranclp_cdcl_with_restart_bound_inv:
-  assumes
-    "cdcl_with_restart\<^sup>*\<^sup>* S T" and
-    "cdcl_inv (fst S)" and
-    "bound_inv A (fst S)"
-  shows "bound_inv A (fst T)"
-  using assms apply (induction)
-   apply (simp add: cdcl_cdcl_inv cdcl_with_restart_bound_inv)
-  using cdcl_with_restart_bound_inv rtranclp_cdcl_with_restart_cdcl_inv by blast
-
-lemma cdcl_with_restart_increasing_number:
-  "cdcl_with_restart S T \<Longrightarrow> snd T = 1 + snd S"
-  by (induction rule: cdcl_with_restart.induct) auto
 
 lemma rtranclp_cdcl_with_restarts_\<mu>_bound:
   "cdcl_with_restart\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> \<mu>_bound A V \<le> \<mu>_bound A T"
@@ -2673,15 +2678,35 @@ qed
     \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound
     apply (unfold_locales)
            apply (simp add: strict_mono)
-          using bound_inv_inv  apply meson
+          using bound_inv_inv apply meson
          apply (rule cdcl_decreasing_measure'; simp)
          apply (rule rtranclp_cdcl_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound; simp)
         apply (rule rtranclp_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_decreasing; simp)
        apply auto[]
       apply (simp add: f_0)
      apply auto[]
-    using cdcl_inv cdcl_finite_clauses cdcl_no_dup apply fastforce
+    using cdcl_inv cdcl_finite_clauses cdcl_no_dup apply blast
   using inv_restart apply auto[]
   done
+
+lemma
+  assumes
+    cdcl: "cdcl_with_restart (T, a) (V, b)" and
+    cdcl_inv:
+      "inv T"
+      "no_dup (trail T)"
+      "finite (clauses T)" and
+    bound_inv:
+      "atms_of_m (clauses T) \<subseteq> atms_of_m A"
+      "atm_of ` lits_of (trail T) \<subseteq> atms_of_m A"
+      "finite A"
+  shows "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A V \<le> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A T"
+  using cdcl_inv bound_inv
+  apply (induction rule: cdcl_with_restart_induct[OF cdcl])
+  defer
+  defer
+  apply simp
+oops
+
 end
 end
