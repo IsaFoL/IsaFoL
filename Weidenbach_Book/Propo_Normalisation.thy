@@ -230,18 +230,26 @@ no_T_F_symb_comp: "c \<noteq> CF \<Longrightarrow> c \<noteq> CT \<Longrightarro
 
 lemma wf_conn_no_T_F_symb_iff[simp]:
   "wf_conn c \<psi>s \<Longrightarrow> no_T_F_symb (conn c \<psi>s) \<longleftrightarrow> (c \<noteq> CF \<and> c \<noteq> CT \<and> (\<forall>\<psi>\<in>set \<psi>s. \<psi> \<noteq> FF \<and> \<psi> \<noteq> FT))"
-  using conn_inj no_T_F_symb.simps by smt
+  unfolding no_T_F_symb.simps apply (cases c)
+          using wf_conn_list(1) apply fastforce
+         using wf_conn_list(2) apply fastforce
+        using wf_conn_list(3) apply fastforce
+       apply (metis (no_types, hide_lams) conn_inj connective.distinct(5,17))
+      using conn_inj apply blast+
+  done
 
 lemma wf_conn_no_T_F_symb_iff_explicit[simp]:
 "no_T_F_symb (FAnd \<phi> \<psi>) \<longleftrightarrow> (\<forall>\<chi> \<in> set [\<phi>, \<psi>]. \<chi> \<noteq> FF \<and> \<chi> \<noteq> FT)"
 "no_T_F_symb (FOr \<phi> \<psi>) \<longleftrightarrow> (\<forall>\<chi> \<in> set [\<phi>, \<psi>]. \<chi> \<noteq> FF \<and> \<chi> \<noteq> FT)"
 "no_T_F_symb (FEq \<phi> \<psi>) \<longleftrightarrow> (\<forall>\<chi> \<in> set [\<phi>, \<psi>]. \<chi> \<noteq> FF \<and> \<chi> \<noteq> FT)"
 "no_T_F_symb (FImp \<phi> \<psi>) \<longleftrightarrow> (\<forall>\<chi> \<in> set [\<phi>, \<psi>]. \<chi> \<noteq> FF \<and> \<chi> \<noteq> FT)"
-     using wf_conn_no_T_F_symb_iff wf_conn_helper_facts(5) apply fastforce
-    using wf_conn_no_T_F_symb_iff wf_conn_helper_facts(6) apply fastforce
-   using wf_conn_no_T_F_symb_iff wf_conn_helper_facts(8) apply fastforce
-  using wf_conn_no_T_F_symb_iff wf_conn_helper_facts(7) apply fastforce
-done
+     apply (metis conn.simps(36) conn.simps(37) conn.simps(5) propo.distinct(19)
+       wf_conn_helper_facts(5)  wf_conn_no_T_F_symb_iff)
+    apply (metis conn.simps(36) conn.simps(37) conn.simps(6) propo.distinct(22)
+      wf_conn_helper_facts(6) wf_conn_no_T_F_symb_iff)
+   using wf_conn_no_T_F_symb_iff apply fastforce
+  by (metis conn.simps(36) conn.simps(37) conn.simps(7) propo.distinct(23) wf_conn_helper_facts(7)
+    wf_conn_no_T_F_symb_iff)
 
 
 lemma no_T_F_symb_false[simp]:
