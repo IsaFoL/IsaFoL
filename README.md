@@ -25,7 +25,7 @@ at Universität Innsbruck.
 ## Additional Collaborators ##
 
 * [Andrei Popescu](mailto:A.Popescu shtrudel mdx.ac.uk)
-* [Jørgen Villadsen](jovi shtrudel dtu.dk)
+* [Jørgen Villadsen](mailto:jovi shtrudel dtu.dk)
 * [Christoph Weidenbach](mailto:weidenbach shtrudel mpi-inf.mpg.de)
 
 ## Related entries in the _Archive of Formal Proofs_ ##
