@@ -1075,7 +1075,8 @@ proof (induct "card (atms \<union> atms')" arbitrary: atms atms')
   case (0 atms' atms)
   thus ?case by auto
 next
-  case (Suc n atms atms') note IH = this(1) and c = this(2) and disj = this(3) and finite = this(4) and finite' = this(5)
+  case (Suc n atms atms') note IH = this(1) and c = this(2) and disj = this(3) and finite = this(4)
+    and finite' = this(5)
   let ?min = "Min (atms \<union> atms')"
   have m: "?min \<in> atms \<or> ?min \<in> atms'" by (metis Min_in Un_iff c card_eq_0_iff nat.distinct(1))
   moreover {
