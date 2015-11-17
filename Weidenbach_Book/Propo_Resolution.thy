@@ -1,6 +1,5 @@
 theory Propo_Resolution
-
-imports Partial_Clausal_Logic
+imports Partial_Clausal_Logic List_More
 
 begin
 section \<open>Resolution\<close>
@@ -1620,14 +1619,6 @@ lemma wf_always_more_step_False:
   shows "(\<forall>x. \<exists>z. (z, x)\<in>R) \<Longrightarrow> False"
  using assms unfolding wf_def by (meson Domain.DomainI assms wfE_min)
 
-(* TODO Move*)
-lemma wfP_if_measure: fixes f :: "'a \<Rightarrow> nat"
-shows "(\<And>x y. P x \<Longrightarrow> g x y  \<Longrightarrow> f y < f x) \<Longrightarrow> wf {(y,x). P x \<and> g x y}"
-  apply(insert wf_measure[of f])
-  apply(simp only: measure_def inv_image_def less_than_def less_eq)
-  apply(erule wf_subset)
-  apply auto
-  done
 lemma finite_finite_mset_element_of_mset[simp]:
   assumes "finite N"
   shows "finite {f \<phi> L |\<phi> L. \<phi> \<in> N \<and> L \<in># \<phi> \<and> P \<phi> L}"
@@ -1895,17 +1886,6 @@ proof -
   thus "?P N" by blast
 qed
 
-lemmas wfP_terminates = wf_terminates [to_pred]
-lemma wf_terminates':
-  assumes wf: "wf {(b, a). (a, b) \<in> r \<and> P a}"
-  shows "\<exists>N'.(N', N)\<in> {(b, a). (a, b) \<in> r \<and> P a}\<^sup>*  \<and> (\<forall>N''. (N'', N')\<notin> {(b, a). (a, b) \<in> r \<and> P a})"
-  using assms by (blast intro: Propo_Resolution.wf_terminates)
-
-lemma wfP_terminates':
-  assumes wf: "wf {(b, a). r a b  \<and> P a}"
-  shows "\<exists>N'.(N', N) \<in> {(b, a). r a b \<and> P a}\<^sup>*  \<and> (\<forall>N''. (N'', N')\<notin> {(b, a). r a b \<and> P a})"
-  using assms by (blast intro: Propo_Resolution.wf_terminates)
-
 lemma rtranclp_simplify_terminates:
   assumes fin: "finite N"
   shows "\<exists>N'. simplify\<^sup>*\<^sup>* N N' \<and> simplified N'"
@@ -1915,7 +1895,7 @@ proof -
     using simplify_terminates by (simp add: H)
   obtain N' where N': "(N', N)\<in> {(b, a). simplify a b \<and> finite a}\<^sup>*" and
     more: "(\<forall>N''. (N'', N')\<notin> {(b, a). simplify a b \<and> finite a})"
-    using wfP_terminates'[OF wf, of N] by blast
+    using  Propo_Resolution.wf_terminates[OF wf, of N] by blast
   have 1: "simplify\<^sup>*\<^sup>* N N'"
     using N' by (induction rule: rtrancl.induct) auto
   hence "finite N'" using fin rtranclp_simplifier_preserves_finite by blast
@@ -1934,7 +1914,6 @@ lemma finite_simplified_full0_simp:
   assumes "finite N"
   shows "\<exists>N'. full0_simplifier N N'"
   using rtranclp_simplify_terminates[OF assms] unfolding full0_simplifier_def by metis
-
 
 lemma can_decrease_tree_size_resolution:
   fixes \<psi> :: "'v state" and tree :: "'v sem_tree"
@@ -2268,7 +2247,6 @@ lemma resolution_preserves_sat:
    using full_simplifier_def rtranclp_preserves_sat tranclp_into_rtranclp apply fastforce
   by (metis fst_conv full0_simplifier_def inference_preserves_un_sat rtranclp_preserves_sat
     satisfiable_carac' satisfiable_def)
-
 
 lemma rtranclp_resolution_preserves_sat:
   assumes "resolution\<^sup>*\<^sup>* S S'"
