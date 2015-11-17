@@ -1806,6 +1806,37 @@ definition \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound :: "'v literal multiset 
      + 2*3 ^ (card (atms_of_m A))
      + card {C \<in> clauses S. tautology C \<or> \<not>distinct_mset C} + 3 ^ (card (atms_of_m A))"
 
+lemma \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_update_trail[simp]:
+  "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A (update_trail M S) = \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A S"
+  unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_def by auto
+
+lemma rtranclp_cdcl_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_update_trail:
+  assumes
+    "cdcl\<^sup>*\<^sup>* S T" and
+    "inv S" and
+    "atms_of_m (clauses S) \<subseteq> atms_of_m A" and
+    "atm_of `(lits_of (trail S)) \<subseteq> atms_of_m A" and
+    "finite (clauses S)" and
+    finite: "finite (atms_of_m A)"
+  shows "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A (update_trail M T) \<le> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A S"
+proof -
+  have " ((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A (update_trail M T))
+    \<le> (2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))"
+    by auto
+  hence "((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A (update_trail M T))
+        * (1 + 3 ^ card (atms_of_m A)) * 2
+    \<le> (2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) * (1 + 3 ^ card (atms_of_m A)) * 2"
+    using mult_le_mono1 by blast
+  moreover
+    have "conflicting_bj_clss_yet (card (atms_of_m A)) T * 2 \<le> 2 * 3 ^ card (atms_of_m A)"
+      by linarith
+  moreover have "card (clauses (update_trail M T))
+      \<le> card {C \<in> clauses S. tautology C \<or> \<not>distinct_mset C} + 3 ^ card (atms_of_m A)"
+    using rtranclp_cdcl_card_simple_clauses_bound[OF assms(1-6)] by simp
+  ultimately show ?thesis
+    unfolding  \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_def by linarith
+qed
+
 lemma rtranclp_cdcl_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound:
   assumes
     "cdcl\<^sup>*\<^sup>* S T" and
@@ -1816,21 +1847,9 @@ lemma rtranclp_cdcl_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound:
     finite: "finite (atms_of_m A)"
   shows "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A T \<le> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A S"
 proof -
-  have " ((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A T)
-    \<le> (2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))"
-    by auto
-  hence "((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A T)
-        * (1 + 3 ^ card (atms_of_m A)) * 2
-    \<le> (2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) * (1 + 3 ^ card (atms_of_m A)) * 2"
-    using mult_le_mono1 by blast
-  moreover
-    have "conflicting_bj_clss_yet (card (atms_of_m A)) T * 2 \<le> 2 * 3 ^ card (atms_of_m A)"
-      by linarith
-  moreover have "card (clauses T)
-      \<le> card {C \<in> clauses S. tautology C \<or> \<not>distinct_mset C} + 3 ^ card (atms_of_m A)"
-    using rtranclp_cdcl_card_simple_clauses_bound[OF assms(1-6)] .
-  ultimately show ?thesis
-    unfolding  \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_def by linarith
+  have "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A (update_trail (trail T) T) = \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A T"
+    unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def  \<mu>\<^sub>C'_def conflicting_bj_clss_def by auto
+  thus ?thesis using rtranclp_cdcl_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_update_trail[OF assms, of "trail T"] by auto
 qed
 
 (* TODO Move *)
@@ -2688,8 +2707,12 @@ qed
     using cdcl_inv cdcl_finite_clauses cdcl_no_dup apply blast
   using inv_restart apply auto[]
   done
+(*unusable otherwise*)
+abbreviation cdcl_l where
+"cdcl_l \<equiv> conflict_driven_clause_learning_ops.cdcl trail clauses update_trail add_cls remove_cls backjump
+          (\<lambda>C S. distinct_mset C \<and> \<not> tautology C \<and> learn_restrictions C S \<and> (\<exists>F K d F' C' L. trail S = F' @ Marked K d # F \<and> C = C' + {#L#} \<and> F \<Turnstile>as CNot C' \<and> C' + {#L#} \<notin> clauses S))  (\<lambda>C S. \<not> (\<exists>F' F K d L. trail S = F' @ Marked K d # F \<and> F \<Turnstile>as CNot (C - {#L#})) \<and> forget_restrictions C S)"
 
-lemma
+lemma cdcl_with_restart_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_le_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound:
   assumes
     cdcl: "cdcl_with_restart (T, a) (V, b)" and
     cdcl_inv:
@@ -2702,11 +2725,62 @@ lemma
       "finite A"
   shows "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A V \<le> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A T"
   using cdcl_inv bound_inv
-  apply (induction rule: cdcl_with_restart_induct[OF cdcl])
-  defer
-  defer
-  apply simp
-oops
+proof (induction rule: cdcl_with_restart_induct[OF cdcl])
+  case (3 S T)
+  thus ?case
+    using rtranclp_cdcl_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound[of T T] by (simp add: inv_restart)
+next
+  case (1 R n S m T U) note U = this(4)
+  show ?case unfolding U
+    apply (rule  rtranclp_cdcl_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_update_trail)
+         using \<open>(cdcl_l ^^ m) S T\<close>  apply (fastforce dest: relpowp_imp_rtranclp)
+        using 1 by auto
+next
+  case (2 R n S T) note full = this(2)
+  show ?case
+    apply (rule rtranclp_cdcl_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound)
+    using full 2 unfolding full_def by force+
+qed
+
+lemma cdcl_with_restart_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_le_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound:
+  assumes
+    cdcl: "cdcl_with_restart (T, a) (V, b)" and
+    cdcl_inv:
+      "inv T"
+      "no_dup (trail T)"
+      "finite (clauses T)" and
+    bound_inv:
+      "atms_of_m (clauses T) \<subseteq> atms_of_m A"
+      "atm_of ` lits_of (trail T) \<subseteq> atms_of_m A"
+      "finite A"
+  shows "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A V \<le> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A T"
+  using cdcl_inv bound_inv
+proof (induction rule: cdcl_with_restart_induct[OF cdcl])
+  case (3 S T)
+  thus ?case by (simp add: inv_restart)
+next
+  case (1 R n S m T U) note U = this(4)
+  have "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A T \<le> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A S"
+     apply (rule rtranclp_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_decreasing)
+         using \<open>(cdcl_l ^^ m) S T\<close>  apply (fastforce dest: relpowp_imp_rtranclp)
+        using 1 by auto
+  thus ?case unfolding U by auto
+next
+  case (2 R n S T) note full = this(2)
+  show ?case
+    apply (rule rtranclp_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_decreasing)
+    using full 2 unfolding full_def by force+
+qed
+
+sublocale cdcl_increasing_restarts _ _ _ _ _  f "\<lambda>S T. T = update_trail [] S"
+    "\<lambda>A S. atms_of_m (clauses S) \<subseteq> atms_of_m A \<and> atm_of ` lits_of (trail S) \<subseteq> atms_of_m A \<and>
+    finite A"
+    \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' cdcl "\<lambda>S. inv S \<and> no_dup (trail S) \<and> finite (clauses S)"
+    \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound
+  apply unfold_locales
+   using cdcl_with_restart_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_le_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound apply simp
+  using cdcl_with_restart_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_le_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound apply simp
+  done
 
 end
 end
