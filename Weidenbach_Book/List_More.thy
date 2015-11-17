@@ -195,7 +195,7 @@ lemma wf_if_measure_in_wf:
   by (meson wf_iff_no_infinite_down_chain)
 
 lemma wfP_if_measure: fixes f :: "'a \<Rightarrow> nat"
-shows "(\<And>x y. P x \<Longrightarrow> g x y  \<Longrightarrow> f x < f y) \<Longrightarrow> wf {(x,y). P x \<and> g x y}"
+shows "(\<And>x y. P x \<Longrightarrow> g x y  \<Longrightarrow> f y < f x) \<Longrightarrow> wf {(y,x). P x \<and> g x y}"
   apply(insert wf_measure[of f])
   apply(simp only: measure_def inv_image_def less_than_def less_eq)
   apply(erule wf_subset)

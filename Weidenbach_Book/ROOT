@@ -20,8 +20,8 @@ session "Weidenbach_Book" (main) = "HOL" +
     DPLL_CDCL_Implementation
     DPLL_Implementation
     CDCL_CW_Implementation
-  theories [quick_and_dirty]
     CDCL_NOT
+  theories [quick_and_dirty]
     Propo_Superposition
     CDCL_CW_NOT
   document_files
