@@ -2167,6 +2167,19 @@ end
 
 section \<open>CDCL with restarts\<close>
 subsection\<open>Definition\<close>
+text \<open>To add restarts we needs some assumptions on the predicate (called @{term cdcl} here):
+  \<^item> a function @{term f} that is strictly monotonic (and to ease the proof, we assume that
+  @{term "f (0::nat) = 0"}). The first step is actually only a restart to clean the state (e.g. to 
+  ensure that the trail is empty).
+  \<^item> a measure @{term "\<mu>"}: it should decrease under the assumptions @{term bound_inv}, whenever a
+  @{term cdcl} or a @{term restart} is done. A parameter is given to @{term \<mu>}: for conflict-driven
+  clause learning, it is an upper-bound of the clauses. We are assuming that such a bound can be
+  found after a restart whenever the invariant holds.
+  \<^item> we also assume that the measure decrease after any @{term cdcl} step.
+  \<^item> an invariant on the states @{term cdcl_inv} that also holds after restarts.
+  \<^item> it is \<^emph>\<open>not required\<close> that the measure decrease with respect to restarts, but the measure has to
+  be bound by some function @{term \<mu>_bound} taking the same parameter as @{term \<mu>} and the initial
+  state of the considered @{term cdcl} chain.\<close>
 locale cdcl_increasing_restarts_ops =
   dpll_state trail clauses update_trail add_cls remove_cls for
     trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
@@ -2338,21 +2351,8 @@ lemma rtranclp_cdcl_with_restart_bound_inv:
 lemma cdcl_with_restart_increasing_number:
   "cdcl_with_restart S T \<Longrightarrow> snd T = 1 + snd S"
   by (induction rule: cdcl_with_restart.induct) auto
-
 end
 
-text \<open>To add restarts we needs some assumptions on the predicate (called @{term cdcl} here):
-  \<^item> a function @{term f} that is strictly monotonic (and to ease the proving, we assume that
-  @{term "f (0::nat) = 0"})
-  \<^item> a measure @{term "\<mu>"}: it should decrease under the assumptions @{term bound_inv}, whenever a
-  @{term cdcl} or a @{term restart} is done. A parameter is given to @{term \<mu>}: for conflict-driven
-  clause learning, it is an upper-bound of the clauses. We are assuming that such a bound can be
-  found after a restart whenever the invariant holds.
-  \<^item> we also assume that the measure decrease after any @{term cdcl} step.
-  \<^item> an invariant on the states @{term cdcl_inv} that also holds after restarts.
-  \<^item> it is \<^emph>\<open>not required\<close> that the measure decrease with respect to restarts, but the measure has to
-  be bound by some function @{term \<mu>_bound} taking the same parameter as @{term \<mu>} and the initial
-  state of the considered @{term cdcl} chain.\<close>
 locale cdcl_increasing_restarts =
   cdcl_increasing_restarts_ops trail clauses update_trail add_cls remove_cls f restart bound_inv
     \<mu> cdcl cdcl_inv \<mu>_bound

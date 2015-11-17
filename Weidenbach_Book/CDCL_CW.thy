@@ -75,7 +75,8 @@ inductive_cases resolveE[elim]: "resolve S S'"
 
 inductive cdcl_rf :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
 restart: "S = (M, N, U, k, C_True) \<Longrightarrow> \<not>M \<Turnstile>as N \<Longrightarrow> cdcl_rf S ([], N, U, 0, C_True)" |
-forget: "S = (M, N, U \<union> {C}, k, C_True) \<Longrightarrow> \<not>M \<Turnstile>as N \<Longrightarrow> cdcl_rf S ([], N, U, 0, C_True)"
+forget: "S = (M, N, U \<union> {C}, k, C_True) \<Longrightarrow> \<not>M \<Turnstile>as N
+  \<Longrightarrow> C \<notin> set (get_all_mark_of_propagated(trail S)) \<Longrightarrow> C \<notin> U \<Longrightarrow> cdcl_rf S (M, N, U, k, C_True)"
 
 inductive cdcl_o:: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
 decided[intro]: "decided S S' \<Longrightarrow> cdcl_o S S'" |
@@ -101,7 +102,8 @@ lemma cdcl_all_induct[consumes 1, case_names propagate conflict forget restart d
     \<Longrightarrow> P (M, N, U, k, C_True) (Propagated L (C + {#L#}) # M, N, U, k, C_True)"
   and conflict: "\<And>M N U k D. D \<in> N \<union> U \<Longrightarrow> M \<Turnstile>as CNot D
     \<Longrightarrow> P (M, N, U, k, C_True) (M, N, U, k, C_Clause D)"
-  and forget: "\<And>M N U C k. \<not>M \<Turnstile>as N \<Longrightarrow> P (M, N, U \<union> {C}, k, C_True) ([], N, U, 0, C_True)"
+  and forget: "\<And>M N U C k. \<not>M \<Turnstile>as N \<Longrightarrow>  C \<notin> set (get_all_mark_of_propagated M)
+    \<Longrightarrow> C \<notin> U \<Longrightarrow>P (M, N, U \<union> {C}, k, C_True) (M, N, U, k, C_True)"
   and restart: "\<And>M N U k. \<not>M \<Turnstile>as N \<Longrightarrow> P (M, N, U, k, C_True) ([], N, U, 0, C_True)"
   and decide: "\<And>M N U k L.  undefined_lit L M \<Longrightarrow> atm_of L \<in> atms_of_m N
     \<Longrightarrow> P (M, N, U, k, C_True)  (Marked L (k+1) # M, N, U, k + 1, C_True)"
@@ -142,10 +144,7 @@ next
 next
   case (rf S S')
   thus ?case
-  (* TODO investigate exception
-  using [[sledgehammer_isar_trace]] sledgehammer[verit , verbose, debug, dont_minimize](assms(4) assms(5) cdcl_rf.simps) 
- *)
-     by (induct rule: cdcl_rf.induct) (fast dest: forget restart)+
+    by (induct rule: cdcl_rf.induct) (fast dest: forget restart)+
 qed
 
 lemma cdcl_o_induct[consumes 1, case_names decided skip resolve backtrack]:
@@ -359,7 +358,7 @@ lemma cdcl_learned_clause_decomp[dest]:
   and "clauses S \<union> learned_clauses S \<Turnstile>ps set (get_all_mark_of_propagated (trail S))"
   using assms unfolding cdcl_learned_clause_def by (auto simp add: all_in_true_clss_clss true_clss_clss_subset)
 
-(*propo 2.10.5.2*)
+(*propo 2.9.6.2*)
 lemma cdcl_learned_clause_S0_cdcl[simp]:
    "cdcl_learned_clause (S0_cdcl N)"
   unfolding cdcl_learned_clause_def by auto
@@ -372,8 +371,7 @@ lemma cdcl_learned_clauses:
 proof (induct rule: cdcl_all_induct)
   case (backtrack M N U k D L K i M1 M2)
   show ?case
-    using backtrack.prems backtrack.hyps(1) unfolding cdcl_learned_clause_def
-    by (auto dest!: get_all_marked_decomposition_exists_prepend)
+    using backtrack.prems backtrack.hyps(1) unfolding cdcl_learned_clause_def by fastforce
 qed (auto dest: mk_disjoint_insert
       simp add: cdcl_learned_clause_def
       intro: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or)
@@ -444,7 +442,7 @@ next
   case (restart M N U k)
   thus ?case by auto
 next
-  case (forget M N U k)
+  case (forget M N U C k)
   thus ?case by auto
 next
   case (backtrack M N U k D L K i M1 M2) note S = this(1)

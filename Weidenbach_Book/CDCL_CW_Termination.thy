@@ -972,8 +972,8 @@ lemma conflict_measure_decreasing:
   shows "(cdcl_measure S', cdcl_measure S) \<in> lexn {(a, b). a < b} 3"
   apply (rule cdcl_measure_decreasing)
   using assms(1) conflict apply blast
-  using assms(1) apply (auto simp add: propagate.simps)[3]
-  using assms(2) apply (auto simp add: cdcl_all_inv_mes_def)
+            using assms(1) apply (auto simp add: propagate.simps)[3]
+         using assms(2) apply (auto simp add: cdcl_all_inv_mes_def)
   done
 
 lemma decided_measure_decreasing:
@@ -1113,48 +1113,5 @@ lemma tranclp_cdcl_s_wf:
   apply (rule wf_wf_if_measure'_notation2[of "lexn {(a, b). a < b} 3" _ _ cdcl_measure])
    apply (simp add: wf wf_lexn)
   using tranclp_cdcl_s_S0_decreasing by blast
-
-subsection\<open>Adding the measure based on Nieuwenhuis et al.\<close>
-abbreviation latm where
-  "latm M N \<equiv> card (atms_of_m N) - length M"
-
-value "get_all_marked_decomposition"
-
-lemma "([1, 2, 3], [1,2, 2]) \<in> lenlex ({(b::int, a). b > a})"
-  unfolding lenlex_conv apply auto
-  done
-fun trail_mes ::  "'v::linorder cdcl_state \<Rightarrow> nat list" where
-"trail_mes (M, N, U, k, C) =
-  rev (map (\<lambda>(_, propa). latm propa N) (get_all_marked_decomposition M))
-    @ [card U, if C = C_True then 1 else 0]"
-
-lemma
-  fixes S :: "'v::linorder cdcl_state"
-  assumes "propagate S T" and "cdcl_all_inv_mes S"
-  shows "(trail_mes T, trail_mes S) \<in> lenlex {(a, b). a < b}"
-proof -
-  obtain M N U k C L where
-    T: "T = (Propagated L (C + {#L#}) # M, N, U, k, C_True)" and
-    S: "S = (M, N, U, k, C_True)" and
-    "C + {#L#} \<in> N \<or> C + {#L#} \<in> U " and
-    C: "M \<Turnstile>as CNot C" and
-    undef: "undefined_lit L M"
-  using assms(1) by (elim propagateE)
-  obtain a b l where M: "get_all_marked_decomposition M = (a, b) # l"
-    by (case_tac "get_all_marked_decomposition M") auto
-  have "length b \<le> length M"
-    using get_all_marked_decomposition_decomp[of M] by (simp add: M)
-
-  moreover
-    have "cdcl_all_inv_mes T"
-      using assms(1) assms(2) cdcl_all_inv_mes_inv propagate by blast
-    hence "length (Propagated L (C + {#L#}) # M) \<le> card (atms_of_m N)"
-      using length_model_le_vars_all_inv[of T] unfolding T by auto
-
-  ultimately have "card (atms_of_m N) - length b = Suc(card (atms_of_m N) - Suc (length b))"
-    by simp
-  thus ?thesis
-    unfolding S T lenlex_conv lex_conv by (auto simp add: M)
-qed
 
 end
