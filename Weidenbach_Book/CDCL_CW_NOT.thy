@@ -1,5 +1,5 @@
 theory CDCL_CW_NOT
-imports CDCL_CW_Termination
+imports CDCL_CW_Termination CDCL_NOT
 begin
 sledgehammer_params[verbose]
 
@@ -75,6 +75,10 @@ next
     by (metis (no_types, lifting) T Un_insert_right W backtracking i step.IH sup_bot.comm_neutral)
 qed
 
+inductive cdcl_sr where
+sr_skip[intro]: "skip S S' \<Longrightarrow> cdcl_sr S S'" |
+sr_resolve[intro]: "resolve S S' \<Longrightarrow> cdcl_sr S S'"
+
 inductive cdcl_s_sr where
 "full cdcl_cp S T \<Longrightarrow> cdcl_s_sr S T" |
 "decided S T \<Longrightarrow> full cdcl_cp T U \<Longrightarrow> cdcl_s_sr S U" |
@@ -88,4 +92,11 @@ lemma
   apply simp
   apply simp
 oops
+
+
+
+interpretation cdcl_CW: dpll_state trail "\<lambda>S. clauses S \<union> learned_clauses S" "\<lambda>M (_, S'). (M, S')" 
+  "\<lambda>C (M, N, U, k, D). (M, N, insert C U, k, D)" "\<lambda>C (M, N, U, k, D). (M, N - {C}, U - {C}, k, D)" 
+  by unfold_locales auto
+
 end

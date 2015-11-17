@@ -2532,10 +2532,29 @@ cdcl_merged_propagate: "propagate S S' \<Longrightarrow> cdcl_merged S S'" |
 cdcl_merged_backjump_l:  "backjump_l S S' \<Longrightarrow> cdcl_merged S S'" |
 cdcl_merged_forget: "forget S S' \<Longrightarrow> cdcl_merged S S'"
 
+abbreviation m_learn where
+"m_learn \<equiv> 
+  learn_ops.learn trail clauses add_cls 
+    (\<lambda>C S. distinct_mset C \<and> \<not> tautology C 
+      \<and> (\<exists>F K d F' C' L. trail S = F' @ Marked K d # F \<and> C = C' + {#L#} 
+        \<and> F \<Turnstile>as CNot C' \<and> C' + {#L#} \<notin> clauses S))"
+
+abbreviation m_backjump where
+"m_backjump \<equiv> backjumping_ops.backjump trail clauses update_trail (\<lambda>_ _. True)"
+
+abbreviation m_cdcl where
+"m_cdcl \<equiv> 
+  conflict_driven_clause_learning_ops.cdcl trail clauses update_trail add_cls remove_cls 
+    (\<lambda>_ _. True)
+    (\<lambda>C S. distinct_mset C \<and> \<not> tautology C 
+      \<and> (\<exists>F K d F' C' L. trail S = F' @ Marked K d # F \<and> C = C' + {#L#} \<and> F \<Turnstile>as CNot C' 
+        \<and> C' + {#L#} \<notin> clauses S)) 
+  forget_conds"
+
 lemma
   assumes bt: "backjump_l S T" and inv: "inv S"
-  shows "\<exists>C' L. learn S (add_cls (C' + {#L#}) S) 
-    \<and> backjumping_ops.backjump trail clauses update_trail (\<lambda>_ _. True) (add_cls (C' + {#L#}) S) T"
+  shows "\<exists>C' L. m_learn S (add_cls (C' + {#L#}) S) 
+    \<and> m_backjump (add_cls (C' + {#L#}) S) T"
 proof -
    obtain C F' K d F L l C' where
      tr_S: "trail S = F' @ Marked K d # F" and
@@ -2569,8 +2588,7 @@ proof -
       apply (rule not_tauto)
      apply standard
      using \<open>F \<Turnstile>as CNot C'\<close> distinct not_tauto not_known by (auto simp: tr_S)
-   moreover have bj: "backjumping_ops.backjump trail clauses update_trail (\<lambda>_ _. True) 
-     (add_cls (C' + {#L#}) S) T"
+   moreover have bj: "m_backjump (add_cls (C' + {#L#}) S) T"
      apply (rule backjump.intros[OF _ T, of F' K d C "C'"])
      using \<open>F \<Turnstile>as CNot C'\<close> C_cls_S tr_S_CNot_C undef  by (auto simp add: tr_S lits_of_def)
    ultimately show ?thesis by auto
