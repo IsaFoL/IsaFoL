@@ -1066,7 +1066,6 @@ proof -
     by (meson \<open>inv S\<close> rtranclp_dpll_bj_sat_iff satisfiable_carac st true_annots_true_cls)
 qed
 
-
 lemma dpll_bj_trail_mes_decreasing_prop:
   assumes dpll: "dpll_bj S T"  and inv: "inv S" and
   N_A: "atms_of_m (clauses S) \<subseteq> atms_of_m A" and
@@ -1296,6 +1295,7 @@ qed
 
 end -- \<open>end of \<open>conflict_driven_clause_learning_ops\<close>\<close>
 
+subsection \<open>Restricting restarts\<close>
 locale conflict_driven_clause_learning =
   conflict_driven_clause_learning_ops +
   assumes cdcl_inv: "\<And>S T. cdcl S T \<Longrightarrow> inv S \<Longrightarrow> inv T"
@@ -1430,9 +1430,7 @@ lemma learn_\<mu>\<^sub>L_decrease:
 proof -
   have [simp]: "(atms_of_m (clauses T) \<union> atm_of ` lits_of (trail T))
     = (atms_of_m (clauses S) \<union> atm_of ` lits_of (trail S))"
-    using learnST fin (* TODO tune proof *)
-    apply (induction)
-    unfolding atms_of_m_def by auto
+    using learnST fin by induction auto
 
   then have "card (atms_of_m (clauses T) \<union> atm_of ` lits_of (trail T))
     = card (atms_of_m (clauses S) \<union> atm_of ` lits_of (trail S))"
@@ -1530,14 +1528,15 @@ lemma cdcl_restricted_learning_wf:
     \<and> cdcl S T }"
   by (rule wf_wf_if_measure'[of "less_than <*lex*> (less_than <*lex*> less_than)"])
      (auto intro: cdcl_decreasing_measure[OF _ _ _ _ _ _ assms])
-definition \<mu>\<^sub>C' where
+
+definition \<mu>\<^sub>C' :: "'a literal multiset set \<Rightarrow> 'st \<Rightarrow> nat" where
 "\<mu>\<^sub>C' A T \<equiv> \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> T)"
+
 definition \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' :: "'a literal multiset set \<Rightarrow> 'st \<Rightarrow> nat" where
 "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A T \<equiv>
-  ((2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) -
-      \<mu>\<^sub>C' A T) * (1+ 3^card (atms_of_m A)) * 2
-   + conflicting_bj_clss_yet (card (atms_of_m A)) T * 2
-   + card (clauses T)"
+  ((2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) - \<mu>\<^sub>C' A T) * (1+ 3^card (atms_of_m A)) * 2
+  + conflicting_bj_clss_yet (card (atms_of_m A)) T * 2
+  + card (clauses T)"
 
 lemma cdcl_decreasing_measure':
   assumes
@@ -2071,9 +2070,11 @@ lemma backtrack_is_backjump':
 sublocale dpll_state fst snd "\<lambda>M S. (M, snd S)" "\<lambda>C (M, N). (M, insert C N)"
   "\<lambda>C (M, N). (M, N - {C})"
   by unfold_locales auto
+
 lemma bj_ops: "backjumping_ops fst snd (\<lambda>M S. (M, snd S)) (\<lambda>C (M, N). (M, insert C N))
   (\<lambda>C (M, N). (M, N - {C}))"
   by unfold_locales
+
 lemma backtrack_is_backjump'':
   fixes M M' :: "('v, 'lvl, 'mark) marked_lit list"
   assumes
@@ -2113,8 +2114,8 @@ proof -
      using backtrack.intros[of S G' L G C] \<open>C \<in> snd S\<close> C unfolding M by auto
 qed
 
-
 end
+
 sublocale dpll_with_backtrack \<subseteq> dpll_state fst snd "\<lambda>M S. (M, snd S)" "\<lambda>C (M, N). (M, insert C N)"
   "\<lambda>C (M, N). (M, N - {C})"
   by unfold_locales auto
@@ -2297,8 +2298,7 @@ lemma cdcl_comp_bounded:
   using assms cdcl_comp_n_le[of "m-1" S T A] by fastforce
 
 text \<open>
-  \<^item> @{term "m > f n"} ensure that at least one step has been done.\<close>
-(* TODO Check *)
+  \<^item> @{term "m \<ge> f (Suc n)"} ensure that at least one step has been done.\<close>
 inductive cdcl_with_restart where
 "cdcl_with_restart (R, n) (S, Suc n) \<Longrightarrow> (cdcl^^m) S T
   \<Longrightarrow> m \<ge> f (Suc n) \<Longrightarrow> restart T U
@@ -2480,9 +2480,11 @@ locale cdcl_merge_conflict_propagate =
   dpll_state trail clauses update_trail add_cls remove_cls +
   decide_ops trail clauses update_trail add_cls remove_cls +
   propagate_ops trail clauses update_trail add_cls remove_cls +
-  conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt trail clauses
-  update_trail add_cls remove_cls inv "\<lambda>_ _. True"
-    "\<lambda>_ _. True" forget_conds
+  conflict_driven_clause_learning trail clauses update_trail add_cls remove_cls inv "\<lambda>_ _. True"
+  "\<lambda>C S.  distinct_mset C \<and> \<not>tautology C \<and>
+    (\<exists>F K d F' C' L.  trail S = F' @ Marked K d # F \<and> C = C' + {#L#} \<and> F \<Turnstile>as CNot C'
+      \<and> C' + {#L#} \<notin> clauses S)"
+  forget_conds
   for
     trail :: "'st \<Rightarrow> ('v::linorder, 'lvl, 'mark) annoted_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
@@ -2490,6 +2492,7 @@ locale cdcl_merge_conflict_propagate =
     add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     inv :: "'st \<Rightarrow> bool" and
+    backjump :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" +
   fixes backjump_l :: "'st \<Rightarrow> 'st \<Rightarrow> bool"
   assumes backjump_l:
@@ -2504,7 +2507,7 @@ locale cdcl_merge_conflict_propagate =
         \<and> clauses S \<Turnstile>p C' + {#L#}
         \<and> F \<Turnstile>as CNot C'
         \<and> distinct_mset (C' + {#L#})
-        \<and> C' + {#L#} \<notin> clauses S'
+        \<and> C' + {#L#} \<notin> clauses S
         \<and> \<not> tautology (C' + {#L#})" and
     bj_can_jump:
       "\<And>S C F' K d F L.
@@ -2529,8 +2532,52 @@ cdcl_merged_propagate: "propagate S S' \<Longrightarrow> cdcl_merged S S'" |
 cdcl_merged_backjump_l:  "backjump_l S S' \<Longrightarrow> cdcl_merged S S'" |
 cdcl_merged_forget: "forget S S' \<Longrightarrow> cdcl_merged S S'"
 
+lemma
+  assumes bt: "backjump_l S T" and inv: "inv S"
+  shows "\<exists>C' L. learn S (add_cls (C' + {#L#}) S) 
+    \<and> backjumping_ops.backjump trail clauses update_trail (\<lambda>_ _. True) (add_cls (C' + {#L#}) S) T"
+proof -
+   obtain C F' K d F L l C' where
+     tr_S: "trail S = F' @ Marked K d # F" and
+     T: "T = update_trail (Propagated L l # F) (add_cls (C' + {#L#}) S)" and
+     C_cls_S: "C \<in> clauses S" and
+     tr_S_CNot_C: "trail S \<Turnstile>as CNot C" and
+     undef: "undefined_lit L F" and
+     atm_L: "atm_of L \<in> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))" and
+     clss_C: "clauses S \<Turnstile>p C' + {#L#}" and
+     "F \<Turnstile>as CNot C'" and
+     distinct: "distinct_mset (C' + {#L#})"  and
+     not_known: "C' + {#L#} \<notin> clauses S" and
+     not_tauto: "\<not> tautology (C' + {#L#})"
+     using backjump_l[OF bt inv] by blast
+   have atms_C':  "atms_of C' \<subseteq>  atm_of ` (lits_of F)"
+     proof -
+       obtain ll :: "'v \<Rightarrow> ('v literal \<Rightarrow> 'v) \<Rightarrow> 'v literal set \<Rightarrow> 'v literal" where
+         "\<forall>v f L. v \<notin> f ` L \<or> v = f (ll v f L) \<and> ll v f L \<in> L"
+         by moura
+       thus ?thesis unfolding tr_S
+         by (metis (no_types) `F \<Turnstile>as CNot C'` atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+           atms_of_def in_CNot_implies_uminus(2) mem_set_mset_iff subsetI)
+     qed
+   have learn: "learn S (add_cls (C' + {#L#}) S)"
+     apply (rule learn.intros)
+         apply (rule clss_C)
+       using atms_C' atm_L apply (fastforce simp add: tr_S)[]
+     apply standard
+      apply (rule distinct)
+     apply standard
+      apply (rule not_tauto)
+     apply standard
+     using \<open>F \<Turnstile>as CNot C'\<close> distinct not_tauto not_known by (auto simp: tr_S)
+   moreover have bj: "backjumping_ops.backjump trail clauses update_trail (\<lambda>_ _. True) 
+     (add_cls (C' + {#L#}) S) T"
+     apply (rule backjump.intros[OF _ T, of F' K d C "C'"])
+     using \<open>F \<Turnstile>as CNot C'\<close> C_cls_S tr_S_CNot_C undef  by (auto simp add: tr_S lits_of_def)
+   ultimately show ?thesis by auto
+qed
+
 lemma cdcl_merged_is_rtranclp_cdcl:
-  "cdcl_merged S T \<Longrightarrow> inv S \<Longrightarrow> cdcl\<^sup>*\<^sup>* S T"
+  "cdcl_merged S T \<Longrightarrow> inv S \<Longrightarrow> cdcl\<^sup>+\<^sup>+ S T"
 proof (induction rule: cdcl_merged.induct)
   case (cdcl_merged_decide S T)
   hence "cdcl S T"
@@ -2581,33 +2628,86 @@ next
      apply standard
       apply (rule not_tauto)
      apply standard
-      apply fast
      using \<open>F \<Turnstile>as CNot C'\<close> distinct not_tauto not_known by (auto simp: tr_S)
-   moreover have bj: "backjump (add_cls (C' + {#L#}) S) T"
+   moreover have bj: "backjumping_ops.backjump trail clauses update_trail (\<lambda>_ _. True) 
+     (add_cls (C' + {#L#}) S) T"
      apply (rule backjump.intros[OF _ T, of F' K d C "C'"])
      using \<open>F \<Turnstile>as CNot C'\<close> C_cls_S tr_S_CNot_C undef  by (auto simp add: tr_S lits_of_def)
    ultimately show ?case
-     proof -
-       have "\<And>f fa p pa pb. conflict_driven_clause_learning_ops.cdcl trail clauses f add_cls fa p
-       (\<lambda>m s. distinct_mset m \<and> \<not> tautology m \<and> (\<exists>ms. (\<exists>l la msa. trail s = msa @ Marked l la # ms)
-       \<and> (\<exists>ma l. m = ma + {#l#} \<and> ms \<Turnstile>as CNot ma
-       \<and> ma + {#l#} \<notin> clauses s))) pa S (add_cls (C' + {#L#}) S)
-       \<or> \<not> conflict_driven_clause_learning_ops trail clauses f add_cls fa pb p"
-         using learn by (meson conflict_driven_clause_learning_ops.cdcl.intros(2))
-       hence f3: "\<And>p. conflict_driven_clause_learning_ops.cdcl trail clauses update_trail add_cls
-         remove_cls (\<lambda>s sa. True) (\<lambda>m s. distinct_mset m \<and> \<not> tautology m
-       \<and> (\<exists>ms. (\<exists>l la msa. trail s = msa @ Marked l la # ms) \<and> (\<exists>ma l. m = ma + {#l#}
-       \<and> ms \<Turnstile>as CNot ma \<and> ma + {#l#} \<notin> clauses s))) p S (add_cls (C' + {#L#}) S)"
-         using conflict_driven_clause_learning_ops_axioms by blast
-       have "\<And>p pa. conflict_driven_clause_learning_ops.cdcl trail clauses update_trail add_cls
-         remove_cls (\<lambda>s sa. True) p pa (add_cls (C' + {#L#}) S) T"
-         using bj by (metis (no_types) conflict_driven_clause_learning_ops.c_dpll_bj
-           conflict_driven_clause_learning_ops_axioms dpll_with_backjumping_ops.dpll_bj.intros(3)
-           dpll_with_backjumping_ops_axioms)
-       thus ?thesis
-         using f3 by (meson rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl)
-     qed
+     by (metis (no_types, lifting) bj_backjump c_dpll_bj c_learn tranclp.r_into_trancl tranclp.trancl_into_trancl)
 qed
+definition \<mu>\<^sub>C' :: "'a literal multiset set \<Rightarrow> 'st \<Rightarrow> nat" where
+"\<mu>\<^sub>C' A T \<equiv> \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> T)"
+
+definition \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged :: "'a literal multiset set \<Rightarrow> 'st \<Rightarrow> nat" where
+"\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged A T \<equiv>
+  ((2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) - \<mu>\<^sub>C' A T) * 2 + card (clauses T)"
+lemma "decide S T \<Longrightarrow> cdcl S T"
+using bj_decide c_dpll_bj by blast
+lemma cdcl_decreasing_measure':
+  assumes
+    "cdcl_merged S T" and
+    "inv S"
+    "atms_of_m (clauses S) \<subseteq> atms_of_m A"
+    "atm_of ` lits_of (trail S) \<subseteq> atms_of_m A" and
+    "no_dup (trail S)" and
+    "finite (clauses S)" and
+    fin_A: "finite A"
+  shows "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged A T < \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged A S"
+  using assms(1-6)
+proof induction
+  case (cdcl_merged_decide S T)
+  have "clauses S = clauses T"
+    using cdcl_merged_decide.hyps clauses_update_trail by blast
+  moreover have 
+    "(2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) 
+       - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (\<nu> T)
+     < (2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) 
+       - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (\<nu> S)"
+    apply (rule dpll_bj_trail_mes_decreasing_prop[of S T A])
+       using cdcl_merged_decide fin_A by (simp_all add:  add: bj_decide cdcl_merged_decide.hyps)
+  ultimately show ?case
+    unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged_def \<mu>\<^sub>C'_def by simp
+next
+  case (cdcl_merged_propagate S T)
+  have "clauses S = clauses T"
+    using cdcl_merged_propagate.hyps clauses_update_trail by blast
+  moreover have 
+    "(2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) 
+       - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (\<nu> T)
+     < (2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) 
+       - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (\<nu> S)"
+    apply (rule dpll_bj_trail_mes_decreasing_prop[of S T A])
+       using cdcl_merged_propagate fin_A by (simp_all add: bj_propagate cdcl_merged_propagate.hyps)
+  ultimately show ?case
+    unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged_def \<mu>\<^sub>C'_def by simp
+next
+  case (cdcl_merged_forget S T)
+  have "card (clauses T) < card (clauses S)"
+    by (metis card_Diff1_less cdcl_merged_forget.hyps cdcl_merged_forget.prems(5)
+      clause_remove_clause forget.cases)
+  moreover 
+    have "trail S = trail T"
+      by (metis cdcl_merged_forget.hyps forget.cases update_trail_remove_clauses)
+    hence 
+      "(2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) 
+        - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (\<nu> T)
+       = (2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) 
+        - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (\<nu> S)"
+       by auto
+  ultimately show ?case
+    unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged_def \<mu>\<^sub>C'_def by simp
+next
+  case (cdcl_merged_backjump_l S T) note bj = this(1) and inv = this(2)
+  have "card (clauses T) = 1 + card (clauses S)"
+    using backjump_l[OF bj inv] \<open>finite (clauses S)\<close> by auto
+  moreover 
+    have 
+      "((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) 
+        - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (\<nu> T)) * 2
+      < ((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) 
+        - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (\<nu> S))"
+oops
 end
 
 subsection \<open>Instantiations\<close>
