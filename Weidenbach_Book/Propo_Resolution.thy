@@ -1,5 +1,5 @@
 theory Propo_Resolution
-imports Partial_Clausal_Logic List_More
+imports Partial_Clausal_Logic List_More Transition
 
 begin
 section \<open>Resolution\<close>
@@ -86,7 +86,6 @@ next
   case (subsumption A P)
   thus ?case by auto
 qed
-
 
 lemma rtranclp_simplifier_atms_of_m:
   assumes "rtranclp simplify \<psi> \<psi>'"
@@ -970,7 +969,7 @@ shows "(\<exists>\<psi>'. (inference\<^sup>*\<^sup>* \<psi> \<psi>' \<and> {#} \
 
 subsection \<open>Lemma about the simplified state\<close>
 
-abbreviation "simplified \<psi> \<equiv> (\<forall>\<psi>'. \<not>simplify \<psi> \<psi>')"
+abbreviation "simplified \<psi> \<equiv> (no_step simplify \<psi>)"
 
 lemma simplified_count:
   assumes simp: "simplified \<psi>" and \<chi>: "\<chi> \<in> \<psi>"
