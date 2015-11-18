@@ -2195,6 +2195,36 @@ begin
 inductive cdcl_with_restarts  :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 "cdcl S T \<Longrightarrow> cdcl_with_restarts S T" |
 "restart S T \<Longrightarrow> cdcl_with_restarts S T"
+
+end
+
+locale cdcl_with_restarts =
+  conflict_driven_clause_learning trail clauses update_trail add_cls remove_cls inv backjump
+  learn_cond forget_cond
+    for
+      trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
+      clauses :: "'st \<Rightarrow> 'v clauses" and
+      update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+      add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+      remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+      inv :: "'st \<Rightarrow> bool" and
+      backjump ::  "'st \<Rightarrow> 'st \<Rightarrow> bool" and
+      learn_cond forget_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
+begin
+
+lemma "cdcl S T \<longleftrightarrow> restart_ops.cdcl_with_restarts cdcl (\<lambda>_ _. False) S T" (is "?C S T \<longleftrightarrow> ?R S T")
+proof
+  fix S T
+  assume "?C S T"
+  thus "?R S T" by (simp add: restart_ops.cdcl_with_restarts.intros(1))
+next
+  fix S T
+  assume "?R S T"
+  thus "?C S T"
+    apply (cases rule: restart_ops.cdcl_with_restarts.cases)
+    using \<open>?R S T\<close> by fast+
+qed
+
 end
 
 text \<open>To add restarts we needs some assumptions on the predicate (called @{term cdcl} here):
@@ -3011,6 +3041,6 @@ lemma backjump_bj_can_jump:
 
 sublocale dpll_with_backjumping_ops _ _ _ _ _ inv "\<lambda>_ _. True"
   using backjump_bj_can_jump by unfold_locales auto
-
 end
+
 end

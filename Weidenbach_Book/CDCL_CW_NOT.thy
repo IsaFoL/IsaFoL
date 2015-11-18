@@ -1,5 +1,5 @@
 theory CDCL_CW_NOT
-imports CDCL_CW_Termination
+imports CDCL_CW_Termination CDCL_NOT
 begin
 sledgehammer_params[verbose]
 
@@ -88,4 +88,10 @@ lemma
   apply simp
   apply simp
 oops
+
+interpretation cdcl_CW: dpll_state trail "\<lambda>S. clauses S \<union> learned_clauses S" 
+  "\<lambda> M (_, N, U, k, D). (M, N, U, k, D)" "\<lambda> C (M, N, U, k, D). (M, N, insert C U, k, D)" 
+  "\<lambda> C (M, N, U, k, D). (M, N - {C}, U - {C}, k, D)"
+  by unfold_locales auto
+  
 end

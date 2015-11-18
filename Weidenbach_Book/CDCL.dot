@@ -6,7 +6,8 @@ digraph CDCL {
 	CDCL_NOT_merged [label = "CDCL NOT merged bj l"];
 	DPLL [label = "DPLL"];
 
-	CDCL_NOT_stgy -> CDCL_NOT -> CDCL_NOT_restart;
+	CDCL_NOT_stgy -> CDCL_NOT;
+	CDCL_NOT -> CDCL_NOT_restart [style = dashed];
 	CDCL_NOT_stgy -> CDCL_NOT_stgy_restart -> CDCL_NOT_restart;
 	DPLL -> CDCL_NOT;
 
