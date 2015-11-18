@@ -102,7 +102,7 @@ locale backjumping_ops =
     backjump_cond :: "'st \<Rightarrow> 'st \<Rightarrow> bool"
 begin
 inductive backjump where
-" trail S = F' @ Marked K d # F
+"trail S = F' @ Marked K d # F
    \<Longrightarrow> T = update_trail (Propagated L l # F) S
    \<Longrightarrow> C \<in> clauses S
    \<Longrightarrow> trail S \<Turnstile>as CNot C
@@ -2187,6 +2187,16 @@ end
 
 section \<open>CDCL with restarts\<close>
 subsection\<open>Definition\<close>
+locale restart_ops =
+  fixes
+    cdcl :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
+    restart :: "'st \<Rightarrow> 'st \<Rightarrow> bool"
+begin
+inductive cdcl_with_restarts  :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+"cdcl S T \<Longrightarrow> cdcl_with_restarts S T" |
+"restart S T \<Longrightarrow> cdcl_with_restarts S T"
+end
+
 text \<open>To add restarts we needs some assumptions on the predicate (called @{term cdcl} here):
   \<^item> a function @{term f} that is strictly monotonic (and to ease the proof, we assume that
   @{term "f (0::nat) = 0"}). The first step is actually only a restart to clean the state (e.g. to
@@ -2201,18 +2211,13 @@ text \<open>To add restarts we needs some assumptions on the predicate (called @
   be bound by some function @{term \<mu>_bound} taking the same parameter as @{term \<mu>} and the initial
   state of the considered @{term cdcl} chain.\<close>
 locale cdcl_increasing_restarts_ops =
-  dpll_state trail clauses update_trail add_cls remove_cls for
-    trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
-    clauses :: "'st \<Rightarrow> 'v clauses" and
-    update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
-    add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" +
+  restart_ops cdcl restart for
+    restart :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
+    cdcl :: "'st \<Rightarrow> 'st \<Rightarrow> bool" +
   fixes
     f :: "nat \<Rightarrow> nat" and
-    restart :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
     bound_inv :: "'bound \<Rightarrow> 'st \<Rightarrow> bool" and
     \<mu> :: "'bound \<Rightarrow> 'st \<Rightarrow> nat" and
-    cdcl :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
     cdcl_inv :: "'st \<Rightarrow> bool" and
     \<mu>_bound :: "'bound \<Rightarrow> 'st \<Rightarrow> nat"
   assumes
@@ -2373,8 +2378,7 @@ lemma cdcl_with_restart_increasing_number:
 end
 
 locale cdcl_increasing_restarts =
-  cdcl_increasing_restarts_ops trail clauses update_trail add_cls remove_cls f restart bound_inv
-    \<mu> cdcl cdcl_inv \<mu>_bound
+  cdcl_increasing_restarts_ops restart cdcl f bound_inv \<mu> cdcl_inv \<mu>_bound
   for
     trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
@@ -2395,7 +2399,6 @@ locale cdcl_increasing_restarts =
       "cdcl_with_restart (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T
         \<Longrightarrow> \<mu>_bound A V \<le> \<mu>_bound A T"
 begin
-
 
 lemma rtranclp_cdcl_with_restarts_\<mu>_bound:
   "cdcl_with_restart\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> \<mu>_bound A V \<le> \<mu>_bound A T"
@@ -2885,10 +2888,10 @@ next
   show "finite A"
     using \<open>finite A\<close> by simp
 qed
-  sublocale cdcl_increasing_restarts_ops _ _ _ _ _  f "\<lambda>S T. T = update_trail [] S"
+  sublocale cdcl_increasing_restarts_ops "\<lambda>S T. T = update_trail [] S" cdcl  f
     "\<lambda>A S. atms_of_m (clauses S) \<subseteq> atms_of_m A \<and> atm_of ` lits_of (trail S) \<subseteq> atms_of_m A \<and>
     finite A"
-    \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' cdcl "\<lambda>S. inv S \<and> no_dup (trail S) \<and> finite (clauses S)"
+    \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' "\<lambda>S. inv S \<and> no_dup (trail S) \<and> finite (clauses S)"
     \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound
     apply (unfold_locales)
            apply (simp add: strict_mono)
@@ -2902,10 +2905,15 @@ qed
     using cdcl_inv cdcl_finite_clauses cdcl_no_dup apply blast
   using inv_restart apply auto[]
   done
-(*unusable otherwise*)
+
 abbreviation cdcl_l where
-"cdcl_l \<equiv> conflict_driven_clause_learning_ops.cdcl trail clauses update_trail add_cls remove_cls backjump
-          (\<lambda>C S. distinct_mset C \<and> \<not> tautology C \<and> learn_restrictions C S \<and> (\<exists>F K d F' C' L. trail S = F' @ Marked K d # F \<and> C = C' + {#L#} \<and> F \<Turnstile>as CNot C' \<and> C' + {#L#} \<notin> clauses S))  (\<lambda>C S. \<not> (\<exists>F' F K d L. trail S = F' @ Marked K d # F \<and> F \<Turnstile>as CNot (C - {#L#})) \<and> forget_restrictions C S)"
+"cdcl_l \<equiv>
+  conflict_driven_clause_learning_ops.cdcl trail clauses update_trail add_cls
+  remove_cls backjump (\<lambda>C S. distinct_mset C \<and> \<not> tautology C \<and> learn_restrictions C S
+    \<and> (\<exists>F K d F' C' L. trail S = F' @ Marked K d # F \<and> C = C' + {#L#}
+       \<and> F \<Turnstile>as CNot C' \<and> C' + {#L#} \<notin> clauses S))
+  (\<lambda>C S. \<not> (\<exists>F' F K d L. trail S = F' @ Marked K d # F \<and> F \<Turnstile>as CNot (C - {#L#}))
+  \<and> forget_restrictions C S)"
 
 lemma cdcl_with_restart_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_le_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound:
   assumes
@@ -2976,6 +2984,33 @@ sublocale cdcl_increasing_restarts _ _ _ _ _  f "\<lambda>S T. T = update_trail 
    using cdcl_with_restart_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_le_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound apply simp
   using cdcl_with_restart_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_le_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound apply simp
   done
+
+end
+
+locale most_general_cdcl =
+    dpll_state trail clauses update_trail add_cls remove_cls +
+    backjumping_ops trail clauses update_trail add_cls remove_cls inv "\<lambda>_ _. True" for
+    trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
+    clauses :: "'st \<Rightarrow> 'v clauses" and
+    update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    inv :: "'st \<Rightarrow> bool"
+begin
+lemma backjump_bj_can_jump:
+  assumes
+    tr_S: "trail S = F' @ Marked K d # F" and
+    C: "C \<in> clauses S" and
+    tr_S_C: "trail S \<Turnstile>as CNot C" and
+    undef: "undefined_lit L F" and
+    atm_L: "atm_of L \<in> atms_of_m (clauses S) \<union> atm_of ` (lits_of (F' @ Marked K d # F))" and
+    cls_S_C': "clauses S \<Turnstile>p C' + {#L#}" and
+    F_C': "F \<Turnstile>as CNot C'"
+  shows "\<not>no_step backjump S"
+    using backjump.intros[OF tr_S _ C tr_S_C undef _ cls_S_C' F_C'] atm_L unfolding tr_S by blast
+
+sublocale dpll_with_backjumping_ops _ _ _ _ _ inv "\<lambda>_ _. True"
+  using backjump_bj_can_jump by unfold_locales auto
 
 end
 end
