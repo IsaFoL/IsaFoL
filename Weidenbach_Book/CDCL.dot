@@ -1,0 +1,26 @@
+digraph CDCL {
+	CDCL_NOT_restart [label = "CDCL NOT + restart"];
+	CDCL_NOT [label = "CDCL NOT"];
+	CDCL_NOT_stgy [label = "CDCL NOT stgy_lf"];
+	CDCL_NOT_stgy_restart[label = "CDCL NOT stgy lf + restart"];
+	CDCL_NOT_merged [label = "CDCL NOT merged bj l"];
+	DPLL [label = "DPLL"];
+
+	CDCL_NOT_stgy -> CDCL_NOT -> CDCL_NOT_restart;
+	CDCL_NOT_stgy -> CDCL_NOT_stgy_restart -> CDCL_NOT_restart;
+	DPLL -> CDCL_NOT;
+
+	CDCL_NOT_merged -> CDCL_NOT [style =dotted];
+
+
+   	CDCL_CW [label="CDCL CW"];
+	CDCL_CW_stgy [label="CDCL CW stgy cp"];
+	CDCL_CW_restart [label = "CDCL CW + restart"];
+	CDCL_CW_stgy_restart [label = "CDCL CW stgy cp + restart + forget"];
+
+	CDCL_CW_stgy ->	CDCL_CW_stgy_restart -> CDCL_CW_restart [style = dotted];
+	CDCL_CW -> CDCL_NOT_merged [style = dotted];
+	CDCL_CW_stgy -> CDCL_CW [style = dotted];
+	CDCL_CW_restart -> CDCL_CW [style = dotted];
+
+}
