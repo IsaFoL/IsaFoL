@@ -1295,7 +1295,6 @@ qed
 
 end -- \<open>end of \<open>conflict_driven_clause_learning_ops\<close>\<close>
 
-subsection \<open>Restricting restarts\<close>
 locale conflict_driven_clause_learning =
   conflict_driven_clause_learning_ops +
   assumes cdcl_inv: "\<And>S T. cdcl S T \<Longrightarrow> inv S \<Longrightarrow> inv T"
@@ -1339,7 +1338,9 @@ lemma rtranclp_cdcl_finite_clauses:
   shows "finite(clauses T)"
   using assms
   by (induction rule: rtranclp_induct) (auto intro: cdcl_finite_clauses rtranclp_cdcl_inv)
-end
+end -- \<open>end of \<open>conflict_driven_clause_learning\<close>\<close>
+
+subsection \<open>Restricting restarts\<close>
 
 locale conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt =
   conflict_driven_clause_learning trail clauses update_trail add_cls remove_cls inv backjump
@@ -2259,7 +2260,6 @@ locale cdcl_increasing_restarts_ops =
     measure_bound4: "\<And>A T U. cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> cdcl\<^sup>*\<^sup>* T U
        \<Longrightarrow> \<mu>_bound A U \<le> \<mu>_bound A T" and
     cdcl_restart_inv: "\<And>A U V. cdcl_inv U \<Longrightarrow> restart U V \<Longrightarrow> bound_inv A U \<Longrightarrow> bound_inv A V" and
-    [simp]: "f 0 = 0" and
     exists_bound: "\<And>R S. cdcl_inv R \<Longrightarrow> restart R S \<Longrightarrow> \<exists>A. bound_inv A S" and
     cdcl_inv: "\<And>S T. cdcl_inv S \<Longrightarrow> cdcl S T \<Longrightarrow> cdcl_inv T" and
     cdcl_inv_restart: "\<And>S T. cdcl_inv S \<Longrightarrow> restart S T \<Longrightarrow> cdcl_inv T"
@@ -2354,12 +2354,9 @@ lemma cdcl_comp_bounded:
 text \<open>
   \<^item> @{term "m \<ge> f (Suc n)"} ensure that at least one step has been done.\<close>
 inductive cdcl_with_restart where
-"cdcl_with_restart (R, n) (S, Suc n) \<Longrightarrow> (cdcl^^m) S T
-  \<Longrightarrow> m \<ge> f (Suc n) \<Longrightarrow> restart T U
-  \<Longrightarrow> cdcl_with_restart (S, Suc n) (U, Suc (Suc n))" |
-"cdcl_with_restart (R, n) (S, Suc n) \<Longrightarrow> full cdcl S T
-  \<Longrightarrow> cdcl_with_restart (S, Suc n) (T, Suc (Suc n))" |
-"restart S T \<Longrightarrow> cdcl_with_restart (S, 0) (T, 1)"
+"(cdcl^^m) S T \<Longrightarrow> m \<ge> f n \<Longrightarrow> restart T U
+  \<Longrightarrow> cdcl_with_restart (S, n) (U, Suc n)" |
+"full cdcl S T \<Longrightarrow> cdcl_with_restart (S, n) (T, Suc n)"
 
 lemmas cdcl_with_restart_induct = cdcl_with_restart.induct[split_format(complete),
   OF cdcl_increasing_restarts_ops_axioms]
@@ -2372,7 +2369,7 @@ lemma cdcl_with_restart_bound_inv:
   shows "bound_inv A (fst T)"
   using assms apply (induction rule: cdcl_with_restart.induct)
     prefer 2 apply (metis Nitpick.rtranclp_unfold fstI full_def rtranclp_cdcl_bound_inv)
-  by (metis cdcl_bound_inv cdcl_cdcl_inv cdcl_restart_inv fst_conv)+
+  by (metis cdcl_bound_inv cdcl_cdcl_inv cdcl_restart_inv fst_conv)
 
 
 lemma cdcl_with_restart_cdcl_inv:
@@ -2383,7 +2380,7 @@ lemma cdcl_with_restart_cdcl_inv:
   using assms apply (induction)
     apply (metis cdcl_cdcl_inv cdcl_inv_restart fst_conv)
    apply (metis fstI full0_def full0_unfold rtranclp_cdcl_cdcl_inv)
-  by (simp add: cdcl_inv_restart)
+  done
 
 lemma rtranclp_cdcl_with_restart_cdcl_inv:
   assumes
@@ -2442,8 +2439,7 @@ lemma cdcl_with_restarts_measure_bound:
   apply (cases rule: cdcl_with_restart.cases)
      apply simp
     using measure_bound relpowp_imp_rtranclp apply fastforce
-   apply (metis full0_def full0_unfold measure_bound2 prod.inject)
-  using measure_bound by simp
+   by (metis full0_def full0_unfold measure_bound2 prod.inject)
 
 lemma rtranclp_cdcl_with_restarts_measure_bound:
   "cdcl_with_restart\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> \<mu> A V \<le> \<mu>_bound A T"
@@ -2469,16 +2465,15 @@ proof (rule ccontr)
       apply (case_tac m) apply simp by (meson relpowp_E2)
     have "\<exists> T m. (cdcl ^^ m) (fst (g i)) T \<and> m \<ge> f (snd (g (i)))"
       using g[of i] apply (cases rule: cdcl_with_restart.cases)
-         apply auto[]
-        prefer 2 apply (auto intro!: exI[of _ "(0::nat)"])[]
-      using g[of "Suc i"] apply (cases rule: cdcl_with_restart.cases)
-      unfolding full0_def by (auto simp add: full_def dest!: H dest: tranclpD)
+        apply (auto)[]
+      using g[of "Suc i"] by (cases rule: cdcl_with_restart.cases)
+        (auto simp add: full_def full0_def dest!: H dest: tranclpD)
   } note H = this
   obtain A where "bound_inv A (fst (g 1))"
     using g[of 0] cdcl_inv_g[of 0] apply (cases rule: cdcl_with_restart.cases)
       apply (metis One_nat_def cdcl_inv exists_bound fst_conv relpowp_imp_rtranclp rtranclp_induct)
      apply (metis H f_Suc_not_zero fst_conv full_def le_0_eq relpowp_E2 snd_conv)
-    by (metis One_nat_def exists_bound fst_conv)
+    done
   have "strict_mono (\<lambda>j. f (snd (g j)))"
     by (metis `strict_mono (snd \<circ> g)` comp_def mono_f strict_monoD strict_monoI)
   let ?j = "\<mu>_bound A (fst (g 1)) + 1"
@@ -2518,8 +2513,9 @@ proof (rule ccontr)
       have "\<And>n. bound_inv A (fst (g (n + 1)))"
         by (meson \<open>bound_inv A (fst (g 1))\<close> cdcl_inv_g cdcl_with_restart le_add2
           rtranclp_cdcl_with_restart_bound_inv)
-      moreover have "\<And>b. \<not> bound_inv b (fst (g (1 + \<mu>_bound A (fst (g 1))))) \<or> \<not> 1 + \<mu> b (fst (g (1 + \<mu>_bound A (fst (g 1))))) \<le> m"
-        using cdcl_comp_bounded cdcl_inv_g cdcl_m by force (* 16 ms *)
+      moreover have "\<And>b. \<not> bound_inv b (fst (g (1 + \<mu>_bound A (fst (g 1)))))
+          \<or> \<not> 1 + \<mu> b (fst (g (1 + \<mu>_bound A (fst (g 1))))) \<le> m"
+        using cdcl_comp_bounded cdcl_inv_g cdcl_m by force
       ultimately show ?thesis
         using \<open>\<mu> A (fst (g (\<mu>_bound A (fst (g 1)) + 1))) \<le> \<mu>_bound A (fst (g 1))\<close>
         \<open>\<mu>_bound A (fst (g 1)) + 1 \<le> m\<close> by fastforce
@@ -2842,7 +2838,7 @@ subsection \<open>Instantiations\<close>
 locale dpll_withbacktrack_and_restarts =
   dpll_with_backtrack +
   fixes f :: "nat \<Rightarrow> nat"
-  assumes strict_mono: "strict_mono f" and f_0: "f 0 = 0"
+  assumes strict_mono: "strict_mono f"
 begin
   sublocale cdcl_increasing_restarts fst snd "\<lambda>M S. (M, snd S)" "\<lambda>C (M, N). (M, insert C N)"
   "\<lambda>C (M, N). (M, N - {C})" f "\<lambda>(_, N) S. S = ([], N)"
@@ -2860,11 +2856,10 @@ begin
       apply (case_tac T, simp)
      apply (case_tac U, simp)
     apply (case_tac U; auto)
-        using f_0 apply simp
     using dpll_bj_clauses dpll_bj_all_decomposition_implies_inv dpll_bj_no_dup apply fastforce
     using dpll_bj_clauses dpll_bj_all_decomposition_implies_inv dpll_bj_no_dup apply fastforce
    apply (case_tac S; auto)
-    using f_0 apply simp
+     apply simp
    apply (case_tac T; auto)
   done
 end
@@ -2959,17 +2954,13 @@ lemma cdcl_with_restart_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_le_\<mu>\<^sub>C\
   shows "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A V \<le> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A T"
   using cdcl_inv bound_inv
 proof (induction rule: cdcl_with_restart_induct[OF cdcl])
-  case (3 S T)
-  thus ?case
-    using rtranclp_cdcl_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound[of T T] by (simp add: inv_restart)
-next
-  case (1 R n S m T U) note U = this(4)
+  case (1 m S T n U) note U = this(3)
   show ?case unfolding U
     apply (rule  rtranclp_cdcl_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_update_trail)
          using \<open>(cdcl_l ^^ m) S T\<close>  apply (fastforce dest: relpowp_imp_rtranclp)
         using 1 by auto
 next
-  case (2 R n S T) note full = this(2)
+  case (2 S T n) note full = this(2)
   show ?case
     apply (rule rtranclp_cdcl_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound)
     using full 2 unfolding full_def by force+
@@ -2989,17 +2980,14 @@ lemma cdcl_with_restart_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_le_\<mu>\<^
   shows "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A V \<le> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A T"
   using cdcl_inv bound_inv
 proof (induction rule: cdcl_with_restart_induct[OF cdcl])
-  case (3 S T)
-  thus ?case by (simp add: inv_restart)
-next
-  case (1 R n S m T U) note U = this(4)
+  case (1 m S T n U) note U = this(3)
   have "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A T \<le> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A S"
      apply (rule rtranclp_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_decreasing)
          using \<open>(cdcl_l ^^ m) S T\<close>  apply (fastforce dest: relpowp_imp_rtranclp)
         using 1 by auto
   thus ?case unfolding U by auto
 next
-  case (2 R n S T) note full = this(2)
+  case (2 S T n) note full = this(2)
   show ?case
     apply (rule rtranclp_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_decreasing)
     using full 2 unfolding full_def by force+
