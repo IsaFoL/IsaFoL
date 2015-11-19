@@ -2199,7 +2199,7 @@ inductive cdcl_with_restarts  :: "'st \<Rightarrow> 'st \<Rightarrow> bool" wher
 
 end
 
-locale cdcl_with_restarts =
+locale conflict_driven_clause_learning_with_restarts =
   conflict_driven_clause_learning trail clauses update_trail add_cls remove_cls inv backjump
   learn_cond forget_cond
     for
@@ -2213,7 +2213,9 @@ locale cdcl_with_restarts =
       learn_cond forget_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
 begin
 
-lemma "cdcl S T \<longleftrightarrow> restart_ops.cdcl_with_restarts cdcl (\<lambda>_ _. False) S T" (is "?C S T \<longleftrightarrow> ?R S T")
+lemma cdcl_iff_cdcl_with_restarts_no_restarts:
+  "cdcl S T \<longleftrightarrow> restart_ops.cdcl_with_restarts cdcl (\<lambda>_ _. False) S T"
+  (is "?C S T \<longleftrightarrow> ?R S T")
 proof
   fix S T
   assume "?C S T"
@@ -2226,8 +2228,12 @@ next
     using \<open>?R S T\<close> by fast+
 qed
 
+lemma cdcl_cdcl_with_restarts:
+  "cdcl S T \<Longrightarrow> restart_ops.cdcl_with_restarts cdcl restart S T"
+  by (simp add: restart_ops.cdcl_with_restarts.intros(1))
 end
 
+subsection \<open>Increasing restarts\<close>
 text \<open>To add restarts we needs some assumptions on the predicate (called @{term cdcl} here):
   \<^item> a function @{term f} that is strictly monotonic (and to ease the proof, we assume that
   @{term "f (0::nat) = 0"}). The first step is actually only a restart to clean the state (e.g. to
@@ -2353,28 +2359,43 @@ lemma cdcl_comp_bounded:
 
 text \<open>
   \<^item> @{term "m \<ge> f (Suc n)"} ensure that at least one step has been done.\<close>
-inductive cdcl_with_restart where
+inductive cdcl_with_restart_stgy where
 "(cdcl^^m) S T \<Longrightarrow> m \<ge> f n \<Longrightarrow> restart T U
-  \<Longrightarrow> cdcl_with_restart (S, n) (U, Suc n)" |
-"full cdcl S T \<Longrightarrow> cdcl_with_restart (S, n) (T, Suc n)"
+  \<Longrightarrow> cdcl_with_restart_stgy (S, n) (U, Suc n)" |
+"full cdcl S T \<Longrightarrow> cdcl_with_restart_stgy (S, n) (T, Suc n)"
 
-lemmas cdcl_with_restart_induct = cdcl_with_restart.induct[split_format(complete),
+lemmas cdcl_with_restart_induct = cdcl_with_restart_stgy.induct[split_format(complete),
   OF cdcl_increasing_restarts_ops_axioms]
+
+lemma cdcl_with_restart_stgy_cdcl_with_restarts:
+  "cdcl_with_restart_stgy S T \<Longrightarrow> cdcl_with_restarts\<^sup>*\<^sup>* (fst S) (fst T)"
+proof (induction rule: cdcl_with_restart_stgy.induct)
+  case (1 m S T n U)
+  have "cdcl\<^sup>*\<^sup>* S T" by (meson "1.hyps"(1) relpowp_imp_rtranclp)
+  hence "cdcl_with_restarts\<^sup>*\<^sup>* S T" using cdcl_with_restarts.intros(1)
+    rtranclp_mono[of cdcl cdcl_with_restarts] by blast
+  moreover have "cdcl_with_restarts T U" using \<open>restart T U\<close> cdcl_with_restarts.intros(2) by blast
+  ultimately show ?case by auto
+next
+  case (2 S T)
+  hence "cdcl\<^sup>*\<^sup>* S T" unfolding full_def by auto
+  thus ?case using cdcl_with_restarts.intros(1)
+    rtranclp_mono[of cdcl cdcl_with_restarts] by auto
+qed
 
 lemma cdcl_with_restart_bound_inv:
   assumes
-    "cdcl_with_restart S T" and
+    "cdcl_with_restart_stgy S T" and
     "bound_inv A (fst S)" and
     "cdcl_inv (fst S)"
   shows "bound_inv A (fst T)"
-  using assms apply (induction rule: cdcl_with_restart.induct)
+  using assms apply (induction rule: cdcl_with_restart_stgy.induct)
     prefer 2 apply (metis Nitpick.rtranclp_unfold fstI full_def rtranclp_cdcl_bound_inv)
   by (metis cdcl_bound_inv cdcl_cdcl_inv cdcl_restart_inv fst_conv)
 
-
 lemma cdcl_with_restart_cdcl_inv:
   assumes
-    "cdcl_with_restart S T" and
+    "cdcl_with_restart_stgy S T" and
     "cdcl_inv (fst S)"
   shows "cdcl_inv (fst  T)"
   using assms apply (induction)
@@ -2384,14 +2405,14 @@ lemma cdcl_with_restart_cdcl_inv:
 
 lemma rtranclp_cdcl_with_restart_cdcl_inv:
   assumes
-    "cdcl_with_restart\<^sup>*\<^sup>* S T" and
+    "cdcl_with_restart_stgy\<^sup>*\<^sup>* S T" and
     "cdcl_inv (fst S)"
   shows "cdcl_inv (fst T)"
   using assms by (induction) (auto intro: cdcl_with_restart_cdcl_inv)
 
 lemma rtranclp_cdcl_with_restart_bound_inv:
   assumes
-    "cdcl_with_restart\<^sup>*\<^sup>* S T" and
+    "cdcl_with_restart_stgy\<^sup>*\<^sup>* S T" and
     "cdcl_inv (fst S)" and
     "bound_inv A (fst S)"
   shows "bound_inv A (fst T)"
@@ -2400,8 +2421,8 @@ lemma rtranclp_cdcl_with_restart_bound_inv:
   using cdcl_with_restart_bound_inv rtranclp_cdcl_with_restart_cdcl_inv by blast
 
 lemma cdcl_with_restart_increasing_number:
-  "cdcl_with_restart S T \<Longrightarrow> snd T = 1 + snd S"
-  by (induction rule: cdcl_with_restart.induct) auto
+  "cdcl_with_restart_stgy S T \<Longrightarrow> snd T = 1 + snd S"
+  by (induction rule: cdcl_with_restart_stgy.induct) auto
 end
 
 locale cdcl_increasing_restarts =
@@ -2420,40 +2441,40 @@ locale cdcl_increasing_restarts =
     cdcl_inv :: "'st \<Rightarrow> bool" and
     \<mu>_bound :: "'bound \<Rightarrow> 'st \<Rightarrow> nat" +
   assumes
-    measure_bound: "\<And>A T V n. cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> cdcl_with_restart (T, n) (V, Suc n)
+    measure_bound: "\<And>A T V n. cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> cdcl_with_restart_stgy (T, n) (V, Suc n)
       \<Longrightarrow> \<mu> A V \<le> \<mu>_bound A T" and
     cdcl_with_restarts_\<mu>_bound:
-      "cdcl_with_restart (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T
+      "cdcl_with_restart_stgy (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T
         \<Longrightarrow> \<mu>_bound A V \<le> \<mu>_bound A T"
 begin
 
 lemma rtranclp_cdcl_with_restarts_\<mu>_bound:
-  "cdcl_with_restart\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> \<mu>_bound A V \<le> \<mu>_bound A T"
+  "cdcl_with_restart_stgy\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> \<mu>_bound A V \<le> \<mu>_bound A T"
   apply (induction rule: rtranclp_induct2)
    apply simp
   by (metis cdcl_with_restarts_\<mu>_bound dual_order.trans fst_conv
     rtranclp_cdcl_with_restart_bound_inv rtranclp_cdcl_with_restart_cdcl_inv)
 
 lemma cdcl_with_restarts_measure_bound:
-  "cdcl_with_restart (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> \<mu> A V \<le> \<mu>_bound A T"
-  apply (cases rule: cdcl_with_restart.cases)
+  "cdcl_with_restart_stgy (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> \<mu> A V \<le> \<mu>_bound A T"
+  apply (cases rule: cdcl_with_restart_stgy.cases)
      apply simp
     using measure_bound relpowp_imp_rtranclp apply fastforce
    by (metis full0_def full0_unfold measure_bound2 prod.inject)
 
 lemma rtranclp_cdcl_with_restarts_measure_bound:
-  "cdcl_with_restart\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> \<mu> A V \<le> \<mu>_bound A T"
+  "cdcl_with_restart_stgy\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> \<mu> A V \<le> \<mu>_bound A T"
   apply (induction rule: rtranclp_induct2)
     apply (simp add: measure_bound2)
   by (metis dual_order.trans fst_conv measure_bound2 r_into_rtranclp rtranclp.rtrancl_refl
     rtranclp_cdcl_with_restart_bound_inv rtranclp_cdcl_with_restart_cdcl_inv
     rtranclp_cdcl_with_restarts_\<mu>_bound)
 
-lemma "wf {(T, S). cdcl_with_restart S T \<and> cdcl_inv (fst S)}" (is "wf ?A")
+lemma "wf {(T, S). cdcl_with_restart_stgy S T \<and> cdcl_inv (fst S)}" (is "wf ?A")
 proof (rule ccontr)
   assume "\<not> ?thesis"
   then obtain g where
-    g: "\<And>i. cdcl_with_restart (g i) (g (Suc i))" and cdcl_inv_g: "\<And>i. cdcl_inv (fst (g i))"
+    g: "\<And>i. cdcl_with_restart_stgy (g i) (g (Suc i))" and cdcl_inv_g: "\<And>i. cdcl_inv (fst (g i))"
     unfolding wf_iff_no_infinite_down_chain by fast
   hence "\<And>i. snd (g i) < snd (g (i+1))"
     by (metis Suc_eq_plus1 add.left_neutral add_Suc cdcl_with_restart_increasing_number lessI)
@@ -2464,13 +2485,13 @@ proof (rule ccontr)
     have H: "\<And>T Ta m. (cdcl ^^ m) T Ta \<Longrightarrow> no_step cdcl T \<Longrightarrow> m = 0"
       apply (case_tac m) apply simp by (meson relpowp_E2)
     have "\<exists> T m. (cdcl ^^ m) (fst (g i)) T \<and> m \<ge> f (snd (g (i)))"
-      using g[of i] apply (cases rule: cdcl_with_restart.cases)
+      using g[of i] apply (cases rule: cdcl_with_restart_stgy.cases)
         apply (auto)[]
-      using g[of "Suc i"] by (cases rule: cdcl_with_restart.cases)
+      using g[of "Suc i"] by (cases rule: cdcl_with_restart_stgy.cases)
         (auto simp add: full_def full0_def dest!: H dest: tranclpD)
   } note H = this
   obtain A where "bound_inv A (fst (g 1))"
-    using g[of 0] cdcl_inv_g[of 0] apply (cases rule: cdcl_with_restart.cases)
+    using g[of 0] cdcl_inv_g[of 0] apply (cases rule: cdcl_with_restart_stgy.cases)
       apply (metis One_nat_def cdcl_inv exists_bound fst_conv relpowp_imp_rtranclp rtranclp_induct)
      apply (metis H f_Suc_not_zero fst_conv full_def le_0_eq relpowp_E2 snd_conv)
     done
@@ -2481,18 +2502,18 @@ proof (rule ccontr)
     by (simp add: mono_f strict_mono_ge_id)
   {
      fix i j
-     have cdcl_with_restart: "j \<ge> i \<Longrightarrow> cdcl_with_restart\<^sup>*\<^sup>* (g i) (g j)"
+     have cdcl_with_restart: "j \<ge> i \<Longrightarrow> cdcl_with_restart_stgy\<^sup>*\<^sup>* (g i) (g j)"
        apply (induction j)
          apply simp
        by (metis g le_Suc_eq rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl)
-  } note cdcl_with_restart = this
+  } note cdcl_with_restart_stgy = this
   have "cdcl_inv (fst (g (Suc 0)))"
     by (simp add: cdcl_inv_g)
-  have "cdcl_with_restart\<^sup>*\<^sup>* (fst (g 1), snd (g 1)) (fst (g ?j), snd (g ?j))"
-    by (simp add: cdcl_with_restart)
+  have "cdcl_with_restart_stgy\<^sup>*\<^sup>* (fst (g 1), snd (g 1)) (fst (g ?j), snd (g ?j))"
+    by (simp add: cdcl_with_restart_stgy)
   have "\<mu> A (fst (g ?j)) \<le> \<mu>_bound A (fst (g 1))"
     apply (rule rtranclp_cdcl_with_restarts_measure_bound)
-    using \<open>cdcl_with_restart\<^sup>*\<^sup>* (fst (g 1), snd (g 1)) (fst (g ?j), snd (g ?j))\<close> apply blast
+    using \<open>cdcl_with_restart_stgy\<^sup>*\<^sup>* (fst (g 1), snd (g 1)) (fst (g ?j), snd (g ?j))\<close> apply blast
         apply (simp add: cdcl_inv_g)
        using \<open>bound_inv A (fst (g 1))\<close> apply simp
     done
@@ -2500,7 +2521,7 @@ proof (rule ccontr)
     by auto
   have inv: "bound_inv A (fst (g ?j))"
     using \<open>bound_inv A (fst (g 1))\<close> \<open>cdcl_inv (fst (g (Suc 0)))\<close>
-    by (meson cdcl_inv_g cdcl_with_restart not_add_less2 not_less
+    by (meson cdcl_inv_g cdcl_with_restart_stgy not_add_less2 not_less
       rtranclp_cdcl_with_restart_bound_inv)
   obtain T m where
     cdcl_m: "(cdcl ^^ m) (fst (g ?j)) T" and
@@ -2511,7 +2532,7 @@ proof (rule ccontr)
   thus False
     proof -
       have "\<And>n. bound_inv A (fst (g (n + 1)))"
-        by (meson \<open>bound_inv A (fst (g 1))\<close> cdcl_inv_g cdcl_with_restart le_add2
+        by (meson \<open>bound_inv A (fst (g 1))\<close> cdcl_inv_g cdcl_with_restart_stgy le_add2
           rtranclp_cdcl_with_restart_bound_inv)
       moreover have "\<And>b. \<not> bound_inv b (fst (g (1 + \<mu>_bound A (fst (g 1)))))
           \<or> \<not> 1 + \<mu> b (fst (g (1 + \<mu>_bound A (fst (g 1))))) \<le> m"
@@ -2942,7 +2963,7 @@ abbreviation cdcl_l where
 
 lemma cdcl_with_restart_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_le_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound:
   assumes
-    cdcl: "cdcl_with_restart (T, a) (V, b)" and
+    cdcl: "cdcl_with_restart_stgy (T, a) (V, b)" and
     cdcl_inv:
       "inv T"
       "no_dup (trail T)"
@@ -2968,7 +2989,7 @@ qed
 
 lemma cdcl_with_restart_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_le_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound:
   assumes
-    cdcl: "cdcl_with_restart (T, a) (V, b)" and
+    cdcl: "cdcl_with_restart_stgy (T, a) (V, b)" and
     cdcl_inv:
       "inv T"
       "no_dup (trail T)"
