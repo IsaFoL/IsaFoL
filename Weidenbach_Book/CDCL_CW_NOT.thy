@@ -34,7 +34,7 @@ next
     using skip unfolding V by fastforce
   let ?M =  "Propagated L' C' # M"   
   have inv': "cdcl_all_inv_mes T"
-    by (metis (no_types, hide_lams) cdcl_o.skip inv mono_rtranclp other 
+    by (metis (no_types, hide_lams) cdcl_o.bj cdcl_bj.skip inv mono_rtranclp other 
       rtranclp_cdcl_all_inv_mes_inv st)
   have M_lev: "cdcl_M_level_inv T" using inv' unfolding cdcl_all_inv_mes_def by auto
   hence n_d': "no_dup ?M"
