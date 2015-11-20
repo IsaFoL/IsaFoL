@@ -43,4 +43,12 @@ digraph CDCL {
 	CDCL_CW_stgy -> CDCL_FW_stgy[color=blue, style=dotted];
 	CDCL_FW_stgy -> CDCL_CW_stgy[color=blue, style=dashed];
 
+
+	CDCL_NOT_state [label = "CDCL NOT State"];
+	CDCL_CW_state [label = "CDCL CW State"];
+
+	CDCL_CW_state -> CDCL_NOT_state;
+	
+	CDCL_WL [label = "CDCL 2-Watched-literals ?", color = red];
+
 }
