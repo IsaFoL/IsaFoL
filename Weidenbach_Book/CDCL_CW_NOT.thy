@@ -269,11 +269,6 @@ proof (induction rule: rtranclp_induct)
   defer
 oops
 
-lemma cdcl_bj_decomp_resolve_skip_and_bj:
-  assumes "cdcl_bj\<^sup>*\<^sup>* S T"
-  shows "skip_or_resolve\<^sup>*\<^sup>* S T
-    \<or> (\<exists>U. skip_or_resolve\<^sup>*\<^sup>* S U \<and> backtrack U T)"
-
 lemma
   assumes "cdcl_bj\<^sup>*\<^sup>* S T" and "cdcl_bj\<^sup>*\<^sup>* S U"
   shows "cdcl_bj\<^sup>*\<^sup>* T U \<or> cdcl_bj U T"
@@ -337,7 +332,5 @@ oops
 theorem
   "cdcl_bj\<^sup>*\<^sup>* S T \<Longrightarrow> full cdcl_bj S U \<Longrightarrow> cdcl\<^sup>*\<^sup>* T U"
   apply (induction rule: converse_rtranclp_induct)
-    defer
-    apply simp
 oops
 end
