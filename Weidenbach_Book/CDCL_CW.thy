@@ -2866,7 +2866,7 @@ next
        obtain M where M: "trail S'' = M @ trail S'" and nm: "\<forall>m\<in>set M. \<not>is_marked m"
          using rtranclp_cdcl_cp_dropWhile_trail other'(3) unfolding full0_def by blast
        have btS: "backtrack_level S'' = backtrack_level S'"
-         by (metis full0_def other'.hyps(3) rtranclp_cdcl_cp_backtrack_level)
+         using other'.hyps(3) unfolding full0_def by (metis  rtranclp_cdcl_cp_backtrack_level)
        have inv: "cdcl_M_level_inv S''"
          by (metis (no_types) cdcl_s.conflict' cdcl_s_consistent_inv full0_unfold lev' other'.hyps(3))
        hence nd: "no_dup (trail S'')"
