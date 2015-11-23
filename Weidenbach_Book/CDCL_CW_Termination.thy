@@ -5,7 +5,7 @@ begin
 text \<open>The condition that no learned clause is a tautology is overkill (in the sense that the
   no-duplicate condition is enough), but we can reuse @{term build_all_simple_clss}.\<close>
 definition cdcl_all_inv_mes where
-  "cdcl_all_inv_mes S =     
+  "cdcl_all_inv_mes S =
     (no_strange_atm S \<and> cdcl_M_level_inv S \<and>  finite (atms_of_m (clauses S))
     \<and>  finite (learned_clauses S) \<and>  (\<forall>s \<in> learned_clauses S. \<not>tautology s)
     \<and>  distinct_cdcl_state S \<and> cdcl_conflicting S
@@ -81,7 +81,7 @@ lemma cdcl_o_new_clause_learned_is_backtrack_step:
   new: "D \<notin> learned_clauses S" and
   cdcl: "cdcl_o S T"
   shows "backtrack S T \<and> conflicting S = C_Clause D"
-  using cdcl learned new by (induction rule: cdcl_o.induct) auto
+  using cdcl learned new by (induction rule: cdcl_o.induct) (auto elim: cdcl_bjE)
 
 lemma cdcl_cp_new_clause_learned_has_backtrack_step:
   assumes learned: "D \<in> learned_clauses T" and
@@ -170,12 +170,12 @@ lemma cdcl_o_no_more_Marked_lit:
   assumes "cdcl_o S S'" and "\<not> decided S S'"
   shows "Marked K i \<in> set (trail S') \<longrightarrow> Marked K i \<in> set (trail S)"
   using assms
-proof (induct rule: cdcl_o.induct)
+proof (induct rule: cdcl_o_induct)
   case backtrack
   have H: "\<And>A M M1. M = A @ M1 \<Longrightarrow>  Marked K i \<in> set M1 \<Longrightarrow> Marked K i \<in> set M"  by auto
   show ?case
-    using backtrack(1) by (auto dest!: H get_all_marked_decomposition_exists_prepend)
-qed (fastforce dest!: get_all_marked_decomposition_exists_prepend)+
+    using backtrack(1) by (auto dest: H)
+qed fastforce+
 
 lemma cdcl_new_marked_at_beginning_is_decided:
   assumes "cdcl_s S S'" and
@@ -209,9 +209,9 @@ lemma cdcl_o_is_decided:
   shows "decided S' T"
       using assms
 proof (induction rule:cdcl_o_induct)
-  case (backtrack M N U k D L K i M1 M2)
+  case (backtrack K i M1 M2 M L D N U k)
   then obtain c where " M = c @ M2 @ Marked K (Suc (get_maximum_level D M)) # M1"
-    by (auto dest!: get_all_marked_decomposition_exists_prepend)
+    by auto
   thus ?case
     using backtrack
     by (cases "drop (length M\<^sub>0) M'") auto
@@ -416,26 +416,17 @@ next
         by auto
       with o nd cp ns
       show ?case
-        proof (induction rule: cdcl_o.induct)
+        proof (induction rule: cdcl_o_induct)
           case (decided X Y) note dec = this(1) and cp = this(3) and ns = this(4)
-          show ?case using dec cp ns by blast
+          show ?case using dec cp ns decided.hyps(2) decided.prems(3) by blast
         next
-          case (backtrack S T) note bt = this(1) and nd = this(2) and cp = this(3) and
-            trT = this(5) and ns = this(4)
-          obtain MS N U D LS K MS1 MS2 j where
-            S: "S = (MS, N, U, get_maximum_level (D + {#LS#}) MS, C_Clause (D + {#LS#}))" and
-            T: "T = (Propagated LS (D + {#LS#}) # MS1, N, insert (D + {#LS#}) U,
-                 get_maximum_level D MS, C_True)" and
-            "j = Suc (get_maximum_level D MS)" and
-            decomp: "(Marked K j # MS1, MS2) \<in>
-              set (get_all_marked_decomposition MS)" and
-            "get_level LS MS = get_maximum_level (D + {#LS#}) MS "
-            using backtrackE[OF bt] by metis
-          obtain MS3 where MS3: "MS = MS3 @ MS2 @ Marked K j # MS1"
+          case (backtrack K i M1 M2 M L D N U k) note decomp = this(1) and nd = this(2) and cp = this(3)
+            and trT = this(5) and ns = this(4)
+          obtain MS3 where MS3: "M = MS3 @ M2 @ Marked K (i+1) # M1"
             using get_all_marked_decomposition_exists_prepend[OF decomp] by metis
-          obtain M'' where M'': "MS1 = M'' @ Marked L i # H @ M"
-            using trT unfolding T trail_conv by (cases M') auto
-          have False using nd MS3 unfolding S M'' by auto
+          obtain M'' where M'': "M1 = M'' @ Marked L i # H @ M"
+            using trT backtrack.prems(4) MS3 unfolding trail_conv by (cases M') auto
+          have False using nd MS3 unfolding M'' by auto
           thus ?case by fast
         qed (auto elim!: skipE resolveE)
       qed
@@ -459,7 +450,7 @@ lemma cdcl_o_cannot_learn:
   shows "D + {#L#} \<notin> learned_clauses z"
   using assms(1-4,7,8)
 proof (induction rule: cdcl_o_induct)
-  case (backtrack M N U k D' L' K j M1 M2) note decomp = this(1) and levD = this(4) and lev =this(5)
+  case (backtrack K j M1 M2 M L' D' N U k) note decomp = this(1) and levD = this(4) and lev =this(5)
     and trM = this(6) and DL = this(7) and learned = this(8) and z = this(9)
   obtain M3 where M3: "M = M3 @ M2 @ Marked K (j + 1) # M1"
     using decomp get_all_marked_decomposition_exists_prepend by metis
@@ -928,11 +919,11 @@ next
     using backtrack.prems(3) backtracking[OF _ backtrack.hyps(1-4)] unfolding S by auto
   hence "card (insert (D + {#L#}) U) = Suc (card U)" by (simp add: \<open>finite U\<close>)
   have "distinct_cdcl_state ?S'"
-    using backtrack.prems(9) cdcl_o.backtrack[OF backtracking[OF _ backtrack.hyps]]
+    using backtrack.prems(9) cdcl_o.bj[OF cdcl_bj.backtrack[OF backtracking[OF _ backtrack.hyps]]]
     distinct_cdcl_state_inv cdcl.other by blast
   moreover have "\<forall>s\<in>learned_clauses ?S'. \<not> tautology s"
-    using learned_clauses_are_not_tautologies[OF cdcl.other[OF cdcl_o.backtrack[OF
-      backtracking[OF _ backtrack.hyps]]]] backtrack.prems(5,8,10) by auto
+    using learned_clauses_are_not_tautologies[OF cdcl.other[OF cdcl_o.bj[OF cdcl_bj.backtrack[OF
+      backtracking[OF _ backtrack.hyps]]]]] backtrack.prems(5,8,10) by auto
   moreover have "finite (learned_clauses ?S')" using \<open>finite U\<close> by auto
   moreover have "card (atms_of_m (learned_clauses (M, N, U, k, C_Clause (D + {#L#}))))
     \<le> card (atms_of_m N)"
@@ -1050,26 +1041,26 @@ proof -
         using cp unfolding full0_def rtranclp_unfold by blast
       moreover
         from H have "(cdcl_measure T, cdcl_measure S) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3"
-        proof (induction)
+        proof (induction rule:cdcl_o.induct)
           case (decided S T)
           thus ?case using decided_measure_decreasing by blast
         next
-          case (skip S T)
-          thus ?case by auto
-        next
-          case (resolve)
-          thus ?case by auto
-        next
-          case (backtrack S T) note bt = this(1) and st = this(2) and R = this(3) and invR = this(4)
-            and inv = this(5)
-          have no_relearn: "\<forall>T. conflicting S = C_Clause T \<longrightarrow> T \<notin> learned_clauses S"
-            using no_relearned_clause[OF invR st bt] R by (meson Un_iff cdcl_all_inv_mes_def invR)
-          show ?case
-            apply (rule cdcl_measure_decreasing)
-            using bt cdcl_o.backtrack other apply blast
-            using bt inv no_relearn apply (auto simp add: cdcl_all_inv_mes_def)
-            done
+          case (bj S T) note bt = this(1) and st = this(2) and R = this(3)
+            and invR = this(4) and inv = this(5)
+          thus ?case
+            proof (cases)
+              case (backtrack) note bt = this(1)
+                have no_relearn: "\<forall>T. conflicting S = C_Clause T \<longrightarrow> T \<notin> learned_clauses S"
+                  using no_relearned_clause[OF invR st] invR st bt R
+                  by (meson UnI1 cdcl_all_inv_mes_def)
+                show ?thesis
+                  apply (rule cdcl_measure_decreasing)
+                  using bt cdcl_bj.backtrack cdcl_o.bj other apply blast
+                  using bt inv no_relearn apply (auto simp add: cdcl_all_inv_mes_def)
+                  done
+            qed auto
         qed
+
       ultimately show ?case
          proof -
            have "cdcl_measure U = cdcl_measure T \<longrightarrow> (cdcl_measure U, cdcl_measure S)

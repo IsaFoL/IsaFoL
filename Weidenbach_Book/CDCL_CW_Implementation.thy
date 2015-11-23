@@ -369,8 +369,8 @@ lemma do_resolve_step_no:
 
 lemma  rough_state_of_state_of_resolve[simp]:
   "cdcl_all_inv_mes (toS S) \<Longrightarrow> rough_state_of (state_of (do_resolve_step S)) = do_resolve_step S"
-  apply (rule state_of_inverse)
-  by (metis cdcl.simps cdcl_all_inv_mes_inv do_resolve_step resolve mem_Collect_eq)
+  by (rule state_of_inverse)
+     (metis bj cdcl_all_inv_mes_inv do_resolve_step mem_Collect_eq other resolve)
 
 lemma do_resolve_step_trail_is_C_True[iff]:
   "do_resolve_step S = (a, b, c, d, C_True) \<longleftrightarrow> S = (a, b, c, d, C_True)"
@@ -571,7 +571,7 @@ lemma rough_state_of_state_of_backtrack[simp]:
   assumes "cdcl_all_inv_mes (toS S)"
   shows "rough_state_of (state_of (do_backtrack_step S))= do_backtrack_step S"
   apply (rule state_of_inverse)
-  using assms by (metis cdcl.simps cdcl_all_inv_mes_inv do_backtrack_step backtrack mem_Collect_eq)
+  using assms by (metis backtrack bj cdcl_all_inv_mes_inv do_backtrack_step mem_Collect_eq other)
 
 paragraph \<open>Decide\<close>
 fun do_decide_step where
@@ -635,7 +635,7 @@ lemma rough_state_of_state_of_do_decide_step[simp]:
 lemma rough_state_of_state_of_do_skip_step[simp]:
   "cdcl_all_inv_mes (toS S) \<Longrightarrow> rough_state_of (state_of (do_skip_step S)) = do_skip_step S"
   apply (subst state_of_inverse)
-    apply (metis cdcl_all_inv_mes_inv skip do_skip_step mem_Collect_eq other)
+    apply (metis cdcl_all_inv_mes_inv skip do_skip_step mem_Collect_eq other bj)
   apply simp
   done
 
@@ -751,7 +751,7 @@ lemma do_other_step_no:
   assumes inv: "cdcl_all_inv_mes (toS S)" and
   st: "do_other_step S = S"
   shows "no_step cdcl_o (toS S)"
-  using st inv by (auto split: split_if_asm
+  using st inv by (auto split: split_if_asm elim: cdcl_bjE
     simp add: Let_def elim!: cdcl_o.cases
     dest!: do_skip_step_no do_resolve_step_no do_backtrack_step_no do_decide_step_no)
 
@@ -844,11 +844,11 @@ proof -
   thus ?thesis
     apply (induction "toS S" "toS (do_other_step S)" rule: cdcl_o.induct)
        apply (auto simp del: do_other_step.simps
-        elim!: skipE resolveE decidedE backtrackE
+        elim!: skipE resolveE decidedE backtrackE cdcl_bjE
         dest!: get_all_marked_decomposition_exists_prepend
         simp add: length_trail_toS[symmetric] conflicting_noTrue_iff_toS[symmetric]
-          trail_toS_neq_imp_trail_neq)[3]
-    by (elim backtrackE) (smt backtrackE get_all_marked_decomposition_exists_prepend append_Cons
+          trail_toS_neq_imp_trail_neq)
+    by (smt backtrackE get_all_marked_decomposition_exists_prepend append_Cons
       append_Nil2 append_assoc list.inject marked_lit.distinct(1) rev_append rev_eq_Cons_iff
       same_append_eq trail_conv trail_toS_neq_imp_trail_neq)
 qed
