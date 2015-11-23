@@ -7,8 +7,8 @@ text \<open>The condition that no learned clause is a tautology is overkill (in 
 definition cdcl_all_inv_mes where
   "cdcl_all_inv_mes S =
     (no_strange_atm S \<and> cdcl_M_level_inv S \<and>  finite (atms_of_m (clauses S))
-    \<and>  finite (learned_clauses S) \<and>  (\<forall>s \<in> learned_clauses S. \<not>tautology s)
-    \<and>  distinct_cdcl_state S \<and> cdcl_conflicting S
+    \<and> finite (learned_clauses S) \<and>  (\<forall>s \<in> learned_clauses S. \<not>tautology s)
+    \<and> distinct_cdcl_state S \<and> cdcl_conflicting S
     \<and> all_decomposition_implies (clauses S) (get_all_marked_decomposition (trail S))
     \<and> cdcl_learned_clause S)"
 
