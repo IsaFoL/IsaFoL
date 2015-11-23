@@ -66,9 +66,11 @@ skipping[intro]: "S = (Propagated L C' # M, N, U, k, C_Clause D) \<Longrightarro
 
 inductive_cases skipE[elim]: "skip S S'"
 
+text \<open>@{term "get_maximum_level D (Propagated L (C + {#L#}) # M) = k \<or> k= 0"} is equivalent to
+  @{term "get_maximum_level D (Propagated L (C + {#L#}) # M) = k"}\<close>
 inductive resolve :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
 resolving[intro]: "S = (Propagated L (C + {#L#}) # M, N, U, k, C_Clause (D + {#-L#}))
-  \<Longrightarrow> (get_maximum_level D (Propagated L (C + {#L#}) # M) = k \<or> k= 0)
+  \<Longrightarrow> get_maximum_level D (Propagated L (C + {#L#}) # M) = k
   \<Longrightarrow> resolve S (M, N, U, k, C_Clause (remdups_mset (D + C)))"
 
 inductive_cases resolveE[elim]: "resolve S S'"
@@ -114,7 +116,7 @@ lemma cdcl_all_induct[consumes 1, case_names propagate conflict forget restart d
     \<Longrightarrow> P (M, N, U, k, C_True)  (Marked L (k+1) # M, N, U, k + 1, C_True)"
   and skip: "\<And>M N L C' D k U. -L \<notin># D \<Longrightarrow> D \<noteq> {#}
     \<Longrightarrow> P (Propagated L C' # M, N, U, k, C_Clause D) (M, N, U, k, C_Clause D)"
-  and resolve: "\<And>M N L D k U C. (get_maximum_level D (Propagated L (C + {#L#}) # M) = k \<or> k= 0)
+  and resolve: "\<And>M N L D k U C. get_maximum_level D (Propagated L (C + {#L#}) # M) = k
     \<Longrightarrow> P (Propagated L (C + {#L#}) # M, N, U, k, C_Clause (D + {#-L#}))
       (M, N, U, k, C_Clause (remdups_mset (D + C)))"
   and backtrack: "\<And>M N U k D L K i M1 M2.
@@ -3112,7 +3114,8 @@ proof (induction M arbitrary: M' N' U' k' E E' D)
   case Nil
   thus ?case using rtranclp_cdcl_s_conflicting_is_false unfolding full0_def by fast
 next
-  case (Cons L M) note IH = this(1) and full = this(8) and E = this(9) and inv = this(2-7) and nm = this(10)
+  case (Cons L M) note IH = this(1) and full = this(8) and E = this(9) and inv = this(2-7) and
+    nm = this(10)
   let ?S = "(L#M, N, U, 0, C_Clause D)"
   let ?S' = "(M', N', U', k', E')"
   obtain K p where K: "L = Propagated K p"
@@ -3150,8 +3153,20 @@ next
           assume LD: "\<not>-lit_of L \<notin># D"
           hence D: "C_Clause D = C_Clause ((D - {#-lit_of L#}) + {#-lit_of L#})"
             by (auto simp add: multiset_eq_iff)
+
+          have "\<And>L. get_level L M = 0"
+            by (simp add: nm)
+          then have "get_maximum_level (D - {#- K#}) (Propagated K (p - {#K#} + {#K#}) # M) = 0"
+            using  LD get_maximum_level_exists_lit_of_max_level
+            proof -
+              obtain L' where "get_level L' (L#M) = get_maximum_level D (L#M)"
+                using  LD get_maximum_level_exists_lit_of_max_level[of D "L#M"] by fastforce
+              thus ?thesis by (metis (mono_tags) K' bex_msetE get_level_skip_all_not_marked
+                get_maximum_level_exists_lit nm not_gr0)
+            qed
           then obtain T where sk: "resolve ?S T" and res: "no_step skip ?S"
-            using LD resolving[of ?S] unfolding K' D by fastforce
+            using resolving[of ?S K "p - {#K#}" M N U 0 "(D - {#-K#})"] unfolding K' D
+            by fastforce
           have "full0 cdcl_cp T T"
             using sk by (auto simp add: conflicting_clause_full0_cdcl_cp)
           thus ?thesis
