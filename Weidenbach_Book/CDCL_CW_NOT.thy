@@ -226,47 +226,70 @@ lemma rtranclp_skip_state_decomp:
   using assms by (induction rule: rtranclp_induct) (cases S;auto)+
 
 lemma
-  "skip\<^sup>*\<^sup>* S U \<Longrightarrow> backtrack S T \<Longrightarrow> cdcl_all_inv_mes S \<Longrightarrow> resolve U V \<Longrightarrow> False"
-proof (induction rule: rtranclp_induct)
-  case base note bt = this(1) and inv = this(2) and resolve = this(3)
+  assumes
+    skip: "skip\<^sup>*\<^sup>* S U" and
+    bt: "backtrack S T" and
+    inv: "cdcl_all_inv_mes S"
+  shows "\<not>resolve U V"
+proof (rule ccontr)
+  assume resolve: "\<not>\<not>resolve U V"
+
   obtain L C M N U' k D where
-    S: "S = (Propagated L (C + {#L#}) # M, N, U', k, C_Clause (D + {#-L#}))"and
-    "get_maximum_level D (Propagated L (C + {#L#}) # M) = k \<or> k= 0" and
+    U: "U = (Propagated L (C + {#L#}) # M, N, U', k, C_Clause (D + {#-L#}))"and
+    "get_maximum_level D (Propagated L (C + {#L#}) # M) = k" and
     "V = (M, N, U', k, C_Clause (remdups_mset (D + C)))"
     using resolve by auto
-  let ?M = "Propagated L (C + {#L#}) # M"
-  obtain D' L' i K M1 M2 where
-    S': "S = (?M, N, U', k, C_Clause (D' + {#L'#}))" and
-    decomp: "(Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition ?M)" and
-    "get_level L' ?M = k" and
-    "get_level L' ?M = get_maximum_level (D'+{#L'#}) ?M" and
-    "get_maximum_level D' ?M = i" and
+
+  have
+    S: "clauses S = N"
+       "learned_clauses S = U'"
+       "backtrack_level S = k"
+       "conflicting S = C_Clause (D + {#-L#})"
+    using rtranclp_skip_state_decomp(2)[OF skip] unfolding U by auto
+  obtain M\<^sub>0 where
+    tr_S: "trail S = M\<^sub>0 @ trail U" and
+    nm: "\<forall>m\<in>set M\<^sub>0. \<not>is_marked m"
+    using rtranclp_skip_state_decomp[OF skip] apply (cases U) by blast
+
+  obtain M' D' L' i K M1 M2 where
+    S': "S = (M', N, U', k, C_Clause (D' + {#L'#}))"  and
+    decomp: "(Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition M')" and
+    "get_level L' M' = k" and
+    "get_level L' M' = get_maximum_level (D'+{#L'#}) M'" and
+    "get_maximum_level D' M' = i" and
     T: "T = (Propagated L' (D'+{#L'#}) # M1 , N, U' \<union> {D' + {#L'#}}, i, C_True)"
-    using bt unfolding S by auto
-  obtain c where M: "?M = c @ M2 @ Marked K (i + 1) # M1"
+    using bt S apply (cases S) by (auto elim!: backtrackE) fastforce
+  obtain c where M: "M' = c @ M2 @ Marked K (i + 1) # M1"
     using get_all_marked_decomposition_exists_prepend[OF decomp] by auto
-  have marked: "get_all_levels_of_marked ?M = rev [1..<1+k]"
-    using inv unfolding S cdcl_all_inv_mes_def cdcl_M_level_inv_def by auto
+  have marked: "get_all_levels_of_marked M' = rev [1..<1+k]"
+    using inv unfolding S' cdcl_all_inv_mes_def cdcl_M_level_inv_def by auto
   hence "i < k"
     unfolding M by (force simp add: rev_swap[symmetric] dest!: arg_cong[of _ _ set])
 
   have DD': "D' + {#L'#} = D + {#-L#}"
     using S S' by auto
-  have "L' = -L"
+  have [simp]: "L' = -L"
     proof (rule ccontr)
       assume "\<not> ?thesis"
       hence "-L \<in># D'"
         using DD' by (metis add_diff_cancel_right' diff_single_trivial diff_union_swap
           multi_self_add_other_not_self)
-      moreover have "get_level L ?M = k"
+      moreover have "get_level L M' = k"
+        using tr_S unfolding U S' apply (simp add:nm)
+
          sorry
-      ultimately have "get_maximum_level D' ?M \<ge> k"
-         sorry
+      ultimately have "get_maximum_level D' M' \<ge> k"
+        by (metis get_maximum_level_ge_get_level get_rev_level_uminus)
       thus False
-        using \<open>i < k\<close> unfolding \<open>get_maximum_level D' ?M = i\<close>  sorry
+        using \<open>i < k\<close> unfolding \<open>get_maximum_level D' M' = i\<close> by auto
     qed
-  show ?case using resolve unfolding S  apply (auto elim!: resolveE)
-  defer
+  have [simp]: "D = D'" using DD' by auto
+  have "get_maximum_level D M' = k"
+     using tr_S \<open>get_maximum_level D (Propagated L (C + {#L#}) # M) = k\<close> unfolding U S'
+     apply (simp add:nm)
+     sorry
+  show False
+    using \<open>get_maximum_level D' M' = i\<close> \<open>get_maximum_level D M' = k\<close> \<open>i < k\<close> by auto
 oops
 
 lemma
