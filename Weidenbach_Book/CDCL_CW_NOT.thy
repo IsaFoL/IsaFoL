@@ -172,7 +172,7 @@ qed
 inductive cdcl_fw :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
 fw_propagate: "propagate S S' \<Longrightarrow> cdcl_fw S S'" |
 fw_conflict: "conflict S T \<Longrightarrow> full cdcl_bj T U \<Longrightarrow> cdcl_fw S U" |
-fw_other: "decided S S' \<Longrightarrow> cdcl_fw S S'"|
+fw_decided: "decided S S' \<Longrightarrow> cdcl_fw S S'"|
 fw_rf: "cdcl_rf S S' \<Longrightarrow> cdcl_fw S S'"
 
 lemma cdcl_fw_cdcl:
@@ -623,14 +623,28 @@ lemma
   shows "cdcl_bj\<^sup>*\<^sup>* T U"
   using assms by (metis cdcl_bj_strongly_conflutent full_def tranclp_into_rtranclp)
 
+text \<open>As is, this is wrong because of the conflict that is merged within the other rules\<close>
 lemma
   assumes
     inv: "cdcl_all_inv_mes S" and
-    "cdcl_fw S T" and
     "cdcl S U"
-  shows "cdcl\<^sup>*\<^sup>* U T"
-  using assms(2,3,1)
-proof induction
-  case (fw_propagate S T)
+  shows "\<exists>T. cdcl_fw S T \<and> cdcl\<^sup>*\<^sup>* U T"
+  using assms(2,1)
+proof (induction rule: cdcl_all_rules_induct)
+  case (propagate S T)
+  thus ?case using fw_propagate by blast
+next
+  case (decided S T)
+  thus ?case using fw_decided by blast  
+next
+  case (conflict S T)
+  thus ?case using fw_conflict sorry
+next
+  case (restart)
+  thus ?case using cdcl_rf.restart fw_rf by blast
+next
+  case (forget)
+  thus ?case using cdcl_rf.forget fw_rf by blast
 oops
+
 end

@@ -75,10 +75,18 @@ resolving[intro]: "S = (Propagated L (C + {#L#}) # M, N, U, k, C_Clause (D + {#-
 
 inductive_cases resolveE[elim]: "resolve S S'"
 
+inductive restart :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
+restart: "S = (M, N, U, k, C_True) \<Longrightarrow> \<not>M \<Turnstile>as N \<Longrightarrow> restart S ([], N, U, 0, C_True)"
+inductive_cases restartE[elim]: "restart S T"
+
+inductive forget :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
+"S = (M, N, U \<union> {C}, k, C_True) \<Longrightarrow> \<not>M \<Turnstile>as N
+  \<Longrightarrow> C \<notin> set (get_all_mark_of_propagated(trail S)) \<Longrightarrow> C \<notin> U \<Longrightarrow> forget S (M, N, U, k, C_True)"
+inductive_cases forgetE[elim]: "forget S T"
+
 inductive cdcl_rf :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
-restart: "S = (M, N, U, k, C_True) \<Longrightarrow> \<not>M \<Turnstile>as N \<Longrightarrow> cdcl_rf S ([], N, U, 0, C_True)" |
-forget: "S = (M, N, U \<union> {C}, k, C_True) \<Longrightarrow> \<not>M \<Turnstile>as N
-  \<Longrightarrow> C \<notin> set (get_all_mark_of_propagated(trail S)) \<Longrightarrow> C \<notin> U \<Longrightarrow> cdcl_rf S (M, N, U, k, C_True)"
+restart: "restart S T \<Longrightarrow> cdcl_rf S T" |
+forget: "forget S T \<Longrightarrow> cdcl_rf S T"
 
 inductive cdcl_bj ::  "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
 skip[intro]: "skip S S' \<Longrightarrow> cdcl_bj S S'" |
@@ -100,6 +108,42 @@ rf: "cdcl_rf S S' \<Longrightarrow> cdcl S S'"
 lemma rtranclp_propagate_is_rtranclp_cdcl:
   "propagate\<^sup>*\<^sup>* S S' \<Longrightarrow> cdcl\<^sup>*\<^sup>* S S'"
   by (induction rule: rtranclp.induct) (fastforce dest!: propagate)+
+
+lemma cdcl_all_rules_induct[consumes 1, case_names propagate conflict forget restart decided skip
+    resolve backtrack]:
+  fixes S  :: "'v cdcl_state"
+  assumes cdcl: "cdcl S S'"
+  and propagate: "\<And>S T. propagate S T \<Longrightarrow> P S T"
+  and conflict:  "\<And>S T. conflict S T \<Longrightarrow> P S T"
+  and forget:  "\<And>S T. forget S T \<Longrightarrow> P S T"
+  and restart:  "\<And>S T. restart S T \<Longrightarrow> P S T"
+  and decide:  "\<And>S T. decided S T \<Longrightarrow> P S T"
+  and skip:  "\<And>S T. skip S T \<Longrightarrow> P S T"
+  and resolve:  "\<And>S T. resolve S T \<Longrightarrow> P S T"
+  and backtrack:  "\<And>S T. backtrack S T \<Longrightarrow> P S T"
+  shows "P S S'"
+  using assms(1)
+proof (induct rule: cdcl.induct)
+  case (propagate S S') note propagate = this(1)
+  thus ?case using assms(2) by (auto)
+next
+  case (conflict S S')
+  thus ?case using assms(3) by fast
+next
+  case (other S S')
+  thus ?case
+    proof (induct rule: cdcl_o.induct)
+      case (decided T U)
+      thus ?case using decide by auto
+    next
+      case (bj S S')
+      thus ?case using assms(7-9) by (induction rule: cdcl_bj.induct) auto
+    qed
+next
+  case (rf S S')
+  thus ?case
+    by (induct rule: cdcl_rf.induct) (fast dest: forget restart)+
+qed
 
 lemma cdcl_all_induct[consumes 1, case_names propagate conflict forget restart decided skip
     resolve backtrack]:
@@ -126,26 +170,30 @@ lemma cdcl_all_induct[consumes 1, case_names propagate conflict forget restart d
           (Propagated L (D+{#L#}) # M1, N, U \<union> {D +  {#L#}}, i, C_True)"
   shows "P S S'"
   using cdcl
-proof (induct rule: cdcl.induct)
+proof (induct rule: cdcl_all_rules_induct)
   case (propagate S S') note propagate = this(1)
   thus ?case using assms(2) by (auto)
 next
   case (conflict S S')
   thus ?case using assms(3) by fast
 next
-  case (other S S')
-  thus ?case
-    proof (induct rule: cdcl_o.induct)
-      case (decided T U)
-      thus ?case using decide by auto
-    next
-      case (bj S S')
-      thus ?case using assms(7-9) by (induction rule: cdcl_bj.induct) auto
-    qed
+  case (decided T U)
+  thus ?case using decide by auto
 next
-  case (rf S S')
-  thus ?case
-    by (induct rule: cdcl_rf.induct) (fast dest: forget restart)+
+  case (backtrack S S')
+  thus ?case using assms(9) by auto
+next
+  case (restart S S')
+  thus ?case using assms(5) by blast
+next
+  case (forget S S')
+  thus ?case using assms(4) by auto
+next
+  case (skip S S')
+  thus ?case using assms(7) by blast
+next
+  case (resolve S S')
+  thus ?case using assms(8) by auto
 qed
 
 lemma cdcl_o_induct[consumes 1, case_names decided skip resolve backtrack]:
