@@ -292,8 +292,8 @@ next
     by (metis all_decomposition_implies_cons_single decomp get_all_marked_decomposition_never_empty
       hd_Cons_tl)
   moreover
-    have vars_of_D: "atms_of D \<subseteq> atm_of ` lit_of ` set F"
-      using \<open>F \<Turnstile>as CNot D\<close> unfolding lits_of_def atms_of_def
+    have vars_of_D: "atms_of D \<subseteq> atm_of ` lits_of F"
+      using \<open>F \<Turnstile>as CNot D\<close> unfolding atms_of_def
       by (meson image_subsetI mem_set_mset_iff true_annots_CNot_all_atms_defined)
 
   obtain a b li where F: "get_all_marked_decomposition F = (a, b) # li"
@@ -774,7 +774,7 @@ proof -
         by (auto simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def
           dest!: no_dup_cannot_not_lit_and_uminus)
       have tot_I': "total_over_m ?I (?N \<union> (\<lambda>a. {#lit_of a#}) ` set ?M)"
-        using tot atms_of_s_def lits_of_def unfolding total_over_m_def total_over_set_def
+        using tot atms_of_s_def unfolding total_over_m_def total_over_set_def
         by fastforce
       have "{P |P. P \<in> lits_of ?M \<and> atm_of P \<notin> atm_of ` I} \<Turnstile>s ?O"
         using \<open>I\<Turnstile>s ?N\<close> atm_I_N by (auto simp add: atm_of_eq_atm_of true_clss_def lits_of_def)
@@ -1399,10 +1399,10 @@ proof
   hence "C \<in> build_all_simple_clss (atms_of C)"
     using distinct_mset_not_tautology_implies_in_build_all_simple_clss by blast
   moreover have "atms_of C \<subseteq> atms_of_m (clauses S) \<union> atm_of ` lits_of (trail S)"
-    using learn C by (force simp add: atms_of_m_def atms_of_def image_Un lits_of_def
+    using learn C by (force simp add: atms_of_m_def atms_of_def image_Un
       true_annots_CNot_all_atms_defined elim!: learnE)
   moreover have "finite (atms_of_m (clauses S) \<union> atm_of ` lits_of (trail S))"
-    using fin unfolding lits_of_def by auto
+    using fin by auto
   ultimately show "C \<in> build_all_simple_clss (atms_of_m (clauses S) \<union> atm_of ` lits_of (trail S))"
     using build_all_simple_clss_mono  by (metis (no_types) insert_subset mk_disjoint_insert)
 qed
@@ -1994,7 +1994,7 @@ proof -
   moreover have "undefined_lit (-?K) F"
     using no_dup unfolding M L by (simp add: defined_lit_map)
   moreover have "atm_of (-K) \<in> atms_of_m N \<union> atm_of ` lits_of (F' @ Marked K d # F)"
-    unfolding lits_of_def by auto
+    by auto
   moreover
     have "N \<union> ?C' \<Turnstile>ps {{#}}"
       proof -
@@ -2682,7 +2682,7 @@ proof -
      using \<open>F \<Turnstile>as CNot C'\<close> distinct not_tauto not_known by (auto simp: tr_S)
    moreover have bj: "m_backjump (add_cls (C' + {#L#}) S) T"
      apply (rule backjumping_ops.backjump.intros[OF backjumping_ops_axioms _ T, of _ _ ])
-     using \<open>F \<Turnstile>as CNot C'\<close> C_cls_S tr_S_CNot_C undef by (auto simp add: tr_S lits_of_def)
+     using \<open>F \<Turnstile>as CNot C'\<close> C_cls_S tr_S_CNot_C undef by (auto simp add: tr_S )
    ultimately show ?thesis by auto
 qed
 

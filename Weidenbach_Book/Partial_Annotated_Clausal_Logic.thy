@@ -41,6 +41,10 @@ lemma lits_of_append[simp]:
 
 lemma finite_lits_of_def[simp]: "finite (lits_of L)"
   unfolding lits_of_def by auto
+
+lemma set_map_lit_of_lits_of[simp]:
+  "set (map lit_of T) = lits_of T"
+  unfolding lits_of_def by auto
 (* TODO introduce unmark
 
 abbreviation unmark where
@@ -48,8 +52,8 @@ abbreviation unmark where
 
 *)
 lemma atms_of_m_lambda_lit_of_is_atm_of_lit_of[simp]:
-  "atms_of_m ((\<lambda>a. {#lit_of a#}) ` set M') = atm_of ` lit_of ` set M'"
-  unfolding atms_of_m_def by auto
+  "atms_of_m ((\<lambda>a. {#lit_of a#}) ` set M') = atm_of ` lits_of M'"
+  unfolding atms_of_m_def lits_of_def by auto
 
 lemma lits_of_rev[simp]: "lits_of (rev a) = lits_of a"
   unfolding lits_of_def by auto
@@ -104,7 +108,7 @@ lemma true_annots_true_cls:
 
 (* Before adding a simp/intro flag, think of @{thm true_annot_singleton}*)
 lemma in_lit_of_true_annot:
-  "a \<in> lit_of ` set M \<longleftrightarrow> M \<Turnstile>a {#a#}"
+  "a \<in> lits_of M \<longleftrightarrow> M \<Turnstile>a {#a#}"
   unfolding true_annot_def lits_of_def by auto
 
 lemma true_annot_lit_of_notin_skip:
@@ -676,7 +680,7 @@ lemma true_clss_clss_contradiction_true_clss_cls_false:
 
 lemma true_annots_CNot_all_atms_defined:
   assumes "M \<Turnstile>as CNot T" and a1: " L \<in># T"
-  shows "atm_of L \<in> atm_of ` lit_of ` set M"
+  shows "atm_of L \<in> atm_of ` lits_of M"
   by (metis assms atm_of_uminus image_eqI in_CNot_implies_uminus(1) lits_of_def
     true_annot_singleton)
 
@@ -776,19 +780,20 @@ lemma true_annots_remove_if_notin_vars:
   unfolding true_annots_def atms_of_m_def by force
 
 lemma all_variables_defined_not_imply_cnot:
-  assumes "\<forall>s \<in> atms_of_m {B}. s \<in> atm_of ` lit_of ` (set A)"
+  assumes "\<forall>s \<in> atms_of_m {B}. s \<in> atm_of ` lits_of A"
   and "\<not> A \<Turnstile>a B"
   shows "A \<Turnstile>as CNot B"
-  unfolding true_annot_def true_annots_def Ball_def CNot_def lits_of_def true_lit_def
+  unfolding true_annot_def true_annots_def Ball_def CNot_def true_lit_def
 proof (clarify, rule ccontr)
   fix L
-  assume LB: "L \<in># B" and " \<not> lit_of ` set A \<Turnstile>l - L"
-  hence "atm_of L \<in> atm_of ` lit_of ` set A" using assms(1) by (simp add: atm_of_lit_in_atms_of)
-  hence "L \<in> lit_of ` set A \<or> -L \<in> lit_of ` set A"
+  assume LB: "L \<in># B" and " \<not> lits_of A \<Turnstile>l - L"
+  hence "atm_of L \<in> atm_of ` lits_of A"
+    using assms(1) by (simp add: atm_of_lit_in_atms_of lits_of_def)
+  hence "L \<in> lits_of A \<or> -L \<in> lits_of A"
     using atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set by metis
-  hence "L \<in> lit_of ` set A" using \<open> \<not> lit_of ` set A \<Turnstile>l - L\<close> by auto
+  hence "L \<in> lits_of A" using \<open> \<not> lits_of A \<Turnstile>l - L\<close> by auto
   thus False
-    using LB assms(2) unfolding true_annot_def lits_of_def true_lit_def true_cls_def Bex_mset_def
+    using LB assms(2) unfolding true_annot_def true_lit_def true_cls_def Bex_mset_def
     by blast
 qed
 
@@ -830,8 +835,8 @@ proof -
   have "\<forall>l \<in># A. -l \<in> lits_of (L # M)"
     using assms(1) in_CNot_implies_uminus(2) by blast
   moreover
-    have "atm_of (lit_of L) \<notin> atm_of ` lit_of ` set M"
-      using assms(3) by force
+    have "atm_of (lit_of L) \<notin> atm_of ` lits_of M"
+      using assms(3) lits_of_def by force
     hence "- lit_of L \<notin> lits_of M" unfolding lits_of_def
       by (metis (no_types) atm_of_uminus imageI)
   ultimately have "\<forall> l \<in># A. -l \<in> lits_of M"

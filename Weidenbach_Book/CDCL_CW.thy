@@ -305,10 +305,10 @@ proof
   let ?M = "trail S"
   assume L_in_M1: "atm_of L \<in> atm_of ` lits_of M1"
   obtain c where Mc: "trail S = c @ M2 @ Marked K (i + 1) # M1" using M1 by blast
-  have "atm_of L \<notin> atm_of ` lit_of ` set c"
+  have "atm_of L \<notin> atm_of ` lits_of c"
     using L_in_M1 no_dup mk_disjoint_insert unfolding Mc lits_of_def by force
   have g_M_eq_g_M1: "get_level L ?M = get_level L M1"
-    using L_in_M1 unfolding Mc lits_of_def by auto
+    using L_in_M1 unfolding Mc by auto
   have g: "get_all_levels_of_marked M1 = rev [1..<Suc i]"
     using order unfolding Mc
     by (auto simp del: upt_simps dest!: append_cons_eq_upt_length_i
@@ -584,7 +584,7 @@ lemma backtrack_atms_of_D_in_M1:
   assumes bt: "backtrack S (Propagated L (D+{#L#}) # M1 , N, U \<union> {D + {#L#}}, i, C_True)"
   and confl: "\<forall>T. conflicting S = C_Clause T \<longrightarrow> trail S \<Turnstile>as CNot T"
   and lev: "cdcl_M_level_inv S"
-  shows "atms_of D \<subseteq> atm_of ` lit_of ` set M1"
+  shows "atms_of D \<subseteq> atm_of ` lits_of M1"
 proof (rule ccontr)
   obtain M N U K M2 where
     S: "S = (M, N, U, get_maximum_level (D + {#L#}) M, C_Clause (D + {#L#}))" and
@@ -595,7 +595,7 @@ proof (rule ccontr)
       using bt by auto
   let ?k = "get_maximum_level (D + {#L#}) M"
   have "M \<Turnstile>as CNot D" using S confl by auto
-  hence vars_of_D: "atms_of D \<subseteq> atm_of ` lit_of ` set M" unfolding lits_of_def atms_of_def
+  hence vars_of_D: "atms_of D \<subseteq> atm_of ` lits_of M" unfolding atms_of_def
     by (meson image_subsetI mem_set_mset_iff true_annots_CNot_all_atms_defined)
 
   obtain M0 where M: "M = M0 @ M2 @ Marked K (i+1) # M1"
@@ -604,8 +604,8 @@ proof (rule ccontr)
   assume a: "\<not> ?thesis"
   then obtain L where
     L: "L \<in> atms_of D" and
-    L_notin_M1: "L \<notin> atm_of ` lit_of ` set M1" by auto
-  then have L_in: "L \<in> atm_of ` lit_of ` set (M0 @ M2 @ Marked K (i + 1) # [])"
+    L_notin_M1: "L \<notin> atm_of ` lits_of M1" by auto
+  then have L_in: "L \<in> atm_of ` lits_of (M0 @ M2 @ Marked K (i + 1) # [])"
     using vars_of_D unfolding M by force
   then obtain L' where
     "L' \<in># D" and
@@ -643,10 +643,24 @@ proof (rule ccontr)
 qed
 
 lemma distinct_atms_of_incl_not_in_other:
-    assumes "no_dup (M @ M')"
-    and "atms_of D \<subseteq> atm_of ` lit_of ` set M'"
-    shows"\<forall>x\<in>atms_of D. x \<notin> atm_of ` lit_of ` set M"
-   using assms by force
+    assumes a1: "no_dup (M @ M')"
+    and a2: "atms_of D \<subseteq> atm_of ` lits_of M'"
+    shows"\<forall>x\<in>atms_of D. x \<notin> atm_of ` lits_of M"
+proof -
+  { fix aa :: 'a
+    have ff1: "\<And>l ms. |l| \<notin>\<^sub>l |ms| \<or> atm_of l \<in> set (map (\<lambda>m. atm_of (lit_of (m::('a, 'b, 'c) marked_lit))) ms)"
+      by (simp add: defined_lit_map)
+    have ff2: "\<And>a. a \<notin> atms_of D \<or> a \<in> atm_of ` lits_of M'"
+      using a2 by (meson subsetCE)
+    have ff3: "\<And>a. a \<notin> set (map (\<lambda>m. atm_of (lit_of m)) M') \<or> a \<notin> set (map (\<lambda>m. atm_of (lit_of m)) M)"
+      using a1 by (metis (lifting) IntI distinct_append empty_iff map_append)
+    have "\<forall>L a f. \<exists>l. ((a::'a) \<notin> f ` L \<or> (l::'a literal) \<in> L) \<and> (a \<notin> f ` L \<or> f l = a)"
+      by blast
+    hence "aa \<notin> atms_of D \<or> aa \<notin> atm_of ` lits_of M"
+      using ff3 ff2 ff1 by (metis (no_types) Marked_Propagated_in_iff_in_lits_of) }
+  thus ?thesis
+    by blast
+qed
 
 lemma cdcl_propagate_is_conclusion:
   assumes "cdcl S S'"
@@ -749,15 +763,15 @@ next
           using backtrack.prems(1) unfolding all_decomposition_implies_def by auto
         moreover
           have "M \<Turnstile>as CNot D" using backtrack.prems(3) by auto
-          hence vars_of_D: "atms_of D \<subseteq> atm_of ` lit_of ` set M"
-            unfolding lits_of_def atms_of_def
+          hence vars_of_D: "atms_of D \<subseteq> atm_of ` lits_of M"
+            unfolding atms_of_def
             by (meson image_subsetI mem_set_mset_iff true_annots_CNot_all_atms_defined)
-          have vars_of_D: "atms_of D \<subseteq> atm_of ` lit_of ` set M1"
+          have vars_of_D: "atms_of D \<subseteq> atm_of ` lits_of M1"
             using backtrack_atms_of_D_in_M1[OF backtracking[OF _ backtrack.hyps]
               backtrack.prems(3,4)] by auto
           have "no_dup M" using backtrack.prems(4) by auto
           hence vars_in_M1:
-            "\<forall>x \<in> atms_of D. x \<notin> atm_of ` lit_of ` set (M0 @ M2 @ Marked K (i + 1) # [])"
+            "\<forall>x \<in> atms_of D. x \<notin> atm_of ` lits_of (M0 @ M2 @ Marked K (i + 1) # [])"
             using vars_of_D distinct_atms_of_incl_not_in_other[of "M0 @M2 @ Marked K (i + 1) # []"
               M1]
             unfolding M by auto
@@ -869,15 +883,15 @@ next
       moreover {
         assume A: "a = []" and P: "Propagated La mark = Propagated L (D + {#L#})" and b: "b = M1"
         have "M \<Turnstile>as CNot D" using backtrack.prems(3) by auto
-        hence vars_of_D: "atms_of D \<subseteq> atm_of ` lit_of ` set M"
-          unfolding lits_of_def atms_of_def
+        hence vars_of_D: "atms_of D \<subseteq> atm_of ` lits_of M"
+          unfolding atms_of_def
           by (meson image_subsetI mem_set_mset_iff true_annots_CNot_all_atms_defined)
-        have vars_of_D: "atms_of D \<subseteq> atm_of ` lit_of ` set M1"
+        have vars_of_D: "atms_of D \<subseteq> atm_of ` lits_of M1"
           using backtrack_atms_of_D_in_M1[OF backtracking[OF _ backtrack.hyps]
             backtrack.prems(3-4)] by auto
         have "no_dup M" using backtrack.prems(4) by auto
         hence vars_in_M1: "\<forall>x \<in> atms_of D. x \<notin>
-          atm_of ` lit_of ` set (M0 @ M2 @ Marked K (i + 1) # [])"
+          atm_of ` lits_of (M0 @ M2 @ Marked K (i + 1) # [])"
           using vars_of_D distinct_atms_of_incl_not_in_other[of "M0 @ M2 @ Marked K (i + 1) # []" M1]
           unfolding M by auto
         have "M1 \<Turnstile>as CNot D"
@@ -1059,7 +1073,7 @@ proof (rule ccontr)
 
   have l0: "{{#lit_of L#} |L. is_marked L \<and> L \<in> set M} = {}" using marked by auto
   have "atms_of_m (N \<union> (\<lambda>a. {#lit_of a#}) ` set M) = atms_of_m N"
-    using atm_incl unfolding lits_of_def no_strange_atm_def by force
+    using atm_incl unfolding no_strange_atm_def by force
   hence "total_over_m I (N \<union> (\<lambda>a. {#lit_of a#}) ` (set M))"
     using tot unfolding total_over_m_def by auto
   hence "I \<Turnstile>s (\<lambda>a. {#lit_of a#}) ` (set M)"
@@ -1669,7 +1683,7 @@ proof (intro allI impI)
 
           have "hd (get_all_levels_of_marked (trail S)) = backtrack_level S"
             using ne unfolding cdcl_M_level_inv_decomp(4)[OF lev] by auto
-          moreover have "atm_of L \<in> atm_of ` lit_of ` set M "
+          moreover have "atm_of L \<in> atm_of ` lits_of M "
             using \<open>-L \<in> lits_of M\<close> by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
               lits_of_def)
           ultimately show ?thesis
@@ -1897,7 +1911,7 @@ proof -
         have "atms_of D \<subseteq> atm_of ` (lits_of ?M)"
           using \<open>D \<in> ?N\<close> unfolding \<open>atm_of ` (lits_of ?M) = atms_of_m ?N\<close> atms_of_m_def
           by (auto simp add: atms_of_def)
-        hence a1: "atm_of ` set_mset D \<subseteq> atm_of ` lit_of ` set (trail S)"
+        hence a1: "atm_of ` set_mset D \<subseteq> atm_of ` lits_of (trail S)"
           by (auto simp add: atms_of_def lits_of_def)
         have "?M \<Turnstile>as CNot D"
         (*TODO Try to find a better proof*)
@@ -1905,22 +1919,22 @@ proof -
             { fix mm :: "'a literal multiset"
               have ff1: "\<And>l la. (l::'a literal) \<noteq> la \<or> count {#l#} la = Suc 0"
                 by simp
-              have ff2: "\<And>a. a \<notin> atm_of ` set_mset D \<or> a \<in> atm_of ` lit_of ` set (trail S)"
+              have ff2: "\<And>a. a \<notin> atm_of ` set_mset D \<or> a \<in> atm_of ` lits_of (trail S)"
                 using a1 by (meson subsetCE)
-              have ff3: "\<And>l. l \<notin> lit_of ` set (trail S) \<or> l \<notin># D"
+              have ff3: "\<And>l. l \<notin> lits_of (trail S) \<or> l \<notin># D"
                 using \<open>\<not> ?M \<Turnstile>a D\<close> unfolding true_annot_def Ball_def lits_of_def true_cls_def
                 Bex_mset_def by (meson true_lit_def)
               have ff4: "\<And>l. is_pos l \<or> Pos (atm_of l::'a) = - l"
                 by (metis Neg_atm_of_iff uminus_Neg)
               have "\<And>l. is_neg l \<or> Neg (atm_of l::'a) = - l"
                 by (metis Pos_atm_of_iff uminus_Pos)
-              hence ff5: "\<And>l. - l \<notin># D \<or> l \<in> lit_of ` set (trail S)"
+              hence ff5: "\<And>l. - l \<notin># D \<or> l \<in> lits_of (trail S)"
                 using ff4 ff3 ff2 by (metis (no_types) Neg_atm_of_iff Pos_atm_of_iff
                   atms_of_s_def in_atms_of_s_decomp mem_set_mset_iff)
-              have "(\<exists>l. mm \<notin> {{#- l#} |l. l \<in># D} \<or> l \<in># mm \<and> lit_of ` set (trail S) \<Turnstile>l l)
+              have "(\<exists>l. mm \<notin> {{#- l#} |l. l \<in># D} \<or> l \<in># mm \<and> lits_of (trail S) \<Turnstile>l l)
               \<or> (\<forall>l. mm \<noteq> {#- l#} \<or> l \<notin># D)"
                 using ff5 ff1 uminus_of_uminus_id true_lit_def by (metis (lifting)  zero_less_Suc)
-              hence "\<exists>l. mm \<notin> {{#- l#} |l. l \<in># D} \<or> l \<in># mm \<and> lit_of ` set (trail S) \<Turnstile>l l"
+              hence "\<exists>l. mm \<notin> {{#- l#} |l. l \<in># D} \<or> l \<in># mm \<and> lits_of (trail S) \<Turnstile>l l"
                 by blast }
               thus ?thesis unfolding CNot_def true_annots_def true_annot_def Ball_def lits_of_def
               true_cls_def atms_of_def Bex_mset_def
@@ -2195,9 +2209,9 @@ proof (induct rule: cdcl_o_induct)
     have "\<And>L. get_level L M = 0"
       proof -
         fix L
-        have "atm_of L \<notin> atm_of ` (lit_of ` set M) \<Longrightarrow> get_level L M = 0" by auto
+        have "atm_of L \<notin> atm_of ` (lits_of M) \<Longrightarrow> get_level L M = 0" by auto
         moreover {
-          assume "atm_of L \<in> atm_of ` (lit_of ` set M)"
+          assume "atm_of L \<in> atm_of ` (lits_of M)"
           have g_r: "get_all_levels_of_marked M = rev [Suc 0..<Suc k]"
             using lev unfolding cdcl_M_level_inv_def by auto
           have "Max (insert 0 (set (get_all_levels_of_marked M))) = k"
@@ -2732,7 +2746,8 @@ proof (induct rule: cdcl_o_induct)
             qed
           thus False using \<open>~M \<Turnstile>as CNot D\<close> by auto
         qed
-      have "atm_of L \<notin> atm_of ` (lit_of ` set M)" using undef defined_lit_map by fastforce
+      have "atm_of L \<notin> atm_of ` (lits_of M)" 
+        using undef defined_lit_map unfolding lits_of_def by fastforce
       hence "get_level (-L) (Marked L (k + 1) # M) = k + 1" by simp
       thus "\<exists>La. La \<in># D \<and> get_level La (Marked L (k + 1) # M) = k + 1" using \<open>-L \<in># D\<close> by auto
     qed
@@ -2772,7 +2787,7 @@ next
       have g_M1: "get_all_levels_of_marked M1 = rev [1..<i+1]"
         using lev' unfolding cdcl_M_level_inv_def by auto
       have "no_dup (Propagated L (D + {#L#}) # M1)" using lev' by auto
-      hence L: "atm_of L \<notin> atm_of ` lit_of ` set M1" by auto
+      hence L: "atm_of L \<notin> atm_of ` lits_of M1" unfolding lits_of_def by auto
       have "get_level (-L) (Propagated L (D + {#L#}) # M1) = i"
         using get_level_get_rev_level_get_all_levels_of_marked[OF L, of "[Propagated L (D + {#L#})]"]
         by (simp add: g_M1 split: if_splits)
@@ -2973,7 +2988,7 @@ next
              assume ne: "get_all_levels_of_marked (trail S') \<noteq> []"
              have "hd (get_all_levels_of_marked (trail S')) = backtrack_level S'"
                using ne  cdcl_M_level_inv_decomp(4)[OF lev'] M nm by (simp add: get_all_levels_of_marked_nil_iff_not_is_marked[symmetric])
-             moreover have "atm_of L \<in> atm_of ` lit_of ` set M "
+             moreover have "atm_of L \<in> atm_of ` lits_of M "
                 using \<open>-L \<in> lits_of M\<close> by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def)
              ultimately show ?thesis
                using nm ne \<open>L\<in>#D\<close> \<open>conflicting S'' = C_Clause D\<close> unfolding M

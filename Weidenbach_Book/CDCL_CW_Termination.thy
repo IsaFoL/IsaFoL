@@ -509,7 +509,7 @@ proof (induction rule: cdcl_o_induct)
                 by (metis (no_types, hide_lams) Nil_is_append_conv Suc_le_eq less_Suc_eq list.sel(1)
                   rev.simps(2) rev_rev_ident upt_Suc upt_rec)
             have "get_level L M  = get_level L (c @ [Marked Kh i])"
-              using L_cKh LH unfolding M lits_of_def by simp
+              using L_cKh LH unfolding M by simp
             have "get_level L (c @ [Marked Kh i]) \<ge> i"
               using L_cKh \<open>get_all_levels_of_marked (c @ [Marked Kh i]) = rev [i..<k + 1]\<close>
               backtrack.hyps(2) calculation(1,2) by auto
@@ -540,12 +540,12 @@ proof (induction rule: cdcl_o_induct)
           by (auto simp add: rev_swap[symmetric] dest!: upt_decomp_lt)
         obtain L'' where "L''\<in>#D'" and L''D': "get_level L'' M = get_maximum_level D' M"
           using get_maximum_level_exists_lit_of_max_level[OF D, of M] by auto
-        have L''M: "atm_of L'' \<in> atm_of ` lit_of `set M"
+        have L''M: "atm_of L'' \<in> atm_of ` lits_of M"
           using get_rev_level_ge_0_atm_of_in[of 0 L'' "rev M"] \<open>j>0\<close> levD L''D' by auto
         hence "L'' \<in> lits_of  (Marked Kh i # d)"
           proof -
             {
-              assume L''H: "atm_of L'' \<in> atm_of ` lit_of ` set H"
+              assume L''H: "atm_of L'' \<in> atm_of ` lits_of H"
               have "get_all_levels_of_marked H = rev [1..<i]"
                 using H unfolding M
                 by (auto simp add: rev_swap[symmetric] dest!: append_cons_eq_upt_length_i)
@@ -556,11 +556,11 @@ proof (induction rule: cdcl_o_induct)
                 unfolding L''D'[symmetric] nd by auto
             }
             then show ?thesis
-              using DD' DH \<open>L'' \<in># D'\<close> atm_of_lit_in_atms_of contra_subsetD lits_of_def by metis
+              using DD' DH \<open>L'' \<in># D'\<close> atm_of_lit_in_atms_of contra_subsetD by metis
           qed
         hence False
           using DH \<open>L''\<in>#D'\<close> nd unfolding M3 d
-          by (auto simp add: lits_of_def atms_of_def image_iff image_subset_iff)
+          by (auto simp add: atms_of_def image_iff image_subset_iff lits_of_def)
       }
       ultimately show False by blast
     qed
@@ -676,15 +676,15 @@ proof -
   hence "k > 0" unfolding M by (auto split: split_if_asm simp add: upt.simps(2))
 
   have lev: "cdcl_M_level_inv R" using invR unfolding cdcl_all_inv_mes_def by blast
-  hence vars_of_D: "atms_of D \<subseteq> atm_of ` lit_of ` set M1"
+  hence vars_of_D: "atms_of D \<subseteq> atm_of ` lits_of M1"
     using backtrack_atms_of_D_in_M1[OF _ _ lev', of L D M1 N U i] bt conf S unfolding T i by force
   have "no_dup M" using lev' unfolding S by auto
-  hence vars_in_M1: "\<forall>x \<in> atms_of D. x \<notin> atm_of ` lit_of ` set (M2 @ Marked K (i + 1) # [])"
+  hence vars_in_M1: "\<forall>x \<in> atms_of D. x \<notin> atm_of ` lits_of (M2 @ Marked K (i + 1) # [])"
     using vars_of_D distinct_atms_of_incl_not_in_other[of "M2 @ Marked K (i + 1) # []" M1]
     unfolding M by auto
   have M1_D: "M1 \<Turnstile>as CNot D"
     using vars_in_M1 true_annots_remove_if_notin_vars[of "M2 @ Marked K (i + 1) # []" M1 "CNot D"]
-    \<open>M \<Turnstile>as CNot D\<close> unfolding M lits_of_def by simp
+    \<open>M \<Turnstile>as CNot D\<close> unfolding M by simp
 
   have get_lvls_M: "get_all_levels_of_marked M = rev [1..<Suc k]"
     using lev' unfolding S cdcl_M_level_inv_def by auto
@@ -726,7 +726,7 @@ proof -
   have L_notin: "atm_of L \<in> atm_of ` lits_of Ls \<or> atm_of L = atm_of K"
     proof (rule ccontr)
       assume "\<not> ?thesis"
-      hence "atm_of L \<notin> atm_of ` lit_of ` set (Marked K k # rev Ls)" by (simp add: lits_of_def)
+      hence "atm_of L \<notin> atm_of ` lits_of (Marked K k # rev Ls)" by simp
       hence "get_level L M = get_level L M1'"
         unfolding M' by auto
       thus False using get_level_in_levels_of_marked[of L M1'] \<open>k > 0\<close> unfolding k lvls_M1' by auto
@@ -771,7 +771,7 @@ proof -
       by (metis Marked_Propagated_in_iff_in_lits_of atm_of_uminus image_eqI)
     have L_trY: "undefined_lit L (trail Y)"
       using  L_notin \<open>no_dup M\<close> unfolding defined_lit_map trY M'
-      by (auto simp add: lits_of_def image_iff)
+      by (auto simp add: image_iff lits_of_def)
     have "\<exists> Y'. propagate Y Y'"
       using propagate_rule[OF _ DL M1'_D L_trY] Y_CT trY DL by fast
     hence False using \<open>no_step cdcl_cp Y\<close>  propagate' by blast
@@ -787,8 +787,8 @@ proof -
     have "D + {#L#} \<notin> learned_clauses (Ls @ Marked K k # M1', N, U, k, C_Clause (D + {#L#}))"
       apply (rule rtranclp_cdcl_s_with_trail_end_has_not_been_learned[OF Z invZ trZ])
          using DL lY_lZ apply simp
-        apply (metis (no_types, lifting) \<open>set M1 \<subseteq> set M1'\<close> image_mono lits_of_def order_trans
-          vars_of_D)
+        apply (metis (no_types, lifting) \<open>set M1 \<subseteq> set M1'\<close> image_mono order_trans
+          vars_of_D lits_of_def)
        using L_notin \<open>no_dup M\<close> unfolding M' by (auto simp add: image_iff lits_of_def)
     hence False
       using already_learned DL confl rtranclp_cdcl_s_no_more_clauses st'

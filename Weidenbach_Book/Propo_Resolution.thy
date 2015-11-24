@@ -1762,7 +1762,7 @@ next
                 {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} then 1 else 0)
                 = count A (ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0))
                 {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#})"
-            by (simp add:)
+            by simp
           thus ?thesis
             using f1 by (metis (no_types, lifting))
         qed

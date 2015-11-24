@@ -50,10 +50,10 @@ next
 
   have "k > 0"
     using decomp M_lev unfolding cdcl_M_level_inv_def T by auto
-  hence "atm_of L \<in> atm_of ` lit_of `set M"
+  hence "atm_of L \<in> atm_of ` lits_of M"
     using lev_l get_rev_level_ge_0_atm_of_in by fastforce
   hence L_L': "atm_of L \<noteq> atm_of L'"
-    using n_d' by auto
+    using n_d' unfolding lits_of_def by auto
   have L'_M: "atm_of L' \<notin> atm_of ` lits_of M"
     using n_d' unfolding lits_of_def by auto
   have "?M \<Turnstile>as CNot ?D"
@@ -129,10 +129,11 @@ proof -
   hence "M\<^sub>T \<Turnstile>as CNot ?D"
     unfolding cdcl_all_inv_mes_def cdcl_conflicting_def unfolding T
     by (auto simp: lits_of_def)
-  have "\<forall>L\<in>#?D. atm_of L \<in> atm_of ` lit_of ` (set M\<^sub>T)"
+  have "\<forall>L\<in>#?D. atm_of L \<in> atm_of ` lits_of M\<^sub>T"
     proof -
-      have f1: "\<And>l. \<not> M\<^sub>T \<Turnstile>a {#- l#} \<or> atm_of l \<in> atm_of ` lit_of ` set M\<^sub>T"
-        by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set in_lit_of_true_annot)
+      have f1: "\<And>l. \<not> M\<^sub>T \<Turnstile>a {#- l#} \<or> atm_of l \<in> atm_of ` lits_of M\<^sub>T"
+        by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set in_lit_of_true_annot
+          lits_of_def)
       have "\<And>l. l \<notin># D \<or> - l \<in> lits_of M\<^sub>T"
         using \<open>M\<^sub>T \<Turnstile>as CNot (D + {#L#})\<close> multi_member_split by fastforce
       thus ?thesis
@@ -140,13 +141,13 @@ proof -
     qed
   moreover have "no_dup M"
     using inv unfolding cdcl_all_inv_mes_def cdcl_M_level_inv_def S  by auto
-  ultimately have "\<forall>L\<in>#?D. atm_of L \<notin> atm_of ` lit_of ` (set MS)"
-    unfolding M by auto
+  ultimately have "\<forall>L\<in>#?D. atm_of L \<notin> atm_of ` lits_of MS"
+    unfolding M unfolding lits_of_def by auto
   hence H: "\<And>L. L\<in>#?D \<Longrightarrow> get_level L M  = get_level L M\<^sub>T"
     unfolding M by (fastforce simp: lits_of_def)
   have [simp]: "get_maximum_level ?D M = get_maximum_level ?D M\<^sub>T"
-    by (metis M\<^sub>T \<open>M\<^sub>T \<Turnstile>as CNot (D + {#L#})\<close>  M nm ball_msetI true_annots_CNot_all_atms_defined
-      get_maximum_level_skip_un_marked_not_present lits_of_def)
+    by (metis \<open>M\<^sub>T \<Turnstile>as CNot (D + {#L#})\<close>  M nm ball_msetI true_annots_CNot_all_atms_defined
+      get_maximum_level_skip_un_marked_not_present)
 
   have lev_l': "get_level L M\<^sub>T = k"
     using lev_l by (auto simp: H)
@@ -357,7 +358,7 @@ proof (rule ccontr)
       moreover
         have "no_dup M'"
            using inv unfolding U S' cdcl_all_inv_mes_def cdcl_M_level_inv_def by auto
-        have atm_L_notin_M: "atm_of L \<notin> atm_of ` (lit_of ` set M)"
+        have atm_L_notin_M: "atm_of L \<notin> atm_of ` (lits_of M)"
           using \<open>no_dup M'\<close> tr_S unfolding U S' by (auto simp: lits_of_def)
         have "get_all_levels_of_marked M' = rev [1..<1+k]"
           using inv unfolding U S' cdcl_all_inv_mes_def cdcl_M_level_inv_def by auto

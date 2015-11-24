@@ -17,34 +17,34 @@ lemma get_rev_level_uminus[simp]: "get_rev_level (-L) n M = get_rev_level L n M"
   by (induct M arbitrary: n rule: get_rev_level.induct) auto
 
 lemma atm_of_notin_get_rev_level_eq_0[simp]:
-  assumes "atm_of L \<notin> atm_of ` lit_of ` set M"
+  assumes "atm_of L \<notin> atm_of ` lits_of M"
   shows "get_rev_level L n M = 0"
   using assms apply (induct M arbitrary: n, simp)
   by (case_tac a) auto
 
 lemma get_rev_level_ge_0_atm_of_in:
   assumes  "get_rev_level L n M > n"
-  shows "atm_of L \<in> atm_of ` lit_of `set M"
+  shows "atm_of L \<in> atm_of ` lits_of M"
   using assms apply (induct M arbitrary: n, simp)
   by (case_tac a) fastforce+
 
 text \<open>In @{const get_rev_level} (resp. @{const get_level}), the beginning (resp. the end) can be
   skipped if the literal is not in the beginning (resp. the end).\<close>
 lemma get_rev_level_skip[simp]:
-  assumes  "atm_of L \<notin> atm_of ` lit_of ` set M"
+  assumes  "atm_of L \<notin> atm_of ` lits_of M"
   shows "get_rev_level L n (M @ Marked K i # M') = get_rev_level L i (Marked K i # M')"
   using assms apply (induct M arbitrary: n i, simp)
   by (case_tac a) auto
 
 lemma get_rev_level_notin_end[simp]:
-  assumes  "atm_of L \<notin> atm_of ` lit_of ` set M'"
+  assumes  "atm_of L \<notin> atm_of ` lits_of M'"
   shows "get_rev_level L n (M @ M') = get_rev_level L n M"
   using assms apply (induct M arbitrary: n, simp)
   by (case_tac a) auto
 
 text \<open>If the literal is at the beginning, then the end can be skipped\<close>
 lemma get_rev_level_skip_end[simp]:
-  assumes  "atm_of L \<in> atm_of ` lit_of ` set M"
+  assumes  "atm_of L \<in> atm_of ` lits_of M"
   shows "get_rev_level L n (M @ M') = get_rev_level L n M"
   using assms apply (induct M arbitrary: n, simp)
   by (case_tac a) auto
@@ -115,7 +115,8 @@ lemma get_maximum_level_skip_beginning:
 proof -
   have "(\<lambda>L. get_rev_level L 0 (rev H @ Marked Kh i # rev c)) ` set_mset D
       = (\<lambda>L. get_rev_level L 0 (rev H)) ` set_mset D"
-    using DH unfolding lits_of_def atms_of_def by (auto intro!: image_cong)
+    using DH unfolding atms_of_def
+    by (metis (no_types, lifting) get_rev_level_skip_end image_cong image_subset_iff lits_of_rev)+
   thus ?thesis using DH unfolding get_maximum_level_def by auto
 qed
 
@@ -244,7 +245,7 @@ lemma get_level_in_levels_of_marked:
 
 text \<open>The zero is here to avoid empty-list issues with @{term last}:\<close>
 lemma get_level_get_rev_level_get_all_levels_of_marked:
-  assumes "atm_of L \<notin> atm_of ` (lit_of ` set M)"
+  assumes "atm_of L \<notin> atm_of ` (lits_of M)"
   shows "get_level L (K @ M) = get_rev_level L (last (0 # get_all_levels_of_marked (rev M)))
     (rev K)"
   using assms
