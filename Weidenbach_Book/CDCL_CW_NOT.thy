@@ -316,9 +316,142 @@ proof (rule ccontr)
     using \<open>get_maximum_level D' M' = i\<close> \<open>get_maximum_level D M' = k\<close> \<open>i < k\<close> by auto
 qed
 
+lemma if_can_apply_backtrack_skip_or_resolve_is_skip:
+  assumes
+    bt: "backtrack S T" and
+    skip: "skip_or_resolve\<^sup>*\<^sup>* S U" and
+    inv: "cdcl_all_inv_mes S"
+  shows "skip\<^sup>*\<^sup>* S U"
+  using assms(2,3,1)
+  by (induction) (simp_all add: if_can_apply_backtrack_no_more_resolve)
+
+lemma cdcl_bj_bj_decomp:
+  assumes "cdcl_bj\<^sup>*\<^sup>* S W" and "cdcl_all_inv_mes S"
+  shows
+    "(\<exists>T U V. (\<lambda>S T. skip_or_resolve S T \<and> no_step backtrack S)\<^sup>*\<^sup>* S T
+        \<and> (\<lambda>T U. resolve T U \<and> no_step backtrack T) T U \<and> skip\<^sup>*\<^sup>* U V  \<and> backtrack V W)
+    \<or> (\<exists>T U. (\<lambda>S T. skip_or_resolve S T \<and> no_step backtrack S)\<^sup>*\<^sup>* S T
+        \<and> (\<lambda>T U. resolve T U \<and> no_step backtrack T) T U \<and> skip\<^sup>*\<^sup>* U W)
+    \<or> (\<exists>T. skip\<^sup>*\<^sup>* S T  \<and> backtrack T W)
+    \<or> skip\<^sup>*\<^sup>* S W" (is "?RB S W \<or> ?R S W \<or> ?SB S W \<or> ?S S W")
+  using assms
+proof induction
+  case base
+  thus ?case by simp
+next
+  case (step W X) note st = this(1) and bj = this(2) and IH = this(3)[OF this(4)] and inv = this(4)
+  have "\<not>?RB S W" and "\<not>?SB S W" using bj by (auto simp add: cdcl_bj.simps)
+  hence IH: "?R S W \<or> ?S S W" using IH by blast
+
+  have "cdcl\<^sup>*\<^sup>* S W" by (metis cdcl_o.bj mono_rtranclp other st)
+  hence inv_W: "cdcl_all_inv_mes W" by (simp add: rtranclp_cdcl_all_inv_mes_inv step.prems)
+  consider
+      (BT) X' where "backtrack W X'"
+    | (skip) "no_step backtrack W" and "skip W X"
+    | (resolve) "no_step backtrack W" and "resolve W X"
+    using bj cdcl_bj.cases by blast
+  thus ?case
+    proof cases
+      case (BT X')
+      hence "backtrack W X \<or> skip W X"
+        using bj if_can_apply_backtrack_no_more_resolve[of W W X' X] inv_W cdcl_bj.cases by blast
+      show ?thesis
+        using IH by (meson \<open>backtrack W X \<or> skip W X\<close> rtranclp.rtrancl_into_rtrancl)
+    next
+      case skip
+      thus ?thesis using IH  by (meson rtranclp.rtrancl_into_rtrancl)
+    next
+      case resolve note no_bt = this(1) and res = this(2)
+      consider
+          (RS) T U where
+            "(\<lambda>S T. skip_or_resolve S T \<and> no_step backtrack S)\<^sup>*\<^sup>* S T" and
+            "resolve T U" and
+            "no_step backtrack T" and
+            "skip\<^sup>*\<^sup>* U W"
+        | (S)  "skip\<^sup>*\<^sup>* S W"
+        using IH by auto
+      thus ?thesis
+        proof cases
+          case (RS T U)
+          have "cdcl\<^sup>*\<^sup>* S T"
+            by (metis (no_types, lifting) RS(1) cdcl_bj.resolve cdcl_o.bj mono_rtranclp other skip)
+          hence "cdcl_all_inv_mes U"
+            by (meson RS(2) cdcl_all_inv_mes_inv cdcl_bj.resolve cdcl_o.bj other
+              rtranclp_cdcl_all_inv_mes_inv step.prems)
+          { fix U'
+            assume "skip\<^sup>*\<^sup>* U U'" and "skip\<^sup>*\<^sup>* U' W"
+            have "cdcl_all_inv_mes U'"
+              by (metis (no_types, hide_lams) \<open>cdcl_all_inv_mes U\<close> \<open>skip\<^sup>*\<^sup>* U U'\<close> cdcl_o.bj
+                mono_rtranclp other rtranclp_cdcl_all_inv_mes_inv skip)
+            hence "no_step backtrack U'"
+              using if_can_apply_backtrack_no_more_resolve[OF \<open>skip\<^sup>*\<^sup>* U' W\<close> ] res by blast
+          }
+          with \<open>skip\<^sup>*\<^sup>* U W\<close>
+          have "(\<lambda>S T. skip_or_resolve S T \<and> no_step backtrack S)\<^sup>*\<^sup>* U W"
+             proof induction
+               case base
+               thus ?case by simp
+             next
+               case (step V W) note st = this(1) and skip = this(2) and IH = this(3) and H = this(4)
+               have "\<And>U'. skip\<^sup>*\<^sup>* U' V \<Longrightarrow> skip\<^sup>*\<^sup>* U' W"
+                 using skip by auto
+               hence "(\<lambda>S T. skip_or_resolve S T \<and> no_step backtrack S)\<^sup>*\<^sup>* U V"
+                 using IH H by blast
+               moreover have "(\<lambda>S T. skip_or_resolve S T \<and> no_step backtrack S)\<^sup>*\<^sup>* V W"
+                 (* adding the \<^sup>*\<^sup>* here makes the ?case easier to find *)
+                 by (simp add: local.skip r_into_rtranclp st step.prems)
+               ultimately show ?case by simp
+             qed
+          thus ?thesis
+            proof -
+              have f1: "\<forall>p pa pb pc. \<not> p (pa::('a, nat, 'a literal multiset) marked_lit list
+                \<times> 'a literal multiset set \<times> 'a literal multiset set \<times> nat
+                \<times> 'a literal multiset conflicting_clause) pb \<or> \<not> p\<^sup>*\<^sup>* pb pc \<or> p\<^sup>*\<^sup>* pa pc"
+                by (meson converse_rtranclp_into_rtranclp)
+              have "skip_or_resolve T U \<and> no_step backtrack T"
+                using RS(2) RS(3) by force
+              hence "(\<lambda>p pa. skip_or_resolve p pa \<and> no_step backtrack p)\<^sup>*\<^sup>* T W"
+                using f1 \<open>(\<lambda>S T. skip_or_resolve S T \<and> no_step backtrack S)\<^sup>*\<^sup>* U W\<close>
+                by presburger
+              hence "(\<lambda>p pa. skip_or_resolve p pa \<and> no_step backtrack p)\<^sup>*\<^sup>* S W"
+                using RS(1) by force
+              thus ?thesis
+                using no_bt res by blast
+            qed
+        next
+          case S
+          { fix U'
+            assume "skip\<^sup>*\<^sup>* S U'" and "skip\<^sup>*\<^sup>* U' W"
+            have "cdcl_all_inv_mes U'"
+              by (metis (no_types, hide_lams) \<open>cdcl_all_inv_mes S\<close> \<open>skip\<^sup>*\<^sup>* S U'\<close> cdcl_o.bj
+                mono_rtranclp other rtranclp_cdcl_all_inv_mes_inv skip)
+            hence "no_step backtrack U'"
+              using if_can_apply_backtrack_no_more_resolve[OF \<open>skip\<^sup>*\<^sup>* U' W\<close> ] res by blast
+          }
+          with S
+          have "(\<lambda>S T. skip_or_resolve S T \<and> no_step backtrack S)\<^sup>*\<^sup>* S W"
+             proof induction
+               case base
+               thus ?case by simp
+             next
+               case (step V W) note st = this(1) and skip = this(2) and IH = this(3) and H = this(4)
+               have "\<And>U'. skip\<^sup>*\<^sup>* U' V \<Longrightarrow> skip\<^sup>*\<^sup>* U' W"
+                 using skip by auto
+               hence "(\<lambda>S T. skip_or_resolve S T \<and> no_step backtrack S)\<^sup>*\<^sup>* S V"
+                 using IH H by blast
+               moreover have "(\<lambda>S T. skip_or_resolve S T \<and> no_step backtrack S)\<^sup>*\<^sup>* V W"
+                 (* adding the \<^sup>*\<^sup>* here makes the ?case easier to find *)
+                 by (simp add: local.skip r_into_rtranclp st step.prems)
+               ultimately show ?case by simp
+             qed
+          thus ?thesis using res no_bt by blast
+        qed
+    qed
+qed
+
 lemma
   assumes "cdcl_bj\<^sup>*\<^sup>* S T" and "cdcl_bj\<^sup>*\<^sup>* S U"
-  shows "cdcl_bj\<^sup>*\<^sup>* T U \<or> cdcl_bj U T"
+  shows "cdcl_bj\<^sup>*\<^sup>* T U \<or> cdcl_bj\<^sup>*\<^sup>* U T"
   using assms
 proof -
   consider
@@ -331,7 +464,9 @@ proof -
       with \<open>cdcl_bj\<^sup>*\<^sup>* S U\<close>
       show ?thesis
 
-        apply (induction)
+        apply (induction rule: rtranclp_induct)
+          using assms(1) apply blast
+        apply simp
 
 
           oops
