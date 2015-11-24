@@ -225,7 +225,7 @@ lemma rtranclp_skip_state_decomp:
     "T = (trail T, clauses S, learned_clauses S, backtrack_level S, conflicting S)"
   using assms by (induction rule: rtranclp_induct) (cases S;auto)+
 
-lemma
+lemma if_can_apply_backtrack_no_more_resolve:
   assumes
     skip: "skip\<^sup>*\<^sup>* S U" and
     bt: "backtrack S T" and
@@ -274,23 +274,47 @@ proof (rule ccontr)
       hence "-L \<in># D'"
         using DD' by (metis add_diff_cancel_right' diff_single_trivial diff_union_swap
           multi_self_add_other_not_self)
-      moreover have "get_level L M' = k"
-        using tr_S unfolding U S' apply (simp add:nm)
-
-         sorry
+      moreover
+        have "no_dup M'"
+           using inv unfolding U S' cdcl_all_inv_mes_def cdcl_M_level_inv_def by auto
+        have atm_L_notin_M: "atm_of L \<notin> atm_of ` (lit_of ` set M)"
+          using \<open>no_dup M'\<close> tr_S unfolding U S' by (auto simp: lits_of_def)
+        have "get_all_levels_of_marked M' = rev [1..<1+k]"
+          using inv unfolding U S' cdcl_all_inv_mes_def cdcl_M_level_inv_def by auto
+        hence "get_all_levels_of_marked M = rev [1..<1+k]"
+          using nm tr_S unfolding S' U by (simp add: get_all_levels_of_marked_no_marked)
+        hence get_lev_L:
+          "get_level L (Propagated L (C + {#L#}) # M) = k"
+          using get_level_get_rev_level_get_all_levels_of_marked[OF atm_L_notin_M,
+            of "[Propagated L (C + {#L#})]"] by simp
+        have "atm_of L \<notin> atm_of ` (lits_of (rev M\<^sub>0))"
+          using \<open>no_dup M'\<close> tr_S unfolding U S' by (auto simp: lits_of_def)
+        hence "get_level L M' = k"
+          using get_rev_level_notin_end[of L "rev M\<^sub>0" 0 "rev M @ Propagated L (C + {#L#}) # []"]
+          using tr_S get_lev_L unfolding U S' by (simp add:nm lits_of_def)
       ultimately have "get_maximum_level D' M' \<ge> k"
         by (metis get_maximum_level_ge_get_level get_rev_level_uminus)
       thus False
         using \<open>i < k\<close> unfolding \<open>get_maximum_level D' M' = i\<close> by auto
     qed
   have [simp]: "D = D'" using DD' by auto
-  have "get_maximum_level D M' = k"
-     using tr_S \<open>get_maximum_level D (Propagated L (C + {#L#}) # M) = k\<close> unfolding U S'
-     apply (simp add:nm)
-     sorry
+  have "cdcl_all_inv_mes U"
+    by (metis (no_types, hide_lams) bj cdcl_bj.skip inv local.skip mono_rtranclp other
+      rtranclp_cdcl_all_inv_mes_inv)
+  hence "Propagated L (C + {#L#}) # M \<Turnstile>as CNot (D' + {#L'#})"
+    unfolding cdcl_all_inv_mes_def cdcl_conflicting_def U by auto
+  hence "\<forall>L'\<in>#D. atm_of L' \<in> atm_of ` lits_of (Propagated L (C + {#L#}) # M)"
+    by (metis CNot_plus CNot_singleton Un_insert_right \<open>D = D'\<close> true_annots_insert ball_msetI
+      atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set  in_CNot_implies_uminus(2)
+      sup_bot.comm_neutral)
+  hence "get_maximum_level D M' = k"
+     using tr_S nm
+       get_maximum_level_skip_un_marked_not_present[of D "Propagated L (C + {#L#}) # M" M\<^sub>0]
+     unfolding  \<open>get_maximum_level D (Propagated L (C + {#L#}) # M) = k\<close> unfolding \<open>D = D'\<close> U S'
+     by simp
   show False
     using \<open>get_maximum_level D' M' = i\<close> \<open>get_maximum_level D M' = k\<close> \<open>i < k\<close> by auto
-oops
+qed
 
 lemma
   assumes "cdcl_bj\<^sup>*\<^sup>* S T" and "cdcl_bj\<^sup>*\<^sup>* S U"
