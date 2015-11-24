@@ -635,16 +635,96 @@ proof (induction rule: cdcl_all_rules_induct)
   thus ?case using fw_propagate by blast
 next
   case (decided S T)
-  thus ?case using fw_decided by blast  
-next
-  case (conflict S T)
-  thus ?case using fw_conflict sorry
+  thus ?case using fw_decided by blast
 next
   case (restart)
   thus ?case using cdcl_rf.restart fw_rf by blast
 next
   case (forget)
   thus ?case using cdcl_rf.forget fw_rf by blast
+next
+  case (conflict S T)
+  thus ?case using fw_conflict
 oops
 
+subsection \<open>A better version of @{term cdcl_s}\<close>
+inductive cdcl_s' :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
+conflict': "full cdcl_cp S S' \<Longrightarrow> cdcl_s' S S'" |
+decided': "decided S S'  \<Longrightarrow> no_step cdcl_cp S \<Longrightarrow> full0 cdcl_cp S' S'' \<Longrightarrow> cdcl_s' S S''" |
+bj': "full cdcl_bj S S'  \<Longrightarrow> no_step cdcl_cp S \<Longrightarrow> full0 cdcl_cp S' S'' \<Longrightarrow> cdcl_s' S S''"
+
+lemma rtranclp_cdcl_bj_full_cdclp_cdcl_s:
+  "cdcl_bj\<^sup>*\<^sup>* S S' \<Longrightarrow> full0 cdcl_cp S' S'' \<Longrightarrow> cdcl_s\<^sup>*\<^sup>* S S''"
+proof (induction rule: converse_rtranclp_induct)
+  case base
+  thus ?case by (metis cdcl_s.conflict' full0_unfold rtranclp.simps)
+next
+  case (step T U) note st =this(2) and bj = this(1) and IH = this(3)[OF this(4)]
+  have "no_step cdcl_cp T"
+    using bj by (auto simp add: cdcl_bj.simps)
+  consider
+      (U) "U = S'"
+    | (U') U' where "cdcl_bj U U'" and "cdcl_bj\<^sup>*\<^sup>* U' S'"
+    using st by (metis converse_rtranclpE)
+  thus ?case
+    proof cases
+      case U
+      thus ?thesis using \<open>no_step cdcl_cp T\<close> cdcl_o.bj local.bj other' step.prems by blast
+    next
+      case U' note U' = this(1)
+      have "no_step cdcl_cp U"
+        using U' by (fastforce simp: cdcl_cp.simps cdcl_bj.simps)
+      hence "full0 cdcl_cp U U"
+        by (simp add: full0_unfold)
+      hence "cdcl_s T U"
+        using \<open>no_step cdcl_cp T\<close> cdcl_s.simps local.bj by blast
+      thus ?thesis using IH by auto
+    qed
+qed
+
+lemma cdcl_s'_is_rtranclp_cdcl_s:
+  "cdcl_s' S T \<Longrightarrow> cdcl_s\<^sup>*\<^sup>* S T"
+  apply (induction rule: cdcl_s'.induct)
+    apply (auto intro: cdcl_s.intros)[]
+   using decided other' apply blast
+  by (metis full_def rtranclp_cdcl_bj_full_cdclp_cdcl_s tranclp_into_rtranclp)
+
+lemma XXX: "cdcl_bj\<^sup>*\<^sup>* S S' \<Longrightarrow> full cdcl_cp S' T' \<Longrightarrow> cdcl_s\<^sup>*\<^sup>* S T'"
+  by (simp add: full0_unfold rtranclp_cdcl_bj_full_cdclp_cdcl_s)
+
+lemma
+  assumes "cdcl_s S U"
+  shows "\<exists>T. cdcl_s' S T \<and> cdcl_s\<^sup>*\<^sup>* U T"
+  using assms
+proof (induction rule: cdcl_s.induct)
+  case (conflict' S T)
+  hence "cdcl_s' S T"
+    using cdcl_s'.conflict' by blast
+  thus ?case
+    by blast
+next
+  case (other' S T U) note o = this(1) and n_s = this(2) and full = this(3)
+  show ?case
+    using o
+    proof cases
+      case (decided)
+      thus ?thesis using cdcl_s'.simps full n_s by blast
+    next
+      case bj
+      obtain S' where "full cdcl_bj T S'"
+        sorry
+      hence "full cdcl_bj S S'"
+        by (metis (no_types, lifting) full_def local.bj r_into_rtranclp rtranclp_tranclp_tranclp)
+
+      obtain T' where "full cdcl_cp S' T'"
+        sorry
+      have "cdcl_s' S T'"
+        by (metis \<open>cdcl_bj\<^sup>+\<^sup>\<down> S S'\<close> \<open>cdcl_cp\<^sup>+\<^sup>\<down> S' T'\<close> bj' full0_unfold n_s)
+      moreover have "cdcl_s\<^sup>*\<^sup>* U T'"
+        using XXX[of S S' T'] using calculation cdcl_s'_is_rtranclp_cdcl_s
+        sorry
+      ultimately show ?thesis
+oops
+
+subsection \<open>\<close>
 end
