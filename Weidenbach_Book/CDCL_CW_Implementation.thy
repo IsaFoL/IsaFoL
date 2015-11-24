@@ -50,6 +50,11 @@ lemma get_maximum_level_map_convert[simp]:
   "get_maximum_level D (map convert M) = get_maximum_level D M"
   by (induction D)
      (auto simp add: get_maximum_level_plus)
+
+lemma get_all_levels_of_marked_map_convert[simp]:
+  "get_all_levels_of_marked (map convert M) = (get_all_levels_of_marked M)"
+  by (induction M rule: marked_lit_list_induct) auto
+
 text \<open>Conversion function\<close>
 fun toS :: "cdcl_state_st \<Rightarrow> nat cdcl_state" where
 "toS (M, N, U, k, C) = (map convert M, set (map mset N),  set (map mset U), k, convertC C)"
@@ -330,10 +335,20 @@ lemma do_resolve_step:
   "cdcl_all_inv_mes (toS S) \<Longrightarrow> do_resolve_step S \<noteq> S \<Longrightarrow> resolve (toS S) (toS (do_resolve_step S))"
 proof (induction S rule: do_resolve_step.induct)
   case (1 L C M N U k D)
-  hence
+  moreover
+    { assume [simp]: "k = 0"
+      have "get_all_levels_of_marked (Propagated L C # M) = []"
+        using 1(1) unfolding cdcl_all_inv_mes_def cdcl_M_level_inv_def by simp
+      hence H: "\<And>L'. get_level L' (Propagated L C # M) = 0"
+        by (metis (no_types, hide_lams) Un_insert_left empty_iff get_all_levels_of_marked.simps(3)
+          get_level_in_levels_of_marked insert_iff list.set(1) sup_bot.left_neutral)
+    } note H = this
+  ultimately have
     "- L \<in> set D" and
-    M: "maximum_level_code (remove1 (-L) D) (Propagated L C # M) = k \<or> k = 0"
-    by (auto split: split_if_asm)
+    M: "maximum_level_code (remove1 (-L) D) (Propagated L C # M) = k"
+    by (cases "mset D - {#- L#} = {#}",
+        auto dest!: get_maximum_level_exists_lit_of_max_level[of _ "Propagated L C # M"]
+        split: split_if_asm simp add: H)+
   have "every_mark_is_a_conflict (toS (Propagated L C # M, N, U, k, C_Clause D))"
     using 1(1) unfolding cdcl_all_inv_mes_def by fast
   hence "L \<in> set C" by fastforce
@@ -354,7 +369,8 @@ proof (induction S rule: do_resolve_step.induct)
     using M[simplified] unfolding D'L maximum_level_code_eq_get_maximum_level C[symmetric] CL
     by (metis convert.simps(1) get_maximum_level_map_convert list.simps(9))
   thus ?case
-    by (smt "1.prems" add.commute convertC.simps(1) do_resolve_step.simps(1) list.set_map mset_append mset_remdups_remdups_mset mset_remove1 toS.simps)
+    by (smt "1.prems" add.commute convertC.simps(1) do_resolve_step.simps(1) list.set_map
+      mset_append mset_remdups_remdups_mset mset_remove1 toS.simps)
 qed auto
 
 lemma do_resolve_step_no:

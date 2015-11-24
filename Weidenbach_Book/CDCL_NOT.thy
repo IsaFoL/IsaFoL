@@ -2360,9 +2360,9 @@ lemma cdcl_comp_bounded:
 text \<open>
   \<^item> @{term "m \<ge> f (Suc n)"} ensure that at least one step has been done.\<close>
 inductive cdcl_with_restart_stgy where
-"(cdcl^^m) S T \<Longrightarrow> m \<ge> f n \<Longrightarrow> restart T U
+restart_step: "(cdcl^^m) S T \<Longrightarrow> m \<ge> f n \<Longrightarrow> restart T U
   \<Longrightarrow> cdcl_with_restart_stgy (S, n) (U, Suc n)" |
-"full cdcl S T \<Longrightarrow> cdcl_with_restart_stgy (S, n) (T, Suc n)"
+restart_full: "full cdcl S T \<Longrightarrow> cdcl_with_restart_stgy (S, n) (T, Suc n)"
 
 lemmas cdcl_with_restart_induct = cdcl_with_restart_stgy.induct[split_format(complete),
   OF cdcl_increasing_restarts_ops_axioms]
@@ -2370,14 +2370,14 @@ lemmas cdcl_with_restart_induct = cdcl_with_restart_stgy.induct[split_format(com
 lemma cdcl_with_restart_stgy_cdcl_with_restarts:
   "cdcl_with_restart_stgy S T \<Longrightarrow> cdcl_with_restarts\<^sup>*\<^sup>* (fst S) (fst T)"
 proof (induction rule: cdcl_with_restart_stgy.induct)
-  case (1 m S T n U)
-  have "cdcl\<^sup>*\<^sup>* S T" by (meson "1.hyps"(1) relpowp_imp_rtranclp)
+  case (restart_step m S T n U)
+  hence "cdcl\<^sup>*\<^sup>* S T" by (meson relpowp_imp_rtranclp)
   hence "cdcl_with_restarts\<^sup>*\<^sup>* S T" using cdcl_with_restarts.intros(1)
     rtranclp_mono[of cdcl cdcl_with_restarts] by blast
   moreover have "cdcl_with_restarts T U" using \<open>restart T U\<close> cdcl_with_restarts.intros(2) by blast
   ultimately show ?case by auto
 next
-  case (2 S T)
+  case (restart_full S T)
   hence "cdcl\<^sup>*\<^sup>* S T" unfolding full_def by auto
   thus ?case using cdcl_with_restarts.intros(1)
     rtranclp_mono[of cdcl cdcl_with_restarts] by auto
@@ -2542,6 +2542,28 @@ proof (rule ccontr)
         \<open>\<mu>_bound A (fst (g 1)) + 1 \<le> m\<close> by fastforce
     qed
 qed
+
+lemma cdcl_with_restart_stgy_steps_bigger_than_bound:
+  assumes
+    "cdcl_with_restart_stgy S T" and
+    "bound_inv A (fst S)" and
+    "cdcl_inv (fst S)" and
+    "f (snd S) > \<mu>_bound A (fst S)"
+  shows "full cdcl (fst S) (fst T)"
+  using assms
+proof (induction rule: cdcl_with_restart_stgy.induct)
+  case restart_full
+  thus ?case by auto
+next
+  case (restart_step m S T n U) note st = this(1) and f = this(2) and bound_inv = this(4) and
+    cdcl_inv =this(5) and \<mu> = this(6)
+  then obtain m' where m: "m = Suc m'" by (cases m) auto
+  have "\<mu> A S - m' = 0"
+    using f bound_inv cdcl_inv \<mu> m rtranclp_cdcl_with_restarts_measure_bound by fastforce
+  hence False using cdcl_comp_n_le[of m' S T A] restart_step unfolding m by simp
+  thus ?case by fast
+qed
+
 end
 
 section \<open>Combining backjump and learning\<close>

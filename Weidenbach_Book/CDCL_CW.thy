@@ -66,17 +66,27 @@ skipping[intro]: "S = (Propagated L C' # M, N, U, k, C_Clause D) \<Longrightarro
 
 inductive_cases skipE[elim]: "skip S S'"
 
+text \<open>@{term "get_maximum_level D (Propagated L (C + {#L#}) # M) = k \<or> k= 0"} is equivalent to
+  @{term "get_maximum_level D (Propagated L (C + {#L#}) # M) = k"}\<close>
 inductive resolve :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
 resolving[intro]: "S = (Propagated L (C + {#L#}) # M, N, U, k, C_Clause (D + {#-L#}))
-  \<Longrightarrow> (get_maximum_level D (Propagated L (C + {#L#}) # M) = k \<or> k= 0)
+  \<Longrightarrow> get_maximum_level D (Propagated L (C + {#L#}) # M) = k
   \<Longrightarrow> resolve S (M, N, U, k, C_Clause (remdups_mset (D + C)))"
 
 inductive_cases resolveE[elim]: "resolve S S'"
 
+inductive restart :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
+restart: "S = (M, N, U, k, C_True) \<Longrightarrow> \<not>M \<Turnstile>as N \<Longrightarrow> restart S ([], N, U, 0, C_True)"
+inductive_cases restartE[elim]: "restart S T"
+
+inductive forget :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
+"S = (M, N, U \<union> {C}, k, C_True) \<Longrightarrow> \<not>M \<Turnstile>as N
+  \<Longrightarrow> C \<notin> set (get_all_mark_of_propagated(trail S)) \<Longrightarrow> C \<notin> U \<Longrightarrow> forget S (M, N, U, k, C_True)"
+inductive_cases forgetE[elim]: "forget S T"
+
 inductive cdcl_rf :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
-restart: "S = (M, N, U, k, C_True) \<Longrightarrow> \<not>M \<Turnstile>as N \<Longrightarrow> cdcl_rf S ([], N, U, 0, C_True)" |
-forget: "S = (M, N, U \<union> {C}, k, C_True) \<Longrightarrow> \<not>M \<Turnstile>as N
-  \<Longrightarrow> C \<notin> set (get_all_mark_of_propagated(trail S)) \<Longrightarrow> C \<notin> U \<Longrightarrow> cdcl_rf S (M, N, U, k, C_True)"
+restart: "restart S T \<Longrightarrow> cdcl_rf S T" |
+forget: "forget S T \<Longrightarrow> cdcl_rf S T"
 
 inductive cdcl_bj ::  "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
 skip[intro]: "skip S S' \<Longrightarrow> cdcl_bj S S'" |
@@ -99,31 +109,20 @@ lemma rtranclp_propagate_is_rtranclp_cdcl:
   "propagate\<^sup>*\<^sup>* S S' \<Longrightarrow> cdcl\<^sup>*\<^sup>* S S'"
   by (induction rule: rtranclp.induct) (fastforce dest!: propagate)+
 
-lemma cdcl_all_induct[consumes 1, case_names propagate conflict forget restart decided skip
+lemma cdcl_all_rules_induct[consumes 1, case_names propagate conflict forget restart decided skip
     resolve backtrack]:
   fixes S  :: "'v cdcl_state"
   assumes cdcl: "cdcl S S'"
-  and propagate: "\<And>M N U k C L. C + {#L#} \<in> N \<union> U \<Longrightarrow> M \<Turnstile>as CNot C \<Longrightarrow> undefined_lit L M
-    \<Longrightarrow> P (M, N, U, k, C_True) (Propagated L (C + {#L#}) # M, N, U, k, C_True)"
-  and conflict: "\<And>M N U k D. D \<in> N \<union> U \<Longrightarrow> M \<Turnstile>as CNot D
-    \<Longrightarrow> P (M, N, U, k, C_True) (M, N, U, k, C_Clause D)"
-  and forget: "\<And>M N U C k. \<not>M \<Turnstile>as N \<Longrightarrow>  C \<notin> set (get_all_mark_of_propagated M)
-    \<Longrightarrow> C \<notin> U \<Longrightarrow>P (M, N, U \<union> {C}, k, C_True) (M, N, U, k, C_True)"
-  and restart: "\<And>M N U k. \<not>M \<Turnstile>as N \<Longrightarrow> P (M, N, U, k, C_True) ([], N, U, 0, C_True)"
-  and decide: "\<And>M N U k L.  undefined_lit L M \<Longrightarrow> atm_of L \<in> atms_of_m N
-    \<Longrightarrow> P (M, N, U, k, C_True)  (Marked L (k+1) # M, N, U, k + 1, C_True)"
-  and skip: "\<And>M N L C' D k U. -L \<notin># D \<Longrightarrow> D \<noteq> {#}
-    \<Longrightarrow> P (Propagated L C' # M, N, U, k, C_Clause D) (M, N, U, k, C_Clause D)"
-  and resolve: "\<And>M N L D k U C. (get_maximum_level D (Propagated L (C + {#L#}) # M) = k \<or> k= 0)
-    \<Longrightarrow> P (Propagated L (C + {#L#}) # M, N, U, k, C_Clause (D + {#-L#}))
-      (M, N, U, k, C_Clause (remdups_mset (D + C)))"
-  and backtrack: "\<And>M N U k D L K i M1 M2.
-    (Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition M) \<Longrightarrow> get_level L M = k
-    \<Longrightarrow> get_level L M = get_maximum_level (D+{#L#}) M \<Longrightarrow> get_maximum_level D M = i
-    \<Longrightarrow> P (M, N, U, k, C_Clause (D + {#L#}))
-          (Propagated L (D+{#L#}) # M1, N, U \<union> {D +  {#L#}}, i, C_True)"
+  and propagate: "\<And>S T. propagate S T \<Longrightarrow> P S T"
+  and conflict:  "\<And>S T. conflict S T \<Longrightarrow> P S T"
+  and forget:  "\<And>S T. forget S T \<Longrightarrow> P S T"
+  and restart:  "\<And>S T. restart S T \<Longrightarrow> P S T"
+  and decide:  "\<And>S T. decided S T \<Longrightarrow> P S T"
+  and skip:  "\<And>S T. skip S T \<Longrightarrow> P S T"
+  and resolve:  "\<And>S T. resolve S T \<Longrightarrow> P S T"
+  and backtrack:  "\<And>S T. backtrack S T \<Longrightarrow> P S T"
   shows "P S S'"
-  using cdcl
+  using assms(1)
 proof (induct rule: cdcl.induct)
   case (propagate S S') note propagate = this(1)
   thus ?case using assms(2) by (auto)
@@ -144,6 +143,57 @@ next
   case (rf S S')
   thus ?case
     by (induct rule: cdcl_rf.induct) (fast dest: forget restart)+
+qed
+
+lemma cdcl_all_induct[consumes 1, case_names propagate conflict forget restart decided skip
+    resolve backtrack]:
+  fixes S  :: "'v cdcl_state"
+  assumes cdcl: "cdcl S S'"
+  and propagate: "\<And>M N U k C L. C + {#L#} \<in> N \<union> U \<Longrightarrow> M \<Turnstile>as CNot C \<Longrightarrow> undefined_lit L M
+    \<Longrightarrow> P (M, N, U, k, C_True) (Propagated L (C + {#L#}) # M, N, U, k, C_True)"
+  and conflict: "\<And>M N U k D. D \<in> N \<union> U \<Longrightarrow> M \<Turnstile>as CNot D
+    \<Longrightarrow> P (M, N, U, k, C_True) (M, N, U, k, C_Clause D)"
+  and forget: "\<And>M N U C k. \<not>M \<Turnstile>as N \<Longrightarrow>  C \<notin> set (get_all_mark_of_propagated M)
+    \<Longrightarrow> C \<notin> U \<Longrightarrow>P (M, N, U \<union> {C}, k, C_True) (M, N, U, k, C_True)"
+  and restart: "\<And>M N U k. \<not>M \<Turnstile>as N \<Longrightarrow> P (M, N, U, k, C_True) ([], N, U, 0, C_True)"
+  and decide: "\<And>M N U k L.  undefined_lit L M \<Longrightarrow> atm_of L \<in> atms_of_m N
+    \<Longrightarrow> P (M, N, U, k, C_True)  (Marked L (k+1) # M, N, U, k + 1, C_True)"
+  and skip: "\<And>M N L C' D k U. -L \<notin># D \<Longrightarrow> D \<noteq> {#}
+    \<Longrightarrow> P (Propagated L C' # M, N, U, k, C_Clause D) (M, N, U, k, C_Clause D)"
+  and resolve: "\<And>M N L D k U C. get_maximum_level D (Propagated L (C + {#L#}) # M) = k
+    \<Longrightarrow> P (Propagated L (C + {#L#}) # M, N, U, k, C_Clause (D + {#-L#}))
+      (M, N, U, k, C_Clause (remdups_mset (D + C)))"
+  and backtrack: "\<And>M N U k D L K i M1 M2.
+    (Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition M) \<Longrightarrow> get_level L M = k
+    \<Longrightarrow> get_level L M = get_maximum_level (D+{#L#}) M \<Longrightarrow> get_maximum_level D M = i
+    \<Longrightarrow> P (M, N, U, k, C_Clause (D + {#L#}))
+          (Propagated L (D+{#L#}) # M1, N, U \<union> {D +  {#L#}}, i, C_True)"
+  shows "P S S'"
+  using cdcl
+proof (induct rule: cdcl_all_rules_induct)
+  case (propagate S S') note propagate = this(1)
+  thus ?case using assms(2) by (auto)
+next
+  case (conflict S S')
+  thus ?case using assms(3) by fast
+next
+  case (decided T U)
+  thus ?case using decide by auto
+next
+  case (backtrack S S')
+  thus ?case using assms(9) by auto
+next
+  case (restart S S')
+  thus ?case using assms(5) by blast
+next
+  case (forget S S')
+  thus ?case using assms(4) by auto
+next
+  case (skip S S')
+  thus ?case using assms(7) by blast
+next
+  case (resolve S S')
+  thus ?case using assms(8) by auto
 qed
 
 lemma cdcl_o_induct[consumes 1, case_names decided skip resolve backtrack]:
@@ -2866,7 +2916,7 @@ next
        obtain M where M: "trail S'' = M @ trail S'" and nm: "\<forall>m\<in>set M. \<not>is_marked m"
          using rtranclp_cdcl_cp_dropWhile_trail other'(3) unfolding full0_def by blast
        have btS: "backtrack_level S'' = backtrack_level S'"
-         by (metis full0_def other'.hyps(3) rtranclp_cdcl_cp_backtrack_level)
+         using other'.hyps(3) unfolding full0_def by (metis  rtranclp_cdcl_cp_backtrack_level)
        have inv: "cdcl_M_level_inv S''"
          by (metis (no_types) cdcl_s.conflict' cdcl_s_consistent_inv full0_unfold lev' other'.hyps(3))
        hence nd: "no_dup (trail S'')"
@@ -3112,7 +3162,8 @@ proof (induction M arbitrary: M' N' U' k' E E' D)
   case Nil
   thus ?case using rtranclp_cdcl_s_conflicting_is_false unfolding full0_def by fast
 next
-  case (Cons L M) note IH = this(1) and full = this(8) and E = this(9) and inv = this(2-7) and nm = this(10)
+  case (Cons L M) note IH = this(1) and full = this(8) and E = this(9) and inv = this(2-7) and
+    nm = this(10)
   let ?S = "(L#M, N, U, 0, C_Clause D)"
   let ?S' = "(M', N', U', k', E')"
   obtain K p where K: "L = Propagated K p"
@@ -3150,8 +3201,20 @@ next
           assume LD: "\<not>-lit_of L \<notin># D"
           hence D: "C_Clause D = C_Clause ((D - {#-lit_of L#}) + {#-lit_of L#})"
             by (auto simp add: multiset_eq_iff)
+
+          have "\<And>L. get_level L M = 0"
+            by (simp add: nm)
+          then have "get_maximum_level (D - {#- K#}) (Propagated K (p - {#K#} + {#K#}) # M) = 0"
+            using  LD get_maximum_level_exists_lit_of_max_level
+            proof -
+              obtain L' where "get_level L' (L#M) = get_maximum_level D (L#M)"
+                using  LD get_maximum_level_exists_lit_of_max_level[of D "L#M"] by fastforce
+              thus ?thesis by (metis (mono_tags) K' bex_msetE get_level_skip_all_not_marked
+                get_maximum_level_exists_lit nm not_gr0)
+            qed
           then obtain T where sk: "resolve ?S T" and res: "no_step skip ?S"
-            using LD resolving[of ?S] unfolding K' D by fastforce
+            using resolving[of ?S K "p - {#K#}" M N U 0 "(D - {#-K#})"] unfolding K' D
+            by fastforce
           have "full0 cdcl_cp T T"
             using sk by (auto simp add: conflicting_clause_full0_cdcl_cp)
           thus ?thesis
