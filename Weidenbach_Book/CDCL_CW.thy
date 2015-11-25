@@ -5,101 +5,200 @@ begin
 
 declare upt.simps(2)[simp del]
 
-section \<open>CDCL\<close>
-subsection \<open>Auxiliary definitions\<close>
-subsubsection \<open>Datatypes and access functions\<close>
 datatype 'a conflicting_clause = C_True | C_Clause "'a"
+locale cw_state =
+  fixes
+    trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
+    clauses ::  "'st \<Rightarrow> 'v clauses" and
+    init_clauses :: "'st \<Rightarrow> 'v clauses" and
+    learned_clauses :: "'st \<Rightarrow> 'v clauses" and
+    backtrack_level  :: "'st \<Rightarrow> nat" and
+    conflicting_clauses  :: "'st \<Rightarrow> 'v clauses" and
+    conflicting  :: "'st \<Rightarrow> 'v clause conflicting_clause" and
+    update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_clss :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_bt :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conflicting :: "'v clause conflicting_clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    init_state :: "'v clauses \<Rightarrow> 'st"
+  assumes
+    trail_update_trail[simp]: "\<And>M st. trail (update_trail M st) = M" and
+    update_trail_add_cls[simp]: "\<And>st C. trail(add_clss C st) = trail st" and
+    update_trail_remove_clauses[simp]: "\<And>st C. trail (remove_cls C st) = trail st" and
 
+    clauses_add_clause[simp]: "\<And>st C. clauses (add_clss C st) = C \<union> (clauses st)" and
+    clause_remove_clause[simp]: "\<And>st C. clauses (remove_cls C st) = clauses st - {C}" and
+    clauses_update_trail[simp]: "\<And>st M. clauses (update_trail M st) = clauses st" and
+    clauses_update_conflicting[simp]: 
+      "\<And>st M. clauses (update_conflicting M st) = clauses st" and
+
+    init_clauses_update_trail[simp]: 
+      "\<And>M st. init_clauses (update_trail M st) = init_clauses st" and
+    init_clauses_add_cls[simp]: 
+      "\<And>C st. init_clauses (add_clss C st) = init_clauses st" and
+    init_clauses_remove_cls[simp]: 
+      "\<And>C st. init_clauses (remove_cls C st) = init_clauses st - {C}" and
+
+    clauses_init_learned: "\<And>st. clauses st = init_clauses st \<union> learned_clauses st" and
+
+    backtrack_level_update_trail[simp]: 
+      "\<And>M st. backtrack_level (update_trail M st) = backtrack_level st" and
+    backtrack_level_add_cls[simp]: 
+      "\<And>C st. backtrack_level (add_clss C st) = backtrack_level st" and
+    backtrack_level_remove_cls[simp]: 
+      "\<And>C st. backtrack_level (remove_cls C st) = backtrack_level st" and
+    backtrack_level_update_bt[simp]: "\<And>k st. backtrack_level (update_bt k st) = k" and
+
+    clauses_init_state[simp]: "\<And>N. clauses (init_state N) = N" and
+    trail_init_state[simp]: "\<And>N. trail (init_state N) = []" and
+    conflicting_init_state[simp]: "\<And>N. conflicting (init_state N) = C_True" and
+    learned_clauses_init_state[simp]: "\<And>N. learned_clauses (init_state N) = {}"
+   
+begin
+abbreviation cons_trail where
+"cons_trail L S \<equiv> update_trail (L # trail S) S"
+
+abbreviation tl_trail where
+"tl_trail S \<equiv> update_trail (tl (trail S)) S"
+
+abbreviation incr_lvl where
+"incr_lvl S \<equiv> update_bt (1 + backtrack_level S) S"
+
+abbreviation add_cls where
+"add_cls C D \<equiv> add_clss {C} D"
+
+end  
 type_synonym 'a cdcl_mark = "'a clause"
 type_synonym cdcl_marked_level = nat
-
 type_synonym 'v cdcl_marked_lit = "('v, cdcl_marked_level, 'v cdcl_mark) marked_lit"
 type_synonym 'v cdcl_annoted_lits = "('v, cdcl_marked_level, 'v cdcl_mark) annoted_lits"
 type_synonym 'v cdcl_state =
   "'v cdcl_annoted_lits \<times> 'v clauses \<times> 'v clauses \<times> nat \<times> 'v clause conflicting_clause"
-
+  
 abbreviation "trail \<equiv> (\<lambda>(M, N, U, k, D). M)"
 abbreviation "clauses \<equiv> \<lambda>(M, N, U, k, D). N"
 abbreviation "learned_clauses \<equiv> \<lambda>(M, N, U, k, D). U"
-abbreviation "conflicting \<equiv> \<lambda>(M, N, U, k, D). D"
+abbreviation "conflicting_cl \<equiv> \<lambda>(M, N, U, k, D). D"
 abbreviation "backtrack_level \<equiv> \<lambda>(M, N, U, k, D). k"
 abbreviation "S0_cdcl N \<equiv> (([], N, {}, 0, C_True):: 'v cdcl_state)"
+abbreviation "update_trail \<equiv> \<lambda>M (_, N, U, k, D). (M, N, U, k, D)"
 
-lemma trail_conv: "trail (M, N, U, k, D) = M" and
-  clauses_conv: "clauses (M, N, U, k, D) = N" and
-  learned_clauses_conv: "learned_clauses (M, N, U, k, D) = U" and
-  conflicting_conv: "conflicting (M, N, U, k, D) = D" and
-  backtrack_level_conv: "backtrack_level (M, N, U, k, D) = k"
-  by auto
+
+interpretation cdcl_cw_concrete:
+  cw_state trail "\<lambda>S. clauses S \<union> learned_clauses S" clauses learned_clauses backtrack_level  
+  _ conflicting_cl update_trail "\<lambda>C (M, N, U, k, D). (M, N, C \<union> U, k, D)"
+  "\<lambda>C (M, N, U, k, D). (M, N - {C}, U - {C}, k, D)" 
+  "\<lambda>k (M, N, U, _, D). (M, N, U, k, D)"
+  "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)" 
+  "\<lambda>N. ([], N, {}, 0, C_True)"
+  by unfold_locales auto
+
+locale cdcl_cw =
+   cw_state trail clauses init_clauses learned_clauses backtrack_level conflicting_clauses
+     conflicting update_trail add_clss remove_cls update_bt update_conflicting init_state
+   for
+    trail :: "'st \<Rightarrow> 'v cdcl_annoted_lits" and
+    clauses ::  "'st \<Rightarrow> 'v clauses" and
+    init_clauses :: "'st \<Rightarrow> 'v clauses" and
+    learned_clauses :: "'st \<Rightarrow> 'v clauses" and
+    backtrack_level  :: "'st \<Rightarrow> nat" and
+    conflicting_clauses  :: "'st \<Rightarrow> 'v clauses" and
+    conflicting  :: "'st \<Rightarrow> 'v clause conflicting_clause" and
+    update_trail :: "'v cdcl_annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_clss :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_bt :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conflicting :: "'v clause conflicting_clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    init_state :: "'v clauses \<Rightarrow> 'st"
+begin
+section \<open>CDCL\<close>
+subsection \<open>Auxiliary definitions\<close>
+subsubsection \<open>Datatypes and access functions\<close>
 
 subsection \<open>CDCL Rules\<close>
 text \<open>Because of the strategy we will later use, we distinguish propagate, conflict from the other
   rules\<close>
-inductive propagate :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
-propagate_rule[intro]: "S = (M, N, U, k, C_True) \<Longrightarrow>  C + {#L#} \<in> N \<union> U \<Longrightarrow> M \<Turnstile>as CNot C
-  \<Longrightarrow> undefined_lit L (trail S) \<Longrightarrow> propagate S (Propagated L (C + {#L#}) # M, N, U, k, C_True)"
+inductive propagate :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+propagate_rule[intro]: "C + {#L#} \<in> clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C
+  \<Longrightarrow> undefined_lit L (trail S) \<Longrightarrow> propagate S (cons_trail (Propagated L (C + {#L#})) S)"
 
 inductive_cases propagateE[elim]: "propagate S T"
 
-inductive conflict ::  "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
-conflict_rule: "S = (M, N, U, k, C_True) \<Longrightarrow> D \<in> N \<union> U \<Longrightarrow> M \<Turnstile>as CNot D
-  \<Longrightarrow> conflict S (M, N, U, k, C_Clause D)"
+inductive conflict ::  "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+conflict_rule: "conflicting S = C_True \<Longrightarrow> D \<in> clauses S \<Longrightarrow> trail S \<Turnstile>as CNot D
+  \<Longrightarrow> conflict S (updating_conflicting D S)"
 
 inductive_cases conflictE[elim]: "conflict S S'"
 
-inductive backtrack ::  "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
-backtracking[intro]: "S = (M, N, U, k, C_Clause (D + {#L#}))
-  \<Longrightarrow> (Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition M)
-  \<Longrightarrow> get_level L M = k \<Longrightarrow> get_level L M = get_maximum_level (D+{#L#}) M
-  \<Longrightarrow> get_maximum_level D M = i
-  \<Longrightarrow> backtrack S (Propagated L (D+{#L#}) # M1 , N, U \<union> {D + {#L#}}, i, C_True)"
+inductive backtrack ::  "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+backtracking[intro]: "
+  conflicting S = C_Clause (D + {#L#})
+  \<Longrightarrow> (Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition (trail S))
+  \<Longrightarrow> get_level L (trail S) = backtrack_level S
+  \<Longrightarrow> get_level L (trail M) = get_maximum_level (D+{#L#}) (trail M)
+  \<Longrightarrow> get_maximum_level D (trail S) = i
+  \<Longrightarrow> backtrack S 
+        ((update_trail (Propagated L (D+{#L#}) # M1) 
+         (add_cls (D + {#L#})
+         (update_bt i
+         (update_conflicting C_True S)))))"
 inductive_cases backtrackE[elim]: "backtrack S S'"
 
-inductive decided ::  "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
-deciding[intro]: "S = (M, N, U, k, C_True) \<Longrightarrow> undefined_lit L M \<Longrightarrow> atm_of L \<in> atms_of_m N \<Longrightarrow> decided S (Marked L (k+1) # M, N, U, k + 1, C_True)"
+inductive decided :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+deciding[intro]: "conflicting S = C_True 
+  \<Longrightarrow> undefined_lit L (trail S) \<Longrightarrow> atm_of L \<in> atms_of_m (clauses S) 
+  \<Longrightarrow> decided S (cons_trail (Marked L (k+1)) (incr_level S))"
 
 inductive_cases decidedE[elim]: "decided S S'"
 
-inductive skip :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
-skipping[intro]: "S = (Propagated L C' # M, N, U, k, C_Clause D) \<Longrightarrow>  -L \<notin># D \<Longrightarrow> D \<noteq> {#}
-  \<Longrightarrow> skip S (M, N, U, k, C_Clause D)"
+inductive skip :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+skipping[intro]: 
+  "conflicting S = C_Clause D \<Longrightarrow> trail S = Propagated L C' # M  \<Longrightarrow>  -L \<notin># D \<Longrightarrow> D \<noteq> {#}
+  \<Longrightarrow> skip S (tl_trail S)"
 
 inductive_cases skipE[elim]: "skip S S'"
 
 text \<open>@{term "get_maximum_level D (Propagated L (C + {#L#}) # M) = k \<or> k= 0"} is equivalent to
   @{term "get_maximum_level D (Propagated L (C + {#L#}) # M) = k"}\<close>
-inductive resolve :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
-resolving[intro]: "S = (Propagated L (C + {#L#}) # M, N, U, k, C_Clause (D + {#-L#}))
-  \<Longrightarrow> get_maximum_level D (Propagated L (C + {#L#}) # M) = k
-  \<Longrightarrow> resolve S (M, N, U, k, C_Clause (remdups_mset (D + C)))"
+inductive resolve :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+resolving[intro]: "
+  trail S = Propagated L (C + {#L#}) # M
+  \<Longrightarrow> conflicting S = C_Clause (D + {#-L#})
+  \<Longrightarrow> get_maximum_level D (Propagated L (C + {#L#}) # M) = backtrack_level S
+  \<Longrightarrow> resolve S (update_conflicting (C_Clause (remdups_mset (D + C))) S)"
 
 inductive_cases resolveE[elim]: "resolve S S'"
 
-inductive restart :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
-restart: "S = (M, N, U, k, C_True) \<Longrightarrow> \<not>M \<Turnstile>as N \<Longrightarrow> restart S ([], N, U, 0, C_True)"
+inductive restart :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+restart: "conflicting S = C_True 
+  \<Longrightarrow> \<not>(trail S) \<Turnstile>as (clauses N) 
+  \<Longrightarrow> restart S (add_clss (learned_clauses S) (init_state (init_clauses S)))"
 inductive_cases restartE[elim]: "restart S T"
 
-inductive forget :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
-"S = (M, N, U \<union> {C}, k, C_True) \<Longrightarrow> \<not>M \<Turnstile>as N
-  \<Longrightarrow> C \<notin> set (get_all_mark_of_propagated(trail S)) \<Longrightarrow> C \<notin> U \<Longrightarrow> forget S (M, N, U, k, C_True)"
+inductive forget :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+" \<not>(trail S) \<Turnstile>as clauses S
+  \<Longrightarrow> conflicting S = C_True
+  \<Longrightarrow> C \<in> learned_clauses S
+  \<Longrightarrow> C \<notin> set (get_all_mark_of_propagated(trail S)) \<Longrightarrow> C \<notin> learned_clauses S 
+  \<Longrightarrow> forget S (remove_cls C S)"
 inductive_cases forgetE[elim]: "forget S T"
 
-inductive cdcl_rf :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
+inductive cdcl_rf :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 restart: "restart S T \<Longrightarrow> cdcl_rf S T" |
 forget: "forget S T \<Longrightarrow> cdcl_rf S T"
 
-inductive cdcl_bj ::  "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
+inductive cdcl_bj ::  "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 skip[intro]: "skip S S' \<Longrightarrow> cdcl_bj S S'" |
 resolve[intro]: "resolve S S' \<Longrightarrow> cdcl_bj S S'" |
 backtrack[intro]: "backtrack S S' \<Longrightarrow> cdcl_bj S S'"
 
 inductive_cases cdcl_bjE: "cdcl_bj S T"
 
-inductive cdcl_o:: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
+inductive cdcl_o:: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 decided[intro]: "decided S S' \<Longrightarrow> cdcl_o S S'" |
 bj[intro]: "cdcl_bj S S' \<Longrightarrow> cdcl_o S S'"
 
-inductive cdcl :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
+inductive cdcl :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 propagate: "propagate S S' \<Longrightarrow> cdcl S S'" |
 conflict: "conflict S S' \<Longrightarrow> cdcl S S'" |
 other: "cdcl_o S S' \<Longrightarrow> cdcl S S'"|
@@ -111,7 +210,7 @@ lemma rtranclp_propagate_is_rtranclp_cdcl:
 
 lemma cdcl_all_rules_induct[consumes 1, case_names propagate conflict forget restart decided skip
     resolve backtrack]:
-  fixes S  :: "'v cdcl_state"
+  fixes S  :: 'st  
   assumes cdcl: "cdcl S S'"
   and propagate: "\<And>S T. propagate S T \<Longrightarrow> P S T"
   and conflict:  "\<And>S T. conflict S T \<Longrightarrow> P S T"
@@ -147,7 +246,7 @@ qed
 
 lemma cdcl_all_induct[consumes 1, case_names propagate conflict forget restart decided skip
     resolve backtrack]:
-  fixes S  :: "'v cdcl_state"
+  fixes S  :: 'st
   assumes cdcl: "cdcl S S'"
   and propagate: "\<And>M N U k C L. C + {#L#} \<in> N \<union> U \<Longrightarrow> M \<Turnstile>as CNot C \<Longrightarrow> undefined_lit L M
     \<Longrightarrow> P (M, N, U, k, C_True) (Propagated L (C + {#L#}) # M, N, U, k, C_True)"

@@ -860,4 +860,38 @@ proof (induction rule:cdcl_s.induct)
 
 oops
 
+inductive cdcl_fw_cp where
+fw_cp_propagate: "propagate S S' \<Longrightarrow> cdcl_fw_cp S S'" |
+fw_cp_bj': "conflict S T \<Longrightarrow> full0 cdcl_bj T U \<Longrightarrow> cdcl_fw_cp S V"
+
+inductive cdcl_fw_stgy :: "'v cdcl_state \<Rightarrow> 'v cdcl_state \<Rightarrow> bool" where
+conflict': "full cdcl_fw_cp S S' \<Longrightarrow> cdcl_fw_stgy S S'" |
+decided': "decided S S'  \<Longrightarrow> no_step cdcl_fw_cp S \<Longrightarrow> cdcl_fw_stgy S S'"
+
+lemma no_step_cdcl_fw_no_step_propagate:
+  "no_step cdcl_fw_cp S \<Longrightarrow> no_step propagate S"
+ using fw_cp_propagate by blast
+
+lemma no_step_cdcl_fw_no_step_conflict:
+  assumes "no_step cdcl_fw_cp S"
+  shows "no_step conflict S"
+proof (rule ccontr)
+  assume "\<not> ?thesis"
+  then obtain T where "conflict S T" by blast
+  moreover obtain U where "full0 cdcl_bj T U"
+    using wf_exists_normal_form[OF cdcl_bj_wf] unfolding full0_def by blast
+  ultimately show False using assms fw_cp_bj' by blast
+qed
+
+lemma
+  "cdcl_fw_cp S S' \<Longrightarrow> no_step cdcl_fw_cp S'\<Longrightarrow> cdcl_s\<^sup>*\<^sup>* S S'"
+  apply (induction rule: cdcl_fw_cp.induct)
+    apply (metis cdcl_cp.cases cdcl_s.conflict' full_def fw_cp_propagate tranclp.r_into_trancl
+      no_step_cdcl_fw_no_step_conflict propagate' reflclp_tranclp sup2CI)
+sorry
+using fw_propagate apply blast
+using fw_conflict by blast
+
+oops
+
 end
