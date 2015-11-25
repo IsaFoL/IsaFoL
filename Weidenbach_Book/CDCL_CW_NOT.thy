@@ -797,6 +797,7 @@ next
   ultimately show ?case by blast
 qed
 
+text \<open>TODO: the connection \<open>cdcl_s\<^sup>*\<^sup>*\<close> should be \<open>cdcl_bj; full cdcl_cp\<close>.\<close>
 lemma cdcl_s_cdcl_s'_connected:
   assumes "cdcl_s S U" and "cdcl_all_inv_mes S"
   shows "\<exists>T. cdcl_s' S T \<and> cdcl_s\<^sup>*\<^sup>* U T \<and> cdcl_s'\<^sup>*\<^sup>* U T"
@@ -836,9 +837,9 @@ next
 qed
 
 lemma cdcl_s_cdcl_s'_no_step:
-  assumes "cdcl_s S U" and "cdcl_all_inv_mes S" and "no_step cdcl_s U"
+  assumes "cdcl_s S U" and "cdcl_all_inv_mes S" and "no_step cdcl_bj U"
   shows "cdcl_s' S U"
-  using cdcl_s_cdcl_s'_connected[OF assms(1,2)] assms(3) by (metis converse_rtranclpE)
+  using cdcl_s_cdcl_s'_connected[OF assms(1,2)] assms(3) oops
 
 lemma cdcl_s_cdcl_s'_connected:
   assumes "cdcl_s S U" and "cdcl_all_inv_mes S" and "cdcl_s' S V"
@@ -859,5 +860,4 @@ proof (induction rule:cdcl_s.induct)
 
 oops
 
-subsection \<open>\<close>
 end
