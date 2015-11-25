@@ -16,4 +16,38 @@ lemma full0_unfold:
   "full0 r S S' \<longleftrightarrow> ((S = S' \<and> no_step r S') \<or> full r S S')"
   unfolding full0_def full_def by (auto simp add: Nitpick.rtranclp_unfold)
 
+
+lemma wf_exists_normal_form:
+  assumes wf:"wf {(x, y). R y x}"
+  shows "\<exists>b. R\<^sup>*\<^sup>* a b \<and> no_step R b"
+proof (rule ccontr)
+  assume "\<not> ?thesis"
+  hence H: "\<And>b. \<not> R\<^sup>*\<^sup>* a b \<or> \<not>no_step R b"
+    by blast
+  def F \<equiv> "rec_nat a (\<lambda>i b. SOME c. R b c)"
+  have [simp]: "F 0 = a"
+    unfolding F_def by auto
+  have [simp]: "\<And>i. F (Suc i) = (SOME b. R (F i) b)"
+    using F_def by simp
+  { fix i
+    have "\<forall>j<i. R (F j) (F (Suc j))"
+      proof (induction i)
+        case 0
+        thus ?case by auto
+      next
+        case (Suc i)
+        hence "R\<^sup>*\<^sup>* a (F i)"
+          by (induction i) auto
+        hence "R (F i) (SOME b. R (F i) b)"
+          using H by (simp add: someI_ex)
+        hence "\<forall>j < Suc i. R (F j) (F (Suc j))"
+          using H Suc by (simp add: less_Suc_eq)
+        thus ?case by fast
+      qed
+  }
+  hence "\<forall>j. R (F j) (F (Suc j))" by blast
+  thus False
+    using wf unfolding wfP_def wf_iff_no_infinite_down_chain by blast
+qed
+
 end

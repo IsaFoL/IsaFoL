@@ -312,7 +312,6 @@ proof -
   ultimately show ?thesis using wf_subset by simp
 qed
 
-
 subsection \<open>rtranclp\<close>
 text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and sledgehammer use it), but
   it makes more sense to duplicate it.\<close>
