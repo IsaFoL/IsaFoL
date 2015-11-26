@@ -759,7 +759,8 @@ lemma cdcl_cp_cdcl_bj_bissimulation:
     "cdcl_bj\<^sup>*\<^sup>* T T'" and
     "cdcl_all_inv_mes T" and
     "no_step cdcl_bj T'"
-  shows "\<exists>U'. full0 cdcl_cp T' U' \<and> cdcl_s\<^sup>*\<^sup>* U U' \<and> cdcl_s'\<^sup>*\<^sup>* U U'"
+  shows "full0 cdcl_cp T' U
+    \<or> (\<exists>U' U''. full0 cdcl_cp T' U'' \<and> full cdcl_bj U U' \<and> full0 cdcl_cp U' U'' \<and> cdcl_s'\<^sup>*\<^sup>* U U'')"
   using assms(2,1,3,4)
 proof (induction rule: rtranclp_induct)
   case base
@@ -774,6 +775,8 @@ next
     using inv rtranclp_cdcl_all_inv_mes_inv by blast
   have "cdcl_bj\<^sup>+\<^sup>+ T T''"
     using local.bj st by auto
+  have "full cdcl_bj T T''"
+    by (metis \<open>cdcl_bj\<^sup>+\<^sup>+ T T''\<close> full_def step.prems(3))
   hence "T = U"
     proof -
       obtain Z where "cdcl_bj T Z"
@@ -787,20 +790,21 @@ next
       thus ?thesis
         using full unfolding full0_def rtranclp_unfold by blast
     qed
-  obtain U' where "full0 cdcl_cp T'' U'"
+  obtain U'' where "full0 cdcl_cp T'' U''"
     using cdcl_cp_normalized_element inv_T'' by blast
-  moreover hence "cdcl_s\<^sup>*\<^sup>* U U'"
+  moreover hence "cdcl_s\<^sup>*\<^sup>* U U''"
     by (metis \<open>T = U\<close> \<open>cdcl_bj\<^sup>+\<^sup>+ T T''\<close> rtranclp_cdcl_bj_full_cdclp_cdcl_s rtranclp_unfold)
-  moreover have "cdcl_s'\<^sup>*\<^sup>* U U'"
-    by (metis (no_types, hide_lams) \<open>T = U\<close> \<open>cdcl_bj\<^sup>+\<^sup>+ T T''\<close> calculation(1) cdcl_s'.simps full 
+  moreover have "cdcl_s'\<^sup>*\<^sup>* U U''"
+    by (metis (no_types, hide_lams) \<open>T = U\<close> \<open>cdcl_bj\<^sup>+\<^sup>+ T T''\<close> calculation(1) cdcl_s'.simps full
       full0_def full_def r_into_rtranclp step.prems(3))
-  ultimately show ?case by blast
+  ultimately show ?case
+    using \<open>full cdcl_bj T T''\<close> \<open>full0 cdcl_cp T'' U''\<close> unfolding \<open>T = U\<close> by blast
 qed
 
-text \<open>TODO: the connection \<open>cdcl_s\<^sup>*\<^sup>*\<close> should be \<open>cdcl_bj; full cdcl_cp\<close>.\<close>
 lemma cdcl_s_cdcl_s'_connected:
   assumes "cdcl_s S U" and "cdcl_all_inv_mes S"
-  shows "\<exists>T. cdcl_s' S T \<and> cdcl_s\<^sup>*\<^sup>* U T \<and> cdcl_s'\<^sup>*\<^sup>* U T"
+  shows "cdcl_s' S U
+    \<or> (\<exists>U' U''. cdcl_s' S U'' \<and> full cdcl_bj U U' \<and> full0 cdcl_cp U' U'')"
   using assms
 proof (induction rule: cdcl_s.induct)
   case (conflict' S T)
@@ -826,13 +830,28 @@ next
         using T' unfolding full0_def by simp
       have "cdcl_all_inv_mes T"
         using cdcl_all_inv_mes_inv o other other'.prems by blast
-      then obtain U' where "full0 cdcl_cp T' U'" and "cdcl_s\<^sup>*\<^sup>* U U'" and "cdcl_s'\<^sup>*\<^sup>* U U'"
-        using cdcl_cp_cdcl_bj_bissimulation[OF full \<open>cdcl_bj\<^sup>*\<^sup>* T T'\<close>] T'
-        unfolding full0_def by blast
-      have "cdcl_s' S U'"
-        by (metis \<open>cdcl_bj\<^sup>\<down> S T'\<close> \<open>cdcl_cp\<^sup>\<down> T' U'\<close> cdcl_s'.simps full0_unfold local.bj n_s)
+      then consider
+          (T'U) "full0 cdcl_cp T' U"
+        |  (U) U' U'' where
+            "full0 cdcl_cp T' U''" and
+            "full cdcl_bj U U'" and
+            "full0 cdcl_cp U' U''" and
+            "cdcl_s'\<^sup>*\<^sup>* U U''"
+        using cdcl_cp_cdcl_bj_bissimulation[OF full \<open>cdcl_bj\<^sup>*\<^sup>* T T'\<close>] T' unfolding full0_def
+        by blast
       then show ?thesis
-        using \<open>cdcl_s\<^sup>*\<^sup>* U U'\<close> \<open>cdcl_s'\<^sup>*\<^sup>* U U'\<close> by blast
+        (* a sledgehammer one-liner:
+         by (metis \<open>cdcl_bj\<^sup>\<down> S T'\<close> bj' full0_unfold local.bj n_s)*)
+        proof cases
+          case T'U
+          thus ?thesis
+            by (metis \<open>cdcl_bj\<^sup>\<down> S T'\<close> cdcl_s'.simps full0_unfold local.bj n_s)
+        next
+          case (U U' U'')
+          have "cdcl_s' S U''"
+            by (metis U(1) \<open>cdcl_bj\<^sup>\<down> S T'\<close> cdcl_s'.simps full0_unfold local.bj n_s)
+          thus ?thesis using U(2,3) by blast
+        qed
     qed
 qed
 
