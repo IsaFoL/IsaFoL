@@ -7,7 +7,7 @@ text \<open>The condition that no learned clause is a tautology is overkill (in 
 definition cdcl_all_inv_mes where
   "cdcl_all_inv_mes S =
     (no_strange_atm S \<and> cdcl_M_level_inv S \<and>  finite (atms_of_m (clauses S))
-    \<and> finite (learned_clauses S) \<and>  (\<forall>s \<in> learned_clauses S. \<not>tautology s)
+    \<and> finite (learned_clss S) \<and>  (\<forall>s \<in> learned_clss S. \<not>tautology s)
     \<and> distinct_cdcl_state S \<and> cdcl_conflicting S
     \<and> all_decomposition_implies (clauses S) (get_all_marked_decomposition (trail S))
     \<and> cdcl_learned_clause S)"
@@ -33,11 +33,11 @@ proof (intro HOL.conjI)
   have "finite (atms_of_m (clauses S))" using assms(2) unfolding cdcl_all_inv_mes_def by auto
   with assms(1) show "finite (atms_of_m (clauses S'))" by (induction rule: cdcl_all_induct) auto
 
-  have "finite (learned_clauses S)" using assms(2) unfolding cdcl_all_inv_mes_def by auto
-  with assms(1) show "finite (learned_clauses S')" by (induction rule: cdcl_all_induct) auto
+  have "finite (learned_clss S)" using assms(2) unfolding cdcl_all_inv_mes_def by auto
+  with assms(1) show "finite (learned_clss S')" by (induction rule: cdcl_all_induct) auto
 
-  show "\<forall>s\<in>learned_clauses S'. \<not> tautology s"
-    using assms(1)[THEN learned_clauses_are_not_tautologies] assms(2)
+  show "\<forall>s\<in>learned_clss S'. \<not> tautology s"
+    using assms(1)[THEN learned_clss_are_not_tautologies] assms(2)
     unfolding cdcl_all_inv_mes_def by fast
 qed
 
@@ -48,44 +48,44 @@ lemma rtranclp_cdcl_all_inv_mes_inv:
 
 
 lemma cdcl_o_learned_clause_increasing:
-  "cdcl_o S S' \<Longrightarrow> learned_clauses S \<subseteq> learned_clauses S'"
+  "cdcl_o S S' \<Longrightarrow> learned_clss S \<subseteq> learned_clss S'"
   by (induction rule: cdcl_o_induct) auto
 
 lemma cdcl_cp_learned_clause_increasing:
-  "cdcl_cp S S' \<Longrightarrow> learned_clauses S \<subseteq> learned_clauses S'"
+  "cdcl_cp S S' \<Longrightarrow> learned_clss S \<subseteq> learned_clss S'"
   by (induction rule: cdcl_cp.induct) auto
 
 lemma rtranclp_cdcl_cp_learned_clause_increasing:
-  "cdcl_cp\<^sup>*\<^sup>* S S' \<Longrightarrow> learned_clauses S \<subseteq> learned_clauses S'"
+  "cdcl_cp\<^sup>*\<^sup>* S S' \<Longrightarrow> learned_clss S \<subseteq> learned_clss S'"
   by (induction rule: rtranclp.induct) (auto dest: cdcl_cp_learned_clause_increasing)
 
 lemma full_cdcl_cp_learned_clause_increasing:
-  "full cdcl_cp S S' \<Longrightarrow> learned_clauses S \<subseteq> learned_clauses S'"
-  "full0 cdcl_cp S S' \<Longrightarrow> learned_clauses S \<subseteq> learned_clauses S'"
+  "full cdcl_cp S S' \<Longrightarrow> learned_clss S \<subseteq> learned_clss S'"
+  "full0 cdcl_cp S S' \<Longrightarrow> learned_clss S \<subseteq> learned_clss S'"
   unfolding full_def full0_def
   by (simp_all add: rtranclp_cdcl_cp_learned_clause_increasing rtranclp_unfold)
 
 lemma cdcl_s_learned_clause_increasing:
-  "cdcl_s S S' \<Longrightarrow> learned_clauses S \<subseteq> learned_clauses S'"
+  "cdcl_s S S' \<Longrightarrow> learned_clss S \<subseteq> learned_clss S'"
   by (induction rule: cdcl_s.induct)
      (auto dest!: full_cdcl_cp_learned_clause_increasing cdcl_o_learned_clause_increasing)
 
 lemma rtranclp_cdcl_s_learned_clause_increasing:
-  "cdcl_s\<^sup>*\<^sup>* S S' \<Longrightarrow> learned_clauses S \<subseteq> learned_clauses S'"
+  "cdcl_s\<^sup>*\<^sup>* S S' \<Longrightarrow> learned_clss S \<subseteq> learned_clss S'"
   by (induction rule: rtranclp.induct)
      (auto dest!: cdcl_s_learned_clause_increasing)
 
 section \<open>decreasing of the measure\<close>
 lemma cdcl_o_new_clause_learned_is_backtrack_step:
-  assumes learned: "D \<in> learned_clauses T" and
-  new: "D \<notin> learned_clauses S" and
+  assumes learned: "D \<in> learned_clss T" and
+  new: "D \<notin> learned_clss S" and
   cdcl: "cdcl_o S T"
   shows "backtrack S T \<and> conflicting S = C_Clause D"
   using cdcl learned new by (induction rule: cdcl_o.induct) (auto elim: cdcl_bjE)
 
 lemma cdcl_cp_new_clause_learned_has_backtrack_step:
-  assumes learned: "D \<in> learned_clauses T" and
-  new: "D \<notin> learned_clauses S" and
+  assumes learned: "D \<in> learned_clss T" and
+  new: "D \<notin> learned_clss S" and
   cdcl: "cdcl_s S T"
   shows "\<exists>S'. backtrack S S' \<and> cdcl_s\<^sup>*\<^sup>* S' T \<and> conflicting S = C_Clause D"
   using cdcl learned new
@@ -96,17 +96,17 @@ proof (induction rule: cdcl_s.induct)
       tranclp_into_rtranclp)
 next
   case (other' S S' S'')
-  hence "D \<in> learned_clauses S'"
+  hence "D \<in> learned_clss S'"
     unfolding full0_def by (auto dest: rtranclp_cdcl_cp_learned_clause_inv)
   thus ?case
-    using  cdcl_o_new_clause_learned_is_backtrack_step[OF _ \<open>D \<notin> learned_clauses S\<close> \<open>cdcl_o S S'\<close>]
+    using  cdcl_o_new_clause_learned_is_backtrack_step[OF _ \<open>D \<notin> learned_clss S\<close> \<open>cdcl_o S S'\<close>]
     \<open>full0 cdcl_cp S' S''\<close> by (metis cdcl_s.conflict' full0_unfold r_into_rtranclp
       rtranclp.rtrancl_refl)
 qed
 
 lemma rtranclp_cdcl_cp_new_clause_learned_has_backtrack_step:
-  assumes learned: "D \<in> learned_clauses T" and
-  new: "D \<notin> learned_clauses S" and
+  assumes learned: "D \<in> learned_clss T" and
+  new: "D \<notin> learned_clss S" and
   cdcl: "cdcl_s\<^sup>*\<^sup>* S T"
   shows "\<exists>S' S''. cdcl_s\<^sup>*\<^sup>* S S' \<and> backtrack S' S'' \<and> conflicting S' = C_Clause D \<and> cdcl_s\<^sup>*\<^sup>* S'' T"
   using cdcl learned new
@@ -118,7 +118,7 @@ next
   case (rtrancl_into_rtrancl S T U) note st =this(1) and o = this(2) and IH = this(3) and
     D_U = this(4) and D_S = this(5)
   show ?case
-    proof (cases "D \<in> learned_clauses T")
+    proof (cases "D \<in> learned_clss T")
       case True
       then obtain S' S'' where
         st': "cdcl_s\<^sup>*\<^sup>* S S'" and
@@ -442,12 +442,12 @@ lemma cdcl_o_cannot_learn:
   assumes "cdcl_o y z" and
   "cdcl_M_level_inv y " and
   "trail y = c @ Marked Kh i # H" and
-  "D + {#L#} \<notin> learned_clauses y" and
+  "D + {#L#} \<notin> learned_clss y" and
   DH: "atms_of D \<subseteq> atm_of `lits_of H" and
   LH: "atm_of L \<notin> atm_of `lits_of H" and
   "\<forall>T. conflicting y = C_Clause T \<longrightarrow> trail y \<Turnstile>as CNot T" and
   "trail z = c' @ Marked Kh i # H"
-  shows "D + {#L#} \<notin> learned_clauses z"
+  shows "D + {#L#} \<notin> learned_clss z"
   using assms(1-4,7,8)
 proof (induction rule: cdcl_o_induct)
   case (backtrack K j M1 M2 M L' D' N U k) note decomp = this(1) and levD = this(4) and lev =this(5)
@@ -466,7 +466,7 @@ proof (induction rule: cdcl_o_induct)
   show ?case
     proof
       assume "D + {#L#} \<in>
-                learned_clauses (Propagated L' (D' + {#L'#}) # M1, N, U \<union> {D' + {#L'#}}, j, C_True)"
+                learned_clss (Propagated L' (D' + {#L'#}) # M1, N, U \<union> {D' + {#L'#}}, j, C_True)"
       hence DLD': "D + {#L#} = D' + {#L'#}" using DL by auto
       have L_cKh: "atm_of L \<in> atm_of `lits_of (c @ [Marked Kh i])"
         using LH learned unfolding M DLD'[symmetric] by (fastforce simp add: image_iff)
@@ -570,12 +570,12 @@ lemma cdcl_s_with_trail_end_has_not_been_learned:
   assumes "cdcl_s y z" and
   "cdcl_M_level_inv y" and
   "trail y = c @ Marked Kh i # H" and
-  "D + {#L#} \<notin> learned_clauses y" and
+  "D + {#L#} \<notin> learned_clss y" and
   DH: "atms_of D \<subseteq> atm_of `lits_of H" and
   LH: "atm_of L \<notin> atm_of `lits_of H" and
   "\<forall>T. conflicting y = C_Clause T \<longrightarrow> trail y \<Turnstile>as CNot T" and
   "trail z = c' @ Marked Kh i # H"
-  shows "D + {#L#} \<notin> learned_clauses z"
+  shows "D + {#L#} \<notin> learned_clss z"
   using assms
 proof induction
   case conflict'
@@ -596,11 +596,11 @@ lemma rtranclp_cdcl_s_with_trail_end_has_not_been_learned:
   assumes "(\<lambda>a b. cdcl_s a b \<and> (\<exists>c. trail a = c @ Marked K i # H @ []))\<^sup>*\<^sup>* y z" and
   "cdcl_all_inv_mes y" and
   "trail y = c @ Marked K i # H" and
-  "D + {#L#} \<notin> learned_clauses y" and
+  "D + {#L#} \<notin> learned_clss y" and
   DH: "atms_of D \<subseteq> atm_of `lits_of H" and
   LH: "atm_of L \<notin> atm_of `lits_of H" and
   "\<exists>c'. trail z = c' @ Marked K i # H"
-  shows "D + {#L#} \<notin> learned_clauses z"
+  shows "D + {#L#} \<notin> learned_clss z"
   using assms(1-4,7)
 proof (induction rule: rtranclp.induct)
   case rtrancl_refl
@@ -622,8 +622,8 @@ qed
 
 lemma cdcl_s_new_learned_clause:
   assumes "cdcl_s S T" and
-  "E \<notin> learned_clauses S" and
-  "E \<in> learned_clauses T"
+  "E \<notin> learned_clss S" and
+  "E \<in> learned_clss T"
   shows "\<exists>S'. backtrack S S' \<and> conflicting S = C_Clause E \<and> full0 cdcl_cp S' T"
   using assms
 proof induction
@@ -631,7 +631,7 @@ proof induction
   thus ?case unfolding full_def by (auto dest: tranclp_cdcl_cp_learned_clause_inv)
 next
   case (other' S T U) note o = this(1) and cp = this(3) and not_yet = this(4) and learned = this(5)
-  have "E \<in> learned_clauses T"
+  have "E \<in> learned_clss T"
     using learned cp rtranclp_cdcl_cp_learned_clause_inv unfolding full0_def by blast
   hence "backtrack S T" and "conflicting S = C_Clause E"
     using cdcl_o_new_clause_learned_is_backtrack_step[OF _ not_yet o] by blast+
@@ -644,7 +644,7 @@ lemma no_relearned_clause:
   bt: "backtrack S T" and
   confl: "conflicting S = C_Clause E" and
   M_lev: "cdcl_M_level_inv R" and
-  already_learned: "E \<in> learned_clauses S \<union> clauses S" and
+  already_learned: "E \<in> learned_clss S \<union> clauses S" and
   R: "trail R = []"
   shows False
 proof -
@@ -763,7 +763,7 @@ proof -
     qed
   have Y_CT: "conflicting Y = C_True" using \<open>decided Y Y'\<close> by auto
   have "clauses Y = clauses R" using rtranclp_cdcl_s_no_more_clauses[OF RY] ..
-  { assume DL: "D + {#L#} \<in> clauses Y \<union> learned_clauses Y"
+  { assume DL: "D + {#L#} \<in> clauses Y \<union> learned_clss Y"
     have "atm_of L \<notin> atm_of ` lits_of M1"
       apply (rule backtrack_lit_skiped[of _ S])
       using decomp i k lev' unfolding S cdcl_M_level_inv_def by auto
@@ -777,14 +777,14 @@ proof -
     hence False using \<open>no_step cdcl_cp Y\<close>  propagate' by blast
   }
   moreover {
-    assume DL: "D + {#L#} \<notin> clauses Y \<union> learned_clauses Y"
-    have lY_lZ: "learned_clauses Y = learned_clauses Z"
+    assume DL: "D + {#L#} \<notin> clauses Y \<union> learned_clss Y"
+    have lY_lZ: "learned_clss Y = learned_clss Z"
       using dec Y'Z rtranclp_cdcl_cp_learned_clause_inv[of Y' Z] unfolding full0_def
       by auto
     have invZ: "cdcl_all_inv_mes Z"
       by (meson RY YZ invR r_into_rtranclp rtranclp_cdcl_all_inv_mes_inv
         rtranclp_cdcl_s_rtranclp_cdcl)
-    have "D + {#L#} \<notin> learned_clauses (Ls @ Marked K k # M1', N, U, k, C_Clause (D + {#L#}))"
+    have "D + {#L#} \<notin> learned_clss (Ls @ Marked K k # M1', N, U, k, C_Clause (D + {#L#}))"
       apply (rule rtranclp_cdcl_s_with_trail_end_has_not_been_learned[OF Z invZ trZ])
          using DL lY_lZ apply simp
         apply (metis (no_types, lifting) \<open>set M1 \<subseteq> set M1'\<close> image_mono order_trans
@@ -823,18 +823,18 @@ lemma length_model_le_vars_all_inv:
   shows "length (trail S) \<le> card (atms_of_m (clauses S))"
   using assms length_model_le_vars[of S] unfolding cdcl_all_inv_mes_def by auto
 
-lemma learned_clauses_less_upper_bound:
+lemma learned_clss_less_upper_bound:
   fixes S :: "'v ::linorder cdcl_state"
   assumes "distinct_cdcl_state S"
-  and "\<forall>s \<in> learned_clauses S. \<not>tautology s"
-  and "finite (learned_clauses S)"
-  shows "card (learned_clauses S) \<le> 3 ^ card (atms_of_m (learned_clauses S))"
+  and "\<forall>s \<in> learned_clss S. \<not>tautology s"
+  and "finite (learned_clss S)"
+  shows "card (learned_clss S) \<le> 3 ^ card (atms_of_m (learned_clss S))"
 proof -
-  have "learned_clauses S \<subseteq> build_all_simple_clss (atms_of_m (learned_clauses S))"
+  have "learned_clss S \<subseteq> build_all_simple_clss (atms_of_m (learned_clss S))"
     using assms simplified_in_build_all unfolding distinct_cdcl_state_def by auto
-  hence "card (learned_clauses S) \<le> card (build_all_simple_clss (atms_of_m (learned_clauses S)))"
+  hence "card (learned_clss S) \<le> card (build_all_simple_clss (atms_of_m (learned_clss S)))"
     by (simp add: build_all_simple_clss_finite card_mono)
-  moreover have "finite (atms_of_m (learned_clauses S))" using assms(3) by fastforce
+  moreover have "finite (atms_of_m (learned_clss S))" using assms(3) by fastforce
   ultimately show ?thesis by (meson build_all_simple_clss_card le_less_trans not_less)
 qed
 
@@ -850,16 +850,16 @@ lemma lexn3[simp]:
 lemma cdcl_measure_decreasing:
   fixes S :: "'v::linorder cdcl_state"
   assumes "cdcl S S'"
-  and "\<not>(learned_clauses S = learned_clauses S' \<and> [] = trail S' \<and> conflicting S' = C_True)"
+  and "\<not>(learned_clss S = learned_clss S' \<and> [] = trail S' \<and> conflicting S' = C_True)"
     (*no restart*)
-  and "learned_clauses S \<subseteq> learned_clauses S'" (*no forget*)
-  and "backtrack S S' \<Longrightarrow> \<forall>T. conflicting S = C_Clause T \<longrightarrow> T \<notin> learned_clauses S"
+  and "learned_clss S \<subseteq> learned_clss S'" (*no forget*)
+  and "backtrack S S' \<Longrightarrow> \<forall>T. conflicting S = C_Clause T \<longrightarrow> T \<notin> learned_clss S"
     (*replace 2.10.5-8 we will prove later*)
   and "no_strange_atm S"
   and "cdcl_M_level_inv S"
   and "finite (atms_of_m (clauses S))"
-  and "finite (learned_clauses S)"
-  and "\<forall>s \<in> learned_clauses S. \<not>tautology s"
+  and "finite (learned_clss S)"
+  and "\<forall>s \<in> learned_clss S. \<not>tautology s"
   and "distinct_cdcl_state S"
   and "cdcl_conflicting S"
   shows "(cdcl_measure S', cdcl_measure S) \<in> lexn {(a, b). a < b} 3"
@@ -921,16 +921,16 @@ next
   have "distinct_cdcl_state ?S'"
     using backtrack.prems(9) cdcl_o.bj[OF cdcl_bj.backtrack[OF backtracking[OF _ backtrack.hyps]]]
     distinct_cdcl_state_inv cdcl.other by blast
-  moreover have "\<forall>s\<in>learned_clauses ?S'. \<not> tautology s"
-    using learned_clauses_are_not_tautologies[OF cdcl.other[OF cdcl_o.bj[OF cdcl_bj.backtrack[OF
+  moreover have "\<forall>s\<in>learned_clss ?S'. \<not> tautology s"
+    using learned_clss_are_not_tautologies[OF cdcl.other[OF cdcl_o.bj[OF cdcl_bj.backtrack[OF
       backtracking[OF _ backtrack.hyps]]]]] backtrack.prems(5,8,10) by auto
-  moreover have "finite (learned_clauses ?S')" using \<open>finite U\<close> by auto
-  moreover have "card (atms_of_m (learned_clauses (M, N, U, k, C_Clause (D + {#L#}))))
+  moreover have "finite (learned_clss ?S')" using \<open>finite U\<close> by auto
+  moreover have "card (atms_of_m (learned_clss (M, N, U, k, C_Clause (D + {#L#}))))
     \<le> card (atms_of_m N)"
     using backtrack.prems(4,6) card_mono[OF backtrack.prems(6)] local.backtrack(1)
     unfolding no_strange_atm_def by auto
   ultimately have "card (U \<union> {D + {#L#}}) \<le> 3 ^ card (atms_of_m (U \<union> {D + {#L#}}))"
-    using learned_clauses_less_upper_bound[of ?S'] by auto
+    using learned_clss_less_upper_bound[of ?S'] by auto
   moreover
     have "atms_of_m (U \<union> {D + {#L#}}) \<subseteq> atms_of_m N"
       using backtrack.prems(4) local.backtrack(1) unfolding no_strange_atm_def by auto
@@ -1050,7 +1050,7 @@ proof -
           thus ?case
             proof (cases)
               case (backtrack) note bt = this(1)
-                have no_relearn: "\<forall>T. conflicting S = C_Clause T \<longrightarrow> T \<notin> learned_clauses S"
+                have no_relearn: "\<forall>T. conflicting S = C_Clause T \<longrightarrow> T \<notin> learned_clss S"
                   using no_relearned_clause[OF invR st] invR st bt R
                   by (meson UnI1 cdcl_all_inv_mes_def)
                 show ?thesis

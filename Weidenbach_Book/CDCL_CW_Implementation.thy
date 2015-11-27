@@ -110,7 +110,7 @@ definition do_propagate_step where
 lemma do_propgate_step:
   "do_propagate_step S \<noteq> S \<Longrightarrow> propagate (toS S) (toS (do_propagate_step S))"
   apply (cases S, cases "conflicting S")
-  using find_first_unit_clause_some_is_propagate[of "clauses S" "learned_clauses S" "trail S" _ _ "backtrack_level S"]
+  using find_first_unit_clause_some_is_propagate[of "clauses S" "learned_clss S" "trail S" _ _ "backtrack_level S"]
   by (auto simp add: do_propagate_step_def split: option.splits)
 
 lemma do_propagate_step_conflicting_clause[simp]:
@@ -118,7 +118,7 @@ lemma do_propagate_step_conflicting_clause[simp]:
   unfolding do_propagate_step_def by (cases S, cases "conflicting S") auto
 
 lemma do_propagate_step_no_step:
-  assumes dist: "\<forall>c\<in>set (clauses S @ learned_clauses S). distinct c" and
+  assumes dist: "\<forall>c\<in>set (clauses S @ learned_clss S). distinct c" and
   prop_step: "do_propagate_step S = S"
   shows "no_step propagate (toS S)"
 proof (standard, standard)
@@ -133,7 +133,7 @@ proof (standard, standard)
     by (auto simp add: propagate.simps)
   let ?M = "trail S"
   let ?N = "clauses S"
-  let ?U = "learned_clauses S"
+  let ?U = "learned_clss S"
   let ?k = "backtrack_level S"
   let ?D = "C_True"
   have S: "S = (?M, ?N, ?U, ?k, ?D)"
@@ -202,7 +202,7 @@ lemma do_conflict_step_no_step:
   "do_conflict_step S = S \<Longrightarrow> no_step conflict (toS S)"
   apply (cases S, cases "conflicting S")
   unfolding do_conflict_step_def
-  using find_conflict_None_no_confl[of "trail S" "clauses S" "learned_clauses S"
+  using find_conflict_None_no_confl[of "trail S" "clauses S" "learned_clss S"
       "backtrack_level S"]
   by (auto split: option.splits)
 
@@ -258,7 +258,7 @@ lemma no_cdcl_cp_iff_no_propagate_no_conflict:
   by (meson cdcl_cp.cases cdcl_cp.conflict' no_step_cdcl_cp_no_conflict_no_propagate(2))
 
 lemma do_cp_step_eq_no_step:
-  assumes H: "do_cp_step S = S" and "\<forall>c \<in> set (clauses S @ learned_clauses S). distinct c"
+  assumes H: "do_cp_step S = S" and "\<forall>c \<in> set (clauses S @ learned_clss S). distinct c"
   shows "no_step cdcl_cp (toS S)"
   unfolding no_cdcl_cp_iff_no_propagate_no_conflict
   using assms apply (cases S, cases "conflicting S")
@@ -724,7 +724,7 @@ lemma do_full_cp_step_fix_point_of_do_full_cp_step:
     (metis (full_types) do_full_cp_step.elims rough_state_of_state_of_do_cp_step do_cp_step'_def)
 
 lemma in_clauses_rough_state_of_is_distinct:
-  "c\<in>set (clauses (rough_state_of S) @ learned_clauses (rough_state_of S)) \<Longrightarrow> distinct c"
+  "c\<in>set (clauses (rough_state_of S) @ learned_clss (rough_state_of S)) \<Longrightarrow> distinct c"
   apply (cases "rough_state_of S")
   using rough_state_of[of S] by (auto simp add: distinct_mset_set_distinct cdcl_all_inv_mes_def distinct_cdcl_state_def)
 
