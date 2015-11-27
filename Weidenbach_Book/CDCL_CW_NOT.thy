@@ -678,9 +678,6 @@ lemma cdcl_s'_is_rtranclp_cdcl_s:
    using decided other' apply blast
   by (metis full_def rtranclp_cdcl_bj_full_cdclp_cdcl_s tranclp_into_rtranclp)
 
-lemma XXX: "cdcl_bj\<^sup>*\<^sup>* S S' \<Longrightarrow> full cdcl_cp S' T' \<Longrightarrow> cdcl_s\<^sup>*\<^sup>* S T'"
-  by (simp add: full0_unfold rtranclp_cdcl_bj_full_cdclp_cdcl_s)
-
 lemma cdcl_cp_decreasing_measure:
   assumes "cdcl_cp S T" and "cdcl_all_inv_mes S"
   shows "(\<lambda>S. card (atms_of_m (clauses S)) - length (trail S) + (if conflicting S = C_True then 1 else 0)) S
@@ -725,9 +722,7 @@ lemma cdcl_bj_measure:
   assumes "cdcl_bj S T"
   shows "length (trail S) + (if conflicting S = C_True then 0 else 1)
     > length (trail T) +  (if conflicting T = C_True then 0 else 1)"
-  using assms apply (induction rule: cdcl_bj.induct)
-  by(auto elim!: backtrackE dest!: get_all_marked_decomposition_exists_prepend
-    dest:arg_cong[of _ _ length])
+  using assms by (induction rule: cdcl_bj.induct) (fastforce dest:arg_cong[of _ _ length])+
 
 lemma cdcl_bj_wf:
   "wf {(b,a). cdcl_bj a b}"
@@ -857,7 +852,6 @@ proof (induction rule:cdcl_s.induct)
       hence  "T = V"  sorry
     next
       case (SST S')
-
 oops
 
 end
