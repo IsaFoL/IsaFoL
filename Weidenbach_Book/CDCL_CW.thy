@@ -196,7 +196,7 @@ abbreviation backtrack_lvl where
 abbreviation "S0_cdcl N \<equiv> (([], N, {}, 0, C_True):: 'v cdcl_state)"
 
 
-interpretation default_cw: cw_state trail clauses learned_clss backtrack_lvl conflicting
+interpretation cdcl_cw: cw_state trail clauses learned_clss backtrack_lvl conflicting
   "\<lambda>M (_, N, U, k, D). (M, N, U, k, D)" "\<lambda>N (M, _, U, k, D). (M, N, U, k, D)"
   "\<lambda>U (M, N, _, k, D). (M, N, U, k, D)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
