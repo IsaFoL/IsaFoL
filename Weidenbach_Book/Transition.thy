@@ -16,7 +16,6 @@ lemma full0_unfold:
   "full0 r S S' \<longleftrightarrow> ((S = S' \<and> no_step r S') \<or> full r S S')"
   unfolding full0_def full_def by (auto simp add: Nitpick.rtranclp_unfold)
 
-
 lemma wf_exists_normal_form:
   assumes wf:"wf {(x, y). R y x}"
   shows "\<exists>b. R\<^sup>*\<^sup>* a b \<and> no_step R b"
@@ -49,5 +48,10 @@ proof (rule ccontr)
   thus False
     using wf unfolding wfP_def wf_iff_no_infinite_down_chain by blast
 qed
+
+lemma wf_exists_normal_form_full0:
+  assumes wf:"wf {(x, y). R y x}"
+  shows "\<exists>b. full0 R a b"
+  using wf_exists_normal_form[OF assms] unfolding full0_def by blast
 
 end
