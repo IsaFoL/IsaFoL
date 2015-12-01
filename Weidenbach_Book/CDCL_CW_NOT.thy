@@ -99,7 +99,7 @@ lemma rtranclp_skip_state_decomp:
   assumes "skip\<^sup>*\<^sup>* S T"
   shows
     "\<exists>M. trail S = M @ trail T \<and> (\<forall>m\<in>set M. \<not>is_marked m)" and
-    "T = (trail T, clauses S, learned_clss S, backtrack_level S, conflicting S)"
+    "T = (trail T, clauses S, learned_clss S, backtrack_lvl S, conflicting S)"
   using assms by (induction rule: rtranclp_induct) (cases S;auto)+
 
 lemma fst_get_all_marked_decomposition_prepend_not_marked:
@@ -336,7 +336,7 @@ proof (rule ccontr)
   have
     S: "clauses S = N"
        "learned_clss S = U'"
-       "backtrack_level S = k"
+       "backtrack_lvl S = k"
        "conflicting S = C_Clause (D + {#-L#})"
     using rtranclp_skip_state_decomp(2)[OF skip] unfolding U by auto
   obtain M\<^sub>0 where
