@@ -1,6 +1,15 @@
-theory CDCL_Implementation
-imports DPLL_CDCL_Implementation Propo_CDCL Propo_CDCL_Termination
+theory CDCL_CW_Implementation
+imports DPLL_CDCL_Implementation CDCL_CW CDCL_CW_Termination
 begin
+
+interpretation cdcl_cw: cdcl_cw_ops trail clauses learned_clss backtrack_lvl conflicting
+  "\<lambda>M (_, N, U, k, D). (M, N, U, k, D)" "\<lambda>N (M, _, U, k, D). (M, N, U, k, D)"
+  "\<lambda>U (M, N, _, k, D). (M, N, U, k, D)"
+  "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
+  "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
+  "\<lambda>N. ([], N, {}, 0, C_True)"
+  id id "\<lambda>(_, N, U, _, _). ([], N, U, 0, C_True)"
+by unfold_locales auto
 
 subsection \<open>CDCL Implementation\<close>
 subsubsection \<open>Definition of the rules\<close>
@@ -50,16 +59,21 @@ lemma get_maximum_level_map_convert[simp]:
   "get_maximum_level D (map convert M) = get_maximum_level D M"
   by (induction D)
      (auto simp add: get_maximum_level_plus)
+
+lemma get_all_levels_of_marked_map_convert[simp]:
+  "get_all_levels_of_marked (map convert M) = (get_all_levels_of_marked M)"
+  by (induction M rule: marked_lit_list_induct) auto
+
 text \<open>Conversion function\<close>
 fun toS :: "cdcl_state_st \<Rightarrow> nat cdcl_state" where
 "toS (M, N, U, k, C) = (map convert M, set (map mset N),  set (map mset U), k, convertC C)"
 
 text \<open>Definition an abstract type\<close>
-typedef cdcl_state =  "{S::cdcl_state_st. cdcl_all_inv_mes (toS S)}"
+typedef cdcl_state =  "{S::cdcl_state_st. cdcl_cw.cdcl_all_inv_mes (toS S)}"
   morphisms rough_state_of state_of
 proof
-  show "([],[], [], 0, C_True) \<in> {S. cdcl_all_inv_mes (toS S)}"
-    by (auto simp add: cdcl_all_inv_mes_def)
+  show "([],[], [], 0, C_True) \<in> {S. cdcl_cw.cdcl_all_inv_mes (toS S)}"
+    by (auto simp add: cdcl_cw.cdcl_all_inv_mes_def)
 qed
 
 
@@ -87,9 +101,9 @@ lemma true_annots_map_convert[simp]: "map convert M \<Turnstile>as N \<longleftr
 
 lemma find_first_unit_clause_some_is_propagate:
   assumes H: "find_first_unit_clause (N @ U) M = Some (L, C)"
-  shows "propagate (toS (M, N, U, k, C_True)) (toS (Propagated L C # M, N, U, k, C_True))"
-  using assms
-  by (auto dest!: find_first_unit_clause_some simp add: propagate.simps
+  shows "cdcl_cw.propagate (toS (M, N, U, k, C_True)) (toS (Propagated L C # M, N, U, k, C_True))"
+  using assms unfolding cdcl_cw.propagate.simps
+  by (auto dest!: find_first_unit_clause_some simp add: cdcl_cw.propagate.simps
     intro!: exI[of _ "mset C - {#L#}"])
 
 subsubsection \<open>Propagate\<close>
@@ -103,9 +117,9 @@ definition do_propagate_step where
   | S \<Rightarrow> S)"
 
 lemma do_propgate_step:
-  "do_propagate_step S \<noteq> S \<Longrightarrow> propagate (toS S) (toS (do_propagate_step S))"
+  "do_propagate_step S \<noteq> S \<Longrightarrow> cdcl_cw.propagate (toS S) (toS (do_propagate_step S))"
   apply (cases S, cases "conflicting S")
-  using find_first_unit_clause_some_is_propagate[of "clauses S" "learned_clauses S" "trail S" _ _ "backtrack_level S"]
+  using find_first_unit_clause_some_is_propagate[of "clauses S" "learned_clss S" "trail S" _ _ "backtrack_lvl S"]
   by (auto simp add: do_propagate_step_def split: option.splits)
 
 lemma do_propagate_step_conflicting_clause[simp]:
@@ -113,23 +127,23 @@ lemma do_propagate_step_conflicting_clause[simp]:
   unfolding do_propagate_step_def by (cases S, cases "conflicting S") auto
 
 lemma do_propagate_step_no_step:
-  assumes dist: "\<forall>c\<in>set (clauses S @ learned_clauses S). distinct c" and
+  assumes dist: "\<forall>c\<in>set (clauses S @ learned_clss S). distinct c" and
   prop_step: "do_propagate_step S = S"
-  shows "no_step propagate (toS S)"
+  shows "no_step cdcl_cw.propagate (toS S)"
 proof (standard, standard)
   fix T
-  assume "propagate (toS S) T"
+  assume "cdcl_cw.propagate (toS S) T"
   then obtain M N U k C L where
     toSS: "toS S = (M, N, U, k, C_True)" and
     T: "T = (Propagated L (C + {#L#}) # M, N, U, k, C_True)" and
     MC: "M \<Turnstile>as CNot C" and
     undef: "undefined_lit L M" and
     CL: "C + {#L#} \<in> N \<union> U"
-    by (auto simp add: propagate.simps)
+    by (auto simp add: cdcl_cw.propagate.simps)
   let ?M = "trail S"
   let ?N = "clauses S"
-  let ?U = "learned_clauses S"
-  let ?k = "backtrack_level S"
+  let ?U = "learned_clss S"
+  let ?k = "backtrack_lvl S"
   let ?D = "C_True"
   have S: "S = (?M, ?N, ?U, ?k, ?D)"
     using toSS by (cases S, cases "conflicting S") simp_all
@@ -175,8 +189,8 @@ lemma find_conflict_None:
   by (induction Ns) auto
 
 lemma find_conflict_None_no_confl:
-  "find_conflict M (N@U) = None \<longleftrightarrow> no_step conflict (toS (M, N, U, k, C_True))"
-  by (auto simp add: find_conflict_None conflict.simps)
+  "find_conflict M (N@U) = None \<longleftrightarrow> no_step cdcl_cw.conflict (toS (M, N, U, k, C_True))"
+  by (auto simp add: find_conflict_None cdcl_cw.conflict.simps)
 
 definition do_conflict_step where
 "do_conflict_step S =
@@ -188,17 +202,17 @@ definition do_conflict_step where
   | S \<Rightarrow> S)"
 
 lemma do_conflict_step:
-  "do_conflict_step S \<noteq> S \<Longrightarrow> conflict (toS S) (toS (do_conflict_step S))"
+  "do_conflict_step S \<noteq> S \<Longrightarrow> cdcl_cw.conflict (toS S) (toS (do_conflict_step S))"
   apply (cases S, cases "conflicting S")
-  unfolding conflict.simps do_conflict_step_def
+  unfolding cdcl_cw.conflict.simps do_conflict_step_def
   by (auto dest!:find_conflict_Some split: option.splits)
 
 lemma do_conflict_step_no_step:
-  "do_conflict_step S = S \<Longrightarrow> no_step conflict (toS S)"
+  "do_conflict_step S = S \<Longrightarrow> no_step cdcl_cw.conflict (toS S)"
   apply (cases S, cases "conflicting S")
   unfolding do_conflict_step_def
-  using find_conflict_None_no_confl[of "trail S" "clauses S" "learned_clauses S"
-      "backtrack_level S"]
+  using find_conflict_None_no_confl[of "trail S" "clauses S" "learned_clss S"
+      "backtrack_lvl S"]
   by (auto split: option.splits)
 
 lemma do_conflict_step_conflicting_clause[simp]:
@@ -235,10 +249,10 @@ proof -
         let ?S = "toS S"
         let ?T = "toS (do_propagate_step S)"
         let ?U = "toS (do_conflict_step (do_propagate_step S))"
-        have propa: "propagate (toS S) ?T" using False do_propgate_step by blast
-        moreover have ns: "no_step conflict (toS S)" using confl do_conflict_step_no_step by blast
+        have propa: "cdcl_cw.propagate (toS S) ?T" using False do_propgate_step by blast
+        moreover have ns: "no_step cdcl_cw.conflict (toS S)" using confl do_conflict_step_no_step by blast
         ultimately show ?thesis
-          using cdcl_cp.intros(2)[of ?S ?T] confl unfolding do_cp_step_def by auto
+          using cdcl_cw.cdcl_cp.intros(2)[of ?S ?T] confl unfolding do_cp_step_def by auto
       qed
   qed
 qed
@@ -249,44 +263,51 @@ lemma do_cp_step_eq_no_prop_no_confl:
      (auto simp add: do_conflict_step_def do_propagate_step_def do_cp_step_def split: option.splits)
 
 lemma no_cdcl_cp_iff_no_propagate_no_conflict:
-  "no_step cdcl_cp S \<longleftrightarrow> no_step propagate S \<and> no_step conflict S"
-  by (meson cdcl_cp.cases cdcl_cp.conflict' no_step_cdcl_cp_no_conflict_no_propagate(2))
+  "no_step cdcl_cp S \<longleftrightarrow> no_step propagate S \<and> no_step cdcl_cw.conflict S"
+  by (meson cdcl_cw.cdcl_cp.cases cdcl_cw.cdcl_cp.conflict' 
+    cdcl_cw.no_step_cdcl_cp_no_conflict_no_propagate(2))
 
 lemma do_cp_step_eq_no_step:
-  assumes H: "do_cp_step S = S" and "\<forall>c \<in> set (clauses S @ learned_clauses S). distinct c"
+  assumes H: "do_cp_step S = S" and "\<forall>c \<in> set (clauses S @ learned_clss S). distinct c"
   shows "no_step cdcl_cp (toS S)"
   unfolding no_cdcl_cp_iff_no_propagate_no_conflict
   using assms apply (cases S, cases "conflicting S")
-  using do_propagate_step_no_step[of S] by (auto dest!: do_cp_step_eq_no_prop_no_confl[simplified] do_conflict_step_no_step split: option.splits)
+  using do_propagate_step_no_step[of S] 
+  by (auto dest!: do_cp_step_eq_no_prop_no_confl[simplified] do_conflict_step_no_step split: option.splits)
 
-lemma cdcl_cp_cdcl_st: "cdcl_cp S S' \<Longrightarrow> cdcl\<^sup>*\<^sup>* S S'"
-  by (induction rule: cdcl_cp.induct)
-     (auto dest!: cdcl.intros)
+lemma cdcl_cp_cdcl_st: "cdcl_cw.cdcl_cp S S' \<Longrightarrow> cdcl_cw.cdcl\<^sup>*\<^sup>* S S'"
+  by (induction rule: cdcl_cw.cdcl_cp.induct)
+     (auto dest!: cdcl_cw.cdcl.intros)
 
 
-lemma cdcl_cp_wf: "wf {(S', S::'v Propo_CDCL.cdcl_state). cdcl_all_inv_mes S \<and> cdcl_cp S S'}"
+lemma cdcl_cp_wf: "wf {(S', S::'v CDCL_CW.cdcl_state). cdcl_cw.cdcl_all_inv_mes S \<and> cdcl_cp S S'}"
   (is "wf ?R")
 proof (rule wf_bounded_measure[of _ "\<lambda>S. card (atms_of_m (clauses S))+1" "\<lambda>S. length (trail S) + (if conflicting S = C_True then 0 else 1)"], goal_cases)
   case (1 S S')
-  hence "cdcl_all_inv_mes S" and "cdcl_cp S S'" by auto
-  moreover hence "cdcl_all_inv_mes S'" using rtranclp_cdcl_all_inv_mes_inv cdcl_cp_cdcl_st by blast
+  hence "cdcl_cw.cdcl_all_inv_mes S" and "cdcl_cp S S'" by auto
+  moreover hence "cdcl_cw.cdcl_all_inv_mes S'" 
+    using cdcl_cw.rtranclp_cdcl_all_inv_mes_inv cdcl_cp_cdcl_st by blast
   ultimately show ?case
-    by (auto simp add:cdcl_cp.simps elim!: conflictE propagateE dest: length_model_le_vars_all_inv)
+    by (auto simp add:cdcl_cw.cdcl_cp.simps elim!: cdcl_cw.conflictE cdcl_cw.propagateE 
+      dest: cdcl_cw.length_model_le_vars_all_inv)
 qed
 
-lemma cdcl_all_inv_mes_rough_state[simp]: "cdcl_all_inv_mes (toS (rough_state_of S))"
+lemma cdcl_cw.cdcl_all_inv_mes_rough_state[simp]: "cdcl_cw.cdcl_all_inv_mes (toS (rough_state_of S))"
   using rough_state_of by auto
 
-lemma [simp]: "cdcl_all_inv_mes (toS S) \<Longrightarrow> rough_state_of (state_of S) = S"
+lemma [simp]: "cdcl_cw.cdcl_all_inv_mes (toS S) \<Longrightarrow> rough_state_of (state_of S) = S"
   by (simp add: state_of_inverse)
 
 lemma rough_state_of_state_of_do_cp_step[simp]:
   "rough_state_of (state_of (do_cp_step (rough_state_of S))) = do_cp_step (rough_state_of S)"
 proof -
-  have "cdcl_all_inv_mes (toS (do_cp_step (rough_state_of S)))"
+  have "cdcl_cw.cdcl_all_inv_mes (toS (do_cp_step (rough_state_of S)))"
     apply (cases "do_cp_step (rough_state_of S) = (rough_state_of S)")
       apply simp
-    using cp_step_is_cdcl_cp[of "rough_state_of S"] cdcl_all_inv_mes_rough_state[of S]  by (metis cdcl_all_inv_mes_inv comp_apply conflict do_conflict_step do_cp_step_def do_propgate_step propagate)
+    using cp_step_is_cdcl_cp[of "rough_state_of S"] 
+      cdcl_all_inv_mes_rough_state[of S]  
+      by (metis cdcl_cw.cdcl_all_inv_mes_inv comp_apply cdcl_cw.conflict do_conflict_step 
+        do_cp_step_def do_propgate_step cdcl_cw.propagate)
   thus ?thesis by auto
 qed
 
@@ -297,14 +318,14 @@ fun do_skip_step :: "cdcl_state_st \<Rightarrow> cdcl_state_st" where
 "do_skip_step S = S"
 
 lemma do_skip_step:
-  "do_skip_step S \<noteq> S \<Longrightarrow> skip (toS S) (toS (do_skip_step S))"
+  "do_skip_step S \<noteq> S \<Longrightarrow> cdcl_cw.skip (toS S) (toS (do_skip_step S))"
   apply (induction S rule: do_skip_step.induct)
-  by (auto simp add: other skip skip.intros)
+  by (auto simp add: cdcl_cw.other cdcl_cw.skip cdcl_cw.skip.intros)
 
 lemma do_skip_step_no:
   "do_skip_step S = S \<Longrightarrow> no_step skip (toS S)"
   by (induction S rule: do_skip_step.induct)
-     (auto simp add: other split: split_if_asm)
+     (auto simp add: cdcl_cw.other split: split_if_asm)
 
 lemma do_skip_step_trail_is_C_True[iff]:
   "do_skip_step S = (a, b, c, d, C_True) \<longleftrightarrow> S = (a, b, c, d, C_True)"
@@ -327,15 +348,26 @@ fun do_resolve_step :: "cdcl_state_st \<Rightarrow> cdcl_state_st" where
 "do_resolve_step S = S"
 
 lemma do_resolve_step:
-  "cdcl_all_inv_mes (toS S) \<Longrightarrow> do_resolve_step S \<noteq> S \<Longrightarrow> resolve (toS S) (toS (do_resolve_step S))"
+  "cdcl_cw.cdcl_all_inv_mes (toS S) \<Longrightarrow> do_resolve_step S \<noteq> S 
+  \<Longrightarrow> cdcl_cw.resolve (toS S) (toS (do_resolve_step S))"
 proof (induction S rule: do_resolve_step.induct)
   case (1 L C M N U k D)
-  hence
+  moreover
+    { assume [simp]: "k = 0"
+      have "get_all_levels_of_marked (Propagated L C # M) = []"
+        using 1(1) unfolding cdcl_cw.cdcl_all_inv_mes_def cdcl_cw.cdcl_M_level_inv_def by simp
+      hence H: "\<And>L'. get_level L' (Propagated L C # M) = 0"
+        by (metis (no_types, hide_lams) Un_insert_left empty_iff get_all_levels_of_marked.simps(3)
+          get_level_in_levels_of_marked insert_iff list.set(1) sup_bot.left_neutral)
+    } note H = this
+  ultimately have
     "- L \<in> set D" and
-    M: "maximum_level_code (remove1 (-L) D) (Propagated L C # M) = k \<or> k = 0"
-    by (auto split: split_if_asm)
-  have "every_mark_is_a_conflict (toS (Propagated L C # M, N, U, k, C_Clause D))"
-    using 1(1) unfolding cdcl_all_inv_mes_def by fast
+    M: "maximum_level_code (remove1 (-L) D) (Propagated L C # M) = k"
+    by (cases "mset D - {#- L#} = {#}",
+        auto dest!: get_maximum_level_exists_lit_of_max_level[of _ "Propagated L C # M"]
+        split: split_if_asm simp add: H)+
+  have "cdcl_cw.every_mark_is_a_conflict (toS (Propagated L C # M, N, U, k, C_Clause D))"
+    using 1(1) unfolding cdcl_cw.cdcl_all_inv_mes_def by fast
   hence "L \<in> set C" by fastforce
   then obtain C' where C: "mset C = C' + {#L#}"
     by (metis add.commute in_multiset_in_set insert_DiffM)
@@ -345,7 +377,7 @@ proof (induction S rule: do_resolve_step.induct)
 
   have CL: "mset C - {#L#} + {#L#} = mset C" using \<open>L \<in> set C\<close> by (auto simp add: multiset_eq_iff)
   have
-    "resolve
+    "cdcl_cw.resolve
        (map convert (Propagated L C # M), mset ` set N, mset ` set U, k, C_Clause (mset D))
        (map convert M, mset ` set N, mset ` set U, k,
          C_Clause (remdups_mset (mset D - {#-L#} + (mset C - {#L#}))))"
@@ -354,23 +386,24 @@ proof (induction S rule: do_resolve_step.induct)
     using M[simplified] unfolding D'L maximum_level_code_eq_get_maximum_level C[symmetric] CL
     by (metis convert.simps(1) get_maximum_level_map_convert list.simps(9))
   thus ?case
-    by (smt "1.prems" add.commute convertC.simps(1) do_resolve_step.simps(1) list.set_map mset_append mset_remdups_remdups_mset mset_remove1 toS.simps)
+    by (smt "1.prems" add.commute convertC.simps(1) do_resolve_step.simps(1) list.set_map
+      mset_append mset_remdups_remdups_mset mset_remove1 toS.simps)
 qed auto
 
 lemma do_resolve_step_no:
   "do_resolve_step S = S \<Longrightarrow> no_step resolve (toS S)"
   apply (cases S; cases "hd (trail S)"; cases "conflicting S")
   by (auto
-    elim!: resolveE  split: split_if_asm
+    elim!: cdcl_cw.resolveE  split: split_if_asm
     dest!: union_single_eq_member
     simp del: in_multiset_in_set get_maximum_level_map_convert
     simp add: in_multiset_in_set[symmetric] get_maximum_level_map_convert[symmetric])
 
 
 lemma  rough_state_of_state_of_resolve[simp]:
-  "cdcl_all_inv_mes (toS S) \<Longrightarrow> rough_state_of (state_of (do_resolve_step S)) = do_resolve_step S"
-  apply (rule state_of_inverse)
-  by (metis cdcl.simps cdcl_all_inv_mes_inv do_resolve_step resolve mem_Collect_eq)
+  "cdcl_cw.cdcl_all_inv_mes (toS S) \<Longrightarrow> rough_state_of (state_of (do_resolve_step S)) = do_resolve_step S"
+  by (rule state_of_inverse)
+     (metis bj cdcl_cw.cdcl_all_inv_mes_inv do_resolve_step mem_Collect_eq other resolve)
 
 lemma do_resolve_step_trail_is_C_True[iff]:
   "do_resolve_step S = (a, b, c, d, C_True) \<longleftrightarrow> S = (a, b, c, d, C_True)"
@@ -454,7 +487,7 @@ lemma get_all_marked_decomposition_map_convert:
 
 lemma do_backtrack_step:
   assumes db: "do_backtrack_step S \<noteq> S"
-  and inv: "cdcl_all_inv_mes (toS S)"
+  and inv: "cdcl_cw.cdcl_all_inv_mes (toS S)"
   shows "backtrack (toS S) (toS (do_backtrack_step S))"
   proof (cases S, cases "conflicting S", goal_cases)
     case (1 M N U k E)
@@ -477,7 +510,7 @@ lemma do_backtrack_step:
        using bt_cut_in_get_all_marked_decomposition[OF M\<^sub>2]
        unfolding M1 by fastforce
     have "get_all_levels_of_marked (map convert M) = rev [1..<Suc k]"
-      using inv unfolding cdcl_all_inv_mes_def cdcl_M_level_inv_def S by auto
+      using inv unfolding cdcl_cw.cdcl_all_inv_mes_def cdcl_M_level_inv_def S by auto
     from arg_cong[OF this, of "\<lambda>a. Suc j \<in> set a"] have "j \<le> k" unfolding c by auto
     have levL: "get_level L (map convert M) = k"
       using db fd M\<^sub>2 unfolding S E by (auto
@@ -511,7 +544,7 @@ qed
 
 lemma do_backtrack_step_no:
   assumes db: "do_backtrack_step S = S"
-  and inv: "cdcl_all_inv_mes (toS S)"
+  and inv: "cdcl_cw.cdcl_all_inv_mes (toS S)"
   shows "no_step backtrack (toS S)"
 proof (rule ccontr, cases S, cases "conflicting S", goal_cases)
   case 1
@@ -531,7 +564,7 @@ next
   obtain c where c: "M = c @ b @ Marked K (Suc j) # M1"
     using decomp unfolding z by blast
   have "get_all_levels_of_marked (map convert M) = rev [1..<Suc k]"
-    using inv unfolding cdcl_all_inv_mes_def cdcl_M_level_inv_def S by auto
+    using inv unfolding cdcl_cw.cdcl_all_inv_mes_def cdcl_M_level_inv_def S by auto
   from arg_cong[OF this, of "\<lambda>a. Suc j \<in> set a"] have "k > j" unfolding c by auto
   obtain C D' where
     E: "E = C_Clause C" and
@@ -568,10 +601,10 @@ next
 qed
 
 lemma rough_state_of_state_of_backtrack[simp]:
-  assumes "cdcl_all_inv_mes (toS S)"
+  assumes "cdcl_cw.cdcl_all_inv_mes (toS S)"
   shows "rough_state_of (state_of (do_backtrack_step S))= do_backtrack_step S"
   apply (rule state_of_inverse)
-  using assms by (metis cdcl.simps cdcl_all_inv_mes_inv do_backtrack_step backtrack mem_Collect_eq)
+  using assms by (metis backtrack bj cdcl_cw.cdcl_all_inv_mes_inv do_backtrack_step mem_Collect_eq other)
 
 paragraph \<open>Decide\<close>
 fun do_decide_step where
@@ -626,26 +659,26 @@ lemma do_decide_step_no:
       split: option.splits)+
 
 lemma rough_state_of_state_of_do_decide_step[simp]:
-  "cdcl_all_inv_mes (toS S) \<Longrightarrow> rough_state_of (state_of (do_decide_step S)) = do_decide_step S"
+  "cdcl_cw.cdcl_all_inv_mes (toS S) \<Longrightarrow> rough_state_of (state_of (do_decide_step S)) = do_decide_step S"
   apply (subst state_of_inverse)
-    apply (metis cdcl_all_inv_mes_inv decided do_decide_step mem_Collect_eq other)
+    apply (metis cdcl_cw.cdcl_all_inv_mes_inv decided do_decide_step mem_Collect_eq other)
   apply simp
   done
 
 lemma rough_state_of_state_of_do_skip_step[simp]:
-  "cdcl_all_inv_mes (toS S) \<Longrightarrow> rough_state_of (state_of (do_skip_step S)) = do_skip_step S"
+  "cdcl_cw.cdcl_all_inv_mes (toS S) \<Longrightarrow> rough_state_of (state_of (do_skip_step S)) = do_skip_step S"
   apply (subst state_of_inverse)
-    apply (metis cdcl_all_inv_mes_inv skip do_skip_step mem_Collect_eq other)
+    apply (metis cdcl_cw.cdcl_all_inv_mes_inv skip do_skip_step mem_Collect_eq other bj)
   apply simp
   done
 
 subsubsection \<open>Code generation\<close>
 paragraph \<open>Type definition\<close>
-text \<open>There are two invariants: one while applying conflict and propagate and one for the other
+text \<open>There are two invariants: one while applying cdcl_cw.conflict and propagate and one for the other
  rules\<close>
 thm rough_state_of_inverse[simp add]
 definition Con  where
-  "Con xs = state_of (if cdcl_all_inv_mes (toS (fst xs, snd xs)) then xs else ([], [], [], 0, C_True))"
+  "Con xs = state_of (if cdcl_cw.cdcl_all_inv_mes (toS (fst xs, snd xs)) then xs else ([], [], [], 0, C_True))"
 
 lemma [code abstype]:
  "Con (rough_state_of S) = S"
@@ -654,11 +687,11 @@ lemma [code abstype]:
 definition do_cp_step' where
 "do_cp_step' S = state_of (do_cp_step (rough_state_of S))"
 
-typedef cdcl_state_I =  "{S::cdcl_state_st. cdcl_all_inv_mes (toS S) \<and>
+typedef cdcl_state_I =  "{S::cdcl_state_st. cdcl_cw.cdcl_all_inv_mes (toS S) \<and>
   cdcl_s\<^sup>*\<^sup>* (S0_cdcl (clauses (toS S))) (toS S)}"
   morphisms rough_state_of_I state_of_I
 proof
-    show "([],[], [], 0, C_True) \<in> {S. cdcl_all_inv_mes (toS S) \<and> cdcl_s\<^sup>*\<^sup>* (S0_cdcl (clauses (toS S))) (toS S)}" by (auto simp add: cdcl_all_inv_mes_def)
+    show "([],[], [], 0, C_True) \<in> {S. cdcl_cw.cdcl_all_inv_mes (toS S) \<and> cdcl_s\<^sup>*\<^sup>* (S0_cdcl (clauses (toS S))) (toS S)}" by (auto simp add: cdcl_cw.cdcl_all_inv_mes_def)
 qed
 
 instantiation cdcl_state_I :: equal
@@ -670,7 +703,7 @@ instance
 end
 
 definition ConI  where
-  "ConI S = state_of_I (if cdcl_all_inv_mes (toS (fst S, snd S)) \<and> cdcl_s\<^sup>*\<^sup>* (S0_cdcl (clauses (toS S))) (toS S) then S else ([], [], [], 0, C_True))"
+  "ConI S = state_of_I (if cdcl_cw.cdcl_all_inv_mes (toS (fst S, snd S)) \<and> cdcl_s\<^sup>*\<^sup>* (S0_cdcl (clauses (toS S))) (toS S) then S else ([], [], [], 0, C_True))"
 
 lemma [code abstype]:
   "ConI (rough_state_of_I S) = S"
@@ -691,7 +724,7 @@ function do_full_cp_step :: "cdcl_state \<Rightarrow> cdcl_state" where
 by auto
 termination
 proof (relation "{(T', T). (rough_state_of T', rough_state_of T) \<in> {(S', S).
-  (toS S', toS S) \<in> {(S', S). cdcl_all_inv_mes S \<and> cdcl_cp S S'}}}", goal_cases)
+  (toS S', toS S) \<in> {(S', S). cdcl_cw.cdcl_all_inv_mes S \<and> cdcl_cp S S'}}}", goal_cases)
   case 1
   show ?case
     using wf_if_measure_f[OF wf_if_measure_f[OF cdcl_cp_wf, of "toS"], of rough_state_of] .
@@ -708,9 +741,9 @@ lemma do_full_cp_step_fix_point_of_do_full_cp_step:
     (metis (full_types) do_full_cp_step.elims rough_state_of_state_of_do_cp_step do_cp_step'_def)
 
 lemma in_clauses_rough_state_of_is_distinct:
-  "c\<in>set (clauses (rough_state_of S) @ learned_clauses (rough_state_of S)) \<Longrightarrow> distinct c"
+  "c\<in>set (clauses (rough_state_of S) @ learned_clss (rough_state_of S)) \<Longrightarrow> distinct c"
   apply (cases "rough_state_of S")
-  using rough_state_of[of S] by (auto simp add: distinct_mset_set_distinct cdcl_all_inv_mes_def distinct_cdcl_state_def)
+  using rough_state_of[of S] by (auto simp add: distinct_mset_set_distinct cdcl_cw.cdcl_all_inv_mes_def distinct_cdcl_state_def)
 
 lemma do_full_cp_step_full0:
   "full0 cdcl_cp (toS (rough_state_of S))
@@ -740,7 +773,7 @@ fun do_other_step where
        if V \<noteq> U then V else do_decide_step V)))"
 
 lemma do_other_step:
-  assumes inv: "cdcl_all_inv_mes (toS S)" and
+  assumes inv: "cdcl_cw.cdcl_all_inv_mes (toS S)" and
   st: "do_other_step S \<noteq> S"
   shows "cdcl_o (toS S) (toS (do_other_step S))"
   using st inv by (auto split: split_if_asm
@@ -748,10 +781,10 @@ lemma do_other_step:
     intro: do_skip_step do_resolve_step do_backtrack_step do_decide_step)
 
 lemma do_other_step_no:
-  assumes inv: "cdcl_all_inv_mes (toS S)" and
+  assumes inv: "cdcl_cw.cdcl_all_inv_mes (toS S)" and
   st: "do_other_step S = S"
   shows "no_step cdcl_o (toS S)"
-  using st inv by (auto split: split_if_asm
+  using st inv by (auto split: split_if_asm elim: cdcl_bjE
     simp add: Let_def elim!: cdcl_o.cases
     dest!: do_skip_step_no do_resolve_step_no do_backtrack_step_no do_decide_step_no)
 
@@ -760,7 +793,7 @@ lemma rough_state_of_state_of_do_other_step[simp]:
   apply (cases "do_other_step (rough_state_of S) = rough_state_of S")
    apply simp
   using rough_state_of[of S] do_other_step[of "rough_state_of S"]  by (metis CollectI
-    cdcl_all_inv_mes_inv cdcl_all_inv_mes_rough_state other state_of_inverse)
+    cdcl_cw.cdcl_all_inv_mes_inv cdcl_cw.cdcl_all_inv_mes_rough_state other state_of_inverse)
 
 definition do_other_step' where
 "do_other_step' S =
@@ -770,7 +803,7 @@ lemma rough_state_of_do_other_step'[code abstract]:
  "rough_state_of (do_other_step' S) = do_other_step (rough_state_of S)"
  apply (cases "do_other_step (rough_state_of S) = rough_state_of S")
    unfolding do_other_step'_def apply simp
- using do_other_step[of "rough_state_of S"] by (metis cdcl_all_inv_mes_inv cdcl_all_inv_mes_rough_state mem_Collect_eq other state_of_inverse)
+ using do_other_step[of "rough_state_of S"] by (metis cdcl_cw.cdcl_all_inv_mes_inv cdcl_cw.cdcl_all_inv_mes_rough_state mem_Collect_eq other state_of_inverse)
 
 definition do_cdcl_s_step where
 "do_cdcl_s_step S =
@@ -804,11 +837,11 @@ proof (cases "do_full_cp_step S = S")
 next
   case True
   have "cdcl_o (toS (rough_state_of S)) (toS (rough_state_of (do_other_step' S)))"
-    by (metis (mono_tags, hide_lams) True assms cdcl_all_inv_mes_rough_state do_cdcl_s_step_def do_other_step do_other_step'_def rough_state_of_inverse rough_state_of_state_of_do_other_step)
+    by (metis (mono_tags, hide_lams) True assms cdcl_cw.cdcl_all_inv_mes_rough_state do_cdcl_s_step_def do_other_step do_other_step'_def rough_state_of_inverse rough_state_of_state_of_do_other_step)
   moreover
     have
       np: "no_step propagate (toS (rough_state_of S))" and
-      nc: "no_step conflict (toS (rough_state_of S))"
+      nc: "no_step cdcl_cw.conflict (toS (rough_state_of S))"
       by (metis True do_cp_step_eq_no_step do_full_cp_step_fix_point_of_do_full_cp_step
        in_clauses_rough_state_of_is_distinct no_cdcl_cp_iff_no_propagate_no_conflict)+
     hence "no_step cdcl_cp (toS (rough_state_of S))"
@@ -825,7 +858,7 @@ lemma length_trail_toS[simp]:
   "length (trail (toS S)) = length (trail S)"
   by (cases S) auto
 
-lemma conflicting_noTrue_iff_toS[simp]:
+lemma cdcl_cw.conflicting_noTrue_iff_toS[simp]:
   "conflicting (toS S) \<noteq> C_True \<longleftrightarrow> conflicting S \<noteq> C_True"
   by (cases S) auto
 
@@ -835,7 +868,7 @@ lemma trail_toS_neq_imp_trail_neq:
 
 lemma do_skip_step_trail_changed_or_conflict:
   assumes d: "do_other_step S \<noteq> S"
-  and inv: "cdcl_all_inv_mes (toS S)"
+  and inv: "cdcl_cw.cdcl_all_inv_mes (toS S)"
   shows "trail S \<noteq> trail (do_other_step S)"
 proof -
   have M: "\<And>M K M1 c. M = c @ K # M1 \<Longrightarrow> Suc (length M1) \<le> length M"
@@ -844,11 +877,11 @@ proof -
   thus ?thesis
     apply (induction "toS S" "toS (do_other_step S)" rule: cdcl_o.induct)
        apply (auto simp del: do_other_step.simps
-        elim!: skipE resolveE decidedE backtrackE
+        elim!: skipE resolveE decidedE backtrackE cdcl_bjE
         dest!: get_all_marked_decomposition_exists_prepend
-        simp add: length_trail_toS[symmetric] conflicting_noTrue_iff_toS[symmetric]
-          trail_toS_neq_imp_trail_neq)[3]
-    by (elim backtrackE) (smt backtrackE get_all_marked_decomposition_exists_prepend append_Cons
+        simp add: length_trail_toS[symmetric] cdcl_cw.conflicting_noTrue_iff_toS[symmetric]
+          trail_toS_neq_imp_trail_neq)
+    by (smt backtrackE get_all_marked_decomposition_exists_prepend append_Cons
       append_Nil2 append_assoc list.inject marked_lit.distinct(1) rev_append rev_eq_Cons_iff
       same_append_eq trail_conv trail_toS_neq_imp_trail_neq)
 qed
@@ -954,22 +987,22 @@ lemma rough_state_of_state_of_do_skip_step_rough_state_of[simp]:
   "rough_state_of (state_of (do_skip_step (rough_state_of S))) = do_skip_step (rough_state_of S)"
   by (smt do_other_step.simps rough_state_of_inverse rough_state_of_state_of_do_other_step)
 
-lemma conflicting_do_resolve_step_iff[iff]:
+lemma cdcl_cw.conflicting_do_resolve_step_iff[iff]:
   "conflicting (do_resolve_step S) = C_True \<longleftrightarrow> conflicting S = C_True"
   by (cases S rule: do_resolve_step.cases)
    (auto simp add: Let_def split: option.splits)
 
-lemma conflicting_do_skip_step_iff[iff]:
+lemma cdcl_cw.conflicting_do_skip_step_iff[iff]:
   "conflicting (do_skip_step S) = C_True \<longleftrightarrow> conflicting S = C_True"
   by (cases S rule: do_skip_step.cases)
      (auto simp add: Let_def split: option.splits)
 
-lemma conflicting_do_decide_step_iff[iff]:
+lemma cdcl_cw.conflicting_do_decide_step_iff[iff]:
   "conflicting (do_decide_step S) = C_True \<longleftrightarrow> conflicting S = C_True"
   by (cases S rule: do_decide_step.cases)
      (auto simp add: Let_def split: option.splits)
 
-lemma conflicting_do_backtrack_step_imp[simp]:
+lemma cdcl_cw.conflicting_do_backtrack_step_imp[simp]:
   "do_backtrack_step S \<noteq> S \<Longrightarrow> conflicting (do_backtrack_step S) = C_True"
   by (cases S rule: do_backtrack_step.cases)
      (auto simp add: Let_def split: list.splits option.splits marked_lit.splits)
@@ -1058,10 +1091,10 @@ proof -
     fix S' S''
     assume " cdcl_o (toS (rough_state_of S)) S'" and
      "no_step propagate (toS (rough_state_of S))" and
-     "no_step conflict (toS (rough_state_of S))" and
+     "no_step cdcl_cw.conflict (toS (rough_state_of S))" and
      "cdcl_cp\<^sup>\<down> S' S''"
     hence False
-      using assms unfolding do_cdcl_s_step_def by (metis (full_types) cdcl_all_inv_mes_rough_state
+      using assms unfolding do_cdcl_s_step_def by (metis (full_types) cdcl_cw.cdcl_all_inv_mes_rough_state
         do_full_cp_step_do_other_step'_normal_form do_other_step_no rough_state_of_do_other_step')
   }
   ultimately show ?thesis using assms by (meson cdcl_cp.simps cdcl_s.cases)
@@ -1115,11 +1148,11 @@ next
     by (smt id_of_I_to_def mem_Collect_eq rough_state_of_I rough_state_of_I_do_cdcl_s_step'
       rough_state_of_I_inject state_of_inverse)
   moreover
-    have "cdcl_all_inv_mes (toS (rough_state_of_I S))"
+    have "cdcl_cw.cdcl_all_inv_mes (toS (rough_state_of_I S))"
       using rough_state_of_I[of S] by auto
-    hence "cdcl_all_inv_mes (S0_cdcl (clauses (toS (rough_state_of_I S))))"
+    hence "cdcl_cw.cdcl_all_inv_mes (S0_cdcl (clauses (toS (rough_state_of_I S))))"
       by (cases "rough_state_of_I S")
-         (auto simp add: cdcl_all_inv_mes_def distinct_cdcl_state_def)
+         (auto simp add: cdcl_cw.cdcl_all_inv_mes_def distinct_cdcl_state_def)
   ultimately show ?case
     by (auto intro!: cdcl_s_step_decreasing[of _ _ "S0_cdcl (clauses (toS ?S))"]
       simp del: cdcl_measure.simps)
@@ -1156,8 +1189,8 @@ lemma DPLL_tot_correct:
     \<or> (E = C_Clause {#} \<and> unsatisfiable (set (map mset ( N))))"
 proof -
   let ?N = "map remdups N"
-  have inv: "cdcl_all_inv_mes (toS ([], map remdups N, [], 0, C_True))"
-    unfolding cdcl_all_inv_mes_def distinct_cdcl_state_def distinct_mset_set_def by auto
+  have inv: "cdcl_cw.cdcl_all_inv_mes (toS ([], map remdups N, [], 0, C_True))"
+    unfolding cdcl_cw.cdcl_all_inv_mes_def distinct_cdcl_state_def distinct_mset_set_def by auto
   hence S0: "rough_state_of (state_of ([], map remdups N, [], 0, C_True))
     = ([], map remdups N, [], 0, C_True)" by simp
   have 1: "full0 cdcl_s (toS ([], ?N, [], 0, C_True)) (toS S)"
@@ -1172,11 +1205,11 @@ proof -
     have 4: "finite (clauses (S0_cdcl (set (map mset ?N))))"
       by auto
   moreover
-    have "cdcl_all_inv_mes (toS S)"
-      by (metis (no_types) cdcl_all_inv_mes_rough_state r
+    have "cdcl_cw.cdcl_all_inv_mes (toS S)"
+      by (metis (no_types) cdcl_cw.cdcl_all_inv_mes_rough_state r
         toS_rough_state_of_state_of_rough_state_of_I)
     hence cons: "consistent_interp (lits_of M')"
-      unfolding cdcl_all_inv_mes_def cdcl_M_level_inv_def S[symmetric] by auto
+      unfolding cdcl_cw.cdcl_all_inv_mes_def cdcl_M_level_inv_def S[symmetric] by auto
   moreover
     have "clauses (toS ([], ?N, [], 0, C_True)) = clauses (toS S)"
       apply (rule rtranclp_cdcl_no_more_clauses)
@@ -1462,7 +1495,7 @@ fun max A_ (Set.Set (x :: xs)) =
 
 end; (*struct Lattices_Big*)
 
-structure Propo_CDCL : sig
+structure CDCL_CW : sig
   datatype 'a conflicting_clause = C_True | C_Clause of 'a
   val equal_conflicting_clause : 'a HOL.equal -> 'a conflicting_clause HOL.equal
   val get_rev_level :
@@ -1505,7 +1538,7 @@ fun get_maximum_level A_ d m =
         (Multiset.image_mset
           (fn l => get_rev_level A_ l Arith.zero_nat (List.rev m)) d)));
 
-end; (*struct Propo_CDCL*)
+end; (*struct CDCL_CW*)
 
 structure Product_Type : sig
   val equal_proda : 'a HOL.equal -> 'b HOL.equal -> 'a * 'b -> 'a * 'b -> bool
@@ -1519,7 +1552,7 @@ fun equal_prod A_ B_ = {equal = equal_proda A_ B_} : ('a * 'b) HOL.equal;
 
 end; (*struct Product_Type*)
 
-structure CDCL_Implementation : sig
+structure CDCL_CW_Implementation : sig
   datatype cdcl_state_I =
   ConI of
     ((Arith.nat, Arith.nat, (Arith.nat Clausal_Logic.literal list))
@@ -1528,7 +1561,7 @@ structure CDCL_Implementation : sig
         ((Arith.nat Clausal_Logic.literal list) list *
           (Arith.nat *
             (Arith.nat Clausal_Logic.literal list)
-              Propo_CDCL.conflicting_clause))));
+              CDCL_CW.conflicting_clause))));
   val gene : Arith.nat -> (Arith.nat Clausal_Logic.literal list) list
   val do_all_cdcl_s : cdcl_state_I -> cdcl_state_I
 end = struct
@@ -1541,7 +1574,7 @@ datatype cdcl_state =
         ((Arith.nat Clausal_Logic.literal list) list *
           (Arith.nat *
             (Arith.nat Clausal_Logic.literal list)
-              Propo_CDCL.conflicting_clause))));
+              CDCL_CW.conflicting_clause))));
 
 datatype cdcl_state_I =
   ConI of
@@ -1551,7 +1584,7 @@ datatype cdcl_state_I =
         ((Arith.nat Clausal_Logic.literal list) list *
           (Arith.nat *
             (Arith.nat Clausal_Logic.literal list)
-              Propo_CDCL.conflicting_clause))));
+              CDCL_CW.conflicting_clause))));
 
 fun gene n =
   (if Arith.equal_nata n Arith.zero_nat
@@ -1604,14 +1637,14 @@ fun find_first_unit_clause A_ (a :: l) m =
 
 fun do_propagate_step A_ s =
   (case s
-    of (m, (n, (u, (k, Propo_CDCL.C_True)))) =>
+    of (m, (n, (u, (k, CDCL_CW.C_True)))) =>
       (case find_first_unit_clause A_ (n @ u) m
-        of NONE => (m, (n, (u, (k, Propo_CDCL.C_True))))
+        of NONE => (m, (n, (u, (k, CDCL_CW.C_True))))
         | SOME (l, c) =>
           (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: m,
-            (n, (u, (k, Propo_CDCL.C_True)))))
-    | (m, (n, (u, (k, Propo_CDCL.C_Clause ah)))) =>
-      (m, (n, (u, (k, Propo_CDCL.C_Clause ah)))));
+            (n, (u, (k, CDCL_CW.C_True)))))
+    | (m, (n, (u, (k, CDCL_CW.C_Clause ah)))) =>
+      (m, (n, (u, (k, CDCL_CW.C_Clause ah)))));
 
 fun find_conflict A_ m [] = NONE
   | find_conflict A_ m (n :: ns) =
@@ -1625,12 +1658,12 @@ fun find_conflict A_ m [] = NONE
 
 fun do_conflict_step A_ s =
   (case s
-    of (m, (n, (u, (k, Propo_CDCL.C_True)))) =>
+    of (m, (n, (u, (k, CDCL_CW.C_True)))) =>
       (case find_conflict A_ m (n @ u)
-        of NONE => (m, (n, (u, (k, Propo_CDCL.C_True))))
-        | SOME a => (m, (n, (u, (k, Propo_CDCL.C_Clause a)))))
-    | (m, (n, (u, (k, Propo_CDCL.C_Clause ah)))) =>
-      (m, (n, (u, (k, Propo_CDCL.C_Clause ah)))));
+        of NONE => (m, (n, (u, (k, CDCL_CW.C_True))))
+        | SOME a => (m, (n, (u, (k, CDCL_CW.C_Clause a)))))
+    | (m, (n, (u, (k, CDCL_CW.C_Clause ah)))) =>
+      (m, (n, (u, (k, CDCL_CW.C_Clause ah)))));
 
 fun do_cp_step A_ s = (do_propagate_step A_ o do_conflict_step A_) s;
 
@@ -1644,18 +1677,18 @@ fun do_cp_stepa s = Con (do_cp_step Arith.equal_nat (rough_state_of s));
 
 fun do_skip_step
   (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls,
-    (n, (u, (k, Propo_CDCL.C_Clause d))))
+    (n, (u, (k, CDCL_CW.C_Clause d))))
   = (if not (List.member (Clausal_Logic.equal_literal Arith.equal_nat) d
               (Clausal_Logic.uminus_literal l)) andalso
           not (List.null d)
-      then (ls, (n, (u, (k, Propo_CDCL.C_Clause d))))
+      then (ls, (n, (u, (k, CDCL_CW.C_Clause d))))
       else (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls,
-             (n, (u, (k, Propo_CDCL.C_Clause d)))))
+             (n, (u, (k, CDCL_CW.C_Clause d)))))
   | do_skip_step ([], va) = ([], va)
   | do_skip_step (Partial_Annotated_Clausal_Logic.Marked (vd, ve) :: vc, va) =
     (Partial_Annotated_Clausal_Logic.Marked (vd, ve) :: vc, va)
-  | do_skip_step (v, (vb, (vd, (vf, Propo_CDCL.C_True)))) =
-    (v, (vb, (vd, (vf, Propo_CDCL.C_True))));
+  | do_skip_step (v, (vb, (vd, (vf, CDCL_CW.C_True)))) =
+    (v, (vb, (vd, (vf, CDCL_CW.C_True))));
 
 fun equal_cdcl_state_I sa s =
   Product_Type.equal_proda
@@ -1670,7 +1703,7 @@ fun equal_cdcl_state_I sa s =
         (List.equal_list
           (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat)))
         (Product_Type.equal_prod Arith.equal_nat
-          (Propo_CDCL.equal_conflicting_clause
+          (CDCL_CW.equal_conflicting_clause
             (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat))))))
     (rough_state_of_I sa) (rough_state_of_I s);
 
@@ -1687,7 +1720,7 @@ fun equal_cdcl_state sa s =
         (List.equal_list
           (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat)))
         (Product_Type.equal_prod Arith.equal_nat
-          (Propo_CDCL.equal_conflicting_clause
+          (CDCL_CW.equal_conflicting_clause
             (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat))))))
     (rough_state_of sa) (rough_state_of s);
 
@@ -1699,36 +1732,36 @@ fun do_full_cp_step s =
   end;
 
 fun maximum_level_code A_ d m =
-  Propo_CDCL.get_maximum_level A_ (Multiset.Mset d) m;
+  CDCL_CW.get_maximum_level A_ (Multiset.Mset d) m;
 
 fun find_level_decomp A_ m [] d k = NONE
   | find_level_decomp A_ m (l :: ls) d k =
     let
       val (i, j) =
-        (Propo_CDCL.get_rev_level A_ l Arith.zero_nat (List.rev m),
+        (CDCL_CW.get_rev_level A_ l Arith.zero_nat (List.rev m),
           maximum_level_code A_ (d @ ls) m);
     in
       (if Arith.equal_nata i k andalso Arith.less_nat j i then SOME (l, j)
         else find_level_decomp A_ m ls (l :: d) k)
     end;
 
-fun do_backtrack_step A_ (m, (n, (u, (k, Propo_CDCL.C_Clause d)))) =
+fun do_backtrack_step A_ (m, (n, (u, (k, CDCL_CW.C_Clause d)))) =
   (case find_level_decomp A_ m d [] k
-    of NONE => (m, (n, (u, (k, Propo_CDCL.C_Clause d))))
+    of NONE => (m, (n, (u, (k, CDCL_CW.C_Clause d))))
     | SOME (l, j) =>
-      (case bt_cut j m of NONE => (m, (n, (u, (k, Propo_CDCL.C_Clause d))))
-        | SOME [] => (m, (n, (u, (k, Propo_CDCL.C_Clause d))))
+      (case bt_cut j m of NONE => (m, (n, (u, (k, CDCL_CW.C_Clause d))))
+        | SOME [] => (m, (n, (u, (k, CDCL_CW.C_Clause d))))
         | SOME (Partial_Annotated_Clausal_Logic.Marked (_, _) :: ls) =>
           (Partial_Annotated_Clausal_Logic.Propagated (l, d) :: ls,
-            (n, (d :: u, (j, Propo_CDCL.C_True))))
+            (n, (d :: u, (j, CDCL_CW.C_True))))
         | SOME (Partial_Annotated_Clausal_Logic.Propagated (_, _) :: _) =>
-          (m, (n, (u, (k, Propo_CDCL.C_Clause d))))))
-  | do_backtrack_step A_ (v, (vb, (vd, (vf, Propo_CDCL.C_True)))) =
-    (v, (vb, (vd, (vf, Propo_CDCL.C_True))));
+          (m, (n, (u, (k, CDCL_CW.C_Clause d))))))
+  | do_backtrack_step A_ (v, (vb, (vd, (vf, CDCL_CW.C_True)))) =
+    (v, (vb, (vd, (vf, CDCL_CW.C_True))));
 
 fun do_resolve_step
   (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls,
-    (n, (u, (k, Propo_CDCL.C_Clause d))))
+    (n, (u, (k, CDCL_CW.C_Clause d))))
   = (if List.member (Clausal_Logic.equal_literal Arith.equal_nat) d
           (Clausal_Logic.uminus_literal l) andalso
           (Arith.equal_nata
@@ -1738,7 +1771,7 @@ fun do_resolve_step
                (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls))
              k orelse
             Arith.equal_nata k Arith.zero_nat)
-      then (ls, (n, (u, (k, Propo_CDCL.C_Clause
+      then (ls, (n, (u, (k, CDCL_CW.C_Clause
                               (List.remdups
                                 (Clausal_Logic.equal_literal Arith.equal_nat)
                                 (List.remove1
@@ -1749,12 +1782,12 @@ fun do_resolve_step
                                       Arith.equal_nat)
                                     (Clausal_Logic.uminus_literal l) d))))))
       else (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls,
-             (n, (u, (k, Propo_CDCL.C_Clause d)))))
+             (n, (u, (k, CDCL_CW.C_Clause d)))))
   | do_resolve_step ([], va) = ([], va)
   | do_resolve_step (Partial_Annotated_Clausal_Logic.Marked (vd, ve) :: vc, va)
     = (Partial_Annotated_Clausal_Logic.Marked (vd, ve) :: vc, va)
-  | do_resolve_step (v, (vb, (vd, (vf, Propo_CDCL.C_True)))) =
-    (v, (vb, (vd, (vf, Propo_CDCL.C_True))));
+  | do_resolve_step (v, (vb, (vd, (vf, CDCL_CW.C_True)))) =
+    (v, (vb, (vd, (vf, CDCL_CW.C_True))));
 
 fun find_first_unused_var A_ (a :: l) m =
   (case List.find
@@ -1766,14 +1799,14 @@ fun find_first_unused_var A_ (a :: l) m =
     of NONE => find_first_unused_var A_ l m | SOME aa => SOME aa)
   | find_first_unused_var A_ [] uu = NONE;
 
-fun do_decide_step A_ (m, (n, (u, (k, Propo_CDCL.C_True)))) =
+fun do_decide_step A_ (m, (n, (u, (k, CDCL_CW.C_True)))) =
   (case find_first_unused_var A_ n (Partial_Annotated_Clausal_Logic.lits_of m)
-    of NONE => (m, (n, (u, (k, Propo_CDCL.C_True))))
+    of NONE => (m, (n, (u, (k, CDCL_CW.C_True))))
     | SOME l =>
       (Partial_Annotated_Clausal_Logic.Marked (l, Arith.suc k) :: m,
-        (n, (u, (Arith.plus_nat k Arith.one_nat, Propo_CDCL.C_True)))))
-  | do_decide_step A_ (v, (vb, (vd, (vf, Propo_CDCL.C_Clause vh)))) =
-    (v, (vb, (vd, (vf, Propo_CDCL.C_Clause vh))));
+        (n, (u, (Arith.plus_nat k Arith.one_nat, CDCL_CW.C_True)))))
+  | do_decide_step A_ (v, (vb, (vd, (vf, CDCL_CW.C_Clause vh)))) =
+    (v, (vb, (vd, (vf, CDCL_CW.C_Clause vh))));
 
 fun do_other_step s =
   let
@@ -1794,7 +1827,7 @@ fun do_other_step s =
                     (List.equal_list
                       (Clausal_Logic.equal_literal Arith.equal_nat)))
                   (Product_Type.equal_prod Arith.equal_nat
-                    (Propo_CDCL.equal_conflicting_clause
+                    (CDCL_CW.equal_conflicting_clause
                       (List.equal_list
                         (Clausal_Logic.equal_literal Arith.equal_nat))))))
               t s)
@@ -1817,7 +1850,7 @@ fun do_other_step s =
                              (List.equal_list
                                (Clausal_Logic.equal_literal Arith.equal_nat)))
                            (Product_Type.equal_prod Arith.equal_nat
-                             (Propo_CDCL.equal_conflicting_clause
+                             (CDCL_CW.equal_conflicting_clause
                                (List.equal_list
                                  (Clausal_Logic.equal_literal
                                    Arith.equal_nat))))))
@@ -1843,7 +1876,7 @@ Arith.equal_nat)))
                                       (List.equal_list
 (Clausal_Logic.equal_literal Arith.equal_nat)))
                                     (Product_Type.equal_prod Arith.equal_nat
-                                      (Propo_CDCL.equal_conflicting_clause
+                                      (CDCL_CW.equal_conflicting_clause
 (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat))))))
                                 v u)
                         then v else do_decide_step Arith.equal_nat v)
@@ -1874,17 +1907,17 @@ fun do_all_cdcl_s s =
     (if equal_cdcl_state_I t s then s else do_all_cdcl_s t)
   end;
 
-end; (*struct CDCL_Implementation*)
+end; (*struct CDCL_CW_Implementation*)
 
 \<close>
 declare[[ML_print_depth=100]]
 ML \<open>
 open Clausal_Logic;
-open CDCL_Implementation;
+open CDCL_CW_Implementation;
 open Arith;
 let
   val N = gene (Nat 2)
-  val f = do_all_cdcl_s (ConI ([], (N, ([], (Nat 0, Propo_CDCL.C_True)))))
+  val f = do_all_cdcl_s (ConI ([], (N, ([], (Nat 0, CDCL_CW.C_True)))))
   in
 
   f

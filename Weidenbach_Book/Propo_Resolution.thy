@@ -1,6 +1,5 @@
 theory Propo_Resolution
-
-imports Partial_Clausal_Logic
+imports Partial_Clausal_Logic List_More Transition
 
 begin
 section \<open>Resolution\<close>
@@ -44,8 +43,7 @@ lemma simplifier_preserves_un_sat:
   and "total_over_m I N"
   shows "I \<Turnstile>s N \<longrightarrow> I \<Turnstile>s N'"
   using assms apply (induct rule: simplify.induct)
-  prefer 2 apply (metis Un_insert_right insert_Diff sup_bot_right true_cls_union true_clss_insert)
-  by simp_all
+  using true_clss_def by fastforce+
 
 lemma simplifier_preserves_un_sat'':
   fixes N N' :: "'v clauses"
@@ -53,8 +51,7 @@ lemma simplifier_preserves_un_sat'':
   and "total_over_m I N'"
   shows "I \<Turnstile>s N \<longrightarrow> I \<Turnstile>s N'"
   using assms apply (induct rule: simplify.induct)
-  prefer 2 apply (metis Un_insert_right insert_Diff sup_bot_right true_cls_union true_clss_insert)
-  by simp_all
+  using true_clss_def by fastforce+
 
 lemma simplifier_preserves_un_sat_eq:
   fixes N N' :: "'v clauses"
@@ -89,7 +86,6 @@ next
   case (subsumption A P)
   thus ?case by auto
 qed
-
 
 lemma rtranclp_simplifier_atms_of_m:
   assumes "rtranclp simplify \<psi> \<psi>'"
@@ -867,9 +863,11 @@ proof (induct arbitrary: I rule: sem_tree_size)
       ultimately obtain \<psi>' :: "'v state" and  tree' :: "'v sem_tree"  where
         inf: "inference\<^sup>*\<^sup>* \<psi> \<psi>'"
         and part: "partial_interps tree' (I \<union> {Pos v}) (fst \<psi>')"
-        and size: "sem_tree_size tree' < sem_tree_size ag \<or> sem_tree_size ag = 0" using finite part rtranclp.rtrancl_refl a_u_i by blast
+        and size: "sem_tree_size tree' < sem_tree_size ag \<or> sem_tree_size ag = 0"
+        using finite part rtranclp.rtrancl_refl a_u_i by blast
 
-      have "partial_interps ad (I \<union> {Neg v}) (fst \<psi>')" using rtranclp_inference_preserve_partial_tree inf partad by metis
+      have "partial_interps ad (I \<union> {Neg v}) (fst \<psi>')"
+        using rtranclp_inference_preserve_partial_tree inf partad by metis
       hence "partial_interps (Node v tree' ad) I (fst \<psi>')" using part by auto
       hence ?case using inf size size_ag part unfolding xs by fastforce
     }
@@ -902,7 +900,10 @@ qed
 
 lemma inference_completeness_inv:
   fixes \<psi> :: "'v ::linorder state"
-  assumes unsat: "\<not>satisfiable (fst \<psi>)" and finite: "finite (fst \<psi>)" and a_u_v: "already_used_inv \<psi>"
+  assumes
+    unsat: "\<not>satisfiable (fst \<psi>)" and
+    finite: "finite (fst \<psi>)" and
+    a_u_v: "already_used_inv \<psi>"
   shows "\<exists>\<psi>'. (inference\<^sup>*\<^sup>* \<psi> \<psi>' \<and> {#} \<in> fst \<psi>')"
 proof -
   obtain tree where  "partial_interps tree {} (fst \<psi>)"
@@ -914,23 +915,27 @@ proof -
       {
         fix \<chi>
         assume tree: "tree = Leaf"
-        obtain \<chi> where \<chi>: "\<not> {} \<Turnstile> \<chi>" and tot\<chi>: "total_over_m {} {\<chi>}" and \<chi>\<psi>: "\<chi> \<in> fst \<psi>" using H unfolding tree by auto
+        obtain \<chi> where \<chi>: "\<not> {} \<Turnstile> \<chi>" and tot\<chi>: "total_over_m {} {\<chi>}" and \<chi>\<psi>: "\<chi> \<in> fst \<psi>"
+          using H unfolding tree by auto
         moreover have "{#} = \<chi>"
-          using H unfolding \<chi> total_over_m_def apply auto
-          using atms_empty_iff_empty tot\<chi> unfolding true_cls_def total_over_m_def total_over_set_def by fastforce
+          using  tot\<chi> unfolding total_over_m_def total_over_set_def by fastforce
         moreover have "inference\<^sup>*\<^sup>* \<psi> \<psi>" by auto
         ultimately have ?case by metis
       }
       moreover {
         fix v tree1 tree2
         assume tree: "tree = Node v tree1 tree2"
-        obtain tree' \<psi>' where inf: "inference\<^sup>*\<^sup>* \<psi> \<psi>'"
-        and part': "partial_interps tree' {} (fst \<psi>')"
-        and decrease: "sem_tree_size tree' < sem_tree_size tree \<or> sem_tree_size tree = 0" using can_decrease_tree_size[of \<psi>] H(2,4,5)  unfolding tautology_def by meson
+        obtain
+          tree' \<psi>' where inf: "inference\<^sup>*\<^sup>* \<psi> \<psi>'" and
+          part': "partial_interps tree' {} (fst \<psi>')" and
+          decrease: "sem_tree_size tree' < sem_tree_size tree \<or> sem_tree_size tree = 0"
+          using can_decrease_tree_size[of \<psi>] H(2,4,5)  unfolding tautology_def by meson
         have "sem_tree_size tree' < sem_tree_size tree" using decrease unfolding tree by auto
         moreover have "finite (fst \<psi>')" using rtranclp_inference_preserves_finite inf H(4) by metis
-        moreover have "unsatisfiable (fst \<psi>')" using inference_preserves_unsat inf bigger.prems(2) by blast
-        moreover have "already_used_inv \<psi>'" using H(5) inf rtranclp_inference_preserves_already_used_inv[of \<psi> \<psi>'] by auto
+        moreover have "unsatisfiable (fst \<psi>')"
+          using inference_preserves_unsat inf bigger.prems(2) by blast
+        moreover have "already_used_inv \<psi>'"
+          using H(5) inf rtranclp_inference_preserves_already_used_inv[of \<psi> \<psi>'] by auto
         ultimately have ?case using inf rtranclp_trans part' H(1) by fastforce
       }
       ultimately show ?case by (case_tac tree, auto)
@@ -952,7 +957,8 @@ lemma inference_soundness:
   fixes \<psi> :: "'v ::linorder state"
   assumes "rtranclp inference \<psi> \<psi>'" and "{#} \<in> fst \<psi>'"
   shows "unsatisfiable (fst \<psi>)"
-  using assms by (meson rtranclp_inference_preserves_un_sat satisfiable_def true_cls_empty true_clss_def)
+  using assms by (meson rtranclp_inference_preserves_un_sat satisfiable_def true_cls_empty
+    true_clss_def)
 
 lemma inference_soundness_and_completeness:
 fixes \<psi> :: "'v ::linorder state"
@@ -963,7 +969,7 @@ shows "(\<exists>\<psi>'. (inference\<^sup>*\<^sup>* \<psi> \<psi>' \<and> {#} \
 
 subsection \<open>Lemma about the simplified state\<close>
 
-abbreviation "simplified \<psi> \<equiv> (\<forall>\<psi>'. \<not>simplify \<psi> \<psi>')"
+abbreviation "simplified \<psi> \<equiv> (no_step simplify \<psi>)"
 
 lemma simplified_count:
   assumes simp: "simplified \<psi>" and \<chi>: "\<chi> \<in> \<psi>"
@@ -977,8 +983,10 @@ proof -
     hence "L \<in># \<chi> - {#L#}"
       by simp
     hence \<chi>': "?\<chi>' + {#L#} + {#L#} = \<chi>"
-      using f1 by (metis (no_types) diff_diff_add diff_single_eq_union union_assoc union_single_eq_member)
-    have "\<exists>\<psi>'. simplify \<psi> \<psi>'" by (metis (no_types, hide_lams) \<chi> \<chi>' add.commute factoring_imp_simplifier union_assoc)
+      using f1 by (metis (no_types) diff_diff_add diff_single_eq_union union_assoc
+        union_single_eq_member)
+    have "\<exists>\<psi>'. simplify \<psi> \<psi>'"
+      by (metis (no_types, hide_lams) \<chi> \<chi>' add.commute factoring_imp_simplifier union_assoc)
     hence False using simp by auto
   }
   thus ?thesis by arith
@@ -1001,7 +1009,8 @@ lemma simplified_not_tautology:
 proof (rule ccontr)
   assume "~ ?thesis"
   then obtain p where "Pos p \<in># \<psi> \<and> Neg p \<in># \<psi>" using tautology_decomp by metis
-  then obtain \<chi> where "\<psi> = \<chi> + {#Pos p#} + {#Neg p#}" by (metis insert_noteq_member literal.distinct(1) multi_member_split)
+  then obtain \<chi> where "\<psi> = \<chi> + {#Pos p#} + {#Neg p#}"
+    by (metis insert_noteq_member literal.distinct(1) multi_member_split)
   hence "~ simplified {\<psi>}" by (auto intro: tautology_deletion)
   thus False using assms by auto
 qed
@@ -1092,7 +1101,9 @@ proof -
     proof (rule ccontr)
       assume "\<not>?thesis"
       then obtain \<chi> where "\<chi> \<in> \<psi>'" and "\<not>distinct_mset \<chi>" unfolding distinct_mset_set_def by auto
-      then obtain L where "count \<chi> L \<ge> 2" unfolding distinct_mset_def by (metis gr_implies_not0 le_antisym less_one not_le simp simplified_count)
+      then obtain L where "count \<chi> L \<ge> 2"
+        unfolding distinct_mset_def by (metis gr_implies_not0 le_antisym less_one not_le simp
+          simplified_count)
       thus False by (metis Suc_1 \<open>\<chi> \<in> \<psi>'\<close> not_less_eq_eq simp simplified_count)
     qed
 qed
@@ -1107,16 +1118,17 @@ subsection \<open>Resolution and Invariants\<close>
 
 inductive resolution :: "'v state \<Rightarrow> 'v state \<Rightarrow> bool" where
 full_simp: "full_simplifier N N' \<Longrightarrow> resolution (N, already_used) (N', already_used)" |
-inferring: "inference (N, already_used) (N', already_used') \<Longrightarrow> simplified N \<Longrightarrow> full0_simplifier N' N'' \<Longrightarrow> resolution (N, already_used) (N'', already_used')"
+inferring: "inference (N, already_used) (N', already_used') \<Longrightarrow> simplified N
+  \<Longrightarrow> full0_simplifier N' N'' \<Longrightarrow> resolution (N, already_used) (N'', already_used')"
 
 subsubsection \<open>Invariants\<close>
 
 lemma resolution_finite:
   assumes "resolution \<psi> \<psi>'" and "finite (fst \<psi>)"
   shows "finite (fst \<psi>')"
-  using assms apply (induct rule: resolution.induct, auto simp add: full_simplifier_def full0_simplifier_def)
-   apply (meson rtranclp_simplifier_preserves_finite tranclp_into_rtranclp )
-  by (metis fst_conv inference_preserves_finite rtranclp_simplifier_preserves_finite)
+  using assms by (induct rule: resolution.induct)
+    (auto simp add: full_simplifier_def full0_simplifier_def  rtranclp_simplifier_preserves_finite
+      dest: tranclp_into_rtranclp inference_preserves_finite)
 
 lemma rtranclp_resolution_finite:
   assumes "resolution\<^sup>*\<^sup>* \<psi> \<psi>'" and "finite (fst \<psi>)"
@@ -1137,7 +1149,8 @@ lemma rtranclp_resolution_finite_snd:
 lemma resolution_always_simplified:
  assumes "resolution \<psi> \<psi>'"
  shows "simplified (fst \<psi>')"
- using assms by (induct rule: resolution.induct, auto simp add: full_simplifier_def full0_simplifier_def)
+ using assms by (induct rule: resolution.induct)
+   (auto simp add: full_simplifier_def full0_simplifier_def)
 
 lemma tranclp_resolution_always_simplified:
   assumes "tranclp resolution \<psi> \<psi>'"
@@ -1147,14 +1160,16 @@ lemma tranclp_resolution_always_simplified:
 lemma resolution_atms_of:
   assumes "resolution \<psi> \<psi>'" and "finite (fst \<psi>)"
   shows "atms_of_m (fst \<psi>') \<subseteq> atms_of_m (fst \<psi>)"
-  using assms apply (induct rule: resolution.induct, auto simp add: inference_preserves_atms_of_m rtranclp_simplifier_atms_of_m tranclp_into_rtranclp full_simplifier_def full0_simplifier_def)
-  by (metis (no_types, lifting) fst_conv inference_preserves_atms_of_m rtranclp_simplifier_atms_of_m set_rev_mp)
+  using assms apply (induct rule: resolution.induct)
+    apply(simp add: rtranclp_simplifier_atms_of_m tranclp_into_rtranclp full_simplifier_def )
+  by (metis (no_types, lifting) contra_subsetD fst_conv full0_simplifier_def
+    inference_preserves_atms_of_m rtranclp_simplifier_atms_of_m subsetI)
 
 lemma rtranclp_resolution_atms_of:
   assumes "resolution\<^sup>*\<^sup>* \<psi> \<psi>'" and "finite (fst \<psi>)"
   shows "atms_of_m (fst \<psi>') \<subseteq> atms_of_m (fst \<psi>)"
-  using assms apply (induct rule: rtranclp.induct, auto simp add: resolution_atms_of rtranclp_resolution_finite resolution_finite)
-  using resolution_atms_of rtranclp_resolution_finite by (metis (no_types, hide_lams) fst_conv subsetCE)
+  using assms apply (induct rule: rtranclp.induct)
+  using resolution_atms_of rtranclp_resolution_finite by blast+
 
 lemma resolution_include:
   assumes res: "resolution \<psi> \<psi>'" and finite: "finite (fst \<psi>)"
@@ -1162,19 +1177,26 @@ lemma resolution_include:
 proof -
   have finite': "finite (fst \<psi>')" using local.finite res resolution_finite by blast
   have "simplified (fst \<psi>')" using res finite' resolution_always_simplified by blast
-  hence "fst \<psi>' \<subseteq> build_all_simple_clss (atms_of_m (fst \<psi>'))" using simplified_in_build_all finite' simplified_imp_distinct_mset_tauto[of "fst \<psi>'"] by auto
-  moreover have "atms_of_m (fst \<psi>') \<subseteq> atms_of_m (fst \<psi>)" using res finite resolution_atms_of[of \<psi> \<psi>'] by auto
-  ultimately show ?thesis by (meson atms_of_m_finite local.finite order.trans rev_finite_subset build_all_simple_clss_mono)
+  hence "fst \<psi>' \<subseteq> build_all_simple_clss (atms_of_m (fst \<psi>'))"
+    using simplified_in_build_all finite' simplified_imp_distinct_mset_tauto[of "fst \<psi>'"] by auto
+  moreover have "atms_of_m (fst \<psi>') \<subseteq> atms_of_m (fst \<psi>)"
+    using res finite resolution_atms_of[of \<psi> \<psi>'] by auto
+  ultimately show ?thesis by (meson atms_of_m_finite local.finite order.trans rev_finite_subset
+    build_all_simple_clss_mono)
 qed
 
 lemma rtranclp_resolution_include:
   assumes res: "tranclp resolution \<psi> \<psi>'" and finite: "finite (fst \<psi>)"
   shows "fst \<psi>' \<subseteq> build_all_simple_clss (atms_of_m (fst \<psi>))"
   using assms apply (induct rule: tranclp.induct)
-  apply (auto simp add: resolution_include)
-  by (metis (no_types, lifting) atms_of_m_finite build_all_simple_clss_finite build_all_simple_clss_mono finite_subset fst_conv resolution_include set_rev_mp rtranclp_resolution_atms_of tranclp_into_rtranclp)
+    apply (simp add: resolution_include)
+  by (meson atms_of_m_finite build_all_simple_clss_finite build_all_simple_clss_mono finite_subset
+    resolution_include rtranclp_resolution_atms_of set_rev_mp subsetI tranclp_into_rtranclp)
 
-abbreviation "already_used_all_simple already_used vars \<equiv> (\<forall> (A, B) \<in> already_used. simplified {A} \<and> simplified {B} \<and> atms_of A \<subseteq> vars \<and> atms_of B \<subseteq> vars)"
+abbreviation already_used_all_simple
+  :: "('a literal multiset \<times> 'a literal multiset) set \<Rightarrow> 'a set \<Rightarrow> bool" where
+"already_used_all_simple already_used vars \<equiv>
+(\<forall> (A, B) \<in> already_used. simplified {A} \<and> simplified {B} \<and> atms_of A \<subseteq> vars \<and> atms_of B \<subseteq> vars)"
 
 lemma already_used_all_simple_vars_incl:
   assumes "vars \<subseteq> vars'"
@@ -1196,11 +1218,14 @@ next
   show ?case apply clarify
     proof -
       fix A B v
-      assume "(A, B) \<in>  snd (fst (N, already_used) \<union> {fst (C + D, already_used \<union> {({#Pos P#} + C, {#Neg P#} + D)})}, snd (C + D, already_used \<union> {({#Pos P#} + C, {#Neg P#} + D)}))"
+      assume "(A, B) \<in> snd (fst (N, already_used)
+        \<union> {fst (C + D, already_used \<union> {({#Pos P#} + C, {#Neg P#} + D)})},
+           snd (C + D, already_used \<union> {({#Pos P#} + C, {#Neg P#} + D)}))"
       hence "(A, B) \<in> already_used \<or> (A, B) = ({#Pos P#} + C, {#Neg P#} + D)" by auto
       moreover {
         assume "(A, B) \<in> already_used"
-        hence "simplified {A} \<and> simplified {B} \<and> atms_of A \<subseteq> vars \<and> atms_of B \<subseteq> vars" using H(4) by auto
+        hence "simplified {A} \<and> simplified {B} \<and> atms_of A \<subseteq> vars \<and> atms_of B \<subseteq> vars"
+          using H(4) by auto
       }
       moreover {
         assume eq: "(A, B) = ({#Pos P#} + C, {#Neg P#} + D)"
@@ -1208,9 +1233,11 @@ next
         moreover have "simplified {B}" using eq simplified_in H(2,5) by auto
         moreover have "atms_of A \<subseteq> atms_of_m N" using eq H(1) atms_of_atms_of_m_mono[of A N] by auto
         moreover have "atms_of B \<subseteq> atms_of_m N" using eq H(2) atms_of_atms_of_m_mono[of B N] by auto
-        ultimately have "simplified {A} \<and> simplified {B} \<and> atms_of A \<subseteq> vars \<and> atms_of B \<subseteq> vars" using H(6) by auto
+        ultimately have "simplified {A} \<and> simplified {B} \<and> atms_of A \<subseteq> vars \<and> atms_of B \<subseteq> vars"
+          using H(6) by auto
       }
-      ultimately show "simplified {A} \<and> simplified {B} \<and> atms_of A \<subseteq> vars \<and> atms_of B \<subseteq> vars" by auto
+      ultimately show "simplified {A} \<and> simplified {B} \<and> atms_of A \<subseteq> vars \<and> atms_of B \<subseteq> vars"
+        by fast
     qed
 qed
 
@@ -1223,7 +1250,9 @@ lemma inference_preserves_already_used_all_simple:
   using assms
 proof (induct rule: inference.induct)
   case (inference_step S clause already_used)
-  thus ?case using inference_clause_preserves_already_used_all_simple[of S "(clause, already_used)" vars] by auto
+  thus ?case
+    using inference_clause_preserves_already_used_all_simple[of S "(clause, already_used)" vars]
+    by auto
 qed
 
 lemma already_used_all_simple_inv:
@@ -1237,7 +1266,8 @@ proof (induct rule: resolution.induct)
   thus ?case by simp
 next
   case (inferring N already_used N' already_used' N'')
-  thus "already_used_all_simple (snd (N'', already_used')) vars" using inference_preserves_already_used_all_simple[of "(N, already_used)"] by simp
+  thus "already_used_all_simple (snd (N'', already_used')) vars"
+    using inference_preserves_already_used_all_simple[of "(N, already_used)"] by simp
 qed
 
 lemma rtranclp_already_used_all_simple_inv:
@@ -1251,9 +1281,11 @@ proof (induct rule: rtranclp.induct)
   case (rtrancl_refl)
   thus ?case by simp
 next
-  case (rtrancl_into_rtrancl \<psi> \<psi>' \<psi>'') note infstar = this(1) and IH = this and res = this(3) and already = this(4) and atms = this(5) and finite = this(6)
+  case (rtrancl_into_rtrancl \<psi> \<psi>' \<psi>'') note infstar = this(1) and IH = this and res = this(3) and
+    already = this(4) and atms = this(5) and finite = this(6)
   have "already_used_all_simple (snd \<psi>') vars" using IH already atms finite by simp
-  moreover have "atms_of_m (fst \<psi>') \<subseteq> atms_of_m (fst \<psi>)" by (simp add: infstar local.finite rtranclp_resolution_atms_of)
+  moreover have "atms_of_m (fst \<psi>') \<subseteq> atms_of_m (fst \<psi>)"
+    by (simp add: infstar local.finite rtranclp_resolution_atms_of)
   hence "atms_of_m (fst \<psi>') \<subseteq> vars" using atms by auto
   ultimately show ?case
   using already_used_all_simple_inv[OF res] by simp
@@ -1287,7 +1319,8 @@ lemma tranclp_resolution_simplified_already_used_subset:
   shows "snd S \<subset> snd S'"
   using assms apply (induct rule: tranclp.induct)
   using resolution_simplified_already_used_subset apply metis
-  by (meson tranclp_resolution_always_simplified resolution_simplified_already_used_subset less_trans)
+  by (meson tranclp_resolution_always_simplified resolution_simplified_already_used_subset
+    less_trans)
 
 abbreviation "already_used_top vars \<equiv> build_all_simple_clss vars \<times> build_all_simple_clss vars "
 
@@ -1299,9 +1332,15 @@ proof
   assume x_s: "x \<in> s"
   obtain A B where x: "x = (A, B)" by (case_tac x, auto)
   hence "simplified {A}" and "atms_of A \<subseteq> vars" using assms(1) x_s by fastforce+
-  hence A: "A \<in> build_all_simple_clss vars" using build_all_simple_clss_mono[of vars "atms_of A"] x assms(2) simplified_imp_distinct_mset_tauto[of "{A}"] distinct_mset_not_tautology_implies_in_build_all_simple_clss by fast
+  hence A: "A \<in> build_all_simple_clss vars"
+    using build_all_simple_clss_mono[of vars "atms_of A"] x assms(2)
+    simplified_imp_distinct_mset_tauto[of "{A}"]
+    distinct_mset_not_tautology_implies_in_build_all_simple_clss by fast
   moreover have "simplified {B}" and "atms_of B \<subseteq> vars" using assms(1) x_s x by fast+
-  hence B: "B \<in> build_all_simple_clss vars" using simplified_imp_distinct_mset_tauto[of "{B}"] distinct_mset_not_tautology_implies_in_build_all_simple_clss  build_all_simple_clss_mono[of vars "atms_of B"] x assms(2) by fast
+  hence B: "B \<in> build_all_simple_clss vars"
+    using simplified_imp_distinct_mset_tauto[of "{B}"]
+    distinct_mset_not_tautology_implies_in_build_all_simple_clss
+    build_all_simple_clss_mono[of vars "atms_of B"] x assms(2) by fast
   ultimately show "x \<in> build_all_simple_clss vars \<times> build_all_simple_clss vars" unfolding x by auto
 qed
 
@@ -1319,7 +1358,8 @@ lemma already_used_all_simple_finite:
   fixes s :: "('a::linorder literal multiset \<times> 'a literal multiset) set" and vars :: "'a set"
   assumes "already_used_all_simple s vars" and "finite vars"
   shows "finite s"
-  using assms  already_used_all_simple_in_already_used_top[OF assms(1)] rev_finite_subset[OF already_used_top_finite[of vars]] by auto
+  using assms already_used_all_simple_in_already_used_top[OF assms(1)]
+  rev_finite_subset[OF already_used_top_finite[of vars]] by auto
 
 abbreviation "card_simple vars \<psi> \<equiv> card (already_used_top vars - \<psi>)"
 
@@ -1336,12 +1376,20 @@ proof -
   let ?vars = "vars"
   let ?top = "build_all_simple_clss ?vars \<times> build_all_simple_clss ?vars"
   have 1: "card_simple vars (snd \<psi>) = card ?top - card (snd \<psi>)"
-    using card_Diff_subset finite_snd  already_used_all_simple_in_already_used_top[OF a_u_s] finite_v by metis
-  have a_u_s': "already_used_all_simple (snd \<psi>') vars" using already_used_all_simple_inv res a_u_s assms(7) by blast
+    using card_Diff_subset finite_snd  already_used_all_simple_in_already_used_top[OF a_u_s]
+    finite_v by metis
+  have a_u_s': "already_used_all_simple (snd \<psi>') vars"
+    using already_used_all_simple_inv res a_u_s assms(7) by blast
   have f: "finite (snd \<psi>')" using already_used_all_simple_finite a_u_s' finite_v by auto
-  have 2: "card_simple vars (snd \<psi>') = card ?top - card (snd \<psi>')" using card_Diff_subset[OF f] already_used_all_simple_in_already_used_top[OF a_u_s' finite_v] by auto
-  have "card (already_used_top vars) \<ge> card (snd \<psi>')" using already_used_all_simple_in_already_used_top[OF a_u_s' finite_v] card_mono[of "already_used_top vars" "snd \<psi>'"] already_used_top_finite[OF finite_v] by metis
-  thus ?thesis using  psubset_card_mono[OF f resolution_simplified_already_used_subset[OF res simp]] unfolding 1 2 by linarith
+  have 2: "card_simple vars (snd \<psi>') = card ?top - card (snd \<psi>')"
+    using card_Diff_subset[OF f] already_used_all_simple_in_already_used_top[OF a_u_s' finite_v]
+    by auto
+  have "card (already_used_top vars) \<ge> card (snd \<psi>')"
+    using already_used_all_simple_in_already_used_top[OF a_u_s' finite_v]
+    card_mono[of "already_used_top vars" "snd \<psi>'"] already_used_top_finite[OF finite_v] by metis
+  thus ?thesis
+    using  psubset_card_mono[OF f resolution_simplified_already_used_subset[OF res simp]]
+    unfolding 1 2 by linarith
 qed
 
 
@@ -1358,14 +1406,23 @@ proof (induct rule: tranclp.induct)
   case (r_into_trancl \<psi> \<psi>')
   thus ?case by (simp add: resolution_card_simple_decreasing)
 next
-  case (trancl_into_trancl \<psi> \<psi>' \<psi>'') note res = this(1) and res' = this(3) and a_u_s = this(5) and atms = this(6) and f_v = this(7) and f_fst = this(4) and H = this
+  case (trancl_into_trancl \<psi> \<psi>' \<psi>'') note res = this(1) and res' = this(3) and a_u_s = this(5) and
+    atms = this(6) and f_v = this(7) and f_fst = this(4) and H = this
   hence "card_simple vars (snd \<psi>') < card_simple vars (snd \<psi>)" by auto
-  moreover have a_u_s': "already_used_all_simple (snd \<psi>') vars" using rtranclp_already_used_all_simple_inv[OF tranclp_into_rtranclp[OF res] a_u_s atms f_fst] .
-  have "finite (fst \<psi>')" by (meson build_all_simple_clss_finite rev_finite_subset rtranclp_resolution_include trancl_into_trancl.hyps(1) trancl_into_trancl.prems(1))
+  moreover have a_u_s': "already_used_all_simple (snd \<psi>') vars"
+    using rtranclp_already_used_all_simple_inv[OF tranclp_into_rtranclp[OF res] a_u_s atms f_fst] .
+  have "finite (fst \<psi>')"
+    by (meson build_all_simple_clss_finite rev_finite_subset rtranclp_resolution_include
+      trancl_into_trancl.hyps(1) trancl_into_trancl.prems(1))
   moreover have "finite (snd \<psi>')" using already_used_all_simple_finite[OF a_u_s' f_v] .
   moreover have "simplified (fst \<psi>')" using res tranclp_resolution_always_simplified by blast
-  moreover have "atms_of_m (fst \<psi>') \<subseteq> vars" by (meson atms f_fst order.trans res rtranclp_resolution_atms_of tranclp_into_rtranclp)
-  ultimately show ?case using resolution_card_simple_decreasing[OF res' a_u_s' f_v] f_v less_trans[of "card_simple vars (snd \<psi>'')" "card_simple vars (snd \<psi>')" "card_simple vars (snd \<psi>)"] by blast
+  moreover have "atms_of_m (fst \<psi>') \<subseteq> vars"
+    by (meson atms f_fst order.trans res rtranclp_resolution_atms_of tranclp_into_rtranclp)
+  ultimately show ?case
+    using resolution_card_simple_decreasing[OF res' a_u_s' f_v] f_v
+    less_trans[of "card_simple vars (snd \<psi>'')" "card_simple vars (snd \<psi>')"
+      "card_simple vars (snd \<psi>)"]
+    by blast
 qed
 
 
@@ -1381,7 +1438,8 @@ proof -
   moreover have "atms_of_m (fst \<psi>) \<subseteq> ?vars" by auto
   moreover have finite_v: "finite ?vars" using finite_fst by auto
   moreover have finite_snd: "finite (snd \<psi>)" unfolding empty_snd by auto
-  ultimately show ?thesis using assms(1,2,4) tranclp_resolution_card_simple_decreasing[of \<psi> \<psi>'] by presburger
+  ultimately show ?thesis
+    using assms(1,2,4) tranclp_resolution_card_simple_decreasing[of \<psi> \<psi>'] by presburger
 qed
 
 subsubsection \<open>well-foundness if the relation\<close>
@@ -1389,37 +1447,54 @@ subsubsection \<open>well-foundness if the relation\<close>
 
 lemma wf_simplified_resolution:
   assumes f_vars: "finite vars"
-  shows "wf {(y:: 'v:: linorder state, x). (atms_of_m (fst x) \<subseteq> vars \<and> simplified (fst x) \<and> finite (snd x) \<and> finite (fst x) \<and> already_used_all_simple (snd x) vars) \<and> resolution x y}"
+  shows "wf {(y:: 'v:: linorder state, x). (atms_of_m (fst x) \<subseteq> vars \<and> simplified (fst x)
+    \<and> finite (snd x) \<and> finite (fst x) \<and> already_used_all_simple (snd x) vars) \<and> resolution x y}"
 proof -
   {
     fix a b :: "'v::linorder state"
-    assume " (b, a) \<in> {(y, x). (atms_of_m (fst x) \<subseteq> vars \<and> simplified (fst x) \<and> finite (snd x) \<and> finite (fst x) \<and> already_used_all_simple (snd x) vars) \<and> resolution x y}"
-    hence "atms_of_m (fst a) \<subseteq> vars" and simp: "simplified (fst a)" and "finite (snd a)" and "finite (fst a)" and a_u_v: "already_used_all_simple (snd a) vars" and res: "resolution a b" by auto
+    assume "(b, a) \<in> {(y, x). (atms_of_m (fst x) \<subseteq> vars \<and> simplified (fst x) \<and> finite (snd x)
+      \<and> finite (fst x) \<and> already_used_all_simple (snd x) vars) \<and> resolution x y}"
+    hence
+      "atms_of_m (fst a) \<subseteq> vars" and
+      simp: "simplified (fst a)" and
+      "finite (snd a)" and
+      "finite (fst a)" and
+      a_u_v: "already_used_all_simple (snd a) vars" and
+      res: "resolution a b" by auto
     have "finite (already_used_top vars)" using f_vars already_used_top_finite by blast
     moreover have "already_used_top vars \<subseteq> already_used_top vars" by auto
-    moreover have "snd b \<subseteq> already_used_top vars" using already_used_all_simple_in_already_used_top[of "snd b" vars] a_u_v already_used_all_simple_inv[OF res] \<open>finite (fst a)\<close> \<open>atms_of_m (fst a) \<subseteq> vars\<close> f_vars by presburger
+    moreover have "snd b \<subseteq> already_used_top vars"
+      using already_used_all_simple_in_already_used_top[of "snd b" vars]
+      a_u_v already_used_all_simple_inv[OF res] \<open>finite (fst a)\<close> \<open>atms_of_m (fst a) \<subseteq> vars\<close> f_vars
+      by presburger
     moreover have "snd a \<subset> snd b" using resolution_simplified_already_used_subset[OF res simp] .
-    ultimately have "finite (already_used_top vars) \<and> already_used_top vars \<subseteq> already_used_top vars \<and> snd b \<subseteq> already_used_top vars \<and> snd a \<subset> snd b" by metis
+    ultimately have "finite (already_used_top vars) \<and> already_used_top vars \<subseteq> already_used_top vars
+      \<and> snd b \<subseteq> already_used_top vars \<and> snd a \<subset> snd b" by metis
   }
-  thus ?thesis using wf_bounded_set[of "{(y:: 'v:: linorder state, x). (atms_of_m (fst x) \<subseteq> vars \<and> simplified (fst x) \<and> finite (snd x) \<and> finite (fst x)\<and> already_used_all_simple (snd x) vars) \<and> resolution x y}" "\<lambda>_. already_used_top vars" "snd"] by auto
+  thus ?thesis using wf_bounded_set[of "{(y:: 'v:: linorder state, x). (atms_of_m (fst x) \<subseteq> vars
+    \<and> simplified (fst x) \<and> finite (snd x) \<and> finite (fst x)\<and> already_used_all_simple (snd x) vars)
+    \<and> resolution x y}" "\<lambda>_. already_used_top vars" "snd"] by auto
 qed
 
 lemma wf_simplified_resolution':
   assumes f_vars: "finite vars"
-  shows "wf {(y:: 'v:: linorder state, x). (atms_of_m (fst x) \<subseteq> vars \<and> \<not>simplified (fst x) \<and> finite (snd x) \<and> finite (fst x) \<and> already_used_all_simple (snd x) vars) \<and> resolution x y}"
+  shows "wf {(y:: 'v:: linorder state, x). (atms_of_m (fst x) \<subseteq> vars \<and> \<not>simplified (fst x)
+    \<and> finite (snd x) \<and> finite (fst x) \<and> already_used_all_simple (snd x) vars) \<and> resolution x y}"
   unfolding wf_def
-   apply simp
+   apply (simp add: resolution_always_simplified)
   by (metis (mono_tags, hide_lams) fst_conv resolution_always_simplified)
 
 lemma wf_resolution:
   assumes f_vars: "finite vars"
-  shows "wf ({(y:: 'v:: linorder state, x). (atms_of_m (fst x) \<subseteq> vars \<and> simplified (fst x) \<and> finite (snd x) \<and> finite (fst x) \<and> already_used_all_simple (snd x) vars) \<and> resolution x y} \<union>
-        {(y, x). (atms_of_m (fst x) \<subseteq> vars \<and> \<not> simplified (fst x) \<and> finite (snd x) \<and> finite (fst x) \<and> already_used_all_simple (snd x) vars) \<and> resolution x y})"
+  shows "wf ({(y:: 'v:: linorder state, x). (atms_of_m (fst x) \<subseteq> vars \<and> simplified (fst x)
+        \<and> finite (snd x) \<and> finite (fst x) \<and> already_used_all_simple (snd x) vars) \<and> resolution x y}
+    \<union> {(y, x). (atms_of_m (fst x) \<subseteq> vars \<and> \<not> simplified (fst x) \<and> finite (snd x) \<and> finite (fst x)
+       \<and> already_used_all_simple (snd x) vars) \<and> resolution x y})" (is "wf (?R \<union> ?S)")
 proof -
-  let ?R = "{(y:: 'v:: linorder state, x). (atms_of_m (fst x) \<subseteq> vars \<and> simplified (fst x) \<and> finite (snd x) \<and> finite (fst x) \<and> already_used_all_simple (snd x) vars) \<and> resolution x y}"
-  let ?S = "{(y:: 'v:: linorder state, x). (atms_of_m (fst x) \<subseteq> vars \<and> \<not>simplified (fst x) \<and> finite (snd x) \<and> finite (fst x) \<and> already_used_all_simple (snd x) vars) \<and> resolution x y}"
   have "Domain ?R Int Range ?S = {}" using resolution_always_simplified by auto blast
-  thus "wf (?R \<union> ?S)" using wf_simplified_resolution[OF f_vars] wf_simplified_resolution'[OF f_vars] wf_Un[of ?R ?S] by fast
+  thus "wf (?R \<union> ?S)"
+    using wf_simplified_resolution[OF f_vars] wf_simplified_resolution'[OF f_vars] wf_Un[of ?R ?S]
+    by fast
 qed
 
 lemma rtrancp_simplify_already_used_inv:
@@ -1433,7 +1508,8 @@ lemma full_simplify_already_used_inv:
   assumes "full_simplifier S S'"
   and "already_used_inv (S, N)"
   shows "already_used_inv (S', N)"
-  using assms tranclp_into_rtranclp[of simplify S S'] rtrancp_simplify_already_used_inv unfolding full_simplifier_def by fast
+  using assms tranclp_into_rtranclp[of simplify S S'] rtrancp_simplify_already_used_inv
+  unfolding full_simplifier_def by fast
 
 lemma full0_simplify_already_used_inv:
   assumes "full0_simplifier S S'"
@@ -1449,9 +1525,11 @@ proof (induction)
   case (full_simp N N' already_used)
   thus ?case using full_simplify_already_used_inv by fast
 next
-  case (inferring N already_used N' already_used' N''') note inf = this(1) and full = this(3) and a_u_v = this(4)
+  case (inferring N already_used N' already_used' N''') note inf = this(1) and full = this(3) and
+    a_u_v = this(4)
   thus ?case
-    using inference_preserves_already_used_inv[OF inf a_u_v] full0_simplify_already_used_inv full by fast
+    using inference_preserves_already_used_inv[OF inf a_u_v] full0_simplify_already_used_inv full
+    by fast
 qed
 
 lemma rtranclp_resolution_already_used_inv:
@@ -1470,7 +1548,8 @@ lemma rtanclp_simplifier_preserves_unsat:
 lemma full_simplifier_preserves_unsat:
   assumes "full_simplifier \<psi> \<psi>'"
   shows "satisfiable \<psi>' \<longrightarrow> satisfiable \<psi>"
-  using assms rtanclp_simplifier_preserves_unsat[of \<psi> \<psi>'] tranclp_into_rtranclp unfolding full_simplifier_def by metis
+  using assms rtanclp_simplifier_preserves_unsat[of \<psi> \<psi>'] tranclp_into_rtranclp
+  unfolding full_simplifier_def by metis
 
 lemma full0_simplifier_preserves_unsat:
   assumes "full0_simplifier \<psi> \<psi>'"
@@ -1501,13 +1580,15 @@ lemma full_simplifier_preserve_partial_tree:
   assumes "full_simplifier N N'"
   and "partial_interps t I N"
   shows "partial_interps t I N'"
-  using assms  rtranclp_simplifier_preserve_partial_tree[of N N' t I] tranclp_into_rtranclp unfolding full_simplifier_def by fast
+  using assms rtranclp_simplifier_preserve_partial_tree[of N N' t I] tranclp_into_rtranclp
+  unfolding full_simplifier_def by fast
 
 lemma full0_simplifier_preserve_partial_tree:
   assumes "full0_simplifier N N'"
   and "partial_interps t I N"
   shows "partial_interps t I N'"
-  using assms rtranclp_simplifier_preserve_partial_tree[of N N' t I] tranclp_into_rtranclp unfolding full0_simplifier_def by fast
+  using assms rtranclp_simplifier_preserve_partial_tree[of N N' t I] tranclp_into_rtranclp
+  unfolding full0_simplifier_def by fast
 
 lemma resolution_preserve_partial_tree:
   assumes "resolution S S'"
@@ -1537,14 +1618,6 @@ lemma wf_always_more_step_False:
   shows "(\<forall>x. \<exists>z. (z, x)\<in>R) \<Longrightarrow> False"
  using assms unfolding wf_def by (meson Domain.DomainI assms wfE_min)
 
-(* TODO Move*)
-lemma wfP_if_measure: fixes f :: "'a \<Rightarrow> nat"
-shows "(\<And>x y. P x \<Longrightarrow> g x y  \<Longrightarrow> f y < f x) \<Longrightarrow> wf {(y,x). P x \<and> g x y}"
-  apply(insert wf_measure[of f])
-  apply(simp only: measure_def inv_image_def less_than_def less_eq)
-  apply(erule wf_subset)
-  apply auto
-  done
 lemma finite_finite_mset_element_of_mset[simp]:
   assumes "finite N"
   shows "finite {f \<phi> L |\<phi> L. \<phi> \<in> N \<and> L \<in># \<phi> \<and> P \<phi> L}"
@@ -1554,7 +1627,8 @@ proof (induction N rule: finite_induct)
   show ?case by auto
 next
   case (insert x N) note finite = this(1) and IH = this(3)
-  have "{f \<phi> L |\<phi> L. (\<phi> = x \<or> \<phi> \<in> N) \<and> L \<in># \<phi> \<and> P \<phi> L} \<subseteq> {f x L | L. L \<in># x \<and> P x L} \<union> {f \<phi> L |\<phi> L. \<phi> \<in> N \<and> L \<in># \<phi> \<and> P \<phi> L}" by auto
+  have "{f \<phi> L |\<phi> L. (\<phi> = x \<or> \<phi> \<in> N) \<and> L \<in># \<phi> \<and> P \<phi> L} \<subseteq> {f x L | L. L \<in># x \<and> P x L}
+    \<union> {f \<phi> L |\<phi> L. \<phi> \<in> N \<and> L \<in># \<phi> \<and> P \<phi> L}" by auto
   moreover have "finite {f x L | L. L \<in># x}" by auto
   ultimately show ?case using IH finite_subset by fastforce
 qed
@@ -1576,14 +1650,17 @@ definition sum_count_ge_2 :: "'a multiset set \<Rightarrow> nat" ("\<Xi>") where
 "sum_count_ge_2 \<equiv>folding.F (\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0"
 
 
-interpretation sum_count_ge_2!: folding "(\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#}))" 0
+interpretation sum_count_ge_2:
+  folding "(\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#}))" 0
 rewrites
   "folding.F (\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0 = sum_count_ge_2"
 proof -
   show "folding (\<lambda>\<phi>. op + (msetsum (image_mset (count \<phi>) {# L :# \<phi>. 2 \<le> count \<phi> L#})))"
     by standard auto
-  then interpret sum_count_ge_2!: folding "(\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#}))" 0 .
-  show "folding.F (\<lambda>\<phi>. op + (msetsum (image_mset (count \<phi>) {# L :# \<phi>. 2 \<le> count \<phi> L#}))) 0 = sum_count_ge_2" by (auto simp add: sum_count_ge_2_def)
+  then interpret sum_count_ge_2:
+    folding "(\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#}))" 0 .
+  show "folding.F (\<lambda>\<phi>. op + (msetsum (image_mset (count \<phi>) {# L :# \<phi>. 2 \<le> count \<phi> L#}))) 0
+    = sum_count_ge_2" by (auto simp add: sum_count_ge_2_def)
 qed
 
 lemma finite_incl_le_setsum:
@@ -1610,23 +1687,27 @@ next
            hence "\<Xi> F = \<Xi> (A - {a}) + nn (\<Xi> F) (\<Xi> (A - {a}))"
              using Nat.le_iff_add \<open>\<Xi> (A - {a}) \<le> \<Xi> F\<close> by presburger
            thus ?thesis
-             by (metis (no_types) Nat.le_iff_add aA aF add.assoc finite.insertI finite_subset insert.prems local.finite sum_count_ge_2.insert sum_count_ge_2.remove)
+             by (metis (no_types) Nat.le_iff_add aA aF add.assoc finite.insertI finite_subset
+               insert.prems local.finite sum_count_ge_2.insert sum_count_ge_2.remove)
          qed
     qed
 qed
 
 lemma mset_condensation1:
-  "{# La :# A + {#L#}. 2 \<le> count (A +  {#L#}) La#} = {# La :# A. La \<noteq> L \<and>  2 \<le> count A La#} #\<union> (if count A L \<ge> 1 then replicate_mset (count A L + 1) L else {#})"
+  "{# La :# A + {#L#}. 2 \<le> count (A +  {#L#}) La#} = {# La :# A. La \<noteq> L \<and>  2 \<le> count A La#}
+    #\<union> (if count A L \<ge> 1 then replicate_mset (count A L + 1) L else {#})"
    by (auto intro: multiset_eqI)
 lemma mset_condensation2:
-  "{# La :# A + {#L#}+  {#L#}. 2 \<le> count (A +  {#L#}+  {#L#}) La#} = {# La :# A. La \<noteq> L \<and>  2 \<le> count A La#} #\<union> (replicate_mset (count A L + 2) L)"
+  "{# La :# A + {#L#}+  {#L#}. 2 \<le> count (A +  {#L#}+  {#L#}) La#} = {# La :# A. La \<noteq> L \<and>
+  2 \<le> count A La#} #\<union> (replicate_mset (count A L + 2) L)"
    by (auto intro: multiset_eqI)
 
 lemma msetsum_disjoint:
   assumes "A #\<inter> B = {#}"
   shows "(\<Sum>La\<in>#A #\<union> B. f La) =
     (\<Sum>La\<in>#A. f La) + (\<Sum>La\<in>#B. f La)"
-  by (metis assms diff_zero empty_sup image_mset_union  msetsum.union multiset_inter_commute multiset_union_diff_commute sup_subset_mset_def zero_diff)
+  by (metis assms diff_zero empty_sup image_mset_union  msetsum.union multiset_inter_commute
+    multiset_union_diff_commute sup_subset_mset_def zero_diff)
 
 lemma simplify_finite_measure_decrease:
   "simplify N N' \<Longrightarrow> finite N \<Longrightarrow> card N' + \<Xi> N' < card N + \<Xi> N"
@@ -1644,48 +1725,94 @@ next
   let ?C = "A + {#L#} + {#L#}"
   let ?N' = "N - {?C} \<union> {?C'}"
   have "card ?N' \<le> card N"
-    using AN by (metis (no_types, lifting) Diff_subset Un_empty_right Un_insert_right card.remove card_insert_if card_mono fin finite_Diff order_refl)
+    using AN by (metis (no_types, lifting) Diff_subset Un_empty_right Un_insert_right card.remove
+      card_insert_if card_mono fin finite_Diff order_refl)
   moreover have "\<Xi> {?C'} < \<Xi> {?C}"
-   proof -
-     have 1: "(\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#} #\<union> (if 1 \<le> count A L then replicate_mset (count A L + 1) L else {#}). count A La + (if L = La then 1 else 0)) = (\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}. count A La + (if L = La then 1 else 0)) + (\<Sum>La\<in>#(if 1 \<le> count A L then replicate_mset (count A L + 1) L else {#}). count A La + (if L = La then 1 else 0))"
-       (is "_ = (\<Sum> La \<in># ?A. ?f La) + ( \<Sum> La \<in># ?B. _)")
-       apply (rule msetsum_disjoint[of ?A ?B ?f])
-       by (auto intro: multiset_eqI)
-     moreover have 2: "(\<Sum>La\<in>#(if 1 \<le> count A L then replicate_mset (count A L + 1) L else {#}). count A La + (if L = La then 1 else 0)) = (if 1 \<le> count A L then count A L * (count A L + 2)+1 else 0)"
-       by auto
-     moreover have "2'": "(\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}. count A La + (if L = La then 1 else 0)) = (\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}. count A La)"
-       proof -
-         obtain ll :: "('a literal \<Rightarrow> nat) \<Rightarrow> ('a literal \<Rightarrow> nat) \<Rightarrow> 'a literal multiset \<Rightarrow> 'a literal" where
-           "\<forall>x0 x1 x2. (\<exists>v3. v3 \<in># x2 \<and> x1 v3 \<noteq> x0 v3) = (ll x0 x1 x2 \<in># x2 \<and> x1 (ll x0 x1 x2) \<noteq> x0 (ll x0 x1 x2))"
-           by moura
-         hence f1: "\<forall>m f fa. ll fa f m \<in># m \<and> f (ll fa f m) \<noteq> fa (ll fa f m) \<or> image_mset f m = image_mset fa m"
-           by (meson image_mset_cong)
-         have "ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} \<notin># {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} \<or> count A (ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#}) + (if L = ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} then 1 else 0) = count A (ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#})"
-           by (simp add:)
-         thus ?thesis
-           using f1 by (metis (no_types, lifting))
-       qed
-     moreover have 3: "(\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#} #\<union> replicate_mset (count A L + 2) L. count A La + (if L = La then 1 else 0) + (if L = La then 1 else 0)) = (\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}. count A La + (if L = La then 1 else 0) + (if L = La then 1 else 0)) + (\<Sum>La\<in>#replicate_mset (count A L + 2) L. count A La + (if L = La then 1 else 0) + (if L = La then 1 else 0))"  (is "_ = (\<Sum> La \<in># ?A. ?f La) + (\<Sum> La \<in># ?B. _)")
-       apply (rule msetsum_disjoint[of ?A ?B ?f])
-       by (auto intro: multiset_eqI)
-     moreover have 4: "(\<Sum>La\<in>#replicate_mset (count A L + 2) L. count A La + (if L = La then 1 else 0) + (if L = La then 1 else 0)) = 4 + count A L *(count A L + 4)" by (simp add: algebra_simps)
-     moreover have "4'": "(\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}. count A La + (if L = La then 1 else 0) + (if L = La then 1 else 0)) = (\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}. count A La)"
-       proof -
-         obtain ll :: "('a literal \<Rightarrow> nat) \<Rightarrow> ('a literal \<Rightarrow> nat) \<Rightarrow> 'a literal multiset \<Rightarrow> 'a literal" where
-           "\<forall>x0 x1 x2. (\<exists>v3. v3 \<in># x2 \<and> x1 v3 \<noteq> x0 v3) = (ll x0 x1 x2 \<in># x2 \<and> x1 (ll x0 x1 x2) \<noteq> x0 (ll x0 x1 x2))"
-           by moura
-         hence f1: "\<forall>m f fa. ll fa f m \<in># m \<and> f (ll fa f m) \<noteq> fa (ll fa f m) \<or> image_mset f m = image_mset fa m"
-           by (meson image_mset_cong)
-         have "ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0) + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} \<notin># {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} \<or> count A (ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0) + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#}) + (if L = ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0) + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} then 1 else 0) + (if L = ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0) + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} then 1 else 0) = count A (ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0) + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#})"
-           by simp
-         thus ?thesis
-           using f1 by (metis (no_types, lifting)) (* > 1.0 s, timed out *)
-       qed
-    show ?thesis
-      apply (simp)
-      unfolding mset_condensation2 unfolding mset_condensation1
-      unfolding 1 2 "2'" 3 4 "4'"
-      by (auto simp add: algebra_simps)
+    proof -
+      have 1: "(\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}
+                      #\<union> (if 1 \<le> count A L then replicate_mset (count A L + 1) L else {#}).
+                 count A La + (if L = La then 1 else 0))
+        = (\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}. count A La + (if L = La then 1 else 0))
+        + (\<Sum>La\<in>#(if 1 \<le> count A L then replicate_mset (count A L + 1) L else {#}).
+               count A La + (if L = La then 1 else 0))"
+        (is "_ = (\<Sum> La \<in># ?A. ?f La) + ( \<Sum> La \<in># ?B. _)")
+        apply (rule msetsum_disjoint[of ?A ?B ?f])
+        by (auto intro: multiset_eqI)
+      moreover have 2: "(\<Sum>La\<in>#(if 1 \<le> count A L then replicate_mset (count A L + 1) L else {#}).
+          count A La + (if L = La then 1 else 0))
+        = (if 1 \<le> count A L then count A L * (count A L + 2)+1 else 0)"
+        by auto
+      moreover have "2'":
+        "(\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}. count A La + (if L = La then 1 else 0))
+        = (\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}. count A La)"
+        proof -
+          obtain ll :: "('a literal \<Rightarrow> nat) \<Rightarrow> ('a literal \<Rightarrow> nat) \<Rightarrow> 'a literal multiset
+            \<Rightarrow> 'a literal" where
+            "\<forall>x0 x1 x2. (\<exists>v3. v3 \<in># x2 \<and> x1 v3 \<noteq> x0 v3)
+              = (ll x0 x1 x2 \<in># x2 \<and> x1 (ll x0 x1 x2) \<noteq> x0 (ll x0 x1 x2))"
+            by moura
+          hence f1: "\<forall>m f fa. ll fa f m \<in># m \<and> f (ll fa f m) \<noteq> fa (ll fa f m)
+            \<or> image_mset f m = image_mset fa m"
+            by (meson image_mset_cong)
+          have "ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0))
+            {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} \<notin># {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#}
+            \<or> count A (ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0))
+              {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#})
+              + (if L = ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0))
+                {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} then 1 else 0)
+                = count A (ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0))
+                {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#})"
+            by simp
+          thus ?thesis
+            using f1 by (metis (no_types, lifting))
+        qed
+      moreover have 3: "(\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}
+                              #\<union> replicate_mset (count A L + 2) L.
+                           count A La + (if L = La then 1 else 0) + (if L = La then 1 else 0))
+                       = (\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}.
+                             count A La + (if L = La then 1 else 0) + (if L = La then 1 else 0))
+                       + (\<Sum>La\<in>#replicate_mset (count A L + 2) L.
+                            count A La + (if L = La then 1 else 0) + (if L = La then 1 else 0))"
+                       (is "_ = (\<Sum> La \<in># ?A. ?f La) + (\<Sum> La \<in># ?B. _)")
+        apply (rule msetsum_disjoint[of ?A ?B ?f])
+        by (auto intro: multiset_eqI)
+      moreover
+        have 4:  "(\<Sum>La\<in>#replicate_mset (count A L + 2) L. count A La + (if L = La then 1 else 0)
+            + (if L = La then 1 else 0))
+          = 4 + count A L *(count A L + 4)"
+          by (simp add: algebra_simps)
+      moreover
+        have "4'": "(\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}.
+            count A La + (if L = La then 1 else 0) + (if L = La then 1 else 0))
+          = (\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}. count A La)"
+          proof -
+            obtain ll :: "('a literal \<Rightarrow> nat) \<Rightarrow> ('a literal \<Rightarrow> nat) \<Rightarrow> 'a literal multiset
+              \<Rightarrow> 'a literal" where
+              "\<forall>x0 x1 x2. (\<exists>v3. v3 \<in># x2 \<and> x1 v3 \<noteq> x0 v3)
+                = (ll x0 x1 x2 \<in># x2 \<and> x1 (ll x0 x1 x2) \<noteq> x0 (ll x0 x1 x2))"
+              by moura
+            hence f1: "\<forall>m f fa. ll fa f m \<in># m \<and> f (ll fa f m) \<noteq> fa (ll fa f m)
+              \<or> image_mset f m = image_mset fa m"
+              by (meson image_mset_cong)
+            have "ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0) + (if L = l then 1 else 0))
+                {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} \<notin># {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#}
+              \<or> count A (ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0)
+                  + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#})
+                  + (if L = ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0)
+                  + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} then 1 else 0)
+                  + (if L = ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0)
+                  + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} then 1 else 0)
+                = count A (ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0)
+                  + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#})"
+              by simp
+            thus ?thesis
+              using f1 by (metis (no_types, lifting))
+          qed
+      show ?thesis
+        apply (simp)
+        unfolding mset_condensation2 unfolding mset_condensation1
+        unfolding 1 2 "2'" 3 4 "4'"
+        by (auto simp add: algebra_simps)
    qed
   have "\<Xi> ?N' < \<Xi> N"
     proof (cases)
@@ -1703,19 +1830,25 @@ next
           have "\<And>m M. insert (m::'a literal multiset) M = M \<union> {} \<or> m \<notin> M"
             using f3 f2 Un_empty_right add.right_neutral insert_iff by fastforce
           hence "\<Xi> (N - {A + {#L#} + {#L#}}) < \<Xi> N"
-            using f5 f4 by (metis Un_empty_right \<open>\<Xi> {A + {#L#}} < \<Xi> {A + {#L#} + {#L#}}\<close> add.right_neutral add_diff_cancel_left' add_gr_0 diff_less fin finite.emptyI not_le sum_count_ge_2.empty sum_count_ge_2.insert_remove trans_le_add2) (* 1.0 s *)
+            using f5 f4 by (metis Un_empty_right \<open>\<Xi> {A + {#L#}} < \<Xi> {A + {#L#} + {#L#}}\<close>
+              add.right_neutral add_diff_cancel_left' add_gr_0 diff_less fin finite.emptyI not_le
+              sum_count_ge_2.empty sum_count_ge_2.insert_remove trans_le_add2)
           thus ?thesis
-            using f3 f2 a1 by (metis (no_types) Un_empty_right Un_insert_right condensation.hyps insert_iff multi_self_add_other_not_self)
+            using f3 f2 a1 by (metis (no_types) Un_empty_right Un_insert_right condensation.hyps
+              insert_iff multi_self_add_other_not_self)
         qed
     next
       assume "?C' \<notin> N"
-      thus ?thesis using \<open>\<Xi> {A + {#L#}} < \<Xi> {A + {#L#} + {#L#}}\<close> condensation.hyps fin sum_count_ge_2.remove by fastforce
+      thus ?thesis
+        using \<open>\<Xi> {A + {#L#}} < \<Xi> {A + {#L#} + {#L#}}\<close> condensation.hyps fin sum_count_ge_2.remove
+        by fastforce
     qed
   ultimately show ?case by linarith
 next
   case (subsumption A B) note AN = this(1) and AB = this(2) and BN = this(3) and fin = this(4)
   have "card (N - {B}) < card N" using BN by (meson card_Diff1_less subsumption.prems)
-  moreover have "\<Xi> (N - {B}) \<le> \<Xi> N" by (simp add: Diff_subset finite_incl_le_setsum subsumption.prems)
+  moreover have "\<Xi> (N - {B}) \<le> \<Xi> N"
+    by (simp add: Diff_subset finite_incl_le_setsum subsumption.prems)
   ultimately show ?case by linarith
 qed
 
@@ -1752,17 +1885,6 @@ proof -
   thus "?P N" by blast
 qed
 
-lemmas wfP_terminates = wf_terminates [to_pred]
-lemma wf_terminates':
-  assumes wf: "wf {(b, a). (a, b) \<in> r \<and> P a}"
-  shows "\<exists>N'.(N', N)\<in> {(b, a). (a, b) \<in> r \<and> P a}\<^sup>*  \<and> (\<forall>N''. (N'', N')\<notin> {(b, a). (a, b) \<in> r \<and> P a})"
-  using assms by (blast intro: Propo_Resolution.wf_terminates)
-
-lemma wfP_terminates':
-  assumes wf: "wf {(b, a). r a b  \<and> P a}"
-  shows "\<exists>N'.(N', N) \<in> {(b, a). r a b \<and> P a}\<^sup>*  \<and> (\<forall>N''. (N'', N')\<notin> {(b, a). r a b \<and> P a})"
-  using assms by (blast intro: Propo_Resolution.wf_terminates)
-
 lemma rtranclp_simplify_terminates:
   assumes fin: "finite N"
   shows "\<exists>N'. simplify\<^sup>*\<^sup>* N N' \<and> simplified N'"
@@ -1772,7 +1894,7 @@ proof -
     using simplify_terminates by (simp add: H)
   obtain N' where N': "(N', N)\<in> {(b, a). simplify a b \<and> finite a}\<^sup>*" and
     more: "(\<forall>N''. (N'', N')\<notin> {(b, a). simplify a b \<and> finite a})"
-    using wfP_terminates'[OF wf, of N] by blast
+    using  Propo_Resolution.wf_terminates[OF wf, of N] by blast
   have 1: "simplify\<^sup>*\<^sup>* N N'"
     using N' by (induction rule: rtrancl.induct) auto
   hence "finite N'" using fin rtranclp_simplifier_preserves_finite by blast
@@ -1784,23 +1906,25 @@ qed
 lemma finite_simplified_full_simp:
   assumes "finite N"
   shows "simplified N \<or> (\<exists>N'. full_simplifier N N')"
-  using rtranclp_simplify_terminates[OF assms] unfolding full_simplifier_def by (metis Nitpick.rtranclp_unfold)
+  using rtranclp_simplify_terminates[OF assms] unfolding full_simplifier_def
+  by (metis Nitpick.rtranclp_unfold)
 
 lemma finite_simplified_full0_simp:
   assumes "finite N"
   shows "\<exists>N'. full0_simplifier N N'"
   using rtranclp_simplify_terminates[OF assms] unfolding full0_simplifier_def by metis
 
-
 lemma can_decrease_tree_size_resolution:
   fixes \<psi> :: "'v state" and tree :: "'v sem_tree"
   assumes "finite (fst \<psi>)" and "already_used_inv \<psi>"
   and "partial_interps tree I (fst \<psi>)"
   and "simplified (fst \<psi>)"
-  shows "\<exists>(tree':: 'v sem_tree) \<psi>'. resolution\<^sup>*\<^sup>* \<psi> \<psi>' \<and> partial_interps tree' I (fst \<psi>') \<and> (sem_tree_size tree' < sem_tree_size tree \<or> sem_tree_size tree = 0)"
+  shows "\<exists>(tree':: 'v sem_tree) \<psi>'. resolution\<^sup>*\<^sup>* \<psi> \<psi>' \<and> partial_interps tree' I (fst \<psi>')
+    \<and> (sem_tree_size tree' < sem_tree_size tree \<or> sem_tree_size tree = 0)"
   using assms
 proof (induct arbitrary: I rule: sem_tree_size)
-  case (bigger xs I) note IH = this(1) and finite = this(2) and a_u_i = this(3) and part = this(4) and simp = this(5)
+  case (bigger xs I) note IH = this(1) and finite = this(2) and a_u_i = this(3) and part = this(4)
+    and simp = this(5)
 
   { assume "sem_tree_size xs = 0"
     hence ?case using part by blast
@@ -1813,14 +1937,21 @@ proof (induct arbitrary: I rule: sem_tree_size)
        assume "sem_tree_size ag = 0 \<and> sem_tree_size ad = 0"
        hence ag: "ag = Leaf" and ad: "ad = Leaf" by (case_tac ag,  auto, case_tac ad,  auto)
 
-       then obtain \<chi> \<chi>' where \<chi>: "\<not> I \<union> {Pos v} \<Turnstile> \<chi>" and tot\<chi>: "total_over_m (I \<union> {Pos v}) {\<chi>}" and \<chi>\<psi>: "\<chi> \<in> fst \<psi>" and \<chi>': "\<not> I \<union> {Neg v} \<Turnstile> \<chi>'"  and tot\<chi>': "total_over_m (I \<union> {Neg v}) {\<chi>'}" and \<chi>'\<psi>: "\<chi>' \<in> fst \<psi>"
+       then obtain \<chi> \<chi>' where
+         \<chi>: "\<not> I \<union> {Pos v} \<Turnstile> \<chi>" and
+         tot\<chi>: "total_over_m (I \<union> {Pos v}) {\<chi>}" and
+         \<chi>\<psi>: "\<chi> \<in> fst \<psi>" and
+         \<chi>': "\<not> I \<union> {Neg v} \<Turnstile> \<chi>'"  and
+         tot\<chi>': "total_over_m (I \<union> {Neg v}) {\<chi>'}" and \<chi>'\<psi>: "\<chi>' \<in> fst \<psi>"
          using part unfolding xs by auto
        have Posv: "Pos v \<notin># \<chi>" using \<chi> unfolding true_cls_def true_lit_def by auto
        have Negv: "Neg v \<notin># \<chi>'" using \<chi>' unfolding true_cls_def true_lit_def by auto
        {
          assume Neg\<chi>: "\<not>Neg v \<in># \<chi>"
          hence "\<not> I \<Turnstile> \<chi>" using \<chi> Posv unfolding true_cls_def true_lit_def by auto
-         moreover have "total_over_m I {\<chi>}" using Posv Neg\<chi> atm_imp_pos_or_neg_lit tot\<chi> unfolding total_over_m_def total_over_set_def by fastforce
+         moreover have "total_over_m I {\<chi>}"
+           using Posv Neg\<chi> atm_imp_pos_or_neg_lit tot\<chi> unfolding total_over_m_def total_over_set_def
+           by fastforce
          ultimately have "partial_interps Leaf I (fst \<psi>)"
          and "sem_tree_size Leaf < sem_tree_size xs"
          and "resolution\<^sup>*\<^sup>* \<psi> \<psi>"
@@ -1829,15 +1960,21 @@ proof (induct arbitrary: I rule: sem_tree_size)
        moreover {
           assume Pos\<chi>: "\<not>Pos v \<in># \<chi>'"
           hence I\<chi>: "\<not> I \<Turnstile> \<chi>'" using \<chi>' Posv unfolding true_cls_def true_lit_def by auto
-          moreover have "total_over_m I {\<chi>'}" using Negv Pos\<chi> atm_imp_pos_or_neg_lit tot\<chi>' unfolding total_over_m_def total_over_set_def by fastforce
+          moreover have "total_over_m I {\<chi>'}"
+            using Negv Pos\<chi> atm_imp_pos_or_neg_lit tot\<chi>'
+            unfolding total_over_m_def total_over_set_def by fastforce
           ultimately have  "partial_interps Leaf I (fst \<psi>)"
           and "sem_tree_size Leaf < sem_tree_size xs"
           and "resolution\<^sup>*\<^sup>* \<psi> \<psi>" using \<chi>'\<psi> I\<chi> unfolding xs by auto
        }
        moreover {
           assume neg: "Neg v \<in># \<chi>" and pos: "Pos v \<in># \<chi>'"
-          have "count \<chi> (Neg v) = 1" using simplified_count[OF simp \<chi>\<psi>] neg by (metis One_nat_def Suc_le_mono Suc_pred eq_iff le0)
-          have "count \<chi>' (Pos v) = 1" using simplified_count[OF simp \<chi>'\<psi>] pos by (metis One_nat_def Suc_le_mono Suc_pred eq_iff le0)
+          have "count \<chi> (Neg v) = 1"
+            using simplified_count[OF simp \<chi>\<psi>] neg by (metis One_nat_def Suc_le_mono Suc_pred eq_iff
+              le0)
+          have "count \<chi>' (Pos v) = 1"
+            using simplified_count[OF simp \<chi>'\<psi>] pos by (metis One_nat_def Suc_le_mono Suc_pred
+              eq_iff le0)
           obtain C where \<chi>C: "\<chi> = C + {#Neg v#}" and negC: "Neg v \<notin># C" and posC: "Pos v \<notin># C"
             proof -
               assume a1: "\<And>C. \<lbrakk>\<chi> = C + {#Neg v#}; Neg v \<notin># C; Pos v \<notin># C\<rbrakk> \<Longrightarrow> thesis"
@@ -1845,16 +1982,29 @@ proof (induct arbitrary: I rule: sem_tree_size)
                 by simp (* 0.0 ms *)
               obtain mm :: "'v literal multiset \<Rightarrow> 'v literal \<Rightarrow> 'v literal multiset" where
                 f3: "{#Neg v#} + mm \<chi> (Neg v) = \<chi>"
-                by (metis (no_types) \<open>count \<chi> (Neg v) = 1\<close> add.commute multi_member_split zero_less_one)
+                by (metis (no_types) \<open>count \<chi> (Neg v) = 1\<close> add.commute multi_member_split
+                  zero_less_one)
               hence "Pos v \<notin># mm \<chi> (Neg v)"
-                using f2 by (metis (no_types) Posv \<open>count \<chi> (Neg v) = 1\<close> add.right_neutral add_left_cancel count_single count_union less_nat_zero_code)
+                using f2 by (metis (no_types) Posv \<open>count \<chi> (Neg v) = 1\<close> add.right_neutral
+                  add_left_cancel count_single count_union less_nat_zero_code)
               thus ?thesis
-                using f3 a1 by (metis (no_types) \<open>count \<chi> (Neg v) = 1\<close> add.commute add.right_neutral add_left_cancel count_single count_union less_nat_zero_code)
+                using f3 a1 by (metis (no_types) \<open>count \<chi> (Neg v) = 1\<close> add.commute
+                  add.right_neutral add_left_cancel count_single count_union less_nat_zero_code)
             qed
-          obtain C' where \<chi>C': "\<chi>' = C' + {#Pos v#}" and posC': "Pos v \<notin># C'"  and negC': "Neg v \<notin># C'" by (metis (no_types, hide_lams) Negv \<open>count \<chi>' (Pos v) = 1\<close> add_diff_cancel_right' cancel_comm_monoid_add_class.diff_cancel count_diff count_single less_nat_zero_code mset_leD mset_le_add_left multi_member_split zero_less_one)
+          obtain C' where
+            \<chi>C': "\<chi>' = C' + {#Pos v#}" and
+            posC': "Pos v \<notin># C'" and
+            negC': "Neg v \<notin># C'"
+            by (metis (no_types, hide_lams) Negv \<open>count \<chi>' (Pos v) = 1\<close> add_diff_cancel_right'
+              cancel_comm_monoid_add_class.diff_cancel count_diff count_single less_nat_zero_code
+              mset_leD mset_le_add_left multi_member_split zero_less_one)
 
-          have totC: "total_over_m I {C}" using tot\<chi> tot_over_m_remove[of I "Pos v" C] negC posC unfolding \<chi>C by (metis total_over_m_sum uminus_Neg uminus_of_uminus_id)
-          have totC': "total_over_m I {C'}" using tot\<chi>' total_over_m_sum tot_over_m_remove[of I "Neg v" C'] negC' posC' unfolding \<chi>C' by (metis total_over_m_sum uminus_Neg)
+          have totC: "total_over_m I {C}"
+            using tot\<chi> tot_over_m_remove[of I "Pos v" C] negC posC unfolding \<chi>C
+            by (metis total_over_m_sum uminus_Neg uminus_of_uminus_id)
+          have totC': "total_over_m I {C'}"
+            using tot\<chi>' total_over_m_sum tot_over_m_remove[of I "Neg v" C'] negC' posC'
+            unfolding \<chi>C' by (metis total_over_m_sum uminus_Neg)
           have "\<not> I \<Turnstile> C + C'"
             using \<chi> \<chi>' \<chi>C \<chi>C' by auto
           hence part_I_\<psi>''': "partial_interps Leaf I (fst \<psi> \<union> {C + C'})"
@@ -1862,20 +2012,29 @@ proof (induct arbitrary: I rule: sem_tree_size)
               partial_interps.simps(1) total_over_m_sum)
           {
             assume "({#Pos v#} + C', {#Neg v#} + C) \<notin> snd \<psi>"
-            hence inf'': "inference \<psi> (fst \<psi> \<union> {C + C'}, snd \<psi> \<union> {(\<chi>', \<chi>)})" by (metis \<chi>'\<psi> \<chi>C \<chi>C' \<chi>\<psi> add.commute inference_step prod.collapse resolution)
+            hence inf'': "inference \<psi> (fst \<psi> \<union> {C + C'}, snd \<psi> \<union> {(\<chi>', \<chi>)})"
+              by (metis \<chi>'\<psi> \<chi>C \<chi>C' \<chi>\<psi> add.commute inference_step prod.collapse resolution)
             obtain N' where full: "full0_simplifier (fst \<psi> \<union> {C + C'}) N'"
-              by (metis finite_simplified_full0_simp fst_conv inf'' inference_preserves_finite local.finite)
-            have "resolution \<psi> (N', snd \<psi> \<union> {(\<chi>', \<chi>)})" using resolution.intros(2)[OF _ simp full, of "snd \<psi>" "snd \<psi> \<union> {(\<chi>', \<chi>)}"] inf'' by (metis surjective_pairing)
-            moreover have "partial_interps Leaf I N'" using full0_simplifier_preserve_partial_tree[OF full part_I_\<psi>'''] .
+              by (metis finite_simplified_full0_simp fst_conv inf'' inference_preserves_finite
+                local.finite)
+            have "resolution \<psi> (N', snd \<psi> \<union> {(\<chi>', \<chi>)})"
+              using resolution.intros(2)[OF _ simp full, of "snd \<psi>" "snd \<psi> \<union> {(\<chi>', \<chi>)}"] inf''
+              by (metis surjective_pairing)
+            moreover have "partial_interps Leaf I N'"
+              using full0_simplifier_preserve_partial_tree[OF full part_I_\<psi>'''] .
             moreover have "sem_tree_size Leaf < sem_tree_size xs" unfolding xs by auto
-            ultimately have ?case by (metis (no_types) prod.sel(1) rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl)
+            ultimately have ?case
+              by (metis (no_types) prod.sel(1) rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl)
           }
           moreover {
             assume a: "({#Pos v#} + C', {#Neg v#} + C) \<in> snd \<psi>"
-            hence "(\<exists>\<chi> \<in> fst \<psi>. (\<forall>I. total_over_m I {C+C'} \<longrightarrow> total_over_m I {\<chi>} ) \<and> (\<forall>I. total_over_m I {\<chi>} \<longrightarrow> I \<Turnstile> \<chi> \<longrightarrow> I \<Turnstile> C' + C)) \<or> tautology (C' + C)"
+            hence "(\<exists>\<chi> \<in> fst \<psi>. (\<forall>I. total_over_m I {C+C'} \<longrightarrow> total_over_m I {\<chi>})
+                \<and> (\<forall>I. total_over_m I {\<chi>} \<longrightarrow> I \<Turnstile> \<chi> \<longrightarrow> I \<Turnstile> C' + C)) \<or> tautology (C' + C)"
               proof -
-                obtain p where p: "Pos p \<in># ({#Pos v#} + C') \<and> Neg p \<in># ({#Neg v#} + C) \<and> ((\<exists>\<chi>\<in>fst \<psi>. (\<forall>I. total_over_m I {({#Pos v#} + C') - {#Pos p#} + (({#Neg v#} + C) - {#Neg p#})} \<longrightarrow> total_over_m I {\<chi>}) \<and> (\<forall>I. total_over_m I {\<chi>} \<longrightarrow> I \<Turnstile> \<chi> \<longrightarrow> I \<Turnstile> ({#Pos v#} + C') - {#Pos p#} + (({#Neg v#} + C) - {#Neg p#}))) \<or> tautology (({#Pos v#} + C') - {#Pos p#} + (({#Neg v#} + C) - {#Neg p#})))"
-                  using a by (blast intro: allE[OF a_u_i[unfolded subsumes_def Ball_def], of " ({#Pos v#} + C', {#Neg v#} + C)"])
+                obtain p where p: "Pos p \<in># ({#Pos v#} + C') \<and> Neg p \<in># ({#Neg v#} + C)
+                  \<and> ((\<exists>\<chi>\<in>fst \<psi>. (\<forall>I. total_over_m I {({#Pos v#} + C') - {#Pos p#} + (({#Neg v#} + C) - {#Neg p#})} \<longrightarrow> total_over_m I {\<chi>}) \<and> (\<forall>I. total_over_m I {\<chi>} \<longrightarrow> I \<Turnstile> \<chi> \<longrightarrow> I \<Turnstile> ({#Pos v#} + C') - {#Pos p#} + (({#Neg v#} + C) - {#Neg p#}))) \<or> tautology (({#Pos v#} + C') - {#Pos p#} + (({#Neg v#} + C) - {#Neg p#})))"
+                  using a by (blast intro: allE[OF a_u_i[unfolded subsumes_def Ball_def],
+                      of " ({#Pos v#} + C', {#Neg v#} + C)"])
                 { assume "p \<noteq> v"
                   hence "Pos p \<in># C' \<and> Neg p \<in># C" using p by force
                   hence ?thesis by (metis add_gr_0 count_union tautology_Pos_Neg)
@@ -1887,16 +2046,23 @@ proof (induct arbitrary: I rule: sem_tree_size)
                 ultimately show ?thesis by auto
               qed
             moreover {
-              assume "\<exists>\<chi> \<in> fst \<psi>. (\<forall>I. total_over_m I {C+C'} \<longrightarrow> total_over_m I {\<chi>}) \<and>(\<forall>I. total_over_m I {\<chi>} \<longrightarrow> I \<Turnstile> \<chi> \<longrightarrow> I \<Turnstile> C' + C)"
-              then obtain \<theta> where \<theta>: "\<theta> \<in> fst \<psi>" and tot_\<theta>_CC': "\<forall>I. total_over_m I {C+C'} \<longrightarrow> total_over_m I {\<theta>}" and \<theta>_inv: "\<forall>I. total_over_m I {\<theta>} \<longrightarrow> I \<Turnstile> \<theta> \<longrightarrow> I \<Turnstile> C' + C" by blast
-              have "partial_interps Leaf I (fst \<psi>)"using tot_\<theta>_CC' \<theta> \<theta>_inv totC totC'  \<open>\<not> I \<Turnstile> C + C'\<close> total_over_m_sum by fastforce
+              assume "\<exists>\<chi> \<in> fst \<psi>. (\<forall>I. total_over_m I {C+C'} \<longrightarrow> total_over_m I {\<chi>})
+                \<and> (\<forall>I. total_over_m I {\<chi>} \<longrightarrow> I \<Turnstile> \<chi> \<longrightarrow> I \<Turnstile> C' + C)"
+              then obtain \<theta> where
+                \<theta>: "\<theta> \<in> fst \<psi>" and
+                tot_\<theta>_CC': "\<forall>I. total_over_m I {C+C'} \<longrightarrow> total_over_m I {\<theta>}" and
+                \<theta>_inv: "\<forall>I. total_over_m I {\<theta>} \<longrightarrow> I \<Turnstile> \<theta> \<longrightarrow> I \<Turnstile> C' + C" by blast
+              have "partial_interps Leaf I (fst \<psi>)"
+                using tot_\<theta>_CC' \<theta> \<theta>_inv totC totC' \<open>\<not> I \<Turnstile> C + C'\<close> total_over_m_sum by fastforce
               moreover have "sem_tree_size Leaf < sem_tree_size xs" unfolding xs by auto
               ultimately have ?case by blast
             }
             moreover {
               assume tautCC': "tautology (C' + C)"
               have "total_over_m I {C'+C}" using totC totC' total_over_m_sum by auto
-              hence "\<not>tautology (C' + C)" using \<open>\<not> I \<Turnstile> C + C'\<close> unfolding add.commute[of C C'] total_over_m_def  unfolding tautology_def by auto
+              hence "\<not>tautology (C' + C)"
+                using \<open>\<not> I \<Turnstile> C + C'\<close> unfolding add.commute[of C C'] total_over_m_def
+                unfolding tautology_def by auto
               hence False using tautCC'  unfolding tautology_def by auto
             }
             ultimately have ?case by auto
@@ -1904,38 +2070,54 @@ proof (induct arbitrary: I rule: sem_tree_size)
           ultimately have ?case by auto
        }
        ultimately have ?case using part by (metis (no_types) sem_tree_size.simps(1))
-     }
-     moreover {
-       assume size_ag: "sem_tree_size ag > 0"
-       have "sem_tree_size ag < sem_tree_size xs" unfolding xs by auto
-       moreover have "partial_interps ag (I \<union> {Pos v}) (fst \<psi>)"
-       and partad: "partial_interps ad (I \<union> {Neg v}) (fst \<psi>)" using part partial_interps.simps(2) unfolding xs by metis+
-       moreover have "sem_tree_size ag < sem_tree_size xs \<Longrightarrow>
-        finite (fst \<psi>) \<Longrightarrow> already_used_inv \<psi> \<Longrightarrow> partial_interps ag (I \<union> {Pos v}) (fst \<psi>) \<Longrightarrow> simplified (fst \<psi>) \<Longrightarrow> \<exists>tree' \<psi>'. resolution\<^sup>*\<^sup>* \<psi> \<psi>' \<and> partial_interps tree' (I \<union> {Pos v}) (fst \<psi>') \<and> (sem_tree_size tree' < sem_tree_size ag \<or> sem_tree_size ag = 0)" using IH[of ag "I \<union> {Pos v}"]  by auto
-       ultimately obtain \<psi>' :: "'v state" and  tree' :: "'v sem_tree"  where
-         inf: "resolution\<^sup>*\<^sup>* \<psi> \<psi>'"
-         and part: "partial_interps tree' (I \<union> {Pos v}) (fst \<psi>')"
-         and size: "sem_tree_size tree' < sem_tree_size ag \<or> sem_tree_size ag = 0" using finite part rtranclp.rtrancl_refl a_u_i simp by blast
+    }
+    moreover {
+      assume size_ag: "sem_tree_size ag > 0"
+      have "sem_tree_size ag < sem_tree_size xs" unfolding xs by auto
+      moreover have "partial_interps ag (I \<union> {Pos v}) (fst \<psi>)"
+      and partad: "partial_interps ad (I \<union> {Neg v}) (fst \<psi>)"
+        using part partial_interps.simps(2) unfolding xs by metis+
+      moreover
+        have "sem_tree_size ag < sem_tree_size xs \<Longrightarrow> finite (fst \<psi>) \<Longrightarrow> already_used_inv \<psi>
+          \<Longrightarrow> partial_interps ag (I \<union> {Pos v}) (fst \<psi>) \<Longrightarrow> simplified (fst \<psi>)
+          \<Longrightarrow> \<exists>tree' \<psi>'. resolution\<^sup>*\<^sup>* \<psi> \<psi>' \<and> partial_interps tree' (I \<union> {Pos v}) (fst \<psi>')
+              \<and> (sem_tree_size tree' < sem_tree_size ag \<or> sem_tree_size ag = 0)"
+          using IH[of ag "I \<union> {Pos v}"]  by auto
+      ultimately obtain \<psi>' :: "'v state" and  tree' :: "'v sem_tree"  where
+        inf: "resolution\<^sup>*\<^sup>* \<psi> \<psi>'"
+        and part: "partial_interps tree' (I \<union> {Pos v}) (fst \<psi>')"
+        and size: "sem_tree_size tree' < sem_tree_size ag \<or> sem_tree_size ag = 0"
+        using finite part rtranclp.rtrancl_refl a_u_i simp by blast
 
-       have "partial_interps ad (I \<union> {Neg v}) (fst \<psi>')" using rtranclp_resolution_preserve_partial_tree inf partad by fast
-       hence "partial_interps (Node v tree' ad) I (fst \<psi>')" using part by auto
-       hence ?case using inf size size_ag part unfolding xs by fastforce
-     }
-     moreover {
-       assume size_ad: "sem_tree_size ad > 0"
-       have "sem_tree_size ad < sem_tree_size xs" unfolding xs by auto
-       moreover have partag: "partial_interps ag (I \<union> {Pos v}) (fst \<psi>)"
-       and "partial_interps ad (I \<union> {Neg v}) (fst \<psi>)" using part partial_interps.simps(2) unfolding xs by metis+
-       moreover have "sem_tree_size ad < sem_tree_size xs \<longrightarrow> finite (fst \<psi>) \<longrightarrow> already_used_inv \<psi> \<longrightarrow> ( partial_interps ad (I \<union> {Neg v}) (fst \<psi>) \<longrightarrow> simplified (fst \<psi>) \<longrightarrow> (\<exists>tree' \<psi>'. resolution\<^sup>*\<^sup>* \<psi> \<psi>' \<and> partial_interps tree' (I \<union> {Neg v}) (fst \<psi>') \<and> (sem_tree_size tree' < sem_tree_size ad \<or> sem_tree_size ad = 0)))" using IH by blast
-       ultimately obtain \<psi>' :: "'v state" and  tree' :: "'v sem_tree"  where
-         inf: "resolution\<^sup>*\<^sup>* \<psi> \<psi>'"
-         and part: "partial_interps tree' (I \<union> {Neg v}) (fst \<psi>')"
-         and size: "sem_tree_size tree' < sem_tree_size ad \<or> sem_tree_size ad = 0" using finite part  rtranclp.rtrancl_refl a_u_i simp by blast
+      have "partial_interps ad (I \<union> {Neg v}) (fst \<psi>')"
+        using rtranclp_resolution_preserve_partial_tree inf partad by fast
+      hence "partial_interps (Node v tree' ad) I (fst \<psi>')" using part by auto
+      hence ?case using inf size size_ag part unfolding xs by fastforce
+    }
+    moreover {
+      assume size_ad: "sem_tree_size ad > 0"
+      have "sem_tree_size ad < sem_tree_size xs" unfolding xs by auto
+      moreover
+        have
+          partag: "partial_interps ag (I \<union> {Pos v}) (fst \<psi>)" and
+          "partial_interps ad (I \<union> {Neg v}) (fst \<psi>)"
+          using part partial_interps.simps(2) unfolding xs by metis+
+      moreover have "sem_tree_size ad < sem_tree_size xs \<longrightarrow> finite (fst \<psi>) \<longrightarrow> already_used_inv \<psi>
+        \<longrightarrow> ( partial_interps ad (I \<union> {Neg v}) (fst \<psi>) \<longrightarrow> simplified (fst \<psi>)
+        \<longrightarrow> (\<exists>tree' \<psi>'. resolution\<^sup>*\<^sup>* \<psi> \<psi>' \<and> partial_interps tree' (I \<union> {Neg v}) (fst \<psi>')
+              \<and> (sem_tree_size tree' < sem_tree_size ad \<or> sem_tree_size ad = 0)))"
+        using IH by blast
+      ultimately obtain \<psi>' :: "'v state" and  tree' :: "'v sem_tree"  where
+        inf: "resolution\<^sup>*\<^sup>* \<psi> \<psi>'"
+        and part: "partial_interps tree' (I \<union> {Neg v}) (fst \<psi>')"
+        and size: "sem_tree_size tree' < sem_tree_size ad \<or> sem_tree_size ad = 0"
+        using finite part  rtranclp.rtrancl_refl a_u_i simp by blast
 
-       have "partial_interps ag (I \<union> {Pos v}) (fst \<psi>')" using rtranclp_resolution_preserve_partial_tree inf partag by fast
-       hence "partial_interps (Node v ag tree') I (fst \<psi>')" using part by auto
-       hence "?case" using inf size size_ad unfolding xs by fastforce
-     }
+      have "partial_interps ag (I \<union> {Pos v}) (fst \<psi>')"
+        using rtranclp_resolution_preserve_partial_tree inf partag by fast
+      hence "partial_interps (Node v ag tree') I (fst \<psi>')" using part by auto
+      hence "?case" using inf size size_ad unfolding xs by fastforce
+    }
      ultimately have ?case by auto
   }
   ultimately show ?case by auto
@@ -1946,7 +2128,8 @@ lemma resolution_completeness_inv:
   assumes unsat: "\<not>satisfiable (fst \<psi>)" and finite: "finite (fst \<psi>)" and a_u_v: "already_used_inv \<psi>"
   shows "\<exists>\<psi>'. (resolution\<^sup>*\<^sup>* \<psi> \<psi>' \<and> {#} \<in> fst \<psi>')"
 proof -
-  obtain tree where  "partial_interps tree {} (fst \<psi>)" using partial_interps_build_sem_tree_atms assms by metis
+  obtain tree where  "partial_interps tree {} (fst \<psi>)"
+    using partial_interps_build_sem_tree_atms assms by metis
   thus ?thesis
     using unsat finite a_u_v
     proof (induct tree arbitrary: \<psi> rule: sem_tree_size)
@@ -1954,10 +2137,11 @@ proof -
       {
         fix \<chi>
         assume tree: "tree = Leaf"
-        obtain \<chi> where \<chi>: "\<not> {} \<Turnstile> \<chi>" and tot\<chi>: "total_over_m {} {\<chi>}" and \<chi>\<psi>: "\<chi> \<in> fst \<psi>" using H unfolding tree by auto
+        obtain \<chi> where \<chi>: "\<not> {} \<Turnstile> \<chi>" and tot\<chi>: "total_over_m {} {\<chi>}" and \<chi>\<psi>: "\<chi> \<in> fst \<psi>"
+          using H unfolding tree by auto
         moreover have "{#} = \<chi>"
-          using H unfolding \<chi> total_over_m_def apply auto
-          using atms_empty_iff_empty tot\<chi> unfolding true_cls_def total_over_m_def total_over_set_def by fastforce
+          using H atms_empty_iff_empty tot\<chi>
+          unfolding true_cls_def total_over_m_def total_over_set_def by fastforce
         moreover have "resolution\<^sup>*\<^sup>* \<psi> \<psi>" by auto
         ultimately have ?case by metis
       }
@@ -1972,10 +2156,14 @@ proof -
             }
             moreover {
               assume "\<not>simplified (fst \<psi>)"
-              hence "\<exists>\<psi>'.  full_simplifier (fst \<psi>) \<psi>'" by (metis Nitpick.rtranclp_unfold bigger.prems(3) full_simplifier_def rtranclp_simplify_terminates)
+              hence "\<exists>\<psi>'.  full_simplifier (fst \<psi>) \<psi>'"
+                by (metis Nitpick.rtranclp_unfold bigger.prems(3) full_simplifier_def
+                  rtranclp_simplify_terminates)
               then obtain N where "full_simplifier (fst \<psi>) N" by metis
-              hence "resolution \<psi> (N, snd \<psi>)" using resolution.intros(1)[of "fst \<psi>" N "snd \<psi>"] by auto
-              moreover have "simplified N" using \<open>full_simplifier (fst \<psi>) N\<close> full_simplifier_def by blast
+              hence "resolution \<psi> (N, snd \<psi>)"
+                using resolution.intros(1)[of "fst \<psi>" N "snd \<psi>"] by auto
+              moreover have "simplified N"
+                using \<open>full_simplifier (fst \<psi>) N\<close> full_simplifier_def by blast
               ultimately have ?thesis using that by force
             }
             ultimately show ?thesis by auto
@@ -1990,16 +2178,21 @@ proof -
             using \<psi>\<^sub>0 bigger.prems(2) rtranclp_resolution_preserves_unsat apply blast
            using \<psi>\<^sub>0 bigger.prems(3) rtranclp_resolution_finite apply blast
           using rtranclp_resolution_already_used_inv[OF \<psi>\<^sub>0 bigger.prems(4)] by blast
-        obtain tree' \<psi>' where inf: "resolution\<^sup>*\<^sup>* \<psi>\<^sub>0 \<psi>'"
-        and part': "partial_interps tree' {} (fst \<psi>')"
-        and decrease: "sem_tree_size tree' < sem_tree_size tree \<or> sem_tree_size tree = 0" using can_decrease_tree_size_resolution[OF f a_u_v p simp] unfolding tautology_def by meson
+        obtain tree' \<psi>' where
+          inf: "resolution\<^sup>*\<^sup>* \<psi>\<^sub>0 \<psi>'" and
+          part': "partial_interps tree' {} (fst \<psi>')" and
+          decrease: "sem_tree_size tree' < sem_tree_size tree \<or> sem_tree_size tree = 0"
+          using can_decrease_tree_size_resolution[OF f a_u_v p simp] unfolding tautology_def
+          by meson
         have s: "sem_tree_size tree' < sem_tree_size tree" using decrease unfolding tree by auto
         have fin: "finite (fst \<psi>')"
           using f inf rtranclp_resolution_finite by blast
         have unsat: "unsatisfiable (fst \<psi>')"
           using rtranclp_resolution_preserves_unsat inf uns by metis
-        have a_u_i': "already_used_inv \<psi>'" using a_u_v inf rtranclp_resolution_already_used_inv[of \<psi>\<^sub>0 \<psi>'] by auto
-        have ?case using inf rtranclp_trans[of resolution] H(1)[OF s part' unsat fin a_u_i'] \<psi>\<^sub>0 by blast
+        have a_u_i': "already_used_inv \<psi>'"
+          using a_u_v inf rtranclp_resolution_already_used_inv[of \<psi>\<^sub>0 \<psi>'] by auto
+        have ?case
+          using inf rtranclp_trans[of resolution] H(1)[OF s part' unsat fin a_u_i'] \<psi>\<^sub>0 by blast
       }
       ultimately show ?case by (case_tac tree, auto)
    qed
@@ -2050,9 +2243,9 @@ lemma resolution_preserves_sat:
   and "satisfiable (fst S)"
   shows "satisfiable (fst S')"
   using assms apply (induction rule: resolution.induct)
-   using full_simplifier_def rtranclp_preserves_sat tranclp_into_rtranclp apply (fastforce simp add:)
-  by (metis fst_conv full0_simplifier_def inference_preserves_un_sat rtranclp_preserves_sat satisfiable_carac' satisfiable_def)
-
+   using full_simplifier_def rtranclp_preserves_sat tranclp_into_rtranclp apply fastforce
+  by (metis fst_conv full0_simplifier_def inference_preserves_un_sat rtranclp_preserves_sat
+    satisfiable_carac' satisfiable_def)
 
 lemma rtranclp_resolution_preserves_sat:
   assumes "resolution\<^sup>*\<^sup>* S S'"
@@ -2066,7 +2259,8 @@ lemma resolution_soundness:
   fixes \<psi> :: "'v ::linorder state"
   assumes "resolution\<^sup>*\<^sup>* \<psi> \<psi>'" and "{#} \<in> fst \<psi>'"
   shows "unsatisfiable (fst \<psi>)"
-  using assms by (meson rtranclp_resolution_preserves_sat satisfiable_def true_cls_empty true_clss_def)
+  using assms by (meson rtranclp_resolution_preserves_sat satisfiable_def true_cls_empty
+    true_clss_def)
 
 lemma resolution_soundness_and_completeness:
 fixes \<psi> :: "'v ::linorder state"

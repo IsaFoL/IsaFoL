@@ -84,9 +84,7 @@ proof (induction A arbitrary: m)
 next
   case (Cons a A)
   hence A: "A @ i # B = [m + 1..<n]" by (metis append_Cons upt_eq_Cons_conv)
-  hence "m < i"
-    by (metis Suc_eq_plus1 append_eq_conv_conj diff_is_0_eq' drop_0 le_less less_Suc_eq
-      list.distinct(1) list.sel(1) local.Cons(1) not_less upt_rec)
+  hence "m < i" by (metis Cons.prems append_cons_eq_upt_length_i upt_eq_Cons_conv)
   with Cons.IH[OF A] show ?case by auto
 qed
 
@@ -181,21 +179,23 @@ lemma upt_decomp_lt:
   shows "i < j"
 proof -
   have xs: "xs = [m ..< i]" and ys: "ys = [Suc i ..< j]" and zs: "zs = [Suc j ..< n]"
-    using H  by (auto dest: append_cons_eq_upt_length_i append_cons_eq_upt_length_i_end)
-  show ?thesis by (metis append_cons_eq_upt_length_i_end assms lessI less_trans self_append_conv2 upt_eq_Cons_conv upt_rec ys)
+    using H by (auto dest: append_cons_eq_upt_length_i append_cons_eq_upt_length_i_end)
+  show ?thesis
+    by (metis append_cons_eq_upt_length_i_end assms lessI less_trans self_append_conv2
+      upt_eq_Cons_conv upt_rec ys)
 qed
 
 subsection \<open>Well-foundedness\<close>
 text \<open>A little list of theorems that could be useful, but are hidden:
-  \<^item> link between @{term wf} and infinite chains: @{thm wf_iff_no_infinite_down_chain}, 
+  \<^item> link between @{term wf} and infinite chains: @{thm wf_iff_no_infinite_down_chain},
   @{thm wf_no_infinite_down_chainE}\<close>
 
 lemma wf_if_measure_in_wf:
   "wf R \<Longrightarrow> (\<And>a b. (a, b) \<in> S \<Longrightarrow> (\<nu> a, \<nu> b)\<in>R) \<Longrightarrow> wf S"
-  by (metis in_inv_image wfE_min wfI_min wf_inv_image)
-  
+  by (meson wf_iff_no_infinite_down_chain)
+
 lemma wfP_if_measure: fixes f :: "'a \<Rightarrow> nat"
-shows "(\<And>x y. P x \<Longrightarrow> g x y  \<Longrightarrow> f x < f y) \<Longrightarrow> wf {(x,y). P x \<and> g x y}"
+shows "(\<And>x y. P x \<Longrightarrow> g x y  \<Longrightarrow> f y < f x) \<Longrightarrow> wf {(y,x). P x \<and> g x y}"
   apply(insert wf_measure[of f])
   apply(simp only: measure_def inv_image_def less_than_def less_eq)
   apply(erule wf_subset)
@@ -205,15 +205,15 @@ shows "(\<And>x y. P x \<Longrightarrow> g x y  \<Longrightarrow> f x < f y) \<L
 lemma wf_if_measure_f:
 assumes "wf r"
 shows "wf {(b, a). (f b, f a) \<in> r}"
-using assms
- by (metis inv_image_def wf_inv_image)
+  using assms by (metis inv_image_def wf_inv_image)
 
 lemma wf_wf_if_measure':
 assumes "wf r" and H: "(\<And>x y. P x \<Longrightarrow> g x y \<Longrightarrow> (f y, f x) \<in> r)"
 shows "wf {(y,x). P x \<and> g x y}"
 proof -
   have "wf {(b, a). (f b, f a) \<in> r}" using assms(1) wf_if_measure_f by auto
-  hence "wf {(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r}" using wf_subset[of _ "{(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r}"] by auto
+  hence "wf {(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r}" 
+    using wf_subset[of _ "{(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r}"] by auto
   moreover have "{(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r} \<subseteq> {(b, a). (f b, f a) \<in> r}" by auto
   moreover have "{(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r} = {(b, a). P a \<and> g a b}" using H by auto
   ultimately show ?thesis using wf_subset by simp
@@ -312,13 +312,17 @@ proof -
   ultimately show ?thesis using wf_subset by simp
 qed
 
-
 subsection \<open>rtranclp\<close>
-text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and sledgehammer use it), but 
+text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and sledgehammer use it), but
   it makes more sense to duplicate it.\<close>
 lemma rtranclp_unfold: "rtranclp r a b \<longleftrightarrow> (a = b \<or> tranclp r a b)"
   by (meson rtranclp.simps rtranclpD tranclp_into_rtranclp)
 
+lemma tranclp_unfold_end: "tranclp r a b \<longleftrightarrow> (\<exists>a'. rtranclp r a a' \<and> r a' b)"
+  by (metis rtranclp.rtrancl_refl rtranclp_into_tranclp1 tranclp.cases tranclp_into_rtranclp)
+
+lemma tranclp_unfold_begin: "tranclp r a b \<longleftrightarrow> (\<exists>a'. r a a' \<and> rtranclp r a' b)"
+  by (meson rtranclp_into_tranclp2 tranclpD)
 
 subsubsection \<open>Reflexive bounded closure\<close>
 text \<open>This is the reflexive closure of @{term ntrancl}.\<close>
@@ -334,7 +338,7 @@ proof -
   show ?thesis
     unfolding nrtrancl_def ntrancl_def A by simp
 qed
-    
+
 lemma nrtrancl_Zero [simp, code]:
   "nrtrancl 0 R = Id \<union> R"
   unfolding nrtrancl_Id_Un_ntrancl by auto
@@ -351,36 +355,30 @@ next
   case (Suc n) note IH = this(1)
   have A: "{i. i \<le> Suc (Suc (Suc n))} = {i. 0 < i \<and> i \<le> Suc (Suc (Suc n))} \<union> {i. i = 0}"
     by auto
-  have "(\<Union>x\<in>{i. 0 < i \<and> i \<le> Suc (Suc (Suc n))}. R ^^ x) = 
+  have "(\<Union>x\<in>{i. 0 < i \<and> i \<le> Suc (Suc (Suc n))}. R ^^ x) =
            (\<Union>x\<in>{i. i \<le> Suc (Suc n)}. R ^^ (Suc x))"
     by (auto simp del: relpow.simps simp add:relpow.simps(2)[symmetric] elim: relpow_E2)
-  hence B: "(\<Union>x\<in>{i. 0 < i \<and> i \<le> Suc (Suc (Suc n))}. R ^^ x) 
+  hence B: "(\<Union>x\<in>{i. 0 < i \<and> i \<le> Suc (Suc (Suc n))}. R ^^ x)
       = nrtrancl (Suc n) R O R"
     unfolding nrtrancl_def A by auto
-    
-  show ?case
-    (* TODO tune proof *)
-    unfolding nrtrancl_def A apply (simp add: B)
-    unfolding nrtrancl_def[symmetric]  apply auto
-    unfolding IH apply auto
-    proof -
-      fix a :: 'a and b :: 'a
-      assume a1: "(a, b) \<in> nrtrancl n R"
-      assume a2: "(a, b) \<notin> nrtrancl n R O R"
-      assume a3: "(a, b) \<notin> (nrtrancl n R O R) O R"
-      have f4: "(a, b) \<in> Id \<union> ntrancl n R"
-        using a1 by (simp add: nrtrancl_Id_Un_ntrancl) (* 2 ms *)
-      have f5: "\<And>r ra. ({}::('a \<times> 'a) set) \<union> (r::(_ \<times> 'a) set) O ra = r O ra"
-        by simp (* 0.3 ms *)
-      have f6: "(Id \<union> ntrancl n R O (Id \<union> R)) O R = ntrancl n R O (Id \<union> R) O (Id \<union> R)"
-        by (metis (no_types) B O_assoc nrtrancl_Id_Un_ntrancl ntrancl_Suc ntrancl_def) (* 67 ms *)
-      have "(a, b) \<in> (Id \<union> ntrancl n R) O (Id \<union> R) O (Id \<union> R)"
-        using f4 by blast (* 0.9 ms *)
-      hence "(a, b) \<in> (Id \<union> R) O (Id \<union> R)"
-        using f6 f5 a3 a2 by (metis (no_types) Id_O_R O_assoc Un_iff nrtrancl_Id_Un_ntrancl 
-          relcomp_distrib relcomp_distrib2) (* 573 ms *)
-      thus "a = b"
-        using a3 a2 by (simp add: nrtrancl_Id_Un_ntrancl) (* 4 ms *)
+
+  show ?case (is "?A = ?B")
+    proof (standard; standard)
+      fix x
+      assume "x \<in> ?A"
+      thus "x \<in> ?B"
+        by (simp add: Un_left_commute nrtrancl_Id_Un_ntrancl sup_assoc)
+    next
+      fix x
+      assume a1: "x \<in> ?B"
+      have f2: "(Id \<union> ntrancl n R) O (Id \<union> R) = Id \<union> ntrancl (Suc n) R"
+        by (metis Suc.IH nrtrancl_Id_Un_ntrancl) (* 48 ms *)
+      have "x \<in> (Id \<union> ntrancl n R O (Id \<union> R)) O (Id \<union> R)"
+        using a1 by (simp add: nrtrancl_Id_Un_ntrancl)
+      hence "x \<in> Id \<union> ntrancl (Suc (Suc n)) R"
+        using f2 by (auto simp add: nrtrancl_Id_Un_ntrancl) (* 4 ms *)
+      thus "x \<in> ?A"
+        by (simp add: nrtrancl_Id_Un_ntrancl) (* 1 ms *)
     qed
 qed
 

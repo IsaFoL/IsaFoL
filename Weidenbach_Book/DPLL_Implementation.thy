@@ -1,5 +1,5 @@
 theory DPLL_Implementation
-imports DPLL_CDCL_Implementation Propo_DPLL "~~/src/HOL/Library/Code_Target_Numeral"
+imports DPLL_CDCL_Implementation DPLL "~~/src/HOL/Library/Code_Target_Numeral"
 begin
 
 subsection \<open>Simple Implementation of DPLL\<close>
@@ -437,7 +437,6 @@ lemma [code]:
 "DPLL_tot S =
   (let S' = DPLL_step' S in
    if S' = S then S else DPLL_tot S')" by auto
-
 
 lemma DPLL_tot_DPLL_step_DPLL_tot[simp]: "DPLL_tot (DPLL_step' S) = DPLL_tot S"
   apply (cases "DPLL_step' S = S")

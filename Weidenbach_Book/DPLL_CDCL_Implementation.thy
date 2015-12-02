@@ -33,45 +33,45 @@ proof -
   thus ?thesis
     unfolding is_unit_clause_code_def is_unit_clause_def 1 by blast
 qed
-thm list.cases
+
 lemma is_unit_clause_some_undef: 
   assumes "is_unit_clause l M = Some a"
   shows "undefined_lit a M"
 proof -
-  have "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M] of [] \<Rightarrow> None 
+  have "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M] of [] \<Rightarrow> None 
           | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None 
           | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
-    using assms unfolding is_unit_clause_def lits_of_def .
-  hence "a \<in> set [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M]"
-    apply (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M]")
+    using assms unfolding is_unit_clause_def .
+  hence "a \<in> set [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]"
+    apply (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]")
       apply simp
     apply (case_tac list) by (auto split: split_if_asm)
-  hence "atm_of a \<notin> atm_of ` lit_of ` set M" by auto
+  hence "atm_of a \<notin> atm_of ` lits_of M" by auto
   thus ?thesis
     by (simp add: Marked_Propagated_in_iff_in_lits_of
-      atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def)
+      atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set )
 qed
 
 lemma is_unit_clause_some_CNot: "is_unit_clause l M = Some a \<Longrightarrow> M \<Turnstile>as CNot (mset l - {#a#})"
-  unfolding is_unit_clause_def lits_of_def
+  unfolding is_unit_clause_def
 proof -
-  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M] of [] \<Rightarrow> None 
+  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M] of [] \<Rightarrow> None 
           | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None 
           | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
   thus ?thesis
-    apply (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M]", simp)
+    apply (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]", simp)
       apply simp
     apply (case_tac list) by (auto split: split_if_asm)
 qed
 
 lemma is_unit_clause_some_in: "is_unit_clause l M = Some a \<Longrightarrow> a \<in> set l"
-  unfolding is_unit_clause_def lits_of_def
+  unfolding is_unit_clause_def
 proof -
-  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M] of [] \<Rightarrow> None 
+  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M] of [] \<Rightarrow> None 
          | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None 
          | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
   thus "a \<in> set l"
-    by (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lit_of ` set M]")
+    by (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]")
        (fastforce dest: filter_eq_ConsD split: split_if_asm  split: list.splits)+
 qed
 
@@ -149,7 +149,7 @@ lemma find_none[iff]:
     by (force simp add:  atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)+
 
 lemma find_some: "List.find (\<lambda>lit. lit \<notin> M \<and> -lit \<notin> M) a = Some b \<Longrightarrow> b \<in> set a \<and> b \<notin> M \<and> -b \<notin> M" 
-  by (metis find_Some_iff nth_mem)
+  unfolding find_Some_iff by (metis nth_mem)
 
 lemma find_first_unused_var_None[iff]:
   "find_first_unused_var l M = None \<longleftrightarrow> (\<forall>a \<in> set l. atm_of ` set a \<subseteq> atm_of `  M)"
