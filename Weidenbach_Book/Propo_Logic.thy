@@ -91,7 +91,7 @@ lemma wf_conn_induct[consumes 1, case_names CT CF CVar CNot COr CAnd CImp CEq]:
     "(\<And>\<psi> \<psi>'. c = CImp \<Longrightarrow> P [\<psi>, \<psi>']) " and
     "(\<And>\<psi> \<psi>'. c = CEq \<Longrightarrow> P [\<psi>, \<psi>']) "
     shows " P x"
-   using assms by (induction) (auto simp add: binary_connectives_def)
+   using assms by induction (auto simp add: binary_connectives_def)
 
 
 

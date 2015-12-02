@@ -127,7 +127,7 @@ proof -
       using step unfolding DPLL_step_def by (simp add: unit split: option.splits)
     hence a: "\<forall>a \<in> set N. atm_of ` set a \<subseteq> atm_of ` (lits_of Ms)" by auto
     have "fst (toS Ms N) \<Turnstile>as snd (toS Ms N)" unfolding true_annots_def CNot_def Ball_def
-      proof (clarify)
+      proof clarify
         fix x
         assume x: "x \<in> snd (toS Ms N)"
         hence "\<not>Ms \<Turnstile>as CNot  x" using n unfolding true_annots_def CNot_def Ball_def by auto

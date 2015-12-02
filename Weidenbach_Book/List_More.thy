@@ -212,7 +212,7 @@ assumes "wf r" and H: "(\<And>x y. P x \<Longrightarrow> g x y \<Longrightarrow>
 shows "wf {(y,x). P x \<and> g x y}"
 proof -
   have "wf {(b, a). (f b, f a) \<in> r}" using assms(1) wf_if_measure_f by auto
-  hence "wf {(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r}" 
+  hence "wf {(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r}"
     using wf_subset[of _ "{(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r}"] by auto
   moreover have "{(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r} \<subseteq> {(b, a). (f b, f a) \<in> r}" by auto
   moreover have "{(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r} = {(b, a). P a \<and> g a b}" using H by auto
@@ -372,13 +372,13 @@ next
       fix x
       assume a1: "x \<in> ?B"
       have f2: "(Id \<union> ntrancl n R) O (Id \<union> R) = Id \<union> ntrancl (Suc n) R"
-        by (metis Suc.IH nrtrancl_Id_Un_ntrancl) (* 48 ms *)
+        by (metis Suc.IH nrtrancl_Id_Un_ntrancl)
       have "x \<in> (Id \<union> ntrancl n R O (Id \<union> R)) O (Id \<union> R)"
         using a1 by (simp add: nrtrancl_Id_Un_ntrancl)
       hence "x \<in> Id \<union> ntrancl (Suc (Suc n)) R"
-        using f2 by (auto simp add: nrtrancl_Id_Un_ntrancl) (* 4 ms *)
+        using f2 by (auto simp add: nrtrancl_Id_Un_ntrancl)
       thus "x \<in> ?A"
-        by (simp add: nrtrancl_Id_Un_ntrancl) (* 1 ms *)
+        by (simp add: nrtrancl_Id_Un_ntrancl)
     qed
 qed
 
