@@ -13,6 +13,17 @@ datatype tree =
   Leaf
 | Branch (ltree: tree) (rtree: tree)
 
+section {* Sizes *}
+
+fun treesize :: "tree \<Rightarrow> nat" where
+  "treesize Leaf = 0"
+| "treesize (Branch l r) = 1 + treesize l + treesize r"
+
+lemma treesize_Leaf: "treesize T = 0 \<Longrightarrow> T=Leaf" by (cases T) auto
+
+lemma treesize_Branch: "treesize T = Suc n \<Longrightarrow> \<exists>l r. T=Branch l r" by (cases T) auto
+
+
 section {* Paths *}
 
 inductive path :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
@@ -20,6 +31,8 @@ inductive path :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
 | "path ds l \<Longrightarrow> path (Left#ds) (Branch l r) "
 | "path ds r \<Longrightarrow> path (Right#ds) (Branch l r)"
 (* I could use anonymous variable *)
+
+
 
 lemma path_inv_Leaf: "path p Leaf \<longleftrightarrow> p = []"
 apply auto
@@ -53,6 +66,27 @@ next
       then obtain a p' where "p=a#p'\<and> (a \<longrightarrow> path p' l) \<and> (\<not>a \<longrightarrow> path p' r)" by auto
       then show ?L using path.intros by (cases a) auto
     qed
+qed
+
+lemma path_prefix: "path (ds1@ds2) T \<Longrightarrow> path ds1 T"
+proof (induction ds1 arbitrary: T)
+  case (Cons a ds1)
+  then have "\<exists>l r. T = Branch l r" sorry
+  then obtain l r where p_lr: "T = Branch l r" by auto
+  show ?case
+    proof (cases a)
+      assume atrue: "a"
+      then have "path ((ds1) @ ds2) l" using p_lr Cons(2) path_inv_Branch by auto
+      then have "path ds1 l" using Cons(1) by auto
+      then show "path (a # ds1) T" using p_lr path.intros atrue by auto
+    next
+      assume afalse: "~a"
+      then have "path ((ds1) @ ds2) r" using p_lr Cons(2) path_inv_Branch by auto
+      then have "path ds1 r" using Cons(1) by auto
+      then show "path (a # ds1) T" using p_lr path.intros afalse by auto
+    qed
+next
+  case (Nil) then show ?case using path.intros by auto
 qed
       
 section {* Branches *}
@@ -120,6 +154,41 @@ next
   then have "(a \<longrightarrow> path b T\<^sub>1) \<and> (\<not>a \<longrightarrow> path b T\<^sub>2)" using Branch by auto
   then show "?case" using ds_p path.intros by (cases a) auto
 qed
+
+lemma Branch_Leaf_Leaf_Tree: "(T = Branch l r \<longrightarrow> (\<exists>B. branch (B@[True]) T \<and> branch (B@[False]) T)) \<and> (T=Leaf \<longrightarrow> branch [] T )"
+proof (induction T arbitrary: l r)
+  case Leaf then show ?case using branch.intros by auto
+next
+  case (Branch T1 T2) 
+  then show ?case
+    apply (cases T1)
+    apply (cases T2)
+    apply auto
+      proof -
+        have "branch ([] @ [True]) (Branch Leaf Leaf) \<and> branch ([] @ [False]) (Branch Leaf Leaf)" using branch.intros by auto
+        then show "\<exists>B. branch (B @ [True]) (Branch Leaf Leaf) \<and> branch (B @ [False]) (Branch Leaf Leaf)" by blast
+      next
+        fix x21 x22
+        assume "(\<And>l r. x21 = l \<and> x22 = r \<longrightarrow>  (\<exists>B. branch (B @ [True]) (Branch l r) \<and> branch (B @ [False]) (Branch l r)))"
+        then have "\<exists>B'. branch (B' @ [True]) (Branch x21 x22) \<and> branch (B' @ [False]) (Branch x21 x22)" by blast
+        then obtain B' where "branch (B' @ [True]) (Branch x21 x22) \<and> branch (B' @ [False]) (Branch x21 x22)" by auto
+        then have "branch (False # (B' @ [True])) (Branch Leaf (Branch x21 x22)) \<and> branch (False # (B' @ [False])) (Branch Leaf (Branch x21 x22))" 
+          using branch.intros(3)[of "B' @ [True]" "(Branch x21 x22)" "Leaf"] 
+                branch.intros(3)[of "B' @ [False]" "(Branch x21 x22)" "Leaf"] by auto
+        then have "branch ((False # B') @ [True]) (Branch Leaf (Branch x21 x22)) \<and> branch ((False # B') @ [False]) (Branch Leaf (Branch x21 x22))" by auto
+        then show "\<exists>B. branch (B @ [True]) (Branch Leaf (Branch x21 x22)) \<and> branch (B @ [False]) (Branch Leaf (Branch x21 x22))" by metis
+      next
+        fix x21 x22
+        assume "(\<And>l r. x21 = l \<and> x22 = r \<longrightarrow>   (\<exists>B. branch (B @ [True]) (Branch l r) \<and> branch (B @ [False]) (Branch l r)))"
+        then have "(\<exists>B. branch (B @ [True]) (Branch x21 x22) \<and> branch (B @ [False]) (Branch x21 x22))" by auto
+        then obtain B' where "branch (B' @ [True]) (Branch x21 x22) \<and> branch (B' @ [False]) (Branch x21 x22)" by auto
+        then have "branch (True # (B' @ [True])) (Branch (Branch x21 x22) r) \<and> branch (True # (B' @ [False])) (Branch (Branch x21 x22) r) " 
+          using branch.intros(2)[of "B' @ [True]" "(Branch x21 x22)" "r"] 
+                branch.intros(2)[of "B' @ [False]" "(Branch x21 x22)" "r"] by auto
+        then have "branch ((True # B') @ [True]) (Branch (Branch x21 x22) r) \<and> branch ((True # B') @ [False]) (Branch (Branch x21 x22) r) " by auto
+        then show "\<exists>B. branch (B @ [True]) (Branch (Branch x21 x22) r) \<and>
+           branch (B @ [False]) (Branch (Branch x21 x22) r)" by metis
+      qed qed
 
 section {* Internal Nodes *}
 

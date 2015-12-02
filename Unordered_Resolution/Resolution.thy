@@ -1321,7 +1321,7 @@ qed
 section {* Completeness *}
 (* assumes openb: "\<forall>T. \<exists>G. open_branch G T Cs" assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C" shows "\<exists>G. evalcs HFun G Cs" *)
 
-lemma "falsifiesc [] C \<Longrightarrow> C = {}"
+lemma falsifiescs_empty: "falsifiesc [] C \<Longrightarrow> C = {}"
 proof -
   { fix l
     assume "l \<in> C"
@@ -1335,14 +1335,52 @@ qed
 theorem completeness':
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
   shows "closed_tree T Cs \<Longrightarrow> \<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
-proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of size])
+proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
   fix T::tree
   fix Cs :: "fterm clause set"
-  assume "(\<And>T' Cs. size T' < size T \<Longrightarrow>
+  assume "(\<And>T' Cs. treesize T' < treesize T \<Longrightarrow>
                     closed_tree T' Cs \<Longrightarrow> \<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs')"
-  assume "closed_tree T Cs"
-  have "True" by auto
-  then show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" oops
+  assume clo: "closed_tree T Cs"
+  
+  {
+    assume "treesize T = 0"
+    then have "T=Leaf" using treesize_Leaf by auto
+    then have "anybranch Leaf (\<lambda>b. closed_branch b Leaf Cs)" using clo by auto
+    then have "closed_branch [] Leaf Cs" using branch_inv_Leaf by auto
+    then have "falsifiescs [] Cs" by auto
+    then have "\<exists>C \<in> Cs. falsifiesc [] C" by auto
+    then have "\<exists>C \<in> Cs. C={}" using falsifiescs_empty by auto
+    then have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" unfolding resolution_deriv_def by auto
+  }
+  moreover
+  {
+    assume "treesize T > 0"
+    then have "\<exists>l r. T=Branch l r" by (cases T) auto
+    then have "\<exists>B. branch (B@[True]) T \<and> branch (B@[False]) T" using Branch_Leaf_Leaf_Tree by auto
+    then have "\<exists>B. path B T \<and> branch (B@[True]) T \<and> branch (B@[False]) T" 
+      using branch_is_path path_prefix by blast
+    then obtain B where b_p: "path B T \<and> branch (B@[True]) T \<and> branch (B@[False]) T" by auto
+    let ?B1 = "B@[True]"
+    let ?B2 = "B@[False]"                                       
+
+    have "\<exists>C1. falsifiesc ?B1 C1" using b_p clo by blast (* "Re-formulation" of below line *)
+    have "\<exists>C1 C1'. instance_ofls C1' C1 \<and> groundls C1' \<and> falsifiesc ?B1 C1'" sorry
+    then obtain C1 C1' where C1_p: "instance_ofls C1' C1 \<and> groundls C1' \<and> falsifiesc ?B1 C1'" by auto
+
+    have "\<exists>C2. falsifiesc ?B2 C2" using b_p clo by blast (* "Re-formulation" of below line *)
+    have "\<exists>C2 C2'. instance_ofls C2' C2 \<and> groundls C2' \<and> falsifiesc ?B2 C2'" sorry
+    then obtain C2 C2' where C2_p: "instance_ofls C2' C2 \<and> groundls C2' \<and> falsifiesc ?B2 C2'" by auto
+    
+    have "\<forall>l \<in> C1'. falsifiesl (B@[True]) l" sorry
+    moreover have "\<not>(\<forall>l \<in> C1'. falsifiesl B l)" sorry
+    ultimately have "\<exists>l \<in> C1'. falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
+    then obtain l where l_p: "l \<in> C1' \<and> falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
+    have "undiag_fatom l = length B + 1" sorry
+    have "\<not>is_pos l" sorry
+
+    have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" sorry
+  }
+  ultimately show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" by auto
 
 theorem completeness:
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
