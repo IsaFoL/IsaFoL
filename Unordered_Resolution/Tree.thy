@@ -243,9 +243,53 @@ next
   then show "?case" using ds_p path.intros by (cases a) auto
 qed
 
-lemma internal_branch: "branch ((d1#b1)@[d]@b2) T \<Longrightarrow> internal (d1#b1) T"
-apply (induction b1 arbitrary: T)
-oops
+lemma internal_prefix: "internal (ds1@ds2@[d]) T \<Longrightarrow> internal ds1 T" (* more or less copy paste of path_prefix *)
+proof (induction ds1 arbitrary: T)
+  case (Cons a ds1)
+  then have "\<exists>l r. T = Branch l r" using internal_inv_Leaf by (cases T) auto
+  then obtain l r where p_lr: "T = Branch l r" by auto
+  show ?case
+    proof (cases a)
+      assume atrue: "a"
+      then have "internal ((ds1) @ ds2 @[d]) l" using p_lr Cons(2) internal_inv_Branch by auto
+      then have "internal ds1 l" using Cons(1) by auto
+      then show "internal (a # ds1) T" using p_lr internal.intros atrue by auto
+    next
+      assume afalse: "~a"
+      then have "internal ((ds1) @ ds2 @[d]) r" using p_lr Cons(2) internal_inv_Branch by auto
+      then have "internal ds1 r" using Cons(1) by auto
+      then show "internal (a # ds1) T" using p_lr internal.intros afalse by auto
+    qed
+next
+  case (Nil)
+  then have "\<exists>l r. T = Branch l r" using internal_inv_Leaf by (cases T) auto 
+  then show ?case using internal.intros by auto
+qed
+
+
+lemma internal_branch: "branch (ds1@ds2@[d]) T \<Longrightarrow> internal ds1 T" (* more or less copy paste of path_prefix *)
+proof (induction ds1 arbitrary: T)
+  case (Cons a ds1)
+  then have "\<exists>l r. T = Branch l r" using branch_inv_Leaf by (cases T) auto
+  then obtain l r where p_lr: "T = Branch l r" by auto
+  show ?case
+    proof (cases a)
+      assume atrue: "a"
+      then have "branch (ds1 @ ds2 @ [d]) l" using p_lr Cons(2) branch_inv_Branch by auto
+      then have "internal ds1 l" using Cons(1) by auto
+      then show "internal (a # ds1) T" using p_lr internal.intros atrue by auto
+    next
+      assume afalse: "~a"
+      then have "branch ((ds1) @ ds2 @[d]) r" using p_lr Cons(2) branch_inv_Branch by auto
+      then have "internal ds1 r" using Cons(1) by auto
+      then show "internal (a # ds1) T" using p_lr internal.intros afalse by auto
+    qed
+next
+  case (Nil)
+  then have "\<exists>l r. T = Branch l r" using branch_inv_Leaf by (cases T) auto 
+  then show ?case using internal.intros by auto
+qed
+
 
 fun parent :: "dir list \<Rightarrow> dir list" where
   "parent ds = tl ds"

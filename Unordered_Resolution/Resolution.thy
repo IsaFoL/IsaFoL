@@ -1357,22 +1357,24 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     assume "treesize T > 0"
     then have "\<exists>l r. T=Branch l r" by (cases T) auto
     then have "\<exists>B. branch (B@[True]) T \<and> branch (B@[False]) T" using Branch_Leaf_Leaf_Tree by auto
-    then have "\<exists>B. path B T \<and> branch (B@[True]) T \<and> branch (B@[False]) T" 
-      using branch_is_path path_prefix by blast
-    then obtain B where b_p: "path B T \<and> branch (B@[True]) T \<and> branch (B@[False]) T" by auto
+    then have "\<exists>B. internal B T \<and> branch (B@[True]) T \<and> branch (B@[False]) T" 
+      using internal_branch[of _ "[]" _ T] by auto
+    then obtain B where b_p: "internal B T \<and> branch (B@[True]) T \<and> branch (B@[False]) T" by auto
     let ?B1 = "B@[True]"
     let ?B2 = "B@[False]"                                       
 
-    have "\<exists>C1. falsifiesc ?B1 C1" using b_p clo by blast (* "Re-formulation" of below line *)
-    then obtain C1 where C1_p: "falsifiesc ?B1 C1" by auto
+    have "\<exists>C1 \<in> Cs. falsifiesc ?B1 C1" using b_p clo by auto (* "Re-formulation" of below line *)
+    then obtain C1 where C1_p: "C1 \<in> Cs \<and>falsifiesc ?B1 C1" by auto
 
-    have "\<exists>C2. falsifiesc ?B2 C2" using b_p clo by blast (* "Re-formulation" of below line *)
-    then obtain C2 where C2_p: "falsifiesc ?B2 C2" by auto
+    have "\<exists>C2 \<in> Cs. falsifiesc ?B2 C2" using b_p clo by auto (* "Re-formulation" of below line *)
+    then obtain C2 where C2_p: "C2 \<in> Cs \<and> falsifiesc ?B2 C2" by auto
     
     from C1_p have "\<forall>l \<in> C1. falsifiesl (B@[True]) l" by auto
-    moreover have "\<not>(\<forall>l \<in> C1. falsifiesl B l)" using b_p clo by auto
-    ultimately have "\<exists>l \<in> C1'. falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
-    then obtain l where l_p: "l \<in> C1' \<and> falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
+    moreover have "\<not>(\<forall>l \<in> C1. falsifiesl B l)" using C1_p b_p clo by auto
+    ultimately have "\<exists>l \<in> C1. falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
+    then obtain l where l_p: "l \<in> C1 \<and> falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
+    then have "\<exists>l'. groundl l' \<and> instance_ofl l' l \<and> falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
+    (* Now we must project down to ground world *)
     have "undiag_fatom l = length B + 1" sorry
     have "\<not>is_pos l" sorry
 
