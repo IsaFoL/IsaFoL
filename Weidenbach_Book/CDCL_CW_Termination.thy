@@ -906,7 +906,7 @@ lemma length_model_le_vars_all_inv:
   shows "length (trail S) \<le> card (atms_of_m (init_clss S))"
   using assms length_model_le_vars[of S] unfolding cdcl_all_inv_mes_def by auto
 end
-thm cdcl_cw_ops_def
+
 locale cdcl_cw_termination =
    cdcl_cw_ops trail init_clss learned_clss backtrack_lvl conflicting update_trail update_init_clss
    update_learned_clss update_backtrack_lvl update_conflicting init_state mark_of_cls cls_of_mark
@@ -1237,4 +1237,5 @@ lemma tranclp_cdcl_s_wf:
    apply (simp add: wf wf_lexn)
   using tranclp_cdcl_s_S0_decreasing by blast
 end
+
 end

@@ -267,7 +267,7 @@ thm backtrackE
 
 inductive decided ::  "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 deciding[intro]: "state S = (M, N, U, k, C_True)
-\<Longrightarrow> undefined_lit L M \<Longrightarrow> atm_of L \<in> atms_of_m (clauses S)
+\<Longrightarrow> undefined_lit L M \<Longrightarrow> atm_of L \<in> atms_of_m (init_clss S)
 \<Longrightarrow> decided S (cons_trail (Marked L (k+1)) (incr_lvl S))"
 inductive_cases decidedE[elim]: "decided S S'"
 thm decidedE
@@ -281,7 +281,8 @@ thm skipE
 text \<open>@{term "get_maximum_level D (Propagated L (C + {#L#}) # M) = k \<or> k= 0"} is equivalent to
   @{term "get_maximum_level D (Propagated L (C + {#L#}) # M) = k"}\<close>
 inductive resolve :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
-resolving[intro]: "state S = (Propagated L (mark_of_cls (C + {#L#})) # M, N, U, k, C_Clause (D + {#-L#}))
+resolving[intro]: "
+  state S = (Propagated L (mark_of_cls (C + {#L#})) # M, N, U, k, C_Clause (D + {#-L#}))
   \<Longrightarrow> get_maximum_level D (Propagated L (mark_of_cls (C + {#L#})) # M) = k
   \<Longrightarrow> resolve S (update_conflicting (C_Clause (remdups_mset (D + C))) (tl_trail S))"
 inductive_cases resolveE[elim]: "resolve S S'"
@@ -384,7 +385,7 @@ lemma cdcl_all_induct[consumes 1, case_names propagate conflict forget restart d
       \<Longrightarrow> conflicting S = C_True
       \<Longrightarrow> P S (restart_state S)" and
     decideH: "\<And>L. conflicting S = C_True \<Longrightarrow>  undefined_lit L (trail S)
-      \<Longrightarrow> atm_of L \<in> atms_of_m (clauses S)
+      \<Longrightarrow> atm_of L \<in> atms_of_m (init_clss S)
       \<Longrightarrow> P S (cons_trail (Marked L (backtrack_lvl S +1)) (incr_lvl S))" and
     skipH: "\<And>L C' M D. trail S = Propagated L C' # M
       \<Longrightarrow> conflicting S = C_Clause D \<Longrightarrow> -L \<notin># D \<Longrightarrow> D \<noteq> {#}
@@ -437,7 +438,7 @@ lemma cdcl_o_induct[consumes 1, case_names decided skip resolve backtrack]:
   fixes S  :: "'st"
   assumes cdcl: "cdcl_o S T" and
     decideH: "\<And>L. conflicting S = C_True \<Longrightarrow>  undefined_lit L (trail S)
-      \<Longrightarrow> atm_of L \<in> atms_of_m (clauses S)
+      \<Longrightarrow> atm_of L \<in> atms_of_m (init_clss S)
       \<Longrightarrow> P S (cons_trail (Marked L (backtrack_lvl S +1)) (incr_lvl S))" and
     skipH: "\<And>L C' M D. trail S = Propagated L C' # M
       \<Longrightarrow> conflicting S = C_Clause D \<Longrightarrow> -L \<notin># D \<Longrightarrow> D \<noteq> {#}
@@ -1892,7 +1893,7 @@ next
   ultimately show ?case unfolding full0_def by (metis cdcl_cp.cases rtranclp.rtrancl_refl)
 qed
 
-subsubsection \<open>Literal of highest level in conflicting init_clss\<close>
+subsubsection \<open>Literal of highest level in conflicting clauses\<close>
 text \<open>One important property of the cdcl with strategy is that, whenever a conflict takes place,
   there is at least a literal of level k involved (except if we have derived the false clause).
   The reason is that we apply conflicts as soon as possible\<close>
