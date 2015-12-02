@@ -1364,15 +1364,13 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     let ?B2 = "B@[False]"                                       
 
     have "\<exists>C1. falsifiesc ?B1 C1" using b_p clo by blast (* "Re-formulation" of below line *)
-    have "\<exists>C1 C1'. instance_ofls C1' C1 \<and> groundls C1' \<and> falsifiesc ?B1 C1'" sorry
-    then obtain C1 C1' where C1_p: "instance_ofls C1' C1 \<and> groundls C1' \<and> falsifiesc ?B1 C1'" by auto
+    then obtain C1 where C1_p: "falsifiesc ?B1 C1" by auto
 
     have "\<exists>C2. falsifiesc ?B2 C2" using b_p clo by blast (* "Re-formulation" of below line *)
-    have "\<exists>C2 C2'. instance_ofls C2' C2 \<and> groundls C2' \<and> falsifiesc ?B2 C2'" sorry
-    then obtain C2 C2' where C2_p: "instance_ofls C2' C2 \<and> groundls C2' \<and> falsifiesc ?B2 C2'" by auto
+    then obtain C2 where C2_p: "falsifiesc ?B2 C2" by auto
     
-    have "\<forall>l \<in> C1'. falsifiesl (B@[True]) l" sorry
-    moreover have "\<not>(\<forall>l \<in> C1'. falsifiesl B l)" sorry
+    from C1_p have "\<forall>l \<in> C1. falsifiesl (B@[True]) l" by auto
+    moreover have "\<not>(\<forall>l \<in> C1. falsifiesl B l)" using b_p clo by auto
     ultimately have "\<exists>l \<in> C1'. falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
     then obtain l where l_p: "l \<in> C1' \<and> falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
     have "undiag_fatom l = length B + 1" sorry

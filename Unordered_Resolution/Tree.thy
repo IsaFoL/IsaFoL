@@ -11,7 +11,7 @@ declare Right_def [simp]
 (* hide_const (open) Leaf Branch *)
 datatype tree =
   Leaf
-| Branch (ltree: tree) (rtree: tree)
+| Branch (ltree: tree) (rtree: tree) (* Branching might be a better name *)
 
 section {* Sizes *}
 
@@ -71,7 +71,7 @@ qed
 lemma path_prefix: "path (ds1@ds2) T \<Longrightarrow> path ds1 T"
 proof (induction ds1 arbitrary: T)
   case (Cons a ds1)
-  then have "\<exists>l r. T = Branch l r" sorry
+  then have "\<exists>l r. T = Branch l r" using path_inv_Leaf by (cases T) auto
   then obtain l r where p_lr: "T = Branch l r" by auto
   show ?case
     proof (cases a)
@@ -117,7 +117,8 @@ done
 lemma branch_inv_Branch_Right: 
   "branch (Right#b) (Branch l r) \<longleftrightarrow> branch b r"
 using branch.intros apply auto
-using Left_def branch.cases by blast
+using Left_def branch.cases apply blast
+done
 
 lemma branch_inv_Branch: 
   "branch b (Branch l r) \<longleftrightarrow> 
@@ -241,6 +242,10 @@ next
   then have "ds = [] \<or> (a \<longrightarrow> path b T\<^sub>1) \<and> (\<not>a \<longrightarrow> path b T\<^sub>2)" using Branch by auto
   then show "?case" using ds_p path.intros by (cases a) auto
 qed
+
+lemma internal_branch: "branch ((d1#b1)@[d]@b2) T \<Longrightarrow> internal (d1#b1) T"
+apply (induction b1 arbitrary: T)
+oops
 
 fun parent :: "dir list \<Rightarrow> dir list" where
   "parent ds = tl ds"
