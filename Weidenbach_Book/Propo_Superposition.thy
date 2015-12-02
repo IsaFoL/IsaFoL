@@ -449,9 +449,9 @@ proof -
       obtain aa :: "'a set \<Rightarrow> 'a literal set \<Rightarrow> 'a" where
         f2: "\<forall>x0 x1. (\<exists>v2. v2 \<in> x0 \<and> Pos v2 \<notin> x1 \<and> Neg v2 \<notin> x1)
            \<longleftrightarrow> (aa x0 x1 \<in> x0 \<and> Pos (aa x0 x1) \<notin> x1 \<and> Neg (aa x0 x1) \<notin> x1)"
-        by moura (* 3 ms *)
+        by moura
       have "\<forall>a. a \<notin> atms_of_m A \<or> Pos a \<in> I \<or> Neg a \<in> I"
-        using tot by (simp add: total_over_m_def total_over_set_def) (* 2 ms *)
+        using tot by (simp add: total_over_m_def total_over_set_def)
       hence "aa (atms_of_m A \<union> atms_of_m {B}) (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I})
         \<notin> atms_of_m A \<union> atms_of_m {B} \<or> Pos (aa (atms_of_m A \<union> atms_of_m {B})
           (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I})) \<in> I
@@ -459,11 +459,11 @@ proof -
           \<or> Neg (aa (atms_of_m A \<union> atms_of_m {B})
             (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I})) \<in> I
             \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I}"
-        by auto (* 9 ms *)
+        by auto
       hence "total_over_set (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I}) (atms_of_m A \<union> atms_of_m {B})"
-        using f2 by (meson total_over_set_def) (* 40 ms *)
+        using f2 by (meson total_over_set_def)
       thus ?thesis
-        by (simp add: total_over_m_def) (* 2 ms *)
+        by (simp add: total_over_m_def)
     qed
   moreover have "?I \<Turnstile>s A"
     using I_A by auto

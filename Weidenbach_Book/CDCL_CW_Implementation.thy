@@ -1261,7 +1261,7 @@ proof -
   { fix pp :: "(nat, nat, nat literal multiset) marked_lit list \<times> nat literal multiset set
       \<times> nat literal multiset set \<times> nat \<times> nat literal multiset conflicting_clause"
     have "(if True then Sa else do_all_cdcl_s Sa) = do_all_cdcl_s Sa"
-      using a1 by auto (* 4 ms *)
+      using a1 by auto
     then have "\<not> cdcl_s (toS (rough_state_of_I (do_all_cdcl_s Sa))) pp"
       using a1 by (metis (no_types) do_cdcl_s_step_no id_of_I_to_def rough_state_of_I_do_cdcl_s_step'
         rough_state_of_inverse) }

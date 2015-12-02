@@ -878,11 +878,11 @@ next
     proof -
       obtain ss :: "'st \<Rightarrow> 'st" where
         f1: "\<forall>x2. (\<exists>v3. cdcl_cp x2 v3) = cdcl_cp x2 (ss x2)"
-        by moura (* 11 ms *)
+        by moura
       have "\<not> cdcl_cp U (ss U)"
-        by (meson full full0_def) (* 7 ms *)
+        by (meson full full0_def)
       then show ?thesis
-        using f1 by (metis (no_types) \<open>T = U\<close> \<open>cdcl_bj\<^sup>+\<^sup>\<down> T T''\<close> bj' calculation(1) r_into_rtranclp) (* 383 ms *)
+        using f1 by (metis (no_types) \<open>T = U\<close> \<open>cdcl_bj\<^sup>+\<^sup>\<down> T T''\<close> bj' calculation(1) r_into_rtranclp)
     qed
   ultimately show ?case
     using \<open>full cdcl_bj T T''\<close> \<open>full0 cdcl_cp T'' U''\<close> unfolding \<open>T = U\<close> by blast
@@ -934,7 +934,7 @@ next
       proof -
         obtain ss :: "'st \<Rightarrow> 'st" where
           f1: "\<forall>x2. (\<exists>v3. cdcl_cp x2 v3) = cdcl_cp x2 (ss x2)"
-          by moura (* 9 ms *)
+          by moura
         have "\<not> cdcl_cp U (ss U)"
           by (meson assms(1) full0_def)
         then show ?thesis
@@ -964,11 +964,11 @@ proof (induction)
   moreover hence "full cdcl_bj S U'"
     proof -
       have f1: "cdcl_bj\<^sup>*\<^sup>* T U' \<and> no_step cdcl_bj U'"
-        by (metis (no_types) calculation full0_def) (* 85 ms *)
+        by (metis (no_types) calculation full0_def)
       have "cdcl_bj S T"
-        by (simp add: cdcl_bj.skip skip.hyps) (* 2 ms *)
+        by (simp add: cdcl_bj.skip skip.hyps)
       then show ?thesis
-        using f1 by (simp add: full_def rtranclp_into_tranclp2) (* 40 ms *)
+        using f1 by (simp add: full_def rtranclp_into_tranclp2)
   qed
   moreover
     have "no_step cdcl_cp T"
@@ -983,11 +983,11 @@ next
   moreover hence "full cdcl_bj S U'"
     proof -
       have f1: "cdcl_bj\<^sup>*\<^sup>* T U' \<and> no_step cdcl_bj U'"
-        by (metis (no_types) calculation full0_def) (* 61 ms *)
+        by (metis (no_types) calculation full0_def)
       have "cdcl_bj S T"
-        by (simp add: cdcl_bj.resolve resolve.hyps) (* 3 ms *)
+        by (simp add: cdcl_bj.resolve resolve.hyps)
       then show ?thesis
-        using f1 by (simp add: full_def rtranclp_into_tranclp2) (* 44 ms *)
+        using f1 by (simp add: full_def rtranclp_into_tranclp2)
     qed
   moreover
     have "no_step cdcl_cp T"
@@ -1044,11 +1044,11 @@ next
               obtain ss :: "'st \<Rightarrow> 'st" where
                 f1: "\<forall>s sa sb. (\<not> full cdcl_bj s sa \<or> cdcl_cp s (ss s) \<or> \<not> full0 cdcl_cp sa sb)
                   \<or> cdcl_s' s sb"
-                using bj' by moura (* 605 ms *)
+                using bj' by moura
               have "full cdcl_bj S T"
-                by (simp add: cp(2) full_def local.bj tranclp.r_into_trancl) (* 17 ms *)
+                by (simp add: cp(2) full_def local.bj tranclp.r_into_trancl)
               then show ?thesis
-                using f1 full n_s by blast (* 27 ms *)
+                using f1 full n_s by blast
             qed
         next
           case (fbj U')
@@ -1150,7 +1150,7 @@ next
       thus ?thesis
         proof -
           have f1: "cdcl_s'\<^sup>+\<^sup>+ S U \<longrightarrow> cdcl_s'\<^sup>*\<^sup>* S U"
-            by (simp add: tranclp_into_rtranclp) (* 7 ms *)
+            by (simp add: tranclp_into_rtranclp)
           obtain ss :: 'st where
             "cdcl_s' T U \<or> cdcl_bj\<^sup>+\<^sup>\<down> U ss \<and> (\<forall>s. cdcl_cp\<^sup>\<down> ss s \<longrightarrow> cdcl_s' T s)"
             using assms(2) cdcl_s_cdcl_s'_connected rtranclp_cdcl_all_inv_mes_inv

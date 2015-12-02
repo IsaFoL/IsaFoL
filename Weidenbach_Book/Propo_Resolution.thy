@@ -760,7 +760,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
           proof -
             assume a1: "\<And>C'. \<lbrakk>\<chi>2' = C' + {#Pos v#}; Pos v \<notin># C'; Neg v \<notin># C'\<rbrakk> \<Longrightarrow> thesis"
             have f2: "\<And>n. (n::nat) - n = 0"
-              by simp (* 0.2 ms *)
+              by simp
             have "Neg v \<notin># \<chi>2' - {#Pos v#}"
               using Negv \<chi>'\<chi>2_incl by auto
             thus ?thesis
@@ -1979,7 +1979,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
             proof -
               assume a1: "\<And>C. \<lbrakk>\<chi> = C + {#Neg v#}; Neg v \<notin># C; Pos v \<notin># C\<rbrakk> \<Longrightarrow> thesis"
               have f2: "\<And>n. (0::nat) + n = n"
-                by simp (* 0.0 ms *)
+                by simp
               obtain mm :: "'v literal multiset \<Rightarrow> 'v literal \<Rightarrow> 'v literal multiset" where
                 f3: "{#Neg v#} + mm \<chi> (Neg v) = \<chi>"
                 by (metis (no_types) \<open>count \<chi> (Neg v) = 1\<close> add.commute multi_member_split

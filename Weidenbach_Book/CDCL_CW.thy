@@ -232,7 +232,7 @@ locale
     update_learned_clss :: "'v clause set \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause conflicting_clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    
+
     init_state :: "'v clauses \<Rightarrow> 'st" and
     mark_of_cls :: "'v clause \<Rightarrow> 'mark" and
     cls_of_mark :: "'mark \<Rightarrow> 'v clause" and
@@ -784,9 +784,9 @@ next
        assume a1: "(\<Union>x\<in>learned_clss S. atms_of x) \<subseteq> (\<Union>x\<in>init_clss S. atms_of x)"
        assume a2: "xa \<in># D"
        have "UNION (local.clauses S) atms_of = UNION (init_clss S) atms_of"
-         using a1 by (metis (no_types) UN_Un clauses_def sup.orderE) (* 109 ms *)
+         using a1 by (metis (no_types) UN_Un clauses_def sup.orderE)
        hence "\<exists>m\<in>init_clss S. atm_of xa \<in> atms_of m"
-         using a2 by (metis UN_iff atm_of_lit_in_atms_of conflict.hyps(1)) (* 181 ms *)
+         using a2 by (metis UN_iff atm_of_lit_in_atms_of conflict.hyps(1))
     } note H = this
   ultimately show ?case using conflict.prems unfolding atms_of_def atms_of_m_def clauses_def
     by (auto simp add: H)
@@ -3258,7 +3258,7 @@ next
           then show "- L \<notin> lit_of ` set M1"
             by (metis (no_types) One_nat_def add.right_neutral add_Suc_right
               atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set backtrack.hyps(2)
-              cdcl_cw_ops.backtrack_lit_skiped cdcl_cw_ops_axioms decomp lits_of_def) (* 135 ms *)
+              cdcl_cw_ops.backtrack_lit_skiped cdcl_cw_ops_axioms decomp lits_of_def)
         qed
       { assume "Da \<in> clauses S"
         hence "~M1 \<Turnstile>as CNot Da" using no_l M by auto
