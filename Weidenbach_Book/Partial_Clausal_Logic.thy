@@ -118,6 +118,18 @@ lemma atms_of_m_single_set_mset_atns_of[simp]:
   "atms_of_m (single ` set_mset B) = atms_of B"
   unfolding atms_of_m_def atms_of_def by auto
 
+lemma atms_of_m_remove_incl:
+  shows "atms_of_m (Set.remove a \<psi>) \<subseteq> atms_of_m \<psi>"
+  unfolding atms_of_m_def by auto
+
+lemma atms_of_m_remove_subset:
+  "atms_of_m (\<phi> - \<psi>) \<subseteq> atms_of_m \<phi>"
+  unfolding atms_of_m_def by auto
+
+lemma finite_atms_of_m_remove_subset[simp]:
+  "finite (atms_of_m A) \<Longrightarrow> finite (atms_of_m (A - C))"
+  using atms_of_m_remove_subset[of A C] finite_subset by blast
+
 (*TODO generalise the 2 following lemmas, but the multiset is probably not good enough for [intro].*)
 lemma in_implies_atm_of_on_atms_of_m[simp]:
   assumes "C + {#L#} \<in> N"
@@ -197,14 +209,6 @@ lemma total_over_m_union[iff]:
 lemma total_over_m_insert[iff]:
   "total_over_m I (insert a A) \<longleftrightarrow> (total_over_set I (atms_of a) \<and> total_over_m I A)"
   unfolding total_over_m_def total_over_set_def by fastforce
-
-lemma atms_of_m_remove_incl:
-  shows "atms_of_m (Set.remove a \<psi>) \<subseteq> atms_of_m \<psi>"
-  unfolding atms_of_m_def by auto
-
-lemma atms_of_m_remove_subset:
-  "atms_of_m (\<phi> - \<psi>) \<subseteq> atms_of_m \<phi>"
-  unfolding atms_of_m_def by auto
 
 lemma total_over_m_extension:
   fixes I :: "'v literal set" and A :: "'v clauses"
@@ -711,10 +715,19 @@ lemma true_clss_clss_insert[iff]:
   "A \<Turnstile>ps insert L Ls \<longleftrightarrow> (A \<Turnstile>p L \<and> A \<Turnstile>ps Ls)"
   using true_clss_clss_union_and[of A "{L}" "Ls"] by auto
 
+
 (*TODO Mark as [dest]?*)
 lemma true_clss_clss_subset:
   "A \<subseteq> B \<Longrightarrow> A \<Turnstile>ps CC \<Longrightarrow> B \<Turnstile>ps CC"
   by (metis subset_Un_eq true_clss_clss_union_l)
+
+lemma union_trus_clss_clss[simp]: "A \<union> B \<Turnstile>ps B"
+  unfolding true_clss_clss_def by auto
+
+
+lemma true_clss_clss_remove[simp]:
+  "A \<Turnstile>ps B \<Longrightarrow> A\<Turnstile>ps B - C"
+  by (metis Un_Diff_Int true_clss_clss_union_and)
 
 lemma true_clss_clss_in_imp_true_clss_cls:
   assumes "N \<Turnstile>ps U"

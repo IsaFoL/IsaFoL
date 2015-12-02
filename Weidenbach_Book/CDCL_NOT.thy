@@ -1253,7 +1253,7 @@ lemma cdcl_bj_sat_ext_iff:
   shows "I\<Turnstile>sext clauses S \<longleftrightarrow> I\<Turnstile>sext clauses T"
   using assms
 proof (induction rule:cdcl_all_induct)
-  case (dpll_bj)
+  case dpll_bj
   thus ?case by (rule dpll_bj_sat_ext_iff)
 next
   case (learn S C)
@@ -1455,7 +1455,7 @@ lemma forget_\<mu>\<^sub>L_decrease:
   shows "(\<mu>\<^sub>L b T, \<mu>\<^sub>L b S) \<in> less_than <*lex*> less_than"
 proof -
   have "card (clauses T) < card (clauses S)"
-    using forget fin apply (induction)
+    using forget fin apply induction
     using card_Suc_Diff1 by fastforce
   then show ?thesis
     unfolding do_not_forget_before_backtracking_clause_learned_clause_untouched[OF forget]
@@ -1548,7 +1548,7 @@ lemma cdcl_decreasing_measure:
   shows "(\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A T, \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A S)
             \<in> less_than <*lex*> (less_than <*lex*> less_than)"
   using assms(1-6)
-proof (induction)
+proof induction
   case (c_dpll_bj S T)
   from dpll_bj_trail_mes_decreasing_prop[OF this(1-5) fin_A] show ?case unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L_def
     by (meson in_lex_prod less_than_iff)
@@ -2399,7 +2399,7 @@ lemma cdcl_with_restart_cdcl_inv:
     "cdcl_with_restart_stgy S T" and
     "cdcl_inv (fst S)"
   shows "cdcl_inv (fst  T)"
-  using assms apply (induction)
+  using assms apply induction
     apply (metis cdcl_cdcl_inv cdcl_inv_restart fst_conv)
    apply (metis fstI full0_def full0_unfold rtranclp_cdcl_cdcl_inv)
   done
@@ -2409,7 +2409,7 @@ lemma rtranclp_cdcl_with_restart_cdcl_inv:
     "cdcl_with_restart_stgy\<^sup>*\<^sup>* S T" and
     "cdcl_inv (fst S)"
   shows "cdcl_inv (fst T)"
-  using assms by (induction) (auto intro: cdcl_with_restart_cdcl_inv)
+  using assms by induction (auto intro: cdcl_with_restart_cdcl_inv)
 
 lemma rtranclp_cdcl_with_restart_bound_inv:
   assumes
@@ -2417,7 +2417,7 @@ lemma rtranclp_cdcl_with_restart_bound_inv:
     "cdcl_inv (fst S)" and
     "bound_inv A (fst S)"
   shows "bound_inv A (fst T)"
-  using assms apply (induction)
+  using assms apply induction
    apply (simp add: cdcl_cdcl_inv cdcl_with_restart_bound_inv)
   using cdcl_with_restart_bound_inv rtranclp_cdcl_with_restart_cdcl_inv by blast
 
@@ -2486,7 +2486,7 @@ proof (rule ccontr)
       apply (case_tac m) apply simp by (meson relpowp_E2)
     have "\<exists> T m. (cdcl ^^ m) (fst (g i)) T \<and> m \<ge> f (snd (g (i)))"
       using g[of i] apply (cases rule: cdcl_with_restart_stgy.cases)
-        apply (auto)[]
+        apply auto[]
       using g[of "Suc i"] by (cases rule: cdcl_with_restart_stgy.cases)
         (auto simp add: full_def full0_def dest!: H dest: tranclpD)
   } note H = this
@@ -2967,7 +2967,7 @@ qed
     finite A"
     \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' "\<lambda>S. inv S \<and> no_dup (trail S) \<and> finite (clauses S)"
     \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound
-    apply (unfold_locales)
+    apply unfold_locales
            apply (simp add: strict_mono)
           using bound_inv_inv apply meson
          apply (rule cdcl_decreasing_measure'; simp)

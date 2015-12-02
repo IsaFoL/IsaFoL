@@ -1,10 +1,6 @@
 theory CDCL_CW_Termination
 imports CDCL_CW
 begin
-(*TODO move  *)
-lemma finite_atms_of_m_remove_subset[simp]:
-  "finite (atms_of_m A) \<Longrightarrow> finite (atms_of_m (A - C))"
-  using atms_of_m_remove_subset[of A C] finite_subset by blast
 
 context cdcl_cw_ops
 begin
@@ -225,7 +221,7 @@ proof (induction rule:cdcl_o_induct)
     using backtrack
     by (cases "drop (length M\<^sub>0) M'") auto
 next
-  case (decided)
+  case decided
   show ?case using deciding[of S'] decided(1-3) by auto
 qed auto
 
@@ -249,7 +245,7 @@ next
     proof (cases "\<exists>M'. trail T = M' @ Marked L i # H @ M")
       case False
       with s show ?thesis using U s st S
-        proof (induction)
+        proof induction
           case (conflict' V W) note cp = this(1) and  nd = this(2) and W = this(3)
           then obtain M\<^sub>0 where "trail W = M\<^sub>0 @ trail V" and nmarked: "\<forall>l\<in>set M\<^sub>0. \<not> is_marked l"
             using rtranclp_cdcl_cp_dropWhile_trail unfolding full_def rtranclp_unfold by blast
@@ -663,50 +659,6 @@ next
   thus ?case using cp by blast
 qed
 
-(* TODO Move *)
-lemma cdcl_o_no_more_clauses:
-  assumes "cdcl_o S S'"
-  shows "init_clss S = init_clss S'"
-  using assms by (induct rule: cdcl_o_induct) auto
-
-lemma tranclp_cdcl_o_no_more_clauses:
-  assumes "cdcl_o\<^sup>+\<^sup>+ S S'"
-  shows "init_clss S = init_clss S'"
-  using assms by (induct rule: tranclp.induct) (auto dest: cdcl_o_no_more_clauses)
-
-lemma rtranclp_cdcl_o_no_more_clauses:
-  assumes "cdcl_o\<^sup>*\<^sup>* S S'"
-  shows "init_clss S = init_clss S'"
-  using assms by (induct rule: rtranclp.induct) (auto dest: cdcl_o_no_more_clauses)
-
-lemma cdcl_cp_no_more_clauses:
-  assumes "cdcl_cp S S'"
-  shows "clauses S = clauses S'"
-  using assms by (induct rule: cdcl_cp.induct) auto
-
-lemma tranclp_cdcl_cp_no_more_clauses:
-  assumes "cdcl_cp\<^sup>+\<^sup>+ S S'"
-  shows "clauses S = clauses S'"
-  using assms by (induct rule: tranclp.induct) (auto dest: cdcl_cp_no_more_clauses)
-(*
-lemma cdcl_s_no_more_clauses:
-  assumes "cdcl_s S S'"
-  shows "init_clss S = init_clss S'"
-  using assms
-  apply (induct rule: cdcl_s.induct)
-  unfolding full_def full0_def apply (blast dest: tranclp_cdcl_cp_no_more_clauses
-    tranclp_cdcl_o_no_more_clauses)
-  by (metis cdcl_o_no_more_clauses rtranclp_unfold tranclp_cdcl_cp_no_more_clauses)
-
-lemma rtranclp_cdcl_s_no_more_clauses:
-  assumes "cdcl_s\<^sup>*\<^sup>* S S'"
-  shows "clauses S = clauses S'"
-  using assms
-  apply (induct rule: rtranclp.induct, simp)
-  using cdcl_s_no_more_clauses by fast
-   *)
-
-
 lemma no_relearned_clause:
   assumes invR: "cdcl_all_inv_mes R" and
   st': "cdcl_s\<^sup>*\<^sup>* R S" and
@@ -1065,10 +1017,10 @@ next
     using le_trans by blast
   thus ?case using finite_atms finite_le unfolding S by (auto simp add: \<open>D + {#L#} \<notin> learned_clss S\<close>)
 next
-  case (restart)
+  case restart
   thus ?case using finite_atms alien by auto
 next
-  case (forget)
+  case forget
   thus ?case by auto
 qed
 
@@ -1152,7 +1104,7 @@ proof -
   using assms
     by (metis rtranclp_unfold rtranclp_cdcl_all_inv_mes_inv tranclp_cdcl_s_tranclp_cdcl)
   with assms show ?thesis
-    proof (induction)
+    proof induction
       case (conflict' U V) note cp = this(1) and inv = this(5)
       show ?case
          using tranclp_cdcl_cp_measure_decreasing[OF HOL.conjunct1[OF cp[unfolded full_def]] inv] .
@@ -1173,7 +1125,7 @@ proof -
           case (bj S T) note bt = this(1) and st = this(2) and R = this(3)
             and invR = this(4) and inv = this(5)
           thus ?case
-            proof (cases)
+            proof cases
               case (backtrack) note bt = this(1)
                 have no_relearn: "\<forall>T. conflicting S = C_Clause T \<longrightarrow> T \<notin> learned_clss S"
                   using no_relearned_clause[OF invR st] invR st bt R cdcl_all_inv_mes_def
@@ -1181,9 +1133,9 @@ proof -
                 show ?thesis
                   apply (rule cdcl_measure_decreasing)
                     using bt cdcl_bj.backtrack cdcl_o.bj other apply simp
-                            using bt apply (auto)[]
-                           using bt apply (auto)[]
-                          using bt no_relearn apply (auto)[]
+                            using bt apply auto[]
+                           using bt apply auto[]
+                          using bt no_relearn apply auto[]
                          using inv unfolding cdcl_all_inv_mes_def apply simp
                         using inv unfolding cdcl_all_inv_mes_def apply simp
                        using inv unfolding cdcl_all_inv_mes_def apply simp
@@ -1213,7 +1165,7 @@ lemma tranclp_cdcl_s_decreasing:
   "cdcl_all_inv_mes R"
   shows "(cdcl_measure S, cdcl_measure R) \<in> lexn {(a, b). a < b} 3"
   using assms
-  apply (induction)
+  apply induction
    using cdcl_s_step_decreasing[of R _ R] apply blast
   using cdcl_s_step_decreasing[of _ _ R]  tranclp_into_rtranclp[of cdcl_s R]
   lexn_trans[OF trans_le, of 3] unfolding trans_def by blast

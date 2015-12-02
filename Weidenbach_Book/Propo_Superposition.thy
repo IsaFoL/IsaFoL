@@ -652,7 +652,7 @@ proof (rule ccontr)
           have abs: "clss_lt N (C + E) \<Turnstile>p C + E"
             using redundant_iff_abstract red' unfolding abstract_red_def by auto
           have "clss_lt N (C + E) \<Turnstile>p E + {#Pos P#} \<or> clss_lt N (C + E) \<Turnstile>p C + {#Neg P#}"
-            proof (clarify)
+            proof clarify
               assume CP: "\<not> clss_lt N (C + E) \<Turnstile>p C + {#Neg P#}"
               { fix I
                 assume

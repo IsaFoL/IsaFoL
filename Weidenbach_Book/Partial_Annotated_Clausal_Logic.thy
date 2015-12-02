@@ -423,7 +423,7 @@ lemma get_all_marked_decomposition_hd_hd:
   shows "tl M = M0' @ M0 \<and> is_marked (hd M)"
   using assms
 proof (induct Ls arbitrary: M C M0 M0' l)
-  case (Nil)
+  case Nil
   thus ?case by simp
 next
   case (Cons a Ls M C M0 M0' l) note IH = this(1) and g = this(2)

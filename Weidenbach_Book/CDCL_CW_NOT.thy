@@ -39,7 +39,7 @@ lemma rtranclp_skip_backtrack_backtrack:
     "cdcl_all_inv_mes S"
   shows "backtrack S W"
   using assms
-proof (induction)
+proof induction
   case base
   thus ?case by simp
 next
@@ -213,7 +213,7 @@ lemma cdcl_fw_cdcl:
   assumes "cdcl_fw S T"
   shows "cdcl\<^sup>*\<^sup>* S T"
   using assms
-proof (induction)
+proof induction
   case (fw_conflict S T U) note confl = this(1) and bj = this(2)
   have "cdcl S T" using confl by (simp add: cdcl.intros r_into_rtranclp)
   moreover
@@ -453,7 +453,7 @@ lemma if_can_apply_backtrack_skip_or_resolve_is_skip:
     inv: "cdcl_all_inv_mes S"
   shows "skip\<^sup>*\<^sup>* S U"
   using assms(2,3,1)
-  by (induction) (simp_all add: if_can_apply_backtrack_no_more_resolve)
+  by induction (simp_all add: if_can_apply_backtrack_no_more_resolve)
 
 lemma cdcl_bj_bj_decomp:
   assumes "cdcl_bj\<^sup>*\<^sup>* S W" and "cdcl_all_inv_mes S"
@@ -702,7 +702,7 @@ proof (induction rule: cdcl_all_rules_induct)
     unfolding full0_def by (metis bj mono_rtranclp other)
   ultimately show ?case using fw_conflict[of S T U] by blast
 next
-  case (forget)
+  case forget
   thus ?case using cdcl_rf.forget fw_rf by blast
 next
   case restart
@@ -776,7 +776,7 @@ proof -
     by (rule length_model_le_vars_all_inv)
       (meson assms(1) assms(2) cdcl_all_inv_mes_inv cdcl_cp.cases conflict propagate)
   with assms
-  show ?thesis by (induction) force+
+  show ?thesis by induction force+
 qed
 
 lemma cdcl_cp_wf: "wf {(b,a). cdcl_all_inv_mes a \<and> cdcl_cp a b}"
@@ -793,13 +793,13 @@ proof
   assume
     "?I S T"
     "?inv S"
-  thus "?C S T" by (induction) auto
+  thus "?C S T" by induction auto
 next
   assume
     "?C S T"
     "?inv S"
   thus "?I S T"
-    proof (induction)
+    proof induction
       case base
       thus ?case by simp
     next
@@ -957,7 +957,7 @@ lemma
     "(T = U \<and> (\<exists>U'. full cdcl_bj S U' \<and> full0 cdcl_bj U U'))
     \<or> cdcl_s' S U"
     using assms
-proof (induction)
+proof induction
   case (skip S T)
   obtain U' where "full0 cdcl_bj T U'"
     using wf_exists_normal_form_full0[OF cdcl_bj_wf] by blast
@@ -1024,7 +1024,7 @@ next
   show ?case
     using o
     proof cases
-      case (decided)
+      case decided
       thus ?thesis using cdcl_s'.simps full n_s by blast
     next
       case bj
@@ -1080,7 +1080,7 @@ next
   show ?case
     using o
     proof cases
-      case (decided)
+      case decided
       thus ?thesis using cdcl_s'.simps full n_s by blast
     next
       case bj

@@ -233,7 +233,7 @@ next
         "\<exists>p. Pos p \<in># a \<and> Neg p \<in># b
              \<and> ((\<exists>\<chi>\<in>fst (N - {B}, already_used). subsumes \<chi> (a - {#Pos p#} + (b - {#Neg p#})))
                  \<or> tautology (a - {#Pos p#} + (b - {#Neg p#})))"
-        proof (cases)
+        proof cases
           case taut
           thus ?thesis using p by auto
         next
@@ -394,7 +394,7 @@ lemma simplify_clause_preserves_sat:
   and "satisfiable \<psi>'"
   shows "satisfiable \<psi>"
   using assms
-proof (induction)
+proof induction
   case (tautology_deletion A P) note AP = this(1) and sat = this(2)
   let ?A' = "A + {#Pos P#} + {#Neg P#}"
   let ?\<psi>' = "\<psi> - {?A'}"
@@ -464,7 +464,7 @@ lemma inference_preserves_unsat:
 datatype 'v sem_tree = Node "'v" "'v sem_tree" "'v sem_tree" | Leaf
 
 fun sem_tree_size :: "'v sem_tree \<Rightarrow> nat" where
-"sem_tree_size (Leaf) = 0" |
+"sem_tree_size Leaf = 0" |
 "sem_tree_size (Node _ ag ad) = 1 + sem_tree_size ag + sem_tree_size ad"
 
 lemma sem_tree_size[case_names bigger]:
@@ -1278,7 +1278,7 @@ lemma rtranclp_already_used_all_simple_inv:
   shows "already_used_all_simple (snd S') vars"
   using assms
 proof (induct rule: rtranclp.induct)
-  case (rtrancl_refl)
+  case rtrancl_refl
   thus ?case by simp
 next
   case (rtrancl_into_rtrancl \<psi> \<psi>' \<psi>'') note infstar = this(1) and IH = this and res = this(3) and
@@ -1501,7 +1501,7 @@ lemma rtrancp_simplify_already_used_inv:
   assumes "simplify\<^sup>*\<^sup>* S S'"
   and "already_used_inv (S, N)"
   shows "already_used_inv (S', N)"
-  using assms apply (induction)
+  using assms apply induction
   using simplify_preserves_already_used_inv by fast+
 
 lemma full_simplify_already_used_inv:
@@ -1521,7 +1521,7 @@ lemma resolution_already_used_inv:
   and "already_used_inv S"
   shows "already_used_inv S'"
   using assms
-proof (induction)
+proof induction
   case (full_simp N N' already_used)
   thus ?case using full_simplify_already_used_inv by fast
 next
@@ -1536,13 +1536,13 @@ lemma rtranclp_resolution_already_used_inv:
   assumes "resolution\<^sup>*\<^sup>* S S'"
   and "already_used_inv S"
   shows "already_used_inv S'"
-  using assms apply (induction)
+  using assms apply induction
   using resolution_already_used_inv by fast+
 
 lemma rtanclp_simplifier_preserves_unsat:
   assumes "simplify\<^sup>*\<^sup>* \<psi> \<psi>'"
   shows "satisfiable \<psi>' \<longrightarrow> satisfiable \<psi>"
-  using assms apply (induction)
+  using assms apply induction
   using simplify_clause_preserves_sat by blast+
 
 lemma full_simplifier_preserves_unsat:
@@ -1594,7 +1594,7 @@ lemma resolution_preserve_partial_tree:
   assumes "resolution S S'"
   and "partial_interps t I (fst S)"
   shows "partial_interps t I (fst S')"
-  using assms apply (induction)
+  using assms apply induction
     using full_simplifier_preserve_partial_tree fst_conv apply metis
   using full0_simplifier_preserve_partial_tree inference_preserve_partial_tree by fastforce
 
@@ -1602,7 +1602,7 @@ lemma rtranclp_resolution_preserve_partial_tree:
   assumes "resolution\<^sup>*\<^sup>* S S'"
   and "partial_interps t I (fst S)"
   shows "partial_interps t I (fst S')"
-  using assms apply (induction)
+  using assms apply induction
   using resolution_preserve_partial_tree by fast+
   thm nat_less_induct nat.induct
 
@@ -1809,13 +1809,13 @@ next
               using f1 by (metis (no_types, lifting))
           qed
       show ?thesis
-        apply (simp)
+        apply simp
         unfolding mset_condensation2 unfolding mset_condensation1
         unfolding 1 2 "2'" 3 4 "4'"
         by (auto simp add: algebra_simps)
    qed
   have "\<Xi> ?N' < \<Xi> N"
-    proof (cases)
+    proof cases
       assume a1: "?C' \<in> N"
       thus ?thesis
         proof -
@@ -2234,7 +2234,7 @@ lemma rtranclp_preserves_sat:
   assumes "simplify\<^sup>*\<^sup>* S S'"
   and "satisfiable S"
   shows "satisfiable S'"
-  using assms apply (induction)
+  using assms apply induction
    apply simp
   by (meson satisfiable_carac satisfiable_def simplifier_preserves_un_sat_eq)
 
