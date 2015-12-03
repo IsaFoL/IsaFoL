@@ -1,11 +1,15 @@
 //dot -o CDCL.pdf -Tpdf CDCL.dot
 digraph CDCL {
-	CDCL_NOT_restart [label = "CDCL NOT + restart"];
-	CDCL_NOT [label = "CDCL NOT"];
-	CDCL_NOT_stgy [label = "CDCL NOT stgy_lf"];
-	CDCL_NOT_stgy_restart[label = "CDCL NOT stgy lf + restart"];
-	CDCL_NOT_merged [label = "CDCL NOT merged bj l"];
-	DPLL [label = "DPLL"];
+  rankdir=BT;
+  subgraph cw {
+    style=invisible;
+  	CDCL_NOT_restart [label = "CDCL NOT + restart"];
+  	CDCL_NOT [label = "CDCL NOT"];
+  	CDCL_NOT_stgy [label = "CDCL NOT stgy_lf"];
+  	CDCL_NOT_stgy_restart[label = "CDCL NOT stgy lf + restart"];
+  	CDCL_NOT_merged [label = "CDCL NOT merged bj l"];
+  	DPLL [label = "DPLL"];
+  }
 
 	CDCL_NOT_stgy -> CDCL_NOT;
 	CDCL_NOT -> CDCL_NOT_restart [style = dotted];
@@ -15,14 +19,16 @@ digraph CDCL {
 
 	CDCL_NOT_merged -> CDCL_NOT [style =dotted];
 
+	subgraph fw {
+    style=invisible;
+    CDCL_FW [label="CDCL FW"];
+	  CDCL_FW_stgy [label="CDCL FW stgy cp", color=red];
+	  CDCL_FW_forget [label="CDCL FW + forget", color=red];
+	  CDCL_FW_stgy_forget [label="CDCL FW stgy cp + forget", color=red];
 
-   	CDCL_FW [label="CDCL FW", color=red];
-	CDCL_FW_stgy [label="CDCL FW stgy cp", color=red];
-	CDCL_FW_forget [label="CDCL FW + forget", color=red];
-	CDCL_FW_stgy_forget [label="CDCL FW stgy cp + forget", color=red];
-
-	CDCL_FW_restart_forget [label = "CDCL FW + restart + forget", color=red];
-	CDCL_FW_stgy_restart_forget [label = "CDCL FW stgy cp + restart + forget", color=red];
+	  CDCL_FW_restart_forget [label = "CDCL FW + restart + forget", color=red];
+	  CDCL_FW_stgy_restart_forget [label = "CDCL FW stgy cp + restart + forget", color=red];
+	}
 
 	CDCL_FW_stgy_forget -> CDCL_FW_stgy_restart_forget -> CDCL_FW_restart_forget [style
 	= dotted, color=red];
@@ -36,19 +42,24 @@ digraph CDCL {
 
 	CDCL_CW [label = "CDCL CW"];
 	CDCL_CW_stgy [label = "CDCL CW stgy cp"];
-	CDCL_CW_stgy -> CDCL_CW[style=dotted];
-	CDCL_CW -> CDCL_FW[color=blue, style=dotted];
-	CDCL_FW -> CDCL_CW[color=blue, style=dashed];
+	CDCL_CW_stgy_merge_bj[label = "CDCL CW chaining backjump resolve skip"];
+	CDCL_CW_stgy -> CDCL_CW;
+	CDCL_CW -> CDCL_FW[color=blue, style=dashed];
+	CDCL_FW -> CDCL_CW[style=dotted];
 
-	CDCL_CW_stgy -> CDCL_FW_stgy[color=blue, style=dotted];
-	CDCL_FW_stgy -> CDCL_CW_stgy[color=blue, style=dashed];
+	CDCL_CW_stgy -> CDCL_CW_stgy_merge_bj -> CDCL_FW_stgy[color=blue, style=dashed];
+	CDCL_FW_stgy -> CDCL_CW_stgy_merge_bj -> CDCL_CW_stgy[color=blue, style=dotted];
 
 
-	CDCL_NOT_state [label = "CDCL NOT State"];
-	CDCL_CW_state [label = "CDCL CW State"];
+	subgraph state {
+    style=invisible;
+    CDCL_NOT_state [label = "CDCL NOT State"];
+    CDCL_CW_state [label = "CDCL CW State"];
+  }
 
-	CDCL_CW_state -> CDCL_NOT_state;
-	
+  CDCL_CW_state -> CDCL_NOT_state[style=dashed, color = blue];
+
+
 	CDCL_WL [label = "CDCL 2-Watched-literals ?", color = red];
 
 }
