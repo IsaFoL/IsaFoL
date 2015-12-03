@@ -203,24 +203,6 @@ proof -
     using backtrack.intros[OF T decomp' lev_l'] lev_l_D' i' W by force
 qed
 
-inductive cdcl_fw :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
-fw_propagate: "propagate S S' \<Longrightarrow> cdcl_fw S S'" |
-fw_conflict: "conflict S T \<Longrightarrow> full0 cdcl_bj T U \<Longrightarrow> cdcl_fw S U" |
-fw_decided: "decided S S' \<Longrightarrow> cdcl_fw S S'"|
-fw_rf: "cdcl_rf S S' \<Longrightarrow> cdcl_fw S S'"
-
-lemma cdcl_fw_cdcl:
-  assumes "cdcl_fw S T"
-  shows "cdcl\<^sup>*\<^sup>* S T"
-  using assms
-proof induction
-  case (fw_conflict S T U) note confl = this(1) and bj = this(2)
-  have "cdcl S T" using confl by (simp add: cdcl.intros r_into_rtranclp)
-  moreover
-    have "cdcl_bj\<^sup>*\<^sup>* T U" using bj unfolding full0_def by auto
-    hence "cdcl\<^sup>*\<^sup>* T U" by (metis cdcl_o.bj mono_rtranclp other)
-  ultimately show ?case by auto
-qed (simp_all add: cdcl_o.intros cdcl.intros r_into_rtranclp)
 
 abbreviation skip_or_resolve :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 "skip_or_resolve \<equiv> (\<lambda>S T. skip S T \<or> resolve S T)"
@@ -670,59 +652,6 @@ lemma
     inv: "cdcl_all_inv_mes S"
   shows "cdcl_bj\<^sup>*\<^sup>* T U"
   using assms by (metis cdcl_bj_strongly_confluent full_def tranclp_into_rtranclp)
-
-lemma cdcl_fw_conflicting_true_or_no_step:
-  assumes "cdcl_fw S T"
-  shows "conflicting T = C_True \<or> no_step cdcl T"
-  using assms
-proof induction
-  case (fw_conflict S T U) note confl = this(1) and n_s = this(2)
-  { fix D V
-    assume "cdcl U V" and "conflicting U = C_Clause D"
-    then have False
-      using n_s unfolding full0_def
-      by (induction rule: cdcl_all_rules_induct) (auto dest!: cdcl_bj.intros )
-  }
-  thus ?case by (cases "conflicting U") fastforce+
-qed (auto simp add: cdcl_rf.simps)
-
-lemma cdcl_cdcl_fw_has_step:
-  assumes
-    inv: "cdcl_all_inv_mes S" and
-    "cdcl S U" and
-    "conflicting S = C_True"
-  shows "\<exists>T. cdcl_fw S T \<and> cdcl\<^sup>*\<^sup>* U T"
-  using assms(2,1,3)
-proof (induction rule: cdcl_all_rules_induct)
-  case (conflict S T)
-  moreover
-    obtain U where "full0 cdcl_bj T U"
-    using cdcl_bj_wf  wf_exists_normal_form_full0 by fast
-  moreover hence "cdcl\<^sup>*\<^sup>* T U"
-    unfolding full0_def by (metis bj mono_rtranclp other)
-  ultimately show ?case using fw_conflict[of S T U] by blast
-next
-  case forget
-  thus ?case using cdcl_rf.forget fw_rf by blast
-next
-  case restart
-  thus ?case using cdcl_rf.restart fw_rf by blast
-next
-  case propagate
-  thus ?case using fw_propagate by blast
-next
-  case decided
-  thus ?case using fw_decided by blast
-next
-  case (skip S T)
-  thus ?case by auto
-next
-  case resolve
-  thus ?case by auto
-next
-  case backtrack
-  thus ?case by auto
-qed
 
 subsection \<open>A better version of @{term cdcl_s}\<close>
 inductive cdcl_s' :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
@@ -1446,5 +1375,78 @@ lemma rtranclp_cdcl_cp_conflicting_C_Clause:
   "cdcl_cp\<^sup>*\<^sup>* S T \<Longrightarrow> conflicting S = C_Clause D \<Longrightarrow> S = T"
   using rtranclpD tranclpD by fastforce
 
+subsection \<open>cdcl FW\<close>
+inductive cdcl_fw :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+fw_propagate: "propagate S S' \<Longrightarrow> cdcl_fw S S'" |
+fw_conflict: "conflict S T \<Longrightarrow> full0 cdcl_bj T U \<Longrightarrow> cdcl_fw S U" |
+fw_decided: "decided S S' \<Longrightarrow> cdcl_fw S S'"|
+fw_rf: "cdcl_rf S S' \<Longrightarrow> cdcl_fw S S'"
+
+lemma cdcl_fw_cdcl:
+  assumes "cdcl_fw S T"
+  shows "cdcl\<^sup>*\<^sup>* S T"
+  using assms
+proof induction
+  case (fw_conflict S T U) note confl = this(1) and bj = this(2)
+  have "cdcl S T" using confl by (simp add: cdcl.intros r_into_rtranclp)
+  moreover
+    have "cdcl_bj\<^sup>*\<^sup>* T U" using bj unfolding full0_def by auto
+    hence "cdcl\<^sup>*\<^sup>* T U" by (metis cdcl_o.bj mono_rtranclp other)
+  ultimately show ?case by auto
+qed (simp_all add: cdcl_o.intros cdcl.intros r_into_rtranclp)
+
+
+lemma cdcl_fw_conflicting_true_or_no_step:
+  assumes "cdcl_fw S T"
+  shows "conflicting T = C_True \<or> no_step cdcl T"
+  using assms
+proof induction
+  case (fw_conflict S T U) note confl = this(1) and n_s = this(2)
+  { fix D V
+    assume "cdcl U V" and "conflicting U = C_Clause D"
+    then have False
+      using n_s unfolding full0_def
+      by (induction rule: cdcl_all_rules_induct) (auto dest!: cdcl_bj.intros )
+  }
+  thus ?case by (cases "conflicting U") fastforce+
+qed (auto simp add: cdcl_rf.simps)
+
+lemma cdcl_cdcl_fw_has_step:
+  assumes
+    inv: "cdcl_all_inv_mes S" and
+    "cdcl S U" and
+    "conflicting S = C_True"
+  shows "\<exists>T. cdcl_fw S T \<and> cdcl\<^sup>*\<^sup>* U T"
+  using assms(2,1,3)
+proof (induction rule: cdcl_all_rules_induct)
+  case (conflict S T)
+  moreover
+    obtain U where "full0 cdcl_bj T U"
+    using cdcl_bj_wf  wf_exists_normal_form_full0 by fast
+  moreover hence "cdcl\<^sup>*\<^sup>* T U"
+    unfolding full0_def by (metis bj mono_rtranclp other)
+  ultimately show ?case using fw_conflict[of S T U] by blast
+next
+  case forget
+  thus ?case using cdcl_rf.forget fw_rf by blast
+next
+  case restart
+  thus ?case using cdcl_rf.restart fw_rf by blast
+next
+  case propagate
+  thus ?case using fw_propagate by blast
+next
+  case decided
+  thus ?case using fw_decided by blast
+next
+  case (skip S T)
+  thus ?case by auto
+next
+  case resolve
+  thus ?case by auto
+next
+  case backtrack
+  thus ?case by auto
+qed
 end
 end
