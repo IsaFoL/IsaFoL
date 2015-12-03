@@ -44,12 +44,12 @@ digraph CDCL {
 	CDCL_CW_stgy [label = "CDCL CW stgy cp"];
 	CDCL_CW_stgy_merge_bj[label = "CDCL CW chaining backjump resolve skip"];
 	CDCL_CW_stgy -> CDCL_CW;
-	CDCL_CW -> CDCL_FW[color=blue, style=dashed];
-	CDCL_FW -> CDCL_CW[style=dotted];
+	CDCL_CW -> CDCL_FW[style=dashed];
+	CDCL_FW -> CDCL_CW[color =red, style=dotted];
 
-	CDCL_CW_stgy -> CDCL_CW_stgy_merge_bj[color=blue, style=dashed];
-	CDCL_CW_stgy_merge_bj -> CDCL_FW_stgy[color=blue, style=dashed];
-	CDCL_FW_stgy -> CDCL_CW_stgy_merge_bj[color=blue, style=dotted];
+	CDCL_CW_stgy -> CDCL_CW_stgy_merge_bj[style=dashed];
+	CDCL_CW_stgy_merge_bj -> CDCL_FW_stgy[color=red, style=dashed];
+	CDCL_FW_stgy -> CDCL_CW_stgy_merge_bj[color=red, style=dotted];
 	CDCL_CW_stgy_merge_bj -> CDCL_CW_stgy[style=dotted];
 
 
@@ -59,7 +59,7 @@ digraph CDCL {
     CDCL_CW_state [label = "CDCL CW State"];
   }
 
-  CDCL_CW_state -> CDCL_NOT_state[style=dashed, color = blue];
+  CDCL_CW_state -> CDCL_NOT_state[style=dashed, color = red];
 
 
 	CDCL_WL [label = "CDCL 2-Watched-literals ?", color = red];
