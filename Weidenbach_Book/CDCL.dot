@@ -26,31 +26,32 @@ digraph CDCL {
 	  CDCL_FW_forget [label="CDCL FW + forget", color=red];
 	  CDCL_FW_stgy_forget [label="CDCL FW stgy cp + forget", color=red];
 
-	  CDCL_FW_restart_forget [label = "CDCL FW + restart + forget"];
-	  CDCL_FW_stgy_restart_forget [label = "CDCL FW stgy cp + restart + forget", color=red];
+	  CDCL_FW_forget_restart [label = "CDCL FW + restart + forget"];
+	  CDCL_FW_stgy_forget_restart [label = "CDCL FW stgy cp + restart + forget", color=red];
 	}
 
-	CDCL_FW_stgy_forget -> CDCL_FW_stgy_restart_forget -> CDCL_FW_restart_forget [style
+	CDCL_FW_stgy_forget -> CDCL_FW_stgy_forget_restart -> CDCL_FW_forget_restart [style
 	= dotted, color=red];
 	CDCL_FW_forget -> CDCL_NOT_merged [style = dotted, color=red];
 	CDCL_FW_stgy_forget -> CDCL_FW_forget [style = dotted, color=red];
-	CDCL_FW_forget -> CDCL_FW_restart_forget [style = dotted, color=red];
-	CDCL_FW_restart_forget -> CDCL_NOT_restart [style = dotted, color =red];
+	CDCL_FW_forget -> CDCL_FW_forget_restart [style = dotted, color=red];
+	CDCL_FW_forget_restart -> CDCL_NOT_restart [style = dotted, color =red];
         CDCL_FW_stgy -> CDCL_FW_stgy_forget [style=dotted, color=red];
 	CDCL_FW -> CDCL_FW_forget [style=dotted, color=red];
 	CDCL_FW_stgy ->  CDCL_FW[style=dotted, color=red];
 
 	subgraph cw {
     style=invisible;
-    CDCL_CW_forget_restart [label = "CDCL CW restart forget"];
+    CDCL_CW_forget_restart [label = "CDCL CW + restart + forget"];
 	  CDCL_CW [label = "CDCL CW", color = red];
 	  CDCL_CW_stgy [label = "CDCL CW stgy cp"];
 	  CDCL_CW_stgy_merge_bj[label = "CDCL CW chaining backjump resolve skip"];
 	}
 	CDCL_CW -> CDCL_CW_forget_restart[color = red, style = dotted];
-	CDCL_FW_restart_forget -> CDCL_CW_forget_restart; 
-	CDCL_CW_stgy -> CDCL_CW_forget_restart;
-	CDCL_CW_stgy -> CDCL_CW[color = red];	
+	CDCL_FW_forget_restart -> CDCL_CW_forget_restart[style = dotted];
+	CDCL_CW_forget_restart -> CDCL_FW_forget_restart[style = dashed, color = red];
+	CDCL_CW_stgy -> CDCL_CW_forget_restart[style = dotted];
+	CDCL_CW_stgy -> CDCL_CW[color = red];
 	CDCL_CW -> CDCL_FW[style=dashed, color = red];
 	CDCL_FW -> CDCL_CW[color =red, style=dotted];
 
