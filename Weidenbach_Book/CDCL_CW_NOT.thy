@@ -1411,6 +1411,74 @@ proof induction
   thus ?case by (cases "conflicting U") fastforce+
 qed (auto simp add: cdcl_rf.simps)
 
+inductive cdcl_cbj where
+cbj_conflict[intro]: "conflict S T \<Longrightarrow> cdcl_cbj S T" |
+cbj_bj[intro]: "cdcl_bj S T \<Longrightarrow> cdcl_cbj S T"
+lemma
+  assumes "cdcl\<^sup>*\<^sup>* S U"
+  shows "cdcl_fw\<^sup>*\<^sup>* S U \<or> (\<exists>T. cdcl_fw\<^sup>*\<^sup>* S T \<and> conflicting U \<noteq> C_True \<and> cdcl_cbj\<^sup>+\<^sup>+ T U)"
+  using assms
+proof induction
+  case base
+  thus ?case by simp
+next
+  case (step U V) note st = this(1) and cdcl = this(2) and IH = this(3)
+  from cdcl
+  show ?case
+    proof (cases)
+      case propagate
+      moreover hence "conflicting U = C_True"
+        by auto
+      ultimately show ?thesis using IH cdcl_fw.fw_propagate[of U V] by auto
+    next
+      case conflict
+      moreover hence "conflicting U = C_True"
+        by auto
+      moreover have "conflicting V \<noteq> C_True"
+        using conflict by auto
+      ultimately show ?thesis using IH by auto
+    next
+      case other
+      thus ?thesis
+        proof cases
+          case decided
+          moreover hence "conflicting U = C_True"
+            by auto
+          ultimately show ?thesis using IH cdcl_fw.fw_decided[of U V] by auto
+        next
+          case bj
+          moreover {
+            assume "skip_or_resolve U V"
+            have f1: "cdcl_cbj\<^sup>+\<^sup>+ U V"
+              by (simp add: cbj_bj local.bj tranclp.r_into_trancl) (* 5 ms *)
+            obtain ss :: 'st where
+              f2: "cdcl_fw\<^sup>*\<^sup>* S U \<or> cdcl_fw\<^sup>*\<^sup>* S ss \<and> conflicting U \<noteq> C_True \<and> cdcl_cbj\<^sup>+\<^sup>+ ss U"
+              using IH by blast (* 14 ms *)
+            have "\<forall>s sa. \<not> resolve s sa \<or> (\<exists>l m ms ma. sa = update_conflicting
+              (C_Clause (remdups_mset (ma + m))) (update_trail ms s)
+              \<and> trail s = Propagated l (mark_of_cls (m + {#l#})) # ms
+              \<and> backtrack_lvl s = get_maximum_level ma (Propagated l (mark_of_cls (m + {#l#})) # ms)
+              \<and> conflicting s = C_Clause (ma + {#- l#}))"
+              by blast
+            then have ?thesis
+              using f2 f1 by (metis (no_types) \<open>skip_or_resolve U V\<close> cbj_bj rtranclp_into_tranclp1
+                conflicting_clause.simps(3) conflicting_update_conflicting tranclp_into_rtranclp
+                conflicting_update_trail local.bj skipE )
+          }
+          moreover {
+            assume "backtrack U V"
+            hence ?thesis using IH  sorry
+          }
+          ultimately show ?thesis by (auto simp: cdcl_bj.simps)
+
+      qed
+    next
+      case rf
+      moreover hence "conflicting U = C_True"
+        by (auto simp: cdcl_rf.simps)
+      ultimately show ?thesis using IH cdcl_fw.fw_rf[of U V] by auto
+
+oops
 lemma cdcl_cdcl_fw_has_step:
   assumes
     inv: "cdcl_all_inv_mes S" and
