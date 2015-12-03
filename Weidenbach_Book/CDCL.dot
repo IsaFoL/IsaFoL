@@ -47,8 +47,10 @@ digraph CDCL {
 	CDCL_CW -> CDCL_FW[color=blue, style=dashed];
 	CDCL_FW -> CDCL_CW[style=dotted];
 
-	CDCL_CW_stgy -> CDCL_CW_stgy_merge_bj -> CDCL_FW_stgy[color=blue, style=dashed];
-	CDCL_FW_stgy -> CDCL_CW_stgy_merge_bj -> CDCL_CW_stgy[color=blue, style=dotted];
+	CDCL_CW_stgy -> CDCL_CW_stgy_merge_bj[color=blue, style=dashed];
+	CDCL_CW_stgy_merge_bj -> CDCL_FW_stgy[color=blue, style=dashed];
+	CDCL_FW_stgy -> CDCL_CW_stgy_merge_bj[color=blue, style=dotted];
+	CDCL_CW_stgy_merge_bj -> CDCL_CW_stgy[style=dotted];
 
 
 	subgraph state {
