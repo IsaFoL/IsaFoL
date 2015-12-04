@@ -1,9 +1,7 @@
 //dot -o CDCL.pdf -Tpdf CDCL.dot
 digraph CDCL {
 	rankdir=BT;
-	//concentrate=true;
-	
-	graph [label="Battle plan\n\n\n", labelloc=t; labeljust=center, fontname=Helvetica, fontsize=18];
+	graph [label="Plan of Actionn\n\n", labelloc=t; labeljust=center, fontname=Helvetica, fontsize=18];
 	minlen=100;
 	
 	newrank=true;
@@ -14,49 +12,53 @@ digraph CDCL {
 		color=lightgrey;
   		CDCL_NOT_restart [label="CDCL NOT + restart"];
   		CDCL_NOT [label="CDCL NOT"];
-  		CDCL_NOT_stgy_restart[label="CDCL NOT + stgy lf + stgy restart", shape=box];
-  		CDCL_NOT_merged [label="CDCL NOT + chaining of backjump learn", shape=box];
+  		CDCL_NOT_restart_stgy_learn_forget_restart[label="CDCL NOT + restart + stgy learn forget + stgy restart", shape=box];
+  		CDCL_NOT_chaining [label="CDCL NOT + chaining of backjump learn", shape=box];
   		DPLL [label="DPLL", shape=box];
-		CDCL_NOT_stgy [label="CDCL NOT + stgy learn forget", shape=box];
+		CDCL_NOT_stgy_learn_forget [label="CDCL NOT + stgy learn forget", shape=box];
 				
 		
 	}
 
-	CDCL_NOT_stgy -> CDCL_NOT;
+	CDCL_NOT_stgy_learn_forget -> CDCL_NOT;
 	CDCL_NOT -> CDCL_NOT_restart [style=dashed];
-	CDCL_NOT_stgy -> CDCL_NOT_stgy_restart [style=dashed];
-	CDCL_NOT_stgy_restart -> CDCL_NOT_restart [style=dashed];
+	CDCL_NOT_stgy_learn_forget -> CDCL_NOT_restart_stgy_learn_forget_restart [style=dashed];
+	CDCL_NOT_restart_stgy_learn_forget_restart -> CDCL_NOT_restart [style=dashed];
 	DPLL -> CDCL_NOT;
 
-	CDCL_NOT_merged -> CDCL_NOT [style=dashed];
-	
-	subgraph cluster_fw {
-		style=filled;
-		color=lightgrey;
-		label="FW";
-		CDCL_FW_stgy_forget_restart [label="CDCL FW + restart + forget + stgy cp restart forget", color=red, shape=box];
-		CDCL_FW [label="CDCL FW", color=red, shape=box];
-		CDCL_FW_stgy [label="CDCL FW + stgy cp", color=red, shape=box];
-		CDCL_FW_forget [label="CDCL FW + forget", color=red, shape=box];
-
-		CDCL_FW_forget_restart [label="CDCL FW + restart + forget"];
+	CDCL_NOT_chaining -> CDCL_NOT [style=dashed];
+	subgraph cluster_phantom{
+	  style = invis;
+	  
+  	subgraph cluster_w_fw {
+  		label="Intermediate W";
+  		style=filled;
+  		color=lightgrey;
+  		CDCL_W_min_backtrack_restart [label="CDCL W min_backtrack + restart", color=blue];
+  		CDCL_W_min_backtrack [label="CDCL W min_backtrack", color=blue];
+  		CDCL_W_min_backtrack_stgy_conflict_propagate [label="CDCL W min_backtrack + stgy conflict propagate"];
+  	}
+  	subgraph cluster_fw {
+  		style=filled;
+  		color=lightgrey;
+  		label="FW";
+  		CDCL_FW [label="CDCL FW", color=red, shape=box];
+  		CDCL_FW_forget [label="CDCL FW + forget", color=red, shape=box];
+		
+  		CDCL_FW_stgy_conflict_propagate_simplify_restart [label="CDCL FW + restart + simplify + stgy conflict propagate restart forget", color=red, shape=box];
+  		CDCL_FW_simplify_stgy_conflict_propagate [label="CDCL FW + simplify + stgy conflict propagate", color=red, shape=box];
+  		CDCL_FW_stgy_conflict_propagate [label="CDCL FW + stgy conflict propagate", color=red, shape=box];
+  		CDCL_FW_forget_restart [label="CDCL FW + restart + forget"];
+  	}
 	}
-	
-	subgraph cluster_w_fw {
-		label="intermediate W";
-		style=filled;
-		color=lightgrey;
-		CDCL_W_merge_bj_restart[label="CDCL W min_backtrack + restart", color=blue];
-		CDCL_W_merge_bj[label="CDCL W min_backtrack", color=blue];
-		CDCL_W_stgy_merge_bj[label="CDCL W min_backtrack + stgy cp"];
-	}
-	CDCL_FW_stgy_forget_restart -> CDCL_FW_forget_restart [style=dashed, color=red];
-	CDCL_FW_forget -> CDCL_NOT_merged [style=dashed, color=red];
+	CDCL_FW_stgy_conflict_propagate_simplify_restart -> CDCL_FW_forget_restart [style=dashed, color=red];
+	CDCL_FW_forget -> CDCL_NOT_chaining [style=dashed, color=red];
 	CDCL_FW_forget -> CDCL_FW_forget_restart [style=dashed, color=red];
 	CDCL_FW_forget_restart -> CDCL_NOT_restart [style=dashed, color=red];
 	CDCL_FW -> CDCL_FW_forget [style=dashed, color=red];
-	CDCL_FW_stgy ->  CDCL_FW[style=dashed, color=red];
-	CDCL_FW_stgy ->  CDCL_FW_stgy_forget_restart[style=dashed, color=red];
+	CDCL_FW_stgy_conflict_propagate ->  CDCL_FW[style=dashed, color=red];
+	CDCL_FW_stgy_conflict_propagate -> CDCL_FW_simplify_stgy_conflict_propagate[style=dashed, color=red];
+	CDCL_FW_simplify_stgy_conflict_propagate -> CDCL_FW_stgy_conflict_propagate_simplify_restart[style=dashed, color=red];
 
 
 	subgraph cluster_cw {
@@ -65,19 +67,21 @@ digraph CDCL {
 		color=lightgrey;
 		CDCL_W [label="CDCL W", color=red, shape=box];
 		CDCL_W_forget_restart [label="CDCL W + restart + forget"];
-		CDCL_W_stgy [label="CDCL W + stgy cp", shape=box];
+		CDCL_W_stgy_conflict_propagate [label="CDCL W + stgy conflict propagate", shape=box];
 	}
 	CDCL_W -> CDCL_W_forget_restart[color=red, style=dashed];
-	CDCL_W_stgy -> CDCL_W_forget_restart[style=dashed];
-	CDCL_W_stgy -> CDCL_W[color=red];
-	CDCL_W_merge_bj_restart -> CDCL_FW_forget_restart[style=dotted, color=blue, dir="both"];
+	CDCL_W_stgy_conflict_propagate -> CDCL_W_forget_restart[style=dashed];
+	CDCL_W_stgy_conflict_propagate -> CDCL_W[color=red];
+	CDCL_W_min_backtrack_restart -> CDCL_FW_forget_restart[style=dotted, color=blue, dir="both"];
 
-	CDCL_W_merge_bj -> CDCL_FW[style=dotted, dir="both", color=blue];
-	CDCL_W_merge_bj -> CDCL_W[style=dotted, dir="both", color=blue];
+	CDCL_W_min_backtrack -> CDCL_FW[style=dotted, dir="both", color=blue];
+	CDCL_W_min_backtrack -> CDCL_W[style=dotted, dir="both", color=blue];
 
-	CDCL_W_stgy_merge_bj -> CDCL_W_stgy[style=dotted, dir="both", color=red];
-	CDCL_W_stgy_merge_bj -> CDCL_FW_stgy[style=dotted, dir="both", color=red];
-	CDCL_W_forget_restart -> CDCL_W_merge_bj_restart[style=dotted, dir="both",color=blue];
+	CDCL_W_min_backtrack_stgy_conflict_propagate -> CDCL_W_stgy_conflict_propagate[style=dotted, dir="both"];
+	CDCL_W_min_backtrack_stgy_conflict_propagate -> CDCL_FW_stgy_conflict_propagate[style=dotted, dir="both", color=red];
+	CDCL_W_forget_restart -> CDCL_W_min_backtrack_restart[style=dotted, dir="both",color=blue];
+	CDCL_FW_simplify_stgy_conflict_propagate -> CDCL_FW_forget[style=dashed, color = red];
+	
 
 	subgraph cluster_state {
 		label="state";
@@ -93,7 +97,7 @@ digraph CDCL {
 	{rank=same;
 		CDCL_W
 		//CDCL_NOT
-		CDCL_W_merge_bj
+		CDCL_W_min_backtrack
 		CDCL_FW
 		
 		};
@@ -101,21 +105,21 @@ digraph CDCL {
 	{rank=same;
 		CDCL_W_forget_restart;
 		CDCL_FW_forget_restart;
-		CDCL_W_merge_bj_restart;
+		CDCL_W_min_backtrack_restart;
 		
 	}
 
 	{rank=sink
-		CDCL_W_stgy_merge_bj
-		CDCL_W_stgy
-		CDCL_FW_stgy
+		CDCL_W_min_backtrack_stgy_conflict_propagate
+		CDCL_W_stgy_conflict_propagate
+		CDCL_FW_stgy_conflict_propagate
 	}
 	
 	{rank=same
-		CDCL_NOT_merged
+		CDCL_NOT_chaining
 		CDCL_FW_forget
 		DPLL
-		CDCL_NOT_stgy
+		CDCL_NOT_stgy_learn_forget
 		//CDCL_FW
 	}
 }
