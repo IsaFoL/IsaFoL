@@ -4,6 +4,27 @@ begin
 
 sledgehammer_params[verbose, prover=e spass z3 cvc4 verit remote_vampire]
 
+section \<open>Auxilary Lemmas\<close>
+lemma no_dup_cannot_not_lit_and_uminus:
+  "no_dup M \<Longrightarrow> - lit_of xa = lit_of x \<Longrightarrow> x \<in> set M \<Longrightarrow> xa \<in> set M \<Longrightarrow> False"
+  by (metis atm_of_uminus distinct_map inj_on_eq_iff uminus_not_id')
+
+lemma true_clss_single_iff_incl:
+  "I \<Turnstile>s single ` B \<longleftrightarrow> B \<subseteq> I"
+  unfolding true_clss_def by auto
+
+lemma atms_of_m_single_atm_of[simp]:
+  "atms_of_m {{#lit_of L#} |L. P L} = atm_of ` {lit_of L |L. P L}"
+  unfolding atms_of_m_def by auto
+
+(* TODO Move?*)
+lemma atms_of_uminus_lit_atm_of_lit_of:
+  "atms_of {#- lit_of x. x \<in># A#} = atm_of ` (lit_of ` (set_mset A))"
+  unfolding atms_of_def by (auto simp add: Fun.image_comp)
+
+lemma atms_of_m_single_image_atm_of_lit_of:
+  "atms_of_m ((\<lambda>x. {#lit_of x#}) ` A) = atm_of ` (lit_of ` A)"
+  unfolding atms_of_m_def by auto
 
 section \<open>Initial definitions\<close>
 subsection \<open>The state\<close>
@@ -40,35 +61,6 @@ lemma
   unfolding add_cls_def remove_cls_def by auto
 end
 
-lemma true_clss_clss_union_false_true_clss_clss_cnot:
-  "A \<union> {B} \<Turnstile>ps {{#}} \<longleftrightarrow> A \<Turnstile>ps CNot B"
-  using total_not_CNot consistent_CNot_not unfolding total_over_m_def true_clss_clss_def
-  by fastforce
-
-lemma no_dup_cannot_not_lit_and_uminus:
-  "no_dup M \<Longrightarrow> - lit_of xa = lit_of x \<Longrightarrow> x \<in> set M \<Longrightarrow> xa \<in> set M \<Longrightarrow> False"
-  by (metis atm_of_uminus distinct_map inj_on_eq_iff uminus_not_id')
-
-lemma true_clss_single_iff_incl:
-  "I \<Turnstile>s single ` B \<longleftrightarrow> B \<subseteq> I"
-  unfolding true_clss_def by auto
-
-lemma atms_of_m_single_atm_of[simp]:
-  "atms_of_m {{#lit_of L#} |L. P L} = atm_of ` {lit_of L |L. P L}"
-  unfolding atms_of_m_def by auto
-
-(* TODO Move?*)
-lemma atms_of_uminus_lit_atm_of_lit_of:
-  "atms_of {#- lit_of x. x \<in># A#} = atm_of ` (lit_of ` (set_mset A))"
-  unfolding atms_of_def by (auto simp add: Fun.image_comp)
-
-lemma atms_of_m_single_image_atm_of_lit_of:
-  "atms_of_m ((\<lambda>x. {#lit_of x#}) ` A) = atm_of ` (lit_of ` A)"
-  unfolding atms_of_m_def by auto
-
-lemma is_marked_ex_Marked:
-  "is_marked L \<Longrightarrow> \<exists>K lvl. L = Marked K lvl"
-  by (cases L) auto
 
 subsection \<open>Definition of the operation\<close>
 locale propagate_ops =
@@ -1874,62 +1866,6 @@ proof -
   have "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A (update_trail (trail T) T) = \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A T"
     unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def  \<mu>\<^sub>C'_def conflicting_bj_clss_def by auto
   thus ?thesis using rtranclp_cdcl_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_update_trail[OF assms, of "trail T"] by auto
-qed
-
-(* TODO Move *)
-lemma distinct_mset_add_single:
-  "distinct_mset ({#a#} + L) \<longleftrightarrow> distinct_mset L \<and> a \<notin># L"
-  unfolding distinct_mset_def by (smt add.commute add.left_neutral add_diff_cancel_left'
-    count_single count_union mset_leD mset_le_add_right not_gr0)
-
-lemma tautology_add_single:
-  "tautology ({#a#} + L) \<longleftrightarrow> tautology L \<or> -a \<in># L"
-  unfolding tautology_decomp by (cases a) auto
-
-(* TODO Move *)
-lemma build_all_simple_clssE:
-  "x \<in> build_all_simple_clss atms \<Longrightarrow> finite atms
-    \<Longrightarrow> atms_of x \<subseteq> atms \<and> \<not>tautology x \<and> distinct_mset x"
-proof (induct "card atms" arbitrary: atms x)
-  case (0 atms)
-  thus ?case by auto
-next
-  case (Suc n) note IH = this(1) and card = this(2) and x = this(3) and finite = this(4)
-  obtain v where "v \<in> atms" and v: "v = Min atms"
-    using Min_in card local.finite by fastforce
-
-  let ?atms' = "atms - {v}"
-  have "build_all_simple_clss atms
-    = {{#Pos v#} + \<chi> |\<chi>. \<chi> \<in> build_all_simple_clss (?atms')}
-      \<union> {{#Neg v#} + \<chi> |\<chi>. \<chi> \<in> build_all_simple_clss (?atms')}
-      \<union> build_all_simple_clss (?atms')"
-    using build_all_simple_clss_simps_else[of "atms"] finite \<open>v \<in> atms\<close> unfolding v
-    by (metis emptyE)
-  then consider
-      (Pos) \<chi> \<phi> where "x = {#\<phi>#} + \<chi>" and "\<chi> \<in> build_all_simple_clss (?atms')" and
-        "\<phi> = Pos v \<or> \<phi> = Neg v"
-    | (In) "x \<in> build_all_simple_clss (?atms')"
-    using x by auto
-  thus ?case
-    proof cases
-      case In
-      thus ?thesis using card finite IH[of ?atms'] \<open>v \<in> atms\<close> by fastforce
-    next
-      case Pos note x_\<chi> = this(1) and \<chi> = this(2) and \<phi> = this(3)
-      have
-        "atms_of \<chi> \<subseteq> atms - {v}" and
-        "\<not> tautology \<chi>" and
-        "distinct_mset \<chi>"
-          using card finite IH[of ?atms' \<chi>] \<open>v \<in> atms\<close> x_\<chi> \<chi> by auto
-      moreover hence "count \<chi> (Neg v) = 0" and "count \<chi> (Pos v) = 0"
-         using \<open>v \<in> atms\<close> unfolding x_\<chi> apply (metis Diff_insert_absorb Set.set_insert
-         atm_iff_pos_or_neg_lit gr0I subset_iff)
-        using \<open>atms_of \<chi> \<subseteq> atms - {v}\<close>  by (meson Diff_iff atm_iff_pos_or_neg_lit
-          contra_subsetD insertI1 not_gr0)
-      ultimately show ?thesis
-        using \<open>v \<in> atms\<close> \<phi> unfolding x_\<chi>
-        by (auto simp add: tautology_add_single distinct_mset_add_single)
-    qed
 qed
 
 lemma rtranclp_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_decreasing:
