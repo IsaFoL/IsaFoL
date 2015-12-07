@@ -1429,7 +1429,7 @@ proof (intro allI impI)
     using assms unfolding true_clss_ext_def by blast
   hence "?J \<Turnstile>s N - {C}" by auto
   have "{v \<in> ?J. atm_of v \<in> atms_of_m (N - {C})} \<subseteq> J"
-    by (smt UnCI `consistent_interp (J \<union> {Pos (atm_of P) |P. P \<in># C \<and> atm_of P \<notin> atm_of \` J})`
+    by (smt UnCI \<open>consistent_interp (J \<union> {Pos (atm_of P) |P. P \<in># C \<and> atm_of P \<notin> atm_of ` J})\<close>
       atm_of_in_atm_of_set_in_uminus consistent_interp_def mem_Collect_eq subsetI tot
       total_over_m_def total_over_set_atm_of)
   then show "J \<Turnstile>s N - {C}"

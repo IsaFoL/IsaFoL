@@ -862,8 +862,8 @@ proof -
           hence "lits_of ?M \<subseteq> ?I"
             unfolding true_clss_def lits_of_def by auto
           hence "?M \<Turnstile>as ?N"
-            using I'_N `C \<in> ?N` `\<not> ?M \<Turnstile>a C` cons_I' atms_N_M
-            by (meson `trail S \<Turnstile>as CNot C` consistent_CNot_not rev_subsetD sup_ge1 true_annot_def
+            using I'_N \<open>C \<in> ?N\<close> \<open>\<not> ?M \<Turnstile>a C\<close> cons_I' atms_N_M
+            by (meson \<open>trail S \<Turnstile>as CNot C\<close> consistent_CNot_not rev_subsetD sup_ge1 true_annot_def
               true_annots_def true_cls_mono_set_mset_l true_clss_def)
           thus False using M by fast
         qed
@@ -1334,7 +1334,7 @@ next
     by standard (simp_all add: true_clss_ext_decrease_right_remove_r H)
 qed
 
-end -- \<open>end of \<open>conflict_driven_clause_learning_ops\<close>\<close>
+end \<comment> \<open>end of \<open>conflict_driven_clause_learning_ops\<close>\<close>
 
 locale conflict_driven_clause_learning =
   conflict_driven_clause_learning_ops +
@@ -1532,7 +1532,7 @@ next
         0 \<open>dpll_bj (f i) (f (Suc i))\<close> local.finite by linarith *)
   oops
 
-end -- \<open>end of \<open>conflict_driven_clause_learning\<close>\<close>
+end \<comment> \<open>end of \<open>conflict_driven_clause_learning\<close>\<close>
 
 subsection \<open>Restricting restarts\<close>
 
@@ -1695,7 +1695,7 @@ proof -
       unfolding conflicting_bj_clss_def by auto
     have T: "conflicting_bj_clss T
     \<subseteq> build_all_simple_clss (atms_of_m (clauses T) \<union> atm_of ` lits_of (trail T))"
-      by standard (meson "1" "2" fin'  `finite (conflicting_bj_clss T)` build_all_simple_clss_mono
+      by standard (meson "1" "2" fin'  \<open>finite (conflicting_bj_clss T)\<close> build_all_simple_clss_mono
         distinct_mset_set_def  simplified_in_build_all subsetCE sup.coboundedI1)
   moreover
     hence #: "3 ^ card (atms_of_m (clauses T) \<union> atm_of ` lits_of (trail T))
@@ -1709,8 +1709,8 @@ proof -
   ultimately show ?thesis
     using psubset_card_mono[OF fin_T ]
     unfolding less_than_iff lex_prod_def by clarify
-      (meson `conflicting_bj_clss S \<noteq> conflicting_bj_clss T`
-        `conflicting_bj_clss S \<subseteq> conflicting_bj_clss T`
+      (meson \<open>conflicting_bj_clss S \<noteq> conflicting_bj_clss T\<close>
+        \<open>conflicting_bj_clss S \<subseteq> conflicting_bj_clss T\<close>
         diff_less_mono2 le_less_trans not_le psubsetI)
 qed
 
@@ -2085,7 +2085,7 @@ proof -
     unfolding  \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_def by auto
 qed
 
-end -- \<open>end of \<open>conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt\<close>\<close>
+end \<comment> \<open>end of \<open>conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt\<close>\<close>
 
 section \<open>DPLL with simple backtrack\<close>
 locale dpll_with_backtrack
@@ -2630,7 +2630,7 @@ proof (rule ccontr)
      apply (metis H f_Suc_not_zero fst_conv full_def le_0_eq relpowp_E2 snd_conv)
     done
   have "strict_mono (\<lambda>j. f (snd (g j)))"
-    by (metis `strict_mono (snd \<circ> g)` comp_def mono_f strict_monoD strict_monoI)
+    by (metis \<open>strict_mono (snd \<circ> g)\<close> comp_def mono_f strict_monoD strict_monoI)
   let ?j = "\<mu>_bound A (fst (g 1)) + 1"
   have "f ?j \<ge> ?j"
     by (simp add: mono_f strict_mono_ge_id)
@@ -2662,7 +2662,7 @@ proof (rule ccontr)
     f_m: "f (snd (g ?j)) \<le> m"
     using H[of "?j"] by blast
   have "?j \<le> m"
-    using f_m \<open>f ?j \<ge> ?j\<close> Nat.le_trans `strict_mono (\<lambda>j. f (snd (g j)))` strict_mono_ge_id by blast
+    using f_m \<open>f ?j \<ge> ?j\<close> Nat.le_trans \<open>strict_mono (\<lambda>j. f (snd (g j)))\<close> strict_mono_ge_id by blast
   thus False
     proof -
       have "\<And>n. bound_inv A (fst (g (n + 1)))"
@@ -2797,7 +2797,7 @@ proof -
          "\<forall>v f L. v \<notin> f ` L \<or> v = f (ll v f L) \<and> ll v f L \<in> L"
          by moura
        thus ?thesis unfolding tr_S
-         by (metis (no_types) `F \<Turnstile>as CNot C'` atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+         by (metis (no_types) \<open>F \<Turnstile>as CNot C'\<close> atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
            atms_of_def in_CNot_implies_uminus(2) mem_set_mset_iff subsetI)
      qed
    hence "atms_of (C' + {#L#}) \<subseteq> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))"
