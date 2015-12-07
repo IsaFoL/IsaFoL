@@ -681,7 +681,7 @@ qed
 lemma propo_rew_step_pushNeg_no_T_F:
   "propo_rew_step pushNeg \<phi> \<psi> \<Longrightarrow> no_T_F \<phi> \<Longrightarrow> no_T_F \<psi>"
 proof (induct rule: propo_rew_step.induct)
-  case (global_rel)
+  case global_rel
   thus ?case
     by (metis (no_types, lifting) no_T_F_symb_except_toplevel_all_subformula_st_no_T_F_symb
       no_T_F_def no_T_F_except_top_level_pushNeg1 no_T_F_except_top_level_pushNeg2
@@ -1597,8 +1597,8 @@ connected_is_group[simp]: "grouped_by c \<phi> \<Longrightarrow>  grouped_by c \
   \<Longrightarrow> grouped_by c (conn c [\<phi>, \<psi>])"
 
 lemma simple_clause[simp]:
-  "grouped_by c (FT)"
-  "grouped_by c (FF)"
+  "grouped_by c FT"
+  "grouped_by c FF"
   "grouped_by c (FVar x)"
   "grouped_by c (FNot FT)"
   "grouped_by c (FNot FF)"
@@ -1663,8 +1663,8 @@ connected_is_super_group: "super_grouped_by c c' \<phi> \<Longrightarrow> super_
 
 
 lemma simple_cnf[simp]:
-  "super_grouped_by c c' (FT)"
-  "super_grouped_by c c' (FF)"
+  "super_grouped_by c c' FT"
+  "super_grouped_by c c' FF"
   "super_grouped_by c c' (FVar x)"
   "super_grouped_by c c' (FNot FT)"
   "super_grouped_by c c' (FNot FF)"

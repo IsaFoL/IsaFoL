@@ -118,6 +118,18 @@ lemma atms_of_m_single_set_mset_atns_of[simp]:
   "atms_of_m (single ` set_mset B) = atms_of B"
   unfolding atms_of_m_def atms_of_def by auto
 
+lemma atms_of_m_remove_incl:
+  shows "atms_of_m (Set.remove a \<psi>) \<subseteq> atms_of_m \<psi>"
+  unfolding atms_of_m_def by auto
+
+lemma atms_of_m_remove_subset:
+  "atms_of_m (\<phi> - \<psi>) \<subseteq> atms_of_m \<phi>"
+  unfolding atms_of_m_def by auto
+
+lemma finite_atms_of_m_remove_subset[simp]:
+  "finite (atms_of_m A) \<Longrightarrow> finite (atms_of_m (A - C))"
+  using atms_of_m_remove_subset[of A C] finite_subset by blast
+
 (*TODO generalise the 2 following lemmas, but the multiset is probably not good enough for [intro].*)
 lemma in_implies_atm_of_on_atms_of_m[simp]:
   assumes "C + {#L#} \<in> N"
@@ -197,14 +209,6 @@ lemma total_over_m_union[iff]:
 lemma total_over_m_insert[iff]:
   "total_over_m I (insert a A) \<longleftrightarrow> (total_over_set I (atms_of a) \<and> total_over_m I A)"
   unfolding total_over_m_def total_over_set_def by fastforce
-
-lemma atms_of_m_remove_incl:
-  shows "atms_of_m (Set.remove a \<psi>) \<subseteq> atms_of_m \<psi>"
-  unfolding atms_of_m_def by auto
-
-lemma atms_of_m_remove_subset:
-  "atms_of_m (\<phi> - \<psi>) \<subseteq> atms_of_m \<phi>"
-  unfolding atms_of_m_def by auto
 
 lemma total_over_m_extension:
   fixes I :: "'v literal set" and A :: "'v clauses"
@@ -563,6 +567,10 @@ lemma tautology_decomp:
 lemma tautology_false[simp]: "\<not>tautology {#}"
   unfolding tautology_def by auto
 
+lemma tautology_add_single:
+  "tautology ({#a#} + L) \<longleftrightarrow> tautology L \<or> -a \<in># L"
+  unfolding tautology_decomp by (cases a) auto
+
 lemma minus_interp_tautology:
   assumes "{-L | L. L\<in># \<chi>} \<Turnstile> \<chi>"
   shows "tautology \<chi>"
@@ -711,10 +719,19 @@ lemma true_clss_clss_insert[iff]:
   "A \<Turnstile>ps insert L Ls \<longleftrightarrow> (A \<Turnstile>p L \<and> A \<Turnstile>ps Ls)"
   using true_clss_clss_union_and[of A "{L}" "Ls"] by auto
 
+
 (*TODO Mark as [dest]?*)
 lemma true_clss_clss_subset:
   "A \<subseteq> B \<Longrightarrow> A \<Turnstile>ps CC \<Longrightarrow> B \<Turnstile>ps CC"
   by (metis subset_Un_eq true_clss_clss_union_l)
+
+lemma union_trus_clss_clss[simp]: "A \<union> B \<Turnstile>ps B"
+  unfolding true_clss_clss_def by auto
+
+
+lemma true_clss_clss_remove[simp]:
+  "A \<Turnstile>ps B \<Longrightarrow> A\<Turnstile>ps B - C"
+  by (metis Un_Diff_Int true_clss_clss_union_and)
 
 lemma true_clss_clss_in_imp_true_clss_cls:
   assumes "N \<Turnstile>ps U"
@@ -895,7 +912,8 @@ lemma mset_remdups_remdups_mset[simp]:
   "mset (remdups D) = remdups_mset (mset D)"
   by (induction D) (auto simp add: ac_simps)
 
-definition "distinct_mset S \<longleftrightarrow> (\<forall>a. a \<in># S \<longrightarrow> count S a = 1)"
+definition distinct_mset :: "'a multiset \<Rightarrow> bool" where
+"distinct_mset S \<longleftrightarrow> (\<forall>a. a \<in># S \<longrightarrow> count S a = 1)"
 
 lemma distinct_mset_empty[simp]: "distinct_mset {#}"
   unfolding distinct_mset_def by auto
@@ -903,7 +921,9 @@ lemma distinct_mset_empty[simp]: "distinct_mset {#}"
 lemma distinct_mset_singleton[simp]: "distinct_mset {#a#}"
   unfolding distinct_mset_def by auto
 
-definition "distinct_mset_set \<Sigma> \<longleftrightarrow> (\<forall>S \<in>\<Sigma>. distinct_mset S)"
+definition distinct_mset_set :: "'a multiset set \<Rightarrow> bool" where
+"distinct_mset_set \<Sigma> \<longleftrightarrow> (\<forall>S \<in>\<Sigma>. distinct_mset S)"
+
 lemma distinct_mset_set_empty[simp]:
   "distinct_mset_set {}"
   unfolding distinct_mset_set_def by auto
@@ -935,7 +955,7 @@ lemma in_distinct_mset_set_distinct_mset:
 lemma distinct_mset_remdups_mset[simp]: "distinct_mset (remdups_mset S)"
   using count_remdups_mset_eq_1 unfolding distinct_mset_def by metis
 
-lemma distinct_mset_distinct[iff]:
+lemma distinct_mset_distinct[simp]:
   "distinct_mset (mset x) = distinct x"
   unfolding distinct_mset_def
   by (induction x) (simp_all add: distinct_count_atmost_1)
@@ -943,6 +963,16 @@ lemma distinct_mset_distinct[iff]:
 lemma distinct_mset_set_distinct:
   "distinct_mset_set (mset ` set Cs) \<longleftrightarrow> (\<forall>c\<in> set Cs. distinct c)"
   unfolding distinct_mset_set_def by auto
+
+lemma distinct_mset_add_single:
+  "distinct_mset ({#a#} + L) \<longleftrightarrow> distinct_mset L \<and> a \<notin># L"
+  unfolding distinct_mset_def
+  apply (rule iffI)
+    prefer 2 apply auto[]
+  apply standard
+    apply (intro allI)
+    apply (case_tac "a = aa")
+    by (auto split: split_if_asm)
 
 text \<open>Another characterisation of @{term distinct_mset}\<close>
 lemma distinct_mset_count_less_1:
@@ -1006,6 +1036,55 @@ proof (induct "card atms" arbitrary: atms rule: nat_less_induct)
     hence "finite (build_all_simple_clss atms)" by (simp add: atms fin)
   }
   ultimately show "finite (build_all_simple_clss atms)" by blast
+qed
+
+lemma build_all_simple_clssE:
+  assumes
+    "x \<in> build_all_simple_clss atms" and
+    "finite atms"
+  shows "atms_of x \<subseteq> atms \<and> \<not>tautology x \<and> distinct_mset x"
+  using assms
+proof (induct "card atms" arbitrary: atms x)
+  case (0 atms)
+  thus ?case by auto
+next
+  case (Suc n) note IH = this(1) and card = this(2) and x = this(3) and finite = this(4)
+  obtain v where "v \<in> atms" and v: "v = Min atms"
+    using Min_in card local.finite by fastforce
+
+  let ?atms' = "atms - {v}"
+  have "build_all_simple_clss atms
+    = {{#Pos v#} + \<chi> |\<chi>. \<chi> \<in> build_all_simple_clss (?atms')}
+      \<union> {{#Neg v#} + \<chi> |\<chi>. \<chi> \<in> build_all_simple_clss (?atms')}
+      \<union> build_all_simple_clss (?atms')"
+    using build_all_simple_clss_simps_else[of "atms"] finite \<open>v \<in> atms\<close> unfolding v
+    by (metis emptyE)
+  then consider
+      (Pos) \<chi> \<phi> where "x = {#\<phi>#} + \<chi>" and "\<chi> \<in> build_all_simple_clss (?atms')" and
+        "\<phi> = Pos v \<or> \<phi> = Neg v"
+    | (In) "x \<in> build_all_simple_clss (?atms')"
+    using x by auto
+  thus ?case
+    proof cases
+      case In
+      thus ?thesis using card finite IH[of ?atms'] \<open>v \<in> atms\<close> by fastforce
+    next
+      case Pos note x_\<chi> = this(1) and \<chi> = this(2) and \<phi> = this(3)
+      have
+        "atms_of \<chi> \<subseteq> atms - {v}" and
+        "\<not> tautology \<chi>" and
+        "distinct_mset \<chi>"
+          using card finite IH[of ?atms' \<chi>] \<open>v \<in> atms\<close> x_\<chi> \<chi> by auto
+      moreover hence "count \<chi> (Neg v) = 0"
+        using \<open>v \<in> atms\<close> unfolding x_\<chi> by (metis Diff_insert_absorb Set.set_insert
+          atm_iff_pos_or_neg_lit gr0I subset_iff)
+      moreover have "count \<chi> (Pos v) = 0"
+        using \<open>atms_of \<chi> \<subseteq> atms - {v}\<close>  by (meson Diff_iff atm_iff_pos_or_neg_lit
+          contra_subsetD insertI1 not_gr0)
+      ultimately show ?thesis
+        using \<open>v \<in> atms\<close> \<phi> unfolding x_\<chi>
+        by (auto simp add: tautology_add_single distinct_mset_add_single)
+    qed
 qed
 
 lemma cls_in_build_all_simple_clss:

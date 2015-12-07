@@ -200,6 +200,20 @@ lemma get_all_levels_of_marked_append[simp]:
   "get_all_levels_of_marked (a @ b) = get_all_levels_of_marked a @ get_all_levels_of_marked b"
   by (induct a) (simp_all add: get_all_levels_of_marked_cons)
 
+lemma in_get_all_levels_of_marked_iff_decomp:
+  "i \<in> set (get_all_levels_of_marked M) \<longleftrightarrow> (\<exists>c K c'. M = c @ Marked K i # c')" (is "?A \<longleftrightarrow> ?B")
+proof
+  assume ?B
+  thus ?A by auto
+next
+  assume ?A
+  thus ?B
+    apply (induction M rule: marked_lit_list_induct)
+      apply auto[]
+     apply (metis append_Cons append_Nil get_all_levels_of_marked.simps(2) set_ConsD)
+    by (metis append_Cons get_all_levels_of_marked.simps(3))
+qed
+
 lemma get_rev_level_less_max_get_all_levels_of_marked:
   "get_rev_level L n M \<le> Max (set (n # get_all_levels_of_marked M))"
   by (induct M arbitrary: n rule: get_all_levels_of_marked.induct)
