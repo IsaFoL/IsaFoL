@@ -2,7 +2,7 @@ theory Resolution imports TermsAndLiterals Tree "~~/src/HOL/IMP/Star" begin
 
 hide_const (open) TermsAndLiterals.Leaf TermsAndLiterals.Branch
 
-section {* Terms and literals *} 
+section {* Terms and literals *}
 
 fun complement :: "'t literal \<Rightarrow> 't literal" ("_\<^sup>c" [300] 300) where
   "(Pos P ts)\<^sup>c = Neg P ts"  
@@ -826,6 +826,13 @@ apply (induction t and ts rule: fterm_of_hterm.induct fterms_of_hterms.induct)
 apply auto
 done
 
+lemma hatom_ground: "groundl (fatom_of_hatom l)"
+apply (induction l)
+using hterms_ground apply auto
+done
+
+lemma diag_ground: "groundl (diag_fatom n)" unfolding diag_fatom_def using hatom_ground by auto 
+
 lemma eval_ground: "ground t \<Longrightarrow> (evalt E HFun t) = hterm_of_fterm t" "grounds ts \<Longrightarrow> (evalts E HFun ts) = hterms_of_fterms ts"
 apply (induction t and ts rule: hterm_of_fterm.induct hterms_of_fterms.induct)
 apply auto
@@ -844,7 +851,7 @@ section {* Partial Interpretations *}
 
 type_synonym partial_pred_denot = "bool list"
 
-(* This definition is quite syntactical. 
+(* This definition is quite syntactical. I think that's good though.
    Alternative: Check if an instance is in list. If not return true.
    Otherwise, build an interpretation from the partial interpretation *)
 fun falsifiesl :: "partial_pred_denot \<Rightarrow> fterm literal \<Rightarrow> bool" where
@@ -866,6 +873,74 @@ abbreviation falsifiesc :: "partial_pred_denot \<Rightarrow> fterm clause \<Righ
 
 abbreviation falsifiescs :: "partial_pred_denot \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "falsifiescs G Cs \<equiv> (\<exists>C \<in> Cs. falsifiesc G C)"
+
+lemma falsifies_ground:
+  assumes "falsifiesl G l"
+  shows "\<exists>l'. instance_ofl l' l  \<and> falsifiesl G l' \<and> groundl l'"
+proof (cases l)
+  fix p ts
+  assume lp: "l = Pos p ts"
+  have "falsifiesl G l" using assms by auto
+  then obtain i ts' where its'_p:
+      "i < length G
+      \<and> G ! i = False
+      \<and> diag_fatom i = Pos p ts'
+      \<and> instance_ofts ts' ts" using lp by auto
+  then have "instance_ofl (Pos p ts') l " unfolding instance_ofl_def instance_ofts_def using lp by auto
+  moreover 
+  have "falsifiesl G (Pos p ts')" using instance_ofts_self its'_p by auto
+  moreover
+  have "groundl (Pos p ts')" using its'_p diag_ground[of i] by auto
+  ultimately show "\<exists>l'. instance_ofl l' l \<and> falsifiesl G l' \<and> groundl l'" by blast
+next
+  fix p ts
+  assume lp: "l = Neg p ts"
+  have "falsifiesl G l" using assms by auto
+  then obtain i ts' where its'_p:
+      "i < length G
+      \<and> G ! i = True
+      \<and> diag_fatom i = Pos p ts'
+      \<and> instance_ofts ts' ts" using lp by auto
+  then have "instance_ofl (Neg p ts') l " unfolding instance_ofl_def instance_ofts_def using lp by auto
+  moreover 
+  have "falsifiesl G (Neg p ts')" using instance_ofts_self its'_p by auto
+  moreover
+  have "groundl (Pos p ts')" using its'_p diag_ground[of i] by auto
+  then have "groundl (Neg p ts')" by auto
+  ultimately show "\<exists>l'. instance_ofl l' l \<and> falsifiesl G l' \<and> groundl l'" by blast
+qed
+
+lemma ground_falsifies:
+  assumes "groundl l"
+  assumes "falsifiesl G l"
+  shows"
+      \<exists>i.  
+      i < length G
+      \<and> G ! i = (\<not>sign l)
+      \<and> diag_fatom i = Pos (get_pred l) (get_terms l)"
+proof (cases l) (* Not really induction *)
+  case (Pos p ts)
+  then obtain i ts' where its'_p: "  
+      i < length G
+      \<and> G ! i = False
+      \<and> diag_fatom i = Pos p ts'
+      \<and> instance_ofts ts' ts" using assms by auto
+  moreover
+  then have "ts = ts'" using Pos assms ground_subs unfolding instance_ofts_def by auto
+  then have "diag_fatom i = Pos p ts" using its'_p by auto
+  then show ?thesis using its'_p Pos by auto
+next
+  case (Neg p ts)
+  then obtain i ts' where its'_p: "  
+      i < length G
+      \<and> G ! i = True
+      \<and> diag_fatom i = Pos p ts'
+      \<and> instance_ofts ts' ts" using assms by auto
+  moreover
+  then have "ts = ts'" using Neg assms ground_subs unfolding instance_ofts_def by auto
+  then have "diag_fatom i = Pos p ts" using its'_p by auto
+  then show ?thesis using its'_p Neg by auto
+qed
 
 abbreviation extend :: "(nat \<Rightarrow> partial_pred_denot) \<Rightarrow> hterm pred_denot" where
   "extend f P ts \<equiv> (
@@ -938,6 +1013,7 @@ lemma sub_of_denot_equiv_ground':
   "evall E HFun G l = evall E HFun G (l {sub_of_denot E}\<^sub>l) \<and> groundl (l {sub_of_denot E}\<^sub>l)"
     using sub_of_denot_equivl ground_sub_of_denotl by auto
 
+(* If an instance of me falsifies, then so do I *)
 lemma partial_equiv_subst': "falsifiesl G ((l ::fterm literal) {\<sigma>}\<^sub>l) \<Longrightarrow> falsifiesl G l"
 proof (induction l) (* Not really induction - just cases *)
   case (Pos P ts)
@@ -1332,6 +1408,13 @@ proof -
 qed
 (* lemma completeness': \\  assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C" \\ assumes notLeaf: "T \<noteq> Leaf" \\  assumes closed: "closed_tree T Cs" \\   shows "\<exists>T'. \<exists>c\<^sub>1 \<in> Cs. \<exists>c\<^sub>2 \<in> Cs. \<exists>r. \\            lresolvent r C\<^sub>1 C\<^sub>2\\         \<and> (\<forall>G. branch G T' \<longrightarrow> \<not>open_branch G T' (Cs \<union> {r})) \\         \<and> size T' < size T"\\proof -\\(*  from notLeaf obtain b where "branch (b@[Right]) T \<and> branch (b@[Left]) T" using has_Branch_of_Leafs by blast\\  then have "falsifiescs (b@[True]) Cs \<and> falsifiescs (b@[False]) Cs" using Closed by auto\\  then obtain C\<^sub>1 C\<^sub>2 where "C\<^sub>1 \<in> Cs \<and> C\<^sub>2 \<in> Cs \<and> falsifiesc (b@[True]) C\<^sub>1 \<and> falsifiesc (b@[False]) C\<^sub>2" by auto\\ *) oops *)
 
+lemma number_lemma:
+  assumes "\<not>(\<exists>i. i < length (B :: bool list) \<and> P(i))"
+  assumes "\<exists>i. i < length (B@[True]) \<and> P(i)"
+  shows "P(length B)"
+using assms less_Suc_eq by auto
+
+
 theorem completeness':
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
   shows "closed_tree T Cs \<Longrightarrow> \<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
@@ -1365,18 +1448,41 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
 
     have "\<exists>C1 \<in> Cs. falsifiesc ?B1 C1" using b_p clo by auto (* "Re-formulation" of below line *)
     then obtain C1 where C1_p: "C1 \<in> Cs \<and>falsifiesc ?B1 C1" by auto
+    (* Her SKAL! vi alstå ned i ground verdenen *)
 
     have "\<exists>C2 \<in> Cs. falsifiesc ?B2 C2" using b_p clo by auto (* "Re-formulation" of below line *)
     then obtain C2 where C2_p: "C2 \<in> Cs \<and> falsifiesc ?B2 C2" by auto
+    (* Her SKAL! vi alstå ned i ground verdenen *)
     
     from C1_p have "\<forall>l \<in> C1. falsifiesl (B@[True]) l" by auto
     moreover have "\<not>(\<forall>l \<in> C1. falsifiesl B l)" using C1_p b_p clo by auto
     ultimately have "\<exists>l \<in> C1. falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
     then obtain l where l_p: "l \<in> C1 \<and> falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
-    then have "\<exists>l'. groundl l' \<and> instance_ofl l' l \<and> falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
-    (* Now we must project down to ground world *)
-    have "undiag_fatom l = length B + 1" sorry
-    have "\<not>is_pos l" sorry
+    then have "\<exists>l'. instance_ofl l' l \<and> falsifiesl (B@[True]) l' \<and> groundl l'" using falsifies_ground by blast
+    then obtain l' where l'_p: "instance_ofl l' l \<and> falsifiesl (B@[True]) l' \<and> groundl l'" by auto
+    then have "\<not>(falsifiesl B l')" using l_p partial_equiv_subst' unfolding instance_ofl_def by blast
+    then have "\<not>(\<exists>i.  
+      i < length B
+      \<and> B ! i = (\<not>sign l')
+      \<and> diag_fatom i = Pos (get_pred l') (get_terms l'))" using instance_ofts_self by (induction l') auto
+    then have "\<not>(\<exists>i.  
+      i < length B
+      \<and> (B@[True]) ! i = (\<not>sign l')
+      \<and> diag_fatom i = Pos (get_pred l') (get_terms l'))" by (metis nth_append) 
+    moreover 
+    have "\<exists>i.  
+      i < length (B@[True])
+      \<and> (B@[True]) ! i = (\<not>sign l')
+      \<and> diag_fatom i = Pos (get_pred l') (get_terms l')" using ground_falsifies l'_p by blast
+    ultimately
+    have ggg: "(B@[True]) ! (length B) = (\<not>sign l') \<and> diag_fatom (length B) = Pos (get_pred l') (get_terms l')"
+      using number_lemma[of B "\<lambda>i. (B @ [True]) ! i = (\<not> sign l') \<and> diag_fatom i = Pos (get_pred l') (get_terms l')"] by auto
+    then have sss: "sign l' = False" by auto
+    from ggg have "undiag_fatom (Pos (get_pred l') (get_terms l')) = length B" using undiag_diag_fatom by metis
+    then have "undiag_fatom l' = length B" using undiag_neg[of "get_pred l'" "get_terms l'"] sss by auto
+    (* Prove: Additionally, all the other literals in C'1 must be falsified by B, since they are falsified by B1, but not l'1. *)
+    have "\<forall>l\<in>C1
+      
 
     have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" sorry
   }
