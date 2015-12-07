@@ -431,7 +431,7 @@ next
     by simp
   have tr_S: "trail S = tl y @ a"
     using arg_cong[OF M', of tl] y\<^sub>0 M get_all_marked_decomposition_decomp by force
-  have a_Tn_N_M: "(\<lambda>a. {#lit_of a#}) ` set a \<union> ?N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl y)"
+  have a_Un_N_M: "(\<lambda>a. {#lit_of a#}) ` set a \<union> ?N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl y)"
     using decomp ay unfolding all_decomposition_implies_def by (simp add: M)+
 
   moreover have "(\<lambda>a. {#lit_of a#}) ` set a \<union> ?N \<Turnstile>p {#L#}" (is "?I \<Turnstile>p _")
@@ -443,7 +443,7 @@ next
         using \<open>trail S \<Turnstile>as CNot C\<close> by (auto simp add: true_annots_true_clss_clss)
       have a1: "(\<lambda>m. {#lit_of m#}) ` set a \<union> (\<lambda>m. {#lit_of m#}) ` set (tl y)  \<Turnstile>ps CNot C"
         using propagate.hyps(2) tr_S true_annots_true_clss_clss
-        by (force simp add: image_Tn sup_commute)
+        by (force simp add: image_Un sup_commute)
       have a2: "clauses S \<union> (\<lambda>a. {#lit_of a#}) ` set a \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl y)"
         using calculation by (auto simp add: sup_commute)
       show "(\<lambda>m. {#lit_of m#}) ` set a  \<union> clauses S\<Turnstile>ps CNot C"
@@ -458,7 +458,7 @@ next
     qed
 
   ultimately have "(\<lambda>a. {#lit_of a#}) ` set a \<union> ?N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set ?M'"
-    unfolding M' by (auto simp add: all_in_true_clss_clss image_Tn)
+    unfolding M' by (auto simp add: all_in_true_clss_clss image_Un)
 
   thus ?case
     using decomp unfolding ay M all_decomposition_implies_def by (auto simp add: ay)
@@ -489,10 +489,10 @@ next
   have F_D:"(\<lambda>a. {#lit_of a#}) ` set F \<Turnstile>ps CNot D"
     using \<open>F \<Turnstile>as CNot D\<close> by (simp add: true_annots_true_clss_clss)
   hence "(\<lambda>a. {#lit_of a#}) ` set a \<union> (\<lambda>a. {#lit_of a#}) ` set b \<Turnstile>ps CNot D"
-    unfolding \<open>F = b @ a\<close> by (simp add: image_Tn sup.commute)
+    unfolding \<open>F = b @ a\<close> by (simp add: image_Un sup.commute)
   have a_N_CNot_D: "(\<lambda>a. {#lit_of a#}) ` set a \<union> clauses S \<Turnstile>ps CNot D \<union> (\<lambda>a. {#lit_of a#}) ` set b"
     apply (rule true_clss_clss_left_right)
-    using a_N_b  F_D unfolding \<open>F = b @ a\<close> by (auto simp add: image_Tn ac_simps)
+    using a_N_b  F_D unfolding \<open>F = b @ a\<close> by (auto simp add: image_Un ac_simps)
 
   have a_N_D_L: "(\<lambda>a. {#lit_of a#}) ` set a \<union> clauses S \<Turnstile>p D+{#L#}"
     by (simp add: N_C)
@@ -503,7 +503,7 @@ next
 qed
 
 subsection \<open>Termination\<close>
-subsubsection \<open>Tsing a proper measure\<close>
+subsubsection \<open>Using a proper measure\<close>
 lemma length_get_all_marked_decomposition_append_Marked:
   "length (get_all_marked_decomposition (F' @ Marked K d # F)) =
     length (get_all_marked_decomposition F')
@@ -1000,7 +1000,7 @@ proof standard
       case base
       thus ?case by auto
     next
-      case (step T T) note step = this(1) and ST = this(2) and IH = this(3)[OF this(4-7)]
+      case (step T U) note step = this(1) and ST = this(2) and IH = this(3)[OF this(4-7)]
         and N_A = this(4) and M_A = this(5) and nd = this(6) and inv = this(7)
 
       have [simp]: "atms_of_m (clauses S) = atms_of_m (clauses T)"
@@ -1012,7 +1012,7 @@ proof standard
           tranclp_into_rtranclp)
       moreover have "inv T"
          using inv local.step rtranclp_dpll_bj_inv tranclp_into_rtranclp by fastforce
-      ultimately have "(T, T) \<in> ?B" using ST N_A M_A inv by auto
+      ultimately have "(U, T) \<in> ?B" using ST N_A M_A inv by auto
       thus ?case using IH by (rule trancl_into_trancl2)
     qed
 qed
@@ -1123,21 +1123,22 @@ proof (induction)
   thus ?case
     using N_A M_A n_d dpll_bj_trail_mes_decreasing_prop fin_A inv by blast
 next
-  case (step T T) note st = this(1) and dpll = this(2) and IH = this(3)
+  case (step T U) note st = this(1) and dpll = this(2) and IH = this(3)
   have " atms_of_m (clauses S) = atms_of_m (clauses T)"
-    using rtranclp_dpll_bj_atms_of_m_clauses_inv by (metis dpll_bj_clauses dpll_bj_inv inv st
-      tranclpD)
+    using rtranclp_dpll_bj_atms_of_m_clauses_inv by (metis dpll dpll_bj_clauses dpll_bj_inv inv
+      rtranclp_dpll_bj_inv st tranclpD)
   hence N_A': "atms_of_m (clauses T) \<subseteq> atms_of_m A"
-     using N_A by auto 
+     using N_A by auto
   moreover have M_A': "atm_of ` lits_of (trail T) \<subseteq> atms_of_m A"
-    by (meson M_A N_A inv rtranclp_dpll_bj_atms_in_trail_in_set st tranclp_into_rtranclp)
+    by (meson M_A N_A inv rtranclp_dpll_bj_atms_in_trail_in_set st dpll
+      tranclp.r_into_trancl tranclp_into_rtranclp tranclp_trans)
   moreover have nd: "no_dup (trail T)"
-    by (metis inv n_d rtranclp_dpll_bj_no_dup st tranclp_into_rtranclp)
+    by (metis dpll dpll_bj_no_dup inv n_d rtranclp_dpll_bj_inv rtranclp_dpll_bj_no_dup st
+      tranclp_into_rtranclp)
   moreover have "inv T"
     by (meson dpll dpll_bj_inv inv rtranclp_dpll_bj_inv st tranclp_into_rtranclp)
   ultimately show ?case
-    using IH dpll_bj_trail_mes_decreasing_prop[of T T A] dpll fin_A
-    by linarith
+    using IH dpll_bj_trail_mes_decreasing_prop[of T U A] dpll fin_A by linarith
 qed
 
 end
@@ -1255,7 +1256,7 @@ lemma cdcl_atms_of_m_clauses_decreasing:
   assumes "cdcl S T"and "inv S"
   shows "atms_of_m (clauses T) \<subseteq> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))"
   using assms by (induction rule: cdcl_all_induct)
-    (auto dest!: dpll_bj_atms_of_m_clauses_inv set_mp simp add: atms_of_m_def Tnion_eq)
+    (auto dest!: dpll_bj_atms_of_m_clauses_inv set_mp simp add: atms_of_m_def Union_eq)
 
 lemma cdcl_atms_in_trail:
   assumes "cdcl S T"and "inv S"
@@ -1326,7 +1327,7 @@ next
     moreover
       with \<open>(clauses S) - {C} \<Turnstile>p C\<close> have "J \<Turnstile> C"
         using tot cons unfolding true_clss_cls_def
-      by (metis Tn_empty_right Tn_insert_right \<open>C\<in>(clauses S)\<close> insert_Diff)
+      by (metis Un_empty_right Un_insert_right \<open>C\<in>(clauses S)\<close> insert_Diff)
     ultimately have "J \<Turnstile>s (clauses S)" by (metis insert_Diff_single true_clss_insert)
   }
   hence H: "I \<Turnstile>sext (clauses S) - {C} \<Longrightarrow> I \<Turnstile>sext (clauses S)" unfolding true_clss_ext_def by blast
@@ -1356,12 +1357,12 @@ proof (induction rule: rtranclp_induct)
   case base
   thus ?case by simp
 next
-  case (step T T) note st =this(1) and cdcl = this(2) and IH = this(3)[OF this(4-6)] and
+  case (step T U) note st =this(1) and cdcl = this(2) and IH = this(3)[OF this(4-6)] and
     inv = this(4) and atms_clauses_S = this(5) and atms_trail_S = this(6)
   have "inv T" using inv st rtranclp_cdcl_inv by blast
-  hence "atms_of_m (clauses T) \<subseteq> A"
+  hence "atms_of_m (clauses U) \<subseteq> A"
     using cdcl_atms_of_m_clauses_decreasing[OF cdcl] IH by auto
-  moreover have "atm_of `(lits_of (trail T)) \<subseteq> A"
+  moreover have "atm_of `(lits_of (trail U)) \<subseteq> A"
     by (meson IH \<open>inv T\<close> cdcl cdcl_atms_in_trail_in_set)
   ultimately show ?case by fast
 qed
@@ -1451,7 +1452,7 @@ proof
   hence "C \<in> build_all_simple_clss (atms_of C)"
     using distinct_mset_not_tautology_implies_in_build_all_simple_clss by blast
   moreover have "atms_of C \<subseteq> atms_of_m (clauses S) \<union> atm_of ` lits_of (trail S)"
-    using learn C by (force simp add: atms_of_m_def atms_of_def image_Tn
+    using learn C by (force simp add: atms_of_m_def atms_of_def image_Un
       true_annots_CNot_all_atms_defined elim!: learnE)
   moreover have "finite (atms_of_m (clauses S) \<union> atm_of ` lits_of (trail S))"
     using fin by auto
@@ -1691,7 +1692,7 @@ next
   have "insert C (conflicting_bj_clss S) \<subseteq> build_all_simple_clss (atms_of_m A)"
     proof -
       have "C \<in>  build_all_simple_clss (atms_of_m A)"
-        by (metis (no_types, hide_lams) Tn_subset_iff atms_of_m_finite build_all_simple_clss_mono
+        by (metis (no_types, hide_lams) Un_subset_iff atms_of_m_finite build_all_simple_clss_mono
           contra_subsetD dist distinct_mset_not_tautology_implies_in_build_all_simple_clss
           dual_order.trans fin_A atms_C atms_S_A atms_tr_S_A tauto)
       moreover have "conflicting_bj_clss S \<subseteq> build_all_simple_clss (atms_of_m A)"
@@ -1796,15 +1797,15 @@ proof induction
   case base
   thus ?case by simp
 next
-  case (step T T) note st = this(1) and cdcl = this(2) and IH = this(3)[OF this(4-7)] and
+  case (step T U) note st = this(1) and cdcl = this(2) and IH = this(3)[OF this(4-7)] and
     inv = this(4) and atms_clss_S = this(5) and atms_trail_S = this(6) and finite_cls_S = this(7)
   have "inv T"
     using rtranclp_cdcl_inv st inv by blast
   moreover have "atms_of_m (clauses T) \<subseteq> A" and "atm_of ` lits_of (trail T) \<subseteq> A"
     using rtranclp_cdcl_trail_clauses_bound[OF st] inv atms_clss_S atms_trail_S by blast+
   moreover have "finite (clauses T)"
-    using IH finite_cls_S finite by (meson build_all_simple_clss_finite finite_Tn rev_finite_subset)
-  ultimately have "clauses T \<subseteq> clauses T \<union> build_all_simple_clss A"
+    using IH finite_cls_S finite by (meson build_all_simple_clss_finite finite_Un rev_finite_subset)
+  ultimately have "clauses U \<subseteq> clauses T \<union> build_all_simple_clss A"
        using cdcl finite by (simp add: cdcl_clauses_bound)
   thus ?case using IH by auto
 qed
@@ -1820,7 +1821,7 @@ lemma rtranclp_cdcl_card_clauses_bound:
     finite: "finite A"
   shows "card (clauses T) \<le> card (clauses S) + 3 ^ (card A)"
   using rtranclp_cdcl_clauses_bound[OF assms] finite by (meson Nat.le_trans assms(5)
-    build_all_simple_clss_card build_all_simple_clss_finite card_Tn_le card_mono finite_TnI
+    build_all_simple_clss_card build_all_simple_clss_finite card_Un_le card_mono finite_UnI
     nat_add_left_cancel_le)
 
 lemma rtranclp_cdcl_card_clauses_bound':
@@ -1842,7 +1843,7 @@ proof -
     \<le> card ({C \<in> clauses S. tautology C \<or> \<not>distinct_mset C} \<union> build_all_simple_clss A)"
     using finite by (simp add: assms(5) build_all_simple_clss_finite card_mono)
   thus ?thesis
-    by (meson Nat.le_trans build_all_simple_clss_card card_Tn_le local.finite nat_add_left_cancel_le)
+    by (meson Nat.le_trans build_all_simple_clss_card card_Un_le local.finite nat_add_left_cancel_le)
 qed
 
 lemma rtranclp_cdcl_card_simple_clauses_bound:
@@ -1858,7 +1859,7 @@ lemma rtranclp_cdcl_card_simple_clauses_bound:
   using rtranclp_cdcl_clauses_bound[OF assms] finite
 proof -
   have "\<And>x. x \<in> clauses T \<Longrightarrow>\<not> tautology x \<Longrightarrow> distinct_mset x \<Longrightarrow> x \<in> build_all_simple_clss A"
-    using rtranclp_cdcl_clauses_bound[OF assms] by (metis (full_types) TnE assms(3)
+    using rtranclp_cdcl_clauses_bound[OF assms] by (metis (full_types) UnE assms(3)
      atms_of_atms_of_m_mono build_all_simple_clss_mono
      distinct_mset_not_tautology_implies_in_build_all_simple_clss local.finite subset_eq)
   hence "clauses T
@@ -1868,7 +1869,7 @@ proof -
     \<le> card ({C \<in> clauses S. tautology C \<or> \<not>distinct_mset C} \<union> build_all_simple_clss A)"
     using finite by (simp add: assms(5) build_all_simple_clss_finite card_mono)
   thus ?thesis
-    by (meson Nat.le_trans build_all_simple_clss_card card_Tn_le local.finite nat_add_left_cancel_le)
+    by (meson Nat.le_trans build_all_simple_clss_card card_Un_le local.finite nat_add_left_cancel_le)
 qed
 
 definition \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound :: "'v literal multiset set \<Rightarrow> 'st \<Rightarrow> nat" where
@@ -2009,7 +2010,7 @@ proof -
           (* TODO tune proof *)
           using \<open>M \<Turnstile>as CNot D\<close> \<open>D\<in>snd ?S\<close> unfolding true_clss_clss_def true_annots_def Ball_def
            true_annot_def L M apply auto
-          apply (smt consistent_CNot_not image_Tn insert_absorb2 insert_def mk_disjoint_insert
+          apply (smt consistent_CNot_not image_Un insert_absorb2 insert_def mk_disjoint_insert
             sup.absorb_iff2 sup_commute sup_left_commute true_cls_union_increase' true_clss_def
             true_clss_singleton_lit_of_implies_incl true_clss_union)+
           done
@@ -2253,11 +2254,11 @@ locale cdcl_increasing_restarts_ops =
     mono_f: "strict_mono f" and
     bound_inv: "\<And>A S T. cdcl_inv S \<Longrightarrow> bound_inv A S \<Longrightarrow> cdcl S T \<Longrightarrow> bound_inv A T" and
     cdcl_measure: "\<And>A S T. cdcl_inv S \<Longrightarrow> bound_inv A S \<Longrightarrow> cdcl S T \<Longrightarrow> \<mu> A T < \<mu> A S" and
-    measure_bound2: "\<And>A T T. cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> cdcl\<^sup>*\<^sup>* T T
-       \<Longrightarrow> \<mu> A T \<le> \<mu>_bound A T" and
-    measure_bound4: "\<And>A T T. cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> cdcl\<^sup>*\<^sup>* T T
-       \<Longrightarrow> \<mu>_bound A T \<le> \<mu>_bound A T" and
-    cdcl_restart_inv: "\<And>A T V. cdcl_inv T \<Longrightarrow> restart T V \<Longrightarrow> bound_inv A T \<Longrightarrow> bound_inv A V" and
+    measure_bound2: "\<And>A T U. cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> cdcl\<^sup>*\<^sup>* T U
+       \<Longrightarrow> \<mu> A U \<le> \<mu>_bound A T" and
+    measure_bound4: "\<And>A T U. cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> cdcl\<^sup>*\<^sup>* T U
+       \<Longrightarrow> \<mu>_bound A U \<le> \<mu>_bound A T" and
+    cdcl_restart_inv: "\<And>A U V. cdcl_inv U \<Longrightarrow> restart U V \<Longrightarrow> bound_inv A U \<Longrightarrow> bound_inv A V" and
     exists_bound: "\<And>R S. cdcl_inv R \<Longrightarrow> restart R S \<Longrightarrow> \<exists>A. bound_inv A S" and
     cdcl_inv: "\<And>S T. cdcl_inv S \<Longrightarrow> cdcl S T \<Longrightarrow> cdcl_inv T" and
     cdcl_inv_restart: "\<And>S T. cdcl_inv S \<Longrightarrow> restart S T \<Longrightarrow> cdcl_inv T"
@@ -2313,12 +2314,12 @@ proof (induction n arbitrary: T)
 next
   case (Suc n) note IH =this(1)[OF _ this(3) this(4)] and S_T =this(2) and b_inv = this(3) and
   c_inv = this(4)
-  obtain T :: 'st where S_T: "(cdcl^^(Suc n)) S T" and T_T: "cdcl T T" using S_T by auto
-  then have "\<mu> A T < \<mu> A S - n" using IH[of T] by simp
+  obtain U :: 'st where S_U: "(cdcl^^(Suc n)) S U" and U_T: "cdcl U T" using S_T by auto
+  then have "\<mu> A U < \<mu> A S - n" using IH[of U] by simp
   moreover
-    have "bound_inv A T"
-      using S_T b_inv  cdcl_bound_inv c_inv by blast
-    hence "\<mu> A T < \<mu> A T" using cdcl_measure[OF _ _ T_T] S_T c_inv cdcl_cdcl_inv by auto
+    have "bound_inv A U"
+      using S_U b_inv  cdcl_bound_inv c_inv by blast
+    hence "\<mu> A T < \<mu> A U" using cdcl_measure[OF _ _ U_T] S_U c_inv cdcl_cdcl_inv by auto
   ultimately show ?case by linarith
 qed
 
@@ -2333,13 +2334,13 @@ proof (induction rule: rtranclp_induct)
   case base
   thus ?case by auto
 next
-  case (step T T) note IH =this(3)[OF this(4) this(5)] and st =this(1) and cdcl= this(2) and
+  case (step T U) note IH =this(3)[OF this(4) this(5)] and st =this(1) and cdcl= this(2) and
     b_inv = this(4) and c_inv = this(5)
   have "bound_inv A T"
     by (meson cdcl_bound_inv rtranclp_imp_relpowp st step.prems)
   moreover have "cdcl_inv T"
     using c_inv rtranclp_cdcl_cdcl_inv st by blast
-  ultimately have "\<mu> A T < \<mu> A T" using cdcl_measure[OF _ _ cdcl] by auto
+  ultimately have "\<mu> A U < \<mu> A T" using cdcl_measure[OF _ _ cdcl] by auto
   thus ?case using IH by linarith
 qed
 
@@ -2352,8 +2353,8 @@ lemma cdcl_comp_bounded:
 text \<open>
   \<^item> @{term "m \<ge> f (Suc n)"} ensure that at least one step has been done.\<close>
 inductive cdcl_with_restart_stgy where
-restart_step: "(cdcl^^m) S T \<Longrightarrow> m \<ge> f n \<Longrightarrow> restart T T
-  \<Longrightarrow> cdcl_with_restart_stgy (S, n) (T, Suc n)" |
+restart_step: "(cdcl^^m) S T \<Longrightarrow> m \<ge> f n \<Longrightarrow> restart T U
+  \<Longrightarrow> cdcl_with_restart_stgy (S, n) (U, Suc n)" |
 restart_full: "full cdcl S T \<Longrightarrow> cdcl_with_restart_stgy (S, n) (T, Suc n)"
 
 lemmas cdcl_with_restart_induct = cdcl_with_restart_stgy.induct[split_format(complete),
@@ -2362,11 +2363,11 @@ lemmas cdcl_with_restart_induct = cdcl_with_restart_stgy.induct[split_format(com
 lemma cdcl_with_restart_stgy_cdcl_with_restarts:
   "cdcl_with_restart_stgy S T \<Longrightarrow> cdcl_with_restarts\<^sup>*\<^sup>* (fst S) (fst T)"
 proof (induction rule: cdcl_with_restart_stgy.induct)
-  case (restart_step m S T n T)
+  case (restart_step m S T n U)
   hence "cdcl\<^sup>*\<^sup>* S T" by (meson relpowp_imp_rtranclp)
   hence "cdcl_with_restarts\<^sup>*\<^sup>* S T" using cdcl_with_restarts.intros(1)
     rtranclp_mono[of cdcl cdcl_with_restarts] by blast
-  moreover have "cdcl_with_restarts T T" using \<open>restart T T\<close> cdcl_with_restarts.intros(2) by blast
+  moreover have "cdcl_with_restarts T U" using \<open>restart T U\<close> cdcl_with_restarts.intros(2) by blast
   ultimately show ?case by auto
 next
   case (restart_full S T)
@@ -2432,7 +2433,7 @@ locale cdcl_increasing_restarts =
     cdcl_inv :: "'st \<Rightarrow> bool" and
     \<mu>_bound :: "'bound \<Rightarrow> 'st \<Rightarrow> nat" +
   assumes
-    measure_bound: "\<And>A T V n. cdcl_inv T \<Longrightarrow> bound_inv A T 
+    measure_bound: "\<And>A T V n. cdcl_inv T \<Longrightarrow> bound_inv A T
       \<Longrightarrow> cdcl_with_restart_stgy (T, n) (V, Suc n) \<Longrightarrow> \<mu> A V \<le> \<mu>_bound A T" and
     cdcl_with_restarts_\<mu>_bound:
       "cdcl_with_restart_stgy (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T
@@ -2440,7 +2441,7 @@ locale cdcl_increasing_restarts =
 begin
 
 lemma rtranclp_cdcl_with_restarts_\<mu>_bound:
-  "cdcl_with_restart_stgy\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T 
+  "cdcl_with_restart_stgy\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T
     \<Longrightarrow> \<mu>_bound A V \<le> \<mu>_bound A T"
   apply (induction rule: rtranclp_induct2)
    apply simp
@@ -2547,7 +2548,7 @@ proof (induction rule: cdcl_with_restart_stgy.induct)
   case restart_full
   thus ?case by auto
 next
-  case (restart_step m S T n T) note st = this(1) and f = this(2) and bound_inv = this(4) and
+  case (restart_step m S T n U) note st = this(1) and f = this(2) and bound_inv = this(4) and
     cdcl_inv =this(5) and \<mu> = this(6)
   then obtain m' where m: "m = Suc m'" by (cases m) auto
   have "\<mu> A S - m' = 0"
@@ -2709,11 +2710,11 @@ proof (induction rule: rtranclp_induct)
   case base
   thus ?case by auto
 next
-  case (step T T) note st =this(1) and cdcl = this(2) and IH = this(3)[OF this(4)] and inv = this(4)
-  have "cdcl\<^sup>*\<^sup>* T T"
+  case (step T U) note st =this(1) and cdcl = this(2) and IH = this(3)[OF this(4)] and inv = this(4)
+  have "cdcl\<^sup>*\<^sup>* T U"
     using cdcl_merged_is_tranclp_cdcl[OF cdcl] IH by (blast dest: tranclp_into_rtranclp)
-  hence "cdcl\<^sup>*\<^sup>* S T" using IH by fastforce
-  moreover have "inv T" using IH \<open>cdcl\<^sup>*\<^sup>* T T\<close> rtranclp_cdcl_inv by blast
+  hence "cdcl\<^sup>*\<^sup>* S U" using IH by fastforce
+  moreover have "inv U" using IH \<open>cdcl\<^sup>*\<^sup>* T U\<close> rtranclp_cdcl_inv by blast
   ultimately show ?case using st by fast
 qed
 
@@ -2801,7 +2802,7 @@ next
     "((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
       - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight T))
     < ((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
-      - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) 
+      - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A))
            (trail_weight (add_cls (C' + {#L#}) S)))"
     apply (rule dpll_bj_trail_mes_decreasing_prop)
          using bj bj_backjump apply blast
@@ -2849,7 +2850,7 @@ proof (induction rule: tranclp_induct)
   case base
   thus ?case by auto
 next
-  case (step T T) note st = this(1) and cdcl = this(2) and IH = this(3)[OF this(4-8)] and
+  case (step T U) note st = this(1) and cdcl = this(2) and IH = this(3)[OF this(4-8)] and
     inv = this(4) and atms_clss = this(5) and atms_trail = this(6) and n_d = this(7) and
     fin = this(8)
   have "cdcl\<^sup>*\<^sup>* S T"
@@ -2866,7 +2867,7 @@ next
     using rtranclp_cdcl_no_dup[OF  \<open>cdcl\<^sup>*\<^sup>* S T\<close> inv n_d] by fast
   moreover have "finite (clauses T)"
     using rtranclp_cdcl_finite_clauses[OF  \<open>cdcl\<^sup>*\<^sup>* S T\<close> inv fin] by fast
-  ultimately have "(T, T) \<in> ?P"
+  ultimately have "(U, T) \<in> ?P"
     using cdcl by auto
   thus ?case using IH by (simp add: trancl_into_trancl2)
 qed
@@ -2903,7 +2904,7 @@ begin
           dpll_bj_clauses dpll_bj_no_dup prod.case_eq_if)
        apply (rule dpll_bj_trail_mes_decreasing_prop; auto)
       apply (case_tac T, simp)
-     apply (case_tac T, simp)
+     apply (case_tac U, simp)
     using dpll_bj_clauses dpll_bj_all_decomposition_implies_inv dpll_bj_no_dup by fastforce+
 end
 
@@ -2996,8 +2997,8 @@ lemma cdcl_with_restart_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_le_\<mu>\<^sub>C\
   shows "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A V \<le> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A T"
   using cdcl_inv bound_inv
 proof (induction rule: cdcl_with_restart_induct[OF cdcl])
-  case (1 m S T n T) note T = this(3)
-  show ?case unfolding T
+  case (1 m S T n U) note U = this(3)
+  show ?case unfolding U
     apply (rule  rtranclp_cdcl_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_update_trail)
          using \<open>(cdcl_l ^^ m) S T\<close>  apply (fastforce dest: relpowp_imp_rtranclp)
         using 1 by auto
@@ -3022,12 +3023,12 @@ lemma cdcl_with_restart_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_le_\<mu>\<^
   shows "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A V \<le> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A T"
   using cdcl_inv bound_inv
 proof (induction rule: cdcl_with_restart_induct[OF cdcl])
-  case (1 m S T n T) note T = this(3)
+  case (1 m S T n U) note U = this(3)
   have "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A T \<le> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A S"
      apply (rule rtranclp_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_decreasing)
          using \<open>(cdcl_l ^^ m) S T\<close>  apply (fastforce dest: relpowp_imp_rtranclp)
         using 1 by auto
-  thus ?case unfolding T by auto
+  thus ?case unfolding U by auto
 next
   case (2 S T n) note full = this(2)
   show ?case
