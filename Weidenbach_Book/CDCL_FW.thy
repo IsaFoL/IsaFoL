@@ -1596,13 +1596,13 @@ lemma rtranclp_cdcl_cp_conflicting_C_Clause:
 
 inductive cdcl_fw_cp :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 conflict'[intro]: "conflict S T \<Longrightarrow> full0 cdcl_bj T U \<Longrightarrow> cdcl_fw_cp S U" |
-propagate'[intro]: "propagate\<^sup>*\<^sup>* S S' \<Longrightarrow> cdcl_fw_cp S S'"
+propagate'[intro]: "propagate\<^sup>+\<^sup>+ S S' \<Longrightarrow> cdcl_fw_cp S S'"
 
 lemma cdcl_fw_cases[consumes 1, case_names conflict propagate]:
   assumes
     "cdcl_fw_cp S U" and
     "\<And>T. conflict S T \<Longrightarrow> full0 cdcl_bj T U \<Longrightarrow> P" and
-    "propagate\<^sup>*\<^sup>* S U \<Longrightarrow> P"
+    "propagate\<^sup>+\<^sup>+ S U \<Longrightarrow> P"
   shows "P"
   using assms unfolding cdcl_fw_cp.simps by auto
 
@@ -1617,7 +1617,7 @@ lemma rtranclp_cdcl_fw_cp_is_rtranclp_cdcl_s'_with_prop_bj:
     "conflicting S = C_True"
   shows
     "cdcl_s'\<^sup>*\<^sup>* S V
-    \<or> (\<exists>T. cdcl_s'\<^sup>*\<^sup>* S T \<and> propagate\<^sup>*\<^sup>* T V)
+    \<or> (\<exists>T. cdcl_s'\<^sup>*\<^sup>* S T \<and> propagate\<^sup>+\<^sup>+ T V)
     \<or> (\<exists>T U. cdcl_s'\<^sup>*\<^sup>* S T \<and> full cdcl_bj T U \<and> propagate\<^sup>*\<^sup>* U V)"
   using assms
 proof (induction rule: rtranclp_induct)
@@ -1628,14 +1628,14 @@ next
   from cp show ?case
     proof (cases rule: cdcl_fw_cases)
       case propagate
-      thus ?thesis using IH by (meson rtranclp_trans)
+      thus ?thesis using IH by (meson rtranclp_tranclp_tranclp tranclp_into_rtranclp)
     next
       case (conflict U') note confl = this(1) and bj = this(2)
       have full_U_U': "full cdcl_cp U U'"
         by (simp add: conflict_is_full_cdcl_cp local.conflict(1))
       consider
           (s') "cdcl_s'\<^sup>*\<^sup>* S U"
-        | (propa) T' where "cdcl_s'\<^sup>*\<^sup>* S T'" and "propagate\<^sup>*\<^sup>* T' U"
+        | (propa) T' where "cdcl_s'\<^sup>*\<^sup>* S T'" and "propagate\<^sup>+\<^sup>+ T' U"
         | (bj_prop) T' T'' where "cdcl_s'\<^sup>*\<^sup>* S T' " and "full cdcl_bj T' T''" and "propagate\<^sup>*\<^sup>* T'' U"
         using IH by blast
       thus ?thesis
@@ -1650,7 +1650,8 @@ next
           case propa note s' = this(1) and T'_U = this(2)
           have "full cdcl_cp T' U'"
             using rtranclp_mono[of propagate cdcl_cp] T'_U cdcl_cp.propagate' full_U_U'
-            rtranclp_fullI[of cdcl_cp T'] by blast
+            rtranclp_fullI[of cdcl_cp T'] by (metis (full_types) predicate2D predicate2I
+              tranclp_into_rtranclp)
           have "cdcl_s'\<^sup>*\<^sup>* S U'"
             by (meson \<open>cdcl_cp\<^sup>+\<^sup>\<down> T' U'\<close> cdcl_s'.conflict' propa(1) rtranclp.rtrancl_into_rtrancl)
           then show ?thesis
@@ -1672,9 +1673,22 @@ next
     qed
 qed
 
+
+lemma no_step_cdcl_s'_no_ste_cdcl_fw_cp:
+  "cdcl_all_inv_mes S \<Longrightarrow> conflicting S = C_True \<Longrightarrow> no_step cdcl_s' S \<Longrightarrow> no_step cdcl_fw_cp S"
+  apply (auto simp: cdcl_s'.simps cdcl_fw_cp.simps)
+    using conflict_is_full_cdcl_cp apply blast
+  using cdcl_cp_normalized_element cdcl_cp.propagate' by (metis cdcl_cp.propagate' full0_unfold
+    tranclpD)
+
 lemma
   assumes "conflicting S = C_True"
   shows "full0 cdcl_fw_cp S T \<longleftrightarrow> full0 (\<lambda>S T. cdcl_s' S T \<and> \<not>decided S T) S T"
 oops
+
+lemma "cdcl_all_inv_mes S \<Longrightarrow> conflicting S = C_True \<Longrightarrow> no_step cdcl_fw_cp S \<Longrightarrow> no_step cdcl_s' S"
+  apply (auto simp: cdcl_s'.simps cdcl_fw_cp.simps)
+oops
+
 end
 end
