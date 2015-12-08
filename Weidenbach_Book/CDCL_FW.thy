@@ -1,4 +1,4 @@
-theory CDCL_CW_NOT
+theory CDCL_FW
 imports CDCL_CW_Termination CDCL_NOT
 begin
 
