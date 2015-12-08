@@ -3,8 +3,8 @@ session Unordered_Resolution = "HOL" +
      document = "pdf",
      document_output = "generated"]
    theories
-     TermsAndLiterals
    theories[quick_and_dirty]
+     TermsAndLiterals
      Resolution
      Examples
      Snippet
