@@ -851,6 +851,11 @@ section {* Partial Interpretations *}
 
 type_synonym partial_pred_denot = "bool list"
 
+(* WARNING: My definition of falsification is WRONG! For a clause I allow each literal
+   to be individually projected down to the ground world, BUT they should all be projected
+   down with the same substitution to be falsified.
+*)
+
 (* This definition is quite syntactical. I think that's good though.
    Alternative: Check if an instance is in list. If not return true.
    Otherwise, build an interpretation from the partial interpretation *)
@@ -909,6 +914,28 @@ next
   then have "groundl (Neg p ts')" by auto
   ultimately show "\<exists>l'. instance_ofl l' l \<and> falsifiesl G l' \<and> groundl l'" by blast
 qed
+
+lemma falsifiesc_ground:
+  assumes "falsifiesc G C"
+  shows "\<exists>C'. instance_ofls C' C  \<and> falsifiesc G C' \<and> groundls C'"
+proof -
+  thm someI_ex
+
+  from assms have "(\<forall>l \<in> C. falsifiesl G l)" by auto
+  let ?convert = "\<lambda>l. SOME l'. instance_ofl l' l  \<and> falsifiesl G l' \<and> groundl l'"
+  let ?C' = "?convert ` C"
+
+  have lol: "\<forall>l\<in>C. instance_ofl (?convert l) l  \<and> falsifiesl G (?convert l) \<and> groundl (?convert l)" 
+    using someI_ex[of "\<lambda>l'. instance_ofl l' _  \<and> falsifiesl G l' \<and> groundl l'"] assms falsifies_ground[of G] by blast
+
+  have "instance_ofls ?C' C" using lol unfolding instance_ofls_def instance_ofl_def sorry
+   (* This does not hold since they might be instances with different substitution *)
+  moreover
+  have "falsifiesc G ?C'" using lol by auto
+  moreover
+  have "groundls ?C'" using lol by auto
+  ultimately show ?thesis by blast
+oops
 
 lemma ground_falsifies:
   assumes "groundl l"
@@ -1481,12 +1508,11 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     from ggg have "undiag_fatom (Pos (get_pred l') (get_terms l')) = length B" using undiag_diag_fatom by metis
     then have "undiag_fatom l' = length B" using undiag_neg[of "get_pred l'" "get_terms l'"] sss by auto
     (* Prove: Additionally, all the other literals in C'1 must be falsified by B, since they are falsified by B1, but not l'1. *)
-    have "\<forall>l\<in>C1
-      
 
     have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" sorry
   }
   ultimately show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" by auto
+oops
 
 theorem completeness:
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
