@@ -892,7 +892,8 @@ lemma
   shows "cdcl_bj\<^sup>*\<^sup>* T U"
   using assms by (metis cdcl_bj_strongly_confluent full_def tranclp_into_rtranclp)
 
-section \<open>A better version of @{term cdcl_s}\<close>
+section \<open>FW with strategy\<close>
+section \<open>The intermediate step\<close>
 inductive cdcl_s' :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 conflict': "full cdcl_cp S S' \<Longrightarrow> cdcl_s' S S'" |
 decided': "decided S S'  \<Longrightarrow> no_step cdcl_cp S \<Longrightarrow> full0 cdcl_cp S' S'' \<Longrightarrow> cdcl_s' S S''" |
@@ -1298,16 +1299,6 @@ lemma cdcl_s_cdcl_s'_no_step:
   using cdcl_s_cdcl_s'_connected[OF assms(1,2)] assms(3)
   by (metis (no_types, lifting) full_def tranclpD)
 
-lemma cdcl_o_rule_cases[case_names other decided backtrack skip resolve]:
-  assumes
-    "cdcl_o S T" and
-    "decided S T \<Longrightarrow> P" and
-    "backtrack S T \<Longrightarrow> P" and
-    "skip S T \<Longrightarrow> P" and
-    "resolve S T \<Longrightarrow> P"
-  shows P
-  using assms by (auto simp: cdcl_o.simps cdcl_bj.simps)
-
 lemma rtranclp_cdcl_s_connected_to_rtranclp_cdcl_s':
   assumes "cdcl_s\<^sup>*\<^sup>* S U"
   shows "cdcl_s'\<^sup>*\<^sup>* S U \<or> (\<exists>T. cdcl_s'\<^sup>*\<^sup>* S T \<and> cdcl_bj\<^sup>+\<^sup>+ T U \<and> conflicting U \<noteq> C_True)"
@@ -1335,14 +1326,15 @@ next
     next
       case (other' U) note o = this(1) and n_s = this(2) and full = this(3)
       thus ?thesis
-        proof (cases rule: cdcl_o_rule_cases[OF o])
-          case 1
+        using o
+        proof (cases rule: cdcl_o_rule_cases)
+          case decided
           hence "cdcl_s'\<^sup>*\<^sup>* S T"
             using IH by auto
           thus ?thesis
-            by (meson "1" decided' full n_s rtranclp.rtrancl_into_rtrancl)
+            by (meson decided decided' full n_s rtranclp.rtrancl_into_rtrancl)
         next
-          case 2
+          case backtrack
           consider
               (s') "cdcl_s'\<^sup>*\<^sup>* S T"
             | (bj) S' where "cdcl_s'\<^sup>*\<^sup>* S S'" and "cdcl_bj\<^sup>+\<^sup>+ S' T" and "conflicting T \<noteq> C_True"
@@ -1352,7 +1344,7 @@ next
               case s'
               moreover
                 have "full cdcl_bj T U"
-                   using backtrack_is_full_cdcl_bj 2 by blast
+                   using backtrack_is_full_cdcl_bj backtrack by blast
                 hence "cdcl_s' T V"
                   using full bj' n_s by blast
               ultimately show ?thesis by auto
@@ -1362,14 +1354,14 @@ next
                 using bj_T by (fastforce simp: cdcl_cp.simps cdcl_bj.simps dest!: tranclpD)
               moreover
                 have "full cdcl_bj T U"
-                  using backtrack_is_full_cdcl_bj 2 by blast
+                  using backtrack_is_full_cdcl_bj backtrack by blast
                 hence "full cdcl_bj S' U"
                   using bj_T unfolding full_def by fastforce
               ultimately have "cdcl_s' S' V" using full by (simp add: bj')
               thus ?thesis using S_S' by auto
             qed
         next
-          case 3
+          case skip
           hence [simp]: "U = V"
             using full converse_rtranclpE unfolding full0_def by fastforce
 
@@ -1381,24 +1373,23 @@ next
             proof cases
               case s'
               have "cdcl_bj\<^sup>+\<^sup>+ T V"
-                using 3  by fastforce
+                using skip by fastforce
               moreover have "conflicting V \<noteq> C_True"
-                using 3 by auto
+                using skip by auto
               ultimately show ?thesis using s' by auto
             next
               case (bj S') note S_S' = this(1) and bj_T = this(2)
               have "cdcl_bj\<^sup>+\<^sup>+ S' V"
-                using 3  bj_T by (metis \<open>U = V\<close> skip tranclp.simps)
+                using skip bj_T by (metis \<open>U = V\<close> cdcl_bj.skip tranclp.simps)
 
               moreover have "conflicting V \<noteq> C_True"
-                using 3 by auto
+                using skip by auto
               ultimately show ?thesis using S_S' by auto
             qed
         next
-          case 4
+          case resolve
           hence [simp]: "U = V"
             using full converse_rtranclpE unfolding full0_def by fastforce
-
           consider
               (s') "cdcl_s'\<^sup>*\<^sup>* S T"
             | (bj) S' where "cdcl_s'\<^sup>*\<^sup>* S S'" and "cdcl_bj\<^sup>+\<^sup>+ S' T" and "conflicting T \<noteq> C_True"
@@ -1407,16 +1398,16 @@ next
             proof cases
               case s'
               have "cdcl_bj\<^sup>+\<^sup>+ T V"
-                using 4  by fastforce
+                using resolve  by fastforce
               moreover have "conflicting V \<noteq> C_True"
-                using 4 by auto
+                using resolve by auto
               ultimately show ?thesis using s' by auto
             next
               case (bj S') note S_S' = this(1) and bj_T = this(2)
               have "cdcl_bj\<^sup>+\<^sup>+ S' V"
-                using 4  bj_T by (metis \<open>U = V\<close> resolve tranclp.simps)
+                using resolve  bj_T by (metis \<open>U = V\<close> cdcl_bj.resolve tranclp.simps)
               moreover have "conflicting V \<noteq> C_True"
-                using 4 by auto
+                using resolve by auto
               ultimately show ?thesis using S_S' by auto
             qed
         qed

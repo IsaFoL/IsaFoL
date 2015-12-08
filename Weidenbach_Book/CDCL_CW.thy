@@ -468,6 +468,16 @@ lemma cdcl_o_induct[consumes 1, case_names decided skip resolve backtrack]:
   apply (frule backtrackH; simp)
   done
 
+lemma cdcl_o_rule_cases[consumes 1, case_names decided backtrack skip resolve]:
+  assumes
+    "cdcl_o S T" and
+    "decided S T \<Longrightarrow> P" and
+    "backtrack S T \<Longrightarrow> P" and
+    "skip S T \<Longrightarrow> P" and
+    "resolve S T \<Longrightarrow> P"
+  shows P
+  using assms by (auto simp: cdcl_o.simps cdcl_bj.simps)
+
 lemma level_of_marked_ge_1:
   assumes "cdcl S S'"
   and "\<forall>L l. Marked L l \<in> set (trail S) \<longrightarrow> l > 0"
