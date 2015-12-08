@@ -23,6 +23,10 @@ lemma marked_lit_list_induct[case_names nil marked proped]:
   using assms apply (induction xs, simp)
   by (case_tac a) auto
 
+lemma is_marked_ex_Marked:
+  "is_marked L \<Longrightarrow> \<exists>K lvl. L = Marked K lvl"
+  by (cases L) auto
+
 type_synonym ('v, 'l, 'm) annoted_lits = "('v, 'l, 'm) marked_lit list"
 
 definition lits_of :: "('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal set" where
@@ -625,7 +629,8 @@ qed
 
 subsection \<open>Negation of Clauses\<close>
 
-definition CNot :: "'v clause \<Rightarrow> 'v clauses" where "CNot \<psi> = { {#-L#} | L.  L \<in># \<psi> }"
+definition CNot :: "'v clause \<Rightarrow> 'v clauses" where
+"CNot \<psi> = { {#-L#} | L.  L \<in># \<psi> }"
 
 lemma in_CNot_uminus[iff]:
   shows "{#L#} \<in> CNot \<psi> \<longleftrightarrow> -L \<in># \<psi>"
@@ -636,7 +641,8 @@ lemma CNot_empty[simp]: "CNot {#} = {}"  unfolding CNot_def by auto
 lemma CNot_plus[simp]: "CNot (A + B) = CNot A \<union> CNot B" unfolding CNot_def by auto
 
 lemma CNot_eq_empty[iff]:
-  "CNot D = {} \<longleftrightarrow> D = {#}" unfolding CNot_def by (auto simp add: multiset_eqI)
+  "CNot D = {} \<longleftrightarrow> D = {#}"
+  unfolding CNot_def by (auto simp add: multiset_eqI)
 
 lemma in_CNot_implies_uminus:
   assumes "L \<in># D"
@@ -648,7 +654,8 @@ lemma CNot_remdups_mset[simp]:
   "CNot (remdups_mset A) = CNot A"
   unfolding CNot_def by auto
 
-lemma Ball_CNot_Ball_mset[simp] :"(\<forall>x\<in>CNot D. P x) \<longleftrightarrow> (\<forall>L\<in># D. P {#-L#})"
+lemma Ball_CNot_Ball_mset[simp] :
+  "(\<forall>x\<in>CNot D. P x) \<longleftrightarrow> (\<forall>L\<in># D. P {#-L#})"
  unfolding CNot_def by auto
 
 lemma consistent_CNot_not:
@@ -681,8 +688,7 @@ lemma true_clss_clss_contradiction_true_clss_cls_false:
 lemma true_annots_CNot_all_atms_defined:
   assumes "M \<Turnstile>as CNot T" and a1: " L \<in># T"
   shows "atm_of L \<in> atm_of ` lits_of M"
-  by (metis assms atm_of_uminus image_eqI in_CNot_implies_uminus(1) lits_of_def
-    true_annot_singleton)
+  by (metis assms atm_of_uminus image_eqI in_CNot_implies_uminus(1) true_annot_singleton)
 
 lemma true_clss_clss_false_left_right:
   assumes "{{#L#}} \<union> B \<Turnstile>p {#}"
@@ -690,9 +696,10 @@ lemma true_clss_clss_false_left_right:
   unfolding true_clss_clss_def true_clss_cls_def
 proof (intro allI impI)
   fix I
-  assume tot: " total_over_m I (B \<union> CNot {#L#})"
-  and cons: "consistent_interp I"
-  and I: "I \<Turnstile>s B"
+  assume
+    tot: " total_over_m I (B \<union> CNot {#L#})" and
+    cons: "consistent_interp I" and
+    I: "I \<Turnstile>s B"
   have "total_over_m I ({{#L#}} \<union> B)" using tot by auto
   hence "\<not>I \<Turnstile>s insert {#L#} B"
     using assms cons unfolding true_clss_cls_def by simp
@@ -708,7 +715,8 @@ lemma consistent_CNot_not_tautology:
 lemma atms_of_m_CNot_atms_of_m: "atms_of_m (CNot CC) = atms_of_m {CC}"
   by simp
 
-lemma total_over_m_CNot_toal_over_m[simp]: "total_over_m I (CNot C) = total_over_set I (atms_of C)"
+lemma total_over_m_CNot_toal_over_m[simp]:
+  "total_over_m I (CNot C) = total_over_set I (atms_of C)"
   unfolding total_over_m_def total_over_set_def by auto
 
 lemma uminus_lit_swap: "-(a::'a literal) = i \<longleftrightarrow> a = -i"
@@ -758,6 +766,11 @@ proof (intro allI impI)
   hence "L # M \<Turnstile>a l" by auto
   thus "M \<Turnstile>a l" using LA l by (cases L) (auto simp add: CNot_def)
  qed
+
+lemma true_clss_clss_union_false_true_clss_clss_cnot:
+  "A \<union> {B} \<Turnstile>ps {{#}} \<longleftrightarrow> A \<Turnstile>ps CNot B"
+  using total_not_CNot consistent_CNot_not unfolding total_over_m_def true_clss_clss_def
+  by fastforce
 
 lemma true_annot_remove_hd_if_notin_vars:
   assumes "a # M'\<Turnstile>a D"

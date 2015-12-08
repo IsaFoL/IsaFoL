@@ -4,6 +4,205 @@ begin
 
 sledgehammer_params[verbose, prover=e spass z3 cvc4 verit remote_vampire]
 
+section \<open>Auxiliary Lemmas\<close>
+lemma no_dup_cannot_not_lit_and_uminus:
+  "no_dup M \<Longrightarrow> - lit_of xa = lit_of x \<Longrightarrow> x \<in> set M \<Longrightarrow> xa \<notin> set M"
+  by (metis atm_of_uminus distinct_map inj_on_eq_iff uminus_not_id')
+
+lemma true_clss_single_iff_incl:
+  "I \<Turnstile>s single ` B \<longleftrightarrow> B \<subseteq> I"
+  unfolding true_clss_def by auto
+
+lemma atms_of_m_single_atm_of[simp]:
+  "atms_of_m {{#lit_of L#} |L. P L} = atm_of ` {lit_of L |L. P L}"
+  unfolding atms_of_m_def by auto
+
+lemma atms_of_uminus_lit_atm_of_lit_of:
+  "atms_of {#- lit_of x. x \<in># A#} = atm_of ` (lit_of ` (set_mset A))"
+  unfolding atms_of_def by (auto simp add: Fun.image_comp)
+
+lemma atms_of_m_single_image_atm_of_lit_of:
+  "atms_of_m ((\<lambda>x. {#lit_of x#}) ` A) = atm_of ` (lit_of ` A)"
+  unfolding atms_of_m_def by auto
+
+text \<open>This measure can also be seen as the increasing lexicographic order: it is an order on bounded
+  sequences, when each element is bound. The proof involves a measure like the one defined here (the
+  same?).\<close>
+definition \<mu>\<^sub>C  :: "nat \<Rightarrow> nat \<Rightarrow> nat list \<Rightarrow> nat" where
+"\<mu>\<^sub>C s b M \<equiv> (\<Sum>i=0..<length M. M!i * b^ (s +i - length M))"
+
+lemma \<mu>\<^sub>C_nil[simp]:
+  "\<mu>\<^sub>C s b [] = 0"
+  unfolding \<mu>\<^sub>C_def by auto
+
+lemma \<mu>\<^sub>C_single[simp]:
+  "\<mu>\<^sub>C s b [L] = L * b ^ (s - Suc 0)"
+  unfolding \<mu>\<^sub>C_def by auto
+
+lemma set_sum_atLeastLessThan_add:
+  "(\<Sum>i=k..<k+(b::nat). f i) = (\<Sum>i=0..<b. f (k+ i))"
+  by (induction b) auto
+
+lemma set_sum_atLeastLessThan_Suc:
+  "(\<Sum>i=1..<Suc j. f i) = (\<Sum>i=0..<j. f (Suc i))"
+  using set_sum_atLeastLessThan_add[of _ 1 j] by force
+
+lemma \<mu>\<^sub>C_cons:
+  "\<mu>\<^sub>C s b (L # M) = L * b ^ (s - 1 - length M) + \<mu>\<^sub>C s b M"
+proof -
+  have "\<mu>\<^sub>C s b (L # M) = (\<Sum>i=0..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
+    unfolding \<mu>\<^sub>C_def by blast
+  also have "\<dots> = (\<Sum>i=0..<1. (L#M)!i * b^ (s +i - length (L#M)))
+                 + (\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
+     by (smt Nat.le_iff_add One_nat_def add.commute le0 list.size(4) setsum_add_nat_ivl)
+  finally have "\<mu>\<^sub>C s b (L # M)= L * b ^ (s - 1 - length M)
+                  + (\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
+     by auto
+  moreover {
+    have "(\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M))) =
+           (\<Sum>i=0..<length (M). (L#M)!(Suc i) * b^ (s + (Suc i) - length (L#M)))"
+     unfolding length_Cons set_sum_atLeastLessThan_Suc by blast
+    also have "\<dots> = (\<Sum>i=0..<length (M). M!i * b^ (s + i - length M))"
+      by auto
+    finally have "(\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M))) = \<mu>\<^sub>C s b M"
+      unfolding \<mu>\<^sub>C_def .
+    }
+  ultimately show ?thesis by presburger
+qed
+
+lemma \<mu>\<^sub>C_append:
+  assumes "s \<ge> length (M@M')"
+  shows "\<mu>\<^sub>C s b (M@M') = \<mu>\<^sub>C (s - length M') b M + \<mu>\<^sub>C s b M'"
+proof -
+  have "\<mu>\<^sub>C s b (M@M') = (\<Sum>i=0..<length (M@M'). (M@M')!i * b^ (s +i - length (M@M')))"
+    unfolding \<mu>\<^sub>C_def by blast
+  moreover hence "\<dots> = (\<Sum>i=0..< length M. (M@M')!i * b^ (s +i - length (M@M')))
+                 + (\<Sum>i=length M..<length (M@M'). (M@M')!i * b^ (s +i - length (M@M')))"
+    unfolding length_append by (smt Nat.le_iff_add One_nat_def add.commute le0 list.size(4)
+      setsum_add_nat_ivl)
+  moreover
+    have "\<forall>i\<in>{0..< length M}. (M@M')!i * b^ (s +i - length (M@M')) = M ! i * b ^ (s - length M'
+      + i - length M)"
+      using \<open>s \<ge> length (M@M')\<close> by (auto simp add: nth_append ac_simps)
+    hence "\<mu>\<^sub>C (s - length M') b M = (\<Sum>i=0..< length M. (M@M')!i * b^ (s +i - length (M@M')))"
+      unfolding \<mu>\<^sub>C_def by auto
+  ultimately have "\<mu>\<^sub>C s b (M@M')= \<mu>\<^sub>C (s - length M') b M
+                  + (\<Sum>i=length M..<length (M@M'). (M@M')!i * b^ (s +i - length (M@M')))"
+     by auto
+  moreover {
+    have "(\<Sum>i=length M..<length (M@M'). (M@M')!i * b^ (s +i - length (M@M'))) =
+           (\<Sum>i=0..<length M'. M'!i * b^ (s + i - length M'))"
+     unfolding length_append set_sum_atLeastLessThan_add by auto
+    hence "(\<Sum>i=length M..<length (M@M'). (M@M')!i * b^ (s +i - length (M@M'))) = \<mu>\<^sub>C s b M'"
+      unfolding \<mu>\<^sub>C_def .
+    }
+  ultimately show ?thesis by presburger
+qed
+
+lemma \<mu>\<^sub>C_cons_non_empty_inf:
+  assumes M_ge_1: "\<forall>i\<in>set M. i \<ge> 1" and M: "M \<noteq> []"
+  shows "\<mu>\<^sub>C s b M \<ge> b ^  (s - length M)"
+  using assms by (cases M) (auto simp: mult_eq_if \<mu>\<^sub>C_cons)
+
+text \<open>Duplicate of "~~/src/HOL/ex/NatSum.thy" (but generalized to @{term "k\<ge>0"})\<close>
+lemma sum_of_powers: "0 \<le> k \<Longrightarrow> (k - 1) * (\<Sum>i=0..<n. k^i) = k^n - (1::nat)"
+  apply (cases "k = 0")
+    apply (cases n; simp)
+  by (induct n) (auto simp add: Nat.nat_distrib)
+
+text \<open>In the degenerated cases, we only have the large inequality holds. In the other cases, the
+  following strict inequality holds:\<close>
+lemma \<mu>\<^sub>C_bounded_non_degenerated:
+  fixes b ::nat
+  assumes
+    "b > 0" and
+    "M \<noteq> []" and
+    M_le: "\<forall>i < length M. M!i < b" and
+    "s \<ge> length M"
+  shows "\<mu>\<^sub>C s b M < b^s"
+proof -
+  consider (b1) "b= 1" | (b) "b>1" using \<open>b>0\<close> by (cases b) auto
+  thus ?thesis
+    proof cases
+      case b1
+      hence "\<forall>i < length M. M!i = 0" using M_le by auto
+      hence "\<mu>\<^sub>C s b M = 0" unfolding \<mu>\<^sub>C_def by auto
+      thus ?thesis using \<open>b > 0\<close> by auto
+    next
+      case b
+      have "\<forall> i \<in> {0..<length M}. M!i * b^ (s +i - length M) \<le> (b-1) * b^ (s +i - length M)"
+        using M_le \<open>b > 1\<close> by auto
+      hence "\<mu>\<^sub>C s b M \<le>  (\<Sum>i=0..<length M. (b-1) * b^ (s +i - length M))"
+         using \<open>M\<noteq>[]\<close> \<open>b>0\<close> unfolding \<mu>\<^sub>C_def by (auto intro: setsum_mono)
+      also
+        have "\<forall> i \<in> {0..<length M}. (b-1) * b^ (s +i - length M) = (b-1) * b^ i * b^(s - length M)"
+          by (metis Nat.add_diff_assoc2 add.commute assms(4) mult.assoc power_add)
+        hence "(\<Sum>i=0..<length M. (b-1) * b^ (s +i - length M))
+          = (\<Sum>i=0..<length M. (b-1)* b^ i * b^(s - length M))"
+          by (auto simp add: ac_simps)
+      also have "\<dots> = (\<Sum>i=0..<length M. b^ i) * b^(s - length M) * (b-1)"
+         by (simp add: setsum_left_distrib setsum_right_distrib ac_simps)
+      finally have "\<mu>\<^sub>C s b M \<le> (\<Sum>i=0..<length M. b^ i) * (b-1) * b^(s - length M)"
+        by (simp add: ac_simps)
+
+      also
+        have "(\<Sum>i=0..<length M. b^ i)* (b-1) = b ^ (length M) - 1"
+          using sum_of_powers[of b "length M"] \<open>b>1\<close>
+          by (auto simp add: ac_simps)
+      finally have "\<mu>\<^sub>C s b M \<le> (b ^ (length M) - 1) * b ^ (s - length M)"
+        by auto
+      also have "\<dots> < b ^ (length M) * b ^ (s - length M)"
+        using \<open>b>1\<close> by auto
+      also have "\<dots> = b ^ s"
+        by (metis assms(4) le_add_diff_inverse power_add)
+      finally show ?thesis unfolding \<mu>\<^sub>C_def by (auto simp add: ac_simps)
+    qed
+qed
+
+text \<open>In the degenerate case @{term "b=0"}, the list @{term M} is empty (since the list cannot
+  contain any element).\<close>
+lemma \<mu>\<^sub>C_bounded:
+  fixes b ::nat
+  assumes
+    M_le: "\<forall>i < length M. M!i < b" and
+    "s \<ge> length M"
+    "b > 0"
+  shows "\<mu>\<^sub>C s b M < b ^ s"
+proof -
+  consider (M0) "M = []" | (M) "b > 0" and "M \<noteq> []"
+    using M_le by (cases b, cases M) auto
+  thus ?thesis
+    proof cases
+      case M0
+      thus ?thesis using M_le \<open>b > 0\<close> by auto
+    next
+      case M
+      show ?thesis using \<mu>\<^sub>C_bounded_non_degenerated[OF M assms(1,2)] by arith
+    qed
+qed
+
+text \<open>When @{term "b=(0::nat)"}, we cannot show that the measure is empty, since @{term "0^0 =
+  (1::nat)"}.\<close>
+lemma \<mu>\<^sub>C_base_0:
+  assumes "length M \<le> s"
+  shows "\<mu>\<^sub>C s 0 M \<le> M!0"
+proof -
+  {
+    assume "s = length M"
+    moreover {
+      fix n
+      have "(\<Sum>i=0..<n. M ! i * (0::nat) ^ i) \<le> M ! 0"
+        apply (induction n rule: nat_induct)
+        by simp (case_tac n, auto)
+    }
+    ultimately have ?thesis unfolding \<mu>\<^sub>C_def by auto
+  }
+  moreover
+  {
+    assume "length M < s"
+    hence "\<mu>\<^sub>C s 0 M = 0" unfolding \<mu>\<^sub>C_def by auto}
+  ultimately show ?thesis using assms unfolding \<mu>\<^sub>C_def by linarith
+qed
 
 section \<open>Initial definitions\<close>
 subsection \<open>The state\<close>
@@ -38,37 +237,13 @@ lemma
     update_trail_remove_clauses[simp]: "\<And>st C. trail (remove_cls C st) = trail st" and
     clause_remove_clause[simp]: "\<And>st C. clauses (remove_cls C st) = clauses st - {C}"
   unfolding add_cls_def remove_cls_def by auto
+
+
+abbreviation trail_weight where
+"trail_weight S \<equiv> map ((\<lambda>l. 1 + length l) o snd) (get_all_marked_decomposition (trail S))"
+
 end
 
-lemma true_clss_clss_union_false_true_clss_clss_cnot:
-  "A \<union> {B} \<Turnstile>ps {{#}} \<longleftrightarrow> A \<Turnstile>ps CNot B"
-  using total_not_CNot consistent_CNot_not unfolding total_over_m_def true_clss_clss_def
-  by fastforce
-
-lemma no_dup_cannot_not_lit_and_uminus:
-  "no_dup M \<Longrightarrow> - lit_of xa = lit_of x \<Longrightarrow> x \<in> set M \<Longrightarrow> xa \<in> set M \<Longrightarrow> False"
-  by (metis atm_of_uminus distinct_map inj_on_eq_iff uminus_not_id')
-
-lemma true_clss_single_iff_incl:
-  "I \<Turnstile>s single ` B \<longleftrightarrow> B \<subseteq> I"
-  unfolding true_clss_def by auto
-
-lemma atms_of_m_single_atm_of[simp]:
-  "atms_of_m {{#lit_of L#} |L. P L} = atm_of ` {lit_of L |L. P L}"
-  unfolding atms_of_m_def by auto
-
-(* TODO Move?*)
-lemma atms_of_uminus_lit_atm_of_lit_of:
-  "atms_of {#- lit_of x. x \<in># A#} = atm_of ` (lit_of ` (set_mset A))"
-  unfolding atms_of_def by (auto simp add: Fun.image_comp)
-
-lemma atms_of_m_single_image_atm_of_lit_of:
-  "atms_of_m ((\<lambda>x. {#lit_of x#}) ` A) = atm_of ` (lit_of ` A)"
-  unfolding atms_of_m_def by auto
-
-lemma is_marked_ex_Marked:
-  "is_marked L \<Longrightarrow> \<exists>K lvl. L = Marked K lvl"
-  by (cases L) auto
 
 subsection \<open>Definition of the operation\<close>
 locale propagate_ops =
@@ -83,7 +258,6 @@ propagate[intro]: "C + {#L#} \<in> clauses S \<Longrightarrow> trail S \<Turnsti
   \<Longrightarrow> propagate S (prepend_trail (Propagated L mark) S)"
 
 inductive_cases propagateE[elim]: "propagate S T"
-thm propagateE
 end
 
 locale decide_ops =
@@ -167,16 +341,17 @@ bj_propagate: "propagate S S' \<Longrightarrow> dpll_bj S S'" |
 bj_backjump:  "backjump S S' \<Longrightarrow> dpll_bj S S'"
 
 lemmas dpll_bj_induct = dpll_bj.induct[split_format(complete)]
+thm dpll_bj_induct[OF local.dpll_with_backjumping_ops_axioms]
 lemma dpll_bj_all_induct[consumes 2, case_names decide propagate backjump]:
   fixes S T :: "'st"
   assumes
     "dpll_bj S T" and
     "inv S"
-    "\<And>L S d. undefined_lit L (trail S) \<Longrightarrow> atm_of L \<in> atms_of_m (clauses S)
+    "\<And>L d. undefined_lit L (trail S) \<Longrightarrow> atm_of L \<in> atms_of_m (clauses S)
       \<Longrightarrow> P S (prepend_trail (Marked L d) S)" and
-    "\<And>C L S mark. C + {#L#} \<in> clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit L (trail S)
+    "\<And>C L mark. C + {#L#} \<in> clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit L (trail S)
       \<Longrightarrow> P S (prepend_trail (Propagated L mark) S)" and
-    "\<And>S C F' K d F L C' l. C \<in> clauses S \<Longrightarrow> F' @ Marked K d # F \<Turnstile>as CNot C
+    "\<And>C F' K d F L C' l. C \<in> clauses S \<Longrightarrow> F' @ Marked K d # F \<Turnstile>as CNot C
       \<Longrightarrow> trail S = F' @ Marked K d # F
       \<Longrightarrow> undefined_lit L F
       \<Longrightarrow> atm_of L \<in> atms_of_m (clauses S) \<union> atm_of ` (lits_of (F' @ Marked K d # F))
@@ -184,9 +359,8 @@ lemma dpll_bj_all_induct[consumes 2, case_names decide propagate backjump]:
       \<Longrightarrow> F \<Turnstile>as CNot C'
       \<Longrightarrow> P S (update_trail (Propagated L l #  F) S)"
   shows "P S T"
-  using assms(2)
-  by (induction rule: dpll_bj_induct[OF local.dpll_with_backjumping_ops_axioms assms(1)])
-     (auto intro!: assms(3,4) elim!: backjumpE simp add: assms(1,5))[3]
+  by (induct S\<equiv>S T rule: dpll_bj_induct[OF local.dpll_with_backjumping_ops_axioms])
+    (auto intro!: assms(2,3,4) elim!: backjumpE simp add: assms(1,5))[4]
 
 subsection \<open>Basic properties\<close>
 paragraph \<open>First, some better suited induction principle\<close>
@@ -235,15 +409,15 @@ lemma dpll_bj_atms_in_trail_in_set:
 lemma dpll_bj_all_decomposition_implies_inv:
   assumes
     "dpll_bj S T" and
-    "inv S"
-    "all_decomposition_implies (clauses S) (get_all_marked_decomposition (trail S))"
+    inv: "inv S" and
+    decomp: "all_decomposition_implies (clauses S) (get_all_marked_decomposition (trail S))"
   shows "all_decomposition_implies (clauses T) (get_all_marked_decomposition (trail T))"
-  using assms
+  using assms(1,2)
 proof (induction rule:dpll_bj_all_induct)
   case decide
-  thus ?case by auto
+  thus ?case using decomp by auto
 next
-  case (propagate C L S mark) note propa = this(1) and decomp = this(4)
+  case (propagate C L mark) note propa = this(1)
   let ?M' = "trail (prepend_trail (Propagated L mark) S)"
   let ?N = "clauses S"
   obtain a y l where ay: "get_all_marked_decomposition ?M' = (a, y) # l"
@@ -289,8 +463,8 @@ next
   thus ?case
     using decomp unfolding ay M all_decomposition_implies_def by (auto simp add: ay)
 next
-  case (backjump S C F' K d F L D l) note confl = this(2) and tr = this(3) and undef = this(4)
-    and L = this(5) and N_C = this(6) and vars_D = this(5) and decomp = this(8)
+  case (backjump C F' K d F L D l) note confl = this(2) and tr = this(3) and undef = this(4)
+    and L = this(5) and N_C = this(6) and vars_D = this(5)
   have decomp: "all_decomposition_implies (clauses S) (get_all_marked_decomposition F)"
     using decomp unfolding tr by (smt all_decomposition_implies_def
       get_all_marked_decomposition.simps(1) get_all_marked_decomposition_never_empty hd_Cons_tl
@@ -323,209 +497,13 @@ next
   have a_N_D_L: "(\<lambda>a. {#lit_of a#}) ` set a \<union> clauses S \<Turnstile>p D+{#L#}"
     by (simp add: N_C)
   have "(\<lambda>a. {#lit_of a#}) ` set a \<union> clauses S \<Turnstile>p {#L#}"
-    apply (rule true_clss_cls_plus_CNot)
-      using a_N_D_L apply simp
-     using a_N_CNot_D apply simp
-    done
-  thus ?case using decomp unfolding all_decomposition_implies_def by (auto simp add: F)
+    using a_N_D_L  a_N_CNot_D by (blast intro: true_clss_cls_plus_CNot)
+  thus ?case
+    using decomp unfolding all_decomposition_implies_def by (auto simp add: F)
 qed
 
 subsection \<open>Termination\<close>
 subsubsection \<open>Using a proper measure\<close>
-text \<open>This measure can also be seen as the increasing lexicographic order: it is an order on bounded
-  sequences, when each element is bound. The proof involves a measure like the one defined here (the
-  same?).\<close>
-definition \<mu>\<^sub>C  :: "nat \<Rightarrow> nat \<Rightarrow> nat list \<Rightarrow> nat" where
-"\<mu>\<^sub>C s b M \<equiv> (\<Sum>i=0..<length M. M!i * b^ (s +i - length M))"
-
-lemma \<mu>\<^sub>C_nil[simp]:
-  "\<mu>\<^sub>C s b [] = 0"
-  unfolding \<mu>\<^sub>C_def by auto
-
-lemma \<mu>\<^sub>C_single[simp]:
-  "\<mu>\<^sub>C s b [L] = L * b ^ (s - Suc 0)"
-  unfolding \<mu>\<^sub>C_def by auto
-
-lemma set_sum_atLeastLessThan_add:
-  "(\<Sum>i=k..<k+(b::nat). f i) = (\<Sum>i=0..<b. f (k+ i))"
-  by (induction b) auto
-
-lemma set_sum_atLeastLessThan_Suc:
-  "(\<Sum>i=1..<Suc j. f i) = (\<Sum>i=0..<j. f (Suc i))"
-  using set_sum_atLeastLessThan_add[of _ 1 j] by force
-
-lemma \<mu>\<^sub>C_cons:
-  "\<mu>\<^sub>C s b (L # M) = L * b ^ (s - 1 - length M) + \<mu>\<^sub>C s b M"
-proof -
-  have "\<mu>\<^sub>C s b (L # M) = (\<Sum>i=0..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
-    unfolding \<mu>\<^sub>C_def by blast
-  also have "\<dots> = (\<Sum>i=0..<1. (L#M)!i * b^ (s +i - length (L#M)))
-                 + (\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
-     by (smt Nat.le_iff_add One_nat_def add.commute le0 list.size(4) setsum_add_nat_ivl)
-  finally have "\<mu>\<^sub>C s b (L # M)= L * b ^ (s - 1 - length M)
-                  + (\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
-     by auto
-  moreover {
-    have "(\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M))) =
-           (\<Sum>i=0..<length (M). (L#M)!(Suc i) * b^ (s + (Suc i) - length (L#M)))"
-     unfolding length_Cons set_sum_atLeastLessThan_Suc by blast
-    also have "\<dots> = (\<Sum>i=0..<length (M). M!i * b^ (s + i - length M))"
-      by auto
-    finally have "(\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M))) = \<mu>\<^sub>C s b M"
-      unfolding \<mu>\<^sub>C_def .
-    }
-  ultimately show ?thesis by presburger
-qed
-
-lemma \<mu>\<^sub>C_append:
-  assumes "s \<ge> length (M@M')"
-  shows "\<mu>\<^sub>C s b (M@M') = \<mu>\<^sub>C (s - length M') b M + \<mu>\<^sub>C s b M'"
-proof -
-  have "\<mu>\<^sub>C s b (M@M') = (\<Sum>i=0..<length (M@M'). (M@M')!i * b^ (s +i - length (M@M')))"
-    unfolding \<mu>\<^sub>C_def by blast
-  moreover hence "\<dots> = (\<Sum>i=0..< length M. (M@M')!i * b^ (s +i - length (M@M')))
-                 + (\<Sum>i=length M..<length (M@M'). (M@M')!i * b^ (s +i - length (M@M')))"
-    unfolding length_append by (smt Nat.le_iff_add One_nat_def add.commute le0 list.size(4)
-      setsum_add_nat_ivl)
-  moreover
-    have "\<forall>i\<in>{0..< length M}. (M@M')!i * b^ (s +i - length (M@M')) = M ! i * b ^ (s - length M'
-      + i - length M)"
-      using \<open>s \<ge> length (M@M')\<close> by (auto simp add: nth_append ac_simps)
-    hence "\<mu>\<^sub>C (s - length M') b M = (\<Sum>i=0..< length M. (M@M')!i * b^ (s +i - length (M@M')))"
-      unfolding \<mu>\<^sub>C_def by auto
-  ultimately have "\<mu>\<^sub>C s b (M@M')= \<mu>\<^sub>C (s - length M') b M
-                  + (\<Sum>i=length M..<length (M@M'). (M@M')!i * b^ (s +i - length (M@M')))"
-     by auto
-  moreover {
-    have "(\<Sum>i=length M..<length (M@M'). (M@M')!i * b^ (s +i - length (M@M'))) =
-           (\<Sum>i=0..<length M'. M'!i * b^ (s + i - length M'))"
-     unfolding length_append set_sum_atLeastLessThan_add by auto
-    hence "(\<Sum>i=length M..<length (M@M'). (M@M')!i * b^ (s +i - length (M@M'))) = \<mu>\<^sub>C s b M'"
-      unfolding \<mu>\<^sub>C_def .
-    }
-  ultimately show ?thesis by presburger
-qed
-
-lemma \<mu>\<^sub>C_cons_non_empty_inf:
-  assumes M_ge_1: "\<forall>i\<in>set M. i \<ge> 1" and M: "M \<noteq> []"
-  shows "\<mu>\<^sub>C s b M \<ge> b ^  (s - length M)"
-  using assms by (cases M) (auto simp: mult_eq_if \<mu>\<^sub>C_cons)
-
-text \<open>Duplicate of "~~/src/HOL/ex/NatSum.thy"\<close>
-lemma sum_of_powers: "0 < k \<Longrightarrow> (k - 1) * (\<Sum>i=0..<n. k^i) = k^n - (1::nat)"
-  by (induct n) (auto simp add: Nat.nat_distrib)
-
-text \<open>We add 1 to count the marked literal\<close>
-abbreviation \<nu> where
-"\<nu> S \<equiv> map ((\<lambda>l. 1 + length l) o snd) (get_all_marked_decomposition (trail S))"
-
-text \<open>In the degenerated cases, we only have the large inequality holds. In the other cases, the
-  following strict inequality holds:\<close>
-lemma \<mu>\<^sub>C_bounded_non_degenerated:
-  fixes b ::nat
-  assumes
-    "b > 0" and
-    "M \<noteq> []" and
-    M_le: "\<forall>i < length M. M!i < b" and
-    "s \<ge> length M"
-  shows "\<mu>\<^sub>C s b M < b^s"
-proof -
-  consider (b1) "b= 1" | (b) "b>1" using \<open>b>0\<close> by (cases b) auto
-  thus ?thesis
-    proof cases
-      case b1
-      hence "\<forall>i < length M. M!i = 0" using M_le by auto
-      hence "\<mu>\<^sub>C s b M = 0" unfolding \<mu>\<^sub>C_def by auto
-      thus ?thesis using \<open>b > 0\<close> by auto
-    next
-      case b
-      have "\<forall> i \<in> {0..<length M}. M!i * b^ (s +i - length M) \<le> (b-1) * b^ (s +i - length M)"
-        using M_le \<open>b > 1\<close> by auto
-      hence "\<mu>\<^sub>C s b M \<le>  (\<Sum>i=0..<length M. (b-1) * b^ (s +i - length M))"
-         using \<open>M\<noteq>[]\<close> \<open>b>0\<close> unfolding \<mu>\<^sub>C_def by (auto intro: setsum_mono)
-      also
-        have "\<forall> i \<in> {0..<length M}. (b-1) * b^ (s +i - length M) = (b-1) * b^ i * b^(s - length M)"
-          by (metis Nat.add_diff_assoc2 add.commute assms(4) mult.assoc power_add)
-        hence "(\<Sum>i=0..<length M. (b-1) * b^ (s +i - length M))
-          = (\<Sum>i=0..<length M. (b-1)* b^ i * b^(s - length M))"
-          by (auto simp add: ac_simps)
-      also have "\<dots> = (\<Sum>i=0..<length M. b^ i) * b^(s - length M) * (b-1)"
-         by (simp add: setsum_left_distrib setsum_right_distrib ac_simps)
-      finally have "\<mu>\<^sub>C s b M \<le> (\<Sum>i=0..<length M. b^ i) * (b-1) * b^(s - length M)"
-        by (simp add: ac_simps)
-
-      also
-        have "(\<Sum>i=0..<length M. b^ i)* (b-1) = b ^ (length M) - 1"
-          using sum_of_powers[of b "length M"] \<open>b>1\<close>
-          by (auto simp add: ac_simps)
-      finally have "\<mu>\<^sub>C s b M \<le> (b ^ (length M) - 1) * b ^ (s - length M)"
-        by auto
-      also have "\<dots> < b ^ (length M) * b ^ (s - length M)"
-        using \<open>b>1\<close> by auto
-      also have "\<dots> = b ^ s"
-        by (metis assms(4) le_add_diff_inverse power_add)
-      finally show ?thesis unfolding \<mu>\<^sub>C_def by (auto simp add: ac_simps)
-    qed
-qed
-
-text \<open> In the degenerate case @{term "b=0"}, the list @{term M} is empty (since the list cannot
-  contain any element).\<close>
-lemma \<mu>\<^sub>C_bounded:
-  fixes b ::nat
-  assumes
-    M_le: "\<forall>i < length M. M!i < b" and
-    "s \<ge> length M"
-    "b > 0"
-  shows "\<mu>\<^sub>C s b M < b ^ s"
-proof -
-  consider (M0) "M = []" | (M) "b > 0" and "M \<noteq> []"
-    using M_le by (cases b, cases M) auto
-  thus ?thesis
-    proof cases
-      case M0
-      thus ?thesis using M_le \<open>b > 0\<close> by auto
-    next
-      case M
-      show ?thesis using \<mu>\<^sub>C_bounded_non_degenerated[OF M assms(1,2)] by arith
-    qed
-qed
-
-text \<open>When @{term "b=(0::nat)"}, we cannot show that the measure is empty, since @{term "0^0 =
-  (1::nat)"}.\<close>
-lemma \<mu>\<^sub>C_base_0:
-  assumes "length M \<le> s"
-  shows "\<mu>\<^sub>C s 0 M \<le> M!0"
-proof -
-  {
-    assume "s = length M"
-    moreover {
-      fix n
-      have "(\<Sum>i=0..<n. M ! i * (0::nat) ^ i) \<le> M ! 0"
-        apply (induction n rule: nat_induct)
-        by simp (case_tac n, auto)
-    }
-    ultimately have ?thesis unfolding \<mu>\<^sub>C_def by auto
-  }
-  moreover
-  {
-    assume "length M < s"
-    hence "\<mu>\<^sub>C s 0 M = 0" unfolding \<mu>\<^sub>C_def by auto}
-  ultimately show ?thesis using assms unfolding \<mu>\<^sub>C_def by linarith
-qed
-
-lemma length_in_get_all_marked_decomposition_bounded:
-  assumes i:"i \<in> set (\<nu> S)"
-  shows "i \<le> Suc (length (trail S))"
-proof -
-  obtain a b where
-    "(a, b) \<in> set (get_all_marked_decomposition (trail S))" and
-    ib: "i = Suc (length b)"
-    using i by auto
-  then obtain c where "trail S = c @ b @ a"
-    using get_all_marked_decomposition_exists_prepend' by metis
-  from arg_cong[OF this, of length] show ?thesis using i ib by auto
-qed
-
 lemma length_get_all_marked_decomposition_append_Marked:
   "length (get_all_marked_decomposition (F' @ Marked K d # F)) =
     length (get_all_marked_decomposition F')
@@ -560,6 +538,20 @@ lemma length_get_all_marked_decomposition_length:
   "length (get_all_marked_decomposition M) \<le> 1 + length M"
   by (induction M rule: marked_lit_list_induct) auto
 
+lemma length_in_get_all_marked_decomposition_bounded:
+  assumes i:"i \<in> set (trail_weight S)"
+  shows "i \<le> Suc (length (trail S))"
+proof -
+  obtain a b where
+    "(a, b) \<in> set (get_all_marked_decomposition (trail S))" and
+    ib: "i = Suc (length b)"
+    using i by auto
+  then obtain c where "trail S = c @ b @ a"
+    using get_all_marked_decomposition_exists_prepend' by metis
+  from arg_cong[OF this, of length] show ?thesis using i ib by auto
+qed
+
+subsubsection \<open>Well-foundedness\<close>
 text \<open>The bounds are the following:
   \<^item> @{term "1+card (atms_of_m A)"}: @{term "card (atms_of_m A)"} is an upper bound on the length of
   the list. As @{term get_all_marked_decomposition} appends an possibly empty couple at the end,
@@ -572,23 +564,24 @@ abbreviation unassigned_lit ::  "'b literal multiset set \<Rightarrow> 'a list \
   "unassigned_lit N M \<equiv> card (atms_of_m N) - length M"
 lemma dpll_bj_trail_mes_increasing_prop:
   fixes M :: "('v, 'lvl, 'mark) annoted_lits " and N :: "'v clauses"
-  assumes "dpll_bj S T" and "inv S"
-  "atms_of_m (clauses S) \<subseteq> atms_of_m A" and
-  "atm_of ` lits_of (trail S) \<subseteq> atms_of_m A" and
-  "no_dup (trail S)" and
-  finite: "finite A"
-  shows "\<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> T) > \<mu>\<^sub>C (1+card (atms_of_m A))
-    (2+card (atms_of_m A)) (\<nu> S)"
-  using assms
+  assumes
+    "dpll_bj S T" and
+    "inv S" and
+    NA: "atms_of_m (clauses S) \<subseteq> atms_of_m A" and
+    MA: "atm_of ` lits_of (trail S) \<subseteq> atms_of_m A" and
+    n_d: "no_dup (trail S)" and
+    finite: "finite A"
+  shows "\<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight T) > \<mu>\<^sub>C (1+card (atms_of_m A))
+    (2+card (atms_of_m A)) (trail_weight S)"
+  using assms(1,2)
 proof (induction rule: dpll_bj_all_induct)
-  case (propagate C L S d) note CLN = this(1) and MC =this(2) and undef_L = this(3) and
-    A = this(4) and MA = this(5)
+  case (propagate C L d) note CLN = this(1) and MC =this(2) and undef_L = this(3)
   have incl: "atm_of ` lits_of (Propagated L d # trail S) \<subseteq> atms_of_m A"
-    using dpll_bj_atms_in_trail_in_set bj_propagate propagate.propagate[OF propagate.hyps] A MA CLN
+    using dpll_bj_atms_in_trail_in_set bj_propagate propagate.propagate[OF propagate.hyps] NA MA CLN
     by auto
 
   have no_dup: "no_dup (Propagated L d # trail S)"
-    using defined_lit_map propagate.prems(3) undef_L by auto
+    using defined_lit_map n_d undef_L by auto
   obtain a b l where M: "get_all_marked_decomposition (trail S) = (a, b) # l"
     by (case_tac "get_all_marked_decomposition (trail S)") auto
   have b_le_M: "length b \<le> length (trail S)"
@@ -602,13 +595,12 @@ proof (induction rule: dpll_bj_all_induct)
     using b_le_M by auto
   thus ?case by (auto simp: latm M \<mu>\<^sub>C_cons)
 next
-  case (decide L S lv) note undef_L = this(1) and MC =this(2) and NA = this(3) and A = this(4)
-    and MA = this(5)
+  case (decide L lv) note undef_L = this(1) and MC =this(2)
   have incl: "atm_of ` lits_of (Marked L lv # (trail S)) \<subseteq> atms_of_m A"
-    using dpll_bj_atms_in_trail_in_set bj_decide decide.decide[OF decide.hyps] A MA NA MC by auto
+    using dpll_bj_atms_in_trail_in_set bj_decide decide.decide[OF decide.hyps] NA MA MC by auto
 
   have no_dup: "no_dup (Marked L lv # (trail S))"
-    using defined_lit_map decide.prems(3) undef_L by auto
+    using defined_lit_map n_d undef_L by auto
   obtain a b l where M: "get_all_marked_decomposition (trail S) = (a, b) # l"
     by (case_tac "get_all_marked_decomposition (trail S)") auto
 
@@ -618,13 +610,13 @@ next
   hence latm: "unassigned_lit A (trail S) = Suc (unassigned_lit A (Marked L lv # (trail S)))" by force
   show ?case by (simp add: latm \<mu>\<^sub>C_cons)
 next
-  case (backjump S C F' K d F L C' lv) note undef_L = this(4) and MC =this(1) and tr_S = this(3) and
-    NA = this(8) and A = this(5) and MA = this(9) and nd = this(10)
+  case (backjump C F' K d F L C' lv) note undef_L = this(4) and MC =this(1) and tr_S = this(3) and
+    L = this(5)
   have incl: "atm_of ` lits_of (Propagated L lv # F) \<subseteq> atms_of_m A"
-    using dpll_bj_atms_in_trail_in_set backjump(3,5,8,9) by auto
+    using dpll_bj_atms_in_trail_in_set NA MA tr_S L by auto
 
   have no_dup: "no_dup (Propagated L lv # F)"
-    using defined_lit_map nd undef_L tr_S by auto
+    using defined_lit_map n_d undef_L tr_S by auto
   obtain a b l where M: "get_all_marked_decomposition (trail S) = (a, b) # l"
     by (case_tac "get_all_marked_decomposition (trail S)") auto
   have b_le_M: "length b \<le> length (trail S)"
@@ -635,7 +627,7 @@ next
     using incl finite unfolding no_dup_length_eq_card_atm_of_lits_of[OF no_dup]
     by (simp add: card_mono)
   have tr_S_le_A: "length (trail S) \<le>  (card (atms_of_m A))"
-    using nd MA by (metis fin_atms_A card_mono no_dup_length_eq_card_atm_of_lits_of)
+    using n_d MA by (metis fin_atms_A card_mono no_dup_length_eq_card_atm_of_lits_of)
   obtain a b l where F: "get_all_marked_decomposition F = (a, b) # l"
     by (cases "get_all_marked_decomposition F") auto
   hence "F = b @ a"
@@ -671,6 +663,49 @@ next
     by (simp add: rem \<mu>\<^sub>C_append \<mu>\<^sub>C_cons F tr_S)
 qed
 
+lemma dpll_bj_trail_mes_decreasing_prop:
+  assumes dpll: "dpll_bj S T"  and inv: "inv S" and
+  N_A: "atms_of_m (clauses S) \<subseteq> atms_of_m A" and
+  M_A: "atm_of ` lits_of (trail S) \<subseteq> atms_of_m A" and
+  nd: "no_dup (trail S)" and
+  fin_A: "finite A"
+  shows "(2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
+               - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight T)
+            < (2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
+               - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight S)"
+proof -
+  let ?b = "2+card (atms_of_m A)"
+  let ?s = "1+card (atms_of_m A)"
+  let ?\<mu> = "\<mu>\<^sub>C ?s ?b"
+  have M'_A: "atm_of ` lits_of (trail T) \<subseteq> atms_of_m A"
+    by (meson M_A N_A dpll dpll_bj_atms_in_trail_in_set inv)
+  have nd': "no_dup (trail T)"
+    using \<open>dpll_bj S T\<close> dpll_bj_no_dup nd inv by blast
+  { fix i :: nat and xs :: "'a list"
+    have "i < length xs \<Longrightarrow> length xs - Suc i < length xs"
+      by auto
+    hence H: "i<length xs \<Longrightarrow>  xs ! i \<in> set xs"
+      using rev_nth[of i xs] unfolding in_set_conv_nth by (force simp add: in_set_conv_nth)
+  } note H = this
+
+  have l_M_A: "length (trail S) \<le> card (atms_of_m A)"
+    by (simp add: fin_A M_A card_mono no_dup_length_eq_card_atm_of_lits_of nd)
+  have l_M'_A: "length (trail T) \<le> card (atms_of_m A)"
+    by (simp add: fin_A M'_A card_mono no_dup_length_eq_card_atm_of_lits_of nd')
+  have l_trail_weight_M: "length (trail_weight T) \<le> 1+card (atms_of_m A)"
+     using l_M'_A length_get_all_marked_decomposition_length[of "trail T"] by auto
+  have bounded_M: "\<forall>i<length (trail_weight T). (trail_weight T)! i < card (atms_of_m A) + 2"
+    using length_in_get_all_marked_decomposition_bounded[of _ T] l_M'_A
+    by (metis (no_types, lifting) Nat.le_trans One_nat_def Suc_1 add.right_neutral add_Suc_right
+      le_imp_less_Suc less_eq_Suc_le nth_mem)
+
+  from dpll_bj_trail_mes_increasing_prop[OF dpll inv N_A M_A nd fin_A]
+  have "\<mu>\<^sub>C ?s ?b (trail_weight S) < \<mu>\<^sub>C ?s ?b (trail_weight T)" by simp
+  moreover from \<mu>\<^sub>C_bounded[OF bounded_M l_trail_weight_M]
+    have "\<mu>\<^sub>C ?s ?b (trail_weight T) \<le> ?b ^ ?s" by auto
+  ultimately show ?thesis by linarith
+qed
+
 lemma dpll_bj_wf:
   assumes fin: "finite A"
   shows "wf {(T, S). dpll_bj S T
@@ -679,7 +714,7 @@ lemma dpll_bj_wf:
   (is "wf ?A")
 proof (rule wf_bounded_measure[of _
         "\<lambda>_. (2 + card (atms_of_m A))^(1 + card (atms_of_m A))"
-        "\<lambda>S. \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> S)"])
+        "\<lambda>S. \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight S)"])
   fix a b :: "'st"
   let ?b = "2+card (atms_of_m A)"
   let ?s = "1+card (atms_of_m A)"
@@ -713,20 +748,20 @@ proof (rule wf_bounded_measure[of _
     by (simp add: fin_A M_A card_mono no_dup_length_eq_card_atm_of_lits_of nd)
   have l_M'_A: "length (trail b) \<le> card (atms_of_m A)"
     by (simp add: fin_A M'_A card_mono no_dup_length_eq_card_atm_of_lits_of nd')
-  have l_\<nu>_M: "length (\<nu> b) \<le> 1+card (atms_of_m A)"
+  have l_trail_weight_M: "length (trail_weight b) \<le> 1+card (atms_of_m A)"
      using l_M'_A length_get_all_marked_decomposition_length[of "trail b"] by auto
-  have bounded_M: "\<forall>i<length (\<nu> b). (\<nu> b)! i < card (atms_of_m A) + 2"
+  have bounded_M: "\<forall>i<length (trail_weight b). (trail_weight b)! i < card (atms_of_m A) + 2"
     using length_in_get_all_marked_decomposition_bounded[of _ b] l_M'_A
     by (metis (no_types, lifting) Nat.le_trans One_nat_def Suc_1 add.right_neutral add_Suc_right
       le_imp_less_Suc less_eq_Suc_le nth_mem)
 
   from dpll_bj_trail_mes_increasing_prop[OF dpll_bj inv N_A M_A nd fin]
-  have "\<mu>\<^sub>C ?s ?b (\<nu> a) < \<mu>\<^sub>C ?s ?b (\<nu> b)" by simp
-  moreover from \<mu>\<^sub>C_bounded[OF bounded_M l_\<nu>_M]
-    have "\<mu>\<^sub>C ?s ?b (\<nu> b) \<le> ?b ^ ?s" by auto
+  have "\<mu>\<^sub>C ?s ?b (trail_weight a) < \<mu>\<^sub>C ?s ?b (trail_weight b)" by simp
+  moreover from \<mu>\<^sub>C_bounded[OF bounded_M l_trail_weight_M]
+    have "\<mu>\<^sub>C ?s ?b (trail_weight b) \<le> ?b ^ ?s" by auto
   ultimately show "?b ^ ?s \<le> ?b ^ ?s \<and>
-           \<mu>\<^sub>C ?s ?b (\<nu> b) \<le> ?b ^ ?s \<and>
-           \<mu>\<^sub>C ?s ?b (\<nu> a) < \<mu>\<^sub>C ?s ?b (\<nu> b)"
+           \<mu>\<^sub>C ?s ?b (trail_weight b) \<le> ?b ^ ?s \<and>
+           \<mu>\<^sub>C ?s ?b (trail_weight a) < \<mu>\<^sub>C ?s ?b (trail_weight b)"
     by blast
 qed
 
@@ -809,8 +844,7 @@ proof -
 
       have "?M \<Turnstile>as CNot C"
         by (metis atms_N_M \<open>C \<in> ?N\<close> \<open>\<not> ?M \<Turnstile>a C\<close> all_variables_defined_not_imply_cnot
-          atms_of_atms_of_m_mono atms_of_m_CNot_atms_of atms_of_m_CNot_atms_of_m lits_of_def
-          subsetCE)
+          atms_of_atms_of_m_mono atms_of_m_CNot_atms_of atms_of_m_CNot_atms_of_m subsetCE)
       have "\<exists>l \<in> set ?M. is_marked l"
         proof (rule ccontr)
           let ?O = "{{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M \<and> atm_of (lit_of L) \<notin> atms_of_m ?N}"
@@ -828,8 +862,8 @@ proof -
           hence "lits_of ?M \<subseteq> ?I"
             unfolding true_clss_def lits_of_def by auto
           hence "?M \<Turnstile>as ?N"
-            using I'_N `C \<in> ?N` `\<not> ?M \<Turnstile>a C` cons_I' atms_N_M
-            by (meson `trail S \<Turnstile>as CNot C` consistent_CNot_not rev_subsetD sup_ge1 true_annot_def
+            using I'_N \<open>C \<in> ?N\<close> \<open>\<not> ?M \<Turnstile>a C\<close> cons_I' atms_N_M
+            by (meson \<open>trail S \<Turnstile>as CNot C\<close> consistent_CNot_not rev_subsetD sup_ge1 true_annot_def
               true_annots_def true_cls_mono_set_mset_l true_clss_def)
           thus False using M by fast
         qed
@@ -889,7 +923,6 @@ proof -
                 using a5 a4 tot' a1 unfolding total_over_set_def atms_of_s_def by blast
               moreover have f6: "Neg (atm_of (lit_of x)) = - Pos (atm_of (lit_of x))"
                 by simp
-
               ultimately have "- lit_of x \<in> I"
                 using f6 a3 by (metis (no_types) atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
                   literal.sel(1))
@@ -1074,49 +1107,39 @@ proof -
     by (meson \<open>inv S\<close> rtranclp_dpll_bj_sat_iff satisfiable_carac st true_annots_true_cls)
 qed
 
-lemma dpll_bj_trail_mes_decreasing_prop:
-  assumes dpll: "dpll_bj S T"  and inv: "inv S" and
+lemma tranclp_dpll_bj_trail_mes_decreasing_prop:
+  assumes dpll: "dpll_bj\<^sup>+\<^sup>+ S T"  and inv: "inv S" and
   N_A: "atms_of_m (clauses S) \<subseteq> atms_of_m A" and
   M_A: "atm_of ` lits_of (trail S) \<subseteq> atms_of_m A" and
-  nd: "no_dup (trail S)" and
+  n_d: "no_dup (trail S)" and
   fin_A: "finite A"
   shows "(2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
-               - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> T)
+               - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight T)
             < (2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
-               - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> S)"
-  using dpll_bj_trail_mes_increasing_prop[OF assms] \<mu>\<^sub>C_bounded
-proof -
-  let ?b = "2+card (atms_of_m A)"
-  let ?s = "1+card (atms_of_m A)"
-  let ?\<mu> = "\<mu>\<^sub>C ?s ?b"
-  have M'_A: "atm_of ` lits_of (trail T) \<subseteq> atms_of_m A"
-    by (meson M_A N_A dpll dpll_bj_atms_in_trail_in_set inv)
-  have nd': "no_dup (trail T)"
-    using \<open>dpll_bj S T\<close> dpll_bj_no_dup nd inv by blast
-  { fix i :: nat and xs :: "'a list"
-    have "i < length xs \<Longrightarrow> length xs - Suc i < length xs"
-      by auto
-    hence H: "i<length xs \<Longrightarrow>  xs ! i \<in> set xs"
-      using rev_nth[of i xs] unfolding in_set_conv_nth by (force simp add: in_set_conv_nth)
-  } note H = this
-
-  have l_M_A: "length (trail S) \<le> card (atms_of_m A)"
-    by (simp add: fin_A M_A card_mono no_dup_length_eq_card_atm_of_lits_of nd)
-  have l_M'_A: "length (trail T) \<le> card (atms_of_m A)"
-    by (simp add: fin_A M'_A card_mono no_dup_length_eq_card_atm_of_lits_of nd')
-  have l_\<nu>_M: "length (\<nu> T) \<le> 1+card (atms_of_m A)"
-     using l_M'_A length_get_all_marked_decomposition_length[of "trail T"] by auto
-  have bounded_M: "\<forall>i<length (\<nu> T). (\<nu> T)! i < card (atms_of_m A) + 2"
-    using length_in_get_all_marked_decomposition_bounded[of _ T] l_M'_A
-    by (metis (no_types, lifting) Nat.le_trans One_nat_def Suc_1 add.right_neutral add_Suc_right
-      le_imp_less_Suc less_eq_Suc_le nth_mem)
-
-  from dpll_bj_trail_mes_increasing_prop[OF dpll inv N_A M_A nd fin_A]
-  have "\<mu>\<^sub>C ?s ?b (\<nu> S) < \<mu>\<^sub>C ?s ?b (\<nu> T)" by simp
-  moreover from \<mu>\<^sub>C_bounded[OF bounded_M l_\<nu>_M]
-    have "\<mu>\<^sub>C ?s ?b (\<nu> T) \<le> ?b ^ ?s" by auto
-  ultimately show ?thesis by linarith
+               - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight S)"
+  using dpll
+proof (induction)
+  case base
+  thus ?case
+    using N_A M_A n_d dpll_bj_trail_mes_decreasing_prop fin_A inv by blast
+next
+  case (step T U) note st = this(1) and dpll = this(2) and IH = this(3)
+  have " atms_of_m (clauses S) = atms_of_m (clauses T)"
+    using rtranclp_dpll_bj_atms_of_m_clauses_inv by (metis dpll_bj_clauses dpll_bj_inv inv st
+      tranclpD)
+  hence N_A': "atms_of_m (clauses T) \<subseteq> atms_of_m A"
+     using N_A by auto
+  moreover have M_A': "atm_of ` lits_of (trail T) \<subseteq> atms_of_m A"
+    by (meson M_A N_A inv rtranclp_dpll_bj_atms_in_trail_in_set st dpll
+      tranclp.r_into_trancl tranclp_into_rtranclp tranclp_trans)
+  moreover have nd: "no_dup (trail T)"
+    by (metis inv n_d rtranclp_dpll_bj_no_dup st tranclp_into_rtranclp)
+  moreover have "inv T"
+    by (meson dpll dpll_bj_inv inv rtranclp_dpll_bj_inv st tranclp_into_rtranclp)
+  ultimately show ?case
+    using IH dpll_bj_trail_mes_decreasing_prop[of T U A] dpll fin_A by linarith
 qed
+
 end
 
 section \<open>CDCL\<close>
@@ -1136,6 +1159,12 @@ inductive learn :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
   \<Longrightarrow> learn_cond C S
   \<Longrightarrow> learn S (add_cls C S)"
 inductive_cases learnE: "learn S T"
+
+lemma learn_\<mu>\<^sub>C_stable:
+  assumes "learn S T"
+  shows "\<mu>\<^sub>C A B (trail_weight S) = \<mu>\<^sub>C A B (trail_weight T)"
+  using assms by (auto elim: learnE)
+
 end
 
 locale forget_ops =
@@ -1152,6 +1181,12 @@ inductive forget :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 "clauses S - {C} \<Turnstile>p C \<Longrightarrow> forget_cond C S \<Longrightarrow> C \<in> clauses S \<Longrightarrow>
     forget S (remove_cls C S)"
 inductive_cases forgetE: "forget S T"
+
+lemma forget_\<mu>\<^sub>C_stable:
+  assumes "forget S T"
+  shows "\<mu>\<^sub>C A B (trail_weight S) = \<mu>\<^sub>C A B (trail_weight T)"
+  using assms by (auto elim!: forgetE)
+
 end
 
 locale learn_and_forget =
@@ -1270,7 +1305,8 @@ next
         using tot cons unfolding true_clss_cls_def by auto
     ultimately have "J \<Turnstile>s insert C (clauses S)" by auto
   }
-  hence H: "I \<Turnstile>sext (clauses S) \<Longrightarrow> I \<Turnstile>sext insert C (clauses S)"  unfolding true_clss_ext_def by auto
+  hence H: "I \<Turnstile>sext (clauses S) \<Longrightarrow> I \<Turnstile>sext insert C (clauses S)"
+    unfolding true_clss_ext_def by auto
   show ?case
     apply standard
       apply (simp add: H)
@@ -1298,7 +1334,7 @@ next
     by standard (simp_all add: true_clss_ext_decrease_right_remove_r H)
 qed
 
-end -- \<open>end of \<open>conflict_driven_clause_learning_ops\<close>\<close>
+end \<comment> \<open>end of \<open>conflict_driven_clause_learning_ops\<close>\<close>
 
 locale conflict_driven_clause_learning =
   conflict_driven_clause_learning_ops +
@@ -1343,7 +1379,191 @@ lemma rtranclp_cdcl_finite_clauses:
   shows "finite(clauses T)"
   using assms
   by (induction rule: rtranclp_induct) (auto intro: cdcl_finite_clauses rtranclp_cdcl_inv)
-end -- \<open>end of \<open>conflict_driven_clause_learning\<close>\<close>
+
+definition cdcl_NOT_all_inv where
+"cdcl_NOT_all_inv A S \<longleftrightarrow> (finite A \<and> inv S \<and> atms_of_m (clauses S) \<subseteq> atms_of_m A
+    \<and> atm_of ` lits_of (trail S) \<subseteq> atms_of_m A \<and> no_dup (trail S))"
+
+lemma cdcl_NOT_all_inv:
+  assumes "cdcl\<^sup>*\<^sup>* S T" and "cdcl_NOT_all_inv A S"
+  shows "cdcl_NOT_all_inv A T"
+  using assms unfolding cdcl_NOT_all_inv_def
+  by (simp add: rtranclp_cdcl_inv rtranclp_cdcl_no_dup rtranclp_cdcl_trail_clauses_bound)
+
+abbreviation learn_or_forget where
+"learn_or_forget S T \<equiv> (\<lambda>S T. learn S T \<or> forget S T) S T"
+
+lemma rtranclp_learn_or_forget_cdcl:
+  "learn_or_forget\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sup>*\<^sup>* S T"
+ using rtranclp_mono[of learn_or_forget cdcl] cdcl.c_learn cdcl.c_forget by blast
+lemma learn_or_forget_dpll_\<mu>\<^sub>C:
+  assumes
+    l_f: "learn_or_forget\<^sup>*\<^sup>* S T" and
+    dpll: "dpll_bj T U" and
+    inv: "cdcl_NOT_all_inv A S"
+  shows "(2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
+      - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight U)
+    <  (2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
+      - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight S)"
+     (is "?\<mu> U < ?\<mu> S")
+proof -
+  have "?\<mu> S = ?\<mu> T"
+    using l_f apply (induction)
+     apply simp
+    using forget_\<mu>\<^sub>C_stable learn_\<mu>\<^sub>C_stable by presburger
+  moreover have "cdcl_NOT_all_inv A T"
+     using rtranclp_learn_or_forget_cdcl  cdcl_NOT_all_inv  l_f inv by blast
+  ultimately show ?thesis
+    using dpll_bj_trail_mes_decreasing_prop[of T U A, OF dpll] finite
+    unfolding cdcl_NOT_all_inv_def by linarith
+qed
+
+lemma infinite_cdcl_exists_learn_and_forget_infinite_chain:
+  assumes
+    "\<And>i. cdcl (f i) (f(Suc i))" and
+    inv: "cdcl_NOT_all_inv A (f 0)"
+  shows "\<exists>j. \<forall>i\<ge>j. learn_or_forget (f i) (f (Suc i))"
+  using assms
+proof (induction "(2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
+    - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight (f 0))"
+    arbitrary: f
+    rule: nat_less_induct_case)
+  case (Suc n) note IH = this(1) and \<mu> = this(2) and cdcl = this(3) and inv = this(4)
+  consider
+      (dpll_end) "\<exists>j. \<forall>i\<ge>j. learn_or_forget (f i) (f (Suc i))"
+    | (dpll_more) "\<not>(\<exists>j. \<forall>i\<ge>j. learn_or_forget (f i) (f (Suc i)))"
+    by blast
+  thus ?case
+    proof cases
+      case dpll_end
+      thus ?thesis by auto
+    next
+      case dpll_more
+      then have j: "\<exists>i. \<not> learn (f i) (f (Suc i)) \<and> \<not>forget (f i) (f (Suc i))"
+        by blast
+      obtain i where
+        "\<not>learn (f i) (f (Suc i)) \<and> \<not>forget (f i) (f (Suc i))" and
+        "\<forall>k<i. learn_or_forget (f k) (f (Suc k))"
+        proof -
+          obtain i\<^sub>0 where "\<not> learn (f i\<^sub>0) (f (Suc i\<^sub>0)) \<and> \<not>forget (f i\<^sub>0) (f (Suc i\<^sub>0))"
+            using j by auto
+          hence "{i. i\<le>i\<^sub>0 \<and>  \<not> learn (f i) (f (Suc i)) \<and> \<not>forget (f i) (f (Suc i))} \<noteq> {}"
+            by auto
+          let ?I = "{i. i\<le>i\<^sub>0 \<and>  \<not> learn (f i) (f (Suc i)) \<and> \<not>forget (f i) (f (Suc i))}"
+          let ?i = "Min ?I"
+          have "finite ?I"
+            by auto
+          have "\<not> learn (f ?i) (f (Suc ?i)) \<and> \<not>forget (f ?i) (f (Suc ?i))"
+            using Min_in[OF \<open>finite ?I\<close> \<open>?I \<noteq> {}\<close>] by auto
+          moreover have "\<forall>k<?i. learn_or_forget (f k) (f (Suc k))"
+            by (smt Min.coboundedI \<open>finite ?I\<close> \<open>?I \<noteq> {}\<close> dual_order.trans infinite_growing
+              less_or_eq_imp_le mem_Collect_eq not_le)
+          ultimately show ?thesis using that by blast
+        qed
+      def g \<equiv> "\<lambda>n. f (n + Suc i)"
+      have "dpll_bj (f i) (g 0)"
+        using \<open>\<not> learn (f i) (f (Suc i)) \<and> \<not> forget (f i) (f (Suc i))\<close> cdcl cdcl.cases g_def
+        by auto
+      {
+        fix j
+        assume "j \<le> i"
+        then have "learn_or_forget\<^sup>*\<^sup>* (f 0) (f j)"
+          apply (induction j)
+           apply simp
+          by (metis (no_types, lifting) Suc_leD Suc_le_lessD rtranclp.simps
+            \<open>\<forall>k<i. learn (f k) (f (Suc k)) \<or> forget (f k) (f (Suc k))\<close>)
+      }
+      hence "learn_or_forget\<^sup>*\<^sup>* (f 0) (f i)" by blast
+      hence "(2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
+           - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight (g 0))
+        < (2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
+          - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight (f 0))"
+        using learn_or_forget_dpll_\<mu>\<^sub>C[of "f 0" "f i" "g 0" A] inv \<open>dpll_bj (f i) (g 0)\<close>
+        unfolding cdcl_NOT_all_inv_def by linarith
+
+      moreover have cdcl_i: "cdcl\<^sup>*\<^sup>* (f 0) (g 0)"
+        using rtranclp_learn_or_forget_cdcl[of "f 0" "f i"] \<open>learn_or_forget\<^sup>*\<^sup>* (f 0) (f i)\<close>
+        cdcl[of i] unfolding g_def by auto
+      moreover have "\<And>i. cdcl (g  i) (g (Suc i))"
+        using cdcl g_def by auto
+      moreover have "cdcl_NOT_all_inv A (g 0)"
+        using inv cdcl_i rtranclp_cdcl_trail_clauses_bound g_def cdcl_NOT_all_inv by auto
+      ultimately obtain j where j: "\<And>i. i\<ge>j \<Longrightarrow> learn_or_forget (g i) (g (Suc i))"
+        using IH unfolding \<mu>[symmetric] by presburger
+      show ?thesis
+        proof
+          {
+            fix k
+            assume "k \<ge> j + Suc i"
+            hence "learn_or_forget (f k) (f (Suc k))"
+              using j[of "k-Suc i"] unfolding g_def by auto
+          }
+          thus "\<forall>k\<ge>j+Suc i. learn_or_forget (f k) (f (Suc k))"
+            by auto
+        qed
+    qed
+next
+  case 0 note H = this(1) and cdcl = this(2) and inv = this(3)
+  show ?case
+    proof (rule ccontr)
+      assume "\<not> ?case"
+      then have j: "\<exists>i. \<not> learn (f i) (f (Suc i)) \<and> \<not>forget (f i) (f (Suc i))"
+        by blast
+      obtain i where
+        "\<not>learn (f i) (f (Suc i)) \<and> \<not>forget (f i) (f (Suc i))" and
+        "\<forall>k<i. learn_or_forget (f k) (f (Suc k))"
+        proof -
+          obtain i\<^sub>0 where "\<not> learn (f i\<^sub>0) (f (Suc i\<^sub>0)) \<and> \<not>forget (f i\<^sub>0) (f (Suc i\<^sub>0))"
+            using j by auto
+          hence "{i. i\<le>i\<^sub>0 \<and>  \<not> learn (f i) (f (Suc i)) \<and> \<not>forget (f i) (f (Suc i))} \<noteq> {}"
+            by auto
+          let ?I = "{i. i\<le>i\<^sub>0 \<and>  \<not> learn (f i) (f (Suc i)) \<and> \<not>forget (f i) (f (Suc i))}"
+          let ?i = "Min ?I"
+          have "finite ?I"
+            by auto
+          have "\<not> learn (f ?i) (f (Suc ?i)) \<and> \<not>forget (f ?i) (f (Suc ?i))"
+            using Min_in[OF \<open>finite ?I\<close> \<open>?I \<noteq> {}\<close>] by auto
+          moreover have "\<forall>k<?i. learn_or_forget (f k) (f (Suc k))"
+            by (smt Min.coboundedI \<open>finite ?I\<close> \<open>?I \<noteq> {}\<close> dual_order.trans infinite_growing
+              less_or_eq_imp_le mem_Collect_eq not_le)
+          ultimately show ?thesis using that by blast
+        qed
+      have "dpll_bj (f i) (f (Suc i))"
+        using \<open>\<not> learn (f i) (f (Suc i)) \<and> \<not> forget (f i) (f (Suc i))\<close> cdcl cdcl.cases by blast
+      {
+        fix j
+        assume "j \<le> i"
+        then have "learn_or_forget\<^sup>*\<^sup>* (f 0) (f j)"
+          apply (induction j)
+           apply simp
+          by (metis (no_types, lifting) Suc_leD Suc_le_lessD rtranclp.simps
+            \<open>\<forall>k<i. learn (f k) (f (Suc k)) \<or> forget (f k) (f (Suc k))\<close>)
+      }
+      hence "learn_or_forget\<^sup>*\<^sup>* (f 0) (f i)" by blast
+
+      thus False
+        using learn_or_forget_dpll_\<mu>\<^sub>C[of "f 0" "f i" "f (Suc i)" A] inv  0
+        \<open>dpll_bj (f i) (f (Suc i))\<close> unfolding cdcl_NOT_all_inv_def by linarith
+    qed
+qed
+
+lemma wf_cdcl_no_learn_and_forget_infinite_chain:
+  assumes
+    no_infinite_lf: "\<And>f j. \<not> (\<forall>i\<ge>j. learn_or_forget (f i) (f (Suc i)))"
+  shows "wf {(T, S). cdcl S T \<and> cdcl_NOT_all_inv A S}" (is "wf {(T, S). cdcl S T
+        \<and> ?inv S}")
+  unfolding wf_iff_no_infinite_down_chain
+proof (rule ccontr)
+  assume "\<not> \<not> (\<exists>f. \<forall>i. (f (Suc i), f i) \<in> {(T, S). cdcl S T \<and> ?inv S})"
+  then obtain f where
+    "\<forall>i. cdcl (f i) (f (Suc i)) \<and> ?inv (f i)"
+    by fast
+  hence "\<exists>j. \<forall>i\<ge>j. learn_or_forget (f i) (f (Suc i))"
+   using infinite_cdcl_exists_learn_and_forget_infinite_chain[of f] by meson
+  then show False using no_infinite_lf by blast
+qed
+
+end \<comment> \<open>end of \<open>conflict_driven_clause_learning\<close>\<close>
 
 subsection \<open>Restricting restarts\<close>
 
@@ -1506,7 +1726,7 @@ proof -
       unfolding conflicting_bj_clss_def by auto
     have T: "conflicting_bj_clss T
     \<subseteq> build_all_simple_clss (atms_of_m (clauses T) \<union> atm_of ` lits_of (trail T))"
-      by standard (meson "1" "2" fin'  `finite (conflicting_bj_clss T)` build_all_simple_clss_mono
+      by standard (meson "1" "2" fin'  \<open>finite (conflicting_bj_clss T)\<close> build_all_simple_clss_mono
         distinct_mset_set_def  simplified_in_build_all subsetCE sup.coboundedI1)
   moreover
     hence #: "3 ^ card (atms_of_m (clauses T) \<union> atm_of ` lits_of (trail T))
@@ -1520,8 +1740,8 @@ proof -
   ultimately show ?thesis
     using psubset_card_mono[OF fin_T ]
     unfolding less_than_iff lex_prod_def by clarify
-      (meson `conflicting_bj_clss S \<noteq> conflicting_bj_clss T`
-        `conflicting_bj_clss S \<subseteq> conflicting_bj_clss T`
+      (meson \<open>conflicting_bj_clss S \<noteq> conflicting_bj_clss T\<close>
+        \<open>conflicting_bj_clss S \<subseteq> conflicting_bj_clss T\<close>
         diff_less_mono2 le_less_trans not_le psubsetI)
 qed
 
@@ -1536,7 +1756,7 @@ text \<open>We have to assume the following:
   definition of multisets)\<close>
 definition \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L where
 "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L A T \<equiv> ((2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
-               - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> T),
+               - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight T),
             conflicting_bj_clss_yet (card (atms_of_m A)) T, card (clauses T))"
 lemma cdcl_decreasing_measure:
   assumes "cdcl S T"  and "inv S"
@@ -1577,7 +1797,7 @@ lemma cdcl_restricted_learning_wf:
      (auto intro: cdcl_decreasing_measure[OF _ _ _ _ _ _ assms])
 
 definition \<mu>\<^sub>C' :: "'a literal multiset set \<Rightarrow> 'st \<Rightarrow> nat" where
-"\<mu>\<^sub>C' A T \<equiv> \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> T)"
+"\<mu>\<^sub>C' A T \<equiv> \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight T)"
 
 definition \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' :: "'a literal multiset set \<Rightarrow> 'st \<Rightarrow> nat" where
 "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A T \<equiv>
@@ -1876,62 +2096,6 @@ proof -
   thus ?thesis using rtranclp_cdcl_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_update_trail[OF assms, of "trail T"] by auto
 qed
 
-(* TODO Move *)
-lemma distinct_mset_add_single:
-  "distinct_mset ({#a#} + L) \<longleftrightarrow> distinct_mset L \<and> a \<notin># L"
-  unfolding distinct_mset_def by (smt add.commute add.left_neutral add_diff_cancel_left'
-    count_single count_union mset_leD mset_le_add_right not_gr0)
-
-lemma tautology_add_single:
-  "tautology ({#a#} + L) \<longleftrightarrow> tautology L \<or> -a \<in># L"
-  unfolding tautology_decomp by (cases a) auto
-
-(* TODO Move *)
-lemma build_all_simple_clssE:
-  "x \<in> build_all_simple_clss atms \<Longrightarrow> finite atms
-    \<Longrightarrow> atms_of x \<subseteq> atms \<and> \<not>tautology x \<and> distinct_mset x"
-proof (induct "card atms" arbitrary: atms x)
-  case (0 atms)
-  thus ?case by auto
-next
-  case (Suc n) note IH = this(1) and card = this(2) and x = this(3) and finite = this(4)
-  obtain v where "v \<in> atms" and v: "v = Min atms"
-    using Min_in card local.finite by fastforce
-
-  let ?atms' = "atms - {v}"
-  have "build_all_simple_clss atms
-    = {{#Pos v#} + \<chi> |\<chi>. \<chi> \<in> build_all_simple_clss (?atms')}
-      \<union> {{#Neg v#} + \<chi> |\<chi>. \<chi> \<in> build_all_simple_clss (?atms')}
-      \<union> build_all_simple_clss (?atms')"
-    using build_all_simple_clss_simps_else[of "atms"] finite \<open>v \<in> atms\<close> unfolding v
-    by (metis emptyE)
-  then consider
-      (Pos) \<chi> \<phi> where "x = {#\<phi>#} + \<chi>" and "\<chi> \<in> build_all_simple_clss (?atms')" and
-        "\<phi> = Pos v \<or> \<phi> = Neg v"
-    | (In) "x \<in> build_all_simple_clss (?atms')"
-    using x by auto
-  thus ?case
-    proof cases
-      case In
-      thus ?thesis using card finite IH[of ?atms'] \<open>v \<in> atms\<close> by fastforce
-    next
-      case Pos note x_\<chi> = this(1) and \<chi> = this(2) and \<phi> = this(3)
-      have
-        "atms_of \<chi> \<subseteq> atms - {v}" and
-        "\<not> tautology \<chi>" and
-        "distinct_mset \<chi>"
-          using card finite IH[of ?atms' \<chi>] \<open>v \<in> atms\<close> x_\<chi> \<chi> by auto
-      moreover hence "count \<chi> (Neg v) = 0" and "count \<chi> (Pos v) = 0"
-         using \<open>v \<in> atms\<close> unfolding x_\<chi> apply (metis Diff_insert_absorb Set.set_insert
-         atm_iff_pos_or_neg_lit gr0I subset_iff)
-        using \<open>atms_of \<chi> \<subseteq> atms - {v}\<close>  by (meson Diff_iff atm_iff_pos_or_neg_lit
-          contra_subsetD insertI1 not_gr0)
-      ultimately show ?thesis
-        using \<open>v \<in> atms\<close> \<phi> unfolding x_\<chi>
-        by (auto simp add: tautology_add_single distinct_mset_add_single)
-    qed
-qed
-
 lemma rtranclp_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_decreasing:
   assumes
     "cdcl\<^sup>*\<^sup>* S T" and
@@ -1952,7 +2116,7 @@ proof -
     unfolding  \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_def by auto
 qed
 
-end -- \<open>end of \<open>conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt\<close>\<close>
+end \<comment> \<open>end of \<open>conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt\<close>\<close>
 
 section \<open>DPLL with simple backtrack\<close>
 locale dpll_with_backtrack
@@ -2186,6 +2350,16 @@ theorem full0_dpll_normal_forms:
     "finite N"
   shows "unsatisfiable N \<or> (M' \<Turnstile>as N \<and> satisfiable N)"
   using assms full0_dpll_backjump_normal_forms[of "([],N)" "(M', N')" N] by auto
+
+lemma cdcl_is_dpll:
+  "cdcl S T \<longleftrightarrow> dpll_bj S T"
+  by (auto simp: cdcl.simps learn.simps forget.simps)
+
+text \<open>Another proof of termination:\<close>
+lemma "wf {(T, S). dpll_bj S T \<and> cdcl_NOT_all_inv A S}"
+  unfolding cdcl_is_dpll[symmetric]
+  by (rule wf_cdcl_no_learn_and_forget_infinite_chain)
+  (auto simp: learn.simps forget.simps)
 end
 
 section \<open>CDCL with restarts\<close>
@@ -2441,15 +2615,16 @@ locale cdcl_increasing_restarts =
     cdcl_inv :: "'st \<Rightarrow> bool" and
     \<mu>_bound :: "'bound \<Rightarrow> 'st \<Rightarrow> nat" +
   assumes
-    measure_bound: "\<And>A T V n. cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> cdcl_with_restart_stgy (T, n) (V, Suc n)
-      \<Longrightarrow> \<mu> A V \<le> \<mu>_bound A T" and
+    measure_bound: "\<And>A T V n. cdcl_inv T \<Longrightarrow> bound_inv A T
+      \<Longrightarrow> cdcl_with_restart_stgy (T, n) (V, Suc n) \<Longrightarrow> \<mu> A V \<le> \<mu>_bound A T" and
     cdcl_with_restarts_\<mu>_bound:
       "cdcl_with_restart_stgy (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T
         \<Longrightarrow> \<mu>_bound A V \<le> \<mu>_bound A T"
 begin
 
 lemma rtranclp_cdcl_with_restarts_\<mu>_bound:
-  "cdcl_with_restart_stgy\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> \<mu>_bound A V \<le> \<mu>_bound A T"
+  "cdcl_with_restart_stgy\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow>  cdcl_inv T \<Longrightarrow> bound_inv A T
+    \<Longrightarrow> \<mu>_bound A V \<le> \<mu>_bound A T"
   apply (induction rule: rtranclp_induct2)
    apply simp
   by (metis cdcl_with_restarts_\<mu>_bound dual_order.trans fst_conv
@@ -2496,7 +2671,7 @@ proof (rule ccontr)
      apply (metis H f_Suc_not_zero fst_conv full_def le_0_eq relpowp_E2 snd_conv)
     done
   have "strict_mono (\<lambda>j. f (snd (g j)))"
-    by (metis `strict_mono (snd \<circ> g)` comp_def mono_f strict_monoD strict_monoI)
+    by (metis \<open>strict_mono (snd \<circ> g)\<close> comp_def mono_f strict_monoD strict_monoI)
   let ?j = "\<mu>_bound A (fst (g 1)) + 1"
   have "f ?j \<ge> ?j"
     by (simp add: mono_f strict_mono_ge_id)
@@ -2528,7 +2703,7 @@ proof (rule ccontr)
     f_m: "f (snd (g ?j)) \<le> m"
     using H[of "?j"] by blast
   have "?j \<le> m"
-    using f_m \<open>f ?j \<ge> ?j\<close> Nat.le_trans `strict_mono (\<lambda>j. f (snd (g j)))` strict_mono_ge_id by blast
+    using f_m \<open>f ?j \<ge> ?j\<close> Nat.le_trans \<open>strict_mono (\<lambda>j. f (snd (g j)))\<close> strict_mono_ge_id by blast
   thus False
     proof -
       have "\<And>n. bound_inv A (fst (g (n + 1)))"
@@ -2663,7 +2838,7 @@ proof -
          "\<forall>v f L. v \<notin> f ` L \<or> v = f (ll v f L) \<and> ll v f L \<in> L"
          by moura
        thus ?thesis unfolding tr_S
-         by (metis (no_types) `F \<Turnstile>as CNot C'` atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+         by (metis (no_types) \<open>F \<Turnstile>as CNot C'\<close> atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
            atms_of_def in_CNot_implies_uminus(2) mem_set_mset_iff subsetI)
      qed
    hence "atms_of (C' + {#L#}) \<subseteq> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))"
@@ -2734,7 +2909,7 @@ lemma rtranclp_cdcl_merged_inv:
   using rtranclp_cdcl_merged_is_rtranclp_cdcl_and_inv by blast
 
 definition \<mu>\<^sub>C' :: "'a literal multiset set \<Rightarrow> 'st \<Rightarrow> nat" where
-"\<mu>\<^sub>C' A T \<equiv> \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> T)"
+"\<mu>\<^sub>C' A T \<equiv> \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight T)"
 
 definition \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged :: "'a literal multiset set \<Rightarrow> 'st \<Rightarrow> nat" where
 "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged A T \<equiv>
@@ -2759,9 +2934,9 @@ proof induction
     using cdcl_merged_decide.hyps clauses_update_trail by blast
   moreover have
     "(2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
-       - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (\<nu> T)
+       - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight T)
      < (2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
-       - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (\<nu> S)"
+       - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight S)"
     apply (rule dpll_bj_trail_mes_decreasing_prop[of S T A])
        using cdcl_merged_decide fin_A by (simp_all add:  add: bj_decide cdcl_merged_decide.hyps)
   ultimately show ?case
@@ -2772,9 +2947,9 @@ next
     using cdcl_merged_propagate.hyps clauses_update_trail by blast
   moreover have
     "(2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
-       - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (\<nu> T)
+       - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight T)
      < (2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
-       - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (\<nu> S)"
+       - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight S)"
     apply (rule dpll_bj_trail_mes_decreasing_prop[of S T A])
        using cdcl_merged_propagate fin_A by (simp_all add: bj_propagate cdcl_merged_propagate.hyps)
   ultimately show ?case
@@ -2789,9 +2964,9 @@ next
       by (metis cdcl_merged_forget.hyps forget.cases update_trail_remove_clauses)
     hence
       "(2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
-        - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (\<nu> T)
+        - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight T)
        = (2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
-        - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (\<nu> S)"
+        - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight S)"
        by auto
   ultimately show ?case
     unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged_def \<mu>\<^sub>C'_def by simp
@@ -2807,9 +2982,10 @@ next
     using backjump_l[OF bj_l inv] \<open>finite (clauses S)\<close> by auto
   have
     "((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
-      - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (\<nu> T))
+      - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight T))
     < ((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
-      - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (\<nu> (add_cls (C' + {#L#}) S)))"
+      - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A))
+           (trail_weight (add_cls (C' + {#L#}) S)))"
     apply (rule dpll_bj_trail_mes_decreasing_prop)
          using bj bj_backjump apply blast
         using c_learn cdcl_inv inv learn apply blast
@@ -2819,9 +2995,9 @@ next
     using fin_A apply simp
     done
   hence "((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
-      - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (\<nu> T))
+      - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight T))
     < ((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
-      - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (\<nu> S))"
+      - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight S))"
     by auto
   then show ?case
     unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged_def \<open>card (clauses T) = 1 + card (clauses S)\<close> \<mu>\<^sub>C'_def
@@ -2901,7 +3077,7 @@ begin
   "\<lambda>A (M, N). atms_of_m N \<subseteq> atms_of_m A \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> finite A
     \<and> all_decomposition_implies N (get_all_marked_decomposition M)"
   "\<lambda>A T. (2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
-               - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (\<nu> T)" dpll_bj
+               - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight T)" dpll_bj
   "\<lambda>(M, N). finite N \<and> no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)"
   "\<lambda>A _.  (2+card (atms_of_m A)) ^ (1+card (atms_of_m A))"
   apply unfold_locales

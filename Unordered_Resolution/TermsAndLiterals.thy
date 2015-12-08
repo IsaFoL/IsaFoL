@@ -70,7 +70,7 @@ abbreviation grounds :: "fterm list \<Rightarrow> bool" where
 datatype hterm = HFun fun_sym "hterm list"
 
 datatype 't literal = 
-  is_pos: Pos (get_pred: pred_sym) (get_terms: "'t list")
+  sign: Pos (get_pred: pred_sym) (get_terms: "'t list")
 | Neg (get_pred: pred_sym) (get_terms: "'t list")
 
 (* begin Berghofer *)
@@ -265,7 +265,7 @@ definition diag_hatom :: "nat \<Rightarrow> hterm literal" where
      )"
 
 theorem diag_undiag_hatom[simp]: 
-  "is_pos a \<Longrightarrow> diag_hatom (undiag_hatom a) = a"
+  "sign a = True \<Longrightarrow> diag_hatom (undiag_hatom a) = a"
   unfolding diag_hatom_def undiag_hatom_def by auto
 
 subsubsection {* Enumerating ground terms *}
@@ -325,5 +325,9 @@ definition diag_fatom :: "nat \<Rightarrow> fterm literal" where
 
 theorem diag_undiag_fatom[simp]: "grounds ts \<Longrightarrow> diag_fatom (undiag_fatom (Pos p ts)) = Pos p ts"
 unfolding undiag_fatom_def diag_fatom_def by auto
+
+lemma undiag_diag_fatom: "undiag_fatom (diag_fatom n) = n" sorry
+
+
 
 end

@@ -585,7 +585,7 @@ proof (rule ccontr)
       have c'_p_p: "C' + {#Pos P#} + {#Pos P#} - {#Pos P#} = C' + {#Pos P#}"
         by auto
       have "redundant (C' + {#Pos P#}) N"
-        using saturated red sup \<open>D \<in> N\<close>`C' + {#Pos P#} \<notin> N`  unfolding saturated_def C' L c'_p_p
+        using saturated red sup \<open>D \<in> N\<close>\<open>C' + {#Pos P#} \<notin> N\<close>  unfolding saturated_def C' L c'_p_p
         by blast
       moreover have "C' + {#Pos P#}  \<subseteq># C' + {#Pos P#} + {#Pos P#}"
         by auto
@@ -632,8 +632,8 @@ proof (rule ccontr)
       have "?N\<^sub>\<I> \<Turnstile>h C+E \<or> C+E \<notin> N"
         using ce_lt_d cls_not_D unfolding D_def by fastforce
       have "Pos P \<notin># C+E"
-        using D `P \<in> ground_resolution_with_selection.INTERP S N`
-          `count (E + {#Pos P#}) (Pos P) \<le> 1` multi_member_skip not_d_interp by auto
+        using D \<open>P \<in> ground_resolution_with_selection.INTERP S N\<close>
+          \<open>count (E + {#Pos P#}) (Pos P) \<le> 1\<close> multi_member_skip not_d_interp by auto
       hence "\<And>y. y \<in># C+E
         \<Longrightarrow> count (C+E) (Pos P) < count (E + {#Pos P#}) (Pos P)"
         by (auto split: split_if_asm)

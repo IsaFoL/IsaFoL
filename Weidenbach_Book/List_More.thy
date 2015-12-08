@@ -2,10 +2,22 @@ theory List_More
 imports Main
 begin
 
+declare upt.simps(2)[simp del] upt_Suc[simp del]
+
+section \<open>Various\<close>
+text \<open>Close to @{thm nat_less_induct}, but with a separation between zero and non-zero.\<close>
+thm nat_less_induct
+lemma nat_less_induct_case[case_names 0 Suc]:
+  assumes
+    "P 0" and
+    "\<And>n. (\<forall>m < Suc n. P m) \<Longrightarrow> P (Suc n)"
+  shows "P n"
+  apply (induction rule: nat_less_induct)
+  by (case_tac n) (auto intro: assms)
+
 section \<open>More List and Well-foundness Theorems\<close>
 text \<open>This section contains theorems that could move to Isabelle standard library.\<close>
 subsection \<open>More Lists\<close>
-declare upt.simps(2)[simp del] upt_Suc[simp del]
 declare upt_Suc_append
 lemma upt_Suc_le_append: "\<not>i \<le> j \<Longrightarrow> [i..<Suc j] = []"
   by (auto simp add: upt.simps(2))
