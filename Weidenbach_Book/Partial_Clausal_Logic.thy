@@ -8,7 +8,7 @@ This theory is based on Blanchette's and Traytel's Clausal logic
 section \<open>Partial Clausal Logic\<close>
 
 theory Partial_Clausal_Logic
-imports "../lib/Clausal_Logic"
+imports "../lib/Clausal_Logic" List_More
 begin
 
 text \<open>
@@ -832,50 +832,49 @@ lemma subsumption_chained:
   and "C \<subseteq># D"
   shows "(\<forall>I. total_over_m I {C} \<longrightarrow> I \<Turnstile> C \<longrightarrow> I \<Turnstile> \<phi>) \<or> tautology \<phi>"
   using assms
-proof (induct "card {Pos v | v. v \<in> atms_of D \<and> v \<notin> atms_of C}" arbitrary: D rule: nat_less_induct)
-  case (1 D) note IH = this(1) and H = this(2) and incl = this(3)
+proof (induct "card {Pos v | v. v \<in> atms_of D \<and> v \<notin> atms_of C}" arbitrary: D
+    rule: nat_less_induct_case)
+  case 0 note n = this(1) and  H = this(2) and incl = this(3)
+  hence "atms_of D \<subseteq> atms_of C" by auto
+  hence "\<forall>I. total_over_m I {C} \<longrightarrow> total_over_m I {D}" unfolding total_over_m_def total_over_set_def by auto
+  moreover have "\<forall>I. I \<Turnstile> C \<longrightarrow> I \<Turnstile> D" using incl true_cls_mono_leD by blast
+  ultimately show ?case using H by auto
+next
+  case (Suc n D) note IH = this(1) and card = this(2) and H = this(3) and incl = this(4)
+  let ?atms = "{Pos v |v. v \<in> atms_of D \<and> v \<notin> atms_of C}"
+  have "finite ?atms" by auto
+  then obtain L where  L: "L \<in> ?atms"
+    using card by (metis (no_types, lifting) Collect_empty_eq card_0_eq mem_Collect_eq
+      nat.simps(3))
+  let ?D' = "D - replicate_mset (count D L) L - replicate_mset (count D (-L)) (-L)"
+  have atms_of_D: "atms_of_m {D} \<subseteq> atms_of_m {?D'} \<union> {atm_of L}" by auto
+
   {
-    assume "card {Pos v |v. v \<in> atms_of D \<and> v \<notin> atms_of C} = 0"
-    hence "atms_of D \<subseteq> atms_of C" by auto
-    hence "\<forall>I. total_over_m I {C} \<longrightarrow> total_over_m I {D}" unfolding total_over_m_def total_over_set_def by auto
-    moreover have "\<forall>I. I \<Turnstile> C \<longrightarrow> I \<Turnstile> D" using incl true_cls_mono_leD by blast
-    ultimately have ?case using H by auto
+    fix I
+    assume "total_over_m I {?D'}"
+    hence tot: "total_over_m (I \<union> {L}) {D}"
+      unfolding total_over_m_def total_over_set_def using atms_of_D by auto
 
-  }
-  moreover {
-    assume card: "card {Pos v |v. v \<in> atms_of D \<and> v \<notin> atms_of C} > 0"
-    let ?atms = "{Pos v |v. v \<in> atms_of D \<and> v \<notin> atms_of C}"
-    have "finite ?atms" by auto
-    then obtain L where  L: "L \<in> ?atms"
-      by (induct ?atms rule: finite.induct, metis card card_gt_0_iff, auto)
-    let ?D' = "D - replicate_mset (count D L) L - replicate_mset (count D (-L)) (-L)"
-    have atms_of_D: "atms_of_m {D} \<subseteq> atms_of_m {?D'} \<union> {atm_of L}" by auto
+    assume IDL: "I \<Turnstile> ?D'"
+    hence "I \<union> {L} \<Turnstile> D" unfolding true_cls_def by force
+    hence "I \<union> {L} \<Turnstile> \<phi>" using H tot by auto
 
-    {
-      fix I
-      assume "total_over_m I {?D'}"
-      hence tot: "total_over_m (I \<union> {L}) {D}" unfolding total_over_m_def total_over_set_def using atms_of_D by auto
+    moreover
+      have tot': "total_over_m (I \<union> {-L}) {D}"
+        using tot unfolding total_over_m_def total_over_set_def by auto
+      have "I \<union> {-L} \<Turnstile> D" using IDL unfolding true_cls_def by force
+      hence "I \<union> {-L} \<Turnstile> \<phi>" using H tot' by auto
+    ultimately have "I \<Turnstile> \<phi> \<or> tautology \<phi>"
+      using L remove_literal_in_model_tautology by force
+  } note H' = this
 
-      assume IDL: "I \<Turnstile> ?D'"
-      hence "I \<union> {L} \<Turnstile> D" unfolding true_cls_def by force
-      hence "I \<union> {L} \<Turnstile> \<phi>" using H tot by auto
-
-      moreover
-        have tot': "total_over_m (I \<union> {-L}) {D}" using tot unfolding total_over_m_def total_over_set_def by auto
-        have "I \<union> {-L} \<Turnstile> D" using IDL unfolding true_cls_def by force
-        hence "I \<union> {-L} \<Turnstile> \<phi>" using H tot' by auto
-      ultimately have "I \<Turnstile> \<phi> \<or> tautology \<phi>"
-        using L remove_literal_in_model_tautology by force
-    } note H' = this
-
-    have "L \<notin># C " and "-L \<notin># C" using L atm_iff_pos_or_neg_lit by force+
-    then have C_in_D': "C \<subseteq># ?D'" using \<open>C \<subseteq># D\<close> by (auto simp add: subseteq_mset_def)
-    have "card {Pos v |v. v \<in> atms_of ?D' \<and> v \<notin> atms_of C} < card {Pos v |v. v \<in> atms_of D \<and> v \<notin> atms_of C}"
-      using L by (auto intro!: psubset_card_mono)
-    hence "(\<forall>I. total_over_m I {C} \<longrightarrow> I \<Turnstile> C \<longrightarrow> I \<Turnstile> \<phi>) \<or> tautology \<phi>"
-      using IH C_in_D' H' by blast
-  }
-  ultimately show ?case by blast
+  have "L \<notin># C " and "-L \<notin># C" using L atm_iff_pos_or_neg_lit by force+
+  then have C_in_D': "C \<subseteq># ?D'" using \<open>C \<subseteq># D\<close> by (auto simp add: subseteq_mset_def)
+  have "card {Pos v |v. v \<in> atms_of ?D' \<and> v \<notin> atms_of C} <
+    card {Pos v |v. v \<in> atms_of D \<and> v \<notin> atms_of C}"
+    using L by (auto intro!: psubset_card_mono)
+  thus ?case
+    using IH C_in_D' H'  unfolding card[symmetric] by blast
 qed
 
 (*TODO change to abbreviation + move to multiset_more*)
