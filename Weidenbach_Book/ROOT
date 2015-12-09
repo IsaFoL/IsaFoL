@@ -4,7 +4,7 @@ session "Weidenbach_Book" (main) = "HOL" +
     "../lib/Multiset_More"
     "../lib/Herbrand_Interpretation"
     "~~/src/HOL/Library/Code_Target_Numeral"
-  global_theories [document = true]
+  theories [document = true]
     Transition
     Propo_Logic
     Propo_Abstract_Transformation
