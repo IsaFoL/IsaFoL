@@ -1695,7 +1695,7 @@ lemma no_propagate_after_conflict:
   "conflict S T \<Longrightarrow> \<not>propagate T U"
   by (auto elim!: conflictE)
 
-lemma rtranclp_cdcl_cp_propagate_with_conflict_or_not:
+lemma tranclp_cdcl_cp_propagate_with_conflict_or_not:
   assumes "cdcl_cp\<^sup>+\<^sup>+ S U"
   shows "(propagate\<^sup>+\<^sup>+ S U \<and> conflicting U = C_True)
     \<or> (\<exists>T D. propagate\<^sup>*\<^sup>* S T \<and> conflict T U \<and> conflicting U = C_Clause D)"
@@ -2124,7 +2124,7 @@ proof (intro allI impI)
             (C_True::'v literal multiset conflicting_clause)"
             by auto
           thus ?thesis
-            using f5 that rtranclp_cdcl_cp_propagate_with_conflict_or_not[OF \<open>cdcl_cp\<^sup>+\<^sup>+ S U\<close>]
+            using f5 that tranclp_cdcl_cp_propagate_with_conflict_or_not[OF \<open>cdcl_cp\<^sup>+\<^sup>+ S U\<close>]
             full confl CT unfolding full0_def by auto
         qed
       have "init_clss T = init_clss S" and "learned_clss T = learned_clss S"
