@@ -1,5 +1,5 @@
 theory CDCL_CW
-imports Partial_Annotated_Clausal_Logic List_More CDCL_CW_Level Transition
+imports Partial_Annotated_Clausal_Logic List_More CDCL_CW_Level Wf_More
 
 begin
 sledgehammer_params[verbose, e spass cvc4 z3 verit]

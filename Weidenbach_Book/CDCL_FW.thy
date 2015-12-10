@@ -1419,7 +1419,7 @@ lemma n_step_cdcl_s_iff_no_step_cdcl_cl_cdcl_o:
 proof
   assume "?C S \<and> ?O S"
   thus "?S' S"
-    by (metis bj cdcl_s'.cases decided full_def tranclpD)
+    by (auto simp: cdcl_s'.simps full_def tranclp_unfold_begin)
 next
   assume n_s: "?S' S"
   have "?C S"
@@ -1852,20 +1852,7 @@ proof (rule ccontr)
 qed
 
 (* TODO Move *)
-text \<open>Analog of @{thm rtranclp_mono}\<close>
-lemma tranclp_mono:
-  "r \<le> s \<Longrightarrow> r\<^sup>+\<^sup>+ \<le> s\<^sup>+\<^sup>+"
-proof -
-  assume a1: "r \<le> s"
-  obtain aa :: 'a and aaa :: 'a where
-    f2: "(r\<^sup>+\<^sup>+ aa aaa \<longrightarrow> s\<^sup>+\<^sup>+ aa aaa) \<longrightarrow> r\<^sup>+\<^sup>+ \<le> s\<^sup>+\<^sup>+"
-    by moura
-  obtain aab :: 'a and aac :: 'a and aad :: 'a where
-    "r\<^sup>+\<^sup>+ aab aac \<longrightarrow> r aab aad \<and> r\<^sup>*\<^sup>* aad aac"
-    by (metis tranclpD)
-  then show ?thesis
-    using f2 a1 by (metis (full_types) mono_rtranclp predicate2D tranclp_unfold_begin)
-qed
+
 
 lemma no_step_cdcl_fw_cp_no_ste_cdcl_cp:
   "no_step cdcl_fw_cp S \<Longrightarrow> no_step cdcl_cp S"
@@ -1936,11 +1923,13 @@ proof
         obtain ssa :: "('st \<Rightarrow> 'st \<Rightarrow> bool) \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> 'st" where
           ff3: "\<forall>p s sa. \<not> p\<^sup>+\<^sup>+ s sa \<or> p s (ssa p s sa) \<and> p\<^sup>*\<^sup>* (ssa p s sa) sa"
           by (metis (no_types) tranclpD)
-        then have "\<not> cdcl_cp\<^sup>+\<^sup>+ V ss"
+        then have a3: "\<not> cdcl_cp\<^sup>+\<^sup>+ V ss"
           using a1 by (metis conflicting_clause_full0_cdcl_cp full0_def)
+        have "\<And>s. \<not> cdcl_bj\<^sup>+\<^sup>+ V s"
+          using ff3 a1 by (metis confl conflicting_not_true_rtranclp_cdcl_fw_cp_no_step_cdcl_bj st)
         then have "\<not> cdcl_s'_without_decide V ss"
-          using ff3 ff2 ff1 a1 by (metis cdcl_s'_without_decide_def confl
-            conflicting_not_true_rtranclp_cdcl_fw_cp_no_step_cdcl_bj st) }
+          using ff1 a3 ff2 unfolding cdcl_s'_without_decide_def by (metis (no_types))
+    }
       then show ?thesis
         by fastforce
     qed (blast)

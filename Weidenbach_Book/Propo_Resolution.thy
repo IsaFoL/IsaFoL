@@ -1,5 +1,5 @@
 theory Propo_Resolution
-imports Partial_Clausal_Logic List_More Transition
+imports Partial_Clausal_Logic List_More Wf_More
 
 begin
 section \<open>Resolution\<close>

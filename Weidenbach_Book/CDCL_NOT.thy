@@ -1,5 +1,5 @@
 theory CDCL_NOT
-imports Partial_Annotated_Clausal_Logic List_More Transition Partial_Clausal_Logic
+imports Partial_Annotated_Clausal_Logic List_More Wf_More Partial_Clausal_Logic
 begin
 
 sledgehammer_params[verbose, prover=e spass z3 cvc4 verit remote_vampire]
