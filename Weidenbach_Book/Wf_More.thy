@@ -29,6 +29,10 @@ lemma tranclp_full0_fullI:
   "R\<^sup>+\<^sup>+ a b \<Longrightarrow> full0 R b c \<Longrightarrow> full R a c"
   unfolding full0_def full_def by auto
 
+lemma full0_fullI:
+  "R a b \<Longrightarrow> full0 R b c \<Longrightarrow> full R a c"
+  unfolding full0_def full_def by auto
+
 lemma full0_unfold:
   "full0 r S S' \<longleftrightarrow> ((S = S' \<and> no_step r S') \<or> full r S S')"
   unfolding full0_def full_def by (auto simp add: Nitpick.rtranclp_unfold)
