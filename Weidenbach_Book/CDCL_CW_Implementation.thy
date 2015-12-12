@@ -869,22 +869,12 @@ lemma toS_do_full_cp_step_not_eq: "do_full_cp_step S \<noteq> S \<Longrightarrow
     toS (rough_state_of S) \<noteq> toS (rough_state_of (do_full_cp_step S))"
 proof -
   assume a1: "do_full_cp_step S \<noteq> S"
-  have f2: "cdcl_cw_ops.cdcl_cp trail clauses learned_clss backtrack_lvl conflicting
-    (\<lambda>ms (msa, y). (ms, y)) (\<lambda>c (ms, Ma, M, n, ca). (ms, Ma, M, n, c)) id\<^sup>\<down> (toS (rough_state_of S))
-    (toS (rough_state_of (do_full_cp_step S)))"
-    using do_full_cp_step_full0 by presburger
-  have "do_cp_step (rough_state_of S) \<noteq> rough_state_of S"
-    using a1 do_cp_step'_def rough_state_of_inverse by force
-  then have f3: "cdcl_cw_ops.cdcl_cp trail clauses learned_clss backtrack_lvl conflicting
-    (\<lambda>ms (msa, y). (ms, y)) (\<lambda>c (ms, Ma, M, n, ca). (ms, Ma, M, n, c)) id (toS (rough_state_of S))
-    (toS (do_cp_step (rough_state_of S)))"
-    using cp_step_is_cdcl_cp by blast
-  have "\<not> cdcl_cw_ops.cdcl_cp trail clauses learned_clss backtrack_lvl conflicting
-    (\<lambda>ms (msa, y). (ms, y)) (\<lambda>c (ms, Ma, M, n, ca). (ms, Ma, M, n, c)) id
-    (toS (rough_state_of (do_full_cp_step S))) (toS (do_cp_step (rough_state_of S)))"
-    using f2 by (meson full0_def)
+  then have "S \<noteq> do_cp_step' S"
+    by fastforce (* 2 ms *)
   then show ?thesis
-    using f3 by force
+    by (metis (no_types) cp_step_is_cdcl_cp do_cp_step'_def do_cp_step_eq_no_step 
+      do_full_cp_step_fix_point_of_do_full_cp_step in_clauses_rough_state_of_is_distinct
+      rough_state_of_inverse)
 qed
 
 text \<open>@{term do_full_cp_step} should not be unfolded anymore:\<close>
@@ -912,7 +902,7 @@ next
        in_clauses_rough_state_of_is_distinct no_cdcl_cp_iff_no_propagate_no_conflict)+
     hence "no_step cdcl_cp (toS (rough_state_of S))"
       by (simp add: cdcl_cp.simps)
-  moreover have "cdcl_cp\<^sup>\<down> (toS (rough_state_of (do_other_step' S)))
+  moreover have "full0 cdcl_cp (toS (rough_state_of (do_other_step' S)))
     (toS (rough_state_of (do_full_cp_step (do_other_step' S))))"
     using do_full_cp_step_full0 by auto
   ultimately show ?thesis
@@ -1161,7 +1151,7 @@ proof -
     assume " cdcl_o (toS (rough_state_of S)) S'" and
      "no_step propagate (toS (rough_state_of S))" and
      "no_step conflict (toS (rough_state_of S))" and
-     "cdcl_cp\<^sup>\<down> S' S''"
+     "full0 cdcl_cp S' S''"
     hence False
       using assms unfolding do_cdcl_s_step_def
       by (smt cdcl_all_inv_mes_rough_state do_full_cp_step_do_other_step'_normal_form

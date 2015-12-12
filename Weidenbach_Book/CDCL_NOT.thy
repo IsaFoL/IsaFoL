@@ -1,5 +1,5 @@
 theory CDCL_NOT
-imports Partial_Annotated_Clausal_Logic List_More Transition Partial_Clausal_Logic
+imports Partial_Annotated_Clausal_Logic List_More Wf_More Partial_Clausal_Logic
 begin
 
 sledgehammer_params[verbose, prover=e spass z3 cvc4 verit remote_vampire]
@@ -862,8 +862,8 @@ proof -
           hence "lits_of ?M \<subseteq> ?I"
             unfolding true_clss_def lits_of_def by auto
           hence "?M \<Turnstile>as ?N"
-            using I'_N `C \<in> ?N` `\<not> ?M \<Turnstile>a C` cons_I' atms_N_M
-            by (meson `trail S \<Turnstile>as CNot C` consistent_CNot_not rev_subsetD sup_ge1 true_annot_def
+            using I'_N \<open>C \<in> ?N\<close> \<open>\<not> ?M \<Turnstile>a C\<close> cons_I' atms_N_M
+            by (meson \<open>trail S \<Turnstile>as CNot C\<close> consistent_CNot_not rev_subsetD sup_ge1 true_annot_def
               true_annots_def true_cls_mono_set_mset_l true_clss_def)
           thus False using M by fast
         qed
@@ -1334,7 +1334,7 @@ next
     by standard (simp_all add: true_clss_ext_decrease_right_remove_r H)
 qed
 
-end -- \<open>end of \<open>conflict_driven_clause_learning_ops\<close>\<close>
+end \<comment> \<open>end of \<open>conflict_driven_clause_learning_ops\<close>\<close>
 
 locale conflict_driven_clause_learning =
   conflict_driven_clause_learning_ops +
@@ -1380,6 +1380,16 @@ lemma rtranclp_cdcl_finite_clauses:
   using assms
   by (induction rule: rtranclp_induct) (auto intro: cdcl_finite_clauses rtranclp_cdcl_inv)
 
+definition cdcl_NOT_all_inv where
+"cdcl_NOT_all_inv A S \<longleftrightarrow> (finite A \<and> inv S \<and> atms_of_m (clauses S) \<subseteq> atms_of_m A
+    \<and> atm_of ` lits_of (trail S) \<subseteq> atms_of_m A \<and> no_dup (trail S))"
+
+lemma cdcl_NOT_all_inv:
+  assumes "cdcl\<^sup>*\<^sup>* S T" and "cdcl_NOT_all_inv A S"
+  shows "cdcl_NOT_all_inv A T"
+  using assms unfolding cdcl_NOT_all_inv_def
+  by (simp add: rtranclp_cdcl_inv rtranclp_cdcl_no_dup rtranclp_cdcl_trail_clauses_bound)
+
 abbreviation learn_or_forget where
 "learn_or_forget S T \<equiv> (\<lambda>S T. learn S T \<or> forget S T) S T"
 
@@ -1390,11 +1400,7 @@ lemma learn_or_forget_dpll_\<mu>\<^sub>C:
   assumes
     l_f: "learn_or_forget\<^sup>*\<^sup>* S T" and
     dpll: "dpll_bj T U" and
-    inv: "inv S" and
-    M_A: "atms_of_m (clauses S) \<subseteq> atms_of_m A" and
-    N_A: "atm_of ` lits_of (trail S) \<subseteq> atms_of_m A" and
-    n_d: "no_dup (trail S)" and
-    finite: "finite A"
+    inv: "cdcl_NOT_all_inv A S"
   shows "(2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
       - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight U)
     <  (2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
@@ -1405,32 +1411,24 @@ proof -
     using l_f apply (induction)
      apply simp
     using forget_\<mu>\<^sub>C_stable learn_\<mu>\<^sub>C_stable by presburger
-  moreover have inv': "inv T" using rtranclp_learn_or_forget_cdcl inv l_f rtranclp_cdcl_inv by blast
-  moreover have M_A': "atms_of_m (clauses T) \<subseteq> atms_of_m A"
-    by (meson M_A N_A inv l_f rtranclp_cdcl_trail_clauses_bound rtranclp_learn_or_forget_cdcl)
-  moreover have N_A': "atm_of ` lits_of (trail T) \<subseteq> atms_of_m A"
-    by (meson M_A N_A inv l_f rtranclp_cdcl_trail_clauses_bound rtranclp_learn_or_forget_cdcl)
-  moreover have  n_d: "no_dup (trail T)"
-   using rtranclp_learn_or_forget_cdcl inv l_f n_d rtranclp_cdcl_no_dup by blast
+  moreover have "cdcl_NOT_all_inv A T"
+     using rtranclp_learn_or_forget_cdcl  cdcl_NOT_all_inv  l_f inv by blast
   ultimately show ?thesis
-    using dpll_bj_trail_mes_decreasing_prop[of T U A, OF dpll] finite by linarith
+    using dpll_bj_trail_mes_decreasing_prop[of T U A, OF dpll] finite
+    unfolding cdcl_NOT_all_inv_def by linarith
 qed
 
-lemma
+lemma infinite_cdcl_exists_learn_and_forget_infinite_chain:
   assumes
-    "\<forall>(a,b)\<in>{(f i, f(Suc i))|i. i\<ge>0}. cdcl a b" and
-    inv: "inv (f 0)" and
-    N_A: "atms_of_m (clauses (f 0)) \<subseteq> atms_of_m A" and
-    M_A: "atm_of ` lits_of (trail (f 0)) \<subseteq> atms_of_m A" and
-    n_d: "no_dup (trail (f 0))" and
-    finite: "finite A"
+    "\<And>i. cdcl (f i) (f(Suc i))" and
+    inv: "cdcl_NOT_all_inv A (f 0)"
   shows "\<exists>j. \<forall>i\<ge>j. learn_or_forget (f i) (f (Suc i))"
-  using assms(1-5)
+  using assms
 proof (induction "(2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
     - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight (f 0))"
-    arbitrary: f)
-  case (Suc n) note IH = this(1) and n = this(2) and cdcl = this(3) and inv = this(4) and
-    N_A = this(5) and M_A = this(6) and n_d = this(7)
+    arbitrary: f
+    rule: nat_less_induct_case)
+  case (Suc n) note IH = this(1) and \<mu> = this(2) and cdcl = this(3) and inv = this(4)
   consider
       (dpll_end) "\<exists>j. \<forall>i\<ge>j. learn_or_forget (f i) (f (Suc i))"
     | (dpll_more) "\<not>(\<exists>j. \<forall>i\<ge>j. learn_or_forget (f i) (f (Suc i)))"
@@ -1462,9 +1460,10 @@ proof (induction "(2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
               less_or_eq_imp_le mem_Collect_eq not_le)
           ultimately show ?thesis using that by blast
         qed
-      let ?f = "\<lambda>n. f (n - i)"
-      have "dpll_bj (f i) (f (Suc i))"
-        using \<open>\<not> learn (f i) (f (Suc i)) \<and> \<not> forget (f i) (f (Suc i))\<close> cdcl cdcl.cases by blast
+      def g \<equiv> "\<lambda>n. f (n + Suc i)"
+      have "dpll_bj (f i) (g 0)"
+        using \<open>\<not> learn (f i) (f (Suc i)) \<and> \<not> forget (f i) (f (Suc i))\<close> cdcl cdcl.cases g_def
+        by auto
       {
         fix j
         assume "j \<le> i"
@@ -1476,21 +1475,35 @@ proof (induction "(2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
       }
       hence "learn_or_forget\<^sup>*\<^sup>* (f 0) (f i)" by blast
       hence "(2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
-           - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight (f (Suc i)))
+           - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight (g 0))
         < (2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
           - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight (f 0))"
-        using learn_or_forget_dpll_\<mu>\<^sub>C[of "f 0" "f i" "f (Suc i)" A] inv M_A N_A n_d
-        \<open>dpll_bj (f i) (f (Suc i))\<close> local.finite by linarith
+        using learn_or_forget_dpll_\<mu>\<^sub>C[of "f 0" "f i" "g 0" A] inv \<open>dpll_bj (f i) (g 0)\<close>
+        unfolding cdcl_NOT_all_inv_def by linarith
 
-      moreover have "inv (?f 0)"
-        by (simp add: inv)
-
-      show ?thesis using IH[of ?f]
-    
-(* qed
+      moreover have cdcl_i: "cdcl\<^sup>*\<^sup>* (f 0) (g 0)"
+        using rtranclp_learn_or_forget_cdcl[of "f 0" "f i"] \<open>learn_or_forget\<^sup>*\<^sup>* (f 0) (f i)\<close>
+        cdcl[of i] unfolding g_def by auto
+      moreover have "\<And>i. cdcl (g  i) (g (Suc i))"
+        using cdcl g_def by auto
+      moreover have "cdcl_NOT_all_inv A (g 0)"
+        using inv cdcl_i rtranclp_cdcl_trail_clauses_bound g_def cdcl_NOT_all_inv by auto
+      ultimately obtain j where j: "\<And>i. i\<ge>j \<Longrightarrow> learn_or_forget (g i) (g (Suc i))"
+        using IH unfolding \<mu>[symmetric] by presburger
+      show ?thesis
+        proof
+          {
+            fix k
+            assume "k \<ge> j + Suc i"
+            hence "learn_or_forget (f k) (f (Suc k))"
+              using j[of "k-Suc i"] unfolding g_def by auto
+          }
+          thus "\<forall>k\<ge>j+Suc i. learn_or_forget (f k) (f (Suc k))"
+            by auto
+        qed
+    qed
 next
-  case 0 note H = this(1) and cdcl = this(2) and inv = this(3) and N_A = this(4) and M_A = this(5)
-    and n_d = this(6)
+  case 0 note H = this(1) and cdcl = this(2) and inv = this(3)
   show ?case
     proof (rule ccontr)
       assume "\<not> ?case"
@@ -1528,11 +1541,29 @@ next
       }
       hence "learn_or_forget\<^sup>*\<^sup>* (f 0) (f i)" by blast
 
-      thus False using learn_or_forget_dpll_\<mu>\<^sub>C[of "f 0" "f i" "f (Suc i)" A] inv M_A N_A n_d
-        0 \<open>dpll_bj (f i) (f (Suc i))\<close> local.finite by linarith *)
-  oops
+      thus False
+        using learn_or_forget_dpll_\<mu>\<^sub>C[of "f 0" "f i" "f (Suc i)" A] inv  0
+        \<open>dpll_bj (f i) (f (Suc i))\<close> unfolding cdcl_NOT_all_inv_def by linarith
+    qed
+qed
 
-end -- \<open>end of \<open>conflict_driven_clause_learning\<close>\<close>
+lemma wf_cdcl_no_learn_and_forget_infinite_chain:
+  assumes
+    no_infinite_lf: "\<And>f j. \<not> (\<forall>i\<ge>j. learn_or_forget (f i) (f (Suc i)))"
+  shows "wf {(T, S). cdcl S T \<and> cdcl_NOT_all_inv A S}" (is "wf {(T, S). cdcl S T
+        \<and> ?inv S}")
+  unfolding wf_iff_no_infinite_down_chain
+proof (rule ccontr)
+  assume "\<not> \<not> (\<exists>f. \<forall>i. (f (Suc i), f i) \<in> {(T, S). cdcl S T \<and> ?inv S})"
+  then obtain f where
+    "\<forall>i. cdcl (f i) (f (Suc i)) \<and> ?inv (f i)"
+    by fast
+  hence "\<exists>j. \<forall>i\<ge>j. learn_or_forget (f i) (f (Suc i))"
+   using infinite_cdcl_exists_learn_and_forget_infinite_chain[of f] by meson
+  then show False using no_infinite_lf by blast
+qed
+
+end \<comment> \<open>end of \<open>conflict_driven_clause_learning\<close>\<close>
 
 subsection \<open>Restricting restarts\<close>
 
@@ -1695,7 +1726,7 @@ proof -
       unfolding conflicting_bj_clss_def by auto
     have T: "conflicting_bj_clss T
     \<subseteq> build_all_simple_clss (atms_of_m (clauses T) \<union> atm_of ` lits_of (trail T))"
-      by standard (meson "1" "2" fin'  `finite (conflicting_bj_clss T)` build_all_simple_clss_mono
+      by standard (meson "1" "2" fin'  \<open>finite (conflicting_bj_clss T)\<close> build_all_simple_clss_mono
         distinct_mset_set_def  simplified_in_build_all subsetCE sup.coboundedI1)
   moreover
     hence #: "3 ^ card (atms_of_m (clauses T) \<union> atm_of ` lits_of (trail T))
@@ -1709,8 +1740,8 @@ proof -
   ultimately show ?thesis
     using psubset_card_mono[OF fin_T ]
     unfolding less_than_iff lex_prod_def by clarify
-      (meson `conflicting_bj_clss S \<noteq> conflicting_bj_clss T`
-        `conflicting_bj_clss S \<subseteq> conflicting_bj_clss T`
+      (meson \<open>conflicting_bj_clss S \<noteq> conflicting_bj_clss T\<close>
+        \<open>conflicting_bj_clss S \<subseteq> conflicting_bj_clss T\<close>
         diff_less_mono2 le_less_trans not_le psubsetI)
 qed
 
@@ -2085,7 +2116,7 @@ proof -
     unfolding  \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_def by auto
 qed
 
-end -- \<open>end of \<open>conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt\<close>\<close>
+end \<comment> \<open>end of \<open>conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt\<close>\<close>
 
 section \<open>DPLL with simple backtrack\<close>
 locale dpll_with_backtrack
@@ -2319,6 +2350,16 @@ theorem full0_dpll_normal_forms:
     "finite N"
   shows "unsatisfiable N \<or> (M' \<Turnstile>as N \<and> satisfiable N)"
   using assms full0_dpll_backjump_normal_forms[of "([],N)" "(M', N')" N] by auto
+
+lemma cdcl_is_dpll:
+  "cdcl S T \<longleftrightarrow> dpll_bj S T"
+  by (auto simp: cdcl.simps learn.simps forget.simps)
+
+text \<open>Another proof of termination:\<close>
+lemma "wf {(T, S). dpll_bj S T \<and> cdcl_NOT_all_inv A S}"
+  unfolding cdcl_is_dpll[symmetric]
+  by (rule wf_cdcl_no_learn_and_forget_infinite_chain)
+  (auto simp: learn.simps forget.simps)
 end
 
 section \<open>CDCL with restarts\<close>
@@ -2630,7 +2671,7 @@ proof (rule ccontr)
      apply (metis H f_Suc_not_zero fst_conv full_def le_0_eq relpowp_E2 snd_conv)
     done
   have "strict_mono (\<lambda>j. f (snd (g j)))"
-    by (metis `strict_mono (snd \<circ> g)` comp_def mono_f strict_monoD strict_monoI)
+    by (metis \<open>strict_mono (snd \<circ> g)\<close> comp_def mono_f strict_monoD strict_monoI)
   let ?j = "\<mu>_bound A (fst (g 1)) + 1"
   have "f ?j \<ge> ?j"
     by (simp add: mono_f strict_mono_ge_id)
@@ -2662,7 +2703,7 @@ proof (rule ccontr)
     f_m: "f (snd (g ?j)) \<le> m"
     using H[of "?j"] by blast
   have "?j \<le> m"
-    using f_m \<open>f ?j \<ge> ?j\<close> Nat.le_trans `strict_mono (\<lambda>j. f (snd (g j)))` strict_mono_ge_id by blast
+    using f_m \<open>f ?j \<ge> ?j\<close> Nat.le_trans \<open>strict_mono (\<lambda>j. f (snd (g j)))\<close> strict_mono_ge_id by blast
   thus False
     proof -
       have "\<And>n. bound_inv A (fst (g (n + 1)))"
@@ -2797,7 +2838,7 @@ proof -
          "\<forall>v f L. v \<notin> f ` L \<or> v = f (ll v f L) \<and> ll v f L \<in> L"
          by moura
        thus ?thesis unfolding tr_S
-         by (metis (no_types) `F \<Turnstile>as CNot C'` atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+         by (metis (no_types) \<open>F \<Turnstile>as CNot C'\<close> atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
            atms_of_def in_CNot_implies_uminus(2) mem_set_mset_iff subsetI)
      qed
    hence "atms_of (C' + {#L#}) \<subseteq> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))"

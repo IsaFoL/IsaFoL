@@ -1,5 +1,5 @@
 theory CDCL_CW
-imports Partial_Annotated_Clausal_Logic List_More CDCL_CW_Level Transition
+imports Partial_Annotated_Clausal_Logic List_More CDCL_CW_Level Wf_More
 
 begin
 sledgehammer_params[verbose, e spass cvc4 z3 verit]
@@ -467,6 +467,16 @@ lemma cdcl_o_induct[consumes 1, case_names decided skip resolve backtrack]:
    apply (frule resolveH; simp)
   apply (frule backtrackH; simp)
   done
+
+lemma cdcl_o_rule_cases[consumes 1, case_names decided backtrack skip resolve]:
+  assumes
+    "cdcl_o S T" and
+    "decided S T \<Longrightarrow> P" and
+    "backtrack S T \<Longrightarrow> P" and
+    "skip S T \<Longrightarrow> P" and
+    "resolve S T \<Longrightarrow> P"
+  shows P
+  using assms by (auto simp: cdcl_o.simps cdcl_bj.simps)
 
 lemma level_of_marked_ge_1:
   assumes "cdcl S S'"
@@ -1586,7 +1596,7 @@ definition "termination_cdcl_state (S:: 'st)
      \<or> ((\<forall>L \<in> atms_of_m (init_clss S). L \<in> atm_of ` lits_of (trail S))
         \<and> (\<exists>C \<in> init_clss S. trail S \<Turnstile>as CNot C)))"
 
-(* subsection \<open>CDCL Strong Completeness\<close>
+subsection \<open>CDCL Strong Completeness\<close>
 fun mapi :: "('a \<Rightarrow> nat \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> 'b list" where
 "mapi _ _ [] = []" |
 "mapi f n (x # xs) = f x n # mapi f (n - 1) xs"
@@ -1606,42 +1616,50 @@ lemma cdcl_can_do_step:
     "state S = (mapi Marked (length M) M, N, {}, length M, C_True)"
   shows "rtranclp cdcl (init_state N) S"
   using assms
-proof (induct M)
+proof (induct M arbitrary: S)
   case Nil
   hence "S = init_state N"
     by (auto simp: st_equal)
   thus ?case  by auto
 next
-  case (Cons L M)
-  let ?S' = "cons_trail (Marked L (length (L#M))) (incr_lvl S)"
+  case (Cons L M) note IH = this(1) and fin = this(5) and S = this(6)
+  let ?S\<^sub>0 = "update_backtrack_lvl (length M) (tl_trail S)"
+  have S\<^sub>0: "state ?S\<^sub>0 = (mapi Marked (length M) M, N, {}, length M, C_True)"
+    using S by auto
+  have S\<^sub>0_S:
+    "S =
+      (cons_trail (Marked L (length M + 1)) (incr_lvl (update_backtrack_lvl (length M) (tl_trail S))))"
+    using S by (auto simp:st_equal)
   have "undefined_lit L (mapi Marked (length M) M)"
     using Cons.prems(1,2) unfolding defined_lit_def consistent_interp_def by fastforce
-  moreover have "clauses S = N"
-    using assms(5) clauses_def by blast
+  moreover have "init_clss S = N"
+    using Cons(6) clauses_def by blast
   moreover have "atm_of L \<in> atms_of_m N" using Cons.prems(3) by auto
-  ultimately have "cdcl S ?S'" using cdcl.other[OF cdcl_o.decided[OF deciding[OF Cons(6), of L]]]
-  Cons(6) by auto
+  ultimately have "cdcl ?S\<^sub>0 S"
+    using cdcl.other[OF cdcl_o.decided[OF deciding[OF S\<^sub>0, of L]]] S\<^sub>0_S by auto
   moreover have "consistent_interp (set M)" and "distinct M" and "atm_of ` set M \<subseteq> atms_of_m N"
     using Cons.prems(1-3) unfolding consistent_interp_def by auto
-  ultimately show ?case using Cons.hyps(1) by aut o
+  ultimately show ?case using IH[of ?S\<^sub>0] fin S by auto
 qed
 
 lemma cdcl_strong_completeness:
-  assumes "set M \<Turnstile>s N"
-  and "consistent_interp (set M)"
-  and "distinct M"
-  and "atm_of ` (set M) \<subseteq> atms_of_m N"
-  shows "rtranclp cdcl (init_state N) (mapi Marked (length M) M, N, {}, length M, C_True)"
-  and "final_cdcl_state (mapi Marked (length M) M, N, {}, length M, C_True)"
+  assumes
+    "set M \<Turnstile>s N" and
+    "consistent_interp (set M)" and
+    "distinct M" and
+    "atm_of ` (set M) \<subseteq> atms_of_m N" and
+    fin[simp]: "finite N" and
+    S: "state S = (mapi Marked (length M) M, N, {}, length M, C_True)"
+  shows "rtranclp cdcl (init_state N) S" and "final_cdcl_state S"
 proof -
-  show "rtranclp cdcl (S0_cdcl N) (mapi Marked (length M) M, N, {}, length M, C_True)"
+  show "rtranclp cdcl (init_state N) S"
     using cdcl_can_do_step assms by auto
   have "lits_of (mapi Marked (length M) M) = set M"
     by (induct M, auto)
   hence "mapi Marked (length M) M \<Turnstile>as N" using assms(1) true_annots_true_cls by metis
-  thus "final_cdcl_state (mapi Marked (length M) M, N, {}, length M, C_True)"
-    unfolding final_cdcl_state_def by auto
-qed *)
+  thus "final_cdcl_state S"
+    using S unfolding final_cdcl_state_def by auto
+qed
 
 subsection \<open>Higher level strategy\<close>
 subsubsection \<open>Definition\<close>
@@ -1677,7 +1695,7 @@ lemma no_propagate_after_conflict:
   "conflict S T \<Longrightarrow> \<not>propagate T U"
   by (auto elim!: conflictE)
 
-lemma rtranclp_cdcl_cp_propagate_with_conflict_or_not:
+lemma tranclp_cdcl_cp_propagate_with_conflict_or_not:
   assumes "cdcl_cp\<^sup>+\<^sup>+ S U"
   shows "(propagate\<^sup>+\<^sup>+ S U \<and> conflicting U = C_True)
     \<or> (\<exists>T D. propagate\<^sup>*\<^sup>* S T \<and> conflict T U \<and> conflicting U = C_Clause D)"
@@ -2106,7 +2124,7 @@ proof (intro allI impI)
             (C_True::'v literal multiset conflicting_clause)"
             by auto
           thus ?thesis
-            using f5 that rtranclp_cdcl_cp_propagate_with_conflict_or_not[OF \<open>cdcl_cp\<^sup>+\<^sup>+ S U\<close>]
+            using f5 that tranclp_cdcl_cp_propagate_with_conflict_or_not[OF \<open>cdcl_cp\<^sup>+\<^sup>+ S U\<close>]
             full confl CT unfolding full0_def by auto
         qed
       have "init_clss T = init_clss S" and "learned_clss T = learned_clss S"

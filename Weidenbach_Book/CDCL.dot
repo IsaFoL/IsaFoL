@@ -1,7 +1,7 @@
 //dot -o CDCL.pdf -Tpdf CDCL.dot
-digraph CDCL {
+Digraph CDCL {
 	rankdir=BT;
-	graph [label="Plan of Actionn\n\n", labelloc=t; labeljust=center, fontname=Helvetica, fontsize=18];
+	graph [label="Plan of Action\n\n", labelloc=t; labeljust=center, fontname=Helvetica, fontsize=18];
 	minlen=100;
 	
 	newrank=true;
@@ -34,7 +34,6 @@ digraph CDCL {
   		label="Intermediate W";
   		style=filled;
   		color=lightgrey;
-  		CDCL_W_min_backtrack_restart [label="CDCL W min_backtrack + restart", color=blue];
   		CDCL_W_min_backtrack [label="CDCL W min_backtrack", color=blue];
   		CDCL_W_min_backtrack_stgy_conflict_propagate [label="CDCL W min_backtrack + stgy conflict propagate"];
   	}
@@ -61,7 +60,7 @@ digraph CDCL {
 	CDCL_FW_simplify_stgy_conflict_propagate -> CDCL_FW_stgy_conflict_propagate_simplify_restart[style=dashed, color=red];
 
 
-	subgraph cluster_cw {
+	subgraph cluster_w {
 		label="W";
 		style=filled;
 		color=lightgrey;
@@ -72,14 +71,13 @@ digraph CDCL {
 	CDCL_W -> CDCL_W_forget_restart[color=red, style=dashed];
 	CDCL_W_stgy_conflict_propagate -> CDCL_W_forget_restart[style=dashed];
 	CDCL_W_stgy_conflict_propagate -> CDCL_W[color=red];
-	CDCL_W_min_backtrack_restart -> CDCL_FW_forget_restart[style=dotted, color=blue, dir="both"];
+	CDCL_W_forget_restart -> CDCL_FW_forget_restart[style=dotted, dir="both"];
 
 	CDCL_W_min_backtrack -> CDCL_FW[style=dotted, dir="both", color=blue];
 	CDCL_W_min_backtrack -> CDCL_W[style=dotted, dir="both", color=blue];
 
 	CDCL_W_min_backtrack_stgy_conflict_propagate -> CDCL_W_stgy_conflict_propagate[style=dotted, dir="both"];
 	CDCL_W_min_backtrack_stgy_conflict_propagate -> CDCL_FW_stgy_conflict_propagate[style=dotted, dir="both", color=red];
-	CDCL_W_forget_restart -> CDCL_W_min_backtrack_restart[style=dotted, dir="both",color=blue];
 	CDCL_FW_simplify_stgy_conflict_propagate -> CDCL_FW_forget[style=dashed, color = red];
 	
 
@@ -105,7 +103,6 @@ digraph CDCL {
 	{rank=same;
 		CDCL_W_forget_restart;
 		CDCL_FW_forget_restart;
-		CDCL_W_min_backtrack_restart;
 		
 	}
 

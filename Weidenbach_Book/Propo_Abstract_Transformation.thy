@@ -1,6 +1,5 @@
 theory Propo_Abstract_Transformation
-imports Main(* "~~/src/HOL/Library/LaTeXsugar" "~~/src/HOL/Library/OptionalSugar"*) Propo_Logic
-  Transition
+imports Main Propo_Logic Wf_More
 
 begin
 
