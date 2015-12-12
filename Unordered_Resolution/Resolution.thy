@@ -864,7 +864,7 @@ fun falsifiesl :: "partial_pred_denot \<Rightarrow> substitution \<Rightarrow> f
       i < length G
       \<and> G ! i = False
       \<and> diag_fatom i = Pos p ts'
-      \<and> ts' = ts{\<sigma>}\<^sub>t\<^sub>s)"
+      \<and> ts' = ts{\<sigma>}\<^sub>t\<^sub>s)" (* This line is kind of weird. We don't need the ts' at all, just replace it with ts{\<sigma>}\<^sub>t\<^sub>s *)
 | "falsifiesl G \<sigma> (Neg p ts) = 
      (\<exists>i ts'.  
       i < length G
@@ -883,19 +883,47 @@ Third for fol-clauses - has ground instance that is falsified
 abbreviation falsifiescs :: "partial_pred_denot \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "falsifiescs G Cs \<equiv> (\<exists>C \<in> Cs. falsifiesc G C)"
 
-(*
+
 lemma falsifies_ground:
   assumes "falsifiesl G \<sigma> l"
-  shows "\<exists>l'. instance_ofl l' l  \<and> falsifiesl G l' \<and> groundl l'"
+  shows "falsifiesl G \<tau> (l{\<sigma>}\<^sub>l) \<and> groundl (l{\<sigma>}\<^sub>l)"
+sorry
+
+(*
+proof -
+  let ?p = "get_pred l"
+  let ?ts = "get_terms l"
+
+  from assms have "\<exists>i. diag_fatom i = Pos ?p (?ts{\<sigma>}\<^sub>t\<^sub>s)" by (cases l) auto
+  (* Since it comes out of diag_fatom it must be ground *)
+  have groundts: "grounds (?ts{\<sigma>}\<^sub>t\<^sub>s)" sorry
+  then have "groundl (l{\<sigma>}\<^sub>l)" by (cases l) auto
+  moreover
+  have "falsifiesl G \<tau> (l{\<sigma>}\<^sub>l)"
+    proof (cases l)
+      case (Pos p ts)
+      then have "\<exists>i ts'.  
+      i < length G
+      \<and> G ! i = False
+      \<and> diag_fatom i = Pos p ts'
+      \<and> ts' = ts{\<sigma>}\<^sub>t\<^sub>s" using assms by auto
+      moreover
+      from groundts have "grounds ts" using Pos sorry
+      ultimately have "?thesis" using ground_subs[of ts \<sigma>]  ground_subs[of "ts{\<sigma>}\<^sub>t\<^sub>s" \<tau>] by auto
+  ultimately
+  show ?thesis by auto
+qed
+
+.
 proof (cases l)
   fix p ts
   assume lp: "l = Pos p ts"
-  have "falsifiesl G l" using assms by auto
+  have "falsifiesl G \<sigma> l" using assms by auto
   then obtain i ts' where its'_p:
       "i < length G
       \<and> G ! i = False
       \<and> diag_fatom i = Pos p ts'
-      \<and> instance_ofts ts' ts" using lp by auto
+      \<and> ts' = ts {\<sigma>}\<^sub>t\<^sub>s" using lp by auto
   then have "instance_ofl (Pos p ts') l " unfolding instance_ofl_def instance_ofts_def using lp by auto
   moreover 
   have "falsifiesl G (Pos p ts')" using instance_ofts_self its'_p by auto
@@ -921,7 +949,7 @@ next
 qed
 *)
 
-(*
+
 lemma falsifiesc_ground:
   assumes "falsifiesc G C"
   shows "\<exists>C'. instance_ofls C' C  \<and> falsifiesc G C' \<and> groundls C'"
@@ -952,7 +980,7 @@ proof -
   have "groundls ?C'" using lol by auto
   ultimately show ?thesis by blast
 oops
-*)
+
 
 lemma ground_falsifies:
   assumes "groundl l"
