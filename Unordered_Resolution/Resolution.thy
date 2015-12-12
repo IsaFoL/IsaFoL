@@ -887,16 +887,14 @@ abbreviation falsifiescs :: "partial_pred_denot \<Rightarrow> fterm clause set \
 lemma falsifies_ground:
   assumes "falsifiesl G \<sigma> l"
   shows "falsifiesl G \<tau> (l{\<sigma>}\<^sub>l) \<and> groundl (l{\<sigma>}\<^sub>l)"
-sorry
-
-(*
 proof -
   let ?p = "get_pred l"
   let ?ts = "get_terms l"
 
   from assms have "\<exists>i. diag_fatom i = Pos ?p (?ts{\<sigma>}\<^sub>t\<^sub>s)" by (cases l) auto
   (* Since it comes out of diag_fatom it must be ground *)
-  have groundts: "grounds (?ts{\<sigma>}\<^sub>t\<^sub>s)" sorry
+  then have "groundl (Pos ?p (?ts{\<sigma>}\<^sub>t\<^sub>s))" using diag_ground by metis
+  then have groundts: "grounds (?ts{\<sigma>}\<^sub>t\<^sub>s)" by auto
   then have "groundl (l{\<sigma>}\<^sub>l)" by (cases l) auto
   moreover
   have "falsifiesl G \<tau> (l{\<sigma>}\<^sub>l)"
@@ -908,47 +906,32 @@ proof -
       \<and> diag_fatom i = Pos p ts'
       \<and> ts' = ts{\<sigma>}\<^sub>t\<^sub>s" using assms by auto
       moreover
-      from groundts have "grounds ts" using Pos sorry
-      ultimately have "?thesis" using ground_subs[of ts \<sigma>]  ground_subs[of "ts{\<sigma>}\<^sub>t\<^sub>s" \<tau>] by auto
+      from groundts have "grounds (ts {\<sigma>}\<^sub>t\<^sub>s)" using Pos by auto
+      ultimately have "\<exists>i ts'.  
+      i < length G
+      \<and> G ! i = False
+      \<and> diag_fatom i = Pos p ts'
+      \<and> ts' = (ts {\<sigma>}\<^sub>t\<^sub>s){\<tau>}\<^sub>t\<^sub>s" using ground_subs[of ts \<sigma>] ground_subs[of "ts{\<sigma>}\<^sub>t\<^sub>s" \<tau>] by auto
+      then show "?thesis" using Pos by auto
+    next
+      case (Neg p ts)
+      then have "\<exists>i ts'.  
+      i < length G
+      \<and> G ! i = True
+      \<and> diag_fatom i = Pos p ts'
+      \<and> ts' = ts{\<sigma>}\<^sub>t\<^sub>s" using assms by auto
+      moreover
+      from groundts have "grounds (ts {\<sigma>}\<^sub>t\<^sub>s)" using Neg by auto
+      ultimately have "\<exists>i ts'.  
+      i < length G
+      \<and> G ! i = True
+      \<and> diag_fatom i = Pos p ts'
+      \<and> ts' = (ts {\<sigma>}\<^sub>t\<^sub>s){\<tau>}\<^sub>t\<^sub>s" using ground_subs[of ts \<sigma>] ground_subs[of "ts{\<sigma>}\<^sub>t\<^sub>s" \<tau>] by auto
+      then show "?thesis" using Neg by auto
+    qed
   ultimately
   show ?thesis by auto
 qed
-
-.
-proof (cases l)
-  fix p ts
-  assume lp: "l = Pos p ts"
-  have "falsifiesl G \<sigma> l" using assms by auto
-  then obtain i ts' where its'_p:
-      "i < length G
-      \<and> G ! i = False
-      \<and> diag_fatom i = Pos p ts'
-      \<and> ts' = ts {\<sigma>}\<^sub>t\<^sub>s" using lp by auto
-  then have "instance_ofl (Pos p ts') l " unfolding instance_ofl_def instance_ofts_def using lp by auto
-  moreover 
-  have "falsifiesl G (Pos p ts')" using instance_ofts_self its'_p by auto
-  moreover
-  have "groundl (Pos p ts')" using its'_p diag_ground[of i] by auto
-  ultimately show "\<exists>l'. instance_ofl l' l \<and> falsifiesl G l' \<and> groundl l'" by blast
-next
-  fix p ts
-  assume lp: "l = Neg p ts"
-  have "falsifiesl G l" using assms by auto
-  then obtain i ts' where its'_p:
-      "i < length G
-      \<and> G ! i = True
-      \<and> diag_fatom i = Pos p ts'
-      \<and> instance_ofts ts' ts" using lp by auto
-  then have "instance_ofl (Neg p ts') l " unfolding instance_ofl_def instance_ofts_def using lp by auto
-  moreover 
-  have "falsifiesl G (Neg p ts')" using instance_ofts_self its'_p by auto
-  moreover
-  have "groundl (Pos p ts')" using its'_p diag_ground[of i] by auto
-  then have "groundl (Neg p ts')" by auto
-  ultimately show "\<exists>l'. instance_ofl l' l \<and> falsifiesl G l' \<and> groundl l'" by blast
-qed
-*)
-
 
 lemma falsifiesc_ground:
   assumes "falsifiesc G C"
@@ -957,9 +940,11 @@ proof -
   thm someI_ex
 
   from assms have "(\<exists>\<sigma>. \<forall>l \<in> C. falsifiesl G \<sigma> l)" by auto
-  then obtain \<sigma> where "\<forall>l \<in> C. falsifiesl G \<sigma> l" by auto
+  then obtain \<sigma> where \<sigma>_p: "\<forall>l \<in> C. falsifiesl G \<sigma> l" by auto
   let ?convert = "\<lambda>l. subl l \<sigma>"
   let ?C' = "?convert ` C"
+
+  thm falsifies_ground
 
   (**
   IMPORTANT NOTE: WHAT DOES \<sigma> HAVE TO DO WITH BEING GROUND? WELL IT
@@ -973,14 +958,25 @@ proof -
   then have "instance_ofls ?C' C" unfolding instance_ofls_def by auto
    (* This does not hold since they might be instances with different substitution *)
   moreover
-  have "\<forall>l\<in>C. falsifiesl G \<sigma> (?convert l)" sorry
+  have "\<forall>l\<in>C. falsifiesl G \<sigma> (?convert l)" using falsifies_ground \<sigma>_p by auto
   then have "falsifiesc G ?C'" by auto
   moreover
-  have lol: "\<forall>l\<in>C. groundl (?convert l)" using assms by auto
+  have lol: "\<forall>l\<in>C. groundl (?convert l)" using falsifies_ground \<sigma>_p by auto
   have "groundls ?C'" using lol by auto
   ultimately show ?thesis by blast
-oops
+qed
 
+lemma ground_falsifiesc:
+  assumes "groundls C"
+  assumes "falsifiesc G C"
+  shows "\<forall>\<sigma>. \<forall>l\<in>C. falsifiesl G \<sigma> l"
+proof (rule; rule)
+  fix \<sigma> l
+  assume lC: "l\<in>C"
+  from assms obtain \<tau> where "\<forall>l \<in> C. falsifiesl G \<tau> l" by auto
+  then show "falsifiesl G \<sigma> l" using falsifies_ground assms lC groundl_subs by metis
+qed
+  
 
 lemma ground_falsifies:
   assumes "groundl l"
@@ -1525,13 +1521,17 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     let ?B2 = "B@[False]"                                       
 
     have "\<exists>C1 \<in> Cs. falsifiesc ?B1 C1" using b_p clo by auto (* "Re-formulation" of below line *)
-    then obtain C1 where C1_p: "C1 \<in> Cs \<and>falsifiesc ?B1 C1" by auto
-    then have "\<exists>C1'. groundls C1' \<and> instance_ofls C1' C1 \<and> falsifiesc ?B1 C1'" sorry
+    then obtain C1  where C1_p:  "C1 \<in> Cs \<and>falsifiesc ?B1 C1" by auto
+    then have "\<exists>C1'. groundls C1' \<and> instance_ofls C1' C1 \<and> falsifiesc ?B1 C1'" 
+      using falsifiesc_ground[of C1 ?B1] by metis
+    then obtain C1' where C1'_p: "groundls C1' \<and> instance_ofls C1' C1 \<and> falsifiesc ?B1 C1'" by auto
+ 
     (* Her SKAL! vi alstå ned i ground verdenen *)
 
     have "\<exists>C2 \<in> Cs. falsifiesc ?B2 C2" using b_p clo by auto (* "Re-formulation" of below line *)
     then obtain C2 where C2_p: "C2 \<in> Cs \<and> falsifiesc ?B2 C2" by auto
-    then have "\<exists>C2'. groundls C2' \<and> instance_ofls C2' C1 \<and> falsifiesc ?B1 C2'" sorry
+    then have "\<exists>C2'. groundls C2' \<and> instance_ofls C2' C2 \<and> falsifiesc ?B2 C2'"
+      using falsifiesc_ground[of C2 ?B2] by metis
     (* Her SKAL! vi alstå ned i ground verdenen *)
     
  
