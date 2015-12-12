@@ -206,11 +206,14 @@ apply (induction t)
 apply (auto simp add: map_idI)
 done
 
-lemma empty_subts: "(ts :: fterm list){\<epsilon>}\<^sub>t\<^sub>s = ts" 
+lemma empty_subts: "ts {\<epsilon>}\<^sub>t\<^sub>s = ts" 
 using empty_subt by auto
 
-lemma empty_subl: "(l :: fterm literal){\<epsilon>}\<^sub>l = l" 
+lemma empty_subl: "l {\<epsilon>}\<^sub>l = l" 
 using empty_subts by (cases l) auto
+
+lemma empty_subls: "L {\<epsilon>}\<^sub>l\<^sub>s = L" 
+using empty_subl by auto
 
 lemma instance_oft_self: "instance_oft t t"
 unfolding instance_oft_def
@@ -228,6 +231,12 @@ lemma instance_ofl_self: "instance_ofl l l"
 unfolding instance_ofl_def
 proof 
   show "l = l{\<epsilon>}\<^sub>l" using empty_subl by auto
+qed
+
+lemma instance_ofls_self: "instance_ofls L L"
+unfolding instance_ofls_def
+proof
+  show "L = L{\<epsilon>}\<^sub>l\<^sub>s" using empty_subls by auto
 qed
 
 subsection {* Substitutions and Ground Terms *}
@@ -316,6 +325,21 @@ proof
   show "(\<epsilon> \<cdot> \<sigma>) x = \<sigma> x" unfolding composition_def by simp
 qed
 
+lemma instance_oft_trans : 
+  assumes t\<^sub>1\<^sub>2: "instance_oft t\<^sub>1 t\<^sub>2"
+  assumes t\<^sub>2\<^sub>3: "instance_oft t\<^sub>2 t\<^sub>3"
+  shows "instance_oft t\<^sub>1 t\<^sub>3"
+proof -
+  from t\<^sub>1\<^sub>2 obtain \<sigma>\<^sub>1\<^sub>2 where "t\<^sub>1 = t\<^sub>2 {\<sigma>\<^sub>1\<^sub>2}\<^sub>t" 
+    unfolding instance_oft_def by auto
+  moreover
+  from t\<^sub>2\<^sub>3 obtain \<sigma>\<^sub>2\<^sub>3 where "t\<^sub>2 = t\<^sub>3 {\<sigma>\<^sub>2\<^sub>3}\<^sub>t" 
+    unfolding instance_oft_def by auto
+  ultimately
+  have "t\<^sub>1 = t\<^sub>3 {\<sigma>\<^sub>2\<^sub>3}\<^sub>t {\<sigma>\<^sub>1\<^sub>2}\<^sub>t" by auto
+  then have "t\<^sub>1 = t\<^sub>3 {\<sigma>\<^sub>2\<^sub>3 \<cdot> \<sigma>\<^sub>1\<^sub>2}\<^sub>t" using composition_conseq2t by simp
+  then show ?thesis unfolding instance_oft_def by auto
+qed
 
 lemma instance_ofts_trans : 
   assumes ts\<^sub>1\<^sub>2: "instance_ofts ts\<^sub>1 ts\<^sub>2"
@@ -332,6 +356,40 @@ proof -
   then have "ts\<^sub>1 = ts\<^sub>3 {\<sigma>\<^sub>2\<^sub>3 \<cdot> \<sigma>\<^sub>1\<^sub>2}\<^sub>t\<^sub>s" using composition_conseq2ts by simp
   then show ?thesis unfolding instance_ofts_def by auto
 qed
+
+lemma instance_ofl_trans : 
+  assumes l\<^sub>1\<^sub>2: "instance_ofl l\<^sub>1 l\<^sub>2"
+  assumes l\<^sub>2\<^sub>3: "instance_ofl l\<^sub>2 l\<^sub>3"
+  shows "instance_ofl l\<^sub>1 l\<^sub>3"
+proof -
+  from l\<^sub>1\<^sub>2 obtain \<sigma>\<^sub>1\<^sub>2 where "l\<^sub>1 = l\<^sub>2 {\<sigma>\<^sub>1\<^sub>2}\<^sub>l" 
+    unfolding instance_ofl_def by auto
+  moreover
+  from l\<^sub>2\<^sub>3 obtain \<sigma>\<^sub>2\<^sub>3 where "l\<^sub>2 = l\<^sub>3 {\<sigma>\<^sub>2\<^sub>3}\<^sub>l" 
+    unfolding instance_ofl_def by auto
+  ultimately
+  have "l\<^sub>1 = l\<^sub>3 {\<sigma>\<^sub>2\<^sub>3}\<^sub>l {\<sigma>\<^sub>1\<^sub>2}\<^sub>l" by auto
+  then have "l\<^sub>1 = l\<^sub>3 {\<sigma>\<^sub>2\<^sub>3 \<cdot> \<sigma>\<^sub>1\<^sub>2}\<^sub>l" using composition_conseq2l by simp
+  then show ?thesis unfolding instance_ofl_def by auto
+qed
+
+lemma instance_ofls_trans : 
+  assumes L\<^sub>1\<^sub>2: "instance_ofls L\<^sub>1 L\<^sub>2"
+  assumes L\<^sub>2\<^sub>3: "instance_ofls L\<^sub>2 L\<^sub>3"
+  shows "instance_ofls L\<^sub>1 L\<^sub>3"
+proof -
+  from L\<^sub>1\<^sub>2 obtain \<sigma>\<^sub>1\<^sub>2 where "L\<^sub>1 = L\<^sub>2 {\<sigma>\<^sub>1\<^sub>2}\<^sub>l\<^sub>s" 
+    unfolding instance_ofls_def by auto
+  moreover
+  from L\<^sub>2\<^sub>3 obtain \<sigma>\<^sub>2\<^sub>3 where "L\<^sub>2 = L\<^sub>3 {\<sigma>\<^sub>2\<^sub>3}\<^sub>l\<^sub>s" 
+    unfolding instance_ofls_def by auto
+  ultimately
+  have "L\<^sub>1 = L\<^sub>3 {\<sigma>\<^sub>2\<^sub>3}\<^sub>l\<^sub>s {\<sigma>\<^sub>1\<^sub>2}\<^sub>l\<^sub>s" by auto
+  then have "L\<^sub>1 = L\<^sub>3 {\<sigma>\<^sub>2\<^sub>3 \<cdot> \<sigma>\<^sub>1\<^sub>2}\<^sub>l\<^sub>s" using composition_conseq2ls by simp
+  then show ?thesis unfolding instance_ofls_def by auto
+qed
+
+
 
 subsection {* Merging substitutions *}
 lemma project_sub:
@@ -858,20 +916,25 @@ type_synonym partial_pred_denot = "bool list"
 (* This definition is quite syntactical. I think that's good though.
    Alternative: Check if an instance is in list. If not return true.
    Otherwise, build an interpretation from the partial interpretation *)
-fun falsifiesl :: "partial_pred_denot \<Rightarrow> substitution \<Rightarrow> fterm literal \<Rightarrow> bool" where
-  "falsifiesl G \<sigma> (Pos p ts) = 
+
+(* Only ground literals can be falsified *)
+fun falsifiesl :: "partial_pred_denot \<Rightarrow> fterm literal \<Rightarrow> bool" where
+  "falsifiesl G (Pos p ts) = 
      (\<exists>i.  
       i < length G
       \<and> G ! i = False
-      \<and> diag_fatom i = Pos p (ts{\<sigma>}\<^sub>t\<^sub>s))"
-| "falsifiesl G \<sigma> (Neg p ts) = 
+      \<and> diag_fatom i = Pos p ts)"
+| "falsifiesl G (Neg p ts) = 
      (\<exists>i.  
       i < length G
       \<and> G ! i = True
-      \<and> diag_fatom i = Pos p (ts{\<sigma>}\<^sub>t\<^sub>s))"
+      \<and> diag_fatom i = Pos p ts)"
+
+abbreviation falsifiesg :: "partial_pred_denot \<Rightarrow> fterm clause \<Rightarrow> bool" where
+  "falsifiesg G C \<equiv> (\<forall>l \<in> C. falsifiesl G l)"
 
 abbreviation falsifiesc :: "partial_pred_denot \<Rightarrow> fterm clause \<Rightarrow> bool" where
-  "falsifiesc G C \<equiv> (\<exists>\<sigma>. \<forall>l \<in> C. falsifiesl G \<sigma> l)"
+  "falsifiesc G C \<equiv> (\<exists>C'. instance_ofls C' C \<and> falsifiesg G C')"
 (*A perhaps better definition:
 First  we define it for groundliterals. We dont need the substitution since they are ground.
 Second we define it for groundclauses - all ground literals must be falsified.
@@ -881,126 +944,56 @@ Third for fol-clauses - has ground instance that is falsified
 abbreviation falsifiescs :: "partial_pred_denot \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "falsifiescs G Cs \<equiv> (\<exists>C \<in> Cs. falsifiesc G C)"
 
-
 lemma falsifies_ground:
-  assumes "falsifiesl G \<sigma> l"
-  shows "falsifiesl G \<tau> (l{\<sigma>}\<^sub>l) \<and> groundl (l{\<sigma>}\<^sub>l)"
-proof -
-  let ?p = "get_pred l"
-  let ?ts = "get_terms l"
+  assumes "falsifiesl G l"
+  shows "groundl l"
+proof (cases l)
+  case (Pos p ts) 
+  then have "\<exists>i. diag_fatom i = Pos p ts" using assms by auto
+  then show ?thesis using diag_ground Pos by metis
+next
+  case (Neg p ts) 
+  then have "\<exists>i. diag_fatom i = Pos p ts" using assms by auto
+  then have "groundl (Pos p ts)" using diag_ground Neg by metis
+  then show ?thesis using Neg by auto
+qed 
 
-  from assms have "\<exists>i. diag_fatom i = Pos ?p (?ts{\<sigma>}\<^sub>t\<^sub>s)" by (cases l) auto
-  (* Since it comes out of diag_fatom it must be ground *)
-  then have "groundl (Pos ?p (?ts{\<sigma>}\<^sub>t\<^sub>s))" using diag_ground by metis
-  then have groundts: "grounds (?ts{\<sigma>}\<^sub>t\<^sub>s)" by auto
-  then have "groundl (l{\<sigma>}\<^sub>l)" by (cases l) auto
-  moreover
-  have "falsifiesl G \<tau> (l{\<sigma>}\<^sub>l)"
-    proof (cases l)
-      case (Pos p ts)
-      then have "\<exists>i.  
-      i < length G
-      \<and> G ! i = False
-      \<and> diag_fatom i = Pos p (ts{\<sigma>}\<^sub>t\<^sub>s)" using assms by auto
-      moreover
-      from groundts have "grounds (ts {\<sigma>}\<^sub>t\<^sub>s)" using Pos by auto
-      ultimately have "\<exists>i.  
-      i < length G
-      \<and> G ! i = False
-      \<and> diag_fatom i = Pos p ((ts {\<sigma>}\<^sub>t\<^sub>s){\<tau>}\<^sub>t\<^sub>s)" using ground_subs[of ts \<sigma>] ground_subs[of "ts{\<sigma>}\<^sub>t\<^sub>s" \<tau>] by auto
-      then show "?thesis" using Pos by auto
-    next
-      case (Neg p ts)
-      then have "\<exists>i.  
-      i < length G
-      \<and> G ! i = True
-      \<and> diag_fatom i = Pos p (ts{\<sigma>}\<^sub>t\<^sub>s)" using assms by auto
-      moreover
-      from groundts have "grounds (ts {\<sigma>}\<^sub>t\<^sub>s)" using Neg by auto
-      ultimately have "\<exists>i.  
-      i < length G
-      \<and> G ! i = True
-      \<and> diag_fatom i = Pos p ((ts {\<sigma>}\<^sub>t\<^sub>s){\<tau>}\<^sub>t\<^sub>s)" using ground_subs[of ts \<sigma>] ground_subs[of "ts{\<sigma>}\<^sub>t\<^sub>s" \<tau>] by auto
-      then show "?thesis" using Neg by auto
-    qed
-  ultimately
-  show ?thesis by auto
+lemma falsifies_ground_sub: (* This lemma seems quite pointless *)
+  assumes "falsifiesl G l"
+  shows "falsifiesl G (l{\<sigma>}\<^sub>l) \<and> groundl (l{\<sigma>}\<^sub>l)"
+proof -
+  from assms have "falsifiesl G (l) \<and> groundl (l)" using falsifies_ground by auto
+  then show ?thesis using groundl_subs by auto
 qed
 
 lemma falsifiesc_ground:
   assumes "falsifiesc G C"
-  shows "\<exists>C'. instance_ofls C' C  \<and> falsifiesc G C' \<and> groundls C'"
+  shows "\<exists>C'. instance_ofls C' C \<and> falsifiesc G C' \<and> groundls C'"
 proof -
-  thm someI_ex
-
-  from assms have "(\<exists>\<sigma>. \<forall>l \<in> C. falsifiesl G \<sigma> l)" by auto
-  then obtain \<sigma> where \<sigma>_p: "\<forall>l \<in> C. falsifiesl G \<sigma> l" by auto
-  let ?convert = "\<lambda>l. subl l \<sigma>"
-  let ?C' = "?convert ` C"
-
-  thm falsifies_ground
-
-  (**
-  IMPORTANT NOTE: WHAT DOES \<sigma> HAVE TO DO WITH BEING GROUND? WELL IT
-  NEEDS TO SEND ALL OF C INTO GROUND LITERALS THAT CAN BE FALSIFIED.
-  **)
-   
-  
-   (* assms falsifies_ground[of G] by blast *)
-
-  have "\<forall>l\<in>C. instance_ofl (?convert l) l" unfolding instance_ofl_def by auto
-  then have "instance_ofls ?C' C" unfolding instance_ofls_def by auto
-   (* This does not hold since they might be instances with different substitution *)
+  from assms obtain C' where C'_p: "instance_ofls C' C \<and> falsifiesg G C'" by auto
   moreover
-  have "\<forall>l\<in>C. falsifiesl G \<sigma> (?convert l)" using falsifies_ground \<sigma>_p by auto
-  then have "falsifiesc G ?C'" by auto
+  then have "\<forall>l \<in> C'. falsifiesl G l" by auto
+  then have "\<forall>l \<in> C'. groundl l" using falsifies_ground by auto
+  then have "groundls C'" by auto
   moreover
-  have lol: "\<forall>l\<in>C. groundl (?convert l)" using falsifies_ground \<sigma>_p by auto
-  have "groundls ?C'" using lol by auto
-  ultimately show ?thesis by blast
-qed
-
-lemma ground_falsifiesc:
-  assumes "groundls C"
-  assumes "falsifiesc G C"
-  shows "\<forall>\<sigma>. \<forall>l\<in>C. falsifiesl G \<sigma> l"
-proof (rule; rule)
-  fix \<sigma> l
-  assume lC: "l\<in>C"
-  from assms obtain \<tau> where "\<forall>l \<in> C. falsifiesl G \<tau> l" by auto
-  then show "falsifiesl G \<sigma> l" using falsifies_ground assms lC groundl_subs by metis
+  from C'_p have "falsifiesc G C'" using instance_ofls_self by auto
+  ultimately show ?thesis using C'_p by auto
 qed
   
+lemma ground_falsifiesc: (* Very pointless lemma *)
+  assumes "groundls C" (* this assumption is not even used *)
+  assumes "falsifiesg G C"
+  shows "\<forall>l\<in>C. falsifiesl G l" using local.assms(2) by auto  
 
 lemma ground_falsifies:
   assumes "groundl l"
-  assumes "falsifiesl G \<sigma> l"
+  assumes "falsifiesl G l"
   shows"
       \<exists>i.  
       i < length G
       \<and> G ! i = (\<not>sign l)
       \<and> diag_fatom i = Pos (get_pred l) (get_terms l)"
-proof (cases l) (* Not really induction *)
-  case (Pos p ts)
-  then obtain i where i_p: "  
-      i < length G
-      \<and> G ! i = False
-      \<and> diag_fatom i = Pos p (ts {\<sigma>}\<^sub>t\<^sub>s)" using assms by auto
-  moreover
-  then have "ts = ts {\<sigma>}\<^sub>t\<^sub>s" using Pos assms ground_subs unfolding instance_ofts_def by auto
-  then have "diag_fatom i = Pos p ts" using i_p by auto
-  then show ?thesis using i_p Pos by auto
-next
-  case (Neg p ts)
-  then obtain i where i_p: "
-      i < length G
-      \<and> G ! i = True
-      \<and> diag_fatom i = Pos p (ts {\<sigma>}\<^sub>t\<^sub>s)" using assms by auto
-  moreover
-  then have "ts = ts {\<sigma>}\<^sub>t\<^sub>s" using Neg assms ground_subs unfolding instance_ofts_def by auto
-  then have "diag_fatom i = Pos p ts" using i_p by auto
-  then show ?thesis using i_p Neg by auto
-qed
+using assms by (cases l) auto (* Not really induction *)
 
 abbreviation extend :: "(nat \<Rightarrow> partial_pred_denot) \<Rightarrow> hterm pred_denot" where
   "extend f P ts \<equiv> (
@@ -1073,47 +1066,15 @@ lemma sub_of_denot_equiv_ground':
   "evall E HFun G l = evall E HFun G (l {sub_of_denot E}\<^sub>l) \<and> groundl (l {sub_of_denot E}\<^sub>l)"
     using sub_of_denot_equivl ground_sub_of_denotl by auto
 
-(* If an instance of me falsifies, then so do I *)
-lemma partial_equiv_subst': "falsifiesl G \<sigma> (l {\<tau>}\<^sub>l) \<Longrightarrow> falsifiesl G (\<tau> \<cdot> \<sigma>) l"
-proof (induction l) (* Not really induction - just cases *)
-  case (Pos P ts)
-  then have "falsifiesl G \<sigma> (Pos P (ts{\<tau>}\<^sub>t\<^sub>s))" by auto
-  then obtain i where "
-      i < length G
-      \<and> G ! i = False
-      \<and> diag_fatom i = Pos P ((ts {\<tau>}\<^sub>t\<^sub>s) {\<sigma>}\<^sub>t\<^sub>s)" by auto
-  then have "
-      i < length G
-      \<and> G ! i = False
-      \<and> diag_fatom i = Pos P (ts {\<tau> \<cdot> \<sigma>}\<^sub>t\<^sub>s)" using composition_conseq2ts by auto
-  then show ?case by auto
-next
-  case (Neg P ts) (* symmetrical *)
-  then have "falsifiesl G \<sigma> (Neg P (ts{\<tau>}\<^sub>t\<^sub>s))" by auto
-  then obtain i where "
-      i < length G
-      \<and> G ! i = True
-      \<and> diag_fatom i = Pos P ((ts {\<tau>}\<^sub>t\<^sub>s) {\<sigma>}\<^sub>t\<^sub>s)" by auto
-  then have "
-      i < length G
-      \<and> G ! i = True
-      \<and> diag_fatom i = Pos P (ts {\<tau> \<cdot> \<sigma>}\<^sub>t\<^sub>s)" using composition_conseq2ts by auto
-  then show ?case by auto
-qed
-
 (* Under an Herbrand interpretation, an environment is "equivalent" to a substitution - also for partial interpretations *)
 lemma partial_equiv_subst:
-  assumes asm: "falsifiesc G (C {\<tau>}\<^sub>l\<^sub>s)"
+  assumes "falsifiesc G (C {\<tau>}\<^sub>l\<^sub>s)"
   shows "falsifiesc G C"
 proof -
-  from asm obtain \<sigma> where \<sigma>_p: "\<forall>l \<in> C {\<tau>}\<^sub>l\<^sub>s. falsifiesl G \<sigma> l" by auto
-  {
-    fix l
-    assume "l \<in> C"
-    then have "falsifiesl G \<sigma> (l {\<tau>}\<^sub>l)" using \<sigma>_p by auto
-    then have "falsifiesl G (\<tau> \<cdot> \<sigma>) l" using partial_equiv_subst' by auto
-  }
-  then show ?thesis by auto
+  from assms obtain C' where C'_p: "instance_ofls C' (C {\<tau>}\<^sub>l\<^sub>s) \<and> falsifiesg G C'" by auto
+  then have "instance_ofls (C {\<tau>}\<^sub>l\<^sub>s) C" unfolding instance_ofls_def by auto
+  then have "instance_ofls C' C" using C'_p instance_ofls_trans by auto
+  then show ?thesis using C'_p by auto
 qed
 
 (* Under an Herbrand interpretation, an environment is equivalent to a substitution*)
@@ -1150,7 +1111,7 @@ lemma extend_preserves_model:
   assumes n_max: "\<forall>l\<in>C. undiag_fatom l \<le> n"
   assumes C_ground: "groundls C"
   assumes C_false: "\<not>evalc HFun (extend f) C"
-  shows "falsifiesc (f (Suc n)) C" 
+  shows "falsifiesc (f (Suc n)) C" (* probably - this should be falsifiesg now *)
 proof -
   let ?F = "HFun" 
   let ?G = "extend f"
@@ -1166,7 +1127,7 @@ proof -
   then have "\<forall>E. \<forall>l \<in> C. \<not> evall E ?F ?G l" using C_ground ground_var_denot by blast
   then have last: "\<forall>E. \<not> evall E ?F ?G l" using asm by blast
 
-  then have "falsifiesl (f (Suc n)) \<epsilon> l"
+  then have "falsifiesl (f (Suc n)) l"
     proof (cases l)
       case (Pos P ts)
       from Pos asm C_ground have ts_ground: "grounds ts" by auto
@@ -1194,7 +1155,7 @@ proof -
 
       from last have "?G P (hterms_of_fterms ts)" using evall_grounds[of ts _ ?G P] C_ground asm Neg by auto
       then have "f (Suc ?i) ! ?i = True" using Neg undiag_neg undiag_l
-         by (metis hatom_of_fatom.simps undiag_fatom_def) 
+         by (metis hatom_of_fatom.simps(1) undiag_fatom_def) 
       moreover
       have "f (Suc ?i) ! ?i = f (Suc n) ! ?i" 
         using f_chain i_n j_n chain_length[of f] ith_in_extension[of f] by simp
@@ -1209,7 +1170,8 @@ proof -
       then show ?thesis using Neg by auto
     qed
   }
-  then show ?thesis by auto
+  then have "falsifiesg (f (Suc n)) C" by auto
+  then show ?thesis using instance_ofls_self by auto
 qed
 
 (* If we have a list-chain of partial models, then we have a model *)
@@ -1278,14 +1240,14 @@ proof -
   then show ?thesis by auto
 qed
 
-lemma longer_falsifies':
-  "falsifiesl ds \<sigma> l \<Longrightarrow> falsifiesl (ds@d) \<sigma> l"
+lemma longer_falsifiesl:
+  "falsifiesl ds l \<Longrightarrow> falsifiesl (ds@d) l"
 proof (induction l) (* Not really induction *)
   case (Pos P ts)
   then obtain i where i_p: "  
       i < length ds
       \<and> ds ! i = False
-      \<and> diag_fatom i = Pos P (ts {\<sigma>}\<^sub>t\<^sub>s)" by auto
+      \<and> diag_fatom i = Pos P ts" by auto
   moreover
   from i_p have "i < length (ds@d)" by auto
   moreover
@@ -1294,14 +1256,14 @@ proof (induction l) (* Not really induction *)
   have "
       i < length (ds@d)
       \<and> (ds@d) ! i = False
-      \<and> diag_fatom i = Pos P (ts {\<sigma>}\<^sub>t\<^sub>s)" by auto
+      \<and> diag_fatom i = Pos P ts" by auto
   then show ?case by auto
 next
   case (Neg P ts) (* very symmetrical *)
   then obtain i where i_p: "  
       i < length ds
       \<and> ds ! i = True
-      \<and> diag_fatom i = Pos P (ts {\<sigma>}\<^sub>t\<^sub>s)" by auto
+      \<and> diag_fatom i = Pos P ts" by auto
   moreover
   from i_p have "i < length (ds@d)" by auto
   moreover
@@ -1310,19 +1272,39 @@ next
   have " 
       i < length (ds@d)
       \<and> (ds@d) ! i = True
-      \<and> diag_fatom i = Pos P (ts {\<sigma>}\<^sub>t\<^sub>s)" by auto
+      \<and> diag_fatom i = Pos P ts" by auto
   then show ?case by auto
 qed
+
+lemma longer_falsifiesg:
+  assumes "falsifiesg ds C"
+  shows "falsifiesg (ds @ d) C"
+proof
+  fix l
+  assume "l\<in>C"
+  then show "falsifiesl (ds @ d) l" using assms longer_falsifiesl by auto
+qed
+
+lemma longer_falsifiesc:
+  assumes "falsifiesc ds C"
+  shows "falsifiesc (ds @ d) C"
+proof -
+  from assms obtain C' where "instance_ofls C' C \<and> falsifiesg ds C'" by auto
+  moreover
+  then have "falsifiesg (ds @ d) C'" using longer_falsifiesg by auto
+  ultimately show ?thesis by auto
+qed
+
 (* We use this so that we can apply königs lemma *)
 lemma longer_falsifies:  
-  assumes asm: "falsifiescs ds Cs"
+  assumes "falsifiescs ds Cs"
   shows "falsifiescs (ds @ d) Cs"
 proof -
-  from asm obtain C where C_p: "C \<in> Cs \<and> falsifiesc ds C" by auto
-  then have "\<exists>\<sigma>. \<forall>l \<in> C. falsifiesl ds \<sigma> l" by auto
-  then have "\<exists>\<sigma>. \<forall>l \<in> C. falsifiesl (ds@d) \<sigma> l" using longer_falsifies' by blast
-  then have "falsifiesc (ds @ d) C" by auto
-  then show "falsifiescs (ds @ d) Cs" using C_p by auto
+  from assms obtain C where "C \<in> Cs \<and> falsifiesc ds C" by auto
+  moreover
+  then have "falsifiesc (ds @ d) C" using longer_falsifiesc[of C ds d] by blast
+  ultimately
+  show ?thesis by auto
 qed
 
 (* "If all finite semantic trees have an open branch, then the set of clauses has a model." *)
@@ -1448,20 +1430,28 @@ qed
 section {* Completeness *}
 (* assumes openb: "\<forall>T. \<exists>G. open_branch G T Cs" assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C" shows "\<exists>G. evalcs HFun G Cs" *)
 
-lemma falsifiescs_empty:
-  assumes "falsifiesc [] C"
+lemma falsifiesg_empty:
+  assumes "falsifiesg [] C"
   shows "C = {}"
 proof -
-  from assms have "(\<exists>\<sigma>. \<forall>l \<in> C. falsifiesl [] \<sigma> l)" by auto
-  then obtain \<sigma> where \<sigma>_p: "\<forall>l \<in> C. falsifiesl [] \<sigma> l" by auto
   have "\<forall>l \<in> C. False"
     proof
       fix l
       assume "l\<in>C"
-      then have "falsifiesl [] \<sigma> l" using \<sigma>_p by auto
+      then have "falsifiesl [] l" using assms by auto
       then show False by (cases l) auto
     qed
   then show ?thesis by auto
+qed
+
+
+lemma falsifiescs_empty:
+  assumes "falsifiesc [] C"
+  shows "C = {}"
+proof -
+  from assms obtain C' where C'_p: "instance_ofls C' C \<and> falsifiesg [] C'" by auto
+  then have "C'= {}" using falsifiesg_empty by auto
+  then show "C = {}" using C'_p unfolding instance_ofls_def by auto
 qed
 
 (* lemma completeness': \\  assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C" \\ assumes notLeaf: "T \<noteq> Leaf" \\  assumes closed: "closed_tree T Cs" \\   shows "\<exists>T'. \<exists>c\<^sub>1 \<in> Cs. \<exists>c\<^sub>2 \<in> Cs. \<exists>r. \\            lresolvent r C\<^sub>1 C\<^sub>2\\         \<and> (\<forall>G. branch G T' \<longrightarrow> \<not>open_branch G T' (Cs \<union> {r})) \\         \<and> size T' < size T"\\proof -\\(*  from notLeaf obtain b where "branch (b@[Right]) T \<and> branch (b@[Left]) T" using has_Branch_of_Leafs by blast\\  then have "falsifiescs (b@[True]) Cs \<and> falsifiescs (b@[False]) Cs" using Closed by auto\\  then obtain C\<^sub>1 C\<^sub>2 where "C\<^sub>1 \<in> Cs \<and> C\<^sub>2 \<in> Cs \<and> falsifiesc (b@[True]) C\<^sub>1 \<and> falsifiesc (b@[False]) C\<^sub>2" by auto\\ *) oops *)
@@ -1524,7 +1514,7 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     moreover have "\<not>(\<forall>l \<in> C1. falsifiesl B l)" using C1_p b_p clo by auto
     ultimately have "\<exists>l \<in> C1. falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
     then obtain l where l_p: "l \<in> C1 \<and> falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
-    then have "\<exists>l'. instance_ofl l' l \<and> falsifiesl (B@[True]) l' \<and> groundl l'" using falsifies_ground by blast
+    then have "\<exists>l'. instance_ofl l' l \<and> falsifiesl (B@[True]) l' \<and> groundl l'" using falsifies_ground_sub by blast
     then obtain l' where l'_p: "instance_ofl l' l \<and> falsifiesl (B@[True]) l' \<and> groundl l'" by auto
     then have "\<not>(falsifiesl B l')" using l_p partial_equiv_subst' unfolding instance_ofl_def by blast
     then have "\<not>(\<exists>i.  
