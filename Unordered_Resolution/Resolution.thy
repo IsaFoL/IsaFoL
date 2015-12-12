@@ -860,17 +860,15 @@ type_synonym partial_pred_denot = "bool list"
    Otherwise, build an interpretation from the partial interpretation *)
 fun falsifiesl :: "partial_pred_denot \<Rightarrow> substitution \<Rightarrow> fterm literal \<Rightarrow> bool" where
   "falsifiesl G \<sigma> (Pos p ts) = 
-     (\<exists>i ts'.  
+     (\<exists>i.  
       i < length G
       \<and> G ! i = False
-      \<and> diag_fatom i = Pos p ts'
-      \<and> ts' = ts{\<sigma>}\<^sub>t\<^sub>s)" (* This line is kind of weird. We don't need the ts' at all, just replace it with ts{\<sigma>}\<^sub>t\<^sub>s *)
+      \<and> diag_fatom i = Pos p (ts{\<sigma>}\<^sub>t\<^sub>s))"
 | "falsifiesl G \<sigma> (Neg p ts) = 
-     (\<exists>i ts'.  
+     (\<exists>i.  
       i < length G
       \<and> G ! i = True
-      \<and> diag_fatom i = Pos p ts'
-      \<and> ts' = ts{\<sigma>}\<^sub>t\<^sub>s)"
+      \<and> diag_fatom i = Pos p (ts{\<sigma>}\<^sub>t\<^sub>s))"
 
 abbreviation falsifiesc :: "partial_pred_denot \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "falsifiesc G C \<equiv> (\<exists>\<sigma>. \<forall>l \<in> C. falsifiesl G \<sigma> l)"
@@ -900,33 +898,29 @@ proof -
   have "falsifiesl G \<tau> (l{\<sigma>}\<^sub>l)"
     proof (cases l)
       case (Pos p ts)
-      then have "\<exists>i ts'.  
+      then have "\<exists>i.  
       i < length G
       \<and> G ! i = False
-      \<and> diag_fatom i = Pos p ts'
-      \<and> ts' = ts{\<sigma>}\<^sub>t\<^sub>s" using assms by auto
+      \<and> diag_fatom i = Pos p (ts{\<sigma>}\<^sub>t\<^sub>s)" using assms by auto
       moreover
       from groundts have "grounds (ts {\<sigma>}\<^sub>t\<^sub>s)" using Pos by auto
-      ultimately have "\<exists>i ts'.  
+      ultimately have "\<exists>i.  
       i < length G
       \<and> G ! i = False
-      \<and> diag_fatom i = Pos p ts'
-      \<and> ts' = (ts {\<sigma>}\<^sub>t\<^sub>s){\<tau>}\<^sub>t\<^sub>s" using ground_subs[of ts \<sigma>] ground_subs[of "ts{\<sigma>}\<^sub>t\<^sub>s" \<tau>] by auto
+      \<and> diag_fatom i = Pos p ((ts {\<sigma>}\<^sub>t\<^sub>s){\<tau>}\<^sub>t\<^sub>s)" using ground_subs[of ts \<sigma>] ground_subs[of "ts{\<sigma>}\<^sub>t\<^sub>s" \<tau>] by auto
       then show "?thesis" using Pos by auto
     next
       case (Neg p ts)
-      then have "\<exists>i ts'.  
+      then have "\<exists>i.  
       i < length G
       \<and> G ! i = True
-      \<and> diag_fatom i = Pos p ts'
-      \<and> ts' = ts{\<sigma>}\<^sub>t\<^sub>s" using assms by auto
+      \<and> diag_fatom i = Pos p (ts{\<sigma>}\<^sub>t\<^sub>s)" using assms by auto
       moreover
       from groundts have "grounds (ts {\<sigma>}\<^sub>t\<^sub>s)" using Neg by auto
-      ultimately have "\<exists>i ts'.  
+      ultimately have "\<exists>i.  
       i < length G
       \<and> G ! i = True
-      \<and> diag_fatom i = Pos p ts'
-      \<and> ts' = (ts {\<sigma>}\<^sub>t\<^sub>s){\<tau>}\<^sub>t\<^sub>s" using ground_subs[of ts \<sigma>] ground_subs[of "ts{\<sigma>}\<^sub>t\<^sub>s" \<tau>] by auto
+      \<and> diag_fatom i = Pos p ((ts {\<sigma>}\<^sub>t\<^sub>s){\<tau>}\<^sub>t\<^sub>s)" using ground_subs[of ts \<sigma>] ground_subs[of "ts{\<sigma>}\<^sub>t\<^sub>s" \<tau>] by auto
       then show "?thesis" using Neg by auto
     qed
   ultimately
@@ -988,26 +982,24 @@ lemma ground_falsifies:
       \<and> diag_fatom i = Pos (get_pred l) (get_terms l)"
 proof (cases l) (* Not really induction *)
   case (Pos p ts)
-  then obtain i ts' where its'_p: "  
+  then obtain i where i_p: "  
       i < length G
       \<and> G ! i = False
-      \<and> diag_fatom i = Pos p ts'
-      \<and> ts' = ts {\<sigma>}\<^sub>t\<^sub>s" using assms by auto
+      \<and> diag_fatom i = Pos p (ts {\<sigma>}\<^sub>t\<^sub>s)" using assms by auto
   moreover
-  then have "ts = ts'" using Pos assms ground_subs unfolding instance_ofts_def by auto
-  then have "diag_fatom i = Pos p ts" using its'_p by auto
-  then show ?thesis using its'_p Pos by auto
+  then have "ts = ts {\<sigma>}\<^sub>t\<^sub>s" using Pos assms ground_subs unfolding instance_ofts_def by auto
+  then have "diag_fatom i = Pos p ts" using i_p by auto
+  then show ?thesis using i_p Pos by auto
 next
   case (Neg p ts)
-  then obtain i ts' where its'_p: "  
+  then obtain i where i_p: "
       i < length G
       \<and> G ! i = True
-      \<and> diag_fatom i = Pos p ts'
-      \<and> ts' = ts {\<sigma>}\<^sub>t\<^sub>s" using assms by auto
+      \<and> diag_fatom i = Pos p (ts {\<sigma>}\<^sub>t\<^sub>s)" using assms by auto
   moreover
-  then have "ts = ts'" using Neg assms ground_subs unfolding instance_ofts_def by auto
-  then have "diag_fatom i = Pos p ts" using its'_p by auto
-  then show ?thesis using its'_p Neg by auto
+  then have "ts = ts {\<sigma>}\<^sub>t\<^sub>s" using Neg assms ground_subs unfolding instance_ofts_def by auto
+  then have "diag_fatom i = Pos p ts" using i_p by auto
+  then show ?thesis using i_p Neg by auto
 qed
 
 abbreviation extend :: "(nat \<Rightarrow> partial_pred_denot) \<Rightarrow> hterm pred_denot" where
@@ -1082,34 +1074,30 @@ lemma sub_of_denot_equiv_ground':
     using sub_of_denot_equivl ground_sub_of_denotl by auto
 
 (* If an instance of me falsifies, then so do I *)
-lemma partial_equiv_subst': "falsifiesl G \<sigma> ((l ::fterm literal) {\<tau>}\<^sub>l) \<Longrightarrow> falsifiesl G (\<tau> \<cdot> \<sigma>) l"
+lemma partial_equiv_subst': "falsifiesl G \<sigma> (l {\<tau>}\<^sub>l) \<Longrightarrow> falsifiesl G (\<tau> \<cdot> \<sigma>) l"
 proof (induction l) (* Not really induction - just cases *)
   case (Pos P ts)
   then have "falsifiesl G \<sigma> (Pos P (ts{\<tau>}\<^sub>t\<^sub>s))" by auto
-  then obtain i ts' where i_ts': "  
+  then obtain i where "
       i < length G
       \<and> G ! i = False
-      \<and> diag_fatom i = Pos P ts'
-      \<and> ts' = (ts {\<tau>}\<^sub>t\<^sub>s) {\<sigma>}\<^sub>t\<^sub>s " by auto
-  then have "  
+      \<and> diag_fatom i = Pos P ((ts {\<tau>}\<^sub>t\<^sub>s) {\<sigma>}\<^sub>t\<^sub>s)" by auto
+  then have "
       i < length G
       \<and> G ! i = False
-      \<and> diag_fatom i = Pos P ts'
-      \<and> ts' = ts {\<tau> \<cdot> \<sigma>}\<^sub>t\<^sub>s" using composition_conseq2ts by auto
+      \<and> diag_fatom i = Pos P (ts {\<tau> \<cdot> \<sigma>}\<^sub>t\<^sub>s)" using composition_conseq2ts by auto
   then show ?case by auto
 next
   case (Neg P ts) (* symmetrical *)
   then have "falsifiesl G \<sigma> (Neg P (ts{\<tau>}\<^sub>t\<^sub>s))" by auto
-  then obtain i ts' where i_ts': "  
+  then obtain i where "
       i < length G
       \<and> G ! i = True
-      \<and> diag_fatom i = Pos P ts'
-      \<and> ts' = (ts {\<tau>}\<^sub>t\<^sub>s) {\<sigma>}\<^sub>t\<^sub>s" by auto
-  then have "  
+      \<and> diag_fatom i = Pos P ((ts {\<tau>}\<^sub>t\<^sub>s) {\<sigma>}\<^sub>t\<^sub>s)" by auto
+  then have "
       i < length G
       \<and> G ! i = True
-      \<and> diag_fatom i = Pos P ts'
-      \<and> ts' = ts {\<tau> \<cdot> \<sigma>}\<^sub>t\<^sub>s" using composition_conseq2ts by auto
+      \<and> diag_fatom i = Pos P (ts {\<tau> \<cdot> \<sigma>}\<^sub>t\<^sub>s)" using composition_conseq2ts by auto
   then show ?case by auto
 qed
 
@@ -1294,39 +1282,35 @@ lemma longer_falsifies':
   "falsifiesl ds \<sigma> l \<Longrightarrow> falsifiesl (ds@d) \<sigma> l"
 proof (induction l) (* Not really induction *)
   case (Pos P ts)
-  then obtain i ts' where i_ts': "  
+  then obtain i where i_p: "  
       i < length ds
       \<and> ds ! i = False
-      \<and> diag_fatom i = Pos P ts'
-      \<and> ts' = ts {\<sigma>}\<^sub>t\<^sub>s" by auto
+      \<and> diag_fatom i = Pos P (ts {\<sigma>}\<^sub>t\<^sub>s)" by auto
   moreover
-  from i_ts' have "i < length (ds@d)" by auto
+  from i_p have "i < length (ds@d)" by auto
   moreover
-  from i_ts' have "(ds@d) ! i = False" by (simp add: nth_append) 
+  from i_p have "(ds@d) ! i = False" by (simp add: nth_append) 
   ultimately
   have "
       i < length (ds@d)
       \<and> (ds@d) ! i = False
-      \<and> diag_fatom i = Pos P ts'
-      \<and> ts' = ts {\<sigma>}\<^sub>t\<^sub>s" by auto
+      \<and> diag_fatom i = Pos P (ts {\<sigma>}\<^sub>t\<^sub>s)" by auto
   then show ?case by auto
 next
   case (Neg P ts) (* very symmetrical *)
-  then obtain i ts' where i_ts': "  
+  then obtain i where i_p: "  
       i < length ds
       \<and> ds ! i = True
-      \<and> diag_fatom i = Pos P ts'
-      \<and> ts' = ts {\<sigma>}\<^sub>t\<^sub>s" by auto
+      \<and> diag_fatom i = Pos P (ts {\<sigma>}\<^sub>t\<^sub>s)" by auto
   moreover
-  from i_ts' have "i < length (ds@d)" by auto
+  from i_p have "i < length (ds@d)" by auto
   moreover
-  from i_ts' have "(ds@d) ! i = True" by (simp add: nth_append) 
+  from i_p have "(ds@d) ! i = True" by (simp add: nth_append) 
   ultimately
   have " 
       i < length (ds@d)
       \<and> (ds@d) ! i = True
-      \<and> diag_fatom i = Pos P ts'
-      \<and> ts' = ts {\<sigma>}\<^sub>t\<^sub>s" by auto
+      \<and> diag_fatom i = Pos P (ts {\<sigma>}\<^sub>t\<^sub>s)" by auto
   then show ?case by auto
 qed
 (* We use this so that we can apply königs lemma *)
