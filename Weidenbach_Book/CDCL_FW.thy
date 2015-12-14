@@ -1868,7 +1868,7 @@ lemma conflicting_not_true_rtranclp_cdcl_fw_cp_no_step_cdcl_bj:
   using assms(2,1) by (induction)
   (fastforce simp: cdcl_fw_cp.simps full0_def tranclp_unfold_end cdcl_bj.simps)+
 
-lemma conflicitng_true_full0_cdcl_fw_cp_iff_full0_cdcl_s'_without_decode:
+lemma conflicting_true_full0_cdcl_fw_cp_iff_full0_cdcl_s'_without_decode:
   assumes
     confl: "conflicting S = C_True" and
     inv: "cdcl_all_inv_mes S"
@@ -1990,6 +1990,32 @@ next
   ultimately show ?fw unfolding full0_def by auto
 qed
 
+lemma conflicting_true_full_cdcl_fw_cp_iff_full_cdcl_s'_without_decode:
+  assumes
+    confl: "conflicting S = C_True" and
+    inv: "cdcl_all_inv_mes S"
+  shows
+    "full cdcl_fw_cp S V \<longleftrightarrow> full cdcl_s'_without_decide S V"
+proof -
+  have "full0 cdcl_fw_cp S V = full0 cdcl_s'_without_decide S V"
+    using confl conflicting_true_full0_cdcl_fw_cp_iff_full0_cdcl_s'_without_decode inv by blast
+  then show ?thesis
+    by (metis (full_types) full0_unfold full_def tranclp_unfold_begin)
+qed
+
+lemma conflicting_true_full_cdcl_fw_cp_imp_full_cdcl_s'_without_decode:
+  assumes
+    fw: "full cdcl_fw_cp S V" and
+    inv: "cdcl_all_inv_mes S"
+  shows
+    "full cdcl_s'_without_decide S V"
+proof -
+  have "conflicting S = C_True"
+    using fw unfolding full_def by (auto dest!: tranclpD simp: cdcl_fw_cp.simps)
+  then show ?thesis
+    using conflicting_true_full_cdcl_fw_cp_iff_full_cdcl_s'_without_decode fw inv by blast
+qed
+
 inductive cdcl_fw_s where
 fw_s_cp[intro]: "full cdcl_fw_cp S T \<Longrightarrow> cdcl_fw_s S T" |
 fw_s_decided[intro]: "decided S T \<Longrightarrow> no_step cdcl_fw_cp S \<Longrightarrow> full0 cdcl_fw_cp T U
@@ -2095,7 +2121,6 @@ next
     using after_cdcl_s'_w_no_step_cdcl_cp by (metis (full_types) cdcl_fw_s.simps full0_def
       full_def no_step_cdcl_fw_cp_no_step_cdcl_cp)
 qed
-
 
 lemma no_step_cdcl_s'_without_decide_no_step_cdcl_bj:
   assumes "no_step cdcl_s'_without_decide S" and inv: "cdcl_all_inv_mes S"
@@ -2512,5 +2537,97 @@ next
     qed
 qed
 
+lemma rtranclp_cdcl_s'_without_decide_rtranclp_cdcl_s':
+  "cdcl_s'_without_decide\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl_s'\<^sup>*\<^sup>* S T"
+proof (induction rule: rtranclp_induct)
+  case base
+  then show ?case by simp
+next
+  case (step y z) note a1 = this(2) and a2 = this(3)
+  have "cdcl_s' y z"
+    using a1 by (meson bj' cdcl_s'.conflict' cdcl_s'_without_decide.cases)
+  then show "cdcl_s'\<^sup>*\<^sup>* S z"
+    using a2 by force
+qed
+
+lemma cdcl_fw_s_cases[consumes 1, case_names fw_s_cp fw_s_decided]:
+  assumes
+    "cdcl_fw_s S U"
+    "full cdcl_fw_cp S U \<Longrightarrow> P"
+    "\<And>T. decided S T \<Longrightarrow> no_step cdcl_fw_cp S \<Longrightarrow> full0 cdcl_fw_cp T U \<Longrightarrow> P"
+  shows "P"
+  using assms by (auto simp: cdcl_fw_s.simps)
+
+lemma
+  assumes
+    "cdcl_fw_s\<^sup>*\<^sup>* R V" and
+    inv: "cdcl_all_inv_mes R"
+  shows "cdcl_s'\<^sup>*\<^sup>* R V"
+  using assms(1)
+proof induction
+  case base
+  thus ?case by simp
+next
+  case (step S T) note st = this(1) and fw = this(2) and IH = this(3)
+  have "cdcl_all_inv_mes S"
+    using inv rtranclp_cdcl_all_inv_mes_inv rtranclp_cdcl_fw_s_rtranclp_cdcl st by blast
+  from fw show ?case
+    proof (cases rule: cdcl_fw_s_cases)
+      case fw_s_cp
+      thus ?thesis
+        proof -
+          assume a1: "full cdcl_fw_cp S T"
+          obtain ss :: "('st \<Rightarrow> 'st \<Rightarrow> bool) \<Rightarrow> 'st \<Rightarrow> 'st" where
+            f2: "\<And>p s sa pa sb sc sd pb se sf. (\<not> full p (s::'st) sa \<or> p\<^sup>+\<^sup>+ s sa)
+              \<and> (\<not> pa (sb::'st) sc \<or> \<not> full pa sd sb) \<and> (\<not> pb\<^sup>+\<^sup>+ se sf \<or> pb sf (ss pb sf)
+              \<or> full pb se sf)"
+            by (metis (no_types) full_def) (* 467 ms *)
+          then have f3: "cdcl_fw_cp\<^sup>+\<^sup>+ S T"
+            using a1 by auto (* 27 ms *)
+          obtain ssa :: "('st \<Rightarrow> 'st \<Rightarrow> bool) \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> 'st" where
+            f4: "\<And>p s sa. \<not> p\<^sup>+\<^sup>+ s sa \<or> p s (ssa p s sa)"
+            by (meson tranclp_unfold_begin) (* 331 ms *)
+          then have f5: "\<And>s. \<not> full cdcl_fw_cp s S"
+            using f3 f2 by (metis (full_types)) (* 102 ms *)
+          have "\<And>s. \<not> full0 cdcl_fw_cp s S"
+            using f4 f3 by (meson full0_def) (* 37 ms *)
+          then have "S = R"
+            using f5 by (metis (no_types) cdcl_fw_s.simps rtranclp_unfold st tranclp_unfold_end)
+          then show ?thesis
+            using f2 a1 by (metis (no_types) \<open>cdcl_all_inv_mes S\<close>
+              conflicting_true_full_cdcl_fw_cp_imp_full_cdcl_s'_without_decode
+              rtranclp_cdcl_s'_without_decide_rtranclp_cdcl_s' rtranclp_unfold)
+        qed
+    next
+      case (fw_s_decided S')
+      then show ?thesis sorry
+    qed
+oops
+
+
+lemma rtranclp_cdcl_s'_no_step_cdcl_s'_without_decide_decomp_into_cdcl_fw:
+  assumes
+    "full0 cdcl_s' R V" and
+    "conflicting R = C_True" and
+    inv: "cdcl_all_inv_mes R"
+  shows "full0 cdcl_fw_s T V"
+proof -
+  consider
+      (fw_confl) "cdcl_fw_s\<^sup>*\<^sup>* R V" and "conflicting V = C_True"
+    | (fw_no_confl) "cdcl_fw_s\<^sup>*\<^sup>* R V" and "conflicting V \<noteq> C_True" and "no_step cdcl_bj V"
+    | (fw_decide) S T U where "cdcl_fw_s\<^sup>*\<^sup>* R S" and "no_step cdcl_fw_cp S" and "decided S T" and
+        "cdcl_fw_cp\<^sup>*\<^sup>* T U" and "conflict U V"
+    | (fw_conflict_decide) S T where "cdcl_fw_s\<^sup>*\<^sup>* R S" and "no_step cdcl_fw_cp S" and "decided S T"
+        and "cdcl_fw_cp\<^sup>*\<^sup>* T V" and "conflicting V = C_True"
+    | (fw_cp) "cdcl_fw_cp\<^sup>*\<^sup>* R V" and "conflicting V = C_True"
+    | (fw_cp_confl) U where "cdcl_fw_cp\<^sup>*\<^sup>* R U" and "conflict U V"
+    | (full) "full0 cdcl_fw_s\<^sup>*\<^sup>* R V"
+    using rtranclp_cdcl_s'_no_step_cdcl_s'_without_decide_decomp_into_cdcl_fw[of R V] assms
+    unfolding full0_def by auto
+  then show ?thesis
+    proof cases
+      case fw_confl
+      thus ?thesis sorry
+oops
 end
 end
