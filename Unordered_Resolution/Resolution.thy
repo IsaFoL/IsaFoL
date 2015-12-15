@@ -968,16 +968,13 @@ qed
 
 lemma falsifiesc_ground:
   assumes "falsifiesc G C"
-  shows "\<exists>C'. instance_ofls C' C \<and> falsifiesc G C' \<and> groundls C'"
+  shows "\<exists>C'. instance_ofls C' C \<and> falsifiesg G C' \<and> groundls C'"
 proof -
   from assms obtain C' where C'_p: "instance_ofls C' C \<and> falsifiesg G C'" by auto
-  moreover
   then have "\<forall>l \<in> C'. falsifiesl G l" by auto
   then have "\<forall>l \<in> C'. groundl l" using falsifies_ground by auto
   then have "groundls C'" by auto
-  moreover
-  from C'_p have "falsifiesc G C'" using instance_ofls_self by auto
-  ultimately show ?thesis using C'_p by auto
+  then show ?thesis using C'_p by auto
 qed
   
 lemma ground_falsifiesc: (* Very pointless lemma *)
@@ -1065,6 +1062,13 @@ qed
 lemma sub_of_denot_equiv_ground': 
   "evall E HFun G l = evall E HFun G (l {sub_of_denot E}\<^sub>l) \<and> groundl (l {sub_of_denot E}\<^sub>l)"
     using sub_of_denot_equivl ground_sub_of_denotl by auto
+
+(* This theorem is not true any more... *)
+lemma partial_equiv_subst': "falsifiesl G ((l ::fterm literal) {\<tau>}\<^sub>l) \<Longrightarrow> falsifiesl G l"
+proof (induction l) (* Not really induction - just cases *)
+
+oops
+
 
 (* Under an Herbrand interpretation, an environment is "equivalent" to a substitution - also for partial interpretations *)
 lemma partial_equiv_subst:
@@ -1496,11 +1500,40 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
 
     have "\<exists>C1 \<in> Cs. falsifiesc ?B1 C1" using b_p clo by auto (* "Re-formulation" of below line *)
     then obtain C1  where C1_p:  "C1 \<in> Cs \<and>falsifiesc ?B1 C1" by auto
-    then have "\<exists>C1'. groundls C1' \<and> instance_ofls C1' C1 \<and> falsifiesc ?B1 C1'" 
+    then have "\<exists>C1'. groundls C1' \<and> instance_ofls C1' C1 \<and> falsifiesg ?B1 C1'" 
       using falsifiesc_ground[of C1 ?B1] by metis
-    then obtain C1' where C1'_p: "groundls C1' \<and> instance_ofls C1' C1 \<and> falsifiesc ?B1 C1'" by auto
- 
-    (* Her SKAL! vi alstå ned i ground verdenen *)
+    then obtain C1' where C1'_p: "groundls C1' \<and> instance_ofls C1' C1 \<and> falsifiesg ?B1 C1'" by auto
+    (* We went down to the ground world *)
+    from C1'_p have "\<forall>l \<in> C1'. falsifiesl (B@[True]) l" by auto
+    moreover 
+    have "\<not>falsifiesc B C1" using C1_p b_p clo by auto
+    then have "\<not>(\<forall>l \<in> C1'. falsifiesl B l)" using C1'_p by auto
+    ultimately have "\<exists>l \<in> C1'. falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
+    then obtain l where l_p: "l \<in> C1' \<and> falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
+    then have "\<not>(\<exists>i.  
+      i < length B
+      \<and> B ! i = (\<not>sign l)
+      \<and> diag_fatom i = Pos (get_pred l) (get_terms l))" using instance_ofts_self by (induction l) auto
+    then have "\<not>(\<exists>i.  
+      i < length B
+      \<and> (B@[True]) ! i = (\<not>sign l)
+      \<and> diag_fatom i = Pos (get_pred l) (get_terms l))" by (metis nth_append) 
+    moreover 
+    have "groundl l" using C1'_p l_p by auto
+    then have "\<exists>i.  
+      i < length (B@[True])
+      \<and> (B@[True]) ! i = (\<not>sign l)
+      \<and> diag_fatom i = Pos (get_pred l) (get_terms l)" using ground_falsifies l_p by blast
+    ultimately
+    have ggg: "(B@[True]) ! (length B) = (\<not>sign l) \<and> diag_fatom (length B) = Pos (get_pred l) (get_terms l)"
+      using number_lemma[of B "\<lambda>i. (B @ [True]) ! i = (\<not> sign l) \<and> diag_fatom i = Pos (get_pred l) (get_terms l)"] by auto
+    then have sss: "sign l = False" by auto
+    from ggg have "undiag_fatom (Pos (get_pred l) (get_terms l)) = length B" using undiag_diag_fatom by metis
+    then have "undiag_fatom l = length B" using undiag_neg[of "get_pred l" "get_terms l"] sss by auto
+    (* Prove: Additionally, all the other literals in C'1 must be falsified by B, since they are falsified by B1, but not l'1. *)
+    
+
+
 
     have "\<exists>C2 \<in> Cs. falsifiesc ?B2 C2" using b_p clo by auto (* "Re-formulation" of below line *)
     then obtain C2 where C2_p: "C2 \<in> Cs \<and> falsifiesc ?B2 C2" by auto
@@ -1508,6 +1541,9 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
       using falsifiesc_ground[of C2 ?B2] by metis
     (* Her SKAL! vi alstå ned i ground verdenen *)
     
+
+
+
  
     (*
     from C1_p have "\<forall>l \<in> C1. falsifiesl (B@[True]) l" by auto
