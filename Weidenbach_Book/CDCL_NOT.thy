@@ -224,19 +224,19 @@ begin
 abbreviation prepend_trail where
 "prepend_trail L S \<equiv> update_trail (L # trail S) S"
 
-definition add_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" where
-"add_cls C S = update_cls (insert C (clauses S)) S"
+definition add_cls_NOT :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" where
+"add_cls_NOT C S = update_cls (insert C (clauses S)) S"
 
-definition remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" where
-"remove_cls C S = update_cls ((clauses S) - {C}) S"
+definition remove_cls_NOT :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" where
+"remove_cls_NOT C S = update_cls ((clauses S) - {C}) S"
 
 lemma
   shows
-    clauses_add_clause[simp]: "\<And>st C. clauses (add_cls C st) = insert C (clauses st)" and
-    update_trail_add_cls[simp]: "\<And>st C. trail(add_cls C st) = trail st" and
-    update_trail_remove_clauses[simp]: "\<And>st C. trail (remove_cls C st) = trail st" and
-    clause_remove_clause[simp]: "\<And>st C. clauses (remove_cls C st) = clauses st - {C}"
-  unfolding add_cls_def remove_cls_def by auto
+    clauses_add_cls_NOT[simp]: "\<And>st C. clauses (add_cls_NOT C st) = insert C (clauses st)" and
+    update_trail_add_cls_NOT[simp]: "\<And>st C. trail(add_cls_NOT C st) = trail st" and
+    update_trail_remove_cls_NOTs[simp]: "\<And>st C. trail (remove_cls_NOT C st) = trail st" and
+    clause_remove_cls_NOT[simp]: "\<And>st C. clauses (remove_cls_NOT C st) = clauses st - {C}"
+  unfolding add_cls_NOT_def remove_cls_NOT_def by auto
 
 
 abbreviation trail_weight where
@@ -1157,7 +1157,7 @@ begin
 inductive learn :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 "clauses S \<Turnstile>p C \<Longrightarrow> atms_of C \<subseteq> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))
   \<Longrightarrow> learn_cond C S
-  \<Longrightarrow> learn S (add_cls C S)"
+  \<Longrightarrow> learn S (add_cls_NOT C S)"
 inductive_cases learnE: "learn S T"
 
 lemma learn_\<mu>\<^sub>C_stable:
@@ -1179,7 +1179,7 @@ locale forget_ops =
 begin
 inductive forget :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 "clauses S - {C} \<Turnstile>p C \<Longrightarrow> forget_cond C S \<Longrightarrow> C \<in> clauses S \<Longrightarrow>
-    forget S (remove_cls C S)"
+    forget S (remove_cls_NOT C S)"
 inductive_cases forgetE: "forget S T"
 
 lemma forget_\<mu>\<^sub>C_stable:
@@ -1229,8 +1229,8 @@ lemma cdcl_all_induct[consumes 1, case_names dpll_bj learn forget]:
     dpll: "\<And>S T. dpll_bj S T \<Longrightarrow> P S T" and
     learning:
       "\<And>S C. clauses S \<Turnstile>p C \<Longrightarrow> atms_of C \<subseteq> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))
-      \<Longrightarrow>  P S (add_cls C S)" and
-    forgetting: "\<And>S C. clauses S - {C} \<Turnstile>p C \<Longrightarrow> C \<in> clauses S \<Longrightarrow> P S (remove_cls C S)"
+      \<Longrightarrow>  P S (add_cls_NOT C S)" and
+    forgetting: "\<And>S C. clauses S - {C} \<Turnstile>p C \<Longrightarrow> C \<in> clauses S \<Longrightarrow> P S (remove_cls_NOT C S)"
   shows "P S T"
   using assms(1) by (induction rule: cdcl.induct)
     (blast intro: assms(2, 3, 4) elim: learnE forgetE)+
@@ -1310,7 +1310,7 @@ next
   show ?case
     apply standard
       apply (simp add: H)
-    by (metis Diff_insert_absorb clauses_add_clause insert_absorb
+    by (metis Diff_insert_absorb clauses_add_cls_NOT insert_absorb
       true_clss_ext_decrease_right_remove_r)
 next
   case (forget S C)
@@ -1592,10 +1592,10 @@ lemma cdcl_learn_all_induct[consumes 1, case_names dpll_bj learn forget]:
       "\<And>S C F K d F' C' L. clauses S \<Turnstile>p C \<Longrightarrow> atms_of C \<subseteq> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))
       \<Longrightarrow>  distinct_mset C \<Longrightarrow> \<not> tautology C \<Longrightarrow> learn_restrictions C S \<Longrightarrow>
       trail S = F' @ Marked K d # F \<Longrightarrow> C = C' + {#L#} \<Longrightarrow> F \<Turnstile>as CNot C' \<Longrightarrow>
-      C' + {#L#} \<notin> clauses S \<Longrightarrow> P S (add_cls C S)" and
+      C' + {#L#} \<notin> clauses S \<Longrightarrow> P S (add_cls_NOT C S)" and
     forgetting: "\<And>S C. clauses S - {C} \<Turnstile>p C \<Longrightarrow> C \<in> clauses S
     \<Longrightarrow> \<not>(\<exists>F' F K d L. trail S = F' @ Marked K d # F \<and> F \<Turnstile>as CNot (C - {#L#}))
-    \<Longrightarrow> forget_restrictions C S \<Longrightarrow> P S (remove_cls C S)"
+    \<Longrightarrow> forget_restrictions C S \<Longrightarrow> P S (remove_cls_NOT C S)"
   shows "P S T"
   using assms(1)
   apply (induction rule: cdcl.induct)
@@ -1636,12 +1636,12 @@ definition "conflicting_bj_clss S \<equiv>
    {C+{#L#}|C L. C+{#L#} \<in> clauses S \<and> distinct_mset (C+{#L#}) \<and> \<not>tautology (C+{#L#})
      \<and> (\<exists>F' K d F. trail S = F' @ Marked K d # F \<and> F \<Turnstile>as CNot C)}"
 
-lemma conflicting_bj_clss_remove_cls[simp]:
-  "conflicting_bj_clss (remove_cls C S) = conflicting_bj_clss S - {C}"
+lemma conflicting_bj_clss_remove_cls_NOT[simp]:
+  "conflicting_bj_clss (remove_cls_NOT C S) = conflicting_bj_clss S - {C}"
   unfolding conflicting_bj_clss_def by fastforce
 
-lemma conflicting_bj_clss_add_cls:
-  "conflicting_bj_clss (add_cls C' S)
+lemma conflicting_bj_clss_add_cls_NOT:
+  "conflicting_bj_clss (add_cls_NOT C' S)
     = conflicting_bj_clss S
       \<union> (if \<exists>C L. C' = C +{#L#}\<and> distinct_mset (C+{#L#}) \<and> \<not>tautology (C+{#L#})
      \<and> (\<exists>F' K d F. trail S = F' @ Marked K d # F \<and> F \<Turnstile>as CNot C)
@@ -1666,8 +1666,8 @@ lemma do_not_forget_before_backtracking_clause_learned_clause_untouched:
   shows "conflicting_bj_clss S = conflicting_bj_clss T"
   using assms apply induction
   unfolding conflicting_bj_clss_def
-  by (metis (mono_tags, hide_lams) Diff_iff diff_union_cancelR dpll_state.clause_remove_clause
-    dpll_state_axioms equals0D insertE update_trail_remove_clauses)
+  by (metis (mono_tags, hide_lams) Diff_iff diff_union_cancelR dpll_state.clause_remove_cls_NOT
+    dpll_state_axioms equals0D insertE update_trail_remove_cls_NOTs)
 
 lemma forget_\<mu>\<^sub>L_decrease:
   assumes forget: "forget S T" and
@@ -1706,14 +1706,14 @@ proof -
     = 3 ^ card (atms_of_m (clauses S) \<union> atm_of ` lits_of (trail S))"
     by (auto intro: power_mono)
   moreover have "conflicting_bj_clss S \<subseteq> conflicting_bj_clss T"
-    using learnST by induction (auto simp add: conflicting_bj_clss_add_cls)
+    using learnST by induction (auto simp add: conflicting_bj_clss_add_cls_NOT)
   moreover have "conflicting_bj_clss S \<noteq> conflicting_bj_clss T"
     using learnST apply induction
-    apply (auto simp add: set_condition_or_split set_insert_neq conflicting_bj_clss_add_cls)
+    apply (auto simp add: set_condition_or_split set_insert_neq conflicting_bj_clss_add_cls_NOT)
     apply (fastforce simp add: conflicting_bj_clss_def)+
     done
   moreover have fin_T: "finite (conflicting_bj_clss T)"
-    using learnST fin by induction (auto simp add: conflicting_bj_clss_add_cls )
+    using learnST fin by induction (auto simp add: conflicting_bj_clss_add_cls_NOT )
   ultimately have "card (conflicting_bj_clss T) \<ge> card (conflicting_bj_clss S)"
     using card_mono by blast
 
@@ -1893,35 +1893,35 @@ next
     = Suc (card ((conflicting_bj_clss S)))"
     using C' conflicting_bj_clss_incl_clauses contra_subsetD C_new finite_S
     by fastforce
-  moreover have [simp]: "conflicting_bj_clss (add_cls C S) = conflicting_bj_clss S \<union> {C}"
-     using dist tauto F_C by (force simp add: ac_simps conflicting_bj_clss_add_cls C' tr_S)
+  moreover have [simp]: "conflicting_bj_clss (add_cls_NOT C S) = conflicting_bj_clss S \<union> {C}"
+     using dist tauto F_C by (force simp add: ac_simps conflicting_bj_clss_add_cls_NOT C' tr_S)
   ultimately have [simp]: "conflicting_bj_clss_yet (card (atms_of_m A)) S
-    = Suc (conflicting_bj_clss_yet (card (atms_of_m A)) (add_cls C S))"
+    = Suc (conflicting_bj_clss_yet (card (atms_of_m A)) (add_cls_NOT C S))"
       by simp
 
-  have "((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A (add_cls C S))
+  have "((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A (add_cls_NOT C S))
     * (1 + 3 ^ card (atms_of_m A)) * 2
     = ((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A S)
     * (1 + 3 ^ card (atms_of_m A)) * 2"
       unfolding \<mu>\<^sub>C'_def by auto
   moreover
-    have "conflicting_bj_clss_yet (card (atms_of_m A)) (add_cls C S)
+    have "conflicting_bj_clss_yet (card (atms_of_m A)) (add_cls_NOT C S)
         * 2
-      + card (clauses (add_cls C S))
+      + card (clauses (add_cls_NOT C S))
       < conflicting_bj_clss_yet (card (atms_of_m A)) S * 2
       + card (clauses S)"
      by auto
   ultimately show ?case unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def by presburger
 next
   case (forget S C) note finite_S = this(9)
-  have [simp]: "\<mu>\<^sub>C' A (remove_cls C S) =  \<mu>\<^sub>C' A S"
+  have [simp]: "\<mu>\<^sub>C' A (remove_cls_NOT C S) =  \<mu>\<^sub>C' A S"
     unfolding \<mu>\<^sub>C'_def by auto
-  have "forget S (remove_cls C S)"
+  have "forget S (remove_cls_NOT C S)"
     apply (rule forget.intros) using forget by auto
   hence [simp]: "3 ^ card (atms_of_m A) - card (conflicting_bj_clss S - {C})
     = conflicting_bj_clss_yet (card (atms_of_m A)) S"
     using do_not_forget_before_backtracking_clause_learned_clause_untouched
-    by (metis (no_types, lifting) conflicting_bj_clss_remove_cls)
+    by (metis (no_types, lifting) conflicting_bj_clss_remove_cls_NOT)
   have "finite (clauses S)" using finite_S by blast
   thus ?case using \<open>C \<in> clauses S\<close> card_Diff1_less unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def by fastforce
 qed
@@ -1941,7 +1941,7 @@ proof (induction rule: cdcl_learn_all_induct)
   thus ?case using dpll_bj_clauses by blast
 next
   case forget
-  thus ?case using clause_remove_clause by blast
+  thus ?case using clause_remove_cls_NOT by blast
 next
   case (learn S C F K d F' C' L) note atms_C = this(2) and dist = this(3) and tauto = this(4) and
   atms_clss_S = this(11) and atms_trail_S = this(12) and finite = this(14)
@@ -2759,7 +2759,7 @@ locale cdcl_merge_conflict_propagate_ops =
     "\<And>S T. backjump_l S T \<Longrightarrow>  inv S \<Longrightarrow>
       \<exists>C F' K d F L l C'.
         trail S = F' @ Marked K d # F
-        \<and> T = update_trail (Propagated L l # F) (add_cls (C' + {#L#}) S)
+        \<and> T = update_trail (Propagated L l # F) (add_cls_NOT (C' + {#L#}) S)
         \<and> C \<in> clauses S
         \<and> trail S \<Turnstile>as CNot C
         \<and> undefined_lit L F
@@ -2815,13 +2815,13 @@ abbreviation m_backjump where
 
 lemma backjump_l_learn_backjump:
   assumes bt: "backjump_l S T" and inv: "inv S"
-  shows "\<exists>C' L. learn S (add_cls (C' + {#L#}) S)
-    \<and> m_backjump (add_cls (C' + {#L#}) S) T
+  shows "\<exists>C' L. learn S (add_cls_NOT (C' + {#L#}) S)
+    \<and> m_backjump (add_cls_NOT (C' + {#L#}) S) T
     \<and> atms_of (C' + {#L#}) \<subseteq> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))"
 proof -
    obtain C F' K d F L l C' where
      tr_S: "trail S = F' @ Marked K d # F" and
-     T: "T = update_trail (Propagated L l # F) (add_cls (C' + {#L#}) S)" and
+     T: "T = update_trail (Propagated L l # F) (add_cls_NOT (C' + {#L#}) S)" and
      C_cls_S: "C \<in> clauses S" and
      tr_S_CNot_C: "trail S \<Turnstile>as CNot C" and
      undef: "undefined_lit L F" and
@@ -2843,7 +2843,7 @@ proof -
      qed
    hence "atms_of (C' + {#L#}) \<subseteq> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))"
      using atm_L tr_S by auto
-   moreover have learn: "learn S (add_cls (C' + {#L#}) S)"
+   moreover have learn: "learn S (add_cls_NOT (C' + {#L#}) S)"
      apply (rule learn.intros)
          apply (rule clss_C)
        using atms_C' atm_L apply (fastforce simp add: tr_S)[]
@@ -2853,7 +2853,7 @@ proof -
       apply (rule not_tauto)
      apply standard
      using \<open>F \<Turnstile>as CNot C'\<close> distinct not_tauto not_known by (auto simp: tr_S)
-   moreover have bj: "m_backjump (add_cls (C' + {#L#}) S) T"
+   moreover have bj: "m_backjump (add_cls_NOT (C' + {#L#}) S) T"
      apply (rule backjumping_ops.backjump.intros[OF backjumping_ops_axioms _ T, of _ _ ])
      using \<open>F \<Turnstile>as CNot C'\<close> C_cls_S tr_S_CNot_C undef by (auto simp add: tr_S )
    ultimately show ?thesis by auto
@@ -2958,10 +2958,10 @@ next
   case (cdcl_merged_forget S T)
   have "card (clauses T) < card (clauses S)"
     by (metis card_Diff1_less cdcl_merged_forget.hyps cdcl_merged_forget.prems(5)
-      clause_remove_clause forget.cases)
+      clause_remove_cls_NOT forget.cases)
   moreover
     have "trail S = trail T"
-      by (metis cdcl_merged_forget.hyps forget.cases update_trail_remove_clauses)
+      by (metis cdcl_merged_forget.hyps forget.cases update_trail_remove_cls_NOTs)
     hence
       "(2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
         - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight T)
@@ -2974,8 +2974,8 @@ next
   case (cdcl_merged_backjump_l S T) note bj_l = this(1) and inv = this(2) and atms_clss = this(3)
     and atms_trail = this(4) and n_d = this(5)
   obtain C' L where
-    learn: "learn S (add_cls (C' + {#L#}) S)" and
-    bj: "m_backjump (add_cls (C' + {#L#}) S) T" and
+    learn: "learn S (add_cls_NOT (C' + {#L#}) S)" and
+    bj: "m_backjump (add_cls_NOT (C' + {#L#}) S) T" and
     atms_C: "atms_of (C' + {#L#}) \<subseteq> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))"
     using bj_l inv backjump_l_learn_backjump by blast
   have "card (clauses T) = 1 + card (clauses S)"
@@ -2985,7 +2985,7 @@ next
       - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight T))
     < ((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
       - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A))
-           (trail_weight (add_cls (C' + {#L#}) S)))"
+           (trail_weight (add_cls_NOT (C' + {#L#}) S)))"
     apply (rule dpll_bj_trail_mes_decreasing_prop)
          using bj bj_backjump apply blast
         using c_learn cdcl_inv inv learn apply blast
