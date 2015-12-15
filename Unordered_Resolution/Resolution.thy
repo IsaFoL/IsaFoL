@@ -980,7 +980,7 @@ qed
 lemma ground_falsifiesc: (* Very pointless lemma *)
   assumes "groundls C" (* this assumption is not even used *)
   assumes "falsifiesg G C"
-  shows "\<forall>l\<in>C. falsifiesl G l" using local.assms(2) by auto  
+  shows "\<forall>l\<in>C. falsifiesl G l" using local.assms(2) by -  
 
 lemma ground_falsifies:
   assumes "groundl l"
@@ -1342,6 +1342,34 @@ proof -
 qed
 (* This lemma is interesting: lemma "\<forall>G. \<not> evalcs F G Cs \<Longrightarrow> \<forall>G. \<not> evalcs HFun G Cs" oops*)
 
+lemma shorter_falsifiesl:
+  assumes "falsifiesl (ds@d) l"
+  assumes "undiag_fatom l < length ds"
+  shows "falsifiesl ds l"
+proof (cases l)
+  case (Pos p ts)
+  from assms Pos obtain i where i_p: "i < length (ds@d)
+      \<and> (ds@d) ! i = False
+      \<and> diag_fatom i = Pos p ts" by auto
+  moreover
+  then have "i = undiag_fatom (Pos p ts)" using undiag_diag_fatom[of i] by auto
+  then have "i < length ds" using assms Pos by auto
+  moreover
+  then have "ds ! i = False" using i_p by (simp add: nth_append) 
+  ultimately show ?thesis using Pos by auto
+next
+  case (Neg p ts)
+  from assms Neg obtain i where i_p: "i < length (ds@d)
+      \<and> (ds@d) ! i = True
+      \<and> diag_fatom i = Pos p ts" by auto
+  moreover
+  then have "i = undiag_fatom (Pos p ts)" using undiag_diag_fatom[of i] by auto
+  then have "i < length ds" using assms Neg undiag_neg by auto
+  moreover
+  then have "ds ! i = True" using i_p by (simp add: nth_append) 
+  ultimately show ?thesis using Neg by auto
+qed
+
 theorem herbrand'_contra:
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
   assumes unsat: "\<forall>G. \<not>evalcs HFun G Cs"
@@ -1498,53 +1526,94 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     let ?B1 = "B@[True]"
     let ?B2 = "B@[False]"                                       
 
-    have "\<exists>C1 \<in> Cs. falsifiesc ?B1 C1" using b_p clo by auto (* "Re-formulation" of below line *)
+    have "\<exists>C1 \<in> Cs. falsifiesc ?B1 C1" using b_p clo by auto 
     then obtain C1  where C1_p:  "C1 \<in> Cs \<and>falsifiesc ?B1 C1" by auto
     then have "\<exists>C1'. groundls C1' \<and> instance_ofls C1' C1 \<and> falsifiesg ?B1 C1'" 
       using falsifiesc_ground[of C1 ?B1] by metis
     then obtain C1' where C1'_p: "groundls C1' \<and> instance_ofls C1' C1 \<and> falsifiesg ?B1 C1'" by auto
     (* We went down to the ground world *)
-    from C1'_p have "\<forall>l \<in> C1'. falsifiesl (B@[True]) l" by auto
+    then have "\<forall>l \<in> C1'. falsifiesl (B@[True]) l" by auto
     moreover 
     have "\<not>falsifiesc B C1" using C1_p b_p clo by auto
-    then have "\<not>(\<forall>l \<in> C1'. falsifiesl B l)" using C1'_p by auto
+    then have "\<not> falsifiesg B C1'" using C1'_p by auto
+    then have "\<not>(\<forall>l \<in> C1'. falsifiesl B l)" by auto
     ultimately have "\<exists>l \<in> C1'. falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
-    then obtain l where l_p: "l \<in> C1' \<and> falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
+    then obtain l1 where l1_p: "l1 \<in> C1' \<and> falsifiesl (B@[True]) l1 \<and> \<not>(falsifiesl B l1)" by auto
     then have "\<not>(\<exists>i.  
       i < length B
-      \<and> B ! i = (\<not>sign l)
-      \<and> diag_fatom i = Pos (get_pred l) (get_terms l))" using instance_ofts_self by (induction l) auto
+      \<and> B ! i = (\<not>sign l1)
+      \<and> diag_fatom i = Pos (get_pred l1) (get_terms l1))" using instance_ofts_self by (induction l1) auto
     then have "\<not>(\<exists>i.  
       i < length B
-      \<and> (B@[True]) ! i = (\<not>sign l)
-      \<and> diag_fatom i = Pos (get_pred l) (get_terms l))" by (metis nth_append) 
+      \<and> (B@[True]) ! i = (\<not>sign l1)
+      \<and> diag_fatom i = Pos (get_pred l1) (get_terms l1))" by (metis nth_append) 
     moreover 
-    have "groundl l" using C1'_p l_p by auto
+    have "groundl l1" using C1'_p l1_p by auto
     then have "\<exists>i.  
       i < length (B@[True])
-      \<and> (B@[True]) ! i = (\<not>sign l)
-      \<and> diag_fatom i = Pos (get_pred l) (get_terms l)" using ground_falsifies l_p by blast
+      \<and> (B@[True]) ! i = (\<not>sign l1)
+      \<and> diag_fatom i = Pos (get_pred l1) (get_terms l1)" using ground_falsifies l1_p by blast
     ultimately
-    have ggg: "(B@[True]) ! (length B) = (\<not>sign l) \<and> diag_fatom (length B) = Pos (get_pred l) (get_terms l)"
-      using number_lemma[of B "\<lambda>i. (B @ [True]) ! i = (\<not> sign l) \<and> diag_fatom i = Pos (get_pred l) (get_terms l)"] by auto
-    then have sss: "sign l = False" by auto
-    from ggg have "undiag_fatom (Pos (get_pred l) (get_terms l)) = length B" using undiag_diag_fatom by metis
-    then have "undiag_fatom l = length B" using undiag_neg[of "get_pred l" "get_terms l"] sss by auto
+    have ggg: "(B@[True]) ! (length B) = (\<not>sign l1) \<and> diag_fatom (length B) = Pos (get_pred l1) (get_terms l1)"
+      using number_lemma[of B "\<lambda>i. (B @ [True]) ! i = (\<not> sign l1) \<and> diag_fatom i = Pos (get_pred l1) (get_terms l1)"] by auto
+    then have l1_sign: "sign l1 = False" by auto
+    from ggg have "undiag_fatom (Pos (get_pred l1) (get_terms l1)) = length B" using undiag_diag_fatom by metis
+    then have l1_no: "undiag_fatom l1 = length B" using undiag_neg[of "get_pred l1" "get_terms l1"] l1_sign by auto
     (* Prove: Additionally, all the other literals in C'1 must be falsified by B, since they are falsified by B1, but not l'1. *)
-    
-
-
+    have B_C1'l1: "falsifiesg B (C1' - {l1})"
+      proof
+        fix lo
+        assume other: "lo \<in> C1' - {l1}"
+        from C1'_p have "falsifiesg ?B1 (C1' - {l1})" by auto
+        then have loB1: "falsifiesl ?B1 lo" using other by auto
+        moreover
+        {
+          have "l1\<noteq>lo" using other by auto
+          then have "undiag_fatom l1 \<noteq> undiag_fatom lo" sorry
+          then have "undiag_fatom lo \<noteq> length B" using l1_no by auto
+          moreover
+          {
+            obtain i where "diag_fatom i = Pos (get_pred lo) (get_terms lo) \<and> i < length (B @ [True])" using loB1 by (cases lo) auto
+            then have "undiag_fatom (diag_fatom i) = undiag_fatom (Pos (get_pred lo) (get_terms lo)) \<and> i < length (B @ [True])" by auto
+            then have "undiag_fatom (Pos (get_pred lo) (get_terms lo)) < length (B @ [True])" using undiag_diag_fatom by auto
+            then have "undiag_fatom lo < length (B @ [True])" using undiag_neg by (cases lo) auto
+            then have "undiag_fatom lo < length B + 1" by auto
+          }
+          ultimately have "undiag_fatom lo < length B" using loB1 by auto
+        }
+        ultimately show "falsifiesl B lo" using shorter_falsifiesl by blast
+      qed
 
     have "\<exists>C2 \<in> Cs. falsifiesc ?B2 C2" using b_p clo by auto (* "Re-formulation" of below line *)
     then obtain C2 where C2_p: "C2 \<in> Cs \<and> falsifiesc ?B2 C2" by auto
-    then have "\<exists>C2'. groundls C2' \<and> instance_ofls C2' C2 \<and> falsifiesc ?B2 C2'"
+    then have "\<exists>C2'. groundls C2' \<and> instance_ofls C2' C2 \<and> falsifiesg ?B2 C2'" 
       using falsifiesc_ground[of C2 ?B2] by metis
-    (* Her SKAL! vi alstå ned i ground verdenen *)
+    then obtain C2' where C2'_p: "groundls C2' \<and> instance_ofls C2' C2 \<and> falsifiesg ?B2 C2'" by auto
+    (* We went down to the ground world *)
+    then have "\<forall>l \<in> C2'. falsifiesl (B@[False]) l" by auto
+    moreover 
+    have "\<not>falsifiesc B C2" using C2_p b_p clo by auto
+    then have "\<not> falsifiesg B C2'" using C2'_p by auto
+    then have "\<not>(\<forall>l \<in> C2'. falsifiesl B l)" by auto
+    ultimately have "\<exists>l \<in> C2'. falsifiesl (B@[False]) l \<and> \<not>(falsifiesl B l)" by auto
+    then obtain l2 where l2_p: "l2 \<in> C2' \<and> falsifiesl (B@[False]) l2 \<and> \<not>(falsifiesl B l2)" by auto
     
+    have l2_no: "undiag_fatom l2 = length B" sorry
+    have l2_sign: "sign l2 = True" sorry
+    have B_C2'l2:"falsifiesg B (C2' - {l2})" sorry
+
+    have "falsifiesg B ((C1' - {l1}) \<union> (C2' - {l2}))" using B_C1'l1 B_C2'l2 by cases auto
+    then have "falsifiesg B (lresolution C1' C2' {l1} {l2} \<epsilon>)" unfolding lresolution_def empty_subls by auto
+
+    have "applicable C1' C2' {l1} {l2} \<epsilon>" using sorry
+...x.
+
+    (* Challange: standardize C1 and C2 apart, you need to do this very early *)
+    have "\<exists>L1 L2 \<tau>. applicable C1 C2 L1 L2 \<tau>  \<and> instance_ofls (lresolution C1' C2' {l1} {l2} \<epsilon>) (lresolution C1 C2 L1 L2 \<tau>)" 
+      using lifting[of C1 C2 C1' C2' "{l1}" "{l2}" \<epsilon>] sorry
 
 
 
- 
     (*
     from C1_p have "\<forall>l \<in> C1. falsifiesl (B@[True]) l" by auto
     moreover have "\<not>(\<forall>l \<in> C1. falsifiesl B l)" using C1_p b_p clo by auto
