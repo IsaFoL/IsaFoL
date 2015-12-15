@@ -134,14 +134,14 @@ next
               using IH confl by blast
             have f0: "\<forall>s sa. \<not> resolve s sa \<or> (\<exists>l m ms ma. sa = update_conflicting
               (C_Clause (remdups_mset (ma + m))) (update_trail ms s)
-              \<and> trail s = Propagated l (mark_of_cls (m + {#l#})) # ms
-              \<and> backtrack_lvl s = get_maximum_level ma (Propagated l (mark_of_cls (m + {#l#})) # ms)
+              \<and> trail s = Propagated l ( (m + {#l#})) # ms
+              \<and> backtrack_lvl s = get_maximum_level ma (Propagated l ( (m + {#l#})) # ms)
               \<and> conflicting s = C_Clause (ma + {#- l#}))"
               by blast
             then have ?thesis
               proof -
-                obtain Ms :: "('v, nat, 'mark) marked_lit list" and C :: "'v literal multiset" and
-                  ll :: "'v literal" and m :: 'mark where
+                obtain Ms :: "('v, nat, 'v clause) marked_lit list" and C :: "'v literal multiset" and
+                  ll :: "'v literal" and m :: "'v clause" where
                   "\<not> skip U V
                     \<or> (\<exists>vr60 vr69 vr62 vr61. update_trail vr62 U = V
                         \<and> 0 = count vr61 (- vr60) \<and> {#} \<noteq> vr61
@@ -293,7 +293,7 @@ next
     inv = this(5)
   obtain M N k M1 M2 K i D L U where
     V: "state V = (M, N, U, k, C_Clause (D + {#L#}))" and
-    W: "state W = (Propagated L (mark_of_cls (D + {#L#})) # M1, N, insert (D + {#L#}) U,
+    W: "state W = (Propagated L ( (D + {#L#})) # M1, N, insert (D + {#L#}) U,
       get_maximum_level D M, C_True)" and
     decomp: "(Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition M)" and
     lev_l: "get_level L M = k" and
@@ -336,7 +336,7 @@ next
   hence [simp]: "init_clss S = N" and [simp]: "learned_clss S = U"
     using V \<open>V = update_trail M T\<close> \<open>cdcl\<^sup>*\<^sup>* S T\<close> rtranclp_cdcl_init_clss apply auto[1]
     using rtranclp_skip_state_decomp[OF \<open>skip\<^sup>*\<^sup>* S V\<close>] V by auto
-  hence W_S: "W = update_trail (Propagated L (mark_of_cls (D + {#L#})) # M1)
+  hence W_S: "W = update_trail (Propagated L ( (D + {#L#})) # M1)
   (add_cls (D + {#L#}) (update_backtrack_lvl i (update_conflicting C_True T)))"
     unfolding st_equal W using i T by simp
 
@@ -384,7 +384,7 @@ lemma rtranclp_skip_backtrack_backtrack_end:
 proof -
   obtain M N k M1 M2 K i D L U where
     S: "state S = (M, N, U, k, C_Clause (D + {#L#}))" and
-    W: "state W = (Propagated L (mark_of_cls (D + {#L#})) # M1, N, insert (D + {#L#}) U,
+    W: "state W = (Propagated L ( (D + {#L#})) # M1, N, insert (D + {#L#}) U,
        get_maximum_level D M, C_True)"
   and
     decomp: "(Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition M)" and
@@ -427,7 +427,7 @@ proof -
 
   have lev_l': "get_level L M\<^sub>T = k"
     using lev_l by (auto simp: H)
-  have W: "W = update_trail (Propagated L (mark_of_cls (D + {#L#})) # M1)
+  have W: "W = update_trail (Propagated L ( (D + {#L#})) # M1)
     (add_cls (D + {#L#}) (update_backtrack_lvl i (update_conflicting C_True T)))"
     unfolding st_equal using W T i by simp_all
 
@@ -508,7 +508,7 @@ proof -
     "get_level L M = k" and
     "get_level L M = get_maximum_level (D+{#L#}) M" and
     "get_maximum_level D M = i" and
-    T: "state T = (Propagated L (mark_of_cls (D+{#L#})) # M1 , N, U' \<union> {D + {#L#}}, i, C_True)"
+    T: "state T = (Propagated L ( (D+{#L#})) # M1 , N, U' \<union> {D + {#L#}}, i, C_True)"
     using bt_T by auto
 
   obtain  D' L' i' K' M1' M2' where
@@ -517,7 +517,7 @@ proof -
     "get_level L' M = k" and
     "get_level L' M = get_maximum_level (D'+{#L'#}) M" and
     "get_maximum_level D' M = i'" and
-    U: "state U = (Propagated L' (mark_of_cls(D'+{#L'#})) # M1', N, U' \<union> {D' + {#L'#}}, i', C_True)"
+    U: "state U = (Propagated L' ((D'+{#L'#})) # M1', N, U' \<union> {D' + {#L'#}}, i', C_True)"
     using bt_U S by fastforce
   obtain c where M: "M = c @ M2 @ Marked K (i + 1) # M1"
     using decomp by auto
@@ -574,8 +574,8 @@ proof (rule ccontr)
   assume resolve: "\<not>\<not>resolve U V"
 
   obtain L C M N U' k D where
-    U: "state U = (Propagated L (mark_of_cls (C + {#L#})) # M, N, U', k, C_Clause (D + {#-L#}))"and
-    "get_maximum_level D (Propagated L (mark_of_cls (C + {#L#})) # M) = k" and
+    U: "state U = (Propagated L ( (C + {#L#})) # M, N, U', k, C_Clause (D + {#-L#}))"and
+    "get_maximum_level D (Propagated L ( (C + {#L#})) # M) = k" and
     "state V = (M, N, U', k, C_Clause (remdups_mset (D + C)))"
     using resolve by auto
 
@@ -596,7 +596,7 @@ proof (rule ccontr)
     "get_level L' M' = k" and
     "get_level L' M' = get_maximum_level (D'+{#L'#}) M'" and
     "get_maximum_level D' M' = i" and
-    T: "state T = (Propagated L' (mark_of_cls (D'+{#L'#})) # M1 , N, U' \<union> {D' + {#L'#}}, i, C_True)"
+    T: "state T = (Propagated L' ( (D'+{#L'#})) # M1 , N, U' \<union> {D' + {#L'#}}, i, C_True)"
     using bt S apply (cases S) by auto
   obtain c where M: "M' = c @ M2 @ Marked K (i + 1) # M1"
     using get_all_marked_decomposition_exists_prepend[OF decomp] by auto
@@ -614,7 +614,7 @@ proof (rule ccontr)
         using DD' by (metis add_diff_cancel_right' diff_single_trivial diff_union_swap
           multi_self_add_other_not_self)
       moreover
-        have M': "M' = M\<^sub>0 @ Propagated L (mark_of_cls (C + {#L#})) # M"
+        have M': "M' = M\<^sub>0 @ Propagated L ( (C + {#L#})) # M"
           using tr_S U S S' by (auto simp: lits_of_def)
         have "no_dup M'"
            using inv U S' unfolding cdcl_all_inv_mes_def cdcl_M_level_inv_def by auto
@@ -625,14 +625,14 @@ proof (rule ccontr)
         hence "get_all_levels_of_marked M = rev [1..<1+k]"
           using nm M' S' U by (simp add: get_all_levels_of_marked_no_marked)
         hence get_lev_L:
-          "get_level L (Propagated L (mark_of_cls (C + {#L#})) # M) = k"
+          "get_level L (Propagated L ( (C + {#L#})) # M) = k"
           using get_level_get_rev_level_get_all_levels_of_marked[OF atm_L_notin_M,
-            of "[Propagated L (mark_of_cls(C + {#L#}))]"] by simp
+            of "[Propagated L ((C + {#L#}))]"] by simp
         have "atm_of L \<notin> atm_of ` (lits_of (rev M\<^sub>0))"
           using \<open>no_dup M'\<close> M' U S' by (auto simp: lits_of_def)
         hence "get_level L M' = k"
           using get_rev_level_notin_end[of L "rev M\<^sub>0" 0
-            "rev M @ Propagated L (mark_of_cls (C + {#L#})) # []"]
+            "rev M @ Propagated L ( (C + {#L#})) # []"]
           using tr_S get_lev_L M' U S' by (simp add:nm lits_of_def)
       ultimately have "get_maximum_level D' M' \<ge> k"
         by (metis get_maximum_level_ge_get_level get_rev_level_uminus)
@@ -644,17 +644,17 @@ proof (rule ccontr)
     using bj cdcl_bj.skip local.skip mono_rtranclp[of skip cdcl S U] other by meson
   hence "cdcl_all_inv_mes U"
     using inv rtranclp_cdcl_all_inv_mes_inv by blast
-  hence "Propagated L (mark_of_cls (C + {#L#})) # M \<Turnstile>as CNot (D' + {#L'#})"
+  hence "Propagated L ( (C + {#L#})) # M \<Turnstile>as CNot (D' + {#L'#})"
     using cdcl_all_inv_mes_def cdcl_conflicting_def U by auto
-  hence "\<forall>L'\<in>#D. atm_of L' \<in> atm_of ` lits_of (Propagated L (mark_of_cls (C + {#L#})) # M)"
+  hence "\<forall>L'\<in>#D. atm_of L' \<in> atm_of ` lits_of (Propagated L ( (C + {#L#})) # M)"
     by (metis CNot_plus CNot_singleton Un_insert_right \<open>D = D'\<close> true_annots_insert ball_msetI
       atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set  in_CNot_implies_uminus(2)
       sup_bot.comm_neutral)
   hence "get_maximum_level D M' = k"
      using tr_S nm U S'
        get_maximum_level_skip_un_marked_not_present[of D "
-         Propagated L (mark_of_cls (C + {#L#})) # M" M\<^sub>0]
-     unfolding  \<open>get_maximum_level D (Propagated L (mark_of_cls (C + {#L#})) # M) = k\<close>
+         Propagated L ( (C + {#L#})) # M" M\<^sub>0]
+     unfolding  \<open>get_maximum_level D (Propagated L ( (C + {#L#})) # M) = k\<close>
      unfolding \<open>D = D'\<close>
      by simp
   show False

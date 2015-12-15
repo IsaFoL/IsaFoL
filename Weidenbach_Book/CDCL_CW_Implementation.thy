@@ -8,7 +8,7 @@ interpretation cdcl_cw: cw_state trail clauses learned_clss backtrack_lvl confli
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
   "\<lambda>N. ([], N, {}, 0, C_True)"
-  id id "\<lambda>(_, N, U, _). ([], N, U, 0, C_True)"
+   "\<lambda>(_, N, U, _). ([], N, U, 0, C_True)"
  by unfold_locales auto
 
 interpretation  cdcl_cw_termination trail clauses learned_clss backtrack_lvl conflicting
@@ -17,7 +17,7 @@ interpretation  cdcl_cw_termination trail clauses learned_clss backtrack_lvl con
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
   "\<lambda>N. ([], N, {}, 0, C_True)"
-  id id "\<lambda>(_, N, U, _). ([], N, U, 0, C_True)"
+  "\<lambda>(_, N, U, _). ([], N, U, 0, C_True)"
   by intro_locales
 lemmas cdcl_cw.clauses_def[simp]
 lemmas cdcl_cw.add_cls_def[simp]
