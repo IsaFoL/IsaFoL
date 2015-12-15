@@ -5,6 +5,11 @@ begin
 declare upt.simps(2)[simp del]
 sledgehammer_params[verbose]
 
+sublocale cw_state \<subseteq> dpll_state trail clauses update_trail
+  "\<lambda>C S. update_init_clss C (update_learned_clss {} S)"
+ apply unfold_locales
+ by auto
+
 context cdcl_cw_ops
 begin
 (* TODO Move *)
@@ -31,7 +36,6 @@ lemma rtranclp_skip_state_decomp:
     "\<exists>M. trail S = M @ trail T \<and> (\<forall>m\<in>set M. \<not>is_marked m)" and
     "T = update_trail (trail T) S"
   using assms by (induction rule: rtranclp_induct) (auto simp: st_equal)+
-
 
 subsection \<open>cdcl FW\<close>
 inductive cdcl_fw :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
