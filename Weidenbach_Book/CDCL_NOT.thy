@@ -253,11 +253,11 @@ locale propagate_ops =
     update_cls :: "'v clause set \<Rightarrow> 'st \<Rightarrow> 'st" and
     propagate_cond :: "'st \<Rightarrow> bool"
 begin
-inductive propagate :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
-propagate[intro]: "C + {#L#} \<in> clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C
+inductive propagate\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+propagate\<^sub>N\<^sub>O\<^sub>T[intro]: "C + {#L#} \<in> clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C
     \<Longrightarrow> undefined_lit L (trail S)
-    \<Longrightarrow> propagate_cond S \<Longrightarrow> propagate S (prepend_trail (Propagated L mark) S)"
-inductive_cases propagateE[elim]: "propagate S T"
+    \<Longrightarrow> propagate_cond S \<Longrightarrow> propagate\<^sub>N\<^sub>O\<^sub>T S (prepend_trail (Propagated L mark) S)"
+inductive_cases propagateE[elim]: "propagate\<^sub>N\<^sub>O\<^sub>T S T"
 
 end
 
@@ -339,12 +339,12 @@ subsection\<open>Definition\<close>
 text \<open>We define dpll with backjumping:\<close>
 inductive dpll_bj :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 bj_decide:  "decide S S' \<Longrightarrow> dpll_bj S S'" |
-bj_propagate: "propagate S S' \<Longrightarrow> dpll_bj S S'" |
+bj_propagate\<^sub>N\<^sub>O\<^sub>T: "propagate\<^sub>N\<^sub>O\<^sub>T S S' \<Longrightarrow> dpll_bj S S'" |
 bj_backjump:  "backjump S S' \<Longrightarrow> dpll_bj S S'"
 
 lemmas dpll_bj_induct = dpll_bj.induct[split_format(complete)]
 thm dpll_bj_induct[OF local.dpll_with_backjumping_ops_axioms]
-lemma dpll_bj_all_induct[consumes 2, case_names decide propagate backjump]:
+lemma dpll_bj_all_induct[consumes 2, case_names decide propagate\<^sub>N\<^sub>O\<^sub>T backjump]:
   fixes S T :: "'st"
   assumes
     "dpll_bj S T" and
@@ -419,7 +419,7 @@ proof (induction rule:dpll_bj_all_induct)
   case decide
   thus ?case using decomp by auto
 next
-  case (propagate C L mark) note propa = this(1)
+  case (propagate\<^sub>N\<^sub>O\<^sub>T C L mark) note propa = this(1)
   let ?M' = "trail (prepend_trail (Propagated L mark) S)"
   let ?N = "clauses S"
   obtain a y l where ay: "get_all_marked_decomposition ?M' = (a, y) # l"
@@ -439,12 +439,12 @@ next
   moreover have "(\<lambda>a. {#lit_of a#}) ` set a \<union> ?N \<Turnstile>p {#L#}" (is "?I \<Turnstile>p _")
     proof (rule true_clss_cls_plus_CNot)
       show "?I \<Turnstile>p C + {#L#}"
-        using propa propagate.prems by (auto dest!: true_clss_clss_in_imp_true_clss_cls)
+        using propa propagate\<^sub>N\<^sub>O\<^sub>T.prems by (auto dest!: true_clss_clss_in_imp_true_clss_cls)
     next
       have "(\<lambda>m. {#lit_of m#}) ` set ?M' \<Turnstile>ps CNot C"
         using \<open>trail S \<Turnstile>as CNot C\<close> by (auto simp add: true_annots_true_clss_clss)
       have a1: "(\<lambda>m. {#lit_of m#}) ` set a \<union> (\<lambda>m. {#lit_of m#}) ` set (tl y)  \<Turnstile>ps CNot C"
-        using propagate.hyps(2) tr_S true_annots_true_clss_clss
+        using propagate\<^sub>N\<^sub>O\<^sub>T.hyps(2) tr_S true_annots_true_clss_clss
         by (force simp add: image_Un sup_commute)
       have a2: "clauses S \<union> (\<lambda>a. {#lit_of a#}) ` set a \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl y)"
         using calculation by (auto simp add: sup_commute)
@@ -577,9 +577,9 @@ lemma dpll_bj_trail_mes_increasing_prop:
     (2+card (atms_of_m A)) (trail_weight S)"
   using assms(1,2)
 proof (induction rule: dpll_bj_all_induct)
-  case (propagate C L d) note CLN = this(1) and MC =this(2) and undef_L = this(3)
+  case (propagate\<^sub>N\<^sub>O\<^sub>T C L d) note CLN = this(1) and MC =this(2) and undef_L = this(3)
   have incl: "atm_of ` lits_of (Propagated L d # trail S) \<subseteq> atms_of_m A"
-    using propagate.hyps propagate_ops.propagate dpll_bj_atms_in_trail_in_set bj_propagate NA MA CLN
+    using propagate\<^sub>N\<^sub>O\<^sub>T.hyps propagate_ops.propagate\<^sub>N\<^sub>O\<^sub>T dpll_bj_atms_in_trail_in_set bj_propagate\<^sub>N\<^sub>O\<^sub>T NA MA CLN
     by auto
 
   have no_dup: "no_dup (Propagated L d # trail S)"
@@ -2768,7 +2768,7 @@ locale cdcl_merge_conflict_propagate_ops =
       \<exists>C F' K d F L l C'.
         trail S = F' @ Marked K d # F
         \<and> T = update_trail (Propagated L l # F) (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S)
-        \<and> C \<in> clauses S
+        \<and> C \<in> clauses T
         \<and> trail S \<Turnstile>as CNot C
         \<and> undefined_lit L F
         \<and> atm_of L \<in> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))
@@ -2795,14 +2795,14 @@ begin
 
 inductive cdcl_merged :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 cdcl_merged_decide:  "decide S S' \<Longrightarrow> cdcl_merged S S'" |
-cdcl_merged_propagate: "propagate S S' \<Longrightarrow> cdcl_merged S S'" |
+cdcl_merged_propagate\<^sub>N\<^sub>O\<^sub>T: "propagate\<^sub>N\<^sub>O\<^sub>T S S' \<Longrightarrow> cdcl_merged S S'" |
 cdcl_merged_backjump_l:  "backjump_l S S' \<Longrightarrow> cdcl_merged S S'" |
 cdcl_merged_forget\<^sub>N\<^sub>O\<^sub>T: "forget\<^sub>N\<^sub>O\<^sub>T S S' \<Longrightarrow> cdcl_merged S S'"
 
 end
 
 text \<open>We are here assuming that a more general CDCL exists.\<close>
-locale cdcl_merge_conflict_propagate  =
+locale cdcl_merge_conflict_propagate\<^sub>N\<^sub>O\<^sub>T  =
   cdcl_merge_conflict_propagate_ops  trail clauses update_trail update_cls propagate_conds
     inv forget_conds +
    conflict_driven_clause_learning trail clauses update_trail update_cls propagate_conds
@@ -2833,7 +2833,7 @@ proof -
    obtain C F' K d F L l C' where
      tr_S: "trail S = F' @ Marked K d # F" and
      T: "T = update_trail (Propagated L l # F) (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S)" and
-     C_cls_S: "C \<in> clauses S" and
+     C_cls_S: "C \<in> clauses T" and
      tr_S_CNot_C: "trail S \<Turnstile>as CNot C" and
      undef: "undefined_lit L F" and
      atm_L: "atm_of L \<in> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))" and
@@ -2866,7 +2866,7 @@ proof -
      using \<open>F \<Turnstile>as CNot C'\<close> distinct not_tauto not_known by (auto simp: tr_S)
    moreover have bj: "m_backjump (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S) T"
      apply (rule backjumping_ops.backjump.intros[OF backjumping_ops_axioms _ T, of _ _ ])
-     using \<open>F \<Turnstile>as CNot C'\<close> C_cls_S tr_S_CNot_C undef by (auto simp add: tr_S )
+     using \<open>F \<Turnstile>as CNot C'\<close> C_cls_S tr_S_CNot_C undef T by (auto simp add: tr_S )
    ultimately show ?thesis by auto
 qed
 
@@ -2879,9 +2879,9 @@ proof (induction rule: cdcl_merged.induct)
     conflict_driven_clause_learning_ops_axioms by fastforce
   thus ?case by auto
 next
-  case (cdcl_merged_propagate S T)
+  case (cdcl_merged_propagate\<^sub>N\<^sub>O\<^sub>T S T)
   hence "cdcl S T"
-    using bj_propagate conflict_driven_clause_learning_ops.cdcl.simps
+    using bj_propagate\<^sub>N\<^sub>O\<^sub>T conflict_driven_clause_learning_ops.cdcl.simps
     conflict_driven_clause_learning_ops_axioms by fastforce
   thus ?case by auto
 next
@@ -2953,17 +2953,17 @@ proof induction
   ultimately show ?case
     unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged_def \<mu>\<^sub>C'_def by simp
 next
-  case (cdcl_merged_propagate S T)
+  case (cdcl_merged_propagate\<^sub>N\<^sub>O\<^sub>T S T)
   have "clauses S = clauses T"
-    using cdcl_merged_propagate.hyps
-    by (simp add: bj_propagate cdcl_merged_propagate.prems(1) dpll_bj_clauses)
+    using cdcl_merged_propagate\<^sub>N\<^sub>O\<^sub>T.hyps
+    by (simp add: bj_propagate\<^sub>N\<^sub>O\<^sub>T cdcl_merged_propagate\<^sub>N\<^sub>O\<^sub>T.prems(1) dpll_bj_clauses)
   moreover have
     "(2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
        - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight T)
      < (2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
        - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight S)"
     apply (rule dpll_bj_trail_mes_decreasing_prop[of S T A])
-       using cdcl_merged_propagate fin_A by (simp_all add: bj_propagate cdcl_merged_propagate.hyps)
+       using cdcl_merged_propagate\<^sub>N\<^sub>O\<^sub>T fin_A by (simp_all add: bj_propagate\<^sub>N\<^sub>O\<^sub>T cdcl_merged_propagate\<^sub>N\<^sub>O\<^sub>T.hyps)
   ultimately show ?case
     unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged_def \<mu>\<^sub>C'_def by simp
 next
