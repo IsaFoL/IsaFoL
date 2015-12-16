@@ -1571,6 +1571,31 @@ proof (rule ccontr)
   then show False using no_infinite_lf by blast
 qed
 
+lemma inv_and_tranclp_cdcl_\<^sub>N\<^sub>O\<^sub>T_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_and_inv:
+  "cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>+\<^sup>+ S T \<and> cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv A S \<longleftrightarrow> (\<lambda>S T. cdcl\<^sub>N\<^sub>O\<^sub>T S T \<and> cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv A S)\<^sup>+\<^sup>+ S T"
+  (is "?A \<and> ?I \<longleftrightarrow> ?B")
+proof
+  assume "?A \<and> ?I"
+  then have ?A and ?I by blast+
+  then show ?B
+    apply induction
+      apply (simp add: tranclp.r_into_trancl)
+    by (metis (no_types, lifting) cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv tranclp.simps tranclp_into_rtranclp)
+next
+  assume ?B
+  then have "?A" by induction auto
+  moreover have ?I using \<open>?B\<close> tranclpD by fastforce
+  ultimately show "?A \<and> ?I" by blast
+qed
+
+lemma wf_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_learn_and_forget_infinite_chain:
+  assumes
+    no_infinite_lf: "\<And>f j. \<not> (\<forall>i\<ge>j. learn_or_forget (f i) (f (Suc i)))"
+  shows "wf {(T, S). cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>+\<^sup>+ S T \<and> cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv A S}" 
+  using wf_trancl[OF wf_cdcl\<^sub>N\<^sub>O\<^sub>T_no_learn_and_forget_infinite_chain[OF no_infinite_lf]]
+  apply (rule wf_subset)
+  by (auto simp: trancl_set_tranclp inv_and_tranclp_cdcl_\<^sub>N\<^sub>O\<^sub>T_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_and_inv)
+
 end \<comment> \<open>end of \<open>conflict_driven_clause_learning\<close>\<close>
 
 subsection \<open>Restricting restarts\<close>
@@ -3173,7 +3198,7 @@ begin
     using dpll_bj_clauses dpll_bj_all_decomposition_implies_inv dpll_bj_no_dup by fastforce+
 end
 
-locale cdcl\<^sub>N\<^sub>O\<^sub>T_withbacktrack_and_restarts =
+locale cdcl\<^sub>N\<^sub>O\<^sub>T_with_backtrack_and_restarts =
   conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt trail clauses
   update_trail update_cls propagate_conds inv backjump_conds learn_restrictions forget_restrictions
     for
