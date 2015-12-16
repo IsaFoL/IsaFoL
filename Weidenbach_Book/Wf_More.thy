@@ -37,6 +37,12 @@ lemma full0_unfold:
   "full0 r S S' \<longleftrightarrow> ((S = S' \<and> no_step r S') \<or> full r S S')"
   unfolding full0_def full_def by (auto simp add: Nitpick.rtranclp_unfold)
 
+lemma trancl_set_tranclp: "(a, b) \<in> {(b,a). P a b}\<^sup>+ \<longleftrightarrow> P\<^sup>+\<^sup>+ b a"
+  apply (rule iffI)
+    apply (induction rule: trancl_induct; simp)
+  apply (induction rule: tranclp_induct; auto simp: trancl_into_trancl2)
+  done
+
 subsection \<open>Well-foundedness and full transitions\<close>
 lemma wf_exists_normal_form:
   assumes wf:"wf {(x, y). R y x}"
