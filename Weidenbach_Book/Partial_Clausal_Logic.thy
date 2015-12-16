@@ -911,6 +911,10 @@ lemma mset_remdups_remdups_mset[simp]:
   "mset (remdups D) = remdups_mset (mset D)"
   by (induction D) (auto simp add: ac_simps)
 
+lemma tautology_remdups_mset[iff]:
+  "tautology (remdups_mset C) \<longleftrightarrow> tautology C"
+  unfolding tautology_decomp by auto
+
 definition distinct_mset :: "'a multiset \<Rightarrow> bool" where
 "distinct_mset S \<longleftrightarrow> (\<forall>a. a \<in># S \<longrightarrow> count S a = 1)"
 
@@ -972,6 +976,10 @@ lemma distinct_mset_add_single:
     apply (intro allI)
     apply (case_tac "a = aa")
     by (auto split: split_if_asm)
+
+lemma distinct_mset_single_add:
+  "distinct_mset (L + {#a#}) \<longleftrightarrow> distinct_mset L \<and> a \<notin># L"
+  using add.commute[of L "{#a#}"] distinct_mset_add_single by force
 
 text \<open>Another characterisation of @{term distinct_mset}\<close>
 lemma distinct_mset_count_less_1:

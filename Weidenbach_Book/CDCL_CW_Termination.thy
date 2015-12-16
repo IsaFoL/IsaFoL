@@ -474,7 +474,7 @@ proof (induction rule: cdcl_o_induct)
   hence "i > 0" unfolding H[unfolded M3 d] by auto
   show ?case
     proof
-      assume "D + {#L#} \<in> learned_clss (update_trail (Propagated L' (mark_of_cls (D' + {#L'#})) # M1)
+      assume "D + {#L#} \<in> learned_clss (update_trail (Propagated L' ((D' + {#L'#})) # M1)
         (add_cls (D' + {#L'#}) (update_backtrack_lvl j (update_conflicting C_True y))))"
       hence DLD': "D + {#L#} = D' + {#L'#}" using DL by auto
       have L_cKh: "atm_of L \<in> atm_of `lits_of (c @ [Marked Kh i])"
@@ -670,7 +670,7 @@ lemma no_relearned_clause:
   shows False
 proof -
   obtain D L M1 M2_loc K i where
-     T: "T = update_trail (Propagated L (mark_of_cls (D + {#L#})) # M1) (add_cls (D + {#L#})
+     T: "T = update_trail (Propagated L ((D + {#L#})) # M1) (add_cls (D + {#L#})
       (update_backtrack_lvl (get_maximum_level D (trail S)) (update_conflicting C_True S)))"
       and
     decomp: "(Marked K (Suc (get_maximum_level D (trail S))) # M1, M2_loc) \<in>
@@ -698,8 +698,8 @@ proof -
   have lev: "cdcl_M_level_inv R" using invR unfolding cdcl_all_inv_mes_def by blast
   hence vars_of_D: "atms_of D \<subseteq> atm_of ` lits_of M1"
     using backtrack_atms_of_D_in_M1[OF _ _ lev', of L D M1 ] confl_S bt conf
-    unfolding T cdcl_conflicting_def by blast
-  have "no_dup (trail S)" using lev'  by auto
+    unfolding T cdcl_conflicting_def by auto
+  have "no_dup (trail S)" using lev' by auto
   have vars_in_M1:
     "\<forall>x \<in> atms_of D. x \<notin> atm_of ` lits_of (M2 @ [Marked K (get_maximum_level D (trail S) + 1)])"
       apply (rule vars_of_D distinct_atms_of_incl_not_in_other[of
@@ -861,24 +861,22 @@ end
 
 locale cdcl_cw_termination =
    cdcl_cw_ops trail init_clss learned_clss backtrack_lvl conflicting update_trail update_init_clss
-   update_learned_clss update_backtrack_lvl update_conflicting init_state mark_of_cls cls_of_mark
+   update_learned_clss update_backtrack_lvl update_conflicting init_state  
    restart_state
   for
-    trail :: "'st::equal \<Rightarrow> ('v::linorder, nat, 'mark) annoted_lits" and
+    trail :: "'st::equal \<Rightarrow> ('v::linorder, nat, 'v clause) annoted_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
     backtrack_lvl :: "'st \<Rightarrow> nat" and
     conflicting :: "'st \<Rightarrow>'v clause conflicting_clause" and
 
-    update_trail :: "('v, nat, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_trail :: "('v, nat, 'v clause) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_init_clss :: "'v clause set \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_learned_clss :: "'v clause set \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause conflicting_clause \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     init_state :: "'v clauses \<Rightarrow> 'st" and
-    mark_of_cls :: "'v clause \<Rightarrow> 'mark" and
-    cls_of_mark :: "'mark \<Rightarrow> 'v::linorder clause" and
     restart_state :: "'st \<Rightarrow> 'st"
 begin
 
@@ -929,20 +927,20 @@ proof (induct rule: cdcl_all_induct)
   case (propagate C L) note conf = this(4)
   have propa: "propagate S (cons_trail (Propagated L (C + {#L#})) S)"
     using propagate_rule[OF _ propagate.hyps(1,2)] propagate.hyps by auto
-  hence no_dup': "no_dup (Propagated L (mark_of_cls (C + {#L#})) # trail S)"
+  hence no_dup': "no_dup (Propagated L ( (C + {#L#})) # trail S)"
     by (metis cdcl_M_level_inv_decomp(2) cdcl_cp.simps cdcl_cp_consistent_inv cons_trail.simps(1)
       M_level trail_update_trail)
 
   let ?N = "init_clss S"
   have "no_strange_atm (cons_trail (Propagated L (C + {#L#})) S)"
     using alien cdcl.propagate cdcl_no_strange_atm_inv propa by blast
-  hence  "atm_of ` lits_of (Propagated L (mark_of_cls (C + {#L#})) # trail S)
+  hence  "atm_of ` lits_of (Propagated L ( (C + {#L#})) # trail S)
     \<subseteq> (atms_of_m (init_clss S))"
     unfolding no_strange_atm_def by auto
-  hence "card (atm_of ` lits_of (Propagated L (mark_of_cls (C + {#L#})) # trail S))
+  hence "card (atm_of ` lits_of (Propagated L ( (C + {#L#})) # trail S))
     \<le> card (atms_of_m (init_clss S))"
     using card_mono finite_atms clauses_def by fastforce
-  hence "length (Propagated L (mark_of_cls (C + {#L#})) # trail S) \<le> card (atms_of_m ?N)"
+  hence "length (Propagated L ( (C + {#L#})) # trail S) \<le> card (atms_of_m ?N)"
     using no_dup_length_eq_card_atm_of_lits_of no_dup' by fastforce
   hence H: "card (atms_of_m (init_clss S)) - length (trail S)
     = Suc (card (atms_of_m (init_clss S)) - Suc (length (trail S)))"
@@ -987,7 +985,7 @@ next
   thus ?case using finite unfolding clauses_def by simp
 next
   case (backtrack K i M1 M2 L D) note S = this(1) and conf = this(3)
-  let ?S' = "update_trail (Propagated L (mark_of_cls (D+{#L#})) # M1)
+  let ?S' = "update_trail (Propagated L ( (D+{#L#})) # M1)
                     (add_cls (D + {#L#})
                        (update_backtrack_lvl i
                           (update_conflicting C_True S)))"
