@@ -5,10 +5,22 @@ begin
 declare upt.simps(2)[simp del]
 sledgehammer_params[verbose]
 
+context cdcl_cw_ops
+begin
+abbreviation skip_or_resolve :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+"skip_or_resolve \<equiv> (\<lambda>S T. skip S T \<or> resolve S T)"
+end
+
 sublocale cw_state \<subseteq> dpll_state trail clauses update_trail
   "\<lambda>C S. update_init_clss C (update_learned_clss {} S)"
  apply unfold_locales
  by auto
+(* problem if can skip and co but cannot backjump. *)
+sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops trail clauses update_trail
+  "\<lambda>C S. update_init_clss C (update_learned_clss {} S)" "\<lambda>_. True"
+  cdcl_all_inv_mes "\<lambda>_ S. conflicting S = C_True"
+  "\<lambda>C' L S. \<exists>T U. conflict S T \<and> full0 cdcl_bj T U \<and> conflicting U = C_Clause (C' + {#L#})"
+  by unfold_locales
 
 context cdcl_cw_ops
 begin
@@ -84,9 +96,6 @@ proof -
     using bt by auto
   ultimately show ?thesis unfolding full_def by blast
 qed
-
-abbreviation skip_or_resolve :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
-"skip_or_resolve \<equiv> (\<lambda>S T. skip S T \<or> resolve S T)"
 
 lemma rtrancl_cdcl_conflicting_true_cdcl_fw:
   assumes "cdcl\<^sup>*\<^sup>* S V" and "conflicting S = C_True"
