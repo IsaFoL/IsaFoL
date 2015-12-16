@@ -57,7 +57,7 @@ proof -
   then show ?thesis using cancel_compls1[of L\<^sub>1] cancel_compls1[of L\<^sub>2] by simp
 qed
 
-fun varst  :: "fterm \<Rightarrow> var_sym set" 
+primrec varst  :: "fterm \<Rightarrow> var_sym set" 
 and varsts :: "fterm list \<Rightarrow> var_sym set" where 
   "varst (Var x) = {x}"
 | "varst (Fun f ts) = varsts ts"
@@ -389,8 +389,6 @@ proof -
   then show ?thesis unfolding instance_ofls_def by auto
 qed
 
-
-
 subsection {* Merging substitutions *}
 lemma project_sub:
   assumes inst_C:"C {\<mu>}\<^sub>l\<^sub>s = C'" (* lmbd instead of mu would fit better with below proofs *) (* This equality could be removed from the lemma *)
@@ -487,6 +485,67 @@ proof -
   then have "D {?\<eta>}\<^sub>l\<^sub>s = D'" using DD' by auto
   ultimately
   show ?thesis by auto
+qed
+
+subsection {* Standardizing apart *}
+
+definition std_apart :: "fterm clause \<Rightarrow> fterm clause \<Rightarrow> (fterm clause * fterm clause)" where
+  "std_apart C\<^sub>1 C\<^sub>2 = (C\<^sub>1{\<lambda>x::char list. Var (''0'' @ x) }\<^sub>l\<^sub>s,C\<^sub>2{\<lambda>x. Var (''1'' @ x)}\<^sub>l\<^sub>s)"
+
+lemma std_apart'': 
+  "x\<in>varst  (t  {\<lambda>x::char list. Var (y @ x) }\<^sub>t ) \<Longrightarrow> \<exists>x'. x=y@x'"
+  "x\<in>varsts (ts {\<lambda>x::char list. Var (y @ x) }\<^sub>t\<^sub>s) \<Longrightarrow> \<exists>x'. x=y@x'"
+by (induct t and ts rule: varst.induct varsts.induct) auto
+
+lemma std_apart': "x\<in>varsl (l {\<lambda>x::char list. Var  (y@x) }\<^sub>l) \<Longrightarrow> \<exists>x'. x=y@x'"
+unfolding varsl_def using std_apart'' by (cases l) auto
+
+lemma std_apart_apart:
+  assumes  "std_apart C1 C2 = (C1',C2')"
+  shows "varsls C1' \<inter> varsls C2' = {}"
+proof (rule; rule)
+  from assms have C1'_x0: "C1' = C1{\<lambda>x. Var (''0'' @ x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
+  from assms have C2'_x1: "C2' = C2{\<lambda>x. Var (''1'' @ x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
+  fix x
+  assume xin: "x \<in> varsls C1' \<inter> varsls C2'"
+  from xin have "x \<in> varsls C1'" by auto
+  then have "\<exists>x'.  x=''0'' @ x'" 
+    using C1'_x0 std_apart'[of x _ "''0''"] unfolding varsls_def by auto
+  moreover
+  from xin have "x \<in> varsls C2'" by auto
+  then have "\<exists>x'. x= ''1'' @x' " 
+    using C2'_x1 std_apart'[of x _ "''1''"] unfolding varsls_def by auto
+  ultimately have "False" by auto
+  then show "x \<in> {}" by auto
+qed
+
+lemma std_apart_instance_ofls:
+  assumes "std_apart C1 C2 = (C1', C2')"
+  shows "instance_ofls C1 C1' \<and> instance_ofls C2 C2'"
+proof -
+  from assms have dfdf: "C1' = C1{\<lambda>x. Var (''0''@x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
+
+  have empty: "(\<lambda>x. Var (''0''@x)) \<cdot> (\<lambda>x. Var (tl x)) = \<epsilon>" using composition_def by auto
+
+  have "C1 {\<epsilon>}\<^sub>l\<^sub>s = C1" using empty_subls by auto
+  then have "C1{(\<lambda>x. Var (''0''@x)) \<cdot> (\<lambda>x. Var (tl x)) }\<^sub>l\<^sub>s = C1" using empty by auto
+  then have "C1{\<lambda>x. Var (''0''@x) }\<^sub>l\<^sub>s {\<lambda>x. Var (tl x) }\<^sub>l\<^sub>s = C1" using composition_conseq2ls by auto
+  then have "C1 = C1' {\<lambda>x. Var (tl x) }\<^sub>l\<^sub>s" using dfdf by auto
+  then have "instance_ofls C1 C1'" unfolding instance_ofls_def by auto
+
+  moreover (* symmetric *)
+
+  from assms have dfdf: "C2' = C2{\<lambda>x. Var (''1''@x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
+
+  have empty: "(\<lambda>x. Var (''1''@x)) \<cdot> (\<lambda>x. Var (tl x)) = \<epsilon>" using composition_def by auto
+
+  have "C2 {\<epsilon>}\<^sub>l\<^sub>s = C2" using empty_subls by auto
+  then have "C2{(\<lambda>x. Var (''1''@x)) \<cdot> (\<lambda>x. Var (tl x)) }\<^sub>l\<^sub>s = C2" using empty by auto
+  then have "C2{\<lambda>x. Var (''1''@x) }\<^sub>l\<^sub>s {\<lambda>x. Var (tl x) }\<^sub>l\<^sub>s = C2" using composition_conseq2ls by auto
+  then have "C2 = C2' {\<lambda>x. Var (tl x) }\<^sub>l\<^sub>s" using dfdf by auto
+  then have "instance_ofls C2 C2'" unfolding instance_ofls_def by auto
+
+  ultimately show ?thesis by auto
 qed
 
 section {* Unifiers *}
@@ -992,6 +1051,7 @@ lemma ground_falsifies:
       \<and> diag_fatom i = Pos (get_pred l) (get_terms l)"
 using assms by (cases l) auto (* Not really induction *)
 
+
 abbreviation extend :: "(nat \<Rightarrow> partial_pred_denot) \<Rightarrow> hterm pred_denot" where
   "extend f P ts \<equiv> (
      let n = undiag_hatom (Pos P ts) in
@@ -1086,6 +1146,60 @@ lemma sub_of_denot_equiv_ground:
   "((\<exists>l \<in> C. evall E HFun G l) \<longleftrightarrow> (\<exists>l \<in> C {sub_of_denot E}\<^sub>l\<^sub>s. evall E HFun G l))
            \<and> groundls (C {sub_of_denot E}\<^sub>l\<^sub>s)"
   using sub_of_denot_equiv_ground' by auto
+
+lemma std_apart_falsifies1:
+  assumes "std_apart C1 C2 = (C1',C2')"
+  assumes "falsifiesc G C1"
+  shows "falsifiesc G C1'"
+proof -
+  from assms obtain Cg where "instance_ofls Cg C1  \<and> falsifiesg G Cg" by auto
+  moreover
+  then have "instance_ofls Cg C1'" using std_apart_instance_ofls instance_ofls_trans assms by blast
+  ultimately
+  show ?thesis by auto
+qed
+
+lemma std_apart_falsifies2:
+  assumes "std_apart C1 C2 = (C1',C2')"
+  assumes "falsifiesc G C2"
+  shows "falsifiesc G C2'"
+proof -
+  from assms obtain Cg where "instance_ofls Cg C2  \<and> falsifiesg G Cg" by auto
+  moreover
+  then have "instance_ofls Cg C2'" using std_apart_instance_ofls instance_ofls_trans assms by blast
+  ultimately
+  show ?thesis by auto
+qed
+
+lemma std_apart_falsifies1_sym:
+  assumes "std_apart C1 C2 = (C1',C2')"
+  assumes "falsifiesc G C1'"
+  shows "falsifiesc G C1"
+proof -
+  from assms have C1'_x0: "C1' = C1{\<lambda>x. Var (''0'' @ x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
+  then have inst: "instance_ofls C1' C1" unfolding instance_ofls_def by auto
+
+  from assms obtain Cg where "instance_ofls Cg C1'  \<and> falsifiesg G Cg" by auto
+  moreover
+  then have "instance_ofls Cg C1" using inst instance_ofls_trans assms by blast
+  ultimately
+  show ?thesis by auto
+qed
+
+lemma std_apart_falsifies2_sym:
+  assumes "std_apart C1 C2 = (C1',C2')"
+  assumes "falsifiesc G C2'"
+  shows "falsifiesc G C2"
+proof -
+  from assms have C2'_x0: "C2' = C2{\<lambda>x. Var (''1'' @ x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
+  then have inst: "instance_ofls C2' C2" unfolding instance_ofls_def by auto
+
+  from assms obtain Cg where "instance_ofls Cg C2'  \<and> falsifiesg G Cg" by auto
+  moreover
+  then have "instance_ofls Cg C2" using inst instance_ofls_trans assms by blast
+  ultimately
+  show ?thesis by auto
+qed
 
 subsection {* Semantic Trees *}
 
@@ -1490,7 +1604,7 @@ qed
 
 lemma number_lemma:
   assumes "\<not>(\<exists>i. i < length (B :: bool list) \<and> P(i))"
-  assumes "\<exists>i. i < length (B@[True]) \<and> P(i)"
+  assumes "\<exists>i. i < length (B@[d]) \<and> P(i)"
   shows "P(length B)"
 using assms less_Suc_eq by auto
 
@@ -1526,15 +1640,26 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     let ?B1 = "B@[True]"
     let ?B2 = "B@[False]"                                       
 
-    have "\<exists>C1 \<in> Cs. falsifiesc ?B1 C1" using b_p clo by auto 
-    then obtain C1  where C1_p:  "C1 \<in> Cs \<and>falsifiesc ?B1 C1" by auto
-    then have "\<exists>C1'. groundls C1' \<and> instance_ofls C1' C1 \<and> falsifiesg ?B1 C1'" 
-      using falsifiesc_ground[of C1 ?B1] by metis
-    then obtain C1' where C1'_p: "groundls C1' \<and> instance_ofls C1' C1 \<and> falsifiesg ?B1 C1'" by auto
+    have "\<exists>C1o \<in> Cs. falsifiesc ?B1 C1o" using b_p clo by auto 
+    then obtain C1o where C1o_p: "C1o \<in> Cs \<and> falsifiesc ?B1 C1o" by auto
+
+    have "\<exists>C2o \<in> Cs. falsifiesc ?B2 C2o" using b_p clo by auto (* "Re-formulation" of below line *)
+    then obtain C2o where C2o_p: "C2o \<in> Cs \<and> falsifiesc ?B2 C2o" by auto
+
+    let ?C1 = "fst (std_apart C1o C2o)"
+    let ?C2 = "snd (std_apart C1o C2o)"
+    have C1_p: "falsifiesc ?B1 ?C1" using std_apart_falsifies1[of C1o C2o ?C1 ?C2 ?B1] C1o_p by auto
+    have C2_p: "falsifiesc ?B2 ?C2" using std_apart_falsifies2[of C1o C2o ?C1 ?C2 ?B2] C2o_p by auto
+
+
+    from C1_p have "\<exists>C1'. groundls C1' \<and> instance_ofls C1' ?C1 \<and> falsifiesg ?B1 C1'" 
+      using falsifiesc_ground[of ?C1 ?B1] by metis
+    then obtain C1' where C1'_p: "groundls C1' \<and> instance_ofls C1' ?C1 \<and> falsifiesg ?B1 C1'" by auto
     (* We went down to the ground world *)
     then have "\<forall>l \<in> C1'. falsifiesl (B@[True]) l" by auto
     moreover 
-    have "\<not>falsifiesc B C1" using C1_p b_p clo by auto
+    have "\<not>falsifiesc B C1o" using C1o_p b_p clo by auto
+    then have "\<not>falsifiesc B ?C1" using std_apart_falsifies1_sym [of C1o C2o ?C1 ?C2 B] by auto
     then have "\<not> falsifiesg B C1'" using C1'_p by auto
     then have "\<not>(\<forall>l \<in> C1'. falsifiesl B l)" by auto
     ultimately have "\<exists>l \<in> C1'. falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
@@ -1584,15 +1709,15 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
         ultimately show "falsifiesl B lo" using shorter_falsifiesl by blast
       qed
 
-    have "\<exists>C2 \<in> Cs. falsifiesc ?B2 C2" using b_p clo by auto (* "Re-formulation" of below line *)
-    then obtain C2 where C2_p: "C2 \<in> Cs \<and> falsifiesc ?B2 C2" by auto
-    then have "\<exists>C2'. groundls C2' \<and> instance_ofls C2' C2 \<and> falsifiesg ?B2 C2'" 
-      using falsifiesc_ground[of C2 ?B2] by metis
-    then obtain C2' where C2'_p: "groundls C2' \<and> instance_ofls C2' C2 \<and> falsifiesg ?B2 C2'" by auto
+
+    from C2_p have "\<exists>C2'. groundls C2' \<and> instance_ofls C2' ?C2 \<and> falsifiesg ?B2 C2'" 
+      using falsifiesc_ground[of ?C2 ?B2] by metis
+    then obtain C2' where C2'_p: "groundls C2' \<and> instance_ofls C2' ?C2 \<and> falsifiesg ?B2 C2'" by auto
     (* We went down to the ground world *)
     then have "\<forall>l \<in> C2'. falsifiesl (B@[False]) l" by auto
     moreover 
-    have "\<not>falsifiesc B C2" using C2_p b_p clo by auto
+    have "\<not>falsifiesc B C2o" using C2o_p b_p clo by auto
+    then have "\<not>falsifiesc B ?C2" using std_apart_falsifies2_sym[of C1o C2o ?C1 ?C2 B] by auto
     then have "\<not> falsifiesg B C2'" using C2'_p by auto
     then have "\<not>(\<forall>l \<in> C2'. falsifiesl B l)" by auto
     ultimately have "\<exists>l \<in> C2'. falsifiesl (B@[False]) l \<and> \<not>(falsifiesl B l)" by auto
@@ -1605,8 +1730,8 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     have "falsifiesg B ((C1' - {l1}) \<union> (C2' - {l2}))" using B_C1'l1 B_C2'l2 by cases auto
     then have "falsifiesg B (lresolution C1' C2' {l1} {l2} \<epsilon>)" unfolding lresolution_def empty_subls by auto
 
-    have "applicable C1' C2' {l1} {l2} \<epsilon>" using sorry
-...x.
+    have "applicable C1' C2' {l1} {l2} \<epsilon>"  sorry
+
 
     (* Challange: standardize C1 and C2 apart, you need to do this very early *)
     have "\<exists>L1 L2 \<tau>. applicable C1 C2 L1 L2 \<tau>  \<and> instance_ofls (lresolution C1' C2' {l1} {l2} \<epsilon>) (lresolution C1 C2 L1 L2 \<tau>)" 
@@ -1652,7 +1777,7 @@ oops
 
 theorem completeness:
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
-  assumes unsat: "\<forall>F G. \<not>evalcs F G Cs"
+  assumes unsat: "\<forall>(F::fun_sym \<Rightarrow> hterm list \<Rightarrow> hterm) G. \<not>evalcs F G Cs"
   shows "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
 oops
 
