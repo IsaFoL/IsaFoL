@@ -13,14 +13,30 @@ end
 
 sublocale cw_state \<subseteq> dpll_state trail clauses update_trail
   "\<lambda>C S. update_init_clss C (update_learned_clss {} S)"
- apply unfold_locales
- by auto
-(* problem if can skip and co but cannot backjump. *)
+  by unfold_locales auto
+ 
 sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops trail clauses update_trail
   "\<lambda>C S. update_init_clss C (update_learned_clss {} S)" "\<lambda>_. True"
-  cdcl_all_inv_mes "\<lambda>_ S. conflicting S = C_True"
-  "\<lambda>C' L S. \<exists>T U. conflict S T \<and> full0 cdcl_bj T U \<and> conflicting U = C_Clause (C' + {#L#})"
+  "\<lambda>_ S. conflicting S = C_True" "\<lambda>C L S.  backjump_l_cond C L S \<and> distinct_mset (C + {#L#})
+    \<and> \<not>tautology (C + {#L#})"
   by unfold_locales
+
+context cdcl_cw_ops
+begin
+lemma "decide S T \<Longrightarrow> cdcl_all_inv_mes S \<Longrightarrow> cdcl S T"
+  apply (induction rule: decide.induct)
+oops
+
+lemma "cdcl\<^sub>N\<^sub>O\<^sub>T_merged S T \<Longrightarrow> cdcl S T"
+  apply (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_merged.induct)
+oops
+end
+
+sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy  trail clauses update_trail
+  "\<lambda>C S. update_init_clss C (update_learned_clss {} S)" "\<lambda>_. True"
+  "\<lambda>_ S. conflicting S = C_True" backjump_l_cond cdcl_all_inv_mes
+  apply unfold_locales
+oops
 
 context cdcl_cw_ops
 begin
