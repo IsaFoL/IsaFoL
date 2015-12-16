@@ -2789,7 +2789,6 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops =
     update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_cls :: "'v clause set \<Rightarrow> 'st \<Rightarrow> 'st" and
     propagate_conds :: "'st \<Rightarrow> bool" and
-    inv :: "'st \<Rightarrow> bool" and
     forget_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" +
   fixes backjump_l_cond :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool"
 begin
@@ -2816,15 +2815,18 @@ end
 
 locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy =
   cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops trail clauses update_trail update_cls propagate_conds
-    inv forget_conds "\<lambda>C L _.  distinct_mset (C + {#L#}) \<and> \<not>tautology (C + {#L#})"
+    forget_conds "\<lambda>C L S.  backjump_l_cond C L S \<and> distinct_mset (C + {#L#}) 
+    \<and> \<not>tautology (C + {#L#})"
   for
     trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_cls :: "'v clause set \<Rightarrow> 'st \<Rightarrow> 'st" and
     propagate_conds :: "'st \<Rightarrow> bool" and
-    inv :: "'st \<Rightarrow> bool" and
-    forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" +
+    forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
+    backjump_l_cond :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool" +
+  fixes
+    inv :: "'st \<Rightarrow> bool"
   assumes
      bj_can_jump:
      "\<And>S C F' K d F L.
@@ -2883,7 +2885,7 @@ end
 
 locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2 =
   cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy trail clauses update_trail update_cls propagate_conds
-    inv forget_conds
+     forget_conds backjump_l_cond inv
   for
     trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
@@ -2891,16 +2893,18 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2 =
     update_cls :: "'v clause set \<Rightarrow> 'st \<Rightarrow> 'st" and
     propagate_conds :: "'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
-    forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
+    forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
+    backjump_l_cond :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool"
 begin
 
 sublocale conflict_driven_clause_learning_ops trail clauses update_trail update_cls propagate_conds
    inv backjump_conds "\<lambda>C _.  distinct_mset C \<and> \<not>tautology C" forget_conds
   by unfold_locales
 end
+
 locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn =
   cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2 trail clauses update_trail update_cls propagate_conds
-    inv forget_conds
+    inv forget_conds backjump_l_cond
   for
     trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
@@ -2908,7 +2912,8 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn =
     update_cls :: "'v clause set \<Rightarrow> 'st \<Rightarrow> 'st" and
     propagate_conds :: "'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
-    forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" +
+    forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
+    backjump_l_cond :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool" +
   assumes
      dpll_bj_inv: "\<And>S T.  dpll_bj S T \<Longrightarrow> inv S \<Longrightarrow> inv T" and
      learn_inv: "\<And>S T. learn S T \<Longrightarrow> inv S \<Longrightarrow> inv T"
@@ -2917,7 +2922,7 @@ begin
 
 interpretation cdcl\<^sub>N\<^sub>O\<^sub>T:
    conflict_driven_clause_learning trail clauses update_trail update_cls propagate_conds
-   inv backjump_conds "\<lambda>C _.  distinct_mset C \<and> \<not>tautology C" forget_conds
+   inv backjump_conds "\<lambda>C _. distinct_mset C \<and> \<not>tautology C" forget_conds
   apply unfold_locales
   using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_forget\<^sub>N\<^sub>O\<^sub>T cdcl_merged_inv learn_inv
   by (auto simp add: cdcl\<^sub>N\<^sub>O\<^sub>T.simps dpll_bj_inv)
@@ -3107,7 +3112,7 @@ next
       - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight S))"
     by auto
   then show ?case
-    using \<open>card (clauses T) <= 1+ card (clauses S)\<close>
+    using \<open>card (clauses T) \<le> 1+ card (clauses S)\<close>
     unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged_def \<mu>\<^sub>C'_def
     by linarith
 qed
