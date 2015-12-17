@@ -573,14 +573,14 @@ lemma dpll_bj_trail_mes_increasing_prop:
     MA: "atm_of ` lits_of (trail S) \<subseteq> atms_of_m A" and
     n_d: "no_dup (trail S)" and
     finite: "finite A"
-  shows "\<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight T) > \<mu>\<^sub>C (1+card (atms_of_m A))
-    (2+card (atms_of_m A)) (trail_weight S)"
+  shows "\<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight T) 
+    > \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight S)"
   using assms(1,2)
 proof (induction rule: dpll_bj_all_induct)
   case (propagate\<^sub>N\<^sub>O\<^sub>T C L d) note CLN = this(1) and MC =this(2) and undef_L = this(3)
   have incl: "atm_of ` lits_of (Propagated L d # trail S) \<subseteq> atms_of_m A"
-    using propagate\<^sub>N\<^sub>O\<^sub>T.hyps propagate_ops.propagate\<^sub>N\<^sub>O\<^sub>T dpll_bj_atms_in_trail_in_set bj_propagate\<^sub>N\<^sub>O\<^sub>T NA MA CLN
-    by auto
+    using propagate\<^sub>N\<^sub>O\<^sub>T.hyps propagate_ops.propagate\<^sub>N\<^sub>O\<^sub>T dpll_bj_atms_in_trail_in_set bj_propagate\<^sub>N\<^sub>O\<^sub>T
+    NA MA CLN by auto
 
   have no_dup: "no_dup (Propagated L d # trail S)"
     using defined_lit_map n_d undef_L by auto
@@ -609,7 +609,8 @@ next
   hence "length (Marked L lv # (trail S)) \<le> card (atms_of_m A)"
     using incl finite unfolding no_dup_length_eq_card_atm_of_lits_of[OF no_dup]
     by (simp add: card_mono)
-  hence latm: "unassigned_lit A (trail S) = Suc (unassigned_lit A (Marked L lv # (trail S)))" by force
+  then have latm: "unassigned_lit A (trail S) = Suc (unassigned_lit A (Marked L lv # (trail S)))" 
+    by force
   show ?case by (simp add: latm \<mu>\<^sub>C_cons)
 next
   case (backjump C F' K d F L C' lv) note undef_L = this(4) and MC =this(1) and tr_S = this(3) and
@@ -620,7 +621,7 @@ next
   have no_dup: "no_dup (Propagated L lv # F)"
     using defined_lit_map n_d undef_L tr_S by auto
   obtain a b l where M: "get_all_marked_decomposition (trail S) = (a, b) # l"
-    by (case_tac "get_all_marked_decomposition (trail S)") auto
+    by (cases "get_all_marked_decomposition (trail S)") auto
   have b_le_M: "length b \<le> length (trail S)"
     using get_all_marked_decomposition_decomp[of "trail S"] by (simp add: M)
   have fin_atms_A: "finite (atms_of_m A)" using finite by simp
