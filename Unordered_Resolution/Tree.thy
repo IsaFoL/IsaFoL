@@ -191,7 +191,7 @@ next
            branch (B @ [False]) (Branch (Branch x21 x22) r)" by metis
       qed qed
 
-section {* Internal Nodes *}
+section {* Internal Paths *}
 
 inductive internal :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
   "internal [] (Branch l r)"

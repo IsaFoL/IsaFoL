@@ -94,7 +94,6 @@ fun evalt  :: "'u var_denot \<Rightarrow> 'u fun_denot \<Rightarrow> fterm \<Rig
 
 abbreviation evalts :: "'u var_denot \<Rightarrow> 'u fun_denot \<Rightarrow> fterm list \<Rightarrow> 'u list" where
   "evalts E F ts \<equiv> map (evalt E F) ts"
-(* I Could Curry here and remove ts *)
 
 fun evall :: "'u var_denot \<Rightarrow> 'u fun_denot \<Rightarrow> 'u pred_denot \<Rightarrow> fterm literal \<Rightarrow> bool" where
   "evall E F G (Pos p ts) \<longleftrightarrow>  (G p (evalts E F ts))"
@@ -967,11 +966,6 @@ section {* Partial Interpretations *}
 
 type_synonym partial_pred_denot = "bool list"
 
-(* WARNING: My definition of falsification is WRONG! For a clause I allow each literal
-   to be individually projected down to the ground world, BUT they should all be projected
-   down with the same substitution to be falsified.
-*)
-
 (* This definition is quite syntactical. I think that's good though.
    Alternative: Check if an instance is in list. If not return true.
    Otherwise, build an interpretation from the partial interpretation *)
@@ -994,11 +988,6 @@ abbreviation falsifiesg :: "partial_pred_denot \<Rightarrow> fterm clause \<Righ
 
 abbreviation falsifiesc :: "partial_pred_denot \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "falsifiesc G C \<equiv> (\<exists>C'. instance_ofls C' C \<and> falsifiesg G C')"
-(*A perhaps better definition:
-First  we define it for groundliterals. We dont need the substitution since they are ground.
-Second we define it for groundclauses - all ground literals must be falsified.
-Third for fol-clauses - has ground instance that is falsified
-*)
 
 abbreviation falsifiescs :: "partial_pred_denot \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "falsifiescs G Cs \<equiv> (\<exists>C \<in> Cs. falsifiesc G C)"
