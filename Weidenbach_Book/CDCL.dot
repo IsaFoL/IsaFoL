@@ -92,7 +92,7 @@ Digraph CDCL {
 		CDCL_WL [label="CDCL 2-Watched-literals", color=blue];
 	}
 
-	CDCL_W_state -> CDCL_NOT_state[color=red];
+	CDCL_W_state -> CDCL_NOT_state;
 	CDCL_WL -> CDCL_W_state[color=blue];
 	
 	{rank=same;
