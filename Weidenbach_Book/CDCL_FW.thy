@@ -21,8 +21,6 @@ sublocale cw_state \<subseteq> dpll_state trail clauses update_trail
   "\<lambda>C S. update_init_clss C (update_learned_clss {} S)"
   by unfold_locales auto
 
-
-
 sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops trail clauses update_trail
   "\<lambda>C S. update_init_clss C (update_learned_clss {} S)" "\<lambda>_. True"
   "\<lambda>_ S. conflicting S = C_True" "\<lambda>C L S. backjump_l_cond C L S \<and> distinct_mset (C + {#L#})
@@ -141,6 +139,17 @@ proof induction
   thus ?case by (cases "conflicting U") fastforce+
 qed (auto simp add: cdcl_rf.simps)
 
+(* Problem: this is true if you consider only the part that can be observed, because of the level. *)
+lemma "cdcl_fw S T \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_merged S T"
+  apply (induction rule: cdcl_fw.induct)
+      using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_propagate\<^sub>N\<^sub>O\<^sub>T apply blast
+     defer
+     apply (rule cdcl\<^sub>N\<^sub>O\<^sub>T_merged_decide)
+     apply (auto simp: decided.simps decide.simps clauses_def )[]
+     apply (intro exI, auto)[]
+     apply (intro exI)
+     apply (auto simp: st_equal)[]
+oops
 
 lemma backtrack_is_full_cdcl_bj:
   assumes bt: "backtrack S T"
@@ -2794,7 +2803,9 @@ proof (rule ccontr)
   then show False
     proof cases
       case conflict'
-      then show False
+      then obtain S' where "full cdcl_fw_cp R S'"
+        sorry
+      then show False using confl(2) by blast
 oops
 
 (* TODO Move *)
