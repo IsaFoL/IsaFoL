@@ -9,34 +9,74 @@ context cdcl_cw_ops
 begin
 abbreviation skip_or_resolve :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 "skip_or_resolve \<equiv> (\<lambda>S T. skip S T \<or> resolve S T)"
+
+abbreviation backjump_l_cond :: " 'v literal multiset \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool" where
+"backjump_l_cond \<equiv> \<lambda>C L S. True"
+
+abbreviation inv\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> bool" where
+"inv\<^sub>N\<^sub>O\<^sub>T \<equiv> \<lambda>S. no_dup (trail S)"
 end
 
 sublocale cw_state \<subseteq> dpll_state trail clauses update_trail
   "\<lambda>C S. update_init_clss C (update_learned_clss {} S)"
   by unfold_locales auto
 
+
+
 sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops trail clauses update_trail
   "\<lambda>C S. update_init_clss C (update_learned_clss {} S)" "\<lambda>_. True"
-  "\<lambda>_ S. conflicting S = C_True" "\<lambda>C L S.  backjump_l_cond C L S \<and> distinct_mset (C + {#L#})
+  "\<lambda>_ S. conflicting S = C_True" "\<lambda>C L S. backjump_l_cond C L S \<and> distinct_mset (C + {#L#})
     \<and> \<not>tautology (C + {#L#})"
   by unfold_locales
 
-context cdcl_cw_ops
-begin
-(* have to think in term of conversion with the marks *)
-lemma "decide S T \<Longrightarrow> cdcl_all_inv_mes S \<Longrightarrow> cdcl S T"
-oops
+sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy trail clauses update_trail
+  "\<lambda>C S. update_init_clss C (update_learned_clss {} S)"  "\<lambda>_. True"
+  "\<lambda>_ S. conflicting S = C_True" backjump_l_cond inv\<^sub>N\<^sub>O\<^sub>T
+proof (unfold_locales, goal_cases)
+  case 2
+  then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_no_dup_inv by fast
+next
+  case (1 C' S C F' K d F L)
+  moreover
+    let ?C' = "remdups_mset C'"
+    have "L \<notin># C'"
+      using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit L F\<close> Marked_Propagated_in_iff_in_lits_of
+      in_CNot_implies_uminus(2) by blast
+    then have "distinct_mset (?C' + {#L#})"
+      by (metis count_mset_set(3) distinct_mset_remdups_mset distinct_mset_single_add
+        less_irrefl_nat mem_set_mset_iff remdups_mset_def)
+  moreover
+    have "no_dup F"
+      using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> unfolding \<open>trail S = F' @ Marked K d # F\<close> by auto
+    then have "consistent_interp (lits_of F)"
+      using distinctconsistent_interp by blast
+    then have "\<not> tautology (C')"
+      using \<open>F \<Turnstile>as CNot C'\<close> consistent_CNot_not_tautology true_annots_true_cls by blast
+    then have "\<not> tautology (?C' + {#L#})"
+      using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit L F\<close> by (metis  CNot_remdups_mset
+        Marked_Propagated_in_iff_in_lits_of add.commute in_CNot_uminus tautology_add_single
+        tautology_remdups_mset true_annot_singleton true_annots_def)
+  moreover have "\<not>(\<forall>X1 X3. \<not> local.clauses S \<Turnstile>p remdups_mset C' + {#L#}
+    \<or> update_trail (Propagated L X3 # F) (add_cls\<^sub>N\<^sub>O\<^sub>T (remdups_mset C' + {#L#}) S) \<noteq> X1)"
+    by (metis \<open>L \<notin># C'\<close> \<open>local.clauses S \<Turnstile>p C' + {#L#}\<close> remdups_mset_singleton_sum(2)
+      true_clss_cls_remdups_mset union_commute) (* 724 ms *)
+  ultimately  show ?case
+    by (metis (full_types) CNot_remdups_mset \<open>C \<in> local.clauses S\<close> \<open>F \<Turnstile>as CNot C'\<close>
+       backjump_l.intros[of S F' K d F _ L _ ?C'])
+qed
 
-lemma "cdcl\<^sub>N\<^sub>O\<^sub>T_merged S T \<Longrightarrow> cdcl S T"
-  apply (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_merged.induct)
-oops
-end
+sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2 trail clauses update_trail
+  "\<lambda>C S. update_init_clss C (update_learned_clss {} S)" "\<lambda>_. True"  inv\<^sub>N\<^sub>O\<^sub>T
+  "\<lambda>_ S. conflicting S = C_True" backjump_l_cond
+  by unfold_locales
 
-sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy  trail clauses update_trail
-  "\<lambda>C S. update_init_clss C (update_learned_clss {} S)" "\<lambda>_. True"
-  "\<lambda>_ S. conflicting S = C_True" backjump_l_cond cdcl_all_inv_mes
+sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn trail clauses update_trail
+  "\<lambda>C S. update_init_clss C (update_learned_clss {} S)" "\<lambda>_. True"  inv\<^sub>N\<^sub>O\<^sub>T
+  "\<lambda>_ S. conflicting S = C_True" backjump_l_cond
   apply unfold_locales
-oops
+   using dpll_bj_no_dup apply blast
+  apply (auto simp: learn.simps)
+  done
 
 context cdcl_cw_ops
 begin
@@ -385,7 +425,6 @@ next
 
   ultimately have "backtrack T W"
     using T(1) W_S by blast
-
 
   thus ?thesis using IH inv by blast
 qed
