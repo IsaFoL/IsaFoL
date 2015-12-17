@@ -91,6 +91,7 @@ proof (intro allI impI)
   fix as bs cs
   assume asbs: "(as, bs) \<in> lexn r n"
   and bscs: "(bs, cs) \<in> lexn r n"
+
   obtain abs a b as' bs' where
     n: "length as = n" and "length bs = n" and
     as: "as = abs @ a # as'" and
@@ -139,9 +140,9 @@ proof (intro allI impI)
     next
       let ?k = "length abs"
       case eq
-      hence [simp]: "abs = bcs" "b = b'" using bs bs' by auto
-      hence "(a, c') \<in> r" using abr b'c'r trans unfolding trans_def by blast
-      thus ?thesis using n n' unfolding lexn_conv as bs cs by auto
+      hence "abs = bcs" "b = b'" using bs bs' by auto
+      moreover hence "(a, c') \<in> r" using abr b'c'r trans unfolding trans_def by blast
+      ultimately show ?thesis using n n' unfolding lexn_conv as bs cs by auto
     qed
 qed
 
