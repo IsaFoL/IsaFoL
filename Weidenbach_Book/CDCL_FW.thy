@@ -2742,6 +2742,22 @@ proof
     qed
 qed
 
+(* TODO need termination *)
+lemma no_step_cdcl_s'_no_step_cdcl_fw_s:
+  assumes
+    inv: "cdcl_all_inv_mes R" and
+    confl: "conflicting R = C_True"
+    "no_step cdcl_fw_s R"
+  shows "no_step cdcl_s' R"
+proof (rule ccontr)
+  assume "\<not> ?thesis"
+  then obtain S where "cdcl_s' R S" by auto
+  then show False
+    proof cases
+      case conflict'
+      then show False
+oops
+
 (* TODO Move *)
 lemma full_is_full0[intro]: "full R S T \<Longrightarrow> full0 R S T"
   by (simp add: full0_unfold)
