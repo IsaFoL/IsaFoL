@@ -140,8 +140,9 @@ lemma wf_exists_normal_form_full0:
   shows "\<exists>b. full0 R a b"
   using wf_exists_normal_form[OF assms] unfolding full0_def by blast
 
-text \<open>MOVE missing in List.thy (see @{thm lexord_trans})\<close>
-lemma lexn_trans[trans]:
+(* TODO Move to SL? *)
+text \<open>Equivalent of @{thm lexord_transI}\<close>
+lemma lexn_trans:
   assumes trans: "trans r"
   shows "trans (lexn r n)"
     unfolding trans_def
