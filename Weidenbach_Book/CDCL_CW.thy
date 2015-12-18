@@ -1660,6 +1660,18 @@ inductive cdcl_cp :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 conflict'[intro]: "conflict S S' \<Longrightarrow> cdcl_cp S S'" |
 propagate': "propagate S S' \<Longrightarrow> cdcl_cp S S'"
 
+lemma conflicting_clause_full0_cdcl_cp:
+  "conflicting S \<noteq> C_True \<Longrightarrow> full0 cdcl_cp S S"
+unfolding full0_def rtranclp_unfold tranclp_unfold by (auto simp add: cdcl_cp.simps)
+
+lemma skip_unique:
+  "skip S T \<Longrightarrow> skip S T' \<Longrightarrow> T = T'"
+  by (auto simp: st_equal elim!:skipE)
+
+lemma resolve_unique:
+  "resolve S T \<Longrightarrow> resolve S T' \<Longrightarrow> T = T'"
+  by (auto elim!: resolveE)
+
 lemma cdcl_cp_no_more_clauses:
   assumes "cdcl_cp S S'"
   shows "clauses S = clauses S'"
@@ -3635,19 +3647,6 @@ lemma rtranclp_cdcl_s_conflicting_is_false:
   apply (induction rule: rtranclp.induct)
     apply simp
   using cdcl_s_conflicting_is_false by blast
-
-(*TODO Move*)
-lemma conflicting_clause_full0_cdcl_cp:
-  "conflicting S \<noteq> C_True \<Longrightarrow> full0 cdcl_cp S S"
-unfolding full0_def rtranclp_unfold tranclp_unfold by (auto simp add: cdcl_cp.simps)
-
-lemma skip_unique:
-  "skip S T \<Longrightarrow> skip S T' \<Longrightarrow> T = T'"
-  by (auto simp: st_equal elim!:skipE)
-
-lemma resolve_unique:
-  "resolve S T \<Longrightarrow> resolve S T' \<Longrightarrow> T = T'"
-  by (auto elim!: resolveE)
 
 lemma full0_cdcl_init_clss_with_false_normal_form:
   assumes
