@@ -57,7 +57,7 @@ next
   moreover have "\<not>(\<forall>X1 X3. \<not> local.clauses S \<Turnstile>p remdups_mset C' + {#L#}
     \<or> update_trail (Propagated L X3 # F) (add_cls\<^sub>N\<^sub>O\<^sub>T (remdups_mset C' + {#L#}) S) \<noteq> X1)"
     by (metis \<open>L \<notin># C'\<close> \<open>local.clauses S \<Turnstile>p C' + {#L#}\<close> remdups_mset_singleton_sum(2)
-      true_clss_cls_remdups_mset union_commute) (* 724 ms *)
+      true_clss_cls_remdups_mset union_commute)
   ultimately  show ?case
     by (metis (full_types) CNot_remdups_mset \<open>C \<in> local.clauses S\<close> \<open>F \<Turnstile>as CNot C'\<close>
        backjump_l.intros[of S F' K d F _ L _ ?C'])
@@ -201,7 +201,7 @@ next
           moreover {
             assume "skip_or_resolve U V"
             have f1: "cdcl_bj\<^sup>+\<^sup>+ U V"
-              by (simp add: local.bj tranclp.r_into_trancl) (* 5 ms *)
+              by (simp add: local.bj tranclp.r_into_trancl)
             obtain T T' :: 'st where
               f2: "cdcl_fw\<^sup>*\<^sup>* S U \<or> cdcl_fw\<^sup>*\<^sup>* S T \<and> conflicting U \<noteq> C_True \<and> conflict T T'
                 \<and> cdcl_bj\<^sup>*\<^sup>* T' U"
@@ -1718,9 +1718,9 @@ proof (induction rule: rtranclp_induct)
 next
   case (step y z) note a2 = this(2) and a1 = this(3)
   have "cdcl_s' y z"
-    using a2 by (metis (no_types) bj' cdcl_s'.conflict' cdcl_s'_without_decide.cases) (* 213 ms *)
+    using a2 by (metis (no_types) bj' cdcl_s'.conflict' cdcl_s'_without_decide.cases)
   then show "cdcl_s'\<^sup>*\<^sup>* S z"
-    using a1 by (meson r_into_rtranclp rtranclp_trans) (* 9 ms *)
+    using a1 by (meson r_into_rtranclp rtranclp_trans)
 qed
 
 lemma rtranclp_cdcl_fw_cp_is_rtranclp_cdcl_s'_without_decide:
@@ -2719,7 +2719,7 @@ next
               \<or> full pb se sf)"
             by (metis (no_types) full_def)
           then have f3: "cdcl_fw_cp\<^sup>+\<^sup>+ S T"
-            using a1 by auto (* 27 ms *)
+            using a1 by auto
           obtain ssa :: "('st \<Rightarrow> 'st \<Rightarrow> bool) \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> 'st" where
             f4: "\<And>p s sa. \<not> p\<^sup>+\<^sup>+ s sa \<or> p s (ssa p s sa)"
             by (meson tranclp_unfold_begin)
@@ -2834,7 +2834,7 @@ proof
       { fix ss :: 'st
         obtain ssa :: "'st \<Rightarrow> 'st" where
           ff1: "\<forall>s. \<not> cdcl_all_inv_mes s \<or> cdcl_s'_without_decide s (ssa s) \<or> no_step cdcl_fw_cp s"
-          using conflicting_true_no_step_s'_without_decide_no_step_cdcl_fw_cp by moura (* 78 ms *)
+          using conflicting_true_no_step_s'_without_decide_no_step_cdcl_fw_cp by moura
         have "(\<forall>p s sa. \<not> full0 p (s::'st) sa \<or> p\<^sup>*\<^sup>* s sa \<and> no_step p sa)" and
           "(\<forall>p s sa. (\<not> p\<^sup>*\<^sup>* (s::'st) sa \<or> (\<exists>s. p sa s)) \<or> full0 p s sa)"
           by (meson full0_def)+
