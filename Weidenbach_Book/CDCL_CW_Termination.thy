@@ -4,6 +4,7 @@ begin
 
 context cdcl_cw_ops
 begin
+subsection \<open>Termination\<close>
 text \<open>The condition that no learned clause is a tautology is overkill (in the sense that the
   no-duplicate condition is enough), but we can reuse @{term build_all_simple_clss}.\<close>
 definition cdcl_all_inv_mes where
@@ -80,7 +81,7 @@ lemma rtranclp_cdcl_s_learned_clause_increasing:
   by (induction rule: rtranclp.induct)
      (auto dest!: cdcl_s_learned_clause_increasing)
 
-section \<open>decreasing of the measure\<close>
+subsection \<open>No Relearning of a clause\<close>
 lemma cdcl_o_new_clause_learned_is_backtrack_step:
   assumes learned: "D \<in> learned_clss T" and
   new: "D \<notin> learned_clss S" and

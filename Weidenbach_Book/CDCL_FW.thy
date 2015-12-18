@@ -2,6 +2,8 @@ theory CDCL_FW
 imports CDCL_CW_Termination CDCL_NOT
 begin
 
+section \<open>Link between Weidenbach's and NOT's CDCL\<close>
+subsection \<open>Inclusion of the states\<close>
 declare upt.simps(2)[simp del]
 sledgehammer_params[verbose]
 
@@ -78,9 +80,73 @@ sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn tr
 
 context cdcl_cw_ops
 begin
-(* TODO Move *)
-lemma update_trail_trail_id[simp]:"update_trail (trail S) S = S"
-  by (auto simp: st_equal)
+subsection \<open>Well-foundedness of Weidenbach's conflict--propagate and backjumping\<close>
+lemma cdcl_cp_decreasing_measure:
+  assumes "cdcl_cp S T" and "cdcl_all_inv_mes S"
+  shows "(\<lambda>S. card (atms_of_m (init_clss S)) - length (trail S) + (if conflicting S = C_True then 1 else 0)) S
+        > (\<lambda>S. card (atms_of_m (init_clss S)) - length (trail S) + (if conflicting S = C_True then 1 else 0)) T"
+  using assms
+proof -
+  have "length (trail T) \<le> card (atms_of_m (init_clss T))"
+    by (rule length_model_le_vars_all_inv)
+      (meson assms cdcl_all_inv_mes_inv cdcl_cp.cases conflict propagate)
+  with assms
+  show ?thesis by induction force+
+qed
+
+lemma cdcl_cp_wf: "wf {(b,a). cdcl_all_inv_mes a \<and> cdcl_cp a b}"
+  apply (rule wf_wf_if_measure'[of less_than _ _
+      "(\<lambda>S. card (atms_of_m (init_clss S)) - length (trail S)
+        + (if conflicting S = C_True then 1 else 0))"])
+    apply simp
+  using cdcl_cp_decreasing_measure unfolding less_than_iff by blast
+
+lemma rtranclp_cdcl_all_inv_mes_cdcl_cp_iff_rtranclp_cdcl_cp:
+  "cdcl_all_inv_mes S \<Longrightarrow> (\<lambda>a b. cdcl_all_inv_mes a \<and> cdcl_cp a b)\<^sup>*\<^sup>* S T \<longleftrightarrow> cdcl_cp\<^sup>*\<^sup>* S T"
+  (is "?inv S \<Longrightarrow> ?I S T \<longleftrightarrow> ?C S T")
+proof
+  assume
+    "?I S T"
+    "?inv S"
+  thus "?C S T" by induction auto
+next
+  assume
+    "?C S T"
+    "?inv S"
+  thus "?I S T"
+    proof induction
+      case base
+      thus ?case by simp
+    next
+      case (step T U) note st = this(1) and cp = this(2) and IH = this(3)[OF this(4)] and
+        inv = this(4)
+      have "cdcl\<^sup>*\<^sup>* S T"
+        by (metis rtranclp_unfold local.step(1) tranclp_cdcl_cp_tranclp_cdcl)
+      hence "cdcl_all_inv_mes T"
+        by (metis (no_types, lifting) \<open>cdcl_all_inv_mes S\<close> rtranclp_cdcl_all_inv_mes_inv)
+      hence " (\<lambda>a b. cdcl_all_inv_mes a \<and> cdcl_cp a b)\<^sup>*\<^sup>* T U"
+        using cp by auto
+      thus ?case using IH by auto
+    qed
+qed
+
+lemma cdcl_cp_normalized_element:
+  assumes inv: "cdcl_all_inv_mes S"
+  obtains T where "full0 cdcl_cp S T"
+proof -
+  obtain T where T: "full0 (\<lambda>a b. cdcl_all_inv_mes a \<and> cdcl_cp a b) S T"
+    using cdcl_cp_wf wf_exists_normal_form[of "\<lambda>a b. cdcl_all_inv_mes a \<and> cdcl_cp a b"]
+    unfolding full0_def by blast
+    hence "cdcl_cp\<^sup>*\<^sup>* S T"
+      using rtranclp_cdcl_all_inv_mes_cdcl_cp_iff_rtranclp_cdcl_cp inv unfolding full0_def
+      by blast
+    moreover
+      hence "cdcl_all_inv_mes T"
+        by (metis inv rtranclp_cdcl_all_inv_mes_inv rtranclp_unfold tranclp_cdcl_cp_tranclp_cdcl)
+      hence "no_step cdcl_cp T"
+        using T unfolding full0_def by auto
+    ultimately show thesis using that unfolding full0_def by blast
+qed
 
 lemma cdcl_bj_measure:
   assumes "cdcl_bj S T"
@@ -299,7 +365,11 @@ lemma rtranclp_cdcl_fw_no_step_cdcl_bj:
   by (induction rule: rtranclp_induct)
      (fastforce simp: cdcl_bj.simps cdcl_rf.simps cdcl_fw.simps full0_def)+
 
-text \<open>If @{term "conflicting  S \<noteq> C_True"}, we cannot say anything.\<close>
+text \<open>If @{term "conflicting  S \<noteq> C_True"}, we cannot say anything.
+  
+  Remark that this theorem does  not say anything about well-foundedness: even if you know that one
+  relation is well-founded, it only states that the normal forms are shared. 
+  \<close>
 lemma conflicting_true_full0_cdcl_iff_full0_cdcl_fw:
   assumes confl: "conflicting  S = C_True"
   shows "full0 cdcl S V \<longleftrightarrow> full0 cdcl_fw S V"
@@ -968,8 +1038,8 @@ lemma
   shows "cdcl_bj\<^sup>*\<^sup>* T U"
   using assms by (metis cdcl_bj_strongly_confluent full_def tranclp_into_rtranclp)
 
-section \<open>FW with strategy\<close>
-section \<open>The intermediate step\<close>
+subsection \<open>FW with strategy\<close>
+subsection \<open>The intermediate step\<close>
 inductive cdcl_s' :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 conflict': "full cdcl_cp S S' \<Longrightarrow> cdcl_s' S S'" |
 decided': "decided S S' \<Longrightarrow> no_step cdcl_cp S \<Longrightarrow> full0 cdcl_cp S' S'' \<Longrightarrow> cdcl_s' S S''" |
@@ -1013,72 +1083,6 @@ lemma cdcl_s'_is_rtranclp_cdcl_s:
    using decided other' apply blast
   by (metis full_def rtranclp_cdcl_bj_full_cdclp_cdcl_s tranclp_into_rtranclp)
 
-lemma cdcl_cp_decreasing_measure:
-  assumes "cdcl_cp S T" and "cdcl_all_inv_mes S"
-  shows "(\<lambda>S. card (atms_of_m (init_clss S)) - length (trail S) + (if conflicting S = C_True then 1 else 0)) S
-        > (\<lambda>S. card (atms_of_m (init_clss S)) - length (trail S) + (if conflicting S = C_True then 1 else 0)) T"
-  using assms
-proof -
-  have "length (trail T) \<le> card (atms_of_m (init_clss T))"
-    by (rule length_model_le_vars_all_inv)
-      (meson assms(1) assms(2) cdcl_all_inv_mes_inv cdcl_cp.cases conflict propagate)
-  with assms
-  show ?thesis by induction force+
-qed
-
-lemma cdcl_cp_wf: "wf {(b,a). cdcl_all_inv_mes a \<and> cdcl_cp a b}"
-  apply (rule wf_wf_if_measure'[of less_than _ _
-      "(\<lambda>S. card (atms_of_m (init_clss S)) - length (trail S)
-        + (if conflicting S = C_True then 1 else 0))"])
-    apply simp
-  using cdcl_cp_decreasing_measure unfolding less_than_iff by blast
-
-lemma rtranclp_cdcl_all_inv_mes_cdcl_cp_iff_rtranclp_cdcl_cp:
-  "cdcl_all_inv_mes S \<Longrightarrow> (\<lambda>a b. cdcl_all_inv_mes a \<and> cdcl_cp a b)\<^sup>*\<^sup>* S T \<longleftrightarrow> cdcl_cp\<^sup>*\<^sup>* S T"
-  (is "?inv S \<Longrightarrow> ?I S T \<longleftrightarrow> ?C S T")
-proof
-  assume
-    "?I S T"
-    "?inv S"
-  thus "?C S T" by induction auto
-next
-  assume
-    "?C S T"
-    "?inv S"
-  thus "?I S T"
-    proof induction
-      case base
-      thus ?case by simp
-    next
-      case (step T U) note st = this(1) and cp = this(2) and IH = this(3)[OF this(4)] and
-        inv = this(4)
-      have "cdcl\<^sup>*\<^sup>* S T"
-        by (metis rtranclp_unfold local.step(1) tranclp_cdcl_cp_tranclp_cdcl)
-      hence "cdcl_all_inv_mes T"
-        by (metis (no_types, lifting) \<open>cdcl_all_inv_mes S\<close> rtranclp_cdcl_all_inv_mes_inv)
-      hence " (\<lambda>a b. cdcl_all_inv_mes a \<and> cdcl_cp a b)\<^sup>*\<^sup>* T U"
-        using cp by auto
-      thus ?case using IH by auto
-    qed
-qed
-
-lemma cdcl_cp_normalized_element:
-  assumes inv: "cdcl_all_inv_mes S"
-  obtains T where "full0 cdcl_cp S T"
-proof -
-  obtain T where T: "full0 (\<lambda>a b. cdcl_all_inv_mes a \<and> cdcl_cp a b) S T"
-    using cdcl_cp_wf wf_exists_normal_form[of "\<lambda>a b. cdcl_all_inv_mes a \<and> cdcl_cp a b"]
-    unfolding full0_def by blast
-    hence "cdcl_cp\<^sup>*\<^sup>* S T"
-      using rtranclp_cdcl_all_inv_mes_cdcl_cp_iff_rtranclp_cdcl_cp inv unfolding full0_def
-      by blast
-    moreover
-      hence "cdcl_all_inv_mes T"
-        by (metis inv rtranclp_cdcl_all_inv_mes_inv rtranclp_unfold tranclp_cdcl_cp_tranclp_cdcl)
-      hence "no_step cdcl_cp T"
-        using T unfolding full0_def by auto
-    ultimately show thesis using that unfolding full0_def by blast
-qed
 
 lemma cdcl_cp_cdcl_bj_bissimulation:
   assumes
@@ -2794,8 +2798,8 @@ qed
 lemma no_step_cdcl_s'_no_step_cdcl_fw_s:
   assumes
     inv: "cdcl_all_inv_mes R" and
-    confl: "conflicting R = C_True"
-    "no_step cdcl_fw_s R"
+    confl: "conflicting R = C_True" and
+    n_s: "no_step cdcl_fw_s R"
   shows "no_step cdcl_s' R"
 proof (rule ccontr)
   assume "\<not> ?thesis"
@@ -2805,7 +2809,10 @@ proof (rule ccontr)
       case conflict'
       then obtain S' where "full cdcl_fw_cp R S'"
         sorry
-      then show False using confl(2) by blast
+      then show False using n_s by blast
+    next
+      case (decided' R')
+      then show False sorry
 oops
 
 (* TODO Move *)

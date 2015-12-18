@@ -2,11 +2,13 @@ theory CDCL_CW
 imports Partial_Annotated_Clausal_Logic List_More CDCL_CW_Level Wf_More
 
 begin
+section \<open>Weidenbach's CDCL\<close>
 sledgehammer_params[verbose, e spass cvc4 z3 verit]
 declare upt.simps(2)[simp del]
 
 datatype 'a conflicting_clause = C_True | C_Clause "'a"
 
+subsection \<open>The State\<close>
 locale cw_state =
   fixes
     trail :: "'st::equal \<Rightarrow> ('v, 'lvl, 'v clause) annoted_lits" and
@@ -147,12 +149,12 @@ abbreviation state ::  "'st \<Rightarrow> ('v, 'lvl, 'v clause) marked_lit list 
 abbreviation incr_lvl :: "'st \<Rightarrow> 'st" where
 "incr_lvl S \<equiv> update_backtrack_lvl (backtrack_lvl S + 1) S"
 
+lemma update_trail_trail_id[simp]: "update_trail (trail S) S = S"
+  by (auto simp: st_equal)
 
 end
 
-section \<open>CDCL\<close>
-subsection \<open>Auxiliary definitions\<close>
-subsubsection \<open>Datatypes and access functions\<close>
+subsection \<open>Special Instantiation: using Triples as State\<close>
 type_synonym 'a cdcl_mark = "'a clause"
 type_synonym cdcl_marked_level = nat
 

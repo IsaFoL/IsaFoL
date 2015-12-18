@@ -1,10 +1,10 @@
 theory CDCL_NOT
 imports Partial_Annotated_Clausal_Logic List_More Wf_More Partial_Clausal_Logic
 begin
-
+section \<open>NOT's CDCL\<close>
 sledgehammer_params[verbose, prover=e spass z3 cvc4 verit remote_vampire]
 
-section \<open>Auxiliary Lemmas\<close>
+subsection \<open>Auxiliary Lemmas\<close>
 lemma no_dup_cannot_not_lit_and_uminus:
   "no_dup M \<Longrightarrow> - lit_of xa = lit_of x \<Longrightarrow> x \<in> set M \<Longrightarrow> xa \<notin> set M"
   by (metis atm_of_uminus distinct_map inj_on_eq_iff uminus_not_id')
@@ -204,8 +204,8 @@ proof -
   ultimately show ?thesis using assms unfolding \<mu>\<^sub>C_def by linarith
 qed
 
-section \<open>Initial definitions\<close>
-subsection \<open>The state\<close>
+subsection \<open>Initial definitions\<close>
+subsubsection \<open>The state\<close>
 text \<open>We define here an abstraction over operation on the state we are manipulating.\<close>
 locale dpll_state =
   fixes
@@ -244,7 +244,7 @@ abbreviation trail_weight where
 end
 
 
-subsection \<open>Definition of the operation\<close>
+subsubsection \<open>Definition of the operation\<close>
 locale propagate_ops =
   dpll_state trail clauses update_trail update_cls for
     trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
@@ -300,7 +300,7 @@ inductive backjump where
 inductive_cases backjumpE: "backjump S T"
 end
 
-section \<open>DPLL with backjumping\<close>
+subsection \<open>DPLL with backjumping\<close>
 locale dpll_with_backjumping_ops =
   dpll_state trail clauses update_trail update_cls +
   propagate_ops trail clauses update_trail update_cls propagate_conds +
@@ -334,7 +334,7 @@ text \<open>We cannot add a like condition @{term "atms_of C' \<subseteq> atms_o
   The part of the condition @{term "atm_of L \<in> atm_of ` (lits_of (F' @ Marked K d # F))"} is
   important, otherwise you are not sure that you can backtrack.\<close>
 
-subsection\<open>Definition\<close>
+subsubsection\<open>Definition\<close>
 
 text \<open>We define dpll with backjumping:\<close>
 inductive dpll_bj :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
@@ -364,7 +364,7 @@ lemma dpll_bj_all_induct[consumes 2, case_names decide propagate\<^sub>N\<^sub>O
   by (induct S\<equiv>S T rule: dpll_bj_induct[OF local.dpll_with_backjumping_ops_axioms])
     (auto intro!: assms(2,3,4) elim!: backjumpE propagateE simp add: assms(1,5))[4]
 
-subsection \<open>Basic properties\<close>
+subsubsection \<open>Basic properties\<close>
 paragraph \<open>First, some better suited induction principle\<close>
 lemma dpll_bj_clauses:
   assumes "dpll_bj S T" and "inv S"
@@ -504,8 +504,8 @@ next
     using decomp unfolding all_decomposition_implies_def by (auto simp add: F)
 qed
 
-subsection \<open>Termination\<close>
-subsubsection \<open>Using a proper measure\<close>
+subsubsection \<open>Termination\<close>
+paragraph \<open>Using a proper measure\<close>
 lemma length_get_all_marked_decomposition_append_Marked:
   "length (get_all_marked_decomposition (F' @ Marked K d # F)) =
     length (get_all_marked_decomposition F')
@@ -553,7 +553,7 @@ proof -
   from arg_cong[OF this, of length] show ?thesis using i ib by auto
 qed
 
-subsubsection \<open>Well-foundedness\<close>
+paragraph \<open>Well-foundedness\<close>
 text \<open>The bounds are the following:
   \<^item> @{term "1+card (atms_of_m A)"}: @{term "card (atms_of_m A)"} is an upper bound on the length of
   the list. As @{term get_all_marked_decomposition} appends an possibly empty couple at the end,
@@ -768,7 +768,7 @@ proof (rule wf_bounded_measure[of _
     by blast
 qed
 
-subsection \<open>Normal Forms\<close>
+subsubsection \<open>Normal Forms\<close>
 
 text \<open>
   We prove that given a normal form of DPLL, with some invariants, the either @{term N} is
@@ -1146,7 +1146,7 @@ qed
 
 end
 
-section \<open>CDCL\<close>
+subsection \<open>CDCL\<close>
 locale learn_ops =
   dpll_state trail clauses update_trail update_cls
   for
@@ -1599,7 +1599,7 @@ lemma wf_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_learn_and_forget_infinite_chain
 
 end \<comment> \<open>end of \<open>conflict_driven_clause_learning\<close>\<close>
 
-subsection \<open>Restricting restarts\<close>
+subsubsection \<open>Restricting restarts\<close>
 
 locale conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt =
   conflict_driven_clause_learning trail clauses update_trail update_cls propagate_conds inv
@@ -2155,7 +2155,7 @@ qed
 
 end \<comment> \<open>end of \<open>conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt\<close>\<close>
 
-section \<open>DPLL with simple backtrack\<close>
+subsection \<open>DPLL with simple backtrack\<close>
 locale dpll_with_backtrack
 begin
 inductive backtrack :: "('v, 'lvl, 'mark) marked_lit list \<times> 'v literal multiset set
@@ -2398,8 +2398,8 @@ lemma "wf {(T, S). dpll_bj S T \<and> cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv A
   (auto simp: learn.simps forget\<^sub>N\<^sub>O\<^sub>T.simps)
 end
 
-section \<open>CDCL with restarts\<close>
-subsection\<open>Definition\<close>
+subsection \<open>CDCL with restarts\<close>
+subsubsection\<open>Definition\<close>
 locale restart_ops =
   fixes
     cdcl\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
@@ -2445,7 +2445,7 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts:
   by (simp add: restart_ops.cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts.intros(1))
 end
 
-subsection \<open>Increasing restarts\<close>
+subsubsection \<open>Increasing restarts\<close>
 text \<open>To add restarts we needs some assumptions on the predicate (called @{term cdcl\<^sub>N\<^sub>O\<^sub>T} here):
   \<^item> a function @{term f} that is strictly monotonic (and to ease the proof, we assume that
   @{term "f (0::nat) = 0"}). The first step is actually only a restart to clean the state (e.g. to
@@ -2778,7 +2778,7 @@ qed
 
 end
 
-section \<open>Combining backjump and learning\<close>
+subsection \<open>Combining backjump and learning\<close>
 locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops =
   dpll_state trail clauses update_trail update_cls +
   decide_ops trail clauses update_trail update_cls +
@@ -3189,7 +3189,7 @@ lemma wf_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged:
   using tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_cdcl\<^sub>N\<^sub>O\<^sub>T_tranclp[OF _ _ _ _ _ _ \<open>finite A\<close>] by auto
 end
 
-subsection \<open>Instantiations\<close>
+subsubsection \<open>Instantiations\<close>
 locale dpll_withbacktrack_and_restarts =
   dpll_with_backtrack +
   fixes f :: "nat \<Rightarrow> nat"
