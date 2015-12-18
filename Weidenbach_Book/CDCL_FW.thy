@@ -660,8 +660,17 @@ next
               have "skip_or_resolve T U \<and> no_step backtrack T"
                 using RS(2) RS(3) by force
               hence "(\<lambda>p pa. skip_or_resolve p pa \<and> no_step backtrack p)\<^sup>*\<^sup>* T W"
-                using f1 \<open>(\<lambda>S T. skip_or_resolve S T \<and> no_step backtrack S)\<^sup>*\<^sup>* U W\<close>
-                by (smt RS(2))
+                proof -
+                  have "(\<exists>vr19 vr16 vr17 vr18. vr19 (vr16::'st) vr17 \<and> vr19\<^sup>*\<^sup>* vr17 vr18 
+                       \<and> \<not> vr19\<^sup>*\<^sup>* vr16 vr18) 
+                    \<or> \<not> (skip_or_resolve T U \<and> no_step backtrack T) 
+                    \<or> \<not> (\<lambda>uu uua. skip_or_resolve uu uua \<and> no_step backtrack uu)\<^sup>*\<^sup>* U W 
+                    \<or> (\<lambda>uu uua. skip_or_resolve uu uua \<and> no_step backtrack uu)\<^sup>*\<^sup>* T W"
+                    by force
+                  then show ?thesis
+                    by (metis (no_types) \<open>(\<lambda>S T. skip_or_resolve S T \<and> no_step backtrack S)\<^sup>*\<^sup>* U W\<close> 
+                      \<open>skip_or_resolve T U \<and> no_step backtrack T\<close> f1)
+                qed
               hence "(\<lambda>p pa. skip_or_resolve p pa \<and> no_step backtrack p)\<^sup>*\<^sup>* S W"
                 using RS(1) by force
               thus ?thesis
