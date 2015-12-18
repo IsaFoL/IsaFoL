@@ -2145,12 +2145,21 @@ proof (intro allI impI)
       moreover
         have "no_dup (trail U)"
           using inv_U unfolding cdcl_M_level_inv_def by auto
+        { fix x :: "('v, nat, 'v literal multiset) marked_lit" and
+            xb :: "('v, nat, 'v literal multiset) marked_lit"
+          assume a1: "atm_of L = atm_of (lit_of xb)"
+          moreover assume a2: "- L = lit_of x"
+          moreover assume a3: "(\<lambda>l. atm_of (lit_of l)) ` set M
+            \<inter> (\<lambda>l. atm_of (lit_of l)) ` set (trail S) = {}"
+          moreover assume a4: "x \<in> set M"
+          moreover assume a5: "xb \<in> set (trail S)"
+          moreover have "atm_of (- L) = atm_of L"
+            by auto
+          ultimately have False
+            by auto
+         }
         hence LS: "atm_of L \<notin> atm_of ` lits_of (trail S)"
-        (*TODO Factor proof*)
-          using \<open>-L \<in> lits_of M\<close> unfolding tr_U lits_of_def
-            apply (auto simp add: atm_of_eq_atm_of)
-          using IntI empty_iff image_eqI apply (metis IntI atm_of_uminus empty_iff image_eqI)+
-          done
+          using \<open>-L \<in> lits_of M\<close> \<open>no_dup (trail U)\<close> unfolding tr_U lits_of_def by auto
       ultimately have "get_level L (trail U) = backtrack_lvl U"
         proof (cases "get_all_levels_of_marked (trail S) \<noteq> []", goal_cases)
           case 2 note LD = this(1) and LM = this(2) and inv_U = this(3) and US = this(4) and
@@ -3452,10 +3461,21 @@ next
            moreover
              have LS': "-L \<in> lits_of (trail S')"
                using \<open>trail S' \<Turnstile>as CNot D\<close> \<open>L \<in># D\<close> in_CNot_implies_uminus(2) by blast
-               (*TODO tune proof*)
-             hence "atm_of L \<notin> atm_of ` lits_of M"
-               using LS' nd unfolding M apply (auto simp add: lits_of_def)
-               by (metis IntI atm_of_uminus empty_iff image_eqI)
+             {  fix x :: "('v, nat, 'v literal multiset) marked_lit" and
+                 xb :: "('v, nat, 'v literal multiset) marked_lit"
+               assume a1: "x \<in> set (trail S')" and
+                 a2: "xb \<in> set M" and
+                 a3: "(\<lambda>l. atm_of (lit_of l)) ` set M  \<inter> (\<lambda>l. atm_of (lit_of l)) ` set (trail S')
+                   = {}" and
+                  a4: "- L = lit_of x" and
+                  a5: "atm_of L = atm_of (lit_of xb)"
+               moreover have "atm_of (lit_of x) = atm_of L"
+                 using a4 by (metis (no_types) atm_of_uminus) (* 25 ms *)
+               ultimately have False
+                 using a5 a3 a2 a1 by auto (* 11 ms *)
+             }
+             then have "atm_of L \<notin> atm_of ` lits_of M"
+               using nd LS' unfolding M by (auto simp add: lits_of_def)
              hence "get_level L (trail S'') = get_level L (trail S')"
                unfolding M by (simp add: lits_of_def)
            ultimately show ?thesis using btS \<open>conflicting S'' = C_Clause D\<close> by auto
@@ -3465,11 +3485,20 @@ next
              using \<open>trail S'' \<Turnstile>as CNot D\<close>
                by (auto simp add: CNot_def true_cls_def  M true_annots_def true_annot_def
                      split: split_if_asm)
-           (*TODO tune proof*)
-           hence LS': "atm_of L \<notin> atm_of ` lits_of (trail S')"
-             using nd unfolding M apply (auto simp add: lits_of_def)
-             by (metis IntI atm_of_uminus empty_iff image_eqI)
-
+           { fix x :: "('v, nat, 'v literal multiset) marked_lit" and
+               xb :: "('v, nat, 'v literal multiset) marked_lit"
+             assume a1: "xb \<in> set (trail S')" and
+               a2: "x \<in> set M" and
+               a3: "atm_of L = atm_of (lit_of xb)" and
+               a4: "- L = lit_of x" and
+               a5: "(\<lambda>l. atm_of (lit_of l)) ` set M \<inter> (\<lambda>l. atm_of (lit_of l)) ` set (trail S')
+                 = {}"
+             moreover have "atm_of (lit_of xb) = atm_of (- L)"
+               using a3 by simp
+             ultimately have False
+               by auto }
+           then have LS': "atm_of L \<notin> atm_of ` lits_of (trail S')"
+             using nd \<open>L \<in># D\<close> LM unfolding M by (auto simp add: lits_of_def)
            show ?thesis
              proof cases
                assume ne: "get_all_levels_of_marked (trail S') = []"
