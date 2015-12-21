@@ -2803,14 +2803,22 @@ proof
           using ff4 ff1 by (metis (full_types)  decided full_def inv
             conflicting_true_full_cdcl_fw_cp_imp_full_cdcl_s'_without_decode) }
       then show ?thesis
-        by fastforce (* 0.5 ms *)
+        by fastforce
     qed
 qed
 
 lemma cdcl_fw_cp_obtain_normal_form:
   assumes "cdcl_all_inv_mes R"
   obtains S where "full0 cdcl_fw_cp R S"
-sorry
+proof -
+  obtain S where "cdcl_fw_cp R S"
+     sorry
+  then have "cdcl_s'_without_decide R S"
+    using conflicting_true_full0_cdcl_fw_cp_iff_full0_cdcl_s'_without_decode
+    sorry
+  show ?thesis using that
+    sorry
+qed
 
 lemma no_step_cdcl_fw_s_no_step_cdcl_s':
   assumes
@@ -2843,14 +2851,10 @@ proof (rule ccontr)
     qed
 qed
 
-(* TODO Move *)
-lemma full_is_full0[intro]: "full R S T \<Longrightarrow> full0 R S T"
-  by (simp add: full0_unfold)
-
-lemma
+lemma rtranclp_cdcl_fw_cp_no_step_cdcl_bj:
   assumes "conflicting R = C_True" and "cdcl_fw_cp\<^sup>*\<^sup>* R S"
   shows "no_step cdcl_bj S"
-using assms conflicting_not_true_rtranclp_cdcl_fw_cp_no_step_cdcl_bj by blast
+  using assms conflicting_not_true_rtranclp_cdcl_fw_cp_no_step_cdcl_bj by blast
 
 lemma rtranclp_cdcl_fw_s_no_step_cdcl_bj:
   assumes confl: "conflicting R = C_True" and "cdcl_fw_s\<^sup>*\<^sup>* R S"
@@ -3029,347 +3033,84 @@ locale cdcl_cw_ops_restart =
   fixes f :: "nat \<Rightarrow> nat"
   assumes "strict_mono f"
 begin
+(* not fined-grained enough *)
+inductive cdcl\<^sub>F\<^sub>W where
+"cdcl_fw_s S T \<Longrightarrow> cdcl\<^sub>F\<^sub>W (S, U) (T, U #\<union> mset_set (clauses T))"
+inductive_cases cdcl\<^sub>F\<^sub>WE[elim]: "cdcl\<^sub>F\<^sub>W S T"
+inductive_cases cdcl\<^sub>F\<^sub>WE2[elim]: "cdcl\<^sub>F\<^sub>W (S, U) (T, V)"
+
+lemma rtranclp_cdcl\<^sub>F\<^sub>W_rtranclp_cdcl_fw_s:
+  "cdcl\<^sub>F\<^sub>W\<^sup>*\<^sup>* (S, U) (T, V) \<Longrightarrow> cdcl_fw_s\<^sup>*\<^sup>* S T"
+  by (induction rule: rtranclp_induct2) auto
+
+lemma
+  assumes
+    inv: "cdcl_all_inv_mes R" and
+    cdcl: "cdcl\<^sub>F\<^sub>W\<^sup>*\<^sup>* (R, V) (T', W')" and
+    dist_V: "distinct_mset V" and
+    "trail R = []"
+  shows "distinct_mset W'"
+proof (rule ccontr)
+  assume "\<not> ?thesis"
+  with cdcl obtain S U T W where
+    "cdcl\<^sub>F\<^sub>W\<^sup>*\<^sup>* (R, V) (S, U)" and
+    ST: "cdcl\<^sub>F\<^sub>W (S, U) (T, W)" and
+    "cdcl\<^sub>F\<^sub>W\<^sup>*\<^sup>* (T, W) (T', W')" and
+    "distinct_mset U" and
+    "\<not> distinct_mset W"
+    using dist_V
+    proof (induction rule: rtranclp_induct2)
+      case refl
+      then show ?case by simp
+    next
+      case (step R' V' T' W')
+      then show ?case
+        apply (cases "distinct_mset V'")
+          apply simp
+        by (metis (no_types, lifting) rtranclp.rtrancl_into_rtrancl)
+    qed
+
+  have inv_S: "cdcl_all_inv_mes S"
+    using rtranclp_cdcl_fw_s_rtranclp_cdcl[of R S] rtranclp_cdcl_all_inv_mes_inv inv
+    rtranclp_cdcl\<^sub>F\<^sub>W_rtranclp_cdcl_fw_s[OF \<open>cdcl\<^sub>F\<^sub>W\<^sup>*\<^sup>* (R, V) (S, U)\<close>] by blast
+  from ST have W: "W = U #\<union> mset_set (clauses T)" and ST: "cdcl_fw_s S T"
+    by auto
+  have inv_T: "cdcl_all_inv_mes T"
+    using ST cdcl_cw_ops.rtranclp_cdcl_fw_s_rtranclp_cdcl cdcl_cw_ops_axioms inv_S
+    rtranclp_cdcl_all_inv_mes_inv by blast
+  then have [simp]: "finite (clauses T)"
+    unfolding cdcl_all_inv_mes_def clauses_def by auto
+  obtain C where "C \<in># U" and "C \<in> clauses T"
+    (* TODO tune proof *)
+    using \<open>\<not> distinct_mset W\<close> unfolding distinct_mset_def W
+      apply (auto simp: max_def split: split_if_asm)
+      using \<open>distinct_mset U\<close>
+      apply (case_tac "a \<in> clauses T")
+        apply force
+      apply auto
+      by (metis One_nat_def \<open>distinct_mset U\<close> distinct_mset_def)
+  have confl_S: "conflicting S = C_True"
+    using ST by (auto simp: cdcl_fw_s.simps full_def cdcl_fw_cp.simps dest!: tranclpD)
+  from ST show False
+    proof cases
+      case fw_s_cp
+      then have "cdcl_s'_without_decide\<^sup>+\<^sup>+ S T"
+        using conflicting_true_full_cdcl_fw_cp_iff_full_cdcl_s'_without_decode inv_S confl_S
+        unfolding full_def
+        by blast
+      then obtain S' S'' T' where
+        "cdcl_s'_without_decide\<^sup>*\<^sup>* S' S''" and
+        "cdcl_s'_without_decide S'' T'" and
+        "cdcl_s'_without_decide T' T" and
+        "C \<in> clauses T'" and
+        "C \<notin> clauses S''"
+      using \<open>C \<in> clauses T\<close> unfolding full_def apply (induction rule: tranclp_induct)
+oops
+
 lemma
   assumes "mono (g:: nat \<Rightarrow> nat)"
   shows "\<exists>m. g m > n"
 oops
-end
-
-locale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts_ops =
-  restart_ops cdcl\<^sub>N\<^sub>O\<^sub>T restart for
-    restart :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
-    cdcl\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> 'st \<Rightarrow> bool" +
-  fixes
-    f :: "nat \<Rightarrow> nat" and
-    bound_inv :: "'bound \<Rightarrow> 'st \<Rightarrow> bool" and
-    \<mu> :: "'bound \<Rightarrow> 'st \<Rightarrow> nat" and
-    cdcl\<^sub>N\<^sub>O\<^sub>T_inv :: "'st \<Rightarrow> bool" and
-    \<mu>_bound :: "'bound \<Rightarrow> 'st \<Rightarrow> nat"
-  assumes
-    mono_f: "mono f" and
-    f_diverge: "\<And>n. \<exists>m. f m > n" and
-    bound_inv: "\<And>A S T. cdcl\<^sub>N\<^sub>O\<^sub>T_inv S \<Longrightarrow> bound_inv A S \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T S T \<Longrightarrow> bound_inv A T" and
-    cdcl\<^sub>N\<^sub>O\<^sub>T_measure: "\<And>A S T. cdcl\<^sub>N\<^sub>O\<^sub>T_inv S \<Longrightarrow> bound_inv A S \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T S T \<Longrightarrow> \<mu> A T < \<mu> A S" and
-    measure_bound2: "\<And>A T U. cdcl\<^sub>N\<^sub>O\<^sub>T_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* T U
-       \<Longrightarrow> \<mu> A U \<le> \<mu>_bound A T" and
-    measure_bound4: "\<And>A T U. cdcl\<^sub>N\<^sub>O\<^sub>T_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* T U
-       \<Longrightarrow> \<mu>_bound A U \<le> \<mu>_bound A T" and
-    cdcl\<^sub>N\<^sub>O\<^sub>T_restart_inv: "\<And>A U V. cdcl\<^sub>N\<^sub>O\<^sub>T_inv U \<Longrightarrow> restart U V \<Longrightarrow> bound_inv A U \<Longrightarrow> bound_inv A V" and
-    exists_bound: "\<And>R S. cdcl\<^sub>N\<^sub>O\<^sub>T_inv R \<Longrightarrow> restart R S \<Longrightarrow> \<exists>A. bound_inv A S" and
-    cdcl\<^sub>N\<^sub>O\<^sub>T_inv: "\<And>S T. cdcl\<^sub>N\<^sub>O\<^sub>T_inv S \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T S T \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_inv T" and
-    cdcl\<^sub>N\<^sub>O\<^sub>T_inv_restart: "\<And>S T. cdcl\<^sub>N\<^sub>O\<^sub>T_inv S \<Longrightarrow> restart S T \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_inv T"
-begin
-
-lemma strict_mono_ge_id: "strict_mono (g::nat \<Rightarrow> nat) \<Longrightarrow> g n \<ge> n"
-  unfolding strict_mono_def apply (induction n, simp)
-  by (metis Suc_leI diff_diff_cancel lessI less_imp_diff_less)
-
-lemma f_le_point: "f n = a \<Longrightarrow> \<forall>m\<le>n. f m \<le> a"
-  using mono_f unfolding mono_def by blast
-
-lemma cdcl\<^sub>N\<^sub>O\<^sub>T_cdcl\<^sub>N\<^sub>O\<^sub>T_inv:
-  assumes
-    "(cdcl\<^sub>N\<^sub>O\<^sub>T^^n) S T" and
-    "cdcl\<^sub>N\<^sub>O\<^sub>T_inv S"
-  shows "cdcl\<^sub>N\<^sub>O\<^sub>T_inv T"
-  using assms by (induction n arbitrary: T) (auto intro:bound_inv cdcl\<^sub>N\<^sub>O\<^sub>T_inv)
-
-lemma cdcl\<^sub>N\<^sub>O\<^sub>T_bound_inv:
-  assumes
-    "(cdcl\<^sub>N\<^sub>O\<^sub>T^^n) S T" and
-    "cdcl\<^sub>N\<^sub>O\<^sub>T_inv S"
-    "bound_inv A S"
-  shows "bound_inv A T"
-  using assms by (induction n arbitrary: T) (auto intro:bound_inv cdcl\<^sub>N\<^sub>O\<^sub>T_cdcl\<^sub>N\<^sub>O\<^sub>T_inv)
-
-lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_cdcl\<^sub>N\<^sub>O\<^sub>T_inv:
-  assumes
-    "cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T" and
-    "cdcl\<^sub>N\<^sub>O\<^sub>T_inv S"
-  shows "cdcl\<^sub>N\<^sub>O\<^sub>T_inv T"
-  using assms by induction (auto intro: cdcl\<^sub>N\<^sub>O\<^sub>T_inv)
-
-lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_bound_inv:
-  assumes
-    "cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T" and
-    "bound_inv A S" and
-    "cdcl\<^sub>N\<^sub>O\<^sub>T_inv S"
-  shows "bound_inv A T"
-  using assms by induction (auto intro:bound_inv rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_cdcl\<^sub>N\<^sub>O\<^sub>T_inv)
-
-lemma cdcl\<^sub>N\<^sub>O\<^sub>T_comp_n_le:
-  assumes
-    "(cdcl\<^sub>N\<^sub>O\<^sub>T^^(Suc n)) S T" and
-    "bound_inv A S"
-    "cdcl\<^sub>N\<^sub>O\<^sub>T_inv S"
-  shows "\<mu> A T < \<mu> A S - n"
-  using assms
-proof (induction n arbitrary: T)
-  case 0
-  thus ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_measure by auto
-next
-  case (Suc n) note IH =this(1)[OF _ this(3) this(4)] and S_T =this(2) and b_inv = this(3) and
-  c_inv = this(4)
-  obtain U :: 'st where S_U: "(cdcl\<^sub>N\<^sub>O\<^sub>T^^(Suc n)) S U" and U_T: "cdcl\<^sub>N\<^sub>O\<^sub>T U T" using S_T by auto
-  then have "\<mu> A U < \<mu> A S - n" using IH[of U] by simp
-  moreover
-    have "bound_inv A U"
-      using S_U b_inv  cdcl\<^sub>N\<^sub>O\<^sub>T_bound_inv c_inv by blast
-    hence "\<mu> A T < \<mu> A U" using cdcl\<^sub>N\<^sub>O\<^sub>T_measure[OF _ _ U_T] S_U c_inv cdcl\<^sub>N\<^sub>O\<^sub>T_cdcl\<^sub>N\<^sub>O\<^sub>T_inv by auto
-  ultimately show ?case by linarith
-qed
-
-lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_measure:
-  assumes
-    "cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T" and
-    "bound_inv A S" and
-    "cdcl\<^sub>N\<^sub>O\<^sub>T_inv S"
-  shows "\<mu> A T \<le> \<mu> A S"
-  using assms
-proof (induction rule: rtranclp_induct)
-  case base
-  thus ?case by auto
-next
-  case (step T U) note IH =this(3)[OF this(4) this(5)] and st =this(1) and cdcl\<^sub>N\<^sub>O\<^sub>T= this(2) and
-    b_inv = this(4) and c_inv = this(5)
-  have "bound_inv A T"
-    by (meson cdcl\<^sub>N\<^sub>O\<^sub>T_bound_inv rtranclp_imp_relpowp st step.prems)
-  moreover have "cdcl\<^sub>N\<^sub>O\<^sub>T_inv T"
-    using c_inv rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_cdcl\<^sub>N\<^sub>O\<^sub>T_inv st by blast
-  ultimately have "\<mu> A U < \<mu> A T" using cdcl\<^sub>N\<^sub>O\<^sub>T_measure[OF _ _ cdcl\<^sub>N\<^sub>O\<^sub>T] by auto
-  thus ?case using IH by linarith
-qed
-
-lemma cdcl\<^sub>N\<^sub>O\<^sub>T_comp_bounded:
-  assumes
-    "bound_inv A S" and "cdcl\<^sub>N\<^sub>O\<^sub>T_inv S" and "m \<ge> 1+\<mu> A S"
-  shows "\<not>(cdcl\<^sub>N\<^sub>O\<^sub>T ^^ m) S T"
-  using assms cdcl\<^sub>N\<^sub>O\<^sub>T_comp_n_le[of "m-1" S T A] by fastforce
-
-text \<open>
-  \<^item> @{term "m \<ge> f (Suc n)"} ensure that at least one step has been done.\<close>
-inductive cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy where
-restart_step: "(cdcl\<^sub>N\<^sub>O\<^sub>T^^m) S T \<Longrightarrow> m \<ge> f n \<Longrightarrow> restart T U
-  \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy (S, n) (U, Suc n)" |
-restart_full: "full cdcl\<^sub>N\<^sub>O\<^sub>T S T \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy (S, n) (T, Suc n)"
-
-lemmas cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_induct = cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy.induct[split_format(complete),
-  OF cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts_ops_axioms]
-
-lemma cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts:
-  "cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy S T \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts\<^sup>*\<^sup>* (fst S) (fst T)"
-proof (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy.induct)
-  case (restart_step m S T n U)
-  hence "cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T" by (meson relpowp_imp_rtranclp)
-  hence "cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts\<^sup>*\<^sup>* S T" using cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts.intros(1)
-    rtranclp_mono[of cdcl\<^sub>N\<^sub>O\<^sub>T cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts] by blast
-  moreover have "cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts T U" using \<open>restart T U\<close> cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts.intros(2) by blast
-  ultimately show ?case by auto
-next
-  case (restart_full S T)
-  hence "cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T" unfolding full_def by auto
-  thus ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts.intros(1)
-    rtranclp_mono[of cdcl\<^sub>N\<^sub>O\<^sub>T cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts] by auto
-qed
-
-lemma cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_bound_inv:
-  assumes
-    "cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy S T" and
-    "bound_inv A (fst S)" and
-    "cdcl\<^sub>N\<^sub>O\<^sub>T_inv (fst S)"
-  shows "bound_inv A (fst T)"
-  using assms apply (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy.induct)
-    prefer 2 apply (metis Nitpick.rtranclp_unfold fstI full_def rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_bound_inv)
-  by (metis cdcl\<^sub>N\<^sub>O\<^sub>T_bound_inv cdcl\<^sub>N\<^sub>O\<^sub>T_cdcl\<^sub>N\<^sub>O\<^sub>T_inv cdcl\<^sub>N\<^sub>O\<^sub>T_restart_inv fst_conv)
-
-lemma cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_cdcl\<^sub>N\<^sub>O\<^sub>T_inv:
-  assumes
-    "cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy S T" and
-    "cdcl\<^sub>N\<^sub>O\<^sub>T_inv (fst S)"
-  shows "cdcl\<^sub>N\<^sub>O\<^sub>T_inv (fst  T)"
-  using assms apply induction
-    apply (metis cdcl\<^sub>N\<^sub>O\<^sub>T_cdcl\<^sub>N\<^sub>O\<^sub>T_inv cdcl\<^sub>N\<^sub>O\<^sub>T_inv_restart fst_conv)
-   apply (metis fstI full0_def full0_unfold rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_cdcl\<^sub>N\<^sub>O\<^sub>T_inv)
-  done
-
-lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_cdcl\<^sub>N\<^sub>O\<^sub>T_inv:
-  assumes
-    "cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy\<^sup>*\<^sup>* S T" and
-    "cdcl\<^sub>N\<^sub>O\<^sub>T_inv (fst S)"
-  shows "cdcl\<^sub>N\<^sub>O\<^sub>T_inv (fst T)"
-  using assms by induction (auto intro: cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_cdcl\<^sub>N\<^sub>O\<^sub>T_inv)
-
-lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_bound_inv:
-  assumes
-    "cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy\<^sup>*\<^sup>* S T" and
-    "cdcl\<^sub>N\<^sub>O\<^sub>T_inv (fst S)" and
-    "bound_inv A (fst S)"
-  shows "bound_inv A (fst T)"
-  using assms apply induction
-   apply (simp add: cdcl\<^sub>N\<^sub>O\<^sub>T_cdcl\<^sub>N\<^sub>O\<^sub>T_inv cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_bound_inv)
-  using cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_bound_inv rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_cdcl\<^sub>N\<^sub>O\<^sub>T_inv by blast
-
-lemma cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_increasing_number:
-  "cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy S T \<Longrightarrow> snd T = 1 + snd S"
-  by (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy.induct) auto
-end
-
-
-locale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts =
-  cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts_ops restart cdcl\<^sub>N\<^sub>O\<^sub>T f bound_inv \<mu> cdcl\<^sub>N\<^sub>O\<^sub>T_inv \<mu>_bound
-  for
-    trail :: "'st \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" and
-    clauses :: "'st \<Rightarrow> 'v clauses" and
-    update_trail :: "('v, 'lvl, 'mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_cls :: "'v clause set \<Rightarrow> 'st \<Rightarrow> 'st" and
-    f :: "nat \<Rightarrow> nat" and
-    restart :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
-    bound_inv :: "'bound \<Rightarrow> 'st \<Rightarrow> bool" and
-    \<mu> :: "'bound \<Rightarrow> 'st \<Rightarrow> nat" and
-    cdcl\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
-    cdcl\<^sub>N\<^sub>O\<^sub>T_inv :: "'st \<Rightarrow> bool" and
-    \<mu>_bound :: "'bound \<Rightarrow> 'st \<Rightarrow> nat" +
-  assumes
-    measure_bound: "\<And>A T V n. cdcl\<^sub>N\<^sub>O\<^sub>T_inv T \<Longrightarrow> bound_inv A T
-      \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy (T, n) (V, Suc n) \<Longrightarrow> \<mu> A V \<le> \<mu>_bound A T" and
-    cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts_\<mu>_bound:
-      "cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy (T, a) (V, b) \<Longrightarrow>  cdcl\<^sub>N\<^sub>O\<^sub>T_inv T \<Longrightarrow> bound_inv A T
-        \<Longrightarrow> \<mu>_bound A V \<le> \<mu>_bound A T"
-begin
-
-lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts_\<mu>_bound:
-  "cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow>  cdcl\<^sub>N\<^sub>O\<^sub>T_inv T \<Longrightarrow> bound_inv A T
-    \<Longrightarrow> \<mu>_bound A V \<le> \<mu>_bound A T"
-  apply (induction rule: rtranclp_induct2)
-   apply simp
-  by (metis cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts_\<mu>_bound dual_order.trans fst_conv
-    rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_bound_inv rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_cdcl\<^sub>N\<^sub>O\<^sub>T_inv)
-
-lemma cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts_measure_bound:
-  "cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy (T, a) (V, b) \<Longrightarrow>  cdcl\<^sub>N\<^sub>O\<^sub>T_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> \<mu> A V \<le> \<mu>_bound A T"
-  apply (cases rule: cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy.cases)
-     apply simp
-    using measure_bound relpowp_imp_rtranclp apply fastforce
-   by (metis full0_def full0_unfold measure_bound2 prod.inject)
-
-lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts_measure_bound:
-  "cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow>  cdcl\<^sub>N\<^sub>O\<^sub>T_inv T \<Longrightarrow> bound_inv A T \<Longrightarrow> \<mu> A V \<le> \<mu>_bound A T"
-  apply (induction rule: rtranclp_induct2)
-    apply (simp add: measure_bound2)
-  by (metis dual_order.trans fst_conv measure_bound2 r_into_rtranclp rtranclp.rtrancl_refl
-    rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_bound_inv rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_cdcl\<^sub>N\<^sub>O\<^sub>T_inv
-    rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts_\<mu>_bound)
-
-lemma "wf {(T, S). cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy S T \<and> cdcl\<^sub>N\<^sub>O\<^sub>T_inv (fst S)}" (is "wf ?A")
-proof (rule ccontr)
-  assume "\<not> ?thesis"
-  then obtain g where
-    g: "\<And>i. cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy (g i) (g (Suc i))" and
-    cdcl\<^sub>N\<^sub>O\<^sub>T_inv_g: "\<And>i. cdcl\<^sub>N\<^sub>O\<^sub>T_inv (fst (g i))"
-    unfolding wf_iff_no_infinite_down_chain by fast
-  hence "\<And>i. snd (g i) < snd (g (i+1))"
-    by (metis Suc_eq_plus1 add.left_neutral add_Suc cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_increasing_number lessI)
-  have "strict_mono (snd o g)"
-    unfolding strict_mono_def by (smt Suc_eq_plus1 cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_increasing_number comp_def g
-      lessI lift_Suc_mono_less semiring_normalization_rules(24))
-  { fix i m
-    have "(cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy^^m) (g i) (g (i+m))"
-      apply (induction m)
-       apply simp
-      using g[of "i+ _"] by auto
-    } note cdcl\<^sub>N\<^sub>O\<^sub>T_m = this
-  { fix i
-    have H: "\<And>T Ta m. (cdcl\<^sub>N\<^sub>O\<^sub>T ^^ m) T Ta \<Longrightarrow> no_step cdcl\<^sub>N\<^sub>O\<^sub>T T \<Longrightarrow> m = 0"
-      apply (case_tac m) apply simp by (meson relpowp_E2)
-    have "(cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy^^(f (snd (g (i))))) (g i) (g (i+f (snd (g (i)))))"
-       using cdcl\<^sub>N\<^sub>O\<^sub>T_m by auto
-    have \<theta>: "\<And>S. \<exists>T m. (cdcl\<^sub>N\<^sub>O\<^sub>T ^^ m) S T"
-      by (meson relpowp_0_I)
-    have "\<exists> T m. (cdcl\<^sub>N\<^sub>O\<^sub>T ^^ m) (fst (g i)) T \<and> m \<ge> f (snd (g (i)))"
-      using g[of i] apply (cases rule: cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy.cases)
-        apply auto[]
-      using g[of "Suc i"] apply (cases rule: cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy.cases)
-      by (auto simp add: full_def full0_def \<theta> dest!: H f_le_point dest: tranclpD)
-  } note H = this
-  obtain m\<^sub>1 where "f m\<^sub>1 > 0" and [simp]: "m\<^sub>1 > 0"
-    using f_diverge by (metis less_irrefl_nat less_nat_zero_code not_gr0)
-  obtain A where "bound_inv A (fst (g m\<^sub>1))"
-    using g[of "m\<^sub>1-1"] cdcl\<^sub>N\<^sub>O\<^sub>T_inv_g g[of "m\<^sub>1"] \<open>m\<^sub>1 > 0\<close> \<open>f m\<^sub>1 > 0\<close> apply (cases rule: cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy.cases)
-      apply (metis One_nat_def Suc_pred \<open>0 < m\<^sub>1\<close> cdcl\<^sub>N\<^sub>O\<^sub>T_cdcl\<^sub>N\<^sub>O\<^sub>T_inv exists_bound fst_conv)
-    apply (auto simp: cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy.simps simp: full_def dest: tranclpD)
-    apply (subgoal_tac "f (Suc n) > 0")
-      apply (metis not_less relpowp_E2)
-      unfolding full_def sorry
-  let ?j = "\<mu>_bound A (fst (g m\<^sub>1)) + 1"
-  obtain m\<^sub>0 where "f m\<^sub>0 \<ge> ?j"
-    by (meson f_diverge linear not_less)
-  {
-     fix i j
-     have cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart: "j \<ge> i \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy\<^sup>*\<^sup>* (g i) (g j)"
-       apply (induction j)
-         apply simp
-       by (metis g le_Suc_eq rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl)
-  } note cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy = this
-  have "cdcl\<^sub>N\<^sub>O\<^sub>T_inv (fst (g (Suc 0)))"
-    by (simp add: cdcl\<^sub>N\<^sub>O\<^sub>T_inv_g)
-  have "cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy\<^sup>*\<^sup>*  (g m\<^sub>1) (g ?j)"
-    apply (rule cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy)
-oops
-(*     sledgehammer
-    by (simp add: Suc_leI cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy)
-  have "\<mu> A (fst (g ?j)) \<le> \<mu>_bound A (fst (g m\<^sub>1))"
-    apply (rule rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts_measure_bound)
-    using \<open>cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy\<^sup>*\<^sup>* (fst (g m\<^sub>1), snd (g m\<^sub>1)) (fst (g ?j), snd (g ?j))\<close> apply blast
-        apply (simp add: cdcl\<^sub>N\<^sub>O\<^sub>T_inv_g)
-       using \<open>bound_inv A (fst (g m\<^sub>1))\<close> apply simp
-    done
-  hence "\<mu> A (fst (g ?j)) \<le> ?j"
-    by auto
-  have inv: "bound_inv A (fst (g ?j))"
-    using \<open>bound_inv A (fst (g 1))\<close> \<open>cdcl\<^sub>N\<^sub>O\<^sub>T_inv (fst (g (Suc 0)))\<close>
-    by (meson cdcl\<^sub>N\<^sub>O\<^sub>T_inv_g cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy not_add_less2 not_less
-      rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_bound_inv)
-  obtain T m where
-    cdcl\<^sub>N\<^sub>O\<^sub>T_m: "(cdcl\<^sub>N\<^sub>O\<^sub>T ^^ m) (fst (g ?j)) T" and
-    f_m: "m\<^sub>0 \<le> m"
-    using H[of "?j"] by blast
-  have "?j \<le> m"
-    using f_m \<open>f m\<^sub>0 \<ge> ?j\<close> Nat.le_trans strict_mono_ge_id sorry
-  thus False
-    proof -
-      have "\<And>n. bound_inv A (fst (g (n + 1)))"
-        by (meson \<open>bound_inv A (fst (g 1))\<close> cdcl\<^sub>N\<^sub>O\<^sub>T_inv_g cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy le_add2
-          rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_bound_inv)
-      moreover have "\<And>b. \<not> bound_inv b (fst (g (1 + \<mu>_bound A (fst (g 1)))))
-          \<or> \<not> 1 + \<mu> b (fst (g (1 + \<mu>_bound A (fst (g 1))))) \<le> m"
-        using cdcl\<^sub>N\<^sub>O\<^sub>T_comp_bounded cdcl\<^sub>N\<^sub>O\<^sub>T_inv_g cdcl\<^sub>N\<^sub>O\<^sub>T_m by force
-      ultimately show ?thesis
-        using \<open>\<mu> A (fst (g (\<mu>_bound A (fst (g 1)) + 1))) \<le> \<mu>_bound A (fst (g 1))\<close>
-        \<open>\<mu>_bound A (fst (g 1)) + 1 \<le> m\<close> by fastforce
-    qed
-qed
- *)
-lemma cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy_steps_bigger_than_bound:
-  assumes
-    "cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy S T" and
-    "bound_inv A (fst S)" and
-    "cdcl\<^sub>N\<^sub>O\<^sub>T_inv (fst S)" and
-    "f (snd S) > \<mu>_bound A (fst S)"
-  shows "full cdcl\<^sub>N\<^sub>O\<^sub>T (fst S) (fst T)"
-  using assms
-proof (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy.induct)
-  case restart_full
-  thus ?case by auto
-next
-  case (restart_step m S T n U) note st = this(1) and f = this(2) and bound_inv = this(4) and
-    cdcl\<^sub>N\<^sub>O\<^sub>T_inv =this(5) and \<mu> = this(6)
-  then obtain m' where m: "m = Suc m'" by (cases m) auto
-  have "\<mu> A S - m' = 0"
-    using f bound_inv cdcl\<^sub>N\<^sub>O\<^sub>T_inv \<mu> m rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts_measure_bound by fastforce
-  hence False using cdcl\<^sub>N\<^sub>O\<^sub>T_comp_n_le[of m' S T A] restart_step unfolding m by simp
-  thus ?case by fast
-qed
-
 end
 
 end
