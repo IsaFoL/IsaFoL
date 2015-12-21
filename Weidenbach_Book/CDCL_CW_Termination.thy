@@ -38,7 +38,7 @@ proof (intro HOL.conjI)
     by (induction rule: cdcl_all_induct) (auto simp: clauses_def intro: rev_finite_subset)
 
   have "finite (learned_clss S)" using assms(2) unfolding cdcl_all_inv_mes_def by auto
-  with assms(1) show "finite (learned_clss S')" 
+  with assms(1) show "finite (learned_clss S')"
     by (induction rule: cdcl_all_induct) (auto simp: clauses_def rev_finite_subset)
 
   show "\<forall>s\<in>learned_clss S'. \<not> tautology s"
@@ -863,7 +863,7 @@ end
 
 locale cdcl_cw_termination =
    cdcl_cw_ops trail init_clss learned_clss backtrack_lvl conflicting update_trail update_init_clss
-   update_learned_clss update_backtrack_lvl update_conflicting init_state  
+   update_learned_clss update_backtrack_lvl update_conflicting init_state
    restart_state
   for
     trail :: "'st::equal \<Rightarrow> ('v::linorder, nat, 'v clause) annoted_lits" and

@@ -153,8 +153,8 @@ abbreviation incr_lvl :: "'st \<Rightarrow> 'st" where
 lemma update_trail_trail_id[simp]: "update_trail (trail S) S = S"
   by (auto simp: st_equal)
 
-lemma  atms_of_m_learned_clss_restart_state_in_atms_of_m_learned_clssI[intro]: 
-  "x \<in> atms_of_m (learned_clss (restart_state S))  \<Longrightarrow>  x \<in> atms_of_m (learned_clss S)" 
+lemma  atms_of_m_learned_clss_restart_state_in_atms_of_m_learned_clssI[intro]:
+  "x \<in> atms_of_m (learned_clss (restart_state S))  \<Longrightarrow>  x \<in> atms_of_m (learned_clss S)"
  using atms_of_m_mono by blast
 end
 
@@ -743,8 +743,8 @@ next
       intro: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or)
 next
   case restart
-  then show ?case 
-    by (metis cdcl_learned_clause_def conflicting_restart_state empty_set 
+  then show ?case
+    by (metis cdcl_learned_clause_def conflicting_restart_state empty_set
       get_all_mark_of_propagated.simps(1) init_clss_restart_state learned_clss_restart_state
       sup.absorb_iff2 sup.orderI sup_bot.right_neutral trail_restart_state true_clss_clss_union_and)
 qed (auto dest: mk_disjoint_insert
@@ -918,7 +918,7 @@ proof (induct rule: cdcl_all_induct)
 next
   case restart
   thus ?case unfolding distinct_cdcl_state_def distinct_mset_set_def clauses_def
-    by (metis conflicting_restart_state empty_iff empty_set init_clss_restart_state 
+    by (metis conflicting_restart_state empty_iff empty_set init_clss_restart_state
       learned_clss_restart_state subset_eq trail_restart_state)
 qed (auto simp add: distinct_cdcl_state_def distinct_mset_set_def clauses_def)
 
