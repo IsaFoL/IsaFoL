@@ -934,7 +934,7 @@ qed
 section {* Herbrand Interpretations *}
 
 (* HFun is the Herbrand function denotation in which terms are mapped to themselves  *)
-value HFun
+term HFun
 
 lemma hterms_ground: "ground (fterm_of_hterm t)" "grounds (fterms_of_hterms ts)"
 apply (induction t and ts rule: fterm_of_hterm.induct fterms_of_hterms.induct)
@@ -1195,12 +1195,12 @@ subsection {* Semantic Trees *}
 abbreviation closed_branch :: "partial_pred_denot \<Rightarrow> tree \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "closed_branch G T Cs \<equiv> branch G T \<and> falsifiescs G Cs"
 
-abbreviation open_branch :: "partial_pred_denot \<Rightarrow> tree \<Rightarrow> fterm clause set \<Rightarrow> bool" where
+abbreviation(input) open_branch :: "partial_pred_denot \<Rightarrow> tree \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "open_branch G T Cs \<equiv> branch G T \<and> \<not>falsifiescs G Cs"
 
 fun closed_tree :: "tree \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "closed_tree T Cs \<longleftrightarrow> anybranch T (\<lambda>b. closed_branch b T Cs) 
-                  \<and> anyinternal T (\<lambda>p. \<not>falsifiescs p Cs)"
+                  \<and> anyinternal T (\<lambda>p. \<not>falsifiescs p Cs)" (* Maybe change from fun to abbreviation of definition *)
 
 
 section {* Herbrand's Theorem *}
@@ -1336,11 +1336,11 @@ next
 qed
 
 lemma infinity:
-  assumes bij: "\<forall>n :: nat. undiago (diago n) = n"
+  assumes inj: "\<forall>n :: nat. undiago (diago n) = n" 
   assumes all_tree: "\<forall>n :: nat. (diago n) \<in> tree"
   shows "\<not>finite tree"
 proof -
-  from bij all_tree have "\<forall>n. n = undiago (diago n) \<and> (diago n) \<in> tree" by auto
+  from inj all_tree have "\<forall>n. n = undiago (diago n) \<and> (diago n) \<in> tree" by auto
   then have "\<forall>n. \<exists>ds. n = undiago ds \<and> ds \<in> tree" by auto
   then have "undiago ` tree = (UNIV :: nat set)" by auto
   then have "\<not>finite tree"by (metis finite_imageI infinite_UNIV_nat) 
@@ -1766,8 +1766,10 @@ oops
 
 theorem completeness:
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
-  assumes unsat: "\<forall>(F::fun_sym \<Rightarrow> hterm list \<Rightarrow> hterm) G. \<not>evalcs F G Cs"
+  assumes unsat: "\<forall>(F::hterm fun_denot) (G::hterm pred_denot) . \<not>evalcs F G Cs"
   shows "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
-oops
+oops 
+
+(* To get rid of the type - something like - find a countable subset using CHOISE *)
 
 end

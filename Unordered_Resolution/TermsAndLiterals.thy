@@ -65,7 +65,6 @@ fun ground :: "fterm \<Rightarrow> bool" where
 
 abbreviation grounds :: "fterm list \<Rightarrow> bool" where
   "grounds ts \<equiv> (\<forall>t \<in> set ts. ground t)"
-(* I could use anonymous variables in this definition *)
 
 datatype hterm = HFun fun_sym "hterm list"
 
@@ -326,8 +325,13 @@ definition diag_fatom :: "nat \<Rightarrow> fterm literal" where
 theorem diag_undiag_fatom[simp]: "grounds ts \<Longrightarrow> diag_fatom (undiag_fatom (Pos p ts)) = Pos p ts"
 unfolding undiag_fatom_def diag_fatom_def by auto
 
-lemma undiag_diag_fatom: "undiag_fatom (diag_fatom n) = n" sorry
+lemma undiag_diag_fatom: "undiag_fatom (diag_fatom n) = n" sorry (* This lemma is WRONG *)
 
+(* Countable.thy
+
+prove my expressions countable, and then get what I need for free.
+
+*)
 
 
 end
