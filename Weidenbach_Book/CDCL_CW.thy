@@ -1678,6 +1678,10 @@ inductive cdcl_cp :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 conflict'[intro]: "conflict S S' \<Longrightarrow> cdcl_cp S S'" |
 propagate': "propagate S S' \<Longrightarrow> cdcl_cp S S'"
 
+lemma rtranclp_cdcl_cp_rtranclp_cdcl:
+  "cdcl_cp\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sup>*\<^sup>* S T"
+  by (induction rule: rtranclp_induct) (auto simp: cdcl_cp.simps dest: cdcl.intros) 
+
 lemma conflicting_clause_full0_cdcl_cp:
   "conflicting S \<noteq> C_True \<Longrightarrow> full0 cdcl_cp S S"
 unfolding full0_def rtranclp_unfold tranclp_unfold by (auto simp add: cdcl_cp.simps)
@@ -1882,6 +1886,113 @@ lemma rtranclp_cdcl_cp_dropWhile_trail:
   using assms by induction (fastforce dest: cdcl_cp_dropWhile_trail)+
 
 text \<open>This theorem can be seen a a termination theorem for @{term cdcl_cp}.\<close>
+lemma length_model_le_vars:
+  assumes "no_strange_atm S"
+  and no_d: "no_dup (trail S)"
+  and "finite (atms_of_m (init_clss S))"
+  shows "length (trail S) \<le> card (atms_of_m (init_clss S))"
+proof -
+  obtain M N U k D where S: "state S = (M, N, U, k, D)" by (cases "state S", auto)
+  have "finite (atm_of ` lits_of (trail S))"
+    using assms(1,3) unfolding S by (auto simp add: finite_subset)
+  have "length (trail S) = card (atm_of ` lits_of (trail S))"
+    using no_dup_length_eq_card_atm_of_lits_of no_d by blast
+  thus ?thesis using assms(1) unfolding no_strange_atm_def
+  by (auto simp add: assms(3) card_mono)
+qed
+
+lemma cdcl_cp_decreasing_measure:
+  assumes cdcl: "cdcl_cp S T" and fin: "finite (init_clss S)" and M_lev: "cdcl_M_level_inv S"
+  and alien: "no_strange_atm S"
+  shows "(\<lambda>S. card (atms_of_m (init_clss S)) - length (trail S)
+      + (if conflicting S = C_True then 1 else 0)) S
+    > (\<lambda>S. card (atms_of_m (init_clss S)) - length (trail S)
+      + (if conflicting S = C_True then 1 else 0)) T"
+  using assms
+proof -
+  have "length (trail T) \<le> card (atms_of_m (init_clss T))" 
+    apply (rule length_model_le_vars)
+       using cdcl_no_strange_atm_inv alien apply (meson cdcl cdcl.simps cdcl_cp.cases) 
+      using M_lev cdcl cdcl_cp_consistent_inv apply blast
+      using fin cdcl by (auto simp: cdcl_cp.simps)
+  with assms
+  show ?thesis by induction force+
+qed
+
+lemma cdcl_cp_wf: "wf {(b,a). (finite (init_clss a) \<and> cdcl_M_level_inv a \<and> no_strange_atm a) 
+  \<and> cdcl_cp a b}"
+  apply (rule wf_wf_if_measure'[of less_than _ _
+      "(\<lambda>S. card (atms_of_m (init_clss S)) - length (trail S)
+        + (if conflicting S = C_True then 1 else 0))"])
+    apply simp
+  using cdcl_cp_decreasing_measure unfolding less_than_iff by blast
+
+lemma rtranclp_cdcl_all_inv_mes_cdcl_cp_iff_rtranclp_cdcl_cp:
+  assumes "finite (init_clss S)" and
+    "cdcl_M_level_inv S" and
+    "no_strange_atm S"
+  shows "(\<lambda>a b. (finite (init_clss a) \<and> cdcl_M_level_inv a \<and> no_strange_atm a) \<and> cdcl_cp a b)\<^sup>*\<^sup>* S T
+    \<longleftrightarrow> cdcl_cp\<^sup>*\<^sup>* S T"
+  (is "?I S T \<longleftrightarrow> ?C S T")
+proof
+  assume
+    "?I S T"
+  thus "?C S T" by induction auto
+next
+  assume
+    "?C S T"
+  thus "?I S T"
+    proof induction
+      case base
+      thus ?case by simp
+    next
+      case (step T U) note st = this(1) and cp = this(2) and IH = this(3)
+      have "cdcl\<^sup>*\<^sup>* S T"
+        by (metis rtranclp_unfold cdcl_cp_conflicting_not_empty cp st
+          rtranclp_propagate_is_rtranclp_cdcl tranclp_cdcl_cp_propagate_with_conflict_or_not)
+      hence 
+        "finite (init_clss T)" and
+        "cdcl_M_level_inv T" and
+        "no_strange_atm T"
+          using \<open>cdcl\<^sup>*\<^sup>* S T\<close> assms(1) rtranclp_cdcl_finite_init_clss apply blast
+         using \<open>cdcl\<^sup>*\<^sup>* S T\<close> apply (simp add: assms(2) rtranclp_cdcl_consistent_inv)
+        using \<open>cdcl\<^sup>*\<^sup>* S T\<close> assms(3) rtranclp_cdcl_no_strange_atm_inv by blast
+      hence " (\<lambda>a b. (finite (init_clss a) \<and> cdcl_M_level_inv a \<and> no_strange_atm a) 
+        \<and> cdcl_cp a b)\<^sup>*\<^sup>* T U"
+        using cp by auto
+      thus ?case using IH by auto
+    qed
+qed
+
+lemma cdcl_cp_normalized_element:
+  assumes inv:
+    "finite (init_clss S)" and
+    "cdcl_M_level_inv S" and
+    "no_strange_atm S"
+  obtains T where "full0 cdcl_cp S T"
+proof -
+  let ?inv = "\<lambda>a. (finite (init_clss a) \<and> cdcl_M_level_inv a \<and> no_strange_atm a)"
+  obtain T where T: "full0 (\<lambda>a b. ?inv a \<and> cdcl_cp a b) S T"
+    using cdcl_cp_wf wf_exists_normal_form[of "\<lambda>a b. ?inv a \<and> cdcl_cp a b"]
+    unfolding full0_def by blast
+    hence "cdcl_cp\<^sup>*\<^sup>* S T"
+      using rtranclp_cdcl_all_inv_mes_cdcl_cp_iff_rtranclp_cdcl_cp assms unfolding full0_def
+      by blast
+    moreover
+      hence "cdcl\<^sup>*\<^sup>* S T"
+        using rtranclp_cdcl_cp_rtranclp_cdcl by blast
+      hence 
+        "finite (init_clss T)" and
+        "cdcl_M_level_inv T" and
+        "no_strange_atm T"
+          using \<open>cdcl\<^sup>*\<^sup>* S T\<close> assms(1) rtranclp_cdcl_finite_init_clss apply blast
+         using \<open>cdcl\<^sup>*\<^sup>* S T\<close> apply (simp add: assms(2) rtranclp_cdcl_consistent_inv)
+        using \<open>cdcl\<^sup>*\<^sup>* S T\<close> assms(3) rtranclp_cdcl_no_strange_atm_inv by blast
+      hence "no_step cdcl_cp T"
+        using T unfolding full0_def by auto
+    ultimately show thesis using that unfolding full0_def by blast
+qed
+
 (* TODO Move wf here *)
 lemma always_exists_full_cdcl_cp_step:
   assumes "finite (init_clss S)"
@@ -2382,39 +2493,18 @@ proof -
             qed
           qed
         obtain D where "\<not> ?M \<Turnstile>a D" and "D \<in> ?N"
-           using \<open>~?M \<Turnstile>as ?N\<close> unfolding lits_of_def true_annots_def Ball_def by auto
+           using \<open>\<not>?M \<Turnstile>as ?N\<close> unfolding lits_of_def true_annots_def Ball_def by auto
         have "atms_of D \<subseteq> atm_of ` (lits_of ?M)"
           using \<open>D \<in> ?N\<close> unfolding \<open>atm_of ` (lits_of ?M) = atms_of_m ?N\<close> atms_of_m_def
           by (auto simp add: atms_of_def)
         hence a1: "atm_of ` set_mset D \<subseteq> atm_of ` lits_of (trail S)"
           by (auto simp add: atms_of_def lits_of_def)
-        have "?M \<Turnstile>as CNot D"
-        (*TODO Try to find a better proof*)
-          proof -
-            { fix mm :: "'v clause"
-              have ff1: "\<And>l la. (l::'v literal) \<noteq> la \<or> count {#l#} la = Suc 0"
-                by simp
-              have ff2: "\<And>a. a \<notin> atm_of ` set_mset D \<or> a \<in> atm_of ` lits_of (trail S)"
-                using a1 by (meson subsetCE)
-              have ff3: "\<And>l. l \<notin> lits_of (trail S) \<or> l \<notin># D"
-                using \<open>\<not> ?M \<Turnstile>a D\<close> unfolding true_annot_def Ball_def lits_of_def true_cls_def
-                Bex_mset_def by (meson true_lit_def)
-              have ff4: "\<And>l. is_pos l \<or> Pos (atm_of l::'v) = - l"
-                by (metis Neg_atm_of_iff uminus_Neg)
-              have "\<And>l. is_neg l \<or> Neg (atm_of l::'v) = - l"
-                by (metis Pos_atm_of_iff uminus_Pos)
-              hence ff5: "\<And>l. - l \<notin># D \<or> l \<in> lits_of (trail S)"
-                using ff4 ff3 ff2 by (metis (no_types) Neg_atm_of_iff Pos_atm_of_iff
-                  atms_of_s_def in_atms_of_s_decomp mem_set_mset_iff)
-              have "(\<exists>l. mm \<notin> {{#- l#} |l. l \<in># D} \<or> l \<in># mm \<and> lits_of (trail S) \<Turnstile>l l)
-              \<or> (\<forall>l. mm \<noteq> {#- l#} \<or> l \<notin># D)"
-                using ff5 ff1 uminus_of_uminus_id true_lit_def by (metis (lifting)  zero_less_Suc)
-              hence "\<exists>l. mm \<notin> {{#- l#} |l. l \<in># D} \<or> l \<in># mm \<and> lits_of (trail S) \<Turnstile>l l"
-                by blast }
-              thus ?thesis unfolding CNot_def true_annots_def true_annot_def Ball_def lits_of_def
-              true_cls_def atms_of_def Bex_mset_def
-                by presburger
-          qed
+        have "total_over_m (lits_of ?M) {D}"
+          using \<open>atms_of D \<subseteq> atm_of ` (lits_of ?M)\<close> atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+          by (fastforce simp: total_over_set_def)
+        then have "?M \<Turnstile>as CNot D"
+          using total_not_true_cls_true_clss_CNot  \<open>\<not> trail S \<Turnstile>a D\<close> true_annot_def 
+          true_annots_true_cls by fastforce
         hence False
           proof -
             obtain S' where
@@ -3331,7 +3421,6 @@ next
     qed
 qed
 
-(*TODO Move*)
 lemma full_cdcl_cp_exists_conflict_decompose:
   assumes confl: "\<exists>D\<in>clauses S. trail S \<Turnstile>as CNot D"
   and full: "full0 cdcl_cp S U"

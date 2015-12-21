@@ -82,74 +82,11 @@ context cdcl_cw_ops
 begin
 subsection \<open>More lemmas conflict--propagate and backjumping\<close>
 subsubsection \<open>Termination\<close>
-lemma cdcl_cp_decreasing_measure:
-  assumes "cdcl_cp S T" and "cdcl_all_inv_mes S"
-  shows "(\<lambda>S. card (atms_of_m (init_clss S)) - length (trail S)
-      + (if conflicting S = C_True then 1 else 0)) S
-    > (\<lambda>S. card (atms_of_m (init_clss S)) - length (trail S)
-      + (if conflicting S = C_True then 1 else 0)) T"
-  using assms
-proof -
-  have "length (trail T) \<le> card (atms_of_m (init_clss T))"
-    by (rule length_model_le_vars_all_inv)
-      (meson assms cdcl_all_inv_mes_inv cdcl_cp.cases conflict propagate)
-  with assms
-  show ?thesis by induction force+
-qed
 
-lemma cdcl_cp_wf: "wf {(b,a). cdcl_all_inv_mes a \<and> cdcl_cp a b}"
-  apply (rule wf_wf_if_measure'[of less_than _ _
-      "(\<lambda>S. card (atms_of_m (init_clss S)) - length (trail S)
-        + (if conflicting S = C_True then 1 else 0))"])
-    apply simp
-  using cdcl_cp_decreasing_measure unfolding less_than_iff by blast
-
-lemma rtranclp_cdcl_all_inv_mes_cdcl_cp_iff_rtranclp_cdcl_cp:
-  "cdcl_all_inv_mes S \<Longrightarrow> (\<lambda>a b. cdcl_all_inv_mes a \<and> cdcl_cp a b)\<^sup>*\<^sup>* S T \<longleftrightarrow> cdcl_cp\<^sup>*\<^sup>* S T"
-  (is "?inv S \<Longrightarrow> ?I S T \<longleftrightarrow> ?C S T")
-proof
-  assume
-    "?I S T"
-    "?inv S"
-  thus "?C S T" by induction auto
-next
-  assume
-    "?C S T"
-    "?inv S"
-  thus "?I S T"
-    proof induction
-      case base
-      thus ?case by simp
-    next
-      case (step T U) note st = this(1) and cp = this(2) and IH = this(3)[OF this(4)] and
-        inv = this(4)
-      have "cdcl\<^sup>*\<^sup>* S T"
-        by (metis rtranclp_unfold local.step(1) tranclp_cdcl_cp_tranclp_cdcl)
-      hence "cdcl_all_inv_mes T"
-        by (metis (no_types, lifting) \<open>cdcl_all_inv_mes S\<close> rtranclp_cdcl_all_inv_mes_inv)
-      hence " (\<lambda>a b. cdcl_all_inv_mes a \<and> cdcl_cp a b)\<^sup>*\<^sup>* T U"
-        using cp by auto
-      thus ?case using IH by auto
-    qed
-qed
-
-lemma cdcl_cp_normalized_element:
+lemma cdcl_cp_normalized_element_all_inv:
   assumes inv: "cdcl_all_inv_mes S"
   obtains T where "full0 cdcl_cp S T"
-proof -
-  obtain T where T: "full0 (\<lambda>a b. cdcl_all_inv_mes a \<and> cdcl_cp a b) S T"
-    using cdcl_cp_wf wf_exists_normal_form[of "\<lambda>a b. cdcl_all_inv_mes a \<and> cdcl_cp a b"]
-    unfolding full0_def by blast
-    hence "cdcl_cp\<^sup>*\<^sup>* S T"
-      using rtranclp_cdcl_all_inv_mes_cdcl_cp_iff_rtranclp_cdcl_cp inv unfolding full0_def
-      by blast
-    moreover
-      hence "cdcl_all_inv_mes T"
-        by (metis inv rtranclp_cdcl_all_inv_mes_inv rtranclp_unfold tranclp_cdcl_cp_tranclp_cdcl)
-      hence "no_step cdcl_cp T"
-        using T unfolding full0_def by auto
-    ultimately show thesis using that unfolding full0_def by blast
-qed
+  using assms cdcl_cp_normalized_element unfolding cdcl_all_inv_mes_def by blast
 
 lemma cdcl_bj_measure:
   assumes "cdcl_bj S T"
@@ -1138,7 +1075,7 @@ next
         using full unfolding full0_def rtranclp_unfold by blast
     qed
   obtain U'' where "full0 cdcl_cp T'' U''"
-    using cdcl_cp_normalized_element inv_T'' by blast
+    using cdcl_cp_normalized_element_all_inv inv_T'' by blast
   moreover hence "cdcl_s\<^sup>*\<^sup>* U U''"
     by (metis \<open>T = U\<close> \<open>cdcl_bj\<^sup>+\<^sup>+ T T''\<close> rtranclp_cdcl_bj_full_cdclp_cdcl_s rtranclp_unfold)
   moreover have "cdcl_s'\<^sup>*\<^sup>* U U''"
@@ -1529,7 +1466,7 @@ next
       then obtain S' where "cdcl_cp S S'"
         by auto
       then obtain T where "full cdcl_cp S T"
-        using cdcl_cp_normalized_element inv by (metis (no_types, lifting) full0_unfold)
+        using cdcl_cp_normalized_element_all_inv inv by (metis (no_types, lifting) full0_unfold)
       thus False using n_s cdcl_s'.conflict' by blast
     qed
   moreover have "?O S"
@@ -1538,7 +1475,7 @@ next
       then obtain S' where "cdcl_o S S'"
         by auto
       then obtain T where "full cdcl_cp S' T"
-        using cdcl_cp_normalized_element inv
+        using cdcl_cp_normalized_element_all_inv inv
         by (meson cdcl_all_inv_mes_def cdcl_s_cdcl_s'_connected' cdcl_then_exists_cdcl_s_step n_s)
       thus False using n_s by (meson \<open>cdcl_o S S'\<close> cdcl_all_inv_mes_def cdcl_s_cdcl_s'_connected'
         cdcl_then_exists_cdcl_s_step inv)
@@ -1673,7 +1610,7 @@ lemma conflict_step_cdcl_s_step:
   shows "\<exists>T. cdcl_s S T"
 proof -
   obtain U where "full0 cdcl_cp S U"
-    using cdcl_cp_normalized_element assms by blast
+    using cdcl_cp_normalized_element_all_inv assms by blast
   then have "full cdcl_cp S U"
     by (metis cdcl_cp.conflict' assms(1) full0_unfold)
   thus ?thesis using cdcl_s.conflict' by blast
@@ -1686,10 +1623,10 @@ lemma decided_step_cdcl_s_step:
   shows "\<exists>T. cdcl_s S T"
 proof -
   obtain U where "full0 cdcl_cp T U"
-    using cdcl_cp_normalized_element by (meson assms(1) assms(2) cdcl_all_inv_mes_inv
-      cdcl_cp_normalized_element decided other)
+    using cdcl_cp_normalized_element_all_inv by (meson assms(1) assms(2) cdcl_all_inv_mes_inv
+      cdcl_cp_normalized_element_all_inv decided other)
   thus ?thesis
-    by (metis assms cdcl_cp_normalized_element cdcl_s.conflict' decided full0_unfold other')
+    by (metis assms cdcl_cp_normalized_element_all_inv cdcl_s.conflict' decided full0_unfold other')
 qed
 
 lemma rtranclp_cdcl_cp_conflicting_C_Clause:
@@ -1905,7 +1842,7 @@ lemma no_step_cdcl_s'_no_ste_cdcl_fw_cp:
   "cdcl_all_inv_mes S \<Longrightarrow> conflicting S = C_True \<Longrightarrow> no_step cdcl_s' S \<Longrightarrow> no_step cdcl_fw_cp S"
   apply (auto simp: cdcl_s'.simps cdcl_fw_cp.simps)
     using conflict_is_full_cdcl_cp apply blast
-  using cdcl_cp_normalized_element cdcl_cp.propagate' by (metis cdcl_cp.propagate' full0_unfold
+  using cdcl_cp_normalized_element_all_inv cdcl_cp.propagate' by (metis cdcl_cp.propagate' full0_unfold
     tranclpD)
 
 text \<open>The @{term "no_step decided S"} is needed, since @{term "cdcl_fw_cp"} is @{term "cdcl_s'"}
@@ -1960,7 +1897,7 @@ proof (rule ccontr)
           using inv by (meson local.propagate' rtranclp_cdcl_all_inv_mes_inv
             rtranclp_propagate_is_rtranclp_cdcl tranclp_into_rtranclp)
         then obtain U where "full0 cdcl_cp T U"
-          using cdcl_cp_normalized_element by auto
+          using cdcl_cp_normalized_element_all_inv by auto
       ultimately have "full cdcl_cp S U"
         using tranclp_full0_fullI[of cdcl_cp S T U] cdcl_cp.propagate'
         tranclp_mono[of propagate cdcl_cp] by blast
@@ -2056,7 +1993,7 @@ next
     using rtranclp_cdcl_s'_without_decide_rtranclp_cdcl st by blast
   then have inv_V: "cdcl_all_inv_mes V" using inv rtranclp_cdcl_all_inv_mes_inv by blast
   then have n_s_cp_V: "no_step cdcl_cp V"
-    using cdcl_cp_normalized_element[of V] full0_fullI[of cdcl_cp V] n_s
+    using cdcl_cp_normalized_element_all_inv[of V] full0_fullI[of cdcl_cp V] n_s
     conflict'_without_decide conflicting_true_no_step_s'_without_decide_no_step_cdcl_fw_cp
     no_step_cdcl_fw_cp_no_step_cdcl_cp by presburger
   have n_s_bj: "no_step cdcl_bj V"
@@ -2072,7 +2009,7 @@ next
         then have "cdcl_all_inv_mes W'"
           by (meson inv_V rtranclp_cdcl_all_inv_mes_inv tranclp_into_rtranclp)
         then obtain X where "full0 cdcl_cp W' X"
-          using cdcl_cp_normalized_element by blast
+          using cdcl_cp_normalized_element_all_inv by blast
       ultimately show False
         using bj'_without_decide n_s_cp_V n_s by blast
     qed
@@ -2250,7 +2187,7 @@ proof (rule ccontr)
     then have "cdcl_all_inv_mes T'"
       using inv  rtranclp_cdcl_all_inv_mes_inv by blast
     then obtain U where "full0 cdcl_cp T' U"
-      using cdcl_cp_normalized_element by blast
+      using cdcl_cp_normalized_element_all_inv by blast
   moreover have "no_step cdcl_cp S"
     using S_T by (auto simp: cdcl_bj.simps)
   ultimately show False
