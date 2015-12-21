@@ -1541,16 +1541,18 @@ next
   ultimately show "?C S \<and> ?O S" by auto
 qed
 
-
 lemma cdcl_s'_tranclp_cdcl:
    "cdcl_s' S S' \<Longrightarrow> cdcl\<^sup>+\<^sup>+ S S'"
-  apply (induct rule: cdcl_s'.induct)
-    apply (simp add: full_def tranclp_cdcl_cp_tranclp_cdcl)
-   using cdcl_s.simps cdcl_s_tranclp_cdcl apply blast
-proof -
-  fix Sa :: 'st and S'a :: 'st and S'' :: 'st
-  assume a1: "full0 cdcl_cp S'a S''"
-  assume a2: "full cdcl_bj Sa S'a"
+proof (induct rule: cdcl_s'.induct)
+  case conflict'
+  then show ?case
+    by (simp add: full_def tranclp_cdcl_cp_tranclp_cdcl)
+next
+  case decided'
+  then show ?case
+    using cdcl_s.simps cdcl_s_tranclp_cdcl by blast
+next
+  case (bj' Sa S'a S'') note a2 = this(1) and a1 = this(2) and n_s = this(3)
   obtain ss :: "'st \<Rightarrow> 'st \<Rightarrow> ('st \<Rightarrow> 'st \<Rightarrow> bool) \<Rightarrow> 'st" where
     "\<forall>x0 x1 x2. (\<exists>v3. x2 x1 v3 \<and> x2\<^sup>*\<^sup>* v3 x0) = (x2 x1 (ss x0 x1 x2) \<and> x2\<^sup>*\<^sup>* (ss x0 x1 x2) x0)"
     by moura
@@ -1561,7 +1563,7 @@ proof -
   then have "cdcl_bj Sa (ss S'a Sa cdcl_bj) \<and> cdcl_bj\<^sup>*\<^sup>* (ss S'a Sa cdcl_bj) S'a"
     using f3 by auto
   then show "cdcl\<^sup>+\<^sup>+ Sa S''"
-    using a1 by (meson bj other rtranclp_cdcl_bj_full_cdclp_cdcl_s rtranclp_cdcl_s_rtranclp_cdcl
+    using a1 n_s by (meson bj other rtranclp_cdcl_bj_full_cdclp_cdcl_s rtranclp_cdcl_s_rtranclp_cdcl
       rtranclp_into_tranclp2)
 qed
 
