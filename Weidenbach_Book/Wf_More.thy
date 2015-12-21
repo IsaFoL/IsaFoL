@@ -62,6 +62,9 @@ lemma full0_unfold:
   "full0 r S S' \<longleftrightarrow> ((S = S' \<and> no_step r S') \<or> full r S S')"
   unfolding full0_def full_def by (auto simp add: rtranclp_unfold)
 
+lemma full_is_full0[intro]: "full R S T \<Longrightarrow> full0 R S T"
+  by (simp add: full0_unfold)
+
 lemma not_full_rtranclp_relation:"\<not>full R\<^sup>*\<^sup>* a b"
   by (meson full_def rtranclp.rtrancl_refl)
 
