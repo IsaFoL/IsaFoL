@@ -83,7 +83,7 @@ locale cw_state =
           = (trail T, init_clss T, learned_clss T, backtrack_lvl T, conflicting T)" and
     trail_restart_state[simp]: "trail (restart_state S) = []" and
     init_clss_restart_state[simp]: "init_clss (restart_state S) = init_clss S" and
-    learned_clss_restart_state[simp]: "learned_clss (restart_state S) = learned_clss S" and
+    learned_clss_restart_state[simp, intro]: "learned_clss (restart_state S) \<subseteq> learned_clss S" and
     backtrack_lvl_restart_state[simp]: "backtrack_lvl (restart_state S) = 0" and
     conflicting_restart_state[simp]: "conflicting (restart_state S) = C_True"
 begin
@@ -132,8 +132,9 @@ lemma
     clauses_update_conflicting[simp]: "clauses (update_conflicting D S) = clauses S" and
     clauses_remove_cls[simp]: "clauses (remove_cls C S) = clauses S - {C}" and
     clauses_add_cls[simp]: "clauses (add_cls C S) = clauses S \<union> {C}" and
-    clauses_restart[simp]: "clauses (restart_state S) = clauses S" and
+    clauses_restart[simp]: "clauses (restart_state S) \<subseteq> clauses S" and
     clauses_init_state[simp]: "finite N \<Longrightarrow> clauses (init_state N) = N"
+    prefer 8 using clauses_def learned_clss_restart_state apply fastforce
   unfolding clauses_def by auto
 
 abbreviation update_state:: "'st \<Rightarrow> ('v, 'lvl, 'v clause) marked_lit list \<times> 'v clauses \<times> 'v clauses
@@ -152,6 +153,9 @@ abbreviation incr_lvl :: "'st \<Rightarrow> 'st" where
 lemma update_trail_trail_id[simp]: "update_trail (trail S) S = S"
   by (auto simp: st_equal)
 
+lemma  atms_of_m_learned_clss_restart_state_in_atms_of_m_learned_clssI[intro]: 
+  "x \<in> atms_of_m (learned_clss (restart_state S))  \<Longrightarrow>  x \<in> atms_of_m (learned_clss S)" 
+ using atms_of_m_mono by blast
 end
 
 subsection \<open>Special Instantiation: using Triples as State\<close>
@@ -272,8 +276,7 @@ inductive_cases resolveE[elim]: "resolve S S'"
 thm resolveE
 
 inductive restart :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
-restart: "state S = (M, N, U, k, C_True) \<Longrightarrow> \<not>M \<Turnstile>as clauses S
-\<Longrightarrow> restart S (restart_state S)"
+restart: "state S = (M, N, U, k, C_True) \<Longrightarrow> \<not>M \<Turnstile>as clauses S \<Longrightarrow> restart S (restart_state S)"
 inductive_cases restartE[elim]: "restart S T"
 thm restartE
 
@@ -738,8 +741,14 @@ next
     by (auto dest: mk_disjoint_insert true_clss_clss_left_right
       simp add: cdcl_learned_clause_def clauses_def
       intro: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or)
+next
+  case restart
+  then show ?case 
+    by (metis cdcl_learned_clause_def conflicting_restart_state empty_set 
+      get_all_mark_of_propagated.simps(1) init_clss_restart_state learned_clss_restart_state
+      sup.absorb_iff2 sup.orderI sup_bot.right_neutral trail_restart_state true_clss_clss_union_and)
 qed (auto dest: mk_disjoint_insert
-      simp add: cdcl_learned_clause_def clauses_def true_clss_clss_left_right)
+      simp add: cdcl_learned_clause_def clauses_def true_clss_clss_left_right true_clss_clss_subset)
 
 lemma rtranclp_cdcl_learned_clss:
   assumes "cdcl\<^sup>*\<^sup>* S S'"
@@ -817,7 +826,7 @@ next
     by (auto simp add: H)
 next
   case restart
-  thus ?case by auto
+  then show ?case by auto
 next
   case (forget C) note C[simp] = this(3) and C_le[simp] = this(4) and confl = this(5) and
     atm_mark = this(7) and atm_le = this(8) and atm_trail = this(9)
@@ -906,6 +915,11 @@ proof (induct rule: cdcl_all_induct)
   case (backtrack K i M1 M2 L D)
   thus ?case
     unfolding distinct_cdcl_state_def by (fastforce dest: get_all_marked_decomposition_incl)
+next
+  case restart
+  thus ?case unfolding distinct_cdcl_state_def distinct_mset_set_def clauses_def
+    by (metis conflicting_restart_state empty_iff empty_set init_clss_restart_state 
+      learned_clss_restart_state subset_eq trail_restart_state)
 qed (auto simp add: distinct_cdcl_state_def distinct_mset_set_def clauses_def)
 
 lemma rtanclp_distinct_cdcl_state_inv:
@@ -1566,6 +1580,9 @@ proof (induct rule: cdcl_all_induct)
     hence "lits_of (trail S) \<Turnstile>s CNot (D + {#L#})" using true_annots_true_cls by blast
   ultimately have "\<not>tautology (D + {#L#})" using consistent_CNot_not_tautology by blast
   thus ?case using backtrack by simp
+next
+  case restart
+  then show ?case by (meson contra_subsetD learned_clss_restart_state)
 qed auto
 
 (*TODO this is wrong (in the sense that it is too general)*)

@@ -34,11 +34,12 @@ proof (intro HOL.conjI)
      using cdcl_all_inv[OF assms(1)] assms(2) unfolding cdcl_all_inv_mes_def by fast
 
   have "finite (atms_of_m (clauses S))" using assms(2) unfolding cdcl_all_inv_mes_def by auto
-  with assms(1) show "finite (atms_of_m (clauses S'))"
-    by (induction rule: cdcl_all_induct) (auto simp: )+
+  with assms(1) show f_cls: "finite (atms_of_m (clauses S'))"
+    by (induction rule: cdcl_all_induct) (auto simp: clauses_def intro: rev_finite_subset)
 
   have "finite (learned_clss S)" using assms(2) unfolding cdcl_all_inv_mes_def by auto
-  with assms(1) show "finite (learned_clss S')" by (induction rule: cdcl_all_induct) auto
+  with assms(1) show "finite (learned_clss S')" 
+    by (induction rule: cdcl_all_induct) (auto simp: clauses_def rev_finite_subset)
 
   show "\<forall>s\<in>learned_clss S'. \<not> tautology s"
     using assms(1)[THEN learned_clss_are_not_tautologies] assms(2)
@@ -910,7 +911,7 @@ lemma cdcl_measure_decreasing:
   assumes
     "cdcl S S'" and
     no_restart:
-      "\<not>(learned_clss S = learned_clss S' \<and> [] = trail S' \<and> conflicting S' = C_True)"
+      "\<not>(learned_clss S \<subseteq> learned_clss S' \<and> [] = trail S' \<and> conflicting S' = C_True)"
     (*no restart*) and
     "learned_clss S \<subseteq> learned_clss S'" (*no forget*) and
     no_relearn: "\<And>S'. backtrack S S' \<Longrightarrow> \<forall>T. conflicting S = C_Clause T \<longrightarrow> T \<notin> learned_clss S"
@@ -1142,7 +1143,7 @@ proof -
                      using inv unfolding cdcl_all_inv_mes_def apply simp
                     using inv unfolding cdcl_all_inv_mes_def apply simp
                    using inv unfolding cdcl_all_inv_mes_def by simp
-            qed auto
+            qed fastforce+
         qed
       ultimately show ?case
          proof -

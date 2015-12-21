@@ -721,9 +721,8 @@ lemma rtranclp_cdcl_bj_resolve_in_the_middle:
     "(\<lambda>S T. resolve S T \<and> no_step backtrack S) S T" and
     "no_step cdcl_bj U"
   shows "cdcl_bj S T \<and> cdcl_bj\<^sup>*\<^sup>* T U"
-  using assms
-  by (metis cdcl_bj.cases resolve resolve_skip_deterministic resolve_unique rtranclp_unfold
-    tranclpD)
+  using assms by (metis cdcl_bj.cases resolve resolve_skip_deterministic resolve_unique 
+    rtranclp_unfold tranclpD)
 
 lemma cdcl_bj_strongly_confluent:
   assumes
@@ -2924,8 +2923,6 @@ next
     qed
 qed
 
-(* termination is needed somewhere for the equivalence of no_step (to show the existence of full
-cdcl_fw_cp) *)
 lemma full0_cdcl_s'_full0_cdcl_fw:
   assumes
     "conflicting R = C_True" and
@@ -3032,10 +3029,49 @@ lemma full0_cdcl_s_full0_cdcl_fw:
     inv: "cdcl_all_inv_mes R"
   shows "full0 cdcl_s R V \<longleftrightarrow> full0 cdcl_fw_s R V" (is "?s' \<longleftrightarrow> ?fw")
   by (simp add: assms(1) full0_cdcl_s'_full0_cdcl_fw full0_cdcl_s_iff_full0_cdcl_s' inv)
+
 end
 
 subsection \<open>Adding Restarts\<close>
 locale cdcl_cw_ops_restart =
+  cdcl_cw_ops +
+  fixes f :: "nat \<Rightarrow> nat"
+  assumes f: "strict_mono f"
+begin
+(* \<mu> can be sometinh like (if no_step then 0 else 1) + 3 ^ card (init_clss S) *)
+sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts_ops restart cdcl_fw_s f _ _ cdcl_all_inv_mes _ 
+  apply (unfold_locales)
+           using f apply simp
+  sorry
+
+inductive cdcl_with_restart\<^sub>C\<^sub>W where
+restart_step: "(cdcl_fw_s^^m) S T \<Longrightarrow> card (learned_clss T) - card (learned_clss S) \<ge> f n 
+  \<Longrightarrow> restart T U \<Longrightarrow> cdcl_with_restart\<^sub>C\<^sub>W (S, n) (U, Suc n)" |
+restart_full: "full cdcl_fw_s S T \<Longrightarrow> cdcl_with_restart\<^sub>C\<^sub>W (S, n) (T, Suc n)"
+
+lemma "cdcl_with_restart\<^sub>C\<^sub>W S T \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy S T"
+  apply (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct)
+   
+oops  
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+locale cdcl_cw_ops_restart_cw_criterion =
   cdcl_cw_ops +
   fixes f :: "nat \<Rightarrow> nat"
   assumes "strict_mono f"
@@ -3088,14 +3124,8 @@ proof (rule ccontr)
   then have [simp]: "finite (clauses T)"
     unfolding cdcl_all_inv_mes_def clauses_def by auto
   obtain C where "C \<in># U" and "C \<in> clauses T"
-    (* TODO tune proof *)
-    using \<open>\<not> distinct_mset W\<close> unfolding distinct_mset_def W
-      apply (auto simp: max_def split: split_if_asm)
-      using \<open>distinct_mset U\<close>
-      apply (case_tac "a \<in> clauses T")
-        apply force
-      apply auto
-      by (metis One_nat_def \<open>distinct_mset U\<close> distinct_mset_def)
+    using \<open>\<not> distinct_mset W\<close> \<open>distinct_mset U\<close> unfolding W distinct_mset_def 
+    by (force simp: max_def split: split_if_asm)
   have confl_S: "conflicting S = C_True"
     using ST by (auto simp: cdcl_fw_s.simps full_def cdcl_fw_cp.simps dest!: tranclpD)
   from ST show False

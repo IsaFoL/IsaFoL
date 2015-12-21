@@ -728,7 +728,6 @@ lemma true_clss_clss_subset:
 lemma union_trus_clss_clss[simp]: "A \<union> B \<Turnstile>ps B"
   unfolding true_clss_clss_def by auto
 
-
 lemma true_clss_clss_remove[simp]:
   "A \<Turnstile>ps B \<Longrightarrow> A\<Turnstile>ps B - C"
   by (metis Un_Diff_Int true_clss_clss_union_and)
