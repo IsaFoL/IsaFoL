@@ -398,7 +398,7 @@ lemma dpll_bj_atms_in_trail:
     "inv S" and
     "atm_of ` (lits_of (trail S)) \<subseteq> atms_of_m (clauses S)"
   shows "atm_of ` (lits_of (trail T)) \<subseteq> atms_of_m (clauses S)"
-  using assms by (induction rule: dpll_bj_all_induct) auto
+  using assms by (induction rule: dpll_bj_all_induct) (auto simp: in_plus_implies_atm_of_on_atms_of_m)
 
 lemma dpll_bj_atms_in_trail_in_set:
   assumes "dpll_bj S T"and
@@ -406,7 +406,7 @@ lemma dpll_bj_atms_in_trail_in_set:
   "atms_of_m (clauses S) \<subseteq> A" and
   "atm_of ` (lits_of (trail S)) \<subseteq> A"
   shows "atm_of ` (lits_of (trail T)) \<subseteq> A"
-  using assms by (induction rule: dpll_bj_all_induct) auto
+  using assms by (induction rule: dpll_bj_all_induct) (auto simp: in_plus_implies_atm_of_on_atms_of_m)
 
 lemma dpll_bj_all_decomposition_implies_inv:
   assumes
@@ -580,7 +580,7 @@ proof (induction rule: dpll_bj_all_induct)
   case (propagate\<^sub>N\<^sub>O\<^sub>T C L d) note CLN = this(1) and MC =this(2) and undef_L = this(3)
   have incl: "atm_of ` lits_of (Propagated L d # trail S) \<subseteq> atms_of_m A"
     using propagate\<^sub>N\<^sub>O\<^sub>T.hyps propagate_ops.propagate\<^sub>N\<^sub>O\<^sub>T dpll_bj_atms_in_trail_in_set bj_propagate\<^sub>N\<^sub>O\<^sub>T
-    NA MA CLN by auto
+    NA MA CLN by (auto simp: in_plus_implies_atm_of_on_atms_of_m)
 
   have no_dup: "no_dup (Propagated L d # trail S)"
     using defined_lit_map n_d undef_L by auto
@@ -2975,7 +2975,7 @@ proof -
    moreover have learn: "learn S (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S)"
      apply (rule learn.intros)
          apply (rule clss_C)
-       using atms_C' atm_L apply (fastforce simp add: tr_S)[]
+       using atms_C' atm_L apply (fastforce simp add: tr_S  in_plus_implies_atm_of_on_atms_of_m)[]
      apply standard
       apply (rule distinct)
       apply (rule not_tauto)

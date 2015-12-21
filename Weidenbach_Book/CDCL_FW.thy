@@ -156,8 +156,7 @@ lemma cdcl_bj_measure:
   shows "length (trail S) + (if conflicting S = C_True then 0 else 1)
     > length (trail T) +  (if conflicting T = C_True then 0 else 1)"
   using assms apply (induction rule: cdcl_bj.induct)
-  by (auto elim!: backtrackE dest!: get_all_marked_decomposition_exists_prepend
-    dest:arg_cong[of _ _ length])
+  by (fastforce dest:arg_cong[of _ _ length])+
 
 lemma cdcl_bj_wf:
   "wf {(b,a). cdcl_bj a b}"

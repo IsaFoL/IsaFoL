@@ -131,10 +131,15 @@ lemma finite_atms_of_m_remove_subset[simp]:
   using atms_of_m_remove_subset[of A C] finite_subset by blast
 
 (*TODO generalise the 2 following lemmas, but the multiset is probably not good enough for [intro].*)
-lemma in_implies_atm_of_on_atms_of_m[simp]:
-  assumes "C + {#L#} \<in> N"
+lemma in_implies_atm_of_on_atms_of_m:
+  assumes "L \<in># C" and "C \<in> N"
   shows "atm_of L \<in> atms_of_m N"
-  using atms_of_atms_of_m_mono[OF assms] by auto
+  using atms_of_atms_of_m_mono[of "C" N] assms by (simp add: atm_of_lit_in_atms_of subset_iff)
+
+lemma in_plus_implies_atm_of_on_atms_of_m:
+  assumes "C+{#L#} \<in> N"
+  shows "atm_of L \<in> atms_of_m N"
+  using in_implies_atm_of_on_atms_of_m[of "C +{#L#}"] assms by auto
 
 lemma in_m_in_literals:
   assumes "{#A#} + D \<in> \<psi>s"
@@ -700,7 +705,7 @@ proof
         obtain I' where tot': "total_over_m (I \<union> I') (A \<union> C \<union> D)"
         and cons': "consistent_interp (I \<union> I')"
         and H: "\<forall>x\<in>I'. atm_of x \<in> atms_of_m D \<and> atm_of x \<notin> atms_of_m (A \<union> C)"
-          using total_over_m_consistent_extension[OF _ cons, of "A \<union> C"] tot tot' by auto
+          using total_over_m_consistent_extension[OF _ cons, of "A \<union> C"] tot tot' by blast
         moreover have "I \<union> I' \<Turnstile>s A" using I by simp
         ultimately have "I \<union> I' \<Turnstile>s C \<union> D" using A unfolding true_clss_clss_def  by auto
         hence "I \<union> I' \<Turnstile>s C \<union> D" by auto

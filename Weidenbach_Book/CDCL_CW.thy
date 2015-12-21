@@ -800,7 +800,8 @@ proof (induct rule: cdcl_all_induct)
   moreover have "?U  (cons_trail (Propagated L (C + {#L#})) S)"
     using propagate.prems(3) by auto
   moreover have "?V (cons_trail (Propagated L (C + {#L#})) S)"
-    using \<open>C + {#L#} \<in> clauses S\<close> propagate.prems(3,4) unfolding lits_of_def clauses_def by auto
+    using \<open>C + {#L#} \<in> clauses S\<close> propagate.prems(3,4) unfolding lits_of_def clauses_def 
+    by (auto simp: in_plus_implies_atm_of_on_atms_of_m)
   ultimately show ?case by blast
 next
   case (decided L)
