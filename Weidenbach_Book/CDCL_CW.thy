@@ -800,7 +800,7 @@ proof (induct rule: cdcl_all_induct)
   moreover have "?U  (cons_trail (Propagated L (C + {#L#})) S)"
     using propagate.prems(3) by auto
   moreover have "?V (cons_trail (Propagated L (C + {#L#})) S)"
-    using \<open>C + {#L#} \<in> clauses S\<close> propagate.prems(3,4) unfolding lits_of_def clauses_def 
+    using \<open>C + {#L#} \<in> clauses S\<close> propagate.prems(3,4) unfolding lits_of_def clauses_def
     by (auto simp: in_plus_implies_atm_of_on_atms_of_m)
   ultimately show ?case by blast
 next
@@ -3583,7 +3583,7 @@ next
     using  st rtrancl_into_rtrancl.prems(3) rtranclp_cdcl_s_rtranclp_cdcl
     by (blast intro: rtranclp_cdcl_consistent_inv)+
   moreover have "no_clause_is_false S'"
-    using st cls_false by (metis (mono_tags, lifting) cdcl_s_not_non_negated_init_clss 
+    using st cls_false by (metis (mono_tags, lifting) cdcl_s_not_non_negated_init_clss
       rtranclp.simps)
   moreover have "distinct_cdcl_state S'"
     using rtanclp_distinct_cdcl_state_inv st no_dup rtranclp_cdcl_s_rtranclp_cdcl by blast
