@@ -82,49 +82,29 @@ end
 
 subsubsection {* Enumerating hatoms *}
 
-term "to_nat (HFun '''' [])"
-term "from_nat 0 = (HFun '''' [])"
-term "from_nat::nat \<Rightarrow> hterm"
-term "from_nat::nat \<Rightarrow> string"
+definition diag_hatom :: "nat \<Rightarrow> hterm literal" where
+  "diag_hatom n = (let (n_p,n_ts) = from_nat n in
+     Pos (from_nat n_p) (from_nat n_ts))"
 
-instantiation literal :: (countable) countable begin
-instance by countable_datatype
-end
+lemma "from_nat (to_nat n) = n" unfolding from_nat_def using Hilbert_Choice.inj_iff by auto
 
-lemma Pos_count: "countable {l :: hterm literal. sign l = True}" by auto
+find_theorems from_nat
 
 definition undiag_hatom :: "hterm literal \<Rightarrow> nat" where
-  "undiag_hatom \<equiv> (SOME f. bij_betw f {l :: hterm literal. sign l = True} (UNIV::nat set))"
-
-lemma Pos_inf: "\<not>(finite {l :: hterm literal. sign l = True})" sorry
-
-lemma bij_undiag_hatom: "bij_betw undiag_hatom {l :: hterm literal. sign l = True} (UNIV :: nat set)"
-proof -
- from Pos_count Pos_inf obtain f where "bij_betw f {l :: hterm literal. sign l = True} (UNIV :: nat set)" 
-   using countableE_infinite[of "{l :: hterm literal. sign l = True}"] by auto
- then show ?thesis unfolding undiag_hatom_def using someI_ex by metis
-qed
-
-definition diag_hatom where "diag_hatom \<equiv> inv undiag_hatom"
-
-lemma "bij_betw f A B \<Longrightarrow> inj_on (inv f) A" unfolding bij_betw_def unfolding inj_on_def
-proof (rule; rule)
-
-lemma "bij_betw f A B \<Longrightarrow> bij_betw (inv f) B A"
-unfolding bij_betw_def unfolding inj_on_def apply (rule conjI)
-proof
-
-lemma bij_diag_hatom: "bij_betw diag_hatom (UNIV :: nat set) {l :: hterm literal. sign l = True}" 
-  unfolding diag_hatom_def using bij_undiag_hatom 
+  "undiag_hatom l = to_nat (to_nat (to_nat (get_pred l),to_nat (get_terms l)))"
 
 theorem diag_undiag_hatom[simp]: 
-  assumes "sign a = True"
-  shows "diag_hatom (undiag_hatom a) = a"
-proof -
-  have "surj
-  
-  show "diag_hatom (undiag_hatom a) = a" by auto
-qed
+  "sign a = True \<Longrightarrow> diag_hatom (undiag_hatom a) = a"
+  unfolding diag_hatom_def undiag_hatom_def 
+apply (induction a) (* not really induction *)
+apply auto
+sorry
+
+find_theorems bij_betw
+
+
+
+
 
 subsubsection {* Enumerating ground terms *}
 
