@@ -1703,7 +1703,7 @@ abbreviation "conflicting_bj_clss_yet b S \<equiv>
 abbreviation   \<mu>\<^sub>L :: "nat \<Rightarrow> 'st \<Rightarrow> nat \<times> nat" where
   "\<mu>\<^sub>L b S \<equiv> (conflicting_bj_clss_yet b S, card (clauses S))"
 
-lemma do_not_forget_before_backtracking_clause_learned_clause_untouched:
+lemma do_not_forget_before_backtrack_rule_clause_learned_clause_untouched:
   assumes "forget\<^sub>N\<^sub>O\<^sub>T S T"
   shows "conflicting_bj_clss S = conflicting_bj_clss T"
   using assms apply induction
@@ -1720,7 +1720,7 @@ proof -
     using forget\<^sub>N\<^sub>O\<^sub>T fin apply induction
     using card_Suc_Diff1 by fastforce
   then show ?thesis
-    unfolding do_not_forget_before_backtracking_clause_learned_clause_untouched[OF forget\<^sub>N\<^sub>O\<^sub>T]
+    unfolding do_not_forget_before_backtrack_rule_clause_learned_clause_untouched[OF forget\<^sub>N\<^sub>O\<^sub>T]
     by auto
 qed
 
@@ -1962,7 +1962,7 @@ next
     apply (rule forget\<^sub>N\<^sub>O\<^sub>T.intros) using forget\<^sub>N\<^sub>O\<^sub>T by auto
   hence [simp]: "3 ^ card (atms_of_m A) - card (conflicting_bj_clss S - {C})
     = conflicting_bj_clss_yet (card (atms_of_m A)) S"
-    using do_not_forget_before_backtracking_clause_learned_clause_untouched
+    using do_not_forget_before_backtrack_rule_clause_learned_clause_untouched
     by (metis (no_types, lifting) conflicting_bj_clss_remove_cls\<^sub>N\<^sub>O\<^sub>T)
   have "finite (clauses S)" using finite_S by blast
   thus ?case using \<open>C \<in> clauses S\<close> card_Diff1_less unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def by fastforce
