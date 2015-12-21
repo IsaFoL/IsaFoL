@@ -439,7 +439,7 @@ next
             using arg_cong[OF trT[simplified], of tl] by simp
           have False using nd MS3 unfolding M'' by auto
           thus ?case by fast
-        qed (auto elim!: skipE resolveE)
+        qed auto
       qed
 qed
 
