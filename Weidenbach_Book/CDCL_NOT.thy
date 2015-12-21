@@ -109,7 +109,7 @@ text \<open>Duplicate of "~~/src/HOL/ex/NatSum.thy" (but generalized to @{term "
 lemma sum_of_powers: "0 \<le> k \<Longrightarrow> (k - 1) * (\<Sum>i=0..<n. k^i) = k^n - (1::nat)"
   apply (cases "k = 0")
     apply (cases n; simp)
-  by (induct n) (auto simp add: Nat.nat_distrib)
+  by (induct n) (auto simp: Nat.nat_distrib)
 
 text \<open>In the degenerated cases, we only have the large inequality holds. In the other cases, the
   following strict inequality holds:\<close>

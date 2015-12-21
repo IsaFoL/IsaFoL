@@ -1101,7 +1101,7 @@ lemma cdcl_s_step_decreasing:
   shows "(cdcl_measure T, cdcl_measure S) \<in> lexn {(a, b). a < b} 3"
 proof -
   have "cdcl_all_inv_mes S"
-  using assms
+    using assms
     by (metis rtranclp_unfold rtranclp_cdcl_all_inv_mes_inv tranclp_cdcl_s_tranclp_cdcl)
   with assms show ?thesis
     proof induction
