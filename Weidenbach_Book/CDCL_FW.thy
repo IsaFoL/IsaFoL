@@ -84,8 +84,10 @@ subsection \<open>More lemmas conflict--propagate and backjumping\<close>
 subsubsection \<open>Termination\<close>
 lemma cdcl_cp_decreasing_measure:
   assumes "cdcl_cp S T" and "cdcl_all_inv_mes S"
-  shows "(\<lambda>S. card (atms_of_m (init_clss S)) - length (trail S) + (if conflicting S = C_True then 1 else 0)) S
-        > (\<lambda>S. card (atms_of_m (init_clss S)) - length (trail S) + (if conflicting S = C_True then 1 else 0)) T"
+  shows "(\<lambda>S. card (atms_of_m (init_clss S)) - length (trail S)
+      + (if conflicting S = C_True then 1 else 0)) S
+    > (\<lambda>S. card (atms_of_m (init_clss S)) - length (trail S)
+      + (if conflicting S = C_True then 1 else 0)) T"
   using assms
 proof -
   have "length (trail T) \<le> card (atms_of_m (init_clss T))"
@@ -227,7 +229,6 @@ next
   have "skip\<^sup>*\<^sup>* S V"
     using st skip by auto
   hence [simp]: "init_clss S = N" and [simp]: "learned_clss S = U"
-    using V \<open>V = update_trail M T\<close> \<open>cdcl\<^sup>*\<^sup>* S T\<close> rtranclp_cdcl_init_clss apply auto[1]
     using rtranclp_skip_state_decomp[OF \<open>skip\<^sup>*\<^sup>* S V\<close>] V by auto
   hence W_S: "W = update_trail (Propagated L ( (D + {#L#})) # M1)
   (add_cls (D + {#L#}) (update_backtrack_lvl i (update_conflicting C_True T)))"
@@ -253,7 +254,6 @@ next
 
   ultimately have "backtrack T W"
     using T(1) W_S by blast
-
   thus ?thesis using IH inv by blast
 qed
 
@@ -294,7 +294,8 @@ proof -
     by (metis backtrack_lvl_update_trail conflicting_update_trail learned_update_trail prod.inject
       trail_update_clss)
   have "cdcl_all_inv_mes T"
-    by (smt bj cdcl_all_inv_mes_inv cdcl_bj.skip inv local.skip other rtranclp_induct)
+    apply (rule rtranclp_cdcl_all_inv_mes_inv[OF _ inv])
+    using bj cdcl_bj.skip local.skip other rtranclp_mono[of skip cdcl] by blast
   hence "M\<^sub>T \<Turnstile>as CNot ?D"
     unfolding cdcl_all_inv_mes_def cdcl_conflicting_def using T by blast
   have "\<forall>L\<in>#?D. atm_of L \<in> atm_of ` lits_of M\<^sub>T"
@@ -326,9 +327,15 @@ proof -
   have lev_l_D': "get_level L M\<^sub>T = get_maximum_level (D+{#L#}) M\<^sub>T"
     using lev_l_D by (auto simp: H)
   have [simp]: "get_maximum_level D M = get_maximum_level D M\<^sub>T"
-    by (smt Ball_mset_def M\<^sub>T \<open>M\<^sub>T \<Turnstile>as CNot (D + {#L#})\<close> nm M ab_semigroup_add_class.add_ac(1)
-      atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set get_maximum_level_skip_un_marked_not_present
-      in_CNot_implies_uminus(2) multi_member_split multi_member_this union_commute)
+    proof -
+      have "\<And>ms m. \<not> (ms::('v, nat, 'v literal multiset) marked_lit list) \<Turnstile>as CNot m
+          \<or> (\<forall>l\<in>#m. atm_of l \<in> atm_of ` lits_of ms)"
+        by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set in_CNot_implies_uminus(2))
+      then have "\<forall>l\<in>#D. atm_of l \<in> atm_of ` lits_of M\<^sub>T"
+        using \<open>M\<^sub>T \<Turnstile>as CNot (D + {#L#})\<close> by auto
+      then show ?thesis
+        by (metis M get_maximum_level_skip_un_marked_not_present nm)
+    qed
   hence i': "i = get_maximum_level D M\<^sub>T"
     using i by auto
   have "Marked K (i + 1) # M1 \<in> set (map fst (get_all_marked_decomposition M))"
@@ -632,8 +639,8 @@ next
           { fix U'
             assume "skip\<^sup>*\<^sup>* U U'" and "skip\<^sup>*\<^sup>* U' W"
             have "cdcl_all_inv_mes U'"
-              by (smt \<open>cdcl_all_inv_mes U\<close> \<open>skip\<^sup>*\<^sup>* U U'\<close> cdcl_cw_ops.rtranclp_cdcl_all_inv_mes_inv
-                cdcl_cw_ops_axioms cdcl_o.bj mono_rtranclp other skip)
+              using \<open>cdcl_all_inv_mes U\<close> \<open>skip\<^sup>*\<^sup>* U U'\<close> rtranclp_cdcl_all_inv_mes_inv
+                 cdcl_o.bj rtranclp_mono[of skip cdcl] other skip by blast
             hence "no_step backtrack U'"
               using if_can_apply_backtrack_no_more_resolve[OF \<open>skip\<^sup>*\<^sup>* U' W\<close> ] res by blast
           }
@@ -1589,7 +1596,7 @@ proof
     using rtranclp_cdcl_all_inv_mes_inv inv by blast
   have "cdcl_s\<^sup>*\<^sup>* S T"
     using \<open>?S'\<close> unfolding full0_def
-      by (smt cdcl_s'_is_rtranclp_cdcl_s mono_rtranclp rtranclp_idemp)
+      using cdcl_s'_is_rtranclp_cdcl_s rtranclp_mono[of cdcl_s' "cdcl_s\<^sup>*\<^sup>*"] by auto
   thus ?S
     using \<open>?S'\<close> inv' cdcl_s_cdcl_s'_connected' unfolding full0_def by blast
 next
