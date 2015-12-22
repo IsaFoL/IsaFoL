@@ -1872,7 +1872,7 @@ lemma cdcl_cp_state_eq_compatible:
     using conflict_state_eq_compatible apply auto[1]
   using propagate' propagate_state_eq_compatible by auto
 
-lemma rtranclp_cdcl_cp_state_eq_compatible:
+lemma tranclp_cdcl_cp_state_eq_compatible:
   assumes
     "cdcl_cp\<^sup>+\<^sup>+ S T" and
     "S \<sim> S'" and
@@ -1958,17 +1958,16 @@ text \<open>CDCL with the reasonable strategy: we fully propagate the conflict a
 inductive cdcl_s :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 conflict': "full cdcl_cp S S' \<Longrightarrow> cdcl_s S S'" |
 other': "cdcl_o S S'  \<Longrightarrow> no_step cdcl_cp S \<Longrightarrow> full0 cdcl_cp S' S'' \<Longrightarrow> cdcl_s S S''"
+
 lemma cdcl_s_state_eq_compatible:
   assumes
     "cdcl_s S T" and
-    "S \<sim> S'" and
-    "T \<sim> T'"
-  shows "cdcl_s S' T'"
+    "S \<sim> S'"
+  shows "cdcl_s S' T"
   using assms
   apply (induction)
-  unfolding full_def apply (metis (mono_tags, hide_lams) cdcl_cp_state_eq_compatible
-    cdcl_s.conflict' full0_unfold rtranclp_cdcl_cp_state_eq_compatible state_eq_ref
-    state_eq_sym tranclp_full0_fullI)
+  unfolding full_def apply (metis (mono_tags, hide_lams) cdcl_s.conflict' full0_unfold
+    tranclp_cdcl_cp_state_eq_compatible state_eq_ref tranclp_full0_fullI)
 oops
 
 subsubsection \<open>Invariants\<close>
