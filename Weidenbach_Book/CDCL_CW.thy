@@ -1972,17 +1972,6 @@ inductive cdcl_s :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 conflict': "full cdcl_cp S S' \<Longrightarrow> cdcl_s S S'" |
 other': "cdcl_o S S'  \<Longrightarrow> no_step cdcl_cp S \<Longrightarrow> full0 cdcl_cp S' S'' \<Longrightarrow> cdcl_s S S''"
 
-lemma cdcl_s_state_eq_compatible:
-  assumes
-    "cdcl_s S T" and
-    "S \<sim> S'"
-  shows "cdcl_s S' T"
-  using assms
-  apply (induction)
-  unfolding full_def apply (metis (mono_tags, hide_lams) cdcl_s.conflict' full0_unfold
-    tranclp_cdcl_cp_state_eq_compatible state_eq_ref tranclp_full0_fullI)
-oops
-
 subsubsection \<open>Invariants\<close>
 text \<open>These are the same invariants as before, but lifted\<close>
 lemma cdcl_cp_learned_clause_inv:

@@ -278,7 +278,7 @@ begin
 inductive propagate\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 propagate\<^sub>N\<^sub>O\<^sub>T[intro]: "C + {#L#} \<in> clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C
     \<Longrightarrow> undefined_lit L (trail S)
-    \<Longrightarrow> propagate_cond S 
+    \<Longrightarrow> propagate_cond S
     \<Longrightarrow> T \<sim>\<^sub>N\<^sub>O\<^sub>T prepend_trail (Propagated L mark) S
     \<Longrightarrow> propagate\<^sub>N\<^sub>O\<^sub>T S T"
 inductive_cases propagateE[elim]: "propagate\<^sub>N\<^sub>O\<^sub>T S T"
@@ -3022,7 +3022,7 @@ proof -
      done
    moreover have bj: "m_backjump (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S) T"
      apply (rule backjumping_ops.backjump.intros[OF backjumping_ops_axioms _, of _ _ ])
-     using \<open>F \<Turnstile>as CNot C'\<close> C_cls_S tr_S_CNot_C undef T distinct not_tauto 
+     using \<open>F \<Turnstile>as CNot C'\<close> C_cls_S tr_S_CNot_C undef T distinct not_tauto
      by (auto simp: tr_S state_eq\<^sub>N\<^sub>O\<^sub>T_def simp del: state_simp)
    ultimately show ?thesis by auto
 qed
@@ -3423,7 +3423,7 @@ lemma backjump_bj_can_jump:
     F_C': "F \<Turnstile>as CNot C'"
   shows "\<not>no_step backjump S"
     using backjump.intros[OF tr_S _ C tr_S_C undef _ cls_S_C' F_C',
-      of "update_trail (Propagated L l # F) S "] atm_L unfolding tr_S 
+      of "update_trail (Propagated L l # F) S "] atm_L unfolding tr_S
     by (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def simp del: state_simp)
 
 sublocale dpll_with_backjumping_ops _ _ _ _ _ inv "\<lambda>_ _ _ _. True"

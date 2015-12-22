@@ -165,7 +165,7 @@ next
   have "skip\<^sup>*\<^sup>* S V"
     using st skip by auto
   have [simp]: "init_clss S = N" and [simp]: "learned_clss S = U"
-    using rtranclp_skip_state_decomp[OF \<open>skip\<^sup>*\<^sup>* S V\<close>] V 
+    using rtranclp_skip_state_decomp[OF \<open>skip\<^sup>*\<^sup>* S V\<close>] V
     by (auto simp del: state_simp simp: state_eq_def)
   hence W_S: "W \<sim> update_trail (Propagated L ( (D + {#L#})) # M1)
   (add_cls (D + {#L#}) (update_backtrack_lvl i (update_conflicting C_True T)))"
@@ -228,8 +228,8 @@ proof -
     using rtranclp_skip_state_decomp(1)[OF skip] S by auto
   have T: "state T = (M\<^sub>T, N, U, k, C_Clause ?D)"
     using M\<^sub>T rtranclp_skip_state_decomp(2) skip S
-    by (metis backtrack_lvl_update_trail conflicting_update_trail learned_update_trail 
-      old.prod.inject state_eq_backtrack_lvl state_eq_conflicting state_eq_init_clss 
+    by (metis backtrack_lvl_update_trail conflicting_update_trail learned_update_trail
+      old.prod.inject state_eq_backtrack_lvl state_eq_conflicting state_eq_init_clss
       state_eq_learned_clss trail_update_clss)
   have "cdcl_all_inv_mes T"
     apply (rule rtranclp_cdcl_all_inv_mes_inv[OF _ inv])
@@ -640,90 +640,6 @@ next
     qed
 qed
 
-(* lemma cdcl_bj_strongly_confluent:
-  assumes
-    "cdcl_bj\<^sup>*\<^sup>* S V" and
-    "cdcl_bj\<^sup>*\<^sup>* S T" and
-    n_s: "no_step cdcl_bj V" and
-    inv: "cdcl_all_inv_mes S"
-  shows "cdcl_bj\<^sup>*\<^sup>* T V"
-  using assms(2)
-proof induction
-  case base
-  thus ?case by (simp add: assms(1))
-next
-  case (step T U) note st =this(1) and s_o_r = this(2) and IH = this(3)
-  obtain U' where
-    T_U': "cdcl_bj T U'" and
-    "cdcl_bj\<^sup>*\<^sup>* U' V"
-    using IH n_s s_o_r by (metis rtranclp_unfold tranclpD)
-  have " cdcl\<^sup>*\<^sup>* S T"
-    by (metis (no_types, hide_lams) bj mono_rtranclp[of cdcl_bj cdcl] other st)
-  hence inv_T: "cdcl_all_inv_mes T"
-    by (metis (no_types, hide_lams) inv rtranclp_cdcl_all_inv_mes_inv)
-
-  show ?case
-    using s_o_r
-    proof cases
-      case backtrack
-      then obtain V0 where "skip\<^sup>*\<^sup>* T V0" and "backtrack V0 V"
-        using IH if_can_apply_backtrack_skip_or_resolve_is_skip[OF backtrack _ inv_T]
-        rtranclp_skip_backtrack_backtrack[of T V] cdcl_bj_decomp_resolve_skip_and_bj[OF IH]
-        by (meson cdcl_bj.backtrack inv_T n_s rtranclp_skip_backtrack_backtrack_end)
-      then have "cdcl_bj\<^sup>*\<^sup>* T V0" and "cdcl_bj V0 V"
-        using rtranclp_mono[of skip cdcl_bj] by blast+
-      thus ?thesis
-        sledgehammer
-       sorry
-      by (metis backtrack_unique inv_T local.backtrack rtranclp.rtrancl_refl
-        rtranclp_skip_backtrack_backtrack)
-    next
-      case resolve
-      thus ?thesis
-      sorry
-        by (metis T_U' \<open>cdcl_bj\<^sup>*\<^sup>* U' V\<close> cdcl_bj.simps if_can_apply_backtrack_no_more_resolve inv_T
-          resolve_skip_deterministic resolve_unique rtranclp.simps)
-    next
-      case skip
-      consider
-          (sk)  "skip T U'"
-        | (bt)  "backtrack T U'"
-        using T_U' by (meson cdcl_bj.cases local.skip resolve_skip_deterministic)
-      thus ?thesis
-        proof cases
-          case sk
-          thus ?thesis using \<open>cdcl_bj\<^sup>*\<^sup>* U' V\<close> local.skip cdcl_bj.intros(1) skip_unique by blast
-        next
-          case bt
-          have "skip\<^sup>+\<^sup>+ T U"
-            using local.skip by blast
-          thus ?thesis
-            using bt by (metis (no_types) \<open>cdcl_bj\<^sup>*\<^sup>* U' V\<close> backtrack inv_T reflclp_tranclp
-              rtranclp_into_tranclp2 rtranclp_skip_backtrack_backtrack_end sup2CI)
-        qed
-    qed
-qed
-
-lemma cdcl_bj_unique_normal_form:
-  assumes "cdcl_bj\<^sup>*\<^sup>* S T" and "cdcl_bj\<^sup>*\<^sup>* S U" and
-    n_s_U: "no_step cdcl_bj U" and
-    n_s_T: "no_step cdcl_bj T" and
-    inv: "cdcl_all_inv_mes S"
-  shows "T = U"
-  using assms by (metis cdcl_bj_strongly_confluent converse_rtranclpE)
-
-lemma full0_cdcl_bj_unique_normal_form:
-  assumes "full0 cdcl_bj S T" and "full0 cdcl_bj S U" and
-    inv: "cdcl_all_inv_mes S"
-  shows "T = U"
-  using cdcl_bj_unique_normal_form assms unfolding full0_def by blast
-
-lemma
-  assumes "cdcl_bj\<^sup>*\<^sup>* S T" and "full cdcl_bj S U" and
-    inv: "cdcl_all_inv_mes S"
-  shows "cdcl_bj\<^sup>*\<^sup>* T U"
-  using assms by (metis cdcl_bj_strongly_confluent full_def tranclp_into_rtranclp)
- *)
 subsection \<open>CDCL FW\<close>
 inductive cdcl_fw :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 fw_propagate: "propagate S S' \<Longrightarrow> cdcl_fw S S'" |
@@ -955,7 +871,7 @@ next
   thus ?case
     proof cases
       case U
-      thus ?thesis 
+      thus ?thesis
         using \<open>no_step cdcl_cp T\<close> cdcl_o.bj local.bj other' step.prems by (meson r_into_rtranclp)
     next
       case U' note U' = this(1)
@@ -1753,7 +1669,7 @@ lemma no_step_cdcl_s'_no_ste_cdcl_fw_cp:
   "cdcl_all_inv_mes S \<Longrightarrow> conflicting S = C_True \<Longrightarrow> no_step cdcl_s' S \<Longrightarrow> no_step cdcl_fw_cp S"
   apply (auto simp: cdcl_s'.simps cdcl_fw_cp.simps)
     using conflict_is_full_cdcl_cp apply blast
-  using cdcl_cp_normalized_element_all_inv cdcl_cp.propagate' by (metis cdcl_cp.propagate' 
+  using cdcl_cp_normalized_element_all_inv cdcl_cp.propagate' by (metis cdcl_cp.propagate'
     full0_unfold tranclpD)
 
 text \<open>The @{term "no_step decide S"} is needed, since @{term "cdcl_fw_cp"} is @{term "cdcl_s'"}
@@ -2300,13 +2216,13 @@ next
               moreover then have "cdcl_fw_cp V' W"
                 by auto
               ultimately show ?thesis
-                using \<open>cdcl_fw_s\<^sup>*\<^sup>* R V\<close> decide' \<open>no_step cdcl_fw_cp V\<close> 
+                using \<open>cdcl_fw_s\<^sup>*\<^sup>* R V\<close> decide' \<open>no_step cdcl_fw_cp V\<close>
                 by (meson r_into_rtranclp)
             next
               case propa_confl
               moreover then have "cdcl_fw_cp\<^sup>*\<^sup>* V' V''"
                 by (metis cdcl_fw_cp.propagate' rtranclp_unfold tranclp_unfold_end)
-              ultimately show ?thesis using \<open>cdcl_fw_s\<^sup>*\<^sup>* R V\<close> decide' \<open>no_step cdcl_fw_cp V\<close>  
+              ultimately show ?thesis using \<open>cdcl_fw_s\<^sup>*\<^sup>* R V\<close> decide' \<open>no_step cdcl_fw_cp V\<close>
                 by (meson r_into_rtranclp)
             qed
         next
@@ -2344,7 +2260,7 @@ next
               case propa_confl
               moreover then have "cdcl_fw_cp\<^sup>*\<^sup>* V' V''"
                 by (metis cdcl_fw_cp.propagate' rtranclp_unfold tranclp_unfold_end)
-              ultimately show ?thesis using \<open>cdcl_fw_s\<^sup>*\<^sup>* R V\<close> decide' \<open>no_step cdcl_fw_cp V\<close> 
+              ultimately show ?thesis using \<open>cdcl_fw_s\<^sup>*\<^sup>* R V\<close> decide' \<open>no_step cdcl_fw_cp V\<close>
                  by (meson r_into_rtranclp)
             qed
         next
@@ -2730,7 +2646,7 @@ next
     proof cases
       case fw_s_cp
       then show ?thesis
-        using rtranclp_cdcl_fw_cp_no_step_cdcl_bj confl_S 
+        using rtranclp_cdcl_fw_cp_no_step_cdcl_bj confl_S
         by (simp add: full_def tranclp_into_rtranclp)
     next
       case (fw_s_decide S')

@@ -40,7 +40,7 @@ proof (intro HOL.conjI)
 
   have "finite (learned_clss S)" using assms(2) unfolding cdcl_all_inv_mes_def by auto
   with assms(1) show "finite (learned_clss S')"
-    by (induction rule: cdcl_all_induct) 
+    by (induction rule: cdcl_all_induct)
     (auto simp: clauses_def state_eq_def rev_finite_subset learned_clss_restart_state
       simp del: state_simp)
 
@@ -1007,10 +1007,10 @@ next
       \<le> 3 ^ card (atms_of_m (init_clss S))" by simp
   ultimately have "(3::nat) ^ card (atms_of_m (init_clss S)) \<ge> card (learned_clss S \<union> {D + {#L#}})"
     using le_trans by blast
-  thus ?case using finite_atms finite_le T S 
+  thus ?case using finite_atms finite_le T S
     proof -
       have f3: "Suc (card (learned_clss S)) = card (learned_clss T)"
-        using T by (simp add: \<open>card (insert (D + {#L#}) (learned_clss S)) 
+        using T by (simp add: \<open>card (insert (D + {#L#}) (learned_clss S))
               = Suc (card (learned_clss S))\<close>)
       have f4: "learned_clss S \<union> {D + {#L#}} = learned_clss T"
         using T by simp
@@ -1152,7 +1152,7 @@ proof -
               then show ?thesis by force
             next
               case resolve
-              then show ?thesis by fastforce            
+              then show ?thesis by fastforce
             qed
         qed
       ultimately show ?case
