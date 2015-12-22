@@ -3158,7 +3158,7 @@ qed
 lemma rtranclp_propagate_is_update_trail: "propagate\<^sup>*\<^sup>* S T \<Longrightarrow> T \<sim> update_trail (trail T) S"
   by (induction rule: rtranclp_induct) (auto simp: cdcl_cp.simps state_eq_def simp del: state_simp)
 
-(* lemma cdcl_cp_strong_completeness_n:
+lemma cdcl_s_strong_completeness_n:
   assumes MN: "set M \<Turnstile>s N"
   and cons: "consistent_interp (set M)"
   and tot: "total_over_m (set M) N"
@@ -3168,7 +3168,7 @@ lemma rtranclp_propagate_is_update_trail: "propagate\<^sup>*\<^sup>* S T \<Longr
   and fin[simp]: "finite N"
   and length: "n \<le> length M"
   shows
-    "\<exists>M' k S. length M' \<ge>  n \<and>
+    "\<exists>M' k S. length M' \<ge> n \<and>
       lits_of M' \<subseteq> set M \<and>
       S \<sim> update_backtrack_lvl k (update_trail M' (init_state N)) \<and>
       cdcl_s\<^sup>*\<^sup>* (init_state N) S"
@@ -3191,63 +3191,58 @@ next
     S: "S \<sim> update_backtrack_lvl k (update_trail M' (init_state N))" and
     st: "cdcl_s\<^sup>*\<^sup>* (init_state N) S"
     by auto
-    let ?S = "update_backtrack_lvl k (update_trail M' (init_state N))"
   have
-    M: "cdcl_M_level_inv ?S" and
-    alien: "no_strange_atm ?S"
+    M: "cdcl_M_level_inv S" and
+    alien: "no_strange_atm S"
       using rtranclp_cdcl_consistent_inv[OF rtranclp_cdcl_s_rtranclp_cdcl[OF st]]
       rtranclp_cdcl_no_strange_atm_inv[OF rtranclp_cdcl_s_rtranclp_cdcl[OF st]]
       S unfolding state_eq_def cdcl_M_level_inv_def no_strange_atm_def by auto
 
-  { assume no_step: "\<not>no_step propagate ?S"
+  { assume no_step: "\<not>no_step propagate S"
 
-    obtain S' where S': "propagate\<^sup>*\<^sup>* ?S S'" and full0: "full0 cdcl_cp ?S S'"
-      using completeness_is_a_full_propagation[OF assms(1-3), of ?S] fin alien M' by auto
-    hence "length (trail ?S) \<le> length (trail S') \<and> lits_of (trail S') \<subseteq> set M"
-      using cdcl_cp_propagate_completeness[OF assms(1-3), of ?S] M' by auto
+    obtain S' where S': "propagate\<^sup>*\<^sup>* S S'" and full0: "full0 cdcl_cp S S'"
+      using completeness_is_a_full_propagation[OF assms(1-3), of S] fin alien M' S by auto
+    hence "length (trail S) \<le> length (trail S') \<and> lits_of (trail S') \<subseteq> set M"
+      using cdcl_cp_propagate_completeness[OF assms(1-3), of S] M' S by auto
     moreover
-      have full: "full cdcl_cp ?S S'"
+      have full: "full cdcl_cp S S'"
         using full0 no_step no_step_cdcl_cp_no_conflict_no_propagate(2) unfolding full_def full0_def
         rtranclp_unfold by blast
-      hence "cdcl_s ?S S'" by (simp add: cdcl_s.conflict')
+      hence "cdcl_s S S'" by (simp add: cdcl_s.conflict')
     moreover {
-      have "propagate\<^sup>+\<^sup>+ ?S S'" using S' full unfolding full_def by (metis rtranclpD tranclpD)
-      moreover have "trail ?S = M'" by auto
+      have "propagate\<^sup>+\<^sup>+ S S'" using S' full unfolding full_def by (metis rtranclpD tranclpD)
+      moreover have "trail S = M'" using S by auto
       ultimately have "length (trail S') > n"
         using l_M' by (induction rule: tranclp.induct) auto}
     moreover
-      have "cdcl_s S S'"
-        using cdcl_s.conflict'[OF full] S sorry
-      then have stS': "cdcl_s\<^sup>*\<^sup>* (init_state N) S'"
+      have stS': "cdcl_s\<^sup>*\<^sup>* (init_state N) S'"
         using st cdcl_s.conflict'[OF full] by auto
       then have "init_clss S' = N" using stS' rtranclp_cdcl_s_no_more_init_clss by fastforce
     moreover
-      have S'_S: "S' \<sim> update_trail (trail S') ?S"
+      have S'_S: "S' \<sim> update_trail (trail S') S"
         by (simp add: S' rtranclp_propagate_is_update_trail)
       hence S_S': "S' \<sim> update_backtrack_lvl (backtrack_lvl S')
-        (update_trail (trail S') (init_state N))"
+        (update_trail (trail S') (init_state N))" using S
         by (auto simp: state_eq_def simp del: state_simp)
-      have "cdcl_s\<^sup>*\<^sup>* (init_state (init_clss S'))
-             (update_backtrack_lvl (backtrack_lvl S')
-               (update_trail (trail S') (init_state (init_clss S'))))"
+      have "cdcl_s\<^sup>*\<^sup>* (init_state (init_clss S')) S'"
         apply (rule rtranclp.rtrancl_into_rtrancl)
         using st unfolding \<open>init_clss S' = N\<close> apply simp
-        using \<open>cdcl_s ?S S'\<close> S_S' unfolding \<open>init_clss S' = N\<close> sorry
+        using \<open>cdcl_s S S'\<close> by simp
     ultimately have ?case
       apply -
-      apply (rule exI[of _ "trail S'"], rule exI[of _ "backtrack_lvl S'"])
-      by auto
+      apply (rule exI[of _ "trail S'"], rule exI[of _ "backtrack_lvl S'"],  rule exI[of _ S'])
+      using S_S' by (auto simp del: state_simp)
   }
   moreover {
-    assume no_step: "no_step propagate ?S"
+    assume no_step: "no_step propagate S"
     have ?case
       proof (cases "length M' \<ge> Suc n")
         case True
-        thus ?thesis using l_M' M' st M alien by blast
+        thus ?thesis using l_M' M' st M alien S by blast
       next
         case False
         hence n': "length M' = n" using l_M' by auto
-        have no_confl: "no_step conflict ?S"
+        have no_confl: "no_step conflict S"
           proof -
             { fix D
               assume "D \<in> N" and "M' \<Turnstile>as CNot D"
@@ -3257,10 +3252,10 @@ next
                 by (meson true_annots_true_cls true_cls_mono_set_mset_l true_clss_def)
               ultimately have False using cons consistent_CNot_not by blast
             }
-            thus ?thesis by (auto simp add: conflict.simps true_clss_def)
+            thus ?thesis using S by (auto simp add: conflict.simps true_clss_def)
           qed
         have lenM: "length M = card (set M)" using distM by (induction M) auto
-        have "no_dup M'" using M unfolding cdcl_M_level_inv_def by simp
+        have "no_dup M'" using S M unfolding cdcl_M_level_inv_def by simp
         hence "card (lits_of M') = length M'"
           by (induction M') (auto simp add: lits_of_def card_insert_if)
         hence "lits_of M' \<subset> set M"
@@ -3269,36 +3264,40 @@ next
         moreover have "undefined_lit m M'"
           using M' Marked_Propagated_in_iff_in_lits_of calculation(1,2) cons
           consistent_interp_def by blast
+        moreover have "atm_of m \<in> atms_of_m (init_clss S)"
+          using atm_incl calculation S by auto
         ultimately
-          have dec: "decide ?S (cons_trail (Marked m (k+1)) (incr_lvl ?S))"
-          using atm_incl decide.intros[of ?S M' N _ k m] sorry
-        let ?S' = "cons_trail (Marked m (k+1)) (incr_lvl ?S)"
-        have "lits_of (trail ?S') \<subseteq> set M" using m M' by auto
+          have dec: "decide S (cons_trail (Marked m (k+1)) (incr_lvl S))"
+            using decide.intros[of S M' N _ k m
+              "cons_trail (Marked m (k + 1)) (incr_lvl S)"] S
+            by force
+        let ?S' = "cons_trail (Marked m (k+1)) (incr_lvl S)"
+        have "lits_of (trail ?S') \<subseteq> set M" using m M' S by auto
         moreover have "finite (init_clss ?S')"
-          using fin by auto
+          using fin S by auto
         moreover have "no_strange_atm ?S'"
           using alien dec by (meson cdcl_no_strange_atm_inv decide other)
         ultimately obtain S'' where S'': "propagate\<^sup>*\<^sup>* ?S' S''" and full0: "full0 cdcl_cp ?S' S''"
-          using completeness_is_a_full_propagation[OF assms(1-3), of ?S'] by auto
+          using completeness_is_a_full_propagation[OF assms(1-3), of ?S'] S by auto
         hence "length (trail ?S') \<le> length (trail S'') \<and> lits_of (trail S'') \<subseteq> set M"
-          using cdcl_cp_propagate_completeness[OF assms(1-3), of ?S' S''] m M' by simp
+          using cdcl_cp_propagate_completeness[OF assms(1-3), of ?S' S''] m M' S by simp
         hence "Suc n \<le> length (trail S'') \<and> lits_of (trail S'') \<subseteq> set M"
-          using l_M' by auto
+          using l_M' S by auto
         moreover
-          have S'': "S'' =
+          have S'': "S'' \<sim>
             update_backtrack_lvl (backtrack_lvl S'') (update_trail (trail S'') (init_state N))"
-            using rtranclp_propagate_is_update_trail[OF S''] sorry
-          hence "cdcl_s\<^sup>*\<^sup>* (init_state N)
-              (update_backtrack_lvl (backtrack_lvl S'') (update_trail (trail S'') (init_state N)))"
+            using rtranclp_propagate_is_update_trail[OF S''] S
+            by (auto simp del: state_simp simp: state_eq_def)
+          hence "cdcl_s\<^sup>*\<^sup>* (init_state N) S''"
             using cdcl_s.intros(2)[OF decide[OF dec] _ full0] no_step no_confl st
-            sorry
-        ultimately show ?thesis sorry
+            by (auto simp: cdcl_cp.simps)
+        ultimately show ?thesis using S'' by blast
       qed
   }
   ultimately show ?case by blast
-oops
+qed
 
-lemma cdcl_cp_strong_completeness:
+lemma cdcl_s_strong_completeness:
   assumes MN: "set M \<Turnstile>s N"
   and cons: "consistent_interp (set M)"
   and tot: "total_over_m (set M) N"
@@ -3307,23 +3306,24 @@ lemma cdcl_cp_strong_completeness:
   and distM: "distinct M"
   and fin[simp]: "finite N"
   shows
-    "\<exists>M' k.
+    "\<exists>M' k S.
       lits_of M' = set M \<and>
-      rtranclp cdcl_s (init_state N) (update_backtrack_lvl k (update_trail M' (init_state N))) \<and>
-      final_cdcl_state (update_backtrack_lvl k (update_trail M' (init_state N)))"
+      S \<sim> update_backtrack_lvl k (update_trail M' (init_state N)) \<and>
+      cdcl_s\<^sup>*\<^sup>* (init_state N) S \<and>
+      final_cdcl_state S"
 proof -
-  from cdcl_cp_strong_completeness_n[OF assms, of "length M"]
-  obtain M' k where
+  from cdcl_s_strong_completeness_n[OF assms, of "length M"]
+  obtain M' k T where
     l: "length M \<le> length M'" and
     M'_M: "lits_of M' \<subseteq> set M" and
-    st: "cdcl_s\<^sup>*\<^sup>* (init_state N) (update_backtrack_lvl k (update_trail M' (init_state N)))"
+    T: "T \<sim> update_backtrack_lvl k (update_trail M' (init_state N))" and
+    st: "cdcl_s\<^sup>*\<^sup>* (init_state N) T"
     by auto
-  let ?T = "(update_backtrack_lvl k (update_trail M' (init_state N)))"
   have "card (set M) = length M" using distM by (simp add: distinct_card)
   moreover
-    have "cdcl_M_level_inv ?T"
-      using rtranclp_cdcl_s_consistent_inv[OF st] by auto
-    hence no_dup: "no_dup M'" by auto
+    have "cdcl_M_level_inv T"
+      using rtranclp_cdcl_s_consistent_inv[OF st] T by auto
+    hence no_dup: "no_dup M'" using T by auto
     hence "card (set ((map (\<lambda>l. atm_of (lit_of l)) M'))) = length M'"
       using distinct_card by fastforce
   moreover have "card (lits_of M') = card (set ((map (\<lambda>l. atm_of (lit_of l)) M')))"
@@ -3334,10 +3334,10 @@ proof -
   moreover
     hence "M' \<Turnstile>as N"
       using MN unfolding true_annots_def Ball_def true_annot_def true_clss_def by auto
-    hence "final_cdcl_state ?T"
-      unfolding final_cdcl_state_def by auto
-  ultimately show ?thesis using st by blast
-qed *)
+    hence "final_cdcl_state T"
+      using T unfolding final_cdcl_state_def by auto
+  ultimately show ?thesis using st T by blast
+qed
 
 subsubsection \<open>No conflict with only variables of level less than backtrack level\<close>
 text \<open>This invariant is stronger than the previous argument in the sense that it is a property about
