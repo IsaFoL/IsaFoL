@@ -590,7 +590,6 @@ lemma forget_state_eq_compatible:
   by (auto simp: state_eq_def clauses_def HOL.eq_sym_conv[of  "_ # trail _" "trail _"]
      simp del: state_simp dest: arg_cong[of "_ # trail _" "trail _" tl])
 
-(* TODO issing determinsticicy *)
 lemma restart_state_eq_compatible:
   assumes
     "restart S T" and
@@ -1786,40 +1785,50 @@ lemma mark_not_in_set_mapi[simp]: "L \<notin> set M \<Longrightarrow> Marked L k
 
 lemma propagated_not_in_set_mapi[simp]: "L \<notin> set M \<Longrightarrow> Propagated L k \<notin> set (mapi Marked i M)"
   by (induct M arbitrary: i) auto
-(*
+lemma image_set_mapi:
+  "f ` set (mapi g i M) = set (mapi (\<lambda>x i. f (g x i)) i M)"
+  by (induction M arbitrary: i) auto
+
+lemma mapi_map_convert:
+  "\<forall>x i j. f x i = f x j \<Longrightarrow> mapi f i M = map (\<lambda>x. f x 0) M"
+  by (induction M arbitrary: i) auto
+
+lemma defined_lit_mapi: "defined_lit L (mapi Marked i M) \<longleftrightarrow> atm_of L \<in> atm_of ` set M"
+  by (induction M) (auto simp: defined_lit_map image_set_mapi mapi_map_convert)
+
 lemma cdcl_can_do_step:
   assumes
     "consistent_interp (set M)" and
     "distinct M" and
     "atm_of ` (set M) \<subseteq> atms_of_m N" and
-    [simp]: "finite N" and
-    "state S = (mapi Marked (length M) M, N, {}, length M, C_True)"
-  shows "rtranclp cdcl (init_state N) S"
+    [simp]: "finite N"
+  shows "\<exists>S. rtranclp cdcl (init_state N) S
+    \<and> state S = (mapi Marked (length M) M, N, {}, length M, C_True)"
   using assms
-proof (induct M arbitrary: S)
+proof (induct M)
   case Nil
-  hence "S \<sim> init_state N"
-    by (auto simp: state_eq_def simp del: state_simp)
   thus ?case by auto
 next
-  case (Cons L M) note IH = this(1) and fin = this(5) and S = this(6)
-  let ?S\<^sub>0 = "update_backtrack_lvl (length M) (tl_trail S)"
-  have S\<^sub>0: "state ?S\<^sub>0 = (mapi Marked (length M) M, N, {}, length M, C_True)"
-    using S by auto
-  have S\<^sub>0_S:
-    "S \<sim> (cons_trail (Marked L (length M + 1)) (incr_lvl (update_backtrack_lvl (length M)
-      (tl_trail S))))"
-    using S by (auto simp: state_eq_def simp del: state_simp)
+  case (Cons L M) note IH = this(1) and fin = this(5)
+  have "consistent_interp (set M)" and "distinct M" and "atm_of ` set M \<subseteq> atms_of_m N"
+    using Cons.prems(1-3) unfolding consistent_interp_def by auto
+  then obtain S where
+    st: "cdcl\<^sup>*\<^sup>* (init_state N) S" and
+    S: "state S = (mapi Marked (length M) M, N, {}, length M, C_True)"
+    using IH fin by auto
+  let ?S\<^sub>0 = "incr_lvl (cons_trail (Marked L (length M +1)) S)"
   have "undefined_lit L (mapi Marked (length M) M)"
     using Cons.prems(1,2) unfolding defined_lit_def consistent_interp_def by fastforce
   moreover have "init_clss S = N"
-    using Cons(6) clauses_def by blast
+    using S by blast
   moreover have "atm_of L \<in> atms_of_m N" using Cons.prems(3) by auto
-  ultimately have "cdcl ?S\<^sub>0 S"
-    using cdcl.other[OF cdcl_o.decide[OF decide_rule[OF S\<^sub>0, of L]]] S\<^sub>0_S  sorry  by auto
-  moreover have "consistent_interp (set M)" and "distinct M" and "atm_of ` set M \<subseteq> atms_of_m N"
-    using Cons.prems(1-3) unfolding consistent_interp_def by auto
-  ultimately show ?case using IH[of ?S\<^sub>0] fin S by auto
+  moreover have "undefined_lit L (trail S)"
+    using S \<open>distinct (L#M)\<close> calculation(1) by (auto simp: defined_lit_mapi defined_lit_map)
+  ultimately have "cdcl S ?S\<^sub>0"
+    using cdcl.other[OF cdcl_o.decide[OF decide_rule[OF S,
+      of L ?S\<^sub>0]]] S  by (auto simp: state_eq_def simp del: state_simp)
+  then show ?case
+    using fin st S by (auto intro: exI[of _ ?S\<^sub>0])
 qed
 
 lemma cdcl_strong_completeness:
@@ -1828,22 +1837,26 @@ lemma cdcl_strong_completeness:
     "consistent_interp (set M)" and
     "distinct M" and
     "atm_of ` (set M) \<subseteq> atms_of_m N" and
-    fin[simp]: "finite N" and
-    S: "state S = (mapi Marked (length M) M, N, {}, length M, C_True)"
-  shows "rtranclp cdcl (init_state N) S" and "final_cdcl_state S"
+    fin[simp]: "finite N"
+  obtains S where
+    "state S = (mapi Marked (length M) M, N, {}, length M, C_True)" and
+    "rtranclp cdcl (init_state N) S" and
+    "final_cdcl_state S"
 proof -
-  show "rtranclp cdcl (init_state N) S"
-    using cdcl_can_do_step assms by auto
+  obtain S where
+    st: "rtranclp cdcl (init_state N) S" and
+    S: "state S = (mapi Marked (length M) M, N, {}, length M, C_True)"
+    using cdcl_can_do_step[OF assms(2-5)] by auto
   have "lits_of (mapi Marked (length M) M) = set M"
     by (induct M, auto)
-  hence "mapi Marked (length M) M \<Turnstile>as N" using assms(1) true_annots_true_cls by metis
-  thus "final_cdcl_state S"
+  then have "mapi Marked (length M) M \<Turnstile>as N" using assms(1) true_annots_true_cls by metis
+  then have "final_cdcl_state S"
     using S unfolding final_cdcl_state_def by auto
-qed *)
+  then show ?thesis using that st S by blast
+qed
 
 subsection \<open>Higher level strategy\<close>
 subsubsection \<open>Definition\<close>
-
 lemma tranclp_conflict_iff[iff]:
   "full conflict S S' \<longleftrightarrow> (((\<forall>S''. \<not>conflict S' S'') \<and> conflict S S'))"
 proof -
