@@ -1,7 +1,5 @@
 theory Resolution imports TermsAndLiterals Tree "~~/src/HOL/IMP/Star" begin
 
-hide_const (open) TermsAndLiterals.Leaf TermsAndLiterals.Branch
-
 section {* Terms and literals *}
 
 fun complement :: "'t literal \<Rightarrow> 't literal" ("_\<^sup>c" [300] 300) where
@@ -69,9 +67,6 @@ definition varsl :: "fterm literal \<Rightarrow> var_sym set" where
 
 definition varsls :: "fterm literal set \<Rightarrow> var_sym set" where 
   "varsls L \<equiv> \<Union>l\<in>L. varsl l"
-
-abbreviation groundl :: "fterm literal \<Rightarrow> bool" where
-  "groundl l \<equiv> grounds (get_terms l)"
 
 abbreviation groundls :: "fterm clause \<Rightarrow> bool" where
   "groundls L \<equiv> \<forall> l \<in> L. groundl l"
@@ -914,12 +909,6 @@ section {* Enumerations *}
 fun hlit_of_flit :: "fterm literal \<Rightarrow> hterm literal" where
   "hlit_of_flit (Pos P ts) = Pos P (hterms_of_fterms ts)"
 | "hlit_of_flit (Neg P ts) = Neg P (hterms_of_fterms ts)"
-
-lemma undiag_neg: "undiag_fatom (Neg P ts) = undiag_fatom (Pos P ts)"
-  unfolding undiag_fatom_def undiag_hatom_def by auto
-
-lemma undiag_neg2: "undiag_hatom (Neg P ts) = undiag_hatom (Pos P ts)"
-  unfolding undiag_fatom_def undiag_hatom_def by auto
 
 lemma ground_h_undiag: "groundl l \<Longrightarrow> undiag_hatom (hlit_of_flit l) = undiag_fatom l"
 proof (induction l) (* Not really induction *)
