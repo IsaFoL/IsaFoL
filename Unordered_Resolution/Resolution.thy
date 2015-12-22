@@ -910,13 +910,13 @@ fun hlit_of_flit :: "fterm literal \<Rightarrow> hterm literal" where
   "hlit_of_flit (Pos P ts) = Pos P (hterms_of_fterms ts)"
 | "hlit_of_flit (Neg P ts) = Neg P (hterms_of_fterms ts)"
 
-lemma ground_h_undiag: "groundl l \<Longrightarrow> undiag_hatom (hlit_of_flit l) = undiag_fatom l"
+lemma ground_h_undiag: "groundl l \<Longrightarrow> nat_from_hatom (hlit_of_flit l) = nat_from_fatom l"
 proof (induction l) (* Not really induction *)
   case (Pos P ts) 
-  then show ?case unfolding undiag_fatom_def by auto
+  then show ?case unfolding nat_from_fatom_def by auto
 next
   case (Neg P ts) 
-  then show ?case using undiag_neg undiag_neg2 unfolding undiag_fatom_def by auto
+  then show ?case using undiag_neg undiag_neg2 unfolding nat_from_fatom_def by auto
 qed
 
 
@@ -935,7 +935,7 @@ apply (induction l)
 using hterms_ground apply auto
 done
 
-lemma diag_ground: "groundl (diag_fatom n)" unfolding diag_fatom_def using hatom_ground by auto 
+lemma diag_ground: "groundl (fatom_from_nat n)" unfolding fatom_from_nat_def using hatom_ground by auto 
 
 lemma eval_ground: "ground t \<Longrightarrow> (evalt E HFun t) = hterm_of_fterm t" "grounds ts \<Longrightarrow> (evalts E HFun ts) = hterms_of_fterms ts"
 apply (induction t and ts rule: hterm_of_fterm.induct hterms_of_fterms.induct)
@@ -965,12 +965,12 @@ fun falsifiesl :: "partial_pred_denot \<Rightarrow> fterm literal \<Rightarrow> 
      (\<exists>i.  
       i < length G
       \<and> G ! i = False
-      \<and> diag_fatom i = Pos p ts)"
+      \<and> fatom_from_nat i = Pos p ts)"
 | "falsifiesl G (Neg p ts) = 
      (\<exists>i.  
       i < length G
       \<and> G ! i = True
-      \<and> diag_fatom i = Pos p ts)"
+      \<and> fatom_from_nat i = Pos p ts)"
 
 abbreviation falsifiesg :: "partial_pred_denot \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "falsifiesg G C \<equiv> (\<forall>l \<in> C. falsifiesl G l)"
@@ -986,11 +986,11 @@ lemma falsifies_ground:
   shows "groundl l"
 proof (cases l)
   case (Pos p ts) 
-  then have "\<exists>i. diag_fatom i = Pos p ts" using assms by auto
+  then have "\<exists>i. fatom_from_nat i = Pos p ts" using assms by auto
   then show ?thesis using diag_ground Pos by metis
 next
   case (Neg p ts) 
-  then have "\<exists>i. diag_fatom i = Pos p ts" using assms by auto
+  then have "\<exists>i. fatom_from_nat i = Pos p ts" using assms by auto
   then have "groundl (Pos p ts)" using diag_ground Neg by metis
   then show ?thesis using Neg by auto
 qed 
@@ -1026,13 +1026,13 @@ lemma ground_falsifies:
       \<exists>i.  
       i < length G
       \<and> G ! i = (\<not>sign l)
-      \<and> diag_fatom i = Pos (get_pred l) (get_terms l)"
+      \<and> fatom_from_nat i = Pos (get_pred l) (get_terms l)"
 using assms by (cases l) auto (* Not really induction *)
 
 
 abbreviation extend :: "(nat \<Rightarrow> partial_pred_denot) \<Rightarrow> hterm pred_denot" where
   "extend f P ts \<equiv> (
-     let n = undiag_hatom (Pos P ts) in
+     let n = nat_from_hatom (Pos P ts) in
        f (Suc n) ! n
      )"
 
@@ -1204,7 +1204,7 @@ qed
 (* Det her navn er altså mærkeligt baglæns... *)
 lemma extend_preserves_model:
   assumes f_chain: "list_chain (f :: nat \<Rightarrow> partial_pred_denot)" 
-  assumes n_max: "\<forall>l\<in>C. undiag_fatom l \<le> n"
+  assumes n_max: "\<forall>l\<in>C. nat_from_fatom l \<le> n"
   assumes C_ground: "groundls C"
   assumes C_false: "\<not>evalc HFun (extend f) C"
   shows "falsifiesc (f (Suc n)) C" (* probably - this should be falsifiesg now *)
@@ -1214,7 +1214,7 @@ proof -
   {
   fix l
   assume asm: "l\<in>C"
-  let ?i = "undiag_fatom l"
+  let ?i = "nat_from_fatom l"
   from asm have i_n: "?i \<le> n" using n_max by auto
   then have j_n: "?i \<le> length (f n)" using f_chain chain_length[of f n] by auto
 
@@ -1227,7 +1227,7 @@ proof -
     proof (cases l)
       case (Pos P ts)
       from Pos asm C_ground have ts_ground: "grounds ts" by auto
-      from Pos asm C_ground have undiag_l: "undiag_hatom (hlit_of_flit l) = ?i" using ground_h_undiag by blast
+      from Pos asm C_ground have undiag_l: "nat_from_hatom (hlit_of_flit l) = ?i" using ground_h_undiag by blast
 
       from last have "\<not>?G P (hterms_of_fterms ts)" using evall_grounds[of ts _ ?G P] ts_ground Pos by auto
       then have "f (Suc ?i) ! ?i = False" using Pos undiag_l by auto
@@ -1238,20 +1238,20 @@ proof -
       then have "  
       ?i < length (f (Suc n)) (* j_n *)
       \<and> f (Suc n) ! ?i = False (*last thing *)
-      \<and> diag_fatom ?i = Pos P ts (* by definition of ?i *)
+      \<and> fatom_from_nat ?i = Pos P ts (* by definition of ?i *)
       \<and> ts = ts {\<epsilon>}\<^sub>t\<^sub>s" 
         using 
-          j_n ts_ground diag_undiag_fatom instance_ofts_self f_chain chain_length[of f] Pos empty_subts
+          j_n ts_ground undiag_diag_fatom instance_ofts_self f_chain chain_length[of f] Pos empty_subts
         by auto
       then show ?thesis using Pos by auto
     next
       case (Neg P ts) (* symmetric *)
       from Neg asm C_ground have ts_ground: "grounds ts" by auto
-      from Neg asm C_ground have undiag_l: "undiag_hatom (hlit_of_flit l) = ?i" using ground_h_undiag by blast
+      from Neg asm C_ground have undiag_l: "nat_from_hatom (hlit_of_flit l) = ?i" using ground_h_undiag by blast
 
       from last have "?G P (hterms_of_fterms ts)" using evall_grounds[of ts _ ?G P] C_ground asm Neg by auto
       then have "f (Suc ?i) ! ?i = True" using Neg undiag_neg undiag_l
-         by (metis hatom_of_fatom.simps(1) undiag_fatom_def) 
+         by (metis hatom_of_fatom.simps(1) nat_from_fatom_def) 
       moreover
       have "f (Suc ?i) ! ?i = f (Suc n) ! ?i" 
         using f_chain i_n j_n chain_length[of f] ith_in_extension[of f] by simp
@@ -1259,9 +1259,9 @@ proof -
       then have "  
       ?i < length (f (Suc n)) (* j_n *)
       \<and> f (Suc n) ! ?i = True (*last thing *)
-      \<and> diag_fatom ?i = Pos P ts (* by definition of ?i *)
+      \<and> fatom_from_nat ?i = Pos P ts (* by definition of ?i *)
       \<and> ts = ts {\<epsilon>}\<^sub>t\<^sub>s" 
-        using j_n diag_undiag_fatom instance_ofts_self[of ts] f_chain chain_length[of f] Neg undiag_neg ts_ground empty_subts
+        using j_n undiag_diag_fatom instance_ofts_self[of ts] f_chain chain_length[of f] Neg undiag_neg ts_ground empty_subts
         by auto
       then show ?thesis using Neg by auto
     qed
@@ -1289,7 +1289,7 @@ proof
       let ?\<sigma> = "sub_of_denot E"
       have groundc\<sigma>: "groundls (C {?\<sigma>}\<^sub>l\<^sub>s)" using sub_of_denot_equiv_ground by auto
       from fin_c asm have "finite (C {?\<sigma>}\<^sub>l\<^sub>s)" by auto
-      then obtain n where largest: "\<forall>l \<in> (C {?\<sigma>}\<^sub>l\<^sub>s). undiag_fatom l \<le> n" using maximum by blast
+      then obtain n where largest: "\<forall>l \<in> (C {?\<sigma>}\<^sub>l\<^sub>s). nat_from_fatom l \<le> n" using maximum by blast
       from model_cs asm have "\<not>falsifiesc (f (Suc n)) C" by auto
       then have model_c: "\<not>falsifiesc (f (Suc n)) (C {?\<sigma>}\<^sub>l\<^sub>s)" using partial_equiv_subst by blast 
 
@@ -1343,7 +1343,7 @@ proof (induction l) (* Not really induction *)
   then obtain i where i_p: "  
       i < length ds
       \<and> ds ! i = False
-      \<and> diag_fatom i = Pos P ts" by auto
+      \<and> fatom_from_nat i = Pos P ts" by auto
   moreover
   from i_p have "i < length (ds@d)" by auto
   moreover
@@ -1352,14 +1352,14 @@ proof (induction l) (* Not really induction *)
   have "
       i < length (ds@d)
       \<and> (ds@d) ! i = False
-      \<and> diag_fatom i = Pos P ts" by auto
+      \<and> fatom_from_nat i = Pos P ts" by auto
   then show ?case by auto
 next
   case (Neg P ts) (* very symmetrical *)
   then obtain i where i_p: "  
       i < length ds
       \<and> ds ! i = True
-      \<and> diag_fatom i = Pos P ts" by auto
+      \<and> fatom_from_nat i = Pos P ts" by auto
   moreover
   from i_p have "i < length (ds@d)" by auto
   moreover
@@ -1368,7 +1368,7 @@ next
   have " 
       i < length (ds@d)
       \<and> (ds@d) ! i = True
-      \<and> diag_fatom i = Pos P ts" by auto
+      \<and> fatom_from_nat i = Pos P ts" by auto
   then show ?case by auto
 qed
 
@@ -1436,15 +1436,15 @@ qed
 
 lemma shorter_falsifiesl:
   assumes "falsifiesl (ds@d) l"
-  assumes "undiag_fatom l < length ds"
+  assumes "nat_from_fatom l < length ds"
   shows "falsifiesl ds l"
 proof (cases l)
   case (Pos p ts)
   from assms Pos obtain i where i_p: "i < length (ds@d)
       \<and> (ds@d) ! i = False
-      \<and> diag_fatom i = Pos p ts" by auto
+      \<and> fatom_from_nat i = Pos p ts" by auto
   moreover
-  then have "i = undiag_fatom (Pos p ts)" using undiag_diag_fatom[of i] by auto
+  then have "i = nat_from_fatom (Pos p ts)" using undiag_diag_fatom[of i] by auto
   then have "i < length ds" using assms Pos by auto
   moreover
   then have "ds ! i = False" using i_p by (simp add: nth_append) 
@@ -1453,9 +1453,9 @@ next
   case (Neg p ts)
   from assms Neg obtain i where i_p: "i < length (ds@d)
       \<and> (ds@d) ! i = True
-      \<and> diag_fatom i = Pos p ts" by auto
+      \<and> fatom_from_nat i = Pos p ts" by auto
   moreover
-  then have "i = undiag_fatom (Pos p ts)" using undiag_diag_fatom[of i] by auto
+  then have "i = nat_from_fatom (Pos p ts)" using undiag_diag_fatom[of i] by auto
   then have "i < length ds" using assms Neg undiag_neg by auto
   moreover
   then have "ds ! i = True" using i_p by (simp add: nth_append) 
@@ -1645,23 +1645,23 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     then have "\<not>(\<exists>i.  
       i < length B
       \<and> B ! i = (\<not>sign l1)
-      \<and> diag_fatom i = Pos (get_pred l1) (get_terms l1))" using instance_ofts_self by (induction l1) auto
+      \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1))" using instance_ofts_self by (induction l1) auto
     then have "\<not>(\<exists>i.  
       i < length B
       \<and> (B@[True]) ! i = (\<not>sign l1)
-      \<and> diag_fatom i = Pos (get_pred l1) (get_terms l1))" by (metis nth_append) 
+      \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1))" by (metis nth_append) 
     moreover 
     have "groundl l1" using C1'_p l1_p by auto
     then have "\<exists>i.  
       i < length (B@[True])
       \<and> (B@[True]) ! i = (\<not>sign l1)
-      \<and> diag_fatom i = Pos (get_pred l1) (get_terms l1)" using ground_falsifies l1_p by blast
+      \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1)" using ground_falsifies l1_p by blast
     ultimately
-    have ggg: "(B@[True]) ! (length B) = (\<not>sign l1) \<and> diag_fatom (length B) = Pos (get_pred l1) (get_terms l1)"
-      using number_lemma[of B "\<lambda>i. (B @ [True]) ! i = (\<not> sign l1) \<and> diag_fatom i = Pos (get_pred l1) (get_terms l1)"] by auto
+    have ggg: "(B@[True]) ! (length B) = (\<not>sign l1) \<and> fatom_from_nat (length B) = Pos (get_pred l1) (get_terms l1)"
+      using number_lemma[of B "\<lambda>i. (B @ [True]) ! i = (\<not> sign l1) \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1)"] by auto
     then have l1_sign: "sign l1 = False" by auto
-    from ggg have "undiag_fatom (Pos (get_pred l1) (get_terms l1)) = length B" using undiag_diag_fatom by metis
-    then have l1_no: "undiag_fatom l1 = length B" using undiag_neg[of "get_pred l1" "get_terms l1"] l1_sign by auto
+    from ggg have "nat_from_fatom (Pos (get_pred l1) (get_terms l1)) = length B" using undiag_diag_fatom by metis
+    then have l1_no: "nat_from_fatom l1 = length B" using undiag_neg[of "get_pred l1" "get_terms l1"] l1_sign by auto
     (* Prove: Additionally, all the other literals in C'1 must be falsified by B, since they are falsified by B1, but not l'1. *)
     have B_C1'l1: "falsifiesg B (C1' - {l1})"
       proof
@@ -1672,17 +1672,17 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
         moreover
         {
           have "l1\<noteq>lo" using other by auto
-          then have "undiag_fatom l1 \<noteq> undiag_fatom lo" sorry
-          then have "undiag_fatom lo \<noteq> length B" using l1_no by auto
+          then have "nat_from_fatom l1 \<noteq> nat_from_fatom lo" sorry
+          then have "nat_from_fatom lo \<noteq> length B" using l1_no by auto
           moreover
           {
-            obtain i where "diag_fatom i = Pos (get_pred lo) (get_terms lo) \<and> i < length (B @ [True])" using loB1 by (cases lo) auto
-            then have "undiag_fatom (diag_fatom i) = undiag_fatom (Pos (get_pred lo) (get_terms lo)) \<and> i < length (B @ [True])" by auto
-            then have "undiag_fatom (Pos (get_pred lo) (get_terms lo)) < length (B @ [True])" using undiag_diag_fatom by auto
-            then have "undiag_fatom lo < length (B @ [True])" using undiag_neg by (cases lo) auto
-            then have "undiag_fatom lo < length B + 1" by auto
+            obtain i where "fatom_from_nat i = Pos (get_pred lo) (get_terms lo) \<and> i < length (B @ [True])" using loB1 by (cases lo) auto
+            then have "nat_from_fatom (fatom_from_nat i) = nat_from_fatom (Pos (get_pred lo) (get_terms lo)) \<and> i < length (B @ [True])" by auto
+            then have "nat_from_fatom (Pos (get_pred lo) (get_terms lo)) < length (B @ [True])" using undiag_diag_fatom by auto
+            then have "nat_from_fatom lo < length (B @ [True])" using undiag_neg by (cases lo) auto
+            then have "nat_from_fatom lo < length B + 1" by auto
           }
-          ultimately have "undiag_fatom lo < length B" using loB1 by auto
+          ultimately have "nat_from_fatom lo < length B" using loB1 by auto
         }
         ultimately show "falsifiesl B lo" using shorter_falsifiesl by blast
       qed
@@ -1701,7 +1701,7 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     ultimately have "\<exists>l \<in> C2'. falsifiesl (B@[False]) l \<and> \<not>(falsifiesl B l)" by auto
     then obtain l2 where l2_p: "l2 \<in> C2' \<and> falsifiesl (B@[False]) l2 \<and> \<not>(falsifiesl B l2)" by auto
     
-    have l2_no: "undiag_fatom l2 = length B" sorry
+    have l2_no: "nat_from_fatom l2 = length B" sorry
     have l2_sign: "sign l2 = True" sorry
     have B_C2'l2:"falsifiesg B (C2' - {l2})" sorry
 
@@ -1728,22 +1728,22 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     then have "\<not>(\<exists>i.  
       i < length B
       \<and> B ! i = (\<not>sign l')
-      \<and> diag_fatom i = Pos (get_pred l') (get_terms l'))" using instance_ofts_self by (induction l') auto
+      \<and> fatom_from_nat i = Pos (get_pred l') (get_terms l'))" using instance_ofts_self by (induction l') auto
     then have "\<not>(\<exists>i.  
       i < length B
       \<and> (B@[True]) ! i = (\<not>sign l')
-      \<and> diag_fatom i = Pos (get_pred l') (get_terms l'))" by (metis nth_append) 
+      \<and> fatom_from_nat i = Pos (get_pred l') (get_terms l'))" by (metis nth_append) 
     moreover 
     have "\<exists>i.  
       i < length (B@[True])
       \<and> (B@[True]) ! i = (\<not>sign l')
-      \<and> diag_fatom i = Pos (get_pred l') (get_terms l')" using ground_falsifies l'_p by blast
+      \<and> fatom_from_nat i = Pos (get_pred l') (get_terms l')" using ground_falsifies l'_p by blast
     ultimately
-    have ggg: "(B@[True]) ! (length B) = (\<not>sign l') \<and> diag_fatom (length B) = Pos (get_pred l') (get_terms l')"
-      using number_lemma[of B "\<lambda>i. (B @ [True]) ! i = (\<not> sign l') \<and> diag_fatom i = Pos (get_pred l') (get_terms l')"] by auto
+    have ggg: "(B@[True]) ! (length B) = (\<not>sign l') \<and> fatom_from_nat (length B) = Pos (get_pred l') (get_terms l')"
+      using number_lemma[of B "\<lambda>i. (B @ [True]) ! i = (\<not> sign l') \<and> fatom_from_nat i = Pos (get_pred l') (get_terms l')"] by auto
     then have sss: "sign l' = False" by auto
-    from ggg have "undiag_fatom (Pos (get_pred l') (get_terms l')) = length B" using undiag_diag_fatom by metis
-    then have "undiag_fatom l' = length B" using undiag_neg[of "get_pred l'" "get_terms l'"] sss by auto
+    from ggg have "nat_from_fatom (Pos (get_pred l') (get_terms l')) = length B" using undiag_fatom_from_nat by metis
+    then have "nat_from_fatom l' = length B" using undiag_neg[of "get_pred l'" "get_terms l'"] sss by auto
     (* Prove: Additionally, all the other literals in C'1 must be falsified by B, since they are falsified by B1, but not l'1. *)
     *)
 
