@@ -233,6 +233,9 @@ theorem [simp]: "ground t \<Longrightarrow> fterm_of_hterm (hterm_of_fterm t) = 
 
 subsubsection {* Enumerating ground atoms *}
 
+definition ground_fatoms :: "fterm literal set" where
+  "ground_fatoms \<equiv> {l. groundl l \<and> sign l = True}"
+
 fun fatom_of_hatom :: "hterm literal \<Rightarrow> fterm literal" where
   "fatom_of_hatom (Pos p ts) = Pos p (fterms_of_hterms ts)"
 | "fatom_of_hatom (Neg p ts) = Neg p (fterms_of_hterms ts)"
@@ -252,10 +255,16 @@ definition fatom_from_nat :: "nat \<Rightarrow> fterm literal" where
 definition nat_from_fatom :: "fterm literal \<Rightarrow> nat" where
   "nat_from_fatom t = nat_from_hatom (hatom_of_fatom t)"
 
+lemma nat_from_fatom_bij: "bij_betw nat_from_fatom ground_fatoms UNIV"
+sorry
+
+lemma fatom_from_nat_bij: "bij_betw fatom_from_nat UNIV ground_fatoms" 
+sorry
+
 theorem diag_undiag_fatom[simp]: "grounds ts \<Longrightarrow> fatom_from_nat (nat_from_fatom (Pos p ts)) = Pos p ts"
 unfolding fatom_from_nat_def nat_from_fatom_def by auto
 
-theorem undiag_diag_fatom: "nat_from_fatom (fatom_from_nat n) = n" unfolding fatom_from_nat_def nat_from_fatom_def by auto
+theorem undiag_diag_fatom[simp]: "nat_from_fatom (fatom_from_nat n) = n" unfolding fatom_from_nat_def nat_from_fatom_def by auto
 
 lemma undiag_neg: "nat_from_fatom (Neg P ts) = nat_from_fatom (Pos P ts)" unfolding nat_from_fatom_def using undiag_neg2 by auto
 

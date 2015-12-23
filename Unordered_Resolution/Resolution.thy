@@ -965,7 +965,7 @@ fun falsifiesl :: "partial_pred_denot \<Rightarrow> fterm literal \<Rightarrow> 
      (\<exists>i.  
       i < length G
       \<and> G ! i = False
-      \<and> fatom_from_nat i = Pos p ts)"
+      \<and> fatom_from_nat i = Pos p ts)" (* I could get rid of the existential quantifier by using nat_from_fatom *)
 | "falsifiesl G (Neg p ts) = 
      (\<exists>i.  
       i < length G
@@ -1554,7 +1554,7 @@ qed
 section {* Completeness *}
 (* assumes openb: "\<forall>T. \<exists>G. open_branch G T Cs" assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C" shows "\<exists>G. evalcs HFun G Cs" *)
 
-lemma falsifiesg_empty:
+lemma falsifiesg_empty: (* Maybe move to partial interpretation section *)
   assumes "falsifiesg [] C"
   shows "C = {}"
 proof -
@@ -1568,8 +1568,7 @@ proof -
   then show ?thesis by auto
 qed
 
-
-lemma falsifiescs_empty:
+lemma falsifiescs_empty:  (* Maybe move to partial interpretation section *)
   assumes "falsifiesc [] C"
   shows "C = {}"
 proof -
@@ -1578,7 +1577,17 @@ proof -
   then show "C = {}" using C'_p unfolding instance_ofls_def by auto
 qed
 
-(* lemma completeness': \\  assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C" \\ assumes notLeaf: "T \<noteq> Leaf" \\  assumes closed: "closed_tree T Cs" \\   shows "\<exists>T'. \<exists>c\<^sub>1 \<in> Cs. \<exists>c\<^sub>2 \<in> Cs. \<exists>r. \\            lresolvent r C\<^sub>1 C\<^sub>2\\         \<and> (\<forall>G. branch G T' \<longrightarrow> \<not>open_branch G T' (Cs \<union> {r})) \\         \<and> size T' < size T"\\proof -\\(*  from notLeaf obtain b where "branch (b@[Right]) T \<and> branch (b@[Left]) T" using has_Branch_of_Leafs by blast\\  then have "falsifiescs (b@[True]) Cs \<and> falsifiescs (b@[False]) Cs" using Closed by auto\\  then obtain C\<^sub>1 C\<^sub>2 where "C\<^sub>1 \<in> Cs \<and> C\<^sub>2 \<in> Cs \<and> falsifiesc (b@[True]) C\<^sub>1 \<and> falsifiesc (b@[False]) C\<^sub>2" by auto\\ *) oops *)
+lemma
+  assumes "l1 \<in> C1'"
+  assumes "l2 \<in> C1'"
+  assumes "l1 = l2\<^sup>c"
+  assumes "falsifiesg G C1'"
+  shows "False"
+proof -
+  have "falsifiesl G l1" using assms by auto
+  have "falsifiesl G l2" using assms by auto
+  then have "G ! (nat_from_fatom l2) = (\<not>sign l2)"
+oops
 
 lemma number_lemma:
   assumes "\<not>(\<exists>i. i < length (B :: bool list) \<and> P(i))"
@@ -1651,7 +1660,7 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
       \<and> (B@[True]) ! i = (\<not>sign l1)
       \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1))" by (metis nth_append) 
     moreover 
-    have "groundl l1" using C1'_p l1_p by auto
+    have ground_l1: "groundl l1" using C1'_p l1_p by auto
     then have "\<exists>i.  
       i < length (B@[True])
       \<and> (B@[True]) ! i = (\<not>sign l1)
@@ -1672,17 +1681,102 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
         moreover
         {
           have "l1\<noteq>lo" using other by auto
-          then have "nat_from_fatom l1 \<noteq> nat_from_fatom lo" sorry
-          then have "nat_from_fatom lo \<noteq> length B" using l1_no by auto
-          moreover
-          {
-            obtain i where "fatom_from_nat i = Pos (get_pred lo) (get_terms lo) \<and> i < length (B @ [True])" using loB1 by (cases lo) auto
-            then have "nat_from_fatom (fatom_from_nat i) = nat_from_fatom (Pos (get_pred lo) (get_terms lo)) \<and> i < length (B @ [True])" by auto
-            then have "nat_from_fatom (Pos (get_pred lo) (get_terms lo)) < length (B @ [True])" using undiag_diag_fatom by auto
-            then have "nat_from_fatom lo < length (B @ [True])" using undiag_neg by (cases lo) auto
-            then have "nat_from_fatom lo < length B + 1" by auto
-          }
-          ultimately have "nat_from_fatom lo < length B" using loB1 by auto
+          then have andr: "(sign l1 \<noteq> sign lo \<and> get_pred l1 = get_pred lo \<and> get_terms l1 = get_terms lo) \<or> (get_pred l1 \<noteq> get_pred lo \<or> get_terms l1 \<noteq> get_terms lo)" by (cases l1; cases lo) auto
+          have "nat_from_fatom lo < length B"
+            proof -
+              have "groundl lo" using C1'_p other by auto
+              have "groundl l1" using ground_l1 by auto
+              {
+                assume asdff: "get_pred l1 \<noteq> get_pred lo \<or> get_terms l1 \<noteq> get_terms lo"
+                then have "Pos (get_pred l1) (get_terms l1) \<noteq> Pos (get_pred lo) (get_terms lo)" by auto
+                then have "nat_from_fatom l1 \<noteq> nat_from_fatom lo"  using `groundl lo` `groundl l1`
+                  apply (induction l1)
+                  apply (induction lo)
+                  prefer 3
+                  apply (induction lo)
+                  prefer 3
+                  using nat_from_fatom_bij unfolding bij_betw_def inj_on_def ground_fatoms_def apply -
+                
+                  (* Goal1: Pos Pos *)
+                  apply (subgoal_tac "sign (Pos x1 x2) = True") (* Could maybe be a nice simp rule *)
+                  apply (subgoal_tac "sign (Pos x1a x2a) = True")
+                  apply blast 
+                  apply simp 
+                  apply simp
+  
+                  (* Goal 2 *)
+                  (* I use the property for Pos Pos *)
+                  apply (subgoal_tac "nat_from_fatom (Pos x1a x2a) \<noteq> nat_from_fatom (Pos x1 x2)")
+                  using TermsAndLiterals.undiag_neg apply simp
+
+                  (* I setup for replaying the proof for Pos Pos *)
+                  apply (subgoal_tac "Pos (get_pred (Pos x1a x2a)) (get_terms (Pos x1a x2a)) \<noteq> Pos (get_pred (Pos x1 x2)) (get_terms (Pos x1 x2))")
+                  apply (subgoal_tac "groundl (Pos x1a x2a)")
+                  (* Replay the Pos Pos proof *)
+                  apply (subgoal_tac "sign (Pos x1 x2) = True") (* Could maybe be a nice simp rule *)
+                  apply (subgoal_tac "sign (Pos x1a x2a) = True") 
+                  apply blast
+                  apply simp 
+                  apply simp
+                  apply simp 
+                  apply simp
+
+                  (* Goal 3 *)
+                  (* I use the property for Pos Pos *)
+                  apply (subgoal_tac "nat_from_fatom (Pos x1a x2a) \<noteq> nat_from_fatom (Pos x1 x2)")
+                  using TermsAndLiterals.undiag_neg apply simp
+
+                  (* I setup for replaying the proof for Pos Pos *)
+                  apply (subgoal_tac "Pos (get_pred (Pos x1a x2a)) (get_terms (Pos x1a x2a)) \<noteq> Pos (get_pred (Pos x1 x2)) (get_terms (Pos x1 x2))")
+                  apply (subgoal_tac "groundl (Pos x1a x2a)")
+                  apply (subgoal_tac "groundl (Pos x1 x2)")
+                  (* Replay the Pos Pos proof *)
+                  apply (subgoal_tac "sign (Pos x1 x2) = True") (* Could maybe be a nice simp rule *)
+                  apply (subgoal_tac "sign (Pos x1a x2a) = True") 
+                  apply blast
+                  apply simp 
+                  apply simp
+                  apply simp 
+                  apply simp
+                  apply simp
+                  
+                  (* Goal 4 *)
+                  (* I use the property for Pos Pos *)
+                  apply (subgoal_tac "nat_from_fatom (Pos x1a x2a) \<noteq> nat_from_fatom (Pos x1 x2)")
+                  using TermsAndLiterals.undiag_neg apply simp
+
+                  (* I setup for replaying the proof for Pos Pos *)
+                  apply (subgoal_tac "Pos (get_pred (Pos x1a x2a)) (get_terms (Pos x1a x2a)) \<noteq> Pos (get_pred (Pos x1 x2)) (get_terms (Pos x1 x2))")
+                  apply (subgoal_tac "groundl (Pos x1 x2)")
+
+                  (* Replay the Pos Pos proof *)
+                  apply (subgoal_tac "sign (Pos x1 x2) = True") (* Could maybe be a nice simp rule *)
+                  apply (subgoal_tac "sign (Pos x1a x2a) = True") 
+                  apply blast
+                  apply simp 
+                  apply simp
+                  apply simp 
+                  apply simp
+                  done
+                then have "nat_from_fatom lo \<noteq> length B" using l1_no by auto
+                moreover
+                {
+                  obtain i where "fatom_from_nat i = Pos (get_pred lo) (get_terms lo) \<and> i < length (B @ [True])" using loB1 by (cases lo) auto
+                  then have "nat_from_fatom (fatom_from_nat i) = nat_from_fatom (Pos (get_pred lo) (get_terms lo)) \<and> i < length (B @ [True])" by auto
+                  then have "nat_from_fatom lo < length B + 1" using undiag_neg undiag_diag_fatom by (cases lo) auto
+                }
+                ultimately have "nat_from_fatom lo < length B" using loB1 by auto
+              }
+              moreover
+              {
+                assume "sign l1 \<noteq> sign lo \<and> get_pred l1 = get_pred lo \<and> get_terms l1 = get_terms lo"
+                (*lo and l1 complementary and in C1'. But then we could not have falsified C1 *)
+                have "lo \<in> C1' \<and> l1 \<in> C1' \<and> falsifiesg ?B1 C1'" using C1'_p l1_p other by auto
+                have "False" sorry 
+                then have "nat_from_fatom lo < length B" by auto
+              }
+              ultimately show "nat_from_fatom lo < length B" using andr by auto
+              qed
         }
         ultimately show "falsifiesl B lo" using shorter_falsifiesl by blast
       qed
