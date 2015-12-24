@@ -263,7 +263,7 @@ lemma
     state_eq\<^sub>N\<^sub>O\<^sub>T_clauses: "S \<sim> T \<Longrightarrow> clauses S = clauses T"
   unfolding state_eq\<^sub>N\<^sub>O\<^sub>T_def by auto
 
-lemmas state_simp[simp]= state_eq\<^sub>N\<^sub>O\<^sub>T_trail state_eq\<^sub>N\<^sub>O\<^sub>T_clauses
+lemmas state_simp\<^sub>N\<^sub>O\<^sub>T[simp]= state_eq\<^sub>N\<^sub>O\<^sub>T_trail state_eq\<^sub>N\<^sub>O\<^sub>T_clauses
 end
 
 subsubsection \<open>Definition of the operation\<close>
@@ -2388,7 +2388,7 @@ proof -
 
   show ?thesis
     using backjumping_ops.backjump.intros[OF bj_ops 1 _ 3 4 5 6 7 8] 2 backtrack
-    by (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def simp del: state_simp)
+    by (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def simp del: state_simp\<^sub>N\<^sub>O\<^sub>T)
 qed
 
 lemma can_do_bt_step:
@@ -3056,7 +3056,7 @@ proof -
    moreover have bj: "m_backjump (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S) T"
      apply (rule backjumping_ops.backjump.intros[OF backjumping_ops_axioms _, of _ _ ])
      using \<open>F \<Turnstile>as CNot C'\<close> C_cls_S tr_S_CNot_C undef T distinct not_tauto
-     by (auto simp: tr_S state_eq\<^sub>N\<^sub>O\<^sub>T_def simp del: state_simp)
+     by (auto simp: tr_S state_eq\<^sub>N\<^sub>O\<^sub>T_def simp del: state_simp\<^sub>N\<^sub>O\<^sub>T)
    ultimately show ?thesis by auto
 qed
 
@@ -3161,7 +3161,7 @@ next
       forget\<^sub>N\<^sub>O\<^sub>T.cases state_eq\<^sub>N\<^sub>O\<^sub>T_clauses)
   moreover
     have "trail S = trail T"
-      using \<open>forget\<^sub>N\<^sub>O\<^sub>T S T\<close> by (auto elim!: forgetE)
+      using \<open>forget\<^sub>N\<^sub>O\<^sub>T S T\<close> by (auto elim: forgetE)
     hence
       "(2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A))
         - \<mu>\<^sub>C (1 + card (atms_of_m A)) (2 + card (atms_of_m A)) (trail_weight T)
@@ -3457,7 +3457,7 @@ lemma backjump_bj_can_jump:
   shows "\<not>no_step backjump S"
     using backjump.intros[OF tr_S _ C tr_S_C undef _ cls_S_C' F_C',
       of "update_trail (Propagated L l # F) S "] atm_L unfolding tr_S
-    by (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def simp del: state_simp)
+    by (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def simp del: state_simp\<^sub>N\<^sub>O\<^sub>T)
 
 sublocale dpll_with_backjumping_ops _ _ _ _ _ inv "\<lambda>_ _ _ _. True"
   using backjump_bj_can_jump by unfold_locales auto
