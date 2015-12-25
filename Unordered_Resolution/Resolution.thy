@@ -55,7 +55,7 @@ proof -
   then show ?thesis using cancel_compls1[of L\<^sub>1] cancel_compls1[of L\<^sub>2] by simp
 qed
 
-primrec varst  :: "fterm \<Rightarrow> var_sym set" 
+primrec varst  :: "fterm \<Rightarrow> var_sym set" (* I could use map here *)
 and varsts :: "fterm list \<Rightarrow> var_sym set" where 
   "varst (Var x) = {x}"
 | "varst (Fun f ts) = varsts ts"
@@ -70,6 +70,13 @@ definition varsls :: "fterm literal set \<Rightarrow> var_sym set" where
 
 abbreviation groundls :: "fterm clause \<Rightarrow> bool" where
   "groundls L \<equiv> \<forall> l \<in> L. groundl l"
+
+lemma ground_varst: "ground t \<Longrightarrow> varst t = {}"  "grounds ts \<Longrightarrow> varsts ts = {}"
+  by (induct t and ts rule: varst.induct varsts.induct) auto
+
+lemma groundl_varsl: "groundl l \<Longrightarrow> varsl l = {}" unfolding varsl_def using ground_varst by auto
+
+lemma groundls_varsls: "groundls ls \<Longrightarrow> varsls ls = {}" unfolding varsls_def using groundl_varsl by auto
 
 lemma ground_comp: "groundl (l\<^sup>c) \<longleftrightarrow> groundl l" by (cases l) auto
 
@@ -1833,12 +1840,18 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     have "falsifiesg B ((C1' - {l1}) \<union> (C2' - {l2}))" using B_C1'l1 B_C2'l2 by cases auto
     then have "falsifiesg B (lresolution C1' C2' {l1} {l2} \<epsilon>)" unfolding lresolution_def empty_subls by auto
 
-    have "applicable C1' C2' {l1} {l2} \<epsilon>"  sorry
+    have "applicable C1' C2' {l1} {l2} \<epsilon>" unfolding applicable_def
+      apply auto
+      using l1_p apply simp
+      using l2_p apply simp
+      using C1'_p groundls_varsls apply simp
+      using l1_p apply simp
+      using l2_p apply simp
+      sorry
+    then have "\<exists>L1 L2 \<tau>. applicable ?C1 ?C2 L1 L2 \<tau>  \<and> instance_ofls (lresolution C1' C2' {l1} {l2} \<epsilon>) (lresolution ?C1 ?C2 L1 L2 \<tau>)" 
+      using std_apart_apart C1'_p C2'_p lifting[of ?C1 ?C2 C1' C2' "{l1}" "{l2}" \<epsilon>] by auto
 
-
-    (* Challange: standardize C1 and C2 apart, you need to do this very early *)
-    have "\<exists>L1 L2 \<tau>. applicable C1 C2 L1 L2 \<tau>  \<and> instance_ofls (lresolution C1' C2' {l1} {l2} \<epsilon>) (lresolution C1 C2 L1 L2 \<tau>)" 
-      using lifting[of C1 C2 C1' C2' "{l1}" "{l2}" \<epsilon>] sorry
+    (* Cut down tree *) (* Apply resolution *)
 
 
 
