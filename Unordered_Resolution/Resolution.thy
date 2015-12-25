@@ -906,7 +906,7 @@ qed
 
 section {* Enumerations *}
 
-fun hlit_of_flit :: "fterm literal \<Rightarrow> hterm literal" where
+fun hlit_of_flit :: "fterm literal \<Rightarrow> hterm literal" where (*  Already defined in terms na literals*)
   "hlit_of_flit (Pos P ts) = Pos P (hterms_of_fterms ts)"
 | "hlit_of_flit (Neg P ts) = Neg P (hterms_of_fterms ts)"
 
@@ -1577,17 +1577,44 @@ proof -
   then show "C = {}" using C'_p unfolding instance_ofls_def by auto
 qed
 
-lemma
-  assumes "l1 \<in> C1'"
-  assumes "l2 \<in> C1'"
-  assumes "l1 = l2\<^sup>c"
-  assumes "falsifiesg G C1'"
+lemma complements_do_not_falsify:
+  assumes l1C1': "l1 \<in> C1'"
+  assumes l2C1': "l2 \<in> C1'"
+  assumes comp: "l1 = l2\<^sup>c"
+  assumes falsif: "falsifiesg G C1'"
   shows "False"
-proof -
-  have "falsifiesl G l1" using assms by auto
-  have "falsifiesl G l2" using assms by auto
-  then have "G ! (nat_from_fatom l2) = (\<not>sign l2)"
-oops
+proof (cases l1)
+  case (Pos p ts)
+  from assms have gr: "groundl l1" using falsifies_ground by auto
+  then have Neg: "l2 = Neg p ts" using comp Pos by (cases l2) auto
+
+  from falsif have "falsifiesl G l1" using l1C1' by auto
+  then have "\<exists>i. G ! i = False \<and> fatom_from_nat i = Pos p ts" using l1C1' Pos by auto 
+  then obtain i where "G ! i = False \<and> fatom_from_nat i = Pos p ts" by auto
+  then have "G ! nat_from_fatom (Pos p ts) = False" using fatom_from_nat_is_nat_from_fatom gr Pos by auto
+  moreover
+  from falsif have "falsifiesl G l2" using l2C1' by auto
+  then have "\<exists>i. G ! i = True \<and> fatom_from_nat i = Pos p ts" using l2C1' Neg by auto 
+  then obtain i where "G ! i = True \<and> fatom_from_nat i = Pos p ts" by auto
+  then have "G ! nat_from_fatom (Pos p ts) = True" using fatom_from_nat_is_nat_from_fatom gr Pos by auto
+  ultimately show ?thesis by auto
+next
+  case (Neg p ts) (* Symmetrical *)
+  from assms have gr: "groundl l1" using falsifies_ground by auto
+  then have Pos: "l2 = Pos p ts" using comp Neg by (cases l2) auto
+
+  from falsif have "falsifiesl G l1" using l1C1' by auto
+  then have "\<exists>i. G ! i = True \<and> fatom_from_nat i = Pos p ts" using l1C1' Neg by auto 
+  then obtain i where "G ! i = True \<and> fatom_from_nat i = Pos p ts" by auto
+  then have "G ! nat_from_fatom (Pos p ts) = True" using fatom_from_nat_is_nat_from_fatom gr Neg by auto
+  moreover
+  from falsif have "falsifiesl G l2" using l2C1' by auto
+  then have "\<exists>i. G ! i = False \<and> fatom_from_nat i = Pos p ts" using l2C1' Pos by auto 
+  then obtain i where "G ! i = False \<and> fatom_from_nat i = Pos p ts" by auto
+  then have "G ! nat_from_fatom (Pos p ts) = False" using fatom_from_nat_is_nat_from_fatom gr Neg by auto
+  ultimately show ?thesis by auto
+qed
+
 
 lemma number_lemma:
   assumes "\<not>(\<exists>i. i < length (B :: bool list) \<and> P(i))"
@@ -1771,8 +1798,15 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
               {
                 assume "sign l1 \<noteq> sign lo \<and> get_pred l1 = get_pred lo \<and> get_terms l1 = get_terms lo"
                 (*lo and l1 complementary and in C1'. But then we could not have falsified C1 *)
+                then have "lo = l1\<^sup>c"
+                  apply (cases lo)
+                  apply auto
+                  apply (metis complement.simps(2) literal.collapse(2))
+                  apply (simp add: l1_sign)
+                  done
+                moreover
                 have "lo \<in> C1' \<and> l1 \<in> C1' \<and> falsifiesg ?B1 C1'" using C1'_p l1_p other by auto
-                have "False" sorry 
+                ultimately have "False" using complements_do_not_falsify[of lo C1' l1] by auto
                 then have "nat_from_fatom lo < length B" by auto
               }
               ultimately show "nat_from_fatom lo < length B" using andr by auto
@@ -1780,12 +1814,9 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
         }
         ultimately show "falsifiesl B lo" using shorter_falsifiesl by blast
       qed
-
-
     from C2_p have "\<exists>C2'. groundls C2' \<and> instance_ofls C2' ?C2 \<and> falsifiesg ?B2 C2'" 
       using falsifiesc_ground[of ?C2 ?B2] by metis
     then obtain C2' where C2'_p: "groundls C2' \<and> instance_ofls C2' ?C2 \<and> falsifiesg ?B2 C2'" by auto
-    (* We went down to the ground world *)
     then have "\<forall>l \<in> C2'. falsifiesl (B@[False]) l" by auto
     moreover 
     have "\<not>falsifiesc B C2o" using C2o_p b_p clo by auto

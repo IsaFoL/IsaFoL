@@ -107,6 +107,50 @@ next
   then show "\<forall>b\<in>B. f ((inv_into A f) b) = b" using f_inv_into_f by metis
 qed
 
+find_theorems surj
+
+lemma (* I need also to assume that the range of f is B and that of g is A *)
+  assumes "f ` A = B"
+  assumes "g ` B = A"
+  assumes "(\<forall>a\<in>A. g (f a) = a)"
+  assumes "(\<forall>b\<in>B. f (g b) = b)"
+  shows "bij_betw f A B" 
+oops
+
+
+lemma (* I need also to assume that the range of f is B and that of g is A *)
+  assumes "(\<forall>a\<in>A. g (f a) = a)"
+  assumes "(\<forall>b\<in>B. f (g b) = b)"
+  shows "bij_betw f A B" 
+proof -
+  have "f ` A = B"
+    proof (rule; rule)
+      fix x
+      assume "x \<in> f ` A"
+      then obtain a where a_p: "x = f a \<and> a \<in> A" by auto
+      then have "g (f a) = a" using assms by auto
+
+      then have "f a \<in> B" sorry
+      then show "x \<in> B" using a_p by auto
+    next
+      fix x
+      assume "x \<in> B"
+(*      then have "f x" sorry*)
+      show "x \<in> f ` A" sorry
+    qed
+  moreover
+  {
+    fix x
+    assume 1: "x\<in>A"
+    fix y
+    assume 2: "y\<in>A"
+    assume 3: "f x = f y"
+    then have "g (f x) = g (f y)" by auto
+    then have "x = y" using assms 1 2 3 by metis
+  }
+  ultimately show "bij_betw f A B" unfolding bij_betw_def inj_on_def by auto
+oops
+
 subsubsection {* Enumerating strings *}
 
 definition nat_from_string:: "string \<Rightarrow> nat" where
@@ -159,11 +203,6 @@ instantiation literal :: (countable) countable begin
 instance by countable_datatype
 end
 
-find_theorems bij_betw infinite
-find_theorems bij_betw id
-find_theorems inv_into
-find_theorems countable
-
 lemma infinite_hatoms: "infinite hatoms"
 proof -
   let ?S = "{l :: hterm literal. sign l = True}"
@@ -199,6 +238,7 @@ lemma hatom_from_nat_nat_from_hatom[simp]: "\<forall>l \<in> hatoms. hatom_from_
 
 lemma undiag_neg2: "nat_from_hatom (Neg P ts) = nat_from_hatom (Pos P ts)" unfolding nat_from_hatom_def by auto
 
+(* This lemma is already expressed by hatom_from_nat_bij *)
 lemma hatom_from_nat_Pos:
   assumes "hatom_from_nat n = l"
   shows "\<exists>p ts. l = Pos p ts"
@@ -209,7 +249,10 @@ proof -
   then show ?thesis by auto
 qed
 
-subsubsection {* Convertions expressions and Herbrand expressions *}
+(* This lemma is already expressed by hatom_from_nat_bij *)
+lemma sign_hatom_from_nat: "sign (hatom_from_nat n) = True" using hatom_from_nat_bij unfolding bij_betw_def by auto
+
+subsubsection {* Convertions terms and Herbrand term *}
 
 primrec fterm_of_hterm :: "hterm \<Rightarrow> fterm"
 and fterms_of_hterms :: "hterm list \<Rightarrow> fterm list" where
@@ -231,10 +274,10 @@ theorem [simp]: "ground t \<Longrightarrow> fterm_of_hterm (hterm_of_fterm t) = 
         "grounds ts \<Longrightarrow>fterms_of_hterms (hterms_of_fterms ts) = ts" 
   by (induct t and ts rule: hterm_of_fterm.induct hterms_of_fterms.induct) auto
 
-subsubsection {* Enumerating ground atoms *}
+lemma ground_fterm_of_hterm: "ground (fterm_of_hterm t)"  "grounds (fterms_of_hterms ts)"
+  by (induct t and ts rule: fterm_of_hterm.induct fterms_of_hterms.induct) auto
 
-definition ground_fatoms :: "fterm literal set" where
-  "ground_fatoms \<equiv> {l. groundl l \<and> sign l = True}"
+subsubsection {* Converstions literals and herbrand literals *}
 
 fun fatom_of_hatom :: "hterm literal \<Rightarrow> fterm literal" where
   "fatom_of_hatom (Pos p ts) = Pos p (fterms_of_hterms ts)"
@@ -244,22 +287,26 @@ fun hatom_of_fatom :: "fterm literal \<Rightarrow> hterm literal" where
   "hatom_of_fatom (Pos p ts) = Pos p (hterms_of_fterms ts)"
 | "hatom_of_fatom (Neg p ts) = Neg p (hterms_of_fterms ts)"
 
+lemma ground_fatom_of_hatom: "groundl (fatom_of_hatom l)" using ground_fterm_of_hterm by (cases l) auto (* står det et andet sted? *)
+
+subsubsection {* Enumerating ground atoms *}
+
+definition ground_fatoms :: "fterm literal set" where
+  "ground_fatoms \<equiv> {l. groundl l \<and> sign l = True}"
+
 theorem [simp]: "hatom_of_fatom (fatom_of_hatom (l)) =  l" by (cases l) auto
 
-theorem [simp]: "grounds ts \<Longrightarrow> fatom_of_hatom (hatom_of_fatom (Pos p ts)) = Pos p ts"
+theorem fatom_of_hatom_hatom_of_fatom [simp]: "grounds ts \<Longrightarrow> fatom_of_hatom (hatom_of_fatom (Pos p ts)) = Pos p ts"
 by auto
 
+lemma sign_fatom_of_hatom: "sign (fatom_of_hatom l) = sign l" by (cases l) auto
+
 definition fatom_from_nat :: "nat \<Rightarrow> fterm literal" where
-  "fatom_from_nat n = fatom_of_hatom (hatom_from_nat n)"
+  "fatom_from_nat = (\<lambda>n. fatom_of_hatom (hatom_from_nat n))"
 
 definition nat_from_fatom :: "fterm literal \<Rightarrow> nat" where
-  "nat_from_fatom t = nat_from_hatom (hatom_of_fatom t)"
+  "nat_from_fatom = (%t. nat_from_hatom (hatom_of_fatom t))"
 
-lemma nat_from_fatom_bij: "bij_betw nat_from_fatom ground_fatoms UNIV"
-sorry
-
-lemma fatom_from_nat_bij: "bij_betw fatom_from_nat UNIV ground_fatoms" 
-sorry
 
 theorem diag_undiag_fatom[simp]: "grounds ts \<Longrightarrow> fatom_from_nat (nat_from_fatom (Pos p ts)) = Pos p ts"
 unfolding fatom_from_nat_def nat_from_fatom_def by auto
@@ -267,5 +314,71 @@ unfolding fatom_from_nat_def nat_from_fatom_def by auto
 theorem undiag_diag_fatom[simp]: "nat_from_fatom (fatom_from_nat n) = n" unfolding fatom_from_nat_def nat_from_fatom_def by auto
 
 lemma undiag_neg: "nat_from_fatom (Neg P ts) = nat_from_fatom (Pos P ts)" unfolding nat_from_fatom_def using undiag_neg2 by auto
+
+lemma fatom_from_nat_bij: "bij_betw fatom_from_nat UNIV ground_fatoms" 
+proof -
+  have bii: "bij_betw hatom_from_nat UNIV hatoms" using hatom_from_nat_bij by auto
+  from bii have "range hatom_from_nat = hatoms" unfolding bij_betw_def by auto
+  have "range fatom_from_nat = ground_fatoms"
+    apply rule
+    unfolding fatom_from_nat_def ground_fatoms_def  using ground_fatom_of_hatom sign_fatom_of_hatom sign_hatom_from_nat  apply auto[1]
+    apply rule
+    apply (subgoal_tac "x = fatom_of_hatom (hatom_from_nat (nat_from_fatom x))")
+    apply simp unfolding nat_from_fatom_def
+    apply auto
+    apply (subgoal_tac "x = Pos (get_pred x) (get_terms x)")
+    using hatom_from_nat_nat_from_hatom fatom_of_hatom_hatom_of_fatom
+    apply (metis hatom_of_fatom.simps(1) literal.disc(1) mem_Collect_eq) 
+    apply simp
+    done
+  moreover
+  have "inj fatom_from_nat" unfolding inj_on_def
+    proof (rule; rule; rule)
+      fix x y
+      assume "fatom_from_nat x = fatom_from_nat y"
+      then have "nat_from_fatom (fatom_from_nat x) = nat_from_fatom (fatom_from_nat y)" by auto
+      then show "x = y" by auto
+    qed
+  ultimately show ?thesis unfolding bij_betw_def by auto
+qed
+
+lemma ground_fatom_from_nat: "groundl (fatom_from_nat x)" unfolding fatom_from_nat_def using ground_fatom_of_hatom by auto
+
+lemma sign_fatom_from_nat: "sign (fatom_from_nat x) = True" unfolding fatom_from_nat_def using sign_hatom_from_nat sign_fatom_of_hatom by auto
+
+lemma nat_from_fatom_bij: "bij_betw nat_from_fatom ground_fatoms UNIV" 
+proof -
+  have bii: "bij_betw nat_from_hatom hatoms UNIV" using nat_from_hatom_bij by auto
+  from bii have "range nat_from_hatom = UNIV" unfolding bij_betw_def by auto
+  {
+     fix x::nat
+  find_theorems nat_from_fatom
+     have "x = nat_from_fatom (fatom_from_nat x) \<and> groundl (fatom_from_nat x) \<and> sign (fatom_from_nat x)" 
+       using TermsAndLiterals.undiag_diag_fatom ground_fatom_from_nat sign_fatom_from_nat by auto
+     then have "\<exists>a. x = nat_from_fatom a \<and> groundl a \<and> sign a" by blast
+  }
+  then have "nat_from_fatom ` ground_fatoms = UNIV" unfolding ground_fatoms_def  by auto
+  moreover
+  have "inj_on nat_from_fatom ground_fatoms" unfolding inj_on_def
+    proof (rule; rule; rule)
+      fix x y
+      assume gr: "x \<in> ground_fatoms" "y \<in> ground_fatoms"
+      then have sn: "sign x = True" "sign y = True" unfolding ground_fatoms_def by auto
+      assume "nat_from_fatom x = nat_from_fatom y"
+      then have "fatom_from_nat (nat_from_fatom x) = fatom_from_nat (nat_from_fatom y)" by auto
+      then show "x = y" using gr sn
+        apply (cases x) apply (cases y)
+        apply auto unfolding ground_fatoms_def apply auto
+        done
+    qed
+  ultimately show ?thesis unfolding bij_betw_def by auto
+qed
+
+theorem fatom_from_nat_is_nat_from_fatom:
+  assumes gr: "groundl l"
+  assumes si: "sign l = True"
+  assumes fa: "fatom_from_nat i = l"
+  shows "i = nat_from_fatom l"
+using assms by auto
 
 end
