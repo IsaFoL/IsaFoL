@@ -2871,7 +2871,7 @@ begin
 inductive backjump_l where
 backjump_l: "trail S = F' @ Marked K d # F
    \<Longrightarrow> no_dup (trail S)
-   \<Longrightarrow> T = update_trail (Propagated L l # F) (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S)
+   \<Longrightarrow> T \<sim> update_trail (Propagated L l # F) (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S)
    \<Longrightarrow> C \<in> clauses S
    \<Longrightarrow> trail S \<Turnstile>as CNot C
    \<Longrightarrow> undefined_lit L F
@@ -2936,7 +2936,7 @@ proof (unfold_locales, goal_cases)
   { fix S S'
     assume bj: "backjump_l S S'"
     then obtain F' K d F L l C' C where
-      S': "S' = update_trail (Propagated L l # F) (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S)" and
+      S': "S' \<sim> update_trail (Propagated L l # F) (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S)" and
       tr_S: "trail S = F' @ Marked K d # F" and
       C: "C \<in> clauses S" and
       tr_S_C: "trail S \<Turnstile>as CNot C" and
@@ -3023,7 +3023,7 @@ lemma backjump_l_learn_backjump:
 proof -
    obtain C F' K d F L l C' where
      tr_S: "trail S = F' @ Marked K d # F" and
-     T: "T = update_trail (Propagated L l # F) (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S)" and
+     T: "T \<sim> update_trail (Propagated L l # F) (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S)" and
      C_cls_S: "C \<in> clauses S" and
      tr_S_CNot_C: "trail S \<Turnstile>as CNot C" and
      undef: "undefined_lit L F" and
