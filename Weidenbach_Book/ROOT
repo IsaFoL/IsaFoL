@@ -21,9 +21,9 @@ session "Weidenbach_Book" (main) = "HOL" +
     DPLL_Implementation
     CDCL_CW_Implementation
     CDCL_NOT
+    CDCL_FW
   theories [quick_and_dirty]
     Propo_Superposition
-    CDCL_FW
   document_files
     "root.tex"
     "biblio.bib"
