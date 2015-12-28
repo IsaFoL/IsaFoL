@@ -3078,114 +3078,170 @@ end
 
 subsection \<open>Adding Restarts\<close>
 locale cdcl_cw_ops_restart =
-  cdcl_cw_ops +
+  cdcl_cw_ops trail init_clss learned_clss backtrack_lvl conflicting update_trail update_init_clss
+   update_learned_clss update_backtrack_lvl update_conflicting init_state
+   restart_state
+  for
+    trail :: "'st \<Rightarrow> ('v::linorder, nat, 'v clause) annoted_lits" and
+    init_clss :: "'st \<Rightarrow> 'v clauses" and
+    learned_clss :: "'st \<Rightarrow> 'v clauses" and
+    backtrack_lvl :: "'st \<Rightarrow> nat" and
+    conflicting :: "'st \<Rightarrow>'v clause conflicting_clause" and
+
+    update_trail :: "('v, nat, 'v clause) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_init_clss :: "'v clause set \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_learned_clss :: "'v clause set \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conflicting :: "'v clause conflicting_clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+
+    init_state :: "'v::linorder clauses \<Rightarrow> 'st" and
+    restart_state :: "'st \<Rightarrow> 'st" +
   fixes f :: "nat \<Rightarrow> nat"
   assumes f: "strict_mono f"
 begin
-(* \<mu> can be someting like (if no_step then 0 else 1) + 3 ^ card (init_clss S) *)
-sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts_ops restart cdcl_fw_s f _ _ cdcl_all_inv_mes _
-  apply (unfold_locales)
-           using f apply simp
-  sorry
 
 inductive cdcl_with_restart\<^sub>C\<^sub>W where
-restart_step: "(cdcl_fw_s^^m) S T \<Longrightarrow> card (learned_clss T) - card (learned_clss S) \<ge> f n
+restart_step: "(cdcl_fw_s^^(card (learned_clss T) - card (learned_clss S))) S T
+  \<Longrightarrow> card (learned_clss T) - card (learned_clss S) >  f n
   \<Longrightarrow> restart T U \<Longrightarrow> cdcl_with_restart\<^sub>C\<^sub>W (S, n) (U, Suc n)" |
 restart_full: "full cdcl_fw_s S T \<Longrightarrow> cdcl_with_restart\<^sub>C\<^sub>W (S, n) (T, Suc n)"
 
-lemma "cdcl_with_restart\<^sub>C\<^sub>W S T \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy S T"
-  apply (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct)
+lemma cdcl_with_restart\<^sub>C\<^sub>W_rtranclp_cdcl:
+  "cdcl_with_restart\<^sub>C\<^sub>W S T \<Longrightarrow> cdcl\<^sup>*\<^sup>* (fst S) (fst T)"
+  by (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct)
+  (auto dest!: relpowp_imp_rtranclp rtranclp_cdcl_fw_s_rtranclp_cdcl cdcl.rf cdcl_rf.restart
+      tranclp_into_rtranclp simp: full_def)
 
-oops
-end
+lemma cdcl_with_restart\<^sub>C\<^sub>W_increasing_number:
+  "cdcl_with_restart\<^sub>C\<^sub>W S T \<Longrightarrow> snd T = 1 + snd S"
+  by (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct) auto
 
+lemma cdcl_all_inv_mes_learned_clss_bound:
+  assumes inv: "cdcl_all_inv_mes S"
+  shows "learned_clss S \<subseteq> build_all_simple_clss (atms_of_m (init_clss S))"
+proof
+  fix C
+  assume C: "C \<in> learned_clss S"
+  have "distinct_mset C"
+    using C inv unfolding cdcl_all_inv_mes_def distinct_cdcl_state_def distinct_mset_set_def by auto
+  moreover have "\<not>tautology C"
+    using C inv unfolding cdcl_all_inv_mes_def cdcl_learned_clause_def by auto
+  moreover
+    have "atms_of C \<subseteq> atms_of_m (learned_clss S)"
+      using C by auto
+    then have "atms_of C \<subseteq> atms_of_m (init_clss S)"
+    using inv  unfolding cdcl_all_inv_mes_def no_strange_atm_def by force
+  moreover have "finite (atms_of_m (init_clss S))"
+    using inv unfolding cdcl_all_inv_mes_def by auto
+  ultimately show "C \<in> build_all_simple_clss (atms_of_m (init_clss S))"
+    using distinct_mset_not_tautology_implies_in_build_all_simple_clss build_all_simple_clss_mono
+    by blast
+qed
 
+lemma strict_mono_ge_id: "strict_mono (g::nat \<Rightarrow> nat) \<Longrightarrow> g n \<ge> n"
+  unfolding strict_mono_def apply (induction n, simp)
+  by (metis Suc_leI diff_diff_cancel lessI less_imp_diff_less)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-locale cdcl_cw_ops_restart_cw_criterion =
-  cdcl_cw_ops +
-  fixes f :: "nat \<Rightarrow> nat"
-  assumes "strict_mono f"
-begin
-(* not fined-grained enough *)
-inductive cdcl\<^sub>F\<^sub>W where
-"cdcl_fw_s S T \<Longrightarrow> cdcl\<^sub>F\<^sub>W (S, U) (T, U #\<union> mset_set (clauses T))"
-inductive_cases cdcl\<^sub>F\<^sub>WE[elim]: "cdcl\<^sub>F\<^sub>W S T"
-inductive_cases cdcl\<^sub>F\<^sub>WE2[elim]: "cdcl\<^sub>F\<^sub>W (S, U) (T, V)"
-
-lemma rtranclp_cdcl\<^sub>F\<^sub>W_rtranclp_cdcl_fw_s:
-  "cdcl\<^sub>F\<^sub>W\<^sup>*\<^sup>* (S, U) (T, V) \<Longrightarrow> cdcl_fw_s\<^sup>*\<^sup>* S T"
-  by (induction rule: rtranclp_induct2) auto
-
-lemma
-  assumes
-    inv: "cdcl_all_inv_mes R" and
-    cdcl: "cdcl\<^sub>F\<^sub>W\<^sup>*\<^sup>* (R, V) (T', W')" and
-    dist_V: "distinct_mset V" and
-    "trail R = []"
-  shows "distinct_mset W'"
-proof (rule ccontr)
-  assume "\<not> ?thesis"
-  with cdcl obtain S U T W where
-    "cdcl\<^sub>F\<^sub>W\<^sup>*\<^sup>* (R, V) (S, U)" and
-    ST: "cdcl\<^sub>F\<^sub>W (S, U) (T, W)" and
-    "cdcl\<^sub>F\<^sub>W\<^sup>*\<^sup>* (T, W) (T', W')" and
-    "distinct_mset U" and
-    "\<not> distinct_mset W"
-    using dist_V
-    proof (induction rule: rtranclp_induct2)
-      case refl
+lemma strict_mono_local_prop:
+  assumes "\<And>i::nat. g (Suc i) > g i"
+  shows "strict_mono g"
+  unfolding strict_mono_def
+proof (intro allI impI)
+  fix x y::nat
+  assume "x < y"
+  then show "g x < g y"
+    proof (induction "y -x" arbitrary: x y)
+      case 0
       then show ?case by simp
     next
-      case (step R' V' T' W')
+      case (Suc n) note IH = this(1) and n = this(2)
+      consider
+          (eq) "y = Suc x"
+        | (less) y' where "y = Suc y'" and "y' > x"
+        using \<open>x < y\<close> Suc_le_D unfolding less_eq_Suc_le by fastforce
       then show ?case
-        apply (cases "distinct_mset V'")
-          apply simp
-        by (metis (no_types, lifting) rtranclp.rtrancl_into_rtrancl)
+        proof cases
+          case eq
+          then show ?thesis using assms by simp
+        next
+          case less
+          then have "g x < g y'" using IH[of y' x] n by auto
+          then show ?thesis using assms[of y' ] less by auto
+        qed
     qed
+qed
 
-  have inv_S: "cdcl_all_inv_mes S"
-    using rtranclp_cdcl_fw_s_rtranclp_cdcl[of R S] rtranclp_cdcl_all_inv_mes_inv inv
-    rtranclp_cdcl\<^sub>F\<^sub>W_rtranclp_cdcl_fw_s[OF \<open>cdcl\<^sub>F\<^sub>W\<^sup>*\<^sup>* (R, V) (S, U)\<close>] by blast
-  from ST have W: "W = U #\<union> mset_set (clauses T)" and ST: "cdcl_fw_s S T"
-    by auto
-  have inv_T: "cdcl_all_inv_mes T"
-    using ST rtranclp_cdcl_fw_s_rtranclp_cdcl inv_S rtranclp_cdcl_all_inv_mes_inv by blast
-  then have [simp]: "finite (clauses T)"
-    unfolding cdcl_all_inv_mes_def clauses_def by auto
-  obtain C where "C \<in># U" and "C \<in> clauses T"
-    using \<open>\<not> distinct_mset W\<close> \<open>distinct_mset U\<close> unfolding W distinct_mset_def
-    by (force simp: max_def split: split_if_asm)
-  have confl_S: "conflicting S = C_True"
-    using ST by (auto simp: cdcl_fw_s.simps full_def cdcl_fw_cp.simps dest!: tranclpD)
-  from ST show False
-    proof cases
-      case fw_s_cp
-      then have "cdcl_s'_without_decide\<^sup>+\<^sup>+ S T"
-        using conflicting_true_full_cdcl_fw_cp_iff_full_cdcl_s'_without_decode inv_S confl_S
-        unfolding full_def
-        by blast
-      then obtain S' S'' T' where
-        "cdcl_s'_without_decide\<^sup>*\<^sup>* S' S''" and
-        "cdcl_s'_without_decide S'' T'" and
-        "cdcl_s'_without_decide T' T" and
-        "C \<in> clauses T'" and
-        "C \<notin> clauses S''"
-      using \<open>C \<in> clauses T\<close> unfolding full_def apply (induction rule: tranclp_induct)
-oops
+lemma cdcl_with_restart\<^sub>C\<^sub>W_init_clss:
+  "cdcl_with_restart\<^sub>C\<^sub>W S T \<Longrightarrow> init_clss (fst S) = init_clss (fst T)"
+  using cdcl_with_restart\<^sub>C\<^sub>W_rtranclp_cdcl rtranclp_cdcl_init_clss by blast
+
+lemma
+  "wf {(T, S). cdcl_all_inv_mes (fst S) \<and> cdcl_with_restart\<^sub>C\<^sub>W S T}"
+proof (rule ccontr)
+  assume "\<not> ?thesis"
+    then obtain g where
+    g: "\<And>i. cdcl_with_restart\<^sub>C\<^sub>W (g i) (g (Suc i))" and
+    inv: "\<And>i. cdcl_all_inv_mes (fst (g i))"
+    unfolding wf_iff_no_infinite_down_chain by fast
+  {fix i
+    have "init_clss (fst (g i)) = init_clss (fst (g 0))"
+      apply (induction i)
+        apply simp
+      using g cdcl_with_restart\<^sub>C\<^sub>W_init_clss by blast
+    } note init_g = this
+  let ?S = "g 0"
+  have "finite (atms_of_m (init_clss (fst ?S)))"
+    using inv unfolding cdcl_all_inv_mes_def by auto
+  have "\<And>i. snd (g i) < snd (g (i+1))"
+    by (metis Suc_eq_plus1 Suc_le_lessD add.commute cdcl_with_restart\<^sub>C\<^sub>W_increasing_number g
+      less_or_eq_imp_le)
+  then have "strict_mono (snd o g)"
+    using strict_mono_local_prop[of "snd o g"] by auto
+  then obtain j where j:"snd (g j) > card (build_all_simple_clss (atms_of_m (init_clss (fst ?S))))"
+    using strict_mono_ge_id[of "snd \<circ> g" "1+card (build_all_simple_clss (atms_of_m (init_clss
+      (fst ?S))))"] Suc_le_lessD
+    by fastforce
+  { fix i
+    assume "no_step cdcl_fw_s (fst (g i))"
+    with g[of i]
+    have False
+      proof (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct)
+        case (restart_step T S n) note H = this(1) and c = this(2) and n_s = this(4)
+        obtain S' where "cdcl_fw_s S S'"
+          using H c by (metis less_nat_zero_code relpowp_E2)
+        then show False using n_s by auto
+      next
+        case (restart_full S T)
+        then show False unfolding full_def by (auto dest: tranclpD)
+      qed
+    } note H = this
+  obtain m T where
+    m: "m = card (learned_clss T) - card (learned_clss (fst (g j)))" and
+    "m > f (snd (g j))" and
+    "restart T (fst (g (j+1)))" and
+    cdcl_fw_s: "(cdcl_fw_s ^^ m) (fst (g j)) T"
+    using g[of j] H[of "Suc j"] by (force simp: cdcl_with_restart\<^sub>C\<^sub>W.simps full_def)
+  have "cdcl_fw_s\<^sup>*\<^sup>* (fst (g j)) T"
+    using cdcl_fw_s relpowp_imp_rtranclp by metis
+  then have "cdcl_all_inv_mes T"
+    using inv[of j]  rtranclp_cdcl_all_inv_mes_inv rtranclp_cdcl_fw_s_rtranclp_cdcl by blast
+  moreover have "card (learned_clss T) - card (learned_clss (fst (g j)))
+      > card (build_all_simple_clss (atms_of_m (init_clss (fst ?S))))"
+    by (smt Suc_leI \<open>f (snd (g j)) < m\<close> dual_order.trans f j le_less_linear less_imp_le m
+      not_less_eq_eq strict_mono_ge_id)
+    then have "card (learned_clss T) > card (build_all_simple_clss (atms_of_m (init_clss (fst ?S))))"
+      by linarith
+  moreover
+
+    have "init_clss (fst (g j)) = init_clss T"
+      using \<open>cdcl_fw_s\<^sup>*\<^sup>* (fst (g j)) T\<close> rtranclp_cdcl_fw_s_rtranclp_cdcl rtranclp_cdcl_init_clss
+      by blast
+    then have "init_clss (fst ?S) = init_clss T"
+      using init_g by auto
+  ultimately show False
+    using cdcl_all_inv_mes_learned_clss_bound by (metis Suc_leI card_mono not_less_eq_eq
+      build_all_simple_clss_finite)
+qed
 
 end
 
