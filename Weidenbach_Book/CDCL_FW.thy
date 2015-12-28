@@ -723,6 +723,10 @@ lemma cdcl_fw_cdcl_fw_restart:
   "cdcl_fw S T \<Longrightarrow> cdcl_fw_restart S T"
   by (meson cdcl_fw.cases cdcl_fw_restart.simps forget)
 
+lemma rtranclp_cdcl_fw_tranclp_cdcl_fw_restart:
+  "cdcl_fw\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl_fw_restart\<^sup>*\<^sup>* S T"
+  using rtranclp_mono[of cdcl_fw cdcl_fw_restart] cdcl_fw_cdcl_fw_restart by blast
+
 lemma rtranclp_cdcl_fw_rtranclp_cdcl:
   "cdcl_fw S T \<Longrightarrow> cdcl\<^sup>*\<^sup>* S T"
   using cdcl_fw_cdcl_fw_restart cdcl_fw_restart_cdcl by blast
@@ -2185,6 +2189,21 @@ proof -
     unfolding full0_unfold by (auto dest!: full_cdcl_fw_cp_cdcl_fw fw_decide)
 qed
 
+lemma tranclp_rtranclp_rtranclp: "R\<^sup>+\<^sup>+\<^sup>*\<^sup>* a b \<longleftrightarrow> R\<^sup>*\<^sup>* a b"
+  apply (rule iffI)
+    apply (induct rule: rtranclp_induct; auto)
+  apply (induct rule: rtranclp_induct; auto)
+  done
+
+lemma tranclp_rtranclp_rtranclp_rel: "R\<^sup>+\<^sup>+\<^sup>*\<^sup>* = R\<^sup>*\<^sup>*"
+  by (auto simp: tranclp_rtranclp_rtranclp intro!: ext)
+
+lemma rtranclp_cdcl_fw_s_rtranclp_cdcl_fw:
+  assumes fw: "cdcl_fw_s\<^sup>*\<^sup>* S T"
+  shows "cdcl_fw\<^sup>*\<^sup>* S T"
+  using fw cdcl_fw_s_tranclp_cdcl_fw rtranclp_mono[of cdcl_fw_s "cdcl_fw\<^sup>+\<^sup>+"]
+  unfolding tranclp_rtranclp_rtranclp_rel by blast
+
 lemma cdcl_fw_s_rtranclp_cdcl:
   "cdcl_fw_s S T \<Longrightarrow> cdcl\<^sup>*\<^sup>* S T"
   apply (induction rule: cdcl_fw_s.induct)
@@ -3102,9 +3121,16 @@ begin
 
 inductive cdcl_with_restart\<^sub>C\<^sub>W where
 restart_step: "(cdcl_fw_s^^(card (learned_clss T) - card (learned_clss S))) S T
-  \<Longrightarrow> card (learned_clss T) - card (learned_clss S) >  f n
+  \<Longrightarrow> card (learned_clss T) - card (learned_clss S) > f n
   \<Longrightarrow> restart T U \<Longrightarrow> cdcl_with_restart\<^sub>C\<^sub>W (S, n) (U, Suc n)" |
 restart_full: "full cdcl_fw_s S T \<Longrightarrow> cdcl_with_restart\<^sub>C\<^sub>W (S, n) (T, Suc n)"
+
+lemma "cdcl_with_restart\<^sub>C\<^sub>W S T \<Longrightarrow> cdcl_fw_restart\<^sup>*\<^sup>* (fst S) (fst T)"
+  by (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct)
+  (auto dest!: relpowp_imp_rtranclp cdcl_fw_s_tranclp_cdcl_fw tranclp_into_rtranclp
+     rtranclp_cdcl_fw_s_rtranclp_cdcl_fw rtranclp_cdcl_fw_tranclp_cdcl_fw_restart fw_r_rf
+     cdcl_rf.restart
+    simp: full_def)
 
 lemma cdcl_with_restart\<^sub>C\<^sub>W_rtranclp_cdcl:
   "cdcl_with_restart\<^sub>C\<^sub>W S T \<Longrightarrow> cdcl\<^sup>*\<^sup>* (fst S) (fst T)"
@@ -3115,6 +3141,9 @@ lemma cdcl_with_restart\<^sub>C\<^sub>W_rtranclp_cdcl:
 lemma cdcl_with_restart\<^sub>C\<^sub>W_increasing_number:
   "cdcl_with_restart\<^sub>C\<^sub>W S T \<Longrightarrow> snd T = 1 + snd S"
   by (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct) auto
+
+lemma "full cdcl_fw_s S T \<Longrightarrow> cdcl_with_restart\<^sub>C\<^sub>W (S, n) (T, Suc n)"
+  using restart_full by blast
 
 lemma cdcl_all_inv_mes_learned_clss_bound:
   assumes inv: "cdcl_all_inv_mes S"
