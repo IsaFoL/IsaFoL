@@ -12,6 +12,18 @@ lemma tranclp_mono:
   shows "r\<^sup>+\<^sup>+ \<le> s\<^sup>+\<^sup>+"
     using rtranclp_mono[OF mono] mono by (auto dest!: tranclpD intro: rtranclp_into_tranclp2)
 
+thm rtranclp_idemp
+lemma tranclp_tranclp_is_tranclp:
+  "R\<^sup>+\<^sup>+\<^sup>+\<^sup>+ a b \<longleftrightarrow> R\<^sup>+\<^sup>+ a b"
+  apply (rule iffI)
+    prefer 2 apply auto
+    apply (induction rule: tranclp_induct)
+  by auto
+
+lemma tranclp_idemp[simp]:
+  "R\<^sup>+\<^sup>+\<^sup>+\<^sup>+ = R\<^sup>+\<^sup>+"
+  by (auto simp: tranclp_tranclp_is_tranclp intro!: ext)
+
 text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and sledgehammer uses it), but
   it makes sense to duplicate it, because it is unclear how stable the lemmas in Nitpick are.\<close>
 lemma rtranclp_unfold: "rtranclp r a b \<longleftrightarrow> (a = b \<or> tranclp r a b)"
