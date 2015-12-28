@@ -825,6 +825,16 @@ lemma cdcl_M_level_inv_S0_cdcl[simp]:
     "finite N \<Longrightarrow> cdcl_M_level_inv (init_state N)"
   unfolding cdcl_M_level_inv_def by auto
 
+lemma cdcl_M_level_inv_get_level_le_backtrack_lvl:
+  assumes inv: "cdcl_M_level_inv S"
+  shows "get_level L (trail S) \<le> backtrack_lvl S"
+proof -
+  have "get_all_levels_of_marked (trail S) = rev [1..<1 + backtrack_lvl S]"
+    using inv unfolding cdcl_M_level_inv_def by auto
+  then show ?thesis
+    using get_rev_level_less_max_get_all_levels_of_marked[of L 0 "rev (trail S)"] 
+    by (auto simp: Max_n_upt)
+qed
 
 lemma backtrack_ex_decomp:
   assumes M_l: "cdcl_M_level_inv S"
@@ -4208,12 +4218,10 @@ proof -
   have 8: "cdcl_conflicting St"
     using rtranclp_cdcl_all_inv(6)[OF st] finite no_d bt by simp
   have "init_clss S' = init_clss St" and "conflicting S' = C_Clause {#}"
+     using \<open>conflicting St \<noteq> C_True\<close> full0_cdcl_init_clss_with_false_normal_form[OF 1, of _ _ St]
+     2 3 4 5 6 7 8 St apply (metis \<open>cdcl_s\<^sup>*\<^sup>* St S'\<close> rtranclp_cdcl_s_no_more_init_clss)
     using \<open>conflicting St \<noteq> C_True\<close> full0_cdcl_init_clss_with_false_normal_form[OF 1, of _ _ St _ _
-      S'] 2 3 4 5 6 7 8 St
-    apply (metis \<open>cdcl_s\<^sup>*\<^sup>* St S'\<close> rtranclp_cdcl_s_no_more_init_clss)
-    using \<open>conflicting St \<noteq> C_True\<close> full0_cdcl_init_clss_with_false_normal_form[OF 1, of _ _ St _ _
-      S']
-    2 3 4 5 6 7 8 by (metis bt conflicting_clause.exhaust prod.inject)
+      S'] 2 3 4 5 6 7 8 by (metis bt conflicting_clause.exhaust prod.inject)
 
   moreover have "init_clss S' = N"
     using \<open>cdcl_s\<^sup>*\<^sup>* (init_state N) S'\<close> rtranclp_cdcl_s_no_more_init_clss by fastforce
@@ -4221,7 +4229,7 @@ proof -
   ultimately show ?thesis by auto
 qed
 
-(** prop 2.10.9*)
+(** prop 2.10.9 (lem:prop:cddlsoundtermStates)*)
 lemma full_cdcl_s_normal_forms:
   fixes S' :: 'st
   assumes full: "full0 cdcl_s (init_state N) S'"
