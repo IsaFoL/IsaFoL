@@ -34,14 +34,12 @@ Digraph CDCL {
   		  label="Intermediate W";
   		  style=filled;
   		  color=lightgrey;
-  		  CDCL_W_min_backtrack [label="CDCL W min_backtrack", color=blue];
   		  CDCL_W_min_backtrack_stgy_conflict_propagate [label="CDCL W min_backtrack + stgy conflict propagate"];
   	  }
   	  subgraph cluster_fw {
   		  style=filled;
   		  color=lightgrey;
   		  label="FW";
-  		  CDCL_FW [label="CDCL FW", color=blue, shape=box];
   		  CDCL_FW_forget [label="CDCL FW + forget", shape=box];
   		  CDCL_FW_stgy_conflict_propagate_restart [label="CDCL FW + restart + stgy conflict propagate restart", shape=box];
 		  CDCL_FW_simplify_stgy_conflict_propagate_restart [label="CDCL FW + simplify + restart + stgy conflict propagate restart forget", color=blue, shape=box];
@@ -54,8 +52,6 @@ Digraph CDCL {
 	CDCL_FW_forget -> CDCL_NOT_chaining [style=dashed];
 	CDCL_FW_forget -> CDCL_FW_forget_restart [style=dashed];
 	CDCL_FW_forget_restart -> CDCL_NOT_restart [style=dashed, color=red];
-	CDCL_FW -> CDCL_FW_forget [style=dashed, color=blue];
-	CDCL_FW_stgy_conflict_propagate ->  CDCL_FW[style=dashed, color=blue];
 	CDCL_FW_stgy_conflict_propagate -> CDCL_FW_stgy_conflict_propagate_restart[style=dashed, color=red];
 
 	CDCL_FW_stgy_conflict_propagate -> CDCL_FW_simplify_stgy_conflict_propagate[style=dashed, color=blue];
@@ -67,17 +63,12 @@ Digraph CDCL {
 		label="W";
 		style=filled;
 		color=lightgrey;
-		CDCL_W [label="CDCL W", color=red, shape=box];
 		CDCL_W_forget_restart [label="CDCL W + restart + forget"];
 		CDCL_W_stgy_conflict_propagate [label="CDCL W + stgy conflict propagate", shape=box];
 	}
-	CDCL_W -> CDCL_W_forget_restart[color=red, style=dashed];
 	CDCL_W_stgy_conflict_propagate -> CDCL_W_forget_restart[style=dashed];
-	CDCL_W_stgy_conflict_propagate -> CDCL_W[color=red];
 	CDCL_W_forget_restart -> CDCL_FW_forget_restart[style=dotted, dir="both"];
 
-	CDCL_W_min_backtrack -> CDCL_FW[style=dotted, dir="both", color=blue];
-	CDCL_W_min_backtrack -> CDCL_W[style=dotted, dir="both", color=blue];
 
 	CDCL_W_min_backtrack_stgy_conflict_propagate -> CDCL_W_stgy_conflict_propagate[style=dotted, dir="both"];
 	CDCL_W_min_backtrack_stgy_conflict_propagate -> CDCL_FW_stgy_conflict_propagate[style=dotted, dir="both"];
@@ -94,14 +85,6 @@ Digraph CDCL {
 
 	CDCL_W_state -> CDCL_NOT_state;
 	CDCL_WL -> CDCL_W_state[color=blue];
-	
-	{rank=same;
-		CDCL_W
-		//CDCL_NOT
-		CDCL_W_min_backtrack
-		CDCL_FW
-		
-		};
 
 	{rank=same;
 		CDCL_W_forget_restart;
