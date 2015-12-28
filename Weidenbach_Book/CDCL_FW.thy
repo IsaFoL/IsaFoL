@@ -914,7 +914,7 @@ next
             have f1: "cdcl_bj\<^sup>+\<^sup>+ U V"
               by (simp add: local.bj tranclp.r_into_trancl)
             obtain T T' :: 'st where
-              f2: "cdcl_fw_restart\<^sup>*\<^sup>* S U 
+              f2: "cdcl_fw_restart\<^sup>*\<^sup>* S U
                 \<or> cdcl_fw_restart\<^sup>*\<^sup>* S T \<and> conflicting U \<noteq> C_True \<and> conflict T T' \<and> cdcl_bj\<^sup>*\<^sup>* T' U"
               using IH confl by blast
             then have ?thesis
@@ -1658,7 +1658,7 @@ lemma rtranclp_cdcl_fw_cp_rtranclp_cdcl:
   "cdcl_fw_cp\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sup>*\<^sup>* S T"
  apply (induction rule: rtranclp_induct)
   apply simp
- unfolding cdcl_fw_cp.simps by (meson cdcl_fw_restart_cdcl fw_r_conflict 
+ unfolding cdcl_fw_cp.simps by (meson cdcl_fw_restart_cdcl fw_r_conflict
    rtranclp_propagate_is_rtranclp_cdcl rtranclp_trans tranclp_into_rtranclp)
 
 lemma full_cdcl_bj_no_step_cdcl_bj:
@@ -1848,9 +1848,9 @@ next
 qed
 
 lemma no_step_cdcl_s'_no_ste_cdcl_fw_cp:
-  assumes 
+  assumes
     "cdcl_all_inv_mes S"
-    "conflicting S = C_True" 
+    "conflicting S = C_True"
     " no_step cdcl_s' S"
   shows "no_step cdcl_fw_cp S"
   using assms apply (auto simp: cdcl_s'.simps cdcl_fw_cp.simps)
@@ -1920,7 +1920,7 @@ qed
 
 lemma no_step_cdcl_fw_cp_no_step_cdcl_cp:
   "no_step cdcl_fw_cp S \<Longrightarrow> no_step cdcl_cp S"
-  using wf_exists_normal_form_full0[OF cdcl_bj_wf] by (force simp: cdcl_fw_cp.simps 
+  using wf_exists_normal_form_full0[OF cdcl_bj_wf] by (force simp: cdcl_fw_cp.simps
     cdcl_cp.simps)
 
 lemma conflicting_not_true_rtranclp_cdcl_fw_cp_no_step_cdcl_bj:
@@ -2236,9 +2236,9 @@ lemma rtranclp_cdcl_s'_no_step_cdcl_s'_without_decide_decomp_into_cdcl_fw:
     inv: "cdcl_all_inv_mes R"
   shows "(cdcl_fw_restart_s\<^sup>*\<^sup>* R V \<and> conflicting V = C_True)
   \<or> (cdcl_fw_restart_s\<^sup>*\<^sup>* R V \<and> conflicting V \<noteq> C_True \<and> no_step cdcl_bj V)
-  \<or> (\<exists>S T U. cdcl_fw_restart_s\<^sup>*\<^sup>* R S \<and> no_step cdcl_fw_cp S \<and> decide S T 
+  \<or> (\<exists>S T U. cdcl_fw_restart_s\<^sup>*\<^sup>* R S \<and> no_step cdcl_fw_cp S \<and> decide S T
     \<and> cdcl_fw_cp\<^sup>*\<^sup>* T U \<and> conflict U V)
-  \<or> (\<exists>S T. cdcl_fw_restart_s\<^sup>*\<^sup>* R S \<and> no_step cdcl_fw_cp S \<and> decide S T 
+  \<or> (\<exists>S T. cdcl_fw_restart_s\<^sup>*\<^sup>* R S \<and> no_step cdcl_fw_cp S \<and> decide S T
     \<and> cdcl_fw_cp\<^sup>*\<^sup>* T V
       \<and> conflicting V = C_True)
   \<or> (cdcl_fw_cp\<^sup>*\<^sup>* R V \<and> conflicting V = C_True)
@@ -2256,7 +2256,7 @@ next
       case conflict'
       consider
          (s') "cdcl_fw_restart_s\<^sup>*\<^sup>* R V"
-        | (dec_confl) S T U where "cdcl_fw_restart_s\<^sup>*\<^sup>* R S" and "no_step cdcl_fw_cp S" and 
+        | (dec_confl) S T U where "cdcl_fw_restart_s\<^sup>*\<^sup>* R S" and "no_step cdcl_fw_cp S" and
             "decide S T" and "cdcl_fw_cp\<^sup>*\<^sup>* T U" and "conflict U V"
         | (dec) S T where "cdcl_fw_restart_s\<^sup>*\<^sup>* R S" and "no_step cdcl_fw_cp S" and "decide S T" and
             "cdcl_fw_cp\<^sup>*\<^sup>* T V" and "conflicting V = C_True"
@@ -2339,7 +2339,7 @@ next
         using conf_V local.decide'(2) no_step_cdcl_cp_no_step_cdcl_s'_without_decide by blast
       consider
          (s') "cdcl_fw_restart_s\<^sup>*\<^sup>* R V"
-        | (dec_confl) S T U where "cdcl_fw_restart_s\<^sup>*\<^sup>* R S" and "no_step cdcl_fw_cp S" and 
+        | (dec_confl) S T U where "cdcl_fw_restart_s\<^sup>*\<^sup>* R S" and "no_step cdcl_fw_cp S" and
             "decide S T" and "cdcl_fw_cp\<^sup>*\<^sup>* T U" and "conflict U V"
         | (dec) S T where "cdcl_fw_restart_s\<^sup>*\<^sup>* R S" and "no_step cdcl_fw_cp S" and "decide S T" and
             "cdcl_fw_cp\<^sup>*\<^sup>* T V" and "conflicting V = C_True"
@@ -2374,7 +2374,7 @@ next
               hence "cdcl_fw_cp\<^sup>*\<^sup>* V' V''"
                 by (metis rtranclp_unfold cdcl_fw_cp.propagate' r_into_rtranclp)
               then show ?thesis
-                using local.decide'(1,2) propa_confl(2) s' conf_V 
+                using local.decide'(1,2) propa_confl(2) s' conf_V
                 no_step_cdcl_cp_no_step_cdcl_fw_restart
                 by metis
             qed
@@ -2468,7 +2468,7 @@ next
         by (auto dest: tranclpD simp: full_def)
       then consider
          (s') "cdcl_fw_restart_s\<^sup>*\<^sup>* R V" and "conflicting V = C_True"
-        | (dec_confl) S T U where "cdcl_fw_restart_s\<^sup>*\<^sup>* R S" and "no_step cdcl_fw_cp S" and 
+        | (dec_confl) S T U where "cdcl_fw_restart_s\<^sup>*\<^sup>* R S" and "no_step cdcl_fw_cp S" and
             "decide S T" and "cdcl_fw_cp\<^sup>*\<^sup>* T U" and "conflict U V"
         | (dec) S T where "cdcl_fw_restart_s\<^sup>*\<^sup>* R S" and "no_step cdcl_fw_cp S" and "decide S T" and
             "cdcl_fw_cp\<^sup>*\<^sup>* T V" and "conflicting V = C_True"
@@ -2573,7 +2573,7 @@ next
                   then have "cdcl_fw_restart_s R V'"
                     by auto
                   moreover have "no_step cdcl_fw_restart_s V'"
-                    using confl \<open>no_step cdcl_fw_cp V'\<close> by (auto simp: cdcl_fw_restart_s.simps 
+                    using confl \<open>no_step cdcl_fw_cp V'\<close> by (auto simp: cdcl_fw_restart_s.simps
                       full_def dest!: tranclpD)
                   ultimately have "cdcl_fw_restart_s\<^sup>*\<^sup>* R V'" by auto
                   show ?thesis by (metis V'_W \<open>cdcl_fw_cp U V'\<close> \<open>cdcl_fw_restart_s\<^sup>*\<^sup>* R V'\<close>
@@ -2710,7 +2710,7 @@ next
           have "\<And>s. \<not> full0 cdcl_fw_cp s S"
             using f4 f3 by (meson full0_def)
           then have "S = R"
-            using f5 by (metis (no_types) cdcl_fw_restart_s.simps rtranclp_unfold st 
+            using f5 by (metis (no_types) cdcl_fw_restart_s.simps rtranclp_unfold st
               tranclp_unfold_end)
           then show ?thesis
             using f2 a1 by (metis (no_types) \<open>cdcl_all_inv_mes S\<close>
@@ -2882,9 +2882,9 @@ proof
   consider
       (fw_no_confl) "cdcl_fw_restart_s\<^sup>*\<^sup>* R V" and "conflicting V = C_True"
     | (fw_confl) "cdcl_fw_restart_s\<^sup>*\<^sup>* R V" and "conflicting V \<noteq> C_True" and "no_step cdcl_bj V"
-    | (fw_dec_confl) S T U where "cdcl_fw_restart_s\<^sup>*\<^sup>* R S" and "no_step cdcl_fw_cp S" and 
+    | (fw_dec_confl) S T U where "cdcl_fw_restart_s\<^sup>*\<^sup>* R S" and "no_step cdcl_fw_cp S" and
         "decide S T" and "cdcl_fw_cp\<^sup>*\<^sup>* T U" and "conflict U V"
-    | (fw_dec_no_confl) S T where "cdcl_fw_restart_s\<^sup>*\<^sup>* R S" and "no_step cdcl_fw_cp S" and 
+    | (fw_dec_no_confl) S T where "cdcl_fw_restart_s\<^sup>*\<^sup>* R S" and "no_step cdcl_fw_cp S" and
         "decide S T" and "cdcl_fw_cp\<^sup>*\<^sup>* T V" and "conflicting V = C_True"
     | (cp_no_confl) "cdcl_fw_cp\<^sup>*\<^sup>* R V" and "conflicting V = C_True"
     | (cp_confl) U where "cdcl_fw_cp\<^sup>*\<^sup>* R U" and "conflict U V"
@@ -2930,21 +2930,21 @@ proof
     qed
 next
   assume ?fw
-  then have "cdcl\<^sup>*\<^sup>* R V" using rtranclp_mono[of cdcl_fw_restart_s "cdcl\<^sup>*\<^sup>*"] 
+  then have "cdcl\<^sup>*\<^sup>* R V" using rtranclp_mono[of cdcl_fw_restart_s "cdcl\<^sup>*\<^sup>*"]
     cdcl_fw_restart_s_rtranclp_cdcl unfolding full0_def by auto
   then have inv': "cdcl_all_inv_mes V" using inv rtranclp_cdcl_all_inv_mes_inv by blast
-  have "cdcl_s'\<^sup>*\<^sup>* R V" 
+  have "cdcl_s'\<^sup>*\<^sup>* R V"
     using \<open>?fw\<close> by (simp add: full0_def inv rtranclp_cdcl_fw_restart_s_rtranclp_cdcl_s')
   moreover have "no_step cdcl_s' V"
     proof cases
       assume "conflicting V = C_True"
       then show ?thesis
-        by (metis inv' \<open>full0 cdcl_fw_restart_s R V\<close> full0_def 
+        by (metis inv' \<open>full0 cdcl_fw_restart_s R V\<close> full0_def
           no_step_cdcl_fw_restart_s_no_step_cdcl_s')
     next
       assume confl_V: "conflicting V \<noteq> C_True"
       then have "no_step cdcl_bj V"
-      using rtranclp_cdcl_fw_restart_s_no_step_cdcl_bj by (meson \<open>full0 cdcl_fw_restart_s R V\<close> 
+      using rtranclp_cdcl_fw_restart_s_no_step_cdcl_bj by (meson \<open>full0 cdcl_fw_restart_s R V\<close>
         assms(1) full0_def)
       then show ?thesis using confl_V by (fastforce simp: cdcl_s'.simps full_def cdcl_cp.simps
         dest!: tranclpD)
@@ -2967,7 +2967,7 @@ locale cdcl_cw_ops_restart =
   fixes f :: "nat \<Rightarrow> nat"
   assumes f: "strict_mono f"
 begin
-(* \<mu> can be sometinh like (if no_step then 0 else 1) + 3 ^ card (init_clss S) *)
+(* \<mu> can be someting like (if no_step then 0 else 1) + 3 ^ card (init_clss S) *)
 sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts_ops restart cdcl_fw_restart_s f _ _ cdcl_all_inv_mes _
   apply (unfold_locales)
            using f apply simp
@@ -3072,10 +3072,6 @@ proof (rule ccontr)
       using \<open>C \<in> clauses T\<close> unfolding full_def apply (induction rule: tranclp_induct)
 oops
 
-lemma
-  assumes "mono (g:: nat \<Rightarrow> nat)"
-  shows "\<exists>m. g m > n"
-oops
 end
 
 end
