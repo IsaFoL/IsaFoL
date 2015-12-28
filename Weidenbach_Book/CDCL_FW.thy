@@ -719,8 +719,13 @@ fw_conflict: "conflict S T \<Longrightarrow> full0 cdcl_bj T U \<Longrightarrow>
 fw_decide: "decide S S' \<Longrightarrow> cdcl_fw S S'"|
 fw_forget: "forget S S' \<Longrightarrow> cdcl_fw S S'"
 
-lemma "cdcl_fw S T \<Longrightarrow> cdcl_fw_restart S T"
+lemma cdcl_fw_cdcl_fw_restart:
+  "cdcl_fw S T \<Longrightarrow> cdcl_fw_restart S T"
   by (meson cdcl_fw.cases cdcl_fw_restart.simps forget)
+
+lemma rtranclp_cdcl_fw_rtranclp_cdcl:
+  "cdcl_fw S T \<Longrightarrow> cdcl\<^sup>*\<^sup>* S T"
+  using cdcl_fw_cdcl_fw_restart cdcl_fw_restart_cdcl by blast
 
 lemma cdcl_fw_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged:
   assumes
@@ -842,7 +847,7 @@ next
       have "every_mark_is_a_conflict U"
         using inv_U unfolding cdcl_all_inv_mes_def cdcl_conflicting_def by simp
       then have "tl (trail U) \<Turnstile>as CNot D"
-        by (metis add_diff_cancel_left' append_self_conv2 tr_U union_commute)          
+        by (metis add_diff_cancel_left' append_self_conv2 tr_U union_commute)
       have "backjump_l S U"
         apply (rule backjump_l)
                 using tr_T apply simp
@@ -861,6 +866,76 @@ next
       then show ?thesis using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_backjump_l by fast
     qed
 qed
+
+abbreviation \<mu>\<^sub>F\<^sub>W :: "'st \<Rightarrow> nat" where
+"\<mu>\<^sub>F\<^sub>W S \<equiv> (if no_step cdcl_fw S then 0 else 1+\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged (init_clss S) S)"
+
+lemma cdcl_fw_\<mu>\<^sub>F\<^sub>W_decreasing:
+  assumes
+    inv: "cdcl_all_inv_mes S" and
+    fw: "cdcl_fw S T"
+  shows "\<mu>\<^sub>F\<^sub>W T < \<mu>\<^sub>F\<^sub>W S"
+proof -
+  let ?A = "init_clss S"
+  have atm_clauses: "atms_of_m (clauses S) \<subseteq> atms_of_m ?A"
+    using inv unfolding cdcl_all_inv_mes_def no_strange_atm_def clauses_def by auto
+  have atm_trail: "atm_of ` lits_of (trail S) \<subseteq> atms_of_m ?A"
+    using inv unfolding cdcl_all_inv_mes_def no_strange_atm_def clauses_def by auto
+  have n_d: "no_dup (trail S)"
+    using inv unfolding cdcl_all_inv_mes_def by auto
+  have fin_S: "finite (clauses S)"
+    using inv unfolding cdcl_all_inv_mes_def clauses_def by auto
+  have fin_A: "finite ?A"
+    using inv unfolding cdcl_all_inv_mes_def by auto
+  have [simp]: "\<not> no_step cdcl_fw S"
+    using fw by auto
+  have [simp]: "init_clss S = init_clss T"
+    by (meson cdcl_fw.simps cdcl_fw_restart.simps cdcl_fw_restart_cdcl cdcl_rf.simps fw
+      rtranclp_cdcl_init_clss)
+  consider
+      (merged) "cdcl\<^sub>N\<^sub>O\<^sub>T_merged S T"
+    | (n_s) "no_step cdcl_fw T"
+    using cdcl_fw_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged inv fw by blast
+  then show ?thesis
+    proof cases
+      case merged
+      then show ?thesis
+        using cdcl\<^sub>N\<^sub>O\<^sub>T_decreasing_measure'[OF _ n_d atm_clauses atm_trail n_d fin_S fin_A]
+        by (auto split: split_if)
+    next
+      case n_s
+      then show ?thesis by simp
+    qed
+qed
+
+lemma wf_cdcl_fw: "wf {(T, S). cdcl_all_inv_mes S \<and> cdcl_fw S T}"
+  apply (rule wfP_if_measure[of _ _ "\<mu>\<^sub>F\<^sub>W"])
+  using cdcl_fw_\<mu>\<^sub>F\<^sub>W_decreasing by blast
+
+lemma cdcl_all_inv_mes_tranclp_cdcl_fw_tranclp_cdcl_fw_cdcl_all_inv_mes:
+  assumes
+    inv: "cdcl_all_inv_mes b"
+    "cdcl_fw\<^sup>+\<^sup>+ b a"
+  shows "(\<lambda>S T. cdcl_all_inv_mes S \<and> cdcl_fw S T)\<^sup>+\<^sup>+ b a"
+  using assms(2)
+proof induction
+  case base
+  then show ?case using inv by auto
+next
+  case (step c d) note st =this(1) and fw = this(2) and IH = this(3)
+  have "cdcl_all_inv_mes c"
+    using tranclp_into_rtranclp[OF st] rtranclp_cdcl_fw_rtranclp_cdcl
+    assms(1) rtranclp_cdcl_all_inv_mes_inv rtranclp_mono[of cdcl_fw "cdcl\<^sup>*\<^sup>*"] by fastforce
+  then have "(\<lambda>S T. cdcl_all_inv_mes S \<and> cdcl_fw S T)\<^sup>+\<^sup>+ c d"
+    using fw by auto
+  then show ?case using IH by auto
+qed
+
+lemma wf_tranclp_cdcl_fw: "wf {(T, S). cdcl_all_inv_mes S \<and> cdcl_fw\<^sup>+\<^sup>+ S T}"
+  using wf_trancl[OF wf_cdcl_fw]
+  apply (rule wf_subset)
+  by (auto simp: trancl_set_tranclp
+    cdcl_all_inv_mes_tranclp_cdcl_fw_tranclp_cdcl_fw_cdcl_all_inv_mes)
 
 lemma backtrack_is_full_cdcl_bj:
   assumes bt: "backtrack S T"
@@ -1653,6 +1728,12 @@ lemma cdcl_fw_restart_cases[consumes 1, case_names conflict propagate]:
     "propagate\<^sup>+\<^sup>+ S U \<Longrightarrow> P"
   shows "P"
   using assms unfolding cdcl_fw_cp.simps by auto
+
+lemma cdcl_fw_cp_tranclp_cdcl_fw:
+  "cdcl_fw_cp S T \<Longrightarrow> cdcl_fw\<^sup>+\<^sup>+ S T"
+  apply (induction rule: cdcl_fw_cp.induct)
+    using cdcl_fw.simps apply auto[1]
+  using tranclp_mono[of propagate cdcl_fw] fw_propagate by blast
 
 lemma rtranclp_cdcl_fw_cp_rtranclp_cdcl:
   "cdcl_fw_cp\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sup>*\<^sup>* S T"
