@@ -48,11 +48,11 @@ Digraph CDCL {
   		  CDCL_FW_forget_restart [label="CDCL FW + restart + forget"];
 	  }
 	}
-	CDCL_FW_stgy_conflict_propagate_restart -> CDCL_FW_forget_restart [style=dashed, color=red];
+	CDCL_FW_stgy_conflict_propagate_restart -> CDCL_FW_forget_restart [style=dashed];
 	CDCL_FW_forget -> CDCL_NOT_chaining [style=dashed];
 	CDCL_FW_forget -> CDCL_FW_forget_restart [style=dashed];
 	CDCL_FW_forget_restart -> CDCL_NOT_restart [style=dashed, color=red];
-	CDCL_FW_stgy_conflict_propagate -> CDCL_FW_stgy_conflict_propagate_restart[style=dashed, color=red];
+	CDCL_FW_stgy_conflict_propagate -> CDCL_FW_stgy_conflict_propagate_restart[style=dashed];
 
 	CDCL_FW_stgy_conflict_propagate -> CDCL_FW_simplify_stgy_conflict_propagate[style=dashed, color=blue];
 	CDCL_FW_stgy_conflict_propagate_restart -> CDCL_FW_simplify_stgy_conflict_propagate_restart[style=dashed, color=blue];
