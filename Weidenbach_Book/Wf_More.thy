@@ -157,14 +157,13 @@ lemma wf_exists_normal_form_full0:
 
 (* TODO Move to SL? *)
 text \<open>Equivalent of @{thm lexord_transI}\<close>
-lemma lexn_trans:
+lemma lexn_transI:
   assumes trans: "trans r"
   shows "trans (lexn r n)"
     unfolding trans_def
 proof (intro allI impI)
   fix as bs cs
-  assume asbs: "(as, bs) \<in> lexn r n"
-  and bscs: "(bs, cs) \<in> lexn r n"
+  assume asbs: "(as, bs) \<in> lexn r n" and bscs: "(bs, cs) \<in> lexn r n"
 
   obtain abs a b as' bs' where
     n: "length as = n" and "length bs = n" and
@@ -182,7 +181,7 @@ proof (intro allI impI)
   consider (le) "length bcs < length abs"
     | (eq) "length bcs = length abs"
     | (ge) "length bcs > length abs" by linarith
-  thus "(as, cs) \<in> lexn r n"
+  then show "(as, cs) \<in> lexn r n"
     proof cases
       let ?k = "length bcs"
       case le

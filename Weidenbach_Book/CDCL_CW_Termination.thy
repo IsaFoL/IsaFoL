@@ -1092,7 +1092,7 @@ next
     tranclp_cdcl_cp_tranclp_cdcl[OF st]
     unfolding trans_def rtranclp_unfold
     by blast
-  ultimately show ?case using lexn_trans[OF trans_le] unfolding trans_def by blast
+  ultimately show ?case using lexn_transI[OF trans_le] unfolding trans_def by blast
 qed
 
 
@@ -1162,7 +1162,7 @@ proof -
              using \<open>(cdcl_measure T, cdcl_measure S) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3\<close>
              by presburger
            thus ?thesis
-             using lexn_trans[OF trans_le, of 3] \<open>(cdcl_measure T, cdcl_measure S)
+             using lexn_transI[OF trans_le, of 3] \<open>(cdcl_measure T, cdcl_measure S)
                \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3\<close> le_or_eq unfolding trans_def by blast
          qed
     qed
@@ -1178,7 +1178,7 @@ lemma tranclp_cdcl_s_decreasing:
   apply induction
    using cdcl_s_step_decreasing[of R _ R] apply blast
   using cdcl_s_step_decreasing[of _ _ R]  tranclp_into_rtranclp[of cdcl_s R]
-  lexn_trans[OF trans_le, of 3] unfolding trans_def by blast
+  lexn_transI[OF trans_le, of 3] unfolding trans_def by blast
 
 lemma tranclp_cdcl_s_S0_decreasing:
   fixes R S T :: 'st
