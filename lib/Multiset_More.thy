@@ -10,15 +10,15 @@ theory Multiset_More
 imports "~~/src/HOL/Library/Multiset_Order"
 begin
 
-section {* More about Multisets *}
+section \<open>More about Multisets\<close>
 
-text {*
+text \<open>
 Isabelle's theory of finite multisets is not as developed as other areas, such as lists and sets.
 The present theory introduces some missing concepts and lemmas. Some of it is expected to move to
 Isabelle's library.
-*}
+\<close>
 
-subsection {* Basic Setup *}
+subsection \<open>Basic Setup\<close>
 
 declare
   diff_single_trivial [simp]
@@ -37,14 +37,14 @@ lemma subset_msetE [elim!]:
   "[|A \<subset># B;  [|A \<subseteq># B; ~ (B\<subseteq>#A)|] ==> R|] ==> R"
   unfolding subseteq_mset_def subset_mset_def by (meson mset_less_eqI subset_mset.eq_iff)
 
-abbreviation not_Melem where
-  "not_Melem x A \<equiv> ~ (x \<in># A)" -- "non-membership"
+abbreviation not_Melem :: "'a \<Rightarrow> 'a multiset \<Rightarrow> bool" where
+  "not_Melem x A \<equiv> ~ (x \<in># A)" \<comment> "non-membership"
 
-notation
+notation (ASCII)
   not_Melem  ("op ~:#") and
   not_Melem  ("(_/ ~:# _)" [51, 51] 50)
 
-notation (xsymbols)
+notation
   not_Melem  ("op \<notin>#") and
   not_Melem  ("(_/ \<notin># _)" [51, 51] 50)
 
@@ -52,14 +52,14 @@ notation (HTML output)
   not_Melem  ("op \<notin>#") and
   not_Melem  ("(_/ \<notin># _)" [51, 51] 50)
 
-subsection {* Existence quantifiers in multisets*}
+subsection \<open> Existence quantifiers in multisets\<close>
 definition Ball_mset :: "'a multiset \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> bool" where
-  "Ball_mset A P \<longleftrightarrow> (\<forall>x. x \<in># A \<longrightarrow> P x)"   -- "bounded universal quantifiers on multisets"
+  "Ball_mset A P \<longleftrightarrow> (\<forall>x. x \<in># A \<longrightarrow> P x)"   \<comment> "bounded universal quantifiers on multisets"
 
 definition Bex_mset :: "'a multiset \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> bool" where
-  "Bex_mset A P \<longleftrightarrow> (\<exists>x. x \<in># A \<and> P x)"   -- "bounded existential quantifiers on multisets"
+  "Bex_mset A P \<longleftrightarrow> (\<exists>x. x \<in># A \<and> P x)"   \<comment> "bounded existential quantifiers on multisets"
 
-syntax
+syntax (ASCII)
   "_Ball_mset"       :: "pttrn => 'a multiset => bool => bool"      ("(3ALL _:#_./ _)" [0, 0, 10] 10)
   "_Bex_mset"        :: "pttrn => 'a multiset => bool => bool"      ("(3EX _:#_./ _)" [0, 0, 10] 10)
   "_Bex1_mset"       :: "pttrn => 'a multiset => bool => bool"      ("(3EX! _:#_./ _)" [0, 0, 10] 10)
@@ -70,7 +70,7 @@ syntax (HOL)
   "_Bex_mset"        :: "pttrn => 'a multiset => bool => bool"      ("(3? _:#_./ _)" [0, 0, 10] 10)
   "_Bex1_mset"       :: "pttrn => 'a multiset => bool => bool"      ("(3?! _:#_./ _)" [0, 0, 10] 10)
 
-syntax (xsymbols)
+syntax
   "_Ball_mset"       :: "pttrn => 'a multiset => bool => bool"      ("(3\<forall>_\<in>#_./ _)" [0, 0, 10] 10)
   "_Bex_mset"        :: "pttrn => 'a multiset => bool => bool"      ("(3\<exists>_\<in>#_./ _)" [0, 0, 10] 10)
   "_Bex1_mset"       :: "pttrn => 'a multiset => bool => bool"      ("(3\<exists>!_\<in>#_./ _)" [0, 0, 10] 10)
@@ -82,20 +82,20 @@ syntax (HTML output)
   "_Bex1_mset"       :: "pttrn => 'a multiset => bool => bool"      ("(3\<exists>!_\<in>#_./ _)" [0, 0, 10] 10)
 
 translations
-  "ALL x:#A. P" == "CONST Ball_mset A (%x. P)"
-  "EX x:#A. P" == "CONST Bex_mset A (%x. P)"
-  "EX! x:#A. P" => "EX! x. x:#A & P"
-  "LEAST x:#A. P" => "LEAST x. x:#A & P"
+  "ALL x:#A. P" \<rightleftharpoons> "CONST Ball_mset A (%x. P)"
+  "EX x:#A. P" \<rightleftharpoons> "CONST Bex_mset A (%x. P)"
+  "EX! x:#A. P" \<rightharpoonup> "EX! x. x:#A & P"
+  "LEAST x:#A. P" \<rightharpoonup> "LEAST x. x:#A & P"
 
 (* Should probably be removed, once multiset is of sort ord again.*)
-syntax (output)
+syntax (ASCII output)
   "_setlessAll" :: "[idt, 'a, bool] => bool"  ("(3ALL _<#_./ _)"  [0, 0, 10] 10)
   "_setlessEx"  :: "[idt, 'a, bool] => bool"  ("(3EX _<#_./ _)"  [0, 0, 10] 10)
   "_setleAll"   :: "[idt, 'a, bool] => bool"  ("(3ALL _<=#_./ _)" [0, 0, 10] 10)
   "_setleEx"    :: "[idt, 'a, bool] => bool"  ("(3EX _<=#_./ _)" [0, 0, 10] 10)
   "_setleEx1"   :: "[idt, 'a, bool] => bool"  ("(3EX! _<=#_./ _)" [0, 0, 10] 10)
 
-syntax (xsymbols)
+syntax
   "_setlessAll_mset" :: "[idt, 'a, bool] => bool"   ("(3\<forall>_\<subset>#_./ _)"  [0, 0, 10] 10)
   "_setlessEx_mset"  :: "[idt, 'a, bool] => bool"   ("(3\<exists>_\<subset>#_./ _)"  [0, 0, 10] 10)
   "_setleAll_mset"   :: "[idt, 'a, bool] => bool"   ("(3\<forall>_\<subseteq>#_./ _)" [0, 0, 10] 10)
@@ -123,7 +123,7 @@ translations
  "\<exists>A\<subseteq>#B. P"   =>  "EX A. A \<subseteq># B & P"
  "\<exists>!A\<subseteq>#B. P"  =>  "EX! A. A \<subseteq># B & P"
 
-print_translation {*
+print_translation \<open>
   let
     val All_mset_binder = Mixfix.binder_name @{const_syntax All};
     val Ex_mset_binder = Mixfix.binder_name @{const_syntax Ex};
@@ -154,26 +154,26 @@ print_translation {*
   in
     [tr' All_mset_binder, tr' Ex_mset_binder]
   end
-*}
+\<close>
 
-print_translation {*
+print_translation \<open>
  [Syntax_Trans.preserve_binder_abs2_tr' @{const_syntax Ball_mset} @{syntax_const "_Ball_mset"},
   Syntax_Trans.preserve_binder_abs2_tr' @{const_syntax Bex_mset} @{syntax_const "_Bex_mset"}]
-*} -- {* to avoid eta-contraction of body *}
+\<close> \<comment> \<open>to avoid eta-contraction of body\<close>
 
-simproc_setup defined_Bex_mset ("EX x:#A. P x & Q x") = {*
+simproc_setup defined_Bex_mset ("EX x:#A. P x & Q x") = \<open>
   fn _ => Quantifier1.rearrange_bex
     (fn ctxt =>
       unfold_tac ctxt @{thms Bex_mset_def} THEN
       Quantifier1.prove_one_point_ex_tac ctxt)
-*}
+\<close>
 
-simproc_setup defined_All_mset ("ALL x:#A. P x --> Q x") = {*
+simproc_setup defined_All_mset ("ALL x:#A. P x --> Q x") = \<open>
   fn _ => Quantifier1.rearrange_ball
     (fn ctxt =>
       unfold_tac ctxt @{thms Ball_mset_def} THEN
       Quantifier1.prove_one_point_all_tac ctxt)
-*}
+\<close>
 
 lemma ball_msetI [intro!]: "(!!x. x:#A ==> P x) ==> ALL x:#A. P x"
   by (simp add: Ball_mset_def)
@@ -181,22 +181,22 @@ lemma ball_msetI [intro!]: "(!!x. x:#A ==> P x) ==> ALL x:#A. P x"
 lemma bspec_mset [dest?]: "ALL x:#A. P x ==> x:#A ==> P x"
   by (simp add: Ball_mset_def)
 
-text {*
+text \<open>
   Gives better instantiation for bound:
-*}
+\<close>
 
 (* TODO
 
 What is it?*)
-setup {*
+setup \<open>
   map_theory_claset (fn ctxt =>
     ctxt addbefore ("bspec_mset", fn ctxt' => dresolve_tac ctxt' @{thms bspec_mset}
       THEN' assume_tac ctxt'))
-*}
+\<close>
 
 
 
-ML {*
+ML \<open>
 structure Simpdata =
 struct
 
@@ -207,22 +207,22 @@ val mksimps_pairs_mset = [(@{const_name Ball_mset}, @{thms bspec_mset})] @ mksim
 end;
 
 open Simpdata;
-*}
+\<close>
 
-declaration {* fn _ =>
+declaration \<open>fn _ =>
   Simplifier.map_ss (Simplifier.set_mksimps (mksimps mksimps_pairs_mset))
-*}
+\<close>
 
 lemma ball_msetE [elim]: "ALL x:#A. P x ==> (P x ==> Q) ==> (x ~:# A ==> Q) ==> Q"
   by (unfold Ball_mset_def) blast
 
 lemma bex_msetI [intro]: "P x ==> x:#A ==> EX x:#A. P x"
-  -- {* Normally the best argument order: @{prop "P x"} constrains the
-    choice of @{prop "x:#A"}. *}
+  \<comment> \<open>Normally the best argument order: @{prop "P x"} constrains the
+    choice of @{prop "x:#A"}.\<close>
   by (unfold Bex_mset_def) blast
 
 lemma rev_bex_msetI [intro]: "x:#A ==> P x ==> EX x:#A. P x"
-  -- {* The best argument order when there is only one @{prop "x:#A"}. *}
+  \<comment> \<open>The best argument order when there is only one @{prop "x:#A"}.\<close>
   by (unfold Bex_mset_def) blast
 
 lemma bex_msetCI: "(ALL x:#A. ~P x ==> P a) ==> a:#A ==> EX x:#A. P x"
@@ -232,11 +232,11 @@ lemma bex_msetE [elim!]: "EX x:#A. P x ==> (!!x. x:#A ==> P x ==> Q) ==> Q"
   by (unfold Bex_mset_def) blast
 
 lemma ball_mset_triv [simp]: "(ALL x:#A. P) = ((EX x. x:#A) --> P)"
-  -- {* Trival rewrite rule. *}
+  \<comment> \<open>Trival rewrite rule.\<close>
   by (simp add: Ball_mset_def)
 
 lemma bex_mset_triv [simp]: "(EX x:#A. P) = ((EX x. x:#A) & P)"
-  -- {* Dual form for existentials. *}
+  \<comment> \<open>Dual form for existentials.\<close>
   by (simp add: Bex_mset_def)
 
 lemma bex_mset_triv_one_point1 [simp]: "(EX x:#A. x = a) = (a:#A)"
@@ -265,7 +265,7 @@ lemma bex_disj_distrib:
   "(\<exists>x\<in>#A. P x \<or> Q x) \<longleftrightarrow> ((\<exists>x\<in>#A. P x) \<or> (\<exists>x\<in>#A. Q x))"
   by blast
 
-text {* Congruence rules *}
+text \<open>Congruence rules\<close>
 
 lemma ball_mset_cong:
   "A = B ==> (!!x. x:#B ==> P x = Q x) ==>
@@ -290,7 +290,7 @@ lemma strong_bex_mset_cong [cong]:
 lemma bex1_mset_def: "(\<exists>!x\<in>#X. P x) \<longleftrightarrow> (\<exists>x\<in>#X. P x) \<and> (\<forall>x\<in>#X. \<forall>y\<in>#X. P x \<longrightarrow> P y \<longrightarrow> x = y)"
   by auto
 
-text {* More: this rules are here to help the simplifier*}
+text \<open>More: this rules are here to help the simplifier\<close>
 lemma Bex_mset_singleton[iff]: "(\<exists>L\<in>#{#a#}. P L) \<longleftrightarrow> P a"
 by (auto split: split_if_asm)
 
@@ -303,7 +303,7 @@ by (auto simp add: Bex_mset_def)
 lemma Ball_mset_mempty[iff]: "(\<forall>L\<in>#{#}. P L) \<longleftrightarrow> True"
 by (auto simp add: Bex_mset_def)
 
-subsection {* Lemmas about intersection*}
+subsection \<open>Lemmas about intersection\<close>
 (* Unsure if suited as simp rules or if only slowing down stuff\<dots>*)
 lemma mset_inter_single:
   "x \<in># \<Sigma> \<Longrightarrow> \<Sigma> #\<inter> {#x#} = {#x#}"
@@ -311,10 +311,10 @@ lemma mset_inter_single:
     apply (simp add: mset_le_single subset_mset.inf_absorb2)
   by (simp add: multiset_inter_def)
 
-subsection {* Lemmas about cardinality*}
-text {*
+subsection \<open>Lemmas about cardinality\<close>
+text \<open>
 This sections adds various lemmas about size. Most lemmas have a finite set equivalent.
-*}
+\<close>
 lemma size_Suc_Diff1:
   "x \<in># \<Sigma> \<Longrightarrow> Suc (size (\<Sigma> - {#x#})) = size \<Sigma>"
   using arg_cong[OF insert_DiffM, of _ _ size] by simp
@@ -371,12 +371,12 @@ lemma size_psubset: "(\<Sigma>:: _ multiset) \<le># \<Sigma>' \<Longrightarrow> 
   using less_irrefl subset_mset_def by blast
 
 
-subsection {* Multiset Extension of Multiset Ordering *}
+subsection \<open>Multiset Extension of Multiset Ordering\<close>
 
-text {*
-The @{text "op #\<subset>##"} and @{text "op #\<subseteq>##"} operators are introduced as the multiset extension of
+text \<open>
+The \<open>op #\<subset>##\<close> and \<open>op #\<subseteq>##\<close> operators are introduced as the multiset extension of
 the multiset orderings of @{term "op #\<subset>#"} and @{term "op #\<subseteq>#"}.
-*}
+\<close>
 
 definition
   less_mset_mset :: "('a :: order) multiset multiset \<Rightarrow> 'a multiset multiset \<Rightarrow> bool" (infix "#<##" 50)
@@ -388,8 +388,8 @@ definition
 where
   "M' #<=## M \<longleftrightarrow> M' #<## M \<or> M' = M"
 
-notation (xsymbols) less_mset_mset (infix "#\<subset>##" 50)
-notation (xsymbols) le_mset_mset (infix "#\<subseteq>##" 50)
+notation less_mset_mset (infix "#\<subset>##" 50)
+notation le_mset_mset (infix "#\<subseteq>##" 50)
 
 lemmas less_mset_mset\<^sub>D\<^sub>M = order.mult\<^sub>D\<^sub>M[OF order_multiset, folded less_mset_mset_def]
 lemmas less_mset_mset\<^sub>H\<^sub>O = order.mult\<^sub>H\<^sub>O[OF order_multiset, folded less_mset_mset_def]
@@ -431,7 +431,7 @@ lemma ex_gt_imp_less_mset_mset:
   "(\<exists>y :: 'a :: linorder multiset \<in># T. (\<forall>x. x \<in># \<Sigma> \<longrightarrow> x #\<subset># y)) \<Longrightarrow> \<Sigma> #\<subset>## T"
   using less_mset_mset\<^sub>H\<^sub>O by force
 
-subsection {* Multiset and set conversion*}
+subsection \<open>Multiset and set conversion\<close>
 lemma mset_set_set_mset_empty_mempty[iff]:
   "mset_set (set_mset D) = {#} \<longleftrightarrow> D = {#}"
   by (auto dest: arg_cong[of _ _ set_mset])
