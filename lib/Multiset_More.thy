@@ -60,26 +60,26 @@ definition Bex_mset :: "'a multiset \<Rightarrow> ('a \<Rightarrow> bool) \<Righ
   "Bex_mset A P \<longleftrightarrow> (\<exists>x. x \<in># A \<and> P x)"   \<comment> "bounded existential quantifiers on multisets"
 
 syntax (ASCII)
-  "_Ball_mset"       :: "pttrn => 'a multiset => bool => bool"      ("(3ALL _:#_./ _)" [0, 0, 10] 10)
-  "_Bex_mset"        :: "pttrn => 'a multiset => bool => bool"      ("(3EX _:#_./ _)" [0, 0, 10] 10)
-  "_Bex1_mset"       :: "pttrn => 'a multiset => bool => bool"      ("(3EX! _:#_./ _)" [0, 0, 10] 10)
-  "_Bleast_mset"     :: "id => 'a multiset => bool => 'a"           ("(3LEAST _:#_./ _)" [0, 0, 10] 10)
+  "_Ball_mset"       :: "pttrn => 'a multiset => bool => bool"   ("(3ALL _:#_./ _)" [0, 0, 10] 10)
+  "_Bex_mset"        :: "pttrn => 'a multiset => bool => bool"   ("(3EX _:#_./ _)" [0, 0, 10] 10)
+  "_Bex1_mset"       :: "pttrn => 'a multiset => bool => bool"   ("(3EX! _:#_./ _)" [0, 0, 10] 10)
+  "_Bleast_mset"     :: "id => 'a multiset => bool => 'a"        ("(3LEAST _:#_./ _)" [0, 0, 10] 10)
 
 syntax (HOL)
-  "_Ball_mset"       :: "pttrn => 'a multiset => bool => bool"      ("(3! _:#_./ _)" [0, 0, 10] 10)
-  "_Bex_mset"        :: "pttrn => 'a multiset => bool => bool"      ("(3? _:#_./ _)" [0, 0, 10] 10)
-  "_Bex1_mset"       :: "pttrn => 'a multiset => bool => bool"      ("(3?! _:#_./ _)" [0, 0, 10] 10)
+  "_Ball_mset"       :: "pttrn => 'a multiset => bool => bool"   ("(3! _:#_./ _)" [0, 0, 10] 10)
+  "_Bex_mset"        :: "pttrn => 'a multiset => bool => bool"   ("(3? _:#_./ _)" [0, 0, 10] 10)
+  "_Bex1_mset"       :: "pttrn => 'a multiset => bool => bool"   ("(3?! _:#_./ _)" [0, 0, 10] 10)
 
 syntax
-  "_Ball_mset"       :: "pttrn => 'a multiset => bool => bool"      ("(3\<forall>_\<in>#_./ _)" [0, 0, 10] 10)
-  "_Bex_mset"        :: "pttrn => 'a multiset => bool => bool"      ("(3\<exists>_\<in>#_./ _)" [0, 0, 10] 10)
-  "_Bex1_mset"       :: "pttrn => 'a multiset => bool => bool"      ("(3\<exists>!_\<in>#_./ _)" [0, 0, 10] 10)
-  "_Bleast_mset"     :: "id => 'a multiset => bool => 'a"           ("(3LEAST_\<in>#_./ _)" [0, 0, 10] 10)
+  "_Ball_mset"       :: "pttrn => 'a multiset => bool => bool"   ("(3\<forall>_\<in>#_./ _)" [0, 0, 10] 10)
+  "_Bex_mset"        :: "pttrn => 'a multiset => bool => bool"   ("(3\<exists>_\<in>#_./ _)" [0, 0, 10] 10)
+  "_Bex1_mset"       :: "pttrn => 'a multiset => bool => bool"   ("(3\<exists>!_\<in>#_./ _)" [0, 0, 10] 10)
+  "_Bleast_mset"     :: "id => 'a multiset => bool => 'a"        ("(3LEAST_\<in>#_./ _)" [0, 0, 10] 10)
 
 syntax (HTML output)
-  "_Ball_mset"       :: "pttrn => 'a multiset => bool => bool"      ("(3\<forall>_\<in>#_./ _)" [0, 0, 10] 10)
-  "_Bex_mset"        :: "pttrn => 'a multiset => bool => bool"      ("(3\<exists>_\<in>#_./ _)" [0, 0, 10] 10)
-  "_Bex1_mset"       :: "pttrn => 'a multiset => bool => bool"      ("(3\<exists>!_\<in>#_./ _)" [0, 0, 10] 10)
+  "_Ball_mset"       :: "pttrn => 'a multiset => bool => bool"   ("(3\<forall>_\<in>#_./ _)" [0, 0, 10] 10)
+  "_Bex_mset"        :: "pttrn => 'a multiset => bool => bool"   ("(3\<exists>_\<in>#_./ _)" [0, 0, 10] 10)
+  "_Bex1_mset"       :: "pttrn => 'a multiset => bool => bool"   ("(3\<exists>!_\<in>#_./ _)" [0, 0, 10] 10)
 
 translations
   "ALL x:#A. P" \<rightleftharpoons> "CONST Ball_mset A (%x. P)"
@@ -351,7 +351,8 @@ qed
 
 lemma diff_size_le_size_Diff:  "size (\<Sigma>:: _ multiset) - size \<Sigma>' \<le> size (\<Sigma> - \<Sigma>')"
 proof-
-  have "size \<Sigma> - size \<Sigma>' \<le> size \<Sigma> - size (\<Sigma> #\<inter> \<Sigma>')" using size_mset_mono diff_le_mono2 subset_mset.inf_le2 by blast
+  have "size \<Sigma> - size \<Sigma>' \<le> size \<Sigma> - size (\<Sigma> #\<inter> \<Sigma>')"
+    using size_mset_mono diff_le_mono2 subset_mset.inf_le2 by blast
   also have "\<dots> = size(\<Sigma>-\<Sigma>')" using assms by(simp add: size_Diff_subset_Int)
   finally show ?thesis .
 qed
@@ -361,7 +362,8 @@ lemma size_Diff1_less: "x\<in># \<Sigma> \<Longrightarrow> size (\<Sigma> - {#x#
   by (simp add: size_Suc_Diff1)
 
 lemma size_Diff2_less: "x\<in># \<Sigma> \<Longrightarrow> y\<in># \<Sigma> \<Longrightarrow> size (\<Sigma> - {#x#} - {#y#}) < size \<Sigma>"
-  using nonempty_has_size by (fastforce intro!: diff_Suc_less simp add: size_Diff1_less size_Diff_subset_Int mset_inter_single)
+  using nonempty_has_size by (fastforce intro!: diff_Suc_less simp add: size_Diff1_less
+    size_Diff_subset_Int mset_inter_single)
 
 lemma size_Diff1_le: "size (\<Sigma> - {#x#}) \<le> size \<Sigma>"
   apply (case_tac "x \<in># \<Sigma>")
@@ -378,13 +380,13 @@ The \<open>op #\<subset>##\<close> and \<open>op #\<subseteq>##\<close> operator
 the multiset orderings of @{term "op #\<subset>#"} and @{term "op #\<subseteq>#"}.
 \<close>
 
-definition
-  less_mset_mset :: "('a :: order) multiset multiset \<Rightarrow> 'a multiset multiset \<Rightarrow> bool" (infix "#<##" 50)
+definition less_mset_mset :: "('a :: order) multiset multiset \<Rightarrow> 'a multiset multiset \<Rightarrow> bool"
+  (infix "#<##" 50)
 where
   "M' #<## M \<longleftrightarrow> (M', M) \<in> mult {(x', x). x' #<# x}"
 
-definition
-  le_mset_mset :: "('a :: order) multiset multiset \<Rightarrow> 'a multiset multiset \<Rightarrow> bool" (infix "#<=##" 50)
+definition le_mset_mset :: "('a :: order) multiset multiset \<Rightarrow> 'a multiset multiset \<Rightarrow> bool"
+  (infix "#<=##" 50)
 where
   "M' #<=## M \<longleftrightarrow> M' #<## M \<or> M' = M"
 
@@ -396,13 +398,13 @@ lemmas less_mset_mset\<^sub>H\<^sub>O = order.mult\<^sub>H\<^sub>O[OF order_mult
 
 interpretation multiset_multiset_order: order
   "le_mset_mset :: ('a :: linorder) multiset multiset \<Rightarrow> ('a :: linorder) multiset multiset \<Rightarrow> bool"
-  "less_mset_mset :: ('a :: linorder) multiset multiset \<Rightarrow> ('a :: linorder) multiset multiset \<Rightarrow> bool"
+  "less_mset_mset :: ('a :: linorder) multiset multiset \<Rightarrow> ('a::linorder) multiset multiset \<Rightarrow> bool"
   unfolding less_mset_mset_def[abs_def] le_mset_mset_def[abs_def] less_multiset_def[abs_def]
   by (rule order.order_mult)+ default
 
 interpretation multiset_multiset_linorder: linorder
   "le_mset_mset :: ('a :: linorder) multiset multiset \<Rightarrow> ('a :: linorder) multiset multiset \<Rightarrow> bool"
-  "less_mset_mset :: ('a :: linorder) multiset multiset \<Rightarrow> ('a :: linorder) multiset multiset \<Rightarrow> bool"
+  "less_mset_mset :: ('a :: linorder) multiset multiset \<Rightarrow> ('a::linorder) multiset multiset \<Rightarrow> bool"
   unfolding less_mset_mset_def[abs_def] le_mset_mset_def[abs_def]
   by (rule linorder.linorder_mult[OF linorder_multiset])
 
@@ -410,11 +412,11 @@ lemma wf_less_mset_mset: "wf {(\<Sigma> :: ('a :: wellorder) multiset multiset, 
   unfolding less_mset_mset_def by (auto intro: wf_mult wf_less_multiset)
 
 interpretation multiset_multiset_wellorder: wellorder
-  "le_mset_mset :: ('a :: wellorder) multiset multiset \<Rightarrow> ('a :: wellorder) multiset multiset \<Rightarrow> bool"
-  "less_mset_mset :: ('a :: wellorder) multiset multiset \<Rightarrow> ('a :: wellorder) multiset multiset \<Rightarrow> bool"
+  "le_mset_mset :: ('a::wellorder) multiset multiset \<Rightarrow> ('a::wellorder) multiset multiset \<Rightarrow> bool"
+  "less_mset_mset :: ('a::wellorder) multiset multiset \<Rightarrow> ('a::wellorder) multiset multiset \<Rightarrow> bool"
   by unfold_locales (blast intro: wf_less_mset_mset[unfolded wf_def, rule_format])
 
-lemma union_less_mset_mset_mono2: "B #\<subset>## D ==> C + B #\<subset>## C + (D::'a::order multiset multiset)"
+lemma union_less_mset_mset_mono2: "B #\<subset>## D \<Longrightarrow> C + B #\<subset>## C + (D::'a::order multiset multiset)"
 apply (unfold less_mset_mset_def mult_def)
 apply (erule trancl_induct)
  apply (blast intro: mult1_union)
