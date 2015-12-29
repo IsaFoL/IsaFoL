@@ -691,10 +691,10 @@ inductive lresolution_step :: "fterm clause set \<Rightarrow> fterm clause set \
     "C \<in> Cs \<Longrightarrow> var_renaming \<sigma> \<Longrightarrow> lresolution_step Cs (Cs \<union> {C {\<sigma>}\<^sub>l\<^sub>s})"
 
 definition resolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
-  "resolution_deriv = star resolution_step"
+  "resolution_deriv = (\<lambda>x y. (x,y)\<in> rtrancl {(x,y). resolution_step x y})"
 
 definition lresolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
-  "lresolution_deriv = star lresolution_step"
+  "lresolution_deriv = (\<lambda>x y. (x,y)\<in> rtrancl {(x,y). lresolution_step x y})"
 
 (* Very nice lemma, but it is not used. 
   Could be used in a Completeness proof *)
@@ -1632,12 +1632,12 @@ using assms less_Suc_eq by auto
 
 theorem completeness':
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
-  shows "closed_tree T Cs \<Longrightarrow> \<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
+  shows "closed_tree T Cs \<Longrightarrow> \<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'"
 proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
   fix T::tree
   fix Cs :: "fterm clause set"
-  assume "(\<And>T' Cs. treesize T' < treesize T \<Longrightarrow>
-                    closed_tree T' Cs \<Longrightarrow> \<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs')"
+  assume ih: "(\<And>T' Cs. treesize T' < treesize T \<Longrightarrow>
+                    closed_tree T' Cs \<Longrightarrow> \<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs')"
   assume clo: "closed_tree T Cs"
   
   {
@@ -1648,7 +1648,7 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     then have "falsifiescs [] Cs" by auto
     then have "\<exists>C \<in> Cs. falsifiesc [] C" by auto
     then have "\<exists>C \<in> Cs. C={}" using falsifiescs_empty by auto
-    then have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" unfolding resolution_deriv_def by auto
+    then have "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'" unfolding lresolution_deriv_def by auto
   }
   moreover
   {
@@ -1836,23 +1836,57 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     have l2_no: "nat_from_fatom l2 = length B" sorry
     have l2_sign: "sign l2 = True" sorry
     have B_C2'l2:"falsifiesg B (C2' - {l2})" sorry
+    have ground_l2: "groundl l2" sorry
 
+    have l2cisl1: "l2\<^sup>c = l1" (* Could perhaps be a lemma *)
+      proof -
+        from l1_no l2_no ground_l1 ground_l2 have "get_pred l1 = get_pred l2" using nat_from_fatom_inj_mod_sign by auto
+        moreover
+        from l1_no l2_no ground_l1 ground_l2 have "get_terms l1 = get_terms l2" using nat_from_fatom_inj_mod_sign by auto
+        ultimately show "l2\<^sup>c = l1" using l1_sign l2_sign 
+          apply (induction l1)
+          apply (induction l2)
+          apply auto
+          apply (induction l2)
+          apply auto
+          done
+      qed
     have "falsifiesg B ((C1' - {l1}) \<union> (C2' - {l2}))" using B_C1'l1 B_C2'l2 by cases auto
     then have "falsifiesg B (lresolution C1' C2' {l1} {l2} \<epsilon>)" unfolding lresolution_def empty_subls by auto
 
     have "applicable C1' C2' {l1} {l2} \<epsilon>" unfolding applicable_def
-      apply auto
+      apply auto (* I prove each conjunct of applicable at a time *)
       using l1_p apply simp
       using l2_p apply simp
       using C1'_p groundls_varsls apply simp
       using l1_p apply simp
       using l2_p apply simp
-      sorry
+      using l2cisl1 unfolding mguls_def apply simp
+      apply rule
+      unfolding unifierls_def apply auto
+      using empty_comp2 apply auto
+      done
     then have "\<exists>L1 L2 \<tau>. applicable ?C1 ?C2 L1 L2 \<tau>  \<and> instance_ofls (lresolution C1' C2' {l1} {l2} \<epsilon>) (lresolution ?C1 ?C2 L1 L2 \<tau>)" 
       using std_apart_apart C1'_p C2'_p lifting[of ?C1 ?C2 C1' C2' "{l1}" "{l2}" \<epsilon>] by auto
+    then obtain L1 L2 \<tau> where L1L2\<tau>_p: "applicable ?C1 ?C2 L1 L2 \<tau>  \<and> instance_ofls (lresolution C1' C2' {l1} {l2} \<epsilon>) (lresolution ?C1 ?C2 L1 L2 \<tau>)" by auto
 
+    let ?C = "lresolution ?C1 ?C2 L1 L2 \<tau>"
+    let ?CsNext = "Cs \<union> {C1', C2', ?C}"
+    term falsifiescs
+    let ?T' = "cutoff (\<lambda>G. falsifiescs G ?CsNext) [] T"
     (* Cut down tree *) (* Apply resolution *)
 
+    have T'_smaller: "treesize ?T' < treesize T" sorry
+    have T'_closed: "closed_tree ?T' ?CsNext" sorry
+    
+    thm ih
+
+    from T'_smaller T'_closed have "\<exists>Cs''. lresolution_deriv ?CsNext Cs'' \<and> {} \<in> Cs''" using ih by blast
+    then obtain Cs'' where "lresolution_deriv ?CsNext Cs'' \<and> {} \<in> Cs''" by auto
+    moreover
+    have "lresolution_deriv Cs (Cs \<union> {C1'})" sorry
+    have "lresolution_deriv Cs (Cs \<union> {C1',C2'})" sorry
+    then have "lresolution_deriv Cs (Cs \<union> {C1',C2',?C})" using L1L2\<tau>_p star.intros[of resolution_step] by auto
 
 
     (*
@@ -1886,9 +1920,9 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     *)
 
 
-    have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" sorry
+    have "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'" sorry
   }
-  ultimately show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" by auto
+  ultimately show "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'" by auto
 oops
 
 theorem completeness:

@@ -318,6 +318,7 @@ fun cutoff :: "(dir list \<Rightarrow> bool) \<Rightarrow> dir list \<Rightarrow
   "cutoff red ds (Branch T\<^sub>1 T\<^sub>2) = 
      (if red ds then Leaf else Branch (cutoff red (ds@[Left])  T\<^sub>1) (cutoff red (ds@[Right]) T\<^sub>2))"
 | "cutoff red ds Leaf = Leaf"
+(* Initially you should call this with ds = []*)
 (* Hvis alle branches er røde, så giver cut_off et subtree *)(* Hvis alle branches er røde, så gælder det sammme for cut_off *)(* Alle interne stier er ikke røde *)
 
 abbreviation anypath :: "tree \<Rightarrow> (dir list \<Rightarrow> bool) \<Rightarrow> bool" where

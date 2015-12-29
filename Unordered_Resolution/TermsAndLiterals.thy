@@ -107,8 +107,6 @@ next
   then show "\<forall>b\<in>B. f ((inv_into A f) b) = b" using f_inv_into_f by metis
 qed
 
-find_theorems surj
-
 lemma (* I need also to assume that the range of f is B and that of g is A *)
   assumes "f ` A = B"
   assumes "g ` B = A"
@@ -116,7 +114,6 @@ lemma (* I need also to assume that the range of f is B and that of g is A *)
   assumes "(\<forall>b\<in>B. f (g b) = b)"
   shows "bij_betw f A B" 
 oops
-
 
 lemma (* I need also to assume that the range of f is B and that of g is A *)
   assumes "(\<forall>a\<in>A. g (f a) = a)"
@@ -226,6 +223,8 @@ proof -
   then show "?thesis" unfolding bij_betw_def inj_on_def unfolding nat_from_hatom_def by simp
 qed
 
+(*  *)
+
 lemma hatom_from_nat_bij: "bij_betw hatom_from_nat UNIV hatoms " unfolding hatom_from_nat_def using nat_from_hatom_bij bij_betw_inv_into by auto
 
 lemma nat_from_hatom_hatom_from_nat[simp]: "nat_from_hatom (hatom_from_nat n) = n" 
@@ -237,6 +236,30 @@ lemma hatom_from_nat_nat_from_hatom[simp]: "\<forall>l \<in> hatoms. hatom_from_
   using nat_from_hatom_bij bij_betw_inv_into_f_f_inv_into[of nat_from_hatom hatoms UNIV] by simp
 
 lemma undiag_neg2: "nat_from_hatom (Neg P ts) = nat_from_hatom (Pos P ts)" unfolding nat_from_hatom_def by auto
+
+lemma nat_from_hatom_inj_mod_sign:
+  assumes "nat_from_hatom l1 = nat_from_hatom l2"
+  shows "get_pred l1 = get_pred l2 \<and> get_terms l1 = get_terms l2"
+proof -
+  {
+    fix l1 fix p1 fix ts1
+    fix l2 fix p2 fix ts2
+    assume asm: "l1 = Pos p1 ts1 \<and> l2 = Pos p2 ts2 \<and> nat_from_hatom l1 = nat_from_hatom l2"
+    moreover
+    then have "sign l1 = True \<and> sign l2 = True" by auto
+    ultimately
+    have "l1 = l2" using nat_from_hatom_bij unfolding bij_betw_def inj_on_def by blast
+    then have "get_pred l1 = get_pred l2 \<and> get_terms l1 = get_terms l2" by auto
+  }
+  then show ?thesis 
+    apply (cases l1)
+    apply (cases l2)
+    prefer 3
+    apply (cases l2)
+    using assms undiag_neg2 apply auto
+    done
+qed
+
 
 (* This lemma is already expressed by hatom_from_nat_bij *)
 lemma hatom_from_nat_Pos:
@@ -289,24 +312,45 @@ fun hatom_of_fatom :: "fterm literal \<Rightarrow> hterm literal" where
 
 lemma ground_fatom_of_hatom: "groundl (fatom_of_hatom l)" using ground_fterm_of_hterm by (cases l) auto (* står det et andet sted? *)
 
+theorem hatom_of_fatom_fatom_of_hatom [simp]: "hatom_of_fatom (fatom_of_hatom l) =  l" by (cases l) auto
+
+theorem fatom_of_hatom_hatom_of_fatom [simp]: "groundl l \<Longrightarrow> fatom_of_hatom (hatom_of_fatom l) = l" by (cases l) auto
+
+lemma sign_fatom_of_hatom: "sign (fatom_of_hatom l) = sign l" by (cases l) auto
+
+lemma hatom_of_fatom_bij: "bij_betw hatom_of_fatom {l. groundl l} UNIV"
+proof -
+  have "inj_on hatom_of_fatom {l. groundl l}"  unfolding inj_on_def 
+    proof (rule+)
+      fix x y
+      assume grx: "x \<in> {l. groundl l}"
+      then have "groundl x" by auto
+      assume "y \<in> {l. groundl l}"
+      then have gry: "groundl y" by auto
+      assume "hatom_of_fatom x = hatom_of_fatom y"
+      then have "fatom_of_hatom (hatom_of_fatom x) = fatom_of_hatom (hatom_of_fatom y)" by auto
+      then show "x = y" using fatom_of_hatom_hatom_of_fatom grx gry by auto
+    qed
+   moreover
+   have "hatom_of_fatom ` {l. groundl l} = UNIV"
+     apply auto
+     apply (subgoal_tac "x = hatom_of_fatom (fatom_of_hatom x)")
+     using ground_fatom_of_hatom apply blast
+     using hatom_of_fatom_fatom_of_hatom apply simp
+     done
+   ultimately show ?thesis unfolding bij_betw_def by auto
+qed
+
 subsubsection {* Enumerating ground atoms *}
 
 definition ground_fatoms :: "fterm literal set" where
   "ground_fatoms \<equiv> {l. groundl l \<and> sign l = True}"
 
-theorem [simp]: "hatom_of_fatom (fatom_of_hatom (l)) =  l" by (cases l) auto
-
-theorem fatom_of_hatom_hatom_of_fatom [simp]: "grounds ts \<Longrightarrow> fatom_of_hatom (hatom_of_fatom (Pos p ts)) = Pos p ts"
-by auto
-
-lemma sign_fatom_of_hatom: "sign (fatom_of_hatom l) = sign l" by (cases l) auto
-
 definition fatom_from_nat :: "nat \<Rightarrow> fterm literal" where
   "fatom_from_nat = (\<lambda>n. fatom_of_hatom (hatom_from_nat n))"
 
 definition nat_from_fatom :: "fterm literal \<Rightarrow> nat" where
-  "nat_from_fatom = (%t. nat_from_hatom (hatom_of_fatom t))"
-
+  "nat_from_fatom = (\<lambda>t. nat_from_hatom (hatom_of_fatom t))"
 
 theorem diag_undiag_fatom[simp]: "grounds ts \<Longrightarrow> fatom_from_nat (nat_from_fatom (Pos p ts)) = Pos p ts"
 unfolding fatom_from_nat_def nat_from_fatom_def by auto
@@ -346,18 +390,17 @@ lemma ground_fatom_from_nat: "groundl (fatom_from_nat x)" unfolding fatom_from_n
 
 lemma sign_fatom_from_nat: "sign (fatom_from_nat x) = True" unfolding fatom_from_nat_def using sign_hatom_from_nat sign_fatom_of_hatom by auto
 
-lemma nat_from_fatom_bij: "bij_betw nat_from_fatom ground_fatoms UNIV" 
+lemma nat_from_fatom_bij: "bij_betw nat_from_fatom ground_fatoms UNIV"
 proof -
   have bii: "bij_betw nat_from_hatom hatoms UNIV" using nat_from_hatom_bij by auto
   from bii have "range nat_from_hatom = UNIV" unfolding bij_betw_def by auto
   {
      fix x::nat
-  find_theorems nat_from_fatom
      have "x = nat_from_fatom (fatom_from_nat x) \<and> groundl (fatom_from_nat x) \<and> sign (fatom_from_nat x)" 
        using TermsAndLiterals.undiag_diag_fatom ground_fatom_from_nat sign_fatom_from_nat by auto
      then have "\<exists>a. x = nat_from_fatom a \<and> groundl a \<and> sign a" by blast
   }
-  then have "nat_from_fatom ` ground_fatoms = UNIV" unfolding ground_fatoms_def  by auto
+  then have "nat_from_fatom ` ground_fatoms = UNIV" unfolding ground_fatoms_def by auto
   moreover
   have "inj_on nat_from_fatom ground_fatoms" unfolding inj_on_def
     proof (rule; rule; rule)
@@ -380,5 +423,66 @@ theorem fatom_from_nat_is_nat_from_fatom:
   assumes fa: "fatom_from_nat i = l"
   shows "i = nat_from_fatom l"
 using assms by auto
+
+lemma nat_from_fatom_inj_mod_sign:
+  assumes "nat_from_fatom l1 = nat_from_fatom l2"
+  assumes gr1: "groundl l1"
+  assumes gr2: "groundl l2"
+  shows "get_pred l1 = get_pred l2 \<and> get_terms l1 = get_terms l2"
+proof -
+  {
+    fix p1 fix ts1::"fterm list"
+    fix p2 fix ts2::"fterm list"
+    let ?l1 = "Pos p1 ts1" let ?l2 = "Pos p2 ts2"
+    assume asm: "nat_from_fatom (Pos p1 ts1) = nat_from_fatom (Pos p2 ts2) \<and> groundl (Pos p1 ts1) \<and> groundl (Pos p2 ts2)"
+    then have "nat_from_hatom (hatom_of_fatom ?l1) = nat_from_hatom (hatom_of_fatom ?l2)" unfolding nat_from_fatom_def by auto
+    then have "get_pred (hatom_of_fatom ?l1) = get_pred (hatom_of_fatom ?l2) \<and> get_terms (hatom_of_fatom ?l1) = get_terms (hatom_of_fatom ?l2)" using nat_from_hatom_inj_mod_sign by blast
+    then have "Pos (get_pred (hatom_of_fatom ?l1)) (get_terms (hatom_of_fatom ?l1)) = Pos (get_pred (hatom_of_fatom ?l2)) (get_terms (hatom_of_fatom ?l2))" by auto
+    then have "Pos p1 (hterms_of_fterms ts1) = Pos p2 (hterms_of_fterms ts2)" using asm by auto
+    then have "hatom_of_fatom (Pos p1 ts1) = hatom_of_fatom (Pos p2 ts2)" by auto
+    then have "hatom_of_fatom ?l1 = hatom_of_fatom ?l2" using asm by auto
+    then have "?l1 = ?l2" using hatom_of_fatom_bij asm unfolding bij_betw_def inj_on_def by blast
+    then have "get_pred ?l1 = get_pred ?l2 \<and> get_terms ?l1 = get_terms ?l2" by auto
+    then have "p1 = p2 \<and> ts1 = ts2" using asm by auto
+  }
+  then have PosPos: "!! l1 p1 ts1 l2 p2 ts2. nat_from_fatom (Pos p1 ts1) = nat_from_fatom (Pos p2 ts2) \<and> groundl (Pos p1 ts1) \<and> groundl (Pos p2 ts2) \<Longrightarrow>  p1 =  p2 \<and> ts1 = ts2" by -
+  {
+    fix l1 fix p1 fix ts1
+    fix l2 fix p2 fix ts2
+    assume asm: "nat_from_fatom (Pos p1 ts1) = nat_from_fatom (Neg p2 ts2) \<and> groundl (Pos p1 ts1) \<and> groundl (Neg p2 ts2)"
+    then have "nat_from_fatom (Pos p1 ts1) = nat_from_fatom (Pos p2 ts2) \<and> groundl (Pos p1 ts1) \<and> groundl (Pos p2 ts2)" using undiag_neg by auto
+    then have "p1 = p2 \<and> ts1 = ts2" using PosPos by blast
+  }
+  then have PosNeg: "!! l1 p1 ts1 l2 p2 ts2.  nat_from_fatom (Pos p1 ts1) = nat_from_fatom (Neg p2 ts2) \<and> groundl (Pos p1 ts1) \<and> groundl (Neg p2 ts2) \<Longrightarrow> p1 = p2 \<and> ts1 = ts2" by -
+  {
+    fix l1 fix p1 fix ts1
+    fix l2 fix p2 fix ts2
+    assume asm: "nat_from_fatom (Neg p1 ts1) = nat_from_fatom (Neg p2 ts2) \<and> groundl (Neg p1 ts1) \<and> groundl (Neg p2 ts2)"
+    then have "nat_from_fatom (Pos p1 ts1) = nat_from_fatom (Pos p2 ts2) \<and> groundl (Pos p1 ts1) \<and> groundl (Pos p2 ts2)" using undiag_neg by auto
+    then have "p1 = p2 \<and> ts1 = ts2" using PosPos by blast
+  }
+  then have NegNeg: "!! l1 p1 ts1 l2 p2 ts2. nat_from_fatom (Neg p1 ts1) = nat_from_fatom (Neg p2 ts2) \<and> groundl (Neg p1 ts1) \<and> groundl (Neg p2 ts2) \<Longrightarrow> p1 = p2 \<and> ts1 = ts2" by -
+  {
+    fix l1 fix p1 fix ts1
+    fix l2 fix p2 fix ts2
+    assume asm: "nat_from_fatom (Neg p1 ts1) = nat_from_fatom (Pos p2 ts2) \<and> groundl (Neg p1 ts1) \<and> groundl (Pos p2 ts2)"
+    then have "nat_from_fatom (Pos p1 ts1) = nat_from_fatom (Pos p2 ts2) \<and> groundl (Pos p1 ts1) \<and> groundl (Pos p2 ts2)" using undiag_neg by auto
+    then have "p1 = p2 \<and> ts1 = ts2" using PosPos by blast
+  }
+  then have NegPos: "!! l1 p1 ts1 l2 p2 ts2. nat_from_fatom (Neg p1 ts1) = nat_from_fatom (Pos p2 ts2) \<and> groundl (Neg p1 ts1) \<and> groundl (Pos p2 ts2) \<Longrightarrow> p1 = p2 \<and> ts1 = ts2" by -
+  show "get_pred l1 = get_pred l2 \<and> get_terms l1 = get_terms l2" 
+    using assms 
+    apply (induction l1)
+    apply (induction l2)
+    using PosPos apply blast
+    using PosNeg literal.sel apply metis
+    apply (induction l2)
+    using NegPos literal.sel apply metis
+    using NegNeg apply metis
+    done
+qed
+
+
+
 
 end
