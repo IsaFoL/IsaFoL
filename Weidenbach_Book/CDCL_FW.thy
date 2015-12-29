@@ -95,7 +95,7 @@ next
   moreover have "\<exists>s m. state_eq\<^sub>N\<^sub>O\<^sub>T s (update_trail (Propagated L m # F)
     (add_cls\<^sub>N\<^sub>O\<^sub>T (remdups_mset C' + {#L#}) S))"
     by (meson state_eq\<^sub>N\<^sub>O\<^sub>T_ref)
-  ultimately  show ?case
+  ultimately show ?case
     using CNot_remdups_mset \<open>C \<in> local.clauses S\<close> \<open>F \<Turnstile>as CNot C'\<close>
        backjump_l.intros[of S F' K d F _ L _ ?C'] by fastforce
 qed
@@ -868,6 +868,36 @@ next
         apply simp
         done
       then show ?thesis using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_backjump_l by fast
+    qed
+qed
+
+abbreviation cdcl\<^sub>N\<^sub>O\<^sub>T_restart where
+"cdcl\<^sub>N\<^sub>O\<^sub>T_restart \<equiv> restart_ops.cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts cdcl\<^sub>N\<^sub>O\<^sub>T restart"
+lemma cdcl_fw_restart_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_restart_no_step:
+  assumes
+    inv: "cdcl_all_inv_mes S" and
+    cdcl:"cdcl_fw_restart S T"
+  shows "cdcl\<^sub>N\<^sub>O\<^sub>T_restart\<^sup>*\<^sup>* S T \<or> (no_step cdcl_fw T \<and> conflicting T \<noteq> C_True)"
+proof -
+  consider
+      (fw) "cdcl_fw S T"
+    | (fw_r) "restart S T"
+    using cdcl by (meson cdcl_fw_restart.simps cdcl_rf.cases fw_conflict fw_decide fw_forget
+      fw_propagate)
+  then show ?thesis
+    proof cases
+      case fw
+      then have "cdcl\<^sub>N\<^sub>O\<^sub>T_merged S T \<or> (no_step cdcl_fw T \<and> conflicting T \<noteq> C_True)"
+        using inv cdcl_fw_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged by blast
+      moreover have "inv\<^sub>N\<^sub>O\<^sub>T S"
+        using inv unfolding cdcl_all_inv_mes_def cdcl_M_level_inv_def by auto
+      ultimately show ?thesis
+        using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_is_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_is_rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_and_inv
+        rtranclp_mono[of cdcl\<^sub>N\<^sub>O\<^sub>T cdcl\<^sub>N\<^sub>O\<^sub>T_restart]
+        by (blast intro: restart_ops.cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts.intros)
+    next
+      case fw_r
+      then show ?thesis by (blast intro: restart_ops.cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts.intros)
     qed
 qed
 
@@ -3137,6 +3167,11 @@ lemma cdcl_with_restart\<^sub>C\<^sub>W_rtranclp_cdcl:
   by (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct)
   (auto dest!: relpowp_imp_rtranclp rtranclp_cdcl_fw_s_rtranclp_cdcl cdcl.rf cdcl_rf.restart
       tranclp_into_rtranclp simp: full_def)
+
+lemma
+  "cdcl_with_restart\<^sub>C\<^sub>W S T \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_merged\<^sup>*\<^sup>* (fst S) (fst T)"
+  apply (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct)
+oops
 
 lemma cdcl_with_restart\<^sub>C\<^sub>W_increasing_number:
   "cdcl_with_restart\<^sub>C\<^sub>W S T \<Longrightarrow> snd T = 1 + snd S"
