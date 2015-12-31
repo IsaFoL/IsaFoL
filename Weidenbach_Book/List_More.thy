@@ -31,11 +31,19 @@ lemma lexn2_conv:
   unfolding lexn_conv by (auto simp add: list_length2_append_cons)
 
 text \<open>Move to List\<close>
-text \<open>The counterpart for this lemma when @{term "i > n-m"} is @{thm take_all}.\<close>
-lemma take_upt[simp]:
+
+  (* Sledgehammer one-liner: *)
+lemma
+  assumes "i \<le> n - m"
+  shows "take i [m..<n] = [m..<m+i]"
+  by (metis Nat.le_diff_conv2 add.commute assms diff_is_0_eq' linear take_upt upt_conv_Nil)
+
+text \<open>The counterpart for this lemma when @{term "i > n-m"} is @{thm take_all}. It is close to
+  @{thm take_upt}, but seems more general.\<close>
+lemma take_upt_bound_minus[simp]:
   assumes "i \<le> n - m"
   shows "take i [m..<n] = [m ..<m+i]"
-  using assms by (induct i) simp_all
+  using assms by (induction i) auto
 
 lemma append_cons_eq_upt:
   assumes "A @ B = [m..<n]"

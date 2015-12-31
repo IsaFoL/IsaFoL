@@ -7,22 +7,26 @@ section \<open>Transition\<close>
 subsection \<open>Rtranclp\<close>
 (* TODO Move to SL? *)
 text \<open>This is the equivalent of @{thm rtranclp_mono} for @{term tranclp}\<close>
+lemma
+  "r\<^sup>+\<^sup>+ a b \<Longrightarrow> r \<le> s \<Longrightarrow> s\<^sup>+\<^sup>+ a b"
+    using rtranclp_mono by (auto dest!: tranclpD intro: rtranclp_into_tranclp2)
+
 lemma tranclp_mono:
   assumes mono:"r \<le> s"
   shows "r\<^sup>+\<^sup>+ \<le> s\<^sup>+\<^sup>+"
     using rtranclp_mono[OF mono] mono by (auto dest!: tranclpD intro: rtranclp_into_tranclp2)
 
-thm rtranclp_idemp
-lemma tranclp_tranclp_is_tranclp:
+lemma tranclp_idemp_rel:
   "R\<^sup>+\<^sup>+\<^sup>+\<^sup>+ a b \<longleftrightarrow> R\<^sup>+\<^sup>+ a b"
   apply (rule iffI)
-    prefer 2 apply auto
-    apply (induction rule: tranclp_induct)
-  by auto
+    prefer 2 apply blast
+  by (induction rule: tranclp_induct) auto
 
-lemma tranclp_idemp[simp]:
-  "R\<^sup>+\<^sup>+\<^sup>+\<^sup>+ = R\<^sup>+\<^sup>+"
-  by (auto simp: tranclp_tranclp_is_tranclp intro!: ext)
+text \<open>Equivalent of @{thm rtranclp_idemp}\<close>
+lemma trancl_idemp: "(r\<^sup>+)\<^sup>+ = r\<^sup>+"
+  by simp
+
+lemmas tranclp_idemp[simp] = trancl_idemp[to_pred]
 
 text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and sledgehammer uses it), but
   it makes sense to duplicate it, because it is unclear how stable the lemmas in Nitpick are.\<close>
@@ -40,6 +44,12 @@ lemma trancl_set_tranclp: "(a, b) \<in> {(b,a). P a b}\<^sup>+ \<longleftrightar
     apply (induction rule: trancl_induct; simp)
   apply (induction rule: tranclp_induct; auto simp: trancl_into_trancl2)
   done
+
+lemma tranclp_rtranclp_rtranclp_rel: "R\<^sup>+\<^sup>+\<^sup>*\<^sup>* a b \<longleftrightarrow> R\<^sup>*\<^sup>* a b"
+  by (simp add: rtranclp_unfold)
+
+lemma tranclp_rtranclp_rtranclp[simp]: "R\<^sup>+\<^sup>+\<^sup>*\<^sup>* = R\<^sup>*\<^sup>*"
+  by (fastforce simp: rtranclp_unfold)
 
 subsection \<open>Full transitions\<close>
 text \<open>We define here properties to define properties after all possible transitions.\<close>

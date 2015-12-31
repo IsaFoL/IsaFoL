@@ -2210,7 +2210,7 @@ proof -
     assume "full cdcl_fw_cp S T"
     then have "cdcl_fw\<^sup>+\<^sup>+ S T"
       using tranclp_mono[of cdcl_fw_cp "cdcl_fw\<^sup>+\<^sup>+"] cdcl_fw_cp_tranclp_cdcl_fw unfolding full_def
-      by auto[]
+      by auto
   } note full_cdcl_fw_cp_cdcl_fw = this
   show ?thesis
     using fw
@@ -2219,20 +2219,11 @@ proof -
     unfolding full0_unfold by (auto dest!: full_cdcl_fw_cp_cdcl_fw fw_decide)
 qed
 
-lemma tranclp_rtranclp_rtranclp: "R\<^sup>+\<^sup>+\<^sup>*\<^sup>* a b \<longleftrightarrow> R\<^sup>*\<^sup>* a b"
-  apply (rule iffI)
-    apply (induct rule: rtranclp_induct; auto)
-  apply (induct rule: rtranclp_induct; auto)
-  done
-
-lemma tranclp_rtranclp_rtranclp_rel: "R\<^sup>+\<^sup>+\<^sup>*\<^sup>* = R\<^sup>*\<^sup>*"
-  by (auto simp: tranclp_rtranclp_rtranclp intro!: ext)
-
 lemma rtranclp_cdcl_fw_s_rtranclp_cdcl_fw:
   assumes fw: "cdcl_fw_s\<^sup>*\<^sup>* S T"
   shows "cdcl_fw\<^sup>*\<^sup>* S T"
   using fw cdcl_fw_s_tranclp_cdcl_fw rtranclp_mono[of cdcl_fw_s "cdcl_fw\<^sup>+\<^sup>+"]
-  unfolding tranclp_rtranclp_rtranclp_rel by blast
+  unfolding tranclp_rtranclp_rtranclp by blast
 
 lemma cdcl_fw_s_rtranclp_cdcl:
   "cdcl_fw_s S T \<Longrightarrow> cdcl\<^sup>*\<^sup>* S T"
