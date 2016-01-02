@@ -13,26 +13,26 @@ datatype tree =
   Leaf
 | Branch (ltree: tree) (rtree: tree) (* Branching might be a better name *)
 
+
 section {* Sizes *}
 
 fun treesize :: "tree \<Rightarrow> nat" where
   "treesize Leaf = 0"
 | "treesize (Branch l r) = 1 + treesize l + treesize r"
 
-lemma treesize_Leaf: "treesize T = 0 \<Longrightarrow> T=Leaf" by (cases T) auto
+lemma treesize_Leaf: "treesize T = 0 \<Longrightarrow> T = Leaf" by (cases T) auto
 
-lemma treesize_Branch: "treesize T = Suc n \<Longrightarrow> \<exists>l r. T=Branch l r" by (cases T) auto
+lemma treesize_Branch: "treesize T = Suc n \<Longrightarrow> \<exists>l r. T = Branch l r" by (cases T) auto
 
 
 section {* Paths *}
 
+(* Recursive is better? *)
 inductive path :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
   "path [] t"
 | "path ds l \<Longrightarrow> path (Left#ds) (Branch l r) "
 | "path ds r \<Longrightarrow> path (Right#ds) (Branch l r)"
 (* I could use anonymous variable *)
-
-
 
 lemma path_inv_Leaf: "path p Leaf \<longleftrightarrow> p = []"
 apply auto
@@ -40,14 +40,17 @@ using path.simps apply blast
 apply (simp add: path.intros)
 done
 
-lemma path_inv_Branch_Left:  
-  "path (Left#p) (Branch l r) \<longleftrightarrow> path p l"
+lemma path_inv_Cons: "path (a#ds) T \<longrightarrow> (\<exists>l r. T=Branch l r)"
+apply (cases T)
+apply (auto simp add: path_inv_Leaf)
+done
+
+lemma path_inv_Branch_Left: "path (Left#p) (Branch l r) \<longleftrightarrow> path p l"
 using path.intros apply auto
 using Left_def Right_def path.cases apply blast
 done
 
-lemma path_inv_Branch_Right: 
-  "path (Right#p) (Branch l r) \<longleftrightarrow> path p r"
+lemma path_inv_Branch_Right: "path (Right#p) (Branch l r) \<longleftrightarrow> path p r"
 using path.intros apply auto
 using Left_def Right_def path.cases apply blast
 done
@@ -80,7 +83,7 @@ proof (induction ds1 arbitrary: T)
       then have "path ds1 l" using Cons(1) by auto
       then show "path (a # ds1) T" using p_lr path.intros atrue by auto
     next
-      assume afalse: "~a"
+      assume afalse: "\<not>a"
       then have "path ((ds1) @ ds2) r" using p_lr Cons(2) path_inv_Branch by auto
       then have "path ds1 r" using Cons(1) by auto
       then show "path (a # ds1) T" using p_lr path.intros afalse by auto
@@ -126,7 +129,7 @@ lemma branch_inv_Branch:
 using branch.simps[of b] by auto
 
 lemma branch_inv_Leaf2:
-  "T=Leaf \<longleftrightarrow> (\<forall>b. branch b T \<longrightarrow> b=[])"
+  "T = Leaf \<longleftrightarrow> (\<forall>b. branch b T \<longrightarrow> b = [])"
 proof -
   {
     assume "T=Leaf"
@@ -134,13 +137,13 @@ proof -
   }
   moreover 
   {
-    assume "\<forall>b. branch b T \<longrightarrow> b=[]"
+    assume "\<forall>b. branch b T \<longrightarrow> b = []"
     then have "\<forall>b. branch b T \<longrightarrow> \<not>(\<exists>a b'. b = a # b')" by auto
     then have "\<forall>b. branch b T \<longrightarrow> \<not>(\<exists>l r. branch b (Branch l r))" 
       using branch_inv_Branch by auto
     then have "T=Leaf" using has_branch[of T]  by (metis branch.simps)
   }
-  ultimately show "T=Leaf \<longleftrightarrow> (\<forall>b. branch b T \<longrightarrow> b=[])" by auto
+  ultimately show "T = Leaf \<longleftrightarrow> (\<forall>b. branch b T \<longrightarrow> b = [])" by auto
 qed
 
 lemma branch_is_path: 
@@ -312,7 +315,59 @@ fun delete :: "dir list \<Rightarrow> tree \<Rightarrow> tree" where
   "delete [] T = Leaf"
 | "delete (True#ds)  (Branch T\<^sub>1 T\<^sub>2) = Branch (delete ds T\<^sub>1) T\<^sub>2"
 | "delete (False#ds) (Branch T\<^sub>1 T\<^sub>2) = Branch T\<^sub>1 (delete ds T\<^sub>2)"
+| "delete (a#ds) Leaf = Leaf"
 (* First case could use anonymous variable*) (* Red could also be defined as a tree, i.e. a dir list set *)
+
+lemma delete_Leaf: "delete T Leaf = Leaf" by (cases T) auto
+
+lemma "path p (delete ds T) \<Longrightarrow> path p T "
+proof (induction p arbitrary: T)
+  case Nil 
+  then show ?case using path.intros by simp
+next
+  case (Cons a p)
+  show ?case
+    proof (cases a)
+      assume a
+      then have "\<exists>dT1 dT2. delete ds T = Branch dT1 dT2" using Cons path_inv_Cons by auto
+      then obtain dT1 dT2 where "delete ds T = Branch dT1 dT2" by auto
+      then have "\<exists>T1 T2. T=Branch T1 T2" (* Is there a lemma hidden here that I could extract? *)
+        apply (cases T)
+        apply auto
+        apply (cases ds)
+        apply auto
+        done
+      then obtain T1 T2 where "T=Branch T1 T2" by auto
+      then show ?case
+        proof (cases ds)
+oops
+
+
+
+(*\<and> \<not>postfix p T *)
+
+lemma delete_branches: 
+  assumes "branch (ds@[True]) T"
+  shows "{p. path p (delete ds T)} = {p. path p T} - {ds@[True],ds@[False]}"
+proof(rule;rule)
+  fix p
+  assume "p \<in> {p. path p (delete ds T)}"
+  then have "path p (delete ds T)" sorry
+  
+  have "path p T \<and> p \<noteq> ds @ [True] \<and> p\<noteq> ds @ [False]" sorry
+  then show "p \<in> {p. path p T} - {ds @ [True], ds @ [False]}" by auto
+oops
+
+lemma "branch p (delete ds T) \<Longrightarrow> branch (ds@[True]) T \<Longrightarrow> p \<noteq> ds@[d] \<and> (branch p T \<or> p=ds)"
+apply (induction p)
+apply auto
+oops
+
+lemma delete_branches: 
+  assumes "branch (ds@[True]) T"
+  shows "{b. branch p (delete ds T)} = ({b. branch p T} \<union> {ds}) - {ds@[True],ds@[False]}"
+proof(rule;rule)
+oops
 
 fun cutoff :: "(dir list \<Rightarrow> bool) \<Rightarrow> dir list \<Rightarrow> tree \<Rightarrow> tree" where
   "cutoff red ds (Branch T\<^sub>1 T\<^sub>2) = 

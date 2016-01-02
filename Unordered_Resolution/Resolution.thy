@@ -691,10 +691,10 @@ inductive lresolution_step :: "fterm clause set \<Rightarrow> fterm clause set \
     "C \<in> Cs \<Longrightarrow> var_renaming \<sigma> \<Longrightarrow> lresolution_step Cs (Cs \<union> {C {\<sigma>}\<^sub>l\<^sub>s})"
 
 definition resolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
-  "resolution_deriv = (\<lambda>x y. (x,y)\<in> rtrancl {(x,y). resolution_step x y})"
+  "resolution_deriv = star resolution_step"
 
 definition lresolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
-  "lresolution_deriv = (\<lambda>x y. (x,y)\<in> rtrancl {(x,y). lresolution_step x y})"
+  "lresolution_deriv = star lresolution_step"
 
 (* Very nice lemma, but it is not used. 
   Could be used in a Completeness proof *)
@@ -1870,57 +1870,47 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
       using std_apart_apart C1'_p C2'_p lifting[of ?C1 ?C2 C1' C2' "{l1}" "{l2}" \<epsilon>] by auto
     then obtain L1 L2 \<tau> where L1L2\<tau>_p: "applicable ?C1 ?C2 L1 L2 \<tau>  \<and> instance_ofls (lresolution C1' C2' {l1} {l2} \<epsilon>) (lresolution ?C1 ?C2 L1 L2 \<tau>)" by auto
 
-    let ?C = "lresolution ?C1 ?C2 L1 L2 \<tau>"
-    let ?CsNext = "Cs \<union> {C1', C2', ?C}"
-    term falsifiescs
-    let ?T' = "cutoff (\<lambda>G. falsifiescs G ?CsNext) [] T"
+    obtain C where C_p: "C=lresolution ?C1 ?C2 L1 L2 \<tau>" by auto
+    obtain CsNext where CsNext_p: "CsNext = Cs \<union> {?C1, ?C2, C}" by auto
+(*    obtain T' where T'_p: "T'  = cutoff (\<lambda>G. falsifiescs G CsNext) [] T" by auto*)
+    obtain T'' where T''_p: "T'' = delete B T" by auto (* Here we delte the two branch children B1 and B2 of B *)
     (* Cut down tree *) (* Apply resolution *)
+    value delete
 
-    have T'_smaller: "treesize ?T' < treesize T" sorry
-    have T'_closed: "closed_tree ?T' ?CsNext" sorry
-    
-    thm ih
+    have T''_smaller: "treesize T'' < treesize T" sorry
+    have T''_closed: "closed_tree T'' CsNext"
+      proof -
+       have bran: "anybranch T'' (\<lambda>b. closed_branch b T'' CsNext)"
+         proof (rule;rule)
+           fix p
+           assume "branch p T''"
+           
+           show "closed_branch p T'' CsNext" sorry
+         qed
+       have intr: "anyinternal T'' (\<lambda>p. \<not>falsifiescs p CsNext)" sorry
 
-    from T'_smaller T'_closed have "\<exists>Cs''. lresolution_deriv ?CsNext Cs'' \<and> {} \<in> Cs''" using ih by blast
-    then obtain Cs'' where "lresolution_deriv ?CsNext Cs'' \<and> {} \<in> Cs''" by auto
+       then show "closed_tree T'' CsNext" using bran intr by auto
+      qed
+
+    from T'_smaller T'_closed have "\<exists>Cs''. lresolution_deriv CsNext Cs'' \<and> {} \<in> Cs''" using ih by blast
+    then obtain Cs'' where Cs''_p: "lresolution_deriv CsNext Cs'' \<and> {} \<in> Cs''" by auto
     moreover
-    have "lresolution_deriv Cs (Cs \<union> {C1'})" sorry
-    have "lresolution_deriv Cs (Cs \<union> {C1',C2'})" sorry
-    then have "lresolution_deriv Cs (Cs \<union> {C1',C2',?C})" using L1L2\<tau>_p star.intros[of resolution_step] by auto
-
-
-    (*
-    from C1_p have "\<forall>l \<in> C1. falsifiesl (B@[True]) l" by auto
-    moreover have "\<not>(\<forall>l \<in> C1. falsifiesl B l)" using C1_p b_p clo by auto
-    ultimately have "\<exists>l \<in> C1. falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
-    then obtain l where l_p: "l \<in> C1 \<and> falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
-    then have "\<exists>l'. instance_ofl l' l \<and> falsifiesl (B@[True]) l' \<and> groundl l'" using falsifies_ground_sub by blast
-    then obtain l' where l'_p: "instance_ofl l' l \<and> falsifiesl (B@[True]) l' \<and> groundl l'" by auto
-    then have "\<not>(falsifiesl B l')" using l_p partial_equiv_subst' unfolding instance_ofl_def by blast
-    then have "\<not>(\<exists>i.  
-      i < length B
-      \<and> B ! i = (\<not>sign l')
-      \<and> fatom_from_nat i = Pos (get_pred l') (get_terms l'))" using instance_ofts_self by (induction l') auto
-    then have "\<not>(\<exists>i.  
-      i < length B
-      \<and> (B@[True]) ! i = (\<not>sign l')
-      \<and> fatom_from_nat i = Pos (get_pred l') (get_terms l'))" by (metis nth_append) 
-    moreover 
-    have "\<exists>i.  
-      i < length (B@[True])
-      \<and> (B@[True]) ! i = (\<not>sign l')
-      \<and> fatom_from_nat i = Pos (get_pred l') (get_terms l')" using ground_falsifies l'_p by blast
-    ultimately
-    have ggg: "(B@[True]) ! (length B) = (\<not>sign l') \<and> fatom_from_nat (length B) = Pos (get_pred l') (get_terms l')"
-      using number_lemma[of B "\<lambda>i. (B @ [True]) ! i = (\<not> sign l') \<and> fatom_from_nat i = Pos (get_pred l') (get_terms l')"] by auto
-    then have sss: "sign l' = False" by auto
-    from ggg have "nat_from_fatom (Pos (get_pred l') (get_terms l')) = length B" using undiag_fatom_from_nat by metis
-    then have "nat_from_fatom l' = length B" using undiag_neg[of "get_pred l'" "get_terms l'"] sss by auto
-    (* Prove: Additionally, all the other literals in C'1 must be falsified by B, since they are falsified by B1, but not l'1. *)
-    *)
-
-
-    have "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'" sorry
+    {
+      have "lresolution_step Cs (Cs \<union> {?C1})" sorry
+      moreover
+      have "lresolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1,?C2})" sorry
+      moreover
+      then have "lresolution_step (Cs \<union> {?C1,?C2}) (Cs \<union> {?C1,?C2} \<union> {C})" 
+        using L1L2\<tau>_p lresolution_rule[of ?C1 "Cs \<union> {?C1,?C2}" ?C2 L1 L2 \<tau> ] using C_p by auto
+      then have "lresolution_step (Cs \<union> {?C1,?C2}) CsNext" 
+       using CsNext_p C_p apply (subgoal_tac "Cs \<union> {?C1,?C2} \<union> {C} = CsNext")
+       apply auto
+       done
+      ultimately
+      have "lresolution_deriv Cs CsNext" using star.intros[of lresolution_step] unfolding lresolution_deriv_def by auto
+    }
+    ultimately have "lresolution_deriv Cs Cs''" using star_trans unfolding lresolution_deriv_def by auto
+    then have "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'" using Cs''_p by auto
   }
   ultimately show "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'" by auto
 oops
@@ -1929,7 +1919,7 @@ theorem completeness:
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
   assumes unsat: "\<forall>(F::hterm fun_denot) (G::hterm pred_denot) . \<not>evalcs F G Cs"
   shows "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
-oops 
+oops
 
 (* To get rid of the type - something like - find a countable subset using CHOISE *)
 
