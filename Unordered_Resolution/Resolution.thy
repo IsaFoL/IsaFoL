@@ -1681,7 +1681,7 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     moreover 
     have "\<not>falsifiesc B C1o" using C1o_p b_p clo by auto
     then have "\<not>falsifiesc B ?C1" using std_apart_falsifies1_sym [of C1o C2o ?C1 ?C2 B] by auto
-    then have "\<not> falsifiesg B C1'" using C1'_p by auto
+    then have "\<not>falsifiesg B C1'" using C1'_p by auto
     then have "\<not>(\<forall>l \<in> C1'. falsifiesl B l)" by auto
     ultimately have "\<exists>l \<in> C1'. falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
     then obtain l1 where l1_p: "l1 \<in> C1' \<and> falsifiesl (B@[True]) l1 \<and> \<not>(falsifiesl B l1)" by auto
@@ -1852,7 +1852,7 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
           done
       qed
     have "falsifiesg B ((C1' - {l1}) \<union> (C2' - {l2}))" using B_C1'l1 B_C2'l2 by cases auto
-    then have "falsifiesg B (lresolution C1' C2' {l1} {l2} \<epsilon>)" unfolding lresolution_def empty_subls by auto
+    then have falsifies_ground_C: "falsifiesg B (lresolution C1' C2' {l1} {l2} \<epsilon>)" unfolding lresolution_def empty_subls by auto
 
     have "applicable C1' C2' {l1} {l2} \<epsilon>" unfolding applicable_def
       apply auto (* I prove each conjunct of applicable at a time *)
@@ -1877,20 +1877,26 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     (* Cut down tree *) (* Apply resolution *)
     value delete
 
-    have T''_smaller: "treesize T'' < treesize T" sorry
-    have T''_closed: "closed_tree T'' CsNext"
-      proof -
-       have bran: "anybranch T'' (\<lambda>b. closed_branch b T'' CsNext)"
-         proof (rule;rule)
-           fix p
-           assume "branch p T''"
-           
-           show "closed_branch p T'' CsNext" sorry
-         qed
-       have intr: "anyinternal T'' (\<lambda>p. \<not>falsifiescs p CsNext)" sorry
+    have falsifies_C: "falsifiesc B C" using C_p L1L2\<tau>_p falsifies_ground_C by auto
 
-       then show "closed_tree T'' CsNext" using bran intr by auto
+    have T''_smaller: "treesize T'' < treesize T" sorry
+    have T''_bran: "anybranch T'' (\<lambda>b. closed_branch b T'' CsNext)"
+      proof (rule;rule)
+        fix b
+        assume br: "branch b T''"
+        from br have "b = B \<or> branch b T" using branch_delete T''_p by auto
+        then show "closed_branch b T'' CsNext"
+          proof
+            assume "b=B"
+            then show "closed_branch b T'' CsNext" using falsifies_C br CsNext_p by auto
+          next
+            assume "branch b T"
+            then show "closed_branch b T'' CsNext" using clo br T''_p CsNext_p by auto
+          qed
       qed
+
+    have T'_intr: "anyinternal T' (\<lambda>p. \<not>falsifiescs p CsNext)" sorry
+    have T'_closed: "closed_tree T' CsNext" using T''_bran T''_intr by auto
 
     from T'_smaller T'_closed have "\<exists>Cs''. lresolution_deriv CsNext Cs'' \<and> {} \<in> Cs''" using ih by blast
     then obtain Cs'' where Cs''_p: "lresolution_deriv CsNext Cs'' \<and> {} \<in> Cs''" by auto
@@ -1924,3 +1930,4 @@ oops
 (* To get rid of the type - something like - find a countable subset using CHOISE *)
 
 end
+
