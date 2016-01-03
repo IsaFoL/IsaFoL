@@ -193,40 +193,34 @@ next
 
 section {* Internal Paths *}
 
-inductive internal :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
-  "internal [] (Branch l r)"
-| "internal ds l \<Longrightarrow> internal (Left#ds) (Branch l r) "
-| "internal ds r \<Longrightarrow> internal (Right#ds) (Branch l r)"
+fun internal :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
+  "internal [] (Branch l r) \<longleftrightarrow> True"
+| "internal (d#ds) (Branch l r) \<longleftrightarrow> (if d then internal ds l else internal ds r)"
+| "internal _ _ \<longleftrightarrow> False"
 (* Could use anonymous var in first case *)
 
 lemma internal_inv_Leaf: "\<not>internal b Leaf" using internal.simps by blast
 
 lemma internal_inv_Branch_Left:  
-  "internal (Left#b) (Branch l r) \<longleftrightarrow> internal b l"
-apply rule
-using internal.intros apply auto
-using Left_def Right_def internal.cases apply blast
-done
+  "internal (Left#b) (Branch l r) \<longleftrightarrow> internal b l" by auto
 
 lemma internal_inv_Branch_Right: 
   "internal (Right#b) (Branch l r) \<longleftrightarrow> internal b r"
-using internal.intros apply auto
-using Left_def Right_def internal.cases apply blast
-done
+by auto
 
 lemma internal_inv_Branch: 
   "internal p (Branch l r) \<longleftrightarrow> (p=[] \<or> (\<exists>a p'. p=a#p'\<and> (a \<longrightarrow> internal p' l) \<and> (\<not>a \<longrightarrow> internal p' r)))" (is "?L \<longleftrightarrow> ?R")
 proof
-  assume ?L then show ?R using internal.simps[of p] by auto
+  assume ?L then show ?R by (metis internal.simps(2) neq_Nil_conv) 
 next
   assume r: ?R
   then show ?L
     proof
-      assume "p = []" then show ?L using internal.intros by auto
+      assume "p = []" then show ?L by auto
     next
       assume "\<exists>a p'. p=a#p'\<and> (a \<longrightarrow> internal p' l) \<and> (\<not>a \<longrightarrow> internal p' r)"
       then obtain a p' where "p=a#p'\<and> (a \<longrightarrow> internal p' l) \<and> (\<not>a \<longrightarrow> internal p' r)" by auto
-      then show ?L using internal.intros by (cases a) auto
+      then show ?L by (cases a) auto
     qed
 qed
 
@@ -253,17 +247,17 @@ proof (induction ds1 arbitrary: T)
       assume atrue: "a"
       then have "internal ((ds1) @ ds2 @[d]) l" using p_lr Cons(2) internal_inv_Branch by auto
       then have "internal ds1 l" using Cons(1) by auto
-      then show "internal (a # ds1) T" using p_lr internal.intros atrue by auto
+      then show "internal (a # ds1) T" using p_lr atrue by auto
     next
       assume afalse: "~a"
       then have "internal ((ds1) @ ds2 @[d]) r" using p_lr Cons(2) internal_inv_Branch by auto
       then have "internal ds1 r" using Cons(1) by auto
-      then show "internal (a # ds1) T" using p_lr internal.intros afalse by auto
+      then show "internal (a # ds1) T" using p_lr afalse by auto
     qed
 next
   case (Nil)
   then have "\<exists>l r. T = Branch l r" using internal_inv_Leaf by (cases T) auto 
-  then show ?case using internal.intros by auto
+  then show ?case by auto
 qed
 
 
@@ -277,17 +271,17 @@ proof (induction ds1 arbitrary: T)
       assume atrue: "a"
       then have "branch (ds1 @ ds2 @ [d]) l" using p_lr Cons(2) branch_inv_Branch by auto
       then have "internal ds1 l" using Cons(1) by auto
-      then show "internal (a # ds1) T" using p_lr internal.intros atrue by auto
+      then show "internal (a # ds1) T" using p_lr atrue by auto
     next
       assume afalse: "~a"
       then have "branch ((ds1) @ ds2 @[d]) r" using p_lr Cons(2) branch_inv_Branch by auto
       then have "internal ds1 r" using Cons(1) by auto
-      then show "internal (a # ds1) T" using p_lr internal.intros afalse by auto
+      then show "internal (a # ds1) T" using p_lr afalse by auto
     qed
 next
   case (Nil)
   then have "\<exists>l r. T = Branch l r" using branch_inv_Leaf by (cases T) auto 
-  then show ?case using internal.intros by auto
+  then show ?case by auto
 qed
 
 
@@ -490,12 +484,52 @@ next
   ultimately show ?case by blast
 qed
 
+lemma treezise_delete: "internal p T \<Longrightarrow> treesize (delete p T) < treesize T"
+proof (induction p arbitrary: T)
+  case (Nil)
+  then have "\<exists>T1 T2. T = Branch T1 T2" by (cases T) auto
+  then obtain T1 T2 where T1T2_p: "T = Branch T1 T2" by auto 
+  then show ?case by auto
+next
+  case (Cons a p) 
+  then have "\<exists>T1 T2. T = Branch T1 T2" using path_inv_Cons internal_is_path by blast
+  then obtain T1 T2 where T1T2_p: "T = Branch T1 T2" by auto
+  show ?case
+    proof (cases a)
+      assume a_p: a
+      from a_p have "delete (a#p) T = (Branch (delete p T1) T2)" using T1T2_p by auto
+      moreover
+      from a_p have "internal p T1" using T1T2_p Cons by auto
+      then have "treesize (delete p T1) < treesize T1" using Cons by auto
+      ultimately
+      show ?thesis using T1T2_p by auto
+    next
+      assume a_p: "\<not>a"
+      from a_p have "delete (a#p) T = (Branch T1 (delete p T2))" using T1T2_p by auto
+      moreover
+      from a_p have "internal p T2" using T1T2_p Cons by auto
+      then have "treesize (delete p T2) < treesize T2" using Cons by auto
+      ultimately
+      show ?thesis using T1T2_p by auto
+    qed
+qed
+
+
 fun cutoff :: "(dir list \<Rightarrow> bool) \<Rightarrow> dir list \<Rightarrow> tree \<Rightarrow> tree" where
   "cutoff red ds (Branch T\<^sub>1 T\<^sub>2) = 
      (if red ds then Leaf else Branch (cutoff red (ds@[Left])  T\<^sub>1) (cutoff red (ds@[Right]) T\<^sub>2))"
 | "cutoff red ds Leaf = Leaf"
 (* Initially you should call this with ds = []*)
 (* Hvis alle branches er røde, så giver cut_off et subtree *)(* Hvis alle branches er røde, så gælder det sammme for cut_off *)(* Alle interne stier er ikke røde *)
+
+lemma treesize_cutoff: "treesize (cutoff red ds T) \<le> treesize T"
+proof (induction T arbitrary: ds)
+  case Leaf then show ?case by auto
+next
+  case (Branch T1 T2) 
+  then have "treesize (cutoff red (ds@[Left]) T1) + treesize (cutoff red (ds@[Right]) T2) \<le> treesize T1 + treesize T2" using add_mono by blast
+  then show ?case by auto
+qed
 
 abbreviation anypath :: "tree \<Rightarrow> (dir list \<Rightarrow> bool) \<Rightarrow> bool" where
   "anypath T P \<equiv> \<forall>p. path p T \<longrightarrow> P p"
@@ -576,7 +610,7 @@ next
   {
     fix p
     assume b_p: "internal p ?T"
-    then have ds_p: "\<not>red ds" using internal_inv_Leaf internal.intros by auto
+    then have ds_p: "\<not>red ds" using internal_inv_Leaf by auto
     have "p=[] \<or> p\<noteq>[]" by auto
     then have "\<not>red(ds@p)"
       proof

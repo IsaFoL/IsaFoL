@@ -193,6 +193,8 @@ lemma subls_union: "(L\<^sub>1 \<union> L\<^sub>2) {\<sigma>}\<^sub>l\<^sub>s = 
    that two variable point to the same. We could and should perhaps disallow this.
    It could be done something like
    var_renaming \<sigma> \<longleftrightarrow> (\<exists>b. bijection b (UNIV::var_symbol) (UNIV::var_symbol) \<and> \<forall>x. \<sigma> x = Var (b x))
+
+  Simpler idea: a variable renaming for a formula is a substitution, s.t. we can get back to the original formula with another substitution
  *)
 definition var_renaming :: "substitution \<Rightarrow> bool" where
   "var_renaming \<sigma> \<longleftrightarrow> (\<forall>x. \<exists>y. \<sigma> x = Var y)"
@@ -1879,7 +1881,7 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
 
     have falsifies_C: "falsifiesc B C" using C_p L1L2\<tau>_p falsifies_ground_C by auto
 
-    have T''_smaller: "treesize T'' < treesize T" sorry
+    have T''_smaller: "treesize T'' < treesize T" using treezise_delete T''_p b_p by auto
     have T''_bran: "anybranch T'' (\<lambda>b. closed_branch b T'' CsNext)"
       proof (rule;rule)
         fix b
@@ -1895,8 +1897,14 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
           qed
       qed
 
-    have T'_intr: "anyinternal T' (\<lambda>p. \<not>falsifiescs p CsNext)" sorry
-    have T'_closed: "closed_tree T' CsNext" using T''_bran T''_intr by auto
+    obtain T' where T'_p: "T' = cutoff (\<lambda>G. falsifiescs G CsNext) [] T''" by auto
+    have T'_smaller: "treesize T' < treesize T" 
+      using treesize_cutoff[of "\<lambda>G. falsifiescs G CsNext" "[]" T''] T''_smaller unfolding T'_p by auto
+    have T''_bran2: "anybranch T'' (\<lambda>b. falsifiescs b CsNext)" using T''_bran by auto (* replace T''_bran with this maybe? *)
+    then have "anybranch T' (\<lambda>b. falsifiescs b CsNext)" using cutoff_branch[of T'' "\<lambda>b. falsifiescs b CsNext"] T'_p by auto
+    then have T'_bran: "anybranch T' (\<lambda>b. closed_branch b T' CsNext)" by auto
+    have T'_intr: "anyinternal T' (\<lambda>p. \<not>falsifiescs p CsNext)" using T'_p cutoff_internal[of T'' "\<lambda>b. falsifiescs b CsNext"] T''_bran2 by blast
+    have T'_closed: "closed_tree T' CsNext" using T'_bran T'_intr by auto
 
     from T'_smaller T'_closed have "\<exists>Cs''. lresolution_deriv CsNext Cs'' \<and> {} \<in> Cs''" using ih by blast
     then obtain Cs'' where Cs''_p: "lresolution_deriv CsNext Cs'' \<and> {} \<in> Cs''" by auto
