@@ -130,8 +130,7 @@ lemma cdcl_bj_measure:
   assumes "cdcl_bj S T"
   shows "length (trail S) + (if conflicting S = C_True then 0 else 1)
     > length (trail T) +  (if conflicting T = C_True then 0 else 1)"
-  using assms apply (induction rule: cdcl_bj.induct)
-  by (fastforce dest:arg_cong[of _ _ length])+
+  using assms by (induction rule: cdcl_bj.induct) (fastforce dest:arg_cong[of _ _ length])+
 
 lemma cdcl_bj_wf:
   "wf {(b,a). cdcl_bj a b}"
@@ -146,7 +145,8 @@ lemma rtranclp_skip_state_decomp:
     "T \<sim> update_trail (trail T) S"
   using assms by (induction rule: rtranclp_induct) (auto simp del: state_simp simp: state_eq_def)+
 
-subsubsection \<open>Backumping is determinsitic\<close>
+subsubsection \<open>More backjumping\<close>
+paragraph \<open>Backjumping after skipping or jump directly\<close>
 lemma rtranclp_skip_backtrack_backtrack:
   assumes
     "skip\<^sup>*\<^sup>* S T" and
@@ -424,7 +424,6 @@ proof -
     unfolding M' by auto
   thus ?thesis using T U by (auto simp del: state_simp simp: state_eq_def)
 qed
-
 
 lemma if_can_apply_backtrack_no_more_resolve:
   assumes
@@ -896,7 +895,7 @@ next
   then have "forget\<^sub>N\<^sub>O\<^sub>T S T"
      using inv unfolding cdcl_all_inv_mes_def cdcl_learned_clause_def
        by (auto intro!: forget\<^sub>N\<^sub>O\<^sub>T.forget\<^sub>N\<^sub>O\<^sub>T elim!: forgetE
-         simp: state_eq_def clauses_def Un_Diff state_eq\<^sub>N\<^sub>O\<^sub>T_def clauses_def remove_cls\<^sub>N\<^sub>O\<^sub>T_def
+         simp: state_eq_def Un_Diff state_eq\<^sub>N\<^sub>O\<^sub>T_def clauses_def remove_cls\<^sub>N\<^sub>O\<^sub>T_def
          simp del: state_simp state_simp\<^sub>N\<^sub>O\<^sub>T)
   then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_forget\<^sub>N\<^sub>O\<^sub>T by blast
 next
@@ -3411,7 +3410,6 @@ proof (rule ccontr)
     then have "card (learned_clss T) > card (build_all_simple_clss (atms_of_m (init_clss (fst ?S))))"
       by linarith
   moreover
-
     have "init_clss (fst (g j)) = init_clss T"
       using \<open>cdcl_fw_s\<^sup>*\<^sup>* (fst (g j)) T\<close> rtranclp_cdcl_fw_s_rtranclp_cdcl rtranclp_cdcl_init_clss
       by blast

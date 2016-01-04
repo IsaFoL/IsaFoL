@@ -3456,7 +3456,7 @@ lemma backjump_bj_can_jump:
     F_C': "F \<Turnstile>as CNot C'"
   shows "\<not>no_step backjump S"
     using backjump.intros[OF tr_S _ C tr_S_C undef _ cls_S_C' F_C',
-      of "update_trail (Propagated L l # F) S "] atm_L unfolding tr_S
+      of "update_trail (Propagated L _ # F) S "] atm_L unfolding tr_S
     by (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def simp del: state_simp\<^sub>N\<^sub>O\<^sub>T)
 
 sublocale dpll_with_backjumping_ops _ _ _ _ _ inv "\<lambda>_ _ _ _. True"
