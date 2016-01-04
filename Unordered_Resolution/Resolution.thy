@@ -194,10 +194,14 @@ lemma subls_union: "(L\<^sub>1 \<union> L\<^sub>2) {\<sigma>}\<^sub>l\<^sub>s = 
    It could be done something like
    var_renaming \<sigma> \<longleftrightarrow> (\<exists>b. bijection b (UNIV::var_symbol) (UNIV::var_symbol) \<and> \<forall>x. \<sigma> x = Var (b x))
 
-  Simpler idea: a variable renaming for a formula is a substitution, s.t. we can get back to the original formula with another substitution
+  Simple idea: Variable_renaming takes two clauses, and sees if they can be substituted to each other
  *)
-definition var_renaming :: "substitution \<Rightarrow> bool" where
-  "var_renaming \<sigma> \<longleftrightarrow> (\<forall>x. \<exists>y. \<sigma> x = Var y)"
+
+(* definition var_renaming :: "substitution \<Rightarrow> bool" where
+  "var_renaming \<sigma> \<longleftrightarrow> (\<forall>x. \<exists>y. \<sigma> x = Var y)" *)
+
+definition var_renaming_of :: "fterm clause \<Rightarrow> fterm clause \<Rightarrow> bool" where
+  "var_renaming_of C1 C2 \<longleftrightarrow> instance_ofls C1 C2 \<and> instance_ofls C2 C1"
 
 subsection {* The Empty Substitution *}
 
@@ -683,14 +687,14 @@ inductive resolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<
     "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<Longrightarrow> 
        resolution_step Cs (Cs \<union> {resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>})"
 | standardize_apart:
-    "C \<in> Cs \<Longrightarrow> var_renaming \<sigma> \<Longrightarrow> resolution_step Cs (Cs \<union> {C {\<sigma>}\<^sub>l\<^sub>s})"
+    "C \<in> Cs \<Longrightarrow> var_renaming_of C C' \<Longrightarrow> resolution_step Cs (Cs \<union> {C'})"
 
 inductive lresolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   lresolution_rule: 
     "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<Longrightarrow> 
        lresolution_step Cs (Cs \<union> {lresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>})"
-| lstandardize_apart:
-    "C \<in> Cs \<Longrightarrow> var_renaming \<sigma> \<Longrightarrow> lresolution_step Cs (Cs \<union> {C {\<sigma>}\<^sub>l\<^sub>s})"
+| lstandardize_apart: (* Maybe rename would be a better name? ? ? *)
+    "C \<in> Cs \<Longrightarrow> var_renaming_of C C' \<Longrightarrow> lresolution_step Cs (Cs \<union> {C'})"
 
 definition resolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "resolution_deriv = star resolution_step"
@@ -875,9 +879,9 @@ proof (induction rule: resolution_step.induct)
     using resolution_sound resolution_rule by auto
   then show ?case using resolution_rule unfolding evalcs_def by auto
 next
-  case (standardize_apart C Cs \<sigma>)
+  case (standardize_apart C Cs C')
   then have "evalc F G C" unfolding evalcs_def by auto
-  then have "evalc F G (C{\<sigma>}\<^sub>l\<^sub>s)" using subst_sound by auto
+  then have "evalc F G C'" using subst_sound standardize_apart unfolding var_renaming_of_def instance_ofls_def by metis
   then show ?case using standardize_apart unfolding evalcs_def by auto
 qed
 
@@ -889,9 +893,9 @@ proof (induction rule: lresolution_step.induct)
     using lresolution_sound lresolution_rule by auto
   then show ?case using lresolution_rule unfolding evalcs_def by auto
 next
-  case (lstandardize_apart C Cs \<sigma>)
+  case (lstandardize_apart C Cs C')
   then have "evalc F G C" unfolding evalcs_def by auto
-  then have "evalc F G (C{\<sigma>}\<^sub>l\<^sub>s)" using subst_sound by auto
+  then have "evalc F G C'" using subst_sound lstandardize_apart unfolding var_renaming_of_def instance_ofls_def by metis
   then show ?case using lstandardize_apart unfolding evalcs_def by auto
 qed
 
@@ -1187,6 +1191,25 @@ proof -
   ultimately
   show ?thesis by auto
 qed
+
+lemma std_apart_renames1:
+  assumes "std_apart C1 C2 = (C1',C2')"
+  shows "var_renaming_of C1 C1'"
+proof -
+  have "instance_ofls C1 C1'" using std_apart_instance_ofls assms by auto
+  moreover have "instance_ofls C1' C1" using assms unfolding instance_ofls_def std_apart_def by auto
+  ultimately show "var_renaming_of C1 C1'" unfolding var_renaming_of_def by auto
+qed
+
+lemma std_apart_renames2:
+  assumes "std_apart C1 C2 = (C1',C2')"
+  shows "var_renaming_of C2 C2'"
+proof -
+  have "instance_ofls C2 C2'" using std_apart_instance_ofls assms by auto
+  moreover have "instance_ofls C2' C2" using assms unfolding instance_ofls_def std_apart_def by auto
+  ultimately show "var_renaming_of C2 C2'" unfolding var_renaming_of_def by auto
+qed
+
 
 subsection {* Semantic Trees *}
 
@@ -1910,16 +1933,14 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     then obtain Cs'' where Cs''_p: "lresolution_deriv CsNext Cs'' \<and> {} \<in> Cs''" by auto
     moreover
     {
-      have "lresolution_step Cs (Cs \<union> {?C1})" sorry
+      have "lresolution_step Cs (Cs \<union> {?C1})" using std_apart_renames1[of C1o C2o] lresolution_step.intros(2)[of C1o Cs] C1o_p by (metis Un_insert_right prod.collapse)
       moreover
-      have "lresolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1,?C2})" sorry
+      have "lresolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1} \<union> {?C2})" using std_apart_renames2[of C1o C2o] lresolution_step.intros(2)[of C2o Cs] C2o_p by (metis Un_insert_right insert_iff lstandardize_apart prod.collapse sup_bot.right_neutral)
+      then have "lresolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1,?C2})" by (metis insert_is_Un sup_assoc)
       moreover
       then have "lresolution_step (Cs \<union> {?C1,?C2}) (Cs \<union> {?C1,?C2} \<union> {C})" 
         using L1L2\<tau>_p lresolution_rule[of ?C1 "Cs \<union> {?C1,?C2}" ?C2 L1 L2 \<tau> ] using C_p by auto
-      then have "lresolution_step (Cs \<union> {?C1,?C2}) CsNext" 
-       using CsNext_p C_p apply (subgoal_tac "Cs \<union> {?C1,?C2} \<union> {C} = CsNext")
-       apply auto
-       done
+      then have "lresolution_step (Cs \<union> {?C1,?C2}) CsNext"by (metis CsNext_p insert_is_Un sup_assoc) 
       ultimately
       have "lresolution_deriv Cs CsNext" using star.intros[of lresolution_step] unfolding lresolution_deriv_def by auto
     }
@@ -1927,7 +1948,7 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     then have "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'" using Cs''_p by auto
   }
   ultimately show "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'" by auto
-oops
+qed
 
 theorem completeness:
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
