@@ -3059,7 +3059,6 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn =
      learn_inv: "\<And>S T. learn S T \<Longrightarrow> inv S \<Longrightarrow> inv T"
 begin
 
-
 interpretation cdcl\<^sub>N\<^sub>O\<^sub>T:
    conflict_driven_clause_learning trail clauses update_trail update_cls propagate_conds
    inv backjump_conds "\<lambda>C _. distinct_mset C \<and> \<not>tautology C" forget_conds

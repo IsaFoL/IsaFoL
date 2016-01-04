@@ -762,7 +762,7 @@ next
             by (meson T_U' cdcl_bj.simps if_can_apply_backtrack_no_more_resolve inv_T
               resolve_skip_deterministic resolve_unique rtranclp.rtrancl_refl)
           then show ?thesis
-            using \<open>cdcl_bj\<^sup>*\<^sup>* U' V\<close> unfolding rtranclp_unfold by (meson rtranclp_unfold state_eq_ref 
+            using \<open>cdcl_bj\<^sup>*\<^sup>* U' V\<close> unfolding rtranclp_unfold by (meson rtranclp_unfold state_eq_ref
               state_eq_sym tranclp_cdcl_bj_state_eq_compatible)
         next
           case skip
@@ -3271,6 +3271,9 @@ locale cdcl_cw_ops_restart =
   assumes f: "strict_mono f"
 begin
 
+text \<open>The condition \<open>card (learned_clss T) - card (learned_clss S) > f n\<close> has to be strict.
+  Otherwise, you could be in a strange state, where nothing remains to do, but a restart is done.
+  See proof of well-foundedness.}\<close>
 inductive cdcl_with_restart\<^sub>C\<^sub>W where
 restart_step: "(cdcl_fw_s^^(card (learned_clss T) - card (learned_clss S))) S T
   \<Longrightarrow> card (learned_clss T) - card (learned_clss S) > f n
@@ -3289,11 +3292,6 @@ lemma cdcl_with_restart\<^sub>C\<^sub>W_rtranclp_cdcl:
   by (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct)
   (auto dest!: relpowp_imp_rtranclp rtranclp_cdcl_fw_s_rtranclp_cdcl cdcl.rf cdcl_rf.restart
       tranclp_into_rtranclp simp: full_def)
-
-lemma
-  "cdcl_with_restart\<^sub>C\<^sub>W S T \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_merged\<^sup>*\<^sup>* (fst S) (fst T)"
-  apply (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct)
-oops
 
 lemma cdcl_with_restart\<^sub>C\<^sub>W_increasing_number:
   "cdcl_with_restart\<^sub>C\<^sub>W S T \<Longrightarrow> snd T = 1 + snd S"
@@ -3387,8 +3385,10 @@ proof (rule ccontr)
     using strict_mono_ge_id[of "snd \<circ> g" "1+card (build_all_simple_clss (atms_of_m (init_clss
       (fst ?S))))"] Suc_le_lessD
     by fastforce
+  text \<open>The following does not hold anymore with the non-strict version of
+    \<open>card (learned_clss T) - card (learned_clss S) > f n\<close>\<close>
   { fix i
-    assume "no_step cdcl_fw_s (fst (g i))"
+    assume "no_step cdcl_fw_s (fst (g i))" and "i > 0"
     with g[of i]
     have False
       proof (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct)

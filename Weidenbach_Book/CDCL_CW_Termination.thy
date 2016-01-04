@@ -336,6 +336,7 @@ next
     qed
 qed
 
+(* TODO Move to Wf *)
 lemma rtranclp_exists_last_with_prop:
   assumes "R x z"
   and "R\<^sup>*\<^sup>* z z'" and "P x z"
@@ -891,7 +892,7 @@ qed
 
 lemma lexn3[intro!, simp]:
   "a < a' \<or> (a = a' \<and> b < b') \<or> (a = a' \<and> b = b' \<and> c < c')
-    \<Longrightarrow> ([a::nat, b, c], [a', b', c']) \<in> lexn {(x, y). x < y} 3 "
+    \<Longrightarrow> ([a::nat, b, c], [a', b', c']) \<in> lexn {(x, y). x < y} 3"
   apply auto
   unfolding lexn_conv apply fastforce
   unfolding lexn_conv apply auto
@@ -907,7 +908,7 @@ lemma cdcl_measure_decreasing:
     (*no restart*) and
     "learned_clss S \<subseteq> learned_clss S'" (*no forget*) and
     no_relearn: "\<And>S'. backtrack S S' \<Longrightarrow> \<forall>T. conflicting S = C_Clause T \<longrightarrow> T \<notin> learned_clss S"
-     (*replace 2.10.5-8 we will prove later*) and
+      and
     alien: "no_strange_atm S" and
     M_level: "cdcl_M_level_inv S" and
     finite_atms: "finite (atms_of_m (clauses S))" and
@@ -1034,8 +1035,8 @@ lemma propagate_measure_decreasing:
   shows "(cdcl_measure S', cdcl_measure S) \<in> lexn {(a, b). a < b} 3"
   apply (rule cdcl_measure_decreasing)
   using assms(1) propagate apply blast
-  using assms(1) apply (auto simp add: propagate.simps)[3]
-  using assms(2) apply (auto simp add: cdcl_all_inv_mes_def)
+           using assms(1) apply (auto simp add: propagate.simps)[3]
+        using assms(2) apply (auto simp add: cdcl_all_inv_mes_def)
   done
 
 lemma conflict_measure_decreasing:
@@ -1054,8 +1055,8 @@ lemma decide_measure_decreasing:
   shows "(cdcl_measure S', cdcl_measure S) \<in> lexn {(a, b). a < b} 3"
   apply (rule cdcl_measure_decreasing)
   using assms(1) decide other apply blast
-  using assms(1) apply (auto simp add: propagate.simps)[3]
-  using assms(2) apply (auto simp add: cdcl_all_inv_mes_def)
+            using assms(1) apply (auto simp add: propagate.simps)[3]
+         using assms(2) apply (auto simp add: cdcl_all_inv_mes_def)
   done
 
 lemma trans_le:
