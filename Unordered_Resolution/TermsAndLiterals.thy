@@ -1,5 +1,6 @@
-section{* Terms and Literals *}
-text {* \label{termsandliterals} 
+theory TermsAndLiterals imports Main "~~/src/HOL/Library/Countable_Set" begin
+
+text {* 
 Author: Stefan Berghofer, TU Muenchen, 2003
 
 Author: Anders Schlichtkrull, DTU, 2015
@@ -47,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 \end{verbatim}
 *}
 
-theory TermsAndLiterals imports Main "~~/src/HOL/Library/Countable_Set" begin
+section{* Terms and Literals *}
 
 type_synonym var_sym  = string
 type_synonym fun_sym  = string
@@ -76,13 +77,6 @@ abbreviation groundl :: "fterm literal \<Rightarrow> bool" where
   "groundl l \<equiv> grounds (get_terms l)"
 
 subsection {* Enumeration *}
-
-lemma (in countable) to_nat_from_nat: "infinite UNIV \<Longrightarrow> to_nat (from_nat n) = n" oops (* Could be nice to have *)
-
-thm Hilbert_Choice.bij_betw_inv_into
-thm inj_iff
-thm f_inv_into_f
-thm inv_into_f_f
 
 lemma infinity:
   assumes inj: "\<forall>n :: nat. undiago (diago n) = n" 
