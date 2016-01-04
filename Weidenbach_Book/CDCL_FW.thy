@@ -3271,9 +3271,9 @@ locale cdcl_cw_ops_restart =
   assumes f: "strict_mono f"
 begin
 
-text \<open>The condition \<open>card (learned_clss T) - card (learned_clss S) > f n\<close> has to be strict.
+text \<open>The condition @{term "card (learned_clss T) - card (learned_clss S) > f n"} has to be strict.
   Otherwise, you could be in a strange state, where nothing remains to do, but a restart is done.
-  See proof of well-foundedness.}\<close>
+  See the proof of well-foundedness.\<close>
 inductive cdcl_with_restart\<^sub>C\<^sub>W where
 restart_step: "(cdcl_fw_s^^(card (learned_clss T) - card (learned_clss S))) S T
   \<Longrightarrow> card (learned_clss T) - card (learned_clss S) > f n
@@ -3367,7 +3367,7 @@ proof (rule ccontr)
     g: "\<And>i. cdcl_with_restart\<^sub>C\<^sub>W (g i) (g (Suc i))" and
     inv: "\<And>i. cdcl_all_inv_mes (fst (g i))"
     unfolding wf_iff_no_infinite_down_chain by fast
-  {fix i
+  { fix i
     have "init_clss (fst (g i)) = init_clss (fst (g 0))"
       apply (induction i)
         apply simp
@@ -3386,9 +3386,9 @@ proof (rule ccontr)
       (fst ?S))))"] Suc_le_lessD
     by fastforce
   text \<open>The following does not hold anymore with the non-strict version of
-    \<open>card (learned_clss T) - card (learned_clss S) > f n\<close>\<close>
+    @{term "card (learned_clss T) - card (learned_clss S) > f n"} in the definition.\<close>
   { fix i
-    assume "no_step cdcl_fw_s (fst (g i))" and "i > 0"
+    assume "no_step cdcl_fw_s (fst (g i))"
     with g[of i]
     have False
       proof (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct)
