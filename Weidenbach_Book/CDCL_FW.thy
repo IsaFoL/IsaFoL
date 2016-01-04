@@ -55,10 +55,18 @@ sublocale cw_state \<subseteq> dpll_state trail clauses update_trail
   "\<lambda>C S. update_init_clss C (update_learned_clss {} S)"
   by unfold_locales auto
 
+(*
+  Here there are some linorder-sort issues.
+  sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_with_backtrack_and_restarts trail clauses update_trail
+  (* update_cls: *)"\<lambda>C S. update_init_clss C (update_learned_clss {} S)"
+  (* propagate conditions: *) "\<lambda>_ S. conflicting S = C_True" "\<lambda>C L S. backjump_l_cond C L S
+    \<and> distinct_mset (C + {#L#}) \<and> \<not>tautology (C + {#L#})" *)
+
 sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops trail clauses update_trail
-  "\<lambda>C S. update_init_clss C (update_learned_clss {} S)" "\<lambda>_. True"
-  "\<lambda>_ S. conflicting S = C_True" "\<lambda>C L S. backjump_l_cond C L S \<and> distinct_mset (C + {#L#})
-    \<and> \<not>tautology (C + {#L#})"
+  (* update_cls: *)"\<lambda>C S. update_init_clss C (update_learned_clss {} S)"
+  (* backjump conditions: *)"\<lambda>_. True"
+  (* propagate conditions: *) "\<lambda>_ S. conflicting S = C_True" "\<lambda>C L S. backjump_l_cond C L S
+    \<and> distinct_mset (C + {#L#}) \<and> \<not>tautology (C + {#L#})"
   by unfold_locales
 
 sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy trail clauses update_trail
