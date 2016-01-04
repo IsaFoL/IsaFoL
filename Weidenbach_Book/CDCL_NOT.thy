@@ -3066,13 +3066,10 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T:
   using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_forget\<^sub>N\<^sub>O\<^sub>T cdcl_merged_inv learn_inv
   by (auto simp add: cdcl\<^sub>N\<^sub>O\<^sub>T.simps dpll_bj_inv)
 
-abbreviation m_backjump where
-"m_backjump \<equiv> backjump"
-
 lemma backjump_l_learn_backjump:
   assumes bt: "backjump_l S T" and inv: "inv S"
   shows "\<exists>C' L. learn S (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S)
-    \<and> m_backjump (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S) T
+    \<and> backjump (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S) T
     \<and> atms_of (C' + {#L#}) \<subseteq> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))"
 proof -
    obtain C F' K d F L l C' where
@@ -3107,7 +3104,7 @@ proof -
       apply (rule not_tauto)
       apply simp
      done
-   moreover have bj: "m_backjump (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S) T"
+   moreover have bj: "backjump (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S) T"
      apply (rule backjumping_ops.backjump.intros[OF backjumping_ops_axioms _, of _ _ ])
      using \<open>F \<Turnstile>as CNot C'\<close> C_cls_S tr_S_CNot_C undef T distinct not_tauto
      by (auto simp: tr_S state_eq\<^sub>N\<^sub>O\<^sub>T_def simp del: state_simp\<^sub>N\<^sub>O\<^sub>T)
@@ -3229,7 +3226,7 @@ next
     and atms_trail = this(4) and n_d = this(5)
   obtain C' L where
     learn: "learn S (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S)" and
-    bj: "m_backjump (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S) T" and
+    bj: "backjump (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S) T" and
     atms_C: "atms_of (C' + {#L#}) \<subseteq> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))"
     using bj_l inv backjump_l_learn_backjump by blast
   have "card (clauses T) \<le>1+  card (clauses S)"
@@ -3321,6 +3318,13 @@ lemma wf_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged:
    apply (rule wf_trancl[OF wf_cdcl\<^sub>N\<^sub>O\<^sub>T_merged])
    using assms apply simp
   using tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_cdcl\<^sub>N\<^sub>O\<^sub>T_tranclp[OF _ _ _ _ _ _ \<open>finite A\<close>] by auto
+
+lemma backjump_no_step_backjump_l:
+  "backjump S T \<Longrightarrow> inv S \<Longrightarrow> \<not>no_step backjump_l S"
+  apply (elim backjumpE)
+  apply (rule bj_can_jump)
+    apply auto[7]
+  by blast
 
 lemma cdcl\<^sub>N\<^sub>O\<^sub>T_merged_normal_forms:
   fixes A :: "'v literal multiset set" and S T :: "'st"
