@@ -678,6 +678,130 @@ next
     qed
 qed
 
+paragraph \<open>Backjumping is confluent\<close>
+(* TODO Move *)
+lemma cdcl_bj_state_eq_compatible:
+  assumes
+    "cdcl_bj S T" and
+    "S \<sim> S'" and
+    "T \<sim> T'"
+  shows "cdcl_bj S' T'"
+  using assms by (auto simp: cdcl_bj.simps
+    intro: skip_state_eq_compatible backtrack_state_eq_compatible resolve_state_eq_compatible)
+
+lemma tranclp_cdcl_bj_state_eq_compatible:
+  assumes
+    "cdcl_bj\<^sup>+\<^sup>+ S T" and
+    "S \<sim> S'" and
+    "T \<sim> T'"
+  shows "cdcl_bj\<^sup>+\<^sup>+ S' T'"
+  using assms apply (induction arbitrary: S' T')
+    using cdcl_bj_state_eq_compatible apply blast
+  by (metis (full_types) rtranclp_unfold cdcl_bj_state_eq_compatible state_eq_ref
+    tranclp_unfold_end)
+
+text \<open>The case distinction is needed, since @{term "T \<sim> V"} does not imply that @{term "R\<^sup>*\<^sup>* T V"}.\<close>
+lemma cdcl_bj_strongly_confluent:
+   assumes
+     "cdcl_bj\<^sup>*\<^sup>* S V" and
+     "cdcl_bj\<^sup>*\<^sup>* S T" and
+     n_s: "no_step cdcl_bj V" and
+     inv: "cdcl_all_inv_mes S"
+   shows "T \<sim> V \<or> cdcl_bj\<^sup>*\<^sup>* T V"
+   using assms(2)
+proof induction
+  case base
+  thus ?case by (simp add: assms(1))
+next
+  case (step T U) note st = this(1) and s_o_r = this(2) and IH = this(3)
+  consider
+       (TV) "T \<sim> V"
+     | (bj_TV) "cdcl_bj\<^sup>*\<^sup>* T V"
+    using IH by blast
+  then show ?case
+    proof cases
+      case TV
+      then show ?thesis
+        by (meson backtrack_state_eq_compatible cdcl_bj.simps n_s resolve_state_eq_compatible
+          s_o_r skip_state_eq_compatible state_eq_ref)
+    next
+      case bj_TV
+      then obtain U' where
+        T_U': "cdcl_bj T U'" and
+        "cdcl_bj\<^sup>*\<^sup>* U' V"
+        using IH n_s s_o_r by (metis rtranclp_unfold tranclpD)
+      have "cdcl\<^sup>*\<^sup>* S T"
+        by (metis (no_types, hide_lams) bj mono_rtranclp[of cdcl_bj cdcl] other st)
+      hence inv_T: "cdcl_all_inv_mes T"
+        by (metis (no_types, hide_lams) inv rtranclp_cdcl_all_inv_mes_inv)
+
+      show ?thesis
+        using s_o_r
+        proof cases
+          case backtrack
+          then obtain V0 where "skip\<^sup>*\<^sup>* T V0" and "backtrack V0 V"
+            using IH if_can_apply_backtrack_skip_or_resolve_is_skip[OF backtrack _ inv_T]
+             cdcl_bj_decomp_resolve_skip_and_bj
+            by (meson backtrack_state_eq_compatible backtrack_unique cdcl_bj.backtrack inv_T n_s
+              rtranclp_skip_backtrack_backtrack_end)
+          then have "cdcl_bj\<^sup>*\<^sup>* T V0" and "cdcl_bj V0 V"
+            using rtranclp_mono[of skip cdcl_bj] by blast+
+          then show ?thesis
+            using \<open>backtrack V0 V\<close> \<open>skip\<^sup>*\<^sup>* T V0\<close> backtrack_unique inv_T local.backtrack
+            rtranclp_skip_backtrack_backtrack by auto
+        next
+          case resolve
+          then have "U \<sim> U'"
+            by (meson T_U' cdcl_bj.simps if_can_apply_backtrack_no_more_resolve inv_T
+              resolve_skip_deterministic resolve_unique rtranclp.rtrancl_refl)
+          then show ?thesis
+            using \<open>cdcl_bj\<^sup>*\<^sup>* U' V\<close> unfolding rtranclp_unfold by (meson rtranclp_unfold state_eq_ref 
+              state_eq_sym tranclp_cdcl_bj_state_eq_compatible)
+        next
+          case skip
+          consider
+              (sk)  "skip T U'"
+            | (bt)  "backtrack T U'"
+            using T_U' by (meson cdcl_bj.cases local.skip resolve_skip_deterministic)
+          thus ?thesis
+            proof cases
+              case sk
+              thus ?thesis
+                 using \<open>cdcl_bj\<^sup>*\<^sup>* U' V\<close> unfolding rtranclp_unfold by (meson skip rtranclp_unfold
+                   skip_unique state_eq_ref tranclp_cdcl_bj_state_eq_compatible)
+            next
+              case bt
+              have "skip\<^sup>+\<^sup>+ T U"
+                using local.skip by blast
+              thus ?thesis
+                using bt by (metis \<open>cdcl_bj\<^sup>*\<^sup>* U' V\<close> backtrack inv_T tranclp_unfold_begin
+                  rtranclp_skip_backtrack_backtrack_end tranclp_into_rtranclp)
+            qed
+        qed
+    qed
+qed
+
+
+lemma cdcl_bj_unique_normal_form:
+  assumes
+    ST: "cdcl_bj\<^sup>*\<^sup>* S T" and SU: "cdcl_bj\<^sup>*\<^sup>* S U" and
+    n_s_U: "no_step cdcl_bj U" and
+    n_s_T: "no_step cdcl_bj T" and
+    inv: "cdcl_all_inv_mes S"
+  shows "T \<sim> U"
+proof -
+  have "T \<sim> U \<or> cdcl_bj\<^sup>*\<^sup>* T U"
+    using ST SU cdcl_bj_strongly_confluent inv n_s_U by blast
+  then show ?thesis
+    by (metis (no_types) n_s_T rtranclp_unfold state_eq_ref tranclp_unfold_begin)
+qed
+
+lemma full0_cdcl_bj_unique_normal_form:
+ assumes "full0 cdcl_bj S T" and "full0 cdcl_bj S U" and
+   inv: "cdcl_all_inv_mes S"
+ shows "T \<sim> U"
+   using cdcl_bj_unique_normal_form assms unfolding full0_def by blast
+
 subsection \<open>CDCL FW\<close>
 inductive cdcl_fw_restart :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 fw_r_propagate: "propagate S S' \<Longrightarrow> cdcl_fw_restart S S'" |
