@@ -171,9 +171,12 @@ lemma true_annots_mono:
 
 subsubsection \<open>Defined and undefined literals\<close>
 definition defined_lit :: "'a literal \<Rightarrow> ('a, 'l, 'm) marked_lit list  \<Rightarrow> bool" ("|_| \<in>\<^sub>l |_|" 50)
-  where "defined_lit L I \<longleftrightarrow> (\<exists>l. Marked L l \<in> set I) \<or> (\<exists>P. Propagated L P \<in> set I) \<or> (\<exists>l. Marked (-L) l \<in> set I) \<or> (\<exists>P. Propagated (-L) P \<in> set I)"
+  where
+"defined_lit L I \<longleftrightarrow> (\<exists>l. Marked L l \<in> set I) \<or> (\<exists>P. Propagated L P \<in> set I)
+  \<or> (\<exists>l. Marked (-L) l \<in> set I) \<or> (\<exists>P. Propagated (-L) P \<in> set I)"
 
-abbreviation undefined_lit :: "'a literal \<Rightarrow> ('a, 'l, 'm) marked_lit list  \<Rightarrow> bool" ("|_| \<notin>\<^sub>l |_|" 50)
+abbreviation undefined_lit :: "'a literal \<Rightarrow> ('a, 'l, 'm) marked_lit list  \<Rightarrow> bool"
+  ("|_| \<notin>\<^sub>l |_|" 50)
 where "undefined_lit L I \<equiv> \<not>defined_lit L I"
 
 lemma atm_imp_marked_or_proped:
@@ -192,7 +195,8 @@ lemma literal_is_lit_of_marked:
 
 lemma true_annot_iff_marked_or_true_lit:
   "defined_lit L I \<longleftrightarrow> ((lits_of I) \<Turnstile>l L \<or> (lits_of I) \<Turnstile>l -L)"
-  unfolding defined_lit_def by (auto simp add: lits_of_def rev_image_eqI dest!: literal_is_lit_of_marked)
+  unfolding defined_lit_def by (auto simp add: lits_of_def rev_image_eqI
+    dest!: literal_is_lit_of_marked)
 
 lemma "consistent_interp (lits_of I) \<Longrightarrow> I \<Turnstile>as N \<Longrightarrow> satisfiable N"
   by (simp add: true_annots_true_cls)
@@ -213,15 +217,19 @@ lemma Marked_Propagated_in_iff_in_lits_of:
   by (auto simp add: rev_image_eqI) (case_tac x, auto)+
 
 lemma consistent_add_undefined_lit_consistent[simp]:
-  "consistent_interp (lits_of Ls) \<Longrightarrow> undefined_lit L Ls \<Longrightarrow> consistent_interp (insert L (lits_of Ls))"
-  unfolding consistent_interp_def by (auto simp add: Marked_Propagated_in_iff_in_lits_of)
+  assumes
+    "consistent_interp (lits_of Ls)" and
+    "undefined_lit L Ls"
+  shows" consistent_interp (insert L (lits_of Ls))"
+  using assms unfolding consistent_interp_def by (auto simp: Marked_Propagated_in_iff_in_lits_of)
 
 lemma decided_empty[simp]:
   "\<not>defined_lit L []"
   unfolding defined_lit_def by simp
 
 subsection \<open>Backtracking\<close>
-fun backtrack_split :: "('v, 'l, 'm) annoted_lits \<Rightarrow> ('v, 'l, 'm) annoted_lits \<times> ('v, 'l, 'm) annoted_lits" where
+fun backtrack_split :: "('v, 'l, 'm) annoted_lits
+  \<Rightarrow> ('v, 'l, 'm) annoted_lits \<times> ('v, 'l, 'm) annoted_lits" where
 "backtrack_split [] = ([], [])" |
 "backtrack_split (Propagated L P # mlits) = apfst ((op #) (Propagated L P)) (backtrack_split mlits)" |
 "backtrack_split (Marked L l # mlits) = ([], Marked L l # mlits)"
@@ -229,7 +237,8 @@ fun backtrack_split :: "('v, 'l, 'm) annoted_lits \<Rightarrow> ('v, 'l, 'm) ann
 lemma backtrack_split_fst_not_marked: "a \<in> set (fst (backtrack_split l)) \<Longrightarrow> \<not>is_marked a"
   by (induct l rule: marked_lit_list_induct) auto
 
-lemma backtrack_split_snd_hd_marked: "snd (backtrack_split l) \<noteq> [] \<Longrightarrow> is_marked (hd (snd (backtrack_split l)))"
+lemma backtrack_split_snd_hd_marked:
+  "snd (backtrack_split l) \<noteq> [] \<Longrightarrow> is_marked (hd (snd (backtrack_split l)))"
   by (induct l rule: marked_lit_list_induct) auto
 
 lemma backtrack_split_list_eq[simp]:
@@ -244,7 +253,8 @@ lemma backtrack_split_some_is_marked_then_snd_has_hd:
   "\<exists>l\<in>set M. is_marked l \<Longrightarrow> \<exists>M' L' M''. backtrack_split M = (M'', L' # M')"
   by (metis backtrack_snd_empty_not_marked list.exhaust prod.collapse)
 
-text \<open>Another characterisation of the result of @{const backtrack_split}. This view allows some simpler proofs, since @{term takeWhile} and @{term dropWhile} are highly automated:\<close>
+text \<open>Another characterisation of the result of @{const backtrack_split}. This view allows some
+  simpler proofs, since @{term takeWhile} and @{term dropWhile} are highly automated:\<close>
 lemma backtrack_split_takeWhile_dropWhile:
   "backtrack_split M = (takeWhile (Not o is_marked) M, dropWhile (Not o is_marked) M)"
 proof (induct M)
@@ -261,12 +271,19 @@ Ideas:
 
 Split function in 2 + list.product
 *)
-text \<open>The pattern @{term "get_all_marked_decomposition [] = [([], [])]"} is necessary otherwise, we can call the @{term hd} function in the other pattern. \<close>
-fun get_all_marked_decomposition :: "('a, 'l, 'm) annoted_lits \<Rightarrow> (('a, 'l, 'm) annoted_lits \<times> ('a, 'l, 'm) annoted_lits) list" where
-"get_all_marked_decomposition (Marked L l # Ls) = (Marked L l # Ls, []) # get_all_marked_decomposition Ls" |
-"get_all_marked_decomposition (Propagated L P# Ls) = (apsnd ((op #) (Propagated L P)) (hd (get_all_marked_decomposition Ls))) # tl (get_all_marked_decomposition Ls)" |
+text \<open>The pattern @{term "get_all_marked_decomposition [] = [([], [])]"} is necessary otherwise, we
+  can call the @{term hd} function in the other pattern. \<close>
+fun get_all_marked_decomposition :: "('a, 'l, 'm) annoted_lits
+  \<Rightarrow> (('a, 'l, 'm) annoted_lits \<times> ('a, 'l, 'm) annoted_lits) list" where
+"get_all_marked_decomposition (Marked L l # Ls) =
+  (Marked L l # Ls, []) # get_all_marked_decomposition Ls" |
+"get_all_marked_decomposition (Propagated L P# Ls) =
+  (apsnd ((op #) (Propagated L P)) (hd (get_all_marked_decomposition Ls)))
+    # tl (get_all_marked_decomposition Ls)" |
 "get_all_marked_decomposition [] = [([], [])]"
-value "get_all_marked_decomposition [Propagated A5 B5, Marked C4 D4, Propagated A3 B3, Propagated A2 B2, Marked C1 D1, Propagated A0 B0]"
+
+value "get_all_marked_decomposition [Propagated A5 B5, Marked C4 D4, Propagated A3 B3,
+  Propagated A2 B2, Marked C1 D1, Propagated A0 B0]"
 
 (*
 
@@ -402,12 +419,14 @@ qed
 
 lemma get_all_marked_decomposition_remove_unmarked_length:
   assumes "\<forall>l \<in> set M'. \<not>is_marked l"
-  shows "length (get_all_marked_decomposition (M' @ M'')) = length (get_all_marked_decomposition M'')"
+  shows "length (get_all_marked_decomposition (M' @ M''))
+    = length (get_all_marked_decomposition M'')"
   using assms by (induct M' arbitrary: M'' rule: marked_lit_list_induct) auto
 
 lemma get_all_marked_decomposition_not_is_marked_length:
   assumes "\<forall>l \<in> set M'. \<not>is_marked l"
-  shows "1 + length (get_all_marked_decomposition (Propagated (-L) P # M)) = length (get_all_marked_decomposition (M' @ Marked L l # M))"
+  shows "1 + length (get_all_marked_decomposition (Propagated (-L) P # M))
+    = length (get_all_marked_decomposition (M' @ Marked L l # M))"
  using assms get_all_marked_decomposition_remove_unmarked_length by fastforce
 
 lemma get_all_marked_decomposition_last_choice:
@@ -419,7 +438,8 @@ lemma get_all_marked_decomposition_last_choice:
 
 lemma get_all_marked_decomposition_except_last_choice_equal:
   assumes "\<forall>l \<in> set M'. \<not>is_marked l"
-  shows "tl (get_all_marked_decomposition (Propagated (-L) P # M)) = tl (tl (get_all_marked_decomposition (M' @ Marked L l # M)))"
+  shows "tl (get_all_marked_decomposition (Propagated (-L) P # M))
+    = tl (tl (get_all_marked_decomposition (M' @ Marked L l # M)))"
   using assms by (induct M'  rule: marked_lit_list_induct) auto
 
 lemma get_all_marked_decomposition_hd_hd:
@@ -451,8 +471,9 @@ lemma get_all_marked_decomposition_exists_prepend[dest]:
   shows "\<exists>c. M = c @ b @ a"
   using assms apply (induct M rule: marked_lit_list_induct)
     apply simp
-  by (case_tac "get_all_marked_decomposition xs",
-    auto dest!: arg_cong[of "get_all_marked_decomposition _" _ hd] get_all_marked_decomposition_decomp)+
+  by (case_tac "get_all_marked_decomposition xs";
+    auto dest!: arg_cong[of "get_all_marked_decomposition _" _ hd]
+      get_all_marked_decomposition_decomp)+
 
 lemma get_all_marked_decomposition_incl:
   assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
@@ -549,24 +570,35 @@ next
     }
     moreover {
       assume n: "n > 0"
-      then obtain Ls1 seen1 l where Ls1: "get_all_marked_decomposition M' = (Ls1, seen1) # l" using length' by (induct M', simp) (case_tac a, auto)
+      then obtain Ls1 seen1 l where Ls1: "get_all_marked_decomposition M' = (Ls1, seen1) # l"
+        using length' by (induct M', simp) (case_tac a, auto)
 
       have "all_decomposition_implies N (get_all_marked_decomposition M')"
         using Suc.prems unfolding Ls0 all_decomposition_implies_def by auto
-      hence N: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition M'))" using IH length' by auto
+      hence N: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'}
+          \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition M'))"
+        using IH length' by auto
 
-      have l: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<subseteq> N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}" using M'_in_M by auto
-      hence \<Psi>N: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition M'))" using true_clss_clss_subset[OF l N] by auto
-      have "is_marked (hd Ls0)" and LS: "tl Ls0 = seen1 @ Ls1" using get_all_marked_decomposition_hd_hd[of M] unfolding Ls0 Ls1 by auto
+      have l: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'}
+        \<subseteq> N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"
+        using M'_in_M by auto
+      hence \<Psi>N: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}
+        \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition M'))"
+        using true_clss_clss_subset[OF l N] by auto
+      have "is_marked (hd Ls0)" and LS: "tl Ls0 = seen1 @ Ls1"
+        using get_all_marked_decomposition_hd_hd[of M] unfolding Ls0 Ls1 by auto
 
       have LSM: "seen1 @ Ls1 = M'" using get_all_marked_decomposition_decomp[of M'] Ls1 by auto
-      have M': "set M' = Union (set ` snd ` set (get_all_marked_decomposition M')) \<union> {L |L. is_marked L \<and> L \<in> set M'}" using get_all_marked_decomposition_snd_union by auto
+      have M': "set M' = Union (set ` snd ` set (get_all_marked_decomposition M'))
+        \<union> {L |L. is_marked L \<and> L \<in> set M'}"
+        using get_all_marked_decomposition_snd_union by auto
 
       {
         assume "Ls0 \<noteq> []"
         hence "hd Ls0 \<in> set M" using get_all_marked_decomposition_fst_empty_or_hd_in_M Ls0 by blast
         hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>p (\<lambda>a. {#lit_of a#}) (hd Ls0)"
-          using \<open>is_marked (hd Ls0)\<close> by (metis (mono_tags, lifting) UnCI mem_Collect_eq true_clss_cls_in)
+          using \<open>is_marked (hd Ls0)\<close> by (metis (mono_tags, lifting) UnCI mem_Collect_eq
+            true_clss_cls_in)
       } note hd_Ls0 = this
 
       have l: "(\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M'))
@@ -581,11 +613,13 @@ next
         unfolding l using N by (auto simp add: all_in_true_clss_clss)
       hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl Ls0)"
         using M' unfolding LS LSM  by auto
-      hence t: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl Ls0)"
+      hence t: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'}
+        \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl Ls0)"
         by (blast intro: all_in_true_clss_clss)
-      hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl Ls0)"
+      hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}
+        \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl Ls0)"
         using M'_in_M true_clss_clss_subset[OF _ t,
-            of "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"]
+          of "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"]
         by auto
       hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set Ls0"
         using hd_Ls0 by (case_tac Ls0, auto)

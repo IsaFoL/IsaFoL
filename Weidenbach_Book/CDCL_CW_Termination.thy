@@ -4,6 +4,7 @@ begin
 
 context cdcl_cw_ops
 begin
+subsection \<open>Termination\<close>
 text \<open>The condition that no learned clause is a tautology is overkill (in the sense that the
   no-duplicate condition is enough), but we can reuse @{term build_all_simple_clss}.\<close>
 definition cdcl_all_inv_mes where
@@ -33,11 +34,15 @@ proof (intro HOL.conjI)
      using cdcl_all_inv[OF assms(1)] assms(2) unfolding cdcl_all_inv_mes_def by fast
 
   have "finite (atms_of_m (clauses S))" using assms(2) unfolding cdcl_all_inv_mes_def by auto
-  with assms(1) show "finite (atms_of_m (clauses S'))"
-    by (induction rule: cdcl_all_induct) (auto simp: )+
+  with assms(1) show f_cls: "finite (atms_of_m (clauses S'))"
+    by (induction rule: cdcl_all_induct) (auto simp: clauses_def state_eq_def simp del: state_simp
+      intro: rev_finite_subset)
 
   have "finite (learned_clss S)" using assms(2) unfolding cdcl_all_inv_mes_def by auto
-  with assms(1) show "finite (learned_clss S')" by (induction rule: cdcl_all_induct) auto
+  with assms(1) show "finite (learned_clss S')"
+    by (induction rule: cdcl_all_induct)
+    (auto simp: clauses_def state_eq_def rev_finite_subset learned_clss_restart_state
+      simp del: state_simp)
 
   show "\<forall>s\<in>learned_clss S'. \<not> tautology s"
     using assms(1)[THEN learned_clss_are_not_tautologies] assms(2)
@@ -80,14 +85,13 @@ lemma rtranclp_cdcl_s_learned_clause_increasing:
   by (induction rule: rtranclp.induct)
      (auto dest!: cdcl_s_learned_clause_increasing)
 
-section \<open>decreasing of the measure\<close>
+subsection \<open>No Relearning of a clause\<close>
 lemma cdcl_o_new_clause_learned_is_backtrack_step:
   assumes learned: "D \<in> learned_clss T" and
   new: "D \<notin> learned_clss S" and
   cdcl: "cdcl_o S T"
   shows "backtrack S T \<and> conflicting S = C_Clause D"
-  using cdcl learned new by (induction rule: cdcl_o.induct)
-  (auto elim: cdcl_bjE simp: cdcl_bj.simps)
+  using cdcl learned new by (induction rule: cdcl_o.induct) (fastforce simp: cdcl_bj.simps)+
 
 lemma cdcl_cp_new_clause_learned_has_backtrack_step:
   assumes learned: "D \<in> learned_clss T" and
@@ -163,7 +167,7 @@ lemma cdcl_cp_no_more_Marked_lit:
   assumes "cdcl_cp S S'"
   shows "Marked K i \<in> set (trail S) \<longleftrightarrow> Marked K i \<in> set (trail S')"
   using assms apply (induct rule: cdcl_cp.induct)
-  using conflict_no_more_Marked_lit propagate_no_more_Marked_lit by blast+
+  using conflict_no_more_Marked_lit propagate_no_more_Marked_lit by auto
 
 lemma rtranclp_cdcl_cp_no_more_Marked_lit:
   assumes "cdcl_cp\<^sup>*\<^sup>* S S'"
@@ -172,22 +176,25 @@ lemma rtranclp_cdcl_cp_no_more_Marked_lit:
   using cdcl_cp_no_more_Marked_lit by blast+
 
 lemma cdcl_o_no_more_Marked_lit:
-  assumes "cdcl_o S S'" and "\<not> decided S S'"
+  assumes "cdcl_o S S'" and "\<not>decide S S'"
   shows "Marked K i \<in> set (trail S') \<longrightarrow> Marked K i \<in> set (trail S)"
   using assms
 proof (induct rule: cdcl_o_induct)
-  case backtrack
+  case backtrack note T =this(6)
   have H: "\<And>A M M1. M = A @ M1 \<Longrightarrow>  Marked K i \<in> set M1 \<Longrightarrow> Marked K i \<in> set M"  by auto
   show ?case
-    using backtrack(1) by (auto dest: H)
-qed fastforce+
+    using backtrack(1) T by (auto dest: H)
+next
+  case (decide L T)
+  then show ?case by blast
+qed auto
 
-lemma cdcl_new_marked_at_beginning_is_decided:
+lemma cdcl_new_marked_at_beginning_is_decide:
   assumes "cdcl_s S S'" and
   "no_dup (trail S')" and
   "trail S' = M' @ Marked L i # M" and
   "trail S = M"
-  shows "\<exists>T. decided S T \<and> no_step cdcl_cp S"
+  shows "\<exists>T. decide S T \<and> no_step cdcl_cp S"
   using assms
 proof (induct rule: cdcl_s.induct)
   case (conflict' S S') note st =this(1) and no_dup = this(2) and S' = this(3) and S = this(4)
@@ -204,14 +211,14 @@ next
     using no_dup unfolding S S' by (auto simp add: rev_image_eqI)
   hence "Marked L i \<in> set (trail T)"
     using st rtranclp_cdcl_cp_no_more_Marked_lit unfolding full0_def by blast
-  thus ?case using cdcl_o_no_more_Marked_lit[OF o] \<open>Marked L i \<notin> set (trail S)\<close> ns by blast
+  thus ?case using cdcl_o_no_more_Marked_lit[OF o] \<open>Marked L i \<notin> set (trail S)\<close> ns by meson
 qed
 
-lemma cdcl_o_is_decided:
+lemma cdcl_o_is_decide:
   assumes "cdcl_o S' T" and
   "trail T = drop (length M\<^sub>0) M' @ Marked L i # H @ M"and
   "\<not> (\<exists>M'. trail S' = M' @ Marked L i # H @ M)"
-  shows "decided S' T"
+  shows "decide S' T"
       using assms
 proof (induction rule:cdcl_o_induct)
   case (backtrack K i M1 M2 L D)
@@ -221,17 +228,17 @@ proof (induction rule:cdcl_o_induct)
     using backtrack
     by (cases "drop (length M\<^sub>0) M'") auto
 next
-  case decided
-  show ?case using deciding[of S'] decided(1-3) by auto
+  case decide
+  show ?case using decide_rule[of S'] decide(1-4) by auto
 qed auto
 
-lemma rtranclp_cdcl_new_marked_at_beginning_is_decided:
+lemma rtranclp_cdcl_new_marked_at_beginning_is_decide:
   assumes "cdcl_s\<^sup>*\<^sup>* R U" and
   "trail U = M' @ Marked L i # H @ M" and
   "trail R = M" and
   "cdcl_M_level_inv R"
   shows
-    "\<exists>S T T'. cdcl_s\<^sup>*\<^sup>* R S \<and> decided S T \<and> cdcl_s\<^sup>*\<^sup>* T U \<and> cdcl_s\<^sup>*\<^sup>* S U \<and> no_step cdcl_cp S \<and>
+    "\<exists>S T T'. cdcl_s\<^sup>*\<^sup>* R S \<and> decide S T \<and> cdcl_s\<^sup>*\<^sup>* T U \<and> cdcl_s\<^sup>*\<^sup>* S U \<and> no_step cdcl_cp S \<and>
       trail T = Marked L i # H @ M \<and> trail S = H @ M \<and> cdcl_s S T' \<and>
       cdcl_s\<^sup>*\<^sup>* T' U"
   using assms
@@ -248,7 +255,7 @@ next
         proof induction
           case (conflict' V W) note cp = this(1) and  nd = this(2) and W = this(3)
           then obtain M\<^sub>0 where "trail W = M\<^sub>0 @ trail V" and nmarked: "\<forall>l\<in>set M\<^sub>0. \<not> is_marked l"
-            using rtranclp_cdcl_cp_dropWhile_trail unfolding full_def rtranclp_unfold by blast
+            using rtranclp_cdcl_cp_dropWhile_trail unfolding full_def rtranclp_unfold by meson
           hence MV: "M' @ Marked L i # H @ M = M\<^sub>0 @ trail V" unfolding W by simp
           hence V: "trail V = drop (length M\<^sub>0) (M' @ Marked L i # H @ M)"
             by auto
@@ -264,7 +271,7 @@ next
           case (other' S' T U) note o = this(1) and ns =this(2) and cp = this(3) and nd = this(4)
             and U = this(5) and st = this(6)
           obtain M\<^sub>0 where "trail U = M\<^sub>0 @ trail T" and nmarked: "\<forall>l\<in>set M\<^sub>0. \<not> is_marked l"
-            using rtranclp_cdcl_cp_dropWhile_trail cp unfolding full0_def by blast
+            using rtranclp_cdcl_cp_dropWhile_trail cp unfolding full0_def by meson
           hence MV: "M' @ Marked L i # H @ M = M\<^sub>0 @ trail T" unfolding U by simp
           hence V: "trail T = drop (length M\<^sub>0) (M' @ Marked L i # H @ M)"
             by auto
@@ -277,19 +284,19 @@ next
           hence tr_T: "trail T = drop (length M\<^sub>0) M' @ Marked L i # H @ M" using V by auto
           hence LT: "Marked L i \<in> set (trail T)" by auto
           moreover
-            have "decided S' T" using o nd tr_T cdcl_o_is_decided by blast
-          ultimately  have "decided S' T" using cdcl_o_no_more_Marked_lit[OF o] by blast
-          then have 1: "cdcl_s\<^sup>*\<^sup>* S S'" and 2: "decided S' T" and 3: "cdcl_s\<^sup>*\<^sup>* T U"
+            have "decide S' T" using o nd tr_T cdcl_o_is_decide by metis
+          ultimately  have "decide S' T" using cdcl_o_no_more_Marked_lit[OF o] by blast
+          then have 1: "cdcl_s\<^sup>*\<^sup>* S S'" and 2: "decide S' T" and 3: "cdcl_s\<^sup>*\<^sup>* T U"
             using st other'.prems(4)
             by (metis cdcl_s.conflict' cp full0_unfold r_into_rtranclp rtranclp.rtrancl_refl)+
           have [simp]: "drop (length M\<^sub>0) M' = []"
-            using \<open>decided S' T\<close> \<open>Marked L i \<in> set (trail T)\<close>  nd tr_T
+            using \<open>decide S' T\<close> \<open>Marked L i \<in> set (trail T)\<close>  nd tr_T
             by (auto simp add: Cons_eq_append_conv)
           have T: "drop (length M\<^sub>0) M' @ Marked L i # H @ M = Marked L i # trail S'"
-            using \<open>decided S' T\<close> \<open>Marked L i \<in> set (trail T)\<close>  nd tr_T
+            using \<open>decide S' T\<close> \<open>Marked L i \<in> set (trail T)\<close>  nd tr_T
             by auto
           have "trail T = Marked L i # trail S'"
-            using \<open>decided S' T\<close> \<open>Marked L i \<in> set (trail T)\<close> tr_T
+            using \<open>decide S' T\<close> \<open>Marked L i \<in> set (trail T)\<close> tr_T
             by auto
           hence 5: "trail T = Marked L i # H @ M"and 6: "trail S' = H @ M"
             proof -
@@ -312,7 +319,7 @@ next
       then obtain M' where T: "trail T = M' @ Marked L i # H @ M" by metis
       from IH[OF this S lev] obtain S' S'' S''' where
         1: "cdcl_s\<^sup>*\<^sup>* S S'" and
-        2: "decided S' S''" and
+        2: "decide S' S''" and
         3: "cdcl_s\<^sup>*\<^sup>* S'' T " and
         4: "no_step cdcl_cp S'" and
         6: "trail S'' = Marked L i # H @ M" and
@@ -346,7 +353,7 @@ next
     using IH z  rtranclp.rtrancl_into_rtrancl by fastforce
 qed
 
-lemma rtranclp_cdcl_new_marked_at_beginning_is_decided':
+lemma rtranclp_cdcl_new_marked_at_beginning_is_decide':
   assumes "cdcl_s\<^sup>*\<^sup>* R U" and
   "trail U = M' @ Marked L i # H @ M" and
   "trail R = M" and
@@ -357,7 +364,7 @@ proof -
   fix T'
   obtain S' T T' where
     st: "cdcl_s\<^sup>*\<^sup>* R S'" and
-    "decided S' T" and
+    "decide S' T" and
     TU: "cdcl_s\<^sup>*\<^sup>* T U" and
     "no_step cdcl_cp S'" and
     trT: "trail T = Marked L i # H @ M" and
@@ -365,7 +372,7 @@ proof -
     S'U: "cdcl_s\<^sup>*\<^sup>* S' U" and
     S'T': "cdcl_s S' T'" and
     T'U: "cdcl_s\<^sup>*\<^sup>* T' U"
-    using rtranclp_cdcl_new_marked_at_beginning_is_decided[OF assms] by blast
+    using rtranclp_cdcl_new_marked_at_beginning_is_decide[OF assms] by blast
   have n: "\<not> (\<exists>c. trail S' = c @ Marked L i # H @ M)" using trS' by auto
   show ?thesis
     using rtranclp_trans[OF st] rtranclp_exists_last_with_prop[of cdcl_s S' T' _
@@ -392,7 +399,7 @@ lemma cdcl_s_trail_has_new_marked_is_decide_step:
   "(\<lambda>a b. cdcl_s a b \<and> (\<exists>c. trail a = c @ Marked L i # H @ M))\<^sup>*\<^sup>* T U" and
   "\<exists>M'. trail U = M' @ Marked L i # H @ M" and
   "no_dup (trail S)"
-  shows "\<exists>S'. decided S S' \<and> full0 cdcl_cp S' T \<and> no_step cdcl_cp S"
+  shows "\<exists>S'. decide S S' \<and> full0 cdcl_cp S' T \<and> no_step cdcl_cp S"
   using assms(3,1,2,4,5)
 proof induction
   case (step T U)
@@ -422,22 +429,23 @@ next
       with o nd cp ns
       show ?case
         proof (induction rule: cdcl_o_induct)
-          case (decided L) note dec = this(1) and cp = this(5) and ns = this(4)
-          hence "decided S (cons_trail (Marked L (backtrack_lvl S +1)) (incr_lvl S))"
-            using decided.hyps decided.intros[of S] by force
-          thus ?case using cp decided.prems(3) by blast
+          case (decide L) note dec = this(1) and cp = this(5) and ns = this(4)
+          hence "decide S (cons_trail (Marked L (backtrack_lvl S +1)) (incr_lvl S))"
+            using decide.hyps decide.intros[of S] by force
+          thus ?case using cp decide.prems by (meson decide_state_eq_compatible ns state_eq_ref
+            state_eq_sym)
         next
-          case (backtrack K j M1 M2 L' D) note decomp = this(1) and nd = this(6) and cp = this(3)
-            and trT = this(9) and ns = this(4)
+          case (backtrack K j M1 M2 L' D T) note decomp = this(1) and nd = this(7) and cp = this(3)
+            and T = this(6) and trT = this(10) and ns = this(4)
           obtain MS3 where MS3: "trail S = MS3 @ M2 @ Marked K (Suc j) # M1"
             using get_all_marked_decomposition_exists_prepend[OF decomp] by metis
           have "tl (M' @ Marked L i # H @ M) = tl M' @ Marked L i # H @ M"
-            using trT by (cases M') auto
+            using trT T by (cases M') auto
           hence M'': "M1 = tl M' @ Marked L i # H @ M"
-            using arg_cong[OF trT[simplified], of tl] by simp
-          have False using nd MS3 unfolding M'' by auto
+            using arg_cong[OF trT[simplified], of tl] T by simp
+          have False using nd MS3 T unfolding M'' by auto
           thus ?case by fast
-        qed (auto elim!: skipE resolveE)
+        qed auto
       qed
 qed
 
@@ -459,27 +467,28 @@ lemma cdcl_o_cannot_learn:
   shows "D + {#L#} \<notin> learned_clss z"
   using assms(1-4,7,8)
 proof (induction rule: cdcl_o_induct)
-  case (backtrack K j M1 M2 L' D') note decomp = this(1) and confl = this(3) and levD = this(5)
-    and lev =this(6) and trM = this(7) and DL = this(8) and learned = this(9) and z = this(10)
+  case (backtrack K j M1 M2 L' D' T) note decomp = this(1) and confl = this(3) and levD = this(5)
+    and T =this(6) and lev =this(7) and trM = this(8) and DL = this(9) and learned = this(10) and
+    z = this(11)
   obtain M3 where M3: "trail y = M3 @ M2 @ Marked K (Suc j) # M1"
     using decomp get_all_marked_decomposition_exists_prepend by metis
   have M: "trail y = c @ Marked Kh i # H" using trM by simp
   have H: "get_all_levels_of_marked (trail y) = rev [1..<1 + backtrack_lvl y]"
     using lev unfolding cdcl_M_level_inv_def by auto
   obtain d where d: "M1 = d @ Marked Kh i # H"
-    using z unfolding M3 by (metis append_self_conv2 list.inject list.sel(3) marked_lit.simps(4)
-      tl_append2 trail_update_trail)
+    using z T unfolding M3 by (metis append_self_conv2 list.inject list.sel(3) marked_lit.simps(4)
+      state_eq_trail tl_append2 trail_update_trail)
   have "i \<in> set (get_all_levels_of_marked (M3 @ M2 @ Marked K (Suc j) # d @ Marked Kh i # H))"
     by auto
   hence "i > 0" unfolding H[unfolded M3 d] by auto
   show ?case
     proof
-      assume "D + {#L#} \<in> learned_clss (update_trail (Propagated L' ((D' + {#L'#})) # M1)
-        (add_cls (D' + {#L'#}) (update_backtrack_lvl j (update_conflicting C_True y))))"
-      hence DLD': "D + {#L#} = D' + {#L'#}" using DL by auto
+      assume "D + {#L#} \<in> learned_clss T"
+      hence DLD': "D + {#L#} = D' + {#L'#}" using DL T by auto
       have L_cKh: "atm_of L \<in> atm_of `lits_of (c @ [Marked Kh i])"
         using LH learned  M DLD'[symmetric] confl by (fastforce simp add: image_iff)
-      have "get_all_levels_of_marked (M3 @ M2 @ Marked K (j + 1) # M1) = rev [1..<1 + backtrack_lvl y]"
+      have "get_all_levels_of_marked (M3 @ M2 @ Marked K (j + 1) # M1)
+        = rev [1..<1 + backtrack_lvl y]"
         using lev unfolding cdcl_M_level_inv_def M3 by auto
       from arg_cong[OF this, of "\<lambda>a. (Suc j) \<in> set a"] have "backtrack_lvl y \<ge> j" by auto
 
@@ -592,7 +601,7 @@ lemma cdcl_s_with_trail_end_has_not_been_learned:
 proof induction
   case conflict'
   thus ?case
-    unfolding full_def using tranclp_cdcl_cp_learned_clause_inv by blast
+    unfolding full_def using tranclp_cdcl_cp_learned_clause_inv by auto
 next
   case (other' S T U) note o = this(1) and cp = this(3) and lev = this(4) and trS = this(5) and
     notin = this(6) and DH = this(7) and LH = this(8) and confl = this(9) and trU = this(10)
@@ -670,7 +679,7 @@ lemma no_relearned_clause:
   shows False
 proof -
   obtain D L M1 M2_loc K i where
-     T: "T = update_trail (Propagated L ((D + {#L#})) # M1) (add_cls (D + {#L#})
+     T: "T \<sim> update_trail (Propagated L ((D + {#L#})) # M1) (add_cls (D + {#L#})
       (update_backtrack_lvl (get_maximum_level D (trail S)) (update_conflicting C_True S)))"
       and
     decomp: "(Marked K (Suc (get_maximum_level D (trail S))) # M1, M2_loc) \<in>
@@ -679,7 +688,7 @@ proof -
     level: "get_level L (trail S) = get_maximum_level (D+{#L#}) (trail S)" and
     confl_S: "conflicting S = C_Clause (D + {#L#})" and
     i: "i = get_maximum_level D (trail S)"
-    using  backtrackE[OF bt] by metis
+    using backtrackE[OF bt] by metis
   obtain M2 where
     M: "trail S = M2 @ Marked K (Suc i) # M1"
     using get_all_marked_decomposition_exists_prepend[OF decomp] unfolding i by (metis append_assoc)
@@ -697,8 +706,8 @@ proof -
 
   have lev: "cdcl_M_level_inv R" using invR unfolding cdcl_all_inv_mes_def by blast
   hence vars_of_D: "atms_of D \<subseteq> atm_of ` lits_of M1"
-    using backtrack_atms_of_D_in_M1[OF _ _ lev', of L D M1 ] confl_S bt conf
-    unfolding T cdcl_conflicting_def by auto
+    using backtrack_atms_of_D_in_M1[OF _ _ lev', of L D M1 ] confl_S bt conf T
+    unfolding cdcl_conflicting_def by (meson backtrack_state_eq_compatible state_eq_ref)
   have "no_dup (trail S)" using lev' by auto
   have vars_in_M1:
     "\<forall>x \<in> atms_of D. x \<notin> atm_of ` lits_of (M2 @ [Marked K (get_maximum_level D (trail S) + 1)])"
@@ -767,7 +776,7 @@ proof -
     nt: "\<not> (\<exists>c. trail Y = c @ Marked K' (backtrack_lvl S) # M1' @ [])" and
     Z: "(\<lambda>a b. cdcl_s a b \<and> (\<exists>c. trail a = c @ Marked K' (backtrack_lvl S) # M1' @ []))\<^sup>*\<^sup>*
                 Z S"
-    using rtranclp_cdcl_new_marked_at_beginning_is_decided'[OF  st' _ _ lev, of Ls K'
+    using rtranclp_cdcl_new_marked_at_beginning_is_decide'[OF  st' _ _ lev, of Ls K'
       "backtrack_lvl S" M1' "[]"]
     unfolding R M' by auto
 
@@ -775,7 +784,7 @@ proof -
     using rtranclp_cdcl_s_with_trail_end_has_trail_end[OF Z] M' by auto
   have "no_dup (trail Y)" using RY lev rtranclp_cdcl_s_consistent_inv by blast
   then obtain Y' where
-    dec: "decided Y Y'" and
+    dec: "decide Y Y'" and
     Y'Z: "full0 cdcl_cp Y' Z" and
     "no_step cdcl_cp Y"
     using cdcl_s_trail_has_new_marked_is_decide_step[OF YZ nt Z] M' by auto
@@ -790,7 +799,7 @@ proof -
         by (metis (no_types, lifting) \<open>\<forall>m\<in>set M''. \<not> is_marked m\<close> beginning_not_marked_invert)
       thus ?thesis using dec nt  by (induction M''') auto
     qed
-  have Y_CT: "conflicting Y = C_True" using \<open>decided Y Y'\<close> by auto
+  have Y_CT: "conflicting Y = C_True" using \<open>decide Y Y'\<close> by auto
   have "cdcl\<^sup>*\<^sup>* R Y" by (simp add: RY rtranclp_cdcl_s_rtranclp_cdcl)
   hence "init_clss Y = init_clss R" using rtranclp_cdcl_init_clss[of R Y] by auto
   { assume DL: "D + {#L#} \<in> clauses Y"
@@ -803,7 +812,7 @@ proof -
       using  L_notin \<open>no_dup (trail S)\<close> unfolding defined_lit_map trY M'
       by (auto simp add: image_iff lits_of_def)
     have "\<exists> Y'. propagate Y Y'"
-      using propagate_rule[of Y]  DL M1'_D L_trY Y_CT trY DL by auto
+      using propagate_rule[of Y] DL M1'_D L_trY Y_CT trY DL by (metis state_eq_ref)
     hence False using \<open>no_step cdcl_cp Y\<close>  propagate' by blast
   }
   moreover {
@@ -838,21 +847,6 @@ fun cdcl_measure where
     else length (trail S)
     ]"
 
-lemma length_model_le_vars:
-  assumes "no_strange_atm S"
-  and no_d: "no_dup (trail S)"
-  and "finite (atms_of_m (init_clss S))"
-  shows "length (trail S) \<le> card (atms_of_m (init_clss S))"
-proof -
-  obtain M N U k D where S: "state S = (M, N, U, k, D)" by (cases "state S", auto)
-  have "finite (atm_of ` lits_of (trail S))"
-    using assms(1,3) unfolding S by (auto simp add: finite_subset)
-  have "length (trail S) = card (atm_of ` lits_of (trail S))"
-    using no_dup_length_eq_card_atm_of_lits_of no_d by blast
-  thus ?thesis using assms(1) unfolding no_strange_atm_def
-  by (auto simp add: assms(3) card_mono)
-qed
-
 lemma length_model_le_vars_all_inv:
   assumes "cdcl_all_inv_mes S"
   shows "length (trail S) \<le> card (atms_of_m (init_clss S))"
@@ -861,7 +855,7 @@ end
 
 locale cdcl_cw_termination =
    cdcl_cw_ops trail init_clss learned_clss backtrack_lvl conflicting update_trail update_init_clss
-   update_learned_clss update_backtrack_lvl update_conflicting init_state  
+   update_learned_clss update_backtrack_lvl update_conflicting init_state
    restart_state
   for
     trail :: "'st::equal \<Rightarrow> ('v::linorder, nat, 'v clause) annoted_lits" and
@@ -909,7 +903,7 @@ lemma cdcl_measure_decreasing:
   assumes
     "cdcl S S'" and
     no_restart:
-      "\<not>(learned_clss S = learned_clss S' \<and> [] = trail S' \<and> conflicting S' = C_True)"
+      "\<not>(learned_clss S \<subseteq> learned_clss S' \<and> [] = trail S' \<and> conflicting S' = C_True)"
     (*no restart*) and
     "learned_clss S \<subseteq> learned_clss S'" (*no forget*) and
     no_relearn: "\<And>S'. backtrack S S' \<Longrightarrow> \<forall>T. conflicting S = C_Clause T \<longrightarrow> T \<notin> learned_clss S"
@@ -924,7 +918,7 @@ lemma cdcl_measure_decreasing:
   shows "(cdcl_measure S', cdcl_measure S) \<in> lexn {(a, b). a < b} 3"
   using assms(1-3)
 proof (induct rule: cdcl_all_induct)
-  case (propagate C L) note conf = this(4)
+  case (propagate C L) note T =this(4) and conf = this(5)
   have propa: "propagate S (cons_trail (Propagated L (C + {#L#})) S)"
     using propagate_rule[OF _ propagate.hyps(1,2)] propagate.hyps by auto
   hence no_dup': "no_dup (Propagated L ( (C + {#L#})) # trail S)"
@@ -945,12 +939,12 @@ proof (induct rule: cdcl_all_induct)
   hence H: "card (atms_of_m (init_clss S)) - length (trail S)
     = Suc (card (atms_of_m (init_clss S)) - Suc (length (trail S)))"
     by simp
-  show ?case using conf finite_atms by (auto simp: H)
+  show ?case using conf T finite_atms by (auto simp: H)
 next
-  case (decided L) note conf = this(1)
+  case (decide L) note conf = this(1) and T = this(4)
   moreover
-    have dec: "decided S (cons_trail (Marked L (backtrack_lvl S + 1)) (incr_lvl S))"
-      using decided.intros decided.hyps by force
+    have dec: "decide S (cons_trail (Marked L (backtrack_lvl S + 1)) (incr_lvl S))"
+      using decide.intros decide.hyps by force
     hence cdcl:"cdcl S (cons_trail (Marked L (backtrack_lvl S + 1)) (incr_lvl S))"
       using cdcl.simps by blast
   moreover
@@ -964,7 +958,7 @@ next
       by fastforce
   ultimately show ?case using conf by auto
 next
-  case (skip L C' M D) note tr = this(1) and conf = this(2)
+  case (skip L C' M D) note tr = this(1) and conf = this(2) and T = this(5)
   moreover
     have  "atm_of ` lits_of (Propagated L C' # M) \<subseteq> (atms_of_m (init_clss S))"
       using alien tr unfolding no_strange_atm_def by auto
@@ -976,7 +970,7 @@ next
       = Suc (card (atms_of_m (init_clss S)) - Suc (length M))"
      by simp
 
-    show ?case using conf finite_atms unfolding clauses_def by (simp add: tr)
+    show ?case using conf finite_atms T unfolding clauses_def by (simp add: tr)
 next
   case conflict
   thus ?case by simp
@@ -984,7 +978,7 @@ next
   case resolve
   thus ?case using finite unfolding clauses_def by simp
 next
-  case (backtrack K i M1 M2 L D) note S = this(1) and conf = this(3)
+  case (backtrack K i M1 M2 L D T) note S = this(1) and conf = this(3) and T =this(6)
   let ?S' = "update_trail (Propagated L ( (D+{#L#})) # M1)
                     (add_cls (D + {#L#})
                        (update_backtrack_lvl i
@@ -1007,16 +1001,28 @@ next
   moreover
     have "atms_of_m (learned_clss S \<union> {D + {#L#}}) \<subseteq> atms_of_m (init_clss S)"
       using alien conf unfolding no_strange_atm_def by auto
-    hence "card (atms_of_m (learned_clss S \<union> {D + {#L#}})) \<le> card (atms_of_m (init_clss S))"
+    hence card_f: "card (atms_of_m (learned_clss S \<union> {D + {#L#}})) \<le> card (atms_of_m (init_clss S))"
       using card_mono finite_atms clauses_def unfolding S by fastforce
     hence "(3::nat) ^ card (atms_of_m (learned_clss S \<union> {D + {#L#}}))
       \<le> 3 ^ card (atms_of_m (init_clss S))" by simp
   ultimately have "(3::nat) ^ card (atms_of_m (init_clss S)) \<ge> card (learned_clss S \<union> {D + {#L#}})"
     using le_trans by blast
-  thus ?case using finite_atms finite_le unfolding S by (auto simp add: \<open>D + {#L#} \<notin> learned_clss S\<close>)
+  thus ?case using finite_atms finite_le T S
+    proof -
+      have f3: "Suc (card (learned_clss S)) = card (learned_clss T)"
+        using T by (simp add: \<open>card (insert (D + {#L#}) (learned_clss S))
+              = Suc (card (learned_clss S))\<close>)
+      have f4: "learned_clss S \<union> {D + {#L#}} = learned_clss T"
+        using T by simp
+      have "init_clss S = init_clss T"
+        using T by simp
+      then show ?thesis
+        using f4 f3 \<open>card (learned_clss S \<union> {D + {#L#}}) \<le> 3 ^ card (atms_of_m (init_clss S))\<close>
+        by (metis (no_types) Suc_diff_Suc cdcl_measure.simps lessI lexn3 not_less not_less_eq_eq)
+    qed
 next
   case restart
-  thus ?case using finite_atms alien by auto
+  thus ?case using finite_atms alien by (auto simp: state_eq_def simp del: state_simp)
 next
   case forget
   thus ?case by auto
@@ -1042,12 +1048,12 @@ lemma conflict_measure_decreasing:
          using assms(2) apply (auto simp add: cdcl_all_inv_mes_def)
   done
 
-lemma decided_measure_decreasing:
+lemma decide_measure_decreasing:
   fixes S :: "'st"
-  assumes "decided S S'" and "cdcl_all_inv_mes S"
+  assumes "decide S S'" and "cdcl_all_inv_mes S"
   shows "(cdcl_measure S', cdcl_measure S) \<in> lexn {(a, b). a < b} 3"
   apply (rule cdcl_measure_decreasing)
-  using assms(1) decided other apply blast
+  using assms(1) decide other apply blast
   using assms(1) apply (auto simp add: propagate.simps)[3]
   using assms(2) apply (auto simp add: cdcl_all_inv_mes_def)
   done
@@ -1086,7 +1092,7 @@ next
     tranclp_cdcl_cp_tranclp_cdcl[OF st]
     unfolding trans_def rtranclp_unfold
     by blast
-  ultimately show ?case using lexn_trans[OF trans_le] unfolding trans_def by blast
+  ultimately show ?case using lexn_transI[OF trans_le] unfolding trans_def by blast
 qed
 
 
@@ -1099,7 +1105,7 @@ lemma cdcl_s_step_decreasing:
   shows "(cdcl_measure T, cdcl_measure S) \<in> lexn {(a, b). a < b} 3"
 proof -
   have "cdcl_all_inv_mes S"
-  using assms
+    using assms
     by (metis rtranclp_unfold rtranclp_cdcl_all_inv_mes_inv tranclp_cdcl_s_tranclp_cdcl)
   with assms show ?thesis
     proof induction
@@ -1117,8 +1123,8 @@ proof -
       moreover
         from H have "(cdcl_measure T, cdcl_measure S) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3"
         proof (induction rule:cdcl_o.induct)
-          case (decided S T)
-          thus ?case using decided_measure_decreasing by blast
+          case (decide S T)
+          thus ?case using decide_measure_decreasing by blast
         next
           case (bj S T) note bt = this(1) and st = this(2) and R = this(3)
             and invR = this(4) and inv = this(5)
@@ -1141,7 +1147,13 @@ proof -
                      using inv unfolding cdcl_all_inv_mes_def apply simp
                     using inv unfolding cdcl_all_inv_mes_def apply simp
                    using inv unfolding cdcl_all_inv_mes_def by simp
-            qed auto
+            next
+              case skip
+              then show ?thesis by force
+            next
+              case resolve
+              then show ?thesis by fastforce
+            qed
         qed
       ultimately show ?case
          proof -
@@ -1150,7 +1162,7 @@ proof -
              using \<open>(cdcl_measure T, cdcl_measure S) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3\<close>
              by presburger
            thus ?thesis
-             using lexn_trans[OF trans_le, of 3] \<open>(cdcl_measure T, cdcl_measure S)
+             using lexn_transI[OF trans_le, of 3] \<open>(cdcl_measure T, cdcl_measure S)
                \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3\<close> le_or_eq unfolding trans_def by blast
          qed
     qed
@@ -1166,7 +1178,7 @@ lemma tranclp_cdcl_s_decreasing:
   apply induction
    using cdcl_s_step_decreasing[of R _ R] apply blast
   using cdcl_s_step_decreasing[of _ _ R]  tranclp_into_rtranclp[of cdcl_s R]
-  lexn_trans[OF trans_le, of 3] unfolding trans_def by blast
+  lexn_transI[OF trans_le, of 3] unfolding trans_def by blast
 
 lemma tranclp_cdcl_s_S0_decreasing:
   fixes R S T :: 'st

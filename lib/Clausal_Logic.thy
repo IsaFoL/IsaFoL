@@ -69,7 +69,7 @@ lemma uminus_not_id'[simp]:
   "- x \<noteq> (x:: 'v literal)"
   by (case_tac x, auto)
 
-lemma uminus_eq_inj[simp]:
+lemma uminus_eq_inj[iff]:
   "-(a::'v literal) = -b \<longleftrightarrow> a = b"
   by (case_tac a; case_tac b) auto+
 

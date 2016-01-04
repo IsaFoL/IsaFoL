@@ -18,7 +18,6 @@ lemma nat_less_induct_case[case_names 0 Suc]:
 section \<open>More List and Well-foundness Theorems\<close>
 text \<open>This section contains theorems that could move to Isabelle standard library.\<close>
 subsection \<open>More Lists\<close>
-declare upt_Suc_append
 lemma upt_Suc_le_append: "\<not>i \<le> j \<Longrightarrow> [i..<Suc j] = []"
   by (auto simp add: upt.simps(2))
 
@@ -28,15 +27,23 @@ lemma list_length2_append_cons:
   "[c, d] = ys @ y # ys' \<longleftrightarrow> (ys = [] \<and> y = c \<and> ys' = [d]) \<or> (ys = [c] \<and> y = d \<and> ys' = [])"
   by (cases ys; cases ys') auto
 lemma lexn2_conv:
-  "([a, b], [c, d]) \<in> lexn r 2
-    \<longleftrightarrow> (a, c)\<in>r \<or> (a = c \<and> (b, d)\<in>r)"
+  "([a, b], [c, d]) \<in> lexn r 2 \<longleftrightarrow> (a, c)\<in>r \<or> (a = c \<and> (b, d) \<in>r)"
   unfolding lexn_conv by (auto simp add: list_length2_append_cons)
+
 text \<open>Move to List\<close>
-text \<open>The counterpart for this lemma when @{term "i > n-m"} is @{thm take_all}.\<close>
-lemma take_upt[simp]:
+
+  (* Sledgehammer one-liner: *)
+lemma
+  assumes "i \<le> n - m"
+  shows "take i [m..<n] = [m..<m+i]"
+  by (metis Nat.le_diff_conv2 add.commute assms diff_is_0_eq' linear take_upt upt_conv_Nil)
+
+text \<open>The counterpart for this lemma when @{term "i > n-m"} is @{thm take_all}. It is close to
+  @{thm take_upt}, but seems more general.\<close>
+lemma take_upt_bound_minus[simp]:
   assumes "i \<le> n - m"
   shows "take i [m..<n] = [m ..<m+i]"
-  using assms by (induct i) simp_all
+  using assms by (induction i) auto
 
 lemma append_cons_eq_upt:
   assumes "A @ B = [m..<n]"

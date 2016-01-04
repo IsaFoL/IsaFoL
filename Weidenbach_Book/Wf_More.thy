@@ -4,6 +4,53 @@ imports Main
 begin
 
 section \<open>Transition\<close>
+subsection \<open>Rtranclp\<close>
+(* TODO Move to SL? *)
+text \<open>This is the equivalent of @{thm rtranclp_mono} for @{term tranclp}\<close>
+lemma
+  "r\<^sup>+\<^sup>+ a b \<Longrightarrow> r \<le> s \<Longrightarrow> s\<^sup>+\<^sup>+ a b"
+    using rtranclp_mono by (auto dest!: tranclpD intro: rtranclp_into_tranclp2)
+
+lemma tranclp_mono:
+  assumes mono:"r \<le> s"
+  shows "r\<^sup>+\<^sup>+ \<le> s\<^sup>+\<^sup>+"
+    using rtranclp_mono[OF mono] mono by (auto dest!: tranclpD intro: rtranclp_into_tranclp2)
+
+lemma tranclp_idemp_rel:
+  "R\<^sup>+\<^sup>+\<^sup>+\<^sup>+ a b \<longleftrightarrow> R\<^sup>+\<^sup>+ a b"
+  apply (rule iffI)
+    prefer 2 apply blast
+  by (induction rule: tranclp_induct) auto
+
+text \<open>Equivalent of @{thm rtranclp_idemp}\<close>
+lemma trancl_idemp: "(r\<^sup>+)\<^sup>+ = r\<^sup>+"
+  by simp
+
+lemmas tranclp_idemp[simp] = trancl_idemp[to_pred]
+
+text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and sledgehammer uses it), but
+  it makes sense to duplicate it, because it is unclear how stable the lemmas in Nitpick are.\<close>
+lemma rtranclp_unfold: "rtranclp r a b \<longleftrightarrow> (a = b \<or> tranclp r a b)"
+  by (meson rtranclp.simps rtranclpD tranclp_into_rtranclp)
+
+lemma tranclp_unfold_end: "tranclp r a b \<longleftrightarrow> (\<exists>a'. rtranclp r a a' \<and> r a' b)"
+  by (metis rtranclp.rtrancl_refl rtranclp_into_tranclp1 tranclp.cases tranclp_into_rtranclp)
+
+lemma tranclp_unfold_begin: "tranclp r a b \<longleftrightarrow> (\<exists>a'. r a a' \<and> rtranclp r a' b)"
+  by (meson rtranclp_into_tranclp2 tranclpD)
+
+lemma trancl_set_tranclp: "(a, b) \<in> {(b,a). P a b}\<^sup>+ \<longleftrightarrow> P\<^sup>+\<^sup>+ b a"
+  apply (rule iffI)
+    apply (induction rule: trancl_induct; simp)
+  apply (induction rule: tranclp_induct; auto simp: trancl_into_trancl2)
+  done
+
+lemma tranclp_rtranclp_rtranclp_rel: "R\<^sup>+\<^sup>+\<^sup>*\<^sup>* a b \<longleftrightarrow> R\<^sup>*\<^sup>* a b"
+  by (simp add: rtranclp_unfold)
+
+lemma tranclp_rtranclp_rtranclp[simp]: "R\<^sup>+\<^sup>+\<^sup>*\<^sup>* = R\<^sup>*\<^sup>*"
+  by (fastforce simp: rtranclp_unfold)
+
 subsection \<open>Full transitions\<close>
 text \<open>We define here properties to define properties after all possible transitions.\<close>
 abbreviation "no_step step S \<equiv> (\<forall>S'. \<not>step S S')"
@@ -35,13 +82,49 @@ lemma full0_fullI:
 
 lemma full0_unfold:
   "full0 r S S' \<longleftrightarrow> ((S = S' \<and> no_step r S') \<or> full r S S')"
-  unfolding full0_def full_def by (auto simp add: Nitpick.rtranclp_unfold)
+  unfolding full0_def full_def by (auto simp add: rtranclp_unfold)
 
-lemma trancl_set_tranclp: "(a, b) \<in> {(b,a). P a b}\<^sup>+ \<longleftrightarrow> P\<^sup>+\<^sup>+ b a"
-  apply (rule iffI)
-    apply (induction rule: trancl_induct; simp)
-  apply (induction rule: tranclp_induct; auto simp: trancl_into_trancl2)
-  done
+lemma full_is_full0[intro]: "full R S T \<Longrightarrow> full0 R S T"
+  by (simp add: full0_unfold)
+
+lemma not_full_rtranclp_relation:"\<not>full R\<^sup>*\<^sup>* a b"
+  by (meson full_def rtranclp.rtrancl_refl)
+
+lemma not_full0_rtranclp_relation:"\<not>full0 R\<^sup>*\<^sup>* a b"
+  by (meson full0_fullI not_full_rtranclp_relation rtranclp.rtrancl_refl)
+
+lemma full_tranclp_relation_full:
+  "full R\<^sup>+\<^sup>+ a b \<longleftrightarrow> full R a b"
+  by (metis converse_tranclpE full_def reflclp_tranclp rtranclpD rtranclp_idemp rtranclp_reflclp
+    tranclp.r_into_trancl tranclp_into_rtranclp)
+
+lemma full0_tranclp_relation_full0:
+  "full0 R\<^sup>+\<^sup>+ a b \<longleftrightarrow> full0 R a b"
+  by (metis full0_unfold full_tranclp_relation_full tranclp.r_into_trancl tranclpD)
+
+lemma rtranclp_full_eq_or_full:
+  "(full R)\<^sup>*\<^sup>* a b \<longleftrightarrow> (a = b \<or> full R a b)"
+proof -
+  have "\<forall>p a aa. \<not> p\<^sup>*\<^sup>* (a::'a) aa \<or> a = aa \<or> (\<exists>ab. p\<^sup>*\<^sup>* a ab \<and> p ab aa)"
+    by (metis rtranclp.cases)
+  then obtain aa :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> 'a" where
+    f1: "\<forall>p a ab. \<not> p\<^sup>*\<^sup>* a ab \<or> a = ab \<or> p\<^sup>*\<^sup>* a (aa p a ab) \<and> p (aa p a ab) ab"
+    by moura
+  { assume "a \<noteq> b"
+    { assume "\<not> full R a b \<and> a \<noteq> b"
+      then have "a \<noteq> b \<and> a \<noteq> b \<and> \<not> full R (aa (full R) a b) b \<or> \<not> (full R)\<^sup>*\<^sup>* a b \<and> a \<noteq> b"
+        using f1 by (metis (no_types) full_def full_tranclp_relation_full)
+      then have ?thesis
+        using f1 by blast }
+    then have ?thesis
+      by auto }
+  then show ?thesis
+    by fastforce
+qed
+
+lemma tranclp_full_full:
+  "(full R)\<^sup>+\<^sup>+ a b \<longleftrightarrow> full R a b"
+  by (metis full_def rtranclp_full_eq_or_full tranclp_unfold_begin)
 
 subsection \<open>Well-foundedness and full transitions\<close>
 lemma wf_exists_normal_form:
@@ -82,15 +165,16 @@ lemma wf_exists_normal_form_full0:
   shows "\<exists>b. full0 R a b"
   using wf_exists_normal_form[OF assms] unfolding full0_def by blast
 
-text \<open>MOVE missing in List.thy (see @{thm lexord_trans})\<close>
-lemma lexn_trans[trans]:
+(* TODO Move to SL? *)
+text \<open>Equivalent of @{thm lexord_transI}\<close>
+lemma lexn_transI:
   assumes trans: "trans r"
   shows "trans (lexn r n)"
     unfolding trans_def
 proof (intro allI impI)
   fix as bs cs
-  assume asbs: "(as, bs) \<in> lexn r n"
-  and bscs: "(bs, cs) \<in> lexn r n"
+  assume asbs: "(as, bs) \<in> lexn r n" and bscs: "(bs, cs) \<in> lexn r n"
+
   obtain abs a b as' bs' where
     n: "length as = n" and "length bs = n" and
     as: "as = abs @ a # as'" and
@@ -107,7 +191,7 @@ proof (intro allI impI)
   consider (le) "length bcs < length abs"
     | (eq) "length bcs = length abs"
     | (ge) "length bcs > length abs" by linarith
-  thus "(as, cs) \<in> lexn r n"
+  then show "(as, cs) \<in> lexn r n"
     proof cases
       let ?k = "length bcs"
       case le
@@ -139,9 +223,9 @@ proof (intro allI impI)
     next
       let ?k = "length abs"
       case eq
-      hence [simp]: "abs = bcs" "b = b'" using bs bs' by auto
-      hence "(a, c') \<in> r" using abr b'c'r trans unfolding trans_def by blast
-      thus ?thesis using n n' unfolding lexn_conv as bs cs by auto
+      hence "abs = bcs" "b = b'" using bs bs' by auto
+      moreover hence "(a, c') \<in> r" using abr b'c'r trans unfolding trans_def by blast
+      ultimately show ?thesis using n n' unfolding lexn_conv as bs cs by auto
     qed
 qed
 
@@ -152,7 +236,7 @@ text \<open>A little list of theorems that could be useful, but are hidden:
 
 lemma wf_if_measure_in_wf:
   "wf R \<Longrightarrow> (\<And>a b. (a, b) \<in> S \<Longrightarrow> (\<nu> a, \<nu> b)\<in>R) \<Longrightarrow> wf S"
-  by (meson wf_iff_no_infinite_down_chain)
+  by (metis in_inv_image wfE_min wfI_min wf_inv_image)
 
 lemma wfP_if_measure: fixes f :: "'a \<Rightarrow> nat"
 shows "(\<And>x y. P x \<Longrightarrow> g x y  \<Longrightarrow> f y < f x) \<Longrightarrow> wf {(y,x). P x \<and> g x y}"
@@ -270,30 +354,6 @@ proof -
   moreover have "{(b, h a)|b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r} = {(b, h a)|b a. P a \<and> g a b}"
     using H by auto
   ultimately show ?thesis using wf_subset by simp
-qed
-
-subsection \<open>rtranclp\<close>
-text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and sledgehammer use it), but
-  it makes more sense to duplicate it.\<close>
-lemma rtranclp_unfold: "rtranclp r a b \<longleftrightarrow> (a = b \<or> tranclp r a b)"
-  by (meson rtranclp.simps rtranclpD tranclp_into_rtranclp)
-
-lemma tranclp_unfold_end: "tranclp r a b \<longleftrightarrow> (\<exists>a'. rtranclp r a a' \<and> r a' b)"
-  by (metis rtranclp.rtrancl_refl rtranclp_into_tranclp1 tranclp.cases tranclp_into_rtranclp)
-
-lemma tranclp_unfold_begin: "tranclp r a b \<longleftrightarrow> (\<exists>a'. r a a' \<and> rtranclp r a' b)"
-  by (meson rtranclp_into_tranclp2 tranclpD)
-
-
-text \<open>Analog of @{thm rtranclp_mono}\<close>
-lemma tranclp_mono:
-  assumes mono:"r \<le> s"
-  shows "r\<^sup>+\<^sup>+ \<le> s\<^sup>+\<^sup>+"
-proof
-  fix x y
-  assume "r\<^sup>+\<^sup>+ x y"
-  then show "s\<^sup>+\<^sup>+ x y"
-    using rtranclp_mono[OF mono] mono unfolding tranclp_unfold_begin by auto
 qed
 
 end
