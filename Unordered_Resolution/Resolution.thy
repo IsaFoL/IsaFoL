@@ -33,7 +33,7 @@ proof -
   show ?thesis by auto
 qed
 
-lemma sign_comp: "sign l1 \<noteq> sign l2 \<and> get_pred l1 = get_pred l2 \<and> get_terms l1 = get_terms l2\<Longrightarrow>l2 = l1\<^sup>c"
+lemma sign_comp: "sign l1 \<noteq> sign l2 \<and> get_pred l1 = get_pred l2 \<and> get_terms l1 = get_terms l2 \<longleftrightarrow> l2 = l1\<^sup>c"
 apply (cases l1)
 apply (cases l2)
 apply auto
@@ -1697,7 +1697,7 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     have "\<exists>C1o \<in> Cs. falsifiesc ?B1 C1o" using b_p clo by auto 
     then obtain C1o where C1o_p: "C1o \<in> Cs \<and> falsifiesc ?B1 C1o" by auto
 
-    have "\<exists>C2o \<in> Cs. falsifiesc ?B2 C2o" using b_p clo by auto (* "Re-formulation" of below line *)
+    have "\<exists>C2o \<in> Cs. falsifiesc ?B2 C2o" using b_p clo by auto
     then obtain C2o where C2o_p: "C2o \<in> Cs \<and> falsifiesc ?B2 C2o" by auto
 
     (* Standardizing the clauses apart *)
@@ -1710,16 +1710,19 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     (* Finding the falsifying ground instance C1' of C1, and proving properties about it *)
     from C1_p have "\<exists>C1'. groundls C1' \<and> instance_ofls C1' ?C1 \<and> falsifiesg ?B1 C1'" 
       using falsifiesc_ground[of ?C1 ?B1] by metis
+    (* The C1' is falsified by B1: *)
     then obtain C1' where C1'_p: "groundls C1' \<and> instance_ofls C1' ?C1 \<and> falsifiesg ?B1 C1'" by auto
 
     then have l_B1: "\<forall>l \<in> C1'. falsifiesl (B@[True]) l" by auto
-     
     have "\<not>falsifiesc B C1o" using C1o_p b_p clo by auto
     then have "\<not>falsifiesc B ?C1" using std_apart_falsifies1_sym [of C1o C2o ?C1 ?C2 B] by auto
+    (* The C1' is not falsified by B *)
     then have "\<not>falsifiesg B C1'" using C1'_p by auto
     then have l_B: "\<not>(\<forall>l \<in> C1'. falsifiesl B l)" by auto
 
     from l_B1 l_B have "\<exists>l \<in> C1'. falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
+
+    (* C1' contains a literal l1 that is falsified by B1, but not B *)
     then obtain l1 where l1_p: "l1 \<in> C1' \<and> falsifiesl (B@[True]) l1 \<and> \<not>(falsifiesl B l1)" by auto
 
     then have "\<not>(\<exists>i.  
@@ -1731,6 +1734,7 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
       \<and> (B@[True]) ! i = (\<not>sign l1)
       \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1))" by (metis nth_append)
     moreover
+    (* l1 is of course ground *)
     have ground_l1: "groundl l1" using C1'_p l1_p by auto
     then have "\<exists>i.  
       i < length (B@[True])
@@ -1740,48 +1744,33 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     have l1_sign_no: "(B@[True]) ! (length B) = (\<not>sign l1) \<and> fatom_from_nat (length B) = Pos (get_pred l1) (get_terms l1)"
       using number_lemma[of B "\<lambda>i. (B @ [True]) ! i = (\<not> sign l1) \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1)"] by auto
 
+    (* l1 is negative *)
     from l1_sign_no have l1_sign: "sign l1 = False" by auto
     from l1_sign_no have "nat_from_fatom (Pos (get_pred l1) (get_terms l1)) = length B" using undiag_diag_fatom by metis
+    (* l1 is literal no (length B) *)
     then have l1_no: "nat_from_fatom l1 = length B" using undiag_neg[of "get_pred l1" "get_terms l1"] l1_sign undiag_diag_fatom by auto
 
-    (* Prove: Additionally, all the other literals in C'1 must be falsified by B, since they are falsified by B1, but not l1. *)
+    (* All the other literals in C1' must be falsified by B, since they are falsified by B1, but not l1. *)
     have B_C1'l1: "falsifiesg B (C1' - {l1})"
       proof
         fix lo
         assume other: "lo \<in> C1' - {l1}"
+        have ground_lo: "groundl lo" using C1'_p other by auto
         from C1'_p have "falsifiesg ?B1 (C1' - {l1})" by auto
         then have loB1: "falsifiesl ?B1 lo" using other by auto
+        have l1_lo: "l1\<noteq>lo" using other by auto
+        have l1c_lo: "lo \<noteq> l1\<^sup>c" using C1'_p l1_p other complements_do_not_falsify[of lo C1' l1 ?B1] by auto
+
+        from l1_lo l1c_lo have "get_pred l1 \<noteq> get_pred lo \<or> get_terms l1 \<noteq> get_terms lo" using literal.expand sign_comp by blast
+        then have "nat_from_fatom lo \<noteq> nat_from_fatom l1" using nat_from_fatom_inj_mod_sign ground_lo ground_l1 by metis
+        then have "nat_from_fatom lo \<noteq> length B" using l1_no by auto
         moreover
-        {
-          have l1_l2: "l1\<noteq>lo" using other by auto
-          have "nat_from_fatom lo < length B"
-            proof -
-              have ground_lo: "groundl lo" using C1'_p other by auto
-              { (* Case: Different predicate or terms *)
-                assume "get_pred l1 \<noteq> get_pred lo \<or> get_terms l1 \<noteq> get_terms lo"
-                then have "nat_from_fatom lo \<noteq> nat_from_fatom l1" using nat_from_fatom_inj_mod_sign ground_lo ground_l1 by metis
-                then have "nat_from_fatom lo \<noteq> length B" using l1_no by auto
-                moreover
-                obtain i where "fatom_from_nat i = Pos (get_pred lo) (get_terms lo) \<and> i < length (B @ [True])" using loB1 by (cases lo) auto
-                then have "nat_from_fatom (fatom_from_nat i) = nat_from_fatom (Pos (get_pred lo) (get_terms lo)) \<and> i < length (B @ [True])" by auto
-                then have "nat_from_fatom lo < length B + 1" using undiag_neg undiag_diag_fatom by (cases lo) auto
-                ultimately 
-                have "nat_from_fatom lo < length B" by auto
-              }
-              moreover
-              { (* Case: Different signs *)
-                assume "sign l1 \<noteq> sign lo \<and> get_pred l1 = get_pred lo \<and> get_terms l1 = get_terms lo"
-                (* lo and l1 complementary and in C1'. But then we could not have falsified C1 *)
-                then have "lo = l1\<^sup>c" using sign_comp by auto
-                moreover
-                have "lo \<in> C1' \<and> l1 \<in> C1' \<and> falsifiesg ?B1 C1'" using C1'_p l1_p other by auto
-                ultimately have "False" using complements_do_not_falsify[of lo C1' l1] by auto
-                then have "nat_from_fatom lo < length B" by auto
-              }
-              ultimately show "nat_from_fatom lo < length B" using l1_l2 literal.expand by blast 
-            qed
-        }
-        ultimately show "falsifiesl B lo" using shorter_falsifiesl by blast
+        obtain i where "fatom_from_nat i = Pos (get_pred lo) (get_terms lo) \<and> i < length (B @ [True])" using loB1 by (cases lo) auto
+        then have "nat_from_fatom (fatom_from_nat i) = nat_from_fatom (Pos (get_pred lo) (get_terms lo)) \<and> i < length (B @ [True])" by auto
+        then have "nat_from_fatom lo < length B + 1" using undiag_neg undiag_diag_fatom by (cases lo) auto
+        ultimately 
+        have "nat_from_fatom lo < length B" by auto
+        then show "falsifiesl B lo" using loB1 shorter_falsifiesl by blast
       qed
 
     from C2_p have "\<exists>C2'. groundls C2' \<and> instance_ofls C2' ?C2 \<and> falsifiesg ?B2 C2'" 
@@ -1791,7 +1780,7 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     moreover 
     have "\<not>falsifiesc B C2o" using C2o_p b_p clo by auto
     then have "\<not>falsifiesc B ?C2" using std_apart_falsifies2_sym[of C1o C2o ?C1 ?C2 B] by auto
-    then have "\<not> falsifiesg B C2'" using C2'_p by auto
+    then have "\<not>falsifiesg B C2'" using C2'_p by auto
     then have "\<not>(\<forall>l \<in> C2'. falsifiesl B l)" by auto
     ultimately have "\<exists>l \<in> C2'. falsifiesl (B@[False]) l \<and> \<not>(falsifiesl B l)" by auto
     then obtain l2 where l2_p: "l2 \<in> C2' \<and> falsifiesl (B@[False]) l2 \<and> \<not>(falsifiesl B l2)" by auto
@@ -1801,39 +1790,26 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     have B_C2'l2:"falsifiesg B (C2' - {l2})" sorry
     have ground_l2: "groundl l2" sorry
 
+
+    (* Proving some properties about C1' and C2', l1 and l2, as well as the resolvent of C1' and C2' *)
     have l2cisl1: "l2\<^sup>c = l1" (* Could perhaps be a lemma *)
       proof -
         from l1_no l2_no ground_l1 ground_l2 have "get_pred l1 = get_pred l2" using nat_from_fatom_inj_mod_sign by auto
         moreover
         from l1_no l2_no ground_l1 ground_l2 have "get_terms l1 = get_terms l2" using nat_from_fatom_inj_mod_sign by auto
-        ultimately show "l2\<^sup>c = l1" using l1_sign l2_sign 
-          apply (induction l1)
-          apply (induction l2)
-          apply auto
-          apply (induction l2)
-          apply auto
-          done
+        ultimately show "l2\<^sup>c = l1" using l1_sign l2_sign using sign_comp by metis 
       qed
     have "falsifiesg B ((C1' - {l1}) \<union> (C2' - {l2}))" using B_C1'l1 B_C2'l2 by cases auto
     then have falsifies_ground_C: "falsifiesg B (lresolution C1' C2' {l1} {l2} \<epsilon>)" unfolding lresolution_def empty_subls by auto
-
     have "applicable C1' C2' {l1} {l2} \<epsilon>" unfolding applicable_def
-      apply auto (* I prove each conjunct of applicable at a time *)
-      using l1_p apply simp
-      using l2_p apply simp
-      using C1'_p groundls_varsls apply simp
-      using l1_p apply simp
-      using l2_p apply simp
-      using l2cisl1 unfolding mguls_def apply simp
-      apply rule
-      unfolding unifierls_def apply auto
-      using empty_comp2 apply auto
-      done
+      using l1_p l2_p C1'_p groundls_varsls l2cisl1 empty_comp2 unfolding mguls_def unifierls_def by auto
+    (* Lifting to get a resolvent of C1 and C2 *)
     then have "\<exists>L1 L2 \<tau>. applicable ?C1 ?C2 L1 L2 \<tau>  \<and> instance_ofls (lresolution C1' C2' {l1} {l2} \<epsilon>) (lresolution ?C1 ?C2 L1 L2 \<tau>)" 
       using std_apart_apart C1'_p C2'_p lifting[of ?C1 ?C2 C1' C2' "{l1}" "{l2}" \<epsilon>] by auto
     then obtain L1 L2 \<tau> where L1L2\<tau>_p: "applicable ?C1 ?C2 L1 L2 \<tau>  \<and> instance_ofls (lresolution C1' C2' {l1} {l2} \<epsilon>) (lresolution ?C1 ?C2 L1 L2 \<tau>)" by auto
 
     (* Defining the clause to be derived, the new clausal form and the new tree *)
+    (* We name the resolvent C *)
     obtain C where C_p: "C=lresolution ?C1 ?C2 L1 L2 \<tau>" by auto
     obtain CsNext where CsNext_p: "CsNext = Cs \<union> {?C1, ?C2, C}" by auto
     obtain T'' where T''_p: "T'' = delete B T" by auto (* Here we delete the two branch children B1 and B2 of B *)
@@ -1883,7 +1859,7 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
       ultimately
       have "lresolution_deriv Cs CsNext" using star.intros[of lresolution_step] unfolding lresolution_deriv_def by auto
     }
-    (* Combining the two derivations, we get the desired derivation *)
+    (* Combining the two derivations, we get the desired derivation from Cs of {} *)
     ultimately have "lresolution_deriv Cs Cs''" using star_trans unfolding lresolution_deriv_def by auto
     then have "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'" using Cs''_p by auto
   }
