@@ -2506,9 +2506,6 @@ qed
 
 end
 
-sublocale dpll_with_backtrack \<subseteq> dpll_state fst snd "\<lambda>M S. (M, snd S)" "\<lambda>N (M, _). (M, N)"
-  by unfold_locales auto
-
 sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops fst snd "\<lambda>M S. (M, snd S)"
   "\<lambda>N (M, _). (M, N)" "\<lambda>_. True"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies N (get_all_marked_decomposition M)"

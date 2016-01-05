@@ -1191,7 +1191,8 @@ next
     moreover have "atms' - {?min} = atms'"
       using \<open>?min \<notin> atms'\<close> by fastforce
     ultimately have "n = card (atms - {?min} \<union> atms')"
-      by (metis Min_in Un_Diff c card_0_eq card_Diff_singleton_if diff_Suc_1 finite' finite_Un local.finite nat.distinct(1))
+      by (metis Min_in Un_Diff c card_0_eq card_Diff_singleton_if diff_Suc_1 finite' finite_Un 
+        finite nat.distinct(1))
     moreover have "finite (atms - {?min})" using finite by auto
     moreover have "(atms - {?min}) \<inter> atms' = {}" using disj by auto
     ultimately have "build_all_simple_clss (atms - {?min})
@@ -1208,7 +1209,8 @@ next
         = {{#Pos (?min)#} + \<chi> |\<chi>. \<chi> \<in> ?mcls} \<union> {{#Neg (?min)#} + \<chi> |\<chi>. \<chi> \<in> ?mcls} \<union> ?mcls"
       using build_all_simple_clss_simps_else[of "atms \<union> atms'"] finite' min
       by (metis c card_eq_0_iff nat.distinct(1))
-    moreover have "atms \<union> atms' - {?min} = atms - {?min} \<union> atms'" using min min' by (simp add: Un_Diff)
+    moreover have "atms \<union> atms' - {?min} = atms - {?min} \<union> atms'"
+      using min min' by (simp add: Un_Diff)
     moreover have "Min atms = ?min" using min min' by (simp add: Min_eqI finite' local.finite)
     ultimately have ?case by auto
   }
