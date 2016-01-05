@@ -1272,7 +1272,7 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_all_induct[consumes 1, case_names dpll_bj lea
     learning:
       "\<And>S C T. clauses S \<Turnstile>p C \<Longrightarrow> atms_of C \<subseteq> atms_of_m (clauses S) \<union> atm_of ` (lits_of (trail S))
       \<Longrightarrow> T \<sim> add_cls\<^sub>N\<^sub>O\<^sub>T C S
-      \<Longrightarrow>  P S T" and
+      \<Longrightarrow> P S T" and
     forgetting: "\<And>S C T. clauses S - {C} \<Turnstile>p C \<Longrightarrow> C \<in> clauses S \<Longrightarrow> T \<sim> remove_cls\<^sub>N\<^sub>O\<^sub>T C S
     \<Longrightarrow> P S T"
   shows "P S T"
@@ -1326,17 +1326,18 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_finite_clauses:
   by (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_all_induct)
      (simp_all add: dpll_bj_atms_in_trail_in_set dpll_bj_atms_of_m_clauses_inv dpll_bj_clauses)
 
+(* TODO Move *)
 lemma true_clss_clss_generalise_true_clss_clss:
   "A \<union> C \<Turnstile>ps D \<Longrightarrow> B \<Turnstile>ps C \<Longrightarrow> A \<union> B \<Turnstile>ps D"
 proof -
   assume a1: "A \<union> C \<Turnstile>ps D"
   assume "B \<Turnstile>ps C"
   then have f2: "\<And>M. M \<union> B \<Turnstile>ps C"
-    by (meson true_clss_clss_union_l_r) (* 0.9 ms *)
+    by (meson true_clss_clss_union_l_r)
   have "\<And>M. C \<union> (M \<union> A) \<Turnstile>ps D"
-    using a1 by (simp add: Un_commute sup_left_commute) (* 1 ms *)
+    using a1 by (simp add: Un_commute sup_left_commute)
   then show ?thesis
-    using f2 by (metis (no_types) Un_commute true_clss_clss_left_right true_clss_clss_union_and) (* 16 ms *)
+    using f2 by (metis (no_types) Un_commute true_clss_clss_left_right true_clss_clss_union_and)
 qed
 
 lemma cdcl\<^sub>N\<^sub>O\<^sub>T_all_decomposition_implies:
@@ -1497,7 +1498,8 @@ abbreviation learn_or_forget where
 
 lemma rtranclp_learn_or_forget_cdcl\<^sub>N\<^sub>O\<^sub>T:
   "learn_or_forget\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T"
- using rtranclp_mono[of learn_or_forget cdcl\<^sub>N\<^sub>O\<^sub>T] cdcl\<^sub>N\<^sub>O\<^sub>T.c_learn cdcl\<^sub>N\<^sub>O\<^sub>T.c_forget\<^sub>N\<^sub>O\<^sub>T by blast
+  using rtranclp_mono[of learn_or_forget cdcl\<^sub>N\<^sub>O\<^sub>T] cdcl\<^sub>N\<^sub>O\<^sub>T.c_learn cdcl\<^sub>N\<^sub>O\<^sub>T.c_forget\<^sub>N\<^sub>O\<^sub>T by blast
+
 lemma learn_or_forget_dpll_\<mu>\<^sub>C:
   assumes
     l_f: "learn_or_forget\<^sup>*\<^sup>* S T" and
@@ -1732,8 +1734,8 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_learn_all_induct[consumes 1, case_names dpll_
   shows "P S T"
   using assms(1)
   apply (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T.induct)
-  apply (auto dest: assms(2) simp add: learn_ops_axioms)[]
-  apply (auto elim!: learn_ops.learn.cases[OF learn_ops_axioms] dest: assms(3))[]
+    apply (auto dest: assms(2) simp add: learn_ops_axioms)[]
+   apply (auto elim!: learn_ops.learn.cases[OF learn_ops_axioms] dest: assms(3))[]
   apply (auto elim!: forget_ops.forget\<^sub>N\<^sub>O\<^sub>T.cases[OF forget_ops_axioms] dest!: assms(4))
   done
 
