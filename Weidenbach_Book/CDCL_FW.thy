@@ -3245,6 +3245,22 @@ lemma full0_cdcl_s_full0_cdcl_fw:
   shows "full0 cdcl_s R V \<longleftrightarrow> full0 cdcl_fw_s R V" (is "?s' \<longleftrightarrow> ?fw")
   by (simp add: assms(1) full0_cdcl_s'_full0_cdcl_fw_restart full0_cdcl_s_iff_full0_cdcl_s' inv)
 
+lemma full_cdcl_fw_s_normal_forms':
+  fixes S' :: "'st"
+  assumes full: "full0 cdcl_fw_s (init_state N) S'"
+  and no_d: "distinct_mset_set N"
+  and finite[simp]: "finite N"
+  shows "(conflicting S' = C_Clause {#} \<and> unsatisfiable (init_clss S'))
+    \<or> (conflicting S' = C_True \<and> trail S' \<Turnstile>as init_clss S' \<and> satisfiable (init_clss S'))"
+proof -
+  have "cdcl_all_inv_mes (init_state N)"
+    using no_d unfolding cdcl_all_inv_mes_def by auto
+  moreover have "conflicting (init_state N) = C_True"
+    by auto
+  ultimately show ?thesis
+    using full_cdcl_s_normal_forms' full0_cdcl_s_full0_cdcl_fw full no_d finite by blast
+qed
+
 end
 
 subsection \<open>Adding Restarts\<close>
