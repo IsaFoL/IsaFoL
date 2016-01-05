@@ -762,7 +762,7 @@ next
             by (meson T_U' cdcl_bj.simps if_can_apply_backtrack_no_more_resolve inv_T
               resolve_skip_deterministic resolve_unique rtranclp.rtrancl_refl)
           then show ?thesis
-            using \<open>cdcl_bj\<^sup>*\<^sup>* U' V\<close> unfolding rtranclp_unfold by (meson rtranclp_unfold state_eq_ref 
+            using \<open>cdcl_bj\<^sup>*\<^sup>* U' V\<close> unfolding rtranclp_unfold by (meson rtranclp_unfold state_eq_ref
               state_eq_sym tranclp_cdcl_bj_state_eq_compatible)
         next
           case skip
@@ -3245,6 +3245,22 @@ lemma full0_cdcl_s_full0_cdcl_fw:
   shows "full0 cdcl_s R V \<longleftrightarrow> full0 cdcl_fw_s R V" (is "?s' \<longleftrightarrow> ?fw")
   by (simp add: assms(1) full0_cdcl_s'_full0_cdcl_fw_restart full0_cdcl_s_iff_full0_cdcl_s' inv)
 
+lemma full_cdcl_fw_s_normal_forms':
+  fixes S' :: "'st"
+  assumes full: "full0 cdcl_fw_s (init_state N) S'"
+  and no_d: "distinct_mset_set N"
+  and finite[simp]: "finite N"
+  shows "(conflicting S' = C_Clause {#} \<and> unsatisfiable (init_clss S'))
+    \<or> (conflicting S' = C_True \<and> trail S' \<Turnstile>as init_clss S' \<and> satisfiable (init_clss S'))"
+proof -
+  have "cdcl_all_inv_mes (init_state N)"
+    using no_d unfolding cdcl_all_inv_mes_def by auto
+  moreover have "conflicting (init_state N) = C_True"
+    by auto
+  ultimately show ?thesis
+    using full_cdcl_s_normal_forms' full0_cdcl_s_full0_cdcl_fw full no_d finite by blast
+qed
+
 end
 
 subsection \<open>Adding Restarts\<close>
@@ -3271,6 +3287,9 @@ locale cdcl_cw_ops_restart =
   assumes f: "strict_mono f"
 begin
 
+text \<open>The condition @{term "card (learned_clss T) - card (learned_clss S) > f n"} has to be strict.
+  Otherwise, you could be in a strange state, where nothing remains to do, but a restart is done.
+  See the proof of well-foundedness.\<close>
 inductive cdcl_with_restart\<^sub>C\<^sub>W where
 restart_step: "(cdcl_fw_s^^(card (learned_clss T) - card (learned_clss S))) S T
   \<Longrightarrow> card (learned_clss T) - card (learned_clss S) > f n
@@ -3289,11 +3308,6 @@ lemma cdcl_with_restart\<^sub>C\<^sub>W_rtranclp_cdcl:
   by (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct)
   (auto dest!: relpowp_imp_rtranclp rtranclp_cdcl_fw_s_rtranclp_cdcl cdcl.rf cdcl_rf.restart
       tranclp_into_rtranclp simp: full_def)
-
-lemma
-  "cdcl_with_restart\<^sub>C\<^sub>W S T \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_merged\<^sup>*\<^sup>* (fst S) (fst T)"
-  apply (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct)
-oops
 
 lemma cdcl_with_restart\<^sub>C\<^sub>W_increasing_number:
   "cdcl_with_restart\<^sub>C\<^sub>W S T \<Longrightarrow> snd T = 1 + snd S"
@@ -3369,7 +3383,7 @@ proof (rule ccontr)
     g: "\<And>i. cdcl_with_restart\<^sub>C\<^sub>W (g i) (g (Suc i))" and
     inv: "\<And>i. cdcl_all_inv_mes (fst (g i))"
     unfolding wf_iff_no_infinite_down_chain by fast
-  {fix i
+  { fix i
     have "init_clss (fst (g i)) = init_clss (fst (g 0))"
       apply (induction i)
         apply simp
@@ -3387,6 +3401,8 @@ proof (rule ccontr)
     using strict_mono_ge_id[of "snd \<circ> g" "1+card (build_all_simple_clss (atms_of_m (init_clss
       (fst ?S))))"] Suc_le_lessD
     by fastforce
+  text \<open>The following does not hold anymore with the non-strict version of
+    @{term "card (learned_clss T) - card (learned_clss S) > f n"} in the definition.\<close>
   { fix i
     assume "no_step cdcl_fw_s (fst (g i))"
     with g[of i]

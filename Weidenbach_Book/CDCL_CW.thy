@@ -643,6 +643,10 @@ lemma rtranclp_cdcl_init_clss:
   "cdcl\<^sup>*\<^sup>* S T \<Longrightarrow> init_clss S = init_clss T"
   by (induct rule: rtranclp_induct) (auto dest: cdcl_init_clss)
 
+lemma tranclp_cdcl_init_clss:
+  "cdcl\<^sup>+\<^sup>+ S T \<Longrightarrow> init_clss S = init_clss T"
+  by (induct rule: tranclp_induct) (auto dest: cdcl_init_clss)
+
 subsection \<open>Invariants\<close>
 subsubsection \<open>Properties of the trail\<close>
 text \<open>We here establish that:
