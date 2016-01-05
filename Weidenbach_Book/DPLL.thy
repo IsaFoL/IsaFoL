@@ -1,6 +1,5 @@
 theory DPLL
-imports Main Partial_Clausal_Logic Partial_Annotated_Clausal_Logic List_More Wf_More
-
+imports Main Partial_Clausal_Logic Partial_Annotated_Clausal_Logic List_More Wf_More CDCL_NOT
 begin
 
 section \<open>DPLL\<close>
@@ -701,5 +700,24 @@ next
       thus False using \<open>?B\<close> by blast
     qed
 qed
+
+subsection \<open>Link with NOT's DPLL\<close>
+interpretation dpll_CW_NOT: dpll_with_backtrack .
+
+lemma state_eq\<^sub>N\<^sub>O\<^sub>T_iff_eq[iff]: "dpll_CW_NOT.state_eq\<^sub>N\<^sub>O\<^sub>T S T \<longleftrightarrow> S = T"
+  unfolding dpll_CW_NOT.state_eq\<^sub>N\<^sub>O\<^sub>T_def by (cases S, cases T) auto
+declare dpll_CW_NOT.state_simp\<^sub>N\<^sub>O\<^sub>T[simp del]
+
+lemma dpll_dpll_bj:
+  assumes inv: "dpll_all_inv S" and dpll: "dpll S T"
+  shows "dpll_CW_NOT.dpll_bj S T "
+  using dpll inv
+  apply (induction rule: dpll.induct)
+     using dpll_CW_NOT.dpll_bj.simps apply blast
+    apply (simp add: dpll_CW_NOT.decide\<^sub>N\<^sub>O\<^sub>T dpll_CW_NOT.dpll_bj.simps)
+  apply (frule dpll_CW_NOT.backtrack.intros[of _ _  _ _ _ Proped], simp_all)
+  apply (rule dpll_CW_NOT.dpll_bj.bj_backjump)
+  apply (rule dpll_CW_NOT.backtrack_is_backjump'', simp_all add: dpll_all_inv_def)
+  done
 
 end
