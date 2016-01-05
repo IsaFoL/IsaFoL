@@ -101,47 +101,6 @@ next
   then show "\<forall>b\<in>B. f ((inv_into A f) b) = b" using f_inv_into_f by metis
 qed
 
-lemma (* I need also to assume that the range of f is B and that of g is A *)
-  assumes "f ` A = B"
-  assumes "g ` B = A"
-  assumes "(\<forall>a\<in>A. g (f a) = a)"
-  assumes "(\<forall>b\<in>B. f (g b) = b)"
-  shows "bij_betw f A B" 
-oops
-
-lemma (* I need also to assume that the range of f is B and that of g is A *)
-  assumes "(\<forall>a\<in>A. g (f a) = a)"
-  assumes "(\<forall>b\<in>B. f (g b) = b)"
-  shows "bij_betw f A B" 
-proof -
-  have "f ` A = B"
-    proof (rule; rule)
-      fix x
-      assume "x \<in> f ` A"
-      then obtain a where a_p: "x = f a \<and> a \<in> A" by auto
-      then have "g (f a) = a" using assms by auto
-
-      then have "f a \<in> B" sorry
-      then show "x \<in> B" using a_p by auto
-    next
-      fix x
-      assume "x \<in> B"
-(*      then have "f x" sorry*)
-      show "x \<in> f ` A" sorry
-    qed
-  moreover
-  {
-    fix x
-    assume 1: "x\<in>A"
-    fix y
-    assume 2: "y\<in>A"
-    assume 3: "f x = f y"
-    then have "g (f x) = g (f y)" by auto
-    then have "x = y" using assms 1 2 3 by metis
-  }
-  ultimately show "bij_betw f A B" unfolding bij_betw_def inj_on_def by auto
-oops
-
 subsubsection {* Enumerating strings *}
 
 definition nat_from_string:: "string \<Rightarrow> nat" where
@@ -327,11 +286,14 @@ proof -
     qed
    moreover
    have "hatom_of_fatom ` {l. groundl l} = UNIV"
-     apply auto
-     apply (subgoal_tac "x = hatom_of_fatom (fatom_of_hatom x)")
-     using ground_fatom_of_hatom apply blast
-     using hatom_of_fatom_fatom_of_hatom apply simp
-     done
+     proof -
+       {
+         fix x
+         have "x = hatom_of_fatom (fatom_of_hatom x)" by auto
+         then have "x \<in> hatom_of_fatom ` {l. groundl l}" using ground_fatom_of_hatom by blast
+       }
+       then show ?thesis by auto
+     qed
    ultimately show ?thesis unfolding bij_betw_def by auto
 qed
 
@@ -371,7 +333,7 @@ proof -
     done
   moreover
   have "inj fatom_from_nat" unfolding inj_on_def
-    proof (rule; rule; rule)
+    proof (rule ballI; rule ballI; rule impI)
       fix x y
       assume "fatom_from_nat x = fatom_from_nat y"
       then have "nat_from_fatom (fatom_from_nat x) = nat_from_fatom (fatom_from_nat y)" by auto
@@ -397,7 +359,7 @@ proof -
   then have "nat_from_fatom ` ground_fatoms = UNIV" unfolding ground_fatoms_def by auto
   moreover
   have "inj_on nat_from_fatom ground_fatoms" unfolding inj_on_def
-    proof (rule; rule; rule)
+    proof (rule ballI; rule ballI; rule impI)
       fix x y
       assume gr: "x \<in> ground_fatoms" "y \<in> ground_fatoms"
       then have sn: "sign x = True" "sign y = True" unfolding ground_fatoms_def by auto
