@@ -11,13 +11,13 @@ datatype 'a conflicting_clause = C_True | C_Clause "'a"
 subsection \<open>The State\<close>
 locale cw_state =
   fixes
-    trail :: "'st \<Rightarrow> ('v, 'lvl, 'v clause) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) annoted_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
     backtrack_lvl :: "'st \<Rightarrow> nat" and
     conflicting :: "'st \<Rightarrow>'v clause conflicting_clause" and
 
-    update_trail :: "('v, 'lvl, 'v clause) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_trail :: "('v, nat, 'v clause) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_init_clss :: "'v clause set \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_learned_clss :: "'v clause set \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -136,13 +136,13 @@ lemma
     prefer 8 using clauses_def learned_clss_restart_state apply fastforce
   unfolding clauses_def by auto
 
-abbreviation update_state:: "'st \<Rightarrow> ('v, 'lvl, 'v clause) marked_lit list \<times> 'v clauses \<times> 'v clauses
+abbreviation update_state:: "'st \<Rightarrow> ('v, nat, 'v clause) marked_lit list \<times> 'v clauses \<times> 'v clauses
   \<times> nat \<times> 'v clause conflicting_clause \<Rightarrow> 'st" where
 "update_state \<equiv> \<lambda>S (M, N, U, k, D).
   update_trail M (update_init_clss N (update_learned_clss U
     (update_backtrack_lvl k (update_conflicting D S))))"
 
-abbreviation state ::  "'st \<Rightarrow> ('v, 'lvl, 'v clause) marked_lit list \<times> 'v clauses \<times> 'v clauses
+abbreviation state ::  "'st \<Rightarrow> ('v, nat, 'v clause) marked_lit list \<times> 'v clauses \<times> 'v clauses
   \<times> nat \<times> 'v clause conflicting_clause" where
 "state S \<equiv> (trail S, init_clss S, learned_clss S, backtrack_lvl S, conflicting S)"
 
