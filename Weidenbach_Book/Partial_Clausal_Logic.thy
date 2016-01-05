@@ -1448,4 +1448,14 @@ proof (intro allI impI)
     by (meson true_cls_mono_set_mset_l)
 qed
 
+lemma consistent_true_clss_ext_satisfiable:
+  assumes "consistent_interp I" and "I \<Turnstile>sext A"
+  shows "satisfiable A"
+  by (metis Un_empty_left assms satisfiable_carac subset_Un_eq sup.left_idem
+    total_over_m_consistent_extension total_over_m_empty true_clss_ext_def)
+
+lemma not_consistent_true_clss_ext:
+  assumes "\<not>consistent_interp I"
+  shows "I\<Turnstile>sext A"
+  by (meson assms consistent_interp_subset true_clss_ext_def)
 end
