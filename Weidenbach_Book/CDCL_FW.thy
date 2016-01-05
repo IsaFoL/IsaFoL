@@ -49,9 +49,56 @@ abbreviation backjump_l_cond :: " 'v literal multiset \<Rightarrow> 'v literal \
 
 abbreviation inv\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> bool" where
 "inv\<^sub>N\<^sub>O\<^sub>T \<equiv> \<lambda>S. no_dup (trail S)"
+
 end
 
-sublocale cw_state \<subseteq> dpll_state trail clauses update_trail
+fun convert_trail_from_W ::
+  "('v,  'lvl, 'v literal multiset) marked_lit list
+    \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lit list"  where
+"convert_trail_from_W [] = []" |
+"convert_trail_from_W (Propagated L _ # M) = Propagated L Proped # convert_trail_from_W M" |
+"convert_trail_from_W (Marked L _ # M) = Marked L Level # convert_trail_from_W M"
+
+lemma atm_convert_trail_from_W[simp]:
+  "(\<lambda>l. atm_of (lit_of l)) ` set (convert_trail_from_W xs) = (\<lambda>l. atm_of (lit_of l)) ` set xs"
+  by (induction rule: marked_lit_list_induct) simp_all
+
+lemma no_dup_convert_from_W[simp]:
+  "no_dup (convert_trail_from_W M) \<longleftrightarrow> no_dup M"
+  by (induction rule: marked_lit_list_induct) simp_all
+
+lemma lits_of_convert_trail_from_W[simp]:
+  "lits_of (convert_trail_from_W M) = lits_of M"
+  by (induction rule: marked_lit_list_induct) simp_all
+
+lemma convert_trail_from_W_true_annots[simp]:
+  "convert_trail_from_W M \<Turnstile>as C \<longleftrightarrow> M \<Turnstile>as C"
+  by (auto simp: true_annots_true_cls)
+
+lemma defined_lit_convert_trail_from_W[simp]:
+  "defined_lit L (convert_trail_from_W S) \<longleftrightarrow> defined_lit L S"
+  by (auto simp: defined_lit_map)
+
+lemma convert_trail_from_W_append[simp]:
+  "convert_trail_from_W (M @ M') = convert_trail_from_W M @ convert_trail_from_W M'"
+  by (induction M rule: marked_lit_list_induct) simp_all
+
+text \<open>The values @{term "0::nat"} and @{term "{#}"} do not matter.\<close>
+fun convert_trail_from_NOT ::
+  "('v, dpll_marked_level, dpll_mark) marked_lit list
+    \<Rightarrow> ('v,  nat, 'v literal multiset) marked_lit list"  where
+"convert_trail_from_NOT [] = []" |
+"convert_trail_from_NOT (Propagated L _ # M) = Propagated L {#} # convert_trail_from_NOT M" |
+"convert_trail_from_NOT (Marked L _ # M) = Marked L 0 # convert_trail_from_NOT M"
+
+lemma convert_trail_from_W_from_NOT[simp]:
+  "convert_trail_from_W (convert_trail_from_NOT M) = M"
+  by (induction rule: marked_lit_list_induct) auto
+abbreviation trail\<^sub>N\<^sub>O\<^sub>T where
+"trail\<^sub>N\<^sub>O\<^sub>T \<equiv> convert_trail_from_W o trail"
+
+sublocale cw_state \<subseteq> dpll_state "convert_trail_from_W o trail" clauses
+  "update_trail o convert_trail_from_NOT"
   "\<lambda>C S. update_init_clss C (update_learned_clss {} S)"
   by unfold_locales auto
 
@@ -62,19 +109,21 @@ sublocale cw_state \<subseteq> dpll_state trail clauses update_trail
   (* propagate conditions: *) "\<lambda>_ S. conflicting S = C_True" "\<lambda>C L S. backjump_l_cond C L S
     \<and> distinct_mset (C + {#L#}) \<and> \<not>tautology (C + {#L#})" *)
 
-sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops trail clauses update_trail
+sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops "convert_trail_from_W o trail" clauses
+  "update_trail o convert_trail_from_NOT"
   (* update_cls: *)"\<lambda>C S. update_init_clss C (update_learned_clss {} S)"
   (* backjump conditions: *)"\<lambda>_. True"
   (* propagate conditions: *) "\<lambda>_ S. conflicting S = C_True" "\<lambda>C L S. backjump_l_cond C L S
     \<and> distinct_mset (C + {#L#}) \<and> \<not>tautology (C + {#L#})"
   by unfold_locales
 
-sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy trail clauses update_trail
+sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy  "convert_trail_from_W o trail" clauses
+  "update_trail o convert_trail_from_NOT"
   "\<lambda>C S. update_init_clss C (update_learned_clss {} S)"  "\<lambda>_. True"
   "\<lambda>_ S. conflicting S = C_True" backjump_l_cond inv\<^sub>N\<^sub>O\<^sub>T
 proof (unfold_locales, goal_cases)
   case 2
-  then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_no_dup_inv by fast
+  then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_no_dup_inv by auto
 next
   case (1 C' S C F' K d F L)
   moreover
@@ -87,7 +136,9 @@ next
         less_irrefl_nat mem_set_mset_iff remdups_mset_def)
   moreover
     have "no_dup F"
-      using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> unfolding \<open>trail S = F' @ Marked K d # F\<close> by auto
+      using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> \<open>(convert_trail_from_W \<circ> trail) S = F' @ Marked K d # F\<close>
+      by (smt comp_apply distinct.simps(2) distinct_append list.simps(9) map_append
+        no_dup_convert_from_W)
     then have "consistent_interp (lits_of F)"
       using distinctconsistent_interp by blast
     then have "\<not> tautology (C')"
@@ -96,30 +147,48 @@ next
       using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit L F\<close> by (metis  CNot_remdups_mset
         Marked_Propagated_in_iff_in_lits_of add.commute in_CNot_uminus tautology_add_single
         tautology_remdups_mset true_annot_singleton true_annots_def)
-  moreover have "\<not>(\<forall>X1 X3. \<not> local.clauses S \<Turnstile>p remdups_mset C' + {#L#}
-    \<or> update_trail (Propagated L X3 # F) (add_cls\<^sub>N\<^sub>O\<^sub>T (remdups_mset C' + {#L#}) S) \<noteq> X1)"
-    by (metis \<open>L \<notin># C'\<close> \<open>local.clauses S \<Turnstile>p C' + {#L#}\<close> remdups_mset_singleton_sum(2)
-      true_clss_cls_remdups_mset union_commute)
-  moreover have "\<exists>s m. state_eq\<^sub>N\<^sub>O\<^sub>T s (update_trail (Propagated L m # F)
-    (add_cls\<^sub>N\<^sub>O\<^sub>T (remdups_mset C' + {#L#}) S))"
-    by (meson state_eq\<^sub>N\<^sub>O\<^sub>T_ref)
-  ultimately show ?case
-    using CNot_remdups_mset \<open>C \<in> local.clauses S\<close> \<open>F \<Turnstile>as CNot C'\<close>
-       backjump_l.intros[of S F' K d F _ L _ ?C'] by fastforce
+  show ?case
+    proof -
+      have f1: "\<forall>s d m. (\<not> no_dup ((convert_trail_from_W \<circ> trail) S)
+        \<or> \<not> state_eq\<^sub>N\<^sub>O\<^sub>T s ((update_trail \<circ> convert_trail_from_NOT) (Propagated L d # F)
+          (add_cls\<^sub>N\<^sub>O\<^sub>T (remdups_mset C' + {#L#}) S)) \<or> m \<notin> local.clauses S
+        \<or> \<not> (convert_trail_from_W \<circ> trail) S \<Turnstile>as CNot m \<or> |L| \<in>\<^sub>l |F|
+        \<or> atm_of L \<notin> atms_of_m (local.clauses S) \<union> atm_of ` lits_of ((convert_trail_from_W \<circ> trail) S)
+        \<or> \<not> local.clauses S \<Turnstile>p remdups_mset C' + {#L#} \<or> \<not> F \<Turnstile>as CNot (remdups_mset C')
+        \<or> tautology (remdups_mset C' + {#L#}))
+        \<or> backjump_l S s"
+        using \<open>(convert_trail_from_W \<circ> trail) S = F' @ Marked K d # F\<close>
+        CNot_remdups_mset \<open>C \<in> local.clauses S\<close> \<open>F \<Turnstile>as CNot C'\<close>
+        backjump_l.intros[of S F' K d F _ L _ ?C'] \<open>distinct_mset (remdups_mset C' + {#L#})\<close> by force
+      have f2: "no_dup ((convert_trail_from_W \<circ> trail) S)"
+        by (simp add: \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close>)
+      have f3: "atm_of L \<in> atms_of_m (clauses S) \<union> atm_of ` lits_of ((convert_trail_from_W \<circ> trail) S)"
+        using \<open>(convert_trail_from_W \<circ> trail) S = F' @ Marked K d # F\<close>
+        \<open>atm_of L \<in> atms_of_m (clauses S) \<union> atm_of ` lits_of (F' @ Marked K d # F)\<close> by presburger
+      have f4: "local.clauses S \<Turnstile>p remdups_mset C' + {#L#}"
+        by (metis (no_types) \<open>L \<notin># C'\<close> \<open>local.clauses S \<Turnstile>p C' + {#L#}\<close> remdups_mset_singleton_sum(2)
+          true_clss_cls_remdups_mset union_commute)
+      have "F \<Turnstile>as CNot (remdups_mset C')"
+        by (simp add: \<open>F \<Turnstile>as CNot C'\<close>)
+      then show ?thesis
+        using f4 f3 f2 f1 by (meson \<open>(convert_trail_from_W \<circ> trail) S \<Turnstile>as CNot C\<close>  state_eq\<^sub>N\<^sub>O\<^sub>T_ref
+          \<open>C \<in> local.clauses S\<close>  \<open>\<not> tautology (remdups_mset C' + {#L#})\<close> \<open>|L| \<notin>\<^sub>l |F|\<close>)
+    qed
 qed
 
-sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2 trail clauses update_trail
+sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2  "convert_trail_from_W o trail" clauses
+  "update_trail o convert_trail_from_NOT"
   "\<lambda>C S. update_init_clss C (update_learned_clss {} S)" "\<lambda>_. True"  inv\<^sub>N\<^sub>O\<^sub>T
   "\<lambda>_ S. conflicting S = C_True" backjump_l_cond
   by unfold_locales
 
-sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn trail clauses update_trail
+sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn "convert_trail_from_W o trail" clauses
+  "update_trail o convert_trail_from_NOT"
   "\<lambda>C S. update_init_clss C (update_learned_clss {} S)" "\<lambda>_. True"  inv\<^sub>N\<^sub>O\<^sub>T
   "\<lambda>_ S. conflicting S = C_True" backjump_l_cond
   apply unfold_locales
-   using dpll_bj_no_dup apply blast
-  apply (auto simp: learn.simps)
-  done
+   using dpll_bj_no_dup apply simp
+  by (smt comp_eq_dest_lhs learn.cases no_dup_convert_from_W state_eq\<^sub>N\<^sub>O\<^sub>T_trail update_trail_add_cls\<^sub>N\<^sub>O\<^sub>T)
 
 context cdcl_cw_ops
 begin
@@ -1065,7 +1134,7 @@ proof -
     proof cases
       case merged
       then show ?thesis
-        using cdcl\<^sub>N\<^sub>O\<^sub>T_decreasing_measure'[OF _ n_d atm_clauses atm_trail n_d fin_S fin_A]
+        using cdcl\<^sub>N\<^sub>O\<^sub>T_decreasing_measure'[OF _ n_d atm_clauses] atm_trail n_d fin_S fin_A
         by (auto split: split_if)
     next
       case n_s
