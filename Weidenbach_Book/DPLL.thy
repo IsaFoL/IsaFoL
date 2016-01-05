@@ -4,16 +4,6 @@ begin
 
 section \<open>DPLL\<close>
 subsection \<open>Rules\<close>
-datatype dpll_mark = Proped
-lemma dpll_mark_only_one_element[simp]:
-  "x = Proped" "Proped = x"
-  by (case_tac x, simp)+
-
-datatype dpll_marked_level = Level
-lemma dpll_marked_level_only_one_element[simp]:
-  "x = Level" "Level = x"
-  by (case_tac x, simp)+
-
 type_synonym 'a dpll_marked_lit = "('a, dpll_marked_level, dpll_mark) marked_lit"
 type_synonym 'a dpll_annoted_lits = "('a, dpll_marked_level, dpll_mark) annoted_lits"
 type_synonym 'v dpll_state = "'v dpll_annoted_lits \<times> 'v clauses"
@@ -704,7 +694,7 @@ qed
 subsection \<open>Link with NOT's DPLL\<close>
 interpretation dpll_CW_NOT: dpll_with_backtrack .
 
-lemma state_eq\<^sub>N\<^sub>O\<^sub>T_iff_eq[iff]: "dpll_CW_NOT.state_eq\<^sub>N\<^sub>O\<^sub>T S T \<longleftrightarrow> S = T"
+lemma state_eq\<^sub>N\<^sub>O\<^sub>T_iff_eq[iff, simp]: "dpll_CW_NOT.state_eq\<^sub>N\<^sub>O\<^sub>T S T \<longleftrightarrow> S = T"
   unfolding dpll_CW_NOT.state_eq\<^sub>N\<^sub>O\<^sub>T_def by (cases S, cases T) auto
 declare dpll_CW_NOT.state_simp\<^sub>N\<^sub>O\<^sub>T[simp del]
 
@@ -715,9 +705,19 @@ lemma dpll_dpll_bj:
   apply (induction rule: dpll.induct)
      using dpll_CW_NOT.dpll_bj.simps apply blast
     apply (simp add: dpll_CW_NOT.decide\<^sub>N\<^sub>O\<^sub>T dpll_CW_NOT.dpll_bj.simps)
-  apply (frule dpll_CW_NOT.backtrack.intros[of _ _  _ _ _ Proped], simp_all)
+  apply (frule dpll_CW_NOT.backtrack.intros[of _ _  _ _ _], simp_all)
   apply (rule dpll_CW_NOT.dpll_bj.bj_backjump)
   apply (rule dpll_CW_NOT.backtrack_is_backjump'', simp_all add: dpll_all_inv_def)
   done
+
+lemma dpll_bj_dpll:
+  assumes inv: "dpll_all_inv S" and dpll: "dpll_CW_NOT.dpll_bj S T"
+  shows "dpll S T"
+  using dpll
+  by (induction rule: dpll_CW_NOT.dpll_bj.induct)
+    (auto elim!: dpll_CW_NOT.decideE dpll_CW_NOT.propagateE dpll_CW_NOT.backjumpE
+     intro!: dpll.intros)
+
+
 
 end
