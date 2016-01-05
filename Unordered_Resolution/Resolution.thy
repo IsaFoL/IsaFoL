@@ -1,7 +1,5 @@
 theory Resolution imports TermsAndLiterals Tree "~~/src/HOL/IMP/Star" begin
 
-hide_const (open) TermsAndLiterals.Leaf TermsAndLiterals.Branch
-
 section {* Terms and literals *}
 
 fun complement :: "'t literal \<Rightarrow> 't literal" ("_\<^sup>c" [300] 300) where
@@ -35,6 +33,12 @@ proof -
   show ?thesis by auto
 qed
 
+lemma sign_comp: "sign l1 \<noteq> sign l2 \<and> get_pred l1 = get_pred l2 \<and> get_terms l1 = get_terms l2 \<longleftrightarrow> l2 = l1\<^sup>c"
+apply (cases l1)
+apply (cases l2)
+apply auto
+done
+
 section {* Clauses *}
 
 type_synonym 't clause = "'t literal set"
@@ -57,7 +61,7 @@ proof -
   then show ?thesis using cancel_compls1[of L\<^sub>1] cancel_compls1[of L\<^sub>2] by simp
 qed
 
-primrec varst  :: "fterm \<Rightarrow> var_sym set" 
+primrec varst  :: "fterm \<Rightarrow> var_sym set" (* I could use map here *)
 and varsts :: "fterm list \<Rightarrow> var_sym set" where 
   "varst (Var x) = {x}"
 | "varst (Fun f ts) = varsts ts"
@@ -70,11 +74,15 @@ definition varsl :: "fterm literal \<Rightarrow> var_sym set" where
 definition varsls :: "fterm literal set \<Rightarrow> var_sym set" where 
   "varsls L \<equiv> \<Union>l\<in>L. varsl l"
 
-abbreviation groundl :: "fterm literal \<Rightarrow> bool" where
-  "groundl l \<equiv> grounds (get_terms l)"
-
 abbreviation groundls :: "fterm clause \<Rightarrow> bool" where
   "groundls L \<equiv> \<forall> l \<in> L. groundl l"
+
+lemma ground_varst: "ground t \<Longrightarrow> varst t = {}"  "grounds ts \<Longrightarrow> varsts ts = {}"
+  by (induct t and ts rule: varst.induct varsts.induct) auto
+
+lemma groundl_varsl: "groundl l \<Longrightarrow> varsl l = {}" unfolding varsl_def using ground_varst by auto
+
+lemma groundls_varsls: "groundls ls \<Longrightarrow> varsls ls = {}" unfolding varsls_def using groundl_varsl by auto
 
 lemma ground_comp: "groundl (l\<^sup>c) \<longleftrightarrow> groundl l" by (cases l) auto
 
@@ -191,9 +199,15 @@ lemma subls_union: "(L\<^sub>1 \<union> L\<^sub>2) {\<sigma>}\<^sub>l\<^sub>s = 
    that two variable point to the same. We could and should perhaps disallow this.
    It could be done something like
    var_renaming \<sigma> \<longleftrightarrow> (\<exists>b. bijection b (UNIV::var_symbol) (UNIV::var_symbol) \<and> \<forall>x. \<sigma> x = Var (b x))
+
+  Simple idea: Variable_renaming takes two clauses, and sees if they can be substituted to each other
  *)
-definition var_renaming :: "substitution \<Rightarrow> bool" where
-  "var_renaming \<sigma> \<longleftrightarrow> (\<forall>x. \<exists>y. \<sigma> x = Var y)"
+
+(* definition var_renaming :: "substitution \<Rightarrow> bool" where
+  "var_renaming \<sigma> \<longleftrightarrow> (\<forall>x. \<exists>y. \<sigma> x = Var y)" *)
+
+definition var_renaming_of :: "fterm clause \<Rightarrow> fterm clause \<Rightarrow> bool" where
+  "var_renaming_of C1 C2 \<longleftrightarrow> instance_ofls C1 C2 \<and> instance_ofls C2 C1"
 
 subsection {* The Empty Substitution *}
 
@@ -502,20 +516,23 @@ unfolding varsl_def using std_apart'' by (cases l) auto
 lemma std_apart_apart:
   assumes  "std_apart C1 C2 = (C1',C2')"
   shows "varsls C1' \<inter> varsls C2' = {}"
-proof (rule; rule)
-  from assms have C1'_x0: "C1' = C1{\<lambda>x. Var (''0'' @ x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
-  from assms have C2'_x1: "C2' = C2{\<lambda>x. Var (''1'' @ x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
-  fix x
-  assume xin: "x \<in> varsls C1' \<inter> varsls C2'"
-  from xin have "x \<in> varsls C1'" by auto
-  then have "\<exists>x'.  x=''0'' @ x'" 
-    using C1'_x0 std_apart'[of x _ "''0''"] unfolding varsls_def by auto
-  moreover
-  from xin have "x \<in> varsls C2'" by auto
-  then have "\<exists>x'. x= ''1'' @x' " 
-    using C2'_x1 std_apart'[of x _ "''1''"] unfolding varsls_def by auto
-  ultimately have "False" by auto
-  then show "x \<in> {}" by auto
+proof -
+  {
+    from assms have C1'_x0: "C1' = C1{\<lambda>x. Var (''0'' @ x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
+    from assms have C2'_x1: "C2' = C2{\<lambda>x. Var (''1'' @ x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
+    fix x
+    assume xin: "x \<in> varsls C1' \<inter> varsls C2'"
+    from xin have "x \<in> varsls C1'" by auto
+    then have "\<exists>x'.  x=''0'' @ x'" 
+      using C1'_x0 std_apart'[of x _ "''0''"] unfolding varsls_def by auto
+    moreover
+    from xin have "x \<in> varsls C2'" by auto
+    then have "\<exists>x'. x= ''1'' @x' " 
+      using C2'_x1 std_apart'[of x _ "''1''"] unfolding varsls_def by auto
+    ultimately have "False" by auto
+    then have "x \<in> {}" by auto
+  }
+  then show ?thesis by auto 
 qed
 
 lemma std_apart_instance_ofls:
@@ -679,14 +696,14 @@ inductive resolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<
     "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<Longrightarrow> 
        resolution_step Cs (Cs \<union> {resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>})"
 | standardize_apart:
-    "C \<in> Cs \<Longrightarrow> var_renaming \<sigma> \<Longrightarrow> resolution_step Cs (Cs \<union> {C {\<sigma>}\<^sub>l\<^sub>s})"
+    "C \<in> Cs \<Longrightarrow> var_renaming_of C C' \<Longrightarrow> resolution_step Cs (Cs \<union> {C'})"
 
 inductive lresolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   lresolution_rule: 
     "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<Longrightarrow> 
        lresolution_step Cs (Cs \<union> {lresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>})"
-| lstandardize_apart:
-    "C \<in> Cs \<Longrightarrow> var_renaming \<sigma> \<Longrightarrow> lresolution_step Cs (Cs \<union> {C {\<sigma>}\<^sub>l\<^sub>s})"
+| lstandardize_apart: (* Maybe rename would be a better name? ? ? *)
+    "C \<in> Cs \<Longrightarrow> var_renaming_of C C' \<Longrightarrow> lresolution_step Cs (Cs \<union> {C'})"
 
 definition resolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "resolution_deriv = star resolution_step"
@@ -871,9 +888,9 @@ proof (induction rule: resolution_step.induct)
     using resolution_sound resolution_rule by auto
   then show ?case using resolution_rule unfolding evalcs_def by auto
 next
-  case (standardize_apart C Cs \<sigma>)
+  case (standardize_apart C Cs C')
   then have "evalc F G C" unfolding evalcs_def by auto
-  then have "evalc F G (C{\<sigma>}\<^sub>l\<^sub>s)" using subst_sound by auto
+  then have "evalc F G C'" using subst_sound standardize_apart unfolding var_renaming_of_def instance_ofls_def by metis
   then show ?case using standardize_apart unfolding evalcs_def by auto
 qed
 
@@ -885,9 +902,9 @@ proof (induction rule: lresolution_step.induct)
     using lresolution_sound lresolution_rule by auto
   then show ?case using lresolution_rule unfolding evalcs_def by auto
 next
-  case (lstandardize_apart C Cs \<sigma>)
+  case (lstandardize_apart C Cs C')
   then have "evalc F G C" unfolding evalcs_def by auto
-  then have "evalc F G (C{\<sigma>}\<^sub>l\<^sub>s)" using subst_sound by auto
+  then have "evalc F G C'" using subst_sound lstandardize_apart unfolding var_renaming_of_def instance_ofls_def by metis
   then show ?case using lstandardize_apart unfolding evalcs_def by auto
 qed
 
@@ -911,30 +928,24 @@ qed
 
 section {* Enumerations *}
 
-fun hlit_of_flit :: "fterm literal \<Rightarrow> hterm literal" where
+fun hlit_of_flit :: "fterm literal \<Rightarrow> hterm literal" where (*  Already defined in terms na literals*)
   "hlit_of_flit (Pos P ts) = Pos P (hterms_of_fterms ts)"
 | "hlit_of_flit (Neg P ts) = Neg P (hterms_of_fterms ts)"
 
-lemma undiag_neg: "undiag_fatom (Neg P ts) = undiag_fatom (Pos P ts)"
-  unfolding undiag_fatom_def undiag_hatom_def by auto
-
-lemma undiag_neg2: "undiag_hatom (Neg P ts) = undiag_hatom (Pos P ts)"
-  unfolding undiag_fatom_def undiag_hatom_def by auto
-
-lemma ground_h_undiag: "groundl l \<Longrightarrow> undiag_hatom (hlit_of_flit l) = undiag_fatom l"
+lemma ground_h_undiag: "groundl l \<Longrightarrow> nat_from_hatom (hlit_of_flit l) = nat_from_fatom l"
 proof (induction l) (* Not really induction *)
   case (Pos P ts) 
-  then show ?case unfolding undiag_fatom_def by auto
+  then show ?case unfolding nat_from_fatom_def by auto
 next
   case (Neg P ts) 
-  then show ?case using undiag_neg undiag_neg2 unfolding undiag_fatom_def by auto
+  then show ?case using undiag_neg undiag_neg2 unfolding nat_from_fatom_def by auto
 qed
 
 
 section {* Herbrand Interpretations *}
 
 (* HFun is the Herbrand function denotation in which terms are mapped to themselves  *)
-value HFun
+term HFun
 
 lemma hterms_ground: "ground (fterm_of_hterm t)" "grounds (fterms_of_hterms ts)"
 apply (induction t and ts rule: fterm_of_hterm.induct fterms_of_hterms.induct)
@@ -946,7 +957,7 @@ apply (induction l)
 using hterms_ground apply auto
 done
 
-lemma diag_ground: "groundl (diag_fatom n)" unfolding diag_fatom_def using hatom_ground by auto 
+lemma diag_ground: "groundl (fatom_from_nat n)" unfolding fatom_from_nat_def using hatom_ground by auto 
 
 lemma eval_ground: "ground t \<Longrightarrow> (evalt E HFun t) = hterm_of_fterm t" "grounds ts \<Longrightarrow> (evalts E HFun ts) = hterms_of_fterms ts"
 apply (induction t and ts rule: hterm_of_fterm.induct hterms_of_fterms.induct)
@@ -976,12 +987,12 @@ fun falsifiesl :: "partial_pred_denot \<Rightarrow> fterm literal \<Rightarrow> 
      (\<exists>i.  
       i < length G
       \<and> G ! i = False
-      \<and> diag_fatom i = Pos p ts)"
+      \<and> fatom_from_nat i = Pos p ts)" (* I could get rid of the existential quantifier by using nat_from_fatom *)
 | "falsifiesl G (Neg p ts) = 
      (\<exists>i.  
       i < length G
       \<and> G ! i = True
-      \<and> diag_fatom i = Pos p ts)"
+      \<and> fatom_from_nat i = Pos p ts)"
 
 abbreviation falsifiesg :: "partial_pred_denot \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "falsifiesg G C \<equiv> (\<forall>l \<in> C. falsifiesl G l)"
@@ -997,11 +1008,11 @@ lemma falsifies_ground:
   shows "groundl l"
 proof (cases l)
   case (Pos p ts) 
-  then have "\<exists>i. diag_fatom i = Pos p ts" using assms by auto
+  then have "\<exists>i. fatom_from_nat i = Pos p ts" using assms by auto
   then show ?thesis using diag_ground Pos by metis
 next
   case (Neg p ts) 
-  then have "\<exists>i. diag_fatom i = Pos p ts" using assms by auto
+  then have "\<exists>i. fatom_from_nat i = Pos p ts" using assms by auto
   then have "groundl (Pos p ts)" using diag_ground Neg by metis
   then show ?thesis using Neg by auto
 qed 
@@ -1037,13 +1048,13 @@ lemma ground_falsifies:
       \<exists>i.  
       i < length G
       \<and> G ! i = (\<not>sign l)
-      \<and> diag_fatom i = Pos (get_pred l) (get_terms l)"
+      \<and> fatom_from_nat i = Pos (get_pred l) (get_terms l)"
 using assms by (cases l) auto (* Not really induction *)
 
 
 abbreviation extend :: "(nat \<Rightarrow> partial_pred_denot) \<Rightarrow> hterm pred_denot" where
   "extend f P ts \<equiv> (
-     let n = undiag_hatom (Pos P ts) in
+     let n = nat_from_hatom (Pos P ts) in
        f (Suc n) ! n
      )"
 
@@ -1190,17 +1201,36 @@ proof -
   show ?thesis by auto
 qed
 
+lemma std_apart_renames1:
+  assumes "std_apart C1 C2 = (C1',C2')"
+  shows "var_renaming_of C1 C1'"
+proof -
+  have "instance_ofls C1 C1'" using std_apart_instance_ofls assms by auto
+  moreover have "instance_ofls C1' C1" using assms unfolding instance_ofls_def std_apart_def by auto
+  ultimately show "var_renaming_of C1 C1'" unfolding var_renaming_of_def by auto
+qed
+
+lemma std_apart_renames2:
+  assumes "std_apart C1 C2 = (C1',C2')"
+  shows "var_renaming_of C2 C2'"
+proof -
+  have "instance_ofls C2 C2'" using std_apart_instance_ofls assms by auto
+  moreover have "instance_ofls C2' C2" using assms unfolding instance_ofls_def std_apart_def by auto
+  ultimately show "var_renaming_of C2 C2'" unfolding var_renaming_of_def by auto
+qed
+
+
 subsection {* Semantic Trees *}
 
 abbreviation closed_branch :: "partial_pred_denot \<Rightarrow> tree \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "closed_branch G T Cs \<equiv> branch G T \<and> falsifiescs G Cs"
 
-abbreviation open_branch :: "partial_pred_denot \<Rightarrow> tree \<Rightarrow> fterm clause set \<Rightarrow> bool" where
+abbreviation(input) open_branch :: "partial_pred_denot \<Rightarrow> tree \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "open_branch G T Cs \<equiv> branch G T \<and> \<not>falsifiescs G Cs"
 
 fun closed_tree :: "tree \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "closed_tree T Cs \<longleftrightarrow> anybranch T (\<lambda>b. closed_branch b T Cs) 
-                  \<and> anyinternal T (\<lambda>p. \<not>falsifiescs p Cs)"
+                  \<and> anyinternal T (\<lambda>p. \<not>falsifiescs p Cs)" (* Maybe change from fun to abbreviation of definition *)
 
 
 section {* Herbrand's Theorem *}
@@ -1215,7 +1245,7 @@ qed
 (* Det her navn er altså mærkeligt baglæns... *)
 lemma extend_preserves_model:
   assumes f_chain: "list_chain (f :: nat \<Rightarrow> partial_pred_denot)" 
-  assumes n_max: "\<forall>l\<in>C. undiag_fatom l \<le> n"
+  assumes n_max: "\<forall>l\<in>C. nat_from_fatom l \<le> n"
   assumes C_ground: "groundls C"
   assumes C_false: "\<not>evalc HFun (extend f) C"
   shows "falsifiesc (f (Suc n)) C" (* probably - this should be falsifiesg now *)
@@ -1225,7 +1255,7 @@ proof -
   {
   fix l
   assume asm: "l\<in>C"
-  let ?i = "undiag_fatom l"
+  let ?i = "nat_from_fatom l"
   from asm have i_n: "?i \<le> n" using n_max by auto
   then have j_n: "?i \<le> length (f n)" using f_chain chain_length[of f n] by auto
 
@@ -1238,7 +1268,7 @@ proof -
     proof (cases l)
       case (Pos P ts)
       from Pos asm C_ground have ts_ground: "grounds ts" by auto
-      from Pos asm C_ground have undiag_l: "undiag_hatom (hlit_of_flit l) = ?i" using ground_h_undiag by blast
+      from Pos asm C_ground have undiag_l: "nat_from_hatom (hlit_of_flit l) = ?i" using ground_h_undiag by blast
 
       from last have "\<not>?G P (hterms_of_fterms ts)" using evall_grounds[of ts _ ?G P] ts_ground Pos by auto
       then have "f (Suc ?i) ! ?i = False" using Pos undiag_l by auto
@@ -1249,20 +1279,20 @@ proof -
       then have "  
       ?i < length (f (Suc n)) (* j_n *)
       \<and> f (Suc n) ! ?i = False (*last thing *)
-      \<and> diag_fatom ?i = Pos P ts (* by definition of ?i *)
+      \<and> fatom_from_nat ?i = Pos P ts (* by definition of ?i *)
       \<and> ts = ts {\<epsilon>}\<^sub>t\<^sub>s" 
         using 
-          j_n ts_ground diag_undiag_fatom instance_ofts_self f_chain chain_length[of f] Pos empty_subts
+          j_n ts_ground undiag_diag_fatom instance_ofts_self f_chain chain_length[of f] Pos empty_subts
         by auto
       then show ?thesis using Pos by auto
     next
       case (Neg P ts) (* symmetric *)
       from Neg asm C_ground have ts_ground: "grounds ts" by auto
-      from Neg asm C_ground have undiag_l: "undiag_hatom (hlit_of_flit l) = ?i" using ground_h_undiag by blast
+      from Neg asm C_ground have undiag_l: "nat_from_hatom (hlit_of_flit l) = ?i" using ground_h_undiag by blast
 
       from last have "?G P (hterms_of_fterms ts)" using evall_grounds[of ts _ ?G P] C_ground asm Neg by auto
       then have "f (Suc ?i) ! ?i = True" using Neg undiag_neg undiag_l
-         by (metis hatom_of_fatom.simps(1) undiag_fatom_def) 
+         by (metis hatom_of_fatom.simps(1) nat_from_fatom_def) 
       moreover
       have "f (Suc ?i) ! ?i = f (Suc n) ! ?i" 
         using f_chain i_n j_n chain_length[of f] ith_in_extension[of f] by simp
@@ -1270,9 +1300,9 @@ proof -
       then have "  
       ?i < length (f (Suc n)) (* j_n *)
       \<and> f (Suc n) ! ?i = True (*last thing *)
-      \<and> diag_fatom ?i = Pos P ts (* by definition of ?i *)
+      \<and> fatom_from_nat ?i = Pos P ts (* by definition of ?i *)
       \<and> ts = ts {\<epsilon>}\<^sub>t\<^sub>s" 
-        using j_n diag_undiag_fatom instance_ofts_self[of ts] f_chain chain_length[of f] Neg undiag_neg ts_ground empty_subts
+        using j_n undiag_diag_fatom instance_ofts_self[of ts] f_chain chain_length[of f] Neg undiag_neg ts_ground empty_subts
         by auto
       then show ?thesis using Neg by auto
     qed
@@ -1300,7 +1330,7 @@ proof
       let ?\<sigma> = "sub_of_denot E"
       have groundc\<sigma>: "groundls (C {?\<sigma>}\<^sub>l\<^sub>s)" using sub_of_denot_equiv_ground by auto
       from fin_c asm have "finite (C {?\<sigma>}\<^sub>l\<^sub>s)" by auto
-      then obtain n where largest: "\<forall>l \<in> (C {?\<sigma>}\<^sub>l\<^sub>s). undiag_fatom l \<le> n" using maximum by blast
+      then obtain n where largest: "\<forall>l \<in> (C {?\<sigma>}\<^sub>l\<^sub>s). nat_from_fatom l \<le> n" using maximum by blast
       from model_cs asm have "\<not>falsifiesc (f (Suc n)) C" by auto
       then have model_c: "\<not>falsifiesc (f (Suc n)) (C {?\<sigma>}\<^sub>l\<^sub>s)" using partial_equiv_subst by blast 
 
@@ -1336,11 +1366,11 @@ next
 qed
 
 lemma infinity:
-  assumes bij: "\<forall>n :: nat. undiago (diago n) = n"
+  assumes inj: "\<forall>n :: nat. undiago (diago n) = n" 
   assumes all_tree: "\<forall>n :: nat. (diago n) \<in> tree"
   shows "\<not>finite tree"
 proof -
-  from bij all_tree have "\<forall>n. n = undiago (diago n) \<and> (diago n) \<in> tree" by auto
+  from inj all_tree have "\<forall>n. n = undiago (diago n) \<and> (diago n) \<in> tree" by auto
   then have "\<forall>n. \<exists>ds. n = undiago ds \<and> ds \<in> tree" by auto
   then have "undiago ` tree = (UNIV :: nat set)" by auto
   then have "\<not>finite tree"by (metis finite_imageI infinite_UNIV_nat) 
@@ -1354,7 +1384,7 @@ proof (induction l) (* Not really induction *)
   then obtain i where i_p: "  
       i < length ds
       \<and> ds ! i = False
-      \<and> diag_fatom i = Pos P ts" by auto
+      \<and> fatom_from_nat i = Pos P ts" by auto
   moreover
   from i_p have "i < length (ds@d)" by auto
   moreover
@@ -1363,14 +1393,14 @@ proof (induction l) (* Not really induction *)
   have "
       i < length (ds@d)
       \<and> (ds@d) ! i = False
-      \<and> diag_fatom i = Pos P ts" by auto
+      \<and> fatom_from_nat i = Pos P ts" by auto
   then show ?case by auto
 next
   case (Neg P ts) (* very symmetrical *)
   then obtain i where i_p: "  
       i < length ds
       \<and> ds ! i = True
-      \<and> diag_fatom i = Pos P ts" by auto
+      \<and> fatom_from_nat i = Pos P ts" by auto
   moreover
   from i_p have "i < length (ds@d)" by auto
   moreover
@@ -1379,7 +1409,7 @@ next
   have " 
       i < length (ds@d)
       \<and> (ds@d) ! i = True
-      \<and> diag_fatom i = Pos P ts" by auto
+      \<and> fatom_from_nat i = Pos P ts" by auto
   then show ?case by auto
 qed
 
@@ -1447,15 +1477,15 @@ qed
 
 lemma shorter_falsifiesl:
   assumes "falsifiesl (ds@d) l"
-  assumes "undiag_fatom l < length ds"
+  assumes "nat_from_fatom l < length ds"
   shows "falsifiesl ds l"
 proof (cases l)
   case (Pos p ts)
   from assms Pos obtain i where i_p: "i < length (ds@d)
       \<and> (ds@d) ! i = False
-      \<and> diag_fatom i = Pos p ts" by auto
+      \<and> fatom_from_nat i = Pos p ts" by auto
   moreover
-  then have "i = undiag_fatom (Pos p ts)" using undiag_diag_fatom[of i] by auto
+  then have "i = nat_from_fatom (Pos p ts)" using undiag_diag_fatom[of i] by auto
   then have "i < length ds" using assms Pos by auto
   moreover
   then have "ds ! i = False" using i_p by (simp add: nth_append) 
@@ -1464,9 +1494,9 @@ next
   case (Neg p ts)
   from assms Neg obtain i where i_p: "i < length (ds@d)
       \<and> (ds@d) ! i = True
-      \<and> diag_fatom i = Pos p ts" by auto
+      \<and> fatom_from_nat i = Pos p ts" by auto
   moreover
-  then have "i = undiag_fatom (Pos p ts)" using undiag_diag_fatom[of i] by auto
+  then have "i = nat_from_fatom (Pos p ts)" using undiag_diag_fatom[of i] by auto
   then have "i < length ds" using assms Neg undiag_neg by auto
   moreover
   then have "ds ! i = True" using i_p by (simp add: nth_append) 
@@ -1565,7 +1595,7 @@ qed
 section {* Completeness *}
 (* assumes openb: "\<forall>T. \<exists>G. open_branch G T Cs" assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C" shows "\<exists>G. evalcs HFun G Cs" *)
 
-lemma falsifiesg_empty:
+lemma falsifiesg_empty: (* Maybe move to partial interpretation section *)
   assumes "falsifiesg [] C"
   shows "C = {}"
 proof -
@@ -1579,8 +1609,7 @@ proof -
   then show ?thesis by auto
 qed
 
-
-lemma falsifiescs_empty:
+lemma falsifiescs_empty:  (* Maybe move to partial interpretation section *)
   assumes "falsifiesc [] C"
   shows "C = {}"
 proof -
@@ -1589,7 +1618,44 @@ proof -
   then show "C = {}" using C'_p unfolding instance_ofls_def by auto
 qed
 
-(* lemma completeness': \\  assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C" \\ assumes notLeaf: "T \<noteq> Leaf" \\  assumes closed: "closed_tree T Cs" \\   shows "\<exists>T'. \<exists>c\<^sub>1 \<in> Cs. \<exists>c\<^sub>2 \<in> Cs. \<exists>r. \\            lresolvent r C\<^sub>1 C\<^sub>2\\         \<and> (\<forall>G. branch G T' \<longrightarrow> \<not>open_branch G T' (Cs \<union> {r})) \\         \<and> size T' < size T"\\proof -\\(*  from notLeaf obtain b where "branch (b@[Right]) T \<and> branch (b@[Left]) T" using has_Branch_of_Leafs by blast\\  then have "falsifiescs (b@[True]) Cs \<and> falsifiescs (b@[False]) Cs" using Closed by auto\\  then obtain C\<^sub>1 C\<^sub>2 where "C\<^sub>1 \<in> Cs \<and> C\<^sub>2 \<in> Cs \<and> falsifiesc (b@[True]) C\<^sub>1 \<and> falsifiesc (b@[False]) C\<^sub>2" by auto\\ *) oops *)
+lemma complements_do_not_falsify:
+  assumes l1C1': "l1 \<in> C1'"
+  assumes l2C1': "l2 \<in> C1'"
+  assumes comp: "l1 = l2\<^sup>c"
+  assumes falsif: "falsifiesg G C1'"
+  shows "False"
+proof (cases l1)
+  case (Pos p ts)
+  from assms have gr: "groundl l1" using falsifies_ground by auto
+  then have Neg: "l2 = Neg p ts" using comp Pos by (cases l2) auto
+
+  from falsif have "falsifiesl G l1" using l1C1' by auto
+  then have "\<exists>i. G ! i = False \<and> fatom_from_nat i = Pos p ts" using l1C1' Pos by auto 
+  then obtain i where "G ! i = False \<and> fatom_from_nat i = Pos p ts" by auto
+  then have "G ! nat_from_fatom (Pos p ts) = False" using fatom_from_nat_is_nat_from_fatom gr Pos by auto
+  moreover
+  from falsif have "falsifiesl G l2" using l2C1' by auto
+  then have "\<exists>i. G ! i = True \<and> fatom_from_nat i = Pos p ts" using l2C1' Neg by auto 
+  then obtain i where "G ! i = True \<and> fatom_from_nat i = Pos p ts" by auto
+  then have "G ! nat_from_fatom (Pos p ts) = True" using fatom_from_nat_is_nat_from_fatom gr Pos by auto
+  ultimately show ?thesis by auto
+next
+  case (Neg p ts) (* Symmetrical *)
+  from assms have gr: "groundl l1" using falsifies_ground by auto
+  then have Pos: "l2 = Pos p ts" using comp Neg by (cases l2) auto
+
+  from falsif have "falsifiesl G l1" using l1C1' by auto
+  then have "\<exists>i. G ! i = True \<and> fatom_from_nat i = Pos p ts" using l1C1' Neg by auto 
+  then obtain i where "G ! i = True \<and> fatom_from_nat i = Pos p ts" by auto
+  then have "G ! nat_from_fatom (Pos p ts) = True" using fatom_from_nat_is_nat_from_fatom gr Neg by auto
+  moreover
+  from falsif have "falsifiesl G l2" using l2C1' by auto
+  then have "\<exists>i. G ! i = False \<and> fatom_from_nat i = Pos p ts" using l2C1' Pos by auto 
+  then obtain i where "G ! i = False \<and> fatom_from_nat i = Pos p ts" by auto
+  then have "G ! nat_from_fatom (Pos p ts) = False" using fatom_from_nat_is_nat_from_fatom gr Neg by auto
+  ultimately show ?thesis by auto
+qed
+
 
 lemma number_lemma:
   assumes "\<not>(\<exists>i. i < length (B :: bool list) \<and> P(i))"
@@ -1600,15 +1666,15 @@ using assms less_Suc_eq by auto
 
 theorem completeness':
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
-  shows "closed_tree T Cs \<Longrightarrow> \<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
+  shows "closed_tree T Cs \<Longrightarrow> \<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'"
 proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
   fix T::tree
   fix Cs :: "fterm clause set"
-  assume "(\<And>T' Cs. treesize T' < treesize T \<Longrightarrow>
-                    closed_tree T' Cs \<Longrightarrow> \<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs')"
+  assume ih: "(\<And>T' Cs. treesize T' < treesize T \<Longrightarrow>
+                    closed_tree T' Cs \<Longrightarrow> \<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs')"
   assume clo: "closed_tree T Cs"
   
-  {
+  { (* Base case *)
     assume "treesize T = 0"
     then have "T=Leaf" using treesize_Leaf by auto
     then have "anybranch Leaf (\<lambda>b. closed_branch b Leaf Cs)" using clo by auto
@@ -1616,158 +1682,266 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     then have "falsifiescs [] Cs" by auto
     then have "\<exists>C \<in> Cs. falsifiesc [] C" by auto
     then have "\<exists>C \<in> Cs. C={}" using falsifiescs_empty by auto
-    then have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" unfolding resolution_deriv_def by auto
+    then have "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'" unfolding lresolution_deriv_def by auto
   }
   moreover
-  {
+  { (* Induction case *)
     assume "treesize T > 0"
     then have "\<exists>l r. T=Branch l r" by (cases T) auto
+    
+    (* Finding sibling branches and their corresponding clauses *)
     then have "\<exists>B. branch (B@[True]) T \<and> branch (B@[False]) T" using Branch_Leaf_Leaf_Tree by auto
     then have "\<exists>B. internal B T \<and> branch (B@[True]) T \<and> branch (B@[False]) T" 
       using internal_branch[of _ "[]" _ T] by auto
     then obtain B where b_p: "internal B T \<and> branch (B@[True]) T \<and> branch (B@[False]) T" by auto
     let ?B1 = "B@[True]"
-    let ?B2 = "B@[False]"                                       
+    let ?B2 = "B@[False]"            
 
     have "\<exists>C1o \<in> Cs. falsifiesc ?B1 C1o" using b_p clo by auto 
     then obtain C1o where C1o_p: "C1o \<in> Cs \<and> falsifiesc ?B1 C1o" by auto
 
-    have "\<exists>C2o \<in> Cs. falsifiesc ?B2 C2o" using b_p clo by auto (* "Re-formulation" of below line *)
+    have "\<exists>C2o \<in> Cs. falsifiesc ?B2 C2o" using b_p clo by auto
     then obtain C2o where C2o_p: "C2o \<in> Cs \<and> falsifiesc ?B2 C2o" by auto
 
+    (* Standardizing the clauses apart *)
     let ?C1 = "fst (std_apart C1o C2o)"
     let ?C2 = "snd (std_apart C1o C2o)"
     have C1_p: "falsifiesc ?B1 ?C1" using std_apart_falsifies1[of C1o C2o ?C1 ?C2 ?B1] C1o_p by auto
     have C2_p: "falsifiesc ?B2 ?C2" using std_apart_falsifies2[of C1o C2o ?C1 ?C2 ?B2] C2o_p by auto
 
-
+    (* We go down to the ground world: *)
+    (* Finding the falsifying ground instance C1' of C1, and proving properties about it *)
     from C1_p have "\<exists>C1'. groundls C1' \<and> instance_ofls C1' ?C1 \<and> falsifiesg ?B1 C1'" 
       using falsifiesc_ground[of ?C1 ?B1] by metis
+    (* C1' is falsified by B1: *)
     then obtain C1' where C1'_p: "groundls C1' \<and> instance_ofls C1' ?C1 \<and> falsifiesg ?B1 C1'" by auto
-    (* We went down to the ground world *)
-    then have "\<forall>l \<in> C1'. falsifiesl (B@[True]) l" by auto
-    moreover 
+
+    then have l_B1: "\<forall>l \<in> C1'. falsifiesl (B@[True]) l" by auto
     have "\<not>falsifiesc B C1o" using C1o_p b_p clo by auto
     then have "\<not>falsifiesc B ?C1" using std_apart_falsifies1_sym [of C1o C2o ?C1 ?C2 B] by auto
-    then have "\<not> falsifiesg B C1'" using C1'_p by auto
-    then have "\<not>(\<forall>l \<in> C1'. falsifiesl B l)" by auto
-    ultimately have "\<exists>l \<in> C1'. falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
+    (* C1' is not falsified by B *)
+    then have "\<not>falsifiesg B C1'" using C1'_p by auto
+    then have l_B: "\<not>(\<forall>l \<in> C1'. falsifiesl B l)" by auto
+
+    from l_B1 l_B have "\<exists>l \<in> C1'. falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
+
+    (* C1' contains a literal l1 that is falsified by B1, but not B *)
     then obtain l1 where l1_p: "l1 \<in> C1' \<and> falsifiesl (B@[True]) l1 \<and> \<not>(falsifiesl B l1)" by auto
+
     then have "\<not>(\<exists>i.  
       i < length B
       \<and> B ! i = (\<not>sign l1)
-      \<and> diag_fatom i = Pos (get_pred l1) (get_terms l1))" using instance_ofts_self by (induction l1) auto
+      \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1))" by (induction l1) auto
     then have "\<not>(\<exists>i.  
       i < length B
       \<and> (B@[True]) ! i = (\<not>sign l1)
-      \<and> diag_fatom i = Pos (get_pred l1) (get_terms l1))" by (metis nth_append) 
-    moreover 
-    have "groundl l1" using C1'_p l1_p by auto
+      \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1))" by (metis nth_append)
+    moreover
+    (* l1 is, of course, ground *)
+    have ground_l1: "groundl l1" using C1'_p l1_p by auto
     then have "\<exists>i.  
       i < length (B@[True])
       \<and> (B@[True]) ! i = (\<not>sign l1)
-      \<and> diag_fatom i = Pos (get_pred l1) (get_terms l1)" using ground_falsifies l1_p by blast
+      \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1)" using ground_falsifies l1_p by blast
     ultimately
-    have ggg: "(B@[True]) ! (length B) = (\<not>sign l1) \<and> diag_fatom (length B) = Pos (get_pred l1) (get_terms l1)"
-      using number_lemma[of B "\<lambda>i. (B @ [True]) ! i = (\<not> sign l1) \<and> diag_fatom i = Pos (get_pred l1) (get_terms l1)"] by auto
-    then have l1_sign: "sign l1 = False" by auto
-    from ggg have "undiag_fatom (Pos (get_pred l1) (get_terms l1)) = length B" using undiag_diag_fatom by metis
-    then have l1_no: "undiag_fatom l1 = length B" using undiag_neg[of "get_pred l1" "get_terms l1"] l1_sign by auto
-    (* Prove: Additionally, all the other literals in C'1 must be falsified by B, since they are falsified by B1, but not l'1. *)
+    have l1_sign_no: "(B@[True]) ! (length B) = (\<not>sign l1) \<and> fatom_from_nat (length B) = Pos (get_pred l1) (get_terms l1)"
+      using number_lemma[of B "\<lambda>i. (B @ [True]) ! i = (\<not> sign l1) \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1)"] by auto
+
+    (* l1 is negative *)
+    from l1_sign_no have l1_sign: "sign l1 = False" by auto
+    from l1_sign_no have "nat_from_fatom (Pos (get_pred l1) (get_terms l1)) = length B" using undiag_diag_fatom by metis
+    (* l1 is literal no (length B) *)
+    then have l1_no: "nat_from_fatom l1 = length B" using undiag_neg[of "get_pred l1" "get_terms l1"] l1_sign undiag_diag_fatom by auto
+
+    (* All the other literals in C1' must be falsified by B, since they are falsified by B1, but not l1. *)
     have B_C1'l1: "falsifiesg B (C1' - {l1})"
       proof
         fix lo
         assume other: "lo \<in> C1' - {l1}"
+        (* They are, of course, also ground *)
+        have ground_lo: "groundl lo" using C1'_p other by auto
         from C1'_p have "falsifiesg ?B1 (C1' - {l1})" by auto
+        (* And indeed, falsified by B1 *)
         then have loB1: "falsifiesl ?B1 lo" using other by auto
+        have l1_lo: "l1\<noteq>lo" using other by auto
+        (* The are not the complement of l1, since then the clause could not be falsified *)
+        have l1c_lo: "lo \<noteq> l1\<^sup>c" using C1'_p l1_p other complements_do_not_falsify[of lo C1' l1 ?B1] by auto
+
+        from l1_lo l1c_lo have "get_pred l1 \<noteq> get_pred lo \<or> get_terms l1 \<noteq> get_terms lo" using literal.expand sign_comp by blast
+        then have "nat_from_fatom lo \<noteq> nat_from_fatom l1" using nat_from_fatom_inj_mod_sign ground_lo ground_l1 by metis
+        (* Therefore they have different numbers *)
+        then have "nat_from_fatom lo \<noteq> length B" using l1_no by auto
         moreover
-        {
-          have "l1\<noteq>lo" using other by auto
-          then have "undiag_fatom l1 \<noteq> undiag_fatom lo" sorry
-          then have "undiag_fatom lo \<noteq> length B" using l1_no by auto
-          moreover
-          {
-            obtain i where "diag_fatom i = Pos (get_pred lo) (get_terms lo) \<and> i < length (B @ [True])" using loB1 by (cases lo) auto
-            then have "undiag_fatom (diag_fatom i) = undiag_fatom (Pos (get_pred lo) (get_terms lo)) \<and> i < length (B @ [True])" by auto
-            then have "undiag_fatom (Pos (get_pred lo) (get_terms lo)) < length (B @ [True])" using undiag_diag_fatom by auto
-            then have "undiag_fatom lo < length (B @ [True])" using undiag_neg by (cases lo) auto
-            then have "undiag_fatom lo < length B + 1" by auto
-          }
-          ultimately have "undiag_fatom lo < length B" using loB1 by auto
-        }
-        ultimately show "falsifiesl B lo" using shorter_falsifiesl by blast
+        obtain i where "fatom_from_nat i = Pos (get_pred lo) (get_terms lo) \<and> i < length (B @ [True])" using loB1 by (cases lo) auto
+        then have "nat_from_fatom (fatom_from_nat i) = nat_from_fatom (Pos (get_pred lo) (get_terms lo)) \<and> i < length (B @ [True])" by auto
+        (* And they have numbers in the range of B1, i.e. less than B+1*)
+        then have "nat_from_fatom lo < length B + 1" using undiag_neg undiag_diag_fatom by (cases lo) auto
+        ultimately 
+        (* So their numbers are in the range of B *)
+        have "nat_from_fatom lo < length B" by auto
+        (* So we did not need the last index of B1 to falsify them, i.e. B suffices *)
+        then show "falsifiesl B lo" using loB1 shorter_falsifiesl by blast
       qed
 
-
+    (* We do the same exercise for C2, C2', B2, l2 *)
     from C2_p have "\<exists>C2'. groundls C2' \<and> instance_ofls C2' ?C2 \<and> falsifiesg ?B2 C2'" 
       using falsifiesc_ground[of ?C2 ?B2] by metis
     then obtain C2' where C2'_p: "groundls C2' \<and> instance_ofls C2' ?C2 \<and> falsifiesg ?B2 C2'" by auto
-    (* We went down to the ground world *)
-    then have "\<forall>l \<in> C2'. falsifiesl (B@[False]) l" by auto
-    moreover 
+
+    then have l_B2: "\<forall>l \<in> C2'. falsifiesl (B@[False]) l" by auto
     have "\<not>falsifiesc B C2o" using C2o_p b_p clo by auto
     then have "\<not>falsifiesc B ?C2" using std_apart_falsifies2_sym[of C1o C2o ?C1 ?C2 B] by auto
-    then have "\<not> falsifiesg B C2'" using C2'_p by auto
-    then have "\<not>(\<forall>l \<in> C2'. falsifiesl B l)" by auto
-    ultimately have "\<exists>l \<in> C2'. falsifiesl (B@[False]) l \<and> \<not>(falsifiesl B l)" by auto
+    then have "\<not>falsifiesg B C2'" using C2'_p by auto
+    then have l_B: "\<not>(\<forall>l \<in> C2'. falsifiesl B l)" by auto (* I already had something called l_B... I should give it a new name *)
+    
+    from l_B2 l_B have "\<exists>l \<in> C2'. falsifiesl (B@[False]) l \<and> \<not>(falsifiesl B l)" by auto
     then obtain l2 where l2_p: "l2 \<in> C2' \<and> falsifiesl (B@[False]) l2 \<and> \<not>(falsifiesl B l2)" by auto
     
-    have l2_no: "undiag_fatom l2 = length B" sorry
-    have l2_sign: "sign l2 = True" sorry
-    have B_C2'l2:"falsifiesg B (C2' - {l2})" sorry
+    (* We repeat the exercise for C2, B2, C2', l2 *)
+    (* C2' contains a literal l2 that is falsified by B2, but not B *)
+    then obtain l2 where l2_p: "l2 \<in> C2' \<and> falsifiesl (B@[False]) l2 \<and> \<not>(falsifiesl B l2)" by auto
 
-    have "falsifiesg B ((C1' - {l1}) \<union> (C2' - {l2}))" using B_C1'l1 B_C2'l2 by cases auto
-    then have "falsifiesg B (lresolution C1' C2' {l1} {l2} \<epsilon>)" unfolding lresolution_def empty_subls by auto
-
-    have "applicable C1' C2' {l1} {l2} \<epsilon>"  sorry
-
-
-    (* Challange: standardize C1 and C2 apart, you need to do this very early *)
-    have "\<exists>L1 L2 \<tau>. applicable C1 C2 L1 L2 \<tau>  \<and> instance_ofls (lresolution C1' C2' {l1} {l2} \<epsilon>) (lresolution C1 C2 L1 L2 \<tau>)" 
-      using lifting[of C1 C2 C1' C2' "{l1}" "{l2}" \<epsilon>] sorry
-
-
-
-    (*
-    from C1_p have "\<forall>l \<in> C1. falsifiesl (B@[True]) l" by auto
-    moreover have "\<not>(\<forall>l \<in> C1. falsifiesl B l)" using C1_p b_p clo by auto
-    ultimately have "\<exists>l \<in> C1. falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
-    then obtain l where l_p: "l \<in> C1 \<and> falsifiesl (B@[True]) l \<and> \<not>(falsifiesl B l)" by auto
-    then have "\<exists>l'. instance_ofl l' l \<and> falsifiesl (B@[True]) l' \<and> groundl l'" using falsifies_ground_sub by blast
-    then obtain l' where l'_p: "instance_ofl l' l \<and> falsifiesl (B@[True]) l' \<and> groundl l'" by auto
-    then have "\<not>(falsifiesl B l')" using l_p partial_equiv_subst' unfolding instance_ofl_def by blast
     then have "\<not>(\<exists>i.  
       i < length B
-      \<and> B ! i = (\<not>sign l')
-      \<and> diag_fatom i = Pos (get_pred l') (get_terms l'))" using instance_ofts_self by (induction l') auto
+      \<and> B ! i = (\<not>sign l2)
+      \<and> fatom_from_nat i = Pos (get_pred l2) (get_terms l2))" by (induction l2) auto
     then have "\<not>(\<exists>i.  
       i < length B
-      \<and> (B@[True]) ! i = (\<not>sign l')
-      \<and> diag_fatom i = Pos (get_pred l') (get_terms l'))" by (metis nth_append) 
-    moreover 
-    have "\<exists>i.  
-      i < length (B@[True])
-      \<and> (B@[True]) ! i = (\<not>sign l')
-      \<and> diag_fatom i = Pos (get_pred l') (get_terms l')" using ground_falsifies l'_p by blast
+      \<and> (B@[False]) ! i = (\<not>sign l2)
+      \<and> fatom_from_nat i = Pos (get_pred l2) (get_terms l2))" by (metis nth_append)
+    moreover
+    (* l2 is, of course, ground *)
+    have ground_l2: "groundl l2" using C2'_p l2_p by auto
+    then have "\<exists>i.  
+      i < length (B@[False])
+      \<and> (B@[False]) ! i = (\<not>sign l2)
+      \<and> fatom_from_nat i = Pos (get_pred l2) (get_terms l2)" using ground_falsifies l2_p by blast
     ultimately
-    have ggg: "(B@[True]) ! (length B) = (\<not>sign l') \<and> diag_fatom (length B) = Pos (get_pred l') (get_terms l')"
-      using number_lemma[of B "\<lambda>i. (B @ [True]) ! i = (\<not> sign l') \<and> diag_fatom i = Pos (get_pred l') (get_terms l')"] by auto
-    then have sss: "sign l' = False" by auto
-    from ggg have "undiag_fatom (Pos (get_pred l') (get_terms l')) = length B" using undiag_diag_fatom by metis
-    then have "undiag_fatom l' = length B" using undiag_neg[of "get_pred l'" "get_terms l'"] sss by auto
-    (* Prove: Additionally, all the other literals in C'1 must be falsified by B, since they are falsified by B1, but not l'1. *)
-    *)
+    have l2_sign_no: "(B@[False]) ! (length B) = (\<not>sign l2) \<and> fatom_from_nat (length B) = Pos (get_pred l2) (get_terms l2)"
+      using number_lemma[of B "\<lambda>i. (B @ [False]) ! i = (\<not> sign l2) \<and> fatom_from_nat i = Pos (get_pred l2) (get_terms l2)"] by auto
 
+    (* l2 is positive *)
+    from l2_sign_no have l2_sign: "sign l2 = True" by auto
+    from l2_sign_no have "nat_from_fatom (Pos (get_pred l2) (get_terms l2)) = length B" using undiag_diag_fatom by metis
+    (* l2 is literal no (length B) *)
+    then have l2_no: "nat_from_fatom l2 = length B" using undiag_neg[of "get_pred l2" "get_terms l2"] l2_sign undiag_diag_fatom by auto
 
-    have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" sorry
+    (* All the other literals in C2' must be falsified by B, since they are falsified by B2, but not l2. *)
+    have B_C2'l2: "falsifiesg B (C2' - {l2})"
+      proof
+        fix lo
+        assume other: "lo \<in> C2' - {l2}"
+        (* They are, of course, also ground *)
+        have ground_lo: "groundl lo" using C2'_p other by auto
+        from C2'_p have "falsifiesg ?B2 (C2' - {l2})" by auto
+        (* And indeed, falsified by B2 *)
+        then have loB2: "falsifiesl ?B2 lo" using other by auto
+        have l2_lo: "l2\<noteq>lo" using other by auto
+        (* The are not the complement of l2, since then the clause could not be falsified *)
+        have l2c_lo: "lo \<noteq> l2\<^sup>c" using C2'_p l2_p other complements_do_not_falsify[of lo C2' l2 ?B2] by auto
+
+        from l2_lo l2c_lo have "get_pred l2 \<noteq> get_pred lo \<or> get_terms l2 \<noteq> get_terms lo" using literal.expand sign_comp by blast
+        then have "nat_from_fatom lo \<noteq> nat_from_fatom l2" using nat_from_fatom_inj_mod_sign ground_lo ground_l2 by metis
+        (* Therefore they have different numbers *)
+        then have "nat_from_fatom lo \<noteq> length B" using l2_no by auto
+        moreover
+        obtain i where "fatom_from_nat i = Pos (get_pred lo) (get_terms lo) \<and> i < length (B @ [True])" using loB2 by (cases lo) auto
+        then have "nat_from_fatom (fatom_from_nat i) = nat_from_fatom (Pos (get_pred lo) (get_terms lo)) \<and> i < length (B @ [True])" by auto
+        (* And they have numbers in the range of B2, i.e. less than B+2*)
+        then have "nat_from_fatom lo < length B + 1" using undiag_neg undiag_diag_fatom by (cases lo) auto
+        ultimately 
+        (* So their numbers are in the range of B *)
+        have "nat_from_fatom lo < length B" by auto
+        (* So we did not need the last index of B2 to falsify them, i.e. B suffices *)
+        then show "falsifiesl B lo" using loB2 shorter_falsifiesl by blast
+      qed
+
+    (* Proving some properties about C1' and C2', l1 and l2, as well as the resolvent of C1' and C2' *)
+    have l2cisl1: "l2\<^sup>c = l1" (* Could perhaps be a lemma *)
+      proof -
+        from l1_no l2_no ground_l1 ground_l2 have "get_pred l1 = get_pred l2" using nat_from_fatom_inj_mod_sign by auto
+        moreover
+        from l1_no l2_no ground_l1 ground_l2 have "get_terms l1 = get_terms l2" using nat_from_fatom_inj_mod_sign by auto
+        ultimately show "l2\<^sup>c = l1" using l1_sign l2_sign using sign_comp by metis 
+      qed
+    have "falsifiesg B ((C1' - {l1}) \<union> (C2' - {l2}))" using B_C1'l1 B_C2'l2 by cases auto
+    then have falsifies_ground_C: "falsifiesg B (lresolution C1' C2' {l1} {l2} \<epsilon>)" unfolding lresolution_def empty_subls by auto
+    have "applicable C1' C2' {l1} {l2} \<epsilon>" unfolding applicable_def
+      using l1_p l2_p C1'_p groundls_varsls l2cisl1 empty_comp2 unfolding mguls_def unifierls_def by auto
+    (* Lifting to get a resolvent of C1 and C2 *)
+    then have "\<exists>L1 L2 \<tau>. applicable ?C1 ?C2 L1 L2 \<tau>  \<and> instance_ofls (lresolution C1' C2' {l1} {l2} \<epsilon>) (lresolution ?C1 ?C2 L1 L2 \<tau>)" 
+      using std_apart_apart C1'_p C2'_p lifting[of ?C1 ?C2 C1' C2' "{l1}" "{l2}" \<epsilon>] by auto
+    then obtain L1 L2 \<tau> where L1L2\<tau>_p: "applicable ?C1 ?C2 L1 L2 \<tau>  \<and> instance_ofls (lresolution C1' C2' {l1} {l2} \<epsilon>) (lresolution ?C1 ?C2 L1 L2 \<tau>)" by auto
+
+    (* Defining the clause to be derived, the new clausal form and the new tree *)
+    (* We name the resolvent C *)
+    obtain C where C_p: "C=lresolution ?C1 ?C2 L1 L2 \<tau>" by auto
+    obtain CsNext where CsNext_p: "CsNext = Cs \<union> {?C1, ?C2, C}" by auto
+    obtain T'' where T''_p: "T'' = delete B T" by auto (* Here we delete the two branch children B1 and B2 of B *)
+    
+    (* Our new clause is falsified by the branch B of our new tree *)
+    have falsifies_C: "falsifiesc B C" using C_p L1L2\<tau>_p falsifies_ground_C by auto
+
+    have T''_smaller: "treesize T'' < treesize T" using treezise_delete T''_p b_p by auto
+    have T''_bran: "anybranch T'' (\<lambda>b. closed_branch b T'' CsNext)"
+      proof (rule allI;rule impI)
+        fix b
+        assume br: "branch b T''"
+        from br have "b = B \<or> branch b T" using branch_delete T''_p by auto
+        then show "closed_branch b T'' CsNext"
+          proof
+            assume "b=B"
+            then show "closed_branch b T'' CsNext" using falsifies_C br CsNext_p by auto
+          next
+            assume "branch b T"
+            then show "closed_branch b T'' CsNext" using clo br T''_p CsNext_p by auto
+          qed
+      qed
+
+    (* We cut the tree even smaller to ensure only the branches are falsified, i.e. it is a closed tree *)
+    obtain T' where T'_p: "T' = cutoff (\<lambda>G. falsifiescs G CsNext) [] T''" by auto
+    have T'_smaller: "treesize T' < treesize T" using treesize_cutoff[of "\<lambda>G. falsifiescs G CsNext" "[]" T''] T''_smaller unfolding T'_p by auto
+
+    have T''_bran2: "anybranch T'' (\<lambda>b. falsifiescs b CsNext)" using T''_bran by auto (* replace T''_bran with this maybe? *)
+    then have "anybranch T' (\<lambda>b. falsifiescs b CsNext)" using cutoff_branch[of T'' "\<lambda>b. falsifiescs b CsNext"] T'_p by auto
+    then have T'_bran: "anybranch T' (\<lambda>b. closed_branch b T' CsNext)" by auto
+    have T'_intr: "anyinternal T' (\<lambda>p. \<not>falsifiescs p CsNext)" using T'_p cutoff_internal[of T'' "\<lambda>b. falsifiescs b CsNext"] T''_bran2 by blast
+    have T'_closed: "closed_tree T' CsNext" using T'_bran T'_intr by auto
+
+    (* By induction hypothesis we get a resolution derivation of {} from our new clausal form *)
+    from T'_smaller T'_closed have "\<exists>Cs''. lresolution_deriv CsNext Cs'' \<and> {} \<in> Cs''" using ih by blast
+    then obtain Cs'' where Cs''_p: "lresolution_deriv CsNext Cs'' \<and> {} \<in> Cs''" by auto
+    moreover
+    { (* Proving that we can actually derive the new clausal form *)
+      have "lresolution_step Cs (Cs \<union> {?C1})" using std_apart_renames1[of C1o C2o] lresolution_step.intros(2)[of C1o Cs] C1o_p by (metis Un_insert_right prod.collapse)
+      moreover
+      have "lresolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1} \<union> {?C2})" using std_apart_renames2[of C1o C2o] lresolution_step.intros(2)[of C2o Cs] C2o_p by (metis Un_insert_right insert_iff lstandardize_apart prod.collapse sup_bot.right_neutral)
+      then have "lresolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1,?C2})" by (metis insert_is_Un sup_assoc)
+      moreover
+      then have "lresolution_step (Cs \<union> {?C1,?C2}) (Cs \<union> {?C1,?C2} \<union> {C})" 
+        using L1L2\<tau>_p lresolution_rule[of ?C1 "Cs \<union> {?C1,?C2}" ?C2 L1 L2 \<tau> ] using C_p by auto
+      then have "lresolution_step (Cs \<union> {?C1,?C2}) CsNext"by (metis CsNext_p insert_is_Un sup_assoc) 
+      ultimately
+      have "lresolution_deriv Cs CsNext" using star.intros[of lresolution_step] unfolding lresolution_deriv_def by auto
+    }
+    (* Combining the two derivations, we get the desired derivation from Cs of {} *)
+    ultimately have "lresolution_deriv Cs Cs''" using star_trans unfolding lresolution_deriv_def by auto
+    then have "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'" using Cs''_p by auto
   }
-  ultimately show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" by auto
-oops
+  ultimately show "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'" by auto
+qed
 
 theorem completeness:
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
-  assumes unsat: "\<forall>(F::fun_sym \<Rightarrow> hterm list \<Rightarrow> hterm) G. \<not>evalcs F G Cs"
-  shows "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
-oops
+  assumes unsat: "\<forall>(F::hterm fun_denot) (G::hterm pred_denot) . \<not>evalcs F G Cs"
+  shows "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'"
+proof -
+  from unsat have "\<forall>(G::hterm pred_denot) . \<not>evalcs HFun G Cs" by auto
+  then obtain T where "closed_tree T Cs" using herbrand assms by blast
+  then show "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'" using completeness' assms by auto
+qed
+
+(* To get rid of the type - something like - find a countable subset using CHOISE *)
 
 end
+
