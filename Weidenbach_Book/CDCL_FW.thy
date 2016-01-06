@@ -3319,8 +3319,8 @@ lemma full_cdcl_fw_s_normal_forms':
   assumes full: "full0 cdcl_fw_s (init_state N) S'"
   and no_d: "distinct_mset_set N"
   and finite[simp]: "finite N"
-  shows "(conflicting S' = C_Clause {#} \<and> unsatisfiable (init_clss S'))
-    \<or> (conflicting S' = C_True \<and> trail S' \<Turnstile>as init_clss S' \<and> satisfiable (init_clss S'))"
+  shows "(conflicting S' = C_Clause {#} \<and> unsatisfiable N)
+    \<or> (conflicting S' = C_True \<and> trail S' \<Turnstile>as N \<and> satisfiable N)"
 proof -
   have "cdcl_all_inv_mes (init_state N)"
     using no_d unfolding cdcl_all_inv_mes_def by auto

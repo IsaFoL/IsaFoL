@@ -4248,9 +4248,11 @@ lemma full_cdcl_s_normal_forms':
   assumes full: "full0 cdcl_s (init_state N) S'"
   and no_d: "distinct_mset_set N"
   and finite[simp]: "finite N"
-  shows "(conflicting S' = C_Clause {#} \<and> unsatisfiable (init_clss S'))
-    \<or> (conflicting S' = C_True \<and> trail S' \<Turnstile>as init_clss S' \<and> satisfiable (init_clss S'))"
+  shows "(conflicting S' = C_Clause {#} \<and> unsatisfiable N)
+    \<or> (conflicting S' = C_True \<and> trail S' \<Turnstile>as N \<and> satisfiable N)"
 proof -
+  have N: "init_clss S' = N"
+    using full unfolding full0_def by (auto dest: rtranclp_cdcl_s_no_more_init_clss)
   consider
       (confl) "conflicting S' = C_Clause {#}" and "unsatisfiable (init_clss S')"
     | (sat) "conflicting S' = C_True" and "trail S' \<Turnstile>as init_clss S'"
@@ -4258,7 +4260,7 @@ proof -
   thus ?thesis
     proof cases
       case confl
-      thus ?thesis by auto
+      thus ?thesis by (auto simp: N)
     next
       case sat
       have "cdcl_M_level_inv (init_state N)" by auto
@@ -4268,7 +4270,7 @@ proof -
       moreover have "lits_of (trail S') \<Turnstile>s init_clss S'"
         using sat(2) by (auto simp add: true_annots_def true_annot_def true_clss_def)
       ultimately have "satisfiable (init_clss S')" by simp
-      thus ?thesis using sat by blast
+      thus ?thesis using sat unfolding N by blast
     qed
 qed
 end
