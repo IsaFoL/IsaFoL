@@ -3345,20 +3345,20 @@ qed
 subsubsection \<open>No conflict with only variables of level less than backtrack level\<close>
 text \<open>This invariant is stronger than the previous argument in the sense that it is a property about
   all possible conflicts.\<close>
-abbreviation "no_littler_confl (S::'st) \<equiv>
+abbreviation "no_smaller_confl (S::'st) \<equiv>
   (\<forall>M K i M' D. M' @ Marked K i # M = trail S \<longrightarrow> D \<in> clauses S
     \<longrightarrow> \<not>M \<Turnstile>as CNot D)"
 
-lemma "finite N \<Longrightarrow> no_littler_confl (init_state N)" by auto
+lemma "finite N \<Longrightarrow> no_smaller_confl (init_state N)" by auto
 
-lemma cdcl_o_no_littler_confl_inv:
+lemma cdcl_o_no_smaller_confl_inv:
   fixes S S' :: "'st"
   assumes "cdcl_o S S'"
   and "conflict_is_false_with_level S"
-  and "no_littler_confl S"
+  and "no_smaller_confl S"
   and "cdcl_M_level_inv S"
   and "no_clause_is_false S"
-  shows "no_littler_confl S'"
+  shows "no_smaller_confl S'"
   using assms
 proof (induct rule: cdcl_o_induct)
   case (decide L T) note confl = this(1) and T =this(4) and no_f = this(8) and IH = this(6) and
@@ -3431,16 +3431,16 @@ next
     qed
 qed
 
-lemma conflict_no_littler_confl_inv:
+lemma conflict_no_smaller_confl_inv:
   assumes "conflict S S'"
-  and "no_littler_confl S"
-  shows "no_littler_confl S'"
+  and "no_smaller_confl S"
+  shows "no_smaller_confl S'"
   using assms by fastforce
 
-lemma propagate_no_littler_confl_inv:
+lemma propagate_no_smaller_confl_inv:
   assumes propagate: "propagate S S'"
-  and n_l: "no_littler_confl S"
-  shows "no_littler_confl S'"
+  and n_l: "no_smaller_confl S"
+  shows "no_smaller_confl S'"
 proof (intro allI impI)
   fix M' K i M'' D
   assume M': "M'' @ Marked K i # M' = trail S'"
@@ -3459,75 +3459,75 @@ proof (intro allI impI)
   thus "\<not>M' \<Turnstile>as CNot D" by auto
 qed
 
-lemma cdcl_cp_no_littler_confl_inv:
+lemma cdcl_cp_no_smaller_confl_inv:
   assumes propagate: "cdcl_cp S S'"
-  and n_l: "no_littler_confl S"
-  shows "no_littler_confl S'"
+  and n_l: "no_smaller_confl S"
+  shows "no_smaller_confl S'"
   using assms
 proof (induct rule: cdcl_cp.induct)
   case (conflict' S S')
-  thus ?case using conflict_no_littler_confl_inv[of S S'] by blast
+  thus ?case using conflict_no_smaller_confl_inv[of S S'] by blast
 next
   case (propagate' S S')
-  thus ?case using propagate_no_littler_confl_inv[of S S'] by fastforce
+  thus ?case using propagate_no_smaller_confl_inv[of S S'] by fastforce
 qed
 
-lemma rtrancp_cdcl_cp_no_littler_confl_inv:
+lemma rtrancp_cdcl_cp_no_smaller_confl_inv:
   assumes propagate: "cdcl_cp\<^sup>*\<^sup>* S S'"
-  and n_l: "no_littler_confl S"
-  shows "no_littler_confl S'"
+  and n_l: "no_smaller_confl S"
+  shows "no_smaller_confl S'"
   using assms
 proof (induct rule: rtranclp.induct)
   case rtrancl_refl
   thus ?case by simp
 next
   case (rtrancl_into_rtrancl S S' S'')
-  thus ?case using cdcl_cp_no_littler_confl_inv[of S' S''] by fast
+  thus ?case using cdcl_cp_no_smaller_confl_inv[of S' S''] by fast
 qed
 
-lemma trancp_cdcl_cp_no_littler_confl_inv:
+lemma trancp_cdcl_cp_no_smaller_confl_inv:
   assumes propagate: "cdcl_cp\<^sup>+\<^sup>+ S S'"
-  and n_l: "no_littler_confl S"
-  shows "no_littler_confl S'"
+  and n_l: "no_smaller_confl S"
+  shows "no_smaller_confl S'"
   using assms
 proof (induct rule: tranclp.induct)
   case (r_into_trancl S S')
-  thus ?case using cdcl_cp_no_littler_confl_inv[of S S'] by blast
+  thus ?case using cdcl_cp_no_smaller_confl_inv[of S S'] by blast
 next
   case (trancl_into_trancl S S' S'')
-  thus ?case using cdcl_cp_no_littler_confl_inv[of S' S''] by fast
+  thus ?case using cdcl_cp_no_smaller_confl_inv[of S' S''] by fast
 qed
 
-lemma full0_cdcl_cp_no_littler_confl_inv:
+lemma full0_cdcl_cp_no_smaller_confl_inv:
   assumes "full0 cdcl_cp S S'"
-  and n_l: "no_littler_confl S"
-  shows "no_littler_confl S'"
+  and n_l: "no_smaller_confl S"
+  shows "no_smaller_confl S'"
   using assms unfolding full0_def
-  using rtrancp_cdcl_cp_no_littler_confl_inv[of S S'] by blast
+  using rtrancp_cdcl_cp_no_smaller_confl_inv[of S S'] by blast
 
-lemma full_cdcl_cp_no_littler_confl_inv:
+lemma full_cdcl_cp_no_smaller_confl_inv:
   assumes "full cdcl_cp S S'"
-  and n_l: "no_littler_confl S"
-  shows "no_littler_confl S'"
+  and n_l: "no_smaller_confl S"
+  shows "no_smaller_confl S'"
   using assms unfolding full_def
-  using trancp_cdcl_cp_no_littler_confl_inv[of S S'] by blast
+  using trancp_cdcl_cp_no_smaller_confl_inv[of S S'] by blast
 
-lemma cdcl_s_no_littler_confl_inv:
+lemma cdcl_s_no_smaller_confl_inv:
   assumes "cdcl_s S S'"
-  and n_l: "no_littler_confl S"
+  and n_l: "no_smaller_confl S"
   and "conflict_is_false_with_level S"
   and "cdcl_M_level_inv S"
-  shows "no_littler_confl S'"
+  shows "no_smaller_confl S'"
   using assms
 proof (induct rule: cdcl_s.induct)
   case (conflict' S S')
-  thus ?case using full_cdcl_cp_no_littler_confl_inv[of S S'] by blast
+  thus ?case using full_cdcl_cp_no_smaller_confl_inv[of S S'] by blast
 next
   case (other' S S' S'')
-  have "no_littler_confl S'"
-    using cdcl_o_no_littler_confl_inv[OF other'.hyps(1) other'.prems(2,1,3)]
+  have "no_smaller_confl S'"
+    using cdcl_o_no_smaller_confl_inv[OF other'.hyps(1) other'.prems(2,1,3)]
     not_conflict_not_any_negated_init_clss other'.hyps(2) by blast
-  thus ?case using full0_cdcl_cp_no_littler_confl_inv[of S' S''] other'.hyps by blast
+  thus ?case using full0_cdcl_cp_no_smaller_confl_inv[of S' S''] other'.hyps by blast
 qed
 
 
@@ -3551,7 +3551,7 @@ lemma cdcl_o_conflict_is_no_clause_is_false:
   and "conflict_is_false_with_level S"
   and "no_clause_is_false S"
   and "cdcl_M_level_inv S"
-  and "no_littler_confl S"
+  and "no_smaller_confl S"
   shows "no_clause_is_false S'
     \<or> (conflicting S' = C_True
         \<longrightarrow> (\<forall>D \<in> clauses S'. trail S' \<Turnstile>as CNot D
@@ -3711,20 +3711,20 @@ proof -
     using propa conf by blast
 qed
 
-lemma cdcl_s_no_littler_confl_inv_ex_lit_of_max_level:
+lemma cdcl_s_no_smaller_confl_inv_ex_lit_of_max_level:
   assumes "cdcl_s S S'"
-  and n_l: "no_littler_confl S"
+  and n_l: "no_smaller_confl S"
   and "conflict_is_false_with_level S"
   and "cdcl_M_level_inv S"
   and "no_clause_is_false S"
   and "distinct_cdcl_state S"
   and "cdcl_conflicting S"
-  shows "no_littler_confl S' \<and> conflict_is_false_with_level S'"
+  shows "no_smaller_confl S' \<and> conflict_is_false_with_level S'"
   using assms
 proof (induct rule: cdcl_s.induct)
   case (conflict' S S')
-  have "no_littler_confl S'"
-    using conflict'.hyps conflict'.prems(1) full_cdcl_cp_no_littler_confl_inv by blast
+  have "no_smaller_confl S'"
+    using conflict'.hyps conflict'.prems(1) full_cdcl_cp_no_smaller_confl_inv by blast
   moreover have "conflict_is_false_with_level S'"
     using conflict'.hyps conflict'.prems(2-4) rtranclp_cdcl_co_conflict_ex_lit_of_max_level[of S S']
     unfolding full0_def full_def rtranclp_unfold by blast
@@ -3733,8 +3733,8 @@ next
   case (other' S S' S'')
   have lev': "cdcl_M_level_inv S'"
     using cdcl_consistent_inv other other'.hyps(1) other'.prems(3) by blast
-  have "no_littler_confl S''"
-    using cdcl_s_no_littler_confl_inv[OF cdcl_s.other'[OF other'.hyps(1-3)]] other'.prems(1-3)
+  have "no_smaller_confl S''"
+    using cdcl_s_no_smaller_confl_inv[OF cdcl_s.other'[OF other'.hyps(1-3)]] other'.prems(1-3)
     by blast
   moreover
   have "no_clause_is_false S'
@@ -3882,9 +3882,9 @@ next
   ultimately show ?case by fast
 qed
 
-lemma rtranclp_cdcl_s_no_littler_confl_inv:
+lemma rtranclp_cdcl_s_no_smaller_confl_inv:
   assumes "cdcl_s\<^sup>*\<^sup>* S S'"
-  and n_l: "no_littler_confl S"
+  and n_l: "no_smaller_confl S"
   and "conflict_is_false_with_level S"
   and "cdcl_M_level_inv S"
   and "no_clause_is_false S"
@@ -3893,7 +3893,7 @@ lemma rtranclp_cdcl_s_no_littler_confl_inv:
   and "all_decomposition_implies (init_clss S) (get_all_marked_decomposition (trail S))"
   and "cdcl_learned_clause S"
   and "no_strange_atm S"
-  shows "no_littler_confl S' \<and> conflict_is_false_with_level S'"
+  shows "no_smaller_confl S' \<and> conflict_is_false_with_level S'"
   using assms
 proof (induct rule: rtranclp.induct)
   case (rtrancl_refl S)
@@ -3901,7 +3901,7 @@ proof (induct rule: rtranclp.induct)
 next
   case (rtrancl_into_rtrancl S S' S'') note st = this(1) and IH = this(2) and cls_false = this(7)
     and no_dup = this(8)
-  have "no_littler_confl S'" and "conflict_is_false_with_level S'"
+  have "no_smaller_confl S'" and "conflict_is_false_with_level S'"
     using IH[OF rtrancl_into_rtrancl.prems] by blast+
   moreover have "cdcl_M_level_inv S'"
     using  st rtrancl_into_rtrancl.prems(3) rtranclp_cdcl_s_rtranclp_cdcl
@@ -3915,7 +3915,7 @@ next
     using rtranclp_cdcl_all_inv(6)[of S S'] st rtrancl_into_rtrancl.prems
     by (simp add: rtranclp_cdcl_s_rtranclp_cdcl)
   ultimately show ?case
-    using cdcl_s_no_littler_confl_inv_ex_lit_of_max_level[OF rtrancl_into_rtrancl.hyps(3)] by fast
+    using cdcl_s_no_smaller_confl_inv_ex_lit_of_max_level[OF rtrancl_into_rtrancl.hyps(3)] by fast
 qed
 
 subsubsection \<open>Final states are at the end\<close>
@@ -3951,7 +3951,7 @@ proof -
   moreover
     have "\<forall>D\<in>N. \<not> [] \<Turnstile>as CNot D" using no_empty by auto
     hence confl_k: "conflict_is_false_with_level S'"
-      using rtranclp_cdcl_s_no_littler_confl_inv[OF step] no_d by auto
+      using rtranclp_cdcl_s_no_smaller_confl_inv[OF step] no_d by auto
   show ?thesis
     using cdcl_s_normal_forms[OF termi decomp learned level_inv alien no_dup confl finite confl_k] .
 qed
