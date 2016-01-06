@@ -597,7 +597,7 @@ proof
         thus ?case
           using \<open>(S', S) \<in> {a. case a of (S', S) \<Rightarrow> dpll_all_inv S \<and> dpll S S'}\<^sup>+\<close> by auto
       qed
-   }
+  }
   thus "?B \<subseteq> ?A" by blast
 qed
 
@@ -624,7 +624,7 @@ proof -
         L_in_atms: "L \<in> atms_of_m (clauses S)" and
         L_notin_trail: "L \<notin> atm_of ` lits_of (trail S)" by metis
       obtain L' where L': "atm_of L' = L" by (meson literal.sel(2))
-      hence "undefined_lit L' (trail S)"
+      then have "undefined_lit L' (trail S)"
         unfolding Marked_Propagated_in_iff_in_lits_of by (metis L_notin_trail atm_of_uminus imageI)
       thus False using dpll.decided assms(1) L_in_atms L' by blast
     qed
@@ -636,7 +636,7 @@ proof -
         "(\<exists>L\<in>set (trail S). is_marked L) \<or> (\<forall>C\<in>clauses S. \<not>trail S \<Turnstile>as CNot C)"
         unfolding final_dpll_state_def by auto
       moreover {
-        assume "(\<exists>L\<in>set (trail S). is_marked L)"
+        assume "\<exists>L\<in>set (trail S). is_marked L"
         then obtain L M' M where L: "backtrack_split (trail S) = (M', L # M)"
           using backtrack_split_some_is_marked_then_snd_has_hd by blast
         obtain D where "D \<in> clauses S" and "\<not> trail S \<Turnstile>a D"
@@ -696,6 +696,7 @@ interpretation dpll_CW_NOT: dpll_with_backtrack .
 
 lemma state_eq\<^sub>N\<^sub>O\<^sub>T_iff_eq[iff, simp]: "dpll_CW_NOT.state_eq\<^sub>N\<^sub>O\<^sub>T S T \<longleftrightarrow> S = T"
   unfolding dpll_CW_NOT.state_eq\<^sub>N\<^sub>O\<^sub>T_def by (cases S, cases T) auto
+
 declare dpll_CW_NOT.state_simp\<^sub>N\<^sub>O\<^sub>T[simp del]
 
 lemma dpll_dpll_bj:

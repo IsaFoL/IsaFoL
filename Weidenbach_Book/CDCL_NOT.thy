@@ -1680,7 +1680,7 @@ proof (rule ccontr)
     "\<forall>i. cdcl\<^sub>N\<^sub>O\<^sub>T (f i) (f (Suc i)) \<and> ?inv (f i)"
     by fast
   hence "\<exists>j. \<forall>i\<ge>j. learn_or_forget (f i) (f (Suc i))"
-   using infinite_cdcl\<^sub>N\<^sub>O\<^sub>T_exists_learn_and_forget_infinite_chain[of f] by meson
+    using infinite_cdcl\<^sub>N\<^sub>O\<^sub>T_exists_learn_and_forget_infinite_chain[of f] by meson
   then show False using no_infinite_lf by blast
 qed
 
@@ -1743,7 +1743,8 @@ qed
 
 end \<comment> \<open>end of \<open>conflict_driven_clause_learning\<close>\<close>
 
-subsubsection \<open>Restricting restarts\<close>
+subsection \<open>Termination\<close>
+subsubsection \<open>Restricting learn and forget\<close>
 
 locale conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt =
   conflict_driven_clause_learning trail clauses update_trail update_cls propagate_conds inv
@@ -1829,7 +1830,7 @@ lemma conflicting_bj_clss_add_cls\<^sub>N\<^sub>O\<^sub>T:
       \<union> (if \<exists>C L. C' = C +{#L#}\<and> distinct_mset (C+{#L#}) \<and> \<not>tautology (C+{#L#})
      \<and> (\<exists>F' K d F. trail S = F' @ Marked K d # F \<and> F \<Turnstile>as CNot C)
      then {C'} else {})"
-  unfolding conflicting_bj_clss_def apply (auto split: split_if_asm) by metis+
+  unfolding conflicting_bj_clss_def by auto metis+
 
 lemma conflicting_bj_clss_add_cls\<^sub>N\<^sub>O\<^sub>T_state_eq:
   "T \<sim> add_cls\<^sub>N\<^sub>O\<^sub>T C' S \<Longrightarrow> conflicting_bj_clss T
@@ -1837,7 +1838,7 @@ lemma conflicting_bj_clss_add_cls\<^sub>N\<^sub>O\<^sub>T_state_eq:
       \<union> (if \<exists>C L. C' = C +{#L#}\<and> distinct_mset (C+{#L#}) \<and> \<not>tautology (C+{#L#})
      \<and> (\<exists>F' K d F. trail S = F' @ Marked K d # F \<and> F \<Turnstile>as CNot C)
      then {C'} else {})"
-  unfolding conflicting_bj_clss_def apply (auto split: split_if_asm) by metis+
+  unfolding conflicting_bj_clss_def by auto metis+
 
 lemma conflicting_bj_clss_incl_clauses:
    "conflicting_bj_clss S \<subseteq> clauses S"
@@ -2330,7 +2331,7 @@ qed
 
 end \<comment> \<open>end of \<open>conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt\<close>\<close>
 
-subsection \<open>DPLL with simple backtrack\<close>
+subsubsection \<open>DPLL with simple backtrack\<close>
 locale dpll_with_backtrack
 begin
 inductive backtrack :: "('v, dpll_marked_level, dpll_mark) marked_lit list \<times> 'v literal multiset set
@@ -3865,7 +3866,7 @@ qed
 
 theorem full0_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy_backjump_normal_forms:
   fixes A :: "'v literal multiset set" and S T :: "'st"
-  assumes
+  assumes               
     full: "full0 cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy (S, n) (T, m)" and
     atms_S: "atms_of_m (clauses S) \<subseteq> atms_of_m A" and
     atms_trail: "atm_of ` lits_of (trail S) \<subseteq> atms_of_m A" and
@@ -3916,7 +3917,7 @@ proof -
       ultimately show ?thesis by blast
     qed
 qed
-end
+end \<comment> \<open>end of \<open>cdcl\<^sub>N\<^sub>O\<^sub>T_with_backtrack_and_restarts\<close> locale\<close>
 
 locale most_general_cdcl\<^sub>N\<^sub>O\<^sub>T =
     dpll_state trail clauses update_trail update_cls +
@@ -3947,4 +3948,53 @@ sublocale dpll_with_backjumping_ops _ _ _ _ _ inv "\<lambda>_ _ _ _. True"
   using backjump_bj_can_jump by unfold_locales auto
 end
 
+locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_with_backtrack_restarts =
+  cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn trail clauses
+  update_trail update_cls propagate_conds inv forget_conds 
+    "\<lambda>C L S. distinct_mset (C + {#L#}) \<and> backjump_l_cond C L S"
+    for
+    trail :: "'st \<Rightarrow> ('v::linorder, dpll_marked_level, dpll_mark) annoted_lits" and
+    clauses :: "'st \<Rightarrow> 'v::linorder clauses" and
+    update_trail :: "('v, dpll_marked_level, dpll_mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_cls :: "'v clause set \<Rightarrow> 'st \<Rightarrow> 'st" and
+    propagate_conds :: "'st \<Rightarrow> bool" and
+    inv :: "'st \<Rightarrow> bool" and
+    forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
+    backjump_l_cond :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool"
+    +
+  fixes f :: "nat \<Rightarrow> nat"
+  assumes
+    strict_mono: "strict_mono f" and f_0: "f 0 = 0" and
+    inv_restart:"\<And>S T. inv S \<Longrightarrow> T \<sim> update_trail [] S \<Longrightarrow> inv T"
+begin
+
+(* is already alround in context *)
+interpretation cdcl\<^sub>N\<^sub>O\<^sub>T:
+   conflict_driven_clause_learning trail clauses update_trail update_cls propagate_conds
+   inv backjump_conds "\<lambda>C _. distinct_mset C \<and> \<not>tautology C" forget_conds
+  apply unfold_locales
+  using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_forget\<^sub>N\<^sub>O\<^sub>T cdcl_merged_inv learn_inv
+  by (auto simp add: cdcl\<^sub>N\<^sub>O\<^sub>T.simps dpll_bj_inv)
+
+sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts _ _ _ _ f "\<lambda>S T. T \<sim> update_trail [] S"
+   (* bound_inv *)"\<lambda>A S. atms_of_m (clauses S) \<subseteq> atms_of_m A
+     \<and> atm_of ` lits_of (trail S) \<subseteq> atms_of_m A \<and> finite A"
+   \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged cdcl\<^sub>N\<^sub>O\<^sub>T_merged
+   (* inv *) "\<lambda>S. inv S \<and> no_dup (trail S) \<and> finite (clauses S)"
+   "\<lambda>A T. ((2+card (atms_of_m A)) ^ (1+card (atms_of_m A))) * 2 + card (clauses T) 
+     + 3 ^ card (atms_of_m (clauses T))"
+   apply unfold_locales
+             using strict_mono apply simp
+            apply (blast dest!: cdcl\<^sub>N\<^sub>O\<^sub>T_merged_is_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T tranclp_into_rtranclp
+              cdcl\<^sub>N\<^sub>O\<^sub>T.rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_trail_clauses_bound )
+           apply (simp add: cdcl\<^sub>N\<^sub>O\<^sub>T_decreasing_measure')
+           defer
+          defer
+          apply simp
+         apply auto[1]
+        apply (metis (no_types, lifting) cdcl\<^sub>N\<^sub>O\<^sub>T.rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_finite_clauses 
+          cdcl\<^sub>N\<^sub>O\<^sub>T_merged_is_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T cdcl\<^sub>N\<^sub>O\<^sub>T_merged_no_dup_inv cdcl_merged_inv 
+          tranclp_into_rtranclp)
+       apply (auto simp add: inv_restart)[]    
+oops
 end

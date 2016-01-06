@@ -2389,6 +2389,7 @@ next
     qed
 qed
 
+(* TODO Move *)
 lemma get_level_skip_beginning_hd_get_all_levels_of_marked:
   assumes "atm_of L \<notin> atm_of ` lits_of S"
   and "get_all_levels_of_marked S \<noteq> []"
@@ -4233,7 +4234,7 @@ proof -
   ultimately show ?thesis by auto
 qed
 
-(** prop 2.10.9 (lem:prop:cddlsoundtermStates)*)
+(** prop 2.10.9 \cwref{lem:prop:cddlsoundtermStates}{}*)
 lemma full_cdcl_s_normal_forms:
   fixes S' :: 'st
   assumes full: "full0 cdcl_s (init_state N) S'"

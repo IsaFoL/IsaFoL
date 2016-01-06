@@ -3515,4 +3515,39 @@ qed
 
 end
 
+section \<open>Incremental SAT solving\<close>
+text \<open>This is a just a very little start\<close>
+context cdcl_cw_ops
+begin
+fun cut_trail_wrt_clause 
+  :: "'v clause \<Rightarrow> ('v, nat, 'v clause) annoted_lits \<Rightarrow> ('v, nat, 'v clause) annoted_lits"  where
+"cut_trail_wrt_clause C (L # M) = 
+  (if lit_of L \<in># C then M else L # cut_trail_wrt_clause C M)" |
+"cut_trail_wrt_clause _ [] = []"
+
+definition add_new_clause_and_update :: "'v literal multiset \<Rightarrow> 'st \<Rightarrow> 'st" where
+"add_new_clause_and_update C S =
+  (if trail S \<Turnstile>as CNot C 
+  then update_trail (rev (cut_trail_wrt_clause C (rev (trail S))))
+        (update_init_clss ({C} \<union> init_clss S) S)
+  else update_init_clss ({C} \<union> init_clss S) S )"
+
+inductive incremental_cdcl :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+"full cdcl_fw_s S T \<Longrightarrow> incremental_cdcl S T" |
+"trail S \<Turnstile>as init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> incremental_cdcl S (add_new_clause_and_update C S)"
+
+lemma
+  assumes 
+    "cdcl_fw_s\<^sup>*\<^sup>* S T" and
+    "cdcl_all_inv_mes S" and
+    "no_smaller_confl S" and 
+    "conflict_is_false_with_level S"
+    "trail T \<Turnstile>as init_clss S"
+  shows "cdcl_fw_s\<^sup>*\<^sup>* S ((add_new_clause_and_update C S))"
+proof -
+  (* induction over the trail of T, but by block *)
+    have "no_smaller_confl T"
+oops
+end
+
 end
