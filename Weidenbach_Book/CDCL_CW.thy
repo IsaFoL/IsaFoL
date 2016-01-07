@@ -19,27 +19,8 @@ section \<open>Weidenbach's CDCL\<close>
 sledgehammer_params[verbose, e spass cvc4 z3 verit]
 declare upt.simps(2)[simp del]
 
-type_synonym 'v clauses = "'v clause multiset"
-
-abbreviation true_annots_mset (infix "\<Turnstile>asm" 50) where
-"I \<Turnstile>asm C \<equiv> I \<Turnstile>as (set_mset C)"
-
-abbreviation true_clss_clss_m:: "'a clauses \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>psm" 50) where
-"I \<Turnstile>psm C \<equiv> set_mset I \<Turnstile>ps (set_mset C)"
-
-abbreviation true_clss_cls_m:: "'a clauses \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>pm" 50) where
-"I \<Turnstile>pm C \<equiv> set_mset I \<Turnstile>p C"
-
-abbreviation distinct_mset_mset :: "'a multiset multiset \<Rightarrow> bool" where
-"distinct_mset_mset \<Sigma> \<equiv> distinct_mset_set (set_mset \<Sigma>)"
-
-abbreviation all_decomposition_implies_m where
-"all_decomposition_implies_m A B \<equiv> all_decomposition_implies (set_mset A) B"
-
 datatype 'a conflicting_clause = C_True | C_Clause "'a"
 
-abbreviation atms_of_mu where
-"atms_of_mu U \<equiv> atms_of_m (set_mset U)"
 
 subsection \<open>The State\<close>
 locale cw_state =

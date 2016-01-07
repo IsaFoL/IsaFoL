@@ -1008,7 +1008,7 @@ next
   thus ?case using alien by (auto simp: state_eq_def simp del: state_simp)
 next
   case forget
-  show ?case using forget(3,4,6,8) by auto
+  show ?case using forget(3,4,6,8) by auto (* SLOW ~ 10s TODO *)
 qed
 
 lemma propagate_measure_decreasing:

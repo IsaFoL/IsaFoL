@@ -891,4 +891,30 @@ proof -
   thus ?thesis by (auto simp add: true_annots_def)
 qed
 
+
+type_synonym 'v clauses = "'v clause multiset"
+
+abbreviation true_annots_mset (infix "\<Turnstile>asm" 50) where
+"I \<Turnstile>asm C \<equiv> I \<Turnstile>as (set_mset C)"
+
+abbreviation true_clss_clss_m:: "'a clauses \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>psm" 50) where
+"I \<Turnstile>psm C \<equiv> set_mset I \<Turnstile>ps (set_mset C)"
+
+abbreviation true_clss_cls_m:: "'a clauses \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>pm" 50) where
+"I \<Turnstile>pm C \<equiv> set_mset I \<Turnstile>p C"
+
+abbreviation distinct_mset_mset :: "'a multiset multiset \<Rightarrow> bool" where
+"distinct_mset_mset \<Sigma> \<equiv> distinct_mset_set (set_mset \<Sigma>)"
+
+abbreviation all_decomposition_implies_m where
+"all_decomposition_implies_m A B \<equiv> all_decomposition_implies (set_mset A) B"
+
+abbreviation atms_of_mu where
+"atms_of_mu U \<equiv> atms_of_m (set_mset U)"
+
+abbreviation true_clss_m:: "'a interp \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>sm" 50) where
+"I \<Turnstile>sm C \<equiv> I \<Turnstile>s set_mset C"
+
+abbreviation true_clss_ext_m  (infix "\<Turnstile>sextm" 49) where
+"I \<Turnstile>sextm C \<equiv> I \<Turnstile>sext set_mset C"
 end
