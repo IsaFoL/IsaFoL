@@ -193,7 +193,7 @@ proof (standard, standard)
     MC: "M \<Turnstile>as CNot C" and
     undef: "undefined_lit L M" and
     CL: "C + {#L#} \<in># N + U"
-    apply - by (cases "toS S") (auto elim!: propagateE)
+    apply - by (cases "toS S") auto
   let ?M = "trail S"
   let ?N = "clauses S"
   let ?U = "learned_clss S"
@@ -624,7 +624,7 @@ lemma do_backtrack_step_no:
   shows "no_step backtrack (toS S)"
 proof (rule ccontr, cases S, cases "conflicting S", goal_cases)
   case 1
-  thus ?case using db by (auto split: option.splits elim!: backtrackE)
+  thus ?case using db by (auto split: option.splits)
 next
   case (2 M N U k E C) note bt = this(1) and S = this(2) and confl = this(3)
   obtain D L K b z M1 j where
