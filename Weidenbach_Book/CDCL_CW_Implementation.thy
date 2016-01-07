@@ -537,18 +537,6 @@ fun do_backtrack_step where
   )" |
 "do_backtrack_step S = S"
 
-(* TODO move *)
-lemma cdcl_M_level_inv_get_level_le_bt:
-  assumes inv: "cdcl_M_level_inv S"
-  shows "get_level L (trail S) \<le> backtrack_lvl S"
-proof -
-  have "get_all_levels_of_marked (trail S) = rev [Suc 0..<Suc (backtrack_lvl S)] "
-    using inv unfolding cdcl_M_level_inv_def by (auto simp del: upt.simps)
-  from arg_cong[OF this, of set]
-  show ?thesis
-    using get_rev_level_in_levels_of_marked[of L 0 "rev (trail S)"] by (force simp del: upt.simps)
-qed
-
 lemma get_all_marked_decomposition_map_convert:
   "(get_all_marked_decomposition (map convert M)) =
     map (\<lambda>(a, b). (map convert a, map convert b)) (get_all_marked_decomposition M)"
@@ -592,7 +580,7 @@ lemma do_backtrack_step:
       using \<open>L \<in> set C\<close> get_maximum_level_ge_get_level levL by blast
     moreover have "get_maximum_level (mset C) M \<le> k"
       using get_maximum_level_exists_lit_of_max_level[of "mset C" M] inv
-        cdcl_M_level_inv_get_level_le_bt[of "toS S"]
+        cdcl_M_level_inv_get_level_le_backtrack_lvl[of "toS S"]
       unfolding C cdcl_all_inv_mes_def S
       by auto metis+
     ultimately have "get_maximum_level (mset C) M = k" by auto

@@ -51,6 +51,23 @@ lemma tranclp_rtranclp_rtranclp_rel: "R\<^sup>+\<^sup>+\<^sup>*\<^sup>* a b \<lo
 lemma tranclp_rtranclp_rtranclp[simp]: "R\<^sup>+\<^sup>+\<^sup>*\<^sup>* = R\<^sup>*\<^sup>*"
   by (fastforce simp: rtranclp_unfold)
 
+lemma rtranclp_exists_last_with_prop:
+  assumes "R x z"
+  and "R\<^sup>*\<^sup>* z z'" and "P x z"
+  shows "\<exists>y y'. R\<^sup>*\<^sup>* x y \<and> R y y' \<and> P y y' \<and> (\<lambda>a b. R a b \<and> \<not>P a b)\<^sup>*\<^sup>* y' z'"
+  using assms(2,1,3)
+proof (induction arbitrary: )
+  case base
+  thus ?case by auto
+next
+  case (step z' z'') note z = this(2) and IH =this(3)[OF this(4-5)]
+  show ?case
+    apply (cases "P z' z''")
+      apply (rule exI[of _ z'], rule exI[of _ z''])
+      using z assms(1) step.hyps(1) step.prems(2) apply auto[1]
+    using IH z rtranclp.rtrancl_into_rtrancl by fastforce
+qed
+
 subsection \<open>Full transitions\<close>
 text \<open>We define here properties to define properties after all possible transitions.\<close>
 abbreviation "no_step step S \<equiv> (\<forall>S'. \<not>step S S')"

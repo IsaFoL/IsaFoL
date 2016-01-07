@@ -33,7 +33,6 @@ proof (intro HOL.conjI)
   show "cdcl_learned_clause S'"
      using cdcl_all_inv[OF assms(1)] assms(2) unfolding cdcl_all_inv_mes_def by fast
 
-
   show "\<forall>s\<in>#learned_clss S'. \<not> tautology s"
     using assms(1)[THEN learned_clss_are_not_tautologies] assms(2)
     unfolding cdcl_all_inv_mes_def by fast
@@ -43,7 +42,6 @@ lemma rtranclp_cdcl_all_inv_mes_inv:
   assumes "cdcl\<^sup>*\<^sup>* S S'" and "cdcl_all_inv_mes S"
   shows "cdcl_all_inv_mes S'"
   using assms by induction (auto intro: cdcl_all_inv_mes_inv)
-
 
 lemma cdcl_o_learned_clause_increasing:
   "cdcl_o S S' \<Longrightarrow> learned_clss S \<subseteq># learned_clss S'"
@@ -79,11 +77,13 @@ lemma cdcl_o_new_clause_learned_is_backtrack_step:
   new: "D \<notin># learned_clss S" and
   cdcl: "cdcl_o S T"
   shows "backtrack S T \<and> conflicting S = C_Clause D"
-  using cdcl learned new apply (induction rule: cdcl_o.induct) 
-  apply fastforce
-  apply (auto simp: cdcl_bj.simps
-    elim!: backtrackE split: )
-  by presburger
+  using cdcl learned new 
+proof (induction rule: cdcl_o_induct)
+  case (backtrack K i M1 M2 L C T) note T = this(6) and D_T = this(7) and D_S = this(8)
+  then have "D = C + {#L#}" using not_gr0 by fastforce
+  then show ?case
+    using T backtrack.hyps(1-5) backtrack.intros by auto
+qed auto
 
 lemma cdcl_cp_new_clause_learned_has_backtrack_step:
   assumes learned: "D \<in># learned_clss T" and
@@ -326,24 +326,6 @@ next
       ultimately show ?thesis apply - apply (rule exI[of _ S'], rule exI[of _ S''])
         using 1 2 4 6 7 8 9  by blast
     qed
-qed
-
-(* TODO Move to Wf *)
-lemma rtranclp_exists_last_with_prop:
-  assumes "R x z"
-  and "R\<^sup>*\<^sup>* z z'" and "P x z"
-  shows "\<exists>y y'. R\<^sup>*\<^sup>* x y \<and> R y y' \<and> P y y' \<and> (\<lambda>a b. R a b \<and> \<not>P a b)\<^sup>*\<^sup>* y' z'"
-  using assms(2,1,3)
-proof (induction arbitrary: )
-  case base
-  thus ?case by auto
-next
-  case (step z' z'') note z = this(2) and IH =this(3)[OF this(4-5)]
-  show ?case
-    apply (cases "P z' z''")
-      apply (rule exI[of _ z'], rule exI[of _ z''])
-      using z assms(1) step.hyps(1) step.prems(2) apply auto[1]
-    using IH z  rtranclp.rtrancl_into_rtrancl by fastforce
 qed
 
 lemma rtranclp_cdcl_new_marked_at_beginning_is_decide':
@@ -845,18 +827,6 @@ lemma length_model_le_vars_all_inv:
   shows "length (trail S) \<le> card (atms_of_mu (init_clss S))"
   using assms length_model_le_vars[of S] unfolding cdcl_all_inv_mes_def by auto
 end
-(* TODO Move *)
-lemma distinct_mset_size_eq_card:
-  "distinct_mset C \<Longrightarrow> size C = card (set_mset C)"
-  by (induction C) (auto simp: distinct_mset_single_add)
-
-lemma distinct_mset_add:
-  "distinct_mset (L + L') \<longleftrightarrow> distinct_mset L \<and> distinct_mset L' \<and> L #\<inter> L' = {#}"
-  apply (auto simp: distinct_mset_add_single ac_simps distinct_mset_count_less_1 multiset_inter_def
-    multiset_eq_iff elim: add_leE)
-    apply (metis add_le_imp_le_diff le_0_eq le_Suc_eq less_one nat_induct not_less)
-  apply (metis Nat.le_diff_conv2 add_eq_if le_0_eq le_SucE)
-  done
 
 locale cdcl_cw_termination =
    cdcl_cw_ops trail init_clss learned_clss backtrack_lvl conflicting update_trail update_init_clss
@@ -881,7 +851,7 @@ begin
 
 lemma learned_clss_less_upper_bound:
   fixes S :: "'st"
-  assumes 
+  assumes
     "distinct_cdcl_state S" and
     "\<forall>s \<in># learned_clss S. \<not>tautology s"
   shows "card(set_mset (learned_clss S)) \<le> 3 ^ card (atms_of_mu (learned_clss S))"
@@ -889,10 +859,10 @@ proof -
   have "set_mset (learned_clss S) \<subseteq> build_all_simple_clss (atms_of_mu (learned_clss S))"
     apply (rule simplified_in_build_all)
     using assms unfolding distinct_cdcl_state_def by auto
-  then have "card(set_mset (learned_clss S)) 
+  then have "card(set_mset (learned_clss S))
     \<le> card (build_all_simple_clss (atms_of_mu (learned_clss S)))"
     by (simp add: build_all_simple_clss_finite card_mono)
-  then show ?thesis 
+  then show ?thesis
     by (meson atms_of_m_finite build_all_simple_clss_card finite_set_mset order_trans)
 qed
 
@@ -988,7 +958,7 @@ next
     M_level no_taut confl by auto
   ultimately have "card (set_mset (learned_clss T)) \<le> 3 ^ card (atms_of_mu (learned_clss T))"
       by (auto simp: clauses_def learned_clss_less_upper_bound)
-    then have H: "card (set_mset ({#D + {#L#}#} + learned_clss S)) 
+    then have H: "card (set_mset ({#D + {#L#}#} + learned_clss S))
       \<le> 3 ^ card (atms_of_mu ({#D + {#L#}#} + learned_clss S))"
       using T by auto
   moreover
@@ -998,17 +968,19 @@ next
       by (meson atms_of_m_finite card_mono finite_set_mset)
     hence "(3::nat) ^ card (atms_of_mu ({#D + {#L#}#} + learned_clss S))
       \<le> 3 ^ card (atms_of_mu (init_clss S))" by simp
-  ultimately have "(3::nat) ^ card (atms_of_mu (init_clss S)) 
+  ultimately have "(3::nat) ^ card (atms_of_mu (init_clss S))
     \<ge> card (set_mset ({#D + {#L#}#} + learned_clss S))"
     using le_trans by blast
-  thus ?case using S 
+  thus ?case using S
     using diff_less_mono2 card_T T by auto
 next
   case restart
   thus ?case using alien by (auto simp: state_eq_def simp del: state_simp)
 next
-  case forget
-  show ?case using forget(3,4,6,8) by auto (* SLOW ~ 10s TODO *)
+  case (forget C T)
+  then have "C \<in># learned_clss S" and "C \<notin># learned_clss T"
+    by auto
+  then show ?case using forget(8) by (simp add: mset_leD)
 qed
 
 lemma propagate_measure_decreasing:
@@ -1130,10 +1102,12 @@ proof -
                   using inv unfolding cdcl_all_inv_mes_def by simp
             next
               case skip
-              then show ?thesis by force
+              then show ?thesis by (elim skipE) force
+              (* the elim is not needed, but make the proof a lot faster *)
             next
               case resolve
-              then show ?thesis by fastforce
+              then show ?thesis by (elim resolveE) force
+              (* the elim is not needed, but make the proof a lot faster *)
             qed
         qed
       ultimately show ?case
@@ -1173,8 +1147,7 @@ proof -
 qed
 
 lemma tranclp_cdcl_s_wf:
-  "wf {(S::'st, init_state N)| S N. (distinct_mset_mset N)
-    \<and> cdcl_s\<^sup>+\<^sup>+ (init_state N) S}"
+  "wf {(S::'st, init_state N)| S N. distinct_mset_mset N \<and> cdcl_s\<^sup>+\<^sup>+ (init_state N) S}"
   apply (rule wf_wf_if_measure'_notation2[of "lexn {(a, b). a < b} 3" _ _ cdcl_measure])
    apply (simp add: wf wf_lexn)
   using tranclp_cdcl_s_S0_decreasing by blast

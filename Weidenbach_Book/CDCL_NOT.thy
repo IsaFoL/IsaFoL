@@ -1837,14 +1837,6 @@ lemma conflicting_bj_clss_remove_cls\<^sub>N\<^sub>O\<^sub>T[simp]:
   "conflicting_bj_clss (remove_cls\<^sub>N\<^sub>O\<^sub>T C S) = conflicting_bj_clss S - {C}"
   unfolding conflicting_bj_clss_def by fastforce
 
-lemma conflicting_bj_clss_add_cls\<^sub>N\<^sub>O\<^sub>T:
-  "conflicting_bj_clss (add_cls\<^sub>N\<^sub>O\<^sub>T C' S)
-    = conflicting_bj_clss S
-      \<union> (if \<exists>C L. C' = C +{#L#}\<and> distinct_mset (C+{#L#}) \<and> \<not>tautology (C+{#L#})
-     \<and> (\<exists>F' K d F. trail S = F' @ Marked K d # F \<and> F \<Turnstile>as CNot C)
-     then {C'} else {})"
-  unfolding conflicting_bj_clss_def by auto metis+
-
 lemma conflicting_bj_clss_add_cls\<^sub>N\<^sub>O\<^sub>T_state_eq:
   "T \<sim> add_cls\<^sub>N\<^sub>O\<^sub>T C' S \<Longrightarrow> conflicting_bj_clss T
     = conflicting_bj_clss S
@@ -1852,6 +1844,14 @@ lemma conflicting_bj_clss_add_cls\<^sub>N\<^sub>O\<^sub>T_state_eq:
      \<and> (\<exists>F' K d F. trail S = F' @ Marked K d # F \<and> F \<Turnstile>as CNot C)
      then {C'} else {})"
   unfolding conflicting_bj_clss_def by auto metis+
+
+lemma conflicting_bj_clss_add_cls\<^sub>N\<^sub>O\<^sub>T:
+  "conflicting_bj_clss (add_cls\<^sub>N\<^sub>O\<^sub>T C' S)
+    = conflicting_bj_clss S
+      \<union> (if \<exists>C L. C' = C +{#L#}\<and> distinct_mset (C+{#L#}) \<and> \<not>tautology (C+{#L#})
+     \<and> (\<exists>F' K d F. trail S = F' @ Marked K d # F \<and> F \<Turnstile>as CNot C)
+     then {C'} else {})"
+  using conflicting_bj_clss_add_cls\<^sub>N\<^sub>O\<^sub>T_state_eq by auto
 
 lemma conflicting_bj_clss_incl_clauses:
    "conflicting_bj_clss S \<subseteq> set_mset (clauses S)"
@@ -3104,7 +3104,7 @@ proof (unfold_locales, goal_cases)
       F_C': "F \<Turnstile>as CNot C'" and
       dist: "distinct_mset (C' + {#L#})" and
       not_tauto: "\<not> tautology (C' + {#L#})"
-      by (auto elim!: backjump_lE)
+      by (force elim!: backjump_lE)
 
     have "\<exists>S'. backjumping_ops.backjump trail clauses update_trail backjump_conds S S'"
       apply rule
@@ -3186,7 +3186,7 @@ proof -
      "F \<Turnstile>as CNot C'" and
      distinct:  "distinct_mset (C' + {#L#})" and
      not_tauto: "\<not> tautology (C' + {#L#})"
-     using bt inv by (auto elim!: backjump_lE)
+     using bt inv by (force elim!: backjump_lE)
    have atms_C':  "atms_of C' \<subseteq>  atm_of ` (lits_of F)"
      proof -
        obtain ll :: "'v \<Rightarrow> ('v literal \<Rightarrow> 'v) \<Rightarrow> 'v literal set \<Rightarrow> 'v literal" where

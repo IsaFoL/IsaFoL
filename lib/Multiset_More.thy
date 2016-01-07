@@ -428,7 +428,6 @@ lemma union_less_mset_mset_diff_plus:
   apply (drule subset_mset.diff_add[symmetric])
   using union_less_mset_mset_mono2[of T U "\<Sigma> - U"] by simp
 
-
 lemma ex_gt_imp_less_mset_mset:
   "(\<exists>y :: 'a :: linorder multiset \<in># T. (\<forall>x. x \<in># \<Sigma> \<longrightarrow> x #\<subset># y)) \<Longrightarrow> \<Sigma> #\<subset>## T"
   using less_mset_mset\<^sub>H\<^sub>O by force
@@ -445,4 +444,11 @@ lemma count_mset_set_le_1[simp]: "count (mset_set (set C)) L \<le> 1"
   by (metis List.finite_set One_nat_def count_mset_set(1) count_mset_set(3) le_less_linear
     less_nat_zero_code less_not_refl)
 
+lemma replicate_mset_plus: "replicate_mset (a + b) C = replicate_mset a C + replicate_mset b C"
+  by (induct a) (auto simp: ac_simps)
+
+lemma set_mset_minus_replicate_mset:
+  "n \<ge> count A a \<Longrightarrow> set_mset (A - replicate_mset n a) = set_mset A - {a}"
+  "n < count A a \<Longrightarrow> set_mset (A - replicate_mset n a) = set_mset A"
+  by (auto split: split_if_asm)
 end

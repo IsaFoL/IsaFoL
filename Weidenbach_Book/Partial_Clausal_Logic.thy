@@ -985,10 +985,42 @@ lemma distinct_mset_single_add:
   "distinct_mset (L + {#a#}) \<longleftrightarrow> distinct_mset L \<and> a \<notin># L"
   using add.commute[of L "{#a#}"] distinct_mset_add_single by force
 
+lemma distinct_mset_size_eq_card:
+  "distinct_mset C \<Longrightarrow> size C = card (set_mset C)"
+  by (induction C) (auto simp: distinct_mset_single_add)
+
 text \<open>Another characterisation of @{term distinct_mset}\<close>
 lemma distinct_mset_count_less_1:
   "distinct_mset S \<longleftrightarrow> (\<forall>a. count S a \<le> 1)"
   unfolding distinct_mset_def by (metis le_neq_implies_less less_one less_or_eq_imp_le not_gr0)
+lemma distinct_mset_add:
+  "distinct_mset (L + L') \<longleftrightarrow> distinct_mset L \<and> distinct_mset L' \<and> L #\<inter> L' = {#}" (is "?A \<longleftrightarrow> ?B")
+proof (rule iffI)
+  assume ?A
+  have L: "distinct_mset L"
+    using \<open>distinct_mset (L + L')\<close> distinct_mset_union  by blast
+  moreover have L': "distinct_mset L'"
+    using \<open>distinct_mset (L + L')\<close> distinct_mset_union unfolding add.commute[of L L'] by blast
+  moreover have "L #\<inter> L' = {#}"
+    using L L' unfolding multiset_inter_def multiset_eq_iff  by (metis Nat.diff_le_self
+      \<open>distinct_mset (L + L')\<close> add_diff_cancel_left' count_diff count_empty
+      diff_is_0_eq distinct_mset_count_less_1 eq_iff le_neq_implies_less less_one)
+  ultimately show ?B by fast
+next
+  assume ?B
+  show ?A
+    unfolding distinct_mset_count_less_1
+    proof (intro allI)
+      fix a
+      have "count (L + L') a \<le> count L a + count L' a"
+        by auto
+      moreover have "count L a + count L' a \<le> 1"
+        using \<open>?B\<close> by (metis One_nat_def add_eq_if add_is_1 distinct_mset_def empty_inter le_Suc_eq
+          mset_inter_single(1) not_gr0 single_not_empty subset_mset.inf_assoc zero_le_one)
+      ultimately show "count (L + L') a \<le> 1"
+        by arith
+    qed
+qed
 
 lemma atms_of_remdups_mset[simp]: "atms_of (remdups_mset C) = atms_of C"
   unfolding atms_of_def by auto
@@ -1191,7 +1223,7 @@ next
     moreover have "atms' - {?min} = atms'"
       using \<open>?min \<notin> atms'\<close> by fastforce
     ultimately have "n = card (atms - {?min} \<union> atms')"
-      by (metis Min_in Un_Diff c card_0_eq card_Diff_singleton_if diff_Suc_1 finite' finite_Un 
+      by (metis Min_in Un_Diff c card_0_eq card_Diff_singleton_if diff_Suc_1 finite' finite_Un
         finite nat.distinct(1))
     moreover have "finite (atms - {?min})" using finite by auto
     moreover have "(atms - {?min}) \<inter> atms' = {}" using disj by auto
