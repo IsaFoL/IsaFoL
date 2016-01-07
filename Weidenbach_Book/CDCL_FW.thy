@@ -94,10 +94,11 @@ fun convert_trail_from_NOT ::
 lemma convert_trail_from_W_from_NOT[simp]:
   "convert_trail_from_W (convert_trail_from_NOT M) = M"
   by (induction rule: marked_lit_list_induct) auto
-abbreviation trail\<^sub>N\<^sub>O\<^sub>T where
-"trail\<^sub>N\<^sub>O\<^sub>T \<equiv> convert_trail_from_W o trail"
 
-sublocale cw_state \<subseteq> dpll_state "convert_trail_from_W o trail" clauses
+abbreviation trail\<^sub>N\<^sub>O\<^sub>T where
+"trail\<^sub>N\<^sub>O\<^sub>T \<equiv> convert_trail_from_W o fst"
+
+sublocale cw_state \<subseteq> dpll_state "convert_traiohnng brieftrager geht an runtl_from_W o trail" clauses
   "update_trail o convert_trail_from_NOT"
   "\<lambda>C S. update_init_clss C (update_learned_clss {} S)"
   by unfold_locales auto
