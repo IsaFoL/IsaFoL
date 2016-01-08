@@ -1294,7 +1294,7 @@ locale conflict_driven_clause_learning_ops =
       learn_cond forget_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
 begin
 
-inductive cdcl\<^sub>N\<^sub>O\<^sub>T:: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+inductive cdcl\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 c_dpll_bj: "dpll_bj S S' \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T S S'" |
 c_learn: "learn S S' \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T S S'" |
 c_forget\<^sub>N\<^sub>O\<^sub>T: "forget\<^sub>N\<^sub>O\<^sub>T S S' \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T S S'"
@@ -3171,6 +3171,7 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T:
    conflict_driven_clause_learning trail clauses update_trail update_cls propagate_conds
    inv backjump_conds "\<lambda>C _. distinct_mset C \<and> \<not>tautology C" forget_conds
   apply unfold_locales
+  apply (simp only: cdcl\<^sub>N\<^sub>O\<^sub>T.simps)
   using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_forget\<^sub>N\<^sub>O\<^sub>T cdcl_merged_inv learn_inv
   by (auto simp add: cdcl\<^sub>N\<^sub>O\<^sub>T.simps dpll_bj_inv)
 
@@ -3892,7 +3893,8 @@ proof -
   moreover have "all_decomposition_implies_m (clauses T) (get_all_marked_decomposition (trail T))"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy_all_decomposition_implies[OF st] inv n_d
     decomp by auto
-  ultimately have T: "unsatisfiable (set_mset (clauses T)) \<or> (trail T \<Turnstile>asm clauses T \<and> satisfiable (set_mset (clauses T)))"
+  ultimately have T: "unsatisfiable (set_mset (clauses T))
+    \<or> (trail T \<Turnstile>asm clauses T \<and> satisfiable (set_mset (clauses T)))"
     using no_step_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy_no_step_cdcl\<^sub>N\<^sub>O\<^sub>T[of "(T, m)" A] n_s
     cdcl\<^sub>N\<^sub>O\<^sub>T_normal_forms[of T A] unfolding cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv_def by auto
   have eq_sat_S_T:"\<And>I. I \<Turnstile>sextm clauses S \<longleftrightarrow> I \<Turnstile>sextm clauses T"
@@ -3952,6 +3954,8 @@ sublocale dpll_with_backjumping_ops _ _ _ _ _ inv "\<lambda>_ _ _ _. True"
   using backjump_bj_can_jump by unfold_locales auto
 end
 
+text \<open>The restart does only reset the trail, contrary to Weidenbach's version. But there is a forget
+  rule.\<close>
 locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_with_backtrack_restarts =
   cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn trail clauses
   update_trail update_cls propagate_conds inv forget_conds
@@ -3973,32 +3977,337 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_with_backtrack_restarts =
 begin
 
 (* is already alround in context *)
+
+interpretation cdcl\<^sub>N\<^sub>O\<^sub>T:
+   conflict_driven_clause_learning_ops trail clauses update_trail update_cls propagate_conds
+   inv backjump_conds "(\<lambda>C _. distinct_mset C \<and> \<not> tautology C)" forget_conds
+  by unfold_locales
+
 interpretation cdcl\<^sub>N\<^sub>O\<^sub>T:
    conflict_driven_clause_learning trail clauses update_trail update_cls propagate_conds
-   inv backjump_conds "\<lambda>C _. distinct_mset C \<and> \<not>tautology C" forget_conds
+   inv backjump_conds "(\<lambda>C _. distinct_mset C \<and> \<not> tautology C)" forget_conds
   apply unfold_locales
   using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_forget\<^sub>N\<^sub>O\<^sub>T cdcl_merged_inv learn_inv
   by (auto simp add: cdcl\<^sub>N\<^sub>O\<^sub>T.simps dpll_bj_inv)
+
+definition "not_simplified_cls A = {#C \<in># A. tautology C \<or> \<not>distinct_mset C#}"
+
+lemma build_all_simple_clss_or_not_simplified_cls:
+  assumes "atms_of_mu (clauses S) \<subseteq> atms_of_m A" and
+    "x \<in># clauses S" and "finite A"
+  shows "x \<in> build_all_simple_clss (atms_of_m A) \<or> x \<in># not_simplified_cls (clauses S)"
+proof -
+  consider
+      (simpl) "\<not>tautology x" and "distinct_mset x"
+    | (n_simp) "tautology x \<or> \<not>distinct_mset x"
+    by auto
+  then show ?thesis
+    proof cases
+      case simpl
+      then have "x \<in> build_all_simple_clss (atms_of_m A)"
+        by (meson assms atms_of_atms_of_m_mono atms_of_m_finite build_all_simple_clss_mono
+          distinct_mset_not_tautology_implies_in_build_all_simple_clss finite_subset
+          mem_set_mset_iff subsetCE)
+      then show ?thesis by blast
+    next
+      case n_simp
+      then have "x \<in># not_simplified_cls (clauses S)"
+        using \<open>x \<in># clauses S\<close> unfolding not_simplified_cls_def by auto
+      then show ?thesis by blast
+    qed
+qed
+
+lemma cdcl\<^sub>N\<^sub>O\<^sub>T_merged_clauses_bound:
+  assumes
+    "cdcl\<^sub>N\<^sub>O\<^sub>T_merged S T" and
+    inv: "inv S" and
+    atms_clss: "atms_of_mu (clauses S) \<subseteq> atms_of_m A" and
+    atms_trail: "atm_of `(lits_of (trail S)) \<subseteq> atms_of_m A" and
+    "no_dup (trail S)" and
+    fin_A[simp]: "finite A"
+  shows "set_mset (clauses T) \<subseteq> set_mset (not_simplified_cls (clauses S))
+    \<union> build_all_simple_clss (atms_of_m A)"
+  using assms
+proof (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_merged.induct)
+  case cdcl\<^sub>N\<^sub>O\<^sub>T_merged_decide\<^sub>N\<^sub>O\<^sub>T
+  thus ?case using dpll_bj_clauses by (force dest!: build_all_simple_clss_or_not_simplified_cls)
+next
+  case cdcl\<^sub>N\<^sub>O\<^sub>T_merged_propagate\<^sub>N\<^sub>O\<^sub>T
+  thus ?case using dpll_bj_clauses by (force dest!: build_all_simple_clss_or_not_simplified_cls)
+next
+  case cdcl\<^sub>N\<^sub>O\<^sub>T_merged_forget\<^sub>N\<^sub>O\<^sub>T
+  thus ?case using clause_remove_cls\<^sub>N\<^sub>O\<^sub>T unfolding state_eq\<^sub>N\<^sub>O\<^sub>T_def
+    by (force elim!: forgetE  dest: build_all_simple_clss_or_not_simplified_cls)
+next
+  case (cdcl\<^sub>N\<^sub>O\<^sub>T_merged_backjump_l S T) note bj = this(1) and inv = this(2) and atms_clss = this(3)
+    and atms_trail = this(4) and n_d = this(5)
+
+  have "cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T"
+    apply (rule rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_is_rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T)
+    using \<open>backjump_l S T\<close> inv cdcl\<^sub>N\<^sub>O\<^sub>T_merged.simps by blast+
+  have "atm_of `(lits_of (trail T)) \<subseteq> atms_of_m A"
+    using cdcl\<^sub>N\<^sub>O\<^sub>T.rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_trail_clauses_bound[OF \<open>cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T\<close>] inv atms_trail atms_clss
+    by auto
+  have "atms_of_mu (clauses T) \<subseteq> atms_of_m A"
+    using cdcl\<^sub>N\<^sub>O\<^sub>T.rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_trail_clauses_bound[OF \<open>cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T\<close> inv atms_clss atms_trail]
+    by fast
+  moreover have "no_dup (trail T)"
+    using cdcl\<^sub>N\<^sub>O\<^sub>T.rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup[OF  \<open>cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T\<close> inv n_d] by fast
+
+  obtain F' K d F L l C' C where
+    tr_S: "trail S = F' @ Marked K d # F" and
+    T: "T \<sim> update_trail (Propagated L l # F) (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S)" and
+    "C \<in># clauses S" and
+    "trail S \<Turnstile>as CNot C" and
+    "undefined_lit L F" and
+    "atm_of L = atm_of K \<or> atm_of L \<in> atms_of_mu (clauses S)
+      \<or> atm_of L \<in> atm_of ` (lits_of F' \<union> lits_of F)" and
+    "clauses S \<Turnstile>pm C' + {#L#}" and
+    "F \<Turnstile>as CNot C'" and
+    dist: "distinct_mset (C' + {#L#})" and
+    tauto: "\<not> tautology (C' + {#L#})" and
+    "backjump_l_cond C' L T"
+    using backjump_lE[OF \<open>backjump_l S T\<close>] by metis
+
+  have "atms_of C' \<subseteq> atm_of ` (lits_of F)"
+    using \<open>F \<Turnstile>as CNot C'\<close> by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+      atms_of_def image_subset_iff in_CNot_implies_uminus(2))
+  then have "atms_of (C'+{#L#}) \<subseteq> atms_of_m A"
+    using T \<open>atm_of ` lits_of (trail T) \<subseteq> atms_of_m A\<close> by auto
+  hence "build_all_simple_clss (atms_of (C' + {#L#})) \<subseteq> build_all_simple_clss (atms_of_m A)"
+    apply - by (rule build_all_simple_clss_mono) (simp_all)
+  hence "C' + {#L#} \<in> build_all_simple_clss (atms_of_m A)"
+    using distinct_mset_not_tautology_implies_in_build_all_simple_clss[OF dist tauto]
+    by auto
+  thus ?case using T inv atms_clss by (auto dest!: build_all_simple_clss_or_not_simplified_cls)
+qed
+
+lemma cdcl\<^sub>N\<^sub>O\<^sub>T_merged_not_simplified_decreasing:
+  assumes "cdcl\<^sub>N\<^sub>O\<^sub>T_merged S T"
+  shows "(not_simplified_cls (clauses T)) \<subseteq>#  (not_simplified_cls (clauses S))"
+  using assms apply induction
+  prefer 4
+  unfolding not_simplified_cls_def apply (auto elim!: backjump_lE forgetE)[3]
+  by (elim backjump_lE) auto
+
+lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_not_simplified_decreasing:
+  assumes "cdcl\<^sub>N\<^sub>O\<^sub>T_merged\<^sup>*\<^sup>* S T"
+  shows "(not_simplified_cls (clauses T)) \<subseteq># (not_simplified_cls (clauses S))"
+  using assms apply induction
+    apply simp
+   by (drule cdcl\<^sub>N\<^sub>O\<^sub>T_merged_not_simplified_decreasing) auto
+
+lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_clauses_bound:
+  assumes
+    "cdcl\<^sub>N\<^sub>O\<^sub>T_merged\<^sup>*\<^sup>* S T" and
+    "inv S" and
+    "atms_of_mu (clauses S) \<subseteq> atms_of_m A" and
+    "atm_of `(lits_of (trail S)) \<subseteq> atms_of_m A" and
+    n_d: "no_dup (trail S)" and
+    finite[simp]: "finite A"
+  shows "set_mset (clauses T) \<subseteq> set_mset (not_simplified_cls (clauses S))
+    \<union> build_all_simple_clss (atms_of_m A)"
+  using assms(1-5)
+proof induction
+  case base
+  thus ?case by (auto dest!: build_all_simple_clss_or_not_simplified_cls)
+next
+  case (step T U) note st = this(1) and cdcl\<^sub>N\<^sub>O\<^sub>T = this(2) and IH = this(3)[OF this(4-7)] and
+    inv = this(4) and atms_clss_S = this(5) and atms_trail_S = this(6) and finite_cls_S = this(7)
+  have st': "cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T"
+    using inv rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_is_rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_and_inv st by blast
+  have "inv T"
+    using inv rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_inv st by blast
+  moreover
+    have "atms_of_mu (clauses T) \<subseteq> atms_of_m A" and
+      "atm_of ` lits_of (trail T) \<subseteq> atms_of_m A"
+      using cdcl\<^sub>N\<^sub>O\<^sub>T.rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_trail_clauses_bound[OF st'] inv atms_clss_S atms_trail_S
+      by blast+
+  moreover moreover have "no_dup (trail T)"
+    using cdcl\<^sub>N\<^sub>O\<^sub>T.rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup[OF  \<open>cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T\<close> inv n_d] by fast
+  ultimately have "set_mset (clauses U) \<subseteq> set_mset (not_simplified_cls (clauses T)) \<union> build_all_simple_clss (atms_of_m A)"
+  using cdcl\<^sub>N\<^sub>O\<^sub>T finite  cdcl\<^sub>N\<^sub>O\<^sub>T_merged_clauses_bound by (auto intro!: cdcl\<^sub>N\<^sub>O\<^sub>T_merged_clauses_bound)
+  moreover have "set_mset (not_simplified_cls (clauses T))
+    \<subseteq> set_mset (not_simplified_cls (clauses S))"
+    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_not_simplified_decreasing[OF st] by auto
+  ultimately show ?case using IH inv atms_clss_S
+    by (auto dest!: build_all_simple_clss_or_not_simplified_cls)
+qed
+
+abbreviation \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound where
+"\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A T ==  ((2+card (atms_of_m A)) ^ (1+card (atms_of_m A))) * 2
+     + card (set_mset (not_simplified_cls(clauses T)))
+     + 3 ^ card (atms_of_m A) "
+
+lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_clauses_bound_card:
+  assumes
+    "cdcl\<^sub>N\<^sub>O\<^sub>T_merged\<^sup>*\<^sup>* S T" and
+    "inv S" and
+    "atms_of_mu (clauses S) \<subseteq> atms_of_m A" and
+    "atm_of `(lits_of (trail S)) \<subseteq> atms_of_m A" and
+    n_d: "no_dup (trail S)" and
+    finite: "finite A"
+  shows "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged A T \<le> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A S"
+proof -
+  have "set_mset (clauses T) \<subseteq> set_mset (not_simplified_cls(clauses S))
+    \<union> build_all_simple_clss (atms_of_m A)"
+    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_clauses_bound[OF assms] .
+  moreover have "card (set_mset (not_simplified_cls(clauses S))
+      \<union> build_all_simple_clss (atms_of_m A))
+    \<le> card (set_mset (not_simplified_cls(clauses S))) + 3 ^ card (atms_of_m A)"
+    by (meson Nat.le_trans atms_of_m_finite build_all_simple_clss_card card_Un_le finite
+      nat_add_left_cancel_le)
+  ultimately have "card (set_mset (clauses T))
+    \<le> card (set_mset (not_simplified_cls(clauses S))) + 3 ^ card (atms_of_m A)"
+    by (meson build_all_simple_clss_finite card_mono dual_order.trans finite_UnI finite_set_mset)
+  moreover have "((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A T) * 2
+    \<le> (2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) * 2"
+    by auto
+  ultimately show ?thesis unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged_def by auto
+qed
+
+sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts_ops "\<lambda>S T. T \<sim> update_trail [] S" cdcl\<^sub>N\<^sub>O\<^sub>T_merged f
+   (* bound_inv *)"\<lambda>A S. atms_of_mu (clauses S) \<subseteq> atms_of_m A
+     \<and> atm_of ` lits_of (trail S) \<subseteq> atms_of_m A \<and> finite A"
+   \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged
+   (* inv *) "\<lambda>S. inv S \<and> no_dup (trail S)"
+   \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound
+   apply unfold_locales
+             using strict_mono apply simp
+            apply (blast dest!: cdcl\<^sub>N\<^sub>O\<^sub>T_merged_is_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T tranclp_into_rtranclp
+              cdcl\<^sub>N\<^sub>O\<^sub>T.rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_trail_clauses_bound )
+           apply (simp add: cdcl\<^sub>N\<^sub>O\<^sub>T_decreasing_measure')
+          using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_clauses_bound_card apply blast
+          apply (drule rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_not_simplified_decreasing)
+          apply (auto dest!: simp: card_mono set_mset_mono )[]
+       apply simp
+      apply auto[]
+     using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_no_dup_inv cdcl_merged_inv apply blast
+    apply (auto simp: inv_restart)[]
+    done
+
+lemma cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged_le_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound:
+  assumes
+    "cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy T V"
+    "inv (fst T)" and
+    "no_dup (trail (fst T))" and
+    "atms_of_mu (clauses (fst T)) \<subseteq> atms_of_m A" and
+    "atm_of ` lits_of (trail (fst T)) \<subseteq> atms_of_m A" and
+    "finite A"
+  shows "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged A (fst V) \<le> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A (fst T)"
+  using assms
+proof induction
+  case (restart_full S T n)
+  show ?case
+    unfolding fst_conv
+    apply (rule rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_clauses_bound_card)
+    using  restart_full unfolding full_def by (force dest!: tranclp_into_rtranclp)+
+next
+  case (restart_step m S T n U) note st = this(1) and U = this(3) and inv = this(4) and
+    n_d = this(5) and atms_clss = this(6) and atms_trail = this(7) and finite = this(8)
+  then have st': "cdcl\<^sub>N\<^sub>O\<^sub>T_merged\<^sup>*\<^sup>* S T"
+    by (blast dest: relpowp_imp_rtranclp)
+  then have st'': "cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T"
+    using inv apply - by (rule rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_is_rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T) auto
+  have "inv T"
+    apply (rule rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_inv)
+      using inv st' by auto
+  then have "inv U"
+    using U by (auto simp: inv_restart)
+  have "atms_of_mu (clauses T) \<subseteq> atms_of_m A"
+    using cdcl\<^sub>N\<^sub>O\<^sub>T.rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_trail_clauses_bound[OF st''] inv atms_clss atms_trail
+    by simp
+  then have "atms_of_mu (clauses U) \<subseteq> atms_of_m A"
+    using U by simp
+  have "not_simplified_cls (clauses U) \<subseteq># not_simplified_cls (clauses T)"
+    using \<open>U \<sim> update_trail [] T\<close> by auto
+  moreover have "not_simplified_cls (clauses T) \<subseteq># not_simplified_cls (clauses S)"
+    apply (rule rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_not_simplified_decreasing)
+    using \<open>(cdcl\<^sub>N\<^sub>O\<^sub>T_merged ^^ m) S T\<close> by (auto dest!: relpowp_imp_rtranclp)
+  ultimately have U_S: "not_simplified_cls (clauses U) \<subseteq># not_simplified_cls (clauses S)"
+    by auto
+
+  have "(set_mset (clauses U))
+    \<subseteq> set_mset (not_simplified_cls (clauses U)) \<union> build_all_simple_clss (atms_of_m A)"
+    apply (rule rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_clauses_bound)
+         apply simp
+        using \<open>inv U\<close> apply simp
+       using \<open>atms_of_mu (clauses U) \<subseteq> atms_of_m A\<close> apply simp
+      using U apply simp
+     using U apply simp
+    using finite apply simp
+    done
+  then have f1: "card (set_mset (clauses U)) \<le> card (set_mset (not_simplified_cls (clauses U))
+    \<union> build_all_simple_clss (atms_of_m A))"
+    by (meson build_all_simple_clss_finite card_mono finite_UnI finite_set_mset)
+
+  moreover have "set_mset (not_simplified_cls (clauses U)) \<union> build_all_simple_clss (atms_of_m A)
+    \<subseteq> set_mset (not_simplified_cls (clauses S)) \<union> build_all_simple_clss (atms_of_m A)"
+    using U_S by auto
+  then have f2:
+    "card (set_mset (not_simplified_cls (clauses U)) \<union> build_all_simple_clss (atms_of_m A))
+      \<le> card (set_mset (not_simplified_cls (clauses S)) \<union> build_all_simple_clss (atms_of_m A))"
+    by (meson build_all_simple_clss_finite card_mono finite_UnI finite_set_mset)
+
+  moreover have "card (set_mset (not_simplified_cls (clauses S)) \<union> build_all_simple_clss (atms_of_m A))
+    \<le> card (set_mset (not_simplified_cls (clauses S))) + card (build_all_simple_clss (atms_of_m A))"
+    using card_Un_le by blast
+  moreover have "card (build_all_simple_clss (atms_of_m A)) \<le> 3 ^ card (atms_of_m A)"
+    using atms_of_m_finite build_all_simple_clss_card local.finite by blast
+  ultimately have "card (set_mset (clauses U))
+    \<le> card (set_mset (not_simplified_cls (clauses S))) + 3 ^ card (atms_of_m A)"
+    by linarith
+  then show ?case unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged_def by auto
+qed
+
+lemma cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_le_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound:
+  assumes
+    "cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy T V"
+    "inv (fst T)"
+    "finite A"
+  shows "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A (fst V) \<le> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A (fst T)"
+  using assms
+proof induction
+  case (restart_full S T n)
+  have "not_simplified_cls (clauses T) \<subseteq># not_simplified_cls (clauses S)"
+    apply (rule rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_not_simplified_decreasing)
+    using \<open>full cdcl\<^sub>N\<^sub>O\<^sub>T_merged S T\<close> unfolding full_def by (auto dest: tranclp_into_rtranclp)
+  then show ?case by (auto simp: card_mono set_mset_mono)
+next
+  case (restart_step m S T n U) note st = this(1) and U = this(3) and inv = this(4) and
+    finite = this(5)
+  then have st': "cdcl\<^sub>N\<^sub>O\<^sub>T_merged\<^sup>*\<^sup>* S T"
+    by (blast dest: relpowp_imp_rtranclp)
+  then have st'': "cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T"
+    using inv apply - by (rule rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_is_rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T) auto
+  have "inv T"
+    apply (rule rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_inv)
+      using inv st' by auto
+  then have "inv U"
+    using U by (auto simp: inv_restart)
+  have "not_simplified_cls (clauses U) \<subseteq># not_simplified_cls (clauses T)"
+    using \<open>U \<sim> update_trail [] T\<close> by auto
+  moreover have "not_simplified_cls (clauses T) \<subseteq># not_simplified_cls (clauses S)"
+    apply (rule rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_not_simplified_decreasing)
+    using \<open>(cdcl\<^sub>N\<^sub>O\<^sub>T_merged ^^ m) S T\<close> by (auto dest!: relpowp_imp_rtranclp)
+  ultimately have U_S: "not_simplified_cls (clauses U) \<subseteq># not_simplified_cls (clauses S)"
+    by auto
+  then show ?case by (auto simp: card_mono set_mset_mono)
+qed
+
 
 sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts _ _ _ _ f "\<lambda>S T. T \<sim> update_trail [] S"
    (* bound_inv *)"\<lambda>A S. atms_of_mu (clauses S) \<subseteq> atms_of_m A
      \<and> atm_of ` lits_of (trail S) \<subseteq> atms_of_m A \<and> finite A"
    \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged cdcl\<^sub>N\<^sub>O\<^sub>T_merged
    (* inv *) "\<lambda>S. inv S \<and> no_dup (trail S)"
-   "\<lambda>A T. ((2+card (atms_of_m A)) ^ (1+card (atms_of_m A))) * 2 + card (set_mset (clauses T))
-     + 3 ^ card (atms_of_mu (clauses T))"
+   "\<lambda>A T. ((2+card (atms_of_m A)) ^ (1+card (atms_of_m A))) * 2
+     + card (set_mset (not_simplified_cls(clauses T)))
+     + 3 ^ card (atms_of_m A)"
    apply unfold_locales
-             using strict_mono apply simp
-            apply (blast dest!: cdcl\<^sub>N\<^sub>O\<^sub>T_merged_is_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T tranclp_into_rtranclp
-              cdcl\<^sub>N\<^sub>O\<^sub>T.rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_trail_clauses_bound )
-           apply (simp add: cdcl\<^sub>N\<^sub>O\<^sub>T_decreasing_measure')
-           defer
-          defer
-          apply simp
-         apply auto[1]
-        apply (metis (no_types, lifting) cdcl\<^sub>N\<^sub>O\<^sub>T_merged_no_dup_inv cdcl_merged_inv)
-       apply (auto simp add: inv_restart)[]
-oops
+     using cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged_le_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound apply force
+    using cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_stgy_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_le_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound by fastforce
+
 end
 
 end
