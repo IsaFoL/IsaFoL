@@ -3092,44 +3092,48 @@ next
     qed
 qed
 
+lemma rtranclp_cdcl_fw_s_distinct_mset_clauses:
+  assumes invR: "cdcl_all_inv_mes R" and
+  st: "cdcl_fw_s\<^sup>*\<^sup>* R S" and
+  dist: "distinct_mset (clauses R)" and
+  R: "trail R = []"
+  shows "distinct_mset (clauses S)"
+  using rtranclp_cdcl_s_distinct_mset_clauses[OF invR _ dist R]
+  invR st rtranclp_mono[of cdcl_s' "cdcl_s\<^sup>*\<^sup>*"] cdcl_s'_is_rtranclp_cdcl_s
+  by (auto dest!: cdcl_s'_is_rtranclp_cdcl_s rtranclp_cdcl_fw_s_rtranclp_cdcl_s')
+
 lemma no_step_cdcl_s'_no_step_cdcl_fw_s:
   assumes
-    inv: "cdcl_all_inv_mes R"
-  shows "no_step cdcl_s' R \<longrightarrow> no_step cdcl_fw_s R" (is "?s' \<longrightarrow> ?fw")
-proof
-  assume ?s'
-  then show ?fw
-    proof -
-      assume a1: "no_step cdcl_s' R"
-      { fix ss :: 'st
-        obtain ssa :: "'st \<Rightarrow> 'st \<Rightarrow> 'st" where
-          ff1: "\<And>s sa. \<not> cdcl_fw_s s sa \<or> full cdcl_fw_cp s sa \<or> decide s (ssa s sa)"
-          using cdcl_fw_s.cases by moura
-        obtain ssb :: "('st \<Rightarrow> 'st \<Rightarrow> bool) \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> 'st" where
-          ff2: "\<And>p s sa. \<not> p\<^sup>+\<^sup>+ s sa \<or> p s (ssb p s sa)"
-          by (meson tranclp_unfold_begin)
-        obtain ssc :: "'st \<Rightarrow> 'st" where
-          ff3: "\<And>s sa sb. (\<not> cdcl_all_inv_mes s \<or> \<not> cdcl_cp s sa \<or> cdcl_s' s (ssc s))
-            \<and> (\<not> cdcl_all_inv_mes s \<or> \<not> cdcl_o s sb \<or> cdcl_s' s (ssc s))"
-          using n_step_cdcl_s_iff_no_step_cdcl_cl_cdcl_o by moura
-        then have ff4: "\<And>s. \<not> cdcl_o R s"
-          using a1 inv by blast
-        have ff5: "\<And>s. \<not> cdcl_cp\<^sup>+\<^sup>+ R s"
-          using ff3 ff2 a1 by (metis inv)
-        have "\<And>s. \<not> cdcl_bj\<^sup>+\<^sup>+ R s"
-          using ff4 ff2 by (metis bj)
-        then have "\<And>s. \<not> cdcl_s'_without_decide R s"
-          using ff5 by (simp add: cdcl_s'_without_decide.simps full_def)
-        then have "\<not> cdcl_s'_without_decide\<^sup>+\<^sup>+ R ss"
-          using ff2 by blast
-        then have "\<not> cdcl_fw_s R ss"
-          using ff4 ff1 by (metis (full_types)  decide full_def inv
-            conflicting_true_full_cdcl_fw_cp_imp_full_cdcl_s'_without_decode) }
-      then show ?thesis
-        by fastforce
-    qed
+    inv: "cdcl_all_inv_mes R" and s': "no_step cdcl_s' R"
+  shows "no_step cdcl_fw_s R"
+proof -
+  { fix ss :: 'st
+    obtain ssa :: "'st \<Rightarrow> 'st \<Rightarrow> 'st" where
+      ff1: "\<And>s sa. \<not> cdcl_fw_s s sa \<or> full cdcl_fw_cp s sa \<or> decide s (ssa s sa)"
+      using cdcl_fw_s.cases by moura
+    obtain ssb :: "('st \<Rightarrow> 'st \<Rightarrow> bool) \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> 'st" where
+      ff2: "\<And>p s sa. \<not> p\<^sup>+\<^sup>+ s sa \<or> p s (ssb p s sa)"
+      by (meson tranclp_unfold_begin)
+    obtain ssc :: "'st \<Rightarrow> 'st" where
+      ff3: "\<And>s sa sb. (\<not> cdcl_all_inv_mes s \<or> \<not> cdcl_cp s sa \<or> cdcl_s' s (ssc s))
+        \<and> (\<not> cdcl_all_inv_mes s \<or> \<not> cdcl_o s sb \<or> cdcl_s' s (ssc s))"
+      using n_step_cdcl_s_iff_no_step_cdcl_cl_cdcl_o by moura
+    then have ff4: "\<And>s. \<not> cdcl_o R s"
+      using s' inv by blast
+    have ff5: "\<And>s. \<not> cdcl_cp\<^sup>+\<^sup>+ R s"
+      using ff3 ff2 s' by (metis inv)
+    have "\<And>s. \<not> cdcl_bj\<^sup>+\<^sup>+ R s"
+      using ff4 ff2 by (metis bj)
+    then have "\<And>s. \<not> cdcl_s'_without_decide R s"
+      using ff5 by (simp add: cdcl_s'_without_decide.simps full_def)
+    then have "\<not> cdcl_s'_without_decide\<^sup>+\<^sup>+ R ss"
+      using ff2 by blast
+    then have "\<not> cdcl_fw_s R ss"
+      using ff4 ff1 by (metis (full_types)  decide full_def inv
+        conflicting_true_full_cdcl_fw_cp_imp_full_cdcl_s'_without_decode) }
+  then show ?thesis
+    by fastforce
 qed
-
 
 lemma wf_cdcl_fw_cp:
   "wf{(T, S). cdcl_all_inv_mes S \<and> cdcl_fw_cp S T}"
@@ -3529,6 +3533,25 @@ proof (rule ccontr)
   ultimately show False
     using cdcl_all_inv_mes_learned_clss_bound by (metis Suc_leI card_mono not_less_eq_eq
       build_all_simple_clss_finite)
+qed
+
+lemma cdcl_with_restart\<^sub>C\<^sub>W_distinct_mset_clauses:
+  assumes invR: "cdcl_all_inv_mes (fst R)" and
+  st: "cdcl_with_restart\<^sub>C\<^sub>W R S" and
+  dist: "distinct_mset (clauses (fst R))" and
+  R: "trail (fst R) = []"
+  shows "distinct_mset (clauses (fst S))"
+  using assms(2,1,3,4)
+proof (induction)
+  case (restart_full S T)
+  then show ?case using rtranclp_cdcl_fw_s_distinct_mset_clauses[of S T] unfolding full_def
+    by (auto dest: tranclp_into_rtranclp)
+next
+  case (restart_step T S n U)
+  then have "distinct_mset (clauses T)" using rtranclp_cdcl_fw_s_distinct_mset_clauses[of S T]
+    unfolding full_def by (auto dest: relpowp_imp_rtranclp)
+  then show ?case using \<open>restart T U\<close> by (metis clauses_restart distinct_mset_union fstI
+    mset_le_exists_conv restart.cases state_eq_clauses)
 qed
 
 end

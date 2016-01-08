@@ -648,11 +648,12 @@ lemma no_relearned_clause:
   st': "cdcl_s\<^sup>*\<^sup>* R S" and
   bt: "backtrack S T" and
   confl: "conflicting S = C_Clause E" and
-  M_lev: "cdcl_M_level_inv R" and
   already_learned: "E \<in># clauses S" and
   R: "trail R = []"
   shows False
 proof -
+  have M_lev: "cdcl_M_level_inv R"
+    using invR unfolding cdcl_all_inv_mes_def by auto
   obtain D L M1 M2_loc K i where
      T: "T \<sim> update_trail (Propagated L ((D + {#L#})) # M1) (add_cls (D + {#L#})
       (update_backtrack_lvl (get_maximum_level D (trail S)) (update_conflicting C_True S)))"
@@ -812,6 +813,40 @@ proof -
   ultimately show False by blast
 qed
 
+lemma rtranclp_cdcl_s_distinct_mset_clauses:
+  assumes invR: "cdcl_all_inv_mes R" and
+  st: "cdcl_s\<^sup>*\<^sup>* R S" and
+  dist: "distinct_mset (clauses R)" and
+  R: "trail R = []"
+  shows "distinct_mset (clauses S)"
+  using st
+proof (induction)
+  case base
+  then show ?case using dist by simp
+next
+  case (step S T) note st = this(1) and s = this(2) and IH = this(3)
+  from s show ?case
+    proof (cases rule: cdcl_s.cases)
+      case conflict'
+      then show ?thesis using IH unfolding full_def by (auto dest: tranclp_cdcl_cp_no_more_clauses)
+    next
+      case (other' S') note o = this(1) and full = this(3)
+      have [simp]: "clauses T = clauses S'"
+        using full unfolding full0_def by (auto dest: rtranclp_cdcl_cp_no_more_clauses)
+      show ?thesis
+        using o IH
+        proof (cases rule: cdcl_o_rule_cases)
+          case backtrack
+          then obtain E where
+            "conflicting S = C_Clause E" and
+            cls_S': "clauses S' = {#E#} + clauses S"
+            by auto
+          then have "E \<notin># clauses S"
+            using no_relearned_clause R invR local.backtrack st by blast
+          then show ?thesis using IH by (simp add: distinct_mset_add_single cls_S')
+        qed auto
+    qed
+qed
 
 subsection \<open>Decrease of a measure\<close>
 fun cdcl_measure where

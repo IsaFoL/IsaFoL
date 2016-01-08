@@ -1891,6 +1891,11 @@ lemma tranclp_cdcl_cp_no_more_clauses:
   shows "clauses S = clauses S'"
   using assms by (induct rule: tranclp.induct) (auto dest: cdcl_cp_no_more_clauses)
 
+lemma rtranclp_cdcl_cp_no_more_clauses:
+  assumes "cdcl_cp\<^sup>*\<^sup>* S S'"
+  shows "clauses S = clauses S'"
+  using assms by (induct rule: rtranclp_induct) (fastforce dest: cdcl_cp_no_more_clauses)+
+
 lemma no_conflict_after_conflict:
   "conflict S T \<Longrightarrow> \<not>conflict T U"
   by fastforce
