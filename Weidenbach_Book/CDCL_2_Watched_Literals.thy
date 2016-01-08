@@ -135,8 +135,8 @@ fun tl_trail :: "'v two_wl_struct  \<Rightarrow>  'v two_wl_struct " where
 
 lemma tl_trail:
   "watched_lits S \<Longrightarrow> watched_lits (tl_trail S)"
-  apply (cases S)
-  unfolding watched_lits_def by (auto simp: clauses_def)
+  unfolding watched_lits_def by (cases S) (auto simp: clauses_def)
+
 end
 
 end
