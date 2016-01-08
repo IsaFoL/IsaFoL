@@ -3442,13 +3442,12 @@ proof (induct rule: cdcl_o_induct)
   show ?case
     proof (rule HOL.disjI2, clarify)
       fix D
-      assume D: "D \<in># clauses T"
-      and M_D: "trail T \<Turnstile>as CNot D"
-    let ?M = "trail S"
-    let ?M' = "trail T"
-    let ?k = "backtrack_lvl S"
-    have "\<not>?M \<Turnstile>as CNot D"
-        using no_f D S T by auto
+      assume D: "D \<in># clauses T" and M_D: "trail T \<Turnstile>as CNot D"
+      let ?M = "trail S"
+      let ?M' = "trail T"
+      let ?k = "backtrack_lvl S"
+      have "\<not>?M \<Turnstile>as CNot D"
+          using no_f D S T by auto
       have "-L \<in># D"
         proof (rule ccontr)
           assume "\<not> ?thesis"

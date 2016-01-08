@@ -77,7 +77,7 @@ lemma cdcl_o_new_clause_learned_is_backtrack_step:
   new: "D \<notin># learned_clss S" and
   cdcl: "cdcl_o S T"
   shows "backtrack S T \<and> conflicting S = C_Clause D"
-  using cdcl learned new 
+  using cdcl learned new
 proof (induction rule: cdcl_o_induct)
   case (backtrack K i M1 M2 L C T) note T = this(6) and D_T = this(7) and D_S = this(8)
   then have "D = C + {#L#}" using not_gr0 by fastforce

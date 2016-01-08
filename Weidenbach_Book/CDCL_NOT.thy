@@ -70,7 +70,7 @@ proof -
     unfolding \<mu>\<^sub>C_def by blast
   also have "\<dots> = (\<Sum>i=0..<1. (L#M)!i * b^ (s +i - length (L#M)))
                  + (\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
-     by (smt Nat.le_iff_add One_nat_def add.commute le0 list.size(4) setsum_add_nat_ivl)
+     by (rule setsum_add_nat_ivl[symmetric]) simp_all
   finally have "\<mu>\<^sub>C s b (L # M)= L * b ^ (s - 1 - length M)
                   + (\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
      by auto
@@ -94,8 +94,7 @@ proof -
     unfolding \<mu>\<^sub>C_def by blast
   moreover hence "\<dots> = (\<Sum>i=0..< length M. (M@M')!i * b^ (s +i - length (M@M')))
                  + (\<Sum>i=length M..<length (M@M'). (M@M')!i * b^ (s +i - length (M@M')))"
-    unfolding length_append by (smt Nat.le_iff_add One_nat_def add.commute le0 list.size(4)
-      setsum_add_nat_ivl)
+    by (auto intro!: setsum_add_nat_ivl[symmetric])
   moreover
     have "\<forall>i\<in>{0..< length M}. (M@M')!i * b^ (s +i - length (M@M')) = M ! i * b ^ (s - length M'
       + i - length M)"
@@ -529,9 +528,10 @@ next
   case (backjump C F' K d F L D T) note confl = this(2) and tr = this(3) and undef = this(4)
     and L = this(5) and N_C = this(6) and vars_D = this(5) and T = this(8)
   have decomp: "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition F)"
-    using decomp unfolding tr by (smt all_decomposition_implies_def
-      get_all_marked_decomposition.simps(1) get_all_marked_decomposition_never_empty hd_Cons_tl
-      insert_iff list.sel(3) list.set(2) tl_get_all_marked_decomposition_skip_some)
+    using decomp unfolding tr all_decomposition_implies_def
+    by (metis (no_types, lifting) get_all_marked_decomposition.simps(1)
+      get_all_marked_decomposition_never_empty hd_Cons_tl insert_iff list.sel(3) list.set(2)
+      tl_get_all_marked_decomposition_skip_some)
 
   moreover have "(\<lambda>a. {#lit_of a#}) ` set (fst (hd (get_all_marked_decomposition F)))
       \<union> set_mset (clauses S)
@@ -1589,8 +1589,10 @@ proof (induction "(2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
           have "\<not> learn (f ?i) (f (Suc ?i)) \<and> \<not>forget\<^sub>N\<^sub>O\<^sub>T (f ?i) (f (Suc ?i))"
             using Min_in[OF \<open>finite ?I\<close> \<open>?I \<noteq> {}\<close>] by auto
           moreover have "\<forall>k<?i. learn_or_forget (f k) (f (Suc k))"
-            by (smt Min.coboundedI \<open>finite ?I\<close> \<open>?I \<noteq> {}\<close> dual_order.trans infinite_growing
-              less_or_eq_imp_le mem_Collect_eq not_le)
+            using Min.coboundedI[of "{i. i \<le> i\<^sub>0 \<and> \<not> learn (f i) (f (Suc i)) \<and> \<not> forget\<^sub>N\<^sub>O\<^sub>T (f i)
+              (f (Suc i))}", simplified]
+            by (meson \<open>\<not> learn (f i\<^sub>0) (f (Suc i\<^sub>0)) \<and> \<not> forget\<^sub>N\<^sub>O\<^sub>T (f i\<^sub>0) (f (Suc i\<^sub>0))\<close> less_imp_le
+              dual_order.trans not_le)
           ultimately show ?thesis using that by blast
         qed
       def g \<equiv> "\<lambda>n. f (n + Suc i)"
@@ -1657,8 +1659,10 @@ next
           have "\<not> learn (f ?i) (f (Suc ?i)) \<and> \<not>forget\<^sub>N\<^sub>O\<^sub>T (f ?i) (f (Suc ?i))"
             using Min_in[OF \<open>finite ?I\<close> \<open>?I \<noteq> {}\<close>] by auto
           moreover have "\<forall>k<?i. learn_or_forget (f k) (f (Suc k))"
-            by (smt Min.coboundedI \<open>finite ?I\<close> \<open>?I \<noteq> {}\<close> dual_order.trans infinite_growing
-              less_or_eq_imp_le mem_Collect_eq not_le)
+            using Min.coboundedI[of "{i. i \<le> i\<^sub>0 \<and> \<not> learn (f i) (f (Suc i)) \<and> \<not> forget\<^sub>N\<^sub>O\<^sub>T (f i)
+              (f (Suc i))}", simplified]
+            by (meson \<open>\<not> learn (f i\<^sub>0) (f (Suc i\<^sub>0)) \<and> \<not> forget\<^sub>N\<^sub>O\<^sub>T (f i\<^sub>0) (f (Suc i\<^sub>0))\<close> less_imp_le
+              dual_order.trans not_le)
           ultimately show ?thesis using that by blast
         qed
       have "dpll_bj (f i) (f (Suc i))"
@@ -2036,15 +2040,16 @@ proof (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_learn_all_induct)
   hence "(2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) - \<mu>\<^sub>C' A T
     < (2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) - \<mu>\<^sub>C' A S"
     using dpll_bj_trail_mes_decreasing_prop fin_A unfolding \<mu>\<^sub>C'_def by blast
-  hence "(2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) - \<mu>\<^sub>C' A T + 1
+  hence XX: "((2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) - \<mu>\<^sub>C' A T) + 1
     \<le> (2+card (atms_of_m A)) ^ (1+card (atms_of_m A)) - \<mu>\<^sub>C' A S"
     by auto
-  hence  "((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A T) *
+  from mult_le_mono1[OF this, of "(1 + 3 ^ card (atms_of_m A))"]
+  have "((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A T) *
       (1 + 3 ^ card (atms_of_m A)) + (1 + 3 ^ card (atms_of_m A))
     \<le> ((2 + card (atms_of_m A)) ^ (1 + card (atms_of_m A)) - \<mu>\<^sub>C' A S)
       * (1 + 3 ^ card (atms_of_m A))"
-    by (smt One_nat_def add.commute add_Suc comm_monoid_add_class.add_0 mult.commute mult_Suc_right
-      mult_le_mono2)
+    unfolding Nat.add_mult_distrib
+    by presburger
   moreover
     have cl_T_S:  "clauses T = clauses S"
       using dpll_bj.hyps dpll_bj.prems(1) dpll_bj_clauses by auto

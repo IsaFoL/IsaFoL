@@ -646,13 +646,21 @@ next
     | (skip) "no_step backtrack W" and "skip W X"
     | (resolve) "no_step backtrack W" and "resolve W X"
     using bj cdcl_bj.cases by meson
-  thus ?case
+  then show ?case
     proof cases
       case (BT X')
-      hence "backtrack W X \<or> skip W X"
+      then consider
+          (bt) "backtrack W X"
+        | (sk) "skip W X"
         using bj if_can_apply_backtrack_no_more_resolve[of W W X' X] inv_W cdcl_bj.cases by fast
-      show ?thesis
-        using IH by (meson \<open>backtrack W X \<or> skip W X\<close> rtranclp.rtrancl_into_rtrancl)
+      then show ?thesis
+        proof cases
+          case bt
+          then show ?thesis using IH by auto
+        next
+          case sk
+          then show ?thesis using IH by (meson rtranclp_trans r_into_rtranclp)
+        qed
     next
       case skip
       thus ?thesis using IH  by (meson rtranclp.rtrancl_into_rtrancl)
@@ -2419,7 +2427,6 @@ fw_s_cp[intro]: "full cdcl_fw_cp S T \<Longrightarrow> cdcl_fw_s S T" |
 fw_s_decide[intro]: "decide S T \<Longrightarrow> no_step cdcl_fw_cp S \<Longrightarrow> full0 cdcl_fw_cp T U
   \<Longrightarrow>  cdcl_fw_s S U"
 
-
 lemma cdcl_fw_s_tranclp_cdcl_fw:
   assumes fw: "cdcl_fw_s S T"
   shows "cdcl_fw\<^sup>+\<^sup>+ S T"
@@ -2835,12 +2842,14 @@ next
       then show ?thesis
         proof cases
           case s' note _ =this(2)
-          then show ?thesis
-            using bj'(1) unfolding full_def by (fastforce dest!: tranclpD simp: cdcl_bj.simps)
+          then have False
+            using bj'(1) unfolding full_def by (force dest!: tranclpD simp: cdcl_bj.simps)
+          then show ?thesis by fast
         next
           case dec note _ = this(5)
-          then show ?thesis
-            using bj'(1) unfolding full_def by (fastforce dest!: tranclpD simp: cdcl_bj.simps)
+          then have False
+            using bj'(1) unfolding full_def by (force dest!: tranclpD simp: cdcl_bj.simps)
+          then show ?thesis by fast
         next
           case dec_confl
           then have "cdcl_fw_cp U V'"
@@ -3500,7 +3509,7 @@ proof (rule ccontr)
       proof (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct)
         case (restart_step T S n) note H = this(1) and c = this(2) and n_s = this(4)
         obtain S' where "cdcl_fw_s S S'"
-          using H c by (metis less_nat_zero_code relpowp_E2)
+          using H c by (metis gr_implies_not0 relpowp_E2)
         then show False using n_s by auto
       next
         case (restart_full S T)
