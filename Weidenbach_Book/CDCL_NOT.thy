@@ -5,20 +5,8 @@ begin
 section \<open>NOT's CDCL\<close>
 sledgehammer_params[verbose, prover=e spass z3 cvc4 verit remote_vampire]
 
-(* TODO share *)
 
-type_synonym 'v clauses = "'v clause multiset"
-
-
-(* TODO Move *)
-lemma replicate_mset_plus: "replicate_mset (a + b) C = replicate_mset a C + replicate_mset b C"
-  by (induct a) (auto simp: ac_simps)
-
-(* TODO Move *)
-lemma set_mset_minus_replicate_mset[simp]:
-  "n \<ge> count A a \<Longrightarrow> set_mset (A - replicate_mset n a) = set_mset A - {a}"
-  "n < count A a \<Longrightarrow> set_mset (A - replicate_mset n a) = set_mset A"
-  by (auto split: split_if_asm)
+declare set_mset_minus_replicate_mset[simp]
 
 subsection \<open>Auxiliary Lemmas\<close>
 lemma no_dup_cannot_not_lit_and_uminus:
@@ -1731,7 +1719,8 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_normal_forms:
     n_s: "no_step cdcl\<^sub>N\<^sub>O\<^sub>T S" and
     inv: "cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv A S" and
     decomp: "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))"
-  shows "unsatisfiable (set_mset (clauses S)) \<or> (trail S \<Turnstile>asm clauses S \<and> satisfiable (set_mset (clauses S)))"
+  shows "unsatisfiable (set_mset (clauses S)) 
+    \<or> (trail S \<Turnstile>asm clauses S \<and> satisfiable (set_mset (clauses S)))"
 proof -
   have n_s': "no_step dpll_bj S"
     using n_s by (auto simp: cdcl\<^sub>N\<^sub>O\<^sub>T.simps)
@@ -1746,7 +1735,8 @@ lemma full0_cdcl\<^sub>N\<^sub>O\<^sub>T_normal_forms:
     inv: "cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv A S" and
     n_d: "no_dup (trail S)" and
     decomp: "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))"
-  shows "unsatisfiable (set_mset (clauses T)) \<or> (trail T \<Turnstile>asm clauses T \<and> satisfiable (set_mset (clauses T)))"
+  shows "unsatisfiable (set_mset (clauses T))
+    \<or> (trail T \<Turnstile>asm clauses T \<and> satisfiable (set_mset (clauses T)))"
 proof -
   have st: "cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T" and n_s: "no_step cdcl\<^sub>N\<^sub>O\<^sub>T T"
     using full unfolding full0_def by blast+
