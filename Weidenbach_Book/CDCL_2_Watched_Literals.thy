@@ -3,6 +3,17 @@ imports CDCL_FW (* Have to decide which imports are the best *)
 begin
 
 (* TODO: Move to Multiset_More *)
+lemma distinct_mset_set_mset_ident[simp]: "distinct_mset M \<Longrightarrow> mset_set (set_mset M) = M"
+  apply (auto simp: multiset_eq_iff)
+  apply (rename_tac x)
+  apply (case_tac "count M x = 0")
+   apply simp
+  apply (case_tac "count M x = 1")
+   apply simp
+  unfolding distinct_mset_count_less_1
+  by (meson le_neq_implies_less less_one)
+
+(* TODO: Move to Multiset_More *)
 lemma distinct_mem_diff_mset:
   assumes dist: "distinct_mset M" and mem: "x \<in> set_mset (M - N)"
   shows "x \<notin> set_mset N"
@@ -11,6 +22,20 @@ proof -
     using dist mem by (simp add: distinct_mset_def)
   then show ?thesis
     using mem by simp
+qed
+
+(* TODO: Move to Multiset_More *)
+lemma distinct_set_mset_eq:
+  assumes
+    dist_m: "distinct_mset M" and
+    dist_n: "distinct_mset N" and
+    set_eq: "set_mset M = set_mset N"
+  shows "M = N"
+proof -
+  have "mset_set (set_mset M) = mset_set (set_mset N)"
+    using set_eq by simp
+  thus ?thesis
+    using dist_m dist_n by auto
 qed
 
 text \<open>Only the 2-watched literals have to be verified here: the backtrack level and the trail can
@@ -161,7 +186,8 @@ lemma wf_candidates_propagate_sound:
 
 lemma wf_candidates_propagate_complete:
   assumes wf: "wf_two_wl_state S" and
-    mem: "C \<in># image_mset clause_of_w_clause (clauses S)" and
+    c_mem: "C \<in># image_mset clause_of_w_clause (clauses S)" and
+    l_mem: "L \<in># C" and
     unsat: "trail S \<Turnstile>as CNot (mset_set (set_mset C - {L}))" and
     undef: "undefined_lit L (trail S)"
   shows "(L, C) \<in> candidates_propagate S"
@@ -173,7 +199,7 @@ lemma wf_candidates_propagate_complete:
     note MNU_defs [simp] = M_def N_def U_def
 
     obtain Cw where ca: "C = clause_of_w_clause Cw" "Cw \<in># N + U"
-      using mem by force
+      using c_mem by force
 
     obtain W NW where cw_eq: "Cw = W_Clause W NW"
       by (case_tac Cw, blast)
@@ -186,11 +212,6 @@ lemma wf_candidates_propagate_complete:
       "size W < 2 \<Longrightarrow> set_mset NW \<subseteq> set_mset W"
       "\<And>L L'. L \<in># W \<Longrightarrow> -L \<in> lits_of M \<Longrightarrow> L' \<in># NW \<Longrightarrow> -L' \<in> lits_of M"
      using wf_c unfolding cw_eq by auto
-
-(*
-    have "\<And>L'. L' \<in> set_mset C \<Longrightarrow> L' \<noteq> L \<Longrightarrow> -L' \<in> lits_of M"
-      sorry
-*)
 
     have unit_set: "set_mset (W - mset_set (uminus ` lits_of M)) = {L}"
     proof
@@ -213,14 +234,42 @@ lemma wf_candidates_propagate_complete:
       qed
     next
       show "{L} \<subseteq> set_mset (W - mset_set (uminus ` lits_of M))"
-        sorry
+      proof clarify
+        have "L \<in># W"
+        proof (cases W)
+          case empty
+          thus ?thesis
+            using w_nw(2) ca(1) cw_eq l_mem by auto
+        next
+          case (add W' La)
+          thus ?thesis
+          proof (cases "La = L")
+            case True
+            thus ?thesis
+              using add by simp
+          next
+            case False
+            have "-La \<in> lits_of M"
+              using False add ca(1) cw_eq unsat[unfolded CNot_def true_annots_def, simplified]
+              by fastforce
+            then show ?thesis
+              by (metis M_def Marked_Propagated_in_iff_in_lits_of add add.left_neutral ca(1)
+                count_union cw_eq l_mem mset_le_add_left mset_le_insertD not_gr0 undef
+                w_clause.sel(1) w_clause.sel(2) w_nw(3))
+          qed
+        qed
+        moreover have "L \<notin># mset_set (uminus ` lits_of M)"
+          using Marked_Propagated_in_iff_in_lits_of undef by auto
+        ultimately show "L \<in> set_mset (W - mset_set (uminus ` lits_of M))"
+          by auto
+      qed
     qed
-
     have unit: "W - mset_set (uminus ` lits_of M) = {#L#}"
-      sorry
+      by (metis distinct_mset_minus distinct_mset_set_mset_ident distinct_mset_singleton
+        set_mset_single unit_set w_nw(1))
 
     show ?thesis
-      unfolding candidates_propagate_def using ca unit undef by blast
+      unfolding candidates_propagate_def using ca unit undef cw_eq by fastforce
   qed
 
 lemma wf_candidates_conflict_sound:
