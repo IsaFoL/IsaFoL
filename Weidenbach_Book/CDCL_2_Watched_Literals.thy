@@ -47,17 +47,16 @@ definition clauses where
 interpretation dpll_state trail "image_mset clause_of_w_clause o clauses" "\<lambda>M (_, S). (M, S)"
 oops
 
+primrec two_wl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v w_clause \<Rightarrow> bool" where
+  "two_wl_cls M (W_Clause W N) \<longleftrightarrow>
+   distinct_mset W \<and> size W \<le> 2 \<and> (size W < 2 \<longrightarrow> set_mset N \<subseteq> set_mset W) \<and>
+   (\<forall>L \<in># W. -L \<in> lits_of M \<longrightarrow> (\<forall>L' \<in># N. -L' \<in> lits_of M))"
+
 locale structure_2_WL =
-  fixes choose :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> 'v clause \<Rightarrow> 'v clause"
-  assumes
-    choose_include: "\<And>S C. choose S C \<subseteq># C" and
-    size_choose: "size (choose S C) = min (card (set_mset C)) 2" and
-    choose_distinct: "distinct_mset (choose S C)" and
-    choose_undefined: "L \<in># choose S C \<Longrightarrow> defined_lit L (trail S) \<Longrightarrow> 
-      \<forall>L' \<in># C. undefined_lit L' (trail S) \<longrightarrow> L' \<in># choose S C" and
-    choose_positive: "L \<in># choose S C \<Longrightarrow> -L \<in> lits_of (trail S) \<Longrightarrow> 
-      \<forall>L' \<in># C. L' \<in> lits_of (trail S) \<longrightarrow> L' \<in># choose S C"
+  fixes choose :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> 'v clause \<Rightarrow> 'v w_clause"
+  assumes choose: "two_wl_cls (trail S) (choose S C)"
 begin
+
 (* 
 fun one_is_true :: "'v w_clause \<Rightarrow> ('v, 'lvl, 'mark) two_wl_state \<Rightarrow> bool"  where
 "one_is_true (W_Clause w _) S = (\<exists>L\<in># w. L \<in> lits_of (trail S))"
