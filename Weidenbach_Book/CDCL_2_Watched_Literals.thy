@@ -2,6 +2,17 @@ theory CDCL_2_Watched_Literals
 imports CDCL_FW (* Have to decide which imports are the best *)
 begin
 
+(* TODO: Move to Multiset_More *)
+lemma distinct_mem_diff_mset:
+  assumes dist: "distinct_mset M" and mem: "x \<in> set_mset (M - N)"
+  shows "x \<notin> set_mset N"
+proof -
+  have "count M x = 1"
+    using dist mem by (simp add: distinct_mset_def)
+  then show ?thesis
+    using mem by simp
+qed
+
 text \<open>Only the 2-watched literals have to be verified here: the backtrack level and the trail can
   remain separate.\<close>
 
@@ -16,8 +27,8 @@ datatype ('v, 'lvl, 'mark) two_wl_state =
     (learned_clss: "'v w_clause multiset") (backtrack_lvl: 'lvl)
     (conflicting: "'v clause conflicting_clause")
 
-definition clauses where
-"clauses S = init_clss S + learned_clss S"
+abbreviation clauses where
+"clauses S \<equiv> init_clss S + learned_clss S"
 
 definition
   candidates_propagate :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> ('v literal \<times> 'v clause) set"
@@ -60,19 +71,19 @@ lemma wf_candidates_propagate_sound:
       "Cw \<in># N + U"
       "watched Cw - mset_set (uminus ` lits_of M) = {#L#}"
       "undefined_lit L M"
-      using cand unfolding candidates_propagate_def MNU_defs clauses_def by blast
+      using cand unfolding candidates_propagate_def MNU_defs by blast
 
-    obtain W NW where cw_eq: "Cw = W_Clause W NW" by (case_tac Cw, blast)
+    obtain W NW where cw_eq: "Cw = W_Clause W NW"
+      by (case_tac Cw, blast)
 
     have l_w: "L \<in># W"
       by (metis Multiset.diff_le_self cw(3) cw_eq mset_leD multi_member_last w_clause.sel(1))
 
     have wf_c: "wf_two_wl_cls M Cw"
-      using wf \<open>Cw \<in># N + U\<close> unfolding clauses_def wf_two_wl_state_def by simp
+      using wf \<open>Cw \<in># N + U\<close> unfolding wf_two_wl_state_def by simp
 
     have w_nw:
       "distinct_mset W"
-      "size W \<le> 2"
       "size W < 2 \<Longrightarrow> set_mset NW \<subseteq> set_mset W"
       "\<And>L L'. L \<in># W \<Longrightarrow> -L \<in> lits_of M \<Longrightarrow> L' \<in># NW \<Longrightarrow> -L' \<in> lits_of M"
      using wf_c unfolding cw_eq by auto
@@ -88,7 +99,7 @@ lemma wf_candidates_propagate_sound:
         by (metis (no_types, lifting) Multiset.diff_le_self cw(3) cw_eq single_not_empty
           size_1_singleton_mset subset_mset.add_diff_inverse union_is_single w_clause.sel(1))
       from True have "set_mset NW \<subseteq> set_mset W"
-        using w_nw(3) by blast
+        using w_nw(2) by blast
       then show ?thesis
         using w cw(1) cw_eq by auto
     next
@@ -137,7 +148,7 @@ lemma wf_candidates_propagate_sound:
                   cw_eq diff_zero w_clause.sel(2))
           then show ?thesis
             using f2 f1 by (metis nla count_diff diff_zero la(2) mem_set_mset_iff not_gr0
-              set_mset_single w_nw(4))
+              set_mset_single w_nw(3))
         qed
       qed
     qed
@@ -150,10 +161,67 @@ lemma wf_candidates_propagate_sound:
 
 lemma wf_candidates_propagate_complete:
   assumes wf: "wf_two_wl_state S" and
+    mem: "C \<in># image_mset clause_of_w_clause (clauses S)" and
     unsat: "trail S \<Turnstile>as CNot (mset_set (set_mset C - {L}))" and
     undef: "undefined_lit L (trail S)"
-  shows "candidates_propagate S \<noteq> {}"
-  sorry
+  shows "(L, C) \<in> candidates_propagate S"
+  proof -
+    def M \<equiv> "trail S"
+    def N \<equiv> "init_clss S"
+    def U \<equiv> "learned_clss S"
+
+    note MNU_defs [simp] = M_def N_def U_def
+
+    obtain Cw where ca: "C = clause_of_w_clause Cw" "Cw \<in># N + U"
+      using mem by force
+
+    obtain W NW where cw_eq: "Cw = W_Clause W NW"
+      by (case_tac Cw, blast)
+
+    have wf_c: "wf_two_wl_cls M Cw"
+      using wf \<open>Cw \<in># N + U\<close> unfolding wf_two_wl_state_def by simp
+
+    have w_nw:
+      "distinct_mset W"
+      "size W < 2 \<Longrightarrow> set_mset NW \<subseteq> set_mset W"
+      "\<And>L L'. L \<in># W \<Longrightarrow> -L \<in> lits_of M \<Longrightarrow> L' \<in># NW \<Longrightarrow> -L' \<in> lits_of M"
+     using wf_c unfolding cw_eq by auto
+
+(*
+    have "\<And>L'. L' \<in> set_mset C \<Longrightarrow> L' \<noteq> L \<Longrightarrow> -L' \<in> lits_of M"
+      sorry
+*)
+
+    have unit_set: "set_mset (W - mset_set (uminus ` lits_of M)) = {L}"
+    proof
+      show "set_mset (W - mset_set (uminus ` lits_of M)) \<subseteq> {L}"
+      proof
+        fix L'
+        assume l': "L' \<in> set_mset (W - mset_set (uminus ` lits_of M))"
+        hence l'_mem_w: "L' \<in> set_mset W"
+          by auto
+        have "L' \<notin> uminus ` lits_of M"
+          using distinct_mem_diff_mset[OF w_nw(1) l'] by simp
+        then have "\<not> M \<Turnstile>a {#-L'#}"
+          using image_iff by fastforce
+        moreover have "L' \<in># C"
+          using ca(1) cw_eq l'_mem_w by auto
+        ultimately have "L' = L"
+          unfolding M_def by (metis unsat[unfolded CNot_def true_annots_def, simplified])
+        then show "L' \<in> {L}"
+          by simp
+      qed
+    next
+      show "{L} \<subseteq> set_mset (W - mset_set (uminus ` lits_of M))"
+        sorry
+    qed
+
+    have unit: "W - mset_set (uminus ` lits_of M) = {#L#}"
+      sorry
+
+    show ?thesis
+      unfolding candidates_propagate_def using ca unit undef by blast
+  qed
 
 lemma wf_candidates_conflict_sound:
   assumes wf: "wf_two_wl_state S" and
