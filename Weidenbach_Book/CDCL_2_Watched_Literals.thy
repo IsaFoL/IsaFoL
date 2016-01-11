@@ -276,7 +276,35 @@ lemma wf_candidates_conflict_sound:
   assumes wf: "wf_two_wl_state S" and
     cand: "C \<in> candidates_conflict S"
   shows "trail S \<Turnstile>as CNot C \<and> C \<in># image_mset clause_of_w_clause (clauses S)"
-  sorry
+proof
+  obtain L Cw where cw:
+    "C = clause_of_w_clause Cw"
+    "Cw \<in># clauses S"
+    "watched Cw \<subseteq># mset_set (uminus ` lits_of (trail S))"
+    "L \<in># watched Cw"
+    using cand[unfolded candidates_conflict_def, simplified] by auto
+
+  have "\<And>L. L \<in># C \<Longrightarrow> -L \<in> lits_of (trail S)"
+  proof -
+    fix L
+    assume "L \<in># C"
+    show "-L \<in> lits_of (trail S)"
+    proof (cases "L \<in># watched Cw")
+      case True
+      thus ?thesis
+        using cw(3) by fastforce
+    next
+      case False
+      thus ?thesis
+        sorry
+    qed
+  qed
+  then show "trail S \<Turnstile>as CNot C"
+    unfolding CNot_def true_annots_def by auto
+
+  show "C \<in># image_mset clause_of_w_clause (clauses S)"
+    using cw by auto
+qed
 
 lemma wf_candidates_conflict_complete:
   assumes wf: "wf_two_wl_state S" and
