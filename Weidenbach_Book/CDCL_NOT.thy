@@ -243,6 +243,7 @@ definition add_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rig
 
 definition remove_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" where
 "remove_cls\<^sub>N\<^sub>O\<^sub>T C S = update_cls (clauses S - replicate_mset (count (clauses S) C) C) S"
+
 lemma
   shows
     clauses_add_cls\<^sub>N\<^sub>O\<^sub>T[simp]: "\<And>st C. clauses (add_cls\<^sub>N\<^sub>O\<^sub>T C st) = {#C#} + clauses st" and
@@ -1165,6 +1166,16 @@ proof -
   thus ?thesis
     by (meson \<open>inv S\<close> rtranclp_dpll_bj_sat_iff satisfiable_carac st true_annots_true_cls)
 qed
+
+corollary full0_dpll_backjump_normal_forms_init_state:
+  fixes A :: "'v literal multiset set" and S T :: "'st"
+  assumes
+    full: "full0 dpll_bj S T" and
+    "trail S = []" and
+    "clauses S = N" and
+    "inv S"
+  shows "unsatisfiable (set_mset N) \<or> (trail T \<Turnstile>asm N \<and> satisfiable (set_mset N))"
+  using assms full0_dpll_backjump_normal_forms[of S T "set_mset N"] by auto
 
 lemma tranclp_dpll_bj_trail_mes_decreasing_prop:
   assumes dpll: "dpll_bj\<^sup>+\<^sup>+ S T"  and inv: "inv S" and
