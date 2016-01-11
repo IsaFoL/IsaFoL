@@ -8,8 +8,8 @@ text \<open>Only the 2-watched literals have to be verified here: the backtrack 
 datatype 'v w_clause =
   W_Clause (watched: "'v clause") (not_watched: "'v clause")
 
-fun clause_of_w_clause :: "'v w_clause \<Rightarrow> 'v clause" where
-"clause_of_w_clause C =  watched C + not_watched C"
+abbreviation clause_of_w_clause :: "'v w_clause \<Rightarrow> 'v clause" where
+"clause_of_w_clause C \<equiv> watched C + not_watched C"
 
 type_synonym ('v, 'lvl, 'mark) two_wl_state =
   "('v, 'lvl, 'mark) annoted_lits \<times> 'v w_clause multiset \<times> 'v w_clause multiset \<times> 'lvl \<times>
@@ -48,9 +48,9 @@ interpretation dpll_state trail "image_mset clause_of_w_clause o clauses" "\<lam
 oops
 
 primrec wf_two_wl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v w_clause \<Rightarrow> bool" where
-  "wf_two_wl_cls M (W_Clause W N) \<longleftrightarrow>
-   distinct_mset W \<and> size W \<le> 2 \<and> (size W < 2 \<longrightarrow> set_mset N \<subseteq> set_mset W) \<and>
-   (\<forall>L \<in># W. -L \<in> lits_of M \<longrightarrow> (\<forall>L' \<in># N. -L' \<in> lits_of M))"
+  "wf_two_wl_cls M (W_Clause W NW) \<longleftrightarrow>
+   distinct_mset W \<and> size W \<le> 2 \<and> (size W < 2 \<longrightarrow> set_mset NW \<subseteq> set_mset W) \<and>
+   (\<forall>L \<in># W. -L \<in> lits_of M \<longrightarrow> (\<forall>L' \<in># NW. -L' \<in> lits_of M))"
 
 fun
   wf_two_wl_state :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> ('v, 'lvl, 'mark) two_wl_state \<Rightarrow> bool"
@@ -58,26 +58,50 @@ where
   "wf_two_wl_state M (_, N, U, _) \<longleftrightarrow> (\<forall>C \<in># N + U. wf_two_wl_cls M C)"
 
 lemma wf_candidates_propagate_sound:
-  assumes wf: "wf_two_wl_state M S" and
+  assumes wf: "wf_two_wl_state (trail S) S" and
     cand: "(L, C) \<in> candidates_propagate S"
   shows "trail S \<Turnstile>as CNot (mset_set (set_mset C - {L})) \<and> undefined_lit L (trail S)"
-  sorry
+  proof
+    obtain M N U k c where s: "S = (M, N, U, k, c)"
+      using candidates_propagate.cases by blast
+    then obtain Cw where cw:
+      "C = clause_of_w_clause Cw" and
+      "Cw \<in># N + U" and
+      "watched Cw - mset_set (uminus ` lits_of M) = {#L#}" and
+      "undefined_lit L M"
+      using cand by auto
+
+    obtain W NW where cw_eq: "Cw = W_Clause W NW" by (case_tac Cw, blast)
+
+    have wf_c: "wf_two_wl_cls M Cw"
+      using wf \<open>Cw \<in># N + U\<close> unfolding s by simp
+
+    have "\<forall>L' \<in> set_mset C - {L}. -L' \<in> lits_of M"
+      sorry
+    show "trail S \<Turnstile>as CNot (mset_set (set_mset C - {L}))"
+      unfolding s
+      apply simp
+      unfolding true_annots_def CNot_def
+      using \<open>\<forall>L'\<in>set_mset C - {L}. - L' \<in> lits_of M\<close> by auto
+    show "undefined_lit L (trail S)"
+      sorry
+  qed
 
 lemma wf_candidates_propagate_complete:
-  assumes wf: "wf_two_wl_state M S" and
+  assumes wf: "wf_two_wl_state (trail S) S" and
     unsat: "trail S \<Turnstile>as CNot (mset_set (set_mset C - {L}))" and
     undef: "undefined_lit L (trail S)"
   shows "candidates_propagate S \<noteq> {}"
   sorry
 
 lemma wf_candidates_conflict_sound:
-  assumes wf: "wf_two_wl_state M S" and
+  assumes wf: "wf_two_wl_state (trail S) S" and
     cand: "C \<in> candidates_conflict S"
   shows "trail S \<Turnstile>as CNot C \<and> C \<in># image_mset clause_of_w_clause (clauses S)"
   sorry
 
 lemma wf_candidates_conflict_complete:
-  assumes wf: "wf_two_wl_state M S" and
+  assumes wf: "wf_two_wl_state (trail S) S" and
     unsat: "trail S \<Turnstile>as CNot C" and
     mem: "C \<in># image_mset clause_of_w_clause (clauses S)"
   shows "candidates_conflict S \<noteq> {}"
