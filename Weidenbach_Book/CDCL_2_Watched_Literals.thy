@@ -198,14 +198,14 @@ proof -
 
   note MNU_defs [simp] = M_def N_def U_def
 
-  obtain Cw where ca: "C = clause_of_w_clause Cw" "Cw \<in># N + U"
+  obtain Cw where cw: "C = clause_of_w_clause Cw" "Cw \<in># N + U"
     using c_mem by force
 
   obtain W NW where cw_eq: "Cw = W_Clause W NW"
     by (case_tac Cw, blast)
 
   have wf_c: "wf_two_wl_cls M Cw"
-    using wf \<open>Cw \<in># N + U\<close> unfolding wf_two_wl_state_def by simp
+    using wf cw(2) unfolding wf_two_wl_state_def by simp
 
   have w_nw:
     "distinct_mset W"
@@ -226,7 +226,7 @@ proof -
       then have "\<not> M \<Turnstile>a {#-L'#}"
         using image_iff by fastforce
       moreover have "L' \<in># C"
-        using ca(1) cw_eq l'_mem_w by auto
+        using cw(1) cw_eq l'_mem_w by auto
       ultimately have "L' = L"
         unfolding M_def by (metis unsat[unfolded CNot_def true_annots_def, simplified])
       then show "L' \<in> {L}"
@@ -239,7 +239,7 @@ proof -
       proof (cases W)
         case empty
         thus ?thesis
-          using w_nw(2) ca(1) cw_eq l_mem by auto
+          using w_nw(2) cw(1) cw_eq l_mem by auto
       next
         case (add W' La)
         thus ?thesis
@@ -250,12 +250,12 @@ proof -
         next
           case False
           have "-La \<in> lits_of M"
-            using False add ca(1) cw_eq unsat[unfolded CNot_def true_annots_def, simplified]
+            using False add cw(1) cw_eq unsat[unfolded CNot_def true_annots_def, simplified]
             by fastforce
           then show ?thesis
-            by (metis M_def Marked_Propagated_in_iff_in_lits_of add add.left_neutral ca(1)
+            by (metis M_def Marked_Propagated_in_iff_in_lits_of add add.left_neutral cw(1)
               count_union cw_eq l_mem mset_le_add_left mset_le_insertD not_gr0 undef
-              w_clause.sel(1) w_clause.sel(2) w_nw(3))
+              w_clause.sel w_nw(3))
         qed
       qed
       moreover have "L \<notin># mset_set (uminus ` lits_of M)"
@@ -269,7 +269,7 @@ proof -
       set_mset_single unit_set w_nw(1))
 
   show ?thesis
-    unfolding candidates_propagate_def using ca unit undef cw_eq by fastforce
+    unfolding candidates_propagate_def using unit undef cw cw_eq by fastforce
 qed
 
 lemma wf_candidates_conflict_sound:
@@ -336,10 +336,42 @@ qed
 
 lemma wf_candidates_conflict_complete:
   assumes wf: "wf_two_wl_state S" and
-    unsat: "trail S \<Turnstile>as CNot C" and
-    mem: "C \<in># image_mset clause_of_w_clause (clauses S)"
-  shows "candidates_conflict S \<noteq> {}"
-  sorry
+    c_mem: "C \<in># image_mset clause_of_w_clause (clauses S)" and
+    unsat: "trail S \<Turnstile>as CNot C"
+  shows "C \<in> candidates_conflict S"
+proof -
+  def M \<equiv> "trail S"
+  def N \<equiv> "init_clss S"
+  def U \<equiv> "learned_clss S"
+
+  note MNU_defs [simp] = M_def N_def U_def
+
+  obtain Cw where cw: "C = clause_of_w_clause Cw" "Cw \<in># N + U"
+    using c_mem by force
+
+  obtain W NW where cw_eq: "Cw = W_Clause W NW"
+    by (case_tac Cw, blast)
+
+  have wf_c: "wf_two_wl_cls M Cw"
+    using wf cw(2) unfolding wf_two_wl_state_def by simp
+
+  have w_nw:
+    "distinct_mset W"
+    "size W < 2 \<Longrightarrow> set_mset NW \<subseteq> set_mset W"
+    "\<And>L L'. L \<in># W \<Longrightarrow> -L \<in> lits_of M \<Longrightarrow> L' \<in># NW \<Longrightarrow> -L' \<in> lits_of M"
+   using wf_c unfolding cw_eq by auto
+
+  have foo: "W \<subseteq># mset_set (uminus ` lits_of (trail S))"
+    sorry
+
+  have bar: "L \<in># watched Cw"
+    sorry
+
+  have "watched Cw = W"
+    using cw_eq w_clause.sel(1) by blast
+  then show ?thesis
+    using N_def U_def cw(1) cw(2) foo bar candidates_conflict_def by blast
+qed
 
 locale structure_2_WL =
   fixes choose :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> 'v clause \<Rightarrow> 'v w_clause"
