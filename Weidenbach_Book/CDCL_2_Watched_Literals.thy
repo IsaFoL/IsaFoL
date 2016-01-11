@@ -64,6 +64,9 @@ lemma wf_candidates_propagate_sound:
 
     obtain W NW where cw_eq: "Cw = W_Clause W NW" by (case_tac Cw, blast)
 
+    have l_w: "L \<in># W"
+      by (metis Multiset.diff_le_self cw(3) cw_eq mset_leD multi_member_last w_clause.sel(1))
+
     have wf_c: "wf_two_wl_cls M Cw"
       using wf \<open>Cw \<in># N + U\<close> unfolding clauses_def wf_two_wl_state_def by simp
 
@@ -81,15 +84,15 @@ lemma wf_candidates_propagate_sound:
         using cw(3) cw_eq by auto
       ultimately have "size W = 1"
         by linarith
-      then have "W = {#L#}"
+      then have w: "W = {#L#}"
         by (metis (no_types, lifting) Multiset.diff_le_self cw(3) cw_eq single_not_empty
           size_1_singleton_mset subset_mset.add_diff_inverse union_is_single w_clause.sel(1))
       from True have "set_mset NW \<subseteq> set_mset W"
         using w_nw(3) by blast
-      show ?thesis
-        using \<open>W = {#L#}\<close> \<open>set_mset NW \<subseteq> set_mset W\<close> cw(1) cw_eq by auto
+      then show ?thesis
+        using w cw(1) cw_eq by auto
     next
-      case False
+      case sz2: False
       show ?thesis
       proof
         fix L'
@@ -99,13 +102,48 @@ lemma wf_candidates_propagate_sound:
           case True
         next
           case False
-          obtain La where la:
-            "La \<in># W"
-            "-La \<in> lits_of M"
-            sorry
-          show ?thesis
-            using w_nw(4)[OF la] False l' cw(1) cw_eq by auto
-
+          have ex_la: "\<exists>La. La \<noteq> L \<and> La \<in># W"
+          proof (cases W)
+            case empty
+            thus ?thesis
+              using l_w by auto
+          next
+            case lb: (add W' Lb)
+            show ?thesis
+            proof (cases W')
+              case empty
+              thus ?thesis
+                using lb sz2 by simp
+            next
+              case lc: (add W'' Lc)
+              thus ?thesis
+              proof (cases "L = Lb")
+                case True
+                hence "Lc \<noteq> L"
+                  using w_nw(1) unfolding lb lc
+                  by (meson distinct_mset_single_add union_single_eq_member)
+                moreover have "Lc \<in># W"
+                  by (simp add: lb lc)
+                ultimately show ?thesis
+                  by blast
+              next
+                case False
+                moreover have "Lb \<in># W"
+                  by (simp add: lb)
+                ultimately show ?thesis
+                  by fast
+              qed
+            qed
+          qed
+          then obtain La where la: "La \<noteq> L" "La \<in># W"
+            by blast
+          then have "La \<in># mset_set (uminus ` lits_of M)"
+            using cw(3)[unfolded cw_eq, simplified, folded M_def]
+            by (metis count_diff count_single diff_zero not_gr0)
+          then have "-La \<in> lits_of M"
+            by auto
+          then show ?thesis
+            using w_nw(4) False l' cw(1) cw_eq la(2) by auto
         qed
 
 
