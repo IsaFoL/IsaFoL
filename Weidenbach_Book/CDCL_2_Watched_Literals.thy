@@ -67,8 +67,32 @@ lemma wf_candidates_propagate_sound:
     have wf_c: "wf_two_wl_cls M Cw"
       using wf \<open>Cw \<in># N + U\<close> unfolding clauses_def wf_two_wl_state_def by simp
 
+    have w_nw:
+      "distinct_mset W"
+      "size W \<le> 2"
+      "size W < 2 \<Longrightarrow> set_mset NW \<subseteq> set_mset W"
+      "\<And>L L'. L \<in># W \<Longrightarrow> -L \<in> lits_of M \<Longrightarrow> L' \<in># NW \<Longrightarrow> -L' \<in> lits_of M"
+     using wf_c unfolding cw_eq by auto
+
     have "\<forall>L' \<in> set_mset C - {L}. -L' \<in> lits_of M"
-      sorry
+    proof (cases "size W < 2")
+      case True
+      moreover have "size W \<noteq> 0"
+        using cw(3) cw_eq by auto
+      ultimately have "size W = 1"
+        by linarith
+      then have "W = {#L#}"
+        by (metis (no_types, lifting) Multiset.diff_le_self cw(3) cw_eq single_not_empty
+          size_1_singleton_mset subset_mset.add_diff_inverse union_is_single w_clause.sel(1))
+      from True have "set_mset NW \<subseteq> set_mset W"
+        using w_nw(3) by blast
+      show ?thesis
+        using \<open>W = {#L#}\<close> \<open>set_mset NW \<subseteq> set_mset W\<close> cw(1) cw_eq by auto
+    next
+      case False
+      show ?thesis
+        sorry
+    qed
 
     show "trail S \<Turnstile>as CNot (mset_set (set_mset C - {L}))"
       unfolding true_annots_def CNot_def
