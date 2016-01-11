@@ -3586,6 +3586,75 @@ inductive incremental_cdcl :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 "full cdcl_fw_s S T \<Longrightarrow> incremental_cdcl S T" |
 "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> incremental_cdcl S (add_new_clause_and_update C S)"
 
+lemma blocked_induction_with_marked:
+  assumes
+    n_d: "no_dup (L # M)" and
+    nil: "P []" and
+    append: "\<And>M L M'. P M \<Longrightarrow> is_marked L \<Longrightarrow> \<forall>m \<in> set M'. \<not>is_marked m \<Longrightarrow> P (L # M' @ M)" and
+    L: "is_marked L"
+  shows
+    "P (L # M)"
+  using n_d L
+proof (induction "card {L' \<in> set M. is_marked L'}" arbitrary: L M)
+  case 0 note n = this(1) and n_d = this(2) and L = this(3)
+  then have "\<forall>m \<in> set M. \<not>is_marked m" by auto
+  then show ?case using append[of "[]" L M] L nil by auto
+next
+  case (Suc n) note IH = this(1) and n = this(2) and n_d = this(3) and L = this(4)
+  have "\<exists>L' \<in> set M. is_marked L'"
+    proof (rule ccontr)
+      assume "\<not>?thesis"
+      then have H: "{L' \<in> set M. is_marked L'} = {}"
+        by auto
+      show False using n unfolding H by auto
+    qed
+  then obtain L' M' M'' where
+    M: "M = M' @ L' # M''" and
+    L': "is_marked L'" and
+    nm: "\<forall>m\<in>set M'. \<not>is_marked m"
+    by (auto elim!: split_list_first_propE)
+  have "Suc n = card {L' \<in> set M. is_marked L'}"
+    using n .
+  moreover have "{L' \<in> set M. is_marked L'} = {L'} \<union> {L' \<in> set M''. is_marked L'}"
+    using nm L' n_d unfolding M by auto
+  moreover have "L' \<notin> {L' \<in> set M''. is_marked L'}"
+    using n_d unfolding M by auto
+  ultimately  have "n = card {L'' \<in> set M''. is_marked L''}"
+    using n L' by auto
+  then have "P (L' # M'')" using IH L' n_d M by auto
+  then show ?case using append[of "L' # M''" L M'] nm L unfolding M by blast
+qed
+
+lemma trail_bloc_induction:
+  assumes
+    n_d: "no_dup (M)" and
+    nil: "P []" and
+    append: "\<And>M L M'. P M \<Longrightarrow> is_marked L \<Longrightarrow> \<forall>m \<in> set M'. \<not>is_marked m \<Longrightarrow> P (L # M' @ M)" and
+    append_nm: "\<And>M' M''. P M' \<Longrightarrow> M = M'' @  M' \<Longrightarrow> \<forall>m\<in>set M''. \<not>is_marked m \<Longrightarrow> P M"
+  shows
+    "P M"
+proof (cases "{L' \<in> set M. is_marked L'} = {}")
+  case True
+  then show ?thesis using append_nm[of "[]" M] nil by auto
+next
+  case False
+  then have "\<exists>L' \<in> set M. is_marked L'"
+    by auto
+  then obtain L' M' M'' where
+    M: "M = M' @ L' # M''" and
+    L': "is_marked L'" and
+    nm: "\<forall>m\<in>set M'. \<not>is_marked m"
+    by (auto elim!: split_list_first_propE)
+  have "P (L' # M'')"
+    apply (rule blocked_induction_with_marked)
+       using n_d unfolding M apply simp
+      using nil apply simp
+     using append apply simp
+    using L' by auto
+  then show ?thesis
+    using append_nm[of _ M'] nm  unfolding M by simp
+qed
+
 lemma
   assumes
     "cdcl_fw_s\<^sup>*\<^sup>* S T" and
