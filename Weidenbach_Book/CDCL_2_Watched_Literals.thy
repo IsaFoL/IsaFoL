@@ -59,14 +59,13 @@ definition
   candidates_propagate :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> ('v literal \<times> 'v clause) set"
 where
 "candidates_propagate S = 
-  {(L, clause_of_w_clause C) |
-   L C. C \<in># clauses S \<and> watched C - mset_set (uminus ` lits_of (trail S)) = {#L#} \<and>
-        undefined_lit L (trail S)}"
+  {(L, clause_of_w_clause C) | L C.
+   C \<in># clauses S \<and> watched C - mset_set (uminus ` lits_of (trail S)) = {#L#} \<and>
+   undefined_lit L (trail S)}"
 
 definition candidates_conflict :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> 'v clause set" where
 "candidates_conflict S = 
-  {clause_of_w_clause C |
-   L C. C \<in># clauses S \<and> watched C \<subseteq># mset_set (uminus ` lits_of (trail S)) \<and> L \<in># watched C}"
+  {clause_of_w_clause C | C. C \<in># clauses S \<and> watched C \<subseteq># mset_set (uminus ` lits_of (trail S))}"
 
 interpretation dpll_state trail "image_mset clause_of_w_clause o clauses"
   "\<lambda>M S. Two_WL_State M (init_clss S) (learned_clss S) (backtrack_lvl S) (conflicting S)"
@@ -283,11 +282,10 @@ proof
 
   note MNU_defs [simp] = M_def N_def U_def
 
-  obtain L Cw where cw:
+  obtain Cw where cw:
     "C = clause_of_w_clause Cw"
     "Cw \<in># N + U"
     "watched Cw \<subseteq># mset_set (uminus ` lits_of (trail S))"
-    "L \<in># watched Cw"
     using cand[unfolded candidates_conflict_def, simplified] by auto
 
   obtain W NW where cw_eq: "Cw = W_Clause W NW"
@@ -302,26 +300,30 @@ proof
     "\<And>L L'. L \<in># W \<Longrightarrow> -L \<in> lits_of M \<Longrightarrow> L' \<in># NW \<Longrightarrow> -L' \<in> lits_of M"
    using wf_c unfolding cw_eq by auto
 
-  have "\<And>L. L \<in># C \<Longrightarrow> -L \<in> lits_of M"
-  proof -
-    fix L
-    assume "L \<in># C"
-    show "-L \<in> lits_of M"
-    proof (cases "L \<in># watched Cw")
-      case True
-      thus ?thesis
-        using cw(3) by fastforce
-    next
-      case False
-      thus ?thesis
+  have "\<forall>L \<in># C. -L \<in> lits_of M"
+  proof (cases "W = {#}")
+    case True
+    then have "C = {#}"
+      using cw(1) cw_eq w_nw(2) by auto
+    then show ?thesis
+      by simp
+  next
+    case False
+    then obtain La where la: "La \<in># W"
+      using multiset_eq_iff by force
+    show ?thesis
+    proof
+      fix L
+      assume l: "L \<in># C"
+      show "-L \<in> lits_of M"
       proof (cases "L \<in># W")
         case True
-        then show ?thesis
-          using False cw_eq by auto
+        thus ?thesis
+          using cw(3) cw_eq by fastforce
       next
         case False
-        show ?thesis
-          by (smt M_def \<open>L \<in># C\<close> add_diff_cancel_left' count_diff cw(1) cw(3) cw(4) cw_eq
+        thus ?thesis
+          by (smt M_def l add_diff_cancel_left' count_diff cw(1) cw(3) la cw_eq
             diff_zero elem_mset_set finite_imageI finite_lits_of_def gr0I imageE mset_leD
             uminus_of_uminus_id w_clause.sel(1) w_clause.sel(2) w_nw(3))
       qed
