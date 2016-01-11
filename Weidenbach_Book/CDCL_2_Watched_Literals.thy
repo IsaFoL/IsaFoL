@@ -11,40 +11,29 @@ datatype 'v w_clause =
 abbreviation clause_of_w_clause :: "'v w_clause \<Rightarrow> 'v clause" where
 "clause_of_w_clause C \<equiv> watched C + not_watched C"
 
-type_synonym ('v, 'lvl, 'mark) two_wl_state =
-  "('v, 'lvl, 'mark) annoted_lits \<times> 'v w_clause multiset \<times> 'v w_clause multiset \<times> 'lvl \<times>
-   'v clause conflicting_clause"
-
-abbreviation trail :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> ('v, 'lvl, 'mark) annoted_lits" where
-"trail \<equiv> \<lambda>(M, _). M"
-
-abbreviation init_clss :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> 'v w_clause multiset" where
-"init_clss \<equiv> \<lambda>(_,N, _). N"
-
-abbreviation learned_clss :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> 'v w_clause multiset" where
-"learned_clss \<equiv> \<lambda>(_,_, U, _). U"
-
-abbreviation backtrack_lvl :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> 'lvl" where
-"backtrack_lvl \<equiv> \<lambda>(_,_, _,k, _). k"
-
-abbreviation conflicting :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> 'v clause conflicting_clause" where
-"conflicting \<equiv> \<lambda>(_,_, _,_, C). C"
-
-fun candidates_propagate :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> ('v literal \<times> 'v clause) set" where
-"candidates_propagate (M, N, U, _, _) = 
-  {(L, clause_of_w_clause C)
-     |L C. C \<in># N + U \<and> watched C - mset_set (uminus ` lits_of M) = {#L#} \<and> undefined_lit L M}"
-
-fun candidates_conflict :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> 'v clause set" where
-"candidates_conflict (M, N, U, k, _) = 
-  {clause_of_w_clause C
-     |L C. C \<in># N + U \<and> watched C \<subseteq># mset_set (uminus ` lits_of M) \<and> L \<in># watched C}"
+datatype ('v, 'lvl, 'mark) two_wl_state =
+  Two_WL_State (trail: "('v, 'lvl, 'mark) annoted_lits") (init_clss: "'v w_clause multiset")
+    (learned_clss: "'v w_clause multiset") (backtrack_lvl: 'lvl)
+    (conflicting: "'v clause conflicting_clause")
 
 definition clauses where
 "clauses S = init_clss S + learned_clss S"
 
+definition
+  candidates_propagate :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> ('v literal \<times> 'v clause) set"
+where
+"candidates_propagate S = 
+  {(L, clause_of_w_clause C) |
+   L C. C \<in># clauses S \<and> watched C - mset_set (uminus ` lits_of (trail S)) = {#L#} \<and>
+        undefined_lit L (trail S)}"
 
-interpretation dpll_state trail "image_mset clause_of_w_clause o clauses" "\<lambda>M (_, S). (M, S)"
+definition candidates_conflict :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> 'v clause set" where
+"candidates_conflict S = 
+  {clause_of_w_clause C |
+   L C. C \<in># clauses S \<and> watched C \<subseteq># mset_set (uminus ` lits_of (trail S)) \<and> L \<in># watched C}"
+
+interpretation dpll_state trail "image_mset clause_of_w_clause o clauses"
+  "\<lambda>M S. Two_WL_State M (init_clss S) (learned_clss S) (backtrack_lvl S) (conflicting S)"
 oops
 
 primrec wf_two_wl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v w_clause \<Rightarrow> bool" where
@@ -52,39 +41,41 @@ primrec wf_two_wl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v w_c
    distinct_mset W \<and> size W \<le> 2 \<and> (size W < 2 \<longrightarrow> set_mset NW \<subseteq> set_mset W) \<and>
    (\<forall>L \<in># W. -L \<in> lits_of M \<longrightarrow> (\<forall>L' \<in># NW. -L' \<in> lits_of M))"
 
-fun
-  wf_two_wl_state :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> ('v, 'lvl, 'mark) two_wl_state \<Rightarrow> bool"
-where
-  "wf_two_wl_state M (_, N, U, _) \<longleftrightarrow> (\<forall>C \<in># N + U. wf_two_wl_cls M C)"
+definition wf_two_wl_state :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> bool" where
+  "wf_two_wl_state S \<longleftrightarrow> (\<forall>C \<in># clauses S. wf_two_wl_cls (trail S) C)"
 
 lemma wf_candidates_propagate_sound:
-  assumes wf: "wf_two_wl_state (trail S) S" and
+  assumes wf: "wf_two_wl_state S" and
     cand: "(L, C) \<in> candidates_propagate S"
   shows "trail S \<Turnstile>as CNot (mset_set (set_mset C - {L})) \<and> undefined_lit L (trail S)"
   proof
-    obtain M N U k c where s: "S = (M, N, U, k, c)"
-      using candidates_propagate.cases by blast
-    then obtain Cw where cw:
-      "C = clause_of_w_clause Cw" and
-      "Cw \<in># N + U" and
-      "watched Cw - mset_set (uminus ` lits_of M) = {#L#}" and
+    def M \<equiv> "trail S"
+    def N \<equiv> "init_clss S"
+    def U \<equiv> "learned_clss S"
+
+    note MNU_defs [simp] = M_def N_def U_def
+
+    obtain Cw where cw:
+      "C = clause_of_w_clause Cw"
+      "Cw \<in># N + U"
+      "watched Cw - mset_set (uminus ` lits_of M) = {#L#}"
       "undefined_lit L M"
-      using cand by auto
+      using cand unfolding candidates_propagate_def MNU_defs clauses_def by blast
 
     obtain W NW where cw_eq: "Cw = W_Clause W NW" by (case_tac Cw, blast)
 
     have wf_c: "wf_two_wl_cls M Cw"
-      using wf \<open>Cw \<in># N + U\<close> unfolding s by simp
+      using wf \<open>Cw \<in># N + U\<close> unfolding clauses_def wf_two_wl_state_def by simp
 
     have "\<forall>L' \<in> set_mset C - {L}. -L' \<in> lits_of M"
       sorry
+
     show "trail S \<Turnstile>as CNot (mset_set (set_mset C - {L}))"
-      unfolding s
-      apply simp
       unfolding true_annots_def CNot_def
       using \<open>\<forall>L'\<in>set_mset C - {L}. - L' \<in> lits_of M\<close> by auto
+
     show "undefined_lit L (trail S)"
-      sorry
+      using cw(4) M_def by blast
   qed
 
 lemma wf_candidates_propagate_complete:
