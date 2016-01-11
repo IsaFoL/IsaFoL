@@ -47,14 +47,45 @@ definition clauses where
 interpretation dpll_state trail "image_mset clause_of_w_clause o clauses" "\<lambda>M (_, S). (M, S)"
 oops
 
-primrec two_wl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v w_clause \<Rightarrow> bool" where
-  "two_wl_cls M (W_Clause W N) \<longleftrightarrow>
+primrec wf_two_wl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v w_clause \<Rightarrow> bool" where
+  "wf_two_wl_cls M (W_Clause W N) \<longleftrightarrow>
    distinct_mset W \<and> size W \<le> 2 \<and> (size W < 2 \<longrightarrow> set_mset N \<subseteq> set_mset W) \<and>
    (\<forall>L \<in># W. -L \<in> lits_of M \<longrightarrow> (\<forall>L' \<in># N. -L' \<in> lits_of M))"
 
+fun
+  wf_two_wl_state :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> ('v, 'lvl, 'mark) two_wl_state \<Rightarrow> bool"
+where
+  "wf_two_wl_state M (_, N, U, _) \<longleftrightarrow> (\<forall>C \<in># N + U. wf_two_wl_cls M C)"
+
+lemma wf_candidates_propagate_sound:
+  assumes wf: "wf_two_wl_state M S" and
+    cand: "(L, C) \<in> candidates_propagate S"
+  shows "trail S \<Turnstile>as CNot (mset_set (set_mset C - {L})) \<and> undefined_lit L (trail S)"
+  sorry
+
+lemma wf_candidates_propagate_complete:
+  assumes wf: "wf_two_wl_state M S" and
+    unsat: "trail S \<Turnstile>as CNot (mset_set (set_mset C - {L}))" and
+    undef: "undefined_lit L (trail S)"
+  shows "candidates_propagate S \<noteq> {}"
+  sorry
+
+lemma wf_candidates_conflict_sound:
+  assumes wf: "wf_two_wl_state M S" and
+    cand: "C \<in> candidates_conflict S"
+  shows "trail S \<Turnstile>as CNot C \<and> C \<in># image_mset clause_of_w_clause (clauses S)"
+  sorry
+
+lemma wf_candidates_conflict_complete:
+  assumes wf: "wf_two_wl_state M S" and
+    unsat: "trail S \<Turnstile>as CNot C" and
+    mem: "C \<in># image_mset clause_of_w_clause (clauses S)"
+  shows "candidates_conflict S \<noteq> {}"
+  sorry
+
 locale structure_2_WL =
   fixes choose :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> 'v clause \<Rightarrow> 'v w_clause"
-  assumes choose: "two_wl_cls (trail S) (choose S C)"
+  assumes choose: "wf_two_wl_cls (trail S) (choose S C)"
 begin
 
 (* 
