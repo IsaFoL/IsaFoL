@@ -91,7 +91,25 @@ lemma wf_candidates_propagate_sound:
     next
       case False
       show ?thesis
-        sorry
+      proof
+        fix L'
+        assume l': "L' \<in> set_mset C - {L}"
+        show "-L' \<in> lits_of M"
+        proof (cases "L' \<in># W")
+          case True
+        next
+          case False
+          obtain La where la:
+            "La \<in># W"
+            "-La \<in> lits_of M"
+            sorry
+          show ?thesis
+            using w_nw(4)[OF la] False l' cw(1) cw_eq by auto
+
+        qed
+
+
+      qed
     qed
 
     show "trail S \<Turnstile>as CNot (mset_set (set_mset C - {L}))"
