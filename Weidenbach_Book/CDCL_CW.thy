@@ -3224,11 +3224,12 @@ qed
 subsubsection \<open>No conflict with only variables of level less than backtrack level\<close>
 text \<open>This invariant is stronger than the previous argument in the sense that it is a property about
   all possible conflicts.\<close>
-abbreviation "no_smaller_confl (S::'st) \<equiv>
+definition "no_smaller_confl (S::'st) \<equiv>
   (\<forall>M K i M' D. M' @ Marked K i # M = trail S \<longrightarrow> D \<in># clauses S
     \<longrightarrow> \<not>M \<Turnstile>as CNot D)"
 
-lemma "no_smaller_confl (init_state N)" by auto
+lemma no_smaller_confl_init_sate[simp]:
+  "no_smaller_confl (init_state N)" unfolding no_smaller_confl_def by auto
 
 lemma cdcl_o_no_smaller_confl_inv:
   fixes S S' :: "'st"
@@ -3238,7 +3239,7 @@ lemma cdcl_o_no_smaller_confl_inv:
   and "cdcl_M_level_inv S"
   and "no_clause_is_false S"
   shows "no_smaller_confl S'"
-  using assms
+  using assms unfolding no_smaller_confl_def 
 proof (induct rule: cdcl_o_induct)
   case (decide L T) note confl = this(1) and T =this(4) and no_f = this(8) and IH = this(6) and
     lev = this(7)
@@ -3314,12 +3315,13 @@ lemma conflict_no_smaller_confl_inv:
   assumes "conflict S S'"
   and "no_smaller_confl S"
   shows "no_smaller_confl S'"
-  using assms by fastforce
+  using assms unfolding no_smaller_confl_def by fastforce
 
 lemma propagate_no_smaller_confl_inv:
   assumes propagate: "propagate S S'"
   and n_l: "no_smaller_confl S"
   shows "no_smaller_confl S'"
+  unfolding no_smaller_confl_def
 proof (intro allI impI)
   fix M' K i M'' D
   assume M': "M'' @ Marked K i # M' = trail S'"
@@ -3334,7 +3336,8 @@ proof (intro allI impI)
   have "tl M'' @ Marked K i # M' = trail S" using M' S S'
     by (metis Pair_inject list.inject list.sel(3) marked_lit.distinct(1) self_append_conv2
       tl_append2)
-  hence "\<not>M' \<Turnstile>as CNot D " using \<open>D \<in># clauses S'\<close> n_l S S' clauses_def by auto
+  hence "\<not>M' \<Turnstile>as CNot D " 
+    using \<open>D \<in># clauses S'\<close> n_l S S' clauses_def unfolding no_smaller_confl_def by auto
   thus "\<not>M' \<Turnstile>as CNot D" by auto
 qed
 
@@ -3510,7 +3513,7 @@ next
               cdcl_cw_ops.backtrack_lit_skiped cdcl_cw_ops_axioms decomp lits_of_def)
         qed
       { assume "Da \<in># clauses S"
-        hence "\<not>M1 \<Turnstile>as CNot Da" using no_l M by auto
+        hence "\<not>M1 \<Turnstile>as CNot Da" using no_l M unfolding no_smaller_confl_def by auto
       }
       moreover {
         assume Da: "Da = D + {#L#}"
@@ -3589,7 +3592,7 @@ proof -
     using propa conf by blast
 qed
 
-lemma cdcl_s_no_smaller_confl_inv_ex_lit_of_max_level:
+lemma cdcl_s_no_smaller_confl:
   assumes "cdcl_s S S'"
   and n_l: "no_smaller_confl S"
   and "conflict_is_false_with_level S"
@@ -3597,7 +3600,30 @@ lemma cdcl_s_no_smaller_confl_inv_ex_lit_of_max_level:
   and "no_clause_is_false S"
   and "distinct_cdcl_state S"
   and "cdcl_conflicting S"
-  shows "no_smaller_confl S' \<and> conflict_is_false_with_level S'"
+  shows "no_smaller_confl S'"
+  using assms
+proof (induct rule: cdcl_s.induct)
+  case (conflict' S S')
+  show "no_smaller_confl S'"
+    using conflict'.hyps conflict'.prems(1) full_cdcl_cp_no_smaller_confl_inv by blast
+next
+  case (other' S S' S'')
+  have lev': "cdcl_M_level_inv S'"
+    using cdcl_consistent_inv other other'.hyps(1) other'.prems(3) by blast
+  show "no_smaller_confl S''"
+    using cdcl_s_no_smaller_confl_inv[OF cdcl_s.other'[OF other'.hyps(1-3)]] other'.prems(1-3)
+    by blast
+qed
+
+lemma cdcl_s_ex_lit_of_max_level:
+  assumes "cdcl_s S S'"
+  and n_l: "no_smaller_confl S"
+  and "conflict_is_false_with_level S"
+  and "cdcl_M_level_inv S"
+  and "no_clause_is_false S"
+  and "distinct_cdcl_state S"
+  and "cdcl_conflicting S"
+  shows "conflict_is_false_with_level S'"
   using assms
 proof (induct rule: cdcl_s.induct)
   case (conflict' S S')
@@ -3606,19 +3632,16 @@ proof (induct rule: cdcl_s.induct)
   moreover have "conflict_is_false_with_level S'"
     using conflict'.hyps conflict'.prems(2-4) rtranclp_cdcl_co_conflict_ex_lit_of_max_level[of S S']
     unfolding full0_def full_def rtranclp_unfold by blast
-  ultimately show ?case by blast
+  then show ?case by blast
 next
   case (other' S S' S'')
   have lev': "cdcl_M_level_inv S'"
     using cdcl_consistent_inv other other'.hyps(1) other'.prems(3) by blast
-  have "no_smaller_confl S''"
-    using cdcl_s_no_smaller_confl_inv[OF cdcl_s.other'[OF other'.hyps(1-3)]] other'.prems(1-3)
-    by blast
   moreover
-  have "no_clause_is_false S'
-    \<or> (conflicting S' = C_True \<longrightarrow> (\<forall>D\<in>#clauses S'. trail S' \<Turnstile>as CNot D
-        \<longrightarrow> (\<exists>L. L \<in># D \<and> get_level L (trail S') = backtrack_lvl S')))"
-    using cdcl_o_conflict_is_no_clause_is_false[of S S'] other'.hyps(1) other'.prems(1-4) by fast
+    have "no_clause_is_false S'
+      \<or> (conflicting S' = C_True \<longrightarrow> (\<forall>D\<in>#clauses S'. trail S' \<Turnstile>as CNot D
+          \<longrightarrow> (\<exists>L. L \<in># D \<and> get_level L (trail S') = backtrack_lvl S')))"
+      using cdcl_o_conflict_is_no_clause_is_false[of S S'] other'.hyps(1) other'.prems(1-4) by fast
   moreover {
     assume "no_clause_is_false S'"
     {
@@ -3733,21 +3756,21 @@ next
                      get_level_skip_beginning_not_marked lits_of_def ne)
                ultimately show ?thesis using \<open>conflicting S'' = C_Clause D\<close> \<open>L \<in># D\<close> unfolding M
                  by auto
-           next
-             assume ne: "get_all_levels_of_marked (trail S') \<noteq> []"
-             have "hd (get_all_levels_of_marked (trail S')) = backtrack_lvl S'"
-               using ne cdcl_M_level_inv_decomp(4)[OF lev'] M nm
-               by (simp add: get_all_levels_of_marked_nil_iff_not_is_marked[symmetric])
-             moreover have "atm_of L \<in> atm_of ` lits_of M "
-                using \<open>-L \<in> lits_of M\<close>
-                by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def)
-             ultimately show ?thesis
-               using nm ne \<open>L\<in>#D\<close> \<open>conflicting S'' = C_Clause D\<close>
-                 get_level_skip_beginning_hd_get_all_levels_of_marked[OF LS', of M]
-                 get_level_skip_in_all_not_marked[of "rev M" L "backtrack_lvl S'"]
-               unfolding lits_of_def btS M
-               by auto
-          qed
+             next
+               assume ne: "get_all_levels_of_marked (trail S') \<noteq> []"
+               have "hd (get_all_levels_of_marked (trail S')) = backtrack_lvl S'"
+                 using ne cdcl_M_level_inv_decomp(4)[OF lev'] M nm
+                 by (simp add: get_all_levels_of_marked_nil_iff_not_is_marked[symmetric])
+               moreover have "atm_of L \<in> atm_of ` lits_of M "
+                  using \<open>-L \<in> lits_of M\<close>
+                  by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def)
+               ultimately show ?thesis
+                 using nm ne \<open>L\<in>#D\<close> \<open>conflicting S'' = C_Clause D\<close>
+                   get_level_skip_beginning_hd_get_all_levels_of_marked[OF LS', of M]
+                   get_level_skip_in_all_not_marked[of "rev M" L "backtrack_lvl S'"]
+                 unfolding lits_of_def btS M
+                 by auto
+             qed
          qed
      }
      ultimately have "conflict_is_false_with_level S''" by blast
@@ -3794,12 +3817,13 @@ next
     using rtranclp_cdcl_all_inv(6)[of S S'] st rtrancl_into_rtrancl.prems
     by (simp add: rtranclp_cdcl_s_rtranclp_cdcl)
   ultimately show ?case
-    using cdcl_s_no_smaller_confl_inv_ex_lit_of_max_level[OF rtrancl_into_rtrancl.hyps(3)] by fast
+    using cdcl_s_no_smaller_confl[OF rtrancl_into_rtrancl.hyps(3)]
+    cdcl_s_ex_lit_of_max_level[OF rtrancl_into_rtrancl.hyps(3)] by fast
 qed
 
 subsubsection \<open>Final states are at the end\<close>
 (*prop 2.10.7*)
-lemma full_cdcl_s_normal_forms_non_false:
+lemma full0_cdcl_s_normal_forms_non_false:
   fixes S' :: "'st"
   assumes full: "full0 cdcl_s (init_state N) S'"
   and no_d: "distinct_mset_mset N"
