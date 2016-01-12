@@ -936,9 +936,13 @@ lemma rtranclp_cdcl_fw_tranclp_cdcl_fw_restart:
   "cdcl_fw\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl_fw_restart\<^sup>*\<^sup>* S T"
   using rtranclp_mono[of cdcl_fw cdcl_fw_restart] cdcl_fw_cdcl_fw_restart by blast
 
-lemma rtranclp_cdcl_fw_rtranclp_cdcl:
+lemma cdcl_fw_rtranclp_cdcl:
   "cdcl_fw S T \<Longrightarrow> cdcl\<^sup>*\<^sup>* S T"
   using cdcl_fw_cdcl_fw_restart cdcl_fw_restart_cdcl by blast
+
+lemma rtranclp_cdcl_fw_rtranclp_cdcl:
+  "cdcl_fw\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sup>*\<^sup>* S T"
+  using rtranclp_mono[of cdcl_fw "cdcl\<^sup>*\<^sup>*"] cdcl_fw_rtranclp_cdcl by auto
 
 lemma cdcl_fw_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged:
   assumes
@@ -1185,7 +1189,7 @@ proof induction
 next
   case (step c d) note st =this(1) and fw = this(2) and IH = this(3)
   have "cdcl_all_inv_mes c"
-    using tranclp_into_rtranclp[OF st] rtranclp_cdcl_fw_rtranclp_cdcl
+    using tranclp_into_rtranclp[OF st] cdcl_fw_rtranclp_cdcl
     assms(1) rtranclp_cdcl_all_inv_mes_inv rtranclp_mono[of cdcl_fw "cdcl\<^sup>*\<^sup>*"] by fastforce
   then have "(\<lambda>S T. cdcl_all_inv_mes S \<and> cdcl_fw S T)\<^sup>+\<^sup>+ c d"
     using fw by auto
@@ -1884,10 +1888,10 @@ qed
 
 
 lemma tranclp_cdcl_s'_tranclp_cdcl:
-   "cdcl_s'\<^sup>+\<^sup>+ S S' \<Longrightarrow> cdcl\<^sup>+\<^sup>+ S S'"
-   apply (induct rule: tranclp.induct)
+  "cdcl_s'\<^sup>+\<^sup>+ S S' \<Longrightarrow> cdcl\<^sup>+\<^sup>+ S S'"
+  apply (induct rule: tranclp.induct)
    using cdcl_s'_tranclp_cdcl apply blast
-   by (meson cdcl_s'_tranclp_cdcl tranclp_trans)
+  by (meson cdcl_s'_tranclp_cdcl tranclp_trans)
 
 lemma rtranclp_cdcl_s'_rtranclp_cdcl:
    "cdcl_s'\<^sup>*\<^sup>* S S' \<Longrightarrow> cdcl\<^sup>*\<^sup>* S S'"
@@ -2192,7 +2196,7 @@ lemma no_step_cdcl_s'_no_ste_cdcl_fw_cp:
   assumes
     "cdcl_all_inv_mes S"
     "conflicting S = C_True"
-    " no_step cdcl_s' S"
+    "no_step cdcl_s' S"
   shows "no_step cdcl_fw_cp S"
   using assms apply (auto simp: cdcl_s'.simps cdcl_fw_cp.simps)
     using conflict_is_full_cdcl_cp apply blast
@@ -2963,7 +2967,6 @@ next
     qed
 qed
 
-
 lemma cdcl_fw_s_cases[consumes 1, case_names fw_s_cp fw_s_decide]:
   assumes
     "cdcl_fw_s S U"
@@ -3147,6 +3150,10 @@ qed
 lemma wf_cdcl_fw_cp:
   "wf{(T, S). cdcl_all_inv_mes S \<and> cdcl_fw_cp S T}"
   using wf_tranclp_cdcl_fw by (rule wf_subset) (auto simp: cdcl_fw_cp_tranclp_cdcl_fw)
+
+lemma wf_cdcl_fw_s:
+  "wf{(T, S). cdcl_all_inv_mes S \<and> cdcl_fw_s S T}"
+  using wf_tranclp_cdcl_fw by (rule wf_subset) (auto simp add: cdcl_fw_s_tranclp_cdcl_fw)
 
 lemma cdcl_fw_cp_obtain_normal_form:
   assumes inv: "cdcl_all_inv_mes R"
@@ -3569,18 +3576,51 @@ section \<open>Incremental SAT solving\<close>
 text \<open>This is a just a very little start\<close>
 context cdcl_cw_ops
 begin
+definition cdcl_s_invariant where
+"cdcl_s_invariant S \<longleftrightarrow>
+  conflict_is_false_with_level S 
+  \<and> no_clause_is_false S
+  \<and> no_smaller_confl S"
+
+lemma cdcl_s_cdcl_s_invariant:
+  assumes 
+   cdcl: "cdcl_s S T" and
+   inv_s: "cdcl_s_invariant S" and
+   inv: "cdcl_all_inv_mes S"
+  shows
+    "cdcl_s_invariant T"
+  unfolding cdcl_s_invariant_def cdcl_all_inv_mes_def apply standard
+    apply (rule cdcl_s_ex_lit_of_max_level[of S])
+    using assms unfolding cdcl_s_invariant_def cdcl_all_inv_mes_def apply auto[7]
+  apply standard
+    using cdcl cdcl_s_not_non_negated_init_clss apply blast
+  apply (rule cdcl_s_no_smaller_confl_inv)
+  using assms unfolding cdcl_s_invariant_def cdcl_all_inv_mes_def by auto
+
+lemma rtranclp_cdcl_s_cdcl_s_invariant:
+  assumes 
+   cdcl: "cdcl_s\<^sup>*\<^sup>* S T" and
+   inv_s: "cdcl_s_invariant S" and
+   inv: "cdcl_all_inv_mes S"
+  shows
+    "cdcl_s_invariant T"
+  using assms apply (induction)
+    apply simp
+  using cdcl_s_cdcl_s_invariant rtranclp_cdcl_all_inv_mes_inv rtranclp_cdcl_s_rtranclp_cdcl by blast
+
 fun cut_trail_wrt_clause
   :: "'v clause \<Rightarrow> ('v, nat, 'v clause) annoted_lits \<Rightarrow> ('v, nat, 'v clause) annoted_lits"  where
 "cut_trail_wrt_clause C (L # M) =
   (if lit_of L \<in># C then M else L # cut_trail_wrt_clause C M)" |
 "cut_trail_wrt_clause _ [] = []"
 
+(* TODO missing backtrack update *)
 definition add_new_clause_and_update :: "'v literal multiset \<Rightarrow> 'st \<Rightarrow> 'st" where
 "add_new_clause_and_update C S =
   (if trail S \<Turnstile>as CNot C
   then update_trail (rev (cut_trail_wrt_clause C (rev (trail S))))
         (update_init_clss ({#C#} + init_clss S) S)
-  else update_init_clss ({#C#} + init_clss S) S )"
+  else update_init_clss ({#C#} + init_clss S) S)"
 
 inductive incremental_cdcl :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 "full cdcl_fw_s S T \<Longrightarrow> incremental_cdcl S T" |
@@ -3590,7 +3630,8 @@ lemma blocked_induction_with_marked:
   assumes
     n_d: "no_dup (L # M)" and
     nil: "P []" and
-    append: "\<And>M L M'. P M \<Longrightarrow> is_marked L \<Longrightarrow> \<forall>m \<in> set M'. \<not>is_marked m \<Longrightarrow> P (L # M' @ M)" and
+    append: "\<And>M L M'. P M \<Longrightarrow> is_marked L \<Longrightarrow> \<forall>m \<in> set M'. \<not>is_marked m \<Longrightarrow> no_dup (L # M' @ M) \<Longrightarrow>
+      P (L # M' @ M)" and
     L: "is_marked L"
   shows
     "P (L # M)"
@@ -3598,7 +3639,7 @@ lemma blocked_induction_with_marked:
 proof (induction "card {L' \<in> set M. is_marked L'}" arbitrary: L M)
   case 0 note n = this(1) and n_d = this(2) and L = this(3)
   then have "\<forall>m \<in> set M. \<not>is_marked m" by auto
-  then show ?case using append[of "[]" L M] L nil by auto
+  then show ?case using append[of "[]" L M] L nil n_d by auto
 next
   case (Suc n) note IH = this(1) and n = this(2) and n_d = this(3) and L = this(4)
   have "\<exists>L' \<in> set M. is_marked L'"
@@ -3622,14 +3663,15 @@ next
   ultimately  have "n = card {L'' \<in> set M''. is_marked L''}"
     using n L' by auto
   then have "P (L' # M'')" using IH L' n_d M by auto
-  then show ?case using append[of "L' # M''" L M'] nm L unfolding M by blast
+  then show ?case using append[of "L' # M''" L M'] nm L n_d unfolding M by blast
 qed
 
 lemma trail_bloc_induction:
   assumes
-    n_d: "no_dup (M)" and
+    n_d: "no_dup M" and
     nil: "P []" and
-    append: "\<And>M L M'. P M \<Longrightarrow> is_marked L \<Longrightarrow> \<forall>m \<in> set M'. \<not>is_marked m \<Longrightarrow> P (L # M' @ M)" and
+    append: "\<And>M L M'. P M \<Longrightarrow> is_marked L \<Longrightarrow> \<forall>m \<in> set M'. \<not>is_marked m \<Longrightarrow> no_dup (L # M' @ M) \<Longrightarrow>
+      P (L # M' @ M)" and
     append_nm: "\<And>M' M''. P M' \<Longrightarrow> M = M'' @  M' \<Longrightarrow> \<forall>m\<in>set M''. \<not>is_marked m \<Longrightarrow> P M"
   shows
     "P M"
@@ -3655,17 +3697,30 @@ next
     using append_nm[of _ M'] nm  unfolding M by simp
 qed
 
+(* does not hold because of the learnt part. *)
 lemma
   assumes
-    "cdcl_fw_s\<^sup>*\<^sup>* S T" and
-    "cdcl_all_inv_mes S" and
+    st: "cdcl_fw_s\<^sup>*\<^sup>* (init_state N) T" and
+    dist: "distinct_mset_mset N" and
     "no_smaller_confl S" and
-    "conflict_is_false_with_level S"
-    "trail T \<Turnstile>asm init_clss S"
-  shows "cdcl_fw_s\<^sup>*\<^sup>* S ((add_new_clause_and_update C S))"
-proof -
-  (* induction over the trail of T, but by block *)
-    have "no_smaller_confl T"
+    "conflict_is_false_with_level S" and
+    "trail T \<Turnstile>asm N" and
+    "trail S = []"
+  shows "add_new_clause_and_update C T \<sim> init_state (N + {#C#})
+    \<or> cdcl_fw_s\<^sup>*\<^sup>* (init_state (N + {#C#})) ((add_new_clause_and_update C T))"
+proof (induction "trail T" rule:trail_bloc_induction)
+  case (1)
+  have inv: "cdcl_all_inv_mes (init_state N)"
+    using dist unfolding cdcl_all_inv_mes_def by auto
+  then have "cdcl_all_inv_mes T" 
+    using st rtranclp_cdcl_all_inv_mes_inv rtranclp_cdcl_fw_rtranclp_cdcl
+    rtranclp_cdcl_fw_s_rtranclp_cdcl_fw by blast
+  then show "no_dup (trail T)"
+    unfolding cdcl_all_inv_mes_def cdcl_M_level_inv_def by auto
+next
+  case 2
+  then have [simp]: "trail T = []" by simp
+  then show ?case apply (auto simp del: state_simp simp: state_eq_def add_new_clause_and_update_def)
 oops
 end
 
