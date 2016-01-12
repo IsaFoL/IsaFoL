@@ -2481,7 +2481,7 @@ lemma backtrack_is_backjump':
         \<exists>C F' K d F L l C'.
           fst S = F' @ Marked K d # F \<and>
           T = (Propagated L l # F, snd S) \<and> C \<in># snd S \<and> fst S \<Turnstile>as CNot C
-          \<and> |L| \<notin>\<^sub>l |F| \<and> atm_of L \<in> atms_of_mu (snd S) \<union> atm_of ` lits_of (fst S) \<and>
+          \<and> undefined_lit L F \<and> atm_of L \<in> atms_of_mu (snd S) \<union> atm_of ` lits_of (fst S) \<and>
           snd S \<Turnstile>pm C' + {#L#} \<and> F \<Turnstile>as CNot C'"
   apply (cases S, cases T)
   using backtrack_is_backjump[of "fst S" "snd S" "fst T" "snd T"] assms by fastforce
@@ -3489,7 +3489,7 @@ proof -
             using l_M by (metis Marked_Propagated_in_iff_in_lits_of
               atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set literal.sel(1))
           have "decide\<^sub>N\<^sub>O\<^sub>T S (prepend_trail (Marked (Pos l) Level) S)"
-            by (metis \<open>|Pos l| \<notin>\<^sub>l |trail S|\<close> decide\<^sub>N\<^sub>O\<^sub>T.intros l_N literal.sel(1) state_eq\<^sub>N\<^sub>O\<^sub>T_ref)
+            by (metis \<open>undefined_lit (Pos l) (trail S)\<close> decide\<^sub>N\<^sub>O\<^sub>T.intros l_N literal.sel(1) state_eq\<^sub>N\<^sub>O\<^sub>T_ref)
           then show False
             using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_decide\<^sub>N\<^sub>O\<^sub>T n_s by blast
         qed

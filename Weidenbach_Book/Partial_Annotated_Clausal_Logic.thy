@@ -176,7 +176,6 @@ definition defined_lit :: "'a literal \<Rightarrow> ('a, 'l, 'm) marked_lit list
   \<or> (\<exists>l. Marked (-L) l \<in> set I) \<or> (\<exists>P. Propagated (-L) P \<in> set I)"
 
 abbreviation undefined_lit :: "'a literal \<Rightarrow> ('a, 'l, 'm) marked_lit list  \<Rightarrow> bool"
-  ("|_| \<notin>\<^sub>l |_|" 50)
 where "undefined_lit L I \<equiv> \<not>defined_lit L I"
 
 lemma atm_imp_marked_or_proped:

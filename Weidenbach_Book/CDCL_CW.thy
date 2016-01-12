@@ -1162,7 +1162,7 @@ lemma distinct_atms_of_incl_not_in_other:
     shows"\<forall>x\<in>atms_of D. x \<notin> atm_of ` lits_of M"
 proof -
   { fix aa :: 'a
-    have ff1: "\<And>l ms. |l| \<notin>\<^sub>l |ms| \<or> atm_of l
+    have ff1: "\<And>l ms. undefined_lit l ms \<or> atm_of l
       \<in> set (map (\<lambda>m. atm_of (lit_of (m::('a, 'b, 'c) marked_lit))) ms)"
       by (simp add: defined_lit_map)
     have ff2: "\<And>a. a \<notin> atms_of D \<or> a \<in> atm_of ` lits_of M'"
