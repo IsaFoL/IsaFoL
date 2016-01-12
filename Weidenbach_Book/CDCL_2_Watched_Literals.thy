@@ -417,36 +417,6 @@ locale structure_2_WL =
   assumes choose: "wf_two_wl_cls (trail S) (choose S C)"
 begin
 
-(* 
-fun one_is_true :: "'v w_clause \<Rightarrow> ('v, 'lvl, 'mark) two_wl_state \<Rightarrow> bool"  where
-"one_is_true (W_Clause w _) S = (\<exists>L\<in># w. L \<in> lits_of (trail S))"
-
-fun one_is_false_and_candidate :: "'v w_clause \<Rightarrow> ('v, 'lvl, 'mark) two_wl_state \<Rightarrow> bool" where
-"one_is_false_and_candidate (W_Clause w uw) S =
-  (\<exists>L\<in># w. \<exists>L' \<in># w - {#L#}.  -L \<in> lits_of (trail S) \<and> Propagated L' (w + uw) \<in> (candidates S))"
-
-fun two_unassigned :: "'v w_clause \<Rightarrow> ('v, 'lvl, 'mark) two_wl_state \<Rightarrow> bool" where
-"two_unassigned (W_Clause w _) S \<longleftrightarrow> (\<forall>L \<in># w. undefined_lit L ((trail S)))"
-
-text \<open>There are two watched literals except when there is no literal to watch.\<close>
-fun less_than_two_watched :: "'v w_clause \<Rightarrow> ('v, 'lvl, 'mark) two_wl_state \<Rightarrow> bool" where
-"less_than_two_watched C S \<longleftrightarrow>
-  (size (watched C) \<le> 2
-    \<and> (size (watched C) \<le> 1 \<longrightarrow> not_watched C = {#}))"
-
-definition watched_lits :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> bool"  where
-"watched_lits S =
-  (\<forall>C \<in># clauses S. less_than_two_watched C S
-    \<and> (one_is_true C S \<or> two_unassigned C S \<or> less_than_two_watched C S))"
-
-fun tl_trail :: "('v, 'lvl, 'mark) two_wl_state  \<Rightarrow>  ('v, 'lvl, 'mark) two_wl_state " where
-"tl_trail (M, S) = (tl M, S)"
-
-lemma tl_trail:
-  "watched_lits S \<Longrightarrow> watched_lits (tl_trail S)"
-  unfolding watched_lits_def by (cases S) (auto simp: clauses_def)
- *)
-
 end
 
 interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn _ _ _ _ (* propagate_conds is in candidates *) _ _ _ 
