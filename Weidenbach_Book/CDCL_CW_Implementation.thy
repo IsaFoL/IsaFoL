@@ -1342,7 +1342,7 @@ proof -
       using S[symmetric] by auto
   have "(E \<noteq> C_Clause {#} \<and> satisfiable (set (map mset ?N)))
     \<or> (E = C_Clause {#} \<and> unsatisfiable (set (map mset ?N)))"
-    using full_cdcl_s_normal_forms unfolding N' apply rule
+    using full0_cdcl_s_normal_forms unfolding N' apply rule
         using 1 apply simp
        using 2 apply simp
       using 3 apply simp

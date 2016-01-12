@@ -3357,7 +3357,7 @@ proof -
   moreover have "conflicting (init_state N) = C_True"
     by auto
   ultimately show ?thesis
-    using full_cdcl_s_normal_forms' full0_cdcl_s_full0_cdcl_fw full no_d finite by blast
+    using full0_cdcl_s_normal_forms' full0_cdcl_s_full0_cdcl_fw full no_d finite by blast
 qed
 
 end

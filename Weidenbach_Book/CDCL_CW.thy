@@ -4057,7 +4057,7 @@ next
     qed
 qed
 
-lemma full_cdcl_s_normal_forms_is_one_false:
+lemma full0_cdcl_s_normal_forms_is_one_false:
   fixes S' :: "'st"
   assumes full: "full0 cdcl_s (init_state N) S'"
   and no_d: "distinct_mset_mset N"
@@ -4129,14 +4129,14 @@ proof -
 qed
 
 (** prop 2.10.9 \cwref{lem:prop:cddlsoundtermStates}{}*)
-lemma full_cdcl_s_normal_forms:
+lemma full0_cdcl_s_normal_forms:
   fixes S' :: 'st
   assumes full: "full0 cdcl_s (init_state N) S'" and no_d: "distinct_mset_mset N"
   shows "(conflicting S' = C_Clause {#} \<and> unsatisfiable (set_mset (init_clss S')))
     \<or> (conflicting S' = C_True \<and> trail S' \<Turnstile>asm init_clss S')"
-  using assms full_cdcl_s_normal_forms_is_one_false full_cdcl_s_normal_forms_non_false by blast
+  using assms full0_cdcl_s_normal_forms_is_one_false full0_cdcl_s_normal_forms_non_false by blast
 
-lemma full_cdcl_s_normal_forms':
+lemma full0_cdcl_s_normal_forms':
   fixes S' :: "'st"
   assumes full: "full0 cdcl_s (init_state N) S'"
   and no_d: "distinct_mset_mset N"
@@ -4148,7 +4148,7 @@ proof -
   consider
       (confl) "conflicting S' = C_Clause {#}" and "unsatisfiable (set_mset (init_clss S'))"
     | (sat) "conflicting S' = C_True" and "trail S' \<Turnstile>asm init_clss S'"
-    using full_cdcl_s_normal_forms[OF assms] by auto
+    using full0_cdcl_s_normal_forms[OF assms] by auto
   thus ?thesis
     proof cases
       case confl
