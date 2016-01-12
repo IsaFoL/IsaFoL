@@ -1,5 +1,5 @@
-theory CDCL_CW
-imports Partial_Annotated_Clausal_Logic List_More CDCL_CW_Level Wf_More
+theory CDCL_W
+imports Partial_Annotated_Clausal_Logic List_More CDCL_W_Level Wellfounded_More
 
 begin
 declare set_mset_minus_replicate_mset[simp]

@@ -1,5 +1,5 @@
-theory CDCL_2_Watched_Literals
-imports CDCL_FW (* Have to decide which imports are the best *)
+theory CDCL_Two_Watched_Literals
+imports CDCL_WNOT (* Have to decide which imports are the best *)
 begin
 
 (* TODO: BEGIN Move to Multiset_More *)

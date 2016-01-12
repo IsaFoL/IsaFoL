@@ -1,5 +1,5 @@
-theory CDCL_CW_Termination
-imports CDCL_CW
+theory CDCL_W_Termination
+imports CDCL_W
 begin
 
 context cdcl_cw_ops

@@ -1,5 +1,5 @@
-theory DPLL_Implementation
-imports DPLL_CDCL_Implementation DPLL "~~/src/HOL/Library/Code_Target_Numeral"
+theory DPLL_W_Implementation
+imports DPLL_CDCL_W_Implementation DPLL_W "~~/src/HOL/Library/Code_Target_Numeral"
 begin
 
 subsection \<open>Simple Implementation of DPLL\<close>
@@ -24,7 +24,7 @@ definition DPLL_step :: "int dpll_annoted_lits \<times> int literal list list
 text \<open>Example of propagation:\<close>
 value "DPLL_step ([Marked (Neg 1) Level], [[Pos (1::int), Neg 2]])"
 
-text \<open>We define the conversion function between the states as defined in \<open>Propo_DPLL\<close> (with
+text \<open>We define the conversion function between the states as defined in \<open>Prop_DPLL\<close> (with
   multisets) and here (with lists).\<close>
 abbreviation "toS \<equiv> \<lambda>(Ms::(int, dpll_marked_level, dpll_mark) marked_lit list)
                       (N:: int literal list list). (Ms, mset (map mset N)) "
@@ -494,7 +494,7 @@ qed
 
 lemma rough_state_of_rough_state_of_nil[simp]:
   "rough_state_of (state_of ([], N)) = ([], N)"
-  apply (rule DPLL_Implementation.dpll_state.state_of_inverse)
+  apply (rule DPLL_W_Implementation.dpll_state.state_of_inverse)
   unfolding dpll_all_inv_def by auto
 
 text \<open>Theorem of correctness\<close>
@@ -633,7 +633,7 @@ val equal_int = {equal = equal_inta} : int HOL.equal;
 
 end; (*struct Arith*)
 
-structure Propo_DPLL : sig
+structure Prop_DPLL : sig
   datatype dpll_mark = Proped
   val equal_dpll_mark : dpll_mark HOL.equal
   datatype dpll_marked_level = Level
@@ -653,7 +653,7 @@ fun equal_dpll_marked_levela Level Level = true;
 val equal_dpll_marked_level = {equal = equal_dpll_marked_levela} :
   dpll_marked_level HOL.equal;
 
-end; (*struct Propo_DPLL*)
+end; (*struct Prop_DPLL*)
 
 structure Product_Type : sig
   val apfst : ('a -> 'b) -> 'a * 'c -> 'b * 'c
@@ -734,19 +734,19 @@ fun backtrack_split [] = ([], [])
 
 end; (*struct Partial_Annotated_Clausal_Logic*)
 
-structure DPLL_Implementation : sig
+structure DPLL_W_Implementation : sig
   datatype dpll_state =
     Con of
-      ((Arith.int, Propo_DPLL.dpll_marked_level, Propo_DPLL.dpll_mark)
+      ((Arith.int, Prop_DPLL.dpll_marked_level, Prop_DPLL.dpll_mark)
          Partial_Annotated_Clausal_Logic.marked_lit list *
         (Arith.int Clausal_Logic.literal list) list);
 
-  val dPLL_tot_rep : dpll_state -> bool * (Arith.int, Propo_DPLL.dpll_marked_level, Propo_DPLL.dpll_mark) Partial_Annotated_Clausal_Logic.marked_lit list
+  val dPLL_tot_rep : dpll_state -> bool * (Arith.int, Prop_DPLL.dpll_marked_level, Prop_DPLL.dpll_mark) Partial_Annotated_Clausal_Logic.marked_lit list
 end = struct
 
 datatype dpll_state =
   Con of
-    ((Arith.int, Propo_DPLL.dpll_marked_level, Propo_DPLL.dpll_mark)
+    ((Arith.int, Prop_DPLL.dpll_marked_level, Prop_DPLL.dpll_mark)
        Partial_Annotated_Clausal_Logic.marked_lit list *
       (Arith.int Clausal_Logic.literal list) list);
 
@@ -756,7 +756,7 @@ fun equal_dpll_state sa s =
   Product_Type.equal_prod
     (List.equal_list
       (Partial_Annotated_Clausal_Logic.equal_marked_lit Arith.equal_int
-        Propo_DPLL.equal_dpll_marked_level Propo_DPLL.equal_dpll_mark))
+        Prop_DPLL.equal_dpll_marked_level Prop_DPLL.equal_dpll_mark))
     (List.equal_list
       (List.equal_list (Clausal_Logic.equal_literal Arith.equal_int)))
     (rough_state_of sa) (rough_state_of s);
@@ -814,7 +814,7 @@ fun dPLL_step x =
                    (Partial_Annotated_Clausal_Logic.Propagated
                       (Clausal_Logic.uminus_literal
                          (Partial_Annotated_Clausal_Logic.lit_of l),
-                        Propo_DPLL.Proped) ::
+                        Prop_DPLL.Proped) ::
                       m,
                      n))
           else (case find_first_unused_var n
@@ -822,11 +822,11 @@ fun dPLL_step x =
                  of NONE => (ms, n)
                  | SOME a =>
                    (Partial_Annotated_Clausal_Logic.Marked
-                      (a, Propo_DPLL.Level) ::
+                      (a, Prop_DPLL.Level) ::
                       ms,
                      n)))
       | SOME l =>
-        (Partial_Annotated_Clausal_Logic.Propagated (l, Propo_DPLL.Proped) ::
+        (Partial_Annotated_Clausal_Logic.Propagated (l, Prop_DPLL.Proped) ::
            ms,
           n)))
     x;
@@ -854,14 +854,14 @@ fun dPLL_tot_rep s =
       m)
   end;
 
-end; (*struct DPLL_Implementation*)
+end; (*struct DPLL_W_Implementation*)
 
 
 \<close>
 
 ML \<open>
 open Clausal_Logic;
-open DPLL_Implementation;
+open DPLL_W_Implementation;
 open Arith;
 let
   val P = Int_of_integer 1
@@ -872,13 +872,13 @@ let
   val U = Int_of_integer 6
   val N = [[Neg P, Pos Q], [Neg R, Pos S], [Neg T, Neg U], [Neg R, Neg T, Pos U]]
 in
- DPLL_Implementation.dPLL_tot_rep (Con ([], N))
+ DPLL_W_Implementation.dPLL_tot_rep (Con ([], N))
 
 end
 \<close>
 ML \<open>
 open Clausal_Logic;
-open DPLL_Implementation;
+open DPLL_W_Implementation;
 open Arith;
 let
   val P = Int_of_integer 1
@@ -893,13 +893,13 @@ let
            [       Pos Q,      Neg S, Neg T],
            [       Neg Q]]
 in
- DPLL_Implementation.dPLL_tot_rep (Con ([], N))
+ DPLL_W_Implementation.dPLL_tot_rep (Con ([], N))
 end
 \<close>
 
 ML \<open>
 open Clausal_Logic;
-open DPLL_Implementation;
+open DPLL_W_Implementation;
 open Arith;
 let
   val P = Int_of_integer 1
@@ -914,13 +914,13 @@ let
            [       Pos Q,      Neg S, Neg T],
            [       Neg Q]]
 in
- DPLL_Implementation.dPLL_tot_rep (Con ([], N))
+ DPLL_W_Implementation.dPLL_tot_rep (Con ([], N))
 end
 \<close>
 declare[[ML_print_depth=100]]
 ML \<open>
 open Clausal_Logic;
-open DPLL_Implementation;
+open DPLL_W_Implementation;
 open Arith;
 let
   val a = Int_of_integer 10
@@ -937,7 +937,7 @@ let
            [Neg a,                                    Pos g],
            [       Pos b,                             Neg g]]
 in
- DPLL_Implementation.dPLL_tot_rep (Con ([], N))
+ DPLL_W_Implementation.dPLL_tot_rep (Con ([], N))
 end
 \<close>
 

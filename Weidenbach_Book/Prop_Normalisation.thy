@@ -1,5 +1,5 @@
-theory Propo_Normalisation
-imports Main Propo_Logic Propo_Abstract_Transformation
+theory Prop_Normalisation
+imports Main Prop_Logic Prop_Abstract_Transformation
 begin
 text \<open>Given the previous definition about abstract rewriting and theorem about them, we now have the
   detailed rule making the transformation into CNF/DNF.\<close>

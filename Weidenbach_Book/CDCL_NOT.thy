@@ -1,5 +1,5 @@
 theory CDCL_NOT
-imports Partial_Annotated_Clausal_Logic List_More Wf_More Partial_Clausal_Logic
+imports Partial_Annotated_Clausal_Logic List_More Wellfounded_More Partial_Clausal_Logic
 begin
 
 section \<open>NOT's CDCL\<close>
