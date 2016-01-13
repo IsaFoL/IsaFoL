@@ -1,5 +1,5 @@
-theory Propo_Resolution
-imports Partial_Clausal_Logic List_More Wf_More
+theory Prop_Resolution
+imports Partial_Clausal_Logic List_More Wellfounded_More
 
 begin
 section \<open>Resolution\<close>
@@ -1889,7 +1889,7 @@ proof -
     using simplify_terminates by (simp add: H)
   obtain N' where N': "(N', N)\<in> {(b, a). simplify a b \<and> finite a}\<^sup>*" and
     more: "(\<forall>N''. (N'', N')\<notin> {(b, a). simplify a b \<and> finite a})"
-    using  Propo_Resolution.wf_terminates[OF wf, of N] by blast
+    using  Prop_Resolution.wf_terminates[OF wf, of N] by blast
   have 1: "simplify\<^sup>*\<^sup>* N N'"
     using N' by (induction rule: rtrancl.induct) auto
   hence "finite N'" using fin rtranclp_simplify_preserves_finite by blast

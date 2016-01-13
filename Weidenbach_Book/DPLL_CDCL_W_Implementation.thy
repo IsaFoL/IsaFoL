@@ -1,4 +1,4 @@
-theory DPLL_CDCL_Implementation
+theory DPLL_CDCL_W_Implementation
 imports Partial_Annotated_Clausal_Logic
 begin
 

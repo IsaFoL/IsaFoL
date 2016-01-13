@@ -1,4 +1,3 @@
-
 (*  Title: Partial Clausal Logic
     Author: Mathias Fleury <mathias.fleury@mpi-inf.mpg.de>
 

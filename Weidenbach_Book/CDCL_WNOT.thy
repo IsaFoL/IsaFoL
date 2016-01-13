@@ -1,5 +1,5 @@
-theory CDCL_FW
-imports CDCL_CW_Termination CDCL_NOT
+theory CDCL_WNOT
+imports CDCL_W_Termination CDCL_NOT
 begin
 
 section \<open>Link between Weidenbach's and NOT's CDCL\<close>

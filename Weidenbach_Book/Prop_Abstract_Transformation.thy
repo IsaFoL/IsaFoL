@@ -1,5 +1,5 @@
-theory Propo_Abstract_Transformation
-imports Main Propo_Logic Wf_More
+theory Prop_Abstract_Transformation
+imports Main Prop_Logic Wellfounded_More
 
 begin
 
@@ -42,7 +42,7 @@ lemma propo_rew_step_subformula_rec:
 proof (induct \<phi> rule: subformula.induct)
   case subformula_refl
   hence "propo_rew_step r \<psi> \<psi>'" using propo_rew_step.intros by auto
-  moreover have "\<psi>' \<preceq> \<psi>'" using Propo_Logic.subformula_refl by auto
+  moreover have "\<psi>' \<preceq> \<psi>'" using Prop_Logic.subformula_refl by auto
   ultimately show "\<exists>\<phi>'. \<psi>' \<preceq> \<phi>' \<and> propo_rew_step r \<psi> \<phi>'" by fastforce
 next
   case (subformula_into_subformula \<psi>'' l c)
@@ -53,7 +53,7 @@ next
   ultimately have "propo_rew_step r (conn c l) (conn c (\<xi> @ \<phi>' # \<xi>'))"
     using propo_rew_step.intros(2) wf by metis
   moreover have "\<psi>' \<preceq> conn c (\<xi> @ \<phi>' # \<xi>')"
-    using wf * wf_conn_no_arity_change Propo_Logic.subformula_into_subformula
+    using wf * wf_conn_no_arity_change Prop_Logic.subformula_into_subformula
     by (metis (no_types) in_set_conv_decomp l wf_conn_no_arity_change_helper)
   ultimately show "\<exists>\<phi>'. \<psi>' \<preceq> \<phi>' \<and> propo_rew_step r (conn c l) \<phi>'" by metis
 qed

@@ -1,4 +1,4 @@
-theory Wf_More
+theory Wellfounded_More
 imports Main
 
 begin

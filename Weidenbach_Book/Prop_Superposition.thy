@@ -1,4 +1,4 @@
-theory Propo_Superposition
+theory Prop_Superposition
 imports Partial_Clausal_Logic "../lib/Herbrand_Interpretation"
 begin
 sledgehammer_params[verbose]
@@ -361,7 +361,7 @@ lemma in_interp_is_produced:
 
 end
 end
-(*TODO sharing with Propo_CDCL*)
+(*TODO sharing with Prop_CDCL*)
 abbreviation "MMax M \<equiv> Max (set_mset M)"
 
 subsection \<open>We can now define the rules of the calculus\<close>
