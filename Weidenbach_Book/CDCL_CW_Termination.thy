@@ -417,7 +417,7 @@ next
           have "tl (M' @ Marked L i # H @ M) = tl M' @ Marked L i # H @ M"
             using trT T by (cases M') auto
           hence M'': "M1 = tl M' @ Marked L i # H @ M"
-            using arg_cong[OF trT[simplified], of tl] T by simp
+            using arg_cong[OF trT[simplified], of tl] T decomp by simp
           have False using nd MS3 T unfolding M'' by auto
           thus ?case by fast
         qed auto
@@ -451,8 +451,9 @@ proof (induction rule: cdcl_o_induct)
   have H: "get_all_levels_of_marked (trail y) = rev [1..<1 + backtrack_lvl y]"
     using lev unfolding cdcl_M_level_inv_def by auto
   obtain d where d: "M1 = d @ Marked Kh i # H"
-    using z T unfolding M3 by (metis append_self_conv2 list.inject list.sel(3) marked_lit.simps(4)
-      state_eq_trail tl_append2 trail_update_trail)
+    using z T unfolding M3 by (smt M3 append_assoc list.inject list.sel(3) marked_lit.distinct(1)
+      self_append_conv2 state_eq_trail tl_append2 trail_cons_trail trail_update_backtrack_lvl
+      trail_update_conflicting reduce_trail_to_add_learned_clss reduce_trail_to_trail_tl_trail_decomp)
   have "i \<in> set (get_all_levels_of_marked (M3 @ M2 @ Marked K (Suc j) # d @ Marked Kh i # H))"
     by auto
   hence "i > 0" unfolding H[unfolded M3 d] by auto
@@ -655,8 +656,9 @@ proof -
   have M_lev: "cdcl_M_level_inv R"
     using invR unfolding cdcl_all_inv_mes_def by auto
   obtain D L M1 M2_loc K i where
-     T: "T \<sim> update_trail (Propagated L ((D + {#L#})) # M1) (add_cls (D + {#L#})
-      (update_backtrack_lvl (get_maximum_level D (trail S)) (update_conflicting C_True S)))"
+     T: "T \<sim> cons_trail (Propagated L ((D + {#L#})))
+       (reduce_trail_to M1 (add_learned_cls (D + {#L#})
+      (update_backtrack_lvl (get_maximum_level D (trail S)) (update_conflicting C_True S))))"
       and
     decomp: "(Marked K (Suc (get_maximum_level D (trail S))) # M1, M2_loc) \<in>
                 set (get_all_marked_decomposition (trail S))" and
@@ -682,8 +684,8 @@ proof -
 
   have lev: "cdcl_M_level_inv R" using invR unfolding cdcl_all_inv_mes_def by blast
   hence vars_of_D: "atms_of D \<subseteq> atm_of ` lits_of M1"
-    using backtrack_atms_of_D_in_M1[OF _ _ lev', of L D M1 ] confl_S bt conf T
-    unfolding cdcl_conflicting_def by (meson backtrack_state_eq_compatible state_eq_ref)
+    using backtrack_atms_of_D_in_M1[OF _ T _ lev'] confl_S bt conf T decomp
+    unfolding cdcl_conflicting_def by auto
   have "no_dup (trail S)" using lev' by auto
   have vars_in_M1:
     "\<forall>x \<in> atms_of D. x \<notin> atm_of ` lits_of (M2 @ [Marked K (get_maximum_level D (trail S) + 1)])"
@@ -864,7 +866,7 @@ lemma length_model_le_vars_all_inv:
 end
 
 locale cdcl_cw_termination =
-   cdcl_cw_ops trail init_clss learned_clss backtrack_lvl conflicting update_trail update_init_clss
+   cdcl_cw_ops trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail update_init_clss
    update_learned_clss update_backtrack_lvl update_conflicting init_state
    restart_state
   for
@@ -874,7 +876,8 @@ locale cdcl_cw_termination =
     backtrack_lvl :: "'st \<Rightarrow> nat" and
     conflicting :: "'st \<Rightarrow>'v clause conflicting_clause" and
 
-    update_trail :: "('v, nat, 'v clause) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_trail :: "'st \<Rightarrow> 'st" and
     update_init_clss :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_learned_clss :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -932,8 +935,8 @@ proof (induct rule: cdcl_all_induct)
   have propa: "propagate S (cons_trail (Propagated L (C + {#L#})) S)"
     using propagate_rule[OF _ propagate.hyps(1,2)] propagate.hyps by auto
   hence no_dup': "no_dup (Propagated L ( (C + {#L#})) # trail S)"
-    by (metis cdcl_M_level_inv_decomp(2) cdcl_cp.simps cdcl_cp_consistent_inv cons_trail.simps(1)
-      M_level trail_update_trail)
+    by (metis cdcl_M_level_inv_decomp(2) cdcl_cp.simps cdcl_cp_consistent_inv trail_cons_trail
+      M_level)
 
   let ?N = "init_clss S"
   have "no_strange_atm (cons_trail (Propagated L (C + {#L#})) S)"

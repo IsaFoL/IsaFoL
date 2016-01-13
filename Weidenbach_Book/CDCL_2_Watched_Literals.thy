@@ -101,9 +101,9 @@ definition candidates_conflict :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> 
 "candidates_conflict S = 
   {clause_of_w_clause C | C. C \<in># clauses S \<and> watched C \<subseteq># mset_set (uminus ` lits_of (trail S))}"
 
-interpretation dpll_state trail "image_mset clause_of_w_clause o clauses"
+(* interpretation dpll_state trail "image_mset clause_of_w_clause o clauses"
   "\<lambda>M S. Two_WL_State M (init_clss S) (learned_clss S) (backtrack_lvl S) (conflicting S)"
-oops
+oops *)
 
 primrec wf_two_wl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v w_clause \<Rightarrow> bool" where
   "wf_two_wl_cls M (W_Clause W NW) \<longleftrightarrow>

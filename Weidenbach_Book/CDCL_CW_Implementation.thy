@@ -15,6 +15,12 @@ type_synonym 'v cdcl_state =
 abbreviation trail :: "'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<Rightarrow> 'a" where
 "trail \<equiv> (\<lambda>(M, _). M)"
 
+abbreviation cons_trail :: "'a \<Rightarrow> 'a list \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<Rightarrow> 'a list \<times> 'b \<times> 'c \<times> 'd \<times> 'e" where
+"cons_trail \<equiv> (\<lambda>L (M, S). (L#M, S))"
+
+abbreviation tl_trail :: "'a list \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<Rightarrow> 'a list \<times> 'b \<times> 'c \<times> 'd \<times> 'e" where
+"tl_trail \<equiv> (\<lambda>(M, S). (tl M, S))"
+
 abbreviation clauses :: "'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<Rightarrow> 'b" where
 "clauses \<equiv> \<lambda>(M, N, _). N"
 
@@ -24,13 +30,23 @@ abbreviation learned_clss :: "'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e
 abbreviation backtrack_lvl :: "'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<Rightarrow> 'd" where
 "backtrack_lvl \<equiv> \<lambda>(M, N, U, k, _). k"
 
+abbreviation update_backtrack_lvl :: "'d \<Rightarrow> 'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<Rightarrow> 'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e"
+  where
+"update_backtrack_lvl \<equiv> \<lambda>k (M, N, U, _, S).  (M, N, U, k, S)"
+
 abbreviation conflicting :: "'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<Rightarrow> 'e" where
 "conflicting \<equiv> \<lambda>(M, N, U, k, D). D"
+
+abbreviation update_conflicting :: "'e \<Rightarrow> 'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<Rightarrow> 'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e"
+  where
+"update_conflicting \<equiv> \<lambda>S (M, N, U, k, _).  (M, N, U, k, S)"
 
 abbreviation "S0_cdcl N \<equiv> (([], N, {#}, 0, C_True):: 'v cdcl_state)"
 
 interpretation cdcl_cw: cw_state trail clauses learned_clss backtrack_lvl conflicting
-  "\<lambda>M (_, S). (M, S)" "\<lambda>N (M, _, S). (M, N, S)"
+  "\<lambda>L (M, S). (L # M, S)"
+  "\<lambda>(M, S). (tl M, S)"
+  "\<lambda>N (M, _, S). (M, N, S)"
   "\<lambda>U (M, N, _, S). (M, N, U, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
@@ -44,9 +60,14 @@ lemma trail_conv: "trail (M, N, U, k, D) = M" and
   conflicting_conv: "conflicting (M, N, U, k, D) = D" and
   backtrack_lvl_conv: "backtrack_lvl (M, N, U, k, D) = k"
   by auto
+lemma state_conv:
+  "S = (trail S, clauses S, learned_clss S, backtrack_lvl S, conflicting S)"
+  by (cases S) auto
 
 interpretation cdcl_cw_termination trail clauses learned_clss backtrack_lvl conflicting
-  "\<lambda>M (_, S). (M, S)" "\<lambda>N (M, _, S). (M, N, S)"
+  "\<lambda>L (M, S). (L # M, S)"
+  "\<lambda>(M, S). (tl M, S)"
+  "\<lambda>N (M, _, S). (M, N, S)"
   "\<lambda>U (M, N, _, S). (M, N, U, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
@@ -55,7 +76,6 @@ interpretation cdcl_cw_termination trail clauses learned_clss backtrack_lvl conf
   by intro_locales
 
 lemmas cdcl_cw.clauses_def[simp]
-lemmas cdcl_cw.add_cls_def[simp]
 
 lemma cdcl_cw_state_eq_equality[iff]: "cdcl_cw.state_eq S T \<longleftrightarrow> S = T"
   unfolding cdcl_cw.state_eq_def by (cases S, cases T) auto
@@ -587,6 +607,12 @@ lemma do_backtrack_step:
 
     obtain M2 where M2: "(M\<^sub>2, M2) \<in> set (get_all_marked_decomposition M)"
       using bt_cut_in_get_all_marked_decomposition[OF M\<^sub>2] by metis
+    have H: "(cdcl_cw.reduce_trail_to (map convert M1)
+      (cdcl_cw.add_learned_cls (mset C' + {#L#})
+        (map convert M, mset (map mset N), mset (map mset U), j, C_True))) =
+        (map convert M1, mset (map mset N), {#mset C' + {#L#}#} + mset (map mset U), j, C_True)"
+        apply (subst state_conv[of "cdcl_cw.reduce_trail_to _ _"])
+      using M2 unfolding M1 by auto
     have
       "backtrack
         (map convert M, mset `# mset N, mset `# mset U, k, C_Clause (mset C))
@@ -599,7 +625,11 @@ lemma do_backtrack_step:
             apply (auto simp: get_all_marked_decomposition_map_convert M1)[1]
            using max_l_j levL \<open>j \<le> k\<close> apply (simp add: get_maximum_level_plus)
           using C \<open>get_maximum_level (mset C) M = k\<close> levL apply auto[1]
-       using max_l_j by (simp_all add: ac_simps)
+         using max_l_j apply simp
+        apply (cases "cdcl_cw.reduce_trail_to (map convert M1)
+            (cdcl_cw.add_learned_cls (mset C' + {#L#})
+            (map convert M, mset (map mset N), mset (map mset U), j, C_True))")
+       using M2 M1 H by (auto simp: ac_simps)
     thus ?case
       using M\<^sub>2 fd unfolding S E M1 by auto
     obtain M2 where "(M\<^sub>2, M2) \<in> set (get_all_marked_decomposition M)"
@@ -960,17 +990,69 @@ proof -
   have M: "\<And>M K M1 c. M = c @ K # M1 \<Longrightarrow> Suc (length M1) \<le> length M"
     by auto
   have "cdcl_o (toS S) (toS (do_other_step S))" using do_other_step[OF inv d] .
-  thus ?thesis
-    apply (induction "toS S" "toS (do_other_step S)" rule: cdcl_o.induct)
-       apply (auto simp add: trail_toS_neq_imp_trail_neq)[]
-      apply (cases S)
-      apply (auto
-        elim!: skipE resolveE decideE backtrackE cdcl_bjE
-        dest!: get_all_marked_decomposition_exists_prepend )
-        apply (cases "do_other_step S"; auto)
-       apply (cases "do_other_step S"; auto)
-      apply (cases "do_other_step S"; auto)
-     done
+  then show ?thesis
+    proof (induction "toS S" "toS (do_other_step S)" rule: cdcl_o.induct)
+      case decide
+      then show ?thesis
+        by (auto simp add: trail_toS_neq_imp_trail_neq)[]
+    next
+      case bj
+      then show ?thesis
+        proof (induction  "toS S" "toS (do_other_step S)")
+          case (skip)
+          then show ?case
+            apply (cases S)
+            apply (auto
+              elim!: skipE
+              dest!: get_all_marked_decomposition_exists_prepend)
+              by (cases "do_other_step S"; auto)
+        next
+          case (resolve)
+          then show ?case
+             apply (cases S)
+             apply (auto
+               elim!: skipE resolveE decideE backtrackE cdcl_bjE
+               dest!: get_all_marked_decomposition_exists_prepend)
+               by (cases "do_other_step S"; auto)
+        next
+          case (backtrack) note bt = this
+          thm backtrackE
+          obtain M1 M2 i D L K where
+            confl_S: "conflicting (toS S) = C_Clause (D + {#L#})" and
+            decomp:"(Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition (trail (toS S)))" and
+            "get_level L (trail (toS S)) = backtrack_lvl (toS S)" and
+            "get_level L (trail (toS S)) = get_maximum_level (D+{#L#}) (trail (toS S))" and
+            "get_maximum_level D (trail (toS S)) = i" and
+            U: "toS (do_other_step S) = (\<lambda>(M, S). (Propagated L (D+{#L#})# M, S))
+                     (cdcl_cw.reduce_trail_to M1
+                          (cdcl_cw.add_learned_cls (D + {#L#})
+                             (update_backtrack_lvl i
+                                (update_conflicting C_True (toS S)))))"
+            using bt by auto
+          have [simp]: "cons_trail (Propagated L (D + {#L#}))
+            (cdcl_cw.reduce_trail_to M1
+              (cdcl_cw.add_learned_cls (D + {#L#})
+                (update_backtrack_lvl (get_maximum_level D (trail (toS S)))
+                  (update_conflicting C_True (toS S)))))
+            =
+            (Propagated L (D + {#L#})# M1,mset (map mset (clauses S)),
+              {#D + {#L#}#} + mset (map mset (learned_clss S)),  get_maximum_level D (trail (toS S)), C_True)"
+             apply (subst state_conv[of "cons_trail _ _"])
+             using decomp by (cases S) auto
+          then show ?case
+              apply auto
+
+             apply (cases "do_other_step S"; auto split: split_if_asm simp: Let_def)
+                 apply (cases S rule: do_skip_step.cases; auto split: split_if_asm)
+                apply (cases S rule: do_skip_step.cases; auto split: split_if_asm)
+
+               apply (cases S rule: do_backtrack_step.cases;
+                 auto split: split_if_asm option.splits list.splits marked_lit.splits
+                 dest!: bt_cut_some_decomp)[]
+             using d  apply (cases S rule: do_decide_step.cases; auto split:  option.splits)[]
+             done
+        qed
+    qed
 qed
 
 lemma do_full_cp_step_induct:

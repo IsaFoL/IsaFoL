@@ -693,8 +693,8 @@ lemma dpll_dpll_bj:
   shows "dpll_CW_NOT.dpll_bj S T "
   using dpll inv
   apply (induction rule: dpll.induct)
-     using dpll_CW_NOT.dpll_bj.simps apply blast
-    apply (simp add: dpll_CW_NOT.decide\<^sub>N\<^sub>O\<^sub>T dpll_CW_NOT.dpll_bj.simps)
+     using dpll_CW_NOT.dpll_bj.simps apply fastforce
+    using dpll_CW_NOT.bj_decide\<^sub>N\<^sub>O\<^sub>T apply fastforce
   apply (frule dpll_CW_NOT.backtrack.intros[of _ _  _ _ _], simp_all)
   apply (rule dpll_CW_NOT.dpll_bj.bj_backjump)
   apply (rule dpll_CW_NOT.backtrack_is_backjump'', simp_all add: dpll_all_inv_def)
@@ -704,8 +704,11 @@ lemma dpll_bj_dpll:
   assumes inv: "dpll_all_inv S" and dpll: "dpll_CW_NOT.dpll_bj S T"
   shows "dpll S T"
   using dpll
-  by (induction rule: dpll_CW_NOT.dpll_bj.induct)
-    (auto elim!: dpll_CW_NOT.decideE dpll_CW_NOT.propagateE dpll_CW_NOT.backjumpE
+  apply (induction rule: dpll_CW_NOT.dpll_bj.induct)
+  prefer 2
+  apply (auto elim!: dpll_CW_NOT.decideE dpll_CW_NOT.propagateE dpll_CW_NOT.backjumpE
      intro!: dpll.intros)
-
+  apply (metis fst_conv propagate snd_conv)
+  apply (metis fst_conv dpll.intros(2) snd_conv)
+  done
 end

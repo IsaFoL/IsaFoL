@@ -46,6 +46,9 @@ lemma lits_of_append[simp]:
 lemma finite_lits_of_def[simp]: "finite (lits_of L)"
   unfolding lits_of_def by auto
 
+lemma lits_of_rev[simp]: "lits_of (rev M) = lits_of M"
+  unfolding lits_of_def by auto
+
 lemma set_map_lit_of_lits_of[simp]:
   "set (map lit_of T) = lits_of T"
   unfolding lits_of_def by auto
@@ -58,9 +61,6 @@ abbreviation unmark where
 lemma atms_of_m_lambda_lit_of_is_atm_of_lit_of[simp]:
   "atms_of_m ((\<lambda>a. {#lit_of a#}) ` set M') = atm_of ` lits_of M'"
   unfolding atms_of_m_def lits_of_def by auto
-
-lemma lits_of_rev[simp]: "lits_of (rev a) = lits_of a"
-  unfolding lits_of_def by auto
 
 lemma lits_of_empty_is_empty[iff]:
   "lits_of M = {} \<longleftrightarrow> M = []"
@@ -177,6 +177,10 @@ definition defined_lit :: "'a literal \<Rightarrow> ('a, 'l, 'm) marked_lit list
 
 abbreviation undefined_lit :: "'a literal \<Rightarrow> ('a, 'l, 'm) marked_lit list  \<Rightarrow> bool"
 where "undefined_lit L I \<equiv> \<not>defined_lit L I"
+
+lemma defined_lit_rev[simp]:
+  "defined_lit L (rev M) \<longleftrightarrow> defined_lit L M"
+  unfolding defined_lit_def by auto
 
 lemma atm_imp_marked_or_proped:
   assumes "x \<in> set I"
@@ -846,6 +850,10 @@ qed
 subsection \<open>Other\<close>
 abbreviation "no_dup L \<equiv> distinct (map (\<lambda>l. atm_of (lit_of l)) L)"
 
+lemma no_dup_rev[simp]:
+  "no_dup (rev M) \<longleftrightarrow> no_dup M"
+  by (auto simp: rev_map[symmetric])
+  
 lemma no_dup_length_eq_card_atm_of_lits_of:
   assumes "no_dup M"
   shows "length M  = card (atm_of ` lits_of M)"
