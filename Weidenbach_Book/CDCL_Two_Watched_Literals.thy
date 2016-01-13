@@ -413,13 +413,23 @@ proof -
 qed
 
 
+consts
+  cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> ('v, nat, 'v clause) two_wl_state \<Rightarrow> 
+    ('v, nat, 'v clause) two_wl_state" 
+  add_init_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) two_wl_state \<Rightarrow>('v, nat, 'v clause) two_wl_state"
+  add_learned_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) two_wl_state \<Rightarrow> 
+    ('v, nat, 'v clause) two_wl_state"
+  remove_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) two_wl_state \<Rightarrow> ('v, nat, 'v clause) two_wl_state"
+  init_state :: "'v clauses \<Rightarrow> ('v, nat, 'v clause) two_wl_state" 
+
 locale structure_2_WL =
-  fixes choose :: "('v, nat, 'v clause) two_wl_state \<Rightarrow> 'v clause \<Rightarrow> 'v w_clause"
-  assumes choose: "wf_two_wl_cls (trail S) (choose S C)"
+  fixes 
+    choose :: "('v, nat, 'v clause) two_wl_state \<Rightarrow> 'v clause \<Rightarrow> 'v w_clause" and
+    remove_some_learned :: "('v, nat, 'v clause) two_wl_state \<Rightarrow> 'v w_clause multiset"
+  assumes
+    "remove_some_learned S \<subseteq># learned_cls S" and
+    choose: "wf_two_wl_cls (trail S) (choose S C)"
 begin
-
-
-end
 
 abbreviation init_clss_of_w_clss where
 "init_clss_of_w_clss S \<equiv> image_mset clause_of_w_clause (init_clss S)"
@@ -430,34 +440,11 @@ abbreviation learned_clss_of_w_clss where
 fun update_backtrack_lvl where
 "update_backtrack_lvl k (Two_WL_State M N U _ C) = Two_WL_State M N U k C"
 
+fun update_conflicting where
+"update_conflicting C (Two_WL_State M N U k _) = Two_WL_State M N U k C"
+
 fun tl_trail where
 "tl_trail (Two_WL_State M N U k C) = Two_WL_State (tl M) N U k C"
-
-locale todo_remove =
-  fixes
-    (* TODO: implement *)
-    add_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) two_wl_state \<Rightarrow>('v, nat, 'v clause) two_wl_state"
-      and
-    add_init_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) two_wl_state \<Rightarrow>('v, nat, 'v clause) two_wl_state"
-      and
-    cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> ('v, nat, 'v clause) two_wl_state
-      \<Rightarrow> ('v, nat, 'v clause) two_wl_state" and
-    add_learned_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) two_wl_state
-      \<Rightarrow> ('v, nat, 'v clause) two_wl_state" and
-    remove_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) two_wl_state
-      \<Rightarrow> ('v, nat, 'v clause) two_wl_state" and
-    init_state :: "'v clauses \<Rightarrow> ('v, nat, 'v clause) two_wl_state" and
-    (* Axiomatisation of restart: *)
-    remove_some_learned :: "('v, nat, 'v clause) two_wl_state
-      \<Rightarrow> 'v w_clause multiset"
-  assumes
-    [simp]: "trail (cons_trail L S) = L # trail S" and
-    "remove_some_learned S \<subseteq># learned_cls S"
-begin
-
-fun remove_all_init_cls :: "('v, nat, 'v clause) two_wl_state \<Rightarrow>('v, nat, 'v clause) two_wl_state"
-  where
-"remove_all_init_cls (Two_WL_State M N U k C) = Two_WL_State M N U k C"
 
 fun restart where
 "restart (Two_WL_State M N U k C) =
@@ -470,8 +457,6 @@ sublocale cw_state trail init_clss_of_w_clss learned_clss_of_w_clss backtrack_lv
   apply (case_tac st, simp)
   apply (case_tac st, simp)
 oops
-
-end
 
 (* implementation of choose *)
 interpretation structure_2_WL
