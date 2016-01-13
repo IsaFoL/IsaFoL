@@ -457,7 +457,7 @@ begin
 
 fun remove_all_init_cls :: "('v, nat, 'v clause) two_wl_state \<Rightarrow>('v, nat, 'v clause) two_wl_state"
   where
-"remove_all_init_cls (Two_WL_State _ N U k C) = Two_WL_State [] N U k C"
+"remove_all_init_cls (Two_WL_State M N U k C) = Two_WL_State M N U k C"
 
 fun update_init_cls :: "'v clauses \<Rightarrow> ('v, nat, 'v clause) two_wl_state
   \<Rightarrow>('v, nat, 'v clause) two_wl_state" where
@@ -470,7 +470,8 @@ sublocale cw_state trail init_clss_of_w_clss learned_clss_of_w_clss backtrack_lv
   cons_trail tl_trail update_init_cls add_learned_cls remove_cls update_backtrack_lvl
   update_conflicting init_state restart
   apply unfold_locales
-  apply auto
+  apply (case_tac st, simp)
+  apply (case_tac st, simp)
 oops
 
 end
