@@ -51,7 +51,7 @@ abbreviation remove_cls where
 interpretation cdcl_cw: cw_state trail clauses learned_clss backtrack_lvl conflicting
   "\<lambda>L (M, S). (L # M, S)"
   "\<lambda>(M, S). (tl M, S)"
-  "\<lambda>N (M, _, S). (M, N, S)"
+  "\<lambda>C (M, N, S). (M, {#C#} + N, S)"
   "\<lambda>C (M, N, U, S). (M, N, {#C#} + U, S)"
   "\<lambda>C (M, N, U, S). (M, remove_mset N C, remove_mset U C, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
@@ -73,7 +73,7 @@ lemma state_conv:
 interpretation cdcl_cw_termination trail clauses learned_clss backtrack_lvl conflicting
   "\<lambda>L (M, S). (L # M, S)"
   "\<lambda>(M, S). (tl M, S)"
-  "\<lambda>N (M, _, S). (M, N, S)"
+  "\<lambda>C (M, N, S). (M, {#C#} + N, S)"
   "\<lambda>C (M, N, U, S). (M, N, {#C#} + U, S)"
   "\<lambda>C (M, N, U, S). (M, remove_mset N C, remove_mset U C, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
