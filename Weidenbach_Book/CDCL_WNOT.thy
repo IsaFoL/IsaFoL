@@ -3447,7 +3447,7 @@ locale cdcl_cw_ops_restart =
    update_learned_clss update_backtrack_lvl update_conflicting init_state
    restart_state
   for
-    trail :: "'st \<Rightarrow> ('v::linorder, nat, 'v clause) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v::linorder, nat, 'v clause) marked_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
     backtrack_lvl :: "'st \<Rightarrow> nat" and
@@ -3682,7 +3682,7 @@ lemma rtranclp_cdcl_s_cdcl_s_invariant:
   using cdcl_s_cdcl_s_invariant rtranclp_cdcl_all_inv_mes_inv rtranclp_cdcl_s_rtranclp_cdcl by blast
 
 fun cut_trail_wrt_clause
-  :: "'v clause \<Rightarrow> ('v, nat, 'v clause) annoted_lits \<Rightarrow> ('v, nat, 'v clause) annoted_lits"  where
+  :: "'v clause \<Rightarrow> ('v, nat, 'v clause) marked_lits \<Rightarrow> ('v, nat, 'v clause) marked_lits"  where
 "cut_trail_wrt_clause C (L # M) =
   (if lit_of L \<in># C then M else L # cut_trail_wrt_clause C M)" |
 "cut_trail_wrt_clause _ [] = []"

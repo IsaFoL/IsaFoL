@@ -223,7 +223,7 @@ lemma dpll_marked_level_only_one_element[simp]:
 text \<open>We define here an abstraction over operation on the state we are manipulating.\<close>
 locale dpll_state =
   fixes
-    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow>'st" and
@@ -254,7 +254,7 @@ lemma
         clauses st - replicate_mset (count (clauses st) C) C"
   unfolding add_cls\<^sub>N\<^sub>O\<^sub>T_def remove_cls\<^sub>N\<^sub>O\<^sub>T_def by auto
 
-function reduce_trail_to\<^sub>N\<^sub>O\<^sub>T :: "('v, dpll_marked_level, dpll_mark) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" where
+function reduce_trail_to\<^sub>N\<^sub>O\<^sub>T :: "('v, dpll_marked_level, dpll_mark) marked_lits \<Rightarrow> 'st \<Rightarrow> 'st" where
 "reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S =
   (if length (trail S) = length F \<or> trail S = [] then S else reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F (tl_trail S))"
 by fast+
@@ -281,12 +281,12 @@ lemma trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_length_le:
 thm reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct
 lemma trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_nil[simp]:
   "trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T [] S) = []"
-  by (induction "[]::  ('v, dpll_marked_level, dpll_mark) annoted_lits" S rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
+  by (induction "[]::  ('v, dpll_marked_level, dpll_mark) marked_lits" S rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
   (simp add: less_imp_diff_less reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.simps)
 
 lemma clauses_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_nil:
   "clauses (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T [] S) = clauses S"
-  by (induction "[]::  ('v, dpll_marked_level, dpll_mark) annoted_lits" S rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
+  by (induction "[]::  ('v, dpll_marked_level, dpll_mark) marked_lits" S rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
   (simp add: less_imp_diff_less reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.simps)
 
 lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_skip_beginning:
@@ -356,7 +356,7 @@ end
 subsubsection \<open>Definition of the operation\<close>
 locale propagate_ops =
   dpll_state trail clauses prepend_trail tl_trail update_cls for
-    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
@@ -375,7 +375,7 @@ end
 
 locale decide_ops =
   dpll_state trail clauses prepend_trail tl_trail update_cls for
-    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
@@ -392,7 +392,7 @@ end
 locale backjumping_ops =
   dpll_state trail clauses prepend_trail tl_trail update_cls
   for
-    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
@@ -421,7 +421,7 @@ locale dpll_with_backjumping_ops =
   decide_ops trail clauses prepend_trail tl_trail update_cls +
   backjumping_ops trail clauses prepend_trail tl_trail update_cls backjump_conds
   for
-    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
@@ -693,7 +693,7 @@ text \<open>The bounds are the following:
 abbreviation unassigned_lit ::  "'b literal multiset set \<Rightarrow> 'a list \<Rightarrow> nat" where
   "unassigned_lit N M \<equiv> card (atms_of_m N) - length M"
 lemma dpll_bj_trail_mes_increasing_prop:
-  fixes M :: "('v, dpll_marked_level, dpll_mark) annoted_lits " and N :: "'v clauses"
+  fixes M :: "('v, dpll_marked_level, dpll_mark) marked_lits " and N :: "'v clauses"
   assumes
     "dpll_bj S T" and
     "inv S" and
@@ -1085,7 +1085,7 @@ end
 locale dpll_with_backjumping =
   dpll_with_backjumping_ops trail clauses prepend_trail tl_trail update_cls propagate_conds inv backjump_conds
   for
-    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and tl_trail :: "'st \<Rightarrow> 'st" and
     update_cls :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -1292,7 +1292,7 @@ subsection \<open>CDCL\<close>
 locale learn_ops =
   dpll_state trail clauses prepend_trail tl_trail update_cls
   for
-    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and tl_trail :: "'st \<Rightarrow> 'st" and
     update_cls :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" +
@@ -1317,7 +1317,7 @@ end
 locale forget_ops =
   dpll_state trail clauses prepend_trail tl_trail update_cls
   for
-    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and tl_trail :: "'st \<Rightarrow> 'st" and
     update_cls :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" +
@@ -1343,7 +1343,7 @@ locale learn_and_forget\<^sub>N\<^sub>O\<^sub>T =
   learn_ops trail clauses prepend_trail tl_trail update_cls learn_cond +
   forget_ops trail clauses prepend_trail tl_trail update_cls forget_cond
   for
-    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and tl_trail :: "'st \<Rightarrow> 'st" and
     update_cls :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -1359,7 +1359,7 @@ locale conflict_driven_clause_learning_ops =
   dpll_with_backjumping_ops trail clauses prepend_trail tl_trail update_cls propagate_conds inv backjump_conds +
   learn_and_forget\<^sub>N\<^sub>O\<^sub>T trail clauses prepend_trail tl_trail update_cls learn_cond forget_cond
     for
-      trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) annoted_lits" and
+      trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lits" and
       clauses :: "'st \<Rightarrow> 'v clauses" and
       prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and tl_trail :: "'st \<Rightarrow> 'st" and
       update_cls :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -1849,7 +1849,7 @@ locale conflict_driven_clause_learning_learning_before_backjump_only_distinct_le
   "\<lambda>C S. \<not>(\<exists>F' F K d L. trail S = F' @ Marked K d # F \<and> F \<Turnstile>as CNot (C - {#L#}))
     \<and> forget_restrictions C S"
     for
-      trail :: "'st \<Rightarrow> ('v::linorder, dpll_marked_level, dpll_mark) annoted_lits" and
+      trail :: "'st \<Rightarrow> ('v::linorder, dpll_marked_level, dpll_mark) marked_lits" and
       clauses :: "'st \<Rightarrow> 'v clauses" and
       prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
       tl_trail :: "'st \<Rightarrow> 'st" and
@@ -2645,7 +2645,7 @@ context dpll_with_backtrack
 begin
 lemma tranclp_dpll_wf_inital_state:
   assumes fin: "finite A"
-  shows "wf {((M'::('v, dpll_marked_level, dpll_mark) annoted_lits, N'::'v clauses), ([], N))|M' N' N.
+  shows "wf {((M'::('v, dpll_marked_level, dpll_mark) marked_lits, N'::'v clauses), ([], N))|M' N' N.
     dpll_bj\<^sup>+\<^sup>+ ([], N) (M', N') \<and> atms_of_mu N \<subseteq> atms_of_m A}"
   using tranclp_dpll_bj_wf[OF assms(1)] by (rule wf_subset) auto
 
@@ -2684,7 +2684,7 @@ locale conflict_driven_clause_learning_with_restarts =
   conflict_driven_clause_learning trail clauses prepend_trail tl_trail update_cls propagate_conds inv
   backjump_conds learn_cond forget_cond
     for
-      trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) annoted_lits" and
+      trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lits" and
       clauses :: "'st \<Rightarrow> 'v clauses" and
       prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
       tl_trail :: "'st \<Rightarrow> 'st" and
@@ -2917,7 +2917,7 @@ end
 locale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts =
   cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts_ops restart cdcl\<^sub>N\<^sub>O\<^sub>T f bound_inv \<mu> cdcl\<^sub>N\<^sub>O\<^sub>T_inv \<mu>_bound
   for
-    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
@@ -3105,7 +3105,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops =
   forget_ops trail clauses prepend_trail tl_trail update_cls forget_cond +
   propagate_ops trail clauses prepend_trail tl_trail update_cls propagate_conds
   for
-    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and tl_trail :: "'st \<Rightarrow> 'st" and
     update_cls :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -3148,7 +3148,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy =
     forget_conds "\<lambda>C L S.  backjump_l_cond C L S \<and> distinct_mset (C + {#L#})
     \<and> \<not>tautology (C + {#L#})"
   for
-    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
@@ -3218,7 +3218,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2 =
   cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy trail clauses prepend_trail tl_trail update_cls propagate_conds
      forget_conds backjump_l_cond inv
   for
-    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
@@ -3238,7 +3238,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn =
   cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2 trail clauses prepend_trail tl_trail update_cls propagate_conds
     inv forget_conds backjump_l_cond
   for
-    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
@@ -3746,7 +3746,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_with_backtrack_and_restarts =
   prepend_trail tl_trail update_cls propagate_conds inv backjump_conds learn_restrictions
   forget_restrictions
     for
-    trail :: "'st \<Rightarrow> ('v::linorder, dpll_marked_level, dpll_mark) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v::linorder, dpll_marked_level, dpll_mark) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v::linorder clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
@@ -4017,7 +4017,7 @@ locale most_general_cdcl\<^sub>N\<^sub>O\<^sub>T =
     dpll_state trail clauses prepend_trail tl_trail update_cls +
     propagate_ops trail clauses prepend_trail tl_trail update_cls propagate_conds +
     backjumping_ops trail clauses prepend_trail tl_trail update_cls "\<lambda>_ _ _ _. True" for
-    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
@@ -4050,7 +4050,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_with_backtrack_restarts =
     propagate_conds inv forget_conds
     "\<lambda>C L S. distinct_mset (C + {#L#}) \<and> backjump_l_cond C L S"
     for
-    trail :: "'st \<Rightarrow> ('v::linorder, dpll_marked_level, dpll_mark) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v::linorder, dpll_marked_level, dpll_mark) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v::linorder clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and

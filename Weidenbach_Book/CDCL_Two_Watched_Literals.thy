@@ -82,7 +82,7 @@ abbreviation clause_of_w_clause :: "'v w_clause \<Rightarrow> 'v clause" where
 "clause_of_w_clause C \<equiv> watched C + not_watched C"
 
 datatype ('v, 'lvl, 'mark) two_wl_state =
-  Two_WL_State (trail: "('v, 'lvl, 'mark) annoted_lits") (init_clss: "'v w_clause multiset")
+  Two_WL_State (trail: "('v, 'lvl, 'mark) marked_lits") (init_clss: "'v w_clause multiset")
     (learned_clss: "'v w_clause multiset") (backtrack_lvl: 'lvl)
     (conflicting: "'v clause conflicting_clause")
 

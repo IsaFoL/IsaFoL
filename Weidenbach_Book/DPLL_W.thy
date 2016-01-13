@@ -5,10 +5,10 @@ begin
 section \<open>DPLL\<close>
 subsection \<open>Rules\<close>
 type_synonym 'a dpll_marked_lit = "('a, dpll_marked_level, dpll_mark) marked_lit"
-type_synonym 'a dpll_annoted_lits = "('a, dpll_marked_level, dpll_mark) annoted_lits"
-type_synonym 'v dpll_state = "'v dpll_annoted_lits \<times> 'v clauses"
+type_synonym 'a dpll_marked_lits = "('a, dpll_marked_level, dpll_mark) marked_lits"
+type_synonym 'v dpll_state = "'v dpll_marked_lits \<times> 'v clauses"
 
-abbreviation trail :: "'v dpll_state \<Rightarrow> 'v dpll_annoted_lits" where
+abbreviation trail :: "'v dpll_state \<Rightarrow> 'v dpll_marked_lits" where
 "trail \<equiv> fst"
 abbreviation clauses :: "'v dpll_state \<Rightarrow> 'v clauses" where
 "clauses \<equiv> snd"

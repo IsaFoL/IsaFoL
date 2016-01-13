@@ -8,9 +8,9 @@ type_synonym 'a cdcl_mark = "'a clause"
 type_synonym cdcl_marked_level = nat
 
 type_synonym 'v cdcl_marked_lit = "('v, cdcl_marked_level, 'v cdcl_mark) marked_lit"
-type_synonym 'v cdcl_annoted_lits = "('v, cdcl_marked_level, 'v cdcl_mark) annoted_lits"
+type_synonym 'v cdcl_marked_lits = "('v, cdcl_marked_level, 'v cdcl_mark) marked_lits"
 type_synonym 'v cdcl_state =
-  "'v cdcl_annoted_lits \<times> 'v clauses \<times> 'v clauses \<times> nat \<times> 'v clause conflicting_clause"
+  "'v cdcl_marked_lits \<times> 'v clauses \<times> 'v clauses \<times> nat \<times> 'v clause conflicting_clause"
 
 abbreviation trail :: "'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<Rightarrow> 'a" where
 "trail \<equiv> (\<lambda>(M, _). M)"

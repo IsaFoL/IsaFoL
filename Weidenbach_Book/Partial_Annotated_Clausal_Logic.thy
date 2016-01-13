@@ -27,7 +27,7 @@ lemma is_marked_ex_Marked:
   "is_marked L \<Longrightarrow> \<exists>K lvl. L = Marked K lvl"
   by (cases L) auto
 
-type_synonym ('v, 'l, 'm) annoted_lits = "('v, 'l, 'm) marked_lit list"
+type_synonym ('v, 'l, 'm) marked_lits = "('v, 'l, 'm) marked_lit list"
 
 definition lits_of :: "('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal set" where
 "lits_of Ls = lit_of ` (set Ls)"
@@ -67,10 +67,10 @@ lemma lits_of_empty_is_empty[iff]:
   by (induct M) auto
 
 subsubsection \<open>Entailment\<close>
-definition true_annot :: "('a, 'l, 'm) annoted_lits \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>a" 49) where
+definition true_annot :: "('a, 'l, 'm) marked_lits \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>a" 49) where
   "I \<Turnstile>a C \<longleftrightarrow> (lits_of I) \<Turnstile> C"
 
-definition true_annots :: "('a, 'l, 'm) annoted_lits \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>as" 49) where
+definition true_annots :: "('a, 'l, 'm) marked_lits \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>as" 49) where
   "I \<Turnstile>as CC \<longleftrightarrow> (\<forall>C \<in> CC. I \<Turnstile>a C)"
 
 lemma true_annot_empty_model[simp]:
@@ -231,8 +231,8 @@ lemma decided_empty[simp]:
   unfolding defined_lit_def by simp
 
 subsection \<open>Backtracking\<close>
-fun backtrack_split :: "('v, 'l, 'm) annoted_lits
-  \<Rightarrow> ('v, 'l, 'm) annoted_lits \<times> ('v, 'l, 'm) annoted_lits" where
+fun backtrack_split :: "('v, 'l, 'm) marked_lits
+  \<Rightarrow> ('v, 'l, 'm) marked_lits \<times> ('v, 'l, 'm) marked_lits" where
 "backtrack_split [] = ([], [])" |
 "backtrack_split (Propagated L P # mlits) = apfst ((op #) (Propagated L P)) (backtrack_split mlits)" |
 "backtrack_split (Marked L l # mlits) = ([], Marked L l # mlits)"
@@ -276,8 +276,8 @@ Split function in 2 + list.product
 *)
 text \<open>The pattern @{term "get_all_marked_decomposition [] = [([], [])]"} is necessary otherwise, we
   can call the @{term hd} function in the other pattern. \<close>
-fun get_all_marked_decomposition :: "('a, 'l, 'm) annoted_lits
-  \<Rightarrow> (('a, 'l, 'm) annoted_lits \<times> ('a, 'l, 'm) annoted_lits) list" where
+fun get_all_marked_decomposition :: "('a, 'l, 'm) marked_lits
+  \<Rightarrow> (('a, 'l, 'm) marked_lits \<times> ('a, 'l, 'm) marked_lits) list" where
 "get_all_marked_decomposition (Marked L l # Ls) =
   (Marked L l # Ls, []) # get_all_marked_decomposition Ls" |
 "get_all_marked_decomposition (Propagated L P# Ls) =

@@ -16,7 +16,7 @@ datatype 'a conflicting_clause = C_True | C_Clause "'a"
 subsection \<open>The State\<close>
 locale cw_state =
   fixes
-    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) marked_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
     backtrack_lvl :: "'st \<Rightarrow> nat" and
@@ -194,7 +194,7 @@ lemma atms_of_m_learned_clss_restart_state_in_atms_of_m_learned_clssI[intro]:
   "x \<in> atms_of_mu (learned_clss (restart_state S)) \<Longrightarrow> x \<in> atms_of_mu (learned_clss S)"
   by (meson atms_of_m_mono learned_clss_restart_state set_mset_mono subsetCE)
 
-function reduce_trail_to :: "('v, nat, 'v clause) annoted_lits \<Rightarrow> 'st \<Rightarrow> 'st" where
+function reduce_trail_to :: "('v, nat, 'v clause) marked_lits \<Rightarrow> 'st \<Rightarrow> 'st" where
 "reduce_trail_to F S =
   (if length (trail S) = length F \<or> trail S = [] then S else reduce_trail_to F (tl_trail S))"
 by fast+
@@ -223,12 +223,12 @@ lemma trail_reduce_trail_to_length_le:
 
 lemma trail_reduce_trail_to_nil[simp]:
   "trail (reduce_trail_to [] S) = []"
-  apply (induction "[]::  ('v, nat, 'v clause) annoted_lits" S rule: reduce_trail_to.induct)
+  apply (induction "[]::  ('v, nat, 'v clause) marked_lits" S rule: reduce_trail_to.induct)
   by (metis length_0_conv reduce_trail_to_length_ne reduce_trail_to_nil)
 
 lemma clauses_reduce_trail_to_nil:
   "clauses (reduce_trail_to [] S) = clauses S"
-  apply (induction "[]::  ('v, nat, 'v clause) annoted_lits" S rule: reduce_trail_to.induct)
+  apply (induction "[]::  ('v, nat, 'v clause) marked_lits" S rule: reduce_trail_to.induct)
   by (metis clauses_tl_trail reduce_trail_to.simps)
 
 lemma reduce_trail_to_skip_beginning:
@@ -378,7 +378,7 @@ locale
    update_learned_clss update_backtrack_lvl update_conflicting init_state
    restart_state
   for
-    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) annoted_lits" and
+    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) marked_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
     backtrack_lvl :: "'st \<Rightarrow> nat" and
@@ -1257,7 +1257,7 @@ definition "cdcl_conflicting S \<equiv>
   \<and> every_mark_is_a_conflict S"
 
 lemma backtrack_atms_of_D_in_M1:
-  fixes M1 :: "('v, nat, 'v clause) annoted_lits"
+  fixes M1 :: "('v, nat, 'v clause) marked_lits"
   assumes bt: "backtrack S T" and
     T: "T \<sim> cons_trail (Propagated L (D+{#L#}))
                   (reduce_trail_to M1

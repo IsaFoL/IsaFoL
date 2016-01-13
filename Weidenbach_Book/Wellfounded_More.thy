@@ -308,5 +308,3 @@ proof -
     using H by auto
   ultimately show ?thesis using wf_subset by simp
 qed
-
-end

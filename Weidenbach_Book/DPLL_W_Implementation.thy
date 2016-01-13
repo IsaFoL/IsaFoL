@@ -4,8 +4,8 @@ begin
 
 subsection \<open>Simple Implementation of DPLL\<close>
 subsubsection \<open>Combining the propagate and decide: a DPLL step\<close>
-definition DPLL_step :: "int dpll_annoted_lits \<times> int literal list list
-  \<Rightarrow> int dpll_annoted_lits \<times> int literal list list"  where
+definition DPLL_step :: "int dpll_marked_lits \<times> int literal list list
+  \<Rightarrow> int dpll_marked_lits \<times> int literal list list"  where
 "DPLL_step = (\<lambda>(Ms, N).
   (case find_first_unit_clause N Ms of
     Some (L, _) \<Rightarrow> (Propagated L Proped # Ms, N)
@@ -144,8 +144,8 @@ qed
 
 subsubsection \<open>Adding invariants\<close>
 paragraph \<open>Invariant tested in the function\<close>
-function DPLL_ci :: "int dpll_annoted_lits \<Rightarrow> int literal list list
-  \<Rightarrow> int dpll_annoted_lits \<times> int literal list list" where
+function DPLL_ci :: "int dpll_marked_lits \<Rightarrow> int literal list list
+  \<Rightarrow> int dpll_marked_lits \<times> int literal list list" where
 "DPLL_ci Ms N =
   (if \<not>dpll_all_inv (Ms, mset (map mset N))
   then (Ms, N)
@@ -158,7 +158,7 @@ proof (relation "{(S', S).  (toS' S', toS' S) \<in> {(S', S). dpll_all_inv S \<a
   show  "wf {(S', S).(toS' S', toS' S) \<in> {(S', S). dpll_all_inv S \<and> dpll S S'}}"
     using  wf_if_measure_f[OF dpll_wf, of "toS'"] by auto
 next
-  fix Ms :: "int dpll_annoted_lits" and N x xa y
+  fix Ms :: "int dpll_marked_lits" and N x xa y
   assume"\<not> \<not> dpll_all_inv (toS Ms N)"
   and step: "x = DPLL_step (Ms, N)"
   and x: "(xa, y) = x"
@@ -168,7 +168,7 @@ next
 qed
 
 paragraph \<open>No invariant tested\<close>
-function (domintros) DPLL_part:: "int dpll_annoted_lits \<Rightarrow> int literal list list \<Rightarrow> int dpll_annoted_lits \<times> int literal list list" where
+function (domintros) DPLL_part:: "int dpll_marked_lits \<Rightarrow> int literal list list \<Rightarrow> int dpll_marked_lits \<times> int literal list list" where
 "DPLL_part Ms N =
   (let (Ms', N') = DPLL_step (Ms, N) in
    if (Ms', N') = (Ms, N) then (Ms, N) else DPLL_part Ms' N)"
