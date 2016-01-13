@@ -24,7 +24,7 @@ locale cw_state =
 
     cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow>'st" and
-    update_init_clss :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -35,7 +35,7 @@ locale cw_state =
   assumes
     trail_cons_trail[simp]: "\<And>L st. trail (cons_trail L st) = L # trail st" and
     trail_tl_trail[simp]: "\<And>st. trail (tl_trail st) = tl (trail st)" and
-    update_trail_update_clss[simp]: "\<And>st C. trail (update_init_clss C st) = trail st" and
+    update_trail_update_clss[simp]: "\<And>st C. trail (add_init_cls C st) = trail st" and
     trail_add_learned_cls[simp]: "\<And>C st. trail (add_learned_cls C st) = trail st" and
     trail_remove_cls[simp]: "\<And>C st. trail (remove_cls C st) = trail st" and
     trail_update_backtrack_lvl[simp]: "\<And>st C. trail (update_backtrack_lvl C st) = trail st" and
@@ -46,7 +46,7 @@ locale cw_state =
     init_clss_tl_trail[simp]:
       "\<And>st. init_clss (tl_trail st) = init_clss st" and
     init_clss_update_clss[simp]:
-      "\<And>st C. init_clss (update_init_clss C st) = C" and
+      "\<And>st C. init_clss (add_init_cls C st) = {#C#} + init_clss st" and
     init_clss_add_learned_cls[simp]:
       "\<And>C st. init_clss (add_learned_cls C st) = init_clss st" and
     init_clss_remove_cls[simp]:
@@ -58,9 +58,9 @@ locale cw_state =
 
     learned_clss_cons_trail[simp]: "\<And>M st. learned_clss (cons_trail M st) = learned_clss st" and
     learned_clss_tl_trail[simp]: "\<And>st. learned_clss (tl_trail st) = learned_clss st" and
-    learned_clss_update_clss[simp]: 
-      "\<And>st C. learned_clss (update_init_clss C st) = learned_clss st" and
-    learned_clss_add_learned_cls[simp]: 
+    learned_clss_update_clss[simp]:
+      "\<And>st C. learned_clss (add_init_cls C st) = learned_clss st" and
+    learned_clss_add_learned_cls[simp]:
       "\<And>C st. learned_clss (add_learned_cls C st) = {#C#} + learned_clss st" and
     learned_clss_remove_cls[simp]:
       "\<And>C st. learned_clss (remove_cls C st) = remove_mset (learned_clss st) C" and
@@ -73,8 +73,8 @@ locale cw_state =
       "\<And>M st. backtrack_lvl (cons_trail M st) = backtrack_lvl st" and
     backtrack_lvl_tl_trail[simp]:
       "\<And>st. backtrack_lvl (tl_trail st) = backtrack_lvl st" and
-    backtrack_lvl_update_init_clss[simp]:
-      "\<And>st C. backtrack_lvl (update_init_clss C st) = backtrack_lvl st"  and
+    backtrack_lvl_add_init_cls[simp]:
+      "\<And>st C. backtrack_lvl (add_init_cls C st) = backtrack_lvl st"  and
     backtrack_lvl_add_learned_cls[simp]:
       "\<And>C st. backtrack_lvl (add_learned_cls C st) = backtrack_lvl st" and
     backtrack_lvl_remove_cls[simp]:
@@ -88,8 +88,8 @@ locale cw_state =
       "\<And>M st. conflicting (cons_trail M st) = conflicting st" and
     conflicting_tl_trail[simp]:
       "\<And>st. conflicting (tl_trail st) = conflicting st" and
-    conflicting_update_init_clss[simp]:
-      "\<And>st C. conflicting (update_init_clss C st) = conflicting st" and
+    conflicting_add_init_cls[simp]:
+      "\<And>st C. conflicting (add_init_cls C st) = conflicting st" and
     conflicting_add_learned_cls[simp]:
       "\<And>C st. conflicting (add_learned_cls C st) = conflicting st" and
     conflicting_remove_cls[simp]:
@@ -121,16 +121,16 @@ lemma
   shows
     clauses_cons_trail[simp]: "clauses (cons_trail M S) = clauses S" and
     clauses_tl_trail[simp]: "clauses (tl_trail S) = clauses S" and
-    clauses_add_learned_cls_unfolded: 
+    clauses_add_learned_cls_unfolded:
       "clauses (add_learned_cls U S) = {#U#} + learned_clss S + init_clss S" and
-    clauses_update_init_clss[simp]: "clauses (update_init_clss N S) = N + learned_clss S" and
+    clauses_add_init_cls[simp]: "clauses (add_init_cls N S) = {#N#} + init_clss S + learned_clss S" and
     clauses_update_backtrack_lvl[simp]: "clauses (update_backtrack_lvl k S) = clauses S" and
     clauses_update_conflicting[simp]: "clauses (update_conflicting D S) = clauses S" and
     clauses_remove_cls[simp]:
       "clauses (remove_cls C S) = clauses S - replicate_mset (count (clauses S) C) C" and
     clauses_add_learned_cls[simp]: "clauses (add_learned_cls C S) = {#C#} + clauses S" and
     clauses_restart[simp]: "clauses (restart_state S) \<subseteq># clauses S" and
-    clauses_init_state[simp]: "clauses (init_state N) = N"
+    clauses_init_state[simp]: "\<And>N. clauses (init_state N) = N"
     prefer 9 using clauses_def learned_clss_restart_state apply fastforce
     by (auto simp: ac_simps replicate_mset_plus clauses_def intro: multiset_eqI)
 
@@ -356,7 +356,7 @@ text \<open>Because of the strategy we will later use, we distinguish propagate,
   rules\<close>
 locale
   cdcl_cw_ops =
-   cw_state trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail update_init_clss
+   cw_state trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail add_init_cls
    add_learned_cls remove_cls update_backtrack_lvl update_conflicting init_state
    restart_state
   for
@@ -368,7 +368,7 @@ locale
 
     cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
-    update_init_clss :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and

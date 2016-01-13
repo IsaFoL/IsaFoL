@@ -866,7 +866,8 @@ lemma length_model_le_vars_all_inv:
 end
 
 locale cdcl_cw_termination =
-   cdcl_cw_ops trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail update_init_clss
+   cdcl_cw_ops trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail
+   add_init_cls
    add_learned_cls remove_cls update_backtrack_lvl update_conflicting init_state
    restart_state
   for
@@ -878,7 +879,7 @@ locale cdcl_cw_termination =
 
     cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
-    update_init_clss :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and

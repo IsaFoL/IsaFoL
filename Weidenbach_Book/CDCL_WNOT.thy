@@ -130,7 +130,7 @@ sublocale cw_state \<subseteq> dpll_state "convert_trail_from_W o trail" clauses
 (*
   Here there are some linorder-sort issues.
   sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_with_backtrack_and_restarts trail clauses update_trail
-  (* update_cls: *)"\<lambda>C S. update_init_clss C (update_learned_clss {} S)"
+  (* update_cls: *)"\<lambda>C S. add_init_cls C (update_learned_clss {} S)"
   (* propagate conditions: *) "\<lambda>_ S. conflicting S = C_True" "\<lambda>C L S. backjump_l_cond C L S
     \<and> distinct_mset (C + {#L#}) \<and> \<not>tautology (C + {#L#})" *)
 
@@ -3448,7 +3448,7 @@ end
 subsection \<open>Adding Restarts\<close>
 locale cdcl_cw_ops_restart =
   cdcl_cw_ops trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail
-   update_init_clss
+   add_init_cls
    add_learned_cls remove_cls update_backtrack_lvl update_conflicting init_state
    restart_state
   for
@@ -3460,7 +3460,7 @@ locale cdcl_cw_ops_restart =
 
     cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
-    update_init_clss :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     add_learned_cls remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause conflicting_clause \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -3697,8 +3697,8 @@ definition add_new_clause_and_update :: "'v literal multiset \<Rightarrow> 'st \
 "add_new_clause_and_update C S =
   (if trail S \<Turnstile>as CNot C
   then reduce_trail_to (rev (cut_trail_wrt_clause C (rev (trail S))))
-        (update_init_clss ({#C#} + init_clss S) S)
-  else update_init_clss ({#C#} + init_clss S) S)"
+        (add_init_cls C S)
+  else add_init_cls C S)"
 
 inductive incremental_cdcl :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 "full cdcl_fw_s S T \<Longrightarrow> incremental_cdcl S T" |

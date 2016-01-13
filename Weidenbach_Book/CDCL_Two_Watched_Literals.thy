@@ -446,7 +446,7 @@ locale todo_remove =
       \<Rightarrow> ('v, nat, 'v clause) two_wl_state" and
     remove_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) two_wl_state
       \<Rightarrow> ('v, nat, 'v clause) two_wl_state" and
-      
+    init_state :: "'v clauses \<Rightarrow> ('v, nat, 'v clause) two_wl_state" and
     (* Axiomatisation of restart: *)
     remove_some_learned :: "('v, nat, 'v clause) two_wl_state
       \<Rightarrow> 'v w_clause multiset"
@@ -459,15 +459,12 @@ fun remove_all_init_cls :: "('v, nat, 'v clause) two_wl_state \<Rightarrow>('v, 
   where
 "remove_all_init_cls (Two_WL_State M N U k C) = Two_WL_State M N U k C"
 
-fun update_init_cls :: "'v clauses \<Rightarrow> ('v, nat, 'v clause) two_wl_state
-  \<Rightarrow>('v, nat, 'v clause) two_wl_state" where
-"update_init_cls C S = fold_mset add_init_cls (remove_all_init_cls S) C"
-
 fun restart where
 "restart (Two_WL_State M N U k C) =
   Two_WL_State M N (remove_some_learned (Two_WL_State M N U k C)) k C"
+
 sublocale cw_state trail init_clss_of_w_clss learned_clss_of_w_clss backtrack_lvl conflicting
-  cons_trail tl_trail update_init_cls add_learned_cls remove_cls update_backtrack_lvl
+  cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
   update_conflicting init_state restart
   apply unfold_locales
   apply (case_tac st, simp)
