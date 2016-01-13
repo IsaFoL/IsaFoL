@@ -123,7 +123,8 @@ abbreviation trail\<^sub>N\<^sub>O\<^sub>T where
 sublocale cw_state \<subseteq> dpll_state "convert_trail_from_W o trail" clauses
   "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
   "\<lambda>S. tl_trail S"
-  "\<lambda>C S. update_init_clss C (update_learned_clss {#} S)"
+  "\<lambda>C S. add_learned_cls C S"
+  "\<lambda>C S. remove_cls C S"
   by unfold_locales auto
 
 (*
@@ -136,7 +137,8 @@ sublocale cw_state \<subseteq> dpll_state "convert_trail_from_W o trail" clauses
 sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops "convert_trail_from_W o trail" clauses
   "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
   "\<lambda>S. tl_trail S"
-  (* update_cls: *)"\<lambda>C S. update_init_clss C (update_learned_clss {#} S)"
+  "\<lambda>C S. add_learned_cls C S"
+  "\<lambda>C S. remove_cls C S"
   (* backjump conditions: *)"\<lambda>_. True"
   (* propagate conditions: *) "\<lambda>_ S. conflicting S = C_True" "\<lambda>C L S. backjump_l_cond C L S
     \<and> distinct_mset (C + {#L#}) \<and> \<not>tautology (C + {#L#})"
@@ -145,7 +147,9 @@ sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_op
 sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy  "convert_trail_from_W o trail" clauses
   "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
   "\<lambda>S. tl_trail S"
-  "\<lambda>C S. update_init_clss C (update_learned_clss {#} S)"  "\<lambda>_. True"
+  "\<lambda>C S. add_learned_cls C S"
+  "\<lambda>C S. remove_cls C S"
+  "\<lambda>_. True"
   "\<lambda>_ S. conflicting S = C_True" backjump_l_cond inv\<^sub>N\<^sub>O\<^sub>T
 proof (unfold_locales, goal_cases)
   case 2
@@ -194,14 +198,16 @@ qed
 sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2  "convert_trail_from_W o trail" clauses
   "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
   "\<lambda>S. tl_trail S"
-  "\<lambda>C S. update_init_clss C (update_learned_clss {#} S)" "\<lambda>_. True"  inv\<^sub>N\<^sub>O\<^sub>T
+  "\<lambda>C S. add_learned_cls C S"
+  "\<lambda>C S. remove_cls C S" "\<lambda>_. True"  inv\<^sub>N\<^sub>O\<^sub>T
   "\<lambda>_ S. conflicting S = C_True" backjump_l_cond
   by unfold_locales
 
 sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn "convert_trail_from_W o trail" clauses
   "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
   "\<lambda>S. tl_trail S"
-  "\<lambda>C S. update_init_clss C (update_learned_clss {#} S)" "\<lambda>_. True"  inv\<^sub>N\<^sub>O\<^sub>T
+  "\<lambda>C S. add_learned_cls C S"
+  "\<lambda>C S. remove_cls C S" "\<lambda>_. True"  inv\<^sub>N\<^sub>O\<^sub>T
   "\<lambda>_ S. conflicting S = C_True" backjump_l_cond
   apply unfold_locales
    using dpll_bj_no_dup apply simp
@@ -984,10 +990,9 @@ proof (induction F S arbitrary: T rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.
     using tr by (metis (no_types) comp_apply reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.elims)
 qed
 
-lemma trail\<^sub>W_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T[simp]:
-  "trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M (add_cls\<^sub>N\<^sub>O\<^sub>T (D + {#L#}) S)) = trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M S)"
-  apply (rule trail\<^sub>W_eq_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_eq)
-  by (simp add: add_cls\<^sub>N\<^sub>O\<^sub>T_def)
+lemma trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_add_learned_cls[simp]:
+"trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M (add_learned_cls D S)) = trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M S)"
+ by (rule trail\<^sub>W_eq_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_eq) simp
 
 lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_reduce_trail_convert:
   "reduce_trail_to\<^sub>N\<^sub>O\<^sub>T C S = reduce_trail_to (convert_trail_from_NOT C) S"
@@ -1055,7 +1060,7 @@ next
   moreover have H: "init_clss S + (learned_clss S - replicate_mset (count (learned_clss S) C) C)
     = init_clss S + learned_clss S - replicate_mset (count (learned_clss S) C) C"
     using C_le C_init by (metis clauses_def clauses_remove_cls diff_zero gr0I
-      init_clss_remove_clause learned_clss_remove_cls plus_multiset.rep_eq replicate_mset_0
+      init_clss_remove_cls learned_clss_remove_cls plus_multiset.rep_eq replicate_mset_0
       semiring_normalization_rules(5))
   have "forget\<^sub>N\<^sub>O\<^sub>T S T"
     apply (rule forget\<^sub>N\<^sub>O\<^sub>T.forget\<^sub>N\<^sub>O\<^sub>T)
@@ -1063,7 +1068,7 @@ next
       using S apply simp
      using \<open>C \<in># learned_clss S\<close> apply (simp add: clauses_def)
     using T C_le C_init by (auto
-      simp: state_eq_def Un_Diff state_eq\<^sub>N\<^sub>O\<^sub>T_def clauses_def remove_cls\<^sub>N\<^sub>O\<^sub>T_def ac_simps H
+      simp: state_eq_def Un_Diff state_eq\<^sub>N\<^sub>O\<^sub>T_def clauses_def ac_simps H
       simp del: state_simp state_simp\<^sub>N\<^sub>O\<^sub>T)
   then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_forget\<^sub>N\<^sub>O\<^sub>T by blast
 next
@@ -3444,7 +3449,7 @@ subsection \<open>Adding Restarts\<close>
 locale cdcl_cw_ops_restart =
   cdcl_cw_ops trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail
    update_init_clss
-   update_learned_clss update_backtrack_lvl update_conflicting init_state
+   add_learned_cls remove_cls update_backtrack_lvl update_conflicting init_state
    restart_state
   for
     trail :: "'st \<Rightarrow> ('v::linorder, nat, 'v clause) marked_lits" and
@@ -3456,7 +3461,7 @@ locale cdcl_cw_ops_restart =
     cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     update_init_clss :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_learned_clss :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_learned_cls remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause conflicting_clause \<Rightarrow> 'st \<Rightarrow> 'st" and
 

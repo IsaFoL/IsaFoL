@@ -43,11 +43,17 @@ abbreviation update_conflicting :: "'e \<Rightarrow> 'a \<times> 'b \<times> 'c 
 
 abbreviation "S0_cdcl N \<equiv> (([], N, {#}, 0, C_True):: 'v cdcl_state)"
 
+abbreviation add_learned_cls where
+"add_learned_cls \<equiv> \<lambda>C (M, N, U, S). (M, N, {#C#} + U, S)"
+
+abbreviation remove_cls where
+"remove_cls \<equiv> \<lambda>C (M, N, U, S). (M, remove_mset N C, remove_mset U C, S)"
 interpretation cdcl_cw: cw_state trail clauses learned_clss backtrack_lvl conflicting
   "\<lambda>L (M, S). (L # M, S)"
   "\<lambda>(M, S). (tl M, S)"
   "\<lambda>N (M, _, S). (M, N, S)"
-  "\<lambda>U (M, N, _, S). (M, N, U, S)"
+  "\<lambda>C (M, N, U, S). (M, N, {#C#} + U, S)"
+  "\<lambda>C (M, N, U, S). (M, remove_mset N C, remove_mset U C, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
   "\<lambda>N. ([], N, {#}, 0, C_True)"
@@ -68,7 +74,8 @@ interpretation cdcl_cw_termination trail clauses learned_clss backtrack_lvl conf
   "\<lambda>L (M, S). (L # M, S)"
   "\<lambda>(M, S). (tl M, S)"
   "\<lambda>N (M, _, S). (M, N, S)"
-  "\<lambda>U (M, N, _, S). (M, N, U, S)"
+  "\<lambda>C (M, N, U, S). (M, N, {#C#} + U, S)"
+  "\<lambda>C (M, N, U, S). (M, remove_mset N C, remove_mset U C, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
   "\<lambda>N. ([], N, {#}, 0, C_True)"
@@ -378,16 +385,16 @@ proof -
     apply (cases "do_cp_step (rough_state_of S) = (rough_state_of S)")
       apply simp
     using cp_step_is_cdcl_cp[of "rough_state_of S"]
-      cdcl_all_inv_mes_rough_state[of S]
-      by (metis cdcl_all_inv_mes_inv comp_apply conflict do_conflict_step
-        do_cp_step_def do_propgate_step propagate)
+      cdcl_all_inv_mes_rough_state[of S] cdcl_cp_cdcl_st rtranclp_cdcl_all_inv_mes_inv by blast
   thus ?thesis by auto
 qed
 
 paragraph \<open>Skip\<close>
 fun do_skip_step :: "cdcl_state_inv_st \<Rightarrow> cdcl_state_inv_st" where
 "do_skip_step (Propagated L C # Ls,N,U,k, C_Clause D) =
-  (if -L \<notin> set D \<and> D \<noteq> [] then (Ls, N, U, k, C_Clause D) else (Propagated L C #Ls, N, U, k, C_Clause D))" |
+  (if -L \<notin> set D \<and> D \<noteq> [] 
+  then (Ls, N, U, k, C_Clause D) 
+  else (Propagated L C #Ls, N, U, k, C_Clause D))" |
 "do_skip_step S = S"
 
 lemma do_skip_step:
@@ -481,8 +488,8 @@ lemma do_resolve_step_no:
 
 lemma  rough_state_of_state_of_resolve[simp]:
   "cdcl_all_inv_mes (toS S) \<Longrightarrow> rough_state_of (state_of (do_resolve_step S)) = do_resolve_step S"
-  by (rule state_of_inverse)
-     (metis bj cdcl_all_inv_mes_inv do_resolve_step mem_Collect_eq other resolve)
+  apply (rule state_of_inverse)
+  by (smt CollectI bj cdcl_all_inv_mes_inv do_resolve_step other resolve)
 
 lemma do_resolve_step_trail_is_C_True[iff]:
   "do_resolve_step S = (a, b, c, d, C_True) \<longleftrightarrow> S = (a, b, c, d, C_True)"
@@ -608,7 +615,7 @@ lemma do_backtrack_step:
     obtain M2 where M2: "(M\<^sub>2, M2) \<in> set (get_all_marked_decomposition M)"
       using bt_cut_in_get_all_marked_decomposition[OF M\<^sub>2] by metis
     have H: "(cdcl_cw.reduce_trail_to (map convert M1)
-      (cdcl_cw.add_learned_cls (mset C' + {#L#})
+      (add_learned_cls (mset C' + {#L#})
         (map convert M, mset (map mset N), mset (map mset U), j, C_True))) =
         (map convert M1, mset (map mset N), {#mset C' + {#L#}#} + mset (map mset U), j, C_True)"
         apply (subst state_conv[of "cdcl_cw.reduce_trail_to _ _"])
@@ -627,7 +634,7 @@ lemma do_backtrack_step:
           using C \<open>get_maximum_level (mset C) M = k\<close> levL apply auto[1]
          using max_l_j apply simp
         apply (cases "cdcl_cw.reduce_trail_to (map convert M1)
-            (cdcl_cw.add_learned_cls (mset C' + {#L#})
+            (add_learned_cls (mset C' + {#L#})
             (map convert M, mset (map mset N), mset (map mset U), j, C_True))")
        using M2 M1 H by (auto simp: ac_simps)
     thus ?case
@@ -698,7 +705,7 @@ lemma rough_state_of_state_of_backtrack[simp]:
   assumes "cdcl_all_inv_mes (toS S)"
   shows "rough_state_of (state_of (do_backtrack_step S))= do_backtrack_step S"
   apply (rule state_of_inverse)
-  using assms by (metis backtrack bj cdcl_all_inv_mes_inv do_backtrack_step mem_Collect_eq other)
+  using assms by (smt backtrack bj cdcl_all_inv_mes_inv do_backtrack_step mem_Collect_eq other)
 
 paragraph \<open>Decide\<close>
 fun do_decide_step where
@@ -760,14 +767,14 @@ lemma do_decide_step_no:
 lemma rough_state_of_state_of_do_decide_step[simp]:
   "cdcl_all_inv_mes (toS S) \<Longrightarrow> rough_state_of (state_of (do_decide_step S)) = do_decide_step S"
   apply (subst state_of_inverse)
-    apply (metis cdcl_all_inv_mes_inv decide do_decide_step mem_Collect_eq other)
+    apply (smt cdcl_all_inv_mes_inv decide do_decide_step mem_Collect_eq other)
   apply simp
   done
 
 lemma rough_state_of_state_of_do_skip_step[simp]:
   "cdcl_all_inv_mes (toS S) \<Longrightarrow> rough_state_of (state_of (do_skip_step S)) = do_skip_step S"
   apply (subst state_of_inverse)
-    apply (metis cdcl_all_inv_mes_inv skip do_skip_step mem_Collect_eq other bj)
+    apply (smt cdcl_all_inv_mes_inv skip do_skip_step mem_Collect_eq other bj)
   apply simp
   done
 
@@ -899,7 +906,7 @@ lemma rough_state_of_state_of_do_other_step[simp]:
   "rough_state_of (state_of (do_other_step (rough_state_of S))) = do_other_step (rough_state_of S)"
   apply (cases "do_other_step (rough_state_of S) = rough_state_of S")
    apply simp
-  using rough_state_of[of S] do_other_step[of "rough_state_of S"]  by (metis CollectI
+  using rough_state_of[of S] do_other_step[of "rough_state_of S"]  by (smt CollectI
     cdcl_all_inv_mes_inv cdcl_all_inv_mes_rough_state other state_of_inverse)
 
 definition do_other_step' where
@@ -910,7 +917,7 @@ lemma rough_state_of_do_other_step'[code abstract]:
  "rough_state_of (do_other_step' S) = do_other_step (rough_state_of S)"
  apply (cases "do_other_step (rough_state_of S) = rough_state_of S")
    unfolding do_other_step'_def apply simp
- using do_other_step[of "rough_state_of S"] by (metis cdcl_all_inv_mes_inv
+ using do_other_step[of "rough_state_of S"] by (smt cdcl_all_inv_mes_inv
    cdcl_all_inv_mes_rough_state mem_Collect_eq other state_of_inverse)
 
 definition do_cdcl_s_step where
@@ -1025,13 +1032,13 @@ proof -
             "get_maximum_level D (trail (toS S)) = i" and
             U: "toS (do_other_step S) = (\<lambda>(M, S). (Propagated L (D+{#L#})# M, S))
                      (cdcl_cw.reduce_trail_to M1
-                          (cdcl_cw.add_learned_cls (D + {#L#})
+                          (add_learned_cls (D + {#L#})
                              (update_backtrack_lvl i
                                 (update_conflicting C_True (toS S)))))"
             using bt by auto
           have [simp]: "cons_trail (Propagated L (D + {#L#}))
             (cdcl_cw.reduce_trail_to M1
-              (cdcl_cw.add_learned_cls (D + {#L#})
+              (add_learned_cls (D + {#L#})
                 (update_backtrack_lvl (get_maximum_level D (trail (toS S)))
                   (update_conflicting C_True (toS S)))))
             =

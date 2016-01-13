@@ -25,7 +25,8 @@ locale cw_state =
     cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow>'st" and
     update_init_clss :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_learned_clss :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause conflicting_clause \<Rightarrow> 'st \<Rightarrow> 'st" and
 
@@ -35,7 +36,8 @@ locale cw_state =
     trail_cons_trail[simp]: "\<And>L st. trail (cons_trail L st) = L # trail st" and
     trail_tl_trail[simp]: "\<And>st. trail (tl_trail st) = tl (trail st)" and
     update_trail_update_clss[simp]: "\<And>st C. trail (update_init_clss C st) = trail st" and
-    trail_update_learned[simp]: "\<And>C st. trail (update_learned_clss C st) = trail st" and
+    trail_add_learned_cls[simp]: "\<And>C st. trail (add_learned_cls C st) = trail st" and
+    trail_remove_cls[simp]: "\<And>C st. trail (remove_cls C st) = trail st" and
     trail_update_backtrack_lvl[simp]: "\<And>st C. trail (update_backtrack_lvl C st) = trail st" and
     trail_update_conflicting[simp]: "\<And>C st. trail (update_conflicting C st) = trail st" and
 
@@ -45,8 +47,10 @@ locale cw_state =
       "\<And>st. init_clss (tl_trail st) = init_clss st" and
     init_clss_update_clss[simp]:
       "\<And>st C. init_clss (update_init_clss C st) = C" and
-    init_clss_update_learned[simp]:
-      "\<And>C st. init_clss (update_learned_clss C st) = init_clss st" and
+    init_clss_add_learned_cls[simp]:
+      "\<And>C st. init_clss (add_learned_cls C st) = init_clss st" and
+    init_clss_remove_cls[simp]:
+      "\<And>C st. init_clss (remove_cls C st) = remove_mset (init_clss st) C" and
     init_clss_update_backtrack_lvl[simp]:
       "\<And>st C. init_clss (update_backtrack_lvl C st) = init_clss st" and
     init_clss_update_conflicting[simp]:
@@ -54,8 +58,12 @@ locale cw_state =
 
     learned_clss_cons_trail[simp]: "\<And>M st. learned_clss (cons_trail M st) = learned_clss st" and
     learned_clss_tl_trail[simp]: "\<And>st. learned_clss (tl_trail st) = learned_clss st" and
-    learned_clss_update_clss[simp]: "\<And>st C. learned_clss (update_init_clss C st) = learned_clss st" and
-    learned_clss_update_learned[simp]: "\<And>C st. learned_clss (update_learned_clss C st) = C" and
+    learned_clss_update_clss[simp]: 
+      "\<And>st C. learned_clss (update_init_clss C st) = learned_clss st" and
+    learned_clss_add_learned_cls[simp]: 
+      "\<And>C st. learned_clss (add_learned_cls C st) = {#C#} + learned_clss st" and
+    learned_clss_remove_cls[simp]:
+      "\<And>C st. learned_clss (remove_cls C st) = remove_mset (learned_clss st) C" and
     learned_clss_update_backtrack_lvl[simp]:
       "\<And>st C. learned_clss (update_backtrack_lvl C st) = learned_clss st" and
     learned_clss_update_conflicting[simp]:
@@ -67,8 +75,10 @@ locale cw_state =
       "\<And>st. backtrack_lvl (tl_trail st) = backtrack_lvl st" and
     backtrack_lvl_update_init_clss[simp]:
       "\<And>st C. backtrack_lvl (update_init_clss C st) = backtrack_lvl st"  and
-    backtrack_lvl_update_learned[simp]:
-      "\<And>C st. backtrack_lvl (update_learned_clss C st) = backtrack_lvl st" and
+    backtrack_lvl_add_learned_cls[simp]:
+      "\<And>C st. backtrack_lvl (add_learned_cls C st) = backtrack_lvl st" and
+    backtrack_lvl_remove_cls[simp]:
+      "\<And>C st. backtrack_lvl (remove_cls C st) = backtrack_lvl st" and
     backtrack_lvl_update_backtrack_lvl[simp]:
       "\<And>st k. backtrack_lvl (update_backtrack_lvl k st) = k" and
     backtrack_lvl_update_conflicting[simp]:
@@ -80,8 +90,10 @@ locale cw_state =
       "\<And>st. conflicting (tl_trail st) = conflicting st" and
     conflicting_update_init_clss[simp]:
       "\<And>st C. conflicting (update_init_clss C st) = conflicting st" and
-    conflicting_update_learned[simp]:
-      "\<And>C st. conflicting (update_learned_clss C st) = conflicting st" and
+    conflicting_add_learned_cls[simp]:
+      "\<And>C st. conflicting (add_learned_cls C st) = conflicting st" and
+    conflicting_remove_cls[simp]:
+      "\<And>C st. conflicting (remove_cls C st) = conflicting st" and
     conflicting_update_backtrack_lvl[simp]:
       "\<And>st C. conflicting (update_backtrack_lvl C st) = conflicting st" and
     conflicting_update_conflicting[simp]:
@@ -102,36 +114,6 @@ locale cw_state =
     conflicting_restart_state[simp]: "conflicting (restart_state S) = C_True"
 begin
 
-
-definition add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" where
-"add_learned_cls C S = update_learned_clss ({#C#} + (learned_clss S)) S"
-
-definition remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" where
-"remove_cls C S =
-  update_learned_clss (learned_clss S - replicate_mset (count (learned_clss S) C) C)
-    (update_init_clss (init_clss S - replicate_mset (count (init_clss S) C) C) S)"
-
-lemma
-  shows
-    trail_add_learned_cls[simp]: "trail (add_learned_cls C S) = trail S" and
-    init_clss_add_clause[simp]: "init_clss (add_learned_cls C st) = init_clss st" and
-    learned_clss_add_learned_cls[simp]: "learned_clss (add_learned_cls C S) = {#C#} + learned_clss S" and
-    backtrack_lvl_add_learned_cls[simp]: "backtrack_lvl (add_learned_cls C S) = backtrack_lvl S" and
-    conflicting_add_learned_cls[simp]: "conflicting (add_learned_cls C S) = conflicting S"
-  unfolding add_learned_cls_def remove_cls_def by auto
-
-lemma
-  shows
-    trail_remove_cls[simp]: "trail (remove_cls C S) = trail S" and
-    init_clss_remove_clause[simp]:
-      "init_clss (remove_cls C st) = init_clss st - replicate_mset (count (init_clss st) C) C" and
-    learned_clss_remove_cls[simp]:
-      "learned_clss (remove_cls C S) = learned_clss S - replicate_mset (count (learned_clss S) C) C"
-      and
-    backtrack_lvl_remove_cls[simp]: "backtrack_lvl (remove_cls C S) = backtrack_lvl S" and
-    conflicting_remove_cls[simp]: "conflicting (remove_cls C S) = conflicting S"
-  unfolding remove_cls_def by auto
-
 definition clauses :: "'st \<Rightarrow> 'v clauses" where
 "clauses S = init_clss S + learned_clss S"
 
@@ -139,7 +121,8 @@ lemma
   shows
     clauses_cons_trail[simp]: "clauses (cons_trail M S) = clauses S" and
     clauses_tl_trail[simp]: "clauses (tl_trail S) = clauses S" and
-    clauses_update_learned_clss[simp]: "clauses (update_learned_clss U S) = U + init_clss S" and
+    clauses_add_learned_cls_unfolded: 
+      "clauses (add_learned_cls U S) = {#U#} + learned_clss S + init_clss S" and
     clauses_update_init_clss[simp]: "clauses (update_init_clss N S) = N + learned_clss S" and
     clauses_update_backtrack_lvl[simp]: "clauses (update_backtrack_lvl k S) = clauses S" and
     clauses_update_conflicting[simp]: "clauses (update_conflicting D S) = clauses S" and
@@ -281,8 +264,12 @@ lemma reduce_trail_to_trail_tl_trail_decomp[simp]:
   apply (rule reduce_trail_to_skip_beginning[of _ "F' @ Marked K d # []"])
   by (cases F') (auto simp add:tl_append reduce_trail_to_skip_beginning)
 
-lemma reduce_trail_to_update_learned_clss[simp]:
-  "trail (reduce_trail_to F (update_learned_clss C S)) = trail (reduce_trail_to F S)"
+lemma reduce_trail_to_add_learned_cls[simp]:
+  "trail (reduce_trail_to F (add_learned_cls C S)) = trail (reduce_trail_to F S)"
+  by (rule trail_eq_reduce_trail_to_eq) auto
+
+lemma reduce_trail_to_remove_learned_cls[simp]:
+  "trail (reduce_trail_to F (remove_cls C S)) = trail (reduce_trail_to F S)"
   by (rule trail_eq_reduce_trail_to_eq) auto
 
 lemma reduce_trail_to_update_conflicting[simp]:
@@ -291,10 +278,6 @@ lemma reduce_trail_to_update_conflicting[simp]:
 
 lemma reduce_trail_to_update_backtrack_lvl[simp]:
   "trail (reduce_trail_to F (update_backtrack_lvl C S)) = trail (reduce_trail_to F S)"
-  by (rule trail_eq_reduce_trail_to_eq) auto
-
-lemma reduce_trail_to_add_learned_clss[simp]:
-  "trail (reduce_trail_to F (add_learned_cls C S)) = trail (reduce_trail_to F S)"
   by (rule trail_eq_reduce_trail_to_eq) auto
 
 lemma in_get_all_marked_decomposition_marked_or_empty:
@@ -329,7 +312,6 @@ proof -
     by (rule reduce_trail_to_trail_tl_trail_decomp[of _ "c @ M2" K mark])
      (auto simp: tr_S L)
 qed
-
 
 fun append_trail where
 "append_trail [] S = S" |
@@ -375,7 +357,7 @@ text \<open>Because of the strategy we will later use, we distinguish propagate,
 locale
   cdcl_cw_ops =
    cw_state trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail update_init_clss
-   update_learned_clss update_backtrack_lvl update_conflicting init_state
+   add_learned_cls remove_cls update_backtrack_lvl update_conflicting init_state
    restart_state
   for
     trail :: "'st \<Rightarrow> ('v, nat, 'v clause) marked_lits" and
@@ -387,7 +369,8 @@ locale
     cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     update_init_clss :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_learned_clss :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause conflicting_clause \<Rightarrow> 'st \<Rightarrow> 'st" and
 

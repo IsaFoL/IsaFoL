@@ -1,5 +1,6 @@
 theory DPLL_W
-imports Main Partial_Clausal_Logic Partial_Annotated_Clausal_Logic List_More Wellfounded_More CDCL_NOT
+imports Main Partial_Clausal_Logic Partial_Annotated_Clausal_Logic List_More Wellfounded_More
+  DPLL_NOT
 begin
 
 section \<open>DPLL\<close>

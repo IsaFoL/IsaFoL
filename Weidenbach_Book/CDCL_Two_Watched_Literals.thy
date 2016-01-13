@@ -92,13 +92,13 @@ abbreviation clauses where
 definition
   candidates_propagate :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> ('v literal \<times> 'v clause) set"
 where
-"candidates_propagate S = 
+"candidates_propagate S =
   {(L, clause_of_w_clause C) | L C.
    C \<in># clauses S \<and> watched C - mset_set (uminus ` lits_of (trail S)) = {#L#} \<and>
    undefined_lit L (trail S)}"
 
 definition candidates_conflict :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> 'v clause set" where
-"candidates_conflict S = 
+"candidates_conflict S =
   {clause_of_w_clause C | C. C \<in># clauses S \<and> watched C \<subseteq># mset_set (uminus ` lits_of (trail S))}"
 
 (* interpretation dpll_state trail "image_mset clause_of_w_clause o clauses"
@@ -412,14 +412,74 @@ proof -
     using MNU_defs cw(1) cw(2) subset candidates_conflict_def by blast
 qed
 
+
 locale structure_2_WL =
-  fixes choose :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> 'v clause \<Rightarrow> 'v w_clause"
+  fixes choose :: "('v, nat, 'v clause) two_wl_state \<Rightarrow> 'v clause \<Rightarrow> 'v w_clause"
   assumes choose: "wf_two_wl_cls (trail S) (choose S C)"
 begin
 
+
 end
 
-interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn _ _ _ _ (* propagate_conds is in candidates *) _ _ _ 
+abbreviation init_clss_of_w_clss where
+"init_clss_of_w_clss S \<equiv> image_mset clause_of_w_clause (init_clss S)"
+
+abbreviation learned_clss_of_w_clss where
+"learned_clss_of_w_clss S \<equiv> image_mset clause_of_w_clause (learned_clss S)"
+
+fun update_backtrack_lvl where
+"update_backtrack_lvl k (Two_WL_State M N U _ C) = Two_WL_State M N U k C"
+
+fun tl_trail where
+"tl_trail (Two_WL_State M N U k C) = Two_WL_State (tl M) N U k C"
+
+locale todo_remove =
+  fixes
+    (* TODO: implement *)
+    add_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) two_wl_state \<Rightarrow>('v, nat, 'v clause) two_wl_state"
+      and
+    add_init_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) two_wl_state \<Rightarrow>('v, nat, 'v clause) two_wl_state"
+      and
+    cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> ('v, nat, 'v clause) two_wl_state
+      \<Rightarrow> ('v, nat, 'v clause) two_wl_state" and
+    add_learned_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) two_wl_state
+      \<Rightarrow> ('v, nat, 'v clause) two_wl_state" and
+    remove_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) two_wl_state
+      \<Rightarrow> ('v, nat, 'v clause) two_wl_state" and
+      
+    (* Axiomatisation of restart: *)
+    remove_some_learned :: "('v, nat, 'v clause) two_wl_state
+      \<Rightarrow> 'v w_clause multiset"
+  assumes
+    [simp]: "trail (cons_trail L S) = L # trail S" and
+    "remove_some_learned S \<subseteq># learned_cls S"
+begin
+
+fun remove_all_init_cls :: "('v, nat, 'v clause) two_wl_state \<Rightarrow>('v, nat, 'v clause) two_wl_state"
+  where
+"remove_all_init_cls (Two_WL_State _ N U k C) = Two_WL_State [] N U k C"
+
+fun update_init_cls :: "'v clauses \<Rightarrow> ('v, nat, 'v clause) two_wl_state
+  \<Rightarrow>('v, nat, 'v clause) two_wl_state" where
+"update_init_cls C S = fold_mset add_init_cls (remove_all_init_cls S) C"
+
+fun restart where
+"restart (Two_WL_State M N U k C) =
+  Two_WL_State M N (remove_some_learned (Two_WL_State M N U k C)) k C"
+sublocale cw_state trail init_clss_of_w_clss learned_clss_of_w_clss backtrack_lvl conflicting
+  cons_trail tl_trail update_init_cls add_learned_cls remove_cls update_backtrack_lvl
+  update_conflicting init_state restart
+  apply unfold_locales
+  apply auto
+oops
+
+end
+
+(* implementation of choose *)
+interpretation structure_2_WL
+oops
+
+interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn _ _ _ _ (* propagate_conds is in candidates *) _ _ _
   (* backjump_conds is candidate_conflict *)
 oops
 

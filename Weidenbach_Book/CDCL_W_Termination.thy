@@ -453,7 +453,7 @@ proof (induction rule: cdcl_o_induct)
   obtain d where d: "M1 = d @ Marked Kh i # H"
     using z T unfolding M3 by (smt M3 append_assoc list.inject list.sel(3) marked_lit.distinct(1)
       self_append_conv2 state_eq_trail tl_append2 trail_cons_trail trail_update_backtrack_lvl
-      trail_update_conflicting reduce_trail_to_add_learned_clss reduce_trail_to_trail_tl_trail_decomp)
+      trail_update_conflicting reduce_trail_to_add_learned_cls reduce_trail_to_trail_tl_trail_decomp)
   have "i \<in> set (get_all_levels_of_marked (M3 @ M2 @ Marked K (Suc j) # d @ Marked Kh i # H))"
     by auto
   hence "i > 0" unfolding H[unfolded M3 d] by auto
@@ -867,7 +867,7 @@ end
 
 locale cdcl_cw_termination =
    cdcl_cw_ops trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail update_init_clss
-   update_learned_clss update_backtrack_lvl update_conflicting init_state
+   add_learned_cls remove_cls update_backtrack_lvl update_conflicting init_state
    restart_state
   for
     trail :: "'st::equal \<Rightarrow> ('v::linorder, nat, 'v clause) marked_lits" and
@@ -879,7 +879,8 @@ locale cdcl_cw_termination =
     cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     update_init_clss :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_learned_clss :: "'v clauses \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause conflicting_clause \<Rightarrow> 'st \<Rightarrow> 'st" and
 
