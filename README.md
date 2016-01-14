@@ -26,7 +26,7 @@ at Universität Innsbruck.
 
 ## Partly Based on Work by ##
 
-* [Stefan Berghofer](mailto:berghofe at in.tum.de)
+* [Stefan Berghofer](mailto:berghofe shtrudel in.tum.de)
 
 ## Additional Collaborators ##
 
