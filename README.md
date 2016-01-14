@@ -11,6 +11,12 @@ our inspirations is the
 (Isabelle/HOL Formalization of Rewriting for Certified Termination Analysis)
 at Universität Innsbruck.
 
+## Entries ##
+
+* [Bachmair & Ganzinger](Bachmair_Ganzinger/README.md)
+* [Unordered Resolution](Unordered_Resolution/README.md)
+* [Weidenbach's Book](Weidenbach_Book/README.md)
+
 ## Authors ##
 
 * [Jasmin Christian Blanchette](mailto:jasmin.blanchette shtrudel inria.fr)
@@ -20,7 +26,7 @@ at Universität Innsbruck.
 
 ## Partly Based on Work by ##
 
-* [Stefan Berghofer](mailto:berghofe at in.tum.de)
+* [Stefan Berghofer](mailto:berghofe shtrudel in.tum.de)
 
 ## Additional Collaborators ##
 
@@ -38,7 +44,7 @@ at Universität Innsbruck.
 
 ## Publications ##
 
-* Formalization of Resolution Calculus in Isabelle.
+* [Formalization of Resolution Calculus in Isabelle](http://people.compute.dtu.dk/andschl/Thesis.pdf).
   A. Schlichtkrull.
   M.Sc. thesis, Danmarks Tekniske Universitet, 2015.
 
