@@ -13,8 +13,8 @@ at Universität Innsbruck.
 
 ## Entries ##
 
-* [Bachmair & Ganzinger](Bachmair_Ganzinger/)
-* [Unordered Resolution](Unordered_Resolution/)
+* [Bachmair & Ganzinger](Bachmair_Ganzinger/README.md)
+* [Unordered Resolution](Unordered_Resolution/README.md)
 * [Weidenbach's Book](Weidenbach_Book/README.md)
 
 ## Authors ##
