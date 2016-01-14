@@ -2924,7 +2924,7 @@ proof -
         hence False
           using bj[OF cdcl_bj.skip[OF skip_rule[OF _ \<open>-L' \<notin># ?D\<close> \<open>?D \<noteq> {#}\<close>, of S C "tl (trail S)" _
             ]]]
-          termi M by (metis LD alien cdcl_then_exists_cdcl_s_step finite state_eq_def)
+          termi M by (metis LD alien cdcl_then_exists_cdcl_s_step state_eq_def)
       }
       moreover {
         assume "-L' \<in># ?D"
@@ -4127,7 +4127,6 @@ proof (induction M arbitrary: E D S)
 next
   case (Cons L M) note IH = this(1) and full = this(8) and E = this(10) and inv = this(2-7) and
     S = this(9) and nm = this(11)
-  let ?S' = "update_trail (L # trail S) S"
   obtain K p where K: "L = Propagated K p"
     using nm by (cases L) auto
   have "every_mark_is_a_conflict S" using inv unfolding cdcl_conflicting_def by auto
@@ -4260,7 +4259,7 @@ proof -
     proof (rule ccontr)
       assume "\<not> ?thesis"
       hence "\<exists>T. conflict St T"
-        using empty cls_St by (fastforce intro!: state_eq_ref simp: clauses_def)
+        using empty cls_St by (fastforce simp: clauses_def)
       thus False using fullSt unfolding full_def by blast
     qed
 

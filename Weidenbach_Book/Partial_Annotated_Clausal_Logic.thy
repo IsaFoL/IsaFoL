@@ -77,6 +77,10 @@ lemma true_annot_empty_model[simp]:
   "\<not>[] \<Turnstile>a \<psi>"
   unfolding true_annot_def true_cls_def by simp
 
+lemma true_annot_empty[simp]:
+  "\<not>I \<Turnstile>a {#}"
+  unfolding true_annot_def true_cls_def by simp
+
 lemma empty_true_annots_def[iff]:
   "[] \<Turnstile>as \<psi> \<longleftrightarrow> \<psi> = {}"
   unfolding true_annots_def by auto
