@@ -13,3 +13,9 @@ forthcoming book _Automated Reasoning: The Art of Generic Problem Solving_.
 
 * [Dmitriy Traytel](mailto:traytel shtrudel inf.ethz.ch)
 * [Christoph Weidenbach](mailto:weidenbach shtrudel mpi-inf.mpg.de)
+
+## Publication ##
+
+* [Formalisation of Ground Inference Systems in a Proof Assistant](https://bitbucket.org/zmaths/formalisation-of-ground-inference-systems-in-a-proof-assistant).
+  M. Fleury.
+  M.Sc. thesis, École normale supérieure Rennes, 2015.
