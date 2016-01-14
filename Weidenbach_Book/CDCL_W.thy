@@ -2291,7 +2291,7 @@ lemma cdcl_cp_wf: "wf {(b,a). (cdcl_M_level_inv a \<and> no_strange_atm a)
     apply simp
   using cdcl_cp_decreasing_measure unfolding less_than_iff by blast
 
-lemma rtranclp_cdcl_all_inv_mes_cdcl_cp_iff_rtranclp_cdcl_cp:
+lemma rtranclp_cdcl_all_struct_inv_cdcl_cp_iff_rtranclp_cdcl_cp:
   assumes
     "cdcl_M_level_inv S" and
     "no_strange_atm S"
@@ -2337,7 +2337,7 @@ proof -
     using cdcl_cp_wf wf_exists_normal_form[of "\<lambda>a b. ?inv a \<and> cdcl_cp a b"]
     unfolding full0_def by blast
     hence "cdcl_cp\<^sup>*\<^sup>* S T"
-      using rtranclp_cdcl_all_inv_mes_cdcl_cp_iff_rtranclp_cdcl_cp assms unfolding full0_def
+      using rtranclp_cdcl_all_struct_inv_cdcl_cp_iff_rtranclp_cdcl_cp assms unfolding full0_def
       by blast
     moreover
       hence "cdcl\<^sup>*\<^sup>* S T"
