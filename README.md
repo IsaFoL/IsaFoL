@@ -11,6 +11,12 @@ our inspirations is the
 (Isabelle/HOL Formalization of Rewriting for Certified Termination Analysis)
 at Universität Innsbruck.
 
+## Entries ##
+
+* [Bachmair & Ganzinger](Bachmair_Ganzinger/)
+* [Unordered Resolution](Unordered_Resolution/)
+* [Weidenbach's Book](Weidenbach_Book/README.md)
+
 ## Authors ##
 
 * [Jasmin Christian Blanchette](mailto:jasmin.blanchette shtrudel inria.fr)
