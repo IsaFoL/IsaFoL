@@ -3654,6 +3654,9 @@ section \<open>Incremental SAT solving\<close>
 text \<open>This is a just a very little start\<close>
 context cdcl_cw_ops
 begin
+
+text \<open>This invariant holds all the invariant related to the strategy. See the structural invariant
+    in @{term cdcl_all_struct_inv}\<close>
 definition cdcl_s_invariant where
 "cdcl_s_invariant S \<longleftrightarrow>
   conflict_is_false_with_level S
@@ -3686,6 +3689,8 @@ lemma rtranclp_cdcl_s_cdcl_s_invariant:
     apply simp
   using cdcl_s_cdcl_s_invariant rtranclp_cdcl_all_struct_inv_inv rtranclp_cdcl_s_rtranclp_cdcl by blast
 
+abbreviation decr_bt_lvl where
+"decr_bt_lvl S \<equiv> update_backtrack_lvl (backtrack_lvl S - 1) S"
 fun cut_trail_wrt_clause
   :: "'v clause \<Rightarrow> ('v, nat, 'v clause) marked_lits \<Rightarrow> ('v, nat, 'v clause) marked_lits"  where
 "cut_trail_wrt_clause C (L # M) =
@@ -3696,8 +3701,8 @@ fun cut_trail_wrt_clause
 definition add_new_clause_and_update :: "'v literal multiset \<Rightarrow> 'st \<Rightarrow> 'st" where
 "add_new_clause_and_update C S =
   (if trail S \<Turnstile>as CNot C
-  then reduce_trail_to (rev (cut_trail_wrt_clause C (rev (trail S))))
-        (add_init_cls C S)
+  then (reduce_trail_to (rev (cut_trail_wrt_clause C (rev (trail S))))
+        (add_init_cls C S))
   else add_init_cls C S)"
 
 inductive incremental_cdcl :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
@@ -3775,30 +3780,156 @@ next
     using append_nm[of _ M'] nm  unfolding M by simp
 qed
 
-(* TODO: need to add learned clauses to init_state *)
+inductive add_learned_clss :: "'st \<Rightarrow> 'v clauses \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
+add_learned_clss_nil: "add_learned_clss S {#} S" |
+add_learned_clss_plus:
+  "add_learned_clss S A T \<Longrightarrow> add_learned_clss S ({#x#} + A) (add_learned_cls x T)"
+declare add_learned_clss.intros[intro]
+
+lemma Ex_add_learned_clss:
+  "\<exists>T. add_learned_clss S A T"
+  by (induction A arbitrary: S rule: multiset_induct) (auto simp: union_commute[of _ "{#_#}"])
+
+lemma add_learned_clss_learned_clss:
+  assumes "add_learned_clss S U T"
+  shows "learned_clss T = U + learned_clss S"
+  using assms by (induction rule: add_learned_clss.induct) (simp_all add: ac_simps)
+
+lemma add_learned_clss_trail:
+  assumes "add_learned_clss S U T"
+  shows "trail T = trail S"
+  using assms by (induction rule: add_learned_clss.induct) (simp_all add: ac_simps)
+
+lemma add_learned_clss_init_clss:
+  assumes "add_learned_clss S U T"
+  shows "init_clss T = init_clss S"
+  using assms by (induction rule: add_learned_clss.induct) (simp_all add: ac_simps)
+
+lemma add_learned_clss_conflicting:
+  assumes "add_learned_clss S U T"
+  shows "conflicting T = conflicting S"
+  using assms by (induction rule: add_learned_clss.induct) (simp_all add: ac_simps)
+
+lemma add_learned_clss_init_state_mempty[dest!]:
+  "add_learned_clss (init_state N) {#} T \<Longrightarrow> T = init_state N"
+  by (cases rule: add_learned_clss.cases) (auto simp: add_learned_clss.cases)
+
+text \<open>For multiset larger that 1 element, there is no way to know in which order the clauses are
+  added. But contrary to a definition @{term fold_mset}, there is an element.\<close>
+lemma add_learned_clss_init_state_single[dest!]:
+  "add_learned_clss (init_state N) {#C#} T \<Longrightarrow> T = add_learned_cls C (init_state N)"
+  by (induction  "{#C#}" "T" rule: add_learned_clss.induct)
+  (auto simp: add_learned_clss.cases ac_simps union_is_single split: split_if_asm)
+
+  (* TODO MOVE ME *)
+lemma true_cls_mset_increasing_r[simp]:
+  "I \<Turnstile>m CC \<Longrightarrow> I \<union> J \<Turnstile>m CC"
+  unfolding true_cls_mset_def by auto
+
+(* TODO Move *)
+lemma set_mset_single_iff_replicate_mset:
+  "set_mset U = {a}  \<longleftrightarrow> (\<exists>n>0. U = replicate_mset n a)"
+  apply (rule iffI)
+    apply (metis antisym_conv3 count_replicate_mset gr_implies_not0 mem_set_mset_iff multiset_eq_iff
+      singleton_iff)
+  by (auto split: split_if_asm)
+
+text \<open> We assume the following:
+  \<^item> there is a full transition before, starting from an initial state, where some learned clauses
+  have been added, such that the invariant holds
+  \<close>
 lemma
   assumes
-    st: "cdcl_fw_s\<^sup>*\<^sup>* (init_state N) T" and
+    full: "full0 cdcl_s S T" and
+    S: "add_learned_clss (init_state N) U S" and
+    inv: "cdcl_all_struct_inv S" and
     dist: "distinct_mset_mset N" and
-    "no_smaller_confl S" and
-    "conflict_is_false_with_level S" and
-    "trail T \<Turnstile>asm N" and
-    "trail S = []"
+    tr_T_N: "trail T \<Turnstile>asm N" and
+    S0: "add_learned_clss (init_state (N + {#C#})) (learned_clss T) S0"
   shows "add_new_clause_and_update C T \<sim> init_state (N + {#C#})
-    \<or> cdcl_fw_s\<^sup>*\<^sup>* (init_state (N + {#C#})) ((add_new_clause_and_update C T))"
-proof (induction "trail T" rule:trail_bloc_induction)
+    \<or> cdcl_s\<^sup>*\<^sup>* S0 ((add_new_clause_and_update C T))"
+  using assms
+proof -
+  have st: "cdcl_s\<^sup>*\<^sup>* S T"
+     using full unfolding full0_def by auto
+  have [simp]: "trail S = []"
+    using S add_learned_clss_trail by auto
+  have [simp]: "conflicting S = C_True"
+    using S add_learned_clss_conflicting by auto
+  have [simp]: "init_clss S = N"
+    using S add_learned_clss_init_clss by auto
+  have "conflict_is_false_with_level S"
+    by auto
+  have smaller: "no_smaller_confl S"
+    unfolding no_smaller_confl_def by auto
+  have [simp]: "learned_clss S = U"
+    using add_learned_clss_learned_clss S by auto
+  have [simp]: "clauses S = U + N"
+    unfolding clauses_def by (auto simp: union_commute)
+  have "N \<Turnstile>psm learned_clss S"
+    using inv unfolding cdcl_all_struct_inv_def cdcl_learned_clause_def by auto
+  have "cdcl_all_struct_inv T"
+    by (metis \<open>conflicting S = C_True\<close> full full0_cdcl_s_full0_cdcl_fw full0_def inv
+      rtranclp_cdcl_all_struct_inv_inv rtranclp_cdcl_fw_rtranclp_cdcl
+      rtranclp_cdcl_fw_s_rtranclp_cdcl_fw)
+  then have cons_T: "consistent_interp (lits_of (trail T))"
+    unfolding cdcl_all_struct_inv_def cdcl_M_level_inv_def by auto
+  have no_false: "no_clause_is_false S"
+    proof (clarify)
+      fix D
+      assume "D \<in># clauses S" and tr_D: "trail S \<Turnstile>as CNot D"
+      hence "D \<in># U"
+        using tr_T_N apply (auto simp: true_annots_def)
+        using true_annot_empty by blast
+      have [simp]: "D = {#}"
+        using tr_D by auto
+      let ?I = "{L. L \<in> lits_of (trail T)}
+        \<union> {Pos P|P. Pos P \<notin> lits_of (trail T) \<and> Neg P \<notin> lits_of(trail T)}"
+      have "total_over_m ?I (set_mset N \<union> set_mset U)"
+        by (auto simp: total_over_m_def total_over_set_def)
+      moreover have "consistent_interp ?I"
+        unfolding consistent_interp_def apply (intro allI, rename_tac L)
+        using cons_T unfolding consistent_interp_def by (case_tac L) auto
+      moreover have "?I \<Turnstile>sm N"
+        using tr_T_N by (auto simp: true_annots_true_cls)
+      moreover have "\<not> ?I \<Turnstile>sm U"
+        using \<open>D \<in># U\<close> true_cls_mset_def unfolding \<open>D = {#}\<close> by fastforce
+      ultimately show False
+        using tr_T_N \<open>N \<Turnstile>psm learned_clss S\<close> unfolding true_clss_clss_def by simp
+    qed
+  have "cdcl_s_invariant S"
+    using smaller no_false unfolding cdcl_s_invariant_def by simp
+  then have "cdcl_s_invariant T"
+    using inv rtranclp_cdcl_s_cdcl_s_invariant st by blast
+
+  from assms(6) st  \<open>trail T \<Turnstile>asm N\<close> \<open>cdcl_s_invariant T\<close>
+  show ?thesis
+proof (induction "trail T" arbitrary: T rule:trail_bloc_induction)
   case (1)
-  have inv: "cdcl_all_inv_mes (init_state N)"
-    using dist unfolding cdcl_all_inv_mes_def by auto
-  then have "cdcl_all_inv_mes T"
-    using st rtranclp_cdcl_all_inv_mes_inv rtranclp_cdcl_fw_rtranclp_cdcl
-    rtranclp_cdcl_fw_s_rtranclp_cdcl_fw by blast
-  then show "no_dup (trail T)"
-    unfolding cdcl_all_inv_mes_def cdcl_M_level_inv_def by auto
+  show "no_dup (trail T)"
+    using \<open>cdcl_all_struct_inv T\<close> unfolding cdcl_all_struct_inv_def cdcl_M_level_inv_def by auto
 next
   case 2
   then have [simp]: "trail T = []" by simp
-  then show ?case apply (auto simp del: state_simp simp: state_eq_def add_new_clause_and_update_def)
+  then have [simp]: "N = {#}"
+    using \<open>trail T \<Turnstile>asm N\<close> by auto
+  then have "U = {#} \<or> U = {#{#}#}"
+    using inv unfolding cdcl_all_struct_inv_def no_strange_atm_def distinct_cdcl_state_def
+    apply (auto simp: atms_of_m_empty_iff set_mset_single_iff_replicate_mset)
+    by (metis CNot_empty \<open>N = {#}\<close> \<open>clauses S = U + N\<close> \<open>conflicting S = C_True\<close> ball_msetE
+      count_replicate_mset empty_neutral(2) no_false true_annots_empty)
+  then have "U = {#}"
+    using \<open>cdcl_s_invariant T\<close> no_false unfolding cdcl_s_invariant_def by auto
+  then have "T \<sim> init_state N"
+    using \<open>cdcl_s\<^sup>*\<^sup>* S T\<close> \<open>add_learned_clss (init_state N) U S\<close> unfolding \<open>N = {#}\<close>
+    rtranclp_unfold full0_def
+    by (auto simp: cdcl_bj.simps cdcl_s.simps cdcl_o.simps cdcl_cp.simps
+      full_def dest!: tranclpD elim!: conflictE propagateE decideE skipE resolveE backtrackE)
+  then show ?case
+    by (auto simp del: state_simp simp: ac_simps state_eq_def add_new_clause_and_update_def)
+next
+  case (3 M L M')
+  then show ?case apply auto
 oops
 end
 

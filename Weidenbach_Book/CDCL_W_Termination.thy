@@ -6,7 +6,9 @@ context cdcl_cw_ops
 begin
 subsection \<open>Termination\<close>
 text \<open>The condition that no learned clause is a tautology is overkill (in the sense that the
-  no-duplicate condition is enough), but we can reuse @{term build_all_simple_clss}.\<close>
+  no-duplicate condition is enough), but we can reuse @{term build_all_simple_clss}.
+
+  The invariant contains all the structural invariants that holds,\<close>
 definition cdcl_all_struct_inv where
   "cdcl_all_struct_inv S =
     (no_strange_atm S \<and> cdcl_M_level_inv S

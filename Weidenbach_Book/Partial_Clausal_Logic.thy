@@ -129,6 +129,14 @@ lemma finite_atms_of_m_remove_subset[simp]:
   "finite (atms_of_m A) \<Longrightarrow> finite (atms_of_m (A - C))"
   using atms_of_m_remove_subset[of A C] finite_subset by blast
 
+lemma atms_of_m_empty_iff:
+  "atms_of_m A = {} \<longleftrightarrow> A = {{#}} \<or> A = {}"
+  apply (rule iffI)
+   apply (metis (no_types, lifting) atms_empty_iff_empty atms_of_atms_of_m_mono insert_absorb
+    singleton_iff singleton_insert_inj_eq' subsetI subset_empty)
+  apply auto[]
+  done
+
 (*TODO generalise the 2 following lemmas, but the multiset is probably not good enough for [intro].*)
 lemma in_implies_atm_of_on_atms_of_m:
   assumes "L \<in># C" and "C \<in> N"

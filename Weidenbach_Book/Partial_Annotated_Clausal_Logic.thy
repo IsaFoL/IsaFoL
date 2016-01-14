@@ -857,7 +857,7 @@ abbreviation "no_dup L \<equiv> distinct (map (\<lambda>l. atm_of (lit_of l)) L)
 lemma no_dup_rev[simp]:
   "no_dup (rev M) \<longleftrightarrow> no_dup M"
   by (auto simp: rev_map[symmetric])
-  
+
 lemma no_dup_length_eq_card_atm_of_lits_of:
   assumes "no_dup M"
   shows "length M  = card (atm_of ` lits_of M)"
@@ -901,7 +901,6 @@ proof -
     using assms(2) unfolding Ball_mset_def by (metis insertE lits_of_cons uminus_of_uminus_id)
   thus ?thesis by (auto simp add: true_annots_def)
 qed
-
 
 type_synonym 'v clauses = "'v clause multiset"
 
