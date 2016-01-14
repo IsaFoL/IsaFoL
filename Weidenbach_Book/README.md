@@ -1,6 +1,6 @@
 # Formalization of _Automated Reasoning: The Art of Generic Problem Solving_ #
 
-[This directory](https:..)
+X [This directory](https:..)
 contains an ongoing Isabelle formalization of Christoph Weidenbach's
 forthcoming book _Automated Reasoning: The Art of Generic Problem Solving_.
 
