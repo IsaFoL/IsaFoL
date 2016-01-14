@@ -3705,8 +3705,7 @@ lemma cut_trail_wrt_clause_mempty[simp]:
 definition add_new_clause_and_update :: "'v literal multiset \<Rightarrow> 'st \<Rightarrow> 'st" where
 "add_new_clause_and_update C S =
   (if trail S \<Turnstile>as CNot C
-  then (reduce_trail_to (rev (cut_trail_wrt_clause C (rev (trail S))))
-        (add_init_cls C S))
+  then (reduce_trail_to (cut_trail_wrt_clause C (trail S)) (add_init_cls C S))
   else add_init_cls C S)"
 
 inductive incremental_cdcl :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
@@ -3840,7 +3839,9 @@ inductive Tcons :: "('v, nat, 'v clause) marked_lits \<Rightarrow>('v, nat, 'v c
 "Tcons M M' \<Longrightarrow> M = M'' @ M' \<Longrightarrow> (\<forall>m \<in> set M''. \<not>is_marked m) \<Longrightarrow> Tcons M (M'' @ M')" |
 "Tcons M M' \<Longrightarrow> is_marked L \<Longrightarrow> M = M''' @ L # M'' @ M' \<Longrightarrow> (\<forall>m \<in> set M''. \<not>is_marked m) \<Longrightarrow> 
   Tcons M (L # M'' @ M')"
-thm Tcons.induct
+
+lemma Tcons_same_end: "Tcons M M' \<Longrightarrow> \<exists>M''. M = M'' @ M'"
+  by (induction rule: Tcons.induct) auto
 
 (* TODO Move *)
 lemma set_mset_single_iff_replicate_mset:
@@ -3864,7 +3865,7 @@ lemma
     tr_C: "trail T \<Turnstile>as CNot C" and
     S0: "add_learned_clss (init_state (N + {#C#})) (learned_clss T) S0"
   shows "add_new_clause_and_update C T \<sim> S0
-    \<or> cdcl_s\<^sup>*\<^sup>* S0 ((add_new_clause_and_update C T))"
+    \<or> cdcl_s\<^sup>*\<^sup>* S0 (add_new_clause_and_update C T)"
   using assms
 proof -
   have st: "cdcl_s\<^sup>*\<^sup>* S T"
@@ -3926,21 +3927,38 @@ proof -
   {(* TODO have to update_backtrack_lvl and  conflicting *)
     fix M
     assume "Tcons (trail T) M"
-    then have "S0 \<sim> update_backtrack_lvl
-          (length (get_all_levels_of_marked ((cut_trail_wrt_clause C (rev M)))))
-          (reduce_trail_to ((cut_trail_wrt_clause C (rev M))) (add_init_cls C T))
-      \<or> cdcl_s\<^sup>*\<^sup>* S0 (reduce_trail_to ((cut_trail_wrt_clause C (rev M))) (add_init_cls C T))"
+    then have "S0 \<sim> update_backtrack_lvl (length (get_all_levels_of_marked 
+            (cut_trail_wrt_clause C M))) (reduce_trail_to (cut_trail_wrt_clause C M) 
+            (add_init_cls C T))
+      \<or> cdcl_s\<^sup>*\<^sup>* S0 (update_backtrack_lvl (length (get_all_levels_of_marked 
+            (cut_trail_wrt_clause C M))) (reduce_trail_to (cut_trail_wrt_clause C M) 
+            (add_init_cls C T)))"
+        (is "?A M \<or> ?B M")
       proof (induction rule: Tcons.induct)
         case (1)
         then show ?case using S0 unfolding add_new_clause_and_update_def 
           by (auto simp: state_eq_def ac_simps simp del: state_simp
             simp: add_learned_clss_learned_clss add_learned_clss_trail add_learned_clss_init_clss
-            add_learned_clss_conflicting add_learned_clss_backtrack_lvl
-            )
+            add_learned_clss_conflicting add_learned_clss_backtrack_lvl)
       next
-        case (2 M M')
-        show ?case
-        sorry
+        case (2 M M') note T = this(1) and tr = this(2) and nm = this(3) and IH = this(4)
+        consider 
+            (init) "?A M"
+          | (goone) "?B M"
+          using IH by blast
+        then show ?case 
+          proof cases
+            case init
+            show ?thesis using S0 apply (auto simp: state_eq_def simp del: state_simp) sorry
+          next
+            case goone
+            then have "?B (M' @ M)"
+              apply (induction M')
+                apply auto[]
+                apply auto
+              sorry
+            then show ?thesis sorry
+         qed
       next
         case 3
         show ?case

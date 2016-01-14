@@ -259,13 +259,16 @@ proof -
 qed
 
 lemma reduce_trail_to_trail_tl_trail_decomp[simp]:
-"trail S = F' @ Marked K d # F \<Longrightarrow>
-     (trail (reduce_trail_to F S)) = F "
+  "trail S = F' @ Marked K d # F \<Longrightarrow> (trail (reduce_trail_to F S)) = F "
   apply (rule reduce_trail_to_skip_beginning[of _ "F' @ Marked K d # []"])
   by (cases F') (auto simp add:tl_append reduce_trail_to_skip_beginning)
 
 lemma reduce_trail_to_add_learned_cls[simp]:
   "trail (reduce_trail_to F (add_learned_cls C S)) = trail (reduce_trail_to F S)"
+  by (rule trail_eq_reduce_trail_to_eq) auto
+
+lemma reduce_trail_to_add_init_cls[simp]:
+  "trail (reduce_trail_to F (add_init_cls C S)) = trail (reduce_trail_to F S)"
   by (rule trail_eq_reduce_trail_to_eq) auto
 
 lemma reduce_trail_to_remove_learned_cls[simp]:
