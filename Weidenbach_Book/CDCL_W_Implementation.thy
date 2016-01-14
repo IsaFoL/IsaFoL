@@ -392,8 +392,8 @@ qed
 paragraph \<open>Skip\<close>
 fun do_skip_step :: "cdcl_state_inv_st \<Rightarrow> cdcl_state_inv_st" where
 "do_skip_step (Propagated L C # Ls,N,U,k, C_Clause D) =
-  (if -L \<notin> set D \<and> D \<noteq> [] 
-  then (Ls, N, U, k, C_Clause D) 
+  (if -L \<notin> set D \<and> D \<noteq> []
+  then (Ls, N, U, k, C_Clause D)
   else (Propagated L C #Ls, N, U, k, C_Clause D))" |
 "do_skip_step S = S"
 
@@ -904,10 +904,18 @@ lemma do_other_step_no:
 
 lemma rough_state_of_state_of_do_other_step[simp]:
   "rough_state_of (state_of (do_other_step (rough_state_of S))) = do_other_step (rough_state_of S)"
-  apply (cases "do_other_step (rough_state_of S) = rough_state_of S")
-   apply simp
-  using rough_state_of[of S] do_other_step[of "rough_state_of S"]  by (smt CollectI
-    cdcl_all_struct_inv_inv cdcl_all_struct_inv_rough_state other state_of_inverse)
+proof (cases "do_other_step (rough_state_of S) = rough_state_of S")
+  case True
+  then show ?thesis by simp
+next
+  case False
+  have "cdcl_o (toS (rough_state_of S)) (toS (do_other_step (rough_state_of S)))"
+    by (metis False cdcl_all_struct_inv_rough_state do_other_step["of" "rough_state_of S"])
+  then have "cdcl_all_struct_inv (toS (do_other_step (rough_state_of S)))"
+    using cdcl_all_struct_inv_inv cdcl_all_struct_inv_rough_state other by blast
+  then show ?thesis
+    by (simp add: CollectI state_of_inverse)
+qed
 
 definition do_other_step' where
 "do_other_step' S =

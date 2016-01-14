@@ -473,7 +473,8 @@ oops
 interpretation cw_state
 oops
 
-interpretation cdcl_cw_ops
+(* interpretation cdcl_cw_ops
 oops
-
+ *)
+end
 end
