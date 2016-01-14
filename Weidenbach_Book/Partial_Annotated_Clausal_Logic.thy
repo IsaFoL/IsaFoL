@@ -27,7 +27,7 @@ lemma is_marked_ex_Marked:
   "is_marked L \<Longrightarrow> \<exists>K lvl. L = Marked K lvl"
   by (cases L) auto
 
-type_synonym ('v, 'l, 'm) annoted_lits = "('v, 'l, 'm) marked_lit list"
+type_synonym ('v, 'l, 'm) marked_lits = "('v, 'l, 'm) marked_lit list"
 
 definition lits_of :: "('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal set" where
 "lits_of Ls = lit_of ` (set Ls)"
@@ -46,6 +46,9 @@ lemma lits_of_append[simp]:
 lemma finite_lits_of_def[simp]: "finite (lits_of L)"
   unfolding lits_of_def by auto
 
+lemma lits_of_rev[simp]: "lits_of (rev M) = lits_of M"
+  unfolding lits_of_def by auto
+
 lemma set_map_lit_of_lits_of[simp]:
   "set (map lit_of T) = lits_of T"
   unfolding lits_of_def by auto
@@ -59,22 +62,23 @@ lemma atms_of_m_lambda_lit_of_is_atm_of_lit_of[simp]:
   "atms_of_m ((\<lambda>a. {#lit_of a#}) ` set M') = atm_of ` lits_of M'"
   unfolding atms_of_m_def lits_of_def by auto
 
-lemma lits_of_rev[simp]: "lits_of (rev a) = lits_of a"
-  unfolding lits_of_def by auto
-
 lemma lits_of_empty_is_empty[iff]:
   "lits_of M = {} \<longleftrightarrow> M = []"
   by (induct M) auto
 
 subsubsection \<open>Entailment\<close>
-definition true_annot :: "('a, 'l, 'm) annoted_lits \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>a" 49) where
+definition true_annot :: "('a, 'l, 'm) marked_lits \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>a" 49) where
   "I \<Turnstile>a C \<longleftrightarrow> (lits_of I) \<Turnstile> C"
 
-definition true_annots :: "('a, 'l, 'm) annoted_lits \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>as" 49) where
+definition true_annots :: "('a, 'l, 'm) marked_lits \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>as" 49) where
   "I \<Turnstile>as CC \<longleftrightarrow> (\<forall>C \<in> CC. I \<Turnstile>a C)"
 
 lemma true_annot_empty_model[simp]:
   "\<not>[] \<Turnstile>a \<psi>"
+  unfolding true_annot_def true_cls_def by simp
+
+lemma true_annot_empty[simp]:
+  "\<not>I \<Turnstile>a {#}"
   unfolding true_annot_def true_cls_def by simp
 
 lemma empty_true_annots_def[iff]:
@@ -178,6 +182,10 @@ definition defined_lit :: "'a literal \<Rightarrow> ('a, 'l, 'm) marked_lit list
 abbreviation undefined_lit :: "'a literal \<Rightarrow> ('a, 'l, 'm) marked_lit list  \<Rightarrow> bool"
 where "undefined_lit L I \<equiv> \<not>defined_lit L I"
 
+lemma defined_lit_rev[simp]:
+  "defined_lit L (rev M) \<longleftrightarrow> defined_lit L M"
+  unfolding defined_lit_def by auto
+
 lemma atm_imp_marked_or_proped:
   assumes "x \<in> set I"
   shows
@@ -227,8 +235,8 @@ lemma decided_empty[simp]:
   unfolding defined_lit_def by simp
 
 subsection \<open>Backtracking\<close>
-fun backtrack_split :: "('v, 'l, 'm) annoted_lits
-  \<Rightarrow> ('v, 'l, 'm) annoted_lits \<times> ('v, 'l, 'm) annoted_lits" where
+fun backtrack_split :: "('v, 'l, 'm) marked_lits
+  \<Rightarrow> ('v, 'l, 'm) marked_lits \<times> ('v, 'l, 'm) marked_lits" where
 "backtrack_split [] = ([], [])" |
 "backtrack_split (Propagated L P # mlits) = apfst ((op #) (Propagated L P)) (backtrack_split mlits)" |
 "backtrack_split (Marked L l # mlits) = ([], Marked L l # mlits)"
@@ -272,8 +280,8 @@ Split function in 2 + list.product
 *)
 text \<open>The pattern @{term "get_all_marked_decomposition [] = [([], [])]"} is necessary otherwise, we
   can call the @{term hd} function in the other pattern. \<close>
-fun get_all_marked_decomposition :: "('a, 'l, 'm) annoted_lits
-  \<Rightarrow> (('a, 'l, 'm) annoted_lits \<times> ('a, 'l, 'm) annoted_lits) list" where
+fun get_all_marked_decomposition :: "('a, 'l, 'm) marked_lits
+  \<Rightarrow> (('a, 'l, 'm) marked_lits \<times> ('a, 'l, 'm) marked_lits) list" where
 "get_all_marked_decomposition (Marked L l # Ls) =
   (Marked L l # Ls, []) # get_all_marked_decomposition Ls" |
 "get_all_marked_decomposition (Propagated L P# Ls) =
@@ -846,6 +854,10 @@ qed
 subsection \<open>Other\<close>
 abbreviation "no_dup L \<equiv> distinct (map (\<lambda>l. atm_of (lit_of l)) L)"
 
+lemma no_dup_rev[simp]:
+  "no_dup (rev M) \<longleftrightarrow> no_dup M"
+  by (auto simp: rev_map[symmetric])
+
 lemma no_dup_length_eq_card_atm_of_lits_of:
   assumes "no_dup M"
   shows "length M  = card (atm_of ` lits_of M)"
@@ -889,7 +901,6 @@ proof -
     using assms(2) unfolding Ball_mset_def by (metis insertE lits_of_cons uminus_of_uminus_id)
   thus ?thesis by (auto simp add: true_annots_def)
 qed
-
 
 type_synonym 'v clauses = "'v clause multiset"
 

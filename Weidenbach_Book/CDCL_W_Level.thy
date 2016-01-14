@@ -4,7 +4,7 @@ begin
 
 subsubsection \<open>Level of literals and clauses\<close>
 text \<open>Getting the level of a variable, implies that the list has to be reversed. Here is the funtion after reversing.\<close>
-fun get_rev_level :: "'v literal \<Rightarrow> nat \<Rightarrow> ('v, nat, 'a) annoted_lits \<Rightarrow> nat" where
+fun get_rev_level :: "'v literal \<Rightarrow> nat \<Rightarrow> ('v, nat, 'a) marked_lits \<Rightarrow> nat" where
 "get_rev_level _ _ [] = 0" |
 "get_rev_level L n (Marked l level # Ls) =
   (if atm_of l = atm_of L then level else get_rev_level L level Ls)" |

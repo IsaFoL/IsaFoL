@@ -82,7 +82,7 @@ abbreviation clause_of_w_clause :: "'v w_clause \<Rightarrow> 'v clause" where
 "clause_of_w_clause C \<equiv> watched C + not_watched C"
 
 datatype ('v, 'lvl, 'mark) two_wl_state =
-  Two_WL_State (trail: "('v, 'lvl, 'mark) annoted_lits") (init_clss: "'v w_clause multiset")
+  Two_WL_State (trail: "('v, 'lvl, 'mark) marked_lits") (init_clss: "'v w_clause multiset")
     (learned_clss: "'v w_clause multiset") (backtrack_lvl: 'lvl)
     (conflicting: "'v clause conflicting_clause")
 
@@ -92,18 +92,18 @@ abbreviation clauses where
 definition
   candidates_propagate :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> ('v literal \<times> 'v clause) set"
 where
-"candidates_propagate S = 
+"candidates_propagate S =
   {(L, clause_of_w_clause C) | L C.
    C \<in># clauses S \<and> watched C - mset_set (uminus ` lits_of (trail S)) = {#L#} \<and>
    undefined_lit L (trail S)}"
 
 definition candidates_conflict :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> 'v clause set" where
-"candidates_conflict S = 
+"candidates_conflict S =
   {clause_of_w_clause C | C. C \<in># clauses S \<and> watched C \<subseteq># mset_set (uminus ` lits_of (trail S))}"
 
-interpretation dpll_state trail "image_mset clause_of_w_clause o clauses"
+(* interpretation dpll_state trail "image_mset clause_of_w_clause o clauses"
   "\<lambda>M S. Two_WL_State M (init_clss S) (learned_clss S) (backtrack_lvl S) (conflicting S)"
-oops
+oops *)
 
 primrec wf_two_wl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v w_clause \<Rightarrow> bool" where
   "wf_two_wl_cls M (W_Clause W NW) \<longleftrightarrow>
@@ -412,14 +412,57 @@ proof -
     using MNU_defs cw(1) cw(2) subset candidates_conflict_def by blast
 qed
 
+
+consts
+  cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> ('v, nat, 'v clause) two_wl_state \<Rightarrow> 
+    ('v, nat, 'v clause) two_wl_state" 
+  add_init_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) two_wl_state \<Rightarrow>('v, nat, 'v clause) two_wl_state"
+  add_learned_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) two_wl_state \<Rightarrow> 
+    ('v, nat, 'v clause) two_wl_state"
+  remove_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) two_wl_state \<Rightarrow> ('v, nat, 'v clause) two_wl_state"
+  init_state :: "'v clauses \<Rightarrow> ('v, nat, 'v clause) two_wl_state" 
+
 locale structure_2_WL =
-  fixes choose :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> 'v clause \<Rightarrow> 'v w_clause"
-  assumes choose: "wf_two_wl_cls (trail S) (choose S C)"
+  fixes 
+    choose :: "('v, nat, 'v clause) two_wl_state \<Rightarrow> 'v clause \<Rightarrow> 'v w_clause" and
+    remove_some_learned :: "('v, nat, 'v clause) two_wl_state \<Rightarrow> 'v w_clause multiset"
+  assumes
+    "remove_some_learned S \<subseteq># learned_cls S" and
+    choose: "wf_two_wl_cls (trail S) (choose S C)"
 begin
 
-end
+abbreviation init_clss_of_w_clss where
+"init_clss_of_w_clss S \<equiv> image_mset clause_of_w_clause (init_clss S)"
 
-interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn _ _ _ _ (* propagate_conds is in candidates *) _ _ _ 
+abbreviation learned_clss_of_w_clss where
+"learned_clss_of_w_clss S \<equiv> image_mset clause_of_w_clause (learned_clss S)"
+
+fun update_backtrack_lvl where
+"update_backtrack_lvl k (Two_WL_State M N U _ C) = Two_WL_State M N U k C"
+
+fun update_conflicting where
+"update_conflicting C (Two_WL_State M N U k _) = Two_WL_State M N U k C"
+
+fun tl_trail where
+"tl_trail (Two_WL_State M N U k C) = Two_WL_State (tl M) N U k C"
+
+fun restart where
+"restart (Two_WL_State M N U k C) =
+  Two_WL_State M N (remove_some_learned (Two_WL_State M N U k C)) k C"
+
+sublocale cw_state trail init_clss_of_w_clss learned_clss_of_w_clss backtrack_lvl conflicting
+  cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
+  update_conflicting init_state restart
+  apply unfold_locales
+  apply (case_tac st, simp)
+  apply (case_tac st, simp)
+oops
+
+(* implementation of choose *)
+interpretation structure_2_WL
+oops
+
+interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn _ _ _ _ (* propagate_conds is in candidates *) _ _ _
   (* backjump_conds is candidate_conflict *)
 oops
 
