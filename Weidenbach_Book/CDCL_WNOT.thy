@@ -153,7 +153,7 @@ sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_pr
   "\<lambda>_ S. conflicting S = C_True" backjump_l_cond inv\<^sub>N\<^sub>O\<^sub>T
 proof (unfold_locales, goal_cases)
   case 2
-  then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_no_dup_inv by auto
+  then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_no_dup_inv by auto
 next
   case (1 C' S C F' K d F L)
   moreover
@@ -210,7 +210,7 @@ sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn "c
   "\<lambda>C S. remove_cls C S" "\<lambda>_. True"  inv\<^sub>N\<^sub>O\<^sub>T
   "\<lambda>_ S. conflicting S = C_True" backjump_l_cond
   apply unfold_locales
-   using dpll_bj_no_dup apply simp
+   using dpll\<^sub>N\<^sub>O\<^sub>T_bj_no_dup apply simp
   using cdcl\<^sub>N\<^sub>O\<^sub>T.simps cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup by auto
 
 context cdcl_cw_ops
@@ -1006,11 +1006,11 @@ lemma reduce_trail_to_length:
   apply (case_tac "trail S \<noteq> [] "; case_tac "length (trail S) \<noteq> length M'"; simp)
   by (simp_all add: reduce_trail_to_length_ne)
 
-lemma cdcl_fw_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged:
+lemma cdcl_fw_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn:
   assumes
     inv: "cdcl_all_struct_inv S" and
     cdcl:"cdcl_fw S T"
-  shows "cdcl\<^sub>N\<^sub>O\<^sub>T_merged S T
+  shows "cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn S T
     \<or> (no_step cdcl_fw T \<and> conflicting T \<noteq> C_True)"
   using cdcl inv
 proof induction
@@ -1027,7 +1027,7 @@ proof induction
     using H by (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def state_eq_def clauses_def
       simp del: state_simp\<^sub>N\<^sub>O\<^sub>T state_simp)
   then show ?case
-    using cdcl\<^sub>N\<^sub>O\<^sub>T_merged.intros(2) by blast
+    using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn.intros(2) by blast
 next
   case (fw_decide S T) note dec = this(1) and inv = this(2)
   then obtain L where
@@ -1041,7 +1041,7 @@ next
        using undef_L apply simp
      using atm_L inv unfolding cdcl_all_struct_inv_def no_strange_atm_def clauses_def apply auto[]
     using T unfolding state_eq_def state_eq\<^sub>N\<^sub>O\<^sub>T_def by (auto simp: clauses_def)
-  then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_decide\<^sub>N\<^sub>O\<^sub>T by blast
+  then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_decide\<^sub>N\<^sub>O\<^sub>T by blast
 next
   case (fw_forget S T) note rf =this(1) and inv = this(2)
   then obtain M N C U k where
@@ -1070,7 +1070,7 @@ next
     using T C_le C_init by (auto
       simp: state_eq_def Un_Diff state_eq\<^sub>N\<^sub>O\<^sub>T_def clauses_def ac_simps H
       simp del: state_simp state_simp\<^sub>N\<^sub>O\<^sub>T)
-  then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_forget\<^sub>N\<^sub>O\<^sub>T by blast
+  then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_forget\<^sub>N\<^sub>O\<^sub>T by blast
 next
   case (fw_conflict S T U) note confl = this(1) and bj = this(2) and inv = this(3)
   obtain C\<^sub>S where
@@ -1178,13 +1178,13 @@ next
         using \<open>tl (trail U) \<Turnstile>as CNot D\<close> inv_T' inv_U U confl_T' unfolding cdcl_all_struct_inv_def distinct_cdcl_state_def
         apply simp_all
         done
-      then show ?thesis using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_backjump_l by fast
+      then show ?thesis using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_backjump_l by fast
     qed
 qed
 
 abbreviation cdcl\<^sub>N\<^sub>O\<^sub>T_restart where
-"cdcl\<^sub>N\<^sub>O\<^sub>T_restart \<equiv> restart_ops.cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts cdcl\<^sub>N\<^sub>O\<^sub>T restart"
-lemma cdcl_fw_restart_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_restart_no_step:
+"cdcl\<^sub>N\<^sub>O\<^sub>T_restart \<equiv> restart_ops.cdcl\<^sub>N\<^sub>O\<^sub>T_raw_restart cdcl\<^sub>N\<^sub>O\<^sub>T restart"
+lemma cdcl_fw_restart_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_restart_no_step:
   assumes
     inv: "cdcl_all_struct_inv S" and
     cdcl:"cdcl_fw_restart S T"
@@ -1198,17 +1198,17 @@ proof -
   then show ?thesis
     proof cases
       case fw
-      then have "cdcl\<^sub>N\<^sub>O\<^sub>T_merged S T \<or> (no_step cdcl_fw T \<and> conflicting T \<noteq> C_True)"
-        using inv cdcl_fw_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged by blast
+      then have "cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn S T \<or> (no_step cdcl_fw T \<and> conflicting T \<noteq> C_True)"
+        using inv cdcl_fw_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn by blast
       moreover have "inv\<^sub>N\<^sub>O\<^sub>T S"
         using inv unfolding cdcl_all_struct_inv_def cdcl_M_level_inv_def by auto
       ultimately show ?thesis
-        using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_is_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_is_rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_and_inv
+        using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_is_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_is_rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_and_inv
         rtranclp_mono[of cdcl\<^sub>N\<^sub>O\<^sub>T cdcl\<^sub>N\<^sub>O\<^sub>T_restart]
-        by (blast intro: restart_ops.cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts.intros)
+        by (blast intro: restart_ops.cdcl\<^sub>N\<^sub>O\<^sub>T_raw_restart.intros)
     next
       case fw_r
-      then show ?thesis by (blast intro: restart_ops.cdcl\<^sub>N\<^sub>O\<^sub>T_with_restarts.intros)
+      then show ?thesis by (blast intro: restart_ops.cdcl\<^sub>N\<^sub>O\<^sub>T_raw_restart.intros)
     qed
 qed
 
@@ -1234,9 +1234,9 @@ proof -
     by (meson cdcl_fw.simps cdcl_fw_restart.simps cdcl_fw_restart_cdcl cdcl_rf.simps fw
       rtranclp_cdcl_init_clss)
   consider
-      (merged) "cdcl\<^sub>N\<^sub>O\<^sub>T_merged S T"
+      (merged) "cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn S T"
     | (n_s) "no_step cdcl_fw T"
-    using cdcl_fw_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged inv fw by blast
+    using cdcl_fw_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn inv fw by blast
   then show ?thesis
     proof cases
       case merged
@@ -3697,6 +3697,10 @@ fun cut_trail_wrt_clause
   (if lit_of L \<in># C then M else L # cut_trail_wrt_clause C M)" |
 "cut_trail_wrt_clause _ [] = []"
 
+lemma cut_trail_wrt_clause_mempty[simp]:
+  "cut_trail_wrt_clause {#} M = M"
+  by (induction M) auto
+
 (* TODO missing backtrack update *)
 definition add_new_clause_and_update :: "'v literal multiset \<Rightarrow> 'st \<Rightarrow> 'st" where
 "add_new_clause_and_update C S =
@@ -3810,6 +3814,11 @@ lemma add_learned_clss_conflicting:
   shows "conflicting T = conflicting S"
   using assms by (induction rule: add_learned_clss.induct) (simp_all add: ac_simps)
 
+lemma add_learned_clss_backtrack_lvl:
+  assumes "add_learned_clss S U T"
+  shows "backtrack_lvl T = backtrack_lvl S"
+  using assms by (induction rule: add_learned_clss.induct) (simp_all add: ac_simps)
+
 lemma add_learned_clss_init_state_mempty[dest!]:
   "add_learned_clss (init_state N) {#} T \<Longrightarrow> T = init_state N"
   by (cases rule: add_learned_clss.cases) (auto simp: add_learned_clss.cases)
@@ -3825,6 +3834,13 @@ lemma add_learned_clss_init_state_single[dest!]:
 lemma true_cls_mset_increasing_r[simp]:
   "I \<Turnstile>m CC \<Longrightarrow> I \<union> J \<Turnstile>m CC"
   unfolding true_cls_mset_def by auto
+inductive Tcons :: "('v, nat, 'v clause) marked_lits \<Rightarrow>('v, nat, 'v clause) marked_lits \<Rightarrow> bool"
+  for M :: "('v, nat, 'v clause) marked_lits" where
+"Tcons M []" |
+"Tcons M M' \<Longrightarrow> M = M'' @ M' \<Longrightarrow> (\<forall>m \<in> set M''. \<not>is_marked m) \<Longrightarrow> Tcons M (M'' @ M')" |
+"Tcons M M' \<Longrightarrow> is_marked L \<Longrightarrow> M = M''' @ L # M'' @ M' \<Longrightarrow> (\<forall>m \<in> set M''. \<not>is_marked m) \<Longrightarrow> 
+  Tcons M (L # M'' @ M')"
+thm Tcons.induct
 
 (* TODO Move *)
 lemma set_mset_single_iff_replicate_mset:
@@ -3845,8 +3861,9 @@ lemma
     inv: "cdcl_all_struct_inv S" and
     dist: "distinct_mset_mset N" and
     tr_T_N: "trail T \<Turnstile>asm N" and
+    tr_C: "trail T \<Turnstile>as CNot C" and
     S0: "add_learned_clss (init_state (N + {#C#})) (learned_clss T) S0"
-  shows "add_new_clause_and_update C T \<sim> init_state (N + {#C#})
+  shows "add_new_clause_and_update C T \<sim> S0
     \<or> cdcl_s\<^sup>*\<^sup>* S0 ((add_new_clause_and_update C T))"
   using assms
 proof -
@@ -3858,6 +3875,8 @@ proof -
     using S add_learned_clss_conflicting by auto
   have [simp]: "init_clss S = N"
     using S add_learned_clss_init_clss by auto
+  then have [simp]: "init_clss T = N"
+    using rtranclp_cdcl_s_no_more_init_clss st by force
   have "conflict_is_false_with_level S"
     by auto
   have smaller: "no_smaller_confl S"
@@ -3901,35 +3920,38 @@ proof -
     using smaller no_false unfolding cdcl_s_invariant_def by simp
   then have "cdcl_s_invariant T"
     using inv rtranclp_cdcl_s_cdcl_s_invariant st by blast
+  have [simp]: "conflicting T = C_True"
+    sorry
 
+  {(* TODO have to update_backtrack_lvl and  conflicting *)
+    fix M
+    assume "Tcons (trail T) M"
+    then have "S0 \<sim> update_backtrack_lvl
+          (length (get_all_levels_of_marked ((cut_trail_wrt_clause C (rev M)))))
+          (reduce_trail_to ((cut_trail_wrt_clause C (rev M))) (add_init_cls C T))
+      \<or> cdcl_s\<^sup>*\<^sup>* S0 (reduce_trail_to ((cut_trail_wrt_clause C (rev M))) (add_init_cls C T))"
+      proof (induction rule: Tcons.induct)
+        case (1)
+        then show ?case using S0 unfolding add_new_clause_and_update_def 
+          by (auto simp: state_eq_def ac_simps simp del: state_simp
+            simp: add_learned_clss_learned_clss add_learned_clss_trail add_learned_clss_init_clss
+            add_learned_clss_conflicting add_learned_clss_backtrack_lvl
+            )
+      next
+        case (2 M M')
+        show ?case
+        sorry
+      next
+        case 3
+        show ?case
+        sorry
+      qed
+  }
+  
   from assms(6) st  \<open>trail T \<Turnstile>asm N\<close> \<open>cdcl_s_invariant T\<close>
   show ?thesis
-proof (induction "trail T" arbitrary: T rule:trail_bloc_induction)
-  case (1)
-  show "no_dup (trail T)"
-    using \<open>cdcl_all_struct_inv T\<close> unfolding cdcl_all_struct_inv_def cdcl_M_level_inv_def by auto
-next
-  case 2
-  then have [simp]: "trail T = []" by simp
-  then have [simp]: "N = {#}"
-    using \<open>trail T \<Turnstile>asm N\<close> by auto
-  then have "U = {#} \<or> U = {#{#}#}"
-    using inv unfolding cdcl_all_struct_inv_def no_strange_atm_def distinct_cdcl_state_def
-    apply (auto simp: atms_of_m_empty_iff set_mset_single_iff_replicate_mset)
-    by (metis CNot_empty \<open>N = {#}\<close> \<open>clauses S = U + N\<close> \<open>conflicting S = C_True\<close> ball_msetE
-      count_replicate_mset empty_neutral(2) no_false true_annots_empty)
-  then have "U = {#}"
-    using \<open>cdcl_s_invariant T\<close> no_false unfolding cdcl_s_invariant_def by auto
-  then have "T \<sim> init_state N"
-    using \<open>cdcl_s\<^sup>*\<^sup>* S T\<close> \<open>add_learned_clss (init_state N) U S\<close> unfolding \<open>N = {#}\<close>
-    rtranclp_unfold full0_def
-    by (auto simp: cdcl_bj.simps cdcl_s.simps cdcl_o.simps cdcl_cp.simps
-      full_def dest!: tranclpD elim!: conflictE propagateE decideE skipE resolveE backtrackE)
-  then show ?case
-    by (auto simp del: state_simp simp: ac_simps state_eq_def add_new_clause_and_update_def)
-next
-  case (3 M L M')
-  then show ?case apply auto
+    using tr_C unfolding add_new_clause_and_update_def apply simp
+   sorry
 oops
 end
 
