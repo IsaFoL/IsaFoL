@@ -1,6 +1,6 @@
 # Formalization of _Automated Reasoning: The Art of Generic Problem Solving_ #
 
-This directory contains an ongoing Isabelle formalization of Christoph
+[This directory](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Weidenbach_Book/) contains an ongoing Isabelle formalization of Christoph
 Weidenbach's forthcoming book _Automated Reasoning: The Art of Generic Problem
 Solving_.
 
