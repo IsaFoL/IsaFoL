@@ -562,17 +562,19 @@ where
     else
       C)"
 
-lemma raw_clause_take_drop:
-  "N = mset Cs \<Longrightarrow> raw_clause (TWL_Clause (mset (take n Cs)) (mset (drop n Cs))) = N"
-  by (metis append_take_drop_id mset_append twl_clause.sel(1) twl_clause.sel(2))
-
-lemma mset_filter_sorted_list:
-  "mset (filter (Not \<circ> p) (sorted_list_of_multiset M) @ filter p (sorted_list_of_multiset M)) = M"
-  by auto (metis (mono_tags) comp_apply filter_cong mset_compl_union mset_sorted_list_of_multiset)
+lemma mset_take_filter_sorted_list_of_set_plus_complement:
+  "mset (take n [x \<leftarrow> sorted_list_of_set (set_mset A). p x]) +
+   mset (sorted_list_of_multiset (A - mset (take n [x \<leftarrow> sorted_list_of_set (set_mset A). p x]))) =
+    A"
+  apply simp
+  apply (rule subset_mset.add_diff_inverse)
+  by (metis append_take_drop_id mset_append mset_compl_union mset_le_add_left mset_remdups_le
+    mset_remdups_remdups_mset mset_sorted_list_of_multiset remdups_mset_def sorted_list_of_mset_set
+    subset_mset.order.trans)
 
 lemma clause_watch_nat: "raw_clause (watch_nat S C) = C"
-  by (simp only: watch_nat_def Let_def partition_filter_conv case_prod_beta fst_conv snd_conv)
-    (rule raw_clause_take_drop[OF mset_filter_sorted_list[symmetric]])
+  apply (simp only: watch_nat_def Let_def partition_filter_conv case_prod_beta fst_conv snd_conv)
+  using mset_take_filter_sorted_list_of_set_plus_complement by auto
 
 lemma wf_watch_nat: "wf_twl_cls (trail S) (watch_nat S C)"
   apply (simp only: watch_nat_def Let_def partition_filter_conv case_prod_beta fst_conv snd_conv)
