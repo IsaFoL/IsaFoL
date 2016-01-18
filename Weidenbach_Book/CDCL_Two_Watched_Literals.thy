@@ -590,7 +590,7 @@ definition less_multiset :: "'a :: linorder multiset \<Rightarrow> 'a multiset \
   "M' < M \<longleftrightarrow> M' #<# M"
 
 definition less_eq_multiset :: "'a multiset \<Rightarrow> 'a multiset \<Rightarrow> bool" where
-   "(M'::'a multiset) \<le> M \<longleftrightarrow> M' #<=# M"
+  "M' \<le> M \<longleftrightarrow> M' #<=# M"
 
 instance
   by standard (auto simp: less_eq_multiset_def less_multiset_def)
