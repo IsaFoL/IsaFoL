@@ -292,16 +292,12 @@ next
           have "trail T = Marked L i # trail S'"
             using \<open>decide S' T\<close> \<open>Marked L i \<in> set (trail T)\<close> tr_T
             by auto
-          hence 5: "trail T = Marked L i # H @ M"and 6: "trail S' = H @ M"
-            proof -
-              show "trail S' = H @ M"
-                by (metis (no_types) \<open>trail T = Marked L i # trail S'\<close>
-                  \<open>trail T = drop (length M\<^sub>0) M' @ Marked L i # H @ M\<close> append_Nil list.sel(3) nd
-                  tl_append2)
-            next
-              show "trail T = Marked L i # H @ M"
-                using append.simps(1) list.sel(3) local.other'(5) tl_append2 by (simp add: tr_T)
-            qed
+          hence 5: "trail T = Marked L i # H @ M"
+              using append.simps(1) list.sel(3) local.other'(5) tl_append2 by (simp add: tr_T)
+          have 6: "trail S' = H @ M"
+            by (metis (no_types) \<open>trail T = Marked L i # trail S'\<close>
+              \<open>trail T = drop (length M\<^sub>0) M' @ Marked L i # H @ M\<close> append_Nil list.sel(3) nd
+              tl_append2)
           have 7: "cdcl_s\<^sup>*\<^sup>* S' U" using other'.prems(4) st by auto
           have 8: "cdcl_s S' U" "cdcl_s\<^sup>*\<^sup>* U U"
             using cdcl_s.other'[OF other'(1-3)] by simp_all
@@ -455,7 +451,8 @@ proof (induction rule: cdcl_o_induct)
   obtain d where d: "M1 = d @ Marked Kh i # H"
     using z T unfolding M3 by (smt M3 append_assoc list.inject list.sel(3) marked_lit.distinct(1)
       self_append_conv2 state_eq_trail tl_append2 trail_cons_trail trail_update_backtrack_lvl
-      trail_update_conflicting reduce_trail_to_add_learned_cls reduce_trail_to_trail_tl_trail_decomp)
+      trail_update_conflicting reduce_trail_to_add_learned_cls
+      reduce_trail_to_trail_tl_trail_decomp)
   have "i \<in> set (get_all_levels_of_marked (M3 @ M2 @ Marked K (Suc j) # d @ Marked Kh i # H))"
     by auto
   hence "i > 0" unfolding H[unfolded M3 d] by auto
@@ -1006,7 +1003,8 @@ next
   moreover
     have "atms_of_mu ({#D + {#L#}#} + learned_clss S) \<subseteq> atms_of_mu (init_clss S)"
       using alien conf unfolding no_strange_atm_def by auto
-    hence card_f: "card (atms_of_mu ({#D + {#L#}#} + learned_clss S)) \<le> card (atms_of_mu (init_clss S))"
+    hence card_f: "card (atms_of_mu ({#D + {#L#}#} + learned_clss S)) 
+      \<le> card (atms_of_mu (init_clss S))"
       by (meson atms_of_m_finite card_mono finite_set_mset)
     hence "(3::nat) ^ card (atms_of_mu ({#D + {#L#}#} + learned_clss S))
       \<le> 3 ^ card (atms_of_mu (init_clss S))" by simp
@@ -1108,7 +1106,8 @@ proof -
     proof induction
       case (conflict' U V) note cp = this(1) and inv = this(5)
       show ?case
-         using tranclp_cdcl_cp_measure_decreasing[OF HOL.conjunct1[OF cp[unfolded full1_def]] inv] .
+         using tranclp_cdcl_cp_measure_decreasing[OF HOL.conjunct1[OF cp[unfolded full1_def]] inv]
+         .
     next
       case (other' S T U) note H= this(1,4,5,6,7) and cp = this(3)
       have "cdcl_all_struct_inv T"

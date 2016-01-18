@@ -1666,8 +1666,8 @@ proof (induction "(2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
         qed
       def g \<equiv> "\<lambda>n. f (n + Suc i)"
       have "dpll\<^sub>N\<^sub>O\<^sub>T_bj (f i) (g 0)"
-        using \<open>\<not> learn (f i) (f (Suc i)) \<and> \<not> forget\<^sub>N\<^sub>O\<^sub>T (f i) (f (Suc i))\<close> cdcl\<^sub>N\<^sub>O\<^sub>T cdcl\<^sub>N\<^sub>O\<^sub>T.cases g_def
-        by auto
+        using \<open>\<not> learn (f i) (f (Suc i)) \<and> \<not> forget\<^sub>N\<^sub>O\<^sub>T (f i) (f (Suc i))\<close> cdcl\<^sub>N\<^sub>O\<^sub>T cdcl\<^sub>N\<^sub>O\<^sub>T.cases 
+        g_def by auto
       {
         fix j
         assume "j \<le> i"
