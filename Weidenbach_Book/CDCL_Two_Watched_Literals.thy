@@ -88,7 +88,7 @@ text \<open>Only the 2-watched literals have to be verified here: the backtrack 
   remain separate.\<close>
 
 datatype 'v twl_clause =
-  W_Clause (watched: "'v clause") (not_watched: "'v clause")
+  TWL_Clause (watched: "'v clause") (not_watched: "'v clause")
 
 abbreviation raw_clause :: "'v twl_clause \<Rightarrow> 'v clause" where
   "raw_clause C \<equiv> watched C + not_watched C"
@@ -125,7 +125,7 @@ definition candidates_conflict :: "('v, 'lvl, 'mark) twl_state \<Rightarrow> 'v 
 oops *)
 
 primrec wf_twl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v twl_clause \<Rightarrow> bool" where
-  "wf_twl_cls M (W_Clause W NW) \<longleftrightarrow>
+  "wf_twl_cls M (TWL_Clause W NW) \<longleftrightarrow>
    distinct_mset W \<and> size W \<le> 2 \<and> (size W < 2 \<longrightarrow> set_mset NW \<subseteq> set_mset W) \<and>
    (\<forall>L \<in># W. -L \<in> lits_of M \<longrightarrow> (\<forall>L' \<in># NW. -L' \<in> lits_of M))"
 
@@ -150,7 +150,7 @@ proof
     "undefined_lit L M"
     using cand unfolding candidates_propagate_def MNU_defs by blast
 
-  obtain W NW where cw_eq: "Cw = W_Clause W NW"
+  obtain W NW where cw_eq: "Cw = TWL_Clause W NW"
     by (case_tac Cw, blast)
 
   have l_w: "L \<in># W"
@@ -253,7 +253,7 @@ proof -
   obtain Cw where cw: "C = raw_clause Cw" "Cw \<in># N + U"
     using c_mem by force
 
-  obtain W NW where cw_eq: "Cw = W_Clause W NW"
+  obtain W NW where cw_eq: "Cw = TWL_Clause W NW"
     by (case_tac Cw, blast)
 
   have wf_c: "wf_twl_cls M Cw"
@@ -341,7 +341,7 @@ proof
     "watched Cw \<subseteq># mset_set (uminus ` lits_of (trail S))"
     using cand[unfolded candidates_conflict_def, simplified] by auto
 
-  obtain W NW where cw_eq: "Cw = W_Clause W NW"
+  obtain W NW where cw_eq: "Cw = TWL_Clause W NW"
     by (case_tac Cw, blast)
 
   have wf_c: "wf_twl_cls M Cw"
@@ -404,7 +404,7 @@ proof -
   obtain Cw where cw: "C = raw_clause Cw" "Cw \<in># N + U"
     using c_mem by force
 
-  obtain W NW where cw_eq: "Cw = W_Clause W NW"
+  obtain W NW where cw_eq: "Cw = TWL_Clause W NW"
     by (case_tac Cw, blast)
 
   have wf_c: "wf_twl_cls M Cw"
@@ -431,8 +431,8 @@ proof -
     using MNU_defs cw(1) cw(2) subset candidates_conflict_def by blast
 qed
 
-locale structure_2_WL =
-  fixes 
+locale abstract_twl =
+  fixes
     watch :: "('v, nat, 'v clause) twl_state \<Rightarrow> 'v clause \<Rightarrow> 'v twl_clause" and
     rewatch :: "('v, nat, 'v clause) twl_state \<Rightarrow> 'v twl_clause \<Rightarrow> 'v twl_clause" and
     linearize :: "'v clauses \<Rightarrow> 'v clause list" and
@@ -532,8 +532,29 @@ sublocale cw_state trail raw_init_clss raw_learned_clsss backtrack_lvl conflicti
   *)
 oops
 
+end
+
+definition watch :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat clause \<Rightarrow> nat twl_clause" where
+  "watch S C =
+   (let
+      (FLs, NFLs) = partition (\<lambda>L. - L \<in> lits_of (trail S)) (sorted_list_of_multiset C);
+      Ls = NFLs @ FLs
+    in TWL_Clause (mset (take 2 Ls)) (mset (drop 2 Ls)))"
+
+definition rewatch :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat twl_clause \<Rightarrow> nat twl_clause" where
+  "rewatch S C =
+   (let
+      L = lit_of (hd (trail S))
+    in
+      if - L \<in># watched C then
+        case filter (\<lambda>L. - L \<notin> lits_of (trail S)) (sorted_list_of_multiset (not_watched C)) of
+          [] \<Rightarrow> C
+        | L' # _ \<Rightarrow> TWL_Clause (watched C - {#L#} + {#L'#}) (not_watched C - {#L'#} + {#L#})
+      else
+        C)"
+
 (* implementation of watch *)
-interpretation structure_2_WL
+interpretation abstract_twl watch rewatch "linorder.sorted_list_of_multiset (op \<subseteq>#)" learned_clss
 oops
 
 interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn _ _ _ _ (* propagate_conds is in candidates *) _ _ _
@@ -541,7 +562,7 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn _ _ _ _ (* propagate_
 oops
 
 (* implementation of watch *)
-interpretation structure_2_WL
+interpretation abstract_twl
 oops
 
 interpretation cw_state
@@ -550,5 +571,5 @@ oops
 (* interpretation cdcl_cw_ops
 oops
  *)
-end
+
 end
