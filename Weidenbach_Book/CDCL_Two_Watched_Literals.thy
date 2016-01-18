@@ -272,7 +272,7 @@ proof -
   have w_nw:
     "distinct_mset W"
     "size W < 2 \<Longrightarrow> set_mset UW \<subseteq> set_mset W"
-    "\<And>L L'. L \<in># W \<Longrightarrow> -L \<in> lits_of M \<Longrightarrow> L' \<in># UW \<Longrightarrow> L' \<notin># UW \<Longrightarrow> -L' \<in> lits_of M"
+    "\<And>L L'. L \<in># W \<Longrightarrow> -L \<in> lits_of M \<Longrightarrow> L' \<in># UW \<Longrightarrow> L' \<notin># W \<Longrightarrow> -L' \<in> lits_of M"
    using wf_c unfolding cw_eq by auto
 
   have unit_set: "set_mset (W - mset_set (uminus ` lits_of M)) = {L}"
@@ -315,12 +315,9 @@ proof -
             using False add cw(1) cw_eq unsat[unfolded CNot_def true_annots_def, simplified]
             by fastforce
           then show ?thesis
-            sorry (* FIXME *)
-(*
-            sledgehammer (add: M_def Marked_Propagated_in_iff_in_lits_of add add.left_neutral cw(1)
-              count_union cw_eq l_mem mset_le_add_left mset_le_insertD not_gr0 undef
-              twl_clause.sel w_nw(3))
-*)
+            by (metis M_def Marked_Propagated_in_iff_in_lits_of add add.left_neutral count_union
+              cw(1) cw_eq gr0I l_mem twl_clause.sel(1) twl_clause.sel(2) undef union_single_eq_member
+              w_nw(3))
         qed
       qed
       moreover have "L \<notin># mset_set (uminus ` lits_of M)"
