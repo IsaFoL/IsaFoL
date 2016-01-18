@@ -573,7 +573,8 @@ definition
 where
   "rewatch_nat L S C =
    (if - lit_of L \<in># watched C then
-      case filter (\<lambda>L'. - L' \<notin> lits_of (L # trail S)) (sorted_list_of_multiset (unwatched C)) of
+      case filter (\<lambda>L'. L' \<notin># watched C \<and> - L' \<notin> lits_of (L # trail S))
+          (sorted_list_of_multiset (unwatched C)) of
         [] \<Rightarrow> C
       | L' # _ \<Rightarrow>
         TWL_Clause (watched C - {#- lit_of L#} + {#L'#}) (unwatched C - {#L'#} + {#- lit_of L#})
@@ -658,7 +659,44 @@ lemma clause_rewatch_nat: "raw_clause (rewatch_nat L S C) = raw_clause C"
   by (metis (no_types, lifting) add.assoc add_diff_cancel_right' filter_sorted_list_of_multiset_eqD
     insert_DiffM mset_leD mset_le_add_left)
 
-lemma wf_rewatch_nat: "wf_twl_cls (L # trail S) (rewatch_nat L S C)"
+lemma wf_rewatch_nat':
+  assumes wf: "wf_twl_cls (trail S) C"
+  shows "wf_twl_cls (L # trail S) (rewatch_nat L S C)"
+proof (cases "- lit_of L \<in># watched C")
+  case falsified: True
+
+  let ?unwatched_nonfalsified =
+    "[L' \<leftarrow> sorted_list_of_multiset (unwatched C). L' \<notin># watched C \<and> - L' \<notin> lits_of (L # trail S)]"
+
+  show ?thesis
+  proof (cases ?unwatched_nonfalsified)
+    case Nil
+    show ?thesis
+      unfolding rewatch_nat_def
+      using falsified Nil apply auto
+      sorry
+  next
+    case (Cons L' Ls)
+    show ?thesis
+      unfolding rewatch_nat_def
+      using falsified Cons apply auto
+      sorry
+  qed
+next
+  case False
+  have "wf_twl_cls (L # trail S) C"
+    using wf
+    apply (case_tac C)
+    apply auto
+     apply (metis False twl_clause.sel(1) uminus_of_uminus_id)
+    by (metis False twl_clause.sel(1) uminus_of_uminus_id)
+  then show ?thesis
+    unfolding rewatch_nat_def using False by simp
+qed
+
+lemma wf_rewatch_nat_TOO_STRONG: "wf_twl_cls (L # trail S) (rewatch_nat L S C)"
+  unfolding rewatch_nat_def
+  (* FIXME: UNPROVABLE: what if "\<not> wf_twl_cls (trail S) C"? *)
   sorry
 
 (*TODO: remove when multiset is of sort linord again*)
@@ -681,7 +719,7 @@ interpretation abstract_twl watch_nat rewatch_nat sorted_list_of_multiset learne
   apply (rule clause_watch_nat)
   apply (rule wf_watch_nat)
   apply (rule clause_rewatch_nat)
-  apply (rule wf_rewatch_nat)
+  apply (rule wf_rewatch_nat_TOO_STRONG)
   apply (rule mset_sorted_list_of_multiset)
   apply (rule subset_mset.order_refl)
   done
