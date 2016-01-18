@@ -544,9 +544,9 @@ oops
 definition watch_nat :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat clause \<Rightarrow> nat twl_clause" where
   "watch_nat S C =
    (let
-      (FLs, NFLs) = partition (\<lambda>L. - L \<in> lits_of (trail S)) (sorted_list_of_multiset C);
-      Ls = NFLs @ FLs
-    in TWL_Clause (mset (take 2 Ls)) (mset (drop 2 Ls)))"
+      W = take 2 (filter (\<lambda>L. - L \<notin> lits_of (trail S)) (sorted_list_of_set (set_mset C)));
+      NW = sorted_list_of_multiset (C - mset W)
+    in TWL_Clause (mset W) (mset NW))"
 
 definition
   rewatch_nat ::
@@ -575,6 +575,10 @@ lemma clause_watch_nat: "raw_clause (watch_nat S C) = C"
     (rule raw_clause_take_drop[OF mset_filter_sorted_list[symmetric]])
 
 lemma wf_watch_nat: "wf_twl_cls (trail S) (watch_nat S C)"
+  apply (simp only: watch_nat_def Let_def partition_filter_conv case_prod_beta fst_conv snd_conv)
+  unfolding wf_twl_cls.simps
+  apply (intro conjI)
+apply auto[1]
   sorry
 
 lemma filter_sorted_list_of_multiset_eqD:
