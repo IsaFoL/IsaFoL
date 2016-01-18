@@ -482,8 +482,17 @@ sublocale cw_state trail init_clss_of_w_clss learned_clss_of_w_clss backtrack_lv
   cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
   update_conflicting init_state restart
   apply unfold_locales
+  apply (simp add: cons_trail_def)
+  apply (case_tac st, simp)
+  apply (simp add: add_init_cls_def)
+  apply (simp add: add_learned_cls_def)
+  apply (simp add: remove_cls_def)
   apply (case_tac st, simp)
   apply (case_tac st, simp)
+  apply (case_tac st)
+apply hypsubst
+apply (simp add: two_wl_state.sel)
+
 oops
 
 (* implementation of watch *)
