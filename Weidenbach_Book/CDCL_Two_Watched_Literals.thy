@@ -434,11 +434,14 @@ qed
 locale structure_2_WL =
   fixes 
     watch :: "('v, nat, 'v clause) twl_state \<Rightarrow> 'v clause \<Rightarrow> 'v twl_clause" and
+    rewatch :: "('v, nat, 'v clause) twl_state \<Rightarrow> 'v twl_clause \<Rightarrow> 'v twl_clause" and
     linearize :: "'v clauses \<Rightarrow> 'v clause list" and
     restart_learned :: "('v, nat, 'v clause) twl_state \<Rightarrow> 'v twl_clause multiset"
   assumes
     clause_watch: "raw_clause (watch S C) = C" and
     wf_watch: "wf_twl_cls (trail S) (watch S C)" and
+    clause_rewatch: "raw_clause (rewatch S C') = raw_clause C'" and
+    wf_rewatch: "wf_twl_cls (trail S) (rewatch S C')" and
     linearize: "mset (linearize N) = N" and
     restart_learned: "restart_learned S \<subseteq># learned_cls S"
 begin
@@ -447,15 +450,14 @@ definition
   cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> ('v, nat, 'v clause) twl_state \<Rightarrow> 
     ('v, nat, 'v clause) twl_state"
 where
-  (* FIXME *)
   "cons_trail L S =
-   TWL_State (L # trail S) (init_clss S) (learned_clss S) (backtrack_lvl S) (conflicting S)"
+   TWL_State (L # trail S) (image_mset (rewatch S) (init_clss S))
+     (image_mset (rewatch S) (learned_clss S)) (backtrack_lvl S) (conflicting S)"
 
 definition
   add_init_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) twl_state \<Rightarrow>
     ('v, nat, 'v clause) twl_state"
 where
-  (* FIXME *)
   "add_init_cls C S =
    TWL_State (trail S) ({#watch S C#} + init_clss S) (learned_clss S) (backtrack_lvl S)
      (conflicting S)"
@@ -464,7 +466,6 @@ definition
   add_learned_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) twl_state \<Rightarrow> 
     ('v, nat, 'v clause) twl_state"
 where
-  (* FIXME *)
   "add_learned_cls C S =
    TWL_State (trail S) (init_clss S) ({#watch S C#} + learned_clss S) (backtrack_lvl S)
      (conflicting S)"
@@ -521,8 +522,9 @@ sublocale cw_state trail raw_init_clss raw_learned_clsss backtrack_lvl conflicti
   cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
   update_conflicting init_state restart
   apply unfold_locales
-  apply (simp_all add: add_init_cls_def add_learned_cls_def clause_watch cons_trail_def
-    remove_cls_def restart_def tl_trail_def update_backtrack_lvl_def update_conflicting_def)
+  apply (simp_all add: add_init_cls_def add_learned_cls_def clause_rewatch clause_watch
+    cons_trail_def remove_cls_def restart_def tl_trail_def update_backtrack_lvl_def
+    update_conflicting_def)
   apply (rule image_mset_subseteq_mono[OF restart_learned])
 
   (*
