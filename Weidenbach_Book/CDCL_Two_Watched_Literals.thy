@@ -443,7 +443,7 @@ locale abstract_twl =
     clause_rewatch: "raw_clause (rewatch S C') = raw_clause C'" and
     wf_rewatch: "wf_twl_cls (trail S) (rewatch S C')" and
     linearize: "mset (linearize N) = N" and
-    restart_learned: "restart_learned S \<subseteq># learned_cls S"
+    restart_learned: "restart_learned S \<subseteq># learned_clss S"
 begin
 
 definition
@@ -534,15 +534,21 @@ oops
 
 end
 
-definition watch :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat clause \<Rightarrow> nat twl_clause" where
-  "watch S C =
+interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn _ _ _ _ (* propagate_conds is in candidates *) _ _ _
+  (* backjump_conds is candidate_conflict *)
+oops
+
+definition watch_nat :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat clause \<Rightarrow> nat twl_clause" where
+  "watch_nat S C =
    (let
       (FLs, NFLs) = partition (\<lambda>L. - L \<in> lits_of (trail S)) (sorted_list_of_multiset C);
       Ls = NFLs @ FLs
     in TWL_Clause (mset (take 2 Ls)) (mset (drop 2 Ls)))"
 
-definition rewatch :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat twl_clause \<Rightarrow> nat twl_clause" where
-  "rewatch S C =
+definition
+  rewatch_nat :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat twl_clause \<Rightarrow> nat twl_clause"
+where
+  "rewatch_nat S C =
    (let
       L = lit_of (hd (trail S))
     in
@@ -553,17 +559,53 @@ definition rewatch :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat twl_cl
       else
         C)"
 
-(* implementation of watch *)
-interpretation abstract_twl watch rewatch "linorder.sorted_list_of_multiset (op \<subseteq>#)" learned_clss
-oops
+lemma raw_clause_take_drop:
+  "N = mset Cs \<Longrightarrow> raw_clause (TWL_Clause (mset (take n Cs)) (mset (drop n Cs))) = N"
+  by (metis append_take_drop_id mset_append twl_clause.sel(1) twl_clause.sel(2))
 
-interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn _ _ _ _ (* propagate_conds is in candidates *) _ _ _
-  (* backjump_conds is candidate_conflict *)
-oops
+lemma mset_filter_sorted_list:
+  "mset (filter (Not \<circ> p) (sorted_list_of_multiset M) @ filter p (sorted_list_of_multiset M)) = M"
+  by auto (metis (mono_tags) comp_apply filter_cong mset_compl_union mset_sorted_list_of_multiset)
 
-(* implementation of watch *)
-interpretation abstract_twl
-oops
+lemma clause_watch_nat: "raw_clause (watch_nat S C) = C"
+  by (simp only: watch_nat_def Let_def partition_filter_conv case_prod_beta fst_conv snd_conv)
+    (rule raw_clause_take_drop[OF mset_filter_sorted_list[symmetric]])
+
+lemma wf_watch_nat: "wf_twl_cls (trail S) (watch_nat S C)"
+  sorry
+
+lemma clause_rewatch_nat: "raw_clause (rewatch_nat S C) = raw_clause C"
+  sorry
+
+lemma wf_rewatch_nat: "wf_twl_cls (trail S) (rewatch_nat S C)"
+  sorry
+
+find_theorems name: mset_sorted_list_of_multiset
+
+(*TODO: remove when multiset is of sort linord again*)
+instantiation multiset :: (linorder) linorder
+begin
+
+definition less_multiset :: "'a :: linorder multiset \<Rightarrow> 'a multiset \<Rightarrow> bool" where
+  "M' < M \<longleftrightarrow> M' #<# M"
+
+definition less_eq_multiset :: "'a multiset \<Rightarrow> 'a multiset \<Rightarrow> bool" where
+   "(M'::'a multiset) \<le> M \<longleftrightarrow> M' #<=# M"
+
+instance
+  by standard (auto simp: less_eq_multiset_def less_multiset_def)
+end
+
+(* implementation of watch etc. *)
+interpretation abstract_twl watch_nat rewatch_nat sorted_list_of_multiset learned_clss
+  apply unfold_locales
+  apply (rule clause_watch_nat)
+  apply (rule wf_watch_nat)
+  apply (rule clause_rewatch_nat)
+  apply (rule wf_rewatch_nat)
+  apply (rule mset_sorted_list_of_multiset)
+  apply (rule subset_mset.order_refl)
+  done
 
 interpretation cw_state
 oops
