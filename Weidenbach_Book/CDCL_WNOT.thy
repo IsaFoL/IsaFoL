@@ -1184,6 +1184,7 @@ qed
 
 abbreviation cdcl\<^sub>N\<^sub>O\<^sub>T_restart where
 "cdcl\<^sub>N\<^sub>O\<^sub>T_restart \<equiv> restart_ops.cdcl\<^sub>N\<^sub>O\<^sub>T_raw_restart cdcl\<^sub>N\<^sub>O\<^sub>T restart"
+
 lemma cdcl_fw_restart_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_restart_no_step:
   assumes
     inv: "cdcl_all_struct_inv S" and
@@ -3687,7 +3688,8 @@ lemma rtranclp_cdcl_s_cdcl_s_invariant:
     "cdcl_s_invariant T"
   using assms apply (induction)
     apply simp
-  using cdcl_s_cdcl_s_invariant rtranclp_cdcl_all_struct_inv_inv rtranclp_cdcl_s_rtranclp_cdcl by blast
+  using cdcl_s_cdcl_s_invariant rtranclp_cdcl_all_struct_inv_inv rtranclp_cdcl_s_rtranclp_cdcl
+  by blast
 
 abbreviation decr_bt_lvl where
 "decr_bt_lvl S \<equiv> update_backtrack_lvl (backtrack_lvl S - 1) S"
@@ -3710,7 +3712,8 @@ definition add_new_clause_and_update :: "'v literal multiset \<Rightarrow> 'st \
 
 inductive incremental_cdcl :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 "full1 cdcl_fw_s S T \<Longrightarrow> incremental_cdcl S T" |
-"trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> incremental_cdcl S (add_new_clause_and_update C S)"
+"trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C 
+  \<Longrightarrow> incremental_cdcl S (add_new_clause_and_update C S)"
 
 lemma blocked_induction_with_marked:
   assumes

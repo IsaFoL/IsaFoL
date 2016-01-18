@@ -4030,12 +4030,12 @@ proof -
     termi: "\<forall>S''. \<not>cdcl_s S' S''" and
     step: "cdcl_s\<^sup>*\<^sup>* (init_state N) S'" using full unfolding full_def by auto
   moreover have
-    decomp: "all_decomposition_implies_m (init_clss S') (get_all_marked_decomposition (trail S'))" and
     learned: "cdcl_learned_clause S'" and
     level_inv: "cdcl_M_level_inv S'" and
     alien: "no_strange_atm S'" and
     no_dup: "distinct_cdcl_state S'" and
-    confl: "cdcl_conflicting S'"
+    confl: "cdcl_conflicting S'" and
+    decomp: "all_decomposition_implies_m (init_clss S') (get_all_marked_decomposition (trail S'))"
     using no_d tranclp_cdcl_s_tranclp_cdcl[of ?S S'] step rtranclp_cdcl_all_inv(1-6)[of ?S S']
     unfolding rtranclp_unfold by auto
   moreover
