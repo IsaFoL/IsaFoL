@@ -72,55 +72,56 @@ subsection \<open>Full transitions\<close>
 text \<open>We define here properties to define properties after all possible transitions.\<close>
 abbreviation "no_step step S \<equiv> (\<forall>S'. \<not>step S S')"
 
-definition full :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" (*"_\<^sup>+\<^sup>\<down>"*) where
-"full transf = (\<lambda>S S'. tranclp transf S S' \<and> (\<forall>S''. \<not> transf S' S''))"
+definition full1 :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" (*"_\<^sup>+\<^sup>\<down>"*) where
+"full1 transf = (\<lambda>S S'. tranclp transf S S' \<and> (\<forall>S''. \<not> transf S' S''))"
 
-definition full0:: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" (*"_\<^sup>\<down>"*) where
-"full0 transf = (\<lambda>S S'. rtranclp transf S S' \<and> (\<forall>S''. \<not> transf S' S''))"
+definition full:: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" (*"_\<^sup>\<down>"*) where
+"full transf = (\<lambda>S S'. rtranclp transf S S' \<and> (\<forall>S''. \<not> transf S' S''))"
+
+lemma rtranclp_full1I:
+  "R\<^sup>*\<^sup>* a b \<Longrightarrow> full1 R b c \<Longrightarrow> full1 R a c"
+  unfolding full1_def by auto
+
+lemma tranclp_full1I:
+  "R\<^sup>+\<^sup>+ a b \<Longrightarrow> full1 R b c \<Longrightarrow> full1 R a c"
+  unfolding full1_def by auto
 
 lemma rtranclp_fullI:
   "R\<^sup>*\<^sup>* a b \<Longrightarrow> full R b c \<Longrightarrow> full R a c"
   unfolding full_def by auto
 
-lemma tranclp_fullI:
-  "R\<^sup>+\<^sup>+ a b \<Longrightarrow> full R b c \<Longrightarrow> full R a c"
-  unfolding full_def by auto
+lemma tranclp_full_full1I:
+  "R\<^sup>+\<^sup>+ a b \<Longrightarrow> full R b c \<Longrightarrow> full1 R a c"
+  unfolding full_def full1_def by auto
 
-lemma rtranclp_full0I:
-  "R\<^sup>*\<^sup>* a b \<Longrightarrow> full0 R b c \<Longrightarrow> full0 R a c"
-  unfolding full0_def by auto
-lemma tranclp_full0_fullI:
-  "R\<^sup>+\<^sup>+ a b \<Longrightarrow> full0 R b c \<Longrightarrow> full R a c"
-  unfolding full0_def full_def by auto
+lemma full_fullI:
+  "R a b \<Longrightarrow> full R b c \<Longrightarrow> full1 R a c"
+  unfolding full_def full1_def by auto
 
-lemma full0_fullI:
-  "R a b \<Longrightarrow> full0 R b c \<Longrightarrow> full R a c"
-  unfolding full0_def full_def by auto
+lemma full_unfold:
+  "full r S S' \<longleftrightarrow> ((S = S' \<and> no_step r S') \<or> full1 r S S')"
+  unfolding full_def full1_def by (auto simp add: rtranclp_unfold)
 
-lemma full0_unfold:
-  "full0 r S S' \<longleftrightarrow> ((S = S' \<and> no_step r S') \<or> full r S S')"
-  unfolding full0_def full_def by (auto simp add: rtranclp_unfold)
+lemma full1_is_full[intro]: "full1 R S T \<Longrightarrow> full R S T"
+  by (simp add: full_unfold)
 
-lemma full_is_full0[intro]: "full R S T \<Longrightarrow> full0 R S T"
-  by (simp add: full0_unfold)
+lemma not_full1_rtranclp_relation: "\<not>full1 R\<^sup>*\<^sup>* a b"
+  by (meson full1_def rtranclp.rtrancl_refl)
 
-lemma not_full_rtranclp_relation:"\<not>full R\<^sup>*\<^sup>* a b"
-  by (meson full_def rtranclp.rtrancl_refl)
+lemma not_full_rtranclp_relation: "\<not>full R\<^sup>*\<^sup>* a b"
+  by (meson full_fullI not_full1_rtranclp_relation rtranclp.rtrancl_refl)
 
-lemma not_full0_rtranclp_relation:"\<not>full0 R\<^sup>*\<^sup>* a b"
-  by (meson full0_fullI not_full_rtranclp_relation rtranclp.rtrancl_refl)
+lemma full1_tranclp_relation_full:
+  "full1 R\<^sup>+\<^sup>+ a b \<longleftrightarrow> full1 R a b"
+  by (metis converse_tranclpE full1_def reflclp_tranclp rtranclpD rtranclp_idemp rtranclp_reflclp
+    tranclp.r_into_trancl tranclp_into_rtranclp)
 
 lemma full_tranclp_relation_full:
   "full R\<^sup>+\<^sup>+ a b \<longleftrightarrow> full R a b"
-  by (metis converse_tranclpE full_def reflclp_tranclp rtranclpD rtranclp_idemp rtranclp_reflclp
-    tranclp.r_into_trancl tranclp_into_rtranclp)
+  by (metis full_unfold full1_tranclp_relation_full tranclp.r_into_trancl tranclpD)
 
-lemma full0_tranclp_relation_full0:
-  "full0 R\<^sup>+\<^sup>+ a b \<longleftrightarrow> full0 R a b"
-  by (metis full0_unfold full_tranclp_relation_full tranclp.r_into_trancl tranclpD)
-
-lemma rtranclp_full_eq_or_full:
-  "(full R)\<^sup>*\<^sup>* a b \<longleftrightarrow> (a = b \<or> full R a b)"
+lemma rtranclp_full1_eq_or_full1:
+  "(full1 R)\<^sup>*\<^sup>* a b \<longleftrightarrow> (a = b \<or> full1 R a b)"
 proof -
   have "\<forall>p a aa. \<not> p\<^sup>*\<^sup>* (a::'a) aa \<or> a = aa \<or> (\<exists>ab. p\<^sup>*\<^sup>* a ab \<and> p ab aa)"
     by (metis rtranclp.cases)
@@ -128,9 +129,9 @@ proof -
     f1: "\<forall>p a ab. \<not> p\<^sup>*\<^sup>* a ab \<or> a = ab \<or> p\<^sup>*\<^sup>* a (aa p a ab) \<and> p (aa p a ab) ab"
     by moura
   { assume "a \<noteq> b"
-    { assume "\<not> full R a b \<and> a \<noteq> b"
-      then have "a \<noteq> b \<and> a \<noteq> b \<and> \<not> full R (aa (full R) a b) b \<or> \<not> (full R)\<^sup>*\<^sup>* a b \<and> a \<noteq> b"
-        using f1 by (metis (no_types) full_def full_tranclp_relation_full)
+    { assume "\<not> full1 R a b \<and> a \<noteq> b"
+      then have "a \<noteq> b \<and> a \<noteq> b \<and> \<not> full1 R (aa (full1 R) a b) b \<or> \<not> (full1 R)\<^sup>*\<^sup>* a b \<and> a \<noteq> b"
+        using f1 by (metis (no_types) full1_def full1_tranclp_relation_full)
       then have ?thesis
         using f1 by blast }
     then have ?thesis
@@ -139,11 +140,11 @@ proof -
     by fastforce
 qed
 
-lemma tranclp_full_full:
-  "(full R)\<^sup>+\<^sup>+ a b \<longleftrightarrow> full R a b"
-  by (metis full_def rtranclp_full_eq_or_full tranclp_unfold_begin)
+lemma tranclp_full1_full1:
+  "(full1 R)\<^sup>+\<^sup>+ a b \<longleftrightarrow> full1 R a b"
+  by (metis full1_def rtranclp_full1_eq_or_full1 tranclp_unfold_begin)
 
-subsection \<open>Well-foundedness and full transitions\<close>
+subsection \<open>Well-foundedness and full1 transitions\<close>
 lemma wf_exists_normal_form:
   assumes wf:"wf {(x, y). R y x}"
   shows "\<exists>b. R\<^sup>*\<^sup>* a b \<and> no_step R b"
@@ -177,10 +178,10 @@ proof (rule ccontr)
     using wf unfolding wfP_def wf_iff_no_infinite_down_chain by blast
 qed
 
-lemma wf_exists_normal_form_full0:
+lemma wf_exists_normal_form_full:
   assumes wf:"wf {(x, y). R y x}"
-  shows "\<exists>b. full0 R a b"
-  using wf_exists_normal_form[OF assms] unfolding full0_def by blast
+  shows "\<exists>b. full R a b"
+  using wf_exists_normal_form[OF assms] unfolding full_def by blast
 
 subsection \<open>More Well-foundedness\<close>
 text \<open>A little list of theorems that could be useful, but are hidden:

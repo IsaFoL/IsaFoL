@@ -21,10 +21,10 @@ session "Weidenbach_Book" (main) = "HOL" +
     DPLL_W_Implementation
     CDCL_W_Implementation
     CDCL_NOT
-    CDCL_WNOT
   theories [quick_and_dirty]
     CDCL_Two_Watched_Literals
     Prop_Superposition
+    CDCL_WNOT
   document_files
     "root.tex"
     "biblio.bib"

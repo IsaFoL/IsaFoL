@@ -57,16 +57,16 @@ lemma rtranclp_cdcl_cp_learned_clause_increasing:
   "cdcl_cp\<^sup>*\<^sup>* S S' \<Longrightarrow> learned_clss S \<subseteq># learned_clss S'"
   by (induction rule: rtranclp.induct) (auto dest: cdcl_cp_learned_clause_increasing)
 
-lemma full_cdcl_cp_learned_clause_increasing:
+lemma full1_cdcl_cp_learned_clause_increasing:
+  "full1 cdcl_cp S S' \<Longrightarrow> learned_clss S \<subseteq># learned_clss S'"
   "full cdcl_cp S S' \<Longrightarrow> learned_clss S \<subseteq># learned_clss S'"
-  "full0 cdcl_cp S S' \<Longrightarrow> learned_clss S \<subseteq># learned_clss S'"
-  unfolding full_def full0_def
+  unfolding full1_def full_def
   by (simp_all add: rtranclp_cdcl_cp_learned_clause_increasing rtranclp_unfold)
 
 lemma cdcl_s_learned_clause_increasing:
   "cdcl_s S S' \<Longrightarrow> learned_clss S \<subseteq># learned_clss S'"
   by (induction rule: cdcl_s.induct)
-     (auto dest!: full_cdcl_cp_learned_clause_increasing cdcl_o_learned_clause_increasing)
+     (auto dest!: full1_cdcl_cp_learned_clause_increasing cdcl_o_learned_clause_increasing)
 
 lemma rtranclp_cdcl_s_learned_clause_increasing:
   "cdcl_s\<^sup>*\<^sup>* S S' \<Longrightarrow> learned_clss S \<subseteq># learned_clss S'"
@@ -96,15 +96,15 @@ lemma cdcl_cp_new_clause_learned_has_backtrack_step:
 proof (induction rule: cdcl_s.induct)
   case (conflict' S S')
   thus ?case
-    unfolding full_def by (metis (mono_tags, lifting) rtranclp_cdcl_cp_learned_clause_inv
+    unfolding full1_def by (metis (mono_tags, lifting) rtranclp_cdcl_cp_learned_clause_inv
       tranclp_into_rtranclp)
 next
   case (other' S S' S'')
   hence "D \<in># learned_clss S'"
-    unfolding full0_def by (auto dest: rtranclp_cdcl_cp_learned_clause_inv)
+    unfolding full_def by (auto dest: rtranclp_cdcl_cp_learned_clause_inv)
   thus ?case
     using  cdcl_o_new_clause_learned_is_backtrack_step[OF _ \<open>D \<notin># learned_clss S\<close> \<open>cdcl_o S S'\<close>]
-    \<open>full0 cdcl_cp S' S''\<close> by (metis cdcl_s.conflict' full0_unfold r_into_rtranclp
+    \<open>full cdcl_cp S' S''\<close> by (metis cdcl_s.conflict' full_unfold r_into_rtranclp
       rtranclp.rtrancl_refl)
 qed
 
@@ -196,7 +196,7 @@ proof (induct rule: cdcl_s.induct)
     using no_dup unfolding S S' by (auto simp add: rev_image_eqI)
   hence False
     using st rtranclp_cdcl_cp_no_more_Marked_lit[of S S']
-    unfolding full_def rtranclp_unfold by blast
+    unfolding full1_def rtranclp_unfold by blast
   thus ?case by fast
 next
   case (other' S T U) note o =this(1) and ns = this(2) and st = this(3) and no_dup = this(4) and
@@ -204,7 +204,7 @@ next
   have "Marked L i \<in> set (trail U)" and "Marked L i \<notin> set (trail S)"
     using no_dup unfolding S S' by (auto simp add: rev_image_eqI)
   hence "Marked L i \<in> set (trail T)"
-    using st rtranclp_cdcl_cp_no_more_Marked_lit unfolding full0_def by blast
+    using st rtranclp_cdcl_cp_no_more_Marked_lit unfolding full_def by blast
   thus ?case using cdcl_o_no_more_Marked_lit[OF o] \<open>Marked L i \<notin> set (trail S)\<close> ns by meson
 qed
 
@@ -249,7 +249,7 @@ next
         proof induction
           case (conflict' V W) note cp = this(1) and  nd = this(2) and W = this(3)
           then obtain M\<^sub>0 where "trail W = M\<^sub>0 @ trail V" and nmarked: "\<forall>l\<in>set M\<^sub>0. \<not> is_marked l"
-            using rtranclp_cdcl_cp_dropWhile_trail unfolding full_def rtranclp_unfold by meson
+            using rtranclp_cdcl_cp_dropWhile_trail unfolding full1_def rtranclp_unfold by meson
           hence MV: "M' @ Marked L i # H @ M = M\<^sub>0 @ trail V" unfolding W by simp
           hence V: "trail V = drop (length M\<^sub>0) (M' @ Marked L i # H @ M)"
             by auto
@@ -265,7 +265,7 @@ next
           case (other' S' T U) note o = this(1) and ns =this(2) and cp = this(3) and nd = this(4)
             and U = this(5) and st = this(6)
           obtain M\<^sub>0 where "trail U = M\<^sub>0 @ trail T" and nmarked: "\<forall>l\<in>set M\<^sub>0. \<not> is_marked l"
-            using rtranclp_cdcl_cp_dropWhile_trail cp unfolding full0_def by meson
+            using rtranclp_cdcl_cp_dropWhile_trail cp unfolding full_def by meson
           hence MV: "M' @ Marked L i # H @ M = M\<^sub>0 @ trail T" unfolding U by simp
           hence V: "trail T = drop (length M\<^sub>0) (M' @ Marked L i # H @ M)"
             by auto
@@ -282,7 +282,7 @@ next
           ultimately  have "decide S' T" using cdcl_o_no_more_Marked_lit[OF o] by blast
           then have 1: "cdcl_s\<^sup>*\<^sup>* S S'" and 2: "decide S' T" and 3: "cdcl_s\<^sup>*\<^sup>* T U"
             using st other'.prems(4)
-            by (metis cdcl_s.conflict' cp full0_unfold r_into_rtranclp rtranclp.rtrancl_refl)+
+            by (metis cdcl_s.conflict' cp full_unfold r_into_rtranclp rtranclp.rtrancl_refl)+
           have [simp]: "drop (length M\<^sub>0) M' = []"
             using \<open>decide S' T\<close> \<open>Marked L i \<in> set (trail T)\<close>  nd tr_T
             by (auto simp add: Cons_eq_append_conv)
@@ -376,7 +376,7 @@ lemma cdcl_s_trail_has_new_marked_is_decide_step:
   "(\<lambda>a b. cdcl_s a b \<and> (\<exists>c. trail a = c @ Marked L i # H @ M))\<^sup>*\<^sup>* T U" and
   "\<exists>M'. trail U = M' @ Marked L i # H @ M" and
   "no_dup (trail S)"
-  shows "\<exists>S'. decide S S' \<and> full0 cdcl_cp S' T \<and> no_step cdcl_cp S"
+  shows "\<exists>S'. decide S S' \<and> full cdcl_cp S' T \<and> no_step cdcl_cp S"
   using assms(3,1,2,4,5)
 proof induction
   case (step T U)
@@ -388,7 +388,7 @@ next
       case (conflict' S T) note cp = this(1) and nd = this(2) and M' =this(3) and no_dup = this(3)
       then obtain M' where M': "trail T = M' @ Marked L i # H @ M" by metis
       obtain M'' where M'': "trail T = M'' @ trail S" and nm: "\<forall>m\<in> set M''. \<not>is_marked m"
-        using cp unfolding full_def
+        using cp unfolding full1_def
         by (metis rtranclp_cdcl_cp_dropWhile_trail' tranclp_into_rtranclp)
       have False
         using beginning_not_marked_invert[of M'' "trail S" M' L i "H @ M"] M' nm nd unfolding M''
@@ -397,7 +397,7 @@ next
     next
       case (other' S T U') note o = this(1) and ns = this(2) and cp = this(3) and nd = this(4)
         and trU' = this(5)
-      have "cdcl_cp\<^sup>*\<^sup>* T U'" using cp unfolding full0_def by blast
+      have "cdcl_cp\<^sup>*\<^sup>* T U'" using cp unfolding full_def by blast
       from rtranclp_cdcl_cp_dropWhile_trail[OF this]
       have "\<exists>M'. trail T = M' @ Marked L i # H @ M"
         using  trU' beginning_not_marked_invert[of _ "trail T" _ L i "H @ M"] by metis
@@ -579,16 +579,16 @@ lemma cdcl_s_with_trail_end_has_not_been_learned:
 proof induction
   case conflict'
   thus ?case
-    unfolding full_def using tranclp_cdcl_cp_learned_clause_inv by auto
+    unfolding full1_def using tranclp_cdcl_cp_learned_clause_inv by auto
 next
   case (other' S T U) note o = this(1) and cp = this(3) and lev = this(4) and trS = this(5) and
     notin = this(6) and DH = this(7) and LH = this(8) and confl = this(9) and trU = this(10)
   obtain c' where c': "trail T = c' @ Marked Kh i # H"
     using cp beginning_not_marked_invert[of _ "trail T" c' Kh i H]
-      rtranclp_cdcl_cp_dropWhile_trail[of T U] unfolding trU full0_def by fastforce
+      rtranclp_cdcl_cp_dropWhile_trail[of T U] unfolding trU full_def by fastforce
   show ?case
     using cdcl_o_cannot_learn[OF o lev trS notin DH LH  confl c']
-      rtranclp_cdcl_cp_learned_clause_inv cp unfolding full0_def by auto
+      rtranclp_cdcl_cp_learned_clause_inv cp unfolding full_def by auto
 qed
 
 lemma rtranclp_cdcl_s_with_trail_end_has_not_been_learned:
@@ -632,15 +632,15 @@ lemma cdcl_s_new_learned_clause:
   assumes "cdcl_s S T" and
   "E \<notin># learned_clss S" and
   "E \<in># learned_clss T"
-  shows "\<exists>S'. backtrack S S' \<and> conflicting S = C_Clause E \<and> full0 cdcl_cp S' T"
+  shows "\<exists>S'. backtrack S S' \<and> conflicting S = C_Clause E \<and> full cdcl_cp S' T"
   using assms
 proof induction
   case conflict'
-  thus ?case unfolding full_def by (auto dest: tranclp_cdcl_cp_learned_clause_inv)
+  thus ?case unfolding full1_def by (auto dest: tranclp_cdcl_cp_learned_clause_inv)
 next
   case (other' S T U) note o = this(1) and cp = this(3) and not_yet = this(4) and learned = this(5)
   have "E \<in># learned_clss T"
-    using learned cp rtranclp_cdcl_cp_learned_clause_inv unfolding full0_def by auto
+    using learned cp rtranclp_cdcl_cp_learned_clause_inv unfolding full_def by auto
   hence "backtrack S T" and "conflicting S = C_Clause E"
     using cdcl_o_new_clause_learned_is_backtrack_step[OF _ not_yet o] by blast+
   thus ?case using cp by blast
@@ -765,7 +765,7 @@ proof -
   have "no_dup (trail Y)" using RY lev rtranclp_cdcl_s_consistent_inv by blast
   then obtain Y' where
     dec: "decide Y Y'" and
-    Y'Z: "full0 cdcl_cp Y' Z" and
+    Y'Z: "full cdcl_cp Y' Z" and
     "no_step cdcl_cp Y"
     using cdcl_s_trail_has_new_marked_is_decide_step[OF YZ nt Z] M' by auto
   have trY: "trail Y = M1'"
@@ -773,7 +773,7 @@ proof -
       obtain M' where M: "trail Z = M' @ Marked K' (backtrack_lvl S) # M1'"
         using rtranclp_cdcl_s_with_trail_end_has_trail_end[OF Z] M' by auto
       obtain M'' where M'': "trail Z = M'' @ trail Y'" and "\<forall>m\<in>set M''. \<not>is_marked m"
-        using Y'Z rtranclp_cdcl_cp_dropWhile_trail' unfolding full0_def by blast
+        using Y'Z rtranclp_cdcl_cp_dropWhile_trail' unfolding full_def by blast
       obtain M''' where "trail Y' = M''' @ Marked K' (backtrack_lvl S) # M1'"
         using M'' unfolding M
         by (metis (no_types, lifting) \<open>\<forall>m\<in>set M''. \<not> is_marked m\<close> beginning_not_marked_invert)
@@ -798,7 +798,7 @@ proof -
   moreover {
     assume DL: "D + {#L#} \<notin># clauses Y"
     have lY_lZ: "learned_clss Y = learned_clss Z"
-      using dec Y'Z rtranclp_cdcl_cp_learned_clause_inv[of Y' Z] unfolding full0_def
+      using dec Y'Z rtranclp_cdcl_cp_learned_clause_inv[of Y' Z] unfolding full_def
       by auto
     have invZ: "cdcl_all_struct_inv Z"
       by (meson RY YZ invR r_into_rtranclp rtranclp_cdcl_all_struct_inv_inv
@@ -832,11 +832,11 @@ next
   from s show ?case
     proof (cases rule: cdcl_s.cases)
       case conflict'
-      then show ?thesis using IH unfolding full_def by (auto dest: tranclp_cdcl_cp_no_more_clauses)
+      then show ?thesis using IH unfolding full1_def by (auto dest: tranclp_cdcl_cp_no_more_clauses)
     next
       case (other' S') note o = this(1) and full = this(3)
       have [simp]: "clauses T = clauses S'"
-        using full unfolding full0_def by (auto dest: rtranclp_cdcl_cp_no_more_clauses)
+        using full unfolding full_def by (auto dest: rtranclp_cdcl_cp_no_more_clauses)
       show ?thesis
         using o IH
         proof (cases rule: cdcl_o_rule_cases)
@@ -1108,7 +1108,7 @@ proof -
     proof induction
       case (conflict' U V) note cp = this(1) and inv = this(5)
       show ?case
-         using tranclp_cdcl_cp_measure_decreasing[OF HOL.conjunct1[OF cp[unfolded full_def]] inv] .
+         using tranclp_cdcl_cp_measure_decreasing[OF HOL.conjunct1[OF cp[unfolded full1_def]] inv] .
     next
       case (other' S T U) note H= this(1,4,5,6,7) and cp = this(3)
       have "cdcl_all_struct_inv T"
@@ -1116,7 +1116,7 @@ proof -
       from tranclp_cdcl_cp_measure_decreasing[OF _ this]
       have le_or_eq: "(cdcl_measure U, cdcl_measure T) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3 \<or>
         cdcl_measure U = cdcl_measure T"
-        using cp unfolding full0_def rtranclp_unfold by blast
+        using cp unfolding full_def rtranclp_unfold by blast
       moreover
         from H have "(cdcl_measure T, cdcl_measure S) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3"
         proof (induction rule:cdcl_o.induct)
