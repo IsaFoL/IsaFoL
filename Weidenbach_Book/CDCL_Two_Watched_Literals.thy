@@ -656,9 +656,19 @@ lemma clause_rewatch_nat: "raw_clause (rewatch_nat L S C) = raw_clause C"
   by (metis (no_types, lifting) add.assoc add_diff_cancel_right' filter_sorted_list_of_multiset_eqD
     insert_DiffM mset_leD mset_le_add_left)
 
+lemma filter_sorted_list_of_multiset_Nil:
+  "[x \<leftarrow> sorted_list_of_multiset M. p x] = [] \<longleftrightarrow> (\<forall>x \<in># M. \<not> p x)"
+  by auto (metis empty_iff filter_set list.set(1) mem_set_mset_iff member_filter
+    set_sorted_list_of_multiset)
+
+lemma filter_sorted_list_of_multiset_ConsD:
+  "[x \<leftarrow> sorted_list_of_multiset M. p x] = x # xs \<Longrightarrow> p x"
+  by (metis filter_set insert_iff list.set(2) member_filter)
+
 lemma wf_rewatch_nat':
   assumes wf: "wf_twl_cls (trail S) C"
   shows "wf_twl_cls (L # trail S) (rewatch_nat L S C)"
+using filter_sorted_list_of_multiset_Nil[simp]
 proof (cases "- lit_of L \<in># watched C")
   case falsified: True
 
@@ -671,12 +681,23 @@ proof (cases "- lit_of L \<in># watched C")
     show ?thesis
       unfolding rewatch_nat_def
       using falsified Nil apply auto
+apply (case_tac C)
+apply auto
+
       sorry
   next
     case (Cons L' Ls)
     show ?thesis
+      using wf
       unfolding rewatch_nat_def
-      using falsified Cons apply auto
+      using falsified Cons apply (auto dest!: filter_sorted_list_of_multiset_ConsD)
+      apply (case_tac C)
+      apply (auto simp: distinct_mset_single_add)
+      apply (case_tac C)
+apply auto
+apply (simp add: size_Diff_singleton)
+apply (metis not_less_eq_eq numeral_2_eq_2 size_Suc_Diff1)
+
       sorry
   qed
 next
