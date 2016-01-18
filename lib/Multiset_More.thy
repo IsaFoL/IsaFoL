@@ -24,13 +24,16 @@ declare
   diff_single_trivial [simp]
   ball_set_mset_iff [simp]
   in_image_mset [iff]
-  image_mset_cong [cong]
   image_mset.compositionality [simp]
 
   (*To have the same rules as the set counter-part*)
   mset_leD[dest, intro?] (*@{thm subsetD}*)
 
   Multiset.in_multiset_in_set[simp]
+
+lemma image_mset_cong2[cong]:
+  "(\<And>x. x \<in># M \<Longrightarrow> f x = g x) \<Longrightarrow> M = N \<Longrightarrow> image_mset f M = image_mset g N"
+by (hypsubst, rule image_mset_cong)
 
 (*@{thm psubsetE} is the set counter part*)
 lemma subset_msetE [elim!]:
@@ -454,4 +457,5 @@ lemma set_mset_minus_replicate_mset:
 
 abbreviation remove_mset :: "'a multiset \<Rightarrow> 'a \<Rightarrow> 'a multiset" where
 "remove_mset M C \<equiv> M - replicate_mset (count M C) C"
+
 end
