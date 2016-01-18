@@ -510,8 +510,7 @@ definition tl_trail where
    TWL_State (tl (trail S)) (init_clss S) (learned_clss S) (backtrack_lvl S) (conflicting S)"
 
 definition restart where
-  "restart S =
-   TWL_State [] (init_clss S) (restart_learned S) (backtrack_lvl S) (conflicting S)"
+  "restart S = TWL_State [] (init_clss S) (restart_learned S) 0 C_True"
 
 sublocale cw_state trail raw_init_clss raw_learned_clsss backtrack_lvl conflicting
   cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
@@ -524,7 +523,7 @@ sublocale cw_state trail raw_init_clss raw_learned_clsss backtrack_lvl conflicti
   (*
     FIXME:
 
-    1. The last three proof obligations are too strong.
+    1. The last proof obligation seems too strong.
     2. Where does the "wf" invariant come into play?
   *)
 oops
