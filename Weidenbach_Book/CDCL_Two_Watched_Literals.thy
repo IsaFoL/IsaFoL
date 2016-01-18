@@ -9,6 +9,12 @@ begin
 
 (* TODO: BEGIN Move to Multiset_More *)
 
+lemma mset_filter_compl: "mset (filter p xs) + mset (filter (Not \<circ> p) xs) = mset xs"
+  apply (induct xs)
+  by simp
+    (metis (no_types) add_diff_cancel_left' comp_apply filter.simps(2) mset.simps(2)
+       mset_compl_union)
+
 lemma singleton_subseteq_iff[iff]: "{#x#} \<subseteq># A \<longleftrightarrow> x \<in># A"
   by (meson mset_leD mset_le_single multi_member_last)
 
@@ -541,10 +547,19 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn _ _ _ _ (* propagate_
   (* backjump_conds is candidate_conflict *)
 oops
 
+definition pull :: "('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+  "pull p xs = filter p xs @ filter (Not \<circ> p) xs"
+
+lemma set_pull[simp]: "set (pull p xs) = set xs"
+  unfolding pull_def by auto
+
+lemma mset_pull[simp]: "mset (pull p xs) = mset xs"
+  by (simp add: pull_def mset_filter_compl)
+
 definition watch_nat :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat clause \<Rightarrow> nat twl_clause" where
   "watch_nat S C =
    (let
-      W = take 2 (filter (\<lambda>L. - L \<notin> lits_of (trail S)) (sorted_list_of_set (set_mset C)));
+      W = take 2 (pull (\<lambda>L. - L \<notin> lits_of (trail S)) (sorted_list_of_set (set_mset C)));
       NW = sorted_list_of_multiset (C - mset W)
     in TWL_Clause (mset W) (mset NW))"
 
@@ -562,25 +577,34 @@ where
     else
       C)"
 
-lemma mset_take_filter_sorted_list_of_set_plus_complement:
-  "mset (take n [x \<leftarrow> sorted_list_of_set (set_mset A). p x]) +
-   mset (sorted_list_of_multiset (A - mset (take n [x \<leftarrow> sorted_list_of_set (set_mset A). p x]))) =
-    A"
-  apply simp
-  apply (rule subset_mset.add_diff_inverse)
-  by (metis append_take_drop_id mset_append mset_compl_union mset_le_add_left mset_remdups_le
-    mset_remdups_remdups_mset mset_sorted_list_of_multiset remdups_mset_def sorted_list_of_mset_set
-    subset_mset.order.trans)
+lemma mset_set_set_mset_subseteq[simp]: "mset_set (set_mset A) \<subseteq># A"
+  by (metis count_mset_set(1) count_mset_set(3) finite_set_mset le_less_linear less_one
+    mem_set_mset_iff mset_less_eqI not_gr0)
+
+lemma mset_sorted_list_of_set[simp]:
+  "mset (sorted_list_of_set A) = mset_set A"
+  by (metis mset_sorted_list_of_multiset sorted_list_of_mset_set)
+
+lemma mset_take_subseteq: "mset (take n xs) \<subseteq># mset xs"
+  apply (induct xs arbitrary: n)
+   apply simp
+  by (case_tac n) simp_all
+
+lemma mset_take_pull_sorted_list_of_set_subseteq:
+  "mset (take n (pull p (sorted_list_of_set (set_mset A)))) \<subseteq># A"
+  by (metis mset_pull mset_set_set_mset_subseteq mset_sorted_list_of_set mset_take_subseteq
+    subset_mset.dual_order.trans)
 
 lemma clause_watch_nat: "raw_clause (watch_nat S C) = C"
-  apply (simp only: watch_nat_def Let_def partition_filter_conv case_prod_beta fst_conv snd_conv)
-  using mset_take_filter_sorted_list_of_set_plus_complement by auto
+  by (simp add: watch_nat_def Let_def)
+    (rule subset_mset.add_diff_inverse[OF mset_take_pull_sorted_list_of_set_subseteq])
 
 lemma wf_watch_nat: "wf_twl_cls (trail S) (watch_nat S C)"
   apply (simp only: watch_nat_def Let_def partition_filter_conv case_prod_beta fst_conv snd_conv)
   unfolding wf_twl_cls.simps
   apply (intro conjI)
-apply auto[1]
+     apply clarsimp+
+
   sorry
 
 lemma filter_sorted_list_of_multiset_eqD:
