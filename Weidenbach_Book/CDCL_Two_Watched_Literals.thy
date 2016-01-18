@@ -1,3 +1,8 @@
+(*  Title: CDCL with Two Watched Literals
+    Author: Jasmin Blanchette <jasmin.blanchette@inria.fr>
+    Author: Mathias Fleury <mathias.fleury@mpi-inf.mpg.de>
+*)
+
 theory CDCL_Two_Watched_Literals
 imports CDCL_WNOT (* Have to decide which imports are the best *)
 begin
@@ -521,10 +526,7 @@ sublocale cw_state trail raw_init_clss raw_learned_clsss backtrack_lvl conflicti
   apply (rule image_mset_subseteq_mono[OF restart_learned])
 
   (*
-    FIXME:
-
-    1. The last proof obligation seems too strong.
-    2. Where does the "wf" invariant come into play?
+    FIXME: The last proof obligation seems too strong.
   *)
 oops
 
