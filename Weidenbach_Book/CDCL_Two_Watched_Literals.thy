@@ -4,6 +4,13 @@ begin
 
 (* TODO: BEGIN Move to Multiset_More *)
 
+lemma image_mset_subseteq_mono: "A \<subseteq># B \<Longrightarrow> image_mset f A \<subseteq># image_mset f B"
+  by (metis image_mset_union subset_mset.le_iff_add)
+
+lemma image_filter_ne_mset[simp]:
+  "image_mset f {#x \<in># M. f x \<noteq> y#} = remove_mset (image_mset f M) y"
+  by (induct M, auto, meson count_le_replicate_mset_le order_refl subset_mset.add_diff_assoc2)
+
 lemma distinct_mset_set_mset_ident[simp]: "distinct_mset M \<Longrightarrow> mset_set (set_mset M) = M"
   apply (auto simp: multiset_eq_iff)
   apply (rename_tac x)
@@ -75,46 +82,53 @@ qed
 text \<open>Only the 2-watched literals have to be verified here: the backtrack level and the trail can
   remain separate.\<close>
 
-datatype 'v w_clause =
+datatype 'v twl_clause =
   W_Clause (watched: "'v clause") (not_watched: "'v clause")
 
-abbreviation clause_of_w_clause :: "'v w_clause \<Rightarrow> 'v clause" where
-"clause_of_w_clause C \<equiv> watched C + not_watched C"
+abbreviation raw_clause :: "'v twl_clause \<Rightarrow> 'v clause" where
+  "raw_clause C \<equiv> watched C + not_watched C"
 
-datatype ('v, 'lvl, 'mark) two_wl_state =
-  Two_WL_State (trail: "('v, 'lvl, 'mark) marked_lits") (init_clss: "'v w_clause multiset")
-    (learned_clss: "'v w_clause multiset") (backtrack_lvl: 'lvl)
+datatype ('v, 'lvl, 'mark) twl_state =
+  TWL_State (trail: "('v, 'lvl, 'mark) marked_lits") (init_clss: "'v twl_clause multiset")
+    (learned_clss: "'v twl_clause multiset") (backtrack_lvl: 'lvl)
     (conflicting: "'v clause conflicting_clause")
 
+abbreviation raw_init_clss where
+  "raw_init_clss S \<equiv> image_mset raw_clause (init_clss S)"
+
+abbreviation raw_learned_clsss where
+  "raw_learned_clsss S \<equiv> image_mset raw_clause (learned_clss S)"
+
 abbreviation clauses where
-"clauses S \<equiv> init_clss S + learned_clss S"
+  "clauses S \<equiv> init_clss S + learned_clss S"
 
 definition
-  candidates_propagate :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> ('v literal \<times> 'v clause) set"
+  candidates_propagate :: "('v, 'lvl, 'mark) twl_state \<Rightarrow> ('v literal \<times> 'v clause) set"
 where
-"candidates_propagate S =
-  {(L, clause_of_w_clause C) | L C.
-   C \<in># clauses S \<and> watched C - mset_set (uminus ` lits_of (trail S)) = {#L#} \<and>
-   undefined_lit L (trail S)}"
+  "candidates_propagate S =
+   {(L, raw_clause C) | L C.
+    C \<in># clauses S \<and> watched C - mset_set (uminus ` lits_of (trail S)) = {#L#} \<and>
+    undefined_lit L (trail S)}"
 
-definition candidates_conflict :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> 'v clause set" where
-"candidates_conflict S =
-  {clause_of_w_clause C | C. C \<in># clauses S \<and> watched C \<subseteq># mset_set (uminus ` lits_of (trail S))}"
+definition candidates_conflict :: "('v, 'lvl, 'mark) twl_state \<Rightarrow> 'v clause set" where
+  "candidates_conflict S =
+   {raw_clause C | C. C \<in># clauses S \<and> watched C \<subseteq># mset_set (uminus ` lits_of (trail S))}"
 
-(* interpretation dpll_state trail "image_mset clause_of_w_clause o clauses"
-  "\<lambda>M S. Two_WL_State M (init_clss S) (learned_clss S) (backtrack_lvl S) (conflicting S)"
+(* FIXME *)
+(* interpretation dpll_state trail "image_mset raw_clause o clauses"
+  "\<lambda>M S. TWL_State M (init_clss S) (learned_clss S) (backtrack_lvl S) (conflicting S)"
 oops *)
 
-primrec wf_two_wl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v w_clause \<Rightarrow> bool" where
-  "wf_two_wl_cls M (W_Clause W NW) \<longleftrightarrow>
+primrec wf_twl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v twl_clause \<Rightarrow> bool" where
+  "wf_twl_cls M (W_Clause W NW) \<longleftrightarrow>
    distinct_mset W \<and> size W \<le> 2 \<and> (size W < 2 \<longrightarrow> set_mset NW \<subseteq> set_mset W) \<and>
    (\<forall>L \<in># W. -L \<in> lits_of M \<longrightarrow> (\<forall>L' \<in># NW. -L' \<in> lits_of M))"
 
-definition wf_two_wl_state :: "('v, 'lvl, 'mark) two_wl_state \<Rightarrow> bool" where
-  "wf_two_wl_state S \<longleftrightarrow> (\<forall>C \<in># clauses S. wf_two_wl_cls (trail S) C)"
+definition wf_twl_state :: "('v, 'lvl, 'mark) twl_state \<Rightarrow> bool" where
+  "wf_twl_state S \<longleftrightarrow> (\<forall>C \<in># clauses S. wf_twl_cls (trail S) C)"
 
 lemma wf_candidates_propagate_sound:
-  assumes wf: "wf_two_wl_state S" and
+  assumes wf: "wf_twl_state S" and
     cand: "(L, C) \<in> candidates_propagate S"
   shows "trail S \<Turnstile>as CNot (mset_set (set_mset C - {L})) \<and> undefined_lit L (trail S)"
 proof
@@ -125,7 +139,7 @@ proof
   note MNU_defs [simp] = M_def N_def U_def
 
   obtain Cw where cw:
-    "C = clause_of_w_clause Cw"
+    "C = raw_clause Cw"
     "Cw \<in># N + U"
     "watched Cw - mset_set (uminus ` lits_of M) = {#L#}"
     "undefined_lit L M"
@@ -135,10 +149,10 @@ proof
     by (case_tac Cw, blast)
 
   have l_w: "L \<in># W"
-    by (metis Multiset.diff_le_self cw(3) cw_eq mset_leD multi_member_last w_clause.sel(1))
+    by (metis Multiset.diff_le_self cw(3) cw_eq mset_leD multi_member_last twl_clause.sel(1))
 
-  have wf_c: "wf_two_wl_cls M Cw"
-    using wf \<open>Cw \<in># N + U\<close> unfolding wf_two_wl_state_def by simp
+  have wf_c: "wf_twl_cls M Cw"
+    using wf \<open>Cw \<in># N + U\<close> unfolding wf_twl_state_def by simp
 
   have w_nw:
     "distinct_mset W"
@@ -155,7 +169,7 @@ proof
       by linarith
     then have w: "W = {#L#}"
       by (metis (no_types, lifting) Multiset.diff_le_self cw(3) cw_eq single_not_empty
-        size_1_singleton_mset subset_mset.add_diff_inverse union_is_single w_clause.sel(1))
+        size_1_singleton_mset subset_mset.add_diff_inverse union_is_single twl_clause.sel(1))
     from True have "set_mset NW \<subseteq> set_mset W"
       using w_nw(2) by blast
     then show ?thesis
@@ -203,7 +217,7 @@ proof
           by force
         then have "\<And>l. - l \<in> lits_of M \<or> count {#L#} l = count (C - NW) l"
           by (metis (no_types) add_diff_cancel_right' count_diff count_mset_set(3) cw(1) cw(3)
-                cw_eq diff_zero w_clause.sel(2))
+                cw_eq diff_zero twl_clause.sel(2))
         then show ?thesis
           using f2 f1 by (metis nla count_diff diff_zero la(2) mem_set_mset_iff not_gr0
             set_mset_single w_nw(3))
@@ -218,8 +232,8 @@ proof
 qed
 
 lemma wf_candidates_propagate_complete:
-  assumes wf: "wf_two_wl_state S" and
-    c_mem: "C \<in># image_mset clause_of_w_clause (clauses S)" and
+  assumes wf: "wf_twl_state S" and
+    c_mem: "C \<in># image_mset raw_clause (clauses S)" and
     l_mem: "L \<in># C" and
     unsat: "trail S \<Turnstile>as CNot (mset_set (set_mset C - {L}))" and
     undef: "undefined_lit L (trail S)"
@@ -231,14 +245,14 @@ proof -
 
   note MNU_defs [simp] = M_def N_def U_def
 
-  obtain Cw where cw: "C = clause_of_w_clause Cw" "Cw \<in># N + U"
+  obtain Cw where cw: "C = raw_clause Cw" "Cw \<in># N + U"
     using c_mem by force
 
   obtain W NW where cw_eq: "Cw = W_Clause W NW"
     by (case_tac Cw, blast)
 
-  have wf_c: "wf_two_wl_cls M Cw"
-    using wf cw(2) unfolding wf_two_wl_state_def by simp
+  have wf_c: "wf_twl_cls M Cw"
+    using wf cw(2) unfolding wf_twl_state_def by simp
 
   have w_nw:
     "distinct_mset W"
@@ -288,7 +302,7 @@ proof -
           then show ?thesis
             by (metis M_def Marked_Propagated_in_iff_in_lits_of add add.left_neutral cw(1)
               count_union cw_eq l_mem mset_le_add_left mset_le_insertD not_gr0 undef
-              w_clause.sel w_nw(3))
+              twl_clause.sel w_nw(3))
         qed
       qed
       moreover have "L \<notin># mset_set (uminus ` lits_of M)"
@@ -306,9 +320,9 @@ proof -
 qed
 
 lemma wf_candidates_conflict_sound:
-  assumes wf: "wf_two_wl_state S" and
+  assumes wf: "wf_twl_state S" and
     cand: "C \<in> candidates_conflict S"
-  shows "trail S \<Turnstile>as CNot C \<and> C \<in># image_mset clause_of_w_clause (clauses S)"
+  shows "trail S \<Turnstile>as CNot C \<and> C \<in># image_mset raw_clause (clauses S)"
 proof
   def M \<equiv> "trail S"
   def N \<equiv> "init_clss S"
@@ -317,7 +331,7 @@ proof
   note MNU_defs [simp] = M_def N_def U_def
 
   obtain Cw where cw:
-    "C = clause_of_w_clause Cw"
+    "C = raw_clause Cw"
     "Cw \<in># N + U"
     "watched Cw \<subseteq># mset_set (uminus ` lits_of (trail S))"
     using cand[unfolded candidates_conflict_def, simplified] by auto
@@ -325,8 +339,8 @@ proof
   obtain W NW where cw_eq: "Cw = W_Clause W NW"
     by (case_tac Cw, blast)
 
-  have wf_c: "wf_two_wl_cls M Cw"
-    using wf cw(2) unfolding wf_two_wl_state_def by simp
+  have wf_c: "wf_twl_cls M Cw"
+    using wf cw(2) unfolding wf_twl_state_def by simp
 
   have w_nw:
     "distinct_mset W"
@@ -359,20 +373,20 @@ proof
         thus ?thesis
           by (smt M_def l add_diff_cancel_left' count_diff cw(1) cw(3) la cw_eq
             diff_zero elem_mset_set finite_imageI finite_lits_of_def gr0I imageE mset_leD
-            uminus_of_uminus_id w_clause.sel(1) w_clause.sel(2) w_nw(3))
+            uminus_of_uminus_id twl_clause.sel(1) twl_clause.sel(2) w_nw(3))
       qed
     qed
   qed
   then show "trail S \<Turnstile>as CNot C"
     unfolding CNot_def true_annots_def by auto
 
-  show "C \<in># image_mset clause_of_w_clause (clauses S)"
+  show "C \<in># image_mset raw_clause (clauses S)"
     using cw by auto
 qed
 
 lemma wf_candidates_conflict_complete:
-  assumes wf: "wf_two_wl_state S" and
-    c_mem: "C \<in># image_mset clause_of_w_clause (clauses S)" and
+  assumes wf: "wf_twl_state S" and
+    c_mem: "C \<in># image_mset raw_clause (clauses S)" and
     unsat: "trail S \<Turnstile>as CNot C"
   shows "C \<in> candidates_conflict S"
 proof -
@@ -382,14 +396,14 @@ proof -
 
   note MNU_defs [simp] = M_def N_def U_def
 
-  obtain Cw where cw: "C = clause_of_w_clause Cw" "Cw \<in># N + U"
+  obtain Cw where cw: "C = raw_clause Cw" "Cw \<in># N + U"
     using c_mem by force
 
   obtain W NW where cw_eq: "Cw = W_Clause W NW"
     by (case_tac Cw, blast)
 
-  have wf_c: "wf_two_wl_cls M Cw"
-    using wf cw(2) unfolding wf_two_wl_state_def by simp
+  have wf_c: "wf_twl_cls M Cw"
+    using wf cw(2) unfolding wf_twl_state_def by simp
 
   have w_nw:
     "distinct_mset W"
@@ -407,92 +421,112 @@ proof -
     by (simp add: w_nw(1))
 
   have "W = watched Cw"
-    using cw_eq w_clause.sel(1) by simp
+    using cw_eq twl_clause.sel(1) by simp
   then show ?thesis
     using MNU_defs cw(1) cw(2) subset candidates_conflict_def by blast
 qed
 
 locale structure_2_WL =
   fixes 
-    watch :: "('v, nat, 'v clause) two_wl_state \<Rightarrow> 'v clause \<Rightarrow> 'v w_clause" and
+    watch :: "('v, nat, 'v clause) twl_state \<Rightarrow> 'v clause \<Rightarrow> 'v twl_clause" and
     linearize :: "'v clauses \<Rightarrow> 'v clause list" and
-    some_learned :: "('v, nat, 'v clause) two_wl_state \<Rightarrow> 'v w_clause multiset"
+    restart_learned :: "('v, nat, 'v clause) twl_state \<Rightarrow> 'v twl_clause multiset"
   assumes
-    watch: "wf_two_wl_cls (trail S) (watch S C)" and
+    clause_watch: "raw_clause (watch S C) = C" and
+    wf_watch: "wf_twl_cls (trail S) (watch S C)" and
     linearize: "mset (linearize N) = N" and
-    some_learned: "some_learned S \<subseteq># learned_cls S"
+    restart_learned: "restart_learned S \<subseteq># learned_cls S"
 begin
 
 definition
-  cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> ('v, nat, 'v clause) two_wl_state \<Rightarrow> 
-    ('v, nat, 'v clause) two_wl_state"
+  cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> ('v, nat, 'v clause) twl_state \<Rightarrow> 
+    ('v, nat, 'v clause) twl_state"
 where
   (* FIXME *)
   "cons_trail L S =
-   Two_WL_State (L # trail S) (init_clss S) (learned_clss S) (backtrack_lvl S) (conflicting S)"
+   TWL_State (L # trail S) (init_clss S) (learned_clss S) (backtrack_lvl S) (conflicting S)"
 
 definition
-  add_init_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) two_wl_state \<Rightarrow>
-    ('v, nat, 'v clause) two_wl_state"
+  add_init_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) twl_state \<Rightarrow>
+    ('v, nat, 'v clause) twl_state"
 where
   (* FIXME *)
   "add_init_cls C S =
-   Two_WL_State (trail S) ({#watch S C#} + init_clss S) (learned_clss S) (backtrack_lvl S)
+   TWL_State (trail S) ({#watch S C#} + init_clss S) (learned_clss S) (backtrack_lvl S)
      (conflicting S)"
 
 definition
-  add_learned_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) two_wl_state \<Rightarrow> 
-    ('v, nat, 'v clause) two_wl_state"
+  add_learned_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) twl_state \<Rightarrow> 
+    ('v, nat, 'v clause) twl_state"
 where
   (* FIXME *)
   "add_learned_cls C S =
-   Two_WL_State (trail S) (init_clss S) ({#watch S C#} + learned_clss S) (backtrack_lvl S)
+   TWL_State (trail S) (init_clss S) ({#watch S C#} + learned_clss S) (backtrack_lvl S)
      (conflicting S)"
 
 definition
-  remove_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) two_wl_state \<Rightarrow> ('v, nat, 'v clause) two_wl_state"
+  remove_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) twl_state \<Rightarrow> ('v, nat, 'v clause) twl_state"
 where
-  (* FIXME *)
   "remove_cls C S =
-   Two_WL_State (trail S) (init_clss S) (learned_clss S) (backtrack_lvl S) (conflicting S)"
+   TWL_State (trail S) (filter_mset (\<lambda>D. raw_clause D \<noteq> C) (init_clss S))
+     (filter_mset (\<lambda>D. raw_clause D \<noteq> C) (learned_clss S)) (backtrack_lvl S)
+     (conflicting S)"
 
-definition init_state :: "'v clauses \<Rightarrow> ('v, nat, 'v clause) two_wl_state" where
-  "init_state N = fold add_init_cls (linearize N) (Two_WL_State [] {#} {#} 0 C_True)"
+definition init_state :: "'v clauses \<Rightarrow> ('v, nat, 'v clause) twl_state" where
+  "init_state N = fold add_init_cls (linearize N) (TWL_State [] {#} {#} 0 C_True)"
 
-abbreviation init_clss_of_w_clss where
-  "init_clss_of_w_clss S \<equiv> image_mset clause_of_w_clause (init_clss S)"
+lemma unchanged_fold_add_init_cls:
+  "trail (fold add_init_cls Cs (TWL_State M N U k C)) = M"
+  "learned_clss (fold add_init_cls Cs (TWL_State M N U k C)) = U"
+  "backtrack_lvl (fold add_init_cls Cs (TWL_State M N U k C)) = k"
+  "conflicting (fold add_init_cls Cs (TWL_State M N U k C)) = C"
+  by (induct Cs arbitrary: N) (auto simp: add_init_cls_def)
 
-abbreviation learned_clss_of_w_clss where
-  "learned_clss_of_w_clss S \<equiv> image_mset clause_of_w_clause (learned_clss S)"
+lemma unchanged_init_state[simp]:
+  "trail (init_state N) = []"
+  "learned_clss (init_state N) = {#}"
+  "backtrack_lvl (init_state N) = 0"
+  "conflicting (init_state N) = C_True"
+  unfolding init_state_def by (rule unchanged_fold_add_init_cls)+
 
-fun update_backtrack_lvl where
-  "update_backtrack_lvl k (Two_WL_State M N U _ C) = Two_WL_State M N U k C"
+lemma clauses_init_fold_add_init:
+  "image_mset raw_clause (init_clss (fold add_init_cls Cs (TWL_State M N U k C))) =
+   mset Cs + image_mset raw_clause N"
+  by (induct Cs arbitrary: N) (auto simp: add.assoc add_init_cls_def clause_watch)
 
-fun update_conflicting where
-  "update_conflicting C (Two_WL_State M N U k _) = Two_WL_State M N U k C"
+lemma init_clss_init_state[simp]: "image_mset raw_clause (init_clss (init_state N)) = N"
+  unfolding init_state_def by (simp add: clauses_init_fold_add_init linearize)
 
-fun tl_trail where
-  "tl_trail (Two_WL_State M N U k C) = Two_WL_State (tl M) N U k C"
+definition update_backtrack_lvl where
+  "update_backtrack_lvl k S =
+   TWL_State (trail S) (init_clss S) (learned_clss S) k (conflicting S)"
 
-fun restart where
-  "restart (Two_WL_State M N U k C) =
-   Two_WL_State M N (some_learned (Two_WL_State M N U k C)) k C"
+definition update_conflicting where
+  "update_conflicting C S =
+   TWL_State (trail S) (init_clss S) (learned_clss S) (backtrack_lvl S) C"
 
-sublocale cw_state trail init_clss_of_w_clss learned_clss_of_w_clss backtrack_lvl conflicting
+definition tl_trail where
+  "tl_trail S =
+   TWL_State (tl (trail S)) (init_clss S) (learned_clss S) (backtrack_lvl S) (conflicting S)"
+
+definition restart where
+  "restart S =
+   TWL_State [] (init_clss S) (restart_learned S) (backtrack_lvl S) (conflicting S)"
+
+sublocale cw_state trail raw_init_clss raw_learned_clsss backtrack_lvl conflicting
   cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
   update_conflicting init_state restart
   apply unfold_locales
-  apply (simp add: cons_trail_def)
-  apply (case_tac st, simp)
-  apply (simp add: add_init_cls_def)
-  apply (simp add: add_learned_cls_def)
-  apply (simp add: remove_cls_def)
-  apply (case_tac st, simp)
-  apply (case_tac st, simp)
-  apply (case_tac st)
-apply hypsubst
-apply (simp add: two_wl_state.sel)
+  apply (simp_all add: add_init_cls_def add_learned_cls_def clause_watch cons_trail_def
+    remove_cls_def restart_def tl_trail_def update_backtrack_lvl_def update_conflicting_def)
+  apply (rule image_mset_subseteq_mono[OF restart_learned])
 
+  (*
+    FIXME:
+
+    1. The last three proof obligations are too strong.
+    2. Where does the "wf" invariant come into play?
+  *)
 oops
 
 (* implementation of watch *)
