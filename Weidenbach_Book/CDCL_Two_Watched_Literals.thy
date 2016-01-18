@@ -9,6 +9,9 @@ begin
 
 (* TODO: BEGIN Move to Multiset_More *)
 
+lemma singleton_subseteq_iff[iff]: "{#x#} \<subseteq># A \<longleftrightarrow> x \<in># A"
+  by (meson mset_leD mset_le_single multi_member_last)
+
 lemma image_mset_subseteq_mono: "A \<subseteq># B \<Longrightarrow> image_mset f A \<subseteq># image_mset f B"
   by (metis image_mset_union subset_mset.le_iff_add)
 
@@ -431,19 +434,18 @@ proof -
     using MNU_defs cw(1) cw(2) subset candidates_conflict_def by blast
 qed
 
-(* FIX rewatch to take literal as argument *)
-
 locale abstract_twl =
   fixes
     watch :: "('v, nat, 'v clause) twl_state \<Rightarrow> 'v clause \<Rightarrow> 'v twl_clause" and
-    rewatch :: "('v, nat, 'v clause) twl_state \<Rightarrow> 'v twl_clause \<Rightarrow> 'v twl_clause" and
+    rewatch :: "('v, nat, 'v literal multiset) marked_lit \<Rightarrow> ('v, nat, 'v clause) twl_state \<Rightarrow>
+      'v twl_clause \<Rightarrow> 'v twl_clause" and
     linearize :: "'v clauses \<Rightarrow> 'v clause list" and
     restart_learned :: "('v, nat, 'v clause) twl_state \<Rightarrow> 'v twl_clause multiset"
   assumes
     clause_watch: "raw_clause (watch S C) = C" and
     wf_watch: "wf_twl_cls (trail S) (watch S C)" and
-    clause_rewatch: "raw_clause (rewatch S C') = raw_clause C'" and
-    wf_rewatch: "wf_twl_cls (trail S) (rewatch S C')" and
+    clause_rewatch: "raw_clause (rewatch L S C') = raw_clause C'" and
+    wf_rewatch: "wf_twl_cls (L # trail S) (rewatch L S C')" and
     linearize: "mset (linearize N) = N" and
     restart_learned: "restart_learned S \<subseteq># learned_clss S"
 begin
@@ -453,8 +455,8 @@ definition
     ('v, nat, 'v clause) twl_state"
 where
   "cons_trail L S =
-   TWL_State (L # trail S) (image_mset (rewatch S) (init_clss S))
-     (image_mset (rewatch S) (learned_clss S)) (backtrack_lvl S) (conflicting S)"
+   TWL_State (L # trail S) (image_mset (rewatch L S) (init_clss S))
+     (image_mset (rewatch L S) (learned_clss S)) (backtrack_lvl S) (conflicting S)"
 
 definition
   add_init_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) twl_state \<Rightarrow>
@@ -547,18 +549,18 @@ definition watch_nat :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat clau
     in TWL_Clause (mset (take 2 Ls)) (mset (drop 2 Ls)))"
 
 definition
-  rewatch_nat :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat twl_clause \<Rightarrow> nat twl_clause"
+  rewatch_nat ::
+  "(nat, nat, nat literal multiset) marked_lit \<Rightarrow> (nat, nat, nat clause) twl_state \<Rightarrow> nat twl_clause \<Rightarrow> nat twl_clause"
 where
-  "rewatch_nat S C =
-   (let
-      L = lit_of (hd (trail S))
-    in
-      if - L \<in># watched C then
-        case filter (\<lambda>L. - L \<notin> lits_of (trail S)) (sorted_list_of_multiset (not_watched C)) of
-          [] \<Rightarrow> C
-        | L' # _ \<Rightarrow> TWL_Clause (watched C - {#L#} + {#L'#}) (not_watched C - {#L'#} + {#L#})
-      else
-        C)"
+  "rewatch_nat L S C =
+   (if - lit_of L \<in># watched C then
+      case filter (\<lambda>L'. - L' \<notin> lits_of (L # trail S)) (sorted_list_of_multiset (not_watched C)) of
+        [] \<Rightarrow> C
+      | L' # _ \<Rightarrow>
+        TWL_Clause (watched C - {#- lit_of L#} + {#L'#})
+          (not_watched C - {#L'#} + {#- lit_of L#})
+    else
+      C)"
 
 lemma raw_clause_take_drop:
   "N = mset Cs \<Longrightarrow> raw_clause (TWL_Clause (mset (take n Cs)) (mset (drop n Cs))) = N"
@@ -575,13 +577,29 @@ lemma clause_watch_nat: "raw_clause (watch_nat S C) = C"
 lemma wf_watch_nat: "wf_twl_cls (trail S) (watch_nat S C)"
   sorry
 
-lemma clause_rewatch_nat: "raw_clause (rewatch_nat S C) = raw_clause C"
-  sorry
+lemma filter_sorted_list_of_multiset_eqD:
+  assumes "[x \<leftarrow> sorted_list_of_multiset A. p x] = x # xs" (is "?comp = _")
+  shows "x \<in># A"
+proof -
+  have "x \<in> set ?comp"
+    using assms by simp
+  then have "x \<in> set (sorted_list_of_multiset A)"
+    by simp
+  then show "x \<in># A"
+    by simp
+qed
 
-lemma wf_rewatch_nat: "wf_twl_cls (trail S) (rewatch_nat S C)"
-  sorry
+lemma clause_rewatch_nat: "raw_clause (rewatch_nat L S C) = raw_clause C"
+  apply (auto simp: rewatch_nat_def Let_def split: list.split)
+  apply (subst subset_mset.add_diff_assoc2, simp)
+  apply (subst subset_mset.add_diff_assoc2, simp)
+  apply (subst subset_mset.add_diff_assoc2)
+   apply (auto dest: filter_sorted_list_of_multiset_eqD)
+  by (metis (no_types, lifting) add.assoc add_diff_cancel_right' filter_sorted_list_of_multiset_eqD
+    insert_DiffM mset_leD mset_le_add_left)
 
-find_theorems name: mset_sorted_list_of_multiset
+lemma wf_rewatch_nat: "wf_twl_cls (L # trail S) (rewatch_nat L S C)"
+  sorry
 
 (*TODO: remove when multiset is of sort linord again*)
 instantiation multiset :: (linorder) linorder
