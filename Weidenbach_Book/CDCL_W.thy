@@ -169,7 +169,7 @@ lemma
   prefer 7 apply (rule learned_clss_restart_deterministic)
   unfolding state_eq_def clauses_def by auto
 
-lemmas state_simp[simp]= state_eq_trail state_eq_init_clss state_eq_learned_clss
+lemmas state_simp[simp] = state_eq_trail state_eq_init_clss state_eq_learned_clss
   state_eq_backtrack_lvl state_eq_conflicting state_eq_clauses
   state_eq_learned_clss_restart
 

@@ -431,6 +431,8 @@ proof -
     using MNU_defs cw(1) cw(2) subset candidates_conflict_def by blast
 qed
 
+(* FIX rewatch to take literal as argument *)
+
 locale abstract_twl =
   fixes
     watch :: "('v, nat, 'v clause) twl_state \<Rightarrow> 'v clause \<Rightarrow> 'v twl_clause" and
@@ -508,8 +510,7 @@ definition update_backtrack_lvl where
    TWL_State (trail S) (init_clss S) (learned_clss S) k (conflicting S)"
 
 definition update_conflicting where
-  "update_conflicting C S =
-   TWL_State (trail S) (init_clss S) (learned_clss S) (backtrack_lvl S) C"
+  "update_conflicting C S = TWL_State (trail S) (init_clss S) (learned_clss S) (backtrack_lvl S) C"
 
 definition tl_trail where
   "tl_trail S =
@@ -606,9 +607,6 @@ interpretation abstract_twl watch_nat rewatch_nat sorted_list_of_multiset learne
   apply (rule mset_sorted_list_of_multiset)
   apply (rule subset_mset.order_refl)
   done
-
-interpretation cw_state
-oops
 
 (* interpretation cdcl_cw_ops
 oops
