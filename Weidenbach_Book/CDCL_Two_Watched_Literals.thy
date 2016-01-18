@@ -97,10 +97,10 @@ text \<open>Only the 2-watched literals have to be verified here: the backtrack 
   remain separate.\<close>
 
 datatype 'v twl_clause =
-  TWL_Clause (watched: "'v clause") (not_watched: "'v clause")
+  TWL_Clause (watched: "'v clause") (unwatched: "'v clause")
 
 abbreviation raw_clause :: "'v twl_clause \<Rightarrow> 'v clause" where
-  "raw_clause C \<equiv> watched C + not_watched C"
+  "raw_clause C \<equiv> watched C + unwatched C"
 
 datatype ('v, 'lvl, 'mark) twl_state =
   TWL_State (trail: "('v, 'lvl, 'mark) marked_lits") (init_clss: "'v twl_clause multiset")
@@ -134,9 +134,9 @@ definition candidates_conflict :: "('v, 'lvl, 'mark) twl_state \<Rightarrow> 'v 
 oops *)
 
 primrec wf_twl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v twl_clause \<Rightarrow> bool" where
-  "wf_twl_cls M (TWL_Clause W NW) \<longleftrightarrow>
-   distinct_mset W \<and> size W \<le> 2 \<and> (size W < 2 \<longrightarrow> set_mset NW \<subseteq> set_mset W) \<and>
-   (\<forall>L \<in># W. -L \<in> lits_of M \<longrightarrow> (\<forall>L' \<in># NW. L' \<notin># W \<longrightarrow> -L' \<in> lits_of M))"
+  "wf_twl_cls M (TWL_Clause W UW) \<longleftrightarrow>
+   distinct_mset W \<and> size W \<le> 2 \<and> (size W < 2 \<longrightarrow> set_mset UW \<subseteq> set_mset W) \<and>
+   (\<forall>L \<in># W. -L \<in> lits_of M \<longrightarrow> (\<forall>L' \<in># UW. L' \<notin># W \<longrightarrow> -L' \<in> lits_of M))"
 
 definition wf_twl_state :: "('v, 'lvl, 'mark) twl_state \<Rightarrow> bool" where
   "wf_twl_state S \<longleftrightarrow> (\<forall>C \<in># clauses S. wf_twl_cls (trail S) C)"
@@ -159,7 +159,7 @@ proof
     "undefined_lit L M"
     using cand unfolding candidates_propagate_def MNU_defs by blast
 
-  obtain W NW where cw_eq: "Cw = TWL_Clause W NW"
+  obtain W UW where cw_eq: "Cw = TWL_Clause W UW"
     by (case_tac Cw, blast)
 
   have l_w: "L \<in># W"
@@ -170,8 +170,8 @@ proof
 
   have w_nw:
     "distinct_mset W"
-    "size W < 2 \<Longrightarrow> set_mset NW \<subseteq> set_mset W"
-    "\<And>L L'. L \<in># W \<Longrightarrow> -L \<in> lits_of M \<Longrightarrow> L' \<in># NW \<Longrightarrow> L' \<notin># W \<Longrightarrow> -L' \<in> lits_of M"
+    "size W < 2 \<Longrightarrow> set_mset UW \<subseteq> set_mset W"
+    "\<And>L L'. L \<in># W \<Longrightarrow> -L \<in> lits_of M \<Longrightarrow> L' \<in># UW \<Longrightarrow> L' \<notin># W \<Longrightarrow> -L' \<in> lits_of M"
    using wf_c unfolding cw_eq by auto
 
   have "\<forall>L' \<in> set_mset C - {L}. -L' \<in> lits_of M"
@@ -184,7 +184,7 @@ proof
     then have w: "W = {#L#}"
       by (metis (no_types, lifting) Multiset.diff_le_self cw(3) cw_eq single_not_empty
         size_1_singleton_mset subset_mset.add_diff_inverse union_is_single twl_clause.sel(1))
-    from True have "set_mset NW \<subseteq> set_mset W"
+    from True have "set_mset UW \<subseteq> set_mset W"
       using w_nw(2) by blast
     then show ?thesis
       using w cw(1) cw_eq by auto
@@ -229,7 +229,7 @@ proof
           using l' by fastforce
         have "\<And>l L. - (l::'a literal) \<in> L \<or> l \<notin> uminus ` L"
           by force
-        then have "\<And>l. - l \<in> lits_of M \<or> count {#L#} l = count (C - NW) l"
+        then have "\<And>l. - l \<in> lits_of M \<or> count {#L#} l = count (C - UW) l"
           by (metis (no_types) add_diff_cancel_right' count_diff count_mset_set(3) cw(1) cw(3)
                 cw_eq diff_zero twl_clause.sel(2))
         then show ?thesis
@@ -263,7 +263,7 @@ proof -
   obtain Cw where cw: "C = raw_clause Cw" "Cw \<in># N + U"
     using c_mem by force
 
-  obtain W NW where cw_eq: "Cw = TWL_Clause W NW"
+  obtain W UW where cw_eq: "Cw = TWL_Clause W UW"
     by (case_tac Cw, blast)
 
   have wf_c: "wf_twl_cls M Cw"
@@ -271,8 +271,8 @@ proof -
 
   have w_nw:
     "distinct_mset W"
-    "size W < 2 \<Longrightarrow> set_mset NW \<subseteq> set_mset W"
-    "\<And>L L'. L \<in># W \<Longrightarrow> -L \<in> lits_of M \<Longrightarrow> L' \<in># NW \<Longrightarrow> L' \<notin># NW \<Longrightarrow> -L' \<in> lits_of M"
+    "size W < 2 \<Longrightarrow> set_mset UW \<subseteq> set_mset W"
+    "\<And>L L'. L \<in># W \<Longrightarrow> -L \<in> lits_of M \<Longrightarrow> L' \<in># UW \<Longrightarrow> L' \<notin># UW \<Longrightarrow> -L' \<in> lits_of M"
    using wf_c unfolding cw_eq by auto
 
   have unit_set: "set_mset (W - mset_set (uminus ` lits_of M)) = {L}"
@@ -354,7 +354,7 @@ proof
     "watched Cw \<subseteq># mset_set (uminus ` lits_of (trail S))"
     using cand[unfolded candidates_conflict_def, simplified] by auto
 
-  obtain W NW where cw_eq: "Cw = TWL_Clause W NW"
+  obtain W UW where cw_eq: "Cw = TWL_Clause W UW"
     by (case_tac Cw, blast)
 
   have wf_c: "wf_twl_cls M Cw"
@@ -362,8 +362,8 @@ proof
 
   have w_nw:
     "distinct_mset W"
-    "size W < 2 \<Longrightarrow> set_mset NW \<subseteq> set_mset W"
-    "\<And>L L'. L \<in># W \<Longrightarrow> -L \<in> lits_of M \<Longrightarrow> L' \<in># NW \<Longrightarrow> L' \<notin># W \<Longrightarrow> -L' \<in> lits_of M"
+    "size W < 2 \<Longrightarrow> set_mset UW \<subseteq> set_mset W"
+    "\<And>L L'. L \<in># W \<Longrightarrow> -L \<in> lits_of M \<Longrightarrow> L' \<in># UW \<Longrightarrow> L' \<notin># W \<Longrightarrow> -L' \<in> lits_of M"
    using wf_c unfolding cw_eq by auto
 
   have "\<forall>L \<in># C. -L \<in> lits_of M"
@@ -417,7 +417,7 @@ proof -
   obtain Cw where cw: "C = raw_clause Cw" "Cw \<in># N + U"
     using c_mem by force
 
-  obtain W NW where cw_eq: "Cw = TWL_Clause W NW"
+  obtain W UW where cw_eq: "Cw = TWL_Clause W UW"
     by (case_tac Cw, blast)
 
   have wf_c: "wf_twl_cls M Cw"
@@ -425,8 +425,8 @@ proof -
 
   have w_nw:
     "distinct_mset W"
-    "size W < 2 \<Longrightarrow> set_mset NW \<subseteq> set_mset W"
-    "\<And>L L'. L \<in># W \<Longrightarrow> -L \<in> lits_of M \<Longrightarrow> L' \<in># NW \<Longrightarrow> L' \<notin># W \<Longrightarrow> -L' \<in> lits_of M"
+    "size W < 2 \<Longrightarrow> set_mset UW \<subseteq> set_mset W"
+    "\<And>L L'. L \<in># W \<Longrightarrow> -L \<in> lits_of M \<Longrightarrow> L' \<in># UW \<Longrightarrow> L' \<notin># W \<Longrightarrow> -L' \<in> lits_of M"
    using wf_c unfolding cw_eq by auto
 
   have "\<And>L. L \<in># C \<Longrightarrow> -L \<in> lits_of M"
@@ -564,8 +564,8 @@ definition watch_nat :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat clau
   "watch_nat S C =
    (let
       W = take 2 (pull (\<lambda>L. - L \<notin> lits_of (trail S)) (sorted_list_of_set (set_mset C)));
-      NW = sorted_list_of_multiset (C - mset W)
-    in TWL_Clause (mset W) (mset NW))"
+      UW = sorted_list_of_multiset (C - mset W)
+    in TWL_Clause (mset W) (mset UW))"
 
 definition
   rewatch_nat ::
@@ -573,11 +573,10 @@ definition
 where
   "rewatch_nat L S C =
    (if - lit_of L \<in># watched C then
-      case filter (\<lambda>L'. - L' \<notin> lits_of (L # trail S)) (sorted_list_of_multiset (not_watched C)) of
+      case filter (\<lambda>L'. - L' \<notin> lits_of (L # trail S)) (sorted_list_of_multiset (unwatched C)) of
         [] \<Rightarrow> C
       | L' # _ \<Rightarrow>
-        TWL_Clause (watched C - {#- lit_of L#} + {#L'#})
-          (not_watched C - {#L'#} + {#- lit_of L#})
+        TWL_Clause (watched C - {#- lit_of L#} + {#L'#}) (unwatched C - {#L'#} + {#- lit_of L#})
     else
       C)"
 
@@ -606,20 +605,28 @@ lemma clause_watch_nat: "raw_clause (watch_nat S C) = C"
 lemma distinct_pull[simp]: "distinct (pull p xs) = distinct xs"
   unfolding pull_def by (induct xs) auto
 
-lemma foo:
+lemma falsified_watiched_imp_unwatched_falsified:
   assumes
-    watched: "L \<in> set (take n (pull (Not \<circ> p) (sorted_list_of_set (set_mset C))))" and
-    falsified: "p L" and
-    unwatched: "L' \<in># C - mset (take n (pull (Not \<circ> p) (sorted_list_of_set (set_mset C))))"
-  shows "p L'"
+    watched: "L \<in> set (take n (pull (Not \<circ> fls) (sorted_list_of_set (set_mset C))))" and
+    falsified: "fls L" and
+    not_watched: "L' \<notin> set (take n (pull (Not \<circ> fls) (sorted_list_of_set (set_mset C))))" and
+    unwatched: "L' \<in># C - mset (take n (pull (Not \<circ> fls) (sorted_list_of_set (set_mset C))))"
+  shows "fls L'"
 proof -
   let ?Ls = "sorted_list_of_set (set_mset C)"
-  let ?W = "take n (pull (Not \<circ> p) ?Ls)"
+  let ?W = "take n (pull (Not \<circ> fls) ?Ls)"
 
-  have "\<And>L. L \<in> set ?Ls \<Longrightarrow> p L \<Longrightarrow> L \<in> set ?W"
-    sorry
+  have "n > length (filter (Not \<circ> fls) ?Ls)"
+    using watched falsified
+    unfolding pull_def comp_def
+    apply auto
+     using in_set_takeD apply fastforce
+    by (metis gr0I length_greater_0_conv length_pos_if_in_set take_0 zero_less_diff)
+  then have "\<And>L. L \<in> set ?Ls \<Longrightarrow> \<not> fls L \<Longrightarrow> L \<in> set ?W"
+    unfolding pull_def by auto
   then show ?thesis
-    sorry
+    by (metis Multiset.diff_le_self finite_set_mset mem_set_mset_iff mset_leD not_watched
+      sorted_list_of_set unwatched)
 qed
 
 lemma wf_watch_nat: "wf_twl_cls (trail S) (watch_nat S C)"
@@ -627,7 +634,8 @@ lemma wf_watch_nat: "wf_twl_cls (trail S) (watch_nat S C)"
   unfolding wf_twl_cls.simps
   apply (intro conjI)
      apply clarsimp+
-  using foo[unfolded comp_def] by (metis count_diff zero_less_diff)
+  using falsified_watiched_imp_unwatched_falsified[unfolded comp_def]
+  by (metis count_diff zero_less_diff)
 
 lemma filter_sorted_list_of_multiset_eqD:
   assumes "[x \<leftarrow> sorted_list_of_multiset A. p x] = x # xs" (is "?comp = _")
