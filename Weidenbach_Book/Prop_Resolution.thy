@@ -1103,18 +1103,18 @@ proof -
     qed
 qed
 
-lemma simplified_no_more_full_simplified:
+lemma simplified_no_more_full1_simplified:
   assumes "simplified \<psi>"
-  shows "\<not>full simplify \<psi> \<psi>'"
-  using assms unfolding full_def by (meson tranclpD)
+  shows "\<not>full1 simplify \<psi> \<psi>'"
+  using assms unfolding full1_def by (meson tranclpD)
 
 
 subsection \<open>Resolution and Invariants\<close>
 
 inductive resolution :: "'v state \<Rightarrow> 'v state \<Rightarrow> bool" where
-full_simp: "full simplify N N' \<Longrightarrow> resolution (N, already_used) (N', already_used)" |
+full1_simp: "full1 simplify N N' \<Longrightarrow> resolution (N, already_used) (N', already_used)" |
 inferring: "inference (N, already_used) (N', already_used') \<Longrightarrow> simplified N
-  \<Longrightarrow> full0 simplify N' N'' \<Longrightarrow> resolution (N, already_used) (N'', already_used')"
+  \<Longrightarrow> full simplify N' N'' \<Longrightarrow> resolution (N, already_used) (N'', already_used')"
 
 subsubsection \<open>Invariants\<close>
 
@@ -1122,7 +1122,7 @@ lemma resolution_finite:
   assumes "resolution \<psi> \<psi>'" and "finite (fst \<psi>)"
   shows "finite (fst \<psi>')"
   using assms by (induct rule: resolution.induct)
-    (auto simp add: full_def full0_def  rtranclp_simplify_preserves_finite
+    (auto simp add: full1_def full_def  rtranclp_simplify_preserves_finite
       dest: tranclp_into_rtranclp inference_preserves_finite)
 
 lemma rtranclp_resolution_finite:
@@ -1145,7 +1145,7 @@ lemma resolution_always_simplified:
  assumes "resolution \<psi> \<psi>'"
  shows "simplified (fst \<psi>')"
  using assms by (induct rule: resolution.induct)
-   (auto simp add: full_def full0_def)
+   (auto simp add: full1_def full_def)
 
 lemma tranclp_resolution_always_simplified:
   assumes "tranclp resolution \<psi> \<psi>'"
@@ -1156,8 +1156,8 @@ lemma resolution_atms_of:
   assumes "resolution \<psi> \<psi>'" and "finite (fst \<psi>)"
   shows "atms_of_m (fst \<psi>') \<subseteq> atms_of_m (fst \<psi>)"
   using assms apply (induct rule: resolution.induct)
-    apply(simp add: rtranclp_simplify_atms_of_m tranclp_into_rtranclp full_def )
-  by (metis (no_types, lifting) contra_subsetD fst_conv full0_def
+    apply(simp add: rtranclp_simplify_atms_of_m tranclp_into_rtranclp full1_def )
+  by (metis (no_types, lifting) contra_subsetD fst_conv full_def
     inference_preserves_atms_of_m rtranclp_simplify_atms_of_m subsetI)
 
 lemma rtranclp_resolution_atms_of:
@@ -1257,7 +1257,7 @@ lemma already_used_all_simple_inv:
   shows "already_used_all_simple (snd S') vars"
   using assms
 proof (induct rule: resolution.induct)
-  case (full_simp N N')
+  case (full1_simp N N')
   thus ?case by simp
 next
   case (inferring N already_used N' already_used' N'')
@@ -1304,7 +1304,7 @@ lemma resolution_simplified_already_used_subset:
   assumes "resolution S S'"
   and "simplified (fst S)"
   shows "snd S \<subset> snd S'"
-  using assms apply (induct rule: resolution.induct, simp_all add: full_def)
+  using assms apply (induct rule: resolution.induct, simp_all add: full1_def)
   apply (meson tranclpD)
   by (metis inference_simplified_already_used_subset fst_conv snd_conv)
 
@@ -1499,31 +1499,31 @@ lemma rtrancp_simplify_already_used_inv:
   using assms apply induction
   using simplify_preserves_already_used_inv by fast+
 
+lemma full1_simplify_already_used_inv:
+  assumes "full1 simplify S S'"
+  and "already_used_inv (S, N)"
+  shows "already_used_inv (S', N)"
+  using assms tranclp_into_rtranclp[of simplify S S'] rtrancp_simplify_already_used_inv
+  unfolding full1_def by fast
+
 lemma full_simplify_already_used_inv:
   assumes "full simplify S S'"
   and "already_used_inv (S, N)"
   shows "already_used_inv (S', N)"
-  using assms tranclp_into_rtranclp[of simplify S S'] rtrancp_simplify_already_used_inv
-  unfolding full_def by fast
-
-lemma full0_simplify_already_used_inv:
-  assumes "full0 simplify S S'"
-  and "already_used_inv (S, N)"
-  shows "already_used_inv (S', N)"
-  using assms  rtrancp_simplify_already_used_inv unfolding full0_def by fast
+  using assms  rtrancp_simplify_already_used_inv unfolding full_def by fast
 lemma resolution_already_used_inv:
   assumes "resolution S S'"
   and "already_used_inv S"
   shows "already_used_inv S'"
   using assms
 proof induction
-  case (full_simp N N' already_used)
-  thus ?case using full_simplify_already_used_inv by fast
+  case (full1_simp N N' already_used)
+  thus ?case using full1_simplify_already_used_inv by fast
 next
   case (inferring N already_used N' already_used' N''') note inf = this(1) and full = this(3) and
     a_u_v = this(4)
   thus ?case
-    using inference_preserves_already_used_inv[OF inf a_u_v] full0_simplify_already_used_inv full
+    using inference_preserves_already_used_inv[OF inf a_u_v] full_simplify_already_used_inv full
     by fast
 qed
 
@@ -1540,23 +1540,23 @@ lemma rtanclp_simplify_preserves_unsat:
   using assms apply induction
   using simplify_clause_preserves_sat by blast+
 
+lemma full1_simplify_preserves_unsat:
+  assumes "full1 simplify \<psi> \<psi>'"
+  shows "satisfiable \<psi>' \<longrightarrow> satisfiable \<psi>"
+  using assms rtanclp_simplify_preserves_unsat[of \<psi> \<psi>'] tranclp_into_rtranclp
+  unfolding full1_def by metis
+
 lemma full_simplify_preserves_unsat:
   assumes "full simplify \<psi> \<psi>'"
   shows "satisfiable \<psi>' \<longrightarrow> satisfiable \<psi>"
-  using assms rtanclp_simplify_preserves_unsat[of \<psi> \<psi>'] tranclp_into_rtranclp
-  unfolding full_def by metis
-
-lemma full0_simplify_preserves_unsat:
-  assumes "full0 simplify \<psi> \<psi>'"
-  shows "satisfiable \<psi>' \<longrightarrow> satisfiable \<psi>"
-  using assms rtanclp_simplify_preserves_unsat[of \<psi> \<psi>'] unfolding full0_def by metis
+  using assms rtanclp_simplify_preserves_unsat[of \<psi> \<psi>'] unfolding full_def by metis
 
 lemma resolution_preserves_unsat:
   assumes "resolution \<psi> \<psi>'"
   shows "satisfiable (fst \<psi>') \<longrightarrow> satisfiable (fst \<psi>)"
   using assms apply (induct rule: resolution.induct)
-  using full_simplify_preserves_unsat apply (metis fst_conv)
-  using full0_simplify_preserves_unsat simplify_preserves_unsat by fastforce
+  using full1_simplify_preserves_unsat apply (metis fst_conv)
+  using full_simplify_preserves_unsat simplify_preserves_unsat by fastforce
 
 lemma rtranclp_resolution_preserves_unsat:
   assumes "resolution\<^sup>*\<^sup>* \<psi> \<psi>'"
@@ -1571,6 +1571,13 @@ lemma rtranclp_simplify_preserve_partial_tree:
   using assms apply (induction, simp)
   using simplify_preserve_partial_tree by metis
 
+lemma full1_simplify_preserve_partial_tree:
+  assumes "full1 simplify N N'"
+  and "partial_interps t I N"
+  shows "partial_interps t I N'"
+  using assms rtranclp_simplify_preserve_partial_tree[of N N' t I] tranclp_into_rtranclp
+  unfolding full1_def by fast
+
 lemma full_simplify_preserve_partial_tree:
   assumes "full simplify N N'"
   and "partial_interps t I N"
@@ -1578,20 +1585,13 @@ lemma full_simplify_preserve_partial_tree:
   using assms rtranclp_simplify_preserve_partial_tree[of N N' t I] tranclp_into_rtranclp
   unfolding full_def by fast
 
-lemma full0_simplify_preserve_partial_tree:
-  assumes "full0 simplify N N'"
-  and "partial_interps t I N"
-  shows "partial_interps t I N'"
-  using assms rtranclp_simplify_preserve_partial_tree[of N N' t I] tranclp_into_rtranclp
-  unfolding full0_def by fast
-
 lemma resolution_preserve_partial_tree:
   assumes "resolution S S'"
   and "partial_interps t I (fst S)"
   shows "partial_interps t I (fst S')"
   using assms apply induction
-    using full_simplify_preserve_partial_tree fst_conv apply metis
-  using full0_simplify_preserve_partial_tree inference_preserve_partial_tree by fastforce
+    using full1_simplify_preserve_partial_tree fst_conv apply metis
+  using full_simplify_preserve_partial_tree inference_preserve_partial_tree by fastforce
 
 lemma rtranclp_resolution_preserve_partial_tree:
   assumes "resolution\<^sup>*\<^sup>* S S'"
@@ -1898,16 +1898,16 @@ proof -
   show ?thesis using 1 2 by blast
 qed
 
-lemma finite_simplified_full_simp:
+lemma finite_simplified_full1_simp:
   assumes "finite N"
-  shows "simplified N \<or> (\<exists>N'. full simplify N N')"
-  using rtranclp_simplify_terminates[OF assms] unfolding full_def
+  shows "simplified N \<or> (\<exists>N'. full1 simplify N N')"
+  using rtranclp_simplify_terminates[OF assms] unfolding full1_def
   by (metis Nitpick.rtranclp_unfold)
 
-lemma finite_simplified_full0_simp:
+lemma finite_simplified_full_simp:
   assumes "finite N"
-  shows "\<exists>N'. full0 simplify N N'"
-  using rtranclp_simplify_terminates[OF assms] unfolding full0_def by metis
+  shows "\<exists>N'. full simplify N N'"
+  using rtranclp_simplify_terminates[OF assms] unfolding full_def by metis
 
 lemma can_decrease_tree_size_resolution:
   fixes \<psi> :: "'v state" and tree :: "'v sem_tree"
@@ -2009,14 +2009,14 @@ proof (induct arbitrary: I rule: sem_tree_size)
             assume "({#Pos v#} + C', {#Neg v#} + C) \<notin> snd \<psi>"
             hence inf'': "inference \<psi> (fst \<psi> \<union> {C + C'}, snd \<psi> \<union> {(\<chi>', \<chi>)})"
               by (metis \<chi>'\<psi> \<chi>C \<chi>C' \<chi>\<psi> add.commute inference_step prod.collapse resolution)
-            obtain N' where full: "full0 simplify (fst \<psi> \<union> {C + C'}) N'"
-              by (metis finite_simplified_full0_simp fst_conv inf'' inference_preserves_finite
+            obtain N' where full: "full simplify (fst \<psi> \<union> {C + C'}) N'"
+              by (metis finite_simplified_full_simp fst_conv inf'' inference_preserves_finite
                 local.finite)
             have "resolution \<psi> (N', snd \<psi> \<union> {(\<chi>', \<chi>)})"
               using resolution.intros(2)[OF _ simp full, of "snd \<psi>" "snd \<psi> \<union> {(\<chi>', \<chi>)}"] inf''
               by (metis surjective_pairing)
             moreover have "partial_interps Leaf I N'"
-              using full0_simplify_preserve_partial_tree[OF full part_I_\<psi>'''] .
+              using full_simplify_preserve_partial_tree[OF full part_I_\<psi>'''] .
             moreover have "sem_tree_size Leaf < sem_tree_size xs" unfolding xs by auto
             ultimately have ?case
               by (metis (no_types) prod.sel(1) rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl)
@@ -2151,14 +2151,14 @@ proof -
             }
             moreover {
               assume "\<not>simplified (fst \<psi>)"
-              hence "\<exists>\<psi>'.  full simplify (fst \<psi>) \<psi>'"
-                by (metis Nitpick.rtranclp_unfold bigger.prems(3) full_def
+              hence "\<exists>\<psi>'.  full1 simplify (fst \<psi>) \<psi>'"
+                by (metis Nitpick.rtranclp_unfold bigger.prems(3) full1_def
                   rtranclp_simplify_terminates)
-              then obtain N where "full simplify (fst \<psi>) N" by metis
+              then obtain N where "full1 simplify (fst \<psi>) N" by metis
               hence "resolution \<psi> (N, snd \<psi>)"
                 using resolution.intros(1)[of "fst \<psi>" N "snd \<psi>"] by auto
               moreover have "simplified N"
-                using \<open>full simplify (fst \<psi>) N\<close> unfolding full_def by blast
+                using \<open>full1 simplify (fst \<psi>) N\<close> unfolding full1_def by blast
               ultimately have ?thesis using that by force
             }
             ultimately show ?thesis by auto
@@ -2199,8 +2199,8 @@ lemma resolution_preserves_already_used_inv:
   shows "already_used_inv S'"
   using assms
   apply (induct rule: resolution.induct)
-   apply (rule full_simplify_already_used_inv; simp)
-  apply (rule full0_simplify_already_used_inv, simp)
+   apply (rule full1_simplify_already_used_inv; simp)
+  apply (rule full_simplify_already_used_inv, simp)
   apply (rule inference_preserves_already_used_inv, simp)
   apply blast
   done
@@ -2238,8 +2238,8 @@ lemma resolution_preserves_sat:
   and "satisfiable (fst S)"
   shows "satisfiable (fst S')"
   using assms apply (induction rule: resolution.induct)
-   using rtranclp_preserves_sat tranclp_into_rtranclp unfolding full_def apply fastforce
-  by (metis fst_conv full0_def inference_preserves_un_sat rtranclp_preserves_sat
+   using rtranclp_preserves_sat tranclp_into_rtranclp unfolding full1_def apply fastforce
+  by (metis fst_conv full_def inference_preserves_un_sat rtranclp_preserves_sat
     satisfiable_carac' satisfiable_def)
 
 lemma rtranclp_resolution_preserves_sat:
@@ -2306,13 +2306,13 @@ next
   }
   moreover {
     assume "\<not> simplified \<chi>s"
-    then obtain \<chi>s' where "full simplify \<chi>s \<chi>s'"
-       by (metis \<chi>s assms finite_simplified_full_simp fst_conv rtranclp_resolution_finite)
+    then obtain \<chi>s' where "full1 simplify \<chi>s \<chi>s'"
+       by (metis \<chi>s assms finite_simplified_full1_simp fst_conv rtranclp_resolution_finite)
     hence "{#} \<in> \<chi>s'"
-      unfolding full_def  by (meson F rtranclp_simplify_falsity_in_preserved
+      unfolding full1_def  by (meson F rtranclp_simplify_falsity_in_preserved
         tranclp_into_rtranclp)
     hence ?B
-      by (metis \<chi>s \<open>full simplify \<chi>s \<chi>s'\<close> fst_conv full_simp resolution_always_simplified
+      by (metis \<chi>s \<open>full1 simplify \<chi>s \<chi>s'\<close> fst_conv full1_simp resolution_always_simplified
         rtranclp.rtrancl_into_rtrancl simplified_falsity)
   }
   ultimately show ?B by blast

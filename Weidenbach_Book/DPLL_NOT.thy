@@ -233,12 +233,12 @@ lemma tranclp_dpll_wf_inital_state:
     dpll\<^sub>N\<^sub>O\<^sub>T_bj\<^sup>+\<^sup>+ ([], N) (M', N') \<and> atms_of_mu N \<subseteq> atms_of_m A}"
   using tranclp_dpll\<^sub>N\<^sub>O\<^sub>T_bj_wf[OF assms(1)] by (rule wf_subset) auto
 
-theorem full0_dpll_normal_forms:
+theorem full_dpll_normal_forms:
   fixes M M' :: "('v, dpll_marked_level, dpll_mark) marked_lit list"
   assumes
-    full: "full0 dpll\<^sub>N\<^sub>O\<^sub>T_bj ([], N) (M', N')"
+    full: "full dpll\<^sub>N\<^sub>O\<^sub>T_bj ([], N) (M', N')"
   shows "unsatisfiable (set_mset N) \<or> (M' \<Turnstile>asm N \<and> satisfiable (set_mset N))"
-  using assms full0_dpll_backjump_normal_forms[of "([],N)" "(M', N')" "set_mset N"] by auto
+  using assms full_dpll_backjump_normal_forms[of "([],N)" "(M', N')" "set_mset N"] by auto
 
 lemma cdcl\<^sub>N\<^sub>O\<^sub>T_is_dpll:
   "cdcl\<^sub>N\<^sub>O\<^sub>T S T \<longleftrightarrow> dpll\<^sub>N\<^sub>O\<^sub>T_bj S T"

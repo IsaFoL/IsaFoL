@@ -27,7 +27,7 @@ lemma elim_equiv_consistent: "preserves_un_sat elim_equiv"
   unfolding preserves_un_sat_def by (simp add: elim_equiv_explicit)
 
 lemma elimEquv_lifted_consistant:
-  "preserves_un_sat (full0 (propo_rew_step elim_equiv))"
+  "preserves_un_sat (full (propo_rew_step elim_equiv))"
   by (simp add: elim_equiv_consistent)
 
 
@@ -99,9 +99,9 @@ qed
 
 text \<open>Given all the previous theorem and the characterization, once we have rewritten everything,
   there is no equivalence symbol any more.\<close>
-lemma no_equiv_full0_propo_rew_step_elim_equiv:
-  "full0 (propo_rew_step elim_equiv) \<phi> \<psi> \<Longrightarrow> no_equiv \<psi>"
-  using full0_propo_rew_step_subformula no_equiv_elim_equiv_step by blast
+lemma no_equiv_full_propo_rew_step_elim_equiv:
+  "full (propo_rew_step elim_equiv) \<phi> \<psi> \<Longrightarrow> no_equiv \<psi>"
+  using full_propo_rew_step_subformula no_equiv_elim_equiv_step by blast
 
 
 
@@ -124,7 +124,7 @@ lemma elim_imp_consistent: "preserves_un_sat elim_imp"
 
 
 lemma elim_imp_lifted_consistant:
-  "preserves_un_sat (full0 (propo_rew_step elim_imp))"
+  "preserves_un_sat (full (propo_rew_step elim_imp))"
   by (simp add: elim_imp_consistent)
 
 
@@ -161,10 +161,10 @@ lemma elim_imp_no_equiv:
 
 lemma elim_imp_inv:
   fixes \<phi> \<psi> :: "'v propo"
-  assumes "full0 (propo_rew_step elim_imp) \<phi> \<psi>"
+  assumes "full (propo_rew_step elim_imp) \<phi> \<psi>"
   and "no_equiv \<phi>"
   shows "no_equiv \<psi>"
-  using full0_propo_rew_step_inv_stay_conn[of elim_imp no_equiv_symb \<phi> \<psi>] assms elim_imp_no_equiv
+  using full_propo_rew_step_inv_stay_conn[of elim_imp no_equiv_symb \<phi> \<psi>] assms elim_imp_no_equiv
     no_equiv_symb_conn_characterization unfolding no_equiv_def by metis
 
 lemma no_no_imp_elim_imp_step_exists:
@@ -190,8 +190,8 @@ proof -
 qed
 
 
-lemma no_imp_full0_propo_rew_step_elim_imp: "full0 (propo_rew_step elim_imp) \<phi> \<psi> \<Longrightarrow> no_imp \<psi>"
-  using full0_propo_rew_step_subformula no_no_imp_elim_imp_step_exists by blast
+lemma no_imp_full_propo_rew_step_elim_imp: "full (propo_rew_step elim_imp) \<phi> \<psi> \<Longrightarrow> no_imp \<psi>"
+  using full_propo_rew_step_subformula no_no_imp_elim_imp_step_exists by blast
 
 
 subsection "Eliminate all the True and False in the formula"
@@ -499,7 +499,7 @@ qed
 
 lemma elimTB_inv:
   fixes \<phi> \<psi> :: "'v propo"
-  assumes "full0 (propo_rew_step elimTB) \<phi> \<psi> "
+  assumes "full (propo_rew_step elimTB) \<phi> \<psi> "
   and "no_equiv \<phi>" and "no_imp \<phi>"
   shows "no_equiv \<psi>" and "no_imp \<psi>"
 proof -
@@ -509,7 +509,7 @@ proof -
        by (induct \<phi> \<psi> rule: elimTB.induct, auto)
   }
   thus "no_equiv \<psi>"
-    using full0_propo_rew_step_inv_stay_conn[of elimTB no_equiv_symb \<phi> \<psi>]
+    using full_propo_rew_step_inv_stay_conn[of elimTB no_equiv_symb \<phi> \<psi>]
       no_equiv_symb_conn_characterization assms unfolding no_equiv_def by metis
 next
   {
@@ -518,15 +518,15 @@ next
        by (induct \<phi> \<psi> rule: elimTB.induct, auto)
   }
   thus "no_imp \<psi>"
-    using full0_propo_rew_step_inv_stay_conn[of elimTB no_imp_symb \<phi> \<psi>] assms
+    using full_propo_rew_step_inv_stay_conn[of elimTB no_imp_symb \<phi> \<psi>] assms
       no_imp_symb_conn_characterization unfolding no_imp_def by metis
 qed
 
-lemma elimTB_full0_propo_rew_step:
+lemma elimTB_full_propo_rew_step:
   fixes \<phi> \<psi> :: "'v propo"
-  assumes "no_equiv \<phi>" and "no_imp \<phi>" and "full0 (propo_rew_step elimTB) \<phi> \<psi>"
+  assumes "no_equiv \<phi>" and "no_imp \<phi>" and "full (propo_rew_step elimTB) \<phi> \<psi>"
   shows "no_T_F_except_top_level \<psi>"
-  using full0_propo_rew_step_subformula no_T_F_except_top_level_rew assms elimTB_inv by fastforce
+  using full_propo_rew_step_subformula no_T_F_except_top_level_rew assms elimTB_inv by fastforce
 
 
 subsection "PushNeg"
@@ -552,7 +552,7 @@ lemma pushNeg_consistent: "preserves_un_sat pushNeg"
 
 
 lemma pushNeg_lifted_consistant:
-"preserves_un_sat (full0 (propo_rew_step pushNeg))"
+"preserves_un_sat (full (propo_rew_step pushNeg))"
   by (simp add: pushNeg_consistent)
 
 fun simple where
@@ -700,7 +700,7 @@ qed
 
 lemma pushNeg_inv:
   fixes \<phi> \<psi> :: "'v propo"
-  assumes "full0 (propo_rew_step pushNeg) \<phi> \<psi>"
+  assumes "full (propo_rew_step pushNeg) \<phi> \<psi>"
   and "no_equiv \<phi>" and "no_imp \<phi>" and "no_T_F_except_top_level \<phi>"
   shows "no_equiv \<psi>" and "no_imp \<psi>" and "no_T_F_except_top_level \<psi>"
 proof -
@@ -755,8 +755,8 @@ proof -
      qed
   }
   ultimately show "no_T_F_except_top_level \<psi>"
-    using full0_propo_rew_step_inv_stay_with_inc[of pushNeg no_T_F_symb_except_toplevel \<phi>] assms
-      subformula_refl unfolding no_T_F_except_top_level_def full0_unfold by metis
+    using full_propo_rew_step_inv_stay_with_inc[of pushNeg no_T_F_symb_except_toplevel \<phi>] assms
+      subformula_refl unfolding no_T_F_except_top_level_def full_unfold by metis
 next
   {
     fix \<phi> \<psi> :: "'v propo"
@@ -764,8 +764,8 @@ next
       by (induct \<phi> \<psi> rule: pushNeg.induct, auto)
   }
   thus "no_equiv \<psi>"
-    using full0_propo_rew_step_inv_stay_conn[of pushNeg no_equiv_symb \<phi> \<psi>]
-    no_equiv_symb_conn_characterization assms unfolding no_equiv_def full0_unfold by metis
+    using full_propo_rew_step_inv_stay_conn[of pushNeg no_equiv_symb \<phi> \<psi>]
+    no_equiv_symb_conn_characterization assms unfolding no_equiv_def full_unfold by metis
 next
   {
     fix \<phi> \<psi> :: "'v propo"
@@ -773,20 +773,20 @@ next
       by (induct \<phi> \<psi> rule: pushNeg.induct, auto)
   }
   thus "no_imp \<psi>"
-    using full0_propo_rew_step_inv_stay_conn[of pushNeg no_imp_symb \<phi> \<psi>] assms
-      no_imp_symb_conn_characterization unfolding no_imp_def full0_unfold by metis
+    using full_propo_rew_step_inv_stay_conn[of pushNeg no_imp_symb \<phi> \<psi>] assms
+      no_imp_symb_conn_characterization unfolding no_imp_def full_unfold by metis
 qed
 
 
-lemma pushNeg_full0_propo_rew_step:
+lemma pushNeg_full_propo_rew_step:
   fixes \<phi> \<psi> :: "'v propo"
   assumes
     "no_equiv \<phi>" and
     "no_imp \<phi>" and
-    "full0 (propo_rew_step pushNeg) \<phi> \<psi>" and
+    "full (propo_rew_step pushNeg) \<phi> \<psi>" and
     "no_T_F_except_top_level \<phi>"
   shows "simple_not \<psi>"
-  using assms full0_propo_rew_step_subformula pushNeg_inv(1,2) simple_not_rew by blast
+  using assms full_propo_rew_step_subformula pushNeg_inv(1,2) simple_not_rew by blast
 
 
 subsection \<open>Push inside\<close>
@@ -1133,7 +1133,7 @@ lemma push_conn_inside_not_true_false:
 
 lemma push_conn_inside_inv:
   fixes \<phi> \<psi> :: "'v propo"
-  assumes "full0 (propo_rew_step (push_conn_inside c c')) \<phi> \<psi>"
+  assumes "full (propo_rew_step (push_conn_inside c c')) \<phi> \<psi>"
   and "no_equiv \<phi>" and "no_imp \<phi>" and "no_T_F_except_top_level \<phi>" and "simple_not \<phi>"
   shows "no_equiv \<psi>" and "no_imp \<psi>" and "no_T_F_except_top_level \<psi>" and "simple_not \<psi>"
 proof -
@@ -1226,8 +1226,8 @@ proof -
          wf_conn_no_arity_change_helper wf_conn_list_decomp(4) wf_conn_no_arity_change)
   }
   ultimately show "simple_not \<psi>"
-    using full0_propo_rew_step_inv_stay'[of "push_conn_inside c c'" "simple_not_symb"] assms
-    unfolding no_T_F_except_top_level_def simple_not_def full0_unfold by metis
+    using full_propo_rew_step_inv_stay'[of "push_conn_inside c c'" "simple_not_symb"] assms
+    unfolding no_T_F_except_top_level_def simple_not_def full_unfold by metis
 next
   {
     fix \<phi> \<psi> :: "'v propo"
@@ -1275,8 +1275,8 @@ next
      qed
   }
   ultimately show "no_T_F_except_top_level \<psi>"
-    using full0_propo_rew_step_inv_stay'[of "push_conn_inside c c'" "no_T_F_symb_except_toplevel"]
-    assms unfolding no_T_F_except_top_level_def full0_unfold by metis
+    using full_propo_rew_step_inv_stay'[of "push_conn_inside c c'" "no_T_F_symb_except_toplevel"]
+    assms unfolding no_T_F_except_top_level_def full_unfold by metis
 
 next
   {
@@ -1285,7 +1285,7 @@ next
       by (induct \<phi> \<psi> rule: push_conn_inside.induct, auto)
   }
   thus "no_equiv \<psi>"
-    using full0_propo_rew_step_inv_stay_conn[of "push_conn_inside c c'" no_equiv_symb] assms
+    using full_propo_rew_step_inv_stay_conn[of "push_conn_inside c c'" no_equiv_symb] assms
     no_equiv_symb_conn_characterization unfolding no_equiv_def by metis
 
 next
@@ -1295,23 +1295,23 @@ next
       by (induct \<phi> \<psi> rule: push_conn_inside.induct, auto)
   }
   thus "no_imp \<psi>"
-    using full0_propo_rew_step_inv_stay_conn[of "push_conn_inside c c'" no_imp_symb] assms
+    using full_propo_rew_step_inv_stay_conn[of "push_conn_inside c c'" no_imp_symb] assms
     no_imp_symb_conn_characterization unfolding no_imp_def by metis
 qed
 
 
-lemma push_conn_inside_full0_propo_rew_step:
+lemma push_conn_inside_full_propo_rew_step:
   fixes \<phi> \<psi> :: "'v propo"
   assumes
     "no_equiv \<phi>" and
     "no_imp \<phi>" and
-    "full0 (propo_rew_step (push_conn_inside c c')) \<phi> \<psi>" and
+    "full (propo_rew_step (push_conn_inside c c')) \<phi> \<psi>" and
     "no_T_F_except_top_level \<phi>" and
     "simple_not \<phi>" and
     "c = CAnd \<or> c = COr" and
     "c'  = CAnd \<or> c' = COr"
   shows "c_in_c'_only c c' \<psi>"
-  using c_in_c'_symb_rew assms full0_propo_rew_step_subformula by blast
+  using c_in_c'_symb_rew assms full_propo_rew_step_subformula by blast
 
 
 subsubsection \<open>Only one type of connective in the formula (+ not)\<close>
@@ -1526,22 +1526,22 @@ definition and_in_or_only where
 
 lemma pushConj_inv:
   fixes \<phi> \<psi> :: "'v propo"
-  assumes "full0 (propo_rew_step pushConj) \<phi> \<psi>"
+  assumes "full (propo_rew_step pushConj) \<phi> \<psi>"
   and   "no_equiv \<phi>" and "no_imp \<phi>" and "no_T_F_except_top_level \<phi>" and "simple_not \<phi>"
   shows "no_equiv \<psi>" and "no_imp \<psi>" and "no_T_F_except_top_level \<psi>" and "simple_not \<psi>"
   using push_conn_inside_inv assms unfolding pushConj_def by metis+
 
 
-lemma pushConj_full0_propo_rew_step:
+lemma pushConj_full_propo_rew_step:
   fixes \<phi> \<psi> :: "'v propo"
   assumes
     "no_equiv \<phi>" and
     "no_imp \<phi>" and
-    "full0 (propo_rew_step pushConj) \<phi> \<psi>" and
+    "full (propo_rew_step pushConj) \<phi> \<psi>" and
     "no_T_F_except_top_level \<phi>" and
     "simple_not \<phi>"
   shows "and_in_or_only \<psi>"
-  using assms push_conn_inside_full0_propo_rew_step
+  using assms push_conn_inside_full_propo_rew_step
   unfolding pushConj_def and_in_or_only_def c_in_c'_only_def by (metis (no_types))
 
 
@@ -1566,25 +1566,25 @@ lemma not_or_in_and_only_or_and[simp]:
 
 lemma pushDisj_inv:
   fixes \<phi> \<psi> :: "'v propo"
-  assumes "full0 (propo_rew_step pushDisj) \<phi> \<psi>"
+  assumes "full (propo_rew_step pushDisj) \<phi> \<psi>"
   and "no_equiv \<phi>" and "no_imp \<phi>" and "no_T_F_except_top_level \<phi>" and "simple_not \<phi>"
   shows "no_equiv \<psi>" and "no_imp \<psi>" and "no_T_F_except_top_level \<psi>" and "simple_not \<psi>"
   using push_conn_inside_inv assms unfolding pushDisj_def by metis+
 
-lemma pushDisj_full0_propo_rew_step:
+lemma pushDisj_full_propo_rew_step:
   fixes \<phi> \<psi> :: "'v propo"
   assumes
     "no_equiv \<phi>" and
     "no_imp \<phi>" and
-    "full0 (propo_rew_step pushDisj) \<phi> \<psi>" and
+    "full (propo_rew_step pushDisj) \<phi> \<psi>" and
     "no_T_F_except_top_level \<phi>" and
     "simple_not \<phi>"
   shows "or_in_and_only \<psi>"
-  using assms push_conn_inside_full0_propo_rew_step
+  using assms push_conn_inside_full_propo_rew_step
   unfolding pushDisj_def or_in_and_only_def c_in_c'_only_def by (metis (no_types))
 
 
-section \<open>The full transformations\<close>
+section \<open>The full1 transformations\<close>
 
 subsection \<open>Abstract Property characterizing that only some connective are inside the others\<close>
 subsubsection \<open>Definition\<close>
@@ -1734,14 +1734,14 @@ definition is_cnf where "is_cnf \<phi> == is_conj_with_TF \<phi> \<and> no_T_F_e
 
 subsubsection "Full CNF transformation"
 
-text \<open>The full CNF transformation consists simply in chaining all the transformation defined
+text \<open>The full1 CNF transformation consists simply in chaining all the transformation defined
   before.\<close>
 definition cnf_rew where "cnf_rew =
-  (full0 (propo_rew_step elim_equiv)) OO
-  (full0 (propo_rew_step elim_imp)) OO
-  (full0 (propo_rew_step elimTB)) OO
-  (full0 (propo_rew_step pushNeg)) OO
-  (full0 (propo_rew_step pushDisj))"
+  (full (propo_rew_step elim_equiv)) OO
+  (full (propo_rew_step elim_imp)) OO
+  (full (propo_rew_step elimTB)) OO
+  (full (propo_rew_step pushNeg)) OO
+  (full (propo_rew_step pushDisj))"
 
 lemma cnf_rew_consistent: "preserves_un_sat cnf_rew"
   by (simp add: cnf_rew_def elimEquv_lifted_consistant elim_imp_lifted_consistant elimTB_consistent
@@ -1753,27 +1753,27 @@ lemma cnf_rew_is_cnf: "cnf_rew \<phi> \<phi>' \<Longrightarrow> is_cnf \<phi>'"
   apply auto
 proof -
   fix \<phi> \<phi>Eq \<phi>Imp \<phi>TB \<phi>Neg \<phi>Disj :: "'v propo"
-  assume Eq: "full0 (propo_rew_step elim_equiv) \<phi> \<phi>Eq"
-  hence no_equiv: "no_equiv \<phi>Eq" using no_equiv_full0_propo_rew_step_elim_equiv by blast
+  assume Eq: "full (propo_rew_step elim_equiv) \<phi> \<phi>Eq"
+  hence no_equiv: "no_equiv \<phi>Eq" using no_equiv_full_propo_rew_step_elim_equiv by blast
 
-  assume Imp: "full0 (propo_rew_step elim_imp) \<phi>Eq \<phi>Imp"
-  hence no_imp: "no_imp \<phi>Imp" using no_imp_full0_propo_rew_step_elim_imp by blast
+  assume Imp: "full (propo_rew_step elim_imp) \<phi>Eq \<phi>Imp"
+  hence no_imp: "no_imp \<phi>Imp" using no_imp_full_propo_rew_step_elim_imp by blast
   have no_imp_inv: "no_equiv \<phi>Imp" using no_equiv Imp elim_imp_inv by blast
 
-  assume TB: "full0 (propo_rew_step elimTB) \<phi>Imp \<phi>TB"
+  assume TB: "full (propo_rew_step elimTB) \<phi>Imp \<phi>TB"
   hence noTB: "no_T_F_except_top_level \<phi>TB"
-    using no_imp_inv no_imp elimTB_full0_propo_rew_step by blast
+    using no_imp_inv no_imp elimTB_full_propo_rew_step by blast
   have noTB_inv: "no_equiv \<phi>TB" "no_imp \<phi>TB" using elimTB_inv TB no_imp no_imp_inv by blast+
 
-  assume Neg: "full0 (propo_rew_step pushNeg) \<phi>TB \<phi>Neg"
+  assume Neg: "full (propo_rew_step pushNeg) \<phi>TB \<phi>Neg"
   hence noNeg: "simple_not \<phi>Neg"
-    using noTB_inv noTB pushNeg_full0_propo_rew_step by blast
+    using noTB_inv noTB pushNeg_full_propo_rew_step by blast
   have noNeg_inv: "no_equiv \<phi>Neg" "no_imp \<phi>Neg" "no_T_F_except_top_level \<phi>Neg"
     using pushNeg_inv Neg noTB noTB_inv by blast+
 
-  assume Disj: "full0 (propo_rew_step pushDisj) \<phi>Neg \<phi>Disj"
+  assume Disj: "full (propo_rew_step pushDisj) \<phi>Neg \<phi>Disj"
   hence no_Disj: "or_in_and_only \<phi>Disj"
-    using noNeg_inv noNeg pushDisj_full0_propo_rew_step by blast
+    using noNeg_inv noNeg pushDisj_full_propo_rew_step by blast
   have noDisj_inv: "no_equiv \<phi>Disj" "no_imp \<phi>Disj" "no_T_F_except_top_level \<phi>Disj"
     "simple_not \<phi>Disj"
   using pushDisj_inv Disj noNeg noNeg_inv by blast+
@@ -1798,14 +1798,14 @@ definition is_dnf :: "'a propo \<Rightarrow> bool" where
 
 subsubsection \<open>Full DNF transform\<close>
 
-text \<open>The full DNF transformation consists simply in chaining all the transformation defined
+text \<open>The full1 DNF transformation consists simply in chaining all the transformation defined
   before.\<close>
 definition dnf_rew where "dnf_rew \<equiv>
-  (full0 (propo_rew_step elim_equiv)) OO
-  (full0 (propo_rew_step elim_imp)) OO
-  (full0 (propo_rew_step elimTB)) OO
-  (full0 (propo_rew_step pushNeg)) OO
-  (full0 (propo_rew_step pushConj))"
+  (full (propo_rew_step elim_equiv)) OO
+  (full (propo_rew_step elim_imp)) OO
+  (full (propo_rew_step elimTB)) OO
+  (full (propo_rew_step pushNeg)) OO
+  (full (propo_rew_step pushConj))"
 
 lemma dnf_rew_consistent: "preserves_un_sat dnf_rew"
   by (simp add: dnf_rew_def elimEquv_lifted_consistant elim_imp_lifted_consistant elimTB_consistent
@@ -1814,10 +1814,10 @@ lemma dnf_rew_consistent: "preserves_un_sat dnf_rew"
 theorem dnf_transformation_correction:
     "dnf_rew \<phi> \<phi>' \<Longrightarrow> is_dnf \<phi>'"
   apply (unfold dnf_rew_def OO_def)
-  by (meson and_in_or_only_conjunction_in_disj elimTB_full0_propo_rew_step elimTB_inv(1,2)
-    elim_imp_inv is_dnf_def no_equiv_full0_propo_rew_step_elim_equiv
-    no_imp_full0_propo_rew_step_elim_imp pushConj_full0_propo_rew_step pushConj_inv(1-4)
-    pushNeg_full0_propo_rew_step pushNeg_inv(1-3))
+  by (meson and_in_or_only_conjunction_in_disj elimTB_full_propo_rew_step elimTB_inv(1,2)
+    elim_imp_inv is_dnf_def no_equiv_full_propo_rew_step_elim_equiv
+    no_imp_full_propo_rew_step_elim_imp pushConj_full_propo_rew_step pushConj_inv(1-4)
+    pushNeg_full_propo_rew_step pushNeg_inv(1-3))
 
 section \<open>More aggressive simplifications: Removing true and false at the beginning\<close>
 
@@ -1905,11 +1905,11 @@ qed
 
 
 
-lemma elimTBFull_full0_propo_rew_step:
+lemma elimTBFull_full_propo_rew_step:
   fixes \<phi> \<psi> :: "'v propo"
-  assumes "full0 (propo_rew_step elimTBFull) \<phi> \<psi>"
+  assumes "full (propo_rew_step elimTBFull) \<phi> \<psi>"
   shows "no_T_F_except_top_level \<psi>"
-  using full0_propo_rew_step_subformula no_T_F_except_top_level_rew' assms by fastforce
+  using full_propo_rew_step_subformula no_T_F_except_top_level_rew' assms by fastforce
 
 subsection \<open>More invariants\<close>
 text \<open>As the aim is to use the transformation as the first transformation, we have to show some more
@@ -1978,7 +1978,7 @@ qed
 
 lemma elim_equiv_inv':
   fixes \<phi> \<psi> :: "'v propo"
-  assumes "full0 (propo_rew_step elim_equiv) \<phi> \<psi>" and "no_T_F_except_top_level \<phi>"
+  assumes "full (propo_rew_step elim_equiv) \<phi> \<psi>" and "no_T_F_except_top_level \<phi>"
   shows"no_T_F_except_top_level \<psi>"
 proof -
   {
@@ -2030,7 +2030,7 @@ proof -
      qed
   }
   ultimately show "no_T_F_except_top_level \<psi>"
-    using full0_propo_rew_step_inv_stay_with_inc[of "elim_equiv" "no_T_F_symb_except_toplevel" "\<phi>"]
+    using full_propo_rew_step_inv_stay_with_inc[of "elim_equiv" "no_T_F_symb_except_toplevel" "\<phi>"]
       assms subformula_refl unfolding no_T_F_except_top_level_def by metis
 qed
 
@@ -2084,7 +2084,7 @@ qed
 
 lemma elim_imp_inv':
   fixes \<phi> \<psi> :: "'v propo"
-  assumes "full0 (propo_rew_step elim_imp) \<phi> \<psi>" and "no_T_F_except_top_level \<phi>"
+  assumes "full (propo_rew_step elim_imp) \<phi> \<psi>" and "no_T_F_except_top_level \<phi>"
   shows"no_T_F_except_top_level \<psi>"
 proof -
   {
@@ -2141,7 +2141,7 @@ proof -
      qed
   }
   ultimately show "no_T_F_except_top_level \<psi>"
-    using full0_propo_rew_step_inv_stay_with_inc[of "elim_imp" "no_T_F_symb_except_toplevel" "\<phi>"]
+    using full_propo_rew_step_inv_stay_with_inc[of "elim_imp" "no_T_F_symb_except_toplevel" "\<phi>"]
     assms subformula_refl unfolding no_T_F_except_top_level_def by metis
 qed
 
@@ -2150,11 +2150,11 @@ subsection \<open>The new CNF and DNF transformation\<close>
 
 text \<open>The transformation is the same as before, but the order is not the same.\<close>
 definition dnf_rew' :: "'a propo \<Rightarrow> 'a propo \<Rightarrow> bool" where "dnf_rew' \<equiv>
-  (full0 (propo_rew_step elimTBFull)) OO
-  (full0 (propo_rew_step elim_equiv)) OO
-  (full0 (propo_rew_step elim_imp)) OO
-  (full0 (propo_rew_step pushNeg)) OO
-  (full0 (propo_rew_step pushConj))"
+  (full (propo_rew_step elimTBFull)) OO
+  (full (propo_rew_step elim_equiv)) OO
+  (full (propo_rew_step elim_imp)) OO
+  (full (propo_rew_step pushNeg)) OO
+  (full (propo_rew_step pushConj))"
 
 lemma dnf_rew'_consistent: "preserves_un_sat dnf_rew'"
   by (simp add: dnf_rew'_def elimEquv_lifted_consistant elim_imp_lifted_consistant
@@ -2163,18 +2163,18 @@ lemma dnf_rew'_consistent: "preserves_un_sat dnf_rew'"
 theorem cnf_transformation_correction:
     "dnf_rew' \<phi> \<phi>' \<Longrightarrow> is_dnf \<phi>'"
   unfolding dnf_rew'_def OO_def
-  by (meson and_in_or_only_conjunction_in_disj elimTBFull_full0_propo_rew_step elim_equiv_inv'
-    elim_imp_inv elim_imp_inv' is_dnf_def no_equiv_full0_propo_rew_step_elim_equiv
-    no_imp_full0_propo_rew_step_elim_imp pushConj_full0_propo_rew_step pushConj_inv(1-4)
-    pushNeg_full0_propo_rew_step pushNeg_inv(1-3))
+  by (meson and_in_or_only_conjunction_in_disj elimTBFull_full_propo_rew_step elim_equiv_inv'
+    elim_imp_inv elim_imp_inv' is_dnf_def no_equiv_full_propo_rew_step_elim_equiv
+    no_imp_full_propo_rew_step_elim_imp pushConj_full_propo_rew_step pushConj_inv(1-4)
+    pushNeg_full_propo_rew_step pushNeg_inv(1-3))
 
 text \<open>Given all the lemmas before the CNF transformation is easy to prove:\<close>
 definition cnf_rew' :: "'a propo \<Rightarrow> 'a propo \<Rightarrow> bool" where "cnf_rew' \<equiv>
-  (full0 (propo_rew_step elimTBFull)) OO
-  (full0 (propo_rew_step elim_equiv)) OO
-  (full0 (propo_rew_step elim_imp)) OO
-  (full0 (propo_rew_step pushNeg)) OO
-  (full0 (propo_rew_step pushDisj))"
+  (full (propo_rew_step elimTBFull)) OO
+  (full (propo_rew_step elim_equiv)) OO
+  (full (propo_rew_step elim_imp)) OO
+  (full (propo_rew_step pushNeg)) OO
+  (full (propo_rew_step pushDisj))"
 
 lemma cnf_rew'_consistent: "preserves_un_sat cnf_rew'"
   by (simp add: cnf_rew'_def elimEquv_lifted_consistant elim_imp_lifted_consistant
@@ -2183,9 +2183,9 @@ lemma cnf_rew'_consistent: "preserves_un_sat cnf_rew'"
 theorem cnf'_transformation_correction:
   "cnf_rew' \<phi> \<phi>' \<Longrightarrow> is_cnf \<phi>'"
   unfolding cnf_rew'_def OO_def
-  by (meson elimTBFull_full0_propo_rew_step elim_equiv_inv' elim_imp_inv elim_imp_inv' is_cnf_def
-    no_equiv_full0_propo_rew_step_elim_equiv no_imp_full0_propo_rew_step_elim_imp
-    or_in_and_only_conjunction_in_disj pushDisj_full0_propo_rew_step pushDisj_inv(1-4)
-    pushNeg_full0_propo_rew_step pushNeg_inv(1) pushNeg_inv(2) pushNeg_inv(3))
+  by (meson elimTBFull_full_propo_rew_step elim_equiv_inv' elim_imp_inv elim_imp_inv' is_cnf_def
+    no_equiv_full_propo_rew_step_elim_equiv no_imp_full_propo_rew_step_elim_imp
+    or_in_and_only_conjunction_in_disj pushDisj_full_propo_rew_step pushDisj_inv(1-4)
+    pushNeg_full_propo_rew_step pushNeg_inv(1) pushNeg_inv(2) pushNeg_inv(3))
 
 end

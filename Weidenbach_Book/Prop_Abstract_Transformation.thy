@@ -10,7 +10,7 @@ text \<open>This file is devoted to abstract properties of the transformations, 
 section \<open>Rewrite systems and properties\<close>
 subsection \<open>Lifting of rewrite rules\<close>
 
-text \<open>We can lift a rewrite relation r over a full formula: the relation \<open>r\<close> works on terms,
+text \<open>We can lift a rewrite relation r over a full1 formula: the relation \<open>r\<close> works on terms,
   while \<open>propo_rew_step\<close> works on formulas.\<close>
 
 
@@ -211,13 +211,13 @@ text \<open>In the previous a relation was lifted to a formula, now we define th
   applied as long as possible. The definition is thus simply: it can be derived and nothing more can
   be derived.\<close>
 
-lemma full0_ropo_rew_step_preservers_val[simp]:
-"preserves_un_sat r \<Longrightarrow> preserves_un_sat (full0 (propo_rew_step r))"
-  by (metis full0_def preserves_un_sat_def star_consistency_preservation)
+lemma full_ropo_rew_step_preservers_val[simp]:
+"preserves_un_sat r \<Longrightarrow> preserves_un_sat (full (propo_rew_step r))"
+  by (metis full_def preserves_un_sat_def star_consistency_preservation)
 
-lemma full0_propo_rew_step_subformula:
-"full0 (propo_rew_step r) \<phi>' \<phi> \<Longrightarrow> \<not>(\<exists> \<psi> \<psi>'. \<psi> \<preceq> \<phi> \<and> r \<psi> \<psi>')"
-  unfolding full0_def using propo_rew_step_subformula_rec by metis
+lemma full_propo_rew_step_subformula:
+"full (propo_rew_step r) \<phi>' \<phi> \<Longrightarrow> \<not>(\<exists> \<psi> \<psi>'. \<psi> \<preceq> \<phi> \<and> r \<psi> \<psi>')"
+  unfolding full_def using propo_rew_step_subformula_rec by metis
 
 
 section \<open>Transformation testing\<close>
@@ -459,12 +459,12 @@ lemma propo_rew_step_inv_stay:
   using propo_rew_step_inv_stay'[of \<phi> r test_symb \<phi> \<psi>] assms subformula_refl by metis
 
 
-text \<open>The lemmas can be lifted to @{term "full0 (propo_rew_step r)"} instead of
+text \<open>The lemmas can be lifted to @{term "full (propo_rew_step r)"} instead of
   @{term propo_rew_step}\<close>
 
 subsubsection \<open>Invariant after all rewriting\<close>
 
-lemma full0_propo_rew_step_inv_stay_with_inc:
+lemma full_propo_rew_step_inv_stay_with_inc:
   fixes r:: "'v propo \<Rightarrow> 'v propo \<Rightarrow> bool" and test_symb:: "'v propo \<Rightarrow> bool" and x :: "'v"
   and \<phi> \<psi> :: "'v propo"
   assumes
@@ -474,13 +474,13 @@ lemma full0_propo_rew_step_inv_stay_with_inc:
       \<longrightarrow> wf_conn c (\<xi> @ \<phi> # \<xi>') \<longrightarrow> test_symb (conn c (\<xi> @ \<phi> # \<xi>')) \<longrightarrow> test_symb \<phi>'
       \<longrightarrow> test_symb (conn c (\<xi> @ \<phi>' # \<xi>'))" and
       "\<phi> \<preceq> \<Phi>" and
-    full0: "full0 (propo_rew_step r) \<phi> \<psi>" and
+    full: "full (propo_rew_step r) \<phi> \<psi>" and
     init: "all_subformula_st test_symb \<phi>"
   shows "all_subformula_st test_symb \<psi>"
-  using assms unfolding full0_def
+  using assms unfolding full_def
 proof -
   have rel: "(propo_rew_step r)\<^sup>*\<^sup>* \<phi> \<psi>"
-    using full0 unfolding full0_def by auto
+    using full unfolding full_def by auto
   thus "all_subformula_st test_symb \<psi> "
     using init
     proof (induct rule: rtranclp.induct)
@@ -494,7 +494,7 @@ proof -
     qed
 qed
 
-lemma full0_propo_rew_step_inv_stay':
+lemma full_propo_rew_step_inv_stay':
   fixes r:: "'v propo \<Rightarrow> 'v propo \<Rightarrow> bool" and test_symb:: "'v propo \<Rightarrow> bool" and x :: "'v"
   and \<phi> \<psi> :: "'v propo"
   assumes
@@ -502,25 +502,25 @@ lemma full0_propo_rew_step_inv_stay':
       \<longrightarrow> all_subformula_st test_symb \<psi>" and
     H': "\<forall>(c:: 'v connective) \<xi> \<phi> \<xi>' \<phi>'. propo_rew_step r \<phi> \<phi>' \<longrightarrow> wf_conn c (\<xi> @ \<phi> # \<xi>')
       \<longrightarrow> test_symb (conn c (\<xi> @ \<phi> # \<xi>')) \<longrightarrow> test_symb \<phi>' \<longrightarrow> test_symb (conn c (\<xi> @ \<phi>' # \<xi>'))" and
-    full0: "full0 (propo_rew_step r) \<phi> \<psi>" and
+    full: "full (propo_rew_step r) \<phi> \<psi>" and
     init: "all_subformula_st test_symb \<phi>"
   shows "all_subformula_st test_symb \<psi>"
-  using full0_propo_rew_step_inv_stay_with_inc[of r test_symb \<phi>] assms subformula_refl by metis
+  using full_propo_rew_step_inv_stay_with_inc[of r test_symb \<phi>] assms subformula_refl by metis
 
-lemma full0_propo_rew_step_inv_stay:
+lemma full_propo_rew_step_inv_stay:
   fixes r:: "'v propo \<Rightarrow> 'v propo \<Rightarrow> bool" and test_symb:: "'v propo \<Rightarrow> bool" and x :: "'v"
   and \<phi> \<psi> :: "'v propo"
   assumes
     H: "\<forall>\<phi> \<psi>. r \<phi> \<psi> \<longrightarrow> all_subformula_st test_symb \<phi> \<longrightarrow> all_subformula_st test_symb \<psi>" and
     H': "\<forall>(c:: 'v connective) \<xi> \<phi> \<xi>' \<phi>'. wf_conn c (\<xi> @ \<phi> # \<xi>') \<longrightarrow> test_symb (conn c (\<xi> @ \<phi> # \<xi>'))
       \<longrightarrow> test_symb \<phi>' \<longrightarrow> test_symb (conn c (\<xi> @ \<phi>' # \<xi>'))" and
-    full0: "full0 (propo_rew_step r) \<phi> \<psi>" and
+    full: "full (propo_rew_step r) \<phi> \<psi>" and
     init: "all_subformula_st test_symb \<phi>"
   shows "all_subformula_st test_symb \<psi>"
-  unfolding full0_def
+  unfolding full_def
 proof -
   have rel: "(propo_rew_step r)^** \<phi> \<psi>"
-    using full0 unfolding full0_def by auto
+    using full unfolding full_def by auto
   thus "all_subformula_st test_symb \<psi>"
     using init
     proof (induct rule: rtranclp.induct)
@@ -536,14 +536,14 @@ proof -
 qed
 
 
-lemma full0_propo_rew_step_inv_stay_conn:
+lemma full_propo_rew_step_inv_stay_conn:
   fixes r:: "'v propo \<Rightarrow> 'v propo \<Rightarrow> bool" and test_symb:: "'v propo \<Rightarrow> bool" and x :: "'v"
   and \<phi> \<psi> :: "'v propo"
   assumes
     H: "\<forall>\<phi> \<psi>. r \<phi> \<psi> \<longrightarrow> all_subformula_st test_symb \<phi> \<longrightarrow> all_subformula_st test_symb \<psi>" and
     H': "\<forall>(c:: 'v connective) l l'. wf_conn c l \<longrightarrow> wf_conn c l'
       \<longrightarrow> (test_symb (conn c l) \<longleftrightarrow> test_symb (conn c l'))" and
-    full0: "full0 (propo_rew_step r) \<phi> \<psi>" and
+    full: "full (propo_rew_step r) \<phi> \<psi>" and
     init: "all_subformula_st test_symb \<phi>"
   shows "all_subformula_st test_symb \<psi>"
 proof -
@@ -551,7 +551,7 @@ proof -
     \<Longrightarrow> test_symb (conn c (\<xi> @ \<phi> # \<xi>')) \<Longrightarrow> test_symb \<phi>' \<Longrightarrow> test_symb (conn c (\<xi> @ \<phi>' # \<xi>'))"
     using H'  by (metis wf_conn_no_arity_change_helper wf_conn_no_arity_change)
   thus "all_subformula_st test_symb \<psi>"
-    using H  full0 init full0_propo_rew_step_inv_stay by blast
+    using H  full init full_propo_rew_step_inv_stay by blast
 qed
 
 end
