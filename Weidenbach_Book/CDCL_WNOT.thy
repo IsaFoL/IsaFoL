@@ -3975,6 +3975,7 @@ qed
 lemma true_cls_mset_increasing_r[simp]:
   "I \<Turnstile>m CC \<Longrightarrow> I \<union> J \<Turnstile>m CC"
   unfolding true_cls_mset_def by auto
+
 inductive Tcons :: "('v, nat, 'v clause) marked_lits \<Rightarrow>('v, nat, 'v clause) marked_lits \<Rightarrow> bool"
   for M :: "('v, nat, 'v clause) marked_lits" where
 "Tcons M []" |

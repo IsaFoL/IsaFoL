@@ -108,8 +108,6 @@ locale cw_state =
     trail_restart_state[simp]: "trail (restart_state S) = []" and
     init_clss_restart_state[simp]: "init_clss (restart_state S) = init_clss S" and
     learned_clss_restart_state[intro]: "learned_clss (restart_state S) \<subseteq># learned_clss S" and
-    learned_clss_restart_deterministic: "learned_clss S = learned_clss T
-      \<Longrightarrow> learned_clss (restart_state S) = learned_clss (restart_state T)" and
     backtrack_lvl_restart_state[simp]: "backtrack_lvl (restart_state S) = 0" and
     conflicting_restart_state[simp]: "conflicting (restart_state S) = C_True"
 begin
@@ -163,15 +161,12 @@ lemma
     state_eq_learned_clss: "S \<sim> T \<Longrightarrow> learned_clss S = learned_clss T" and
     state_eq_backtrack_lvl: "S \<sim> T \<Longrightarrow> backtrack_lvl S = backtrack_lvl T" and
     state_eq_conflicting: "S \<sim> T \<Longrightarrow> conflicting S = conflicting T" and
-    state_eq_clauses: "S \<sim> T \<Longrightarrow> clauses S = clauses T" and
-    state_eq_learned_clss_restart:
-      "S \<sim> T \<Longrightarrow> learned_clss (restart_state S) = learned_clss (restart_state T)"
-  prefer 7 apply (rule learned_clss_restart_deterministic)
+    state_eq_clauses: "S \<sim> T \<Longrightarrow> clauses S = clauses T"
   unfolding state_eq_def clauses_def by auto
 
 lemmas state_simp[simp] = state_eq_trail state_eq_init_clss state_eq_learned_clss
   state_eq_backtrack_lvl state_eq_conflicting state_eq_clauses
-  state_eq_learned_clss_restart
+
 
 lemma atms_of_m_learned_clss_restart_state_in_atms_of_m_learned_clssI[intro]:
   "x \<in> atms_of_mu (learned_clss (restart_state S)) \<Longrightarrow> x \<in> atms_of_mu (learned_clss S)"
@@ -718,20 +713,9 @@ lemma forget_state_eq_compatible:
   by (auto simp: state_eq_def clauses_def HOL.eq_sym_conv[of  "{#_#} + _" "_"]
      simp del: state_simp dest: arg_cong[of "_ # trail _" "trail _" tl])
 
-lemma restart_state_eq_compatible:
-  assumes
-    "restart S T" and
-    "S \<sim> S'" and
-    "T \<sim> T'"
-  shows "restart S' T'"
-  using assms apply (elim restartE)
-  by (metis (no_types, lifting) backtrack_lvl_restart_state conflicting_restart_state
-    init_clss_restart_state restart.restart state_eq_clauses state_eq_def state_eq_init_clss
-    state_eq_learned_clss_restart trail_restart_state)
-
 lemma cdcl_state_eq_compatible:
   assumes
-    "cdcl S T" and
+    "cdcl S T" and "\<not>restart S T" and
     "S \<sim> S'" and
     "T \<sim> T'"
   shows "cdcl S' T'"
@@ -739,7 +723,7 @@ lemma cdcl_state_eq_compatible:
     cdcl_o_rule_cases cdcl_rf.cases cdcl_rf.restart conflict_state_eq_compatible decide
     decide_state_eq_compatible forget forget_state_eq_compatible
     propagate_state_eq_compatible resolve_state_eq_compatible
-    restart_state_eq_compatible skip_state_eq_compatible)
+    skip_state_eq_compatible)
 
 lemma level_of_marked_ge_1:
   assumes "cdcl S S'"
