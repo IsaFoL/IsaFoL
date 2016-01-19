@@ -525,23 +525,23 @@ definition tl_trail where
   "tl_trail S =
    TWL_State (tl (trail S)) (init_clss S) (learned_clss S) (backtrack_lvl S) (conflicting S)"
 
-definition restart where
-  "restart S = TWL_State [] (init_clss S) (restart_learned S) 0 C_True"
+definition restart' where
+  "restart' S = TWL_State [] (init_clss S) (restart_learned S) 0 C_True"
 
 sublocale cw_state trail raw_init_clss raw_learned_clsss backtrack_lvl conflicting
   cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
-  update_conflicting init_state restart
+  update_conflicting init_state restart'
   apply unfold_locales
   apply (simp_all add: add_init_cls_def add_learned_cls_def clause_rewatch clause_watch
-    cons_trail_def remove_cls_def restart_def tl_trail_def update_backtrack_lvl_def
+    cons_trail_def remove_cls_def restart'_def tl_trail_def update_backtrack_lvl_def
     update_conflicting_def)
   apply (rule image_mset_subseteq_mono[OF restart_learned])
+  done
 
-  (*
-    FIXME: The last proof obligation seems too strong.
-  *)
-oops
-
+sublocale cdcl_cw_ops trail raw_init_clss raw_learned_clsss backtrack_lvl conflicting
+  cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
+  update_conflicting init_state restart'
+  by unfold_locales
 end
 
 interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn _ _ _ _ (* propagate_conds is in candidates *) _ _ _
