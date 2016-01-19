@@ -47,9 +47,10 @@ lemma rtranclp_skip_or_resolve_rtranclp_cdcl:
 abbreviation backjump_l_cond :: " 'v literal multiset \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool" where
 "backjump_l_cond \<equiv> \<lambda>C L S. True"
 
-abbreviation inv\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> bool" where
+definition inv\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> bool" where
 "inv\<^sub>N\<^sub>O\<^sub>T \<equiv> \<lambda>S. no_dup (trail S)"
 
+declare inv\<^sub>N\<^sub>O\<^sub>T_def[simp]
 end
 
 fun convert_trail_from_W ::
@@ -167,6 +168,7 @@ next
   moreover
     have "no_dup F"
       using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> \<open>(convert_trail_from_W \<circ> trail) S = F' @ Marked K d # F\<close>
+      unfolding inv\<^sub>N\<^sub>O\<^sub>T_def
       by (smt comp_apply distinct.simps(2) distinct_append list.simps(9) map_append
         no_dup_convert_from_W)
     then have "consistent_interp (lits_of F)"
@@ -180,8 +182,9 @@ next
   show ?case
     proof -
       have f2: "no_dup ((convert_trail_from_W \<circ> trail) S)"
-        by (simp add: \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close>)
-      have f3: "atm_of L \<in> atms_of_mu (clauses S) \<union> atm_of ` lits_of ((convert_trail_from_W \<circ> trail) S)"
+        using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> unfolding inv\<^sub>N\<^sub>O\<^sub>T_def by simp
+      have f3: "atm_of L \<in> atms_of_mu (clauses S) 
+        \<union> atm_of ` lits_of ((convert_trail_from_W \<circ> trail) S)"
         using \<open>(convert_trail_from_W \<circ> trail) S = F' @ Marked K d # F\<close>
         \<open>atm_of L \<in> atms_of_mu (clauses S) \<union> atm_of ` lits_of (F' @ Marked K d # F)\<close> by presburger
       have f4: "clauses S \<Turnstile>pm remdups_mset C' + {#L#}"
@@ -1242,7 +1245,7 @@ proof -
     proof cases
       case merged
       then show ?thesis
-        using cdcl\<^sub>N\<^sub>O\<^sub>T_decreasing_measure'[OF _ n_d atm_clauses] atm_trail n_d
+        using cdcl\<^sub>N\<^sub>O\<^sub>T_decreasing_measure'[OF _ _ atm_clauses] atm_trail n_d
         by (auto split: split_if)
     next
       case n_s
@@ -3662,7 +3665,8 @@ definition cdcl_s_invariant where
 "cdcl_s_invariant S \<longleftrightarrow>
   conflict_is_false_with_level S
   \<and> no_clause_is_false S
-  \<and> no_smaller_confl S"
+  \<and> no_smaller_confl S
+  \<and> no_clause_is_false S"
 
 lemma cdcl_s_cdcl_s_invariant:
   assumes
@@ -3676,8 +3680,10 @@ lemma cdcl_s_cdcl_s_invariant:
     using assms unfolding cdcl_s_invariant_def cdcl_all_struct_inv_def apply auto[7]
   apply standard
     using cdcl cdcl_s_not_non_negated_init_clss apply blast
-  apply (rule cdcl_s_no_smaller_confl_inv)
-  using assms unfolding cdcl_s_invariant_def cdcl_all_struct_inv_def by auto
+  apply standard
+   apply (rule cdcl_s_no_smaller_confl_inv)
+   using assms unfolding cdcl_s_invariant_def cdcl_all_struct_inv_def apply auto[4]
+  using cdcl cdcl_s_not_non_negated_init_clss by auto
 
 lemma rtranclp_cdcl_s_cdcl_s_invariant:
   assumes
@@ -3693,27 +3699,206 @@ lemma rtranclp_cdcl_s_cdcl_s_invariant:
 
 abbreviation decr_bt_lvl where
 "decr_bt_lvl S \<equiv> update_backtrack_lvl (backtrack_lvl S - 1) S"
-fun cut_trail_wrt_clause
-  :: "'v clause \<Rightarrow> ('v, nat, 'v clause) marked_lits \<Rightarrow> ('v, nat, 'v clause) marked_lits"  where
-"cut_trail_wrt_clause C (L # M) =
-  (if lit_of L \<in># C then M else L # cut_trail_wrt_clause C M)" |
-"cut_trail_wrt_clause _ [] = []"
 
-lemma cut_trail_wrt_clause_mempty[simp]:
-  "cut_trail_wrt_clause {#} M = M"
-  by (induction M) auto
+(* function cut_trail_wrt_clause where
+"cut_trail_wrt_clause C S =
+  (case fst S of
+    [] \<Rightarrow> (tl (fst S), snd S)
+  | Marked L _ # _ \<Rightarrow> 
+    if L \<in># C then S
+    else cut_trail_wrt_clause C (tl (fst S), snd S)
+  | Propagated L _ # _ \<Rightarrow> 
+    if L \<in># C then (tl (fst S), snd S)
+    else cut_trail_wrt_clause C (tl (fst S), snd S))"
+by auto
+termination by (relation "measure (\<lambda>(_, S). length (fst S))") auto
+thm cut_trail_wrt_clause.induct
+ *)
+text \<open>When we add a new clause, we reduce the trail until we get to tho first literal included in C.
+  Then we can mark the conflict.\<close>
+fun cut_trail_wrt_clause where
+"cut_trail_wrt_clause C [] S = S" |
+"cut_trail_wrt_clause C (Marked L _ # M) S = 
+  (if L \<in># C then S
+    else cut_trail_wrt_clause C M (decr_bt_lvl (tl_trail S)))" |
+"cut_trail_wrt_clause C (Propagated L _ # M) S = 
+  (if L \<in># C then S
+    else cut_trail_wrt_clause C M (tl_trail S))"
 
 (* TODO missing backtrack update *)
 definition add_new_clause_and_update :: "'v literal multiset \<Rightarrow> 'st \<Rightarrow> 'st" where
 "add_new_clause_and_update C S =
   (if trail S \<Turnstile>as CNot C
-  then (reduce_trail_to (cut_trail_wrt_clause C (trail S)) (add_init_cls C S))
+  then update_conflicting (C_Clause C) (add_init_cls C (cut_trail_wrt_clause C (trail S) S))
   else add_init_cls C S)"
+
+thm cut_trail_wrt_clause.induct
+lemma init_clss_cut_trail_wrt_clause[simp]:
+  "init_clss (cut_trail_wrt_clause C M S) = init_clss S"
+  by (induction rule: cut_trail_wrt_clause.induct) auto
+
+lemma learned_clss_cut_trail_wrt_clause[simp]:
+  "learned_clss (cut_trail_wrt_clause C M S) = learned_clss S"
+  by (induction rule: cut_trail_wrt_clause.induct) auto
+
+lemma conflicting_clss_cut_trail_wrt_clause[simp]:
+  "conflicting (cut_trail_wrt_clause C M S) = conflicting S"
+  by (induction rule: cut_trail_wrt_clause.induct) auto
+
+ thm cut_trail_wrt_clause.induct
+lemma trail_cut_trail_wrt_clause:
+  "\<exists>M.  trail S = M @ trail (cut_trail_wrt_clause C (trail S) S)"
+proof (induction "trail S" arbitrary:S rule: marked_lit_list_induct)
+  case nil
+  then show ?case by simp
+next
+  case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail S)"] and M = this(2)[symmetric]
+  then show ?case using Cons_eq_appendI by (cases "count C L = 0") fastforce+
+next
+  case (proped L l M) note IH = this(1)[of " (tl_trail S)"] and M = this(2)[symmetric]
+  then show ?case using Cons_eq_appendI by (cases "count C L = 0") fastforce+
+qed
+
+lemma cut_trail_wrt_clause_backtrack_lvl_length_marked:
+  assumes
+     "backtrack_lvl T = length (get_all_levels_of_marked (trail T))"
+  shows
+  "backtrack_lvl (cut_trail_wrt_clause C (trail T) T) =
+     length (get_all_levels_of_marked (trail (cut_trail_wrt_clause C (trail T) T)))"
+  using assms
+proof (induction "trail T" arbitrary:T rule: marked_lit_list_induct)
+  case nil
+  then show ?case by simp
+next
+  case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
+    and bt = this(3)
+  then show ?case by (cases "count C L = 0") auto
+next
+  case (proped L l M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric] and bt = this(3)
+  then show ?case by (cases "count C L = 0") auto
+qed
 
 inductive incremental_cdcl :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 "full1 cdcl_fw_s S T \<Longrightarrow> incremental_cdcl S T" |
 "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C 
   \<Longrightarrow> incremental_cdcl S (add_new_clause_and_update C S)"
+
+inductive add_learned_clss :: "'st \<Rightarrow> 'v clauses \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
+add_learned_clss_nil: "add_learned_clss S {#} S" |
+add_learned_clss_plus:
+  "add_learned_clss S A T \<Longrightarrow> add_learned_clss S ({#x#} + A) (add_learned_cls x T)"
+declare add_learned_clss.intros[intro]
+
+lemma Ex_add_learned_clss:
+  "\<exists>T. add_learned_clss S A T"
+  by (induction A arbitrary: S rule: multiset_induct) (auto simp: union_commute[of _ "{#_#}"])
+
+lemma add_learned_clss_learned_clss:
+  assumes "add_learned_clss S U T"
+  shows "learned_clss T = U + learned_clss S"
+  using assms by (induction rule: add_learned_clss.induct) (simp_all add: ac_simps)
+
+lemma add_learned_clss_trail:
+  assumes "add_learned_clss S U T"
+  shows "trail T = trail S"
+  using assms by (induction rule: add_learned_clss.induct) (simp_all add: ac_simps)
+
+lemma add_learned_clss_init_clss:
+  assumes "add_learned_clss S U T"
+  shows "init_clss T = init_clss S"
+  using assms by (induction rule: add_learned_clss.induct) (simp_all add: ac_simps)
+
+lemma add_learned_clss_conflicting:
+  assumes "add_learned_clss S U T"
+  shows "conflicting T = conflicting S"
+  using assms by (induction rule: add_learned_clss.induct) (simp_all add: ac_simps)
+
+lemma add_learned_clss_backtrack_lvl:
+  assumes "add_learned_clss S U T"
+  shows "backtrack_lvl T = backtrack_lvl S"
+  using assms by (induction rule: add_learned_clss.induct) (simp_all add: ac_simps)
+
+lemma add_learned_clss_init_state_mempty[dest!]:
+  "add_learned_clss (init_state N) {#} T \<Longrightarrow> T = init_state N"
+  by (cases rule: add_learned_clss.cases) (auto simp: add_learned_clss.cases)
+
+text \<open>For multiset larger that 1 element, there is no way to know in which order the clauses are
+  added. But contrary to a definition @{term fold_mset}, there is an element.\<close>
+lemma add_learned_clss_init_state_single[dest!]:
+  "add_learned_clss (init_state N) {#C#} T \<Longrightarrow> T = add_learned_cls C (init_state N)"
+  by (induction  "{#C#}" "T" rule: add_learned_clss.induct)
+  (auto simp: add_learned_clss.cases ac_simps union_is_single split: split_if_asm)
+
+thm rtranclp_cdcl_s_no_smaller_confl_inv cdcl_s_normal_forms
+lemma full_cdcl_fw_s_cdcl_all_struct_inv_add_new_clause_and_update:
+  assumes
+    full: "full cdcl_fw_s S T" and
+    S: "add_learned_clss (init_state N) U S" and
+    inv: "cdcl_all_struct_inv S" and
+    tr_T_N[simp]: "trail T \<Turnstile>asm N" and
+    tr_C[simp]: "trail T \<Turnstile>as CNot C" and
+    [simp]: "distinct_mset C"
+  shows "cdcl_all_struct_inv (add_new_clause_and_update C T)" (is "cdcl_all_struct_inv ?T'")
+proof -
+  let ?T = "update_conflicting (C_Clause C) (add_init_cls C (cut_trail_wrt_clause C (trail T) T))"
+  have inv_T: "cdcl_all_struct_inv T"
+    by (metis full full_def inv rtranclp_cdcl_all_struct_inv_inv rtranclp_cdcl_fw_rtranclp_cdcl 
+      rtranclp_cdcl_fw_s_rtranclp_cdcl_fw)
+  then obtain M where
+    M: "trail T = M @ trail (cut_trail_wrt_clause C (trail T) T)"
+      using trail_cut_trail_wrt_clause[of T C] by blast
+  have H[dest]: "\<And>x. x \<in> lits_of (trail (cut_trail_wrt_clause C (trail T) T)) ==> x \<in> lits_of (trail T)"
+    using inv_T arg_cong[OF M, of lits_of] by auto
+  have H'[dest]: "\<And>x. x \<in> set (trail (cut_trail_wrt_clause C (trail T) T)) ==> x \<in> set (trail T)"
+    using inv_T arg_cong[OF M, of set] by auto
+
+  have H_proped:"\<And>x. x \<in> set (get_all_mark_of_propagated (trail (cut_trail_wrt_clause C (trail T) T))) \<Longrightarrow>
+    x \<in> set (get_all_mark_of_propagated (trail T))"
+  using inv_T arg_cong[OF M, of get_all_mark_of_propagated] by auto
+
+  have [simp]: "no_strange_atm ?T"
+    using inv_T unfolding cdcl_all_struct_inv_def no_strange_atm_def add_new_clause_and_update_def
+    by (auto dest!: H H')
+
+  have M_lev: "cdcl_M_level_inv T"
+    using inv_T unfolding cdcl_all_struct_inv_def by blast
+  then have "no_dup (M @ trail (cut_trail_wrt_clause C (trail T) T))"
+    unfolding cdcl_M_level_inv_def unfolding M[symmetric] by auto
+  then have [simp]: "no_dup (trail (cut_trail_wrt_clause C (trail T) T))"
+    by auto
+
+  have "consistent_interp (lits_of (M @ trail (cut_trail_wrt_clause C (trail T) T)))"
+    using M_lev unfolding cdcl_M_level_inv_def unfolding M[symmetric] by auto
+  then have [simp]: "consistent_interp (lits_of (trail (cut_trail_wrt_clause C (trail T) T)))"
+    unfolding consistent_interp_def by auto
+
+  have "cdcl_M_level_inv ?T" 
+    unfolding cdcl_M_level_inv_def apply (auto dest: H H') sorry
+
+  have [simp]: "\<And>s. s \<in># learned_clss T \<Longrightarrow> \<not>tautology s"
+    using inv_T unfolding cdcl_all_struct_inv_def by auto
+
+  have "distinct_cdcl_state T"
+    using inv_T unfolding cdcl_all_struct_inv_def by auto
+  then have [simp]: "distinct_cdcl_state ?T"
+    unfolding distinct_cdcl_state_def by auto
+ 
+  have "cdcl_conflicting T"
+    using inv_T unfolding cdcl_all_struct_inv_def by auto
+
+  then have "cdcl_conflicting ?T"
+    unfolding cdcl_conflicting_def sorry
+
+  have "all_decomposition_implies_m (init_clss T) (get_all_marked_decomposition (trail T))"
+    using inv_T unfolding cdcl_all_struct_inv_def by auto
+  then have "all_decomposition_implies_m  (init_clss ?T) (get_all_marked_decomposition (trail ?T))"
+    unfolding all_decomposition_implies_def sorry
+
+  have [simp]: "cdcl_learned_clause ?T"
+    using inv_T unfolding cdcl_all_struct_inv_def cdcl_learned_clause_def 
+    by (auto dest!: H_proped simp: clauses_def)
+  show ?thesis unfolding cdcl_all_struct_inv_def apply (auto simp: add_new_clause_and_update_def) sorry
+qed
 
 lemma blocked_induction_with_marked:
   assumes
@@ -3786,52 +3971,6 @@ next
     using append_nm[of _ M'] nm  unfolding M by simp
 qed
 
-inductive add_learned_clss :: "'st \<Rightarrow> 'v clauses \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
-add_learned_clss_nil: "add_learned_clss S {#} S" |
-add_learned_clss_plus:
-  "add_learned_clss S A T \<Longrightarrow> add_learned_clss S ({#x#} + A) (add_learned_cls x T)"
-declare add_learned_clss.intros[intro]
-
-lemma Ex_add_learned_clss:
-  "\<exists>T. add_learned_clss S A T"
-  by (induction A arbitrary: S rule: multiset_induct) (auto simp: union_commute[of _ "{#_#}"])
-
-lemma add_learned_clss_learned_clss:
-  assumes "add_learned_clss S U T"
-  shows "learned_clss T = U + learned_clss S"
-  using assms by (induction rule: add_learned_clss.induct) (simp_all add: ac_simps)
-
-lemma add_learned_clss_trail:
-  assumes "add_learned_clss S U T"
-  shows "trail T = trail S"
-  using assms by (induction rule: add_learned_clss.induct) (simp_all add: ac_simps)
-
-lemma add_learned_clss_init_clss:
-  assumes "add_learned_clss S U T"
-  shows "init_clss T = init_clss S"
-  using assms by (induction rule: add_learned_clss.induct) (simp_all add: ac_simps)
-
-lemma add_learned_clss_conflicting:
-  assumes "add_learned_clss S U T"
-  shows "conflicting T = conflicting S"
-  using assms by (induction rule: add_learned_clss.induct) (simp_all add: ac_simps)
-
-lemma add_learned_clss_backtrack_lvl:
-  assumes "add_learned_clss S U T"
-  shows "backtrack_lvl T = backtrack_lvl S"
-  using assms by (induction rule: add_learned_clss.induct) (simp_all add: ac_simps)
-
-lemma add_learned_clss_init_state_mempty[dest!]:
-  "add_learned_clss (init_state N) {#} T \<Longrightarrow> T = init_state N"
-  by (cases rule: add_learned_clss.cases) (auto simp: add_learned_clss.cases)
-
-text \<open>For multiset larger that 1 element, there is no way to know in which order the clauses are
-  added. But contrary to a definition @{term fold_mset}, there is an element.\<close>
-lemma add_learned_clss_init_state_single[dest!]:
-  "add_learned_clss (init_state N) {#C#} T \<Longrightarrow> T = add_learned_cls C (init_state N)"
-  by (induction  "{#C#}" "T" rule: add_learned_clss.induct)
-  (auto simp: add_learned_clss.cases ac_simps union_is_single split: split_if_asm)
-
   (* TODO MOVE ME *)
 lemma true_cls_mset_increasing_r[simp]:
   "I \<Turnstile>m CC \<Longrightarrow> I \<union> J \<Turnstile>m CC"
@@ -3845,14 +3984,6 @@ inductive Tcons :: "('v, nat, 'v clause) marked_lits \<Rightarrow>('v, nat, 'v c
 
 lemma Tcons_same_end: "Tcons M M' \<Longrightarrow> \<exists>M''. M = M'' @ M'"
   by (induction rule: Tcons.induct) auto
-
-(* TODO Move *)
-lemma set_mset_single_iff_replicate_mset:
-  "set_mset U = {a}  \<longleftrightarrow> (\<exists>n>0. U = replicate_mset n a)"
-  apply (rule iffI)
-    apply (metis antisym_conv3 count_replicate_mset gr_implies_not0 mem_set_mset_iff multiset_eq_iff
-      singleton_iff)
-  by (auto split: split_if_asm)
 
 text \<open> We assume the following:
   \<^item> there is a full1 transition before, starting from an initial state, where some learned clauses

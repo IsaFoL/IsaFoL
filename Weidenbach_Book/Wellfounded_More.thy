@@ -5,7 +5,6 @@ begin
 
 section \<open>Transition\<close>
 subsection \<open>Rtranclp\<close>
-(* TODO Move to SL? *)
 text \<open>This is the equivalent of @{thm rtranclp_mono} for @{term tranclp}\<close>
 lemma
   "r\<^sup>+\<^sup>+ a b \<Longrightarrow> r \<le> s \<Longrightarrow> s\<^sup>+\<^sup>+ a b"

@@ -458,4 +458,11 @@ lemma set_mset_minus_replicate_mset:
 abbreviation remove_mset :: "'a multiset \<Rightarrow> 'a \<Rightarrow> 'a multiset" where
 "remove_mset M C \<equiv> M - replicate_mset (count M C) C"
 
+lemma set_mset_single_iff_replicate_mset:
+  "set_mset U = {a}  \<longleftrightarrow> (\<exists>n>0. U = replicate_mset n a)"
+  apply (rule iffI)
+    apply (metis antisym_conv3 count_replicate_mset gr_implies_not0 mem_set_mset_iff multiset_eq_iff
+      singleton_iff)
+  by (auto split: split_if_asm)
+
 end
