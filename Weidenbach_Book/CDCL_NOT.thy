@@ -348,12 +348,12 @@ locale propagate_ops =
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_cond :: "'st \<Rightarrow> bool"
+    propagate_cond :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> bool"
 begin
 inductive propagate\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 propagate\<^sub>N\<^sub>O\<^sub>T[intro]: "C + {#L#} \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C
     \<Longrightarrow> undefined_lit L (trail S)
-    \<Longrightarrow> propagate_cond S
+    \<Longrightarrow> propagate_cond (Propagated L Proped) S
     \<Longrightarrow> T \<sim> prepend_trail (Propagated L Proped) S
     \<Longrightarrow> propagate\<^sub>N\<^sub>O\<^sub>T S T"
 inductive_cases propagateE[elim]: "propagate\<^sub>N\<^sub>O\<^sub>T S T"
@@ -413,7 +413,7 @@ locale dpll_with_backjumping_ops =
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_conds :: "'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
     backjump_conds :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" +
   assumes
@@ -1076,7 +1076,7 @@ locale dpll_with_backjumping =
     clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_conds :: "'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
     backjump_conds :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool"
   +
@@ -1356,7 +1356,7 @@ locale conflict_driven_clause_learning_ops =
       prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and 
       tl_trail :: "'st \<Rightarrow> 'st" and
       add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-      propagate_conds ::  "'st \<Rightarrow> bool" and
+      propagate_conds :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow>'st \<Rightarrow> bool" and
       inv :: "'st \<Rightarrow> bool" and
       backjump_conds ::  "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
       learn_cond forget_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
@@ -1848,7 +1848,7 @@ locale conflict_driven_clause_learning_learning_before_backjump_only_distinct_le
       prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
       tl_trail :: "'st \<Rightarrow> 'st" and
       add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-      propagate_conds ::  "'st \<Rightarrow> bool" and
+      propagate_conds :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
       inv :: "'st \<Rightarrow> bool" and
       backjump_conds :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
       learn_restrictions forget_restrictions :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
@@ -2437,7 +2437,7 @@ locale conflict_driven_clause_learning_with_restarts =
       prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
       tl_trail :: "'st \<Rightarrow> 'st" and
       add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-      propagate_conds :: "'st \<Rightarrow> bool" and
+      propagate_conds :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
       inv :: "'st \<Rightarrow> bool" and
       backjump_conds ::  "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
       learn_cond forget_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
@@ -2857,7 +2857,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops =
     clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_conds :: "'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     forget_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" +
   fixes backjump_l_cond :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool"
 begin
@@ -2901,7 +2901,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy =
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_conds :: "'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
     backjump_l_cond :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool" +
   fixes
@@ -2972,7 +2972,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2 =
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_conds :: "'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
     backjump_l_cond :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool"
@@ -2993,7 +2993,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn =
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_conds :: "'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
     backjump_l_cond :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool" +
@@ -3480,7 +3480,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_with_backtrack_and_restarts =
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_conds :: "'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
     backjump_conds :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
     learn_restrictions forget_restrictions :: "'v::linorder clause \<Rightarrow> 'st \<Rightarrow> bool"
@@ -3739,7 +3739,7 @@ locale most_general_cdcl\<^sub>N\<^sub>O\<^sub>T =
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_conds :: "'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool"
 begin
 lemma backjump_bj_can_jump:
@@ -3772,7 +3772,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_with_backtrack_restarts =
     prepend_trail :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_conds :: "'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, dpll_marked_level, dpll_mark) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
     backjump_l_cond :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool"

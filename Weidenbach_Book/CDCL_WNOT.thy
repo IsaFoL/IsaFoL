@@ -140,8 +140,8 @@ sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_op
   "\<lambda>S. tl_trail S"
   "\<lambda>C S. add_learned_cls C S"
   "\<lambda>C S. remove_cls C S"
-  (* backjump conditions: *)"\<lambda>_. True"
-  (* propagate conditions: *) "\<lambda>_ S. conflicting S = C_True" "\<lambda>C L S. backjump_l_cond C L S
+  (* propagate conditions: *)"\<lambda>_ _. True"
+  (* backjump conditions: *) "\<lambda>_ S. conflicting S = C_True" "\<lambda>C L S. backjump_l_cond C L S
     \<and> distinct_mset (C + {#L#}) \<and> \<not>tautology (C + {#L#})"
   by unfold_locales
 
@@ -150,7 +150,7 @@ sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_pr
   "\<lambda>S. tl_trail S"
   "\<lambda>C S. add_learned_cls C S"
   "\<lambda>C S. remove_cls C S"
-  "\<lambda>_. True"
+  "\<lambda>_ _. True"
   "\<lambda>_ S. conflicting S = C_True" backjump_l_cond inv\<^sub>N\<^sub>O\<^sub>T
 proof (unfold_locales, goal_cases)
   case 2
@@ -202,7 +202,7 @@ sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_pr
   "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
   "\<lambda>S. tl_trail S"
   "\<lambda>C S. add_learned_cls C S"
-  "\<lambda>C S. remove_cls C S" "\<lambda>_. True"  inv\<^sub>N\<^sub>O\<^sub>T
+  "\<lambda>C S. remove_cls C S" "\<lambda>_ _. True"  inv\<^sub>N\<^sub>O\<^sub>T
   "\<lambda>_ S. conflicting S = C_True" backjump_l_cond
   by unfold_locales
 
@@ -210,7 +210,7 @@ sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn "c
   "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
   "\<lambda>S. tl_trail S"
   "\<lambda>C S. add_learned_cls C S"
-  "\<lambda>C S. remove_cls C S" "\<lambda>_. True"  inv\<^sub>N\<^sub>O\<^sub>T
+  "\<lambda>C S. remove_cls C S" "\<lambda>_ _. True"  inv\<^sub>N\<^sub>O\<^sub>T
   "\<lambda>_ S. conflicting S = C_True" backjump_l_cond
   apply unfold_locales
    using dpll\<^sub>N\<^sub>O\<^sub>T_bj_no_dup apply simp
@@ -3719,10 +3719,10 @@ text \<open>When we add a new clause, we reduce the trail until we get to tho fi
 fun cut_trail_wrt_clause where
 "cut_trail_wrt_clause C [] S = S" |
 "cut_trail_wrt_clause C (Marked L _ # M) S = 
-  (if L \<in># C then S
+  (if -L \<in># C then S
     else cut_trail_wrt_clause C M (decr_bt_lvl (tl_trail S)))" |
 "cut_trail_wrt_clause C (Propagated L _ # M) S = 
-  (if L \<in># C then S
+  (if -L \<in># C then S
     else cut_trail_wrt_clause C M (tl_trail S))"
 
 (* TODO missing backtrack update *)
@@ -3753,10 +3753,10 @@ proof (induction "trail S" arbitrary:S rule: marked_lit_list_induct)
   then show ?case by simp
 next
   case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail S)"] and M = this(2)[symmetric]
-  then show ?case using Cons_eq_appendI by (cases "count C L = 0") fastforce+
+  then show ?case using Cons_eq_appendI by fastforce+
 next
   case (proped L l M) note IH = this(1)[of " (tl_trail S)"] and M = this(2)[symmetric]
-  then show ?case using Cons_eq_appendI by (cases "count C L = 0") fastforce+
+  then show ?case using Cons_eq_appendI by fastforce+
 qed
 
 lemma cut_trail_wrt_clause_backtrack_lvl_length_marked:
@@ -3772,10 +3772,57 @@ proof (induction "trail T" arbitrary:T rule: marked_lit_list_induct)
 next
   case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
     and bt = this(3)
+  then show ?case by auto
+next
+  case (proped L l M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric] and bt = this(3)
+  then show ?case by auto
+qed
+
+lemma cut_trail_wrt_clause_get_all_levels_of_marked:
+  assumes "get_all_levels_of_marked (trail T) = rev [Suc 0..<
+    Suc (length (get_all_levels_of_marked (trail T)))]"
+  shows
+    "get_all_levels_of_marked (trail ((cut_trail_wrt_clause C (trail T) T))) = rev [Suc 0..<
+    Suc (length (get_all_levels_of_marked (trail  ((cut_trail_wrt_clause C (trail T) T)))))]"
+  using assms
+proof (induction "trail T" arbitrary:T rule: marked_lit_list_induct)
+  case nil
+  then show ?case by simp
+next
+  case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
+    and bt = this(3)
   then show ?case by (cases "count C L = 0") auto
 next
   case (proped L l M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric] and bt = this(3)
   then show ?case by (cases "count C L = 0") auto
+qed 
+
+lemma cut_trail_wrt_clause_CNot_trail:
+  assumes "trail T \<Turnstile>as CNot C"
+  shows
+    "(trail ((cut_trail_wrt_clause C (trail T) T))) \<Turnstile>as CNot C"
+  using assms
+proof (induction "trail T" arbitrary:T rule: marked_lit_list_induct)
+  case nil
+  then show ?case by simp
+next
+  case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
+    and bt = this(3)
+    (* TODO less ugly proof *)
+  then show ?case apply (cases "count C (-L) = 0") 
+    apply (auto simp: true_annots_true_cls) 
+    by (smt CNot_def One_nat_def count_single diff_Suc_1 in_CNot_uminus less_numeral_extra(4)
+     marked.prems marked_lit.sel(1) mem_Collect_eq true_annot_def true_annot_lit_of_notin_skip
+     true_annots_def true_clss_def zero_less_diff)
+next
+  case (proped L l M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric] and bt = this(3)
+  then show ?case  
+    (* TODO ugly proof *)
+    apply (cases "count C (-L) = 0") 
+    apply (auto simp: true_annots_true_cls) 
+    by (smt CNot_def One_nat_def count_single diff_Suc_1 in_CNot_uminus less_numeral_extra(4)
+     proped.prems marked_lit.sel(2) mem_Collect_eq true_annot_def true_annot_lit_of_notin_skip
+     true_annots_def true_clss_def zero_less_diff)
 qed
 
 inductive incremental_cdcl :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
@@ -3830,30 +3877,26 @@ lemma add_learned_clss_init_state_single[dest!]:
   (auto simp: add_learned_clss.cases ac_simps union_is_single split: split_if_asm)
 
 thm rtranclp_cdcl_s_no_smaller_confl_inv cdcl_s_normal_forms
-lemma full_cdcl_fw_s_cdcl_all_struct_inv_add_new_clause_and_update:
+lemma cdcl_all_struct_inv_add_new_clause_and_update_cdcl_all_struct_inv:
   assumes
-    full: "full cdcl_fw_s S T" and
-    S: "add_learned_clss (init_state N) U S" and
-    inv: "cdcl_all_struct_inv S" and
+    inv_T: "cdcl_all_struct_inv T" and
     tr_T_N[simp]: "trail T \<Turnstile>asm N" and
     tr_C[simp]: "trail T \<Turnstile>as CNot C" and
     [simp]: "distinct_mset C"
   shows "cdcl_all_struct_inv (add_new_clause_and_update C T)" (is "cdcl_all_struct_inv ?T'")
 proof -
   let ?T = "update_conflicting (C_Clause C) (add_init_cls C (cut_trail_wrt_clause C (trail T) T))"
-  have inv_T: "cdcl_all_struct_inv T"
-    by (metis full full_def inv rtranclp_cdcl_all_struct_inv_inv rtranclp_cdcl_fw_rtranclp_cdcl 
-      rtranclp_cdcl_fw_s_rtranclp_cdcl_fw)
-  then obtain M where
+  obtain M where
     M: "trail T = M @ trail (cut_trail_wrt_clause C (trail T) T)"
       using trail_cut_trail_wrt_clause[of T C] by blast
-  have H[dest]: "\<And>x. x \<in> lits_of (trail (cut_trail_wrt_clause C (trail T) T)) ==> x \<in> lits_of (trail T)"
+  have H[dest]: "\<And>x. x \<in> lits_of (trail (cut_trail_wrt_clause C (trail T) T)) \<Longrightarrow>
+    x \<in> lits_of (trail T)"
     using inv_T arg_cong[OF M, of lits_of] by auto
-  have H'[dest]: "\<And>x. x \<in> set (trail (cut_trail_wrt_clause C (trail T) T)) ==> x \<in> set (trail T)"
+  have H'[dest]: "\<And>x. x \<in> set (trail (cut_trail_wrt_clause C (trail T) T)) \<Longrightarrow> x \<in> set (trail T)"
     using inv_T arg_cong[OF M, of set] by auto
 
-  have H_proped:"\<And>x. x \<in> set (get_all_mark_of_propagated (trail (cut_trail_wrt_clause C (trail T) T))) \<Longrightarrow>
-    x \<in> set (get_all_mark_of_propagated (trail T))"
+  have H_proped:"\<And>x. x \<in> set (get_all_mark_of_propagated (trail (cut_trail_wrt_clause C (trail T)
+    T))) \<Longrightarrow> x \<in> set (get_all_mark_of_propagated (trail T))"
   using inv_T arg_cong[OF M, of get_all_mark_of_propagated] by auto
 
   have [simp]: "no_strange_atm ?T"
@@ -3872,8 +3915,10 @@ proof -
   then have [simp]: "consistent_interp (lits_of (trail (cut_trail_wrt_clause C (trail T) T)))"
     unfolding consistent_interp_def by auto
 
-  have "cdcl_M_level_inv ?T" 
-    unfolding cdcl_M_level_inv_def apply (auto dest: H H') sorry
+  have [simp]: "cdcl_M_level_inv ?T" 
+    unfolding cdcl_M_level_inv_def apply (auto dest: H H' 
+      simp: M_lev cdcl_M_level_inv_decomp(3) cut_trail_wrt_clause_backtrack_lvl_length_marked)
+    using M_lev cut_trail_wrt_clause_get_all_levels_of_marked by (subst arg_cong[OF M]) auto
 
   have [simp]: "\<And>s. s \<in># learned_clss T \<Longrightarrow> \<not>tautology s"
     using inv_T unfolding cdcl_all_struct_inv_def by auto
@@ -3883,22 +3928,69 @@ proof -
   then have [simp]: "distinct_cdcl_state ?T"
     unfolding distinct_cdcl_state_def by auto
  
-  have "cdcl_conflicting T"
+  have  "cdcl_conflicting T"
     using inv_T unfolding cdcl_all_struct_inv_def by auto
+  have "trail ?T \<Turnstile>as CNot C"
+     by (simp add: cut_trail_wrt_clause_CNot_trail) 
+  then have [simp]: "cdcl_conflicting ?T"
+    unfolding cdcl_conflicting_def apply simp
+    by (metis M \<open>cdcl_conflicting T\<close> append_assoc cdcl_conflicting_decomp(2))
 
-  then have "cdcl_conflicting ?T"
-    unfolding cdcl_conflicting_def sorry
-
-  have "all_decomposition_implies_m (init_clss T) (get_all_marked_decomposition (trail T))"
+  have decomp_T: "all_decomposition_implies_m (init_clss T) (get_all_marked_decomposition (trail T))"
     using inv_T unfolding cdcl_all_struct_inv_def by auto
-  then have "all_decomposition_implies_m  (init_clss ?T) (get_all_marked_decomposition (trail ?T))"
-    unfolding all_decomposition_implies_def sorry
-
+  have  "all_decomposition_implies_m  (init_clss ?T)
+    (get_all_marked_decomposition (trail ?T))"
+    unfolding all_decomposition_implies_def 
+    proof clarify
+      fix a b
+      assume "(a, b) \<in> set (get_all_marked_decomposition (trail ?T))"
+      from in_get_all_marked_decomposition_in_get_all_marked_decomposition_prepend[OF this] 
+      obtain b' where
+        "(a, b' @ b) \<in>  set (get_all_marked_decomposition (trail T))"
+        using M (* TODO tune *) by simp metis
+      then have "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (init_clss ?T) 
+        \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (b @ b')"
+        using decomp_T unfolding all_decomposition_implies_def
+        (* TODO Tune *)
+        apply auto
+        by (metis (no_types, lifting) case_prodD set_append sup.commute true_clss_clss_insert_l)
+        
+      then show "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (init_clss ?T) 
+        \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set b"
+        by (auto simp: image_Un)
+    qed
+        
   have [simp]: "cdcl_learned_clause ?T"
     using inv_T unfolding cdcl_all_struct_inv_def cdcl_learned_clause_def 
     by (auto dest!: H_proped simp: clauses_def)
-  show ?thesis unfolding cdcl_all_struct_inv_def apply (auto simp: add_new_clause_and_update_def) sorry
+  show ?thesis 
+    using \<open>all_decomposition_implies_m  (init_clss ?T)
+    (get_all_marked_decomposition (trail ?T))\<close>
+    unfolding cdcl_all_struct_inv_def by (auto simp: add_new_clause_and_update_def)
 qed
+
+(* distinguish between C = {#} and C \<noteq> {#} *)
+lemma cdcl_all_struct_inv_add_new_clause_and_update_cdcl_all_struct_inv:
+  assumes
+    inv_s: "cdcl_s_invariant T" and
+    inv: "cdcl_all_struct_inv T" and
+    tr_T_N[simp]: "trail T \<Turnstile>asm N" and
+    tr_C[simp]: "trail T \<Turnstile>as CNot C" and
+    [simp]: "distinct_mset C"
+  shows "cdcl_s_invariant (add_new_clause_and_update C T)" (is "cdcl_s_invariant ?T'")
+proof -
+  have "cdcl_all_struct_inv ?T'"
+    using cdcl_all_struct_inv_add_new_clause_and_update_cdcl_all_struct_inv assms by blast
+  
+  have "no_smaller_confl (update_conflicting (C_Clause C)
+    (add_init_cls C (cut_trail_wrt_clause C (trail T) T)))"
+    unfolding no_smaller_confl_def apply auto
+    
+    sorry
+    
+  show ?thesis unfolding cdcl_s_invariant_def
+    unfolding cdcl_all_struct_inv_def apply (auto simp: add_new_clause_and_update_def)
+oops
 
 lemma blocked_induction_with_marked:
   assumes

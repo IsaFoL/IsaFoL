@@ -542,11 +542,28 @@ sublocale cdcl_cw_ops trail raw_init_clss raw_learned_clsss backtrack_lvl confli
   cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
   update_conflicting init_state restart'
   by unfold_locales
-end
 
-interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn _ _ _ _ (* propagate_conds is in candidates *) _ _ _
+interpretation cdcl\<^sub>N\<^sub>O\<^sub>T: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn "convert_trail_from_W o trail" clauses
+  "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
+  "\<lambda>S. tl_trail S"
+  "\<lambda>C S. add_learned_cls C S"
+  "\<lambda>C S. remove_cls C S"
+  (* propagate conditions: *)"\<lambda>L S. lit_of L \<in> fst ` candidates_propagate S" 
+  "\<lambda>_. True"
+  "\<lambda>_ _. True"
+  "\<lambda>C L S. backjump_l_cond C L S
+    \<and> distinct_mset (C + {#L#}) \<and> \<not>tautology (C + {#L#})"
+  (* propagate conditions: *)  (* "\<lambda>C L S. backjump_l_cond C L S
+    \<and> distinct_mset (C + {#L#}) \<and> \<not>tautology (C + {#L#})" *)
+  (* "\<lambda>L S. lit_of L \<in> fst ` candidates_propagate S" *)
+  apply unfold_locales
+  defer apply fast+
+
   (* backjump_conds is candidate_conflict *)
 oops
+
+end
+
 
 definition pull :: "('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'a list" where
   "pull p xs = filter p xs @ filter (Not \<circ> p) xs"

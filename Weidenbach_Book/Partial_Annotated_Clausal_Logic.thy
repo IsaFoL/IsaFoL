@@ -424,6 +424,14 @@ next
     qed
 qed
 
+lemma in_get_all_marked_decomposition_in_get_all_marked_decomposition_prepend:
+  "(a, b) \<in> set (get_all_marked_decomposition M') \<Longrightarrow>
+    \<exists>b'. (a, b' @ b) \<in> set (get_all_marked_decomposition (M @ M'))"
+  apply (induction M rule: marked_lit_list_induct)
+    apply (metis append_Nil)
+   apply auto[]
+  by (case_tac "get_all_marked_decomposition (xs @ M')") auto
+
 lemma get_all_marked_decomposition_remove_unmarked_length:
   assumes "\<forall>l \<in> set M'. \<not>is_marked l"
   shows "length (get_all_marked_decomposition (M' @ M''))
