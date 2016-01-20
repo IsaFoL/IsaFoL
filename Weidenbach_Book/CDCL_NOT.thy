@@ -1591,6 +1591,7 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv:
   using assms unfolding cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv_def
   by (simp add: rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_inv rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_trail_clauses_bound)
 
+(* FIXME: beta-reduce? *)
 abbreviation learn_or_forget where
 "learn_or_forget S T \<equiv> (\<lambda>S T. learn S T \<or> forget\<^sub>N\<^sub>O\<^sub>T S T) S T"
 
