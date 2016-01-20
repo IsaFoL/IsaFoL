@@ -8,12 +8,12 @@ definition DPLL_step :: "int dpll\<^sub>W_marked_lits \<times> int literal list 
   \<Rightarrow> int dpll\<^sub>W_marked_lits \<times> int literal list list"  where
 "DPLL_step = (\<lambda>(Ms, N).
   (case find_first_unit_clause N Ms of
-    Some (L, _) \<Rightarrow> (Propagated L Proped # Ms, N)
+    Some (L, _) \<Rightarrow> (Propagated L () # Ms, N)
   | _ \<Rightarrow>
     if \<exists>C \<in> set N. (\<forall>c \<in> set C. -c \<in> lits_of Ms)
     then
       (case backtrack_split Ms of
-        (_, L # M) \<Rightarrow>  (Propagated (- (lit_of L)) Proped # M, N)
+        (_, L # M) \<Rightarrow>  (Propagated (- (lit_of L)) () # M, N)
       | (_, _) \<Rightarrow> (Ms, N)
       )
     else
@@ -26,9 +26,9 @@ value "DPLL_step ([Marked (Neg 1) Level], [[Pos (1::int), Neg 2]])"
 
 text \<open>We define the conversion function between the states as defined in \<open>Prop_DPLL\<close> (with
   multisets) and here (with lists).\<close>
-abbreviation "toS \<equiv> \<lambda>(Ms::(int, dpll_marked_level, dpll_mark) marked_lit list)
+abbreviation "toS \<equiv> \<lambda>(Ms::(int, dpll_marked_level, unit) marked_lit list)
                       (N:: int literal list list). (Ms, mset (map mset N)) "
-abbreviation "toS' \<equiv> \<lambda>(Ms::(int, dpll_marked_level, dpll_mark) marked_lit list,
+abbreviation "toS' \<equiv> \<lambda>(Ms::(int, dpll_marked_level, unit) marked_lit list,
                           N:: int literal list list). (Ms, mset (map mset N)) "
 
 text \<open>Proof of correctness of @{term DPLL_step}\<close>
@@ -40,7 +40,7 @@ proof -
   let ?S = "(Ms, mset (map mset N))"
   { fix L E
     assume unit: "find_first_unit_clause N Ms = Some (L, E)"
-    hence Ms'N: "(Ms', N') = (Propagated L Proped # Ms, N)"
+    hence Ms'N: "(Ms', N') = (Propagated L () # Ms, N)"
       using step unfolding DPLL_step_def by auto
     obtain C where
       C: "C \<in> set N" and
@@ -48,7 +48,7 @@ proof -
       undef: "undefined_lit L Ms" and
       "L \<in> set C" using find_first_unit_clause_some[OF unit] by metis
     have "dpll\<^sub>W (Ms, mset (map mset N))
-         (Propagated L Proped # fst (Ms, mset (map mset N)), snd (Ms, mset (map mset N)))"
+         (Propagated L () # fst (Ms, mset (map mset N)), snd (Ms, mset (map mset N)))"
       apply (rule dpll\<^sub>W.propagate)
       using Ms undef C \<open>L \<in> set C\<close> unfolding mem_set_multiset_eq by (auto simp add: C)
     hence ?thesis using Ms'N by auto
@@ -62,10 +62,10 @@ proof -
       by (cases "backtrack_split Ms", case_tac b) auto
     hence "is_marked L" using backtrack_split_snd_hd_marked[of Ms] by auto
     have 1: "dpll\<^sub>W (Ms, mset (map mset N))
-                  (Propagated (- lit_of L) Proped # M, snd (Ms, mset (map mset N)))"
+                  (Propagated (- lit_of L) () # M, snd (Ms, mset (map mset N)))"
       apply (rule dpll\<^sub>W.backtrack[OF _ \<open>is_marked L\<close>, of ])
       using C Ms bt by auto
-    moreover have "(Ms', N') = (Propagated (- (lit_of L)) Proped # M, N)"
+    moreover have "(Ms', N') = (Propagated (- (lit_of L)) () # M, N)"
       using step exC unfolding DPLL_step_def bt prod.case unit by auto
     ultimately have ?thesis by auto
   }
@@ -96,7 +96,7 @@ proof -
 
   { assume n: "\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C)"
     hence Ms: "(Ms, N) = (case backtrack_split Ms of (x, []) \<Rightarrow> (Ms, N)
-                         | (x, L # M) \<Rightarrow> (Propagated (- lit_of L) Proped # M, N))"
+                         | (x, L # M) \<Rightarrow> (Propagated (- lit_of L) () # M, N))"
       using step unfolding DPLL_step_def by (simp add:unit)
 
   have "snd (backtrack_split Ms) = []"
@@ -109,7 +109,7 @@ proof -
       assume
         bt: "backtrack_split Ms = (a, b)" and
         bt': "snd (backtrack_split Ms) = aa # list"
-      hence Ms: "Ms = Propagated (- lit_of aa) Proped # list" using Ms by auto
+      hence Ms: "Ms = Propagated (- lit_of aa) () # list" using Ms by auto
       have "is_marked aa" using backtrack_split_snd_hd_marked[of Ms] bt bt' by auto
       moreover have "fst (backtrack_split Ms) @ aa # list = Ms"
         using backtrack_split_list_eq[of Ms] bt' by auto
@@ -341,7 +341,7 @@ qed
 
 
 lemma DPLL_part_dpll\<^sub>W_all_inv_final:
-  fixes M Ms':: "(int, dpll_marked_level, dpll_mark) marked_lit list" and
+  fixes M Ms':: "(int, dpll_marked_level, unit) marked_lit list" and
     N :: "int literal list list"
   assumes inv: "dpll\<^sub>W_all_inv (Ms, mset (map mset N))"
   and MsN: "DPLL_part Ms N = (Ms', N)"
@@ -356,7 +356,7 @@ qed
 paragraph \<open>Embedding the invariant into the type\<close>
 paragraph \<open>Defining the type\<close>
 typedef dpll\<^sub>W_state =
-    "{(M::(int, dpll_marked_level, dpll_mark) marked_lit list, N::int literal list list).
+    "{(M::(int, dpll_marked_level, unit) marked_lit list, N::int literal list list).
         dpll\<^sub>W_all_inv (toS M N)}"
   morphisms rough_state_of state_of
 proof
@@ -514,7 +514,7 @@ qed
 
 subsubsection \<open>Code export\<close>
 paragraph \<open>A conversion to @{typ dpll\<^sub>W_state}\<close>
-definition Con :: "(int, dpll_marked_level, dpll_mark) marked_lit list \<times> int literal list list
+definition Con :: "(int, dpll_marked_level, unit) marked_lit list \<times> int literal list list
                      \<Rightarrow> dpll\<^sub>W_state" where
   "Con xs = state_of (if dpll\<^sub>W_all_inv (toS (fst xs) (snd xs)) then xs else ([], []))"
 lemma [code abstype]:
@@ -545,6 +545,7 @@ text \<open>One version of the generated SML code is here, but not included in t
 
 (*<*)
 export_code DPLL_tot_rep in SML
+
 ML \<open>
 structure HOL : sig
   type 'a equal
@@ -633,17 +634,9 @@ val equal_int = {equal = equal_inta} : int HOL.equal;
 end; (*struct Arith*)
 
 structure CDCL_NOT : sig
-  datatype dpll_mark = Proped
-  val equal_dpll_mark : dpll_mark HOL.equal
   datatype dpll_marked_level = Level
   val equal_dpll_marked_level : dpll_marked_level HOL.equal
 end = struct
-
-datatype dpll_mark = Proped;
-
-fun equal_dpll_marka Proped Proped = true;
-
-val equal_dpll_mark = {equal = equal_dpll_marka} : dpll_mark HOL.equal;
 
 datatype dpll_marked_level = Level;
 
@@ -655,9 +648,14 @@ val equal_dpll_marked_level = {equal = equal_dpll_marked_levela} :
 end; (*struct CDCL_NOT*)
 
 structure Product_Type : sig
+  val equal_unit : unit HOL.equal
   val apfst : ('a -> 'b) -> 'a * 'c -> 'b * 'c
   val equal_prod : 'a HOL.equal -> 'b HOL.equal -> 'a * 'b -> 'a * 'b -> bool
 end = struct
+
+fun equal_unita u v = true;
+
+val equal_unit = {equal = equal_unita} : unit HOL.equal;
 
 fun apfst f (x, y) = (f x, y);
 
@@ -785,19 +783,19 @@ end; (*struct DPLL_CDCL_W_Implementation*)
 structure DPLL_W_Implementation : sig
   datatype dpll_W_state =
     Con of
-      ((Arith.int, CDCL_NOT.dpll_marked_level, CDCL_NOT.dpll_mark)
+      ((Arith.int, CDCL_NOT.dpll_marked_level, unit)
          Partial_Annotated_Clausal_Logic.marked_lit list *
         (Arith.int Clausal_Logic.literal list) list)
   val dPLL_tot_rep :
     dpll_W_state ->
       bool *
-        (Arith.int, CDCL_NOT.dpll_marked_level, CDCL_NOT.dpll_mark)
+        (Arith.int, CDCL_NOT.dpll_marked_level, unit)
           Partial_Annotated_Clausal_Logic.marked_lit list
 end = struct
 
 datatype dpll_W_state =
   Con of
-    ((Arith.int, CDCL_NOT.dpll_marked_level, CDCL_NOT.dpll_mark)
+    ((Arith.int, CDCL_NOT.dpll_marked_level, unit)
        Partial_Annotated_Clausal_Logic.marked_lit list *
       (Arith.int Clausal_Logic.literal list) list);
 
@@ -807,7 +805,7 @@ fun equal_dpll_W_state sa s =
   Product_Type.equal_prod
     (List.equal_list
       (Partial_Annotated_Clausal_Logic.equal_marked_lit Arith.equal_int
-        CDCL_NOT.equal_dpll_marked_level CDCL_NOT.equal_dpll_mark))
+        CDCL_NOT.equal_dpll_marked_level Product_Type.equal_unit))
     (List.equal_list
       (List.equal_list (Clausal_Logic.equal_literal Arith.equal_int)))
     (rough_state_of sa) (rough_state_of s);
@@ -829,7 +827,7 @@ fun dPLL_step x =
                    (Partial_Annotated_Clausal_Logic.Propagated
                       (Clausal_Logic.uminus_literal
                          (Partial_Annotated_Clausal_Logic.lit_of l),
-                        CDCL_NOT.Proped) ::
+                        ()) ::
                       m,
                      n))
           else (case DPLL_CDCL_W_Implementation.find_first_unused_var
@@ -842,8 +840,7 @@ fun dPLL_step x =
                       ms,
                      n)))
       | SOME (l, _) =>
-        (Partial_Annotated_Clausal_Logic.Propagated (l, CDCL_NOT.Proped) :: ms,
-          n)))
+        (Partial_Annotated_Clausal_Logic.Propagated (l, ()) :: ms, n)))
     x;
 
 fun dPLL_stepa s = Con (dPLL_step (rough_state_of s));

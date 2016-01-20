@@ -55,9 +55,9 @@ end
 
 fun convert_trail_from_W ::
   "('v,  'lvl, 'v literal multiset) marked_lit list
-    \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lit list"  where
+    \<Rightarrow> ('v, dpll_marked_level, unit) marked_lit list"  where
 "convert_trail_from_W [] = []" |
-"convert_trail_from_W (Propagated L _ # M) = Propagated L Proped # convert_trail_from_W M" |
+"convert_trail_from_W (Propagated L _ # M) = Propagated L () # convert_trail_from_W M" |
 "convert_trail_from_W (Marked L _ # M) = Marked L Level # convert_trail_from_W M"
 
 lemma atm_convert_trail_from_W[simp]:
@@ -97,7 +97,7 @@ fun convert_marked_lit_from_NOT where
 "convert_marked_lit_from_NOT (Marked L _) = Marked L 0"
 
 fun convert_trail_from_NOT ::
-  "('v, dpll_marked_level, dpll_mark) marked_lit list
+  "('v, dpll_marked_level, unit) marked_lit list
     \<Rightarrow> ('v,  nat, 'v literal multiset) marked_lit list"  where
 "convert_trail_from_NOT [] = []" |
 "convert_trail_from_NOT (L # M) = convert_marked_lit_from_NOT L # convert_trail_from_NOT M"
