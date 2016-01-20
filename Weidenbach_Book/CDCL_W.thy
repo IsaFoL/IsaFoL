@@ -50,7 +50,7 @@ locale cw_state =
     init_clss_add_learned_cls[simp]:
       "\<And>C st. init_clss (add_learned_cls C st) = init_clss st" and
     init_clss_remove_cls[simp]:
-      "\<And>C st. init_clss (remove_cls C st) = remove_mset (init_clss st) C" and
+      "\<And>C st. init_clss (remove_cls C st) = remove_mset C (init_clss st)" and
     init_clss_update_backtrack_lvl[simp]:
       "\<And>st C. init_clss (update_backtrack_lvl C st) = init_clss st" and
     init_clss_update_conflicting[simp]:
@@ -63,7 +63,7 @@ locale cw_state =
     learned_clss_add_learned_cls[simp]:
       "\<And>C st. learned_clss (add_learned_cls C st) = {#C#} + learned_clss st" and
     learned_clss_remove_cls[simp]:
-      "\<And>C st. learned_clss (remove_cls C st) = remove_mset (learned_clss st) C" and
+      "\<And>C st. learned_clss (remove_cls C st) = remove_mset C (learned_clss st)" and
     learned_clss_update_backtrack_lvl[simp]:
       "\<And>st C. learned_clss (update_backtrack_lvl C st) = learned_clss st" and
     learned_clss_update_conflicting[simp]:

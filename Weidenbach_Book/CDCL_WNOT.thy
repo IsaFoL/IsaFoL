@@ -4115,7 +4115,7 @@ lemma
      defer
      using add_new_clause_and_update_def
      cdcl_all_struct_inv_add_new_clause_and_update_cdcl_s_inv inv s_inv apply auto[1]
-    unfolding cdcl_s_invariant_def apply auto
+    unfolding cdcl_s_invariant_def apply (auto split: split_if_asm)
 oops
 
 lemma blocked_induction_with_marked:

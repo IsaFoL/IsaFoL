@@ -455,8 +455,8 @@ lemma set_mset_minus_replicate_mset:
   "n < count A a \<Longrightarrow> set_mset (A - replicate_mset n a) = set_mset A"
   by (auto split: split_if_asm)
 
-abbreviation remove_mset :: "'a multiset \<Rightarrow> 'a \<Rightarrow> 'a multiset" where
-"remove_mset M C \<equiv> M - replicate_mset (count M C) C"
+abbreviation remove_mset :: "'a \<Rightarrow> 'a multiset \<Rightarrow> 'a multiset" where
+"remove_mset C M \<equiv> M - replicate_mset (count M C) C"
 
 lemma set_mset_single_iff_replicate_mset:
   "set_mset U = {a}  \<longleftrightarrow> (\<exists>n>0. U = replicate_mset n a)"

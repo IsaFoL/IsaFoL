@@ -147,11 +147,11 @@ lemma backtrack_is_backjump':
   using backtrack_is_backjump[of "fst S" "snd S" "fst T" "snd T"] assms by fastforce
 
 sublocale dpll_state fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
-  "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset N C)"
+  "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset C N)"
   by unfold_locales auto
 
 sublocale backjumping_ops fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
-  "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset N C)" "\<lambda>_ _ S T. backtrack S T"
+  "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset C N)" "\<lambda>_ _ S T. backtrack S T"
   by unfold_locales
 
 lemma backtrack_is_backjump'':
@@ -196,14 +196,14 @@ qed
 end
 
 sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops fst snd "\<lambda>L (M, N). (L # M, N)"
-  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset N C)" "\<lambda>_ _. True"
+  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset C N)" "\<lambda>_ _. True"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
   "(\<lambda>_ _ S T. backtrack S T)"
   by unfold_locales (metis (mono_tags, lifting) dpll_with_backtrack.backtrack_is_backjump''
    dpll_with_backtrack.can_do_bt_step prod.case_eq_if comp_apply)
 
 sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping fst snd "\<lambda>L (M, N). (L # M, N)"
-  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset N C)" "\<lambda>_ _. True"
+  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset C N)" "\<lambda>_ _. True"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
   "(\<lambda>_ _ S T. backtrack S T)"
   apply unfold_locales
@@ -212,14 +212,14 @@ sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping fst snd "\<lambd
 
 sublocale dpll_with_backtrack \<subseteq> conflict_driven_clause_learning_ops
   fst snd "\<lambda>L (M, N). (L # M, N)"
-  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset N C)" "\<lambda>_ _. True"
+  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset C N)" "\<lambda>_ _. True"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
   "(\<lambda>_ _ S T. backtrack S T)" "\<lambda>_ _. False" "\<lambda>_ _. False"
   by unfold_locales
 
 sublocale dpll_with_backtrack \<subseteq> conflict_driven_clause_learning
   fst snd "\<lambda>L (M, N). (L # M, N)"
-  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset N C)" "\<lambda>_ _. True"
+  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset C N)" "\<lambda>_ _. True"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
   "(\<lambda>_ _ S T. backtrack S T)" "\<lambda>_ _. False" "\<lambda>_ _. False"
   apply unfold_locales
@@ -258,7 +258,7 @@ locale dpll_withbacktrack_and_restarts =
   assumes strict_mono: "strict_mono f"
 begin
   sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts  fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
-    "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset N C)" f "\<lambda>(_, N) S. S = ([], N)"
+    "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset C N)" f "\<lambda>(_, N) S. S = ([], N)"
   "\<lambda>A (M, N). atms_of_mu N \<subseteq> atms_of_m A \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> finite A
     \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
   "\<lambda>A T. (2+card (atms_of_m A)) ^ (1+card (atms_of_m A))

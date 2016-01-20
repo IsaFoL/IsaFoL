@@ -48,12 +48,13 @@ abbreviation add_learned_cls where
 
 abbreviation remove_cls where
 "remove_cls \<equiv> \<lambda>C (M, N, U, S). (M, remove_mset N C, remove_mset U C, S)"
+
 interpretation cdcl_cw: cw_state trail clauses learned_clss backtrack_lvl conflicting
   "\<lambda>L (M, S). (L # M, S)"
   "\<lambda>(M, S). (tl M, S)"
   "\<lambda>C (M, N, S). (M, {#C#} + N, S)"
   "\<lambda>C (M, N, U, S). (M, N, {#C#} + U, S)"
-  "\<lambda>C (M, N, U, S). (M, remove_mset N C, remove_mset U C, S)"
+  "\<lambda>C (M, N, U, S). (M, remove_mset C N, remove_mset C U, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
   "\<lambda>N. ([], N, {#}, 0, C_True)"
@@ -75,7 +76,7 @@ interpretation cdcl_cw_termination trail clauses learned_clss backtrack_lvl conf
   "\<lambda>(M, S). (tl M, S)"
   "\<lambda>C (M, N, S). (M, {#C#} + N, S)"
   "\<lambda>C (M, N, U, S). (M, N, {#C#} + U, S)"
-  "\<lambda>C (M, N, U, S). (M, remove_mset N C, remove_mset U C, S)"
+  "\<lambda>C (M, N, U, S). (M, remove_mset C N, remove_mset C U, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
   "\<lambda>N. ([], N, {#}, 0, C_True)"
@@ -785,7 +786,7 @@ text \<open>There are two invariants: one while applying conflict and propagate 
 
 declare rough_state_of_inverse[simp add]
 definition Con  where
-  "Con xs = state_of (if cdcl_all_struct_inv (toS (fst xs, snd xs)) then xs 
+  "Con xs = state_of (if cdcl_all_struct_inv (toS (fst xs, snd xs)) then xs
   else ([], [], [], 0, C_True))"
 
 lemma [code abstype]:
@@ -1031,7 +1032,7 @@ proof -
           thm backtrackE
           obtain M1 M2 i D L K where
             confl_S: "conflicting (toS S) = C_Clause (D + {#L#})" and
-            decomp:"(Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition (trail (toS S)))" 
+            decomp:"(Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition (trail (toS S)))"
               and
             "get_level L (trail (toS S)) = backtrack_lvl (toS S)" and
             "get_level L (trail (toS S)) = get_maximum_level (D+{#L#}) (trail (toS S))" and
@@ -1049,7 +1050,7 @@ proof -
                   (update_conflicting C_True (toS S)))))
             =
             (Propagated L (D + {#L#})# M1,mset (map mset (clauses S)),
-              {#D + {#L#}#} + mset (map mset (learned_clss S)), 
+              {#D + {#L#}#} + mset (map mset (learned_clss S)),
               get_maximum_level D (trail (toS S)), C_True)"
              apply (subst state_conv[of "cons_trail _ _"])
              using decomp by (cases S) auto
@@ -1287,7 +1288,7 @@ proof -
 qed
 
 lemma toS_rough_state_of_state_of_rough_state_from_init_state_of[simp]:
-  "toS (rough_state_of (state_of (rough_state_from_init_state_of S))) 
+  "toS (rough_state_of (state_of (rough_state_from_init_state_of S)))
     = toS (rough_state_from_init_state_of S)"
   using rough_state_from_init_state_of[of S] by (auto simp add: state_of_inverse)
 
@@ -1343,7 +1344,7 @@ function do_all_cdcl_s where
 by fast+
 termination
 proof (relation "{(T, S).
-    (cdcl_measure (toS (rough_state_from_init_state_of T)), 
+    (cdcl_measure (toS (rough_state_from_init_state_of T)),
     cdcl_measure (toS (rough_state_from_init_state_of S)))
       \<in> lexn {(a, b). a < b} 3}", goal_cases)
   case 1
@@ -1353,10 +1354,10 @@ next
   let ?S = "rough_state_from_init_state_of S"
   have S: "cdcl_s\<^sup>*\<^sup>* (S0_cdcl (clauses (toS ?S))) (toS ?S)"
     using rough_state_from_init_state_of[of S] by auto
-  moreover have "cdcl_s (toS (rough_state_from_init_state_of S)) 
+  moreover have "cdcl_s (toS (rough_state_from_init_state_of S))
     (toS (rough_state_from_init_state_of T))"
     using ST do_cdcl_s_step unfolding T
-    by (smt id_of_I_to_def mem_Collect_eq rough_state_from_init_state_of 
+    by (smt id_of_I_to_def mem_Collect_eq rough_state_from_init_state_of
       rough_state_from_init_state_of_do_cdcl_s_step' rough_state_from_init_state_of_inject
       state_of_inverse)
   moreover
@@ -1402,13 +1403,13 @@ next
 qed
 
 lemma do_all_cdcl_s_is_rtranclp_cdcl_s:
-  "cdcl_s\<^sup>*\<^sup>* (toS (rough_state_from_init_state_of S)) 
+  "cdcl_s\<^sup>*\<^sup>* (toS (rough_state_from_init_state_of S))
     (toS (rough_state_from_init_state_of (do_all_cdcl_s S)))"
   apply (induction S rule: do_all_cdcl_s_induct)
   apply (case_tac "do_cdcl_s_step' S = S")
     apply simp
   by (smt converse_rtranclp_into_rtranclp do_all_cdcl_s.simps do_cdcl_s_step id_of_I_to_def
-    rough_state_from_init_state_of_do_cdcl_s_step' 
+    rough_state_from_init_state_of_do_cdcl_s_step'
     toS_rough_state_of_state_of_rough_state_from_init_state_of)
 
 text \<open>Final theorem:\<close>
@@ -1427,10 +1428,10 @@ proof -
     = ([], map remdups N, [], 0, C_True)" by simp
   have 1: "full cdcl_s (toS ([], ?N, [], 0, C_True)) (toS S)"
     unfolding full_def apply rule
-      using do_all_cdcl_s_is_rtranclp_cdcl_s[of 
+      using do_all_cdcl_s_is_rtranclp_cdcl_s[of
         "state_from_init_state_of ([], map remdups N, [], 0, C_True)"] inv
         no_step_cdcl_s_cdcl_all
-        by (auto simp del: do_all_cdcl_s.simps simp: state_from_init_state_of_inverse 
+        by (auto simp del: do_all_cdcl_s.simps simp: state_from_init_state_of_inverse
           r[symmetric])+
   moreover have 2: "finite (set (map mset ?N))" by auto
   moreover have 3: "distinct_mset_set (set (map mset ?N))"

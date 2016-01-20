@@ -238,7 +238,7 @@ locale dpll_state =
     clauses_prepend_trail[simp]: "\<And>st L. clauses (prepend_trail L st) = clauses st" and
     clauses_tl_trail[simp]: "\<And>st. clauses (tl_trail st) = clauses st" and
     clauses_add_cls\<^sub>N\<^sub>O\<^sub>T[simp]: "\<And>st C. clauses (add_cls\<^sub>N\<^sub>O\<^sub>T C st) = {#C#} + clauses st" and
-    clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T[simp]: "\<And>st C. clauses (remove_cls\<^sub>N\<^sub>O\<^sub>T C st) = remove_mset (clauses st) C"
+    clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T[simp]: "\<And>st C. clauses (remove_cls\<^sub>N\<^sub>O\<^sub>T C st) = remove_mset C (clauses st)"
 begin
 
 function reduce_trail_to\<^sub>N\<^sub>O\<^sub>T :: "('v, dpll_marked_level, dpll_mark) marked_lits \<Rightarrow> 'st \<Rightarrow> 'st" where
