@@ -3477,30 +3477,30 @@ begin
 text \<open>The condition of the differences of cardinality has to be strict.
   Otherwise, you could be in a strange state, where nothing remains to do, but a restart is done.
   See the proof of well-foundedness.\<close>
-inductive cdcl_with_restart\<^sub>C\<^sub>W where
+inductive cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart where
 restart_step: "(cdcl_fw_s^^(card (set_mset (learned_clss T)) - card (set_mset (learned_clss S)))) S T
   \<Longrightarrow> card (set_mset (learned_clss T)) - card (set_mset (learned_clss S)) > f n
-  \<Longrightarrow> restart T U \<Longrightarrow> cdcl_with_restart\<^sub>C\<^sub>W (S, n) (U, Suc n)" |
-restart_full: "full1 cdcl_fw_s S T \<Longrightarrow> cdcl_with_restart\<^sub>C\<^sub>W (S, n) (T, Suc n)"
+  \<Longrightarrow> restart T U \<Longrightarrow> cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart (S, n) (U, Suc n)" |
+restart_full: "full1 cdcl_fw_s S T \<Longrightarrow> cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart (S, n) (T, Suc n)"
 
-lemma "cdcl_with_restart\<^sub>C\<^sub>W S T \<Longrightarrow> cdcl_fw_restart\<^sup>*\<^sup>* (fst S) (fst T)"
-  by (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct)
+lemma "cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart S T \<Longrightarrow> cdcl_fw_restart\<^sup>*\<^sup>* (fst S) (fst T)"
+  by (induction rule: cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart.induct)
   (auto dest!: relpowp_imp_rtranclp cdcl_fw_s_tranclp_cdcl_fw tranclp_into_rtranclp
      rtranclp_cdcl_fw_s_rtranclp_cdcl_fw rtranclp_cdcl_fw_tranclp_cdcl_fw_restart fw_r_rf
      cdcl_rf.restart
     simp: full1_def)
 
-lemma cdcl_with_restart\<^sub>C\<^sub>W_rtranclp_cdcl:
-  "cdcl_with_restart\<^sub>C\<^sub>W S T \<Longrightarrow> cdcl\<^sup>*\<^sup>* (fst S) (fst T)"
-  by (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct)
+lemma cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart_rtranclp_cdcl:
+  "cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart S T \<Longrightarrow> cdcl\<^sup>*\<^sup>* (fst S) (fst T)"
+  by (induction rule: cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart.induct)
   (auto dest!: relpowp_imp_rtranclp rtranclp_cdcl_fw_s_rtranclp_cdcl cdcl.rf cdcl_rf.restart
       tranclp_into_rtranclp simp: full1_def)
 
-lemma cdcl_with_restart\<^sub>C\<^sub>W_increasing_number:
-  "cdcl_with_restart\<^sub>C\<^sub>W S T \<Longrightarrow> snd T = 1 + snd S"
-  by (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct) auto
+lemma cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart_increasing_number:
+  "cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart S T \<Longrightarrow> snd T = 1 + snd S"
+  by (induction rule: cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart.induct) auto
 
-lemma "full1 cdcl_fw_s S T \<Longrightarrow> cdcl_with_restart\<^sub>C\<^sub>W (S, n) (T, Suc n)"
+lemma "full1 cdcl_fw_s S T \<Longrightarrow> cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart (S, n) (T, Suc n)"
   using restart_full by blast
 
 lemma cdcl_all_struct_inv_learned_clss_bound:
@@ -3558,29 +3558,29 @@ proof (intro allI impI)
     qed
 qed
 
-lemma cdcl_with_restart\<^sub>C\<^sub>W_init_clss:
-  "cdcl_with_restart\<^sub>C\<^sub>W S T \<Longrightarrow> init_clss (fst S) = init_clss (fst T)"
-  using cdcl_with_restart\<^sub>C\<^sub>W_rtranclp_cdcl rtranclp_cdcl_init_clss by blast
+lemma cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart_init_clss:
+  "cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart S T \<Longrightarrow> init_clss (fst S) = init_clss (fst T)"
+  using cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart_rtranclp_cdcl rtranclp_cdcl_init_clss by blast
 
 lemma
-  "wf {(T, S). cdcl_all_struct_inv (fst S) \<and> cdcl_with_restart\<^sub>C\<^sub>W S T}"
+  "wf {(T, S). cdcl_all_struct_inv (fst S) \<and> cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart S T}"
 proof (rule ccontr)
   assume "\<not> ?thesis"
     then obtain g where
-    g: "\<And>i. cdcl_with_restart\<^sub>C\<^sub>W (g i) (g (Suc i))" and
+    g: "\<And>i. cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart (g i) (g (Suc i))" and
     inv: "\<And>i. cdcl_all_struct_inv (fst (g i))"
     unfolding wf_iff_no_infinite_down_chain by fast
   { fix i
     have "init_clss (fst (g i)) = init_clss (fst (g 0))"
       apply (induction i)
         apply simp
-      using g by (metis cdcl_with_restart\<^sub>C\<^sub>W_init_clss)
+      using g by (metis cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart_init_clss)
     } note init_g = this
   let ?S = "g 0"
   have "finite (atms_of_mu (init_clss (fst ?S)))"
     using inv unfolding cdcl_all_struct_inv_def by auto
   have "\<And>i. snd (g i) < snd (g (i+1))"
-    by (metis Suc_eq_plus1 Suc_le_lessD add.commute cdcl_with_restart\<^sub>C\<^sub>W_increasing_number g
+    by (metis Suc_eq_plus1 Suc_le_lessD add.commute cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart_increasing_number g
       less_or_eq_imp_le)
   then have "strict_mono (snd o g)"
     using strict_mono_local_prop[of "snd o g"] by auto
@@ -3594,7 +3594,7 @@ proof (rule ccontr)
     assume "no_step cdcl_fw_s (fst (g i))"
     with g[of i]
     have False
-      proof (induction rule: cdcl_with_restart\<^sub>C\<^sub>W.induct)
+      proof (induction rule: cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart.induct)
         case (restart_step T S n) note H = this(1) and c = this(2) and n_s = this(4)
         obtain S' where "cdcl_fw_s S S'"
           using H c by (metis gr_implies_not0 relpowp_E2)
@@ -3609,7 +3609,7 @@ proof (rule ccontr)
     "m > f (snd (g j))" and
     "restart T (fst (g (j+1)))" and
     cdcl_fw_s: "(cdcl_fw_s ^^ m) (fst (g j)) T"
-    using g[of j] H[of "Suc j"] by (force simp: cdcl_with_restart\<^sub>C\<^sub>W.simps full1_def)
+    using g[of j] H[of "Suc j"] by (force simp: cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart.simps full1_def)
   have "cdcl_fw_s\<^sup>*\<^sup>* (fst (g j)) T"
     using cdcl_fw_s relpowp_imp_rtranclp by metis
   then have "cdcl_all_struct_inv T"
@@ -3632,9 +3632,9 @@ proof (rule ccontr)
       build_all_simple_clss_finite)
 qed
 
-lemma cdcl_with_restart\<^sub>C\<^sub>W_distinct_mset_clauses:
+lemma cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart_distinct_mset_clauses:
   assumes invR: "cdcl_all_struct_inv (fst R)" and
-  st: "cdcl_with_restart\<^sub>C\<^sub>W R S" and
+  st: "cdcl\<^sub>W\<^sub>N\<^sub>O\<^sub>T_with_restart R S" and
   dist: "distinct_mset (clauses (fst R))" and
   R: "trail (fst R) = []"
   shows "distinct_mset (clauses (fst S))"
@@ -3651,6 +3651,119 @@ next
     mset_le_exists_conv restart.cases state_eq_clauses)
 qed
 
+inductive cdcl\<^sub>W_with_restart where
+restart_step: "(cdcl_s^^(card (set_mset (learned_clss T)) - card (set_mset (learned_clss S)))) S T
+  \<Longrightarrow> card (set_mset (learned_clss T)) - card (set_mset (learned_clss S)) > f n
+  \<Longrightarrow> restart T U \<Longrightarrow> cdcl\<^sub>W_with_restart (S, n) (U, Suc n)" |
+restart_full: "full1 cdcl_s S T \<Longrightarrow> cdcl\<^sub>W_with_restart (S, n) (T, Suc n)"
+
+
+lemma cdcl\<^sub>W_with_restart_rtranclp_cdcl:
+  "cdcl\<^sub>W_with_restart S T \<Longrightarrow> cdcl\<^sup>*\<^sup>* (fst S) (fst T)"
+  apply (induction rule: cdcl\<^sub>W_with_restart.induct)
+  by (auto dest!: relpowp_imp_rtranclp  tranclp_into_rtranclp fw_r_rf
+     cdcl_rf.restart rtranclp_cdcl_s_rtranclp_cdcl cdcl_fw_restart_cdcl
+    simp: full1_def)
+
+lemma cdcl\<^sub>W_with_restart_increasing_number:
+  "cdcl\<^sub>W_with_restart S T \<Longrightarrow> snd T = 1 + snd S"
+  by (induction rule: cdcl\<^sub>W_with_restart.induct) auto
+
+lemma "full1 cdcl_s S T \<Longrightarrow> cdcl\<^sub>W_with_restart (S, n) (T, Suc n)"
+  using restart_full by blast
+
+lemma cdcl\<^sub>W_with_restart_init_clss:
+  "cdcl\<^sub>W_with_restart S T \<Longrightarrow> init_clss (fst S) = init_clss (fst T)"
+  using cdcl\<^sub>W_with_restart_rtranclp_cdcl rtranclp_cdcl_init_clss by blast
+
+lemma
+  "wf {(T, S). cdcl_all_struct_inv (fst S) \<and> cdcl\<^sub>W_with_restart S T}"
+proof (rule ccontr)
+  assume "\<not> ?thesis"
+    then obtain g where
+    g: "\<And>i. cdcl\<^sub>W_with_restart (g i) (g (Suc i))" and
+    inv: "\<And>i. cdcl_all_struct_inv (fst (g i))"
+    unfolding wf_iff_no_infinite_down_chain by fast
+  { fix i
+    have "init_clss (fst (g i)) = init_clss (fst (g 0))"
+      apply (induction i)
+        apply simp
+      using g by (metis cdcl\<^sub>W_with_restart_init_clss)
+    } note init_g = this
+  let ?S = "g 0"
+  have "finite (atms_of_mu (init_clss (fst ?S)))"
+    using inv unfolding cdcl_all_struct_inv_def by auto
+  have "\<And>i. snd (g i) < snd (g (i+1))"
+    by (metis Suc_eq_plus1 Suc_le_lessD add.commute cdcl\<^sub>W_with_restart_increasing_number g
+      less_or_eq_imp_le)
+  then have "strict_mono (snd o g)"
+    using strict_mono_local_prop[of "snd o g"] by auto
+  then obtain j where j:"snd (g j) > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
+    using strict_mono_ge_id[of "snd \<circ> g" "1+card (build_all_simple_clss (atms_of_mu (init_clss
+      (fst ?S))))"] Suc_le_lessD
+    by fastforce
+  text \<open>The following does not hold anymore with the non-strict version of
+    cardinality in the definition.\<close>
+  { fix i
+    assume "no_step cdcl_s (fst (g i))"
+    with g[of i]
+    have False
+      proof (induction rule: cdcl\<^sub>W_with_restart.induct)
+        case (restart_step T S n) note H = this(1) and c = this(2) and n_s = this(4)
+        obtain S' where "cdcl_s S S'"
+          using H c by (metis gr_implies_not0 relpowp_E2)
+        then show False using n_s by auto
+      next
+        case (restart_full S T)
+        then show False unfolding full1_def by (auto dest: tranclpD)
+      qed
+    } note H = this
+  obtain m T where
+    m: "m = card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g j))))" and
+    "m > f (snd (g j))" and
+    "restart T (fst (g (j+1)))" and
+    cdcl_fw_s: "(cdcl_s ^^ m) (fst (g j)) T"
+    using g[of j] H[of "Suc j"] by (force simp: cdcl\<^sub>W_with_restart.simps full1_def)
+  have "cdcl_s\<^sup>*\<^sup>* (fst (g j)) T"
+    using cdcl_fw_s relpowp_imp_rtranclp by metis
+  then have "cdcl_all_struct_inv T"
+    using inv[of j]  rtranclp_cdcl_all_struct_inv_inv rtranclp_cdcl_s_rtranclp_cdcl by blast
+  moreover have "card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g j))))
+      > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
+    by (smt Suc_leI \<open>f (snd (g j)) < m\<close> dual_order.trans f j le_less_linear less_imp_le m
+      not_less_eq_eq strict_mono_ge_id)
+    then have "card (set_mset (learned_clss T))
+      > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
+      by linarith
+  moreover
+    have "init_clss (fst (g j)) = init_clss T"
+      using \<open>cdcl_s\<^sup>*\<^sup>* (fst (g j)) T\<close> rtranclp_cdcl_s_rtranclp_cdcl rtranclp_cdcl_init_clss
+      by blast
+    then have "init_clss (fst ?S) = init_clss T"
+      using init_g[of j] by auto
+  ultimately show False
+    using cdcl_all_struct_inv_learned_clss_bound by (metis Suc_leI card_mono not_less_eq_eq
+      build_all_simple_clss_finite)
+qed
+
+lemma cdcl\<^sub>W_with_restart_distinct_mset_clauses:
+  assumes invR: "cdcl_all_struct_inv (fst R)" and
+  st: "cdcl\<^sub>W_with_restart R S" and
+  dist: "distinct_mset (clauses (fst R))" and
+  R: "trail (fst R) = []"
+  shows "distinct_mset (clauses (fst S))"
+  using assms(2,1,3,4)
+proof (induction)
+  case (restart_full S T)
+  then show ?case using rtranclp_cdcl_s_distinct_mset_clauses[of S T] unfolding full1_def
+    by (auto dest: tranclp_into_rtranclp)
+next
+  case (restart_step T S n U)
+  then have "distinct_mset (clauses T)" using rtranclp_cdcl_s_distinct_mset_clauses[of S T]
+    unfolding full1_def by (auto dest: relpowp_imp_rtranclp)
+  then show ?case using \<open>restart T U\<close> by (metis clauses_restart distinct_mset_union fstI
+    mset_le_exists_conv restart.cases state_eq_clauses)
+qed
 end
 
 section \<open>Incremental SAT solving\<close>
