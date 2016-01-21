@@ -3980,19 +3980,21 @@ next
   then show ?case by simp force
 qed
 
-text \<open>We can fully run @{term cdcl_s} or add a clause. Remark that we use @{term cdcl_s} to avoid 
-an explicit @{term skip}, @{term resolve}, and @{term backtrack} normalisation. to get rid of the
-conflict @{term S} if necessary.\<close>
+text \<open>We can fully run @{term cdcl_s} or add a clause. Remark that we use @{term cdcl_s} to avoid
+an explicit @{term skip}, @{term resolve}, and @{term backtrack} normalisation to get rid of the
+conflict @{term C} if possible.\<close>
 inductive incremental_cdcl :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S where
 add_confl:
   "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = C_True \<Longrightarrow>
-    trail S \<Turnstile>as CNot C \<Longrightarrow> 
-    full cdcl_s 
-      (update_conflicting (C_Clause C) (add_init_cls C (cut_trail_wrt_clause C (trail S) S))) T \<Longrightarrow> 
-    incremental_cdcl S T" |
+   trail S \<Turnstile>as CNot C \<Longrightarrow>
+   full cdcl_s
+     (update_conflicting (C_Clause C) (add_init_cls C (cut_trail_wrt_clause C (trail S) S))) T \<Longrightarrow>
+   incremental_cdcl S T" |
 add_no_confl:
-  "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = C_True \<Longrightarrow> \<not>trail S \<Turnstile>as CNot C
-    \<Longrightarrow> incremental_cdcl S (add_init_cls C S)"
+  "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = C_True \<Longrightarrow>
+   \<not>trail S \<Turnstile>as CNot C \<Longrightarrow>
+   full cdcl_s (add_init_cls C S) T  \<Longrightarrow>
+   incremental_cdcl S T"
 
 inductive add_learned_clss :: "'st \<Rightarrow> 'v clauses \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 add_learned_clss_nil: "add_learned_clss S {#} S" |
@@ -4150,7 +4152,7 @@ proof -
     MT: "trail T = MT @  trail (cut_trail_wrt_clause C (trail T) T)"
     using trail_cut_trail_wrt_clause by blast
   consider
-      (false) "\<forall>L\<in>#C. - L \<notin> lits_of (trail T)" and "trail (cut_trail_wrt_clause C (trail T) T) = []"
+      (false) "\<forall>L\<in>#C. - L \<notin> lits_of (trail T)" and"trail (cut_trail_wrt_clause C (trail T) T) = []"
     | (not_false) "- lit_of (hd (trail (cut_trail_wrt_clause C (trail T) T))) \<in># C" and
       "1 \<le> length (trail (cut_trail_wrt_clause C (trail T) T))"
     using cut_trail_wrt_clause_hd_trail_in_or_empty_trail[of C T] by auto
@@ -4209,7 +4211,7 @@ proof -
               by (metis IntI Marked_Propagated_in_iff_in_lits_of defined_lit_map empty_iff)
         qed
       qed
-      show ?thesis using L C 
+      show ?thesis using L C
         unfolding cdcl_s_invariant_def
         unfolding cdcl_all_struct_inv_def by (auto simp: add_new_clause_and_update_def)
     qed
@@ -4220,16 +4222,16 @@ lemma full_cdcl_s_inv_normal_form:
     full: "full cdcl_s S T" and
     inv_s: "cdcl_s_invariant S" and
     inv: "cdcl_all_struct_inv S"
-  shows "conflicting T = C_Clause {#} \<and> unsatisfiable (set_mset (init_clss S)) 
+  shows "conflicting T = C_Clause {#} \<and> unsatisfiable (set_mset (init_clss S))
     \<or> conflicting T = C_True \<and> trail T \<Turnstile>asm init_clss S \<and> satisfiable (set_mset (init_clss S))"
 proof -
-  have "no_step cdcl_s T" 
+  have "no_step cdcl_s T"
     using full unfolding full_def by blast
   moreover have "cdcl_all_struct_inv T" and inv_s: "cdcl_s_invariant T"
-    apply (metis cdcl_cw_ops.rtranclp_cdcl_s_rtranclp_cdcl cdcl_cw_ops_axioms full full_def inv 
+    apply (metis cdcl_cw_ops.rtranclp_cdcl_s_rtranclp_cdcl cdcl_cw_ops_axioms full full_def inv
       rtranclp_cdcl_all_struct_inv_inv)
     by (metis full full_def inv inv_s rtranclp_cdcl_s_cdcl_s_invariant)
-  ultimately have "conflicting T = C_Clause {#} \<and> unsatisfiable (set_mset (init_clss T)) 
+  ultimately have "conflicting T = C_Clause {#} \<and> unsatisfiable (set_mset (init_clss T))
     \<or> conflicting T = C_True \<and> trail T \<Turnstile>asm init_clss T"
     using cdcl_s_normal_forms[of T] full unfolding cdcl_all_struct_inv_def cdcl_s_invariant_def full_def
     by fast
@@ -4240,8 +4242,8 @@ proof -
     by (metis rtranclp_cdcl_s_no_more_init_clss full full_def)
   ultimately show ?thesis
     by (metis satisfiable_carac' true_annot_def true_annots_def true_clss_def)
-qed    
-  
+qed
+
 lemma incremental_cdcl_inv:
   assumes
     inc: "incremental_cdcl S T" and
@@ -4250,29 +4252,48 @@ lemma incremental_cdcl_inv:
   shows
     "cdcl_all_struct_inv T" and
     "cdcl_s_invariant T"
-  using inc 
+  using inc
 proof (induction)
   case (add_confl C T)
   let ?T = "(update_conflicting (C_Clause C) (add_init_cls C (cut_trail_wrt_clause C (trail S) S)))"
   have "cdcl_all_struct_inv ?T" and inv_s_T: "cdcl_s_invariant ?T"
-    using add_confl.hyps(1,2,4) add_new_clause_and_update_def 
+    using add_confl.hyps(1,2,4) add_new_clause_and_update_def
     cdcl_all_struct_inv_add_new_clause_and_update_cdcl_all_struct_inv inv apply auto[1]
-    using add_confl.hyps(1,2,4) add_new_clause_and_update_def 
+    using add_confl.hyps(1,2,4) add_new_clause_and_update_def
     cdcl_all_struct_inv_add_new_clause_and_update_cdcl_s_inv inv s_inv by auto
   case 1 show ?case
-     by (metis add_confl.hyps(1,2,4,5) add_new_clause_and_update_def 
-       cdcl_all_struct_inv_add_new_clause_and_update_cdcl_all_struct_inv 
+     by (metis add_confl.hyps(1,2,4,5) add_new_clause_and_update_def
+       cdcl_all_struct_inv_add_new_clause_and_update_cdcl_all_struct_inv
        rtranclp_cdcl_all_struct_inv_inv rtranclp_cdcl_s_rtranclp_cdcl full_def inv)
 
   case 2  show ?case
-    by (metis inv_s_T add_confl.hyps(1,2,4,5) add_new_clause_and_update_def 
-      cdcl_all_struct_inv_add_new_clause_and_update_cdcl_all_struct_inv full_def inv 
+    by (metis inv_s_T add_confl.hyps(1,2,4,5) add_new_clause_and_update_def
+      cdcl_all_struct_inv_add_new_clause_and_update_cdcl_all_struct_inv full_def inv
       rtranclp_cdcl_s_cdcl_s_invariant)
 next
-  case (add_no_confl C)
-  case 1 show ?case sorry
-  case 2 show ?case sorry
+  case (add_no_confl C T)
+  case 1
+
+  have "cdcl_all_struct_inv (add_init_cls C S)"
+    using inv \<open>distinct_mset C\<close> unfolding cdcl_all_struct_inv_def no_strange_atm_def
+    cdcl_M_level_inv_def distinct_cdcl_state_def cdcl_conflicting_def cdcl_learned_clause_def
+    by (auto simp: all_decomposition_implies_insert_single clauses_def) (* SLOW ~2s *)
+  then show ?case
+    by (metis add_no_confl.hyps(3) add_no_confl.hyps(5) conflicting_add_init_cls
+      full_cdcl_s'_full_cdcl_fw_restart full_cdcl_s_iff_full_cdcl_s' full_def
+      rtranclp_cdcl_all_struct_inv_inv rtranclp_cdcl_fw_rtranclp_cdcl
+      rtranclp_cdcl_fw_s_rtranclp_cdcl_fw)
+  case 2 have "cdcl_s_invariant (add_init_cls C S)"
+    using s_inv \<open>\<not> trail S \<Turnstile>as CNot C\<close> unfolding cdcl_s_invariant_def no_smaller_confl_def
+    eq_commute[of "_" "trail _"]
+    by (auto simp: true_annots_true_cls_def_iff_negation_in_model clauses_def split: split_if_asm)
+  then show ?case
+    by (metis \<open>cdcl_all_struct_inv (add_init_cls C S)\<close> add_no_confl.hyps(5) full_def
+      rtranclp_cdcl_s_cdcl_s_invariant)
 qed
+
+lemma "\<not> M' @ Marked K i # M \<Turnstile>as CNot C \<Longrightarrow> \<not>M \<Turnstile>as CNot C"
+unfolding true_annots_true_cls_def_iff_negation_in_model apply auto
 
 lemma blocked_induction_with_marked:
   assumes
