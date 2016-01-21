@@ -13,7 +13,7 @@ definition DPLL_step :: "int dpll\<^sub>W_marked_lits \<times> int literal list 
     if \<exists>C \<in> set N. (\<forall>c \<in> set C. -c \<in> lits_of Ms)
     then
       (case backtrack_split Ms of
-        (_, L # M) \<Rightarrow>  (Propagated (- (lit_of L)) () # M, N)
+        (_, L # M) \<Rightarrow> (Propagated (- (lit_of L)) () # M, N)
       | (_, _) \<Rightarrow> (Ms, N)
       )
     else
