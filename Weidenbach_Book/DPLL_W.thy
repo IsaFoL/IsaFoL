@@ -5,8 +5,8 @@ begin
 
 section \<open>DPLL\<close>
 subsection \<open>Rules\<close>
-type_synonym 'a dpll\<^sub>W_marked_lit = "('a, dpll_marked_level, dpll_mark) marked_lit"
-type_synonym 'a dpll\<^sub>W_marked_lits = "('a, dpll_marked_level, dpll_mark) marked_lits"
+type_synonym 'a dpll\<^sub>W_marked_lit = "('a, dpll_marked_level, unit) marked_lit"
+type_synonym 'a dpll\<^sub>W_marked_lits = "('a, dpll_marked_level, unit) marked_lits"
 type_synonym 'v dpll\<^sub>W_state = "'v dpll\<^sub>W_marked_lits \<times> 'v clauses"
 
 abbreviation trail :: "'v dpll\<^sub>W_state \<Rightarrow> 'v dpll\<^sub>W_marked_lits" where
@@ -17,11 +17,11 @@ abbreviation clauses :: "'v dpll\<^sub>W_state \<Rightarrow> 'v clauses" where
 text \<open>The definition of DPLL is given in \cwref{fig:prop:dpllcalc}{figure 2.13 page 70}.\<close>
 inductive dpll\<^sub>W :: "'v dpll\<^sub>W_state \<Rightarrow> 'v dpll\<^sub>W_state \<Rightarrow> bool" where
 propagate: "C + {#L#} \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit L (trail S)
-  \<Longrightarrow> dpll\<^sub>W S (Propagated L Proped # trail S, clauses S)" |
+  \<Longrightarrow> dpll\<^sub>W S (Propagated L () # trail S, clauses S)" |
 decided: "undefined_lit L (trail S) \<Longrightarrow> atm_of L \<in> atms_of_mu (clauses S)
   \<Longrightarrow> dpll\<^sub>W S (Marked L Level # trail S, clauses S)" |
 backtrack: "backtrack_split (trail S)  = (M', L # M) \<Longrightarrow> is_marked L \<Longrightarrow> D \<in># clauses S
-  \<Longrightarrow> trail S \<Turnstile>as CNot D \<Longrightarrow> dpll\<^sub>W S (Propagated (- (lit_of L)) Proped # M, clauses S)"
+  \<Longrightarrow> trail S \<Turnstile>as CNot D \<Longrightarrow> dpll\<^sub>W S (Propagated (- (lit_of L)) () # M, clauses S)"
 
 
 subsection \<open>Invariants\<close>

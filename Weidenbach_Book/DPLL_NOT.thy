@@ -6,14 +6,14 @@ section \<open>DPLL as an instance of NOT\<close>
 subsection \<open>DPLL with simple backtrack\<close>
 locale dpll_with_backtrack
 begin
-inductive backtrack :: "('v, dpll_marked_level, dpll_mark) marked_lit list \<times> 'v clauses
-  \<Rightarrow> ('v, dpll_marked_level, dpll_mark) marked_lit list \<times> 'v clauses \<Rightarrow> bool" where
+inductive backtrack :: "('v, dpll_marked_level, unit) marked_lit list \<times> 'v clauses
+  \<Rightarrow> ('v, dpll_marked_level, unit) marked_lit list \<times> 'v clauses \<Rightarrow> bool" where
 "backtrack_split (fst S)  = (M', L # M) \<Longrightarrow> is_marked L \<Longrightarrow> D \<in># snd S
-  \<Longrightarrow> fst S \<Turnstile>as CNot D \<Longrightarrow> backtrack S (Propagated (- (lit_of L)) Proped # M, snd S)"
+  \<Longrightarrow> fst S \<Turnstile>as CNot D \<Longrightarrow> backtrack S (Propagated (- (lit_of L)) () # M, snd S)"
 
 inductive_cases backtrackE[elim]: "backtrack (M, N) (M', N')"
 lemma backtrack_is_backjump:
-  fixes M M' :: "('v, dpll_marked_level, dpll_mark) marked_lit list"
+  fixes M M' :: "('v, dpll_marked_level, unit) marked_lit list"
   assumes
     backtrack: "backtrack (M, N) (M', N')" and
     no_dup: "(no_dup \<circ> fst) (M, N)" and
@@ -98,7 +98,7 @@ proof -
             (* TODO one-liner? *)
           unfolding total_over_set_def atms_of_s_def
           proof -
-            fix x :: "('v, dpll_marked_level, dpll_mark) marked_lit"
+            fix x :: "('v, dpll_marked_level, unit) marked_lit"
             assume a1: "x \<in> set M"
             assume a2: "\<forall>l\<in>atm_of ` lit_of ` (set M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}).
               Pos l \<in> I \<or> Neg l \<in> I"
@@ -132,7 +132,7 @@ proof -
 qed
 
 lemma backtrack_is_backjump':
-  fixes M M' :: "('v, dpll_marked_level, dpll_mark) marked_lit list"
+  fixes M M' :: "('v, dpll_marked_level, unit) marked_lit list"
   assumes
     backtrack: "backtrack S T" and
     no_dup: "(no_dup \<circ> fst) S" and
@@ -155,7 +155,7 @@ sublocale backjumping_ops fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, 
   by unfold_locales
 
 lemma backtrack_is_backjump'':
-  fixes M M' :: "('v, dpll_marked_level, dpll_mark) marked_lit list"
+  fixes M M' :: "('v, dpll_marked_level, unit) marked_lit list"
   assumes
     backtrack: "backtrack S T" and
     no_dup: "(no_dup \<circ> fst) S" and
@@ -229,12 +229,12 @@ context dpll_with_backtrack
 begin
 lemma tranclp_dpll_wf_inital_state:
   assumes fin: "finite A"
-  shows "wf {((M'::('v, dpll_marked_level, dpll_mark) marked_lits, N'::'v clauses), ([], N))|M' N' N.
+  shows "wf {((M'::('v, dpll_marked_level, unit) marked_lits, N'::'v clauses), ([], N))|M' N' N.
     dpll\<^sub>N\<^sub>O\<^sub>T_bj\<^sup>+\<^sup>+ ([], N) (M', N') \<and> atms_of_mu N \<subseteq> atms_of_m A}"
   using tranclp_dpll\<^sub>N\<^sub>O\<^sub>T_bj_wf[OF assms(1)] by (rule wf_subset) auto
 
 theorem full_dpll_normal_forms:
-  fixes M M' :: "('v, dpll_marked_level, dpll_mark) marked_lit list"
+  fixes M M' :: "('v, dpll_marked_level, unit) marked_lit list"
   assumes
     full: "full dpll\<^sub>N\<^sub>O\<^sub>T_bj ([], N) (M', N')"
   shows "unsatisfiable (set_mset N) \<or> (M' \<Turnstile>asm N \<and> satisfiable (set_mset N))"

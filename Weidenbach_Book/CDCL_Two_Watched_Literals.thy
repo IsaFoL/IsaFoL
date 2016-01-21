@@ -22,7 +22,7 @@ lemma image_mset_subseteq_mono: "A \<subseteq># B \<Longrightarrow> image_mset f
   by (metis image_mset_union subset_mset.le_iff_add)
 
 lemma image_filter_ne_mset[simp]:
-  "image_mset f {#x \<in># M. f x \<noteq> y#} = remove_mset (image_mset f M) y"
+  "image_mset f {#x \<in># M. f x \<noteq> y#} = remove_mset y (image_mset f M)"
   by (induct M, auto, meson count_le_replicate_mset_le order_refl subset_mset.add_diff_assoc2)
 
 lemma distinct_mset_set_mset_ident[simp]: "distinct_mset M \<Longrightarrow> mset_set (set_mset M) = M"
@@ -746,6 +746,7 @@ definition less_eq_multiset :: "'a multiset \<Rightarrow> 'a multiset \<Rightarr
 
 instance
   by standard (auto simp: less_eq_multiset_def less_multiset_def)
+
 end
 
 (* implementation of watch etc. *)
@@ -757,7 +758,7 @@ interpretation abstract_twl watch_nat rewatch_nat sorted_list_of_multiset learne
   apply (rule wf_rewatch_nat_TOO_STRONG)
   apply (rule mset_sorted_list_of_multiset)
   apply (rule subset_mset.order_refl)
-  done
+  oops
 
 (* interpretation cdcl_cw_ops
 oops
