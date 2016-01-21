@@ -4167,11 +4167,37 @@ proof -
     next
       case not_false note C = this(1) and l = this(2)
       let ?L = "- lit_of (hd (trail (cut_trail_wrt_clause C (trail T) T)))"
-      have L: "get_level ?L (trail (cut_trail_wrt_clause C (trail T) T))
+      have "get_all_levels_of_marked (trail (add_new_clause_and_update C T)) =
+        rev [1..<1 + length (get_all_levels_of_marked (trail (add_new_clause_and_update C T)))]"
+        using \<open>cdcl_all_struct_inv ?T'\<close> unfolding cdcl_all_struct_inv_def cdcl_M_level_inv_def
+        by blast
+      moreover
+        have "backtrack_lvl (cut_trail_wrt_clause C (trail T) T) =
+          length (get_all_levels_of_marked (trail (add_new_clause_and_update C T)))"
+        using \<open>cdcl_all_struct_inv ?T'\<close> unfolding cdcl_all_struct_inv_def cdcl_M_level_inv_def
+        by (auto simp:add_new_clause_and_update_def)
+      moreover
+        have "no_dup (trail (cut_trail_wrt_clause C (trail T) T))"
+          using \<open>cdcl_all_struct_inv ?T'\<close> unfolding cdcl_all_struct_inv_def cdcl_M_level_inv_def
+          by (auto simp:add_new_clause_and_update_def)
+        then have "atm_of ?L \<notin> atm_of ` lits_of (tl (trail (cut_trail_wrt_clause C (trail T) T)))"
+          apply (cases "trail (cut_trail_wrt_clause C (trail T) T)")
+          apply (auto)
+          using Marked_Propagated_in_iff_in_lits_of defined_lit_map by blast
+
+      ultimately have L: "get_level (-?L) (trail (cut_trail_wrt_clause C (trail T) T))
+        = length (get_all_levels_of_marked (trail (cut_trail_wrt_clause C (trail T) T)))"
+        using get_level_get_rev_level_get_all_levels_of_marked[OF
+          \<open>atm_of ?L \<notin> atm_of ` lits_of (tl (trail (cut_trail_wrt_clause C (trail T) T)))\<close>,
+          of "[hd (trail (cut_trail_wrt_clause C (trail T) T))]"]
+         apply (cases "trail (cut_trail_wrt_clause C (trail T) T)";
+           cases "hd (trail (cut_trail_wrt_clause C (trail T) T))")
+          using l by (auto split: split_if_asm
+            simp:rev_swap[symmetric] add_new_clause_and_update_def)
+      have L': "length (get_all_levels_of_marked (trail (cut_trail_wrt_clause C (trail T) T)))
         = backtrack_lvl (cut_trail_wrt_clause C (trail T) T)"
-        using l apply (cases "trail (cut_trail_wrt_clause C (trail T) T)")
-        apply auto
-       sorry
+        using \<open>cdcl_all_struct_inv ?T'\<close> unfolding cdcl_all_struct_inv_def cdcl_M_level_inv_def
+        by (auto simp:add_new_clause_and_update_def)
 
       have [simp]: "no_smaller_confl (update_conflicting (C_Clause C)
         (add_init_cls C (cut_trail_wrt_clause C (trail T) T)))"
@@ -4211,7 +4237,7 @@ proof -
               by (metis IntI Marked_Propagated_in_iff_in_lits_of defined_lit_map empty_iff)
         qed
       qed
-      show ?thesis using L C
+      show ?thesis using L L' C
         unfolding cdcl_s_invariant_def
         unfolding cdcl_all_struct_inv_def by (auto simp: add_new_clause_and_update_def)
     qed
@@ -4290,6 +4316,46 @@ next
     by (metis \<open>cdcl_all_struct_inv (add_init_cls C S)\<close> add_no_confl.hyps(5) full_def
       rtranclp_cdcl_s_cdcl_s_invariant)
 qed
+
+lemma rtranclp_incremental_cdcl_inv:
+  assumes
+    inc: "incremental_cdcl\<^sup>*\<^sup>* S T" and
+    inv: "cdcl_all_struct_inv S" and
+    s_inv: "cdcl_s_invariant S"
+  shows
+    "cdcl_all_struct_inv T" and
+    "cdcl_s_invariant T"
+     using inc apply induction
+    using inv apply simp
+   using s_inv apply simp
+  using incremental_cdcl_inv by blast+
+
+lemma incremental_correct:
+  assumes
+    inc: "incremental_cdcl S T" and
+    inv: "cdcl_all_struct_inv S" and
+    s_inv: "cdcl_s_invariant S"
+  shows "conflicting T = C_Clause {#} \<and> unsatisfiable (set_mset (init_clss T))
+    \<or> conflicting T = C_True \<and> trail T \<Turnstile>asm init_clss T \<and> satisfiable (set_mset (init_clss T))"
+  using inc apply induction
+  (* Here I thank Sledgehammer for its invaluable services *)
+  apply (metis add_new_clause_and_update_def
+    cdcl_all_struct_inv_add_new_clause_and_update_cdcl_all_struct_inv
+    cdcl_all_struct_inv_add_new_clause_and_update_cdcl_s_inv full_cdcl_s_inv_normal_form
+    full_def inv rtranclp_cdcl_s_no_more_init_clss s_inv)
+  by (metis (full_types) Nitpick.rtranclp_unfold add_no_confl full_cdcl_s_inv_normal_form
+    full_def incremental_cdcl_inv(1) incremental_cdcl_inv(2) inv s_inv)
+
+lemma tranclp_incremental_correct:
+  assumes
+    inc: "incremental_cdcl\<^sup>+\<^sup>+ S T" and
+    inv: "cdcl_all_struct_inv S" and
+    s_inv: "cdcl_s_invariant S"
+  shows "conflicting T = C_Clause {#} \<and> unsatisfiable (set_mset (init_clss T))
+    \<or> conflicting T = C_True \<and> trail T \<Turnstile>asm init_clss T \<and> satisfiable (set_mset (init_clss T))"
+  using inc apply induction
+   using assms incremental_correct apply blast
+  by (meson incremental_correct inv rtranclp_incremental_cdcl_inv s_inv tranclp_into_rtranclp)
 
 lemma blocked_induction_with_marked:
   assumes
