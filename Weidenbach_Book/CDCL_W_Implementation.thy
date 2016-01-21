@@ -194,7 +194,7 @@ definition do_propagate_step where
     (M, N, U, k, C_True) \<Rightarrow>
       (case find_first_unit_clause (N @ U) M of
         Some (L, C) \<Rightarrow> (Propagated L C # M, N, U, k, C_True)
-      | None \<Rightarrow> (M, N, U, k, C_True))
+      | None \<Rightarrow> S)
   | S \<Rightarrow> S)"
 
 lemma do_propgate_step:
