@@ -4273,7 +4273,6 @@ proof (induction)
 next
   case (add_no_confl C T)
   case 1
-
   have "cdcl_all_struct_inv (add_init_cls C S)"
     using inv \<open>distinct_mset C\<close> unfolding cdcl_all_struct_inv_def no_strange_atm_def
     cdcl_M_level_inv_def distinct_cdcl_state_def cdcl_conflicting_def cdcl_learned_clause_def
@@ -4291,9 +4290,6 @@ next
     by (metis \<open>cdcl_all_struct_inv (add_init_cls C S)\<close> add_no_confl.hyps(5) full_def
       rtranclp_cdcl_s_cdcl_s_invariant)
 qed
-
-lemma "\<not> M' @ Marked K i # M \<Turnstile>as CNot C \<Longrightarrow> \<not>M \<Turnstile>as CNot C"
-unfolding true_annots_true_cls_def_iff_negation_in_model apply auto
 
 lemma blocked_induction_with_marked:
   assumes
