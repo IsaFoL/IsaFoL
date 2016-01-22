@@ -422,7 +422,7 @@ skip_rule[intro]: "state S = (Propagated L C' # M, N, U, k, C_Clause D) \<Longri
 inductive_cases skipE[elim]: "skip S S'"
 thm skipE
 
-text \<open>@{term "get_maximum_level D (Propagated L (C + {#L#}) # M) = k \<or> k= 0"} is equivalent to
+text \<open>@{term "get_maximum_level D (Propagated L (C + {#L#}) # M) = k \<or> k = 0"} is equivalent to
   @{term "get_maximum_level D (Propagated L (C + {#L#}) # M) = k"}\<close>
 inductive resolve :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 resolve_rule[intro]: "

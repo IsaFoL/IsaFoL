@@ -16,6 +16,6 @@ forthcoming book _Automated Reasoning―The Art of Generic Problem Solving_.
 
 ## Publication ##
 
-* [Formalisation of Ground Inference Systems in a Proof Assistant](https://bitbucket.org/zmaths/formalisation-of-ground-inference-systems-in-a-proof-assistant).
+* [Formalisation of Ground Inference Systems in a Proof Assistant](http://www.mpi-inf.mpg.de/fileadmin/inf/rg1/Documents/fleury_master_thesis.pdf).
   M. Fleury.
   M.Sc. thesis, École normale supérieure Rennes, 2015.
