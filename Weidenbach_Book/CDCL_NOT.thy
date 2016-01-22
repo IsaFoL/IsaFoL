@@ -2852,7 +2852,8 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops =
   for
     trail :: "'st \<Rightarrow> ('v, dpll_marked_level, unit) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
-    prepend_trail :: "('v, dpll_marked_level, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and tl_trail :: "'st \<Rightarrow> 'st" and
+    prepend_trail :: "('v, dpll_marked_level, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and 
+    tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     propagate_conds :: "('v, dpll_marked_level, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     forget_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" +

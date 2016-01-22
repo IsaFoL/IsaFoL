@@ -676,6 +676,10 @@ proof -
     by (metis (no_types) get_all_marked_decomposition_snd_union[of M] image_Un)
 qed
 
+lemma all_decomposition_implies_insert_single:
+  "all_decomposition_implies N M \<Longrightarrow> all_decomposition_implies (insert C N) M"
+  unfolding all_decomposition_implies_def by auto
+
 subsection \<open>Negation of Clauses\<close>
 
 definition CNot :: "'v clause \<Rightarrow> 'v clauses" where
@@ -755,6 +759,10 @@ proof (intro allI impI)
   thus "I \<Turnstile>s CNot {#L#}"
     using tot I by (cases L) auto
 qed
+
+lemma true_annots_true_cls_def_iff_negation_in_model:
+  "M \<Turnstile>as CNot C \<longleftrightarrow> (\<forall>L \<in># C. -L \<in> lits_of M)"
+  unfolding CNot_def true_annots_true_cls true_clss_def by auto
 
 lemma consistent_CNot_not_tautology:
   "consistent_interp M \<Longrightarrow> M \<Turnstile>s CNot D \<Longrightarrow> \<not>tautology D"
