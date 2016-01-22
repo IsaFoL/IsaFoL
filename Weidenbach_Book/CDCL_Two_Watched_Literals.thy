@@ -452,7 +452,7 @@ locale abstract_twl =
     clause_watch: "raw_clause (watch S C) = C" and
     wf_watch: "wf_twl_cls (trail S) (watch S C)" and
     clause_rewatch: "raw_clause (rewatch L S C') = raw_clause C'" and
-    wf_rewatch: "wf_twl_cls (L # trail S) (rewatch L S C')" and
+    wf_rewatch: "wf_twl_cls (trail S) C' \<Longrightarrow> wf_twl_cls (L # trail S) (rewatch L S C')" and
     linearize: "mset (linearize N) = N" and
     restart_learned: "restart_learned S \<subseteq># learned_clss S"
 begin
