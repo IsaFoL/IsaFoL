@@ -543,25 +543,50 @@ sublocale cdcl_cw_ops trail raw_init_clss raw_learned_clsss backtrack_lvl confli
   update_conflicting init_state restart'
   by unfold_locales
 
+interpretation cdcl\<^sub>N\<^sub>O\<^sub>T: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops "convert_trail_from_W o trail" clauses
+  "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
+  "\<lambda>S. tl_trail S"
+  "\<lambda>C S. add_learned_cls C S"
+  "\<lambda>C S. remove_cls C S"
+  (* propagate conditions: *)"\<lambda>L S. lit_of L \<in> fst ` candidates_propagate S" 
+  "\<lambda>_ S. conflicting S = C_True"
+  "\<lambda>C L S. C+{#L#} \<in> candidates_conflict S \<and> distinct_mset (C + {#L#}) \<and> \<not>tautology (C + {#L#})"
+  by unfold_locales
+
+(* Needs the state to contain the invariant *)
+interpretation cdcl\<^sub>N\<^sub>O\<^sub>T: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy "convert_trail_from_W o trail" clauses
+  "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
+  "\<lambda>S. tl_trail S"
+  "\<lambda>C S. add_learned_cls C S"
+  "\<lambda>C S. remove_cls C S"
+  (* propagate conditions: *)"\<lambda>L S. lit_of L \<in> fst ` candidates_propagate S" 
+  (* forget conditions *)"\<lambda>_ S. conflicting S = C_True"
+  "\<lambda>C L S. C+{#L#} \<in> candidates_conflict S"
+  inv\<^sub>N\<^sub>O\<^sub>T
+proof (unfold_locales,goal_cases)
+oops
+
+interpretation cdcl\<^sub>N\<^sub>O\<^sub>T: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2 "convert_trail_from_W o trail" clauses
+  "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
+  "\<lambda>S. tl_trail S"
+  "\<lambda>C S. add_learned_cls C S"
+  "\<lambda>C S. remove_cls C S"
+  (* propagate conditions: *)"\<lambda>L S. lit_of L \<in> fst ` candidates_propagate S" 
+  inv\<^sub>N\<^sub>O\<^sub>T
+  (* forget conditions *)"\<lambda>_ S. conflicting S = C_True"
+  "\<lambda>C L S. C+{#L#} \<in> candidates_conflict S"
+oops
+
 interpretation cdcl\<^sub>N\<^sub>O\<^sub>T: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn "convert_trail_from_W o trail" clauses
   "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
   "\<lambda>S. tl_trail S"
   "\<lambda>C S. add_learned_cls C S"
   "\<lambda>C S. remove_cls C S"
   (* propagate conditions: *)"\<lambda>L S. lit_of L \<in> fst ` candidates_propagate S" 
-  "\<lambda>_. True"
-  "\<lambda>_ _. True"
-  "\<lambda>C L S. backjump_l_cond C L S
-    \<and> distinct_mset (C + {#L#}) \<and> \<not>tautology (C + {#L#})"
-  (* propagate conditions: *)  (* "\<lambda>C L S. backjump_l_cond C L S
-    \<and> distinct_mset (C + {#L#}) \<and> \<not>tautology (C + {#L#})" *)
-  (* "\<lambda>L S. lit_of L \<in> fst ` candidates_propagate S" *)
-  apply unfold_locales
-  defer apply fast+
-
-  (* backjump_conds is candidate_conflict *)
+  inv\<^sub>N\<^sub>O\<^sub>T
+  (* forget conditions *)"\<lambda>_ S. conflicting S = C_True"
+  "\<lambda>C L S. C+{#L#} \<in> candidates_conflict S"
 oops
-
 end
 
 
