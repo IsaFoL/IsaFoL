@@ -14,7 +14,11 @@ first-order logic.
 
 ## Publication ##
 
+* [Meta-Logical Reasoning in Higher-Order Logic](http://orbit.dtu.dk/files/118776437/logica_poster.pdf)
+  J. Villadsen, A. Schlichtkrull, and A. V. Hess.
+  Poster session presented at 29th Annual International Symposia Devoted to
+  Logic (LOGICA 2015), 2015.
+
 * [Formalization of Resolution Calculus in Isabelle](http://people.compute.dtu.dk/andschl/Thesis.pdf).
   A. Schlichtkrull.
   M.Sc. thesis, Danmarks Tekniske Universitet, 2015.
-
