@@ -57,13 +57,13 @@ at Universität Innsbruck.
   M. Fleury.
   M.Sc. thesis, École normale supérieure Rennes, 2015.
 
-* [Unified classical logic completeness: A coinductive pearl](http://www.loria.fr/~jablanch/compl.pdf).
+* [Unified Classical Logic Completeness: A Coinductive Pearl](http://www.loria.fr/~jablanch/compl.pdf).
   J. C. Blanchette, A. Popescu, and D. Traytel.
   In Demri, S., Kapur, D., Weidenbach, C. (eds) 7th International Joint
   Conference on Automated Reasoning (IJCAR 2014), LNAI 8562, pp. 46-60,
   Springer, 2014.
 
-* [Mechanizing the metatheory of Sledgehammer](http://www.loria.fr/~jablanch/self.pdf).
+* [Mechanizing the Metatheory of Sledgehammer](http://www.loria.fr/~jablanch/self.pdf).
   J. C. Blanchette and A. Popescu.
   In Fontaine, P., Ringeissen, C., Schmidt, R. A. (eds.) 9th International
   Symposium on Frontiers of Combining Systems (FroCoS 2013), LNAI 8152,
