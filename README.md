@@ -44,7 +44,7 @@ at Universität Innsbruck.
 
 ## Publications ##
 
-* [Meta-Logical Reasoning in Higher-Order Logic](http://orbit.dtu.dk/files/118776437/logica_poster.pdf)
+* [Meta-Logical Reasoning in Higher-Order Logic](http://orbit.dtu.dk/files/118776437/logica_poster.pdf).
   J. Villadsen, A. Schlichtkrull, and A. V. Hess.
   Poster session presented at 29th Annual International Symposia Devoted to
   Logic (LOGICA 2015), 2015.
