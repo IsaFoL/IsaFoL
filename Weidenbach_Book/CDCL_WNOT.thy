@@ -1176,10 +1176,10 @@ next
             using undef_L apply simp
            using atm_L apply simp
           using \<open>init_clss T' + learned_clss S \<Turnstile>pm D + {#L#}\<close> unfolding clauses_def apply simp
-         using \<open>tl (trail U) \<Turnstile>as CNot D\<close> inv_T' unfolding cdcl_all_struct_inv_def distinct_cdcl_state_def
-         apply simp
-        using \<open>tl (trail U) \<Turnstile>as CNot D\<close> inv_T' inv_U U confl_T' unfolding cdcl_all_struct_inv_def distinct_cdcl_state_def
-        apply simp_all
+         using \<open>tl (trail U) \<Turnstile>as CNot D\<close> inv_T' unfolding cdcl_all_struct_inv_def 
+         distinct_cdcl_state_def apply simp
+        using \<open>tl (trail U) \<Turnstile>as CNot D\<close> inv_T' inv_U U confl_T' unfolding cdcl_all_struct_inv_def
+        distinct_cdcl_state_def apply simp_all
         done
       then show ?thesis using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_backjump_l by fast
     qed
@@ -1207,8 +1207,8 @@ proof -
       moreover have "inv\<^sub>N\<^sub>O\<^sub>T S"
         using inv unfolding cdcl_all_struct_inv_def cdcl_M_level_inv_def by auto
       ultimately show ?thesis
-        using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_is_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_is_rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_and_inv
-        rtranclp_mono[of cdcl\<^sub>N\<^sub>O\<^sub>T cdcl\<^sub>N\<^sub>O\<^sub>T_restart]
+        using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_is_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T rtranclp_mono[of cdcl\<^sub>N\<^sub>O\<^sub>T cdcl\<^sub>N\<^sub>O\<^sub>T_restart]
+        rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_is_rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_and_inv
         by (blast intro: restart_ops.cdcl\<^sub>N\<^sub>O\<^sub>T_raw_restart.intros)
     next
       case fw_r
