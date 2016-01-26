@@ -978,8 +978,11 @@ next
     have
       np: "no_step propagate (toS (rough_state_of S))" and
       nc: "no_step conflict (toS (rough_state_of S))"
-      by (metis True do_cp_step_eq_no_step do_full1_cp_step_fix_point_of_do_full1_cp_step
-       in_clauses_rough_state_of_is_distinct no_cdcl_cp_iff_no_propagate_no_conflict)+
+        apply (metis True do_cp_step_eq_no_prop_no_confl 
+          do_full1_cp_step_fix_point_of_do_full1_cp_step do_propagate_step_no_step 
+          in_clauses_rough_state_of_is_distinct)
+      by (metis True do_conflict_step_no_step do_cp_step_eq_no_prop_no_confl 
+        do_full1_cp_step_fix_point_of_do_full1_cp_step)
     hence "no_step cdcl_cp (toS (rough_state_of S))"
       by (simp add: cdcl_cp.simps)
   moreover have "full cdcl_cp (toS (rough_state_of (do_other_step' S)))
