@@ -2782,8 +2782,6 @@ next
       case (decide' V')
       then have conf_V: "conflicting V = C_True"
         by auto
-      have "no_step cdcl_s'_without_decide V"
-        using conf_V local.decide'(2) no_step_cdcl_cp_no_step_cdcl_s'_without_decide by blast
       consider
          (s') "cdcl_fw_s\<^sup>*\<^sup>* R V"
         | (dec_confl) S T U where "cdcl_fw_s\<^sup>*\<^sup>* R S" and "no_step cdcl_fw_cp S" and
@@ -3431,7 +3429,7 @@ lemma full_cdcl_s_full_cdcl_fw:
   shows "full cdcl_s R V \<longleftrightarrow> full cdcl_fw_s R V" (is "?s' \<longleftrightarrow> ?fw")
   by (simp add: assms(1) full_cdcl_s'_full_cdcl_fw_restart full_cdcl_s_iff_full_cdcl_s' inv)
 
-lemma full1_cdcl_fw_s_normal_forms':
+lemma full_cdcl_fw_s_normal_forms':
   fixes S' :: "'st"
   assumes full: "full cdcl_fw_s (init_state N) S'"
   and no_d: "distinct_mset_mset N"
