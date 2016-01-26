@@ -46,11 +46,31 @@ definition candidates_conflict :: "('v, 'lvl, 'mark) twl_state \<Rightarrow> 'v 
 (* interpretation dpll_state trail "image_mset raw_clause o clauses"
   "\<lambda>M S. TWL_State M (init_clss S) (learned_clss S) (backtrack_lvl S) (conflicting S)"
 oops *)
-
 primrec wf_twl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v twl_clause \<Rightarrow> bool" where
   "wf_twl_cls M (TWL_Clause W UW) \<longleftrightarrow>
    distinct_mset W \<and> size W \<le> 2 \<and> (size W < 2 \<longrightarrow> set_mset UW \<subseteq> set_mset W) \<and>
    (\<forall>L \<in># W. -L \<in> lits_of M \<longrightarrow> (\<forall>L' \<in># UW. L' \<notin># W \<longrightarrow> -L' \<in> lits_of M))"
+
+primrec watched_decided_recently where
+"watched_decided_recently S (TWL_Clause W UW) \<longleftrightarrow>
+  (\<forall>L\<in>#W. \<forall>L'\<in>#UW.
+    -L \<in> lits_of (trail S) \<longrightarrow> -L' \<in> lits_of (trail S) \<longrightarrow>
+      Min {i. map lit_of (trail S)!i = -L} \<le> Min {i. map lit_of (trail S)!i = -L'})"
+
+lemma size_mset_2: "size x1 = 2 \<longleftrightarrow> (\<exists>a b. x1 = {#a, b#})"
+by (metis (no_types, hide_lams) Suc_eq_plus1 one_add_one size_1_singleton_mset
+  size_Diff_singleton size_Suc_Diff1 size_eq_Suc_imp_eq_union size_single union_single_eq_diff
+  union_single_eq_member)
+
+lemma distinct_mset_size_2: "distinct_mset {#a, b#} \<longleftrightarrow> a \<noteq> b"
+  unfolding distinct_mset_def by auto
+
+text \<open>does not hold when all there are multiple conflicts in a clause.\<close>
+lemma "wf_twl_cls M S \<Longrightarrow> wf_twl_cls (tl M) S"
+apply (cases M; cases S)
+apply (auto simp: size_mset_2 Ball_mset_def distinct_mset_size_2 split: split_if_asm)
+apply (rename_tac LM M' W q LW LW')
+oops
 
 definition wf_twl_state :: "('v, 'lvl, 'mark) twl_state \<Rightarrow> bool" where
   "wf_twl_state S \<longleftrightarrow> (\<forall>C \<in># clauses S. wf_twl_cls (trail S) C)"
@@ -415,6 +435,16 @@ where
    TWL_State (L # trail S) (image_mset (rewatch L S) (init_clss S))
      (image_mset (rewatch L S) (learned_clss S)) (backtrack_lvl S) (conflicting S)"
 
+lemma
+  assumes "\<forall>C \<in># clauses S. watched_decided_recently S C" and
+    "wf_twl_state S"
+  shows "\<forall>C \<in># clauses (cons_trail L S). watched_decided_recently S C"
+  using assms apply clarify
+  apply (case_tac "C")
+  apply (auto simp: cons_trail_def)
+  (* needs no_dup in the trail... *)
+oops
+
 definition
   add_init_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) twl_state \<Rightarrow>
     ('v, nat, 'v clause) twl_state"
@@ -505,15 +535,18 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_
 
 end
 
+
 text \<open>Lifting to the abstract state.\<close>
 context abstract_twl
 begin
+
+declare state_simp[simp del]
 
 abbreviation cons_trail_twl where
 "cons_trail_twl L S \<equiv> twl_of_rough_state (cons_trail L (rough_state_of_twl S))"
 
 lemma wf_twl_state_cons_trail: "wf_twl_state S \<Longrightarrow> wf_twl_state (cons_trail L S)"
-  sorry
+  unfolding wf_twl_state_def by (auto simp: cons_trail_def wf_rewatch)
 
 lemma rough_state_of_twl_cons_trail:
   "rough_state_of_twl (cons_trail_twl L S) = cons_trail L (rough_state_of_twl S)"
@@ -523,7 +556,7 @@ abbreviation add_init_cls_twl where
 "add_init_cls_twl C S \<equiv> twl_of_rough_state (add_init_cls C (rough_state_of_twl S))"
 
 lemma wf_twl_add_init_cls: "wf_twl_state S \<Longrightarrow> wf_twl_state (add_init_cls L S)"
-  sorry
+  unfolding wf_twl_state_def by (auto simp: wf_watch add_init_cls_def split: split_if_asm)
 
 lemma rough_state_of_twl_add_init_cls:
   "rough_state_of_twl (add_init_cls_twl L S) = add_init_cls L (rough_state_of_twl S)"
@@ -533,7 +566,7 @@ abbreviation add_learned_cls_twl where
 "add_learned_cls_twl C S \<equiv> twl_of_rough_state (add_learned_cls C (rough_state_of_twl S))"
 
 lemma wf_twl_add_learned_cls: "wf_twl_state S \<Longrightarrow> wf_twl_state (add_learned_cls L S)"
-  sorry
+  unfolding wf_twl_state_def by (auto simp: wf_watch add_learned_cls_def split: split_if_asm)
 
 lemma rough_state_of_twl_add_learned_cls:
   "rough_state_of_twl (add_learned_cls_twl L S) = add_learned_cls L (rough_state_of_twl S)"
@@ -543,7 +576,7 @@ abbreviation remove_cls_twl where
 "remove_cls_twl C S \<equiv> twl_of_rough_state (remove_cls C (rough_state_of_twl S))"
 
 lemma wf_twl_remove_cls: "wf_twl_state S \<Longrightarrow> wf_twl_state (remove_cls L S)"
-  sorry
+  unfolding wf_twl_state_def by (auto simp: wf_watch remove_cls_def split: split_if_asm)
 
 lemma rough_state_of_twl_remove_cls:
   "rough_state_of_twl (remove_cls_twl L S) = remove_cls L (rough_state_of_twl S)"
@@ -554,6 +587,7 @@ abbreviation init_state_twl where
 "init_state_twl N \<equiv> twl_of_rough_state (init_state N)"
 
 lemma wf_twl_init_state: "wf_twl_state (init_state N)"
+  unfolding wf_twl_state_def init_state_def
   sorry
 
 lemma rough_state_of_twl_init_state:
@@ -600,10 +634,16 @@ abbreviation raw_clauses_twl where
 abbreviation restart_twl where
 "restart_twl S \<equiv>  twl_of_rough_state (restart' (rough_state_of_twl S))"
 
+lemma wf_wf_restart': "wf_twl_state S \<Longrightarrow> wf_twl_state (restart' S)"
+  unfolding restart'_def wf_twl_state_def apply clarify
+  apply (rename_tac x)
+  apply (subgoal_tac "wf_twl_cls (trail S) x")
+  apply (case_tac x)
+  using restart_learned by fastforce+
+
 lemma rough_state_of_twl_restart_twl:
   "rough_state_of_twl (restart_twl S) = restart' (rough_state_of_twl S)"
-  sorry
-
+  by (simp add: twl_of_rough_state_inverse wf_wf_restart')
 (* Sledgehammer is awesome! *)
 interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl_NOT: dpll_state
   "convert_trail_from_W o trail_twl" raw_clauses_twl
@@ -621,7 +661,6 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl_NOT: dpll_state
    using clauses_add_cls\<^sub>N\<^sub>O\<^sub>T rough_state_of_twl_add_learned_cls apply presburger
   using clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T rough_state_of_twl_remove_cls by presburger
 
-declare state_simp[simp del]
 interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: cw_state
   trail_twl
   init_clss_twl
@@ -909,6 +948,12 @@ lemma filter_sorted_list_of_multiset_ConsD:
   "[x \<leftarrow> sorted_list_of_multiset M. p x] = x # xs \<Longrightarrow> p x"
   by (metis filter_set insert_iff list.set(2) member_filter)
 
+
+lemma mset_minus_single_eq_mempty:
+  "a - {#b#} = {#} \<longleftrightarrow> a = {#b#} \<or> a = {#}"
+  by (metis Multiset.diff_cancel add.right_neutral diff_single_eq_union
+    diff_single_trivial zero_diff)
+
 lemma wf_rewatch_nat':
   assumes wf: "wf_twl_cls (trail S) C"
   shows "wf_twl_cls (L # trail S) (rewatch_nat L S C)"
@@ -925,10 +970,11 @@ proof (cases "- lit_of L \<in># watched C")
     show ?thesis
       unfolding rewatch_nat_def
       using falsified Nil apply auto
-apply (case_tac C)
-apply auto
-
-      sorry
+        apply (case_tac C)
+        apply auto
+        using local.wf wf_twl_cls.simps apply blast
+        using local.wf wf_twl_cls.simps apply blast
+        by (metis contra_subsetD local.wf mem_set_mset_iff wf_twl_cls.simps)
   next
     case (Cons L' Ls)
     show ?thesis
@@ -938,7 +984,7 @@ apply auto
       apply (case_tac C)
       apply (auto simp: distinct_mset_single_add)
       apply (case_tac C)
-apply auto
+apply (auto split: split_if_asm simp: mset_minus_single_eq_mempty)
 apply (simp add: size_Diff_singleton)
 apply (metis not_less_eq_eq numeral_2_eq_2 size_Suc_Diff1)
 
@@ -955,6 +1001,7 @@ next
   then show ?thesis
     unfolding rewatch_nat_def using False by simp
 qed
+
 
 (*TODO: remove when multiset is of sort linord again*)
 instantiation multiset :: (linorder) linorder
