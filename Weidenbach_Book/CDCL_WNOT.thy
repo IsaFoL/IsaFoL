@@ -3449,6 +3449,12 @@ qed
 
 end
 
+definition bounded where
+"bounded f \<longleftrightarrow> (\<exists>n. \<forall>m. f m < n)"
+
+lemma "strict_mono (f::nat \<Rightarrow> nat) \<Longrightarrow> \<not>bounded f"
+  by (metis bounded_def mono_nat_linear_lb not_le strict_mono_def trans_less_add2)
+
 subsection \<open>Adding Restarts\<close>
 locale cdcl\<^sub>W_ops_restart =
   cdcl\<^sub>W_ops trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail
@@ -3474,7 +3480,6 @@ locale cdcl\<^sub>W_ops_restart =
   fixes f :: "nat \<Rightarrow> nat"
   assumes f: "strict_mono f"
 begin
-
 text \<open>The condition of the differences of cardinality has to be strict.
   Otherwise, you could be in a strange state, where nothing remains to do, but a restart is done.
   See the proof of well-foundedness.\<close>
@@ -4346,7 +4351,7 @@ lemma incremental_conclusive_state:
   by (metis (full_types) rtranclp_unfold add_no_confl full_cdcl\<^sub>W_stgy_inv_normal_form
     full_def incremental_cdcl\<^sub>W_inv(1) incremental_cdcl\<^sub>W_inv(2) inv s_inv)
 
-lemma tranclp_incremental_correct:
+lemma tranclp_incremental_conclusive_state:
   assumes
     inc: "incremental_cdcl\<^sub>W\<^sup>+\<^sup>+ S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
