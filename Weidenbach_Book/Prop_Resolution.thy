@@ -1642,7 +1642,7 @@ translations
 value "{# a. a : setof {#1,1,2::int#}#} = {1,2}"
 
 definition sum_count_ge_2 :: "'a multiset set \<Rightarrow> nat" ("\<Xi>") where
-"sum_count_ge_2 \<equiv>folding.F (\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0"
+"sum_count_ge_2 \<equiv> folding.F (\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0"
 
 
 interpretation sum_count_ge_2:
@@ -1704,6 +1704,25 @@ lemma msetsum_disjoint:
   by (metis assms diff_zero empty_sup image_mset_union  msetsum.union multiset_inter_commute
     multiset_union_diff_commute sup_subset_mset_def zero_diff)
 
+(* TODO Move to Multiset_More *)
+lemma msetsum_linear[simp]:
+  fixes C D :: "'a \<Rightarrow> 'b::{comm_monoid_add}"
+  shows "(\<Sum>x\<in>#A. C x + D x) = (\<Sum>x\<in>#A. C x) + (\<Sum>x\<in>#A. D x)"
+  by (induction A) (auto simp: ac_simps)
+
+lemma msetsum_if_eq[simp]: "(\<Sum>x\<in>#A. if L = x then 1 else 0) = count A L"
+  by (induction A) auto
+
+(* TODO Move to Multiset_More *)
+lemma filter_equality_in_mset:
+   "filter_mset (op = L) A = replicate_mset (count A L) L"
+  by (auto simp: multiset_eq_iff)
+
+(* TODO Move to Multiset_More *)
+lemma comprehension_mset_False[simp]:
+   "{# L \<in># A. False#} = {#}"
+  by (auto simp: multiset_eq_iff)
+
 lemma simplify_finite_measure_decrease:
   "simplify N N' \<Longrightarrow> finite N \<Longrightarrow> card N' + \<Xi> N' < card N + \<Xi> N"
 proof (induction rule: simplify.induct)
@@ -1724,90 +1743,15 @@ next
       card_insert_if card_mono fin finite_Diff order_refl)
   moreover have "\<Xi> {?C'} < \<Xi> {?C}"
     proof -
-      have 1: "(\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}
-                      #\<union> (if 1 \<le> count A L then replicate_mset (count A L + 1) L else {#}).
-                 count A La + (if L = La then 1 else 0))
-        = (\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}. count A La + (if L = La then 1 else 0))
-        + (\<Sum>La\<in>#(if 1 \<le> count A L then replicate_mset (count A L + 1) L else {#}).
-               count A La + (if L = La then 1 else 0))"
-        (is "_ = (\<Sum> La \<in># ?A. ?f La) + ( \<Sum> La \<in># ?B. _)")
-        apply (rule msetsum_disjoint[of ?A ?B ?f])
-        by (auto intro: multiset_eqI)
-      moreover have 2: "(\<Sum>La\<in>#(if 1 \<le> count A L then replicate_mset (count A L + 1) L else {#}).
-          count A La + (if L = La then 1 else 0))
-        = (if 1 \<le> count A L then count A L * (count A L + 2)+1 else 0)"
-        by auto
-      moreover have "2'":
-        "(\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}. count A La + (if L = La then 1 else 0))
-        = (\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}. count A La)"
-        proof -
-          obtain ll :: "('a literal \<Rightarrow> nat) \<Rightarrow> ('a literal \<Rightarrow> nat) \<Rightarrow> 'a literal multiset
-            \<Rightarrow> 'a literal" where
-            "\<forall>x0 x1 x2. (\<exists>v3. v3 \<in># x2 \<and> x1 v3 \<noteq> x0 v3)
-              = (ll x0 x1 x2 \<in># x2 \<and> x1 (ll x0 x1 x2) \<noteq> x0 (ll x0 x1 x2))"
-            by moura
-          hence f1: "\<forall>m f fa. ll fa f m \<in># m \<and> f (ll fa f m) \<noteq> fa (ll fa f m)
-            \<or> image_mset f m = image_mset fa m"
-            by (meson image_mset_cong)
-          have "ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0))
-            {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} \<notin># {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#}
-            \<or> count A (ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0))
-              {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#})
-              + (if L = ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0))
-                {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} then 1 else 0)
-                = count A (ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0))
-                {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#})"
-            by simp
-          thus ?thesis
-            using f1 by (metis (no_types, lifting))
-        qed
-      moreover have 3: "(\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}
-                              #\<union> replicate_mset (count A L + 2) L.
-                           count A La + (if L = La then 1 else 0) + (if L = La then 1 else 0))
-                       = (\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}.
-                             count A La + (if L = La then 1 else 0) + (if L = La then 1 else 0))
-                       + (\<Sum>La\<in>#replicate_mset (count A L + 2) L.
-                            count A La + (if L = La then 1 else 0) + (if L = La then 1 else 0))"
-                       (is "_ = (\<Sum> La \<in># ?A. ?f La) + (\<Sum> La \<in># ?B. _)")
-        apply (rule msetsum_disjoint[of ?A ?B ?f])
-        by (auto intro: multiset_eqI)
-      moreover
-        have 4:  "(\<Sum>La\<in>#replicate_mset (count A L + 2) L. count A La + (if L = La then 1 else 0)
-            + (if L = La then 1 else 0))
-          = 4 + count A L *(count A L + 4)"
-          by (simp add: algebra_simps)
-      moreover
-        have "4'": "(\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}.
-            count A La + (if L = La then 1 else 0) + (if L = La then 1 else 0))
-          = (\<Sum>La\<in>#{# La :# A. La \<noteq> L \<and> 2 \<le> count A La#}. count A La)"
-          proof -
-            obtain ll :: "('a literal \<Rightarrow> nat) \<Rightarrow> ('a literal \<Rightarrow> nat) \<Rightarrow> 'a literal multiset
-              \<Rightarrow> 'a literal" where
-              "\<forall>x0 x1 x2. (\<exists>v3. v3 \<in># x2 \<and> x1 v3 \<noteq> x0 v3)
-                = (ll x0 x1 x2 \<in># x2 \<and> x1 (ll x0 x1 x2) \<noteq> x0 (ll x0 x1 x2))"
-              by moura
-            hence f1: "\<forall>m f fa. ll fa f m \<in># m \<and> f (ll fa f m) \<noteq> fa (ll fa f m)
-              \<or> image_mset f m = image_mset fa m"
-              by (meson image_mset_cong)
-            have "ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0) + (if L = l then 1 else 0))
-                {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} \<notin># {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#}
-              \<or> count A (ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0)
-                  + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#})
-                  + (if L = ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0)
-                  + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} then 1 else 0)
-                  + (if L = ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0)
-                  + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#} then 1 else 0)
-                = count A (ll (count A) (\<lambda>l. count A l + (if L = l then 1 else 0)
-                  + (if L = l then 1 else 0)) {# l :# A. l \<noteq> L \<and> 2 \<le> count A l#})"
-              by simp
-            thus ?thesis
-              using f1 by (metis (no_types, lifting))
-          qed
+      have mset_decomp: "{# La \<in># A. (L = La \<longrightarrow> Suc 0 \<le> count A La) \<and> (L \<noteq> La \<longrightarrow> 2 \<le> count A La)#}
+        =  {# La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#} +
+          {# La \<in># A. L = La \<and> Suc 0 \<le> count A L#}"
+           by (auto simp: multiset_eq_iff ac_simps)
+      have mset_decomp2: "{# La \<in># A. L \<noteq> La \<longrightarrow> 2 \<le> count A La#} =
+        {# La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#} + replicate_mset (count A L) L"
+        by (auto simp: multiset_eq_iff)
       show ?thesis
-        apply simp
-        unfolding mset_condensation2 unfolding mset_condensation1
-        unfolding 1 2 "2'" 3 4 "4'"
-        by (auto simp add: algebra_simps)
+        by (auto simp: mset_decomp mset_decomp2 filter_equality_in_mset ac_simps)
    qed
   have "\<Xi> ?N' < \<Xi> N"
     proof cases
@@ -1834,9 +1778,18 @@ next
         qed
     next
       assume "?C' \<notin> N"
-      thus ?thesis
-        using \<open>\<Xi> {A + {#L#}} < \<Xi> {A + {#L#} + {#L#}}\<close> condensation.hyps fin sum_count_ge_2.remove
-        by fastforce
+      have mset_decomp: "{# La \<in># A. (L = La \<longrightarrow> Suc 0 \<le> count A La) \<and> (L \<noteq> La \<longrightarrow> 2 \<le> count A La)#}
+        =  {# La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#} +
+          {# La \<in># A. L = La \<and> Suc 0 \<le> count A L#}"
+           by (auto simp: multiset_eq_iff ac_simps)
+      have mset_decomp2: "{# La \<in># A. L \<noteq> La \<longrightarrow> 2 \<le> count A La#} =
+        {# La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#} + replicate_mset (count A L) L"
+        by (auto simp: multiset_eq_iff)
+
+      show ?thesis
+        using \<open>\<Xi> {A + {#L#}} < \<Xi> {A + {#L#} + {#L#}}\<close> condensation.hyps fin
+        sum_count_ge_2.remove[of _ "A + {#L#} + {#L#}"] \<open>?C' \<notin> N\<close>
+        by (auto simp: mset_decomp mset_decomp2 filter_equality_in_mset)
     qed
   ultimately show ?case by linarith
 next
