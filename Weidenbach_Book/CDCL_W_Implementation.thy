@@ -702,10 +702,18 @@ next
 qed
 
 lemma rough_state_of_state_of_backtrack[simp]:
-  assumes "cdcl_all_struct_inv (toS S)"
+  assumes inv: "cdcl_all_struct_inv (toS S)"
   shows "rough_state_of (state_of (do_backtrack_step S))= do_backtrack_step S"
-  apply (rule state_of_inverse)
-  using assms by (smt backtrack bj cdcl_all_struct_inv_inv do_backtrack_step mem_Collect_eq other)
+proof (rule state_of_inverse)
+  have f2: "backtrack (toS S) (toS (do_backtrack_step S)) \<or> do_backtrack_step S = S"
+    using do_backtrack_step inv by blast
+  have "\<And>p. \<not> cdcl_o (toS S) p \<or> cdcl_all_struct_inv p"
+    using inv cdcl_all_struct_inv_inv other by blast
+  then have "do_backtrack_step S = S \<or> cdcl_all_struct_inv (toS (do_backtrack_step S))"
+    using f2 by blast
+  then show "do_backtrack_step S \<in> {S. cdcl_all_struct_inv (toS S)}"
+    using inv by  fastforce
+qed
 
 paragraph \<open>Decide\<close>
 fun do_decide_step where
