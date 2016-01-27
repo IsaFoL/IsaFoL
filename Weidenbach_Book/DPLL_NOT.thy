@@ -6,21 +6,21 @@ section \<open>DPLL as an instance of NOT\<close>
 subsection \<open>DPLL with simple backtrack\<close>
 locale dpll_with_backtrack
 begin
-inductive backtrack :: "('v, dpll_marked_level, unit) marked_lit list \<times> 'v clauses
-  \<Rightarrow> ('v, dpll_marked_level, unit) marked_lit list \<times> 'v clauses \<Rightarrow> bool" where
+inductive backtrack :: "('v, unit, unit) marked_lit list \<times> 'v clauses
+  \<Rightarrow> ('v, unit, unit) marked_lit list \<times> 'v clauses \<Rightarrow> bool" where
 "backtrack_split (fst S)  = (M', L # M) \<Longrightarrow> is_marked L \<Longrightarrow> D \<in># snd S
   \<Longrightarrow> fst S \<Turnstile>as CNot D \<Longrightarrow> backtrack S (Propagated (- (lit_of L)) () # M, snd S)"
 
 inductive_cases backtrackE[elim]: "backtrack (M, N) (M', N')"
 lemma dpll\<^sub>N\<^sub>O\<^sub>T_backtrack_is_backjump:
-  fixes M M' :: "('v, dpll_marked_level, unit) marked_lit list"
+  fixes M M' :: "('v, unit, unit) marked_lit list"
   assumes
     backtrack: "backtrack (M, N) (M', N')" and
     no_dup: "(no_dup \<circ> fst) (M, N)" and
     decomp: "all_decomposition_implies_m N (get_all_marked_decomposition M)"
     shows "
-       \<exists>C F' K d F L l C'.
-          M = F' @ Marked K d # F \<and>
+       \<exists>C F' K F L l C'.
+          M = F' @ Marked K () # F \<and>
           M' = Propagated L l # F \<and> N = N' \<and> C \<in># N \<and> F' @ Marked K d # F \<Turnstile>as CNot C \<and>
           undefined_lit L F \<and> atm_of L \<in> atms_of_mu N \<union> atm_of ` lits_of (F' @ Marked K d # F) \<and>
           N \<Turnstile>pm C' + {#L#} \<and> F \<Turnstile>as CNot C'"
@@ -39,11 +39,11 @@ proof -
   let ?K = "lit_of L"
   let ?C = "image_mset lit_of {#K\<in>#mset M. is_marked K \<and> K\<noteq>L#} :: 'v literal multiset"
   let ?C' = "set_mset (image_mset single (?C+{#?K#}))"
-  obtain K d where L: "L = Marked K d" using \<open>is_marked L\<close> by (cases L) auto
+  obtain K where L: "L = Marked K ()" using \<open>is_marked L\<close> by (cases L) auto
 
-  have M: "M = F' @ Marked K d # F"
+  have M: "M = F' @ Marked K () # F"
     using b_sp  by (metis L backtrack_split_list_eq fst_conv snd_conv)
-  moreover have "F' @ Marked K d # F \<Turnstile>as CNot D"
+  moreover have "F' @ Marked K () # F \<Turnstile>as CNot D"
     using \<open>M\<Turnstile>as CNot D\<close> unfolding M .
   moreover have "undefined_lit (-?K) F"
     using no_dup unfolding M L by (simp add: defined_lit_map)
@@ -98,7 +98,7 @@ proof -
             (* TODO one-liner? *)
           unfolding total_over_set_def atms_of_s_def
           proof -
-            fix x :: "('v, dpll_marked_level, unit) marked_lit"
+            fix x :: "('v, unit, unit) marked_lit"
             assume a1: "x \<in> set M"
             assume a2: "\<forall>l\<in>atm_of ` lit_of ` (set M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}).
               Pos l \<in> I \<or> Neg l \<in> I"
@@ -132,14 +132,14 @@ proof -
 qed
 
 lemma dpll\<^sub>N\<^sub>O\<^sub>T_backtrack_is_backjump':
-  fixes M M' :: "('v, dpll_marked_level, unit) marked_lit list"
+  fixes M M' :: "('v, unit, unit) marked_lit list"
   assumes
     backtrack: "backtrack S T" and
     no_dup: "(no_dup \<circ> fst) S" and
     decomp: "all_decomposition_implies_m (snd S) (get_all_marked_decomposition (fst S))"
     shows "
-        \<exists>C F' K d F L l C'.
-          fst S = F' @ Marked K d # F \<and>
+        \<exists>C F' K F L l C'.
+          fst S = F' @ Marked K () # F \<and>
           T = (Propagated L l # F, snd S) \<and> C \<in># snd S \<and> fst S \<Turnstile>as CNot C
           \<and> undefined_lit L F \<and> atm_of L \<in> atms_of_mu (snd S) \<union> atm_of ` lits_of (fst S) \<and>
           snd S \<Turnstile>pm C' + {#L#} \<and> F \<Turnstile>as CNot C'"
@@ -155,15 +155,15 @@ sublocale backjumping_ops fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, 
   by unfold_locales
 
 lemma dpll\<^sub>N\<^sub>O\<^sub>T_backtrack_is_backjump'':
-  fixes M M' :: "('v, dpll_marked_level, unit) marked_lit list"
+  fixes M M' :: "('v, unit, unit) marked_lit list"
   assumes
     backtrack: "backtrack S T" and
     no_dup: "(no_dup \<circ> fst) S" and
     decomp: "all_decomposition_implies_m (snd S) (get_all_marked_decomposition (fst S))"
     shows "backjump S T"
 proof -
-  obtain C F' K d F L l C' where
-    1: "fst S = F' @ Marked K d # F" and
+  obtain C F' K F L l C' where
+    1: "fst S = F' @ Marked K () # F" and
     2: "T = (Propagated L l # F, snd S)" and
     3: "C \<in># snd S" and
     4: "fst S \<Turnstile>as CNot C" and
@@ -229,19 +229,19 @@ context dpll_with_backtrack
 begin
 lemma tranclp_dpll_wf_inital_state:
   assumes fin: "finite A"
-  shows "wf {((M'::('v, dpll_marked_level, unit) marked_lits, N'::'v clauses), ([], N))|M' N' N.
+  shows "wf {((M'::('v, unit, unit) marked_lits, N'::'v clauses), ([], N))|M' N' N.
     dpll\<^sub>N\<^sub>O\<^sub>T_bj\<^sup>+\<^sup>+ ([], N) (M', N') \<and> atms_of_mu N \<subseteq> atms_of_m A}"
   using tranclp_dpll\<^sub>N\<^sub>O\<^sub>T_bj_wf[OF assms(1)] by (rule wf_subset) auto
 
 corollary full_dpll\<^sub>N\<^sub>O\<^sub>T_normal_forms:
-  fixes M M' :: "('v, dpll_marked_level, unit) marked_lit list"
+  fixes M M' :: "('v, unit, unit) marked_lit list"
   assumes
     full: "full dpll\<^sub>N\<^sub>O\<^sub>T_bj ([], N) (M', N')"
   shows "unsatisfiable (set_mset N) \<or> (M' \<Turnstile>asm N \<and> satisfiable (set_mset N))"
   using assms full_dpll_backjump_normal_forms[of "([],N)" "(M', N')" "set_mset N"] by auto
 
 corollary full_dpll\<^sub>N\<^sub>O\<^sub>T_normal_form_init_state:
-  fixes M M' :: "('v, dpll_marked_level, unit) marked_lit list"
+  fixes M M' :: "('v, unit, unit) marked_lit list"
   assumes
     full: "full dpll\<^sub>N\<^sub>O\<^sub>T_bj ([], N) (M', N')"
   shows "M' \<Turnstile>asm N \<longleftrightarrow> satisfiable (set_mset N)"

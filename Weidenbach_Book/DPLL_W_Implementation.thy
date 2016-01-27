@@ -18,17 +18,17 @@ definition DPLL_step :: "int dpll\<^sub>W_marked_lits \<times> int literal list 
       )
     else
     (case find_first_unused_var N (lits_of Ms) of
-        Some a \<Rightarrow> (Marked a Level # Ms, N)
+        Some a \<Rightarrow> (Marked a () # Ms, N)
       | None \<Rightarrow> (Ms, N))))"
 
 text \<open>Example of propagation:\<close>
-value "DPLL_step ([Marked (Neg 1) Level], [[Pos (1::int), Neg 2]])"
+value "DPLL_step ([Marked (Neg 1) ()], [[Pos (1::int), Neg 2]])"
 
 text \<open>We define the conversion function between the states as defined in \<open>Prop_DPLL\<close> (with
   multisets) and here (with lists).\<close>
-abbreviation "toS \<equiv> \<lambda>(Ms::(int, dpll_marked_level, unit) marked_lit list)
+abbreviation "toS \<equiv> \<lambda>(Ms::(int, unit, unit) marked_lit list)
                       (N:: int literal list list). (Ms, mset (map mset N)) "
-abbreviation "toS' \<equiv> \<lambda>(Ms::(int, dpll_marked_level, unit) marked_lit list,
+abbreviation "toS' \<equiv> \<lambda>(Ms::(int, unit, unit) marked_lit list,
                           N:: int literal list list). (Ms, mset (map mset N)) "
 
 text \<open>Proof of correctness of @{term DPLL_step}\<close>
@@ -76,11 +76,11 @@ proof -
       using step exC neq unfolding DPLL_step_def prod.case unit
       by (cases "find_first_unused_var N (lits_of Ms)") auto
     have "dpll\<^sub>W (Ms, mset (map mset N))
-               (Marked L Level # fst (Ms, mset (map mset N)), snd (Ms, mset (map mset N)))"
+               (Marked L () # fst (Ms, mset (map mset N)), snd (Ms, mset (map mset N)))"
       apply (rule dpll\<^sub>W.decided[of L ?S])
       using find_first_unused_var_Some[OF unused]
       by (auto simp add: Marked_Propagated_in_iff_in_lits_of atms_of_m_def)
-    moreover have "(Ms', N') = (Marked L Level # Ms, N)"
+    moreover have "(Ms', N') = (Marked L () # Ms, N)"
       using step exC unfolding DPLL_step_def unused prod.case unit by auto
     ultimately have ?thesis by auto
   }
@@ -341,7 +341,7 @@ qed
 
 
 lemma DPLL_part_dpll\<^sub>W_all_inv_final:
-  fixes M Ms':: "(int, dpll_marked_level, unit) marked_lit list" and
+  fixes M Ms':: "(int, unit, unit) marked_lit list" and
     N :: "int literal list list"
   assumes inv: "dpll\<^sub>W_all_inv (Ms, mset (map mset N))"
   and MsN: "DPLL_part Ms N = (Ms', N)"
@@ -356,7 +356,7 @@ qed
 paragraph \<open>Embedding the invariant into the type\<close>
 paragraph \<open>Defining the type\<close>
 typedef dpll\<^sub>W_state =
-    "{(M::(int, dpll_marked_level, unit) marked_lit list, N::int literal list list).
+    "{(M::(int, unit, unit) marked_lit list, N::int literal list list).
         dpll\<^sub>W_all_inv (toS M N)}"
   morphisms rough_state_of state_of
 proof
@@ -516,7 +516,7 @@ qed
 
 subsubsection \<open>Code export\<close>
 paragraph \<open>A conversion to @{typ dpll\<^sub>W_state}\<close>
-definition Con :: "(int, dpll_marked_level, unit) marked_lit list \<times> int literal list list
+definition Con :: "(int, unit, unit) marked_lit list \<times> int literal list list
                      \<Rightarrow> dpll\<^sub>W_state" where
   "Con xs = state_of (if dpll\<^sub>W_all_inv (toS (fst xs) (snd xs)) then xs else ([], []))"
 lemma [code abstype]:
@@ -538,9 +538,9 @@ definition DPLL_tot_rep where
 
 text \<open>One version of the generated SML code is here, but not included in the generated document.
   The only differences are:
-  \<^item> export @{typ "'a literal"}from the SML Module;
-  \<^item> export the constructor @{term Con};
-  \<^item> export the @{term int} constructor.
+  \<^item> export @{typ "'a literal"} from the SML Module \<open>Clausal_Logic\<close>;
+  \<^item> export the constructor @{term Con} from \<open>DPLL_W_Implementation\<close>;
+  \<^item> export the @{term int} constructor from \<open>Arith\<close>.
 
   All these allows to test on the code on some examples.
   \<close>
@@ -621,7 +621,7 @@ fun member A_ x (Coset xs) = not (List.member A_ xs x)
 end; (*struct Set*)
 
 structure Arith : sig
-  datatype int = Int_of_integer of IntInf.int
+  datatype int = Int_of_integer of IntInf.int;
   val equal_int : int HOL.equal
 end = struct
 
@@ -634,20 +634,6 @@ fun equal_inta k l = (((integer_of_int k) : IntInf.int) = (integer_of_int l));
 val equal_int = {equal = equal_inta} : int HOL.equal;
 
 end; (*struct Arith*)
-
-structure CDCL_NOT : sig
-  datatype dpll_marked_level = Level
-  val equal_dpll_marked_level : dpll_marked_level HOL.equal
-end = struct
-
-datatype dpll_marked_level = Level;
-
-fun equal_dpll_marked_levela Level Level = true;
-
-val equal_dpll_marked_level = {equal = equal_dpll_marked_levela} :
-  dpll_marked_level HOL.equal;
-
-end; (*struct CDCL_NOT*)
 
 structure Product_Type : sig
   val equal_unit : unit HOL.equal
@@ -667,7 +653,7 @@ fun equal_prod A_ B_ (x1, x2) (y1, y2) =
 end; (*struct Product_Type*)
 
 structure Clausal_Logic : sig
-  datatype 'a literal = Pos of 'a | Neg of 'a
+  datatype 'a literal = Pos of 'a | Neg of 'a;
   val equal_literala : 'a HOL.equal -> 'a literal -> 'a literal -> bool
   val equal_literal : 'a HOL.equal -> 'a literal HOL.equal
   val atm_of : 'a literal -> 'a
@@ -784,21 +770,18 @@ end; (*struct DPLL_CDCL_W_Implementation*)
 
 structure DPLL_W_Implementation : sig
   datatype dpll_W_state =
-    Con of
-      ((Arith.int, CDCL_NOT.dpll_marked_level, unit)
-         Partial_Annotated_Clausal_Logic.marked_lit list *
-        (Arith.int Clausal_Logic.literal list) list)
+  Con of
+    ((Arith.int, unit, unit) Partial_Annotated_Clausal_Logic.marked_lit list *
+      (Arith.int Clausal_Logic.literal list) list);
   val dPLL_tot_rep :
     dpll_W_state ->
       bool *
-        (Arith.int, CDCL_NOT.dpll_marked_level, unit)
-          Partial_Annotated_Clausal_Logic.marked_lit list
+        (Arith.int, unit, unit) Partial_Annotated_Clausal_Logic.marked_lit list
 end = struct
 
 datatype dpll_W_state =
   Con of
-    ((Arith.int, CDCL_NOT.dpll_marked_level, unit)
-       Partial_Annotated_Clausal_Logic.marked_lit list *
+    ((Arith.int, unit, unit) Partial_Annotated_Clausal_Logic.marked_lit list *
       (Arith.int Clausal_Logic.literal list) list);
 
 fun rough_state_of (Con x) = x;
@@ -807,7 +790,7 @@ fun equal_dpll_W_state sa s =
   Product_Type.equal_prod
     (List.equal_list
       (Partial_Annotated_Clausal_Logic.equal_marked_lit Arith.equal_int
-        CDCL_NOT.equal_dpll_marked_level Product_Type.equal_unit))
+        Product_Type.equal_unit Product_Type.equal_unit))
     (List.equal_list
       (List.equal_list (Clausal_Logic.equal_literal Arith.equal_int)))
     (rough_state_of sa) (rough_state_of s);
@@ -837,10 +820,7 @@ fun dPLL_step x =
                        (Partial_Annotated_Clausal_Logic.lits_of ms)
                  of NONE => (ms, n)
                  | SOME a =>
-                   (Partial_Annotated_Clausal_Logic.Marked
-                      (a, CDCL_NOT.Level) ::
-                      ms,
-                     n)))
+                   (Partial_Annotated_Clausal_Logic.Marked (a, ()) :: ms, n)))
       | SOME (l, _) =>
         (Partial_Annotated_Clausal_Logic.Propagated (l, ()) :: ms, n)))
     x;

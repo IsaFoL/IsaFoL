@@ -55,10 +55,10 @@ end
 
 fun convert_trail_from_W ::
   "('v,  'lvl, 'v literal multiset) marked_lit list
-    \<Rightarrow> ('v, dpll_marked_level, unit) marked_lit list"  where
+    \<Rightarrow> ('v, unit, unit) marked_lit list"  where
 "convert_trail_from_W [] = []" |
 "convert_trail_from_W (Propagated L _ # M) = Propagated L () # convert_trail_from_W M" |
-"convert_trail_from_W (Marked L _ # M) = Marked L Level # convert_trail_from_W M"
+"convert_trail_from_W (Marked L _ # M) = Marked L () # convert_trail_from_W M"
 
 lemma atm_convert_trail_from_W[simp]:
   "(\<lambda>l. atm_of (lit_of l)) ` set (convert_trail_from_W xs) = (\<lambda>l. atm_of (lit_of l)) ` set xs"
@@ -97,7 +97,7 @@ fun convert_marked_lit_from_NOT where
 "convert_marked_lit_from_NOT (Marked L _) = Marked L 0"
 
 fun convert_trail_from_NOT ::
-  "('v, dpll_marked_level, unit) marked_lit list
+  "('v, unit, unit) marked_lit list
     \<Rightarrow> ('v,  nat, 'v literal multiset) marked_lit list"  where
 "convert_trail_from_NOT [] = []" |
 "convert_trail_from_NOT (L # M) = convert_marked_lit_from_NOT L # convert_trail_from_NOT M"
@@ -156,7 +156,7 @@ proof (unfold_locales, goal_cases)
   case 2
   then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_no_dup_inv by auto
 next
-  case (1 C' S C F' K d F L)
+  case (1 C' S C F' K _ F L)
   moreover
     let ?C' = "remdups_mset C'"
     have "L \<notin># C'"
@@ -167,7 +167,7 @@ next
         less_irrefl_nat mem_set_mset_iff remdups_mset_def)
   moreover
     have "no_dup F"
-      using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> \<open>(convert_trail_from_W \<circ> trail) S = F' @ Marked K d # F\<close>
+      using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> \<open>(convert_trail_from_W \<circ> trail) S = F' @ Marked K () # F\<close>
       unfolding inv\<^sub>N\<^sub>O\<^sub>T_def
       by (smt comp_apply distinct.simps(2) distinct_append list.simps(9) map_append
         no_dup_convert_from_W)
@@ -185,8 +185,8 @@ next
         using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> unfolding inv\<^sub>N\<^sub>O\<^sub>T_def by simp
       have f3: "atm_of L \<in> atms_of_mu (clauses S)
         \<union> atm_of ` lits_of ((convert_trail_from_W \<circ> trail) S)"
-        using \<open>(convert_trail_from_W \<circ> trail) S = F' @ Marked K d # F\<close>
-        \<open>atm_of L \<in> atms_of_mu (clauses S) \<union> atm_of ` lits_of (F' @ Marked K d # F)\<close> by presburger
+        using \<open>(convert_trail_from_W \<circ> trail) S = F' @ Marked K () # F\<close>
+        \<open>atm_of L \<in> atms_of_mu (clauses S) \<union> atm_of ` lits_of (F' @ Marked K () # F)\<close> by presburger
       have f4: "clauses S \<Turnstile>pm remdups_mset C' + {#L#}"
         by (metis (no_types) \<open>L \<notin># C'\<close> \<open>clauses S \<Turnstile>pm C' + {#L#}\<close> remdups_mset_singleton_sum(2)
           true_clss_cls_remdups_mset union_commute)
