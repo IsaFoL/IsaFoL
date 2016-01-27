@@ -698,22 +698,22 @@ declare dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.state_simp\<^sub>N\<^sub>O\<^sub>
 
 lemma dpll\<^sub>W_dpll\<^sub>W_bj:
   assumes inv: "dpll\<^sub>W_all_inv S" and dpll: "dpll\<^sub>W S T"
-  shows "dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll\<^sub>N\<^sub>O\<^sub>T_bj S T "
+  shows "dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj S T "
   using dpll inv
   apply (induction rule: dpll\<^sub>W.induct)
-     using dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll\<^sub>N\<^sub>O\<^sub>T_bj.simps apply fastforce
+     using dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.simps apply fastforce
     using dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.bj_decide\<^sub>N\<^sub>O\<^sub>T apply fastforce
   apply (frule dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backtrack.intros[of _ _  _ _ _], simp_all)
-  apply (rule dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll\<^sub>N\<^sub>O\<^sub>T_bj.bj_backjump)
+  apply (rule dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.bj_backjump)
   apply (rule dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll\<^sub>N\<^sub>O\<^sub>T_backtrack_is_backjump'',
     simp_all add: dpll\<^sub>W_all_inv_def)
   done
 
 lemma dpll\<^sub>W_bj_dpll:
-  assumes inv: "dpll\<^sub>W_all_inv S" and dpll: "dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll\<^sub>N\<^sub>O\<^sub>T_bj S T"
+  assumes inv: "dpll\<^sub>W_all_inv S" and dpll: "dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj S T"
   shows "dpll\<^sub>W S T"
   using dpll
-  apply (induction rule: dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll\<^sub>N\<^sub>O\<^sub>T_bj.induct)
+  apply (induction rule: dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.induct)
   prefer 2
   apply (auto elim!: dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.decideE dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.propagateE dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backjumpE
      intro!: dpll\<^sub>W.intros)

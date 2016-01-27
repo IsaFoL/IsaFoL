@@ -207,7 +207,7 @@ sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping fst snd "\<lambd
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
   "(\<lambda>_ _ S T. backtrack S T)"
   apply unfold_locales
-  using dpll\<^sub>N\<^sub>O\<^sub>T_bj_no_dup dpll\<^sub>N\<^sub>O\<^sub>T_bj_all_decomposition_implies_inv apply fastforce
+  using dpll_bj_no_dup dpll_bj_all_decomposition_implies_inv apply fastforce
   done
 
 sublocale dpll_with_backtrack \<subseteq> conflict_driven_clause_learning_ops
@@ -223,31 +223,31 @@ sublocale dpll_with_backtrack \<subseteq> conflict_driven_clause_learning
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
   "(\<lambda>_ _ S T. backtrack S T)" "\<lambda>_ _. False" "\<lambda>_ _. False"
   apply unfold_locales
-  using cdcl\<^sub>N\<^sub>O\<^sub>T.simps dpll\<^sub>N\<^sub>O\<^sub>T_bj_inv forgetE learnE by blast
+  using cdcl\<^sub>N\<^sub>O\<^sub>T.simps dpll_bj_inv forgetE learnE by blast
 
 context dpll_with_backtrack
 begin
 lemma tranclp_dpll_wf_inital_state:
   assumes fin: "finite A"
   shows "wf {((M'::('v, unit, unit) marked_lits, N'::'v clauses), ([], N))|M' N' N.
-    dpll\<^sub>N\<^sub>O\<^sub>T_bj\<^sup>+\<^sup>+ ([], N) (M', N') \<and> atms_of_mu N \<subseteq> atms_of_m A}"
-  using tranclp_dpll\<^sub>N\<^sub>O\<^sub>T_bj_wf[OF assms(1)] by (rule wf_subset) auto
+    dpll_bj\<^sup>+\<^sup>+ ([], N) (M', N') \<and> atms_of_mu N \<subseteq> atms_of_m A}"
+  using wf_tranclp_dpll_bj[OF assms(1)] by (rule wf_subset) auto
 
 corollary full_dpll\<^sub>N\<^sub>O\<^sub>T_normal_forms:
   fixes M M' :: "('v, unit, unit) marked_lit list"
   assumes
-    full: "full dpll\<^sub>N\<^sub>O\<^sub>T_bj ([], N) (M', N')"
+    full: "full dpll_bj ([], N) (M', N')"
   shows "unsatisfiable (set_mset N) \<or> (M' \<Turnstile>asm N \<and> satisfiable (set_mset N))"
   using assms full_dpll_backjump_normal_forms[of "([],N)" "(M', N')" "set_mset N"] by auto
 
 corollary full_dpll\<^sub>N\<^sub>O\<^sub>T_normal_form_init_state:
   fixes M M' :: "('v, unit, unit) marked_lit list"
   assumes
-    full: "full dpll\<^sub>N\<^sub>O\<^sub>T_bj ([], N) (M', N')"
+    full: "full dpll_bj ([], N) (M', N')"
   shows "M' \<Turnstile>asm N \<longleftrightarrow> satisfiable (set_mset N)"
 proof -
   have "no_dup M'"
-    using rtranclp_dpll\<^sub>N\<^sub>O\<^sub>T_bj_no_dup[of "([], N)" "(M', N')"]
+    using rtranclp_dpll_bj_no_dup[of "([], N)" "(M', N')"]
     full unfolding full_def by auto
   then have "M' \<Turnstile>asm N \<Longrightarrow> satisfiable (set_mset N)"
     using distinctconsistent_interp satisfiable_carac' true_annots_true_cls by blast
@@ -256,11 +256,11 @@ proof -
 qed
 
 lemma cdcl\<^sub>N\<^sub>O\<^sub>T_is_dpll:
-  "cdcl\<^sub>N\<^sub>O\<^sub>T S T \<longleftrightarrow> dpll\<^sub>N\<^sub>O\<^sub>T_bj S T"
+  "cdcl\<^sub>N\<^sub>O\<^sub>T S T \<longleftrightarrow> dpll_bj S T"
   by (auto simp: cdcl\<^sub>N\<^sub>O\<^sub>T.simps learn.simps forget\<^sub>N\<^sub>O\<^sub>T.simps)
 
 text \<open>Another proof of termination:\<close>
-lemma "wf {(T, S). dpll\<^sub>N\<^sub>O\<^sub>T_bj S T \<and> cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv A S}"
+lemma "wf {(T, S). dpll_bj S T \<and> cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv A S}"
   unfolding cdcl\<^sub>N\<^sub>O\<^sub>T_is_dpll[symmetric]
   by (rule wf_cdcl\<^sub>N\<^sub>O\<^sub>T_no_learn_and_forget_infinite_chain)
   (auto simp: learn.simps forget\<^sub>N\<^sub>O\<^sub>T.simps)
@@ -277,17 +277,17 @@ begin
   "\<lambda>A (M, N). atms_of_mu N \<subseteq> atms_of_m A \<and> atm_of ` lits_of M \<subseteq> atms_of_m A \<and> finite A
     \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
   "\<lambda>A T. (2+card (atms_of_m A)) ^ (1+card (atms_of_m A))
-               - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight T)" dpll\<^sub>N\<^sub>O\<^sub>T_bj
+               - \<mu>\<^sub>C (1+card (atms_of_m A)) (2+card (atms_of_m A)) (trail_weight T)" dpll_bj
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
   "\<lambda>A _.  (2+card (atms_of_m A)) ^ (1+card (atms_of_m A))"
   apply unfold_locales
          apply (rule strict_mono)
-        apply (smt dpll\<^sub>N\<^sub>O\<^sub>T_bj_all_decomposition_implies_inv dpll\<^sub>N\<^sub>O\<^sub>T_bj_atms_in_trail_in_set
-          dpll\<^sub>N\<^sub>O\<^sub>T_bj_clauses dpll\<^sub>N\<^sub>O\<^sub>T_bj_no_dup prod.case_eq_if)
-       apply (rule dpll\<^sub>N\<^sub>O\<^sub>T_bj_trail_mes_decreasing_prop; auto)
+        apply (smt dpll_bj_all_decomposition_implies_inv dpll_bj_atms_in_trail_in_set
+          dpll_bj_clauses dpll_bj_no_dup prod.case_eq_if)
+       apply (rule dpll_bj_trail_mes_decreasing_prop; auto)
       apply (case_tac T, simp)
      apply (case_tac U, simp)
-    using dpll\<^sub>N\<^sub>O\<^sub>T_bj_clauses dpll\<^sub>N\<^sub>O\<^sub>T_bj_all_decomposition_implies_inv dpll\<^sub>N\<^sub>O\<^sub>T_bj_no_dup by fastforce+
+    using dpll_bj_clauses dpll_bj_all_decomposition_implies_inv dpll_bj_no_dup by fastforce+
 end
 
 end

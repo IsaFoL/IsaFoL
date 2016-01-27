@@ -213,7 +213,7 @@ sublocale cdcl_cw_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn "c
   "\<lambda>C S. remove_cls C S" "\<lambda>_ _. True"  inv\<^sub>N\<^sub>O\<^sub>T
   "\<lambda>_ S. conflicting S = C_True" backjump_l_cond
   apply unfold_locales
-   using dpll\<^sub>N\<^sub>O\<^sub>T_bj_no_dup apply simp
+   using dpll_bj_no_dup apply simp
   using cdcl\<^sub>N\<^sub>O\<^sub>T.simps cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup by auto
 
 context cdcl_cw_ops
