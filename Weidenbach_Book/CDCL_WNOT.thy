@@ -3768,7 +3768,6 @@ qed
 end
 
 section \<open>Incremental SAT solving\<close>
-text \<open>This is a just a very little start\<close>
 context cdcl\<^sub>W_ops
 begin
 

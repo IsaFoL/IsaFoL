@@ -30,7 +30,7 @@ lemma atms_of_m_single_image_atm_of_lit_of:
   unfolding atms_of_m_def by auto
 
 text \<open>This measure can also be seen as the increasing lexicographic order: it is an order on bounded
-  sequences, when each element is bound. The proof involves a measure like the one defined here (the
+  sequences, when each element is bounded. The proof involves a measure like the one defined here (the
   same?).\<close>
 definition \<mu>\<^sub>C  :: "nat \<Rightarrow> nat \<Rightarrow> nat list \<Rightarrow> nat" where
 "\<mu>\<^sub>C s b M \<equiv> (\<Sum>i=0..<length M. M!i * b^ (s +i - length M))"
