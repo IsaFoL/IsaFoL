@@ -89,7 +89,7 @@ qed
 
 lemma DPLL_step_stuck_final_state:
   assumes step: "(Ms, N) = DPLL_step (Ms, N)"
-  shows "final_dpll\<^sub>W_state (toS Ms N)"
+  shows "conclusive_dpll\<^sub>W_state (toS Ms N)"
 proof -
   have unit: "find_first_unit_clause N Ms = None"
     using step unfolding DPLL_step_def by (auto split:option.splits)
@@ -118,7 +118,7 @@ proof -
     qed
 
     hence ?thesis
-      using n backtrack_snd_empty_not_marked[of Ms] unfolding final_dpll\<^sub>W_state_def
+      using n backtrack_snd_empty_not_marked[of Ms] unfolding conclusive_dpll\<^sub>W_state_def
       by (cases "backtrack_split Ms") auto
   }
   moreover {
@@ -137,7 +137,7 @@ proof -
         ultimately show "fst (toS Ms N) \<Turnstile>a x"
           using total_not_CNot[of "lits_of Ms" x] by (simp add: true_annot_def true_annots_true_cls)
       qed
-    hence ?thesis unfolding final_dpll\<^sub>W_state_def by blast
+    hence ?thesis unfolding conclusive_dpll\<^sub>W_state_def by blast
   }
   ultimately show ?thesis by blast
 qed
@@ -258,7 +258,7 @@ qed
 lemma DPLL_ci_final_state:
   assumes step: "DPLL_ci Ms N = (Ms, N)"
   and inv: "dpll\<^sub>W_all_inv (toS Ms N)"
-  shows "final_dpll\<^sub>W_state (toS Ms N)"
+  shows "conclusive_dpll\<^sub>W_state (toS Ms N)"
 proof  -
   have st: "dpll\<^sub>W\<^sup>*\<^sup>* (toS Ms N) (toS Ms N)" using DPLL_ci_dpll\<^sub>W_rtranclp[OF step] .
   have "DPLL_step (Ms, N) = (Ms, N)"
@@ -345,7 +345,7 @@ lemma DPLL_part_dpll\<^sub>W_all_inv_final:
     N :: "int literal list list"
   assumes inv: "dpll\<^sub>W_all_inv (Ms, mset (map mset N))"
   and MsN: "DPLL_part Ms N = (Ms', N)"
-  shows "final_dpll\<^sub>W_state (toS Ms' N) \<and> dpll\<^sub>W\<^sup>*\<^sup>* (toS Ms N) (toS Ms' N)"
+  shows "conclusive_dpll\<^sub>W_state (toS Ms' N) \<and> dpll\<^sub>W\<^sup>*\<^sup>* (toS Ms N) (toS Ms' N)"
 proof -
   have 2: "DPLL_ci Ms N = DPLL_part Ms N" using inv dpll\<^sub>W_all_inv_implieS_2_eq3_and_dom by blast
   hence star: "dpll\<^sub>W\<^sup>*\<^sup>* (toS Ms N) (toS Ms' N)" unfolding MsN using DPLL_ci_dpll\<^sub>W_rtranclp by blast
@@ -462,7 +462,7 @@ proof (induction arbitrary: S rule: DPLL_tot.induct)
 
 lemma DPLL_tot_final_state:
   assumes "DPLL_tot S = S"
-  shows "final_dpll\<^sub>W_state (toS' (rough_state_of S))"
+  shows "conclusive_dpll\<^sub>W_state (toS' (rough_state_of S))"
 proof -
   have "DPLL_step' S =  S" using assms[symmetric] DOPLL_step'_DPLL_tot by metis
   hence "DPLL_step (rough_state_of S) =  (rough_state_of S)"
@@ -506,12 +506,12 @@ lemma DPLL_tot_correct:
   shows "M' \<Turnstile>asm N'' \<longleftrightarrow> satisfiable (set_mset N'')"
 proof -
   have "dpll\<^sub>W\<^sup>*\<^sup>* (toS' ([], N)) (toS' (M, N'))" using DPLL_tot_star[OF assms(1)] by auto
-  moreover have "final_dpll\<^sub>W_state (toS' (M, N'))"
+  moreover have "conclusive_dpll\<^sub>W_state (toS' (M, N'))"
     using DPLL_tot_final_state by (metis (mono_tags, lifting) DOPLL_step'_DPLL_tot DPLL_tot.simps
       assms(1))
-  ultimately show ?thesis using dpll\<^sub>W_sound' by (smt DPLL_ci.simps DPLL_ci_dpll\<^sub>W_rtranclp
-    assms(2) dpll\<^sub>W_all_inv_def prod.case prod.sel(1) prod.sel(2) rtranclp_dpll\<^sub>W_inv(3)
-    rtranclp_dpll\<^sub>W_inv_starting_from_0)
+  ultimately show ?thesis using dpll\<^sub>W_conclusive_state_sound by (smt DPLL_ci.simps 
+    DPLL_ci_dpll\<^sub>W_rtranclp assms(2) dpll\<^sub>W_all_inv_def prod.case prod.sel(1) prod.sel(2)
+    rtranclp_dpll\<^sub>W_inv(3) rtranclp_dpll\<^sub>W_inv_starting_from_0)
 qed
 
 subsubsection \<open>Code export\<close>

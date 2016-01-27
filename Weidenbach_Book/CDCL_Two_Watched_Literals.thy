@@ -512,7 +512,7 @@ definition tl_trail where
 definition restart' where
   "restart' S = TWL_State [] (init_clss S) (restart_learned S) 0 C_True"
 
-sublocale cw_state trail raw_init_clss raw_learned_clsss backtrack_lvl conflicting
+sublocale state\<^sub>W trail raw_init_clss raw_learned_clsss backtrack_lvl conflicting
   cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
   update_conflicting init_state restart'
   apply unfold_locales
@@ -522,7 +522,7 @@ sublocale cw_state trail raw_init_clss raw_learned_clsss backtrack_lvl conflicti
   apply (rule image_mset_subseteq_mono[OF restart_learned])
   done
 
-sublocale cdcl_cw_ops trail raw_init_clss raw_learned_clsss backtrack_lvl conflicting
+sublocale cdcl\<^sub>W_ops trail raw_init_clss raw_learned_clsss backtrack_lvl conflicting
   cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
   update_conflicting init_state restart'
   by unfold_locales
@@ -665,7 +665,7 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl_NOT: dpll_state
    using clauses_add_cls\<^sub>N\<^sub>O\<^sub>T rough_state_of_twl_add_learned_cls apply presburger
   using clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T rough_state_of_twl_remove_cls by presburger
 
-interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: cw_state
+interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: state\<^sub>W
   trail_twl
   init_clss_twl
   learned_clss_twl
@@ -686,7 +686,7 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: cw_state
   rough_state_of_twl_update_backtrack_lvl rough_state_of_twl_update_conflicting
   rough_state_of_twl_init_state rough_state_of_twl_restart_twl learned_clss_restart_state)
 
-interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: cdcl_cw_ops
+interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: cdcl\<^sub>W_ops
   trail_twl
   init_clss_twl
   learned_clss_twl
@@ -726,7 +726,7 @@ definition propagate_twl where
   \<and> conflicting_twl S = C_True)"
 
 lemma
-  assumes inv: "cdcl_all_struct_inv (rough_state_of_twl S)"
+  assumes inv: "cdcl\<^sub>W_all_struct_inv (rough_state_of_twl S)"
   shows "cdcl\<^sub>N\<^sub>O\<^sub>T_twl.propagate S T \<longleftrightarrow> propagate_twl S T" (is "?P \<longleftrightarrow> ?T")
 proof
   assume ?P
@@ -738,7 +738,7 @@ proof
     "T \<sim> cons_trail_twl (Propagated L (C + {#L#})) S"
     unfolding cdcl\<^sub>N\<^sub>O\<^sub>T_twl.propagate.simps by auto
   have "distinct_mset (C + {#L#})"
-    using inv CL_Clauses unfolding cdcl_all_struct_inv_def distinct_cdcl_state_def
+    using inv CL_Clauses unfolding cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def
     cdcl\<^sub>N\<^sub>O\<^sub>T_twl.clauses_def distinct_mset_set_def
     by (metis (no_types, lifting) add_gr_0  mem_set_mset_iff plus_multiset.rep_eq)
   then have C_L_L: "mset_set (set_mset (C + {#L#}) - {L}) = C"
@@ -774,7 +774,7 @@ next
   have "C \<in># raw_clauses_twl S"
     using LC unfolding candidates_propagate_def clauses_def by auto
   then have "distinct_mset C"
-    using inv unfolding cdcl_all_struct_inv_def distinct_cdcl_state_def
+    using inv unfolding cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def
     cdcl\<^sub>N\<^sub>O\<^sub>T_twl.clauses_def distinct_mset_set_def clauses_def by auto
   then have C_L_L: "mset_set (set_mset C - {L}) = C - {#L#}"
     by (metis \<open>C - {#L#} + {#L#} = C\<close> add_left_imp_eq diff_single_trivial
@@ -1033,7 +1033,7 @@ interpretation abstract_twl watch_nat rewatch_nat sorted_list_of_multiset learne
   apply (rule subset_mset.order_refl)
   oops
 
-(* interpretation cdcl_cw_ops
+(* interpretation cdcl\<^sub>W_ops
 oops
  *)
 

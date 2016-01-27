@@ -400,7 +400,7 @@ next
   ultimately show ?case using Cons.hyps by auto
 qed
 
-definition "final_dpll\<^sub>W_state (S:: 'v dpll\<^sub>W_state) \<longleftrightarrow>
+definition "conclusive_dpll\<^sub>W_state (S:: 'v dpll\<^sub>W_state) \<longleftrightarrow>
   (trail S \<Turnstile>asm clauses S \<or> ((\<forall>L \<in> set (trail S). \<not>is_marked L)
   \<and> (\<exists>C \<in># clauses S. trail S \<Turnstile>as CNot C)))"
 
@@ -411,11 +411,11 @@ lemma dpll\<^sub>W_strong_completeness:
   and "distinct M"
   and "atm_of ` (set M) \<subseteq> atms_of_mu N"
   shows "dpll\<^sub>W\<^sup>*\<^sup>* ([], N) (map (\<lambda>M. Marked M ()) M, N)"
-  and "final_dpll\<^sub>W_state (map (\<lambda>M. Marked M ())  M, N)"
+  and "conclusive_dpll\<^sub>W_state (map (\<lambda>M. Marked M ())  M, N)"
 proof -
   show "rtranclp dpll\<^sub>W ([], N) (map (\<lambda>M. Marked M ()) M, N)" using dpll\<^sub>W_can_do_step assms by auto
   have "map (\<lambda>M. Marked M Level) M \<Turnstile>asm N" using assms(1) true_annots_marked_true_cls by auto
-  thus "final_dpll\<^sub>W_state (map (\<lambda>M. Marked M ()) M, N)" unfolding final_dpll\<^sub>W_state_def by auto
+  thus "conclusive_dpll\<^sub>W_state (map (\<lambda>M. Marked M ()) M, N)" unfolding conclusive_dpll\<^sub>W_state_def by auto
 qed
 
 (*Proposition \cwref{prop:prop:dpll\<^sub>Wsound}{theorem 2.8.5 page 72}*)
@@ -611,9 +611,9 @@ lemma dpll\<^sub>W_wf_plus:
 
 subsection \<open>Final States\<close>
 (*Proposition 2.8.1: final states are the normal forms of @{term dpll\<^sub>W}*)
-lemma dpll\<^sub>W_no_more_step_is_a_final_state:
+lemma dpll\<^sub>W_no_more_step_is_a_conclusive_state:
   assumes "\<forall>S'. \<not>dpll\<^sub>W S S'"
-  shows "final_dpll\<^sub>W_state S"
+  shows "conclusive_dpll\<^sub>W_state S"
 proof -
   have vars: "\<forall>s \<in> atms_of_mu (clauses S). s \<in> atm_of ` lits_of  (trail S)"
     proof (rule ccontr)
@@ -632,7 +632,7 @@ proof -
       hence
         "\<not> trail S \<Turnstile>asm clauses S" and
         "(\<exists>L\<in>set (trail S). is_marked L) \<or> (\<forall>C\<in>#clauses S. \<not>trail S \<Turnstile>as CNot C)"
-        unfolding final_dpll\<^sub>W_state_def by auto
+        unfolding conclusive_dpll\<^sub>W_state_def by auto
       moreover {
         assume "\<exists>L\<in>set (trail S). is_marked L"
         then obtain L M' M where L: "backtrack_split (trail S) = (M', L # M)"
@@ -662,9 +662,9 @@ proof -
     qed
 qed
 
-lemma dpll\<^sub>W_sound':
+lemma dpll\<^sub>W_conclusive_state_sound:
   assumes "rtranclp dpll\<^sub>W ([], N) (M, N)"
-  and "final_dpll\<^sub>W_state (M, N)"
+  and "conclusive_dpll\<^sub>W_state (M, N)"
   shows "M \<Turnstile>asm N \<longleftrightarrow> satisfiable (set_mset N)" (is "?A \<longleftrightarrow> ?B")
 proof
   let ?M'= "lits_of M"
@@ -679,7 +679,7 @@ next
     proof (rule ccontr)
       assume n: "\<not> ?A"
       have no_mark: "\<forall>L\<in>set M. \<not> is_marked L"  "\<exists>C \<in># N. M \<Turnstile>as CNot C"
-        using n assms(2) unfolding final_dpll\<^sub>W_state_def by auto
+        using n assms(2) unfolding conclusive_dpll\<^sub>W_state_def by auto
       moreover obtain D where DN: "D \<in># N" and MD: "M \<Turnstile>as CNot D" using no_mark by auto
       ultimately have "unsatisfiable (set_mset N)"
         using only_propagated_vars_unsat rtranclp_dpll\<^sub>W_all_inv[OF assms(1)]
@@ -705,7 +705,7 @@ lemma dpll\<^sub>W_dpll\<^sub>W_bj:
     using dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.bj_decide\<^sub>N\<^sub>O\<^sub>T apply fastforce
   apply (frule dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backtrack.intros[of _ _  _ _ _], simp_all)
   apply (rule dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.bj_backjump)
-  apply (rule dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll\<^sub>N\<^sub>O\<^sub>T_backtrack_is_backjump'',
+  apply (rule dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backtrack_is_backjump'',
     simp_all add: dpll\<^sub>W_all_inv_def)
   done
 
@@ -716,7 +716,7 @@ lemma dpll\<^sub>W_bj_dpll:
   apply (induction rule: dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.induct)
   prefer 2
   apply (auto elim!: dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.decideE dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.propagateE dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backjumpE
-     intro!: dpll\<^sub>W.intros)
+     intro!: dpll\<^sub>W.intros)+
   apply (metis fst_conv propagate snd_conv)
   apply (metis fst_conv dpll\<^sub>W.intros(2) snd_conv)
   done

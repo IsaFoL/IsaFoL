@@ -12,7 +12,7 @@ inductive backtrack :: "('v, unit, unit) marked_lit list \<times> 'v clauses
   \<Longrightarrow> fst S \<Turnstile>as CNot D \<Longrightarrow> backtrack S (Propagated (- (lit_of L)) () # M, snd S)"
 
 inductive_cases backtrackE[elim]: "backtrack (M, N) (M', N')"
-lemma dpll\<^sub>N\<^sub>O\<^sub>T_backtrack_is_backjump:
+lemma backtrack_is_backjump:
   fixes M M' :: "('v, unit, unit) marked_lit list"
   assumes
     backtrack: "backtrack (M, N) (M', N')" and
@@ -131,7 +131,7 @@ proof -
     using M' \<open>D \<in># snd ?S\<close> L by force
 qed
 
-lemma dpll\<^sub>N\<^sub>O\<^sub>T_backtrack_is_backjump':
+lemma backtrack_is_backjump':
   fixes M M' :: "('v, unit, unit) marked_lit list"
   assumes
     backtrack: "backtrack S T" and
@@ -144,7 +144,7 @@ lemma dpll\<^sub>N\<^sub>O\<^sub>T_backtrack_is_backjump':
           \<and> undefined_lit L F \<and> atm_of L \<in> atms_of_mu (snd S) \<union> atm_of ` lits_of (fst S) \<and>
           snd S \<Turnstile>pm C' + {#L#} \<and> F \<Turnstile>as CNot C'"
   apply (cases S, cases T)
-  using dpll\<^sub>N\<^sub>O\<^sub>T_backtrack_is_backjump[of "fst S" "snd S" "fst T" "snd T"] assms by fastforce
+  using backtrack_is_backjump[of "fst S" "snd S" "fst T" "snd T"] assms by fastforce
 
 sublocale dpll_state fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
   "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset C N)"
@@ -154,7 +154,7 @@ sublocale backjumping_ops fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, 
   "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset C N)" "\<lambda>_ _ S T. backtrack S T"
   by unfold_locales
 
-lemma dpll\<^sub>N\<^sub>O\<^sub>T_backtrack_is_backjump'':
+lemma backtrack_is_backjump'':
   fixes M M' :: "('v, unit, unit) marked_lit list"
   assumes
     backtrack: "backtrack S T" and
@@ -171,7 +171,7 @@ proof -
     6: "atm_of L \<in> atms_of_mu (snd S) \<union> atm_of ` lits_of (fst S)" and
     7: "snd S \<Turnstile>pm C' + {#L#}" and
     8: "F \<Turnstile>as CNot C'"
-  using dpll\<^sub>N\<^sub>O\<^sub>T_backtrack_is_backjump'[OF assms] by blast
+  using backtrack_is_backjump'[OF assms] by blast
   show ?thesis
     using backjump.intros[OF 1 _ 3 4 5 6 7 8] 2 backtrack 1
     by (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def simp del: state_simp\<^sub>N\<^sub>O\<^sub>T)
@@ -199,7 +199,7 @@ sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops fst snd "\<l
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset C N)" "\<lambda>_ _. True"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
   "(\<lambda>_ _ S T. backtrack S T)"
-  by unfold_locales (metis (mono_tags, lifting) dpll_with_backtrack.dpll\<^sub>N\<^sub>O\<^sub>T_backtrack_is_backjump''
+  by unfold_locales (metis (mono_tags, lifting) dpll_with_backtrack.backtrack_is_backjump''
    dpll_with_backtrack.can_do_bt_step prod.case_eq_if comp_apply)
 
 sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping fst snd "\<lambda>L (M, N). (L # M, N)"
@@ -227,20 +227,20 @@ sublocale dpll_with_backtrack \<subseteq> conflict_driven_clause_learning
 
 context dpll_with_backtrack
 begin
-lemma tranclp_dpll_wf_inital_state:
+lemma wf_tranclp_dpll_inital_state:
   assumes fin: "finite A"
   shows "wf {((M'::('v, unit, unit) marked_lits, N'::'v clauses), ([], N))|M' N' N.
     dpll_bj\<^sup>+\<^sup>+ ([], N) (M', N') \<and> atms_of_mu N \<subseteq> atms_of_m A}"
   using wf_tranclp_dpll_bj[OF assms(1)] by (rule wf_subset) auto
 
-corollary full_dpll\<^sub>N\<^sub>O\<^sub>T_normal_forms:
+corollary full_dpll_final_state_conclusive:
   fixes M M' :: "('v, unit, unit) marked_lit list"
   assumes
     full: "full dpll_bj ([], N) (M', N')"
   shows "unsatisfiable (set_mset N) \<or> (M' \<Turnstile>asm N \<and> satisfiable (set_mset N))"
-  using assms full_dpll_backjump_normal_forms[of "([],N)" "(M', N')" "set_mset N"] by auto
+  using assms full_dpll_backjump_final_state[of "([],N)" "(M', N')" "set_mset N"] by auto
 
-corollary full_dpll\<^sub>N\<^sub>O\<^sub>T_normal_form_init_state:
+corollary full_dpll_normal_form_from_init_state:
   fixes M M' :: "('v, unit, unit) marked_lit list"
   assumes
     full: "full dpll_bj ([], N) (M', N')"
@@ -252,7 +252,7 @@ proof -
   then have "M' \<Turnstile>asm N \<Longrightarrow> satisfiable (set_mset N)"
     using distinctconsistent_interp satisfiable_carac' true_annots_true_cls by blast
   then show ?thesis
-  using full_dpll\<^sub>N\<^sub>O\<^sub>T_normal_forms[OF full] by auto
+  using full_dpll_final_state_conclusive[OF full] by auto
 qed
 
 lemma cdcl\<^sub>N\<^sub>O\<^sub>T_is_dpll:

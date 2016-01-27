@@ -889,7 +889,7 @@ text \<open>
 
   The assumption are saying that we have a finite upper bound @{term A} for the literals, that we
   cannot do any step @{term "no_step dpll_bj S"}\<close>
-theorem dpll_backjump_normal_forms:
+theorem dpll_backjump_final_state:
   fixes A :: "'v literal multiset set" and S T :: "'st"
   assumes
     "atms_of_mu (clauses S) \<subseteq> atms_of_m A" and
@@ -1187,7 +1187,7 @@ lemma rtranclp_dpll_bj_sat_ext_iff:
   "dpll_bj\<^sup>*\<^sup>* S T \<Longrightarrow> inv S \<Longrightarrow> I\<Turnstile>sextm clauses S \<longleftrightarrow> I\<Turnstile>sextm clauses T"
   by (induction rule: rtranclp_induct) (simp_all add: rtranclp_dpll_bj_inv dpll_bj_sat_ext_iff)
 
-theorem full_dpll_backjump_normal_forms:
+theorem full_dpll_backjump_final_state:
   fixes A :: "'v literal multiset set" and S T :: "'st"
   assumes
     full: "full dpll_bj S T" and
@@ -1215,12 +1215,12 @@ proof -
       using \<open>inv S\<close> decomp rtranclp_dpll_bj_all_decomposition_implies_inv st by blast
   ultimately have "unsatisfiable (set_mset (clauses T))
     \<or> (trail T \<Turnstile>asm clauses T \<and> satisfiable (set_mset (clauses T)))"
-    using \<open>finite A\<close> dpll_backjump_normal_forms by force
+    using \<open>finite A\<close> dpll_backjump_final_state by force
   thus ?thesis
     by (meson \<open>inv S\<close> rtranclp_dpll_bj_sat_iff satisfiable_carac st true_annots_true_cls)
 qed
 
-corollary full_dpll_backjump_normal_forms_init_state:
+corollary full_dpll_backjump_final_state_from_init_state:
   fixes A :: "'v literal multiset set" and S T :: "'st"
   assumes
     full: "full dpll_bj S T" and
@@ -1228,7 +1228,7 @@ corollary full_dpll_backjump_normal_forms_init_state:
     "clauses S = N" and
     "inv S"
   shows "unsatisfiable (set_mset N) \<or> (trail T \<Turnstile>asm N \<and> satisfiable (set_mset N))"
-  using assms full_dpll_backjump_normal_forms[of S T "set_mset N"] by auto
+  using assms full_dpll_backjump_final_state[of S T "set_mset N"] by auto
 
 lemma tranclp_dpll_bj_trail_mes_decreasing_prop:
   assumes dpll: "dpll_bj\<^sup>+\<^sup>+ S T"  and inv: "inv S" and
@@ -1786,7 +1786,7 @@ lemma wf_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_learn_and_forget_infinite_chain
   apply (rule wf_subset)
   by (auto simp: trancl_set_tranclp inv_and_tranclp_cdcl_\<^sub>N\<^sub>O\<^sub>T_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_and_inv)
 
-lemma cdcl\<^sub>N\<^sub>O\<^sub>T_normal_forms:
+lemma cdcl\<^sub>N\<^sub>O\<^sub>T_final_state:
   assumes
     n_s: "no_step cdcl\<^sub>N\<^sub>O\<^sub>T S" and
     inv: "cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv A S" and
@@ -1797,11 +1797,11 @@ proof -
   have n_s': "no_step dpll_bj S"
     using n_s by (auto simp: cdcl\<^sub>N\<^sub>O\<^sub>T.simps)
   show ?thesis
-    apply (rule dpll_backjump_normal_forms[of S A])
+    apply (rule dpll_backjump_final_state[of S A])
     using inv decomp n_s' unfolding cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv_def by auto
 qed
 
-lemma full_cdcl\<^sub>N\<^sub>O\<^sub>T_normal_forms:
+lemma full_cdcl\<^sub>N\<^sub>O\<^sub>T_final_state:
   assumes
     full: "full cdcl\<^sub>N\<^sub>O\<^sub>T S T" and
     inv: "cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv A S" and
@@ -1817,7 +1817,7 @@ proof -
   moreover have "all_decomposition_implies_m (clauses T) (get_all_marked_decomposition (trail T))"
     using cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv_def decomp inv rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_all_decomposition_implies st by auto
   ultimately show ?thesis
-    using cdcl\<^sub>N\<^sub>O\<^sub>T_normal_forms n_s by blast
+    using cdcl\<^sub>N\<^sub>O\<^sub>T_final_state n_s by blast
 qed
 
 end \<comment> \<open>end of \<open>conflict_driven_clause_learning\<close>\<close>
@@ -3264,7 +3264,7 @@ lemma backjump_no_step_backjump_l:
     apply auto[7]
   by blast
 
-lemma cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_normal_forms:
+lemma cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_final_state:
   fixes A :: "'v literal multiset set" and S T :: "'st"
   assumes
     n_s: "no_step cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn S" and
@@ -3435,7 +3435,7 @@ proof -
     qed auto
 qed
 
-lemma full_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_normal_forms:
+lemma full_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_final_state:
   fixes A :: "'v literal multiset set" and S T :: "'st"
   assumes
     full: "full cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn S T" and
@@ -3461,7 +3461,7 @@ proof -
   moreover have "all_decomposition_implies_m (clauses T) (get_all_marked_decomposition (trail T))"
     using cdcl\<^sub>N\<^sub>O\<^sub>T.rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_all_decomposition_implies inv st decomp by blast
   ultimately show ?thesis
-    using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_normal_forms[of T A] \<open>finite A\<close> n_s by fast
+    using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_final_state[of T A] \<open>finite A\<close> n_s by fast
 qed
 
 end
@@ -3672,7 +3672,7 @@ next
     using cdcl\<^sub>N\<^sub>O\<^sub>T_restart_sat_ext_iff[OF r] IH by blast
 qed
 
-theorem full_cdcl\<^sub>N\<^sub>O\<^sub>T_restart_backjump_normal_forms:
+theorem full_cdcl\<^sub>N\<^sub>O\<^sub>T_restart_backjump_final_state:
   fixes A :: "'v literal multiset set" and S T :: "'st"
   assumes
     full: "full cdcl\<^sub>N\<^sub>O\<^sub>T_restart (S, n) (T, m)" and
@@ -3699,7 +3699,7 @@ proof -
   ultimately have T: "unsatisfiable (set_mset (clauses T))
     \<or> (trail T \<Turnstile>asm clauses T \<and> satisfiable (set_mset (clauses T)))"
     using no_step_cdcl\<^sub>N\<^sub>O\<^sub>T_restart_no_step_cdcl\<^sub>N\<^sub>O\<^sub>T[of "(T, m)" A] n_s
-    cdcl\<^sub>N\<^sub>O\<^sub>T_normal_forms[of T A] unfolding cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv_def by auto
+    cdcl\<^sub>N\<^sub>O\<^sub>T_final_state[of T A] unfolding cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv_def by auto
   have eq_sat_S_T:"\<And>I. I \<Turnstile>sextm clauses S \<longleftrightarrow> I \<Turnstile>sextm clauses T"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_restart_sat_ext_iff[OF st] inv n_d atms_S
         atms_trail by auto
@@ -4241,7 +4241,7 @@ proof -
   ultimately have "unsatisfiable (set_mset (clauses (fst T)))
     \<or> trail (fst T) \<Turnstile>asm clauses (fst T) \<and> satisfiable (set_mset (clauses (fst T)))"
     apply -
-    apply (rule cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_normal_forms)
+    apply (rule cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_final_state)
     using atms_cls_T atms_trail_T fin n_d_T fin inv_T by blast+
   then consider
       (unsat) "unsatisfiable (set_mset (clauses (fst T)))"
