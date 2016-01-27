@@ -698,7 +698,8 @@ lemma dpll\<^sub>W_dpll\<^sub>W_bj:
     using dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.bj_decide\<^sub>N\<^sub>O\<^sub>T apply fastforce
   apply (frule dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backtrack.intros[of _ _  _ _ _], simp_all)
   apply (rule dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll\<^sub>N\<^sub>O\<^sub>T_bj.bj_backjump)
-  apply (rule dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backtrack_is_backjump'', simp_all add: dpll\<^sub>W_all_inv_def)
+  apply (rule dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll\<^sub>N\<^sub>O\<^sub>T_backtrack_is_backjump'', 
+    simp_all add: dpll\<^sub>W_all_inv_def)
   done
 
 lemma dpll\<^sub>W_bj_dpll:

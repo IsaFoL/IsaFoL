@@ -643,7 +643,7 @@ next
   thus ?case using cp by blast
 qed
 
-lemma no_relearned_clause:
+lemma cdcl_W_stgy_no_relearned_clause:
   assumes invR: "cdcl_all_struct_inv R" and
   st': "cdcl_s\<^sup>*\<^sup>* R S" and
   bt: "backtrack S T" and
@@ -843,11 +843,20 @@ next
             cls_S': "clauses S' = {#E#} + clauses S"
             by auto
           then have "E \<notin># clauses S"
-            using no_relearned_clause R invR local.backtrack st by blast
+            using cdcl_W_stgy_no_relearned_clause R invR local.backtrack st by blast
           then show ?thesis using IH by (simp add: distinct_mset_add_single cls_S')
         qed auto
     qed
 qed
+
+lemma cdcl_W_stgy_distinct_mset_clauses:
+  assumes
+    st: "cdcl_s\<^sup>*\<^sup>* (init_state N) S" and
+    no_duplicate_clause: "distinct_mset N" and
+    no_duplicate_in_clause: "distinct_mset_mset N"
+  shows "distinct_mset (clauses S)"
+  using rtranclp_cdcl_s_distinct_mset_clauses[OF _ st] assms
+  by (auto simp: cdcl_all_struct_inv_def distinct_cdcl_state_def)
 
 subsection \<open>Decrease of a measure\<close>
 fun cdcl_measure where
@@ -1003,7 +1012,7 @@ next
   moreover
     have "atms_of_mu ({#D + {#L#}#} + learned_clss S) \<subseteq> atms_of_mu (init_clss S)"
       using alien conf unfolding no_strange_atm_def by auto
-    hence card_f: "card (atms_of_mu ({#D + {#L#}#} + learned_clss S)) 
+    hence card_f: "card (atms_of_mu ({#D + {#L#}#} + learned_clss S))
       \<le> card (atms_of_mu (init_clss S))"
       by (meson atms_of_m_finite card_mono finite_set_mset)
     hence "(3::nat) ^ card (atms_of_mu ({#D + {#L#}#} + learned_clss S))
@@ -1090,7 +1099,6 @@ next
   ultimately show ?case using lexn_transI[OF trans_le] unfolding trans_def by blast
 qed
 
-
 lemma cdcl_s_step_decreasing:
   fixes R S T :: "'st"
   assumes "cdcl_s S T" and
@@ -1128,7 +1136,7 @@ proof -
             proof cases
               case (backtrack) note bt = this(1)
                 have no_relearn: "\<forall>T. conflicting S = C_Clause T \<longrightarrow> T \<notin># learned_clss S"
-                  using no_relearned_clause[OF invR st] invR st bt R cdcl_all_struct_inv_def
+                  using cdcl_W_stgy_no_relearned_clause[OF invR st] invR st bt R cdcl_all_struct_inv_def
                   clauses_def by auto
                 show ?thesis
                   apply (rule cdcl_measure_decreasing)

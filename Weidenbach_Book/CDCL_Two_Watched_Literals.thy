@@ -55,10 +55,14 @@ primrec watched_decided_recently where
 "watched_decided_recently S (TWL_Clause W UW) \<longleftrightarrow>
   (\<forall>L\<in>#W. \<forall>L'\<in>#UW.
     -L \<in> lits_of (trail S) \<longrightarrow> -L' \<in> lits_of (trail S) \<longrightarrow>
-      Min {i. map lit_of (trail S)!i = -L} \<le> Min {i. map lit_of (trail S)!i = -L'})"
+      Max {i. map lit_of (trail S)!i = -L} \<le> Max {i. map lit_of (trail S)!i = -L'})"
+
+lemma "-L \<in> lits_of M \<Longrightarrow>  {i. map lit_of M!i = -L} \<noteq> {}"
+  unfolding set_map_lit_of_lits_of[symmetric] set_conv_nth
+  by (smt Collect_empty_eq mem_Collect_eq)
 
 lemma size_mset_2: "size x1 = 2 \<longleftrightarrow> (\<exists>a b. x1 = {#a, b#})"
-by (metis (no_types, hide_lams) Suc_eq_plus1 one_add_one size_1_singleton_mset
+  by (metis (no_types, hide_lams) Suc_eq_plus1 one_add_one size_1_singleton_mset
   size_Diff_singleton size_Suc_Diff1 size_eq_Suc_imp_eq_union size_single union_single_eq_diff
   union_single_eq_member)
 

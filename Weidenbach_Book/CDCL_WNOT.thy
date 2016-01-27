@@ -1176,7 +1176,7 @@ next
             using undef_L apply simp
            using atm_L apply simp
           using \<open>init_clss T' + learned_clss S \<Turnstile>pm D + {#L#}\<close> unfolding clauses_def apply simp
-         using \<open>tl (trail U) \<Turnstile>as CNot D\<close> inv_T' unfolding cdcl_all_struct_inv_def 
+         using \<open>tl (trail U) \<Turnstile>as CNot D\<close> inv_T' unfolding cdcl_all_struct_inv_def
          distinct_cdcl_state_def apply simp
         using \<open>tl (trail U) \<Turnstile>as CNot D\<close> inv_T' inv_U U confl_T' unfolding cdcl_all_struct_inv_def
         distinct_cdcl_state_def apply simp_all
@@ -3441,7 +3441,7 @@ proof -
   moreover have "conflicting (init_state N) = C_True"
     by auto
   ultimately show ?thesis
-    using full_cdcl_s_normal_forms' full_cdcl_s_full_cdcl_fw full no_d finite by blast
+    by (simp add: full full_cdcl_W_stgy_normal_forms_init_state full_cdcl_s_full_cdcl_fw no_d)
 qed
 
 end
@@ -4328,7 +4328,7 @@ lemma rtranclp_incremental_cdcl_inv:
    using s_inv apply simp
   using incremental_cdcl_inv by blast+
 
-lemma incremental_correct:
+lemma incremental_conclusive:
   assumes
     inc: "incremental_cdcl S T" and
     inv: "cdcl_all_struct_inv S" and
@@ -4352,8 +4352,8 @@ lemma tranclp_incremental_correct:
   shows "conflicting T = C_Clause {#} \<and> unsatisfiable (set_mset (init_clss T))
     \<or> conflicting T = C_True \<and> trail T \<Turnstile>asm init_clss T \<and> satisfiable (set_mset (init_clss T))"
   using inc apply induction
-   using assms incremental_correct apply blast
-  by (meson incremental_correct inv rtranclp_incremental_cdcl_inv s_inv tranclp_into_rtranclp)
+   using assms incremental_conclusive apply blast
+  by (meson incremental_conclusive inv rtranclp_incremental_cdcl_inv s_inv tranclp_into_rtranclp)
 
 lemma blocked_induction_with_marked:
   assumes

@@ -466,6 +466,10 @@ lemma true_cls_mset_mono: "set_mset DD \<subseteq> set_mset CC \<Longrightarrow>
 lemma true_clss_set_mset[iff]: "I \<Turnstile>s set_mset CC \<longleftrightarrow> I \<Turnstile>m CC"
   unfolding true_clss_def true_cls_mset_def by auto
 
+lemma true_cls_mset_increasing_r[simp]:
+  "I \<Turnstile>m CC \<Longrightarrow> I \<union> J \<Turnstile>m CC"
+  unfolding true_cls_mset_def by auto
+
 theorem true_cls_remove_unused:
   assumes "I \<Turnstile> \<psi>"
   shows "{v \<in> I. atm_of v \<in> atms_of \<psi>} \<Turnstile> \<psi>"

@@ -4291,7 +4291,7 @@ lemma full_cdcl_s_normal_forms:
     \<or> (conflicting S' = C_True \<and> trail S' \<Turnstile>asm init_clss S')"
   using assms full_cdcl_s_normal_forms_is_one_false full_cdcl_s_normal_forms_non_false by blast
 
-lemma full_cdcl_s_normal_forms':
+lemma full_cdcl_W_stgy_normal_forms_init_state:
   fixes S' :: "'st"
   assumes full: "full cdcl_s (init_state N) S'"
   and no_d: "distinct_mset_mset N"
