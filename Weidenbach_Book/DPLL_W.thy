@@ -662,9 +662,8 @@ proof -
     qed
 qed
 
-lemma dpll\<^sub>W_conclusive_state_sound:
-  assumes "rtranclp dpll\<^sub>W ([], N) (M, N)"
-  and "conclusive_dpll\<^sub>W_state (M, N)"
+lemma dpll\<^sub>W_conclusive_state_correct:
+  assumes "dpll\<^sub>W\<^sup>*\<^sup>* ([], N) (M, N)" and "conclusive_dpll\<^sub>W_state (M, N)"
   shows "M \<Turnstile>asm N \<longleftrightarrow> satisfiable (set_mset N)" (is "?A \<longleftrightarrow> ?B")
 proof
   let ?M'= "lits_of M"
@@ -689,35 +688,62 @@ next
 qed
 
 subsection \<open>Link with NOT's DPLL\<close>
-interpretation dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T: dpll_with_backtrack .
+interpretation dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T: dpll_with_backtrack .
 
-lemma state_eq\<^sub>N\<^sub>O\<^sub>T_iff_eq[iff, simp]: "dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.state_eq\<^sub>N\<^sub>O\<^sub>T S T \<longleftrightarrow> S = T"
-  unfolding dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.state_eq\<^sub>N\<^sub>O\<^sub>T_def by (cases S, cases T) auto
+lemma state_eq\<^sub>N\<^sub>O\<^sub>T_iff_eq[iff, simp]: "dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.state_eq\<^sub>N\<^sub>O\<^sub>T S T \<longleftrightarrow> S = T"
+  unfolding dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.state_eq\<^sub>N\<^sub>O\<^sub>T_def by (cases S, cases T) auto
 
-declare dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.state_simp\<^sub>N\<^sub>O\<^sub>T[simp del]
+declare dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.state_simp\<^sub>N\<^sub>O\<^sub>T[simp del]
 
 lemma dpll\<^sub>W_dpll\<^sub>W_bj:
   assumes inv: "dpll\<^sub>W_all_inv S" and dpll: "dpll\<^sub>W S T"
-  shows "dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj S T "
+  shows "dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj S T "
   using dpll inv
   apply (induction rule: dpll\<^sub>W.induct)
-     using dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.simps apply fastforce
-    using dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.bj_decide\<^sub>N\<^sub>O\<^sub>T apply fastforce
-  apply (frule dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backtrack.intros[of _ _  _ _ _], simp_all)
-  apply (rule dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.bj_backjump)
-  apply (rule dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backtrack_is_backjump'',
+     using dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.simps apply fastforce
+    using dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.bj_decide\<^sub>N\<^sub>O\<^sub>T apply fastforce
+  apply (frule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backtrack.intros[of _ _  _ _ _], simp_all)
+  apply (rule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.bj_backjump)
+  apply (rule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backtrack_is_backjump'',
     simp_all add: dpll\<^sub>W_all_inv_def)
   done
 
 lemma dpll\<^sub>W_bj_dpll:
-  assumes inv: "dpll\<^sub>W_all_inv S" and dpll: "dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj S T"
+  assumes inv: "dpll\<^sub>W_all_inv S" and dpll: "dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj S T"
   shows "dpll\<^sub>W S T"
   using dpll
-  apply (induction rule: dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.induct)
+  apply (induction rule: dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.induct)
   prefer 2
-  apply (auto elim!: dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.decideE dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.propagateE dpll_\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backjumpE
+  apply (auto elim!: dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.decideE dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.propagateE dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backjumpE
      intro!: dpll\<^sub>W.intros)+
   apply (metis fst_conv propagate snd_conv)
   apply (metis fst_conv dpll\<^sub>W.intros(2) snd_conv)
   done
+
+lemma rtranclp_dpll\<^sub>W_rtranclp_dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T:
+  assumes "dpll\<^sub>W\<^sup>*\<^sup>* S T " and "dpll\<^sub>W_all_inv S"
+  shows "dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj\<^sup>*\<^sup>* S T"
+  using assms apply (induction)
+   apply simp
+  by (smt dpll\<^sub>W_dpll\<^sub>W_bj rtranclp.rtrancl_into_rtrancl rtranclp_dpll\<^sub>W_all_inv) 
+
+lemma rtranclp_dpll_rtranclp_dpll\<^sub>W:
+  assumes "dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj\<^sup>*\<^sup>* S T " and "dpll\<^sub>W_all_inv S"
+  shows "dpll\<^sub>W\<^sup>*\<^sup>* S T"
+  using assms apply (induction)
+   apply simp
+  by (smt dpll\<^sub>W_bj_dpll rtranclp.rtrancl_into_rtrancl rtranclp_dpll\<^sub>W_all_inv)
+
+lemma dpll_conclusive_correct:
+  assumes "dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj\<^sup>*\<^sup>* ([], N) (M, N)" and "conclusive_dpll\<^sub>W_state (M, N)"
+  shows "M \<Turnstile>asm N \<longleftrightarrow> satisfiable (set_mset N)"
+proof -
+  have "dpll\<^sub>W_all_inv ([], N)"
+    unfolding dpll\<^sub>W_all_inv_def by auto
+  show ?thesis
+    apply (rule dpll\<^sub>W_conclusive_state_correct)
+      apply (simp add: \<open>dpll\<^sub>W_all_inv ([], N)\<close> assms(1) rtranclp_dpll_rtranclp_dpll\<^sub>W)
+    using assms(2) by simp
+qed
+
 end
