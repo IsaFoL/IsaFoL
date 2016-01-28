@@ -1208,6 +1208,7 @@ next
   case resolve
   then show ?case 
     by (auto simp add: distinct_cdcl\<^sub>W_state_def distinct_mset_set_def clauses_def 
+      distinct_mset_single_add
       intro!: distinct_mset_union_mset)
 qed (auto simp add: distinct_cdcl\<^sub>W_state_def distinct_mset_set_def clauses_def)
 

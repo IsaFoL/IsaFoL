@@ -3449,38 +3449,6 @@ qed
 
 end
 
-definition bounded where
-"bounded f \<longleftrightarrow> (\<exists>b. \<forall>n. f n \<le> b)"
-
-abbreviation unbounded :: "('a \<Rightarrow> 'b::ord) \<Rightarrow> bool" where
-"unbounded f \<equiv> \<not> bounded f"
-
-lemma not_bounded_nat_exists_larger:
-  fixes f :: "nat \<Rightarrow> nat"
-  assumes unbound: "unbounded f"
-  shows "\<exists>n. f n > m \<and> n > n\<^sub>0"
-proof (rule ccontr)
-  assume H: "\<not> ?thesis"
-  have "finite {f n|n. n \<le> n\<^sub>0}"
-    by auto
-  have "\<And>n. f n \<le> Max ({f n|n. n \<le> n\<^sub>0} \<union> {m})"
-    apply (case_tac "n \<le> n\<^sub>0")
-    apply (metis (mono_tags, lifting) Max_ge Un_insert_right \<open>finite {f n |n. n \<le> n\<^sub>0}\<close>
-      finite_insert insertCI mem_Collect_eq sup_bot.right_neutral)
-    by (metis (no_types, lifting) H Max_less_iff Un_insert_right \<open>finite {f n |n. n \<le> n\<^sub>0}\<close>
-      finite_insert insertI1 insert_not_empty leI sup_bot.right_neutral)
-  then show False
-    using unbound unfolding bounded_def by auto
-qed
-
-lemma bounded_const_product:
-  fixes k :: nat and f :: "nat \<Rightarrow> nat"
-  assumes "k > 0"
-  shows "bounded f \<longleftrightarrow> bounded (\<lambda>i. k * f i)"
-  unfolding bounded_def apply (rule iffI)
-   using mult_le_mono2 apply blast
-  by (meson assms le_less_trans less_or_eq_imp_le nat_mult_less_cancel_disj split_div_lemma)
-
 subsection \<open>Adding Restarts\<close>
 locale cdcl\<^sub>W_ops_restart =
   cdcl\<^sub>W_ops trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail
@@ -3778,6 +3746,39 @@ locale luby_sequence =
   assumes "ur > 0"
 begin
 
+lemma exists_luby_decomp:
+  fixes i ::nat
+  shows "\<exists>k::nat. (2 ^ (k - 1) \<le> i \<and> i < 2 ^ k - 1) \<or> i = 2 ^ k - 1"
+proof (induction i)
+  case 0
+  then show ?case
+    by (rule exI[of _ 0], simp)
+next
+  case (Suc n)
+  then obtain k where "2 ^ (k - 1) \<le> n \<and> n < 2 ^ k - 1 \<or> n = 2 ^ k - 1"
+    by blast
+  then consider
+      (st_interv) "2 ^ (k - 1) \<le> n" and  "n \<le> 2 ^ k - 2"
+    | (end_interv) "2 ^ (k - 1) \<le> n" and "n = 2 ^ k - 2"
+    | (pow2) "n = 2 ^ k - 1"
+    by linarith
+  then show ?case
+    proof cases
+      case st_interv
+      then show ?thesis apply - apply (rule exI[of _ k])
+        by (metis (no_types, lifting) One_nat_def Suc_diff_Suc Suc_lessI
+          \<open>2 ^ (k - 1) \<le> n \<and> n < 2 ^ k - 1 \<or> n = 2 ^ k - 1\<close> diff_self_eq_0
+          dual_order.trans le_SucI le_imp_less_Suc numeral_2_eq_2 one_le_numeral
+          one_le_power zero_less_numeral zero_less_power)
+    next
+      case end_interv
+      then show ?thesis apply - apply (rule exI[of _ k]) by auto
+    next
+      case pow2
+      then show ?thesis apply - apply (rule exI[of _ "k+1"]) by auto
+    qed
+qed
+
 text \<open>Luby sequences are defined by:
    \<^item> @{term "(2::nat)^(k::nat)- 1"}, if @{term "i = 2^k - 1"}
    \<^item> @{term "luby_sequence_core (i - (2::nat)^(k - 1) + 1)"}, if @{term "2^(k - 1) \<le> i"} and
@@ -3789,13 +3790,45 @@ function luby_sequence_core :: "nat \<Rightarrow> nat" where
 "luby_sequence_core i =
   (if \<exists>k. i = 2^k - 1
   then 2^((SOME k. i = 2^k - 1) - 1)
-  else luby_sequence_core (i - 2^((SOME k. 2^(k-1)\<le> i \<and> i < 2^k - 1) - 1)) + 1)"
+  else luby_sequence_core (i - 2^((SOME k. 2^(k-1)\<le> i \<and> i < 2^k - 1) - 1) + 1))"
 by auto
 termination
-  apply (relation "less_than")
-   apply auto[]
-  by (metis (mono_tags, lifting) diff_is_0_eq' diff_less le_numeral_extra(4)
-    less_than_iff not_gr0 numeral_2_eq_2 power.simps(1) zero_less_Suc zero_less_power)
+proof (relation "less_than", goal_cases)
+  case 1
+  then show ?case by auto
+next
+  case (2 i)
+  let ?k = "(SOME k. 2 ^ (k - 1) \<le> i \<and> i < 2 ^ k - 1)"
+  have "2 ^ (?k - 1) \<le> i \<and> i < 2 ^ ?k - 1"
+    apply (rule someI_ex)
+    using "2" exists_luby_decomp by blast
+  then show ?case
+    (* sledgehammer *)
+    proof -
+      have "\<forall>n na. \<not> (1::nat) \<le> n \<or> 1 \<le> n ^ na"
+        by (meson one_le_power)
+      then have f1: "(1::nat) \<le> 2 ^ (?k - 1)"
+        using one_le_numeral by blast
+      have f2: "i - 2 ^ (?k - 1) + 2 ^ (?k - 1) = i"
+        using \<open>2 ^ (?k - 1) \<le> i \<and> i < 2 ^ ?k - 1\<close> le_add_diff_inverse2 by blast
+      have f3: "2 ^ ?k - 1 \<noteq> Suc 0"
+        using f1 \<open>2 ^ (?k - 1) \<le> i \<and> i < 2 ^ ?k - 1\<close> by linarith
+      have "2 ^ ?k - (1::nat) \<noteq> 0"
+        using \<open>2 ^ (?k - 1) \<le> i \<and> i < 2 ^ ?k - 1\<close> gr_implies_not0 by blast
+      then have f4: "2 ^ ?k \<noteq> (1::nat)"
+        by linarith
+      have f5: "\<forall>n na. if na = 0 then (n::nat) ^ na = 1 else n ^ na = n * n ^ (na - 1)"
+        by (simp add: power_eq_if)
+      then have "?k \<noteq> 0"
+        using f4 by meson
+      then have "2 ^ (?k - 1) \<noteq> Suc 0"
+        using f5 f3 by presburger
+      then have "Suc 0 < 2 ^ (?k - 1)"
+        using f1 by linarith
+      then show ?thesis
+        using f2 less_than_iff by presburger
+    qed
+qed
 
 declare luby_sequence_core.simps[simp del]
 
@@ -3821,6 +3854,54 @@ proof -
       apply simp
       using two_pover_n_eq_two_power_n'_eq by blast
   ultimately show ?thesis by presburger
+qed
+
+lemma different_luby_decomposition_false:
+  assumes
+    H: "2 ^ (k - Suc 0) \<le> i" and
+    k': "i < 2 ^ k' - Suc 0" and
+    k_k': "k > k'"
+  shows "False"
+proof -
+  have "2 ^ k' - Suc 0 < 2 ^ (k - Suc 0)"
+    using k_k' less_eq_Suc_le by auto
+  then show ?thesis
+    using H k' by linarith
+qed
+
+lemma luby_sequence_core_not_two_power_minus_one:
+  assumes
+    k_i: "2 ^ (k - 1) \<le> i" and
+    i_k: "i < 2^ k - 1"
+  shows "luby_sequence_core i = luby_sequence_core (i - 2 ^ (k - 1) + 1)"
+proof -
+  have H: "\<not> (\<exists>ka. i = 2 ^ ka - 1)"
+    proof (rule ccontr)
+      assume "\<not> ?thesis"
+      then obtain k'::nat where k': "i = 2 ^ k' - 1" by blast
+      have "(2::nat) ^ k' - 1 < 2 ^ k - 1"
+        using i_k unfolding k' .
+      then have "(2::nat) ^ k' < 2 ^ k"
+        by linarith
+      then have "k' < k"
+        by simp
+      have "2 ^ (k - 1) \<le> 2 ^ k' - (1::nat)"
+        using k_i unfolding k' .
+      then have "(2::nat) ^ (k-1) < 2 ^ k'"
+        by (metis Suc_diff_1 not_le not_less_eq zero_less_numeral zero_less_power)
+      then have "k-1 < k'"
+        by simp
+
+      show False using \<open>k' < k\<close> \<open>k-1 < k'\<close> by linarith
+    qed
+  have "\<And>k k'. 2 ^ (k - Suc 0) \<le> i \<Longrightarrow> i < 2 ^ k - Suc 0 \<Longrightarrow> 2 ^ (k' - Suc 0) \<le> i \<Longrightarrow>
+    i < 2 ^ k' - Suc 0 \<Longrightarrow> k = k'"
+    by (meson different_luby_decomposition_false linorder_neqE_nat)
+  then have k: "(SOME k. 2 ^ (k - Suc 0) \<le> i \<and> i < 2 ^ k - Suc 0) = k"
+    using k_i i_k by auto
+  show ?thesis
+    apply (subst luby_sequence_core.simps[of i], subst H)
+    by (simp add: k)
 qed
 
 lemma unbounded_luby_sequence_core: "unbounded luby_sequence_core"
