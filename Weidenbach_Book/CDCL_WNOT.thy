@@ -3449,38 +3449,6 @@ qed
 
 end
 
-definition bounded where
-"bounded f \<longleftrightarrow> (\<exists>b. \<forall>n. f n \<le> b)"
-
-abbreviation unbounded :: "('a \<Rightarrow> 'b::ord) \<Rightarrow> bool" where
-"unbounded f \<equiv> \<not> bounded f"
-
-lemma not_bounded_nat_exists_larger:
-  fixes f :: "nat \<Rightarrow> nat"
-  assumes unbound: "unbounded f"
-  shows "\<exists>n. f n > m \<and> n > n\<^sub>0"
-proof (rule ccontr)
-  assume H: "\<not> ?thesis"
-  have "finite {f n|n. n \<le> n\<^sub>0}"
-    by auto
-  have "\<And>n. f n \<le> Max ({f n|n. n \<le> n\<^sub>0} \<union> {m})"
-    apply (case_tac "n \<le> n\<^sub>0")
-    apply (metis (mono_tags, lifting) Max_ge Un_insert_right \<open>finite {f n |n. n \<le> n\<^sub>0}\<close>
-      finite_insert insertCI mem_Collect_eq sup_bot.right_neutral)
-    by (metis (no_types, lifting) H Max_less_iff Un_insert_right \<open>finite {f n |n. n \<le> n\<^sub>0}\<close>
-      finite_insert insertI1 insert_not_empty leI sup_bot.right_neutral)
-  then show False
-    using unbound unfolding bounded_def by auto
-qed
-
-lemma bounded_const_product:
-  fixes k :: nat and f :: "nat \<Rightarrow> nat"
-  assumes "k > 0"
-  shows "bounded f \<longleftrightarrow> bounded (\<lambda>i. k * f i)"
-  unfolding bounded_def apply (rule iffI)
-   using mult_le_mono2 apply blast
-  by (meson assms le_less_trans less_or_eq_imp_le nat_mult_less_cancel_disj split_div_lemma)
-
 subsection \<open>Adding Restarts\<close>
 locale cdcl\<^sub>W_ops_restart =
   cdcl\<^sub>W_ops trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail
