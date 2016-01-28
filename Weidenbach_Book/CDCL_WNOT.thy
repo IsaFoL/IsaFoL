@@ -1128,7 +1128,7 @@ next
       have inv_T': "cdcl\<^sub>W_all_struct_inv T'"
         using \<open>cdcl\<^sub>W\<^sup>*\<^sup>* T T'\<close> inv_T rtranclp_cdcl\<^sub>W_all_struct_inv_inv by blast
       have inv_U: "cdcl\<^sub>W_all_struct_inv U"
-        using cdcl\<^sub>W_merge_restart_cdcl\<^sub>W confl fw_r_conflict inv local.bj 
+        using cdcl\<^sub>W_merge_restart_cdcl\<^sub>W confl fw_r_conflict inv local.bj
         rtranclp_cdcl\<^sub>W_all_struct_inv_inv by blast
       then have undef_L: "undefined_lit L (tl (trail U))"
         using U unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
@@ -1137,7 +1137,7 @@ next
         using \<open>cdcl\<^sub>W\<^sup>*\<^sup>* T T'\<close> cdcl\<^sub>W_init_clss confl by (auto dest!: cdcl\<^sub>W_init_clss cdcl\<^sub>W.conflict
           rtranclp_cdcl\<^sub>W_init_clss)
       then have atm_L: "atm_of L \<in> atms_of_mu (clauses S)"
-        using inv_T' confl_T' unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def clauses_def 
+        using inv_T' confl_T' unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def clauses_def
         by auto
       obtain M where tr_T: "trail T = M @ trail T'"
         using s_or_r by (induction rule: rtranclp_induct) auto
@@ -3443,11 +3443,35 @@ proof -
   moreover have "conflicting (init_state N) = C_True"
     by auto
   ultimately show ?thesis
-    by (simp add: full full_cdcl\<^sub>W_stgy_final_state_conclusive_from_init_state 
+    by (simp add: full full_cdcl\<^sub>W_stgy_final_state_conclusive_from_init_state
       full_cdcl\<^sub>W_stgy_full_cdcl\<^sub>W_merge no_d)
 qed
 
 end
+
+definition bounded where
+"bounded f \<longleftrightarrow> (\<exists>b. \<forall>n. f n \<le> b)"
+
+abbreviation unbounded :: "('a \<Rightarrow> 'b::ord) \<Rightarrow> bool" where
+"unbounded f \<equiv> \<not> bounded f"
+
+lemma not_bounded_nat_exists_larger:
+  fixes f :: "nat \<Rightarrow> nat"
+  assumes unbound: "unbounded f"
+  shows "\<exists>n. f n > m \<and> n > n\<^sub>0"
+proof (rule ccontr)
+  assume H: "\<not> ?thesis"
+  have "finite {f n|n. n \<le> n\<^sub>0}"
+    by auto
+  have "\<And>n. f n \<le> Max ({f n|n. n \<le> n\<^sub>0} \<union> {m})"
+    apply (case_tac "n \<le> n\<^sub>0")
+    apply (metis (mono_tags, lifting) Max_ge Un_insert_right \<open>finite {f n |n. n \<le> n\<^sub>0}\<close>
+      finite_insert insertCI mem_Collect_eq sup_bot.right_neutral)
+    by (metis (no_types, lifting) H Max_less_iff Un_insert_right \<open>finite {f n |n. n \<le> n\<^sub>0}\<close>
+      finite_insert insertI1 insert_not_empty leI sup_bot.right_neutral)
+  then show False
+    using unbound unfolding bounded_def by auto
+qed
 
 subsection \<open>Adding Restarts\<close>
 locale cdcl\<^sub>W_ops_restart =
@@ -3472,7 +3496,7 @@ locale cdcl\<^sub>W_ops_restart =
     init_state :: "'v::linorder clauses \<Rightarrow> 'st" and
     restart_state :: "'st \<Rightarrow> 'st" +
   fixes f :: "nat \<Rightarrow> nat"
-  assumes f: "strict_mono f"
+  assumes f: "unbounded f"
 begin
 
 text \<open>The condition of the differences of cardinality has to be strict.
@@ -3580,15 +3604,25 @@ proof (rule ccontr)
   let ?S = "g 0"
   have "finite (atms_of_mu (init_clss (fst ?S)))"
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def by auto
+  have snd_g: "\<And>i. snd (g i) = i + snd (g 0)"
+    apply (induct_tac i)
+      apply simp
+    by (metis Suc_eq_plus1_left add_Suc cdcl\<^sub>W_merge_with_restart_increasing_number g)
+  then have snd_g_0: "\<And>i. i > 0 \<Longrightarrow> snd (g i) = i + snd (g 0)"
+    by blast
+  have unbounded_f_g: "unbounded (\<lambda>i. f (snd (g i)))"
+    using f unfolding bounded_def by (metis add.commute f less_or_eq_imp_le snd_g
+      not_bounded_nat_exists_larger not_le ordered_cancel_comm_monoid_diff_class.le_iff_add)
+
   have "\<And>i. snd (g i) < snd (g (i+1))"
     by (metis Suc_eq_plus1 Suc_le_lessD add.commute cdcl\<^sub>W_merge_with_restart_increasing_number g
       less_or_eq_imp_le)
   then have "strict_mono (snd o g)"
     using strict_mono_local_prop[of "snd o g"] by auto
-  then obtain j where j:"snd (g j) > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
-    using strict_mono_ge_id[of "snd \<circ> g" "1+card (build_all_simple_clss (atms_of_mu (init_clss
-      (fst ?S))))"] Suc_le_lessD
-    by fastforce
+  obtain k where
+    f_g_k: "f (snd (g k)) > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))" and
+    "k > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
+    using not_bounded_nat_exists_larger[OF unbounded_f_g] by blast
   text \<open>The following does not hold anymore with the non-strict version of
     cardinality in the definition.\<close>
   { fix i
@@ -3606,28 +3640,28 @@ proof (rule ccontr)
       qed
     } note H = this
   obtain m T where
-    m: "m = card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g j))))" and
-    "m > f (snd (g j))" and
-    "restart T (fst (g (j+1)))" and
-    cdcl\<^sub>W_merge_stgy: "(cdcl\<^sub>W_merge_stgy ^^ m) (fst (g j)) T"
-    using g[of j] H[of "Suc j"] by (force simp: cdcl\<^sub>W_merge_with_restart.simps full1_def)
-  have "cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* (fst (g j)) T"
+    m: "m = card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g k))))" and
+    "m > f (snd (g k))" and
+    "restart T (fst (g (k+1)))" and
+    cdcl\<^sub>W_merge_stgy: "(cdcl\<^sub>W_merge_stgy ^^ m) (fst (g k)) T"
+    using g[of k] H[of "Suc k"] by (force simp: cdcl\<^sub>W_merge_with_restart.simps full1_def)
+  have "cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* (fst (g k)) T"
     using cdcl\<^sub>W_merge_stgy relpowp_imp_rtranclp by metis
   then have "cdcl\<^sub>W_all_struct_inv T"
-    using inv[of j]  rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_merge_stgy_rtranclp_cdcl\<^sub>W by blast
-  moreover have "card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g j))))
+    using inv[of k]  rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_merge_stgy_rtranclp_cdcl\<^sub>W
+    by blast
+  moreover have "card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g k))))
       > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
-    by (smt Suc_leI \<open>f (snd (g j)) < m\<close> dual_order.trans f j le_less_linear less_imp_le m
-      not_less_eq_eq strict_mono_ge_id)
+      unfolding m[symmetric] using \<open>m > f (snd (g k))\<close> f_g_k by linarith
     then have "card (set_mset (learned_clss T))
       > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
       by linarith
   moreover
-    have "init_clss (fst (g j)) = init_clss T"
-      using \<open>cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* (fst (g j)) T\<close> rtranclp_cdcl\<^sub>W_merge_stgy_rtranclp_cdcl\<^sub>W rtranclp_cdcl\<^sub>W_init_clss
+    have "init_clss (fst (g k)) = init_clss T"
+      using \<open>cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* (fst (g k)) T\<close> rtranclp_cdcl\<^sub>W_merge_stgy_rtranclp_cdcl\<^sub>W rtranclp_cdcl\<^sub>W_init_clss
       by blast
     then have "init_clss (fst ?S) = init_clss T"
-      using init_g[of j] by auto
+      using init_g[of k] by auto
   ultimately show False
     using cdcl\<^sub>W_all_struct_inv_learned_clss_bound by (metis Suc_leI card_mono not_less_eq_eq
       build_all_simple_clss_finite)
@@ -3657,7 +3691,6 @@ restart_step: "(cdcl\<^sub>W_stgy^^(card (set_mset (learned_clss T)) - card (set
   \<Longrightarrow> card (set_mset (learned_clss T)) - card (set_mset (learned_clss S)) > f n
   \<Longrightarrow> restart T U \<Longrightarrow> cdcl\<^sub>W_with_restart (S, n) (U, Suc n)" |
 restart_full: "full1 cdcl\<^sub>W_stgy S T \<Longrightarrow> cdcl\<^sub>W_with_restart (S, n) (T, Suc n)"
-
 
 lemma cdcl\<^sub>W_with_restart_rtranclp_cdcl\<^sub>W:
   "cdcl\<^sub>W_with_restart S T \<Longrightarrow> cdcl\<^sub>W\<^sup>*\<^sup>* (fst S) (fst T)"
@@ -3694,15 +3727,25 @@ proof (rule ccontr)
   let ?S = "g 0"
   have "finite (atms_of_mu (init_clss (fst ?S)))"
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def by auto
+  have snd_g: "\<And>i. snd (g i) = i + snd (g 0)"
+    apply (induct_tac i)
+      apply simp
+    by (metis Suc_eq_plus1_left add_Suc cdcl\<^sub>W_with_restart_increasing_number g)
+  then have snd_g_0: "\<And>i. i > 0 \<Longrightarrow> snd (g i) = i + snd (g 0)"
+    by blast
+  have unbounded_f_g: "unbounded (\<lambda>i. f (snd (g i)))"
+    using f unfolding bounded_def by (metis add.commute f less_or_eq_imp_le snd_g
+      not_bounded_nat_exists_larger not_le ordered_cancel_comm_monoid_diff_class.le_iff_add)
+
   have "\<And>i. snd (g i) < snd (g (i+1))"
     by (metis Suc_eq_plus1 Suc_le_lessD add.commute cdcl\<^sub>W_with_restart_increasing_number g
       less_or_eq_imp_le)
   then have "strict_mono (snd o g)"
     using strict_mono_local_prop[of "snd o g"] by auto
-  then obtain j where j:"snd (g j) > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
-    using strict_mono_ge_id[of "snd \<circ> g" "1+card (build_all_simple_clss (atms_of_mu (init_clss
-      (fst ?S))))"] Suc_le_lessD
-    by fastforce
+  obtain k where
+    f_g_k: "f (snd (g k)) > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))" and
+    "k > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
+    using not_bounded_nat_exists_larger[OF unbounded_f_g] by blast
   text \<open>The following does not hold anymore with the non-strict version of
     cardinality in the definition.\<close>
   { fix i
@@ -3720,28 +3763,27 @@ proof (rule ccontr)
       qed
     } note H = this
   obtain m T where
-    m: "m = card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g j))))" and
-    "m > f (snd (g j))" and
-    "restart T (fst (g (j+1)))" and
-    cdcl\<^sub>W_merge_stgy: "(cdcl\<^sub>W_stgy ^^ m) (fst (g j)) T"
-    using g[of j] H[of "Suc j"] by (force simp: cdcl\<^sub>W_with_restart.simps full1_def)
-  have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (fst (g j)) T"
+    m: "m = card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g k))))" and
+    "m > f (snd (g k))" and
+    "restart T (fst (g (k+1)))" and
+    cdcl\<^sub>W_merge_stgy: "(cdcl\<^sub>W_stgy ^^ m) (fst (g k)) T"
+    using g[of k] H[of "Suc k"] by (force simp: cdcl\<^sub>W_with_restart.simps full1_def)
+  have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (fst (g k)) T"
     using cdcl\<^sub>W_merge_stgy relpowp_imp_rtranclp by metis
   then have "cdcl\<^sub>W_all_struct_inv T"
-    using inv[of j]  rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W by blast
-  moreover have "card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g j))))
+    using inv[of k]  rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W by blast
+  moreover have "card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g k))))
       > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
-    by (smt Suc_leI \<open>f (snd (g j)) < m\<close> dual_order.trans f j le_less_linear less_imp_le m
-      not_less_eq_eq strict_mono_ge_id)
+      unfolding m[symmetric] using \<open>m > f (snd (g k))\<close> f_g_k by linarith
     then have "card (set_mset (learned_clss T))
       > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
       by linarith
   moreover
-    have "init_clss (fst (g j)) = init_clss T"
-      using \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (fst (g j)) T\<close> rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W rtranclp_cdcl\<^sub>W_init_clss
+    have "init_clss (fst (g k)) = init_clss T"
+      using \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (fst (g k)) T\<close> rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W rtranclp_cdcl\<^sub>W_init_clss
       by blast
     then have "init_clss (fst ?S) = init_clss T"
-      using init_g[of j] by auto
+      using init_g[of k] by auto
   ultimately show False
     using cdcl\<^sub>W_all_struct_inv_learned_clss_bound by (metis Suc_leI card_mono not_less_eq_eq
       build_all_simple_clss_finite)
