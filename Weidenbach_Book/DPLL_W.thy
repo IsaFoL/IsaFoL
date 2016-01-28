@@ -734,7 +734,7 @@ lemma rtranclp_dpll_rtranclp_dpll\<^sub>W:
    apply simp
   by (smt dpll\<^sub>W_bj_dpll rtranclp.rtrancl_into_rtrancl rtranclp_dpll\<^sub>W_all_inv)
 
-lemma dpll_conclusive_correct:
+lemma dpll_conclusive_state_correctness:
   assumes "dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj\<^sup>*\<^sup>* ([], N) (M, N)" and "conclusive_dpll\<^sub>W_state (M, N)"
   shows "M \<Turnstile>asm N \<longleftrightarrow> satisfiable (set_mset N)"
 proof -
