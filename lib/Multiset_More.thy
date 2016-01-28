@@ -667,6 +667,24 @@ proof -
     using dist_m dist_n by auto
 qed
 
+lemma distinct_mset_union_mset:
+  assumes 
+    "distinct_mset (D + {#L#})" and
+    "distinct_mset (C + {#L'#})"
+  shows "distinct_mset (D #\<union> C)"
+  unfolding distinct_mset_count_less_1
+proof - (* TODO sledgehammer, find something faster? *)
+  { fix aa :: 'a
+    have "aa \<in># C \<longrightarrow> 1 = count C aa"
+      by (metis (no_types) assms(2) distinct_mset_def distinct_mset_single_add)
+    then have "count (D #\<union> C) aa \<le> 1"
+      by (metis (no_types) assms(1) distinct_mset_def distinct_mset_single_add gr0I
+        less_or_eq_imp_le max_def_raw sup_subset_mset_count) }
+  then show "\<forall>a. count (D #\<union> C) a \<le> 1"
+    by blast
+qed
+
+
 subsection \<open>Filter\<close>
 lemma mset_filter_compl: "mset (filter p xs) + mset (filter (Not \<circ> p) xs) = mset xs"
   apply (induct xs)

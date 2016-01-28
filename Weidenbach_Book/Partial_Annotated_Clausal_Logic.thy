@@ -867,6 +867,10 @@ proof (clarify, rule ccontr)
     by blast
 qed
 
+lemma CNot_union_mset[simp]:
+  "CNot (A #\<union> B) = CNot A \<union> CNot B"
+  unfolding CNot_def by auto
+
 subsection \<open>Other\<close>
 abbreviation "no_dup L \<equiv> distinct (map (\<lambda>l. atm_of (lit_of l)) L)"
 

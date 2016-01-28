@@ -427,8 +427,8 @@ text \<open>@{term "get_maximum_level D (Propagated L (C + {#L#}) # M) = k \<or>
 inductive resolve :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 resolve_rule[intro]: "
   state S = (Propagated L ( (C + {#L#})) # M, N, U, k, C_Clause (D + {#-L#}))
-  \<Longrightarrow> get_maximum_level D (Propagated L ( (C + {#L#})) # M) = k
-  \<Longrightarrow> T \<sim> update_conflicting (C_Clause (remdups_mset (D + C))) (tl_trail S)
+  \<Longrightarrow> get_maximum_level D (Propagated L (C + {#L#}) # M) = k
+  \<Longrightarrow> T \<sim> update_conflicting (C_Clause (D #\<union> C)) (tl_trail S)
   \<Longrightarrow> resolve S T"
 inductive_cases resolveE[elim]: "resolve S S'"
 thm resolveE
@@ -548,7 +548,7 @@ lemma cdcl\<^sub>W_all_induct[consumes 1, case_names propagate conflict forget r
       trail S = Propagated L ( (C + {#L#})) # M
       \<Longrightarrow> conflicting S = C_Clause (D + {#-L#})
       \<Longrightarrow> get_maximum_level D (Propagated L ( (C + {#L#})) # M) = backtrack_lvl S
-      \<Longrightarrow> T \<sim> (update_conflicting (C_Clause (remdups_mset (D + C))) (tl_trail S))
+      \<Longrightarrow> T \<sim> (update_conflicting (C_Clause (D #\<union> C)) (tl_trail S))
       \<Longrightarrow> P S T" and
     backtrackH: "\<And>K i M1 M2 L D T.
       (Marked K (Suc i) # M1, M2) \<in> set (get_all_marked_decomposition (trail S))
@@ -605,8 +605,8 @@ lemma cdcl\<^sub>W_o_induct[consumes 1, case_names decide skip resolve backtrack
     resolveH: "\<And>L C M D T.
       trail S = Propagated L ( (C + {#L#})) # M
       \<Longrightarrow> conflicting S = C_Clause (D + {#-L#})
-      \<Longrightarrow> get_maximum_level D (Propagated L ( (C + {#L#})) # M) = backtrack_lvl S
-      \<Longrightarrow> T \<sim> update_conflicting (C_Clause (remdups_mset (D + C))) (tl_trail S)
+      \<Longrightarrow> get_maximum_level D (Propagated L (C + {#L#}) # M) = backtrack_lvl S
+      \<Longrightarrow> T \<sim> update_conflicting (C_Clause (D #\<union> C)) (tl_trail S)
       \<Longrightarrow> P S T" and
     backtrackH: "\<And>K i M1 M2 L D T.
       (Marked K (Suc i) # M1, M2) \<in> set (get_all_marked_decomposition (trail S))
@@ -638,7 +638,6 @@ lemma cdcl\<^sub>W_o_rule_cases[consumes 1, case_names decide backtrack skip res
     "resolve S T \<Longrightarrow> P"
   shows P
   using assms by (auto simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps)
-
 
 lemma propagate_state_eq_compatible:
   assumes
@@ -1005,7 +1004,7 @@ next
   ultimately show ?case
     by (auto dest: mk_disjoint_insert true_clss_clss_left_right
       simp add: cdcl\<^sub>W_learned_clause_def clauses_def
-      intro: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or)
+      intro: true_clss_cls_union_mset_true_clss_cls_or_not_true_clss_cls_or)
 next
   case (restart T)
   then show ?case
@@ -1024,7 +1023,7 @@ next
 next
   case forget
   then show ?case by (auto simp: cdcl\<^sub>W_learned_clause_def clauses_def split: split_if_asm)
-qed  (auto simp: cdcl\<^sub>W_learned_clause_def clauses_def)
+qed (auto simp: cdcl\<^sub>W_learned_clause_def clauses_def)
 
 lemma rtranclp_cdcl\<^sub>W_learned_clss:
   assumes "cdcl\<^sub>W\<^sup>*\<^sup>* S S'"
@@ -1187,7 +1186,8 @@ lemma distinct_cdcl\<^sub>W_state_decomp_2:
 lemma distinct_cdcl\<^sub>W_state_S0_cdcl\<^sub>W[simp]:
   "distinct_mset_mset N \<Longrightarrow>  distinct_cdcl\<^sub>W_state (init_state N)"
   unfolding distinct_cdcl\<^sub>W_state_def by auto
-
+  
+  
 lemma distinct_cdcl\<^sub>W_state_inv:
   assumes
     "cdcl\<^sub>W S S'" and
@@ -1204,6 +1204,11 @@ next
     by (metis conflicting_restart_state empty_iff empty_set init_clss_restart_state
       learned_clss_restart_state set_mset_mono state_eq_conflicting state_eq_init_clss
       state_eq_learned_clss state_eq_trail subsetCE trail_restart_state)
+next
+  case resolve
+  then show ?case 
+    by (auto simp add: distinct_cdcl\<^sub>W_state_def distinct_mset_set_def clauses_def 
+      intro!: distinct_mset_union_mset)
 qed (auto simp add: distinct_cdcl\<^sub>W_state_def distinct_mset_set_def clauses_def)
 
 lemma rtanclp_distinct_cdcl\<^sub>W_state_inv:
@@ -2936,7 +2941,7 @@ proof -
               have "(trail S, init_clss S, learned_clss S, backtrack_lvl S, C_Clause (D + {#L#}))
                 = state S"
                 by (metis (no_types) LD)
-              hence "cdcl\<^sub>W_o S (update_conflicting (C_Clause (remdups_mset (D' + C'))) (tl_trail S))"
+              hence "cdcl\<^sub>W_o S (update_conflicting (C_Clause (D' #\<union> C')) (tl_trail S))"
                 using f1 bj[OF cdcl\<^sub>W_bj.resolve[OF resolve_rule[of S L' C' "tl ?M" ?N ?U ?k D']]]
                 C' D' M by (metis state_eq_def)
               thus ?thesis
@@ -3077,7 +3082,7 @@ proof (induct rule: cdcl\<^sub>W_o_induct)
         }
         ultimately show "get_level L M = 0" by blast
       qed
-    hence ?case using get_maximum_level_exists_lit_of_max_level[of "remdups_mset (D+C)" M] tr_S T
+    hence ?case using get_maximum_level_exists_lit_of_max_level[of "D#\<union>C" M] tr_S T
       by (auto simp: Bex_mset_def)
   }
   ultimately show ?case using resolve.hyps(3) by blast

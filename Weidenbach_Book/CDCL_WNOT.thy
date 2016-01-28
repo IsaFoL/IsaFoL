@@ -548,7 +548,7 @@ proof (rule ccontr)
   obtain L C M N U' k D where
     U: "state U = (Propagated L ( (C + {#L#})) # M, N, U', k, C_Clause (D + {#-L#}))"and
     "get_maximum_level D (Propagated L ( (C + {#L#})) # M) = k" and
-    "state V = (M, N, U', k, C_Clause (remdups_mset (D + C)))"
+    "state V = (M, N, U', k, C_Clause (D #\<union> C))"
     using resolve by auto
 
   have

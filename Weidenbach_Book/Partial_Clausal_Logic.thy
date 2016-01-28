@@ -735,7 +735,6 @@ lemma true_clss_clss_insert[iff]:
   "A \<Turnstile>ps insert L Ls \<longleftrightarrow> (A \<Turnstile>p L \<and> A \<Turnstile>ps Ls)"
   using true_clss_clss_union_and[of A "{L}" "Ls"] by auto
 
-
 (*TODO Mark as [dest]?*)
 lemma true_clss_clss_subset:
   "A \<subseteq> B \<Longrightarrow> A \<Turnstile>ps CC \<Longrightarrow> B \<Turnstile>ps CC"
@@ -803,6 +802,57 @@ proof (intro allI impI)
     ultimately have "I \<Turnstile> D + C" unfolding true_cls_def by auto
   }
   ultimately show "I \<Turnstile> D + C" by blast
+qed
+
+(* TODO Move *)
+lemma atms_of_union_mset[simp]: 
+  "atms_of (A #\<union> B) = atms_of A \<union> atms_of B"
+  unfolding atms_of_def by (auto simp: max_def split: split_if_asm)
+  
+lemma true_cls_union_mset[iff]: "I \<Turnstile> C #\<union> D \<longleftrightarrow> I \<Turnstile> C \<or> I \<Turnstile> D"
+  unfolding true_cls_def by (force simp: max_def Bex_mset_def split: split_if_asm)
+
+lemma true_clss_cls_union_mset_true_clss_cls_or_not_true_clss_cls_or:
+  assumes D: "N \<Turnstile>p D + {#- L#}"
+  and C: "N \<Turnstile>p C + {#L#}"
+  shows "N \<Turnstile>p D #\<union> C"
+  unfolding true_clss_cls_def
+proof (intro allI impI)
+  fix I
+  assume tot: "total_over_m I (N \<union> {D #\<union> C})"
+  and "consistent_interp I"
+  and "I \<Turnstile>s N"
+  {
+    assume L: "L \<in> I \<or> -L \<in> I"
+    hence "total_over_m I {D + {#- L#}}"
+      using tot by (cases L) auto
+    hence "I \<Turnstile> D + {#- L#}" using D \<open>I \<Turnstile>s N\<close> tot \<open>consistent_interp I\<close>
+      unfolding true_clss_cls_def by auto
+    moreover
+      have "total_over_m I {C + {#L#}}"
+        using L tot by (cases L) auto
+      hence "I \<Turnstile> C + {#L#}"
+        using C \<open>I \<Turnstile>s N\<close> tot \<open>consistent_interp I\<close> unfolding true_clss_cls_def by auto
+    ultimately have "I \<Turnstile> D #\<union> C" using \<open>consistent_interp I\<close> unfolding consistent_interp_def 
+    by auto
+  }
+  moreover {
+    assume L: "L \<notin> I \<and> -L \<notin> I"
+    let ?I' = "I \<union> {L}"
+    have "consistent_interp ?I'" using L \<open>consistent_interp I\<close> by auto
+    moreover have "total_over_m ?I' {D + {#- L#}}" using tot unfolding total_over_m_def total_over_set_def by (auto simp add: atms_of_def)
+    moreover have "total_over_m ?I' N" using tot using total_union by blast
+    moreover have "?I' \<Turnstile>s N" using \<open>I \<Turnstile>s N\<close> using true_clss_union_increase by blast
+    ultimately have "?I' \<Turnstile> D + {#- L#}"
+      using D unfolding true_clss_cls_def by blast
+    hence "?I' \<Turnstile> D" using L by auto
+    moreover
+      have "total_over_set I (atms_of (D + C))" using tot by auto
+      hence "L \<notin># D \<and> -L \<notin># D"
+        using L unfolding total_over_set_def atms_of_def by (cases L) force+
+    ultimately have "I \<Turnstile> D  #\<union> C" unfolding true_cls_def by auto
+  }
+  ultimately show "I \<Turnstile> D #\<union> C" by blast
 qed
 
 lemma satisfiable_carac[iff]:

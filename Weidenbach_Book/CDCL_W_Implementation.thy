@@ -427,6 +427,15 @@ fun do_resolve_step :: "cdcl\<^sub>W_state_inv_st \<Rightarrow> cdcl\<^sub>W_sta
   else (Propagated L C # Ls, N, U, k, C_Clause D))" |
 "do_resolve_step S = S"
 
+lemma distinct_mset_rempdups_union_mset:
+  assumes "distinct_mset A" and "distinct_mset B"
+  shows "A #\<union> B = remdups_mset (A + B)"
+  using assms unfolding remdups_mset_def apply (auto simp: multiset_eq_iff max_def)
+  apply (metis Un_iff count_mset_set(1) count_mset_set(3) distinct_mset_set_mset_ident 
+    finite_UnI finite_set_mset mem_set_mset_iff not_le)
+  by (simp add: distinct_mset_def)
+  
+  
 lemma do_resolve_step:
   "cdcl\<^sub>W_all_struct_inv (toS S) \<Longrightarrow> do_resolve_step S \<noteq> S
   \<Longrightarrow> resolve (toS S) (toS (do_resolve_step S))"
@@ -460,7 +469,7 @@ proof (induction S rule: do_resolve_step.induct)
     "resolve
        (map convert (Propagated L C # M), mset `# mset N, mset `# mset U, k, C_Clause (mset D))
        (map convert M, mset `# mset N, mset `# mset U, k,
-         C_Clause (remdups_mset (mset D - {#-L#} + (mset C - {#L#}))))"
+         C_Clause (((mset D - {#-L#}) #\<union> (mset C - {#L#}))))"
     unfolding resolve.simps
       apply (simp add: C D)
     using M[simplified] unfolding maximum_level_code_eq_get_maximum_level C[symmetric] CL
@@ -469,8 +478,19 @@ proof (induction S rule: do_resolve_step.induct)
     "(map convert (Propagated L C # M), mset `# mset N, mset `# mset U, k, C_Clause (mset D))
      = toS (Propagated L C # M, N, U, k, C_Clause D)"
     by auto
-  moreover have "(map convert M, mset `# mset N, mset `# mset U, k, C_Clause (remdups_mset (mset D - {#- L#} + (mset C - {#L#}))))
-  = toS (do_resolve_step (Propagated L C # M, N, U, k, C_Clause D))"
+  moreover
+    have "distinct_mset (mset C)" and "distinct_mset (mset D)"
+      using \<open>cdcl\<^sub>W_all_struct_inv (toS (Propagated L C # M, N, U, k, C_Clause D))\<close>
+      unfolding cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def
+      by auto
+    then have "(mset C - {#L#}) #\<union> (mset D - {#- L#}) = 
+      remdups_mset (mset C - {#L#} + (mset D - {#- L#}))"
+      apply -
+      apply (rule distinct_mset_rempdups_union_mset)
+      by auto
+    then have "(map convert M, mset `# mset N, mset `# mset U, k, 
+    C_Clause (((mset D - {#- L#}) #\<union> (mset C - {#L#}))))
+    = toS (do_resolve_step (Propagated L C # M, N, U, k, C_Clause D))"
     using \<open>- L \<in> set D\<close> M by (auto simp:ac_simps )
   ultimately show ?case
     by simp
