@@ -45,6 +45,14 @@ lemma rtranclp_cdcl\<^sub>W_all_struct_inv_inv:
   shows "cdcl\<^sub>W_all_struct_inv S'"
   using assms by induction (auto intro: cdcl\<^sub>W_all_struct_inv_inv)
 
+lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv:
+  "cdcl\<^sub>W_stgy S T \<Longrightarrow> cdcl\<^sub>W_all_struct_inv S \<Longrightarrow> cdcl\<^sub>W_all_struct_inv T"
+  by (meson cdcl\<^sub>W_stgy_tranclp_cdcl\<^sub>W rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_unfold)
+
+lemma rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv:
+  "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_all_struct_inv S \<Longrightarrow> cdcl\<^sub>W_all_struct_inv T"
+  by (induction rule: rtranclp_induct) (auto intro: cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv)
+
 lemma cdcl\<^sub>W_o_learned_clause_increasing:
   "cdcl\<^sub>W_o S S' \<Longrightarrow> learned_clss S \<subseteq># learned_clss S'"
   by (induction rule: cdcl\<^sub>W_o_induct) auto
