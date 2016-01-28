@@ -22,6 +22,7 @@ session "Weidenbach_Book" (main) = "HOL" +
     CDCL_W_Implementation
     CDCL_NOT
     CDCL_WNOT
+    CDCL_W_Incremental
   theories [quick_and_dirty]
     CDCL_Two_Watched_Literals
     Prop_Superposition
