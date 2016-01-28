@@ -3473,6 +3473,14 @@ proof (rule ccontr)
     using unbound unfolding bounded_def by auto
 qed
 
+lemma bounded_const_product:
+  fixes k :: nat and f :: "nat \<Rightarrow> nat"
+  assumes "k > 0"
+  shows "bounded f \<longleftrightarrow> bounded (\<lambda>i. k * f i)"
+  unfolding bounded_def apply (rule iffI)
+   using mult_le_mono2 apply blast
+  by (meson assms le_less_trans less_or_eq_imp_le nat_mult_less_cancel_disj split_div_lemma)
+
 subsection \<open>Adding Restarts\<close>
 locale cdcl\<^sub>W_ops_restart =
   cdcl\<^sub>W_ops trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail
@@ -3550,39 +3558,6 @@ proof
     by blast
 qed
 
-lemma strict_mono_ge_id: "strict_mono (g::nat \<Rightarrow> nat) \<Longrightarrow> g n \<ge> n"
-  unfolding strict_mono_def apply (induction n, simp)
-  by (metis Suc_leI diff_diff_cancel lessI less_imp_diff_less)
-
-lemma strict_mono_local_prop:
-  assumes "\<And>i::nat. g (Suc i) > g i"
-  shows "strict_mono g"
-  unfolding strict_mono_def
-proof (intro allI impI)
-  fix x y::nat
-  assume "x < y"
-  then show "g x < g y"
-    proof (induction "y -x" arbitrary: x y)
-      case 0
-      then show ?case by simp
-    next
-      case (Suc n) note IH = this(1) and n = this(2)
-      consider
-          (eq) "y = Suc x"
-        | (less) y' where "y = Suc y'" and "y' > x"
-        using \<open>x < y\<close> Suc_le_D unfolding less_eq_Suc_le by fastforce
-      then show ?case
-        proof cases
-          case eq
-          then show ?thesis using assms by simp
-        next
-          case less
-          then have "g x < g y'" using IH[of y' x] n by auto
-          then show ?thesis using assms[of y' ] less by auto
-        qed
-    qed
-qed
-
 lemma cdcl\<^sub>W_merge_with_restart_init_clss:
   "cdcl\<^sub>W_merge_with_restart S T \<Longrightarrow> init_clss (fst S) = init_clss (fst T)"
   using cdcl\<^sub>W_merge_with_restart_rtranclp_cdcl\<^sub>W rtranclp_cdcl\<^sub>W_init_clss by blast
@@ -3614,11 +3589,6 @@ proof (rule ccontr)
     using f unfolding bounded_def by (metis add.commute f less_or_eq_imp_le snd_g
       not_bounded_nat_exists_larger not_le ordered_cancel_comm_monoid_diff_class.le_iff_add)
 
-  have "\<And>i. snd (g i) < snd (g (i+1))"
-    by (metis Suc_eq_plus1 Suc_le_lessD add.commute cdcl\<^sub>W_merge_with_restart_increasing_number g
-      less_or_eq_imp_le)
-  then have "strict_mono (snd o g)"
-    using strict_mono_local_prop[of "snd o g"] by auto
   obtain k where
     f_g_k: "f (snd (g k)) > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))" and
     "k > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
@@ -3737,11 +3707,6 @@ proof (rule ccontr)
     using f unfolding bounded_def by (metis add.commute f less_or_eq_imp_le snd_g
       not_bounded_nat_exists_larger not_le ordered_cancel_comm_monoid_diff_class.le_iff_add)
 
-  have "\<And>i. snd (g i) < snd (g (i+1))"
-    by (metis Suc_eq_plus1 Suc_le_lessD add.commute cdcl\<^sub>W_with_restart_increasing_number g
-      less_or_eq_imp_le)
-  then have "strict_mono (snd o g)"
-    using strict_mono_local_prop[of "snd o g"] by auto
   obtain k where
     f_g_k: "f (snd (g k)) > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))" and
     "k > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
@@ -3809,5 +3774,106 @@ next
 qed
 end
 
+locale luby_sequence =
+  fixes ur :: nat (*unit run*)
+  assumes "ur > 0"
+begin
+
+text \<open>Luby sequences are defined by:
+   \<^item> @{term "(2::nat)^(k::nat)- 1"}, if @{term "i = 2^k - 1"}
+   \<^item> @{term "luby_sequence_core (i - (2::nat)^(k - 1) + 1)"}, if @{term "2^(k - 1) \<le> i"} and
+   @{term "i \<le> 2^k - 1"}
+
+Then the sequence is then scaled by a constant unit run (called @{term ur} here), strictly positive.
+\<close>
+function luby_sequence_core :: "nat \<Rightarrow> nat" where
+"luby_sequence_core i =
+  (if \<exists>k. i = 2^k - 1
+  then 2^((SOME k. i = 2^k - 1) - 1)
+  else luby_sequence_core (i - 2^((SOME k. 2^(k-1)\<le> i \<and> i < 2^k - 1) - 1)) + 1)"
+by auto
+termination
+  apply (relation "less_than")
+   apply auto[]
+  by (metis (mono_tags, lifting) diff_is_0_eq' diff_less le_numeral_extra(4)
+    less_than_iff not_gr0 numeral_2_eq_2 power.simps(1) zero_less_Suc zero_less_power)
+
+declare luby_sequence_core.simps[simp del]
+
+lemma two_pover_n_eq_two_power_n'_eq:
+  assumes H: "(2::nat) ^ (k::nat) - 1 = 2 ^ k' - 1"
+  shows "k' = k"
+proof -
+  have "(2::nat) ^ (k::nat) = 2 ^ k'"
+    using H by (metis One_nat_def Suc_pred zero_less_numeral zero_less_power)
+  then show ?thesis by simp
+qed
+
+lemma luby_sequence_core_two_power_minus_one:
+  "luby_sequence_core (2^k - 1) = 2^(k-1)" (is "?L = ?K")
+proof -
+  have decomp: "\<exists>ka. 2 ^ k - 1 = 2 ^ ka - 1"
+    by auto
+  have "?L = 2^((SOME k'. (2::nat)^k - 1 = 2^k' - 1) - 1)"
+    apply (subst luby_sequence_core.simps, subst decomp)
+    by simp
+  moreover have "(SOME k'. (2::nat)^k - 1 = 2^k' - 1) = k"
+    apply (rule some_equality)
+      apply simp
+      using two_pover_n_eq_two_power_n'_eq by blast
+  ultimately show ?thesis by presburger
+qed
+
+lemma unbounded_luby_sequence_core: "unbounded luby_sequence_core"
+  unfolding bounded_def
+proof
+  assume "\<exists>b. \<forall>n. luby_sequence_core n \<le> b"
+  then obtain b where b: "\<And>n. luby_sequence_core n \<le> b"
+    by metis
+  have "luby_sequence_core (2^(b+1) - 1) = 2^b"
+    using luby_sequence_core_two_power_minus_one[of "b+1"] by simp
+  moreover have "(2::nat)^b > b"
+    by (induction b) auto
+  ultimately show False using b[of "2^(b+1) - 1"] by linarith
+qed
+
+abbreviation luby_sequence :: "nat \<Rightarrow> nat" where
+"luby_sequence n \<equiv>  ur * luby_sequence_core n"
+
+lemma bounded_luby_sequence: "unbounded luby_sequence"
+  using bounded_const_product[of ur] luby_sequence_axioms
+  luby_sequence_def unbounded_luby_sequence_core by blast
+end
+
+locale luby_sequence_restart =
+  luby_sequence ur +
+  cdcl\<^sub>W_ops trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail
+    add_init_cls
+    add_learned_cls remove_cls update_backtrack_lvl update_conflicting init_state
+    restart_state
+  for
+    ur :: nat and
+    trail :: "'st \<Rightarrow> ('v::linorder, nat, 'v clause) marked_lits" and
+    init_clss :: "'st \<Rightarrow> 'v clauses" and
+    learned_clss :: "'st \<Rightarrow> 'v clauses" and
+    backtrack_lvl :: "'st \<Rightarrow> nat" and
+    conflicting :: "'st \<Rightarrow>'v clause conflicting_clause" and
+
+    cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_trail :: "'st \<Rightarrow> 'st" and
+    add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_learned_cls remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conflicting :: "'v clause conflicting_clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+
+    init_state :: "'v::linorder clauses \<Rightarrow> 'st" and
+    restart_state :: "'st \<Rightarrow> 'st"
+begin
+
+sublocale cdcl\<^sub>W_ops_restart _ _ _ _ _ _ _ _ _ _ _ _ _ _ luby_sequence
+  apply unfold_locales
+  using bounded_luby_sequence by blast
+
+end
 
 end
