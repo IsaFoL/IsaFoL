@@ -270,7 +270,7 @@ subsection \<open>Adding restarts\<close>
 locale dpll_withbacktrack_and_restarts =
   dpll_with_backtrack +
   fixes f :: "nat \<Rightarrow> nat"
-  assumes unbounded: "unbounded f"
+  assumes unbounded: "unbounded f" and f_ge_1:"\<And>n. n\<ge> 1 \<Longrightarrow> f n \<ge> 1"
 begin
   sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts  fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
     "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset C N)" f "\<lambda>(_, N) S. S = ([], N)"
@@ -281,7 +281,8 @@ begin
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
   "\<lambda>A _.  (2+card (atms_of_m A)) ^ (1+card (atms_of_m A))"
   apply unfold_locales
-         apply (rule unbounded)
+          apply (rule unbounded)
+         using f_ge_1 apply fastforce
         apply (smt dpll_bj_all_decomposition_implies_inv dpll_bj_atms_in_trail_in_set
           dpll_bj_clauses dpll_bj_no_dup prod.case_eq_if)
        apply (rule dpll_bj_trail_mes_decreasing_prop; auto)

@@ -1186,8 +1186,8 @@ lemma distinct_cdcl\<^sub>W_state_decomp_2:
 lemma distinct_cdcl\<^sub>W_state_S0_cdcl\<^sub>W[simp]:
   "distinct_mset_mset N \<Longrightarrow>  distinct_cdcl\<^sub>W_state (init_state N)"
   unfolding distinct_cdcl\<^sub>W_state_def by auto
-  
-  
+
+
 lemma distinct_cdcl\<^sub>W_state_inv:
   assumes
     "cdcl\<^sub>W S S'" and
@@ -1206,8 +1206,8 @@ next
       state_eq_learned_clss state_eq_trail subsetCE trail_restart_state)
 next
   case resolve
-  then show ?case 
-    by (auto simp add: distinct_cdcl\<^sub>W_state_def distinct_mset_set_def clauses_def 
+  then show ?case
+    by (auto simp add: distinct_cdcl\<^sub>W_state_def distinct_mset_set_def clauses_def
       distinct_mset_single_add
       intro!: distinct_mset_union_mset)
 qed (auto simp add: distinct_cdcl\<^sub>W_state_def distinct_mset_set_def clauses_def)
@@ -4295,7 +4295,7 @@ lemma full_cdcl\<^sub>W_stgy_final_state_conclusive:
   assumes full: "full cdcl\<^sub>W_stgy (init_state N) S'" and no_d: "distinct_mset_mset N"
   shows "(conflicting S' = C_Clause {#} \<and> unsatisfiable (set_mset (init_clss S')))
     \<or> (conflicting S' = C_True \<and> trail S' \<Turnstile>asm init_clss S')"
-  using assms full_cdcl\<^sub>W_stgy_final_state_conclusive_is_one_false 
+  using assms full_cdcl\<^sub>W_stgy_final_state_conclusive_is_one_false
   full_cdcl\<^sub>W_stgy_final_state_conclusive_non_false by blast
 
 lemma full_cdcl\<^sub>W_stgy_final_state_conclusive_from_init_state:

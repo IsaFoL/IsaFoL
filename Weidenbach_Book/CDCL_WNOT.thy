@@ -3478,7 +3478,8 @@ text \<open>The condition of the differences of cardinality has to be strict.
   Otherwise, you could be in a strange state, where nothing remains to do, but a restart is done.
   See the proof of well-foundedness.\<close>
 inductive cdcl\<^sub>W_merge_with_restart where
-restart_step: "(cdcl\<^sub>W_merge_stgy^^(card (set_mset (learned_clss T)) - card (set_mset (learned_clss S)))) S T
+restart_step:
+  "(cdcl\<^sub>W_merge_stgy^^(card (set_mset (learned_clss T)) - card (set_mset (learned_clss S)))) S T
   \<Longrightarrow> card (set_mset (learned_clss T)) - card (set_mset (learned_clss S)) > f n
   \<Longrightarrow> restart T U \<Longrightarrow> cdcl\<^sub>W_merge_with_restart (S, n) (U, Suc n)" |
 restart_full: "full1 cdcl\<^sub>W_merge_stgy S T \<Longrightarrow> cdcl\<^sub>W_merge_with_restart (S, n) (T, Suc n)"
@@ -3486,8 +3487,8 @@ restart_full: "full1 cdcl\<^sub>W_merge_stgy S T \<Longrightarrow> cdcl\<^sub>W_
 lemma "cdcl\<^sub>W_merge_with_restart S T \<Longrightarrow> cdcl\<^sub>W_merge_restart\<^sup>*\<^sup>* (fst S) (fst T)"
   by (induction rule: cdcl\<^sub>W_merge_with_restart.induct)
   (auto dest!: relpowp_imp_rtranclp cdcl\<^sub>W_merge_stgy_tranclp_cdcl\<^sub>W_merge tranclp_into_rtranclp
-     rtranclp_cdcl\<^sub>W_merge_stgy_rtranclp_cdcl\<^sub>W_merge rtranclp_cdcl\<^sub>W_merge_tranclp_cdcl\<^sub>W_merge_restart fw_r_rf
-     cdcl\<^sub>W_rf.restart
+     rtranclp_cdcl\<^sub>W_merge_stgy_rtranclp_cdcl\<^sub>W_merge rtranclp_cdcl\<^sub>W_merge_tranclp_cdcl\<^sub>W_merge_restart
+     fw_r_rf cdcl\<^sub>W_rf.restart
     simp: full1_def)
 
 lemma cdcl\<^sub>W_merge_with_restart_rtranclp_cdcl\<^sub>W:
@@ -3510,7 +3511,8 @@ proof
   fix C
   assume C: "C \<in> set_mset (learned_clss S)"
   have "distinct_mset C"
-    using C inv unfolding cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def distinct_mset_set_def by auto
+    using C inv unfolding cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def distinct_mset_set_def
+    by auto
   moreover have "\<not>tautology C"
     using C inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def by auto
   moreover
@@ -3923,6 +3925,43 @@ abbreviation luby_sequence :: "nat \<Rightarrow> nat" where
 lemma bounded_luby_sequence: "unbounded luby_sequence"
   using bounded_const_product[of ur] luby_sequence_axioms
   luby_sequence_def unbounded_luby_sequence_core by blast
+
+lemma luby_sequence_core_0: "luby_sequence_core 0 = 1"
+proof -
+  have 0: "(0::nat) = 2^0-1"
+    by auto
+  show ?thesis
+    by (subst 0, subst luby_sequence_core_two_power_minus_one) simp
+qed
+
+lemma "luby_sequence_core n \<ge> 1"
+proof (induction n rule: nat_less_induct_case)
+  case 0
+  then show ?case by (simp add: luby_sequence_core_0)
+next
+  case (Suc n) note IH = this
+
+  consider
+      (interv) k where "2 ^ (k - 1) \<le> Suc n" and "Suc n < 2 ^ k - 1"
+    | (pow2)  k where "Suc n = 2 ^ k - Suc 0"
+    using exists_luby_decomp[of "Suc n"] by auto
+
+  then show ?case
+     proof cases
+       case pow2
+       show ?thesis
+         using luby_sequence_core_two_power_minus_one pow2 by auto
+     next
+       case interv
+       have n: "Suc n - 2 ^ (k - 1) + 1 < Suc n"
+         by (metis Suc_1 Suc_eq_plus1 add.commute add_diff_cancel_left' add_less_mono1 gr0I
+           interv(1) interv(2) le_add_diff_inverse2 less_Suc_eq not_le power_0 power_one_right
+           power_strict_increasing_iff)
+       show ?thesis
+         apply (subst luby_sequence_core_not_two_power_minus_one[OF interv])
+         using IH n by auto
+     qed
+qed
 end
 
 locale luby_sequence_restart =
