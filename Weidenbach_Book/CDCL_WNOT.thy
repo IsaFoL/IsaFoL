@@ -3885,8 +3885,6 @@ proof -
         by linarith
       then have "k' < k"
         by simp
-
-
       have "2 ^ (k - 1) \<le> 2 ^ k' - (1::nat)"
         using k_i unfolding k' .
       then have "(2::nat) ^ (k-1) < 2 ^ k'"
