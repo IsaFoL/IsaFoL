@@ -4,6 +4,9 @@
 contains an ongoing Isabelle formalization of Christoph Weidenbach's
 forthcoming book _Automated Reasoning―The Art of Generic Problem Solving_.
 
+A recent version of Isabelle is necessary to process the theory files (e.g.,
+Isabelle2016-RC1).
+
 ## Authors ##
 
 * [Jasmin Christian Blanchette](mailto:jasmin.blanchette shtrudel inria.fr)
