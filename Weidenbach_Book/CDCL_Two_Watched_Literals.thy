@@ -36,26 +36,26 @@ where
   "candidates_propagate S =
    {(L, raw_clause C) | L C.
     C \<in># clauses S \<and> watched C - mset_set (uminus ` lits_of (trail S)) = {#L#} \<and>
-    undefined_lit L (trail S)}"
+    undefined_lit (trail S) L}"
 
 definition candidates_conflict :: "('v, 'lvl, 'mark) twl_state \<Rightarrow> 'v clause set" where
   "candidates_conflict S =
    {raw_clause C | C. C \<in># clauses S \<and> watched C \<subseteq># mset_set (uminus ` lits_of (trail S))}"
 
-(* FIXME *)
-(* interpretation dpll_state trail "image_mset raw_clause o clauses"
-  "\<lambda>M S. TWL_State M (init_clss S) (learned_clss S) (backtrack_lvl S) (conflicting S)"
-oops *)
+text \<open>We need the following property: if there is a literal @{term L} with @{term "-L"} in the trail
+  and @{term L} is not  watched, then it stays unwatched; i.e., while updating with @{term rewatch}
+  it does not get swap with a watched literal @{term L'} such that @{term "-L'"} is in the trail.\<close>
+primrec watched_decided_most_recently where
+"watched_decided_most_recently M (TWL_Clause W UW) \<longleftrightarrow>
+  (\<forall>L'\<in>#W. \<forall>L\<in>#UW.
+    -L' \<in> lits_of M \<longrightarrow> -L \<in> lits_of M \<longrightarrow>
+      Max {i. map lit_of M!i = -L'} \<le> Max {i. map lit_of M!i = -L})"
+
 primrec wf_twl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v twl_clause \<Rightarrow> bool" where
   "wf_twl_cls M (TWL_Clause W UW) \<longleftrightarrow>
    distinct_mset W \<and> size W \<le> 2 \<and> (size W < 2 \<longrightarrow> set_mset UW \<subseteq> set_mset W) \<and>
-   (\<forall>L \<in># W. -L \<in> lits_of M \<longrightarrow> (\<forall>L' \<in># UW. L' \<notin># W \<longrightarrow> -L' \<in> lits_of M))"
-
-primrec watched_decided_recently where
-"watched_decided_recently S (TWL_Clause W UW) \<longleftrightarrow>
-  (\<forall>L\<in>#W. \<forall>L'\<in>#UW.
-    -L \<in> lits_of (trail S) \<longrightarrow> -L' \<in> lits_of (trail S) \<longrightarrow>
-      Max {i. map lit_of (trail S)!i = -L} \<le> Max {i. map lit_of (trail S)!i = -L'})"
+   (\<forall>L \<in># W. -L \<in> lits_of M \<longrightarrow> (\<forall>L' \<in># UW. L' \<notin># W \<longrightarrow> -L' \<in> lits_of M) \<and>
+   watched_decided_most_recently M (TWL_Clause W UW))"
 
 lemma "-L \<in> lits_of M \<Longrightarrow>  {i. map lit_of M!i = -L} \<noteq> {}"
   unfolding set_map_lit_of_lits_of[symmetric] set_conv_nth
@@ -70,10 +70,38 @@ lemma distinct_mset_size_2: "distinct_mset {#a, b#} \<longleftrightarrow> a \<no
   unfolding distinct_mset_def by auto
 
 text \<open>does not hold when all there are multiple conflicts in a clause.\<close>
-lemma "wf_twl_cls M S \<Longrightarrow> wf_twl_cls (tl M) S"
-apply (cases M; cases S)
-apply (auto simp: size_mset_2 Ball_mset_def distinct_mset_size_2 split: split_if_asm)
-apply (rename_tac LM M' W q LW LW')
+lemma 
+  assumes wf: "wf_twl_cls M C"
+  shows "wf_twl_cls (tl M) C"
+proof (cases M)
+  case Nil
+  then show ?thesis using wf
+    by (cases C) (simp add: wf_twl_cls.simps[of "tl _"])
+next
+  case (Cons l M') note M = this(1)
+  obtain W UW where C: "C = TWL_Clause W UW"
+    by (cases C)
+  { fix L L'
+    assume
+      LW: "L \<in># W" and 
+      LM: "- L \<in> lits_of M'" and
+      L'UW: "L' \<in># UW" and
+      "count W L' = 0"
+    then have 
+      "- L' \<in> lits_of M"
+      using wf by (auto simp: C M)
+    have "watched_decided_most_recently M C"
+      using wf by (auto simp: C)
+    then have 
+      "Max {i. map lit_of M!i = -L} \<le> Max {i. map lit_of M!i = -L'}"
+      apply (auto simp: C)
+      sorry
+    then have "- L' \<in> lits_of M'"
+      apply (auto simp: C M)
+    sorry 
+  }
+  show ?thesis
+apply (auto simp: M C wf_twl_cls.simps[of "tl _"])
 oops
 
 definition wf_twl_state :: "('v, 'lvl, 'mark) twl_state \<Rightarrow> bool" where
@@ -82,7 +110,7 @@ definition wf_twl_state :: "('v, 'lvl, 'mark) twl_state \<Rightarrow> bool" wher
 lemma wf_candidates_propagate_sound:
   assumes wf: "wf_twl_state S" and
     cand: "(L, C) \<in> candidates_propagate S"
-  shows "trail S \<Turnstile>as CNot (mset_set (set_mset C - {L})) \<and> undefined_lit L (trail S)"
+  shows "trail S \<Turnstile>as CNot (mset_set (set_mset C - {L})) \<and> undefined_lit (trail S) L"
 proof
   def M \<equiv> "trail S"
   def N \<equiv> "init_clss S"
@@ -94,7 +122,7 @@ proof
     "C = raw_clause Cw"
     "Cw \<in># N + U"
     "watched Cw - mset_set (uminus ` lits_of M) = {#L#}"
-    "undefined_lit L M"
+    "undefined_lit M L"
     using cand unfolding candidates_propagate_def MNU_defs by blast
 
   obtain W UW where cw_eq: "Cw = TWL_Clause W UW"
@@ -180,7 +208,7 @@ proof
   then show "trail S \<Turnstile>as CNot (mset_set (set_mset C - {L}))"
     unfolding true_annots_def by auto
 
-  show "undefined_lit L (trail S)"
+  show "undefined_lit (trail S) L"
     using cw(4) M_def by blast
 qed
 
@@ -189,7 +217,7 @@ lemma wf_candidates_propagate_complete:
     c_mem: "C \<in># image_mset raw_clause (clauses S)" and
     l_mem: "L \<in># C" and
     unsat: "trail S \<Turnstile>as CNot (mset_set (set_mset C - {L}))" and
-    undef: "undefined_lit L (trail S)"
+    undef: "undefined_lit (trail S) L"
   shows "(L, C) \<in> candidates_propagate S"
 proof -
   def M \<equiv> "trail S"
@@ -441,16 +469,6 @@ where
   "cons_trail L S =
    TWL_State (L # trail S) (image_mset (rewatch L S) (init_clss S))
      (image_mset (rewatch L S) (learned_clss S)) (backtrack_lvl S) (conflicting S)"
-
-lemma
-  assumes "\<forall>C \<in># clauses S. watched_decided_recently S C" and
-    "wf_twl_state S"
-  shows "\<forall>C \<in># clauses (cons_trail L S). watched_decided_recently S C"
-  using assms apply clarify
-  apply (case_tac "C")
-  apply (auto simp: cons_trail_def)
-  (* needs no_dup in the trail... *)
-oops
 
 definition
   add_init_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) twl_state \<Rightarrow>
@@ -746,7 +764,7 @@ proof
     "conflicting (rough_state_of_twl S) = C_True" and
     CL_Clauses: "C + {#L#} \<in># cdcl\<^sub>N\<^sub>O\<^sub>T_twl.clauses S" and
     tr_CNot: "trail_twl S \<Turnstile>as CNot C" and
-    undef_lot: "undefined_lit L (trail_twl S)" and
+    undef_lot: "undefined_lit (trail_twl S) L" and
     "T \<sim> cons_trail_twl (Propagated L (C + {#L#})) S"
     unfolding cdcl\<^sub>N\<^sub>O\<^sub>T_twl.propagate.simps by auto
   have "distinct_mset (C + {#L#})"
@@ -932,7 +950,8 @@ lemma wf_watch_nat: "wf_twl_cls (trail S) (watch_nat S C)"
   apply (intro conjI)
      apply clarsimp+
   using falsified_watiched_imp_unwatched_falsified[unfolded comp_def]
-  by (metis count_diff zero_less_diff)
+(*   by (metis count_diff zero_less_diff) *)
+sorry
 
 lemma filter_sorted_list_of_multiset_eqD:
   assumes "[x \<leftarrow> sorted_list_of_multiset A. p x] = x # xs" (is "?comp = _")
@@ -990,19 +1009,19 @@ proof (cases "- lit_of L \<in># watched C")
         apply auto
         using local.wf wf_twl_cls.simps apply blast
         using local.wf wf_twl_cls.simps apply blast
-        by (metis contra_subsetD local.wf mem_set_mset_iff wf_twl_cls.simps)
+        sorry
   next
     case (Cons L' Ls)
     show ?thesis
       using wf
       unfolding rewatch_nat_def
-      using falsified Cons apply (auto dest!: filter_sorted_list_of_multiset_ConsD)
+      using falsified Cons (* apply (auto dest!: filter_sorted_list_of_multiset_ConsD)
       apply (case_tac C)
       apply (auto simp: distinct_mset_single_add)
       apply (case_tac C)
 apply (auto split: split_if_asm simp: mset_minus_single_eq_mempty)
 apply (simp add: size_Diff_singleton)
-apply (metis not_less_eq_eq numeral_2_eq_2 size_Suc_Diff1)
+apply (metis not_less_eq_eq numeral_2_eq_2 size_Suc_Diff1) *)
 
       sorry
   qed
@@ -1010,10 +1029,11 @@ next
   case False
   have "wf_twl_cls (L # trail S) C"
     using wf
-    apply (case_tac C)
+(*     apply (case_tac C)
     apply auto
      apply (metis False twl_clause.sel(1) uminus_of_uminus_id)
-    by (metis False twl_clause.sel(1) uminus_of_uminus_id)
+    by (metis False twl_clause.sel(1) uminus_of_uminus_id) *)
+    sorry
   then show ?thesis
     unfolding rewatch_nat_def using False by simp
 qed
