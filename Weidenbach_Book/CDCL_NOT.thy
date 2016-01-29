@@ -2465,8 +2465,9 @@ subsubsection \<open>Increasing restarts\<close>
 text \<open>To add restarts we needs some assumptions on the predicate (called @{term cdcl\<^sub>N\<^sub>O\<^sub>T} here):
   \<^item> a function @{term f} that is strictly monotonic. The first step is actually only used as a
   restart  to clean the state (e.g. to ensure that the trail is empty). Then we assume that
-  @{term "f n \<ge> 1"} for @{term "n \<ge> 1"}, to  ease the proof (it means that between two consecutive
-  restarts, at least one step will be done).
+  @{term "f n \<ge> 1"} for @{term "n \<ge> 1"}: it means that between two consecutive
+  restarts, at least one step will be done. This is necessary to avoid sequence. like:  full --
+  restart --  full -- ...
   \<^item> a measure @{term "\<mu>"}: it should decrease under the assumptions @{term bound_inv}, whenever a
   @{term cdcl\<^sub>N\<^sub>O\<^sub>T} or a @{term restart} is done. A parameter is given to @{term \<mu>}: for conflict-
   driven clause learning, it is an upper-bound of the clauses. We are assuming that such a bound

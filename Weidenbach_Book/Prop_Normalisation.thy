@@ -1584,7 +1584,7 @@ lemma pushDisj_full_propo_rew_step:
   unfolding pushDisj_def or_in_and_only_def c_in_c'_only_def by (metis (no_types))
 
 
-section \<open>The full1 transformations\<close>
+section \<open>The full transformations\<close>
 
 subsection \<open>Abstract Property characterizing that only some connective are inside the others\<close>
 subsubsection \<open>Definition\<close>

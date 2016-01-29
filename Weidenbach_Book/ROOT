@@ -6,12 +6,12 @@ session "Weidenbach_Book" (main) = "HOL" +
     "~~/src/HOL/Library/Code_Target_Numeral"
   theories [document = true]
     Wellfounded_More
+    List_More
     Prop_Logic
     Prop_Abstract_Transformation
     Prop_Normalisation
     "../lib/Clausal_Logic"
     Prop_Resolution
-    List_More
     Partial_Annotated_Clausal_Logic
     DPLL_W
     CDCL_W_Level

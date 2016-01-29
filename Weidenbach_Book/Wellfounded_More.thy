@@ -3,15 +3,19 @@ imports Main
 
 begin
 
-section \<open>Transition\<close>
-subsection \<open>Rtranclp\<close>
+section \<open>Transitions\<close>
+
+text \<open>This theory contains more facts about closure, the definition of full transformations, and 
+  well-foundedness.\<close>
+subsection \<open>More theorems about Closures\<close>
+
 text \<open>This is the equivalent of @{thm rtranclp_mono} for @{term tranclp}\<close>
 lemma
   "r\<^sup>+\<^sup>+ a b \<Longrightarrow> r \<le> s \<Longrightarrow> s\<^sup>+\<^sup>+ a b"
     using rtranclp_mono by (auto dest!: tranclpD intro: rtranclp_into_tranclp2)
 
 lemma tranclp_mono:
-  assumes mono:"r \<le> s"
+  assumes mono: "r \<le> s"
   shows "r\<^sup>+\<^sup>+ \<le> s\<^sup>+\<^sup>+"
     using rtranclp_mono[OF mono] mono by (auto dest!: tranclpD intro: rtranclp_into_tranclp2)
 
@@ -57,7 +61,7 @@ lemma rtranclp_exists_last_with_prop:
   using assms(2,1,3)
 proof (induction arbitrary: )
   case base
-  thus ?case by auto
+  then show ?case by auto
 next
   case (step z' z'') note z = this(2) and IH =this(3)[OF this(4-5)]
   show ?case
@@ -67,7 +71,7 @@ next
     using IH z rtranclp.rtrancl_into_rtrancl by fastforce
 qed
 
-subsection \<open>Full transitions\<close>
+subsection \<open>Full Transitions\<close>
 text \<open>We define here properties to define properties after all possible transitions.\<close>
 abbreviation "no_step step S \<equiv> (\<forall>S'. \<not>step S S')"
 
@@ -143,13 +147,13 @@ lemma tranclp_full1_full1:
   "(full1 R)\<^sup>+\<^sup>+ a b \<longleftrightarrow> full1 R a b"
   by (metis full1_def rtranclp_full1_eq_or_full1 tranclp_unfold_begin)
 
-subsection \<open>Well-foundedness and full1 transitions\<close>
+subsection \<open>Well-Foundedness and Full Transitions\<close>
 lemma wf_exists_normal_form:
   assumes wf:"wf {(x, y). R y x}"
   shows "\<exists>b. R\<^sup>*\<^sup>* a b \<and> no_step R b"
 proof (rule ccontr)
   assume "\<not> ?thesis"
-  hence H: "\<And>b. \<not> R\<^sup>*\<^sup>* a b \<or> \<not>no_step R b"
+  then have H: "\<And>b. \<not> R\<^sup>*\<^sup>* a b \<or> \<not>no_step R b"
     by blast
   def F \<equiv> "rec_nat a (\<lambda>i b. SOME c. R b c)"
   have [simp]: "F 0 = a"
@@ -160,20 +164,20 @@ proof (rule ccontr)
     have "\<forall>j<i. R (F j) (F (Suc j))"
       proof (induction i)
         case 0
-        thus ?case by auto
+        then show ?case by auto
       next
         case (Suc i)
-        hence "R\<^sup>*\<^sup>* a (F i)"
+        then have "R\<^sup>*\<^sup>* a (F i)"
           by (induction i) auto
-        hence "R (F i) (SOME b. R (F i) b)"
+        then have "R (F i) (SOME b. R (F i) b)"
           using H by (simp add: someI_ex)
-        hence "\<forall>j < Suc i. R (F j) (F (Suc j))"
+        then have "\<forall>j < Suc i. R (F j) (F (Suc j))"
           using H Suc by (simp add: less_Suc_eq)
-        thus ?case by fast
+        then show ?case by fast
       qed
   }
-  hence "\<forall>j. R (F j) (F (Suc j))" by blast
-  thus False
+  then have "\<forall>j. R (F j) (F (Suc j))" by blast
+  then show False
     using wf unfolding wfP_def wf_iff_no_infinite_down_chain by blast
 qed
 
@@ -182,7 +186,7 @@ lemma wf_exists_normal_form_full:
   shows "\<exists>b. full R a b"
   using wf_exists_normal_form[OF assms] unfolding full_def by blast
 
-subsection \<open>More Well-foundedness\<close>
+subsection \<open>More Well-Foundedness\<close>
 text \<open>A little list of theorems that could be useful, but are hidden:
   \<^item> link between @{term wf} and infinite chains: @{thm wf_iff_no_infinite_down_chain},
   @{thm wf_no_infinite_down_chainE}\<close>
@@ -209,7 +213,7 @@ assumes "wf r" and H: "(\<And>x y. P x \<Longrightarrow> g x y \<Longrightarrow>
 shows "wf {(y,x). P x \<and> g x y}"
 proof -
   have "wf {(b, a). (f b, f a) \<in> r}" using assms(1) wf_if_measure_f by auto
-  hence "wf {(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r}"
+  then have "wf {(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r}"
     using wf_subset[of _ "{(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r}"] by auto
   moreover have "{(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r} \<subseteq> {(b, a). (f b, f a) \<in> r}" by auto
   moreover have "{(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r} = {(b, a). P a \<and> g a b}" using H by auto
@@ -262,7 +266,7 @@ lemma wf_fst_wf_pair:
 proof -
   have "wf ({(M', M). R M' M} <*lex*> {})"
     using assms by auto
-  thus ?thesis
+  then show ?thesis
     by (rule wf_subset) auto
 qed
 
@@ -272,7 +276,7 @@ lemma wf_snd_wf_pair:
 proof -
   have wf: "wf {((M', N'), (M, N)). R M' M}"
     using assms wf_fst_wf_pair by auto
-  hence wf: "\<And>P. (\<forall>x. (\<forall>y. (y, x) \<in> {((M', N'), M, N). R M' M} \<longrightarrow> P y) \<longrightarrow> P x) \<Longrightarrow> All P"
+  then have wf: "\<And>P. (\<forall>x. (\<forall>y. (y, x) \<in> {((M', N'), M, N). R M' M} \<longrightarrow> P y) \<longrightarrow> P x) \<Longrightarrow> All P"
     unfolding wf_def by auto
   show ?thesis
     unfolding wf_def
@@ -300,7 +304,7 @@ assumes "wf r" and H: "(\<And>x y. P x \<Longrightarrow> g x y \<Longrightarrow>
 shows "wf {(y,h x)| y x. P x \<and> g x y}"
 proof -
   have "wf {(b, h a)|b a. (f b, f (h a)) \<in> r}" using assms(1) wf_if_measure_f_notation2 by auto
-  hence "wf {(b, h a)|b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r}"
+  then have "wf {(b, h a)|b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r}"
     using wf_subset[of _ "{(b, h a)| b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r}"] by auto
   moreover have "{(b, h a)|b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r}
     \<subseteq> {(b, h a)|b a. (f b, f (h a)) \<in> r}" by auto

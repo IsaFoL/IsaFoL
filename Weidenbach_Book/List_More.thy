@@ -2,10 +2,9 @@ theory List_More
 imports Main
 begin
 
-declare upt.simps(2)[simp del] upt_Suc[simp del]
-
-section \<open>Various\<close>
-text \<open>Close to @{thm nat_less_induct}, but with a separation between zero and non-zero.\<close>
+section \<open>Various Lemmas\<close>
+text \<open>Close to @{thm nat_less_induct}, but with a separation between zero and non-zero, and case 
+  names.\<close>
 thm nat_less_induct
 lemma nat_less_induct_case[case_names 0 Suc]:
   assumes
@@ -15,7 +14,7 @@ lemma nat_less_induct_case[case_names 0 Suc]:
   apply (induction rule: nat_less_induct)
   by (case_tac n) (auto intro: assms)
 
-
+text \<open>Bounded function have not been defined in Isabelle.\<close>
 definition bounded where
 "bounded f \<longleftrightarrow> (\<exists>b. \<forall>n. f n \<le> b)"
 
@@ -48,21 +47,29 @@ lemma bounded_const_product:
    using mult_le_mono2 apply blast
   by (meson assms le_less_trans less_or_eq_imp_le nat_mult_less_cancel_disj split_div_lemma)
 
+text \<open>This lemma is not used, but here to show that a property that can be expected from 
+  @{term bounded} holds.\<close>
+lemma bounded_finite_linorder:
+  fixes f :: "'a \<Rightarrow> 'a ::{finite, linorder}"
+  shows "bounded f"
+proof -
+  have "\<And>x. f x \<le> Max {f x|x. True}"
+    by (metis (mono_tags) Max_ge finite mem_Collect_eq)
+  then show ?thesis 
+    unfolding bounded_def by blast
+qed
+
 section \<open>More List\<close>
-text \<open>This section contains theorems that could move to Isabelle standard library.\<close>
+
+subsection \<open>@{term upt}\<close>
+text \<open>The simplification rules are not very handy, because @{thm upt.simps(2)} leads to a case 
+  distinction, that we do not want if the condition is not in the context.\<close>
 lemma upt_Suc_le_append: "\<not>i \<le> j \<Longrightarrow> [i..<Suc j] = []"
-  by (auto simp add: upt.simps(2))
+  by auto
 
 lemmas upt_simps[simp] = upt_Suc_append upt_Suc_le_append
-subsubsection \<open>Helper function\<close>
-lemma list_length2_append_cons:
-  "[c, d] = ys @ y # ys' \<longleftrightarrow> (ys = [] \<and> y = c \<and> ys' = [d]) \<or> (ys = [c] \<and> y = d \<and> ys' = [])"
-  by (cases ys; cases ys') auto
-lemma lexn2_conv:
-  "([a, b], [c, d]) \<in> lexn r 2 \<longleftrightarrow> (a, c)\<in>r \<or> (a = c \<and> (b, d) \<in>r)"
-  unfolding lexn_conv by (auto simp add: list_length2_append_cons)
 
-text \<open>Move to List\<close>
+declare upt.simps(2)[simp del]
 
   (* Sledgehammer one-liner: *)
 lemma
@@ -84,12 +91,13 @@ proof -
   have "take (length A) (A @ B) = A" by auto
   moreover
     have "length A \<le> n - m" using assms linear calculation by fastforce
-    hence "take (length A) [m..<n] = [m ..<m+length A]" by auto
+    then have "take (length A) [m..<n] = [m ..<m+length A]" by auto
   ultimately show "A = [m ..<m+length A]" using assms by auto
   show "B = [m + length A..<n]" using assms by (metis append_eq_conv_conj drop_upt)
 qed
 
-text \<open>The converse of @{thm append_cons_eq_upt} does not hold:\<close>
+text \<open>The converse of @{thm append_cons_eq_upt} does not hold, for example if @{term B} is
+empty and @{term A} is @{term "[0]"}:\<close>
 lemma "A @ B = [m..< n] \<longleftrightarrow> A = [m ..<m+length A] \<and> B = [m + length A..<n]"
 (*
 Auto Quickcheck found a counterexample:
@@ -106,10 +114,10 @@ text \<open>A more restrictive version holds:\<close>
 lemma "B \<noteq> [] \<Longrightarrow> A @ B = [m..< n] \<longleftrightarrow> A = [m ..<m+length A] \<and> B = [m + length A..<n]"
   (is "?P \<Longrightarrow> ?A = ?B")
 proof
-  assume ?A thus ?B by (auto simp add: append_cons_eq_upt)
+  assume ?A then show ?B by (auto simp add: append_cons_eq_upt)
 next
   assume ?P and ?B
-  thus ?A using append_eq_conv_conj by fastforce
+  then show ?A using append_eq_conv_conj by fastforce
 qed
 
 lemma append_cons_eq_upt_length_i:
@@ -120,9 +128,9 @@ proof -
   have "(A @ i # B) ! (length A) = i" by auto
   moreover have "n - m = length (A @ i # B)"
     using assms length_upt by presburger
-  hence "[m..<n] ! (length A) = m + length A" by simp
+  then have "[m..<n] ! (length A) = m + length A" by simp
   ultimately have "i = m + length A" using assms by auto
-  thus ?thesis using \<open>A = [m ..< m + length A]\<close> by auto
+  then show ?thesis using \<open>A = [m ..< m + length A]\<close> by auto
 qed
 
 lemma append_cons_eq_upt_length:
@@ -131,11 +139,11 @@ lemma append_cons_eq_upt_length:
   using assms
 proof (induction A arbitrary: m)
   case Nil
-  thus ?case by (metis append_Nil diff_is_0_eq list.size(3) order_refl upt_eq_Cons_conv)
+  then show ?case by (metis append_Nil diff_is_0_eq list.size(3) order_refl upt_eq_Cons_conv)
 next
   case (Cons a A)
-  hence A: "A @ i # B = [m + 1..<n]" by (metis append_Cons upt_eq_Cons_conv)
-  hence "m < i" by (metis Cons.prems append_cons_eq_upt_length_i upt_eq_Cons_conv)
+  then have A: "A @ i # B = [m + 1..<n]" by (metis append_Cons upt_eq_Cons_conv)
+  then have "m < i" by (metis Cons.prems append_cons_eq_upt_length_i upt_eq_Cons_conv)
   with Cons.IH[OF A] show ?case by auto
 qed
 
@@ -147,15 +155,15 @@ proof -
   have "(A @ i # B) ! (length A) = i" by auto
   moreover have "n - m = length (A @ i # B)"
     using assms length_upt by auto
-  hence "[m..<n]! (length A) = m + length A" by simp
+  then have "[m..<n]! (length A) = m + length A" by simp
   ultimately have "i = m + length A" using assms by auto
-  thus ?thesis using \<open>B = [Suc m + length A..<n]\<close> by auto
+  then show ?thesis using \<open>B = [Suc m + length A..<n]\<close> by auto
 qed
 
 lemma Max_n_upt: "Max (insert 0 {Suc 0..<n}) = n - Suc 0"
 proof (induct n)
   case 0
-  thus ?case by simp
+  then show ?case by simp
 next
   case (Suc n) note IH = this
   have i: "insert 0 {Suc 0..<Suc n} = insert 0 {Suc 0..< n} \<union> {n}" by auto
@@ -172,5 +180,16 @@ proof -
     by (metis append_cons_eq_upt_length_i_end assms lessI less_trans self_append_conv2
       upt_eq_Cons_conv upt_rec ys)
 qed
+
+subsection \<open>Lexicographic ordering\<close>
+
+text \<open>We are working a lot on lexicographic ordering over pairs.\<close>
+lemma list_length2_append_cons:
+  "[c, d] = ys @ y # ys' \<longleftrightarrow> (ys = [] \<and> y = c \<and> ys' = [d]) \<or> (ys = [c] \<and> y = d \<and> ys' = [])"
+  by (cases ys; cases ys') auto
+
+lemma lexn2_conv:
+  "([a, b], [c, d]) \<in> lexn r 2 \<longleftrightarrow> (a, c)\<in>r \<or> (a = c \<and> (b, d) \<in>r)"
+  unfolding lexn_conv by (auto simp add: list_length2_append_cons)
 
 end
