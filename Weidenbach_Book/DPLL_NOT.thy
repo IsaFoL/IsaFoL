@@ -22,7 +22,7 @@ lemma backtrack_is_backjump:
        \<exists>C F' K F L l C'.
           M = F' @ Marked K () # F \<and>
           M' = Propagated L l # F \<and> N = N' \<and> C \<in># N \<and> F' @ Marked K d # F \<Turnstile>as CNot C \<and>
-          undefined_lit L F \<and> atm_of L \<in> atms_of_mu N \<union> atm_of ` lits_of (F' @ Marked K d # F) \<and>
+          undefined_lit F L \<and> atm_of L \<in> atms_of_mu N \<union> atm_of ` lits_of (F' @ Marked K d # F) \<and>
           N \<Turnstile>pm C' + {#L#} \<and> F \<Turnstile>as CNot C'"
 proof -
   let ?S = "(M, N)"
@@ -45,7 +45,7 @@ proof -
     using b_sp  by (metis L backtrack_split_list_eq fst_conv snd_conv)
   moreover have "F' @ Marked K () # F \<Turnstile>as CNot D"
     using \<open>M\<Turnstile>as CNot D\<close> unfolding M .
-  moreover have "undefined_lit (-?K) F"
+  moreover have "undefined_lit F (-?K)"
     using no_dup unfolding M L by (simp add: defined_lit_map)
   moreover have "atm_of (-K) \<in> atms_of_mu N \<union> atm_of ` lits_of (F' @ Marked K d # F)"
     by auto
@@ -141,7 +141,7 @@ lemma backtrack_is_backjump':
         \<exists>C F' K F L l C'.
           fst S = F' @ Marked K () # F \<and>
           T = (Propagated L l # F, snd S) \<and> C \<in># snd S \<and> fst S \<Turnstile>as CNot C
-          \<and> undefined_lit L F \<and> atm_of L \<in> atms_of_mu (snd S) \<union> atm_of ` lits_of (fst S) \<and>
+          \<and> undefined_lit F L \<and> atm_of L \<in> atms_of_mu (snd S) \<union> atm_of ` lits_of (fst S) \<and>
           snd S \<Turnstile>pm C' + {#L#} \<and> F \<Turnstile>as CNot C'"
   apply (cases S, cases T)
   using backtrack_is_backjump[of "fst S" "snd S" "fst T" "snd T"] assms by fastforce
@@ -167,7 +167,7 @@ proof -
     2: "T = (Propagated L l # F, snd S)" and
     3: "C \<in># snd S" and
     4: "fst S \<Turnstile>as CNot C" and
-    5: "undefined_lit L F" and
+    5: "undefined_lit F L" and
     6: "atm_of L \<in> atms_of_mu (snd S) \<union> atm_of ` lits_of (fst S)" and
     7: "snd S \<Turnstile>pm C' + {#L#}" and
     8: "F \<Turnstile>as CNot C'"

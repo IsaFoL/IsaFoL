@@ -45,7 +45,7 @@ proof -
     obtain C where
       C: "C \<in> set N" and
       Ms: "Ms \<Turnstile>as CNot (mset C - {#L#})" and
-      undef: "undefined_lit L Ms" and
+      undef: "undefined_lit Ms L" and
       "L \<in> set C" using find_first_unit_clause_some[OF unit] by metis
     have "dpll\<^sub>W (Ms, mset (map mset N))
          (Propagated L () # fst (Ms, mset (map mset N)), snd (Ms, mset (map mset N)))"
@@ -77,7 +77,7 @@ proof -
       by (cases "find_first_unused_var N (lits_of Ms)") auto
     have "dpll\<^sub>W (Ms, mset (map mset N))
                (Marked L () # fst (Ms, mset (map mset N)), snd (Ms, mset (map mset N)))"
-      apply (rule dpll\<^sub>W.decided[of L ?S])
+      apply (rule dpll\<^sub>W.decided[of ?S L])
       using find_first_unused_var_Some[OF unused]
       by (auto simp add: Marked_Propagated_in_iff_in_lits_of atms_of_m_def)
     moreover have "(Ms', N') = (Marked L () # Ms, N)"
@@ -168,7 +168,8 @@ next
 qed
 
 paragraph \<open>No invariant tested\<close>
-function (domintros) DPLL_part:: "int dpll\<^sub>W_marked_lits \<Rightarrow> int literal list list \<Rightarrow> int dpll\<^sub>W_marked_lits \<times> int literal list list" where
+function (domintros) DPLL_part:: "int dpll\<^sub>W_marked_lits \<Rightarrow> int literal list list \<Rightarrow>
+  int dpll\<^sub>W_marked_lits \<times> int literal list list" where
 "DPLL_part Ms N =
   (let (Ms', N') = DPLL_step (Ms, N) in
    if (Ms', N') = (Ms, N) then (Ms, N) else DPLL_part Ms' N)"

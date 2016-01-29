@@ -169,7 +169,7 @@ lemma lits_of_map_convert[simp]: "lits_of (map convert M) = lits_of M"
   by (induction M rule: marked_lit_list_induct) simp_all
 
 lemma undefined_lit_map_convert[iff]:
-  "undefined_lit L (map convert M) \<longleftrightarrow> undefined_lit L M"
+  "undefined_lit (map convert M) L \<longleftrightarrow> undefined_lit M L"
   by (auto simp add: Marked_Propagated_in_iff_in_lits_of)
 
 lemma true_annot_map_convert[simp]: "map convert M \<Turnstile>a N \<longleftrightarrow> M \<Turnstile>a N"
@@ -218,7 +218,7 @@ proof (standard, standard)
     toSS: "toS S = (M, N, U, k, C_True)" and
     T: "T = (Propagated L (C + {#L#}) # M, N, U, k, C_True)" and
     MC: "M \<Turnstile>as CNot C" and
-    undef: "undefined_lit L M" and
+    undef: "undefined_lit M L" and
     CL: "C + {#L#} \<in># N + U"
     apply - by (cases "toS S") auto
   let ?M = "trail S"

@@ -16,9 +16,9 @@ abbreviation clauses :: "'v dpll\<^sub>W_state \<Rightarrow> 'v clauses" where
 
 text \<open>The definition of DPLL is given in \cwref{fig:prop:dpllcalc}{figure 2.13 page 70}.\<close>
 inductive dpll\<^sub>W :: "'v dpll\<^sub>W_state \<Rightarrow> 'v dpll\<^sub>W_state \<Rightarrow> bool" where
-propagate: "C + {#L#} \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit L (trail S)
+propagate: "C + {#L#} \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit (trail S) L
   \<Longrightarrow> dpll\<^sub>W S (Propagated L () # trail S, clauses S)" |
-decided: "undefined_lit L (trail S) \<Longrightarrow> atm_of L \<in> atms_of_mu (clauses S)
+decided: "undefined_lit (trail S) L \<Longrightarrow> atm_of L \<in> atms_of_mu (clauses S)
   \<Longrightarrow> dpll\<^sub>W S (Marked L () # trail S, clauses S)" |
 backtrack: "backtrack_split (trail S)  = (M', L # M) \<Longrightarrow> is_marked L \<Longrightarrow> D \<in># clauses S
   \<Longrightarrow> trail S \<Turnstile>as CNot D \<Longrightarrow> dpll\<^sub>W S (Propagated (- (lit_of L)) () # M, clauses S)"
@@ -390,7 +390,7 @@ proof (induct M)
   thus ?case by auto
 next
   case (Cons L M)
-  hence "undefined_lit L (map (\<lambda>M. Marked M ()) M)"
+  hence "undefined_lit (map (\<lambda>M. Marked M ()) M) L"
     unfolding defined_lit_def consistent_interp_def by auto
   moreover have "atm_of L \<in> atms_of_mu N" using Cons.prems(3) by auto
   ultimately have "dpll\<^sub>W (map (\<lambda>M. Marked M ()) M, N) (map (\<lambda>M. Marked M ()) (L # M), N)"
@@ -414,8 +414,9 @@ lemma dpll\<^sub>W_strong_completeness:
   and "conclusive_dpll\<^sub>W_state (map (\<lambda>M. Marked M ())  M, N)"
 proof -
   show "rtranclp dpll\<^sub>W ([], N) (map (\<lambda>M. Marked M ()) M, N)" using dpll\<^sub>W_can_do_step assms by auto
-  have "map (\<lambda>M. Marked M Level) M \<Turnstile>asm N" using assms(1) true_annots_marked_true_cls by auto
-  thus "conclusive_dpll\<^sub>W_state (map (\<lambda>M. Marked M ()) M, N)" unfolding conclusive_dpll\<^sub>W_state_def by auto
+  have "map (\<lambda>M. Marked M ()) M \<Turnstile>asm N" using assms(1) true_annots_marked_true_cls by auto
+  then show "conclusive_dpll\<^sub>W_state (map (\<lambda>M. Marked M ()) M, N)" 
+    unfolding conclusive_dpll\<^sub>W_state_def by auto
 qed
 
 (*Proposition \cwref{prop:prop:dpll\<^sub>Wsound}{theorem 2.8.5 page 72}*)
@@ -436,17 +437,17 @@ next
   show ?A
     proof (rule ccontr)
       assume n: "\<not> ?A"
-      have "(\<exists>L. undefined_lit L M \<and> atm_of L \<in> atms_of_mu N) \<or> (\<exists>D\<in>#N. M \<Turnstile>as CNot D)"
+      have "(\<exists>L. undefined_lit M L \<and> atm_of L \<in> atms_of_mu N) \<or> (\<exists>D\<in>#N. M \<Turnstile>as CNot D)"
         proof -
           obtain D :: "'a clause" where D: "D \<in># N" and "\<not> M \<Turnstile>a D"
             using n unfolding true_annots_def Ball_def by auto
-          hence "(\<exists>L. undefined_lit L M \<and> atm_of L \<in> atms_of D) \<or> M \<Turnstile>as CNot D"
+          hence "(\<exists>L. undefined_lit M L \<and> atm_of L \<in> atms_of D) \<or> M \<Turnstile>as CNot D"
              unfolding true_annots_def Ball_def CNot_def true_annot_def
              using atm_of_lit_in_atms_of true_annot_iff_marked_or_true_lit true_cls_def by blast
           thus ?thesis using D apply auto by (meson atms_of_atms_of_m_mono mem_set_mset_iff subset_eq)
         qed
       moreover {
-        assume "\<exists>L. undefined_lit L M \<and> atm_of L \<in> atms_of_mu N"
+        assume "\<exists>L. undefined_lit M L \<and> atm_of L \<in> atms_of_mu N"
         hence False using assms(2) decided by fastforce
       }
       moreover {
@@ -504,7 +505,7 @@ proof (induct rule: dpll\<^sub>W.induct)
   thus ?case
     using propagate.prems(1) unfolding dpll\<^sub>W_mes_def by (fastforce simp add: lexn_conv assms(2))
 next
-  case (decided L S)
+  case (decided S L)
   have m: "map (\<lambda>l. if is_marked l then 2 else 1) (rev (trail S))
       @ replicate (card vars - length (trail S)) 3
     =  map (\<lambda>l. if is_marked l then 2 else 1) (rev (trail S)) @ 3
@@ -622,7 +623,7 @@ proof -
         L_in_atms: "L \<in> atms_of_mu (clauses S)" and
         L_notin_trail: "L \<notin> atm_of ` lits_of (trail S)" by metis
       obtain L' where L': "atm_of L' = L" by (meson literal.sel(2))
-      then have "undefined_lit L' (trail S)"
+      then have "undefined_lit (trail S) L'"
         unfolding Marked_Propagated_in_iff_in_lits_of by (metis L_notin_trail atm_of_uminus imageI)
       thus False using dpll\<^sub>W.decided assms(1) L_in_atms L' by blast
     qed

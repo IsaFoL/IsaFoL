@@ -33,7 +33,8 @@ locale state\<^sub>W =
     init_state :: "'v clauses \<Rightarrow> 'st" and
     restart_state :: "'st \<Rightarrow> 'st"
   assumes
-    trail_cons_trail[simp]: "\<And>L st. trail (cons_trail L st) = L # trail st" and
+    trail_cons_trail[simp]: 
+      "\<And>L st. (* undefined (trail st) L \<Longrightarrow> *) trail (cons_trail L st) = L # trail st" and
     trail_tl_trail[simp]: "\<And>st. trail (tl_trail st) = tl (trail st)" and
     update_trail_update_clss[simp]: "\<And>st C. trail (add_init_cls C st) = trail st" and
     trail_add_learned_cls[simp]: "\<And>C st. trail (add_learned_cls C st) = trail st" and
@@ -42,7 +43,7 @@ locale state\<^sub>W =
     trail_update_conflicting[simp]: "\<And>C st. trail (update_conflicting C st) = trail st" and
 
     init_clss_cons_trail[simp]:
-      "\<And>M st. init_clss (cons_trail M st) = init_clss st" and
+      "\<And>M st. (* undefined (trail st) M \<Longrightarrow> *) init_clss (cons_trail M st) = init_clss st" and
     init_clss_tl_trail[simp]:
       "\<And>st. init_clss (tl_trail st) = init_clss st" and
     init_clss_update_clss[simp]:
@@ -56,7 +57,8 @@ locale state\<^sub>W =
     init_clss_update_conflicting[simp]:
       "\<And>C st. init_clss (update_conflicting C st) = init_clss st" and
 
-    learned_clss_cons_trail[simp]: "\<And>M st. learned_clss (cons_trail M st) = learned_clss st" and
+    learned_clss_cons_trail[simp]: 
+      "\<And>M st. (* undefined (trail st) M \<Longrightarrow> *) learned_clss (cons_trail M st) = learned_clss st" and
     learned_clss_tl_trail[simp]: "\<And>st. learned_clss (tl_trail st) = learned_clss st" and
     learned_clss_update_clss[simp]:
       "\<And>st C. learned_clss (add_init_cls C st) = learned_clss st" and
@@ -70,7 +72,7 @@ locale state\<^sub>W =
       "\<And>C st. learned_clss (update_conflicting C st) = learned_clss st" and
 
     backtrack_lvl_cons_trail[simp]:
-      "\<And>M st. backtrack_lvl (cons_trail M st) = backtrack_lvl st" and
+      "\<And>M st. (* undefined (trail st) M \<Longrightarrow>  *)backtrack_lvl (cons_trail M st) = backtrack_lvl st" and
     backtrack_lvl_tl_trail[simp]:
       "\<And>st. backtrack_lvl (tl_trail st) = backtrack_lvl st" and
     backtrack_lvl_add_init_cls[simp]:
@@ -85,7 +87,7 @@ locale state\<^sub>W =
       "\<And>C st. backtrack_lvl (update_conflicting C st) = backtrack_lvl st" and
 
     conflicting_cons_trail[simp]:
-      "\<And>M st. conflicting (cons_trail M st) = conflicting st" and
+      "\<And>M st. (* undefined (trail st) M \<Longrightarrow> *) conflicting (cons_trail M st) = conflicting st" and
     conflicting_tl_trail[simp]:
       "\<And>st. conflicting (tl_trail st) = conflicting st" and
     conflicting_add_init_cls[simp]:
@@ -117,7 +119,8 @@ definition clauses :: "'st \<Rightarrow> 'v clauses" where
 
 lemma
   shows
-    clauses_cons_trail[simp]: "clauses (cons_trail M S) = clauses S" and
+    clauses_cons_trail[simp]: 
+      "(* undefined (trail S) M \<Longrightarrow> *)clauses (cons_trail M S) = clauses S" and
     clauses_tl_trail[simp]: "clauses (tl_trail S) = clauses S" and
     clauses_add_learned_cls_unfolded:
       "clauses (add_learned_cls U S) = {#U#} + learned_clss S + init_clss S" and
@@ -379,7 +382,7 @@ begin
 inductive propagate :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 propagate_rule[intro]:
   "state S = (M, N, U, k, C_True) \<Longrightarrow>  C + {#L#} \<in># clauses S \<Longrightarrow> M \<Turnstile>as CNot C
-  \<Longrightarrow> undefined_lit L (trail S)
+  \<Longrightarrow> undefined_lit (trail S) L
   \<Longrightarrow> T \<sim> cons_trail (Propagated L (C + {#L#})) S
   \<Longrightarrow> propagate S T"
 inductive_cases propagateE[elim]: "propagate S T"
@@ -409,7 +412,7 @@ thm backtrackE
 
 inductive decide ::  "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 decide_rule[intro]: "state S = (M, N, U, k, C_True)
-\<Longrightarrow> undefined_lit L M \<Longrightarrow> atm_of L \<in> atms_of_mu (init_clss S)
+\<Longrightarrow> undefined_lit M L \<Longrightarrow> atm_of L \<in> atms_of_mu (init_clss S)
 \<Longrightarrow> T \<sim> cons_trail (Marked L (k+1)) (incr_lvl S)
 \<Longrightarrow> decide S T"
 inductive_cases decideE[elim]: "decide S S'"
@@ -519,7 +522,7 @@ lemma cdcl\<^sub>W_all_induct[consumes 1, case_names propagate conflict forget r
   assumes
     cdcl\<^sub>W: "cdcl\<^sub>W S S'" and
     propagateH: "\<And>C L T. C + {#L#} \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C
-      \<Longrightarrow> undefined_lit L (trail S) \<Longrightarrow> conflicting S = C_True
+      \<Longrightarrow> undefined_lit (trail S) L \<Longrightarrow> conflicting S = C_True
       \<Longrightarrow> T \<sim> cons_trail (Propagated L (C + {#L#})) S
       \<Longrightarrow> P S T" and
     conflictH: "\<And>D T. D \<in># clauses S \<Longrightarrow> conflicting S = C_True \<Longrightarrow> trail S \<Turnstile>as CNot D
@@ -536,7 +539,7 @@ lemma cdcl\<^sub>W_all_induct[consumes 1, case_names propagate conflict forget r
       \<Longrightarrow> conflicting S = C_True
       \<Longrightarrow> T \<sim> restart_state S
       \<Longrightarrow> P S T" and
-    decideH: "\<And>L T. conflicting S = C_True \<Longrightarrow>  undefined_lit L (trail S)
+    decideH: "\<And>L T. conflicting S = C_True \<Longrightarrow>  undefined_lit (trail S) L
       \<Longrightarrow> atm_of L \<in> atms_of_mu (init_clss S)
       \<Longrightarrow> T \<sim> cons_trail (Marked L (backtrack_lvl S +1)) (incr_lvl S)
       \<Longrightarrow> P S T" and
@@ -594,7 +597,7 @@ qed
 lemma cdcl\<^sub>W_o_induct[consumes 1, case_names decide skip resolve backtrack]:
   fixes S  :: "'st"
   assumes cdcl\<^sub>W: "cdcl\<^sub>W_o S T" and
-    decideH: "\<And>L T. conflicting S = C_True \<Longrightarrow>  undefined_lit L (trail S)
+    decideH: "\<And>L T. conflicting S = C_True \<Longrightarrow>  undefined_lit (trail S) L
       \<Longrightarrow> atm_of L \<in> atms_of_mu (init_clss S)
       \<Longrightarrow> T \<sim> cons_trail (Marked L (backtrack_lvl S +1)) (incr_lvl S)
       \<Longrightarrow> P S T" and
@@ -1332,7 +1335,7 @@ lemma distinct_atms_of_incl_not_in_other:
     shows"\<forall>x\<in>atms_of D. x \<notin> atm_of ` lits_of M"
 proof -
   { fix aa :: 'a
-    have ff1: "\<And>l ms. undefined_lit l ms \<or> atm_of l
+    have ff1: "\<And>l ms. undefined_lit ms l \<or> atm_of l
       \<in> set (map (\<lambda>m. atm_of (lit_of (m::('a, 'b, 'c) marked_lit))) ms)"
       by (simp add: defined_lit_map)
     have ff2: "\<And>a. a \<notin> atms_of D \<or> a \<in> atm_of ` lits_of M'"
@@ -1924,7 +1927,7 @@ lemma mapi_map_convert:
   "\<forall>x i j. f x i = f x j \<Longrightarrow> mapi f i M = map (\<lambda>x. f x 0) M"
   by (induction M arbitrary: i) auto
 
-lemma defined_lit_mapi: "defined_lit L (mapi Marked i M) \<longleftrightarrow> atm_of L \<in> atm_of ` set M"
+lemma defined_lit_mapi: "defined_lit (mapi Marked i M) L \<longleftrightarrow> atm_of L \<in> atm_of ` set M"
   by (induction M) (auto simp: defined_lit_map image_set_mapi mapi_map_convert)
 
 lemma cdcl\<^sub>W_can_do_step:
@@ -1947,12 +1950,12 @@ next
     S: "state S = (mapi Marked (length M) M, N, {#}, length M, C_True)"
     using IH by auto
   let ?S\<^sub>0 = "incr_lvl (cons_trail (Marked L (length M +1)) S)"
-  have "undefined_lit L (mapi Marked (length M) M)"
+  have "undefined_lit (mapi Marked (length M) M) L"
     using Cons.prems(1,2) unfolding defined_lit_def consistent_interp_def by fastforce
   moreover have "init_clss S = N"
     using S by blast
   moreover have "atm_of L \<in> atms_of_mu N" using Cons.prems(3) by auto
-  moreover have "undefined_lit L (trail S)"
+  moreover have "undefined_lit (trail S) L"
     using S \<open>distinct (L#M)\<close> calculation(1) by (auto simp: defined_lit_mapi defined_lit_map)
   ultimately have "cdcl\<^sub>W S ?S\<^sub>0"
     using cdcl\<^sub>W.other[OF cdcl\<^sub>W_o.decide[OF decide_rule[OF S,
@@ -2366,12 +2369,12 @@ proof (induct "card (atms_of_mu (init_clss S) - atm_of `lits_of (trail S))" arbi
     and S': "state S' = (Propagated L ( (C + {#L#})) # M, N, U, k, C_True)"
     and "C + {#L#} \<in># clauses S"
     and "M \<Turnstile>as CNot C"
-    and "undefined_lit L M"
+    and "undefined_lit M L"
     using propagate by auto
     have "atms_of_mu U \<subseteq> atms_of_mu N" using alien S unfolding no_strange_atm_def by auto
     hence "atm_of L \<in> atms_of_mu (init_clss S)"
       using \<open>C + {#L#} \<in># clauses S\<close> S  unfolding atms_of_m_def clauses_def by force+
-    hence False using \<open>undefined_lit L M\<close> S unfolding atm unfolding lits_of_def
+    hence False using \<open>undefined_lit M L\<close> S unfolding atm unfolding lits_of_def
       by (auto simp add: defined_lit_map)
   }
   ultimately show ?case by (metis cdcl\<^sub>W_cp.cases full_def rtranclp.rtrancl_refl)
@@ -2390,7 +2393,7 @@ next
       S': "state S' = (Propagated L ( (C + {#L#})) # M, N, U, k, C_True)" and
       "C + {#L#} \<in># clauses S" and
       "M \<Turnstile>as CNot C" and
-      "undefined_lit L M"
+      "undefined_lit M L"
       by fastforce
     hence "atm_of L \<notin> atm_of ` lits_of M" unfolding lits_of_def by (auto simp add: defined_lit_map)
     moreover
@@ -2617,7 +2620,7 @@ definition mark_is_false_with_level :: "'st \<Rightarrow> bool" where
 definition no_more_propagation_to_do:: "'st \<Rightarrow> bool" where
 "no_more_propagation_to_do S \<equiv>
   \<forall>D M M' L. D + {#L#} \<in># clauses S \<longrightarrow> trail S = M' @ M \<longrightarrow> M \<Turnstile>as CNot D
-    \<longrightarrow> undefined_lit L M \<longrightarrow> get_maximum_possible_level M < backtrack_lvl S
+    \<longrightarrow> undefined_lit M L \<longrightarrow> get_maximum_possible_level M < backtrack_lvl S
     \<longrightarrow> (\<exists>L. L \<in># D \<and> get_level L (trail S) = get_maximum_possible_level M)"
 
 lemma propagate_no_more_propagation_to_do:
@@ -2632,7 +2635,7 @@ proof -
     S': "state S' = (Propagated L ( (C + {#L#})) # M, N, U, k, C_True)" and
     "C + {#L#} \<in># clauses S" and
     "M \<Turnstile>as CNot C" and
-    "undefined_lit L M"
+    "undefined_lit M L"
     using propagate by auto
   let ?M' = "Propagated L ( (C + {#L#})) # M"
   show ?thesis unfolding no_more_propagation_to_do_def
@@ -2642,7 +2645,7 @@ proof -
       and "trail S' = M2 @ M1"
       and get_max: "get_maximum_possible_level M1 < backtrack_lvl S'"
       and "M1 \<Turnstile>as CNot D"
-      and undef: "undefined_lit L' M1"
+      and undef: "undefined_lit M1 L'"
       have "tl M2 @ M1 = trail S \<or> (M2 = [] \<and> M1 = Propagated L ( (C + {#L#})) # M)"
         using \<open>trail S' = M2 @ M1\<close> S' S by (cases M2) auto
       moreover {
@@ -2768,7 +2771,7 @@ proof -
             proof (rule ccontr)
               assume "\<not>?B \<subseteq> ?A"
               then obtain l where "l \<in> ?B" and "l \<notin> ?A" by auto
-              hence "undefined_lit (Pos l) ?M"
+              hence "undefined_lit ?M (Pos l)"
                 using \<open>l \<notin> ?A\<close> unfolding lits_of_def by (auto simp add: defined_lit_map)
               hence "\<exists>S'. cdcl\<^sub>W_o S S'"
                 using cdcl\<^sub>W_o.decide decide.intros \<open>l \<in> ?B\<close> no_strange_atm_def
@@ -3144,7 +3147,7 @@ next
     Z: "state Z = (Propagated L ( (C + {#L#})) # M', N', U, k, C_True)" and
     C: "C + {#L#} \<in># clauses Y" and
     M'_C: "M' \<Turnstile>as CNot C" and
-    "undefined_lit L (trail Y)"
+    "undefined_lit (trail Y) L"
     using propa by auto
   have "init_clss X = init_clss Y"
     using st by (simp add: rtranclp_cdcl\<^sub>W_init_clss rtranclp_propagate_is_rtranclp_cdcl\<^sub>W)
@@ -3328,7 +3331,7 @@ next
         hence "lits_of M' \<subset> set M"
           using n M' n' lenM by auto
         then obtain m where m: "m \<in> set M" and undef_m: "m \<notin> lits_of M'" by auto
-        moreover have "undefined_lit m M'"
+        moreover have "undefined_lit M' m"
           using M' Marked_Propagated_in_iff_in_lits_of calculation(1,2) cons
           consistent_interp_def by blast
         moreover have "atm_of m \<in> atms_of_mu (init_clss S)"
@@ -3515,7 +3518,7 @@ proof (intro allI impI)
     S': "state S' = (Propagated L ( (C + {#L#})) # M, N, U, k, C_True)" and
     "C + {#L#} \<in># clauses S" and
     "M \<Turnstile>as CNot C" and
-    "undefined_lit L M"
+    "undefined_lit M L"
     using propagate by auto
   have "tl M'' @ Marked K i # M' = trail S" using M' S S'
     by (metis Pair_inject list.inject list.sel(3) marked_lit.distinct(1) self_append_conv2
@@ -4033,7 +4036,8 @@ proof -
     hence confl_k: "conflict_is_false_with_level S'"
       using rtranclp_cdcl\<^sub>W_stgy_no_smaller_confl_inv[OF step] no_d by auto
   show ?thesis
-    using cdcl\<^sub>W_stgy_final_state_conclusive[OF termi decomp learned level_inv alien no_dup confl confl_k] .
+    using cdcl\<^sub>W_stgy_final_state_conclusive[OF termi decomp learned level_inv alien no_dup confl 
+      confl_k] .
 qed
 
 

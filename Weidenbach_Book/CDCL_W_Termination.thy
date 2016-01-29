@@ -791,9 +791,9 @@ proof -
     have "atm_of L \<notin> atm_of ` lits_of M1"
       apply (rule backtrack_lit_skiped[of _ S])
       using decomp i k lev' unfolding cdcl\<^sub>W_M_level_inv_def by auto
-    hence LM1: "undefined_lit L M1"
+    hence LM1: "undefined_lit M1 L"
       by (metis Marked_Propagated_in_iff_in_lits_of atm_of_uminus image_eqI)
-    have L_trY: "undefined_lit L (trail Y)"
+    have L_trY: "undefined_lit (trail Y) L"
       using  L_notin \<open>no_dup (trail S)\<close> unfolding defined_lit_map trY M'
       by (auto simp add: image_iff lits_of_def)
     have "\<exists> Y'. propagate Y Y'"

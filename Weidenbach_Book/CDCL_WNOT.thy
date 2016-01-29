@@ -77,7 +77,7 @@ lemma convert_trail_from_W_true_annots[simp]:
   by (auto simp: true_annots_true_cls)
 
 lemma defined_lit_convert_trail_from_W[simp]:
-  "defined_lit L (convert_trail_from_W S) \<longleftrightarrow> defined_lit L S"
+  "defined_lit (convert_trail_from_W S) L \<longleftrightarrow> defined_lit S L"
   by (auto simp: defined_lit_map)
 
 lemma convert_trail_from_W_append[simp]:
@@ -160,7 +160,7 @@ next
   moreover
     let ?C' = "remdups_mset C'"
     have "L \<notin># C'"
-      using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit L F\<close> Marked_Propagated_in_iff_in_lits_of
+      using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit F L\<close> Marked_Propagated_in_iff_in_lits_of
       in_CNot_implies_uminus(2) by blast
     then have "distinct_mset (?C' + {#L#})"
       by (metis count_mset_set(3) distinct_mset_remdups_mset distinct_mset_single_add
@@ -176,7 +176,7 @@ next
     then have "\<not> tautology (C')"
       using \<open>F \<Turnstile>as CNot C'\<close> consistent_CNot_not_tautology true_annots_true_cls by blast
     then have "\<not> tautology (?C' + {#L#})"
-      using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit L F\<close> by (metis  CNot_remdups_mset
+      using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit F L\<close> by (metis  CNot_remdups_mset
         Marked_Propagated_in_iff_in_lits_of add.commute in_CNot_uminus tautology_add_single
         tautology_remdups_mset true_annot_singleton true_annots_def)
   show ?case
@@ -1022,7 +1022,7 @@ proof induction
     H: "state S = (M, N, U, k, C_True)"
     "C + {#L#} \<in># clauses S"
     "M \<Turnstile>as CNot C"
-    "undefined_lit L (trail S)"
+    "undefined_lit (trail S) L"
     "T \<sim> cons_trail (Propagated L (C + {#L#})) S"
     using propa by auto
   have "propagate\<^sub>N\<^sub>O\<^sub>T S T"
@@ -1034,7 +1034,7 @@ proof induction
 next
   case (fw_decide S T) note dec = this(1) and inv = this(2)
   then obtain L where
-    undef_L: "undefined_lit L (trail S)" and
+    undef_L: "undefined_lit (trail S) L" and
     atm_L: "atm_of L \<in> atms_of_mu (init_clss S)" and
     T: "T \<sim> cons_trail (Marked L (Suc (backtrack_lvl S)))
       (update_backtrack_lvl (Suc (backtrack_lvl S)) S)"
@@ -1130,7 +1130,7 @@ next
       have inv_U: "cdcl\<^sub>W_all_struct_inv U"
         using cdcl\<^sub>W_merge_restart_cdcl\<^sub>W confl fw_r_conflict inv local.bj
         rtranclp_cdcl\<^sub>W_all_struct_inv_inv by blast
-      then have undef_L: "undefined_lit L (tl (trail U))"
+      then have undef_L: "undefined_lit (tl (trail U)) L"
         using U unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
         by (auto simp: defined_lit_map)
       have [simp]: "init_clss S = init_clss T'"

@@ -342,7 +342,7 @@ locale propagate_ops =
 begin
 inductive propagate\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 propagate\<^sub>N\<^sub>O\<^sub>T[intro]: "C + {#L#} \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C
-    \<Longrightarrow> undefined_lit L (trail S)
+    \<Longrightarrow> undefined_lit (trail S) L
     \<Longrightarrow> propagate_cond (Propagated L ()) S
     \<Longrightarrow> T \<sim> prepend_trail (Propagated L ()) S
     \<Longrightarrow> propagate\<^sub>N\<^sub>O\<^sub>T S T"
@@ -359,7 +359,7 @@ locale decide_ops =
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st"
 begin
 inductive decide\<^sub>N\<^sub>O\<^sub>T ::  "'st \<Rightarrow> 'st \<Rightarrow> bool" where
-decide\<^sub>N\<^sub>O\<^sub>T[intro]: "undefined_lit L (trail S) \<Longrightarrow> atm_of L \<in> atms_of_mu (clauses S)
+decide\<^sub>N\<^sub>O\<^sub>T[intro]: "undefined_lit (trail S) L \<Longrightarrow> atm_of L \<in> atms_of_mu (clauses S)
   \<Longrightarrow> T \<sim> prepend_trail (Marked L ()) S
   \<Longrightarrow> decide\<^sub>N\<^sub>O\<^sub>T S T"
 
@@ -382,7 +382,7 @@ inductive backjump where
    \<Longrightarrow> T \<sim> prepend_trail (Propagated L ()) (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S)
    \<Longrightarrow> C \<in># clauses S
    \<Longrightarrow> trail S \<Turnstile>as CNot C
-   \<Longrightarrow> undefined_lit L F
+   \<Longrightarrow> undefined_lit F L
    \<Longrightarrow> atm_of L \<in> atms_of_mu (clauses S) \<union> atm_of ` (lits_of (trail S))
    \<Longrightarrow> clauses S \<Turnstile>pm C' + {#L#}
    \<Longrightarrow> F \<Turnstile>as CNot C'
@@ -413,7 +413,7 @@ locale dpll_with_backjumping_ops =
         \<Longrightarrow> trail S = F' @ Marked K () # F
         \<Longrightarrow> C \<in># clauses S
         \<Longrightarrow> trail S \<Turnstile>as CNot C
-        \<Longrightarrow> undefined_lit L F
+        \<Longrightarrow> undefined_lit F L
         \<Longrightarrow> atm_of L \<in> atms_of_mu (clauses S) \<union> atm_of ` (lits_of (F' @ Marked K () # F))
         \<Longrightarrow> clauses S \<Turnstile>pm C' + {#L#}
         \<Longrightarrow> F \<Turnstile>as CNot C'
@@ -441,15 +441,15 @@ lemma dpll_bj_all_induct[consumes 2, case_names decide\<^sub>N\<^sub>O\<^sub>T p
   assumes
     "dpll_bj S T" and
     "inv S"
-    "\<And>L T. undefined_lit L (trail S) \<Longrightarrow> atm_of L \<in> atms_of_mu (clauses S)
+    "\<And>L T. undefined_lit (trail S) L \<Longrightarrow> atm_of L \<in> atms_of_mu (clauses S)
       \<Longrightarrow> T \<sim> prepend_trail (Marked L ()) S
       \<Longrightarrow> P S T" and
-    "\<And>C L T. C + {#L#} \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit L (trail S)
+    "\<And>C L T. C + {#L#} \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit (trail S) L
       \<Longrightarrow> T \<sim> prepend_trail (Propagated L ()) S
       \<Longrightarrow> P S T" and
     "\<And>C F' K F L C' T. C \<in># clauses S \<Longrightarrow> F' @ Marked K () # F \<Turnstile>as CNot C
       \<Longrightarrow> trail S = F' @ Marked K () # F
-      \<Longrightarrow> undefined_lit L F
+      \<Longrightarrow> undefined_lit F L
       \<Longrightarrow> atm_of L \<in> atms_of_mu (clauses S) \<union> atm_of ` (lits_of (F' @ Marked K () # F))
       \<Longrightarrow> clauses S \<Turnstile>pm C' + {#L#}
       \<Longrightarrow> F \<Turnstile>as CNot C'
@@ -943,7 +943,7 @@ proof -
             l_N: "l \<in> atms_of_m ?N" and
             l_M: "l \<notin> atm_of ` lits_of ?M"
             by auto
-          have "undefined_lit (Pos l) ?M"
+          have "undefined_lit ?M (Pos l)"
             using l_M by (metis Marked_Propagated_in_iff_in_lits_of
               atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set literal.sel(1))
           from bj_decide\<^sub>N\<^sub>O\<^sub>T[OF decide\<^sub>N\<^sub>O\<^sub>T[OF this]] show False
@@ -999,7 +999,7 @@ proof -
         true_annot_def by (metis consistent_CNot_not sup.orderE sup_commute true_clss_def
           true_clss_singleton_lit_of_implies_incl true_clss_union true_clss_union_increase)
 
-      have "undefined_lit K F" using \<open>no_dup ?M\<close> unfolding M_K by (simp add: defined_lit_map)
+      have "undefined_lit F K" using \<open>no_dup ?M\<close> unfolding M_K by (simp add: defined_lit_map)
       moreover
         have "?N \<union> ?C' \<Turnstile>ps {{#}}"
           proof -
@@ -2862,7 +2862,7 @@ backjump_l: "trail S = F' @ Marked K () # F
    \<Longrightarrow> T \<sim> prepend_trail (Propagated L l) (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S))
    \<Longrightarrow> C \<in># clauses S
    \<Longrightarrow> trail S \<Turnstile>as CNot C
-   \<Longrightarrow> undefined_lit L F
+   \<Longrightarrow> undefined_lit F L
    \<Longrightarrow> atm_of L \<in> atms_of_mu (clauses S) \<union> atm_of ` (lits_of (trail S))
    \<Longrightarrow> clauses S \<Turnstile>pm C' + {#L#}
    \<Longrightarrow> F \<Turnstile>as CNot C'
@@ -2908,7 +2908,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy =
        \<Longrightarrow> trail S = F' @ Marked K () # F
        \<Longrightarrow> C \<in># clauses S
        \<Longrightarrow> trail S \<Turnstile>as CNot C
-       \<Longrightarrow> undefined_lit L F
+       \<Longrightarrow> undefined_lit F L
        \<Longrightarrow> atm_of L \<in> atms_of_mu (clauses S) \<union> atm_of ` (lits_of (F' @ Marked K () # F))
        \<Longrightarrow> clauses S \<Turnstile>pm C' + {#L#}
        \<Longrightarrow> F \<Turnstile>as CNot C'
@@ -2930,7 +2930,7 @@ proof (unfold_locales, goal_cases)
       tr_S: "trail S = F' @ Marked K () # F" and
       C: "C \<in># clauses S" and
       tr_S_C: "trail S \<Turnstile>as CNot C" and
-      undef_L: "undefined_lit L F" and
+      undef_L: "undefined_lit F L" and
       atm_L: "atm_of L \<in> atms_of_mu (clauses S) \<union> atm_of ` lits_of (trail S)" and
       cls_S_C': "clauses S \<Turnstile>pm C' + {#L#}" and
       F_C': "F \<Turnstile>as CNot C'" and
@@ -3016,7 +3016,7 @@ proof -
      T: "T \<sim> prepend_trail (Propagated L l) (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S))" and
      C_cls_S: "C \<in># clauses S" and
      tr_S_CNot_C: "trail S \<Turnstile>as CNot C" and
-     undef: "undefined_lit L F" and
+     undef: "undefined_lit F L" and
      atm_L: "atm_of L \<in> atms_of_mu (clauses S) \<union> atm_of ` (lits_of (trail S))" and
      clss_C: "clauses S \<Turnstile>pm C' + {#L#}" and
      "F \<Turnstile>as CNot C'" and
@@ -3314,11 +3314,11 @@ proof -
             l_N: "l \<in> atms_of_m ?N" and
             l_M: "l \<notin> atm_of ` lits_of ?M"
             by auto
-          have "undefined_lit (Pos l) ?M"
+          have "undefined_lit ?M (Pos l)"
             using l_M by (metis Marked_Propagated_in_iff_in_lits_of
               atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set literal.sel(1))
           have "decide\<^sub>N\<^sub>O\<^sub>T S (prepend_trail (Marked (Pos l) ()) S)"
-            by (metis \<open>undefined_lit (Pos l) (trail S)\<close> decide\<^sub>N\<^sub>O\<^sub>T.intros l_N literal.sel(1)
+            by (metis \<open>undefined_lit ?M (Pos l)\<close> decide\<^sub>N\<^sub>O\<^sub>T.intros l_N literal.sel(1)
               state_eq\<^sub>N\<^sub>O\<^sub>T_ref)
           then show False
             using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_decide\<^sub>N\<^sub>O\<^sub>T n_s by blast
@@ -3373,7 +3373,7 @@ proof -
         true_annot_def by (metis consistent_CNot_not sup.orderE sup_commute true_clss_def
           true_clss_singleton_lit_of_implies_incl true_clss_union true_clss_union_increase)
 
-      have "undefined_lit K F" using \<open>no_dup ?M\<close> unfolding M_K by (simp add: defined_lit_map)
+      have "undefined_lit F K" using \<open>no_dup ?M\<close> unfolding M_K by (simp add: defined_lit_map)
       moreover
         have "?N \<union> ?C' \<Turnstile>ps {{#}}"
           proof -
@@ -3742,7 +3742,7 @@ lemma backjump_bj_can_jump:
     tr_S: "trail S = F' @ Marked K () # F" and
     C: "C \<in># clauses S" and
     tr_S_C: "trail S \<Turnstile>as CNot C" and
-    undef: "undefined_lit L F" and
+    undef: "undefined_lit F L" and
     atm_L: "atm_of L \<in> atms_of_mu (clauses S) \<union> atm_of ` (lits_of (F' @ Marked K () # F))" and
     cls_S_C': "clauses S \<Turnstile>pm C' + {#L#}" and
     F_C': "F \<Turnstile>as CNot C'"
@@ -3861,7 +3861,7 @@ next
     T: "T \<sim> prepend_trail (Propagated L l) (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S))" and
     "C \<in># clauses S" and
     "trail S \<Turnstile>as CNot C" and
-    "undefined_lit L F" and
+    "undefined_lit F L" and
     "atm_of L = atm_of K \<or> atm_of L \<in> atms_of_mu (clauses S)
       \<or> atm_of L \<in> atm_of ` (lits_of F' \<union> lits_of F)" and
     "clauses S \<Turnstile>pm C' + {#L#}" and

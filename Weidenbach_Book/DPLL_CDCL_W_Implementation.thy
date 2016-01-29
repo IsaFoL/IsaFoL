@@ -36,7 +36,7 @@ qed
 
 lemma is_unit_clause_some_undef: 
   assumes "is_unit_clause l M = Some a"
-  shows "undefined_lit a M"
+  shows "undefined_lit M a"
 proof -
   have "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M] of [] \<Rightarrow> None 
           | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None 
@@ -90,7 +90,7 @@ fun find_first_unit_clause :: "'a literal list list \<Rightarrow> ('a, 'b, 'c) m
 
 lemma find_first_unit_clause_some: 
   "find_first_unit_clause l M = Some (a, c) 
-  \<Longrightarrow> c \<in> set l \<and>  M \<Turnstile>as CNot (mset c - {#a#}) \<and> undefined_lit a M \<and> a \<in> set c"
+  \<Longrightarrow> c \<in> set l \<and>  M \<Turnstile>as CNot (mset c - {#a#}) \<and> undefined_lit M a \<and> a \<in> set c"
   apply (induction l)
     apply simp
   by (auto split: option.splits dest: is_unit_clause_some_in is_unit_clause_some_CNot 
@@ -99,7 +99,7 @@ lemma find_first_unit_clause_some:
 lemma propagate_is_unit_clause_not_None:
   assumes dist: "distinct c" and
   M: "M \<Turnstile>as CNot (mset c - {#a#})" and
-  undef: "undefined_lit a M" and
+  undef: "undefined_lit M a" and
   ac: "a \<in> set c"
   shows "is_unit_clause c M \<noteq> None"
 proof -
@@ -129,7 +129,7 @@ proof -
 qed
 
 lemma find_first_unit_clause_none: 
-  "distinct c \<Longrightarrow> c \<in> set l \<Longrightarrow>  M \<Turnstile>as CNot (mset c - {#a#}) \<Longrightarrow> undefined_lit a M \<Longrightarrow> a \<in> set c 
+  "distinct c \<Longrightarrow> c \<in> set l \<Longrightarrow>  M \<Turnstile>as CNot (mset c - {#a#}) \<Longrightarrow> undefined_lit M a \<Longrightarrow> a \<in> set c 
   \<Longrightarrow> find_first_unit_clause l M \<noteq> None"
   by (induction l)
      (auto split: option.split simp add: propagate_is_unit_clause_not_None)
@@ -171,7 +171,8 @@ lemma find_first_unused_var_Some:
   by (induct l) (auto split: option.splits dest: find_some)
 
 lemma find_first_unused_var_undefined:
-  "find_first_unused_var l (lits_of Ms) = Some a \<Longrightarrow> undefined_lit a Ms"
-  using find_first_unused_var_Some[of l "lits_of Ms" a] Marked_Propagated_in_iff_in_lits_of by blast
+  "find_first_unused_var l (lits_of Ms) = Some a \<Longrightarrow> undefined_lit Ms a"
+  using find_first_unused_var_Some[of l "lits_of Ms" a] Marked_Propagated_in_iff_in_lits_of 
+  by blast
 
 end

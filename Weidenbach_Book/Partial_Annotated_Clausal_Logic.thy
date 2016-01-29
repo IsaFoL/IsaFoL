@@ -174,16 +174,16 @@ lemma true_annots_mono:
   unfolding true_annots_def by auto
 
 subsubsection \<open>Defined and undefined literals\<close>
-definition defined_lit :: "'a literal \<Rightarrow> ('a, 'l, 'm) marked_lit list  \<Rightarrow> bool" ("|_| \<in>\<^sub>l |_|" 50)
+definition defined_lit :: "('a, 'l, 'm) marked_lit list  \<Rightarrow> 'a literal \<Rightarrow> bool" ("|_| \<in>\<^sub>l |_|" 50)
   where
-"defined_lit L I \<longleftrightarrow> (\<exists>l. Marked L l \<in> set I) \<or> (\<exists>P. Propagated L P \<in> set I)
+"defined_lit I L \<longleftrightarrow> (\<exists>l. Marked L l \<in> set I) \<or> (\<exists>P. Propagated L P \<in> set I)
   \<or> (\<exists>l. Marked (-L) l \<in> set I) \<or> (\<exists>P. Propagated (-L) P \<in> set I)"
 
-abbreviation undefined_lit :: "'a literal \<Rightarrow> ('a, 'l, 'm) marked_lit list  \<Rightarrow> bool"
-where "undefined_lit L I \<equiv> \<not>defined_lit L I"
+abbreviation undefined_lit :: "('a, 'l, 'm) marked_lit list  \<Rightarrow> 'a literal \<Rightarrow>  bool"
+where "undefined_lit I L \<equiv> \<not>defined_lit I L"
 
 lemma defined_lit_rev[simp]:
-  "defined_lit L (rev M) \<longleftrightarrow> defined_lit L M"
+  "defined_lit (rev M) L \<longleftrightarrow> defined_lit M L"
   unfolding defined_lit_def by auto
 
 lemma atm_imp_marked_or_proped:
@@ -201,7 +201,7 @@ lemma literal_is_lit_of_marked:
   using assms by (case_tac x) auto
 
 lemma true_annot_iff_marked_or_true_lit:
-  "defined_lit L I \<longleftrightarrow> ((lits_of I) \<Turnstile>l L \<or> (lits_of I) \<Turnstile>l -L)"
+  "defined_lit I L \<longleftrightarrow> ((lits_of I) \<Turnstile>l L \<or> (lits_of I) \<Turnstile>l -L)"
   unfolding defined_lit_def by (auto simp add: lits_of_def rev_image_eqI
     dest!: literal_is_lit_of_marked)
 
@@ -209,29 +209,29 @@ lemma "consistent_interp (lits_of I) \<Longrightarrow> I \<Turnstile>as N \<Long
   by (simp add: true_annots_true_cls)
 
 lemma defined_lit_map:
-  "defined_lit L Ls \<longleftrightarrow> atm_of L \<in> (\<lambda>l. atm_of (lit_of l)) ` set Ls"
+  "defined_lit Ls L \<longleftrightarrow> atm_of L \<in> (\<lambda>l. atm_of (lit_of l)) ` set Ls"
  unfolding defined_lit_def apply (rule iffI)
    using image_iff apply fastforce
  by (fastforce simp add: atm_of_eq_atm_of dest: atm_imp_marked_or_proped)
 
 lemma defined_lit_uminus[iff]:
-  "defined_lit (-L) I \<longleftrightarrow> defined_lit L I"
+  "defined_lit I (-L) \<longleftrightarrow> defined_lit I L"
   unfolding defined_lit_def by auto
 
 lemma Marked_Propagated_in_iff_in_lits_of:
-  "defined_lit L I \<longleftrightarrow> (L \<in> lits_of I \<or> -L \<in> lits_of I)"
+  "defined_lit I L \<longleftrightarrow> (L \<in> lits_of I \<or> -L \<in> lits_of I)"
   unfolding lits_of_def defined_lit_def
   by (auto simp add: rev_image_eqI) (case_tac x, auto)+
 
 lemma consistent_add_undefined_lit_consistent[simp]:
   assumes
     "consistent_interp (lits_of Ls)" and
-    "undefined_lit L Ls"
-  shows" consistent_interp (insert L (lits_of Ls))"
+    "undefined_lit Ls L"
+  shows "consistent_interp (insert L (lits_of Ls))"
   using assms unfolding consistent_interp_def by (auto simp: Marked_Propagated_in_iff_in_lits_of)
 
 lemma decided_empty[simp]:
-  "\<not>defined_lit L []"
+  "\<not>defined_lit [] L"
   unfolding defined_lit_def by simp
 
 subsection \<open>Backtracking\<close>
@@ -892,7 +892,7 @@ next
   case (Cons L M)
   hence a1: "consistent_interp (lits_of M)" by auto
   have a2: "atm_of (lit_of L) \<notin> (\<lambda>l. atm_of (lit_of l)) ` set M" using Cons.prems by auto
-  have "undefined_lit (lit_of L) M"
+  have "undefined_lit M (lit_of L)"
     using a2 image_iff unfolding defined_lit_def by fastforce
   thus ?case
     using a1 by simp
