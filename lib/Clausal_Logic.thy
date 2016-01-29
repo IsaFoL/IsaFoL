@@ -73,6 +73,10 @@ lemma uminus_eq_inj[iff]:
   "-(a::'v literal) = -b \<longleftrightarrow> a = b"
   by (case_tac a; case_tac b) auto+
 
+lemma uminus_lit_swap:
+  "(a::'a literal) = -b \<longleftrightarrow> -a = b"
+  by auto
+
 instantiation literal :: (preorder) preorder
 begin
 
