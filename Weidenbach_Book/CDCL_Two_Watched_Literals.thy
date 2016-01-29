@@ -431,6 +431,9 @@ locale abstract_twl =
     restart_learned: "restart_learned S \<subseteq># learned_clss S"
 begin
 
+lemma linearize_mempty[simp]: "linearize {#} = []"
+  using linearize mset_zero_iff by blast
+
 definition
   cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> ('v, nat, 'v clause) twl_state \<Rightarrow>
     ('v, nat, 'v clause) twl_state"
@@ -586,13 +589,22 @@ lemma rough_state_of_twl_remove_cls:
   "rough_state_of_twl (remove_cls_twl L S) = remove_cls L (rough_state_of_twl S)"
   using rough_state_of_twl twl_of_rough_state_inverse wf_twl_remove_cls by blast
 
-
 abbreviation init_state_twl where
 "init_state_twl N \<equiv> twl_of_rough_state (init_state N)"
 
+lemma wf_twl_state_wf_twl_state_fold_add_init_cls:
+  assumes "wf_twl_state S"
+  shows "wf_twl_state (fold add_init_cls N S)"
+  using assms apply (induction N arbitrary: S)
+   apply (auto simp: wf_twl_state_def)[]
+  by (simp add: wf_twl_add_init_cls)
+
+lemma wf_twl_state_epsilon_state[simp]:
+  "wf_twl_state (TWL_State [] {#} {#} 0 C_True)"
+  by (auto simp: wf_twl_state_def)
+
 lemma wf_twl_init_state: "wf_twl_state (init_state N)"
-  unfolding wf_twl_state_def init_state_def
-  sorry
+  unfolding init_state_def by (auto intro!: wf_twl_state_wf_twl_state_fold_add_init_cls)
 
 lemma rough_state_of_twl_init_state:
   "rough_state_of_twl (init_state_twl N) = init_state N"
