@@ -509,7 +509,7 @@ proof -
   moreover have "conclusive_dpll\<^sub>W_state (toS' (M, N'))"
     using DPLL_tot_final_state by (metis (mono_tags, lifting) DOPLL_step'_DPLL_tot DPLL_tot.simps
       assms(1))
-  ultimately show ?thesis using dpll\<^sub>W_conclusive_state_sound by (smt DPLL_ci.simps 
+  ultimately show ?thesis using dpll\<^sub>W_conclusive_state_correct by (smt DPLL_ci.simps 
     DPLL_ci_dpll\<^sub>W_rtranclp assms(2) dpll\<^sub>W_all_inv_def prod.case prod.sel(1) prod.sel(2)
     rtranclp_dpll\<^sub>W_inv(3) rtranclp_dpll\<^sub>W_inv_starting_from_0)
 qed
