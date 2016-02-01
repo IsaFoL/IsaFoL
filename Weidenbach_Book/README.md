@@ -28,7 +28,7 @@ forthcoming book _Automated Reasoning―The Art of Generic Problem Solving_.
 A recent version of Isabelle is necessary to process the theory files (e.g.,
 [Isabelle2016-RC2](http://isabelle.in.tum.de/website-Isabelle2016-RC2)).
 
-To process all the theory files, simply load ```Weidenbach_Book.thy```.
+To process all the theory files, open ```Weidenbach_Book.thy``` in Isabelle/jEdit.
 
 ## Documentation ##
 
