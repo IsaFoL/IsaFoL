@@ -10,7 +10,7 @@ text \<open>This theory contains more facts about closure, the definition of ful
 subsection \<open>More theorems about Closures\<close>
 
 text \<open>This is the equivalent of @{thm rtranclp_mono} for @{term tranclp}\<close>
-lemma
+lemma tranclp_mono_explicit:
   "r\<^sup>+\<^sup>+ a b \<Longrightarrow> r \<le> s \<Longrightarrow> s\<^sup>+\<^sup>+ a b"
     using rtranclp_mono by (auto dest!: tranclpD intro: rtranclp_into_tranclp2)
 

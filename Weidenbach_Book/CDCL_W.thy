@@ -460,7 +460,7 @@ forget_rule: "state S = (M, N, {#C#} + U, k, C_True)
   \<Longrightarrow> forget S T"
 inductive_cases forgetE[elim]: "forget S T"
 
-inductive cdcl\<^sub>W_rf :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+inductive cdcl\<^sub>W_rf :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 restart: "restart S T \<Longrightarrow> cdcl\<^sub>W_rf S T" |
 forget: "forget S T \<Longrightarrow> cdcl\<^sub>W_rf S T"
 
@@ -471,11 +471,11 @@ backtrack[intro]: "backtrack S S' \<Longrightarrow> cdcl\<^sub>W_bj S S'"
 
 inductive_cases cdcl\<^sub>W_bjE: "cdcl\<^sub>W_bj S T"
 
-inductive cdcl\<^sub>W_o:: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+inductive cdcl\<^sub>W_o:: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 decide[intro]: "decide S S' \<Longrightarrow> cdcl\<^sub>W_o S S'" |
 bj[intro]: "cdcl\<^sub>W_bj S S' \<Longrightarrow> cdcl\<^sub>W_o S S'"
 
-inductive cdcl\<^sub>W :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+inductive cdcl\<^sub>W :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 propagate: "propagate S S' \<Longrightarrow> cdcl\<^sub>W S S'" |
 conflict: "conflict S S' \<Longrightarrow> cdcl\<^sub>W S S'" |
 other: "cdcl\<^sub>W_o S S' \<Longrightarrow> cdcl\<^sub>W S S'"|
@@ -490,17 +490,17 @@ lemma cdcl\<^sub>W_all_rules_induct[consumes 1, case_names propagate conflict fo
   fixes S  :: "'st"
   assumes 
     cdcl\<^sub>W: "cdcl\<^sub>W S S'" and 
-    propagate: "\<And>S T. propagate S T \<Longrightarrow> P S T" and 
-    conflict:  "\<And>S T. conflict S T \<Longrightarrow> P S T" and 
-    forget:  "\<And>S T. forget S T \<Longrightarrow> P S T" and 
-    restart:  "\<And>S T. restart S T \<Longrightarrow> P S T" and 
-    decide:  "\<And>S T. decide S T \<Longrightarrow> P S T" and 
-    skip:  "\<And>S T. skip S T \<Longrightarrow> P S T" and 
-    resolve:  "\<And>S T. resolve S T \<Longrightarrow> P S T" and 
-    backtrack:  "\<And>S T. backtrack S T \<Longrightarrow> P S T"
+    propagate: "\<And>T. propagate S T \<Longrightarrow> P S T" and 
+    conflict:  "\<And>T. conflict S T \<Longrightarrow> P S T" and 
+    forget:  "\<And>T. forget S T \<Longrightarrow> P S T" and 
+    restart:  "\<And>T. restart S T \<Longrightarrow> P S T" and 
+    decide:  "\<And>T. decide S T \<Longrightarrow> P S T" and 
+    skip:  "\<And>T. skip S T \<Longrightarrow> P S T" and 
+    resolve:  "\<And>T. resolve S T \<Longrightarrow> P S T" and 
+    backtrack:  "\<And>T. backtrack S T \<Longrightarrow> P S T"
   shows "P S S'"
   using assms(1)
-proof (induct S\<equiv>S S' rule: cdcl\<^sub>W.induct)
+proof (induct S' rule: cdcl\<^sub>W.induct)
   case (propagate S') note propagate = this(1)
   then show ?case using assms(2) by auto
 next
@@ -513,7 +513,7 @@ next
       case (decide U)
       then show ?case using assms(6) by auto
     next
-      case (bj S S')
+      case (bj S')
       then show ?case using assms(7-9) by (induction rule: cdcl\<^sub>W_bj.induct) auto
     qed
 next
@@ -573,7 +573,7 @@ lemma cdcl\<^sub>W_all_induct[consumes 1, case_names propagate conflict forget r
       \<Longrightarrow> P S T"
   shows "P S S'"
   using cdcl\<^sub>W
-proof (induct S\<equiv>S S' rule: cdcl\<^sub>W_all_rules_induct)
+proof (induct S S' rule: cdcl\<^sub>W_all_rules_induct)
   case (propagate S')
   then show ?case by (elim propagateE) (frule propagateH; simp)
 next
@@ -602,7 +602,7 @@ qed
 lemma cdcl\<^sub>W_o_induct[consumes 1, case_names decide skip resolve backtrack]:
   fixes S  :: "'st"
   assumes cdcl\<^sub>W: "cdcl\<^sub>W_o S T" and
-    decideH: "\<And>L T. conflicting S = C_True \<Longrightarrow>  undefined_lit (trail S) L
+    decideH: "\<And>L T. conflicting S = C_True \<Longrightarrow> undefined_lit (trail S) L
       \<Longrightarrow> atm_of L \<in> atms_of_mu (init_clss S)
       \<Longrightarrow> T \<sim> cons_trail (Marked L (backtrack_lvl S +1)) (incr_lvl S)
       \<Longrightarrow> P S T" and
@@ -629,7 +629,7 @@ lemma cdcl\<^sub>W_o_induct[consumes 1, case_names decide skip resolve backtrack
                       (update_conflicting C_True S))))
       \<Longrightarrow> P S T"
   shows "P S T"
-  using cdcl\<^sub>W apply (induct S\<equiv>S T rule: cdcl\<^sub>W_o.induct)
+  using cdcl\<^sub>W apply (induct T rule: cdcl\<^sub>W_o.induct)
    using assms(2) apply auto[1]
   apply (elim cdcl\<^sub>W_bjE skipE resolveE backtrackE)
     apply (frule skipH; simp)
@@ -637,7 +637,20 @@ lemma cdcl\<^sub>W_o_induct[consumes 1, case_names decide skip resolve backtrack
   apply (frule backtrackH; simp_all del: state_simp add: state_eq_def)
   done
 
+thm  cdcl\<^sub>W_o.induct
+lemma cdcl\<^sub>W_o_all_rules_induct[consumes 1, case_names decide backtrack skip resolve]:
+  fixes S T :: 'st
+  assumes
+    "cdcl\<^sub>W_o S T" and
+    "\<And>T. decide S T \<Longrightarrow> P S T" and
+    "\<And>T. backtrack S T \<Longrightarrow> P S T" and
+    "\<And>T. skip S T \<Longrightarrow> P S T" and
+    "\<And>T. resolve S T \<Longrightarrow> P S T"
+  shows "P S T"
+  using assms by (induct T rule: cdcl\<^sub>W_o.induct) (auto simp: cdcl\<^sub>W_bj.simps)
+
 lemma cdcl\<^sub>W_o_rule_cases[consumes 1, case_names decide backtrack skip resolve]:
+  fixes S T :: 'st
   assumes
     "cdcl\<^sub>W_o S T" and
     "decide S T \<Longrightarrow> P" and
@@ -833,6 +846,13 @@ lemma rtranclp_cdcl\<^sub>W_consistent_inv:
   using assms by (induct rule: rtranclp_induct)
   (auto intro: cdcl\<^sub>W_consistent_inv)
 
+lemma tranclp_cdcl\<^sub>W_consistent_inv:
+  assumes "cdcl\<^sub>W\<^sup>+\<^sup>+ S S'"
+  and "cdcl\<^sub>W_M_level_inv S"
+  shows "cdcl\<^sub>W_M_level_inv S'"
+  using assms by (induct rule: tranclp_induct)
+  (auto intro: cdcl\<^sub>W_consistent_inv)
+
 lemma cdcl\<^sub>W_M_level_inv_S0_cdcl\<^sub>W[simp]:
   "cdcl\<^sub>W_M_level_inv (init_state N)"
   unfolding cdcl\<^sub>W_M_level_inv_def by auto
@@ -914,8 +934,9 @@ proof -
     using backtrackH[OF decomp L confl lev_L lev_D _ T] by simp
 qed
 
-lemma cdcl\<^sub>W_all_induct_lev[consumes 1, case_names propagate conflict forget restart decide skip
-    resolve backtrack]:
+lemmas backtrack_induction_lev2 = backtrack_induction_lev[consumes 2, case_names backtrack] 
+
+lemma cdcl\<^sub>W_all_induct_lev_full:
   fixes S  :: "'st"
   assumes
     cdcl\<^sub>W: "cdcl\<^sub>W S S'" and
@@ -967,7 +988,7 @@ lemma cdcl\<^sub>W_all_induct_lev[consumes 1, case_names propagate conflict forg
       \<Longrightarrow> P S T"
   shows "P S S'"
   using cdcl\<^sub>W
-proof (induct S\<equiv>S S' rule: cdcl\<^sub>W_all_rules_induct)
+proof (induct S' rule: cdcl\<^sub>W_all_rules_induct)
   case (propagate S')
   then show ?case by (elim propagateE) (frule propagateH; simp)
 next
@@ -996,6 +1017,67 @@ next
   case (resolve S')
   then show ?case by (elim resolveE) (frule resolveH; simp)
 qed
+
+lemmas cdcl\<^sub>W_all_induct_lev2 = cdcl\<^sub>W_all_induct_lev_full[consumes 2, case_names propagate conflict 
+  forget restart decide skip resolve backtrack]
+
+lemmas cdcl\<^sub>W_all_induct_lev = cdcl\<^sub>W_all_induct_lev_full[consumes 1, case_names lev_inv propagate
+  conflict forget restart decide skip resolve backtrack]
+
+thm cdcl\<^sub>W_o_induct
+lemma cdcl\<^sub>W_o_induct_lev[consumes 1, case_names M_lev decide skip resolve backtrack]:
+  fixes S  :: "'st"
+  assumes 
+    cdcl\<^sub>W: "cdcl\<^sub>W_o S T" and
+    inv: "cdcl\<^sub>W_M_level_inv S" and
+    decideH: "\<And>L T. conflicting S = C_True \<Longrightarrow>  undefined_lit (trail S) L
+      \<Longrightarrow> atm_of L \<in> atms_of_mu (init_clss S)
+      \<Longrightarrow> T \<sim> cons_trail (Marked L (backtrack_lvl S +1)) (incr_lvl S)
+      \<Longrightarrow> P S T" and
+    skipH: "\<And>L C' M D T. trail S = Propagated L C' # M
+      \<Longrightarrow> conflicting S = C_Clause D \<Longrightarrow> -L \<notin># D \<Longrightarrow> D \<noteq> {#}
+      \<Longrightarrow> T \<sim> tl_trail S
+      \<Longrightarrow> P S T" and
+    resolveH: "\<And>L C M D T.
+      trail S = Propagated L ( (C + {#L#})) # M
+      \<Longrightarrow> conflicting S = C_Clause (D + {#-L#})
+      \<Longrightarrow> get_maximum_level D (Propagated L (C + {#L#}) # M) = backtrack_lvl S
+      \<Longrightarrow> T \<sim> update_conflicting (C_Clause (D #\<union> C)) (tl_trail S)
+      \<Longrightarrow> P S T" and
+    backtrackH: "\<And>K i M1 M2 L D T.
+      (Marked K (Suc i) # M1, M2) \<in> set (get_all_marked_decomposition (trail S))
+      \<Longrightarrow> get_level L (trail S) = backtrack_lvl S
+      \<Longrightarrow> conflicting S = C_Clause (D + {#L#})
+      \<Longrightarrow> get_level L (trail S) = get_maximum_level (D+{#L#}) (trail S)
+      \<Longrightarrow> get_maximum_level D (trail S) \<equiv> i
+      \<Longrightarrow> undefined_lit M1 L
+      \<Longrightarrow> T \<sim> cons_trail (Propagated L (D+{#L#}))
+                (reduce_trail_to M1
+                  (add_learned_cls (D + {#L#})
+                    (update_backtrack_lvl i
+                      (update_conflicting C_True S))))
+      \<Longrightarrow> P S T"
+  shows "P S T"
+  using cdcl\<^sub>W
+proof (induct S T rule: cdcl\<^sub>W_o_all_rules_induct)
+  case (decide T)
+  then show ?case by (elim decideE) (frule decideH; simp)
+next
+  case (backtrack S')
+  then show ?case 
+    using inv apply (induction rule: backtrack_induction_lev2) 
+    by (rule backtrackH)
+      (fastforce simp del: state_simp simp add: state_eq_def dest!: HOL.meta_eq_to_obj_eq)+
+next
+  case (skip S')
+  then show ?case using skipH by auto
+next
+  case (resolve S')
+  then show ?case by (elim resolveE) (frule resolveH; simp)
+qed
+
+lemmas cdcl\<^sub>W_o_induct_lev2 = cdcl\<^sub>W_o_induct_lev[consumes 2, case_names decide skip resolve
+  backtrack]
 
 subsection \<open>Compatibility with @{term state_eq}\<close>
 lemma propagate_state_eq_compatible:
@@ -1087,41 +1169,52 @@ lemma cdcl\<^sub>W_state_eq_compatible:
     propagate_state_eq_compatible resolve_state_eq_compatible
     skip_state_eq_compatible)
 
+  thm cdcl\<^sub>W_all_induct_lev2
 lemma level_of_marked_ge_1:
-  assumes "cdcl\<^sub>W S S'" and
-  "\<forall>L l. Marked L l \<in> set (trail S) \<longrightarrow> l > 0" and
-  inv: "cdcl\<^sub>W_M_level_inv S"
+  assumes 
+    "cdcl\<^sub>W S S'" and
+    inv: "cdcl\<^sub>W_M_level_inv S" and
+    "\<forall>L l. Marked L l \<in> set (trail S) \<longrightarrow> l > 0"
   shows "\<forall>L l. Marked L l \<in> set (trail S') \<longrightarrow> l > 0"
-  using assms apply(induct rule:  cdcl\<^sub>W_all_induct_lev)
-  using inv by (auto dest: union_in_get_all_marked_decomposition_is_subset
-      dest!: get_all_marked_decomposition_exists_prepend)
+  using assms apply(induct rule:  cdcl\<^sub>W_all_induct_lev2)
+  by (auto dest: union_in_get_all_marked_decomposition_is_subset)
+
 
 lemma cdcl\<^sub>W_o_no_more_clauses:
-  assumes "cdcl\<^sub>W_o S S'"
+  assumes 
+    "cdcl\<^sub>W_o S S'" and
+    inv: "cdcl\<^sub>W_M_level_inv S"
   shows "init_clss S = init_clss S'"
-  using assms by (induct rule: cdcl\<^sub>W_o_induct) auto
+  using assms by (induct rule: cdcl\<^sub>W_o_induct_lev2) auto
 
 lemma tranclp_cdcl\<^sub>W_o_no_more_clauses:
-  assumes "cdcl\<^sub>W_o\<^sup>+\<^sup>+ S S'"
+  assumes 
+    "cdcl\<^sub>W_o\<^sup>+\<^sup>+ S S'" and
+    inv: "cdcl\<^sub>W_M_level_inv S"
   shows "init_clss S = init_clss S'"
-  using assms by (induct rule: tranclp.induct) (auto dest: cdcl\<^sub>W_o_no_more_clauses)
+  using assms apply (induct rule: tranclp.induct)
+  by (auto dest: cdcl\<^sub>W_o_no_more_clauses 
+    dest!: tranclp_cdcl\<^sub>W_consistent_inv dest: tranclp_mono_explicit[of cdcl\<^sub>W_o _ _ cdcl\<^sub>W] 
+    simp: other)
 
-lemma rtranclp_cdcl\<^sub>W_o_no_more_clauses:
-  assumes "cdcl\<^sub>W_o\<^sup>*\<^sup>* S S'"
+  lemma rtranclp_cdcl\<^sub>W_o_no_more_clauses:
+  assumes
+    "cdcl\<^sub>W_o\<^sup>*\<^sup>* S S'" and
+    inv: "cdcl\<^sub>W_M_level_inv S"
   shows "init_clss S = init_clss S'"
-  using assms by (induct rule: rtranclp.induct) (auto dest: cdcl\<^sub>W_o_no_more_clauses)
+  using assms unfolding rtranclp_unfold by (auto intro: tranclp_cdcl\<^sub>W_o_no_more_clauses)
 
 lemma cdcl\<^sub>W_init_clss:
-  "cdcl\<^sub>W S T \<Longrightarrow> init_clss S = init_clss T"
-  by (induct rule: cdcl\<^sub>W_all_induct) auto
+  "cdcl\<^sub>W S T \<Longrightarrow> cdcl\<^sub>W_M_level_inv S \<Longrightarrow> init_clss S = init_clss T"
+  by (induct rule: cdcl\<^sub>W_all_induct_lev2) auto
 
 lemma rtranclp_cdcl\<^sub>W_init_clss:
-  "cdcl\<^sub>W\<^sup>*\<^sup>* S T \<Longrightarrow> init_clss S = init_clss T"
-  by (induct rule: rtranclp_induct) (auto dest: cdcl\<^sub>W_init_clss)
+  "cdcl\<^sub>W\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_M_level_inv S \<Longrightarrow> init_clss S = init_clss T"
+  by (induct rule: rtranclp_induct) (auto dest: cdcl\<^sub>W_init_clss rtranclp_cdcl\<^sub>W_consistent_inv)
 
 lemma tranclp_cdcl\<^sub>W_init_clss:
-  "cdcl\<^sub>W\<^sup>+\<^sup>+ S T \<Longrightarrow> init_clss S = init_clss T"
-  by (induct rule: tranclp_induct) (auto dest: cdcl\<^sub>W_init_clss)
+  "cdcl\<^sub>W\<^sup>+\<^sup>+ S T \<Longrightarrow>  cdcl\<^sub>W_M_level_inv S \<Longrightarrow> init_clss S = init_clss T"
+  using rtranclp_cdcl\<^sub>W_init_clss[of S T] unfolding rtranclp_unfold by auto
 
 subsubsection \<open>Learned Clause\<close>
 text \<open>This invariant shows that:
