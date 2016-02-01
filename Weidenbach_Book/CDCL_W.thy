@@ -599,7 +599,6 @@ next
   then show ?case by (elim resolveE) (frule resolveH; simp)
 qed
 
-
 lemma cdcl\<^sub>W_o_induct[consumes 1, case_names decide skip resolve backtrack]:
   fixes S  :: "'st"
   assumes cdcl\<^sub>W: "cdcl\<^sub>W_o S T" and
@@ -801,7 +800,6 @@ next
     using T by (auto simp add: rev_swap M dest!: append_cons_eq_upt(1) simp del: upt_simps)
 qed auto
 
-
 text \<open>We write @{term "1+length (get_all_levels_of_marked (trail S))"} instead of
   @{term "backtrack_lvl S"} to avoid non termination of rewriting.\<close>
 definition "cdcl\<^sub>W_M_level_inv (S:: 'st) \<longleftrightarrow>
@@ -874,6 +872,131 @@ proof -
   then show ?thesis by blast
 qed
 
+lemma backtrack_induction_lev[consumes 1, case_names M_devel_inv backtrack]:
+  assumes 
+    bt: "backtrack S T" and
+    inv: "cdcl\<^sub>W_M_level_inv S" and
+    backtrackH: "\<And>K i M1 M2 L D T.
+      (Marked K (Suc i) # M1, M2) \<in> set (get_all_marked_decomposition (trail S))
+      \<Longrightarrow> get_level L (trail S) = backtrack_lvl S
+      \<Longrightarrow> conflicting S = C_Clause (D + {#L#})
+      \<Longrightarrow> get_level L (trail S) = get_maximum_level (D+{#L#}) (trail S)
+      \<Longrightarrow> get_maximum_level D (trail S) \<equiv> i
+      \<Longrightarrow> undefined_lit M1 L
+      \<Longrightarrow> T \<sim> cons_trail (Propagated L (D+{#L#}))
+                (reduce_trail_to M1
+                  (add_learned_cls (D + {#L#})
+                    (update_backtrack_lvl i
+                      (update_conflicting C_True S))))
+      \<Longrightarrow> P S T"
+  shows "P S T"
+proof -
+  obtain K i M1 M2 L D where
+    decomp: "(Marked K (Suc i) # M1, M2) \<in> set (get_all_marked_decomposition (trail S))" and
+    L: "get_level L (trail S) = backtrack_lvl S" and
+    confl: "conflicting S = C_Clause (D + {#L#})" and
+    lev_L: "get_level L (trail S) = get_maximum_level (D+{#L#}) (trail S)" and
+    lev_D: "get_maximum_level D (trail S) \<equiv> i" and
+    T: "T \<sim> cons_trail (Propagated L (D+{#L#}))
+                (reduce_trail_to M1
+                  (add_learned_cls (D + {#L#})
+                    (update_backtrack_lvl i
+                      (update_conflicting C_True S))))"
+    using bt by (elim backtrackE)  metis
+
+  have "atm_of L \<notin> (\<lambda>l. atm_of (lit_of l)) ` set M1"
+    using backtrack_lit_skiped[of L S K i M1 M2] L decomp bt confl lev_L lev_D inv
+    unfolding cdcl\<^sub>W_M_level_inv_def
+    by (fastforce simp add: lits_of_def)
+  then have "undefined_lit M1 L"
+    by (auto simp: defined_lit_map)
+  then show ?thesis
+    using backtrackH[OF decomp L confl lev_L lev_D _ T] by simp
+qed
+
+lemma cdcl\<^sub>W_all_induct_lev[consumes 1, case_names propagate conflict forget restart decide skip
+    resolve backtrack]:
+  fixes S  :: "'st"
+  assumes
+    cdcl\<^sub>W: "cdcl\<^sub>W S S'" and
+    inv: "cdcl\<^sub>W_M_level_inv S" and
+    propagateH: "\<And>C L T. C + {#L#} \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C
+      \<Longrightarrow> undefined_lit (trail S) L \<Longrightarrow> conflicting S = C_True
+      \<Longrightarrow> T \<sim> cons_trail (Propagated L (C + {#L#})) S
+      \<Longrightarrow> P S T" and
+    conflictH: "\<And>D T. D \<in># clauses S \<Longrightarrow> conflicting S = C_True \<Longrightarrow> trail S \<Turnstile>as CNot D
+      \<Longrightarrow> T \<sim> update_conflicting (C_Clause D) S
+      \<Longrightarrow> P S T" and
+    forgetH: "\<And>C T. \<not>trail S \<Turnstile>asm clauses S
+      \<Longrightarrow> C \<notin> set (get_all_mark_of_propagated (trail S))
+      \<Longrightarrow> C \<notin># init_clss S
+      \<Longrightarrow> C \<in># learned_clss S
+      \<Longrightarrow> conflicting S = C_True
+      \<Longrightarrow> T \<sim> remove_cls C S
+      \<Longrightarrow> P S T" and
+    restartH: "\<And>T. \<not>trail S \<Turnstile>asm clauses S
+      \<Longrightarrow> conflicting S = C_True
+      \<Longrightarrow> T \<sim> restart_state S
+      \<Longrightarrow> P S T" and
+    decideH: "\<And>L T. conflicting S = C_True \<Longrightarrow>  undefined_lit (trail S) L
+      \<Longrightarrow> atm_of L \<in> atms_of_mu (init_clss S)
+      \<Longrightarrow> T \<sim> cons_trail (Marked L (backtrack_lvl S +1)) (incr_lvl S)
+      \<Longrightarrow> P S T" and
+    skipH: "\<And>L C' M D T. trail S = Propagated L C' # M
+      \<Longrightarrow> conflicting S = C_Clause D \<Longrightarrow> -L \<notin># D \<Longrightarrow> D \<noteq> {#}
+      \<Longrightarrow> T \<sim> tl_trail S
+      \<Longrightarrow> P S T" and
+    resolveH: "\<And>L C M D T.
+      trail S = Propagated L ( (C + {#L#})) # M
+      \<Longrightarrow> conflicting S = C_Clause (D + {#-L#})
+      \<Longrightarrow> get_maximum_level D (Propagated L ( (C + {#L#})) # M) = backtrack_lvl S
+      \<Longrightarrow> T \<sim> (update_conflicting (C_Clause (D #\<union> C)) (tl_trail S))
+      \<Longrightarrow> P S T" and
+    backtrackH: "\<And>K i M1 M2 L D T.
+      (Marked K (Suc i) # M1, M2) \<in> set (get_all_marked_decomposition (trail S))
+      \<Longrightarrow> get_level L (trail S) = backtrack_lvl S
+      \<Longrightarrow> conflicting S = C_Clause (D + {#L#})
+      \<Longrightarrow> get_maximum_level (D+{#L#}) (trail S) = get_level L (trail S)
+      \<Longrightarrow> get_maximum_level D (trail S) \<equiv> i
+      \<Longrightarrow> undefined_lit M1 L
+      \<Longrightarrow> T \<sim> cons_trail (Propagated L (D+{#L#}))
+                (reduce_trail_to M1
+                  (add_learned_cls (D + {#L#})
+                    (update_backtrack_lvl i
+                      (update_conflicting C_True S))))
+      \<Longrightarrow> P S T"
+  shows "P S S'"
+  using cdcl\<^sub>W
+proof (induct S\<equiv>S S' rule: cdcl\<^sub>W_all_rules_induct)
+  case (propagate S')
+  then show ?case by (elim propagateE) (frule propagateH; simp)
+next
+  case (conflict S')
+  then show ?case by (elim conflictE) (frule conflictH; simp)
+next
+  case (restart S')
+  then show ?case by (elim restartE) (frule restartH; simp)
+next
+  case (decide T)
+  then show ?case by (elim decideE) (frule decideH; simp)
+next
+  case (backtrack S')
+  then show ?case 
+    apply (induction rule: backtrack_induction_lev) 
+     apply (rule inv)
+    by (rule backtrackH; 
+      fastforce simp del: state_simp simp add: state_eq_def dest!: HOL.meta_eq_to_obj_eq)
+next
+  case (forget S')
+  then show ?case using forgetH by auto
+next
+  case (skip S')
+  then show ?case using skipH by auto
+next
+  case (resolve S')
+  then show ?case by (elim resolveE) (frule resolveH; simp)
+qed
+
 subsection \<open>Compatibility with @{term state_eq}\<close>
 lemma propagate_state_eq_compatible:
   assumes
@@ -899,12 +1022,14 @@ lemma backtrack_state_eq_compatible:
   assumes
     "backtrack S T" and
     "S \<sim> S'" and
-    "T \<sim> T'"
+    "T \<sim> T'" and
+    inv: "cdcl\<^sub>W_M_level_inv S"
   shows "backtrack S' T'"
-  using assms apply (elim backtrackE)
+  using assms apply (induction rule: backtrack_induction_lev)
+    using inv apply simp
   apply (rule backtrack_rule)
-  apply auto
-  by (a uto simp: state_eq_def clauses_def simp del: state_simp)
+         apply auto[5]
+  by (auto simp: state_eq_def clauses_def simp del: state_simp)
 
 lemma decide_state_eq_compatible:
   assumes
@@ -953,7 +1078,8 @@ lemma cdcl\<^sub>W_state_eq_compatible:
   assumes
     "cdcl\<^sub>W S T" and "\<not>restart S T" and
     "S \<sim> S'" and
-    "T \<sim> T'"
+    "T \<sim> T'" and
+    inv: "cdcl\<^sub>W_M_level_inv S"
   shows "cdcl\<^sub>W S' T'"
   using assms by (meson assms backtrack_state_eq_compatible bj cdcl\<^sub>W.simps cdcl\<^sub>W_bj.simps
     cdcl\<^sub>W_o_rule_cases cdcl\<^sub>W_rf.cases cdcl\<^sub>W_rf.restart conflict_state_eq_compatible decide
@@ -962,11 +1088,12 @@ lemma cdcl\<^sub>W_state_eq_compatible:
     skip_state_eq_compatible)
 
 lemma level_of_marked_ge_1:
-  assumes "cdcl\<^sub>W S S'"
-  and "\<forall>L l. Marked L l \<in> set (trail S) \<longrightarrow> l > 0"
+  assumes "cdcl\<^sub>W S S'" and
+  "\<forall>L l. Marked L l \<in> set (trail S) \<longrightarrow> l > 0" and
+  inv: "cdcl\<^sub>W_M_level_inv S"
   shows "\<forall>L l. Marked L l \<in> set (trail S') \<longrightarrow> l > 0"
-  using assms apply(induct rule: cdcl\<^sub>W_all_induct)
-  by (auto dest: union_in_get_all_marked_decomposition_is_subset
+  using assms apply(induct rule:  cdcl\<^sub>W_all_induct_lev)
+  using inv by (auto dest: union_in_get_all_marked_decomposition_is_subset
       dest!: get_all_marked_decomposition_exists_prepend)
 
 lemma cdcl\<^sub>W_o_no_more_clauses:
