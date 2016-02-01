@@ -746,6 +746,10 @@ lemma true_clss_clss_remove[simp]:
   "A \<Turnstile>ps B \<Longrightarrow> A\<Turnstile>ps B - C"
   by (metis Un_Diff_Int true_clss_clss_union_and)
 
+lemma true_clss_clss_subsetE:
+  "N \<Turnstile>ps B \<Longrightarrow> A \<subseteq> B \<Longrightarrow> N \<Turnstile>ps A"
+  by (metis sup.orderE true_clss_clss_union_and)
+
 lemma true_clss_clss_in_imp_true_clss_cls:
   assumes "N \<Turnstile>ps U"
   and "A \<in> U"
