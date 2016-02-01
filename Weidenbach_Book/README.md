@@ -1,8 +1,6 @@
 # Formalization of Weidenbach's _Automated Reasoning―The Art of Generic Problem Solving_ #
 
-[This directory](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Weidenbach_Book/)
-contains an ongoing Isabelle formalization of Christoph Weidenbach's
-forthcoming book _Automated Reasoning―The Art of Generic Problem Solving_.
+[This directory](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Weidenbach_Book/) contains an ongoing Isabelle formalization of Christoph Weidenbach's forthcoming book _Automated Reasoning―The Art of Generic Problem Solving_.
 
 ## Authors ##
 
@@ -25,24 +23,19 @@ forthcoming book _Automated Reasoning―The Art of Generic Problem Solving_.
 
 ## Execution ##
 
-A recent version of Isabelle is necessary to process the theory files (e.g.,
-[Isabelle2016-RC2](http://isabelle.in.tum.de/website-Isabelle2016-RC2)).
-
-To process all the theory files, open ```Weidenbach_Book.thy``` in Isabelle/jEdit.
+A recent version of Isabelle is necessary to process the theory files (e.g., [Isabelle2016-RC2](http://isabelle.in.tum.de/website-Isabelle2016-RC2)). To process all theory files, open ```Weidenbach_Book.thy``` in Isabelle/jEdit.
 
 ## Documentation ##
 
 A recent version of the theory files is also available as [a PDF document](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Weidenbach_Book/output/document.pdf). 
 
-The draft [A Verified SAT Solver Framework](http://people.mpi-inf.mpg.de/~jblanche/sat.pdf) refers to theorems in the formalization.
-The following table establishes a correspondence between the two sources.
+The draft [A Verified SAT Solver Framework](http://people.mpi-inf.mpg.de/~jblanche/sat.pdf) refers to theorems in the formalization. The following table establishes a correspondence between the two sources.
 
 Paper                            Theory file   Theorem name
 ---------------------------------------------------------------------
 Theorem 1 (dpllNOT_sound)        DPLL_NOT      dpll\<sym\>N\<sym\>
 
-The Standard ML code produced by the SAT solver can be viewed by moving the cursor to the ```export_code``` line
-in ```CDCL_W_Implementation.thy```.
+The Standard ML code produced by the SAT solver can be viewed by moving the cursor to the ```export_code``` line in ```CDCL_W_Implementation.thy```.
 
 ## Status ##
 
