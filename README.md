@@ -1,15 +1,8 @@
 # IsaFoL: Isabelle Formalization of Logic #
 
-This repository contains various ongoing Isabelle formalizations of logical
-calculi.
+This repository contains various ongoing Isabelle formalizations of logical calculi.
 
-The goal is to develop lemma libraries and methodology for formalizing modern
-research in automated reasoning. Our initial focus is on well-established
-ground and first-order calculi, such as DPLL, CDCL, and resolution. One of
-our inspirations is the
-[IsaFoR/CeTA](http://cl-informatik.uibk.ac.at/software/ceta/) project
-(Isabelle/HOL Formalization of Rewriting for Certified Termination Analysis)
-at Universität Innsbruck.
+The goal is to develop lemma libraries and methodology for formalizing modern research in automated reasoning. Our initial focus is on well-established ground and first-order calculi, such as DPLL, CDCL, and resolution. One of our inspirations is the [IsaFoR/CeTA](http://cl-informatik.uibk.ac.at/software/ceta/) project (Isabelle/HOL Formalization of Rewriting for Certified Termination Analysis) at Universität Innsbruck.
 
 ## Entries ##
 
