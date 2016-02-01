@@ -32,4 +32,18 @@ To process all the theory files, simply load ```Weidenbach_Book.thy```.
 
 ## Documentation ##
 
+A recent version of the theory files is also available as [a PDF document](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Weidenbach_Book/output/document.pdf). 
+
+The draft [A Verified SAT Solver Framework](http://people.mpi-inf.mpg.de/~jblanche/sat.pdf) refers to theorems in the formalization.
+The following table establishes a correspondence between the two sources.
+
+Paper                            Theory file   Theorem name
+---------------------------------------------------------------------
+Theorem 1 (dpllNOT_sound)        DPLL_NOT      dpll\<sym\>N\<sym\>
+
+The Standard ML code produced by the SAT solver can be viewed by moving the cursor to the ```export_code``` line
+in ```CDCL_W_Implementation.thy```.
+
 ## Status ##
+
+Our partial implementation of two watched literals is located in ```CDCL_Two_Watched_Literals.thy```.
