@@ -34,7 +34,7 @@ at Universität Innsbruck.
 * [Jørgen Villadsen](mailto:jovi shtrudel dtu.dk)
 * [Christoph Weidenbach](mailto:weidenbach shtrudel mpi-inf.mpg.de)
 
-## Related entries in the _Archive of Formal Proofs_ ##
+## Related Entries in the _Archive of Formal Proofs_ ##
 
 * [Sound and Complete Sort Encodings for First-Order Logic](http://afp.sourceforge.net/entries/Sort_Encodings.shtml).
   J. C. Blanchette and A. Popescu. In _AFP_, 2014.
