@@ -376,21 +376,6 @@ superposition: "A \<in> N \<Longrightarrow> B \<in> N \<Longrightarrow> superpos
 definition abstract_red :: "'a::wellorder clause \<Rightarrow> 'a clauses \<Rightarrow> bool" where
 "abstract_red C N = (clss_lt N C \<Turnstile>p C)"
 
-(*TODO: remove when multiset is of sort ord again*)
-instantiation multiset :: (linorder) linorder
-begin
-
-definition less_multiset :: "'a::linorder multiset \<Rightarrow> 'a multiset \<Rightarrow> bool" where
-  "M' < M \<longleftrightarrow> M' #\<subset># M"
-
-definition less_eq_multiset :: "'a multiset \<Rightarrow> 'a multiset \<Rightarrow>bool" where
-   "(M'::'a multiset) \<le> M \<longleftrightarrow> M' #\<subseteq># M"
-
-instance
-  by standard (auto simp add: less_eq_multiset_def less_multiset_def multiset_order.less_le_not_le
-    add.commute multiset_order.add_right_mono)
-end
-
 lemma less_multiset[iff]: "M < N \<longleftrightarrow> M #\<subset># N"
   unfolding less_multiset_def by auto
 

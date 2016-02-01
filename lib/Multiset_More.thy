@@ -700,4 +700,19 @@ lemma image_filter_ne_mset[simp]:
   "image_mset f {#x \<in># M. f x \<noteq> y#} = remove_mset y (image_mset f M)"
   by (induct M, auto, meson count_le_replicate_mset_le order_refl subset_mset.add_diff_assoc2)
 
+
+(*TODO: remove when multiset is of sort ord again*)  
+instantiation multiset :: (linorder) linorder
+begin
+
+definition less_multiset :: "'a::linorder multiset \<Rightarrow> 'a multiset \<Rightarrow> bool" where
+  "M' < M \<longleftrightarrow> M' #\<subset># M"
+
+definition less_eq_multiset :: "'a multiset \<Rightarrow> 'a multiset \<Rightarrow>bool" where
+   "(M'::'a multiset) \<le> M \<longleftrightarrow> M' #\<subseteq># M"
+
+instance
+  by standard (auto simp add: less_eq_multiset_def less_multiset_def multiset_order.less_le_not_le
+    add.commute multiset_order.add_right_mono)
+end
 end

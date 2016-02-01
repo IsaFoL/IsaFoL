@@ -1038,22 +1038,6 @@ next
     unfolding rewatch_nat_def using False by simp
 qed
 
-
-(*TODO: remove when multiset is of sort linord again*)
-instantiation multiset :: (linorder) linorder
-begin
-
-definition less_multiset :: "'a :: linorder multiset \<Rightarrow> 'a multiset \<Rightarrow> bool" where
-  "M' < M \<longleftrightarrow> M' #<# M"
-
-definition less_eq_multiset :: "'a multiset \<Rightarrow> 'a multiset \<Rightarrow> bool" where
-  "M' \<le> M \<longleftrightarrow> M' #<=# M"
-
-instance
-  by standard (auto simp: less_eq_multiset_def less_multiset_def)
-
-end
-
 (* implementation of watch etc. *)
 interpretation abstract_twl watch_nat rewatch_nat sorted_list_of_multiset learned_clss
   apply unfold_locales

@@ -1063,9 +1063,8 @@ qed
 
 lemma cls_in_build_all_simple_clss:
   shows "{#} \<in> build_all_simple_clss s"
-  apply (induct rule: build_all_simple_clss.induct)
-   apply simp
-  by (metis (no_types, lifting) UnCI build_all_simple_clss.simps insertI1)
+  by (induct s rule: build_all_simple_clss.induct)
+  (metis (no_types, lifting) UnCI build_all_simple_clss.simps insertI1)
 
 lemma build_all_simple_clss_card:
   fixes atms :: "'v :: linorder set"
