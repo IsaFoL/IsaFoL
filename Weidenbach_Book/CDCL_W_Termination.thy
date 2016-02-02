@@ -651,7 +651,7 @@ next
   thus ?case using cp by blast
 qed
 
-lemma cdcl\<^sub>W_W_stgy_no_relearned_clause:
+lemma cdcl\<^sub>W_stgy_no_relearned_clause:
   assumes invR: "cdcl\<^sub>W_all_struct_inv R" and
   st': "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* R S" and
   bt: "backtrack S T" and
@@ -851,13 +851,13 @@ next
             cls_S': "clauses S' = {#E#} + clauses S"
             by auto
           then have "E \<notin># clauses S"
-            using cdcl\<^sub>W_W_stgy_no_relearned_clause R invR local.backtrack st by blast
+            using cdcl\<^sub>W_stgy_no_relearned_clause R invR local.backtrack st by blast
           then show ?thesis using IH by (simp add: distinct_mset_add_single cls_S')
         qed auto
     qed
 qed
 
-lemma cdcl\<^sub>W_W_stgy_distinct_mset_clauses:
+lemma cdcl\<^sub>W_stgy_distinct_mset_clauses:
   assumes
     st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S" and
     no_duplicate_clause: "distinct_mset N" and
@@ -1144,7 +1144,7 @@ proof -
             proof cases
               case (backtrack) note bt = this(1)
                 have no_relearn: "\<forall>T. conflicting S = C_Clause T \<longrightarrow> T \<notin># learned_clss S"
-                  using cdcl\<^sub>W_W_stgy_no_relearned_clause[OF invR st] invR st bt R cdcl\<^sub>W_all_struct_inv_def
+                  using cdcl\<^sub>W_stgy_no_relearned_clause[OF invR st] invR st bt R cdcl\<^sub>W_all_struct_inv_def
                   clauses_def by auto
                 show ?thesis
                   apply (rule cdcl\<^sub>W_measure_decreasing)
