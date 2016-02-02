@@ -76,7 +76,7 @@ proof -
                 true_clss_singleton_lit_of_implies_incl true_clss_union)
             ultimately show ?case using cons consistent_CNot_not by blast
           qed
-        thus ?thesis
+        then show ?thesis
           using true_clss_clss_left_right[OF N_C_M, of "{{#}}"] unfolding A by auto
       qed
     have "N \<Turnstile>pm image_mset uminus ?C + {#-?K#}"
@@ -92,7 +92,7 @@ proof -
         have "total_over_set I (atm_of ` lit_of ` (set M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}))"
           using tot by (auto simp add: L atms_of_uminus_lit_atm_of_lit_of)
 
-        hence H: "\<And>x.
+        then have H: "\<And>x.
             lit_of x \<notin> I \<Longrightarrow> x \<in> set M \<Longrightarrow>is_marked x
             \<Longrightarrow> x \<noteq> Marked K d \<Longrightarrow> -lit_of x \<in> I"
             (* TODO one-liner? *)
@@ -109,7 +109,7 @@ proof -
               by simp
             have "Pos (atm_of (lit_of x)) \<in> I \<or> Neg (atm_of (lit_of x)) \<in> I"
               using a5 a4 a2 a1 by blast
-            thus "- lit_of x \<in> I"
+            then show "- lit_of x \<in> I"
               using f6 a3 by (metis (no_types) atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
                 literal.sel(1))
           qed
@@ -125,7 +125,7 @@ proof -
   moreover
     have "set F' \<inter> {K. is_marked K \<and> K \<noteq> L} = {}"
       using backtrack_split_fst_not_marked[of _ M] b_sp by auto
-    hence "F \<Turnstile>as CNot (image_mset uminus ?C)"
+    then have "F \<Turnstile>as CNot (image_mset uminus ?C)"
        unfolding M CNot_def true_annots_def by (auto simp add: L lits_of_def)
   ultimately show ?thesis
     using M' \<open>D \<in># snd ?S\<close> L by force
@@ -187,7 +187,7 @@ proof -
   obtain L G' G where
     "backtrack_split (fst S) = (G', L # G)"
     unfolding M by (induction F' rule: marked_lit_list_induct) auto
-  moreover hence "is_marked L"
+  moreover then have "is_marked L"
      by (metis backtrack_split_snd_hd_marked list.distinct(1) list.sel(1) snd_conv)
   ultimately show ?thesis
      using backtrack.intros[of S G' L G C] \<open>C \<in># snd S\<close> C unfolding M by auto
