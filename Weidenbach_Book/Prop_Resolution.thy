@@ -68,7 +68,7 @@ lemma simplify_preserves_finite:
 lemma rtranclp_simplify_preserves_finite:
  assumes "rtranclp simplify \<psi> \<psi>'"
  shows "finite \<psi> \<longleftrightarrow> finite \<psi>'"
- using assms by (induct rule: rtranclp.induct) (auto simp add: simplify_preserves_finite)
+ using assms by (induct rule: rtranclp_induct) (auto simp add: simplify_preserves_finite)
 
 lemma simplify_atms_of_m:
   assumes "simplify \<psi> \<psi>'"
@@ -90,7 +90,7 @@ qed
 lemma rtranclp_simplify_atms_of_m:
   assumes "rtranclp simplify \<psi> \<psi>'"
   shows "atms_of_m \<psi>' \<subseteq> atms_of_m \<psi>"
-  using assms apply (induct rule: rtranclp.induct)
+  using assms apply (induct rule: rtranclp_induct)
    apply (fastforce intro: simplify_atms_of_m)
   using simplify_atms_of_m by blast
 
@@ -118,7 +118,7 @@ lemma uncon_res_increasing:
 lemma rtranclp_uncon_inference_increasing:
   assumes "rtranclp uncon_res S S'" and "\<psi> \<in> S"
   shows "\<psi> \<in> S'"
-  using assms by (induct rule: rtranclp.induct) (auto simp add: uncon_res_increasing)
+  using assms by (induct rule: rtranclp_induct) (auto simp add: uncon_res_increasing)
 
 subsubsection \<open>Subsumption\<close>
 
@@ -188,7 +188,7 @@ lemma rtranclp_inference_preserves_already_used_inv:
   assumes "rtranclp inference S S'"
   and "already_used_inv S"
   shows "already_used_inv S'"
-  using assms apply (induct rule: rtranclp.induct, simp)
+  using assms apply (induct rule: rtranclp_induct, simp)
   using inference_preserves_already_used_inv unfolding tautology_def by fast
 
 lemma subsumes_condensation:
@@ -282,7 +282,7 @@ lemma inference_increasing:
 lemma rtranclp_inference_increasing:
   assumes "rtranclp inference S S'" and "\<psi> \<in> fst S"
   shows "\<psi> \<in> fst S'"
-  using assms by (induct rule: rtranclp.induct, auto simp add: inference_increasing)
+  using assms by (induct rule: rtranclp_induct, auto simp add: inference_increasing)
 
 lemma inference_clause_already_used_increasing:
   assumes "inference_clause S S'"
@@ -343,14 +343,14 @@ lemma inference_preserves_total:
 lemma rtranclp_inference_preserves_total:
   assumes "rtranclp inference T T'"
   shows "total_over_m I (fst T) \<Longrightarrow> total_over_m I (fst T')"
-  using assms by (induct rule: rtranclp.induct, auto simp add: inference_preserves_total)
+  using assms by (induct rule: rtranclp_induct, auto simp add: inference_preserves_total)
 
 lemma rtranclp_inference_preserves_un_sat:
   assumes "rtranclp inference N N'"
   and  "total_over_m I (fst N)"
   and consistent: "consistent_interp I"
   shows "I \<Turnstile>s fst N \<longleftrightarrow> I \<Turnstile>s fst N'"
-  using assms apply (induct rule: rtranclp.induct)
+  using assms apply (induct rule: rtranclp_induct)
   apply (simp add: inference_preserves_un_sat)
   using inference_preserves_un_sat rtranclp_inference_preserves_total by blast
 
@@ -375,7 +375,7 @@ lemma inference_preserves_finite_snd:
 lemma rtranclp_inference_preserves_finite:
   assumes "rtranclp inference \<psi> \<psi>'" and "finite (fst \<psi>)"
   shows "finite (fst \<psi>')"
-  using assms by (induct rule: rtranclp.induct)
+  using assms by (induct rule: rtranclp_induct)
     (auto simp add: simplify_preserves_finite inference_preserves_finite)
 
 lemma consistent_interp_insert:
@@ -457,7 +457,7 @@ lemma simplify_preserves_unsat:
 lemma inference_preserves_unsat:
   assumes "inference\<^sup>*\<^sup>* S S'"
   shows "satisfiable (fst S') \<longrightarrow>  satisfiable (fst S)"
-  using assms apply (induct rule: rtranclp.induct)
+  using assms apply (induct rule: rtranclp_induct)
   apply simp_all
   using simplify_preserves_unsat by blast
 
@@ -509,7 +509,7 @@ lemma rtranclp_inference_preserve_partial_tree:
   assumes "rtranclp inference N N'"
   and "partial_interps t I (fst N)"
   shows "partial_interps t I (fst N')"
-  using assms apply (induct rule: rtranclp.induct, auto)
+  using assms apply (induct rule: rtranclp_induct, auto)
   using inference_preserve_partial_tree by force
 
 
@@ -1128,7 +1128,7 @@ lemma resolution_finite:
 lemma rtranclp_resolution_finite:
   assumes "resolution\<^sup>*\<^sup>* \<psi> \<psi>'" and "finite (fst \<psi>)"
   shows "finite (fst \<psi>')"
-  using assms by (induct rule: rtranclp.induct, auto simp add: resolution_finite)
+  using assms by (induct rule: rtranclp_induct, auto simp add: resolution_finite)
 
 lemma resolution_finite_snd:
   assumes "resolution \<psi> \<psi>'" and "finite (snd \<psi>)"
@@ -1139,7 +1139,7 @@ lemma resolution_finite_snd:
 lemma rtranclp_resolution_finite_snd:
   assumes "resolution\<^sup>*\<^sup>* \<psi> \<psi>'" and "finite (snd \<psi>)"
   shows "finite (snd \<psi>')"
-  using assms by (induct rule: rtranclp.induct, auto simp add: resolution_finite_snd)
+  using assms by (induct rule: rtranclp_induct, auto simp add: resolution_finite_snd)
 
 lemma resolution_always_simplified:
  assumes "resolution \<psi> \<psi>'"
@@ -1163,7 +1163,7 @@ lemma resolution_atms_of:
 lemma rtranclp_resolution_atms_of:
   assumes "resolution\<^sup>*\<^sup>* \<psi> \<psi>'" and "finite (fst \<psi>)"
   shows "atms_of_m (fst \<psi>') \<subseteq> atms_of_m (fst \<psi>)"
-  using assms apply (induct rule: rtranclp.induct)
+  using assms apply (induct rule: rtranclp_induct)
   using resolution_atms_of rtranclp_resolution_finite by blast+
 
 lemma resolution_include:
@@ -1272,7 +1272,7 @@ lemma rtranclp_already_used_all_simple_inv:
   and "finite (fst S)"
   shows "already_used_all_simple (snd S') vars"
   using assms
-proof (induct rule: rtranclp.induct)
+proof (induct rule: rtranclp_induct)
   case rtrancl_refl
   thus ?case by simp
 next
@@ -2163,7 +2163,7 @@ lemma rtranclp_resolution_preserves_already_used_inv:
   and "already_used_inv S"
   shows "already_used_inv S'"
   using assms
-  apply (induct rule: rtranclp.induct)
+  apply (induct rule: rtranclp_induct)
    apply simp
   using resolution_preserves_already_used_inv by fast
 
@@ -2199,7 +2199,7 @@ lemma rtranclp_resolution_preserves_sat:
   assumes "resolution\<^sup>*\<^sup>* S S'"
   and "satisfiable (fst S)"
   shows "satisfiable (fst S')"
-  using assms apply (induction rule: rtranclp.induct)
+  using assms apply (induction rule: rtranclp_induct)
    apply simp
   using resolution_preserves_sat by blast
 
