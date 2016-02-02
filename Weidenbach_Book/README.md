@@ -30,23 +30,23 @@ To process all the theory files, simply load ```Weidenbach_Book.thy```.
 
 ## Documentation ##
 
-## Status ##
-=======
-A recent version of Isabelle is necessary to process the theory files (e.g., [Isabelle2016-RC2](http://isabelle.in.tum.de/website-Isabelle2016-RC2)). To process all theory files, open ```Weidenbach_Book.thy``` in Isabelle/jEdit.
-
-## Documentation ##
-
-A recent version of the theory files is also available as [a PDF document](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Weidenbach_Book/output/document.pdf). 
+A recent version of the theory files is also available as [a PDF document](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Weidenbach_Book/output/document.pdf).
 
 The draft [A Verified SAT Solver Framework](http://people.mpi-inf.mpg.de/~jblanche/sat.pdf) refers to theorems in the formalization. The following table establishes a correspondence between the two sources.
 
-Paper                            Theory file   Theorem name
----------------------------------------------------------------------
-Theorem 1 (dpllNOT_sound)        DPLL_NOT      dpll\<sym\>N\<sym\>
+    Paper        Theory file           Theorem name
+    -----------------------------------------------------------------------------------------------------
+    Theorem 1    CDCL_NOT              wf_dpll_bj
+    Theorem 2    CDCL_NOT              full_dpll_backjump_final_state_from_init_state
+    Lemma 3      DPLL_NOT              backtrack_is_backjump
+    Theorem 4    DPLL_NOT              dpll_conclusive_state_correctness
+    Theorem 5    CDCL_NOT              wf_cdcl\<^sub>N\<^sub>O\<^sub>T_no_learn_and_forget_infinite_chain
+    Theorem 6    CDCL_W                full_cdcl\<^sub>W_stgy_final_state_conclusive_from_init_state
+    Theorem 7    CDCL_W_Termination    cdcl\<^sub>W_stgy_distinct_mset_clauses
+    Theorem 8    CDCL_W_Incremental    incremental_conclusive_state
 
 The Standard ML code produced by the SAT solver can be viewed by moving the cursor to the ```export_code``` line in ```CDCL_W_Implementation.thy```.
 
 ## Status ##
 
 Our partial implementation of two watched literals is located in ```CDCL_Two_Watched_Literals.thy```.
->>>>>>> 9019e389d5c58ec23e5eb056e943ff53f12ec0fc
