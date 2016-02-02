@@ -173,7 +173,7 @@ proof -
     8: "F \<Turnstile>as CNot C'"
   using backtrack_is_backjump'[OF assms] by blast
   show ?thesis
-    using backjump.intros[OF 1 _ 3 4 5 6 7 8] 2 backtrack 1
+    using backjump.intros[OF 1 _ 3 4 5 6 7 8] 2 backtrack 1 5
     by (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def simp del: state_simp\<^sub>N\<^sub>O\<^sub>T)
 qed
 
