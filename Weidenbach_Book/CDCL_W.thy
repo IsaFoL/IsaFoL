@@ -484,7 +484,7 @@ rf: "cdcl\<^sub>W_rf S S' \<Longrightarrow> cdcl\<^sub>W S S'"
 
 lemma rtranclp_propagate_is_rtranclp_cdcl\<^sub>W:
   "propagate\<^sup>*\<^sup>* S S' \<Longrightarrow> cdcl\<^sub>W\<^sup>*\<^sup>* S S'"
-  by (induction rule: rtranclp.induct) (fastforce dest!: propagate)+
+  by (induction rule: rtranclp_induct) (fastforce dest!: propagate)+
 
 lemma cdcl\<^sub>W_all_rules_induct[consumes 1, case_names propagate conflict forget restart decide skip
     resolve backtrack]:
@@ -1479,7 +1479,7 @@ lemma rtanclp_distinct_cdcl\<^sub>W_state_inv:
     "cdcl\<^sub>W_M_level_inv S" and
     "distinct_cdcl\<^sub>W_state S"
   shows "distinct_cdcl\<^sub>W_state S'"
-  using assms apply (induct rule: rtranclp.induct)
+  using assms apply (induct rule: rtranclp_induct)
   using distinct_cdcl\<^sub>W_state_inv rtranclp_cdcl\<^sub>W_consistent_inv by blast+
 
 subsubsection \<open>Conflicts and co\<close>
@@ -1987,8 +1987,8 @@ lemma rtranclp_cdcl\<^sub>W_all_inv:
     "distinct_cdcl\<^sub>W_state S'" and
     "cdcl\<^sub>W_conflicting S'"
    using assms
-proof (induct rule: rtranclp.induct)
-  case (rtrancl_refl S)
+proof (induct rule: rtranclp_induct)
+  case base
     case 1 then show ?case by blast
     case 2 then show ?case by blast
     case 3 then show ?case by blast
@@ -1996,19 +1996,19 @@ proof (induct rule: rtranclp.induct)
     case 5 then show ?case by blast
     case 6 then show ?case by blast
 next
-  case (rtrancl_into_rtrancl S S' S'') note H = this
-    case 1 with H(2-7)[OF this(1-6)] show ?case using cdcl\<^sub>W_all_inv[OF H(8)]
-        rtrancl_into_rtrancl.hyps(1) by presburger
-    case 2 with H(2-7)[OF this(1-6)] show ?case using cdcl\<^sub>W_all_inv[OF H(8)]
-        rtrancl_into_rtrancl.hyps(1) by presburger
-    case 3 with H(2-7)[OF this(1-6)] show ?case using cdcl\<^sub>W_all_inv[OF H(8)]
-        rtrancl_into_rtrancl.hyps(1) by presburger
-    case 4 with H(2-7)[OF this(1-6)] show ?case using cdcl\<^sub>W_all_inv[OF H(8)]
-        rtrancl_into_rtrancl.hyps(1) by presburger
-    case 5 with H(2-7)[OF this(1-6)] show ?case using cdcl\<^sub>W_all_inv[OF H(8)]
-        rtrancl_into_rtrancl.hyps(1) by presburger
-    case 6 with H(2-7)[OF this(1-6)] show ?case using cdcl\<^sub>W_all_inv[OF H(8)]
-        rtrancl_into_rtrancl.hyps(1) by presburger
+  case (step S' S'') note H = this
+    case 1 with H(3-7)[OF this(1-6)] show ?case using cdcl\<^sub>W_all_inv[OF H(2)]
+        H by presburger
+    case 2 with H(3-7)[OF this(1-6)] show ?case using cdcl\<^sub>W_all_inv[OF H(2)]
+        H by presburger
+    case 3 with H(3-7)[OF this(1-6)] show ?case using cdcl\<^sub>W_all_inv[OF H(2)]
+        H by presburger
+    case 4 with H(3-7)[OF this(1-6)] show ?case using cdcl\<^sub>W_all_inv[OF H(2)]
+        H by presburger
+    case 5 with H(3-7)[OF this(1-6)] show ?case using cdcl\<^sub>W_all_inv[OF H(2)]
+        H by presburger
+    case 6 with H(3-7)[OF this(1-6)] show ?case using cdcl\<^sub>W_all_inv[OF H(2)]
+        H by presburger
 qed
 
 lemma all_invariant_S0_cdcl\<^sub>W:
@@ -2349,7 +2349,7 @@ lemma no_step_cdcl\<^sub>W_cp_no_conflict_no_propagate:
 text \<open>CDCL with the reasonable strategy: we fully propagate the conflict and propagate, then we
   apply any other possible rule @{term "cdcl\<^sub>W_o S S'"} and re-apply conflict and propagate
   @{term "full cdcl\<^sub>W_cp S' S''"}\<close>
-inductive cdcl\<^sub>W_stgy :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+inductive cdcl\<^sub>W_stgy :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 conflict': "full1 cdcl\<^sub>W_cp S S' \<Longrightarrow> cdcl\<^sub>W_stgy S S'" |
 other': "cdcl\<^sub>W_o S S'  \<Longrightarrow> no_step cdcl\<^sub>W_cp S \<Longrightarrow> full cdcl\<^sub>W_cp S' S'' \<Longrightarrow> cdcl\<^sub>W_stgy S S''"
 
@@ -2363,7 +2363,7 @@ lemma cdcl\<^sub>W_cp_learned_clause_inv:
 lemma rtranclp_cdcl\<^sub>W_cp_learned_clause_inv:
   assumes "cdcl\<^sub>W_cp\<^sup>*\<^sup>* S S'"
   shows "learned_clss S = learned_clss S'"
-  using assms by (induct rule: rtranclp.induct) (fastforce dest: cdcl\<^sub>W_cp_learned_clause_inv)+
+  using assms by (induct rule: rtranclp_induct) (fastforce dest: cdcl\<^sub>W_cp_learned_clause_inv)+
 
 lemma tranclp_cdcl\<^sub>W_cp_learned_clause_inv:
   assumes "cdcl\<^sub>W_cp\<^sup>+\<^sup>+ S S'"
@@ -2378,7 +2378,7 @@ lemma cdcl\<^sub>W_cp_backtrack_lvl:
 lemma rtranclp_cdcl\<^sub>W_cp_backtrack_lvl:
   assumes "cdcl\<^sub>W_cp\<^sup>*\<^sup>* S S'"
   shows "backtrack_lvl S = backtrack_lvl S'"
-  using assms by (induct rule: rtranclp.induct) (fastforce dest: cdcl\<^sub>W_cp_backtrack_lvl)+
+  using assms by (induct rule: rtranclp_induct) (fastforce dest: cdcl\<^sub>W_cp_backtrack_lvl)+
 
 lemma cdcl\<^sub>W_cp_consistent_inv:
   assumes "cdcl\<^sub>W_cp S S'"
@@ -2450,7 +2450,7 @@ lemma rtranclp_cdcl\<^sub>W_stgy_no_more_init_clss:
   assumes "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S S'" and "cdcl\<^sub>W_M_level_inv S"
   shows "init_clss S = init_clss S'"
   using assms
-  apply (induct rule: rtranclp.induct, simp)
+  apply (induct rule: rtranclp_induct, simp)
   using cdcl\<^sub>W_stgy_no_more_init_clss by (simp add: rtranclp_cdcl\<^sub>W_stgy_consistent_inv)
 
 lemma cdcl\<^sub>W_cp_dropWhile_trail':
@@ -3257,7 +3257,7 @@ proof (induct rule: cdcl\<^sub>W_stgy.induct)
   then show ?case
    unfolding full1_def by (simp add: tranclp_cdcl\<^sub>W_cp_tranclp_cdcl\<^sub>W)
 next
-  case (other' S  S' S'')
+  case (other' S' S'')
   then have "S' = S'' \<or> cdcl\<^sub>W_cp\<^sup>+\<^sup>+ S' S''"
     by (simp add: rtranclp_unfold full_def)
   then show ?case
@@ -3381,14 +3381,14 @@ lemma cdcl\<^sub>W_cp_propagate_completeness:
   "learned_clss S = {#}"
   shows "length (trail S) \<le> length (trail S') \<and> lits_of (trail S') \<subseteq> set M"
   using assms(6,4,5,7)
-proof (induction rule: rtranclp.induct)
-  case rtrancl_refl
+proof (induction rule: rtranclp_induct)
+  case base
   then show ?case by auto
 next
-  case (rtrancl_into_rtrancl X Y Z)
+  case (step Y Z)
   note st = this(1) and propa = this(2) and IH = this(3) and lits' = this(4) and NS = this(5) and
     learned = this(6)
-  then have len: "length (trail X) \<le> length (trail Y)" and LM: "lits_of (trail Y) \<subseteq> set M"
+  then have len: "length (trail S) \<le> length (trail Y)" and LM: "lits_of (trail Y) \<subseteq> set M"
      by blast+
 
   obtain M' N' U k C L where
@@ -3398,7 +3398,7 @@ next
     M'_C: "M' \<Turnstile>as CNot C" and
     "undefined_lit (trail Y) L"
     using propa by auto
-  have "init_clss X = init_clss Y"
+  have "init_clss S = init_clss Y"
     using st by induction auto
   then have [simp]: "N' = N" using NS Y Z by simp
   have "learned_clss Y = {#}"
@@ -3410,7 +3410,7 @@ next
   moreover
     have "set M \<Turnstile> C + {#L#}"
       using MN C learned Y unfolding true_clss_def clauses_def
-      by (metis NS \<open>init_clss X = init_clss Y\<close> \<open>learned_clss Y = {#}\<close> add.right_neutral
+      by (metis NS \<open>init_clss S = init_clss Y\<close> \<open>learned_clss Y = {#}\<close> add.right_neutral
         mem_set_mset_iff)
   ultimately have "L \<in> set M" by (simp add: cons consistent_CNot_not)
   then show ?case using LM len Y Z by auto
@@ -3623,8 +3623,8 @@ next
           have "cdcl\<^sub>W_M_level_inv (cons_trail (Marked m (Suc (backtrack_lvl S)))
             (update_backtrack_lvl (Suc (backtrack_lvl S)) S))"
             using S \<open>cdcl\<^sub>W_M_level_inv (cons_trail (Marked m (k + 1)) (incr_lvl S))\<close> by auto
-          then have S'': "S'' \<sim>
-            update_backtrack_lvl (backtrack_lvl S'') (append_trail (rev (trail S'')) (init_state N))"
+          then have S'': "S'' \<sim> update_backtrack_lvl (backtrack_lvl S'') 
+            (append_trail (rev (trail S'')) (init_state N))"
             using rtranclp_propagate_is_update_trail[OF S''] S undef n_d'' lev''
             by (auto simp del: state_simp simp: state_eq_def )
           then have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S''"
@@ -3726,8 +3726,8 @@ next
   case skip
   then show ?case using smaller no_f max_lev unfolding no_smaller_confl_def by auto
 next
-  case (backtrack K i M1 M2 L D T) note decomp = this(1) and confl = this(3) and undef = this(6) and
-    T =this(7)
+  case (backtrack K i M1 M2 L D T) note decomp = this(1) and confl = this(3) and undef = this(6) 
+    and T =this(7)
   obtain c where M: "trail S = c @ M2 @ Marked K (i+1) # M1"
     using decomp by auto
 
@@ -3822,11 +3822,11 @@ lemma rtrancp_cdcl\<^sub>W_cp_no_smaller_confl_inv:
   and n_l: "no_smaller_confl S"
   shows "no_smaller_confl S'"
   using assms
-proof (induct rule: rtranclp.induct)
-  case rtrancl_refl
+proof (induct rule: rtranclp_induct)
+  case base
   then show ?case by simp
 next
-  case (rtrancl_into_rtrancl S S' S'')
+  case (step S' S'')
   then show ?case using cdcl\<^sub>W_cp_no_smaller_confl_inv[of S' S''] by fast
 qed
 
@@ -3865,10 +3865,10 @@ lemma cdcl\<^sub>W_stgy_no_smaller_confl_inv:
   shows "no_smaller_confl S'"
   using assms
 proof (induct rule: cdcl\<^sub>W_stgy.induct)
-  case (conflict' S S')
+  case (conflict' S')
   then show ?case using full1_cdcl\<^sub>W_cp_no_smaller_confl_inv[of S S'] by blast
 next
-  case (other' S S' S'')
+  case (other' S' S'')
   have "no_smaller_confl S'"
     using cdcl\<^sub>W_o_no_smaller_confl_inv[OF other'.hyps(1) other'.prems(3,2,1)]
     not_conflict_not_any_negated_init_clss other'.hyps(2) by blast
@@ -4017,7 +4017,8 @@ proof -
       case propa
       then have "conflicting U = C_True"
         using no_confl by induction auto
-      moreover have [simp]: "learned_clss U = learned_clss S" and [simp]: "init_clss U = init_clss S"
+      moreover have [simp]: "learned_clss U = learned_clss S" and 
+        [simp]: "init_clss U = init_clss S"
         using propa by induction auto
       moreover
         obtain D where D: "D\<in>#clauses U" and
@@ -4066,16 +4067,16 @@ lemma cdcl\<^sub>W_stgy_no_smaller_confl:
   shows "no_smaller_confl S'"
   using assms
 proof (induct rule: cdcl\<^sub>W_stgy.induct)
-  case (conflict' S S')
+  case (conflict' S')
   show "no_smaller_confl S'"
     using conflict'.hyps conflict'.prems(1) full1_cdcl\<^sub>W_cp_no_smaller_confl_inv by blast
 next
-  case (other' S S' S'')
+  case (other' S' S'')
   have lev': "cdcl\<^sub>W_M_level_inv S'"
     using cdcl\<^sub>W_consistent_inv other other'.hyps(1) other'.prems(3) by blast
   show "no_smaller_confl S''"
-    using cdcl\<^sub>W_stgy_no_smaller_confl_inv[OF cdcl\<^sub>W_stgy.other'[OF other'.hyps(1-3)]] other'.prems(1-3)
-    by blast
+    using cdcl\<^sub>W_stgy_no_smaller_confl_inv[OF cdcl\<^sub>W_stgy.other'[OF other'.hyps(1-3)]] 
+    other'.prems(1-3) by blast
 qed
 
 lemma cdcl\<^sub>W_stgy_ex_lit_of_max_level:
@@ -4089,15 +4090,16 @@ lemma cdcl\<^sub>W_stgy_ex_lit_of_max_level:
   shows "conflict_is_false_with_level S'"
   using assms
 proof (induct rule: cdcl\<^sub>W_stgy.induct)
-  case (conflict' S S')
+  case (conflict' S')
   have "no_smaller_confl S'"
     using conflict'.hyps conflict'.prems(1) full1_cdcl\<^sub>W_cp_no_smaller_confl_inv by blast
   moreover have "conflict_is_false_with_level S'"
-    using conflict'.hyps conflict'.prems(2-4) rtranclp_cdcl\<^sub>W_co_conflict_ex_lit_of_max_level[of S S']
+    using conflict'.hyps conflict'.prems(2-4) 
+    rtranclp_cdcl\<^sub>W_co_conflict_ex_lit_of_max_level[of S S']
     unfolding full_def full1_def rtranclp_unfold by blast
   then show ?case by blast
 next
-  case (other' S S' S'')
+  case (other' S' S'')
   have lev': "cdcl\<^sub>W_M_level_inv S'"
     using cdcl\<^sub>W_consistent_inv other other'.hyps(1) other'.prems(3) by blast
   moreover
@@ -4126,7 +4128,7 @@ next
         other'.prems(3,5,6,2) by blast
       moreover have "cdcl\<^sub>W_cp\<^sup>*\<^sup>* S' S''" using other'.hyps(3) unfolding full_def by auto
       then have "S' = S''" using c
-        by (induct rule: rtranclp.induct)
+        by (induct rule: rtranclp_induct)
            (fastforce intro: conflicting_clause.exhaust)+
       ultimately have "conflict_is_false_with_level S''" by auto
     }
@@ -4270,7 +4272,8 @@ next
   have "no_smaller_confl S'" and "conflict_is_false_with_level S'"
     using IH by blast+
   moreover have "cdcl\<^sub>W_M_level_inv S'"
-    using  st lev rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W by (blast intro: rtranclp_cdcl\<^sub>W_consistent_inv)+
+    using  st lev rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W 
+    by (blast intro: rtranclp_cdcl\<^sub>W_consistent_inv)+
   moreover have "no_clause_is_false S'"
     using st no_f rtranclp_cdcl\<^sub>W_stgy_not_non_negated_init_clss by blast
   moreover have "distinct_cdcl\<^sub>W_state S'"
@@ -4374,7 +4377,7 @@ lemma cdcl\<^sub>W_stgy_conflicting_is_false:
 
 lemma rtranclp_cdcl\<^sub>W_stgy_conflicting_is_false:
   "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S S' \<Longrightarrow> conflicting S = C_Clause {#} \<Longrightarrow> S' = S"
-  apply (induction rule: rtranclp.induct)
+  apply (induction rule: rtranclp_induct)
     apply simp
   using cdcl\<^sub>W_stgy_conflicting_is_false by blast
 
@@ -4473,7 +4476,8 @@ next
         s: "cdcl\<^sub>W_stgy S T" and st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* T S'"
         using full step_s full unfolding full_def by (metis rtranclp_unfold tranclpD)
       have "resolve S T \<or> skip S T"
-        using s no_b no_d res_skip full_S_S unfolding cdcl\<^sub>W_stgy.simps cdcl\<^sub>W_o.simps full_unfold full1_def
+        using s no_b no_d res_skip full_S_S unfolding cdcl\<^sub>W_stgy.simps cdcl\<^sub>W_o.simps full_unfold 
+        full1_def
         by (auto dest!: tranclpD simp: cdcl\<^sub>W_bj.simps)
       then obtain D' where T: "state T = (M, N, U, 0, C_Clause D')"
         using S E by auto
