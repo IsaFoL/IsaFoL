@@ -71,6 +71,9 @@ next
     using IH z rtranclp.rtrancl_into_rtrancl by fastforce
 qed
 
+lemma rtranclp_and_rtranclp_left: "(\<lambda> a b. P a b \<and> Q a b)\<^sup>*\<^sup>* S T \<Longrightarrow> P\<^sup>*\<^sup>* S T"
+  by (induction rule: rtranclp_induct) auto
+
 subsection \<open>Full Transitions\<close>
 text \<open>We define here properties to define properties after all possible transitions.\<close>
 abbreviation "no_step step S \<equiv> (\<forall>S'. \<not>step S S')"
