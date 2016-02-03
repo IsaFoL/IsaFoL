@@ -42,20 +42,28 @@ definition candidates_conflict :: "('v, 'lvl, 'mark) twl_state \<Rightarrow> 'v 
   "candidates_conflict S =
    {raw_clause C | C. C \<in># clauses S \<and> watched C \<subseteq># mset_set (uminus ` lits_of (trail S))}"
 
+primrec (nonexhaustive) index :: "'a list \<Rightarrow>'a \<Rightarrow> nat" where
+"index (a # l) c = (if a = c then 0 else 1+index l c)"
+
+lemma index_nth:
+  "a \<in> set l \<Longrightarrow> l ! (index l a) = a"
+  by (induction l) auto
+
 text \<open>We need the following property: if there is a literal @{term L} with @{term "-L"} in the trail
   and @{term L} is not  watched, then it stays unwatched; i.e., while updating with @{term rewatch}
   it does not get swap with a watched literal @{term L'} such that @{term "-L'"} is in the trail.\<close>
-primrec watched_decided_most_recently where
+primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v twl_clause \<Rightarrow> bool"
+  where
 "watched_decided_most_recently M (TWL_Clause W UW) \<longleftrightarrow>
   (\<forall>L'\<in>#W. \<forall>L\<in>#UW.
     -L' \<in> lits_of M \<longrightarrow> -L \<in> lits_of M \<longrightarrow>
-      Max {i. map lit_of M!i = -L'} \<le> Max {i. map lit_of M!i = -L})"
+      index (map lit_of M) (-L') \<le> index (map lit_of M) (-L))"
 
 primrec wf_twl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v twl_clause \<Rightarrow> bool" where
   "wf_twl_cls M (TWL_Clause W UW) \<longleftrightarrow>
    distinct_mset W \<and> size W \<le> 2 \<and> (size W < 2 \<longrightarrow> set_mset UW \<subseteq> set_mset W) \<and>
-   (\<forall>L \<in># W. -L \<in> lits_of M \<longrightarrow> (\<forall>L' \<in># UW. L' \<notin># W \<longrightarrow> -L' \<in> lits_of M) \<and>
-   watched_decided_most_recently M (TWL_Clause W UW))"
+   (\<forall>L \<in># W. -L \<in> lits_of M \<longrightarrow> (\<forall>L' \<in># UW. L' \<notin># W \<longrightarrow> -L' \<in> lits_of M)) \<and>
+   watched_decided_most_recently M (TWL_Clause W UW)"
 
 lemma "-L \<in> lits_of M \<Longrightarrow>  {i. map lit_of M!i = -L} \<noteq> {}"
   unfolding set_map_lit_of_lits_of[symmetric] set_conv_nth
@@ -70,8 +78,8 @@ lemma distinct_mset_size_2: "distinct_mset {#a, b#} \<longleftrightarrow> a \<no
   unfolding distinct_mset_def by auto
 
 text \<open>does not hold when all there are multiple conflicts in a clause.\<close>
-lemma 
-  assumes wf: "wf_twl_cls M C"
+lemma wf_twl_cls_wf_twl_cls_tl:
+  assumes wf: "wf_twl_cls M C" and n_d: "no_dup M"
   shows "wf_twl_cls (tl M) C"
 proof (cases M)
   case Nil
@@ -83,29 +91,49 @@ next
     by (cases C)
   { fix L L'
     assume
-      LW: "L \<in># W" and 
+      LW: "L \<in># W" and
       LM: "- L \<in> lits_of M'" and
       L'UW: "L' \<in># UW" and
       "count W L' = 0"
-    then have 
-      "- L' \<in> lits_of M"
+    then have
+      L'M: "- L' \<in> lits_of M"
       using wf by (auto simp: C M)
     have "watched_decided_most_recently M C"
       using wf by (auto simp: C)
-    then have 
-      "Max {i. map lit_of M!i = -L} \<le> Max {i. map lit_of M!i = -L'}"
-      apply (auto simp: C)
-      sorry
+    then have
+      "index (map lit_of M) (-L) \<le> index (map lit_of M) (-L')"
+      using LM L'M L'UW LW by (metis (mono_tags, lifting) C M bspec_mset insert_iff lits_of_cons
+        watched_decided_most_recently.simps)
     then have "- L' \<in> lits_of M'"
-      apply (auto simp: C M)
-    sorry 
+      using \<open>count W L' = 0\<close> LW L'M by (auto simp: C M split: split_if_asm)
   }
-  show ?thesis
-apply (auto simp: M C wf_twl_cls.simps[of "tl _"])
-oops
+  moreover
+    {
+      fix L L' La
+      assume
+        "L \<in># W" and
+        LM': "- L \<in> lits_of M'" and
+        "L' \<in># W" and
+        "La \<in># UW" and
+        L'M: "- L' \<in> lits_of M'" and
+        "- La \<in> lits_of M'"
+      moreover
+        have "lit_of l \<noteq> - L'"
+        using n_d
+          by (metis (no_types) L'M M Marked_Propagated_in_iff_in_lits_of defined_lit_map
+            distinct.simps(2) list.simps(9) set_map)
+      moreover have "watched_decided_most_recently M C"
+        using wf by (auto simp: C)
+      ultimately have "index (map lit_of M') (- L') \<le> index (map lit_of M') (- La)"
+        by (auto simp: M C split: split_if_asm)
+    }
+  moreover have "distinct_mset W" and "size W \<le> 2" and "(size W < 2 \<longrightarrow> set_mset UW \<subseteq> set_mset W)"
+    using wf by (auto simp: C M)
+  ultimately show ?thesis by (simp add: M C)
+qed
 
 definition wf_twl_state :: "('v, 'lvl, 'mark) twl_state \<Rightarrow> bool" where
-  "wf_twl_state S \<longleftrightarrow> (\<forall>C \<in># clauses S. wf_twl_cls (trail S) C)"
+  "wf_twl_state S \<longleftrightarrow> (\<forall>C \<in># clauses S. wf_twl_cls (trail S) C) \<and> no_dup (trail S)"
 
 lemma wf_candidates_propagate_sound:
   assumes wf: "wf_twl_state S" and
@@ -452,7 +480,7 @@ locale abstract_twl =
     restart_learned :: "('v, nat, 'v clause) twl_state \<Rightarrow> 'v twl_clause multiset"
   assumes
     clause_watch: "raw_clause (watch S C) = C" and
-    wf_watch: "wf_twl_cls (trail S) (watch S C)" and
+    wf_watch: "no_dup (trail S) \<Longrightarrow> wf_twl_cls (trail S) (watch S C)" and
     clause_rewatch: "raw_clause (rewatch L S C') = raw_clause C'" and
     wf_rewatch: "wf_twl_cls (trail S) C' \<Longrightarrow> wf_twl_cls (L # trail S) (rewatch L S C')" and
     linearize: "mset (linearize N) = N" and
@@ -570,11 +598,13 @@ declare state_simp[simp del]
 abbreviation cons_trail_twl where
 "cons_trail_twl L S \<equiv> twl_of_rough_state (cons_trail L (rough_state_of_twl S))"
 
-lemma wf_twl_state_cons_trail: "wf_twl_state S \<Longrightarrow> wf_twl_state (cons_trail L S)"
-  unfolding wf_twl_state_def by (auto simp: cons_trail_def wf_rewatch)
+lemma wf_twl_state_cons_trail:
+  "undefined_lit (trail S) (lit_of L) \<Longrightarrow> wf_twl_state S \<Longrightarrow> wf_twl_state (cons_trail L S)"
+  unfolding wf_twl_state_def by (auto simp: cons_trail_def wf_rewatch defined_lit_map)
 
 lemma rough_state_of_twl_cons_trail:
-  "rough_state_of_twl (cons_trail_twl L S) = cons_trail L (rough_state_of_twl S)"
+  "undefined_lit (trail_twl S) (lit_of L) \<Longrightarrow>
+    rough_state_of_twl (cons_trail_twl L S) = cons_trail L (rough_state_of_twl S)"
   using rough_state_of_twl twl_of_rough_state_inverse wf_twl_state_cons_trail by blast
 
 abbreviation add_init_cls_twl where
@@ -632,7 +662,8 @@ abbreviation tl_trail_twl where
 "tl_trail_twl S \<equiv> twl_of_rough_state (tl_trail (rough_state_of_twl S))"
 
 lemma wf_twl_state_tl_trail: "wf_twl_state S \<Longrightarrow> wf_twl_state (tl_trail S)"
-  sorry
+  by (simp add: twl_of_rough_state_inverse wf_twl_init_state wf_twl_cls_wf_twl_cls_tl
+    tl_trail_def wf_twl_state_def distinct_tl map_tl)
 
 lemma rough_state_of_twl_tl_trail:
   "rough_state_of_twl (tl_trail_twl S) = tl_trail (rough_state_of_twl S)"
@@ -666,18 +697,20 @@ abbreviation raw_clauses_twl where
 "raw_clauses_twl S \<equiv> clauses (rough_state_of_twl S)"
 
 abbreviation restart_twl where
-"restart_twl S \<equiv>  twl_of_rough_state (restart' (rough_state_of_twl S))"
+"restart_twl S \<equiv> twl_of_rough_state (restart' (rough_state_of_twl S))"
 
 lemma wf_wf_restart': "wf_twl_state S \<Longrightarrow> wf_twl_state (restart' S)"
-  unfolding restart'_def wf_twl_state_def apply clarify
-  apply (rename_tac x)
-  apply (subgoal_tac "wf_twl_cls (trail S) x")
-  apply (case_tac x)
+  unfolding restart'_def wf_twl_state_def apply standard
+   apply clarify
+   apply (rename_tac x)
+   apply (subgoal_tac "wf_twl_cls (trail S) x")
+    apply (case_tac x)
   using restart_learned by fastforce+
 
 lemma rough_state_of_twl_restart_twl:
   "rough_state_of_twl (restart_twl S) = restart' (rough_state_of_twl S)"
   by (simp add: twl_of_rough_state_inverse wf_wf_restart')
+
 (* Sledgehammer is awesome! *)
 interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl_NOT: dpll_state
   "convert_trail_from_W o trail_twl" raw_clauses_twl
@@ -686,7 +719,7 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl_NOT: dpll_state
   "\<lambda>C S. add_learned_cls_twl C S"
   "\<lambda>C S. remove_cls_twl C S"
   apply unfold_locales
-         apply (metis comp_apply rough_state_of_twl_cons_trail trail_prepend_trail)
+         apply (simp add: rough_state_of_twl_cons_trail)
         apply (metis comp_apply rough_state_of_twl_tl_trail tl_trail)
        apply (metis comp_def rough_state_of_twl_add_learned_cls trail_add_cls\<^sub>N\<^sub>O\<^sub>T)
       apply (metis comp_apply rough_state_of_twl_remove_cls trail_remove_cls)
@@ -712,9 +745,9 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: state\<^sub>W
   restart_twl
   apply unfold_locales
   by (simp_all add: rough_state_of_twl_cons_trail rough_state_of_twl_tl_trail
-  rough_state_of_twl_add_init_cls rough_state_of_twl_add_learned_cls rough_state_of_twl_remove_cls
-  rough_state_of_twl_update_backtrack_lvl rough_state_of_twl_update_conflicting
-  rough_state_of_twl_init_state rough_state_of_twl_restart_twl learned_clss_restart_state)
+    rough_state_of_twl_add_init_cls rough_state_of_twl_add_learned_cls rough_state_of_twl_remove_cls
+    rough_state_of_twl_update_backtrack_lvl rough_state_of_twl_update_conflicting
+    rough_state_of_twl_init_state rough_state_of_twl_restart_twl learned_clss_restart_state)
 
 interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: cdcl\<^sub>W_ops
   trail_twl
@@ -755,7 +788,7 @@ definition propagate_twl where
   \<and> S' \<sim>TWL cons_trail_twl (Propagated L C) S
   \<and> conflicting_twl S = C_True)"
 
-lemma
+lemma propagate_twl_iff_propagate:
   assumes inv: "cdcl\<^sub>W_all_struct_inv (rough_state_of_twl S)"
   shows "cdcl\<^sub>N\<^sub>O\<^sub>T_twl.propagate S T \<longleftrightarrow> propagate_twl S T" (is "?P \<longleftrightarrow> ?T")
 proof
@@ -827,7 +860,7 @@ definition conflict_twl where
   \<and> S' \<sim>TWL update_conflicting_twl (C_Clause C) S
   \<and> conflicting_twl S = C_True)"
 
-lemma
+lemma conflict_twl_iff_conflict:
   assumes inv: "cdcl_all_struct_inv (rough_state_of_twl S)"
   shows "cdcl\<^sub>N\<^sub>O\<^sub>T_twl.conflict S T \<longleftrightarrow> conflict_twl S T" (is "?C \<longleftrightarrow> ?T")
 proof
@@ -944,12 +977,15 @@ proof -
       sorted_list_of_set unwatched)
 qed
 
-lemma wf_watch_nat: "wf_twl_cls (trail S) (watch_nat S C)"
+lemma wf_watch_nat: "no_dup (trail S) \<Longrightarrow> wf_twl_cls (trail S) (watch_nat S C)"
   apply (simp only: watch_nat_def Let_def partition_filter_conv case_prod_beta fst_conv snd_conv)
   unfolding wf_twl_cls.simps
   apply (intro conjI)
      apply clarsimp+
   using falsified_watiched_imp_unwatched_falsified[unfolded comp_def]
+    apply (metis count_diff zero_less_diff)
+   apply simp
+  apply auto
 (*   by (metis count_diff zero_less_diff) *)
 sorry
 
@@ -1042,7 +1078,7 @@ qed
 interpretation abstract_twl watch_nat rewatch_nat sorted_list_of_multiset learned_clss
   apply unfold_locales
   apply (rule clause_watch_nat)
-  apply (rule wf_watch_nat)
+  apply (rule wf_watch_nat; simp)
   apply (rule clause_rewatch_nat)
   apply (rule wf_rewatch_nat', simp)
   apply (rule mset_sorted_list_of_multiset)
