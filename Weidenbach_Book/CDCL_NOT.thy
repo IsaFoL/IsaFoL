@@ -231,7 +231,8 @@ locale dpll_state =
       "\<And>st L. undefined_lit (trail st) (lit_of L) \<Longrightarrow> clauses (prepend_trail L st) = clauses st"
       and
     clauses_tl_trail[simp]: "\<And>st. clauses (tl_trail st) = clauses st" and
-    clauses_add_cls\<^sub>N\<^sub>O\<^sub>T[simp]: "\<And>st C. clauses (add_cls\<^sub>N\<^sub>O\<^sub>T C st) = {#C#} + clauses st" and
+    clauses_add_cls\<^sub>N\<^sub>O\<^sub>T[simp]: 
+      "\<And>st C. no_dup (trail st) \<Longrightarrow> clauses (add_cls\<^sub>N\<^sub>O\<^sub>T C st) = {#C#} + clauses st" and
     clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T[simp]: "\<And>st C. clauses (remove_cls\<^sub>N\<^sub>O\<^sub>T C st) = remove_mset C (clauses st)"
 begin
 
@@ -1399,7 +1400,7 @@ text \<open>The subtle problem here is that tautologies can be removed, meaning 
   disappear of the problem. It is also possible that some variable of the trail are not in the
   clauses anymore.\<close>
 lemma cdcl\<^sub>N\<^sub>O\<^sub>T_atms_of_m_clauses_decreasing:
-  assumes "cdcl\<^sub>N\<^sub>O\<^sub>T S T"and "inv S"
+  assumes "cdcl\<^sub>N\<^sub>O\<^sub>T S T"and "inv S" and "no_dup (trail S)"
   shows "atms_of_mu (clauses T) \<subseteq> atms_of_mu (clauses S) \<union> atm_of ` (lits_of (trail S))"
   using assms by (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_all_induct)
     (auto dest!: dpll_bj_atms_of_m_clauses_inv set_mp simp add: atms_of_m_def Union_eq)
@@ -1458,7 +1459,7 @@ qed
 
 paragraph \<open>Extension of models\<close>
 lemma cdcl\<^sub>N\<^sub>O\<^sub>T_bj_sat_ext_iff:
-  assumes "cdcl\<^sub>N\<^sub>O\<^sub>T S T"and "inv S"
+  assumes "cdcl\<^sub>N\<^sub>O\<^sub>T S T"and "inv S" and n_d: "no_dup (trail S)"
   shows "I\<Turnstile>sextm clauses S \<longleftrightarrow> I\<Turnstile>sextm clauses T"
   using assms
 proof (induction rule:cdcl\<^sub>N\<^sub>O\<^sub>T_all_induct)
@@ -1483,8 +1484,8 @@ next
     unfolding true_clss_ext_def by auto
   show ?case
     apply standard
-      using T apply (auto simp add: H)[]
-    using T apply simp
+      using T n_d apply (auto simp add: H)[]
+    using T n_d apply simp
     by (metis Diff_insert_absorb insert_subset subsetI subset_antisym
       true_clss_ext_decrease_right_remove_r)
 next
@@ -1547,7 +1548,7 @@ next
   case (step T U) note st =this(1) and cdcl\<^sub>N\<^sub>O\<^sub>T = this(2) and IH = this(3)
   have "inv T" using inv st rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_inv by blast
   then have "atms_of_mu (clauses U) \<subseteq> A"
-    using cdcl\<^sub>N\<^sub>O\<^sub>T_atms_of_m_clauses_decreasing[OF cdcl\<^sub>N\<^sub>O\<^sub>T] IH by auto
+    using cdcl\<^sub>N\<^sub>O\<^sub>T_atms_of_m_clauses_decreasing[OF cdcl\<^sub>N\<^sub>O\<^sub>T] IH n_d by auto
   moreover
     have "no_dup (trail T)"
       using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup[of S T] st cdcl\<^sub>N\<^sub>O\<^sub>T inv n_d \<open>inv T\<close> by blast
@@ -1566,10 +1567,10 @@ lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_all_decomposition_implies:
   (auto intro: rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_inv cdcl\<^sub>N\<^sub>O\<^sub>T_all_decomposition_implies rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup)
 
 lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_bj_sat_ext_iff:
-  assumes "cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T"and "inv S"
+  assumes "cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T"and "inv S" and "no_dup (trail S)"
   shows "I\<Turnstile>sextm clauses S \<longleftrightarrow> I\<Turnstile>sextm clauses T"
   using assms apply (induction rule: rtranclp_induct)
-  using cdcl\<^sub>N\<^sub>O\<^sub>T_bj_sat_ext_iff by (auto intro: rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_inv)
+  using cdcl\<^sub>N\<^sub>O\<^sub>T_bj_sat_ext_iff  by (auto intro: rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_inv)
 
 definition cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv where
 "cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv A S \<longleftrightarrow> (finite A \<and> inv S \<and> atms_of_mu (clauses S) \<subseteq> atms_of_m A
