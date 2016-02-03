@@ -479,7 +479,7 @@ locale abstract_twl =
     linearize :: "'v clauses \<Rightarrow> 'v clause list" and
     restart_learned :: "('v, nat, 'v clause) twl_state \<Rightarrow> 'v twl_clause multiset"
   assumes
-    clause_watch: "raw_clause (watch S C) = C" and
+    clause_watch: "no_dup(trail S) \<Longrightarrow> raw_clause (watch S C) = C" and
     wf_watch: "no_dup (trail S) \<Longrightarrow> wf_twl_cls (trail S) (watch S C)" and
     clause_rewatch: "raw_clause (rewatch L S C') = raw_clause C'" and
     wf_rewatch: "wf_twl_cls (trail S) C' \<Longrightarrow> wf_twl_cls (L # trail S) (rewatch L S C')" and
@@ -980,7 +980,7 @@ apply (auto dest!: XXX' simp: ac_simps multiset_eq_iff)[]
 apply (auto dest: XXX' dest: no_dup_filter_diff simp: ac_simps multiset_eq_iff)[1]
 apply simp
 apply (auto dest: XXX' dest: no_dup_filter_diff simp: ac_simps multiset_eq_iff)[]
-oops
+sorry
 
 lemma distinct_pull[simp]: "distinct (pull p xs) = distinct xs"
   unfolding pull_def by (induct xs) auto
@@ -1015,8 +1015,6 @@ lemma wf_watch_nat: "no_dup (trail S) \<Longrightarrow> wf_twl_cls (trail S) (wa
   apply (intro conjI)
      apply clarsimp+
   using falsified_watiched_imp_unwatched_falsified[unfolded comp_def]
-    apply (metis count_diff zero_less_diff)
-  apply auto
 (*   by (metis count_diff zero_less_diff) *)
 sorry
 

@@ -765,6 +765,19 @@ lemma true_clss_clss_left_right:
   shows "A \<Turnstile>ps M \<union> B"
   using assms unfolding true_clss_clss_def by auto
 
+lemma true_clss_clss_generalise_true_clss_clss:
+  "A \<union> C \<Turnstile>ps D \<Longrightarrow> B \<Turnstile>ps C \<Longrightarrow> A \<union> B \<Turnstile>ps D"
+proof -
+  assume a1: "A \<union> C \<Turnstile>ps D"
+  assume "B \<Turnstile>ps C"
+  then have f2: "\<And>M. M \<union> B \<Turnstile>ps C"
+    by (meson true_clss_clss_union_l_r)
+  have "\<And>M. C \<union> (M \<union> A) \<Turnstile>ps D"
+    using a1 by (simp add: Un_commute sup_left_commute)
+  then show ?thesis
+    using f2 by (metis (no_types) Un_commute true_clss_clss_left_right true_clss_clss_union_and)
+qed
+
 lemma true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or:
   assumes D: "N \<Turnstile>p D + {#- L#}"
   and C: "N \<Turnstile>p C + {#L#}"

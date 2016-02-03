@@ -850,6 +850,7 @@ next
           ultimately obtain E where
             "conflicting S = C_Clause E" and
             cls_S': "clauses S' = {#E#} + clauses S"
+            using \<open>cdcl\<^sub>W_M_level_inv S\<close>
             by (induction rule: backtrack_induction_lev2) auto
           then have "E \<notin># clauses S"
             using cdcl\<^sub>W_stgy_no_relearned_clause R invR local.backtrack st by blast
@@ -1177,7 +1178,7 @@ proof -
 qed
 
 lemma tranclp_cdcl\<^sub>W_stgy_decreasing:
-  fixes R S T :: 'st
+  fixes R S T :: 'st                             
   assumes "cdcl\<^sub>W_stgy\<^sup>+\<^sup>+ R S"
   "trail R = []" and
   "cdcl\<^sub>W_all_struct_inv R"
