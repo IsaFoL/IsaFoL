@@ -47,7 +47,7 @@ locale state\<^sub>W =
     init_clss_tl_trail[simp]:
       "\<And>st. init_clss (tl_trail st) = init_clss st" and
     init_clss_update_clss[simp]:
-      "\<And>st C. no_dup (trail st) \<Longrightarrow> init_clss (add_init_cls C st) = {#C#} + init_clss st" and
+      "\<And>st C. init_clss (add_init_cls C st) = {#C#} + init_clss st" and
     init_clss_add_learned_cls[simp]:
       "\<And>C st. init_clss (add_learned_cls C st) = init_clss st" and
     init_clss_remove_cls[simp]:
@@ -62,7 +62,7 @@ locale state\<^sub>W =
         learned_clss (cons_trail M st) = learned_clss st" and
     learned_clss_tl_trail[simp]: "\<And>st. learned_clss (tl_trail st) = learned_clss st" and
     learned_clss_update_clss[simp]:
-      "\<And>st C. no_dup(trail S) \<Longrightarrow> learned_clss (add_init_cls C st) = learned_clss st" and
+      "\<And>st C. learned_clss (add_init_cls C st) = learned_clss st" and
     learned_clss_add_learned_cls[simp]:
       "\<And>C st. learned_clss (add_learned_cls C st) = {#C#} + learned_clss st" and
     learned_clss_remove_cls[simp]:
@@ -78,7 +78,7 @@ locale state\<^sub>W =
     backtrack_lvl_tl_trail[simp]:
       "\<And>st. backtrack_lvl (tl_trail st) = backtrack_lvl st" and
     backtrack_lvl_add_init_cls[simp]:
-      "\<And>st C. no_dup(trail S) \<Longrightarrow> backtrack_lvl (add_init_cls C st) = backtrack_lvl st"  and
+      "\<And>st C. backtrack_lvl (add_init_cls C st) = backtrack_lvl st"  and
     backtrack_lvl_add_learned_cls[simp]:
       "\<And>C st. backtrack_lvl (add_learned_cls C st) = backtrack_lvl st" and
     backtrack_lvl_remove_cls[simp]:
@@ -94,7 +94,7 @@ locale state\<^sub>W =
     conflicting_tl_trail[simp]:
       "\<And>st. conflicting (tl_trail st) = conflicting st" and
     conflicting_add_init_cls[simp]:
-      "\<And>st C. no_dup(trail S) \<Longrightarrow> conflicting (add_init_cls C st) = conflicting st" and
+      "\<And>st C. conflicting (add_init_cls C st) = conflicting st" and
     conflicting_add_learned_cls[simp]:
       "\<And>C st. conflicting (add_learned_cls C st) = conflicting st" and
     conflicting_remove_cls[simp]:
@@ -128,13 +128,12 @@ lemma
     clauses_add_learned_cls_unfolded:
       "clauses (add_learned_cls U S) = {#U#} + learned_clss S + init_clss S" and
     clauses_add_init_cls[simp]:
-      "no_dup(trail S) \<Longrightarrow> clauses (add_init_cls N S) = {#N#} + init_clss S + learned_clss S" and
+      "clauses (add_init_cls N S) = {#N#} + init_clss S + learned_clss S" and
     clauses_update_backtrack_lvl[simp]: "clauses (update_backtrack_lvl k S) = clauses S" and
     clauses_update_conflicting[simp]: "clauses (update_conflicting D S) = clauses S" and
     clauses_remove_cls[simp]:
       "clauses (remove_cls C S) = clauses S - replicate_mset (count (clauses S) C) C" and
-    clauses_add_learned_cls[simp]: 
-      "no_dup(trail S) \<Longrightarrow>clauses (add_learned_cls C S) = {#C#} + clauses S" and
+    clauses_add_learned_cls[simp]: "clauses (add_learned_cls C S) = {#C#} + clauses S" and
     clauses_restart[simp]: "clauses (restart_state S) \<subseteq># clauses S" and
     clauses_init_state[simp]: "\<And>N. clauses (init_state N) = N"
     prefer 9 using clauses_def learned_clss_restart_state apply fastforce
@@ -3771,7 +3770,7 @@ next
           qed
       }
       ultimately show "\<not>M \<Turnstile>as CNot Da"
-        using T undef \<open>Da = D + {#L#} \<Longrightarrow> \<not> M \<Turnstile>as CNot Da\<close> decomp lev by fastforce
+        using T undef  \<open>Da = D + {#L#} \<Longrightarrow> \<not> M \<Turnstile>as CNot Da\<close> decomp by fastforce
     qed
 qed
 
@@ -3983,7 +3982,7 @@ next
         assume Da: "Da = D + {#L#}"
         have "\<not>M1 \<Turnstile>as CNot Da" using \<open>- L \<notin> lits_of M1\<close> unfolding Da by simp
       }
-      ultimately have "\<not>M1 \<Turnstile>as CNot Da" using Da T undef decomp lev by fastforce
+      ultimately have "\<not>M1 \<Turnstile>as CNot Da" using Da T undef decomp by fastforce
       then have "-L \<in># Da"
         using M_D \<open>- L \<notin> lits_of M1\<close> in_CNot_implies_uminus(2)
            true_annots_CNot_lit_of_notin_skip T unfolding tr_T
