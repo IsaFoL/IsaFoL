@@ -483,6 +483,19 @@ proof -
     using assms by (metis (full_types) finite_set_mset_mset_set set_mset_mono)
 qed
 
+lemma mset_set_set_mset_subseteq[simp]: "mset_set (set_mset A) \<subseteq># A"
+  by (metis count_mset_set(1) count_mset_set(3) finite_set_mset le_less_linear less_one
+    mem_set_mset_iff mset_less_eqI not_gr0)
+
+lemma mset_sorted_list_of_set[simp]:
+  "mset (sorted_list_of_set A) = mset_set A"
+  by (metis mset_sorted_list_of_multiset sorted_list_of_mset_set)
+
+lemma mset_take_subseteq: "mset (take n xs) \<subseteq># mset xs"
+  apply (induct xs arbitrary: n)
+   apply simp
+  by (case_tac n) simp_all
+
 subsection \<open>Removing duplicates\<close>
 definition remdups_mset :: "'v multiset \<Rightarrow> 'v multiset" where
 "remdups_mset S = mset_set (set_mset S)"

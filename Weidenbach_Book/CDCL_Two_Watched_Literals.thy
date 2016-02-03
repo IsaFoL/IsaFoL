@@ -907,10 +907,18 @@ lemma set_pull[simp]: "set (pull p xs) = set xs"
 lemma mset_pull[simp]: "mset (pull p xs) = mset xs"
   by (simp add: pull_def mset_filter_compl)
 
+lemma mset_take_pull_sorted_list_of_set_subseteq:
+  "mset (take n (pull p (sorted_list_of_set (set_mset A)))) \<subseteq># A"
+  by (metis mset_pull mset_set_set_mset_subseteq mset_sorted_list_of_set mset_take_subseteq
+    subset_mset.dual_order.trans)
+
 definition watch_nat :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat clause \<Rightarrow> nat twl_clause" where
   "watch_nat S C =
    (let
-      W = take 2 (pull (\<lambda>L. - L \<notin> lits_of (trail S)) (sorted_list_of_set (set_mset C)));
+      C' = remdups (sorted_list_of_set (set_mset C));
+      negation_not_assigned = filter (\<lambda>L. -L \<notin> lits_of (trail S)) C';
+      negation_assigned_sorted_by_trail = filter (\<lambda>L. L \<in># C) (map (\<lambda>L. -lit_of L) (trail S));
+      W = take 2 (negation_not_assigned @ negation_assigned_sorted_by_trail);
       UW = sorted_list_of_multiset (C - mset W)
     in TWL_Clause (mset W) (mset UW))"
 
@@ -928,27 +936,51 @@ where
     else
       C)"
 
-lemma mset_set_set_mset_subseteq[simp]: "mset_set (set_mset A) \<subseteq># A"
-  by (metis count_mset_set(1) count_mset_set(3) finite_set_mset le_less_linear less_one
-    mem_set_mset_iff mset_less_eqI not_gr0)
+  thm rev_cases
+lemma list_cases2:
+  fixes l :: "'a list"
+  assumes
+    "l = [] \<Longrightarrow> P" and
+    "\<And>x. l = [x] \<Longrightarrow> P" and
+    "\<And>x y. l = [x, y] \<Longrightarrow> P" and
+    "\<And>x y xs. l = x # y # xs \<Longrightarrow> P"
+  shows "P"
+  by (metis assms(1) assms(2) assms(4) list.collapse)
 
-lemma mset_sorted_list_of_set[simp]:
-  "mset (sorted_list_of_set A) = mset_set A"
-  by (metis mset_sorted_list_of_multiset sorted_list_of_mset_set)
+lemma XXX:
+  assumes "[L\<leftarrow>P . L \<in># C] = l"
+  shows "\<forall>x \<in> set l. x \<in> set P \<and> x \<in># C"
+ using assms by auto
 
-lemma mset_take_subseteq: "mset (take n xs) \<subseteq># mset xs"
-  apply (induct xs arbitrary: n)
-   apply simp
-  by (case_tac n) simp_all
+lemma XXX':
+  assumes "[L\<leftarrow>P . Q L] = l"
+  shows "\<forall>x \<in> set l. x \<in> set P \<and> Q x"
+  using assms by auto
 
-lemma mset_take_pull_sorted_list_of_set_subseteq:
-  "mset (take n (pull p (sorted_list_of_set (set_mset A)))) \<subseteq># A"
-  by (metis mset_pull mset_set_set_mset_subseteq mset_sorted_list_of_set mset_take_subseteq
-    subset_mset.dual_order.trans)
+lemma no_dup_filter_diff:
+  assumes n_d: "no_dup M" and H: "[L\<leftarrow>map (\<lambda>L. - lit_of L) M. L \<in># C] = l"
+  shows "distinct l"
+  unfolding H[symmetric]
+  apply (rule distinct_filter)
+  using n_d by (induction M) auto
+  
+  
+lemma mset_intersection_inclusion: "A + (B - A) = B \<longleftrightarrow> A \<subseteq># B"  
+  apply (rule iffI)
+   apply (metis mset_le_add_left)
+  by (auto simp: ac_simps multiset_eq_iff subseteq_mset_def)
+  
+lemma clause_watch_nat: "no_dup (trail S) \<Longrightarrow> raw_clause (watch_nat S C) = C"
+  apply (simp add: watch_nat_def Let_def
+    mset_intersection_inclusion)
+  apply (cases "[L\<leftarrow>remdups (sorted_list_of_set (set_mset C)). - L \<notin> lits_of (trail S)]" rule: list_cases2;
+      cases "[L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C]" rule: list_cases2)
+apply (auto dest!: XXX' simp: ac_simps multiset_eq_iff)[]
 
-lemma clause_watch_nat: "raw_clause (watch_nat S C) = C"
-  by (simp add: watch_nat_def Let_def)
-    (rule subset_mset.add_diff_inverse[OF mset_take_pull_sorted_list_of_set_subseteq])
+apply (auto dest: XXX' dest: no_dup_filter_diff simp: ac_simps multiset_eq_iff)[1]
+apply simp
+apply (auto dest: XXX' dest: no_dup_filter_diff simp: ac_simps multiset_eq_iff)[]
+oops
 
 lemma distinct_pull[simp]: "distinct (pull p xs) = distinct xs"
   unfolding pull_def by (induct xs) auto
@@ -984,7 +1016,6 @@ lemma wf_watch_nat: "no_dup (trail S) \<Longrightarrow> wf_twl_cls (trail S) (wa
      apply clarsimp+
   using falsified_watiched_imp_unwatched_falsified[unfolded comp_def]
     apply (metis count_diff zero_less_diff)
-   apply simp
   apply auto
 (*   by (metis count_diff zero_less_diff) *)
 sorry
