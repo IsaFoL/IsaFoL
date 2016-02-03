@@ -10,7 +10,7 @@ text \<open>This theory contains more facts about closure, the definition of ful
 subsection \<open>More theorems about Closures\<close>
 
 text \<open>This is the equivalent of @{thm rtranclp_mono} for @{term tranclp}\<close>
-lemma
+lemma tranclp_mono_explicit:
   "r\<^sup>+\<^sup>+ a b \<Longrightarrow> r \<le> s \<Longrightarrow> s\<^sup>+\<^sup>+ a b"
     using rtranclp_mono by (auto dest!: tranclpD intro: rtranclp_into_tranclp2)
 
@@ -70,6 +70,9 @@ next
       using z assms(1) step.hyps(1) step.prems(2) apply auto[1]
     using IH z rtranclp.rtrancl_into_rtrancl by fastforce
 qed
+
+lemma rtranclp_and_rtranclp_left: "(\<lambda> a b. P a b \<and> Q a b)\<^sup>*\<^sup>* S T \<Longrightarrow> P\<^sup>*\<^sup>* S T"
+  by (induction rule: rtranclp_induct) auto
 
 subsection \<open>Full Transitions\<close>
 text \<open>We define here properties to define properties after all possible transitions.\<close>

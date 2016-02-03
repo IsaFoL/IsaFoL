@@ -690,7 +690,7 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl_NOT: dpll_state
         apply (metis comp_apply rough_state_of_twl_tl_trail tl_trail)
        apply (metis comp_def rough_state_of_twl_add_learned_cls trail_add_cls\<^sub>N\<^sub>O\<^sub>T)
       apply (metis comp_apply rough_state_of_twl_remove_cls trail_remove_cls)
-     using clauses_prepend_trail rough_state_of_twl_cons_trail apply presburger
+     apply (simp add: rough_state_of_twl_cons_trail)
     apply (metis clauses_tl_trail rough_state_of_twl_tl_trail)
    using clauses_add_cls\<^sub>N\<^sub>O\<^sub>T rough_state_of_twl_add_learned_cls apply presburger
   using clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T rough_state_of_twl_remove_cls by presburger

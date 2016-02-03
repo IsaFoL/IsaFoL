@@ -930,6 +930,10 @@ abbreviation true_annots_mset (infix "\<Turnstile>asm" 50) where
 abbreviation true_clss_clss_m:: "'a clauses \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>psm" 50) where
 "I \<Turnstile>psm C \<equiv> set_mset I \<Turnstile>ps (set_mset C)"
 
+text \<open>Analog of @{thm true_clss_clss_subsetE}\<close>
+lemma true_clss_clssm_subsetE: "N \<Turnstile>psm B \<Longrightarrow> A \<subseteq># B \<Longrightarrow> N \<Turnstile>psm A"
+  using set_mset_mono true_clss_clss_subsetE by blast
+
 abbreviation true_clss_cls_m:: "'a clauses \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>pm" 50) where
 "I \<Turnstile>pm C \<equiv> set_mset I \<Turnstile>p C"
 

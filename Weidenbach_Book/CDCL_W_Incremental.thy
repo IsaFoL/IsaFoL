@@ -459,6 +459,7 @@ proof -
     using \<open>cdcl\<^sub>W_all_struct_inv T\<close> unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
     by auto
   moreover have "init_clss S = init_clss T"
+    using inv unfolding cdcl\<^sub>W_all_struct_inv_def
     by (metis rtranclp_cdcl\<^sub>W_stgy_no_more_init_clss full full_def)
   ultimately show ?thesis
     by (metis satisfiable_carac' true_annot_def true_annots_def true_clss_def)
@@ -530,10 +531,8 @@ lemma incremental_conclusive_state:
     \<or> conflicting T = C_True \<and> trail T \<Turnstile>asm init_clss T \<and> satisfiable (set_mset (init_clss T))"
   using inc apply induction
   (* Here I thank Sledgehammer for its invaluable services *)
-  apply (metis add_new_clause_and_update_def
-    cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_all_struct_inv
-    cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_stgy_inv full_cdcl\<^sub>W_stgy_inv_normal_form
-    full_def inv rtranclp_cdcl\<^sub>W_stgy_no_more_init_clss s_inv)
+  apply (metis Nitpick.rtranclp_unfold add_confl full_cdcl\<^sub>W_stgy_inv_normal_form full_def
+    incremental_cdcl\<^sub>W_inv(1) incremental_cdcl\<^sub>W_inv(2) inv s_inv)
   by (metis (full_types) rtranclp_unfold add_no_confl full_cdcl\<^sub>W_stgy_inv_normal_form
     full_def incremental_cdcl\<^sub>W_inv(1) incremental_cdcl\<^sub>W_inv(2) inv s_inv)
 

@@ -199,7 +199,7 @@ lemma preserves_un_sat_OO[intro]:
 lemma star_consistency_preservation_explicit:
   assumes "(propo_rew_step r)^** \<phi> \<psi>" and "preserves_un_sat r"
   shows "\<forall>A. A \<Turnstile> \<phi> \<longleftrightarrow> A \<Turnstile> \<psi>"
-  using assms by (induct rule: rtranclp.induct)
+  using assms by (induct rule: rtranclp_induct)
     (auto simp add: propo_rew_step_preservers_val_explicit)
 
 lemma star_consistency_preservation:
@@ -483,14 +483,13 @@ proof -
     using full unfolding full_def by auto
   thus "all_subformula_st test_symb \<psi> "
     using init
-    proof (induct rule: rtranclp.induct)
-      case (rtrancl_refl a)
-      thus "all_subformula_st test_symb a" by blast
+    proof (induct rule: rtranclp_induct)
+      case base
+      then show "all_subformula_st test_symb \<phi>" by blast
     next
-      case (rtrancl_into_rtrancl a b c)
-      note star = this(1) and IH = this(2) and one = this(3) and all = this(4)
-      hence "all_subformula_st test_symb b" by metis
-      thus "all_subformula_st test_symb c" using propo_rew_step_inv_stay' H H' rel one by auto
+      case (step b c) note star = this(1) and IH = this(3) and one = this(2) and all = this(4)
+      then have "all_subformula_st test_symb b" by metis
+      then show "all_subformula_st test_symb c" using propo_rew_step_inv_stay' H H' rel one by auto
     qed
 qed
 
@@ -523,12 +522,12 @@ proof -
     using full unfolding full_def by auto
   thus "all_subformula_st test_symb \<psi>"
     using init
-    proof (induct rule: rtranclp.induct)
-      case (rtrancl_refl a)
-      thus "all_subformula_st test_symb a" by blast
+    proof (induct rule: rtranclp_induct)
+      case base
+      thus "all_subformula_st test_symb \<phi>" by blast
     next
-      case (rtrancl_into_rtrancl a b c)
-      note star = this(1) and IH = this(2) and one = this(3) and all = this(4)
+      case (step b c)
+      note star = this(1) and IH = this(3) and one = this(2) and all = this(4)
       hence "all_subformula_st test_symb b" by metis
       thus "all_subformula_st test_symb c"
         using propo_rew_step_inv_stay subformula_refl H H' rel one by auto
