@@ -174,7 +174,7 @@ lemma true_annots_mono:
   unfolding true_annots_def by auto
 
 subsubsection \<open>Defined and undefined literals\<close>
-definition defined_lit :: "('a, 'l, 'm) marked_lit list  \<Rightarrow> 'a literal \<Rightarrow> bool" ("|_| \<in>\<^sub>l |_|" 50)
+definition defined_lit :: "('a, 'l, 'm) marked_lit list  \<Rightarrow> 'a literal \<Rightarrow> bool"
   where
 "defined_lit I L \<longleftrightarrow> (\<exists>l. Marked L l \<in> set I) \<or> (\<exists>P. Propagated L P \<in> set I)
   \<or> (\<exists>l. Marked (-L) l \<in> set I) \<or> (\<exists>P. Propagated (-L) P \<in> set I)"
