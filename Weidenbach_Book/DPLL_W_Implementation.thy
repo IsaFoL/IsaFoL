@@ -79,7 +79,7 @@ proof -
                (Marked L () # fst (Ms, mset (map mset N)), snd (Ms, mset (map mset N)))"
       apply (rule dpll\<^sub>W.decided[of ?S L])
       using find_first_unused_var_Some[OF unused]
-      by (auto simp add: Marked_Propagated_in_iff_in_lits_of atms_of_m_def)
+      by (auto simp add: Marked_Propagated_in_iff_in_lits_of atms_of_ms_def)
     moreover have "(Ms', N') = (Marked L () # Ms, N)"
       using step exC unfolding DPLL_step_def unused prod.case unit by auto
     ultimately have ?thesis by auto

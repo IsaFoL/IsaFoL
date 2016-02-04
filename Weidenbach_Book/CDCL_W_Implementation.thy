@@ -361,7 +361,7 @@ lemma cdcl\<^sub>W_cp_cdcl\<^sub>W_st: "cdcl\<^sub>W_cp S S' \<Longrightarrow> c
 
 lemma cdcl\<^sub>W_cp_wf_all_inv: "wf {(S', S::'v::linorder cdcl\<^sub>W_state). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_cp S S'}"
   (is "wf ?R")
-proof (rule wf_bounded_measure[of _ "\<lambda>S. card (atms_of_mu (clauses S))+1"
+proof (rule wf_bounded_measure[of _ "\<lambda>S. card (atms_of_msu (clauses S))+1"
     "\<lambda>S. length (trail S) + (if conflicting S = C_True then 0 else 1)"], goal_cases)
   case (1 S S')
   then have "cdcl\<^sub>W_all_struct_inv S" and "cdcl\<^sub>W_cp S S'" by auto
@@ -749,7 +749,7 @@ lemma do_decide_step:
   defer
   apply (auto split: option.splits simp add: decide.simps Marked_Propagated_in_iff_in_lits_of
           dest: find_first_unused_var_undefined find_first_unused_var_Some
-          intro: atms_of_atms_of_m_mono)[1]
+          intro: atms_of_atms_of_ms_mono)[1]
 proof -
   fix a b c d e
   {
@@ -762,11 +762,11 @@ proof -
       by simp
     have "\<And>f. (f m::nat literal multiset) \<in> f ` set b"
       using a1 by blast
-    then have "\<And>f. (atms_of (f m)::nat set) \<subseteq> atms_of_m (f ` set b)"
-     using atms_of_atms_of_m_mono by blast
-    then have "\<And>n f. (n::nat) \<in> atms_of_m (f ` set b) \<or> n \<notin> atms_of (f m)"
+    then have "\<And>f. (atms_of (f m)::nat set) \<subseteq> atms_of_ms (f ` set b)"
+     using atms_of_atms_of_ms_mono by blast
+    then have "\<And>n f. (n::nat) \<in> atms_of_ms (f ` set b) \<or> n \<notin> atms_of (f m)"
       by (meson contra_subsetD)
-    then have "atm_of x2 \<in> atms_of_m (mset ` set b)"
+    then have "atm_of x2 \<in> atms_of_ms (mset ` set b)"
       using f2 by blast
   } note H = this
   assume  "do_decide_step S \<noteq> S" and
@@ -784,7 +784,7 @@ lemma do_decide_step_no:
   "do_decide_step S = S \<Longrightarrow> no_step decide (toS S)"
   apply (cases S, cases "conflicting S")
    apply (auto
-      simp add: atms_of_m_mset_unfold atm_of_eq_atm_of Marked_Propagated_in_iff_in_lits_of
+      simp add: atms_of_ms_mset_unfold atm_of_eq_atm_of Marked_Propagated_in_iff_in_lits_of
       split: option.splits
       elim!: decideE)
    apply (meson atm_of_in_atm_of_set_in_uminus image_subset_iff)

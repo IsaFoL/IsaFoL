@@ -70,10 +70,10 @@ lemma rtranclp_simplify_preserves_finite:
  shows "finite \<psi> \<longleftrightarrow> finite \<psi>'"
  using assms by (induct rule: rtranclp_induct) (auto simp add: simplify_preserves_finite)
 
-lemma simplify_atms_of_m:
+lemma simplify_atms_of_ms:
   assumes "simplify \<psi> \<psi>'"
-  shows "atms_of_m \<psi>' \<subseteq> atms_of_m \<psi>"
-  using assms unfolding atms_of_m_def
+  shows "atms_of_ms \<psi>' \<subseteq> atms_of_ms \<psi>"
+  using assms unfolding atms_of_ms_def
 proof (induct rule: simplify.induct)
   case (tautology_deletion A P)
   then show ?case by auto
@@ -87,12 +87,12 @@ next
   then show ?case by auto
 qed
 
-lemma rtranclp_simplify_atms_of_m:
+lemma rtranclp_simplify_atms_of_ms:
   assumes "rtranclp simplify \<psi> \<psi>'"
-  shows "atms_of_m \<psi>' \<subseteq> atms_of_m \<psi>"
+  shows "atms_of_ms \<psi>' \<subseteq> atms_of_ms \<psi>"
   using assms apply (induct rule: rtranclp_induct)
-   apply (fastforce intro: simplify_atms_of_m)
-  using simplify_atms_of_m by blast
+   apply (fastforce intro: simplify_atms_of_ms)
+  using simplify_atms_of_ms by blast
 
 lemma factoring_imp_simplify:
   assumes "{#L#} + {#L#} + C \<in> N"
@@ -315,28 +315,28 @@ lemma inference_preserves_un_sat:
   using assms apply (induct rule: inference.induct)
   using inference_clause_preserves_un_sat by fastforce
 
-lemma inference_clause_preserves_atms_of_m:
+lemma inference_clause_preserves_atms_of_ms:
   assumes "inference_clause S S'"
-  shows "atms_of_m (fst (fst S \<union> {fst S'}, snd S')) \<subseteq> atms_of_m (fst S)"
+  shows "atms_of_ms (fst (fst S \<union> {fst S'}, snd S')) \<subseteq> atms_of_ms (fst S)"
   using assms apply (induct rule: inference_clause.induct)
    apply auto
-     apply (metis Set.set_insert UnCI atms_of_m_insert atms_of_plus)
-    apply (metis Set.set_insert UnCI atms_of_m_insert atms_of_plus)
+     apply (metis Set.set_insert UnCI atms_of_ms_insert atms_of_plus)
+    apply (metis Set.set_insert UnCI atms_of_ms_insert atms_of_plus)
    apply (simp add: in_m_in_literals union_assoc)
-  unfolding atms_of_m_def using assms by fastforce
+  unfolding atms_of_ms_def using assms by fastforce
 
-lemma inference_preserves_atms_of_m:
+lemma inference_preserves_atms_of_ms:
   fixes N N' :: "'v clauses"
   assumes "inference T T'"
-  shows "atms_of_m (fst T') \<subseteq> atms_of_m (fst T)"
+  shows "atms_of_ms (fst T') \<subseteq> atms_of_ms (fst T)"
   using assms apply (induct rule: inference.induct)
-  using inference_clause_preserves_atms_of_m by fastforce
+  using inference_clause_preserves_atms_of_ms by fastforce
 
 lemma inference_preserves_total:
   fixes N N' :: "'v clauses"
   assumes "inference (N, already_used) (N', already_used')"
   shows "total_over_m I N \<Longrightarrow> total_over_m I N'"
-    using assms inference_preserves_atms_of_m unfolding total_over_m_def total_over_set_def
+    using assms inference_preserves_atms_of_ms unfolding total_over_m_def total_over_set_def
     by fastforce
 
 
@@ -485,7 +485,7 @@ lemma simplify_preserve_partial_leaf:
     using union_lcomm apply auto[1]
    apply (simp, metis atms_of_plus total_over_set_union true_cls_union)
   apply simp
-  by (metis atms_of_m_singleton mset_le_exists_conv subset_mset_def true_cls_mono_leD
+  by (metis atms_of_ms_singleton mset_le_exists_conv subset_mset_def true_cls_mono_leD
     total_over_m_def total_over_m_sum)
 
 
@@ -529,13 +529,13 @@ declare build_sem_tree.induct[case_names tree]
 lemma unsatisfiable_empty[simp]:
   "\<not>unsatisfiable {}"
    unfolding satisfiable_def apply auto
-  using consistent_interp_def unfolding total_over_m_def total_over_set_def atms_of_m_def by blast
+  using consistent_interp_def unfolding total_over_m_def total_over_set_def atms_of_ms_def by blast
 
 lemma partial_interps_build_sem_tree_atms_general:
   fixes \<psi> :: "'v :: linorder clauses" and p :: "'v literal list"
   assumes unsat: "unsatisfiable \<psi>" and "finite \<psi>" and "consistent_interp I"
   and "finite atms"
-  and "atms_of_m \<psi> = atms \<union> atms_of_s I" and "atms \<inter> atms_of_s I = {}"
+  and "atms_of_ms \<psi> = atms \<union> atms_of_s I" and "atms \<inter> atms_of_s I = {}"
   shows "partial_interps (build_sem_tree atms \<psi>) I \<psi>"
   using assms
 proof (induct arbitrary: I rule: build_sem_tree.induct)
@@ -543,17 +543,17 @@ proof (induct arbitrary: I rule: build_sem_tree.induct)
     and cons = this(5)  and f = this(6) and un = this(7) and disj = this(8)
   {
     assume atms: "atms = {}"
-    then have atmsIa: "atms_of_m \<psi> = atms_of_s Ia" using un by auto
+    then have atmsIa: "atms_of_ms \<psi> = atms_of_s Ia" using un by auto
     then have "total_over_m Ia \<psi>" unfolding total_over_m_def atmsIa by auto
     then have \<chi>: "\<exists>\<chi> \<in> \<psi>. \<not> Ia \<Turnstile> \<chi>" 
       using unsat cons unfolding true_clss_def satisfiable_def by auto
     then have "build_sem_tree atms \<psi> = Leaf" using atms by auto
     moreover
       have tot: "\<And>\<chi>. \<chi> \<in> \<psi> \<Longrightarrow> total_over_m Ia {\<chi>}"
-      unfolding total_over_m_def total_over_set_def atms_of_m_def atms_of_s_def
-      using atmsIa atms_of_m_def by fastforce
+      unfolding total_over_m_def total_over_set_def atms_of_ms_def atms_of_s_def
+      using atmsIa atms_of_ms_def by fastforce
     have "partial_interps Leaf Ia \<psi>"
-      using \<chi> tot by (auto simp add: total_over_m_def total_over_set_def atms_of_m_def)
+      using \<chi> tot by (auto simp add: total_over_m_def total_over_set_def atms_of_ms_def)
 
       ultimately have ?case by metis
   }
@@ -567,7 +567,7 @@ proof (induct arbitrary: I rule: build_sem_tree.induct)
       by (metis Int_iff Min_in Un_iff atm_of_uminus atms cons consistent_interp_def disj empty_iff 
         f in_atms_of_s_decomp insert_iff literal.distinct(1) literal.exhaust_sel literal.sel(2)
         uminus_Neg uminus_Pos)
-    moreover have "atms_of_m \<psi> = Set.remove (Min atms) atms \<union> atms_of_s (Ia \<union> {Pos (Min atms)})"
+    moreover have "atms_of_ms \<psi> = Set.remove (Min atms) atms \<union> atms_of_s (Ia \<union> {Pos (Min atms)})"
       using Min_in atms f un by fastforce
     moreover have disj': "Set.remove (Min atms) atms \<inter> atms_of_s (Ia \<union> {Pos (Min atms)}) = {}"
       by simp (metis disj disjoint_iff_not_equal member_remove)
@@ -580,8 +580,8 @@ proof (induct arbitrary: I rule: build_sem_tree.induct)
       by (metis Int_iff Min_in Un_iff atm_of_uminus atms cons consistent_interp_def disj empty_iff 
         f in_atms_of_s_decomp insert_iff literal.distinct(1) literal.exhaust_sel literal.sel(2)
         uminus_Neg)
-    moreover have "atms_of_m \<psi> = Set.remove (Min atms) atms \<union> atms_of_s (Ia \<union> {Neg (Min atms)})"
-      using \<open>atms_of_m \<psi> = Set.remove (Min atms) atms \<union> atms_of_s (Ia \<union> {Pos (Min atms)})\<close> by blast
+    moreover have "atms_of_ms \<psi> = Set.remove (Min atms) atms \<union> atms_of_s (Ia \<union> {Neg (Min atms)})"
+      using \<open>atms_of_ms \<psi> = Set.remove (Min atms) atms \<union> atms_of_s (Ia \<union> {Pos (Min atms)})\<close> by blast
 
     moreover have disj': "Set.remove (Min atms) atms \<inter> atms_of_s (Ia \<union> {Neg (Min atms)}) = {}"
       using disj by auto
@@ -600,14 +600,14 @@ qed
 lemma partial_interps_build_sem_tree_atms:
   fixes \<psi> :: "'v :: linorder clauses" and p :: "'v literal list"
   assumes unsat: "unsatisfiable \<psi>" and finite: "finite \<psi>"
-  shows "partial_interps (build_sem_tree (atms_of_m \<psi>) \<psi>) {} \<psi>"
+  shows "partial_interps (build_sem_tree (atms_of_ms \<psi>) \<psi>) {} \<psi>"
 proof -
   have "consistent_interp {}" unfolding consistent_interp_def by auto
-  moreover have "atms_of_m \<psi> = atms_of_m \<psi> \<union> atms_of_s {}" unfolding atms_of_s_def by auto
-  moreover have "atms_of_m \<psi> \<inter> atms_of_s {} = {} " unfolding atms_of_s_def by auto
-  moreover have "finite (atms_of_m \<psi>)" unfolding atms_of_m_def using finite by simp
-  ultimately show "partial_interps (build_sem_tree (atms_of_m \<psi>) \<psi>) {} \<psi>"
-    using partial_interps_build_sem_tree_atms_general[of "\<psi>" "{}" "atms_of_m \<psi>"] assms by metis
+  moreover have "atms_of_ms \<psi> = atms_of_ms \<psi> \<union> atms_of_s {}" unfolding atms_of_s_def by auto
+  moreover have "atms_of_ms \<psi> \<inter> atms_of_s {} = {} " unfolding atms_of_s_def by auto
+  moreover have "finite (atms_of_ms \<psi>)" unfolding atms_of_ms_def using finite by simp
+  ultimately show "partial_interps (build_sem_tree (atms_of_ms \<psi>) \<psi>) {} \<psi>"
+    using partial_interps_build_sem_tree_atms_general[of "\<psi>" "{}" "atms_of_ms \<psi>"] assms by metis
 qed
 
 lemma can_decrease_count:
@@ -786,7 +786,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
           by (metis add_gr_0 count_union true_cls_singleton true_cls_union_increase)
         then have part_I_\<psi>''': "partial_interps Leaf I (fst \<psi>'' \<union> {C + C'})"
           using totC totC' by simp
-            (metis \<open>\<not> I \<Turnstile> C + C'\<close> atms_of_m_singleton total_over_m_def total_over_m_sum)
+            (metis \<open>\<not> I \<Turnstile> C + C'\<close> atms_of_ms_singleton total_over_m_def total_over_m_sum)
         {
           assume "({#Pos v#} + C', {#Neg v#} + C) \<notin> snd \<psi>''"
           then have inf'': " inference \<psi>'' (fst \<psi>'' \<union> {C + C'}, snd \<psi>'' \<union> {(\<chi>2', \<chi>2)})"
@@ -1156,38 +1156,38 @@ lemma tranclp_resolution_always_simplified:
 
 lemma resolution_atms_of:
   assumes "resolution \<psi> \<psi>'" and "finite (fst \<psi>)"
-  shows "atms_of_m (fst \<psi>') \<subseteq> atms_of_m (fst \<psi>)"
+  shows "atms_of_ms (fst \<psi>') \<subseteq> atms_of_ms (fst \<psi>)"
   using assms apply (induct rule: resolution.induct)
-    apply(simp add: rtranclp_simplify_atms_of_m tranclp_into_rtranclp full1_def )
+    apply(simp add: rtranclp_simplify_atms_of_ms tranclp_into_rtranclp full1_def )
   by (metis (no_types, lifting) contra_subsetD fst_conv full_def
-    inference_preserves_atms_of_m rtranclp_simplify_atms_of_m subsetI)
+    inference_preserves_atms_of_ms rtranclp_simplify_atms_of_ms subsetI)
 
 lemma rtranclp_resolution_atms_of:
   assumes "resolution\<^sup>*\<^sup>* \<psi> \<psi>'" and "finite (fst \<psi>)"
-  shows "atms_of_m (fst \<psi>') \<subseteq> atms_of_m (fst \<psi>)"
+  shows "atms_of_ms (fst \<psi>') \<subseteq> atms_of_ms (fst \<psi>)"
   using assms apply (induct rule: rtranclp_induct)
   using resolution_atms_of rtranclp_resolution_finite by blast+
 
 lemma resolution_include:
   assumes res: "resolution \<psi> \<psi>'" and finite: "finite (fst \<psi>)"
-  shows "fst \<psi>' \<subseteq> build_all_simple_clss (atms_of_m (fst \<psi>))"
+  shows "fst \<psi>' \<subseteq> build_all_simple_clss (atms_of_ms (fst \<psi>))"
 proof -
   have finite': "finite (fst \<psi>')" using local.finite res resolution_finite by blast
   have "simplified (fst \<psi>')" using res finite' resolution_always_simplified by blast
-  then have "fst \<psi>' \<subseteq> build_all_simple_clss (atms_of_m (fst \<psi>'))"
+  then have "fst \<psi>' \<subseteq> build_all_simple_clss (atms_of_ms (fst \<psi>'))"
     using simplified_in_build_all finite' simplified_imp_distinct_mset_tauto[of "fst \<psi>'"] by auto
-  moreover have "atms_of_m (fst \<psi>') \<subseteq> atms_of_m (fst \<psi>)"
+  moreover have "atms_of_ms (fst \<psi>') \<subseteq> atms_of_ms (fst \<psi>)"
     using res finite resolution_atms_of[of \<psi> \<psi>'] by auto
-  ultimately show ?thesis by (meson atms_of_m_finite local.finite order.trans rev_finite_subset
+  ultimately show ?thesis by (meson atms_of_ms_finite local.finite order.trans rev_finite_subset
     build_all_simple_clss_mono)
 qed
 
 lemma rtranclp_resolution_include:
   assumes res: "tranclp resolution \<psi> \<psi>'" and finite: "finite (fst \<psi>)"
-  shows "fst \<psi>' \<subseteq> build_all_simple_clss (atms_of_m (fst \<psi>))"
+  shows "fst \<psi>' \<subseteq> build_all_simple_clss (atms_of_ms (fst \<psi>))"
   using assms apply (induct rule: tranclp.induct)
     apply (simp add: resolution_include)
-  by (meson atms_of_m_finite build_all_simple_clss_finite build_all_simple_clss_mono finite_subset
+  by (meson atms_of_ms_finite build_all_simple_clss_finite build_all_simple_clss_mono finite_subset
     resolution_include rtranclp_resolution_atms_of set_rev_mp subsetI tranclp_into_rtranclp)
 
 abbreviation already_used_all_simple
@@ -1204,7 +1204,7 @@ lemma inference_clause_preserves_already_used_all_simple:
   assumes "inference_clause S S'"
   and "already_used_all_simple (snd S) vars"
   and "simplified (fst S)"
-  and "atms_of_m (fst S) \<subseteq> vars"
+  and "atms_of_ms (fst S) \<subseteq> vars"
   shows "already_used_all_simple (snd (fst S \<union> {fst S'}, snd S')) vars"
   using assms
 proof (induct rule: inference_clause.induct)
@@ -1228,10 +1228,10 @@ next
         assume eq: "(A, B) = ({#Pos P#} + C, {#Neg P#} + D)"
         then have "simplified {A}" using simplified_in H(1,5) by auto
         moreover have "simplified {B}" using eq simplified_in H(2,5) by auto
-        moreover have "atms_of A \<subseteq> atms_of_m N" 
-          using eq H(1) atms_of_atms_of_m_mono[of A N] by auto
-        moreover have "atms_of B \<subseteq> atms_of_m N" 
-          using eq H(2) atms_of_atms_of_m_mono[of B N] by auto
+        moreover have "atms_of A \<subseteq> atms_of_ms N" 
+          using eq H(1) atms_of_atms_of_ms_mono[of A N] by auto
+        moreover have "atms_of B \<subseteq> atms_of_ms N" 
+          using eq H(2) atms_of_atms_of_ms_mono[of B N] by auto
         ultimately have "simplified {A} \<and> simplified {B} \<and> atms_of A \<subseteq> vars \<and> atms_of B \<subseteq> vars"
           using H(6) by auto
       }
@@ -1244,7 +1244,7 @@ lemma inference_preserves_already_used_all_simple:
   assumes "inference S S'"
   and "already_used_all_simple (snd S) vars"
   and "simplified (fst S)"
-  and "atms_of_m (fst S) \<subseteq> vars"
+  and "atms_of_ms (fst S) \<subseteq> vars"
   shows "already_used_all_simple (snd S') vars"
   using assms
 proof (induct rule: inference.induct)
@@ -1257,7 +1257,7 @@ qed
 lemma already_used_all_simple_inv:
   assumes "resolution S S'"
   and "already_used_all_simple (snd S) vars"
-  and "atms_of_m (fst S) \<subseteq> vars"
+  and "atms_of_ms (fst S) \<subseteq> vars"
   shows "already_used_all_simple (snd S') vars"
   using assms
 proof (induct rule: resolution.induct)
@@ -1272,7 +1272,7 @@ qed
 lemma rtranclp_already_used_all_simple_inv:
   assumes "resolution\<^sup>*\<^sup>* S S'"
   and "already_used_all_simple (snd S) vars"
-  and "atms_of_m (fst S) \<subseteq> vars"
+  and "atms_of_ms (fst S) \<subseteq> vars"
   and "finite (fst S)"
   shows "already_used_all_simple (snd S') vars"
   using assms
@@ -1283,9 +1283,9 @@ next
   case (step S' S'') note infstar = this(1) and IH = this(3) and res = this(2) and
     already = this(4) and atms = this(5) and finite = this(6)
   have "already_used_all_simple (snd S') vars" using IH already atms finite by simp
-  moreover have "atms_of_m (fst S') \<subseteq> atms_of_m (fst S)"
+  moreover have "atms_of_ms (fst S') \<subseteq> atms_of_ms (fst S)"
     by (simp add: infstar local.finite rtranclp_resolution_atms_of)
-  then have "atms_of_m (fst S') \<subseteq> vars" using atms by auto
+  then have "atms_of_ms (fst S') \<subseteq> vars" using atms by auto
   ultimately show ?case
     using already_used_all_simple_inv[OF res] by simp
 qed
@@ -1370,7 +1370,7 @@ lemma resolution_card_simple_decreasing:
   and finite_fst: "finite (fst \<psi>)"
   and finite_snd: "finite (snd \<psi>)"
   and simp: "simplified (fst \<psi>)"
-  and "atms_of_m (fst \<psi>) \<subseteq> vars"
+  and "atms_of_ms (fst \<psi>) \<subseteq> vars"
   shows "card_simple vars (snd \<psi>') < card_simple vars (snd \<psi>)"
 proof -
   let ?vars = "vars"
@@ -1396,7 +1396,7 @@ qed
 lemma tranclp_resolution_card_simple_decreasing:
   assumes "tranclp resolution \<psi> \<psi>'" and finite_fst: "finite (fst \<psi>)"
   and "already_used_all_simple (snd \<psi>) vars"
-  and "atms_of_m (fst \<psi>) \<subseteq> vars"
+  and "atms_of_ms (fst \<psi>) \<subseteq> vars"
   and finite_v: "finite vars"
   and finite_snd: "finite (snd \<psi>)"
   and "simplified (fst \<psi>)"
@@ -1416,7 +1416,7 @@ next
       trancl_into_trancl.hyps(1) trancl_into_trancl.prems(1))
   moreover have "finite (snd \<psi>')" using already_used_all_simple_finite[OF a_u_s' f_v] .
   moreover have "simplified (fst \<psi>')" using res tranclp_resolution_always_simplified by blast
-  moreover have "atms_of_m (fst \<psi>') \<subseteq> vars"
+  moreover have "atms_of_ms (fst \<psi>') \<subseteq> vars"
     by (meson atms f_fst order.trans res rtranclp_resolution_atms_of tranclp_into_rtranclp)
   ultimately show ?case
     using resolution_card_simple_decreasing[OF res' a_u_s' f_v] f_v
@@ -1431,11 +1431,11 @@ lemma tranclp_resolution_card_simple_decreasing_2:
   and finite_fst: "finite (fst \<psi>)"
   and empty_snd: "snd \<psi> = {}"
   and "simplified (fst \<psi>)"
-  shows "card_simple (atms_of_m (fst \<psi>)) (snd \<psi>') < card_simple (atms_of_m (fst \<psi>)) (snd \<psi>)"
+  shows "card_simple (atms_of_ms (fst \<psi>)) (snd \<psi>') < card_simple (atms_of_ms (fst \<psi>)) (snd \<psi>)"
 proof -
-  let ?vars = "(atms_of_m (fst \<psi>))"
+  let ?vars = "(atms_of_ms (fst \<psi>))"
   have "already_used_all_simple (snd \<psi>) ?vars" unfolding empty_snd by auto
-  moreover have "atms_of_m (fst \<psi>) \<subseteq> ?vars" by auto
+  moreover have "atms_of_ms (fst \<psi>) \<subseteq> ?vars" by auto
   moreover have finite_v: "finite ?vars" using finite_fst by auto
   moreover have finite_snd: "finite (snd \<psi>)" unfolding empty_snd by auto
   ultimately show ?thesis
@@ -1447,15 +1447,15 @@ subsubsection \<open>well-foundness if the relation\<close>
 
 lemma wf_simplified_resolution:
   assumes f_vars: "finite vars"
-  shows "wf {(y:: 'v:: linorder state, x). (atms_of_m (fst x) \<subseteq> vars \<and> simplified (fst x)
+  shows "wf {(y:: 'v:: linorder state, x). (atms_of_ms (fst x) \<subseteq> vars \<and> simplified (fst x)
     \<and> finite (snd x) \<and> finite (fst x) \<and> already_used_all_simple (snd x) vars) \<and> resolution x y}"
 proof -
   {
     fix a b :: "'v::linorder state"
-    assume "(b, a) \<in> {(y, x). (atms_of_m (fst x) \<subseteq> vars \<and> simplified (fst x) \<and> finite (snd x)
+    assume "(b, a) \<in> {(y, x). (atms_of_ms (fst x) \<subseteq> vars \<and> simplified (fst x) \<and> finite (snd x)
       \<and> finite (fst x) \<and> already_used_all_simple (snd x) vars) \<and> resolution x y}"
     then have
-      "atms_of_m (fst a) \<subseteq> vars" and
+      "atms_of_ms (fst a) \<subseteq> vars" and
       simp: "simplified (fst a)" and
       "finite (snd a)" and
       "finite (fst a)" and
@@ -1465,21 +1465,21 @@ proof -
     moreover have "already_used_top vars \<subseteq> already_used_top vars" by auto
     moreover have "snd b \<subseteq> already_used_top vars"
       using already_used_all_simple_in_already_used_top[of "snd b" vars]
-      a_u_v already_used_all_simple_inv[OF res] \<open>finite (fst a)\<close> \<open>atms_of_m (fst a) \<subseteq> vars\<close> f_vars
+      a_u_v already_used_all_simple_inv[OF res] \<open>finite (fst a)\<close> \<open>atms_of_ms (fst a) \<subseteq> vars\<close> f_vars
       by presburger
     moreover have "snd a \<subset> snd b" using resolution_simplified_already_used_subset[OF res simp] .
     ultimately have "finite (already_used_top vars) \<and> already_used_top vars \<subseteq> already_used_top vars
       \<and> snd b \<subseteq> already_used_top vars \<and> snd a \<subset> snd b" by metis
   }
   then show ?thesis using wf_bounded_set[of "{(y:: 'v:: linorder state, x). 
-    (atms_of_m (fst x) \<subseteq> vars
+    (atms_of_ms (fst x) \<subseteq> vars
     \<and> simplified (fst x) \<and> finite (snd x) \<and> finite (fst x)\<and> already_used_all_simple (snd x) vars)
     \<and> resolution x y}" "\<lambda>_. already_used_top vars" "snd"] by auto
 qed
 
 lemma wf_simplified_resolution':
   assumes f_vars: "finite vars"
-  shows "wf {(y:: 'v:: linorder state, x). (atms_of_m (fst x) \<subseteq> vars \<and> \<not>simplified (fst x)
+  shows "wf {(y:: 'v:: linorder state, x). (atms_of_ms (fst x) \<subseteq> vars \<and> \<not>simplified (fst x)
     \<and> finite (snd x) \<and> finite (fst x) \<and> already_used_all_simple (snd x) vars) \<and> resolution x y}"
   unfolding wf_def
    apply (simp add: resolution_always_simplified)
@@ -1487,9 +1487,9 @@ lemma wf_simplified_resolution':
 
 lemma wf_resolution:
   assumes f_vars: "finite vars"
-  shows "wf ({(y:: 'v:: linorder state, x). (atms_of_m (fst x) \<subseteq> vars \<and> simplified (fst x)
+  shows "wf ({(y:: 'v:: linorder state, x). (atms_of_ms (fst x) \<subseteq> vars \<and> simplified (fst x)
         \<and> finite (snd x) \<and> finite (fst x) \<and> already_used_all_simple (snd x) vars) \<and> resolution x y}
-    \<union> {(y, x). (atms_of_m (fst x) \<subseteq> vars \<and> \<not> simplified (fst x) \<and> finite (snd x) \<and> finite (fst x)
+    \<union> {(y, x). (atms_of_ms (fst x) \<subseteq> vars \<and> \<not> simplified (fst x) \<and> finite (snd x) \<and> finite (fst x)
        \<and> already_used_all_simple (snd x) vars) \<and> resolution x y})" (is "wf (?R \<union> ?S)")
 proof -
   have "Domain ?R Int Range ?S = {}" using resolution_always_simplified by auto blast

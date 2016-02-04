@@ -208,10 +208,10 @@ next
     proof -
       have f2: "no_dup ((convert_trail_from_W \<circ> trail) S)"
         using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> unfolding inv\<^sub>N\<^sub>O\<^sub>T_def by simp
-      have f3: "atm_of L \<in> atms_of_mu (clauses S)
+      have f3: "atm_of L \<in> atms_of_msu (clauses S)
         \<union> atm_of ` lits_of ((convert_trail_from_W \<circ> trail) S)"
         using \<open>(convert_trail_from_W \<circ> trail) S = F' @ Marked K () # F\<close>
-        \<open>atm_of L \<in> atms_of_mu (clauses S) \<union> atm_of ` lits_of (F' @ Marked K () # F)\<close> by presburger
+        \<open>atm_of L \<in> atms_of_msu (clauses S) \<union> atm_of ` lits_of (F' @ Marked K () # F)\<close> by presburger
       have f4: "clauses S \<Turnstile>pm remdups_mset C' + {#L#}"
         by (metis (no_types) \<open>L \<notin># C'\<close> \<open>clauses S \<Turnstile>pm C' + {#L#}\<close> remdups_mset_singleton_sum(2)
           true_clss_cls_remdups_mset union_commute)
@@ -1156,7 +1156,7 @@ next
   case (fw_decide S T) note dec = this(1) and inv = this(2)
   then obtain L where
     undef_L: "undefined_lit (trail S) L" and
-    atm_L: "atm_of L \<in> atms_of_mu (init_clss S)" and
+    atm_L: "atm_of L \<in> atms_of_msu (init_clss S)" and
     T: "T \<sim> cons_trail (Marked L (Suc (backtrack_lvl S)))
       (update_backtrack_lvl (Suc (backtrack_lvl S)) S)"
     by auto
@@ -1265,7 +1265,7 @@ next
       have [simp]: "init_clss S = init_clss T'"
         using \<open>cdcl\<^sub>W\<^sup>*\<^sup>* T T'\<close> cdcl\<^sub>W_init_clss confl cdcl\<^sub>W_all_struct_inv_def conflict inv
         by (metis \<open>cdcl\<^sub>W_M_level_inv T\<close> rtranclp_cdcl\<^sub>W_init_clss)
-      then have atm_L: "atm_of L \<in> atms_of_mu (clauses S)"
+      then have atm_L: "atm_of L \<in> atms_of_msu (clauses S)"
         using inv_T' confl_T' unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def clauses_def
         by auto
       obtain M where tr_T: "trail T = M @ trail T'"
@@ -1363,9 +1363,9 @@ lemma cdcl\<^sub>W_merge_\<mu>\<^sub>F\<^sub>W_decreasing:
   shows "\<mu>\<^sub>F\<^sub>W T < \<mu>\<^sub>F\<^sub>W S"
 proof -
   let ?A = "init_clss S"
-  have atm_clauses: "atms_of_mu (clauses S) \<subseteq> atms_of_mu ?A"
+  have atm_clauses: "atms_of_msu (clauses S) \<subseteq> atms_of_msu ?A"
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def clauses_def by auto
-  have atm_trail: "atm_of ` lits_of (trail S) \<subseteq> atms_of_mu ?A"
+  have atm_trail: "atm_of ` lits_of (trail S) \<subseteq> atms_of_msu ?A"
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def clauses_def by auto
   have n_d: "no_dup (trail S)"
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
@@ -3645,7 +3645,7 @@ lemma "full1 cdcl\<^sub>W_merge_stgy S T \<Longrightarrow> cdcl\<^sub>W_merge_wi
 
 lemma cdcl\<^sub>W_all_struct_inv_learned_clss_bound:
   assumes inv: "cdcl\<^sub>W_all_struct_inv S"
-  shows "set_mset (learned_clss S) \<subseteq> build_all_simple_clss (atms_of_mu (init_clss S))"
+  shows "set_mset (learned_clss S) \<subseteq> build_all_simple_clss (atms_of_msu (init_clss S))"
 proof
   fix C
   assume C: "C \<in> set_mset (learned_clss S)"
@@ -3655,13 +3655,13 @@ proof
   moreover have "\<not>tautology C"
     using C inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def by auto
   moreover
-    have "atms_of C \<subseteq> atms_of_mu (learned_clss S)"
+    have "atms_of C \<subseteq> atms_of_msu (learned_clss S)"
       using C by auto
-    then have "atms_of C \<subseteq> atms_of_mu (init_clss S)"
+    then have "atms_of C \<subseteq> atms_of_msu (init_clss S)"
     using inv  unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def by force
-  moreover have "finite (atms_of_mu (init_clss S))"
+  moreover have "finite (atms_of_msu (init_clss S))"
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def by auto
-  ultimately show "C \<in> build_all_simple_clss (atms_of_mu (init_clss S))"
+  ultimately show "C \<in> build_all_simple_clss (atms_of_msu (init_clss S))"
     using distinct_mset_not_tautology_implies_in_build_all_simple_clss build_all_simple_clss_mono
     by blast
 qed
@@ -3686,7 +3686,7 @@ proof (rule ccontr)
       using g inv unfolding cdcl\<^sub>W_all_struct_inv_def by (metis cdcl\<^sub>W_merge_with_restart_init_clss)
     } note init_g = this
   let ?S = "g 0"
-  have "finite (atms_of_mu (init_clss (fst ?S)))"
+  have "finite (atms_of_msu (init_clss (fst ?S)))"
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def by auto
   have snd_g: "\<And>i. snd (g i) = i + snd (g 0)"
     apply (induct_tac i)
@@ -3699,8 +3699,8 @@ proof (rule ccontr)
       not_bounded_nat_exists_larger not_le ordered_cancel_comm_monoid_diff_class.le_iff_add)
 
   obtain k where
-    f_g_k: "f (snd (g k)) > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))" and
-    "k > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
+    f_g_k: "f (snd (g k)) > card (build_all_simple_clss (atms_of_msu (init_clss (fst ?S))))" and
+    "k > card (build_all_simple_clss (atms_of_msu (init_clss (fst ?S))))"
     using not_bounded_nat_exists_larger[OF unbounded_f_g] by blast
   text \<open>The following does not hold anymore with the non-strict version of
     cardinality in the definition.\<close>
@@ -3730,10 +3730,10 @@ proof (rule ccontr)
     using inv[of k]  rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_merge_stgy_rtranclp_cdcl\<^sub>W
     by blast
   moreover have "card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g k))))
-      > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
+      > card (build_all_simple_clss (atms_of_msu (init_clss (fst ?S))))"
       unfolding m[symmetric] using \<open>m > f (snd (g k))\<close> f_g_k by linarith
     then have "card (set_mset (learned_clss T))
-      > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
+      > card (build_all_simple_clss (atms_of_msu (init_clss (fst ?S))))"
       by linarith
   moreover
     have "init_clss (fst (g k)) = init_clss T"
@@ -3807,7 +3807,7 @@ proof (rule ccontr)
       using g inv unfolding cdcl\<^sub>W_all_struct_inv_def by (metis cdcl\<^sub>W_with_restart_init_clss)
     } note init_g = this
   let ?S = "g 0"
-  have "finite (atms_of_mu (init_clss (fst ?S)))"
+  have "finite (atms_of_msu (init_clss (fst ?S)))"
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def by auto
   have snd_g: "\<And>i. snd (g i) = i + snd (g 0)"
     apply (induct_tac i)
@@ -3820,8 +3820,8 @@ proof (rule ccontr)
       not_bounded_nat_exists_larger not_le ordered_cancel_comm_monoid_diff_class.le_iff_add)
 
   obtain k where
-    f_g_k: "f (snd (g k)) > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))" and
-    "k > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
+    f_g_k: "f (snd (g k)) > card (build_all_simple_clss (atms_of_msu (init_clss (fst ?S))))" and
+    "k > card (build_all_simple_clss (atms_of_msu (init_clss (fst ?S))))"
     using not_bounded_nat_exists_larger[OF unbounded_f_g] by blast
   text \<open>The following does not hold anymore with the non-strict version of
     cardinality in the definition.\<close>
@@ -3850,10 +3850,10 @@ proof (rule ccontr)
   then have "cdcl\<^sub>W_all_struct_inv T"
     using inv[of k]  rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W by blast
   moreover have "card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g k))))
-      > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
+      > card (build_all_simple_clss (atms_of_msu (init_clss (fst ?S))))"
       unfolding m[symmetric] using \<open>m > f (snd (g k))\<close> f_g_k by linarith
     then have "card (set_mset (learned_clss T))
-      > card (build_all_simple_clss (atms_of_mu (init_clss (fst ?S))))"
+      > card (build_all_simple_clss (atms_of_msu (init_clss (fst ?S))))"
       by linarith
   moreover
     have "init_clss (fst (g k)) = init_clss T"
