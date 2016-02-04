@@ -28,8 +28,9 @@ lemma backtrack_levE:
 lemma backtrack_no_cdcl\<^sub>W_bj:
   assumes cdcl: "cdcl\<^sub>W_bj T U" and inv: "cdcl\<^sub>W_M_level_inv V"
   shows "\<not>backtrack V T"
-  using cdcl
-  by (induction rule:  cdcl\<^sub>W_bj.induct) (force elim!: backtrack_levE[OF _ inv])+ 
+  using cdcl inv
+  by (induction rule: cdcl\<^sub>W_bj.induct) (force elim!: backtrack_levE[OF _ inv] 
+    simp: cdcl\<^sub>W_M_level_inv_def)+ 
   (* SLOW ~2s *) (* TODO faster proof *)
 
 abbreviation skip_or_resolve :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
@@ -261,7 +262,8 @@ lemma cdcl\<^sub>W_bj_measure:
   using assms by (induction rule: cdcl\<^sub>W_bj.induct) 
   (fastforce dest:arg_cong[of _ _ length]
     intro: get_all_marked_decomposition_exists_prepend 
-    elim!: backtrack_levE)+
+    elim!: backtrack_levE
+    simp: cdcl\<^sub>W_M_level_inv_def)+
 
 lemma wf_cdcl\<^sub>W_bj:
   "wf {(b,a). cdcl\<^sub>W_bj a b \<and> cdcl\<^sub>W_M_level_inv a}"
@@ -329,7 +331,8 @@ next
     lev_l_D: "backtrack_lvl V = get_maximum_level (D + {#L#}) (trail V)" and
     "conflicting V = C_Clause (D + {#L#})" and
     i: "i = get_maximum_level D M"
-    using bt by (auto elim!: backtrack_levE)
+    using bt apply (elim backtrack_levE, simp) apply (cases "state W", cases "state V")
+    apply (auto simp: cdcl\<^sub>W_M_level_inv_decomp) sorry
   let ?D = "(D + {#L#})"
   obtain L' C' where
     T: "state T = (Propagated L' C' # M, N, U, k, C_Clause ?D)" and
