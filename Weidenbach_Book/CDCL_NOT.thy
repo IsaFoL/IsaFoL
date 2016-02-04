@@ -5,7 +5,6 @@ begin
 section \<open>NOT's CDCL\<close>
 sledgehammer_params[verbose, prover=e spass z3 cvc4 verit remote_vampire]
 
-
 declare set_mset_minus_replicate_mset[simp]
 
 subsection \<open>Auxiliary Lemmas and Measure\<close>
@@ -231,7 +230,7 @@ locale dpll_state =
       "\<And>st L. undefined_lit (trail st) (lit_of L) \<Longrightarrow> clauses (prepend_trail L st) = clauses st"
       and
     clauses_tl_trail[simp]: "\<And>st. clauses (tl_trail st) = clauses st" and
-    clauses_add_cls\<^sub>N\<^sub>O\<^sub>T[simp]: 
+    clauses_add_cls\<^sub>N\<^sub>O\<^sub>T[simp]:
       "\<And>st C. no_dup (trail st) \<Longrightarrow> clauses (add_cls\<^sub>N\<^sub>O\<^sub>T C st) = {#C#} + clauses st" and
     clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T[simp]: "\<And>st C. clauses (remove_cls\<^sub>N\<^sub>O\<^sub>T C st) = remove_mset C (clauses st)"
 begin
@@ -1545,16 +1544,16 @@ proof (induction rule: rtranclp_induct)
   case base
   then show ?case using atms_clauses_S atms_trail_S by simp
 next
-  case (step T U) note st =this(1) and cdcl\<^sub>N\<^sub>O\<^sub>T = this(2) and IH = this(3)
+  case (step T U) note st = this(1) and cdcl\<^sub>N\<^sub>O\<^sub>T = this(2) and IH = this(3)
   have "inv T" using inv st rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_inv by blast
+  have "no_dup (trail T)"
+    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup[of S T] st cdcl\<^sub>N\<^sub>O\<^sub>T inv n_d by blast
   then have "atms_of_mu (clauses U) \<subseteq> A"
-    using cdcl\<^sub>N\<^sub>O\<^sub>T_atms_of_m_clauses_decreasing[OF cdcl\<^sub>N\<^sub>O\<^sub>T] IH n_d by auto
+    using cdcl\<^sub>N\<^sub>O\<^sub>T_atms_of_m_clauses_decreasing[OF cdcl\<^sub>N\<^sub>O\<^sub>T] IH n_d \<open>inv T\<close> by auto
   moreover
-    have "no_dup (trail T)"
-      using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup[of S T] st cdcl\<^sub>N\<^sub>O\<^sub>T inv n_d \<open>inv T\<close> by blast
-    then have "atm_of `(lits_of (trail U)) \<subseteq> A"
-      using cdcl\<^sub>N\<^sub>O\<^sub>T_atms_in_trail_in_set[OF cdcl\<^sub>N\<^sub>O\<^sub>T, of A]
-      by (meson atms_trail_S atms_clauses_S IH \<open>inv T\<close> cdcl\<^sub>N\<^sub>O\<^sub>T)
+    have "atm_of `(lits_of (trail U)) \<subseteq> A"
+      using cdcl\<^sub>N\<^sub>O\<^sub>T_atms_in_trail_in_set[OF cdcl\<^sub>N\<^sub>O\<^sub>T, of A] \<open>no_dup (trail T)\<close>
+      by (meson atms_trail_S atms_clauses_S IH \<open>inv T\<close> cdcl\<^sub>N\<^sub>O\<^sub>T )
   ultimately show ?case by fast
 qed
 
@@ -1570,7 +1569,7 @@ lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_bj_sat_ext_iff:
   assumes "cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T"and "inv S" and "no_dup (trail S)"
   shows "I\<Turnstile>sextm clauses S \<longleftrightarrow> I\<Turnstile>sextm clauses T"
   using assms apply (induction rule: rtranclp_induct)
-  using cdcl\<^sub>N\<^sub>O\<^sub>T_bj_sat_ext_iff  by (auto intro: rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_inv)
+  using cdcl\<^sub>N\<^sub>O\<^sub>T_bj_sat_ext_iff by (auto intro: rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_inv rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup)
 
 definition cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv where
 "cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv A S \<longleftrightarrow> (finite A \<and> inv S \<and> atms_of_mu (clauses S) \<subseteq> atms_of_m A
@@ -1894,12 +1893,12 @@ lemma learn_always_simple_clauses:
     \<subseteq> build_all_simple_clss (atms_of_mu (clauses S) \<union> atm_of ` lits_of (trail S))"
 proof
   fix C assume C: "C \<in> set_mset (clauses T - clauses S)"
-  have "distinct_mset C" "\<not>tautology C" using learn C by induction auto
+  have "distinct_mset C" "\<not>tautology C" using learn C n_d by (elim learnE; auto)+
   then have "C \<in> build_all_simple_clss (atms_of C)"
     using distinct_mset_not_tautology_implies_in_build_all_simple_clss by blast
   moreover have "atms_of C \<subseteq> atms_of_mu (clauses S) \<union> atm_of ` lits_of (trail S)"
-    using learn C by (force simp add: atms_of_m_def atms_of_def image_Un
-      true_annots_CNot_all_atms_defined elim!: learnE)
+    using learn C n_d by (elim learnE) (auto simp: atms_of_m_def atms_of_def image_Un
+      true_annots_CNot_all_atms_defined)
   moreover have "finite (atms_of_mu (clauses S) \<union> atm_of ` lits_of (trail S))"
      by auto
   ultimately show "C \<in> build_all_simple_clss (atms_of_mu (clauses S) \<union> atm_of ` lits_of (trail S))"
@@ -2217,7 +2216,7 @@ next
       + card (set_mset (clauses (add_cls\<^sub>N\<^sub>O\<^sub>T C S)))
       < conflicting_bj_clss_yet (card (atms_of_m A)) S * 2
       + card (set_mset (clauses S))"
-      by (simp add: C' C_new)
+      by (simp add: C' C_new n_d)
   ultimately show ?case unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def 1 2 3 by presburger
 next
   case (forget\<^sub>N\<^sub>O\<^sub>T C T) note T = this(4)
@@ -2241,6 +2240,7 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound:
     "inv S" and
     "atms_of_mu (clauses S) \<subseteq> A" and
     "atm_of `(lits_of (trail S)) \<subseteq> A" and
+    n_d: "no_dup (trail S)" and
     fin_A[simp]: "finite A"
   shows "set_mset (clauses T) \<subseteq> set_mset (clauses S) \<union> build_all_simple_clss A"
   using assms
@@ -2260,7 +2260,7 @@ next
   then have "C \<in> build_all_simple_clss A"
     using finite dist tauto
     by (auto dest: distinct_mset_not_tautology_implies_in_build_all_simple_clss)
-  then show ?case using T by auto
+  then show ?case using T n_d by auto
 qed
 
 lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound:
@@ -2283,8 +2283,10 @@ next
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_inv st inv by blast
   moreover have "atms_of_mu (clauses T) \<subseteq> A" and "atm_of ` lits_of (trail T) \<subseteq> A"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_trail_clauses_bound[OF st] inv atms_clss_S atms_trail_S n_d by blast+
+  moreover have "no_dup (trail T)"
+   using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup[OF st \<open>inv S\<close> n_d] by simp
   ultimately have "set_mset (clauses U) \<subseteq> set_mset (clauses T) \<union> build_all_simple_clss A"
-    using cdcl\<^sub>N\<^sub>O\<^sub>T finite by (simp add: cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound)
+    using cdcl\<^sub>N\<^sub>O\<^sub>T finite n_d by (auto simp: cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound)
   then show ?case using IH by auto
 qed
 
@@ -3203,7 +3205,7 @@ next
     apply (rule dpll_bj_trail_mes_decreasing_prop)
          using bj bj_backjump apply blast
         using cdcl\<^sub>N\<^sub>O\<^sub>T.c_learn cdcl\<^sub>N\<^sub>O\<^sub>T.cdcl\<^sub>N\<^sub>O\<^sub>T_inv inv learn apply blast
-       using atms_C atm_clss atm_trail apply fastforce
+       using atms_C atm_clss atm_trail n_d apply fastforce
       using atm_trail n_d apply simp
      apply (simp add: n_d)
     using fin_A apply simp
@@ -3526,7 +3528,7 @@ proof -
   then have "atms_of_mu (clauses T) \<subseteq> atms_of_mu (clauses S) \<union> atm_of ` lits_of (trail S)"
     using \<open>inv S\<close>
     by (meson conflict_driven_clause_learning_ops.cdcl\<^sub>N\<^sub>O\<^sub>T_atms_of_m_clauses_decreasing
-      conflict_driven_clause_learning_ops_axioms)
+      conflict_driven_clause_learning_ops_axioms n_d)
   then show "atms_of_mu (clauses T) \<subseteq> atms_of_m A"
     using atms_clss_S_A atms_trail_S_A by blast
 next
@@ -3642,7 +3644,8 @@ lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_restart_all_decomposition_implies:
   assumes "cdcl\<^sub>N\<^sub>O\<^sub>T_restart\<^sup>*\<^sup>* S T" and
     inv: "inv (fst S)" and
     n_d: "no_dup (trail (fst S))" and
-    decomp: "all_decomposition_implies_m (clauses (fst S)) (get_all_marked_decomposition (trail (fst S)))"
+    decomp:
+      "all_decomposition_implies_m (clauses (fst S)) (get_all_marked_decomposition (trail (fst S)))"
   shows
     "all_decomposition_implies_m (clauses (fst T)) (get_all_marked_decomposition (trail (fst T)))"
   using assms(1)
@@ -3662,12 +3665,14 @@ qed
 lemma cdcl\<^sub>N\<^sub>O\<^sub>T_restart_sat_ext_iff:
   assumes
     st: "cdcl\<^sub>N\<^sub>O\<^sub>T_restart S T" and
+    n_d: "no_dup (trail (fst S))" and
     inv: "inv (fst S)"
   shows "I \<Turnstile>sextm clauses (fst S) \<longleftrightarrow> I \<Turnstile>sextm clauses(fst T)"
   using assms
 proof (induction)
   case (restart_step m S T n U)
-  then show ?case using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_bj_sat_ext_iff by (fastforce dest!: relpowp_imp_rtranclp)
+  then show ?case
+    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_bj_sat_ext_iff n_d by (fastforce dest!: relpowp_imp_rtranclp)
 next
   case restart_full
   then show ?case using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_bj_sat_ext_iff unfolding full1_def
@@ -3688,7 +3693,9 @@ next
   case (step T U) note st = this(1) and r = this(2) and IH = this(3)
   have "inv (fst T)"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_cdcl\<^sub>N\<^sub>O\<^sub>T_inv[OF st] inv n_d by blast+
-  then show ?case
+  moreover have "no_dup (trail (fst T))"
+    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_cdcl\<^sub>N\<^sub>O\<^sub>T_inv rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup st inv n_d by blast
+  ultimately show ?case
     using cdcl\<^sub>N\<^sub>O\<^sub>T_restart_sat_ext_iff[OF r] IH by blast
 qed
 

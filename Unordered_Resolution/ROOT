@@ -3,6 +3,9 @@ session Unordered_Resolution = "HOL" +
      document = "pdf",
      document_output = "generated"]
    theories
+     Completeness
+     Resolution
+     Unify
    theories[quick_and_dirty]
      TermsAndLiterals
      Resolution
