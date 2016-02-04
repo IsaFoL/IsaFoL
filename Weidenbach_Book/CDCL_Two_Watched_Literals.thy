@@ -943,10 +943,9 @@ lemma list_cases2:
   assumes
     "l = [] \<Longrightarrow> P" and
     "\<And>x. l = [x] \<Longrightarrow> P" and
-    "\<And>x y. l = [x, y] \<Longrightarrow> P" and
     "\<And>x y xs. l = x # y # xs \<Longrightarrow> P"
   shows "P"
-  by (metis assms(1) assms(2) assms(4) list.collapse)
+  by (metis assms list.collapse)
 
 lemma XXX:
   assumes "[L\<leftarrow>P . L \<in># C] = l"
@@ -965,23 +964,36 @@ lemma no_dup_filter_diff:
   apply (rule distinct_filter)
   using n_d by (induction M) auto
 
+lemma XXY:
+  assumes
+    l: "[L\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - L \<notin> lits_of (trail S)] = l" and
+    l': "[L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C] = l'"
+  shows "\<forall>x \<in> set l. \<forall>y \<in> set l'. x \<noteq> y"
+  by (auto simp: l[symmetric] l'[symmetric] lits_of_def)
 
 lemma mset_intersection_inclusion: "A + (B - A) = B \<longleftrightarrow> A \<subseteq># B"
   apply (rule iffI)
    apply (metis mset_le_add_left)
   by (auto simp: ac_simps multiset_eq_iff subseteq_mset_def)
 
-lemma clause_watch_nat: "no_dup (trail S) \<Longrightarrow> raw_clause (watch_nat S C) = C"
+lemma clause_watch_nat: 
+  assumes "no_dup (trail S)"
+  shows "raw_clause (watch_nat S C) = C"
+proof -
+  have dist: "distinct [L\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - L \<notin> lits_of (trail S)]"
+    by auto
+  then have H: "\<And>a xs. [L\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - L \<notin> lits_of (trail S)] 
+    \<noteq> a # a # xs"
+    by force
+  show ?thesis
+  using assms
   apply (simp add: watch_nat_def Let_def
     mset_intersection_inclusion)
-  apply (cases "[L\<leftarrow>remdups (sorted_list_of_set (set_mset C)). - L \<notin> lits_of (trail S)]" rule: list_cases2;
+  apply (cases "[L\<leftarrow>remdups (sorted_list_of_set (set_mset C)). - L \<notin> lits_of (trail S)]" 
+        rule: list_cases2;
       cases "[L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C]" rule: list_cases2)
-apply (auto dest!: XXX' simp: ac_simps multiset_eq_iff)[]
-
-apply (auto dest: XXX' dest: no_dup_filter_diff simp: ac_simps multiset_eq_iff)[1]
-apply simp
-apply (auto dest: XXX' dest: no_dup_filter_diff simp: ac_simps multiset_eq_iff)[]
-sorry
+  by (auto dest: XXX' XXY no_dup_filter_diff simp: subseteq_mset_def H)
+qed
 
 lemma distinct_pull[simp]: "distinct (pull p xs) = distinct xs"
   unfolding pull_def by (induct xs) auto
@@ -1015,7 +1027,10 @@ lemma wf_watch_nat: "no_dup (trail S) \<Longrightarrow> wf_twl_cls (trail S) (wa
   unfolding wf_twl_cls.simps
   apply (intro conjI)
      apply clarsimp+
-  using falsified_watiched_imp_unwatched_falsified[unfolded comp_def]
+  apply (cases "[L\<leftarrow>remdups (sorted_list_of_set (set_mset C)). - L \<notin> lits_of (trail S)]" 
+        rule: list_cases2;
+      cases "[L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C]" rule: list_cases2)
+  apply (auto dest: XXX' XXY no_dup_filter_diff simp: subseteq_mset_def )[5]
 (*   by (metis count_diff zero_less_diff) *)
 sorry
 
