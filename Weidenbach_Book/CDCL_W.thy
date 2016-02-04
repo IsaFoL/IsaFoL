@@ -36,7 +36,7 @@ locale state\<^sub>W =
     trail_cons_trail[simp]:
       "\<And>L st. undefined_lit (trail st) (lit_of L) \<Longrightarrow> trail (cons_trail L st) = L # trail st" and
     trail_tl_trail[simp]: "\<And>st. trail (tl_trail st) = tl (trail st)" and
-    update_trail_update_clss[simp]:
+    trail_add_init_cls[simp]:
       "\<And>st C. no_dup (trail st) \<Longrightarrow> trail (add_init_cls C st) = trail st" and
     trail_add_learned_cls[simp]:
       "\<And>C st. no_dup (trail st) \<Longrightarrow> trail (add_learned_cls C st) = trail st" and
@@ -49,7 +49,7 @@ locale state\<^sub>W =
       "\<And>M st. undefined_lit (trail st) (lit_of M)\<Longrightarrow> init_clss (cons_trail M st) = init_clss st" and
     init_clss_tl_trail[simp]:
       "\<And>st. init_clss (tl_trail st) = init_clss st" and
-    init_clss_update_clss[simp]:
+    init_clss_add_init_cls[simp]:
       "\<And>st C. no_dup (trail st) \<Longrightarrow> init_clss (add_init_cls C st) = {#C#} + init_clss st" and
     init_clss_add_learned_cls[simp]:
       "\<And>C st. no_dup (trail st) \<Longrightarrow> init_clss (add_learned_cls C st) = init_clss st" and
@@ -65,7 +65,7 @@ locale state\<^sub>W =
         learned_clss (cons_trail M st) = learned_clss st" and
     learned_clss_tl_trail[simp]:
       "\<And>st. learned_clss (tl_trail st) = learned_clss st" and
-    learned_clss_update_clss[simp]:
+    learned_clss_add_init_cls[simp]:
       "\<And>st C. no_dup (trail st) \<Longrightarrow> learned_clss (add_init_cls C st) = learned_clss st" and
     learned_clss_add_learned_cls[simp]:
       "\<And>C st. no_dup (trail st) \<Longrightarrow> learned_clss (add_learned_cls C st) = {#C#} + learned_clss st"

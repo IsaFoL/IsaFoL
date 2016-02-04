@@ -540,7 +540,8 @@ lemma unchanged_init_state[simp]:
   unfolding init_state_def by (rule unchanged_fold_add_init_cls)+
 
 lemma clauses_init_fold_add_init:
-  "image_mset raw_clause (init_clss (fold add_init_cls Cs (TWL_State M N U k C))) =
+  "no_dup M \<Longrightarrow>
+  image_mset raw_clause (init_clss (fold add_init_cls Cs (TWL_State M N U k C))) =
    mset Cs + image_mset raw_clause N"
   by (induct Cs arbitrary: N) (auto simp: add.assoc add_init_cls_def clause_watch)
 
@@ -725,7 +726,7 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl_NOT: dpll_state
       apply (metis comp_apply rough_state_of_twl_remove_cls trail_remove_cls)
      apply (simp add: rough_state_of_twl_cons_trail)
     apply (metis clauses_tl_trail rough_state_of_twl_tl_trail)
-   using clauses_add_cls\<^sub>N\<^sub>O\<^sub>T rough_state_of_twl_add_learned_cls apply presburger
+   apply (simp add: rough_state_of_twl_add_learned_cls)
   using clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T rough_state_of_twl_remove_cls by presburger
 
 interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: state\<^sub>W
@@ -963,13 +964,13 @@ lemma no_dup_filter_diff:
   unfolding H[symmetric]
   apply (rule distinct_filter)
   using n_d by (induction M) auto
-  
-  
-lemma mset_intersection_inclusion: "A + (B - A) = B \<longleftrightarrow> A \<subseteq># B"  
+
+
+lemma mset_intersection_inclusion: "A + (B - A) = B \<longleftrightarrow> A \<subseteq># B"
   apply (rule iffI)
    apply (metis mset_le_add_left)
   by (auto simp: ac_simps multiset_eq_iff subseteq_mset_def)
-  
+
 lemma clause_watch_nat: "no_dup (trail S) \<Longrightarrow> raw_clause (watch_nat S C) = C"
   apply (simp add: watch_nat_def Let_def
     mset_intersection_inclusion)
@@ -1106,7 +1107,7 @@ qed
 (* implementation of watch etc. *)
 interpretation abstract_twl watch_nat rewatch_nat sorted_list_of_multiset learned_clss
   apply unfold_locales
-  apply (rule clause_watch_nat)
+  apply (rule clause_watch_nat; simp)
   apply (rule wf_watch_nat; simp)
   apply (rule clause_rewatch_nat)
   apply (rule wf_rewatch_nat', simp)

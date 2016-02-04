@@ -23,7 +23,6 @@ decided: "undefined_lit (trail S) L \<Longrightarrow> atm_of L \<in> atms_of_mu 
 backtrack: "backtrack_split (trail S)  = (M', L # M) \<Longrightarrow> is_marked L \<Longrightarrow> D \<in># clauses S
   \<Longrightarrow> trail S \<Turnstile>as CNot D \<Longrightarrow> dpll\<^sub>W S (Propagated (- (lit_of L)) () # M, clauses S)"
 
-
 subsection \<open>Invariants\<close>
 lemma dpll\<^sub>W_distinct_inv:
   assumes "dpll\<^sub>W S S'"
@@ -344,7 +343,8 @@ qed
 definition "dpll\<^sub>W_all_inv S \<equiv>
   (all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))
   \<and> atm_of ` lits_of (trail S)  \<subseteq> atms_of_mu (clauses S)
-  \<and> consistent_interp (lits_of (trail S)) \<and> no_dup (trail S))"
+  \<and> consistent_interp (lits_of (trail S)) 
+  \<and> no_dup (trail S))"
 
 lemma dpll\<^sub>W_all_inv_dest[dest]:
   assumes "dpll\<^sub>W_all_inv S"
@@ -712,12 +712,12 @@ lemma dpll\<^sub>W_bj_dpll:
   shows "dpll\<^sub>W S T"
   using dpll
   apply (induction rule: dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.induct)
-  prefer 2
-  apply (auto elim!: dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.decideE dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.propagateE dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backjumpE
-     intro!: dpll\<^sub>W.intros)+
-  apply (metis fst_conv propagate snd_conv)
-  apply (metis fst_conv dpll\<^sub>W.intros(2) snd_conv)
-  done
+    apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.decideE, cases S)
+    using decided apply fastforce
+   apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.propagateE, cases S)
+   using dpll\<^sub>W.simps apply fastforce
+  apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backjumpE, cases S)
+  by (simp add: dpll\<^sub>W.simps dpll_with_backtrack.backtrack.simps)
 
 lemma rtranclp_dpll\<^sub>W_rtranclp_dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T:
   assumes "dpll\<^sub>W\<^sup>*\<^sup>* S T " and "dpll\<^sub>W_all_inv S"
