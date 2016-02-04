@@ -14,6 +14,13 @@ lemma nat_less_induct_case[case_names 0 Suc]:
   apply (induction rule: nat_less_induct)
   by (case_tac n) (auto intro: assms)
 
+(* TODO Move. Mark as simp *)
+text \<open>This is only proved in simple cases by auto. In assumptions, nothing happens, and
+  @{thm split_if_asm} can blow up goals (because of other if expression).\<close>
+lemma if_0_1_ge_0[simp]:
+  "0 < (if P then a else (0::nat)) \<longleftrightarrow> P \<and> 0 < a"
+  by auto
+
 text \<open>Bounded function have not been defined in Isabelle.\<close>
 definition bounded where
 "bounded f \<longleftrightarrow> (\<exists>b. \<forall>n. f n \<le> b)"

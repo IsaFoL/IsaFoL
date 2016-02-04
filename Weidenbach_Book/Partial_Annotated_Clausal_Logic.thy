@@ -58,9 +58,9 @@ abbreviation unmark where
 "unmark M \<equiv> (\<lambda>a. {#lit_of a#}) ` set M"
 
 *)
-lemma atms_of_m_lambda_lit_of_is_atm_of_lit_of[simp]:
-  "atms_of_m ((\<lambda>a. {#lit_of a#}) ` set M') = atm_of ` lits_of M'"
-  unfolding atms_of_m_def lits_of_def by auto
+lemma atms_of_ms_lambda_lit_of_is_atm_of_lit_of[simp]:
+  "atms_of_ms ((\<lambda>a. {#lit_of a#}) ` set M') = atm_of ` lits_of M'"
+  unfolding atms_of_ms_def lits_of_def by auto
 
 lemma lits_of_empty_is_empty[iff]:
   "lits_of M = {} \<longleftrightarrow> M = []"
@@ -728,14 +728,14 @@ lemma total_not_CNot:
   shows "I \<Turnstile> \<phi>"
   using assms total_not_true_cls_true_clss_CNot by auto
 
-lemma atms_of_m_CNot_atms_of[simp]:
-  "atms_of_m (CNot C) = atms_of C"
-  unfolding atms_of_m_def atms_of_def CNot_def by fastforce
+lemma atms_of_ms_CNot_atms_of[simp]:
+  "atms_of_ms (CNot C) = atms_of C"
+  unfolding atms_of_ms_def atms_of_def CNot_def by fastforce
 
 lemma true_clss_clss_contradiction_true_clss_cls_false:
   "C \<in> D \<Longrightarrow> D \<Turnstile>ps CNot C \<Longrightarrow> D \<Turnstile>p {#}"
   unfolding true_clss_clss_def true_clss_cls_def total_over_m_def
-  by (metis Un_commute atms_of_empty atms_of_m_CNot_atms_of atms_of_m_insert atms_of_m_union
+  by (metis Un_commute atms_of_empty atms_of_ms_CNot_atms_of atms_of_ms_insert atms_of_ms_union
     consistent_CNot_not insert_absorb sup_bot.left_neutral true_clss_def)
 
 lemma true_annots_CNot_all_atms_defined:
@@ -766,10 +766,10 @@ lemma true_annots_true_cls_def_iff_negation_in_model:
 
 lemma consistent_CNot_not_tautology:
   "consistent_interp M \<Longrightarrow> M \<Turnstile>s CNot D \<Longrightarrow> \<not>tautology D"
-  by (metis atms_of_m_CNot_atms_of consistent_CNot_not satisfiable_carac' satisfiable_def
+  by (metis atms_of_ms_CNot_atms_of consistent_CNot_not satisfiable_carac' satisfiable_def
     tautology_def total_over_m_def)
 
-lemma atms_of_m_CNot_atms_of_m: "atms_of_m (CNot CC) = atms_of_m {CC}"
+lemma atms_of_ms_CNot_atms_of_ms: "atms_of_ms (CNot CC) = atms_of_ms {CC}"
   by simp
 
 lemma total_over_m_CNot_toal_over_m[simp]:
@@ -786,7 +786,7 @@ lemma true_clss_cls_plus_CNot:
   unfolding true_clss_clss_def true_clss_cls_def CNot_def total_over_m_def
 proof (intro allI impI)
   fix I
-  assume tot: "total_over_set I (atms_of_m (A \<union> {{#L#}}))"
+  assume tot: "total_over_set I (atms_of_ms (A \<union> {{#L#}}))"
   and cons: "consistent_interp I"
   and I: "I \<Turnstile>s A"
   let ?I = "I \<union> {Pos P|P. P \<in> atms_of CC \<and> P \<notin> atm_of ` I}"
@@ -804,12 +804,12 @@ proof (intro allI impI)
   moreover
     have "?I \<Turnstile>s CNot CC" using CNot_CC cons' I' tot_CNot unfolding true_clss_clss_def by auto
     hence "\<not>A \<Turnstile>p CC"
-      by (metis (no_types, lifting) I' atms_of_m_CNot_atms_of_m atms_of_m_union cons'
+      by (metis (no_types, lifting) I' atms_of_ms_CNot_atms_of_ms atms_of_ms_union cons'
         consistent_CNot_not tot_CNot total_over_m_def true_clss_cls_def)
     hence "\<not>?I \<Turnstile> CC" using \<open>?I \<Turnstile>s CNot CC\<close> cons' consistent_CNot_not by blast
   ultimately have "?I \<Turnstile> {#L#}" by blast
   thus "I \<Turnstile> {#L#}"
-    by (metis (no_types, lifting) atms_of_m_union cons' consistent_CNot_not tot total_not_CNot
+    by (metis (no_types, lifting) atms_of_ms_union cons' consistent_CNot_not tot total_not_CNot
       total_over_m_def total_over_set_union true_clss_union_increase)
 qed
 
@@ -844,13 +844,13 @@ lemma true_annot_remove_if_notin_vars:
 
 lemma true_annots_remove_if_notin_vars:
   assumes "M @ M'\<Turnstile>as D"
-  and "\<forall>x\<in>atms_of_m D. x \<notin> atm_of ` lits_of M"
+  and "\<forall>x\<in>atms_of_ms D. x \<notin> atm_of ` lits_of M"
   shows "M' \<Turnstile>as D" unfolding true_annots_def
   using assms true_annot_remove_if_notin_vars[of M M']
-  unfolding true_annots_def atms_of_m_def by force
+  unfolding true_annots_def atms_of_ms_def by force
 
 lemma all_variables_defined_not_imply_cnot:
-  assumes "\<forall>s \<in> atms_of_m {B}. s \<in> atm_of ` lits_of A"
+  assumes "\<forall>s \<in> atms_of_ms {B}. s \<in> atm_of ` lits_of A"
   and "\<not> A \<Turnstile>a B"
   shows "A \<Turnstile>as CNot B"
   unfolding true_annot_def true_annots_def Ball_def CNot_def true_lit_def
@@ -898,7 +898,7 @@ next
     using a1 by simp
 qed
 
-lemma distinctget_all_marked_decomposition_no_dup:
+lemma distinct_get_all_marked_decomposition_no_dup:
   assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
   and "no_dup M"
   shows "no_dup (a @ b)"
@@ -914,7 +914,7 @@ proof -
     using assms(1) in_CNot_implies_uminus(2) by blast
   moreover
     have "atm_of (lit_of L) \<notin> atm_of ` lits_of M"
-      using assms(3) lits_of_def by force
+      using assms(3) unfolding lits_of_def by force
     hence "- lit_of L \<notin> lits_of M" unfolding lits_of_def
       by (metis (no_types) atm_of_uminus imageI)
   ultimately have "\<forall> l \<in># A. -l \<in> lits_of M"
@@ -943,8 +943,8 @@ abbreviation distinct_mset_mset :: "'a multiset multiset \<Rightarrow> bool" whe
 abbreviation all_decomposition_implies_m where
 "all_decomposition_implies_m A B \<equiv> all_decomposition_implies (set_mset A) B"
 
-abbreviation atms_of_mu where
-"atms_of_mu U \<equiv> atms_of_m (set_mset U)"
+abbreviation atms_of_msu where
+"atms_of_msu U \<equiv> atms_of_ms (set_mset U)"
 
 abbreviation true_clss_m:: "'a interp \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>sm" 50) where
 "I \<Turnstile>sm C \<equiv> I \<Turnstile>s set_mset C"

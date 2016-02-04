@@ -54,13 +54,6 @@ lemma rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv:
   by (induction rule: rtranclp_induct) (auto intro: cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv)
 
 subsection \<open>No Relearning of a clause\<close>
-text \<open>This is only proved in simple cases by auto. In assumptions, nothing happens. and
-  @{thm split_if_asm} can blow up goals.\<close>
-(* TODO Move. Mark as simp *)
-lemma if_0_1_ge_0:
-  "0 < (if P then a else (0::nat)) \<longleftrightarrow> P \<and> 0 < a"
-  by auto
-
 lemma cdcl\<^sub>W_o_new_clause_learned_is_backtrack_step:
   assumes learned: "D \<in># learned_clss T" and
   new: "D \<notin># learned_clss S" and
@@ -881,15 +874,15 @@ lemma cdcl\<^sub>W_stgy_distinct_mset_clauses:
 subsection \<open>Decrease of a measure\<close>
 fun cdcl\<^sub>W_measure where
 "cdcl\<^sub>W_measure S =
-  [(3::nat) ^ (card (atms_of_mu (init_clss S))) - card (set_mset (learned_clss S)),
+  [(3::nat) ^ (card (atms_of_msu (init_clss S))) - card (set_mset (learned_clss S)),
     if conflicting S = C_True then 1 else 0,
-    if conflicting S = C_True then card (atms_of_mu (init_clss S)) - length (trail S)
+    if conflicting S = C_True then card (atms_of_msu (init_clss S)) - length (trail S)
     else length (trail S)
     ]"
 
 lemma length_model_le_vars_all_inv:
   assumes "cdcl\<^sub>W_all_struct_inv S"
-  shows "length (trail S) \<le> card (atms_of_mu (init_clss S))"
+  shows "length (trail S) \<le> card (atms_of_msu (init_clss S))"
   using assms length_model_le_vars[of S] unfolding cdcl\<^sub>W_all_struct_inv_def
   by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
 end
@@ -923,16 +916,16 @@ lemma learned_clss_less_upper_bound:
   assumes
     "distinct_cdcl\<^sub>W_state S" and
     "\<forall>s \<in># learned_clss S. \<not>tautology s"
-  shows "card(set_mset (learned_clss S)) \<le> 3 ^ card (atms_of_mu (learned_clss S))"
+  shows "card(set_mset (learned_clss S)) \<le> 3 ^ card (atms_of_msu (learned_clss S))"
 proof -
-  have "set_mset (learned_clss S) \<subseteq> build_all_simple_clss (atms_of_mu (learned_clss S))"
+  have "set_mset (learned_clss S) \<subseteq> build_all_simple_clss (atms_of_msu (learned_clss S))"
     apply (rule simplified_in_build_all)
     using assms unfolding distinct_cdcl\<^sub>W_state_def by auto
   then have "card(set_mset (learned_clss S))
-    \<le> card (build_all_simple_clss (atms_of_mu (learned_clss S)))"
+    \<le> card (build_all_simple_clss (atms_of_msu (learned_clss S)))"
     by (simp add: build_all_simple_clss_finite card_mono)
   then show ?thesis
-    by (meson atms_of_m_finite build_all_simple_clss_card finite_set_mset order_trans)
+    by (meson atms_of_ms_finite build_all_simple_clss_card finite_set_mset order_trans)
 qed
 
 lemma lexn3[intro!, simp]:
@@ -973,15 +966,15 @@ proof (induct rule: cdcl\<^sub>W_all_induct_lev2)
   have "no_strange_atm (cons_trail (Propagated L (C + {#L#})) S)"
     using alien cdcl\<^sub>W.propagate cdcl\<^sub>W_no_strange_atm_inv propa M_level by blast
   then have  "atm_of ` lits_of (Propagated L ( (C + {#L#})) # trail S)
-    \<subseteq> atms_of_mu (init_clss S)"
+    \<subseteq> atms_of_msu (init_clss S)"
     using undef unfolding no_strange_atm_def by auto
   then have "card (atm_of ` lits_of (Propagated L ( (C + {#L#})) # trail S))
-    \<le> card (atms_of_mu (init_clss S))"
-    by (meson atms_of_m_finite card_mono finite_set_mset)
-  then have "length (Propagated L ( (C + {#L#})) # trail S) \<le> card (atms_of_mu ?N)"
+    \<le> card (atms_of_msu (init_clss S))"
+    by (meson atms_of_ms_finite card_mono finite_set_mset)
+  then have "length (Propagated L ( (C + {#L#})) # trail S) \<le> card (atms_of_msu ?N)"
     using no_dup_length_eq_card_atm_of_lits_of no_dup' by fastforce
-  then have H: "card (atms_of_mu (init_clss S)) - length (trail S)
-    = Suc (card (atms_of_mu (init_clss S)) - Suc (length (trail S)))"
+  then have H: "card (atms_of_msu (init_clss S)) - length (trail S)
+    = Suc (card (atms_of_msu (init_clss S)) - Suc (length (trail S)))"
     by simp
   show ?case using conf T undef by (auto simp: H)
 next
@@ -999,7 +992,7 @@ next
     have "no_strange_atm (cons_trail (Marked L (backtrack_lvl S + 1)) (incr_lvl S))"
       using M_level alien calculation(4) cdcl\<^sub>W_no_strange_atm_inv by blast
     then have "length (Marked L ((backtrack_lvl S) + 1) # (trail S))
-      \<le> card (atms_of_mu (init_clss S))"
+      \<le> card (atms_of_msu (init_clss S))"
       using no_dup clauses_def undef
       length_model_le_vars[of "cons_trail (Marked L (backtrack_lvl S + 1)) (incr_lvl S)"]
       by fastforce
@@ -1029,20 +1022,20 @@ next
   moreover have "\<forall>s\<in>#learned_clss ?S'. \<not> tautology s"
     using learned_clss_are_not_tautologies[OF cdcl\<^sub>W.other[OF cdcl\<^sub>W_o.bj[OF
       cdcl\<^sub>W_bj.backtrack[OF bt]]]] M_level no_taut confl by auto
-  ultimately have "card (set_mset (learned_clss T)) \<le> 3 ^ card (atms_of_mu (learned_clss T))"
+  ultimately have "card (set_mset (learned_clss T)) \<le> 3 ^ card (atms_of_msu (learned_clss T))"
       by (auto simp: clauses_def learned_clss_less_upper_bound)
     then have H: "card (set_mset ({#D + {#L#}#} + learned_clss S))
-      \<le> 3 ^ card (atms_of_mu ({#D + {#L#}#} + learned_clss S))"
+      \<le> 3 ^ card (atms_of_msu ({#D + {#L#}#} + learned_clss S))"
       using T undef decomp lev by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
   moreover
-    have "atms_of_mu ({#D + {#L#}#} + learned_clss S) \<subseteq> atms_of_mu (init_clss S)"
+    have "atms_of_msu ({#D + {#L#}#} + learned_clss S) \<subseteq> atms_of_msu (init_clss S)"
       using alien conf unfolding no_strange_atm_def by auto
-    then have card_f: "card (atms_of_mu ({#D + {#L#}#} + learned_clss S))
-      \<le> card (atms_of_mu (init_clss S))"
-      by (meson atms_of_m_finite card_mono finite_set_mset)
-    then have "(3::nat) ^ card (atms_of_mu ({#D + {#L#}#} + learned_clss S))
-      \<le> 3 ^ card (atms_of_mu (init_clss S))" by simp
-  ultimately have "(3::nat) ^ card (atms_of_mu (init_clss S))
+    then have card_f: "card (atms_of_msu ({#D + {#L#}#} + learned_clss S))
+      \<le> card (atms_of_msu (init_clss S))"
+      by (meson atms_of_ms_finite card_mono finite_set_mset)
+    then have "(3::nat) ^ card (atms_of_msu ({#D + {#L#}#} + learned_clss S))
+      \<le> 3 ^ card (atms_of_msu (init_clss S))" by simp
+  ultimately have "(3::nat) ^ card (atms_of_msu (init_clss S))
     \<ge> card (set_mset ({#D + {#L#}#} + learned_clss S))"
     using le_trans by blast
   then show ?case using decomp undef diff_less_mono2 card_T T lev

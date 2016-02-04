@@ -13,7 +13,8 @@ begin
 
 text {*
 Resolution operates of clauses, which are disjunctions of literals. The material formalized here
-corresponds roughly to Sections 2.1 (``Formulas and Clauses'')  of Bachmair and Ganzinger, excluding the formula and term syntax.
+corresponds roughly to Sections 2.1 (``Formulas and Clauses'')  of Bachmair and Ganzinger, excluding
+the formula and term syntax.
 *}
 
 
