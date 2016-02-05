@@ -888,16 +888,24 @@ proof (cases "- lit_of L \<in># watched C")
       unfolding rewatch_nat_def
       using falsified Nil apply auto
         apply (case_tac C)
-        apply auto
-        using local.wf wf_twl_cls.simps apply blast
-        using local.wf wf_twl_cls.simps apply blast
+        apply simp
+(*         using local.wf wf_twl_cls.simps apply blast
+        using local.wf wf_twl_cls.simps apply blast *)
         sorry
   next
     case (Cons L' Ls)
     show ?thesis
       using wf
       unfolding rewatch_nat_def
-      using falsified Cons (* apply (auto dest!: filter_sorted_list_of_multiset_ConsD)
+      using falsified Cons apply (auto dest!: filter_sorted_list_of_multiset_ConsD)
+      apply (case_tac C)
+      apply (auto simp: distinct_mset_single_add)
+            apply (case_tac C)
+apply (auto split: split_if_asm simp: mset_minus_single_eq_mempty)[]
+apply (simp add: size_Diff_singleton)
+apply (metis not_less_eq_eq numeral_2_eq_2 size_Suc_Diff1)
+
+      (* apply (auto dest!: filter_sorted_list_of_multiset_ConsD)
       apply (case_tac C)
       apply (auto simp: distinct_mset_single_add)
       apply (case_tac C)
