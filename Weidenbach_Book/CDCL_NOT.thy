@@ -2878,7 +2878,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops =
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     propagate_conds :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     forget_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" +
-  fixes backjump_l_cond :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool"
+  fixes backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool"
 begin
 inductive backjump_l where
 backjump_l: "trail S = F' @ Marked K () # F
@@ -2890,7 +2890,7 @@ backjump_l: "trail S = F' @ Marked K () # F
    \<Longrightarrow> atm_of L \<in> atms_of_msu (clauses S) \<union> atm_of ` (lits_of (trail S))
    \<Longrightarrow> clauses S \<Turnstile>pm C' + {#L#}
    \<Longrightarrow> F \<Turnstile>as CNot C'
-   \<Longrightarrow> backjump_l_cond C' L T
+   \<Longrightarrow> backjump_l_cond C C' L T
    \<Longrightarrow> backjump_l S T"
 inductive_cases backjump_lE: "backjump_l S T"
 
@@ -2912,8 +2912,8 @@ end
 
 locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy =
   cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
-    propagate_conds forget_conds "\<lambda>C L S.  backjump_l_cond C L S \<and> distinct_mset (C + {#L#})
-    \<and> \<not>tautology (C + {#L#})"
+    propagate_conds forget_conds "\<lambda>C C' L' S.  backjump_l_cond C C' L' S 
+    \<and> distinct_mset (C' + {#L'#}) \<and> \<not>tautology (C' + {#L'#})"
   for
     trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
@@ -2922,7 +2922,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy =
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     propagate_conds :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
-    backjump_l_cond :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool" +
+    backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool" +
   fixes
     inv :: "'st \<Rightarrow> bool"
   assumes
@@ -2995,7 +2995,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2 =
     propagate_conds :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
-    backjump_l_cond :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool"
+    backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool"
 begin
 
 sublocale conflict_driven_clause_learning_ops trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T
@@ -3016,7 +3016,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn =
     propagate_conds :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
-    backjump_l_cond :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool" +
+    backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool" +
   assumes
      dpll_bj_inv: "\<And>S T.  dpll_bj S T \<Longrightarrow> inv S \<Longrightarrow> inv T" and
      learn_inv: "\<And>S T. learn S T \<Longrightarrow> inv S \<Longrightarrow> inv T"
@@ -3800,7 +3800,7 @@ text \<open>The restart does only reset the trail, contrary to Weidenbach's vers
 locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_with_backtrack_restarts =
   cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
     propagate_conds inv forget_conds
-    "\<lambda>C L S. distinct_mset (C + {#L#}) \<and> backjump_l_cond C L S"
+    "\<lambda>C C' L' S. distinct_mset (C' + {#L'#}) \<and> backjump_l_cond C C' L' S"
     for
     trail :: "'st \<Rightarrow> ('v::linorder, unit, unit) marked_lits" and
     clauses :: "'st \<Rightarrow> 'v::linorder clauses" and
@@ -3810,7 +3810,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_with_backtrack_restarts =
     propagate_conds :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
-    backjump_l_cond :: "'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool"
+    backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool"
     +
   fixes f :: "nat \<Rightarrow> nat"
   assumes
@@ -3908,7 +3908,7 @@ next
     "F \<Turnstile>as CNot C'" and
     dist: "distinct_mset (C' + {#L#})" and
     tauto: "\<not> tautology (C' + {#L#})" and
-    "backjump_l_cond C' L T"
+    "backjump_l_cond C C' L T"
     using \<open>backjump_l S T\<close> apply (induction rule: backjump_l.induct) by auto
 
   have "atms_of C' \<subseteq> atm_of ` (lits_of F)"

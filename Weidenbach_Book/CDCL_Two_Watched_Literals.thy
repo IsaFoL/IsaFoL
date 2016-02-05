@@ -577,16 +577,30 @@ sublocale cdcl\<^sub>W_ops trail raw_init_clss raw_learned_clsss backtrack_lvl c
   update_conflicting init_state restart'
   by unfold_locales
 
-interpretation cdcl\<^sub>N\<^sub>O\<^sub>T: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops "convert_trail_from_W o trail" clauses
+interpretation cdcl\<^sub>N\<^sub>O\<^sub>T: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops
+  "convert_trail_from_W o trail"
+  clauses
   "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
   "\<lambda>S. tl_trail S"
   "\<lambda>C S. add_learned_cls C S"
   "\<lambda>C S. remove_cls C S"
   (* propagate conditions: *)"\<lambda>L S. lit_of L \<in> fst ` candidates_propagate S"
   "\<lambda>_ S. conflicting S = C_True"
-  "\<lambda>C L S. C+{#L#} \<in> candidates_conflict S \<and> distinct_mset (C + {#L#}) \<and> \<not>tautology (C + {#L#})"
+  "\<lambda>C C' L' S. C \<in> candidates_conflict S \<and> distinct_mset (C' + {#L'#}) \<and> \<not>tautology (C' + {#L'#})"
   by unfold_locales
 
+interpretation cdcl\<^sub>N\<^sub>O\<^sub>T: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy
+  "convert_trail_from_W o trail"
+  clauses
+  "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
+  "\<lambda>S. tl_trail S"
+  "\<lambda>C S. add_learned_cls C S"
+  "\<lambda>C S. remove_cls C S"
+  (* propagate conditions: *)"\<lambda>L S. lit_of L \<in> fst ` candidates_propagate S"
+  "\<lambda>_ S. conflicting S = C_True"
+  "\<lambda>C C' L' S. C \<in> candidates_conflict S"
+  apply unfold_locales
+  oops
 end
 
 
@@ -976,20 +990,20 @@ lemma mset_intersection_inclusion: "A + (B - A) = B \<longleftrightarrow> A \<su
    apply (metis mset_le_add_left)
   by (auto simp: ac_simps multiset_eq_iff subseteq_mset_def)
 
-lemma clause_watch_nat: 
+lemma clause_watch_nat:
   assumes "no_dup (trail S)"
   shows "raw_clause (watch_nat S C) = C"
 proof -
   have dist: "distinct [L\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - L \<notin> lits_of (trail S)]"
     by auto
-  then have H: "\<And>a xs. [L\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - L \<notin> lits_of (trail S)] 
+  then have H: "\<And>a xs. [L\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - L \<notin> lits_of (trail S)]
     \<noteq> a # a # xs"
     by force
   show ?thesis
   using assms
   apply (simp add: watch_nat_def Let_def
     mset_intersection_inclusion)
-  apply (cases "[L\<leftarrow>remdups (sorted_list_of_set (set_mset C)). - L \<notin> lits_of (trail S)]" 
+  apply (cases "[L\<leftarrow>remdups (sorted_list_of_set (set_mset C)). - L \<notin> lits_of (trail S)]"
         rule: list_cases2;
       cases "[L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C]" rule: list_cases2)
   by (auto dest: XXX' XXY no_dup_filter_diff simp: subseteq_mset_def H)
@@ -1027,7 +1041,7 @@ lemma wf_watch_nat: "no_dup (trail S) \<Longrightarrow> wf_twl_cls (trail S) (wa
   unfolding wf_twl_cls.simps
   apply (intro conjI)
      apply clarsimp+
-  apply (cases "[L\<leftarrow>remdups (sorted_list_of_set (set_mset C)). - L \<notin> lits_of (trail S)]" 
+  apply (cases "[L\<leftarrow>remdups (sorted_list_of_set (set_mset C)). - L \<notin> lits_of (trail S)]"
         rule: list_cases2;
       cases "[L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C]" rule: list_cases2)
   apply (auto dest: XXX' XXY no_dup_filter_diff simp: subseteq_mset_def )[5]

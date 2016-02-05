@@ -69,8 +69,8 @@ lemma rtranclp_skip_or_resolve_rtranclp_cdcl\<^sub>W:
   "skip_or_resolve\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W\<^sup>*\<^sup>* S T"
   by (induction rule: rtranclp_induct) (auto dest!: cdcl\<^sub>W_bj.intros cdcl\<^sub>W.intros cdcl\<^sub>W_o.intros)
 
-abbreviation backjump_l_cond :: " 'v literal multiset \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool" where
-"backjump_l_cond \<equiv> \<lambda>C L S. True"
+abbreviation backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool" where
+"backjump_l_cond \<equiv> \<lambda>C C' L' S. True"
 
 definition inv\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> bool" where
 "inv\<^sub>N\<^sub>O\<^sub>T \<equiv> \<lambda>S. no_dup (trail S)"
@@ -166,8 +166,8 @@ sublocale cdcl\<^sub>W_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_lea
   "\<lambda>C S. add_learned_cls C S"
   "\<lambda>C S. remove_cls C S"
   (* propagate conditions: *)"\<lambda>_ _. True"
-  (* backjump conditions: *) "\<lambda>_ S. conflicting S = C_True" "\<lambda>C L S. backjump_l_cond C L S
-    \<and> distinct_mset (C + {#L#}) \<and> \<not>tautology (C + {#L#})"
+  (* backjump conditions: *) "\<lambda>_ S. conflicting S = C_True" 
+  "\<lambda>C C' L' S. backjump_l_cond C C' L' S  \<and> distinct_mset (C' + {#L'#}) \<and> \<not>tautology (C' + {#L'#})"
   by unfold_locales
 
 sublocale cdcl\<^sub>W_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy  "convert_trail_from_W o trail" clauses
