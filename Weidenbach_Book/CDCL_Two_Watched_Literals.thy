@@ -586,15 +586,6 @@ definition watch_nat :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat clau
       W = take 2 (negation_not_assigned @ negation_assigned_sorted_by_trail);
       UW = sorted_list_of_multiset (C - mset W)
     in TWL_Clause (mset W) (mset UW))"
-(* TODO: write a proper case distinction
-negation_not_assigned  negation_assigned_sorted_by_trail
-[]                         []
-[]                         [a], -a : trail S, a :# C
-[]                         [a, b] # _ , -a,-b : trail S, a, -b :# C, a ~= b
-[a] \<dots>                     []
-[a] \<dots>                     [b]# _, \<dots>,  a \<noteq> b
-and so one
-*)
 
   thm rev_cases
 lemma list_cases2:

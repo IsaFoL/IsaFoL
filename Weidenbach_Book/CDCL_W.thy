@@ -1196,6 +1196,39 @@ lemma cdcl\<^sub>W_state_eq_compatible:
     propagate_state_eq_compatible resolve_state_eq_compatible
     skip_state_eq_compatible)
 
+lemma cdcl\<^sub>W_bj_state_eq_compatible:
+  assumes
+    "cdcl\<^sub>W_bj S T" and "cdcl\<^sub>W_M_level_inv S"
+    "S \<sim> S'" and
+    "T \<sim> T'"
+  shows "cdcl\<^sub>W_bj S' T'"
+  using assms
+  by induction (auto
+    intro: skip_state_eq_compatible backtrack_state_eq_compatible resolve_state_eq_compatible)
+
+lemma tranclp_cdcl\<^sub>W_bj_state_eq_compatible:
+  assumes
+    "cdcl\<^sub>W_bj\<^sup>+\<^sup>+ S T" and  inv: "cdcl\<^sub>W_M_level_inv S" and
+    "S \<sim> S'" and
+    "T \<sim> T'"
+  shows "cdcl\<^sub>W_bj\<^sup>+\<^sup>+ S' T'"
+  using assms
+proof (induction arbitrary: S' T')
+  case base
+  then show ?case
+    using cdcl\<^sub>W_bj_state_eq_compatible by blast
+next
+  case (step T U) note IH = this(3)[OF this(4-5)]
+  have "cdcl\<^sub>W\<^sup>+\<^sup>+ S T"
+    using tranclp_mono[of cdcl\<^sub>W_bj cdcl\<^sub>W] other step.hyps(1) by blast
+  then have "cdcl\<^sub>W_M_level_inv T"
+    using inv tranclp_cdcl\<^sub>W_consistent_inv by blast
+  then have "cdcl\<^sub>W_bj\<^sup>+\<^sup>+ T T'"
+    using \<open>U \<sim> T'\<close> cdcl\<^sub>W_bj_state_eq_compatible[of T U] \<open>cdcl\<^sub>W_bj T U\<close> by auto
+  then show ?case
+    using IH[of T] by auto
+qed
+
 subsubsection \<open>Conservation of some Properties\<close>
 lemma level_of_marked_ge_1:
   assumes
