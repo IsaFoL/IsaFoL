@@ -936,6 +936,15 @@ definition watch_nat :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat clau
       W = take 2 (negation_not_assigned @ negation_assigned_sorted_by_trail);
       UW = sorted_list_of_multiset (C - mset W)
     in TWL_Clause (mset W) (mset UW))"
+(* TODO: write a proper case distinction 
+negation_not_assigned  negation_assigned_sorted_by_trail
+[]                         []
+[]                         [a], -a : trail S, a :# C 
+[]                         [a, b] # _ , -a,-b : trail S, a, -b :# C, a ~= b
+[a] \<dots>                     []
+[a] \<dots>                     [b]# _, \<dots>,  a \<noteq> b 
+and so one
+*)
 
 definition
   rewatch_nat ::
@@ -1044,7 +1053,13 @@ lemma wf_watch_nat: "no_dup (trail S) \<Longrightarrow> wf_twl_cls (trail S) (wa
   apply (cases "[L\<leftarrow>remdups (sorted_list_of_set (set_mset C)). - L \<notin> lits_of (trail S)]"
         rule: list_cases2;
       cases "[L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C]" rule: list_cases2)
-  apply (auto dest: XXX' XXY no_dup_filter_diff simp: subseteq_mset_def )[5]
+  apply (auto dest: XXX' XXY no_dup_filter_diff 
+    simp: subseteq_mset_def distinct_length_2_or_more distinct_mset_add_single )[6]
+apply (auto dest:  XXY no_dup_filter_diff 
+  simp: distinct_length_2_or_more distinct_mset_add_single remdups_filter[symmetric])[]
+apply (metis distinct_length_2_or_more distinct_remdups remdups_filter)
+
+
 (*   by (metis count_diff zero_less_diff) *)
 sorry
 
