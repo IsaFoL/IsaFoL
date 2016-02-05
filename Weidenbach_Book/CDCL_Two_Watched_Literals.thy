@@ -56,7 +56,7 @@ primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) marked_lit list \<Ri
   where
 "watched_decided_most_recently M (TWL_Clause W UW) \<longleftrightarrow>
   (\<forall>L'\<in>#W. \<forall>L\<in>#UW.
-    -L' \<in> lits_of M \<longrightarrow> -L \<in> lits_of M \<longrightarrow>
+    -L' \<in> lits_of M \<longrightarrow> -L \<in> lits_of M \<longrightarrow> L \<notin># W \<longrightarrow>
       index (map lit_of M) (-L') \<le> index (map lit_of M) (-L))"
 
 primrec wf_twl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v twl_clause \<Rightarrow> bool" where
@@ -102,34 +102,34 @@ next
       using wf by (auto simp: C)
     then have
       "index (map lit_of M) (-L) \<le> index (map lit_of M) (-L')"
-      using LM L'M L'UW LW by (metis (mono_tags, lifting) C M bspec_mset insert_iff lits_of_cons
+      using LM L'M L'UW LW \<open>count W L' = 0\<close>
+      by (metis (no_types, lifting) C M bspec_mset insert_iff less_not_refl2 lits_of_cons
         watched_decided_most_recently.simps)
     then have "- L' \<in> lits_of M'"
       using \<open>count W L' = 0\<close> LW L'M by (auto simp: C M split: split_if_asm)
   }
   moreover
     {
-      fix L L' La
+      fix L' L
       assume
-        "L \<in># W" and
-        LM': "- L \<in> lits_of M'" and
         "L' \<in># W" and
-        "La \<in># UW" and
+        "L \<in># UW" and
         L'M: "- L' \<in> lits_of M'" and
-        "- La \<in> lits_of M'"
+        "- L \<in> lits_of M'" and
+        "L \<notin># W"
       moreover
         have "lit_of l \<noteq> - L'"
-        using n_d
+        using n_d unfolding M
           by (metis (no_types) L'M M Marked_Propagated_in_iff_in_lits_of defined_lit_map
             distinct.simps(2) list.simps(9) set_map)
       moreover have "watched_decided_most_recently M C"
         using wf by (auto simp: C)
-      ultimately have "index (map lit_of M') (- L') \<le> index (map lit_of M') (- La)"
-        by (auto simp: M C split: split_if_asm)
+      ultimately have "index (map lit_of M') (- L') \<le> index (map lit_of M') (- L)"
+        by (fastforce simp: M C split: split_if_asm)
     }
   moreover have "distinct_mset W" and "size W \<le> 2" and "(size W < 2 \<longrightarrow> set_mset UW \<subseteq> set_mset W)"
     using wf by (auto simp: C M)
-  ultimately show ?thesis by (simp add: M C)
+  ultimately show ?thesis by (auto simp add: M C)
 qed
 
 definition wf_twl_state :: "('v, 'lvl, 'mark) twl_state \<Rightarrow> bool" where
@@ -735,14 +735,29 @@ lemma set_mset_is_single_in_mset_is_single:
   "set_mset C = {a} \<Longrightarrow> x \<in># C \<Longrightarrow> x = a"
   by fastforce
 
+lemma index_uminus_index_map_uminus:
+  "-a \<in> set L \<Longrightarrow> index L (-a) = index (map uminus L) (a::'a literal)"
+  by (induction L) auto
+
+lemma index_filter:
+  "a \<in> set L \<Longrightarrow> b \<in> set L \<Longrightarrow> P a \<Longrightarrow> P b \<Longrightarrow>
+   index L a \<le> index L b \<longleftrightarrow> index (filter P L) a \<le> index (filter P L) b"
+  by (induction L) auto
+
 lemma wf_watch_nat: "no_dup (trail S) \<Longrightarrow> wf_twl_cls (trail S) (watch_nat S C)"
   apply (simp only: watch_nat_def Let_def partition_filter_conv case_prod_beta fst_conv snd_conv)
   unfolding wf_twl_cls.simps
   apply (intro conjI)
-            apply (cases rule: watch_nat_list_cases[of S C])
-            apply  (auto dest: XXX'
-              simp: distinct_mset_add_single mset_intersection_inclusion subseteq_mset_def)[7]
-     apply simp
+proof goal_cases
+  case 1
+  then show ?case
+    by (cases rule: watch_nat_list_cases[of S C]) (auto dest: XXX' simp: distinct_mset_add_single)
+next
+  case 2
+  then show ?case by simp
+next
+  case 3
+  then show ?case
     apply (cases rule: watch_nat_list_cases[of S C])
           apply  (auto dest: XXX' simp: distinct_mset_add_single mset_intersection_inclusion
             subseteq_mset_def)[7]
@@ -752,32 +767,73 @@ lemma wf_watch_nat: "no_dup (trail S) \<Longrightarrow> wf_twl_cls (trail S) (wa
       using watch_nat_lists_set_union[of S C]
       apply (auto split: split_if_asm dest!: arg_cong[of _ "[_]" set] arg_cong[of _ "[]" set]
         dest: set_mset_is_single_in_mset_is_single simp: lits_of_def)[2]
-     apply auto[]
+    done
+next
+  case 4 note _[simp] = this
+  moreover
+  {
+    fix a :: "nat literal" and ys' :: "nat literal list" and L :: "nat literal" and
+      L' :: "nat literal"
+    assume a1: "[L\<leftarrow>remdups (insort L (sorted_list_of_set (insert a (set ys') - {L}))).
+      - L \<notin> lits_of (trail S)] = [a]"
+    assume a2: "set_mset C = insert L (insert a (set ys'))"
+    assume a3: "L' \<in># C"
+    assume a4: "a \<noteq> L'"
+    have "set (L # a # ys') = set_mset C"
+      using a2 by auto
+    then have "L' \<notin> set [l\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - l \<notin> lits_of (trail S)]"
+      using a4 a1 by (metis List.finite_set list.set(1) list.set(2) singleton_iff
+        sorted_list_of_set.insert_remove)
+    then have "- L' \<in> lits_of (trail S)"
+      using a3 by simp
+      } note H =this
+  show ?case
     apply (cases rule: watch_nat_list_cases[of S C])
-     apply (auto dest: XXX' simp: lits_of_def)[7]
-    apply (cases rule: watch_nat_list_cases[of S C])
+    apply simp
       using watch_nat_lists_set_union[of S C]
-     apply (auto dest: XXX' simp: lits_of_def
+     apply (auto dest: XXX' H simp: lits_of_def filter_empty_conv
        dest!: arg_cong[of _ "[_]" set] arg_cong[of _ "[]" set]
-        dest: set_mset_is_single_in_mset_is_single)[7]
-     apply (metis (no_types) Diff_empty Diff_insert0 distinct.simps(2) finite_insert
-       finite_set_mset list.set(2) mem_set_mset_iff no_dup_filter_diff set_insort sorted_list_of_set)
-     apply (metis (no_types) Diff_empty Diff_insert0 distinct.simps(2) finite_insert
-       finite_set_mset list.set(2) mem_set_mset_iff no_dup_filter_diff set_insort sorted_list_of_set)
-    apply (smt List.finite_set finite_insert mem_Collect_eq mem_set_mset_iff singletonD
-      sorted_list_of_set sorted_list_of_set.insert_remove)
-
-
-
-
+        dest: set_mset_is_single_in_mset_is_single)[4]
+    using watch_nat_lists_set_union[of S C] by (auto dest: XXX' H)
+next
+  case 5
+  then show ?case
    apply (cases rule: watch_nat_list_cases[of S C])
       using watch_nat_lists_set_union[of S C]
      apply (auto dest: XXX' simp: lits_of_def
        dest!: arg_cong[of _ "[_]" set] arg_cong[of _ "[]" set]
-        dest: set_mset_is_single_in_mset_is_single)[7]
-apply (metis (mono_tags, lifting) nat_le_linear set_mset_is_single_in_mset_is_single)
-apply (auto split: split_if_asm)[]
-     sorry
+        dest: set_mset_is_single_in_mset_is_single)[3]
+apply (auto split: split_if_asm simp: )[]
+unfolding linorder_class.set_insort uminus_lit_swap
+apply (simp_all add: index_uminus_index_map_uminus lits_of_def o_def)
+apply (subst  index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
+apply (auto dest: XXX')[1]
+apply (metis (no_types) imageI image_image image_set uminus_of_uminus_id)
+apply (auto dest: XXX')[1]
+apply (auto dest: XXX')[1]
+apply simp
+apply (subst  index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
+apply (auto dest: XXX')[1]
+apply (metis (no_types) imageI image_image image_set uminus_of_uminus_id)
+apply (auto dest: XXX')[1]
+apply (auto dest: XXX')[1]
+apply simp
+apply (auto dest: XXX')[1]
+apply (auto split: split_if_asm simp: )[]
+
+unfolding linorder_class.set_insort uminus_lit_swap
+apply (subst  index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
+apply (auto dest: XXX')[5]
+
+unfolding linorder_class.set_insort uminus_lit_swap
+apply (subst  index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
+apply (auto dest: XXX')[5]
+
+apply (auto dest: XXX')[1]
+apply (metis XXX' imageI list.set_intros(1) list.set_intros(2))
+apply (metis XXX' imageI list.set_intros(1))
+done
+qed
 
 lemma filter_sorted_list_of_multiset_eqD:
   assumes "[x \<leftarrow> sorted_list_of_multiset A. p x] = x # xs" (is "?comp = _")

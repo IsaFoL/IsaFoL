@@ -777,7 +777,7 @@ lemma total_over_m_CNot_toal_over_m[simp]:
   unfolding total_over_m_def total_over_set_def by auto
 
 lemma uminus_lit_swap: "-(a::'a literal) = i \<longleftrightarrow> a = -i"
-    by auto
+  by auto
 
 lemma true_clss_cls_plus_CNot:
   assumes CC_L: "A \<Turnstile>p CC + {#L#}"
