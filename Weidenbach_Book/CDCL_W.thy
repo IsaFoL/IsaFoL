@@ -129,7 +129,8 @@ lemma
   shows
     clauses_cons_trail[simp]:
       "undefined_lit (trail S) (lit_of M) \<Longrightarrow>clauses (cons_trail M S) = clauses S" and
-    clauses_tl_trail[simp]: "clauses (tl_trail S) = clauses S" and
+    (* non-standard to avoid name clash with NOT's clauses_tl_trail *)
+    clss_tl_trail[simp]: "clauses (tl_trail S) = clauses S" and
     clauses_add_learned_cls_unfolded:
       "no_dup (trail S) \<Longrightarrow>  clauses (add_learned_cls U S) = {#U#} + learned_clss S + init_clss S"
       and
@@ -222,7 +223,7 @@ lemma trail_reduce_trail_to_nil[simp]:
 lemma clauses_reduce_trail_to_nil:
   "clauses (reduce_trail_to [] S) = clauses S"
   apply (induction "[]::  ('v, nat, 'v clause) marked_lits" S rule: reduce_trail_to.induct)
-  by (metis clauses_tl_trail reduce_trail_to.simps)
+  by (metis clss_tl_trail reduce_trail_to.simps)
 
 lemma reduce_trail_to_skip_beginning:
   assumes "trail S = F' @ F"
@@ -232,7 +233,7 @@ lemma reduce_trail_to_skip_beginning:
 lemma clauses_reduce_trail_to[simp]:
   "clauses (reduce_trail_to F S) = clauses S"
   apply (induction F S rule: reduce_trail_to.induct)
-  by (metis clauses_tl_trail reduce_trail_to.simps)
+  by (metis clss_tl_trail reduce_trail_to.simps)
 
 lemma conflicting_update_trial[simp]:
   "conflicting (reduce_trail_to F S) = conflicting S"

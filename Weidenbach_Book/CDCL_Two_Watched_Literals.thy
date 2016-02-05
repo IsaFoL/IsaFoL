@@ -561,8 +561,325 @@ definition tl_trail where
 
 definition restart' where
   "restart' S = TWL_State [] (init_clss S) (restart_learned S) 0 C_True"
+end
 
-sublocale state\<^sub>W trail raw_init_clss raw_learned_clsss backtrack_lvl conflicting
+definition pull :: "('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+  "pull p xs = filter p xs @ filter (Not \<circ> p) xs"
+
+lemma set_pull[simp]: "set (pull p xs) = set xs"
+  unfolding pull_def by auto
+
+lemma mset_pull[simp]: "mset (pull p xs) = mset xs"
+  by (simp add: pull_def mset_filter_compl)
+
+lemma mset_take_pull_sorted_list_of_set_subseteq:
+  "mset (take n (pull p (sorted_list_of_set (set_mset A)))) \<subseteq># A"
+  by (metis mset_pull mset_set_set_mset_subseteq mset_sorted_list_of_set mset_take_subseteq
+    subset_mset.dual_order.trans)
+
+definition watch_nat :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat clause \<Rightarrow> nat twl_clause" where
+  "watch_nat S C =
+   (let
+      C' = remdups (sorted_list_of_set (set_mset C));
+      negation_not_assigned = filter (\<lambda>L. -L \<notin> lits_of (trail S)) C';
+      negation_assigned_sorted_by_trail = filter (\<lambda>L. L \<in># C) (map (\<lambda>L. -lit_of L) (trail S));
+      W = take 2 (negation_not_assigned @ negation_assigned_sorted_by_trail);
+      UW = sorted_list_of_multiset (C - mset W)
+    in TWL_Clause (mset W) (mset UW))"
+(* TODO: write a proper case distinction
+negation_not_assigned  negation_assigned_sorted_by_trail
+[]                         []
+[]                         [a], -a : trail S, a :# C
+[]                         [a, b] # _ , -a,-b : trail S, a, -b :# C, a ~= b
+[a] \<dots>                     []
+[a] \<dots>                     [b]# _, \<dots>,  a \<noteq> b
+and so one
+*)
+
+  thm rev_cases
+lemma list_cases2:
+  fixes l :: "'a list"
+  assumes
+    "l = [] \<Longrightarrow> P" and
+    "\<And>x. l = [x] \<Longrightarrow> P" and
+    "\<And>x y xs. l = x # y # xs \<Longrightarrow> P"
+  shows "P"
+  by (metis assms list.collapse)
+
+lemma XXX:
+  assumes "[L\<leftarrow>P . L \<in># C] = l"
+  shows "\<forall>x \<in> set l. x \<in> set P \<and> x \<in># C"
+ using assms by auto
+
+lemma XXX':
+  assumes "[L\<leftarrow>P . Q L] = l"
+  shows "\<forall>x \<in> set l. x \<in> set P \<and> Q x"
+  using assms by auto
+
+lemma no_dup_filter_diff:
+  assumes n_d: "no_dup M" and H: "[L\<leftarrow>map (\<lambda>L. - lit_of L) M. L \<in># C] = l"
+  shows "distinct l"
+  unfolding H[symmetric]
+  apply (rule distinct_filter)
+  using n_d by (induction M) auto
+
+lemma XXY:
+  assumes
+    l: "[L\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - L \<notin> lits_of (trail S)] = l" and
+    l': "[L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C] = l'"
+  shows "\<forall>x \<in> set l. \<forall>y \<in> set l'. x \<noteq> y"
+  by (auto simp: l[symmetric] l'[symmetric] lits_of_def)
+
+
+lemma watch_nat_list_cases:
+  fixes C :: "'v::linorder literal multiset" and S :: "('v, 'a, 'b) twl_state"
+  defines
+    "xs \<equiv> [L\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - L \<notin> lits_of (trail S)]" and
+    "ys \<equiv> [L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C]"
+  assumes n_d: "no_dup (trail S)" and
+    nil_nil: "xs = [] \<Longrightarrow> ys = [] \<Longrightarrow> P" and
+    nil_single:
+      "\<And>a. xs = [] \<Longrightarrow> ys = [a] \<Longrightarrow>  a \<in># C \<Longrightarrow> P" and
+    nil_other: "\<And>a b ys'. xs = [] \<Longrightarrow> ys = a # b # ys' \<Longrightarrow> a \<noteq> b \<Longrightarrow> P" and
+    single_nil: "\<And>a. xs = [a] \<Longrightarrow> ys = [] \<Longrightarrow> P" and
+    single_other: "\<And>a b ys'. xs = [a] \<Longrightarrow> ys = b # ys' \<Longrightarrow> a \<noteq> b \<Longrightarrow> P" and
+    other: "\<And>a b xs'. xs = a # b # xs' \<Longrightarrow> a \<noteq> b \<Longrightarrow> P"
+  shows P
+proof -
+  note xs_def[simp] and ys_def[simp]
+  have dist: "distinct [L\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - L \<notin> lits_of (trail S)]"
+    by auto
+  then have H: "\<And>a xs. [L\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - L \<notin> lits_of (trail S)]
+    \<noteq> a # a # xs"
+    by force
+  show ?thesis
+  apply (cases "[L\<leftarrow>remdups (sorted_list_of_set (set_mset C)). - L \<notin> lits_of (trail S)]"
+        rule: list_cases2;
+      cases "[L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C]" rule: list_cases2)
+          using nil_nil apply simp
+         using nil_single apply (force dest: XXX')
+        using nil_other
+        apply (auto dest: XXX' XXY no_dup_filter_diff[OF n_d] simp: H)[]
+       using single_nil apply simp
+      using single_other
+      apply (auto dest: XXX' XXY no_dup_filter_diff[OF n_d] simp: H)[]
+     using single_other
+     apply (auto dest: XXX' XXY no_dup_filter_diff[OF n_d] simp: H)[]
+    using other xs_def ys_def by (metis H)+
+qed
+
+lemma watch_nat_lists_set_union:
+  fixes C :: "'v::linorder literal multiset" and S :: "('v, 'a, 'b) twl_state"
+  defines
+    "xs \<equiv> [L\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - L \<notin> lits_of (trail S)]" and
+    "ys \<equiv> [L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C]"
+  assumes n_d: "no_dup (trail S)"
+  shows "set_mset C = set xs \<union> set ys"
+  using n_d unfolding xs_def ys_def by (auto simp: lits_of_def uminus_lit_swap)
+
+definition
+  rewatch_nat ::
+  "(nat, nat, nat literal multiset) marked_lit \<Rightarrow> (nat, nat, nat clause) twl_state \<Rightarrow> nat twl_clause \<Rightarrow> nat twl_clause"
+where
+  "rewatch_nat L S C =
+   (if - lit_of L \<in># watched C then
+      case filter (\<lambda>L'. L' \<notin># watched C \<and> - L' \<notin> lits_of (L # trail S))
+          (sorted_list_of_multiset (unwatched C)) of
+        [] \<Rightarrow> C
+      | L' # _ \<Rightarrow>
+        TWL_Clause (watched C - {#- lit_of L#} + {#L'#}) (unwatched C - {#L'#} + {#- lit_of L#})
+    else
+      C)"
+
+
+lemma mset_intersection_inclusion: "A + (B - A) = B \<longleftrightarrow> A \<subseteq># B"
+  apply (rule iffI)
+   apply (metis mset_le_add_left)
+  by (auto simp: ac_simps multiset_eq_iff subseteq_mset_def)
+
+lemma clause_watch_nat:
+  assumes "no_dup (trail S)"
+  shows "raw_clause (watch_nat S C) = C"
+  using assms
+  apply (cases rule: watch_nat_list_cases[OF assms(1), of C])
+  by (auto dest: XXX' simp: watch_nat_def Let_def mset_intersection_inclusion subseteq_mset_def)
+
+lemma distinct_pull[simp]: "distinct (pull p xs) = distinct xs"
+  unfolding pull_def by (induct xs) auto
+
+lemma falsified_watiched_imp_unwatched_falsified:
+  assumes
+    watched: "L \<in> set (take n (pull (Not \<circ> fls) (sorted_list_of_set (set_mset C))))" and
+    falsified: "fls L" and
+    not_watched: "L' \<notin> set (take n (pull (Not \<circ> fls) (sorted_list_of_set (set_mset C))))" and
+    unwatched: "L' \<in># C - mset (take n (pull (Not \<circ> fls) (sorted_list_of_set (set_mset C))))"
+  shows "fls L'"
+proof -
+  let ?Ls = "sorted_list_of_set (set_mset C)"
+  let ?W = "take n (pull (Not \<circ> fls) ?Ls)"
+
+  have "n > length (filter (Not \<circ> fls) ?Ls)"
+    using watched falsified
+    unfolding pull_def comp_def
+    apply auto
+     using in_set_takeD apply fastforce
+    by (metis gr0I length_greater_0_conv length_pos_if_in_set take_0 zero_less_diff)
+  then have "\<And>L. L \<in> set ?Ls \<Longrightarrow> \<not> fls L \<Longrightarrow> L \<in> set ?W"
+    unfolding pull_def by auto
+  then show ?thesis
+    by (metis Multiset.diff_le_self finite_set_mset mem_set_mset_iff mset_leD not_watched
+      sorted_list_of_set unwatched)
+qed
+
+lemma set_mset_is_single_in_mset_is_single:
+  "set_mset C = {a} \<Longrightarrow> x \<in># C \<Longrightarrow> x = a"
+  by fastforce
+
+lemma wf_watch_nat: "no_dup (trail S) \<Longrightarrow> wf_twl_cls (trail S) (watch_nat S C)"
+  apply (simp only: watch_nat_def Let_def partition_filter_conv case_prod_beta fst_conv snd_conv)
+  unfolding wf_twl_cls.simps
+  apply (intro conjI)
+            apply (cases rule: watch_nat_list_cases[of S C])
+            apply  (auto dest: XXX'
+              simp: distinct_mset_add_single mset_intersection_inclusion subseteq_mset_def)[7]
+     apply simp
+    apply (cases rule: watch_nat_list_cases[of S C])
+          apply  (auto dest: XXX' simp: distinct_mset_add_single mset_intersection_inclusion
+            subseteq_mset_def)[7]
+       apply(auto dest!: arg_cong[of _ "[]" set])[]
+       apply (cases C; auto split: split_if_asm simp: lits_of_def image_image)
+       apply (metis image_eqI image_image uminus_of_uminus_id)
+      using watch_nat_lists_set_union[of S C]
+      apply (auto split: split_if_asm dest!: arg_cong[of _ "[_]" set] arg_cong[of _ "[]" set]
+        dest: set_mset_is_single_in_mset_is_single simp: lits_of_def)[2]
+     apply auto[]
+    apply (cases rule: watch_nat_list_cases[of S C])
+     apply (auto dest: XXX' simp: lits_of_def)[7]
+    apply (cases rule: watch_nat_list_cases[of S C])
+      using watch_nat_lists_set_union[of S C]
+     apply (auto dest: XXX' simp: lits_of_def
+       dest!: arg_cong[of _ "[_]" set] arg_cong[of _ "[]" set]
+        dest: set_mset_is_single_in_mset_is_single)[7]
+     apply (metis (no_types) Diff_empty Diff_insert0 distinct.simps(2) finite_insert
+       finite_set_mset list.set(2) mem_set_mset_iff no_dup_filter_diff set_insort sorted_list_of_set)
+     apply (metis (no_types) Diff_empty Diff_insert0 distinct.simps(2) finite_insert
+       finite_set_mset list.set(2) mem_set_mset_iff no_dup_filter_diff set_insort sorted_list_of_set)
+    apply (smt List.finite_set finite_insert mem_Collect_eq mem_set_mset_iff singletonD
+      sorted_list_of_set sorted_list_of_set.insert_remove)
+
+
+
+
+   apply (cases rule: watch_nat_list_cases[of S C])
+      using watch_nat_lists_set_union[of S C]
+     apply (auto dest: XXX' simp: lits_of_def
+       dest!: arg_cong[of _ "[_]" set] arg_cong[of _ "[]" set]
+        dest: set_mset_is_single_in_mset_is_single)[7]
+apply (metis (mono_tags, lifting) nat_le_linear set_mset_is_single_in_mset_is_single)
+apply (auto split: split_if_asm)[]
+     sorry
+
+lemma filter_sorted_list_of_multiset_eqD:
+  assumes "[x \<leftarrow> sorted_list_of_multiset A. p x] = x # xs" (is "?comp = _")
+  shows "x \<in># A"
+proof -
+  have "x \<in> set ?comp"
+    using assms by simp
+  then have "x \<in> set (sorted_list_of_multiset A)"
+    by simp
+  then show "x \<in># A"
+    by simp
+qed
+
+lemma clause_rewatch_nat: "raw_clause (rewatch_nat L S C) = raw_clause C"
+  apply (auto simp: rewatch_nat_def Let_def split: list.split)
+  apply (subst subset_mset.add_diff_assoc2, simp)
+  apply (subst subset_mset.add_diff_assoc2, simp)
+  apply (subst subset_mset.add_diff_assoc2)
+   apply (auto dest: filter_sorted_list_of_multiset_eqD)
+  by (metis (no_types, lifting) add.assoc add_diff_cancel_right' filter_sorted_list_of_multiset_eqD
+    insert_DiffM mset_leD mset_le_add_left)
+
+lemma filter_sorted_list_of_multiset_Nil:
+  "[x \<leftarrow> sorted_list_of_multiset M. p x] = [] \<longleftrightarrow> (\<forall>x \<in># M. \<not> p x)"
+  by auto (metis empty_iff filter_set list.set(1) mem_set_mset_iff member_filter
+    set_sorted_list_of_multiset)
+
+lemma filter_sorted_list_of_multiset_ConsD:
+  "[x \<leftarrow> sorted_list_of_multiset M. p x] = x # xs \<Longrightarrow> p x"
+  by (metis filter_set insert_iff list.set(2) member_filter)
+
+
+lemma mset_minus_single_eq_mempty:
+  "a - {#b#} = {#} \<longleftrightarrow> a = {#b#} \<or> a = {#}"
+  by (metis Multiset.diff_cancel add.right_neutral diff_single_eq_union
+    diff_single_trivial zero_diff)
+
+lemma wf_rewatch_nat':
+  assumes wf: "wf_twl_cls (trail S) C"
+  shows "wf_twl_cls (L # trail S) (rewatch_nat L S C)"
+using filter_sorted_list_of_multiset_Nil[simp]
+proof (cases "- lit_of L \<in># watched C")
+  case falsified: True
+
+  let ?unwatched_nonfalsified =
+    "[L' \<leftarrow> sorted_list_of_multiset (unwatched C). L' \<notin># watched C \<and> - L' \<notin> lits_of (L # trail S)]"
+
+  show ?thesis
+  proof (cases ?unwatched_nonfalsified)
+    case Nil
+    show ?thesis
+      unfolding rewatch_nat_def
+      using falsified Nil apply auto
+        apply (case_tac C)
+        apply auto
+        using local.wf wf_twl_cls.simps apply blast
+        using local.wf wf_twl_cls.simps apply blast
+        sorry
+  next
+    case (Cons L' Ls)
+    show ?thesis
+      using wf
+      unfolding rewatch_nat_def
+      using falsified Cons (* apply (auto dest!: filter_sorted_list_of_multiset_ConsD)
+      apply (case_tac C)
+      apply (auto simp: distinct_mset_single_add)
+      apply (case_tac C)
+apply (auto split: split_if_asm simp: mset_minus_single_eq_mempty)
+apply (simp add: size_Diff_singleton)
+apply (metis not_less_eq_eq numeral_2_eq_2 size_Suc_Diff1) *)
+
+      sorry
+  qed
+next
+  case False
+  have "wf_twl_cls (L # trail S) C"
+    using wf
+(*     apply (case_tac C)
+    apply auto
+     apply (metis False twl_clause.sel(1) uminus_of_uminus_id)
+    by (metis False twl_clause.sel(1) uminus_of_uminus_id) *)
+    sorry
+  then show ?thesis
+    unfolding rewatch_nat_def using False by simp
+qed
+
+(* implementation of watch etc. *)
+interpretation twl: abstract_twl watch_nat rewatch_nat sorted_list_of_multiset learned_clss
+  apply unfold_locales
+  apply (rule clause_watch_nat; simp)
+  apply (rule wf_watch_nat; simp)
+  apply (rule clause_rewatch_nat)
+  apply (rule wf_rewatch_nat', simp)
+  apply (rule mset_sorted_list_of_multiset)
+  apply (rule subset_mset.order_refl)
+  done
+
+text \<open>Lifting to the abstract state.\<close>
+context abstract_twl
+begin
+
+interpretation state\<^sub>W trail raw_init_clss raw_learned_clsss backtrack_lvl conflicting
   cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
   update_conflicting init_state restart'
   apply unfold_locales
@@ -572,7 +889,7 @@ sublocale state\<^sub>W trail raw_init_clss raw_learned_clsss backtrack_lvl conf
   apply (rule image_mset_subseteq_mono[OF restart_learned])
   done
 
-sublocale cdcl\<^sub>W_ops trail raw_init_clss raw_learned_clsss backtrack_lvl conflicting
+interpretation cdcl\<^sub>W_ops trail raw_init_clss raw_learned_clsss backtrack_lvl conflicting
   cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
   update_conflicting init_state restart'
   by unfold_locales
@@ -601,12 +918,6 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_
   "\<lambda>C C' L' S. C \<in> candidates_conflict S"
   apply unfold_locales
   oops
-end
-
-
-text \<open>Lifting to the abstract state.\<close>
-context abstract_twl
-begin
 
 declare state_simp[simp del]
 
@@ -794,8 +1105,11 @@ oops *)
 
 abbreviation state_eq_twl (infix "\<sim>TWL" 51) where
 "state_eq_twl S S' \<equiv> state_eq (rough_state_of_twl S) (rough_state_of_twl S')"
-notation cdcl\<^sub>N\<^sub>O\<^sub>T_twl.state_eq(infix "\<sim>" 51)
+notation cdcl\<^sub>N\<^sub>O\<^sub>T_twl.state_eq (infix "\<sim>" 51)
 declare cdcl\<^sub>N\<^sub>O\<^sub>T_twl.state_simp[simp del]
+
+text \<open>To avoid ambiguities:\<close>
+no_notation  CDCL_Two_Watched_Literals.twl.state_eq_twl (infix "\<sim>TWL" 51)
 
 definition propagate_twl where
 "propagate_twl S S' \<longleftrightarrow>
@@ -869,6 +1183,8 @@ next
     using T unfolding cdcl\<^sub>N\<^sub>O\<^sub>T_twl.state_eq_def state_eq_def by auto
 qed
 
+term local.state_eq_twl
+term CDCL_Two_Watched_Literals.twl.state_eq_twl
 definition conflict_twl where
 "conflict_twl S S' \<longleftrightarrow>
   (\<exists>C. C \<in> candidates_conflict_twl S
@@ -912,255 +1228,4 @@ next
 qed
 
 end
-
-definition pull :: "('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'a list" where
-  "pull p xs = filter p xs @ filter (Not \<circ> p) xs"
-
-lemma set_pull[simp]: "set (pull p xs) = set xs"
-  unfolding pull_def by auto
-
-lemma mset_pull[simp]: "mset (pull p xs) = mset xs"
-  by (simp add: pull_def mset_filter_compl)
-
-lemma mset_take_pull_sorted_list_of_set_subseteq:
-  "mset (take n (pull p (sorted_list_of_set (set_mset A)))) \<subseteq># A"
-  by (metis mset_pull mset_set_set_mset_subseteq mset_sorted_list_of_set mset_take_subseteq
-    subset_mset.dual_order.trans)
-
-definition watch_nat :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat clause \<Rightarrow> nat twl_clause" where
-  "watch_nat S C =
-   (let
-      C' = remdups (sorted_list_of_set (set_mset C));
-      negation_not_assigned = filter (\<lambda>L. -L \<notin> lits_of (trail S)) C';
-      negation_assigned_sorted_by_trail = filter (\<lambda>L. L \<in># C) (map (\<lambda>L. -lit_of L) (trail S));
-      W = take 2 (negation_not_assigned @ negation_assigned_sorted_by_trail);
-      UW = sorted_list_of_multiset (C - mset W)
-    in TWL_Clause (mset W) (mset UW))"
-(* TODO: write a proper case distinction 
-negation_not_assigned  negation_assigned_sorted_by_trail
-[]                         []
-[]                         [a], -a : trail S, a :# C 
-[]                         [a, b] # _ , -a,-b : trail S, a, -b :# C, a ~= b
-[a] \<dots>                     []
-[a] \<dots>                     [b]# _, \<dots>,  a \<noteq> b 
-and so one
-*)
-
-definition
-  rewatch_nat ::
-  "(nat, nat, nat literal multiset) marked_lit \<Rightarrow> (nat, nat, nat clause) twl_state \<Rightarrow> nat twl_clause \<Rightarrow> nat twl_clause"
-where
-  "rewatch_nat L S C =
-   (if - lit_of L \<in># watched C then
-      case filter (\<lambda>L'. L' \<notin># watched C \<and> - L' \<notin> lits_of (L # trail S))
-          (sorted_list_of_multiset (unwatched C)) of
-        [] \<Rightarrow> C
-      | L' # _ \<Rightarrow>
-        TWL_Clause (watched C - {#- lit_of L#} + {#L'#}) (unwatched C - {#L'#} + {#- lit_of L#})
-    else
-      C)"
-
-  thm rev_cases
-lemma list_cases2:
-  fixes l :: "'a list"
-  assumes
-    "l = [] \<Longrightarrow> P" and
-    "\<And>x. l = [x] \<Longrightarrow> P" and
-    "\<And>x y xs. l = x # y # xs \<Longrightarrow> P"
-  shows "P"
-  by (metis assms list.collapse)
-
-lemma XXX:
-  assumes "[L\<leftarrow>P . L \<in># C] = l"
-  shows "\<forall>x \<in> set l. x \<in> set P \<and> x \<in># C"
- using assms by auto
-
-lemma XXX':
-  assumes "[L\<leftarrow>P . Q L] = l"
-  shows "\<forall>x \<in> set l. x \<in> set P \<and> Q x"
-  using assms by auto
-
-lemma no_dup_filter_diff:
-  assumes n_d: "no_dup M" and H: "[L\<leftarrow>map (\<lambda>L. - lit_of L) M. L \<in># C] = l"
-  shows "distinct l"
-  unfolding H[symmetric]
-  apply (rule distinct_filter)
-  using n_d by (induction M) auto
-
-lemma XXY:
-  assumes
-    l: "[L\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - L \<notin> lits_of (trail S)] = l" and
-    l': "[L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C] = l'"
-  shows "\<forall>x \<in> set l. \<forall>y \<in> set l'. x \<noteq> y"
-  by (auto simp: l[symmetric] l'[symmetric] lits_of_def)
-
-lemma mset_intersection_inclusion: "A + (B - A) = B \<longleftrightarrow> A \<subseteq># B"
-  apply (rule iffI)
-   apply (metis mset_le_add_left)
-  by (auto simp: ac_simps multiset_eq_iff subseteq_mset_def)
-
-lemma clause_watch_nat:
-  assumes "no_dup (trail S)"
-  shows "raw_clause (watch_nat S C) = C"
-proof -
-  have dist: "distinct [L\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - L \<notin> lits_of (trail S)]"
-    by auto
-  then have H: "\<And>a xs. [L\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - L \<notin> lits_of (trail S)]
-    \<noteq> a # a # xs"
-    by force
-  show ?thesis
-  using assms
-  apply (simp add: watch_nat_def Let_def
-    mset_intersection_inclusion)
-  apply (cases "[L\<leftarrow>remdups (sorted_list_of_set (set_mset C)). - L \<notin> lits_of (trail S)]"
-        rule: list_cases2;
-      cases "[L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C]" rule: list_cases2)
-  by (auto dest: XXX' XXY no_dup_filter_diff simp: subseteq_mset_def H)
-qed
-
-lemma distinct_pull[simp]: "distinct (pull p xs) = distinct xs"
-  unfolding pull_def by (induct xs) auto
-
-lemma falsified_watiched_imp_unwatched_falsified:
-  assumes
-    watched: "L \<in> set (take n (pull (Not \<circ> fls) (sorted_list_of_set (set_mset C))))" and
-    falsified: "fls L" and
-    not_watched: "L' \<notin> set (take n (pull (Not \<circ> fls) (sorted_list_of_set (set_mset C))))" and
-    unwatched: "L' \<in># C - mset (take n (pull (Not \<circ> fls) (sorted_list_of_set (set_mset C))))"
-  shows "fls L'"
-proof -
-  let ?Ls = "sorted_list_of_set (set_mset C)"
-  let ?W = "take n (pull (Not \<circ> fls) ?Ls)"
-
-  have "n > length (filter (Not \<circ> fls) ?Ls)"
-    using watched falsified
-    unfolding pull_def comp_def
-    apply auto
-     using in_set_takeD apply fastforce
-    by (metis gr0I length_greater_0_conv length_pos_if_in_set take_0 zero_less_diff)
-  then have "\<And>L. L \<in> set ?Ls \<Longrightarrow> \<not> fls L \<Longrightarrow> L \<in> set ?W"
-    unfolding pull_def by auto
-  then show ?thesis
-    by (metis Multiset.diff_le_self finite_set_mset mem_set_mset_iff mset_leD not_watched
-      sorted_list_of_set unwatched)
-qed
-
-lemma wf_watch_nat: "no_dup (trail S) \<Longrightarrow> wf_twl_cls (trail S) (watch_nat S C)"
-  apply (simp only: watch_nat_def Let_def partition_filter_conv case_prod_beta fst_conv snd_conv)
-  unfolding wf_twl_cls.simps
-  apply (intro conjI)
-     apply clarsimp+
-  apply (cases "[L\<leftarrow>remdups (sorted_list_of_set (set_mset C)). - L \<notin> lits_of (trail S)]"
-        rule: list_cases2;
-      cases "[L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C]" rule: list_cases2)
-  apply (auto dest: XXX' XXY no_dup_filter_diff 
-    simp: subseteq_mset_def distinct_length_2_or_more distinct_mset_add_single )[6]
-apply (auto dest:  XXY no_dup_filter_diff 
-  simp: distinct_length_2_or_more distinct_mset_add_single remdups_filter[symmetric])[]
-apply (metis distinct_length_2_or_more distinct_remdups remdups_filter)
-
-
-(*   by (metis count_diff zero_less_diff) *)
-sorry
-
-lemma filter_sorted_list_of_multiset_eqD:
-  assumes "[x \<leftarrow> sorted_list_of_multiset A. p x] = x # xs" (is "?comp = _")
-  shows "x \<in># A"
-proof -
-  have "x \<in> set ?comp"
-    using assms by simp
-  then have "x \<in> set (sorted_list_of_multiset A)"
-    by simp
-  then show "x \<in># A"
-    by simp
-qed
-
-lemma clause_rewatch_nat: "raw_clause (rewatch_nat L S C) = raw_clause C"
-  apply (auto simp: rewatch_nat_def Let_def split: list.split)
-  apply (subst subset_mset.add_diff_assoc2, simp)
-  apply (subst subset_mset.add_diff_assoc2, simp)
-  apply (subst subset_mset.add_diff_assoc2)
-   apply (auto dest: filter_sorted_list_of_multiset_eqD)
-  by (metis (no_types, lifting) add.assoc add_diff_cancel_right' filter_sorted_list_of_multiset_eqD
-    insert_DiffM mset_leD mset_le_add_left)
-
-lemma filter_sorted_list_of_multiset_Nil:
-  "[x \<leftarrow> sorted_list_of_multiset M. p x] = [] \<longleftrightarrow> (\<forall>x \<in># M. \<not> p x)"
-  by auto (metis empty_iff filter_set list.set(1) mem_set_mset_iff member_filter
-    set_sorted_list_of_multiset)
-
-lemma filter_sorted_list_of_multiset_ConsD:
-  "[x \<leftarrow> sorted_list_of_multiset M. p x] = x # xs \<Longrightarrow> p x"
-  by (metis filter_set insert_iff list.set(2) member_filter)
-
-
-lemma mset_minus_single_eq_mempty:
-  "a - {#b#} = {#} \<longleftrightarrow> a = {#b#} \<or> a = {#}"
-  by (metis Multiset.diff_cancel add.right_neutral diff_single_eq_union
-    diff_single_trivial zero_diff)
-
-lemma wf_rewatch_nat':
-  assumes wf: "wf_twl_cls (trail S) C"
-  shows "wf_twl_cls (L # trail S) (rewatch_nat L S C)"
-using filter_sorted_list_of_multiset_Nil[simp]
-proof (cases "- lit_of L \<in># watched C")
-  case falsified: True
-
-  let ?unwatched_nonfalsified =
-    "[L' \<leftarrow> sorted_list_of_multiset (unwatched C). L' \<notin># watched C \<and> - L' \<notin> lits_of (L # trail S)]"
-
-  show ?thesis
-  proof (cases ?unwatched_nonfalsified)
-    case Nil
-    show ?thesis
-      unfolding rewatch_nat_def
-      using falsified Nil apply auto
-        apply (case_tac C)
-        apply auto
-        using local.wf wf_twl_cls.simps apply blast
-        using local.wf wf_twl_cls.simps apply blast
-        sorry
-  next
-    case (Cons L' Ls)
-    show ?thesis
-      using wf
-      unfolding rewatch_nat_def
-      using falsified Cons (* apply (auto dest!: filter_sorted_list_of_multiset_ConsD)
-      apply (case_tac C)
-      apply (auto simp: distinct_mset_single_add)
-      apply (case_tac C)
-apply (auto split: split_if_asm simp: mset_minus_single_eq_mempty)
-apply (simp add: size_Diff_singleton)
-apply (metis not_less_eq_eq numeral_2_eq_2 size_Suc_Diff1) *)
-
-      sorry
-  qed
-next
-  case False
-  have "wf_twl_cls (L # trail S) C"
-    using wf
-(*     apply (case_tac C)
-    apply auto
-     apply (metis False twl_clause.sel(1) uminus_of_uminus_id)
-    by (metis False twl_clause.sel(1) uminus_of_uminus_id) *)
-    sorry
-  then show ?thesis
-    unfolding rewatch_nat_def using False by simp
-qed
-
-(* implementation of watch etc. *)
-interpretation abstract_twl watch_nat rewatch_nat sorted_list_of_multiset learned_clss
-  apply unfold_locales
-  apply (rule clause_watch_nat; simp)
-  apply (rule wf_watch_nat; simp)
-  apply (rule clause_rewatch_nat)
-  apply (rule wf_rewatch_nat', simp)
-  apply (rule mset_sorted_list_of_multiset)
-  apply (rule subset_mset.order_refl)
-  oops
-
-(* interpretation cdcl\<^sub>W_ops
-oops
- *)
-
 end
