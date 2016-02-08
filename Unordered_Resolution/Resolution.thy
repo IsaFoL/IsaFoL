@@ -200,10 +200,10 @@ lemma subls_union: "(L\<^sub>1 \<union> L\<^sub>2) {\<sigma>}\<^sub>l\<^sub>s = 
    It could be done something like
    var_renaming \<sigma> \<longleftrightarrow> (\<exists>b. bijection b (UNIV::var_symbol) (UNIV::var_symbol) \<and> \<forall>x. \<sigma> x = Var (b x))
 
-  Simple idea: Variable_renaming takes two clauses, and sees if they can be substituted to each other
+  Simple idea: Variable_renaming takes two clauses, and sees if they can be substituted to each other. I use this simple idea.
  *)
 
-(* definition var_renaming :: "substitution \<Rightarrow> bool" where
+(* definition var_renaming :: "substitution \<Rightarrow> bool" where 
   "var_renaming \<sigma> \<longleftrightarrow> (\<forall>x. \<exists>y. \<sigma> x = Var y)" *)
 
 definition var_renaming_of :: "fterm clause \<Rightarrow> fterm clause \<Rightarrow> bool" where
@@ -572,22 +572,9 @@ definition unifiert :: "substitution \<Rightarrow> fterm set \<Rightarrow> bool"
    \<^sub>1. Define unifier for a pair of formulas. Then extend this to a set by looking at all pairs of the set.
    \<^sub>2. The result is singleton  
  *)
+
 definition unifierls :: "substitution \<Rightarrow> fterm literal set \<Rightarrow> bool" where
   "unifierls \<sigma> L \<longleftrightarrow> (\<exists>l'. \<forall>l \<in> L. l{\<sigma>}\<^sub>l = l')"
-
-(* Not used anywhere 
-lemma unifierls_same: "unifierls \<sigma> L \<Longrightarrow> l\<^sub>1  \<in> L  \<Longrightarrow> l\<^sub>2  \<in> L  \<Longrightarrow> l\<^sub>1 {\<sigma>}\<^sub>l = l\<^sub>2 {\<sigma>}\<^sub>l" 
-  unfolding unifierls_def by auto
-*)
-lemma unif_sub:
-  assumes unif: "unifierls \<sigma> L"
-  assumes nonempty: "L \<noteq> {}"
-  shows "\<exists>l. subls L \<sigma> = {subl l \<sigma>}"
-proof -
-  from nonempty obtain l where "l \<in> L" by auto
-  from unif this have "L {\<sigma>}\<^sub>l\<^sub>s = {l {\<sigma>}\<^sub>l}" unfolding unifierls_def by auto
-  then show ?thesis by auto
-qed
 
 lemma unifierls_def2: 
   assumes L_elem: "L \<noteq> {}"
@@ -603,6 +590,21 @@ next
   then have "\<forall>l' \<in> L. l'{\<sigma>}\<^sub>l = l" by auto
   then show "unifierls \<sigma> L" unfolding unifierls_def by auto
 qed
+
+(* Not used anywhere 
+lemma unifierls_same: "unifierls \<sigma> L \<Longrightarrow> l\<^sub>1  \<in> L  \<Longrightarrow> l\<^sub>2  \<in> L  \<Longrightarrow> l\<^sub>1 {\<sigma>}\<^sub>l = l\<^sub>2 {\<sigma>}\<^sub>l" 
+  unfolding unifierls_def by auto
+*)
+lemma unif_sub:
+  assumes unif: "unifierls \<sigma> L"
+  assumes nonempty: "L \<noteq> {}"
+  shows "\<exists>l. subls L \<sigma> = {subl l \<sigma>}"
+proof -
+  from nonempty obtain l where "l \<in> L" by auto
+  from unif this have "L {\<sigma>}\<^sub>l\<^sub>s = {l {\<sigma>}\<^sub>l}" unfolding unifierls_def by auto
+  then show ?thesis by auto
+qed
+
 (* I Could use this lemma for great effect in the Combining soundness proof *)
 
 lemma groundls_unif_singleton:
