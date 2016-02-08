@@ -1,4 +1,4 @@
-theory Propo_Logic
+theory Prop_Logic
 
 imports Main
 

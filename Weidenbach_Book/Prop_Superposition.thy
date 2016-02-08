@@ -1,4 +1,4 @@
-theory Propo_Superposition
+theory Prop_Superposition
 imports Partial_Clausal_Logic "../lib/Herbrand_Interpretation"
 begin
 sledgehammer_params[verbose]
@@ -361,7 +361,7 @@ lemma in_interp_is_produced:
 
 end
 end
-(*TODO sharing with Propo_CDCL*)
+(*TODO sharing with Prop_CDCL*)
 abbreviation "MMax M \<equiv> Max (set_mset M)"
 
 subsection \<open>We can now define the rules of the calculus\<close>
@@ -375,21 +375,6 @@ superposition: "A \<in> N \<Longrightarrow> B \<in> N \<Longrightarrow> superpos
 
 definition abstract_red :: "'a::wellorder clause \<Rightarrow> 'a clauses \<Rightarrow> bool" where
 "abstract_red C N = (clss_lt N C \<Turnstile>p C)"
-
-(*TODO: remove when multiset is of sort ord again*)
-instantiation multiset :: (linorder) linorder
-begin
-
-definition less_multiset :: "'a::linorder multiset \<Rightarrow> 'a multiset \<Rightarrow> bool" where
-  "M' < M \<longleftrightarrow> M' #\<subset># M"
-
-definition less_eq_multiset :: "'a multiset \<Rightarrow> 'a multiset \<Rightarrow>bool" where
-   "(M'::'a multiset) \<le> M \<longleftrightarrow> M' #\<subseteq># M"
-
-instance
-  by standard (auto simp add: less_eq_multiset_def less_multiset_def multiset_order.less_le_not_le
-    add.commute multiset_order.add_right_mono)
-end
 
 lemma less_multiset[iff]: "M < N \<longleftrightarrow> M #\<subset># N"
   unfolding less_multiset_def by auto
@@ -450,17 +435,17 @@ proof -
         f2: "\<forall>x0 x1. (\<exists>v2. v2 \<in> x0 \<and> Pos v2 \<notin> x1 \<and> Neg v2 \<notin> x1)
            \<longleftrightarrow> (aa x0 x1 \<in> x0 \<and> Pos (aa x0 x1) \<notin> x1 \<and> Neg (aa x0 x1) \<notin> x1)"
         by moura
-      have "\<forall>a. a \<notin> atms_of_m A \<or> Pos a \<in> I \<or> Neg a \<in> I"
+      have "\<forall>a. a \<notin> atms_of_ms A \<or> Pos a \<in> I \<or> Neg a \<in> I"
         using tot by (simp add: total_over_m_def total_over_set_def)
-      hence "aa (atms_of_m A \<union> atms_of_m {B}) (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I})
-        \<notin> atms_of_m A \<union> atms_of_m {B} \<or> Pos (aa (atms_of_m A \<union> atms_of_m {B})
+      hence "aa (atms_of_ms A \<union> atms_of_ms {B}) (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I})
+        \<notin> atms_of_ms A \<union> atms_of_ms {B} \<or> Pos (aa (atms_of_ms A \<union> atms_of_ms {B})
           (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I})) \<in> I
             \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I}
-          \<or> Neg (aa (atms_of_m A \<union> atms_of_m {B})
+          \<or> Neg (aa (atms_of_ms A \<union> atms_of_ms {B})
             (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I})) \<in> I
             \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I}"
         by auto
-      hence "total_over_set (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I}) (atms_of_m A \<union> atms_of_m {B})"
+      hence "total_over_set (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I}) (atms_of_ms A \<union> atms_of_ms {B})"
         using f2 by (meson total_over_set_def)
       thus ?thesis
         by (simp add: total_over_m_def)

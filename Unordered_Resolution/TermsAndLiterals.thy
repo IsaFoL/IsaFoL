@@ -55,7 +55,7 @@ type_synonym fun_sym  = string
 type_synonym pred_sym = string
 
 datatype fterm = 
-  Fun fun_sym "fterm list"
+  Fun fun_sym (get_sub_terms: "fterm list")
 | Var var_sym
 
 datatype hterm = HFun fun_sym "hterm list"

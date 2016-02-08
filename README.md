@@ -1,15 +1,14 @@
 # IsaFoL: Isabelle Formalization of Logic #
 
-This repository contains various ongoing Isabelle formalizations of logical
-calculi.
+This repository contains various ongoing Isabelle formalizations of logical calculi.
 
-The goal is to develop lemma libraries and methodology for formalizing modern
-research in automated reasoning. Our initial focus is on well-established
-ground and first-order calculi, such as DPLL, CDCL, and resolution. One of
-our inspirations is the
-[IsaFoR/CeTA](http://cl-informatik.uibk.ac.at/software/ceta/) project
-(Isabelle/HOL Formalization of Rewriting for Certified Termination Analysis)
-at Universität Innsbruck.
+The goal is to develop lemma libraries and methodology for formalizing modern research in automated reasoning. Our initial focus is on well-established ground and first-order calculi, such as DPLL, CDCL, and resolution. One of our inspirations is the [IsaFoR/CeTA](http://cl-informatik.uibk.ac.at/software/ceta/) project (Isabelle/HOL Formalization of Rewriting for Certified Termination Analysis) at Universität Innsbruck.
+
+## Entries ##
+
+* [Bachmair & Ganzinger](Bachmair_Ganzinger/README.md)
+* [Unordered Resolution](Unordered_Resolution/README.md)
+* [Weidenbach's Book](Weidenbach_Book/README.md)
 
 ## Authors ##
 
@@ -20,7 +19,7 @@ at Universität Innsbruck.
 
 ## Partly Based on Work by ##
 
-* [Stefan Berghofer](mailto:berghofe at in.tum.de)
+* [Stefan Berghofer](mailto:berghofe shtrudel in.tum.de)
 
 ## Additional Collaborators ##
 
@@ -28,7 +27,7 @@ at Universität Innsbruck.
 * [Jørgen Villadsen](mailto:jovi shtrudel dtu.dk)
 * [Christoph Weidenbach](mailto:weidenbach shtrudel mpi-inf.mpg.de)
 
-## Related entries in the _Archive of Formal Proofs_ ##
+## Related Entries in the _Archive of Formal Proofs_ ##
 
 * [Sound and Complete Sort Encodings for First-Order Logic](http://afp.sourceforge.net/entries/Sort_Encodings.shtml).
   J. C. Blanchette and A. Popescu. In _AFP_, 2014.
@@ -38,21 +37,26 @@ at Universität Innsbruck.
 
 ## Publications ##
 
-* Formalization of Resolution Calculus in Isabelle.
+* [Meta-Logical Reasoning in Higher-Order Logic](http://orbit.dtu.dk/files/118776437/logica_poster.pdf).
+  J. Villadsen, A. Schlichtkrull, and A. V. Hess.
+  Poster session presented at 29th Annual International Symposia Devoted to
+  Logic (LOGICA 2015), 2015.
+
+* [Formalization of Resolution Calculus in Isabelle](http://people.compute.dtu.dk/andschl/Thesis.pdf).
   A. Schlichtkrull.
   M.Sc. thesis, Danmarks Tekniske Universitet, 2015.
 
-* [Formalisation of Ground Inference Systems in a Proof Assistant](https://bitbucket.org/zmaths/formalisation-of-ground-inference-systems-in-a-proof-assistant).
+* [Formalisation of Ground Inference Systems in a Proof Assistant](http://www.mpi-inf.mpg.de/fileadmin/inf/rg1/Documents/fleury_master_thesis.pdf).
   M. Fleury.
   M.Sc. thesis, École normale supérieure Rennes, 2015.
 
-* [Unified classical logic completeness: A coinductive pearl](http://www.loria.fr/~jablanch/compl.pdf).
+* [Unified Classical Logic Completeness: A Coinductive Pearl](http://www.loria.fr/~jablanch/compl.pdf).
   J. C. Blanchette, A. Popescu, and D. Traytel.
   In Demri, S., Kapur, D., Weidenbach, C. (eds) 7th International Joint
   Conference on Automated Reasoning (IJCAR 2014), LNAI 8562, pp. 46-60,
   Springer, 2014.
 
-* [Mechanizing the metatheory of Sledgehammer](http://www.loria.fr/~jablanch/self.pdf).
+* [Mechanizing the Metatheory of Sledgehammer](http://www.loria.fr/~jablanch/self.pdf).
   J. C. Blanchette and A. Popescu.
   In Fontaine, P., Ringeissen, C., Schmidt, R. A. (eds.) 9th International
   Symposium on Frontiers of Combining Systems (FroCoS 2013), LNAI 8152,

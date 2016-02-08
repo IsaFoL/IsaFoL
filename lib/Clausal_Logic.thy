@@ -13,7 +13,8 @@ begin
 
 text {*
 Resolution operates of clauses, which are disjunctions of literals. The material formalized here
-corresponds roughly to Sections 2.1 (``Formulas and Clauses'')  of Bachmair and Ganzinger, excluding the formula and term syntax.
+corresponds roughly to Sections 2.1 (``Formulas and Clauses'')  of Bachmair and Ganzinger, excluding
+the formula and term syntax.
 *}
 
 
@@ -72,6 +73,10 @@ lemma uminus_not_id'[simp]:
 lemma uminus_eq_inj[iff]:
   "-(a::'v literal) = -b \<longleftrightarrow> a = b"
   by (case_tac a; case_tac b) auto+
+
+lemma uminus_lit_swap:
+  "(a::'a literal) = -b \<longleftrightarrow> -a = b"
+  by auto
 
 instantiation literal :: (preorder) preorder
 begin

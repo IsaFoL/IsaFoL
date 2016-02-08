@@ -5,25 +5,28 @@ session "Weidenbach_Book" (main) = "HOL" +
     "../lib/Herbrand_Interpretation"
     "~~/src/HOL/Library/Code_Target_Numeral"
   theories [document = true]
-    Wf_More
-    Propo_Logic
-    Propo_Abstract_Transformation
-    Propo_Normalisation
-    "../lib/Clausal_Logic"
-    Propo_Resolution
+    Wellfounded_More
     List_More
+    Prop_Logic
+    Prop_Abstract_Transformation
+    Prop_Normalisation
+    "../lib/Clausal_Logic"
+    Prop_Resolution
     Partial_Annotated_Clausal_Logic
-    DPLL
-    CDCL_CW_Level
-    CDCL_CW
-    CDCL_CW_Termination
-    DPLL_CDCL_Implementation
-    DPLL_Implementation
-    CDCL_CW_Implementation
+    DPLL_W
+    CDCL_W_Level
+    CDCL_W
+    CDCL_W_Termination
+    DPLL_CDCL_W_Implementation
+    DPLL_W_Implementation
+    CDCL_W_Implementation
     CDCL_NOT
-    CDCL_FW
+    CDCL_WNOT
+    CDCL_W_Incremental
   theories [quick_and_dirty]
-    Propo_Superposition
+    CDCL_Two_Watched_Literals
+    Prop_Superposition
+    Weidenbach_Book
   document_files
     "root.tex"
     "biblio.bib"

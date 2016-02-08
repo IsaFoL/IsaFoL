@@ -1,10 +1,10 @@
-theory CDCL_CW_Level
+theory CDCL_W_Level
 imports Partial_Annotated_Clausal_Logic
 begin
 
 subsubsection \<open>Level of literals and clauses\<close>
 text \<open>Getting the level of a variable, implies that the list has to be reversed. Here is the funtion after reversing.\<close>
-fun get_rev_level :: "'v literal \<Rightarrow> nat \<Rightarrow> ('v, nat, 'a) annoted_lits \<Rightarrow> nat" where
+fun get_rev_level :: "'v literal \<Rightarrow> nat \<Rightarrow> ('v, nat, 'a) marked_lits \<Rightarrow> nat" where
 "get_rev_level _ _ [] = 0" |
 "get_rev_level L n (Marked l level # Ls) =
   (if atm_of l = atm_of L then level else get_rev_level L level Ls)" |
@@ -53,6 +53,46 @@ lemma get_level_skip_beginning:
   assumes "atm_of L' \<noteq> atm_of (lit_of K)"
   shows "get_level L' (K # M) = get_level L' M"
   using assms by auto
+
+lemma get_level_skip_beginning_not_marked_rev:
+  assumes "atm_of L \<notin> atm_of ` lit_of `(set S)"
+  and "\<forall>s\<in>set S. \<not>is_marked s"
+  shows "get_level L (M @ rev S) = get_level L M"
+  using assms by (induction S rule: marked_lit_list_induct) auto
+
+lemma get_level_skip_beginning_not_marked[simp]:
+  assumes "atm_of L \<notin> atm_of ` lit_of `(set S)"
+  and "\<forall>s\<in>set S. \<not>is_marked s"
+  shows "get_level L (M @ S) = get_level L M"
+  using get_level_skip_beginning_not_marked_rev[of L "rev S" M] assms by auto
+
+lemma get_rev_level_skip_beginning_not_marked[simp]:
+  assumes "atm_of L \<notin> atm_of ` lit_of `(set S)"
+  and "\<forall>s\<in>set S. \<not>is_marked s"
+  shows "get_rev_level L 0 (rev S @ rev M) = get_level L M"
+  using get_level_skip_beginning_not_marked_rev[of L "rev S" M] assms by auto
+
+lemma get_level_skip_in_all_not_marked:
+  fixes M :: "('a, nat, 'b) marked_lit list" and L :: "'a literal"
+  assumes "\<forall>m\<in>set M. \<not> is_marked m"
+  and "atm_of L \<in> atm_of ` lit_of ` (set M)"
+  shows "get_rev_level L n M = n"
+proof -
+  show ?thesis
+    using assms by (induction M rule: marked_lit_list_induct) auto
+qed
+
+lemma get_level_skip_all_not_marked[simp]:
+  fixes M
+  defines "M' \<equiv> rev M"
+  assumes "\<forall>m\<in>set M. \<not> is_marked m"
+  shows "get_level L M = 0"
+proof -
+  have M: "M = rev M'"
+    unfolding M'_def by auto
+  show ?thesis
+    using assms unfolding M by (induction M' rule: marked_lit_list_induct) auto
+qed
 
 abbreviation "MMax M \<equiv> Max (set_mset M)"
 
@@ -191,6 +231,10 @@ fun get_all_levels_of_marked :: "('b, 'a, 'c) marked_lit list \<Rightarrow> 'a l
 "get_all_levels_of_marked (Marked l level # Ls) = level # get_all_levels_of_marked Ls" |
 "get_all_levels_of_marked (Propagated _ _ # Ls) = get_all_levels_of_marked Ls"
 
+lemma get_all_levels_of_marked_nil_iff_not_is_marked:
+  "get_all_levels_of_marked xs = [] \<longleftrightarrow> (\<forall> x \<in> set xs. \<not>is_marked x)"
+  using assms by (induction xs rule: marked_lit_list_induct) auto
+
 lemma get_all_levels_of_marked_cons:
   "get_all_levels_of_marked (a # b) =
     (if is_marked a then [level_of a] else []) @ get_all_levels_of_marked b"
@@ -309,6 +353,22 @@ next
         using Cons by auto
       thus ?case using Cons.prems(2) unfolding a by auto
     qed
+qed
+
+lemma get_level_skip_beginning_hd_get_all_levels_of_marked:
+  assumes "atm_of L \<notin> atm_of ` lits_of S"
+  and "get_all_levels_of_marked S \<noteq> []"
+  shows "get_level L (M@ S) = get_rev_level L (hd (get_all_levels_of_marked S)) (rev M)"
+  using assms
+proof (induction S arbitrary: M rule: marked_lit_list_induct)
+  case nil
+  thus ?case by (auto simp add: lits_of_def)
+next
+  case (marked K m) note notin = this(2)
+  thus ?case by (auto simp add: lits_of_def)
+next
+  case (proped L l) note IH = this(1) and L = this(2) and neq = this(3)
+  show ?case using IH[of "M@[Propagated L l]"] L neq by (auto simp add: atm_of_eq_atm_of)
 qed
 
 
