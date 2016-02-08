@@ -113,9 +113,9 @@ lemma nat_from_string_bij: "bij nat_from_string"
   proof -
   have "countable (UNIV::string set)" by auto
   moreover
-  have "infinite (UNIV::string set)" using List.infinite_UNIV_listI by auto
+  have "infinite (UNIV::string set)" using infinite_UNIV_listI by auto
   ultimately
-  obtain x where "bij (x:: string \<Rightarrow> nat)" using Countable_Set.countableE_infinite[of UNIV] by blast
+  obtain x where "bij (x:: string \<Rightarrow> nat)" using countableE_infinite[of UNIV] by blast
   then show "?thesis" unfolding nat_from_string_def using someI by metis
 qed
 
