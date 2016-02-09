@@ -930,12 +930,10 @@ proof (cases "- lit_of L \<in># watched C")
       next
         case 4
         then show ?case
-          using C undef apply (auto split: split_if_asm
+          using C undef
+          apply (auto split: split_if_asm
             simp: Marked_Propagated_in_iff_in_lits_of
             dest: )
-(*  proof reconstruction times\<ominus>ut         sledgehammer
- ( "4"(1) One_nat_def add_diff_cancel_left' add_diff_cancel_right' contra_subsetD count_single count_union diff_is_0_eq distinct_mset_size_2 linorder_not_less local.wf mem_set_mset_iff nat_neq_iff size_mset_2 twl_clause.sel(1) wf_twl_cls.simps)
- *)
 defer
 using filter_sorted_list_of_multiset_ConsD nat_neq_iff apply blast
 apply (simp add: Partial_Annotated_Clausal_Logic.uminus_lit_swap)
@@ -943,13 +941,23 @@ apply (simp add: Partial_Annotated_Clausal_Logic.uminus_lit_swap)
 
 using local.wf apply auto[1]
 using filter_sorted_list_of_multiset_ConsD apply blast
-
- sorry
+using "4"(1) wf apply (auto simp: size_mset_2 distinct_mset_size_2 split: split_if_asm)
+(* TODO: what part of wf is really used here? *)
+by (metis less_irrefl mem_set_mset_iff set_rev_mp)
       next
         case 5
         then show ?case
-          using  C apply simp
-          using wf sorry
+          unfolding C watched_decided_most_recently.simps Ball_mset_def
+          apply (intro allI impI conjI)
+          apply (rename_tac xW x)
+          apply (case_tac "- lit_of L = xW"; case_tac "xW = x")
+          apply simp_all
+apply force
+          apply (case_tac "- lit_of L = x")
+        apply simp_all
+apply (smt C bspec_mset filter_sorted_list_of_multiset_ConsD filter_sorted_list_of_multiset_eqD
+  less_nat_zero_code local.wf wf_twl_cls.simps)+
+done
       qed
   qed
 next
@@ -1298,7 +1306,6 @@ definition conflict_twl where
   \<and> conflicting_twl S = C_True)"
 
 lemma conflict_twl_iff_conflict:
-  assumes inv: "cdcl_all_struct_inv (rough_state_of_twl S)"
   shows "cdcl\<^sub>N\<^sub>O\<^sub>T_twl.conflict S T \<longleftrightarrow> conflict_twl S T" (is "?C \<longleftrightarrow> ?T")
 proof
   assume ?C
