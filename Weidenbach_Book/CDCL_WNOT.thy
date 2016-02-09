@@ -85,7 +85,7 @@ declare inv\<^sub>N\<^sub>O\<^sub>T_def[simp]
 end
 
 fun convert_trail_from_W ::
-  "('v,  'lvl, 'v literal multiset) marked_lit list
+  "('v,  'lvl, 'a) marked_lit list
     \<Rightarrow> ('v, unit, unit) marked_lit list"  where
 "convert_trail_from_W [] = []" |
 "convert_trail_from_W (Propagated L _ # M) = Propagated L () # convert_trail_from_W M" |
@@ -122,16 +122,16 @@ lemma length_convert_trail_from_W[simp]:
 lemma convert_trail_from_W_nil_iff[simp]: "convert_trail_from_W S = [] \<longleftrightarrow> S = []"
   by (induction S rule: convert_trail_from_W.induct) auto
 
-text \<open>The values @{term "0::nat"} and @{term "{#}"} do not matter.\<close>
-fun convert_marked_lit_from_NOT where
+text \<open>The values @{term "0::nat"} and @{term "{#}"} are dummy values.\<close>
+fun convert_marked_lit_from_NOT
+  :: "('a, 'e, 'b) marked_lit \<Rightarrow> ('a, nat, 'a literal multiset) marked_lit"  where
 "convert_marked_lit_from_NOT (Propagated L _) = Propagated L {#}" |
 "convert_marked_lit_from_NOT (Marked L _) = Marked L 0"
 
-fun convert_trail_from_NOT ::
+abbreviation convert_trail_from_NOT ::
   "('v, unit, unit) marked_lit list
     \<Rightarrow> ('v,  nat, 'v literal multiset) marked_lit list"  where
-"convert_trail_from_NOT [] = []" |
-"convert_trail_from_NOT (L # M) = convert_marked_lit_from_NOT L # convert_trail_from_NOT M"
+"convert_trail_from_NOT \<equiv> map convert_marked_lit_from_NOT "
 
 lemma convert_trail_from_W_from_NOT[simp]:
   "convert_trail_from_W (convert_trail_from_NOT M) = M"
@@ -143,11 +143,7 @@ lemma convert_trail_from_W_cons_convert_lit_from_NOT[simp]:
 
 lemma convert_trail_from_W_tl[simp]:
   "convert_trail_from_W (tl M) = tl (convert_trail_from_W M)"
-  by (induction rule: convert_trail_from_W.induct) simp_all
-
-lemma length_convert_trail_from_NOT[simp]:
-  "length (convert_trail_from_NOT W) = length W"
-  by (induction W rule: convert_trail_from_NOT.induct) auto
+  by (induction M rule: convert_trail_from_W.induct) simp_all
 
 abbreviation trail\<^sub>N\<^sub>O\<^sub>T where
 "trail\<^sub>N\<^sub>O\<^sub>T \<equiv> convert_trail_from_W o fst"
@@ -155,6 +151,7 @@ abbreviation trail\<^sub>N\<^sub>O\<^sub>T where
 lemma undefined_lit_convert_trail_from_W[iff]:
   "undefined_lit (convert_trail_from_W M) L \<longleftrightarrow> undefined_lit M L"
   by (auto simp: defined_lit_map)
+
 lemma lit_of_convert_marked_lit_from_NOT[iff]:
   "lit_of (convert_marked_lit_from_NOT L) = lit_of L"
   by (cases L) auto
