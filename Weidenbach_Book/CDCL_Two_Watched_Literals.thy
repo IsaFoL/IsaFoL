@@ -946,18 +946,24 @@ using "4"(1) wf apply (auto simp: size_mset_2 distinct_mset_size_2 split: split_
 by (metis less_irrefl mem_set_mset_iff set_rev_mp)
       next
         case 5
-        then show ?case
-          unfolding C watched_decided_most_recently.simps Ball_mset_def
+        have H: "\<forall>x. x \<in># W \<longrightarrow> - x \<in> lits_of (trail S) \<longrightarrow> (\<forall>x. x \<in># UW \<longrightarrow> count W x = 0
+          \<longrightarrow> - x \<in> lits_of (trail S))"
+          using wf by (auto simp: C)
+
+        show ?case
+          using 5 unfolding C watched_decided_most_recently.simps Ball_mset_def
           apply (intro allI impI conjI)
           apply (rename_tac xW x)
           apply (case_tac "- lit_of L = xW"; case_tac "xW = x")
-          apply simp_all
-apply force
+              apply (auto simp: uminus_lit_swap)[3]
           apply (case_tac "- lit_of L = x")
-        apply simp_all
-apply (smt C bspec_mset filter_sorted_list_of_multiset_ConsD filter_sorted_list_of_multiset_eqD
-  less_nat_zero_code local.wf wf_twl_cls.simps)+
-done
+           apply (clarsimp)
+           using H apply (blast dest: filter_sorted_list_of_multiset_ConsD
+             filter_sorted_list_of_multiset_eqD)
+          apply (clarsimp)
+          using H apply (blast dest: filter_sorted_list_of_multiset_ConsD
+             filter_sorted_list_of_multiset_eqD)
+          done
       qed
   qed
 next
@@ -1223,7 +1229,7 @@ notation cdcl\<^sub>N\<^sub>O\<^sub>T_twl.state_eq (infix "\<sim>" 51)
 declare cdcl\<^sub>N\<^sub>O\<^sub>T_twl.state_simp[simp del]
 
 text \<open>To avoid ambiguities:\<close>
-no_notation  CDCL_Two_Watched_Literals.twl.state_eq_twl (infix "\<sim>TWL" 51)
+no_notation CDCL_Two_Watched_Literals.twl.state_eq_twl (infix "\<sim>TWL" 51)
 
 definition propagate_twl where
 "propagate_twl S S' \<longleftrightarrow>
