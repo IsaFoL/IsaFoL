@@ -7,8 +7,8 @@ theory CDCL_Two_Watched_Literals
 imports CDCL_WNOT (* Have to decide which imports are the best *)
 begin
 
-text \<open>Only the 2-watched literals have to be verified here: the backtrack level and the trail can
-  remain separate.\<close>
+text \<open>Only the 2-watched literals have to be verified here: the backtrack level and the trail that 
+  appear in the state are not related to the 2-watched algoritm.\<close>
 
 datatype 'v twl_clause =
   TWL_Clause (watched: "'v clause") (unwatched: "'v clause")
@@ -49,9 +49,10 @@ lemma index_nth:
   "a \<in> set l \<Longrightarrow> l ! (index l a) = a"
   by (induction l) auto
 
-text \<open>We need the following property: if there is a literal @{term L} with @{term "-L"} in the trail
-  and @{term L} is not  watched, then it stays unwatched; i.e., while updating with @{term rewatch}
-  it does not get swap with a watched literal @{term L'} such that @{term "-L'"} is in the trail.\<close>
+text \<open>We need the following property about updates: if there is a literal @{term L} with 
+  @{term "-L"} in the trail, and @{term L} is not  watched, then it stays unwatched; i.e., while
+  updating with @{term rewatch} it does not get swap with a watched literal @{term L'} such that 
+  @{term "-L'"} is in the trail.\<close>
 primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v twl_clause \<Rightarrow> bool"
   where
 "watched_decided_most_recently M (TWL_Clause W UW) \<longleftrightarrow>
@@ -59,6 +60,7 @@ primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) marked_lit list \<Ri
     -L' \<in> lits_of M \<longrightarrow> -L \<in> lits_of M \<longrightarrow> L \<notin># W \<longrightarrow>
       index (map lit_of M) (-L') \<le> index (map lit_of M) (-L))"
 
+text \<open>Here are the invariant strictly related to the 2-WL data structure.\<close>
 primrec wf_twl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v twl_clause \<Rightarrow> bool" where
   "wf_twl_cls M (TWL_Clause W UW) \<longleftrightarrow>
    distinct_mset W \<and> size W \<le> 2 \<and> (size W < 2 \<longrightarrow> set_mset UW \<subseteq> set_mset W) \<and>
@@ -470,6 +472,13 @@ abbreviation backtrack_lvl_twl where
 
 abbreviation conflicting_twl where
 "conflicting_twl S \<equiv> conflicting (rough_state_of_twl S)"
+
+lemma wf_candidates_twl_conflict_complete:
+  assumes 
+    c_mem: "C \<in># image_mset raw_clause (clauses_twl S)" and
+    unsat: "trail_twl S \<Turnstile>as CNot C"
+  shows "C \<in> candidates_conflict_twl S"
+  using c_mem unsat wf_candidates_conflict_complete wf_twl_state_rough_state_of_twl by blast
 
 locale abstract_twl =
   fixes
@@ -1057,7 +1066,7 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_
 
 declare state_simp[simp del]
 
-abbreviation cons_trail_twl where
+abbreviation cons_trail_twl where                                
 "cons_trail_twl L S \<equiv> twl_of_rough_state (cons_trail L (rough_state_of_twl S))"
 
 lemma wf_twl_state_cons_trail:
@@ -1174,7 +1183,7 @@ lemma rough_state_of_twl_restart_twl:
   by (simp add: twl_of_rough_state_inverse wf_wf_restart')
 
 (* Sledgehammer is awesome! *)
-interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl_NOT: dpll_state
+interpretation cdcl\<^sub>W_twl_NOT: dpll_state
   "convert_trail_from_W o trail_twl" raw_clauses_twl
   "\<lambda>L S. cons_trail_twl (convert_marked_lit_from_NOT L) S"
   "\<lambda>S. tl_trail_twl S"
@@ -1190,7 +1199,7 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl_NOT: dpll_state
    apply (simp add: rough_state_of_twl_add_learned_cls)
   using clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T rough_state_of_twl_remove_cls by presburger
 
-interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: state\<^sub>W
+interpretation cdcl\<^sub>W_twl: state\<^sub>W
   trail_twl
   init_clss_twl
   learned_clss_twl
@@ -1211,7 +1220,7 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: state\<^sub>W
     rough_state_of_twl_update_backtrack_lvl rough_state_of_twl_update_conflicting
     rough_state_of_twl_init_state rough_state_of_twl_restart_twl learned_clss_restart_state)
 
-interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: cdcl\<^sub>W_ops
+interpretation cdcl\<^sub>W_twl: cdcl\<^sub>W_ops
   trail_twl
   init_clss_twl
   learned_clss_twl
@@ -1227,22 +1236,91 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: cdcl\<^sub>W_ops
   init_state_twl
   restart_twl
   by unfold_locales
+interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: backjumping_ops
+  "convert_trail_from_W o trail_twl" 
+  abstract_twl.raw_clauses_twl
+  "\<lambda>L (S:: 'v wf_twl). 
+    cons_trail_twl 
+      (convert_marked_lit_from_NOT L) (S:: 'v wf_twl)"
+  tl_trail_twl
+  add_learned_cls_twl
+  remove_cls_twl
+  (* bj conditions *)"\<lambda>C _ _ _ (S:: 'v wf_twl). C \<in> candidates_conflict_twl S"
+  by unfold_locales
 
-(* interpretation cdcl\<^sub>N\<^sub>O\<^sub>T: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn "convert_trail_from_W o trail" clauses
-  "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
-  "\<lambda>S. tl_trail S"
-  "\<lambda>C S. add_learned_cls C S"
-  "\<lambda>C S. remove_cls C S"
-  (* propagate conditions: *)"\<lambda>L S. lit_of L \<in> fst ` candidates_propagate S"
-  inv\<^sub>N\<^sub>O\<^sub>T
-  (* forget conditions *)"\<lambda>_ S. conflicting S = C_True"
-  "\<lambda>C L S. C+{#L#} \<in> candidates_conflict S"
-oops *)
+lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_skip_beginning_twl:
+  assumes "trail_twl S = convert_trail_from_NOT (F' @ F)"
+  shows "trail_twl (cdcl\<^sub>W_twl.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S) = convert_trail_from_NOT F"
+  using assms by (induction F' arbitrary: S) (auto simp del: cdcl\<^sub>W_twl.state_simp)
+
+lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_trail_tl_trail_twl_decomp[simp]:
+  "trail_twl S = convert_trail_from_NOT (F' @ Marked K () # F) \<Longrightarrow>
+     trail_twl (cdcl\<^sub>W_twl.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F (tl_trail_twl S)) = convert_trail_from_NOT F"
+  apply (rule reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_skip_beginning_twl[of _ "tl (F' @ Marked K () # [])"])
+  by (cases F') (auto simp add:tl_append reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_skip_beginning
+    simp del: cdcl\<^sub>W_twl.state_simp)
+
+lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_trail_trail_twl_decomp[simp]:
+  "trail_twl S = convert_trail_from_NOT (F' @ Marked K () # F) \<Longrightarrow>
+     trail_twl (cdcl\<^sub>W_twl.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S) = convert_trail_from_NOT F"
+  by (cases F') (auto simp add:tl_append reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_skip_beginning
+    simp del: cdcl\<^sub>W_twl.state_simp)
+
+interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: dpll_with_backjumping_ops
+  "convert_trail_from_W o trail_twl" 
+  abstract_twl.raw_clauses_twl
+  "\<lambda>L (S:: 'v wf_twl). 
+    cons_trail_twl 
+      (convert_marked_lit_from_NOT L) (S:: 'v wf_twl)"
+  tl_trail_twl
+  add_learned_cls_twl
+  remove_cls_twl
+  (* propagate conditions: *)"\<lambda>L S. lit_of L \<in> fst ` candidates_propagate_twl S"
+  "\<lambda>S. no_dup (trail_twl S)"
+  "\<lambda>C _ _ _ (S:: 'v wf_twl). C \<in> candidates_conflict_twl S"
+proof (unfold_locales, goal_cases)
+  case (1 C' S C F' K F L)
+
+  have "no_dup (trail_twl S)"
+    using "1"(1) by blast
+  have [simp]: "init_clss (rough_state_of_twl (cons_trail_twl (Propagated L {#}) (cdcl\<^sub>W_twl.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S)))
+    = init_clss (rough_state_of_twl S)"   
+    apply (subst rough_state_of_twl_cons_trail)
+    using 1(3,6) apply (simp del: cdcl\<^sub>W_twl.state_simp   reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_length_ne)
+    apply (subst  reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_skip_beginning_twl)
+    using 1(3,6) apply (auto simp del: cdcl\<^sub>W_twl.state_simp reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_length_ne
+      dest!: arg_cong[of "convert_trail_from_W (trail_twl _)" _ convert_trail_from_NOT])
+    using 1(6) 1(1)  apply (simp del: cdcl\<^sub>W_twl.state_simp add: clauses_def rough_state_of_twl_cons_trail)
+    sorry
+  have [simp]: "learned_clss (rough_state_of_twl (cons_trail_twl (Propagated L {#}) (cdcl\<^sub>W_twl.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S)))
+    = learned_clss (rough_state_of_twl S)"
+    sorry
+  have "C \<in> candidates_conflict_twl (cons_trail_twl (convert_marked_lit_from_NOT (Propagated L ()))
+          (cdcl\<^sub>W_twl.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S))"
+    apply(rule wf_candidates_twl_conflict_complete)
+     using 1(4) apply (simp del: cdcl\<^sub>W_twl.state_simp add: clauses_def)
+    using 1  
+      
+      sorry
+  have "cdcl\<^sub>N\<^sub>O\<^sub>T_twl.backjump S 
+    (cons_trail_twl (convert_marked_lit_from_NOT (Propagated L ())) 
+      (cdcl\<^sub>W_twl.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S))"
+    apply (rule cdcl\<^sub>N\<^sub>O\<^sub>T_twl.backjump.intros[OF 1(3) _ 1(4-6) _ 1(8-9)])
+    unfolding cdcl\<^sub>W_twl_NOT.state_eq\<^sub>N\<^sub>O\<^sub>T_def 
+        apply standard
+         apply (metis convert_marked_lit_from_NOT.simps(1))
+        apply (metis convert_marked_lit_from_NOT.simps(1))
+       using 1(7) 1(3) apply presburger
+      apply(rule wf_candidates_twl_conflict_complete)
+    sorry
+  then show ?case
+    by blast
+qed
 
 abbreviation state_eq_twl (infix "\<sim>TWL" 51) where
 "state_eq_twl S S' \<equiv> state_eq (rough_state_of_twl S) (rough_state_of_twl S')"
-notation cdcl\<^sub>N\<^sub>O\<^sub>T_twl.state_eq (infix "\<sim>" 51)
-declare cdcl\<^sub>N\<^sub>O\<^sub>T_twl.state_simp[simp del]
+notation cdcl\<^sub>W_twl.state_eq (infix "\<sim>" 51)
+declare cdcl\<^sub>W_twl.state_simp[simp del]
 
 text \<open>To avoid ambiguities:\<close>
 no_notation CDCL_Two_Watched_Literals.twl.state_eq_twl (infix "\<sim>TWL" 51)
@@ -1254,20 +1332,20 @@ definition propagate_twl where
   \<and> conflicting_twl S = C_True)"
 
 lemma propagate_twl_iff_propagate:
-  assumes inv: "cdcl\<^sub>W_all_struct_inv (rough_state_of_twl S)"
-  shows "cdcl\<^sub>N\<^sub>O\<^sub>T_twl.propagate S T \<longleftrightarrow> propagate_twl S T" (is "?P \<longleftrightarrow> ?T")
+  assumes inv: "cdcl\<^sub>W_twl.cdcl\<^sub>W_all_struct_inv S"
+  shows "cdcl\<^sub>W_twl.propagate S T \<longleftrightarrow> propagate_twl S T" (is "?P \<longleftrightarrow> ?T")
 proof
   assume ?P
   then obtain C L where
     "conflicting (rough_state_of_twl S) = C_True" and
-    CL_Clauses: "C + {#L#} \<in># cdcl\<^sub>N\<^sub>O\<^sub>T_twl.clauses S" and
+    CL_Clauses: "C + {#L#} \<in># cdcl\<^sub>W_twl.clauses S" and
     tr_CNot: "trail_twl S \<Turnstile>as CNot C" and
     undef_lot: "undefined_lit (trail_twl S) L" and
     "T \<sim> cons_trail_twl (Propagated L (C + {#L#})) S"
-    unfolding cdcl\<^sub>N\<^sub>O\<^sub>T_twl.propagate.simps by auto
+    unfolding cdcl\<^sub>W_twl.propagate.simps by auto
   have "distinct_mset (C + {#L#})"
-    using inv CL_Clauses unfolding cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def
-    cdcl\<^sub>N\<^sub>O\<^sub>T_twl.clauses_def distinct_mset_set_def
+    using inv CL_Clauses unfolding cdcl\<^sub>W_twl.cdcl\<^sub>W_all_struct_inv_def 
+    cdcl\<^sub>W_twl.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_twl.clauses_def distinct_mset_set_def
     by (metis (no_types, lifting) add_gr_0  mem_set_mset_iff plus_multiset.rep_eq)
   then have C_L_L: "mset_set (set_mset (C + {#L#}) - {L}) = C"
     by (metis Un_insert_right add_diff_cancel_left' add_diff_cancel_right'
@@ -1276,7 +1354,7 @@ proof
   have "(L, C+{#L#}) \<in> candidates_propagate_twl S"
     apply (rule wf_candidates_propagate_complete)
          using rough_state_of_twl apply auto[]
-        using CL_Clauses cdcl\<^sub>N\<^sub>O\<^sub>T_twl.clauses_def apply auto[]
+        using CL_Clauses cdcl\<^sub>W_twl.clauses_def apply auto[]
        apply simp
       using C_L_L tr_CNot apply simp
      using undef_lot apply blast
@@ -1285,9 +1363,9 @@ proof
     apply (rule exI[of _ "L"], rule exI[of _ "C+{#L#}"])
     apply (auto simp: \<open>(L, C+{#L#}) \<in> candidates_propagate_twl S\<close>
       \<open>conflicting (rough_state_of_twl S) = C_True\<close> )
-    using \<open>T \<sim> cons_trail_twl (Propagated L (C + {#L#})) S\<close> cdcl\<^sub>N\<^sub>O\<^sub>T_twl.state_eq_backtrack_lvl
-    cdcl\<^sub>N\<^sub>O\<^sub>T_twl.state_eq_conflicting cdcl\<^sub>N\<^sub>O\<^sub>T_twl.state_eq_init_clss
-    cdcl\<^sub>N\<^sub>O\<^sub>T_twl.state_eq_learned_clss cdcl\<^sub>N\<^sub>O\<^sub>T_twl.state_eq_trail state_eq_def by blast
+    using \<open>T \<sim> cons_trail_twl (Propagated L (C + {#L#})) S\<close> cdcl\<^sub>W_twl.state_eq_backtrack_lvl
+    cdcl\<^sub>W_twl.state_eq_conflicting cdcl\<^sub>W_twl.state_eq_init_clss
+    cdcl\<^sub>W_twl.state_eq_learned_clss cdcl\<^sub>W_twl.state_eq_trail state_eq_def by blast
 next
   assume ?T
   then obtain L C where
@@ -1302,21 +1380,21 @@ next
   have "C \<in># raw_clauses_twl S"
     using LC unfolding candidates_propagate_def clauses_def by auto
   then have "distinct_mset C"
-    using inv unfolding cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def
-    cdcl\<^sub>N\<^sub>O\<^sub>T_twl.clauses_def distinct_mset_set_def clauses_def by auto
+    using inv unfolding cdcl\<^sub>W_twl.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_twl.distinct_cdcl\<^sub>W_state_def
+    cdcl\<^sub>W_twl.clauses_def distinct_mset_set_def clauses_def by auto
   then have C_L_L: "mset_set (set_mset C - {L}) = C - {#L#}"
     by (metis \<open>C - {#L#} + {#L#} = C\<close> add_left_imp_eq diff_single_trivial
       distinct_mset_set_mset_ident finite_set_mset mem_set_mset_iff mset_set.remove
       multi_self_add_other_not_self union_commute)
 
   show ?P
-    apply (rule cdcl\<^sub>N\<^sub>O\<^sub>T_twl.propagate.intros[of _ "trail_twl S" "init_clss_twl S"
+    apply (rule cdcl\<^sub>W_twl.propagate.intros[of _ "trail_twl S" "init_clss_twl S"
       "learned_clss_twl S" "backtrack_lvl_twl S" "C-{#L#}" L])
         using confl apply auto[]
-       using LC unfolding candidates_propagate_def apply (auto simp: cdcl\<^sub>N\<^sub>O\<^sub>T_twl.clauses_def)[]
+       using LC unfolding candidates_propagate_def apply (auto simp: cdcl\<^sub>W_twl.clauses_def)[]
       using wf_candidates_propagate_sound[OF _ LC] rough_state_of_twl apply (simp add: C_L_L)
      using wf_candidates_propagate_sound[OF _ LC] rough_state_of_twl apply simp
-    using T unfolding cdcl\<^sub>N\<^sub>O\<^sub>T_twl.state_eq_def state_eq_def by auto
+    using T unfolding cdcl\<^sub>W_twl.state_eq_def state_eq_def by auto
 qed
 
 term local.state_eq_twl
@@ -1328,22 +1406,22 @@ definition conflict_twl where
   \<and> conflicting_twl S = C_True)"
 
 lemma conflict_twl_iff_conflict:
-  shows "cdcl\<^sub>N\<^sub>O\<^sub>T_twl.conflict S T \<longleftrightarrow> conflict_twl S T" (is "?C \<longleftrightarrow> ?T")
+  shows "cdcl\<^sub>W_twl.conflict S T \<longleftrightarrow> conflict_twl S T" (is "?C \<longleftrightarrow> ?T")
 proof
   assume ?C
   then obtain M N U k C where
     S: "state (rough_state_of_twl S) = (M, N, U, k, C_True)" and
-    C: "C \<in># cdcl\<^sub>N\<^sub>O\<^sub>T_twl.clauses S" and
+    C: "C \<in># cdcl\<^sub>W_twl.clauses S" and
     M_C: "M \<Turnstile>as CNot C" and
     T: "T \<sim> update_conflicting_twl (C_Clause C) S"
     by auto
   have "C \<in> candidates_conflict_twl S"
     apply (rule wf_candidates_conflict_complete)
        apply simp
-      using C apply (auto simp: cdcl\<^sub>N\<^sub>O\<^sub>T_twl.clauses_def)[]
+      using C apply (auto simp: cdcl\<^sub>W_twl.clauses_def)[]
     using M_C S by auto
   moreover have "T \<sim>TWL twl_of_rough_state (update_conflicting (C_Clause C) (rough_state_of_twl S))"
-    using T unfolding state_eq_def cdcl\<^sub>N\<^sub>O\<^sub>T_twl.state_eq_def by auto
+    using T unfolding state_eq_def cdcl\<^sub>W_twl.state_eq_def by auto
   ultimately show ?T
     using S unfolding conflict_twl_def by auto
 next
@@ -1353,14 +1431,64 @@ next
     T: "T \<sim>TWL update_conflicting_twl (C_Clause C) S" and
     confl: "conflicting_twl S = C_True"
     unfolding conflict_twl_def by auto
-  have "C \<in># cdcl\<^sub>N\<^sub>O\<^sub>T_twl.clauses S"
-    using C unfolding candidates_conflict_def cdcl\<^sub>N\<^sub>O\<^sub>T_twl.clauses_def by auto
+  have "C \<in># cdcl\<^sub>W_twl.clauses S"
+    using C unfolding candidates_conflict_def cdcl\<^sub>W_twl.clauses_def by auto
  moreover have "trail_twl S \<Turnstile>as CNot C"
     using wf_candidates_conflict_sound[OF _ C] by auto
  ultimately show ?C apply -
-   apply (rule cdcl\<^sub>N\<^sub>O\<^sub>T_twl.conflict.conflict_rule[of _ _ _ _ _ C])
-   using confl T unfolding state_eq_def cdcl\<^sub>N\<^sub>O\<^sub>T_twl.state_eq_def by auto
+   apply (rule cdcl\<^sub>W_twl.conflict.conflict_rule[of _ _ _ _ _ C])
+   using confl T unfolding state_eq_def cdcl\<^sub>W_twl.state_eq_def by auto
+qed
+
+inductive cdcl\<^sub>W_twl :: "'v wf_twl \<Rightarrow> 'v wf_twl \<Rightarrow> bool" for S :: "'v wf_twl" where
+propagate: "propagate_twl S S' \<Longrightarrow> cdcl\<^sub>W_twl S S'" |
+conflict: "conflict_twl S S' \<Longrightarrow> cdcl\<^sub>W_twl S S'" |
+other: "cdcl\<^sub>W_twl.cdcl\<^sub>W_o S S' \<Longrightarrow> cdcl\<^sub>W_twl S S'"|
+rf: "cdcl\<^sub>W_twl.cdcl\<^sub>W_rf S S' \<Longrightarrow> cdcl\<^sub>W_twl S S'"
+
+lemma cdcl\<^sub>W_twl_iff_cdcl\<^sub>W:
+  assumes "cdcl\<^sub>W_twl.cdcl\<^sub>W_all_struct_inv S"
+  shows "cdcl\<^sub>W_twl S T \<longleftrightarrow> cdcl\<^sub>W_twl.cdcl\<^sub>W S T"
+  by (simp add: assms cdcl\<^sub>W_twl.cdcl\<^sub>W.simps cdcl\<^sub>W_twl.simps conflict_twl_iff_conflict 
+    propagate_twl_iff_propagate)
+
+lemma rtranclp_cdcl\<^sub>W_twl_all_struct_inv_inv:
+  assumes "cdcl\<^sub>W_twl\<^sup>*\<^sup>* S T" and "cdcl\<^sub>W_twl.cdcl\<^sub>W_all_struct_inv S"
+  shows "cdcl\<^sub>W_twl.cdcl\<^sub>W_all_struct_inv T"
+  using assms by (induction rule: rtranclp_induct) 
+  (simp_all add: cdcl\<^sub>W_twl_iff_cdcl\<^sub>W cdcl\<^sub>W_twl.cdcl\<^sub>W_all_struct_inv_inv)
+
+lemma rtranclp_cdcl\<^sub>W_twl_iff_rtranclp_cdcl\<^sub>W:
+  assumes "cdcl\<^sub>W_twl.cdcl\<^sub>W_all_struct_inv S"
+  shows "cdcl\<^sub>W_twl\<^sup>*\<^sup>* S T \<longleftrightarrow> cdcl\<^sub>W_twl.cdcl\<^sub>W\<^sup>*\<^sup>* S T" (is "?T \<longleftrightarrow> ?W")
+proof
+  assume ?W
+  then show ?T
+    proof (induction rule: rtranclp_induct)
+      case base
+      then show ?case by simp
+    next
+      case (step T U) note st = this(1) and cdcl = this(2) and IH = this(3)
+      have "cdcl\<^sub>W_twl T U" 
+        using assms st cdcl cdcl\<^sub>W_twl.rtranclp_cdcl\<^sub>W_all_struct_inv_inv cdcl\<^sub>W_twl_iff_cdcl\<^sub>W
+        by blast
+      then show ?case using IH by auto
+    qed
+next
+  assume ?T
+  then show ?W
+    proof (induction rule: rtranclp_induct)
+      case base
+      then show ?case by simp
+    next
+      case (step T U) note st = this(1) and cdcl = this(2) and IH = this(3)
+      have "cdcl\<^sub>W_twl.cdcl\<^sub>W T U" 
+        using assms st cdcl rtranclp_cdcl\<^sub>W_twl_all_struct_inv_inv cdcl\<^sub>W_twl_iff_cdcl\<^sub>W
+        by blast
+      then show ?case using IH by auto
+    qed  
 qed
 
 end
+
 end
