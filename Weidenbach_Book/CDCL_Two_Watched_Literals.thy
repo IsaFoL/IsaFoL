@@ -482,7 +482,10 @@ locale abstract_twl =
     clause_watch: "no_dup(trail S) \<Longrightarrow> raw_clause (watch S C) = C" and
     wf_watch: "no_dup (trail S) \<Longrightarrow> wf_twl_cls (trail S) (watch S C)" and
     clause_rewatch: "raw_clause (rewatch L S C') = raw_clause C'" and
-    wf_rewatch: "wf_twl_cls (trail S) C' \<Longrightarrow> wf_twl_cls (L # trail S) (rewatch L S C')" and
+    wf_rewatch:
+      "no_dup (trail S) \<Longrightarrow> undefined_lit (trail S) (lit_of L) \<Longrightarrow> wf_twl_cls (trail S) C' \<Longrightarrow>
+        wf_twl_cls (L # trail S) (rewatch L S C')"
+      and
     linearize: "mset (linearize N) = N" and
     restart_learned: "restart_learned S \<subseteq># learned_clss S"
 begin
@@ -856,65 +859,143 @@ lemma filter_sorted_list_of_multiset_ConsD:
   "[x \<leftarrow> sorted_list_of_multiset M. p x] = x # xs \<Longrightarrow> p x"
   by (metis filter_set insert_iff list.set(2) member_filter)
 
-
 lemma mset_minus_single_eq_mempty:
   "a - {#b#} = {#} \<longleftrightarrow> a = {#b#} \<or> a = {#}"
   by (metis Multiset.diff_cancel add.right_neutral diff_single_eq_union
     diff_single_trivial zero_diff)
 
+lemma size_mset_le_2_cases:
+  assumes "size W \<le> 2"
+  shows "W = {#} \<or> (\<exists>a. W = {#a#}) \<or> (\<exists>a b. W = {#a,b#})"
+  by (metis One_nat_def Suc_1 Suc_eq_plus1_left assms linorder_not_less nat_less_le
+    not_less_eq_eq ordered_cancel_comm_monoid_diff_class.le_iff_add size_1_singleton_mset
+    size_eq_0_iff_empty size_mset_2)
+
 lemma wf_rewatch_nat':
-  assumes wf: "wf_twl_cls (trail S) C"
+  assumes
+    wf: "wf_twl_cls (trail S) C" and
+    n_d: "no_dup (trail S)" and
+    undef: "undefined_lit (trail S) (lit_of L)"
   shows "wf_twl_cls (L # trail S) (rewatch_nat L S C)"
-using filter_sorted_list_of_multiset_Nil[simp]
+  using filter_sorted_list_of_multiset_Nil[simp]
 proof (cases "- lit_of L \<in># watched C")
   case falsified: True
 
   let ?unwatched_nonfalsified =
-    "[L' \<leftarrow> sorted_list_of_multiset (unwatched C). L' \<notin># watched C \<and> - L' \<notin> lits_of (L # trail S)]"
+    "[L'\<leftarrow>sorted_list_of_multiset (unwatched C) . L' \<notin># watched C \<and> - L' \<notin> lits_of (L # trail S)]"
+  obtain W UW where C: "C = TWL_Clause W UW"
+    by (cases C)
 
   show ?thesis
   proof (cases ?unwatched_nonfalsified)
     case Nil
     show ?thesis
       unfolding rewatch_nat_def
-      using falsified Nil apply auto
-        apply (case_tac C)
-        apply simp
-(*         using local.wf wf_twl_cls.simps apply blast
-        using local.wf wf_twl_cls.simps apply blast *)
-        sorry
+      using falsified Nil
+      apply (simp only: wf_twl_cls.simps if_True list.cases C)
+      apply (intro conjI)
+      proof goal_cases
+        case 1
+        then show ?case using wf C by simp
+      next
+        case 2
+        then show ?case using wf C by simp
+      next
+        case 3
+        then show ?case using wf C by simp
+      next
+        case 4
+        then show ?case using wf C by auto
+      next
+        case 5
+        then show ?case
+          using  C apply simp
+          using wf by (smt ball_msetI bspec_mset not_gr0 uminus_of_uminus_id
+            watched_decided_most_recently.simps wf_twl_cls.simps)
+      qed
   next
     case (Cons L' Ls)
     show ?thesis
-      using wf
-      unfolding rewatch_nat_def
-      using falsified Cons apply (auto dest!: filter_sorted_list_of_multiset_ConsD)
-      apply (case_tac C)
-      apply (auto simp: distinct_mset_single_add)
-            apply (case_tac C)
-apply (auto split: split_if_asm simp: mset_minus_single_eq_mempty)[]
-apply (simp add: size_Diff_singleton)
-apply (metis not_less_eq_eq numeral_2_eq_2 size_Suc_Diff1)
+      unfolding rewatch_nat_def C
+      using falsified Cons
+      apply (simp only: wf_twl_cls.simps if_True list.cases C)
+      apply (intro conjI)
+      proof goal_cases
+        case 1
+        then show ?case using wf C n_d
+          by (smt Multiset.diff_le_self distinct_mset_add_single distinct_mset_single_add
+            filter_sorted_list_of_multiset_ConsD insert_DiffM mset_leD twl_clause.sel(1)
+            wf_twl_cls.simps)
+      next
+        case 2
+        then show ?case using wf C by (metis insert_DiffM2 size_single size_union twl_clause.sel(1)
+          wf_twl_cls.simps)
+      next
+        case 3
+        then show ?case
+          using wf C by (force simp: mset_minus_single_eq_mempty dest: subset_singletonD)
+      next
+        case 4
+        have H: "\<forall>L\<in>#W. - L \<in> lits_of (trail S) \<longrightarrow>
+          (\<forall>L'\<in>#UW. count W L' = 0 \<longrightarrow> - L' \<in> lits_of (trail S))"
+          using wf by (auto simp: C)
+        have W: "size W \<le> 2" and W_UW: "size W < 2 \<longrightarrow> set_mset UW \<subseteq> set_mset W"
+          using wf by (auto simp: C)
 
-      (* apply (auto dest!: filter_sorted_list_of_multiset_ConsD)
-      apply (case_tac C)
-      apply (auto simp: distinct_mset_single_add)
-      apply (case_tac C)
-apply (auto split: split_if_asm simp: mset_minus_single_eq_mempty)
-apply (simp add: size_Diff_singleton)
-apply (metis not_less_eq_eq numeral_2_eq_2 size_Suc_Diff1) *)
+        have distinct: "distinct_mset W"
+          using wf by (auto simp: C)
+        show ?case
+          using 4
+          unfolding C watched_decided_most_recently.simps Ball_mset_def twl_clause.sel
+          apply (intro allI impI)
+          apply (rename_tac xW xUW)
+          apply (case_tac "- lit_of L = xW"; case_tac "xW = xUW"; case_tac "L' = xW")
+                  apply (auto simp: uminus_lit_swap)[2]
+                using filter_sorted_list_of_multiset_ConsD apply blast
+               using H size_mset_le_2_cases[OF W]
+              using distinct apply (fastforce split: split_if_asm simp: distinct_mset_size_2)
+             using distinct apply (fastforce split: split_if_asm simp: distinct_mset_size_2)
+            using distinct apply (fastforce split: split_if_asm simp: distinct_mset_size_2)
+           using filter_sorted_list_of_multiset_ConsD apply blast
+          using size_mset_le_2_cases[OF W] H by (fastforce simp: uminus_lit_swap
+            dest: filter_sorted_list_of_multiset_ConsD filter_sorted_list_of_multiset_eqD)+
+          (* SLOW ~4s *)
+      next
+        case 5
+        have H: "\<forall>x. x \<in># W \<longrightarrow> - x \<in> lits_of (trail S) \<longrightarrow> (\<forall>x. x \<in># UW \<longrightarrow> count W x = 0
+          \<longrightarrow> - x \<in> lits_of (trail S))"
+          using wf by (auto simp: C)
 
-      sorry
+        show ?case
+          using 5 unfolding C watched_decided_most_recently.simps Ball_mset_def
+          apply (intro allI impI conjI)
+          apply (rename_tac xW x)
+          apply (case_tac "- lit_of L = xW"; case_tac "xW = x")
+              apply (auto simp: uminus_lit_swap)[3]
+          apply (case_tac "- lit_of L = x")
+           apply (clarsimp)
+           using H apply (blast dest: filter_sorted_list_of_multiset_ConsD
+             filter_sorted_list_of_multiset_eqD)
+          apply (clarsimp)
+          using H apply (blast dest: filter_sorted_list_of_multiset_ConsD
+             filter_sorted_list_of_multiset_eqD)
+          done
+      qed
   qed
 next
   case False
-  have "wf_twl_cls (L # trail S) C"
-    using wf
-(*     apply (case_tac C)
-    apply auto
-     apply (metis False twl_clause.sel(1) uminus_of_uminus_id)
-    by (metis False twl_clause.sel(1) uminus_of_uminus_id) *)
-    sorry
+  then have "wf_twl_cls (L # trail S) C"
+    apply (cases C)
+    using wf n_d undef apply (clarify)
+    unfolding wf_twl_cls.simps
+    apply (intro conjI)
+         apply blast
+        apply blast
+       apply blast
+      apply (smt ball_mset_cong bspec_mset insert_iff lits_of_cons nat_neq_iff twl_clause.sel(1)
+        uminus_of_uminus_id)
+     apply (auto simp: Marked_Propagated_in_iff_in_lits_of)
+    done
   then show ?thesis
     unfolding rewatch_nat_def using False by simp
 qed
@@ -925,7 +1006,7 @@ interpretation twl: abstract_twl watch_nat rewatch_nat sorted_list_of_multiset l
   apply (rule clause_watch_nat; simp)
   apply (rule wf_watch_nat; simp)
   apply (rule clause_rewatch_nat)
-  apply (rule wf_rewatch_nat', simp)
+  apply (rule wf_rewatch_nat'; simp)
   apply (rule mset_sorted_list_of_multiset)
   apply (rule subset_mset.order_refl)
   done
@@ -1164,7 +1245,7 @@ notation cdcl\<^sub>N\<^sub>O\<^sub>T_twl.state_eq (infix "\<sim>" 51)
 declare cdcl\<^sub>N\<^sub>O\<^sub>T_twl.state_simp[simp del]
 
 text \<open>To avoid ambiguities:\<close>
-no_notation  CDCL_Two_Watched_Literals.twl.state_eq_twl (infix "\<sim>TWL" 51)
+no_notation CDCL_Two_Watched_Literals.twl.state_eq_twl (infix "\<sim>TWL" 51)
 
 definition propagate_twl where
 "propagate_twl S S' \<longleftrightarrow>
@@ -1247,7 +1328,6 @@ definition conflict_twl where
   \<and> conflicting_twl S = C_True)"
 
 lemma conflict_twl_iff_conflict:
-  assumes inv: "cdcl_all_struct_inv (rough_state_of_twl S)"
   shows "cdcl\<^sub>N\<^sub>O\<^sub>T_twl.conflict S T \<longleftrightarrow> conflict_twl S T" (is "?C \<longleftrightarrow> ?T")
 proof
   assume ?C
