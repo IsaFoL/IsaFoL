@@ -84,7 +84,7 @@ theorem resolution_rule':
   using resolution_rule by auto
 
 lemma resolution_example1: 
-   "\<exists>Cs. resolution_deriv {{NP,PQ},{NQ},{PP,PQ}} 
+   "resolution_deriv {{NP,PQ},{NQ},{PP,PQ}} 
                               {{NP,PQ},{NQ},{PP,PQ},{NP},{PP},{}}"
 proof -
   have "resolution_step 
@@ -192,7 +192,7 @@ proof -
 qed
 
 lemma resolution_example2: 
-   "\<exists>Cs. resolution_deriv {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa}}
+   "resolution_deriv {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa}}
                               {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa},{Na,Pb},{Na},{}}"
 proof -
   have "resolution_step 
