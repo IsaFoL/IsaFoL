@@ -183,7 +183,7 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     let ?C2 = "snd (std_apart C1o C2o)"
     have C1_p: "falsifiesc ?B1 ?C1" using std_apart_falsifies1[of C1o C2o ?C1 ?C2 ?B1] C1o_p by auto
     have C2_p: "falsifiesc ?B2 ?C2" using std_apart_falsifies2[of C1o C2o ?C1 ?C2 ?B2] C2o_p by auto
-    find_theorems snd
+
     have fin: "finite ?C1 \<and> finite ?C2" using C1o_p C2o_p finite_std_apart[of C1o C2o ?C1 ?C2] finite_Cs by auto
 
     (* We go down to the ground world: *)
