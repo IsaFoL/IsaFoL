@@ -419,5 +419,5 @@ proof -
   then show "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'" using completeness' assms by auto
 qed
 
-(* To get rid of the type - something like - find a countable subset using CHOISE *)
+(* To get rid of the type - something like - find a countable subset using CHOICE *)
 end
