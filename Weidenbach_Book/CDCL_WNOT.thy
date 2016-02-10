@@ -282,11 +282,11 @@ lemma reduce_trail_to_length:
   apply (case_tac "trail S \<noteq> [] "; case_tac "length (trail S) \<noteq> length M'"; simp)
   by (simp_all add: reduce_trail_to_length_ne)
 
-lemma init_clss_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_init_clss[simp]:
+lemma init_clss_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_init_clss:
 "no_dup (trail S) \<Longrightarrow>
   init_clss (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M S) = init_clss S" 
   using init_clss_update_trial reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_reduce_trail_convert by presburger
-
+ 
 subsection \<open>More lemmas conflict--propagate and backjumping\<close>
 subsubsection \<open>Termination\<close>
 
