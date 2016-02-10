@@ -235,7 +235,7 @@ locale dpll_state =
     clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T[simp]: "\<And>st C. clauses (remove_cls\<^sub>N\<^sub>O\<^sub>T C st) = remove_mset C (clauses st)"
 begin
 
-function reduce_trail_to\<^sub>N\<^sub>O\<^sub>T :: "('v, unit, unit) marked_lits \<Rightarrow> 'st \<Rightarrow> 'st" where
+function reduce_trail_to\<^sub>N\<^sub>O\<^sub>T :: "'a list \<Rightarrow> 'st \<Rightarrow> 'st" where
 "reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S =
   (if length (trail S) = length F \<or> trail S = [] then S else reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F (tl_trail S))"
 by fast+
@@ -261,18 +261,36 @@ lemma trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_length_le:
 
 lemma trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_nil[simp]:
   "trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T [] S) = []"
-  by (induction "[]::  ('v, unit, unit) marked_lits" S rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
+  by (induction "[]" S rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
   (simp add: less_imp_diff_less reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.simps)
 
 lemma clauses_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_nil:
   "clauses (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T [] S) = clauses S"
-  by (induction "[]::  ('v, unit, unit) marked_lits" S rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
+  by (induction "[]" S rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
   (simp add: less_imp_diff_less reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.simps)
+
+lemma trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_drop:
+  "trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S) =
+    (if length (trail S) \<ge> length F 
+    then drop (length (trail S) - length F) (trail S)
+    else [])"
+  apply (induction F S rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
+  apply (rename_tac F S)
+  apply (case_tac "trail S")
+   apply auto[]
+  apply (rename_tac list)
+  apply (case_tac "Suc (length list) > length F")
+   prefer 2 apply simp
+  apply (subgoal_tac "Suc (length list) - length F = Suc (length list - length F)")
+   apply simp
+  apply simp
+  done
+
 
 lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_skip_beginning:
   assumes "trail S = F' @ F"
   shows "trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S) = F"
-  using assms by (induction F' arbitrary: S) auto
+  using assms by (auto simp: trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_drop)
 
 lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_clauses[simp]:
   "clauses (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S) = clauses S"
@@ -3516,7 +3534,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_with_backtrack_and_restarts =
   fixes f :: "nat \<Rightarrow> nat"
   assumes
     unbounded: "unbounded f" and f_ge_1: "\<And>n. n \<ge> 1 \<Longrightarrow> f n \<ge> 1" and
-    inv_restart:"\<And>S T. inv S \<Longrightarrow> T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T [] S \<Longrightarrow> inv T"
+    inv_restart:"\<And>S T. inv S \<Longrightarrow> T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T ([]::'v list) S \<Longrightarrow> inv T"
 begin
 
 lemma bound_inv_inv:
@@ -3546,8 +3564,8 @@ next
 next
   show "finite A"
     using \<open>finite A\<close> by simp
-qed
-  sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts_ops "\<lambda>S T. T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T [] S" cdcl\<^sub>N\<^sub>O\<^sub>T  f
+qed                    
+  sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts_ops "\<lambda>S T. T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T ([]::'v list) S" cdcl\<^sub>N\<^sub>O\<^sub>T f
     "\<lambda>A S. atms_of_msu (clauses S) \<subseteq> atms_of_ms A \<and> atm_of ` lits_of (trail S) \<subseteq> atms_of_ms A \<and>
     finite A"
     \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' "\<lambda>S. inv S \<and> no_dup (trail S)"
@@ -3627,7 +3645,7 @@ next
 qed
 
 sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts _ _ _ _ _ _ f
-   (* restart *) "\<lambda>S T. T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T [] S"
+   (* restart *) "\<lambda>S T. T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T ([]::'v list) S"
    (* bound_inv *)"\<lambda>A S. atms_of_msu (clauses S) \<subseteq> atms_of_ms A
      \<and> atm_of ` lits_of (trail S) \<subseteq> atms_of_ms A \<and> finite A"
    \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' cdcl\<^sub>N\<^sub>O\<^sub>T
@@ -4012,7 +4030,7 @@ proof -
   ultimately show ?thesis unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged_def by auto
 qed
 
-sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts_ops "\<lambda>S T. T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T [] S"
+sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts_ops "\<lambda>S T. T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T ([]::'a list) S"
    cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn f
    (* bound_inv *)"\<lambda>A S. atms_of_msu (clauses S) \<subseteq> atms_of_ms A
      \<and> atm_of ` lits_of (trail S) \<subseteq> atms_of_ms A \<and> finite A"
@@ -4146,7 +4164,7 @@ next
 qed
 
 
-sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts _ _ _ _ _ _ f "\<lambda>S T. T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T [] S"
+sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts _ _ _ _ _ _ f "\<lambda>S T. T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T ([]::'a list) S"
    (* bound_inv *)"\<lambda>A S. atms_of_msu (clauses S) \<subseteq> atms_of_ms A
      \<and> atm_of ` lits_of (trail S) \<subseteq> atms_of_ms A \<and> finite A"
    \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn
