@@ -808,47 +808,48 @@ next
              dest!: arg_cong[of _ "[_]" set] arg_cong[of _ "[]" set])[3]
 unfolding watched_decided_most_recently.simps Ball_mset_def
 apply (clarify)
-apply (simp add: index_uminus_index_map_uminus lits_of_def o_def Ball_mset_def)[]
+apply (subst index_uminus_index_map_uminus)
+  apply (simp add: index_uminus_index_map_uminus lits_of_def o_def)[1]
 
+apply (subst index_uminus_index_map_uminus)
+  apply (simp add: index_uminus_index_map_uminus lits_of_def o_def)[1]
+
+apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
+apply (auto dest: filter_in_list_prop_verifiedD
+simp: uminus_lit_swap index_uminus_index_map_uminus lits_of_def o_def)[5]
+
+apply (auto simp add:  lits_of_def o_def )[]
 apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
 apply (auto dest: filter_in_list_prop_verifiedD)[1]
 apply (metis (no_types) imageI image_image image_set uminus_of_uminus_id)
 apply (auto dest: filter_in_list_prop_verifiedD)[1]
 apply (auto dest: filter_in_list_prop_verifiedD)[1]
-apply simp
-apply (auto simp add: index_uminus_index_map_uminus lits_of_def o_def Ball_mset_def)[]
-
-
-
-apply (auto simp add: index_uminus_index_map_uminus lits_of_def o_def Ball_mset_def)[]
-apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
 apply (auto dest: filter_in_list_prop_verifiedD)[1]
-apply (metis (no_types) imageI image_image image_set uminus_of_uminus_id)
-apply (auto dest: filter_in_list_prop_verifiedD)[1]
-apply (auto dest: filter_in_list_prop_verifiedD)[1]
-apply simp
-apply (auto dest: filter_in_list_prop_verifiedD)[1]
-apply (auto split: split_if_asm simp: )[]
 
 
-apply (simp_all add: index_uminus_index_map_uminus lits_of_def o_def)[2]
+apply (clarify)
+apply clarsimp
+apply (elim disjE)
+
+apply (subst index_uminus_index_map_uminus)
+  apply (simp add: index_uminus_index_map_uminus lits_of_def o_def)[1]
+
+apply (subst index_uminus_index_map_uminus)
+  apply (simp add: index_uminus_index_map_uminus lits_of_def o_def)[1]
 
 apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
-prefer 3
 apply (auto dest: filter_in_list_prop_verifiedD
-  simp: index_uminus_index_map_uminus lits_of_def o_def)[2]
-prefer 2
-apply (auto dest: filter_in_list_prop_verifiedD
-  simp: index_uminus_index_map_uminus lits_of_def o_def)[]
+  simp: index_uminus_index_map_uminus lits_of_def o_def uminus_lit_swap)[5]
 
-apply (auto dest: filter_in_list_prop_verifiedD
-  simp: index_uminus_index_map_uminus lits_of_def o_def)[]
 
-unfolding uminus_lit_swap
-apply (simp_all add: index_uminus_index_map_uminus lits_of_def o_def)
+apply (subst index_uminus_index_map_uminus)
+  apply (simp add: index_uminus_index_map_uminus lits_of_def o_def)[1]
+
+apply (subst index_uminus_index_map_uminus)
+  apply (simp add: index_uminus_index_map_uminus lits_of_def o_def)[1]
 
 apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
-apply (auto dest: filter_in_list_prop_verifiedD)[5]
+apply (auto dest: filter_in_list_prop_verifiedD simp: index_filter[of _ _ _ "\<lambda>L. L \<in># C"])[5]
 
 apply (auto dest: filter_in_list_prop_verifiedD)[1]
 done
