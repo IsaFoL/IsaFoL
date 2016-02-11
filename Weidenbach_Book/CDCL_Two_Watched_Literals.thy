@@ -630,7 +630,8 @@ lemma watch_nat_lists_disjointD:
   shows "\<forall>x \<in> set l. \<forall>y \<in> set l'. x \<noteq> y"
   by (auto simp: l[symmetric] l'[symmetric] lits_of_def)
 
-lemma watch_nat_list_cases:
+lemma watch_nat_list_cases [consumes 1, case_names nil_nil nil_single nil_other single_nil
+  single_other other]:
   fixes C :: "'v::linorder literal multiset" and S :: "('v, 'a, 'b) twl_state"
   defines
     "xs \<equiv> [L\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - L \<notin> lits_of (trail S)]" and
@@ -762,8 +763,9 @@ next
   case 3
   then show ?case
     apply (cases rule: watch_nat_list_cases[of S C])
-          apply  (auto dest: filter_in_list_prop_verifiedD simp: distinct_mset_add_single mset_intersection_inclusion
-            subseteq_mset_def)[7]
+    (* TODO Tune proof *)
+         using 3 apply  (auto dest: filter_in_list_prop_verifiedD simp: distinct_mset_add_single mset_intersection_inclusion
+            subseteq_mset_def)[6]
        apply(auto dest!: arg_cong[of _ "[]" set])[]
        apply (cases C; auto split: split_if_asm simp: lits_of_def image_image)
        apply (metis image_eqI image_image uminus_of_uminus_id)
@@ -790,69 +792,64 @@ next
     then have "- L' \<in> lits_of (trail S)"
       using a3 by simp
       } note H =this
-  show ?case
+  show ?case using 4
     apply (cases rule: watch_nat_list_cases[of S C])
-    apply simp
-      using watch_nat_lists_set_union[of S C]
-     apply (auto dest: filter_in_list_prop_verifiedD H simp: lits_of_def filter_empty_conv
-       dest!: arg_cong[of _ "[_]" set] arg_cong[of _ "[]" set]
-        dest: set_mset_is_single_in_mset_is_single)[4]
+      apply (auto dest: filter_in_list_prop_verifiedD H simp:  filter_empty_conv)[3]
     using watch_nat_lists_set_union[of S C] by (auto dest: filter_in_list_prop_verifiedD H)
 next
   case 5
   then show ?case
-    apply (cases rule: watch_nat_list_cases[of S C])
-           using watch_nat_lists_set_union[of S C] apply (auto
-             dest: filter_in_list_prop_verifiedD set_mset_is_single_in_mset_is_single
-             simp: lits_of_def
-             dest!: arg_cong[of _ "[_]" set] arg_cong[of _ "[]" set])[3]
-unfolding watched_decided_most_recently.simps Ball_mset_def
-apply (clarify)
-apply (subst index_uminus_index_map_uminus)
-  apply (simp add: index_uminus_index_map_uminus lits_of_def o_def)[1]
+    proof (cases rule: watch_nat_list_cases[of S C])
+      case nil_nil
+      then show ?thesis by auto
+    next
+      case nil_single
+      then show ?thesis
+        using watch_nat_lists_set_union[of S C] 5 by auto
+    next
+      case nil_other
+      then show ?thesis
+        unfolding watched_decided_most_recently.simps Ball_mset_def
+        apply (intro allI impI)
+        apply (subst index_uminus_index_map_uminus,
+          simp add: index_uminus_index_map_uminus lits_of_def o_def)
+        apply (subst index_uminus_index_map_uminus,
+          simp add: index_uminus_index_map_uminus lits_of_def o_def)
 
-apply (subst index_uminus_index_map_uminus)
-  apply (simp add: index_uminus_index_map_uminus lits_of_def o_def)[1]
+        apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
+        by (auto dest: filter_in_list_prop_verifiedD
+          simp: uminus_lit_swap lits_of_def o_def)
+    next
+      case single_nil
+      then show ?thesis
+         using watch_nat_lists_set_union[of S C] 5 by auto
+    next
+      case single_other
+      then show ?thesis
+        unfolding watched_decided_most_recently.simps Ball_mset_def
+        apply (clarify)
+        apply (subst index_uminus_index_map_uminus,
+          simp add: index_uminus_index_map_uminus lits_of_def o_def)
+        apply (subst index_uminus_index_map_uminus,
+          simp add: index_uminus_index_map_uminus lits_of_def o_def)
 
-apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
-apply (auto dest: filter_in_list_prop_verifiedD
-simp: uminus_lit_swap index_uminus_index_map_uminus lits_of_def o_def)[5]
+        apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
+        by (auto dest: filter_in_list_prop_verifiedD simp: uminus_lit_swap lits_of_def o_def)
+    next
+      case other
+      then show ?thesis
+        apply clarsimp
+        apply (elim disjE)
+        prefer 2 apply (auto dest: filter_in_list_prop_verifiedD)[]
+        apply (subst index_uminus_index_map_uminus,
+          simp add: index_uminus_index_map_uminus lits_of_def o_def)[1]
+        apply (subst index_uminus_index_map_uminus,
+          simp add: index_uminus_index_map_uminus lits_of_def o_def)[1]
 
-apply (auto simp add:  lits_of_def o_def )[]
-apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
-apply (auto dest: filter_in_list_prop_verifiedD)[1]
-apply (metis (no_types) imageI image_image image_set uminus_of_uminus_id)
-apply (auto dest: filter_in_list_prop_verifiedD)[1]
-apply (auto dest: filter_in_list_prop_verifiedD)[1]
-apply (auto dest: filter_in_list_prop_verifiedD)[1]
-
-
-apply (clarify)
-apply clarsimp
-apply (elim disjE)
-
-apply (subst index_uminus_index_map_uminus)
-  apply (simp add: index_uminus_index_map_uminus lits_of_def o_def)[1]
-
-apply (subst index_uminus_index_map_uminus)
-  apply (simp add: index_uminus_index_map_uminus lits_of_def o_def)[1]
-
-apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
-apply (auto dest: filter_in_list_prop_verifiedD
-  simp: index_uminus_index_map_uminus lits_of_def o_def uminus_lit_swap)[5]
-
-
-apply (subst index_uminus_index_map_uminus)
-  apply (simp add: index_uminus_index_map_uminus lits_of_def o_def)[1]
-
-apply (subst index_uminus_index_map_uminus)
-  apply (simp add: index_uminus_index_map_uminus lits_of_def o_def)[1]
-
-apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
-apply (auto dest: filter_in_list_prop_verifiedD simp: index_filter[of _ _ _ "\<lambda>L. L \<in># C"])[5]
-
-apply (auto dest: filter_in_list_prop_verifiedD)[1]
-done
+        apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
+        by (auto dest: filter_in_list_prop_verifiedD
+          simp: index_uminus_index_map_uminus lits_of_def o_def uminus_lit_swap)
+    qed
 qed
 
 lemma filter_sorted_list_of_multiset_eqD:
