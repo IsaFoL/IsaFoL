@@ -801,41 +801,56 @@ next
 next
   case 5
   then show ?case
-   apply (cases rule: watch_nat_list_cases[of S C])
-      using watch_nat_lists_set_union[of S C]
-     apply (auto dest: filter_in_list_prop_verifiedD simp: lits_of_def
-       dest!: arg_cong[of _ "[_]" set] arg_cong[of _ "[]" set]
-        dest: set_mset_is_single_in_mset_is_single)[3]
+    apply (cases rule: watch_nat_list_cases[of S C])
+           using watch_nat_lists_set_union[of S C] apply (auto
+             dest: filter_in_list_prop_verifiedD set_mset_is_single_in_mset_is_single
+             simp: lits_of_def
+             dest!: arg_cong[of _ "[_]" set] arg_cong[of _ "[]" set])[3]
+unfolding watched_decided_most_recently.simps Ball_mset_def
+apply (clarify)
+apply (simp add: index_uminus_index_map_uminus lits_of_def o_def Ball_mset_def)[]
+
+apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
+apply (auto dest: filter_in_list_prop_verifiedD)[1]
+apply (metis (no_types) imageI image_image image_set uminus_of_uminus_id)
+apply (auto dest: filter_in_list_prop_verifiedD)[1]
+apply (auto dest: filter_in_list_prop_verifiedD)[1]
+apply simp
+apply (auto simp add: index_uminus_index_map_uminus lits_of_def o_def Ball_mset_def)[]
+
+
+
+apply (auto simp add: index_uminus_index_map_uminus lits_of_def o_def Ball_mset_def)[]
+apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
+apply (auto dest: filter_in_list_prop_verifiedD)[1]
+apply (metis (no_types) imageI image_image image_set uminus_of_uminus_id)
+apply (auto dest: filter_in_list_prop_verifiedD)[1]
+apply (auto dest: filter_in_list_prop_verifiedD)[1]
+apply simp
+apply (auto dest: filter_in_list_prop_verifiedD)[1]
 apply (auto split: split_if_asm simp: )[]
-unfolding linorder_class.set_insort uminus_lit_swap
+
+
+apply (simp_all add: index_uminus_index_map_uminus lits_of_def o_def)[2]
+
+apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
+prefer 3
+apply (auto dest: filter_in_list_prop_verifiedD
+  simp: index_uminus_index_map_uminus lits_of_def o_def)[2]
+prefer 2
+apply (auto dest: filter_in_list_prop_verifiedD
+  simp: index_uminus_index_map_uminus lits_of_def o_def)[]
+
+apply (auto dest: filter_in_list_prop_verifiedD
+  simp: index_uminus_index_map_uminus lits_of_def o_def)[]
+
+unfolding uminus_lit_swap
 apply (simp_all add: index_uminus_index_map_uminus lits_of_def o_def)
-apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
-apply (auto dest: filter_in_list_prop_verifiedD)[1]
-apply (metis (no_types) imageI image_image image_set uminus_of_uminus_id)
-apply (auto dest: filter_in_list_prop_verifiedD)[1]
-apply (auto dest: filter_in_list_prop_verifiedD)[1]
-apply simp
 
-apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
-apply (auto dest: filter_in_list_prop_verifiedD)[1]
-apply (metis (no_types) imageI image_image image_set uminus_of_uminus_id)
-apply (auto dest: filter_in_list_prop_verifiedD)[1]
-apply (auto dest: filter_in_list_prop_verifiedD)[1]
-apply simp
-apply (auto dest: filter_in_list_prop_verifiedD)[1]
-apply (auto split: split_if_asm simp: )[]
-
-unfolding linorder_class.set_insort uminus_lit_swap
-apply (subst  index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
-apply (auto dest: filter_in_list_prop_verifiedD)[5]
-
-unfolding linorder_class.set_insort uminus_lit_swap
 apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
 apply (auto dest: filter_in_list_prop_verifiedD)[5]
 
 apply (auto dest: filter_in_list_prop_verifiedD)[1]
-apply (metis filter_in_list_prop_verifiedD imageI list.set_intros(1) list.set_intros(2))
-apply (metis filter_in_list_prop_verifiedD imageI list.set_intros(1))
 done
 qed
 
