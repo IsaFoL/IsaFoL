@@ -188,7 +188,7 @@ lemma atms_of_ms_learned_clss_restart_state_in_atms_of_ms_learned_clssI[intro]:
   "x \<in> atms_of_msu (learned_clss (restart_state S)) \<Longrightarrow> x \<in> atms_of_msu (learned_clss S)"
   by (meson atms_of_ms_mono learned_clss_restart_state set_mset_mono subsetCE)
 
-function reduce_trail_to :: "('v, nat, 'v clause) marked_lits \<Rightarrow> 'st \<Rightarrow> 'st" where
+function reduce_trail_to :: "'a list \<Rightarrow> 'st \<Rightarrow> 'st" where
 "reduce_trail_to F S =
   (if length (trail S) = length F \<or> trail S = [] then S else reduce_trail_to F (tl_trail S))"
 by fast+
@@ -222,8 +222,15 @@ lemma trail_reduce_trail_to_nil[simp]:
 
 lemma clauses_reduce_trail_to_nil:
   "clauses (reduce_trail_to [] S) = clauses S"
-  apply (induction "[]::  ('v, nat, 'v clause) marked_lits" S rule: reduce_trail_to.induct)
-  by (metis clss_tl_trail reduce_trail_to.simps)
+proof (induction "[]" S rule: reduce_trail_to.induct)
+  case (1 Sa)
+  then have "clauses (reduce_trail_to ([]::'a list) (tl_trail Sa)) = clauses (tl_trail Sa) 
+    \<or> trail Sa = []"
+    by fastforce
+  then show "clauses (reduce_trail_to ([]::'a list) Sa) = clauses Sa"
+    by (metis (no_types) length_0_conv reduce_trail_to_eq_length clss_tl_trail
+      reduce_trail_to_length_ne)
+qed
 
 lemma reduce_trail_to_skip_beginning:
   assumes "trail S = F' @ F"
@@ -360,7 +367,7 @@ lemma clauses_append_trail[simp]:
 text \<open>This function is useful for proofs to speak of a global trail change, but is a bad for
   programs and code in general.\<close>
 fun delete_trail_and_rebuild where
-"delete_trail_and_rebuild M S = append_trail (rev M) (reduce_trail_to [] S)"
+"delete_trail_and_rebuild M S = append_trail (rev M) (reduce_trail_to ([]:: 'v list) S)"
 
 end
 
