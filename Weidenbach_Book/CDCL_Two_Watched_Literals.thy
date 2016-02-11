@@ -611,7 +611,6 @@ definition watch_nat :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat clau
       UW = sorted_list_of_multiset (C - mset W)
     in TWL_Clause (mset W) (mset UW))"
 
-  thm rev_cases
 lemma list_cases2:
   fixes l :: "'a list"
   assumes
@@ -1090,19 +1089,6 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_
   "\<lambda>C C' L' S. C \<in> candidates_conflict S \<and> distinct_mset (C' + {#L'#}) \<and> \<not>tautology (C' + {#L'#})"
   by unfold_locales
 
-interpretation cdcl\<^sub>N\<^sub>O\<^sub>T: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy
-  "\<lambda>S. convert_trail_from_W (trail S)"
-  clauses
-  "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
-  "\<lambda>S. tl_trail S"
-  "\<lambda>C S. add_learned_cls C S"
-  "\<lambda>C S. remove_cls C S"
-  (* propagate conditions: *)"\<lambda>L S. lit_of L \<in> fst ` candidates_propagate S"
-  "\<lambda>_ S. conflicting S = C_True"
-  "\<lambda>C C' L' S. C \<in> candidates_conflict S"
-  apply unfold_locales
-  oops
-
 declare state_simp[simp del]
 
 abbreviation cons_trail_twl where
@@ -1539,8 +1525,7 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: dpll_with_backjumping_ops
   add_learned_cls_twl
   remove_cls_twl
   (* propagate conditions: *)"\<lambda>L S. lit_of L \<in> fst ` candidates_propagate_twl S"
-  (* state invariant *)"\<lambda>S. no_dup (trail_twl S)
-      (* \<and> (\<forall>l \<in> set (trail_twl S). (is_marked l \<and> level_of l = 0) \<or> (is_proped l \<and> mark_of l = 0)) *)"
+  (* state invariant *)"\<lambda>S. no_dup (trail_twl S)"
   (* backjump conditions *)"\<lambda>C _ _ S _. C \<in> candidates_conflict_twl S"
 proof (unfold_locales, goal_cases)
   case (1 C' S C F' K F L) note n_d = this(1) and n_d' = this(2) and undef = this(6)
@@ -1604,46 +1589,10 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: dpll_with_backjumping
   add_learned_cls_twl
   remove_cls_twl
   (* propagate conditions: *)"\<lambda>L S. lit_of L \<in> fst ` candidates_propagate_twl S"
-  (* state invariant *)"\<lambda>S. no_dup (trail_twl S)
-      (* \<and> (\<forall>l \<in> set (trail_twl S). (is_marked l \<and> level_of l = 0) \<or> (is_proped l \<and> mark_of l = 0)) *)"
+  (* state invariant *)"\<lambda>S. no_dup (trail_twl S)"
   (* backjump conditions *)"\<lambda>C _ _ (S:: 'v wf_twl) _. C \<in> candidates_conflict_twl S"
   apply unfold_locales
   using cdcl\<^sub>N\<^sub>O\<^sub>T_twl.dpll_bj_no_dup by (simp add: o_def)
-
-
-interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: conflict_driven_clause_learning_ops
-  "\<lambda>S. convert_trail_from_W (trail_twl S)"
-  abstract_twl.raw_clauses_twl
-  "\<lambda>L S.
-    cons_trail_twl
-      (convert_marked_lit_from_NOT L) S"
-  tl_trail_twl
-  add_learned_cls_twl
-  remove_cls_twl
-  (* propagate conditions: *)"\<lambda>L S. lit_of L \<in> fst ` candidates_propagate_twl S"
-  (* state invariant *)"\<lambda>S. no_dup (trail_twl S)
-      (* \<and> (\<forall>l \<in> set (trail_twl S). (is_marked l \<and> level_of l = 0) \<or> (is_proped l \<and> mark_of l = 0)) *)"
-  (* backjump conditions *)"\<lambda>C _ _ S _. C \<in> candidates_conflict_twl S"
-  learn_conds
-  forget_conds
-  by unfold_locales
-
-interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: conflict_driven_clause_learning
-  "\<lambda>S. convert_trail_from_W (trail_twl S)"
-  abstract_twl.raw_clauses_twl
-  "\<lambda>L (S:: 'v wf_twl).
-    cons_trail_twl
-      (convert_marked_lit_from_NOT L) (S:: 'v wf_twl)"
-  tl_trail_twl
-  add_learned_cls_twl
-  remove_cls_twl
-  (* propagate conditions: *)"\<lambda>L S. lit_of L \<in> fst ` candidates_propagate_twl S"
-  (* state invariant *)"\<lambda>S. no_dup (trail_twl S)
-      (* \<and> (\<forall>l \<in> set (trail_twl S). (is_marked l \<and> level_of l = 0) \<or> (is_proped l \<and> mark_of l = 0)) *)"
-  (* backjump conditions *)"\<lambda>C _ _ (S:: 'v wf_twl) _. C \<in> candidates_conflict_twl S"
-  learn_conds forget_conds
-  apply unfold_locales
-  using cdcl\<^sub>N\<^sub>O\<^sub>T_twl.cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup apply (simp add: o_def)
-  oops
 end
+
 end
