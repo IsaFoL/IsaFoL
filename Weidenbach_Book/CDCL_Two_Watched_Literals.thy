@@ -762,20 +762,35 @@ next
 next
   case 3
   then show ?case
-    apply (cases rule: watch_nat_list_cases[of S C])
-    (* TODO Tune proof *)
-         using 3 apply  (auto dest: filter_in_list_prop_verifiedD simp: distinct_mset_add_single mset_intersection_inclusion
-            subseteq_mset_def)[6]
-       apply(auto dest!: arg_cong[of _ "[]" set])[]
-       apply (cases C; auto split: split_if_asm simp: lits_of_def image_image)
-       apply (metis image_eqI image_image uminus_of_uminus_id)
-      using watch_nat_lists_set_union[of S C]
-      apply (auto split: split_if_asm dest!: arg_cong[of _ "[_]" set] arg_cong[of _ "[]" set]
-        dest: set_mset_is_single_in_mset_is_single simp: lits_of_def)[2]
-    done
+    proof (cases rule: watch_nat_list_cases[of S C])
+      case nil_nil
+      then have "set_mset C = set [] \<union> set []"
+        using 3 by (metis watch_nat_lists_set_union)
+      then show ?thesis
+        by simp
+    next
+      case nil_single
+      then show ?thesis
+        using watch_nat_lists_set_union[of S C] 3 by(auto dest!: arg_cong[of _ "[]" set])
+    next
+      case nil_other
+      then show ?thesis
+       using 3 by (auto dest!: arg_cong[of _ "[]" set])
+    next
+      case single_nil
+      show ?thesis
+      using watch_nat_lists_set_union[of S C] 3 mset_leD unfolding single_nil by auto
+    next
+      case single_other
+      then show ?thesis
+        using 3 by (auto dest!: arg_cong[of _ "[]" set])
+    next
+      case other
+      then show ?thesis
+        using 3 by (auto dest!: arg_cong[of _ "[]" set])[]
+    qed
 next
   case 4 note _[simp] = this
-  moreover
   {
     fix a :: "nat literal" and ys' :: "nat literal list" and L :: "nat literal" and
       L' :: "nat literal"
