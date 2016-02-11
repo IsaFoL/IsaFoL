@@ -154,6 +154,11 @@ sublocale state\<^sub>W \<subseteq> dpll_state
   "\<lambda>C S. remove_cls C S"
   by unfold_locales (auto simp: map_tl o_def)
 
+context state\<^sub>W
+begin
+declare state_simp\<^sub>N\<^sub>O\<^sub>T[simp del]
+end
+
 sublocale cdcl\<^sub>W_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops
   "\<lambda>S. convert_trail_from_W (trail S)"
   clauses
@@ -241,8 +246,8 @@ sublocale cdcl\<^sub>W_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_lea
   "\<lambda>C S. remove_cls C S" "\<lambda>_ _. True"  inv\<^sub>N\<^sub>O\<^sub>T
   "\<lambda>_ S. conflicting S = C_True" backjump_l_cond
   apply unfold_locales
-   using dpll_bj_no_dup apply simp
-  using cdcl\<^sub>N\<^sub>O\<^sub>T.simps cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup by (auto simp: comp_def)
+   using dpll_bj_no_dup apply (simp add: comp_def)
+  using cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup by (auto simp add: comp_def cdcl\<^sub>N\<^sub>O\<^sub>T.simps)
 
 context cdcl\<^sub>W_ops
 begin
@@ -1119,7 +1124,7 @@ proof induction
   have "propagate\<^sub>N\<^sub>O\<^sub>T S T"
     apply (rule propagate\<^sub>N\<^sub>O\<^sub>T.propagate\<^sub>N\<^sub>O\<^sub>T[of _ C L])
     using H CL T undef M_C by (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def state_eq_def clauses_def
-      simp del: state_simp\<^sub>N\<^sub>O\<^sub>T state_simp)
+      simp del: state_simp)
   then show ?case
     using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn.intros(2) by blast
 next
@@ -1163,7 +1168,7 @@ next
      using \<open>C \<in># learned_clss S\<close> apply (simp add: clauses_def)
     using T C_le C_init by (auto
       simp: state_eq_def Un_Diff state_eq\<^sub>N\<^sub>O\<^sub>T_def clauses_def ac_simps H
-      simp del: state_simp state_simp\<^sub>N\<^sub>O\<^sub>T)
+      simp del: state_simp)
   then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_forget\<^sub>N\<^sub>O\<^sub>T by blast
 next
   case (fw_conflict S T U) note confl = this(1) and bj = this(2) and inv = this(3)
@@ -1272,7 +1277,7 @@ next
                 using inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
                 apply (simp add: comp_def)
                using U M1_M2 confl undef_L M1_M2 inv_T' inv unfolding cdcl\<^sub>W_all_struct_inv_def
-               cdcl\<^sub>W_M_level_inv_def apply (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def simp del: state_simp\<^sub>N\<^sub>O\<^sub>T)[]
+               cdcl\<^sub>W_M_level_inv_def apply (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def)[]
               using C\<^sub>S apply simp
              using tr_S_C\<^sub>S apply simp
 

@@ -968,7 +968,7 @@ proof (cases "- lit_of L \<in># watched C")
             using distinct apply (fastforce split: split_if_asm simp: distinct_mset_size_2)
            using filter_sorted_list_of_multiset_ConsD apply blast
           using size_mset_le_2_cases[OF W] H by (fastforce simp: uminus_lit_swap
-            dest: filter_sorted_list_of_multiset_ConsD filter_sorted_list_of_multiset_eqD)+
+            dest: filter_sorted_list_of_multiset_ConsD filter_sorted_list_of_multiset_eqD)
           (* SLOW ~4s *)
       next
         case 5

@@ -3534,7 +3534,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_with_backtrack_and_restarts =
   fixes f :: "nat \<Rightarrow> nat"
   assumes
     unbounded: "unbounded f" and f_ge_1: "\<And>n. n \<ge> 1 \<Longrightarrow> f n \<ge> 1" and
-    inv_restart:"\<And>S T. inv S \<Longrightarrow> T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T ([]::'v list) S \<Longrightarrow> inv T"
+    inv_restart:"\<And>S T. inv S \<Longrightarrow> T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T ([]::'a list) S \<Longrightarrow> inv T"
 begin
 
 lemma bound_inv_inv:
@@ -3564,22 +3564,23 @@ next
 next
   show "finite A"
     using \<open>finite A\<close> by simp
-qed                    
-  sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts_ops "\<lambda>S T. T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T ([]::'v list) S" cdcl\<^sub>N\<^sub>O\<^sub>T f
-    "\<lambda>A S. atms_of_msu (clauses S) \<subseteq> atms_of_ms A \<and> atm_of ` lits_of (trail S) \<subseteq> atms_of_ms A \<and>
-    finite A"
-    \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' "\<lambda>S. inv S \<and> no_dup (trail S)"
-    \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound
-    apply unfold_locales
-            apply (simp add: unbounded)
-           using f_ge_1 apply force
-          using bound_inv_inv apply meson
-         apply (rule cdcl\<^sub>N\<^sub>O\<^sub>T_decreasing_measure'; simp)
-         apply (rule rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound; simp)
-        apply (rule rtranclp_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_decreasing; simp)
-       apply auto[]
-     apply auto[]
-    using cdcl\<^sub>N\<^sub>O\<^sub>T_inv cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup apply blast
+qed
+
+sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts_ops "\<lambda>S T. T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T ([]::'a list) S" cdcl\<^sub>N\<^sub>O\<^sub>T f
+  "\<lambda>A S. atms_of_msu (clauses S) \<subseteq> atms_of_ms A \<and> atm_of ` lits_of (trail S) \<subseteq> atms_of_ms A \<and>
+  finite A"
+  \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' "\<lambda>S. inv S \<and> no_dup (trail S)"
+  \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound
+  apply unfold_locales
+           apply (simp add: unbounded)
+          using f_ge_1 apply force
+         using bound_inv_inv apply meson
+        apply (rule cdcl\<^sub>N\<^sub>O\<^sub>T_decreasing_measure'; simp)
+        apply (rule rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound; simp)
+       apply (rule rtranclp_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_decreasing; simp)
+      apply auto[]
+    apply auto[]
+   using cdcl\<^sub>N\<^sub>O\<^sub>T_inv cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup apply blast
   using inv_restart apply auto[]
   done
 
@@ -3645,7 +3646,7 @@ next
 qed
 
 sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts _ _ _ _ _ _ f
-   (* restart *) "\<lambda>S T. T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T ([]::'v list) S"
+   (* restart *) "\<lambda>S T. T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T ([]::'a list) S"
    (* bound_inv *)"\<lambda>A S. atms_of_msu (clauses S) \<subseteq> atms_of_ms A
      \<and> atm_of ` lits_of (trail S) \<subseteq> atms_of_ms A \<and> finite A"
    \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' cdcl\<^sub>N\<^sub>O\<^sub>T
