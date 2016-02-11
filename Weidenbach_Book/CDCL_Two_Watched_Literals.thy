@@ -3,10 +3,13 @@
     Author: Mathias Fleury <mathias.fleury@mpi-inf.mpg.de>
 *)
 
+section \<open>2-Watched-Literal\<close>
+
 theory CDCL_Two_Watched_Literals
 imports CDCL_WNOT (* Have to decide which imports are the best *)
 begin
 
+subsection \<open>Datastructure and Access Functions\<close>
 text \<open>Only the 2-watched literals have to be verified here: the backtrack level and the trail that
   appear in the state are not related to the 2-watched algoritm.\<close>
 
@@ -51,6 +54,8 @@ primrec (nonexhaustive) index :: "'a list \<Rightarrow>'a \<Rightarrow> nat" whe
 lemma index_nth:
   "a \<in> set l \<Longrightarrow> l ! (index l a) = a"
   by (induction l) auto
+
+subsection \<open>Invariants\<close>
 
 text \<open>We need the following property about updates: if there is a literal @{term L} with
   @{term "-L"} in the trail, and @{term L} is not  watched, then it stays unwatched; i.e., while
@@ -496,6 +501,7 @@ lemma wf_candidates_twl_conflict_complete:
   shows "C \<in> candidates_conflict_twl S"
   using c_mem unsat wf_candidates_conflict_complete wf_twl_state_rough_state_of_twl by blast
 
+subsection \<open>Abstract 2-WL\<close>
 locale abstract_twl =
   fixes
     watch :: "('v, nat, 'v clause) twl_state \<Rightarrow> 'v clause \<Rightarrow> 'v twl_clause" and
@@ -590,6 +596,8 @@ definition tl_trail where
 definition restart' where
   "restart' S = TWL_State [] (init_clss S) (restart_learned S) 0 C_True"
 end
+
+subsection \<open>Instanciation of the previous locale\<close>
 
 definition pull :: "('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'a list" where
   "pull p xs = filter p xs @ filter (Not \<circ> p) xs"
@@ -960,7 +968,7 @@ proof (cases "- lit_of L \<in># watched C")
       next
         case 5
         then show ?case
-          using  C apply simp
+          using C apply simp
           using wf by (smt ball_msetI bspec_mset not_gr0 uminus_of_uminus_id
             watched_decided_most_recently.simps wf_twl_cls.simps)
       qed
@@ -1062,9 +1070,12 @@ interpretation twl: abstract_twl watch_nat rewatch_nat sorted_list_of_multiset l
   apply (rule subset_mset.order_refl)
   done
 
-text \<open>Lifting to the abstract state.\<close>
+subsection \<open>Interpretation for @{term cdcl\<^sub>W_ops.cdcl\<^sub>W}\<close>
+
 context abstract_twl
 begin
+
+subsubsection \<open>Direct Interpretation\<close>
 
 interpretation rough_cdcl: state\<^sub>W trail raw_init_clss raw_learned_clss backtrack_lvl conflicting
   cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
@@ -1093,9 +1104,12 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_
   "\<lambda>C C' L' S. C \<in> candidates_conflict S \<and> distinct_mset (C' + {#L'#}) \<and> \<not>tautology (C' + {#L'#})"
   by unfold_locales
 
+subsubsection \<open>Opaque Type with Invariant\<close>
+
 declare rough_cdcl.state_simp[simp del]
 
-abbreviation cons_trail_twl where
+definition cons_trail_twl :: "('v, nat, 'v literal multiset) marked_lit \<Rightarrow> 'v wf_twl \<Rightarrow> 'v wf_twl"
+  where
 "cons_trail_twl L S \<equiv> twl_of_rough_state (cons_trail L (rough_state_of_twl S))"
 
 lemma wf_twl_state_cons_trail:
@@ -1105,7 +1119,8 @@ lemma wf_twl_state_cons_trail:
 lemma rough_state_of_twl_cons_trail:
   "undefined_lit (trail_twl S) (lit_of L) \<Longrightarrow>
     rough_state_of_twl (cons_trail_twl L S) = cons_trail L (rough_state_of_twl S)"
-  using rough_state_of_twl twl_of_rough_state_inverse wf_twl_state_cons_trail by blast
+  using rough_state_of_twl twl_of_rough_state_inverse wf_twl_state_cons_trail
+  unfolding cons_trail_twl_def by blast
 
 abbreviation add_init_cls_twl where
 "add_init_cls_twl C S \<equiv> twl_of_rough_state (add_init_cls C (rough_state_of_twl S))"
@@ -1555,13 +1570,15 @@ proof (unfold_locales, goal_cases)
     by (smt "1"(3) "1"(6) append_assoc cdcl\<^sub>W_twl.learned_clss_cons_trail
       cdcl\<^sub>W_twl_NOT.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_eq_length cdcl\<^sub>W_twl_NOT.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_nil
       cdcl\<^sub>W_twl_NOT.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_skip_beginning comp_apply defined_lit_convert_trail_from_W
-      list.sel(3) marked_lit.sel(2) rev.simps(2) rev_append rev_eq_Cons_iff)
+      list.sel(3) marked_lit.sel(2) rev.simps(2) rev_append rev_eq_Cons_iff
+      cons_trail_twl_def)
   moreover have "learned_clss_twl (cdcl\<^sub>W_twl.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S)
     = learned_clss_twl S"
     by (simp add: cdcl\<^sub>W_twl.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_reduce_trail_convert)
   ultimately have [simp]: "learned_clss_twl ?T = learned_clss_twl S"
     by simp
-  have tr_L_F_S: "map lit_of (trail_twl ?T) = map lit_of (Propagated L {#} # convert_trail_from_NOT F)"
+  have tr_L_F_S: "map lit_of (trail_twl ?T)
+    = map lit_of (Propagated L {#} # convert_trail_from_NOT F)"
     using undef' tr_F_S by (simp add: o_def)
   have C_confl_cand: "C \<in> candidates_conflict_twl S"
     apply(rule wf_candidates_twl_conflict_complete)
