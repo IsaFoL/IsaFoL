@@ -15,7 +15,8 @@ type_synonym 'v cdcl\<^sub>W_state =
 abbreviation trail :: "'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<Rightarrow> 'a" where
 "trail \<equiv> (\<lambda>(M, _). M)"
 
-abbreviation cons_trail :: "'a \<Rightarrow> 'a list \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<Rightarrow> 'a list \<times> 'b \<times> 'c \<times> 'd \<times> 'e" where
+abbreviation cons_trail :: "'a \<Rightarrow> 'a list \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<Rightarrow> 'a list \<times> 'b \<times> 'c \<times> 'd \<times> 'e"
+  where
 "cons_trail \<equiv> (\<lambda>L (M, S). (L#M, S))"
 
 abbreviation tl_trail :: "'a list \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<Rightarrow> 'a list \<times> 'b \<times> 'c \<times> 'd \<times> 'e" where
@@ -107,8 +108,9 @@ value "backtrack_split [Marked (Pos (Suc 0)) ()]"
 value "\<exists>C \<in> set [[Pos (Suc 0), Neg (Suc 0)]]. (\<forall>c \<in> set C. -c \<in> lits_of [Marked (Pos (Suc 0)) ()])"
 
 
-type_synonym cdcl\<^sub>W_state_inv_st = "(nat, nat, nat literal list) marked_lit list \<times> nat literal list list
-  \<times> nat literal list list \<times> nat \<times> nat literal list conflicting_clause"
+type_synonym cdcl\<^sub>W_state_inv_st = "(nat, nat, nat literal list) marked_lit list \<times>
+  nat literal list list \<times> nat literal list list \<times> nat \<times> nat literal list conflicting_clause"
+
 text \<open>We need some functions to convert between our abstract state @{typ "nat cdcl\<^sub>W_state"} and the
  concrete state @{typ "cdcl\<^sub>W_state_inv_st"}.\<close>
 
