@@ -188,7 +188,8 @@ lemma find_first_unit_clause_some_is_propagate:
   by (auto dest!: find_first_unit_clause_some simp add: propagate.simps
     intro!: exI[of _ "mset C - {#L#}"])
 
-subsubsection \<open>Propagate\<close>
+subsubsection \<open>The Transitions\<close>
+paragraph \<open>Propagate\<close>
 definition do_propagate_step where
 "do_propagate_step S =
   (case S of
