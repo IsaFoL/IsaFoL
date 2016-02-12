@@ -457,6 +457,10 @@ lemma set_mset_minus_replicate_mset:
 abbreviation remove_mset :: "'a \<Rightarrow> 'a multiset \<Rightarrow> 'a multiset" where
 "remove_mset C M \<equiv> M - replicate_mset (count M C) C"
 
+lemma mset_removeAll[simp]:
+  "mset (removeAll C L) = remove_mset C (mset L)"
+  by (induction L) (auto simp: ac_simps multiset_eq_iff)
+
 lemma set_mset_single_iff_replicate_mset:
   "set_mset U = {a}  \<longleftrightarrow> (\<exists>n>0. U = replicate_mset n a)"
   apply (rule iffI)
