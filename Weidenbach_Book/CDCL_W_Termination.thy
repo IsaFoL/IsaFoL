@@ -893,7 +893,7 @@ locale cdcl\<^sub>W_termination =
    add_learned_cls remove_cls update_backtrack_lvl update_conflicting init_state
    restart_state
   for
-    trail :: "'st::equal \<Rightarrow> ('v::linorder, nat, 'v clause) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v::linorder, nat, 'v clause) marked_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
     backtrack_lvl :: "'st \<Rightarrow> nat" and
