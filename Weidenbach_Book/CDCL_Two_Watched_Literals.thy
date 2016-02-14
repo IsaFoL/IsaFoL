@@ -22,7 +22,7 @@ abbreviation raw_clause :: "'v twl_clause \<Rightarrow> 'v clause" where
 datatype ('v, 'lvl, 'mark) twl_state =
   TWL_State (trail: "('v, 'lvl, 'mark) marked_lits") (init_clss: "'v twl_clause multiset")
     (learned_clss: "'v twl_clause multiset") (backtrack_lvl: 'lvl)
-    (conflicting: "'v clause conflicting_clause")
+    (conflicting: "'v clause option")
 
 abbreviation raw_init_clss where
   "raw_init_clss S \<equiv> image_mset raw_clause (init_clss S)"
@@ -458,7 +458,7 @@ typedef 'v wf_twl = "{S::('v, nat, 'v clause) twl_state. wf_twl_state S}"
 morphisms rough_state_of_twl twl_of_rough_state
 proof -
   have "TWL_State ([]::('v, nat, 'v clause) marked_lits)
-    {#} {#} 0 C_True \<in> {S:: ('v, nat, 'v clause) twl_state. wf_twl_state S} "
+    {#} {#} 0 None \<in> {S:: ('v, nat, 'v clause) twl_state. wf_twl_state S} "
     by (auto simp: wf_twl_state_def)
   then show ?thesis by auto
 qed
@@ -557,7 +557,7 @@ where
      (conflicting S)"
 
 definition init_state :: "'v clauses \<Rightarrow> ('v, nat, 'v clause) twl_state" where
-  "init_state N = fold add_init_cls (linearize N) (TWL_State [] {#} {#} 0 C_True)"
+  "init_state N = fold add_init_cls (linearize N) (TWL_State [] {#} {#} 0 None)"
 
 lemma unchanged_fold_add_init_cls:
   "trail (fold add_init_cls Cs (TWL_State M N U k C)) = M"
@@ -570,7 +570,7 @@ lemma unchanged_init_state[simp]:
   "trail (init_state N) = []"
   "learned_clss (init_state N) = {#}"
   "backtrack_lvl (init_state N) = 0"
-  "conflicting (init_state N) = C_True"
+  "conflicting (init_state N) = None"
   unfolding init_state_def by (rule unchanged_fold_add_init_cls)+
 
 lemma clauses_init_fold_add_init:
@@ -594,7 +594,7 @@ definition tl_trail where
    TWL_State (tl (trail S)) (init_clss S) (learned_clss S) (backtrack_lvl S) (conflicting S)"
 
 definition restart' where
-  "restart' S = TWL_State [] (init_clss S) (restart_learned S) 0 C_True"
+  "restart' S = TWL_State [] (init_clss S) (restart_learned S) 0 None"
 end
 
 subsection \<open>Instanciation of the previous locale\<close>
@@ -1100,7 +1100,7 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_
   "\<lambda>C S. add_learned_cls C S"
   "\<lambda>C S. remove_cls C S"
   (* propagate conditions: *)"\<lambda>L S. lit_of L \<in> fst ` candidates_propagate S"
-  "\<lambda>_ S. conflicting S = C_True"
+  "\<lambda>_ S. conflicting S = None"
   "\<lambda>C C' L' S. C \<in> candidates_conflict S \<and> distinct_mset (C' + {#L'#}) \<and> \<not>tautology (C' + {#L'#})"
   by unfold_locales
 
@@ -1163,7 +1163,7 @@ lemma wf_twl_state_wf_twl_state_fold_add_init_cls:
   by (simp add: wf_twl_add_init_cls)
 
 lemma wf_twl_state_epsilon_state[simp]:
-  "wf_twl_state (TWL_State [] {#} {#} 0 C_True)"
+  "wf_twl_state (TWL_State [] {#} {#} 0 None)"
   by (auto simp: wf_twl_state_def)
 
 lemma wf_twl_init_state: "wf_twl_state (init_state N)"
@@ -1298,7 +1298,7 @@ definition propagate_twl where
 "propagate_twl S S' \<longleftrightarrow>
   (\<exists>L C. (L, C) \<in> candidates_propagate_twl S
   \<and> S' \<sim>TWL cons_trail_twl (Propagated L C) S
-  \<and> conflicting_twl S = C_True)"
+  \<and> conflicting_twl S = None)"
 
 lemma propagate_twl_iff_propagate:
   assumes inv: "cdcl\<^sub>W_twl.cdcl\<^sub>W_all_struct_inv S"
@@ -1306,7 +1306,7 @@ lemma propagate_twl_iff_propagate:
 proof
   assume ?P
   then obtain C L where
-    "conflicting (rough_state_of_twl S) = C_True" and
+    "conflicting (rough_state_of_twl S) = None" and
     CL_Clauses: "C + {#L#} \<in># cdcl\<^sub>W_twl.clauses S" and
     tr_CNot: "trail_twl S \<Turnstile>as CNot C" and
     undef_lot: "undefined_lit (trail_twl S) L" and
@@ -1331,7 +1331,7 @@ proof
   show ?T unfolding propagate_twl_def
     apply (rule exI[of _ "L"], rule exI[of _ "C+{#L#}"])
     apply (auto simp: \<open>(L, C+{#L#}) \<in> candidates_propagate_twl S\<close>
-      \<open>conflicting (rough_state_of_twl S) = C_True\<close> )
+      \<open>conflicting (rough_state_of_twl S) = None\<close> )
     using \<open>T \<sim> cons_trail_twl (Propagated L (C + {#L#})) S\<close> cdcl\<^sub>W_twl.state_eq_backtrack_lvl
     cdcl\<^sub>W_twl.state_eq_conflicting cdcl\<^sub>W_twl.state_eq_init_clss
     cdcl\<^sub>W_twl.state_eq_learned_clss cdcl\<^sub>W_twl.state_eq_trail rough_cdcl.state_eq_def by blast
@@ -1340,7 +1340,7 @@ next
   then obtain L C where
     LC: "(L, C) \<in> candidates_propagate_twl S" and
     T: "T \<sim>TWL cons_trail_twl (Propagated L C) S" and
-    confl: "conflicting (rough_state_of_twl S) = C_True"
+    confl: "conflicting (rough_state_of_twl S) = None"
     unfolding propagate_twl_def by auto
   have [simp]: "C - {#L#} + {#L#} = C"
     using LC unfolding candidates_propagate_def
@@ -1371,25 +1371,25 @@ term CDCL_Two_Watched_Literals.twl.state_eq_twl
 definition conflict_twl where
 "conflict_twl S S' \<longleftrightarrow>
   (\<exists>C. C \<in> candidates_conflict_twl S
-  \<and> S' \<sim>TWL update_conflicting_twl (C_Clause C) S
-  \<and> conflicting_twl S = C_True)"
+  \<and> S' \<sim>TWL update_conflicting_twl (Some C) S
+  \<and> conflicting_twl S = None)"
 
 lemma conflict_twl_iff_conflict:
   shows "cdcl\<^sub>W_twl.conflict S T \<longleftrightarrow> conflict_twl S T" (is "?C \<longleftrightarrow> ?T")
 proof
   assume ?C
   then obtain M N U k C where
-    S: "rough_cdcl.state (rough_state_of_twl S) = (M, N, U, k, C_True)" and
+    S: "rough_cdcl.state (rough_state_of_twl S) = (M, N, U, k, None)" and
     C: "C \<in># cdcl\<^sub>W_twl.clauses S" and
     M_C: "M \<Turnstile>as CNot C" and
-    T: "T \<sim> update_conflicting_twl (C_Clause C) S"
+    T: "T \<sim> update_conflicting_twl (Some C) S"
     by auto
   have "C \<in> candidates_conflict_twl S"
     apply (rule wf_candidates_conflict_complete)
        apply simp
       using C apply (auto simp: cdcl\<^sub>W_twl.clauses_def)[]
     using M_C S by auto
-  moreover have "T \<sim>TWL twl_of_rough_state (update_conflicting (C_Clause C) (rough_state_of_twl S))"
+  moreover have "T \<sim>TWL twl_of_rough_state (update_conflicting (Some C) (rough_state_of_twl S))"
     using T unfolding rough_cdcl.state_eq_def cdcl\<^sub>W_twl.state_eq_def by auto
   ultimately show ?T
     using S unfolding conflict_twl_def by auto
@@ -1397,8 +1397,8 @@ next
   assume ?T
   then obtain C where
     C: "C \<in> candidates_conflict_twl S" and
-    T: "T \<sim>TWL update_conflicting_twl (C_Clause C) S" and
-    confl: "conflicting_twl S = C_True"
+    T: "T \<sim>TWL update_conflicting_twl (Some C) S" and
+    confl: "conflicting_twl S = None"
     unfolding conflict_twl_def by auto
   have "C \<in># cdcl\<^sub>W_twl.clauses S"
     using C unfolding candidates_conflict_def cdcl\<^sub>W_twl.clauses_def by auto
