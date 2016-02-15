@@ -427,16 +427,6 @@ fun do_resolve_step :: "cdcl\<^sub>W_state_inv_st \<Rightarrow> cdcl\<^sub>W_sta
   else (Propagated L C # Ls, N, U, k, Some D))" |
 "do_resolve_step S = S"
 
-lemma count_mset_set_if:
-  "count (mset_set A) a = (if a \<in> A \<and> finite A then 1 else 0)"
-  by auto
-
-lemma distinct_mset_rempdups_union_mset:
-  assumes "distinct_mset A" and "distinct_mset B"
-  shows "A #\<union> B = remdups_mset (A + B)"
-  using assms unfolding remdups_mset_def
-  using le_less by (fastforce simp: multiset_eq_iff max_def count_mset_set_if distinct_mset_def)
-
 lemma do_resolve_step:
   "cdcl\<^sub>W_all_struct_inv (toS S) \<Longrightarrow> do_resolve_step S \<noteq> S
   \<Longrightarrow> resolve (toS S) (toS (do_resolve_step S))"
