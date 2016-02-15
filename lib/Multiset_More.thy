@@ -581,6 +581,16 @@ lemma distinct_mset_distinct[simp]:
   unfolding distinct_mset_def
   by (induction x) (simp_all add: distinct_count_atmost_1)
 
+lemma count_mset_set_if:
+  "count (mset_set A) a = (if a \<in> A \<and> finite A then 1 else 0)"
+  by auto
+
+lemma distinct_mset_rempdups_union_mset:
+  assumes "distinct_mset A" and "distinct_mset B"
+  shows "A #\<union> B = remdups_mset (A + B)"
+  using assms unfolding remdups_mset_def
+  using le_less by (fastforce simp: multiset_eq_iff max_def count_mset_set_if distinct_mset_def)
+
 lemma distinct_mset_set_distinct:
   "distinct_mset_set (mset ` set Cs) \<longleftrightarrow> (\<forall>c\<in> set Cs. distinct c)"
   unfolding distinct_mset_set_def by auto
