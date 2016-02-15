@@ -7,12 +7,13 @@ section \<open>Implementation for 2 Watched-Literals\<close>
 theory CDCL_Two_Watched_Literals_Implementation
 imports CDCL_Two_Watched_Literals DPLL_CDCL_W_Implementation
 begin
-
-locale state\<^sub>W_with_candidates =
+term foldl
+locale conc_state\<^sub>W_with_candidates =
   state\<^sub>W trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail add_init_cls
    add_learned_cls remove_cls update_backtrack_lvl update_conflicting init_state
    restart_state
-  for     trail :: "'st \<Rightarrow> ('v, nat, 'v clause) marked_lits" and
+  for
+    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) marked_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
     backtrack_lvl :: "'st \<Rightarrow> nat" and
@@ -29,32 +30,101 @@ locale state\<^sub>W_with_candidates =
     init_state :: "'v clauses \<Rightarrow> 'st" and
     restart_state :: "'st \<Rightarrow> 'st" +
   fixes
-    get_propagate_candidates :: "'st \<Rightarrow> ('v literal \<times> 'v clause) list" and
-    get_conflict_candidates :: "'st \<Rightarrow> 'v clause list" and
-    get_not_decided :: "'st \<Rightarrow> 'v literal option"
+    raw_trail :: "'conc_st \<Rightarrow> 'trail" and
+    raw_init_clss :: "'conc_st \<Rightarrow> 'clss" and
+    raw_learned_clss :: "'conc_st \<Rightarrow> 'clss" and
+    raw_backtrack_lvl :: "'conc_st \<Rightarrow> nat" and
+    raw_conflicting :: "'conc_st \<Rightarrow> 'cls option" and
+
+    raw_cons_trail :: "'marked_lit \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
+    raw_tl_trail :: "'conc_st \<Rightarrow>'conc_st" and
+    raw_add_init_cls :: "'cls \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
+    raw_add_learned_cls :: "'cls \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
+    raw_remove_cls :: "'cls \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
+    raw_update_backtrack_lvl :: "nat \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
+    raw_update_conflicting :: "'cls option \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
+
+    raw_init_state :: "'clss \<Rightarrow> 'conc_st" and
+    raw_restart_state :: "'conc_st \<Rightarrow> 'conc_st" and
+    get_propagate_candidates :: "'conc_st \<Rightarrow> ('v literal \<times> 'cls) list" and
+    get_conflict_candidates :: "'conc_st \<Rightarrow> 'cls list" and
+    get_not_decided :: "'conc_st \<Rightarrow> 'v literal option" and
+
+    st_of_raw :: "'conc_st \<Rightarrow> 'st" and
+    cls_of_raw_cls :: "'cls \<Rightarrow> 'v clause" and
+    clss_of_raw_clss :: "'clss \<Rightarrow> 'v clauses" and
+    raw_cls_union :: "'cls \<Rightarrow> 'cls \<Rightarrow> 'cls" and
+    remdups_raw_cls :: "'cls \<Rightarrow> 'cls" and
+    marked_lit_of_raw :: "'conc_st \<Rightarrow> 'marked_lit \<Rightarrow> ('v, nat, 'v clause) marked_lit"
   assumes
+    (* Mapping from 'cons_st to 'st *)
+    raw_cons_trail[simp]:
+      "\<And>L S. st_of_raw (raw_cons_trail L S) = cons_trail (marked_lit_of_raw S L) (st_of_raw S)" and
+    raw_tl_trail[simp]:
+      "\<And>S. st_of_raw (raw_tl_trail S) = tl_trail (st_of_raw S)" and
+    raw_add_init_cls[simp]:
+      "\<And>C S. st_of_raw (raw_add_init_cls C S) = add_init_cls (cls_of_raw_cls C) (st_of_raw S)" and
+    raw_add_learned_cls[simp]:
+      "\<And>C S.
+        st_of_raw (raw_add_learned_cls C S) = add_learned_cls (cls_of_raw_cls C) (st_of_raw S)" and
+    raw_remove_cls[simp]:
+      "\<And>C S. distinct_mset (clauses (st_of_raw S)) \<Longrightarrow>
+        cls_of_raw_cls C \<in># clauses (st_of_raw S) \<Longrightarrow>
+        st_of_raw (raw_remove_cls C S) = remove_cls (cls_of_raw_cls C) (st_of_raw S)" and
+    raw_update_backtrack_lvl[simp]:
+      "\<And>k S. st_of_raw (raw_update_backtrack_lvl k S) = update_backtrack_lvl k (st_of_raw S)" and
+    raw_update_conflicting[simp]:
+      "\<And>(C::'cls option) S. st_of_raw (raw_update_conflicting C S) =
+         update_conflicting (map_option cls_of_raw_cls C) (st_of_raw S)" and
+    raw_init_state:
+      "\<And>N. st_of_raw (raw_init_state N) = init_state (clss_of_raw_clss N)" and
+    cls_of_raw_cls_raw_cls_union[simp]:
+      "distinct_mset (cls_of_raw_cls a) \<Longrightarrow>
+        distinct_mset (cls_of_raw_cls b) \<Longrightarrow>
+          cls_of_raw_cls (raw_cls_union a b) = cls_of_raw_cls a #\<union> cls_of_raw_cls b" and
+    cls_of_raw_cls_remdups_raw_cls[simp]:
+      "cls_of_raw_cls (remdups_raw_cls a) = remdups_mset (cls_of_raw_cls a)" and
+    conflicting_raw_conflicting:
+      "conflicting (st_of_raw S) = map_option cls_of_raw_cls (raw_conflicting S)" and
     get_conflict_candidates_empty:
-      "\<And>S. get_conflict_candidates S = [] \<longleftrightarrow> (\<forall>D \<in># clauses S. \<not> trail S \<Turnstile>as CNot D)" and
+      "\<And>S. get_conflict_candidates S = [] \<longleftrightarrow>
+        (\<forall>D \<in># clauses (st_of_raw S). \<not> trail (st_of_raw S) \<Turnstile>as CNot D)" and
     get_conflict_candidates_in_clauses:
-      "\<And>S. \<forall>C \<in> set (get_conflict_candidates S). C \<in># clauses S \<and> trail S \<Turnstile>as CNot C" and
+      "\<And>S. \<forall>C \<in> set (get_conflict_candidates S). cls_of_raw_cls C \<in># clauses (st_of_raw S) \<and>
+        trail (st_of_raw S) \<Turnstile>as CNot (cls_of_raw_cls C)" and
     get_propagate_candidates_lit_in_cls:
-      "\<And>S. \<forall>(L, C) \<in> set (get_propagate_candidates S). undefined_lit (trail S) L \<and> C \<in># clauses S
-        \<and> trail S \<Turnstile>as CNot (C - {#L#}) \<and> L \<in># C" and
+      "\<And>S. \<forall>(L, C) \<in> set (get_propagate_candidates S). undefined_lit (trail (st_of_raw S)) L \<and>
+        cls_of_raw_cls C \<in># clauses (st_of_raw S)
+        \<and> trail (st_of_raw S) \<Turnstile>as CNot (cls_of_raw_cls C - {#L#}) \<and> L \<in># cls_of_raw_cls C" and
     get_propagate_candidates_lit_empty:
       "\<And>S. get_propagate_candidates S = [] \<longleftrightarrow>
-        \<not>(\<exists>C L. undefined_lit (trail S) L \<and> C + {#L#} \<in># clauses S \<and> trail S \<Turnstile>as CNot C)" and
+        \<not>(\<exists>C L. undefined_lit (trail (st_of_raw S)) L \<and> C + {#L#} \<in># clauses (st_of_raw S) \<and>
+          trail (st_of_raw S) \<Turnstile>as CNot C)" and
     get_not_decided_Some:
       "\<And>S L. get_not_decided S = Some L \<Longrightarrow>
-         undefined_lit (trail S) L \<and> atm_of L \<in> atms_of_msu (init_clss S)" and
+         undefined_lit (trail (st_of_raw S)) L \<and> atm_of L \<in> atms_of_msu (init_clss (st_of_raw S))"
+      and
     get_not_decided_None:
       "\<And>S. get_not_decided S = None \<Longrightarrow>
-         \<not>(\<exists>L. undefined_lit (trail S) L \<and> atm_of L \<in> atms_of_msu (init_clss S))"
+         \<not>(\<exists>L. undefined_lit (trail (st_of_raw S)) L \<and>
+         atm_of L \<in> atms_of_msu (init_clss (st_of_raw S)))"
 
 locale
   cdcl\<^sub>W_cands =
-   state\<^sub>W_with_candidates trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail
+   conc_state\<^sub>W_with_candidates trail init_clss learned_clss backtrack_lvl conflicting cons_trail
+   tl_trail
    add_init_cls add_learned_cls remove_cls update_backtrack_lvl update_conflicting init_state
-   restart_state get_propagate_candidates get_conflict_candidates get_not_decided
+   restart_state
+
+   raw_trail raw_init_clss raw_learned_clss raw_backtrack_lvl raw_conflicting raw_cons_trail
+   raw_tl_trail
+   raw_add_init_cls raw_add_learned_cls raw_remove_cls raw_update_backtrack_lvl
+   raw_update_conflicting raw_init_state
+   raw_restart_state
+
+   get_propagate_candidates get_conflict_candidates get_not_decided st_of_raw
+   cls_of_raw_cls clss_of_raw_clss
+   raw_cls_union remdups_raw_cls marked_lit_of_raw
   for
     trail :: "'st \<Rightarrow> ('v::linorder, nat, 'v::linorder clause) marked_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
@@ -72,53 +142,83 @@ locale
 
     init_state :: "'v clauses \<Rightarrow> 'st" and
     restart_state :: "'st \<Rightarrow> 'st" and
-    get_propagate_candidates :: "'st \<Rightarrow> ('v literal \<times> 'v clause) list" and
-    get_conflict_candidates :: "'st \<Rightarrow> 'v clause list" and
-    get_not_decided :: "'st \<Rightarrow> 'v literal option"
+
+    raw_trail :: "'conc_st \<Rightarrow> 'trail" and
+    raw_init_clss :: "'conc_st \<Rightarrow> 'clss" and
+    raw_learned_clss :: "'conc_st \<Rightarrow> 'clss" and
+    raw_backtrack_lvl :: "'conc_st \<Rightarrow> nat" and
+    raw_conflicting :: "'conc_st \<Rightarrow> 'cls option" and
+
+    raw_cons_trail :: "'marked_lit \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
+    raw_tl_trail :: "'conc_st \<Rightarrow>'conc_st" and
+    raw_add_init_cls :: "'cls \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
+    raw_add_learned_cls :: "'cls \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
+    raw_remove_cls :: "'cls \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
+    raw_update_backtrack_lvl :: "nat \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
+    raw_update_conflicting :: "'cls option \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
+
+    raw_init_state :: "'clss \<Rightarrow> 'conc_st" and
+    raw_restart_state :: "'conc_st \<Rightarrow> 'conc_st" and
+    get_propagate_candidates :: "'conc_st \<Rightarrow> ('v literal \<times> 'cls) list" and
+    get_conflict_candidates :: "'conc_st \<Rightarrow> 'cls list" and
+    get_not_decided :: "'conc_st \<Rightarrow> 'v literal option" and
+
+    st_of_raw :: "'conc_st \<Rightarrow> 'st" and
+    cls_of_raw_cls :: "'cls \<Rightarrow> 'v clause" and
+    clss_of_raw_clss :: "'clss \<Rightarrow> 'v clauses" and
+    raw_cls_union :: "'cls \<Rightarrow> 'cls \<Rightarrow> 'cls" and
+    remdups_raw_cls :: "'cls \<Rightarrow> 'cls" and
+    marked_lit_of_raw :: "'conc_st \<Rightarrow> 'marked_lit \<Rightarrow> ('v, nat, 'v clause) marked_lit"
 begin
+
 interpretation cdcl\<^sub>W_termination trail init_clss learned_clss backtrack_lvl conflicting cons_trail
   tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl update_conflicting
   init_state restart_state
  by unfold_locales
 
-definition do_conflict_step :: "'st \<Rightarrow> 'st option" where
+definition do_conflict_step :: "'conc_st \<Rightarrow> 'conc_st option" where
 "do_conflict_step S =
-  (case conflicting S of
+  (case raw_conflicting S of
     Some _ \<Rightarrow> None
   | None \<Rightarrow>
       (case get_conflict_candidates S of
         [] \<Rightarrow> None
-      | a # _ \<Rightarrow> Some (update_conflicting (Some a) S)))"
+      | a # _ \<Rightarrow> Some (raw_update_conflicting (Some a) S)))"
 
 lemma do_conflict_step_Some:
   assumes conf: "do_conflict_step S = Some T"
-  shows "conflict S T"
-proof (cases "conflicting S")
+  shows "conflict (st_of_raw S) (st_of_raw T)"
+proof (cases "raw_conflicting S")
   case Some
   then show ?thesis using conf unfolding do_conflict_step_def by simp
 next
   case None
   then obtain C where
     C: "C \<in> set (get_conflict_candidates S)" and
-    T: "T = update_conflicting (Some C) S"
+    T: "T = raw_update_conflicting (Some C) S"
      using conf unfolding do_conflict_step_def by (auto split: list.splits)
-  have "C \<in># clauses S" and "trail S \<Turnstile>as CNot C"
+  have
+    "cls_of_raw_cls C \<in># clauses (st_of_raw S)" and
+    "trail (st_of_raw S) \<Turnstile>as CNot (cls_of_raw_cls C)"
     using get_conflict_candidates_in_clauses by (simp_all add: C some_in_eq)
   then show ?thesis
-    using conflict_rule[of S _ _ _ _ C T]  state_eq_ref T None
-    by auto
+    using conflict_rule[of "st_of_raw S" "trail (st_of_raw S)" "init_clss (st_of_raw S)"
+      "learned_clss (st_of_raw S)" "backtrack_lvl (st_of_raw S)" "cls_of_raw_cls C" "st_of_raw T"]
+      state_eq_ref T None
+    by (auto simp: conflicting_raw_conflicting)
 qed
 
 lemma do_conflict_step_None:
   assumes conf: "do_conflict_step S = None"
-  shows "no_step conflict S"
-proof (cases "conflicting S")
+  shows "no_step conflict (st_of_raw S)"
+proof (cases "conflicting (st_of_raw S)")
   case Some
   then show ?thesis by auto
 next
   case None
   then have "get_conflict_candidates S = []"
-     using conf unfolding do_conflict_step_def by (auto split: list.splits)
+     using conf unfolding do_conflict_step_def
+     by (auto split: list.splits option.splits simp: conflicting_raw_conflicting)
   then show ?thesis
     using get_conflict_candidates_empty by auto
 qed
@@ -161,7 +261,7 @@ abbreviation conflicting :: "'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e 
 
 abbreviation update_conflicting :: "'e \<Rightarrow> 'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<Rightarrow> 'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e"
   where
-"update_conflicting \<equiv> \<lambda>S (M, N, U, k, _).  (M, N, U, k, S)"
+"update_conflicting \<equiv> \<lambda>C (M, N, U, k, _).  (M, N, U, k, C)"
 
 abbreviation "S0_cdcl\<^sub>W N \<equiv> (([], N, {#}, 0, None):: 'v cdcl\<^sub>W_state)"
 
@@ -175,8 +275,12 @@ fun convert :: "('a, 'b, 'c list) marked_lit \<Rightarrow> ('a, 'b, 'c multiset)
 "convert (Propagated L C) = Propagated L (mset C)" |
 "convert (Marked K i) = Marked K i"
 
+abbreviation convert_tr :: "('a, 'b, 'c list) marked_lits \<Rightarrow> ('a, 'b, 'c multiset) marked_lits"
+  where
+"convert_tr \<equiv> map convert
+"
 abbreviation convertC :: "'a list option \<Rightarrow> 'a multiset option"  where
-"convertC \<equiv>  map_option mset"
+"convertC \<equiv> map_option mset"
 
 lemma convert_Propagated[elim!]:
   "convert z = Propagated L C \<Longrightarrow> (\<exists>C'. z = Propagated L C' \<and> C = mset C')"
@@ -185,10 +289,10 @@ lemma convert_Propagated[elim!]:
 type_synonym cdcl\<^sub>W_state_inv_st = "(nat, nat, nat clause) marked_lit list \<times>
   nat literal list list \<times> nat literal list list \<times> nat \<times> nat literal list option"
 
-interpretation cdcl\<^sub>W: state\<^sub>W 
-  trail 
-  "\<lambda>S. mset (clauses S)" 
-  "\<lambda>S. mset (learned_clss S)"  
+interpretation cdcl\<^sub>W: state\<^sub>W
+  trail
+  "\<lambda>S. mset (clauses S)"
+  "\<lambda>S. mset (learned_clss S)"
   backtrack_lvl conflicting
   "\<lambda>L (M, S). (L # M, S)"
   "\<lambda>(M, S). (tl M, S)"
@@ -218,17 +322,127 @@ lemma find_conflict_sorted_list_of_multiset_None:
   by (simp add: find_conflict_None)
 
 lemma find_conflict_sorted_list_of_multiset_2_None:
-  "find_conflict M (map sorted_list_of_multiset Ns @ map sorted_list_of_multiset Ns') = None 
+  "find_conflict M (map sorted_list_of_multiset Ns @ map sorted_list_of_multiset Ns') = None
   \<longleftrightarrow> (\<forall>N \<in> set Ns \<union> set Ns'. \<not>M \<Turnstile>as CNot N)"
   by (metis find_conflict_sorted_list_of_multiset_None map_append set_append)
-  
+
 declare cdcl\<^sub>W.state_simp[simp del] cdcl\<^sub>W.clauses_def[simp add]
-(* 
-interpretation cdcl\<^sub>W:  state\<^sub>W_with_candidates
-  trail 
-  "\<lambda>S. mset (clauses S)" 
-  "\<lambda>S. mset (learned_clss S)"  
+
+
+lemma mset_map_mset_removeAll_remove_mset:
+  "C \<in> set N \<Longrightarrow> distinct (map mset N) \<Longrightarrow>
+  mset (map mset (removeAll C N)) = remove_mset (mset C) (mset (map mset N))"
+proof (induction N)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a N) note IH = this(1) and C = this(2) and dist = this(3)
+  have dist': "distinct (map mset N)"
+    using dist by auto
+  have H: "mset (map mset (removeAll C N)) = remove_mset (mset C) (mset (map mset N))"
+    by (metis C IH count_mset_0 diff_zero dist distinct.simps(2) list.simps(9) removeAll_id
+      replicate_mset_0 set_ConsD)
+  have rall: "mset (map mset (removeAll C (a # N))) =
+     (if C = a then {#} else {#mset a#}) + mset (map mset (removeAll C N))"
+     by (auto simp: ac_simps)
+  have rmset: "remove_mset (mset C) (mset (map mset (a # N))) =
+     (if mset C = mset a then {#} else {#mset a#}) + remove_mset (mset C) (mset (map mset N))"
+    proof -
+      { assume a1: "mset C \<noteq> mset a"
+        then have "remove_mset (mset C) (mset (map mset (a # N))) - {#mset a#} + {#mset a#}
+          = remove_mset (mset C) (mset (map mset (a # N))) - {#}"
+          by simp (* 3 ms *)
+        then have ?thesis
+          using a1 by (simp_all add: Multiset.diff_right_commute add.commute)}
+      then show ?thesis
+        by (cases "mset C \<noteq> mset a") (auto simp: ac_simps)
+    qed
+  have "C \<noteq> a \<longrightarrow> mset C \<noteq> mset a"
+    by (metis C dist distinct.simps(2) image_eqI list.simps(9) set_ConsD set_map)
+  then show ?case
+    unfolding rall rmset H by simp
+qed
+
+lemma
+  "distinct (map mset N) \<Longrightarrow> mset C = mset x \<Longrightarrow> x \<in> set N \<Longrightarrow>
+    mset (map mset (removeAll C N)) = remove_mset (mset x) (mset (map mset N))"
+proof (induction N)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a N) note IH = this(1) and dist = this(2) and C = this(3) and x = this(4)
+  have dist': "distinct (map mset N)"
+    using dist by auto
+  have H: "mset (map mset (removeAll C N)) = remove_mset (mset C) (mset (map mset N))"
+    by (metis (no_types, lifting) C IH x count_mset_0 diff_zero
+      dist distinct.simps(2) list.simps(9) mset_map_mset_removeAll_remove_mset
+      removeAll_id replicate_mset_0 set_ConsD)
+  have rall: "mset (map mset (removeAll C (a # N))) =
+     (if C = a then {#} else {#mset a#}) + mset (map mset (removeAll C N))"
+     by (auto simp: ac_simps)
+  have rmset: "remove_mset (mset x) (mset (map mset (a # N))) =
+     (if mset C = mset a then {#} else {#mset a#}) + remove_mset (mset C) (mset (map mset N))"
+    proof -
+      { assume a1: "mset C \<noteq> mset a"
+        then have "remove_mset (mset C) (mset (map mset (a # N))) - {#mset a#} + {#mset a#}
+          = remove_mset (mset C) (mset (map mset (a # N))) - {#}"
+          by simp (* 3 ms *)
+        then have ?thesis
+          using a1 C by (simp_all add: Multiset.diff_right_commute add.commute)}
+      then show ?thesis
+        by (cases "mset C \<noteq> mset a") (auto simp: ac_simps C)
+    qed
+  have "C \<noteq> a \<longrightarrow> mset C \<noteq> mset a"
+    proof
+      assume "C \<noteq> a"
+      have "mset C \<in> mset ` set N"
+        using C dist x apply auto sorry
+      show "mset C \<noteq> mset a"
+        apply (cases "x = a")
+        using C dist apply auto[]
+        using distinct.simps(2) image_eqI list.simps(9) set_ConsD set_map
+         sorry
+    qed
+  then show ?case
+    unfolding rall rmset H by simp
+qed
+
+interpretation cdcl\<^sub>W':  state\<^sub>W
+  trail
+  clauses
+  learned_clss
   backtrack_lvl conflicting
+  "\<lambda>L (M, S). (L # M, S)"
+  "\<lambda>(M, S). (tl M, S)"
+  "\<lambda>C (M, N, S). (M, {#C#} + N, S)"
+  "\<lambda>C (M, N, U, S). (M, N, {#C#} + U, S)"
+  "\<lambda>C (M, N, U, S). (M, remove_mset C N, remove_mset C U, S)"
+  "\<lambda>k (M, N, (U::nat clauses), _, D). (M, N, U, k, D)"
+  "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
+  "\<lambda>N. ([], N, {#}, 0, None)"
+  "\<lambda>(_, N, U, _). ([], N, U, 0, None)"
+  by unfold_locales auto
+
+interpretation cdcl\<^sub>W:  conc_state\<^sub>W_with_candidates
+  trail
+  clauses
+  learned_clss
+  backtrack_lvl conflicting
+  "\<lambda>L (M, S). (L # M, S)"
+  "\<lambda>(M, S). (tl M, S)"
+  "\<lambda>C (M, N, S). (M, {#C#} + N, S)"
+  "\<lambda>C (M, N, U, S). (M, N, {#C#} + U, S)"
+  "\<lambda>C (M, N, U, S). (M, remove_mset C N, remove_mset C U, S)"
+  "\<lambda>k (M, N, (U::nat clauses), _, D). (M, N, U, k, D)"
+  "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
+  "\<lambda>N. ([], N, {#}, 0, None)"
+  "\<lambda>(_, N, U, _). ([], N, U, 0, None)"
+
+  trail
+  clauses
+  learned_clss
+  backtrack_lvl
+  conflicting
   "\<lambda>L (M, S). (L # M, S)"
   "\<lambda>(M, S). (tl M, S)"
   "\<lambda>C (M, N, S). (M, C # N, S)"
@@ -236,33 +450,38 @@ interpretation cdcl\<^sub>W:  state\<^sub>W_with_candidates
   "\<lambda>C (M, N, U, S). (M, removeAll C N, removeAll C U, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
-  "\<lambda>N. ([], sorted_list_of_multiset N, [], 0, None)"
+  "\<lambda>N. ([], N, [], 0, None)"
   "\<lambda>(_, N, U, _). ([], N, U, 0, None)"
-  "\<lambda>(M, N, U, S). 
-    case find_first_unit_clause (map sorted_list_of_multiset (N @ U)) M of
+
+  "\<lambda>(M, N, U, S).
+    case find_first_unit_clause (N @ U) M of
       None \<Rightarrow> []
-    | Some (L, a) \<Rightarrow> [(L, mset a)]"
-  "\<lambda>(M, N, U, S). 
-    case find_conflict M (map sorted_list_of_multiset (N @ U)) of
+    | Some (L, a) \<Rightarrow> [(L, a)]"
+  "\<lambda>(M, N, U, S).
+    case find_conflict M (N @ U) of
       None \<Rightarrow> []
-    | Some a \<Rightarrow> [mset a]"
-  "\<lambda>(M, N, U, S). find_first_unused_var (map sorted_list_of_multiset (N @ U)) (lits_of M)"
+    | Some a \<Rightarrow> [a]"
+  "\<lambda>(M, N, U, S). find_first_unused_var (N @ U) (lits_of M)"
+  "\<lambda>(M, N, U, k, C).
+    (convert_tr M, mset (map mset N), mset (map mset U), k, map_option mset C)"
+
+  mset
+  "\<lambda>N. mset (map mset N)"
+  "\<lambda>a b. remdups (a @ b)"
+  remdups
+  "\<lambda>_. convert"
   apply unfold_locales
-  apply (case_tac S)
-  apply (auto split: option.splits simp: find_conflict_sorted_list_of_multiset_2_None
-   dest!: find_conflict_Some)[]
-  apply (case_tac S)
-  apply (auto split: option.splits simp: find_conflict_sorted_list_of_multiset_2_None
-   dest!: find_conflict_Some  sym[of "Some _" "find_conflict _ _"])[]
-  apply (case_tac S)
-  sorry *)
+  apply (auto simp: map_tl add.commute distinct_mset_rempdups_union_mset cdcl\<^sub>W'.clauses_def)
+  sorry
+
+
 
 definition "do_conflict_step = cdcl\<^sub>W_cands.do_conflict_step"
-interpretation gcdcl\<^sub>W2: cdcl\<^sub>W_cands
+(* interpretation gcdcl\<^sub>W2: cdcl\<^sub>W_cands
   trail
-  "\<lambda>S. clauses S" 
-  "\<lambda>S. learned_clss S"  
-  backtrack_lvl 
+  "\<lambda>S. clauses S"
+  "\<lambda>S. learned_clss S"
+  backtrack_lvl
   conflicting
   "\<lambda>L (M, S). (L # M, S)"
   "\<lambda>(M, S). (tl M, S)"
@@ -273,21 +492,21 @@ interpretation gcdcl\<^sub>W2: cdcl\<^sub>W_cands
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
   "\<lambda>N. ([], N, {#}, 0, None)"
   "\<lambda>(_, N, U, _). ([], N, U, 0, None)"
-  "\<lambda>(M, N, U, a, b). 
+  "\<lambda>(M, N, U, a, b).
     case find_first_unit_clause (map sorted_list_of_multiset (sorted_list_of_multiset N @ sorted_list_of_multiset U)) M of
       None \<Rightarrow> []
     | Some (L, a) \<Rightarrow> [(L, mset a)]"
-  "\<lambda>(M, N, U, a, b). 
+  "\<lambda>(M, N, U, a, b).
     case find_conflict M (map sorted_list_of_multiset (sorted_list_of_multiset N @ sorted_list_of_multiset U)) of
       None \<Rightarrow> []
     | Some a \<Rightarrow> [mset a]"
   "\<lambda>(M, N, U, a, b). find_first_unused_var (map sorted_list_of_multiset (sorted_list_of_multiset N @ sorted_list_of_multiset U)) (lits_of M)"
-  rewrites 
-  "cdcl\<^sub>W_cands.do_conflict_step S = do_conflict_step S"
-  apply unfold_locales
+  rewrites
+  "cdcl\<^sub>W_cands.do_conflict_step S = do_conflict_step S" *)
+(*   apply unfold_locales
   sorry
 thm do_conflict_step_def gcdcl\<^sub>W2.do_conflict_step_def do_conflict_step_def
-lemmas [code] = do_conflict_step_def gcdcl\<^sub>W2.do_conflict_step_def
+lemmas [code] = do_conflict_step_def gcdcl\<^sub>W2.do_conflict_step_def *)
 
 
 end
