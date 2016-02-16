@@ -41,7 +41,7 @@ lemma consistent_interp_single[simp]:
 
 lemma consistent_interp_subset:
   assumes
-    "A \<subseteq> B"  and 
+    "A \<subseteq> B"  and
     "consistent_interp B"
   shows "consistent_interp A"
   using assms unfolding consistent_interp_def by auto
@@ -62,7 +62,7 @@ subsubsection \<open>Atoms\<close>
 definition atms_of_ms :: "'a literal multiset set \<Rightarrow> 'a set" where
 "atms_of_ms \<psi>s = \<Union>(atms_of ` \<psi>s)"
 
-lemma atms_of_msultiset[simp]: 
+lemma atms_of_msultiset[simp]:
   "atms_of (mset a) = atm_of ` set a"
   by (induct a) auto
 
@@ -423,8 +423,9 @@ next
   let ?I = "{P. P \<in> I \<and> atm_of P \<in> atms_of_ms CC}"
 
   have I_CC: "?I \<Turnstile>s CC"
-    using I_CC unfolding true_clss_def Ball_def true_cls_def Bex_mset_def true_lit_def
-    by (smt atm_of_lit_in_atms_of atms_of_atms_of_ms_mono mem_Collect_eq subset_eq)
+    using I_CC in_implies_atm_of_on_atms_of_ms unfolding true_clss_def Ball_def true_cls_def
+    Bex_mset_def true_lit_def
+    by blast
 
   moreover have cons: "consistent_interp ?I"
     using cons unfolding consistent_interp_def by auto
@@ -1412,7 +1413,7 @@ proof (intro allI impI)
     using assms unfolding true_clss_ext_def by blast
   then have "?J \<Turnstile>s N - {C}" by auto
   have "{v \<in> ?J. atm_of v \<in> atms_of_ms (N - {C})} \<subseteq> J"
-    using tot unfolding total_over_m_def total_over_set_def 
+    using tot unfolding total_over_m_def total_over_set_def
     by (auto intro!: rev_image_eqI)
   then show "J \<Turnstile>s N - {C}"
     using true_clss_remove_unused[OF \<open>?J \<Turnstile>s N - {C}\<close>] unfolding true_clss_def

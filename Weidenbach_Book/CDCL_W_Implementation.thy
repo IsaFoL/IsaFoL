@@ -975,8 +975,8 @@ lemma rough_state_of_do_other_step'[code abstract]:
  "rough_state_of (do_other_step' S) = do_other_step (rough_state_of S)"
  apply (cases "do_other_step (rough_state_of S) = rough_state_of S")
    unfolding do_other_step'_def apply simp
- using do_other_step[of "rough_state_of S"] by (smt cdcl\<^sub>W_all_struct_inv_inv
-   cdcl\<^sub>W_all_struct_inv_rough_state mem_Collect_eq other state_of_inverse)
+ using do_other_step[of "rough_state_of S"] by (auto intro: cdcl\<^sub>W_all_struct_inv_inv
+   cdcl\<^sub>W_all_struct_inv_rough_state other state_of_inverse)
 
 definition do_cdcl\<^sub>W_stgy_step where
 "do_cdcl\<^sub>W_stgy_step S =
@@ -1174,7 +1174,6 @@ proof (cases S, goal_cases)
           split: option.splits
           dest: bt_cut_some_decomp arg_cong[of _ _ "\<lambda>u. length (filter is_marked u)"])
 qed
-
 
 lemma do_other_step_not_conflicting_one_more_decide:
   assumes "conflicting (rough_state_of S) = None" and
@@ -1390,10 +1389,18 @@ next
     using rough_state_from_init_state_of[of S] by auto
   moreover have "cdcl\<^sub>W_stgy (toS (rough_state_from_init_state_of S))
     (toS (rough_state_from_init_state_of T))"
-    using ST do_cdcl\<^sub>W_stgy_step unfolding T
-    by (smt id_of_I_to_def mem_Collect_eq rough_state_from_init_state_of
-      rough_state_from_init_state_of_do_cdcl\<^sub>W_stgy_step' rough_state_from_init_state_of_inject
-      state_of_inverse)
+    proof -
+      have "\<And>c. rough_state_of (state_of (rough_state_from_init_state_of c)) =
+        rough_state_from_init_state_of c"
+        using rough_state_from_init_state_of by force
+      then have "do_cdcl\<^sub>W_stgy_step (state_of (rough_state_from_init_state_of S))
+        \<noteq> state_of (rough_state_from_init_state_of S)"
+        using ST T by (metis (no_types) id_of_I_to_def rough_state_from_init_state_of_inject
+          rough_state_from_init_state_of_do_cdcl\<^sub>W_stgy_step')
+      then show ?thesis
+        using do_cdcl\<^sub>W_stgy_step id_of_I_to_def rough_state_from_init_state_of_do_cdcl\<^sub>W_stgy_step' T
+        by fastforce
+    qed
   moreover
     have "cdcl\<^sub>W_all_struct_inv (toS (rough_state_from_init_state_of S))"
       using rough_state_from_init_state_of[of S] by auto
@@ -1440,12 +1447,30 @@ qed
 lemma do_all_cdcl\<^sub>W_stgy_is_rtranclp_cdcl\<^sub>W_stgy:
   "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (toS (rough_state_from_init_state_of S))
     (toS (rough_state_from_init_state_of (do_all_cdcl\<^sub>W_stgy S)))"
-  apply (induction S rule: do_all_cdcl\<^sub>W_stgy_induct)
-  apply (case_tac "do_cdcl\<^sub>W_stgy_step' S = S")
-    apply simp
-  by (smt converse_rtranclp_into_rtranclp do_all_cdcl\<^sub>W_stgy.simps do_cdcl\<^sub>W_stgy_step id_of_I_to_def
-    rough_state_from_init_state_of_do_cdcl\<^sub>W_stgy_step'
-    toS_rough_state_of_state_of_rough_state_from_init_state_of)
+proof (induction S rule: do_all_cdcl\<^sub>W_stgy_induct)
+  case (1 S) note IH = this(1)
+  show ?case
+    proof (cases "do_cdcl\<^sub>W_stgy_step' S = S")
+      case True
+      then show ?thesis by simp
+    next
+      case False
+      have f2: "do_cdcl\<^sub>W_stgy_step (id_of_I_to S) = id_of_I_to S \<longrightarrow>
+        rough_state_from_init_state_of (do_cdcl\<^sub>W_stgy_step' S)
+        = rough_state_of (state_of (rough_state_from_init_state_of S))"
+        using id_of_I_to_def rough_state_from_init_state_of_do_cdcl\<^sub>W_stgy_step' by presburger
+      have f3: "do_all_cdcl\<^sub>W_stgy S = do_all_cdcl\<^sub>W_stgy (do_cdcl\<^sub>W_stgy_step' S)"
+        by (metis (full_types) do_all_cdcl\<^sub>W_stgy.simps)
+      have "cdcl\<^sub>W_stgy (toS (rough_state_from_init_state_of S))
+          (toS (rough_state_from_init_state_of (do_cdcl\<^sub>W_stgy_step' S)))
+        = cdcl\<^sub>W_stgy (toS (rough_state_of (id_of_I_to S)))
+          (toS (rough_state_of (do_cdcl\<^sub>W_stgy_step (id_of_I_to S))))"
+        using id_of_I_to_def rough_state_from_init_state_of_do_cdcl\<^sub>W_stgy_step'
+        toS_rough_state_of_state_of_rough_state_from_init_state_of by presburger
+      then show ?thesis
+        using f3 f2 IH do_cdcl\<^sub>W_stgy_step by fastforce
+    qed
+qed
 
 text \<open>Final theorem:\<close>
 lemma DPLL_tot_correct:
