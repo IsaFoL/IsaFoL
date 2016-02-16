@@ -46,7 +46,7 @@ locale conc_state\<^sub>W_with_candidates =
     raw_backtrack_lvl :: "'conc_st \<Rightarrow> nat" and
     raw_conflicting :: "'conc_st \<Rightarrow> 'cls option" and
 
-    raw_cons_trail :: "'marked_lit \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
+    raw_cons_trail :: "('v, nat, 'cls) marked_lit \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
     raw_tl_trail :: "'conc_st \<Rightarrow>'conc_st" and
     raw_add_init_cls :: "'cls \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
     raw_add_learned_cls :: "'cls \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
@@ -65,8 +65,11 @@ locale conc_state\<^sub>W_with_candidates =
     clss_of_raw_clss :: "'clss \<Rightarrow> 'v clause list" and
     raw_cls_union :: "'cls \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remdups_raw_cls :: "'cls \<Rightarrow> 'cls" and
-    marked_lit_of_raw :: "'marked_lit \<Rightarrow> ('v, nat, 'v clause) marked_lit" and
-    raw_marked_lit_of_marked_lit :: "('v, nat, 'cls) marked_lit \<Rightarrow> 'marked_lit"
+    marked_lit_of_raw :: "('v, nat, 'cls) marked_lit \<Rightarrow> ('v, nat, 'v clause) marked_lit" and
+    maximum_level :: "'cls \<Rightarrow> 'conc_st \<Rightarrow> nat" and
+    raw_hd_trail :: "'conc_st \<Rightarrow> ('v, nat, 'cls) marked_lit" and
+    remove :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls"
+
   assumes
     (* Mapping from 'cons_st to 'st *)
     raw_cons_trail[simp]:
@@ -94,10 +97,16 @@ locale conc_state\<^sub>W_with_candidates =
     conflicting_raw_conflicting:
       "conflicting (st_of_raw S) = map_option cls_of_raw_cls (raw_conflicting S)" and
     marked_lit_of_raw[simp]:
-      "marked_lit_of_raw (raw_marked_lit_of_marked_lit (Propagated L C)) =
-        Propagated L (cls_of_raw_cls C)"
+      "\<And>L C. marked_lit_of_raw (Propagated L C) = Propagated L (cls_of_raw_cls C)"
+      "\<And>L i. marked_lit_of_raw (Marked L i) = Marked L i"
       and
-
+    maximum_level[simp]:
+      "maximum_level C S = get_maximum_level (cls_of_raw_cls C) (trail (st_of_raw S))" and
+    raw_hd_trail:
+      "\<And>S. trail (st_of_raw S) \<noteq> [] \<Longrightarrow>
+        marked_lit_of_raw (raw_hd_trail S) = hd (trail (st_of_raw S))" and
+    remove[simp]:
+      "cls_of_raw_cls (remove L C) = cls_of_raw_cls C - {#L#}" and
     get_conflict_candidates_empty:
       "\<And>S. get_conflict_candidates S = [] \<longleftrightarrow>
         (\<forall>D \<in># clauses (st_of_raw S). \<not> trail (st_of_raw S) \<Turnstile>as CNot D)" and
@@ -137,7 +146,8 @@ locale
 
    get_propagate_candidates get_conflict_candidates get_not_decided st_of_raw
    cls_of_raw_cls clss_of_raw_clss
-   raw_cls_union remdups_raw_cls marked_lit_of_raw raw_marked_lit_of_marked_lit
+   raw_cls_union remdups_raw_cls marked_lit_of_raw
+   maximum_level raw_hd_trail remove
   for
     trail :: "'st \<Rightarrow> ('v::linorder, nat, 'v::linorder clause) marked_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
@@ -162,7 +172,7 @@ locale
     raw_backtrack_lvl :: "'conc_st \<Rightarrow> nat" and
     raw_conflicting :: "'conc_st \<Rightarrow> 'cls option" and
 
-    raw_cons_trail :: "'marked_lit \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
+    raw_cons_trail :: "('v, nat, 'cls) marked_lit \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
     raw_tl_trail :: "'conc_st \<Rightarrow>'conc_st" and
     raw_add_init_cls :: "'cls \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
     raw_add_learned_cls :: "'cls \<Rightarrow> 'conc_st \<Rightarrow> 'conc_st" and
@@ -181,8 +191,10 @@ locale
     clss_of_raw_clss :: "'clss \<Rightarrow> 'v clause list" and
     raw_cls_union :: "'cls \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remdups_raw_cls :: "'cls \<Rightarrow> 'cls" and
-    marked_lit_of_raw :: "'marked_lit \<Rightarrow> ('v, nat, 'v clause) marked_lit" and
-    raw_marked_lit_of_marked_lit :: "('v, nat, 'cls) marked_lit \<Rightarrow> 'marked_lit"
+    marked_lit_of_raw :: "('v, nat, 'cls) marked_lit \<Rightarrow> ('v, nat, 'v clause) marked_lit" and
+    maximum_level :: "'cls \<Rightarrow> 'conc_st \<Rightarrow> nat" and
+    raw_hd_trail :: "'conc_st \<Rightarrow> ('v, nat, 'cls) marked_lit" and
+    remove :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls"
 begin
 
 interpretation cdcl\<^sub>W_termination trail init_clss learned_clss backtrack_lvl conflicting cons_trail
@@ -190,6 +202,7 @@ interpretation cdcl\<^sub>W_termination trail init_clss learned_clss backtrack_l
   init_state restart_state
  by unfold_locales
 
+paragraph \<open>The transitions\<close>
 definition do_conflict_step :: "'conc_st \<Rightarrow> 'conc_st option" where
 "do_conflict_step S =
   (case raw_conflicting S of
@@ -237,6 +250,8 @@ next
     using get_conflict_candidates_empty by auto
 qed
 
+text \<open>We have a list of conflict candidates, but we take only the first element, in case a conflict
+  appears. This is necessary for non-redundancy.\<close>
 definition do_propagate_step :: "'conc_st \<Rightarrow> 'conc_st option" where
 "do_propagate_step S =
   (case raw_conflicting S of
@@ -244,7 +259,7 @@ definition do_propagate_step :: "'conc_st \<Rightarrow> 'conc_st option" where
   | None \<Rightarrow>
       (case get_propagate_candidates S of
         [] \<Rightarrow> None
-      | (L, C) # _ \<Rightarrow> Some (raw_cons_trail (raw_marked_lit_of_marked_lit (Propagated L C)) S)))"
+      | (L, C) # _ \<Rightarrow> Some (raw_cons_trail (Propagated L C) S)))"
 
 lemma do_propagate_step_Some:
   assumes conf: "do_propagate_step S = Some T"
@@ -258,7 +273,7 @@ next
   case None
   then obtain L C where
     C: "(L, C) \<in> set (get_propagate_candidates S)" and
-    T: "T = raw_cons_trail (raw_marked_lit_of_marked_lit (Propagated L C)) S"
+    T: "T = raw_cons_trail (Propagated L C) S"
      using conf unfolding do_propagate_step_def
     by (auto split: list.splits simp: conflicting_raw_conflicting)
   have
@@ -290,8 +305,115 @@ next
     unfolding get_propagate_candidates_empty by (force elim!: propagateE)
 qed
 
+definition do_skip_step :: "'conc_st \<Rightarrow> 'conc_st option"  where
+"do_skip_step S =
+  (case conflicting (st_of_raw S) of
+    None \<Rightarrow> None
+  | Some D \<Rightarrow>
+    (case trail (st_of_raw S) of
+      Propagated L C' # _ \<Rightarrow>
+        if -L \<notin># D \<and> D \<noteq> {#} then Some (raw_tl_trail S) else None
+    | _ \<Rightarrow> None))"
+
+lemma do_skip_step_Some:
+  assumes conf: "do_skip_step S = Some T"
+  shows "skip (st_of_raw S) (st_of_raw T)"
+proof (cases "conflicting (st_of_raw S)")
+  case None
+  then show ?thesis
+    using conf by (auto simp: do_skip_step_def)
+next
+  case (Some D)
+  then obtain L C M  where
+    C: "trail (st_of_raw S) = Propagated L C # M" and
+    T: " -L \<notin># D" and
+    "D \<noteq> {#}" and
+    "st_of_raw T = tl_trail (st_of_raw S)"
+    using conf unfolding do_skip_step_def
+    by (auto split: list.splits marked_lit.splits split_if_asm simp: conflicting_raw_conflicting)
+  then show ?thesis
+    using skip_rule[of "st_of_raw S" L C M "init_clss (st_of_raw S)"
+      "learned_clss (st_of_raw S)" "backtrack_lvl (st_of_raw S)"]
+      state_eq_ref T Some
+    by (auto simp: conflicting_raw_conflicting)
+qed
+
+lemma do_skip_step_None:
+  assumes conf: "do_skip_step S = None"
+  shows "no_step skip (st_of_raw S)"
+proof (cases "conflicting (st_of_raw S)")
+  case None
+  then show ?thesis by auto
+next
+  case Some
+  then show ?thesis
+    using conf unfolding do_skip_step_def
+    by (auto split: list.splits marked_lit.splits split_if_asm simp: conflicting_raw_conflicting)
+qed
+
+definition do_resolve_step :: "'conc_st \<Rightarrow> 'conc_st option" where
+"do_resolve_step S =
+  (case raw_conflicting S of
+    None \<Rightarrow> None
+  | Some D \<Rightarrow>
+    if trail (st_of_raw S) \<noteq> []
+    then
+      (case raw_hd_trail S of
+        Propagated L C \<Rightarrow>
+          if -L \<in># cls_of_raw_cls D \<and> cls_of_raw_cls D \<noteq> {#} \<and>
+             (maximum_level (remove (-L) D) S = raw_backtrack_lvl S \<or> raw_backtrack_lvl S = 0)
+          then Some (raw_update_conflicting
+             (Some (raw_cls_union (remove (-L) D) (remove L C)))
+             (raw_tl_trail S))
+          else None
+      | _ \<Rightarrow> None)
+    else None)"
+
+
+lemma do_resolve_step_Some:
+  assumes conf: "do_resolve_step S = Some T" and inv: "cdcl\<^sub>W_all_struct_inv (st_of_raw S)"
+  shows "resolve (st_of_raw S) (st_of_raw T)"
+proof (cases "raw_conflicting S")
+  case None
+  then show ?thesis
+    using conf by (auto simp: do_resolve_step_def)
+next
+  case (Some D)
+  def M \<equiv> "tl (trail (st_of_raw S))"
+  obtain L C where
+    C: "raw_hd_trail S = Propagated L C" and
+    T: " -L \<in># cls_of_raw_cls D" and
+    "cls_of_raw_cls D \<noteq> {#}" and
+    "T =
+      raw_update_conflicting (Some (raw_cls_union (remove (-L) D) (remove L C))) (raw_tl_trail S)" and
+    "maximum_level (remove (-L) D) S = raw_backtrack_lvl S \<or> raw_backtrack_lvl S = 0" and
+    empty: "trail (st_of_raw S) \<noteq> []"
+    using conf Some unfolding do_resolve_step_def
+    by (auto split: list.splits marked_lit.splits split_if_asm simp: conflicting_raw_conflicting)
+  moreover have "trail (st_of_raw S) = Propagated L (cls_of_raw_cls C) # M"
+    using empty raw_hd_trail[of S] C M_def by (cases "trail (st_of_raw S)") simp_all
+  moreover then have "L \<in># cls_of_raw_cls C"
+    using inv unfolding  cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def by force
+  ultimately show ?thesis
+    using resolve_rule[of "st_of_raw S" L "cls_of_raw_cls C - {#L#}" "tl (trail (st_of_raw S))"
+      "init_clss (st_of_raw S)"
+      "learned_clss (st_of_raw S)" "backtrack_lvl (st_of_raw S)" "cls_of_raw_cls D - {#-L#}"]
+      state_eq_ref T Some
+    apply (auto simp: conflicting_raw_conflicting)
+    (* invariant needed *)
+    sorry
+qed
+
+(*
+"do_resolve_step (Propagated L C # Ls, N, U, k, Some D) =
+  (if -L \<in> set D \<and> (maximum_level_code (remove1 (-L) D) (Propagated L C # Ls) = k \<or>  k = 0)
+  then (Ls, N, U, k, Some (remdups (remove1 L C @ remove1 (-L) D)))
+  else (Propagated L C # Ls, N, U, k, Some D))" |
+"do_resolve_step S = S"
+ *)
 end
 
+subsection \<open>Implementation as list\<close>
 type_synonym 'a cdcl\<^sub>W_mark = "'a clause"
 type_synonym cdcl\<^sub>W_marked_level = nat
 
@@ -355,6 +477,27 @@ lemma convert_Propagated[elim!]:
 
 type_synonym cdcl\<^sub>W_state_inv_st = "(nat, nat, nat clause) marked_lit list \<times>
   nat literal list list \<times> nat literal list list \<times> nat \<times> nat literal list option"
+
+fun maximum_level_code:: "'a literal list \<Rightarrow> ('a, nat, 'a literal list) marked_lit list \<Rightarrow> nat"
+  where
+"maximum_level_code [] _ = 0" |
+"maximum_level_code (L # Ls) M = max (get_level L M) (maximum_level_code Ls M)"
+
+lemma maximum_level_code_eq_get_maximum_level[code, simp]:
+  "maximum_level_code D M = get_maximum_level (mset D) M"
+  by (induction D) (auto simp add: get_maximum_level_plus)
+
+lemma get_rev_level_convert_tr:
+  "get_rev_level L n (convert_tr M) = get_rev_level L n M"
+  by (induction M arbitrary: n rule: marked_lit_list_induct) auto
+
+lemma get_level_convert_tr:
+  "get_level a (convert_tr M) = get_level a M"
+  by (simp add: get_rev_level_convert_tr rev_map)
+
+lemma get_maximum_level_convert_tr[simp]:
+  "get_maximum_level (mset D) (convert_tr M)= get_maximum_level (mset D) M"
+  by (induction D) (simp_all add: get_maximum_level_plus get_level_convert_tr)
 
 interpretation cdcl\<^sub>W: state\<^sub>W
   trail
@@ -493,10 +636,13 @@ interpretation cdcl\<^sub>W:  conc_state\<^sub>W_with_candidates
   "\<lambda>a b. remdups (a @ b)"
   remdups
   convert
-  id
+  "\<lambda>C (M, N, U, k, D). maximum_level_code C M"
+  "\<lambda>S. (hd (trail S))"
   apply unfold_locales
-  apply (auto simp: map_tl add.commute distinct_mset_rempdups_union_mset cdcl\<^sub>W'.clauses_def)[10]
-  apply (auto split: option.splits simp: find_conflict_None cdcl\<^sub>W'.clauses_def)[]
+  apply (auto simp: map_tl add.commute distinct_mset_rempdups_union_mset cdcl\<^sub>W'.clauses_def)[12]
+  apply (auto split: option.splits simp: find_conflict_None cdcl\<^sub>W'.clauses_def)[2]
+  apply (metis hd_map)
+
   sorry
 
 
@@ -507,7 +653,8 @@ definition truc :: "(nat, nat, nat literal list) marked_lit list \<times>
        nat literal list list \<times>
        nat literal list list \<times>
        nat \<times> nat literal list option) option"
-  where "truc = cdcl\<^sub>W_cands.do_conflict_step  (\<lambda>(M, N, U, k, D). D) (\<lambda>C (M, N, U, k, _). (M, N, U, k, C))
+  where
+"truc = cdcl\<^sub>W_cands.do_conflict_step  (\<lambda>(M, N, U, k, D). D) (\<lambda>C (M, N, U, k, _). (M, N, U, k, C))
      (\<lambda>(M, N, U, S). case find_conflict M (N @ U) of None \<Rightarrow> [] | Some a \<Rightarrow> [a])"
 
  interpretation gcdcl\<^sub>W2: cdcl\<^sub>W_cands
@@ -557,7 +704,8 @@ definition truc :: "(nat, nat, nat literal list) marked_lit list \<times>
   "\<lambda>a b. remdups (a @ b)"
   remdups
   convert
-  id
+  "\<lambda>C (M, N, U, k, D). maximum_level_code C M"
+  "\<lambda>S. (hd (trail S))"
   rewrites
   "cdcl\<^sub>W_cands.do_conflict_step (\<lambda>(M, N, U, k, D). D) (\<lambda>C (M, N, U, k, _). (M, N, U, k, C))
      (\<lambda>(M, N, U, S). case find_conflict M (N @ U) of None \<Rightarrow> [] | Some a \<Rightarrow> [a])
