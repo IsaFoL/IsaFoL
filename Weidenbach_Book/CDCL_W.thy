@@ -44,7 +44,8 @@ locale state\<^sub>W =
     trail_update_conflicting[simp]: "\<And>C st. trail (update_conflicting C st) = trail st" and
 
     init_clss_cons_trail[simp]:
-      "\<And>M st. undefined_lit (trail st) (lit_of M)\<Longrightarrow> init_clss (cons_trail M st) = init_clss st" and
+      "\<And>M st. undefined_lit (trail st) (lit_of M)\<Longrightarrow> init_clss (cons_trail M st) = init_clss st" 
+      and
     init_clss_tl_trail[simp]:
       "\<And>st. init_clss (tl_trail st) = init_clss st" and
     init_clss_add_init_cls[simp]:
