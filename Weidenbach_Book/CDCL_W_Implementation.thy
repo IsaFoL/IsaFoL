@@ -499,7 +499,9 @@ lemma do_resolve_step_no:
 lemma  rough_state_of_state_of_resolve[simp]:
   "cdcl\<^sub>W_all_struct_inv (toS S) \<Longrightarrow> rough_state_of (state_of (do_resolve_step S)) = do_resolve_step S"
   apply (rule state_of_inverse)
-  by (smt CollectI bj cdcl\<^sub>W_all_struct_inv_inv do_resolve_step other resolve)
+  apply (cases "do_resolve_step S = S")
+   apply simp
+  by (blast dest: other resolve bj do_resolve_step cdcl\<^sub>W_all_struct_inv_inv)
 
 lemma do_resolve_step_trail_is_None[iff]:
   "do_resolve_step S = (a, b, c, d, None) \<longleftrightarrow> S = (a, b, c, d, None)"
@@ -807,17 +809,18 @@ lemma do_decide_step_no:
 
 lemma rough_state_of_state_of_do_decide_step[simp]:
   "cdcl\<^sub>W_all_struct_inv (toS S) \<Longrightarrow> rough_state_of (state_of (do_decide_step S)) = do_decide_step S"
-  apply (subst state_of_inverse)
-    apply (smt cdcl\<^sub>W_all_struct_inv_inv decide do_decide_step mem_Collect_eq other)
-  apply simp
-  done
+proof (subst state_of_inverse, goal_cases)
+  case 1
+  then show ?case
+    by (cases "do_decide_step S = S")
+      (auto dest: do_decide_step decide other intro: cdcl\<^sub>W_all_struct_inv_inv)
+qed simp
 
 lemma rough_state_of_state_of_do_skip_step[simp]:
   "cdcl\<^sub>W_all_struct_inv (toS S) \<Longrightarrow> rough_state_of (state_of (do_skip_step S)) = do_skip_step S"
-  apply (subst state_of_inverse)
-    apply (smt cdcl\<^sub>W_all_struct_inv_inv skip do_skip_step mem_Collect_eq other bj)
-  apply simp
-  done
+  apply (subst state_of_inverse, cases "do_skip_step S = S")
+   apply simp
+  by (blast dest: other skip bj do_skip_step cdcl\<^sub>W_all_struct_inv_inv)+
 
 subsubsection \<open>Code generation\<close>
 paragraph \<open>Type definition\<close>
@@ -908,7 +911,7 @@ lemma do_full1_cp_step_full:
   "full cdcl\<^sub>W_cp (toS (rough_state_of S))
     (toS (rough_state_of (do_full1_cp_step S)))"
   unfolding full_def apply standard
-    apply (induction "S" rule: do_full1_cp_step.induct)
+    apply (induction S rule: do_full1_cp_step.induct)
     apply (smt cp_step_is_cdcl\<^sub>W_cp do_cp_step'_def do_full1_cp_step.simps
       rough_state_of_state_of_do_cp_step rtranclp.rtrancl_refl rtranclp_into_tranclp2
       tranclp_into_rtranclp)
