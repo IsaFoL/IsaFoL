@@ -182,7 +182,6 @@ lemma
 lemmas state_simp[simp] = state_eq_trail state_eq_init_clss state_eq_learned_clss
   state_eq_backtrack_lvl state_eq_conflicting state_eq_clauses state_eq_undefined_lit
 
-
 lemma atms_of_ms_learned_clss_restart_state_in_atms_of_ms_learned_clssI[intro]:
   "x \<in> atms_of_msu (learned_clss (restart_state S)) \<Longrightarrow> x \<in> atms_of_msu (learned_clss S)"
   by (meson atms_of_ms_mono learned_clss_restart_state set_mset_mono subsetCE)
@@ -339,29 +338,33 @@ fun append_trail where
 "append_trail [] S = S" |
 "append_trail (L # M) S = append_trail M (cons_trail L S)"
 
-lemma trail_append_trail[simp]:
+lemma trail_append_trail:
   "no_dup (M @ trail S) \<Longrightarrow> trail (append_trail M S) = rev M @ trail S"
   by (induction M arbitrary: S) (auto simp: defined_lit_map)
 
-lemma learned_clss_append_trail[simp]:
-  "no_dup (M @ trail S) \<Longrightarrow> learned_clss (append_trail M S) = learned_clss S"
-  by (induction M arbitrary: S) (auto simp: defined_lit_map)
-
-lemma init_clss_append_trail[simp]:
+lemma init_clss_append_trail:
   "no_dup (M @ trail S) \<Longrightarrow> init_clss (append_trail M S) = init_clss S"
   by (induction M arbitrary: S) (auto simp: defined_lit_map)
 
-lemma conflicting_append_trail[simp]:
+lemma learned_clss_append_trail:
+  "no_dup (M @ trail S) \<Longrightarrow> learned_clss (append_trail M S) = learned_clss S"
+  by (induction M arbitrary: S) (auto simp: defined_lit_map)
+
+lemma conflicting_append_trail:
   "no_dup (M @ trail S) \<Longrightarrow> conflicting (append_trail M S) = conflicting S"
   by (induction M arbitrary: S) (auto simp: defined_lit_map)
 
-lemma backtrack_lvl_append_trail[simp]:
+lemma backtrack_lvl_append_trail:
   "no_dup (M @ trail S) \<Longrightarrow> backtrack_lvl (append_trail M S) = backtrack_lvl S"
   by (induction M arbitrary: S) (auto simp: defined_lit_map)
 
-lemma clauses_append_trail[simp]:
+lemma clauses_append_trail:
   "no_dup (M @ trail S) \<Longrightarrow> clauses (append_trail M S) = clauses S"
   by (induction M arbitrary: S) (auto simp: defined_lit_map)
+
+lemmas state_access_simp =
+  trail_append_trail init_clss_append_trail learned_clss_append_trail backtrack_lvl_append_trail
+  clauses_append_trail conflicting_append_trail
 
 text \<open>This function is useful for proofs to speak of a global trail change, but is a bad for
   programs and code in general.\<close>
@@ -3545,7 +3548,7 @@ lemma rtranclp_propagate_is_update_trail:
   "propagate\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_M_level_inv S \<Longrightarrow> T \<sim> delete_trail_and_rebuild (trail T) S"
 proof (induction rule: rtranclp_induct)
   case base
-  then show ?case unfolding state_eq_def by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
+  then show ?case unfolding state_eq_def by (auto simp: cdcl\<^sub>W_M_level_inv_decomp state_access_simp)
 next
   case (step T U) note IH=this(3)[OF this(4)]
   moreover have "cdcl\<^sub>W_M_level_inv U"
@@ -3553,7 +3556,8 @@ next
     rtranclp_mono[of propagate cdcl\<^sub>W] cdcl\<^sub>W_cp_consistent_inv propagate'
     rtranclp_propagate_is_rtranclp_cdcl\<^sub>W step.prems by blast
     then have "no_dup (trail U)" unfolding cdcl\<^sub>W_M_level_inv_def by auto
-  ultimately show ?case using \<open>propagate T U\<close> unfolding state_eq_def by fastforce
+  ultimately show ?case using \<open>propagate T U\<close> unfolding state_eq_def 
+    by (fastforce simp: state_access_simp)
 qed
 
 lemma cdcl\<^sub>W_stgy_strong_completeness_n:
@@ -3600,13 +3604,15 @@ next
   { assume no_step: "\<not>no_step propagate S"
 
     obtain S' where S': "propagate\<^sup>*\<^sup>* S S'" and full: "full cdcl\<^sub>W_cp S S'"
-      using completeness_is_a_full1_propagation[OF assms(1-3), of S] alien M' S by auto
+      using completeness_is_a_full1_propagation[OF assms(1-3), of S] alien M' S 
+      by (auto simp: state_access_simp)
     have lev: "cdcl\<^sub>W_M_level_inv S'"
       using M S' rtranclp_cdcl\<^sub>W_consistent_inv rtranclp_propagate_is_rtranclp_cdcl\<^sub>W by blast
     then have n_d'[simp]: "no_dup (trail S')"
       unfolding cdcl\<^sub>W_M_level_inv_def by auto
     have "length (trail S) \<le> length (trail S') \<and> lits_of (trail S') \<subseteq> set M"
-      using S' full cdcl\<^sub>W_cp_propagate_completeness[OF assms(1-3), of S] M' S by auto
+      using S' full cdcl\<^sub>W_cp_propagate_completeness[OF assms(1-3), of S] M' S 
+      by (auto simp: state_access_simp)
     moreover
       have full: "full1 cdcl\<^sub>W_cp S S'"
         using full no_step no_step_cdcl\<^sub>W_cp_no_conflict_no_propagate(2) unfolding full1_def full_def
@@ -3614,7 +3620,7 @@ next
       then have "cdcl\<^sub>W_stgy S S'" by (simp add: cdcl\<^sub>W_stgy.conflict')
     moreover
       have propa: "propagate\<^sup>+\<^sup>+ S S'" using S' full unfolding full1_def by (metis rtranclpD tranclpD)
-      have "trail S = M'" using S by auto
+      have "trail S = M'" using S by (auto simp: state_access_simp)
       with propa have "length (trail S') > n"
         using l_M' propa by (induction rule: tranclp.induct) auto
     moreover
@@ -3627,10 +3633,11 @@ next
         [simp]: "init_clss S' = init_clss S" and
         [simp]: "conflicting S' = None"
         using tranclp_into_rtranclp[OF \<open>propagate\<^sup>+\<^sup>+ S S'\<close>] S
-        rtranclp_propagate_is_update_trail[of S S'] S M unfolding state_eq_def by simp_all
+        rtranclp_propagate_is_update_trail[of S S'] S M unfolding state_eq_def 
+        by (auto simp: state_access_simp)
       have S_S': "S' \<sim> update_backtrack_lvl (backtrack_lvl S')
         (append_trail (rev (trail S')) (init_state N))" using S
-        by (auto simp: state_eq_def simp del: state_simp)
+        by (auto simp: state_eq_def state_access_simp simp del: state_simp)
       have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state (init_clss S')) S'"
         apply (rule rtranclp.rtrancl_into_rtrancl)
         using st unfolding \<open>init_clss S' = N\<close> apply simp
@@ -3659,7 +3666,7 @@ next
                 by (metis le_iff_sup true_annots_true_cls true_clss_union_increase)
               ultimately have False using cons consistent_CNot_not by blast
             }
-            then show ?thesis using S by (auto simp add: conflict.simps true_clss_def)
+            then show ?thesis using S by (auto simp: conflict.simps true_clss_def state_access_simp)
           qed
         have lenM: "length M = card (set M)" using distM by (induction M) auto
         have "no_dup M'" using S M unfolding cdcl\<^sub>W_M_level_inv_def by auto
@@ -3672,18 +3679,19 @@ next
           using M' Marked_Propagated_in_iff_in_lits_of calculation(1,2) cons
           consistent_interp_def by blast
         moreover have "atm_of m \<in> atms_of_msu (init_clss S)"
-          using atm_incl calculation S by auto
+          using atm_incl calculation S by (auto simp: state_access_simp)
         ultimately
           have dec: "decide S (cons_trail (Marked m (k+1)) (incr_lvl S))"
             using decide.intros[of S "rev M'" N _ k m
               "cons_trail (Marked m (k + 1)) (incr_lvl S)"] S
-            by auto
+            by (auto simp: state_access_simp)
         let ?S' = "cons_trail (Marked m (k+1)) (incr_lvl S)"
-        have "lits_of (trail ?S') \<subseteq> set M" using m M' S undef by auto
+        have "lits_of (trail ?S') \<subseteq> set M" using m M' S undef by (auto simp: state_access_simp)
         moreover have "no_strange_atm ?S'"
           using alien dec M by (meson cdcl\<^sub>W_no_strange_atm_inv decide other)
         ultimately obtain S'' where S'': "propagate\<^sup>*\<^sup>* ?S' S''" and full: "full cdcl\<^sub>W_cp ?S' S''"
-          using completeness_is_a_full1_propagation[OF assms(1-3), of ?S'] S undef by auto
+          using completeness_is_a_full1_propagation[OF assms(1-3), of ?S'] S undef 
+          by (auto simp: state_access_simp)
         have "cdcl\<^sub>W_M_level_inv ?S'"
           using M dec rtranclp_mono[of decide cdcl\<^sub>W] by (meson cdcl\<^sub>W_consistent_inv decide other)
         then have lev'': "cdcl\<^sub>W_M_level_inv S''"
@@ -3692,9 +3700,9 @@ next
           unfolding cdcl\<^sub>W_M_level_inv_def by auto
         have "length (trail ?S') \<le> length (trail S'') \<and> lits_of (trail S'') \<subseteq> set M"
           using S'' full cdcl\<^sub>W_cp_propagate_completeness[OF assms(1-3), of ?S' S''] m M' S undef
-          by simp
+          by (simp add: state_access_simp)
         then have "Suc n \<le> length (trail S'') \<and> lits_of (trail S'') \<subseteq> set M"
-          using l_M' S undef by auto
+          using l_M' S undef by (auto simp: state_access_simp)
         moreover
           have "cdcl\<^sub>W_M_level_inv (cons_trail (Marked m (Suc (backtrack_lvl S)))
             (update_backtrack_lvl (Suc (backtrack_lvl S)) S))"
@@ -3702,7 +3710,7 @@ next
           then have S'': "S'' \<sim> update_backtrack_lvl (backtrack_lvl S'')
             (append_trail (rev (trail S'')) (init_state N))"
             using rtranclp_propagate_is_update_trail[OF S''] S undef n_d'' lev''
-            by (auto simp del: state_simp simp: state_eq_def )
+            by (auto simp del: state_simp simp: state_eq_def state_access_simp)
           then have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S''"
             using cdcl\<^sub>W_stgy.intros(2)[OF decide[OF dec] _ full] no_step no_confl st
             by (auto simp: cdcl\<^sub>W_cp.simps)
@@ -3748,7 +3756,7 @@ proof -
     then have "M' \<Turnstile>asm N"
       using MN unfolding true_annots_def Ball_def true_annot_def true_clss_def by auto
     then have "final_cdcl\<^sub>W_state T"
-      using T no_dup unfolding final_cdcl\<^sub>W_state_def by auto
+      using T no_dup unfolding final_cdcl\<^sub>W_state_def by (auto simp: state_access_simp)
   ultimately show ?thesis using st T by blast
 qed
 

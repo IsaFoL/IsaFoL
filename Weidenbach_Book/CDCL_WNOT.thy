@@ -93,10 +93,6 @@ abbreviation convert_trail_from_W ::
     \<Rightarrow> ('v, unit, unit) marked_lit list"  where
 "convert_trail_from_W \<equiv> map convert_marked_lit_from_W"
 
-lemma atm_convert_trail_from_W[simp]:
-  "(\<lambda>l. atm_of (lit_of l)) ` set (convert_trail_from_W xs) = (\<lambda>l. atm_of (lit_of l)) ` set xs"
-  by (induction rule: marked_lit_list_induct) simp_all
-
 lemma lits_of_convert_trail_from_W[simp]:
   "lits_of (convert_trail_from_W M) = lits_of M"
   by (induction rule: marked_lit_list_induct) simp_all
@@ -267,7 +263,7 @@ proof (induction F S arbitrary: T rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.
     using tr by (metis (no_types) reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.elims)
 qed
 
-lemma trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_add_learned_cls[simp]:
+lemma trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_add_learned_cls:
 "no_dup (trail S) \<Longrightarrow>
   trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M (add_learned_cls D S)) = trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M S)"
  by (rule trail\<^sub>W_eq_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_eq) simp
@@ -330,7 +326,8 @@ lemma rtranclp_skip_state_decomp:
   shows
     "\<exists>M. trail S = M @ trail T \<and> (\<forall>m\<in>set M. \<not>is_marked m)" and
     "T \<sim> delete_trail_and_rebuild (trail T) S"
-  using assms by (induction rule: rtranclp_induct) (auto simp del: state_simp simp: state_eq_def)+
+  using assms by (induction rule: rtranclp_induct)
+  (auto simp del: state_simp simp: state_eq_def state_access_simp)
 
 subsubsection \<open>More backjumping\<close>
 paragraph \<open>Backjumping after skipping or jump directly\<close>
@@ -369,7 +366,8 @@ next
     lev_l_D: "backtrack_lvl V = get_maximum_level (D + {#L#}) (trail V)" and
     "conflicting V = Some (D + {#L#})" and
     i: "i = get_maximum_level D (trail V)"
-    using bt by (elim backtrack_levE) (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
+    using bt by (elim backtrack_levE)
+    (auto simp: cdcl\<^sub>W_M_level_inv_decomp state_eq_def simp del: state_simp)+
   let ?D = "(D + {#L#})"
   obtain L' C' where
     T: "state T = (Propagated L' C' # trail V, N, U, k, Some ?D)" and
@@ -411,7 +409,7 @@ next
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
   then have [simp]: "init_clss S = N" and [simp]: "learned_clss S = U"
     using rtranclp_skip_state_decomp[OF \<open>skip\<^sup>*\<^sup>* S V\<close>] V
-    by (auto simp del: state_simp simp: state_eq_def)
+    by (auto simp del: state_simp simp: state_eq_def state_access_simp)
   then have W_S: "W \<sim> cons_trail (Propagated L (D + {#L#})) (reduce_trail_to M1
   (add_learned_cls (D + {#L#}) (update_backtrack_lvl i (update_conflicting None T))))"
     using W i T undef M_lev by (auto simp del: state_simp simp: state_eq_def cdcl\<^sub>W_M_level_inv_def)
@@ -459,14 +457,15 @@ proof -
     using bt inv unfolding cdcl\<^sub>W_all_struct_inv_def by (auto elim!: backtrack_levE)
   then obtain k M M1 M2 K i D L N U where
     S: "state S = (M, N, U, k, Some (D + {#L#}))" and
-    W: "state W = (Propagated L ( (D + {#L#})) # M1, N, {#D + {#L#}#} + U,
+    W: "state W = (Propagated L (D + {#L#}) # M1, N, {#D + {#L#}#} + U,
        get_maximum_level D M, None)" and
     decomp: "(Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition M)" and
     lev_l: "get_level L M = k" and
     lev_l_D: "get_level L M = get_maximum_level (D+{#L#}) M" and
     i: "i = get_maximum_level D M" and
     undef: "undefined_lit M1 L"
-    using bt by (elim backtrack_levE) (force simp: cdcl\<^sub>W_M_level_inv_def)+
+    using bt by (elim backtrack_levE)
+    (simp_all add: cdcl\<^sub>W_M_level_inv_decomp state_eq_def del: state_simp)
   let ?D = "(D + {#L#})"
 
   have [simp]: "no_dup (trail S)"
@@ -481,7 +480,7 @@ proof -
     using rtranclp_skip_state_decomp(1)[OF skip] S M_lev by auto
   have T: "state T = (M\<^sub>T, N, U, k, Some ?D)"
     using M\<^sub>T rtranclp_skip_state_decomp(2)[of S T] skip S
-    by (auto simp del: state_simp simp: state_eq_def)
+    by (auto simp del: state_simp simp: state_eq_def state_access_simp)
 
   have "cdcl\<^sub>W_all_struct_inv T"
     apply (rule rtranclp_cdcl\<^sub>W_all_struct_inv_inv[OF _ inv])
@@ -595,7 +594,8 @@ proof -
     "get_maximum_level D M = i" and
     T: "state T = (Propagated L ( (D+{#L#})) # M1 , N, {#D + {#L#}#} + U', i, None)" and
     undef: "undefined_lit M1 L"
-    using bt_T by (elim backtrack_levE) (force simp: cdcl\<^sub>W_M_level_inv_def)+
+    using bt_T by (elim backtrack_levE)
+    (force simp: cdcl\<^sub>W_M_level_inv_def state_eq_def simp del: state_simp)+
 
   obtain  D' L' i' K' M1' M2' where
     S': "state S = (M, N, U', k, Some (D' + {#L'#}))" and
@@ -605,7 +605,8 @@ proof -
     "get_maximum_level D' M = i'" and
     U: "state U = (Propagated L' ((D'+{#L'#})) # M1', N, {#D' + {#L'#}#} +U', i', None)" and
     undef: "undefined_lit M1' L'"
-    using bt_U lev S by (elim backtrack_levE) (force simp: cdcl\<^sub>W_M_level_inv_def)+
+    using bt_U lev S by (elim backtrack_levE)
+    (force simp: cdcl\<^sub>W_M_level_inv_def  state_eq_def simp del: state_simp)+
   obtain c where M: "M = c @ M2 @ Marked K (i + 1) # M1"
     using decomp by auto
   obtain c' where M': "M = c' @ M2' @ Marked K' (i' + 1) # M1'"
@@ -674,7 +675,8 @@ proof (rule ccontr)
        "learned_clss S = U'"
        "backtrack_lvl S = k"
        "conflicting S = Some (D + {#-L#})"
-    using rtranclp_skip_state_decomp(2)[OF skip] U by (auto simp del: state_simp simp: state_eq_def)
+    using rtranclp_skip_state_decomp(2)[OF skip] U
+    by (auto simp del: state_simp simp: state_eq_def state_access_simp)
   obtain M\<^sub>0 where
     tr_S: "trail S = M\<^sub>0 @ trail U" and
     nm: "\<forall>m\<in>set M\<^sub>0. \<not>is_marked m"
@@ -688,7 +690,7 @@ proof (rule ccontr)
     "get_maximum_level D' M' = i" and
     undef: "undefined_lit M1 L'" and
     T: "state T = (Propagated L' (D'+{#L'#}) # M1 , N, {#D' + {#L'#}#}+U', i, None)"
-    using bt \<open>cdcl\<^sub>W_M_level_inv S\<close> S by (elim backtrack_levE) fastforce+
+    using bt by (elim backtrack_levE) (fastforce simp: S state_eq_def simp del:state_simp)+
   obtain c where M: "M' = c @ M2 @ Marked K (i + 1) # M1"
     using get_all_marked_decomposition_exists_prepend[OF decomp] by auto
   have marked: "get_all_levels_of_marked M' = rev [1..<1+k]"
@@ -1272,13 +1274,14 @@ next
                 using inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
                 apply (simp add: comp_def)
                using U M1_M2 confl undef_L M1_M2 inv_T' inv unfolding cdcl\<^sub>W_all_struct_inv_def
-               cdcl\<^sub>W_M_level_inv_def apply (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def)[]
+               cdcl\<^sub>W_M_level_inv_def apply (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def
+                 trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_add_learned_cls)[]
               using C\<^sub>S apply simp
              using tr_S_C\<^sub>S apply simp
 
             using U undef_L M1_M2  inv_T' inv unfolding cdcl\<^sub>W_all_struct_inv_def
             cdcl\<^sub>W_M_level_inv_def apply auto[]
-           using undef_L atm_L apply simp
+           using undef_L atm_L apply (simp add: trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_add_learned_cls)
           using \<open>init_clss T' + learned_clss S \<Turnstile>pm D + {#L#}\<close> unfolding clauses_def apply simp
          apply (metis \<open>tl (trail U) \<Turnstile>as CNot D\<close> convert_trail_from_W_true_annots)
         using  inv_T' inv_U U confl_T' undef_L M1_M2 unfolding cdcl\<^sub>W_all_struct_inv_def
@@ -2920,7 +2923,7 @@ next
               case V'_W
               then show ?thesis
                 using confl_V' local.decide'(1,2) s' conf_V
-                no_step_cdcl\<^sub>W_cp_no_step_cdcl\<^sub>W_merge_restart by auto
+                no_step_cdcl\<^sub>W_cp_no_step_cdcl\<^sub>W_merge_restart[of V] by blast
             next
               case propa
               then show ?thesis using local.decide'(1,2) s' by (metis cdcl\<^sub>W_merge_cp.simps conf_V
@@ -3016,7 +3019,7 @@ next
           show ?thesis using conf_V dec_confl(5) by auto
         next
           case cp_confl
-          then show ?thesis using decide' by fastforce
+          then show ?thesis using decide' apply - by (intro HOL.disjI2) fastforce
       qed
     next
       case (bj' V')
@@ -3119,7 +3122,7 @@ next
                 next
                   assume confl: "conflicting V' \<noteq> None"
                   then have "no_step cdcl\<^sub>W_merge_stgy V'"
-                    by (fastforce simp: cdcl\<^sub>W_merge_stgy.simps full1_def full_def 
+                    by (fastforce simp: cdcl\<^sub>W_merge_stgy.simps full1_def full_def
                       cdcl\<^sub>W_merge_cp.simps dest!: tranclpD)
                   have "no_step cdcl\<^sub>W_merge_cp V'"
                     using confl by (auto simp: full1_def full_def cdcl\<^sub>W_merge_cp.simps
