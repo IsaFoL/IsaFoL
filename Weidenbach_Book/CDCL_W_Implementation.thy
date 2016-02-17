@@ -422,7 +422,7 @@ lemma maximum_level_code_eq_get_maximum_level[code, simp]:
 
 fun do_resolve_step :: "cdcl\<^sub>W_state_inv_st \<Rightarrow> cdcl\<^sub>W_state_inv_st" where
 "do_resolve_step (Propagated L C # Ls, N, U, k, Some D) =
-  (if -L \<in> set D \<and> (maximum_level_code (remove1 (-L) D) (Propagated L C # Ls) = k \<or> k = 0)
+  (if -L \<in> set D \<and> maximum_level_code (remove1 (-L) D) (Propagated L C # Ls) = k
   then (Ls, N, U, k, Some (remdups (remove1 L C @ remove1 (-L) D)))
   else (Propagated L C # Ls, N, U, k, Some D))" |
 "do_resolve_step S = S"
@@ -1521,8 +1521,8 @@ qed
 
 paragraph \<open>The Code\<close>
 text \<open>The SML code is skipped in the documentation, but stays to ensure that some version of the
- exported code is working (the same changes as described in DPLL are applied to the code, the code
- is updated from time to time only)\<close>
+ exported code is working. The only difference between the generated code and the one used here is
+ the export of the constructor ConI.\<close>
 (*<*)
 fun gene where
 "gene 0 = [[Pos 0], [Neg 0]]" |
@@ -2009,13 +2009,12 @@ fun do_resolve_step
     (n, (u, (k, SOME d))))
   = (if List.member (Clausal_Logic.equal_literal Arith.equal_nat) d
           (Clausal_Logic.uminus_literal l) andalso
-          (Arith.equal_nata
-             (maximum_level_code Arith.equal_nat
-               (List.remove1 (Clausal_Logic.equal_literal Arith.equal_nat)
-                 (Clausal_Logic.uminus_literal l) d)
-               (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls))
-             k orelse
-            Arith.equal_nata k Arith.Zero_nat)
+          Arith.equal_nata
+            (maximum_level_code Arith.equal_nat
+              (List.remove1 (Clausal_Logic.equal_literal Arith.equal_nat)
+                (Clausal_Logic.uminus_literal l) d)
+              (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls))
+            k
       then (ls, (n, (u, (k, SOME (List.remdups
                                    (Clausal_Logic.equal_literal Arith.equal_nat)
                                    (List.remove1
@@ -2186,7 +2185,6 @@ fun do_all_cdcl_W_stgy s =
   end;
 
 end; (*struct CDCL_W_Implementation*)
-
 \<close>
 declare[[ML_print_depth=100]]
 ML \<open>
@@ -2194,8 +2192,8 @@ open Clausal_Logic;
 open CDCL_W_Implementation;
 open Arith;
 let
-  val N = gene (Suc Zero_nat)
-  val f = do_all_cdcl_W_stgy (ConI ([], (N, ([], (Zero_nat, NONE)))))
+  val N = gene (Suc (Suc (Suc (((Suc Zero_nat))))))
+  val f = do_all_cdcl_W_stgy (CDCL_W_Implementation.ConI ([], (N, ([], (Zero_nat, NONE)))))
   in
 
   f
