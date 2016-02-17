@@ -81,6 +81,8 @@ locale conc_state\<^sub>W_with_candidates =
     raw_add_learned_cls[simp]:
       "\<And>C S.
         st_of_raw (raw_add_learned_cls C S) = add_learned_cls (cls_of_raw_cls C) (st_of_raw S)" and
+    raw_backtrack_lvl:
+      "raw_backtrack_lvl S = backtrack_lvl (st_of_raw S)" and
     raw_update_backtrack_lvl[simp]:
       "\<And>k S. st_of_raw (raw_update_backtrack_lvl k S) = update_backtrack_lvl k (st_of_raw S)" and
     raw_update_conflicting[simp]:
@@ -89,9 +91,7 @@ locale conc_state\<^sub>W_with_candidates =
     raw_init_state:
       "\<And>N. st_of_raw (raw_init_state N) = init_state (mset (clss_of_raw_clss N))" and
     cls_of_raw_cls_raw_cls_union[simp]:
-      "distinct_mset (cls_of_raw_cls a) \<Longrightarrow>
-        distinct_mset (cls_of_raw_cls b) \<Longrightarrow>
-          cls_of_raw_cls (raw_cls_union a b) = cls_of_raw_cls a #\<union> cls_of_raw_cls b" and
+      "cls_of_raw_cls (raw_cls_union a b) = cls_of_raw_cls a #\<union> cls_of_raw_cls b" and
     cls_of_raw_cls_remdups_raw_cls[simp]:
       "cls_of_raw_cls (remdups_raw_cls a) = remdups_mset (cls_of_raw_cls a)" and
     conflicting_raw_conflicting:
@@ -388,7 +388,7 @@ next
     "cls_of_raw_cls D \<noteq> {#}" and
     "T =
       raw_update_conflicting (Some (raw_cls_union (remove (-L) D) (remove L C))) (raw_tl_trail S)" and
-    "maximum_level (remove (-L) D) S = raw_backtrack_lvl S \<or> raw_backtrack_lvl S = 0" and
+    "maximum_level (remove (-L) D) S = raw_backtrack_lvl S" and
     empty: "trail (st_of_raw S) \<noteq> []"
     using conf Some unfolding do_resolve_step_def
     by (auto split: list.splits marked_lit.splits split_if_asm simp: conflicting_raw_conflicting)
@@ -399,20 +399,23 @@ next
   ultimately show ?thesis
     using resolve_rule[of "st_of_raw S" L "cls_of_raw_cls C - {#L#}" "tl (trail (st_of_raw S))"
       "init_clss (st_of_raw S)"
-      "learned_clss (st_of_raw S)" "backtrack_lvl (st_of_raw S)" "cls_of_raw_cls D - {#-L#}"]
+      "learned_clss (st_of_raw S)" "backtrack_lvl (st_of_raw S)" "cls_of_raw_cls D - {#-L#}"
+      "st_of_raw T"]
       state_eq_ref T Some
-    apply (auto simp: conflicting_raw_conflicting)
-    (* invariant needed *)
-    sorry
+    by (auto simp: conflicting_raw_conflicting raw_backtrack_lvl)
 qed
 
-(*
-"do_resolve_step (Propagated L C # Ls, N, U, k, Some D) =
-  (if -L \<in> set D \<and> (maximum_level_code (remove1 (-L) D) (Propagated L C # Ls) = k \<or>  k = 0)
-  then (Ls, N, U, k, Some (remdups (remove1 L C @ remove1 (-L) D)))
-  else (Propagated L C # Ls, N, U, k, Some D))" |
-"do_resolve_step S = S"
- *)
+definition do_backtrack_step :: "'conc_st \<Rightarrow> 'conc_st option" where
+"do_backtrack_step S = None"
+
+definition do_bj_step :: "'conc_st \<Rightarrow> 'conc_st option" where
+"do_bj_step S =
+  (case do_skip_step S of
+    Some T \<Rightarrow> Some T
+  | None \<Rightarrow>
+    (case do_resolve_step S of
+      Some T \<Rightarrow> Some T
+    | None \<Rightarrow> do_backtrack_step S))"
 end
 
 subsection \<open>Implementation as list\<close>
@@ -591,6 +594,17 @@ interpretation cdcl\<^sub>W':  state\<^sub>W
   "\<lambda>(_, N, U, _). ([], N, U, 0, None)"
   by unfold_locales auto
 
+fun union_mset_list :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+"union_mset_list [] l = l" |
+"union_mset_list (a # l) l' = a # union_mset_list l (remove1 a l')"
+
+lemma mset_union_mset_list[simp]:
+  "mset (union_mset_list l l') = mset l #\<union> mset l'"
+  by (induction l arbitrary: l') (auto simp: multiset_eq_iff)
+
+lemma "union_mset_list l [] = l"
+  by (induction l) auto
+
 interpretation cdcl\<^sub>W:  conc_state\<^sub>W_with_candidates
   trail
   clauses
@@ -635,15 +649,18 @@ interpretation cdcl\<^sub>W:  conc_state\<^sub>W_with_candidates
 
   mset
   "\<lambda>N. (map mset N)"
-  "\<lambda>a b. remdups (a @ b)"
+  "\<lambda>a b.  (union_mset_list a b)"
   remdups
   convert
   "\<lambda>C (M, N, U, k, D). maximum_level_code C M"
   "\<lambda>S. (hd (trail S))"
+  remove1
   apply unfold_locales
   apply (auto simp: map_tl add.commute distinct_mset_rempdups_union_mset cdcl\<^sub>W'.clauses_def)[12]
   apply (auto split: option.splits simp: find_conflict_None cdcl\<^sub>W'.clauses_def)[2]
-  apply (metis hd_map)
+  apply (auto simp:)[]
+  using hd_map apply metis
+  apply auto[]
 
   sorry
 
@@ -715,7 +732,7 @@ definition truc :: "(nat, nat, nat literal list) marked_lit list \<times>
    apply unfold_locales
    using [[show_abbrevs = false]]
    unfolding truc_def apply simp
-  done
+  sorry
 
 
 term cdcl\<^sub>W_cands.do_conflict_step
