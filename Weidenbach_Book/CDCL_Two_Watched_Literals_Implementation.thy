@@ -8,6 +8,33 @@ theory CDCL_Two_Watched_Literals_Implementation
 imports CDCL_Two_Watched_Literals DPLL_CDCL_W_Implementation
 begin
 
+type_synonym conc_twl_state =
+  "((nat, nat, nat list) marked_lit, nat literal list twl_clause list, nat, nat literal list)
+    twl_state"
+
+fun convert :: "('a, 'b, 'c list) marked_lit \<Rightarrow> ('a, 'b, 'c multiset) marked_lit"  where
+"convert (Propagated L C) = Propagated L (mset C)" |
+"convert (Marked K i) = Marked K i"
+
+abbreviation convert_tr :: "('a, 'b, 'c list) marked_lits \<Rightarrow> ('a, 'b, 'c multiset) marked_lits"
+  where
+"convert_tr \<equiv> map convert"
+
+abbreviation convertC :: "'a literal list option \<Rightarrow> 'a clause option"  where
+"convertC \<equiv> map_option mset"
+
+fun raw_clause_l :: "'v list twl_clause \<Rightarrow> 'v multiset twl_clause"  where
+  "raw_clause_l (TWL_Clause UW W) = TWL_Clause (mset W) (mset UW)"
+
+abbreviation convert_clss :: "'v literal list twl_clause list \<Rightarrow> 'v clause twl_clause multiset"
+  where
+"convert_clss S \<equiv> mset (map raw_clause_l S)"
+
+fun raw_state_of_conc :: "conc_twl_state \<Rightarrow> (nat, nat, nat multiset) twl_state_abs" where
+"raw_state_of_conc (TWL_State M N U k C) =
+  TWL_State (convert_tr M) (convert_clss N) (convert_clss U) k (map_option mset C)"
+
+
 subsection \<open>Abstract Implementation\<close>
 
 text \<open>We define here a locale serving as proxy between the abstract transition defined using
@@ -465,17 +492,6 @@ abbreviation add_learned_cls where
 abbreviation remove_cls where
 "remove_cls \<equiv> \<lambda>C (M, N, U, S). (M, remove_mset C N, remove_mset C U, S)"
 
-fun convert :: "('a, 'b, 'c list) marked_lit \<Rightarrow> ('a, 'b, 'c multiset) marked_lit"  where
-"convert (Propagated L C) = Propagated L (mset C)" |
-"convert (Marked K i) = Marked K i"
-
-abbreviation convert_tr :: "('a, 'b, 'c list) marked_lits \<Rightarrow> ('a, 'b, 'c multiset) marked_lits"
-  where
-"convert_tr \<equiv> map convert
-"
-abbreviation convertC :: "'a list option \<Rightarrow> 'a multiset option"  where
-"convertC \<equiv> map_option mset"
-
 lemma convert_Propagated[elim!]:
   "convert z = Propagated L C \<Longrightarrow> (\<exists>C'. z = Propagated L C' \<and> C = mset C')"
   by (cases z) auto
@@ -676,7 +692,7 @@ definition truc :: "(nat, nat, nat literal list) marked_lit list \<times>
 "truc = cdcl\<^sub>W_cands.do_conflict_step  (\<lambda>(M, N, U, k, D). D) (\<lambda>C (M, N, U, k, _). (M, N, U, k, C))
      (\<lambda>(M, N, U, S). case find_conflict M (N @ U) of None \<Rightarrow> [] | Some a \<Rightarrow> [a])"
 
- interpretation gcdcl\<^sub>W2: cdcl\<^sub>W_cands
+interpretation gcdcl\<^sub>W2: cdcl\<^sub>W_cands
   trail
   clauses
   learned_clss
@@ -720,11 +736,12 @@ definition truc :: "(nat, nat, nat literal list) marked_lit list \<times>
 
   mset
   "\<lambda>N. (map mset N)"
-  "\<lambda>a b. remdups (a @ b)"
+  "\<lambda>a b.  (union_mset_list a b)"
   remdups
   convert
   "\<lambda>C (M, N, U, k, D). maximum_level_code C M"
   "\<lambda>S. (hd (trail S))"
+  remove1
   rewrites
   "cdcl\<^sub>W_cands.do_conflict_step (\<lambda>(M, N, U, k, D). D) (\<lambda>C (M, N, U, k, _). (M, N, U, k, C))
      (\<lambda>(M, N, U, S). case find_conflict M (N @ U) of None \<Rightarrow> [] | Some a \<Rightarrow> [a])
