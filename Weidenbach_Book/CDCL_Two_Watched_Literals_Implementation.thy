@@ -101,12 +101,14 @@ locale conc_state\<^sub>W_with_candidates =
       "\<And>L i. marked_lit_of_raw (Marked L i) = Marked L i"
       and
     maximum_level[simp]:
-      "maximum_level C S = get_maximum_level (cls_of_raw_cls C) (trail (st_of_raw S))" and
+      "maximum_level C S = get_maximum_level (trail (st_of_raw S)) (cls_of_raw_cls C)" and
     raw_hd_trail:
       "\<And>S. trail (st_of_raw S) \<noteq> [] \<Longrightarrow>
         marked_lit_of_raw (raw_hd_trail S) = hd (trail (st_of_raw S))" and
     remove[simp]:
       "cls_of_raw_cls (remove L C) = cls_of_raw_cls C - {#L#}" and
+
+    (* getting answers from the data-structure *)
     get_conflict_candidates_empty:
       "\<And>S. get_conflict_candidates S = [] \<longleftrightarrow>
         (\<forall>D \<in># clauses (st_of_raw S). \<not> trail (st_of_raw S) \<Turnstile>as CNot D)" and
@@ -361,7 +363,7 @@ definition do_resolve_step :: "'conc_st \<Rightarrow> 'conc_st option" where
       (case raw_hd_trail S of
         Propagated L C \<Rightarrow>
           if -L \<in># cls_of_raw_cls D \<and> cls_of_raw_cls D \<noteq> {#} \<and>
-             (maximum_level (remove (-L) D) S = raw_backtrack_lvl S \<or> raw_backtrack_lvl S = 0)
+             maximum_level (remove (-L) D) S = raw_backtrack_lvl S
           then Some (raw_update_conflicting
              (Some (raw_cls_union (remove (-L) D) (remove L C)))
              (raw_tl_trail S))
@@ -481,22 +483,22 @@ type_synonym cdcl\<^sub>W_state_inv_st = "(nat, nat, nat clause) marked_lit list
 fun maximum_level_code:: "'a literal list \<Rightarrow> ('a, nat, 'a literal list) marked_lit list \<Rightarrow> nat"
   where
 "maximum_level_code [] _ = 0" |
-"maximum_level_code (L # Ls) M = max (get_level L M) (maximum_level_code Ls M)"
+"maximum_level_code (L # Ls) M = max (get_level M L) (maximum_level_code Ls M)"
 
 lemma maximum_level_code_eq_get_maximum_level[code, simp]:
-  "maximum_level_code D M = get_maximum_level (mset D) M"
+  "maximum_level_code D M = get_maximum_level M (mset D)"
   by (induction D) (auto simp add: get_maximum_level_plus)
 
 lemma get_rev_level_convert_tr:
-  "get_rev_level L n (convert_tr M) = get_rev_level L n M"
+  "get_rev_level (convert_tr M) n = get_rev_level M n"
   by (induction M arbitrary: n rule: marked_lit_list_induct) auto
 
 lemma get_level_convert_tr:
-  "get_level a (convert_tr M) = get_level a M"
+  "get_level (convert_tr M) = get_level M"
   by (simp add: get_rev_level_convert_tr rev_map)
 
 lemma get_maximum_level_convert_tr[simp]:
-  "get_maximum_level (mset D) (convert_tr M)= get_maximum_level (mset D) M"
+  "get_maximum_level (convert_tr M) (mset D) = get_maximum_level M (mset D)"
   by (induction D) (simp_all add: get_maximum_level_plus get_level_convert_tr)
 
 interpretation cdcl\<^sub>W: state\<^sub>W

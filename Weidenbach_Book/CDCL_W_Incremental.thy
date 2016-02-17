@@ -86,7 +86,7 @@ next
   case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail S)"] and M = this(2)[symmetric]
   then show ?case using Cons_eq_appendI by fastforce+
 next
-  case (proped L l M) note IH = this(1)[of " (tl_trail S)"] and M = this(2)[symmetric]
+  case (proped L l M) note IH = this(1)[of "tl_trail S"] and M = this(2)[symmetric]
   then show ?case using Cons_eq_appendI by fastforce+
 qed
 
@@ -401,7 +401,7 @@ proof -
           apply (auto)
           using Marked_Propagated_in_iff_in_lits_of defined_lit_map by blast
 
-      ultimately have L: "get_level (-?L) (trail (cut_trail_wrt_clause C (trail T) T))
+      ultimately have L: "get_level (trail (cut_trail_wrt_clause C (trail T) T)) (-?L) 
         = length (get_all_levels_of_marked (trail (cut_trail_wrt_clause C (trail T) T)))"
         using get_level_get_rev_level_get_all_levels_of_marked[OF
           \<open>atm_of ?L \<notin> atm_of ` lits_of (tl (trail (cut_trail_wrt_clause C (trail T) T)))\<close>,
@@ -411,8 +411,7 @@ proof -
           apply (cases "trail (add_init_cls C (cut_trail_wrt_clause C (trail T) T))";
            cases "hd (trail (cut_trail_wrt_clause C (trail T) T))")
           using l by (auto split: split_if_asm
-            simp:rev_swap[symmetric] add_new_clause_and_update_def
-            simp del:)
+            simp:rev_swap[symmetric] add_new_clause_and_update_def)
 
       have L': "length (get_all_levels_of_marked (trail (cut_trail_wrt_clause C (trail T) T)))
         = backtrack_lvl (cut_trail_wrt_clause C (trail T) T)"
