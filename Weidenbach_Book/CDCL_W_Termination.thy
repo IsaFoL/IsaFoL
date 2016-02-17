@@ -468,10 +468,10 @@ proof (induction rule: cdcl\<^sub>W_o_induct_lev2)
           assume "D \<noteq> D'"
           then have "L' \<in>#  D" using DLD' by (metis add.left_neutral count_single count_union
             diff_union_cancelR neq0_conv union_single_eq_member)
-          then have "get_level L' (trail y) \<le> get_maximum_level D (trail y)"
+          then have "get_level (trail y) L' \<le> get_maximum_level (trail y) D"
             using get_maximum_level_ge_get_level by blast
           moreover {
-            have "get_maximum_level D (trail y) = get_maximum_level D H"
+            have "get_maximum_level (trail y) D = get_maximum_level H D"
               using DH unfolding M by (simp add: get_maximum_level_skip_beginning)
             moreover
               have "get_all_levels_of_marked (trail y) = rev [1..<1 + backtrack_lvl y]"
@@ -481,14 +481,14 @@ proof (induction rule: cdcl\<^sub>W_o_induct_lev2)
                   simp add: rev_swap[symmetric])
               then have "get_maximum_possible_level H < i"
                 using get_maximum_possible_level_max_get_all_levels_of_marked[of H] \<open>i > 0\<close> by auto
-            ultimately have "get_maximum_level D (trail y) < i"
+            ultimately have "get_maximum_level (trail y) D < i"
               by (metis (full_types) dual_order.strict_trans nat_neq_iff not_le
                 get_maximum_possible_level_ge_get_maximum_level) }
           moreover
             have "L \<in># D'"
               by (metis DLD' \<open>D \<noteq> D'\<close> add.left_neutral count_single count_union diff_union_cancelR
                 neq0_conv union_single_eq_member)
-            then have "get_maximum_level D' (trail y) \<ge> get_level L (trail y)"
+            then have "get_maximum_level (trail y) D' \<ge> get_level (trail y) L"
               using get_maximum_level_ge_get_level by blast
           moreover {
             have "get_all_levels_of_marked (c @ [Marked Kh i]) = rev [i..< backtrack_lvl y+1]"
@@ -497,15 +497,15 @@ proof (induction rule: cdcl\<^sub>W_o_induct_lev2)
               unfolding M apply (auto simp add: rev_swap[symmetric])
                 by (metis (no_types, hide_lams) Nil_is_append_conv Suc_le_eq less_Suc_eq list.sel(1)
                   rev.simps(2) rev_rev_ident upt_Suc upt_rec)
-            have "get_level L (trail y)  = get_level L (c @ [Marked Kh i])"
+            have "get_level (trail y) L  = get_level (c @ [Marked Kh i]) L"
               using L_cKh LH unfolding M by simp
-            have "get_level L (c @ [Marked Kh i]) \<ge> i"
+            have "get_level (c @ [Marked Kh i]) L \<ge> i"
               using L_cKh
                 \<open>get_all_levels_of_marked (c @ [Marked Kh i]) = rev [i..<backtrack_lvl y + 1]\<close>
               backtrack.hyps(2) calculation(1,2) by auto
-            then have "get_level L (trail y) \<ge> i"
-              using M \<open>get_level L (trail y) = get_level L (c @ [Marked Kh i])\<close> by auto }
-          moreover have "get_maximum_level D' (trail y) < get_level L' (trail y)"
+            then have "get_level (trail y) L \<ge> i"
+              using M \<open>get_level (trail y) L = get_level (c @ [Marked Kh i]) L\<close> by auto }
+          moreover have "get_maximum_level (trail y) D' < get_level (trail y) L"
             using \<open>j \<le> backtrack_lvl y\<close> backtrack.hyps(2,5) calculation(1-4) by linarith
           ultimately show False using backtrack.hyps(4) by linarith
         qed
@@ -530,10 +530,10 @@ proof (induction rule: cdcl\<^sub>W_o_induct_lev2)
           by (auto simp add: rev_swap[symmetric] dest!: upt_decomp_lt)
         obtain L'' where
           "L''\<in>#D'" and
-          L''D': "get_level L'' (trail y) = get_maximum_level D' (trail y)"
+          L''D': "get_level (trail y) L'' = get_maximum_level (trail y) D'"
           using get_maximum_level_exists_lit_of_max_level[OF D, of "trail y"] by auto
         have L''M: "atm_of L'' \<in> atm_of ` lits_of (trail y)"
-          using get_rev_level_ge_0_atm_of_in[of 0 L'' "rev (trail y)"] \<open>j>0\<close> levD L''D' by auto
+          using get_rev_level_ge_0_atm_of_in[of 0 "rev (trail y)" L''] \<open>j>0\<close> levD L''D' by auto
         then have "L'' \<in> lits_of  (Marked Kh i # d)"
           proof -
             {
@@ -541,10 +541,10 @@ proof (induction rule: cdcl\<^sub>W_o_induct_lev2)
               have "get_all_levels_of_marked H = rev [1..<i]"
                 using H unfolding M
                 by (auto simp add: rev_swap[symmetric] dest!: append_cons_eq_upt_length_i)
-              moreover have "get_level L'' (trail y) = get_level L'' H"
+              moreover have "get_level (trail y) L'' = get_level H L''"
                 using L''H unfolding M by simp
               ultimately have False
-                using levD \<open>j>0\<close> get_rev_level_in_levels_of_marked[of L'' 0 "rev H"] \<open>i \<le> j\<close>
+                using levD \<open>j>0\<close> get_rev_level_in_levels_of_marked[of "rev H" 0 L''] \<open>i \<le> j\<close>
                 unfolding L''D'[symmetric] nd by auto
             }
             then show ?thesis
@@ -657,14 +657,14 @@ proof -
   with bt obtain D L M1 M2_loc K i where
      T: "T \<sim> cons_trail (Propagated L ((D + {#L#})))
        (reduce_trail_to M1 (add_learned_cls (D + {#L#})
-         (update_backtrack_lvl (get_maximum_level D (trail S)) (update_conflicting None S))))"
+         (update_backtrack_lvl (get_maximum_level (trail S) D) (update_conflicting None S))))"
       and
-    decomp: "(Marked K (Suc (get_maximum_level D (trail S))) # M1, M2_loc) \<in>
+    decomp: "(Marked K (Suc (get_maximum_level (trail S) D)) # M1, M2_loc) \<in>
                 set (get_all_marked_decomposition (trail S))" and
-    k: "get_level L (trail S) = backtrack_lvl S" and
-    level: "get_level L (trail S) = get_maximum_level (D+{#L#}) (trail S)" and
+    k: "get_level (trail S) L = backtrack_lvl S" and
+    level: "get_level (trail S) L = get_maximum_level (trail S) (D+{#L#})" and
     confl_S: "conflicting S = Some (D + {#L#})" and
-    i: "i = get_maximum_level D (trail S)" and
+    i: "i = get_maximum_level (trail S) D" and
     undef: "undefined_lit M1 L"
     by (induction rule: backtrack_induction_lev2) metis
   obtain M2 where
@@ -688,9 +688,9 @@ proof -
     lev' i undef unfolding cdcl\<^sub>W_conflicting_def by (auto simp: cdcl\<^sub>W_M_level_inv_def)
   have "no_dup (trail S)" using lev' by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
   have vars_in_M1:
-    "\<forall>x \<in> atms_of D. x \<notin> atm_of ` lits_of (M2 @ [Marked K (get_maximum_level D (trail S) + 1)])"
+    "\<forall>x \<in> atms_of D. x \<notin> atm_of ` lits_of (M2 @ [Marked K (get_maximum_level (trail S) D + 1)])"
       apply (rule vars_of_D distinct_atms_of_incl_not_in_other[of
-      "M2 @ Marked K (get_maximum_level D (trail S) + 1) # []" M1 D])
+      "M2 @ Marked K (get_maximum_level (trail S) D + 1) # []" M1 D])
       using \<open>no_dup (trail S)\<close> M vars_of_D by simp_all
   have M1_D: "M1 \<Turnstile>as CNot D"
     using vars_in_M1 true_annots_remove_if_notin_vars[of "M2 @ Marked K (i + 1) # []" M1 "CNot D"]
@@ -745,9 +745,9 @@ proof -
     proof (rule ccontr)
       assume "\<not> ?thesis"
       then have "atm_of L \<notin> atm_of ` lits_of (Marked K' (backtrack_lvl S) # rev Ls)" by simp
-      then have "get_level L (trail S) = get_level L M1'"
+      then have "get_level (trail S) L = get_level M1' L"
         unfolding M' by auto
-      then show False using get_level_in_levels_of_marked[of L M1'] \<open>backtrack_lvl S > 0\<close>
+      then show False using get_level_in_levels_of_marked[of M1' L] \<open>backtrack_lvl S > 0\<close>
       unfolding k lvls_M1' by auto
     qed
   obtain Y Z where
@@ -786,7 +786,7 @@ proof -
   then have "init_clss Y = init_clss R" using rtranclp_cdcl\<^sub>W_init_clss[of R Y] M_lev by auto
   { assume DL: "D + {#L#} \<in># clauses Y"
     have "atm_of L \<notin> atm_of ` lits_of M1"
-      apply (rule backtrack_lit_skiped[of _ S])
+      apply (rule backtrack_lit_skiped[of S])
       using decomp i k lev' unfolding cdcl\<^sub>W_M_level_inv_def by auto
     then have LM1: "undefined_lit M1 L"
       by (metis Marked_Propagated_in_iff_in_lits_of atm_of_uminus image_eqI)

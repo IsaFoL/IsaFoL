@@ -14,15 +14,18 @@ text \<open>Only the 2-watched literals have to be verified here: the backtrack 
   appear in the state are not related to the 2-watched algoritm.\<close>
 
 datatype 'v twl_clause =
-  TWL_Clause (watched: "'v clause") (unwatched: "'v clause")
+  TWL_Clause (watched: "'v") (unwatched: "'v")
 
-abbreviation raw_clause :: "'v twl_clause \<Rightarrow> 'v clause" where
+abbreviation raw_clause :: "'v clause twl_clause \<Rightarrow> 'v clause" where
   "raw_clause C \<equiv> watched C + unwatched C"
 
-datatype ('v, 'lvl, 'mark) twl_state =
-  TWL_State (trail: "('v, 'lvl, 'mark) marked_lits") (init_clss: "'v twl_clause multiset")
-    (learned_clss: "'v twl_clause multiset") (backtrack_lvl: 'lvl)
-    (conflicting: "'v clause option")
+datatype ('a, 'b, 'c, 'd) twl_state =
+  TWL_State (trail: "'a list") (init_clss: "'b")
+    (learned_clss: "'b") (backtrack_lvl: 'c)
+    (conflicting: "'d option")
+
+type_synonym ('v, 'lvl, 'mark) twl_state_abs =
+  "(('v, 'lvl, 'mark) marked_lit, 'v clause twl_clause multiset, 'lvl, 'v clause) twl_state"
 
 abbreviation raw_init_clss where
   "raw_init_clss S \<equiv> image_mset raw_clause (init_clss S)"
@@ -37,14 +40,14 @@ abbreviation raw_clauses where
   "raw_clauses S \<equiv> image_mset raw_clause (clauses S)"
 
 definition
-  candidates_propagate :: "('v, 'lvl, 'mark) twl_state \<Rightarrow> ('v literal \<times> 'v clause) set"
+  candidates_propagate :: "('v, 'lvl, 'mark) twl_state_abs \<Rightarrow> ('v literal \<times> 'v clause) set"
 where
   "candidates_propagate S =
    {(L, raw_clause C) | L C.
     C \<in># clauses S \<and> watched C - mset_set (uminus ` lits_of (trail S)) = {#L#} \<and>
     undefined_lit (trail S) L}"
 
-definition candidates_conflict :: "('v, 'lvl, 'mark) twl_state \<Rightarrow> 'v clause set" where
+definition candidates_conflict :: "('v, 'lvl, 'mark) twl_state_abs \<Rightarrow> 'v clause set" where
   "candidates_conflict S =
    {raw_clause C | C. C \<in># clauses S \<and> watched C \<subseteq># mset_set (uminus ` lits_of (trail S))}"
 
@@ -61,7 +64,8 @@ text \<open>We need the following property about updates: if there is a literal 
   @{term "-L"} in the trail, and @{term L} is not  watched, then it stays unwatched; i.e., while
   updating with @{term rewatch} it does not get swap with a watched literal @{term L'} such that
   @{term "-L'"} is in the trail.\<close>
-primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v twl_clause \<Rightarrow> bool"
+primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v clause twl_clause
+  \<Rightarrow> bool"
   where
 "watched_decided_most_recently M (TWL_Clause W UW) \<longleftrightarrow>
   (\<forall>L'\<in>#W. \<forall>L\<in>#UW.
@@ -69,7 +73,7 @@ primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) marked_lit list \<Ri
       index (map lit_of M) (-L') \<le> index (map lit_of M) (-L))"
 
 text \<open>Here are the invariant strictly related to the 2-WL data structure.\<close>
-primrec wf_twl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v twl_clause \<Rightarrow> bool" where
+primrec wf_twl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v clause twl_clause \<Rightarrow> bool" where
   "wf_twl_cls M (TWL_Clause W UW) \<longleftrightarrow>
    distinct_mset W \<and> size W \<le> 2 \<and> (size W < 2 \<longrightarrow> set_mset UW \<subseteq> set_mset W) \<and>
    (\<forall>L \<in># W. -L \<in> lits_of M \<longrightarrow> (\<forall>L' \<in># UW. L' \<notin># W \<longrightarrow> -L' \<in> lits_of M)) \<and>
@@ -151,7 +155,7 @@ next
   ultimately show ?thesis by (auto simp add: M C)
 qed
 
-definition wf_twl_state :: "('v, 'lvl, 'mark) twl_state \<Rightarrow> bool" where
+definition wf_twl_state :: "('v, 'lvl, 'mark) twl_state_abs \<Rightarrow> bool" where
   "wf_twl_state S \<longleftrightarrow> (\<forall>C \<in># clauses S. wf_twl_cls (trail S) C) \<and> no_dup (trail S)"
 
 lemma wf_candidates_propagate_sound:
@@ -454,11 +458,11 @@ proof -
     using MNU_defs cw(1) cw(2) subset candidates_conflict_def by blast
 qed
 
-typedef 'v wf_twl = "{S::('v, nat, 'v clause) twl_state. wf_twl_state S}"
+typedef 'v wf_twl = "{S::('v, nat, 'v clause) twl_state_abs. wf_twl_state S}"
 morphisms rough_state_of_twl twl_of_rough_state
 proof -
   have "TWL_State ([]::('v, nat, 'v clause) marked_lits)
-    {#} {#} 0 None \<in> {S:: ('v, nat, 'v clause) twl_state. wf_twl_state S} "
+    {#} {#} 0 None \<in> {S:: ('v, nat, 'v clause) twl_state_abs. wf_twl_state S} "
     by (auto simp: wf_twl_state_def)
   then show ?thesis by auto
 qed
@@ -502,13 +506,18 @@ lemma wf_candidates_twl_conflict_complete:
   using c_mem unsat wf_candidates_conflict_complete wf_twl_state_rough_state_of_twl by blast
 
 subsection \<open>Abstract 2-WL\<close>
+
+definition tl_trail where
+  "tl_trail S =
+   TWL_State (tl (trail S)) (init_clss S) (learned_clss S) (backtrack_lvl S) (conflicting S)"
+
 locale abstract_twl =
   fixes
-    watch :: "('v, nat, 'v clause) twl_state \<Rightarrow> 'v clause \<Rightarrow> 'v twl_clause" and
-    rewatch :: "('v, nat, 'v literal multiset) marked_lit \<Rightarrow> ('v, nat, 'v clause) twl_state \<Rightarrow>
-      'v twl_clause \<Rightarrow> 'v twl_clause" and
+    watch :: "('v, nat, 'v clause) twl_state_abs \<Rightarrow> 'v clause \<Rightarrow> 'v clause twl_clause" and
+    rewatch :: "('v, nat, 'v literal multiset) marked_lit \<Rightarrow> ('v, nat, 'v clause) twl_state_abs \<Rightarrow>
+      'v clause twl_clause \<Rightarrow> 'v clause twl_clause" and
     linearize :: "'v clauses \<Rightarrow> 'v clause list" and
-    restart_learned :: "('v, nat, 'v clause) twl_state \<Rightarrow> 'v twl_clause multiset"
+    restart_learned :: "('v, nat, 'v clause) twl_state_abs \<Rightarrow> 'v clause twl_clause multiset"
   assumes
     clause_watch: "no_dup(trail S) \<Longrightarrow> raw_clause (watch S C) = C" and
     wf_watch: "no_dup (trail S) \<Longrightarrow> wf_twl_cls (trail S) (watch S C)" and
@@ -525,38 +534,39 @@ lemma linearize_mempty[simp]: "linearize {#} = []"
   using linearize mset_zero_iff by blast
 
 definition
-  cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> ('v, nat, 'v clause) twl_state \<Rightarrow>
-    ('v, nat, 'v clause) twl_state"
+  cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> ('v, nat, 'v clause) twl_state_abs \<Rightarrow>
+    ('v, nat, 'v clause) twl_state_abs"
 where
   "cons_trail L S =
    TWL_State (L # trail S) (image_mset (rewatch L S) (init_clss S))
      (image_mset (rewatch L S) (learned_clss S)) (backtrack_lvl S) (conflicting S)"
 
 definition
-  add_init_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) twl_state \<Rightarrow>
-    ('v, nat, 'v clause) twl_state"
+  add_init_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) twl_state_abs \<Rightarrow>
+    ('v, nat, 'v clause) twl_state_abs"
 where
   "add_init_cls C S =
    TWL_State (trail S) ({#watch S C#} + init_clss S) (learned_clss S) (backtrack_lvl S)
      (conflicting S)"
 
 definition
-  add_learned_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) twl_state \<Rightarrow>
-    ('v, nat, 'v clause) twl_state"
+  add_learned_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) twl_state_abs \<Rightarrow>
+    ('v, nat, 'v clause) twl_state_abs"
 where
   "add_learned_cls C S =
    TWL_State (trail S) (init_clss S) ({#watch S C#} + learned_clss S) (backtrack_lvl S)
      (conflicting S)"
 
 definition
-  remove_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) twl_state \<Rightarrow> ('v, nat, 'v clause) twl_state"
+  remove_cls :: "'v clause \<Rightarrow> ('v, nat, 'v clause) twl_state_abs \<Rightarrow>
+    ('v, nat, 'v clause) twl_state_abs"
 where
   "remove_cls C S =
    TWL_State (trail S) (filter_mset (\<lambda>D. raw_clause D \<noteq> C) (init_clss S))
      (filter_mset (\<lambda>D. raw_clause D \<noteq> C) (learned_clss S)) (backtrack_lvl S)
      (conflicting S)"
 
-definition init_state :: "'v clauses \<Rightarrow> ('v, nat, 'v clause) twl_state" where
+definition init_state :: "'v clauses \<Rightarrow> ('v, nat, 'v clause) twl_state_abs" where
   "init_state N = fold add_init_cls (linearize N) (TWL_State [] {#} {#} 0 None)"
 
 lemma unchanged_fold_add_init_cls:
@@ -589,10 +599,6 @@ definition update_backtrack_lvl where
 definition update_conflicting where
   "update_conflicting C S = TWL_State (trail S) (init_clss S) (learned_clss S) (backtrack_lvl S) C"
 
-definition tl_trail where
-  "tl_trail S =
-   TWL_State (tl (trail S)) (init_clss S) (learned_clss S) (backtrack_lvl S) (conflicting S)"
-
 definition restart' where
   "restart' S = TWL_State [] (init_clss S) (restart_learned S) 0 None"
 end
@@ -613,7 +619,8 @@ lemma mset_take_pull_sorted_list_of_set_subseteq:
   by (metis mset_pull mset_set_set_mset_subseteq mset_sorted_list_of_set mset_take_subseteq
     subset_mset.dual_order.trans)
 
-definition watch_nat :: "(nat, nat, nat clause) twl_state \<Rightarrow> nat clause \<Rightarrow> nat twl_clause" where
+definition watch_nat :: "(nat, nat, nat clause) twl_state_abs \<Rightarrow> nat clause \<Rightarrow>
+  nat clause twl_clause" where
   "watch_nat S C =
    (let
       C' = remdups (sorted_list_of_set (set_mset C));
@@ -653,7 +660,9 @@ lemma watch_nat_lists_disjointD:
 
 lemma watch_nat_list_cases [consumes 1, case_names nil_nil nil_single nil_other single_nil
   single_other other]:
-  fixes C :: "'v::linorder literal multiset" and S :: "('v, 'a, 'b) twl_state"
+  fixes
+    C :: "'v::linorder literal multiset" and
+    S :: "(('v, 'b, 'c) marked_lit, 'd, 'e, 'f) twl_state"
   defines
     "xs \<equiv> [L\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - L \<notin> lits_of (trail S)]" and
     "ys \<equiv> [L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C]"
@@ -692,7 +701,9 @@ proof -
 qed
 
 lemma watch_nat_lists_set_union:
-  fixes C :: "'v::linorder literal multiset" and S :: "('v, 'a, 'b) twl_state"
+  fixes
+    C :: "'v::linorder literal multiset" and
+    S :: "(('v, 'b, 'c) marked_lit, 'd, 'e, 'f) twl_state"
   defines
     "xs \<equiv> [L\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - L \<notin> lits_of (trail S)]" and
     "ys \<equiv> [L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C]"
@@ -702,8 +713,8 @@ lemma watch_nat_lists_set_union:
 
 definition
   rewatch_nat ::
-  "(nat, nat, nat literal multiset) marked_lit \<Rightarrow> (nat, nat, nat clause) twl_state \<Rightarrow>
-    nat twl_clause \<Rightarrow> nat twl_clause"
+  "(nat, nat, nat literal multiset) marked_lit \<Rightarrow> (nat, nat, nat clause) twl_state_abs \<Rightarrow>
+    nat clause twl_clause \<Rightarrow> nat clause twl_clause"
 where
   "rewatch_nat L S C =
    (if - lit_of L \<in># watched C then
@@ -1288,7 +1299,6 @@ abbreviation state_eq_twl (infix "\<sim>TWL" 51) where
 "state_eq_twl S S' \<equiv> rough_cdcl.state_eq (rough_state_of_twl S) (rough_state_of_twl S')"
 notation cdcl\<^sub>W_twl.state_eq (infix "\<sim>" 51)
 declare cdcl\<^sub>W_twl.state_simp[simp del]
-  cdcl\<^sub>W_twl.state_simp\<^sub>N\<^sub>O\<^sub>T[simp del]
   cdcl\<^sub>W_twl_NOT.state_simp\<^sub>N\<^sub>O\<^sub>T[simp del]
 
 text \<open>To avoid ambiguities:\<close>

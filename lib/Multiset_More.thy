@@ -402,7 +402,7 @@ interpretation multiset_multiset_order: order
   "le_mset_mset :: ('a :: linorder) multiset multiset \<Rightarrow> ('a :: linorder) multiset multiset \<Rightarrow> bool"
   "less_mset_mset :: ('a :: linorder) multiset multiset \<Rightarrow> ('a::linorder) multiset multiset \<Rightarrow> bool"
   unfolding less_mset_mset_def[abs_def] le_mset_mset_def[abs_def] less_multiset_def[abs_def]
-  by (rule order.order_mult)+ default
+  by (rule order.order_mult)+ standard
 
 interpretation multiset_multiset_linorder: linorder
   "le_mset_mset :: ('a :: linorder) multiset multiset \<Rightarrow> ('a :: linorder) multiset multiset \<Rightarrow> bool"

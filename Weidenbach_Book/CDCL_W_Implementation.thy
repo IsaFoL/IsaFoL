@@ -126,15 +126,15 @@ lemma convert_Propagated[elim!]:
   by (cases z) auto
 
 lemma get_rev_level_map_convert:
-  "get_rev_level x n (map convert M) = get_rev_level x n M"
+  "get_rev_level (map convert M) n x = get_rev_level M n x"
   by (induction M arbitrary: n rule: marked_lit_list_induct) auto
 
 lemma get_level_map_convert[simp]:
-  "get_level x (map convert M) = get_level x M"
-  using get_rev_level_map_convert[of x 0 "rev M"] by (simp add: rev_map)
+  "get_level (map convert M) = get_level M"
+  using get_rev_level_map_convert[of "rev M"] by (simp add: rev_map)
 
 lemma get_maximum_level_map_convert[simp]:
-  "get_maximum_level D (map convert M) = get_maximum_level D M"
+  "get_maximum_level (map convert M) D = get_maximum_level M D"
   by (induction D)
      (auto simp add: get_maximum_level_plus)
 
@@ -414,15 +414,15 @@ paragraph \<open>Resolve\<close>
 fun maximum_level_code:: "'a literal list \<Rightarrow> ('a, nat, 'a literal list) marked_lit list \<Rightarrow> nat"
   where
 "maximum_level_code [] _ = 0" |
-"maximum_level_code (L # Ls) M = max (get_level L M) (maximum_level_code Ls M)"
+"maximum_level_code (L # Ls) M = max (get_level M L) (maximum_level_code Ls M)"
 
 lemma maximum_level_code_eq_get_maximum_level[code, simp]:
-  "maximum_level_code D M = get_maximum_level (mset D) M"
+  "maximum_level_code D M = get_maximum_level M (mset D)"
   by (induction D) (auto simp add: get_maximum_level_plus)
 
 fun do_resolve_step :: "cdcl\<^sub>W_state_inv_st \<Rightarrow> cdcl\<^sub>W_state_inv_st" where
 "do_resolve_step (Propagated L C # Ls, N, U, k, Some D) =
-  (if -L \<in> set D \<and> (maximum_level_code (remove1 (-L) D) (Propagated L C # Ls) = k \<or> k = 0)
+  (if -L \<in> set D \<and> maximum_level_code (remove1 (-L) D) (Propagated L C # Ls) = k
   then (Ls, N, U, k, Some (remdups (remove1 L C @ remove1 (-L) D)))
   else (Propagated L C # Ls, N, U, k, Some D))" |
 "do_resolve_step S = S"
@@ -432,20 +432,12 @@ lemma do_resolve_step:
   \<Longrightarrow> resolve (toS S) (toS (do_resolve_step S))"
 proof (induction S rule: do_resolve_step.induct)
   case (1 L C M N U k D)
-  moreover
-    { assume [simp]: "k = 0"
-      have "get_all_levels_of_marked (Propagated L C # M) = []"
-        using 1(1) unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by simp
-      then have H: "\<And>L'. get_level L' (Propagated L C # M) = 0"
-        by (metis (no_types, hide_lams) Un_insert_left empty_iff get_all_levels_of_marked.simps(3)
-          get_level_in_levels_of_marked insert_iff list.set(1) sup_bot.left_neutral)
-    } note H = this
-  ultimately have
+  then have
     "- L \<in> set D" and
     M: "maximum_level_code (remove1 (-L) D) (Propagated L C # M) = k"
     by (cases "mset D - {#- L#} = {#}",
         auto dest!: get_maximum_level_exists_lit_of_max_level[of _ "Propagated L C # M"]
-        split: split_if_asm simp add: H)+
+        split: split_if_asm)+
   have "every_mark_is_a_conflict (toS (Propagated L C # M, N, U, k, Some D))"
     using 1(1) unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def by fast
   then have "L \<in> set C" by fastforce
@@ -456,7 +448,7 @@ proof (induction S rule: do_resolve_step.induct)
   have D'L:  "D' + {#- L#} - {#-L#} = D'" by (auto simp add: multiset_eq_iff)
 
   have CL: "mset C - {#L#} + {#L#} = mset C" using \<open>L \<in> set C\<close> by (auto simp add: multiset_eq_iff)
-  have "get_maximum_level D' (Propagated L (C' + {#L#}) # map convert M) = k"
+  have "get_maximum_level (Propagated L (C' + {#L#}) # map convert M) D' = k"
     using M[simplified] unfolding maximum_level_code_eq_get_maximum_level C[symmetric] CL
     by (metis D D'L convert.simps(1) get_maximum_level_map_convert list.simps(9))
   then have
@@ -511,13 +503,13 @@ paragraph \<open>Backjumping\<close>
 fun find_level_decomp where
 "find_level_decomp M [] D k = None" |
 "find_level_decomp M (L # Ls) D k =
-  (case (get_level L M, maximum_level_code (D @ Ls) M) of
+  (case (get_level M L, maximum_level_code (D @ Ls) M) of
     (i, j) \<Rightarrow> if i = k \<and> j < i then Some (L, j) else find_level_decomp M Ls (L#D) k
   )"
 
 lemma find_level_decomp_some:
   assumes "find_level_decomp M Ls D k = Some (L, j)"
-  shows "L \<in> set Ls \<and> get_maximum_level (mset (remove1 L (Ls @ D))) M = j \<and> get_level L M = k"
+  shows "L \<in> set Ls \<and> get_maximum_level M (mset (remove1 L (Ls @ D))) = j \<and> get_level M L = k"
   using assms
 proof (induction Ls arbitrary: D)
   case Nil
@@ -525,28 +517,28 @@ proof (induction Ls arbitrary: D)
 next
   case (Cons L' Ls) note IH = this(1) and H = this(2)
   (* heavily modified sledgehammer proof *)
-  def find \<equiv> "(if get_level L' M \<noteq> k \<or> \<not> get_maximum_level (mset D + mset Ls) M < get_level L' M
+  def find \<equiv> "(if get_level M L' \<noteq> k \<or> \<not> get_maximum_level M (mset D + mset Ls) < get_level M L'
     then find_level_decomp M Ls (L' # D) k
-    else Some (L', get_maximum_level (mset D + mset Ls) M))"
+    else Some (L', get_maximum_level M (mset D + mset Ls)))"
   have a1: "\<And>D. find_level_decomp M Ls D k = Some (L, j) \<Longrightarrow>
-     L \<in> set Ls \<and> get_maximum_level (mset Ls + mset D - {#L#}) M = j \<and> get_level L M = k"
+     L \<in> set Ls \<and> get_maximum_level M (mset Ls + mset D - {#L#}) = j \<and> get_level M L = k"
     using IH by simp
   have a2: "find = Some (L, j)"
     using H unfolding find_def by (auto split: split_if_asm)
-  { assume "Some (L', get_maximum_level (mset D + mset Ls) M) \<noteq> find"
-    then have f3: "L \<in> set Ls" and "get_maximum_level (mset Ls + mset (L' # D) - {#L#}) M = j"
+  { assume "Some (L', get_maximum_level M (mset D + mset Ls)) \<noteq> find"
+    then have f3: "L \<in> set Ls" and "get_maximum_level M (mset Ls + mset (L' # D) - {#L#}) = j"
       using a1 IH a2 unfolding find_def by meson+
     moreover then have "mset Ls + mset D - {#L#} + {#L'#} = {#L'#} + mset D + (mset Ls - {#L#})"
       by (auto simp: ac_simps multiset_eq_iff Suc_leI)
-    ultimately have f4: "get_maximum_level (mset Ls + mset D - {#L#} + {#L'#}) M = j"
+    ultimately have f4: "get_maximum_level M (mset Ls + mset D - {#L#} + {#L'#}) = j"
       by (metis (no_types) diff_union_single_conv mem_set_multiset_eq mset.simps(2) union_commute)
   } note f4 = this
   have "{#L'#} + (mset Ls + mset D) = mset Ls + (mset D + {#L'#})"
       by (auto simp: ac_simps)
   then have
-    "(L = L' \<longrightarrow> get_maximum_level (mset Ls + mset D) M = j \<and> get_level L' M = k)" and
-    "(L \<noteq> L' \<longrightarrow> L \<in> set Ls \<and> get_maximum_level (mset Ls + mset D - {#L#} + {#L'#}) M = j \<and>
-      get_level L M = k)"
+    "(L = L' \<longrightarrow> get_maximum_level M (mset Ls + mset D) = j \<and> get_level M L' = k)" and
+    "(L \<noteq> L' \<longrightarrow> L \<in> set Ls \<and> get_maximum_level M (mset Ls + mset D - {#L#} + {#L'#}) = j \<and>
+      get_level M L = k)"
     using f4 a2 a1[of "L' # D"] unfolding find_def by (metis (no_types) add_diff_cancel_left'
       mset.simps(2) option.inject prod.inject union_commute)+
   then show ?case by simp
@@ -554,7 +546,7 @@ qed
 
 lemma find_level_decomp_none:
   assumes "find_level_decomp M Ls E k = None" and "mset (L#D) = mset (Ls @ E)"
-  shows "\<not>(L \<in> set Ls \<and> get_maximum_level (mset D) M < k \<and> k = get_level L M)"
+  shows "\<not>(L \<in> set Ls \<and> get_maximum_level M (mset D) < k \<and> k = get_level M L)"
   using assms
 proof (induction Ls arbitrary: E L D)
   case Nil
@@ -615,13 +607,13 @@ lemma do_backtrack_step:
     case (1 M N U k E)
     then show ?case using db by auto
   next
-    case (2 M N U k E C) note S =this(1) and confl = this(2)
+    case (2 M N U k E C) note S = this(1) and confl = this(2)
     have E: "E = Some C" using S confl by auto
 
     obtain L j where fd: "find_level_decomp M C [] k = Some (L, j)"
       using db unfolding S E  by (cases C) (auto split: split_if_asm option.splits)
-    have "L \<in> set C" and "get_maximum_level (mset (remove1 L C)) M = j" and
-      levL: "get_level L M = k"
+    have "L \<in> set C" and "get_maximum_level M (mset (remove1 L C)) = j" and
+      levL: "get_level M L = k"
       using find_level_decomp_some[OF fd] by auto
     obtain C' where C: "mset C = mset C' + {#L#}"
       using \<open>L \<in> set C\<close> by (metis add.commute ex_mset in_multiset_in_set insert_DiffM)
@@ -639,13 +631,13 @@ lemma do_backtrack_step:
       using db fd M\<^sub>2 C unfolding S E by (auto
           split: option.splits list.splits marked_lit.splits
           dest!: find_level_decomp_some)[1]
-    have "get_maximum_level (mset C) M \<ge> k"
+    have "get_maximum_level M (mset C) \<ge> k"
       using \<open>L \<in> set C\<close> get_maximum_level_ge_get_level levL by blast
-    moreover have "get_maximum_level (mset C) M \<le> k"
+    moreover have "get_maximum_level M (mset C) \<le> k"
       using get_maximum_level_exists_lit_of_max_level[of "mset C" M] inv
         cdcl\<^sub>W_M_level_inv_get_level_le_backtrack_lvl[of "toS S"]
       unfolding C cdcl\<^sub>W_all_struct_inv_def S by (auto dest: sym[of "get_level _ _"])
-    ultimately have "get_maximum_level (mset C) M = k" by auto
+    ultimately have "get_maximum_level M (mset C) = k" by auto
 
     obtain M2 where M2: "(M\<^sub>2, M2) \<in> set (get_all_marked_decomposition M)"
       using bt_cut_in_get_all_marked_decomposition[OF M\<^sub>2] by metis
@@ -666,7 +658,7 @@ lemma do_backtrack_step:
                              "(\<lambda>(a, b). (map convert a, map convert b))"] M2
             apply (auto simp: get_all_marked_decomposition_map_convert M1)[1]
            using max_l_j levL \<open>j \<le> k\<close> apply (simp add: get_maximum_level_plus)
-          using C \<open>get_maximum_level (mset C) M = k\<close> levL apply auto[1]
+          using C \<open>get_maximum_level M (mset C) = k\<close> levL apply auto[1]
          using max_l_j apply simp
         apply (cases "cdcl\<^sub>W.reduce_trail_to (map convert M1)
             (add_learned_cls (mset C' + {#L#})
@@ -688,9 +680,9 @@ proof (rule ccontr, cases S, cases "conflicting S", goal_cases)
 next
   case (2 M N U k E C) note bt = this(1) and S = this(2) and confl = this(3)
   obtain D L K b z M1 j where
-    levL: "get_level L M = get_maximum_level (D + {#L#}) M" and
-    k: "k = get_maximum_level (D + {#L#}) M" and
-    j: "j = get_maximum_level D M" and
+    levL: "get_level M L = get_maximum_level M (D + {#L#})" and
+    k: "k = get_maximum_level M (D + {#L#})" and
+    j: "j = get_maximum_level M D" and
     CE: "convertC E = Some (D + {#L#})" and
     decomp: "(z # M1, b) \<in> set (get_all_marked_decomposition M)" and
     z: "Marked K (Suc j) = convert z" using bt unfolding S
@@ -721,7 +713,7 @@ next
       assume "\<not> ?thesis"
       then have "L' \<in># D"
         by (metis C D'D fd_some find_level_decomp_some in_multiset_in_set insert_iff list.simps(15))
-      then have "get_level L' M \<le> get_maximum_level D M"
+      then have "get_level M L' \<le> get_maximum_level M D"
         using get_maximum_level_ge_get_level by blast
       then show False using \<open>k > j\<close> j find_level_decomp_some[OF fd_some] by auto
     qed
@@ -1080,12 +1072,12 @@ proof -
       have [simp]: "cons_trail (Propagated L (D + {#L#}))
         (cdcl\<^sub>W.reduce_trail_to M1
           (add_learned_cls (D + {#L#})
-            (update_backtrack_lvl (get_maximum_level D (trail (toS S)))
+            (update_backtrack_lvl (get_maximum_level (trail (toS S)) D)
               (update_conflicting None (toS S)))))
         =
         (Propagated L (D + {#L#})# M1,mset (map mset (clauses S)),
           {#D + {#L#}#} + mset (map mset (learned_clss S)),
-          get_maximum_level D (trail (toS S)), None)"
+          get_maximum_level (trail (toS S)) D, None)"
         apply (subst state_conv[of "cons_trail _ _"])
         using decomp undef by (cases S) auto
       then show ?case
@@ -1521,8 +1513,8 @@ qed
 
 paragraph \<open>The Code\<close>
 text \<open>The SML code is skipped in the documentation, but stays to ensure that some version of the
- exported code is working (the same changes as described in DPLL are applied to the code, the code
- is updated from time to time only)\<close>
+ exported code is working. The only difference between the generated code and the one used here is
+ the export of the constructor ConI.\<close>
 (*<*)
 fun gene where
 "gene 0 = [[Pos 0], [Neg 0]]" |
@@ -2009,13 +2001,12 @@ fun do_resolve_step
     (n, (u, (k, SOME d))))
   = (if List.member (Clausal_Logic.equal_literal Arith.equal_nat) d
           (Clausal_Logic.uminus_literal l) andalso
-          (Arith.equal_nata
-             (maximum_level_code Arith.equal_nat
-               (List.remove1 (Clausal_Logic.equal_literal Arith.equal_nat)
-                 (Clausal_Logic.uminus_literal l) d)
-               (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls))
-             k orelse
-            Arith.equal_nata k Arith.Zero_nat)
+          Arith.equal_nata
+            (maximum_level_code Arith.equal_nat
+              (List.remove1 (Clausal_Logic.equal_literal Arith.equal_nat)
+                (Clausal_Logic.uminus_literal l) d)
+              (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls))
+            k
       then (ls, (n, (u, (k, SOME (List.remdups
                                    (Clausal_Logic.equal_literal Arith.equal_nat)
                                    (List.remove1
@@ -2186,7 +2177,6 @@ fun do_all_cdcl_W_stgy s =
   end;
 
 end; (*struct CDCL_W_Implementation*)
-
 \<close>
 declare[[ML_print_depth=100]]
 ML \<open>
@@ -2194,8 +2184,8 @@ open Clausal_Logic;
 open CDCL_W_Implementation;
 open Arith;
 let
-  val N = gene (Suc Zero_nat)
-  val f = do_all_cdcl_W_stgy (ConI ([], (N, ([], (Zero_nat, NONE)))))
+  val N = gene (Suc (Suc (Suc (((Suc Zero_nat))))))
+  val f = do_all_cdcl_W_stgy (CDCL_W_Implementation.ConI ([], (N, ([], (Zero_nat, NONE)))))
   in
 
   f
