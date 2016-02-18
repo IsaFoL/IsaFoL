@@ -239,7 +239,7 @@ proof -
   moreover have "total_over_m (I \<union> ?I') (A\<union>B)"
     using total unfolding total_over_m_def total_over_set_def by auto
   moreover have "consistent_interp (I \<union> ?I')"
-    using cons unfolding consistent_interp_def by (intro allI) (case_tac L, auto)
+    using cons unfolding consistent_interp_def by (intro allI) (rename_tac L, case_tac L, auto)
   ultimately show ?thesis by blast
 qed
 
@@ -270,7 +270,7 @@ proof
       then have "atm_of L \<in> atms_of \<psi>" by auto
       then have "Pos (atm_of L) \<in># \<psi> \<or> Neg (atm_of L) \<in># \<psi>"
         using atm_imp_pos_or_neg_lit by metis
-      then have "L \<in># \<psi> \<or> - L \<in># \<psi>" by (case_tac L) auto
+      then have "L \<in># \<psi> \<or> - L \<in># \<psi>" by (cases L) auto
       then show False using L by auto
     qed
   ultimately show  "Pos l \<in> I \<or> Neg l \<in> I" using l by metis
@@ -568,7 +568,7 @@ proof (rule ccontr)
     unfolding total_over_set_def using atm_imp_pos_or_neg_lit by force
   moreover have "\<not> ?I \<Turnstile> \<psi>"
     unfolding true_cls_def true_lit_def Bex_mset_def apply clarify
-    using p by (case_tac L) fastforce+
+    using p by (rename_tac x L, case_tac L) fastforce+
   ultimately show False using assms unfolding tautology_def by auto
 qed
 
@@ -881,7 +881,7 @@ next
   then obtain I where cons: "consistent_interp I" and I: "I \<Turnstile>s \<phi>" by metis
   let ?I' = "{Pos v |v. v \<notin> atms_of_s I \<and> v \<in> atms_of_ms \<phi>}"
   have "consistent_interp (I \<union> ?I')"
-    using cons unfolding consistent_interp_def by (intro allI) (case_tac L, auto)
+    using cons unfolding consistent_interp_def by (intro allI) (rename_tac L, case_tac L, auto)
   moreover have "total_over_m (I \<union> ?I') \<phi>"
     unfolding total_over_m_def total_over_set_def by auto
   moreover have "I \<union> ?I' \<Turnstile>s \<phi>"
@@ -1397,7 +1397,7 @@ proof (intro allI impI)
   have "I \<subseteq> ?J" using \<open>I \<subseteq> J\<close> by auto
   moreover have "consistent_interp ?J"
     using cons unfolding consistent_interp_def apply -
-    apply (rule allI) by (case_tac L) (fastforce simp add: image_iff)+
+    apply (rule allI) by (rename_tac L, case_tac L) (fastforce simp add: image_iff)+
   moreover
     have ex_or_eq: "\<And>l R J.  \<exists>P. (l = P \<or> l = -P) \<and> P \<in># C \<and> P \<notin> J \<and> - P \<notin> J
        \<longleftrightarrow>  (l \<in># C \<and> l \<notin> J \<and> - l \<notin> J) \<or> (-l \<in># C \<and> l \<notin> J \<and> - l \<notin> J)"
@@ -1405,10 +1405,10 @@ proof (intro allI impI)
     have "total_over_m ?J N"
     (* TODO tune proof *)
     using tot unfolding total_over_m_def total_over_set_def atms_of_ms_def
-    apply (auto simp add:atms_of_def)
-    apply (case_tac "a \<in> N - {C}")
+    apply (auto simp: atms_of_def)
+    apply (rename_tac a l, case_tac "a \<in> N - {C}")
       apply auto[]
-    using atms_of_s_def atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set by fastforce+
+    using atms_of_s_def atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set by fastforce
   ultimately have "?J \<Turnstile>s N"
     using assms unfolding true_clss_ext_def by blast
   then have "?J \<Turnstile>s N - {C}" by auto

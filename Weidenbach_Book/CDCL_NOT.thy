@@ -195,7 +195,7 @@ proof -
       fix n
       have "(\<Sum>i=0..<n. M ! i * (0::nat) ^ i) \<le> M ! 0"
         apply (induction n rule: nat_induct)
-        by simp (case_tac n, auto)
+        by simp (rename_tac n, case_tac n, auto)
     }
     ultimately have ?thesis unfolding \<mu>\<^sub>C_def by auto
   }
@@ -275,11 +275,9 @@ lemma trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_drop:
     then drop (length (trail S) - length F) (trail S)
     else [])"
   apply (induction F S rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
-  apply (rename_tac F S)
-  apply (case_tac "trail S")
+  apply (rename_tac F S, case_tac "trail S")
    apply auto[]
-  apply (rename_tac list)
-  apply (case_tac "Suc (length list) > length F")
+  apply (rename_tac list, case_tac "Suc (length list) > length F")
    prefer 2 apply simp
   apply (subgoal_tac "Suc (length list) - length F = Suc (length list - length F)")
    apply simp
@@ -713,7 +711,7 @@ proof (induction rule: dpll_bj_all_induct)
   have no_dup: "no_dup (Propagated L () # trail S)"
     using defined_lit_map n_d undef_L by auto
   obtain a b l where M: "get_all_marked_decomposition (trail S) = (a, b) # l"
-    by (case_tac "get_all_marked_decomposition (trail S)") auto
+    by (cases "get_all_marked_decomposition (trail S)") auto
   have b_le_M: "length b \<le> length (trail S)"
     using get_all_marked_decomposition_decomp[of "trail S"] by (simp add: M)
   have "finite (atms_of_ms A)" using finite by simp
@@ -733,7 +731,7 @@ next
   have no_dup: "no_dup (Marked L () # (trail S))"
     using defined_lit_map n_d undef_L by auto
   obtain a b l where M: "get_all_marked_decomposition (trail S) = (a, b) # l"
-    by (case_tac "get_all_marked_decomposition (trail S)") auto
+    by (cases "get_all_marked_decomposition (trail S)") auto
 
   then have "length (Marked L () # (trail S)) \<le> card (atms_of_ms A)"
     using incl finite unfolding no_dup_length_eq_card_atm_of_lits_of[OF no_dup]
@@ -2768,7 +2766,7 @@ proof (rule ccontr)
 
   { fix i
     have H: "\<And>T Ta m. (cdcl\<^sub>N\<^sub>O\<^sub>T ^^ m) T Ta \<Longrightarrow> no_step cdcl\<^sub>N\<^sub>O\<^sub>T T \<Longrightarrow> m = 0"
-      apply (case_tac m) apply simp by (meson relpowp_E2)
+      apply (case_tac m) by simp (meson relpowp_E2)
     have "\<exists> T m. (cdcl\<^sub>N\<^sub>O\<^sub>T ^^ m) (fst (g i)) T \<and> m \<ge> f (snd (g i))"
       using g[of i] apply (cases rule: cdcl\<^sub>N\<^sub>O\<^sub>T_restart.cases)
         apply auto[]

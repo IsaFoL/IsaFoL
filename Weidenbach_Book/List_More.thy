@@ -12,7 +12,7 @@ lemma nat_less_induct_case[case_names 0 Suc]:
     "\<And>n. (\<forall>m < Suc n. P m) \<Longrightarrow> P (Suc n)"
   shows "P n"
   apply (induction rule: nat_less_induct)
-  by (case_tac n) (auto intro: assms)
+  by (rename_tac n, case_tac n) (auto intro: assms)
 
 (* TODO Move. Mark as simp *)
 text \<open>This is only proved in simple cases by auto. In assumptions, nothing happens, and

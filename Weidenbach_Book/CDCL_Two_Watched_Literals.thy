@@ -177,7 +177,7 @@ proof
     using cand unfolding candidates_propagate_def MNU_defs by blast
 
   obtain W UW where cw_eq: "Cw = TWL_Clause W UW"
-    by (case_tac Cw, blast)
+    by (cases Cw, blast)
 
   have l_w: "L \<in># W"
     by (metis Multiset.diff_le_self cw(3) cw_eq mset_leD multi_member_last twl_clause.sel(1))
@@ -281,7 +281,7 @@ proof -
     using c_mem by force
 
   obtain W UW where cw_eq: "Cw = TWL_Clause W UW"
-    by (case_tac Cw, blast)
+    by (cases Cw, blast)
 
   have wf_c: "wf_twl_cls M Cw"
     using wf cw(2) unfolding wf_twl_state_def by simp
@@ -369,7 +369,7 @@ proof
     using cand[unfolded candidates_conflict_def, simplified] by auto
 
   obtain W UW where cw_eq: "Cw = TWL_Clause W UW"
-    by (case_tac Cw, blast)
+    by (cases Cw, blast)
 
   have wf_c: "wf_twl_cls M Cw"
     using wf cw(2) unfolding wf_twl_state_def by simp
@@ -432,7 +432,7 @@ proof -
     using c_mem by force
 
   obtain W UW where cw_eq: "Cw = TWL_Clause W UW"
-    by (case_tac Cw, blast)
+    by (cases Cw, blast)
 
   have wf_c: "wf_twl_cls M Cw"
     using wf cw(2) unfolding wf_twl_state_def by simp

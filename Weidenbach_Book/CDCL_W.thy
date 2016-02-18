@@ -906,7 +906,8 @@ proof -
   obtain M1 M2 where "(Marked K (i + 1) # M1, M2) \<in> set (get_all_marked_decomposition (trail S))"
     unfolding tr_S apply (induct c rule: marked_lit_list_induct)
       apply auto[2]
-    apply (case_tac "hd (get_all_marked_decomposition (xs @ Marked K (Suc i) # c'))")
+    apply (rename_tac L m xs, 
+        case_tac "hd (get_all_marked_decomposition (xs @ Marked K (Suc i) # c'))")
     apply (case_tac "get_all_marked_decomposition (xs @ Marked K (Suc i) # c')")
     by auto
   then show ?thesis by blast
@@ -1755,7 +1756,7 @@ next
       let ?hd = "hd ?m"
       let ?tl = "tl ?m"
       have "x = ?hd \<or> x \<in> set ?tl"
-        using x by (case_tac "?m") auto
+        using x by (cases "?m") auto
       moreover {
         assume "x \<in> set ?tl"
         then have "x \<in> set (get_all_marked_decomposition (trail S))"
@@ -3078,8 +3079,7 @@ proof -
         \<or> conflicting S = None
         \<or> (\<exists>D L. conflicting S = Some (D + {#L#}))"
     apply (cases "conflicting S", auto)
-    apply (rename_tac C)
-    by (case_tac C, auto)
+    by (rename_tac C, case_tac C, auto)
   moreover {
     assume "conflicting S = Some {#}"
     then have "unsatisfiable (set_mset (init_clss S))"
@@ -3147,7 +3147,7 @@ proof -
       then obtain k' where k': "k' + 1 = ?k"
         using level_inv M unfolding cdcl\<^sub>W_M_level_inv_def
         by (cases "hd (trail S)"; cases "trail S") auto
-      obtain L' l' where L': "hd ?M = Marked L' l'" using marked by (case_tac "hd ?M") auto
+      obtain L' l' where L': "hd ?M = Marked L' l'" using marked by (cases "hd ?M") auto
       have marked_hd_tl: "get_all_levels_of_marked (hd (trail S) # tl (trail S))
         = rev [1..<1 + length (get_all_levels_of_marked ?M)]"
         using level_inv lev_L M unfolding cdcl\<^sub>W_M_level_inv_def M[symmetric]
@@ -3247,7 +3247,7 @@ proof -
     }
     moreover {
       assume "\<not>is_marked (hd ?M)"
-      then obtain L' C where L'C: "hd ?M = Propagated L' C" by (case_tac "hd ?M", auto)
+      then obtain L' C where L'C: "hd ?M = Propagated L' C" by (cases "hd ?M", auto)
       then have M: "?M = Propagated L' C # tl ?M" using \<open>?M \<noteq> []\<close>  list.collapse by fastforce
       then obtain C' where C': " C = C' + {#L'#}"
         using confl unfolding cdcl\<^sub>W_conflicting_def by (metis append_Nil diff_single_eq_union)
@@ -4558,7 +4558,7 @@ next
         using \<open>no_step cdcl\<^sub>W_cp S\<close> other' by (meson bj resolve skip)
       have "get_all_marked_decomposition (L # M) = [([], L#M)]"
         using nm unfolding K apply (induction M rule: marked_lit_list_induct, simp)
-          by (case_tac "hd (get_all_marked_decomposition xs)", auto)+
+          by (rename_tac L l xs, case_tac "hd (get_all_marked_decomposition xs)", auto)+
       then have no_b: "no_step backtrack S"
         using nm S by auto
       have no_d: "no_step decide S"

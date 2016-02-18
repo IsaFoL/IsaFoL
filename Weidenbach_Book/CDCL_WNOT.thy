@@ -277,7 +277,7 @@ lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_reduce_trail_convert:
 lemma reduce_trail_to_length:
   "length M = length M' \<Longrightarrow> reduce_trail_to M S = reduce_trail_to M' S"
   apply (induction M S arbitrary:  rule: reduce_trail_to.induct)
-  apply (case_tac "trail S \<noteq> [] "; case_tac "length (trail S) \<noteq> length M'"; simp)
+  apply (rename_tac F S; case_tac "trail S \<noteq> [] "; case_tac "length (trail S) \<noteq> length M'")
   by (simp_all add: reduce_trail_to_length_ne)
 
 subsection \<open>More lemmas conflict--propagate and backjumping\<close>
@@ -442,7 +442,7 @@ lemma fst_get_all_marked_decomposition_prepend_not_marked:
     = set (map fst (get_all_marked_decomposition (MS @ M)))"
     using assms apply (induction MS rule: marked_lit_list_induct)
     apply auto[2]
-    by (case_tac "get_all_marked_decomposition (xs @ M)") simp_all
+    by (rename_tac L m xs; case_tac "get_all_marked_decomposition (xs @ M)") simp_all
 
 text \<open>See also @{thm rtranclp_skip_backtrack_backtrack}\<close>
 lemma rtranclp_skip_backtrack_backtrack_end:
@@ -643,7 +643,7 @@ proof -
     "dropWhile (\<lambda>L. \<not>is_marked L \<or> level_of L \<noteq> Suc i) (c @ M2) = []" and
     "dropWhile (\<lambda>L. \<not>is_marked L \<or> level_of L \<noteq> Suc i) (c' @ M2') = []"
       unfolding dropWhile_eq_Nil_conv Ball_def
-      by (intro allI; case_tac x; auto dest!: H simp add: in_set_conv_decomp)+
+      by (intro allI; rename_tac x; case_tac x; auto dest!: H simp add: in_set_conv_decomp)+
 
   then have "M1 = M1'"
     using arg_cong[OF M, of "dropWhile (\<lambda>L. \<not>is_marked L \<or> level_of L \<noteq> Suc i)"]

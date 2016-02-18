@@ -43,9 +43,9 @@ proof -
           | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
     using assms unfolding is_unit_clause_def .
   hence "a \<in> set [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]"
-    apply (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]")
+    apply (cases "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]")
       apply simp
-    apply (case_tac list) by (auto split: split_if_asm)
+    apply (rename_tac aa list; case_tac list) by (auto split: split_if_asm)
   hence "atm_of a \<notin> atm_of ` lits_of M" by auto
   thus ?thesis
     by (simp add: Marked_Propagated_in_iff_in_lits_of
@@ -59,9 +59,9 @@ proof -
           | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None 
           | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
   thus ?thesis
-    apply (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]", simp)
+    apply (cases "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]", simp)
       apply simp
-    apply (case_tac list) by (auto split: split_if_asm)
+    apply (rename_tac aa list, case_tac list) by (auto split: split_if_asm)
 qed
 
 lemma is_unit_clause_some_in: "is_unit_clause l M = Some a \<Longrightarrow> a \<in> set l"
@@ -71,7 +71,7 @@ proof -
          | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None 
          | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
   thus "a \<in> set l"
-    by (case_tac "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]")
+    by (cases "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]")
        (fastforce dest: filter_eq_ConsD split: split_if_asm  split: list.splits)+
 qed
 

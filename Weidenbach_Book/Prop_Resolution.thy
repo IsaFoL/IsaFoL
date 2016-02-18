@@ -690,10 +690,10 @@ proof (induct arbitrary: I rule: sem_tree_size)
 
   moreover {
     assume sn0: "sem_tree_size xs > 0"
-    obtain ag ad v where xs: "xs = Node v ag ad" using sn0 by (case_tac xs, auto)
+    obtain ag ad v where xs: "xs = Node v ag ad" using sn0 by (cases xs, auto)
     {
       assume "sem_tree_size ag = 0" and "sem_tree_size ad = 0"
-      then have ag: "ag = Leaf" and ad: "ad = Leaf" by (case_tac ag,  auto) (case_tac ad,  auto)
+      then have ag: "ag = Leaf" and ad: "ad = Leaf" by (cases ag,  auto) (cases ad,  auto)
 
       then obtain \<chi> \<chi>' where
         \<chi>: "\<not> I \<union> {Pos v} \<Turnstile> \<chi>" and
@@ -939,7 +939,7 @@ proof -
           using H(5) inf rtranclp_inference_preserves_already_used_inv[of \<psi> \<psi>'] by auto
         ultimately have ?case using inf rtranclp_trans part' H(1) by fastforce
       }
-      ultimately show ?case by (case_tac tree, auto)
+      ultimately show ?case by (cases tree, auto)
    qed
 qed
 
@@ -1329,7 +1329,7 @@ lemma already_used_all_simple_in_already_used_top:
 proof
   fix x
   assume x_s: "x \<in> s"
-  obtain A B where x: "x = (A, B)" by (case_tac x, auto)
+  obtain A B where x: "x = (A, B)" by (cases x, auto)
   then have "simplified {A}" and "atms_of A \<subseteq> vars" using assms(1) x_s by fastforce+
   then have A: "A \<in> build_all_simple_clss vars"
     using build_all_simple_clss_mono[of vars "atms_of A"] x assms(2)
@@ -1612,7 +1612,7 @@ lemma nat_ge_induct[case_names 0 Suc]:
   and "(\<And>n. (\<And>m. m<Suc n \<Longrightarrow> P m) \<Longrightarrow> P (Suc n))"
   shows "P n"
   using assms apply (induct rule: nat_less_induct)
-  by (case_tac n) auto
+  by (rename_tac n, case_tac n) auto
 
 lemma wf_always_more_step_False:
   assumes "wf R"
@@ -1888,10 +1888,10 @@ proof (induct arbitrary: I rule: sem_tree_size)
 
   moreover {
     assume sn0: "sem_tree_size xs > 0"
-    obtain ag ad v where xs: "xs = Node v ag ad" using sn0 by (case_tac xs, auto)
+    obtain ag ad v where xs: "xs = Node v ag ad" using sn0 by (cases xs, auto)
     {
        assume "sem_tree_size ag = 0 \<and> sem_tree_size ad = 0"
-       then have ag: "ag = Leaf" and ad: "ad = Leaf" by (case_tac ag,  auto, case_tac ad,  auto)
+       then have ag: "ag = Leaf" and ad: "ad = Leaf" by (cases ag, auto, cases ad, auto)
 
        then obtain \<chi> \<chi>' where
          \<chi>: "\<not> I \<union> {Pos v} \<Turnstile> \<chi>" and
@@ -2153,7 +2153,7 @@ proof -
         have ?case
           using inf rtranclp_trans[of resolution] H(1)[OF s part' unsat fin a_u_i'] \<psi>\<^sub>0 by blast
       }
-      ultimately show ?case by (case_tac tree, auto)
+      ultimately show ?case by (cases tree, auto)
    qed
 qed
 

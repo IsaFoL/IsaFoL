@@ -144,8 +144,8 @@ next
             true_clss_cls_in true_clss_cls_plus_CNot)
       qed
     ultimately have ?case
-      by (case_tac "hd (get_all_marked_decomposition (trail S))")
-         (auto simp add: all_decomposition_implies_def)
+      by (cases "hd (get_all_marked_decomposition (trail S))")
+         (auto simp: all_decomposition_implies_def)
   }
   ultimately show ?case by auto
 next
@@ -190,13 +190,13 @@ next
            auto
       moreover {
         assume x': "x \<in> set ?tl"
-        have L': "Marked (lit_of L) () = L" using marked by (case_tac L, auto)
+        have L': "Marked (lit_of L) () = L" using marked by (cases L, auto)
         have "x \<in> set (get_all_marked_decomposition (M' @ L # M))"
           using x' get_all_marked_decomposition_except_last_choice_equal[of M' "lit_of L" P M]
           L' by (metis (no_types) M' list.set_sel(2) tl_Nil)
         then have "case x of (Ls, seen) \<Rightarrow> (\<lambda>a. {#lit_of a#}) ` set Ls \<union> set_mset (clauses S)
           \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen"
-          using marked IH by (case_tac L) (auto simp add: S all_decomposition_implies_def)
+          using marked IH by (cases L) (auto simp add: S all_decomposition_implies_def)
       }
       moreover {
         assume x': "x = ?hd"

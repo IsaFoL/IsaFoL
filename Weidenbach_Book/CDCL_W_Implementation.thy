@@ -575,7 +575,8 @@ lemma get_all_marked_decomposition_ex:
   "\<exists>N. (Marked K (Suc i) # M', N) \<in> set (get_all_marked_decomposition (M2@Marked K (Suc i) # M'))"
   apply (induction M2 rule: marked_lit_list_induct)
     apply auto[2]
-  by (case_tac "get_all_marked_decomposition (xs @ Marked K (Suc i) # M')") auto
+  by (rename_tac L m xs,  case_tac "get_all_marked_decomposition (xs @ Marked K (Suc i) # M')")
+  auto
 
 lemma bt_cut_in_get_all_marked_decomposition:
   "bt_cut i M = Some M' \<Longrightarrow> \<exists>M2. (M', M2) \<in> set (get_all_marked_decomposition M)"
@@ -597,7 +598,7 @@ lemma get_all_marked_decomposition_map_convert:
     map (\<lambda>(a, b). (map convert a, map convert b)) (get_all_marked_decomposition M)"
   apply (induction M rule: marked_lit_list_induct)
     apply simp
-  by (case_tac "get_all_marked_decomposition xs", auto)+
+  by (rename_tac L l xs, case_tac "get_all_marked_decomposition xs"; auto)+
 
 lemma do_backtrack_step:
   assumes db: "do_backtrack_step S \<noteq> S"
@@ -1107,7 +1108,7 @@ lemma do_full1_cp_step_neq_trail_increase:
   "\<exists>c. trail (rough_state_of (do_full1_cp_step S)) = c @ trail (rough_state_of S)
     \<and> (\<forall>m \<in> set c. \<not> is_marked m)"
   apply (induction rule: do_full1_cp_step_induct)
-  apply (case_tac "do_cp_step' S = S")
+  apply (rename_tac S, case_tac "do_cp_step' S = S")
     apply (simp add: do_full1_cp_step.simps)
   by (smt Un_iff append_assoc do_cp_step'_def do_cp_step_neq_trail_increase do_full1_cp_step.simps
     rough_state_of_state_of_do_cp_step set_append)
@@ -1412,7 +1413,7 @@ lemma do_all_cdcl\<^sub>W_stgy_induct:
 lemma no_step_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all:
   "no_step cdcl\<^sub>W_stgy (toS (rough_state_from_init_state_of (do_all_cdcl\<^sub>W_stgy S)))"
   apply (induction S rule:do_all_cdcl\<^sub>W_stgy_induct)
-  apply (case_tac "do_cdcl\<^sub>W_stgy_step' S \<noteq> S")
+  apply (rename_tac S, case_tac "do_cdcl\<^sub>W_stgy_step' S \<noteq> S")
 proof -
   fix Sa :: cdcl\<^sub>W_state_inv_from_init_state
   assume a1: "\<not> do_cdcl\<^sub>W_stgy_step' Sa \<noteq> Sa"

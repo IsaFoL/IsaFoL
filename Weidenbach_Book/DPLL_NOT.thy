@@ -286,8 +286,8 @@ begin
         apply (smt dpll_bj_all_decomposition_implies_inv dpll_bj_atms_in_trail_in_set
           dpll_bj_clauses dpll_bj_no_dup prod.case_eq_if)
        apply (rule dpll_bj_trail_mes_decreasing_prop; auto)
-      apply (case_tac T, simp)
-     apply (case_tac U, simp)
+      apply (rename_tac A T U, case_tac T, simp)
+     apply (rename_tac A T U, case_tac U, simp)
     using dpll_bj_clauses dpll_bj_all_decomposition_implies_inv dpll_bj_no_dup by fastforce+
 end
 

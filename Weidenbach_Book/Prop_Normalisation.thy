@@ -480,7 +480,7 @@ proof -
   moreover {
      fix c:: "'v connective" and  l :: "'v propo list" and \<psi> :: "'v propo"
      have H: "elimTB (conn c l) \<psi> \<Longrightarrow> \<not>no_T_F_symb_except_toplevel (conn c l) "
-       by (case_tac "(conn c l)" rule: elimTB.cases, auto)
+       by (cases "(conn c l)" rule: elimTB.cases, auto)
   }
   moreover {
      fix x :: "'v"
@@ -563,7 +563,7 @@ fun simple where
 
 lemma simple_decomp:
   "simple \<phi> \<longleftrightarrow> (\<phi> = FT \<or> \<phi> = FF \<or> (\<exists>x. \<phi> = FVar x))"
-  by (case_tac \<phi>, auto)
+  by (cases \<phi>) auto
 
 lemma subformula_conn_decomp_simple:
   fixes \<phi> \<psi> :: "'v propo"
@@ -602,7 +602,7 @@ lemma simple_not_step_exists:
   assumes "no_equiv \<phi>" and "no_imp \<phi>"
   shows "\<psi> \<preceq> \<phi> \<Longrightarrow> \<not> simple_not_symb \<psi> \<Longrightarrow> \<exists>\<psi>'. pushNeg \<psi> \<psi>'"
   apply (induct \<psi>, auto)
-  apply (case_tac \<psi>, auto intro: pushNeg.intros)
+  apply (rename_tac \<psi>, case_tac \<psi>, auto intro: pushNeg.intros)
   by (metis assms(1,2) no_imp_Imp(1) no_equiv_eq(1) no_imp_def no_equiv_def
     subformula_in_subformula_not subformula_all_subformula_st)+
 
@@ -616,7 +616,7 @@ proof -
   moreover {
      fix c:: "'v connective" and  l :: "'v propo list" and \<psi> :: "'v propo"
      have H: "pushNeg (conn c l) \<psi> \<Longrightarrow> \<not>simple_not_symb (conn c l)"
-       by (case_tac "(conn c l)" rule: pushNeg.cases, simp_all)
+       by (cases "(conn c l)" rule: pushNeg.cases) auto
   }
   moreover {
      fix x :: "'v"
@@ -1038,7 +1038,7 @@ qed
 lemma simple_propo_rew_step_push_conn_inside_inv:
 "propo_rew_step (push_conn_inside c c') \<phi> \<psi> \<Longrightarrow> simple \<phi> \<Longrightarrow> simple \<psi>"
   apply (induct rule: propo_rew_step.induct)
-  apply (case_tac \<phi>, auto simp add: push_conn_inside.simps)[1]
+  apply (rename_tac \<phi>, case_tac \<phi>, auto simp add: push_conn_inside.simps)[]
   by (metis append_is_Nil_conv list.distinct(1) simple.elims(2) wf_conn_list(1-3))
 
 
@@ -1047,11 +1047,12 @@ lemma simple_propo_rew_step_inv_push_conn_inside_simple_not:
   shows "propo_rew_step (push_conn_inside c c') \<phi> \<psi> \<Longrightarrow> simple_not \<phi> \<Longrightarrow> simple_not \<psi>"
 proof (induct rule: propo_rew_step.induct)
   case (global_rel \<phi> \<psi>)
-  thus ?case by (case_tac \<phi>, auto simp add: push_conn_inside.simps)
+  thus ?case by (cases \<phi>, auto simp add: push_conn_inside.simps)
 next
   case (propo_rew_one_step_lift \<phi> \<phi>' ca \<xi> \<xi>')
   thus ?case
-    proof (case_tac ca rule: connective_cases_arity, auto)
+    (* TODO fragile proof *)
+    proof (cases ca rule: connective_cases_arity, auto)
       fix \<phi> \<phi>':: "'v propo" and  c :: "'v connective" and  \<xi> \<xi>' :: "'v propo list"
       assume rel: "propo_rew_step (push_conn_inside c c') \<phi> \<phi>'"
       assume "simple \<phi>"
@@ -1089,7 +1090,8 @@ lemma propo_rew_step_push_conn_inside_simple_not:
     simple_propo_rew_step_push_conn_inside_inv wf_conn_list_decomp(4) wf_conn_no_arity_change
     wf_conn_no_arity_change_helper)
 
-proof (case_tac c rule: connective_cases_arity, auto)
+    (* TODO fragile proof *)
+proof (cases c rule: connective_cases_arity, auto)
   fix \<phi> \<phi>':: "'v propo" and  ca:: "'v connective" and \<chi>s \<chi>s' :: "'v propo list"
   assume "simple_not_symb (conn c (\<xi> @ conn ca (\<chi>s @ \<phi> # \<chi>s') # \<xi>'))"
   and "simple_not_symb (conn ca (\<chi>s @ \<phi>' # \<chi>s'))"
@@ -1106,7 +1108,7 @@ next
   assume corr_ca: "wf_conn ca (\<chi>s @ \<phi> # \<chi>s')"
   and simple_not: "simple (conn ca (\<chi>s @ \<phi> # \<chi>s'))"
   hence "False"
-    proof (case_tac ca rule: connective_cases_arity)
+    proof (cases ca rule: connective_cases_arity)
       fix x :: "'v"
       assume "simple (conn ca (\<chi>s @ \<phi> # \<chi>s'))" and "ca = CT \<or> ca = CF \<or> ca = CVar x"
       hence "\<chi>s @ \<phi> # \<chi>s' = []" using corr_ca by auto
@@ -1150,7 +1152,7 @@ proof -
       \<Longrightarrow> all_subformula_st simple_not_symb \<psi>"
       apply (induct \<phi> \<psi> rule: propo_rew_step.induct)
       using H apply simp
-      proof (case_tac ca rule: connective_cases_arity)
+      proof (rename_tac \<phi> \<phi>' ca \<psi>s \<psi>s', case_tac ca rule: connective_cases_arity)
         fix \<phi> \<phi>' :: "'v propo" and c:: "'v connective" and \<xi> \<xi>':: "'v propo list"
         and x:: "'v"
         assume "wf_conn c (\<xi> @ \<phi> # \<xi>')"
@@ -1683,7 +1685,7 @@ next
   case (unary \<phi>)
   hence "simple_not_symb (FNot \<phi>)"
     using all_subformula_st_test_symb_true_phi unfolding simple_not_def by blast
-  hence "\<phi> = FT \<or> \<phi> = FF \<or> (\<exists> x. \<phi> = FVar x)" by (case_tac \<phi>, auto)
+  hence "\<phi> = FT \<or> \<phi> = FF \<or> (\<exists> x. \<phi> = FVar x)" by (cases \<phi>, auto)
   thus "?S (FNot \<phi>)" by auto
 next
   case (binary \<phi> \<phi>1 \<phi>2)
@@ -1896,7 +1898,7 @@ proof -
   moreover {
     fix c:: "'v connective" and  l :: "'v propo list" and \<psi> :: "'v propo"
     have H: "elimTBFull (conn c l) \<psi> \<Longrightarrow> \<not>no_T_F_symb_except_toplevel (conn c l)"
-      by (case_tac "(conn c l)" rule: elimTBFull.cases, simp_all)
+      by (cases "(conn c l)" rule: elimTBFull.cases) auto
   }
   ultimately show ?thesis
     using no_test_symb_step_exists[of no_T_F_symb_except_toplevel \<phi> elimTBFull] noTB

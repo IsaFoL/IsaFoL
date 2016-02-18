@@ -62,7 +62,7 @@ lemma connective_cases_arity:
   and binary: "c \<in> binary_connectives \<Longrightarrow> P"
   and unary: "c = CNot  \<Longrightarrow> P"
   shows "P"
-  using assms by (case_tac c, auto simp add: binary_connectives_def)
+  using assms by (cases c, auto simp add: binary_connectives_def)
 
 (*Maybe is this version better, by adding nullary_connective[simp] *)
 lemma connective_cases_arity_2[case_names nullary unary binary]:
@@ -70,7 +70,7 @@ lemma connective_cases_arity_2[case_names nullary unary binary]:
   and unary: "c = CNot  \<Longrightarrow> P"
   and binary: "c \<in> binary_connectives \<Longrightarrow> P"
   shows "P"
-  using assms by (case_tac c, auto simp add: binary_connectives_def)
+  using assms by (cases c, auto simp add: binary_connectives_def)
 
 
 text \<open>Our previous definition is not necessary correct (connective and list of arguments) , so we
@@ -132,7 +132,7 @@ text \<open>In the binary connective cases, we will often decompose the list of 
   into two elements.\<close>
 lemma list_length2_decomp: "length l = 2 \<Longrightarrow> (\<exists> a b. l = a # b # [])"
   apply (induct l, auto)
-  by (case_tac l, auto)
+  by (rename_tac l, case_tac l, auto)
 
 text \<open>@{term wf_conn} for binary operators means that there are two arguments.\<close>
 lemma wf_conn_bin_list_length:
@@ -226,7 +226,7 @@ next
 next
   case (wf_conn_binary \<psi>' \<psi>'')
   thus "ca = c \<and> \<psi>s = l"
-    using eq corr' unfolding binary_connectives_def apply (case_tac ca, auto simp add: wf_conn_list)
+    using eq corr' unfolding binary_connectives_def apply (cases ca, auto simp add: wf_conn_list)
     using wf_conn_list(4-7) corr' by metis+
 qed
 
