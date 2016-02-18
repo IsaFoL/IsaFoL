@@ -57,12 +57,12 @@ fun  conn :: "'v connective \<Rightarrow> 'v propo list \<Rightarrow> 'v propo" 
 
 text \<open>We will often use case distinction, based on the arity of the @{typ "'v connective"}, thus we
   define our own splitting principle.\<close>
-lemma connective_cases_arity:
+lemma connective_cases_arity[case_names nullary binary unary]:
   assumes nullary: "\<And>x. c = CT \<or> c = CF \<or> c = CVar x \<Longrightarrow> P"
   and binary: "c \<in> binary_connectives \<Longrightarrow> P"
   and unary: "c = CNot  \<Longrightarrow> P"
   shows "P"
-  using assms by (cases c, auto simp add: binary_connectives_def)
+  using assms by (cases c) (auto simp: binary_connectives_def)
 
 (*Maybe is this version better, by adding nullary_connective[simp] *)
 lemma connective_cases_arity_2[case_names nullary unary binary]:
@@ -174,7 +174,8 @@ lemma wf_conn_Not_decomp:
   fixes l :: "'v propo list" and a :: "'v"
   assumes corr: "wf_conn CNot l"
   shows "\<exists> a. l = [a]"
-  by (metis (no_types, lifting) One_nat_def Suc_length_conv corr length_0_conv wf_conn_not_list_length)
+  by (metis (no_types, lifting) One_nat_def Suc_length_conv corr length_0_conv 
+    wf_conn_not_list_length)
 
 
 text \<open>The @{term wf_conn} remains correct if the length of list does not change. This lemma is very
@@ -342,9 +343,9 @@ lemma exists_c_conn: "\<exists> c l. \<phi> = conn c l \<and> wf_conn c l"
   by (cases \<phi>) force+
 
 lemma subformula_conn_decomp[simp]:
-  "wf_conn c l \<Longrightarrow> \<phi> \<preceq> conn c l \<longleftrightarrow> (\<phi> = conn c l \<or> (\<exists> \<psi>\<in> set l. \<phi> \<preceq> \<psi>))"
-  apply auto
-proof -
+  assumes wf: "wf_conn c l"
+  shows "\<phi> \<preceq> conn c l \<longleftrightarrow> (\<phi> = conn c l \<or> (\<exists> \<psi>\<in> set l. \<phi> \<preceq> \<psi>))" (is "?A \<longleftrightarrow> ?B")
+proof (rule iffI)
   {
     fix \<xi>
     have "\<phi> \<preceq> \<xi> \<Longrightarrow> \<xi> = conn c l \<Longrightarrow> wf_conn c l \<Longrightarrow> \<forall>x::'a propo\<in>set l. \<not> \<phi> \<preceq> x \<Longrightarrow> \<phi> = conn c l"
@@ -352,12 +353,11 @@ proof -
         apply simp
       using conn_inj by blast
   }
-  moreover assume "wf_conn c l" and "\<phi> \<preceq> conn c l" and "\<forall>x::'a propo\<in>set l. \<not> \<phi> \<preceq> x"
-  ultimately show "\<phi> = conn c l" by metis
+  moreover assume ?A
+  ultimately show ?B using wf by metis
 next
-  fix \<psi>
-  assume "wf_conn c l" and "\<psi> \<in> set l" and "\<phi> \<preceq> \<psi>"
-  thus "\<phi> \<preceq> conn c l" using wf_subformula_conn_cases by blast
+  assume ?B
+  then show "\<phi> \<preceq> conn c l" using wf wf_subformula_conn_cases by blast
 qed
 
 lemma subformula_leaf_explicit[simp]:
@@ -600,16 +600,16 @@ proof
     fix A
     text \<open>``Suppose that @{term \<phi>} entails @{term \<psi>} (assumption @{thm H}) and let @{term A} be an
       arbitrary @{typ "'v"}-valuation. We need to show @{term "A\<Turnstile> FImp \<phi> \<psi>"}.  ''\<close>
-
-
     {
-      text \<open>If @{term "A(\<phi>) = 1"}, then @{term "A(\<phi>) = 1"}, because @{term \<phi>} entails  @{term \<psi>}, and therefore @{term "A \<Turnstile> FImp \<phi> \<psi>"}.\<close>
+      text \<open>If @{term "A(\<phi>) = 1"}, then @{term "A(\<phi>) = 1"}, because @{term \<phi>} entails  @{term \<psi>},
+        and therefore @{term "A \<Turnstile> FImp \<phi> \<psi>"}.\<close>
       assume "A \<Turnstile> \<phi>"
       hence "A \<Turnstile> \<psi>" using H unfolding evalf_def by metis
       hence "A \<Turnstile> FImp \<phi> \<psi>" by auto
     }
     moreover  {
-      text \<open>For otherwise, if @{term "A(\<phi>) = 0"}, then @{term "A\<Turnstile> FImp \<phi> \<psi>"} holds by definition, independently of the value of @{term "A \<Turnstile> \<psi>"}.\<close>
+      text \<open>For otherwise, if @{term "A(\<phi>) = 0"}, then @{term "A\<Turnstile> FImp \<phi> \<psi>"} holds by definition,
+        independently of the value of @{term "A \<Turnstile> \<psi>"}.\<close>
       assume "\<not> A \<Turnstile> \<phi>"
       hence "A \<Turnstile> FImp \<phi> \<psi>" by auto
     }
@@ -635,7 +635,8 @@ lemma "\<phi> \<Turnstile>f \<psi> \<longleftrightarrow> (\<forall>A. A\<Turnsti
 definition same_over_set:: "('v \<Rightarrow> bool) \<Rightarrow>('v \<Rightarrow> bool) \<Rightarrow> 'v set \<Rightarrow> bool" where
 "same_over_set A B S = (\<forall>c\<in>S. A c = B c)"
 
-text \<open>If two mapping @{term A} and @{term B} have the same value over the variables, then the same formula are satisfiable.\<close>
+text \<open>If two mapping @{term A} and @{term B} have the same value over the variables, then the same 
+  formula are satisfiable.\<close>
 lemma same_over_set_eval:
   assumes "same_over_set A B (vars_of_prop \<phi>)"
   shows "A \<Turnstile> \<phi> \<longleftrightarrow> B \<Turnstile> \<phi>"

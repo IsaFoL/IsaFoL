@@ -1049,84 +1049,72 @@ proof (induct rule: propo_rew_step.induct)
   case (global_rel \<phi> \<psi>)
   thus ?case by (cases \<phi>, auto simp add: push_conn_inside.simps)
 next
-  case (propo_rew_one_step_lift \<phi> \<phi>' ca \<xi> \<xi>')
-  thus ?case
-    (* TODO fragile proof *)
-    proof (cases ca rule: connective_cases_arity, auto)
-      fix \<phi> \<phi>':: "'v propo" and  c :: "'v connective" and  \<xi> \<xi>' :: "'v propo list"
-      assume rel: "propo_rew_step (push_conn_inside c c') \<phi> \<phi>'"
-      assume "simple \<phi>"
-      thus "simple \<phi>'" using rel simple_propo_rew_step_push_conn_inside_inv by blast
+  case (propo_rew_one_step_lift \<phi> \<phi>' ca \<xi> \<xi>') note rew = this(1) and IH = this(2) and wf = this(3)
+   and simple = this(4)
+  show ?case
+    proof (cases ca rule: connective_cases_arity)
+      case nullary
+      then show ?thesis using propo_rew_one_step_lift by auto
     next
-      fix \<phi> \<phi>':: "'v propo" and  ca :: "'v connective" and  \<xi> \<xi>' :: "'v propo list"
-      assume rel: "propo_rew_step (push_conn_inside c c') \<phi> \<phi>'"
-      and IH: "all_subformula_st simple_not_symb \<phi> \<Longrightarrow> all_subformula_st simple_not_symb \<phi>'"
-      and wf: "wf_conn ca (\<xi> @ \<phi> # \<xi>')"
-      and simple_not: "all_subformula_st simple_not_symb (conn ca (\<xi> @ \<phi> # \<xi>'))"
-      and ca: "ca \<in> binary_connectives"
-
+      case binary note ca = this
       obtain a b where ab: "\<xi> @ \<phi>' # \<xi>' = [a, b]"
-        using wf ca  list_length2_decomp wf_conn_bin_list_length
+        using wf ca list_length2_decomp wf_conn_bin_list_length
         by (metis (no_types) wf_conn_no_arity_change_helper)
       have "\<forall>\<zeta> \<in> set (\<xi> @ \<phi> # \<xi>'). simple_not \<zeta>"
-        by (metis wf all_subformula_st_decomp simple_not simple_not_def)
-      hence "\<forall>\<zeta> \<in> set (\<xi> @ \<phi>' # \<xi>'). simple_not \<zeta>" by (simp add: IH)
+        by (metis wf all_subformula_st_decomp simple simple_not_def)
+      hence "\<forall>\<zeta> \<in> set (\<xi> @ \<phi>' # \<xi>'). simple_not \<zeta>" using IH by simp
       moreover have "simple_not_symb (conn ca (\<xi> @ \<phi>' # \<xi>'))" using ca
-        by (metis ab conn.simps(5-8) helper_fact simple_not_symb.simps(5) simple_not_symb.simps(6)
+      by (metis ab conn.simps(5-8) helper_fact simple_not_symb.simps(5) simple_not_symb.simps(6)
           simple_not_symb.simps(7) simple_not_symb.simps(8))
-      ultimately show "all_subformula_st simple_not_symb (conn ca (\<xi> @ \<phi>' # \<xi>'))"
+      ultimately show ?thesis
         by (simp add: ab all_subformula_st_decomp ca)
+    next
+      case unary
+      then show ?thesis
+         using rew simple_propo_rew_step_push_conn_inside_inv[OF rew] IH local.wf simple by auto
     qed
 qed
 
 lemma propo_rew_step_push_conn_inside_simple_not:
   fixes \<phi> \<phi>' :: "'v propo" and \<xi> \<xi>' :: "'v propo list" and c :: "'v connective"
-  shows "propo_rew_step (push_conn_inside c c') \<phi> \<phi>' \<Longrightarrow> wf_conn c (\<xi> @ \<phi> # \<xi>')
-    \<Longrightarrow> simple_not_symb (conn c (\<xi> @ \<phi> # \<xi>')) \<Longrightarrow> simple_not_symb \<phi>'
-    \<Longrightarrow> simple_not_symb (conn c (\<xi> @ \<phi>' # \<xi>'))"
-  apply (induct rule: propo_rew_step.induct)
-  apply (metis (no_types, lifting) append_eq_append_conv2 append_self_conv conn.simps(4)
-    conn_inj_not(1) global_rel simple_not_symb.elims(3) simple_not_symb.simps(1)
-    simple_propo_rew_step_push_conn_inside_inv wf_conn_list_decomp(4) wf_conn_no_arity_change
-    wf_conn_no_arity_change_helper)
-
-    (* TODO fragile proof *)
-proof (cases c rule: connective_cases_arity, auto)
-  fix \<phi> \<phi>':: "'v propo" and  ca:: "'v connective" and \<chi>s \<chi>s' :: "'v propo list"
-  assume "simple_not_symb (conn c (\<xi> @ conn ca (\<chi>s @ \<phi> # \<chi>s') # \<xi>'))"
-  and "simple_not_symb (conn ca (\<chi>s @ \<phi>' # \<chi>s'))"
-  and corr: "wf_conn c (\<xi> @ conn ca (\<chi>s @ \<phi> # \<chi>s') # \<xi>') "
-  and c: "c \<in> binary_connectives"
-  have corr': "wf_conn c (\<xi> @ conn ca (\<chi>s @ \<phi>' # \<chi>s') # \<xi>')"
-    using corr wf_conn_no_arity_change by (metis wf_conn_no_arity_change_helper)
-  obtain a b where "\<xi> @ conn ca (\<chi>s @ \<phi>' # \<chi>s') # \<xi>' = [a, b]"
-    using corr' c  list_length2_decomp wf_conn_bin_list_length by metis
-  thus "simple_not_symb (conn c (\<xi> @ conn ca (\<chi>s @ \<phi>' # \<chi>s') # \<xi>'))"
-    using c unfolding binary_connectives_def by auto
+  assumes
+    "propo_rew_step (push_conn_inside c c') \<phi> \<phi>'" and
+    "wf_conn c (\<xi> @ \<phi> # \<xi>')" and
+    "simple_not_symb (conn c (\<xi> @ \<phi> # \<xi>'))" and
+    "simple_not_symb \<phi>'"
+  shows "simple_not_symb (conn c (\<xi> @ \<phi>' # \<xi>'))"
+  using assms
+proof (induction rule: propo_rew_step.induct)
+print_cases
+  case (global_rel)
+  then show ?case
+    by (metis conn.simps(12,17) list.discI push_conn_inside.cases simple_not_symb.elims(3)
+      wf_conn_helper_facts(5) wf_conn_list(2) wf_conn_list(8) wf_conn_no_arity_change
+      wf_conn_no_arity_change_helper)
 next
-  fix \<phi> \<phi>':: "'v propo" and  ca:: "'v connective" and  \<chi>s \<chi>s' :: "'v propo list"
-  assume corr_ca: "wf_conn ca (\<chi>s @ \<phi> # \<chi>s')"
-  and simple_not: "simple (conn ca (\<chi>s @ \<phi> # \<chi>s'))"
-  hence "False"
-    proof (cases ca rule: connective_cases_arity)
-      fix x :: "'v"
-      assume "simple (conn ca (\<chi>s @ \<phi> # \<chi>s'))" and "ca = CT \<or> ca = CF \<or> ca = CVar x"
-      hence "\<chi>s @ \<phi> # \<chi>s' = []" using corr_ca by auto
-      thus False by auto
+  case (propo_rew_one_step_lift \<phi> \<phi>' c' \<chi>s \<chi>s') note tel = this(1) and wf = this(2) and IH = this(3)
+    and wf' = this(4) and simple' = this(5) and simple = this(6)
+  then show ?case
+    proof (cases c' rule: connective_cases_arity)
+      case nullary
+      then show ?thesis using wf simple simple' by auto
     next
-      assume simple: "simple (conn ca (\<chi>s @ \<phi> # \<chi>s'))"
-      and ca: "ca\<in> binary_connectives"
-      obtain a b where ab: "\<chi>s @ \<phi> # \<chi>s' = [a, b]"
-        using corr_ca ca list_length2_decomp wf_conn_bin_list_length
-        by (metis append_assoc length_Cons length_append length_append_singleton)
-      thus False using simple ca ab conn.simps(5,6,7,8) unfolding binary_connectives_def by auto
+      case binary note c = this(1)
+      have corr': "wf_conn c (\<xi> @ conn c' (\<chi>s @ \<phi>' # \<chi>s') # \<xi>')"
+        using wf wf_conn_no_arity_change
+        by (metis wf' wf_conn_no_arity_change_helper)
+      then show ?thesis
+        using c propo_rew_one_step_lift wf
+        by (metis conn.simps(17) connective.distinct(37) propo_rew_step_subformula_imp
+          push_conn_inside.cases simple_not_symb.elims(3) wf_conn.simps wf_conn_list(2,8))
     next
-      assume simple: "simple (conn ca (\<chi>s @ \<phi> # \<chi>s'))"
-      and ca: "ca = CNot"
-      hence empty: "\<chi>s = []" "\<chi>s' = []" using corr_ca by auto
-      thus False using simple ca conn.simps(4) by auto
+      case unary
+      then have empty: "\<chi>s = []" "\<chi>s' = []" using wf by auto
+      then show ?thesis using simple unary simple' wf wf'
+        by (metis connective.distinct(37) connective.distinct(39) propo_rew_step_subformula_imp
+          push_conn_inside.cases simple_not_symb.elims(3) tel wf_conn_list(8)
+          wf_conn_no_arity_change wf_conn_no_arity_change_helper)
     qed
-  thus "simple (conn ca (\<chi>s @ \<phi>' # \<chi>s'))" by blast
 qed
 
 lemma push_conn_inside_not_true_false:
