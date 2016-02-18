@@ -505,6 +505,13 @@ lemma wf_candidates_twl_conflict_complete:
   shows "C \<in> candidates_conflict_twl S"
   using c_mem unsat wf_candidates_conflict_complete wf_twl_state_rough_state_of_twl by blast
 
+abbreviation update_backtrack_lvl where
+  "update_backtrack_lvl k S \<equiv>
+   TWL_State (trail S) (init_clss S) (learned_clss S) k (conflicting S)"
+
+abbreviation update_conflicting where
+  "update_conflicting C S \<equiv> TWL_State (trail S) (init_clss S) (learned_clss S) (backtrack_lvl S) C"
+
 subsection \<open>Abstract 2-WL\<close>
 
 definition tl_trail where
@@ -519,7 +526,7 @@ locale abstract_twl =
     linearize :: "'v clauses \<Rightarrow> 'v clause list" and
     restart_learned :: "('v, nat, 'v clause) twl_state_abs \<Rightarrow> 'v clause twl_clause multiset"
   assumes
-    clause_watch: "no_dup(trail S) \<Longrightarrow> raw_clause (watch S C) = C" and
+    clause_watch: "no_dup (trail S) \<Longrightarrow> raw_clause (watch S C) = C" and
     wf_watch: "no_dup (trail S) \<Longrightarrow> wf_twl_cls (trail S) (watch S C)" and
     clause_rewatch: "raw_clause (rewatch L S C') = raw_clause C'" and
     wf_rewatch:
@@ -591,13 +598,6 @@ lemma clauses_init_fold_add_init:
 
 lemma init_clss_init_state[simp]: "image_mset raw_clause (init_clss (init_state N)) = N"
   unfolding init_state_def by (simp add: clauses_init_fold_add_init linearize)
-
-definition update_backtrack_lvl where
-  "update_backtrack_lvl k S =
-   TWL_State (trail S) (init_clss S) (learned_clss S) k (conflicting S)"
-
-definition update_conflicting where
-  "update_conflicting C S = TWL_State (trail S) (init_clss S) (learned_clss S) (backtrack_lvl S) C"
 
 definition restart' where
   "restart' S = TWL_State [] (init_clss S) (restart_learned S) 0 None"
@@ -1081,7 +1081,7 @@ interpretation twl: abstract_twl watch_nat rewatch_nat sorted_list_of_multiset l
   apply (rule subset_mset.order_refl)
   done
 
-subsection \<open>Interpretation for @{term cdcl\<^sub>W_ops.cdcl\<^sub>W}\<close>
+subsection \<open>Interpretation for @{term cdcl\<^sub>W.cdcl\<^sub>W}\<close>
 
 context abstract_twl
 begin
@@ -1093,12 +1093,11 @@ interpretation rough_cdcl: state\<^sub>W trail raw_init_clss raw_learned_clss ba
   update_conflicting init_state restart'
   apply unfold_locales
   apply (simp_all add: add_init_cls_def add_learned_cls_def clause_rewatch clause_watch
-    cons_trail_def remove_cls_def restart'_def tl_trail_def update_backtrack_lvl_def
-    update_conflicting_def)
+    cons_trail_def remove_cls_def restart'_def tl_trail_def)
   apply (rule image_mset_subseteq_mono[OF restart_learned])
   done
 
-interpretation rough_cdcl: cdcl\<^sub>W_ops trail raw_init_clss raw_learned_clss backtrack_lvl conflicting
+interpretation rough_cdcl: cdcl\<^sub>W trail raw_init_clss raw_learned_clss backtrack_lvl conflicting
   cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
   update_conflicting init_state restart'
   by unfold_locales
@@ -1200,7 +1199,7 @@ abbreviation update_backtrack_lvl_twl where
 
 lemma wf_twl_state_update_backtrack_lvl:
   "wf_twl_state S \<Longrightarrow> wf_twl_state (update_backtrack_lvl k S)"
-  unfolding wf_twl_state_def by (auto simp: update_backtrack_lvl_def)
+  unfolding wf_twl_state_def by auto
 
 lemma rough_state_of_twl_update_backtrack_lvl:
   "rough_state_of_twl (update_backtrack_lvl_twl k S) = update_backtrack_lvl k
@@ -1212,7 +1211,7 @@ abbreviation update_conflicting_twl where
 
 lemma wf_twl_state_update_conflicting:
   "wf_twl_state S \<Longrightarrow> wf_twl_state (update_conflicting k S)"
-  unfolding wf_twl_state_def by (auto simp: update_conflicting_def)
+  unfolding wf_twl_state_def by auto
 
 lemma rough_state_of_twl_update_conflicting:
   "rough_state_of_twl (update_conflicting_twl k S) = update_conflicting k
@@ -1278,7 +1277,7 @@ interpretation cdcl\<^sub>W_twl: state\<^sub>W
     rough_state_of_twl_init_state rough_state_of_twl_restart_twl
     rough_cdcl.learned_clss_restart_state)
 
-interpretation cdcl\<^sub>W_twl: cdcl\<^sub>W_ops
+interpretation cdcl\<^sub>W_twl: cdcl\<^sub>W
   trail_twl
   init_clss_twl
   learned_clss_twl

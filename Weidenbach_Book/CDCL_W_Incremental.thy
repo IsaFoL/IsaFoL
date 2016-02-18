@@ -3,7 +3,7 @@ imports CDCL_W_Termination
 begin
 
 section \<open>Incremental SAT solving\<close>
-context cdcl\<^sub>W_ops
+context cdcl\<^sub>W
 begin
 
 text \<open>This invariant holds all the invariant related to the strategy. See the structural invariant
@@ -475,7 +475,7 @@ proof -
   have "no_step cdcl\<^sub>W_stgy T"
     using full unfolding full_def by blast
   moreover have "cdcl\<^sub>W_all_struct_inv T" and inv_s: "cdcl\<^sub>W_stgy_invariant T"
-    apply (metis cdcl\<^sub>W_ops.rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W cdcl\<^sub>W_ops_axioms full full_def inv
+    apply (metis cdcl\<^sub>W.rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W cdcl\<^sub>W_axioms full full_def inv
       rtranclp_cdcl\<^sub>W_all_struct_inv_inv)
     by (metis full full_def inv inv_s rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant)
   ultimately have "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss T))

@@ -7,7 +7,7 @@ subsection \<open>Inclusion of the states\<close>
 declare upt.simps(2)[simp del]
 sledgehammer_params[verbose]
 
-context cdcl\<^sub>W_ops
+context cdcl\<^sub>W
 begin
 
 lemma backtrack_levE:
@@ -155,7 +155,7 @@ begin
 declare state_simp\<^sub>N\<^sub>O\<^sub>T[simp del]
 end
 
-sublocale cdcl\<^sub>W_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops
+sublocale cdcl\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops
   "\<lambda>S. convert_trail_from_W (trail S)"
   clauses
   "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
@@ -167,7 +167,7 @@ sublocale cdcl\<^sub>W_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_lea
   "\<lambda>C C' L' S. backjump_l_cond C C' L' S  \<and> distinct_mset (C' + {#L'#}) \<and> \<not>tautology (C' + {#L'#})"
   by unfold_locales
 
-sublocale cdcl\<^sub>W_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy
+sublocale cdcl\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy
   "\<lambda>S. convert_trail_from_W (trail S)"
   clauses
   "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
@@ -223,7 +223,7 @@ next
     qed
 qed
 
-sublocale cdcl\<^sub>W_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2
+sublocale cdcl\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2
   "\<lambda>S. convert_trail_from_W (trail S)"
   clauses
   "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
@@ -233,7 +233,7 @@ sublocale cdcl\<^sub>W_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_lea
   "\<lambda>_ S. conflicting S = None" backjump_l_cond
   by unfold_locales
 
-sublocale cdcl\<^sub>W_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn
+sublocale cdcl\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn
   "\<lambda>S. convert_trail_from_W (trail S)"
   clauses
   "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
@@ -245,7 +245,7 @@ sublocale cdcl\<^sub>W_ops \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_lea
    using dpll_bj_no_dup apply (simp add: comp_def)
   using cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup by (auto simp add: comp_def cdcl\<^sub>N\<^sub>O\<^sub>T.simps)
 
-context cdcl\<^sub>W_ops
+context cdcl\<^sub>W
 begin
 text \<open>Notations are lost while proving locale inclusion:\<close>
 notation state_eq\<^sub>N\<^sub>O\<^sub>T (infix "\<sim>\<^sub>N\<^sub>O\<^sub>T" 50)
@@ -3555,8 +3555,8 @@ qed
 end
 
 subsection \<open>Adding Restarts\<close>
-locale cdcl\<^sub>W_ops_restart =
-  cdcl\<^sub>W_ops trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail
+locale cdcl\<^sub>W_restart =
+  cdcl\<^sub>W trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail
    add_init_cls
    add_learned_cls remove_cls update_backtrack_lvl update_conflicting init_state
    restart_state
@@ -4076,7 +4076,7 @@ end
 
 locale luby_sequence_restart =
   luby_sequence ur +
-  cdcl\<^sub>W_ops trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail
+  cdcl\<^sub>W trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail
     add_init_cls
     add_learned_cls remove_cls update_backtrack_lvl update_conflicting init_state
     restart_state
@@ -4098,7 +4098,7 @@ locale luby_sequence_restart =
     restart_state :: "'st \<Rightarrow> 'st"
 begin
 
-sublocale cdcl\<^sub>W_ops_restart _ _ _ _ _ _ _ _ _ _ _ _ _ _ luby_sequence
+sublocale cdcl\<^sub>W_restart _ _ _ _ _ _ _ _ _ _ _ _ _ _ luby_sequence
   apply unfold_locales
   using bounded_luby_sequence by blast
 

@@ -380,7 +380,7 @@ subsection \<open>CDCL Rules\<close>
 text \<open>Because of the strategy we will later use, we distinguish propagate, conflict from the other
   rules\<close>
 locale
-  cdcl\<^sub>W_ops =
+  cdcl\<^sub>W =
    state\<^sub>W trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail add_init_cls
    add_learned_cls remove_cls update_backtrack_lvl update_conflicting init_state
    restart_state
@@ -3346,7 +3346,7 @@ next
   then have "S' = S'' \<or> cdcl\<^sub>W_cp\<^sup>+\<^sup>+ S' S''"
     by (simp add: rtranclp_unfold full_def)
   then show ?case
-    using other' by (meson cdcl\<^sub>W_ops.other cdcl\<^sub>W_ops_axioms tranclp.r_into_trancl
+    using other' by (meson cdcl\<^sub>W.other cdcl\<^sub>W_axioms tranclp.r_into_trancl
       tranclp_cdcl\<^sub>W_cp_tranclp_cdcl\<^sub>W tranclp_trans)
 qed
 
@@ -4064,7 +4064,7 @@ next
           then show "- L \<notin> lit_of ` set M1"
             by (metis (no_types) One_nat_def add.right_neutral add_Suc_right
               atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set backtrack.hyps(2)
-              cdcl\<^sub>W_ops.backtrack_lit_skiped cdcl\<^sub>W_ops_axioms decomp lits_of_def)
+              cdcl\<^sub>W.backtrack_lit_skiped cdcl\<^sub>W_axioms decomp lits_of_def)
         qed
       { assume "Da \<in># clauses S"
         then have "\<not>M1 \<Turnstile>as CNot Da" using no_l M unfolding no_smaller_confl_def by auto

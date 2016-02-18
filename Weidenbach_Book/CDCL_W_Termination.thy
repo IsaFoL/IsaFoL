@@ -2,7 +2,7 @@ theory CDCL_W_Termination
 imports CDCL_W
 begin
 
-context cdcl\<^sub>W_ops
+context cdcl\<^sub>W
 begin
 subsection \<open>Termination\<close>
 text \<open>The condition that no learned clause is a tautology is overkill (in the sense that the
@@ -888,7 +888,7 @@ lemma length_model_le_vars_all_inv:
 end
 
 locale cdcl\<^sub>W_termination =
-   cdcl\<^sub>W_ops trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail
+   cdcl\<^sub>W trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail
    add_init_cls
    add_learned_cls remove_cls update_backtrack_lvl update_conflicting init_state
    restart_state
