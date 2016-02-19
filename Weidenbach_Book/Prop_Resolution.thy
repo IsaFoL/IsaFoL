@@ -545,7 +545,7 @@ proof (induct arbitrary: I rule: build_sem_tree.induct)
     assume atms: "atms = {}"
     then have atmsIa: "atms_of_ms \<psi> = atms_of_s Ia" using un by auto
     then have "total_over_m Ia \<psi>" unfolding total_over_m_def atmsIa by auto
-    then have \<chi>: "\<exists>\<chi> \<in> \<psi>. \<not> Ia \<Turnstile> \<chi>" 
+    then have \<chi>: "\<exists>\<chi> \<in> \<psi>. \<not> Ia \<Turnstile> \<chi>"
       using unsat cons unfolding true_clss_def satisfiable_def by auto
     then have "build_sem_tree atms \<psi> = Leaf" using atms by auto
     moreover
@@ -564,7 +564,7 @@ proof (induct arbitrary: I rule: build_sem_tree.induct)
       using build_sem_tree.simps[of "atms" \<psi>] f atms by metis
 
     have "consistent_interp (Ia \<union> {Pos (Min atms)})" unfolding consistent_interp_def
-      by (metis Int_iff Min_in Un_iff atm_of_uminus atms cons consistent_interp_def disj empty_iff 
+      by (metis Int_iff Min_in Un_iff atm_of_uminus atms cons consistent_interp_def disj empty_iff
         f in_atms_of_s_decomp insert_iff literal.distinct(1) literal.exhaust_sel literal.sel(2)
         uminus_Neg uminus_Pos)
     moreover have "atms_of_ms \<psi> = Set.remove (Min atms) atms \<union> atms_of_s (Ia \<union> {Pos (Min atms)})"
@@ -577,7 +577,7 @@ proof (induct arbitrary: I rule: build_sem_tree.induct)
       using IH1[of "Ia \<union> {Pos (Min (atms))}"] atms f unsat finite by metis
 
     have "consistent_interp (Ia \<union> {Neg (Min atms)})" unfolding consistent_interp_def
-      by (metis Int_iff Min_in Un_iff atm_of_uminus atms cons consistent_interp_def disj empty_iff 
+      by (metis Int_iff Min_in Un_iff atm_of_uminus atms cons consistent_interp_def disj empty_iff
         f in_atms_of_s_decomp insert_iff literal.distinct(1) literal.exhaust_sel literal.sel(2)
         uminus_Neg)
     moreover have "atms_of_ms \<psi> = Set.remove (Min atms) atms \<union> atms_of_s (Ia \<union> {Neg (Min atms)})"
@@ -1091,7 +1091,7 @@ lemma simplified_imp_distinct_mset_tauto:
   assumes simp: "simplified \<psi>'"
   shows "distinct_mset_set \<psi>'" and  "\<forall>\<chi> \<in> \<psi>'. \<not>tautology \<chi>"
 proof -
-  show "\<forall>\<chi> \<in> \<psi>'. \<not>tautology \<chi>" 
+  show "\<forall>\<chi> \<in> \<psi>'. \<not>tautology \<chi>"
     using simp by (auto simp add: simplified_in simplified_not_tautology)
 
   show "distinct_mset_set \<psi>'"
@@ -1187,8 +1187,8 @@ lemma rtranclp_resolution_include:
   shows "fst \<psi>' \<subseteq> build_all_simple_clss (atms_of_ms (fst \<psi>))"
   using assms apply (induct rule: tranclp.induct)
     apply (simp add: resolution_include)
-  by (meson atms_of_ms_finite build_all_simple_clss_finite build_all_simple_clss_mono finite_subset
-    resolution_include rtranclp_resolution_atms_of set_rev_mp subsetI tranclp_into_rtranclp)
+  by (meson build_all_simple_clss_mono order_class.le_trans resolution_include
+    rtranclp_resolution_atms_of rtranclp_resolution_finite tranclp_into_rtranclp)
 
 abbreviation already_used_all_simple
   :: "('a literal multiset \<times> 'a literal multiset) set \<Rightarrow> 'a set \<Rightarrow> bool" where
@@ -1228,9 +1228,9 @@ next
         assume eq: "(A, B) = ({#Pos P#} + C, {#Neg P#} + D)"
         then have "simplified {A}" using simplified_in H(1,5) by auto
         moreover have "simplified {B}" using eq simplified_in H(2,5) by auto
-        moreover have "atms_of A \<subseteq> atms_of_ms N" 
+        moreover have "atms_of A \<subseteq> atms_of_ms N"
           using eq H(1) atms_of_atms_of_ms_mono[of A N] by auto
-        moreover have "atms_of B \<subseteq> atms_of_ms N" 
+        moreover have "atms_of B \<subseteq> atms_of_ms N"
           using eq H(2) atms_of_atms_of_ms_mono[of B N] by auto
         ultimately have "simplified {A} \<and> simplified {B} \<and> atms_of A \<subseteq> vars \<and> atms_of B \<subseteq> vars"
           using H(6) by auto
@@ -1321,7 +1321,7 @@ lemma tranclp_resolution_simplified_already_used_subset:
   by (meson tranclp_resolution_always_simplified resolution_simplified_already_used_subset
     less_trans)
 
-abbreviation "already_used_top vars \<equiv> build_all_simple_clss vars \<times> build_all_simple_clss vars "
+abbreviation "already_used_top vars \<equiv> build_all_simple_clss vars \<times> build_all_simple_clss vars"
 
 lemma already_used_all_simple_in_already_used_top:
   assumes "already_used_all_simple s vars" and "finite vars"
@@ -1470,7 +1470,7 @@ proof -
     ultimately have "finite (already_used_top vars) \<and> already_used_top vars \<subseteq> already_used_top vars
       \<and> snd b \<subseteq> already_used_top vars \<and> snd a \<subset> snd b" by metis
   }
-  then show ?thesis using wf_bounded_set[of "{(y:: 'v:: linorder state, x). 
+  then show ?thesis using wf_bounded_set[of "{(y:: 'v:: linorder state, x).
     (atms_of_ms (fst x) \<subseteq> vars
     \<and> simplified (fst x) \<and> finite (snd x) \<and> finite (fst x)\<and> already_used_all_simple (snd x) vars)
     \<and> resolution x y}" "\<lambda>_. already_used_top vars" "snd"] by auto
@@ -1748,7 +1748,7 @@ next
       card_insert_if card_mono fin finite_Diff order_refl)
   moreover have "\<Xi> {?C'} < \<Xi> {?C}"
     proof -
-      have mset_decomp: 
+      have mset_decomp:
         "{# La \<in># A. (L = La \<longrightarrow> Suc 0 \<le> count A La) \<and> (L \<noteq> La \<longrightarrow> 2 \<le> count A La)#}
         =  {# La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#} +
           {# La \<in># A. L = La \<and> Suc 0 \<le> count A L#}"
@@ -1784,7 +1784,7 @@ next
         qed
     next
       assume "?C' \<notin> N"
-      have mset_decomp: 
+      have mset_decomp:
         "{# La \<in># A. (L = La \<longrightarrow> Suc 0 \<le> count A La) \<and> (L \<noteq> La \<longrightarrow> 2 \<le> count A La)#}
         =  {# La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#} +
           {# La \<in># A. L = La \<and> Suc 0 \<le> count A L#}"
@@ -2080,9 +2080,9 @@ qed
 
 lemma resolution_completeness_inv:
   fixes \<psi> :: "'v ::linorder state"
-  assumes 
-    unsat: "\<not>satisfiable (fst \<psi>)" and 
-    finite: "finite (fst \<psi>)" and 
+  assumes
+    unsat: "\<not>satisfiable (fst \<psi>)" and
+    finite: "finite (fst \<psi>)" and
     a_u_v: "already_used_inv \<psi>"
   shows "\<exists>\<psi>'. (resolution\<^sup>*\<^sup>* \<psi> \<psi>' \<and> {#} \<in> fst \<psi>')"
 proof -
@@ -2235,7 +2235,7 @@ proof (rule ccontr)
   assume H: "\<not> ?thesis"
   then obtain \<chi> where "\<chi> \<in> \<psi>" and "\<chi> \<noteq> {#}" using assms(2) by blast
   then have "{#} \<subset># \<chi>" by (simp add: mset_less_empty_nonempty)
-  then have "simplify \<psi> (\<psi> - {\<chi>})" 
+  then have "simplify \<psi> (\<psi> - {\<chi>})"
     using simplify.subsumption[OF assms(2) \<open>{#} \<subset># \<chi>\<close> \<open>\<chi> \<in> \<psi>\<close>] by blast
   then show False using simp by blast
 qed
@@ -2284,8 +2284,8 @@ qed
 
 lemma resolution_soundness_and_completeness':
   fixes \<psi> :: "'v ::linorder state"
-  assumes 
-    finite: "finite (fst \<psi>)"and 
+  assumes
+    finite: "finite (fst \<psi>)"and
     snd: "snd \<psi> = {}"
   shows "(\<exists>a_u_v. (resolution\<^sup>*\<^sup>* \<psi> ({{#}}, a_u_v))) \<longleftrightarrow> unsatisfiable (fst \<psi>)"
     using assms resolution_completeness resolution_soundness resolution_falsity_get_falsity_alone

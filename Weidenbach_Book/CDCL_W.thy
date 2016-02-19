@@ -44,7 +44,7 @@ locale state\<^sub>W =
     trail_update_conflicting[simp]: "\<And>C st. trail (update_conflicting C st) = trail st" and
 
     init_clss_cons_trail[simp]:
-      "\<And>M st. undefined_lit (trail st) (lit_of M)\<Longrightarrow> init_clss (cons_trail M st) = init_clss st" 
+      "\<And>M st. undefined_lit (trail st) (lit_of M)\<Longrightarrow> init_clss (cons_trail M st) = init_clss st"
       and
     init_clss_tl_trail[simp]:
       "\<And>st. init_clss (tl_trail st) = init_clss st" and
@@ -906,7 +906,7 @@ proof -
   obtain M1 M2 where "(Marked K (i + 1) # M1, M2) \<in> set (get_all_marked_decomposition (trail S))"
     unfolding tr_S apply (induct c rule: marked_lit_list_induct)
       apply auto[2]
-    apply (rename_tac L m xs, 
+    apply (rename_tac L m xs,
         case_tac "hd (get_all_marked_decomposition (xs @ Marked K (Suc i) # c'))")
     apply (case_tac "get_all_marked_decomposition (xs @ Marked K (Suc i) # c')")
     by auto
@@ -1602,7 +1602,7 @@ proof (rule ccontr)
     "L'' \<in># D" and
     L'': "L' = atm_of L''"
     using L' L'_notin_M1 unfolding atms_of_def by auto
-  have lev_L'': 
+  have lev_L'':
     "get_level (trail S) L'' = get_rev_level (Marked K (Suc i) # rev M2 @ rev M0) (Suc i) L''"
     using L'_notin_M1 L'' M by (auto simp del: get_rev_level.simps)
   have "get_all_levels_of_marked (trail S) = rev [1..<1+?k]"
@@ -1637,8 +1637,8 @@ proof (rule ccontr)
 qed
 
 lemma distinct_atms_of_incl_not_in_other:
-  assumes 
-    a1: "no_dup (M @ M')" and a2: 
+  assumes
+    a1: "no_dup (M @ M')" and a2:
     "atms_of D \<subseteq> atm_of ` lits_of M'"
   shows "\<forall>x\<in>atms_of D. x \<notin> atm_of ` lits_of M"
 proof -
@@ -3136,7 +3136,7 @@ proof -
   moreover {
     assume "\<exists>D L. conflicting S = Some (D + {#L#})"
     then obtain D L where LD: "conflicting S = Some (D + {#L#})" and lev_L: "get_level ?M L = ?k"
-       by (metis (mono_tags) bex_msetE confl_k insert_DiffM2 multi_self_add_other_not_self 
+       by (metis (mono_tags) bex_msetE confl_k insert_DiffM2 multi_self_add_other_not_self
          union_eq_empty)
     let ?D = "D + {#L#}"
     have "?D \<noteq> {#}" by auto
@@ -3212,21 +3212,21 @@ proof -
               moreover have "\<dots> < ?k"
                 proof -
                   { assume a1: "get_level (tl (trail S)) L' = backtrack_lvl S"
-                    assume a2: "rev (get_all_levels_of_marked (tl (trail S))) = 
+                    assume a2: "rev (get_all_levels_of_marked (tl (trail S))) =
                       [Suc 0..<backtrack_lvl S]"
                     have "k' + Suc 0 = backtrack_lvl S"
                       using k' by presburger
                     then have False
                       using a2 a1 by (metis (no_types) Max_n_upt Zero_neq_Suc add_diff_cancel_left'
                         add_diff_cancel_right' diff_is_0_eq
-                        get_all_levels_of_marked_rev_eq_rev_get_all_levels_of_marked 
+                        get_all_levels_of_marked_rev_eq_rev_get_all_levels_of_marked
                         get_rev_level_less_max_get_all_levels_of_marked list.set(2) set_upt)
                   }
-                  then show ?thesis                
-                    using  g_r get_rev_level_less_max_get_all_levels_of_marked[of "rev (tl ?M)" 0 L]  
+                  then show ?thesis
+                    using  g_r get_rev_level_less_max_get_all_levels_of_marked[of "rev (tl ?M)" 0 L]
                     l'_tl calculation[symmetric] g_a_l L_k
                     by (auto simp: Max_n_upt cdcl\<^sub>W_M_level_inv_def rev_swap[symmetric])
-                qed              
+                qed
               finally show False using L_k by simp
             qed
           then have taut: "tautology (D + {#L#})"
@@ -3562,7 +3562,7 @@ next
     rtranclp_mono[of propagate cdcl\<^sub>W] cdcl\<^sub>W_cp_consistent_inv propagate'
     rtranclp_propagate_is_rtranclp_cdcl\<^sub>W step.prems by blast
     then have "no_dup (trail U)" unfolding cdcl\<^sub>W_M_level_inv_def by auto
-  ultimately show ?case using \<open>propagate T U\<close> unfolding state_eq_def 
+  ultimately show ?case using \<open>propagate T U\<close> unfolding state_eq_def
     by (fastforce simp: state_access_simp)
 qed
 
@@ -3610,14 +3610,14 @@ next
   { assume no_step: "\<not>no_step propagate S"
 
     obtain S' where S': "propagate\<^sup>*\<^sup>* S S'" and full: "full cdcl\<^sub>W_cp S S'"
-      using completeness_is_a_full1_propagation[OF assms(1-3), of S] alien M' S 
+      using completeness_is_a_full1_propagation[OF assms(1-3), of S] alien M' S
       by (auto simp: state_access_simp)
     have lev: "cdcl\<^sub>W_M_level_inv S'"
       using M S' rtranclp_cdcl\<^sub>W_consistent_inv rtranclp_propagate_is_rtranclp_cdcl\<^sub>W by blast
     then have n_d'[simp]: "no_dup (trail S')"
       unfolding cdcl\<^sub>W_M_level_inv_def by auto
     have "length (trail S) \<le> length (trail S') \<and> lits_of (trail S') \<subseteq> set M"
-      using S' full cdcl\<^sub>W_cp_propagate_completeness[OF assms(1-3), of S] M' S 
+      using S' full cdcl\<^sub>W_cp_propagate_completeness[OF assms(1-3), of S] M' S
       by (auto simp: state_access_simp)
     moreover
       have full: "full1 cdcl\<^sub>W_cp S S'"
@@ -3639,7 +3639,7 @@ next
         [simp]: "init_clss S' = init_clss S" and
         [simp]: "conflicting S' = None"
         using tranclp_into_rtranclp[OF \<open>propagate\<^sup>+\<^sup>+ S S'\<close>] S
-        rtranclp_propagate_is_update_trail[of S S'] S M unfolding state_eq_def 
+        rtranclp_propagate_is_update_trail[of S S'] S M unfolding state_eq_def
         by (auto simp: state_access_simp)
       have S_S': "S' \<sim> update_backtrack_lvl (backtrack_lvl S')
         (append_trail (rev (trail S')) (init_state N))" using S
@@ -3696,7 +3696,7 @@ next
         moreover have "no_strange_atm ?S'"
           using alien dec M by (meson cdcl\<^sub>W_no_strange_atm_inv decide other)
         ultimately obtain S'' where S'': "propagate\<^sup>*\<^sup>* ?S' S''" and full: "full cdcl\<^sub>W_cp ?S' S''"
-          using completeness_is_a_full1_propagation[OF assms(1-3), of ?S'] S undef 
+          using completeness_is_a_full1_propagation[OF assms(1-3), of ?S'] S undef
           by (auto simp: state_access_simp)
         have "cdcl\<^sub>W_M_level_inv ?S'"
           using M dec rtranclp_mono[of decide cdcl\<^sub>W] by (meson cdcl\<^sub>W_consistent_inv decide other)
@@ -4228,8 +4228,8 @@ next
     ultimately have "conflict_is_false_with_level S''" by blast
   }
   moreover {
-     assume 
-       confl: "conflicting S' = None" and 
+     assume
+       confl: "conflicting S' = None" and
        D_L: "\<forall>D \<in># clauses S'. trail S' \<Turnstile>as CNot D
          \<longrightarrow> (\<exists>L. L \<in># D \<and> get_level (trail S') L = backtrack_lvl S')"
      { assume "\<forall>D\<in>#clauses S'. \<not> trail S' \<Turnstile>as CNot D"
@@ -4259,7 +4259,7 @@ next
        have "conflict_is_false_with_level S''"
          proof cases
            assume "trail S' \<Turnstile>as CNot D"
-           moreover then obtain L where 
+           moreover then obtain L where
              "L \<in># D" and
              lev_L: "get_level (trail S') L = backtrack_lvl S'"
              using D_L D by blast

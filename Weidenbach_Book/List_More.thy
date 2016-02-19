@@ -3,7 +3,7 @@ imports Main
 begin
 
 section \<open>Various Lemmas\<close>
-text \<open>Close to @{thm nat_less_induct}, but with a separation between zero and non-zero, and case 
+text \<open>Close to @{thm nat_less_induct}, but with a separation between zero and non-zero, and case
   names.\<close>
 thm nat_less_induct
 lemma nat_less_induct_case[case_names 0 Suc]:
@@ -54,7 +54,7 @@ lemma bounded_const_product:
    using mult_le_mono2 apply blast
   by (meson assms le_less_trans less_or_eq_imp_le nat_mult_less_cancel_disj split_div_lemma)
 
-text \<open>This lemma is not used, but here to show that a property that can be expected from 
+text \<open>This lemma is not used, but here to show that a property that can be expected from
   @{term bounded} holds.\<close>
 lemma bounded_finite_linorder:
   fixes f :: "'a \<Rightarrow> 'a ::{finite, linorder}"
@@ -62,14 +62,14 @@ lemma bounded_finite_linorder:
 proof -
   have "\<And>x. f x \<le> Max {f x|x. True}"
     by (metis (mono_tags) Max_ge finite mem_Collect_eq)
-  then show ?thesis 
+  then show ?thesis
     unfolding bounded_def by blast
 qed
 
 section \<open>More List\<close>
 
 subsection \<open>@{term upt}\<close>
-text \<open>The simplification rules are not very handy, because @{thm upt.simps(2)} leads to a case 
+text \<open>The simplification rules are not very handy, because @{thm upt.simps(2)} leads to a case
   distinction, that we do not want if the condition is not in the context.\<close>
 lemma upt_Suc_le_append: "\<not>i \<le> j \<Longrightarrow> [i..<Suc j] = []"
   by auto

@@ -271,7 +271,7 @@ lemma clauses_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_nil:
 
 lemma trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_drop:
   "trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S) =
-    (if length (trail S) \<ge> length F 
+    (if length (trail S) \<ge> length F
     then drop (length (trail S) - length F) (trail S)
     else [])"
   apply (induction F S rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
@@ -973,7 +973,7 @@ proof -
         qed
 
       have "?M \<Turnstile>as CNot C"
-        by (metis \<open>C \<in> set_mset (clauses S)\<close> \<open>\<not> trail S \<Turnstile>a C\<close> all_variables_defined_not_imply_cnot 
+        by (metis \<open>C \<in> set_mset (clauses S)\<close> \<open>\<not> trail S \<Turnstile>a C\<close> all_variables_defined_not_imply_cnot
         atms_N_M atms_of_atms_of_ms_mono atms_of_ms_CNot_atms_of atms_of_ms_CNot_atms_of_ms
         subset_eq)
       have "\<exists>l \<in> set ?M. is_marked l"
@@ -2928,7 +2928,7 @@ end
 
 locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy =
   cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
-    propagate_conds forget_conds "\<lambda>C C' L' S.  backjump_l_cond C C' L' S 
+    propagate_conds forget_conds "\<lambda>C C' L' S.  backjump_l_cond C C' L' S
     \<and> distinct_mset (C' + {#L'#}) \<and> \<not>tautology (C' + {#L'#})"
   for
     trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
@@ -3112,8 +3112,8 @@ next
    case (cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_backjump_l T) note bt = this(1) and inv = this(2) and
      n_d = this(3)
    obtain C' :: "'v literal multiset" and L :: "'v literal" where
-     f3: "learn S (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S) \<and> 
-       backjump (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S) T \<and> 
+     f3: "learn S (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S) \<and>
+       backjump (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S) T \<and>
        atms_of (C' + {#L#}) \<subseteq> atms_of_msu (clauses S) \<union> atm_of ` lits_of (trail S)"
      using n_d backjump_l_learn_backjump[OF bt inv] by blast
    then have f4: "cdcl\<^sub>N\<^sub>O\<^sub>T S (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S)"
@@ -3939,7 +3939,7 @@ next
     using distinct_mset_not_tautology_implies_in_build_all_simple_clss[OF dist tauto]
     by auto
   then show ?case
-    using T inv atms_clss undef tr_S n_d 
+    using T inv atms_clss undef tr_S n_d
     by (force dest!: build_all_simple_clss_or_not_simplified_cls)
 qed
 

@@ -308,11 +308,11 @@ lemma rtranclp_dpll\<^sub>W_inv:
   using assms
 proof (induct rule: rtranclp_induct)
   case base
-  show 
-    "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))" and 
-    "atm_of ` lits_of (trail S) \<subseteq> atms_of_msu (clauses S)" and 
-    "clauses S = clauses S" and 
-    "consistent_interp (lits_of (trail S))" and 
+  show
+    "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))" and
+    "atm_of ` lits_of (trail S) \<subseteq> atms_of_msu (clauses S)" and
+    "clauses S = clauses S" and
+    "consistent_interp (lits_of (trail S))" and
     "no_dup (trail S)" using assms by auto
 next
   case (step S' S'') note dpll\<^sub>WStar = this(1) and IH = this(3,4,5,6,7) and
@@ -343,7 +343,7 @@ qed
 definition "dpll\<^sub>W_all_inv S \<equiv>
   (all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))
   \<and> atm_of ` lits_of (trail S)  \<subseteq> atms_of_msu (clauses S)
-  \<and> consistent_interp (lits_of (trail S)) 
+  \<and> consistent_interp (lits_of (trail S))
   \<and> no_dup (trail S))"
 
 lemma dpll\<^sub>W_all_inv_dest[dest]:
@@ -411,7 +411,7 @@ lemma dpll\<^sub>W_strong_completeness:
 proof -
   show "rtranclp dpll\<^sub>W ([], N) (map (\<lambda>M. Marked M ()) M, N)" using dpll\<^sub>W_can_do_step assms by auto
   have "map (\<lambda>M. Marked M ()) M \<Turnstile>asm N" using assms(1) true_annots_marked_true_cls by auto
-  then show "conclusive_dpll\<^sub>W_state (map (\<lambda>M. Marked M ()) M, N)" 
+  then show "conclusive_dpll\<^sub>W_state (map (\<lambda>M. Marked M ()) M, N)"
     unfolding conclusive_dpll\<^sub>W_state_def by auto
 qed
 
@@ -440,7 +440,7 @@ next
           then have "(\<exists>L. undefined_lit M L \<and> atm_of L \<in> atms_of D) \<or> M \<Turnstile>as CNot D"
              unfolding true_annots_def Ball_def CNot_def true_annot_def
              using atm_of_lit_in_atms_of true_annot_iff_marked_or_true_lit true_cls_def by blast
-          then show ?thesis 
+          then show ?thesis
             (* TODO Tune proof *)
             using D apply auto by (meson atms_of_atms_of_ms_mono mem_set_mset_iff subset_eq)
         qed
