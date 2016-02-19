@@ -1907,19 +1907,19 @@ lemma learn_always_simple_clauses:
     learn: "learn S T" and
     n_d: "no_dup (trail S)"
   shows "set_mset (clauses T - clauses S)
-    \<subseteq> build_all_simple_clss (atms_of_msu (clauses S) \<union> atm_of ` lits_of (trail S))"
+    \<subseteq> simple_clss (atms_of_msu (clauses S) \<union> atm_of ` lits_of (trail S))"
 proof
   fix C assume C: "C \<in> set_mset (clauses T - clauses S)"
   have "distinct_mset C" "\<not>tautology C" using learn C n_d by (elim learnE; auto)+
-  then have "C \<in> build_all_simple_clss (atms_of C)"
-    using distinct_mset_not_tautology_implies_in_build_all_simple_clss by blast
+  then have "C \<in> simple_clss (atms_of C)"
+    using distinct_mset_not_tautology_implies_in_simple_clss by blast
   moreover have "atms_of C \<subseteq> atms_of_msu (clauses S) \<union> atm_of ` lits_of (trail S)"
     using learn C n_d by (elim learnE) (auto simp: atms_of_ms_def atms_of_def image_Un
       true_annots_CNot_all_atms_defined)
   moreover have "finite (atms_of_msu (clauses S) \<union> atm_of ` lits_of (trail S))"
      by auto
-  ultimately show "C \<in> build_all_simple_clss (atms_of_msu (clauses S) \<union> atm_of ` lits_of (trail S))"
-    using build_all_simple_clss_mono  by (metis (no_types) insert_subset mk_disjoint_insert)
+  ultimately show "C \<in> simple_clss (atms_of_msu (clauses S) \<union> atm_of ` lits_of (trail S))"
+    using simple_clss_mono  by (metis (no_types) insert_subset mk_disjoint_insert)
 qed
 
 definition "conflicting_bj_clss S \<equiv>
@@ -2044,18 +2044,18 @@ proof -
     have 2: "\<And>x. x\<in> conflicting_bj_clss T \<Longrightarrow> \<not> tautology x \<and> distinct_mset x"
       unfolding conflicting_bj_clss_def by auto
     have T: "conflicting_bj_clss T
-    \<subseteq> build_all_simple_clss (atms_of_msu (clauses T) \<union> atm_of ` lits_of (trail T))"
-      by standard (meson "1" "2" fin'  \<open>finite (conflicting_bj_clss T)\<close> build_all_simple_clss_mono
+    \<subseteq> simple_clss (atms_of_msu (clauses T) \<union> atm_of ` lits_of (trail T))"
+      by standard (meson "1" "2" fin'  \<open>finite (conflicting_bj_clss T)\<close> simple_clss_mono
         distinct_mset_set_def  simplified_in_build_all subsetCE sup.coboundedI1)
   moreover
     then have #: "3 ^ card (atms_of_msu (clauses T) \<union> atm_of ` lits_of (trail T))
         \<ge> card (conflicting_bj_clss T)"
-      by (meson Nat.le_trans build_all_simple_clss_card build_all_simple_clss_finite card_mono fin')
+      by (meson Nat.le_trans simple_clss_card simple_clss_finite card_mono fin')
     have "atms_of_msu (clauses T) \<union> atm_of ` lits_of (trail T) \<subseteq> A"
       using learnE[OF learnST] A by simp
     then have "3 ^ (card A) \<ge> card (conflicting_bj_clss T)"
-      using # fin_A by (meson build_all_simple_clss_card build_all_simple_clss_finite
-        build_all_simple_clss_mono calculation(2) card_mono dual_order.trans)
+      using # fin_A by (meson simple_clss_card simple_clss_finite
+        simple_clss_mono calculation(2) card_mono dual_order.trans)
   ultimately show ?thesis
     using psubset_card_mono[OF fin_T ]
     unfolding less_than_iff lex_prod_def by clarify
@@ -2178,13 +2178,13 @@ next
   case (learn C F' K F C' L T) note clss_S_C = this(1) and atms_C = this(2) and dist = this(3)
     and tauto = this(4) and learn_restr = this(5) and tr_S = this(6) and C' = this(7) and
     F_C = this(8) and C_new = this(9) and T =this(10)
-  have "insert C (conflicting_bj_clss S) \<subseteq> build_all_simple_clss (atms_of_ms A)"
+  have "insert C (conflicting_bj_clss S) \<subseteq> simple_clss (atms_of_ms A)"
     proof -
-      have "C \<in> build_all_simple_clss (atms_of_ms A)"
-        by (metis (no_types, hide_lams) Un_subset_iff atms_of_ms_finite build_all_simple_clss_mono
-          contra_subsetD dist distinct_mset_not_tautology_implies_in_build_all_simple_clss
+      have "C \<in> simple_clss (atms_of_ms A)"
+        by (metis (no_types, hide_lams) Un_subset_iff atms_of_ms_finite simple_clss_mono
+          contra_subsetD dist distinct_mset_not_tautology_implies_in_simple_clss
           dual_order.trans fin_A atms_C atms_clss atms_trail tauto)
-      moreover have "conflicting_bj_clss S \<subseteq> build_all_simple_clss (atms_of_ms A)"
+      moreover have "conflicting_bj_clss S \<subseteq> simple_clss (atms_of_ms A)"
         unfolding conflicting_bj_clss_def
         proof
           fix x :: "'v literal multiset"
@@ -2195,16 +2195,16 @@ next
             \<and> distinct_mset (m + {#l#}) \<and> \<not> tautology (m + {#l#})
             \<and> (\<exists>ms l msa. trail S = ms @ Marked l () # msa \<and> msa \<Turnstile>as CNot m)"
             by blast
-          then show "x \<in> build_all_simple_clss (atms_of_ms A)"
-            by (meson atms_clss atms_of_atms_of_ms_mono atms_of_ms_finite build_all_simple_clss_mono
-              distinct_mset_not_tautology_implies_in_build_all_simple_clss fin_A finite_subset
+          then show "x \<in> simple_clss (atms_of_ms A)"
+            by (meson atms_clss atms_of_atms_of_ms_mono atms_of_ms_finite simple_clss_mono
+              distinct_mset_not_tautology_implies_in_simple_clss fin_A finite_subset
               mem_set_mset_iff set_rev_mp)
         qed
       ultimately show ?thesis
         by auto
     qed
   then have "card (insert C (conflicting_bj_clss S)) \<le> 3 ^ (card (atms_of_ms A))"
-    by (meson Nat.le_trans atms_of_ms_finite build_all_simple_clss_card build_all_simple_clss_finite
+    by (meson Nat.le_trans atms_of_ms_finite simple_clss_card simple_clss_finite
       card_mono fin_A)
   moreover have [simp]: "card (insert C (conflicting_bj_clss S))
     = Suc (card ((conflicting_bj_clss S)))"
@@ -2259,7 +2259,7 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound:
     "atm_of `(lits_of (trail S)) \<subseteq> A" and
     n_d: "no_dup (trail S)" and
     fin_A[simp]: "finite A"
-  shows "set_mset (clauses T) \<subseteq> set_mset (clauses S) \<union> build_all_simple_clss A"
+  shows "set_mset (clauses T) \<subseteq> set_mset (clauses S) \<union> simple_clss A"
   using assms
 proof (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_learn_all_induct)
   case dpll_bj
@@ -2272,11 +2272,11 @@ next
   T = this(10) and atms_clss_S = this(12) and atms_trail_S = this(13)
   have "atms_of C \<subseteq> A"
     using atms_C atms_clss_S atms_trail_S by auto
-  then have "build_all_simple_clss (atms_of C) \<subseteq> build_all_simple_clss A"
-    by (simp add: build_all_simple_clss_mono)
-  then have "C \<in> build_all_simple_clss A"
+  then have "simple_clss (atms_of C) \<subseteq> simple_clss A"
+    by (simp add: simple_clss_mono)
+  then have "C \<in> simple_clss A"
     using finite dist tauto
-    by (auto dest: distinct_mset_not_tautology_implies_in_build_all_simple_clss)
+    by (auto dest: distinct_mset_not_tautology_implies_in_simple_clss)
   then show ?case using T n_d by auto
 qed
 
@@ -2288,7 +2288,7 @@ lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound:
     "atm_of `(lits_of (trail S)) \<subseteq> A" and
     n_d: "no_dup (trail S)" and
     finite: "finite A"
-  shows "set_mset (clauses T) \<subseteq> set_mset (clauses S) \<union> build_all_simple_clss A"
+  shows "set_mset (clauses T) \<subseteq> set_mset (clauses S) \<union> simple_clss A"
   using assms(1-5)
 proof induction
   case base
@@ -2302,7 +2302,7 @@ next
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_trail_clauses_bound[OF st] inv atms_clss_S atms_trail_S n_d by blast+
   moreover have "no_dup (trail T)"
    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup[OF st \<open>inv S\<close> n_d] by simp
-  ultimately have "set_mset (clauses U) \<subseteq> set_mset (clauses T) \<union> build_all_simple_clss A"
+  ultimately have "set_mset (clauses U) \<subseteq> set_mset (clauses T) \<union> simple_clss A"
     using cdcl\<^sub>N\<^sub>O\<^sub>T finite n_d by (auto simp: cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound)
   then show ?case using IH by auto
 qed
@@ -2318,7 +2318,7 @@ lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_card_clauses_bound:
     finite: "finite A"
   shows "card (set_mset (clauses T)) \<le> card (set_mset (clauses S)) + 3 ^ (card A)"
   using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound[OF assms] finite by (meson Nat.le_trans
-    build_all_simple_clss_card build_all_simple_clss_finite card_Un_le card_mono finite_UnI
+    simple_clss_card simple_clss_finite card_Un_le card_mono finite_UnI
     finite_set_mset nat_add_left_cancel_le)
 
 lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_card_clauses_bound':
@@ -2334,12 +2334,12 @@ lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_card_clauses_bound':
     (is "card ?T \<le> card ?S + _")
   using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound[OF assms] finite
 proof -
-  have "?T \<subseteq> ?S \<union> build_all_simple_clss A"
+  have "?T \<subseteq> ?S \<union> simple_clss A"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound[OF assms] by force
-  then have "card ?T \<le> card (?S \<union> build_all_simple_clss A)"
-    using finite by (simp add: assms(5) build_all_simple_clss_finite card_mono)
+  then have "card ?T \<le> card (?S \<union> simple_clss A)"
+    using finite by (simp add: assms(5) simple_clss_finite card_mono)
   then show ?thesis
-    by (meson le_trans build_all_simple_clss_card card_Un_le local.finite nat_add_left_cancel_le)
+    by (meson le_trans simple_clss_card card_Un_le local.finite nat_add_left_cancel_le)
 qed
 
 lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_card_simple_clauses_bound:
@@ -2355,17 +2355,17 @@ lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_card_simple_clauses_bound:
     (is "card ?T \<le> card ?S + _")
   using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound[OF assms] finite
 proof -
-  have "\<And>x. x \<in># clauses T \<Longrightarrow>\<not> tautology x \<Longrightarrow> distinct_mset x \<Longrightarrow> x \<in> build_all_simple_clss A"
+  have "\<And>x. x \<in># clauses T \<Longrightarrow>\<not> tautology x \<Longrightarrow> distinct_mset x \<Longrightarrow> x \<in> simple_clss A"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound[OF assms] by (metis (no_types, hide_lams) Un_iff assms(3)
-      atms_of_atms_of_ms_mono build_all_simple_clss_mono contra_subsetD
-      distinct_mset_not_tautology_implies_in_build_all_simple_clss local.finite mem_set_mset_iff
+      atms_of_atms_of_ms_mono simple_clss_mono contra_subsetD
+      distinct_mset_not_tautology_implies_in_simple_clss local.finite mem_set_mset_iff
       subset_trans)
-  then have "set_mset (clauses T) \<subseteq> ?S \<union> build_all_simple_clss A"
+  then have "set_mset (clauses T) \<subseteq> ?S \<union> simple_clss A"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound[OF assms] by auto
-  then have "card(set_mset (clauses T)) \<le> card (?S \<union> build_all_simple_clss A)"
-    using finite by (simp add: assms(5) build_all_simple_clss_finite card_mono)
+  then have "card(set_mset (clauses T)) \<le> card (?S \<union> simple_clss A)"
+    using finite by (simp add: assms(5) simple_clss_finite card_mono)
   then show ?thesis
-    by (meson le_trans build_all_simple_clss_card card_Un_le local.finite nat_add_left_cancel_le)
+    by (meson le_trans simple_clss_card card_Un_le local.finite nat_add_left_cancel_le)
 qed
 
 definition \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound :: "'v literal multiset set \<Rightarrow> 'st \<Rightarrow> nat" where
@@ -2438,8 +2438,8 @@ proof -
       fix C assume "C \<in> ?T"
       then have C_T: "C \<in># clauses T" and t_d: "tautology C \<or> \<not> distinct_mset C"
         by auto
-      then have "C \<notin> build_all_simple_clss (atms_of_ms A)"
-        by (auto dest: build_all_simple_clssE)
+      then have "C \<notin> simple_clss (atms_of_ms A)"
+        by (auto dest: simple_clssE)
       then show "C \<in> ?S"
         using C_T rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound[OF assms] t_d by force
     qed
@@ -3851,10 +3851,10 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T:
 
 definition "not_simplified_cls A = {#C \<in># A. tautology C \<or> \<not>distinct_mset C#}"
 
-lemma build_all_simple_clss_or_not_simplified_cls:
+lemma simple_clss_or_not_simplified_cls:
   assumes "atms_of_msu (clauses S) \<subseteq> atms_of_ms A" and
     "x \<in># clauses S" and "finite A"
-  shows "x \<in> build_all_simple_clss (atms_of_ms A) \<or> x \<in># not_simplified_cls (clauses S)"
+  shows "x \<in> simple_clss (atms_of_ms A) \<or> x \<in># not_simplified_cls (clauses S)"
 proof -
   consider
       (simpl) "\<not>tautology x" and "distinct_mset x"
@@ -3863,9 +3863,9 @@ proof -
   then show ?thesis
     proof cases
       case simpl
-      then have "x \<in> build_all_simple_clss (atms_of_ms A)"
-        by (meson assms atms_of_atms_of_ms_mono atms_of_ms_finite build_all_simple_clss_mono
-          distinct_mset_not_tautology_implies_in_build_all_simple_clss finite_subset
+      then have "x \<in> simple_clss (atms_of_ms A)"
+        by (meson assms atms_of_atms_of_ms_mono atms_of_ms_finite simple_clss_mono
+          distinct_mset_not_tautology_implies_in_simple_clss finite_subset
           mem_set_mset_iff subsetCE)
       then show ?thesis by blast
     next
@@ -3885,18 +3885,18 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_clauses_bound:
     n_d: "no_dup (trail S)" and
     fin_A[simp]: "finite A"
   shows "set_mset (clauses T) \<subseteq> set_mset (not_simplified_cls (clauses S))
-    \<union> build_all_simple_clss (atms_of_ms A)"
+    \<union> simple_clss (atms_of_ms A)"
   using assms
 proof (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn.induct)
   case cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_decide\<^sub>N\<^sub>O\<^sub>T
-  then show ?case using dpll_bj_clauses by (force dest!: build_all_simple_clss_or_not_simplified_cls)
+  then show ?case using dpll_bj_clauses by (force dest!: simple_clss_or_not_simplified_cls)
 next
   case cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_propagate\<^sub>N\<^sub>O\<^sub>T
-  then show ?case using dpll_bj_clauses by (force dest!: build_all_simple_clss_or_not_simplified_cls)
+  then show ?case using dpll_bj_clauses by (force dest!: simple_clss_or_not_simplified_cls)
 next
   case cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_forget\<^sub>N\<^sub>O\<^sub>T
   then show ?case using clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T unfolding state_eq\<^sub>N\<^sub>O\<^sub>T_def
-    by (force elim!: forgetE  dest: build_all_simple_clss_or_not_simplified_cls)
+    by (force elim!: forgetE  dest: simple_clss_or_not_simplified_cls)
 next
   case (cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_backjump_l T) note bj = this(1) and inv = this(2) and
     atms_clss = this(3) and atms_trail = this(4) and n_d = this(5)
@@ -3933,14 +3933,14 @@ next
       atms_of_def image_subset_iff in_CNot_implies_uminus(2))
   then have "atms_of (C'+{#L#}) \<subseteq> atms_of_ms A"
     using T \<open>atm_of ` lits_of (trail T) \<subseteq> atms_of_ms A\<close> tr_S undef n_d by auto
-  then have "build_all_simple_clss (atms_of (C' + {#L#})) \<subseteq> build_all_simple_clss (atms_of_ms A)"
-    apply - by (rule build_all_simple_clss_mono) (simp_all)
-  then have "C' + {#L#} \<in> build_all_simple_clss (atms_of_ms A)"
-    using distinct_mset_not_tautology_implies_in_build_all_simple_clss[OF dist tauto]
+  then have "simple_clss (atms_of (C' + {#L#})) \<subseteq> simple_clss (atms_of_ms A)"
+    apply - by (rule simple_clss_mono) (simp_all)
+  then have "C' + {#L#} \<in> simple_clss (atms_of_ms A)"
+    using distinct_mset_not_tautology_implies_in_simple_clss[OF dist tauto]
     by auto
   then show ?case
     using T inv atms_clss undef tr_S n_d
-    by (force dest!: build_all_simple_clss_or_not_simplified_cls)
+    by (force dest!: simple_clss_or_not_simplified_cls)
 qed
 
 lemma cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_not_simplified_decreasing:
@@ -3967,11 +3967,11 @@ lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_clauses_bound:
     n_d: "no_dup (trail S)" and
     finite[simp]: "finite A"
   shows "set_mset (clauses T) \<subseteq> set_mset (not_simplified_cls (clauses S))
-    \<union> build_all_simple_clss (atms_of_ms A)"
+    \<union> simple_clss (atms_of_ms A)"
   using assms(1-5)
 proof induction
   case base
-  then show ?case by (auto dest!: build_all_simple_clss_or_not_simplified_cls)
+  then show ?case by (auto dest!: simple_clss_or_not_simplified_cls)
 next
   case (step T U) note st = this(1) and cdcl\<^sub>N\<^sub>O\<^sub>T = this(2) and IH = this(3)[OF this(4-7)] and
     inv = this(4) and atms_clss_S = this(5) and atms_trail_S = this(6) and finite_cls_S = this(7)
@@ -3987,14 +3987,14 @@ next
   moreover moreover have "no_dup (trail T)"
     using cdcl\<^sub>N\<^sub>O\<^sub>T.rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup[OF  \<open>cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T\<close> inv n_d] by fast
   ultimately have "set_mset (clauses U)
-    \<subseteq> set_mset (not_simplified_cls (clauses T)) \<union> build_all_simple_clss (atms_of_ms A)"
+    \<subseteq> set_mset (not_simplified_cls (clauses T)) \<union> simple_clss (atms_of_ms A)"
     using cdcl\<^sub>N\<^sub>O\<^sub>T finite  cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_clauses_bound
     by (auto intro!: cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_clauses_bound)
   moreover have "set_mset (not_simplified_cls (clauses T))
     \<subseteq> set_mset (not_simplified_cls (clauses S))"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_not_simplified_decreasing[OF st] by auto
   ultimately show ?case using IH inv atms_clss_S
-    by (auto dest!: build_all_simple_clss_or_not_simplified_cls)
+    by (auto dest!: simple_clss_or_not_simplified_cls)
 qed
 
 abbreviation \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound where
@@ -4013,16 +4013,16 @@ lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_clauses_bound_card:
   shows "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged A T \<le> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A S"
 proof -
   have "set_mset (clauses T) \<subseteq> set_mset (not_simplified_cls(clauses S))
-    \<union> build_all_simple_clss (atms_of_ms A)"
+    \<union> simple_clss (atms_of_ms A)"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_clauses_bound[OF assms] .
   moreover have "card (set_mset (not_simplified_cls(clauses S))
-      \<union> build_all_simple_clss (atms_of_ms A))
+      \<union> simple_clss (atms_of_ms A))
     \<le> card (set_mset (not_simplified_cls(clauses S))) + 3 ^ card (atms_of_ms A)"
-    by (meson Nat.le_trans atms_of_ms_finite build_all_simple_clss_card card_Un_le finite
+    by (meson Nat.le_trans atms_of_ms_finite simple_clss_card card_Un_le finite
       nat_add_left_cancel_le)
   ultimately have "card (set_mset (clauses T))
     \<le> card (set_mset (not_simplified_cls(clauses S))) + 3 ^ card (atms_of_ms A)"
-    by (meson Nat.le_trans atms_of_ms_finite build_all_simple_clss_finite card_mono
+    by (meson Nat.le_trans atms_of_ms_finite simple_clss_finite card_mono
       finite_UnI finite_set_mset local.finite)
   moreover have "((2 + card (atms_of_ms A)) ^ (1 + card (atms_of_ms A)) - \<mu>\<^sub>C' A T) * 2
     \<le> (2 + card (atms_of_ms A)) ^ (1 + card (atms_of_ms A)) * 2"
@@ -4094,7 +4094,7 @@ next
     by auto
 
   have "(set_mset (clauses U))
-    \<subseteq> set_mset (not_simplified_cls (clauses U)) \<union> build_all_simple_clss (atms_of_ms A)"
+    \<subseteq> set_mset (not_simplified_cls (clauses U)) \<union> simple_clss (atms_of_ms A)"
     apply (rule rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_clauses_bound)
          apply simp
         using \<open>inv U\<close> apply simp
@@ -4104,23 +4104,23 @@ next
     using finite apply simp
     done
   then have f1: "card (set_mset (clauses U)) \<le> card (set_mset (not_simplified_cls (clauses U))
-    \<union> build_all_simple_clss (atms_of_ms A))"
-    by (simp add: build_all_simple_clss_finite card_mono local.finite)
+    \<union> simple_clss (atms_of_ms A))"
+    by (simp add: simple_clss_finite card_mono local.finite)
 
-  moreover have "set_mset (not_simplified_cls (clauses U)) \<union> build_all_simple_clss (atms_of_ms A)
-    \<subseteq> set_mset (not_simplified_cls (clauses S)) \<union> build_all_simple_clss (atms_of_ms A)"
+  moreover have "set_mset (not_simplified_cls (clauses U)) \<union> simple_clss (atms_of_ms A)
+    \<subseteq> set_mset (not_simplified_cls (clauses S)) \<union> simple_clss (atms_of_ms A)"
     using U_S by auto
   then have f2:
-    "card (set_mset (not_simplified_cls (clauses U)) \<union> build_all_simple_clss (atms_of_ms A))
-      \<le> card (set_mset (not_simplified_cls (clauses S)) \<union> build_all_simple_clss (atms_of_ms A))"
-    by (simp add: build_all_simple_clss_finite card_mono local.finite)
+    "card (set_mset (not_simplified_cls (clauses U)) \<union> simple_clss (atms_of_ms A))
+      \<le> card (set_mset (not_simplified_cls (clauses S)) \<union> simple_clss (atms_of_ms A))"
+    by (simp add: simple_clss_finite card_mono local.finite)
 
   moreover have "card (set_mset (not_simplified_cls (clauses S))
-      \<union> build_all_simple_clss (atms_of_ms A))
-    \<le> card (set_mset (not_simplified_cls (clauses S))) + card (build_all_simple_clss (atms_of_ms A))"
+      \<union> simple_clss (atms_of_ms A))
+    \<le> card (set_mset (not_simplified_cls (clauses S))) + card (simple_clss (atms_of_ms A))"
     using card_Un_le by blast
-  moreover have "card (build_all_simple_clss (atms_of_ms A)) \<le> 3 ^ card (atms_of_ms A)"
-    using atms_of_ms_finite build_all_simple_clss_card local.finite by blast
+  moreover have "card (simple_clss (atms_of_ms A)) \<le> 3 ^ card (atms_of_ms A)"
+    using atms_of_ms_finite simple_clss_card local.finite by blast
   ultimately have "card (set_mset (clauses U))
     \<le> card (set_mset (not_simplified_cls (clauses S))) + 3 ^ card (atms_of_ms A)"
     by linarith

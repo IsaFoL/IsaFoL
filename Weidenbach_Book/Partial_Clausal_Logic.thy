@@ -977,19 +977,19 @@ lemma true_clss_cls_remdups_mset[iff]: "A \<Turnstile>p remdups_mset C \<longlef
   unfolding true_clss_cls_def total_over_m_def by auto
 
 subsection \<open>Set of all Simple Clauses\<close>
-definition build_all_simple_clss :: "'v set \<Rightarrow> 'v clause set" where
-"build_all_simple_clss atms = {C. atms_of C \<subseteq> atms \<and> \<not>tautology C \<and> distinct_mset C}"
+definition simple_clss :: "'v set \<Rightarrow> 'v clause set" where
+"simple_clss atms = {C. atms_of C \<subseteq> atms \<and> \<not>tautology C \<and> distinct_mset C}"
 
-lemma build_all_simple_clss_empty[simp]:
-  "build_all_simple_clss {} = {{#}}"
-  unfolding build_all_simple_clss_def by auto
+lemma simple_clss_empty[simp]:
+  "simple_clss {} = {{#}}"
+  unfolding simple_clss_def by auto
 
-lemma build_all_simple_clss_insert:
+lemma simple_clss_insert:
   assumes "l \<notin> atms"
-  shows "build_all_simple_clss (insert l atms) =
-    (op + {#Pos l#}) ` (build_all_simple_clss atms)
-    \<union> (op + {#Neg l#}) ` (build_all_simple_clss atms)
-    \<union> build_all_simple_clss atms"(is "?I = ?U")
+  shows "simple_clss (insert l atms) =
+    (op + {#Pos l#}) ` (simple_clss atms)
+    \<union> (op + {#Neg l#}) ` (simple_clss atms)
+    \<union> simple_clss atms"(is "?I = ?U")
 proof (standard; standard)
   fix C
   assume "C \<in> ?I"
@@ -997,7 +997,7 @@ proof (standard; standard)
     atms: "atms_of C \<subseteq> insert l atms" and
     taut: "\<not>tautology C" and
     dist: "distinct_mset C"
-    unfolding build_all_simple_clss_def by auto
+    unfolding simple_clss_def by auto
   have H: "\<And>x. x \<in># C \<Longrightarrow> atm_of x \<in> insert l atms"
     using atm_of_lit_in_atms_of atms by blast
   consider
@@ -1018,15 +1018,15 @@ proof (standard; standard)
         using taut by (metis Add(1) insert_DiffM tautology_add_single)
       moreover have "distinct_mset (C - {#L#})"
         using dist by auto
-      ultimately have "(C - {#L#}) \<in> build_all_simple_clss atms"
-        using Add unfolding build_all_simple_clss_def by auto
+      ultimately have "(C - {#L#}) \<in> simple_clss atms"
+        using Add unfolding simple_clss_def by auto
       moreover have "C = {#L#} + (C - {#L#})"
         using Add by (auto simp: multiset_eq_iff)
       ultimately show ?thesis using Add by auto
     next
       case No
-      then have "C \<in> build_all_simple_clss atms"
-        using taut atms dist unfolding build_all_simple_clss_def
+      then have "C \<in> simple_clss atms"
+        using taut atms dist unfolding simple_clss_def
         by (auto simp: atm_iff_pos_or_neg_lit split: split_if_asm dest!: H)
       then show ?thesis by blast
     qed
@@ -1034,21 +1034,21 @@ next
   fix C
   assume "C \<in> ?U"
   then consider
-      (Add) L C' where "C = {#L#} + C'" and "C' \<in> build_all_simple_clss atms" and
+      (Add) L C' where "C = {#L#} + C'" and "C' \<in> simple_clss atms" and
         "L = Pos l \<or> L = Neg l"
-    | (No) "C \<in> build_all_simple_clss atms"
+    | (No) "C \<in> simple_clss atms"
     by auto
   then show "C \<in> ?I"
     proof cases
       case No
-      then show ?thesis unfolding build_all_simple_clss_def by auto
+      then show ?thesis unfolding simple_clss_def by auto
     next
       case (Add L C') note C' = this(1) and C = this(2) and L = this(3)
       then have
         atms: "atms_of C' \<subseteq> atms" and
         taut: "\<not>tautology C'" and
         dist: "distinct_mset C'"
-        unfolding build_all_simple_clss_def by auto
+        unfolding simple_clss_def by auto
       have "atms_of C \<subseteq> insert l atms"
         using atms C' L by auto
       moreover have "\<not> tautology C"
@@ -1058,29 +1058,29 @@ next
         using dist C' L
         by (metis assms atm_of_lit_in_atms_of atms contra_subsetD distinct_mset_add_single
           literal.sel(1,2))
-      ultimately show ?thesis unfolding build_all_simple_clss_def by blast
+      ultimately show ?thesis unfolding simple_clss_def by blast
     qed
 qed
 
-lemma build_all_simple_clss_finite:
+lemma simple_clss_finite:
   fixes atms :: "'v set"
   assumes "finite atms"
-  shows "finite (build_all_simple_clss atms)"
-  using assms  by (induction rule: finite_induct) (auto simp: build_all_simple_clss_insert)
+  shows "finite (simple_clss atms)"
+  using assms  by (induction rule: finite_induct) (auto simp: simple_clss_insert)
 
-lemma build_all_simple_clssE:
+lemma simple_clssE:
   assumes
-    "x \<in> build_all_simple_clss atms"
+    "x \<in> simple_clss atms"
   shows "atms_of x \<subseteq> atms \<and> \<not>tautology x \<and> distinct_mset x"
-  using assms unfolding build_all_simple_clss_def by auto
+  using assms unfolding simple_clss_def by auto
 
-lemma cls_in_build_all_simple_clss:
-  shows "{#} \<in> build_all_simple_clss s"
-  unfolding build_all_simple_clss_def by auto
-lemma build_all_simple_clss_card:
+lemma cls_in_simple_clss:
+  shows "{#} \<in> simple_clss s"
+  unfolding simple_clss_def by auto
+lemma simple_clss_card:
   fixes atms :: "'v  set"
   assumes "finite atms"
-  shows "card (build_all_simple_clss atms) \<le> (3::nat) ^ (card atms)"
+  shows "card (simple_clss atms) \<le> (3::nat) ^ (card atms)"
   using assms
 proof (induct atms rule: finite_induct)
   case empty
@@ -1088,53 +1088,53 @@ proof (induct atms rule: finite_induct)
 next
   case (insert l C) note fin = this(1) and l = this(2) and IH = this(3)
   have notin:
-    "\<And>C'. {#Pos l#} + C' \<notin> build_all_simple_clss C"
-    "\<And>C'. {#Neg l#} + C' \<notin> build_all_simple_clss C"
-    using l unfolding build_all_simple_clss_def by auto
-  have H: "\<And>C' D. {#Pos l#} + C' = {#Neg l#} + D \<Longrightarrow> D \<in> build_all_simple_clss C \<Longrightarrow> False"
+    "\<And>C'. {#Pos l#} + C' \<notin> simple_clss C"
+    "\<And>C'. {#Neg l#} + C' \<notin> simple_clss C"
+    using l unfolding simple_clss_def by auto
+  have H: "\<And>C' D. {#Pos l#} + C' = {#Neg l#} + D \<Longrightarrow> D \<in> simple_clss C \<Longrightarrow> False"
     proof -
       fix C' D
-      assume C'D: "{#Pos l#} + C' = {#Neg l#} + D" and D: "D \<in> build_all_simple_clss C "
+      assume C'D: "{#Pos l#} + C' = {#Neg l#} + D" and D: "D \<in> simple_clss C "
       then have "Pos l \<in># D" by (metis insert_noteq_member literal.distinct(1) union_commute)
       then have "l \<in> atms_of D"
         by (simp add: atm_iff_pos_or_neg_lit)
-      then show False using D l unfolding build_all_simple_clss_def by auto
+      then show False using D l unfolding simple_clss_def by auto
     qed
-  let ?P = "(op + {#Pos l#}) ` (build_all_simple_clss C)"
-  let ?N = "(op + {#Neg l#}) ` (build_all_simple_clss C)"
-  let ?O = "build_all_simple_clss C"
+  let ?P = "(op + {#Pos l#}) ` (simple_clss C)"
+  let ?N = "(op + {#Neg l#}) ` (simple_clss C)"
+  let ?O = "simple_clss C"
   have "card (?P \<union> ?N \<union> ?O) = card (?P \<union> ?N) + card ?O"
     apply (subst card_Un_disjoint)
-    using l fin by (auto simp: build_all_simple_clss_finite notin)
+    using l fin by (auto simp: simple_clss_finite notin)
   moreover have "card (?P \<union> ?N) = card ?P + card ?N"
     apply (subst card_Un_disjoint)
-    using l fin H by (auto simp: build_all_simple_clss_finite notin)
+    using l fin H by (auto simp: simple_clss_finite notin)
   moreover
     have "card ?P = card ?O"
       using inj_on_iff_eq_card[of ?O "op + {#Pos l#}"]
-      by (auto simp: fin build_all_simple_clss_finite inj_on_def)
+      by (auto simp: fin simple_clss_finite inj_on_def)
   moreover have "card ?N = card ?O"
       using inj_on_iff_eq_card[of ?O "op + {#Neg l#}"]
-      by (auto simp: fin build_all_simple_clss_finite inj_on_def)
+      by (auto simp: fin simple_clss_finite inj_on_def)
   moreover have "(3::nat) ^ card (insert l C) = 3 ^ (card C) + 3 ^ (card C) + 3 ^ (card C)"
     using l by (simp add: fin mult_2_right numeral_3_eq_3)
-  ultimately show ?case using IH l by (auto simp: build_all_simple_clss_insert)
+  ultimately show ?case using IH l by (auto simp: simple_clss_insert)
 qed
 
-lemma build_all_simple_clss_mono:
+lemma simple_clss_mono:
   assumes incl: "atms \<subseteq> atms'"
-  shows "build_all_simple_clss atms \<subseteq> build_all_simple_clss atms'"
-  using assms unfolding build_all_simple_clss_def by auto
+  shows "simple_clss atms \<subseteq> simple_clss atms'"
+  using assms unfolding simple_clss_def by auto
 
-lemma distinct_mset_not_tautology_implies_in_build_all_simple_clss:
+lemma distinct_mset_not_tautology_implies_in_simple_clss:
   assumes "distinct_mset \<chi>" and "\<not>tautology \<chi>"
-  shows "\<chi> \<in> build_all_simple_clss (atms_of \<chi>)"
-  using assms unfolding build_all_simple_clss_def by auto
+  shows "\<chi> \<in> simple_clss (atms_of \<chi>)"
+  using assms unfolding simple_clss_def by auto
 
 lemma simplified_in_build_all:
   assumes "distinct_mset_set \<psi>" and "\<forall>\<chi> \<in> \<psi>. \<not>tautology \<chi>"
-  shows "\<psi> \<subseteq> build_all_simple_clss (atms_of_ms \<psi>)"
-  using assms unfolding build_all_simple_clss_def
+  shows "\<psi> \<subseteq> simple_clss (atms_of_ms \<psi>)"
+  using assms unfolding simple_clss_def
   by (auto simp: distinct_mset_set_def atms_of_ms_def)
 
 subsection \<open>Experiment: Expressing the Entailments as Locales\<close>

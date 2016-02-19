@@ -1170,24 +1170,24 @@ lemma rtranclp_resolution_atms_of:
 
 lemma resolution_include:
   assumes res: "resolution \<psi> \<psi>'" and finite: "finite (fst \<psi>)"
-  shows "fst \<psi>' \<subseteq> build_all_simple_clss (atms_of_ms (fst \<psi>))"
+  shows "fst \<psi>' \<subseteq> simple_clss (atms_of_ms (fst \<psi>))"
 proof -
   have finite': "finite (fst \<psi>')" using local.finite res resolution_finite by blast
   have "simplified (fst \<psi>')" using res finite' resolution_always_simplified by blast
-  then have "fst \<psi>' \<subseteq> build_all_simple_clss (atms_of_ms (fst \<psi>'))"
+  then have "fst \<psi>' \<subseteq> simple_clss (atms_of_ms (fst \<psi>'))"
     using simplified_in_build_all finite' simplified_imp_distinct_mset_tauto[of "fst \<psi>'"] by auto
   moreover have "atms_of_ms (fst \<psi>') \<subseteq> atms_of_ms (fst \<psi>)"
     using res finite resolution_atms_of[of \<psi> \<psi>'] by auto
   ultimately show ?thesis by (meson atms_of_ms_finite local.finite order.trans rev_finite_subset
-    build_all_simple_clss_mono)
+    simple_clss_mono)
 qed
 
 lemma rtranclp_resolution_include:
   assumes res: "tranclp resolution \<psi> \<psi>'" and finite: "finite (fst \<psi>)"
-  shows "fst \<psi>' \<subseteq> build_all_simple_clss (atms_of_ms (fst \<psi>))"
+  shows "fst \<psi>' \<subseteq> simple_clss (atms_of_ms (fst \<psi>))"
   using assms apply (induct rule: tranclp.induct)
     apply (simp add: resolution_include)
-  by (meson build_all_simple_clss_mono order_class.le_trans resolution_include
+  by (meson simple_clss_mono order_class.le_trans resolution_include
     rtranclp_resolution_atms_of rtranclp_resolution_finite tranclp_into_rtranclp)
 
 abbreviation already_used_all_simple
@@ -1321,7 +1321,7 @@ lemma tranclp_resolution_simplified_already_used_subset:
   by (meson tranclp_resolution_always_simplified resolution_simplified_already_used_subset
     less_trans)
 
-abbreviation "already_used_top vars \<equiv> build_all_simple_clss vars \<times> build_all_simple_clss vars"
+abbreviation "already_used_top vars \<equiv> simple_clss vars \<times> simple_clss vars"
 
 lemma already_used_all_simple_in_already_used_top:
   assumes "already_used_all_simple s vars" and "finite vars"
@@ -1331,28 +1331,28 @@ proof
   assume x_s: "x \<in> s"
   obtain A B where x: "x = (A, B)" by (cases x, auto)
   then have "simplified {A}" and "atms_of A \<subseteq> vars" using assms(1) x_s by fastforce+
-  then have A: "A \<in> build_all_simple_clss vars"
-    using build_all_simple_clss_mono[of "atms_of A" vars] x assms(2)
+  then have A: "A \<in> simple_clss vars"
+    using simple_clss_mono[of "atms_of A" vars] x assms(2)
     simplified_imp_distinct_mset_tauto[of "{A}"]
-    distinct_mset_not_tautology_implies_in_build_all_simple_clss by fast
+    distinct_mset_not_tautology_implies_in_simple_clss by fast
   moreover have "simplified {B}" and "atms_of B \<subseteq> vars" using assms(1) x_s x by fast+
-  then have B: "B \<in> build_all_simple_clss vars"
+  then have B: "B \<in> simple_clss vars"
     using simplified_imp_distinct_mset_tauto[of "{B}"]
-    distinct_mset_not_tautology_implies_in_build_all_simple_clss
-    build_all_simple_clss_mono[of "atms_of B" vars] x assms(2) by fast
-  ultimately show "x \<in> build_all_simple_clss vars \<times> build_all_simple_clss vars"
+    distinct_mset_not_tautology_implies_in_simple_clss
+    simple_clss_mono[of "atms_of B" vars] x assms(2) by fast
+  ultimately show "x \<in> simple_clss vars \<times> simple_clss vars"
     unfolding x by auto
 qed
 
 lemma already_used_top_finite:
   assumes "finite vars"
   shows "finite (already_used_top vars)"
-  using build_all_simple_clss_finite assms by auto
+  using simple_clss_finite assms by auto
 
 lemma already_used_top_increasing:
   assumes "var \<subseteq> var'" and "finite var'"
   shows "already_used_top var \<subseteq> already_used_top var'"
-  using assms build_all_simple_clss_mono by auto
+  using assms simple_clss_mono by auto
 
 lemma already_used_all_simple_finite:
   fixes s :: "('a literal multiset \<times> 'a literal multiset) set" and vars :: "'a set"
@@ -1374,7 +1374,7 @@ lemma resolution_card_simple_decreasing:
   shows "card_simple vars (snd \<psi>') < card_simple vars (snd \<psi>)"
 proof -
   let ?vars = "vars"
-  let ?top = "build_all_simple_clss ?vars \<times> build_all_simple_clss ?vars"
+  let ?top = "simple_clss ?vars \<times> simple_clss ?vars"
   have 1: "card_simple vars (snd \<psi>) = card ?top - card (snd \<psi>)"
     using card_Diff_subset finite_snd  already_used_all_simple_in_already_used_top[OF a_u_s]
     finite_v by metis

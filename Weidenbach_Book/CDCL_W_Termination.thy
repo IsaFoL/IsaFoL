@@ -6,7 +6,7 @@ context cdcl\<^sub>W
 begin
 subsection \<open>Termination\<close>
 text \<open>The condition that no learned clause is a tautology is overkill (in the sense that the
-  no-duplicate condition is enough), but we can reuse @{term build_all_simple_clss}.
+  no-duplicate condition is enough), but we can reuse @{term simple_clss}.
 
   The invariant contains all the structural invariants that holds,\<close>
 definition cdcl\<^sub>W_all_struct_inv where
@@ -897,14 +897,14 @@ lemma learned_clss_less_upper_bound:
     "\<forall>s \<in># learned_clss S. \<not>tautology s"
   shows "card(set_mset (learned_clss S)) \<le> 3 ^ card (atms_of_msu (learned_clss S))"
 proof -
-  have "set_mset (learned_clss S) \<subseteq> build_all_simple_clss (atms_of_msu (learned_clss S))"
+  have "set_mset (learned_clss S) \<subseteq> simple_clss (atms_of_msu (learned_clss S))"
     apply (rule simplified_in_build_all)
     using assms unfolding distinct_cdcl\<^sub>W_state_def by auto
   then have "card(set_mset (learned_clss S))
-    \<le> card (build_all_simple_clss (atms_of_msu (learned_clss S)))"
-    by (simp add: build_all_simple_clss_finite card_mono)
+    \<le> card (simple_clss (atms_of_msu (learned_clss S)))"
+    by (simp add: simple_clss_finite card_mono)
   then show ?thesis
-    by (meson atms_of_ms_finite build_all_simple_clss_card finite_set_mset order_trans)
+    by (meson atms_of_ms_finite simple_clss_card finite_set_mset order_trans)
 qed
 
 lemma lexn3[intro!, simp]:

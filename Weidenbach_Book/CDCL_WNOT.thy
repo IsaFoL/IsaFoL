@@ -3611,7 +3611,7 @@ lemma "full1 cdcl\<^sub>W_merge_stgy S T \<Longrightarrow> cdcl\<^sub>W_merge_wi
 
 lemma cdcl\<^sub>W_all_struct_inv_learned_clss_bound:
   assumes inv: "cdcl\<^sub>W_all_struct_inv S"
-  shows "set_mset (learned_clss S) \<subseteq> build_all_simple_clss (atms_of_msu (init_clss S))"
+  shows "set_mset (learned_clss S) \<subseteq> simple_clss (atms_of_msu (init_clss S))"
 proof
   fix C
   assume C: "C \<in> set_mset (learned_clss S)"
@@ -3627,8 +3627,8 @@ proof
     using inv  unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def by force
   moreover have "finite (atms_of_msu (init_clss S))"
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def by auto
-  ultimately show "C \<in> build_all_simple_clss (atms_of_msu (init_clss S))"
-    using distinct_mset_not_tautology_implies_in_build_all_simple_clss build_all_simple_clss_mono
+  ultimately show "C \<in> simple_clss (atms_of_msu (init_clss S))"
+    using distinct_mset_not_tautology_implies_in_simple_clss simple_clss_mono
     by blast
 qed
 
@@ -3665,8 +3665,8 @@ proof (rule ccontr)
       not_bounded_nat_exists_larger not_le ordered_cancel_comm_monoid_diff_class.le_iff_add)
 
   obtain k where
-    f_g_k: "f (snd (g k)) > card (build_all_simple_clss (atms_of_msu (init_clss (fst ?S))))" and
-    "k > card (build_all_simple_clss (atms_of_msu (init_clss (fst ?S))))"
+    f_g_k: "f (snd (g k)) > card (simple_clss (atms_of_msu (init_clss (fst ?S))))" and
+    "k > card (simple_clss (atms_of_msu (init_clss (fst ?S))))"
     using not_bounded_nat_exists_larger[OF unbounded_f_g] by blast
   text \<open>The following does not hold anymore with the non-strict version of
     cardinality in the definition.\<close>
@@ -3696,10 +3696,10 @@ proof (rule ccontr)
     using inv[of k]  rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_merge_stgy_rtranclp_cdcl\<^sub>W
     by blast
   moreover have "card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g k))))
-      > card (build_all_simple_clss (atms_of_msu (init_clss (fst ?S))))"
+      > card (simple_clss (atms_of_msu (init_clss (fst ?S))))"
       unfolding m[symmetric] using \<open>m > f (snd (g k))\<close> f_g_k by linarith
     then have "card (set_mset (learned_clss T))
-      > card (build_all_simple_clss (atms_of_msu (init_clss (fst ?S))))"
+      > card (simple_clss (atms_of_msu (init_clss (fst ?S))))"
       by linarith
   moreover
     have "init_clss (fst (g k)) = init_clss T"
@@ -3709,7 +3709,7 @@ proof (rule ccontr)
       using init_g[of k] by auto
   ultimately show False
     using cdcl\<^sub>W_all_struct_inv_learned_clss_bound
-    by (simp add: \<open>finite (atms_of_msu (init_clss (fst (g 0))))\<close> build_all_simple_clss_finite
+    by (simp add: \<open>finite (atms_of_msu (init_clss (fst (g 0))))\<close> simple_clss_finite
       card_mono leD)
 qed
 
@@ -3787,8 +3787,8 @@ proof (rule ccontr)
       not_bounded_nat_exists_larger not_le ordered_cancel_comm_monoid_diff_class.le_iff_add)
 
   obtain k where
-    f_g_k: "f (snd (g k)) > card (build_all_simple_clss (atms_of_msu (init_clss (fst ?S))))" and
-    "k > card (build_all_simple_clss (atms_of_msu (init_clss (fst ?S))))"
+    f_g_k: "f (snd (g k)) > card (simple_clss (atms_of_msu (init_clss (fst ?S))))" and
+    "k > card (simple_clss (atms_of_msu (init_clss (fst ?S))))"
     using not_bounded_nat_exists_larger[OF unbounded_f_g] by blast
   text \<open>The following does not hold anymore with the non-strict version of
     cardinality in the definition.\<close>
@@ -3817,10 +3817,10 @@ proof (rule ccontr)
   then have "cdcl\<^sub>W_all_struct_inv T"
     using inv[of k]  rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W by blast
   moreover have "card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g k))))
-      > card (build_all_simple_clss (atms_of_msu (init_clss (fst ?S))))"
+      > card (simple_clss (atms_of_msu (init_clss (fst ?S))))"
       unfolding m[symmetric] using \<open>m > f (snd (g k))\<close> f_g_k by linarith
     then have "card (set_mset (learned_clss T))
-      > card (build_all_simple_clss (atms_of_msu (init_clss (fst ?S))))"
+      > card (simple_clss (atms_of_msu (init_clss (fst ?S))))"
       by linarith
   moreover
     have "init_clss (fst (g k)) = init_clss T"
@@ -3831,7 +3831,7 @@ proof (rule ccontr)
       using init_g[of k] by auto
   ultimately show False
     using cdcl\<^sub>W_all_struct_inv_learned_clss_bound
-    by (simp add: \<open>finite (atms_of_msu (init_clss (fst (g 0))))\<close> build_all_simple_clss_finite
+    by (simp add: \<open>finite (atms_of_msu (init_clss (fst (g 0))))\<close> simple_clss_finite
       card_mono leD)
 qed
 
