@@ -904,35 +904,35 @@ lemma do_full1_cp_step_full:
     (toS (rough_state_of (do_full1_cp_step S)))"
   unfolding full_def
 proof (rule conjI, induction S rule: do_full1_cp_step.induct)
-  case (1 Sa)
+  case (1 S)
   then have f1:
-      "cdcl\<^sub>W_cp\<^sup>*\<^sup>* (toS (do_cp_step (rough_state_of Sa))) (
-        toS (rough_state_of (do_full1_cp_step (state_of (do_cp_step (rough_state_of Sa))))))
-      \<or> state_of (do_cp_step (rough_state_of Sa)) = Sa"
+      "cdcl\<^sub>W_cp\<^sup>*\<^sup>* (toS (do_cp_step (rough_state_of S))) (
+        toS (rough_state_of (do_full1_cp_step (state_of (do_cp_step (rough_state_of S))))))
+      \<or> state_of (do_cp_step (rough_state_of S)) = S"
     using do_cp_step'_def rough_state_of_state_of_do_cp_step by fastforce
   have f2: "\<And>c. (if c = state_of (do_cp_step (rough_state_of c))
        then c else do_full1_cp_step (state_of (do_cp_step (rough_state_of c))))
      = do_full1_cp_step c"
     by (metis (full_types) do_cp_step'_def do_full1_cp_step.simps)
-  have f3: "\<And>p. \<not> cdcl\<^sub>W_cp p (toS (do_cp_step (rough_state_of Sa)))
-    \<or> state_of (do_cp_step (rough_state_of Sa)) = Sa
-    \<or> cdcl\<^sub>W_cp\<^sup>+\<^sup>+ p
-        (toS (rough_state_of (do_full1_cp_step (state_of (do_cp_step (rough_state_of Sa))))))"
-    using f1 by (meson rtranclp_into_tranclp2) (* 30 ms *)
-  { assume "do_full1_cp_step Sa \<noteq> Sa"
-    then have "do_cp_step (rough_state_of Sa) = rough_state_of Sa
-        \<longrightarrow> cdcl\<^sub>W_cp\<^sup>*\<^sup>* (toS (rough_state_of Sa)) (toS (rough_state_of (do_full1_cp_step Sa)))
-      \<or> do_cp_step (rough_state_of Sa) \<noteq> rough_state_of Sa
-        \<and> state_of (do_cp_step (rough_state_of Sa)) \<noteq> Sa"
+  have f3: "\<not> cdcl\<^sub>W_cp (toS (rough_state_of S)) (toS (do_cp_step (rough_state_of S)))
+    \<or> state_of (do_cp_step (rough_state_of S)) = S
+    \<or> cdcl\<^sub>W_cp\<^sup>+\<^sup>+ (toS (rough_state_of S))
+        (toS (rough_state_of (do_full1_cp_step (state_of (do_cp_step (rough_state_of S))))))"
+    using f1 by (meson rtranclp_into_tranclp2)
+  { assume "do_full1_cp_step S \<noteq> S"
+    then have "do_cp_step (rough_state_of S) = rough_state_of S
+        \<longrightarrow> cdcl\<^sub>W_cp\<^sup>*\<^sup>* (toS (rough_state_of S)) (toS (rough_state_of (do_full1_cp_step S)))
+      \<or> do_cp_step (rough_state_of S) \<noteq> rough_state_of S
+        \<and> state_of (do_cp_step (rough_state_of S)) \<noteq> S"
       using f2 f1 by (metis (no_types))
-    then have "do_cp_step (rough_state_of Sa) \<noteq> rough_state_of Sa
-        \<and> state_of (do_cp_step (rough_state_of Sa)) \<noteq> Sa
-      \<or> cdcl\<^sub>W_cp\<^sup>*\<^sup>* (toS (rough_state_of Sa)) (toS (rough_state_of (do_full1_cp_step Sa)))"
+    then have "do_cp_step (rough_state_of S) \<noteq> rough_state_of S
+        \<and> state_of (do_cp_step (rough_state_of S)) \<noteq> S
+      \<or> cdcl\<^sub>W_cp\<^sup>*\<^sup>* (toS (rough_state_of S)) (toS (rough_state_of (do_full1_cp_step S)))"
       by (metis rough_state_of_state_of_do_cp_step)
-    then have "cdcl\<^sub>W_cp\<^sup>*\<^sup>* (toS (rough_state_of Sa)) (toS (rough_state_of (do_full1_cp_step Sa)))"
+    then have "cdcl\<^sub>W_cp\<^sup>*\<^sup>* (toS (rough_state_of S)) (toS (rough_state_of (do_full1_cp_step S)))"
       using f3 f2 by (metis (no_types) cp_step_is_cdcl\<^sub>W_cp tranclp_into_rtranclp) }
   then show ?case
-    using rtranclp.rtrancl_refl by fastforce
+    by fastforce
 next
   show "no_step cdcl\<^sub>W_cp (toS (rough_state_of (do_full1_cp_step S)))"
     apply (rule do_cp_step_eq_no_step[OF do_full1_cp_step_fix_point_of_do_full1_cp_step[of S]])
