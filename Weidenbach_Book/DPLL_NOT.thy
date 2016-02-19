@@ -89,29 +89,26 @@ proof -
           "I \<Turnstile>sm N"
         have "(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)"
           using cons tot unfolding consistent_interp_def L by (cases K) auto
-        have "total_over_set I (atm_of ` lit_of ` (set M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}))"
+        have tI: "total_over_set I (atm_of ` lit_of ` (set M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}))"
           using tot by (auto simp add: L atms_of_uminus_lit_atm_of_lit_of)
 
         then have H: "\<And>x.
             lit_of x \<notin> I \<Longrightarrow> x \<in> set M \<Longrightarrow>is_marked x
             \<Longrightarrow> x \<noteq> Marked K d \<Longrightarrow> -lit_of x \<in> I"
-            (* TODO one-liner? *)
-          unfolding total_over_set_def atms_of_s_def
           proof -
             fix x :: "('v, unit, unit) marked_lit"
-            assume a1: "x \<in> set M"
-            assume a2: "\<forall>l\<in>atm_of ` lit_of ` (set M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}).
-              Pos l \<in> I \<or> Neg l \<in> I"
-            assume a3: "lit_of x \<notin> I"
-            assume a4: "is_marked x"
-            assume a5: "x \<noteq> Marked K d"
-            have f6: "Neg (atm_of (lit_of x)) = - Pos (atm_of (lit_of x))"
-              by simp
-            have "Pos (atm_of (lit_of x)) \<in> I \<or> Neg (atm_of (lit_of x)) \<in> I"
-              using a5 a4 a2 a1 by blast
+            assume a1: "x \<noteq> Marked K d"
+            assume a2: "is_marked x"
+            assume a3: "x \<in> set M"
+            assume a4: "lit_of x \<notin> I"
+            have "atm_of (lit_of x) \<in> atm_of ` lit_of `
+              (set M \<inter> {m. is_marked m \<and> m \<noteq> Marked K d})"
+              using a3 a2 a1 by blast
+            then have "Pos (atm_of (lit_of x)) \<in> I \<or> Neg (atm_of (lit_of x)) \<in> I"
+              using tI unfolding total_over_set_def by blast
             then show "- lit_of x \<in> I"
-              using f6 a3 by (metis (no_types) atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
-                literal.sel(1))
+              using a4 by (metis (no_types) atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+                literal.sel(1,2))
           qed
         have "\<not>I \<Turnstile>s ?C'"
           using \<open>set_mset N \<union> ?C' \<Turnstile>ps {{#}}\<close> tot cons \<open>I \<Turnstile>sm N\<close>

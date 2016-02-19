@@ -14,7 +14,6 @@ lemma nat_less_induct_case[case_names 0 Suc]:
   apply (induction rule: nat_less_induct)
   by (rename_tac n, case_tac n) (auto intro: assms)
 
-(* TODO Move. Mark as simp *)
 text \<open>This is only proved in simple cases by auto. In assumptions, nothing happens, and
   @{thm split_if_asm} can blow up goals (because of other if expression).\<close>
 lemma if_0_1_ge_0[simp]:

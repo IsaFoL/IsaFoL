@@ -441,8 +441,7 @@ next
              unfolding true_annots_def Ball_def CNot_def true_annot_def
              using atm_of_lit_in_atms_of true_annot_iff_marked_or_true_lit true_cls_def by blast
           then show ?thesis
-            (* TODO Tune proof *)
-            using D apply auto by (meson atms_of_atms_of_ms_mono mem_set_mset_iff subset_eq)
+            by (metis Bex_mset_def D atms_of_atms_of_ms_mono mem_set_mset_iff rev_subsetD)
         qed
       moreover {
         assume "\<exists>L. undefined_lit M L \<and> atm_of L \<in> atms_of_msu N"

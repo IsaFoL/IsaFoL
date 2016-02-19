@@ -1693,41 +1693,6 @@ next
     qed
 qed
 
-lemma mset_condensation1:
-  "{# La :# A + {#L#}. 2 \<le> count (A +  {#L#}) La#} = {# La :# A. La \<noteq> L \<and>  2 \<le> count A La#}
-    #\<union> (if count A L \<ge> 1 then replicate_mset (count A L + 1) L else {#})"
-   by (auto intro: multiset_eqI)
-lemma mset_condensation2:
-  "{# La :# A + {#L#}+  {#L#}. 2 \<le> count (A +  {#L#}+  {#L#}) La#} = {# La :# A. La \<noteq> L \<and>
-  2 \<le> count A La#} #\<union> (replicate_mset (count A L + 2) L)"
-   by (auto intro: multiset_eqI)
-
-lemma msetsum_disjoint:
-  assumes "A #\<inter> B = {#}"
-  shows "(\<Sum>La\<in>#A #\<union> B. f La) =
-    (\<Sum>La\<in>#A. f La) + (\<Sum>La\<in>#B. f La)"
-  by (metis assms diff_zero empty_sup image_mset_union  msetsum.union multiset_inter_commute
-    multiset_union_diff_commute sup_subset_mset_def zero_diff)
-
-(* TODO Move to Multiset_More *)
-lemma msetsum_linear[simp]:
-  fixes C D :: "'a \<Rightarrow> 'b::{comm_monoid_add}"
-  shows "(\<Sum>x\<in>#A. C x + D x) = (\<Sum>x\<in>#A. C x) + (\<Sum>x\<in>#A. D x)"
-  by (induction A) (auto simp: ac_simps)
-
-lemma msetsum_if_eq[simp]: "(\<Sum>x\<in>#A. if L = x then 1 else 0) = count A L"
-  by (induction A) auto
-
-(* TODO Move to Multiset_More *)
-lemma filter_equality_in_mset:
-   "filter_mset (op = L) A = replicate_mset (count A L) L"
-  by (auto simp: multiset_eq_iff)
-
-(* TODO Move to Multiset_More *)
-lemma comprehension_mset_False[simp]:
-   "{# L \<in># A. False#} = {#}"
-  by (auto simp: multiset_eq_iff)
-
 lemma simplify_finite_measure_decrease:
   "simplify N N' \<Longrightarrow> finite N \<Longrightarrow> card N' + \<Xi> N' < card N + \<Xi> N"
 proof (induction rule: simplify.induct)
@@ -1757,7 +1722,7 @@ next
         {# La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#} + replicate_mset (count A L) L"
         by (auto simp: multiset_eq_iff)
       show ?thesis
-        by (auto simp: mset_decomp mset_decomp2 filter_equality_in_mset ac_simps)
+        by (auto simp: mset_decomp mset_decomp2 filter_mset_eq ac_simps)
    qed
   have "\<Xi> ?N' < \<Xi> N"
     proof cases
@@ -1796,7 +1761,7 @@ next
       show ?thesis
         using \<open>\<Xi> {A + {#L#}} < \<Xi> {A + {#L#} + {#L#}}\<close> condensation.hyps fin
         sum_count_ge_2.remove[of _ "A + {#L#} + {#L#}"] \<open>?C' \<notin> N\<close>
-        by (auto simp: mset_decomp mset_decomp2 filter_equality_in_mset)
+        by (auto simp: mset_decomp mset_decomp2 filter_mset_eq)
     qed
   ultimately show ?case by linarith
 next

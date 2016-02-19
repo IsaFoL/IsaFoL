@@ -55,7 +55,7 @@ notation (HTML output)
   not_Melem  ("op \<notin>#") and
   not_Melem  ("(_/ \<notin># _)" [51, 51] 50)
 
-subsection \<open> Existence quantifiers in multisets\<close>
+subsection \<open>Existence and forall quantifiers in multisets\<close>
 definition Ball_mset :: "'a multiset \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> bool" where
   "Ball_mset A P \<longleftrightarrow> (\<forall>x. x \<in># A \<longrightarrow> P x)"   \<comment> "bounded universal quantifiers on multisets"
 
@@ -188,9 +188,6 @@ text \<open>
   Gives better instantiation for bound:
 \<close>
 
-(* TODO
-
-What is it?*)
 setup \<open>
   map_theory_claset (fn ctxt =>
     ctxt addbefore ("bspec_mset", fn ctxt' => dresolve_tac ctxt' @{thms bspec_mset}
@@ -286,7 +283,7 @@ lemma bex_mset_cong:
   by (simp add: Bex_mset_def cong: conj_cong)
 
 lemma strong_bex_mset_cong [cong]:
-  "A = B ==> (!!x. x:#B =simp=> P x = Q x) ==>
+  "A = B \<Longrightarrow> (!!x. x:#B =simp=> P x = Q x) ==>
     (EX x:#A. P x) = (EX x:#B. Q x)"
   by (simp add: simp_implies_def Bex_mset_def cong: conj_cong)
 
@@ -618,6 +615,7 @@ text \<open>Another characterisation of @{term distinct_mset}\<close>
 lemma distinct_mset_count_less_1:
   "distinct_mset S \<longleftrightarrow> (\<forall>a. count S a \<le> 1)"
   unfolding distinct_mset_def by (metis le_neq_implies_less less_one less_or_eq_imp_le not_gr0)
+
 lemma distinct_mset_add:
   "distinct_mset (L + L') \<longleftrightarrow> distinct_mset L \<and> distinct_mset L' \<and> L #\<inter> L' = {#}" (is "?A \<longleftrightarrow> ?B")
 proof (rule iffI)
@@ -727,7 +725,28 @@ lemma image_filter_ne_mset[simp]:
   "image_mset f {#x \<in># M. f x \<noteq> y#} = remove_mset y (image_mset f M)"
   by (induct M, auto, meson count_le_replicate_mset_le order_refl subset_mset.add_diff_assoc2)
 
+lemma comprehension_mset_False[simp]:
+   "{# L \<in># A. False#} = {#}"
+  by (auto simp: multiset_eq_iff)
 
+lemma filter_mset_eq:
+   "filter_mset (op = L) A = replicate_mset (count A L) L"
+  by (auto simp: multiset_eq_iff)
+
+subsection \<open>Sums\<close>
+lemma msetsum_distrib[simp]:
+  fixes C D :: "'a \<Rightarrow> 'b::{comm_monoid_add}"
+  shows "(\<Sum>x\<in>#A. C x + D x) = (\<Sum>x\<in>#A. C x) + (\<Sum>x\<in>#A. D x)"
+  by (induction A) (auto simp: ac_simps)
+
+lemma msetsum_union_disjoint:
+  assumes "A #\<inter> B = {#}"
+  shows "(\<Sum>La\<in>#A #\<union> B. f La) =
+    (\<Sum>La\<in>#A. f La) + (\<Sum>La\<in>#B. f La)"
+  by (metis assms diff_zero empty_sup image_mset_union  msetsum.union multiset_inter_commute
+    multiset_union_diff_commute sup_subset_mset_def zero_diff)
+
+subsection \<open>Order\<close>
 (*TODO: remove when multiset is of sort ord again*)  
 instantiation multiset :: (linorder) linorder
 begin

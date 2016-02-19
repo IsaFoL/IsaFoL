@@ -150,21 +150,42 @@ proof (induction "trail T" arbitrary:T rule: marked_lit_list_induct)
 next
   case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
     and bt = this(3)
-    (* TODO less ugly proof *)
-  then show ?case apply (cases "count C (-L) = 0")
-    apply (auto simp: true_annots_true_cls)
-    by (smt CNot_def One_nat_def count_single diff_Suc_1 in_CNot_uminus less_numeral_extra(4)
-     marked.prems marked_lit.sel(1) mem_Collect_eq true_annot_def true_annot_lit_of_notin_skip
-     true_annots_def true_clss_def zero_less_diff)
+  show ?case
+    proof (cases "count C (-L) = 0")
+      case False
+      then show ?thesis
+        using IH M bt by (auto simp: true_annots_true_cls)
+    next
+      case True
+      obtain mma :: "'v literal multiset" where
+        f6: "(mma \<in> {{#- l#} |l. l \<in># C} \<longrightarrow> M \<Turnstile>a mma) \<longrightarrow> M \<Turnstile>as {{#- l#} |l. l \<in># C}"
+        using true_annots_def by moura
+      have "mma \<in> {{#- l#} |l. l \<in># C} \<longrightarrow> trail T \<Turnstile>a mma"
+        using CNot_def M bt by (metis (no_types) true_annots_def)
+      then have "M \<Turnstile>as {{#- l#} |l. l \<in># C}"
+        using f6 True M bt by force
+      then show ?thesis
+        using IH true_annots_true_cls M by (auto simp: CNot_def)
+    qed
 next
   case (proped L l M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric] and bt = this(3)
-  then show ?case
-    (* TODO ugly proof *)
-    apply (cases "count C (-L) = 0")
-    apply (auto simp: true_annots_true_cls)
-    by (smt CNot_def One_nat_def count_single diff_Suc_1 in_CNot_uminus less_numeral_extra(4)
-     proped.prems marked_lit.sel(2) mem_Collect_eq true_annot_def true_annot_lit_of_notin_skip
-     true_annots_def true_clss_def zero_less_diff)
+  show ?case
+    proof (cases "count C (-L) = 0")
+      case False
+      then show ?thesis
+        using IH M bt by (auto simp: true_annots_true_cls)
+    next
+      case True
+      obtain mma :: "'v literal multiset" where
+        f6: "(mma \<in> {{#- l#} |l. l \<in># C} \<longrightarrow> M \<Turnstile>a mma) \<longrightarrow> M \<Turnstile>as {{#- l#} |l. l \<in># C}"
+        using true_annots_def by moura
+      have "mma \<in> {{#- l#} |l. l \<in># C} \<longrightarrow> trail T \<Turnstile>a mma"
+        using CNot_def M bt by (metis (no_types) true_annots_def)
+      then have "M \<Turnstile>as {{#- l#} |l. l \<in># C}"
+        using f6 True M bt by force
+      then show ?thesis
+        using IH true_annots_true_cls M by (auto simp: CNot_def)
+    qed
 qed
 
 lemma cut_trail_wrt_clause_hd_trail_in_or_empty_trail:
@@ -320,17 +341,15 @@ proof -
     proof clarify
       fix a b
       assume "(a, b) \<in> set (get_all_marked_decomposition (trail ?T))"
-      from in_get_all_marked_decomposition_in_get_all_marked_decomposition_prepend[OF this]
+      from in_get_all_marked_decomposition_in_get_all_marked_decomposition_prepend[OF this, of M]
       obtain b' where
-        "(a, b' @ b) \<in>  set (get_all_marked_decomposition (trail T))"
-        using M (* TODO tune *) by simp metis
+        "(a, b' @ b) \<in> set (get_all_marked_decomposition (trail T))"
+        using M by auto
+      then have "unmark a \<union> set_mset (init_clss T) \<Turnstile>ps unmark (b' @ b)"
+        using decomp_T unfolding all_decomposition_implies_def by fastforce
       then have "unmark a \<union> set_mset (init_clss ?T)
-        \<Turnstile>ps unmark (b @ b')"
-        using decomp_T unfolding all_decomposition_implies_def
-        (* TODO Tune *)
-        apply auto
-        by (metis (no_types, lifting) case_prodD set_append sup.commute true_clss_clss_insert_l)
-
+            \<Turnstile>ps unmark (b @ b')"
+        by (simp add: Un_commute)
       then show "unmark a \<union> set_mset (init_clss ?T)
         \<Turnstile>ps unmark b"
         by (auto simp: image_Un)
