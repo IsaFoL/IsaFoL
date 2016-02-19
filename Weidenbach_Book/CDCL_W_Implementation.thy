@@ -600,7 +600,7 @@ lemma get_all_marked_decomposition_map_convert:
 
 lemma do_backtrack_step:
   assumes
-    db: "do_backtrack_step S \<noteq> S" and 
+    db: "do_backtrack_step S \<noteq> S" and
     inv: "cdcl\<^sub>W_all_struct_inv (toS S)"
   shows "backtrack (toS S) (toS (do_backtrack_step S))"
   proof (cases S, cases "conflicting S", goal_cases)
@@ -902,14 +902,42 @@ lemma in_clauses_rough_state_of_is_distinct:
 lemma do_full1_cp_step_full:
   "full cdcl\<^sub>W_cp (toS (rough_state_of S))
     (toS (rough_state_of (do_full1_cp_step S)))"
-  unfolding full_def apply standard
-    apply (induction S rule: do_full1_cp_step.induct)
-    apply (smt cp_step_is_cdcl\<^sub>W_cp do_cp_step'_def do_full1_cp_step.simps
-      rough_state_of_state_of_do_cp_step rtranclp.rtrancl_refl rtranclp_into_tranclp2
-      tranclp_into_rtranclp)
-
-  apply (rule do_cp_step_eq_no_step[OF do_full1_cp_step_fix_point_of_do_full1_cp_step[of S]])
-  using in_clauses_rough_state_of_is_distinct unfolding do_cp_step'_def by blast
+  unfolding full_def
+proof (rule conjI, induction S rule: do_full1_cp_step.induct)
+  case (1 Sa)
+  then have f1:
+      "cdcl\<^sub>W_cp\<^sup>*\<^sup>* (toS (do_cp_step (rough_state_of Sa))) (
+        toS (rough_state_of (do_full1_cp_step (state_of (do_cp_step (rough_state_of Sa))))))
+      \<or> state_of (do_cp_step (rough_state_of Sa)) = Sa"
+    using do_cp_step'_def rough_state_of_state_of_do_cp_step by fastforce
+  have f2: "\<And>c. (if c = state_of (do_cp_step (rough_state_of c))
+       then c else do_full1_cp_step (state_of (do_cp_step (rough_state_of c))))
+     = do_full1_cp_step c"
+    by (metis (full_types) do_cp_step'_def do_full1_cp_step.simps)
+  have f3: "\<And>p. \<not> cdcl\<^sub>W_cp p (toS (do_cp_step (rough_state_of Sa)))
+    \<or> state_of (do_cp_step (rough_state_of Sa)) = Sa
+    \<or> cdcl\<^sub>W_cp\<^sup>+\<^sup>+ p
+        (toS (rough_state_of (do_full1_cp_step (state_of (do_cp_step (rough_state_of Sa))))))"
+    using f1 by (meson rtranclp_into_tranclp2) (* 30 ms *)
+  { assume "do_full1_cp_step Sa \<noteq> Sa"
+    then have "do_cp_step (rough_state_of Sa) = rough_state_of Sa
+        \<longrightarrow> cdcl\<^sub>W_cp\<^sup>*\<^sup>* (toS (rough_state_of Sa)) (toS (rough_state_of (do_full1_cp_step Sa)))
+      \<or> do_cp_step (rough_state_of Sa) \<noteq> rough_state_of Sa
+        \<and> state_of (do_cp_step (rough_state_of Sa)) \<noteq> Sa"
+      using f2 f1 by (metis (no_types))
+    then have "do_cp_step (rough_state_of Sa) \<noteq> rough_state_of Sa
+        \<and> state_of (do_cp_step (rough_state_of Sa)) \<noteq> Sa
+      \<or> cdcl\<^sub>W_cp\<^sup>*\<^sup>* (toS (rough_state_of Sa)) (toS (rough_state_of (do_full1_cp_step Sa)))"
+      by (metis rough_state_of_state_of_do_cp_step)
+    then have "cdcl\<^sub>W_cp\<^sup>*\<^sup>* (toS (rough_state_of Sa)) (toS (rough_state_of (do_full1_cp_step Sa)))"
+      using f3 f2 by (metis (no_types) cp_step_is_cdcl\<^sub>W_cp tranclp_into_rtranclp) }
+  then show ?case
+    using rtranclp.rtrancl_refl by fastforce
+next
+  show "no_step cdcl\<^sub>W_cp (toS (rough_state_of (do_full1_cp_step S)))"
+    apply (rule do_cp_step_eq_no_step[OF do_full1_cp_step_fix_point_of_do_full1_cp_step[of S]])
+    using in_clauses_rough_state_of_is_distinct unfolding do_cp_step'_def by blast
+qed
 
 lemma [code abstract]:
  "rough_state_of (do_cp_step' S) = do_cp_step (rough_state_of S)"
@@ -1141,7 +1169,7 @@ lemma do_decide_step_not_conflicting_one_more_decide_bt:
     (auto simp add: Let_def split: split_if_asm option.splits)
 
 lemma do_other_step_not_conflicting_one_more_decide_bt:
-  assumes 
+  assumes
     "conflicting (rough_state_of S) \<noteq> None" and
     "conflicting (rough_state_of (do_other_step' S)) = None" and
     "do_other_step' S \<noteq> S"
@@ -1160,20 +1188,20 @@ proof (cases S, goal_cases)
         using assms(1,2) by auto[]
     next
       case (2 v vb vd vf vh)
-      have f3: "\<And>c. (if do_skip_step (rough_state_of c) \<noteq> rough_state_of c 
-        then do_skip_step (rough_state_of c) 
+      have f3: "\<And>c. (if do_skip_step (rough_state_of c) \<noteq> rough_state_of c
+        then do_skip_step (rough_state_of c)
         else if do_resolve_step (do_skip_step (rough_state_of c)) \<noteq> do_skip_step (rough_state_of c)
-             then do_resolve_step (do_skip_step (rough_state_of c)) 
-             else if do_backtrack_step (do_resolve_step (do_skip_step (rough_state_of c))) 
-               \<noteq> do_resolve_step (do_skip_step (rough_state_of c)) 
-             then do_backtrack_step (do_resolve_step (do_skip_step (rough_state_of c))) 
-             else do_decide_step (do_backtrack_step (do_resolve_step 
+             then do_resolve_step (do_skip_step (rough_state_of c))
+             else if do_backtrack_step (do_resolve_step (do_skip_step (rough_state_of c)))
+               \<noteq> do_resolve_step (do_skip_step (rough_state_of c))
+             then do_backtrack_step (do_resolve_step (do_skip_step (rough_state_of c)))
+             else do_decide_step (do_backtrack_step (do_resolve_step
                (do_skip_step (rough_state_of c)))))
         = rough_state_of (do_other_step' c)"
         by (simp add: rough_state_of_do_other_step')
-      have "(trail (rough_state_of (do_other_step' S)), clss (rough_state_of (do_other_step' S)), 
+      have "(trail (rough_state_of (do_other_step' S)), clss (rough_state_of (do_other_step' S)),
           learned_clss (rough_state_of (do_other_step' S)),
-          backtrack_lvl (rough_state_of (do_other_step' S)), None) 
+          backtrack_lvl (rough_state_of (do_other_step' S)), None)
         = rough_state_of (do_other_step' S)"
         using assms(2) by (metis (no_types) state_conv)
       then show ?thesis
