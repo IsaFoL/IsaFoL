@@ -887,28 +887,7 @@ lemma length_model_le_vars_all_inv:
   by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
 end
 
-locale cdcl\<^sub>W_termination =
-   cdcl\<^sub>W trail init_clss learned_clss backtrack_lvl conflicting cons_trail tl_trail
-   add_init_cls
-   add_learned_cls remove_cls update_backtrack_lvl update_conflicting init_state
-   restart_state
-  for
-    trail :: "'st \<Rightarrow> ('v::linorder, nat, 'v clause) marked_lits" and
-    init_clss :: "'st \<Rightarrow> 'v clauses" and
-    learned_clss :: "'st \<Rightarrow> 'v clauses" and
-    backtrack_lvl :: "'st \<Rightarrow> nat" and
-    conflicting :: "'st \<Rightarrow>'v clause option" and
-
-    cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
-    tl_trail :: "'st \<Rightarrow> 'st" and
-    add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
-
-    init_state :: "'v clauses \<Rightarrow> 'st" and
-    restart_state :: "'st \<Rightarrow> 'st"
+context cdcl\<^sub>W
 begin
 
 lemma learned_clss_less_upper_bound:

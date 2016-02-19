@@ -1332,15 +1332,15 @@ proof
   obtain A B where x: "x = (A, B)" by (cases x, auto)
   then have "simplified {A}" and "atms_of A \<subseteq> vars" using assms(1) x_s by fastforce+
   then have A: "A \<in> build_all_simple_clss vars"
-    using build_all_simple_clss_mono[of vars "atms_of A"] x assms(2)
+    using build_all_simple_clss_mono[of "atms_of A" vars] x assms(2)
     simplified_imp_distinct_mset_tauto[of "{A}"]
     distinct_mset_not_tautology_implies_in_build_all_simple_clss by fast
   moreover have "simplified {B}" and "atms_of B \<subseteq> vars" using assms(1) x_s x by fast+
   then have B: "B \<in> build_all_simple_clss vars"
     using simplified_imp_distinct_mset_tauto[of "{B}"]
     distinct_mset_not_tautology_implies_in_build_all_simple_clss
-    build_all_simple_clss_mono[of vars "atms_of B"] x assms(2) by fast
-  ultimately show "x \<in> build_all_simple_clss vars \<times> build_all_simple_clss vars" 
+    build_all_simple_clss_mono[of "atms_of B" vars] x assms(2) by fast
+  ultimately show "x \<in> build_all_simple_clss vars \<times> build_all_simple_clss vars"
     unfolding x by auto
 qed
 
@@ -1355,7 +1355,7 @@ lemma already_used_top_increasing:
   using assms build_all_simple_clss_mono by auto
 
 lemma already_used_all_simple_finite:
-  fixes s :: "('a::linorder literal multiset \<times> 'a literal multiset) set" and vars :: "'a set"
+  fixes s :: "('a literal multiset \<times> 'a literal multiset) set" and vars :: "'a set"
   assumes "already_used_all_simple s vars" and "finite vars"
   shows "finite s"
   using assms already_used_all_simple_in_already_used_top[OF assms(1)]
@@ -1402,18 +1402,17 @@ lemma tranclp_resolution_card_simple_decreasing:
   and "simplified (fst \<psi>)"
   shows "card_simple vars (snd \<psi>') < card_simple vars (snd \<psi>)"
   using assms
-proof (induct rule: tranclp.induct)
-  case (r_into_trancl \<psi> \<psi>')
+proof (induct rule: tranclp_induct)
+  case (base \<psi>')
   then show ?case by (simp add: resolution_card_simple_decreasing)
 next
-  case (trancl_into_trancl \<psi> \<psi>' \<psi>'') note res = this(1) and res' = this(3) and a_u_s = this(5) and
+  case (step \<psi>' \<psi>'') note res = this(1) and res' = this(2) and a_u_s = this(5) and
     atms = this(6) and f_v = this(7) and f_fst = this(4) and H = this
   then have "card_simple vars (snd \<psi>') < card_simple vars (snd \<psi>)" by auto
   moreover have a_u_s': "already_used_all_simple (snd \<psi>') vars"
     using rtranclp_already_used_all_simple_inv[OF tranclp_into_rtranclp[OF res] a_u_s atms f_fst] .
   have "finite (fst \<psi>')"
-    by (meson build_all_simple_clss_finite rev_finite_subset rtranclp_resolution_include
-      trancl_into_trancl.hyps(1) trancl_into_trancl.prems(1))
+    by (meson finite_fst res rtranclp_resolution_finite tranclp_into_rtranclp)
   moreover have "finite (snd \<psi>')" using already_used_all_simple_finite[OF a_u_s' f_v] .
   moreover have "simplified (fst \<psi>')" using res tranclp_resolution_always_simplified by blast
   moreover have "atms_of_ms (fst \<psi>') \<subseteq> vars"

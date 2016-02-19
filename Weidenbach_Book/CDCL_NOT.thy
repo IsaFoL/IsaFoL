@@ -1860,7 +1860,7 @@ locale conflict_driven_clause_learning_learning_before_backjump_only_distinct_le
   "\<lambda>C S. \<not>(\<exists>F' F K d L. trail S = F' @ Marked K () # F \<and> F \<Turnstile>as CNot (C - {#L#}))
     \<and> forget_restrictions C S"
     for
-      trail :: "'st \<Rightarrow> ('v::linorder, unit, unit) marked_lits" and
+      trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
       clauses :: "'st \<Rightarrow> 'v clauses" and
       prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
       tl_trail :: "'st \<Rightarrow> 'st" and
@@ -3519,15 +3519,15 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_with_backtrack_and_restarts =
     prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T propagate_conds inv backjump_conds
     learn_restrictions forget_restrictions
   for
-    trail :: "'st \<Rightarrow> ('v::linorder, unit, unit) marked_lits" and
-    clauses :: "'st \<Rightarrow> 'v::linorder clauses" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     propagate_conds :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
     backjump_conds :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
-    learn_restrictions forget_restrictions :: "'v::linorder clause \<Rightarrow> 'st \<Rightarrow> bool"
+    learn_restrictions forget_restrictions :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
     +
   fixes f :: "nat \<Rightarrow> nat"
   assumes
@@ -3819,8 +3819,8 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_with_backtrack_restarts =
     propagate_conds inv forget_conds
     "\<lambda>C C' L' S. distinct_mset (C' + {#L'#}) \<and> backjump_l_cond C C' L' S"
     for
-    trail :: "'st \<Rightarrow> ('v::linorder, unit, unit) marked_lits" and
-    clauses :: "'st \<Rightarrow> 'v::linorder clauses" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    clauses :: "'st \<Rightarrow> 'v clauses" and
     prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -4022,7 +4022,8 @@ proof -
       nat_add_left_cancel_le)
   ultimately have "card (set_mset (clauses T))
     \<le> card (set_mset (not_simplified_cls(clauses S))) + 3 ^ card (atms_of_ms A)"
-    by (meson build_all_simple_clss_finite card_mono dual_order.trans finite_UnI finite_set_mset)
+    by (meson Nat.le_trans atms_of_ms_finite build_all_simple_clss_finite card_mono
+      finite_UnI finite_set_mset local.finite)
   moreover have "((2 + card (atms_of_ms A)) ^ (1 + card (atms_of_ms A)) - \<mu>\<^sub>C' A T) * 2
     \<le> (2 + card (atms_of_ms A)) ^ (1 + card (atms_of_ms A)) * 2"
     by auto
@@ -4104,7 +4105,7 @@ next
     done
   then have f1: "card (set_mset (clauses U)) \<le> card (set_mset (not_simplified_cls (clauses U))
     \<union> build_all_simple_clss (atms_of_ms A))"
-    by (meson build_all_simple_clss_finite card_mono finite_UnI finite_set_mset)
+    by (simp add: build_all_simple_clss_finite card_mono local.finite)
 
   moreover have "set_mset (not_simplified_cls (clauses U)) \<union> build_all_simple_clss (atms_of_ms A)
     \<subseteq> set_mset (not_simplified_cls (clauses S)) \<union> build_all_simple_clss (atms_of_ms A)"
@@ -4112,7 +4113,7 @@ next
   then have f2:
     "card (set_mset (not_simplified_cls (clauses U)) \<union> build_all_simple_clss (atms_of_ms A))
       \<le> card (set_mset (not_simplified_cls (clauses S)) \<union> build_all_simple_clss (atms_of_ms A))"
-    by (meson build_all_simple_clss_finite card_mono finite_UnI finite_set_mset)
+    by (simp add: build_all_simple_clss_finite card_mono local.finite)
 
   moreover have "card (set_mset (not_simplified_cls (clauses S))
       \<union> build_all_simple_clss (atms_of_ms A))

@@ -3561,7 +3561,7 @@ locale cdcl\<^sub>W_restart =
    add_learned_cls remove_cls update_backtrack_lvl update_conflicting init_state
    restart_state
   for
-    trail :: "'st \<Rightarrow> ('v::linorder, nat, 'v clause) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) marked_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
     backtrack_lvl :: "'st \<Rightarrow> nat" and
@@ -3574,7 +3574,7 @@ locale cdcl\<^sub>W_restart =
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-    init_state :: "'v::linorder clauses \<Rightarrow> 'st" and
+    init_state :: "'v clauses \<Rightarrow> 'st" and
     restart_state :: "'st \<Rightarrow> 'st" +
   fixes f :: "nat \<Rightarrow> nat"
   assumes f: "unbounded f"
@@ -3708,8 +3708,9 @@ proof (rule ccontr)
     then have "init_clss (fst ?S) = init_clss T"
       using init_g[of k] by auto
   ultimately show False
-    using cdcl\<^sub>W_all_struct_inv_learned_clss_bound by (metis Suc_leI card_mono not_less_eq_eq
-      build_all_simple_clss_finite)
+    using cdcl\<^sub>W_all_struct_inv_learned_clss_bound
+    by (simp add: \<open>finite (atms_of_msu (init_clss (fst (g 0))))\<close> build_all_simple_clss_finite
+      card_mono leD)
 qed
 
 lemma cdcl\<^sub>W_merge_with_restart_distinct_mset_clauses:
@@ -3829,8 +3830,9 @@ proof (rule ccontr)
     then have "init_clss (fst ?S) = init_clss T"
       using init_g[of k] by auto
   ultimately show False
-    using cdcl\<^sub>W_all_struct_inv_learned_clss_bound by (metis Suc_leI card_mono not_less_eq_eq
-      build_all_simple_clss_finite)
+    using cdcl\<^sub>W_all_struct_inv_learned_clss_bound
+    by (simp add: \<open>finite (atms_of_msu (init_clss (fst (g 0))))\<close> build_all_simple_clss_finite
+      card_mono leD)
 qed
 
 lemma cdcl\<^sub>W_with_restart_distinct_mset_clauses:
@@ -4082,7 +4084,7 @@ locale luby_sequence_restart =
     restart_state
   for
     ur :: nat and
-    trail :: "'st \<Rightarrow> ('v::linorder, nat, 'v clause) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) marked_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
     backtrack_lvl :: "'st \<Rightarrow> nat" and
@@ -4094,7 +4096,7 @@ locale luby_sequence_restart =
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-    init_state :: "'v::linorder clauses \<Rightarrow> 'st" and
+    init_state :: "'v clauses \<Rightarrow> 'st" and
     restart_state :: "'st \<Rightarrow> 'st"
 begin
 
