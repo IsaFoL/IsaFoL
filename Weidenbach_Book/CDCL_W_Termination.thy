@@ -898,7 +898,7 @@ lemma learned_clss_less_upper_bound:
   shows "card(set_mset (learned_clss S)) \<le> 3 ^ card (atms_of_msu (learned_clss S))"
 proof -
   have "set_mset (learned_clss S) \<subseteq> simple_clss (atms_of_msu (learned_clss S))"
-    apply (rule simplified_in_build_all)
+    apply (rule simplified_in_simple_clss)
     using assms unfolding distinct_cdcl\<^sub>W_state_def by auto
   then have "card(set_mset (learned_clss S))
     \<le> card (simple_clss (atms_of_msu (learned_clss S)))"

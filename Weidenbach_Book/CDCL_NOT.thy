@@ -555,10 +555,10 @@ next
     by simp
   have tr_S: "trail S = tl y @ a"
     using arg_cong[OF M', of tl] y\<^sub>0 M get_all_marked_decomposition_decomp by force
-  have a_Un_N_M: "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset ?N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl y)"
+  have a_Un_N_M: "unmark a \<union> set_mset ?N \<Turnstile>ps unmark (tl y)"
     using decomp ay unfolding all_decomposition_implies_def by (simp add: M)+
 
-  moreover have "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset ?N \<Turnstile>p {#L#}" (is "?I \<Turnstile>p _")
+  moreover have "unmark a \<union> set_mset ?N \<Turnstile>p {#L#}" (is "?I \<Turnstile>p _")
     proof (rule true_clss_cls_plus_CNot)
       show "?I \<Turnstile>p C + {#L#}"
         using propa propagate\<^sub>N\<^sub>O\<^sub>T.prems by (auto dest!: true_clss_clss_in_imp_true_clss_cls)
@@ -568,8 +568,8 @@ next
       have a1: "(\<lambda>m. {#lit_of m#}) ` set a \<union> (\<lambda>m. {#lit_of m#}) ` set (tl y)  \<Turnstile>ps CNot C"
         using propagate\<^sub>N\<^sub>O\<^sub>T.hyps(2) tr_S true_annots_true_clss_clss
         by (force simp add: image_Un sup_commute)
-      have a2: "set_mset (clauses S)\<union> (\<lambda>a. {#lit_of a#}) ` set a
-        \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl y)"
+      have a2: "set_mset (clauses S)\<union> unmark a
+        \<Turnstile>ps unmark (tl y)"
         using calculation by (auto simp add: sup_commute)
       show "(\<lambda>m. {#lit_of m#}) ` set a  \<union> set_mset (clauses S)\<Turnstile>ps CNot C"
         proof -
@@ -582,7 +582,7 @@ next
         qed
     qed
 
-  ultimately have "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset ?N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set ?M'"
+  ultimately have "unmark a \<union> set_mset ?N \<Turnstile>ps unmark ?M'"
     unfolding M' by (auto simp add: all_in_true_clss_clss image_Un)
 
   then show ?case
@@ -596,9 +596,9 @@ next
       get_all_marked_decomposition_never_empty hd_Cons_tl insert_iff list.sel(3) list.set(2)
       tl_get_all_marked_decomposition_skip_some)
 
-  moreover have "(\<lambda>a. {#lit_of a#}) ` set (fst (hd (get_all_marked_decomposition F)))
+  moreover have "unmark (fst (hd (get_all_marked_decomposition F)))
       \<union> set_mset (clauses S)
-    \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (snd (hd (get_all_marked_decomposition F)))"
+    \<Turnstile>ps unmark (snd (hd (get_all_marked_decomposition F)))"
     by (metis all_decomposition_implies_cons_single decomp get_all_marked_decomposition_never_empty
       hd_Cons_tl)
   moreover
@@ -610,21 +610,21 @@ next
     by (cases "get_all_marked_decomposition F") auto
   have "F = b @ a"
     using get_all_marked_decomposition_decomp[of F a b] F by auto
-  have a_N_b:"(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (clauses S) \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set b"
+  have a_N_b:"unmark a \<union> set_mset (clauses S) \<Turnstile>ps unmark b"
     using decomp unfolding all_decomposition_implies_def by (auto simp add: F)
 
-  have F_D:"(\<lambda>a. {#lit_of a#}) ` set F \<Turnstile>ps CNot D"
+  have F_D:"unmark F \<Turnstile>ps CNot D"
     using \<open>F \<Turnstile>as CNot D\<close> by (simp add: true_annots_true_clss_clss)
-  then have "(\<lambda>a. {#lit_of a#}) ` set a \<union> (\<lambda>a. {#lit_of a#}) ` set b \<Turnstile>ps CNot D"
+  then have "unmark a \<union> unmark b \<Turnstile>ps CNot D"
     unfolding \<open>F = b @ a\<close> by (simp add: image_Un sup.commute)
-  have a_N_CNot_D: "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (clauses S)
-    \<Turnstile>ps CNot D \<union> (\<lambda>a. {#lit_of a#}) ` set b"
+  have a_N_CNot_D: "unmark a \<union> set_mset (clauses S)
+    \<Turnstile>ps CNot D \<union> unmark b"
     apply (rule true_clss_clss_left_right)
     using a_N_b  F_D unfolding \<open>F = b @ a\<close> by (auto simp add: image_Un ac_simps)
 
-  have a_N_D_L: "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (clauses S) \<Turnstile>p D+{#L#}"
+  have a_N_D_L: "unmark a \<union> set_mset (clauses S) \<Turnstile>p D+{#L#}"
     by (simp add: N_C)
-  have "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (clauses S) \<Turnstile>p {#L#}"
+  have "unmark a \<union> set_mset (clauses S) \<Turnstile>p {#L#}"
     using a_N_D_L a_N_CNot_D by (blast intro: true_clss_cls_plus_CNot)
   then show ?case
     using decomp T tr undef unfolding all_decomposition_implies_def by (auto simp add: F)
@@ -947,7 +947,7 @@ proof -
         using cons using \<open>no_dup ?M\<close>  unfolding consistent_interp_def
         by (auto simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def
           dest!: no_dup_cannot_not_lit_and_uminus)
-      have tot_I': "total_over_m ?I (?N \<union> (\<lambda>a. {#lit_of a#}) ` set ?M)"
+      have tot_I': "total_over_m ?I (?N \<union> unmark ?M)"
         using tot atms_of_s_def unfolding total_over_m_def total_over_set_def
         by fastforce
       have "{P |P. P \<in> lits_of ?M \<and> atm_of P \<notin> atm_of ` I} \<Turnstile>s ?O"
@@ -979,17 +979,17 @@ proof -
       have "\<exists>l \<in> set ?M. is_marked l"
         proof (rule ccontr)
           let ?O = "{{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M \<and> atm_of (lit_of L) \<notin> atms_of_ms ?N}"
-          have \<theta>[iff]: "\<And>I. total_over_m I (?N \<union> ?O \<union> (\<lambda>a. {#lit_of a#}) ` set ?M)
-            \<longleftrightarrow> total_over_m I (?N \<union>(\<lambda>a. {#lit_of a#}) ` set ?M)"
+          have \<theta>[iff]: "\<And>I. total_over_m I (?N \<union> ?O \<union> unmark ?M)
+            \<longleftrightarrow> total_over_m I (?N \<union>unmark ?M)"
             unfolding total_over_set_def total_over_m_def atms_of_ms_def by auto
           assume "\<not> ?thesis"
           then have [simp]:"{{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M}
             = {{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M \<and> atm_of (lit_of L) \<notin> atms_of_ms ?N}"
             by auto
-          then have "?N \<union> ?O \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set ?M"
+          then have "?N \<union> ?O \<Turnstile>ps unmark ?M"
             using all_decomposition_implies_propagated_lits_are_implied[OF decomp] by auto
 
-          then have "?I \<Turnstile>s (\<lambda>a. {#lit_of a#}) ` set ?M"
+          then have "?I \<Turnstile>s unmark ?M"
             using cons_I' I'_N tot_I' \<open>?I \<Turnstile>s ?N \<union> ?O\<close> unfolding \<theta> true_clss_clss_def by blast
           then have "lits_of ?M \<subseteq> ?I"
             unfolding true_clss_def lits_of_def by auto
@@ -1009,13 +1009,13 @@ proof -
         unfolding M_K by auto
       let ?C = "image_mset lit_of {#L\<in>#mset ?M. is_marked L \<and> L\<noteq>?K#} :: 'v literal multiset"
       let ?C' = "set_mset (image_mset (\<lambda>L::'v literal. {#L#}) (?C+{#lit_of ?K#}))"
-      have "?N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set ?M"
+      have "?N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M} \<Turnstile>ps unmark ?M"
         using all_decomposition_implies_propagated_lits_are_implied[OF decomp] .
       moreover have C': "?C' = {{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M}"
         unfolding M_K apply standard
           apply force
         using IntI by auto
-      ultimately have N_C_M: "?N \<union> ?C' \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set ?M"
+      ultimately have N_C_M: "?N \<union> ?C' \<Turnstile>ps unmark ?M"
         by auto
       have N_M_False: "?N \<union> (\<lambda>L. {#lit_of L#}) ` (set ?M) \<Turnstile>ps {{#}}"
         using M \<open>?M \<Turnstile>as CNot C\<close> \<open>C\<in>?N\<close> unfolding true_clss_clss_def true_annots_def Ball_def
@@ -1026,8 +1026,8 @@ proof -
       moreover
         have "?N \<union> ?C' \<Turnstile>ps {{#}}"
           proof -
-            have A: "?N \<union> ?C' \<union> (\<lambda>a. {#lit_of a#}) ` set ?M  =
-              ?N \<union> (\<lambda>a. {#lit_of a#}) ` set ?M"
+            have A: "?N \<union> ?C' \<union> unmark ?M  =
+              ?N \<union> unmark ?M"
               unfolding M_K by auto
             show ?thesis
               using true_clss_clss_left_right[OF N_C_M, of "{{#}}"] N_M_False unfolding A by auto
@@ -1458,7 +1458,7 @@ next
     proof (intro allI, clarify)
       fix a b
       assume "(a, b) \<in> set (get_all_marked_decomposition (trail T))"
-      then have "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (clauses S) \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set b"
+      then have "unmark a \<union> set_mset (clauses S) \<Turnstile>ps unmark b"
         using decomp T by (auto simp add: all_decomposition_implies_def)
       moreover
         have "C \<in> set_mset (clauses S)"
@@ -1467,8 +1467,8 @@ next
           by (metis (no_types) T clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T cls_C insert_Diff order_refl
             set_mset_minus_replicate_mset(1) state_eq\<^sub>N\<^sub>O\<^sub>T_clauses true_clss_clss_def
             true_clss_clss_insert)
-      ultimately show "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (clauses T)
-        \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set b"
+      ultimately show "unmark a \<union> set_mset (clauses T)
+        \<Turnstile>ps unmark b"
         using true_clss_clss_generalise_true_clss_clss by blast
     qed
 qed
@@ -2046,7 +2046,7 @@ proof -
     have T: "conflicting_bj_clss T
     \<subseteq> simple_clss (atms_of_msu (clauses T) \<union> atm_of ` lits_of (trail T))"
       by standard (meson "1" "2" fin'  \<open>finite (conflicting_bj_clss T)\<close> simple_clss_mono
-        distinct_mset_set_def  simplified_in_build_all subsetCE sup.coboundedI1)
+        distinct_mset_set_def  simplified_in_simple_clss subsetCE sup.coboundedI1)
   moreover
     then have #: "3 ^ card (atms_of_msu (clauses T) \<union> atm_of ` lits_of (trail T))
         \<ge> card (conflicting_bj_clss T)"
@@ -3345,7 +3345,7 @@ proof -
         using cons using \<open>no_dup ?M\<close>  unfolding consistent_interp_def
         by (auto simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def
           dest!: no_dup_cannot_not_lit_and_uminus)
-      have tot_I': "total_over_m ?I (?N \<union> (\<lambda>a. {#lit_of a#}) ` set ?M)"
+      have tot_I': "total_over_m ?I (?N \<union> unmark ?M)"
         using tot atms_of_s_def unfolding total_over_m_def total_over_set_def
         by fastforce
       have "{P |P. P \<in> lits_of ?M \<and> atm_of P \<notin> atm_of ` I} \<Turnstile>s ?O"
@@ -3379,17 +3379,17 @@ proof -
       have "\<exists>l \<in> set ?M. is_marked l"
         proof (rule ccontr)
           let ?O = "{{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M \<and> atm_of (lit_of L) \<notin> atms_of_ms ?N}"
-          have \<theta>[iff]: "\<And>I. total_over_m I (?N \<union> ?O \<union> (\<lambda>a. {#lit_of a#}) ` set ?M)
-            \<longleftrightarrow> total_over_m I (?N \<union>(\<lambda>a. {#lit_of a#}) ` set ?M)"
+          have \<theta>[iff]: "\<And>I. total_over_m I (?N \<union> ?O \<union> unmark ?M)
+            \<longleftrightarrow> total_over_m I (?N \<union>unmark ?M)"
             unfolding total_over_set_def total_over_m_def atms_of_ms_def by auto
           assume "\<not> ?thesis"
           then have [simp]:"{{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M}
             = {{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M \<and> atm_of (lit_of L) \<notin> atms_of_ms ?N}"
             by auto
-          then have "?N \<union> ?O \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set ?M"
+          then have "?N \<union> ?O \<Turnstile>ps unmark ?M"
             using all_decomposition_implies_propagated_lits_are_implied[OF decomp] by auto
 
-          then have "?I \<Turnstile>s (\<lambda>a. {#lit_of a#}) ` set ?M"
+          then have "?I \<Turnstile>s unmark ?M"
             using cons_I' I'_N tot_I' \<open>?I \<Turnstile>s ?N \<union> ?O\<close> unfolding \<theta> true_clss_clss_def by blast
           then have "lits_of ?M \<subseteq> ?I"
             unfolding true_clss_def lits_of_def by auto
@@ -3409,13 +3409,13 @@ proof -
         unfolding M_K by auto
       let ?C = "image_mset lit_of {#L\<in>#mset ?M. is_marked L \<and> L\<noteq>?K#} :: 'v literal multiset"
       let ?C' = "set_mset (image_mset (\<lambda>L::'v literal. {#L#}) (?C+{#lit_of ?K#}))"
-      have "?N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set ?M"
+      have "?N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M} \<Turnstile>ps unmark ?M"
         using all_decomposition_implies_propagated_lits_are_implied[OF decomp] .
       moreover have C': "?C' = {{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M}"
         unfolding M_K apply standard
           apply force
         using IntI by auto
-      ultimately have N_C_M: "?N \<union> ?C' \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set ?M"
+      ultimately have N_C_M: "?N \<union> ?C' \<Turnstile>ps unmark ?M"
         by auto
       have N_M_False: "?N \<union> (\<lambda>L. {#lit_of L#}) ` (set ?M) \<Turnstile>ps {{#}}"
         using M \<open>?M \<Turnstile>as CNot C\<close> \<open>C\<in>?N\<close> unfolding true_clss_clss_def true_annots_def Ball_def
@@ -3426,8 +3426,8 @@ proof -
       moreover
         have "?N \<union> ?C' \<Turnstile>ps {{#}}"
           proof -
-            have A: "?N \<union> ?C' \<union> (\<lambda>a. {#lit_of a#}) ` set ?M  =
-              ?N \<union> (\<lambda>a. {#lit_of a#}) ` set ?M"
+            have A: "?N \<union> ?C' \<union> unmark ?M  =
+              ?N \<union> unmark ?M"
               unfolding M_K by auto
             show ?thesis
               using true_clss_clss_left_right[OF N_C_M, of "{{#}}"] N_M_False unfolding A by auto

@@ -1175,7 +1175,7 @@ proof -
   have finite': "finite (fst \<psi>')" using local.finite res resolution_finite by blast
   have "simplified (fst \<psi>')" using res finite' resolution_always_simplified by blast
   then have "fst \<psi>' \<subseteq> simple_clss (atms_of_ms (fst \<psi>'))"
-    using simplified_in_build_all finite' simplified_imp_distinct_mset_tauto[of "fst \<psi>'"] by auto
+    using simplified_in_simple_clss finite' simplified_imp_distinct_mset_tauto[of "fst \<psi>'"] by auto
   moreover have "atms_of_ms (fst \<psi>') \<subseteq> atms_of_ms (fst \<psi>)"
     using res finite resolution_atms_of[of \<psi> \<psi>'] by auto
   ultimately show ?thesis by (meson atms_of_ms_finite local.finite order.trans rev_finite_subset

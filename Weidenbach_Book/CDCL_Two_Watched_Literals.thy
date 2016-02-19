@@ -1507,38 +1507,6 @@ lemma trail_twl_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_drop:
   apply simp
   done
 
-(* TODO Move? *)
-lemma undefined_lit_convert_trail_from_NOT[simp]:
-  "undefined_lit (convert_trail_from_NOT F) L \<longleftrightarrow> undefined_lit F L"
-  by (induction F rule: marked_lit_list_induct) (auto simp: defined_lit_map)
-
-lemma lits_of_convert_trail_from_NOT:
-  "lits_of (convert_trail_from_NOT F) = lits_of F"
-  by (induction F rule: marked_lit_list_induct) auto
-
-(* TODO Move to List_More *)
-lemma map_eq_cons_decomp:
-  assumes SF: "map f l = xs @ ys"
-  shows "\<exists>xs' ys'. l = xs' @ ys' \<and> map f xs' = xs \<and> map f ys' = ys"
-proof -
-  let ?F' = "take (length xs) l"
-  let ?G = "drop (length xs) l"
-  have tr1: "l = ?F' @ ?G"
-    by simp
-  moreover
-    have [simp]: "length l = length xs + length ys"
-      using arg_cong[OF SF, of length] by auto
-    have "map f ?F' = xs" and  "map f ?G = ys"
-       using arg_cong[OF SF, of "take (length xs)"] apply (subst (asm) tr1)
-       unfolding map_append apply simp
-      using arg_cong[OF SF, of "drop (length xs)"] apply (subst (asm) tr1)
-      unfolding map_append apply simp
-      done
-  ultimately show ?thesis by blast
-qed
-
-(* END Move? *)
-
 interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: dpll_with_backjumping_ops
   "\<lambda>S. convert_trail_from_W (trail_twl S)"
   abstract_twl.raw_clauses_twl

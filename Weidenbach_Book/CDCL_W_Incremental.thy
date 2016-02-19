@@ -290,8 +290,8 @@ proof -
     unfolding consistent_interp_def by auto
 
   have [simp]: "cdcl\<^sub>W_M_level_inv ?T"
-   
-    using M_lev cut_trail_wrt_clause_get_all_levels_of_marked[of T C] 
+
+    using M_lev cut_trail_wrt_clause_get_all_levels_of_marked[of T C]
     unfolding cdcl\<^sub>W_M_level_inv_def by (auto dest: H H'
       simp: M_lev cdcl\<^sub>W_M_level_inv_def cut_trail_wrt_clause_backtrack_lvl_length_marked)
 
@@ -311,7 +311,7 @@ proof -
     unfolding cdcl\<^sub>W_conflicting_def apply simp
     by (metis M \<open>cdcl\<^sub>W_conflicting T\<close> append_assoc cdcl\<^sub>W_conflicting_decomp(2))
 
-  have 
+  have
     decomp_T: "all_decomposition_implies_m (init_clss T) (get_all_marked_decomposition (trail T))"
     using inv_T unfolding cdcl\<^sub>W_all_struct_inv_def by auto
   have  "all_decomposition_implies_m  (init_clss ?T)
@@ -324,15 +324,15 @@ proof -
       obtain b' where
         "(a, b' @ b) \<in>  set (get_all_marked_decomposition (trail T))"
         using M (* TODO tune *) by simp metis
-      then have "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (init_clss ?T)
-        \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (b @ b')"
+      then have "unmark a \<union> set_mset (init_clss ?T)
+        \<Turnstile>ps unmark (b @ b')"
         using decomp_T unfolding all_decomposition_implies_def
         (* TODO Tune *)
         apply auto
         by (metis (no_types, lifting) case_prodD set_append sup.commute true_clss_clss_insert_l)
 
-      then show "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (init_clss ?T)
-        \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set b"
+      then show "unmark a \<union> set_mset (init_clss ?T)
+        \<Turnstile>ps unmark b"
         by (auto simp: image_Un)
     qed
 
@@ -401,7 +401,7 @@ proof -
           apply (auto)
           using Marked_Propagated_in_iff_in_lits_of defined_lit_map by blast
 
-      ultimately have L: "get_level (trail (cut_trail_wrt_clause C (trail T) T)) (-?L) 
+      ultimately have L: "get_level (trail (cut_trail_wrt_clause C (trail T) T)) (-?L)
         = length (get_all_levels_of_marked (trail (cut_trail_wrt_clause C (trail T) T)))"
         using get_level_get_rev_level_get_all_levels_of_marked[OF
           \<open>atm_of ?L \<notin> atm_of ` lits_of (tl (trail (cut_trail_wrt_clause C (trail T) T)))\<close>,

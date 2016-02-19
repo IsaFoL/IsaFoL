@@ -122,6 +122,14 @@ fun convert_marked_lit_from_NOT
 abbreviation convert_trail_from_NOT where
 "convert_trail_from_NOT \<equiv> map convert_marked_lit_from_NOT"
 
+lemma undefined_lit_convert_trail_from_NOT[simp]:
+  "undefined_lit (convert_trail_from_NOT F) L \<longleftrightarrow> undefined_lit F L"
+  by (induction F rule: marked_lit_list_induct) (auto simp: defined_lit_map)
+
+lemma lits_of_convert_trail_from_NOT:
+  "lits_of (convert_trail_from_NOT F) = lits_of F"
+  by (induction F rule: marked_lit_list_induct) auto
+
 lemma convert_trail_from_W_from_NOT[simp]:
   "convert_trail_from_W (convert_trail_from_NOT M) = M"
   by (induction rule: marked_lit_list_induct) auto
@@ -907,7 +915,8 @@ next
             then have "cdcl\<^sub>W\<^sup>*\<^sup>* S U'"
               using mono_rtranclp[of skip cdcl\<^sub>W S U'] by (simp add: cdcl\<^sub>W_o.bj other skip)
             then have "cdcl\<^sub>W_all_struct_inv U'"
-              by (metis (no_types, hide_lams) \<open>cdcl\<^sub>W_all_struct_inv S\<close> rtranclp_cdcl\<^sub>W_all_struct_inv_inv)
+              by (metis (no_types, hide_lams) \<open>cdcl\<^sub>W_all_struct_inv S\<close> 
+                rtranclp_cdcl\<^sub>W_all_struct_inv_inv)
             then have "no_step backtrack U'"
               using if_can_apply_backtrack_no_more_resolve[OF \<open>skip\<^sup>*\<^sup>* U' W\<close> ] res by blast
           }

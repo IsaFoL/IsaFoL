@@ -1707,14 +1707,14 @@ next
   have M': "set (get_all_marked_decomposition (trail S))
     = insert (a, y) (set (tl (get_all_marked_decomposition (trail S))))"
     using ay by (cases "get_all_marked_decomposition (trail S)") auto
-  have "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (init_clss S) \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set y"
+  have "unmark a \<union> set_mset (init_clss S) \<Turnstile>ps unmark y"
     using decomp ay unfolding all_decomposition_implies_def
     by (cases "get_all_marked_decomposition (trail S)") fastforce+
-  then have a_Un_N_M: "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (init_clss S)
-    \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (trail S)"
+  then have a_Un_N_M: "unmark a \<union> set_mset (init_clss S)
+    \<Turnstile>ps unmark (trail S)"
     unfolding M by (auto simp add: all_in_true_clss_clss image_Un)
 
-  have "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (init_clss S) \<Turnstile>p {#L#}" (is "?I \<Turnstile>p _")
+  have "unmark a \<union> set_mset (init_clss S) \<Turnstile>p {#L#}" (is "?I \<Turnstile>p _")
     proof (rule true_clss_cls_plus_CNot)
       show "?I \<Turnstile>p C + {#L#}"
         using propa propagate.prems learned confl unfolding M
@@ -1729,15 +1729,15 @@ next
     qed
   moreover have "\<And>aa b.
       \<forall> (Ls, seen)\<in>set (get_all_marked_decomposition (y @ a)).
-        (\<lambda>a. {#lit_of a#}) ` set Ls \<union> set_mset (init_clss S) \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen
+        unmark Ls \<union> set_mset (init_clss S) \<Turnstile>ps unmark seen
     \<Longrightarrow> (aa, b) \<in> set (tl (get_all_marked_decomposition (y @ a)))
-    \<Longrightarrow> (\<lambda>a. {#lit_of a#}) ` set aa \<union> set_mset (init_clss S) \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set b"
+    \<Longrightarrow> unmark aa \<union> set_mset (init_clss S) \<Turnstile>ps unmark b"
     by (metis (no_types, lifting) case_prod_conv get_all_marked_decomposition_never_empty_sym
       list.collapse list.set_intros(2))
 
   ultimately show ?case
     using decomp T undef unfolding ay all_decomposition_implies_def
-    using M \<open>(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (init_clss S) \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set y\<close>
+    using M \<open>unmark a \<union> set_mset (init_clss S) \<Turnstile>ps unmark y\<close>
      ay by auto
 next
   case (backtrack K i M1 M2 L D T) note decomp' = this(1) and lev_L = this(2) and conf = this(3) and
@@ -1761,9 +1761,9 @@ next
         assume "x \<in> set ?tl"
         then have "x \<in> set (get_all_marked_decomposition (trail S))"
           using tl_get_all_marked_decomposition_skip_some[of x] by (simp add: list.set_sel(2) M)
-        then have "case x of (Ls, seen) \<Rightarrow> (\<lambda>a. {#lit_of a#}) ` set Ls
+        then have "case x of (Ls, seen) \<Rightarrow> unmark Ls
                 \<union> set_mset (init_clss (T))
-                \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen"
+                \<Turnstile>ps unmark seen"
           using decomp learned decomp confl alien inv T undef M
           unfolding all_decomposition_implies_def cdcl\<^sub>W_M_level_inv_def
           by auto
@@ -1777,8 +1777,8 @@ next
         have "(M1', M1'') \<in> set (get_all_marked_decomposition (trail S))"
           using M1[symmetric] hd_get_all_marked_decomposition_skip_some[OF M1[symmetric],
             of "M0 @ M2" _ "i+1"] unfolding M by fastforce
-        then have 1: "(\<lambda>a. {#lit_of a#}) ` set M1' \<union> set_mset (init_clss S)
-          \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M1''"
+        then have 1: "unmark M1' \<union> set_mset (init_clss S)
+          \<Turnstile>ps unmark M1''"
           using decomp unfolding all_decomposition_implies_def by auto
         moreover
           have "trail S \<Turnstile>as CNot D" using conf confl by auto
@@ -1798,24 +1798,24 @@ next
             using vars_in_M1 true_annots_remove_if_notin_vars[of "M0 @ M2 @ Marked K (i + 1) # []"
               M1 "CNot D"] \<open>trail S \<Turnstile>as CNot D\<close> unfolding M lits_of_def by simp
           have "M1 = M1'' @ M1'" by (simp add: M1 get_all_marked_decomposition_decomp)
-          have TT: "(\<lambda>a. {#lit_of a#}) ` set M1' \<union> set_mset (init_clss S) \<Turnstile>ps CNot D"
+          have TT: "unmark M1' \<union> set_mset (init_clss S) \<Turnstile>ps CNot D"
             using true_annots_true_clss_cls[OF \<open>M1 \<Turnstile>as CNot D\<close>] true_clss_clss_left_right[OF 1,
               of "CNot D"] unfolding \<open>M1 = M1'' @ M1'\<close> by (auto simp add: inf_sup_aci(5,7))
           have "init_clss S \<Turnstile>pm D + {#L#}"
             using conf learned cdcl\<^sub>W_learned_clause_def confl by blast
-          then have T': "(\<lambda>a. {#lit_of a#}) ` set M1' \<union> set_mset (init_clss S) \<Turnstile>p D + {#L#}" by auto
+          then have T': "unmark M1' \<union> set_mset (init_clss S) \<Turnstile>p D + {#L#}" by auto
           have "atms_of (D + {#L#}) \<subseteq> atms_of_msu (clauses S)"
             using alien conf unfolding no_strange_atm_def clauses_def by auto
-          then have "(\<lambda>a. {#lit_of a#}) ` set M1' \<union> set_mset (init_clss S) \<Turnstile>p {#L#}"
+          then have "unmark M1' \<union> set_mset (init_clss S) \<Turnstile>p {#L#}"
             using true_clss_cls_plus_CNot[OF T' TT] by auto
         ultimately
-          have "case x of (Ls, seen) \<Rightarrow> (\<lambda>a. {#lit_of a#}) ` set Ls
+          have "case x of (Ls, seen) \<Rightarrow> unmark Ls
             \<union> set_mset (init_clss T)
-            \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen" using T' T decomp' undef inv unfolding x'
+            \<Turnstile>ps unmark seen" using T' T decomp' undef inv unfolding x'
             by (simp add: cdcl\<^sub>W_M_level_inv_decomp)
       }
-      ultimately show "case x of (Ls, seen) \<Rightarrow> (\<lambda>a. {#lit_of a#}) ` set Ls \<union> set_mset (init_clss T)
-        \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen" using T by auto
+      ultimately show "case x of (Ls, seen) \<Rightarrow> unmark Ls \<union> set_mset (init_clss T)
+        \<Turnstile>ps unmark seen" using T by auto
     qed
 qed
 
@@ -2125,14 +2125,14 @@ proof (rule ccontr)
     mem_set_mset_iff prod.inject set_mset_union total_over_m_def)
 
   have l0: "{{#lit_of L#} |L. is_marked L \<and> L \<in> set M} = {}" using marked by auto
-  have "atms_of_ms (set_mset N \<union> (\<lambda>a. {#lit_of a#}) ` set M) = atms_of_msu N"
+  have "atms_of_ms (set_mset N \<union> unmark M) = atms_of_msu N"
     using atm_incl state unfolding no_strange_atm_def by auto
   then have "total_over_m I (set_mset N \<union> (\<lambda>a. {#lit_of a#}) ` (set M))"
     using tot unfolding total_over_m_def by auto
   then have "I \<Turnstile>s (\<lambda>a. {#lit_of a#}) ` (set M)"
     using all_decomposition_implies_propagated_lits_are_implied[OF inv] cons I
     unfolding true_clss_clss_def l0 by auto
-  then have IM: "I \<Turnstile>s (\<lambda>a. {#lit_of a#}) ` set M" by auto
+  then have IM: "I \<Turnstile>s unmark M" by auto
   {
     fix K
     assume "K \<in># D"
@@ -2152,7 +2152,7 @@ text \<open>We have actually a much stronger theorem, namely
 lemma
   assumes "all_decomposition_implies_m N (get_all_marked_decomposition M)"
   and "\<forall>m \<in> set M. \<not>is_marked m"
-  shows "set_mset N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M"
+  shows "set_mset N \<Turnstile>ps unmark M"
 proof -
   have T: "{{#lit_of L#} |L. is_marked L \<and> L \<in> set M} = {}" using assms(2) by auto
   then show ?thesis

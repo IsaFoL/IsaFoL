@@ -52,17 +52,17 @@ proof -
   moreover
     have "set_mset N \<union> ?C' \<Turnstile>ps {{#}}"
       proof -
-        have A: "set_mset N \<union> ?C' \<union> (\<lambda>a. {#lit_of a#}) ` set M  =
-          set_mset  N \<union> (\<lambda>a. {#lit_of a#}) ` set M"
+        have A: "set_mset N \<union> ?C' \<union> unmark M  =
+          set_mset  N \<union> unmark M"
           unfolding M L by auto
         have "set_mset  N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}
-            \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M"
+            \<Turnstile>ps unmark M"
           using all_decomposition_implies_propagated_lits_are_implied[OF decomp] .
         moreover have C': "?C' = {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"
           unfolding M L apply standard
             apply force
           using IntI by auto
-        ultimately have N_C_M: "set_mset N \<union> ?C' \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M"
+        ultimately have N_C_M: "set_mset N \<union> ?C' \<Turnstile>ps unmark M"
           by auto
         have "set_mset N \<union> (\<lambda>L. {#lit_of L#}) ` (set M) \<Turnstile>ps {{#}}"
           unfolding true_clss_clss_def

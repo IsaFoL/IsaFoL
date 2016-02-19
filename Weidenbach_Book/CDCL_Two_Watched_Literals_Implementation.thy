@@ -78,7 +78,7 @@ definition do_conflict_step :: "conc_twl_state \<Rightarrow> conc_twl_state opti
       (case raw_candidates_conflict S of
         [] \<Rightarrow> None
       | a # _ \<Rightarrow> Some (update_conflicting (Some a) S)))"
-term twl.cons_trail 
+
 (* 
 lemma do_conflict_step_Some:
   assumes conf: "do_conflict_step S = Some T"

@@ -220,6 +220,10 @@ lemma atms_of_empty[simp]: "atms_of {#} = {}"
 lemma atms_of_singleton[simp]: "atms_of {#L#} = {atm_of L}"
   unfolding atms_of_def by auto
 
+lemma atms_of_union_mset[simp]:
+  "atms_of (A #\<union> B) = atms_of A \<union> atms_of B"
+  unfolding atms_of_def by (auto simp: max_def split: split_if_asm)
+
 lemma finite_atms_of[iff]: "finite (atms_of C)"
   unfolding atms_of_def by simp
 
@@ -242,10 +246,13 @@ lemma atm_imp_pos_or_neg_lit: "A \<in> atms_of C \<Longrightarrow> Pos A \<in># 
 lemma atm_iff_pos_or_neg_lit: "A \<in> atms_of L \<longleftrightarrow> Pos A \<in># L \<or> Neg A \<in># L"
   by (auto intro: pos_lit_in_atms_of neg_lit_in_atms_of dest: atm_imp_pos_or_neg_lit)
 
+lemma atm_of_eq_atm_of:
+  "atm_of L = atm_of L' \<longleftrightarrow> (L = L' \<or> L = -L')"
+  by (cases L; cases L') auto
+
 lemma atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set:
   "atm_of L \<in> atm_of ` I \<longleftrightarrow> (L \<in> I \<or> -L \<in> I)"
-  apply (auto intro: rev_image_eqI)
-  by (cases L; case_tac x) (auto intro: rev_image_eqI)
+  by (auto intro: rev_image_eqI simp: atm_of_eq_atm_of)
 
 lemma lits_subseteq_imp_atms_subseteq: "set_mset C \<subseteq> set_mset D \<Longrightarrow> atms_of C \<subseteq> atms_of D"
   unfolding atms_of_def by blast

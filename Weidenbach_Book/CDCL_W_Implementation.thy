@@ -103,9 +103,6 @@ lemma satisfiable_mset_remdups[simp]:
   "satisfiable ((mset \<circ> remdups) ` N) \<longleftrightarrow> satisfiable (mset ` N)"
 unfolding satisfiable_carac[symmetric] by simp
 
-(* TODO useful? *)
-declare mset_map[symmetric, simp]
-
 value "backtrack_split [Marked (Pos (Suc 0)) ()]"
 value "\<exists>C \<in> set [[Pos (Suc 0), Neg (Suc 0)]]. (\<forall>c \<in> set C. -c \<in> lits_of [Marked (Pos (Suc 0)) ()])"
 
@@ -462,7 +459,7 @@ proof (induction S rule: do_resolve_step.induct)
   moreover have
     "(map convert (Propagated L C # M), mset `# mset N, mset `# mset U, k, Some (mset D))
      = toS (Propagated L C # M, N, U, k, Some D)"
-    by auto
+    by (auto simp: mset_map)
   moreover
     have "distinct_mset (mset C)" and "distinct_mset (mset D)"
       using \<open>cdcl\<^sub>W_all_struct_inv (toS (Propagated L C # M, N, U, k, Some D))\<close>
@@ -474,7 +471,7 @@ proof (induction S rule: do_resolve_step.induct)
     then have "(map convert M, mset `# mset N, mset `# mset U, k,
     Some ((mset D - {#- L#}) #\<union> (mset C - {#L#})))
     = toS (do_resolve_step (Propagated L C # M, N, U, k, Some D))"
-    using \<open>- L \<in> set D\<close> M by (auto simp:ac_simps )
+    using \<open>- L \<in> set D\<close> M by (auto simp:ac_simps mset_map)
   ultimately show ?case
     by simp
 qed auto
@@ -602,8 +599,9 @@ lemma get_all_marked_decomposition_map_convert:
   by (rename_tac L l xs, case_tac "get_all_marked_decomposition xs"; auto)+
 
 lemma do_backtrack_step:
-  assumes db: "do_backtrack_step S \<noteq> S"
-  and inv: "cdcl\<^sub>W_all_struct_inv (toS S)"
+  assumes
+    db: "do_backtrack_step S \<noteq> S" and 
+    inv: "cdcl\<^sub>W_all_struct_inv (toS S)"
   shows "backtrack (toS S) (toS (do_backtrack_step S))"
   proof (cases S, cases "conflicting S", goal_cases)
     case (1 M N U k E)
@@ -665,9 +663,9 @@ lemma do_backtrack_step:
         apply (cases "reduce_trail_to (map convert M1)
             (add_learned_cls (mset C' + {#L#})
             (map convert M, mset (map mset N), mset (map mset U), j, None))")
-       using M2 M1 H by (auto simp: ac_simps)
+       using M2 M1 H by (auto simp: ac_simps mset_map)
     then show ?case
-      using M\<^sub>2 fd unfolding S E M1 by auto
+      using M\<^sub>2 fd unfolding S E M1 by (auto simp: mset_map)
     obtain M2 where "(M\<^sub>2, M2) \<in> set (get_all_marked_decomposition M)"
       using bt_cut_in_get_all_marked_decomposition[OF M\<^sub>2] by metis
 qed
@@ -791,7 +789,7 @@ proof -
      "S = (a, b, c, d, e)" and
      "conflicting S = None"
   then show "decide (toS S) (toS (do_decide_step S))"
-    using H H' by (auto split: option.splits simp add: decide.simps Marked_Propagated_in_iff_in_lits_of
+    using H H' by (auto split: option.splits simp: decide.simps Marked_Propagated_in_iff_in_lits_of
       dest!: find_first_unused_var_Some)
 qed
 
@@ -853,7 +851,7 @@ instance
     equal_cdcl\<^sub>W_state_inv_from_init_state_def)
 end
 
-definition ConI  where
+definition ConI where
   "ConI S = state_from_init_state_of (if cdcl\<^sub>W_all_struct_inv (toS (fst S, snd S))
     \<and> cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (S0_cdcl\<^sub>W (clss (toS S))) (toS S) then S else ([], [], [], 0, None))"
 
@@ -1069,8 +1067,8 @@ proof -
       then show ?case
          by (cases S, cases "do_other_step S") force
     next
-      case (backtrack K i M1 M2 L D) note decomp = this(1) and confl_S = this(3) and undef = this(6) and
-        U = this(7)
+      case (backtrack K i M1 M2 L D) note decomp = this(1) and confl_S = this(3) and undef = this(6)
+        and U = this(7)
       have [simp]: "cons_trail (Propagated L (D + {#L#}))
         (reduce_trail_to M1
           (add_learned_cls (D + {#L#})
@@ -1143,9 +1141,10 @@ lemma do_decide_step_not_conflicting_one_more_decide_bt:
     (auto simp add: Let_def split: split_if_asm option.splits)
 
 lemma do_other_step_not_conflicting_one_more_decide_bt:
-  assumes "conflicting (rough_state_of S) \<noteq> None" and
-  "conflicting (rough_state_of (do_other_step' S)) = None" and
-  "do_other_step' S \<noteq> S"
+  assumes 
+    "conflicting (rough_state_of S) \<noteq> None" and
+    "conflicting (rough_state_of (do_other_step' S)) = None" and
+    "do_other_step' S \<noteq> S"
   shows "length (filter is_marked (trail (rough_state_of S)))
     > length (filter is_marked (trail (rough_state_of (do_other_step' S))))"
 proof (cases S, goal_cases)
@@ -1155,18 +1154,38 @@ proof (cases S, goal_cases)
   have M: "rough_state_of (state_of (M, N, U, k,  Some E)) = (M, N, U, k,  Some E)"
     using inv y by (auto simp add: state_of_inverse)
   have bt: "do_other_step' S = state_of (do_backtrack_step (rough_state_of S))"
-  (* TODO tune proof *)
-    using assms(1,2) apply (cases "rough_state_of (do_other_step' S)")
-      apply(auto simp add: Let_def do_other_step'_def)
-    apply (cases "rough_state_of S" rule: do_decide_step.cases)
-    apply auto
-    done
+    proof (cases "rough_state_of S" rule: do_decide_step.cases)
+      case 1
+      then show ?thesis
+        using assms(1,2) by auto[]
+    next
+      case (2 v vb vd vf vh)
+      have f3: "\<And>c. (if do_skip_step (rough_state_of c) \<noteq> rough_state_of c 
+        then do_skip_step (rough_state_of c) 
+        else if do_resolve_step (do_skip_step (rough_state_of c)) \<noteq> do_skip_step (rough_state_of c)
+             then do_resolve_step (do_skip_step (rough_state_of c)) 
+             else if do_backtrack_step (do_resolve_step (do_skip_step (rough_state_of c))) 
+               \<noteq> do_resolve_step (do_skip_step (rough_state_of c)) 
+             then do_backtrack_step (do_resolve_step (do_skip_step (rough_state_of c))) 
+             else do_decide_step (do_backtrack_step (do_resolve_step 
+               (do_skip_step (rough_state_of c)))))
+        = rough_state_of (do_other_step' c)"
+        by (simp add: rough_state_of_do_other_step')
+      have "(trail (rough_state_of (do_other_step' S)), clss (rough_state_of (do_other_step' S)), 
+          learned_clss (rough_state_of (do_other_step' S)),
+          backtrack_lvl (rough_state_of (do_other_step' S)), None) 
+        = rough_state_of (do_other_step' S)"
+        using assms(2) by (metis (no_types) state_conv)
+      then show ?thesis
+        using f3 2 by (metis (no_types) do_decide_step.simps(2) do_resolve_step_trail_is_None
+          do_skip_step_trail_is_None rough_state_of_inverse)
+    qed
   show ?case
     using assms(2) S unfolding bt y inv
     apply simp
-    by (auto simp add: M
+    by (auto simp add: M bt_cut_not_none
           split: option.splits
-          dest: bt_cut_some_decomp arg_cong[of _ _ "\<lambda>u. length (filter is_marked u)"])
+          dest!: bt_cut_some_decomp)
 qed
 
 lemma do_other_step_not_conflicting_one_more_decide:
