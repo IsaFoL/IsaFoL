@@ -1685,9 +1685,9 @@ next
              "\<forall>x0 x1. (\<exists>v2. x0 = x1 + v2) = (x0 = x1 + nn x0 x1)"
              by moura
            then have "\<Xi> F = \<Xi> (A - {a}) + nn (\<Xi> F) (\<Xi> (A - {a}))"
-             using Nat.le_iff_add \<open>\<Xi> (A - {a}) \<le> \<Xi> F\<close> by presburger
+             by (meson \<open>\<Xi> (A - {a}) \<le> \<Xi> F\<close> le_iff_add)
            then show ?thesis
-             by (metis (no_types) Nat.le_iff_add aA aF add.assoc finite.insertI finite_subset
+             by (metis (no_types) le_iff_add aA aF add.assoc finite.insertI finite_subset
                insert.prems local.finite sum_count_ge_2.insert sum_count_ge_2.remove)
          qed
     qed

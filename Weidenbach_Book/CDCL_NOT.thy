@@ -2762,7 +2762,7 @@ proof (rule ccontr)
     by blast
   have unbounded_f_g: "unbounded (\<lambda>i. f (snd (g i)))"
     using f unfolding bounded_def by (metis add.commute f less_or_eq_imp_le snd_g
-      not_bounded_nat_exists_larger not_le ordered_cancel_comm_monoid_diff_class.le_iff_add)
+      not_bounded_nat_exists_larger not_le le_iff_add)
 
   { fix i
     have H: "\<And>T Ta m. (cdcl\<^sub>N\<^sub>O\<^sub>T ^^ m) T Ta \<Longrightarrow> no_step cdcl\<^sub>N\<^sub>O\<^sub>T T \<Longrightarrow> m = 0"

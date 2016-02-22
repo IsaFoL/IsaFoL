@@ -3671,7 +3671,7 @@ proof (rule ccontr)
     by blast
   have unbounded_f_g: "unbounded (\<lambda>i. f (snd (g i)))"
     using f unfolding bounded_def by (metis add.commute f less_or_eq_imp_le snd_g
-      not_bounded_nat_exists_larger not_le ordered_cancel_comm_monoid_diff_class.le_iff_add)
+      not_bounded_nat_exists_larger not_le le_iff_add)
 
   obtain k where
     f_g_k: "f (snd (g k)) > card (simple_clss (atms_of_msu (init_clss (fst ?S))))" and
@@ -3793,7 +3793,7 @@ proof (rule ccontr)
     by blast
   have unbounded_f_g: "unbounded (\<lambda>i. f (snd (g i)))"
     using f unfolding bounded_def by (metis add.commute f less_or_eq_imp_le snd_g
-      not_bounded_nat_exists_larger not_le ordered_cancel_comm_monoid_diff_class.le_iff_add)
+      not_bounded_nat_exists_larger not_le le_iff_add)
 
   obtain k where
     f_g_k: "f (snd (g k)) > card (simple_clss (atms_of_msu (init_clss (fst ?S))))" and

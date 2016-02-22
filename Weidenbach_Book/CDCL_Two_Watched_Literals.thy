@@ -938,7 +938,7 @@ lemma size_mset_le_2_cases:
   assumes "size W \<le> 2"
   shows "W = {#} \<or> (\<exists>a. W = {#a#}) \<or> (\<exists>a b. W = {#a,b#})"
   by (metis One_nat_def Suc_1 Suc_eq_plus1_left assms linorder_not_less nat_less_le
-    not_less_eq_eq ordered_cancel_comm_monoid_diff_class.le_iff_add size_1_singleton_mset
+    not_less_eq_eq le_iff_add size_1_singleton_mset
     size_eq_0_iff_empty size_mset_2)
 
 lemma wf_rewatch_nat':
