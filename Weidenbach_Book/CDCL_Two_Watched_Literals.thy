@@ -605,20 +605,6 @@ end
 
 subsection \<open>Instanciation of the previous locale\<close>
 
-definition pull :: "('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'a list" where
-  "pull p xs = filter p xs @ filter (Not \<circ> p) xs"
-
-lemma set_pull[simp]: "set (pull p xs) = set xs"
-  unfolding pull_def by auto
-
-lemma mset_pull[simp]: "mset (pull p xs) = mset xs"
-  by (simp add: pull_def mset_filter_compl)
-
-lemma mset_take_pull_sorted_list_of_set_subseteq:
-  "mset (take n (pull p (sorted_list_of_set (set_mset A)))) \<subseteq># A"
-  by (metis mset_pull mset_set_set_mset_subseteq mset_sorted_list_of_set mset_take_subseteq
-    subset_mset.dual_order.trans)
-
 definition watch_nat :: "(nat, nat, nat clause) twl_state_abs \<Rightarrow> nat clause \<Rightarrow>
   nat clause twl_clause" where
   "watch_nat S C =
@@ -711,6 +697,19 @@ lemma watch_nat_lists_set_union:
   shows "set_mset C = set xs \<union> set ys"
   using n_d unfolding xs_def ys_def by (auto simp: lits_of_def uminus_lit_swap)
 
+lemma mset_intersection_inclusion: "A + (B - A) = B \<longleftrightarrow> A \<subseteq># B"
+  apply (rule iffI)
+   apply (metis mset_le_add_left)
+  by (auto simp: ac_simps multiset_eq_iff subseteq_mset_def)
+
+lemma clause_watch_nat:
+  assumes "no_dup (trail S)"
+  shows "raw_clause (watch_nat S C) = C"
+  using assms
+  apply (cases rule: watch_nat_list_cases[OF assms(1), of C])
+  by (auto dest: filter_in_list_prop_verifiedD simp: watch_nat_def Let_def
+    mset_intersection_inclusion subseteq_mset_def)
+
 definition
   rewatch_nat ::
   "(nat, nat, nat literal multiset) marked_lit \<Rightarrow> (nat, nat, nat clause) twl_state_abs \<Rightarrow>
@@ -725,46 +724,6 @@ where
         TWL_Clause (watched C - {#- lit_of L#} + {#L'#}) (unwatched C - {#L'#} + {#- lit_of L#})
     else
       C)"
-
-lemma mset_intersection_inclusion: "A + (B - A) = B \<longleftrightarrow> A \<subseteq># B"
-  apply (rule iffI)
-   apply (metis mset_le_add_left)
-  by (auto simp: ac_simps multiset_eq_iff subseteq_mset_def)
-
-lemma clause_watch_nat:
-  assumes "no_dup (trail S)"
-  shows "raw_clause (watch_nat S C) = C"
-  using assms
-  apply (cases rule: watch_nat_list_cases[OF assms(1), of C])
-  by (auto dest: filter_in_list_prop_verifiedD simp: watch_nat_def Let_def
-    mset_intersection_inclusion subseteq_mset_def)
-
-lemma distinct_pull[simp]: "distinct (pull p xs) = distinct xs"
-  unfolding pull_def by (induct xs) auto
-
-lemma falsified_watiched_imp_unwatched_falsified:
-  assumes
-    watched: "L \<in> set (take n (pull (Not \<circ> fls) (sorted_list_of_set (set_mset C))))" and
-    falsified: "fls L" and
-    not_watched: "L' \<notin> set (take n (pull (Not \<circ> fls) (sorted_list_of_set (set_mset C))))" and
-    unwatched: "L' \<in># C - mset (take n (pull (Not \<circ> fls) (sorted_list_of_set (set_mset C))))"
-  shows "fls L'"
-proof -
-  let ?Ls = "sorted_list_of_set (set_mset C)"
-  let ?W = "take n (pull (Not \<circ> fls) ?Ls)"
-
-  have "n > length (filter (Not \<circ> fls) ?Ls)"
-    using watched falsified
-    unfolding pull_def comp_def
-    apply auto
-     using in_set_takeD apply fastforce
-    by (metis gr0I length_greater_0_conv length_pos_if_in_set take_0 zero_less_diff)
-  then have "\<And>L. L \<in> set ?Ls \<Longrightarrow> \<not> fls L \<Longrightarrow> L \<in> set ?W"
-    unfolding pull_def by auto
-  then show ?thesis
-    by (metis Multiset.diff_le_self finite_set_mset mem_set_mset_iff mset_leD not_watched
-      sorted_list_of_set unwatched)
-qed
 
 lemma set_mset_is_single_in_mset_is_single:
   "set_mset C = {a} \<Longrightarrow> x \<in># C \<Longrightarrow> x = a"
