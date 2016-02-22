@@ -1344,6 +1344,24 @@ interpretation cdcl\<^sub>W_twl: cdcl\<^sub>W
   restart_twl
   by unfold_locales
 
+sublocale cdcl\<^sub>W
+  trail_twl
+  init_clss_twl
+  learned_clss_twl
+  backtrack_lvl_twl
+  conflicting_twl
+  cons_trail_twl
+  tl_trail_twl
+  add_init_cls_twl
+  add_learned_cls_twl
+  remove_cls_twl
+  update_backtrack_lvl_twl
+  update_conflicting_twl
+  init_state_twl
+  restart_twl
+  apply (rule cdcl\<^sub>W_twl.cdcl\<^sub>W_axioms)
+oops
+
 abbreviation state_eq_twl (infix "\<sim>TWL" 51) where
 "state_eq_twl S S' \<equiv> rough_cdcl.state_eq (rough_state_of_twl S) (rough_state_of_twl S')"
 notation cdcl\<^sub>W_twl.state_eq (infix "\<sim>" 51)
