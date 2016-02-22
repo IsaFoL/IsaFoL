@@ -900,18 +900,6 @@ lemma wf_watch_nat: "no_dup (trail S) \<Longrightarrow> wf_twl_cls (trail S) (wa
   by (metis List.finite_set mset_sorted_list_of_multiset set_sorted_list_of_multiset
     sorted_list_of_set watch_nat_def)
 
-lemma filter_sorted_list_of_multiset_eqD:
-  assumes "[x \<leftarrow> sorted_list_of_multiset A. p x] = x # xs" (is "?comp = _")
-  shows "x \<in># A"
-proof -
-  have "x \<in> set ?comp"
-    using assms by simp
-  then have "x \<in> set (sorted_list_of_multiset A)"
-    by simp
-  then show "x \<in># A"
-    by simp
-qed
-
 definition
   rewatch_nat ::
   "(nat, nat, nat literal multiset) marked_lit \<Rightarrow> (nat, nat, nat clause) twl_state_abs \<Rightarrow>
@@ -927,14 +915,26 @@ where
     else
       C)"
 
-lemma clause_rewatch_nat: "raw_clause (rewatch_nat L S C) = raw_clause C"
-  apply (auto simp: rewatch_nat_def Let_def split: list.split)
+lemma clause_rewatch_witness:
+  assumes
+    UW: "set UW = set_mset (unwatched C)"
+  shows "raw_clause (if - lit_of L \<in># watched C then
+      case filter (\<lambda>L'. L' \<notin># watched C \<and> - L' \<notin> lits_of (L # trail S)) UW of
+        [] \<Rightarrow> C
+      | L' # _ \<Rightarrow>
+        TWL_Clause (watched C - {#- lit_of L#} + {#L'#}) (unwatched C - {#L'#} + {#- lit_of L#})
+    else
+      C) = raw_clause C"
+  using assms apply (auto simp: rewatch_nat_def Let_def split: list.split)
   apply (subst subset_mset.add_diff_assoc2, simp)
   apply (subst subset_mset.add_diff_assoc2, simp)
   apply (subst subset_mset.add_diff_assoc2)
-   apply (auto dest: filter_sorted_list_of_multiset_eqD)
-  by (metis (no_types, lifting) add.assoc add_diff_cancel_right' filter_sorted_list_of_multiset_eqD
-    insert_DiffM mset_leD mset_le_add_left)
+   apply (auto dest: filter_in_list_prop_verifiedD)[]
+  by (auto simp: multiset_eq_iff dest: filter_in_list_prop_verifiedD)
+
+lemma clause_rewatch_nat: "raw_clause (rewatch_nat L S C) = raw_clause C"
+  using clause_rewatch_witness[of "sorted_list_of_multiset (unwatched C)" C _ S]
+  by (auto simp: rewatch_nat_def Let_def split: list.split split_if_asm)
 
 lemma filter_sorted_list_of_multiset_Nil:
   "[x \<leftarrow> sorted_list_of_multiset M. p x] = [] \<longleftrightarrow> (\<forall>x \<in># M. \<not> p x)"
@@ -956,6 +956,18 @@ lemma size_mset_le_2_cases:
   by (metis One_nat_def Suc_1 Suc_eq_plus1_left assms linorder_not_less nat_less_le
     not_less_eq_eq ordered_cancel_comm_monoid_diff_class.le_iff_add size_1_singleton_mset
     size_eq_0_iff_empty size_mset_2)
+
+lemma filter_sorted_list_of_multiset_eqD:
+  assumes "[x \<leftarrow> sorted_list_of_multiset A. p x] = x # xs" (is "?comp = _")
+  shows "x \<in># A"
+proof -
+  have "x \<in> set ?comp"
+    using assms by simp
+  then have "x \<in> set (sorted_list_of_multiset A)"
+    by simp
+  then show "x \<in># A"
+    by simp
+qed
 
 lemma wf_rewatch_nat':
   assumes
