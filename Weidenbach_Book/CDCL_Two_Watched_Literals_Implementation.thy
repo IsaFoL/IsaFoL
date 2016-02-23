@@ -7,7 +7,7 @@ section \<open>Implementation for 2 Watched-Literals\<close>
 theory CDCL_Two_Watched_Literals_Implementation
 imports CDCL_Two_Watched_Literals DPLL_CDCL_W_Implementation
 begin
-
+  
 type_synonym conc_twl_state =
   "((nat, nat, nat literal list) marked_lit, nat literal list twl_clause list, nat, nat literal list)
     twl_state"

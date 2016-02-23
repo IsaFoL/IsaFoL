@@ -711,9 +711,9 @@ lemma dpll\<^sub>W_bj_dpll:
   shows "dpll\<^sub>W S T"
   using dpll
   apply (induction rule: dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.induct)
-    apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.decideE, cases S)
+    apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.decide\<^sub>N\<^sub>O\<^sub>TE, cases S)
     using decided apply fastforce
-   apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.propagateE, cases S)
+   apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.propagate\<^sub>N\<^sub>O\<^sub>TE, cases S)
    using dpll\<^sub>W.simps apply fastforce
   apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backjumpE, cases S)
   by (simp add: dpll\<^sub>W.simps dpll_with_backtrack.backtrack.simps)

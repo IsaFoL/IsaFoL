@@ -220,7 +220,7 @@ sublocale dpll_with_backtrack \<subseteq> conflict_driven_clause_learning
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
   "\<lambda>_ _ _ S T. backtrack S T" "\<lambda>_ _. False" "\<lambda>_ _. False"
   apply unfold_locales
-  using cdcl\<^sub>N\<^sub>O\<^sub>T.simps dpll_bj_inv forgetE learnE by blast
+  using cdcl\<^sub>N\<^sub>O\<^sub>T.simps dpll_bj_inv forget\<^sub>N\<^sub>O\<^sub>TE learn\<^sub>N\<^sub>O\<^sub>TE by blast
 
 context dpll_with_backtrack
 begin

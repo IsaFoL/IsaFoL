@@ -366,7 +366,7 @@ propagate\<^sub>N\<^sub>O\<^sub>T[intro]: "C + {#L#} \<in># clauses S \<Longrigh
     \<Longrightarrow> propagate_cond (Propagated L ()) S
     \<Longrightarrow> T \<sim> prepend_trail (Propagated L ()) S
     \<Longrightarrow> propagate\<^sub>N\<^sub>O\<^sub>T S T"
-inductive_cases propagateE[elim]: "propagate\<^sub>N\<^sub>O\<^sub>T S T"
+inductive_cases propagate\<^sub>N\<^sub>O\<^sub>TE[elim]: "propagate\<^sub>N\<^sub>O\<^sub>T S T"
 
 end
 
@@ -383,7 +383,7 @@ decide\<^sub>N\<^sub>O\<^sub>T[intro]: "undefined_lit (trail S) L \<Longrightarr
   \<Longrightarrow> T \<sim> prepend_trail (Marked L ()) S
   \<Longrightarrow> decide\<^sub>N\<^sub>O\<^sub>T S T"
 
-inductive_cases decideE[elim]: "decide\<^sub>N\<^sub>O\<^sub>T S S'"
+inductive_cases decide\<^sub>N\<^sub>O\<^sub>TE[elim]: "decide\<^sub>N\<^sub>O\<^sub>T S S'"
 end
 
 locale backjumping_ops =
@@ -480,7 +480,7 @@ lemma dpll_bj_all_induct[consumes 2, case_names decide\<^sub>N\<^sub>O\<^sub>T p
   apply (induct T rule: dpll_bj_induct[OF local.dpll_with_backjumping_ops_axioms])
      apply (rule assms(1))
     using assms(3) apply blast
-   apply (elim propagateE) using assms(4) apply blast
+   apply (elim propagate\<^sub>N\<^sub>O\<^sub>TE) using assms(4) apply blast
   apply (elim backjumpE) using assms(5) \<open>inv S\<close> by simp
 
 subsubsection \<open>Basic properties\<close>
@@ -1306,12 +1306,12 @@ inductive learn :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
   \<Longrightarrow> learn_cond C S
   \<Longrightarrow> T \<sim> add_cls\<^sub>N\<^sub>O\<^sub>T C S
   \<Longrightarrow> learn S T"
-inductive_cases learnE: "learn S T"
+inductive_cases learn\<^sub>N\<^sub>O\<^sub>TE: "learn S T"
 
 lemma learn_\<mu>\<^sub>C_stable:
   assumes "learn S T" and "no_dup (trail S)"
   shows "\<mu>\<^sub>C A B (trail_weight S) = \<mu>\<^sub>C A B (trail_weight T)"
-  using assms by (auto elim: learnE)
+  using assms by (auto elim: learn\<^sub>N\<^sub>O\<^sub>TE)
 end
 
 locale forget_ops =
@@ -1330,12 +1330,12 @@ forget\<^sub>N\<^sub>O\<^sub>T:"clauses S - replicate_mset (count (clauses S) C)
   \<Longrightarrow> C \<in># clauses S
   \<Longrightarrow> T \<sim> remove_cls\<^sub>N\<^sub>O\<^sub>T C S
   \<Longrightarrow> forget\<^sub>N\<^sub>O\<^sub>T S T"
-inductive_cases forgetE: "forget\<^sub>N\<^sub>O\<^sub>T S T"
+inductive_cases forget\<^sub>N\<^sub>O\<^sub>TE: "forget\<^sub>N\<^sub>O\<^sub>T S T"
 
 lemma forget_\<mu>\<^sub>C_stable:
   assumes "forget\<^sub>N\<^sub>O\<^sub>T S T"
   shows "\<mu>\<^sub>C A B (trail_weight S) = \<mu>\<^sub>C A B (trail_weight T)"
-  using assms by (auto elim!: forgetE)
+  using assms by (auto elim!: forget\<^sub>N\<^sub>O\<^sub>TE)
 end
 
 locale learn_and_forget\<^sub>N\<^sub>O\<^sub>T =
@@ -1393,7 +1393,7 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_all_induct[consumes 1, case_names dpll_bj lea
       P S T"
   shows "P S T"
   using assms(1) by (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T.induct)
-  (auto intro: assms(2, 3, 4) elim!: learnE forgetE)+
+  (auto intro: assms(2, 3, 4) elim!: learn\<^sub>N\<^sub>O\<^sub>TE forget\<^sub>N\<^sub>O\<^sub>TE)+
 
 lemma cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup:
   assumes
@@ -1910,11 +1910,11 @@ lemma learn_always_simple_clauses:
     \<subseteq> simple_clss (atms_of_msu (clauses S) \<union> atm_of ` lits_of (trail S))"
 proof
   fix C assume C: "C \<in> set_mset (clauses T - clauses S)"
-  have "distinct_mset C" "\<not>tautology C" using learn C n_d by (elim learnE; auto)+
+  have "distinct_mset C" "\<not>tautology C" using learn C n_d by (elim learn\<^sub>N\<^sub>O\<^sub>TE; auto)+
   then have "C \<in> simple_clss (atms_of C)"
     using distinct_mset_not_tautology_implies_in_simple_clss by blast
   moreover have "atms_of C \<subseteq> atms_of_msu (clauses S) \<union> atm_of ` lits_of (trail S)"
-    using learn C n_d by (elim learnE) (auto simp: atms_of_ms_def atms_of_def image_Un
+    using learn C n_d by (elim learn\<^sub>N\<^sub>O\<^sub>TE) (auto simp: atms_of_ms_def atms_of_def image_Un
       true_annots_CNot_all_atms_defined)
   moreover have "finite (atms_of_msu (clauses S) \<union> atm_of ` lits_of (trail S))"
      by auto
@@ -1957,7 +1957,7 @@ lemma finite_conflicting_bj_clss[simp]:
 
 lemma learn_conflicting_increasing:
   "no_dup (trail S) \<Longrightarrow> learn S T \<Longrightarrow> conflicting_bj_clss S \<subseteq> conflicting_bj_clss T"
-  apply (elim learnE)
+  apply (elim learn\<^sub>N\<^sub>O\<^sub>TE)
   by (subst conflicting_bj_clss_add_cls\<^sub>N\<^sub>O\<^sub>T_state_eq[of T]) auto
 
 abbreviation "conflicting_bj_clss_yet b S \<equiv>
@@ -2004,7 +2004,7 @@ lemma learn_\<mu>\<^sub>L_decrease:
 proof -
   have [simp]: "(atms_of_msu (clauses T) \<union> atm_of ` lits_of (trail T))
     = (atms_of_msu (clauses S) \<union> atm_of ` lits_of (trail S))"
-    using learnST n_d by (elim learnE) auto
+    using learnST n_d by (elim learn\<^sub>N\<^sub>O\<^sub>TE) auto
 
   then have "card (atms_of_msu (clauses T) \<union> atm_of ` lits_of (trail T))
     = card (atms_of_msu (clauses S) \<union> atm_of ` lits_of (trail S))"
@@ -2016,7 +2016,7 @@ proof -
     using learnST n_d by (simp add: learn_conflicting_increasing)
   moreover have "conflicting_bj_clss S \<noteq> conflicting_bj_clss T"
     using learnST
-    proof (elim learnE, goal_cases)
+    proof (elim learn\<^sub>N\<^sub>O\<^sub>TE, goal_cases)
       case (1 C) note clss_S = this(1) and atms_C = this(2) and inv = this(3) and T = this(4)
       then obtain F K F' C' L where
         tr_S: "trail S = F' @ Marked K () # F" and
@@ -2052,7 +2052,7 @@ proof -
         \<ge> card (conflicting_bj_clss T)"
       by (meson Nat.le_trans simple_clss_card simple_clss_finite card_mono fin')
     have "atms_of_msu (clauses T) \<union> atm_of ` lits_of (trail T) \<subseteq> A"
-      using learnE[OF learnST] A by simp
+      using learn\<^sub>N\<^sub>O\<^sub>TE[OF learnST] A by simp
     then have "3 ^ (card A) \<ge> card (conflicting_bj_clss T)"
       using # fin_A by (meson simple_clss_card simple_clss_finite
         simple_clss_mono calculation(2) card_mono dual_order.trans)
@@ -2095,7 +2095,7 @@ next
   case (c_learn T) note learn = this(1)
   then have S: "trail S =  trail T"
     using inv atm_clss atm_lits n_d fin_A
-    by (elim learnE) auto
+    by (elim learn\<^sub>N\<^sub>O\<^sub>TE) auto
   show ?case
     using learn_\<mu>\<^sub>L_decrease[OF learn _ ] atm_clss atm_lits fin_A n_d unfolding S \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L_def by auto
 next
@@ -2942,7 +2942,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy =
   fixes
     inv :: "'st \<Rightarrow> bool"
   assumes
-     bj_can_jump:
+     bj_merge_can_jump:
      "\<And>S C F' K F L.
        inv S
        \<Longrightarrow> trail S = F' @ Marked K () # F
@@ -2994,7 +2994,7 @@ proof (unfold_locales, goal_cases)
       using dist not_tauto apply simp
       done
     } note H = this(1)
-  then show ?case using 1 bj_can_jump by meson
+  then show ?case using 1 bj_merge_can_jump by meson
 qed
 
 end
@@ -3198,11 +3198,11 @@ next
   case (cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_forget\<^sub>N\<^sub>O\<^sub>T T)
   have "card (set_mset (clauses T)) < card (set_mset (clauses S))"
     using \<open>forget\<^sub>N\<^sub>O\<^sub>T S T\<close> by (metis card_Diff1_less
-      cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_forget\<^sub>N\<^sub>O\<^sub>T.hyps clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T finite_set_mset forgetE
+      cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_forget\<^sub>N\<^sub>O\<^sub>T.hyps clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T finite_set_mset forget\<^sub>N\<^sub>O\<^sub>TE
       mem_set_mset_iff order_refl set_mset_minus_replicate_mset(1) state_eq\<^sub>N\<^sub>O\<^sub>T_clauses)
   moreover
     have "trail S = trail T"
-      using \<open>forget\<^sub>N\<^sub>O\<^sub>T S T\<close> by (auto elim: forgetE)
+      using \<open>forget\<^sub>N\<^sub>O\<^sub>T S T\<close> by (auto elim: forget\<^sub>N\<^sub>O\<^sub>TE)
     then have
       "(2 + card (atms_of_ms A)) ^ (1 + card (atms_of_ms A))
         - \<mu>\<^sub>C (1 + card (atms_of_ms A)) (2 + card (atms_of_ms A)) (trail_weight T)
@@ -3305,7 +3305,7 @@ lemma wf_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn:
 lemma backjump_no_step_backjump_l:
   "backjump S T \<Longrightarrow> inv S \<Longrightarrow> \<not>no_step backjump_l S"
   apply (elim backjumpE)
-  apply (rule bj_can_jump)
+  apply (rule bj_merge_can_jump)
     apply auto[7]
   by blast
 
@@ -3472,7 +3472,7 @@ proof -
       moreover have "F \<Turnstile>as CNot (image_mset uminus ?C)"
         using nm unfolding true_annots_def CNot_def M_K by (auto simp add: lits_of_def)
       ultimately have False
-        using bj_can_jump[of S F' K F C "-K"
+        using bj_merge_can_jump[of S F' K F C "-K"
           "image_mset uminus (image_mset lit_of {# L :# mset ?M. is_marked L \<and> L \<noteq> Marked K ()#})"]
           \<open>C\<in>?N\<close> n_s \<open>?M \<Turnstile>as CNot C\<close> bj_backjump inv unfolding M_K
           by (auto simp: cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn.simps)
@@ -3896,7 +3896,7 @@ next
 next
   case cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_forget\<^sub>N\<^sub>O\<^sub>T
   then show ?case using clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T unfolding state_eq\<^sub>N\<^sub>O\<^sub>T_def
-    by (force elim!: forgetE  dest: simple_clss_or_not_simplified_cls)
+    by (force elim!: forget\<^sub>N\<^sub>O\<^sub>TE  dest: simple_clss_or_not_simplified_cls)
 next
   case (cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_backjump_l T) note bj = this(1) and inv = this(2) and
     atms_clss = this(3) and atms_trail = this(4) and n_d = this(5)
@@ -3948,7 +3948,7 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_not_simplified_decreasing:
   shows "(not_simplified_cls (clauses T)) \<subseteq>#  (not_simplified_cls (clauses S))"
   using assms apply induction
   prefer 4
-  unfolding not_simplified_cls_def apply (auto elim!: backjump_lE forgetE)[3]
+  unfolding not_simplified_cls_def apply (auto elim!: backjump_lE forget\<^sub>N\<^sub>O\<^sub>TE)[3]
   by (elim backjump_lE) auto
 
 lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_not_simplified_decreasing:
