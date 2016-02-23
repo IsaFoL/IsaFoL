@@ -8,8 +8,8 @@ theory CDCL_Two_Watched_Literals_Implementation
 imports CDCL_Two_Watched_Literals DPLL_CDCL_W_Implementation
 begin
   
-type_synonym conc_twl_state =
-  "((nat, nat, nat literal list) marked_lit, nat literal list twl_clause list, nat, nat literal list)
+type_synonym 'v conc_twl_state =
+  "(('v, nat, 'v literal list) marked_lit, 'v literal list twl_clause list, nat, 'v literal list)
     twl_state"
 
 fun convert :: "('a, 'b, 'c list) marked_lit \<Rightarrow> ('a, 'b, 'c multiset) marked_lit"  where
@@ -30,7 +30,7 @@ abbreviation convert_clss :: "'v literal list twl_clause list \<Rightarrow> 'v c
   where
 "convert_clss S \<equiv> mset (map raw_clause_l S)"
 
-fun raw_state_of_conc :: "conc_twl_state \<Rightarrow> (nat, nat, nat clause) twl_state_abs" where
+fun raw_state_of_conc :: "'v conc_twl_state \<Rightarrow> ('v, nat, 'v clause) twl_state_abs" where
 "raw_state_of_conc (TWL_State M N U k C) =
   TWL_State (convert_tr M) (convert_clss N) (convert_clss U) k (map_option mset C)"
 
@@ -38,16 +38,32 @@ lemma
   "raw_state_of_conc (tl_trail S) = tl_trail (raw_state_of_conc S)"
   unfolding tl_trail_def by (induction S) (auto simp: map_tl)
 
-definition watch_nat :: "conc_twl_state \<Rightarrow> nat literal list \<Rightarrow> nat literal list twl_clause" where
-  "watch_nat S C =
+typedef 'v conv_twl_state = "{S:: 'v conc_twl_state. wf_twl_state (raw_state_of_conc S)}"
+morphisms list_twl_state_of cls_twl_state
+proof -
+    have "TWL_State [] [] [] 0 None \<in> {S:: 'v conc_twl_state. wf_twl_state (raw_state_of_conc S)}"
+      by (auto simp: wf_twl_state_def)
+    then show ?thesis by blast
+qed
+term list_twl_state_of
+
+definition watch_list :: "'v conv_twl_state \<Rightarrow> 'v literal list \<Rightarrow> 'v literal list twl_clause" where
+  "watch_list S' C =
    (let
+      M = trail (list_twl_state_of S');
       C' = remdups C;
-      negation_not_assigned = filter (\<lambda>L. -L \<notin> lits_of (trail S)) C';
-      negation_assigned_sorted_by_trail = filter (\<lambda>L. L \<in> set C) (map (\<lambda>L. -lit_of L) (trail S));
+      negation_not_assigned = filter (\<lambda>L. -L \<notin> lits_of M) C';
+      negation_assigned_sorted_by_trail = filter (\<lambda>L. L \<in> set C) (map (\<lambda>L. -lit_of L) M);
       W = take 2 (negation_not_assigned @ negation_assigned_sorted_by_trail);
       UW = foldl (\<lambda>a l. remove1 l a) C W
     in TWL_Clause W UW)"
 
+lemma wf_watch_nat: "no_dup (trail (list_twl_state_of S)) \<Longrightarrow> 
+  wf_twl_cls (trail (list_twl_state_of S)) (raw_clause_l (watch_list S C))"
+  apply (simp only: watch_list_def Let_def raw_clause_l.simps)
+  using wf_watch_witness[of "(list_twl_state_of S)" "C" "mset C"]
+oops
+(* 
 definition
   rewatch_nat ::
   "(nat, nat, nat literal list) marked_lit \<Rightarrow> conc_twl_state \<Rightarrow>
@@ -78,7 +94,7 @@ definition do_conflict_step :: "conc_twl_state \<Rightarrow> conc_twl_state opti
       (case raw_candidates_conflict S of
         [] \<Rightarrow> None
       | a # _ \<Rightarrow> Some (update_conflicting (Some a) S)))"
-
+ *)
 (* 
 lemma do_conflict_step_Some:
   assumes conf: "do_conflict_step S = Some T"
