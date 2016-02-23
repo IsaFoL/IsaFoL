@@ -45,7 +45,7 @@ proof -
   hence "a \<in> set [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]"
     apply (cases "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]")
       apply simp
-    apply (rename_tac aa list; case_tac list) by (auto split: split_if_asm)
+    apply (rename_tac aa list; case_tac list) by (auto split: if_split_asm)
   hence "atm_of a \<notin> atm_of ` lits_of M" by auto
   thus ?thesis
     by (simp add: Marked_Propagated_in_iff_in_lits_of
@@ -61,7 +61,7 @@ proof -
   thus ?thesis
     apply (cases "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]", simp)
       apply simp
-    apply (rename_tac aa list, case_tac list) by (auto split: split_if_asm)
+    apply (rename_tac aa list, case_tac list) by (auto split: if_split_asm)
 qed
 
 lemma is_unit_clause_some_in: "is_unit_clause l M = Some a \<Longrightarrow> a \<in> set l"
@@ -72,7 +72,7 @@ proof -
          | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
   thus "a \<in> set l"
     by (cases "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]")
-       (fastforce dest: filter_eq_ConsD split: split_if_asm  split: list.splits)+
+       (fastforce dest: filter_eq_ConsD split: if_split_asm  split: list.splits)+
 qed
 
 lemma is_unit_clause_nil[simp]: "is_unit_clause [] M = None"

@@ -15,7 +15,7 @@ lemma nat_less_induct_case[case_names 0 Suc]:
   by (rename_tac n, case_tac n) (auto intro: assms)
 
 text \<open>This is only proved in simple cases by auto. In assumptions, nothing happens, and
-  @{thm split_if_asm} can blow up goals (because of other if expression).\<close>
+  @{thm if_split_asm} can blow up goals (because of other if expression).\<close>
 lemma if_0_1_ge_0[simp]:
   "0 < (if P then a else (0::nat)) \<longleftrightarrow> P \<and> 0 < a"
   by auto

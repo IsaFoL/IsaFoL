@@ -307,7 +307,7 @@ proof -
     proof cases
       case Q
       have "Q \<in> set_mset C"
-        using Q(2) by (auto split: split_if_asm)
+        using Q(2) by (auto split: if_split_asm)
       then have "Max (set_mset C) > Pos P"
         using Q(1) Max_gr_iff by blast
       thus ?thesis
@@ -334,7 +334,7 @@ proof -
     proof cases
       case Q
       have "Q \<in> set_mset D"
-        using Q(2) by (auto split: split_if_asm)
+        using Q(2) by (auto split: if_split_asm)
       then have "Max (set_mset D) > Neg P"
         using Q(1) Max_gr_iff by blast
       hence "Max (set_mset D) > Pos P"
@@ -580,7 +580,7 @@ proof (rule ccontr)
     next
       case Lneg note L = this(1)
       have "P \<in> ?N\<^sub>\<I>"
-        using not_d_interp unfolding D true_cls_def L by (auto split: split_if_asm)
+        using not_d_interp unfolding D true_cls_def L by (auto split: if_split_asm)
       then obtain E where
         DPN: "E + {#Pos P#} \<in> N" and
         prod: "production N (E + {#Pos P#}) = {P}"
@@ -599,7 +599,7 @@ proof (rule ccontr)
         using prod produces_imp_neg_notin_lits by force
       hence "\<And>y. y \<in># (E + {#Pos P#})
         \<Longrightarrow> count (E + {#Pos P#}) (Neg P) < count (C + {#Neg P#}) (Neg P)"
-        by (auto split: split_if_asm)
+        by (auto split: if_split_asm)
       moreover have "\<And>y. y \<in># (E + {#Pos P#}) \<Longrightarrow> y < Neg P"
         using PMax by (metis DPN Max_less_iff empty finite_set_mset mem_set_mset_iff pos_less_neg
           set_mset_eq_empty_iff)
@@ -621,7 +621,7 @@ proof (rule ccontr)
           \<open>count (E + {#Pos P#}) (Pos P) \<le> 1\<close> multi_member_skip not_d_interp by auto
       hence "\<And>y. y \<in># C+E
         \<Longrightarrow> count (C+E) (Pos P) < count (E + {#Pos P#}) (Pos P)"
-        by (auto split: split_if_asm)
+        by (auto split: if_split_asm)
 (*       moreover
         have "Pos P \<notin># E"
           using `Pos P \<notin># C + E` by auto

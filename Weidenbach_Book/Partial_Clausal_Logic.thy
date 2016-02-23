@@ -293,7 +293,7 @@ lemma true_cls_empty[iff]: "\<not> I \<Turnstile> {#}"
   unfolding true_cls_def by auto
 
 lemma true_cls_singleton[iff]: "I \<Turnstile> {#L#} \<longleftrightarrow> I \<Turnstile>l L"
-  unfolding true_cls_def by (auto split:split_if_asm)
+  unfolding true_cls_def by (auto split:if_split_asm)
 
 lemma true_cls_union[iff]: "I \<Turnstile> C + D \<longleftrightarrow> I \<Turnstile> C \<or> I \<Turnstile> D"
   unfolding true_cls_def by auto
@@ -446,7 +446,7 @@ lemma true_cls_mset_empty[simp]: "I \<Turnstile>m {#}"
   unfolding true_cls_mset_def by auto
 
 lemma true_cls_mset_singleton[iff]: "I \<Turnstile>m {#C#} \<longleftrightarrow> I \<Turnstile> C"
-  unfolding true_cls_mset_def by (auto split: split_if_asm)
+  unfolding true_cls_mset_def by (auto split: if_split_asm)
 
 lemma true_cls_mset_union[iff]: "I \<Turnstile>m CC + DD \<longleftrightarrow> I \<Turnstile>m CC \<and> I \<Turnstile>m DD"
   unfolding true_cls_mset_def by fastforce
@@ -896,7 +896,7 @@ lemma subsumption_total_over_m:
 lemma atms_of_replicate_mset_replicate_mset_uminus[simp]:
   "atms_of (D - replicate_mset (count D L) L  - replicate_mset (count D (-L)) (-L))
     = atms_of D - {atm_of L}"
-  by (auto split: split_if_asm simp add: atm_of_eq_atm_of atms_of_def)
+  by (auto split: if_split_asm simp add: atm_of_eq_atm_of atms_of_def)
 
 lemma subsumption_chained:
   assumes
@@ -1002,7 +1002,7 @@ proof (standard; standard)
       moreover have "-L \<notin># C"
         using taut Add by auto
       ultimately have "atms_of (C - {#L#}) \<subseteq> atms"
-        using atms Add by (auto simp: atm_iff_pos_or_neg_lit split: split_if_asm dest!: H)
+        using atms Add by (auto simp: atm_iff_pos_or_neg_lit split: if_split_asm dest!: H)
 
       moreover have "\<not> tautology (C - {#L#})"
         using taut by (metis Add(1) insert_DiffM tautology_add_single)
@@ -1017,7 +1017,7 @@ proof (standard; standard)
       case No
       then have "C \<in> simple_clss atms"
         using taut atms dist unfolding simple_clss_def
-        by (auto simp: atm_iff_pos_or_neg_lit split: split_if_asm dest!: H)
+        by (auto simp: atm_iff_pos_or_neg_lit split: if_split_asm dest!: H)
       then show ?thesis by blast
     qed
 next

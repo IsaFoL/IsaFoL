@@ -1348,7 +1348,7 @@ next
 next
   case forget
   then show ?case
-    using learned by (auto simp: cdcl\<^sub>W_learned_clause_def clauses_def split: split_if_asm)
+    using learned by (auto simp: cdcl\<^sub>W_learned_clause_def clauses_def split: if_split_asm)
 qed (auto simp: cdcl\<^sub>W_learned_clause_def clauses_def)
 
 lemma rtranclp_cdcl\<^sub>W_learned_clss:
@@ -2202,7 +2202,7 @@ proof (induct rule: cdcl\<^sub>W_all_induct_lev2)
     then have "lits_of (trail S) \<Turnstile>s CNot (D + {#L#})" using true_annots_true_cls by blast
   ultimately have "\<not>tautology (D + {#L#})" using consistent_CNot_not_tautology by blast
   then show ?case using backtrack no_tauto
-    by (auto simp: cdcl\<^sub>W_M_level_inv_decomp split: split_if_asm)
+    by (auto simp: cdcl\<^sub>W_M_level_inv_decomp split: if_split_asm)
 next
   case restart
   then show ?case using learned_clss_restart_state state_eq_learned_clss no_tauto
@@ -2581,7 +2581,7 @@ proof -
       using M_lev cdcl\<^sub>W cdcl\<^sub>W_cp_consistent_inv cdcl\<^sub>W_M_level_inv_def apply blast
       using cdcl\<^sub>W by (auto simp: cdcl\<^sub>W_cp.simps)
   with assms
-  show ?thesis by induction (auto split: split_if_asm)+
+  show ?thesis by induction (auto split: if_split_asm)+
 qed
 
 lemma cdcl\<^sub>W_cp_wf: "wf {(b,a). (cdcl\<^sub>W_M_level_inv a \<and> no_strange_atm a)
@@ -3443,7 +3443,7 @@ next
       qed
     then have "get_level (Propagated L C' # M) La = get_level M La"  by auto
   ultimately show ?case using D tr_S T by auto
-qed (auto split: split_if_asm simp: cdcl\<^sub>W_M_level_inv_decomp)
+qed (auto split: if_split_asm simp: cdcl\<^sub>W_M_level_inv_decomp)
 
 subsubsection \<open>Strong completeness\<close>
 lemma cdcl\<^sub>W_cp_propagate_confl:
@@ -4289,7 +4289,7 @@ next
            then obtain L where "L \<in># D" and LM: "-L \<in> lits_of M"
              using \<open>trail S'' \<Turnstile>as CNot D\<close>
                by (auto simp add: CNot_def true_cls_def  M true_annots_def true_annot_def
-                     split: split_if_asm)
+                     split: if_split_asm)
            { fix x :: "('v, nat, 'v literal multiset) marked_lit" and
                xb :: "('v, nat, 'v literal multiset) marked_lit"
              assume a1: "xb \<in> set (trail S')" and

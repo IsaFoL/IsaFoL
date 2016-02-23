@@ -214,7 +214,7 @@ next
     "D \<noteq> {#}" and
     "st_of_raw T = tl_trail (st_of_raw S)"
     using conf unfolding do_skip_step_def
-    by (auto split: list.splits marked_lit.splits split_if_asm simp: conflicting_raw_conflicting)
+    by (auto split: list.splits marked_lit.splits if_split_asm simp: conflicting_raw_conflicting)
   then show ?thesis
     using skip_rule[of "st_of_raw S" L C M "init_clss (st_of_raw S)"
       "learned_clss (st_of_raw S)" "backtrack_lvl (st_of_raw S)"]
@@ -232,7 +232,7 @@ next
   case Some
   then show ?thesis
     using conf unfolding do_skip_step_def
-    by (auto split: list.splits marked_lit.splits split_if_asm simp: conflicting_raw_conflicting)
+    by (auto split: list.splits marked_lit.splits if_split_asm simp: conflicting_raw_conflicting)
 qed
 
 definition do_resolve_step :: "'conc_st \<Rightarrow> 'conc_st option" where
@@ -273,7 +273,7 @@ next
     "maximum_level (remove (-L) D) S = raw_backtrack_lvl S" and
     empty: "trail (st_of_raw S) \<noteq> []"
     using conf Some unfolding do_resolve_step_def
-    by (auto split: list.splits marked_lit.splits split_if_asm simp: conflicting_raw_conflicting)
+    by (auto split: list.splits marked_lit.splits if_split_asm simp: conflicting_raw_conflicting)
   moreover have "trail (st_of_raw S) = Propagated L (cls_of_raw_cls C) # M"
     using empty raw_hd_trail[of S] C M_def by (cases "trail (st_of_raw S)") simp_all
   moreover then have "L \<in># cls_of_raw_cls C"

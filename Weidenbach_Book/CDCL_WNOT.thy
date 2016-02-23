@@ -405,7 +405,7 @@ next
   then have "L' \<notin># ?D"
     using L_L' L'_M unfolding true_annots_def by (auto simp add: true_annot_def true_cls_def
       atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set Ball_mset_def
-      split: split_if_asm)
+      split: if_split_asm)
   have [simp]: "trail (reduce_trail_to M1 T) = M1"
     by (metis (mono_tags, lifting) One_nat_def Pair_inject T \<open>V \<sim> tl_trail T\<close> decomp
       diff_less in_get_all_marked_decomposition_trail_update_trail length_greater_0_conv
@@ -428,7 +428,7 @@ next
       cases "get_all_marked_decomposition (trail V)") auto
   moreover
     from L_L' have "get_level ?M L = k"
-      using lev_L \<open>-L' \<notin># ?D\<close> V  by (auto split: split_if_asm)
+      using lev_L \<open>-L' \<notin># ?D\<close> V  by (auto split: if_split_asm)
   moreover
     have "atm_of L' \<notin> atms_of D"
       using \<open>L' \<notin># ?D\<close> \<open>-L' \<notin># ?D\<close> by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
@@ -629,7 +629,7 @@ proof -
     proof (rule ccontr)
       assume "\<not> ?thesis"
       then have "L' \<in># D"
-        using S unfolding S' by (fastforce simp: multiset_eq_iff split: split_if_asm)
+        using S unfolding S' by (fastforce simp: multiset_eq_iff split: if_split_asm)
       then have "get_maximum_level M D \<ge> k"
         using \<open>get_level M L' = k\<close> get_maximum_level_ge_get_level by blast
       then show False using \<open>get_maximum_level M D = i\<close> \<open>i < k\<close> by auto
@@ -1366,7 +1366,7 @@ proof -
       case merged
       then show ?thesis
         using cdcl\<^sub>N\<^sub>O\<^sub>T_decreasing_measure'[OF _ _ atm_clauses] atm_trail n_d
-        by (auto split: split_if simp: comp_def)
+        by (auto split: if_split simp: comp_def)
     next
       case n_s
       then show ?thesis by simp

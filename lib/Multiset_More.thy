@@ -292,10 +292,10 @@ lemma bex1_mset_def: "(\<exists>!x\<in>#X. P x) \<longleftrightarrow> (\<exists>
 
 text \<open>More: this rules are here to help the simplifier\<close>
 lemma Bex_mset_singleton[iff]: "(\<exists>L\<in>#{#a#}. P L) \<longleftrightarrow> P a"
-by (auto split: split_if_asm)
+by (auto split: if_split_asm)
 
 lemma Ball_mset_singleton[iff]: "(\<forall>L\<in>#{#a#}. P L) \<longleftrightarrow> P a"
-by (auto split: split_if_asm)
+by (auto split: if_split_asm)
 
 lemma Bex_mset_mempty[iff]: "(\<exists>L\<in>#{#}. P L) \<longleftrightarrow> False"
 by (auto simp add: Bex_mset_def)
@@ -449,7 +449,7 @@ lemma replicate_mset_plus: "replicate_mset (a + b) C = replicate_mset a C + repl
 lemma set_mset_minus_replicate_mset:
   "n \<ge> count A a \<Longrightarrow> set_mset (A - replicate_mset n a) = set_mset A - {a}"
   "n < count A a \<Longrightarrow> set_mset (A - replicate_mset n a) = set_mset A"
-  by (auto split: split_if_asm)
+  by (auto split: if_split_asm)
 
 abbreviation remove_mset :: "'a \<Rightarrow> 'a multiset \<Rightarrow> 'a multiset" where
 "remove_mset C M \<equiv> M - replicate_mset (count M C) C"
@@ -463,7 +463,7 @@ lemma set_mset_single_iff_replicate_mset:
   apply (rule iffI)
     apply (metis antisym_conv3 count_replicate_mset gr_implies_not0 mem_set_mset_iff multiset_eq_iff
       singleton_iff)
-  by (auto split: split_if_asm)
+  by (auto split: if_split_asm)
 
 lemma count_mset_set_le_one: "count (mset_set A) x \<le> 1"
   by (metis count_mset_set(1) elem_mset_set le_less less_eq_nat.simps(1) mset_set.infinite
@@ -601,7 +601,7 @@ lemma distinct_mset_add_single:
     apply (intro allI)
     apply (rename_tac aa)
     apply (case_tac "a = aa")
-    by (auto split: split_if_asm)
+    by (auto split: if_split_asm)
 
 lemma distinct_mset_single_add:
   "distinct_mset (L + {#a#}) \<longleftrightarrow> distinct_mset L \<and> a \<notin># L"

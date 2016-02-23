@@ -272,7 +272,7 @@ lemma
   resolution_satisfiable:
     "consistent_interp I \<Longrightarrow> I \<Turnstile> {#Pos p#} + C \<Longrightarrow> I \<Turnstile> {#Neg p#} + D \<Longrightarrow> I \<Turnstile> C + D" and
     factoring_same_vars: "atms_of ({#L#} + {#L#} + C) = atms_of ({#L#} + C)"
-  unfolding true_cls_def consistent_interp_def by (fastforce split: split_if_asm)+
+  unfolding true_cls_def consistent_interp_def by (fastforce split: if_split_asm)+
 
 lemma inference_increasing:
   assumes "inference S S'" and "\<psi> \<in> fst S"

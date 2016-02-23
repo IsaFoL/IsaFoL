@@ -281,7 +281,7 @@ proof (rule ccontr)
     fix K
     assume "K \<in># D"
     then have "-K \<in> lits_of M"
-      by (auto split: split_if_asm
+      by (auto split: if_split_asm
         intro: allE[OF D[unfolded true_annots_def Ball_def], of "{#-K#}"])
     then have "-K \<in> I" using IM true_clss_singleton_lit_of_implies_incl by fastforce
   }

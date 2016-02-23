@@ -129,7 +129,7 @@ next
       by (metis (no_types, lifting) C M bspec_mset insert_iff less_not_refl2 lits_of_cons
         watched_decided_most_recently.simps)
     then have "- L' \<in> lits_of M'"
-      using \<open>count W L' = 0\<close> LW L'M by (auto simp: C M split: split_if_asm)
+      using \<open>count W L' = 0\<close> LW L'M by (auto simp: C M split: if_split_asm)
   }
   moreover
     {
@@ -148,7 +148,7 @@ next
       moreover have "watched_decided_most_recently M C"
         using wf by (auto simp: C)
       ultimately have "index (map lit_of M') (- L') \<le> index (map lit_of M') (- L)"
-        by (fastforce simp: M C split: split_if_asm)
+        by (fastforce simp: M C split: if_split_asm)
     }
   moreover have "distinct_mset W" and "size W \<le> 2" and "(size W < 2 \<longrightarrow> set_mset UW \<subseteq> set_mset W)"
     using wf by (auto simp: C M)
@@ -934,7 +934,7 @@ lemma clause_rewatch_witness:
 
 lemma clause_rewatch_nat: "raw_clause (rewatch_nat L S C) = raw_clause C"
   using clause_rewatch_witness[of "sorted_list_of_multiset (unwatched C)" C _ S]
-  by (auto simp: rewatch_nat_def Let_def split: list.split split_if_asm)
+  by (auto simp: rewatch_nat_def Let_def split: list.split if_split_asm)
 
 lemma filter_sorted_list_of_multiset_Nil:
   "[x \<leftarrow> sorted_list_of_multiset M. p x] = [] \<longleftrightarrow> (\<forall>x \<in># M. \<not> p x)"
@@ -1082,9 +1082,9 @@ next
                   apply (auto simp: uminus_lit_swap)[2]
                 apply (force dest: filter_in_list_prop_verifiedD)
                using H size_mset_le_2_cases[OF W]
-              using distinct apply (fastforce split: split_if_asm simp: distinct_mset_size_2)
-             using distinct apply (fastforce split: split_if_asm simp: distinct_mset_size_2)
-            using distinct apply (fastforce split: split_if_asm simp: distinct_mset_size_2)
+              using distinct apply (fastforce split: if_split_asm simp: distinct_mset_size_2)
+             using distinct apply (fastforce split: if_split_asm simp: distinct_mset_size_2)
+            using distinct apply (fastforce split: if_split_asm simp: distinct_mset_size_2)
            apply (force dest: filter_in_list_prop_verifiedD)
           using size_mset_le_2_cases[OF W] H by (fastforce simp: uminus_lit_swap
             dest: filter_sorted_list_of_multiset_ConsD filter_sorted_list_of_multiset_eqD)
@@ -1199,7 +1199,7 @@ abbreviation add_init_cls_twl where
 "add_init_cls_twl C S \<equiv> twl_of_rough_state (add_init_cls C (rough_state_of_twl S))"
 
 lemma wf_twl_add_init_cls: "wf_twl_state S \<Longrightarrow> wf_twl_state (add_init_cls L S)"
-  unfolding wf_twl_state_def by (auto simp: wf_watch add_init_cls_def split: split_if_asm)
+  unfolding wf_twl_state_def by (auto simp: wf_watch add_init_cls_def split: if_split_asm)
 
 lemma rough_state_of_twl_add_init_cls:
   "rough_state_of_twl (add_init_cls_twl L S) = add_init_cls L (rough_state_of_twl S)"
@@ -1209,7 +1209,7 @@ abbreviation add_learned_cls_twl where
 "add_learned_cls_twl C S \<equiv> twl_of_rough_state (add_learned_cls C (rough_state_of_twl S))"
 
 lemma wf_twl_add_learned_cls: "wf_twl_state S \<Longrightarrow> wf_twl_state (add_learned_cls L S)"
-  unfolding wf_twl_state_def by (auto simp: wf_watch add_learned_cls_def split: split_if_asm)
+  unfolding wf_twl_state_def by (auto simp: wf_watch add_learned_cls_def split: if_split_asm)
 
 lemma rough_state_of_twl_add_learned_cls:
   "rough_state_of_twl (add_learned_cls_twl L S) = add_learned_cls L (rough_state_of_twl S)"
@@ -1219,7 +1219,7 @@ abbreviation remove_cls_twl where
 "remove_cls_twl C S \<equiv> twl_of_rough_state (remove_cls C (rough_state_of_twl S))"
 
 lemma wf_twl_remove_cls: "wf_twl_state S \<Longrightarrow> wf_twl_state (remove_cls L S)"
-  unfolding wf_twl_state_def by (auto simp: wf_watch remove_cls_def split: split_if_asm)
+  unfolding wf_twl_state_def by (auto simp: wf_watch remove_cls_def split: if_split_asm)
 
 lemma rough_state_of_twl_remove_cls:
   "rough_state_of_twl (remove_cls_twl L S) = remove_cls L (rough_state_of_twl S)"
