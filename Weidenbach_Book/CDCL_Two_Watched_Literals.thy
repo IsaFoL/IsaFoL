@@ -1094,19 +1094,31 @@ next
         have H: "\<forall>x. x \<in># W \<longrightarrow> - x \<in> lits_of (trail S) \<longrightarrow> (\<forall>x. x \<in># UW \<longrightarrow> count W x = 0
           \<longrightarrow> - x \<in> lits_of (trail S))"
           using wf by (auto simp: C)
-
         show ?case
-          using 5 unfolding C watched_decided_most_recently.simps Ball_mset_def
-          apply (intro allI impI conjI)
-          apply (rename_tac xW x)
-          apply (case_tac "- lit_of L = xW"; case_tac "xW = x")
-              apply (auto simp: uminus_lit_swap)[3]
-          apply (case_tac "- lit_of L = x")
-           using H UWC C apply (force dest!: filter_in_list_prop_verifiedD)
-           (* TODO tune proof *)
-          apply (clarsimp)
-          using H C UWC by (metis (mono_tags, lifting) filter_in_list_prop_verifiedD
-            list.set_intros(1) mem_Collect_eq set_mset_def twl_clause.sel(2))
+          unfolding C watched_decided_most_recently.simps Ball_mset_def
+          proof (intro allI impI conjI, goal_cases)
+            case (1 xW x)
+            show ?case
+              proof (cases "- lit_of L = xW")
+                case True
+                then show ?thesis
+                  by (cases "xW = x") (auto simp: uminus_lit_swap)
+              next
+                case False note LxW = this
+                have f9: "L' \<in> set [l\<leftarrow>UWC . l \<notin># watched (TWL_Clause W UW)
+                    \<and> - l \<notin> lits_of (L # trail S)]"
+                  using 1(2) 5 by auto
+                moreover then have f11: "- xW \<in> lits_of (trail S)"
+                  using 1(3) LxW unfolding lits_of_cons by (metis (no_types) insert_iff
+                    uminus_of_uminus_id)
+                moreover then have "xW \<notin># W"
+                  using f9 1(2) H by (auto simp: C UWC)
+                ultimately have False
+                  using 1 by auto
+                then show ?thesis
+                  by fast
+              qed
+          qed
       qed
   qed
 qed
