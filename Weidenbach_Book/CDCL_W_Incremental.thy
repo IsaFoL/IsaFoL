@@ -268,7 +268,7 @@ text \<open>For multiset larger that 1 element, there is no way to know in which
 lemma add_learned_clss_init_state_single[dest!]:
   "add_learned_clss (init_state N) {#C#} T \<Longrightarrow> T = add_learned_cls C (init_state N)"
   by (induction  "{#C#}" "T" rule: add_learned_clss.induct)
-  (auto simp: add_learned_clss.cases ac_simps union_is_single split: split_if_asm)
+  (auto simp: add_learned_clss.cases ac_simps union_is_single split: if_split_asm)
 
 thm rtranclp_cdcl\<^sub>W_stgy_no_smaller_confl_inv cdcl\<^sub>W_stgy_final_state_conclusive
 lemma cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_all_struct_inv:
@@ -429,7 +429,7 @@ proof -
           simplified, but auto is not able to solve the goal when this is done.*)
           apply (cases "trail (add_init_cls C (cut_trail_wrt_clause C (trail T) T))";
            cases "hd (trail (cut_trail_wrt_clause C (trail T) T))")
-          using l by (auto split: split_if_asm
+          using l by (auto split: if_split_asm
             simp:rev_swap[symmetric] add_new_clause_and_update_def)
 
       have L': "length (get_all_levels_of_marked (trail (cut_trail_wrt_clause C (trail T) T)))
@@ -445,7 +445,7 @@ proof -
         then consider
             (DC) "D = C"
           | (D_T) "D \<in># clauses T"
-          by (auto simp: clauses_def split: split_if_asm)
+          by (auto simp: clauses_def split: if_split_asm)
         then show False
           proof cases
             case D_T
@@ -549,7 +549,7 @@ next
   case 2 have "cdcl\<^sub>W_stgy_invariant (add_init_cls C S)"
     using s_inv \<open>\<not> trail S \<Turnstile>as CNot C\<close> inv unfolding cdcl\<^sub>W_stgy_invariant_def no_smaller_confl_def
     eq_commute[of "_" "trail _"] cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_all_struct_inv_def
-    by (auto simp: true_annots_true_cls_def_iff_negation_in_model clauses_def split: split_if_asm)
+    by (auto simp: true_annots_true_cls_def_iff_negation_in_model clauses_def split: if_split_asm)
   then show ?case
     by (metis \<open>cdcl\<^sub>W_all_struct_inv (add_init_cls C S)\<close> add_no_confl.hyps(5) full_def
       rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant)

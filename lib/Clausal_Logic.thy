@@ -222,7 +222,7 @@ lemma atms_of_singleton[simp]: "atms_of {#L#} = {atm_of L}"
 
 lemma atms_of_union_mset[simp]:
   "atms_of (A #\<union> B) = atms_of A \<union> atms_of B"
-  unfolding atms_of_def by (auto simp: max_def split: split_if_asm)
+  unfolding atms_of_def by (auto simp: max_def split: if_split_asm)
 
 lemma finite_atms_of[iff]: "finite (atms_of C)"
   unfolding atms_of_def by simp

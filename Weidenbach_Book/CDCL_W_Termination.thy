@@ -698,7 +698,7 @@ proof -
 
   have get_lvls_M: "get_all_levels_of_marked (trail S) = rev [1..<Suc (backtrack_lvl S)]"
     using lev' unfolding cdcl\<^sub>W_M_level_inv_def by auto
-  then have "backtrack_lvl S > 0" unfolding M by (auto split: split_if_asm simp add: upt.simps(2))
+  then have "backtrack_lvl S > 0" unfolding M by (auto split: if_split_asm simp add: upt.simps(2))
 
   obtain M1' K' Ls where
     M': "trail S = Ls @ Marked K' (backtrack_lvl S) # M1'" and
@@ -726,7 +726,7 @@ proof -
           apply (subst MLs, subst K'k)
           using calculation(2) by (auto simp add: get_all_levels_of_marked_no_marked)
         then have "K'k =  backtrack_lvl S"
-        using calculation(2) by (auto split: split_if_asm simp add: get_lvls_M upt.simps(2))
+        using calculation(2) by (auto split: if_split_asm simp add: get_lvls_M upt.simps(2))
       moreover have "set M1 \<subseteq> set (tl (dropWhile (Not o is_marked) (trail S)))"
         unfolding M by (induction M2) auto
       ultimately show ?thesis using that MLs by metis
@@ -734,13 +734,13 @@ proof -
 
   have get_lvls_M: "get_all_levels_of_marked (trail S) = rev [1..<Suc (backtrack_lvl S)]"
     using lev' unfolding cdcl\<^sub>W_M_level_inv_def by auto
-  then have "backtrack_lvl S > 0" unfolding M by (auto split: split_if_asm simp add: upt.simps(2) i)
+  then have "backtrack_lvl S > 0" unfolding M by (auto split: if_split_asm simp add: upt.simps(2) i)
 
   have M1'_D: "M1' \<Turnstile>as CNot D" using M1_D \<open>set M1 \<subseteq> set M1'\<close> by (auto intro: true_annots_mono)
   have "-L \<in> lits_of (trail S)" using conf confl_S unfolding cdcl\<^sub>W_conflicting_def by auto
   have lvls_M1': "get_all_levels_of_marked M1' = rev [1..<backtrack_lvl S]"
     using get_lvls_M Ls by (auto simp add: get_all_levels_of_marked_no_marked M'
-      split: split_if_asm simp add: upt.simps(2))
+      split: if_split_asm simp add: upt.simps(2))
   have L_notin: "atm_of L \<in> atm_of ` lits_of Ls \<or> atm_of L = atm_of K'"
     proof (rule ccontr)
       assume "\<not> ?thesis"

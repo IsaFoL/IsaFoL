@@ -177,7 +177,7 @@ function (domintros) DPLL_part:: "int dpll\<^sub>W_marked_lits \<Rightarrow> int
 
 lemma snd_DPLL_step[simp]:
   "snd (DPLL_step (Ms, N)) = N"
-  unfolding DPLL_step_def by (auto split: split_if option.splits prod.splits list.splits)
+  unfolding DPLL_step_def by (auto split: if_split option.splits prod.splits list.splits)
 
 lemma dpll\<^sub>W_all_inv_implieS_2_eq3_and_dom:
   assumes "dpll\<^sub>W_all_inv (Ms, mset (map mset N))"

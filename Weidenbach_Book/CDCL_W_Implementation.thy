@@ -259,7 +259,7 @@ fun find_conflict where
 lemma find_conflict_Some:
   "find_conflict M Ns = Some N \<Longrightarrow> N \<in> set Ns \<and> M \<Turnstile>as CNot (mset N)"
   by (induction Ns rule: find_conflict.induct)
-     (auto split: split_if_asm)
+     (auto split: if_split_asm)
 
 lemma find_conflict_None:
   "find_conflict M Ns = None \<longleftrightarrow> (\<forall>N \<in> set Ns. \<not>M \<Turnstile>as CNot (mset N))"
@@ -402,7 +402,7 @@ lemma do_skip_step:
 lemma do_skip_step_no:
   "do_skip_step S = S \<Longrightarrow> no_step skip (toS S)"
   by (induction S rule: do_skip_step.induct)
-     (auto simp add: other split: split_if_asm)
+     (auto simp add: other split: if_split_asm)
 
 lemma do_skip_step_trail_is_None[iff]:
   "do_skip_step S = (a, b, c, d, None) \<longleftrightarrow> S = (a, b, c, d, None)"
@@ -435,7 +435,7 @@ proof (induction S rule: do_resolve_step.induct)
     M: "maximum_level_code (remove1 (-L) D) (Propagated L C # M) = k"
     by (cases "mset D - {#- L#} = {#}",
         auto dest!: get_maximum_level_exists_lit_of_max_level[of _ "Propagated L C # M"]
-        split: split_if_asm)+
+        split: if_split_asm)+
   have "every_mark_is_a_conflict (toS (Propagated L C # M, N, U, k, Some D))"
     using 1(1) unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def by fast
   then have "L \<in> set C" by fastforce
@@ -480,7 +480,7 @@ lemma do_resolve_step_no:
   "do_resolve_step S = S \<Longrightarrow> no_step resolve (toS S)"
   apply (cases S; cases "hd (trail S)"; cases "conflicting S")
   by (auto
-    elim!: resolveE  split: split_if_asm
+    elim!: resolveE  split: if_split_asm
     dest!: union_single_eq_member
     simp del: in_multiset_in_set get_maximum_level_map_convert
     simp: in_multiset_in_set[symmetric] get_maximum_level_map_convert[symmetric])
@@ -522,7 +522,7 @@ next
      L \<in> set Ls \<and> get_maximum_level M (mset Ls + mset D - {#L#}) = j \<and> get_level M L = k"
     using IH by simp
   have a2: "find = Some (L, j)"
-    using H unfolding find_def by (auto split: split_if_asm)
+    using H unfolding find_def by (auto split: if_split_asm)
   { assume "Some (L', get_maximum_level M (mset D + mset Ls)) \<noteq> find"
     then have f3: "L \<in> set Ls" and "get_maximum_level M (mset Ls + mset (L' # D) - {#L#}) = j"
       using a1 IH a2 unfolding find_def by meson+
@@ -554,7 +554,7 @@ next
   have "mset D + {#L'#} = mset E + (mset Ls + {#L'#})  \<Longrightarrow> mset D = mset E + mset Ls"
     by (metis add_right_imp_eq union_assoc)
   then show ?case
-    using find_none IH[of "L' # E" L D] LD by (auto simp add: ac_simps split: split_if_asm)
+    using find_none IH[of "L' # E" L D] LD by (auto simp add: ac_simps split: if_split_asm)
 qed
 
 fun bt_cut where
@@ -564,7 +564,7 @@ fun bt_cut where
 
 lemma bt_cut_some_decomp:
   "bt_cut i M = Some M' \<Longrightarrow> \<exists>K M2 M1. M = M2 @ M' \<and> M' = Marked K (i+1) # M1"
-  by (induction i M rule: bt_cut.induct) (auto split: split_if_asm)
+  by (induction i M rule: bt_cut.induct) (auto split: if_split_asm)
 
 lemma bt_cut_not_none: "M = M2 @ Marked K (Suc i) # M' \<Longrightarrow> bt_cut i M \<noteq> None"
   by (induction M2 arbitrary: M rule: marked_lit_list_induct) auto
@@ -611,7 +611,7 @@ lemma do_backtrack_step:
     have E: "E = Some C" using S confl by auto
 
     obtain L j where fd: "find_level_decomp M C [] k = Some (L, j)"
-      using db unfolding S E  by (cases C) (auto split: split_if_asm option.splits)
+      using db unfolding S E  by (cases C) (auto split: if_split_asm option.splits)
     have "L \<in> set C" and "get_maximum_level M (mset (remove1 L C)) = j" and
       levL: "get_level M L = k"
       using find_level_decomp_some[OF fd] by auto
@@ -960,7 +960,7 @@ lemma do_other_step:
   assumes inv: "cdcl\<^sub>W_all_struct_inv (toS S)" and
   st: "do_other_step S \<noteq> S"
   shows "cdcl\<^sub>W_o (toS S) (toS (do_other_step S))"
-  using st inv by (auto split: split_if_asm
+  using st inv by (auto split: if_split_asm
     simp add: Let_def
     intro: do_skip_step do_resolve_step do_backtrack_step do_decide_step)
 
@@ -968,7 +968,7 @@ lemma do_other_step_no:
   assumes inv: "cdcl\<^sub>W_all_struct_inv (toS S)" and
   st: "do_other_step S = S"
   shows "no_step cdcl\<^sub>W_o (toS S)"
-  using st inv by (auto split: split_if_asm elim: cdcl\<^sub>W_bjE
+  using st inv by (auto split: if_split_asm elim: cdcl\<^sub>W_bjE
     simp add: Let_def cdcl\<^sub>W_bj.simps elim!: cdcl\<^sub>W_o.cases
     dest!: do_skip_step_no do_resolve_step_no do_backtrack_step_no do_decide_step_no)
 
@@ -1110,12 +1110,12 @@ proof -
         using decomp undef by (cases S) auto
       then show ?case
         apply (cases "do_other_step S")
-        apply (auto split: split_if_asm simp: Let_def)
-            apply (cases S rule: do_skip_step.cases; auto split: split_if_asm)
-           apply (cases S rule: do_skip_step.cases; auto split: split_if_asm)
+        apply (auto split: if_split_asm simp: Let_def)
+            apply (cases S rule: do_skip_step.cases; auto split: if_split_asm)
+           apply (cases S rule: do_skip_step.cases; auto split: if_split_asm)
 
           apply (cases S rule: do_backtrack_step.cases;
-            auto split: split_if_asm option.splits list.splits marked_lit.splits
+            auto split: if_split_asm option.splits list.splits marked_lit.splits
               dest!: bt_cut_some_decomp simp: Let_def)
         using d apply (cases S rule: do_decide_step.cases; auto split: option.splits)[]
         done
@@ -1158,7 +1158,7 @@ lemma do_decide_step_not_conflicting_one_more_decide:
   shows "Suc (length (filter is_marked (trail S)))
     = length (filter is_marked (trail (do_decide_step S)))"
   using assms unfolding do_other_step'_def
-  by (cases S) (auto simp: Let_def split: split_if_asm option.splits
+  by (cases S) (auto simp: Let_def split: if_split_asm option.splits
      dest!: find_first_unused_var_Some_not_all_incl)
 
 lemma do_decide_step_not_conflicting_one_more_decide_bt:
@@ -1166,7 +1166,7 @@ lemma do_decide_step_not_conflicting_one_more_decide_bt:
   "do_decide_step S \<noteq> S"
   shows "length (filter is_marked (trail S)) < length (filter is_marked (trail (do_decide_step S)))"
   using assms unfolding do_other_step'_def by (cases S, cases "conflicting S")
-    (auto simp add: Let_def split: split_if_asm option.splits)
+    (auto simp add: Let_def split: if_split_asm option.splits)
 
 lemma do_other_step_not_conflicting_one_more_decide_bt:
   assumes
