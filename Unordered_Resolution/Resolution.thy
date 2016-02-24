@@ -503,7 +503,7 @@ qed
 subsection {* Standardizing apart *}
 
 definition std_apart :: "fterm clause \<Rightarrow> fterm clause \<Rightarrow> (fterm clause * fterm clause)" where
-  "std_apart C\<^sub>1 C\<^sub>2 = (C\<^sub>1{\<lambda>x. Var (''0'' @ x) }\<^sub>l\<^sub>s,C\<^sub>2{\<lambda>x. Var (''1'' @ x)}\<^sub>l\<^sub>s)"
+  "std_apart C\<^sub>1 C\<^sub>2 = (C\<^sub>1{\<lambda>x. Var (''0'' @ x) }\<^sub>l\<^sub>s, C\<^sub>2{\<lambda>x. Var (''1'' @ x)}\<^sub>l\<^sub>s)"
 
 lemma std_apart'': 
   "x\<in>varst  (t  {\<lambda>x::char list. Var (y @ x) }\<^sub>t ) \<Longrightarrow> \<exists>x'. x=y@x'"
