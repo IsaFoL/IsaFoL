@@ -503,7 +503,7 @@ qed
 subsection {* Standardizing apart *}
 
 definition std_apart :: "fterm clause \<Rightarrow> fterm clause \<Rightarrow> (fterm clause * fterm clause)" where
-  "std_apart C\<^sub>1 C\<^sub>2 = (C\<^sub>1{\<lambda>x::char list. Var (''0'' @ x) }\<^sub>l\<^sub>s,C\<^sub>2{\<lambda>x. Var (''1'' @ x)}\<^sub>l\<^sub>s)"
+  "std_apart C\<^sub>1 C\<^sub>2 = (C\<^sub>1{\<lambda>x. Var (''0'' @ x) }\<^sub>l\<^sub>s,C\<^sub>2{\<lambda>x. Var (''1'' @ x)}\<^sub>l\<^sub>s)"
 
 lemma std_apart'': 
   "x\<in>varst  (t  {\<lambda>x::char list. Var (y @ x) }\<^sub>t ) \<Longrightarrow> \<exists>x'. x=y@x'"
@@ -807,22 +807,22 @@ lemma simple_resolution_sound:
   assumes C\<^sub>2sat:  "evalc F G C\<^sub>2"
   assumes l\<^sub>1inc\<^sub>1: "l\<^sub>1 \<in> C\<^sub>1"
   assumes l\<^sub>2inc\<^sub>2: "l\<^sub>2 \<in> C\<^sub>2"
-  assumes Comp: "l\<^sub>1\<^sup>c = l\<^sub>2"
+  assumes comp: "l\<^sub>1\<^sup>c = l\<^sub>2"
   shows "evalc F G ((C\<^sub>1 - {l\<^sub>1}) \<union> (C\<^sub>2 - {l\<^sub>2}))"
 proof -
   have "\<forall>E. \<exists>l \<in> (((C\<^sub>1 - {l\<^sub>1}) \<union> (C\<^sub>2 - {l\<^sub>2}))). evall E F G l"
     proof
       fix E
-      have "evall E F G l\<^sub>1 \<or> evall E F G l\<^sub>2" using Comp by (cases l\<^sub>1) auto
+      have "evall E F G l\<^sub>1 \<or> evall E F G l\<^sub>2" using comp by (cases l\<^sub>1) auto
       then show "\<exists>l \<in> (((C\<^sub>1 - {l\<^sub>1}) \<union> (C\<^sub>2 - {l\<^sub>2}))). evall E F G l"
         proof
           assume "evall E F G l\<^sub>1"
-          then have "\<not>evall E F G l\<^sub>2" using Comp by (cases l\<^sub>1) auto
+          then have "\<not>evall E F G l\<^sub>2" using comp by (cases l\<^sub>1) auto
           then have "\<exists>l\<^sub>2'\<in> C\<^sub>2. l\<^sub>2' \<noteq> l\<^sub>2 \<and> evall E F G l\<^sub>2'" using l\<^sub>2inc\<^sub>2 C\<^sub>2sat unfolding evalc_def by auto
           then show "\<exists>l\<in>(C\<^sub>1 - {l\<^sub>1}) \<union> (C\<^sub>2 - {l\<^sub>2}). evall E F G l" by auto
         next
           assume "evall E F G l\<^sub>2" (* Symmetric *)
-          then have "\<not>evall E F G l\<^sub>1" using Comp by (cases l\<^sub>1) auto
+          then have "\<not>evall E F G l\<^sub>1" using comp by (cases l\<^sub>1) auto
           then have "\<exists>l\<^sub>1'\<in> C\<^sub>1. l\<^sub>1' \<noteq> l\<^sub>1 \<and> evall E F G l\<^sub>1'" using l\<^sub>1inc\<^sub>1 C\<^sub>1sat unfolding evalc_def by auto
           then show "\<exists>l\<in>(C\<^sub>1 - {l\<^sub>1}) \<union> (C\<^sub>2 - {l\<^sub>2}). evall E F G l" by auto
         qed
@@ -858,7 +858,7 @@ proof -
 
   from unified\<^sub>1 unified\<^sub>2 appl have "l\<^sub>1 {\<sigma>}\<^sub>l = (l\<^sub>2\<^sup>c){\<sigma>}\<^sub>l" 
     unfolding mguls_def unifierls_def applicable_def by auto
-  then have comp: "(l\<^sub>1 {\<sigma>}\<^sub>l)\<^sup>c = l\<^sub>2 {\<sigma>}\<^sub>l" using comp_sub comp_swap by auto (* These steps Could be lemmas *)
+  then have comp: "(l\<^sub>1 {\<sigma>}\<^sub>l)\<^sup>c = l\<^sub>2 {\<sigma>}\<^sub>l" using comp_sub comp_swap by auto (* These steps could be lemmas *)
 
   from appl have "unifierls \<sigma> (L\<^sub>2\<^sup>C)" 
     using unifier_sub2 unfolding mguls_def applicable_def by blast
@@ -1006,7 +1006,7 @@ fun falsifiesl :: "partial_pred_denot \<Rightarrow> fterm literal \<Rightarrow> 
      (\<exists>i.  
       i < length G
       \<and> G ! i = False
-      \<and> fatom_from_nat i = Pos p ts)" (* I could get rid of the existential quantifier by using nat_from_fatom *)
+      \<and> fatom_from_nat i = Pos p ts)" (* I could get rid of the existential quantifier by using nat_from_fatom, but then I should make sure l is ground *)
 | "falsifiesl G (Neg p ts) = 
      (\<exists>i.  
       i < length G
@@ -1118,7 +1118,7 @@ lemma sub_of_denot_equivts: "evalts E HFun (ts {sub_of_denot E}\<^sub>t\<^sub>s)
 using sub_of_denot_equivt apply simp
 done
 
-lemma sub_of_denot_equivl: "evall E HFun G (l {sub_of_denot E}\<^sub>l) = evall E HFun G l"
+lemma sub_of_denot_equivl: "evall E HFun G (l {sub_of_denot E}\<^sub>l) \<longleftrightarrow> evall E HFun G l"
 proof (induction l)
   case (Pos p ts)
   have "evall E HFun G ((Pos p ts) {sub_of_denot E}\<^sub>l) \<longleftrightarrow> G p (evalts E HFun (ts {sub_of_denot E}\<^sub>t\<^sub>s))" by auto
@@ -1141,13 +1141,6 @@ qed
 lemma sub_of_denot_equiv_ground': 
   "evall E HFun G l = evall E HFun G (l {sub_of_denot E}\<^sub>l) \<and> groundl (l {sub_of_denot E}\<^sub>l)"
     using sub_of_denot_equivl ground_sub_of_denotl by auto
-
-(* This theorem is not true any more... *)
-lemma partial_equiv_subst': "falsifiesl G ((l ::fterm literal) {\<tau>}\<^sub>l) \<Longrightarrow> falsifiesl G l"
-proof (induction l) (* Not really induction - just cases *)
-
-oops
-
 
 (* Under an Herbrand interpretation, an environment is "equivalent" to a substitution - also for partial interpretations *)
 lemma partial_equiv_subst:
@@ -1261,109 +1254,119 @@ proof
   from asm show "\<forall>l\<in>C. f l \<le> (Max (f ` C))" by auto
 qed
 
-(* Det her navn er altså mærkeligt baglæns... *)
-lemma extend_preserves_model:
+lemma extend_preserves_model: (* only for ground *)
   assumes f_chain: "list_chain (f :: nat \<Rightarrow> partial_pred_denot)" 
-  assumes n_max: "\<forall>l\<in>C. nat_from_fatom l \<le> n"
   assumes C_ground: "groundls C"
-  assumes C_false: "\<not>evalc HFun (extend f) C"
-  shows "falsifiesc (f (Suc n)) C" (* probably - this should be falsifiesg now *)
+  assumes C_sat: "~falsifiesc (f (Suc n)) C" (* probably - this should be falsifiesg now *)
+  assumes n_max: "\<forall>l\<in>C. nat_from_fatom l \<le> n"
+  shows "evalc HFun (extend f) C"
 proof -
   let ?F = "HFun" 
   let ?G = "extend f"
   {
-  fix l
-  assume asm: "l\<in>C"
-  let ?i = "nat_from_fatom l"
-  from asm have i_n: "?i \<le> n" using n_max by auto
-  then have j_n: "?i \<le> length (f n)" using f_chain chain_length[of f n] by auto
+    fix E
+    from C_sat have "\<forall>C'. (~instance_ofls C' C \<or> ~ falsifiesg (f (Suc n)) C')" by auto
+    then have "~falsifiesg (f (Suc n)) C" using instance_ofls_self by auto
+    then obtain l where l_p: "l\<in>C \<and> ~falsifiesl (f (Suc n)) l" by auto
+    let ?i = "nat_from_fatom l"
+     
+    from l_p have i_n: "?i \<le> n" using n_max by auto
+    then have j_n: "?i < length (f (Suc n))" using f_chain chain_length[of f] by auto
+      
+    have "evall E HFun (extend f) l"
+      proof (cases l)
+        case (Pos P ts)
+        from Pos l_p C_ground have ts_ground: "grounds ts" by auto
+        from Pos l_p C_ground have undiag_l: "nat_from_hatom (hlit_of_flit l) = ?i" using ground_h_undiag by blast
 
-  from C_false have "\<not>(\<forall>E. \<exists>l \<in> C. evall E ?F ?G l)" unfolding evalc_def by auto
-  then have "\<exists>E. \<forall>l \<in> C. \<not> evall E ?F ?G l" by auto
-  then have "\<forall>E. \<forall>l \<in> C. \<not> evall E ?F ?G l" using C_ground ground_var_denot by blast
-  then have last: "\<forall>E. \<not> evall E ?F ?G l" using asm by blast
+        have "~falsifiesl (f (Suc n)) l" using l_p by auto
+        then have "f (Suc n) ! ?i = True" 
+          using j_n Pos ts_ground empty_subts[of ts] by auto
+        moreover have "f (Suc ?i) ! ?i = f (Suc n) ! ?i" 
+          using f_chain i_n j_n chain_length[of f] ith_in_extension[of f] by simp
+        ultimately
+        have "f (Suc ?i) ! ?i = True" using Pos undiag_l by auto
+        then have "?G P (hterms_of_fterms ts)" using Pos undiag_l by auto
+        then show ?thesis using evall_grounds[of ts _ ?G P] ts_ground Pos by auto
+      next
+        case (Neg P ts) (* Symmetric *)
+        from Neg l_p C_ground have ts_ground: "grounds ts" by auto
+        from Neg l_p C_ground have undiag_l: "nat_from_hatom (hlit_of_flit l) = ?i" using ground_h_undiag by blast
 
-  then have "falsifiesl (f (Suc n)) l"
-    proof (cases l)
-      case (Pos P ts)
-      from Pos asm C_ground have ts_ground: "grounds ts" by auto
-      from Pos asm C_ground have undiag_l: "nat_from_hatom (hlit_of_flit l) = ?i" using ground_h_undiag by blast
-
-      from last have "\<not>?G P (hterms_of_fterms ts)" using evall_grounds[of ts _ ?G P] ts_ground Pos by auto
-      then have "f (Suc ?i) ! ?i = False" using Pos undiag_l by auto
-      moreover
-      have "f (Suc ?i) ! ?i = f (Suc n) ! ?i" 
-        using f_chain i_n j_n chain_length[of f] ith_in_extension[of f] by simp
-      ultimately have "f (Suc n) ! ?i = False" by auto
-      then have "  
-      ?i < length (f (Suc n)) (* j_n *)
-      \<and> f (Suc n) ! ?i = False (*last thing *)
-      \<and> fatom_from_nat ?i = Pos P ts (* by definition of ?i *)
-      \<and> ts = ts {\<epsilon>}\<^sub>t\<^sub>s" 
-        using 
-          j_n ts_ground undiag_diag_fatom instance_ofts_self f_chain chain_length[of f] Pos empty_subts
-        by auto
-      then show ?thesis using Pos by auto
-    next
-      case (Neg P ts) (* symmetric *)
-      from Neg asm C_ground have ts_ground: "grounds ts" by auto
-      from Neg asm C_ground have undiag_l: "nat_from_hatom (hlit_of_flit l) = ?i" using ground_h_undiag by blast
-
-      from last have "?G P (hterms_of_fterms ts)" using evall_grounds[of ts _ ?G P] C_ground asm Neg by auto
-      then have "f (Suc ?i) ! ?i = True" using Neg undiag_neg undiag_l
-         by (metis hatom_of_fatom.simps(1) nat_from_fatom_def) 
-      moreover
-      have "f (Suc ?i) ! ?i = f (Suc n) ! ?i" 
-        using f_chain i_n j_n chain_length[of f] ith_in_extension[of f] by simp
-      ultimately have "f (Suc n) ! ?i = True" by auto
-      then have "  
-      ?i < length (f (Suc n)) (* j_n *)
-      \<and> f (Suc n) ! ?i = True (*last thing *)
-      \<and> fatom_from_nat ?i = Pos P ts (* by definition of ?i *)
-      \<and> ts = ts {\<epsilon>}\<^sub>t\<^sub>s" 
-        using j_n undiag_diag_fatom instance_ofts_self[of ts] f_chain chain_length[of f] Neg undiag_neg ts_ground empty_subts
-        by auto
-      then show ?thesis using Neg by auto
-    qed
+        have "~falsifiesl (f (Suc n)) l" using l_p by auto  
+        then have "f (Suc n) ! ?i = False" 
+          using j_n Neg ts_ground empty_subts[of ts] undiag_neg by auto
+        moreover have "f (Suc ?i) ! ?i = f (Suc n) ! ?i" 
+          using f_chain i_n j_n chain_length[of f] ith_in_extension[of f] by simp
+        ultimately
+        have "f (Suc ?i) ! ?i = False" using Neg undiag_l by auto
+        then have "~?G P (hterms_of_fterms ts)" using Neg undiag_l undiag_neg2 by simp 
+        then show ?thesis using Neg evall_grounds[of ts _ ?G P] ts_ground by auto
+      qed
+    then have "\<exists>l \<in> C. evall E HFun (extend f) l" using l_p by auto
   }
-  then have "falsifiesg (f (Suc n)) C" by auto
+  then have "evalc HFun (extend f) C" unfolding evalc_def by auto
   then show ?thesis using instance_ofls_self by auto
 qed
 
-(* If we have a list-chain of partial models, then we have a model *)
+lemma extend_preserves_model2: (* only for ground *)
+  assumes f_chain: "list_chain (f :: nat \<Rightarrow> partial_pred_denot)" 
+  assumes C_ground: "groundls C"
+  assumes fin_c: "finite C"
+  assumes model_C: "\<forall>n. \<not>falsifiesc (f n) C" (* probably - this should be falsifiesg now *)
+  shows C_false: "evalc HFun (extend f) C"
+proof -
+  (* Since C is finite, C {sub_of_denot E}\<^sub>l\<^sub>s has a largest index of a literal.  *)
+  obtain n where largest: "\<forall>l \<in> C. nat_from_fatom l \<le> n" using fin_c maximum by blast
+  moreover
+  then have "\<not>falsifiesc (f (Suc n)) C" using model_C by auto
+  ultimately show ?thesis using model_C f_chain C_ground extend_preserves_model[of f C n ] by blast
+qed
+
+lemma list_chain_model': 
+  assumes f_chain: "list_chain (f :: nat \<Rightarrow> partial_pred_denot)"
+  assumes model_c: "\<forall>n. \<not>falsifiesc (f n) C"
+  assumes fin_c: "finite C"
+  shows "evalc HFun (extend f) C"
+unfolding evalc_def proof 
+  fix E
+  let ?F = "HFun"
+  let ?G = "extend f"
+  let ?\<sigma> = "sub_of_denot E"
+  
+  (* Since C is finite, C {sub_of_denot E}\<^sub>l\<^sub>s has a largest index of a literal. *)
+  from fin_c model_c have fin_c\<sigma>: "finite (C {sub_of_denot E}\<^sub>l\<^sub>s)" by auto
+  have groundc\<sigma>: "groundls (C {sub_of_denot E}\<^sub>l\<^sub>s)" using sub_of_denot_equiv_ground by auto
+
+  (* Here starts the proof *)
+  (* We go from syntactic FO world to syntactic ground world: *)
+  from model_c have "\<forall>n. \<not>falsifiesc (f n) (C {?\<sigma>}\<^sub>l\<^sub>s)" using partial_equiv_subst by blast
+  (* Then from syntactic ground world to semantic ground world: *)
+  then have "evalc HFun ?G (C {?\<sigma>}\<^sub>l\<^sub>s)" using groundc\<sigma> f_chain fin_c\<sigma>  extend_preserves_model2[of f "C {?\<sigma>}\<^sub>l\<^sub>s"] by blast
+  (* Then from semantic ground world to semantic FO world: *)
+  then have "\<forall>E. \<exists>l \<in> (C {?\<sigma>}\<^sub>l\<^sub>s). evall E ?F ?G l" unfolding evalc_def by auto
+  then have "\<exists>l \<in> (C {?\<sigma>}\<^sub>l\<^sub>s). evall E ?F ?G l" by auto
+  then show "\<exists>l \<in> C. evall E ?F ?G l" using sub_of_denot_equiv_ground[of C E "extend f"] by blast
+qed
+
+(* If we have a list-chain of partial models, then we have a model. *)
 lemma list_chain_model:
   assumes f_chain: "list_chain (f :: nat \<Rightarrow> partial_pred_denot)"
   assumes model_cs: "\<forall>n. \<not>falsifiescs (f n) Cs" 
   assumes fin_cs: "finite Cs"
   assumes fin_c: "\<forall>C \<in> Cs. finite C"
-  shows "\<exists>G. evalcs HFun G Cs"
-proof
+  shows "evalcs HFun (extend f) Cs"
+proof -
   let ?F = "HFun"
-  let ?G = "extend f"
-
-  have "\<forall>C E. (C \<in> Cs \<longrightarrow> (\<exists>l \<in> C. evall E ?F ?G l))"
-    proof (rule allI; rule allI; rule impI)
+    
+  have "\<forall>C \<in> Cs. evalc ?F (extend f) C"  
+    proof (rule ballI) (* Maybe this proof should be a lemma *)
       fix C
-      fix E
       assume asm: "C \<in> Cs"
-      let ?\<sigma> = "sub_of_denot E"
-      have groundc\<sigma>: "groundls (C {?\<sigma>}\<^sub>l\<^sub>s)" using sub_of_denot_equiv_ground by auto
-      from fin_c asm have "finite (C {?\<sigma>}\<^sub>l\<^sub>s)" by auto
-      then obtain n where largest: "\<forall>l \<in> (C {?\<sigma>}\<^sub>l\<^sub>s). nat_from_fatom l \<le> n" using maximum by blast
-      from model_cs asm have "\<not>falsifiesc (f (Suc n)) C" by auto
-      then have model_c: "\<not>falsifiesc (f (Suc n)) (C {?\<sigma>}\<^sub>l\<^sub>s)" using partial_equiv_subst by blast 
-
-      have "evalc HFun ?G (C {?\<sigma>}\<^sub>l\<^sub>s)" 
-        using groundc\<sigma> f_chain largest model_c 
-              extend_preserves_model[of f "C {?\<sigma>}\<^sub>l\<^sub>s" n] by blast
-      then have "\<forall>E. \<exists>l \<in> (C {?\<sigma>}\<^sub>l\<^sub>s). evall E ?F ?G l" unfolding evalc_def by auto
-      then have "\<exists>l \<in> (C {?\<sigma>}\<^sub>l\<^sub>s). evall E ?F ?G l" by auto
-      then show "\<exists>l\<in>C. evall E ?F ?G l" using sub_of_denot_equiv_ground by simp
-      (* Først skal vi have lavet det ground. Det gør vi med at lave environmentet om til en substitution. Det kan vi kun hvis vores univers er herbrand *)(* Se på en partial model for det største literal *)  (* Den gør clausen sand. Derfor gør modellen fra Chainen også clausen sand *)
-    qed
-  then have "\<forall>C \<in> Cs. \<forall>E. \<exists>l \<in> C. evall E ?F ?G l" by auto
-  then have "\<forall>C \<in> Cs. evalc ?F ?G C" unfolding evalc_def by auto
-  then show "evalcs ?F ?G Cs" unfolding evalcs_def by auto
+      then have "\<forall>n. \<not> falsifiesc (f n) C" using model_cs by auto
+      then show "evalc ?F (extend f) C" using fin_c asm f_chain list_chain_model'[of f C] by auto
+    qed                                                                      
+  then show "evalcs ?F (extend f) Cs" unfolding evalcs_def by auto
 qed
 
 fun deeptree :: "nat \<Rightarrow> tree" where

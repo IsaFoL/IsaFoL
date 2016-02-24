@@ -107,7 +107,7 @@ definition nat_from_string:: "string \<Rightarrow> nat" where
   "nat_from_string \<equiv> (SOME f. bij f)"
 
 definition string_from_nat:: "nat \<Rightarrow> string" where
-  "string_from_nat \<equiv> inv_into UNIV nat_from_string"
+  "string_from_nat \<equiv> inv nat_from_string"
 
 lemma nat_from_string_bij: "bij nat_from_string"
   proof -

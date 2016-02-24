@@ -4,7 +4,7 @@ section {* Lifting Lemma *}
 
 lemma lifting:
   assumes fin: "finite C \<and> finite D "
-  assumes appart: "varsls C \<inter> varsls D = {}"
+  assumes apart: "varsls C \<inter> varsls D = {}"
   assumes inst\<^sub>1: "instance_ofls C' C"
   assumes inst\<^sub>2: "instance_ofls D' D"
   assumes appl: "applicable C' D' L' M' \<sigma>"
@@ -17,7 +17,7 @@ proof -
   from inst\<^sub>1 obtain lmbd where lmbd_p: "C {lmbd}\<^sub>l\<^sub>s = C'" unfolding instance_ofls_def by auto
   from inst\<^sub>2 obtain \<mu> where \<mu>_p: "D {\<mu>}\<^sub>l\<^sub>s = D'" unfolding instance_ofls_def by auto
   
-  from \<mu>_p lmbd_p appart obtain \<eta> where \<eta>_p: "C {\<eta>}\<^sub>l\<^sub>s = C' \<and> D {\<eta>}\<^sub>l\<^sub>s = D'" using merge_sub by force
+  from \<mu>_p lmbd_p apart obtain \<eta> where \<eta>_p: "C {\<eta>}\<^sub>l\<^sub>s = C' \<and> D {\<eta>}\<^sub>l\<^sub>s = D'" using merge_sub by force
 
   from \<eta>_p have "\<exists>L \<subseteq> C. L {\<eta>}\<^sub>l\<^sub>s = L' \<and> (C - L){\<eta>}\<^sub>l\<^sub>s = ?C'\<^sub>1" using appl project_sub[of \<eta> C C' L'] unfolding applicable_def by auto
   then obtain L where L_p: "L \<subseteq> C \<and> L {\<eta>}\<^sub>l\<^sub>s = L' \<and> (C - L){\<eta>}\<^sub>l\<^sub>s = ?C'\<^sub>1" by auto
@@ -61,7 +61,7 @@ proof -
     then have "M \<noteq> {}" using M_p by auto
   }
   ultimately have appll: "applicable C D L M \<tau>" 
-    using appart L_p M_p \<tau>_p unfolding applicable_def by auto
+    using apart L_p M_p \<tau>_p unfolding applicable_def by auto
 
   from inst appll show ?thesis by auto
 qed
@@ -138,10 +138,9 @@ lemma number_lemma:
   shows "P(length B)"
 using assms less_Suc_eq by auto
 
-
 theorem completeness':
   shows "closed_tree T Cs \<Longrightarrow> \<forall>C\<in>Cs. finite C \<Longrightarrow> \<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'"
-proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
+proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
   fix T::tree
   fix Cs :: "fterm clause set"
   assume ih: "(\<And>T' Cs. treesize T' < treesize T \<Longrightarrow> closed_tree T' Cs \<Longrightarrow> \<forall>C\<in>Cs. finite C \<Longrightarrow>
@@ -170,7 +169,7 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
       using internal_branch[of _ "[]" _ T] by auto
     then obtain B where b_p: "internal B T \<and> branch (B@[True]) T \<and> branch (B@[False]) T" by auto
     let ?B1 = "B@[True]"
-    let ?B2 = "B@[False]"            
+    let ?B2 = "B@[False]"
 
     have "\<exists>C1o \<in> Cs. falsifiesc ?B1 C1o" using b_p clo by auto 
     then obtain C1o where C1o_p: "C1o \<in> Cs \<and> falsifiesc ?B1 C1o" by auto
@@ -195,7 +194,7 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
 
     then have l_B1: "\<forall>l \<in> C1'. falsifiesl (B@[True]) l" by auto
     have "\<not>falsifiesc B C1o" using C1o_p b_p clo by auto
-    then have "\<not>falsifiesc B ?C1" using std_apart_falsifies1_sym [of C1o C2o ?C1 ?C2 B] by auto
+    then have "\<not>falsifiesc B ?C1" using std_apart_falsifies1_sym[of C1o C2o ?C1 ?C2 B] by auto
     (* C1' is not falsified by B *)
     then have "\<not>falsifiesg B C1'" using C1'_p by auto
     then have l_B: "\<not>(\<forall>l \<in> C1'. falsifiesl B l)" by auto
@@ -212,14 +211,14 @@ proof (induction T arbitrary: Cs rule: Nat.measure_induct_rule[of treesize])
     then have "\<not>(\<exists>i.  
       i < length B
       \<and> (B@[True]) ! i = (\<not>sign l1)
-      \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1))" by (metis nth_append)
+      \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1))" by (metis nth_append) (* Not falsified by B *)
     moreover
     (* l1 is, of course, ground *)
     have ground_l1: "groundl l1" using C1'_p l1_p by auto
     then have "\<exists>i.  
       i < length (B@[True])
       \<and> (B@[True]) ! i = (\<not>sign l1)
-      \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1)" using ground_falsifies l1_p by blast
+      \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1)" using ground_falsifies l1_p by blast (* falsified by B1 *)
     ultimately
     have l1_sign_no: "(B@[True]) ! (length B) = (\<not>sign l1) \<and> fatom_from_nat (length B) = Pos (get_pred l1) (get_terms l1)"
       using number_lemma[of B "\<lambda>i. (B @ [True]) ! i = (\<not> sign l1) \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1)"] by auto
