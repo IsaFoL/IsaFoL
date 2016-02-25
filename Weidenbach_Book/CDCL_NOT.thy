@@ -3,7 +3,7 @@ imports Partial_Annotated_Clausal_Logic List_More Wellfounded_More Partial_Claus
 begin
 
 section \<open>NOT's CDCL\<close>
-sledgehammer_params[verbose, prover=e spass z3 cvc4 verit remote_vampire]
+sledgehammer_params[verbose]
 
 declare set_mset_minus_replicate_mset[simp]
 
@@ -106,7 +106,7 @@ lemma \<mu>\<^sub>C_cons_non_empty_inf:
   shows "\<mu>\<^sub>C s b M \<ge> b ^  (s - length M)"
   using assms by (cases M) (auto simp: mult_eq_if \<mu>\<^sub>C_cons)
 
-text \<open>Duplicate of "~~/src/HOL/ex/NatSum.thy" (but generalized to @{term "k\<ge>0"})\<close>
+text \<open>Duplicate of @{file "~~/src/HOL/ex/NatSum.thy"} (but generalized to @{term "k\<ge>0"})\<close>
 lemma sum_of_powers: "0 \<le> k \<Longrightarrow> (k - 1) * (\<Sum>i=0..<n. k^i) = k^n - (1::nat)"
   apply (cases "k = 0")
     apply (cases n; simp)
