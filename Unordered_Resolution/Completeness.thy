@@ -93,7 +93,7 @@ proof -
   then show "C = {}" using C'_p unfolding instance_ofls_def by auto
 qed
 
-lemma complements_do_not_falsify:
+lemma complements_do_not_falsify':
   assumes l1C1': "l1 \<in> C1'"
   assumes l2C1': "l2 \<in> C1'"
   assumes comp: "l1 = l2\<^sup>c"
@@ -130,6 +130,13 @@ next
   then have "G ! nat_from_fatom (Pos p ts) = False" using fatom_from_nat_is_nat_from_fatom gr Neg by auto
   ultimately show ?thesis by auto
 qed
+
+lemma complements_do_not_falsify:
+  assumes l1C1': "l1 \<in> C1'"
+  assumes l2C1': "l2 \<in> C1'"
+  assumes comp: "l1 = l2\<^sup>c"
+  shows "\<not>falsifiesg G C1'"
+using assms complements_do_not_falsify' by blast
 
 
 lemma number_lemma:
@@ -270,7 +277,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     then have "\<not>(\<exists>i.  
       i < length B
       \<and> B ! i = (\<not>sign l2)
-      \<and> fatom_from_nat i = Pos (get_pred l2) (get_terms l2))" by (induction l2) auto
+      \<and> fatom_from_nat i = Pos (get_pred l2) (get_terms l2))" by (cases l2) auto
     then have "\<not>(\<exists>i.  
       i < length B
       \<and> (B@[False]) ! i = (\<not>sign l2)
@@ -355,9 +362,9 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     then obtain Cs'' where Cs''_p: "lresolution_deriv CsNext Cs'' \<and> {} \<in> Cs''" by auto
     moreover
     { (* Proving that we can actually derive the new clausal form *)
-      have "lresolution_step Cs (Cs \<union> {?C1})" using std_apart_renames1[of C1o C2o] lresolution_step.intros(2)[of C1o Cs] C1o_p by (metis Un_insert_right prod.collapse)
+      have "lresolution_step Cs (Cs \<union> {?C1})" using std_apart_renames1[of C1o C2o] lstandardize_apart C1o_p by (metis Un_insert_right prod.collapse)
       moreover
-      have "lresolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1} \<union> {?C2})" using std_apart_renames2[of C1o C2o] lresolution_step.intros(2)[of C2o Cs] C2o_p by (metis Un_insert_right insert_iff lstandardize_apart prod.collapse sup_bot.right_neutral)
+      have "lresolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1} \<union> {?C2})" using std_apart_renames2[of C1o C2o] lstandardize_apart C2o_p by (metis Un_insert_right insert_iff prod.collapse sup_bot.right_neutral)
       then have "lresolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1,?C2})" by (metis insert_is_Un sup_assoc)
       moreover
       then have "lresolution_step (Cs \<union> {?C1,?C2}) (Cs \<union> {?C1,?C2} \<union> {C})" 
