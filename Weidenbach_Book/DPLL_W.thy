@@ -18,7 +18,7 @@ text \<open>The definition of DPLL is given in \cwref{fig:prop:dpllcalc}{figure 
 inductive dpll\<^sub>W :: "'v dpll\<^sub>W_state \<Rightarrow> 'v dpll\<^sub>W_state \<Rightarrow> bool" where
 propagate: "C + {#L#} \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit (trail S) L
   \<Longrightarrow> dpll\<^sub>W S (Propagated L () # trail S, clauses S)" |
-decided: "undefined_lit (trail S) L \<Longrightarrow> atm_of L \<in> atms_of_msu (clauses S)
+decided: "undefined_lit (trail S) L \<Longrightarrow> atm_of L \<in> atms_of_mm (clauses S)
   \<Longrightarrow> dpll\<^sub>W S (Marked L () # trail S, clauses S)" |
 backtrack: "backtrack_split (trail S)  = (M', L # M) \<Longrightarrow> is_marked L \<Longrightarrow> D \<in># clauses S
   \<Longrightarrow> trail S \<Turnstile>as CNot D \<Longrightarrow> dpll\<^sub>W S (Propagated (- (lit_of L)) () # M, clauses S)"
@@ -71,17 +71,17 @@ qed (auto intro: consistent_add_undefined_lit_consistent)
 
 lemma dpll\<^sub>W_vars_in_snd_inv:
   assumes "dpll\<^sub>W S S'"
-  and "atm_of ` (lits_of (trail S)) \<subseteq> atms_of_msu (clauses S)"
-  shows "atm_of ` (lits_of (trail S')) \<subseteq> atms_of_msu (clauses S')"
+  and "atm_of ` (lits_of (trail S)) \<subseteq> atms_of_mm (clauses S)"
+  shows "atm_of ` (lits_of (trail S')) \<subseteq> atms_of_mm (clauses S')"
   using assms
 proof (induct rule: dpll\<^sub>W.induct)
   case (backtrack S M' L M D)
-  then have "atm_of (lit_of L) \<in> atms_of_msu (clauses S)"
+  then have "atm_of (lit_of L) \<in> atms_of_mm (clauses S)"
     using backtrack_split_list_eq[of "trail S", symmetric] by auto
   moreover
-    have "atm_of ` lits_of (trail S) \<subseteq> atms_of_msu (clauses S)"
+    have "atm_of ` lits_of (trail S) \<subseteq> atms_of_mm (clauses S)"
       using backtrack(5)  by simp
-    then have "\<And>xb. xb \<in> set M \<Longrightarrow> atm_of (lit_of xb) \<in> atms_of_msu (clauses S)"
+    then have "\<And>xb. xb \<in> set M \<Longrightarrow> atm_of (lit_of xb) \<in> atms_of_mm (clauses S)"
       using backtrack_split_list_eq[symmetric, of "trail S"] backtrack.hyps(1)
       unfolding lits_of_def by auto
   ultimately show ?case by (auto simp : lits_of_def)
@@ -94,7 +94,7 @@ text \<open>Lemma \cwref{dpll:sound:model}{theorem 2.8.2 page 71}\<close>
 lemma dpll\<^sub>W_propagate_is_conclusion:
   assumes "dpll\<^sub>W S S'"
   and "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))"
-  and "atm_of ` lits_of (trail S) \<subseteq> atms_of_msu (clauses S)"
+  and "atm_of ` lits_of (trail S) \<subseteq> atms_of_mm (clauses S)"
   shows "all_decomposition_implies_m (clauses S') (get_all_marked_decomposition (trail S'))"
   using assms
 proof (induct rule: dpll\<^sub>W.induct)
@@ -245,7 +245,7 @@ text \<open>Lemma \cwref{dpll:sound:propLits:valuation}{theorem 2.8.3 page 72}\<
 theorem dpll\<^sub>W_propagate_is_conclusion_of_decided:
   assumes "dpll\<^sub>W S S'"
   and "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))"
-  and "atm_of ` lits_of (trail S) \<subseteq> atms_of_msu (clauses S)"
+  and "atm_of ` lits_of (trail S) \<subseteq> atms_of_mm (clauses S)"
   shows "set_mset (clauses S') \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set (trail S')}
     \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition (trail S')))"
   using all_decomposition_implies_trail_is_implied[OF dpll\<^sub>W_propagate_is_conclusion[OF assms]] .
@@ -297,11 +297,11 @@ lemma dpll\<^sub>W_same_clauses:
 lemma rtranclp_dpll\<^sub>W_inv:
   assumes "rtranclp dpll\<^sub>W S S'"
   and inv: "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))"
-  and atm_incl: "atm_of ` lits_of (trail S) \<subseteq> atms_of_msu (clauses S)"
+  and atm_incl: "atm_of ` lits_of (trail S) \<subseteq> atms_of_mm (clauses S)"
   and "consistent_interp (lits_of (trail S))"
   and "no_dup (trail S)"
   shows "all_decomposition_implies_m (clauses S') (get_all_marked_decomposition (trail S'))"
-  and "atm_of ` lits_of (trail S')  \<subseteq> atms_of_msu (clauses S')"
+  and "atm_of ` lits_of (trail S')  \<subseteq> atms_of_mm (clauses S')"
   and "clauses S = clauses S'"
   and "consistent_interp (lits_of (trail S'))"
   and "no_dup (trail S')"
@@ -310,7 +310,7 @@ proof (induct rule: rtranclp_induct)
   case base
   show
     "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))" and
-    "atm_of ` lits_of (trail S) \<subseteq> atms_of_msu (clauses S)" and
+    "atm_of ` lits_of (trail S) \<subseteq> atms_of_mm (clauses S)" and
     "clauses S = clauses S" and
     "consistent_interp (lits_of (trail S))" and
     "no_dup (trail S)" using assms by auto
@@ -320,12 +320,12 @@ next
   moreover
     assume
       inv: "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))" and
-      atm_incl: "atm_of ` lits_of (trail S)  \<subseteq> atms_of_msu (clauses S)" and
+      atm_incl: "atm_of ` lits_of (trail S)  \<subseteq> atms_of_mm (clauses S)" and
       cons: "consistent_interp (lits_of (trail S))" and
       "no_dup (trail S)"
   ultimately have decomp: "all_decomposition_implies_m (clauses S')
     (get_all_marked_decomposition (trail S'))" and
-    atm_incl': "atm_of ` lits_of (trail S') \<subseteq> atms_of_msu (clauses S')" and
+    atm_incl': "atm_of ` lits_of (trail S') \<subseteq> atms_of_mm (clauses S')" and
     snd: "clauses S = clauses S'" and
     cons': "consistent_interp (lits_of (trail S'))" and
     no_dup': "no_dup (trail S')" by blast+
@@ -333,7 +333,7 @@ next
 
   show "all_decomposition_implies_m (clauses S'') (get_all_marked_decomposition (trail S''))"
     using dpll\<^sub>W_propagate_is_conclusion[OF dpll\<^sub>W] decomp atm_incl' by auto
-  show "atm_of ` lits_of (trail S'') \<subseteq> atms_of_msu (clauses S'')"
+  show "atm_of ` lits_of (trail S'') \<subseteq> atms_of_mm (clauses S'')"
     using dpll\<^sub>W_vars_in_snd_inv[OF dpll\<^sub>W]  atm_incl atm_incl' by auto
   show "no_dup (trail S'')" using dpll\<^sub>W_distinct_inv[OF dpll\<^sub>W] no_dup' dpll\<^sub>W by auto
   show "consistent_interp (lits_of (trail S''))"
@@ -342,14 +342,14 @@ qed
 
 definition "dpll\<^sub>W_all_inv S \<equiv>
   (all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))
-  \<and> atm_of ` lits_of (trail S)  \<subseteq> atms_of_msu (clauses S)
+  \<and> atm_of ` lits_of (trail S)  \<subseteq> atms_of_mm (clauses S)
   \<and> consistent_interp (lits_of (trail S))
   \<and> no_dup (trail S))"
 
 lemma dpll\<^sub>W_all_inv_dest[dest]:
   assumes "dpll\<^sub>W_all_inv S"
   shows "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))"
-  and "atm_of ` lits_of (trail S)  \<subseteq> atms_of_msu (clauses S)"
+  and "atm_of ` lits_of (trail S)  \<subseteq> atms_of_mm (clauses S)"
   and "consistent_interp (lits_of (trail S)) \<and> no_dup (trail S)"
   using assms unfolding dpll\<^sub>W_all_inv_def lits_of_def by auto
 
@@ -378,7 +378,7 @@ qed
 lemma dpll\<^sub>W_can_do_step:
   assumes "consistent_interp (set M)"
   and "distinct M"
-  and "atm_of ` (set M) \<subseteq> atms_of_msu N"
+  and "atm_of ` (set M) \<subseteq> atms_of_mm N"
   shows "rtranclp dpll\<^sub>W ([], N) (map (\<lambda>M. Marked M ()) M, N)"
   using assms
 proof (induct M)
@@ -388,10 +388,10 @@ next
   case (Cons L M)
   then have "undefined_lit (map (\<lambda>M. Marked M ()) M) L"
     unfolding defined_lit_def consistent_interp_def by auto
-  moreover have "atm_of L \<in> atms_of_msu N" using Cons.prems(3) by auto
+  moreover have "atm_of L \<in> atms_of_mm N" using Cons.prems(3) by auto
   ultimately have "dpll\<^sub>W (map (\<lambda>M. Marked M ()) M, N) (map (\<lambda>M. Marked M ()) (L # M), N)"
     using dpll\<^sub>W.decided by auto
-  moreover have "consistent_interp (set M)" and "distinct M" and "atm_of ` set M \<subseteq> atms_of_msu N"
+  moreover have "consistent_interp (set M)" and "distinct M" and "atm_of ` set M \<subseteq> atms_of_mm N"
     using Cons.prems unfolding consistent_interp_def by auto
   ultimately show ?case using Cons.hyps by auto
 qed
@@ -405,7 +405,7 @@ lemma dpll\<^sub>W_strong_completeness:
   assumes "set M \<Turnstile>sm N"
   and "consistent_interp (set M)"
   and "distinct M"
-  and "atm_of ` (set M) \<subseteq> atms_of_msu N"
+  and "atm_of ` (set M) \<subseteq> atms_of_mm N"
   shows "dpll\<^sub>W\<^sup>*\<^sup>* ([], N) (map (\<lambda>M. Marked M ()) M, N)"
   and "conclusive_dpll\<^sub>W_state (map (\<lambda>M. Marked M ())  M, N)"
 proof -
@@ -433,7 +433,7 @@ next
   show ?A
     proof (rule ccontr)
       assume n: "\<not> ?A"
-      have "(\<exists>L. undefined_lit M L \<and> atm_of L \<in> atms_of_msu N) \<or> (\<exists>D\<in>#N. M \<Turnstile>as CNot D)"
+      have "(\<exists>L. undefined_lit M L \<and> atm_of L \<in> atms_of_mm N) \<or> (\<exists>D\<in>#N. M \<Turnstile>as CNot D)"
         proof -
           obtain D :: "'a clause" where D: "D \<in># N" and "\<not> M \<Turnstile>a D"
             using n unfolding true_annots_def Ball_def by auto
@@ -444,7 +444,7 @@ next
             by (metis Bex_mset_def D atms_of_atms_of_ms_mono mem_set_mset_iff rev_subsetD)
         qed
       moreover {
-        assume "\<exists>L. undefined_lit M L \<and> atm_of L \<in> atms_of_msu N"
+        assume "\<exists>L. undefined_lit M L \<and> atm_of L \<in> atms_of_mm N"
         then have False using assms(2) decided by fastforce
       }
       moreover {
@@ -522,38 +522,38 @@ qed
 text \<open>Proposition \cwref{prop:prop:dpllterminating}{theorem 2.8.7 page 73}\<close>
 lemma dpll\<^sub>W_card_decrease':
   assumes dpll: "dpll\<^sub>W S S'"
-  and atm_incl: "atm_of ` lits_of (trail S) \<subseteq> atms_of_msu (clauses S)"
+  and atm_incl: "atm_of ` lits_of (trail S) \<subseteq> atms_of_mm (clauses S)"
   and no_dup: "no_dup (trail S)"
-  shows "(dpll\<^sub>W_mes (trail S') (card (atms_of_msu (clauses S'))),
-          dpll\<^sub>W_mes (trail S) (card (atms_of_msu (clauses S)))) \<in> lex {(a, b). a < b}"
+  shows "(dpll\<^sub>W_mes (trail S') (card (atms_of_mm (clauses S'))),
+          dpll\<^sub>W_mes (trail S) (card (atms_of_mm (clauses S)))) \<in> lex {(a, b). a < b}"
 proof -
-  have "finite (atms_of_msu (clauses S))" unfolding atms_of_ms_def by auto
-  then have 1: "length (trail S) \<le> card (atms_of_msu (clauses S))"
+  have "finite (atms_of_mm (clauses S))" unfolding atms_of_ms_def by auto
+  then have 1: "length (trail S) \<le> card (atms_of_mm (clauses S))"
     using distinctcard_atm_of_lit_of_eq_length[OF no_dup] atm_incl card_mono by metis
 
   moreover
     have no_dup': "no_dup (trail S')" using dpll dpll\<^sub>W_distinct_inv no_dup by blast
     have SS': "clauses S' = clauses S" using dpll by (auto dest!: dpll\<^sub>W_same_clauses)
-    have atm_incl': "atm_of ` lits_of (trail S') \<subseteq> atms_of_msu (clauses S')"
+    have atm_incl': "atm_of ` lits_of (trail S') \<subseteq> atms_of_mm (clauses S')"
       using atm_incl dpll dpll\<^sub>W_vars_in_snd_inv[OF dpll] by force
-    have "finite (atms_of_msu (clauses S'))"
+    have "finite (atms_of_mm (clauses S'))"
       unfolding atms_of_ms_def by auto
-    then have 2: "length (trail S') \<le> card (atms_of_msu (clauses S))"
+    then have 2: "length (trail S') \<le> card (atms_of_mm (clauses S))"
       using distinctcard_atm_of_lit_of_eq_length[OF no_dup'] atm_incl' card_mono SS' by metis
 
-  ultimately have "(dpll\<^sub>W_mes (trail S') (card (atms_of_msu (clauses S))),
-      dpll\<^sub>W_mes (trail S) (card (atms_of_msu (clauses S))))
-    \<in> lexn {(a, b). a < b} (card (atms_of_msu (clauses S)))"
-    using dpll\<^sub>W_card_decrease[OF assms(1), of "atms_of_msu (clauses S)"] by blast
-  then have "(dpll\<^sub>W_mes (trail S') (card (atms_of_msu (clauses S))),
-          dpll\<^sub>W_mes (trail S) (card (atms_of_msu (clauses S)))) \<in> lex {(a, b). a < b}"
+  ultimately have "(dpll\<^sub>W_mes (trail S') (card (atms_of_mm (clauses S))),
+      dpll\<^sub>W_mes (trail S) (card (atms_of_mm (clauses S))))
+    \<in> lexn {(a, b). a < b} (card (atms_of_mm (clauses S)))"
+    using dpll\<^sub>W_card_decrease[OF assms(1), of "atms_of_mm (clauses S)"] by blast
+  then have "(dpll\<^sub>W_mes (trail S') (card (atms_of_mm (clauses S))),
+          dpll\<^sub>W_mes (trail S) (card (atms_of_mm (clauses S)))) \<in> lex {(a, b). a < b}"
     unfolding lex_def by auto
-  then show "(dpll\<^sub>W_mes (trail S') (card (atms_of_msu (clauses S'))),
-         dpll\<^sub>W_mes (trail S) (card (atms_of_msu (clauses S)))) \<in> lex {(a, b). a < b}"
+  then show "(dpll\<^sub>W_mes (trail S') (card (atms_of_mm (clauses S'))),
+         dpll\<^sub>W_mes (trail S) (card (atms_of_mm (clauses S)))) \<in> lex {(a, b). a < b}"
     using dpll\<^sub>W_same_clauses[OF assms(1)]  by auto
 qed
 
-lemma wf_lexn: "wf (lexn {(a, b). (a::nat) < b} (card (atms_of_msu (clauses S))))"
+lemma wf_lexn: "wf (lexn {(a, b). (a::nat) < b} (card (atms_of_mm (clauses S))))"
 proof -
   have m: "{(a, b). a < b} = measure id" by auto
   show ?thesis apply (rule wf_lexn) unfolding m by auto
@@ -562,7 +562,7 @@ qed
 lemma dpll\<^sub>W_wf:
   "wf {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W S S'}"
   apply (rule wf_wf_if_measure'[OF wf_lex_less, of _ _
-          "\<lambda>S. dpll\<^sub>W_mes (trail S) (card (atms_of_msu (clauses S)))"])
+          "\<lambda>S. dpll\<^sub>W_mes (trail S) (card (atms_of_mm (clauses S)))"])
   using dpll\<^sub>W_card_decrease' by fast
 
 
@@ -613,11 +613,11 @@ lemma dpll\<^sub>W_no_more_step_is_a_conclusive_state:
   assumes "\<forall>S'. \<not>dpll\<^sub>W S S'"
   shows "conclusive_dpll\<^sub>W_state S"
 proof -
-  have vars: "\<forall>s \<in> atms_of_msu (clauses S). s \<in> atm_of ` lits_of  (trail S)"
+  have vars: "\<forall>s \<in> atms_of_mm (clauses S). s \<in> atm_of ` lits_of  (trail S)"
     proof (rule ccontr)
-      assume "\<not> (\<forall>s\<in>atms_of_msu (clauses S). s \<in> atm_of ` lits_of (trail S))"
+      assume "\<not> (\<forall>s\<in>atms_of_mm (clauses S). s \<in> atm_of ` lits_of (trail S))"
       then obtain L where
-        L_in_atms: "L \<in> atms_of_msu (clauses S)" and
+        L_in_atms: "L \<in> atms_of_mm (clauses S)" and
         L_notin_trail: "L \<notin> atm_of ` lits_of (trail S)" by metis
       obtain L' where L': "atm_of L' = L" by (meson literal.sel(2))
       then have "undefined_lit (trail S) L'"

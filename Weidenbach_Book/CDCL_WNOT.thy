@@ -5,7 +5,6 @@ begin
 section \<open>Link between Weidenbach's and NOT's CDCL\<close>
 subsection \<open>Inclusion of the states\<close>
 declare upt.simps(2)[simp del]
-sledgehammer_params[verbose]
 
 context cdcl\<^sub>W
 begin
@@ -93,8 +92,8 @@ abbreviation convert_trail_from_W ::
     \<Rightarrow> ('v, unit, unit) marked_lit list"  where
 "convert_trail_from_W \<equiv> map convert_marked_lit_from_W"
 
-lemma lits_of_convert_trail_from_W[simp]:
-  "lits_of (convert_trail_from_W M) = lits_of M"
+lemma lits_of_l_convert_trail_from_W[simp]:
+  "lits_of_l (convert_trail_from_W M) = lits_of_l M"
   by (induction rule: marked_lit_list_induct) simp_all
 
 lemma lit_of_convert_trail_from_W[simp]:
@@ -126,8 +125,8 @@ lemma undefined_lit_convert_trail_from_NOT[simp]:
   "undefined_lit (convert_trail_from_NOT F) L \<longleftrightarrow> undefined_lit F L"
   by (induction F rule: marked_lit_list_induct) (auto simp: defined_lit_map)
 
-lemma lits_of_convert_trail_from_NOT:
-  "lits_of (convert_trail_from_NOT F) = lits_of F"
+lemma lits_of_l_convert_trail_from_NOT:
+  "lits_of_l (convert_trail_from_NOT F) = lits_of_l F"
   by (induction F rule: marked_lit_list_induct) auto
 
 lemma convert_trail_from_W_from_NOT[simp]:
@@ -192,7 +191,7 @@ next
   moreover
     let ?C' = "remdups_mset C'"
     have "L \<notin># C'"
-      using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit F L\<close> Marked_Propagated_in_iff_in_lits_of
+      using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit F L\<close> Marked_Propagated_in_iff_in_lits_of_l
       in_CNot_implies_uminus(2) by blast
     then have "distinct_mset (?C' + {#L#})"
       by (metis count_mset_set(3) distinct_mset_remdups_mset distinct_mset_single_add
@@ -203,22 +202,22 @@ next
       unfolding inv\<^sub>N\<^sub>O\<^sub>T_def
       by (smt comp_apply distinct.simps(2) distinct_append list.simps(9) map_append
         no_dup_convert_from_W)
-    then have "consistent_interp (lits_of F)"
-      using distinctconsistent_interp by blast
+    then have "consistent_interp (lits_of_l F)"
+      using distinct_consistent_interp by blast
     then have "\<not> tautology (C')"
       using \<open>F \<Turnstile>as CNot C'\<close> consistent_CNot_not_tautology true_annots_true_cls by blast
     then have "\<not> tautology (?C' + {#L#})"
       using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit F L\<close> by (metis  CNot_remdups_mset
-        Marked_Propagated_in_iff_in_lits_of add.commute in_CNot_uminus tautology_add_single
+        Marked_Propagated_in_iff_in_lits_of_l add.commute in_CNot_uminus tautology_add_single
         tautology_remdups_mset true_annot_singleton true_annots_def)
   show ?case
     proof -
       have f2: "no_dup (convert_trail_from_W (trail S))"
         using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> unfolding inv\<^sub>N\<^sub>O\<^sub>T_def by (simp add: o_def)
-      have f3: "atm_of L \<in> atms_of_msu (clauses S)
-        \<union> atm_of ` lits_of (convert_trail_from_W (trail S))"
+      have f3: "atm_of L \<in> atms_of_mm (clauses S)
+        \<union> atm_of ` lits_of_l (convert_trail_from_W (trail S))"
         using \<open>convert_trail_from_W (trail S) = F' @ Marked K () # F\<close>
-        \<open>atm_of L \<in> atms_of_msu (clauses S) \<union> atm_of ` lits_of (F' @ Marked K () # F)\<close> by auto
+        \<open>atm_of L \<in> atms_of_mm (clauses S) \<union> atm_of ` lits_of_l (F' @ Marked K () # F)\<close> by auto
       have f4: "clauses S \<Turnstile>pm remdups_mset C' + {#L#}"
         by (metis (no_types) \<open>L \<notin># C'\<close> \<open>clauses S \<Turnstile>pm C' + {#L#}\<close> remdups_mset_singleton_sum(2)
           true_clss_cls_remdups_mset union_commute)
@@ -394,11 +393,11 @@ next
 
   have "k > 0"
     using decomp M_lev T V unfolding cdcl\<^sub>W_M_level_inv_def by auto
-  then have "atm_of L \<in> atm_of ` lits_of (trail V)"
+  then have "atm_of L \<in> atm_of ` lits_of_l (trail V)"
     using lev_L get_rev_level_ge_0_atm_of_in V by fastforce
   then have L_L': "atm_of L \<noteq> atm_of L'"
     using n_d' unfolding lits_of_def by auto
-  have L'_M: "atm_of L' \<notin> atm_of ` lits_of (trail V)"
+  have L'_M: "atm_of L' \<notin> atm_of ` lits_of_l (trail V)"
     using n_d' unfolding lits_of_def by auto
   have "?M \<Turnstile>as CNot ?D"
     using inv' T unfolding cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_all_struct_inv_def by auto
@@ -495,19 +494,19 @@ proof -
     using bj cdcl\<^sub>W_bj.skip local.skip other rtranclp_mono[of skip cdcl\<^sub>W] by blast
   then have "M\<^sub>T \<Turnstile>as CNot ?D"
     unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def using T by blast
-  have "\<forall>L\<in>#?D. atm_of L \<in> atm_of ` lits_of M\<^sub>T"
+  have "\<forall>L\<in>#?D. atm_of L \<in> atm_of ` lits_of_l M\<^sub>T"
     proof -
-      have f1: "\<And>l. \<not> M\<^sub>T \<Turnstile>a {#- l#} \<or> atm_of l \<in> atm_of ` lits_of M\<^sub>T"
+      have f1: "\<And>l. \<not> M\<^sub>T \<Turnstile>a {#- l#} \<or> atm_of l \<in> atm_of ` lits_of_l M\<^sub>T"
         by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set in_lit_of_true_annot
           lits_of_def)
-      have "\<And>l. l \<notin># D \<or> - l \<in> lits_of M\<^sub>T"
+      have "\<And>l. l \<notin># D \<or> - l \<in> lits_of_l M\<^sub>T"
         using \<open>M\<^sub>T \<Turnstile>as CNot (D + {#L#})\<close> multi_member_split by fastforce
       then show ?thesis
         using f1 by (meson \<open>M\<^sub>T \<Turnstile>as CNot (D + {#L#})\<close> ball_msetI true_annots_CNot_all_atms_defined)
     qed
   moreover have "no_dup M"
     using inv S unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
-  ultimately have "\<forall>L\<in>#?D. atm_of L \<notin> atm_of ` lits_of MS"
+  ultimately have "\<forall>L\<in>#?D. atm_of L \<notin> atm_of ` lits_of_l MS"
     unfolding M unfolding lits_of_def by auto
   then have H: "\<And>L. L\<in>#?D \<Longrightarrow> get_level M L  = get_level M\<^sub>T L"
     unfolding M by (fastforce simp: lits_of_def)
@@ -529,9 +528,9 @@ proof -
   have [simp]: "get_maximum_level M D = get_maximum_level M\<^sub>T D"
     proof -
       have "\<And>ms m. \<not> (ms::('v, nat, 'v literal multiset) marked_lit list) \<Turnstile>as CNot m
-          \<or> (\<forall>l\<in>#m. atm_of l \<in> atm_of ` lits_of ms)"
+          \<or> (\<forall>l\<in>#m. atm_of l \<in> atm_of ` lits_of_l ms)"
         by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set in_CNot_implies_uminus(2))
-      then have "\<forall>l\<in>#D. atm_of l \<in> atm_of ` lits_of M\<^sub>T"
+      then have "\<forall>l\<in>#D. atm_of l \<in> atm_of ` lits_of_l M\<^sub>T"
         using \<open>M\<^sub>T \<Turnstile>as CNot (D + {#L#})\<close> by auto
       then show ?thesis
         by (metis M get_maximum_level_skip_un_marked_not_present nm)
@@ -719,7 +718,7 @@ proof (rule ccontr)
           using tr_S U S S' by (auto simp: lits_of_def)
         have "no_dup M'"
            using inv U S' unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
-        have atm_L_notin_M: "atm_of L \<notin> atm_of ` (lits_of M)"
+        have atm_L_notin_M: "atm_of L \<notin> atm_of ` (lits_of_l M)"
           using \<open>no_dup M'\<close> M' U S S' by (auto simp: lits_of_def)
         have "get_all_levels_of_marked M' = rev [1..<1+k]"
           using inv U S' unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
@@ -729,7 +728,7 @@ proof (rule ccontr)
           "get_level(Propagated L (C + {#L#}) # M) L = k"
           using get_level_get_rev_level_get_all_levels_of_marked[OF atm_L_notin_M,
             of "[Propagated L ((C + {#L#}))]"] by simp
-        have "atm_of L \<notin> atm_of ` (lits_of (rev M\<^sub>0))"
+        have "atm_of L \<notin> atm_of ` (lits_of_l (rev M\<^sub>0))"
           using \<open>no_dup M'\<close> M' U S' by (auto simp: lits_of_def)
         then have "get_level M' L = k"
           using get_rev_level_notin_end[of L "rev M\<^sub>0"
@@ -747,7 +746,7 @@ proof (rule ccontr)
     using inv rtranclp_cdcl\<^sub>W_all_struct_inv_inv by blast
   then have "Propagated L ( (C + {#L#})) # M \<Turnstile>as CNot (D' + {#L'#})"
     using cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def U by auto
-  then have "\<forall>L'\<in>#D. atm_of L' \<in> atm_of ` lits_of (Propagated L ( (C + {#L#})) # M)"
+  then have "\<forall>L'\<in>#D. atm_of L' \<in> atm_of ` lits_of_l (Propagated L ( (C + {#L#})) # M)"
     by (metis CNot_plus CNot_singleton Un_insert_right \<open>D = D'\<close> true_annots_insert ball_msetI
       atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set  in_CNot_implies_uminus(2)
       sup_bot.comm_neutral)
@@ -1137,7 +1136,7 @@ next
   case (fw_decide S T) note dec = this(1) and inv = this(2)
   then obtain L where
     undef_L: "undefined_lit (trail S) L" and
-    atm_L: "atm_of L \<in> atms_of_msu (init_clss S)" and
+    atm_L: "atm_of L \<in> atms_of_mm (init_clss S)" and
     T: "T \<sim> cons_trail (Marked L (Suc (backtrack_lvl S)))
       (update_backtrack_lvl (Suc (backtrack_lvl S)) S)"
     by auto
@@ -1246,7 +1245,7 @@ next
       have [simp]: "init_clss S = init_clss T'"
         using \<open>cdcl\<^sub>W\<^sup>*\<^sup>* T T'\<close> cdcl\<^sub>W_init_clss confl cdcl\<^sub>W_all_struct_inv_def conflict inv
         by (metis \<open>cdcl\<^sub>W_M_level_inv T\<close> rtranclp_cdcl\<^sub>W_init_clss)
-      then have atm_L: "atm_of L \<in> atms_of_msu (clauses S)"
+      then have atm_L: "atm_of L \<in> atms_of_mm (clauses S)"
         using inv_T' confl_T' unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def clauses_def
         by auto
       obtain M where tr_T: "trail T = M @ trail T'"
@@ -1345,9 +1344,9 @@ lemma cdcl\<^sub>W_merge_\<mu>\<^sub>F\<^sub>W_decreasing:
   shows "\<mu>\<^sub>F\<^sub>W T < \<mu>\<^sub>F\<^sub>W S"
 proof -
   let ?A = "init_clss S"
-  have atm_clauses: "atms_of_msu (clauses S) \<subseteq> atms_of_msu ?A"
+  have atm_clauses: "atms_of_mm (clauses S) \<subseteq> atms_of_mm ?A"
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def clauses_def by auto
-  have atm_trail: "atm_of ` lits_of (trail S) \<subseteq> atms_of_msu ?A"
+  have atm_trail: "atm_of ` lits_of_l (trail S) \<subseteq> atms_of_mm ?A"
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def clauses_def by auto
   have n_d: "no_dup (trail S)"
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
@@ -3620,7 +3619,7 @@ lemma "full1 cdcl\<^sub>W_merge_stgy S T \<Longrightarrow> cdcl\<^sub>W_merge_wi
 
 lemma cdcl\<^sub>W_all_struct_inv_learned_clss_bound:
   assumes inv: "cdcl\<^sub>W_all_struct_inv S"
-  shows "set_mset (learned_clss S) \<subseteq> simple_clss (atms_of_msu (init_clss S))"
+  shows "set_mset (learned_clss S) \<subseteq> simple_clss (atms_of_mm (init_clss S))"
 proof
   fix C
   assume C: "C \<in> set_mset (learned_clss S)"
@@ -3630,13 +3629,13 @@ proof
   moreover have "\<not>tautology C"
     using C inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def by auto
   moreover
-    have "atms_of C \<subseteq> atms_of_msu (learned_clss S)"
+    have "atms_of C \<subseteq> atms_of_mm (learned_clss S)"
       using C by auto
-    then have "atms_of C \<subseteq> atms_of_msu (init_clss S)"
+    then have "atms_of C \<subseteq> atms_of_mm (init_clss S)"
     using inv  unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def by force
-  moreover have "finite (atms_of_msu (init_clss S))"
+  moreover have "finite (atms_of_mm (init_clss S))"
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def by auto
-  ultimately show "C \<in> simple_clss (atms_of_msu (init_clss S))"
+  ultimately show "C \<in> simple_clss (atms_of_mm (init_clss S))"
     using distinct_mset_not_tautology_implies_in_simple_clss simple_clss_mono
     by blast
 qed
@@ -3661,7 +3660,7 @@ proof (rule ccontr)
       using g inv unfolding cdcl\<^sub>W_all_struct_inv_def by (metis cdcl\<^sub>W_merge_with_restart_init_clss)
     } note init_g = this
   let ?S = "g 0"
-  have "finite (atms_of_msu (init_clss (fst ?S)))"
+  have "finite (atms_of_mm (init_clss (fst ?S)))"
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def by auto
   have snd_g: "\<And>i. snd (g i) = i + snd (g 0)"
     apply (induct_tac i)
@@ -3674,8 +3673,8 @@ proof (rule ccontr)
       not_bounded_nat_exists_larger not_le le_iff_add)
 
   obtain k where
-    f_g_k: "f (snd (g k)) > card (simple_clss (atms_of_msu (init_clss (fst ?S))))" and
-    "k > card (simple_clss (atms_of_msu (init_clss (fst ?S))))"
+    f_g_k: "f (snd (g k)) > card (simple_clss (atms_of_mm (init_clss (fst ?S))))" and
+    "k > card (simple_clss (atms_of_mm (init_clss (fst ?S))))"
     using not_bounded_nat_exists_larger[OF unbounded_f_g] by blast
   text \<open>The following does not hold anymore with the non-strict version of
     cardinality in the definition.\<close>
@@ -3705,10 +3704,10 @@ proof (rule ccontr)
     using inv[of k]  rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_merge_stgy_rtranclp_cdcl\<^sub>W
     by blast
   moreover have "card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g k))))
-      > card (simple_clss (atms_of_msu (init_clss (fst ?S))))"
+      > card (simple_clss (atms_of_mm (init_clss (fst ?S))))"
       unfolding m[symmetric] using \<open>m > f (snd (g k))\<close> f_g_k by linarith
     then have "card (set_mset (learned_clss T))
-      > card (simple_clss (atms_of_msu (init_clss (fst ?S))))"
+      > card (simple_clss (atms_of_mm (init_clss (fst ?S))))"
       by linarith
   moreover
     have "init_clss (fst (g k)) = init_clss T"
@@ -3718,7 +3717,7 @@ proof (rule ccontr)
       using init_g[of k] by auto
   ultimately show False
     using cdcl\<^sub>W_all_struct_inv_learned_clss_bound
-    by (simp add: \<open>finite (atms_of_msu (init_clss (fst (g 0))))\<close> simple_clss_finite
+    by (simp add: \<open>finite (atms_of_mm (init_clss (fst (g 0))))\<close> simple_clss_finite
       card_mono leD)
 qed
 
@@ -3783,7 +3782,7 @@ proof (rule ccontr)
       using g inv unfolding cdcl\<^sub>W_all_struct_inv_def by (metis cdcl\<^sub>W_with_restart_init_clss)
     } note init_g = this
   let ?S = "g 0"
-  have "finite (atms_of_msu (init_clss (fst ?S)))"
+  have "finite (atms_of_mm (init_clss (fst ?S)))"
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def by auto
   have snd_g: "\<And>i. snd (g i) = i + snd (g 0)"
     apply (induct_tac i)
@@ -3796,8 +3795,8 @@ proof (rule ccontr)
       not_bounded_nat_exists_larger not_le le_iff_add)
 
   obtain k where
-    f_g_k: "f (snd (g k)) > card (simple_clss (atms_of_msu (init_clss (fst ?S))))" and
-    "k > card (simple_clss (atms_of_msu (init_clss (fst ?S))))"
+    f_g_k: "f (snd (g k)) > card (simple_clss (atms_of_mm (init_clss (fst ?S))))" and
+    "k > card (simple_clss (atms_of_mm (init_clss (fst ?S))))"
     using not_bounded_nat_exists_larger[OF unbounded_f_g] by blast
   text \<open>The following does not hold anymore with the non-strict version of
     cardinality in the definition.\<close>
@@ -3826,10 +3825,10 @@ proof (rule ccontr)
   then have "cdcl\<^sub>W_all_struct_inv T"
     using inv[of k]  rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W by blast
   moreover have "card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g k))))
-      > card (simple_clss (atms_of_msu (init_clss (fst ?S))))"
+      > card (simple_clss (atms_of_mm (init_clss (fst ?S))))"
       unfolding m[symmetric] using \<open>m > f (snd (g k))\<close> f_g_k by linarith
     then have "card (set_mset (learned_clss T))
-      > card (simple_clss (atms_of_msu (init_clss (fst ?S))))"
+      > card (simple_clss (atms_of_mm (init_clss (fst ?S))))"
       by linarith
   moreover
     have "init_clss (fst (g k)) = init_clss T"
@@ -3840,7 +3839,7 @@ proof (rule ccontr)
       using init_g[of k] by auto
   ultimately show False
     using cdcl\<^sub>W_all_struct_inv_learned_clss_bound
-    by (simp add: \<open>finite (atms_of_msu (init_clss (fst (g 0))))\<close> simple_clss_finite
+    by (simp add: \<open>finite (atms_of_mm (init_clss (fst (g 0))))\<close> simple_clss_finite
       card_mono leD)
 qed
 

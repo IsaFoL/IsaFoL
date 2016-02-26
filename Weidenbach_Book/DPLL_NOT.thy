@@ -22,7 +22,7 @@ lemma backtrack_is_backjump:
        \<exists>C F' K F L l C'.
           M = F' @ Marked K () # F \<and>
           M' = Propagated L l # F \<and> N = N' \<and> C \<in># N \<and> F' @ Marked K d # F \<Turnstile>as CNot C \<and>
-          undefined_lit F L \<and> atm_of L \<in> atms_of_msu N \<union> atm_of ` lits_of (F' @ Marked K d # F) \<and>
+          undefined_lit F L \<and> atm_of L \<in> atms_of_mm N \<union> atm_of ` lits_of (F' @ Marked K d # F) \<and>
           N \<Turnstile>pm C' + {#L#} \<and> F \<Turnstile>as CNot C'"
 proof -
   let ?S = "(M, N)"
@@ -47,7 +47,7 @@ proof -
     using \<open>M\<Turnstile>as CNot D\<close> unfolding M .
   moreover have "undefined_lit F (-?K)"
     using no_dup unfolding M L by (simp add: defined_lit_map)
-  moreover have "atm_of (-K) \<in> atms_of_msu N \<union> atm_of ` lits_of (F' @ Marked K d # F)"
+  moreover have "atm_of (-K) \<in> atms_of_mm N \<union> atm_of ` lits_of (F' @ Marked K d # F)"
     by auto
   moreover
     have "set_mset N \<union> ?C' \<Turnstile>ps {{#}}"
@@ -138,7 +138,7 @@ lemma backtrack_is_backjump':
         \<exists>C F' K F L l C'.
           fst S = F' @ Marked K () # F \<and>
           T = (Propagated L l # F, snd S) \<and> C \<in># snd S \<and> fst S \<Turnstile>as CNot C
-          \<and> undefined_lit F L \<and> atm_of L \<in> atms_of_msu (snd S) \<union> atm_of ` lits_of (fst S) \<and>
+          \<and> undefined_lit F L \<and> atm_of L \<in> atms_of_mm (snd S) \<union> atm_of ` lits_of (fst S) \<and>
           snd S \<Turnstile>pm C' + {#L#} \<and> F \<Turnstile>as CNot C'"
   apply (cases S, cases T)
   using backtrack_is_backjump[of "fst S" "snd S" "fst T" "snd T"] assms by fastforce
@@ -165,7 +165,7 @@ proof -
     3: "C \<in># snd S" and
     4: "fst S \<Turnstile>as CNot C" and
     5: "undefined_lit F L" and
-    6: "atm_of L \<in> atms_of_msu (snd S) \<union> atm_of ` lits_of (fst S)" and
+    6: "atm_of L \<in> atms_of_mm (snd S) \<union> atm_of ` lits_of (fst S)" and
     7: "snd S \<Turnstile>pm C' + {#L#}" and
     8: "F \<Turnstile>as CNot C'"
   using backtrack_is_backjump'[OF assms] by blast
@@ -227,7 +227,7 @@ begin
 lemma wf_tranclp_dpll_inital_state:
   assumes fin: "finite A"
   shows "wf {((M'::('v, unit, unit) marked_lits, N'::'v clauses), ([], N))|M' N' N.
-    dpll_bj\<^sup>+\<^sup>+ ([], N) (M', N') \<and> atms_of_msu N \<subseteq> atms_of_ms A}"
+    dpll_bj\<^sup>+\<^sup>+ ([], N) (M', N') \<and> atms_of_mm N \<subseteq> atms_of_ms A}"
   using wf_tranclp_dpll_bj[OF assms(1)] by (rule wf_subset) auto
 
 corollary full_dpll_final_state_conclusive:
@@ -271,7 +271,7 @@ locale dpll_withbacktrack_and_restarts =
 begin
   sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts  fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
     "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset C N)" f "\<lambda>(_, N) S. S = ([], N)"
-  "\<lambda>A (M, N). atms_of_msu N \<subseteq> atms_of_ms A \<and> atm_of ` lits_of M \<subseteq> atms_of_ms A \<and> finite A
+  "\<lambda>A (M, N). atms_of_mm N \<subseteq> atms_of_ms A \<and> atm_of ` lits_of M \<subseteq> atms_of_ms A \<and> finite A
     \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
   "\<lambda>A T. (2+card (atms_of_ms A)) ^ (1+card (atms_of_ms A))
                - \<mu>\<^sub>C (1+card (atms_of_ms A)) (2+card (atms_of_ms A)) (trail_weight T)" dpll_bj

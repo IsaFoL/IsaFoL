@@ -2,6 +2,9 @@ theory List_More
 imports Main
 begin
 
+text \<open>Sledgehammer parameters\<close>
+sledgehammer_params[debug]
+
 section \<open>Various Lemmas\<close>
 text \<open>Close to @{thm nat_less_induct}, but with a separation between zero and non-zero, and case
   names.\<close>

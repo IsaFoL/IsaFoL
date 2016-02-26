@@ -429,8 +429,8 @@ lemma cdcl\<^sub>W_o_cannot_learn:
     lev: "cdcl\<^sub>W_M_level_inv y" and
     trM: "trail y = c @ Marked Kh i # H" and
     DL: "D + {#L#} \<notin># learned_clss y" and
-    DH: "atms_of D \<subseteq> atm_of `lits_of H" and
-    LH: "atm_of L \<notin> atm_of `lits_of H" and
+    DH: "atms_of D \<subseteq> atm_of `lits_of_l H" and
+    LH: "atm_of L \<notin> atm_of `lits_of_l H" and
     learned: "\<forall>T. conflicting y = Some T \<longrightarrow> trail y \<Turnstile>as CNot T" and
     z: "trail z = c' @ Marked Kh i # H"
   shows "D + {#L#} \<notin># learned_clss z"
@@ -456,7 +456,7 @@ proof (induction rule: cdcl\<^sub>W_o_induct_lev2)
       assume "D + {#L#} \<in># learned_clss T"
       then have DLD': "D + {#L#} = D' + {#L'#}"
         using DL T neq0_conv undef decomp lev by (fastforce simp: cdcl\<^sub>W_M_level_inv_def)
-      have L_cKh: "atm_of L \<in> atm_of `lits_of (c @ [Marked Kh i])"
+      have L_cKh: "atm_of L \<in> atm_of `lits_of_l (c @ [Marked Kh i])"
         using LH learned  M DLD'[symmetric] confl by (fastforce simp add: image_iff)
       have "get_all_levels_of_marked (M3 @ M2 @ Marked K (j + 1) # M1)
         = rev [1..<1 + backtrack_lvl y]"
@@ -532,12 +532,12 @@ proof (induction rule: cdcl\<^sub>W_o_induct_lev2)
           "L''\<in>#D'" and
           L''D': "get_level (trail y) L'' = get_maximum_level (trail y) D'"
           using get_maximum_level_exists_lit_of_max_level[OF D, of "trail y"] by auto
-        have L''M: "atm_of L'' \<in> atm_of ` lits_of (trail y)"
+        have L''M: "atm_of L'' \<in> atm_of ` lits_of_l (trail y)"
           using get_rev_level_ge_0_atm_of_in[of 0 "rev (trail y)" L''] \<open>j>0\<close> levD L''D' by auto
-        then have "L'' \<in> lits_of  (Marked Kh i # d)"
+        then have "L'' \<in> lits_of_l  (Marked Kh i # d)"
           proof -
             {
-              assume L''H: "atm_of L'' \<in> atm_of ` lits_of H"
+              assume L''H: "atm_of L'' \<in> atm_of ` lits_of_l H"
               have "get_all_levels_of_marked H = rev [1..<i]"
                 using H unfolding M
                 by (auto simp add: rev_swap[symmetric] dest!: append_cons_eq_upt_length_i)
@@ -563,8 +563,8 @@ lemma cdcl\<^sub>W_stgy_with_trail_end_has_not_been_learned:
   "cdcl\<^sub>W_M_level_inv y" and
   "trail y = c @ Marked Kh i # H" and
   "D + {#L#} \<notin># learned_clss y" and
-  DH: "atms_of D \<subseteq> atm_of `lits_of H" and
-  LH: "atm_of L \<notin> atm_of `lits_of H" and
+  DH: "atms_of D \<subseteq> atm_of `lits_of_l H" and
+  LH: "atm_of L \<notin> atm_of `lits_of_l H" and
   "\<forall>T. conflicting y = Some T \<longrightarrow> trail y \<Turnstile>as CNot T" and
   "trail z = c' @ Marked Kh i # H"
   shows "D + {#L#} \<notin># learned_clss z"
@@ -589,8 +589,8 @@ lemma rtranclp_cdcl\<^sub>W_stgy_with_trail_end_has_not_been_learned:
   "cdcl\<^sub>W_all_struct_inv S" and
   "trail S = c @ Marked K i # H" and
   "D + {#L#} \<notin># learned_clss S" and
-  DH: "atms_of D \<subseteq> atm_of `lits_of H" and
-  LH: "atm_of L \<notin> atm_of `lits_of H" and
+  DH: "atms_of D \<subseteq> atm_of `lits_of_l H" and
+  LH: "atm_of L \<notin> atm_of `lits_of_l H" and
   "\<exists>c'. trail z = c' @ Marked K i # H"
   shows "D + {#L#} \<notin># learned_clss z"
   using assms(1-4,7)
@@ -683,13 +683,13 @@ proof -
     using lev' unfolding cdcl\<^sub>W_M_level_inv_def by auto
 
   have lev: "cdcl\<^sub>W_M_level_inv R" using invR unfolding cdcl\<^sub>W_all_struct_inv_def by blast
-  then have vars_of_D: "atms_of D \<subseteq> atm_of ` lits_of M1"
-    using backtrack_atms_of_D_in_M1[OF lev' undef _ decomp _ _ _ T] confl_S conf T decomp k level
+  then have vars_of_D: "atms_of D \<subseteq> atm_of ` lits_of_l M1"
+    using backtrack_atms_of_m_D_in_M1[OF lev' undef _ decomp _ _ _ T] confl_S conf T decomp k level
     lev' i undef unfolding cdcl\<^sub>W_conflicting_def by (auto simp: cdcl\<^sub>W_M_level_inv_def)
   have "no_dup (trail S)" using lev' by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
   have vars_in_M1:
-    "\<forall>x \<in> atms_of D. x \<notin> atm_of ` lits_of (M2 @ [Marked K (get_maximum_level (trail S) D + 1)])"
-      apply (rule vars_of_D distinct_atms_of_incl_not_in_other[of
+    "\<forall>x \<in> atms_of D. x \<notin> atm_of ` lits_of_l (M2 @ [Marked K (get_maximum_level (trail S) D + 1)])"
+      apply (rule vars_of_D distinct_atms_of_m_incl_not_in_other[of
       "M2 @ Marked K (get_maximum_level (trail S) D + 1) # []" M1 D])
       using \<open>no_dup (trail S)\<close> M vars_of_D by simp_all
   have M1_D: "M1 \<Turnstile>as CNot D"
@@ -737,14 +737,14 @@ proof -
   then have "backtrack_lvl S > 0" unfolding M by (auto split: if_split_asm simp add: upt.simps(2) i)
 
   have M1'_D: "M1' \<Turnstile>as CNot D" using M1_D \<open>set M1 \<subseteq> set M1'\<close> by (auto intro: true_annots_mono)
-  have "-L \<in> lits_of (trail S)" using conf confl_S unfolding cdcl\<^sub>W_conflicting_def by auto
+  have "-L \<in> lits_of_l (trail S)" using conf confl_S unfolding cdcl\<^sub>W_conflicting_def by auto
   have lvls_M1': "get_all_levels_of_marked M1' = rev [1..<backtrack_lvl S]"
     using get_lvls_M Ls by (auto simp add: get_all_levels_of_marked_no_marked M'
       split: if_split_asm simp add: upt.simps(2))
-  have L_notin: "atm_of L \<in> atm_of ` lits_of Ls \<or> atm_of L = atm_of K'"
+  have L_notin: "atm_of L \<in> atm_of ` lits_of_l Ls \<or> atm_of L = atm_of K'"
     proof (rule ccontr)
       assume "\<not> ?thesis"
-      then have "atm_of L \<notin> atm_of ` lits_of (Marked K' (backtrack_lvl S) # rev Ls)" by simp
+      then have "atm_of L \<notin> atm_of ` lits_of_l (Marked K' (backtrack_lvl S) # rev Ls)" by simp
       then have "get_level (trail S) L = get_level M1' L"
         unfolding M' by auto
       then show False using get_level_in_levels_of_marked[of M1' L] \<open>backtrack_lvl S > 0\<close>
@@ -785,11 +785,11 @@ proof -
   have "cdcl\<^sub>W\<^sup>*\<^sup>* R Y" by (simp add: RY rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W)
   then have "init_clss Y = init_clss R" using rtranclp_cdcl\<^sub>W_init_clss[of R Y] M_lev by auto
   { assume DL: "D + {#L#} \<in># clauses Y"
-    have "atm_of L \<notin> atm_of ` lits_of M1"
+    have "atm_of L \<notin> atm_of ` lits_of_l M1"
       apply (rule backtrack_lit_skiped[of S])
       using decomp i k lev' unfolding cdcl\<^sub>W_M_level_inv_def by auto
     then have LM1: "undefined_lit M1 L"
-      by (metis Marked_Propagated_in_iff_in_lits_of atm_of_uminus image_eqI)
+      by (metis Marked_Propagated_in_iff_in_lits_of_l atm_of_uminus image_eqI)
     have L_trY: "undefined_lit (trail Y) L"
       using  L_notin \<open>no_dup (trail S)\<close> unfolding defined_lit_map trY M'
       by (auto simp add: image_iff lits_of_def)
@@ -874,15 +874,15 @@ lemma cdcl\<^sub>W_stgy_distinct_mset_clauses:
 subsection \<open>Decrease of a measure\<close>
 fun cdcl\<^sub>W_measure where
 "cdcl\<^sub>W_measure S =
-  [(3::nat) ^ (card (atms_of_msu (init_clss S))) - card (set_mset (learned_clss S)),
+  [(3::nat) ^ (card (atms_of_mm (init_clss S))) - card (set_mset (learned_clss S)),
     if conflicting S = None then 1 else 0,
-    if conflicting S = None then card (atms_of_msu (init_clss S)) - length (trail S)
+    if conflicting S = None then card (atms_of_mm (init_clss S)) - length (trail S)
     else length (trail S)
     ]"
 
 lemma length_model_le_vars_all_inv:
   assumes "cdcl\<^sub>W_all_struct_inv S"
-  shows "length (trail S) \<le> card (atms_of_msu (init_clss S))"
+  shows "length (trail S) \<le> card (atms_of_mm (init_clss S))"
   using assms length_model_le_vars[of S] unfolding cdcl\<^sub>W_all_struct_inv_def
   by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
 end
@@ -895,13 +895,13 @@ lemma learned_clss_less_upper_bound:
   assumes
     "distinct_cdcl\<^sub>W_state S" and
     "\<forall>s \<in># learned_clss S. \<not>tautology s"
-  shows "card(set_mset (learned_clss S)) \<le> 3 ^ card (atms_of_msu (learned_clss S))"
+  shows "card(set_mset (learned_clss S)) \<le> 3 ^ card (atms_of_mm (learned_clss S))"
 proof -
-  have "set_mset (learned_clss S) \<subseteq> simple_clss (atms_of_msu (learned_clss S))"
+  have "set_mset (learned_clss S) \<subseteq> simple_clss (atms_of_mm (learned_clss S))"
     apply (rule simplified_in_simple_clss)
     using assms unfolding distinct_cdcl\<^sub>W_state_def by auto
   then have "card(set_mset (learned_clss S))
-    \<le> card (simple_clss (atms_of_msu (learned_clss S)))"
+    \<le> card (simple_clss (atms_of_mm (learned_clss S)))"
     by (simp add: simple_clss_finite card_mono)
   then show ?thesis
     by (meson atms_of_ms_finite simple_clss_card finite_set_mset order_trans)
@@ -944,16 +944,16 @@ proof (induct rule: cdcl\<^sub>W_all_induct_lev2)
   let ?N = "init_clss S"
   have "no_strange_atm (cons_trail (Propagated L (C + {#L#})) S)"
     using alien cdcl\<^sub>W.propagate cdcl\<^sub>W_no_strange_atm_inv propa M_level by blast
-  then have  "atm_of ` lits_of (Propagated L ( (C + {#L#})) # trail S)
-    \<subseteq> atms_of_msu (init_clss S)"
+  then have  "atm_of ` lits_of_l (Propagated L ( (C + {#L#})) # trail S)
+    \<subseteq> atms_of_mm (init_clss S)"
     using undef unfolding no_strange_atm_def by auto
-  then have "card (atm_of ` lits_of (Propagated L ( (C + {#L#})) # trail S))
-    \<le> card (atms_of_msu (init_clss S))"
+  then have "card (atm_of ` lits_of_l (Propagated L ( (C + {#L#})) # trail S))
+    \<le> card (atms_of_mm (init_clss S))"
     by (meson atms_of_ms_finite card_mono finite_set_mset)
-  then have "length (Propagated L ( (C + {#L#})) # trail S) \<le> card (atms_of_msu ?N)"
-    using no_dup_length_eq_card_atm_of_lits_of no_dup' by fastforce
-  then have H: "card (atms_of_msu (init_clss S)) - length (trail S)
-    = Suc (card (atms_of_msu (init_clss S)) - Suc (length (trail S)))"
+  then have "length (Propagated L ( (C + {#L#})) # trail S) \<le> card (atms_of_mm ?N)"
+    using no_dup_length_eq_card_atm_of_lits_of_l no_dup' by fastforce
+  then have H: "card (atms_of_mm (init_clss S)) - length (trail S)
+    = Suc (card (atms_of_mm (init_clss S)) - Suc (length (trail S)))"
     by simp
   show ?case using conf T undef by (auto simp: H)
 next
@@ -971,7 +971,7 @@ next
     have "no_strange_atm (cons_trail (Marked L (backtrack_lvl S + 1)) (incr_lvl S))"
       using M_level alien calculation(4) cdcl\<^sub>W_no_strange_atm_inv by blast
     then have "length (Marked L ((backtrack_lvl S) + 1) # (trail S))
-      \<le> card (atms_of_msu (init_clss S))"
+      \<le> card (atms_of_mm (init_clss S))"
       using no_dup clauses_def undef
       length_model_le_vars[of "cons_trail (Marked L (backtrack_lvl S + 1)) (incr_lvl S)"]
       by fastforce
@@ -1001,20 +1001,20 @@ next
   moreover have "\<forall>s\<in>#learned_clss ?S'. \<not> tautology s"
     using learned_clss_are_not_tautologies[OF cdcl\<^sub>W.other[OF cdcl\<^sub>W_o.bj[OF
       cdcl\<^sub>W_bj.backtrack[OF bt]]]] M_level no_taut confl by auto
-  ultimately have "card (set_mset (learned_clss T)) \<le> 3 ^ card (atms_of_msu (learned_clss T))"
+  ultimately have "card (set_mset (learned_clss T)) \<le> 3 ^ card (atms_of_mm (learned_clss T))"
       by (auto simp: clauses_def learned_clss_less_upper_bound)
     then have H: "card (set_mset ({#D + {#L#}#} + learned_clss S))
-      \<le> 3 ^ card (atms_of_msu ({#D + {#L#}#} + learned_clss S))"
+      \<le> 3 ^ card (atms_of_mm ({#D + {#L#}#} + learned_clss S))"
       using T undef decomp lev by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
   moreover
-    have "atms_of_msu ({#D + {#L#}#} + learned_clss S) \<subseteq> atms_of_msu (init_clss S)"
+    have "atms_of_mm ({#D + {#L#}#} + learned_clss S) \<subseteq> atms_of_mm (init_clss S)"
       using alien conf unfolding no_strange_atm_def by auto
-    then have card_f: "card (atms_of_msu ({#D + {#L#}#} + learned_clss S))
-      \<le> card (atms_of_msu (init_clss S))"
+    then have card_f: "card (atms_of_mm ({#D + {#L#}#} + learned_clss S))
+      \<le> card (atms_of_mm (init_clss S))"
       by (meson atms_of_ms_finite card_mono finite_set_mset)
-    then have "(3::nat) ^ card (atms_of_msu ({#D + {#L#}#} + learned_clss S))
-      \<le> 3 ^ card (atms_of_msu (init_clss S))" by simp
-  ultimately have "(3::nat) ^ card (atms_of_msu (init_clss S))
+    then have "(3::nat) ^ card (atms_of_mm ({#D + {#L#}#} + learned_clss S))
+      \<le> 3 ^ card (atms_of_mm (init_clss S))" by simp
+  ultimately have "(3::nat) ^ card (atms_of_mm (init_clss S))
     \<ge> card (set_mset ({#D + {#L#}#} + learned_clss S))"
     using le_trans by blast
   then show ?case using decomp undef diff_less_mono2 card_T T lev

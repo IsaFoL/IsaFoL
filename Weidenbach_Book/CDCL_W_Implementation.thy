@@ -358,7 +358,7 @@ lemma cdcl\<^sub>W_cp_cdcl\<^sub>W_st: "cdcl\<^sub>W_cp S S' \<Longrightarrow> c
 lemma cdcl\<^sub>W_cp_wf_all_inv:
   "wf {(S', S::'v::linorder cdcl\<^sub>W_state). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_cp S S'}"
   (is "wf ?R")
-proof (rule wf_bounded_measure[of _ "\<lambda>S. card (atms_of_msu (clss S))+1"
+proof (rule wf_bounded_measure[of _ "\<lambda>S. card (atms_of_mm (clss S))+1"
     "\<lambda>S. length (trail S) + (if conflicting S = None then 0 else 1)"], goal_cases)
   case (1 S S')
   then have "cdcl\<^sub>W_all_struct_inv S" and "cdcl\<^sub>W_cp S S'" by auto
