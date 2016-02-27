@@ -636,9 +636,13 @@ qed
 lemma cutoff_internal: "anybranch T red \<Longrightarrow> anyinternal (cutoff red [] T) (\<lambda>p. \<not>red p)" 
   using cutoff_internal'[of T red "[]"] by auto
 
+lemma cutoff_branch_internal': 
+  "anybranch T red \<Longrightarrow> anyinternal (cutoff red [] T) (\<lambda>p. \<not>red p) \<and> anybranch (cutoff red [] T) (\<lambda>p. red p)" 
+  using cutoff_internal[of T] cutoff_branch[of T] by blast
+
 lemma cutoff_branch_internal: 
   "anybranch T red \<Longrightarrow> \<exists>T'. anyinternal T' (\<lambda>p. \<not>red p) \<and> anybranch T' (\<lambda>p. red p)" 
-  using cutoff_internal[of T] cutoff_branch[of T] by blast
+  using cutoff_branch_internal' by blast
 
 section {* Possibly Infinite Trees *}
 (* Possibly infinite trees are of type dir list set *)

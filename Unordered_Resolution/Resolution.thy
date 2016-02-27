@@ -502,8 +502,14 @@ qed
 
 subsection {* Standardizing apart *}
 
+abbreviation std1 :: "fterm clause \<Rightarrow> fterm clause" where
+  "std1 C == C{\<lambda>x. Var (''1'' @ x)}\<^sub>l\<^sub>s"
+
+abbreviation std2 :: "fterm clause \<Rightarrow> fterm clause" where
+  "std2 C == C{\<lambda>x. Var (''2'' @ x)}\<^sub>l\<^sub>s"
+
 definition std_apart :: "fterm clause \<Rightarrow> fterm clause \<Rightarrow> (fterm clause * fterm clause)" where
-  "std_apart C\<^sub>1 C\<^sub>2 = (C\<^sub>1{\<lambda>x. Var (''0'' @ x) }\<^sub>l\<^sub>s, C\<^sub>2{\<lambda>x. Var (''1'' @ x)}\<^sub>l\<^sub>s)"
+  "std_apart C\<^sub>1 C\<^sub>2 = (std1 C\<^sub>1, std2 C\<^sub>2)"
 
 lemma std_apart'': 
   "x\<in>varst  (t  {\<lambda>x::char list. Var (y @ x) }\<^sub>t ) \<Longrightarrow> \<exists>x'. x=y@x'"
@@ -513,55 +519,65 @@ by (induct t and ts rule: varst.induct varsts.induct) auto
 lemma std_apart': "x\<in>varsl (l {\<lambda>x::char list. Var  (y@x) }\<^sub>l) \<Longrightarrow> \<exists>x'. x=y@x'"
 unfolding varsl_def using std_apart'' by (cases l) auto
 
-lemma std_apart_apart:
-  assumes  "std_apart C1 C2 = (C1',C2')"
-  shows "varsls C1' \<inter> varsls C2' = {}"
+lemma std_apart_apart': "varsls (std1 C1) \<inter> varsls (std2 C2) = {}"
 proof -
   {
-    from assms have C1'_x0: "C1' = C1{\<lambda>x. Var (''0'' @ x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
-    from assms have C2'_x1: "C2' = C2{\<lambda>x. Var (''1'' @ x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
     fix x
-    assume xin: "x \<in> varsls C1' \<inter> varsls C2'"
-    from xin have "x \<in> varsls C1'" by auto
-    then have "\<exists>x'.  x=''0'' @ x'" 
-      using C1'_x0 std_apart'[of x _ "''0''"] unfolding varsls_def by auto
+    assume xin: "x \<in> varsls (std1 C1) \<inter> varsls (std2 C2)"
+    from xin have "x \<in> varsls (std1 C1)" by auto
+    then have "\<exists>x'.  x=''1'' @ x'" 
+      using std_apart'[of x _ "''1''"] unfolding varsls_def by auto
     moreover
-    from xin have "x \<in> varsls C2'" by auto
-    then have "\<exists>x'. x= ''1'' @x' " 
-      using C2'_x1 std_apart'[of x _ "''1''"] unfolding varsls_def by auto
+    from xin have "x \<in> varsls (std2 C2)" by auto
+    then have "\<exists>x'. x= ''2'' @x' " 
+      using std_apart'[of x _ "''2''"] unfolding varsls_def by auto
     ultimately have "False" by auto
     then have "x \<in> {}" by auto
   }
   then show ?thesis by auto 
 qed
 
+lemma std_apart_apart:
+  assumes  "std_apart C1 C2 = (C1',C2')"
+  shows "varsls C1' \<inter> varsls C2' = {}"
+proof -
+  from assms have C1'_x0: "C1' = C1{\<lambda>x. Var (''1'' @ x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
+  moreover
+  from assms have C2'_x1: "C2' = C2{\<lambda>x. Var (''2'' @ x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
+  ultimately show ?thesis using std_apart_apart' by auto
+qed
+
+lemma std_apart_instance_ofls1': "instance_ofls C1 (std1 C1)"
+proof -
+  have empty: "(\<lambda>x. Var (''1''@x)) \<cdot> (\<lambda>x. Var (tl x)) = \<epsilon>" using composition_def by auto
+
+  have "C1 {\<epsilon>}\<^sub>l\<^sub>s = C1" using empty_subls by auto
+  then have "C1{(\<lambda>x. Var (''1''@x)) \<cdot> (\<lambda>x. Var (tl x)) }\<^sub>l\<^sub>s = C1" using empty by auto
+  then have "C1{\<lambda>x. Var (''1''@x) }\<^sub>l\<^sub>s {\<lambda>x. Var (tl x) }\<^sub>l\<^sub>s = C1" using composition_conseq2ls by auto
+  then have "C1 = (std1 C1) {\<lambda>x. Var (tl x) }\<^sub>l\<^sub>s" by auto
+  then show "instance_ofls C1 (std1 C1)" unfolding instance_ofls_def by auto
+qed
+
+lemma std_apart_instance_ofls2': "instance_ofls C2 (std2 C2)"
+proof -
+  have empty: "(\<lambda>x. Var (''2''@x)) \<cdot> (\<lambda>x. Var (tl x)) = \<epsilon>" using composition_def by auto
+
+  have "C2 {\<epsilon>}\<^sub>l\<^sub>s = C2" using empty_subls by auto
+  then have "C2{(\<lambda>x. Var (''2''@x)) \<cdot> (\<lambda>x. Var (tl x)) }\<^sub>l\<^sub>s = C2" using empty by auto
+  then have "C2{\<lambda>x. Var (''2''@x) }\<^sub>l\<^sub>s {\<lambda>x. Var (tl x) }\<^sub>l\<^sub>s = C2" using composition_conseq2ls by auto
+  then have "C2 = (std2 C2) {\<lambda>x. Var (tl x) }\<^sub>l\<^sub>s" by auto
+  then show "instance_ofls C2 (std2 C2)" unfolding instance_ofls_def by auto
+qed
+
 lemma std_apart_instance_ofls:
   assumes "std_apart C1 C2 = (C1', C2')"
   shows "instance_ofls C1 C1' \<and> instance_ofls C2 C2'"
 proof -
-  from assms have dfdf: "C1' = C1{\<lambda>x. Var (''0''@x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
-
-  have empty: "(\<lambda>x. Var (''0''@x)) \<cdot> (\<lambda>x. Var (tl x)) = \<epsilon>" using composition_def by auto
-
-  have "C1 {\<epsilon>}\<^sub>l\<^sub>s = C1" using empty_subls by auto
-  then have "C1{(\<lambda>x. Var (''0''@x)) \<cdot> (\<lambda>x. Var (tl x)) }\<^sub>l\<^sub>s = C1" using empty by auto
-  then have "C1{\<lambda>x. Var (''0''@x) }\<^sub>l\<^sub>s {\<lambda>x. Var (tl x) }\<^sub>l\<^sub>s = C1" using composition_conseq2ls by auto
-  then have "C1 = C1' {\<lambda>x. Var (tl x) }\<^sub>l\<^sub>s" using dfdf by auto
-  then have "instance_ofls C1 C1'" unfolding instance_ofls_def by auto
-
-  moreover (* symmetric *)
-
-  from assms have dfdf: "C2' = C2{\<lambda>x. Var (''1''@x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
-
-  have empty: "(\<lambda>x. Var (''1''@x)) \<cdot> (\<lambda>x. Var (tl x)) = \<epsilon>" using composition_def by auto
-
-  have "C2 {\<epsilon>}\<^sub>l\<^sub>s = C2" using empty_subls by auto
-  then have "C2{(\<lambda>x. Var (''1''@x)) \<cdot> (\<lambda>x. Var (tl x)) }\<^sub>l\<^sub>s = C2" using empty by auto
-  then have "C2{\<lambda>x. Var (''1''@x) }\<^sub>l\<^sub>s {\<lambda>x. Var (tl x) }\<^sub>l\<^sub>s = C2" using composition_conseq2ls by auto
-  then have "C2 = C2' {\<lambda>x. Var (tl x) }\<^sub>l\<^sub>s" using dfdf by auto
-  then have "instance_ofls C2 C2'" unfolding instance_ofls_def by auto
-
-  ultimately show ?thesis by auto
+  from assms have "C1' = C1{\<lambda>x. Var (''1''@x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
+  moreover
+  from assms have "C2' = C2{\<lambda>x. Var (''2''@x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
+  ultimately
+  show ?thesis using std_apart_instance_ofls1' std_apart_instance_ofls2' by auto
 qed
 
 lemma finite_std_apart: "finite C1 \<Longrightarrow> finite C2 \<Longrightarrow> std_apart C1 C2 = (C1', C2') \<Longrightarrow> finite C1' \<and> finite C2'"
@@ -1159,28 +1175,32 @@ lemma sub_of_denot_equiv_ground:
            \<and> groundls (C {sub_of_denot E}\<^sub>l\<^sub>s)"
   using sub_of_denot_equiv_ground' by auto
 
+lemma std_apart_falsifies1': "falsifiesc G C1 \<longleftrightarrow> falsifiesc G (std1 C1)"
+proof 
+  assume asm: "falsifiesc G C1"
+  then obtain Cg where "instance_ofls Cg C1  \<and> falsifiesg G Cg" by auto
+  moreover
+  then have "instance_ofls Cg (std1 C1)" using std_apart_instance_ofls1' instance_ofls_trans asm by blast
+  ultimately
+  show "falsifiesc G (std1 C1)" by auto
+next
+  assume asm: "falsifiesc G (std1 C1)"
+  then have inst: "instance_ofls (std1 C1) C1" unfolding instance_ofls_def by auto
+
+  from asm obtain Cg where "instance_ofls Cg (std1 C1)  \<and> falsifiesg G Cg" by auto
+  moreover
+  then have "instance_ofls Cg C1" using inst instance_ofls_trans assms by blast
+  ultimately
+  show "falsifiesc G C1" by auto
+qed
+
 lemma std_apart_falsifies1:
   assumes "std_apart C1 C2 = (C1',C2')"
   assumes "falsifiesc G C1"
   shows "falsifiesc G C1'"
 proof -
-  from assms obtain Cg where "instance_ofls Cg C1  \<and> falsifiesg G Cg" by auto
-  moreover
-  then have "instance_ofls Cg C1'" using std_apart_instance_ofls instance_ofls_trans assms by blast
-  ultimately
-  show ?thesis by auto
-qed
-
-lemma std_apart_falsifies2:
-  assumes "std_apart C1 C2 = (C1',C2')"
-  assumes "falsifiesc G C2"
-  shows "falsifiesc G C2'"
-proof -
-  from assms obtain Cg where "instance_ofls Cg C2  \<and> falsifiesg G Cg" by auto
-  moreover
-  then have "instance_ofls Cg C2'" using std_apart_instance_ofls instance_ofls_trans assms by blast
-  ultimately
-  show ?thesis by auto
+  from assms have "C1' = std1 C1" unfolding std_apart_def by auto
+  then show ?thesis using assms std_apart_falsifies1' by auto
 qed
 
 lemma std_apart_falsifies1_sym:
@@ -1188,14 +1208,36 @@ lemma std_apart_falsifies1_sym:
   assumes "falsifiesc G C1'"
   shows "falsifiesc G C1"
 proof -
-  from assms have C1'_x0: "C1' = C1{\<lambda>x. Var (''0'' @ x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
-  then have inst: "instance_ofls C1' C1" unfolding instance_ofls_def by auto
+  from assms have "C1' = std1 C1" unfolding std_apart_def by auto
+  then show ?thesis using assms std_apart_falsifies1' by auto
+qed
 
-  from assms obtain Cg where "instance_ofls Cg C1'  \<and> falsifiesg G Cg" by auto
+lemma std_apart_falsifies2': "falsifiesc G C2 \<longleftrightarrow> falsifiesc G (std2 C2)"
+proof 
+  assume asm: "falsifiesc G C2"
+  then obtain Cg where "instance_ofls Cg C2  \<and> falsifiesg G Cg" by auto
   moreover
-  then have "instance_ofls Cg C1" using inst instance_ofls_trans assms by blast
+  then have "instance_ofls Cg (std2 C2)" using std_apart_instance_ofls2' instance_ofls_trans asm by blast
   ultimately
-  show ?thesis by auto
+  show "falsifiesc G (std2 C2)" by auto
+next
+  assume asm: "falsifiesc G (std2 C2)"
+  then have inst: "instance_ofls (std2 C2) C2" unfolding instance_ofls_def by auto
+
+  from asm obtain Cg where "instance_ofls Cg (std2 C2)  \<and> falsifiesg G Cg" by auto
+  moreover
+  then have "instance_ofls Cg C2" using inst instance_ofls_trans assms by blast
+  ultimately
+  show "falsifiesc G C2" by auto
+qed
+
+lemma std_apart_falsifies2:
+  assumes "std_apart C1 C2 = (C1',C2')"
+  assumes "falsifiesc G C2"
+  shows "falsifiesc G C2'"
+proof -
+  from assms have "C2' = std2 C2" unfolding std_apart_def by auto
+  then show ?thesis using assms std_apart_falsifies2' by auto
 qed
 
 lemma std_apart_falsifies2_sym:
@@ -1203,32 +1245,38 @@ lemma std_apart_falsifies2_sym:
   assumes "falsifiesc G C2'"
   shows "falsifiesc G C2"
 proof -
-  from assms have C2'_x0: "C2' = C2{\<lambda>x. Var (''1'' @ x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
-  then have inst: "instance_ofls C2' C2" unfolding instance_ofls_def by auto
+  from assms have "C2' = std2 C2" unfolding std_apart_def by auto
+  then show ?thesis using assms std_apart_falsifies2' by auto
+qed
 
-  from assms obtain Cg where "instance_ofls Cg C2'  \<and> falsifiesg G Cg" by auto
-  moreover
-  then have "instance_ofls Cg C2" using inst instance_ofls_trans assms by blast
-  ultimately
-  show ?thesis by auto
+lemma std_apart_renames1': "var_renaming_of C1 (std1 C1)"
+proof -
+  have "instance_ofls C1 (std1 C1)" using std_apart_instance_ofls1' assms by auto
+  moreover have "instance_ofls (std1 C1) C1" using assms unfolding instance_ofls_def std_apart_def by auto
+  ultimately show "var_renaming_of C1 (std1 C1)" unfolding var_renaming_of_def by auto
 qed
 
 lemma std_apart_renames1:
   assumes "std_apart C1 C2 = (C1',C2')"
   shows "var_renaming_of C1 C1'"
 proof -
-  have "instance_ofls C1 C1'" using std_apart_instance_ofls assms by auto
-  moreover have "instance_ofls C1' C1" using assms unfolding instance_ofls_def std_apart_def by auto
-  ultimately show "var_renaming_of C1 C1'" unfolding var_renaming_of_def by auto
+  from assms have "C1' = C1{\<lambda>x. Var (''1''@x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
+  then show ?thesis using std_apart_renames1' by auto
+qed
+
+lemma std_apart_renames2': "var_renaming_of C2 (std2 C2)"
+proof -
+  have "instance_ofls C2 (std2 C2)" using std_apart_instance_ofls2' assms by auto
+  moreover have "instance_ofls (std2 C2) C2" using assms unfolding instance_ofls_def std_apart_def by auto
+  ultimately show "var_renaming_of C2 (std2 C2)" unfolding var_renaming_of_def by auto
 qed
 
 lemma std_apart_renames2:
   assumes "std_apart C1 C2 = (C1',C2')"
   shows "var_renaming_of C2 C2'"
 proof -
-  have "instance_ofls C2 C2'" using std_apart_instance_ofls assms by auto
-  moreover have "instance_ofls C2' C2" using assms unfolding instance_ofls_def std_apart_def by auto
-  ultimately show "var_renaming_of C2 C2'" unfolding var_renaming_of_def by auto
+  from assms have "C2' = C2{\<lambda>x. Var (''2''@x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
+  then show ?thesis using std_apart_renames2' by auto
 qed
 
 

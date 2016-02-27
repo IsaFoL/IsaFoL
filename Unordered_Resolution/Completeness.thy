@@ -134,8 +134,8 @@ qed
 lemma complements_do_not_falsify:
   assumes l1C1': "l1 \<in> C1'"
   assumes l2C1': "l2 \<in> C1'"
-  assumes comp: "l1 = l2\<^sup>c"
-  shows "\<not>falsifiesg G C1'"
+  assumes fals: "falsifiesg G C1'"
+  shows "l1 \<noteq> l2\<^sup>c"
 using assms complements_do_not_falsify' by blast
 
 
@@ -198,11 +198,11 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
   moreover
   { (* Induction case *)
     assume "treesize T > 0"
-    then have "\<exists>l r. T=Branch l r" by (cases T) auto
+    then have "\<exists>l r. T=Branching l r" by (cases T) auto
     
     (* Finding sibling branches and their corresponding clauses *)
     then obtain B where b_p: "internal B T \<and> branch (B@[True]) T \<and> branch (B@[False]) T"
-      using internal_branch[of _ "[]" _ T] Branch_Leaf_Leaf_Tree by fastforce 
+      using internal_branch[of _ "[]" _ T] Branching_Leaf_Leaf_Tree by fastforce 
     let ?B1 = "B@[True]"
     let ?B2 = "B@[False]"
 
@@ -345,13 +345,13 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
             then show "closed_branch b T'' CsNext" using clo br T''_p CsNext_p by auto
           qed
       qed
+    then have T''_bran2: "anybranch T'' (\<lambda>b. falsifiescs b CsNext)" by auto (* replace T''_bran with this maybe? *)
 
     (* We cut the tree even smaller to ensure only the branches are falsified, i.e. it is a closed tree *)
     obtain T' where T'_p: "T' = cutoff (\<lambda>G. falsifiescs G CsNext) [] T''" by auto
     have T'_smaller: "treesize T' < treesize T" using treesize_cutoff[of "\<lambda>G. falsifiescs G CsNext" "[]" T''] T''_smaller unfolding T'_p by auto
 
-    have T''_bran2: "anybranch T'' (\<lambda>b. falsifiescs b CsNext)" using T''_bran by auto (* replace T''_bran with this maybe? *)
-    then have "anybranch T' (\<lambda>b. falsifiescs b CsNext)" using cutoff_branch[of T'' "\<lambda>b. falsifiescs b CsNext"] T'_p by auto
+    from T''_bran2 have "anybranch T' (\<lambda>b. falsifiescs b CsNext)" using cutoff_branch[of T'' "\<lambda>b. falsifiescs b CsNext"] T'_p by auto
     then have T'_bran: "anybranch T' (\<lambda>b. closed_branch b T' CsNext)" by auto
     have T'_intr: "anyinternal T' (\<lambda>p. \<not>falsifiescs p CsNext)" using T'_p cutoff_internal[of T'' "\<lambda>b. falsifiescs b CsNext"] T''_bran2 by blast
     have T'_closed: "closed_tree T' CsNext" using T'_bran T'_intr by auto
