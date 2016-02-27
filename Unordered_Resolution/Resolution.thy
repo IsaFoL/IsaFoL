@@ -716,42 +716,42 @@ definition applicable :: "   fterm clause \<Rightarrow> fterm clause
      \<and> L\<^sub>1 \<subseteq> C\<^sub>1 \<and> L\<^sub>2 \<subseteq> C\<^sub>2 
      \<and> mguls \<sigma> (L\<^sub>1 \<union> L\<^sub>2\<^sup>C)"
 
+definition mresolution :: "   fterm clause \<Rightarrow> fterm clause 
+                          \<Rightarrow> fterm literal set \<Rightarrow> fterm literal set 
+                          \<Rightarrow> substitution \<Rightarrow> fterm clause" where
+  "mresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = (C\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s - L\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s) \<union> (C\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s - L\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s)"
+
 definition resolution :: "   fterm clause \<Rightarrow> fterm clause 
                           \<Rightarrow> fterm literal set \<Rightarrow> fterm literal set 
                           \<Rightarrow> substitution \<Rightarrow> fterm clause" where
-  "resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = (C\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s - L\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s) \<union> (C\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s - L\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s)"
+  "resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = ((C\<^sub>1 - L\<^sub>1) \<union> (C\<^sub>2 - L\<^sub>2)) {\<sigma>}\<^sub>l\<^sub>s"
 
-definition lresolution :: "   fterm clause \<Rightarrow> fterm clause 
-                          \<Rightarrow> fterm literal set \<Rightarrow> fterm literal set 
-                          \<Rightarrow> substitution \<Rightarrow> fterm clause" where
-  "lresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = ((C\<^sub>1 - L\<^sub>1) \<union> (C\<^sub>2 - L\<^sub>2)) {\<sigma>}\<^sub>l\<^sub>s"
+inductive mresolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
+  mresolution_rule: 
+    "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<Longrightarrow> 
+       mresolution_step Cs (Cs \<union> {mresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>})"
+| standardize_apart:
+    "C \<in> Cs \<Longrightarrow> var_renaming_of C C' \<Longrightarrow> mresolution_step Cs (Cs \<union> {C'})"
 
 inductive resolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   resolution_rule: 
     "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<Longrightarrow> 
        resolution_step Cs (Cs \<union> {resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>})"
-| standardize_apart:
+| lstandardize_apart: (* Maybe rename would be a better name? ? ? *)
     "C \<in> Cs \<Longrightarrow> var_renaming_of C C' \<Longrightarrow> resolution_step Cs (Cs \<union> {C'})"
 
-inductive lresolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
-  lresolution_rule: 
-    "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<Longrightarrow> 
-       lresolution_step Cs (Cs \<union> {lresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>})"
-| lstandardize_apart: (* Maybe rename would be a better name? ? ? *)
-    "C \<in> Cs \<Longrightarrow> var_renaming_of C C' \<Longrightarrow> lresolution_step Cs (Cs \<union> {C'})"
+definition mresolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
+  "mresolution_deriv = star mresolution_step"
 
 definition resolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "resolution_deriv = star resolution_step"
 
-definition lresolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
-  "lresolution_deriv = star lresolution_step"
-
 (* Very nice lemma, but it is not used. 
   Could be used in a Completeness proof *)
-lemma ground_resolution:
+lemma ground_mresolution:
   assumes ground: "groundls C\<^sub>1 \<and> groundls C\<^sub>2"
   assumes appl: "applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>"
-  shows "resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = (C\<^sub>1 - L\<^sub>1) \<union> (C\<^sub>2 - L\<^sub>2) \<and> (\<exists>l. L\<^sub>1 = {l} \<and> L\<^sub>2 = {l}\<^sup>C)"
+  shows "mresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = (C\<^sub>1 - L\<^sub>1) \<union> (C\<^sub>2 - L\<^sub>2) \<and> (\<exists>l. L\<^sub>1 = {l} \<and> L\<^sub>2 = {l}\<^sup>C)"
 proof -
   from appl ground have groundl: "groundls L\<^sub>1 \<and> groundls L\<^sub>2" unfolding applicable_def by auto
   from this ground appl have resl: "(C\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s - L\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s) \<union> (C\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s - L\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s) = (C\<^sub>1 - L\<^sub>1) \<union> (C\<^sub>2 - L\<^sub>2)" 
@@ -769,17 +769,17 @@ proof -
   from appl this have "L\<^sub>1 = {l} \<and> L\<^sub>2\<^sup>C = {l}" unfolding applicable_def by (metis image_is_empty singleton_Un_iff) 
   then have l_p: "L\<^sub>1 = {l} \<and> L\<^sub>2 = {l}\<^sup>C" using cancel_compls1[of L\<^sub>2] by auto
 
-  from resl l_p show ?thesis unfolding resolution_def by auto
+  from resl l_p show ?thesis unfolding mresolution_def by auto
 qed
 
 (* Very nice lemma, but it is not used. 
   Could be used in a Completeness proof *)
-lemma ground_resolution_ground: 
+lemma ground_mresolution_ground: 
   assumes asm: "groundls C\<^sub>1 \<and> groundls C\<^sub>2"
   assumes appl: "applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>"
-  shows "groundls (resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>)"
+  shows "groundls (mresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>)"
 proof -
-  from asm appl have "resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = (C\<^sub>1 - L\<^sub>1) \<union> (C\<^sub>2 - L\<^sub>2)" using ground_resolution by auto
+  from asm appl have "mresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = (C\<^sub>1 - L\<^sub>1) \<union> (C\<^sub>2 - L\<^sub>2)" using ground_mresolution by auto
   then show ?thesis using asm by auto
 qed
 
@@ -846,11 +846,11 @@ proof -
   then show ?thesis unfolding evalc_def by simp
 qed
 
-lemma resolution_sound:
+lemma mresolution_sound:
   assumes sat\<^sub>1: "evalc F G C\<^sub>1"
   assumes sat\<^sub>2: "evalc F G C\<^sub>2"
   assumes appl: "applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>"
-  shows "evalc F G (resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>)"
+  shows "evalc F G (mresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>)"
 proof -
   from sat\<^sub>1 have sat\<^sub>1\<sigma>: "evalc F G (C\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s)" using subst_sound by blast
   from sat\<^sub>2 have sat\<^sub>2\<sigma>: "evalc F G (C\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s)" using subst_sound by blast
@@ -883,11 +883,11 @@ proof -
 
   from sat\<^sub>1\<sigma> sat\<^sub>2\<sigma> inc\<^sub>1\<sigma> inc\<^sub>2\<sigma> comp have "evalc F G (C\<^sub>1{\<sigma>}\<^sub>l\<^sub>s - {l\<^sub>1{\<sigma>}\<^sub>l} \<union> (C\<^sub>2{\<sigma>}\<^sub>l\<^sub>s - {l\<^sub>2{\<sigma>}\<^sub>l}))" using simple_resolution_sound[of F G "C\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s" "C\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s" "l\<^sub>1 {\<sigma>}\<^sub>l" " l\<^sub>2 {\<sigma>}\<^sub>l"]
     by auto
-  from this l\<^sub>1\<sigma>isl\<^sub>1\<sigma> l\<^sub>2\<sigma>isl\<^sub>2\<sigma> show ?thesis unfolding resolution_def by auto
+  from this l\<^sub>1\<sigma>isl\<^sub>1\<sigma> l\<^sub>2\<sigma>isl\<^sub>2\<sigma> show ?thesis unfolding mresolution_def by auto
 qed
 
-lemma lresolution_superset: "resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<subseteq> lresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>"
- unfolding resolution_def lresolution_def by auto
+lemma resolution_superset: "mresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<subseteq> resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>"
+ unfolding mresolution_def resolution_def by auto
 
 lemma superset_sound:
   assumes sup: "C \<subseteq> C'"
@@ -905,23 +905,23 @@ proof -
 qed
  
 
-lemma lresolution_sound:
+lemma resolution_sound:
   assumes sat\<^sub>1: "evalc F G C\<^sub>1"
   assumes sat\<^sub>2: "evalc F G C\<^sub>2"
   assumes appl: "applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>"
-  shows "evalc F G (lresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>)"
+  shows "evalc F G (resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>)"
 proof -
-  from sat\<^sub>1 sat\<^sub>2 appl have "evalc F G (resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>)" using resolution_sound by blast
-  then show ?thesis using superset_sound lresolution_superset by metis
+  from sat\<^sub>1 sat\<^sub>2 appl have "evalc F G (mresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>)" using mresolution_sound by blast
+  then show ?thesis using superset_sound resolution_superset by metis
 qed
 
-lemma sound_step: "resolution_step Cs Cs' \<Longrightarrow> evalcs F G Cs \<Longrightarrow> evalcs F G Cs'"
-proof (induction rule: resolution_step.induct)
-  case (resolution_rule C\<^sub>1 Cs C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)
+lemma sound_step: "mresolution_step Cs Cs' \<Longrightarrow> evalcs F G Cs \<Longrightarrow> evalcs F G Cs'"
+proof (induction rule: mresolution_step.induct)
+  case (mresolution_rule C\<^sub>1 Cs C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)
   then have "evalc F G C\<^sub>1 \<and> evalc F G C\<^sub>2" unfolding evalcs_def by auto
-  then have "evalc F G (resolution C\<^sub>1 C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)" 
-    using resolution_sound resolution_rule by auto
-  then show ?case using resolution_rule unfolding evalcs_def by auto
+  then have "evalc F G (mresolution C\<^sub>1 C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)" 
+    using mresolution_sound mresolution_rule by auto
+  then show ?case using mresolution_rule unfolding evalcs_def by auto
 next
   case (standardize_apart C Cs C')
   then have "evalc F G C" unfolding evalcs_def by auto
@@ -929,13 +929,13 @@ next
   then show ?case using standardize_apart unfolding evalcs_def by auto
 qed
 
-lemma lsound_step: "lresolution_step Cs Cs' \<Longrightarrow> evalcs F G Cs \<Longrightarrow> evalcs F G Cs'"
-proof (induction rule: lresolution_step.induct)
-  case (lresolution_rule C\<^sub>1 Cs C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)
+lemma lsound_step: "resolution_step Cs Cs' \<Longrightarrow> evalcs F G Cs \<Longrightarrow> evalcs F G Cs'"
+proof (induction rule: resolution_step.induct)
+  case (resolution_rule C\<^sub>1 Cs C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)
   then have "evalc F G C\<^sub>1 \<and> evalc F G C\<^sub>2" unfolding evalcs_def by auto
-  then have "evalc F G (lresolution C\<^sub>1 C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)" 
-    using lresolution_sound lresolution_rule by auto
-  then show ?case using lresolution_rule unfolding evalcs_def by auto
+  then have "evalc F G (resolution C\<^sub>1 C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)" 
+    using resolution_sound resolution_rule by auto
+  then show ?case using resolution_rule unfolding evalcs_def by auto
 next
   case (lstandardize_apart C Cs C')
   then have "evalc F G C" unfolding evalcs_def by auto
@@ -944,8 +944,8 @@ next
 qed
 
 lemma sound_derivation: 
-  "resolution_deriv Cs Cs' \<Longrightarrow> evalcs F G Cs \<Longrightarrow> evalcs F G Cs'" 
-unfolding resolution_deriv_def
+  "mresolution_deriv Cs Cs' \<Longrightarrow> evalcs F G Cs \<Longrightarrow> evalcs F G Cs'" 
+unfolding mresolution_deriv_def
 proof (induction rule: star.induct)
   case refl then show ?case by auto
 next
@@ -953,8 +953,8 @@ next
 qed
 
 lemma lsound_derivation: 
-  "lresolution_deriv Cs Cs' \<Longrightarrow> evalcs F G Cs \<Longrightarrow> evalcs F G Cs'" 
-unfolding lresolution_deriv_def
+  "resolution_deriv Cs Cs' \<Longrightarrow> evalcs F G Cs \<Longrightarrow> evalcs F G Cs'" 
+unfolding resolution_deriv_def
 proof (induction rule: star.induct)
   case refl then show ?case by auto
 next
@@ -963,7 +963,7 @@ qed
 
 section {* Enumerations *}
 
-fun hlit_of_flit :: "fterm literal \<Rightarrow> hterm literal" where (*  Already defined in terms na literals*)
+fun hlit_of_flit :: "fterm literal \<Rightarrow> hterm literal" where (*  Already defined in terms and literals*)
   "hlit_of_flit (Pos P ts) = Pos P (hterms_of_fterms ts)"
 | "hlit_of_flit (Neg P ts) = Neg P (hterms_of_fterms ts)"
 
@@ -1419,7 +1419,7 @@ qed
 
 fun deeptree :: "nat \<Rightarrow> tree" where
   "deeptree 0 = Leaf"
-| "deeptree (Suc n) = Branch (deeptree n) (deeptree n)"
+| "deeptree (Suc n) = Branching (deeptree n) (deeptree n)"
 
 thm extend_preserves_model
 thm list_chain_model
@@ -1429,8 +1429,8 @@ proof (induction n arbitrary: b)
   case 0 then show ?case using branch_inv_Leaf by auto
 next
   case (Suc n)
-  then have "branch b (Branch (deeptree n) (deeptree n))" by auto
-  then obtain a b' where p: "b=a#b'\<and> branch b' (deeptree n)" using branch_inv_Branch[of b] by blast
+  then have "branch b (Branching (deeptree n) (deeptree n))" by auto
+  then obtain a b' where p: "b=a#b'\<and> branch b' (deeptree n)" using branch_inv_Branching[of b] by blast
   then have "length b' = n" using Suc by auto
   then show ?case using p by auto
 qed

@@ -8,21 +8,21 @@ definition Right :: bool where "Right = False"
 declare Left_def [simp]
 declare Right_def [simp]
 
-(* hide_const (open) Leaf Branch *)
+(* hide_const (open) Leaf Branching *)
 datatype tree =
   Leaf
-| Branch (ltree: tree) (rtree: tree) (* Branching might be a better name *)
+| Branching (ltree: tree) (rtree: tree) (* Branching might be a better name *)
 
 
 section {* Sizes *}
 
 fun treesize :: "tree \<Rightarrow> nat" where
   "treesize Leaf = 0"
-| "treesize (Branch l r) = 1 + treesize l + treesize r"
+| "treesize (Branching l r) = 1 + treesize l + treesize r"
 
 lemma treesize_Leaf: "treesize T = 0 \<Longrightarrow> T = Leaf" by (cases T) auto
 
-lemma treesize_Branch: "treesize T = Suc n \<Longrightarrow> \<exists>l r. T = Branch l r" by (cases T) auto
+lemma treesize_Branching: "treesize T = Suc n \<Longrightarrow> \<exists>l r. T = Branching l r" by (cases T) auto
 
 
 section {* Paths *}
@@ -30,7 +30,7 @@ section {* Paths *}
 (* Recursive is better? *)
 fun path :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
   "path [] T \<longleftrightarrow> True"
-| "path (d#ds) (Branch T1 T2) \<longleftrightarrow> (if d then path ds T1 else path ds T2)"
+| "path (d#ds) (Branching T1 T2) \<longleftrightarrow> (if d then path ds T1 else path ds T2)"
 | "path _ _ \<longleftrightarrow> False"
 
 (* I could use anonymous variable *)
@@ -40,23 +40,23 @@ apply (induction p)
 apply auto
 done
 
-lemma path_inv_Cons: "path (a#ds) T \<longrightarrow> (\<exists>l r. T=Branch l r)"
+lemma path_inv_Cons: "path (a#ds) T \<longrightarrow> (\<exists>l r. T=Branching l r)"
 apply (cases T)
 apply (auto simp add: path_inv_Leaf)
 done
 
-lemma path_inv_Branch_Left: "path (Left#p) (Branch l r) \<longleftrightarrow> path p l"
+lemma path_inv_Branching_Left: "path (Left#p) (Branching l r) \<longleftrightarrow> path p l"
 apply (induction p)
 using Left_def Right_def path.cases apply auto
 done
 
-lemma path_inv_Branch_Right: "path (Right#p) (Branch l r) \<longleftrightarrow> path p r"
+lemma path_inv_Branching_Right: "path (Right#p) (Branching l r) \<longleftrightarrow> path p r"
 apply (induction p)
 using Left_def Right_def path.cases apply auto
 done
 
-lemma path_inv_Branch: 
-  "path p (Branch l r) \<longleftrightarrow> (p=[] \<or> (\<exists>a p'. p=a#p'\<and> (a \<longrightarrow> path p' l) \<and> (\<not>a \<longrightarrow> path p' r)))" (is "?L \<longleftrightarrow> ?R")
+lemma path_inv_Branching: 
+  "path p (Branching l r) \<longleftrightarrow> (p=[] \<or> (\<exists>a p'. p=a#p'\<and> (a \<longrightarrow> path p' l) \<and> (\<not>a \<longrightarrow> path p' r)))" (is "?L \<longleftrightarrow> ?R")
 proof
   assume ?L then show ?R by (induction p) auto
 next
@@ -74,17 +74,17 @@ qed
 lemma path_prefix: "path (ds1@ds2) T \<Longrightarrow> path ds1 T"
 proof (induction ds1 arbitrary: T)
   case (Cons a ds1)
-  then have "\<exists>l r. T = Branch l r" using path_inv_Leaf by (cases T) auto
-  then obtain l r where p_lr: "T = Branch l r" by auto
+  then have "\<exists>l r. T = Branching l r" using path_inv_Leaf by (cases T) auto
+  then obtain l r where p_lr: "T = Branching l r" by auto
   show ?case
     proof (cases a)
       assume atrue: "a"
-      then have "path ((ds1) @ ds2) l" using p_lr Cons(2) path_inv_Branch by auto
+      then have "path ((ds1) @ ds2) l" using p_lr Cons(2) path_inv_Branching by auto
       then have "path ds1 l" using Cons(1) by auto
       then show "path (a # ds1) T" using p_lr atrue by auto
     next
       assume afalse: "\<not>a"
-      then have "path ((ds1) @ ds2) r" using p_lr Cons(2) path_inv_Branch by auto
+      then have "path ((ds1) @ ds2) r" using p_lr Cons(2) path_inv_Branching by auto
       then have "path ds1 r" using Cons(1) by auto
       then show "path (a # ds1) T" using p_lr afalse by auto
     qed
@@ -96,7 +96,7 @@ section {* Branches *}
 
 fun branch :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
   "branch [] Leaf \<longleftrightarrow> True"    
-| "branch (d # ds) (Branch l r) \<longleftrightarrow> (if d then branch ds l else branch ds r)"
+| "branch (d # ds) (Branching l r) \<longleftrightarrow> (if d then branch ds l else branch ds r)"
 | "branch _ _ \<longleftrightarrow> False"
 
 lemma has_branch: "\<exists>b. branch b T"
@@ -105,25 +105,25 @@ proof (induction T)
   have "branch [] Leaf" by auto
   then show ?case by blast
 next
-  case (Branch T\<^sub>1 T\<^sub>2)
+  case (Branching T\<^sub>1 T\<^sub>2)
   then obtain b where "branch b T\<^sub>1" by auto
-  then have "branch (Left#b) (Branch T\<^sub>1 T\<^sub>2)"  by auto
+  then have "branch (Left#b) (Branching T\<^sub>1 T\<^sub>2)"  by auto
   then show ?case by blast
 qed
 
 lemma branch_inv_Leaf: "branch b Leaf \<longleftrightarrow> b = []"
 by (cases b) auto
 
-lemma branch_inv_Branch_Left:  
-  "branch (Left#b) (Branch l r) \<longleftrightarrow> branch b l"
+lemma branch_inv_Branching_Left:  
+  "branch (Left#b) (Branching l r) \<longleftrightarrow> branch b l"
 by auto
 
-lemma branch_inv_Branch_Right: 
-  "branch (Right#b) (Branch l r) \<longleftrightarrow> branch b r"
+lemma branch_inv_Branching_Right: 
+  "branch (Right#b) (Branching l r) \<longleftrightarrow> branch b r"
 by auto
 
-lemma branch_inv_Branch: 
-  "branch b (Branch l r) \<longleftrightarrow> 
+lemma branch_inv_Branching: 
+  "branch b (Branching l r) \<longleftrightarrow> 
      (\<exists>a b'. b=a#b'\<and> (a \<longrightarrow> branch b' l) \<and> (\<not>a \<longrightarrow>  branch b' r))"
 by (induction b) auto
 
@@ -138,8 +138,8 @@ proof -
   {
     assume "\<forall>b. branch b T \<longrightarrow> b = []"
     then have "\<forall>b. branch b T \<longrightarrow> \<not>(\<exists>a b'. b = a # b')" by auto
-    then have "\<forall>b. branch b T \<longrightarrow> \<not>(\<exists>l r. branch b (Branch l r))" 
-      using branch_inv_Branch by auto
+    then have "\<forall>b. branch b T \<longrightarrow> \<not>(\<exists>l r. branch b (Branching l r))" 
+      using branch_inv_Branching by auto
     then have "T=Leaf" using has_branch[of T] by (metis branch.elims(2))
   }
   ultimately show "T = Leaf \<longleftrightarrow> (\<forall>b. branch b T \<longrightarrow> b = [])" by auto
@@ -152,64 +152,64 @@ proof (induction T arbitrary: ds)
   then have "ds = []" using branch_inv_Leaf by auto
   then show ?case  by auto
 next
-  case (Branch T\<^sub>1 T\<^sub>2) 
-  then obtain a b where ds_p: "ds = a # b \<and> (a \<longrightarrow> branch b T\<^sub>1) \<and> (\<not> a \<longrightarrow> branch b T\<^sub>2)" using branch_inv_Branch[of ds] by blast
-  then have "(a \<longrightarrow> path b T\<^sub>1) \<and> (\<not>a \<longrightarrow> path b T\<^sub>2)" using Branch by auto
+  case (Branching T\<^sub>1 T\<^sub>2) 
+  then obtain a b where ds_p: "ds = a # b \<and> (a \<longrightarrow> branch b T\<^sub>1) \<and> (\<not> a \<longrightarrow> branch b T\<^sub>2)" using branch_inv_Branching[of ds] by blast
+  then have "(a \<longrightarrow> path b T\<^sub>1) \<and> (\<not>a \<longrightarrow> path b T\<^sub>2)" using Branching by auto
   then show "?case" using ds_p by (cases a) auto
 qed
 
-lemma Branch_Leaf_Leaf_Tree: "(T = Branch l r \<longrightarrow> (\<exists>B. branch (B@[True]) T \<and> branch (B@[False]) T)) \<and> (T=Leaf \<longrightarrow> branch [] T )"
+lemma Branching_Leaf_Leaf_Tree: "(T = Branching l r \<longrightarrow> (\<exists>B. branch (B@[True]) T \<and> branch (B@[False]) T)) \<and> (T=Leaf \<longrightarrow> branch [] T )"
 proof (induction T arbitrary: l r)
   case Leaf then show ?case by auto
 next
-  case (Branch T1 T2) 
+  case (Branching T1 T2) 
   then show ?case
     apply (cases T1)
     apply (cases T2)
     apply auto
       proof -
-        have "branch ([] @ [True]) (Branch Leaf Leaf) \<and> branch ([] @ [False]) (Branch Leaf Leaf)"  by auto
-        then show "\<exists>B. branch (B @ [True]) (Branch Leaf Leaf) \<and> branch (B @ [False]) (Branch Leaf Leaf)" by blast
+        have "branch ([] @ [True]) (Branching Leaf Leaf) \<and> branch ([] @ [False]) (Branching Leaf Leaf)"  by auto
+        then show "\<exists>B. branch (B @ [True]) (Branching Leaf Leaf) \<and> branch (B @ [False]) (Branching Leaf Leaf)" by blast
       next
         fix x21 x22
-        assume "(\<And>l r. x21 = l \<and> x22 = r \<longrightarrow>  (\<exists>B. branch (B @ [True]) (Branch l r) \<and> branch (B @ [False]) (Branch l r)))"
-        then have "\<exists>B'. branch (B' @ [True]) (Branch x21 x22) \<and> branch (B' @ [False]) (Branch x21 x22)" by blast
-        then obtain B' where "branch (B' @ [True]) (Branch x21 x22) \<and> branch (B' @ [False]) (Branch x21 x22)" by auto
-        then have "branch (False # (B' @ [True])) (Branch Leaf (Branch x21 x22)) \<and> branch (False # (B' @ [False])) (Branch Leaf (Branch x21 x22))" 
+        assume "(\<And>l r. x21 = l \<and> x22 = r \<longrightarrow>  (\<exists>B. branch (B @ [True]) (Branching l r) \<and> branch (B @ [False]) (Branching l r)))"
+        then have "\<exists>B'. branch (B' @ [True]) (Branching x21 x22) \<and> branch (B' @ [False]) (Branching x21 x22)" by blast
+        then obtain B' where "branch (B' @ [True]) (Branching x21 x22) \<and> branch (B' @ [False]) (Branching x21 x22)" by auto
+        then have "branch (False # (B' @ [True])) (Branching Leaf (Branching x21 x22)) \<and> branch (False # (B' @ [False])) (Branching Leaf (Branching x21 x22))" 
            by auto
-        then have "branch ((False # B') @ [True]) (Branch Leaf (Branch x21 x22)) \<and> branch ((False # B') @ [False]) (Branch Leaf (Branch x21 x22))" by auto
-        then show "\<exists>B. branch (B @ [True]) (Branch Leaf (Branch x21 x22)) \<and> branch (B @ [False]) (Branch Leaf (Branch x21 x22))" by metis
+        then have "branch ((False # B') @ [True]) (Branching Leaf (Branching x21 x22)) \<and> branch ((False # B') @ [False]) (Branching Leaf (Branching x21 x22))" by auto
+        then show "\<exists>B. branch (B @ [True]) (Branching Leaf (Branching x21 x22)) \<and> branch (B @ [False]) (Branching Leaf (Branching x21 x22))" by metis
       next
         fix x21 x22
-        assume "(\<And>l r. x21 = l \<and> x22 = r \<longrightarrow>   (\<exists>B. branch (B @ [True]) (Branch l r) \<and> branch (B @ [False]) (Branch l r)))"
-        then have "(\<exists>B. branch (B @ [True]) (Branch x21 x22) \<and> branch (B @ [False]) (Branch x21 x22))" by auto
-        then obtain B' where "branch (B' @ [True]) (Branch x21 x22) \<and> branch (B' @ [False]) (Branch x21 x22)" by auto
-        then have "branch (True # (B' @ [True])) (Branch (Branch x21 x22) r) \<and> branch (True # (B' @ [False])) (Branch (Branch x21 x22) r) " 
+        assume "(\<And>l r. x21 = l \<and> x22 = r \<longrightarrow>   (\<exists>B. branch (B @ [True]) (Branching l r) \<and> branch (B @ [False]) (Branching l r)))"
+        then have "(\<exists>B. branch (B @ [True]) (Branching x21 x22) \<and> branch (B @ [False]) (Branching x21 x22))" by auto
+        then obtain B' where "branch (B' @ [True]) (Branching x21 x22) \<and> branch (B' @ [False]) (Branching x21 x22)" by auto
+        then have "branch (True # (B' @ [True])) (Branching (Branching x21 x22) r) \<and> branch (True # (B' @ [False])) (Branching (Branching x21 x22) r) " 
            by auto
-        then have "branch ((True # B') @ [True]) (Branch (Branch x21 x22) r) \<and> branch ((True # B') @ [False]) (Branch (Branch x21 x22) r) " by auto
-        then show "\<exists>B. branch (B @ [True]) (Branch (Branch x21 x22) r) \<and>
-           branch (B @ [False]) (Branch (Branch x21 x22) r)" by metis
+        then have "branch ((True # B') @ [True]) (Branching (Branching x21 x22) r) \<and> branch ((True # B') @ [False]) (Branching (Branching x21 x22) r) " by auto
+        then show "\<exists>B. branch (B @ [True]) (Branching (Branching x21 x22) r) \<and>
+           branch (B @ [False]) (Branching (Branching x21 x22) r)" by metis
       qed qed
 
 section {* Internal Paths *}
 
 fun internal :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
-  "internal [] (Branch l r) \<longleftrightarrow> True"
-| "internal (d#ds) (Branch l r) \<longleftrightarrow> (if d then internal ds l else internal ds r)"
+  "internal [] (Branching l r) \<longleftrightarrow> True"
+| "internal (d#ds) (Branching l r) \<longleftrightarrow> (if d then internal ds l else internal ds r)"
 | "internal _ _ \<longleftrightarrow> False"
 (* Could use anonymous var in first case *)
 
 lemma internal_inv_Leaf: "\<not>internal b Leaf" using internal.simps by blast
 
-lemma internal_inv_Branch_Left:  
-  "internal (Left#b) (Branch l r) \<longleftrightarrow> internal b l" by auto
+lemma internal_inv_Branching_Left:  
+  "internal (Left#b) (Branching l r) \<longleftrightarrow> internal b l" by auto
 
-lemma internal_inv_Branch_Right: 
-  "internal (Right#b) (Branch l r) \<longleftrightarrow> internal b r"
+lemma internal_inv_Branching_Right: 
+  "internal (Right#b) (Branching l r) \<longleftrightarrow> internal b r"
 by auto
 
-lemma internal_inv_Branch: 
-  "internal p (Branch l r) \<longleftrightarrow> (p=[] \<or> (\<exists>a p'. p=a#p'\<and> (a \<longrightarrow> internal p' l) \<and> (\<not>a \<longrightarrow> internal p' r)))" (is "?L \<longleftrightarrow> ?R")
+lemma internal_inv_Branching: 
+  "internal p (Branching l r) \<longleftrightarrow> (p=[] \<or> (\<exists>a p'. p=a#p'\<and> (a \<longrightarrow> internal p' l) \<and> (\<not>a \<longrightarrow> internal p' r)))" (is "?L \<longleftrightarrow> ?R")
 proof
   assume ?L then show ?R by (metis internal.simps(2) neq_Nil_conv) 
 next
@@ -231,32 +231,32 @@ proof (induction T arbitrary: ds)
   then have "False" using internal_inv_Leaf by auto
   then show ?case by auto
 next
-  case (Branch T\<^sub>1 T\<^sub>2) 
-  then obtain a b where ds_p: "ds=[] \<or> ds = a # b \<and> (a \<longrightarrow> internal b T\<^sub>1) \<and> (\<not> a \<longrightarrow> internal b T\<^sub>2)" using internal_inv_Branch by blast
-  then have "ds = [] \<or> (a \<longrightarrow> path b T\<^sub>1) \<and> (\<not>a \<longrightarrow> path b T\<^sub>2)" using Branch by auto
+  case (Branching T\<^sub>1 T\<^sub>2) 
+  then obtain a b where ds_p: "ds=[] \<or> ds = a # b \<and> (a \<longrightarrow> internal b T\<^sub>1) \<and> (\<not> a \<longrightarrow> internal b T\<^sub>2)" using internal_inv_Branching by blast
+  then have "ds = [] \<or> (a \<longrightarrow> path b T\<^sub>1) \<and> (\<not>a \<longrightarrow> path b T\<^sub>2)" using Branching by auto
   then show "?case" using ds_p by (cases a) auto
 qed
 
 lemma internal_prefix: "internal (ds1@ds2@[d]) T \<Longrightarrow> internal ds1 T" (* more or less copy paste of path_prefix *)
 proof (induction ds1 arbitrary: T)
   case (Cons a ds1)
-  then have "\<exists>l r. T = Branch l r" using internal_inv_Leaf by (cases T) auto
-  then obtain l r where p_lr: "T = Branch l r" by auto
+  then have "\<exists>l r. T = Branching l r" using internal_inv_Leaf by (cases T) auto
+  then obtain l r where p_lr: "T = Branching l r" by auto
   show ?case
     proof (cases a)
       assume atrue: "a"
-      then have "internal ((ds1) @ ds2 @[d]) l" using p_lr Cons(2) internal_inv_Branch by auto
+      then have "internal ((ds1) @ ds2 @[d]) l" using p_lr Cons(2) internal_inv_Branching by auto
       then have "internal ds1 l" using Cons(1) by auto
       then show "internal (a # ds1) T" using p_lr atrue by auto
     next
       assume afalse: "~a"
-      then have "internal ((ds1) @ ds2 @[d]) r" using p_lr Cons(2) internal_inv_Branch by auto
+      then have "internal ((ds1) @ ds2 @[d]) r" using p_lr Cons(2) internal_inv_Branching by auto
       then have "internal ds1 r" using Cons(1) by auto
       then show "internal (a # ds1) T" using p_lr afalse by auto
     qed
 next
   case (Nil)
-  then have "\<exists>l r. T = Branch l r" using internal_inv_Leaf by (cases T) auto 
+  then have "\<exists>l r. T = Branching l r" using internal_inv_Leaf by (cases T) auto 
   then show ?case by auto
 qed
 
@@ -264,23 +264,23 @@ qed
 lemma internal_branch: "branch (ds1@ds2@[d]) T \<Longrightarrow> internal ds1 T" (* more or less copy paste of path_prefix *)
 proof (induction ds1 arbitrary: T)
   case (Cons a ds1)
-  then have "\<exists>l r. T = Branch l r" using branch_inv_Leaf by (cases T) auto
-  then obtain l r where p_lr: "T = Branch l r" by auto
+  then have "\<exists>l r. T = Branching l r" using branch_inv_Leaf by (cases T) auto
+  then obtain l r where p_lr: "T = Branching l r" by auto
   show ?case
     proof (cases a)
       assume atrue: "a"
-      then have "branch (ds1 @ ds2 @ [d]) l" using p_lr Cons(2) branch_inv_Branch by auto
+      then have "branch (ds1 @ ds2 @ [d]) l" using p_lr Cons(2) branch_inv_Branching by auto
       then have "internal ds1 l" using Cons(1) by auto
       then show "internal (a # ds1) T" using p_lr atrue by auto
     next
       assume afalse: "~a"
-      then have "branch ((ds1) @ ds2 @[d]) r" using p_lr Cons(2) branch_inv_Branch by auto
+      then have "branch ((ds1) @ ds2 @[d]) r" using p_lr Cons(2) branch_inv_Branching by auto
       then have "internal ds1 r" using Cons(1) by auto
       then show "internal (a # ds1) T" using p_lr afalse by auto
     qed
 next
   case (Nil)
-  then have "\<exists>l r. T = Branch l r" using branch_inv_Leaf by (cases T) auto 
+  then have "\<exists>l r. T = Branching l r" using branch_inv_Leaf by (cases T) auto 
   then show ?case by auto
 qed
 
@@ -304,8 +304,8 @@ section {* Deleting Nodes *}
 
 fun delete :: "dir list \<Rightarrow> tree \<Rightarrow> tree" where
   "delete [] T = Leaf"
-| "delete (True#ds)  (Branch T\<^sub>1 T\<^sub>2) = Branch (delete ds T\<^sub>1) T\<^sub>2"
-| "delete (False#ds) (Branch T\<^sub>1 T\<^sub>2) = Branch T\<^sub>1 (delete ds T\<^sub>2)"
+| "delete (True#ds)  (Branching T\<^sub>1 T\<^sub>2) = Branching (delete ds T\<^sub>1) T\<^sub>2"
+| "delete (False#ds) (Branching T\<^sub>1 T\<^sub>2) = Branching T\<^sub>1 (delete ds T\<^sub>2)"
 | "delete (a#ds) Leaf = Leaf"
 (* First case could use anonymous variable*) (* Red could also be defined as a tree, i.e. a dir list set *)
 
@@ -319,22 +319,22 @@ next
   case (Cons a p)
   then obtain b ds' where bds'_p: "ds=b#ds'" by (cases ds) auto
 
-  have "\<exists>dT1 dT2. delete ds T = Branch dT1 dT2" using Cons path_inv_Cons by auto
-  then obtain dT1 dT2 where "delete ds T = Branch dT1 dT2" by auto
+  have "\<exists>dT1 dT2. delete ds T = Branching dT1 dT2" using Cons path_inv_Cons by auto
+  then obtain dT1 dT2 where "delete ds T = Branching dT1 dT2" by auto
 
-  then have "\<exists>T1 T2. T=Branch T1 T2" (* Is there a lemma hidden here that I could extract? *)
+  then have "\<exists>T1 T2. T=Branching T1 T2" (* Is there a lemma hidden here that I could extract? *)
         apply (cases T)
         apply auto
         apply (cases ds)
         apply auto
         done
-  then obtain T1 T2 where T1T2_p: "T=Branch T1 T2" by auto
+  then obtain T1 T2 where T1T2_p: "T=Branching T1 T2" by auto
 
   {
     assume a_p: "a"
     assume b_p: "\<not>b"
     have "path (a # p) (delete ds T)" using Cons by -
-    then have "path (a # p) (Branch (T1) (delete ds' T2))" using b_p bds'_p T1T2_p by auto
+    then have "path (a # p) (Branching (T1) (delete ds' T2))" using b_p bds'_p T1T2_p by auto
     then have "path p T1" using a_p by auto
     then have ?case using T1T2_p a_p by auto
   }
@@ -343,7 +343,7 @@ next
     assume a_p: "\<not>a"
     assume b_p: "b"
     have "path (a # p) (delete ds T)" using Cons by -
-    then have "path (a # p) (Branch (delete ds' T1) T2)" using b_p bds'_p T1T2_p by auto
+    then have "path (a # p) (Branching (delete ds' T1) T2)" using b_p bds'_p T1T2_p by auto
     then have "path p T2" using a_p by auto
     then have ?case using T1T2_p a_p by auto
   }
@@ -352,7 +352,7 @@ next
     assume a_p: "a"
     assume b_p: "b"
     have "path (a # p) (delete ds T)" using Cons by -
-    then have "path (a # p) (Branch (delete ds' T1) T2)" using b_p bds'_p T1T2_p by auto
+    then have "path (a # p) (Branching (delete ds' T1) T2)" using b_p bds'_p T1T2_p by auto
     then have "path p (delete ds' T1)" using a_p by auto
     then have "path p T1" using Cons by auto
     then have ?case using T1T2_p a_p by auto
@@ -362,7 +362,7 @@ next
     assume a_p: "\<not>a"
     assume b_p: "\<not>b"
     have "path (a # p) (delete ds T)" using Cons by -
-    then have "path (a # p) (Branch T1 (delete ds' T2))" using b_p bds'_p T1T2_p by auto
+    then have "path (a # p) (Branching T1 (delete ds' T2))" using b_p bds'_p T1T2_p by auto
     then have "path p (delete ds' T2)" using a_p by auto
     then have "path p T2" using Cons by auto
     then have ?case using T1T2_p a_p by auto
@@ -380,22 +380,22 @@ next
   case (Cons a p)
   then obtain b ds' where bds'_p: "ds=b#ds'" by (cases ds) auto
 
-  have "\<exists>dT1 dT2. delete ds T = Branch dT1 dT2" using Cons path_inv_Cons branch_is_path by blast
-  then obtain dT1 dT2 where "delete ds T = Branch dT1 dT2" by auto
+  have "\<exists>dT1 dT2. delete ds T = Branching dT1 dT2" using Cons path_inv_Cons branch_is_path by blast
+  then obtain dT1 dT2 where "delete ds T = Branching dT1 dT2" by auto
 
-  then have "\<exists>T1 T2. T=Branch T1 T2" (* Is there a lemma hidden here that I could extract? *)
+  then have "\<exists>T1 T2. T=Branching T1 T2" (* Is there a lemma hidden here that I could extract? *)
         apply (cases T)
         apply auto
         apply (cases ds)
         apply auto
         done
-  then obtain T1 T2 where T1T2_p: "T=Branch T1 T2" by auto
+  then obtain T1 T2 where T1T2_p: "T=Branching T1 T2" by auto
 
   {
     assume a_p: "a"
     assume b_p: "\<not>b"
     have "branch (a # p) (delete ds T)" using Cons by -
-    then have "branch (a # p) (Branch (T1) (delete ds' T2))" using b_p bds'_p T1T2_p by auto
+    then have "branch (a # p) (Branching (T1) (delete ds' T2))" using b_p bds'_p T1T2_p by auto
     then have "branch p T1" using a_p by auto
     then have ?case using T1T2_p a_p by auto
   }
@@ -404,7 +404,7 @@ next
     assume a_p: "\<not>a"
     assume b_p: "b"
     have "branch (a # p) (delete ds T)" using Cons by -
-    then have "branch (a # p) (Branch (delete ds' T1) T2)" using b_p bds'_p T1T2_p by auto
+    then have "branch (a # p) (Branching (delete ds' T1) T2)" using b_p bds'_p T1T2_p by auto
     then have "branch p T2" using a_p by auto
     then have ?case using T1T2_p a_p by auto
   }
@@ -413,7 +413,7 @@ next
     assume a_p: "a"
     assume b_p: "b"
     have "branch (a # p) (delete ds T)" using Cons by -
-    then have "branch (a # p) (Branch (delete ds' T1) T2)" using b_p bds'_p T1T2_p by auto
+    then have "branch (a # p) (Branching (delete ds' T1) T2)" using b_p bds'_p T1T2_p by auto
     then have "branch p (delete ds' T1)" using a_p by auto
     then have "branch p T1 \<or> p = ds'" using Cons by metis
     then have ?case using T1T2_p a_p using bds'_p a_p b_p by auto
@@ -423,7 +423,7 @@ next
     assume a_p: "\<not>a"
     assume b_p: "\<not>b"
     have "branch (a # p) (delete ds T)" using Cons by -
-    then have "branch (a # p) (Branch T1 (delete ds' T2))" using b_p bds'_p T1T2_p by auto
+    then have "branch (a # p) (Branching T1 (delete ds' T2))" using b_p bds'_p T1T2_p by auto
     then have "branch p (delete ds' T2)" using a_p by auto
     then have "branch p T2 \<or> p = ds'" using Cons by metis
     then have ?case using T1T2_p a_p using bds'_p a_p b_p by auto
@@ -439,16 +439,16 @@ next
   case (Cons a p)
   then obtain b ds' where bds'_p: "ds=b#ds'" by (cases ds) auto
 
-  have "\<exists>dT1 dT2. delete ds T = Branch dT1 dT2" using Cons path_inv_Cons by auto
-  then obtain dT1 dT2 where "delete ds T = Branch dT1 dT2" by auto
+  have "\<exists>dT1 dT2. delete ds T = Branching dT1 dT2" using Cons path_inv_Cons by auto
+  then obtain dT1 dT2 where "delete ds T = Branching dT1 dT2" by auto
 
-  then have "\<exists>T1 T2. T=Branch T1 T2" (* Is there a lemma hidden here that I could extract? *)
+  then have "\<exists>T1 T2. T=Branching T1 T2" (* Is there a lemma hidden here that I could extract? *)
         apply (cases T)
         apply auto
         apply (cases ds)
         apply auto
         done
-  then obtain T1 T2 where T1T2_p: "T=Branch T1 T2" by auto
+  then obtain T1 T2 where T1T2_p: "T=Branching T1 T2" by auto
 
   {
     assume a_p: "a"
@@ -466,7 +466,7 @@ next
     assume a_p: "a"
     assume b_p: "b"
     have "path (a # p) (delete ds T)" using Cons by -
-    then have "path (a # p) (Branch (delete ds' T1) T2)" using b_p bds'_p T1T2_p by auto
+    then have "path (a # p) (Branching (delete ds' T1) T2)" using b_p bds'_p T1T2_p by auto
     then have "path p (delete ds' T1)" using a_p by auto
     then have "\<not> (\<exists>c cs. p = ds' @ c # cs)" using Cons by auto
     then have ?case using T1T2_p a_p b_p bds'_p by auto
@@ -476,7 +476,7 @@ next
     assume a_p: "\<not>a"
     assume b_p: "\<not>b"
     have "path (a # p) (delete ds T)" using Cons by -
-    then have "path (a # p) (Branch T1 (delete ds' T2))" using b_p bds'_p T1T2_p by auto
+    then have "path (a # p) (Branching T1 (delete ds' T2))" using b_p bds'_p T1T2_p by auto
     then have "path p (delete ds' T2)" using a_p by auto
     then have "\<not> (\<exists>c cs. p = ds' @ c # cs)" using Cons by auto
     then have ?case using T1T2_p a_p b_p bds'_p by auto
@@ -487,17 +487,17 @@ qed
 lemma treezise_delete: "internal p T \<Longrightarrow> treesize (delete p T) < treesize T"
 proof (induction p arbitrary: T)
   case (Nil)
-  then have "\<exists>T1 T2. T = Branch T1 T2" by (cases T) auto
-  then obtain T1 T2 where T1T2_p: "T = Branch T1 T2" by auto 
+  then have "\<exists>T1 T2. T = Branching T1 T2" by (cases T) auto
+  then obtain T1 T2 where T1T2_p: "T = Branching T1 T2" by auto 
   then show ?case by auto
 next
   case (Cons a p) 
-  then have "\<exists>T1 T2. T = Branch T1 T2" using path_inv_Cons internal_is_path by blast
-  then obtain T1 T2 where T1T2_p: "T = Branch T1 T2" by auto
+  then have "\<exists>T1 T2. T = Branching T1 T2" using path_inv_Cons internal_is_path by blast
+  then obtain T1 T2 where T1T2_p: "T = Branching T1 T2" by auto
   show ?case
     proof (cases a)
       assume a_p: a
-      from a_p have "delete (a#p) T = (Branch (delete p T1) T2)" using T1T2_p by auto
+      from a_p have "delete (a#p) T = (Branching (delete p T1) T2)" using T1T2_p by auto
       moreover
       from a_p have "internal p T1" using T1T2_p Cons by auto
       then have "treesize (delete p T1) < treesize T1" using Cons by auto
@@ -505,7 +505,7 @@ next
       show ?thesis using T1T2_p by auto
     next
       assume a_p: "\<not>a"
-      from a_p have "delete (a#p) T = (Branch T1 (delete p T2))" using T1T2_p by auto
+      from a_p have "delete (a#p) T = (Branching T1 (delete p T2))" using T1T2_p by auto
       moreover
       from a_p have "internal p T2" using T1T2_p Cons by auto
       then have "treesize (delete p T2) < treesize T2" using Cons by auto
@@ -516,8 +516,8 @@ qed
 
 
 fun cutoff :: "(dir list \<Rightarrow> bool) \<Rightarrow> dir list \<Rightarrow> tree \<Rightarrow> tree" where
-  "cutoff red ds (Branch T\<^sub>1 T\<^sub>2) = 
-     (if red ds then Leaf else Branch (cutoff red (ds@[Left])  T\<^sub>1) (cutoff red (ds@[Right]) T\<^sub>2))"
+  "cutoff red ds (Branching T\<^sub>1 T\<^sub>2) = 
+     (if red ds then Leaf else Branching (cutoff red (ds@[Left])  T\<^sub>1) (cutoff red (ds@[Right]) T\<^sub>2))"
 | "cutoff red ds Leaf = Leaf"
 (* Initially you should call this with ds = []*)
 (* Hvis alle branches er røde, så giver cut_off et subtree *)(* Hvis alle branches er røde, så gælder det sammme for cut_off *)(* Alle interne stier er ikke røde *)
@@ -526,7 +526,7 @@ lemma treesize_cutoff: "treesize (cutoff red ds T) \<le> treesize T"
 proof (induction T arbitrary: ds)
   case Leaf then show ?case by auto
 next
-  case (Branch T1 T2) 
+  case (Branching T1 T2) 
   then have "treesize (cutoff red (ds@[Left]) T1) + treesize (cutoff red (ds@[Right]) T2) \<le> treesize T1 + treesize T2" using add_mono by blast
   then show ?case by auto
 qed
@@ -553,19 +553,19 @@ proof (induction T arbitrary: ds) (* This proof seems a bit excessive for such a
   }
   then show ?case by simp
 next
-  case (Branch T\<^sub>1 T\<^sub>2)
-  let ?T = "cutoff red ds (Branch T\<^sub>1 T\<^sub>2)"
-  from Branch have "\<forall>p. branch (Left#p) (Branch T\<^sub>1 T\<^sub>2) \<longrightarrow> red (ds @ (Left#p))" by blast
+  case (Branching T\<^sub>1 T\<^sub>2)
+  let ?T = "cutoff red ds (Branching T\<^sub>1 T\<^sub>2)"
+  from Branching have "\<forall>p. branch (Left#p) (Branching T\<^sub>1 T\<^sub>2) \<longrightarrow> red (ds @ (Left#p))" by blast
   then have "\<forall>p. branch p T\<^sub>1 \<longrightarrow> red (ds @ (Left#p))"  by auto
   then have "anybranch T\<^sub>1 (\<lambda>p. red ((ds @ [Left]) @ p))" by auto
   then have aa: "anybranch (cutoff red (ds @ [Left]) T\<^sub>1) (\<lambda>p. red ((ds @ [Left]) @ p)) 
-         " using Branch by blast
+         " using Branching by blast
 
-  from Branch have "\<forall>p. branch (Right#p) (Branch T\<^sub>1 T\<^sub>2) \<longrightarrow> red (ds @ (Right#p))" by blast
+  from Branching have "\<forall>p. branch (Right#p) (Branching T\<^sub>1 T\<^sub>2) \<longrightarrow> red (ds @ (Right#p))" by blast
   then have "\<forall>p. branch p T\<^sub>2 \<longrightarrow> red (ds @ (Right#p))" by auto
   then have "anybranch T\<^sub>2 (\<lambda>p. red ((ds @ [Right]) @ p))" by auto
   then have bb: "anybranch (cutoff red (ds @ [Right]) T\<^sub>2) (\<lambda>p. red ((ds @ [Right]) @ p)) 
-         " using Branch by blast
+         " using Branching by blast
   {           
     fix b
     assume b_p: "branch b ?T"
@@ -580,8 +580,8 @@ next
         assume ds_p: "\<not>red ds"
         let ?T\<^sub>1' = "cutoff red (ds@[Left])  T\<^sub>1"
         let ?T\<^sub>2' = "cutoff red (ds@[Right]) T\<^sub>2"
-        from ds_p have "?T = Branch ?T\<^sub>1' ?T\<^sub>2'" by auto
-        from this b_p obtain a b' where "b = a # b' \<and> (a \<longrightarrow> branch b' ?T\<^sub>1') \<and> (\<not>a \<longrightarrow> branch b' ?T\<^sub>2' )" using branch_inv_Branch[of b ?T\<^sub>1' ?T\<^sub>2'] by auto
+        from ds_p have "?T = Branching ?T\<^sub>1' ?T\<^sub>2'" by auto
+        from this b_p obtain a b' where "b = a # b' \<and> (a \<longrightarrow> branch b' ?T\<^sub>1') \<and> (\<not>a \<longrightarrow> branch b' ?T\<^sub>2' )" using branch_inv_Branching[of b ?T\<^sub>1' ?T\<^sub>2'] by auto
         then show "red(ds@b)" using aa bb by (cases a) auto
       qed
   }
@@ -596,17 +596,17 @@ lemma cutoff_internal':
 proof (induction T arbitrary: ds) (* This proof seems a bit excessive for such a simple theorem *)
   case (Leaf) then show ?case using internal_inv_Leaf by simp
 next                                                     
-  case (Branch T\<^sub>1 T\<^sub>2)
-  let ?T = "cutoff red ds (Branch T\<^sub>1 T\<^sub>2)"
-  from Branch have "\<forall>p. branch (Left#p) (Branch T\<^sub>1 T\<^sub>2) \<longrightarrow> red (ds @ (Left#p))" by blast
+  case (Branching T\<^sub>1 T\<^sub>2)
+  let ?T = "cutoff red ds (Branching T\<^sub>1 T\<^sub>2)"
+  from Branching have "\<forall>p. branch (Left#p) (Branching T\<^sub>1 T\<^sub>2) \<longrightarrow> red (ds @ (Left#p))" by blast
   then have "\<forall>p. branch p T\<^sub>1 \<longrightarrow> red (ds @ (Left#p))" by auto
   then have "anybranch T\<^sub>1 (\<lambda>p. red ((ds @ [Left]) @ p))" by auto
-  then have aa: "anyinternal (cutoff red (ds @ [Left]) T\<^sub>1) (\<lambda>p. \<not> red ((ds @ [Left]) @ p))" using Branch by blast
+  then have aa: "anyinternal (cutoff red (ds @ [Left]) T\<^sub>1) (\<lambda>p. \<not> red ((ds @ [Left]) @ p))" using Branching by blast
 
-  from Branch have "\<forall>p. branch (Right#p) (Branch T\<^sub>1 T\<^sub>2) \<longrightarrow> red (ds @ (Right#p))" by blast
+  from Branching have "\<forall>p. branch (Right#p) (Branching T\<^sub>1 T\<^sub>2) \<longrightarrow> red (ds @ (Right#p))" by blast
   then have "\<forall>p. branch p T\<^sub>2 \<longrightarrow> red (ds @ (Right#p))" by auto
   then have "anybranch T\<^sub>2 (\<lambda>p. red ((ds @ [Right]) @ p))" by auto
-  then have bb: "anyinternal (cutoff red (ds @ [Right]) T\<^sub>2) (\<lambda>p. \<not> red ((ds @ [Right]) @ p))" using Branch by blast
+  then have bb: "anyinternal (cutoff red (ds @ [Right]) T\<^sub>2) (\<lambda>p. \<not> red ((ds @ [Right]) @ p))" using Branching by blast
   {
     fix p
     assume b_p: "internal p ?T"
@@ -620,12 +620,12 @@ next
         let ?T\<^sub>2' = "cutoff red (ds@[Right]) T\<^sub>2"
         assume "p\<noteq>[]"
         moreover
-        have "?T = Branch ?T\<^sub>1' ?T\<^sub>2'" using ds_p by auto
+        have "?T = Branching ?T\<^sub>1' ?T\<^sub>2'" using ds_p by auto
         ultimately
         obtain a p' where b_p: "p = a # p' \<and>
              (a \<longrightarrow> internal p' (cutoff red (ds @ [Left]) T\<^sub>1)) \<and>
              (\<not> a \<longrightarrow> internal p' (cutoff red (ds @ [Right]) T\<^sub>2))" 
-          using b_p internal_inv_Branch[of p ?T\<^sub>1' ?T\<^sub>2'] by auto
+          using b_p internal_inv_Branching[of p ?T\<^sub>1' ?T\<^sub>2'] by auto
         then have "\<not>red(ds @ [a] @ p')" using aa bb by (cases a) auto
         then show "\<not>red(ds @ p)" using b_p by simp
       qed

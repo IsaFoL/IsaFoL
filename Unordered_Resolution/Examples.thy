@@ -93,8 +93,7 @@ proof -
     apply (rule resolution_rule'[of "{NP,PQ}" _ "{NQ}" "{PQ}" "{NQ}" \<epsilon>])
     unfolding applicable_def varsls_def  varsl_def 
               NQ_def NP_def PQ_def PP_def resolution_def
-    using unifier_single empty_mgu apply (auto)
-    done
+    using unifier_single empty_mgu using empty_subls by auto 
   then have "resolution_step 
           {{NP,PQ},{NQ},{PP,PQ}}
          ({{NP,PQ},{NQ},{PP,PQ},{NP}})" 
@@ -106,7 +105,7 @@ proof -
     apply (rule resolution_rule'[of "{NQ}" _ "{PP,PQ}" "{NQ}" "{PQ}" \<epsilon>])
     unfolding applicable_def varsls_def  varsl_def 
               NQ_def NP_def PQ_def PP_def resolution_def
-    using unifier_single empty_mgu apply (auto)
+    using unifier_single empty_mgu empty_subls apply auto
     done
   then have "resolution_step
          {{NP,PQ},{NQ},{PP,PQ},{NP}}
@@ -202,6 +201,10 @@ proof -
     using mguPaaPax_mgu unfolding applicable_def varsls_def  varsl_def 
           Nb_def Na_def Pax_def Pa_def Pb_def Naa_def Paa_def mguPaaPax_def resolution_def
     apply auto
+    apply (rule_tac x=Na in image_eqI)
+    unfolding Na_def apply auto
+    apply (rule_tac x=Pb in image_eqI)
+    unfolding Pb_def apply auto
     done
   then have "resolution_step 
           {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa}}
@@ -244,7 +247,7 @@ lemma ref_sound:
   assumes deriv: "resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
   shows "\<not>evalcs F G Cs"
 proof -
-  from deriv have "evalcs F G Cs \<Longrightarrow> evalcs F G Cs'" using sound_derivation by auto
+  from deriv have "evalcs F G Cs \<Longrightarrow> evalcs F G Cs'" using lsound_derivation by auto
   moreover
   from deriv have "evalcs F G Cs' \<Longrightarrow> evalc F G {}" unfolding evalcs_def by auto
   moreover

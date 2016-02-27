@@ -9,7 +9,7 @@ lemma lifting:
   assumes inst\<^sub>2: "instance_ofls D' D"
   assumes appl: "applicable C' D' L' M' \<sigma>"
   shows "\<exists>L M \<tau>. applicable C D L M \<tau> \<and>
-                   instance_ofls (lresolution C' D' L' M' \<sigma>) (lresolution C D L M \<tau>)"
+                   instance_ofls (resolution C' D' L' M' \<sigma>) (resolution C D L M \<tau>)"
 proof -
   let ?C'\<^sub>1 = "C' - L'"
   let ?D'\<^sub>1 = "D' - M'"
@@ -43,8 +43,8 @@ proof -
   also have "... = (?C\<^sub>1 {\<eta>}\<^sub>l\<^sub>s \<union> ?D\<^sub>1 {\<eta>}\<^sub>l\<^sub>s) {\<sigma>}\<^sub>l\<^sub>s" using subls_union composition_conseq2ls by auto
   also have "... = (?C'\<^sub>1 \<union> ?D'\<^sub>1) {\<sigma>}\<^sub>l\<^sub>s" using \<eta>_p L_p M_p by auto
   finally have "?E {\<phi>}\<^sub>l\<^sub>s = ((C' - L') \<union> (D' - M')){\<sigma>}\<^sub>l\<^sub>s" by auto
-  then have inst: "instance_ofls (lresolution C' D' L' M' \<sigma>) (lresolution C D L M \<tau>) "
-    unfolding lresolution_def instance_ofls_def by blast
+  then have inst: "instance_ofls (resolution C' D' L' M' \<sigma>) (resolution C D L M \<tau>) "
+    unfolding resolution_def instance_ofls_def by blast
 
   (* Showing that the resolution is applicable: *)
   {
@@ -178,12 +178,12 @@ qed
 
 
 theorem completeness':
-  shows "closed_tree T Cs \<Longrightarrow> \<forall>C\<in>Cs. finite C \<Longrightarrow> \<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'"
+  shows "closed_tree T Cs \<Longrightarrow> \<forall>C\<in>Cs. finite C \<Longrightarrow> \<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
 proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
   fix T::tree
   fix Cs :: "fterm clause set"
   assume ih: "(\<And>T' Cs. treesize T' < treesize T \<Longrightarrow> closed_tree T' Cs \<Longrightarrow> \<forall>C\<in>Cs. finite C \<Longrightarrow>
-                 \<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs')"
+                 \<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs')"
   assume clo: "closed_tree T Cs"
   assume finite_Cs: "\<forall>C\<in>Cs. finite C"
   
@@ -193,7 +193,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     then have "closed_branch [] Leaf Cs" using branch_inv_Leaf clo by auto
     then have "falsifiescs [] Cs" by auto
     then have "{} \<in> Cs" using falsifiescs_empty by auto
-    then have "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'" unfolding lresolution_deriv_def by auto
+    then have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" unfolding resolution_deriv_def by auto
   }
   moreover
   { (* Induction case *)
@@ -315,19 +315,19 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     have "applicable C1' C2' {l1} {l2} Resolution.\<epsilon>" unfolding applicable_def
       using l1_p l2_p C1'_p groundls_varsls l2cisl1 empty_comp2 unfolding mguls_def unifierls_def by auto
     (* Lifting to get a resolvent of C1 and C2 *)
-    then obtain L1 L2 \<tau> where L1L2\<tau>_p: "applicable ?C1 ?C2 L1 L2 \<tau>  \<and> instance_ofls (lresolution C1' C2' {l1} {l2} Resolution.\<epsilon>) (lresolution ?C1 ?C2 L1 L2 \<tau>)"
+    then obtain L1 L2 \<tau> where L1L2\<tau>_p: "applicable ?C1 ?C2 L1 L2 \<tau>  \<and> instance_ofls (resolution C1' C2' {l1} {l2} Resolution.\<epsilon>) (resolution ?C1 ?C2 L1 L2 \<tau>)"
       using std_apart_apart C1'_p C2'_p lifting[of ?C1 ?C2 C1' C2' "{l1}" "{l2}" Resolution.\<epsilon>] fin by auto
 
 
     (* Defining the clause to be derived, the new clausal form and the new tree *)
     (* We name the resolvent C *)
-    obtain C where C_p: "C=lresolution ?C1 ?C2 L1 L2 \<tau>" by auto
+    obtain C where C_p: "C=resolution ?C1 ?C2 L1 L2 \<tau>" by auto
     obtain CsNext where CsNext_p: "CsNext = Cs \<union> {?C1, ?C2, C}" by auto
     obtain T'' where T''_p: "T'' = delete B T" by auto (* Here we delete the two branch children B1 and B2 of B *)
     
     (* Our new clause is falsified by the branch B of our new tree *)
     have "falsifiesg B ((C1' - {l1}) \<union> (C2' - {l2}))" using B_C1'l1 B_C2'l2 by cases auto
-    then have "falsifiesg B (lresolution C1' C2' {l1} {l2} Resolution.\<epsilon>)" unfolding lresolution_def empty_subls by auto
+    then have "falsifiesg B (resolution C1' C2' {l1} {l2} Resolution.\<epsilon>)" unfolding resolution_def empty_subls by auto
     then have falsifies_C: "falsifiesc B C" using C_p L1L2\<tau>_p by auto
 
     have T''_smaller: "treesize T'' < treesize T" using treezise_delete T''_p b_p by auto
@@ -355,39 +355,39 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     then have T'_bran: "anybranch T' (\<lambda>b. closed_branch b T' CsNext)" by auto
     have T'_intr: "anyinternal T' (\<lambda>p. \<not>falsifiescs p CsNext)" using T'_p cutoff_internal[of T'' "\<lambda>b. falsifiescs b CsNext"] T''_bran2 by blast
     have T'_closed: "closed_tree T' CsNext" using T'_bran T'_intr by auto
-    have finite_CsNext: "\<forall>C\<in>CsNext. finite C" unfolding CsNext_p C_p lresolution_def using finite_Cs fin by auto
+    have finite_CsNext: "\<forall>C\<in>CsNext. finite C" unfolding CsNext_p C_p resolution_def using finite_Cs fin by auto
 
     (* By induction hypothesis we get a resolution derivation of {} from our new clausal form *)
-    from T'_smaller T'_closed have "\<exists>Cs''. lresolution_deriv CsNext Cs'' \<and> {} \<in> Cs''" using ih[of T' CsNext] finite_CsNext by blast
-    then obtain Cs'' where Cs''_p: "lresolution_deriv CsNext Cs'' \<and> {} \<in> Cs''" by auto
+    from T'_smaller T'_closed have "\<exists>Cs''. resolution_deriv CsNext Cs'' \<and> {} \<in> Cs''" using ih[of T' CsNext] finite_CsNext by blast
+    then obtain Cs'' where Cs''_p: "resolution_deriv CsNext Cs'' \<and> {} \<in> Cs''" by auto
     moreover
     { (* Proving that we can actually derive the new clausal form *)
-      have "lresolution_step Cs (Cs \<union> {?C1})" using std_apart_renames1[of C1o C2o] lstandardize_apart C1o_p by (metis Un_insert_right prod.collapse)
+      have "resolution_step Cs (Cs \<union> {?C1})" using std_apart_renames1[of C1o C2o] lstandardize_apart C1o_p by (metis Un_insert_right prod.collapse)
       moreover
-      have "lresolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1} \<union> {?C2})" using std_apart_renames2[of C1o C2o] lstandardize_apart C2o_p by (metis Un_insert_right insert_iff prod.collapse sup_bot.right_neutral)
-      then have "lresolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1,?C2})" by (metis insert_is_Un sup_assoc)
+      have "resolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1} \<union> {?C2})" using std_apart_renames2[of C1o C2o] lstandardize_apart C2o_p by (metis Un_insert_right insert_iff prod.collapse sup_bot.right_neutral)
+      then have "resolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1,?C2})" by (metis insert_is_Un sup_assoc)
       moreover
-      then have "lresolution_step (Cs \<union> {?C1,?C2}) (Cs \<union> {?C1,?C2} \<union> {C})" 
-        using L1L2\<tau>_p lresolution_rule[of ?C1 "Cs \<union> {?C1,?C2}" ?C2 L1 L2 \<tau> ] using C_p by auto
-      then have "lresolution_step (Cs \<union> {?C1,?C2}) CsNext"by (metis CsNext_p insert_is_Un sup_assoc) 
+      then have "resolution_step (Cs \<union> {?C1,?C2}) (Cs \<union> {?C1,?C2} \<union> {C})" 
+        using L1L2\<tau>_p resolution_rule[of ?C1 "Cs \<union> {?C1,?C2}" ?C2 L1 L2 \<tau> ] using C_p by auto
+      then have "resolution_step (Cs \<union> {?C1,?C2}) CsNext"by (metis CsNext_p insert_is_Un sup_assoc) 
       ultimately
-      have "lresolution_deriv Cs CsNext" using star.intros[of lresolution_step] unfolding lresolution_deriv_def by auto
+      have "resolution_deriv Cs CsNext" using star.intros[of resolution_step] unfolding resolution_deriv_def by auto
     }
     (* Combining the two derivations, we get the desired derivation from Cs of {} *)
-    ultimately have "lresolution_deriv Cs Cs''" using star_trans unfolding lresolution_deriv_def by auto
-    then have "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'" using Cs''_p by auto
+    ultimately have "resolution_deriv Cs Cs''" using star_trans unfolding resolution_deriv_def by auto
+    then have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" using Cs''_p by auto
   }
-  ultimately show "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'" by auto
+  ultimately show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" by auto
 qed
 
 theorem completeness:
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
   assumes unsat: "\<forall>(F::hterm fun_denot) (G::hterm pred_denot) . \<not>evalcs F G Cs"
-  shows "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'"
+  shows "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
 proof -
   from unsat have "\<forall>(G::hterm pred_denot) . \<not>evalcs HFun G Cs" by auto
   then obtain T where "closed_tree T Cs" using herbrand assms by blast
-  then show "\<exists>Cs'. lresolution_deriv Cs Cs' \<and> {} \<in> Cs'" using completeness' assms by auto
+  then show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" using completeness' assms by auto
 qed
 
 (* To get rid of the type - something like - find a countable subset using CHOICE *)
