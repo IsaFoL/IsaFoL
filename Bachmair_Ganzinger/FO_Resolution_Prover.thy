@@ -304,7 +304,7 @@ using resolve proof (atomize_elim, cases rule: ord_resolve_raw.cases)
   then obtain pickC pick\<sigma> where pick:
     "\<And>C. C \<in># CC \<Longrightarrow> pickC C \<in> M \<and> C = pickC C \<cdot> pick\<sigma> C \<and>
     S_M S M C = S (pickC C) \<cdot> pick\<sigma> C \<and> is_ground_subst (pick\<sigma> C)"
-    unfolding bchoice_iff mem_set_mset_iff[symmetric] by blast
+    unfolding bchoice_iff by blast
 
   let ?Cs = "multiset_linorder.sorted_list_of_multiset CC"
   let ?n = "length ?Cs"
@@ -336,8 +336,8 @@ using resolve proof (atomize_elim, cases rule: ord_resolve_raw.cases)
 
   moreover from pick have "?Cs = Cs \<cdot>cls \<sigma>s"
     unfolding subst_cls_lists_def Cs_def \<sigma>s_def
-    by (auto simp only: set_map length_map length_zip nth_map nth_zip mem_set_mset_iff[symmetric]
-       multiset_linorder.set_sorted_list_of_multiset[symmetric] nth_mem list_eq_iff_nth_eq)
+    by (auto simp only: set_map length_map length_zip nth_map nth_zip nth_mem list_eq_iff_nth_eq
+       multiset_linorder.set_sorted_list_of_multiset[symmetric])
 
   then have "mset ?Cs = mset (Cs \<cdot>cls \<sigma>s)"
     by simp
@@ -419,7 +419,9 @@ using res_e proof (cases rule: ground_resolution_with_S.ord_resolve.cases)
   have zz_fo_ne: "ZZ_fo \<noteq> {#}"
     unfolding ZZ_fo_def using zz_ne by simp
   then obtain \<rho> where \<rho>_mgu: "Some \<rho> = mgu (set_mset AAA)" and ren_\<rho>: "is_renaming \<rho>"
-    using mgu_eq_id_subst[of "set_mset AAA"] unfolding AAA_def ZZ_fo_def by auto
+    using mgu_eq_id_subst[of "set_mset AAA"] unfolding AAA_def ZZ_fo_def 
+    by (fastforce simp: Ball_def)
+
   have aa'_ne: "\<forall>(_, _, AA') \<in> set_mset ZZ_fo. AA' \<noteq> {#}"
     unfolding ZZ_fo_def by simp
 
@@ -464,12 +466,7 @@ using res_e proof (cases rule: ground_resolution_with_S.ord_resolve.cases)
     apply (subst (asm) ground_less_eq_atm_iff)
     apply (auto simp: gr_a)
     apply (metis gr_c' is_ground_cls_imp_is_ground_atm)
-    using a_max
-    apply auto
-    apply (erule_tac x = C' in allE)
-    apply (erule_tac x = A in allE)
-    apply auto
-    done
+    using a_max not_le old.prod.case by fastforce
   have res_e_fo: "ord_resolve_raw S CC D ((Cf' + D') \<cdot> \<rho>)"
     using cf'_fo aa_fo aaa_fo cc_fo d zz_fo_ne aa'_ne \<rho>_mgu s_d_fo a_max_fo s_cc_e
     by (rule ord_resolve_raw.intros)

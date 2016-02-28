@@ -67,12 +67,14 @@ proof -
       unfolding Rf_def by blast
     def DD \<equiv> "CC - {#D#} + CC'"
     have "set_mset DD \<subseteq> N"
-      unfolding DD_def using cc_subs_n cc'_subs_n by auto
+      unfolding DD_def using cc_subs_n cc'_subs_n 
+      by (meson contra_subsetD in_diffD subsetI union_iff)
     moreover have "\<forall>I. I \<Turnstile>m DD + EE \<longrightarrow> I \<Turnstile> E"
-      using cc'_imp_d cc_imp_c unfolding DD_def true_cls_mset_def by auto blast
+      using cc'_imp_d cc_imp_c d_in_cc unfolding DD_def true_cls_mset_def 
+      by (metis (no_types, lifting) add_eq_conv_ex insert_DiffM2 multi_member_last union_iff)
     moreover have "\<forall>C'. C' \<in># DD \<longrightarrow> C' #\<subset># C"
       using cc_lt_c cc'_lt_d d_in_cc unfolding DD_def
-      by (auto intro: multiset_order.less_trans[rule_format])
+      by (metis insert_DiffM2 multiset_order.dual_order.strict_trans union_iff)
     moreover have "DD #\<subset>## CC"
       unfolding DD_def
       proof (rule union_less_mset_mset_diff_plus)
@@ -80,7 +82,7 @@ proof -
           using d_in_cc by (metis insert_DiffM mset_le_exists_conv)
       next
         show "CC' #\<subset>## {#D#}"
-          using cc'_lt_d ex_gt_imp_less_mset_mset unfolding Bex_mset_def 
+          using cc'_lt_d ex_gt_imp_less_mset_mset unfolding Bex_def 
           by (metis multi_member_last)
       qed
     ultimately show False
@@ -115,7 +117,7 @@ proof
   have "set_mset CC \<subseteq> N"
     using cc_subs by auto
   hence "set_mset CC \<subseteq> N - {C. \<exists>DD. set_mset DD \<subseteq> N \<and> (\<forall>I. I \<Turnstile>m DD \<longrightarrow> I \<Turnstile> C) \<and> (\<forall>D. D \<in># DD \<longrightarrow> D #\<subset># C)}"
-    using cc_nr by auto blast
+    using cc_nr by auto
   thus "C \<in> Rf (N - Rf N)"
     using cc_imp_c cc_lt_c unfolding Rf_def by auto
 qed
@@ -172,7 +174,7 @@ lemma Rf_true:
 proof -
   have "I \<Turnstile>s Rf (N - Rf N)"
     unfolding true_clss_def
-    by (subst Rf_def) (auto, metis assms mem_set_mset_iff subset_eq true_cls_mset_def true_clss_def)
+    by (subst Rf_def) (auto, metis assms subset_eq true_cls_mset_def true_clss_def)
   hence "I \<Turnstile>s Rf N"
     using Rf_subs_Rf_diff_Rf true_clss_mono by blast
   thus ?thesis
@@ -236,7 +238,7 @@ proof (rule ccontr)
       dd_lt_c: "\<forall>D. D \<in># DD \<longrightarrow> D #\<subset># C"
       unfolding Ri_def cc c d by blast
     from dd_subs_m dd_lt_c have "INTERP M \<Turnstile>m DD"
-      using c_min unfolding true_cls_mset_def by (metis contra_subsetD mem_set_mset_iff)
+      using c_min unfolding true_cls_mset_def by (metis contra_subsetD)
     hence "INTERP M \<Turnstile> D"
       using dd_cc_imp_d cc_true by auto
     thus False
