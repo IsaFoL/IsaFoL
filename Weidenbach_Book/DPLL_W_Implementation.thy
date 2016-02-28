@@ -50,7 +50,7 @@ proof -
     have "dpll\<^sub>W (Ms, mset (map mset N))
          (Propagated L () # fst (Ms, mset (map mset N)), snd (Ms, mset (map mset N)))"
       apply (rule dpll\<^sub>W.propagate)
-      using Ms undef C \<open>L \<in> set C\<close> unfolding mem_set_multiset_eq by (auto simp add: C)
+      using Ms undef C \<open>L \<in> set C\<close> by (auto simp add: C)
     hence ?thesis using Ms'N by auto
   }
   moreover

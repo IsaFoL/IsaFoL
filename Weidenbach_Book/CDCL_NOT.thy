@@ -5,8 +5,6 @@ begin
 section \<open>NOT's CDCL\<close>
 sledgehammer_params[verbose, prover=e spass z3 cvc4 verit remote_vampire]
 
-declare set_mset_minus_replicate_mset[simp]
-
 subsection \<open>Auxiliary Lemmas and Measure\<close>
 lemma no_dup_cannot_not_lit_and_uminus:
   "no_dup M \<Longrightarrow> - lit_of xa = lit_of x \<Longrightarrow> x \<in> set M \<Longrightarrow> xa \<notin> set M"
@@ -604,7 +602,7 @@ next
   moreover
     have vars_of_D: "atms_of D \<subseteq> atm_of ` lits_of F"
       using \<open>F \<Turnstile>as CNot D\<close> unfolding atms_of_def
-      by (meson image_subsetI mem_set_mset_iff true_annots_CNot_all_atms_defined)
+      by (meson image_subsetI true_annots_CNot_all_atms_defined)
 
   obtain a b li where F: "get_all_marked_decomposition F = (a, b) # li"
     by (cases "get_all_marked_decomposition F") auto
@@ -1042,9 +1040,13 @@ proof -
               "I \<Turnstile>s ?N"
             have "(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)"
               using cons tot unfolding consistent_interp_def by (cases K) auto
-            have tot': "total_over_set I
+            have " {a \<in> set (trail S). is_marked a \<and> a \<noteq> Marked K ()} =
+              set (trail S) \<inter> {L. is_marked L \<and> L \<noteq> Marked K ()}"
+             by auto
+            then have tot': "total_over_set I
                (atm_of ` lit_of ` (set ?M \<inter> {L. is_marked L \<and> L \<noteq> Marked K ()}))"
               using tot by (auto simp add: atms_of_uminus_lit_atm_of_lit_of)
+
             { fix x :: "('v, unit, unit) marked_lit"
               assume
                 a3: "lit_of x \<notin> I" and
@@ -1065,7 +1067,7 @@ proof -
               unfolding true_clss_clss_def total_over_m_def
               by (simp add: atms_of_uminus_lit_atm_of_lit_of atms_of_ms_single_image_atm_of_lit_of)
             then show "I \<Turnstile> image_mset uminus ?C + {#- K#}"
-              unfolding true_clss_def true_cls_def Bex_mset_def
+              unfolding true_clss_def true_cls_def Bex_def
               using \<open>(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)\<close>
               by (auto dest!: H)
           qed
@@ -1518,7 +1520,7 @@ next
     moreover
       with cls_C have "J \<Turnstile> C"
         using tot cons unfolding true_clss_cls_def
-        by (metis Un_commute forget\<^sub>N\<^sub>O\<^sub>T.hyps(2) insert_Diff insert_is_Un mem_set_mset_iff order_refl
+        by (metis Un_commute forget\<^sub>N\<^sub>O\<^sub>T.hyps(2) insert_Diff insert_is_Un order_refl
           set_mset_minus_replicate_mset(1))
     ultimately have "J \<Turnstile>sm (clauses S)" by (metis insert_Diff_single true_clss_insert)
   }
@@ -1972,7 +1974,7 @@ lemma do_not_forget_before_backtrack_rule_clause_learned_clause_untouched:
   using assms apply induction
   unfolding conflicting_bj_clss_def
   by (metis (no_types, lifting) Diff_insert_absorb Set.set_insert clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T
-    diff_union_cancelR insert_iff mem_set_mset_iff order_refl set_mset_minus_replicate_mset(1)
+    diff_union_cancelR insert_iff order_refl set_mset_minus_replicate_mset(1)
     state_eq\<^sub>N\<^sub>O\<^sub>T_clauses state_eq\<^sub>N\<^sub>O\<^sub>T_trail trail_remove_cls\<^sub>N\<^sub>O\<^sub>T)
 
 lemma forget_\<mu>\<^sub>L_decrease:
@@ -1981,7 +1983,7 @@ lemma forget_\<mu>\<^sub>L_decrease:
 proof -
   have "card (set_mset  (clauses T)) < card (set_mset  (clauses S))"
     using forget\<^sub>N\<^sub>O\<^sub>T apply induction
-    by (metis card_Diff1_less clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T finite_set_mset mem_set_mset_iff order_refl
+    by (metis card_Diff1_less clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T finite_set_mset order_refl
       set_mset_minus_replicate_mset(1) state_eq\<^sub>N\<^sub>O\<^sub>T_clauses)
   then show ?thesis
     unfolding do_not_forget_before_backtrack_rule_clause_learned_clause_untouched[OF forget\<^sub>N\<^sub>O\<^sub>T]
@@ -2198,7 +2200,7 @@ next
           then show "x \<in> simple_clss (atms_of_ms A)"
             by (meson atms_clss atms_of_atms_of_ms_mono atms_of_ms_finite simple_clss_mono
               distinct_mset_not_tautology_implies_in_simple_clss fin_A finite_subset
-              mem_set_mset_iff set_rev_mp)
+              set_rev_mp)
         qed
       ultimately show ?thesis
         by auto
@@ -2209,7 +2211,7 @@ next
   moreover have [simp]: "card (insert C (conflicting_bj_clss S))
     = Suc (card ((conflicting_bj_clss S)))"
     by (metis (no_types) C' C_new card_insert_if conflicting_bj_clss_incl_clauses contra_subsetD
-      finite_conflicting_bj_clss mem_set_mset_iff)
+      finite_conflicting_bj_clss)
   moreover have [simp]: "conflicting_bj_clss (add_cls\<^sub>N\<^sub>O\<^sub>T C S) = conflicting_bj_clss S \<union> {C}"
      using dist tauto F_C n_d by (subst conflicting_bj_clss_add_cls\<^sub>N\<^sub>O\<^sub>T)
      (force simp add: ac_simps C' tr_S)+
@@ -2245,7 +2247,7 @@ next
     using do_not_forget_before_backtrack_rule_clause_learned_clause_untouched by blast
   moreover have "card (set_mset (clauses T)) < card (set_mset (clauses S))"
     by (metis T card_Diff1_less clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T finite_set_mset forget\<^sub>N\<^sub>O\<^sub>T.hyps(2)
-      mem_set_mset_iff order_refl set_mset_minus_replicate_mset(1) state_eq\<^sub>N\<^sub>O\<^sub>T_clauses)
+      order_refl set_mset_minus_replicate_mset(1) state_eq\<^sub>N\<^sub>O\<^sub>T_clauses)
   ultimately show ?case unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def
     by (metis (no_types) T \<open>\<mu>\<^sub>C' A (remove_cls\<^sub>N\<^sub>O\<^sub>T C S) = \<mu>\<^sub>C' A S\<close> add_le_cancel_left
       \<mu>\<^sub>C'_def not_le state_eq\<^sub>N\<^sub>O\<^sub>T_trail)
@@ -2358,8 +2360,7 @@ proof -
   have "\<And>x. x \<in># clauses T \<Longrightarrow>\<not> tautology x \<Longrightarrow> distinct_mset x \<Longrightarrow> x \<in> simple_clss A"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound[OF assms] by (metis (no_types, hide_lams) Un_iff assms(3)
       atms_of_atms_of_ms_mono simple_clss_mono contra_subsetD
-      distinct_mset_not_tautology_implies_in_simple_clss local.finite mem_set_mset_iff
-      subset_trans)
+      distinct_mset_not_tautology_implies_in_simple_clss subset_trans)
   then have "set_mset (clauses T) \<subseteq> ?S \<union> simple_clss A"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound[OF assms] by auto
   then have "card(set_mset (clauses T)) \<le> card (?S \<union> simple_clss A)"
@@ -3071,7 +3072,7 @@ proof -
          by moura
        then show ?thesis unfolding tr_S
          by (metis (no_types) \<open>F \<Turnstile>as CNot C'\<close> atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
-           atms_of_def in_CNot_implies_uminus(2) mem_set_mset_iff subsetI)
+           atms_of_def in_CNot_implies_uminus(2) subsetI)
      qed
    then have "atms_of (C' + {#L#}) \<subseteq> atms_of_msu (clauses S) \<union> atm_of ` (lits_of (trail S))"
      using atm_L tr_S by auto
@@ -3199,7 +3200,7 @@ next
   have "card (set_mset (clauses T)) < card (set_mset (clauses S))"
     using \<open>forget\<^sub>N\<^sub>O\<^sub>T S T\<close> by (metis card_Diff1_less
       cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_forget\<^sub>N\<^sub>O\<^sub>T.hyps clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T finite_set_mset forget\<^sub>N\<^sub>O\<^sub>TE
-      mem_set_mset_iff order_refl set_mset_minus_replicate_mset(1) state_eq\<^sub>N\<^sub>O\<^sub>T_clauses)
+      order_refl set_mset_minus_replicate_mset(1) state_eq\<^sub>N\<^sub>O\<^sub>T_clauses)
   moreover
     have "trail S = trail T"
       using \<open>forget\<^sub>N\<^sub>O\<^sub>T S T\<close> by (auto elim: forget\<^sub>N\<^sub>O\<^sub>TE)
@@ -3442,7 +3443,10 @@ proof -
               "I \<Turnstile>s ?N"
             have "(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)"
               using cons tot unfolding consistent_interp_def by (cases K) auto
-            have tot': "total_over_set I
+            have " {a \<in> set (trail S). is_marked a \<and> a \<noteq> Marked K ()} =
+             set (trail S) \<inter> {L. is_marked L \<and> L \<noteq> Marked K ()}"
+             by auto
+            then have tot': "total_over_set I
                (atm_of ` lit_of ` (set ?M \<inter> {L. is_marked L \<and> L \<noteq> Marked K ()}))"
               using tot by (auto simp add: atms_of_uminus_lit_atm_of_lit_of)
             { fix x :: "('v, unit, unit) marked_lit"
@@ -3465,7 +3469,7 @@ proof -
               unfolding true_clss_clss_def total_over_m_def
               by (simp add: atms_of_uminus_lit_atm_of_lit_of atms_of_ms_single_image_atm_of_lit_of)
             then show "I \<Turnstile> image_mset uminus ?C + {#- K#}"
-              unfolding true_clss_def true_cls_def Bex_mset_def
+              unfolding true_clss_def true_cls_def Bex_def
               using \<open>(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)\<close>
               by (auto dest!: H)
           qed
@@ -3866,7 +3870,7 @@ proof -
       then have "x \<in> simple_clss (atms_of_ms A)"
         by (meson assms atms_of_atms_of_ms_mono atms_of_ms_finite simple_clss_mono
           distinct_mset_not_tautology_implies_in_simple_clss finite_subset
-          mem_set_mset_iff subsetCE)
+          subsetCE)
       then show ?thesis by blast
     next
       case n_simp

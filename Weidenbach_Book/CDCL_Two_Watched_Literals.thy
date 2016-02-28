@@ -84,9 +84,10 @@ lemma "-L \<in> lits_of M \<Longrightarrow>  {i. map lit_of M!i = -L} \<noteq> {
   by (smt Collect_empty_eq mem_Collect_eq)
 
 lemma size_mset_2: "size x1 = 2 \<longleftrightarrow> (\<exists>a b. x1 = {#a, b#})"
+  apply (cases x1)
+   apply simp
   by (metis (no_types, hide_lams) Suc_eq_plus1 one_add_one size_1_singleton_mset
-  size_Diff_singleton size_Suc_Diff1 size_eq_Suc_imp_eq_union size_single union_single_eq_diff
-  union_single_eq_member)
+  size_Diff_singleton size_Suc_Diff1 size_single union_single_eq_diff union_single_eq_member)
 
 lemma distinct_mset_size_2: "distinct_mset {#a, b#} \<longleftrightarrow> a \<noteq> b"
   unfolding distinct_mset_def by auto
@@ -117,7 +118,7 @@ next
       LW: "L \<in># W" and
       LM: "- L \<in> lits_of M'" and
       L'UW: "L' \<in># UW" and
-      "count W L' = 0"
+      "L'\<notin># W"
     then have
       L'M: "- L' \<in> lits_of M"
       using wf by (auto simp: C M)
@@ -125,11 +126,10 @@ next
       using wf by (auto simp: C)
     then have
       "index (map lit_of M) (-L) \<le> index (map lit_of M) (-L')"
-      using LM L'M L'UW LW \<open>count W L' = 0\<close>
-      by (metis (no_types, lifting) C M bspec_mset insert_iff less_not_refl2 lits_of_cons
-        watched_decided_most_recently.simps)
+      using LM L'M L'UW LW \<open>L'\<notin># W\<close>
+      by (metis (no_types, lifting) C M insert_iff lits_of_cons watched_decided_most_recently.simps)
     then have "- L' \<in> lits_of M'"
-      using \<open>count W L' = 0\<close> LW L'M by (auto simp: C M split: if_split_asm)
+      using \<open>L'\<notin># W\<close> LW L'M by (auto simp: C M split: if_split_asm)
   }
   moreover
     {
@@ -226,15 +226,15 @@ proof
         next
           case lc: (add W'' Lc)
           thus ?thesis
-            by (metis add_gr_0 count_union distinct_mset_single_add lb union_single_eq_member
-              w_nw(1))
+            by (metis distinct_mset_single_add lb union_iff union_single_eq_member w_nw(1))
         qed
       qed
       then obtain La where la: "La \<noteq> L" "La \<in># W"
         by blast
       then have "La \<in># mset_set (uminus ` lits_of M)"
         using cw(3)[unfolded cw_eq, simplified, folded M_def]
-        by (metis count_diff count_single diff_zero not_gr0)
+        by (metis (no_types) \<open>La \<in># W\<close> \<open>La \<noteq> L\<close> add.right_neutral add_diff_cancel_right'
+          count_diff count_single mem_Collect_eq not_gr0 set_mset_def)
       then have nla: "-La \<in> lits_of M"
         by auto
       then show "-L' \<in> lits_of M"
@@ -249,10 +249,14 @@ proof
         then have "\<And>l. - l \<in> lits_of M \<or> count {#L#} l = count (C - UW) l"
           by (metis (no_types) add_diff_cancel_right' count_diff count_mset_set(3) cw(1) cw(3)
                 cw_eq diff_zero twl_clause.sel(2))
-        then show ?thesis
-          by (smt comm_monoid_add_class.add_0 cw(1) cw_eq diff_union_cancelR ex_la f1 f2 insertCI
-            less_numeral_extra(3) mem_set_mset_iff plus_multiset.rep_eq single.rep_eq
-            twl_clause.sel(1) twl_clause.sel(2) w_nw(3))
+        moreover
+        { assume "count UW L' \<noteq> count C L'"
+          then have "count W L' \<noteq> 0"
+            by (simp add: cw(1) cw_eq) (* 3 ms *) }
+        ultimately show ?thesis
+          by (metis (no_types) add.commute add_diff_cancel_left' cw(1) cw_eq f1 f2 insertCI la(2)
+            less_numeral_extra(3) mem_Collect_eq nla set_mset_def single.rep_eq twl_clause.sel(1)
+            twl_clause.sel(2) w_nw(3))
       qed
     qed
   qed
@@ -299,7 +303,7 @@ proof -
       fix L'
       assume l': "L' \<in> set_mset (W - mset_set (uminus ` lits_of M))"
       hence l'_mem_w: "L' \<in> set_mset W"
-        by auto
+        by (simp add: in_diffD)
       have "L' \<notin> uminus ` lits_of M"
         using distinct_mem_diff_mset[OF w_nw(1) l'] by simp
       then have "\<not> M \<Turnstile>a {#-L'#}"
@@ -332,15 +336,13 @@ proof -
             using False add cw(1) cw_eq unsat[unfolded CNot_def true_annots_def, simplified]
             by fastforce
           then show ?thesis
-            by (metis M_def Marked_Propagated_in_iff_in_lits_of add add.left_neutral count_union
-              cw(1) cw_eq gr0I l_mem twl_clause.sel(1) twl_clause.sel(2) undef union_single_eq_member
-              w_nw(3))
+            using Marked_Propagated_in_iff_in_lits_of add cw(1) cw_eq l_mem undef w_nw(3) by auto
         qed
       qed
       moreover have "L \<notin># mset_set (uminus ` lits_of M)"
         using Marked_Propagated_in_iff_in_lits_of undef by auto
       ultimately show "L \<in> set_mset (W - mset_set (uminus ` lits_of M))"
-        by auto
+        by (metis count_diff diff_zero mem_Collect_eq not_gr0 set_mset_def)
     qed
   qed
   have unit: "W - mset_set (uminus ` lits_of M) = {#L#}"
@@ -403,9 +405,9 @@ proof
       next
         case False
         thus ?thesis
-          by (smt M_def l add_diff_cancel_left' count_diff cw(1) cw(3) la cw_eq
-            diff_zero elem_mset_set finite_imageI finite_lits_of_def gr0I imageE mset_leD
-            uminus_of_uminus_id twl_clause.sel(1) twl_clause.sel(2) w_nw(3))
+          by (metis (no_types, lifting) M_def UnE cw(1) cw(3) cw_eq finite_imageI
+            finite_lits_of_def finite_set_mset_mset_set imageE l la mset_leD set_mset_union
+            twl_clause.sel(1) twl_clause.sel(2) uminus_of_uminus_id w_nw(3))
       qed
     qed
   qed
@@ -446,7 +448,7 @@ proof -
   have "\<And>L. L \<in># C \<Longrightarrow> -L \<in> lits_of M"
     unfolding M_def using unsat[unfolded CNot_def true_annots_def, simplified] by blast
   then have "set_mset C \<subseteq> uminus ` lits_of M"
-    by (metis imageI mem_set_mset_iff subsetI uminus_of_uminus_id)
+    by (metis imageI subsetI uminus_of_uminus_id)
   then have "set_mset W \<subseteq> uminus ` lits_of M"
     using cw(1) cw_eq by auto
   then have subset: "W \<subseteq># mset_set (uminus ` lits_of M)"
@@ -795,7 +797,9 @@ next
         by simp
     next
       case (nil_single a)
-      then show ?thesis
+      moreover have "\<And>x. set C' = {a} \<Longrightarrow> - a \<in> lits_of (trail S) \<Longrightarrow> x \<in># C - {#a#} \<Longrightarrow> x = a"
+        by (metis C' Multiset.diff_le_self mset_leD singletonD)
+      ultimately show ?thesis
         using watch_nat_lists_set_union_witness[of S C' C] C' 3
         by (auto dest!: arg_cong[of _ "[]" set] simp: W ass tr)
     next
@@ -806,7 +810,7 @@ next
       case single_nil
       show ?thesis
         using watch_nat_lists_set_union_witness[of S C' C] C' 3 mset_leD
-        by (auto simp: W ass tr single_nil)
+        by (auto simp: W ass tr single_nil comp_def dest: in_diffD)
     next
       case single_other
       then show ?thesis
@@ -837,7 +841,7 @@ next
       apply (auto dest: filter_in_list_prop_verifiedD
         simp: W ass tr lits_of_def  C' filter_empty_conv)[4]
     using watch_nat_lists_set_union_witness[of S C' C] C'
-    by (auto dest: filter_in_list_prop_verifiedD H simp: W  ass tr)
+    by (auto dest: in_diffD filter_in_list_prop_verifiedD H simp: W  ass tr)
 next
   case 5
   from n_d C' show ?case
@@ -847,11 +851,11 @@ next
     next
       case nil_single
       then show ?thesis
-        using watch_nat_lists_set_union_witness[of S C' C] C' by (auto simp:  W ass tr)
+        using watch_nat_lists_set_union_witness[of S C' C] C' in_diffD tr by (fastforce simp: W ass)
     next
       case nil_other
       then show ?thesis
-        unfolding watched_decided_most_recently.simps Ball_mset_def
+        unfolding watched_decided_most_recently.simps Ball_def
         apply (intro allI impI)
         apply (subst index_uminus_index_map_uminus,
           simp add: index_uminus_index_map_uminus lits_of_def o_def)
@@ -860,15 +864,15 @@ next
 
         apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
         by (auto dest: filter_in_list_prop_verifiedD
-          simp: uminus_lit_swap lits_of_def o_def W ass tr)
+          simp: uminus_lit_swap lits_of_def o_def W ass tr dest: in_diffD)
     next
       case single_nil
       then show ?thesis
-         using watch_nat_lists_set_union_witness[of S C' C] C' by (auto simp:  W ass tr)
+         using watch_nat_lists_set_union_witness[of S C' C] C' in_diffD tr by (fastforce simp: W ass)
     next
       case single_other
       then show ?thesis
-        unfolding watched_decided_most_recently.simps Ball_mset_def
+        unfolding watched_decided_most_recently.simps Ball_def
         apply (clarify)
         apply (subst index_uminus_index_map_uminus,
           simp add: index_uminus_index_map_uminus lits_of_def o_def)
@@ -877,7 +881,7 @@ next
 
         apply (subst index_filter[of _ _ _ "\<lambda>L. L \<in># C"])
         by (auto dest: filter_in_list_prop_verifiedD
-          simp: W ass tr uminus_lit_swap lits_of_def o_def)
+          simp: W ass tr uminus_lit_swap lits_of_def o_def dest: in_diffD)
     next
       case other
       then show ?thesis
@@ -938,8 +942,7 @@ lemma clause_rewatch_nat: "raw_clause (rewatch_nat L S C) = raw_clause C"
 
 lemma filter_sorted_list_of_multiset_Nil:
   "[x \<leftarrow> sorted_list_of_multiset M. p x] = [] \<longleftrightarrow> (\<forall>x \<in># M. \<not> p x)"
-  by auto (metis empty_iff filter_set list.set(1) mem_set_mset_iff member_filter
-    set_sorted_list_of_multiset)
+  by auto (metis empty_iff filter_set list.set(1) member_filter set_sorted_list_of_multiset)
 
 lemma filter_sorted_list_of_multiset_ConsD:
   "[x \<leftarrow> sorted_list_of_multiset M. p x] = x # xs \<Longrightarrow> p x"
@@ -996,8 +999,7 @@ proof (cases "- lit_of L \<in># watched C")
          apply blast
         apply blast
        apply blast
-      apply (smt ball_mset_cong bspec_mset insert_iff lits_of_cons nat_neq_iff twl_clause.sel(1)
-        uminus_of_uminus_id)
+      apply (smt insert_iff lits_of_cons nat_neq_iff twl_clause.sel(1) uminus_of_uminus_id)
      apply (auto simp: Marked_Propagated_in_iff_in_lits_of)
     done
   then show ?thesis
@@ -1031,13 +1033,13 @@ next
         have "\<And>p l. filter p UWC \<noteq> [] \<or> l \<notin> set_mset UW \<or> \<not> p l"
           using UWC unfolding C by (metis (no_types) filter_empty_conv twl_clause.sel(2))
         then show ?case
-          using 4(2) unfolding Ball_mset_def by (metis (lifting) mem_set_mset_iff twl_clause.sel(1))
+          using 4(2) unfolding Ball_def by (metis (lifting) twl_clause.sel(1))
       next
         case 5
         then show ?case
           (* TODO Tune proof *)
           using C apply simp
-          using wf by (smt ball_msetI bspec_mset not_gr0 uminus_of_uminus_id
+          using wf by (metis (no_types, lifting) uminus_of_uminus_id
             watched_decided_most_recently.simps wf_twl_cls.simps)
       qed
   next
@@ -1052,7 +1054,7 @@ next
         have "distinct_mset (watched (TWL_Clause W UW))"
           using wf unfolding C by auto
         moreover have "L' \<notin># watched (TWL_Clause W UW) - {#- lit_of L#}"
-          using "1"(2) not_gr0 by (fastforce dest: filter_in_list_prop_verifiedD)
+          using "1"(2) not_gr0 by (fastforce dest: filter_in_list_prop_verifiedD in_diffD)
         ultimately show ?case
           by (auto simp: distinct_mset_single_add)
       next
@@ -1067,7 +1069,7 @@ next
         case 4
         have H: "\<forall>L\<in>#W. - L \<in> lits_of (trail S) \<longrightarrow>
           (\<forall>L'\<in>#UW. count W L' = 0 \<longrightarrow> - L' \<in> lits_of (trail S))"
-          using wf by (auto simp: C)
+          using wf by (auto simp: C not_in_iff)
         have W: "size W \<le> 2" and W_UW: "size W < 2 \<longrightarrow> set_mset UW \<subseteq> set_mset W"
           using wf by (auto simp: C)
 
@@ -1075,7 +1077,7 @@ next
           using wf by (auto simp: C)
         show ?case
           using 4
-          unfolding C watched_decided_most_recently.simps Ball_mset_def twl_clause.sel
+          unfolding C watched_decided_most_recently.simps Ball_def twl_clause.sel
           apply (intro allI impI)
           apply (rename_tac xW xUW)
           apply (case_tac "- lit_of L = xW"; case_tac "xW = xUW"; case_tac "L' = xW")
@@ -1086,16 +1088,16 @@ next
              using distinct apply (fastforce split: if_split_asm simp: distinct_mset_size_2)
             using distinct apply (fastforce split: if_split_asm simp: distinct_mset_size_2)
            apply (force dest: filter_in_list_prop_verifiedD)
-          using size_mset_le_2_cases[OF W] H by (fastforce simp: uminus_lit_swap
-            dest: filter_sorted_list_of_multiset_ConsD filter_sorted_list_of_multiset_eqD)
-          (* SLOW ~4s *)
+          using size_mset_le_2_cases[OF W] H by (smt C Multiset.diff_le_self UWC count_eq_zero_iff
+            count_single filter_False insert_iff list.discI lits_of_cons mset_leD twl_clause.sel(2)
+            uminus_of_uminus_id union_iff)
       next
         case 5
         have H: "\<forall>x. x \<in># W \<longrightarrow> - x \<in> lits_of (trail S) \<longrightarrow> (\<forall>x. x \<in># UW \<longrightarrow> count W x = 0
           \<longrightarrow> - x \<in> lits_of (trail S))"
-          using wf by (auto simp: C)
+          using wf by (auto simp: C not_in_iff)
         show ?case
-          unfolding C watched_decided_most_recently.simps Ball_mset_def
+          unfolding C watched_decided_most_recently.simps Ball_def
           proof (intro allI impI conjI, goal_cases)
             case (1 xW x)
             show ?case
@@ -1112,9 +1114,11 @@ next
                   using 1(3) LxW unfolding lits_of_cons by (metis (no_types) insert_iff
                     uminus_of_uminus_id)
                 moreover then have "xW \<notin># W"
-                  using f9 1(2) H by (auto simp: C UWC)
+                  using f9 1(2) H by (auto simp: C UWC not_in_iff)
                 ultimately have False
-                  using 1 by auto
+                  using 1 by (metis (no_types, lifting) Multiset.diff_le_self
+                    filter_in_list_prop_verifiedD insert_DiffM2 insert_noteq_member mset_leD
+                    twl_clause.sel(1))
                 then show ?thesis
                   by fast
               qed
@@ -1404,7 +1408,7 @@ proof
   have "distinct_mset (C + {#L#})"
     using inv CL_Clauses unfolding cdcl\<^sub>W_twl.cdcl\<^sub>W_all_struct_inv_def
     cdcl\<^sub>W_twl.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_twl.clauses_def distinct_mset_set_def
-    by (metis (no_types, lifting) add_gr_0  mem_set_mset_iff plus_multiset.rep_eq)
+    by auto
   then have C_L_L: "mset_set (set_mset (C + {#L#}) - {L}) = C"
     by (metis Un_insert_right add_diff_cancel_left' add_diff_cancel_right'
       distinct_mset_set_mset_ident finite_set_mset insert_absorb2 mset_set.insert_remove
@@ -1433,8 +1437,7 @@ next
     unfolding propagate_twl_def by auto
   have [simp]: "C - {#L#} + {#L#} = C"
     using LC unfolding candidates_propagate_def
-    by clarify (metis add.commute add_diff_cancel_right' count_diff insert_DiffM
-      multi_member_last not_gr0 zero_diff)
+    by clarify (metis Multiset.diff_le_self insert_DiffM2 mset_leD multi_member_last union_iff)
   have "C \<in># raw_clauses_twl S"
     using LC unfolding candidates_propagate_def rough_cdcl.clauses_def by auto
   then have "distinct_mset C"
@@ -1442,7 +1445,7 @@ next
     cdcl\<^sub>W_twl.clauses_def distinct_mset_set_def rough_cdcl.clauses_def by auto
   then have C_L_L: "mset_set (set_mset C - {L}) = C - {#L#}"
     by (metis \<open>C - {#L#} + {#L#} = C\<close> add_left_imp_eq diff_single_trivial
-      distinct_mset_set_mset_ident finite_set_mset mem_set_mset_iff mset_set.remove
+      distinct_mset_set_mset_ident finite_set_mset mset_set.remove
       multi_self_add_other_not_self union_commute)
 
   show ?P

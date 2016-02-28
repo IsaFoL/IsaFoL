@@ -136,7 +136,7 @@ lemma in_implies_atm_of_on_atms_of_ms:
 lemma in_plus_implies_atm_of_on_atms_of_ms:
   assumes "C+{#L#} \<in> N"
   shows "atm_of L \<in> atms_of_ms N"
-  using in_implies_atm_of_on_atms_of_ms[of "C +{#L#}"] assms by auto
+  using in_implies_atm_of_on_atms_of_ms[of _ "C +{#L#}"] assms by auto
 
 lemma in_m_in_literals:
   assumes "{#A#} + D \<in> \<psi>s"
@@ -299,7 +299,7 @@ lemma true_cls_union[iff]: "I \<Turnstile> C + D \<longleftrightarrow> I \<Turns
   unfolding true_cls_def by auto
 
 lemma true_cls_mono_set_mset: "set_mset C \<subseteq> set_mset D \<Longrightarrow> I \<Turnstile> C \<Longrightarrow> I \<Turnstile> D"
-  unfolding true_cls_def subset_eq Bex_mset_def by (metis mem_set_mset_iff)
+  unfolding true_cls_def subset_eq Bex_def by metis
 
 lemma true_cls_mono_leD[dest]: "A \<subseteq># B \<Longrightarrow> I \<Turnstile> A \<Longrightarrow> I \<Turnstile> B"
   unfolding true_cls_def by auto
@@ -378,7 +378,7 @@ lemma notin_vars_union_true_cls_true_cls:
   and "atms_of L \<subseteq> atms_of_ms A"
   and "I \<union> I' \<Turnstile> L"
   shows "I \<Turnstile> L"
-  using assms unfolding true_cls_def true_lit_def Bex_mset_def
+  using assms unfolding true_cls_def true_lit_def Bex_def
   by (metis Un_iff atm_of_lit_in_atms_of contra_subsetD)
 
 lemma notin_vars_union_true_clss_true_clss:
@@ -422,7 +422,7 @@ next
 
   have I_CC: "?I \<Turnstile>s CC"
     using I_CC in_implies_atm_of_on_atms_of_ms unfolding true_clss_def Ball_def true_cls_def
-    Bex_mset_def true_lit_def
+    Bex_def true_lit_def
     by blast
 
   moreover have cons: "consistent_interp ?I"
@@ -548,7 +548,7 @@ definition "tautology (\<psi>:: 'v clause) \<equiv> \<forall>I. total_over_set I
 lemma tautology_Pos_Neg[intro]:
   assumes "Pos p \<in># A" and "Neg p \<in># A"
   shows "tautology A"
-  using assms unfolding tautology_def total_over_set_def true_cls_def Bex_mset_def
+  using assms unfolding tautology_def total_over_set_def true_cls_def Bex_def
   by (meson atm_iff_pos_or_neg_lit true_lit_def)
 
 lemma tautology_minus[simp]:
@@ -565,7 +565,7 @@ proof (rule ccontr)
   have "total_over_set ?I (atms_of \<psi>)"
     unfolding total_over_set_def using atm_imp_pos_or_neg_lit by force
   moreover have "\<not> ?I \<Turnstile> \<psi>"
-    unfolding true_cls_def true_lit_def Bex_mset_def apply clarify
+    unfolding true_cls_def true_lit_def Bex_def apply clarify
     using p by (rename_tac x L, case_tac L) fastforce+
   ultimately show False using assms unfolding tautology_def by auto
 qed
@@ -896,7 +896,7 @@ lemma subsumption_total_over_m:
 lemma atms_of_replicate_mset_replicate_mset_uminus[simp]:
   "atms_of (D - replicate_mset (count D L) L  - replicate_mset (count D (-L)) (-L))
     = atms_of D - {atm_of L}"
-  by (auto split: if_split_asm simp add: atm_of_eq_atm_of atms_of_def)
+  by (fastforce simp: atm_of_eq_atm_of atms_of_def)
 
 lemma subsumption_chained:
   assumes
@@ -942,7 +942,7 @@ next
   } note H' = this
 
   have "L \<notin># C " and "-L \<notin># C" using L atm_iff_pos_or_neg_lit by force+
-  then have C_in_D': "C \<subseteq># ?D'" using \<open>C \<subseteq># D\<close> by (auto simp add: subseteq_mset_def)
+  then have C_in_D': "C \<subseteq># ?D'" using \<open>C \<subseteq># D\<close> by (auto simp: subseteq_mset_def not_in_iff)
   have "card {Pos v |v. v \<in> atms_of ?D' \<and> v \<notin> atms_of C} <
     card {Pos v |v. v \<in> atms_of D \<and> v \<notin> atms_of C}"
     using L by (auto intro!: psubset_card_mono)
@@ -998,11 +998,12 @@ proof (standard; standard)
     proof cases
       case Add
       then have "L \<notin># C - {#L#}"
-        using dist unfolding distinct_mset_def by auto
+        using dist unfolding distinct_mset_def by (auto simp: not_in_iff)
       moreover have "-L \<notin># C"
         using taut Add by auto
       ultimately have "atms_of (C - {#L#}) \<subseteq> atms"
-        using atms Add by (auto simp: atm_iff_pos_or_neg_lit split: if_split_asm dest!: H)
+        using atms Add by (smt H atms_of_def imageE in_diffD insertE literal.exhaust_sel
+          subset_iff uminus_Neg uminus_Pos)
 
       moreover have "\<not> tautology (C - {#L#})"
         using taut by (metis Add(1) insert_DiffM tautology_add_single)

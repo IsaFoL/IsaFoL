@@ -202,7 +202,7 @@ lemma get_maximum_possible_level_ge_get_level[simp]:
 
 lemma get_maximum_possible_level_ge_get_maximum_level[simp]:
   "get_maximum_possible_level M \<ge> get_maximum_level M D"
-  using get_maximum_level_exists_lit_of_max_level unfolding Bex_mset_def
+  using get_maximum_level_exists_lit_of_max_level unfolding Bex_def
   by (metis get_maximum_level_empty get_maximum_possible_level_ge_get_level le0)
 
 fun get_all_mark_of_propagated where

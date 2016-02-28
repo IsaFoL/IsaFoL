@@ -8,7 +8,7 @@ subsubsection \<open>Propagation\<close>
 text \<open>The following theorem holds:\<close>
 lemma lits_of_unfold[iff]:
   "(\<forall>c \<in> set C. -c \<in> lits_of Ms) \<longleftrightarrow> Ms \<Turnstile>as CNot (mset C)"
-  unfolding true_annots_def Ball_def true_annot_def CNot_def mem_set_multiset_eq by auto
+  unfolding true_annots_def Ball_def true_annot_def CNot_def by auto
 text \<open>The right-hand version is written at a high-level, but only the left-hand side is executable.\<close>
 
 definition is_unit_clause :: "'a literal list \<Rightarrow> ('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal option"

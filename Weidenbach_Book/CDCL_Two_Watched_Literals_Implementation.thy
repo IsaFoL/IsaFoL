@@ -7,7 +7,7 @@ section \<open>Implementation for 2 Watched-Literals\<close>
 theory CDCL_Two_Watched_Literals_Implementation
 imports CDCL_Two_Watched_Literals DPLL_CDCL_W_Implementation
 begin
-  
+
 type_synonym 'v conc_twl_state =
   "(('v, nat, 'v literal list) marked_lit, 'v literal list twl_clause list, nat, 'v literal list)
     twl_state"
@@ -58,12 +58,12 @@ definition watch_list :: "'v conv_twl_state \<Rightarrow> 'v literal list \<Righ
       UW = foldl (\<lambda>a l. remove1 l a) C W
     in TWL_Clause W UW)"
 
-lemma wf_watch_nat: "no_dup (trail (list_twl_state_of S)) \<Longrightarrow> 
+lemma wf_watch_nat: "no_dup (trail (list_twl_state_of S)) \<Longrightarrow>
   wf_twl_cls (trail (list_twl_state_of S)) (raw_clause_l (watch_list S C))"
   apply (simp only: watch_list_def Let_def raw_clause_l.simps)
   using wf_watch_witness[of "(list_twl_state_of S)" "C" "mset C"]
 oops
-(* 
+(*
 definition
   rewatch_nat ::
   "(nat, nat, nat literal list) marked_lit \<Rightarrow> conc_twl_state \<Rightarrow>
@@ -75,7 +75,7 @@ where
           (unwatched C) of
         [] \<Rightarrow> C
       | L' # _ \<Rightarrow>
-        TWL_Clause (L' # remove1 (- lit_of L) (watched C)) 
+        TWL_Clause (L' # remove1 (- lit_of L) (watched C))
           (- lit_of L # remove1 L' (unwatched C))
     else
       C)"
@@ -83,7 +83,7 @@ where
 definition raw_candidates_conflict :: "conc_twl_state \<Rightarrow> nat literal list list" where
   "raw_candidates_conflict S =
     map (\<lambda>T. case T of TWL_Clause W UW \<Rightarrow> W @ UW)
-       (filter (\<lambda>C. set (watched C) \<subseteq> (uminus ` lits_of (trail S))) 
+       (filter (\<lambda>C. set (watched C) \<subseteq> (uminus ` lits_of (trail S)))
        (init_clss S @ learned_clss S))"
 
 definition do_conflict_step :: "conc_twl_state \<Rightarrow> conc_twl_state option" where
@@ -95,7 +95,7 @@ definition do_conflict_step :: "conc_twl_state \<Rightarrow> conc_twl_state opti
         [] \<Rightarrow> None
       | a # _ \<Rightarrow> Some (update_conflicting (Some a) S)))"
  *)
-(* 
+(*
 lemma do_conflict_step_Some:
   assumes conf: "do_conflict_step S = Some T"
   shows "twl.cdcl\<^sub>W_twl.conflict (st_of_raw S) (st_of_raw T)"

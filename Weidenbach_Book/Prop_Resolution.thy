@@ -622,7 +622,7 @@ lemma can_decrease_count:
   using assms
 proof (induct n arbitrary: \<chi> \<psi>)
   case 0
-  then show ?case by simp
+  then show ?case by (simp add: not_in_iff[symmetric])
 next
    case (Suc n \<chi>)
    note IH = this(1) and count = this(2) and L = this(3) and \<chi> = this(4)
@@ -639,8 +639,8 @@ next
    moreover {
      assume "n > 0"
      then have "\<exists>C. \<chi> = C + {#L, L#}"
-       by (metis L One_nat_def add_diff_cancel_right' count_diff count_single diff_Suc_Suc diff_zero
-         local.count multi_member_split union_assoc)
+        by (smt L Suc_eq_plus1_left add.left_commute add_diff_cancel_left' add_diff_cancel_right' 
+          count_greater_zero_iff count_single local.count multi_member_split plus_multiset.rep_eq)
      then obtain C where C: "\<chi> = C + {#L, L#}" by metis
      let ?\<chi>' = "C +{#L#}"
      let ?\<psi>' = "(fst \<psi> \<union> {?\<chi>'}, snd \<psi>)"
@@ -648,7 +648,7 @@ next
      have inf: "inference \<psi> ?\<psi>'"
        using C factoring \<chi> prod.collapse union_commute inference_step by metis
      moreover have count': "count ?\<chi>' L = n" using C count by auto
-     moreover have L\<chi>': "L :# ?\<chi>'" by auto
+     moreover have L\<chi>': "L \<in># ?\<chi>'" by auto
      moreover have \<chi>'\<psi>': "?\<chi>' \<in> fst ?\<psi>'" by auto
      ultimately obtain \<psi>''  and \<chi>''
      where
@@ -730,7 +730,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
       moreover {
         assume neg: "Neg v \<in># \<chi>" and pos: "Pos v \<in># \<chi>'"
         then obtain \<psi>' \<chi>2 where inf: "rtranclp inference \<psi> \<psi>'" and \<chi>2incl: "\<chi>2 \<in> fst \<psi>'"
-          and \<chi>\<chi>2_incl: "\<forall>L. L :# \<chi> \<longleftrightarrow> L :# \<chi>2"
+          and \<chi>\<chi>2_incl: "\<forall>L. L \<in># \<chi> \<longleftrightarrow> L \<in># \<chi>2"
           and count\<chi>2: "count \<chi>2 (Neg v) = 1"
           and \<phi>: "\<forall>\<phi>::'v literal multiset. \<phi> \<in> fst \<psi> \<longrightarrow> \<phi> \<in> fst \<psi>'"
           and I\<chi>: "I \<Turnstile> \<chi> \<longleftrightarrow> I \<Turnstile> \<chi>2"
@@ -750,9 +750,14 @@ proof (induct arbitrary: I rule: sem_tree_size)
         using can_decrease_count[of \<chi>' "Pos v" " count \<chi>' (Pos v)" \<psi>' I] by auto
 
         obtain C where \<chi>2: "\<chi>2 = C + {#Neg v#}" and negC: "Neg v \<notin># C" and posC: "Pos v \<notin># C"
-          by (metis (no_types, lifting) One_nat_def Posv Suc_inject Suc_pred \<chi>\<chi>2_incl count\<chi>2
-            count_diff count_single gr0I insert_DiffM insert_DiffM2 multi_member_skip
-            old.nat.distinct(2))
+          proof -
+            have "\<And>m. Suc 0 - count m (Neg v) = count (\<chi>2 - m) (Neg v)"
+              by (simp add: count\<chi>2)
+            then show ?thesis
+              using that by (metis (no_types) One_nat_def Posv Suc_inject Suc_pred \<chi>\<chi>2_incl 
+                count_diff count_single insert_DiffM2 mem_Collect_eq multi_member_skip neg 
+                not_gr0 set_mset_def union_commute)
+          qed
 
         obtain C' where
           \<chi>2': "\<chi>2' = C' + {#Pos v#}" and
@@ -763,10 +768,12 @@ proof (induct arbitrary: I rule: sem_tree_size)
             have f2: "\<And>n. (n::nat) - n = 0"
               by simp
             have "Neg v \<notin># \<chi>2' - {#Pos v#}"
-              using Negv \<chi>'\<chi>2_incl by auto
+              using Negv \<chi>'\<chi>2_incl by (auto simp: not_in_iff)
+            have "count {#Pos v#} (Pos v) = 1"
+              by simp
             then show ?thesis
-              using f2 a1 by (metis add.commute count\<chi>2' count_diff count_single insert_DiffM
-                less_nat_zero_code zero_less_one)
+              by (metis \<chi>'\<chi>2_incl \<open>Neg v \<notin># \<chi>2' - {#Pos v#}\<close> a1 count\<chi>2' count_diff f2 
+                insert_DiffM2 less_numeral_extra(3) mem_Collect_eq pos set_mset_def)
           qed
 
         have "already_used_inv \<psi>'"
@@ -782,8 +789,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
           using tot_imp\<chi>' tot\<chi>' total_over_m_sum tot_over_m_remove[of I "Neg v" C'] negC' posC'
           unfolding \<chi>2' by (metis total_over_m_sum uminus_Neg)
         have "\<not> I \<Turnstile> C + C'"
-          using \<chi> I\<chi> \<chi>' I\<chi>' unfolding \<chi>2 \<chi>2' true_cls_def Bex_mset_def
-          by (metis add_gr_0 count_union true_cls_singleton true_cls_union_increase)
+          using \<chi> I\<chi> \<chi>' I\<chi>' unfolding \<chi>2 \<chi>2' true_cls_def by auto
         then have part_I_\<psi>''': "partial_interps Leaf I (fst \<psi>'' \<union> {C + C'})"
           using totC totC' by simp
             (metis \<open>\<not> I \<Turnstile> C + C'\<close> atms_of_ms_singleton total_over_m_def total_over_m_sum)
@@ -817,7 +823,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
                     of "({#Pos v#} + C', {#Neg v#} + C)"])
               { assume "p \<noteq> v"
                 then have "Pos p \<in># C' \<and> Neg p \<in># C" using p n by force
-                then have ?thesis by (metis add_gr_0 count_union tautology_Pos_Neg)
+                then have ?thesis unfolding Bex_def by auto
               }
               moreover {
                 assume "p = v"
@@ -982,10 +988,11 @@ proof -
     then have f1: "count (\<chi> - {#L, L#} + {#L, L#}) L = count \<chi> L"
       by simp
     then have "L \<in># \<chi> - {#L#}"
-      by simp
+      by (metis (no_types) add.left_neutral add_diff_cancel_left' count_union diff_diff_add
+        diff_single_trivial insert_DiffM mem_Collect_eq multi_member_this not_gr0 set_mset_def)
     then have \<chi>': "?\<chi>' + {#L#} + {#L#} = \<chi>"
-      using f1 by (metis (no_types) diff_diff_add diff_single_eq_union union_assoc
-        union_single_eq_member)
+      using f1 by (metis diff_diff_add diff_single_eq_union in_diffD)
+
     have "\<exists>\<psi>'. simplify \<psi> \<psi>'"
       by (metis (no_types, hide_lams) \<chi> \<chi>' add.commute factoring_imp_simplify union_assoc)
     then have False using simp by auto
@@ -1099,8 +1106,8 @@ proof -
       assume "\<not>?thesis"
       then obtain \<chi> where "\<chi> \<in> \<psi>'" and "\<not>distinct_mset \<chi>" unfolding distinct_mset_set_def by auto
       then obtain L where "count \<chi> L \<ge> 2"
-        unfolding distinct_mset_def by (metis gr_implies_not0 le_antisym less_one not_le simp
-          simplified_count)
+        unfolding distinct_mset_def 
+        by (meson count_greater_eq_one_iff le_antisym simp simplified_count)
       then show False by (metis Suc_1 \<open>\<chi> \<in> \<psi>'\<close> not_less_eq_eq simp simplified_count)
     qed
 qed
@@ -1655,11 +1662,11 @@ interpretation sum_count_ge_2:
 rewrites
   "folding.F (\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0 = sum_count_ge_2"
 proof -
-  show "folding (\<lambda>\<phi>. op + (msetsum (image_mset (count \<phi>) {# L :# \<phi>. 2 \<le> count \<phi> L#})))"
+  show "folding (\<lambda>\<phi>. op + (msetsum (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#})))"
     by standard auto
   then interpret sum_count_ge_2:
     folding "(\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#}))" 0 .
-  show "folding.F (\<lambda>\<phi>. op + (msetsum (image_mset (count \<phi>) {# L :# \<phi>. 2 \<le> count \<phi> L#}))) 0
+  show "folding.F (\<lambda>\<phi>. op + (msetsum (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#}))) 0
     = sum_count_ge_2" by (auto simp add: sum_count_ge_2_def)
 qed
 
@@ -1714,7 +1721,7 @@ next
   moreover have "\<Xi> {?C'} < \<Xi> {?C}"
     proof -
       have mset_decomp:
-        "{# La \<in># A. (L = La \<longrightarrow> Suc 0 \<le> count A La) \<and> (L \<noteq> La \<longrightarrow> 2 \<le> count A La)#}
+        "{# La \<in># A. (L = La \<longrightarrow> La \<in># A) \<and> (L \<noteq> La \<longrightarrow> 2 \<le> count A La)#}
         =  {# La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#} +
           {# La \<in># A. L = La \<and> Suc 0 \<le> count A L#}"
            by (auto simp: multiset_eq_iff ac_simps)
@@ -1890,34 +1897,24 @@ proof (induct arbitrary: I rule: sem_tree_size)
        moreover {
           assume neg: "Neg v \<in># \<chi>" and pos: "Pos v \<in># \<chi>'"
           have "count \<chi> (Neg v) = 1"
-            using simplified_count[OF simp \<chi>\<psi>] neg by (metis One_nat_def Suc_le_mono Suc_pred eq_iff
-              le0)
+            using simplified_count[OF simp \<chi>\<psi>] neg 
+            by (simp add: dual_order.antisym)
           have "count \<chi>' (Pos v) = 1"
-            using simplified_count[OF simp \<chi>'\<psi>] pos by (metis One_nat_def Suc_le_mono Suc_pred
-              eq_iff le0)
+            using simplified_count[OF simp \<chi>'\<psi>] pos 
+            by (simp add: dual_order.antisym)
+
           obtain C where \<chi>C: "\<chi> = C + {#Neg v#}" and negC: "Neg v \<notin># C" and posC: "Pos v \<notin># C"
-            proof -
-              assume a1: "\<And>C. \<lbrakk>\<chi> = C + {#Neg v#}; Neg v \<notin># C; Pos v \<notin># C\<rbrakk> \<Longrightarrow> thesis"
-              have f2: "\<And>n. (0::nat) + n = n"
-                by simp
-              obtain mm :: "'v literal multiset \<Rightarrow> 'v literal \<Rightarrow> 'v literal multiset" where
-                f3: "{#Neg v#} + mm \<chi> (Neg v) = \<chi>"
-                by (metis (no_types) \<open>count \<chi> (Neg v) = 1\<close> add.commute multi_member_split
-                  zero_less_one)
-              then have "Pos v \<notin># mm \<chi> (Neg v)"
-                using f2 by (metis (no_types) Posv \<open>count \<chi> (Neg v) = 1\<close> add.right_neutral
-                  add_left_cancel count_single count_union less_nat_zero_code)
-              then show ?thesis
-                using f3 a1 by (metis (no_types) \<open>count \<chi> (Neg v) = 1\<close> add.commute
-                  add.right_neutral add_left_cancel count_single count_union less_nat_zero_code)
-            qed
+            by (metis (no_types, lifting) One_nat_def Posv Suc_eq_plus1_left \<open>count \<chi> (Neg v) = 1\<close> 
+              add_diff_cancel_left' count_diff count_greater_eq_one_iff count_single insert_DiffM   
+              insert_DiffM2 less_numeral_extra(3) multi_member_skip not_le not_less_eq_eq)
+
           obtain C' where
             \<chi>C': "\<chi>' = C' + {#Pos v#}" and
             posC': "Pos v \<notin># C'" and
             negC': "Neg v \<notin># C'"
-            by (metis (no_types, hide_lams) Negv \<open>count \<chi>' (Pos v) = 1\<close> add_diff_cancel_right'
-              cancel_comm_monoid_add_class.diff_cancel count_diff count_single less_nat_zero_code
-              mset_leD mset_le_add_left multi_member_split zero_less_one)
+            by (metis (no_types, lifting) One_nat_def Negv Suc_eq_plus1_left \<open>count \<chi>' (Pos v) = 1\<close> 
+              add_diff_cancel_left' count_diff count_greater_eq_one_iff count_single insert_DiffM   
+              insert_DiffM2 less_numeral_extra(3) multi_member_skip not_le not_less_eq_eq)
 
           have totC: "total_over_m I {C}"
             using tot\<chi> tot_over_m_remove[of I "Pos v" C] negC posC unfolding \<chi>C
@@ -1957,7 +1954,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
                       of " ({#Pos v#} + C', {#Neg v#} + C)"])
                 { assume "p \<noteq> v"
                   then have "Pos p \<in># C' \<and> Neg p \<in># C" using p by force
-                  then have ?thesis by (metis add_gr_0 count_union tautology_Pos_Neg)
+                  then have ?thesis by auto
                 }
                 moreover {
                   assume "p = v"

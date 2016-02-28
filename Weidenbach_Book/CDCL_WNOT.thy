@@ -195,8 +195,7 @@ next
       using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit F L\<close> Marked_Propagated_in_iff_in_lits_of
       in_CNot_implies_uminus(2) by blast
     then have "distinct_mset (?C' + {#L#})"
-      by (metis count_mset_set(3) distinct_mset_remdups_mset distinct_mset_single_add
-        less_irrefl_nat mem_set_mset_iff remdups_mset_def)
+      by (simp add: distinct_mset_single_add)
   moreover
     have "no_dup F"
       using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> \<open>convert_trail_from_W (trail S) = F' @ Marked K () # F\<close>
@@ -403,9 +402,8 @@ next
   have "?M \<Turnstile>as CNot ?D"
     using inv' T unfolding cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_all_struct_inv_def by auto
   then have "L' \<notin># ?D"
-    using L_L' L'_M unfolding true_annots_def by (auto simp add: true_annot_def true_cls_def
-      atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set Ball_mset_def
-      split: if_split_asm)
+    using L_L' L'_M \<open>Propagated L' C' # trail V \<Turnstile>as CNot (D + {#L#})\<close>
+     atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set unfolding true_annots_def by fastforce
   have [simp]: "trail (reduce_trail_to M1 T) = M1"
     by (metis (mono_tags, lifting) One_nat_def Pair_inject T \<open>V \<sim> tl_trail T\<close> decomp
       diff_less in_get_all_marked_decomposition_trail_update_trail length_greater_0_conv
@@ -503,7 +501,7 @@ proof -
       have "\<And>l. l \<notin># D \<or> - l \<in> lits_of M\<^sub>T"
         using \<open>M\<^sub>T \<Turnstile>as CNot (D + {#L#})\<close> multi_member_split by fastforce
       then show ?thesis
-        using f1 by (meson \<open>M\<^sub>T \<Turnstile>as CNot (D + {#L#})\<close> ball_msetI true_annots_CNot_all_atms_defined)
+        using f1 by (meson \<open>M\<^sub>T \<Turnstile>as CNot (D + {#L#})\<close> true_annots_CNot_all_atms_defined)
     qed
   moreover have "no_dup M"
     using inv S unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
@@ -512,7 +510,7 @@ proof -
   then have H: "\<And>L. L\<in>#?D \<Longrightarrow> get_level M L  = get_level M\<^sub>T L"
     unfolding M by (fastforce simp: lits_of_def)
   have [simp]: "get_maximum_level M ?D = get_maximum_level M\<^sub>T ?D"
-    by (metis \<open>M\<^sub>T \<Turnstile>as CNot (D + {#L#})\<close>  M nm ball_msetI true_annots_CNot_all_atms_defined
+    by (metis \<open>M\<^sub>T \<Turnstile>as CNot (D + {#L#})\<close>  M nm true_annots_CNot_all_atms_defined
       get_maximum_level_skip_un_marked_not_present)
 
   have lev_l': "get_level M\<^sub>T L = k"
@@ -629,7 +627,7 @@ proof -
     proof (rule ccontr)
       assume "\<not> ?thesis"
       then have "L' \<in># D"
-        using S unfolding S' by (fastforce simp: multiset_eq_iff split: if_split_asm)
+        using S unfolding S' by (metis Pair_inject insert_noteq_member option.inject)
       then have "get_maximum_level M D \<ge> k"
         using \<open>get_level M L' = k\<close> get_maximum_level_ge_get_level by blast
       then show False using \<open>get_maximum_level M D = i\<close> \<open>i < k\<close> by auto
@@ -748,7 +746,7 @@ proof (rule ccontr)
   then have "Propagated L ( (C + {#L#})) # M \<Turnstile>as CNot (D' + {#L'#})"
     using cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def U by auto
   then have "\<forall>L'\<in>#D. atm_of L' \<in> atm_of ` lits_of (Propagated L ( (C + {#L#})) # M)"
-    by (metis CNot_plus CNot_singleton Un_insert_right \<open>D = D'\<close> true_annots_insert ball_msetI
+    by (metis CNot_plus CNot_singleton Un_insert_right \<open>D = D'\<close> true_annots_insert
       atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set  in_CNot_implies_uminus(2)
       sup_bot.comm_neutral)
   then have "get_maximum_level M' D = k"
@@ -915,7 +913,7 @@ next
             then have "cdcl\<^sub>W\<^sup>*\<^sup>* S U'"
               using mono_rtranclp[of skip cdcl\<^sub>W S U'] by (simp add: cdcl\<^sub>W_o.bj other skip)
             then have "cdcl\<^sub>W_all_struct_inv U'"
-              by (metis (no_types, hide_lams) \<open>cdcl\<^sub>W_all_struct_inv S\<close> 
+              by (metis (no_types, hide_lams) \<open>cdcl\<^sub>W_all_struct_inv S\<close>
                 rtranclp_cdcl\<^sub>W_all_struct_inv_inv)
             then have "no_step backtrack U'"
               using if_can_apply_backtrack_no_more_resolve[OF \<open>skip\<^sup>*\<^sup>* U' W\<close> ] res by blast
@@ -1128,7 +1126,6 @@ proof induction
     T: "T \<sim> cons_trail (Propagated L (C + {#L#})) S"
     using propa by auto
   have "propagate\<^sub>N\<^sub>O\<^sub>T S T"
-    apply (rule propagate\<^sub>N\<^sub>O\<^sub>T.propagate\<^sub>N\<^sub>O\<^sub>T[of _ C L])
     using H CL T undef M_C by (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def state_eq_def clauses_def
       simp del: state_simp)
   then show ?case
@@ -1159,14 +1156,12 @@ next
     by auto
   have "init_clss S \<Turnstile>pm C"
     using inv C_le unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def
-    by (meson mem_set_mset_iff true_clss_clss_in_imp_true_clss_cls)
+    by (meson true_clss_clss_in_imp_true_clss_cls)
   then have S_C: "clauses S - replicate_mset (count (clauses S) C) C \<Turnstile>pm C"
     using C_init C_le unfolding clauses_def by (simp add: Un_Diff)
   moreover have H: "init_clss S + (learned_clss S - replicate_mset (count (learned_clss S) C) C)
     = init_clss S + learned_clss S - replicate_mset (count (learned_clss S) C) C"
-    using C_le C_init by (metis clauses_def clauses_remove_cls diff_zero gr0I
-      init_clss_remove_cls learned_clss_remove_cls plus_multiset.rep_eq replicate_mset_0
-      semiring_normalization_rules(5))
+    using C_le C_init by (metis count_le_replicate_mset_le le_refl subset_mset.diff_add_assoc)
   have "forget\<^sub>N\<^sub>O\<^sub>T S T"
     apply (rule forget\<^sub>N\<^sub>O\<^sub>T.forget\<^sub>N\<^sub>O\<^sub>T)
        using S_C apply blast

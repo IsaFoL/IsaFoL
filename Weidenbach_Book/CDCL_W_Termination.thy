@@ -466,8 +466,7 @@ proof (induction rule: cdcl\<^sub>W_o_induct_lev2)
       have DD'[simp]: "D = D'"
         proof (rule ccontr)
           assume "D \<noteq> D'"
-          then have "L' \<in>#  D" using DLD' by (metis add.left_neutral count_single count_union
-            diff_union_cancelR neq0_conv union_single_eq_member)
+          then have "L' \<in>#  D" using DLD' insert_noteq_member union_right_cancel by fastforce
           then have "get_level (trail y) L' \<le> get_maximum_level (trail y) D"
             using get_maximum_level_ge_get_level by blast
           moreover {
@@ -485,9 +484,7 @@ proof (induction rule: cdcl\<^sub>W_o_induct_lev2)
               by (metis (full_types) dual_order.strict_trans nat_neq_iff not_le
                 get_maximum_possible_level_ge_get_maximum_level) }
           moreover
-            have "L \<in># D'"
-              by (metis DLD' \<open>D \<noteq> D'\<close> add.left_neutral count_single count_union diff_union_cancelR
-                neq0_conv union_single_eq_member)
+            have "L \<in># D'" using DLD' \<open>D \<noteq> D'\<close> add_eq_conv_ex by fastforce
             then have "get_maximum_level (trail y) D' \<ge> get_level (trail y) L"
               using get_maximum_level_ge_get_level by blast
           moreover {
