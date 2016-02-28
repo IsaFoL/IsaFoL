@@ -8,7 +8,6 @@ lemma Bex_set_set_Bex_set[iff]: "(\<exists>x\<in>set_mset C. P) \<longleftrighta
   by auto
 
 section \<open>Weidenbach's CDCL\<close>
-sledgehammer_params[verbose, e spass cvc4 z3 verit]
 declare upt.simps(2)[simp del]
 
 subsection \<open>The State\<close>

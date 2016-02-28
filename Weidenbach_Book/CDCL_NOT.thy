@@ -3,7 +3,6 @@ imports Partial_Annotated_Clausal_Logic List_More Wellfounded_More Partial_Claus
 begin
 
 section \<open>NOT's CDCL\<close>
-sledgehammer_params[verbose, prover=e spass z3 cvc4 verit remote_vampire]
 
 declare set_mset_minus_replicate_mset[simp]
 
