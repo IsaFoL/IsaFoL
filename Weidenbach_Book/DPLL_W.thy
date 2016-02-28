@@ -134,13 +134,13 @@ next
           "atms_of_ms (unmark c) \<subseteq> atms_of_ms (set (map (\<lambda>a. {#lit_of a#}) a)
             \<union> set_mset (clauses S))"
             apply (metis CNot_plus Un_subset_iff atms_of_atms_of_ms_mono atms_of_ms_CNot_atms_of
-             atms_of_ms_union inS mem_set_mset_iff sup.coboundedI2)
+             atms_of_ms_union inS sup.coboundedI2)
           using inS atms_of_atms_of_ms_mono atms_incl by (fastforce simp: h')
 
         then have "unmark a \<union> set_mset (clauses S) \<Turnstile>ps CNot C"
           using true_clss_clss_left_right[OF _ I] h "2" by auto
         then show "unmark a \<union> set_mset (clauses S) \<Turnstile>p {#L#}"
-          by (metis (no_types) Un_insert_right inS insertI1 mk_disjoint_insert inS mem_set_mset_iff
+          by (metis (no_types) Un_insert_right inS insertI1 mk_disjoint_insert inS
             true_clss_cls_in true_clss_cls_plus_CNot)
       qed
     ultimately have ?case
@@ -441,7 +441,7 @@ next
              unfolding true_annots_def Ball_def CNot_def true_annot_def
              using atm_of_lit_in_atms_of true_annot_iff_marked_or_true_lit true_cls_def by blast
           then show ?thesis
-            by (metis Bex_mset_def D atms_of_atms_of_ms_mono mem_set_mset_iff rev_subsetD)
+            by (metis Bex_def D atms_of_atms_of_ms_mono rev_subsetD)
         qed
       moreover {
         assume "\<exists>L. undefined_lit M L \<and> atm_of L \<in> atms_of_mm N"

@@ -324,7 +324,7 @@ lemma is_ground_cls_mset_union[simp]: "is_ground_cls_mset (AA + BB) \<longleftri
   unfolding is_ground_cls_mset_def by auto
 
 lemma is_ground_cls_mono: "C \<le># D \<Longrightarrow> is_ground_cls D \<Longrightarrow> is_ground_cls C"
-  unfolding is_ground_cls_def by (metis mem_set_mset_iff set_mset_mono subsetD)
+  unfolding is_ground_cls_def by (metis set_mset_mono subsetD)
 
 lemma is_ground_clss_mono: "CC \<le> DD \<Longrightarrow> is_ground_clss DD \<Longrightarrow> is_ground_clss CC"
   unfolding is_ground_clss_def by blast

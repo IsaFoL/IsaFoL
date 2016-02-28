@@ -529,7 +529,7 @@ next
     moreover then have "mset Ls + mset D - {#L#} + {#L'#} = {#L'#} + mset D + (mset Ls - {#L#})"
       by (auto simp: ac_simps multiset_eq_iff Suc_leI)
     ultimately have f4: "get_maximum_level M (mset Ls + mset D - {#L#} + {#L'#}) = j"
-      by (metis (no_types) diff_union_single_conv mem_set_multiset_eq mset.simps(2) union_commute)
+      by (metis add.commute diff_union_single_conv in_multiset_in_set mset.simps(2))
   } note f4 = this
   have "{#L'#} + (mset Ls + mset D) = mset Ls + (mset D + {#L'#})"
       by (auto simp: ac_simps)
@@ -632,7 +632,7 @@ lemma do_backtrack_step:
           split: option.splits list.splits marked_lit.splits
           dest!: find_level_decomp_some)[1]
     have "get_maximum_level M (mset C) \<ge> k"
-      using \<open>L \<in> set C\<close> get_maximum_level_ge_get_level levL by blast
+      using \<open>L \<in> set C\<close>  levL  get_maximum_level_ge_get_level by (metis set_mset_mset)
     moreover have "get_maximum_level M (mset C) \<le> k"
       using get_maximum_level_exists_lit_of_max_level[of "mset C" M] inv
         cdcl\<^sub>W_M_level_inv_get_level_le_backtrack_lvl[of "toS S"]
@@ -1386,10 +1386,19 @@ lemma cdcl\<^sub>W_stgy_init_clss: "cdcl\<^sub>W_stgy S T \<Longrightarrow> cdcl
 lemma clauses_toS_rough_state_of_do_cdcl\<^sub>W_stgy_step[simp]:
   "clss (toS (rough_state_of (do_cdcl\<^sub>W_stgy_step (state_of (rough_state_from_init_state_of S)))))
     = clss (toS (rough_state_from_init_state_of S))" (is "_ = clss (toS ?S)")
-  apply (cases "do_cdcl\<^sub>W_stgy_step (state_of ?S) = state_of ?S")
-    apply simp
-  by (smt cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_all_struct_inv_rough_state cdcl\<^sub>W_stgy_no_more_init_clss
-    do_cdcl\<^sub>W_stgy_step toS_rough_state_of_state_of_rough_state_from_init_state_of)
+proof (cases "do_cdcl\<^sub>W_stgy_step (state_of ?S) = state_of ?S")
+  case True
+  then show ?thesis by simp
+next
+  case False
+  have "\<And>c. cdcl\<^sub>W_M_level_inv (toS (rough_state_of c))"
+    using cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_all_struct_inv_rough_state by blast (* 20 ms *)
+  then have "\<And>c. clss (toS (rough_state_of c)) = clss (toS (rough_state_of (do_cdcl\<^sub>W_stgy_step c))) \<or> do_cdcl\<^sub>W_stgy_step c = c"
+    using cdcl\<^sub>W_stgy_no_more_init_clss do_cdcl\<^sub>W_stgy_step by blast (* 23 ms *)
+  then show ?thesis
+    using False by force
+qed
+
 
 lemma rough_state_from_init_state_of_do_cdcl\<^sub>W_stgy_step'[code abstract]:
  "rough_state_from_init_state_of (do_cdcl\<^sub>W_stgy_step' S) =

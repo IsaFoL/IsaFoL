@@ -163,7 +163,7 @@ next
       have "mma \<in> {{#- l#} |l. l \<in># C} \<longrightarrow> trail T \<Turnstile>a mma"
         using CNot_def M bt by (metis (no_types) true_annots_def)
       then have "M \<Turnstile>as {{#- l#} |l. l \<in># C}"
-        using f6 True M bt by force
+        using f6 True M bt by (force simp: count_eq_zero_iff)
       then show ?thesis
         using IH true_annots_true_cls M by (auto simp: CNot_def)
     qed
@@ -182,7 +182,7 @@ next
       have "mma \<in> {{#- l#} |l. l \<in># C} \<longrightarrow> trail T \<Turnstile>a mma"
         using CNot_def M bt by (metis (no_types) true_annots_def)
       then have "M \<Turnstile>as {{#- l#} |l. l \<in># C}"
-        using f6 True M bt by force
+        using f6 True M bt by (force simp: count_eq_zero_iff)
       then show ?thesis
         using IH true_annots_true_cls M by (auto simp: CNot_def)
     qed

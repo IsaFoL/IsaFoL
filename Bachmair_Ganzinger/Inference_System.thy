@@ -214,7 +214,7 @@ next
     using step(3) by metis
   hence "(\<Union>C \<in> set_mset CC'. DD_of C) \<subseteq> CC \<and>
     finite (\<Union>C \<in> set_mset CC'. DD_of C) \<and> set_mset CC' \<subseteq> saturate (\<Union>C \<in> set_mset CC'. DD_of C)"
-    by (auto intro: saturate_mono) (blast, metis UN_I saturate_mono mem_set_mset_iff subsetI)
+    by (auto intro: saturate_mono)
   hence "\<exists>DD \<subseteq> CC. finite DD \<and> set_mset CC' \<subseteq> saturate DD" ..
   then obtain DD where
     d_sub: "DD \<subseteq> CC" and d_fin: "finite DD" and in_sat_d: "set_mset CC' \<subseteq> saturate DD"

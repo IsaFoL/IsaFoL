@@ -847,7 +847,7 @@ proof (clarify, rule ccontr)
     using atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set by metis
   then have "L \<in> lits_of_l A" using \<open> \<not> lits_of_l A \<Turnstile>l - L\<close> by auto
   then show False
-    using LB assms(2) unfolding true_annot_def true_lit_def true_cls_def Bex_mset_def
+    using LB assms(2) unfolding true_annot_def true_lit_def true_cls_def Bex_def
     by blast
 qed
 
@@ -902,7 +902,7 @@ proof -
     then have "- lit_of L \<notin> lits_of_l M" unfolding lits_of_def
       by (metis (no_types) atm_of_uminus imageI)
   ultimately have "\<forall> l \<in># A. -l \<in> lits_of_l M"
-    using assms(2) unfolding Ball_mset_def by (metis insertE lits_of_l_cons uminus_of_uminus_id)
+    using assms(2) by (metis insertE lits_of_l_cons uminus_of_uminus_id)
   then show ?thesis by (auto simp add: true_annots_def)
 qed
 

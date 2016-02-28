@@ -94,7 +94,8 @@ proof -
     using d' neg_a_ni_d' by (auto dest: atm_imp_pos_or_neg_lit)
   have "\<exists>n. AAA = replicate_mset (Suc n) (Pos A)"
     using aa d0 not0_implies_Suc produces_imp_Pos_in_lits[of N]
-    by (simp add: filter_eq_replicate_mset del: replicate_mset_Suc) metis
+    by (simp add: filter_eq_replicate_mset del: replicate_mset_Suc)
+    (metis in_countE)
   hence res_e: "unord_resolve D C (D' + C')"
     unfolding c d by (fast intro: unord_resolve.intros)
 
@@ -158,7 +159,7 @@ proof unfold_locales
     unfolding unord_\<Gamma>_def using res_e by blast
   ultimately show
     "\<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> unord_\<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E #\<subset># C"
-    using d_in_n d_true e_cex e_lt_c by fast
+    using d_in_n d_true e_cex e_lt_c by blast
 next
   fix CC D E and I :: "'b interp"
   assume "Infer CC D E \<in> unord_\<Gamma>" and "I \<Turnstile>m CC" and "I \<Turnstile> D"
