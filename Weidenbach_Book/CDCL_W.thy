@@ -27,7 +27,7 @@ locale clause =
 begin
 (* TODO problem: insert might be ordered. Using a remove might be better:
   L !\<in>! C
-  and use L -- C
+  and use C -- L
 
 *)
 end
