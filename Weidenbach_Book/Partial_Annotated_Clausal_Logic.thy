@@ -506,7 +506,6 @@ lemma union_in_get_all_marked_decomposition_is_subset:
   shows "set a \<union> set b \<subseteq> set M"
   using assms by force
 
-
 definition all_decomposition_implies :: "'a literal multiset set
   \<Rightarrow> (('a, 'l, 'm) marked_lit list \<times> ('a, 'l, 'm) marked_lit list) list \<Rightarrow> bool" where
  "all_decomposition_implies N S
