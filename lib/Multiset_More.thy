@@ -198,12 +198,19 @@ lemma set_mset_minus_replicate_mset[simp]:
   "n < count A a \<Longrightarrow> set_mset (A - replicate_mset n a) = set_mset A"
   unfolding set_mset_def by (auto split: if_split simp: not_in_iff)
 
-abbreviation remove_mset :: "'a \<Rightarrow> 'a multiset \<Rightarrow> 'a multiset" where
-"remove_mset C M \<equiv> M - replicate_mset (count M C) C"
+abbreviation removeAll_mset :: "'a \<Rightarrow> 'a multiset \<Rightarrow> 'a multiset" where
+"removeAll_mset C M \<equiv> M - replicate_mset (count M C) C"
 
-lemma mset_removeAll[simp]:
-  "mset (removeAll C L) = remove_mset C (mset L)"
-  by (induction L) (auto simp: ac_simps multiset_eq_iff)
+lemma mset_removeAll[simp, code]:
+  "removeAll_mset C (mset L) = mset (removeAll C L)"
+  by (induction L) (auto simp: ac_simps multiset_eq_iff split: if_split_asm)
+
+abbreviation remove1_mset :: "'a \<Rightarrow> 'a multiset \<Rightarrow> 'a multiset" where
+"remove1_mset C M \<equiv> M - {#C#}"
+
+lemma remove1_mset_remove1[code]:
+  "remove1_mset C (mset L) = mset (remove1 C L)"
+  by auto
 
 lemma set_mset_single_iff_replicate_mset:
   "set_mset U = {a}  \<longleftrightarrow> (\<exists>n>0. U = replicate_mset n a)" (is "?S \<longleftrightarrow> ?R")
@@ -481,7 +488,7 @@ lemma image_mset_subseteq_mono: "A \<subseteq># B \<Longrightarrow> image_mset f
   by (metis image_mset_union subset_mset.le_iff_add)
 
 lemma image_filter_ne_mset[simp]:
-  "image_mset f {#x \<in># M. f x \<noteq> y#} = remove_mset y (image_mset f M)"
+  "image_mset f {#x \<in># M. f x \<noteq> y#} = removeAll_mset y (image_mset f M)"
   by (induct M, auto, meson count_le_replicate_mset_le order_refl subset_mset.add_diff_assoc2)
 
 lemma comprehension_mset_False[simp]:
