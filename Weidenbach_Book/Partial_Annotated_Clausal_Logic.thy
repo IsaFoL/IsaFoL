@@ -506,6 +506,15 @@ lemma union_in_get_all_marked_decomposition_is_subset:
   shows "set a \<union> set b \<subseteq> set M"
   using assms by force
 
+lemma Marked_cons_in_get_all_marked_decomposition_append_Marked_cons:
+  "\<exists>M1 M2. (Marked K i # M1, M2) \<in> set (get_all_marked_decomposition (c @ Marked K i # c'))"
+  apply (induction c rule: marked_lit_list_induct)
+    apply auto[2]
+  apply (rename_tac L m xs,
+      case_tac "hd (get_all_marked_decomposition (xs @ Marked K i # c'))")
+  apply (case_tac "get_all_marked_decomposition (xs @ Marked K i # c')")
+  by auto
+
 definition all_decomposition_implies :: "'a literal multiset set
   \<Rightarrow> (('a, 'l, 'm) marked_lit list \<times> ('a, 'l, 'm) marked_lit list) list \<Rightarrow> bool" where
  "all_decomposition_implies N S
@@ -724,6 +733,11 @@ lemma true_clss_clss_contradiction_true_clss_cls_false:
 
 lemma true_annots_CNot_all_atms_defined:
   assumes "M \<Turnstile>as CNot T" and a1: " L \<in># T"
+  shows "atm_of L \<in> atm_of ` lits_of_l M"
+  by (metis assms atm_of_uminus image_eqI in_CNot_implies_uminus(1) true_annot_singleton)
+
+lemma true_annots_CNot_all_uminus_atms_defined:
+  assumes "M \<Turnstile>as CNot T" and a1: "-L \<in># T"
   shows "atm_of L \<in> atm_of ` lits_of_l M"
   by (metis assms atm_of_uminus image_eqI in_CNot_implies_uminus(1) true_annot_singleton)
 
