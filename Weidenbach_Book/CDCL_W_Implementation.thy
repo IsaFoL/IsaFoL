@@ -48,7 +48,7 @@ abbreviation add_learned_cls where
 "add_learned_cls \<equiv> \<lambda>C (M, N, U, S). (M, N, {#C#} + U, S)"
 
 abbreviation remove_cls where
-"remove_cls \<equiv> \<lambda>C (M, N, U, S). (M, remove_mset C N, remove_mset C U, S)"
+"remove_cls \<equiv> \<lambda>C (M, N, U, S). (M, removeAll_mset C N, removeAll_mset C U, S)"
 
 lemma trail_conv: "trail (M, N, U, k, D) = M" and
   clauses_conv: "clss (M, N, U, k, D) = N" and
@@ -67,7 +67,7 @@ interpretation state\<^sub>W trail clss learned_clss backtrack_lvl conflicting
   "\<lambda>(M, S). (tl M, S)"
   "\<lambda>C (M, N, S). (M, {#C#} + N, S)"
   "\<lambda>C (M, N, U, S). (M, N, {#C#} + U, S)"
-  "\<lambda>C (M, N, U, S). (M, remove_mset C N, remove_mset C U, S)"
+  "\<lambda>C (M, N, U, S). (M, removeAll_mset C N, removeAll_mset C U, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
   "\<lambda>N. ([], N, {#}, 0, None)"
@@ -79,7 +79,7 @@ interpretation cdcl\<^sub>W trail clss learned_clss backtrack_lvl conflicting
   "\<lambda>(M, S). (tl M, S)"
   "\<lambda>C (M, N, S). (M, {#C#} + N, S)"
   "\<lambda>C (M, N, U, S). (M, N, {#C#} + U, S)"
-  "\<lambda>C (M, N, U, S). (M, remove_mset C N, remove_mset C U, S)"
+  "\<lambda>C (M, N, U, S). (M, removeAll_mset C N, removeAll_mset C U, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
   "\<lambda>N. ([], N, {#}, 0, None)"
