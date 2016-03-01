@@ -2,7 +2,7 @@ theory CDCL_W_Termination
 imports CDCL_W
 begin
 
-context cdcl\<^sub>W
+context conflict_driven_clause_learning\<^sub>W
 begin
 subsection \<open>Termination\<close>
 text \<open>The condition that no learned clause is a tautology is overkill (in the sense that the
