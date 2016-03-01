@@ -4192,12 +4192,12 @@ lemma cdcl\<^sub>W_stgy_strong_completeness_n:
     "\<exists>M' k S. length M' \<ge> n \<and>
       lits_of_l M' \<subseteq> set M \<and>
       no_dup M' \<and>
-      S \<sim> update_backtrack_lvl k (append_trail (rev M') (init_state N)) \<and>
+      state S = (M', mset_clss N, {#}, k, None) \<and>
       cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S"
   using length
 proof (induction n)
   case 0
-  have "update_backtrack_lvl 0 (append_trail (rev []) (init_state N)) \<sim> init_state N"
+  have "state (init_state N) = ([], mset_clss N, {#}, 0, None)"
     by (auto simp: state_eq_def simp del: state_simp)
   moreover have
     "0 \<le> length []" and
@@ -4212,7 +4212,7 @@ next
     l_M': "length M' \<ge> n" and
     M': "lits_of_l M' \<subseteq> set M" and
     n_d[simp]: "no_dup M'" and
-    S: "S \<sim> update_backtrack_lvl k (append_trail (rev M') (init_state N))" and
+    S: "state S = (M', mset_clss N, {#}, k, None)" and
     st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S"
     by auto
   have
@@ -4240,7 +4240,7 @@ next
       then have "cdcl\<^sub>W_stgy S S'" by (simp add: cdcl\<^sub>W_stgy.conflict')
     moreover
       have propa: "propagate\<^sup>+\<^sup>+ S S'" using S' full unfolding full1_def by (metis rtranclpD tranclpD)
-      have "trail S = map mmset_of_mlit M'"
+      have "trail S = M'"
         using S by (auto simp: state_append_trail_simp comp_def rev_map)
       with propa have "length (trail S') > n"
         using l_M' propa by (induction rule: tranclp.induct) (auto elim: propagateE)
@@ -4257,12 +4257,11 @@ next
         using tranclp_into_rtranclp[OF \<open>propagate\<^sup>+\<^sup>+ S S'\<close>] S
         rtranclp_propagate_is_update_trail[of S S'] S M unfolding state_eq_def
         by (auto simp: state_append_trail_simp comp_def)
-      have S_S': "S' \<sim> update_backtrack_lvl (backtrack_lvl S')
-        (append_trail (rev (trail S')) (init_state N))" using S
-        by (auto simp: state_eq_def state_append_trail_simp simp del: state_simp)
-      have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state (init_clss S')) S'"
+      have S_S': "state S' = (trail S', mset_clss N, {#}, backtrack_lvl S', None)" 
+        using S by auto
+      have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S'"
         apply (rule rtranclp.rtrancl_into_rtrancl)
-        using st unfolding \<open>init_clss S' = N\<close> apply simp
+         using st apply simp
         using \<open>cdcl\<^sub>W_stgy S S'\<close> by simp
     ultimately have ?case
       apply -
