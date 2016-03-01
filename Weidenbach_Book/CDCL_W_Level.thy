@@ -17,6 +17,7 @@ abbreviation "get_level M L \<equiv> get_rev_level (rev M) 0 L"
 lemma get_rev_level_uminus[simp]: "get_rev_level M n(-L) = get_rev_level M n L"
   by (induct arbitrary: n rule: get_rev_level.induct) auto
 
+(* TODO as this, unusable w.r.t. no_dup *)
 lemma atm_of_notin_get_rev_level_eq_0[simp]:
   assumes "atm_of L \<notin> atm_of ` lits_of_l M"
   shows "get_rev_level M n L = 0"
@@ -174,7 +175,7 @@ qed
 lemma get_maximum_level_skip_un_marked_not_present:
   assumes "\<forall>L\<in>#D. atm_of L \<in> atm_of ` lits_of_l aa" and
   "\<forall>m\<in>set M. \<not> is_marked m"
-  shows " get_maximum_level aa D = get_maximum_level (M @ aa) D"
+  shows "get_maximum_level aa D = get_maximum_level (M @ aa) D"
   using assms by (induction M rule: marked_lit_list_induct)
   (auto intro!: get_maximum_level_skip_notin[of D "_ @ aa"] simp add: image_Un)
 
