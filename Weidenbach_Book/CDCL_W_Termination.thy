@@ -1249,6 +1249,23 @@ lemma wf_tranclp_cdcl\<^sub>W_stgy:
   apply (rule wf_wf_if_measure'_notation2[of "lexn {(a, b). a < b} 3" _ _ cdcl\<^sub>W_measure])
    apply (simp add: wf wf_lexn)
   using tranclp_cdcl\<^sub>W_stgy_S0_decreasing by blast
+
+lemma cdcl\<^sub>W_cp_wf_all_inv:
+  "wf {(S', S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_cp S S'}"
+  (is "wf ?R")
+proof (rule wf_bounded_measure[of _ 
+    "\<lambda>S. card (atms_of_mm (init_clss S))+1"
+    "\<lambda>S. length (trail S) + (if conflicting S = None then 0 else 1)"], goal_cases)
+  case (1 S S')
+  then have "cdcl\<^sub>W_all_struct_inv S" and "cdcl\<^sub>W_cp S S'" by auto
+  moreover then have "cdcl\<^sub>W_all_struct_inv S'"
+    using cdcl\<^sub>W_cp.simps  cdcl\<^sub>W_all_struct_inv_inv conflict cdcl\<^sub>W.intros cdcl\<^sub>W_all_struct_inv_inv 
+    by blast+
+  ultimately show ?case
+    by (auto simp:cdcl\<^sub>W_cp.simps state_eq_def simp del: state_simp elim!: conflictE propagateE
+      dest: length_model_le_vars_all_inv)
+qed
+
 end
 
 end

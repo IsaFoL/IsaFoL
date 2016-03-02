@@ -166,6 +166,14 @@ lemma lit_of_mmset_of_mlit[simp]:
   "lit_of (mmset_of_mlit a) = lit_of a"
   by (cases a) auto
 
+lemma lit_of_mmset_of_mlit_set_lit_of_l[simp]:
+  "lit_of ` mmset_of_mlit ` set M' = lits_of_l M'"
+  by (induction M') auto
+
+lemma map_mmset_of_mlit_true_annots_true_cls[simp]:
+  "map mmset_of_mlit M' \<Turnstile>as C \<longleftrightarrow> M' \<Turnstile>as C"
+  by (simp add: true_annots_true_cls)
+
 abbreviation "init_clss \<equiv> \<lambda>S. mset_clss (raw_init_clss S)"
 abbreviation "learned_clss \<equiv> \<lambda>S. mset_clss (raw_learned_clss S)"
 abbreviation "conflicting \<equiv> \<lambda>S. map_option mset_ccls (raw_conflicting S)"
@@ -213,7 +221,6 @@ locale state\<^sub>W =
     union_cls :: "'cls \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
-
 
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -546,6 +553,11 @@ next
     qed
 qed
 
+lemma reduce_trail_to_length:
+  "length M = length M' \<Longrightarrow> reduce_trail_to M S = reduce_trail_to M' S"
+  apply (induction M S arbitrary:  rule: reduce_trail_to.induct)
+  by (simp add: reduce_trail_to.simps)
+
 lemma in_get_all_marked_decomposition_trail_update_trail[simp]:
   assumes  H: "(L # M1, M2) \<in> set (get_all_marked_decomposition (trail S))"
   shows "trail (reduce_trail_to M1 S) = M1"
@@ -592,11 +604,11 @@ locale conflict_driven_clause_learning\<^sub>W =
   for
     mset_cls:: "'cls \<Rightarrow> 'v clause" and
     union_cls :: "'cls \<Rightarrow> 'cls \<Rightarrow> 'cls" and
-    union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
     insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
+    union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
     in_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> bool" and
     insert_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
     remove_from_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss"  and
@@ -4133,14 +4145,6 @@ next
   ultimately show ?case using \<open>propagate T U\<close> unfolding state_eq_def
     by (fastforce simp: elim: propagateE)
 qed
-
-lemma lit_of_mmset_of_mlit[simp]:
-  "lit_of ` mmset_of_mlit ` set M' = lits_of_l M'"
-  by (induction M') auto
-
-lemma map_mmset_of_mlit_true_annots_true_cls[simp]:
-  "map mmset_of_mlit M' \<Turnstile>as C \<longleftrightarrow> M' \<Turnstile>as C"
-  by (simp add: true_annots_true_cls)
 
 lemma cdcl\<^sub>W_stgy_strong_completeness_n:
   assumes
