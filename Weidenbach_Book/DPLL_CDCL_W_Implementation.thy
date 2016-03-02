@@ -6,30 +6,30 @@ section \<open>Simple Implementation of the DPLL and CDCL\<close>
 subsection \<open>Common Rules\<close>
 subsubsection \<open>Propagation\<close>
 text \<open>The following theorem holds:\<close>
-lemma lits_of_unfold[iff]:
-  "(\<forall>c \<in> set C. -c \<in> lits_of Ms) \<longleftrightarrow> Ms \<Turnstile>as CNot (mset C)"
+lemma lits_of_l_unfold[iff]:
+  "(\<forall>c \<in> set C. -c \<in> lits_of_l Ms) \<longleftrightarrow> Ms \<Turnstile>as CNot (mset C)"
   unfolding true_annots_def Ball_def true_annot_def CNot_def by auto
 text \<open>The right-hand version is written at a high-level, but only the left-hand side is executable.\<close>
 
 definition is_unit_clause :: "'a literal list \<Rightarrow> ('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal option"
  where
  "is_unit_clause l M =
-   (case List.filter (\<lambda>a. atm_of a \<notin> atm_of ` lits_of M) l of
+   (case List.filter (\<lambda>a. atm_of a \<notin> atm_of ` lits_of_l M) l of
      a # [] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
    | _ \<Rightarrow> None)"
 
 definition is_unit_clause_code :: "'a literal list \<Rightarrow> ('a, 'b, 'c) marked_lit list
   \<Rightarrow> 'a literal option" where
  "is_unit_clause_code l M =
-   (case List.filter (\<lambda>a. atm_of a \<notin> atm_of ` lits_of M) l of
-     a # [] \<Rightarrow> if (\<forall>c \<in>set (remove1 a l). -c \<in> lits_of M) then Some a else None
+   (case List.filter (\<lambda>a. atm_of a \<notin> atm_of ` lits_of_l M) l of
+     a # [] \<Rightarrow> if (\<forall>c \<in>set (remove1 a l). -c \<in> lits_of_l M) then Some a else None
    | _ \<Rightarrow> None)"
 
 lemma is_unit_clause_is_unit_clause_code[code]:
   "is_unit_clause l M = is_unit_clause_code l M"
 proof -
-  have 1: "\<And>a. (\<forall>c\<in>set (remove1 a l). - c \<in> lits_of M) \<longleftrightarrow> M \<Turnstile>as CNot (mset l - {#a#})"
-    using lits_of_unfold[of "remove1 _ l", of _ M] by simp
+  have 1: "\<And>a. (\<forall>c\<in>set (remove1 a l). - c \<in> lits_of_l M) \<longleftrightarrow> M \<Turnstile>as CNot (mset l - {#a#})"
+    using lits_of_l_unfold[of "remove1 _ l", of _ M] by simp
   thus ?thesis
     unfolding is_unit_clause_code_def is_unit_clause_def 1 by blast
 qed
@@ -38,28 +38,28 @@ lemma is_unit_clause_some_undef:
   assumes "is_unit_clause l M = Some a"
   shows "undefined_lit M a"
 proof -
-  have "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M] of [] \<Rightarrow> None
+  have "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of_l M] of [] \<Rightarrow> None
           | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
           | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
     using assms unfolding is_unit_clause_def .
-  hence "a \<in> set [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]"
-    apply (cases "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]")
+  hence "a \<in> set [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of_l M]"
+    apply (cases "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of_l M]")
       apply simp
     apply (rename_tac aa list; case_tac list) by (auto split: if_split_asm)
-  hence "atm_of a \<notin> atm_of ` lits_of M" by auto
+  hence "atm_of a \<notin> atm_of ` lits_of_l M" by auto
   thus ?thesis
-    by (simp add: Marked_Propagated_in_iff_in_lits_of
+    by (simp add: Marked_Propagated_in_iff_in_lits_of_l
       atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set )
 qed
 
 lemma is_unit_clause_some_CNot: "is_unit_clause l M = Some a \<Longrightarrow> M \<Turnstile>as CNot (mset l - {#a#})"
   unfolding is_unit_clause_def
 proof -
-  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M] of [] \<Rightarrow> None
+  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of_l M] of [] \<Rightarrow> None
           | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
           | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
   thus ?thesis
-    apply (cases "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]", simp)
+    apply (cases "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of_l M]", simp)
       apply simp
     apply (rename_tac aa list, case_tac list) by (auto split: if_split_asm)
 qed
@@ -67,11 +67,11 @@ qed
 lemma is_unit_clause_some_in: "is_unit_clause l M = Some a \<Longrightarrow> a \<in> set l"
   unfolding is_unit_clause_def
 proof -
-  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M] of [] \<Rightarrow> None
+  assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of_l M] of [] \<Rightarrow> None
          | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
          | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
   thus "a \<in> set l"
-    by (cases "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of M]")
+    by (cases "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of_l M]")
        (fastforce dest: filter_eq_ConsD split: if_split_asm  split: list.splits)+
 qed
 
@@ -103,7 +103,7 @@ lemma propagate_is_unit_clause_not_None:
   ac: "a \<in> set c"
   shows "is_unit_clause c M \<noteq> None"
 proof -
-  have "[a\<leftarrow>c . atm_of a \<notin> atm_of ` lits_of M] = [a]"
+  have "[a\<leftarrow>c . atm_of a \<notin> atm_of ` lits_of_l M] = [a]"
     using assms
     proof (induction c)
       case Nil thus ?case by simp
@@ -113,8 +113,8 @@ proof -
         proof (cases "a = ac")
           case True
           thus ?thesis using Cons
-            by (auto simp del: lits_of_unfold
-                 simp add: lits_of_unfold[symmetric] Marked_Propagated_in_iff_in_lits_of
+            by (auto simp del: lits_of_l_unfold
+                 simp add: lits_of_l_unfold[symmetric] Marked_Propagated_in_iff_in_lits_of_l
                    atm_of_eq_atm_of atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
         next
           case False
@@ -171,8 +171,8 @@ lemma find_first_unused_var_Some:
   by (induct l) (auto split: option.splits dest: find_some)
 
 lemma find_first_unused_var_undefined:
-  "find_first_unused_var l (lits_of Ms) = Some a \<Longrightarrow> undefined_lit Ms a"
-  using find_first_unused_var_Some[of l "lits_of Ms" a] Marked_Propagated_in_iff_in_lits_of
+  "find_first_unused_var l (lits_of_l Ms) = Some a \<Longrightarrow> undefined_lit Ms a"
+  using find_first_unused_var_Some[of l "lits_of_l Ms" a] Marked_Propagated_in_iff_in_lits_of_l
   by blast
 
 end
