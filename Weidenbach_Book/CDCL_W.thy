@@ -558,6 +558,20 @@ lemma reduce_trail_to_length:
   apply (induction M S arbitrary:  rule: reduce_trail_to.induct)
   by (simp add: reduce_trail_to.simps)
 
+lemma trail_reduce_trail_to_drop:
+  "trail (reduce_trail_to F S) =
+    (if length (trail S) \<ge> length F
+    then drop (length (trail S) - length F) (trail S)
+    else [])"
+  apply (induction F S rule: reduce_trail_to.induct)
+  apply (rename_tac F S, case_tac "trail S")
+   apply auto[]
+  apply (rename_tac list, case_tac "Suc (length list) > length F")
+   prefer 2 apply (metis diff_is_0_eq drop_Cons' length_Cons nat_le_linear nat_less_le 
+     reduce_trail_to_eq_length trail_reduce_trail_to_length_le)
+  apply (subgoal_tac "Suc (length list) - length F = Suc (length list - length F)")
+  by (auto simp add: reduce_trail_to_length_ne)
+
 lemma in_get_all_marked_decomposition_trail_update_trail[simp]:
   assumes  H: "(L # M1, M2) \<in> set (get_all_marked_decomposition (trail S))"
   shows "trail (reduce_trail_to M1 S) = M1"

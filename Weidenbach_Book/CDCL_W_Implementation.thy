@@ -123,7 +123,6 @@ global_interpretation state\<^sub>W_ops
   "\<lambda>(_, _, _, k, _). k"
   "\<lambda>(_, _, _, _, C). C"
 
-
   "\<lambda>L (M, S). (L # M, S)"
   "\<lambda>(M, S). (tl M, S)"
   "\<lambda>C (M, N, S). (M, C # N, S)"
@@ -136,8 +135,8 @@ global_interpretation state\<^sub>W_ops
   apply unfold_locales by (auto simp: hd_map comp_def map_tl ac_simps
     union_mset_list mset_map_mset_remove1_eq_mset)
 
-lemma [simp]: "mmset_of_mlit' l = mmset_of_mlit l"
-  apply (induct_tac l)
+lemma mmset_of_mlit'_mmset_of_mlit: "mmset_of_mlit' l = mmset_of_mlit l"
+  apply (induct l)
   apply auto
   done
 
@@ -170,7 +169,8 @@ interpretation state\<^sub>W
   "\<lambda>(_, N, U, _). ([], N, U, 0, None)"
   apply unfold_locales
   apply (rename_tac S, case_tac S)
-  by (auto simp: hd_map comp_def map_tl ac_simps mset_map_mset_removeAll_eq_mset)
+  by (auto simp: hd_map comp_def map_tl ac_simps mset_map_mset_removeAll_eq_mset
+    mmset_of_mlit'_mmset_of_mlit)
 
 global_interpretation conflict_driven_clause_learning\<^sub>W
   "mset::nat literal list \<Rightarrow> nat clause"
@@ -257,6 +257,38 @@ lemma get_all_levels_of_marked_map_convert[simp]:
   "get_all_levels_of_marked (map mmset_of_mlit' M) = (get_all_levels_of_marked M)"
   by (induction M rule: marked_lit_list_induct) auto
 
+lemma reduce_trail_to_empty_trail[simp]:
+  "reduce_trail_to F ([], aa, ab, ac, b) = ([], aa, ab, ac, b)"
+  using reduce_trail_to.simps by auto
+
+lemma raw_trail_reduce_trail_to_length_le:
+  assumes "length F > length (raw_trail S)"
+  shows "raw_trail (reduce_trail_to F S) = []"
+  using assms trail_reduce_trail_to_length_le[of S F]
+  by (cases S, cases "reduce_trail_to F S") auto
+
+lemma reduce_trail_to:
+  "reduce_trail_to F S =
+    ((if length (raw_trail S) \<ge> length F
+    then drop (length (raw_trail S) - length F) (raw_trail S)
+    else []), raw_init_clss S, raw_learned_clss S, raw_backtrack_lvl S, raw_conflicting S)"
+    (is "?S = _")
+proof (induction F S rule: reduce_trail_to.induct)
+  case (1 F S) note IH = this
+  show ?case
+    proof (cases "raw_trail S")
+      case Nil
+      then show ?thesis using IH by (cases S) auto
+    next
+      case (Cons L M)
+      then show ?thesis
+        apply (cases "Suc (length M) > length F")
+         prefer 2 using IH reduce_trail_to_length_ne[of S F] apply (cases S) apply auto[]
+        apply (subgoal_tac "Suc (length M) - length F = Suc (length M - length F)")
+        using reduce_trail_to_length_ne[of S F] IH by (cases S) (auto simp add:)
+    qed
+qed
+
 text \<open>Definition an abstract type\<close>
 typedef cdcl\<^sub>W_state_inv =  "{S::cdcl\<^sub>W_state_inv_st. cdcl\<^sub>W_all_struct_inv S}"
   morphisms rough_state_of state_of
@@ -278,10 +310,11 @@ lemma lits_of_map_convert[simp]: "lits_of_l (map mmset_of_mlit' M) = lits_of_l M
 
 lemma undefined_lit_map_convert[iff]:
   "undefined_lit (map mmset_of_mlit' M) L \<longleftrightarrow> undefined_lit M L"
-  by (auto simp add: defined_lit_map image_image)
+  by (auto simp add: defined_lit_map image_image mmset_of_mlit'_mmset_of_mlit)
 
 lemma true_annot_map_convert[simp]: "map mmset_of_mlit' M \<Turnstile>a N \<longleftrightarrow> M \<Turnstile>a N"
-  by (induction M rule: marked_lit_list_induct) (simp_all add: true_annot_def)
+  by (induction M rule: marked_lit_list_induct) (simp_all add: true_annot_def
+    mmset_of_mlit'_mmset_of_mlit)
 
 lemma true_annots_map_convert[simp]: "map mmset_of_mlit' M \<Turnstile>as N \<longleftrightarrow> M \<Turnstile>as N"
   unfolding true_annots_def by auto
@@ -747,7 +780,8 @@ lemma do_backtrack_step:
     have red: "(reduce_trail_to (map mmset_of_mlit' M1)
       (M, N, C # U, get_maximum_level M (remove1_mset L (mset C)), None))
       = (M1, N, C # U, get_maximum_level M (remove1_mset L (mset C)), None)"
-     using decomp M2 apply auto
+     using  M2  apply (auto simp: reduce_trail_to ac_simps
+       dest!: )
      sorry
     show ?case
       apply (rule backtrack_rule)
