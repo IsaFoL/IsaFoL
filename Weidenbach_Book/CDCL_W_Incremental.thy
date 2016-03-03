@@ -3,7 +3,7 @@ imports CDCL_W_Termination
 begin
 
 section \<open>Incremental SAT solving\<close>
-context cdcl\<^sub>W_ops
+context cdcl\<^sub>W
 begin
 
 text \<open>This invariant holds all the invariant related to the strategy. See the structural invariant
@@ -61,7 +61,7 @@ fun cut_trail_wrt_clause where
 definition add_new_clause_and_update :: "'v literal multiset \<Rightarrow> 'st \<Rightarrow> 'st" where
 "add_new_clause_and_update C S =
   (if trail S \<Turnstile>as CNot C
-  then update_conflicting (C_Clause C) (add_init_cls C (cut_trail_wrt_clause C (trail S) S))
+  then update_conflicting (Some C) (add_init_cls C (cut_trail_wrt_clause C (trail S) S))
   else add_init_cls C S)"
 
 thm cut_trail_wrt_clause.induct
@@ -86,7 +86,7 @@ next
   case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail S)"] and M = this(2)[symmetric]
   then show ?case using Cons_eq_appendI by fastforce+
 next
-  case (proped L l M) note IH = this(1)[of " (tl_trail S)"] and M = this(2)[symmetric]
+  case (proped L l M) note IH = this(1)[of "tl_trail S"] and M = this(2)[symmetric]
   then show ?case using Cons_eq_appendI by fastforce+
 qed
 
@@ -150,21 +150,42 @@ proof (induction "trail T" arbitrary:T rule: marked_lit_list_induct)
 next
   case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
     and bt = this(3)
-    (* TODO less ugly proof *)
-  then show ?case apply (cases "count C (-L) = 0")
-    apply (auto simp: true_annots_true_cls)
-    by (smt CNot_def One_nat_def count_single diff_Suc_1 in_CNot_uminus less_numeral_extra(4)
-     marked.prems marked_lit.sel(1) mem_Collect_eq true_annot_def true_annot_lit_of_notin_skip
-     true_annots_def true_clss_def zero_less_diff)
+  show ?case
+    proof (cases "count C (-L) = 0")
+      case False
+      then show ?thesis
+        using IH M bt by (auto simp: true_annots_true_cls)
+    next
+      case True
+      obtain mma :: "'v literal multiset" where
+        f6: "(mma \<in> {{#- l#} |l. l \<in># C} \<longrightarrow> M \<Turnstile>a mma) \<longrightarrow> M \<Turnstile>as {{#- l#} |l. l \<in># C}"
+        using true_annots_def by moura
+      have "mma \<in> {{#- l#} |l. l \<in># C} \<longrightarrow> trail T \<Turnstile>a mma"
+        using CNot_def M bt by (metis (no_types) true_annots_def)
+      then have "M \<Turnstile>as {{#- l#} |l. l \<in># C}"
+        using f6 True M bt by (force simp: count_eq_zero_iff)
+      then show ?thesis
+        using IH true_annots_true_cls M by (auto simp: CNot_def)
+    qed
 next
   case (proped L l M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric] and bt = this(3)
-  then show ?case
-    (* TODO ugly proof *)
-    apply (cases "count C (-L) = 0")
-    apply (auto simp: true_annots_true_cls)
-    by (smt CNot_def One_nat_def count_single diff_Suc_1 in_CNot_uminus less_numeral_extra(4)
-     proped.prems marked_lit.sel(2) mem_Collect_eq true_annot_def true_annot_lit_of_notin_skip
-     true_annots_def true_clss_def zero_less_diff)
+  show ?case
+    proof (cases "count C (-L) = 0")
+      case False
+      then show ?thesis
+        using IH M bt by (auto simp: true_annots_true_cls)
+    next
+      case True
+      obtain mma :: "'v literal multiset" where
+        f6: "(mma \<in> {{#- l#} |l. l \<in># C} \<longrightarrow> M \<Turnstile>a mma) \<longrightarrow> M \<Turnstile>as {{#- l#} |l. l \<in># C}"
+        using true_annots_def by moura
+      have "mma \<in> {{#- l#} |l. l \<in># C} \<longrightarrow> trail T \<Turnstile>a mma"
+        using CNot_def M bt by (metis (no_types) true_annots_def)
+      then have "M \<Turnstile>as {{#- l#} |l. l \<in># C}"
+        using f6 True M bt by (force simp: count_eq_zero_iff)
+      then show ?thesis
+        using IH true_annots_true_cls M by (auto simp: CNot_def)
+    qed
 qed
 
 lemma cut_trail_wrt_clause_hd_trail_in_or_empty_trail:
@@ -188,13 +209,13 @@ an explicit @{term skip}, @{term resolve}, and @{term backtrack} normalisation t
 conflict @{term C} if possible.\<close>
 inductive incremental_cdcl\<^sub>W :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S where
 add_confl:
-  "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = C_True \<Longrightarrow>
+  "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = None \<Longrightarrow>
    trail S \<Turnstile>as CNot C \<Longrightarrow>
    full cdcl\<^sub>W_stgy
-     (update_conflicting (C_Clause C) (add_init_cls C (cut_trail_wrt_clause C (trail S) S))) T \<Longrightarrow>
+     (update_conflicting (Some C) (add_init_cls C (cut_trail_wrt_clause C (trail S) S))) T \<Longrightarrow>
    incremental_cdcl\<^sub>W S T" |
 add_no_confl:
-  "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = C_True \<Longrightarrow>
+  "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = None \<Longrightarrow>
    \<not>trail S \<Turnstile>as CNot C \<Longrightarrow>
    full cdcl\<^sub>W_stgy (add_init_cls C S) T  \<Longrightarrow>
    incremental_cdcl\<^sub>W S T"
@@ -247,7 +268,7 @@ text \<open>For multiset larger that 1 element, there is no way to know in which
 lemma add_learned_clss_init_state_single[dest!]:
   "add_learned_clss (init_state N) {#C#} T \<Longrightarrow> T = add_learned_cls C (init_state N)"
   by (induction  "{#C#}" "T" rule: add_learned_clss.induct)
-  (auto simp: add_learned_clss.cases ac_simps union_is_single split: split_if_asm)
+  (auto simp: add_learned_clss.cases ac_simps union_is_single split: if_split_asm)
 
 thm rtranclp_cdcl\<^sub>W_stgy_no_smaller_confl_inv cdcl\<^sub>W_stgy_final_state_conclusive
 lemma cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_all_struct_inv:
@@ -258,7 +279,7 @@ lemma cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_all_str
     [simp]: "distinct_mset C"
   shows "cdcl\<^sub>W_all_struct_inv (add_new_clause_and_update C T)" (is "cdcl\<^sub>W_all_struct_inv ?T'")
 proof -
-  let ?T = "update_conflicting (C_Clause C) (add_init_cls C (cut_trail_wrt_clause C (trail T) T))"
+  let ?T = "update_conflicting (Some C) (add_init_cls C (cut_trail_wrt_clause C (trail T) T))"
   obtain M where
     M: "trail T = M @ trail (cut_trail_wrt_clause C (trail T) T)"
       using trail_cut_trail_wrt_clause[of T C] by blast
@@ -290,10 +311,10 @@ proof -
     unfolding consistent_interp_def by auto
 
   have [simp]: "cdcl\<^sub>W_M_level_inv ?T"
-    unfolding cdcl\<^sub>W_M_level_inv_def apply (auto dest: H H'
-      simp: M_lev cdcl\<^sub>W_M_level_inv_def cut_trail_wrt_clause_backtrack_lvl_length_marked)
+
     using M_lev cut_trail_wrt_clause_get_all_levels_of_marked[of T C]
-    by (auto simp: cdcl\<^sub>W_M_level_inv_def cut_trail_wrt_clause_backtrack_lvl_length_marked)
+    unfolding cdcl\<^sub>W_M_level_inv_def by (auto dest: H H'
+      simp: M_lev cdcl\<^sub>W_M_level_inv_def cut_trail_wrt_clause_backtrack_lvl_length_marked)
 
   have [simp]: "\<And>s. s \<in># learned_clss T \<Longrightarrow> \<not>tautology s"
     using inv_T unfolding cdcl\<^sub>W_all_struct_inv_def by auto
@@ -311,7 +332,8 @@ proof -
     unfolding cdcl\<^sub>W_conflicting_def apply simp
     by (metis M \<open>cdcl\<^sub>W_conflicting T\<close> append_assoc cdcl\<^sub>W_conflicting_decomp(2))
 
-  have decomp_T: "all_decomposition_implies_m (init_clss T) (get_all_marked_decomposition (trail T))"
+  have
+    decomp_T: "all_decomposition_implies_m (init_clss T) (get_all_marked_decomposition (trail T))"
     using inv_T unfolding cdcl\<^sub>W_all_struct_inv_def by auto
   have  "all_decomposition_implies_m  (init_clss ?T)
     (get_all_marked_decomposition (trail ?T))"
@@ -319,19 +341,17 @@ proof -
     proof clarify
       fix a b
       assume "(a, b) \<in> set (get_all_marked_decomposition (trail ?T))"
-      from in_get_all_marked_decomposition_in_get_all_marked_decomposition_prepend[OF this]
+      from in_get_all_marked_decomposition_in_get_all_marked_decomposition_prepend[OF this, of M]
       obtain b' where
-        "(a, b' @ b) \<in>  set (get_all_marked_decomposition (trail T))"
-        using M (* TODO tune *) by simp metis
-      then have "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (init_clss ?T)
-        \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (b @ b')"
-        using decomp_T unfolding all_decomposition_implies_def
-        (* TODO Tune *)
-        apply auto
-        by (metis (no_types, lifting) case_prodD set_append sup.commute true_clss_clss_insert_l)
-
-      then show "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (init_clss ?T)
-        \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set b"
+        "(a, b' @ b) \<in> set (get_all_marked_decomposition (trail T))"
+        using M by auto
+      then have "unmark a \<union> set_mset (init_clss T) \<Turnstile>ps unmark (b' @ b)"
+        using decomp_T unfolding all_decomposition_implies_def by fastforce
+      then have "unmark a \<union> set_mset (init_clss ?T)
+            \<Turnstile>ps unmark (b @ b')"
+        by (simp add: Un_commute)
+      then show "unmark a \<union> set_mset (init_clss ?T)
+        \<Turnstile>ps unmark b"
         by (auto simp: image_Un)
     qed
 
@@ -400,7 +420,7 @@ proof -
           apply (auto)
           using Marked_Propagated_in_iff_in_lits_of defined_lit_map by blast
 
-      ultimately have L: "get_level (-?L) (trail (cut_trail_wrt_clause C (trail T) T))
+      ultimately have L: "get_level (trail (cut_trail_wrt_clause C (trail T) T)) (-?L)
         = length (get_all_levels_of_marked (trail (cut_trail_wrt_clause C (trail T) T)))"
         using get_level_get_rev_level_get_all_levels_of_marked[OF
           \<open>atm_of ?L \<notin> atm_of ` lits_of (tl (trail (cut_trail_wrt_clause C (trail T) T)))\<close>,
@@ -409,16 +429,15 @@ proof -
           simplified, but auto is not able to solve the goal when this is done.*)
           apply (cases "trail (add_init_cls C (cut_trail_wrt_clause C (trail T) T))";
            cases "hd (trail (cut_trail_wrt_clause C (trail T) T))")
-          using l by (auto split: split_if_asm
-            simp:rev_swap[symmetric] add_new_clause_and_update_def
-            simp del:)
+          using l by (auto split: if_split_asm
+            simp:rev_swap[symmetric] add_new_clause_and_update_def)
 
       have L': "length (get_all_levels_of_marked (trail (cut_trail_wrt_clause C (trail T) T)))
         = backtrack_lvl (cut_trail_wrt_clause C (trail T) T)"
         using \<open>cdcl\<^sub>W_all_struct_inv ?T'\<close> unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
         by (auto simp:add_new_clause_and_update_def)
 
-      have [simp]: "no_smaller_confl (update_conflicting (C_Clause C)
+      have [simp]: "no_smaller_confl (update_conflicting (Some C)
         (add_init_cls C (cut_trail_wrt_clause C (trail T) T)))"
         unfolding no_smaller_confl_def
       proof (clarify, goal_cases)
@@ -426,7 +445,7 @@ proof -
         then consider
             (DC) "D = C"
           | (D_T) "D \<in># clauses T"
-          by (auto simp: clauses_def split: split_if_asm)
+          by (auto simp: clauses_def split: if_split_asm)
         then show False
           proof cases
             case D_T
@@ -469,17 +488,17 @@ lemma full_cdcl\<^sub>W_stgy_inv_normal_form:
     full: "full cdcl\<^sub>W_stgy S T" and
     inv_s: "cdcl\<^sub>W_stgy_invariant S" and
     inv: "cdcl\<^sub>W_all_struct_inv S"
-  shows "conflicting T = C_Clause {#} \<and> unsatisfiable (set_mset (init_clss S))
-    \<or> conflicting T = C_True \<and> trail T \<Turnstile>asm init_clss S \<and> satisfiable (set_mset (init_clss S))"
+  shows "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss S))
+    \<or> conflicting T = None \<and> trail T \<Turnstile>asm init_clss S \<and> satisfiable (set_mset (init_clss S))"
 proof -
   have "no_step cdcl\<^sub>W_stgy T"
     using full unfolding full_def by blast
   moreover have "cdcl\<^sub>W_all_struct_inv T" and inv_s: "cdcl\<^sub>W_stgy_invariant T"
-    apply (metis cdcl\<^sub>W_ops.rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W cdcl\<^sub>W_ops_axioms full full_def inv
+    apply (metis cdcl\<^sub>W.rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W cdcl\<^sub>W_axioms full full_def inv
       rtranclp_cdcl\<^sub>W_all_struct_inv_inv)
     by (metis full full_def inv inv_s rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant)
-  ultimately have "conflicting T = C_Clause {#} \<and> unsatisfiable (set_mset (init_clss T))
-    \<or> conflicting T = C_True \<and> trail T \<Turnstile>asm init_clss T"
+  ultimately have "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss T))
+    \<or> conflicting T = None \<and> trail T \<Turnstile>asm init_clss T"
     using cdcl\<^sub>W_stgy_final_state_conclusive[of T] full
     unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_stgy_invariant_def full_def by fast
   moreover have "consistent_interp (lits_of (trail T))"
@@ -503,7 +522,7 @@ lemma incremental_cdcl\<^sub>W_inv:
   using inc
 proof (induction)
   case (add_confl C T)
-  let ?T = "(update_conflicting (C_Clause C) (add_init_cls C (cut_trail_wrt_clause C (trail S) S)))"
+  let ?T = "(update_conflicting (Some C) (add_init_cls C (cut_trail_wrt_clause C (trail S) S)))"
   have "cdcl\<^sub>W_all_struct_inv ?T" and inv_s_T: "cdcl\<^sub>W_stgy_invariant ?T"
     using add_confl.hyps(1,2,4) add_new_clause_and_update_def
     cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_all_struct_inv inv apply auto[1]
@@ -530,7 +549,7 @@ next
   case 2 have "cdcl\<^sub>W_stgy_invariant (add_init_cls C S)"
     using s_inv \<open>\<not> trail S \<Turnstile>as CNot C\<close> inv unfolding cdcl\<^sub>W_stgy_invariant_def no_smaller_confl_def
     eq_commute[of "_" "trail _"] cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_all_struct_inv_def
-    by (auto simp: true_annots_true_cls_def_iff_negation_in_model clauses_def split: split_if_asm)
+    by (auto simp: true_annots_true_cls_def_iff_negation_in_model clauses_def split: if_split_asm)
   then show ?case
     by (metis \<open>cdcl\<^sub>W_all_struct_inv (add_init_cls C S)\<close> add_no_confl.hyps(5) full_def
       rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant)
@@ -554,8 +573,8 @@ lemma incremental_conclusive_state:
     inc: "incremental_cdcl\<^sub>W S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
     s_inv: "cdcl\<^sub>W_stgy_invariant S"
-  shows "conflicting T = C_Clause {#} \<and> unsatisfiable (set_mset (init_clss T))
-    \<or> conflicting T = C_True \<and> trail T \<Turnstile>asm init_clss T \<and> satisfiable (set_mset (init_clss T))"
+  shows "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss T))
+    \<or> conflicting T = None \<and> trail T \<Turnstile>asm init_clss T \<and> satisfiable (set_mset (init_clss T))"
   using inc apply induction
   (* Here I thank Sledgehammer for its invaluable services *)
   apply (metis Nitpick.rtranclp_unfold add_confl full_cdcl\<^sub>W_stgy_inv_normal_form full_def
@@ -568,8 +587,8 @@ lemma tranclp_incremental_correct:
     inc: "incremental_cdcl\<^sub>W\<^sup>+\<^sup>+ S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
     s_inv: "cdcl\<^sub>W_stgy_invariant S"
-  shows "conflicting T = C_Clause {#} \<and> unsatisfiable (set_mset (init_clss T))
-    \<or> conflicting T = C_True \<and> trail T \<Turnstile>asm init_clss T \<and> satisfiable (set_mset (init_clss T))"
+  shows "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss T))
+    \<or> conflicting T = None \<and> trail T \<Turnstile>asm init_clss T \<and> satisfiable (set_mset (init_clss T))"
   using inc apply induction
    using assms incremental_conclusive_state apply blast
   by (meson incremental_conclusive_state inv rtranclp_incremental_cdcl\<^sub>W_inv s_inv

@@ -52,17 +52,14 @@ fun  conn :: "'v connective \<Rightarrow> 'v propo list \<Rightarrow> 'v propo" 
 "conn CEq (\<phi># [\<psi>]) = FEq \<phi> \<psi>" |
 "conn _ _ = FF"
 
-
-
-
 text \<open>We will often use case distinction, based on the arity of the @{typ "'v connective"}, thus we
   define our own splitting principle.\<close>
-lemma connective_cases_arity:
+lemma connective_cases_arity[case_names nullary binary unary]:
   assumes nullary: "\<And>x. c = CT \<or> c = CF \<or> c = CVar x \<Longrightarrow> P"
   and binary: "c \<in> binary_connectives \<Longrightarrow> P"
   and unary: "c = CNot  \<Longrightarrow> P"
   shows "P"
-  using assms by (case_tac c, auto simp add: binary_connectives_def)
+  using assms by (cases c) (auto simp: binary_connectives_def)
 
 (*Maybe is this version better, by adding nullary_connective[simp] *)
 lemma connective_cases_arity_2[case_names nullary unary binary]:
@@ -70,7 +67,7 @@ lemma connective_cases_arity_2[case_names nullary unary binary]:
   and unary: "c = CNot  \<Longrightarrow> P"
   and binary: "c \<in> binary_connectives \<Longrightarrow> P"
   shows "P"
-  using assms by (case_tac c, auto simp add: binary_connectives_def)
+  using assms by (cases c, auto simp add: binary_connectives_def)
 
 
 text \<open>Our previous definition is not necessary correct (connective and list of arguments) , so we
@@ -90,10 +87,8 @@ lemma wf_conn_induct[consumes 1, case_names CT CF CVar CNot COr CAnd CImp CEq]:
     "(\<And>\<psi> \<psi>'. c = CAnd \<Longrightarrow> P [\<psi>, \<psi>']) " and
     "(\<And>\<psi> \<psi>'. c = CImp \<Longrightarrow> P [\<psi>, \<psi>']) " and
     "(\<And>\<psi> \<psi>'. c = CEq \<Longrightarrow> P [\<psi>, \<psi>']) "
-    shows " P x"
-   using assms by induction (auto simp add: binary_connectives_def)
-
-
+  shows " P x"
+  using assms by induction (auto simp: binary_connectives_def)
 
 subsection \<open>properties of the abstraction\<close>
 
@@ -132,7 +127,7 @@ text \<open>In the binary connective cases, we will often decompose the list of 
   into two elements.\<close>
 lemma list_length2_decomp: "length l = 2 \<Longrightarrow> (\<exists> a b. l = a # b # [])"
   apply (induct l, auto)
-  by (case_tac l, auto)
+  by (rename_tac l, case_tac l, auto)
 
 text \<open>@{term wf_conn} for binary operators means that there are two arguments.\<close>
 lemma wf_conn_bin_list_length:
@@ -141,18 +136,18 @@ lemma wf_conn_bin_list_length:
   shows "length l = 2 \<longleftrightarrow> wf_conn c l"
 proof
   assume "length l = 2"
-  thus "wf_conn c l" using wf_conn_binary list_length2_decomp using conn by metis
+  then show "wf_conn c l" using wf_conn_binary list_length2_decomp using conn by metis
 next
   assume "wf_conn c l"
-  thus "length l = 2" (is "?P l")
+  then show "length l = 2" (is "?P l")
     proof (cases rule: wf_conn.induct)
       case wf_conn_nullary
-      thus "?P []" using conn binary_connectives_def
+      then show "?P []" using conn binary_connectives_def
         using connective.distinct(11) connective.distinct(13) connective.distinct(9) by blast
     next
       fix \<psi> :: "'v propo"
       case wf_conn_unary
-      thus "?P [\<psi>]" using conn binary_connectives_def
+      then show "?P [\<psi>]" using conn binary_connectives_def
         using connective.distinct  by blast
     next
       fix \<psi> \<psi>':: "'v propo"
@@ -174,7 +169,8 @@ lemma wf_conn_Not_decomp:
   fixes l :: "'v propo list" and a :: "'v"
   assumes corr: "wf_conn CNot l"
   shows "\<exists> a. l = [a]"
-  by (metis (no_types, lifting) One_nat_def Suc_length_conv corr length_0_conv wf_conn_not_list_length)
+  by (metis (no_types, lifting) One_nat_def Suc_length_conv corr length_0_conv
+    wf_conn_not_list_length)
 
 
 text \<open>The @{term wf_conn} remains correct if the length of list does not change. This lemma is very
@@ -188,7 +184,7 @@ proof -
       apply (cases c l rule: wf_conn.induct, auto)
       by (metis wf_conn_bin_list_length)
   }
-  thus "length l = length l' \<Longrightarrow> wf_conn c l = wf_conn c l'" by metis
+  then show "length l = length l' \<Longrightarrow> wf_conn c l = wf_conn c l'" by metis
 qed
 
 lemma wf_conn_no_arity_change_helper:
@@ -215,18 +211,18 @@ lemma conn_inj:
   using corr
 proof (cases ca l rule: wf_conn.cases)
   case (wf_conn_nullary v)
-  thus "ca = c \<and> \<psi>s = l" using assms
+  then show "ca = c \<and> \<psi>s = l" using assms
       by (metis conn.simps(1) conn.simps(2) conn.simps(3) wf_conn_list(1-3))
 next
   case (wf_conn_unary \<psi>')
-  hence *: "FNot \<psi>' = conn c \<psi>s" using conn_inj_not eq assms by auto
-  hence "c = ca" by (metis conn_inj_not(1) corr' wf_conn_unary(2))
+  then have *: "FNot \<psi>' = conn c \<psi>s" using conn_inj_not eq assms by auto
+  then have "c = ca" by (metis conn_inj_not(1) corr' wf_conn_unary(2))
   moreover have "\<psi>s = l" using * conn_inj_not(2) corr' wf_conn_unary(1) by force
   ultimately show "ca = c \<and> \<psi>s = l" by auto
 next
   case (wf_conn_binary \<psi>' \<psi>'')
-  thus "ca = c \<and> \<psi>s = l"
-    using eq corr' unfolding binary_connectives_def apply (case_tac ca, auto simp add: wf_conn_list)
+  then show "ca = c \<and> \<psi>s = l"
+    using eq corr' unfolding binary_connectives_def apply (cases ca, auto simp add: wf_conn_list)
     using wf_conn_list(4-7) corr' by metis+
 qed
 
@@ -254,7 +250,6 @@ shows b: "FNot \<phi> \<preceq> \<psi> \<Longrightarrow> \<phi> \<preceq> \<psi>
   using subformula_into_subformula wf_conn_unary subformula_refl  list.set_intros(1) subformula_refl
     by (fastforce intro: subformula_into_subformula)+
 
-
 lemma subformula_in_binary_conn:
   assumes conn: "c \<in> binary_connectives"
   shows "f \<preceq> conn c [f, g]"
@@ -270,11 +265,10 @@ next
   ultimately  show "g \<preceq> conn c [f, g]" using subformula_into_subformula by force
 qed
 
-
 lemma subformula_trans:
  "\<psi> \<preceq> \<psi>' \<Longrightarrow> \<phi> \<preceq> \<psi> \<Longrightarrow> \<phi> \<preceq> \<psi>'"
   apply (induct \<psi>' rule: subformula.inducts)
-  by (auto simp add: subformula_into_subformula)
+  by (auto simp: subformula_into_subformula)
 
 lemma subformula_leaf:
   fixes \<phi> \<psi> :: "'v propo"
@@ -282,7 +276,7 @@ lemma subformula_leaf:
   and simple: "\<psi> = FT \<or> \<psi> = FF \<or> \<psi>  = FVar x"
   shows "\<phi> = \<psi>"
   using incl simple
-  by (induct rule: subformula.induct, auto simp add: wf_conn_list)
+  by (induct rule: subformula.induct, auto simp: wf_conn_list)
 
 lemma subfurmula_not_incl_eq:
   assumes "\<phi> \<preceq> conn c l"
@@ -291,7 +285,6 @@ lemma subfurmula_not_incl_eq:
   shows "\<phi> = conn c l"
   using assms apply (induction "conn c l" rule: subformula.induct, auto)
   using conn_inj by blast
-
 
 lemma wf_subformula_conn_cases:
   "wf_conn c l  \<Longrightarrow> \<phi> \<preceq> conn c l \<longleftrightarrow> (\<phi> = conn c l \<or> (\<exists>\<psi>. \<psi> \<in> set l \<and> \<phi> \<preceq> \<psi>))"
@@ -306,26 +299,29 @@ lemma subformula_decomp_explicit[simp]:
   "\<phi> \<preceq> FImp \<psi> \<psi>' \<longleftrightarrow> (\<phi> = FImp \<psi> \<psi>' \<or> \<phi> \<preceq> \<psi> \<or> \<phi> \<preceq> \<psi>')"
 proof -
   have "wf_conn CAnd [\<psi>, \<psi>']" by (simp add: binary_connectives_def)
-  hence "\<phi> \<preceq> conn CAnd [\<psi>, \<psi>'] \<longleftrightarrow> (\<phi> = conn CAnd [\<psi>, \<psi>'] \<or> (\<exists>\<psi>''. \<psi>'' \<in> set [\<psi>, \<psi>'] \<and> \<phi> \<preceq> \<psi>''))"
+  then have "\<phi> \<preceq> conn CAnd [\<psi>, \<psi>'] \<longleftrightarrow>
+    (\<phi> = conn CAnd [\<psi>, \<psi>'] \<or> (\<exists>\<psi>''. \<psi>'' \<in> set [\<psi>, \<psi>'] \<and> \<phi> \<preceq> \<psi>''))"
     using wf_subformula_conn_cases by metis
-  thus "?P FAnd" by auto
+  then show "?P FAnd" by auto
 next
   have "wf_conn COr [\<psi>, \<psi>']" by (simp add: binary_connectives_def)
-  hence "\<phi> \<preceq> conn COr [\<psi>, \<psi>'] \<longleftrightarrow> (\<phi> = conn COr [\<psi>, \<psi>'] \<or> (\<exists>\<psi>''. \<psi>'' \<in> set [\<psi>, \<psi>'] \<and> \<phi> \<preceq> \<psi>''))"
+  then have "\<phi> \<preceq> conn COr [\<psi>, \<psi>'] \<longleftrightarrow>
+    (\<phi> = conn COr [\<psi>, \<psi>'] \<or> (\<exists>\<psi>''. \<psi>'' \<in> set [\<psi>, \<psi>'] \<and> \<phi> \<preceq> \<psi>''))"
     using wf_subformula_conn_cases by metis
-  thus "?P FOr" by auto
+  then show "?P FOr" by auto
 next
   have "wf_conn CEq [\<psi>, \<psi>']" by (simp add: binary_connectives_def)
-  hence "\<phi> \<preceq> conn CEq [\<psi>, \<psi>'] \<longleftrightarrow> (\<phi> = conn CEq [\<psi>, \<psi>'] \<or> (\<exists>\<psi>''. \<psi>'' \<in> set [\<psi>, \<psi>'] \<and> \<phi> \<preceq> \<psi>''))"
+  then have "\<phi> \<preceq> conn CEq [\<psi>, \<psi>'] \<longleftrightarrow>
+    (\<phi> = conn CEq [\<psi>, \<psi>'] \<or> (\<exists>\<psi>''. \<psi>'' \<in> set [\<psi>, \<psi>'] \<and> \<phi> \<preceq> \<psi>''))"
     using wf_subformula_conn_cases by metis
-  thus "?P FEq" by auto
+  then show "?P FEq" by auto
 next
   have "wf_conn CImp [\<psi>, \<psi>']" by (simp add: binary_connectives_def)
-  hence "\<phi> \<preceq> conn CImp [\<psi>, \<psi>'] \<longleftrightarrow> (\<phi> = conn CImp [\<psi>, \<psi>'] \<or> (\<exists>\<psi>''. \<psi>'' \<in> set [\<psi>, \<psi>'] \<and> \<phi> \<preceq> \<psi>''))"
+  then have "\<phi> \<preceq> conn CImp [\<psi>, \<psi>'] \<longleftrightarrow>
+    (\<phi> = conn CImp [\<psi>, \<psi>'] \<or> (\<exists>\<psi>''. \<psi>'' \<in> set [\<psi>, \<psi>'] \<and> \<phi> \<preceq> \<psi>''))"
     using wf_subformula_conn_cases by metis
-  thus "?P FImp" by auto
+  then show "?P FImp" by auto
 qed
-
 
 lemma wf_conn_helper_facts[iff]:
   "wf_conn CNot [\<phi>]"
@@ -342,9 +338,9 @@ lemma exists_c_conn: "\<exists> c l. \<phi> = conn c l \<and> wf_conn c l"
   by (cases \<phi>) force+
 
 lemma subformula_conn_decomp[simp]:
-  "wf_conn c l \<Longrightarrow> \<phi> \<preceq> conn c l \<longleftrightarrow> (\<phi> = conn c l \<or> (\<exists> \<psi>\<in> set l. \<phi> \<preceq> \<psi>))"
-  apply auto
-proof -
+  assumes wf: "wf_conn c l"
+  shows "\<phi> \<preceq> conn c l \<longleftrightarrow> (\<phi> = conn c l \<or> (\<exists> \<psi>\<in> set l. \<phi> \<preceq> \<psi>))" (is "?A \<longleftrightarrow> ?B")
+proof (rule iffI)
   {
     fix \<xi>
     have "\<phi> \<preceq> \<xi> \<Longrightarrow> \<xi> = conn c l \<Longrightarrow> wf_conn c l \<Longrightarrow> \<forall>x::'a propo\<in>set l. \<not> \<phi> \<preceq> x \<Longrightarrow> \<phi> = conn c l"
@@ -352,12 +348,11 @@ proof -
         apply simp
       using conn_inj by blast
   }
-  moreover assume "wf_conn c l" and "\<phi> \<preceq> conn c l" and "\<forall>x::'a propo\<in>set l. \<not> \<phi> \<preceq> x"
-  ultimately show "\<phi> = conn c l" by metis
+  moreover assume ?A
+  ultimately show ?B using wf by metis
 next
-  fix \<psi>
-  assume "wf_conn c l" and "\<psi> \<in> set l" and "\<phi> \<preceq> \<psi>"
-  thus "\<phi> \<preceq> conn c l" using wf_subformula_conn_cases by blast
+  assume ?B
+  then show "\<phi> \<preceq> conn c l" using wf wf_subformula_conn_cases by blast
 qed
 
 lemma subformula_leaf_explicit[simp]:
@@ -367,7 +362,8 @@ lemma subformula_leaf_explicit[simp]:
   apply auto
   using subformula_leaf by metis +
 
-text \<open>The variables inside the formula gives precisely the variables that are needed for the formula.\<close>
+text \<open>The variables inside the formula gives precisely the variables that are needed for the
+  formula.\<close>
 primrec vars_of_prop:: "'v propo \<Rightarrow> 'v set" where
 "vars_of_prop FT = {}" |
 "vars_of_prop FF = {}" |
@@ -378,27 +374,26 @@ primrec vars_of_prop:: "'v propo \<Rightarrow> 'v set" where
 "vars_of_prop (FImp \<phi> \<psi>) = vars_of_prop \<phi> \<union> vars_of_prop \<psi>" |
 "vars_of_prop (FEq \<phi> \<psi>) = vars_of_prop \<phi> \<union> vars_of_prop \<psi>"
 
-
 lemma vars_of_prop_incl_conn:
   fixes \<xi> \<xi>' :: "'v propo list" and \<psi> :: "'v propo" and c :: "'v connective"
   assumes corr: "wf_conn c l" and incl: "\<psi> \<in> set l"
   shows "vars_of_prop \<psi> \<subseteq> vars_of_prop  (conn c l)"
 proof (cases c rule: connective_cases_arity_2)
   case nullary
-  hence False using corr incl by auto
-  thus "vars_of_prop \<psi> \<subseteq> vars_of_prop (conn c l)" by blast
+  then have False using corr incl by auto
+  then show "vars_of_prop \<psi> \<subseteq> vars_of_prop (conn c l)" by blast
 next
   case binary note c = this
   then obtain a b where ab: "l = [a, b]"
     using wf_conn_bin_list_length list_length2_decomp corr by metis
-  hence "\<psi> = a \<or> \<psi> = b" using incl by auto
-  thus "vars_of_prop \<psi> \<subseteq> vars_of_prop (conn c l)"
+  then have "\<psi> = a \<or> \<psi> = b" using incl by auto
+  then show "vars_of_prop \<psi> \<subseteq> vars_of_prop (conn c l)"
     using ab c unfolding binary_connectives_def by auto
 next
   case unary note c = this
   fix \<phi> :: "'v propo"
   have "l = [\<psi>]" using corr c incl split_list by force
-  thus "vars_of_prop \<psi> \<subseteq> vars_of_prop (conn c l)" using c by auto
+  then show "vars_of_prop \<psi> \<subseteq> vars_of_prop (conn c l)" using c by auto
 qed
 
 text \<open>The set of variables is compatible with the subformula order.\<close>
@@ -407,7 +402,6 @@ lemma subformula_vars_of_prop:
   apply (induct rule: subformula.induct)
   apply simp
   using vars_of_prop_incl_conn by blast
-
 
 
 subsection \<open>Positions\<close>
@@ -429,7 +423,6 @@ fun pos :: "'v propo \<Rightarrow> sign list set" where
 lemma finite_pos: "finite (pos \<phi>)"
   by (induct \<phi>, auto)
 
-
 lemma finite_inj_comp_set:
   fixes s :: "'v set"
   assumes finite: "finite s"
@@ -445,7 +438,7 @@ next
   have f': "finite {f p |p. p \<in> insert x s}" using f by auto
   have notin': "f x \<notin> {f p |p. p \<in> s}" using notin inj injD by fastforce
   have "{f p |p. p \<in> insert x s} = insert (f x) {f p |p. p\<in> s}" by auto
-  hence "card {f p |p. p \<in> insert x s} = 1 + card {f p |p. p \<in> s}"
+  then have "card {f p |p. p \<in> insert x s} = 1 + card {f p |p. p \<in> s}"
     using finite card_insert_disjoint f' notin' by auto
   moreover have "\<dots> =  card (insert x s)" using notin f IH by auto
   finally show "card {f p |p. p \<in> insert x s} = card (insert x s)" .
@@ -455,10 +448,9 @@ lemma cons_inject:
   "inj (op # s)"
   by (meson injI list.inject)
 
-
 lemma finite_insert_nil_cons:
   "finite s \<Longrightarrow> card (insert [] {L # p |p. p \<in> s}) = 1 + card {L # p |p. p \<in> s}"
-using card_insert_disjoint by auto
+  using card_insert_disjoint by auto
 
 
 lemma cord_not[simp]:
@@ -473,16 +465,15 @@ proof -
   have "finite ?L" using assms by auto
   moreover have "finite ?R" using assms by auto
   moreover have "?L \<inter> ?R = {}" by blast
-  ultimately show "?thesis" using assms card_Un_disjoint by blast
+  ultimately show ?thesis using assms card_Un_disjoint by blast
 qed
 
-
 definition prop_size where "prop_size \<phi> = card (pos \<phi>)"
-
 
 lemma prop_size_vars_of_prop:
   fixes \<phi> :: "'v propo"
   shows "card (vars_of_prop \<phi>) \<le> prop_size \<phi>"
+  (* TODO Tune proof *)
   unfolding prop_size_def apply (induct \<phi>, auto simp add: cons_inject finite_inj_comp_set finite_pos)
 proof -
   fix \<phi>1 \<phi>2 :: "'v propo"
@@ -495,7 +486,7 @@ proof -
   moreover have "\<dots> = card (pos \<phi>1) + card (pos \<phi>2)"
     by (simp add: cons_inject finite_inj_comp_set finite_pos)
   moreover have "\<dots> \<ge> card (vars_of_prop \<phi>1) + card (vars_of_prop \<phi>2)" using IH1 IH2 by arith
-  hence "\<dots> \<ge> card (vars_of_prop \<phi>1 \<union> vars_of_prop \<phi>2)" using card_Un_le le_trans by blast
+  then have "\<dots> \<ge> card (vars_of_prop \<phi>1 \<union> vars_of_prop \<phi>2)" using card_Un_le le_trans by blast
   ultimately
     show "card (vars_of_prop \<phi>1 \<union> vars_of_prop \<phi>2) \<le> Suc (card (?L \<union> ?R))"
          "card (vars_of_prop \<phi>1 \<union> vars_of_prop \<phi>2) \<le> Suc (card (?L \<union> ?R))"
@@ -504,25 +495,22 @@ proof -
     by auto
 qed
 
-
 value "pos (FImp (FAnd (FVar P) (FVar Q)) (FOr (FVar P) (FVar Q)))"
-
 
 inductive path_to :: "sign list \<Rightarrow> 'v propo \<Rightarrow> 'v propo \<Rightarrow> bool" where
 path_to_refl[intro]: "path_to [] \<phi> \<phi>" |
-path_to_l: "c\<in>binary_connectives \<or> c = CNot \<Longrightarrow> wf_conn c (\<phi>#l) \<Longrightarrow> path_to p \<phi> \<phi>'
-  \<Longrightarrow> path_to (L#p) (conn c (\<phi>#l)) \<phi>'" |
-path_to_r: "c\<in>binary_connectives \<Longrightarrow> wf_conn c (\<psi>#\<phi>#[]) \<Longrightarrow> path_to p \<phi> \<phi>'
-  \<Longrightarrow> path_to (R#p) (conn c (\<psi>#\<phi>#[])) \<phi>'"
-
+path_to_l: "c\<in>binary_connectives \<or> c = CNot \<Longrightarrow> wf_conn c (\<phi>#l) \<Longrightarrow> path_to p \<phi> \<phi>'\<Longrightarrow>
+  path_to (L#p) (conn c (\<phi>#l)) \<phi>'" |
+path_to_r: "c\<in>binary_connectives \<Longrightarrow> wf_conn c (\<psi>#\<phi>#[]) \<Longrightarrow> path_to p \<phi> \<phi>' \<Longrightarrow>
+  path_to (R#p) (conn c (\<psi>#\<phi>#[])) \<phi>'"
 
 text \<open>There is a deep link between subformulas and pathes: a (correct) path leads to a subformula
   and a subformula is associated to a given path.\<close>
 lemma path_to_subformula:
   "path_to p \<phi> \<phi>' \<Longrightarrow> \<phi>' \<preceq> \<phi>"
   apply (induct rule: path_to.induct)
-  apply simp
-  apply (metis list.set_intros(1) subformula_into_subformula)
+    apply simp
+   apply (metis list.set_intros(1) subformula_into_subformula)
   using subformula_trans subformula_in_binary_conn(2) by metis
 
 lemma subformula_path_exists:
@@ -531,7 +519,7 @@ lemma subformula_path_exists:
 proof (induct rule: subformula.induct)
   case subformula_refl
   have "path_to [] \<phi>' \<phi>'" by auto
-  thus "\<exists>p. path_to p \<phi>' \<phi>'" by metis
+  then show "\<exists>p. path_to p \<phi>' \<phi>'" by metis
 next
   case (subformula_into_subformula \<psi> l c)
   note wf = this(2) and IH = this(4) and \<psi> = this(1)
@@ -539,23 +527,23 @@ next
   {
     fix x :: "'v"
     assume "c = CT \<or> c = CF \<or> c = CVar x"
-    hence "False" using subformula_into_subformula by auto
-    hence "\<exists>p. path_to p (conn c l) \<phi>'" by blast
+    then have "False" using subformula_into_subformula by auto
+    then have "\<exists>p. path_to p (conn c l) \<phi>'" by blast
   }
   moreover {
     assume c: "c = CNot"
-    hence "l = [\<psi>]" using wf \<psi> wf_conn_Not_decomp by fastforce
-    hence "path_to (L # p) (conn c l) \<phi>'" by (metis c wf_conn_unary p path_to_l)
-   hence "\<exists>p. path_to p (conn c l) \<phi>'" by blast
+    then have "l = [\<psi>]" using wf \<psi> wf_conn_Not_decomp by fastforce
+    then have "path_to (L # p) (conn c l) \<phi>'" by (metis c wf_conn_unary p path_to_l)
+   then have "\<exists>p. path_to p (conn c l) \<phi>'" by blast
   }
   moreover {
     assume c: "c\<in> binary_connectives"
     obtain a b where ab: "[a, b] = l" using subformula_into_subformula c wf_conn_bin_list_length
       list_length2_decomp by metis
-    hence "a = \<psi> \<or> b = \<psi>" using \<psi> by auto
-    hence "path_to (L # p) (conn c l) \<phi>' \<or> path_to (R # p) (conn c l) \<phi>'" using c  path_to_l
+    then have "a = \<psi> \<or> b = \<psi>" using \<psi> by auto
+    then have "path_to (L # p) (conn c l) \<phi>' \<or> path_to (R # p) (conn c l) \<phi>'" using c  path_to_l
       path_to_r p ab by (metis wf_conn_binary)
-    hence "\<exists>p. path_to p (conn c l) \<phi>'" by blast
+    then have "\<exists>p. path_to p (conn c l) \<phi>'" by blast
   }
   ultimately show "\<exists>p. path_to p (conn c l) \<phi>'" using connective_cases_arity by metis
 qed
@@ -600,29 +588,29 @@ proof
     fix A
     text \<open>``Suppose that @{term \<phi>} entails @{term \<psi>} (assumption @{thm H}) and let @{term A} be an
       arbitrary @{typ "'v"}-valuation. We need to show @{term "A\<Turnstile> FImp \<phi> \<psi>"}.  ''\<close>
-
-
     {
-      text \<open>If @{term "A(\<phi>) = 1"}, then @{term "A(\<phi>) = 1"}, because @{term \<phi>} entails  @{term \<psi>}, and therefore @{term "A \<Turnstile> FImp \<phi> \<psi>"}.\<close>
+      text \<open>If @{term "A(\<phi>) = 1"}, then @{term "A(\<phi>) = 1"}, because @{term \<phi>} entails  @{term \<psi>},
+        and therefore @{term "A \<Turnstile> FImp \<phi> \<psi>"}.\<close>
       assume "A \<Turnstile> \<phi>"
-      hence "A \<Turnstile> \<psi>" using H unfolding evalf_def by metis
-      hence "A \<Turnstile> FImp \<phi> \<psi>" by auto
+      then have "A \<Turnstile> \<psi>" using H unfolding evalf_def by metis
+      then have "A \<Turnstile> FImp \<phi> \<psi>" by auto
     }
     moreover  {
-      text \<open>For otherwise, if @{term "A(\<phi>) = 0"}, then @{term "A\<Turnstile> FImp \<phi> \<psi>"} holds by definition, independently of the value of @{term "A \<Turnstile> \<psi>"}.\<close>
+      text \<open>For otherwise, if @{term "A(\<phi>) = 0"}, then @{term "A\<Turnstile> FImp \<phi> \<psi>"} holds by definition,
+        independently of the value of @{term "A \<Turnstile> \<psi>"}.\<close>
       assume "\<not> A \<Turnstile> \<phi>"
-      hence "A \<Turnstile> FImp \<phi> \<psi>" by auto
+      then have "A \<Turnstile> FImp \<phi> \<psi>" by auto
     }
     text \<open>In both cases @{term "A\<Turnstile> FImp \<phi> \<psi>"}.\<close>
     ultimately have "A\<Turnstile> FImp \<phi> \<psi>" by blast
   }
-  thus "\<forall>A. A \<Turnstile> FImp \<phi> \<psi>" by blast
+  then show "\<forall>A. A \<Turnstile> FImp \<phi> \<psi>" by blast
 next
   show "\<forall>A. A \<Turnstile> FImp \<phi> \<psi> \<Longrightarrow> \<phi> \<Turnstile>f \<psi> "
     proof (rule ccontr)
       assume "\<not>\<phi>\<Turnstile>f \<psi>"
       then obtain A where "A \<Turnstile> \<phi> \<and> \<not>A\<Turnstile>\<psi>" using evalf_def by metis
-      hence "\<not> A \<Turnstile> FImp \<phi> \<psi>" by auto
+      then have "\<not> A \<Turnstile> FImp \<phi> \<psi>" by auto
       moreover assume "\<forall>A. A \<Turnstile> FImp \<phi> \<psi>"
       ultimately show "False" by blast
     qed
@@ -635,7 +623,8 @@ lemma "\<phi> \<Turnstile>f \<psi> \<longleftrightarrow> (\<forall>A. A\<Turnsti
 definition same_over_set:: "('v \<Rightarrow> bool) \<Rightarrow>('v \<Rightarrow> bool) \<Rightarrow> 'v set \<Rightarrow> bool" where
 "same_over_set A B S = (\<forall>c\<in>S. A c = B c)"
 
-text \<open>If two mapping @{term A} and @{term B} have the same value over the variables, then the same formula are satisfiable.\<close>
+text \<open>If two mapping @{term A} and @{term B} have the same value over the variables, then the same
+  formula are satisfiable.\<close>
 lemma same_over_set_eval:
   assumes "same_over_set A B (vars_of_prop \<phi>)"
   shows "A \<Turnstile> \<phi> \<longleftrightarrow> B \<Turnstile> \<phi>"

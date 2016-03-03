@@ -3,7 +3,7 @@ imports Main
 begin
 
 section \<open>Various Lemmas\<close>
-text \<open>Close to @{thm nat_less_induct}, but with a separation between zero and non-zero, and case 
+text \<open>Close to @{thm nat_less_induct}, but with a separation between zero and non-zero, and case
   names.\<close>
 thm nat_less_induct
 lemma nat_less_induct_case[case_names 0 Suc]:
@@ -12,11 +12,10 @@ lemma nat_less_induct_case[case_names 0 Suc]:
     "\<And>n. (\<forall>m < Suc n. P m) \<Longrightarrow> P (Suc n)"
   shows "P n"
   apply (induction rule: nat_less_induct)
-  by (case_tac n) (auto intro: assms)
+  by (rename_tac n, case_tac n) (auto intro: assms)
 
-(* TODO Move. Mark as simp *)
 text \<open>This is only proved in simple cases by auto. In assumptions, nothing happens, and
-  @{thm split_if_asm} can blow up goals (because of other if expression).\<close>
+  @{thm if_split_asm} can blow up goals (because of other if expression).\<close>
 lemma if_0_1_ge_0[simp]:
   "0 < (if P then a else (0::nat)) \<longleftrightarrow> P \<and> 0 < a"
   by auto
@@ -54,7 +53,7 @@ lemma bounded_const_product:
    using mult_le_mono2 apply blast
   by (meson assms le_less_trans less_or_eq_imp_le nat_mult_less_cancel_disj split_div_lemma)
 
-text \<open>This lemma is not used, but here to show that a property that can be expected from 
+text \<open>This lemma is not used, but here to show that a property that can be expected from
   @{term bounded} holds.\<close>
 lemma bounded_finite_linorder:
   fixes f :: "'a \<Rightarrow> 'a ::{finite, linorder}"
@@ -62,14 +61,14 @@ lemma bounded_finite_linorder:
 proof -
   have "\<And>x. f x \<le> Max {f x|x. True}"
     by (metis (mono_tags) Max_ge finite mem_Collect_eq)
-  then show ?thesis 
+  then show ?thesis
     unfolding bounded_def by blast
 qed
 
 section \<open>More List\<close>
 
 subsection \<open>@{term upt}\<close>
-text \<open>The simplification rules are not very handy, because @{thm upt.simps(2)} leads to a case 
+text \<open>The simplification rules are not very handy, because @{thm upt.simps(2)} leads to a case
   distinction, that we do not want if the condition is not in the context.\<close>
 lemma upt_Suc_le_append: "\<not>i \<le> j \<Longrightarrow> [i..<Suc j] = []"
   by auto

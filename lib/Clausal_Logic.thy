@@ -178,7 +178,7 @@ lemma image_replicate_mset[simp]: "{#f A. A \<in># replicate_mset n A#} = replic
   by (induct n) (simp, subst replicate_mset_Suc, simp)
 
 lemma Max_in_lits: "C \<noteq> {#} \<Longrightarrow> Max (set_mset C) \<in># C"
-  by (rule Max_in[OF finite_set_mset, unfolded mem_set_mset_iff set_mset_eq_empty_iff])
+  by (rule Max_in[OF finite_set_mset, unfolded set_mset_eq_empty_iff])
 
 lemma Max_atm_of_set_mset_commute: "C \<noteq> {#} \<Longrightarrow> Max (atm_of ` set_mset C) = atm_of (Max (set_mset C))"
   by (rule mono_Max_commute[symmetric])
@@ -192,7 +192,7 @@ proof -
     using max by simp
   thus ?thesis
     using neg by (metis (no_types) ex_gt_imp_less_multiset Max_less_iff[OF finite_set_mset]
-      all_not_in_conv mem_set_mset_iff)
+      all_not_in_conv)
 qed
 
 lemma pos_Max_imp_neg_notin: "Max (set_mset C) = Pos A \<Longrightarrow> \<not> Neg A \<in># C"
@@ -204,9 +204,9 @@ proof (unfold le_multiset\<^sub>H\<^sub>O)
   from ne have "Max (set_mset C) \<in># C"
     by (fast intro: Max_in_lits)
   hence "\<exists>l. l \<in># D \<and> \<not> l < Max (set_mset C)"
-    using ex_gt by (metis not_less0 not_less_iff_gr_or_eq)
+    using ex_gt by (metis count_greater_zero_iff count_inI less_not_sym)
   hence "\<not> Max (set_mset D) < Max (set_mset C)"
-    by (metis Max.coboundedI[OF finite_set_mset] le_less_trans mem_set_mset_iff)
+    by (metis Max.coboundedI[OF finite_set_mset] le_less_trans)
   thus ?thesis
     by simp
 qed
@@ -220,6 +220,10 @@ lemma atms_of_empty[simp]: "atms_of {#} = {}"
 lemma atms_of_singleton[simp]: "atms_of {#L#} = {atm_of L}"
   unfolding atms_of_def by auto
 
+lemma atms_of_union_mset[simp]:
+  "atms_of (A #\<union> B) = atms_of A \<union> atms_of B"
+  unfolding atms_of_def by (auto simp: max_def split: if_split_asm)
+
 lemma finite_atms_of[iff]: "finite (atms_of C)"
   unfolding atms_of_def by simp
 
@@ -230,22 +234,25 @@ lemma atms_of_plus[simp]: "atms_of (C + D) = atms_of C \<union> atms_of D"
   unfolding atms_of_def image_def by auto
 
 lemma pos_lit_in_atms_of: "Pos A \<in># C \<Longrightarrow> A \<in> atms_of C"
-  unfolding atms_of_def by (metis image_iff literal.sel(1) mem_set_mset_iff)
+  unfolding atms_of_def by (metis image_iff literal.sel(1))
 
 lemma neg_lit_in_atms_of: "Neg A \<in># C \<Longrightarrow> A \<in> atms_of C"
-  unfolding atms_of_def by (metis image_iff literal.sel(2) mem_set_mset_iff)
+  unfolding atms_of_def by (metis image_iff literal.sel(2))
 
 lemma atm_imp_pos_or_neg_lit: "A \<in> atms_of C \<Longrightarrow> Pos A \<in># C \<or> Neg A \<in># C"
   unfolding atms_of_def image_def mem_Collect_eq
-  by (metis Neg_atm_of_iff Pos_atm_of_iff mem_set_mset_iff)
+  by (metis Neg_atm_of_iff Pos_atm_of_iff)
 
 lemma atm_iff_pos_or_neg_lit: "A \<in> atms_of L \<longleftrightarrow> Pos A \<in># L \<or> Neg A \<in># L"
   by (auto intro: pos_lit_in_atms_of neg_lit_in_atms_of dest: atm_imp_pos_or_neg_lit)
 
+lemma atm_of_eq_atm_of:
+  "atm_of L = atm_of L' \<longleftrightarrow> (L = L' \<or> L = -L')"
+  by (cases L; cases L') auto
+
 lemma atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set:
   "atm_of L \<in> atm_of ` I \<longleftrightarrow> (L \<in> I \<or> -L \<in> I)"
-  apply (auto intro: rev_image_eqI)
-  by (cases L; case_tac x) (auto intro: rev_image_eqI)
+  by (auto intro: rev_image_eqI simp: atm_of_eq_atm_of)
 
 lemma lits_subseteq_imp_atms_subseteq: "set_mset C \<subseteq> set_mset D \<Longrightarrow> atms_of C \<subseteq> atms_of D"
   unfolding atms_of_def by blast

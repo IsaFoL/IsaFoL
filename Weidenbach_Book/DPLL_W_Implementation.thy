@@ -50,7 +50,7 @@ proof -
     have "dpll\<^sub>W (Ms, mset (map mset N))
          (Propagated L () # fst (Ms, mset (map mset N)), snd (Ms, mset (map mset N)))"
       apply (rule dpll\<^sub>W.propagate)
-      using Ms undef C \<open>L \<in> set C\<close> unfolding mem_set_multiset_eq by (auto simp add: C)
+      using Ms undef C \<open>L \<in> set C\<close> by (auto simp add: C)
     hence ?thesis using Ms'N by auto
   }
   moreover
@@ -59,7 +59,7 @@ proof -
     then obtain C where C: "C \<in> set N" and Ms: "Ms \<Turnstile>as CNot (mset C)" by auto
     then obtain L M M' where bt: "backtrack_split Ms  = (M', L # M)"
       using step exC neq unfolding DPLL_step_def prod.case unit
-      by (cases "backtrack_split Ms", case_tac b) auto
+      by (cases "backtrack_split Ms", rename_tac b, case_tac b) auto
     hence "is_marked L" using backtrack_split_snd_hd_marked[of Ms] by auto
     have 1: "dpll\<^sub>W (Ms, mset (map mset N))
                   (Propagated (- lit_of L) () # M, snd (Ms, mset (map mset N)))"
@@ -177,7 +177,7 @@ function (domintros) DPLL_part:: "int dpll\<^sub>W_marked_lits \<Rightarrow> int
 
 lemma snd_DPLL_step[simp]:
   "snd (DPLL_step (Ms, N)) = N"
-  unfolding DPLL_step_def by (auto split: split_if option.splits prod.splits list.splits)
+  unfolding DPLL_step_def by (auto split: if_split option.splits prod.splits list.splits)
 
 lemma dpll\<^sub>W_all_inv_implieS_2_eq3_and_dom:
   assumes "dpll\<^sub>W_all_inv (Ms, mset (map mset N))"
@@ -186,9 +186,9 @@ lemma dpll\<^sub>W_all_inv_implieS_2_eq3_and_dom:
 proof (induct rule: DPLL_ci.induct)
   case (1 Ms N)
   have "snd (DPLL_step (Ms, N)) = N"  by auto
-  then obtain Ms' where Ms': "DPLL_step (Ms, N) = (Ms', N)" by (case_tac "DPLL_step (Ms, N)") auto
-  have inv': "dpll\<^sub>W_all_inv (toS Ms' N)" by (metis (mono_tags) "1.prems" DPLL_step_is_a_dpll\<^sub>W_step Ms'
-    dpll\<^sub>W_all_inv old.prod.inject)
+  then obtain Ms' where Ms': "DPLL_step (Ms, N) = (Ms', N)" by (cases "DPLL_step (Ms, N)") auto
+  have inv': "dpll\<^sub>W_all_inv (toS Ms' N)" by (metis (mono_tags) "1.prems" DPLL_step_is_a_dpll\<^sub>W_step 
+    Ms' dpll\<^sub>W_all_inv old.prod.inject)
   { assume "(Ms', N) \<noteq> (Ms, N)"
     hence "DPLL_ci Ms' N = DPLL_part Ms' N \<and> DPLL_part_dom (Ms', N)" using 1(1)[of _ Ms' N] Ms'
       1(2) inv' by auto
@@ -210,7 +210,7 @@ lemma DPLL_ci_dpll\<^sub>W_rtranclp:
   using assms
 proof (induct Ms N arbitrary: Ms' N' rule: DPLL_ci.induct)
   case (1 Ms N Ms' N') note IH = this(1) and step = this(2)
-  obtain S\<^sub>1 S\<^sub>2 where S: "(S\<^sub>1, S\<^sub>2) = DPLL_step (Ms, N)" by (case_tac "DPLL_step (Ms, N)") auto
+  obtain S\<^sub>1 S\<^sub>2 where S: "(S\<^sub>1, S\<^sub>2) = DPLL_step (Ms, N)" by (cases "DPLL_step (Ms, N)") auto
 
   { assume "\<not>dpll\<^sub>W_all_inv (toS Ms N)"
     hence "(Ms, N) = (Ms', N)" using step by auto
@@ -224,7 +224,7 @@ proof (induct Ms N arbitrary: Ms' N' rule: DPLL_ci.induct)
   moreover
   { assume "dpll\<^sub>W_all_inv (toS Ms N)"
     and "(S\<^sub>1, S\<^sub>2) \<noteq> (Ms, N)"
-    moreover obtain S\<^sub>1' S\<^sub>2' where "DPLL_ci S\<^sub>1 N = (S\<^sub>1', S\<^sub>2')" by (case_tac "DPLL_ci S\<^sub>1 N") auto
+    moreover obtain S\<^sub>1' S\<^sub>2' where "DPLL_ci S\<^sub>1 N = (S\<^sub>1', S\<^sub>2')" by (cases "DPLL_ci S\<^sub>1 N") auto
     moreover have "DPLL_ci Ms N = DPLL_ci S\<^sub>1 N" using DPLL_ci.simps[of Ms N] calculation
       proof -
         have "(case (S\<^sub>1, S\<^sub>2) of (ms, lss) \<Rightarrow>
@@ -265,7 +265,7 @@ proof  -
   have "DPLL_step (Ms, N) = (Ms, N)"
     proof (rule ccontr)
       obtain Ms' N' where Ms'N: "(Ms', N') = DPLL_step (Ms, N)"
-        by (case_tac "DPLL_step (Ms, N)") auto
+        by (cases "DPLL_step (Ms, N)") auto
       assume "\<not> ?thesis"
       hence "DPLL_ci Ms' N = (Ms, N)" using step inv st Ms'N[symmetric] by fastforce
       hence "dpll\<^sub>W\<^sup>+\<^sup>+ (toS Ms N) (toS Ms N)"

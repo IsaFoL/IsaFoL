@@ -152,8 +152,10 @@ using res_e proof (cases rule: ord_resolve.cases)
       using ma_in mc_lt_ma by simp
     ultimately have "Cf' #\<subset># negs AA"
       using cf'_lt_ma unfolding less_multiset\<^sub>H\<^sub>O
-      by (auto simp: cf'_ne_neg_aa intro!: exI[of _ "Neg max_A"])
-        (metis atm_of_lit_in_atms_of gr0I gr_implies_not0 less_literal_def literal.sel(2))
+      (* TODO tune proof *)
+      by (auto simp: cf'_ne_neg_aa not_in_iff intro!: exI[of _ "Neg max_A"])
+        (metis atms_less_eq_imp_lit_less_eq_neg count_inI dual_order.strict_implies_order 
+          gr_implies_not_zero order.not_eq_order_implies_strict)
     thus ?thesis
       unfolding e d by simp
   qed
@@ -295,10 +297,11 @@ proof -
   hence "\<And>A. A \<in># AA \<Longrightarrow> \<not> interp N (D_of A) \<Turnstile> D_of A"
     unfolding dd by auto 
   hence "\<And>A. A \<in># AA \<Longrightarrow> \<not> Interp N (D_of A) \<Turnstile> D'_of A"
-    unfolding prod_d0 d'_of Interp_def true_cls_def by (auto simp: true_lit_def simp del: not_gr0)
+    unfolding prod_d0 d'_of Interp_def true_cls_def 
+    by (auto simp: true_lit_def simp del: not_gr_zero)
   hence d'_at_n: "\<And>A. A \<in># AA \<Longrightarrow> \<not> INTERP N \<Turnstile> D'_of A"
     using a_max_d d'_le_d max_d'_lt_a false_Interp_imp_INTERP unfolding true_cls_def
-    by (metis count_empty true_lit_simps)
+    by (metis true_cls_def true_cls_empty)
   have "\<not> INTERP N \<Turnstile> Df'"
     unfolding df' true_cls_def by (auto dest!: d'_at_n)
   moreover have "\<not> INTERP N \<Turnstile> C'"
@@ -356,7 +359,7 @@ proof unfold_locales
   from res_e have "Infer DD C E \<in> ord_\<Gamma>"
     unfolding ord_\<Gamma>_def by blast
   thus "\<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> ord_\<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E #\<subset># C"
-    using dd_sset_n dd_true e_cex e_lt_c by fast
+    using dd_sset_n dd_true e_cex e_lt_c by blast
 next
   fix CC D E and I
   assume "Infer CC D E \<in> ord_\<Gamma>" and "I \<Turnstile>m CC" and "I \<Turnstile> D"

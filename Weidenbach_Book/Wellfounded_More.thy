@@ -5,7 +5,7 @@ begin
 
 section \<open>Transitions\<close>
 
-text \<open>This theory contains more facts about closure, the definition of full transformations, and 
+text \<open>This theory contains more facts about closure, the definition of full transformations, and
   well-foundedness.\<close>
 subsection \<open>More theorems about Closures\<close>
 

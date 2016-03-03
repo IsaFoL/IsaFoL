@@ -137,7 +137,7 @@ lemma produces_imp_atms_leq: "produces C A \<Longrightarrow> B \<in> atms_of C \
     singleton_inject)
 
 lemma produces_imp_neg_notin_lits: "produces C A \<Longrightarrow> \<not> Neg A \<in># C"
-  by (auto intro!: pos_Max_imp_neg_notin dest: producesD simp del: not_gr0)
+  by (rule pos_Max_imp_neg_notin) (auto dest: producesD)
 
 lemma less_eq_imp_interp_subseteq_interp: "C #\<subseteq># D \<Longrightarrow> interp C \<subseteq> interp D"
   unfolding interp_def by auto (metis multiset_order.order.strict_trans2)
@@ -191,7 +191,7 @@ proof -
   hence "D #\<subset># {#Neg A#}"
     by (auto intro: Max_pos_neg_less_multiset)
   moreover have "{#Neg A#} #\<subseteq># C"
-    by (rule less_eq_imp_le_multiset) (rule mset_le_single[OF a_in_c[unfolded mem_set_mset_iff]])
+    by (rule less_eq_imp_le_multiset) (rule mset_le_single[OF a_in_c])
   ultimately show ?thesis
     using d by (blast dest: less_eq_imp_interp_subseteq_interp less_imp_production_subseteq_interp)
 qed
@@ -302,12 +302,12 @@ proof -
   consider
     (P) "count C (Pos P) \<ge> 2"
   | (Q) Q where "Q > Pos P" and "Q \<in># C "
-    using HOL.spec[OF HOL.conjunct2[OF D'], of "Pos P"] by auto
+    using HOL.spec[OF HOL.conjunct2[OF D'], of "Pos P"] by (auto split: if_split_asm)
   thus ?thesis
     proof cases
       case Q
       have "Q \<in> set_mset C"
-        using Q(2) by (auto split: split_if_asm)
+        using Q(2) by (auto split: if_split_asm)
       then have "Max (set_mset C) > Pos P"
         using Q(1) Max_gr_iff by blast
       thus ?thesis
@@ -329,12 +329,12 @@ proof -
   consider
     (P) "Neg P \<in># D"
   | (Q) Q where "Q > Neg P" and "count D Q > count (C + {#Neg P#}) Q"
-    using HOL.spec[OF HOL.conjunct2[OF D'], of "Neg P"] by fastforce
+    using HOL.spec[OF HOL.conjunct2[OF D'], of "Neg P"] count_greater_zero_iff by fastforce
   thus ?thesis
     proof cases
       case Q
       have "Q \<in> set_mset D"
-        using Q(2) by (auto split: split_if_asm)
+        using Q(2) gr_implies_not0 by fastforce
       then have "Max (set_mset D) > Neg P"
         using Q(1) Max_gr_iff by blast
       hence "Max (set_mset D) > Pos P"
@@ -344,8 +344,7 @@ proof -
     next
       case P
       hence "Max (set_mset D) > Pos P"
-        by (meson Max_ge finite_set_mset le_less_trans linorder_not_le mem_set_mset_iff
-          pos_less_neg)
+        by (meson Max_ge finite_set_mset le_less_trans linorder_not_le pos_less_neg)
       thus ?thesis
         unfolding production_unfold by auto
     qed
@@ -530,7 +529,7 @@ proof (rule ccontr)
   consider
     (L) P where "L = Pos P" and "S D = {#}" and "Max (set_mset D) = Pos P"
   | (Lneg) P where "L = Neg P"
-    using LSD S_selects_neg_lits[of D L] by (cases L) auto
+    using LSD S_selects_neg_lits[of L D] by (cases L) auto
   thus False
     proof cases
       case L note P = this(1) and S = this(2) and max = this(3)
@@ -538,7 +537,7 @@ proof (rule ccontr)
         proof (rule ccontr)
           assume "~ ?thesis"
           hence count: "count D L = 1"
-            unfolding D by auto
+            unfolding D by (auto simp: not_in_iff)
           have "\<not>?N\<^sub>\<I>\<Turnstile>h D"
             using not_d_interp true_interp_imp_INTERP ground_resolution_with_selection_axioms
               by blast
@@ -553,9 +552,10 @@ proof (rule ccontr)
           thus False
             using not_d_interp by blast
         qed
+      then have "Pos P \<in># C"
+        by (simp add: P D)
       then obtain C' where C':"D = C' + {#Pos P#} + {#Pos P#}"
-        unfolding D by (metis P add.left_neutral add_less_cancel_right count_single count_union
-          multi_member_split)
+        unfolding D by (metis (full_types) P insert_DiffM2)
       have sup: "superposition_rules D D (D - {#L#})"
         unfolding C' L by (auto simp add: superposition_rules.simps)
       have "C' + {#Pos P#}  #\<subset># C' + {#Pos P#} + {#Pos P#}"
@@ -580,7 +580,7 @@ proof (rule ccontr)
     next
       case Lneg note L = this(1)
       have "P \<in> ?N\<^sub>\<I>"
-        using not_d_interp unfolding D true_cls_def L by (auto split: split_if_asm)
+        using not_d_interp unfolding D true_cls_def L by (auto split: if_split_asm)
       then obtain E where
         DPN: "E + {#Pos P#} \<in> N" and
         prod: "production N (E + {#Pos P#}) = {P}"
@@ -599,29 +599,27 @@ proof (rule ccontr)
         using prod produces_imp_neg_notin_lits by force
       hence "\<And>y. y \<in># (E + {#Pos P#})
         \<Longrightarrow> count (E + {#Pos P#}) (Neg P) < count (C + {#Neg P#}) (Neg P)"
-        by (auto split: split_if_asm)
-      moreover have "\<And>y. y \<in># (E + {#Pos P#}) \<Longrightarrow> y < Neg P"
-        using PMax by (metis DPN Max_less_iff empty finite_set_mset mem_set_mset_iff pos_less_neg
+        using count_greater_zero_iff by fastforce
+      moreover have  "\<And>y. y \<in># (E + {#Pos P#}) \<Longrightarrow> y < Neg P"
+        using PMax by (metis DPN Max_less_iff empty finite_set_mset pos_less_neg
           set_mset_eq_empty_iff)
       moreover have "E + {#Pos P#} \<noteq> C + {#Neg P#}"
         using prod produces_imp_neg_notin_lits by force
       ultimately have "E + {#Pos P#} #\<subset># C + {#Neg P#}"
-        unfolding less_multiset\<^sub>H\<^sub>O by (metis add.left_neutral add_lessD1)
+        unfolding less_multiset\<^sub>H\<^sub>O by (metis count_greater_zero_iff less_iff_Suc_add zero_less_Suc)
       have ce_lt_d: "C + E #\<subset># D"
-        unfolding D L
-        by (metis (mono_tags, lifting) Max_pos_neg_less_multiset One_nat_def PMax count_single
-          less_multiset_plus_right_nonempty mult_less_trans single_not_empty union_less_mono2
-          zero_less_Suc)
+        unfolding D L by (simp add: \<open>\<And>y. y \<in># E + {#Pos P#} \<Longrightarrow> y < Neg P\<close> ex_gt_imp_less_multiset)
       have "?N\<^sub>\<I> \<Turnstile>h E + {#Pos P#}"
         using \<open>P \<in> ?N\<^sub>\<I>\<close> by blast
       have "?N\<^sub>\<I> \<Turnstile>h C+E \<or> C+E \<notin> N"
         using ce_lt_d cls_not_D unfolding D_def by fastforce
       have "Pos P \<notin># C+E"
         using D \<open>P \<in> ground_resolution_with_selection.INTERP S N\<close>
-          \<open>count (E + {#Pos P#}) (Pos P) \<le> 1\<close> multi_member_skip not_d_interp by auto
+          \<open>count (E + {#Pos P#}) (Pos P) \<le> 1\<close> multi_member_skip not_d_interp
+          by (auto simp: not_in_iff)
       hence "\<And>y. y \<in># C+E
         \<Longrightarrow> count (C+E) (Pos P) < count (E + {#Pos P#}) (Pos P)"
-        by (auto split: split_if_asm)
+        using set_mset_def by fastforce
 (*       moreover
         have "Pos P \<notin># E"
           using `Pos P \<notin># C + E` by auto

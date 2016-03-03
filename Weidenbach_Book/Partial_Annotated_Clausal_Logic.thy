@@ -21,7 +21,7 @@ lemma marked_lit_list_induct[case_names nil marked proped]:
   "\<And>L m xs. P xs \<Longrightarrow> P (Propagated L m # xs)"
   shows "P xs"
   using assms apply (induction xs, simp)
-  by (case_tac a) auto
+  by (rename_tac a xs, case_tac a) auto
 
 lemma is_marked_ex_Marked:
   "is_marked L \<Longrightarrow> \<exists>K lvl. L = Marked K lvl"
@@ -52,14 +52,12 @@ lemma lits_of_rev[simp]: "lits_of (rev M) = lits_of M"
 lemma set_map_lit_of_lits_of[simp]:
   "set (map lit_of T) = lits_of T"
   unfolding lits_of_def by auto
-(* TODO introduce unmark
 
 abbreviation unmark where
 "unmark M \<equiv> (\<lambda>a. {#lit_of a#}) ` set M"
 
-*)
 lemma atms_of_ms_lambda_lit_of_is_atm_of_lit_of[simp]:
-  "atms_of_ms ((\<lambda>a. {#lit_of a#}) ` set M') = atm_of ` lits_of M'"
+  "atms_of_ms (unmark M') = atm_of ` lits_of M'"
   unfolding atms_of_ms_def lits_of_def by auto
 
 lemma lits_of_empty_is_empty[iff]:
@@ -124,7 +122,7 @@ lemma true_annot_lit_of_notin_skip:
   unfolding true_annot_def true_cls_def by auto
 
 lemma true_clss_singleton_lit_of_implies_incl:
-  "I \<Turnstile>s (\<lambda>a. {#lit_of a#}) ` set MLs \<Longrightarrow> lits_of MLs \<subseteq> I"
+  "I \<Turnstile>s unmark MLs \<Longrightarrow> lits_of MLs \<subseteq> I"
   unfolding true_clss_def lits_of_def by auto
 
 lemma true_annot_true_clss_cls:
@@ -150,7 +148,7 @@ lemma true_annot_singleton[iff]: "M \<Turnstile>a {#L#} \<longleftrightarrow> L 
   unfolding true_annot_def lits_of_def by auto
 
 lemma true_annots_true_clss_clss:
-  "A \<Turnstile>as \<Psi> \<Longrightarrow> (\<lambda>a. {#lit_of a#}) ` set A \<Turnstile>ps \<Psi>"
+  "A \<Turnstile>as \<Psi> \<Longrightarrow> unmark A \<Turnstile>ps \<Psi>"
   unfolding true_clss_clss_def true_annots_def true_clss_def
   by (auto
     dest!: true_clss_singleton_lit_of_implies_incl
@@ -198,7 +196,7 @@ lemma atm_imp_marked_or_proped:
 lemma literal_is_lit_of_marked:
   assumes "L = lit_of x"
   shows "(\<exists>l. x = Marked L l) \<or> (\<exists>l'. x = Propagated L l')"
-  using assms by (case_tac x) auto
+  using assms by (cases x) auto
 
 lemma true_annot_iff_marked_or_true_lit:
   "defined_lit I L \<longleftrightarrow> ((lits_of I) \<Turnstile>l L \<or> (lits_of I) \<Turnstile>l -L)"
@@ -221,7 +219,7 @@ lemma defined_lit_uminus[iff]:
 lemma Marked_Propagated_in_iff_in_lits_of:
   "defined_lit I L \<longleftrightarrow> (L \<in> lits_of I \<or> -L \<in> lits_of I)"
   unfolding lits_of_def defined_lit_def
-  by (auto simp add: rev_image_eqI) (case_tac x, auto)+
+  by (auto simp: rev_image_eqI) (rename_tac x, case_tac x, auto)+
 
 lemma consistent_add_undefined_lit_consistent[simp]:
   assumes
@@ -309,7 +307,7 @@ lemma get_all_marked_decomposition_never_empty[iff]:
 *)
 lemma get_all_marked_decomposition_never_empty[iff]:
   "get_all_marked_decomposition M = [] \<longleftrightarrow> False"
-  by (induct M, simp) (case_tac a, auto)
+  by (induct M, simp) (rename_tac a xs, case_tac a, auto)
 
 lemma get_all_marked_decomposition_never_empty_sym[iff]:
   "[] = get_all_marked_decomposition M \<longleftrightarrow> False"
@@ -370,7 +368,7 @@ lemma get_all_marked_decomposition_snd_not_marked:
   and "L \<in> set b"
   shows "\<not>is_marked L"
   using assms apply (induct M arbitrary: a b rule: marked_lit_list_induct, simp)
-  by (case_tac "get_all_marked_decomposition xs"; fastforce)+
+  by (rename_tac L' l xs a b, case_tac "get_all_marked_decomposition xs"; fastforce)+
 
 lemma tl_get_all_marked_decomposition_skip_some:
   assumes "x \<in> set (tl (get_all_marked_decomposition M1))"
@@ -430,7 +428,7 @@ lemma in_get_all_marked_decomposition_in_get_all_marked_decomposition_prepend:
   apply (induction M rule: marked_lit_list_induct)
     apply (metis append_Nil)
    apply auto[]
-  by (case_tac "get_all_marked_decomposition (xs @ M')") auto
+  by (rename_tac L' m xs, case_tac "get_all_marked_decomposition (xs @ M')") auto
 
 lemma get_all_marked_decomposition_remove_unmarked_length:
   assumes "\<forall>l \<in> set M'. \<not>is_marked l"
@@ -486,7 +484,7 @@ lemma get_all_marked_decomposition_exists_prepend[dest]:
   shows "\<exists>c. M = c @ b @ a"
   using assms apply (induct M rule: marked_lit_list_induct)
     apply simp
-  by (case_tac "get_all_marked_decomposition xs";
+  by (rename_tac L' m xs, case_tac "get_all_marked_decomposition xs";
     auto dest!: arg_cong[of "get_all_marked_decomposition _" _ hd]
       get_all_marked_decomposition_decomp)+
 
@@ -500,7 +498,7 @@ lemma get_all_marked_decomposition_exists_prepend':
   obtains c where "M = c @ b @ a"
   using assms apply (induct M rule: marked_lit_list_induct)
     apply auto[1]
-  by (case_tac "hd (get_all_marked_decomposition xs)",
+  by (rename_tac L' m xs, case_tac "hd (get_all_marked_decomposition xs)",
     auto dest!: get_all_marked_decomposition_decomp simp add: list.set_sel(2))+
 
 lemma union_in_get_all_marked_decomposition_is_subset:
@@ -512,14 +510,14 @@ lemma union_in_get_all_marked_decomposition_is_subset:
 definition all_decomposition_implies :: "'a literal multiset set
   \<Rightarrow> (('a, 'l, 'm) marked_lit list \<times> ('a, 'l, 'm) marked_lit list) list \<Rightarrow> bool" where
  "all_decomposition_implies N S
-   \<longleftrightarrow> (\<forall>(Ls, seen) \<in> set S. (\<lambda>a. {#lit_of a#}) ` set Ls \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen)"
+   \<longleftrightarrow> (\<forall>(Ls, seen) \<in> set S. unmark Ls \<union> N \<Turnstile>ps unmark seen)"
 
 lemma all_decomposition_implies_empty[iff]:
   "all_decomposition_implies N []" unfolding all_decomposition_implies_def by auto
 
 lemma all_decomposition_implies_single[iff]:
   "all_decomposition_implies N [(Ls, seen)]
-    \<longleftrightarrow> (\<lambda>a. {#lit_of a#}) ` set Ls \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen"
+    \<longleftrightarrow> unmark Ls \<union> N \<Turnstile>ps unmark seen"
   unfolding all_decomposition_implies_def by auto
 
 lemma all_decomposition_implies_append[iff]:
@@ -534,7 +532,7 @@ lemma all_decomposition_implies_cons_pair[iff]:
 
 lemma all_decomposition_implies_cons_single[iff]:
   "all_decomposition_implies N (l # S') \<longleftrightarrow>
-    ((\<lambda>a. {#lit_of a#}) ` set (fst l) \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (snd l) \<and>
+    (unmark (fst l) \<union> N \<Turnstile>ps unmark (snd l) \<and>
       all_decomposition_implies N S')"
   unfolding all_decomposition_implies_def by auto
 
@@ -551,7 +549,7 @@ next
   {
     assume "length (get_all_marked_decomposition M) \<le> 1"
     then obtain a b where g: "get_all_marked_decomposition M = (a, b) # []"
-      by (case_tac "get_all_marked_decomposition M") auto
+      by (cases "get_all_marked_decomposition M") auto
     moreover {
       assume "a = []"
       hence ?case using Suc.prems g by auto
@@ -559,7 +557,7 @@ next
     moreover {
       assume l: "length a = 1" and m: "is_marked (hd a)" and hd: "hd a \<in> set M"
       hence "(\<lambda>a. {#lit_of a#}) (hd a) \<in> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}" by auto
-      hence H: "(\<lambda>a. {#lit_of a#}) ` set a \<union> N \<subseteq> N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"
+      hence H: "unmark a \<union> N \<subseteq> N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"
         using l by (cases a) auto
       have f1: "(\<lambda>m. {#lit_of m#}) ` set a \<union> N \<Turnstile>ps (\<lambda>m. {#lit_of m#}) ` set b"
         using Suc.prems unfolding all_decomposition_implies_def g by simp
@@ -576,7 +574,7 @@ next
       M'_in_M: "set M' \<subseteq> set M"
       using length apply (induct M)
         apply simp
-      by (case_tac a, case_tac "hd (get_all_marked_decomposition M)")
+      by (rename_tac a M, case_tac a, case_tac "hd (get_all_marked_decomposition M)")
          (auto simp add: subset_insertI2)
     {
       assume "n = 0"
@@ -586,7 +584,7 @@ next
     moreover {
       assume n: "n > 0"
       then obtain Ls1 seen1 l where Ls1: "get_all_marked_decomposition M' = (Ls1, seen1) # l"
-        using length' by (induct M', simp) (case_tac a, auto)
+        using length' by (induct M', simp) (rename_tac a xs, case_tac a, auto)
 
       have "all_decomposition_implies N (get_all_marked_decomposition M')"
         using Suc.prems unfolding Ls0 all_decomposition_implies_def by auto
@@ -626,29 +624,29 @@ next
               (\<lambda>a. {#lit_of a#}) ` (\<Union>(set ` snd ` set (get_all_marked_decomposition M'))
                  \<union> {L |L. is_marked L \<and> L \<in> set M'})"
         unfolding l using N by (auto simp add: all_in_true_clss_clss)
-      hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl Ls0)"
+      hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'} \<Turnstile>ps unmark (tl Ls0)"
         using M' unfolding LS LSM  by auto
       hence t: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M'}
-        \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl Ls0)"
+        \<Turnstile>ps unmark (tl Ls0)"
         by (blast intro: all_in_true_clss_clss)
       hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}
-        \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set (tl Ls0)"
+        \<Turnstile>ps unmark (tl Ls0)"
         using M'_in_M true_clss_clss_subset[OF _ t,
           of "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"]
         by auto
-      hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set Ls0"
-        using hd_Ls0 by (case_tac Ls0, auto)
+      hence "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps unmark Ls0"
+        using hd_Ls0 by (cases Ls0, auto)
 
-      moreover have "(\<lambda>a. {#lit_of a#}) ` set Ls0 \<union> N \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen0"
+      moreover have "unmark Ls0 \<union> N \<Turnstile>ps unmark seen0"
         using Suc.prems unfolding Ls0 all_decomposition_implies_def by simp
       moreover have "\<And>M Ma. (M::'a literal multiset set) \<union> Ma \<Turnstile>ps M"
         by (simp add: all_in_true_clss_clss)
       ultimately have \<Psi>: "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps
-          (\<lambda>a. {#lit_of a#}) ` set seen0"
+          unmark seen0"
         by (meson true_clss_clss_left_right true_clss_clss_union_and true_clss_clss_union_l_r)
       have "(\<lambda>a. {#lit_of a#})`(set seen0
            \<union> (\<Union>x\<in>set (get_all_marked_decomposition M'). set (snd x)))
-         = (\<lambda>a. {#lit_of a#}) ` set seen0
+         = unmark seen0
             \<union> (\<lambda>a. {#lit_of a#}) ` (\<Union>x\<in>set (get_all_marked_decomposition M'). set (snd x))"
         by auto
 
@@ -661,7 +659,7 @@ qed
 
 lemma all_decomposition_implies_propagated_lits_are_implied:
   assumes "all_decomposition_implies N (get_all_marked_decomposition M)"
-  shows "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M"
+  shows "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps unmark M"
     (is "?I \<Turnstile>ps ?A")
 proof -
   have "?I \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` {L |L. is_marked L \<and> L \<in> set M}"
@@ -721,7 +719,7 @@ lemma total_not_true_cls_true_clss_CNot:
   shows "I \<Turnstile>s CNot \<phi>"
   using assms unfolding total_over_m_def total_over_set_def true_clss_def true_cls_def CNot_def
     apply clarify
-  by (case_tac L) (force intro: pos_lit_in_atms_of neg_lit_in_atms_of)+
+  by (rename_tac x L, case_tac L) (force intro: pos_lit_in_atms_of neg_lit_in_atms_of)+
 
 lemma total_not_CNot:
   assumes "total_over_m I {\<phi>}" and "\<not>I \<Turnstile>s CNot \<phi>"
@@ -863,7 +861,7 @@ proof (clarify, rule ccontr)
     using atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set by metis
   hence "L \<in> lits_of A" using \<open> \<not> lits_of A \<Turnstile>l - L\<close> by auto
   thus False
-    using LB assms(2) unfolding true_annot_def true_lit_def true_cls_def Bex_mset_def
+    using LB assms(2) unfolding true_annot_def true_lit_def true_cls_def Bex_def
     by blast
 qed
 
@@ -918,7 +916,7 @@ proof -
     hence "- lit_of L \<notin> lits_of M" unfolding lits_of_def
       by (metis (no_types) atm_of_uminus imageI)
   ultimately have "\<forall> l \<in># A. -l \<in> lits_of M"
-    using assms(2) unfolding Ball_mset_def by (metis insertE lits_of_cons uminus_of_uminus_id)
+    using assms(2) unfolding Ball_def by (metis insertE lits_of_cons uminus_of_uminus_id)
   thus ?thesis by (auto simp add: true_annots_def)
 qed
 

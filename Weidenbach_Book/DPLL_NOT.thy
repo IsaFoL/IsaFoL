@@ -52,17 +52,17 @@ proof -
   moreover
     have "set_mset N \<union> ?C' \<Turnstile>ps {{#}}"
       proof -
-        have A: "set_mset N \<union> ?C' \<union> (\<lambda>a. {#lit_of a#}) ` set M  =
-          set_mset  N \<union> (\<lambda>a. {#lit_of a#}) ` set M"
+        have A: "set_mset N \<union> ?C' \<union> unmark M  =
+          set_mset  N \<union> unmark M"
           unfolding M L by auto
         have "set_mset  N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}
-            \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M"
+            \<Turnstile>ps unmark M"
           using all_decomposition_implies_propagated_lits_are_implied[OF decomp] .
         moreover have C': "?C' = {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"
           unfolding M L apply standard
             apply force
           using IntI by auto
-        ultimately have N_C_M: "set_mset N \<union> ?C' \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M"
+        ultimately have N_C_M: "set_mset N \<union> ?C' \<Turnstile>ps unmark M"
           by auto
         have "set_mset N \<union> (\<lambda>L. {#lit_of L#}) ` (set M) \<Turnstile>ps {{#}}"
           unfolding true_clss_clss_def
@@ -89,36 +89,33 @@ proof -
           "I \<Turnstile>sm N"
         have "(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)"
           using cons tot unfolding consistent_interp_def L by (cases K) auto
-        have "total_over_set I (atm_of ` lit_of ` (set M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}))"
-          using tot by (auto simp add: L atms_of_uminus_lit_atm_of_lit_of)
+        have tI: "total_over_set I (atm_of ` lit_of ` (set M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}))"
+          using tot by (auto simp: L atms_of_uminus_lit_atm_of_lit_of Int_def)
 
         then have H: "\<And>x.
             lit_of x \<notin> I \<Longrightarrow> x \<in> set M \<Longrightarrow>is_marked x
             \<Longrightarrow> x \<noteq> Marked K d \<Longrightarrow> -lit_of x \<in> I"
-            (* TODO one-liner? *)
-          unfolding total_over_set_def atms_of_s_def
           proof -
             fix x :: "('v, unit, unit) marked_lit"
-            assume a1: "x \<in> set M"
-            assume a2: "\<forall>l\<in>atm_of ` lit_of ` (set M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}).
-              Pos l \<in> I \<or> Neg l \<in> I"
-            assume a3: "lit_of x \<notin> I"
-            assume a4: "is_marked x"
-            assume a5: "x \<noteq> Marked K d"
-            have f6: "Neg (atm_of (lit_of x)) = - Pos (atm_of (lit_of x))"
-              by simp
-            have "Pos (atm_of (lit_of x)) \<in> I \<or> Neg (atm_of (lit_of x)) \<in> I"
-              using a5 a4 a2 a1 by blast
+            assume a1: "x \<noteq> Marked K d"
+            assume a2: "is_marked x"
+            assume a3: "x \<in> set M"
+            assume a4: "lit_of x \<notin> I"
+            have "atm_of (lit_of x) \<in> atm_of ` lit_of `
+              (set M \<inter> {m. is_marked m \<and> m \<noteq> Marked K d})"
+              using a3 a2 a1 by blast
+            then have "Pos (atm_of (lit_of x)) \<in> I \<or> Neg (atm_of (lit_of x)) \<in> I"
+              using tI unfolding total_over_set_def by blast
             then show "- lit_of x \<in> I"
-              using f6 a3 by (metis (no_types) atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
-                literal.sel(1))
+              using a4 by (metis (no_types) atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+                literal.sel(1,2))
           qed
         have "\<not>I \<Turnstile>s ?C'"
           using \<open>set_mset N \<union> ?C' \<Turnstile>ps {{#}}\<close> tot cons \<open>I \<Turnstile>sm N\<close>
           unfolding true_clss_clss_def total_over_m_def
           by (simp add: atms_of_uminus_lit_atm_of_lit_of atms_of_ms_single_image_atm_of_lit_of)
         then show "I \<Turnstile> image_mset uminus ?C + {#- lit_of L#}"
-          unfolding true_clss_def true_cls_def Bex_mset_def
+          unfolding true_clss_def true_cls_def Bex_def
           using \<open>(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)\<close>
           unfolding L by (auto dest!: H)
       qed
@@ -151,7 +148,7 @@ sublocale dpll_state fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (
   by unfold_locales auto
 
 sublocale backjumping_ops fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
-  "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset C N)" "\<lambda>_ _ S T. backtrack S T"
+  "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset C N)" "\<lambda>_ _ _ S T. backtrack S T"
   by unfold_locales
 
 lemma backtrack_is_backjump'':
@@ -198,14 +195,14 @@ end
 sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset C N)" "\<lambda>_ _. True"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
-  "(\<lambda>_ _ S T. backtrack S T)"
+  "\<lambda>_ _ _ S T. backtrack S T"
   by unfold_locales (metis (mono_tags, lifting) dpll_with_backtrack.backtrack_is_backjump''
    dpll_with_backtrack.can_do_bt_step prod.case_eq_if comp_apply)
 
 sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset C N)" "\<lambda>_ _. True"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
-  "(\<lambda>_ _ S T. backtrack S T)"
+  "\<lambda>_ _ _ S T. backtrack S T"
   apply unfold_locales
   using dpll_bj_no_dup dpll_bj_all_decomposition_implies_inv apply fastforce
   done
@@ -214,16 +211,16 @@ sublocale dpll_with_backtrack \<subseteq> conflict_driven_clause_learning_ops
   fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset C N)" "\<lambda>_ _. True"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
-  "(\<lambda>_ _ S T. backtrack S T)" "\<lambda>_ _. False" "\<lambda>_ _. False"
+  "\<lambda>_ _ _ S T. backtrack S T" "\<lambda>_ _. False" "\<lambda>_ _. False"
   by unfold_locales
 
 sublocale dpll_with_backtrack \<subseteq> conflict_driven_clause_learning
   fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, remove_mset C N)" "\<lambda>_ _. True"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
-  "(\<lambda>_ _ S T. backtrack S T)" "\<lambda>_ _. False" "\<lambda>_ _. False"
+  "\<lambda>_ _ _ S T. backtrack S T" "\<lambda>_ _. False" "\<lambda>_ _. False"
   apply unfold_locales
-  using cdcl\<^sub>N\<^sub>O\<^sub>T.simps dpll_bj_inv forgetE learnE by blast
+  using cdcl\<^sub>N\<^sub>O\<^sub>T.simps dpll_bj_inv forget\<^sub>N\<^sub>O\<^sub>TE learn\<^sub>N\<^sub>O\<^sub>TE by blast
 
 context dpll_with_backtrack
 begin
@@ -286,8 +283,8 @@ begin
         apply (smt dpll_bj_all_decomposition_implies_inv dpll_bj_atms_in_trail_in_set
           dpll_bj_clauses dpll_bj_no_dup prod.case_eq_if)
        apply (rule dpll_bj_trail_mes_decreasing_prop; auto)
-      apply (case_tac T, simp)
-     apply (case_tac U, simp)
+      apply (rename_tac A T U, case_tac T, simp)
+     apply (rename_tac A T U, case_tac U, simp)
     using dpll_bj_clauses dpll_bj_all_decomposition_implies_inv dpll_bj_no_dup by fastforce+
 end
 

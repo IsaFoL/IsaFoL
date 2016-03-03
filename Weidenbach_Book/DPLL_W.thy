@@ -113,39 +113,39 @@ next
   moreover {
     assume n: "get_all_marked_decomposition (trail S) \<noteq> []"
     have 1: "\<And>a b. (a, b) \<in> set (tl (get_all_marked_decomposition (trail S)))
-      \<Longrightarrow> ((\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (clauses S)) \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set b"
+      \<Longrightarrow> (unmark a \<union> set_mset (clauses S)) \<Turnstile>ps unmark b"
       using IH unfolding all_decomposition_implies_def by (fastforce simp add: list.set_sel(2) n)
     moreover have 2: "\<And>a c. hd (get_all_marked_decomposition (trail S)) = (a, c)
-      \<Longrightarrow> ((\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (clauses S)) \<Turnstile>ps ((\<lambda>a. {#lit_of a#}) ` set c)"
+      \<Longrightarrow> (unmark a \<union> set_mset (clauses S)) \<Turnstile>ps (unmark c)"
       by (metis IH all_decomposition_implies_cons_pair all_decomposition_implies_single
         list.collapse n)
     moreover have 3: "\<And>a c. hd (get_all_marked_decomposition (trail S)) = (a, c)
-      \<Longrightarrow> ((\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (clauses S)) \<Turnstile>p {#L#}"
+      \<Longrightarrow> (unmark a \<union> set_mset (clauses S)) \<Turnstile>p {#L#}"
       proof -
         fix a c
         assume h: "hd (get_all_marked_decomposition (trail S)) = (a, c)"
         have h': "trail S = c @ a" using get_all_marked_decomposition_decomp h by blast
         have I: "set (map (\<lambda>a. {#lit_of a#})  a) \<union> set_mset (clauses S)
-          \<union> (\<lambda>a. {#lit_of a#}) ` set c \<Turnstile>ps CNot C"
+          \<union> unmark c \<Turnstile>ps CNot C"
           using \<open>?I \<Turnstile>ps CNot C\<close> unfolding h' by (simp add: Un_commute Un_left_commute)
         have
           "atms_of_ms (CNot C) \<subseteq> atms_of_ms (set (map (\<lambda>a. {#lit_of a#}) a) \<union> set_mset (clauses S))"
             and
-          "atms_of_ms ((\<lambda>a. {#lit_of a#}) ` set c) \<subseteq> atms_of_ms (set (map (\<lambda>a. {#lit_of a#}) a)
+          "atms_of_ms (unmark c) \<subseteq> atms_of_ms (set (map (\<lambda>a. {#lit_of a#}) a)
             \<union> set_mset (clauses S))"
             apply (metis CNot_plus Un_subset_iff atms_of_atms_of_ms_mono atms_of_ms_CNot_atms_of
-             atms_of_ms_union inS mem_set_mset_iff sup.coboundedI2)
+             atms_of_ms_union inS sup.coboundedI2)
           using inS atms_of_atms_of_ms_mono atms_incl by (fastforce simp: h')
 
-        then have "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (clauses S) \<Turnstile>ps CNot C"
+        then have "unmark a \<union> set_mset (clauses S) \<Turnstile>ps CNot C"
           using true_clss_clss_left_right[OF _ I] h "2" by auto
-        then show "(\<lambda>a. {#lit_of a#}) ` set a \<union> set_mset (clauses S) \<Turnstile>p {#L#}"
-          by (metis (no_types) Un_insert_right inS insertI1 mk_disjoint_insert inS mem_set_mset_iff
+        then show "unmark a \<union> set_mset (clauses S) \<Turnstile>p {#L#}"
+          by (metis (no_types) Un_insert_right inS insertI1 mk_disjoint_insert inS
             true_clss_cls_in true_clss_cls_plus_CNot)
       qed
     ultimately have ?case
-      by (case_tac "hd (get_all_marked_decomposition (trail S))")
-         (auto simp add: all_decomposition_implies_def)
+      by (cases "hd (get_all_marked_decomposition (trail S))")
+         (auto simp: all_decomposition_implies_def)
   }
   ultimately show ?case by auto
 next
@@ -159,13 +159,13 @@ next
   then have "all_decomposition_implies_m (clauses S) ((L # M, M')
            # tl (get_all_marked_decomposition (trail S)))"
     by (metis (no_types) IH extracted get_all_marked_decomposition_backtrack_split list.exhaust_sel)
-  then have 1: "(\<lambda>a. {#lit_of a#}) ` set (L # M) \<union> set_mset (clauses S) \<Turnstile>ps(\<lambda>a.{#lit_of a#}) ` set M'"
+  then have 1: "unmark (L # M) \<union> set_mset (clauses S) \<Turnstile>ps(\<lambda>a.{#lit_of a#}) ` set M'"
     by simp
   moreover
-    have "(\<lambda>a. {#lit_of a#}) ` set (L # M) \<union> (\<lambda>a. {#lit_of a#}) ` set M' \<Turnstile>ps CNot D"
+    have "unmark (L # M) \<union> unmark M' \<Turnstile>ps CNot D"
       by (metis (mono_tags, lifting) S Un_commute cons image_Un set_append
         true_annots_true_clss_clss)
-    then have 2: "(\<lambda>a. {#lit_of a#}) ` set (L # M) \<union> set_mset (clauses S) \<union> (\<lambda>a. {#lit_of a#}) ` set M'
+    then have 2: "unmark (L # M) \<union> set_mset (clauses S) \<union> unmark M'
         \<Turnstile>ps CNot D"
       by (metis (no_types, lifting) Un_assoc Un_left_commute true_clss_clss_union_l_r)
   ultimately
@@ -174,7 +174,7 @@ next
     then have "set (map (\<lambda>a. {#lit_of a#}) (L # M)) \<union> set_mset (clauses S) \<Turnstile>p {#}"
       by (metis (mono_tags, lifting) D Un_def mem_Collect_eq set_mset_def
         true_clss_clss_contradiction_true_clss_cls_false)
-    then have IL: "(\<lambda>a. {#lit_of a#}) ` set M \<union> set_mset (clauses S) \<Turnstile>p {#-lit_of L#}"
+    then have IL: "unmark M \<union> set_mset (clauses S) \<Turnstile>p {#-lit_of L#}"
       using true_clss_clss_false_left_right by auto
   show ?case unfolding S all_decomposition_implies_def
     proof
@@ -190,13 +190,13 @@ next
            auto
       moreover {
         assume x': "x \<in> set ?tl"
-        have L': "Marked (lit_of L) () = L" using marked by (case_tac L, auto)
+        have L': "Marked (lit_of L) () = L" using marked by (cases L, auto)
         have "x \<in> set (get_all_marked_decomposition (M' @ L # M))"
           using x' get_all_marked_decomposition_except_last_choice_equal[of M' "lit_of L" P M]
           L' by (metis (no_types) M' list.set_sel(2) tl_Nil)
-        then have "case x of (Ls, seen) \<Rightarrow> (\<lambda>a. {#lit_of a#}) ` set Ls \<union> set_mset (clauses S)
-          \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen"
-          using marked IH by (case_tac L) (auto simp add: S all_decomposition_implies_def)
+        then have "case x of (Ls, seen) \<Rightarrow> unmark Ls \<union> set_mset (clauses S)
+          \<Turnstile>ps unmark seen"
+          using marked IH by (cases L) (auto simp add: S all_decomposition_implies_def)
       }
       moreover {
         assume x': "x = ?hd"
@@ -223,20 +223,20 @@ next
           using get_all_marked_decomposition_backtrack_split extracted by (metis (no_types) L0 S
             hd_Cons_tl n tl)
         then have "M = M0' @ M0" using get_all_marked_decomposition_hd_hd by fastforce
-        then have IL':  "(\<lambda>a. {#lit_of a#}) ` set M0 \<union> set_mset (clauses S)
-          \<union> (\<lambda>a. {#lit_of a#}) ` set M0' \<Turnstile>ps {{#- lit_of L#}}"
+        then have IL':  "unmark M0 \<union> set_mset (clauses S)
+          \<union> unmark M0' \<Turnstile>ps {{#- lit_of L#}}"
           using IL by (simp add: Un_commute Un_left_commute image_Un)
-        moreover have H: "(\<lambda>a. {#lit_of a#}) ` set M0 \<union> set_mset (clauses S)
-          \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set M0'"
+        moreover have H: "unmark M0 \<union> set_mset (clauses S)
+          \<Turnstile>ps unmark M0'"
           using IH x'' unfolding all_decomposition_implies_def by (metis (no_types, lifting) L0 S
             list.set_sel(1) list.set_sel(2) old.prod.case tl tl_Nil)
-        ultimately have "case x of (Ls, seen) \<Rightarrow> (\<lambda>a. {#lit_of a#}) ` set Ls \<union> set_mset (clauses S)
-          \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen"
+        ultimately have "case x of (Ls, seen) \<Rightarrow> unmark Ls \<union> set_mset (clauses S)
+          \<Turnstile>ps unmark seen"
           using true_clss_clss_left_right unfolding x'' by auto
       }
       ultimately show "case x of (Ls, seen) \<Rightarrow>
-        (\<lambda>a. {#lit_of a#}) ` set Ls \<union> set_mset (snd (?M', clauses S))
-          \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` set seen"
+        unmark Ls \<union> set_mset (snd (?M', clauses S))
+          \<Turnstile>ps unmark seen"
         unfolding snd_conv by blast
     qed
 qed
@@ -268,7 +268,7 @@ proof (rule ccontr)
     using DN unfolding true_clss_def by auto
 
   have l0: "{{#lit_of L#} |L. is_marked L \<and> L \<in> set M} = {}" using marked by auto
-  have "atms_of_ms (N \<union> (\<lambda>a. {#lit_of a#}) ` set M) = atms_of_ms N"
+  have "atms_of_ms (N \<union> unmark M) = atms_of_ms N"
     using atm_incl unfolding atms_of_ms_def lits_of_def by auto
 
   then have "total_over_m I (N \<union> (\<lambda>a. {#lit_of a#}) ` (set M))"
@@ -276,12 +276,12 @@ proof (rule ccontr)
   then have "I \<Turnstile>s (\<lambda>a. {#lit_of a#}) ` (set M)"
     using all_decomposition_implies_propagated_lits_are_implied[OF inv] cons I
     unfolding true_clss_clss_def l0 by auto
-  then have IM: "I \<Turnstile>s (\<lambda>a. {#lit_of a#}) ` set M" by auto
+  then have IM: "I \<Turnstile>s unmark M" by auto
   {
     fix K
     assume "K \<in># D"
     then have "-K \<in> lits_of M"
-      by (auto split: split_if_asm
+      by (auto split: if_split_asm
         intro: allE[OF D[unfolded true_annots_def Ball_def], of "{#-K#}"])
     then have "-K \<in> I" using IM true_clss_singleton_lit_of_implies_incl by fastforce
   }
@@ -308,11 +308,11 @@ lemma rtranclp_dpll\<^sub>W_inv:
   using assms
 proof (induct rule: rtranclp_induct)
   case base
-  show 
-    "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))" and 
-    "atm_of ` lits_of (trail S) \<subseteq> atms_of_msu (clauses S)" and 
-    "clauses S = clauses S" and 
-    "consistent_interp (lits_of (trail S))" and 
+  show
+    "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))" and
+    "atm_of ` lits_of (trail S) \<subseteq> atms_of_msu (clauses S)" and
+    "clauses S = clauses S" and
+    "consistent_interp (lits_of (trail S))" and
     "no_dup (trail S)" using assms by auto
 next
   case (step S' S'') note dpll\<^sub>WStar = this(1) and IH = this(3,4,5,6,7) and
@@ -343,7 +343,7 @@ qed
 definition "dpll\<^sub>W_all_inv S \<equiv>
   (all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))
   \<and> atm_of ` lits_of (trail S)  \<subseteq> atms_of_msu (clauses S)
-  \<and> consistent_interp (lits_of (trail S)) 
+  \<and> consistent_interp (lits_of (trail S))
   \<and> no_dup (trail S))"
 
 lemma dpll\<^sub>W_all_inv_dest[dest]:
@@ -411,7 +411,7 @@ lemma dpll\<^sub>W_strong_completeness:
 proof -
   show "rtranclp dpll\<^sub>W ([], N) (map (\<lambda>M. Marked M ()) M, N)" using dpll\<^sub>W_can_do_step assms by auto
   have "map (\<lambda>M. Marked M ()) M \<Turnstile>asm N" using assms(1) true_annots_marked_true_cls by auto
-  then show "conclusive_dpll\<^sub>W_state (map (\<lambda>M. Marked M ()) M, N)" 
+  then show "conclusive_dpll\<^sub>W_state (map (\<lambda>M. Marked M ()) M, N)"
     unfolding conclusive_dpll\<^sub>W_state_def by auto
 qed
 
@@ -440,9 +440,8 @@ next
           then have "(\<exists>L. undefined_lit M L \<and> atm_of L \<in> atms_of D) \<or> M \<Turnstile>as CNot D"
              unfolding true_annots_def Ball_def CNot_def true_annot_def
              using atm_of_lit_in_atms_of true_annot_iff_marked_or_true_lit true_cls_def by blast
-          then show ?thesis 
-            (* TODO Tune proof *)
-            using D apply auto by (meson atms_of_atms_of_ms_mono mem_set_mset_iff subset_eq)
+          then show ?thesis
+            by (metis Bex_def D atms_of_atms_of_ms_mono rev_subsetD)
         qed
       moreover {
         assume "\<exists>L. undefined_lit M L \<and> atm_of L \<in> atms_of_msu N"
@@ -712,9 +711,9 @@ lemma dpll\<^sub>W_bj_dpll:
   shows "dpll\<^sub>W S T"
   using dpll
   apply (induction rule: dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.induct)
-    apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.decideE, cases S)
+    apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.decide\<^sub>N\<^sub>O\<^sub>TE, cases S)
     using decided apply fastforce
-   apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.propagateE, cases S)
+   apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.propagate\<^sub>N\<^sub>O\<^sub>TE, cases S)
    using dpll\<^sub>W.simps apply fastforce
   apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backjumpE, cases S)
   by (simp add: dpll\<^sub>W.simps dpll_with_backtrack.backtrack.simps)

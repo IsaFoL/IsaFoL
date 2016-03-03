@@ -24,9 +24,9 @@
 ## Execution ##
 
 A recent version of Isabelle is necessary to process the theory files (e.g.,
-[Isabelle2016-RC2](http://isabelle.in.tum.de/website-Isabelle2016-RC2)).
+[Isabelle2016](http://isabelle.in.tum.de/website-Isabelle2016)).
 
-To process all the theory files, simply load ```Weidenbach_Book.thy```.
+To process all the theory files, change to branch ```git checkout sat_solver_learn_forget_restart_incrementality``` and simply load ```Weidenbach_Book.thy```.
 
 ## Documentation ##
 

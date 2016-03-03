@@ -47,7 +47,7 @@ lemma true_cls_union[iff]: "I \<Turnstile> C + D \<longleftrightarrow> I \<Turns
   unfolding true_cls_def by auto
 
 lemma true_cls_mono: "set_mset C \<subseteq> set_mset D \<Longrightarrow> I \<Turnstile> C \<Longrightarrow> I \<Turnstile> D"
-  unfolding true_cls_def subset_eq by (metis mem_set_mset_iff)
+  unfolding true_cls_def subset_eq by metis
 
 lemma
   assumes "I \<subseteq> J"
