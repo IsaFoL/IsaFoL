@@ -8,11 +8,11 @@ first-order logic.
 
 * [Anders Schlichtkrull](mailto:andschl shtrudel dtu.dk)
 
-## Partly Based on Work by ##
+## Inspired by [Work](http://afp.sourceforge.net/entries/FOL-Fitting.shtml) of ##
 
 * [Stefan Berghofer](mailto:berghofe shtrudel in.tum.de)
 
-## Publication ##
+## Publications ##
 
 * [Meta-Logical Reasoning in Higher-Order Logic](http://orbit.dtu.dk/files/118776437/logica_poster.pdf).
   J. Villadsen, A. Schlichtkrull, and A. V. Hess.
