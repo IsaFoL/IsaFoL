@@ -945,8 +945,8 @@ proof -
         by (auto simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def
           dest!: no_dup_cannot_not_lit_and_uminus)
       have tot_I': "total_over_m ?I (?N \<union> unmark_l ?M)"
-        using tot atms_of_m_s_def unfolding total_over_m_def total_over_set_def
-        by fastforce
+        using tot atm_I_N unfolding total_over_m_def total_over_set_def
+        by (fastforce simp: image_iff)
       have "{P |P. P \<in> lits_of_l ?M \<and> atm_of P \<notin> atm_of ` I} \<Turnstile>s ?O"
         using \<open>I\<Turnstile>s ?N\<close> atm_I_N by (auto simp add: atm_of_eq_atm_of true_clss_def lits_of_def)
       then have I'_N: "?I \<Turnstile>s ?N \<union> ?O"
@@ -1044,12 +1044,7 @@ proof -
              by auto
             then have tot': "total_over_set I
                (atm_of ` lit_of ` (set ?M \<inter> {L. is_marked L \<and> L \<noteq> Marked K ()}))"
-<<<<<<< HEAD
               using tot by (auto simp add: atms_of_m_uminus_lit_atm_of_lit_of)
-=======
-              using tot by (auto simp add: atms_of_uminus_lit_atm_of_lit_of)
-
->>>>>>> origin/master
             { fix x :: "('v, unit, unit) marked_lit"
               assume
                 a3: "lit_of x \<notin> I" and
@@ -1571,7 +1566,7 @@ next
   have "no_dup (trail T)"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup[of S T] st cdcl\<^sub>N\<^sub>O\<^sub>T inv n_d by blast
   then have "atms_of_mm (clauses U) \<subseteq> A"
-    using cdcl\<^sub>N\<^sub>O\<^sub>T_atms_of_ms_clauses_decreasing[OF cdcl\<^sub>N\<^sub>O\<^sub>T] IH n_d \<open>inv T\<close> by auto
+    using cdcl\<^sub>N\<^sub>O\<^sub>T_atms_of_ms_clauses_decreasing[OF cdcl\<^sub>N\<^sub>O\<^sub>T] IH n_d \<open>inv T\<close> by fast
   moreover
     have "atm_of `(lits_of_l (trail U)) \<subseteq> A"
       using cdcl\<^sub>N\<^sub>O\<^sub>T_atms_in_trail_in_set[OF cdcl\<^sub>N\<^sub>O\<^sub>T, of A] \<open>no_dup (trail T)\<close>
@@ -2186,9 +2181,9 @@ next
   have "insert C (conflicting_bj_clss S) \<subseteq> simple_clss (atms_of_ms A)"
     proof -
       have "C \<in> simple_clss (atms_of_ms A)"
-        by (metis (no_types, hide_lams) Un_subset_iff atms_of_ms_finite simple_clss_mono
+        by (metis (no_types, hide_lams) Un_subset_iff simple_clss_mono
           contra_subsetD dist distinct_mset_not_tautology_implies_in_simple_clss
-          dual_order.trans fin_A atms_C atms_clss atms_trail tauto)
+          dual_order.trans atms_C atms_clss atms_trail tauto)
       moreover have "conflicting_bj_clss S \<subseteq> simple_clss (atms_of_ms A)"
         unfolding conflicting_bj_clss_def
         proof
@@ -2276,7 +2271,7 @@ next
   case (learn C F K d F' C' L) note atms_C = this(2) and dist = this(3) and tauto = this(4) and
   T = this(10) and atms_clss_S = this(12) and atms_trail_S = this(13)
   have "atms_of C \<subseteq> A"
-    using atms_C atms_clss_S atms_trail_S by auto
+    using atms_C atms_clss_S atms_trail_S by fast
   then have "simple_clss (atms_of C) \<subseteq> simple_clss A"
     by (simp add: simple_clss_mono)
   then have "C \<in> simple_clss A"
@@ -2304,14 +2299,13 @@ next
   have "inv T"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_inv st inv by blast
   moreover have "atms_of_mm (clauses T) \<subseteq> A" and "atm_of ` lits_of_l (trail T) \<subseteq> A"
-    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_trail_clauses_bound[OF st] inv atms_clss_S atms_trail_S n_d by blast+
+    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_trail_clauses_bound[OF st] inv atms_clss_S atms_trail_S n_d by auto
   moreover have "no_dup (trail T)"
    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup[OF st \<open>inv S\<close> n_d] by simp
   ultimately have "set_mset (clauses U) \<subseteq> set_mset (clauses T) \<union> simple_clss A"
     using cdcl\<^sub>N\<^sub>O\<^sub>T finite n_d by (auto simp: cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound)
   then show ?case using IH by auto
 qed
-
 
 lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_card_clauses_bound:
   assumes
@@ -2362,14 +2356,8 @@ lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_card_simple_clauses_bound:
 proof -
   have "\<And>x. x \<in># clauses T \<Longrightarrow>\<not> tautology x \<Longrightarrow> distinct_mset x \<Longrightarrow> x \<in> simple_clss A"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound[OF assms] by (metis (no_types, hide_lams) Un_iff assms(3)
-<<<<<<< HEAD
       atms_of_m_atms_of_ms_mono simple_clss_mono contra_subsetD
-      distinct_mset_not_tautology_implies_in_simple_clss local.finite mem_set_mset_iff
-      subset_trans)
-=======
-      atms_of_atms_of_ms_mono simple_clss_mono contra_subsetD
       distinct_mset_not_tautology_implies_in_simple_clss subset_trans)
->>>>>>> origin/master
   then have "set_mset (clauses T) \<subseteq> ?S \<union> simple_clss A"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound[OF assms] by auto
   then have "card(set_mset (clauses T)) \<le> card (?S \<union> simple_clss A)"
@@ -3227,7 +3215,7 @@ next
     learn: "learn S (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S)" and
     bj: "backjump (add_cls\<^sub>N\<^sub>O\<^sub>T (C' + {#L#}) S) T" and
     atms_C: "atms_of (C' + {#L#}) \<subseteq> atms_of_mm (clauses S) \<union> atm_of ` (lits_of_l (trail S))"
-    using bj_l inv backjump_l_learn_backjump n_d atm_clss atm_trail by blast
+    using bj_l inv backjump_l_learn_backjump n_d atm_clss atm_trail by meson
   have card_T_S: "card (set_mset (clauses T)) \<le> 1+ card (set_mset (clauses S))"
     using bj_l inv by (force elim!: backjump_lE simp: card_insert_if)
   have
@@ -3357,7 +3345,7 @@ proof -
           dest!: no_dup_cannot_not_lit_and_uminus)
       have tot_I': "total_over_m ?I (?N \<union> unmark_l ?M)"
         using tot atms_of_m_s_def unfolding total_over_m_def total_over_set_def
-        by fastforce
+        by (fastforce simp: image_iff)
       have "{P |P. P \<in> lits_of_l ?M \<and> atm_of P \<notin> atm_of ` I} \<Turnstile>s ?O"
         using \<open>I\<Turnstile>s ?N\<close> atm_I_N by (auto simp add: atm_of_eq_atm_of true_clss_def lits_of_def)
       then have I'_N: "?I \<Turnstile>s ?N \<union> ?O"
