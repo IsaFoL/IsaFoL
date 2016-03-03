@@ -1,4 +1,4 @@
-theory Resolution imports TermsAndLiterals Tree "~~/src/HOL/IMP/Star" begin
+theory Resolution imports TermsAndLiterals Tree begin
 
 section {* Terms and literals *}
 
@@ -61,12 +61,12 @@ proof -
   then show ?thesis using cancel_compls1[of L\<^sub>1] cancel_compls1[of L\<^sub>2] by simp
 qed
 
-primrec varst  :: "fterm \<Rightarrow> var_sym set" (* I could use map here *)
-and varsts :: "fterm list \<Rightarrow> var_sym set" where 
+fun varst  :: "fterm \<Rightarrow> var_sym set" (* I could use map here *) where
   "varst (Var x) = {x}"
-| "varst (Fun f ts) = varsts ts"
-| "varsts [] = {}"
-| "varsts (t # ts) = (varst t) \<union> (varsts ts)"
+| "varst (Fun f ts) = (\<Union>t \<in> set ts. varst t)"
+
+abbreviation varsts :: "fterm list \<Rightarrow> var_sym set" where 
+  "varsts ts \<equiv> (\<Union>t \<in> set ts. varst t)"
 
 definition varsl :: "fterm literal \<Rightarrow> var_sym set" where 
   "varsl l = varsts (get_terms l)"
@@ -77,8 +77,15 @@ definition varsls :: "fterm literal set \<Rightarrow> var_sym set" where
 abbreviation groundls :: "fterm clause \<Rightarrow> bool" where
   "groundls L \<equiv> \<forall> l \<in> L. groundl l"
 
-lemma ground_varst: "ground t \<Longrightarrow> varst t = {}"  "grounds ts \<Longrightarrow> varsts ts = {}"
-  by (induct t and ts rule: varst.induct varsts.induct) auto
+lemma ground_varst: "ground t \<Longrightarrow> varst t = {}" 
+apply (induction t)
+apply auto
+done
+
+lemma grounds_varsts: "grounds ts \<Longrightarrow> varsts ts = {}"
+using ground_varst apply auto
+done
+
 
 lemma groundl_varsl: "groundl l \<Longrightarrow> varsl l = {}" unfolding varsl_def using ground_varst by auto
 
@@ -513,13 +520,19 @@ definition std_apart :: "fterm clause \<Rightarrow> fterm clause \<Rightarrow> (
 
 lemma std_apart'': 
   "x\<in>varst  (t  {\<lambda>x::char list. Var (y @ x) }\<^sub>t ) \<Longrightarrow> \<exists>x'. x=y@x'"
-  "x\<in>varsts (ts {\<lambda>x::char list. Var (y @ x) }\<^sub>t\<^sub>s) \<Longrightarrow> \<exists>x'. x=y@x'"
-by (induct t and ts rule: varst.induct varsts.induct) auto
+apply (induction t)
+apply auto
+done
+
+lemma "x\<in>varsts (ts {\<lambda>x::char list. Var (y @ x) }\<^sub>t\<^sub>s) \<Longrightarrow> \<exists>x'. x=y@x'"
+using std_apart'' apply auto
+done
+
 
 lemma std_apart': "x\<in>varsl (l {\<lambda>x::char list. Var  (y@x) }\<^sub>l) \<Longrightarrow> \<exists>x'. x=y@x'"
 unfolding varsl_def using std_apart'' by (cases l) auto
 
-lemma std_apart_apart': "varsls (std1 C1) \<inter> varsls (std2 C2) = {}"
+lemma std_apart_apart: "varsls (std1 C1) \<inter> varsls (std2 C2) = {}"
 proof -
   {
     fix x
@@ -537,17 +550,17 @@ proof -
   then show ?thesis by auto 
 qed
 
-lemma std_apart_apart:
+lemma std_apart_apart':
   assumes  "std_apart C1 C2 = (C1',C2')"
   shows "varsls C1' \<inter> varsls C2' = {}"
 proof -
   from assms have C1'_x0: "C1' = C1{\<lambda>x. Var (''1'' @ x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
   moreover
   from assms have C2'_x1: "C2' = C2{\<lambda>x. Var (''2'' @ x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
-  ultimately show ?thesis using std_apart_apart' by auto
+  ultimately show ?thesis using std_apart_apart by auto
 qed
 
-lemma std_apart_instance_ofls1': "instance_ofls C1 (std1 C1)"
+lemma std_apart_instance_ofls1: "instance_ofls C1 (std1 C1)"
 proof -
   have empty: "(\<lambda>x. Var (''1''@x)) \<cdot> (\<lambda>x. Var (tl x)) = \<epsilon>" using composition_def by auto
 
@@ -558,7 +571,7 @@ proof -
   then show "instance_ofls C1 (std1 C1)" unfolding instance_ofls_def by auto
 qed
 
-lemma std_apart_instance_ofls2': "instance_ofls C2 (std2 C2)"
+lemma std_apart_instance_ofls2: "instance_ofls C2 (std2 C2)"
 proof -
   have empty: "(\<lambda>x. Var (''2''@x)) \<cdot> (\<lambda>x. Var (tl x)) = \<epsilon>" using composition_def by auto
 
@@ -569,7 +582,7 @@ proof -
   then show "instance_ofls C2 (std2 C2)" unfolding instance_ofls_def by auto
 qed
 
-lemma std_apart_instance_ofls:
+lemma std_apart_instance_ofls':
   assumes "std_apart C1 C2 = (C1', C2')"
   shows "instance_ofls C1 C1' \<and> instance_ofls C2 C2'"
 proof -
@@ -577,7 +590,7 @@ proof -
   moreover
   from assms have "C2' = C2{\<lambda>x. Var (''2''@x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
   ultimately
-  show ?thesis using std_apart_instance_ofls1' std_apart_instance_ofls2' by auto
+  show ?thesis using std_apart_instance_ofls1 std_apart_instance_ofls2 by auto
 qed
 
 lemma finite_std_apart: "finite C1 \<Longrightarrow> finite C2 \<Longrightarrow> std_apart C1 C2 = (C1', C2') \<Longrightarrow> finite C1' \<and> finite C2'"
@@ -585,8 +598,8 @@ lemma finite_std_apart: "finite C1 \<Longrightarrow> finite C2 \<Longrightarrow>
 
 section {* Unifiers *}
 
-definition unifiert :: "substitution \<Rightarrow> fterm set \<Rightarrow> bool" where
-  "unifiert \<sigma> ts \<longleftrightarrow> (\<exists>t'. \<forall>t \<in> ts. t{\<sigma>}\<^sub>t = t')"
+definition unifierts :: "substitution \<Rightarrow> fterm set \<Rightarrow> bool" where
+  "unifierts \<sigma> ts \<longleftrightarrow> (\<exists>t'. \<forall>t \<in> ts. t{\<sigma>}\<^sub>t = t')"
 (* Alternative:
    \<^sub>1. Define unifier for a pair of formulas. Then extend this to a set by looking at all pairs of the set.
    \<^sub>2. The result is singleton  
@@ -611,17 +624,17 @@ qed
 
 lemma unifiert_def2: (* Pretty ugly lemma... (\<lambda>t. sub t \<sigma>) ` ts should have some {\<sigma>}\<^sub>x notation probably *)
   assumes L_elem: "ts \<noteq> {}"
-  shows "unifiert \<sigma> ts \<longleftrightarrow> (\<exists>l. (\<lambda>t. sub t \<sigma>) ` ts ={l})"
+  shows "unifierts \<sigma> ts \<longleftrightarrow> (\<exists>l. (\<lambda>t. sub t \<sigma>) ` ts ={l})"
 proof
-  assume unif: "unifiert \<sigma> ts"
+  assume unif: "unifierts \<sigma> ts"
   from L_elem obtain t where "t \<in> ts" by auto
-  then have "(\<lambda>t. sub t \<sigma>) ` ts = {t {\<sigma>}\<^sub>t}" using unif unfolding unifiert_def by auto
+  then have "(\<lambda>t. sub t \<sigma>) ` ts = {t {\<sigma>}\<^sub>t}" using unif unfolding unifierts_def by auto
   then show "\<exists>l. (\<lambda>t. sub t \<sigma>) ` ts = {l}" by auto
 next
   assume "\<exists>l. (\<lambda>t. sub t \<sigma>) ` ts ={l}"
   then obtain l where "(\<lambda>t. sub t \<sigma>) ` ts = {l}" by auto
   then have "\<forall>l' \<in> ts. l'{\<sigma>}\<^sub>t = l" by auto
-  then show "unifiert \<sigma> ts" unfolding unifiert_def by auto
+  then show "unifierts \<sigma> ts" unfolding unifierts_def by auto
 qed
 
 lemma unifierls_def2: 
@@ -650,8 +663,8 @@ proof -
   then show ?thesis using groundls_subls groundls by auto
 qed
 
-definition unifiablet :: "fterm set \<Rightarrow> bool" where
-  "unifiablet fs \<longleftrightarrow> (\<exists>\<sigma>. unifiert \<sigma> fs)"
+definition unifiablets :: "fterm set \<Rightarrow> bool" where
+  "unifiablets fs \<longleftrightarrow> (\<exists>\<sigma>. unifierts \<sigma> fs)"
 
 definition unifiablels :: "fterm literal set \<Rightarrow> bool" where
   "unifiablels L \<longleftrightarrow> (\<exists>\<sigma>. unifierls \<sigma> L)"
@@ -699,8 +712,8 @@ qed
 
 subsection {* Most General Unifiers *}
 
-definition mgut :: "substitution \<Rightarrow> fterm set \<Rightarrow> bool" where
-  "mgut \<sigma> fs \<longleftrightarrow> unifiert \<sigma> fs \<and> (\<forall>u. unifiert u fs \<longrightarrow> (\<exists>i. u = \<sigma> \<cdot> i))"
+definition mguts :: "substitution \<Rightarrow> fterm set \<Rightarrow> bool" where
+  "mguts \<sigma> ts \<longleftrightarrow> unifierts \<sigma> ts \<and> (\<forall>u. unifierts u ts \<longrightarrow> (\<exists>i. u = \<sigma> \<cdot> i))"
 
 definition mguls :: "substitution \<Rightarrow> fterm literal set \<Rightarrow> bool" where
   "mguls \<sigma> L \<longleftrightarrow> unifierls \<sigma> L \<and> (\<forall>u. unifierls u L \<longrightarrow> (\<exists>i. u = \<sigma> \<cdot> i))"
@@ -737,14 +750,14 @@ inductive resolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<
   resolution_rule: 
     "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<Longrightarrow> 
        resolution_step Cs (Cs \<union> {resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>})"
-| lstandardize_apart: (* Maybe rename would be a better name? ? ? *)
+| standardize_apart: (* Maybe rename would be a better name? ? ? *)
     "C \<in> Cs \<Longrightarrow> var_renaming_of C C' \<Longrightarrow> resolution_step Cs (Cs \<union> {C'})"
 
 definition mresolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
-  "mresolution_deriv = star mresolution_step"
+  "mresolution_deriv = rtranclp mresolution_step"
 
 definition resolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
-  "resolution_deriv = star resolution_step"
+  "resolution_deriv = rtranclp resolution_step"
 
 (* Very nice lemma, but it is not used. 
   Could be used in a Completeness proof *)
@@ -786,19 +799,19 @@ qed
 section {* Soundness *}
 (* Proving instantiation sound *)
 
-fun evalsub :: "'u fun_denot \<Rightarrow> 'u var_denot \<Rightarrow> substitution \<Rightarrow> 'u var_denot" where
+definition evalsub :: "'u fun_denot \<Rightarrow> 'u var_denot \<Rightarrow> substitution \<Rightarrow> 'u var_denot" where
   "evalsub F E \<sigma> = (evalt E F) \<circ> \<sigma>"
 
 lemma substitutiont: "evalt E F (t {\<sigma>}\<^sub>t) = evalt (evalsub F E \<sigma>) F t"
 apply (induction t)
-apply auto
+unfolding evalsub_def apply auto
 apply (metis (mono_tags, lifting) comp_apply map_cong)
 done
 
 lemma substitutionts: "evalts E F (ts {\<sigma>}\<^sub>t\<^sub>s) = evalts (evalsub F E \<sigma>) F ts"
 using substitutiont by auto
 
-lemma substitutionl: "evall E F G (l {\<sigma>}\<^sub>l) \<longleftrightarrow> evall (evalsub F E \<sigma>) F G l"
+lemma substitution: "evall E F G (l {\<sigma>}\<^sub>l) \<longleftrightarrow> evall (evalsub F E \<sigma>) F G l"
 apply (induction l) 
 using substitutionts apply (metis evall.simps(1) subl.simps(1)) 
 using substitutionts apply (metis evall.simps(2) subl.simps(2))
@@ -813,7 +826,7 @@ proof -
    fix E
    from asm have "\<forall>E. \<exists>l \<in> C. evall E F G l" unfolding evalc_def by auto
    then have "\<exists>l \<in> C. evall (evalsub F E \<sigma>) F G l" by auto
-   then show "\<exists>l \<in> C {\<sigma>}\<^sub>l\<^sub>s. evall E F G l" using substitutionl by blast
+   then show "\<exists>l \<in> C {\<sigma>}\<^sub>l\<^sub>s. evall E F G l" using substitution by blast
   qed
  then show "evalc F G (C {\<sigma>}\<^sub>l\<^sub>s)" unfolding evalc_def by auto
 qed
@@ -937,28 +950,30 @@ proof (induction rule: resolution_step.induct)
     using resolution_sound resolution_rule by auto
   then show ?case using resolution_rule unfolding evalcs_def by auto
 next
-  case (lstandardize_apart C Cs C')
+  case (standardize_apart C Cs C')
   then have "evalc F G C" unfolding evalcs_def by auto
-  then have "evalc F G C'" using subst_sound lstandardize_apart unfolding var_renaming_of_def instance_ofls_def by metis
-  then show ?case using lstandardize_apart unfolding evalcs_def by auto
+  then have "evalc F G C'" using subst_sound standardize_apart unfolding var_renaming_of_def instance_ofls_def by metis
+  then show ?case using standardize_apart unfolding evalcs_def by auto
 qed
+
+term rtranclp
 
 lemma sound_derivation: 
   "mresolution_deriv Cs Cs' \<Longrightarrow> evalcs F G Cs \<Longrightarrow> evalcs F G Cs'" 
 unfolding mresolution_deriv_def
-proof (induction rule: star.induct)
-  case refl then show ?case by auto
+proof (induction rule: rtranclp.induct)
+  case rtrancl_refl then show ?case by auto
 next
-  case (step Cs\<^sub>1 Cs\<^sub>2 Cs\<^sub>3) then show ?case using sound_step by auto
+  case (rtrancl_into_rtrancl Cs\<^sub>1 Cs\<^sub>2 Cs\<^sub>3) then show ?case using sound_step by auto
 qed
 
 lemma lsound_derivation: 
   "resolution_deriv Cs Cs' \<Longrightarrow> evalcs F G Cs \<Longrightarrow> evalcs F G Cs'" 
 unfolding resolution_deriv_def
-proof (induction rule: star.induct)
-  case refl then show ?case by auto
+proof (induction rule: rtranclp.induct)
+  case rtrancl_refl then show ?case by auto
 next
-  case (step Cs\<^sub>1 Cs\<^sub>2 Cs\<^sub>3) then show ?case using lsound_step by auto
+  case (rtrancl_into_rtrancl Cs\<^sub>1 Cs\<^sub>2 Cs\<^sub>3) then show ?case using lsound_step by auto
 qed
 
 section {* Enumerations *}
@@ -982,29 +997,21 @@ section {* Herbrand Interpretations *}
 (* HFun is the Herbrand function denotation in which terms are mapped to themselves  *)
 term HFun
 
-lemma hterms_ground: "ground (fterm_of_hterm t)" "grounds (fterms_of_hterms ts)"
-apply (induction t and ts rule: fterm_of_hterm.induct fterms_of_hterms.induct)
-apply auto
-done
+lemma diag_ground: "groundl (fatom_from_nat n)" unfolding fatom_from_nat_def using TermsAndLiterals.ground_fatom_of_hatom by auto 
 
-lemma hatom_ground: "groundl (fatom_of_hatom l)"
-apply (induction l)
-using hterms_ground apply auto
-done
+lemma eval_ground: "ground t \<Longrightarrow> (evalt E HFun t) = hterm_of_fterm t"
+  by (induction t) auto
 
-lemma diag_ground: "groundl (fatom_from_nat n)" unfolding fatom_from_nat_def using hatom_ground by auto 
 
-lemma eval_ground: "ground t \<Longrightarrow> (evalt E HFun t) = hterm_of_fterm t" "grounds ts \<Longrightarrow> (evalts E HFun ts) = hterms_of_fterms ts"
-apply (induction t and ts rule: hterm_of_fterm.induct hterms_of_fterms.induct)
-apply auto
-done
+lemma eval_grounds: "grounds ts \<Longrightarrow> (evalts E HFun ts) = hterms_of_fterms ts" 
+  unfolding hterms_of_fterms_def using eval_ground by (induction ts)  auto
 
 lemma evall_grounds:
   assumes asm: "grounds ts"
   shows "evall E HFun G (Pos P ts) \<longleftrightarrow> G P (hterms_of_fterms ts)"
 proof -
   have "evall E HFun G (Pos P ts) = G P (evalts E HFun ts)" by auto
-  also have "... = G P (hterms_of_fterms ts)" using asm eval_ground by metis
+  also have "... = G P (hterms_of_fterms ts)" using asm eval_grounds by simp 
   finally show ?thesis by auto
 qed
 
@@ -1097,9 +1104,8 @@ fun sub_of_denot :: "hterm var_denot \<Rightarrow> substitution" where
   "sub_of_denot E = fterm_of_hterm \<circ> E"
 
 lemma ground_sub_of_denott: "ground ((t :: fterm) {sub_of_denot E}\<^sub>t)" 
-apply (induction t)
-apply (auto simp add: hterms_ground)
-done
+  by (induction t) (auto simp add: ground_fterm_of_hterm)
+
 
 lemma ground_sub_of_denotts: "grounds ((ts :: fterm list) {sub_of_denot E}\<^sub>t\<^sub>s)"
 apply auto
@@ -1115,7 +1121,7 @@ qed
 
 lemma sub_of_denot_equivx: "evalt E HFun (sub_of_denot E x) = E x"
 proof -
-  have "ground (sub_of_denot E x)" using hterms_ground by auto
+  have "ground (sub_of_denot E x)" using ground_fterm_of_hterm by simp
   then
   have "evalt E HFun (sub_of_denot E x) = hterm_of_fterm (sub_of_denot E x)"
     using eval_ground(1) by auto
@@ -1180,7 +1186,7 @@ proof
   assume asm: "falsifiesc G C1"
   then obtain Cg where "instance_ofls Cg C1  \<and> falsifiesg G Cg" by auto
   moreover
-  then have "instance_ofls Cg (std1 C1)" using std_apart_instance_ofls1' instance_ofls_trans asm by blast
+  then have "instance_ofls Cg (std1 C1)" using std_apart_instance_ofls1 instance_ofls_trans asm by blast
   ultimately
   show "falsifiesc G (std1 C1)" by auto
 next
@@ -1217,7 +1223,7 @@ proof
   assume asm: "falsifiesc G C2"
   then obtain Cg where "instance_ofls Cg C2  \<and> falsifiesg G Cg" by auto
   moreover
-  then have "instance_ofls Cg (std2 C2)" using std_apart_instance_ofls2' instance_ofls_trans asm by blast
+  then have "instance_ofls Cg (std2 C2)" using std_apart_instance_ofls2 instance_ofls_trans asm by blast
   ultimately
   show "falsifiesc G (std2 C2)" by auto
 next
@@ -1249,34 +1255,34 @@ proof -
   then show ?thesis using assms std_apart_falsifies2' by auto
 qed
 
-lemma std_apart_renames1': "var_renaming_of C1 (std1 C1)"
+lemma std_apart_renames1: "var_renaming_of C1 (std1 C1)"
 proof -
-  have "instance_ofls C1 (std1 C1)" using std_apart_instance_ofls1' assms by auto
+  have "instance_ofls C1 (std1 C1)" using std_apart_instance_ofls1 assms by auto
   moreover have "instance_ofls (std1 C1) C1" using assms unfolding instance_ofls_def std_apart_def by auto
   ultimately show "var_renaming_of C1 (std1 C1)" unfolding var_renaming_of_def by auto
 qed
 
-lemma std_apart_renames1:
+lemma std_apart_renames1':
   assumes "std_apart C1 C2 = (C1',C2')"
   shows "var_renaming_of C1 C1'"
 proof -
   from assms have "C1' = C1{\<lambda>x. Var (''1''@x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
-  then show ?thesis using std_apart_renames1' by auto
+  then show ?thesis using std_apart_renames1 by auto
 qed
 
-lemma std_apart_renames2': "var_renaming_of C2 (std2 C2)"
+lemma std_apart_renames2: "var_renaming_of C2 (std2 C2)"
 proof -
-  have "instance_ofls C2 (std2 C2)" using std_apart_instance_ofls2' assms by auto
+  have "instance_ofls C2 (std2 C2)" using std_apart_instance_ofls2 assms by auto
   moreover have "instance_ofls (std2 C2) C2" using assms unfolding instance_ofls_def std_apart_def by auto
   ultimately show "var_renaming_of C2 (std2 C2)" unfolding var_renaming_of_def by auto
 qed
 
-lemma std_apart_renames2:
+lemma std_apart_renames2':
   assumes "std_apart C1 C2 = (C1',C2')"
   shows "var_renaming_of C2 C2'"
 proof -
   from assms have "C2' = C2{\<lambda>x. Var (''2''@x) }\<^sub>l\<^sub>s" unfolding std_apart_def by auto
-  then show ?thesis using std_apart_renames2' by auto
+  then show ?thesis using std_apart_renames2 by auto
 qed
 
 
@@ -1303,7 +1309,7 @@ proof
 qed
 
 lemma extend_preserves_model: (* only for ground *)
-  assumes f_chain: "list_chain (f :: nat \<Rightarrow> partial_pred_denot)" 
+  assumes f_chain: "wf_infpath (f :: nat \<Rightarrow> partial_pred_denot)" 
   assumes C_ground: "groundls C"
   assumes C_sat: "~falsifiesc (f (Suc n)) C" (* probably - this should be falsifiesg now *)
   assumes n_max: "\<forall>l\<in>C. nat_from_fatom l \<le> n"
@@ -1358,7 +1364,7 @@ proof -
 qed
 
 lemma extend_preserves_model2: (* only for ground *)
-  assumes f_chain: "list_chain (f :: nat \<Rightarrow> partial_pred_denot)" 
+  assumes f_chain: "wf_infpath (f :: nat \<Rightarrow> partial_pred_denot)" 
   assumes C_ground: "groundls C"
   assumes fin_c: "finite C"
   assumes model_C: "\<forall>n. \<not>falsifiesc (f n) C" (* probably - this should be falsifiesg now *)
@@ -1371,8 +1377,8 @@ proof -
   ultimately show ?thesis using model_C f_chain C_ground extend_preserves_model[of f C n ] by blast
 qed
 
-lemma list_chain_model': 
-  assumes f_chain: "list_chain (f :: nat \<Rightarrow> partial_pred_denot)"
+lemma list_chain_model_clause: 
+  assumes f_chain: "wf_infpath (f :: nat \<Rightarrow> partial_pred_denot)"
   assumes model_c: "\<forall>n. \<not>falsifiesc (f n) C"
   assumes fin_c: "finite C"
   shows "evalc HFun (extend f) C"
@@ -1399,7 +1405,7 @@ qed
 
 (* If we have a list-chain of partial models, then we have a model. *)
 lemma list_chain_model:
-  assumes f_chain: "list_chain (f :: nat \<Rightarrow> partial_pred_denot)"
+  assumes f_chain: "wf_infpath (f :: nat \<Rightarrow> partial_pred_denot)"
   assumes model_cs: "\<forall>n. \<not>falsifiescs (f n) Cs" 
   assumes fin_cs: "finite Cs"
   assumes fin_c: "\<forall>C \<in> Cs. finite C"
@@ -1412,7 +1418,7 @@ proof -
       fix C
       assume asm: "C \<in> Cs"
       then have "\<forall>n. \<not> falsifiesc (f n) C" using model_cs by auto
-      then show "evalc ?F (extend f) C" using fin_c asm f_chain list_chain_model'[of f C] by auto
+      then show "evalc ?F (extend f) C" using fin_c asm f_chain list_chain_model_clause[of f C] by auto
     qed                                                                      
   then show "evalcs ?F (extend f) Cs" unfolding evalcs_def by auto
 qed
@@ -1538,8 +1544,8 @@ proof -
     using longer_falsifies[of Cs] by blast
   then have "(\<forall>ds d. ds @ d \<in> ?tree \<longrightarrow> ds \<in> ?tree)" by auto
   ultimately
-  have "\<exists>c. list_chain c \<and> (\<forall>n. c n \<in> ?tree)" using konig[of ?tree] by blast
-  then have "\<exists>G. list_chain G \<and> (\<forall>n. \<not> falsifiescs (G n) Cs)" by auto
+  have "\<exists>c. wf_infpath c \<and> (\<forall>n. c n \<in> ?tree)" using konig[of ?tree] by blast
+  then have "\<exists>G. wf_infpath G \<and> (\<forall>n. \<not> falsifiescs (G n) Cs)" by auto
   (* Apply above Chain lemma *)
   then show "\<exists>G. evalcs HFun G Cs" using list_chain_model finite_cs by auto
 qed

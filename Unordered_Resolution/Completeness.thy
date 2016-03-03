@@ -146,15 +146,15 @@ lemma number_lemma:
 using assms less_Suc_eq by auto
 
 lemma other_falsified:
-  assumes C2'_p: "groundls C2' \<and> falsifiesg (B@[d]) C2'" 
-  assumes l2_p: "l \<in> C2'" "nat_from_fatom l = length B"
-  assumes other: "lo \<in> C2'" "lo \<noteq> l"
+  assumes C1'_p: "groundls C1' \<and> falsifiesg (B@[d]) C1'" 
+  assumes l_p: "l \<in> C1'" "nat_from_fatom l = length B"
+  assumes other: "lo \<in> C1'" "lo \<noteq> l"
   shows "falsifiesl B lo"
 proof -
-  have ground_l2: "groundl l" using l2_p C2'_p by auto
+  have ground_l2: "groundl l" using l_p C1'_p by auto
   (* They are, of course, also ground *)
-  have ground_lo: "groundl lo" using C2'_p other by auto
-  from C2'_p have "falsifiesg (B@[d]) (C2' - {l})" by auto
+  have ground_lo: "groundl lo" using C1'_p other by auto
+  from C1'_p have "falsifiesg (B@[d]) (C1' - {l})" by auto
   (* And indeed, falsified by B2 *)
   then have loB2: "falsifiesl (B@[d]) lo" using other by auto
   then obtain i where "fatom_from_nat i = Pos (get_pred lo) (get_terms lo) \<and> i < length (B @ [True])" by (cases lo) auto
@@ -162,13 +162,13 @@ proof -
   (* And they have numbers in the range of B2, i.e. less than B + 1*)
   then have "nat_from_fatom lo < length B + 1" using undiag_neg undiag_diag_fatom by (cases lo) auto
   moreover
-  have l2_lo: "l\<noteq>lo" using other by auto
+  have l_lo: "l\<noteq>lo" using other by auto
   (* The are not the complement of l2, since then the clause could not be falsified *)
-  have l2c_lo: "lo \<noteq> l\<^sup>c" using C2'_p l2_p other complements_do_not_falsify[of lo C2' l "(B@[d])"] by auto
-  from l2_lo l2c_lo have "get_pred l \<noteq> get_pred lo \<or> get_terms l \<noteq> get_terms lo" using literal.expand sign_comp by blast
+  have lc_lo: "lo \<noteq> l\<^sup>c" using C1'_p l_p other complements_do_not_falsify[of lo C1' l "(B@[d])"] by auto
+  from l_lo lc_lo have "get_pred l \<noteq> get_pred lo \<or> get_terms l \<noteq> get_terms lo" using literal.expand sign_comp by blast
   then have "nat_from_fatom lo \<noteq> nat_from_fatom l" using nat_from_fatom_inj_mod_sign ground_lo ground_l2 by metis
   (* Therefore they have different numbers *)
-  then have "nat_from_fatom lo \<noteq> length B" using l2_p by auto
+  then have "nat_from_fatom lo \<noteq> length B" using l_p by auto
   ultimately 
   (* So their numbers are in the range of B *)
   have "nat_from_fatom lo < length B" by auto
@@ -316,7 +316,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
       using l1_p l2_p C1'_p groundls_varsls l2cisl1 empty_comp2 unfolding mguls_def unifierls_def by auto
     (* Lifting to get a resolvent of C1 and C2 *)
     then obtain L1 L2 \<tau> where L1L2\<tau>_p: "applicable ?C1 ?C2 L1 L2 \<tau>  \<and> instance_ofls (resolution C1' C2' {l1} {l2} Resolution.\<epsilon>) (resolution ?C1 ?C2 L1 L2 \<tau>)"
-      using std_apart_apart C1'_p C2'_p lifting[of ?C1 ?C2 C1' C2' "{l1}" "{l2}" Resolution.\<epsilon>] fin by auto
+      using std_apart_apart' C1'_p C2'_p lifting[of ?C1 ?C2 C1' C2' "{l1}" "{l2}" Resolution.\<epsilon>] fin by auto
 
 
     (* Defining the clause to be derived, the new clausal form and the new tree *)
@@ -362,19 +362,19 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     then obtain Cs'' where Cs''_p: "resolution_deriv CsNext Cs'' \<and> {} \<in> Cs''" by auto
     moreover
     { (* Proving that we can actually derive the new clausal form *)
-      have "resolution_step Cs (Cs \<union> {?C1})" using std_apart_renames1[of C1o C2o] lstandardize_apart C1o_p by (metis Un_insert_right prod.collapse)
+      have "resolution_step Cs (Cs \<union> {?C1})" using std_apart_renames1'[of C1o C2o] standardize_apart C1o_p by (metis Un_insert_right prod.collapse)
       moreover
-      have "resolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1} \<union> {?C2})" using std_apart_renames2[of C1o C2o] lstandardize_apart C2o_p by (metis Un_insert_right insert_iff prod.collapse sup_bot.right_neutral)
+      have "resolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1} \<union> {?C2})" using std_apart_renames2'[of C1o C2o] standardize_apart C2o_p by (metis Un_insert_right insert_iff prod.collapse sup_bot.right_neutral)
       then have "resolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1,?C2})" by (metis insert_is_Un sup_assoc)
       moreover
       then have "resolution_step (Cs \<union> {?C1,?C2}) (Cs \<union> {?C1,?C2} \<union> {C})" 
         using L1L2\<tau>_p resolution_rule[of ?C1 "Cs \<union> {?C1,?C2}" ?C2 L1 L2 \<tau> ] using C_p by auto
       then have "resolution_step (Cs \<union> {?C1,?C2}) CsNext"by (metis CsNext_p insert_is_Un sup_assoc) 
       ultimately
-      have "resolution_deriv Cs CsNext" using star.intros[of resolution_step] unfolding resolution_deriv_def by auto
+      have "resolution_deriv Cs CsNext"  unfolding resolution_deriv_def by auto
     }
     (* Combining the two derivations, we get the desired derivation from Cs of {} *)
-    ultimately have "resolution_deriv Cs Cs''" using star_trans unfolding resolution_deriv_def by auto
+    ultimately have "resolution_deriv Cs Cs''"  unfolding resolution_deriv_def by auto
     then have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" using Cs''_p by auto
   }
   ultimately show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" by auto

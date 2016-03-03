@@ -176,8 +176,6 @@ proof -
   then show "?thesis" unfolding bij_betw_def inj_on_def unfolding nat_from_hatom_def by simp
 qed
 
-(*  *)
-
 lemma hatom_from_nat_bij: "bij_betw hatom_from_nat UNIV hatoms " unfolding hatom_from_nat_def using nat_from_hatom_bij bij_betw_inv_into by auto
 
 lemma nat_from_hatom_hatom_from_nat[simp]: "nat_from_hatom (hatom_from_nat n) = n" 
@@ -230,28 +228,36 @@ lemma sign_hatom_from_nat: "sign (hatom_from_nat n) = True" using hatom_from_nat
 
 subsubsection {* Convertions terms and Herbrand term *}
 
-primrec fterm_of_hterm :: "hterm \<Rightarrow> fterm"
-and fterms_of_hterms :: "hterm list \<Rightarrow> fterm list" where
-  "fterm_of_hterm (HFun p ts) = Fun p (fterms_of_hterms ts)"
-| "fterms_of_hterms [] = []"
-| "fterms_of_hterms (t#ts) = fterm_of_hterm t # fterms_of_hterms ts"
+fun fterm_of_hterm :: "hterm \<Rightarrow> fterm" where
+  "fterm_of_hterm (HFun p ts) = Fun p (map fterm_of_hterm ts)"
 
-primrec hterm_of_fterm :: "fterm \<Rightarrow> hterm"
-and hterms_of_fterms :: "fterm list \<Rightarrow> hterm list" where
-  "hterm_of_fterm (Fun p ts) = HFun p (hterms_of_fterms ts)"
-| "hterms_of_fterms [] = []"
-| "hterms_of_fterms (t#ts) = hterm_of_fterm t # hterms_of_fterms ts"
 
-theorem [simp]: "hterm_of_fterm (fterm_of_hterm t) = t" 
-        "hterms_of_fterms (fterms_of_hterms ts) = ts" 
-  by (induct t and ts rule: fterm_of_hterm.induct fterms_of_hterms.induct) auto
+definition fterms_of_hterms :: "hterm list \<Rightarrow> fterm list" where
+  "fterms_of_hterms ts \<equiv> map fterm_of_hterm ts"
 
-theorem [simp]: "ground t \<Longrightarrow> fterm_of_hterm (hterm_of_fterm t) = t" 
-        "grounds ts \<Longrightarrow>fterms_of_hterms (hterms_of_fterms ts) = ts" 
-  by (induct t and ts rule: hterm_of_fterm.induct hterms_of_fterms.induct) auto
+fun hterm_of_fterm :: "fterm \<Rightarrow> hterm" where
+  "hterm_of_fterm (Fun p ts) = HFun p (map hterm_of_fterm ts)"
 
-lemma ground_fterm_of_hterm: "ground (fterm_of_hterm t)"  "grounds (fterms_of_hterms ts)"
-  by (induct t and ts rule: fterm_of_hterm.induct fterms_of_hterms.induct) auto
+definition hterms_of_fterms :: "fterm list \<Rightarrow> hterm list" where
+"hterms_of_fterms ts \<equiv> map hterm_of_fterm ts"
+
+lemma [simp]: "hterm_of_fterm (fterm_of_hterm t) = t" 
+  by (induction t) (simp add: map_idI)
+
+lemma [simp]:  "hterms_of_fterms (fterms_of_hterms ts) = ts" 
+  unfolding hterms_of_fterms_def fterms_of_hterms_def by (simp add: map_idI)
+
+lemma [simp]: "ground t \<Longrightarrow> fterm_of_hterm (hterm_of_fterm t) = t" 
+  by (induction t) (auto simp add: map_idI)
+
+lemma [simp]: "grounds ts \<Longrightarrow>fterms_of_hterms (hterms_of_fterms ts) = ts" 
+  unfolding fterms_of_hterms_def hterms_of_fterms_def by (simp add: map_idI)
+
+lemma ground_fterm_of_hterm:  "ground (fterm_of_hterm t)"
+  by (induction t) (auto simp add: map_idI)
+
+lemma ground_fterms_of_hterms: "grounds (fterms_of_hterms ts)"
+  unfolding fterms_of_hterms_def using ground_fterm_of_hterm by auto
 
 subsubsection {* Converstions literals and herbrand literals *}
 
@@ -263,7 +269,8 @@ fun hatom_of_fatom :: "fterm literal \<Rightarrow> hterm literal" where
   "hatom_of_fatom (Pos p ts) = Pos p (hterms_of_fterms ts)"
 | "hatom_of_fatom (Neg p ts) = Neg p (hterms_of_fterms ts)"
 
-lemma ground_fatom_of_hatom: "groundl (fatom_of_hatom l)" using ground_fterm_of_hterm by (cases l) auto (* står det et andet sted? *)
+lemma ground_fatom_of_hatom: "groundl (fatom_of_hatom l)" 
+  by  (induction l)  (simp add: ground_fterms_of_hterms)+
 
 theorem hatom_of_fatom_fatom_of_hatom [simp]: "hatom_of_fatom (fatom_of_hatom l) =  l" by (cases l) auto
 

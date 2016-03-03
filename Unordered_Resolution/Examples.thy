@@ -127,7 +127,7 @@ proof -
   ultimately
   have "resolution_deriv {{NP,PQ},{NQ},{PP,PQ}} 
                          {{NP,PQ},{NQ},{PP,PQ},{NP},{PP},{}}"
-    unfolding resolution_deriv_def using star.intros[of resolution_step] by auto 
+    unfolding resolution_deriv_def by auto 
   then show ?thesis by auto
 qed
 
@@ -239,7 +239,7 @@ proof -
   ultimately
   have "resolution_deriv {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa}} 
           {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa},{Na,Pb},{Na},{}}"
-    unfolding resolution_deriv_def using star.intros[of resolution_step] by auto 
+    unfolding resolution_deriv_def by auto 
   then show ?thesis by auto
 qed
 

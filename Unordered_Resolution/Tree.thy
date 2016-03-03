@@ -671,16 +671,16 @@ qed
 (* Infinite paths in trees should probably be nat \<Rightarrow> dir, instead of nat \<Rightarrow> dir list .   The nat \<Rightarrow> dir list are only useful locally.    I do the conversion in Resolution, I think, but I should rather do it here.    I am not 100% sure though. Perhaps this just means I must convert back to nat \<Rightarrow> dir list,    and that would be rather pointless. Perhaps, I could just do the conversion as a    corollary or something.*)
 section {* Infinite Paths *}
 (* aka list-chains *)
-abbreviation list_chain :: "(nat \<Rightarrow> 'a list) \<Rightarrow> bool" where
-  "list_chain f \<equiv> (f 0 = []) \<and> (\<forall>n. \<exists>a. f (Suc n) = (f n) @ [a])"
+abbreviation wf_infpath :: "(nat \<Rightarrow> 'a list) \<Rightarrow> bool" where (* Previously called list_chain *)
+  "wf_infpath f \<equiv> (f 0 = []) \<and> (\<forall>n. \<exists>a. f (Suc n) = (f n) @ [a])"
 
-lemma chain_length: "list_chain f \<Longrightarrow> length (f n) = n"
+lemma chain_length: "wf_infpath f \<Longrightarrow> length (f n) = n"
 apply (induction n)
 apply auto
 apply (metis length_append_singleton)
 done
 
-lemma chain_prefix: "list_chain f \<Longrightarrow> n\<^sub>1 \<le> n\<^sub>2 \<Longrightarrow> \<exists>a. (f n\<^sub>1) @ a = (f n\<^sub>2)"
+lemma chain_prefix: "wf_infpath f \<Longrightarrow> n\<^sub>1 \<le> n\<^sub>2 \<Longrightarrow> \<exists>a. (f n\<^sub>1) @ a = (f n\<^sub>2)"
 proof (induction n\<^sub>2)
   case (Suc n\<^sub>2)
   then have "n\<^sub>1 \<le> n\<^sub>2 \<or> n\<^sub>1 = Suc n\<^sub>2" by auto
@@ -700,7 +700,7 @@ qed auto
 
 (* If we make a lookup in a list, then looking up in an extension gives us the same value *)
 lemma ith_in_extension:
-  assumes chain: "list_chain f"
+  assumes chain: "wf_infpath f"
   assumes smalli: "i < length (f n\<^sub>1)"
   assumes n\<^sub>1n\<^sub>2: "n\<^sub>1 \<le> n\<^sub>2"
   shows "f n\<^sub>1 ! i = f n\<^sub>2 ! i"
@@ -736,14 +736,14 @@ fun buildchain :: "(dir list \<Rightarrow> dir list) \<Rightarrow> nat \<Rightar
 lemma konig:
   assumes inf: "\<not>finite T"
   assumes wellformed: "wf_tree T"
-  shows "\<exists>c. list_chain c \<and> (\<forall>n. (c n) \<in> T)"
+  shows "\<exists>c. wf_infpath c \<and> (\<forall>n. (c n) \<in> T)"
 proof
   let ?subtree = "subtree T"
   let ?nextnode = "\<lambda>ds. (if \<not>finite (subtree T (ds @ [Left])) then ds @ [Left] else ds @ [Right])"  (*?subtree instead of "subtree T" *)
 
   let ?c = "buildchain ?nextnode"
 
-  have is_chain: "list_chain ?c" by auto
+  have is_chain: "wf_infpath ?c" by auto
 
   from wellformed have prefix: "\<And>ds d. (ds @ d) \<in> T \<Longrightarrow> ds \<in> T" by blast
 
@@ -777,7 +777,7 @@ proof
         then show ?case using next_next_inf by auto
       qed
   }
-  then show "list_chain ?c \<and> (\<forall>n. (?c n)\<in> T) " using is_chain by auto
+  then show "wf_infpath ?c \<and> (\<forall>n. (?c n)\<in> T) " using is_chain by auto
 qed
 
 end
