@@ -21,6 +21,7 @@ session "Weidenbach_Book" (main) = "HOL" +
     DPLL_W_Implementation
     CDCL_W_Implementation
     CDCL_W_Merge
+    CDCL_W_Restart
     CDCL_NOT
     CDCL_WNOT
     CDCL_W_Incremental
