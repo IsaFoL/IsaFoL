@@ -20,6 +20,7 @@ session "Weidenbach_Book" (main) = "HOL" +
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
     CDCL_W_Implementation
+    CDCL_W_Merge
     CDCL_NOT
     CDCL_WNOT
     CDCL_W_Incremental
