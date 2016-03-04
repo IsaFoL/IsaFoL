@@ -1,5 +1,5 @@
 theory CDCL_W_Merge
-imports CDCL_W_Termination
+imports CDCL_W_Termination CDCL_WNOT_Measure
 begin
 
 section \<open>Link between Weidenbach's and NOT's CDCL\<close>
@@ -114,9 +114,19 @@ proof -
       using rtranclp_cdcl\<^sub>W_consistent_inv lev by auto
   ultimately show ?thesis using T unfolding full_def by auto
 qed
-
+lemma rtranclp_skip_state_decomp:
+  assumes "skip\<^sup>*\<^sup>* S T" and "no_dup (trail S)"
+  shows
+    "\<exists>M. trail S = M @ trail T \<and> (\<forall>m\<in>set M. \<not>is_marked m)"
+    "init_clss S = init_clss T"
+    "learned_clss S = learned_clss T"
+    "backtrack_lvl S = backtrack_lvl T"
+  using assms by (induction rule: rtranclp_induct)
+  (auto simp del: state_simp simp: state_eq_def elim: skipE)
+  
 subsubsection \<open>More backjumping\<close>
-(* paragraph \<open>Backjumping after skipping or jump directly\<close>
+paragraph \<open>Backjumping after skipping or jump directly\<close>
+
 lemma rtranclp_skip_backtrack_backtrack:
   assumes
     "skip\<^sup>*\<^sup>* S T" and
@@ -137,87 +147,106 @@ next
     by (auto dest!: bj other cdcl\<^sub>W_bj.skip)
   then have "cdcl\<^sub>W_M_level_inv V"
     unfolding cdcl\<^sub>W_all_struct_inv_def by auto
-  then obtain N k M1 M2 K D L U i where
-    V: "state V = (trail V, N, U, k, Some (D + {#L#}))" and
-    W: "state W = (Propagated L (D + {#L#}) # M1, N, {#D + {#L#}#} + U,
-      get_maximum_level (trail V) D, None)" and
-    decomp: "(Marked K (Suc i) # M1, M2)
-      \<in> set (get_all_marked_decomposition (trail V))" and
-    "k = get_maximum_level (trail V) (D + {#L#})" and
-    lev_L: "get_level (trail V) L = k" and
+  then obtain K i M1 M2 L D where
+    conf: "raw_conflicting V = Some D" and
+    LD: "L \<in># mset_ccls D" and
+    decomp: "(Marked K (Suc i) # M1, M2) \<in> set (get_all_marked_decomposition (trail V))" and
+    lev_L: "get_level (trail V) L = backtrack_lvl V" and
+    max: "get_level (trail V) L = get_maximum_level (trail V) (mset_ccls D)" and
+    max_D: "get_maximum_level (trail V) (remove1_mset L (mset_ccls D)) \<equiv> i" and
     undef: "undefined_lit M1 L" and
-    "W \<sim> cons_trail (Propagated L (D + {#L#}))
-      (reduce_trail_to M1 (add_learned_cls (D + {#L#})
-        (update_backtrack_lvl (get_maximum_level (trail V) D) (update_conflicting None V))))"and
-    lev_l_D: "backtrack_lvl V = get_maximum_level (trail V) (D + {#L#})" and
-    "conflicting V = Some (D + {#L#})" and
-    i: "i = get_maximum_level (trail V) D"
-    using bt by (elim backtrack_levE)
-    (auto simp: cdcl\<^sub>W_M_level_inv_decomp state_eq_def simp del: state_simp)+
-  let ?D = "(D + {#L#})"
-  obtain L' C' where
-    T: "state T = (Propagated L' C' # trail V, N, U, k, Some ?D)" and
-    "V \<sim> tl_trail T" and
-    "-L' \<notin># ?D" and
-    "?D \<noteq> {#}"
-    using skip V by force
-
+    W: "W \<sim> cons_trail (Propagated L (cls_of_ccls D))
+                (reduce_trail_to M1
+                  (add_learned_cls (cls_of_ccls D)
+                    (update_backtrack_lvl i
+                      (update_conflicting None V))))"
+  using bt inv by (elim backtrack_levE) metis+
+  obtain L' C' M E where
+    tr: "trail T = Propagated L' C' # M" and
+    raw: "raw_conflicting T = Some E" and
+    LE: "-L' \<notin># mset_ccls E" and
+    E: "mset_ccls E \<noteq> {#}" and
+    V: "V \<sim> tl_trail T"
+    using skip by (elim skipE) metis
   let ?M =  "Propagated L' C' # trail V"
+  have tr_M: "trail T = ?M"
+    using tr V by auto
+  have MT: "M = tl (trail T)" and MV: "M = trail V"
+    using tr V by auto
+  have DE[simp]: "mset_ccls D = mset_ccls E"
+    using V conf raw by (auto simp add: state_eq_def simp del: state_simp)
   have "cdcl\<^sub>W\<^sup>*\<^sup>* S T" using bj cdcl\<^sub>W_bj.skip mono_rtranclp[of skip cdcl\<^sub>W S T] other st by meson
   then have inv': "cdcl\<^sub>W_all_struct_inv T"
     using rtranclp_cdcl\<^sub>W_all_struct_inv_inv inv by blast
   have M_lev: "cdcl\<^sub>W_M_level_inv T" using inv' unfolding cdcl\<^sub>W_all_struct_inv_def by auto
   then have n_d': "no_dup ?M"
-    using T unfolding cdcl\<^sub>W_M_level_inv_def by auto
-
-  have "k > 0"
-    using decomp M_lev T V unfolding cdcl\<^sub>W_M_level_inv_def by auto
+    using tr_M unfolding cdcl\<^sub>W_M_level_inv_def by auto
+  let ?k = "backtrack_lvl T"
+  have [simp]: 
+    "backtrack_lvl V = ?k"
+    using V by simp
+  have "?k > 0"
+    using decomp M_lev V tr unfolding cdcl\<^sub>W_M_level_inv_def by auto
   then have "atm_of L \<in> atm_of ` lits_of_l (trail V)"
-    using lev_L get_rev_level_ge_0_atm_of_in V by fastforce
+    using lev_L get_rev_level_ge_0_atm_of_in[of 0 "rev (trail V)" L]  by auto
   then have L_L': "atm_of L \<noteq> atm_of L'"
     using n_d' unfolding lits_of_def by auto
   have L'_M: "atm_of L' \<notin> atm_of ` lits_of_l (trail V)"
     using n_d' unfolding lits_of_def by auto
-  have "?M \<Turnstile>as CNot ?D"
-    using inv' T unfolding cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_all_struct_inv_def by auto
-  then have "L' \<notin># ?D"
-    using L_L' L'_M \<open>Propagated L' C' # trail V \<Turnstile>as CNot (D + {#L#})\<close>
-     atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set unfolding true_annots_def by fastforce
+  have "?M \<Turnstile>as CNot (mset_ccls D)"
+    using inv' raw unfolding cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_all_struct_inv_def tr_M by auto
+  then have "L' \<notin># mset_ccls (remove_clit L D)"
+    using L_L' L'_M \<open>Propagated L' C' # trail V \<Turnstile>as CNot (mset_ccls D)\<close>
+     atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set unfolding true_annots_def 
+    by (metis \<open>Propagated L' C' # trail V \<Turnstile>as CNot (mset_ccls D)\<close> in_remove1_mset_neq insert_iff
+      lits_of_l_cons marked_lit.sel(2) remove_lit true_annots_true_cls_def_iff_negation_in_model
+      uminus_not_id')
   have [simp]: "trail (reduce_trail_to M1 T) = M1"
-    by (metis (mono_tags, lifting) One_nat_def Pair_inject T \<open>V \<sim> tl_trail T\<close> decomp
-      diff_less in_get_all_marked_decomposition_trail_update_trail length_greater_0_conv
-      length_tl lessI list.distinct(1) reduce_trail_to_length_ne state_eq_trail
-      trail_reduce_trail_to_length_le trail_tl_trail)
+    using decomp undef tr W V by auto
   have "skip\<^sup>*\<^sup>* S V"
     using st skip by auto
   have "no_dup (trail S)"
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
-  then have [simp]: "init_clss S = N" and [simp]: "learned_clss S = U"
+  then have [simp]: "init_clss S = init_clss V" and [simp]: "learned_clss S = learned_clss V"
     using rtranclp_skip_state_decomp[OF \<open>skip\<^sup>*\<^sup>* S V\<close>] V
-    by (auto simp del: state_simp simp: state_eq_def state_access_simp)
-  then have W_S: "W \<sim> cons_trail (Propagated L (D + {#L#})) (reduce_trail_to M1
-  (add_learned_cls (D + {#L#}) (update_backtrack_lvl i (update_conflicting None T))))"
-    using W i T undef M_lev by (auto simp del: state_simp simp: state_eq_def cdcl\<^sub>W_M_level_inv_def)
+    by (auto simp del: state_simp simp: state_eq_def)
+  then have 
+    W_S: "W \<sim> cons_trail (Propagated L (cls_of_ccls E)) (reduce_trail_to M1
+     (add_learned_cls (cls_of_ccls E) (update_backtrack_lvl i (update_conflicting None T))))"
+    using W V undef M_lev decomp tr
+    by (auto simp del: state_simp simp: state_eq_def cdcl\<^sub>W_M_level_inv_def)
 
   obtain M2' where
-    "(Marked K (i+1) # M1, M2') \<in> set (get_all_marked_decomposition ?M)"
-    using decomp V by (cases "hd (get_all_marked_decomposition (trail V))",
+    decomp': "(Marked K (i+1) # M1, M2') \<in> set (get_all_marked_decomposition (trail T))"
+    using decomp V unfolding tr_M by (cases "hd (get_all_marked_decomposition (trail V))",
       cases "get_all_marked_decomposition (trail V)") auto
   moreover
-    from L_L' have "get_level ?M L = k"
-      using lev_L \<open>-L' \<notin># ?D\<close> V  by (auto split: if_split_asm)
+    from L_L' have "get_level ?M L = ?k"
+      using lev_L V by (auto split: if_split_asm)
   moreover
-    have "atm_of L' \<notin> atms_of D"
-      using \<open>L' \<notin># ?D\<close> \<open>-L' \<notin># ?D\<close> by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
-        atms_of_def)
-    then have "get_level ?M L = get_maximum_level ?M (D+{#L#})"
-      using lev_l_D[symmetric] L_L' V lev_L by simp
-  moreover have "i = get_maximum_level ?M D"
-    using i \<open>atm_of L' \<notin> atms_of D\<close> by auto
-  moreover
+    have "atm_of L' \<notin> atms_of (mset_ccls D)"
+      by (metis DE LE L_L' \<open>L' \<notin># mset_ccls (remove_clit L D)\<close>
+        atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set atms_of_def in_remove1_mset_neq remove_lit)
+    then have "get_level ?M L = get_maximum_level ?M (mset_ccls D)"
+      using calculation(2) lev_L max by auto
+  moreover 
+    have "atm_of L' \<notin> atms_of (mset_ccls (remove_clit L D))"
+      by (metis DE LE \<open>L' \<notin># mset_ccls (remove_clit L D)\<close> 
+        atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set atms_of_def in_remove1_mset_neq remove_lit
+        in_atms_of_remove1_mset_in_atms_of)
+    have "i = get_maximum_level ?M (mset_ccls (remove_clit L D))"
+      using max_D  \<open>atm_of L' \<notin> atms_of (mset_ccls (remove_clit L D))\<close> by auto
 
   ultimately have "backtrack T W"
-    using T(1) W_S by blast
+    apply - 
+    apply (rule  backtrack_rule[of T _ L K i M1 M2' W, OF raw])
+    unfolding tr_M[symmetric]
+         using LD apply simp
+        apply simp
+       apply simp
+      apply simp
+     apply auto[]
+    using W_S  by auto
   then show ?thesis using IH inv by blast
 qed
 
@@ -228,7 +257,7 @@ lemma fst_get_all_marked_decomposition_prepend_not_marked:
     using assms apply (induction MS rule: marked_lit_list_induct)
     apply auto[2]
     by (rename_tac L m xs; case_tac "get_all_marked_decomposition (xs @ M)") simp_all
-
+(*
 text \<open>See also @{thm rtranclp_skip_backtrack_backtrack}\<close>
 lemma rtranclp_skip_backtrack_backtrack_end:
   assumes
@@ -899,11 +928,194 @@ lemma rtranclp_cdcl\<^sub>W_merge_rtranclp_cdcl\<^sub>W:
   "cdcl\<^sub>W_merge\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W\<^sup>*\<^sup>* S T"
   using rtranclp_mono[of cdcl\<^sub>W_merge "cdcl\<^sub>W\<^sup>*\<^sup>*"] cdcl\<^sub>W_merge_rtranclp_cdcl\<^sub>W by auto
 
-(* lemma wf_cdcl\<^sub>W_merge: "wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge S T}"
+abbreviation trail_weight where
+"trail_weight S \<equiv> map ((\<lambda>l. 1 + length l) o snd) (get_all_marked_decomposition (trail S))"
+
+definition \<mu>\<^sub>C' :: "'v literal multiset set \<Rightarrow> 'st \<Rightarrow> nat" where
+"\<mu>\<^sub>C' A T \<equiv> \<mu>\<^sub>C (1+card (atms_of_ms A)) (2+card (atms_of_ms A)) (trail_weight T)"
+
+definition \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged :: "'v literal multiset set \<Rightarrow> 'st \<Rightarrow> nat" where
+"\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged A T \<equiv>
+  ((2+card (atms_of_ms A)) ^ (1+card (atms_of_ms A)) - \<mu>\<^sub>C' A T) * 2 + card (set_mset (clauses T))"
+
+abbreviation \<mu>\<^sub>F\<^sub>W :: "'st \<Rightarrow> nat" where
+"\<mu>\<^sub>F\<^sub>W S \<equiv> (if no_step cdcl\<^sub>W_merge S then 0 else 1+\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged (set_mset (init_clss S)) S)"
+
+lemmas rulesE = 
+  skipE resolveE backtrackE propagateE conflictE decideE restartE forgetE
+(*
+lemma
+  assumes 
+    confl: "conflict S T" and
+    bj: "full cdcl\<^sub>W_bj T U" and
+    inv: "cdcl\<^sub>W_all_struct_inv S"
+  shows False
+proof -
+  obtain C\<^sub>S where
+    C\<^sub>S: "C\<^sub>S !\<in>! raw_clauses S" and
+    tr_S_C\<^sub>S: "trail S \<Turnstile>as CNot (mset_cls C\<^sub>S)" and
+    T: "T \<sim> update_conflicting (Some (ccls_of_cls C\<^sub>S)) S"
+    using confl by (elim conflictE) metis
+  have confl_T: "conflicting T = Some (mset_cls C\<^sub>S)"  
+    using T by (auto elim!: conflictE)
+ 
+  have "cdcl\<^sub>W_all_struct_inv T"
+    using cdcl\<^sub>W.simps cdcl\<^sub>W_all_struct_inv_inv confl inv by blast
+  then have "cdcl\<^sub>W_M_level_inv T"
+    unfolding cdcl\<^sub>W_all_struct_inv_def by auto
+  then consider
+      (no_bt) "skip_or_resolve\<^sup>*\<^sup>* T U"
+    | (bt) T' where "skip_or_resolve\<^sup>*\<^sup>* T T'" and "backtrack T' U"
+    using bj rtranclp_cdcl\<^sub>W_bj_skip_or_resolve_backtrack unfolding full_def by meson
+  then show ?thesis
+    proof cases
+      case no_bt
+      then have "conflicting U \<noteq> None"
+        using confl by (induction rule: rtranclp_induct) (auto elim!: rulesE
+          simp: state_eq_def skip_or_resolve.simps simp del: state_simp)
+      moreover then have "no_step cdcl\<^sub>W_merge U"
+        by (auto simp: cdcl\<^sub>W_merge.simps elim: rulesE)
+      ultimately show ?thesis by blast
+    next
+      case bt note s_or_r = this(1) and bt = this(2)
+      have "cdcl\<^sub>W\<^sup>*\<^sup>* T T'"
+        using s_or_r mono_rtranclp[of skip_or_resolve cdcl\<^sub>W] rtranclp_skip_or_resolve_rtranclp_cdcl\<^sub>W
+        by blast
+      then have "cdcl\<^sub>W_M_level_inv T'"
+        using rtranclp_cdcl\<^sub>W_consistent_inv \<open>cdcl\<^sub>W_M_level_inv T\<close> by blast
+      then obtain M1 M2 i D L K where
+        confl_T': "conflicting T' = Some (D + {#L#})" and
+        M1_M2:"(Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition (trail T'))" and
+        "get_level (trail T') L = backtrack_lvl T'" and
+        "get_level (trail T') L = get_maximum_level (trail T') (D+{#L#})" and
+        "get_maximum_level (trail T') D = i" and
+        undef_L: "undefined_lit M1 L" and
+        U: "U \<sim> cons_trail (Propagated L (D+{#L#}))
+                 (reduce_trail_to M1
+                      (add_learned_cls (D + {#L#})
+                         (update_backtrack_lvl i
+                            (update_conflicting None T'))))"
+        using bt by (auto elim: backtrack_levE)
+      have [simp]: "clauses S = clauses T"
+        using confl by auto
+      have [simp]: "clauses T = clauses T'"
+        using s_or_r
+        proof (induction)
+          case base
+          then show ?case by simp
+        next
+          case (step U V) note st = this(1) and s_o_r = this(2) and IH = this(3)
+          have "clauses U = clauses V"
+            using s_o_r by auto
+          then show ?case using IH by auto
+        qed
+      have inv_T: "cdcl\<^sub>W_all_struct_inv T"
+        by (meson cdcl\<^sub>W_cp.simps confl inv r_into_rtranclp rtranclp_cdcl\<^sub>W_all_struct_inv_inv
+          rtranclp_cdcl\<^sub>W_cp_rtranclp_cdcl\<^sub>W)
+      have "cdcl\<^sub>W\<^sup>*\<^sup>* T T'"
+        using rtranclp_skip_or_resolve_rtranclp_cdcl\<^sub>W s_or_r by blast
+      have inv_T': "cdcl\<^sub>W_all_struct_inv T'"
+        using \<open>cdcl\<^sub>W\<^sup>*\<^sup>* T T'\<close> inv_T rtranclp_cdcl\<^sub>W_all_struct_inv_inv by blast
+      have inv_U: "cdcl\<^sub>W_all_struct_inv U"
+        using cdcl\<^sub>W_merge_restart_cdcl\<^sub>W confl fw_r_conflict inv local.bj
+        rtranclp_cdcl\<^sub>W_all_struct_inv_inv by blast
+
+      have [simp]: "init_clss S = init_clss T'"
+        using \<open>cdcl\<^sub>W\<^sup>*\<^sup>* T T'\<close> cdcl\<^sub>W_init_clss confl cdcl\<^sub>W_all_struct_inv_def conflict inv
+        by (metis \<open>cdcl\<^sub>W_M_level_inv T\<close> rtranclp_cdcl\<^sub>W_init_clss)
+      then have atm_L: "atm_of L \<in> atms_of_mm (clauses S)"
+        using inv_T' confl_T' unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def clauses_def
+        by auto
+      obtain M where tr_T: "trail T = M @ trail T'"
+        using s_or_r by (induction rule: rtranclp_induct) auto
+      obtain M' where
+        tr_T': "trail T' = M' @  Marked K (i+1) # tl (trail U)" and
+        tr_U: "trail U = Propagated L (D + {#L#}) # tl (trail U)"
+        using U M1_M2 undef_L inv_T' unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
+        by fastforce
+      def M'' \<equiv> "M @ M'"
+        have tr_T: "trail S = M'' @  Marked K (i+1) # tl (trail U)"
+        using tr_T tr_T' confl unfolding M''_def by auto
+      have "init_clss T' + learned_clss S \<Turnstile>pm D + {#L#}"
+        using inv_T' confl_T' unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def clauses_def
+        by simp
+      have "reduce_trail_to (convert_trail_from_NOT (convert_trail_from_W M1)) S =
+        reduce_trail_to M1 S"
+        by (rule reduce_trail_to_length) simp
+      moreover have "trail (reduce_trail_to M1 S) = M1"
+        apply (rule reduce_trail_to_skip_beginning[of _ "M @ _ @ M2 @ [Marked K (Suc i)]"])
+        using confl M1_M2 \<open>trail T = M @ trail T'\<close>
+          apply (auto dest!: get_all_marked_decomposition_exists_prepend
+            elim!: conflictE)
+          by (rule sym) auto
+      ultimately have [simp]: "trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T (convert_trail_from_W M1) S) = M1"
+        using M1_M2 confl by (auto simp add: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_reduce_trail_convert)
+      have "every_mark_is_a_conflict U"
+        using inv_U unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def by simp
+      then have "tl (trail U) \<Turnstile>as CNot D"
+        by (metis add_diff_cancel_left' append_self_conv2 tr_U union_commute)
+      have "backjump_l S U"
+        apply (rule backjump_l[of _ _ _ _ _ L])
+                 using tr_T apply simp
+                using inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
+                apply (simp add: comp_def)
+               using U M1_M2 confl undef_L M1_M2 inv_T' inv unfolding cdcl\<^sub>W_all_struct_inv_def
+               cdcl\<^sub>W_M_level_inv_def apply (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def
+                 trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_add_learned_cls)[]
+              using C\<^sub>S apply simp
+             using tr_S_C\<^sub>S apply simp
+
+            using U undef_L M1_M2  inv_T' inv unfolding cdcl\<^sub>W_all_struct_inv_def
+            cdcl\<^sub>W_M_level_inv_def apply auto[]
+           using undef_L atm_L apply (simp add: trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_add_learned_cls)
+          using \<open>init_clss T' + learned_clss S \<Turnstile>pm D + {#L#}\<close> unfolding clauses_def apply simp
+         apply (metis \<open>tl (trail U) \<Turnstile>as CNot D\<close> convert_trail_from_W_true_annots)
+        using  inv_T' inv_U U confl_T' undef_L M1_M2 unfolding cdcl\<^sub>W_all_struct_inv_def
+        distinct_cdcl\<^sub>W_state_def by (simp add: cdcl\<^sub>W_M_level_inv_decomp backjump_l_cond_def)
+      then show ?thesis using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_backjump_l by fast
+    qed
+qed
+
+lemma cdcl\<^sub>W_merge_\<mu>\<^sub>F\<^sub>W_decreasing:
+  assumes
+    inv: "cdcl\<^sub>W_all_struct_inv S" and
+    fw: "cdcl\<^sub>W_merge S T"
+  shows "\<mu>\<^sub>F\<^sub>W T < \<mu>\<^sub>F\<^sub>W S"
+proof -
+  let ?A = "init_clss S"
+  have atm_clauses: "atms_of_mm (clauses S) \<subseteq> atms_of_mm ?A"
+    using inv unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def clauses_def by auto
+  have atm_trail: "atm_of ` lits_of_l (trail S) \<subseteq> atms_of_mm ?A"
+    using inv unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def clauses_def by auto
+  have n_d: "no_dup (trail S)"
+    using inv unfolding cdcl\<^sub>W_all_struct_inv_def by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
+  have [simp]: "\<not> no_step cdcl\<^sub>W_merge S"
+    using fw by auto
+  have [simp]: "init_clss S = init_clss T"
+    using cdcl\<^sub>W_merge_restart_cdcl\<^sub>W[of S T] inv rtranclp_cdcl\<^sub>W_init_clss
+    unfolding cdcl\<^sub>W_all_struct_inv_def
+    by (meson cdcl\<^sub>W_merge.simps cdcl\<^sub>W_merge_restart.simps  cdcl\<^sub>W_rf.simps fw)
+  consider
+      (merged) "cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn S T"
+    | (n_s) "no_step cdcl\<^sub>W_merge T"
+    using cdcl\<^sub>W_merge_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn inv fw by blast
+  then show ?thesis
+    proof cases
+      case merged
+      then show ?thesis
+        using cdcl\<^sub>N\<^sub>O\<^sub>T_decreasing_measure'[OF _ _ atm_clauses] atm_trail n_d
+        by (auto split: if_split simp: comp_def)
+    next
+      case n_s
+      then show ?thesis by simp
+    qed
+qed
+ *)
+
+lemma wf_cdcl\<^sub>W_merge: "wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge S T}"
   apply (rule wfP_if_measure[of _ _ "\<mu>\<^sub>F\<^sub>W"])
   using cdcl\<^sub>W_merge_\<mu>\<^sub>F\<^sub>W_decreasing by blast
 
- *)
 lemma cdcl\<^sub>W_all_struct_inv_tranclp_cdcl\<^sub>W_merge_tranclp_cdcl\<^sub>W_merge_cdcl\<^sub>W_all_struct_inv:
   assumes
     inv: "cdcl\<^sub>W_all_struct_inv b"
@@ -923,11 +1135,11 @@ next
   then show ?case using IH by auto
 qed
 
-(* lemma wf_tranclp_cdcl\<^sub>W_merge: "wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge\<^sup>+\<^sup>+ S T}"
+lemma wf_tranclp_cdcl\<^sub>W_merge: "wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge\<^sup>+\<^sup>+ S T}"
   using wf_trancl[OF wf_cdcl\<^sub>W_merge]
   apply (rule wf_subset)
   by (auto simp: trancl_set_tranclp
-    cdcl\<^sub>W_all_struct_inv_tranclp_cdcl\<^sub>W_merge_tranclp_cdcl\<^sub>W_merge_cdcl\<^sub>W_all_struct_inv) *)
+    cdcl\<^sub>W_all_struct_inv_tranclp_cdcl\<^sub>W_merge_tranclp_cdcl\<^sub>W_merge_cdcl\<^sub>W_all_struct_inv)
 
 lemma backtrack_is_full1_cdcl\<^sub>W_bj:
   assumes bt: "backtrack S T" and inv: "cdcl\<^sub>W_M_level_inv S"
@@ -1047,9 +1259,6 @@ proof -
     using assms unfolding cdcl\<^sub>W.simps cdcl\<^sub>W_merge_restart.simps cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps
     by (auto elim: skipE resolveE backtrackE conflictE decideE restartE)
 qed
-
-lemmas rulesE = 
-  skipE resolveE backtrackE propagateE conflictE decideE restartE forgetE
   
 lemma cdcl\<^sub>W_merge_restart_no_step_cdcl\<^sub>W_bj:
   assumes
@@ -2307,7 +2516,7 @@ proof (rule ccontr)
   moreover
     then have "cdcl\<^sub>W\<^sup>*\<^sup>* S T'"
       using rtranclp_mono[of cdcl\<^sub>W_bj cdcl\<^sub>W] cdcl\<^sub>W.other cdcl\<^sub>W_o.bj tranclp_into_rtranclp[of cdcl\<^sub>W_bj]
-      unfolding full1_def by (metis (full_types) predicate2D predicate2I)
+      unfolding full1_def by blast
     then have "cdcl\<^sub>W_all_struct_inv T'"
       using inv  rtranclp_cdcl\<^sub>W_all_struct_inv_inv by blast
     then obtain U where "full cdcl\<^sub>W_cp T' U"
@@ -2435,13 +2644,14 @@ next
             next
               case propa_confl
               then show ?thesis
-                using propa_confl(2) by (metis rtranclp_unfold cdcl\<^sub>W_merge_cp.propagate'
-                  cp rtranclp.rtrancl_into_rtrancl)
+                using propa_confl(2) cp 
+                by (metis (full_types) cdcl\<^sub>W_merge_cp.propagate' rtranclp.rtrancl_into_rtrancl 
+                  rtranclp_unfold)
             qed
         next
           case cp_confl
           then show ?thesis using conflict' unfolding full1_def by (fastforce dest!: tranclpD
-            elim !: rulesE)
+            elim!: rulesE)
         qed
     next
       case (decide' V')
@@ -2887,14 +3097,14 @@ proof -
     by fastforce
 qed
 
-(* lemma wf_cdcl\<^sub>W_merge_cp:
+lemma wf_cdcl\<^sub>W_merge_cp:
   "wf{(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge_cp S T}"
   using wf_tranclp_cdcl\<^sub>W_merge by (rule wf_subset) (auto simp: cdcl\<^sub>W_merge_cp_tranclp_cdcl\<^sub>W_merge)
 
 lemma wf_cdcl\<^sub>W_merge_stgy:
   "wf{(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge_stgy S T}"
   using wf_tranclp_cdcl\<^sub>W_merge by (rule wf_subset)
-  (auto simp add: cdcl\<^sub>W_merge_stgy_tranclp_cdcl\<^sub>W_merge) *)
+  (auto simp add: cdcl\<^sub>W_merge_stgy_tranclp_cdcl\<^sub>W_merge)
 
 lemma cdcl\<^sub>W_merge_cp_obtain_normal_form:
   assumes inv: "cdcl\<^sub>W_all_struct_inv R"
@@ -3057,7 +3267,8 @@ proof
       then have "full cdcl\<^sub>W_merge_cp R V"
         by (simp add: full_def n_s_cp)
       then have "R = V \<or> cdcl\<^sub>W_merge_stgy\<^sup>+\<^sup>+ R V"
-        by (metis (no_types) full_unfold fw_s_cp rtranclp_unfold tranclp_unfold_end)
+        using fw_s_cp unfolding full_unfold fw_s_cp
+        by (metis (no_types) rtranclp_unfold tranclp_unfold_end)
       then show ?thesis
         by (simp add: full_def n_s rtranclp_unfold)
     next

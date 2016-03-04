@@ -1,5 +1,5 @@
 theory CDCL_W
-imports Partial_Annotated_Clausal_Logic List_More CDCL_W_Level Wellfounded_More
+imports CDCL_Abstract_Clause_Representation List_More CDCL_W_Level Wellfounded_More
 
 begin
 
@@ -10,107 +10,12 @@ subsection \<open>The State\<close>
 text \<open>We will abstract the representation of clause and clauses via two locales. We expect our
   representation to behave like multiset, but the internal representation can be done using list
   or whatever other representation.\<close>
-locale clause =
-  fixes
-    mset_cls:: "'cls \<Rightarrow> 'v clause" and
-    union_cls :: "'cls \<Rightarrow> 'cls \<Rightarrow> 'cls" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
-    remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls"
-  assumes
-    insert_cls[simp]: "mset_cls (insert_cls L C) = mset_cls C + {#L#}" and
-    mset_cls_union_cls[simp]: "mset_cls (union_cls C D) = mset_cls C #\<union> mset_cls D" and
-    remove_lit[simp]: "mset_cls (remove_lit L C) = remove1_mset L (mset_cls C)"
-begin
-(*
-
-remove1_lit ? (closer to the mset definition and better)
-*)
-term  Set.remove
-end
-
-text \<open>This is a copy of the unnamed theorem of @{file "~~/src/HOL/Library/Multiset.thy"}.\<close>
-lemma union_mset_list:
-  "mset xs #\<union> mset ys =
-    mset (case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, [])))"
-proof -
-  have "\<And>zs. mset (case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, zs))) =
-      (mset xs #\<union> mset ys) + mset zs"
-    by (induct xs arbitrary: ys) (simp_all add: multiset_eq_iff)
-  then show ?thesis by simp
-qed
-
-text \<open>Instanciation of the previous locale, in an unnamed context to avoid polluating with simp
-  rules\<close>
-context
-begin
-  interpretation list_cls: clause mset
-    "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-    "op #" remove1
-    by unfold_locales (auto simp: union_mset_list)
-
-  interpretation cls_cls: clause id
-    "op #\<union>" "\<lambda>L C. C + {#L#}" remove1_mset
-    by unfold_locales (auto simp: union_mset_list)
-end
-
-locale clauses =
-  clause mset_cls union_cls insert_cls remove_lit
-  for
-    mset_cls:: "'cls \<Rightarrow> 'v clause" and
-    union_cls :: "'cls \<Rightarrow> 'cls \<Rightarrow> 'cls" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
-    remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" +
-  fixes
-    mset_clss:: "'clss \<Rightarrow> 'v clauses" and
-    union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
-    in_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> bool" and
-    insert_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
-    remove_from_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss"
-  assumes
-    insert_clss[simp]: "mset_clss (insert_clss L C) = mset_clss C + {#mset_cls L#}" and
-    union_clss[simp]: "mset_clss (union_clss C D) = mset_clss C + mset_clss D" and
-    mset_clss_union_clss[simp]: "mset_clss (insert_clss C' D) = {#mset_cls C'#} + mset_clss D" and
-    in_clss_mset_clss[dest]: "in_clss a C \<Longrightarrow> mset_cls a \<in># mset_clss C" and
-    in_mset_clss_exists_preimage: "b \<in># mset_clss C \<Longrightarrow> \<exists>b'. in_clss b' C \<and> mset_cls b' = b" and
-    remove_from_clss_mset_clss[simp]:
-      "mset_clss (remove_from_clss a C) = mset_clss C - {#mset_cls a#}" and
-    in_clss_union_clss[simp]:
-      "in_clss a (union_clss C D) \<longleftrightarrow> in_clss a C \<or> in_clss a D"
-begin
-
-end
-
-experiment
-begin
-  fun remove_first where
-  "remove_first _ [] = []" |
-  "remove_first C (C' # L) = (if mset C = mset C' then L else C' # remove_first C L)"
-
-  lemma remove1_mset_single_add:
-    "a \<noteq> b \<Longrightarrow> remove1_mset a ({#b#} + C) = {#b#} + remove1_mset a C"
-    "remove1_mset a ({#a#} + C) = C"
-    by (auto simp: multiset_eq_iff)
-
-  lemma mset_map_mset_remove_first:
-    "mset (map mset (remove_first a C)) = remove1_mset (mset a) (mset (map mset C))"
-    by (induction C) (auto simp: ac_simps remove1_mset_single_add)
-
-  interpretation clss_clss: clauses id "op #\<union>" "\<lambda>L C. C + {#L#}" remove1_mset
-    id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
-    by unfold_locales (auto simp: ac_simps)
-
-  interpretation list_clss: clauses mset
-    "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-    "op #" remove1 "\<lambda>L. mset (map mset L)" "op @" "\<lambda>L C. L \<in> set C" "op #"
-    remove_first
-    by unfold_locales (auto simp: ac_simps union_mset_list mset_map_mset_remove_first)
-end
 
 locale state\<^sub>W_ops =
-  clauses mset_cls union_cls insert_cls remove_lit
+  raw_clss mset_cls union_cls insert_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     +
-  clause mset_ccls union_ccls insert_ccls remove_clit
+  raw_cls mset_ccls union_ccls insert_ccls remove_clit
   for
     -- \<open>Clause\<close>
     mset_cls:: "'cls \<Rightarrow> 'v clause" and
