@@ -7,7 +7,8 @@ Handbook of Automated Reasoning_).
 
 The repository version of Isabelle is necessary to process the theory files. For Isabelle2016, 
 switch to the ``sat_solver_learn_forget_restart_incrementality`` branch (change with 
-``git checkout sat_solver_learn_forget_restart_incrementality``).
+``git checkout sat_solver_learn_forget_restart_incrementality``). The [Archive of Formal Proofs](http://afp.sourceforge.net/)
+is also needed.
 
 ## Authors ##
 
