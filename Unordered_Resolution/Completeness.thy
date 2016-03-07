@@ -105,12 +105,12 @@ proof (cases l1)
   then have Neg: "l2 = Neg p ts" using comp Pos by (cases l2) auto
 
   from falsif have "falsifiesl G l1" using l1C1' by auto
-  then have "\<exists>i. G ! i = False \<and> fatom_from_nat i = Pos p ts" using l1C1' Pos by auto 
+  then have "\<exists>i. G ! i = False \<and> fatom_from_nat i = Pos p ts" using l1C1' Pos ground_falsifies[of "Pos p ts" "G" ] by (induction "Pos p ts") auto
   then obtain i where "G ! i = False \<and> fatom_from_nat i = Pos p ts" by auto
   then have "G ! nat_from_fatom (Pos p ts) = False" using fatom_from_nat_is_nat_from_fatom gr Pos by auto
   moreover
   from falsif have "falsifiesl G l2" using l2C1' by auto
-  then have "\<exists>i. G ! i = True \<and> fatom_from_nat i = Pos p ts" using l2C1' Neg by auto 
+  then have "\<exists>i. G ! i = True \<and> fatom_from_nat i = Pos p ts" using l2C1' Neg ground_falsifies[of "Neg p ts" "G" ] by (induction "Neg p ts") auto
   then obtain i where "G ! i = True \<and> fatom_from_nat i = Pos p ts" by auto
   then have "G ! nat_from_fatom (Pos p ts) = True" using fatom_from_nat_is_nat_from_fatom gr Pos by auto
   ultimately show ?thesis by auto
@@ -120,12 +120,12 @@ next
   then have Pos: "l2 = Pos p ts" using comp Neg by (cases l2) auto
 
   from falsif have "falsifiesl G l1" using l1C1' by auto
-  then have "\<exists>i. G ! i = True \<and> fatom_from_nat i = Pos p ts" using l1C1' Neg by auto 
+  then have "\<exists>i. G ! i = True \<and> fatom_from_nat i = Pos p ts" using l1C1' Neg ground_falsifies[of "Neg p ts" "G" ] by (induction "Neg p ts") auto 
   then obtain i where "G ! i = True \<and> fatom_from_nat i = Pos p ts" by auto
   then have "G ! nat_from_fatom (Pos p ts) = True" using fatom_from_nat_is_nat_from_fatom gr Neg by auto
   moreover
   from falsif have "falsifiesl G l2" using l2C1' by auto
-  then have "\<exists>i. G ! i = False \<and> fatom_from_nat i = Pos p ts" using l2C1' Pos by auto 
+  then have "\<exists>i. G ! i = False \<and> fatom_from_nat i = Pos p ts" using l2C1' Pos ground_falsifies[of "Pos p ts" "G" ] by (induction "Pos p ts") auto 
   then obtain i where "G ! i = False \<and> fatom_from_nat i = Pos p ts" by auto
   then have "G ! nat_from_fatom (Pos p ts) = False" using fatom_from_nat_is_nat_from_fatom gr Neg by auto
   ultimately show ?thesis by auto
@@ -157,7 +157,7 @@ proof -
   from C1'_p have "falsifiesg (B@[d]) (C1' - {l})" by auto
   (* And indeed, falsified by B2 *)
   then have loB2: "falsifiesl (B@[d]) lo" using other by auto
-  then obtain i where "fatom_from_nat i = Pos (get_pred lo) (get_terms lo) \<and> i < length (B @ [True])" by (cases lo) auto
+  then obtain i where "fatom_from_nat i = Pos (get_pred lo) (get_terms lo) \<and> i < length (B @ [True])" using ground_falsifies'[of  "B @ [d]" lo] by (induction lo) auto
   then have "nat_from_fatom (fatom_from_nat i) = nat_from_fatom (Pos (get_pred lo) (get_terms lo)) \<and> i < length (B @ [True])" by auto
   (* And they have numbers in the range of B2, i.e. less than B + 1*)
   then have "nat_from_fatom lo < length B + 1" using undiag_neg undiag_diag_fatom by (cases lo) auto
@@ -235,7 +235,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     then have "\<not>(\<exists>i.
       i < length B
       \<and> B ! i = (\<not>sign l1)
-      \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1))" by (induction l1) auto
+      \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1))" using ground_falsifies_opposite[of  "B" l1] by (induction l1) auto
     then have "\<not>(\<exists>i.
       i < length B
       \<and> (B@[True]) ! i = (\<not>sign l1)
@@ -277,7 +277,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     then have "\<not>(\<exists>i.  
       i < length B
       \<and> B ! i = (\<not>sign l2)
-      \<and> fatom_from_nat i = Pos (get_pred l2) (get_terms l2))" by (cases l2) auto
+      \<and> fatom_from_nat i = Pos (get_pred l2) (get_terms l2))" using ground_falsifies_opposite[of "B" l2] by (induction l2) auto
     then have "\<not>(\<exists>i.  
       i < length B
       \<and> (B@[False]) ! i = (\<not>sign l2)

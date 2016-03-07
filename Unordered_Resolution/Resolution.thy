@@ -997,8 +997,6 @@ section {* Herbrand Interpretations *}
 (* HFun is the Herbrand function denotation in which terms are mapped to themselves  *)
 term HFun
 
-lemma diag_ground: "groundl (fatom_from_nat n)" unfolding fatom_from_nat_def using TermsAndLiterals.ground_fatom_of_hatom by auto 
-
 lemma eval_ground: "ground t \<Longrightarrow> (evalt E HFun t) = hterm_of_fterm t"
   by (induction t) auto
 
@@ -1025,16 +1023,17 @@ type_synonym partial_pred_denot = "bool list"
 
 (* Only ground literals can be falsified *)
 fun falsifiesl :: "partial_pred_denot \<Rightarrow> fterm literal \<Rightarrow> bool" where
-  "falsifiesl G (Pos p ts) = 
-     (\<exists>i.  
-      i < length G
-      \<and> G ! i = False
-      \<and> fatom_from_nat i = Pos p ts)" (* I could get rid of the existential quantifier by using nat_from_fatom, but then I should make sure l is ground *)
-| "falsifiesl G (Neg p ts) = 
-     (\<exists>i.  
-      i < length G
-      \<and> G ! i = True
-      \<and> fatom_from_nat i = Pos p ts)"
+  "falsifiesl G (Pos p ts) \<longleftrightarrow>
+        groundl (Pos p ts)
+     \<and> (let i = nat_from_fatom (Pos p ts) in
+          i < length G \<and> G ! i = False
+        )"
+| "falsifiesl G (Neg p ts) \<longleftrightarrow>
+        groundl (Neg p ts)
+     \<and> (let i = nat_from_fatom (Neg p ts) in
+          i < length G \<and> G ! i = True
+        )"
+
 
 abbreviation falsifiesg :: "partial_pred_denot \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "falsifiesg G C \<equiv> (\<forall>l \<in> C. falsifiesl G l)"
@@ -1048,16 +1047,7 @@ abbreviation falsifiescs :: "partial_pred_denot \<Rightarrow> fterm clause set \
 lemma falsifies_ground:
   assumes "falsifiesl G l"
   shows "groundl l"
-proof (cases l)
-  case (Pos p ts) 
-  then have "\<exists>i. fatom_from_nat i = Pos p ts" using assms by auto
-  then show ?thesis using diag_ground Pos by metis
-next
-  case (Neg p ts) 
-  then have "\<exists>i. fatom_from_nat i = Pos p ts" using assms by auto
-  then have "groundl (Pos p ts)" using diag_ground Neg by metis
-  then show ?thesis using Neg by auto
-qed 
+using assms by (cases l) auto
 
 lemma falsifies_ground_sub: (* This lemma seems quite pointless *)
   assumes "falsifiesl G l"
@@ -1078,10 +1068,23 @@ proof -
   then show ?thesis using C'_p by auto
 qed
   
-lemma ground_falsifiesc: (* Very pointless lemma *)
-  assumes "groundls C" (* this assumption is not even used *)
-  assumes "falsifiesg G C"
-  shows "\<forall>l\<in>C. falsifiesl G l" using local.assms(2) by -  
+lemma ground_falsifies':
+  assumes "falsifiesl G l"
+  shows"
+      \<exists>i.  
+      i < length G
+      \<and> G ! i = (\<not>sign l)
+      \<and> fatom_from_nat i = Pos (get_pred l) (get_terms l)"
+using assms
+apply -
+apply (rule_tac x="nat_from_fatom l" in exI)
+apply (cases l)
+apply auto
+apply meson
+apply meson
+apply meson
+apply (simp add: undiag_neg)
+done
 
 lemma ground_falsifies:
   assumes "groundl l"
@@ -1091,8 +1094,38 @@ lemma ground_falsifies:
       i < length G
       \<and> G ! i = (\<not>sign l)
       \<and> fatom_from_nat i = Pos (get_pred l) (get_terms l)"
-using assms by (cases l) auto (* Not really induction *)
+using assms ground_falsifies' by auto
 
+lemma ground_falsifies_opposite:
+  assumes "
+      \<exists>i.  
+      i < length G
+      \<and> G ! i = (\<not>sign l)
+      \<and> fatom_from_nat i = Pos (get_pred l) (get_terms l)"
+  shows "groundl l \<and> falsifiesl G l"
+proof -
+  from assms obtain i where i_p: "i < length G
+      \<and> G ! i = (\<not>sign l)
+      \<and> fatom_from_nat i = Pos (get_pred l) (get_terms l)" by auto
+  from i_p have i_no: "i = nat_from_fatom (Pos (get_pred l) (get_terms l)) \<and> i = nat_from_fatom (Neg (get_pred l) (get_terms l))" by (metis undiag_diag_fatom undiag_neg)
+  
+  from i_no i_p have "G ! nat_from_fatom (Pos (get_pred l) (get_terms l)) = (~sign l)" by auto
+  
+  show ?thesis 
+    using i_p i_no
+    apply -
+    apply (rule;induction l)
+    apply (metis ground_fatom_from_nat literal.sel(3))
+    apply (metis ground_fatom_from_nat literal.sel(3))
+    apply (metis falsifiesl.simps(1) ground_fatom_from_nat literal.collapse(1) literal.discI(1))
+    apply (metis falsifiesl.simps(2) fatom_from_nat_def ground_fatom_of_hatom literal.disc(2) literal.sel(2) literal.sel(3) literal.sel(4))
+    done
+qed
+    
+    
+    
+    
+  
 
 abbreviation extend :: "(nat \<Rightarrow> partial_pred_denot) \<Rightarrow> hterm pred_denot" where
   "extend f P ts \<equiv> (
@@ -1460,7 +1493,7 @@ proof (induction l) (* Not really induction *)
   then obtain i where i_p: "  
       i < length ds
       \<and> ds ! i = False
-      \<and> fatom_from_nat i = Pos P ts" by auto
+      \<and> fatom_from_nat i = Pos P ts" using ground_falsifies[of "Pos P ts"] by auto
   moreover
   from i_p have "i < length (ds@d)" by auto
   moreover
@@ -1470,13 +1503,13 @@ proof (induction l) (* Not really induction *)
       i < length (ds@d)
       \<and> (ds@d) ! i = False
       \<and> fatom_from_nat i = Pos P ts" by auto
-  then show ?case by auto
+  then show ?case using ground_falsifies_opposite[of "(ds @ d)" "Pos P ts" ] by (cases "Pos P ts") auto
 next
   case (Neg P ts) (* very symmetrical *)
   then obtain i where i_p: "  
       i < length ds
       \<and> ds ! i = True
-      \<and> fatom_from_nat i = Pos P ts" by auto
+      \<and> fatom_from_nat i = Pos P ts" using ground_falsifies[of "Neg P ts"] by auto
   moreover
   from i_p have "i < length (ds@d)" by auto
   moreover
@@ -1486,7 +1519,7 @@ next
       i < length (ds@d)
       \<and> (ds@d) ! i = True
       \<and> fatom_from_nat i = Pos P ts" by auto
-  then show ?case by auto
+  then show ?case using ground_falsifies_opposite[of "(ds @ d)" "Neg P ts" ] by (cases "Neg P ts") auto
 qed
 
 lemma longer_falsifiesg:
@@ -1559,24 +1592,24 @@ proof (cases l)
   case (Pos p ts)
   from assms Pos obtain i where i_p: "i < length (ds@d)
       \<and> (ds@d) ! i = False
-      \<and> fatom_from_nat i = Pos p ts" by auto
+      \<and> fatom_from_nat i = Pos p ts" using ground_falsifies[of "Pos p ts" "ds@d"] by auto
   moreover
   then have "i = nat_from_fatom (Pos p ts)" using undiag_diag_fatom[of i] by auto
   then have "i < length ds" using assms Pos by auto
   moreover
   then have "ds ! i = False" using i_p by (simp add: nth_append) 
-  ultimately show ?thesis using Pos by auto
+  ultimately show ?thesis using Pos ground_falsifies_opposite[of "ds" "Pos p ts" ] by (induction "Pos p ts" ) auto
 next
   case (Neg p ts)
   from assms Neg obtain i where i_p: "i < length (ds@d)
       \<and> (ds@d) ! i = True
-      \<and> fatom_from_nat i = Pos p ts" by auto
+      \<and> fatom_from_nat i = Pos p ts" using ground_falsifies[of "Neg p ts" "ds@d"] by auto
   moreover
   then have "i = nat_from_fatom (Pos p ts)" using undiag_diag_fatom[of i] by auto
   then have "i < length ds" using assms Neg undiag_neg by auto
   moreover
   then have "ds ! i = True" using i_p by (simp add: nth_append) 
-  ultimately show ?thesis using Neg by auto
+  ultimately show ?thesis using Neg ground_falsifies_opposite[of "ds" "Neg p ts" ] by (induction "Neg p ts" ) auto
 qed
 
 theorem herbrand'_contra:
