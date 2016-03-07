@@ -17,10 +17,6 @@ The goal is to develop lemma libraries and methodology for formalizing modern re
 * [Anders Schlichtkrull](mailto:andschl shtrudel dtu.dk)
 * [Dmitriy Traytel](mailto:traytel shtrudel inf.ethz.ch)
 
-## Partly Based on Work by ##
-
-* [Stefan Berghofer](mailto:berghofe shtrudel in.tum.de)
-
 ## Additional Collaborators ##
 
 * [Andrei Popescu](mailto:A.Popescu shtrudel mdx.ac.uk)
