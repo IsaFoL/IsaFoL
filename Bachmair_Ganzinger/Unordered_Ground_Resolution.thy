@@ -112,7 +112,7 @@ proof -
   have "\<not> interp N D \<Turnstile> D"
     using d0 productive_imp_false_interp by blast
   hence "\<not> Interp N D \<Turnstile> D'"
-    unfolding d0 d' Interp_def true_cls_def by (auto simp: true_lit_def simp del: not_gr_zero)
+    unfolding d0 d' Interp_def true_cls_def by (auto simp: true_lit_def simp del: not_gr0)
   hence "\<not> INTERP N \<Turnstile> D'"
     using a_max_d d'_le_d max_d'_lt_a false_Interp_imp_INTERP by blast
   moreover have "\<not> INTERP N \<Turnstile> C'"

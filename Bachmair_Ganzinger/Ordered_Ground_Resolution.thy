@@ -296,7 +296,7 @@ proof -
     unfolding dd by auto 
   hence "\<And>A. A \<in># AA \<Longrightarrow> \<not> Interp N (D_of A) \<Turnstile> D'_of A"
     unfolding prod_d0 d'_of Interp_def true_cls_def 
-    by (auto simp: true_lit_def simp del: not_gr_zero)
+    by (auto simp: true_lit_def simp del: not_gr0)
   hence d'_at_n: "\<And>A. A \<in># AA \<Longrightarrow> \<not> INTERP N \<Turnstile> D'_of A"
     using a_max_d d'_le_d max_d'_lt_a false_Interp_imp_INTERP unfolding true_cls_def
     by (metis count_empty true_lit_simps)
