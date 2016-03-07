@@ -1979,29 +1979,31 @@ abbreviation "conflicting_bj_clss_yet b S \<equiv>
   3 ^ b - card (conflicting_bj_clss S)"
 
 abbreviation \<mu>\<^sub>L :: "nat \<Rightarrow> 'st \<Rightarrow> nat \<times> nat" where
-  "\<mu>\<^sub>L b S \<equiv> (conflicting_bj_clss_yet b S, card (set_mset (clauses S)))"
+  "\<mu>\<^sub>L b S \<equiv> (conflicting_bj_clss_yet b S, size (clauses S))"
 
 lemma do_not_forget_before_backtrack_rule_clause_learned_clause_untouched:
   assumes "forget\<^sub>N\<^sub>O\<^sub>T S T"
   shows "conflicting_bj_clss S = conflicting_bj_clss T"
-  using assms apply induction
+  using assms apply (elim forget\<^sub>N\<^sub>O\<^sub>TE) (* TODO Tune proof *)
   apply auto
   unfolding conflicting_bj_clss_def
-  apply auto
-  sledgehammer
-   sorry
-  by (metis (no_types, lifting) Diff_insert_absorb Set.set_insert clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T
-    diff_union_cancelR insert_iff order_refl set_mset_minus_replicate_mset(1)
-    state_eq\<^sub>N\<^sub>O\<^sub>T_clauses state_eq\<^sub>N\<^sub>O\<^sub>T_trail trail_remove_cls\<^sub>N\<^sub>O\<^sub>T)
+  apply clarify
+  using diff_union_cancelR by (metis diff_union_cancelR)
+
+lemma size_mset_removeAll_mset_le_iff: 
+  "size (removeAll_mset x M) < size M \<longleftrightarrow> x \<in># M"
+  apply (rule iffI)
+    apply (force intro: count_inI)
+  apply (rule mset_less_size)
+  apply (auto dest: simp: subset_mset_def multiset_eq_iff)
+  done
 
 lemma forget_\<mu>\<^sub>L_decrease:
   assumes forget\<^sub>N\<^sub>O\<^sub>T: "forget\<^sub>N\<^sub>O\<^sub>T S T"
   shows "(\<mu>\<^sub>L b T, \<mu>\<^sub>L b S) \<in> less_than <*lex*> less_than"
 proof -
-  have "card (set_mset  (clauses T)) < card (set_mset  (clauses S))"
-    using forget\<^sub>N\<^sub>O\<^sub>T apply induction
-    by (metis card_Diff1_less clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T finite_set_mset order_refl
-      set_mset_minus_replicate_mset(1) state_eq\<^sub>N\<^sub>O\<^sub>T_clauses)
+  have "size (clauses T) < size (clauses S)"
+    using forget\<^sub>N\<^sub>O\<^sub>T by (elim forget\<^sub>N\<^sub>O\<^sub>TE) (auto simp: size_mset_removeAll_mset_le_iff)
   then show ?thesis
     unfolding do_not_forget_before_backtrack_rule_clause_learned_clause_untouched[OF forget\<^sub>N\<^sub>O\<^sub>T]
     by auto
@@ -2039,11 +2041,11 @@ proof -
       case (1 C) note clss_S = this(1) and atms_C = this(2) and inv = this(3) and T = this(4)
       then obtain F K F' C' L where
         tr_S: "trail S = F' @ Marked K () # F" and
-        C: "C = C' + {#L#}" and
+        C: "mset_cls C = C' + {#L#}" and
         F: "F \<Turnstile>as CNot C'" and
         C_S:"C' + {#L#} \<notin># clauses S"
         by blast
-      moreover have "distinct_mset C" "\<not> tautology C" using inv by blast+
+      moreover have "distinct_mset (mset_cls  C)" "\<not> tautology (mset_cls C)" using inv by blast+
       ultimately have "C' + {#L#} \<in> conflicting_bj_clss T"
         using T n_d unfolding conflicting_bj_clss_def by fastforce
       moreover have "C' + {#L#} \<notin> conflicting_bj_clss S"
@@ -2116,7 +2118,8 @@ next
     using inv atm_clss atm_lits n_d fin_A
     by (elim learn\<^sub>N\<^sub>O\<^sub>TE) auto
   show ?case
-    using learn_\<mu>\<^sub>L_decrease[OF learn _ ] atm_clss atm_lits fin_A n_d unfolding S \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L_def by auto
+    using learn_\<mu>\<^sub>L_decrease[OF learn n_d, of "atms_of_ms A"] atm_clss atm_lits fin_A n_d 
+    unfolding S \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L_def by auto
 next
   case (c_forget\<^sub>N\<^sub>O\<^sub>T T) note forget\<^sub>N\<^sub>O\<^sub>T = this(1)
   have "trail S = trail T" using forget\<^sub>N\<^sub>O\<^sub>T by induction auto
@@ -2197,9 +2200,10 @@ next
   case (learn C F' K F C' L T) note clss_S_C = this(1) and atms_C = this(2) and dist = this(3)
     and tauto = this(4) and learn_restr = this(5) and tr_S = this(6) and C' = this(7) and
     F_C = this(8) and C_new = this(9) and T =this(10)
-  have "insert C (conflicting_bj_clss S) \<subseteq> simple_clss (atms_of_ms A)"
+  have "insert (mset_cls C) (conflicting_bj_clss S) \<subseteq> simple_clss (atms_of_ms A)"
     proof -
-      have "C \<in> simple_clss (atms_of_ms A)"
+      have "mset_cls C \<in> simple_clss (atms_of_ms A)"
+        using C'
         by (metis (no_types, hide_lams) Un_subset_iff simple_clss_mono
           contra_subsetD dist distinct_mset_not_tautology_implies_in_simple_clss
           dual_order.trans atms_C atms_clss atms_trail tauto)
@@ -2222,14 +2226,14 @@ next
       ultimately show ?thesis
         by auto
     qed
-  then have "card (insert C (conflicting_bj_clss S)) \<le> 3 ^ (card (atms_of_ms A))"
+  then have "card (insert (mset_cls C) (conflicting_bj_clss S)) \<le> 3 ^ (card (atms_of_ms A))"
     by (meson Nat.le_trans atms_of_ms_finite simple_clss_card simple_clss_finite
       card_mono fin_A)
-  moreover have [simp]: "card (insert C (conflicting_bj_clss S))
+  moreover have [simp]: "card (insert (mset_cls C) (conflicting_bj_clss S))
     = Suc (card ((conflicting_bj_clss S)))"
     by (metis (no_types) C' C_new card_insert_if conflicting_bj_clss_incl_clauses contra_subsetD
       finite_conflicting_bj_clss)
-  moreover have [simp]: "conflicting_bj_clss (add_cls\<^sub>N\<^sub>O\<^sub>T C S) = conflicting_bj_clss S \<union> {C}"
+  moreover have [simp]: "conflicting_bj_clss (add_cls\<^sub>N\<^sub>O\<^sub>T C S) = conflicting_bj_clss S \<union> {mset_cls C}"
      using dist tauto F_C n_d by (subst conflicting_bj_clss_add_cls\<^sub>N\<^sub>O\<^sub>T)
      (force simp add: ac_simps C' tr_S)+
   ultimately have [simp]: "conflicting_bj_clss_yet (card (atms_of_ms A)) S

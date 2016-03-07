@@ -181,17 +181,7 @@ lemma ex_gt_imp_less_mset_mset:
   using less_mset_mset\<^sub>H\<^sub>O by (metis count_greater_zero_iff count_inI less_nat_zero_code
     multiset_linorder.not_less_iff_gr_or_eq)
 
-subsection \<open>Multiset and set conversion\<close>
-lemma mset_set_set_mset_empty_mempty[iff]:
-  "mset_set (set_mset D) = {#} \<longleftrightarrow> D = {#}"
-  by (auto dest: arg_cong[of _ _ set_mset])
-
-lemma count_mset_set_le_1[simp]: "count (mset_set (set C)) L \<le> 1"
-  by (metis List.finite_set One_nat_def count_mset_set(1) count_mset_set(3) le_less_linear
-    less_nat_zero_code less_not_refl)
-
-lemma replicate_mset_plus: "replicate_mset (a + b) C = replicate_mset a C + replicate_mset b C"
-  by (induct a) (auto simp: ac_simps)
+subsection \<open>Remove\<close>
 
 lemma set_mset_minus_replicate_mset[simp]:
   "n \<ge> count A a \<Longrightarrow> set_mset (A - replicate_mset n a) = set_mset A - {a}"
@@ -212,6 +202,11 @@ lemma remove1_mset_remove1[code]:
   "remove1_mset C (mset L) = mset (remove1 C L)"
   by auto
 
+subsection \<open>Replicate\<close>
+
+lemma replicate_mset_plus: "replicate_mset (a + b) C = replicate_mset a C + replicate_mset b C"
+  by (induct a) (auto simp: ac_simps)
+
 lemma set_mset_single_iff_replicate_mset:
   "set_mset U = {a}  \<longleftrightarrow> (\<exists>n>0. U = replicate_mset n a)" (is "?S \<longleftrightarrow> ?R")
 proof
@@ -230,6 +225,16 @@ next
         using \<open>?S\<close> by auto
     qed
 qed
+
+subsection \<open>Multiset and set conversion\<close>
+
+lemma mset_set_set_mset_empty_mempty[iff]:
+  "mset_set (set_mset D) = {#} \<longleftrightarrow> D = {#}"
+  by (auto dest: arg_cong[of _ _ set_mset])
+
+lemma size_mset_set_card:
+  "finite S \<Longrightarrow> size (mset_set S) = card S"
+  by (induction S rule: finite_induct) auto
 
 lemma count_mset_set_le_one: "count (mset_set A) x \<le> 1"
   by (metis count_mset_set(1) count_mset_set(2) count_mset_set(3) eq_iff le_numeral_extra(1))
@@ -254,6 +259,7 @@ lemma mset_take_subseteq: "mset (take n xs) \<subseteq># mset xs"
   by (case_tac n) simp_all
 
 subsection \<open>Removing duplicates\<close>
+
 definition remdups_mset :: "'v multiset \<Rightarrow> 'v multiset" where
 "remdups_mset S = mset_set (set_mset S)"
 
@@ -415,7 +421,7 @@ lemma distinct_mset_set_mset_ident[simp]: "distinct_mset M \<Longrightarrow> mse
   apply (auto simp: multiset_eq_iff)
   apply (rename_tac x)
   apply (case_tac "count M x = 0")
-   apply (simp add: elem_mset_set not_in_iff[symmetric])
+   apply (simp add: not_in_iff[symmetric])
   apply (case_tac "count M x = 1")
    apply (simp add: count_inI)
   unfolding distinct_mset_count_less_1
@@ -458,7 +464,6 @@ proof -
     using dist_m dist_n by auto
 qed
 
-
 lemma distinct_mset_union_mset:
   assumes
     "distinct_mset D" and
@@ -498,6 +503,14 @@ lemma comprehension_mset_False[simp]:
 lemma filter_mset_eq:
    "filter_mset (op = L) A = replicate_mset (count A L) L"
   by (auto simp: multiset_eq_iff)
+
+lemma filter_mset_union_mset:
+  "filter_mset P (A #\<union> B) = filter_mset P A #\<union> filter_mset P B"
+  by (auto simp: multiset_eq_iff)
+
+lemma filter_mset_mset_set:
+  "finite A \<Longrightarrow> filter_mset P (mset_set A) = mset_set {a \<in> A. P a}"
+  by (auto simp: multiset_eq_iff count_mset_set_if)
 
 subsection \<open>Sums\<close>
 lemma msetsum_distrib[simp]:
