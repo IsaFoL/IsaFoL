@@ -500,6 +500,7 @@ lemma comprehension_mset_False[simp]:
    "{# L \<in># A. False#} = {#}"
   by (auto simp: multiset_eq_iff)
 
+text \<open>Near duplicate of @{thm filter_eq_replicate_mset}\<close>
 lemma filter_mset_eq:
    "filter_mset (op = L) A = replicate_mset (count A L) L"
   by (auto simp: multiset_eq_iff)

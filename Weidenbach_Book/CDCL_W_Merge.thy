@@ -1,5 +1,5 @@
 theory CDCL_W_Merge
-imports CDCL_W_Termination CDCL_WNOT_Measure
+imports CDCL_W_Termination CDCL_WNOT
 begin
 
 section \<open>Link between Weidenbach's and NOT's CDCL\<close>
@@ -62,8 +62,8 @@ lemma rtranclp_skip_or_resolve_rtranclp_cdcl\<^sub>W:
   by (induction rule: rtranclp_induct) 
   (auto dest!: cdcl\<^sub>W_bj.intros cdcl\<^sub>W.intros cdcl\<^sub>W_o.intros simp: skip_or_resolve.simps)
 
-definition backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool" where
-"backjump_l_cond \<equiv> \<lambda>C C' L' S. True"
+definition backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" where
+"backjump_l_cond \<equiv> \<lambda>C C' L' S T. True"
 
 definition inv\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> bool" where
 "inv\<^sub>N\<^sub>O\<^sub>T \<equiv> \<lambda>S. no_dup (trail S)"
@@ -928,7 +928,7 @@ lemma rtranclp_cdcl\<^sub>W_merge_rtranclp_cdcl\<^sub>W:
   "cdcl\<^sub>W_merge\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W\<^sup>*\<^sup>* S T"
   using rtranclp_mono[of cdcl\<^sub>W_merge "cdcl\<^sub>W\<^sup>*\<^sup>*"] cdcl\<^sub>W_merge_rtranclp_cdcl\<^sub>W by auto
 
-abbreviation trail_weight where
+(* abbreviation trail_weight where
 "trail_weight S \<equiv> map ((\<lambda>l. 1 + length l) o snd) (get_all_marked_decomposition (trail S))"
 
 definition \<mu>\<^sub>C' :: "'v literal multiset set \<Rightarrow> 'st \<Rightarrow> nat" where
@@ -939,7 +939,7 @@ definition \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged :: "'v literal multiset
   ((2+card (atms_of_ms A)) ^ (1+card (atms_of_ms A)) - \<mu>\<^sub>C' A T) * 2 + card (set_mset (clauses T))"
 
 abbreviation \<mu>\<^sub>F\<^sub>W :: "'st \<Rightarrow> nat" where
-"\<mu>\<^sub>F\<^sub>W S \<equiv> (if no_step cdcl\<^sub>W_merge S then 0 else 1+\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged (set_mset (init_clss S)) S)"
+"\<mu>\<^sub>F\<^sub>W S \<equiv> (if no_step cdcl\<^sub>W_merge S then 0 else 1+\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_merged (set_mset (init_clss S)) S)" *)
 
 lemmas rulesE = 
   skipE resolveE backtrackE propagateE conflictE decideE restartE forgetE
@@ -1112,10 +1112,6 @@ proof -
 qed
  *)
 
-lemma wf_cdcl\<^sub>W_merge: "wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge S T}"
-  apply (rule wfP_if_measure[of _ _ "\<mu>\<^sub>F\<^sub>W"])
-  using cdcl\<^sub>W_merge_\<mu>\<^sub>F\<^sub>W_decreasing by blast
-
 lemma cdcl\<^sub>W_all_struct_inv_tranclp_cdcl\<^sub>W_merge_tranclp_cdcl\<^sub>W_merge_cdcl\<^sub>W_all_struct_inv:
   assumes
     inv: "cdcl\<^sub>W_all_struct_inv b"
@@ -1134,12 +1130,6 @@ next
     using fw by auto
   then show ?case using IH by auto
 qed
-
-lemma wf_tranclp_cdcl\<^sub>W_merge: "wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge\<^sup>+\<^sup>+ S T}"
-  using wf_trancl[OF wf_cdcl\<^sub>W_merge]
-  apply (rule wf_subset)
-  by (auto simp: trancl_set_tranclp
-    cdcl\<^sub>W_all_struct_inv_tranclp_cdcl\<^sub>W_merge_tranclp_cdcl\<^sub>W_merge_cdcl\<^sub>W_all_struct_inv)
 
 lemma backtrack_is_full1_cdcl\<^sub>W_bj:
   assumes bt: "backtrack S T" and inv: "cdcl\<^sub>W_M_level_inv S"
@@ -3096,6 +3086,23 @@ proof -
   then show ?thesis
     by fastforce
 qed
+end
+
+text \<open>We will discharge the assumption later\<close>
+locale conflict_driven_clause_learning\<^sub>W_termination =
+  conflict_driven_clause_learning\<^sub>W +
+  assumes wf_cdcl\<^sub>W_merge: "wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge S T}"
+begin
+
+(* lemma wf_cdcl\<^sub>W_merge: "wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge S T}"
+  apply (rule wfP_if_measure[of _ _ "\<mu>\<^sub>F\<^sub>W"])
+  using cdcl\<^sub>W_merge_\<mu>\<^sub>F\<^sub>W_decreasing by blast *)
+
+lemma wf_tranclp_cdcl\<^sub>W_merge: "wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge\<^sup>+\<^sup>+ S T}"
+  using wf_trancl[OF wf_cdcl\<^sub>W_merge]
+  apply (rule wf_subset)
+  by (auto simp: trancl_set_tranclp
+    cdcl\<^sub>W_all_struct_inv_tranclp_cdcl\<^sub>W_merge_tranclp_cdcl\<^sub>W_merge_cdcl\<^sub>W_all_struct_inv)
 
 lemma wf_cdcl\<^sub>W_merge_cp:
   "wf{(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge_cp S T}"

@@ -1027,19 +1027,19 @@ next
       using M_level alien calculation(4) cdcl\<^sub>W_no_strange_atm_inv by blast
     then have "length (Marked L ((backtrack_lvl S) + 1) # (trail S))
       \<le> card (atms_of_mm (init_clss S))"
-      using no_dup clauses_def undef
+      using no_dup undef
       length_model_le_vars[of "cons_trail (Marked L (backtrack_lvl S + 1)) (incr_lvl S)"]
       by fastforce
   ultimately show ?case using conf by auto
 next
   case (skip L C' M D) note tr = this(1) and conf = this(2) and T = this(5)
-  show ?case using conf T unfolding clauses_def by (simp add: tr)
+  show ?case using conf T by (simp add: tr)
 next
   case conflict
   then show ?case by simp
 next
   case resolve
-  then show ?case using finite unfolding clauses_def by simp
+  then show ?case using finite by simp
 next
   case (backtrack K i M1 M2 L D T) note conf = this(1) and decomp = this(3) and undef = this(7) and
     T =this(8) and lev = this(9)
@@ -1057,7 +1057,7 @@ next
     using learned_clss_are_not_tautologies[OF cdcl\<^sub>W.other[OF cdcl\<^sub>W_o.bj[OF
       cdcl\<^sub>W_bj.backtrack[OF bt]]]] M_level no_taut confl by auto
   ultimately have "card (set_mset (learned_clss T)) \<le> 3 ^ card (atms_of_mm (learned_clss T))"
-      by (auto simp: clauses_def learned_clss_less_upper_bound)
+      by (auto simp: learned_clss_less_upper_bound)
     then have H: "card (set_mset ({#mset_ccls D#} + learned_clss S))
       \<le> 3 ^ card (atms_of_mm ({#mset_ccls D#} + learned_clss S))"
       using T undef decomp M_level by (simp add: cdcl\<^sub>W_M_level_inv_decomp)
@@ -1253,13 +1253,13 @@ lemma wf_tranclp_cdcl\<^sub>W_stgy:
 lemma cdcl\<^sub>W_cp_wf_all_inv:
   "wf {(S', S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_cp S S'}"
   (is "wf ?R")
-proof (rule wf_bounded_measure[of _ 
+proof (rule wf_bounded_measure[of _
     "\<lambda>S. card (atms_of_mm (init_clss S))+1"
     "\<lambda>S. length (trail S) + (if conflicting S = None then 0 else 1)"], goal_cases)
   case (1 S S')
   then have "cdcl\<^sub>W_all_struct_inv S" and "cdcl\<^sub>W_cp S S'" by auto
   moreover then have "cdcl\<^sub>W_all_struct_inv S'"
-    using cdcl\<^sub>W_cp.simps  cdcl\<^sub>W_all_struct_inv_inv conflict cdcl\<^sub>W.intros cdcl\<^sub>W_all_struct_inv_inv 
+    using cdcl\<^sub>W_cp.simps  cdcl\<^sub>W_all_struct_inv_inv conflict cdcl\<^sub>W.intros cdcl\<^sub>W_all_struct_inv_inv
     by blast+
   ultimately show ?case
     by (auto simp:cdcl\<^sub>W_cp.simps state_eq_def simp del: state_simp elim!: conflictE propagateE

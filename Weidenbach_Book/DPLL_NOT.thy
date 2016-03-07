@@ -3,7 +3,10 @@ imports CDCL_NOT
 begin
 
 section \<open>DPLL as an instance of NOT\<close>
+
 subsection \<open>DPLL with simple backtrack\<close>
+text \<open>We are using a concrete couple instead of an abstract state.\<close>
+
 locale dpll_with_backtrack
 begin
 inductive backtrack :: "('v, unit, unit) marked_lit list \<times> 'v clauses
@@ -89,7 +92,11 @@ proof -
           "I \<Turnstile>sm N"
         have "(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)"
           using cons tot unfolding consistent_interp_def L by (cases K) auto
-        have tI: "total_over_set I (atm_of ` lit_of ` (set M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}))"
+        have "{a \<in> set M. is_marked a \<and> a \<noteq> Marked K ()} =
+          set M \<inter> {L. is_marked L \<and> L \<noteq> Marked K ()}"
+          by auto
+        then have 
+          tI: "total_over_set I (atm_of ` lit_of ` (set M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}))"
           using tot by (auto simp add: L atms_of_uminus_lit_atm_of_lit_of)
 
         then have H: "\<And>x.
@@ -115,7 +122,7 @@ proof -
           unfolding true_clss_clss_def total_over_m_def
           by (simp add: atms_of_uminus_lit_atm_of_lit_of atms_of_ms_single_image_atm_of_lit_of)
         then show "I \<Turnstile> image_mset uminus ?C + {#- lit_of L#}"
-          unfolding true_clss_def true_cls_def Bex_mset_def
+          unfolding true_clss_def true_cls_def
           using \<open>(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)\<close>
           unfolding L by (auto dest!: H)
       qed
@@ -143,11 +150,17 @@ lemma backtrack_is_backjump':
   apply (cases S, cases T)
   using backtrack_is_backjump[of "fst S" "snd S" "fst T" "snd T"] assms by fastforce
 
-sublocale dpll_state fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
+sublocale dpll_state 
+  "id" "op #\<union>" "\<lambda>L C. C + {#L#}" remove1_mset
+  id  "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
+  fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
   "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
-  by unfold_locales auto
+  by unfold_locales (auto simp: ac_simps)
 
-sublocale backjumping_ops fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
+sublocale backjumping_ops 
+  "id" "op #\<union>" "\<lambda>L C. C + {#L#}" remove1_mset
+  id  "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
+  fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
   "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" "\<lambda>_ _ _ S T. backtrack S T"
   by unfold_locales
 
@@ -162,15 +175,16 @@ proof -
   obtain C F' K F L l C' where
     1: "fst S = F' @ Marked K () # F" and
     2: "T = (Propagated L l # F, snd S)" and
-    3: "C \<in># snd S" and
+    3: "C \<in># clauses S" and
     4: "fst S \<Turnstile>as CNot C" and
     5: "undefined_lit F L" and
     6: "atm_of L \<in> atms_of_mm (snd S) \<union> atm_of ` lits_of_l (fst S)" and
     7: "snd S \<Turnstile>pm C' + {#L#}" and
     8: "F \<Turnstile>as CNot C'"
-  using backtrack_is_backjump'[OF assms] by blast
+  using backtrack_is_backjump'[OF assms] by force
   show ?thesis
-    using backjump.intros[OF 1 _ 3 4 5 6 7 8] 2 backtrack 1 5
+    using backjump.intros[OF 1 _ 3 4 5 _ _ 8, of T] 2 backtrack 1 5
+    apply (cases S)
     by (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def simp del: state_simp\<^sub>N\<^sub>O\<^sub>T)
 qed
 
