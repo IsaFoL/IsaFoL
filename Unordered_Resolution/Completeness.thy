@@ -79,7 +79,7 @@ proof -
       fix l
       assume "l\<in>C"
       then have "falsifiesl [] l" using assms by auto
-      then show False by (cases l) auto
+      then show False unfolding falsifiesl_def by (cases l) auto
     qed
   then show ?thesis by auto
 qed
@@ -105,12 +105,12 @@ proof (cases l1)
   then have Neg: "l2 = Neg p ts" using comp Pos by (cases l2) auto
 
   from falsif have "falsifiesl G l1" using l1C1' by auto
-  then have "\<exists>i. G ! i = False \<and> fatom_from_nat i = Pos p ts" using l1C1' Pos ground_falsifies[of "Pos p ts" "G" ] by (induction "Pos p ts") auto
+  then have "\<exists>i. G ! i = False \<and> fatom_from_nat i = Pos p ts" using l1C1' Pos ground_falsifies[of "Pos p ts" "G" ] unfolding falsifiesl_def by (induction "Pos p ts") auto
   then obtain i where "G ! i = False \<and> fatom_from_nat i = Pos p ts" by auto
   then have "G ! nat_from_fatom (Pos p ts) = False" using fatom_from_nat_is_nat_from_fatom gr Pos by auto
   moreover
   from falsif have "falsifiesl G l2" using l2C1' by auto
-  then have "\<exists>i. G ! i = True \<and> fatom_from_nat i = Pos p ts" using l2C1' Neg ground_falsifies[of "Neg p ts" "G" ] by (induction "Neg p ts") auto
+  then have "\<exists>i. G ! i = True \<and> fatom_from_nat i = Pos p ts" using l2C1' Neg ground_falsifies[of "Neg p ts" "G" ] unfolding falsifiesl_def by (induction "Neg p ts") auto
   then obtain i where "G ! i = True \<and> fatom_from_nat i = Pos p ts" by auto
   then have "G ! nat_from_fatom (Pos p ts) = True" using fatom_from_nat_is_nat_from_fatom gr Pos by auto
   ultimately show ?thesis by auto
@@ -120,12 +120,12 @@ next
   then have Pos: "l2 = Pos p ts" using comp Neg by (cases l2) auto
 
   from falsif have "falsifiesl G l1" using l1C1' by auto
-  then have "\<exists>i. G ! i = True \<and> fatom_from_nat i = Pos p ts" using l1C1' Neg ground_falsifies[of "Neg p ts" "G" ] by (induction "Neg p ts") auto 
+  then have "\<exists>i. G ! i = True \<and> fatom_from_nat i = Pos p ts" using l1C1' Neg ground_falsifies[of "Neg p ts" "G" ] unfolding falsifiesl_def by (induction "Neg p ts") auto 
   then obtain i where "G ! i = True \<and> fatom_from_nat i = Pos p ts" by auto
   then have "G ! nat_from_fatom (Pos p ts) = True" using fatom_from_nat_is_nat_from_fatom gr Neg by auto
   moreover
   from falsif have "falsifiesl G l2" using l2C1' by auto
-  then have "\<exists>i. G ! i = False \<and> fatom_from_nat i = Pos p ts" using l2C1' Pos ground_falsifies[of "Pos p ts" "G" ] by (induction "Pos p ts") auto 
+  then have "\<exists>i. G ! i = False \<and> fatom_from_nat i = Pos p ts" using l2C1' Pos ground_falsifies[of "Pos p ts" "G" ] unfolding falsifiesl_def by (induction "Pos p ts") auto 
   then obtain i where "G ! i = False \<and> fatom_from_nat i = Pos p ts" by auto
   then have "G ! nat_from_fatom (Pos p ts) = False" using fatom_from_nat_is_nat_from_fatom gr Neg by auto
   ultimately show ?thesis by auto
