@@ -17,7 +17,7 @@ lemma atms_of_ms_single_atm_of[simp]:
   "atms_of_ms {unmark L |L. P L} = atm_of ` {lit_of L |L. P L}"
   unfolding atms_of_ms_def by auto
 
-lemma atms_of_m_uminus_lit_atm_of_lit_of:
+lemma atms_of_uminus_lit_atm_of_lit_of:
   "atms_of {# -lit_of x. x \<in># A#} = atm_of ` (lit_of ` (set_mset A))"
   unfolding atms_of_def by (auto simp add: Fun.image_comp)
 
@@ -892,7 +892,7 @@ proof -
         qed
       have "?M \<Turnstile>as CNot C"
         by (metis (no_types, lifting) \<open>C \<in> set_mset (clauses S)\<close> \<open>\<not> trail S \<Turnstile>a C\<close> 
-          all_variables_defined_not_imply_cnot atms_N_M atms_of_m_atms_of_ms_mono 
+          all_variables_defined_not_imply_cnot atms_N_M atms_of_atms_of_ms_mono 
           atms_of_ms_CNot_atms_of atms_of_ms_CNot_atms_of_ms subset_eq)
       have "\<exists>l \<in> set ?M. is_marked l"
         proof (rule ccontr)
@@ -965,7 +965,7 @@ proof -
              by auto
             then have tot': "total_over_set I
                (atm_of ` lit_of ` (set ?M \<inter> {L. is_marked L \<and> L \<noteq> Marked K ()}))"
-              using tot by (auto simp add: atms_of_m_uminus_lit_atm_of_lit_of)
+              using tot by (auto simp add: atms_of_uminus_lit_atm_of_lit_of)
             { fix x :: "('v, unit, unit) marked_lit"
               assume
                 a3: "lit_of x \<notin> I" and
@@ -973,7 +973,7 @@ proof -
                 a4: "is_marked x" and
                 a5: "x \<noteq> Marked K ()"
               then have "Pos (atm_of (lit_of x)) \<in> I \<or> Neg (atm_of (lit_of x)) \<in> I"
-                using a5 a4 tot' a1 unfolding total_over_set_def atms_of_m_s_def by blast
+                using a5 a4 tot' a1 unfolding total_over_set_def atms_of_s_def by blast
               moreover have f6: "Neg (atm_of (lit_of x)) = - Pos (atm_of (lit_of x))"
                 by simp
               ultimately have "- lit_of x \<in> I"
@@ -984,7 +984,7 @@ proof -
             have "\<not>I \<Turnstile>s ?C'"
               using \<open>?N \<union> ?C' \<Turnstile>ps {{#}}\<close> tot cons \<open>I \<Turnstile>s ?N\<close>
               unfolding true_clss_clss_def total_over_m_def
-              by (simp add: atms_of_m_uminus_lit_atm_of_lit_of atms_of_ms_single_image_atm_of_lit_of)
+              by (simp add: atms_of_uminus_lit_atm_of_lit_of atms_of_ms_single_image_atm_of_lit_of)
             then show "I \<Turnstile> image_mset uminus ?C + {#- K#}"
               unfolding true_clss_def true_cls_def Bex_def
               using \<open>(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)\<close>
@@ -2219,7 +2219,7 @@ next
             \<and> (\<exists>ms l msa. trail S = ms @ Marked l () # msa \<and> msa \<Turnstile>as CNot m)"
             by blast
           then show "x \<in> simple_clss (atms_of_ms A)"
-            by (meson atms_clss atms_of_m_atms_of_ms_mono atms_of_ms_finite simple_clss_mono
+            by (meson atms_clss atms_of_atms_of_ms_mono atms_of_ms_finite simple_clss_mono
               distinct_mset_not_tautology_implies_in_simple_clss fin_A finite_subset
               set_rev_mp)
         qed
@@ -2379,7 +2379,7 @@ lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_card_simple_clauses_bound:
 proof -
   have "\<And>x. x \<in># clauses T \<Longrightarrow>\<not> tautology x \<Longrightarrow> distinct_mset x \<Longrightarrow> x \<in> simple_clss A"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound[OF assms] by (metis (no_types, hide_lams) Un_iff assms(3)
-      atms_of_m_atms_of_ms_mono simple_clss_mono contra_subsetD
+      atms_of_atms_of_ms_mono simple_clss_mono contra_subsetD
       distinct_mset_not_tautology_implies_in_simple_clss subset_trans)
   then have "set_mset (clauses T) \<subseteq> ?S \<union> simple_clss A"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound[OF assms] by auto
@@ -3367,7 +3367,7 @@ proof -
         by (auto simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def
           dest!: no_dup_cannot_not_lit_and_uminus)
       have tot_I': "total_over_m ?I (?N \<union> unmark_l ?M)"
-        using tot atms_of_m_s_def unfolding total_over_m_def total_over_set_def
+        using tot atms_of_s_def unfolding total_over_m_def total_over_set_def
         by (fastforce simp: image_iff)
       have "{P |P. P \<in> lits_of_l ?M \<and> atm_of P \<notin> atm_of ` I} \<Turnstile>s ?O"
         using \<open>I\<Turnstile>s ?N\<close> atm_I_N by (auto simp add: atm_of_eq_atm_of true_clss_def lits_of_def)
@@ -3396,7 +3396,7 @@ proof -
 
       have "?M \<Turnstile>as CNot C"
         by (metis atms_N_M \<open>C \<in> ?N\<close> \<open>\<not> ?M \<Turnstile>a C\<close> all_variables_defined_not_imply_cnot
-          atms_of_m_atms_of_ms_mono atms_of_ms_CNot_atms_of atms_of_ms_CNot_atms_of_ms subsetCE)
+          atms_of_atms_of_ms_mono atms_of_ms_CNot_atms_of atms_of_ms_CNot_atms_of_ms subsetCE)
       have "\<exists>l \<in> set ?M. is_marked l"
         proof (rule ccontr)
           let ?O = "{{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M \<and> atm_of (lit_of L) \<notin> atms_of_ms ?N}"
@@ -3468,7 +3468,7 @@ proof -
              by auto
             then have tot': "total_over_set I
                (atm_of ` lit_of ` (set ?M \<inter> {L. is_marked L \<and> L \<noteq> Marked K ()}))"
-              using tot by (auto simp add: atms_of_m_uminus_lit_atm_of_lit_of)
+              using tot by (auto simp add: atms_of_uminus_lit_atm_of_lit_of)
             { fix x :: "('v, unit, unit) marked_lit"
               assume
                 a3: "lit_of x \<notin> I" and
@@ -3476,7 +3476,7 @@ proof -
                 a4: "is_marked x" and
                 a5: "x \<noteq> Marked K ()"
               then have "Pos (atm_of (lit_of x)) \<in> I \<or> Neg (atm_of (lit_of x)) \<in> I"
-                using a5 a4 tot' a1 unfolding total_over_set_def atms_of_m_s_def by blast
+                using a5 a4 tot' a1 unfolding total_over_set_def atms_of_s_def by blast
               moreover have f6: "Neg (atm_of (lit_of x)) = - Pos (atm_of (lit_of x))"
                 by simp
               ultimately have "- lit_of x \<in> I"
@@ -3487,7 +3487,7 @@ proof -
             have "\<not>I \<Turnstile>s ?C'"
               using \<open>?N \<union> ?C' \<Turnstile>ps {{#}}\<close> tot cons \<open>I \<Turnstile>s ?N\<close>
               unfolding true_clss_clss_def total_over_m_def
-              by (simp add: atms_of_m_uminus_lit_atm_of_lit_of atms_of_ms_single_image_atm_of_lit_of)
+              by (simp add: atms_of_uminus_lit_atm_of_lit_of atms_of_ms_single_image_atm_of_lit_of)
             then show "I \<Turnstile> image_mset uminus ?C + {#- K#}"
               unfolding true_clss_def true_cls_def Bex_def
               using \<open>(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)\<close>
@@ -3888,7 +3888,7 @@ proof -
     proof cases
       case simpl
       then have "x \<in> simple_clss (atms_of_ms A)"
-        by (meson assms atms_of_m_atms_of_ms_mono atms_of_ms_finite simple_clss_mono
+        by (meson assms atms_of_atms_of_ms_mono atms_of_ms_finite simple_clss_mono
           distinct_mset_not_tautology_implies_in_simple_clss finite_subset
           subsetCE)
       then show ?thesis by blast

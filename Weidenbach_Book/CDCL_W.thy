@@ -1958,7 +1958,7 @@ definition "cdcl\<^sub>W_conflicting S \<equiv>
   (\<forall>T. conflicting S = Some T \<longrightarrow> trail S \<Turnstile>as CNot T)
   \<and> every_mark_is_a_conflict S"
 
-lemma backtrack_atms_of_m_D_in_M1:
+lemma backtrack_atms_of_D_in_M1:
   fixes M1 :: "('v, nat, 'v clause) marked_lits"
   assumes
     inv: "cdcl\<^sub>W_M_level_inv S" and
@@ -2033,7 +2033,7 @@ proof (rule ccontr)
   then show False using i by auto
 qed
 
-lemma distinct_atms_of_m_incl_not_in_other:
+lemma distinct_atms_of_incl_not_in_other:
   assumes
     a1: "no_dup (M @ M')" and
     a2: "atms_of D \<subseteq> atm_of ` lits_of_l M'" and
@@ -2185,12 +2185,12 @@ next
 
           moreover
             have vars_of_D: "atms_of ?D' \<subseteq> atm_of ` lits_of_l M1"
-              using backtrack_atms_of_m_D_in_M1[of S M1 L D i K M2 T] backtrack.hyps inv conf confl
+              using backtrack_atms_of_D_in_M1[of S M1 L D i K M2 T] backtrack.hyps inv conf confl
               by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
             have "no_dup (trail S)" using inv by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
             then have vars_in_M1:
               "\<forall>x \<in> atms_of ?D'. x \<notin> atm_of ` lits_of_l (M0 @ M2 @ Marked K (i + 1) # [])"
-              using vars_of_D distinct_atms_of_m_incl_not_in_other[of
+              using vars_of_D distinct_atms_of_incl_not_in_other[of
                 "M0 @M2 @ Marked K (i + 1) # []" M1] unfolding M by auto
             have "trail S \<Turnstile>as CNot (remove1_mset L (mset_ccls D))"
               using conf confl LD unfolding M true_annots_true_cls_def_iff_negation_in_model
@@ -2311,11 +2311,11 @@ next
             unfolding atms_of_def
             by (meson image_subsetI true_annots_CNot_all_atms_defined)
           have vars_of_D: "atms_of ?D' \<subseteq> atm_of ` lits_of_l M1"
-            using backtrack_atms_of_m_D_in_M1[of S M1 L D i K M2 T] T backtrack lev confl
+            using backtrack_atms_of_D_in_M1[of S M1 L D i K M2 T] T backtrack lev confl
             by (auto simp:  cdcl\<^sub>W_M_level_inv_decomp)
           have "no_dup (trail S)" using lev by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
           then have "\<forall>x \<in> atms_of ?D'. x \<notin> atm_of ` lits_of_l (M0 @ M2 @ Marked K (i + 1) # [])"
-            using vars_of_D distinct_atms_of_m_incl_not_in_other[of
+            using vars_of_D distinct_atms_of_incl_not_in_other[of
               "M0 @ M2 @ Marked K (i + 1) # []" M1] unfolding M by auto
           then have "M1 \<Turnstile>as CNot ?D'"
             using true_annots_remove_if_notin_vars[of "M0 @ M2 @ Marked K (i + 1) # []"

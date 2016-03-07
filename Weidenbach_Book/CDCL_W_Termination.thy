@@ -731,13 +731,13 @@ proof -
 
   have lev: "cdcl\<^sub>W_M_level_inv R" using invR unfolding cdcl\<^sub>W_all_struct_inv_def by blast
   then have vars_of_D: "atms_of ?E' \<subseteq> atm_of ` lits_of_l M1"
-    using backtrack_atms_of_m_D_in_M1[OF lev' undef _ decomp _ _ _ T] confl_S conf T decomp k level
+    using backtrack_atms_of_D_in_M1[OF lev' undef _ decomp _ _ _ T] confl_S conf T decomp k level
     lev' i undef unfolding cdcl\<^sub>W_conflicting_def by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
   have "no_dup (trail S)" using lev' by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
   have vars_in_M1:
     "\<forall>x \<in> atms_of ?E'. x \<notin> atm_of ` lits_of_l (M2 @ [Marked K (i + 1)])"
     unfolding Set.Ball_def apply (intro impI allI)
-      apply (rule vars_of_D distinct_atms_of_m_incl_not_in_other[of
+      apply (rule vars_of_D distinct_atms_of_incl_not_in_other[of
       "M2 @ Marked K (i + 1) # []" M1 ?E'])
       using \<open>no_dup (trail S)\<close> M vars_of_D by simp_all
   have M1_D: "M1 \<Turnstile>as CNot ?E'"

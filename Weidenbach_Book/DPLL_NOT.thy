@@ -90,7 +90,7 @@ proof -
         have "(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)"
           using cons tot unfolding consistent_interp_def L by (cases K) auto
         have tI: "total_over_set I (atm_of ` lit_of ` (set M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}))"
-          using tot by (auto simp add: L atms_of_m_uminus_lit_atm_of_lit_of)
+          using tot by (auto simp add: L atms_of_uminus_lit_atm_of_lit_of)
 
         then have H: "\<And>x.
             lit_of x \<notin> I \<Longrightarrow> x \<in> set M \<Longrightarrow>is_marked x
@@ -113,7 +113,7 @@ proof -
         have "\<not>I \<Turnstile>s ?C'"
           using \<open>set_mset N \<union> ?C' \<Turnstile>ps {{#}}\<close> tot cons \<open>I \<Turnstile>sm N\<close>
           unfolding true_clss_clss_def total_over_m_def
-          by (simp add: atms_of_m_uminus_lit_atm_of_lit_of atms_of_ms_single_image_atm_of_lit_of)
+          by (simp add: atms_of_uminus_lit_atm_of_lit_of atms_of_ms_single_image_atm_of_lit_of)
         then show "I \<Turnstile> image_mset uminus ?C + {#- lit_of L#}"
           unfolding true_clss_def true_cls_def Bex_mset_def
           using \<open>(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)\<close>

@@ -795,7 +795,7 @@ proof (intro allI impI)
   have I': "?I \<Turnstile>s A"
     using I true_clss_union_increase by blast
   have tot_CNot: "total_over_m ?I (A \<union> CNot CC)"
-    using tot atms_of_m_s_def by (fastforce simp: total_over_m_def total_over_set_def)
+    using tot atms_of_s_def by (fastforce simp: total_over_m_def total_over_set_def)
 
   then have tot_I_A_CC_L: "total_over_m ?I (A \<union> {CC + {#L#}})"
     using tot unfolding total_over_m_def total_over_set_atm_of by auto
