@@ -187,7 +187,7 @@ proof (induct rule: DPLL_ci.induct)
   case (1 Ms N)
   have "snd (DPLL_step (Ms, N)) = N"  by auto
   then obtain Ms' where Ms': "DPLL_step (Ms, N) = (Ms', N)" by (cases "DPLL_step (Ms, N)") auto
-  have inv': "dpll\<^sub>W_all_inv (toS Ms' N)" by (metis (mono_tags) "1.prems" DPLL_step_is_a_dpll\<^sub>W_step 
+  have inv': "dpll\<^sub>W_all_inv (toS Ms' N)" by (metis (mono_tags) "1.prems" DPLL_step_is_a_dpll\<^sub>W_step
     Ms' dpll\<^sub>W_all_inv old.prod.inject)
   { assume "(Ms', N) \<noteq> (Ms, N)"
     hence "DPLL_ci Ms' N = DPLL_part Ms' N \<and> DPLL_part_dom (Ms', N)" using 1(1)[of _ Ms' N] Ms'
@@ -488,7 +488,7 @@ proof (induction arbitrary: S' rule: DPLL_tot.induct)
     have ?case
       apply (cases "DPLL_step' S  = S")
         using S apply blast
-      by (smt "1.IH" "1.prems" DPLL_step_is_a_dpll\<^sub>W_step DPLL_tot.simps case_prodE2 
+      by (smt "1.IH" "1.prems" DPLL_step_is_a_dpll\<^sub>W_step DPLL_tot.simps case_prodE2
         rough_state_of_DPLL_step'_DPLL_step rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl
         rtranclp_idemp split_conv)
   }
@@ -510,7 +510,7 @@ proof -
   moreover have "conclusive_dpll\<^sub>W_state (toS' (M, N'))"
     using DPLL_tot_final_state by (metis (mono_tags, lifting) DOPLL_step'_DPLL_tot DPLL_tot.simps
       assms(1))
-  ultimately show ?thesis using dpll\<^sub>W_conclusive_state_correct by (smt DPLL_ci.simps 
+  ultimately show ?thesis using dpll\<^sub>W_conclusive_state_correct by (smt DPLL_ci.simps
     DPLL_ci_dpll\<^sub>W_rtranclp assms(2) dpll\<^sub>W_all_inv_def prod.case prod.sel(1) prod.sel(2)
     rtranclp_dpll\<^sub>W_inv(3) rtranclp_dpll\<^sub>W_inv_starting_from_0)
 qed
@@ -571,7 +571,7 @@ structure List : sig
   val list_ex : ('a -> bool) -> 'a list -> bool
   val remove1 : 'a HOL.equal -> 'a -> 'a list -> 'a list
   val map : ('a -> 'b) -> 'a list -> 'b list
-  val pred_list : ('a -> bool) -> 'a list -> bool
+  val list_all : ('a -> bool) -> 'a list -> bool
 end = struct
 
 fun equal_lista A_ [] (x21 :: x22) = false
@@ -601,8 +601,8 @@ fun remove1 A_ x [] = []
 fun map f [] = []
   | map f (x21 :: x22) = f x21 :: map f x22;
 
-fun pred_list p [] = true
-  | pred_list p (x :: xs) = p x andalso pred_list p xs;
+fun list_all p [] = true
+  | list_all p (x :: xs) = p x andalso list_all p xs;
 
 end; (*struct List*)
 
@@ -654,7 +654,7 @@ fun equal_prod A_ B_ (x1, x2) (y1, y2) =
 end; (*struct Product_Type*)
 
 structure Clausal_Logic : sig
-  datatype 'a literal = Pos of 'a | Neg of 'a;
+  datatype 'a literal = Pos of 'a | Neg of 'a
   val equal_literala : 'a HOL.equal -> 'a literal -> 'a literal -> bool
   val equal_literal : 'a HOL.equal -> 'a literal HOL.equal
   val atm_of : 'a literal -> 'a
@@ -686,11 +686,10 @@ structure Partial_Annotated_Clausal_Logic : sig
   val equal_marked_lit :
     'a HOL.equal -> 'b HOL.equal -> 'c HOL.equal ->
       ('a, 'b, 'c) marked_lit HOL.equal
-  val lit_of : ('a, 'b, 'c) marked_lit -> 'a Clausal_Logic.literal
-  val lits_of_l : ('a, 'b, 'c) marked_lit list -> 'a Clausal_Logic.literal Set.set
   val backtrack_split :
     ('a, 'b, 'c) marked_lit list ->
       ('a, 'b, 'c) marked_lit list * ('a, 'b, 'c) marked_lit list
+  val lit_of : ('a, 'b, 'c) marked_lit -> 'a Clausal_Logic.literal
 end = struct
 
 datatype ('a, 'b, 'c) marked_lit = Marked of 'a Clausal_Logic.literal * 'b |
@@ -708,15 +707,13 @@ fun equal_marked_lita A_ B_ C_ (Marked (x11, x12)) (Propagated (x21, x22)) =
 fun equal_marked_lit A_ B_ C_ = {equal = equal_marked_lita A_ B_ C_} :
   ('a, 'b, 'c) marked_lit HOL.equal;
 
-fun lit_of (Marked (x11, x12)) = x11
-  | lit_of (Propagated (x21, x22)) = x21;
-
-fun lits_of_l ls = Set.image lit_of (Set.Set ls);
-
 fun backtrack_split [] = ([], [])
   | backtrack_split (Propagated (l, p) :: mlits) =
     Product_Type.apfst (fn a => Propagated (l, p) :: a) (backtrack_split mlits)
   | backtrack_split (Marked (la, l) :: mlits) = ([], Marked (la, l) :: mlits);
+
+fun lit_of (Marked (x11, x12)) = x11
+  | lit_of (Propagated (x21, x22)) = x21;
 
 end; (*struct Partial_Annotated_Clausal_Logic*)
 
@@ -737,15 +734,16 @@ fun is_unit_clause_code A_ l m =
           (fn a =>
             not (Set.member A_ (Clausal_Logic.atm_of a)
                   (Set.image Clausal_Logic.atm_of
-                    (Partial_Annotated_Clausal_Logic.lits_of_l m))))
+                    (Set.image Partial_Annotated_Clausal_Logic.lit_of
+                      (Set.Set m)))))
           l
     of [] => NONE
     | [a] =>
-      (if List.pred_list
+      (if List.list_all
             (fn c =>
               Set.member (Clausal_Logic.equal_literal A_)
                 (Clausal_Logic.uminus_literal c)
-                (Partial_Annotated_Clausal_Logic.lits_of_l m))
+                (Set.image Partial_Annotated_Clausal_Logic.lit_of (Set.Set m)))
             (List.remove1 (Clausal_Logic.equal_literal A_) a l)
         then SOME a else NONE)
     | _ :: _ :: _ => NONE);
@@ -771,9 +769,9 @@ end; (*struct DPLL_CDCL_W_Implementation*)
 
 structure DPLL_W_Implementation : sig
   datatype dpll_W_state =
-  Con of
-    ((Arith.int, unit, unit) Partial_Annotated_Clausal_Logic.marked_lit list *
-      (Arith.int Clausal_Logic.literal list) list);
+   Con of
+     ((Arith.int, unit, unit) Partial_Annotated_Clausal_Logic.marked_lit list *
+       (Arith.int Clausal_Logic.literal list) list)
   val dPLL_tot_rep :
     dpll_W_state ->
       bool *
@@ -801,11 +799,12 @@ fun dPLL_step x =
     (case DPLL_CDCL_W_Implementation.find_first_unit_clause Arith.equal_int n ms
       of NONE =>
         (if List.list_ex
-              (List.pred_list
+              (List.list_all
                 (fn c =>
                   Set.member (Clausal_Logic.equal_literal Arith.equal_int)
                     (Clausal_Logic.uminus_literal c)
-                    (Partial_Annotated_Clausal_Logic.lits_of_l ms)))
+                    (Set.image Partial_Annotated_Clausal_Logic.lit_of
+                      (Set.Set ms))))
               n
           then (case Partial_Annotated_Clausal_Logic.backtrack_split ms
                  of (_, []) => (ms, n)
@@ -818,7 +817,8 @@ fun dPLL_step x =
                      n))
           else (case DPLL_CDCL_W_Implementation.find_first_unused_var
                        Arith.equal_int n
-                       (Partial_Annotated_Clausal_Logic.lits_of_l ms)
+                       (Set.image Partial_Annotated_Clausal_Logic.lit_of
+                         (Set.Set ms))
                  of NONE => (ms, n)
                  | SOME a =>
                    (Partial_Annotated_Clausal_Logic.Marked (a, ()) :: ms, n)))
@@ -838,16 +838,17 @@ fun dPLL_tot_rep s =
   let
     val (m, n) = rough_state_of (dPLL_tot s);
   in
-    (List.pred_list
+    (List.list_all
        (List.list_ex
          (fn a =>
            Set.member (Clausal_Logic.equal_literal Arith.equal_int) a
-             (Partial_Annotated_Clausal_Logic.lits_of_l m)))
+             (Set.image Partial_Annotated_Clausal_Logic.lit_of (Set.Set m))))
        n,
       m)
   end;
 
 end; (*struct DPLL_W_Implementation*)
+
 \<close>
 
 ML \<open>
