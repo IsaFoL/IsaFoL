@@ -432,7 +432,6 @@ lemma rtranclp_cdcl\<^sub>W_stgy_with_trail_end_has_trail_end:
   shows "\<exists>M'. trail T = M' @ Marked L i # H @ M"
   using assms by (induction rule: rtranclp_induct) auto
 
-(* TODO Move? *)
 lemma remove1_mset_eq_remove1_mset_same:
   "remove1_mset L D = remove1_mset L' D \<Longrightarrow> L \<in># D \<Longrightarrow> L = L'"
   by (metis diff_single_trivial insert_DiffM multi_drop_mem_not_eq single_eq_single

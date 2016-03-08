@@ -17,8 +17,7 @@ abbreviation "get_level M L \<equiv> get_rev_level (rev M) 0 L"
 lemma get_rev_level_uminus[simp]: "get_rev_level M n(-L) = get_rev_level M n L"
   by (induct arbitrary: n rule: get_rev_level.induct) auto
 
-(* TODO as this, unusable w.r.t. no_dup *)
-lemma atm_of_notin_get_rev_level_eq_0[simp]:
+lemma atm_of_notin_get_rev_level_eq_0:
   assumes "atm_of L \<notin> atm_of ` lits_of_l M"
   shows "get_rev_level M n L = 0"
   using assms by (induct M arbitrary: n rule: marked_lit_list_induct) auto
@@ -26,7 +25,8 @@ lemma atm_of_notin_get_rev_level_eq_0[simp]:
 lemma get_rev_level_ge_0_atm_of_in:
   assumes  "get_rev_level M n L > n"
   shows "atm_of L \<in> atm_of ` lits_of_l M"
-  using assms by (induct M arbitrary: n rule: marked_lit_list_induct) fastforce+
+  using assms by (induct M arbitrary: n rule: marked_lit_list_induct) 
+  (fastforce simp: atm_of_notin_get_rev_level_eq_0)+
 
 text \<open>In @{const get_rev_level} (resp. @{const get_level}), the beginning (resp. the end) can be
   skipped if the literal is not in the beginning (resp. the end).\<close>
@@ -38,7 +38,8 @@ lemma get_rev_level_skip[simp]:
 lemma get_rev_level_notin_end[simp]:
   assumes  "atm_of L \<notin> atm_of ` lits_of_l M'"
   shows "get_rev_level (M @ M') n L = get_rev_level M n L"
-  using assms by (induct M arbitrary: n rule: marked_lit_list_induct) auto
+  using assms by (induct M arbitrary: n rule: marked_lit_list_induct) 
+  (auto simp: atm_of_notin_get_rev_level_eq_0)
 
 text \<open>If the literal is at the beginning, then the end can be skipped\<close>
 lemma get_rev_level_skip_end[simp]:
@@ -178,6 +179,10 @@ lemma get_maximum_level_skip_un_marked_not_present:
   shows "get_maximum_level aa D = get_maximum_level (M @ aa) D"
   using assms by (induction M rule: marked_lit_list_induct)
   (auto intro!: get_maximum_level_skip_notin[of D "_ @ aa"] simp add: image_Un)
+
+lemma get_maximum_level_union_mset:
+  "get_maximum_level M (A #\<union> B) = get_maximum_level M (A + B)"
+  unfolding get_maximum_level_def by (auto simp: image_Un)
 
 fun get_maximum_possible_level:: "('b, nat, 'c) marked_lit list \<Rightarrow> nat"   where
 "get_maximum_possible_level [] = 0" |

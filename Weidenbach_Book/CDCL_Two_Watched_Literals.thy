@@ -16,9 +16,6 @@ text \<open>Only the 2-watched literals have to be verified here: the backtrack 
 datatype 'v twl_clause =
   TWL_Clause (watched: "'v") (unwatched: "'v")
 
-abbreviation raw_clause :: "'v clause twl_clause \<Rightarrow> 'v clause" where
-  "raw_clause C \<equiv> watched C + unwatched C"
-
 datatype ('a, 'b, 'c, 'd) twl_state =
   TWL_State (trail: "'a list") (init_clss: "'b")
     (learned_clss: "'b") (backtrack_lvl: 'c)
@@ -26,6 +23,9 @@ datatype ('a, 'b, 'c, 'd) twl_state =
 
 type_synonym ('v, 'lvl, 'mark) twl_state_abs =
   "(('v, 'lvl, 'mark) marked_lit, 'v clause twl_clause multiset, 'lvl, 'v clause) twl_state"
+
+abbreviation raw_clause :: "'v clause twl_clause \<Rightarrow> 'v clause" where
+  "raw_clause C \<equiv> watched C + unwatched C"
 
 abbreviation raw_init_clss where
   "raw_init_clss S \<equiv> image_mset raw_clause (init_clss S)"
@@ -601,6 +601,7 @@ lemma init_clss_init_state[simp]: "image_mset raw_clause (init_clss (init_state 
 
 definition restart' where
   "restart' S = TWL_State [] (init_clss S) (restart_learned S) 0 None"
+  
 end
 
 subsection \<open>Instanciation of the previous locale\<close>

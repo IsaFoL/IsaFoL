@@ -202,6 +202,16 @@ lemma remove1_mset_remove1[code]:
   "remove1_mset C (mset L) = mset (remove1 C L)"
   by auto
 
+lemma in_remove1_mset_neq:
+  assumes ab: "a \<noteq> b"
+  shows "a \<in># remove1_mset b C \<longleftrightarrow> a \<in># C"
+proof -
+  have "count {#b#} a = 0"
+    using ab by simp
+  then show ?thesis
+    by (metis (no_types) count_diff diff_zero mem_Collect_eq set_mset_def)
+qed
+
 subsection \<open>Replicate\<close>
 
 lemma replicate_mset_plus: "replicate_mset (a + b) C = replicate_mset a C + replicate_mset b C"

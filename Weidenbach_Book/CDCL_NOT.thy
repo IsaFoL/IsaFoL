@@ -214,6 +214,11 @@ lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_trail_tl_trail_decomp[simp]:
   apply (rule reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_skip_beginning[of _ "tl (F' @ Marked K () # [])"])
   by (cases F') (auto simp add:tl_append reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_skip_beginning)
 
+lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_length:
+  "length M = length M' \<Longrightarrow> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M S = reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M' S"
+  apply (induction M S arbitrary:  rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
+  by (simp add: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.simps)
+
 end
 
 subsubsection \<open>Definition of the operation\<close>

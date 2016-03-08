@@ -249,12 +249,6 @@ lemma reduce_trail_to_map[simp]:
   "reduce_trail_to (map f M) S = reduce_trail_to M S"
   by (rule reduce_trail_to_length) simp
 
-(* TODO Move to CDCL_NOT *)
-lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_length:
-  "length M = length M' \<Longrightarrow> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M S = reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M' S"
-  apply (induction M S arbitrary:  rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
-  by (simp add: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.simps)
-
 lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_map[simp]: 
   "reduce_trail_to\<^sub>N\<^sub>O\<^sub>T (map f M) S = reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M S"
   by (rule reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_length) simp

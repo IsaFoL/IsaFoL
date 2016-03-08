@@ -405,6 +405,11 @@ lemma trail_eq_reduce_trail_to_eq:
   apply (induction F S arbitrary: T rule: reduce_trail_to.induct)
   by (metis trail_tl_trail reduce_trail_to.simps)
 
+lemma raw_conflicting_reduce_trail_to[simp]:
+  "raw_conflicting (reduce_trail_to F S) = raw_conflicting S"
+  apply (induction F S rule: reduce_trail_to.induct)
+  by (metis conflicting_tl_trail reduce_trail_to.elims)
+
 lemma reduce_trail_to_state_eq\<^sub>N\<^sub>O\<^sub>T_compatible:
   assumes ST: "S \<sim> T"
   shows "reduce_trail_to F S \<sim> reduce_trail_to F T"
@@ -3800,17 +3805,6 @@ lemma rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W:
    "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S S' \<Longrightarrow> cdcl\<^sub>W\<^sup>*\<^sup>* S S'"
   using rtranclp_unfold[of cdcl\<^sub>W_stgy S S'] tranclp_cdcl\<^sub>W_stgy_tranclp_cdcl\<^sub>W[of S S'] by auto
 
-(* TODO Move *)
-lemma in_remove1_mset_neq:
-  assumes ab: "a \<noteq> b"
-  shows "a \<in># remove1_mset b C \<longleftrightarrow> a \<in># C"
-proof -
-  have "count {#b#} a = 0"
-    using ab by simp
-  then show ?thesis
-    by (metis (no_types) count_diff diff_zero mem_Collect_eq set_mset_def)
-qed
-
 lemma not_empty_get_maximum_level_exists_lit:
   assumes n: "D \<noteq> {#}"
   and max: "get_maximum_level M D = n"
@@ -3822,11 +3816,6 @@ proof -
     unfolding get_maximum_level_def by force
   then show "\<exists>L \<in># D. get_level M L = n" by auto
 qed
-
-(* TODO Move *)
-lemma get_maximum_level_union_mset:
-  "get_maximum_level M (A #\<union> B) = get_maximum_level M (A + B)"
-  unfolding get_maximum_level_def by (auto simp: image_Un)
 
 lemma cdcl\<^sub>W_o_conflict_is_false_with_level_inv:
   assumes
