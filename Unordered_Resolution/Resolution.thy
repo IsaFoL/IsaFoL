@@ -1002,7 +1002,7 @@ lemma eval_ground: "ground t \<Longrightarrow> (evalt E HFun t) = hterm_of_fterm
 
 
 lemma eval_grounds: "grounds ts \<Longrightarrow> (evalts E HFun ts) = hterms_of_fterms ts" 
-  unfolding hterms_of_fterms_def using eval_ground by (induction ts)  auto
+  unfolding hterms_of_fterms_def using eval_ground by (induction ts) auto
 
 lemma evall_grounds:
   assumes asm: "grounds ts"
@@ -1028,7 +1028,6 @@ definition falsifiesl :: "partial_pred_denot \<Rightarrow> fterm literal \<Right
      \<and> (let i = nat_from_fatom l in
           i < length G \<and> G ! i = (~sign l)
         )"
-
 
 abbreviation falsifiesg :: "partial_pred_denot \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "falsifiesg G C \<equiv> (\<forall>l \<in> C. falsifiesl G l)"
@@ -1406,7 +1405,7 @@ proof -
   ultimately show ?thesis using model_C f_chain C_ground extend_preserves_model[of f C n ] by blast
 qed
 
-lemma list_chain_model_clause: 
+lemma extend_infpath: 
   assumes f_chain: "wf_infpath (f :: nat \<Rightarrow> partial_pred_denot)"
   assumes model_c: "\<forall>n. \<not>falsifiesc (f n) C"
   assumes fin_c: "finite C"
@@ -1447,7 +1446,7 @@ proof -
       fix C
       assume asm: "C \<in> Cs"
       then have "\<forall>n. \<not> falsifiesc (f n) C" using model_cs by auto
-      then show "evalc ?F (extend f) C" using fin_c asm f_chain list_chain_model_clause[of f C] by auto
+      then show "evalc ?F (extend f) C" using fin_c asm f_chain extend_infpath[of f C] by auto
     qed                                                                      
   then show "evalcs ?F (extend f) Cs" unfolding evalcs_def by auto
 qed
