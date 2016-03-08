@@ -164,6 +164,26 @@ sublocale backjumping_ops
   "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" "\<lambda>_ _ _ S T. backtrack S T"
   by unfold_locales
 
+lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_snd:
+  "snd (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S) = snd S"
+  apply (induction F S rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
+  by (cases S, rename_tac F Sa, case_tac Sa)
+    (simp add: less_imp_diff_less reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.simps)
+
+lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T:
+  "reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S =
+    (if length (fst S) \<ge> length F
+    then drop (length (fst S) - length F) (fst S)
+    else [],
+    snd S)" (is "?R = ?C")
+proof -
+  have "?R = (fst ?R, snd ?R)"
+    by auto
+  also have "(fst ?R, snd ?R) = ?C"
+    by (auto simp: trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_drop reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_snd)
+  finally show ?thesis .
+qed
+
 lemma backtrack_is_backjump'':
   fixes M M' :: "('v, unit, unit) marked_lit list"
   assumes
@@ -175,7 +195,7 @@ proof -
   obtain C F' K F L l C' where
     1: "fst S = F' @ Marked K () # F" and
     2: "T = (Propagated L l # F, snd S)" and
-    3: "C \<in># clauses S" and
+    3: "C \<in># snd S" and
     4: "fst S \<Turnstile>as CNot C" and
     5: "undefined_lit F L" and
     6: "atm_of L \<in> atms_of_mm (snd S) \<union> atm_of ` lits_of_l (fst S)" and
@@ -183,9 +203,10 @@ proof -
     8: "F \<Turnstile>as CNot C'"
   using backtrack_is_backjump'[OF assms] by force
   show ?thesis
-    using backjump.intros[OF 1 _ 3 4 5 _ _ 8, of T] 2 backtrack 1 5
     apply (cases S)
-    by (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def simp del: state_simp\<^sub>N\<^sub>O\<^sub>T)
+    using backjump.intros[OF 1 _ _ 4 5 _ _ 8, of T] 2 backtrack 1 5 3 6 7
+    by (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_drop
+      reduce_trail_to\<^sub>N\<^sub>O\<^sub>T simp del: state_simp\<^sub>N\<^sub>O\<^sub>T)
 qed
 
 lemma can_do_bt_step:
@@ -206,36 +227,49 @@ qed
 
 end
 
-sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops fst snd "\<lambda>L (M, N). (L # M, N)"
-  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" "\<lambda>_ _. True"
+sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops 
+    id "op #\<union>" "\<lambda>L C. C + {#L#}" remove1_mset
+    id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
+    fst snd "\<lambda>L (M, N). (L # M, N)"
+  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" 
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
   "\<lambda>_ _ _ S T. backtrack S T"
-  by unfold_locales (metis (mono_tags, lifting) dpll_with_backtrack.backtrack_is_backjump''
-   dpll_with_backtrack.can_do_bt_step prod.case_eq_if comp_apply)
+  "\<lambda>_ _. True"
+  apply unfold_locales
+  by (metis (mono_tags, lifting) case_prod_beta comp_def dpll_with_backtrack.backtrack_is_backjump''
+    dpll_with_backtrack.can_do_bt_step id_apply)
 
-sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping fst snd "\<lambda>L (M, N). (L # M, N)"
-  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" "\<lambda>_ _. True"
+sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping
+    id "op #\<union>" "\<lambda>L C. C + {#L#}" remove1_mset
+    id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
+    fst snd "\<lambda>L (M, N). (L # M, N)"
+  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" 
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
   "\<lambda>_ _ _ S T. backtrack S T"
+  "\<lambda>_ _. True"
   apply unfold_locales
   using dpll_bj_no_dup dpll_bj_all_decomposition_implies_inv apply fastforce
   done
 
-sublocale dpll_with_backtrack \<subseteq> conflict_driven_clause_learning_ops
-  fst snd "\<lambda>L (M, N). (L # M, N)"
-  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" "\<lambda>_ _. True"
-  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
-  "\<lambda>_ _ _ S T. backtrack S T" "\<lambda>_ _. False" "\<lambda>_ _. False"
-  by unfold_locales
-
+context dpll_with_backtrack
+begin
+term learn
+end
+(* 
 sublocale dpll_with_backtrack \<subseteq> conflict_driven_clause_learning
-  fst snd "\<lambda>L (M, N). (L # M, N)"
-  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" "\<lambda>_ _. True"
+    id "op #\<union>" "\<lambda>L C. C + {#L#}" remove1_mset
+    id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
+    fst snd "\<lambda>L (M, N). (L # M, N)"
+  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" 
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
-  "\<lambda>_ _ _ S T. backtrack S T" "\<lambda>_ _. False" "\<lambda>_ _. False"
+  "\<lambda>_ _ _ S T. backtrack S T"
+  "\<lambda>_ _. True" "\<lambda>_ _. False" "\<lambda>_ _. False"
   apply unfold_locales
-  using cdcl\<^sub>N\<^sub>O\<^sub>T.simps dpll_bj_inv forget\<^sub>N\<^sub>O\<^sub>TE learn\<^sub>N\<^sub>O\<^sub>TE by blast
+  using cdcl\<^sub>N\<^sub>O\<^sub>T_all_decomposition_implies cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup by auto
+(*   using cdcl\<^sub>N\<^sub>O\<^sub>T.simps dpll_bj_inv forget\<^sub>N\<^sub>O\<^sub>TE learn\<^sub>N\<^sub>O\<^sub>TE by blast *)
 
+ *)
+ 
 context dpll_with_backtrack
 begin
 lemma wf_tranclp_dpll_inital_state:
@@ -266,6 +300,27 @@ proof -
   using full_dpll_final_state_conclusive[OF full] by auto
 qed
 
+interpretation conflict_driven_clause_learning_ops
+    id "op #\<union>" "\<lambda>L C. C + {#L#}" remove1_mset
+    id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
+    fst snd "\<lambda>L (M, N). (L # M, N)"
+  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" 
+  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
+  "\<lambda>_ _ _ S T. backtrack S T"
+  "\<lambda>_ _. True" "\<lambda>_ _. False" "\<lambda>_ _. False"
+  by unfold_locales
+  
+interpretation conflict_driven_clause_learning
+    id "op #\<union>" "\<lambda>L C. C + {#L#}" remove1_mset
+    id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
+    fst snd "\<lambda>L (M, N). (L # M, N)"
+  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" 
+  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
+  "\<lambda>_ _ _ S T. backtrack S T"
+  "\<lambda>_ _. True" "\<lambda>_ _. False" "\<lambda>_ _. False"
+  apply unfold_locales
+  using cdcl\<^sub>N\<^sub>O\<^sub>T_all_decomposition_implies cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup by fastforce
+  
 lemma cdcl\<^sub>N\<^sub>O\<^sub>T_is_dpll:
   "cdcl\<^sub>N\<^sub>O\<^sub>T S T \<longleftrightarrow> dpll_bj S T"
   by (auto simp: cdcl\<^sub>N\<^sub>O\<^sub>T.simps learn.simps forget\<^sub>N\<^sub>O\<^sub>T.simps)
@@ -283,7 +338,10 @@ locale dpll_withbacktrack_and_restarts =
   fixes f :: "nat \<Rightarrow> nat"
   assumes unbounded: "unbounded f" and f_ge_1:"\<And>n. n\<ge> 1 \<Longrightarrow> f n \<ge> 1"
 begin
-  sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts  fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
+  sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts
+    id "op #\<union>" "\<lambda>L C. C + {#L#}" remove1_mset
+    id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
+  fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
     "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" f "\<lambda>(_, N) S. S = ([], N)"
   "\<lambda>A (M, N). atms_of_mm N \<subseteq> atms_of_ms A \<and> atm_of ` lits_of_l M \<subseteq> atms_of_ms A \<and> finite A
     \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
@@ -294,8 +352,8 @@ begin
   apply unfold_locales
           apply (rule unbounded)
          using f_ge_1 apply fastforce
-        apply (smt dpll_bj_all_decomposition_implies_inv dpll_bj_atms_in_trail_in_set
-          dpll_bj_clauses dpll_bj_no_dup prod.case_eq_if)
+        apply (smt dpll_bj_all_decomposition_implies_inv dpll_bj_atms_in_trail_in_set 
+          dpll_bj_clauses id_apply prod.case_eq_if)
        apply (rule dpll_bj_trail_mes_decreasing_prop; auto)
       apply (rename_tac A T U, case_tac T, simp)
      apply (rename_tac A T U, case_tac U, simp)

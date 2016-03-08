@@ -60,7 +60,8 @@ locale state\<^sub>W_ops =
     mset_ccls_ccls_of_cls[simp]:
       "mset_ccls (ccls_of_cls C) = mset_cls C" and
     mset_cls_cls_of_ccls[simp]:
-      "mset_cls (cls_of_ccls D) = mset_ccls D"
+      "mset_cls (cls_of_ccls D) = mset_ccls D" and
+    ex_mset_cls: "\<exists>a. mset_cls a = E"
 begin
 fun mmset_of_mlit ::  "('a, 'b, 'cls) marked_lit \<Rightarrow>  ('a, 'b, 'v clause) marked_lit"
   where

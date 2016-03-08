@@ -4,7 +4,13 @@ begin
 subsection \<open>Abstract Clause Representation\<close>
 text \<open>We will abstract the representation of clause and clauses via two locales. We expect our
   representation to behave like multiset, but the internal representation can be done using list
-  or whatever other representation.\<close>
+  or whatever other representation. 
+  
+  We assume the following:
+  \<^item> there is an equivalent to adding and removing a literal and to taking the union of clauses.
+  \<close>
+
+
 locale raw_cls =
   fixes
     mset_cls:: "'cls \<Rightarrow> 'v clause" and
@@ -18,7 +24,7 @@ locale raw_cls =
 begin
 end
 
-text \<open>This is a copy of the unnamed theorem of @{file "~~/src/HOL/Library/Multiset.thy"}.\<close>
+text \<open>This is a copy of an unnamed theorem of @{file "~~/src/HOL/Library/Multiset.thy"}.\<close>
 lemma union_mset_list:
   "mset xs #\<union> mset ys =
     mset (case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, [])))"
@@ -29,20 +35,26 @@ proof -
   then show ?thesis by simp
 qed
 
-text \<open>Instanciation of the previous locale, in an unnamed context to avoid polluating with simp
+text \<open>Instantiation of the previous locale, in an unnamed context to avoid polluating with simp
   rules\<close>
 context
 begin
   interpretation list_cls: raw_cls mset
     "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
     "op #" remove1
-    by unfold_locales (auto simp: union_mset_list)
+    by unfold_locales (auto simp: union_mset_list ex_mset)
 
   interpretation cls_cls: raw_cls id
     "op #\<union>" "\<lambda>L C. C + {#L#}" remove1_mset
     by unfold_locales (auto simp: union_mset_list)
 end
 
+text \<open>Over the abstract clauses, we have the following properties:
+   \<^item> We can insert a clause
+   \<^item> We can take the union (used only in proofs for the definition of @{term clauses})
+   \<^item> there is an operator indicating whether the abstract clause is contained or not
+   \<^item> if a concrete clause is contained the abstract clauses, then there is an abstract clause
+  \<close>
 locale raw_clss =
   raw_cls mset_cls union_cls insert_cls remove_lit
   for
@@ -93,7 +105,7 @@ begin
     "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
     "op #" remove1 "\<lambda>L. mset (map mset L)" "op @" "\<lambda>L C. L \<in> set C" "op #"
     remove_first
-    by unfold_locales (auto simp: ac_simps union_mset_list mset_map_mset_remove_first)
+    by unfold_locales (auto simp: ac_simps union_mset_list mset_map_mset_remove_first ex_mset)
 end
 
 end

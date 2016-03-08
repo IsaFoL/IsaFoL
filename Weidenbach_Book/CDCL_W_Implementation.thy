@@ -56,10 +56,10 @@ abbreviation "raw_S0_cdcl\<^sub>W N \<equiv> (([], N, [], 0, None):: 'v cdcl\<^s
 
 experiment
 begin
-interpretation clause mset
+interpretation raw_cls mset
   "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
   "op #" remove1
-  by unfold_locales (auto simp: union_mset_list)
+  by unfold_locales (auto simp: union_mset_list ex_mset)
 
   declare insert_cls[simp del] remove_lit[simp del]
 end
@@ -87,17 +87,18 @@ lemma mset_map_mset_removeAll_eq_mset:
   "mset (map mset (removeAll_eq_mset a C)) = removeAll_mset (mset a) (mset (map mset C))"
   by (induction C)  (auto simp: ac_simps mset_less_eqI multiset_diff_union_assoc)
 
-interpretation clss_clss: clauses id "op #\<union>" "\<lambda>L C. C + {#L#}" remove1_mset
+interpretation clss_clss: raw_clss id "op #\<union>" "\<lambda>L C. C + {#L#}" remove1_mset
   id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
   by unfold_locales (auto simp: ac_simps)
 
 experiment
 begin
-  interpretation clauses mset
+  interpretation raw_clss mset
     "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
     "op #" remove1 "\<lambda>L. mset (map mset L)" "op @" "\<lambda>L C. L \<in> set C" "op #"
     remove1_eq_mset
-    by unfold_locales (auto simp: ac_simps union_mset_list mset_map_mset_remove1_eq_mset)
+    by unfold_locales (auto simp: ac_simps union_mset_list mset_map_mset_remove1_eq_mset
+      ex_mset)
 end
 
 fun mmset_of_mlit' :: "('v, nat, 'v literal list) marked_lit \<Rightarrow> ('v, nat, 'v clause) marked_lit"
@@ -143,7 +144,7 @@ global_interpretation state\<^sub>W_ops
   "\<lambda>N. ([], N, [], 0, None)"
   "\<lambda>(_, N, U, _). ([], N, U, 0, None)"
   apply unfold_locales by (auto simp: hd_map comp_def map_tl ac_simps
-    union_mset_list mset_map_mset_remove1_eq_mset)
+    union_mset_list mset_map_mset_remove1_eq_mset ex_mset)
 
 lemma mmset_of_mlit'_mmset_of_mlit: "mmset_of_mlit' l = mmset_of_mlit l"
   apply (induct l)

@@ -1,5 +1,5 @@
 theory CDCL_W_Merge
-imports CDCL_W_Termination CDCL_WNOT
+imports CDCL_W_Termination
 begin
 
 section \<open>Link between Weidenbach's and NOT's CDCL\<close>
@@ -3094,10 +3094,6 @@ locale conflict_driven_clause_learning\<^sub>W_termination =
   assumes wf_cdcl\<^sub>W_merge: "wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge S T}"
 begin
 
-(* lemma wf_cdcl\<^sub>W_merge: "wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge S T}"
-  apply (rule wfP_if_measure[of _ _ "\<mu>\<^sub>F\<^sub>W"])
-  using cdcl\<^sub>W_merge_\<mu>\<^sub>F\<^sub>W_decreasing by blast *)
-
 lemma wf_tranclp_cdcl\<^sub>W_merge: "wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge\<^sup>+\<^sup>+ S T}"
   using wf_trancl[OF wf_cdcl\<^sub>W_merge]
   apply (rule wf_subset)
@@ -3203,136 +3199,6 @@ next
         using conflicting_not_true_rtranclp_cdcl\<^sub>W_merge_cp_no_step_cdcl\<^sub>W_bj
         unfolding full_def by meson
     qed
-qed
-
-lemma full_cdcl\<^sub>W_s'_full_cdcl\<^sub>W_merge_restart:
-  assumes
-    "conflicting R = None" and
-    inv: "cdcl\<^sub>W_all_struct_inv R"
-  shows "full cdcl\<^sub>W_s' R V \<longleftrightarrow> full cdcl\<^sub>W_merge_stgy R V" (is "?s' \<longleftrightarrow> ?fw")
-proof
-  assume ?s'
-  then have "cdcl\<^sub>W_s'\<^sup>*\<^sup>* R V" unfolding full_def by blast
-  have "cdcl\<^sub>W_all_struct_inv V"
-    using \<open>cdcl\<^sub>W_s'\<^sup>*\<^sup>* R V\<close> inv rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_s'_rtranclp_cdcl\<^sub>W
-    by blast
-  then have n_s: "no_step cdcl\<^sub>W_merge_stgy V"
-    using no_step_cdcl\<^sub>W_s'_no_step_cdcl\<^sub>W_merge_stgy by (meson \<open>full cdcl\<^sub>W_s' R V\<close> full_def)
-  have n_s_bj: "no_step cdcl\<^sub>W_bj V"
-    by (metis \<open>cdcl\<^sub>W_all_struct_inv V\<close> \<open>full cdcl\<^sub>W_s' R V\<close> bj full_def
-      n_step_cdcl\<^sub>W_stgy_iff_no_step_cdcl\<^sub>W_cl_cdcl\<^sub>W_o)
-  have n_s_cp: "no_step cdcl\<^sub>W_merge_cp V"
-    proof -
-      { fix ss :: 'st
-        obtain ssa :: "'st \<Rightarrow> 'st" where
-          ff1: "\<forall>s. \<not> cdcl\<^sub>W_all_struct_inv s \<or> cdcl\<^sub>W_s'_without_decide s (ssa s)
-            \<or> no_step cdcl\<^sub>W_merge_cp s"
-          using conflicting_true_no_step_s'_without_decide_no_step_cdcl\<^sub>W_merge_cp by moura
-        have "(\<forall>p s sa. \<not> full p (s::'st) sa \<or> p\<^sup>*\<^sup>* s sa \<and> no_step p sa)" and
-          "(\<forall>p s sa. (\<not> p\<^sup>*\<^sup>* (s::'st) sa \<or> (\<exists>s. p sa s)) \<or> full p s sa)"
-          by (meson full_def)+
-        then have "\<not> cdcl\<^sub>W_merge_cp V ss"
-          using ff1 by (metis (no_types) \<open>cdcl\<^sub>W_all_struct_inv V\<close> \<open>full cdcl\<^sub>W_s' R V\<close> cdcl\<^sub>W_s'.simps
-            cdcl\<^sub>W_s'_without_decide.cases) }
-      then show ?thesis
-        by blast
-    qed
-  consider
-      (fw_no_confl) "cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R V" and "conflicting V = None"
-    | (fw_confl) "cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R V" and "conflicting V \<noteq> None" and "no_step cdcl\<^sub>W_bj V"
-    | (fw_dec_confl) S T U where "cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R S" and "no_step cdcl\<^sub>W_merge_cp S" and
-        "decide S T" and "cdcl\<^sub>W_merge_cp\<^sup>*\<^sup>* T U" and "conflict U V"
-    | (fw_dec_no_confl) S T where "cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R S" and "no_step cdcl\<^sub>W_merge_cp S" and
-        "decide S T" and "cdcl\<^sub>W_merge_cp\<^sup>*\<^sup>* T V" and "conflicting V = None"
-    | (cp_no_confl) "cdcl\<^sub>W_merge_cp\<^sup>*\<^sup>* R V" and "conflicting V = None"
-    | (cp_confl) U where "cdcl\<^sub>W_merge_cp\<^sup>*\<^sup>* R U" and "conflict U V"
-    using rtranclp_cdcl\<^sub>W_s'_no_step_cdcl\<^sub>W_s'_without_decide_decomp_into_cdcl\<^sub>W_merge[OF
-      \<open>cdcl\<^sub>W_s'\<^sup>*\<^sup>* R V\<close> assms] by auto
-  then show ?fw
-    proof cases
-      case fw_no_confl
-      then show ?thesis using n_s unfolding full_def by blast
-    next
-      case fw_confl
-      then show ?thesis using n_s unfolding full_def by blast
-    next
-      case fw_dec_confl
-      have "cdcl\<^sub>W_merge_cp U V"
-        using n_s_bj by (metis cdcl\<^sub>W_merge_cp.simps full_unfold fw_dec_confl(5))
-      then have "full1 cdcl\<^sub>W_merge_cp T V"
-        unfolding full1_def by (metis fw_dec_confl(4) n_s_cp tranclp_unfold_end)
-      then have "cdcl\<^sub>W_merge_stgy S V" using \<open>decide S T\<close> \<open>no_step cdcl\<^sub>W_merge_cp S\<close> by auto
-      then show ?thesis using n_s \<open> cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R S\<close> unfolding full_def by auto
-    next
-      case fw_dec_no_confl
-      then have "full cdcl\<^sub>W_merge_cp T V"
-        using n_s_cp unfolding full_def by blast
-      then have "cdcl\<^sub>W_merge_stgy S V" using \<open>decide S T\<close> \<open>no_step cdcl\<^sub>W_merge_cp S\<close> by auto
-      then show ?thesis using n_s \<open> cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R S\<close> unfolding full_def by auto
-    next
-      case cp_no_confl
-      then have "full cdcl\<^sub>W_merge_cp R V"
-        by (simp add: full_def n_s_cp)
-      then have "R = V \<or> cdcl\<^sub>W_merge_stgy\<^sup>+\<^sup>+ R V"
-        using fw_s_cp unfolding full_unfold fw_s_cp
-        by (metis (no_types) rtranclp_unfold tranclp_unfold_end)
-      then show ?thesis
-        by (simp add: full_def n_s rtranclp_unfold)
-    next
-      case cp_confl
-      have "full cdcl\<^sub>W_bj V V"
-        using n_s_bj unfolding full_def by blast
-      then have "full1 cdcl\<^sub>W_merge_cp R V"
-        unfolding full1_def by (meson cdcl\<^sub>W_merge_cp.conflict' cp_confl(1,2) n_s_cp
-          rtranclp_into_tranclp1)
-      then show ?thesis using n_s unfolding full_def by auto
-    qed
-next
-  assume ?fw
-  then have "cdcl\<^sub>W\<^sup>*\<^sup>* R V" using rtranclp_mono[of cdcl\<^sub>W_merge_stgy "cdcl\<^sub>W\<^sup>*\<^sup>*"]
-    cdcl\<^sub>W_merge_stgy_rtranclp_cdcl\<^sub>W unfolding full_def by auto
-  then have inv': "cdcl\<^sub>W_all_struct_inv V" using inv rtranclp_cdcl\<^sub>W_all_struct_inv_inv by blast
-  have "cdcl\<^sub>W_s'\<^sup>*\<^sup>* R V"
-    using \<open>?fw\<close> by (simp add: full_def inv rtranclp_cdcl\<^sub>W_merge_stgy_rtranclp_cdcl\<^sub>W_s')
-  moreover have "no_step cdcl\<^sub>W_s' V"
-    proof cases
-      assume "conflicting V = None"
-      then show ?thesis
-        by (metis inv' \<open>full cdcl\<^sub>W_merge_stgy R V\<close> full_def
-          no_step_cdcl\<^sub>W_merge_stgy_no_step_cdcl\<^sub>W_s')
-    next
-      assume confl_V: "conflicting V \<noteq> None"
-      then have "no_step cdcl\<^sub>W_bj V"
-      using rtranclp_cdcl\<^sub>W_merge_stgy_no_step_cdcl\<^sub>W_bj by (meson \<open>full cdcl\<^sub>W_merge_stgy R V\<close>
-        assms(1) full_def)
-      then show ?thesis using confl_V by (fastforce simp: cdcl\<^sub>W_s'.simps full1_def cdcl\<^sub>W_cp.simps
-        dest!: tranclpD elim: rulesE)
-    qed
-  ultimately show ?s' unfolding full_def by blast
-qed
-
-lemma full_cdcl\<^sub>W_stgy_full_cdcl\<^sub>W_merge:
-  assumes
-    "conflicting R = None" and
-    inv: "cdcl\<^sub>W_all_struct_inv R"
-  shows "full cdcl\<^sub>W_stgy R V \<longleftrightarrow> full cdcl\<^sub>W_merge_stgy R V"
-  by (simp add: assms(1) full_cdcl\<^sub>W_s'_full_cdcl\<^sub>W_merge_restart full_cdcl\<^sub>W_stgy_iff_full_cdcl\<^sub>W_s'
-    inv)
-
-lemma full_cdcl\<^sub>W_merge_stgy_final_state_conclusive':
-  fixes S' :: "'st"
-  assumes full: "full cdcl\<^sub>W_merge_stgy (init_state N) S'"
-  and no_d: "distinct_mset_mset (mset_clss N)"
-  shows "(conflicting S' = Some {#} \<and> unsatisfiable (set_mset (mset_clss N)))
-    \<or> (conflicting S' = None \<and> trail S' \<Turnstile>asm mset_clss N \<and> satisfiable (set_mset (mset_clss N)))"
-proof -
-  have "cdcl\<^sub>W_all_struct_inv (init_state N)"
-    using no_d unfolding cdcl\<^sub>W_all_struct_inv_def by auto
-  moreover have "conflicting (init_state N) = None"
-    by auto
-  ultimately show ?thesis
-    using full full_cdcl\<^sub>W_stgy_final_state_conclusive_from_init_state
-    full_cdcl\<^sub>W_stgy_full_cdcl\<^sub>W_merge no_d by presburger
 qed
 
 end

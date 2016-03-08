@@ -10,14 +10,14 @@ definition DPLL_step :: "int dpll\<^sub>W_marked_lits \<times> int literal list 
   (case find_first_unit_clause N Ms of
     Some (L, _) \<Rightarrow> (Propagated L () # Ms, N)
   | _ \<Rightarrow>
-    if \<exists>C \<in> set N. (\<forall>c \<in> set C. -c \<in> lits_of Ms)
+    if \<exists>C \<in> set N. (\<forall>c \<in> set C. -c \<in> lits_of_l Ms)
     then
       (case backtrack_split Ms of
         (_, L # M) \<Rightarrow> (Propagated (- (lit_of L)) () # M, N)
       | (_, _) \<Rightarrow> (Ms, N)
       )
     else
-    (case find_first_unused_var N (lits_of Ms) of
+    (case find_first_unused_var N (lits_of_l Ms) of
         Some a \<Rightarrow> (Marked a () # Ms, N)
       | None \<Rightarrow> (Ms, N))))"
 
@@ -72,14 +72,14 @@ proof -
   moreover
   { assume unit: "find_first_unit_clause N Ms = None"
     assume exC: "\<not> (\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C))"
-    obtain L where unused: "find_first_unused_var N (lits_of Ms) = Some L"
+    obtain L where unused: "find_first_unused_var N (lits_of_l Ms) = Some L"
       using step exC neq unfolding DPLL_step_def prod.case unit
-      by (cases "find_first_unused_var N (lits_of Ms)") auto
+      by (cases "find_first_unused_var N (lits_of_l Ms)") auto
     have "dpll\<^sub>W (Ms, mset (map mset N))
                (Marked L () # fst (Ms, mset (map mset N)), snd (Ms, mset (map mset N)))"
       apply (rule dpll\<^sub>W.decided[of ?S L])
       using find_first_unused_var_Some[OF unused]
-      by (auto simp add: Marked_Propagated_in_iff_in_lits_of atms_of_ms_def)
+      by (auto simp add: Marked_Propagated_in_iff_in_lits_of_l atms_of_ms_def)
     moreover have "(Ms', N') = (Marked L () # Ms, N)"
       using step exC unfolding DPLL_step_def unused prod.case unit by auto
     ultimately have ?thesis by auto
@@ -123,19 +123,19 @@ proof -
   }
   moreover {
     assume n: "\<not> (\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C))"
-    hence "find_first_unused_var N (lits_of Ms) = None"
+    hence "find_first_unused_var N (lits_of_l Ms) = None"
       using step unfolding DPLL_step_def by (simp add: unit split: option.splits)
-    hence a: "\<forall>a \<in> set N. atm_of ` set a \<subseteq> atm_of ` (lits_of Ms)" by auto
+    hence a: "\<forall>a \<in> set N. atm_of ` set a \<subseteq> atm_of ` (lits_of_l Ms)" by auto
     have "fst (toS Ms N) \<Turnstile>asm snd (toS Ms N)" unfolding true_annots_def CNot_def Ball_def
       proof clarify
         fix x
         assume x: "x \<in> set_mset (clauses (toS Ms N))"
         hence "\<not>Ms \<Turnstile>as CNot  x" using n unfolding true_annots_def CNot_def Ball_def by auto
-        moreover have "total_over_m (lits_of Ms) {x}"
+        moreover have "total_over_m (lits_of_l Ms) {x}"
           using a x image_iff in_mono atms_of_s_def
           unfolding total_over_m_def total_over_set_def lits_of_def by fastforce
         ultimately show "fst (toS Ms N) \<Turnstile>a x"
-          using total_not_CNot[of "lits_of Ms" x] by (simp add: true_annot_def true_annots_true_cls)
+          using total_not_CNot[of "lits_of_l Ms" x] by (simp add: true_annot_def true_annots_true_cls)
       qed
     hence ?thesis unfolding conclusive_dpll\<^sub>W_state_def by blast
   }
@@ -535,7 +535,7 @@ text \<open>A slightly different version of @{term DPLL_tot} where the returned 
   result.\<close>
 definition DPLL_tot_rep where
 "DPLL_tot_rep S =
-  (let (M, N) = (rough_state_of (DPLL_tot S)) in (\<forall>A \<in> set N. (\<exists>a\<in>set A. a \<in> lits_of (M)), M))"
+  (let (M, N) = (rough_state_of (DPLL_tot S)) in (\<forall>A \<in> set N. (\<exists>a\<in>set A. a \<in> lits_of_l (M)), M))"
 
 text \<open>One version of the generated SML code is here, but not included in the generated document.
   The only differences are:
@@ -687,7 +687,7 @@ structure Partial_Annotated_Clausal_Logic : sig
     'a HOL.equal -> 'b HOL.equal -> 'c HOL.equal ->
       ('a, 'b, 'c) marked_lit HOL.equal
   val lit_of : ('a, 'b, 'c) marked_lit -> 'a Clausal_Logic.literal
-  val lits_of : ('a, 'b, 'c) marked_lit list -> 'a Clausal_Logic.literal Set.set
+  val lits_of_l : ('a, 'b, 'c) marked_lit list -> 'a Clausal_Logic.literal Set.set
   val backtrack_split :
     ('a, 'b, 'c) marked_lit list ->
       ('a, 'b, 'c) marked_lit list * ('a, 'b, 'c) marked_lit list
@@ -711,7 +711,7 @@ fun equal_marked_lit A_ B_ C_ = {equal = equal_marked_lita A_ B_ C_} :
 fun lit_of (Marked (x11, x12)) = x11
   | lit_of (Propagated (x21, x22)) = x21;
 
-fun lits_of ls = Set.image lit_of (Set.Set ls);
+fun lits_of_l ls = Set.image lit_of (Set.Set ls);
 
 fun backtrack_split [] = ([], [])
   | backtrack_split (Propagated (l, p) :: mlits) =
@@ -737,7 +737,7 @@ fun is_unit_clause_code A_ l m =
           (fn a =>
             not (Set.member A_ (Clausal_Logic.atm_of a)
                   (Set.image Clausal_Logic.atm_of
-                    (Partial_Annotated_Clausal_Logic.lits_of m))))
+                    (Partial_Annotated_Clausal_Logic.lits_of_l m))))
           l
     of [] => NONE
     | [a] =>
@@ -745,7 +745,7 @@ fun is_unit_clause_code A_ l m =
             (fn c =>
               Set.member (Clausal_Logic.equal_literal A_)
                 (Clausal_Logic.uminus_literal c)
-                (Partial_Annotated_Clausal_Logic.lits_of m))
+                (Partial_Annotated_Clausal_Logic.lits_of_l m))
             (List.remove1 (Clausal_Logic.equal_literal A_) a l)
         then SOME a else NONE)
     | _ :: _ :: _ => NONE);
@@ -805,7 +805,7 @@ fun dPLL_step x =
                 (fn c =>
                   Set.member (Clausal_Logic.equal_literal Arith.equal_int)
                     (Clausal_Logic.uminus_literal c)
-                    (Partial_Annotated_Clausal_Logic.lits_of ms)))
+                    (Partial_Annotated_Clausal_Logic.lits_of_l ms)))
               n
           then (case Partial_Annotated_Clausal_Logic.backtrack_split ms
                  of (_, []) => (ms, n)
@@ -818,7 +818,7 @@ fun dPLL_step x =
                      n))
           else (case DPLL_CDCL_W_Implementation.find_first_unused_var
                        Arith.equal_int n
-                       (Partial_Annotated_Clausal_Logic.lits_of ms)
+                       (Partial_Annotated_Clausal_Logic.lits_of_l ms)
                  of NONE => (ms, n)
                  | SOME a =>
                    (Partial_Annotated_Clausal_Logic.Marked (a, ()) :: ms, n)))
@@ -842,7 +842,7 @@ fun dPLL_tot_rep s =
        (List.list_ex
          (fn a =>
            Set.member (Clausal_Logic.equal_literal Arith.equal_int) a
-             (Partial_Annotated_Clausal_Logic.lits_of m)))
+             (Partial_Annotated_Clausal_Logic.lits_of_l m)))
        n,
       m)
   end;
