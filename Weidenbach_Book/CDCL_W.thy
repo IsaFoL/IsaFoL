@@ -1599,6 +1599,30 @@ lemma cdcl\<^sub>W_bj_state_eq_compatible:
   using assms by (meson backtrack backtrack_state_eq_compatible cdcl\<^sub>W_bjE resolve
     resolve_state_eq_compatible skip skip_state_eq_compatible state_eq_ref)
 
+lemma tranclp_cdcl\<^sub>W_bj_state_eq_compatible:
+  assumes
+    "cdcl\<^sub>W_bj\<^sup>+\<^sup>+ S T" and  inv: "cdcl\<^sub>W_M_level_inv S" and
+    "S \<sim> S'" and
+    "T \<sim> T'"
+  shows "cdcl\<^sub>W_bj\<^sup>+\<^sup>+ S' T'"
+  using assms
+proof (induction arbitrary: S' T')
+  case base
+  then show ?case
+    unfolding tranclp_unfold_end by (meson backtrack_state_eq_compatible cdcl\<^sub>W_bj.simps
+      resolve_state_eq_compatible  rtranclp_unfold skip_state_eq_compatible)
+next
+  case (step T U) note IH = this(3)[OF this(4-5)]
+  have "cdcl\<^sub>W\<^sup>+\<^sup>+ S T"
+    using tranclp_mono[of cdcl\<^sub>W_bj cdcl\<^sub>W] step.hyps(1)  cdcl\<^sub>W.other cdcl\<^sub>W_o.bj by blast
+  then have "cdcl\<^sub>W_M_level_inv T"
+    using inv tranclp_cdcl\<^sub>W_consistent_inv by blast
+  then have "cdcl\<^sub>W_bj\<^sup>+\<^sup>+ T T'"
+    using \<open>U \<sim> T'\<close> cdcl\<^sub>W_bj_state_eq_compatible[of T U] \<open>cdcl\<^sub>W_bj T U\<close> by auto
+  then show ?case
+    using IH[of T] by auto
+qed
+
 subsubsection \<open>Conservation of some Properties\<close>
 lemma cdcl\<^sub>W_o_no_more_init_clss:
   assumes

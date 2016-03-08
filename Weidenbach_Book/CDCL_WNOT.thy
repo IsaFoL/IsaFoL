@@ -245,11 +245,11 @@ lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_reduce_trail_convert:
   apply (subst reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.simps, subst reduce_trail_to.simps)
   by auto
 
-lemma reduce_trail_to_map[simp]: 
+lemma reduce_trail_to_map[simp]:
   "reduce_trail_to (map f M) S = reduce_trail_to M S"
   by (rule reduce_trail_to_length) simp
 
-lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_map[simp]: 
+lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_map[simp]:
   "reduce_trail_to\<^sub>N\<^sub>O\<^sub>T (map f M) S = reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M S"
   by (rule reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_length) simp
 
@@ -259,7 +259,7 @@ lemma skip_or_resolve_state_change:
     "\<exists>M. trail S = M @ trail T \<and> (\<forall>m \<in> set M. \<not>is_marked m)"
     "clauses S = clauses T"
     "backtrack_lvl S = backtrack_lvl T"
-  using assms 
+  using assms
 proof (induction rule: rtranclp_induct)
   case base
   case 1 show ?case by simp
@@ -267,17 +267,17 @@ proof (induction rule: rtranclp_induct)
   case 3 show ?case by simp
 next
   case (step T U) note st = this(1) and s_o_r = this(2) and IH = this(3) and IH' = this(3-5)
-  
+
   case 2 show ?case using IH' s_o_r by (auto elim!: rulesE simp: skip_or_resolve.simps)
-  case 3 show ?case using IH' s_o_r by (auto elim!: rulesE simp: skip_or_resolve.simps)  
-  case 1 show ?case 
+  case 3 show ?case using IH' s_o_r by (auto elim!: rulesE simp: skip_or_resolve.simps)
+  case 1 show ?case
     using s_o_r
     proof cases
       case s_or_r_skip
-      then show ?thesis using IH by (auto elim!: rulesE simp: skip_or_resolve.simps)  
+      then show ?thesis using IH by (auto elim!: rulesE simp: skip_or_resolve.simps)
     next
       case s_or_r_resolve
-      then show ?thesis 
+      then show ?thesis
         using IH by (cases "trail T") (auto elim!: rulesE simp: skip_or_resolve.simps dest!:
         hd_raw_trail)
     qed
