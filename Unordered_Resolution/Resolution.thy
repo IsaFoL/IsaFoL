@@ -74,9 +74,6 @@ definition varsl :: "fterm literal \<Rightarrow> var_sym set" where
 definition varsls :: "fterm literal set \<Rightarrow> var_sym set" where 
   "varsls L \<equiv> \<Union>l\<in>L. varsl l"
 
-abbreviation groundls :: "fterm clause \<Rightarrow> bool" where
-  "groundls L \<equiv> \<forall> l \<in> L. groundl l"
-
 lemma ground_varst: "ground t \<Longrightarrow> varst t = {}" 
 apply (induction t)
 apply auto
@@ -1017,11 +1014,6 @@ section {* Partial Interpretations *}
 
 type_synonym partial_pred_denot = "bool list"
 
-(* This definition is quite syntactical. I think that's good though.
-   Alternative: Check if an instance is in list. If not return true.
-   Otherwise, build an interpretation from the partial interpretation *)
-
-(* Only ground literals can be falsified *)
 definition falsifiesl :: "partial_pred_denot \<Rightarrow> fterm literal \<Rightarrow> bool" where
   "falsifiesl G l \<longleftrightarrow>
         groundl l
@@ -1029,30 +1021,15 @@ definition falsifiesl :: "partial_pred_denot \<Rightarrow> fterm literal \<Right
           i < length G \<and> G ! i = (~sign l)
         )"
 
+(* A ground clause is falsified if it is actually ground and all its literals are falsified *)
 abbreviation falsifiesg :: "partial_pred_denot \<Rightarrow> fterm clause \<Rightarrow> bool" where
-  "falsifiesg G C \<equiv> (\<forall>l \<in> C. falsifiesl G l)"
+  "falsifiesg G C \<equiv> groundls C \<and> (\<forall>l \<in> C. falsifiesl G l)"
 
 abbreviation falsifiesc :: "partial_pred_denot \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "falsifiesc G C \<equiv> (\<exists>C'. instance_ofls C' C \<and> falsifiesg G C')"
 
 abbreviation falsifiescs :: "partial_pred_denot \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "falsifiescs G Cs \<equiv> (\<exists>C \<in> Cs. falsifiesc G C)"  
-
-lemma falsifies_ground:
-  assumes "falsifiesl G l"
-  shows "groundl l"
-using assms unfolding falsifiesl_def by auto
-
-lemma falsifiesc_ground:
-  assumes "falsifiesc G C"
-  shows "\<exists>C'. instance_ofls C' C \<and> falsifiesg G C' \<and> groundls C'"
-proof -
-  from assms obtain C' where C'_p: "instance_ofls C' C \<and> falsifiesg G C'" by auto
-  then have "\<forall>l \<in> C'. falsifiesl G l" by auto
-  then have "\<forall>l \<in> C'. groundl l" using falsifies_ground by auto
-  then have "groundls C'" by auto
-  then show ?thesis using C'_p by auto
-qed
 
 abbreviation extend :: "(nat \<Rightarrow> partial_pred_denot) \<Rightarrow> hterm pred_denot" where
   "extend f P ts \<equiv> (
@@ -1281,7 +1258,7 @@ proof -
     fix E
     from C_sat have "\<forall>C'. (~instance_ofls C' C \<or> ~ falsifiesg (f (Suc n)) C')" by auto
     then have "~falsifiesg (f (Suc n)) C" using instance_ofls_self by auto
-    then obtain l where l_p: "l\<in>C \<and> ~falsifiesl (f (Suc n)) l" by auto
+    then obtain l where l_p: "l\<in>C \<and> ~falsifiesl (f (Suc n)) l" using C_ground by blast
     let ?i = "nat_from_fatom l"
      
     from l_p have i_n: "?i \<le> n" using n_max by auto
@@ -1430,10 +1407,12 @@ qed
 lemma longer_falsifiesg:
   assumes "falsifiesg ds C"
   shows "falsifiesg (ds @ d) C"
-proof
-  fix l
-  assume "l\<in>C"
-  then show "falsifiesl (ds @ d) l" using assms longer_falsifiesl by auto
+proof -
+  {
+    fix l
+    assume "l\<in>C"
+    then have "falsifiesl (ds @ d) l" using assms longer_falsifiesl by auto
+  } then show ?thesis using assms by auto
 qed
 
 lemma longer_falsifiesc:

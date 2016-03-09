@@ -215,7 +215,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     let ?B2 = "B@[False]"
 
     obtain C1o where C1o_p: "C1o \<in> Cs \<and> falsifiesc ?B1 C1o" using b_p clo by fastforce 
-    obtain C2o where C2o_p: "C2o \<in> Cs \<and> falsifiesc ?B2 C2o" using b_p clo by (meson closed_tree.simps) 
+    obtain C2o where C2o_p: "C2o \<in> Cs \<and> falsifiesc ?B2 C2o" using b_p clo by (metis closed_tree.elims(2))
 
     (* Standardizing the clauses apart *)
     let ?C1 = "fst (std_apart C1o C2o)"
@@ -229,11 +229,10 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     (* Finding the falsifying ground instance C1' of C1, and proving properties about it *)
     
     (* C1' is falsified by B1: *)
-    from C1_p  obtain C1' where C1'_p: "groundls C1' \<and> instance_ofls C1' ?C1 \<and> falsifiesg ?B1 C1'" 
-      using falsifiesc_ground[of ?C1 ?B1] by metis
+    from C1_p  obtain C1' where C1'_p: "groundls C1' \<and> instance_ofls C1' ?C1 \<and> falsifiesg ?B1 C1'" by metis
 
-    have "\<not>falsifiesc B C1o" using C1o_p b_p clo by auto
-    then have "\<not>falsifiesc B ?C1" using std_apart_falsifies1_sym[of C1o C2o ?C1 ?C2 B] by auto
+    have "\<not>falsifiesc B C1o" using C1o_p b_p clo by (metis closed_tree.elims(2))
+    then have "\<not>falsifiesc B ?C1" using std_apart_falsifies1_sym[of C1o C2o ?C1 ?C2 B] using prod.exhaust_sel by blast
     (* C1' is not falsified by B *)
     then have l_B: "\<not>falsifiesg B C1'" using C1'_p by auto
 
@@ -260,11 +259,10 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
       using other_falsified by blast
 
     (* We do the same exercise for C2, C2', B2, l2 *)
-    from C2_p obtain C2' where C2'_p: "groundls C2' \<and> instance_ofls C2' ?C2 \<and> falsifiesg ?B2 C2'" 
-       using falsifiesc_ground[of ?C2 ?B2] by metis
+    from C2_p obtain C2' where C2'_p: "groundls C2' \<and> instance_ofls C2' ?C2 \<and> falsifiesg ?B2 C2'" by metis
 
-    have "\<not>falsifiesc B C2o" using C2o_p b_p clo by auto
-    then have "\<not>falsifiesc B ?C2" using std_apart_falsifies2_sym[of C1o C2o ?C1 ?C2 B] by auto
+    have "\<not>falsifiesc B C2o" using C2o_p b_p clo by (metis closed_tree.elims(2))
+    then have "\<not>falsifiesc B ?C2" using std_apart_falsifies2_sym[of C1o C2o ?C1 ?C2 B] using prod.exhaust_sel by blast
     then have l_B: "\<not>falsifiesg B C2'" using C2'_p by auto (* I already had something called l_B... I should give it a new name *)
     
     (* C2' contains a literal l1 that is falsified by B1, but not B *)
