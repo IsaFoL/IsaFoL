@@ -158,39 +158,39 @@ next
   then show "?case" using ds_p by (cases a) auto
 qed
 
-lemma Branching_Leaf_Leaf_Tree: "(T = Branching l r \<longrightarrow> (\<exists>B. branch (B@[True]) T \<and> branch (B@[False]) T)) \<and> (T=Leaf \<longrightarrow> branch [] T )"
-proof (induction T arbitrary: l r)
+lemma Branching_Leaf_Leaf_Tree: "T = Branching T1 T2 \<Longrightarrow> (\<exists>B. branch (B@[True]) T \<and> branch (B@[False]) T)"
+proof (induction T arbitrary: T1 T2)
   case Leaf then show ?case by auto
 next
-  case (Branching T1 T2) 
-  then show ?case
-    apply (cases T1)
-    apply (cases T2)
-    apply auto
-      proof -
-        have "branch ([] @ [True]) (Branching Leaf Leaf) \<and> branch ([] @ [False]) (Branching Leaf Leaf)"  by auto
-        then show "\<exists>B. branch (B @ [True]) (Branching Leaf Leaf) \<and> branch (B @ [False]) (Branching Leaf Leaf)" by blast
-      next
-        fix x21 x22
-        assume "(\<And>l r. x21 = l \<and> x22 = r \<longrightarrow>  (\<exists>B. branch (B @ [True]) (Branching l r) \<and> branch (B @ [False]) (Branching l r)))"
-        then have "\<exists>B'. branch (B' @ [True]) (Branching x21 x22) \<and> branch (B' @ [False]) (Branching x21 x22)" by blast
-        then obtain B' where "branch (B' @ [True]) (Branching x21 x22) \<and> branch (B' @ [False]) (Branching x21 x22)" by auto
-        then have "branch (False # (B' @ [True])) (Branching Leaf (Branching x21 x22)) \<and> branch (False # (B' @ [False])) (Branching Leaf (Branching x21 x22))" 
-           by auto
-        then have "branch ((False # B') @ [True]) (Branching Leaf (Branching x21 x22)) \<and> branch ((False # B') @ [False]) (Branching Leaf (Branching x21 x22))" by auto
-        then show "\<exists>B. branch (B @ [True]) (Branching Leaf (Branching x21 x22)) \<and> branch (B @ [False]) (Branching Leaf (Branching x21 x22))" by metis
-      next
-        fix x21 x22
-        assume "(\<And>l r. x21 = l \<and> x22 = r \<longrightarrow>   (\<exists>B. branch (B @ [True]) (Branching l r) \<and> branch (B @ [False]) (Branching l r)))"
-        then have "(\<exists>B. branch (B @ [True]) (Branching x21 x22) \<and> branch (B @ [False]) (Branching x21 x22))" by auto
-        then obtain B' where "branch (B' @ [True]) (Branching x21 x22) \<and> branch (B' @ [False]) (Branching x21 x22)" by auto
-        then have "branch (True # (B' @ [True])) (Branching (Branching x21 x22) r) \<and> branch (True # (B' @ [False])) (Branching (Branching x21 x22) r) " 
-           by auto
-        then have "branch ((True # B') @ [True]) (Branching (Branching x21 x22) r) \<and> branch ((True # B') @ [False]) (Branching (Branching x21 x22) r) " by auto
-        then show "\<exists>B. branch (B @ [True]) (Branching (Branching x21 x22) r) \<and>
-           branch (B @ [False]) (Branching (Branching x21 x22) r)" by metis
-      qed qed
-
+  case (Branching T1' T2')
+  {
+    assume "T1'=Leaf \<and> T2'=Leaf"
+    then have "branch ([] @ [True]) (Branching T1' T2') \<and> branch ([] @ [False]) (Branching T1' T2')" by auto
+    then have ?case by metis
+  }
+  moreover
+  {
+    fix T11 T12
+    assume "T1' = Branching T11 T12"
+    then obtain B where "branch (B @ [True]) T1' 
+                       \<and> branch (B @ [False]) T1'" using Branching by blast
+    then have "branch (([True] @ B) @ [True]) (Branching T1' T2') 
+             \<and> branch (([True] @ B) @ [False]) (Branching T1' T2')" by auto
+    then have ?case by blast
+  }
+  moreover
+  {
+    fix T11 T12
+    assume "T2' = Branching T11 T12"
+    then obtain B where "branch (B @ [True]) T2' 
+                       \<and> branch (B @ [False]) T2'" using Branching by blast
+    then have "branch (([False] @ B) @ [True]) (Branching T1' T2') 
+             \<and> branch (([False] @ B) @ [False]) (Branching T1' T2')" by auto
+    then have ?case by blast
+  }
+  ultimately show ?case using tree.exhaust by blast
+qed
+      
 section {* Internal Paths *}
 
 fun internal :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
