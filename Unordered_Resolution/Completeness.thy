@@ -198,7 +198,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
   { (* Base case *)
     assume "treesize T = 0"
     then have "T=Leaf" using treesize_Leaf by auto
-    then have "closed_branch [] Leaf Cs" using branch_inv_Leaf clo by auto
+    then have "closed_branch [] Leaf Cs" using branch_inv_Leaf clo unfolding closed_tree_def by auto
     then have "falsifiescs [] Cs" by auto
     then have "{} \<in> Cs" using falsifiescs_empty by auto
     then have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" unfolding resolution_deriv_def by auto
@@ -214,8 +214,8 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     let ?B1 = "B@[True]"
     let ?B2 = "B@[False]"
 
-    obtain C1o where C1o_p: "C1o \<in> Cs \<and> falsifiesc ?B1 C1o" using b_p clo by fastforce 
-    obtain C2o where C2o_p: "C2o \<in> Cs \<and> falsifiesc ?B2 C2o" using b_p clo by (metis closed_tree.elims(2))
+    obtain C1o where C1o_p: "C1o \<in> Cs \<and> falsifiesc ?B1 C1o" using b_p clo unfolding closed_tree_def by metis 
+    obtain C2o where C2o_p: "C2o \<in> Cs \<and> falsifiesc ?B2 C2o" using b_p clo unfolding closed_tree_def by metis
 
     (* Standardizing the clauses apart *)
     let ?C1 = "fst (std_apart C1o C2o)"
@@ -231,7 +231,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     (* C1' is falsified by B1: *)
     from C1_p  obtain C1' where C1'_p: "groundls C1' \<and> instance_ofls C1' ?C1 \<and> falsifiesg ?B1 C1'" by metis
 
-    have "\<not>falsifiesc B C1o" using C1o_p b_p clo by (metis closed_tree.elims(2))
+    have "\<not>falsifiesc B C1o" using C1o_p b_p clo unfolding closed_tree_def by metis
     then have "\<not>falsifiesc B ?C1" using std_apart_falsifies1_sym[of C1o C2o ?C1 ?C2 B] using prod.exhaust_sel by blast
     (* C1' is not falsified by B *)
     then have l_B: "\<not>falsifiesg B C1'" using C1'_p by auto
@@ -261,7 +261,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     (* We do the same exercise for C2, C2', B2, l2 *)
     from C2_p obtain C2' where C2'_p: "groundls C2' \<and> instance_ofls C2' ?C2 \<and> falsifiesg ?B2 C2'" by metis
 
-    have "\<not>falsifiesc B C2o" using C2o_p b_p clo by (metis closed_tree.elims(2))
+    have "\<not>falsifiesc B C2o" using C2o_p b_p clo unfolding closed_tree_def by metis
     then have "\<not>falsifiesc B ?C2" using std_apart_falsifies2_sym[of C1o C2o ?C1 ?C2 B] using prod.exhaust_sel by blast
     then have l_B: "\<not>falsifiesg B C2'" using C2'_p by auto (* I already had something called l_B... I should give it a new name *)
     
@@ -325,7 +325,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
             then show "closed_branch b T'' CsNext" using falsifies_C br CsNext_p by auto
           next
             assume "branch b T"
-            then show "closed_branch b T'' CsNext" using clo br T''_p CsNext_p by auto
+            then show "closed_branch b T'' CsNext" using clo br T''_p CsNext_p unfolding closed_tree_def by auto
           qed
       qed
     then have T''_bran2: "anybranch T'' (\<lambda>b. falsifiescs b CsNext)" by auto (* replace T''_bran with this maybe? *)
@@ -337,7 +337,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     from T''_bran2 have "anybranch T' (\<lambda>b. falsifiescs b CsNext)" using cutoff_branch[of T'' "\<lambda>b. falsifiescs b CsNext"] T'_p by auto
     then have T'_bran: "anybranch T' (\<lambda>b. closed_branch b T' CsNext)" by auto
     have T'_intr: "anyinternal T' (\<lambda>p. \<not>falsifiescs p CsNext)" using T'_p cutoff_internal[of T'' "\<lambda>b. falsifiescs b CsNext"] T''_bran2 by blast
-    have T'_closed: "closed_tree T' CsNext" using T'_bran T'_intr by auto
+    have T'_closed: "closed_tree T' CsNext" using T'_bran T'_intr unfolding closed_tree_def by auto
     have finite_CsNext: "\<forall>C\<in>CsNext. finite C" unfolding CsNext_p C_p resolution_def using finite_Cs fin by auto
 
     (* By induction hypothesis we get a resolution derivation of {} from our new clausal form *)
@@ -352,7 +352,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
       moreover
       then have "resolution_step (Cs \<union> {?C1,?C2}) (Cs \<union> {?C1,?C2} \<union> {C})" 
         using L1L2\<tau>_p resolution_rule[of ?C1 "Cs \<union> {?C1,?C2}" ?C2 L1 L2 \<tau> ] using C_p by auto
-      then have "resolution_step (Cs \<union> {?C1,?C2}) CsNext"by (metis CsNext_p insert_is_Un sup_assoc) 
+      then have "resolution_step (Cs \<union> {?C1,?C2}) CsNext" by (metis CsNext_p insert_is_Un sup_assoc) 
       ultimately
       have "resolution_deriv Cs CsNext"  unfolding resolution_deriv_def by auto
     }

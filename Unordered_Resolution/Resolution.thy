@@ -1231,10 +1231,9 @@ abbreviation closed_branch :: "partial_pred_denot \<Rightarrow> tree \<Rightarro
 abbreviation(input) open_branch :: "partial_pred_denot \<Rightarrow> tree \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "open_branch G T Cs \<equiv> branch G T \<and> \<not>falsifiescs G Cs"
 
-fun closed_tree :: "tree \<Rightarrow> fterm clause set \<Rightarrow> bool" where
+definition closed_tree :: "tree \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "closed_tree T Cs \<longleftrightarrow> anybranch T (\<lambda>b. closed_branch b T Cs) 
-                  \<and> anyinternal T (\<lambda>p. \<not>falsifiescs p Cs)" (* Maybe change from fun to abbreviation of definition *)
-
+                  \<and> anyinternal T (\<lambda>p. \<not>falsifiescs p Cs)" 
 
 section {* Herbrand's Theorem *}
 
@@ -1499,7 +1498,7 @@ proof -
   from unsat finite_cs obtain T where "anybranch T (\<lambda>b. closed_branch b T Cs)" using herbrand'_contra[of Cs] by blast
   then have "\<exists>T. anybranch T (\<lambda>p. falsifiescs p Cs) \<and> anyinternal T (\<lambda>p. \<not> falsifiescs p Cs)" 
     using cutoff_branch_internal[of T "(\<lambda>p. falsifiescs p Cs)"] by blast
-  then show ?thesis by auto
+  then show ?thesis unfolding closed_tree_def by auto
 qed
 
 end
