@@ -57,35 +57,11 @@ abbreviation "raw_S0_cdcl\<^sub>W N \<equiv> (([], N, [], 0, None):: 'v cdcl\<^s
 experiment
 begin
 interpretation raw_cls mset
-  "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-  "op #" remove1
+  union_mset_list "op #" remove1
   by unfold_locales (auto simp: union_mset_list ex_mset)
 
   declare insert_cls[simp del] remove_lit[simp del]
 end
-
-text \<open>This is the sams as @{term remove1} under the assumptions of non-duplication inside a clause.\<close>
-fun remove1_eq_mset where
-"remove1_eq_mset _ [] = []" |
-"remove1_eq_mset C (C' # L) = (if mset C = mset C' then L else C' # remove1_eq_mset C L)"
-
-lemma remove1_mset_single_add:
-  "a \<noteq> b \<Longrightarrow> remove1_mset a ({#b#} + C) = {#b#} + remove1_mset a C"
-  "remove1_mset a ({#a#} + C) = C"
-  by (auto simp: multiset_eq_iff)
-
-lemma mset_map_mset_remove1_eq_mset:
-  "mset (map mset (remove1_eq_mset a C)) = remove1_mset (mset a) (mset (map mset C))"
-  by (induction C) (auto simp: ac_simps remove1_mset_single_add)
-
-fun removeAll_eq_mset where
-"removeAll_eq_mset _ [] = []" |
-"removeAll_eq_mset C (C' # L) =
-  (if mset C = mset C' then removeAll_eq_mset C L else C' # removeAll_eq_mset C L)"
-
-lemma mset_map_mset_removeAll_eq_mset:
-  "mset (map mset (removeAll_eq_mset a C)) = removeAll_mset (mset a) (mset (map mset C))"
-  by (induction C)  (auto simp: ac_simps mset_less_eqI multiset_diff_union_assoc)
 
 interpretation clss_clss: raw_clss id "op #\<union>" "\<lambda>L C. C + {#L#}" remove1_mset
   id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
@@ -96,8 +72,8 @@ begin
   interpretation raw_clss mset
     "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
     "op #" remove1 "\<lambda>L. mset (map mset L)" "op @" "\<lambda>L C. L \<in> set C" "op #"
-    remove1_eq_mset
-    by unfold_locales (auto simp: ac_simps union_mset_list mset_map_mset_remove1_eq_mset
+    "\<lambda>C. remove1_cond (\<lambda>L. mset L = mset C)"
+    by unfold_locales (auto simp: ac_simps union_mset_list mset_map_mset_remove1_cond
       ex_mset)
 end
 
@@ -121,7 +97,7 @@ global_interpretation state\<^sub>W_ops
   "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
   "op #" remove1
 
-  clauses_of_l "op @" "\<lambda>L C. L \<in> set C" "op #" remove1_eq_mset
+  clauses_of_l "op @" "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>L. mset L = mset C)"
 
   mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
   "op #" remove1
@@ -138,25 +114,29 @@ global_interpretation state\<^sub>W_ops
   "\<lambda>(M, S). (tl M, S)"
   "\<lambda>C (M, N, S). (M, C # N, S)"
   "\<lambda>C (M, N, U, S). (M, N, C # U, S)"
-  "\<lambda>C (M, N, U, S). (M, removeAll_eq_mset C N, removeAll_eq_mset C U, S)"
+  "\<lambda>C (M, N, U, S). (M, filter (\<lambda>L. mset L \<noteq> mset C) N, filter (\<lambda>L. mset L \<noteq> mset C) U, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
   "\<lambda>N. ([], N, [], 0, None)"
   "\<lambda>(_, N, U, _). ([], N, U, 0, None)"
   apply unfold_locales by (auto simp: hd_map comp_def map_tl ac_simps
-    union_mset_list mset_map_mset_remove1_eq_mset ex_mset)
+    union_mset_list mset_map_mset_remove1_cond ex_mset)
 
 lemma mmset_of_mlit'_mmset_of_mlit: "mmset_of_mlit' l = mmset_of_mlit l"
   apply (induct l)
   apply auto
   done
 
+lemma clauses_of_l_filter_removeAll:
+  "clauses_of_l [L\<leftarrow>a . mset L \<noteq> mset C] = mset (removeAll (mset C) (map mset a))"
+  by (induct a) auto
+
 interpretation state\<^sub>W
   "mset::'v literal list \<Rightarrow> 'v clause"
   "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
   "op #" remove1
 
-  "\<lambda>L. mset (map mset L)" "op @" "\<lambda>L C. L \<in> set C" "op #" remove1_eq_mset
+  clauses_of_l "op @" "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>L. mset L = mset C)"
 
   mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
   "op #" remove1
@@ -173,14 +153,14 @@ interpretation state\<^sub>W
   "\<lambda>(M, S). (tl M, S)"
   "\<lambda>C (M, N, S). (M, C # N, S)"
   "\<lambda>C (M, N, U, S). (M, N, C # U, S)"
-  "\<lambda>C (M, N, U, S). (M, removeAll_eq_mset C N, removeAll_eq_mset C U, S)"
+  "\<lambda>C (M, N, U, S). (M, filter (\<lambda>L. mset L \<noteq> mset C) N, filter (\<lambda>L. mset L \<noteq> mset C) U, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
   "\<lambda>N. ([], N, [], 0, None)"
   "\<lambda>(_, N, U, _). ([], N, U, 0, None)"
   apply unfold_locales
   apply (rename_tac S, case_tac S)
-  by (auto simp: hd_map comp_def map_tl ac_simps mset_map_mset_removeAll_eq_mset
+  by (auto simp: hd_map comp_def map_tl ac_simps clauses_of_l_filter_removeAll
     mmset_of_mlit'_mmset_of_mlit)
 
 global_interpretation conflict_driven_clause_learning\<^sub>W
@@ -188,7 +168,7 @@ global_interpretation conflict_driven_clause_learning\<^sub>W
   "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
   "op #" remove1
 
-  "\<lambda>L. mset (map mset L)" "op @" "\<lambda>L C. L \<in> set C" "op #" remove1_eq_mset
+  clauses_of_l "op @" "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>L. mset L = mset C)"
 
   mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
   "op #" remove1
@@ -205,7 +185,7 @@ global_interpretation conflict_driven_clause_learning\<^sub>W
   "\<lambda>(M, S). (tl M, S)"
   "\<lambda>C (M, N, S). (M, C # N, S)"
   "\<lambda>C (M, N, U, S). (M, N, C # U, S)"
-  "\<lambda>C (M, N, U, S). (M, removeAll_eq_mset C N, removeAll_eq_mset C U, S)"
+  "\<lambda>C (M, N, U, S). (M, filter (\<lambda>L. mset L \<noteq> mset C) N, filter (\<lambda>L. mset L \<noteq> mset C) U, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
   "\<lambda>N. ([], N, [], 0, None)"
@@ -2444,7 +2424,7 @@ open CDCL_W_Implementation;
 open Arith;
 let
   val N = gene (Suc (Suc (Suc (((Suc Zero_nat))))))
-  val f = do_all_cdcl_W_stgy equal_nat 
+  val f = do_all_cdcl_W_stgy equal_nat
     (CDCL_W_Implementation.ConI ([], (N, ([], (Zero_nat, NONE)))))
   in
   f

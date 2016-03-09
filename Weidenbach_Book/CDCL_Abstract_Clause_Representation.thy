@@ -27,23 +27,12 @@ locale raw_cls =
 begin
 end
 
-text \<open>This is a copy of an unnamed theorem of @{file "~~/src/HOL/Library/Multiset.thy"}.\<close>
-lemma union_mset_list:
-  "mset xs #\<union> mset ys =
-    mset (case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, [])))"
-proof -
-  have "\<And>zs. mset (case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, zs))) =
-      (mset xs #\<union> mset ys) + mset zs"
-    by (induct xs arbitrary: ys) (simp_all add: multiset_eq_iff)
-  then show ?thesis by simp
-qed
-
 text \<open>Instantiation of the previous locale, in an unnamed context to avoid polluating with simp
   rules\<close>
 context
 begin
   interpretation list_cls: raw_cls mset
-    "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
+    union_mset_list
     "op #" remove1
     by unfold_locales (auto simp: union_mset_list ex_mset)
 

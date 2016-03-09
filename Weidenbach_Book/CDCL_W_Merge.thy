@@ -342,7 +342,7 @@ proof -
   then obtain M2' where decomp':"(Marked K (i+1) # M1, M2') \<in> set (get_all_marked_decomposition M\<^sub>T)"
     by auto
   then show "backtrack T W"
-    using  T decomp' lev_l' lev_l_D' i' W LD undef
+    using T decomp' lev_l' lev_l_D' i' W LD undef
     by (auto intro!: backtrack.intros simp del: state_simp simp: state_eq_def)
 qed
 
@@ -1005,15 +1005,12 @@ next
                 \<or> cdcl\<^sub>W_merge_restart\<^sup>*\<^sup>* S T \<and> conflicting U \<noteq> None
                   \<and> conflict T T' \<and> cdcl\<^sub>W_bj\<^sup>*\<^sup>* T' U"
               using IH confl by blast
+            have "conflicting V \<noteq> None \<and> conflicting U \<noteq> None"
+              using \<open>skip_or_resolve U V\<close>
+              by (auto simp: skip_or_resolve.simps state_eq_def elim!: skipE resolveE
+                simp del: state_simp)
             then have ?thesis
-              proof -
-                have "conflicting V \<noteq> None \<and> conflicting U \<noteq> None"
-                  using \<open>skip_or_resolve U V\<close>
-                  by (auto simp: skip_or_resolve.simps state_eq_def elim!: skipE resolveE
-                    simp del: state_simp)
-                then show ?thesis
-                  by (metis (no_types) IH f1 rtranclp_trans tranclp_into_rtranclp)
-              qed
+              by (metis (full_types) IH f1 rtranclp_trans tranclp_into_rtranclp)
           }
           moreover {
             assume "backtrack U V"
@@ -1645,10 +1642,12 @@ next
   then show ?S'
     proof cases
       case s'
+      have "no_step cdcl\<^sub>W_s' T"
+        using \<open>full cdcl\<^sub>W_stgy S T\<close>  unfolding full_def
+        by (meson cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_s'E cdcl\<^sub>W_stgy.conflict'
+          cdcl\<^sub>W_then_exists_cdcl\<^sub>W_stgy_step inv_T n_step_cdcl\<^sub>W_stgy_iff_no_step_cdcl\<^sub>W_cl_cdcl\<^sub>W_o)
       then show ?thesis
-        by (metis \<open>full cdcl\<^sub>W_stgy S T\<close> inv_T cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_s'.simps
-          cdcl\<^sub>W_stgy.conflict'  cdcl\<^sub>W_then_exists_cdcl\<^sub>W_stgy_step full_def
-          n_step_cdcl\<^sub>W_stgy_iff_no_step_cdcl\<^sub>W_cl_cdcl\<^sub>W_o)
+        using s' unfolding full_def by blast
     next
       case (st S')
       have "full cdcl\<^sub>W_cp T T"
@@ -1732,7 +1731,7 @@ lemma rtranclp_cdcl\<^sub>W_merge_cp_rtranclp_cdcl\<^sub>W:
 
 lemma full1_cdcl\<^sub>W_bj_no_step_cdcl\<^sub>W_bj:
   "full1 cdcl\<^sub>W_bj S T \<Longrightarrow> no_step cdcl\<^sub>W_cp S"
-  by (metis rtranclp_unfold cdcl\<^sub>W_cp_conflicting_not_empty option.exhaust full1_def
+  unfolding full1_def by (metis rtranclp_unfold cdcl\<^sub>W_cp_conflicting_not_empty option.exhaust
     rtranclp_cdcl\<^sub>W_merge_restart_no_step_cdcl\<^sub>W_bj tranclpD)
 
 inductive cdcl\<^sub>W_s'_without_decide where
@@ -2903,9 +2902,11 @@ proof -
       using ff5 by (simp add: cdcl\<^sub>W_s'_without_decide.simps full1_def)
     then have "\<not> cdcl\<^sub>W_s'_without_decide\<^sup>+\<^sup>+ R ss"
       using ff2 by blast
+    then have "\<not> full1 cdcl\<^sub>W_s'_without_decide R ss"
+      by (simp add: full1_def)
     then have "\<not> cdcl\<^sub>W_merge_stgy R ss"
-      using ff4 ff1 by (metis (full_types)  decide full1_def inv
-        conflicting_true_full1_cdcl\<^sub>W_merge_cp_imp_full1_cdcl\<^sub>W_s'_without_decode) }
+      using ff4 ff1 conflicting_true_full1_cdcl\<^sub>W_merge_cp_imp_full1_cdcl\<^sub>W_s'_without_decode inv
+      by blast }
   then show ?thesis
     by fastforce
 qed

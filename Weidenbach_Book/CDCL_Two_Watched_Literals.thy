@@ -8,19 +8,103 @@ section \<open>2-Watched-Literal\<close>
 theory CDCL_Two_Watched_Literals
 imports CDCL_WNOT (* Have to decide which imports are the best *)
 begin
-
+text \<open>We will directly on the two-watched literals datastructure with lists: it could be also
+  seen as a state over some abstract clause representation we would later refine as lists. However,
+  as we need a way to select element from a clause, working on lists is better.\<close>
 subsection \<open>Datastructure and Access Functions\<close>
 text \<open>Only the 2-watched literals have to be verified here: the backtrack level and the trail that
   appear in the state are not related to the 2-watched algoritm.\<close>
 
 datatype 'v twl_clause =
-  TWL_Clause (watched: "'v") (unwatched: "'v")
+  TWL_Clause (watched: "'v literal list") (unwatched: "'v literal list")
 
-datatype ('a, 'b, 'c, 'd) twl_state =
-  TWL_State (trail: "'a list") (init_clss: "'b")
-    (learned_clss: "'b") (backtrack_lvl: 'c)
-    (conflicting: "'d option")
+datatype 'v twl_state =
+  TWL_State (raw_trail: "('v, nat, 'v twl_clause) marked_lit list") 
+    (raw_init_clss: "'v twl_clause list")
+    (raw_learned_clss: "'v twl_clause list") (backtrack_lvl: nat)
+    (raw_conflicting: "'v literal list option")
 
+fun mmset_of_mlit' :: "('v, nat, 'v twl_clause) marked_lit  \<Rightarrow> ('v, nat, 'v clause) marked_lit"
+  where
+"mmset_of_mlit' (Propagated L C) = Propagated L (mset (watched C @ unwatched C))" |
+"mmset_of_mlit' (Marked L i) = Marked L i"
+
+abbreviation trail where
+"trail S \<equiv> map mmset_of_mlit' (raw_trail S)"
+
+abbreviation clauses_of_l where
+  "clauses_of_l \<equiv> \<lambda>L. mset (map mset L)"
+
+abbreviation raw_clause :: "'v twl_clause \<Rightarrow> 'v literal list" where
+  "raw_clause C \<equiv> watched C @ unwatched C"
+
+abbreviation raw_clss :: "'v twl_state \<Rightarrow> 'v clauses" where
+  "raw_clss S \<equiv> clauses_of_l (map raw_clause (raw_init_clss S @ raw_learned_clss S))"
+  
+global_interpretation raw_cls
+  "\<lambda>C. mset (raw_clause C)"
+  "\<lambda>C C'. TWL_Clause [] (union_mset_list (unwatched C @ watched C) (unwatched C' @ watched C'))" 
+    (* does not matter if the invariants do not hold *)
+  "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
+  "\<lambda>L C. TWL_Clause [] (remove1 L (watched C @ unwatched C))"
+  apply (unfold_locales)
+  apply (auto simp:hd_map comp_def map_tl ac_simps
+    mset_map_mset_remove1_cond ex_mset
+    simp del: )
+  unfolding mset_append[symmetric] union_mset_list
+  by (simp add: ac_simps)
+
+lemma XXX: 
+  "mset (map (\<lambda>x. mset (unwatched x) + mset (watched x)) 
+    (remove1_cond (\<lambda>D. mset (raw_clause D) = mset (raw_clause a)) Cs)) =
+   remove1_mset (mset (raw_clause a)) (mset (map (\<lambda>x. mset (raw_clause x)) Cs))"
+   apply (induction Cs) 
+     apply simp
+   by (auto simp: ac_simps remove1_mset_single_add)
+
+global_interpretation raw_clss
+  "\<lambda>C. mset (raw_clause C)"
+  "\<lambda>C C'. TWL_Clause [] (union_mset_list (unwatched C @ watched C) (unwatched C' @ watched C'))" 
+    (* does not matter if the invariants do not hold *)
+  "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
+  "\<lambda>L C. TWL_Clause [] (remove1 L (watched C @ unwatched C))" 
+  "\<lambda>C. clauses_of_l (map raw_clause C)" "op @" 
+  "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. mset (raw_clause D) = mset (raw_clause C))"
+  apply (unfold_locales)
+  using XXX by (auto simp:hd_map comp_def map_tl ac_simps
+    union_mset_list mset_map_mset_remove1_cond ex_mset
+    simp del: )
+
+lemma ex_mset_unwatched_watched:
+  "\<exists>a. mset (unwatched a) + mset (watched a) = E"
+proof -
+  obtain e where "mset e = E"
+    using ex_mset by blast
+  then have "mset (unwatched (TWL_Clause [] e)) + mset (watched (TWL_Clause [] e)) = E"
+    by auto
+  then show ?thesis by fast
+qed
+
+thm CDCL_Two_Watched_Literals.raw_cls_axioms
+interpretation concrete: state\<^sub>W_ops
+  "\<lambda>C. mset (raw_clause C)"
+  "\<lambda>C C'. TWL_Clause [] (union_mset_list (raw_clause C) (raw_clause C'))" 
+    (* does not matter if the invariants do not hold *)
+  "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
+  "\<lambda>L C. TWL_Clause [] (remove1 L (watched C @ unwatched C))" 
+  "\<lambda>C. clauses_of_l (map raw_clause C)" "op @" 
+  "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. mset (raw_clause D) = mset (raw_clause C))"
+
+  mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
+  "op #" remove1
+
+  "\<lambda>C. watched C @ unwatched C" "\<lambda>C. TWL_Clause [] C"
+  trail "\<lambda>S. hd (raw_trail S)"
+  raw_init_clss
+  
+  apply unfold_locales by (auto simp: hd_map comp_def map_tl ac_simps
+    union_mset_list mset_map_mset_remove1_cond ex_mset_unwatched_watched)
+  
 type_synonym ('v, 'lvl, 'mark) twl_state_abs =
   "(('v, 'lvl, 'mark) marked_lit, 'v clause twl_clause multiset, 'lvl, 'v clause) twl_state"
 
