@@ -28,6 +28,9 @@ abbreviation grounds :: "fterm list \<Rightarrow> bool" where
 abbreviation groundl :: "fterm literal \<Rightarrow> bool" where
   "groundl l \<equiv> grounds (get_terms l)"
 
+abbreviation groundls :: "fterm literal set \<Rightarrow> bool" where
+  "groundls C \<equiv> (\<forall>l \<in> C. groundl l)"
+
 subsection {* Enumeration *}
 
 lemma infinity:

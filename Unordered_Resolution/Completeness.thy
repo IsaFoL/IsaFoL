@@ -101,33 +101,35 @@ lemma complements_do_not_falsify':
   shows "False"
 proof (cases l1)
   case (Pos p ts)
-  from assms have gr: "groundl l1" using falsifies_ground by auto
+  let ?i1 = "nat_from_fatom (Pos p ts)"
+
+  from assms have gr: "groundl l1" unfolding falsifiesl_def by auto
   then have Neg: "l2 = Neg p ts" using comp Pos by (cases l2) auto
 
   from falsif have "falsifiesl G l1" using l1C1' by auto
-  then have "\<exists>i. G ! i = False \<and> fatom_from_nat i = Pos p ts" using l1C1' Pos ground_falsifies[of "Pos p ts" "G" ] unfolding falsifiesl_def by (induction "Pos p ts") auto
-  then obtain i where "G ! i = False \<and> fatom_from_nat i = Pos p ts" by auto
-  then have "G ! nat_from_fatom (Pos p ts) = False" using fatom_from_nat_is_nat_from_fatom gr Pos by auto
+  then have "G ! ?i1 = False" using l1C1' Pos unfolding falsifiesl_def by (induction "Pos p ts") auto
   moreover
+  let ?i2 = "nat_from_fatom l2"
   from falsif have "falsifiesl G l2" using l2C1' by auto
-  then have "\<exists>i. G ! i = True \<and> fatom_from_nat i = Pos p ts" using l2C1' Neg ground_falsifies[of "Neg p ts" "G" ] unfolding falsifiesl_def by (induction "Neg p ts") auto
-  then obtain i where "G ! i = True \<and> fatom_from_nat i = Pos p ts" by auto
-  then have "G ! nat_from_fatom (Pos p ts) = True" using fatom_from_nat_is_nat_from_fatom gr Pos by auto
+  then have "G ! ?i2 = (~sign l2)" unfolding falsifiesl_def by meson
+  then have "G ! ?i1 = (~sign l2)" using Pos Neg comp undiag_neg by simp
+  then have "G ! ?i1 = True" using Neg by auto
   ultimately show ?thesis by auto
 next
-  case (Neg p ts) (* Symmetrical *)
-  from assms have gr: "groundl l1" using falsifies_ground by auto
+  case (Neg p ts)
+  let ?i1 = "nat_from_fatom (Neg p ts)"
+
+  from assms have gr: "groundl l1" unfolding falsifiesl_def by auto
   then have Pos: "l2 = Pos p ts" using comp Neg by (cases l2) auto
 
   from falsif have "falsifiesl G l1" using l1C1' by auto
-  then have "\<exists>i. G ! i = True \<and> fatom_from_nat i = Pos p ts" using l1C1' Neg ground_falsifies[of "Neg p ts" "G" ] unfolding falsifiesl_def by (induction "Neg p ts") auto 
-  then obtain i where "G ! i = True \<and> fatom_from_nat i = Pos p ts" by auto
-  then have "G ! nat_from_fatom (Pos p ts) = True" using fatom_from_nat_is_nat_from_fatom gr Neg by auto
+  then have "G ! ?i1 = True" using l1C1' Neg unfolding falsifiesl_def by (meson literal.disc(2))
   moreover
+  let ?i2 = "nat_from_fatom l2"
   from falsif have "falsifiesl G l2" using l2C1' by auto
-  then have "\<exists>i. G ! i = False \<and> fatom_from_nat i = Pos p ts" using l2C1' Pos ground_falsifies[of "Pos p ts" "G" ] unfolding falsifiesl_def by (induction "Pos p ts") auto 
-  then obtain i where "G ! i = False \<and> fatom_from_nat i = Pos p ts" by auto
-  then have "G ! nat_from_fatom (Pos p ts) = False" using fatom_from_nat_is_nat_from_fatom gr Neg by auto
+  then have "G ! ?i2 = (~sign l2)" unfolding falsifiesl_def by meson
+  then have "G ! ?i1 = (~sign l2)" using Pos Neg comp undiag_neg by simp
+  then have "G ! ?i1 = False" using Pos using literal.disc(1) by blast
   ultimately show ?thesis by auto
 qed
 
@@ -145,20 +147,26 @@ lemma number_lemma:
   shows "P(length B)"
 using assms less_Suc_eq by auto
 
+lemma number_lemma2:
+  assumes "~i<length B"
+  assumes "i<length (B @ [d])"
+  shows "i = length B"
+using assms less_Suc_eq by auto
+
 lemma other_falsified:
   assumes C1'_p: "groundls C1' \<and> falsifiesg (B@[d]) C1'" 
   assumes l_p: "l \<in> C1'" "nat_from_fatom l = length B"
   assumes other: "lo \<in> C1'" "lo \<noteq> l"
   shows "falsifiesl B lo"
 proof -
+  let ?i = "nat_from_fatom lo"
   have ground_l2: "groundl l" using l_p C1'_p by auto
   (* They are, of course, also ground *)
   have ground_lo: "groundl lo" using C1'_p other by auto
   from C1'_p have "falsifiesg (B@[d]) (C1' - {l})" by auto
   (* And indeed, falsified by B2 *)
   then have loB2: "falsifiesl (B@[d]) lo" using other by auto
-  then obtain i where "fatom_from_nat i = Pos (get_pred lo) (get_terms lo) \<and> i < length (B @ [True])" using ground_falsifies'[of  "B @ [d]" lo] by (induction lo) auto
-  then have "nat_from_fatom (fatom_from_nat i) = nat_from_fatom (Pos (get_pred lo) (get_terms lo)) \<and> i < length (B @ [True])" by auto
+  then have "?i < length (B @ [d])" unfolding falsifiesl_def by meson
   (* And they have numbers in the range of B2, i.e. less than B + 1*)
   then have "nat_from_fatom lo < length B + 1" using undiag_neg undiag_diag_fatom by (cases lo) auto
   moreover
@@ -231,37 +239,25 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
 
     (* C1' contains a literal l1 that is falsified by B1, but not B *)
     from C1'_p l_B obtain l1 where l1_p: "l1 \<in> C1' \<and> falsifiesl (B@[True]) l1 \<and> \<not>(falsifiesl B l1)" by auto
+    let ?i = "nat_from_fatom l1"
 
-    then have "\<not>(\<exists>i.
-      i < length B
-      \<and> B ! i = (\<not>sign l1)
-      \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1))" using ground_falsifies_opposite[of  "B" l1] by (induction l1) auto
-    then have "\<not>(\<exists>i.
-      i < length B
-      \<and> (B@[True]) ! i = (\<not>sign l1)
-      \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1))" by (metis nth_append) (* Not falsified by B *)
-    moreover
-    (* l1 is, of course, ground *)
+    (* l1 is ofcourse ground *)
     have ground_l1: "groundl l1" using C1'_p l1_p by auto
-    then have "\<exists>i.  
-      i < length (B@[True])
-      \<and> (B@[True]) ! i = (\<not>sign l1)
-      \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1)" using ground_falsifies l1_p by blast (* falsified by B1 *)
+
+    from l1_p have "\<not>(?i < length B \<and> B ! ?i = (\<not> sign l1))" using ground_l1 unfolding falsifiesl_def by meson
+    then have "\<not>(?i < length B \<and> (B@[True]) ! ?i = (\<not> sign l1))" by (metis nth_append) (* Not falsified by B *)
+    moreover
+    from l1_p have "?i < length (B @ [True]) \<and> (B @ [True]) ! ?i = (\<not> sign l1)" unfolding falsifiesl_def by meson
     ultimately
-    have l1_sign_no: "(B@[True]) ! (length B) = (\<not>sign l1) \<and> fatom_from_nat (length B) = Pos (get_pred l1) (get_terms l1)"
-      using number_lemma[of B "\<lambda>i. (B @ [True]) ! i = (\<not> sign l1) \<and> fatom_from_nat i = Pos (get_pred l1) (get_terms l1)"] by auto
+    have l1_sign_no: "?i = length B \<and> (B @ [True]) ! ?i = (\<not> sign l1)" using number_lemma by auto
 
     (* l1 is negative *)
     from l1_sign_no have l1_sign: "sign l1 = False" by auto
-    from l1_sign_no have "nat_from_fatom (Pos (get_pred l1) (get_terms l1)) = length B" using undiag_diag_fatom by metis
-    (* l1 is literal no (length B) *)
-    then have l1_no: "nat_from_fatom l1 = length B" using undiag_neg[of "get_pred l1" "get_terms l1"] undiag_diag_fatom by (cases l1) auto
+    from l1_sign_no have l1_no: "nat_from_fatom l1 = length B" by auto
 
     (* All the other literals in C1' must be falsified by B, since they are falsified by B1, but not l1. *)
     from C1'_p l1_no l1_p have B_C1'l1: "falsifiesg B (C1' - {l1})" (* This should be a lemma *)
       using other_falsified by blast
-
-
 
     (* We do the same exercise for C2, C2', B2, l2 *)
     from C2_p obtain C2' where C2'_p: "groundls C2' \<and> instance_ofls C2' ?C2 \<and> falsifiesg ?B2 C2'" 
@@ -271,33 +267,22 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     then have "\<not>falsifiesc B ?C2" using std_apart_falsifies2_sym[of C1o C2o ?C1 ?C2 B] by auto
     then have l_B: "\<not>falsifiesg B C2'" using C2'_p by auto (* I already had something called l_B... I should give it a new name *)
     
-    (* C2' contains a literal l2 that is falsified by B2, but not B *)
+    (* C2' contains a literal l1 that is falsified by B1, but not B *)
     from C2'_p l_B obtain l2 where l2_p: "l2 \<in> C2' \<and> falsifiesl (B@[False]) l2 \<and> \<not>(falsifiesl B l2)" by auto
+    let ?i = "nat_from_fatom l2"
 
-    then have "\<not>(\<exists>i.  
-      i < length B
-      \<and> B ! i = (\<not>sign l2)
-      \<and> fatom_from_nat i = Pos (get_pred l2) (get_terms l2))" using ground_falsifies_opposite[of "B" l2] by (induction l2) auto
-    then have "\<not>(\<exists>i.  
-      i < length B
-      \<and> (B@[False]) ! i = (\<not>sign l2)
-      \<and> fatom_from_nat i = Pos (get_pred l2) (get_terms l2))" by (metis nth_append)
-    moreover
-    (* l2 is, of course, ground *)
     have ground_l2: "groundl l2" using C2'_p l2_p by auto
-    then have "\<exists>i.  
-      i < length (B@[False])
-      \<and> (B@[False]) ! i = (\<not>sign l2)
-      \<and> fatom_from_nat i = Pos (get_pred l2) (get_terms l2)" using ground_falsifies l2_p by blast
-    ultimately
-    have l2_sign_no: "(B@[False]) ! (length B) = (\<not>sign l2) \<and> fatom_from_nat (length B) = Pos (get_pred l2) (get_terms l2)"
-      using number_lemma[of B "\<lambda>i. (B @ [False]) ! i = (\<not> sign l2) \<and> fatom_from_nat i = Pos (get_pred l2) (get_terms l2)"] by auto
 
-    (* l2 is positive *)
+    from l2_p have "\<not>(?i < length B \<and> B ! ?i = (\<not> sign l2))" using ground_l2 unfolding falsifiesl_def by meson
+    then have "\<not>(?i < length B \<and> (B@[False]) ! ?i = (\<not> sign l2))" by (metis nth_append) (* Not falsified by B *)
+    moreover
+    from l2_p have "?i < length (B @ [False]) \<and> (B @ [False]) ! ?i = (\<not> sign l2)" unfolding falsifiesl_def by meson
+    ultimately
+    have l2_sign_no: "?i = length B \<and> (B @ [False]) ! ?i = (\<not> sign l2)" using number_lemma by auto
+
+    (* l1 is negative *)
     from l2_sign_no have l2_sign: "sign l2 = True" by auto
-    from l2_sign_no have "nat_from_fatom (Pos (get_pred l2) (get_terms l2)) = length B" using undiag_diag_fatom by metis
-    (* l2 is literal no (length B) *)
-    then have l2_no: "nat_from_fatom l2 = length B" using undiag_neg[of "get_pred l2" "get_terms l2"] l2_sign undiag_diag_fatom by auto
+    from l2_sign_no have l2_no: "nat_from_fatom l2 = length B" by auto
 
     (* All the other literals in C2' must be falsified by B, since they are falsified by B2, but not l2. *)
     from C2'_p l2_no l2_p have B_C2'l2: "falsifiesg B (C2' - {l2})"
