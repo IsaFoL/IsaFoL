@@ -200,7 +200,7 @@ next
     using L_L' L'_M \<open>Propagated L' C' # trail V \<Turnstile>as CNot (mset_ccls D)\<close>
      atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set unfolding true_annots_def
     by (metis \<open>Propagated L' C' # trail V \<Turnstile>as CNot (mset_ccls D)\<close> in_remove1_mset_neq insert_iff
-      lits_of_l_cons marked_lit.sel(2) remove_lit true_annots_true_cls_def_iff_negation_in_model
+      lits_of_l_cons marked_lit.sel(2) remove_clit true_annots_true_cls_def_iff_negation_in_model
       uminus_not_id')
   have [simp]: "trail (reduce_trail_to M1 T) = M1"
     using decomp undef tr W V by auto
@@ -226,14 +226,14 @@ next
       using lev_L V by (auto split: if_split_asm)
   moreover
     have "atm_of L' \<notin> atms_of (mset_ccls D)"
-      by (metis DE LE L_L' \<open>L' \<notin># mset_ccls (remove_clit L D)\<close>
-        atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set atms_of_def in_remove1_mset_neq remove_lit)
+      by (metis DE LE L_L' \<open>L' \<notin># mset_ccls (remove_clit L D)\<close>  in_remove1_mset_neq remove_clit
+        atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set atms_of_def)
     then have "get_level ?M L = get_maximum_level ?M (mset_ccls D)"
       using calculation(2) lev_L max by auto
   moreover
     have "atm_of L' \<notin> atms_of (mset_ccls (remove_clit L D))"
       by (metis DE LE \<open>L' \<notin># mset_ccls (remove_clit L D)\<close>
-        atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set atms_of_def in_remove1_mset_neq remove_lit
+        atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set atms_of_def in_remove1_mset_neq remove_clit
         in_atms_of_remove1_mset_in_atms_of)
     have "i = get_maximum_level ?M (mset_ccls (remove_clit L D))"
       using max_D  \<open>atm_of L' \<notin> atms_of (mset_ccls (remove_clit L D))\<close> by auto

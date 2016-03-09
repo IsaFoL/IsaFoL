@@ -12,14 +12,13 @@ text \<open>We will abstract the representation of clause and clauses via two lo
   or whatever other representation.\<close>
 
 locale state\<^sub>W_ops =
-  raw_clss mset_cls union_cls insert_cls remove_lit
+  raw_clss mset_cls insert_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     +
-  raw_cls mset_ccls union_ccls insert_ccls remove_clit
+  raw_ccls_union mset_ccls union_ccls insert_ccls remove_clit
   for
     -- \<open>Clause\<close>
     mset_cls:: "'cls \<Rightarrow> 'v clause" and
-    union_cls :: "'cls \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
@@ -103,7 +102,7 @@ end
 locale state\<^sub>W =
   state\<^sub>W_ops
     -- \<open>functions for clauses: \<close>
-    mset_cls union_cls insert_cls remove_lit
+    mset_cls insert_cls remove_lit
       mset_clss union_clss in_clss insert_clss remove_from_clss
 
     -- \<open>functions for the conflicting clause: \<close>
@@ -124,7 +123,6 @@ locale state\<^sub>W =
     restart_state
   for
     mset_cls:: "'cls \<Rightarrow> 'v clause" and
-    union_cls :: "'cls \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
@@ -255,7 +253,6 @@ locale state\<^sub>W =
     backtrack_lvl_restart_state[simp]: "backtrack_lvl (restart_state S) = 0" and
     conflicting_restart_state[simp]: "conflicting (restart_state S) = None"
 begin
-
 
 lemma
   shows
@@ -507,7 +504,7 @@ text \<open>Because of the strategy we will later use, we distinguish propagate,
 locale conflict_driven_clause_learning\<^sub>W =
   state\<^sub>W
     -- \<open>functions for clauses: \<close>
-    mset_cls union_cls insert_cls remove_lit
+    mset_cls insert_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
 
     -- \<open>functions for the conflicting clause: \<close>
@@ -528,7 +525,6 @@ locale conflict_driven_clause_learning\<^sub>W =
     restart_state
   for
     mset_cls:: "'cls \<Rightarrow> 'v clause" and
-    union_cls :: "'cls \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 

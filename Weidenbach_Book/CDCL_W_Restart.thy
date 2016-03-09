@@ -7,7 +7,7 @@ subsection \<open>Adding Restarts\<close>
 locale cdcl\<^sub>W_restart =
   conflict_driven_clause_learning\<^sub>W
     -- \<open>functions for clauses: \<close>
-    mset_cls union_cls insert_cls remove_lit
+    mset_cls insert_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
 
     -- \<open>functions for the conflicting clause: \<close>
@@ -28,7 +28,6 @@ locale cdcl\<^sub>W_restart =
     restart_state
   for
     mset_cls:: "'cls \<Rightarrow> 'v clause" and
-    union_cls :: "'cls \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
@@ -573,7 +572,7 @@ end
 locale luby_sequence_restart =
   luby_sequence ur +
   conflict_driven_clause_learning\<^sub>W  -- \<open>functions for clauses: \<close>
-    mset_cls union_cls insert_cls remove_lit
+    mset_cls insert_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
 
     -- \<open>functions for the conflicting clause: \<close>
@@ -595,7 +594,6 @@ locale luby_sequence_restart =
   for
     ur :: nat and
     mset_cls:: "'cls \<Rightarrow> 'v clause" and
-    union_cls :: "'cls \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
@@ -632,7 +630,7 @@ locale luby_sequence_restart =
     restart_state :: "'st \<Rightarrow> 'st"
 begin
 
-sublocale cdcl\<^sub>W_restart _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ luby_sequence
+sublocale cdcl\<^sub>W_restart _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ luby_sequence
   apply unfold_locales
   using bounded_luby_sequence by blast
 

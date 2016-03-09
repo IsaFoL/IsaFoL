@@ -64,7 +64,6 @@ lemma XXX:
 
 global_interpretation raw_clss
   "\<lambda>C. mset (raw_clause C)"
-  "\<lambda>C C'. TWL_Clause [] (union_mset_list (unwatched C @ watched C) (unwatched C' @ watched C'))" 
     (* does not matter if the invariants do not hold *)
   "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
   "\<lambda>L C. TWL_Clause [] (remove1 L (watched C @ unwatched C))" 
@@ -88,7 +87,6 @@ qed
 thm CDCL_Two_Watched_Literals.raw_cls_axioms
 interpretation concrete: state\<^sub>W_ops
   "\<lambda>C. mset (raw_clause C)"
-  "\<lambda>C C'. TWL_Clause [] (union_mset_list (raw_clause C) (raw_clause C'))" 
     (* does not matter if the invariants do not hold *)
   "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
   "\<lambda>L C. TWL_Clause [] (remove1 L (watched C @ unwatched C))" 

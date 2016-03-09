@@ -54,29 +54,6 @@ type_synonym 'v cdcl\<^sub>W_state_inv_st = "('v, nat, 'v literal list) marked_l
 
 abbreviation "raw_S0_cdcl\<^sub>W N \<equiv> (([], N, [], 0, None):: 'v cdcl\<^sub>W_state_inv_st)"
 
-experiment
-begin
-interpretation raw_cls mset
-  union_mset_list "op #" remove1
-  by unfold_locales (auto simp: union_mset_list ex_mset)
-
-  declare insert_cls[simp del] remove_lit[simp del]
-end
-
-interpretation clss_clss: raw_clss id "op #\<union>" "\<lambda>L C. C + {#L#}" remove1_mset
-  id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
-  by unfold_locales (auto simp: ac_simps)
-
-experiment
-begin
-  interpretation raw_clss mset
-    "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-    "op #" remove1 "\<lambda>L. mset (map mset L)" "op @" "\<lambda>L C. L \<in> set C" "op #"
-    "\<lambda>C. remove1_cond (\<lambda>L. mset L = mset C)"
-    by unfold_locales (auto simp: ac_simps union_mset_list mset_map_mset_remove1_cond
-      ex_mset)
-end
-
 fun mmset_of_mlit' :: "('v, nat, 'v literal list) marked_lit \<Rightarrow> ('v, nat, 'v clause) marked_lit"
   where
 "mmset_of_mlit' (Propagated L C) = Propagated L (mset C)" |
@@ -94,7 +71,6 @@ abbreviation clauses_of_l where
 
 global_interpretation state\<^sub>W_ops
   "mset::'v literal list \<Rightarrow> 'v clause"
-  "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
   "op #" remove1
 
   clauses_of_l "op @" "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>L. mset L = mset C)"
@@ -133,7 +109,6 @@ lemma clauses_of_l_filter_removeAll:
 
 interpretation state\<^sub>W
   "mset::'v literal list \<Rightarrow> 'v clause"
-  "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
   "op #" remove1
 
   clauses_of_l "op @" "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>L. mset L = mset C)"
@@ -165,7 +140,6 @@ interpretation state\<^sub>W
 
 global_interpretation conflict_driven_clause_learning\<^sub>W
   "mset::'v literal list \<Rightarrow> 'v clause"
-  "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
   "op #" remove1
 
   clauses_of_l "op @" "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>L. mset L = mset C)"
@@ -2430,6 +2404,7 @@ let
   f
 end
 \<close>
-
+term removeAll 
+term filter
 (*>*)
 end
