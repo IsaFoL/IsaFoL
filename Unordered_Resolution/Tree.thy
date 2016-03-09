@@ -8,10 +8,9 @@ definition Right :: bool where "Right = False"
 declare Left_def [simp]
 declare Right_def [simp]
 
-(* hide_const (open) Leaf Branching *)
 datatype tree =
   Leaf
-| Branching (ltree: tree) (rtree: tree) (* Branching might be a better name *)
+| Branching (ltree: tree) (rtree: tree) 
 
 
 section {* Sizes *}
@@ -32,8 +31,6 @@ fun path :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
   "path [] T \<longleftrightarrow> True"
 | "path (d#ds) (Branching T1 T2) \<longleftrightarrow> (if d then path ds T1 else path ds T2)"
 | "path _ _ \<longleftrightarrow> False"
-
-(* I could use anonymous variable *)
 
 lemma path_inv_Leaf: "path p Leaf \<longleftrightarrow> p = []"
 apply (induction p)
@@ -197,7 +194,6 @@ fun internal :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
   "internal [] (Branching l r) \<longleftrightarrow> True"
 | "internal (d#ds) (Branching l r) \<longleftrightarrow> (if d then internal ds l else internal ds r)"
 | "internal _ _ \<longleftrightarrow> False"
-(* Could use anonymous var in first case *)
 
 lemma internal_inv_Leaf: "\<not>internal b Leaf" using internal.simps by blast
 
@@ -288,18 +284,6 @@ qed
 fun parent :: "dir list \<Rightarrow> dir list" where
   "parent ds = tl ds"
 
-(* abbreviation prefix :: "'a list \<Rightarrow> 'a list \<Rightarrow> bool" where
-  "prefix a b \<equiv> \<exists>c. a @ c = b" 
-
-abbreviation pprefix :: "'a list \<Rightarrow> 'a list \<Rightarrow> bool" where
-  "pprefix a b \<equiv> \<exists>c. a @ c = b \<and> a\<noteq>b" 
-
-abbreviation postfix :: "'a list \<Rightarrow> 'a list \<Rightarrow> bool" where
-  "postfix a b \<equiv> \<exists>c. c @ a = b"
-
-abbreviation ppostfix :: "'a list \<Rightarrow> 'a list \<Rightarrow> bool" where
-  "ppostfix a b \<equiv> \<exists>c. c @ a = b \<and> a\<noteq>b" *)
-
 section {* Deleting Nodes *}
 
 fun delete :: "dir list \<Rightarrow> tree \<Rightarrow> tree" where
@@ -307,7 +291,6 @@ fun delete :: "dir list \<Rightarrow> tree \<Rightarrow> tree" where
 | "delete (True#ds)  (Branching T\<^sub>1 T\<^sub>2) = Branching (delete ds T\<^sub>1) T\<^sub>2"
 | "delete (False#ds) (Branching T\<^sub>1 T\<^sub>2) = Branching T\<^sub>1 (delete ds T\<^sub>2)"
 | "delete (a#ds) Leaf = Leaf"
-(* First case could use anonymous variable*) (* Red could also be defined as a tree, i.e. a dir list set *)
 
 lemma delete_Leaf: "delete T Leaf = Leaf" by (cases T) auto
 
@@ -508,7 +491,10 @@ fun cutoff :: "(dir list \<Rightarrow> bool) \<Rightarrow> dir list \<Rightarrow
      (if red ds then Leaf else Branching (cutoff red (ds@[Left])  T\<^sub>1) (cutoff red (ds@[Right]) T\<^sub>2))"
 | "cutoff red ds Leaf = Leaf"
 (* Initially you should call this with ds = []*)
-(* Hvis alle branches er røde, så giver cut_off et subtree *)(* Hvis alle branches er røde, så gælder det sammme for cut_off *)(* Alle interne stier er ikke røde *)
+(* Red could also be defined as a tree, i.e. a dir list set, but not really a tree, since it is not wellformed *)
+(* If all branches are red, then cut_off gives a subtree *)
+(* If all branches are red, then so are the ones in cut_off *)
+(* The internal paths of cut_off are not red *)
 
 lemma treesize_cutoff: "treesize (cutoff red ds T) \<le> treesize T"
 proof (induction T arbitrary: ds)
@@ -656,9 +642,14 @@ proof (rule subsetI; rule Set.UnCI)
   then show "x \<in> ?subtree (ds @ [Left]) \<union> ?subtree (ds @ [Right])" using asm by auto
 qed
 
-(* Infinite paths in trees should probably be nat \<Rightarrow> dir, instead of nat \<Rightarrow> dir list .   The nat \<Rightarrow> dir list are only useful locally.    I do the conversion in Resolution, I think, but I should rather do it here.    I am not 100% sure though. Perhaps this just means I must convert back to nat \<Rightarrow> dir list,    and that would be rather pointless. Perhaps, I could just do the conversion as a    corollary or something.*)
+(* Infinite paths in trees should probably be nat \<Rightarrow> dir, instead of nat \<Rightarrow> dir list .   
+   The nat \<Rightarrow> dir list are only useful locally.    
+   I do the conversion in Resolution, I think, but I should rather do it here.
+   I am not 100% sure though. Perhaps this just means I must convert back to nat \<Rightarrow> dir list,    
+   and that would be rather pointless. Perhaps, I could just do the conversion as a    
+   corollary or something.*)
+
 section {* Infinite Paths *}
-(* aka list-chains *)
 abbreviation wf_infpath :: "(nat \<Rightarrow> 'a list) \<Rightarrow> bool" where (* Previously called list_chain *)
   "wf_infpath f \<equiv> (f 0 = []) \<and> (\<forall>n. \<exists>a. f (Suc n) = (f n) @ [a])"
 
@@ -720,7 +711,6 @@ fun buildchain :: "(dir list \<Rightarrow> dir list) \<Rightarrow> nat \<Rightar
   "buildchain next 0 = []"
 | "buildchain next (Suc n) = next (buildchain next n)"
 
-(* I have a function intree that checks if a path (node) is in the tree. Assume there are infinite such nodes.  Prove that I can make a chain of paths in the tree*)
 lemma konig:
   assumes inf: "\<not>finite T"
   assumes wellformed: "wf_tree T"
