@@ -323,11 +323,7 @@ next
   then obtain dT1 dT2 where "delete ds T = Branching dT1 dT2" by auto
 
   then have "\<exists>T1 T2. T=Branching T1 T2" (* Is there a lemma hidden here that I could extract? *)
-        apply (cases T)
-        apply auto
-        apply (cases ds)
-        apply auto
-        done
+        by (cases T; cases ds) auto
   then obtain T1 T2 where T1T2_p: "T=Branching T1 T2" by auto
 
   {
@@ -384,11 +380,7 @@ next
   then obtain dT1 dT2 where "delete ds T = Branching dT1 dT2" by auto
 
   then have "\<exists>T1 T2. T=Branching T1 T2" (* Is there a lemma hidden here that I could extract? *)
-        apply (cases T)
-        apply auto
-        apply (cases ds)
-        apply auto
-        done
+        by (cases T; cases ds) auto
   then obtain T1 T2 where T1T2_p: "T=Branching T1 T2" by auto
 
   {
@@ -443,11 +435,7 @@ next
   then obtain dT1 dT2 where "delete ds T = Branching dT1 dT2" by auto
 
   then have "\<exists>T1 T2. T=Branching T1 T2" (* Is there a lemma hidden here that I could extract? *)
-        apply (cases T)
-        apply auto
-        apply (cases ds)
-        apply auto
-        done
+        by (cases T; cases ds) auto
   then obtain T1 T2 where T1T2_p: "T=Branching T1 T2" by auto
 
   {
