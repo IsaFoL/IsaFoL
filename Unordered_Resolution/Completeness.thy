@@ -218,12 +218,12 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     obtain C2o where C2o_p: "C2o \<in> Cs \<and> falsifiesc ?B2 C2o" using b_p clo unfolding closed_tree_def by metis
 
     (* Standardizing the clauses apart *)
-    let ?C1 = "fst (std_apart C1o C2o)"
-    let ?C2 = "snd (std_apart C1o C2o)"
-    have C1_p: "falsifiesc ?B1 ?C1" using std_apart_falsifies1[of C1o C2o ?C1 ?C2 ?B1] C1o_p by auto
-    have C2_p: "falsifiesc ?B2 ?C2" using std_apart_falsifies2[of C1o C2o ?C1 ?C2 ?B2] C2o_p by auto
+    let ?C1 = "std1 C1o"
+    let ?C2 = "std2 C2o"
+    have C1_p: "falsifiesc ?B1 ?C1" using std_apart_falsifies1 C1o_p by auto
+    have C2_p: "falsifiesc ?B2 ?C2" using std_apart_falsifies2 C2o_p by auto
 
-    have fin: "finite ?C1 \<and> finite ?C2" using C1o_p C2o_p finite_std_apart[of C1o C2o ?C1 ?C2] finite_Cs by auto
+    have fin: "finite ?C1 \<and> finite ?C2" using C1o_p C2o_p finite_Cs by auto
 
     (* We go down to the ground world: *)
     (* Finding the falsifying ground instance C1' of C1, and proving properties about it *)
@@ -232,7 +232,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     from C1_p  obtain C1' where C1'_p: "groundls C1' \<and> instance_ofls C1' ?C1 \<and> falsifiesg ?B1 C1'" by metis
 
     have "\<not>falsifiesc B C1o" using C1o_p b_p clo unfolding closed_tree_def by metis
-    then have "\<not>falsifiesc B ?C1" using std_apart_falsifies1_sym[of C1o C2o ?C1 ?C2 B] using prod.exhaust_sel by blast
+    then have "\<not>falsifiesc B ?C1" using std_apart_falsifies1 using prod.exhaust_sel by blast
     (* C1' is not falsified by B *)
     then have l_B: "\<not>falsifiesg B C1'" using C1'_p by auto
 
@@ -262,7 +262,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     from C2_p obtain C2' where C2'_p: "groundls C2' \<and> instance_ofls C2' ?C2 \<and> falsifiesg ?B2 C2'" by metis
 
     have "\<not>falsifiesc B C2o" using C2o_p b_p clo unfolding closed_tree_def by metis
-    then have "\<not>falsifiesc B ?C2" using std_apart_falsifies2_sym[of C1o C2o ?C1 ?C2 B] using prod.exhaust_sel by blast
+    then have "\<not>falsifiesc B ?C2" using std_apart_falsifies2 using prod.exhaust_sel by blast
     then have l_B: "\<not>falsifiesg B C2'" using C2'_p by auto (* I already had something called l_B... I should give it a new name *)
     
     (* C2' contains a literal l1 that is falsified by B1, but not B *)
@@ -299,7 +299,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
       using l1_p l2_p C1'_p groundls_varsls l2cisl1 empty_comp2 unfolding mguls_def unifierls_def by auto
     (* Lifting to get a resolvent of C1 and C2 *)
     then obtain L1 L2 \<tau> where L1L2\<tau>_p: "applicable ?C1 ?C2 L1 L2 \<tau>  \<and> instance_ofls (resolution C1' C2' {l1} {l2} Resolution.\<epsilon>) (resolution ?C1 ?C2 L1 L2 \<tau>)"
-      using std_apart_apart' C1'_p C2'_p lifting[of ?C1 ?C2 C1' C2' "{l1}" "{l2}" Resolution.\<epsilon>] fin by auto
+      using std_apart_apart C1'_p C2'_p lifting[of ?C1 ?C2 C1' C2' "{l1}" "{l2}" Resolution.\<epsilon>] fin by auto
 
 
     (* Defining the clause to be derived, the new clausal form and the new tree *)
@@ -345,14 +345,14 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     then obtain Cs'' where Cs''_p: "resolution_deriv CsNext Cs'' \<and> {} \<in> Cs''" by auto
     moreover
     { (* Proving that we can actually derive the new clausal form *)
-      have "resolution_step Cs (Cs \<union> {?C1})" using std_apart_renames1'[of C1o C2o] standardize_apart C1o_p by (metis Un_insert_right prod.collapse)
+      have "resolution_step Cs (Cs \<union> {?C1})" using std_apart_renames1 standardize_apart C1o_p by (metis Un_insert_right prod.collapse)
       moreover
-      have "resolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1} \<union> {?C2})" using std_apart_renames2'[of C1o C2o] standardize_apart C2o_p by (metis Un_insert_right insert_iff prod.collapse sup_bot.right_neutral)
-      then have "resolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1,?C2})" by (metis insert_is_Un sup_assoc)
+      have "resolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1} \<union> {?C2})" using std_apart_renames2[of C2o] standardize_apart[of C2o _ ?C2] C2o_p by auto 
+      then have "resolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1,?C2})" by (simp add: insert_commute)
       moreover
       then have "resolution_step (Cs \<union> {?C1,?C2}) (Cs \<union> {?C1,?C2} \<union> {C})" 
         using L1L2\<tau>_p resolution_rule[of ?C1 "Cs \<union> {?C1,?C2}" ?C2 L1 L2 \<tau> ] using C_p by auto
-      then have "resolution_step (Cs \<union> {?C1,?C2}) CsNext" by (metis CsNext_p insert_is_Un sup_assoc) 
+      then have "resolution_step (Cs \<union> {?C1,?C2}) CsNext" using CsNext_p by (simp add:  Un_commute)
       ultimately
       have "resolution_deriv Cs CsNext"  unfolding resolution_deriv_def by auto
     }
