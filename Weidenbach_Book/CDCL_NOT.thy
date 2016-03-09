@@ -3,7 +3,6 @@ imports Partial_Annotated_Clausal_Logic List_More Wellfounded_More Partial_Claus
 begin
 
 section \<open>NOT's CDCL\<close>
-sledgehammer_params[verbose, prover=e spass z3 cvc4 verit remote_vampire]
 
 subsection \<open>Auxiliary Lemmas and Measure\<close>
 lemma no_dup_cannot_not_lit_and_uminus:

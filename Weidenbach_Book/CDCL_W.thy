@@ -4,7 +4,6 @@ imports Partial_Annotated_Clausal_Logic List_More CDCL_W_Level Wellfounded_More
 begin
 
 section \<open>Weidenbach's CDCL\<close>
-sledgehammer_params[verbose, e spass cvc4 z3 verit]
 declare upt.simps(2)[simp del]
 
 subsection \<open>The State\<close>

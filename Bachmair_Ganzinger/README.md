@@ -5,8 +5,10 @@ contains an ongoing Isabelle formalization of Sections 3 and 4 of Bachmair and
 Ganzinger's "Resolution Theorem Proving" (Chapter 2 of Volume 1 of _The
 Handbook of Automated Reasoning_).
 
-A recent version of Isabelle is necessary to process the theory files (e.g.,
-Isabelle2016-RC1).
+The repository version of Isabelle is necessary to process the theory files. For Isabelle2016, 
+switch to the ``sat_solver_learn_forget_restart_incrementality`` branch (change with 
+``git checkout sat_solver_learn_forget_restart_incrementality``). The [Archive of Formal Proofs](http://afp.sourceforge.net/)
+is also needed.
 
 ## Authors ##
 
