@@ -1,5 +1,6 @@
 theory CDCL_NOT
 imports CDCL_Abstract_Clause_Representation List_More Wellfounded_More CDCL_WNOT_Measure
+  Partial_Annotated_Clausal_Logic
 begin
 
 section \<open>NOT's CDCL\<close>
@@ -15,7 +16,7 @@ lemma true_clss_single_iff_incl:
 
 lemma atms_of_ms_single_atm_of[simp]:
   "atms_of_ms {unmark L |L. P L} = atm_of ` {lit_of L |L. P L}"
-  unfolding atms_of_ms_def by auto
+  unfolding atms_of_ms_def by force
 
 lemma atms_of_uminus_lit_atm_of_lit_of:
   "atms_of {# -lit_of x. x \<in># A#} = atm_of ` (lit_of ` (set_mset A))"

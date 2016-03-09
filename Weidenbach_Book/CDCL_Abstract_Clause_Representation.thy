@@ -1,6 +1,9 @@
 theory CDCL_Abstract_Clause_Representation
-imports Main Partial_Annotated_Clausal_Logic
+imports Main Partial_Clausal_Logic
 begin
+
+type_synonym 'v clause = "'v literal multiset"
+type_synonym 'v clauses = "'v clause multiset"
 subsection \<open>Abstract Clause Representation\<close>
 text \<open>We will abstract the representation of clause and clauses via two locales. We expect our
   representation to behave like multiset, but the internal representation can be done using list

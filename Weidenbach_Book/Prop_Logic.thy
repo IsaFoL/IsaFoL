@@ -41,15 +41,15 @@ lemma propo_induct_arity[case_names nullary unary binary]:
 
 text \<open>The function @{term conn} is the interpretation of our representation (connective and list of
   arguments). We define any thing that has no sense to be false\<close>
-fun  conn :: "'v connective \<Rightarrow> 'v propo list \<Rightarrow> 'v propo" where
+fun conn :: "'v connective \<Rightarrow> 'v propo list \<Rightarrow> 'v propo" where
 "conn CT [] = FT" |
 "conn CF [] = FF" |
 "conn (CVar v) [] = FVar v" |
 "conn CNot [\<phi>] = FNot \<phi>" |
-"conn CAnd (\<phi># [\<psi>]) = FAnd \<phi> \<psi>" |
-"conn COr (\<phi># [\<psi>]) = FOr \<phi> \<psi>" |
-"conn CImp (\<phi># [\<psi>]) = FImp \<phi> \<psi>" |
-"conn CEq (\<phi># [\<psi>]) = FEq \<phi> \<psi>" |
+"conn CAnd (\<phi> # [\<psi>]) = FAnd \<phi> \<psi>" |
+"conn COr (\<phi> # [\<psi>]) = FOr \<phi> \<psi>" |
+"conn CImp (\<phi> # [\<psi>]) = FImp \<phi> \<psi>" |
+"conn CEq (\<phi> # [\<psi>]) = FEq \<phi> \<psi>" |
 "conn _ _ = FF"
 
 text \<open>We will often use case distinction, based on the arity of the @{typ "'v connective"}, thus we
@@ -580,39 +580,31 @@ definition evalf (infix "\<Turnstile>f" 50) where
 "evalf \<phi> \<psi> = (\<forall>A. A \<Turnstile> \<phi> \<longrightarrow> A \<Turnstile> \<psi>)"
 
 text \<open>The deduction rule is in the book. And the proof looks like to the one of the book.\<close>
-lemma deduction_rule:
-  "(\<phi> \<Turnstile>f \<psi>) \<longleftrightarrow> (\<forall>A. (A\<Turnstile> FImp \<phi> \<psi>))"
+theorem deduction_theorem:
+  "(\<phi> \<Turnstile>f \<psi>) \<longleftrightarrow> (\<forall>A. (A \<Turnstile> FImp \<phi> \<psi>))"
 proof
   assume H: "\<phi> \<Turnstile>f \<psi>"
   {
     fix A
-    text \<open>``Suppose that @{term \<phi>} entails @{term \<psi>} (assumption @{thm H}) and let @{term A} be an
-      arbitrary @{typ "'v"}-valuation. We need to show @{term "A\<Turnstile> FImp \<phi> \<psi>"}.  ''\<close>
-    {
-      text \<open>If @{term "A(\<phi>) = 1"}, then @{term "A(\<phi>) = 1"}, because @{term \<phi>} entails  @{term \<psi>},
-        and therefore @{term "A \<Turnstile> FImp \<phi> \<psi>"}.\<close>
-      assume "A \<Turnstile> \<phi>"
-      then have "A \<Turnstile> \<psi>" using H unfolding evalf_def by metis
-      then have "A \<Turnstile> FImp \<phi> \<psi>" by auto
-    }
-    moreover  {
-      text \<open>For otherwise, if @{term "A(\<phi>) = 0"}, then @{term "A\<Turnstile> FImp \<phi> \<psi>"} holds by definition,
-        independently of the value of @{term "A \<Turnstile> \<psi>"}.\<close>
-      assume "\<not> A \<Turnstile> \<phi>"
-      then have "A \<Turnstile> FImp \<phi> \<psi>" by auto
-    }
-    text \<open>In both cases @{term "A\<Turnstile> FImp \<phi> \<psi>"}.\<close>
-    ultimately have "A\<Turnstile> FImp \<phi> \<psi>" by blast
+    have "A \<Turnstile> FImp \<phi> \<psi>" 
+      proof (cases "A \<Turnstile> \<phi>")
+        case True
+        then have "A \<Turnstile> \<psi>" using H unfolding evalf_def by metis
+        then show "A \<Turnstile> FImp \<phi> \<psi>" by auto
+      next
+        case False
+        then show "A \<Turnstile> FImp \<phi> \<psi>" by auto
+      qed
   }
   then show "\<forall>A. A \<Turnstile> FImp \<phi> \<psi>" by blast
 next
-  show "\<forall>A. A \<Turnstile> FImp \<phi> \<psi> \<Longrightarrow> \<phi> \<Turnstile>f \<psi> "
+  assume A: "\<forall>A. A \<Turnstile> FImp \<phi> \<psi>"
+  show "\<phi> \<Turnstile>f \<psi>"
     proof (rule ccontr)
-      assume "\<not>\<phi>\<Turnstile>f \<psi>"
-      then obtain A where "A \<Turnstile> \<phi> \<and> \<not>A\<Turnstile>\<psi>" using evalf_def by metis
+      assume "\<not> \<phi> \<Turnstile>f \<psi>"
+      then obtain A where "A \<Turnstile> \<phi>" and "\<not> A \<Turnstile> \<psi>" using evalf_def by metis
       then have "\<not> A \<Turnstile> FImp \<phi> \<psi>" by auto
-      moreover assume "\<forall>A. A \<Turnstile> FImp \<phi> \<psi>"
-      ultimately show "False" by blast
+      then show False using A by blast
     qed
 qed
 
@@ -626,7 +618,7 @@ definition same_over_set:: "('v \<Rightarrow> bool) \<Rightarrow>('v \<Rightarro
 text \<open>If two mapping @{term A} and @{term B} have the same value over the variables, then the same
   formula are satisfiable.\<close>
 lemma same_over_set_eval:
-  assumes "same_over_set A B (vars_of_prop \<phi>)"
+  assumes "same_over_set A B (vars_of_prop \<phi>)" 
   shows "A \<Turnstile> \<phi> \<longleftrightarrow> B \<Turnstile> \<phi>"
   using assms unfolding same_over_set_def by (induct \<phi>, auto)
 
