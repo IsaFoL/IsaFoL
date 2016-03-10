@@ -174,38 +174,38 @@ locale state\<^sub>W =
 
     init_clss_cons_trail[simp]:
       "\<And>M st. undefined_lit (trail st) (lit_of M) \<Longrightarrow>
-        raw_init_clss (cons_trail M st) = raw_init_clss st"
+        init_clss (cons_trail M st) = init_clss st"
       and
     init_clss_tl_trail[simp]:
-      "\<And>st. raw_init_clss (tl_trail st) = raw_init_clss st" and
+      "\<And>st. init_clss (tl_trail st) = init_clss st" and
     init_clss_add_init_cls[simp]:
       "\<And>st C. no_dup (trail st) \<Longrightarrow> init_clss (add_init_cls C st) = {#mset_cls C#} + init_clss st"
       and
     init_clss_add_learned_cls[simp]:
-      "\<And>C st. no_dup (trail st) \<Longrightarrow> raw_init_clss (add_learned_cls C st) = raw_init_clss st" and
+      "\<And>C st. no_dup (trail st) \<Longrightarrow> init_clss (add_learned_cls C st) = init_clss st" and
     init_clss_remove_cls[simp]:
       "\<And>C st. init_clss (remove_cls C st) = removeAll_mset (mset_cls C) (init_clss st)" and
     init_clss_update_backtrack_lvl[simp]:
-      "\<And>st C. raw_init_clss (update_backtrack_lvl C st) = raw_init_clss st" and
+      "\<And>st C. init_clss (update_backtrack_lvl C st) = init_clss st" and
     init_clss_update_conflicting[simp]:
-      "\<And>C st. raw_init_clss (update_conflicting C st) = raw_init_clss st" and
+      "\<And>C st. init_clss (update_conflicting C st) = init_clss st" and
 
     learned_clss_cons_trail[simp]:
       "\<And>M st. undefined_lit (trail st) (lit_of M) \<Longrightarrow>
-        raw_learned_clss (cons_trail M st) = raw_learned_clss st" and
+        learned_clss (cons_trail M st) = learned_clss st" and
     learned_clss_tl_trail[simp]:
-      "\<And>st. raw_learned_clss (tl_trail st) = raw_learned_clss st" and
+      "\<And>st. learned_clss (tl_trail st) = learned_clss st" and
     learned_clss_add_init_cls[simp]:
-      "\<And>st C. no_dup (trail st) \<Longrightarrow> raw_learned_clss (add_init_cls C st) = raw_learned_clss st" and
+      "\<And>st C. no_dup (trail st) \<Longrightarrow> learned_clss (add_init_cls C st) = learned_clss st" and
     learned_clss_add_learned_cls[simp]:
       "\<And>C st. no_dup (trail st) \<Longrightarrow>
         learned_clss (add_learned_cls C st) = {#mset_cls C#} + learned_clss st" and
     learned_clss_remove_cls[simp]:
       "\<And>C st. learned_clss (remove_cls C st) = removeAll_mset (mset_cls C) (learned_clss st)" and
     learned_clss_update_backtrack_lvl[simp]:
-      "\<And>st C. raw_learned_clss (update_backtrack_lvl C st) = raw_learned_clss st" and
+      "\<And>st C. learned_clss (update_backtrack_lvl C st) = learned_clss st" and
     learned_clss_update_conflicting[simp]:
-      "\<And>C st. raw_learned_clss (update_conflicting C st) = raw_learned_clss st" and
+      "\<And>C st. learned_clss (update_conflicting C st) = learned_clss st" and
 
     backtrack_lvl_cons_trail[simp]:
       "\<And>M st. undefined_lit (trail st) (lit_of M) \<Longrightarrow>
@@ -225,18 +225,18 @@ locale state\<^sub>W =
 
     conflicting_cons_trail[simp]:
       "\<And>M st. undefined_lit (trail st) (lit_of M) \<Longrightarrow>
-        raw_conflicting (cons_trail M st) = raw_conflicting st" and
+        conflicting (cons_trail M st) = conflicting st" and
     conflicting_tl_trail[simp]:
-      "\<And>st. raw_conflicting (tl_trail st) = raw_conflicting st" and
+      "\<And>st. conflicting (tl_trail st) = conflicting st" and
     conflicting_add_init_cls[simp]:
-      "\<And>st C. no_dup (trail st) \<Longrightarrow> raw_conflicting (add_init_cls C st) = raw_conflicting st" and
+      "\<And>st C. no_dup (trail st) \<Longrightarrow> conflicting (add_init_cls C st) = conflicting st" and
     conflicting_add_learned_cls[simp]:
-      "\<And>C st. no_dup (trail st) \<Longrightarrow> raw_conflicting (add_learned_cls C st) = raw_conflicting st"
+      "\<And>C st. no_dup (trail st) \<Longrightarrow> conflicting (add_learned_cls C st) = conflicting st"
       and
     conflicting_remove_cls[simp]:
-      "\<And>C st. raw_conflicting (remove_cls C st) = raw_conflicting st" and
+      "\<And>C st. conflicting (remove_cls C st) = conflicting st" and
     conflicting_update_backtrack_lvl[simp]:
-      "\<And>st C. raw_conflicting (update_backtrack_lvl C st) = raw_conflicting st" and
+      "\<And>st C. conflicting (update_backtrack_lvl C st) = conflicting st" and
     conflicting_update_conflicting[simp]:
       "\<And>C st. raw_conflicting (update_conflicting C st) = C" and
 
@@ -377,35 +377,36 @@ lemma clauses_reduce_trail_to[simp]:
   apply (induction F S rule: reduce_trail_to.induct)
   by (metis clss_tl_trail reduce_trail_to.simps)
 
-lemma conflicting_update_trial[simp]:
+lemma conflicting_update_trail[simp]:
   "conflicting (reduce_trail_to F S) = conflicting S"
   apply (induction F S rule: reduce_trail_to.induct)
   by (metis conflicting_tl_trail reduce_trail_to.simps)
 
-lemma backtrack_lvl_update_trial[simp]:
+lemma backtrack_lvl_update_trail[simp]:
   "backtrack_lvl (reduce_trail_to F S) = backtrack_lvl S"
   apply (induction F S rule: reduce_trail_to.induct)
   by (metis backtrack_lvl_tl_trail reduce_trail_to.simps)
 
-lemma init_clss_update_trial[simp]:
+lemma init_clss_update_trail[simp]:
   "init_clss (reduce_trail_to F S) = init_clss S"
   apply (induction F S rule: reduce_trail_to.induct)
   by (metis init_clss_tl_trail reduce_trail_to.simps)
 
-lemma learned_clss_update_trial[simp]:
+lemma learned_clss_update_trail[simp]:
   "learned_clss (reduce_trail_to F S) = learned_clss S"
   apply (induction F S rule: reduce_trail_to.induct)
   by (metis learned_clss_tl_trail reduce_trail_to.simps)
+
+
+lemma raw_conflicting_reduce_trail_to[simp]:
+  "raw_conflicting (reduce_trail_to F S) = None \<longleftrightarrow> raw_conflicting S = None"
+  apply (induction F S rule: reduce_trail_to.induct)
+  by (metis conflicting_update_trail map_option_is_None)
 
 lemma trail_eq_reduce_trail_to_eq:
   "trail S = trail T \<Longrightarrow> trail (reduce_trail_to F S) = trail (reduce_trail_to F T)"
   apply (induction F S arbitrary: T rule: reduce_trail_to.induct)
   by (metis trail_tl_trail reduce_trail_to.simps)
-
-lemma raw_conflicting_reduce_trail_to[simp]:
-  "raw_conflicting (reduce_trail_to F S) = raw_conflicting S"
-  apply (induction F S rule: reduce_trail_to.induct)
-  by (metis conflicting_tl_trail reduce_trail_to.elims)
 
 lemma reduce_trail_to_state_eq\<^sub>N\<^sub>O\<^sub>T_compatible:
   assumes ST: "S \<sim> T"
@@ -495,6 +496,26 @@ proof -
      (auto simp: tr_S L)
 qed
 
+lemma raw_conflicting_cons_trail[simp]: 
+  assumes "undefined_lit (trail S) (lit_of L)"
+  shows
+    "raw_conflicting (cons_trail L S) = None \<longleftrightarrow> raw_conflicting S = None"
+  using assms conflicting_cons_trail[of S L] map_option_is_None by fastforce+
+
+lemma raw_conflicting_add_init_cls[simp]: 
+  "no_dup (trail S) \<Longrightarrow>
+    raw_conflicting (add_init_cls C S) = None \<longleftrightarrow> raw_conflicting S = None"
+  using map_option_is_None conflicting_add_init_cls[of S C] by fastforce+
+
+lemma raw_conflicting_add_learned_cls[simp]: 
+  "no_dup (trail S) \<Longrightarrow>
+    raw_conflicting (add_learned_cls C S) = None \<longleftrightarrow> raw_conflicting S = None"
+  using map_option_is_None conflicting_add_learned_cls[of S C] by fastforce+
+
+lemma raw_conflicting_update_backtracl_lvl[simp]: 
+  "raw_conflicting (update_backtrack_lvl k S) = None \<longleftrightarrow> raw_conflicting S = None"
+  using map_option_is_None conflicting_update_backtrack_lvl[of k S] by fastforce+
+ 
 end -- \<open>end of \<open>state\<^sub>W\<close> locale\<close>
 
 
@@ -1467,6 +1488,7 @@ proof -
       using decomp SS' lev SS' max_D max T' by (auto simp: state_eq_def simp del: state_simp)
 qed
 
+
 lemma decide_state_eq_compatible:
   assumes
     "decide S T" and
@@ -1474,8 +1496,7 @@ lemma decide_state_eq_compatible:
     "T \<sim> T'"
   shows "decide S' T'"
   using assms apply (elim decideE)
-  apply (rule decide_rule)
-  by (auto simp: state_eq_def raw_clauses_def simp del: state_simp)
+  by (rule decide_rule) (auto simp: state_eq_def raw_clauses_def simp del: state_simp)
 
 lemma skip_state_eq_compatible:
   assumes

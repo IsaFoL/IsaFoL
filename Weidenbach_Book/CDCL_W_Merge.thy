@@ -257,6 +257,10 @@ lemma fst_get_all_marked_decomposition_prepend_not_marked:
     apply auto[2]
     by (rename_tac L m xs; case_tac "get_all_marked_decomposition (xs @ M)") simp_all
 
+lemma "raw_conflicting (reduce_trail_to F S) = None \<longleftrightarrow> raw_conflicting S = None"
+  apply (induction F S rule: reduce_trail_to.induct)
+  by (metis conflicting_update_trail map_option_is_None)
+
 text \<open>See also @{thm rtranclp_skip_backtrack_backtrack}\<close>
 lemma rtranclp_skip_backtrack_backtrack_end:
   assumes
