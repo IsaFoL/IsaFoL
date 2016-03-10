@@ -1,6 +1,9 @@
 theory List_More
-imports Main
+imports Main "../lib/Multiset_More"
 begin
+
+text \<open>Sledgehammer parameters\<close>
+sledgehammer_params[debug]
 
 section \<open>Various Lemmas\<close>
 text \<open>Close to @{thm nat_less_induct}, but with a separation between zero and non-zero, and case
@@ -195,7 +198,45 @@ lemma list_length2_append_cons:
   by (cases ys; cases ys') auto
 
 lemma lexn2_conv:
-  "([a, b], [c, d]) \<in> lexn r 2 \<longleftrightarrow> (a, c)\<in>r \<or> (a = c \<and> (b, d) \<in>r)"
+  "([a, b], [c, d]) \<in> lexn r 2 \<longleftrightarrow> (a, c) \<in> r \<or> (a = c \<and> (b, d) \<in>r)"
   unfolding lexn_conv by (auto simp add: list_length2_append_cons)
 
+subsection \<open>Remove and Multiset equality\<close>
+
+lemma remove1_mset_single_add:
+  "a \<noteq> b \<Longrightarrow> remove1_mset a ({#b#} + C) = {#b#} + remove1_mset a C"
+  "remove1_mset a ({#a#} + C) = C"
+  by (auto simp: multiset_eq_iff)
+
+text \<open>This is the sams as @{term remove1} under the assumptions of non-duplication inside a clause.\<close>
+fun remove1_cond where
+"remove1_cond f [] = []" |
+"remove1_cond f (C' # L) = (if f  C' then L else C' # remove1_cond f L)"
+
+lemma mset_map_mset_remove1_cond:
+  "mset (map mset (remove1_cond (\<lambda>L. mset L = mset a) C)) =
+    remove1_mset (mset a) (mset (map mset C))"
+  by (induction C) (auto simp: ac_simps remove1_mset_single_add)
+
+fun removeAll_cond where
+"removeAll_cond f [] = []" |
+"removeAll_cond f (C' # L) =
+  (if f C' then removeAll_cond f L else C' # removeAll_cond f L)"
+
+lemma mset_map_mset_removeAll_cond:
+  "mset (map mset (removeAll_cond (\<lambda>b. mset b = mset a) C)) 
+    = removeAll_mset (mset a) (mset (map mset C))"
+  by (induction C) (auto simp: ac_simps mset_less_eqI multiset_diff_union_assoc)
+
+abbreviation union_mset_list where
+"union_mset_list xs ys \<equiv> case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
+
+lemma union_mset_list:
+  "mset xs #\<union> mset ys = mset (union_mset_list xs ys)"
+proof -
+  have "\<And>zs. mset (case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, zs))) =
+      (mset xs #\<union> mset ys) + mset zs"
+    by (induct xs arbitrary: ys) (simp_all add: multiset_eq_iff)
+  then show ?thesis by simp
+qed
 end

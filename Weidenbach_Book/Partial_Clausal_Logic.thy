@@ -62,7 +62,7 @@ subsubsection \<open>Atoms\<close>
 definition atms_of_ms :: "'a literal multiset set \<Rightarrow> 'a set" where
 "atms_of_ms \<psi>s = \<Union>(atms_of ` \<psi>s)"
 
-lemma atms_of_msultiset[simp]:
+lemma atms_of_mmltiset[simp]:
   "atms_of (mset a) = atm_of ` set a"
   by (induct a) auto
 
@@ -241,7 +241,7 @@ proof -
   ultimately show ?thesis by blast
 qed
 
-lemma total_over_set_atms_of[simp]:
+lemma total_over_set_atms_of_m[simp]:
   "total_over_set Ia (atms_of_s Ia)"
   unfolding total_over_set_def atms_of_s_def by (metis image_iff literal.exhaust_sel)
 
@@ -704,13 +704,15 @@ proof
         unfolding true_clss_clss_def true_clss_cls_def insert_def total_over_m_insert
       proof (intro allI impI)
         fix I
-        assume totAC: "total_over_m I (A \<union> C)"
-        and cons: "consistent_interp I"
-        and I: "I \<Turnstile>s A"
+        assume
+          totAC: "total_over_m I (A \<union> C)" and
+          cons: "consistent_interp I" and
+          I: "I \<Turnstile>s A"
         then have  tot: "total_over_m I A" and tot': "total_over_m I  C" by auto
-        obtain I' where tot': "total_over_m (I \<union> I') (A \<union> C \<union> D)"
-        and cons': "consistent_interp (I \<union> I')"
-        and H: "\<forall>x\<in>I'. atm_of x \<in> atms_of_ms D \<and> atm_of x \<notin> atms_of_ms (A \<union> C)"
+        obtain I' where
+          tot': "total_over_m (I \<union> I') (A \<union> C \<union> D)" and
+          cons': "consistent_interp (I \<union> I')" and
+          H: "\<forall>x\<in>I'. atm_of x \<in> atms_of_ms D \<and> atm_of x \<notin> atms_of_ms (A \<union> C)"
           using total_over_m_consistent_extension[OF _ cons, of "A \<union> C"] tot tot' by blast
         moreover have "I \<union> I' \<Turnstile>s A" using I by simp
         ultimately have "I \<union> I' \<Turnstile>s C \<union> D" using A unfolding true_clss_clss_def  by auto
@@ -780,9 +782,10 @@ lemma true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or:
   unfolding true_clss_cls_def
 proof (intro allI impI)
   fix I
-  assume tot: "total_over_m I (N \<union> {D + C})"
-  and "consistent_interp I"
-  and "I \<Turnstile>s N"
+  assume
+    tot: "total_over_m I (N \<union> {D + C})" and
+    "consistent_interp I" and
+    "I \<Turnstile>s N"
   {
     assume L: "L \<in> I \<or> -L \<in> I"
     then have "total_over_m I {D + {#- L#}}"
@@ -820,8 +823,9 @@ lemma true_cls_union_mset[iff]: "I \<Turnstile> C #\<union> D \<longleftrightarr
   unfolding true_cls_def by force
 
 lemma true_clss_cls_union_mset_true_clss_cls_or_not_true_clss_cls_or:
-  assumes D: "N \<Turnstile>p D + {#- L#}"
-  and C: "N \<Turnstile>p C + {#L#}"
+  assumes
+    D: "N \<Turnstile>p D + {#- L#}" and
+    C: "N \<Turnstile>p C + {#L#}"
   shows "N \<Turnstile>p D #\<union> C"
   unfolding true_clss_cls_def
 proof (intro allI impI)

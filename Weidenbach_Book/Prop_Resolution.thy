@@ -386,7 +386,7 @@ proof -
   have P: "insert P I = I \<union> {P}" by auto
   show ?thesis unfolding P
   apply (rule consistent_interp_disjoint)
-  using assms by (auto simp add: atms_of_s_def)
+  using assms by (auto simp: image_iff)
 qed
 
 lemma simplify_clause_preserves_sat:
@@ -1236,7 +1236,8 @@ next
         then have "simplified {A}" using simplified_in H(1,5) by auto
         moreover have "simplified {B}" using eq simplified_in H(2,5) by auto
         moreover have "atms_of A \<subseteq> atms_of_ms N"
-          using eq H(1) atms_of_atms_of_ms_mono[of A N] by auto
+          using eq H(1) 
+          using atms_of_atms_of_ms_mono[of A N] by auto
         moreover have "atms_of B \<subseteq> atms_of_ms N"
           using eq H(2) atms_of_atms_of_ms_mono[of B N] by auto
         ultimately have "simplified {A} \<and> simplified {B} \<and> atms_of A \<subseteq> vars \<and> atms_of B \<subseteq> vars"

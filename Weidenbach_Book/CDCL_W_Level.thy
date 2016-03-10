@@ -17,31 +17,33 @@ abbreviation "get_level M L \<equiv> get_rev_level (rev M) 0 L"
 lemma get_rev_level_uminus[simp]: "get_rev_level M n(-L) = get_rev_level M n L"
   by (induct arbitrary: n rule: get_rev_level.induct) auto
 
-lemma atm_of_notin_get_rev_level_eq_0[simp]:
-  assumes "atm_of L \<notin> atm_of ` lits_of M"
+lemma atm_of_notin_get_rev_level_eq_0:
+  assumes "atm_of L \<notin> atm_of ` lits_of_l M"
   shows "get_rev_level M n L = 0"
   using assms by (induct M arbitrary: n rule: marked_lit_list_induct) auto
 
 lemma get_rev_level_ge_0_atm_of_in:
   assumes  "get_rev_level M n L > n"
-  shows "atm_of L \<in> atm_of ` lits_of M"
-  using assms by (induct M arbitrary: n rule: marked_lit_list_induct) fastforce+
+  shows "atm_of L \<in> atm_of ` lits_of_l M"
+  using assms by (induct M arbitrary: n rule: marked_lit_list_induct) 
+  (fastforce simp: atm_of_notin_get_rev_level_eq_0)+
 
 text \<open>In @{const get_rev_level} (resp. @{const get_level}), the beginning (resp. the end) can be
   skipped if the literal is not in the beginning (resp. the end).\<close>
 lemma get_rev_level_skip[simp]:
-  assumes  "atm_of L \<notin> atm_of ` lits_of M"
+  assumes  "atm_of L \<notin> atm_of ` lits_of_l M"
   shows "get_rev_level (M @ Marked K i # M') n L = get_rev_level (Marked K i # M') i L"
   using assms by (induct M arbitrary: n i rule: marked_lit_list_induct) auto
 
 lemma get_rev_level_notin_end[simp]:
-  assumes  "atm_of L \<notin> atm_of ` lits_of M'"
+  assumes  "atm_of L \<notin> atm_of ` lits_of_l M'"
   shows "get_rev_level (M @ M') n L = get_rev_level M n L"
-  using assms by (induct M arbitrary: n rule: marked_lit_list_induct) auto
+  using assms by (induct M arbitrary: n rule: marked_lit_list_induct) 
+  (auto simp: atm_of_notin_get_rev_level_eq_0)
 
 text \<open>If the literal is at the beginning, then the end can be skipped\<close>
 lemma get_rev_level_skip_end[simp]:
-  assumes  "atm_of L \<in> atm_of ` lits_of M"
+  assumes  "atm_of L \<in> atm_of ` lits_of_l M"
   shows "get_rev_level (M @ M') n L = get_rev_level M n L"
   using assms by (induct arbitrary: n rule: marked_lit_list_induct) auto
 
@@ -142,13 +144,13 @@ lemma get_maximum_level_skip_first[simp]:
     multiset.map_cong0)
 
 lemma get_maximum_level_skip_beginning:
-  assumes DH: "atms_of D \<subseteq> atm_of `lits_of H"
+  assumes DH: "atms_of D \<subseteq> atm_of `lits_of_l H"
   shows "get_maximum_level (c @ Marked Kh i # H) D = get_maximum_level H D"
 proof -
   have "(get_rev_level (rev H @ Marked Kh i # rev c) 0) ` set_mset D
       = (get_rev_level (rev H) 0) ` set_mset D"
     using DH unfolding atms_of_def
-    by (metis (no_types, lifting) get_rev_level_skip_end image_cong image_subset_iff lits_of_rev)+
+    by (metis (no_types, lifting) get_rev_level_skip_end image_cong image_subset_iff set_rev)
   then show ?thesis using DH unfolding get_maximum_level_def by auto
 qed
 
@@ -162,7 +164,7 @@ proof -
 qed
 
 lemma get_maximum_level_skip_notin:
-  assumes D: "\<forall>L\<in>#D. atm_of L \<in> atm_of `lits_of M"
+  assumes D: "\<forall>L\<in>#D. atm_of L \<in> atm_of `lits_of_l M"
   shows "get_maximum_level M D = get_maximum_level (Propagated x21 x22 # M) D"
 proof -
   have A: "(get_rev_level (rev M @ [Propagated x21 x22]) 0) ` set_mset D
@@ -172,11 +174,15 @@ proof -
 qed
 
 lemma get_maximum_level_skip_un_marked_not_present:
-  assumes "\<forall>L\<in>#D. atm_of L \<in> atm_of ` lits_of aa" and
+  assumes "\<forall>L\<in>#D. atm_of L \<in> atm_of ` lits_of_l aa" and
   "\<forall>m\<in>set M. \<not> is_marked m"
-  shows " get_maximum_level aa D = get_maximum_level (M @ aa) D"
+  shows "get_maximum_level aa D = get_maximum_level (M @ aa) D"
   using assms by (induction M rule: marked_lit_list_induct)
   (auto intro!: get_maximum_level_skip_notin[of D "_ @ aa"] simp add: image_Un)
+
+lemma get_maximum_level_union_mset:
+  "get_maximum_level M (A #\<union> B) = get_maximum_level M (A + B)"
+  unfolding get_maximum_level_def by (auto simp: image_Un)
 
 fun get_maximum_possible_level:: "('b, nat, 'c) marked_lit list \<Rightarrow> nat"   where
 "get_maximum_possible_level [] = 0" |
@@ -253,7 +259,7 @@ lemma get_rev_level_less_max_get_all_levels_of_marked:
      (simp_all add: max.coboundedI2)
 
 lemma get_rev_level_ge_min_get_all_levels_of_marked:
-  assumes "atm_of L \<in> atm_of ` lits_of M"
+  assumes "atm_of L \<in> atm_of ` lits_of_l M"
   shows "get_rev_level M n L \<ge> Min (set (n # get_all_levels_of_marked M))"
   using assms by (induct M arbitrary: n rule: get_all_levels_of_marked.induct)
     (auto simp add: min_le_iff_disj)
@@ -272,9 +278,9 @@ lemma get_rev_level_in_levels_of_marked:
   by (induction M arbitrary: n rule: marked_lit_list_induct) (force simp add: atm_of_eq_atm_of)+
 
 lemma get_rev_level_in_atms_in_levels_of_marked:
-  "atm_of L \<in> atm_of ` (lits_of M) \<Longrightarrow> get_rev_level M n L \<in> {n} \<union> set (get_all_levels_of_marked M)"
+  "atm_of L \<in> atm_of ` (lits_of_l M) \<Longrightarrow> 
+    get_rev_level M n L \<in> {n} \<union> set (get_all_levels_of_marked M)"
   by (induction M arbitrary: n rule: marked_lit_list_induct) (auto simp add: atm_of_eq_atm_of)
-
 
 lemma get_all_levels_of_marked_no_marked:
   "(\<forall>l\<in>set Ls. \<not> is_marked l) \<longleftrightarrow> get_all_levels_of_marked Ls = []"
@@ -286,9 +292,9 @@ lemma get_level_in_levels_of_marked:
 
 text \<open>The zero is here to avoid empty-list issues with @{term last}:\<close>
 lemma get_level_get_rev_level_get_all_levels_of_marked:
-  assumes "atm_of L \<notin> atm_of ` (lits_of M)"
-  shows "get_level (K @ M) L = get_rev_level (rev K) (last (0 # get_all_levels_of_marked (rev M)))
-     L"
+  assumes "atm_of L \<notin> atm_of ` (lits_of_l M)"
+  shows 
+    "get_level (K @ M) L = get_rev_level (rev K) (last (0 # get_all_levels_of_marked (rev M))) L"
   using assms
 proof (induct M arbitrary: K)
   case Nil
@@ -307,7 +313,7 @@ qed
 lemma get_rev_level_can_skip_correctly_ordered:
   assumes
     "no_dup M" and
-    "atm_of L \<notin> atm_of ` (lits_of M)" and
+    "atm_of L \<notin> atm_of ` (lits_of_l M)" and
     "get_all_levels_of_marked M = rev [Suc 0..<Suc (length (get_all_levels_of_marked M))]"
   shows "get_rev_level (rev M @ K) 0 L = get_rev_level K (length (get_all_levels_of_marked M)) L"
   using assms
@@ -335,8 +341,7 @@ next
 qed
 
 lemma get_level_skip_beginning_hd_get_all_levels_of_marked:
-  assumes "atm_of L \<notin> atm_of ` lits_of S"
-  and "get_all_levels_of_marked S \<noteq> []"
+  assumes "atm_of L \<notin> atm_of ` lits_of_l S" and "get_all_levels_of_marked S \<noteq> []"
   shows "get_level (M@ S) L = get_rev_level (rev M) (hd (get_all_levels_of_marked S)) L"
   using assms
 proof (induction S arbitrary: M rule: marked_lit_list_induct)

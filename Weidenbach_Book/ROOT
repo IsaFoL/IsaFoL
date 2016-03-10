@@ -20,6 +20,8 @@ session "Weidenbach_Book" (main) = "HOL" +
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
     CDCL_W_Implementation
+    CDCL_W_Merge
+    CDCL_W_Restart
     CDCL_NOT
     CDCL_WNOT
     CDCL_W_Incremental
@@ -27,7 +29,7 @@ session "Weidenbach_Book" (main) = "HOL" +
   theories [quick_and_dirty]
     Prop_Superposition
     Weidenbach_Book
-    CDCL_Two_Watched_Literals_Implementation
+    (* CDCL_Two_Watched_Literals_Implementation *)
   document_files
     "root.tex"
     "biblio.bib"
