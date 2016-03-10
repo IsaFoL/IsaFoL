@@ -341,7 +341,7 @@ proof -
     by auto
   then show "backtrack T W"
     using T decomp' lev_l' lev_l_D' i' W LD undef
-    by (auto intro!: backtrack.intros simp del: state_simp simp: state_eq_def)
+    by (force intro!: backtrack.intros simp del: state_simp simp: state_eq_def)
 qed
 
 lemma cdcl\<^sub>W_bj_decomp_resolve_skip_and_bj:
@@ -1664,8 +1664,9 @@ next
       then have "cdcl\<^sub>W_s'\<^sup>*\<^sup>* S T"
         using st(1) by auto
       moreover have "no_step cdcl\<^sub>W_s' T"
-        using inv_T by (metis \<open>full cdcl\<^sub>W_cp T T\<close> \<open>full cdcl\<^sub>W_stgy S T\<close> cdcl\<^sub>W_all_struct_inv_def
-          cdcl\<^sub>W_then_exists_cdcl\<^sub>W_stgy_step full_def n_step_cdcl\<^sub>W_stgy_iff_no_step_cdcl\<^sub>W_cl_cdcl\<^sub>W_o)
+        using inv_T \<open>full cdcl\<^sub>W_cp T T\<close> \<open>full cdcl\<^sub>W_stgy S T\<close> unfolding full_def
+        by (metis cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_then_exists_cdcl\<^sub>W_stgy_step 
+          n_step_cdcl\<^sub>W_stgy_iff_no_step_cdcl\<^sub>W_cl_cdcl\<^sub>W_o)
       ultimately show ?thesis
         unfolding full_def by blast
     qed
@@ -2153,8 +2154,7 @@ proof -
   have "full cdcl\<^sub>W_merge_cp S V = full cdcl\<^sub>W_s'_without_decide S V"
     using confl conflicting_true_full_cdcl\<^sub>W_merge_cp_iff_full_cdcl\<^sub>W_s'_without_decode inv
     by simp
-  then show ?thesis unfolding full_unfold full1_def
-    by (metis (mono_tags) tranclp_unfold_begin)
+  then show ?thesis unfolding full_unfold full1_def tranclp_unfold_begin by blast
 qed
 
 lemma conflicting_true_full1_cdcl\<^sub>W_merge_cp_imp_full1_cdcl\<^sub>W_s'_without_decode:
@@ -2487,8 +2487,8 @@ next
             | (propa) "propagate\<^sup>+\<^sup>+ V' W" and "conflicting W = None"
             | (propa_confl) V'' where "propagate\<^sup>*\<^sup>* V' V''" and "conflict V'' W"
             using tranclp_cdcl\<^sub>W_cp_propagate_with_conflict_or_not[of V W] decide'
-            by (metis \<open>full1 cdcl\<^sub>W_cp V' W \<or> V' = W \<and> no_step cdcl\<^sub>W_cp W\<close> full1_def
-              tranclp_cdcl\<^sub>W_cp_propagate_with_conflict_or_not)
+             \<open>full1 cdcl\<^sub>W_cp V' W \<or> V' = W \<and> no_step cdcl\<^sub>W_cp W\<close> unfolding full1_def
+            by (metis tranclp_cdcl\<^sub>W_cp_propagate_with_conflict_or_not)
           then show ?thesis (* too many levels of case distinction *)
             proof cases
               case V'_W
@@ -2711,11 +2711,19 @@ next
                   moreover have "no_step cdcl\<^sub>W_merge_stgy V'"
                     using confl \<open>no_step cdcl\<^sub>W_merge_cp V'\<close> by (auto simp: cdcl\<^sub>W_merge_stgy.simps
                       full1_def dest!: tranclpD elim: rulesE)
-                  ultimately have "cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R V'" by auto
-                  show ?thesis by (metis V'_W \<open>cdcl\<^sub>W_merge_cp U V'\<close> \<open>cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R V'\<close>
-                    conflicting_not_true_rtranclp_cdcl\<^sub>W_merge_cp_no_step_cdcl\<^sub>W_bj cp_confl(1)
-                    rtranclp.rtrancl_into_rtrancl step.prems)
-                qed
+                  ultimately have "cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R V'" by auto                
+                  { fix ss :: 'st
+                    have "cdcl\<^sub>W_merge_cp U W"
+                      using V'_W \<open>cdcl\<^sub>W_merge_cp U V'\<close> by blast
+                    then have "\<not> cdcl\<^sub>W_bj W ss"
+                      by (meson conflicting_not_true_rtranclp_cdcl\<^sub>W_merge_cp_no_step_cdcl\<^sub>W_bj 
+                        cp_confl(1) rtranclp.rtrancl_into_rtrancl step.prems)
+                    then have "cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R W \<and> conflicting W = None \<or>
+                      cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R W \<and> \<not> cdcl\<^sub>W_bj W ss"
+                      using V'_W \<open>cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R V'\<close> by presburger }
+                  then show ?thesis
+                    by presburger
+               qed
             next
               case propa
               moreover then have "cdcl\<^sub>W_merge_cp V' W"
@@ -2969,9 +2977,15 @@ proof (rule ccontr)
     proof cases
       case conflict'
       then obtain S' where "full1 cdcl\<^sub>W_merge_cp R S'"
-        by (metis (full_types) cdcl\<^sub>W_merge_cp_obtain_normal_form cdcl\<^sub>W_s'_without_decide.simps confl
-          conflicting_true_no_step_cdcl\<^sub>W_merge_cp_no_step_s'_without_decide full_def full_unfold inv
-          cdcl\<^sub>W_all_struct_inv_def)
+        proof -
+          obtain R' :: "'e" where
+            "cdcl\<^sub>W_merge_cp R R'"
+            using inv unfolding cdcl\<^sub>W_all_struct_inv_def by (meson confl
+              cdcl\<^sub>W_s'_without_decide.simps conflict'
+              conflicting_true_no_step_cdcl\<^sub>W_merge_cp_no_step_s'_without_decide)
+          then show ?thesis
+            using that by (metis cdcl\<^sub>W_merge_cp_obtain_normal_form full_unfold inv)
+        qed
       then show False using n_s by blast
     next
       case (decide' R')
