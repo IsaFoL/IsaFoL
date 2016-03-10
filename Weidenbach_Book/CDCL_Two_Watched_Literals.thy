@@ -594,7 +594,8 @@ locale abstract_twl =
       "no_dup (trail S) \<Longrightarrow> undefined_lit (trail S) (lit_of L) \<Longrightarrow> wf_twl_cls (trail S) C' \<Longrightarrow>
         wf_twl_cls (L # raw_trail S) (rewatch (lit_of L) S C')"
       and
-    restart_learned: "set (restart_learned S) \<subseteq> set (raw_learned_clss S)"
+    restart_learned: "mset (restart_learned S) \<subseteq># mset (raw_learned_clss S)" -- \<open>We need 
+      @{term mset} and not @{term set} to take care of duplicates. \<close>
 begin
 
 definition
@@ -623,8 +624,8 @@ definition
 where
   "remove_cls C S =
    TWL_State (raw_trail S) 
-     (remove1_cond (\<lambda>D. mset (raw_clause D) = mset C) (raw_init_clss S))
-     (remove1_cond (\<lambda>D. mset (raw_clause D) = mset C) (raw_learned_clss S)) 
+     (removeAll_cond (\<lambda>D. mset (raw_clause D) = mset C) (raw_init_clss S))
+     (removeAll_cond (\<lambda>D. mset (raw_clause D) = mset C) (raw_learned_clss S)) 
      (backtrack_lvl S)
      (raw_conflicting S)"
 
@@ -1147,20 +1148,62 @@ context abstract_twl
 begin
 
 subsubsection \<open>Direct Interpretation\<close>
+lemma mset_map_removeAll_cond:
+  "mset (map (\<lambda>x. mset (raw_clause x)) 
+    (removeAll_cond (\<lambda>D. mset (raw_clause D) = mset (raw_clause C)) N)) 
+  = mset (removeAll (mset (raw_clause C)) (map (\<lambda>x. mset (raw_clause x)) N))"
+  by (induction N) auto
 
-interpretation rough_cdcl: state\<^sub>W _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-  trail raw_init_clss raw_learned_clss backtrack_lvl conflicting
-  cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
-  update_conflicting init_state restart'
+lemma mset_raw_init_clss_init_state:
+  "mset (map (\<lambda>x. mset (raw_clause x)) (raw_init_clss (init_state (map raw_clause N)))) 
+  = mset (map (\<lambda>x. mset (raw_clause x)) N)"
+  by (metis (no_types, lifting) init_clss_init_state map_eq_conv map_map o_def)
+
+interpretation rough_cdcl: state\<^sub>W 
+  "\<lambda>C. mset (raw_clause C)"
+    (* does not matter if the invariants do not hold *)
+  "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
+  "\<lambda>L C. TWL_Clause [] (remove1 L (watched C @ unwatched C))"
+  "\<lambda>C. clauses_of_l (map raw_clause C)" "op @"
+  "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. mset (raw_clause D) = mset (raw_clause C))"
+
+  mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
+  "op #" remove1
+
+  "\<lambda>C. watched C @ unwatched C" "\<lambda>C. TWL_Clause [] C"
+  trail "\<lambda>S. hd (raw_trail S)"
+  raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
+  cons_trail tl_trail "\<lambda>C. add_init_cls (raw_clause C)" "\<lambda>C. add_learned_cls (raw_clause C)" 
+  "\<lambda>C. remove_cls (raw_clause C)" 
+  update_backtrack_lvl
+  update_conflicting "\<lambda>N. init_state (map raw_clause N)" restart'
   apply unfold_locales
+  apply (case_tac "raw_trail S")
   apply (simp_all add: add_init_cls_def add_learned_cls_def clause_rewatch clause_watch
-    cons_trail_def remove_cls_def restart'_def tl_trail_def)
-  apply (rule image_mset_subseteq_mono[OF restart_learned])
+    cons_trail_def remove_cls_def restart'_def tl_trail_def map_tl comp_def
+    ac_simps mset_map_removeAll_cond mset_raw_init_clss_init_state)
+  
+  apply (auto simp: mset_map image_mset_subseteq_mono[OF restart_learned] )
   done
 
-interpretation rough_cdcl: cdcl\<^sub>W trail raw_init_clss raw_learned_clss backtrack_lvl conflicting
-  cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
-  update_conflicting init_state restart'
+interpretation rough_cdcl: conflict_driven_clause_learning\<^sub>W 
+  "\<lambda>C. mset (raw_clause C)"
+    (* does not matter if the invariants do not hold *)
+  "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
+  "\<lambda>L C. TWL_Clause [] (remove1 L (watched C @ unwatched C))"
+  "\<lambda>C. clauses_of_l (map raw_clause C)" "op @"
+  "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. mset (raw_clause D) = mset (raw_clause C))"
+
+  mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
+  "op #" remove1
+
+  "\<lambda>C. watched C @ unwatched C" "\<lambda>C. TWL_Clause [] C"
+  trail "\<lambda>S. hd (raw_trail S)"
+  raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
+  cons_trail tl_trail "\<lambda>C. add_init_cls (raw_clause C)" "\<lambda>C. add_learned_cls (raw_clause C)" 
+  "\<lambda>C. remove_cls (raw_clause C)" 
+  update_backtrack_lvl
+  update_conflicting "\<lambda>N. init_state (map raw_clause N)" restart'
   by unfold_locales
 
 (* interpretation cdcl\<^sub>N\<^sub>O\<^sub>T: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops
