@@ -591,7 +591,7 @@ proof (induction rule: cdcl\<^sub>W_o_induct_lev2)
           then have "atm_of L'' \<in> atm_of ` lits_of_l H"
             using DH unfolding DD' unfolding LL' by blast
         ultimately have False
-          using nd unfolding M3 d LL' by auto
+          using nd unfolding M3 d LL' by (auto simp: lits_of_def)
       }
       ultimately show False by blast
     qed

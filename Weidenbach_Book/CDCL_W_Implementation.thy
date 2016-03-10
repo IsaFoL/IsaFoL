@@ -276,7 +276,7 @@ lemma undefined_lit_map_convert[iff]:
 
 lemma true_annot_map_convert[simp]: "map mmset_of_mlit' M \<Turnstile>a N \<longleftrightarrow> M \<Turnstile>a N"
   by (induction M rule: marked_lit_list_induct) (simp_all add: true_annot_def
-    mmset_of_mlit'_mmset_of_mlit)
+    mmset_of_mlit'_mmset_of_mlit lits_of_def)
 
 lemma true_annots_map_convert[simp]: "map mmset_of_mlit' M \<Turnstile>as N \<longleftrightarrow> M \<Turnstile>as N"
   unfolding true_annots_def by auto
@@ -890,7 +890,8 @@ proof -
      "S = (a, b, c, d, e)" and
      "conflicting S = None"
   then show "decide S (do_decide_step S)"
-    using H H' by (auto split: option.splits simp: decide.simps Marked_Propagated_in_iff_in_lits_of_l
+    using H H' by (auto split: option.splits simp: lits_of_def decide.simps 
+      Marked_Propagated_in_iff_in_lits_of_l
       dest!: find_first_unused_var_Some)
 qed
 
@@ -900,7 +901,8 @@ lemma mmset_of_mlit'_eq_Marked[iff]: "mmset_of_mlit' z = Marked x k \<longleftri
 lemma do_decide_step_no:
   "do_decide_step S = S \<Longrightarrow> no_step decide S"
   apply (cases S, cases "conflicting S")
-  apply (auto simp: atms_of_ms_mset_unfold  Marked_Propagated_in_iff_in_lits_of_l
+  (* TODO Tune proof *)
+  apply (auto simp: atms_of_ms_mset_unfold  Marked_Propagated_in_iff_in_lits_of_l lits_of_def
       dest!: atm_of_in_atm_of_set_in_uminus
       elim!: decideE
       split: option.splits)+
@@ -1718,7 +1720,7 @@ proof -
         toS_rough_state_of_state_of_rough_state_from_init_state_of)
     then have cons: "consistent_interp (lits_of_l M')"
       unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def S[symmetric]
-      by (auto simp: )
+      by (auto simp: lits_of_def)
   moreover
     have [simp]:
       "rough_state_from_init_state_of (state_from_init_state_of (raw_S0_cdcl\<^sub>W (map remdups N)))

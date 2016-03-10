@@ -77,7 +77,7 @@ lemma lit_of_mmset_of_mlit_set_lit_of_l[simp]:
 
 lemma map_mmset_of_mlit_true_annots_true_cls[simp]:
   "map mmset_of_mlit M' \<Turnstile>as C \<longleftrightarrow> M' \<Turnstile>as C"
-  by (simp add: true_annots_true_cls)
+  by (simp add: true_annots_true_cls lits_of_def)
 
 abbreviation "init_clss \<equiv> \<lambda>S. mset_clss (raw_init_clss S)"
 abbreviation "learned_clss \<equiv> \<lambda>S. mset_clss (raw_learned_clss S)"
@@ -2382,8 +2382,8 @@ proof (induct rule: cdcl\<^sub>W_all_induct_lev2)
           using in_CNot_implies_uminus(2)[of L ?D "Propagated L C' # M"]
           \<open>Propagated L C' # M \<Turnstile>as CNot ?D\<close> by simp
         then show False
-          by (metis M_lev cdcl\<^sub>W_M_level_inv_decomp(1) consistent_interp_def insert_iff
-            lits_of_l_cons marked_lit.sel(2) skip.hyps(1))
+          by (metis (no_types, hide_lams) M_lev cdcl\<^sub>W_M_level_inv_decomp(1) consistent_interp_def
+            image_insert insert_iff list.set(2) lits_of_def marked_lit.sel(2) tr_S)
       qed
   ultimately show ?case
     using tr_S confl L_D T unfolding cdcl\<^sub>W_M_level_inv_def
@@ -3648,9 +3648,10 @@ proof -
             assume "\<not> ?thesis"
             moreover have "-L \<in> lits_of_l ?M" using confl LD unfolding cdcl\<^sub>W_conflicting_def by auto
             ultimately have "get_level (hd (trail S) # tl (trail S)) L = get_level (tl ?M) L"
-              using cdcl\<^sub>W_M_level_inv_decomp(1)[OF level_inv] unfolding L' consistent_interp_def
-              by (metis (no_types, lifting) L' M atm_of_eq_atm_of get_level_skip_beginning
-                insert_iff lits_of_l_cons marked_lit.sel(1))
+              using cdcl\<^sub>W_M_level_inv_decomp(1)[OF level_inv] L' M atm_of_eq_atm_of
+              unfolding lits_of_def consistent_interp_def
+              by (metis (mono_tags, hide_lams) marked_lit.sel(1) get_level_skip_beginning image_eqI
+                list.set_intros(1))
             moreover
               have "length (get_all_levels_of_marked (trail S)) = ?k"
                 using level_inv unfolding cdcl\<^sub>W_M_level_inv_def by auto
@@ -3771,7 +3772,7 @@ proof -
               using level_inv unfolding cdcl\<^sub>W_M_level_inv_def
               apply (subst (asm) (2) M) apply (simp add: cdcl\<^sub>W_M_level_inv_decomp)
               using level_inv unfolding cdcl\<^sub>W_M_level_inv_def
-              apply (subst (asm) (2) M) apply (auto simp add: cdcl\<^sub>W_M_level_inv_decomp)[]
+              apply (subst (asm) (2) M) apply (auto simp: cdcl\<^sub>W_M_level_inv_decomp lits_of_def)[]
               using level_inv unfolding cdcl\<^sub>W_M_level_inv_def
               apply (subst (asm) (4) M) apply (auto simp add: cdcl\<^sub>W_M_level_inv_decomp)[]
               using level_inv unfolding cdcl\<^sub>W_M_level_inv_def
@@ -3882,7 +3883,7 @@ proof (induct rule: cdcl\<^sub>W_o_induct_lev2)
     qed
   have lev_L[simp]: "get_level M L = 0"
     apply (rule atm_of_notin_get_rev_level_eq_0)
-    using lev unfolding cdcl\<^sub>W_M_level_inv_def tr_S by auto
+    using lev unfolding cdcl\<^sub>W_M_level_inv_def tr_S by (auto simp: lits_of_def)
 
   have D: "get_maximum_level M (remove1_mset (-L) (mset_ccls D)) = backtrack_lvl S"
     using resolve.hyps(6) LD unfolding tr_S by (auto simp: get_maximum_level_plus max_def g_D)
@@ -4375,8 +4376,8 @@ next
                 using cdcl\<^sub>W_consistent_inv[OF _ lev] other[OF bj] by (auto intro: cdcl\<^sub>W_bj.intros)
               then have "no_dup (Propagated L (mset_ccls D) # M1)"
                 using decomp undef lev unfolding cdcl\<^sub>W_M_level_inv_def by auto
-            ultimately show False by (metis consistent_interp_def distinct_consistent_interp
-              insertCI lits_of_l_cons marked_lit.sel(2))
+            ultimately show False
+               using undef by (auto simp: Marked_Propagated_in_iff_in_lits_of_l)
           qed
       }
       ultimately show "\<not>M \<Turnstile>as CNot Da"
@@ -4401,7 +4402,7 @@ proof (intro allI impI)
   and "D \<in># clauses S'"
   obtain M N U k C L where
     S: "state S = (M, N, U, k, None)" and
-    S': "state S' = (Propagated L ( (C + {#L#})) # M, N, U, k, None)" and
+    S': "state S' = (Propagated L (C + {#L#}) # M, N, U, k, None)" and
     "C + {#L#} \<in># clauses S" and
     "M \<Turnstile>as CNot C" and
     "undefined_lit M L"
@@ -4575,9 +4576,8 @@ next
       ultimately have "\<not>M1 \<Turnstile>as CNot Da"
         using Da T undef decomp lev by (fastforce simp: cdcl\<^sub>W_M_level_inv_decomp)
       then have "-L \<in># Da"
-        using M_D \<open>- L \<notin> lits_of_l M1\<close> in_CNot_implies_uminus(2)
-           true_annots_CNot_lit_of_notin_skip T unfolding tr_T
-        by (smt insert_iff lits_of_l_cons marked_lit.sel(2))
+        using M_D \<open>- L \<notin> lits_of_l M1\<close>  T unfolding tr_T true_annots_true_cls true_clss_def
+        by (auto simp: uminus_lit_swap)
       have g_M1: "get_all_levels_of_marked M1 = rev [1..<i+1]"
         using lev lev' T decomp undef unfolding cdcl\<^sub>W_M_level_inv_def by auto
       have "no_dup (Propagated L (mset_ccls D) # M1)"

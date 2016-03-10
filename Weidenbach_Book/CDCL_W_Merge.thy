@@ -198,10 +198,8 @@ next
     using inv' raw unfolding cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_all_struct_inv_def tr_M by auto
   then have "L' \<notin># mset_ccls (remove_clit L D)"
     using L_L' L'_M \<open>Propagated L' C' # trail V \<Turnstile>as CNot (mset_ccls D)\<close>
-     atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set unfolding true_annots_def
-    by (metis \<open>Propagated L' C' # trail V \<Turnstile>as CNot (mset_ccls D)\<close> in_remove1_mset_neq insert_iff
-      lits_of_l_cons marked_lit.sel(2) remove_clit true_annots_true_cls_def_iff_negation_in_model
-      uminus_not_id')
+    unfolding true_annots_true_cls true_clss_def
+    by (auto simp: uminus_lit_swap atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set dest!: in_diffD)
   have [simp]: "trail (reduce_trail_to M1 T) = M1"
     using decomp undef tr W V by auto
   have "skip\<^sup>*\<^sup>* S V"
@@ -3026,6 +3024,5 @@ next
 qed
 
 end
-
 
 end

@@ -29,7 +29,7 @@ lemma no_dup_convert_from_W[simp]:
 
 lemma convert_trail_from_W_true_annots[simp]:
   "convert_trail_from_W M \<Turnstile>as C \<longleftrightarrow> M \<Turnstile>as C"
-  by (auto simp: true_annots_true_cls image_image)
+  by (auto simp: true_annots_true_cls image_image lits_of_def)
 
 lemma defined_lit_convert_trail_from_W[simp]:
   "defined_lit (convert_trail_from_W S) L \<longleftrightarrow> defined_lit S L"
@@ -543,7 +543,7 @@ proof -
       case merged
       then show ?thesis
         using cdcl\<^sub>N\<^sub>O\<^sub>T_decreasing_measure'[OF _ _ atm_clauses, of T] atm_trail n_d
-        by (auto split: if_split simp: comp_def image_image)
+        by (auto split: if_split simp: comp_def image_image lits_of_def)
     next
       case n_s
       then show ?thesis by simp

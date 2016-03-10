@@ -872,7 +872,7 @@ proof -
           dest!: no_dup_cannot_not_lit_and_uminus)
       have tot_I': "total_over_m ?I (?N \<union> unmark_l ?M)"
         using tot atm_I_N unfolding total_over_m_def total_over_set_def
-        by (fastforce simp: image_iff)
+        by (fastforce simp: image_iff lits_of_def)
       have "{P |P. P \<in> lits_of_l ?M \<and> atm_of P \<notin> atm_of ` I} \<Turnstile>s ?O"
         using \<open>I\<Turnstile>s ?N\<close> atm_I_N by (auto simp add: atm_of_eq_atm_of true_clss_def lits_of_def)
       then have I'_N: "?I \<Turnstile>s ?N \<union> ?O"
@@ -3053,7 +3053,7 @@ proof (unfold_locales, goal_cases)
       tr_S_C: "trail S \<Turnstile>as CNot C"  and
       undef_L: "undefined_lit F L" and
       atm_L:
-       "atm_of L \<in> insert (atm_of K) (atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<union> atm_of ` lit_of ` (set F' \<union> set F))"
+       "atm_of L \<in> insert (atm_of K) (atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<union> atm_of ` (lits_of_l F' \<union> lits_of_l F))"
        and
       cls_S_C': "clauses\<^sub>N\<^sub>O\<^sub>T S \<Turnstile>pm C' + {#L#}" and
       F_C': "F \<Turnstile>as CNot C'" and

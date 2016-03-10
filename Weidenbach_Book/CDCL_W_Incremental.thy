@@ -367,7 +367,8 @@ proof -
           by (auto simp:add_new_clause_and_update_def)
         then have "atm_of ?L \<notin> atm_of ` lits_of_l
           (tl (trail (cut_trail_wrt_clause (mset_ccls C) (trail T) T)))"
-          by (cases "trail (cut_trail_wrt_clause (mset_ccls C) (trail T) T)") auto
+          by (cases "trail (cut_trail_wrt_clause (mset_ccls C) (trail T) T)") 
+          (auto simp: lits_of_def)
 
       ultimately have L: "get_level (trail (cut_trail_wrt_clause (mset_ccls C) (trail T) T)) (-?L)
         = length (get_all_levels_of_marked (trail (cut_trail_wrt_clause (mset_ccls C) (trail T) T)))"
@@ -424,7 +425,7 @@ proof -
               using \<open>cdcl\<^sub>W_all_struct_inv ?T'\<close> unfolding cdcl\<^sub>W_all_struct_inv_def
               cdcl\<^sub>W_M_level_inv_def by (auto simp: add_new_clause_and_update_def)
             ultimately show False
-              unfolding 1(1)[symmetric, simplified] by auto
+              unfolding 1(1)[symmetric, simplified] by (auto simp: lits_of_def)
         qed
       qed
       show ?thesis using L L' C

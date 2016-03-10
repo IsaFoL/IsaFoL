@@ -33,14 +33,14 @@ definition lits_of :: "('a, 'b, 'c) marked_lit set \<Rightarrow> 'a literal set"
 "lits_of Ls = lit_of ` Ls"
 
 abbreviation lits_of_l :: "('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal set" where
-"lits_of_l Ls \<equiv> lit_of ` (set Ls)"
+"lits_of_l Ls \<equiv> lits_of (set Ls)"
 
 lemma lits_of_l_empty[simp]:
   "lits_of {} = {}"
   unfolding lits_of_def by auto
 
-lemma lits_of_l_cons[simp]:
-  "lits_of_l (L # Ls) = insert (lit_of L) (lits_of_l Ls)"
+lemma lits_of_insert[simp]:
+  "lits_of (insert L Ls) = insert (lit_of L) (lits_of Ls)"
   unfolding lits_of_def by auto
 
 lemma lits_of_l_append[simp]:
@@ -66,7 +66,7 @@ lemma atms_of_ms_lambda_lit_of_is_atm_of_lit_of[simp]:
 
 lemma lits_of_l_empty_is_empty[iff]:
   "lits_of_l M = {} \<longleftrightarrow> M = []"
-  by (induct M) auto
+  by (induct M) (auto simp: lits_of_def)
 
 subsubsection \<open>Entailment\<close>
 definition true_annot :: "('a, 'l, 'm) marked_lits \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>a" 49) where
@@ -145,7 +145,7 @@ lemma true_annots_marked_true_cls[iff]:
   "map (\<lambda>M. Marked M a) M \<Turnstile>as N \<longleftrightarrow> set M \<Turnstile>s N"
 proof -
   have *: "lit_of ` (\<lambda>M. Marked M a) ` set M = set M" unfolding lits_of_def by force
-  show ?thesis by (simp add: true_annots_true_cls *)
+  show ?thesis by (simp add: true_annots_true_cls * lits_of_def)
 qed
 
 lemma true_annot_singleton[iff]: "M \<Turnstile>a {#L#} \<longleftrightarrow> L \<in> lits_of_l M"
@@ -915,7 +915,7 @@ proof -
     then have "- lit_of L \<notin> lits_of_l M" unfolding lits_of_def
       by (metis (no_types) atm_of_uminus imageI)
   ultimately have "\<forall> l \<in># A. -l \<in> lits_of_l M"
-    using assms(2) by (metis insertE lits_of_l_cons uminus_of_uminus_id)
+    using assms(2) by (metis insert_iff list.simps(15) lits_of_insert uminus_of_uminus_id)
   then show ?thesis by (auto simp add: true_annots_def)
 qed
 
