@@ -50,7 +50,7 @@ abbreviation raw_clss :: "'v twl_state \<Rightarrow> 'v clauses" where
 interpretation raw_cls
   "\<lambda>C. mset (raw_clause C)"
   "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
-  "\<lambda>L C. TWL_Clause [] (remove1 L (watched C @ unwatched C))"
+  "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
   apply (unfold_locales)
   by (auto simp:hd_map comp_def map_tl ac_simps
     mset_map_mset_remove1_cond ex_mset raw_clause_def
@@ -68,7 +68,7 @@ interpretation raw_clss
   "\<lambda>C. mset (raw_clause C)"
     (* does not matter if the invariants do not hold *)
   "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
-  "\<lambda>L C. TWL_Clause [] (remove1 L (watched C @ unwatched C))"
+  "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
   "\<lambda>C. clauses_of_l (map raw_clause C)" "op @"
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. mset (raw_clause D) = mset (raw_clause C))"
   apply (unfold_locales)
@@ -91,37 +91,38 @@ interpretation twl: state\<^sub>W_ops
   "\<lambda>C. mset (raw_clause C)"
     (* does not matter if the invariants do not hold *)
   "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
-  "\<lambda>L C. TWL_Clause [] (remove1 L (watched C @ unwatched C))"
+  "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
   "\<lambda>C. clauses_of_l (map raw_clause C)" "op @"
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. mset (raw_clause D) = mset (raw_clause C))"
 
   mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
   "op #" remove1
 
-  "\<lambda>C. watched C @ unwatched C" "\<lambda>C. TWL_Clause [] C"
+  raw_clause "\<lambda>C. TWL_Clause [] C"
   trail "\<lambda>S. hd (raw_trail S)"
   raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
 
   apply unfold_locales apply (auto simp: hd_map comp_def map_tl ac_simps raw_clause_def
     union_mset_list mset_map_mset_remove1_cond ex_mset_unwatched_watched)
   done
+declare CDCL_Two_Watched_Literals.twl.mset_ccls_ccls_of_cls[simp del]
 
 lemma mmset_of_mlit'_mmset_of_mlit[simp]:
   "twl.mmset_of_mlit L = mmset_of_mlit' L"
   by (metis mmset_of_mlit'.simps(1) mmset_of_mlit'.simps(2)  twl.mmset_of_mlit.elims raw_clause_def)
 
 definition
-  candidates_propagate :: "'v twl_state \<Rightarrow> ('v literal \<times> 'v literal list) set"
+  candidates_propagate :: "'v twl_state \<Rightarrow> ('v literal \<times> 'v twl_clause) set"
 where
   "candidates_propagate S =
-   {(L, raw_clause C) | L C.
+   {(L, C) | L C.
      C \<in> set (twl.raw_clauses S)  \<and>
      set (watched C) - (uminus ` lits_of_l (trail S)) = {L} \<and>
      undefined_lit (trail S) L}"
 
-definition candidates_conflict :: "'v twl_state \<Rightarrow> 'v literal list set" where
+definition candidates_conflict :: "'v twl_state \<Rightarrow> 'v twl_clause set" where
   "candidates_conflict S =
-   {raw_clause C | C. C \<in> set (twl.raw_clauses S) \<and>
+   {C. C \<in> set (twl.raw_clauses S) \<and>
      set (watched C) \<subseteq> uminus ` lits_of_l (trail S)}"
 
 primrec (nonexhaustive) index :: "'a list \<Rightarrow>'a \<Rightarrow> nat" where
@@ -238,7 +239,8 @@ lemma length_list_Suc_0:
 lemma wf_candidates_propagate_sound:
   assumes wf: "wf_twl_state S" and
     cand: "(L, C) \<in> candidates_propagate S"
-  shows "trail S \<Turnstile>as CNot (mset_set (set C - {L})) \<and> undefined_lit (trail S) L"
+  shows "trail S \<Turnstile>as CNot (mset (removeAll L (raw_clause C))) \<and> undefined_lit (trail S) L"
+    (is "?Not \<and> ?undef")
 proof
   def M \<equiv> "trail S"
   def N \<equiv> "raw_init_clss S"
@@ -246,21 +248,20 @@ proof
 
   note MNU_defs [simp] = M_def N_def U_def
 
-  obtain Cw where cw:
-    "C = raw_clause Cw"
-    "Cw \<in> set (N @ U)"
-    "set (watched Cw) - uminus ` lits_of_l M = {L}"
+  have cw:
+    "C \<in> set (N @ U)"
+    "set (watched C) - uminus ` lits_of_l M = {L}"
     "undefined_lit M L"
     using cand unfolding candidates_propagate_def MNU_defs twl.raw_clauses_def by auto
 
-  obtain W UW where cw_eq: "Cw = TWL_Clause W UW"
-    by (cases Cw, blast)
+  obtain W UW where cw_eq: "C = TWL_Clause W UW"
+    by (cases C)
 
   have l_w: "L \<in> set W"
-    using cw(3) cw_eq by auto
+    using cw(2) cw_eq by auto
 
-  have wf_c: "wf_twl_cls M Cw"
-    using wf cw(2) unfolding wf_twl_state_def by (simp add: twl.raw_clauses_def)
+  have wf_c: "wf_twl_cls M C"
+    using wf cw(1) unfolding wf_twl_state_def by (simp add: twl.raw_clauses_def)
 
   have w_nw:
     "distinct W"
@@ -268,11 +269,11 @@ proof
     "\<And>L L'. L \<in> set W \<Longrightarrow> -L \<in> lits_of_l M \<Longrightarrow> L' \<in> set UW \<Longrightarrow> L' \<notin> set W \<Longrightarrow> -L' \<in> lits_of_l M"
    using wf_c unfolding cw_eq by (auto simp: image_image)
 
-  have "\<forall>L' \<in> set C - {L}. -L' \<in> lits_of_l M"
+  have "\<forall>L' \<in> set (raw_clause C) - {L}. -L' \<in> lits_of_l M"
   proof (cases "length W < 2")
     case True
     moreover have "size W \<noteq> 0"
-      using cw(3) cw_eq by auto
+      using cw(2) cw_eq by auto
     ultimately have "size W = 1"
       by linarith
     then have w: "W = [L]"
@@ -286,7 +287,7 @@ proof
     show ?thesis
     proof
       fix L'
-      assume l': "L' \<in> set C - {L}"
+      assume l': "L' \<in> set (raw_clause C) - {L}"
       have ex_la: "\<exists>La. La \<noteq> L \<and> La \<in> set W"
       proof (cases W)
         case w: Nil
@@ -308,29 +309,29 @@ proof
       then obtain La where la: "La \<noteq> L" "La \<in> set W"
         by blast
       then have "La \<in> uminus ` lits_of_l M"
-        using cw(3)[unfolded cw_eq, simplified, folded M_def] \<open>La \<in> set W\<close> \<open>La \<noteq> L\<close> by auto
+        using cw(2)[unfolded cw_eq, simplified, folded M_def] \<open>La \<in> set W\<close> \<open>La \<noteq> L\<close> by auto
       then have nla: "-La \<in> lits_of_l M"
         by (auto simp: image_image)
       then show "-L' \<in> lits_of_l M"
       (*based on a proof generated by Sledgehammer in two iterations *)
       proof -
-        have f1: "L' \<in> set C"
+        have f1: "L' \<in> set (raw_clause C)"
           using l' by blast
         have f2: "L' \<notin> {L}"
           using l' by fastforce
         have "\<And>l L. - (l::'a literal) \<in> L \<or> l \<notin> uminus ` L"
           by force
         then show ?thesis
-          using cw(1) cw_eq w_nw(3) raw_clause_def by (metis DiffI Un_iff cw(3) f1 f2 la(2) nla
+          using cw(1) cw_eq w_nw(3) raw_clause_def by (metis DiffI Un_iff cw(2) f1 f2 la(2) nla
             set_append twl_clause.sel(1) twl_clause.sel(2))
       qed
     qed
   qed
-  then show "trail S \<Turnstile>as CNot (mset_set (set C - {L}))"
+  then show "?Not"
     unfolding true_annots_def by (auto simp: image_image Ball_def CNot_def)
 
-  show "undefined_lit (trail S) L"
-    using cw(4) M_def by blast
+  show ?undef
+    using cw(3) M_def by blast
 qed
 
 lemma wf_candidates_propagate_complete:
@@ -339,7 +340,7 @@ lemma wf_candidates_propagate_complete:
     l_mem: "L \<in> set (raw_clause C)" and
     unsat: "trail S \<Turnstile>as CNot (mset_set (set (raw_clause C) - {L}))" and
     undef: "undefined_lit (trail S) L"
-  shows "(L, raw_clause C) \<in> candidates_propagate S"
+  shows "(L, C) \<in> candidates_propagate S"
 proof -
   def M \<equiv> "trail S"
   def N \<equiv> "raw_init_clss S"
@@ -419,7 +420,7 @@ qed
 lemma wf_candidates_conflict_sound:
   assumes wf: "wf_twl_state S" and
     cand: "C \<in> candidates_conflict S"
-  shows "trail S \<Turnstile>as CNot (mset C) \<and> mset C \<in># twl.clauses S"
+  shows "trail S \<Turnstile>as CNot (mset (raw_clause C)) \<and> C \<in> set (twl.raw_clauses S)"
 proof
   def M \<equiv> "trail S"
   def N \<equiv> "raw_init_clss S"
@@ -427,17 +428,16 @@ proof
 
   note MNU_defs [simp] = M_def N_def U_def
 
-  obtain Cw where cw:
-    "C = raw_clause Cw"
-    "Cw \<in> set (N @ U)"
-    "set (watched Cw) \<subseteq> uminus ` lits_of_l (trail S)"
+  have cw:
+    "C \<in> set (N @ U)"
+    "set (watched C) \<subseteq> uminus ` lits_of_l (trail S)"
     using cand[unfolded candidates_conflict_def, simplified] unfolding twl.raw_clauses_def by auto
 
-  obtain W UW where cw_eq: "Cw = TWL_Clause W UW"
-    by (cases Cw, blast)
+  obtain W UW where cw_eq: "C = TWL_Clause W UW"
+    by (cases C, blast)
 
-  have wf_c: "wf_twl_cls M Cw"
-    using wf cw(2) unfolding wf_twl_state_def by (simp add: comp_def twl.raw_clauses_def)
+  have wf_c: "wf_twl_cls M C"
+    using wf cw(1) unfolding wf_twl_state_def by (simp add: comp_def twl.raw_clauses_def)
 
   have w_nw:
     "distinct W"
@@ -445,10 +445,10 @@ proof
     "\<And>L L'. L \<in> set W \<Longrightarrow> -L \<in> lits_of_l M \<Longrightarrow> L' \<in> set UW \<Longrightarrow> L' \<notin> set W \<Longrightarrow> -L' \<in> lits_of_l M"
    using wf_c unfolding cw_eq by (auto simp: image_image)
 
-  have "\<forall>L \<in> set C. -L \<in> lits_of_l M"
+  have "\<forall>L \<in> set (raw_clause C). -L \<in> lits_of_l M"
   proof (cases W)
     case Nil
-    then have "C = []"
+    then have "raw_clause C = []"
       using cw(1) cw_eq w_nw(2) by (auto simp: raw_clause_def)
     then show ?thesis
       by simp
@@ -457,25 +457,25 @@ proof
     show ?thesis
     proof
       fix L
-      assume l: "L \<in> set C"
+      assume l: "L \<in> set (raw_clause C)"
       show "-L \<in> lits_of_l M"
       proof (cases "L \<in> set W")
         case True
         thus ?thesis
-          using cw(3) cw_eq by fastforce
+          using cw(2) cw_eq by fastforce
       next
         case False
         thus ?thesis
-          by (metis (no_types, hide_lams) M_def UnE W' contra_subsetD cw(1) cw(3) cw_eq imageE
+          by (metis (no_types, hide_lams) M_def UnE W' contra_subsetD cw(2) cw_eq imageE
             insertI1 l list.set(2) set_append twl_clause.sel(1) twl_clause.sel(2)
             uminus_of_uminus_id w_nw(3) raw_clause_def)
       qed
     qed
   qed
-  then show "trail S \<Turnstile>as CNot (mset C)"
+  then show "trail S \<Turnstile>as CNot (mset (raw_clause C))"
     unfolding CNot_def true_annots_def by auto
 
-  show "mset C \<in># twl.clauses S"
+  show "C \<in> set (twl.raw_clauses S)"
     using cw unfolding twl.raw_clauses_def by auto
 qed
 
@@ -483,7 +483,7 @@ lemma wf_candidates_conflict_complete:
   assumes wf: "wf_twl_state S" and
     c_mem: "C \<in> set (twl.raw_clauses S)" and
     unsat: "trail S \<Turnstile>as CNot (mset (raw_clause C))"
-  shows "raw_clause C \<in> candidates_conflict S"
+  shows "C \<in> candidates_conflict S"
 proof -
   def M \<equiv> "trail S"
   def N \<equiv> "twl.init_clss S"
@@ -534,10 +534,10 @@ lemma [code abstype]:
 lemma wf_twl_state_rough_state_of_twl[simp]: "wf_twl_state (rough_state_of_twl S)"
   using rough_state_of_twl by auto
 
-abbreviation candidates_conflict_twl :: "'v wf_twl \<Rightarrow> 'v literal list set" where
+abbreviation candidates_conflict_twl :: "'v wf_twl \<Rightarrow> 'v twl_clause set" where
 "candidates_conflict_twl S \<equiv> candidates_conflict (rough_state_of_twl S)"
 
-abbreviation candidates_propagate_twl :: "'v wf_twl \<Rightarrow> ('v literal \<times> 'v literal list) set" where
+abbreviation candidates_propagate_twl :: "'v wf_twl \<Rightarrow> ('v literal \<times> 'v twl_clause) set" where
 "candidates_propagate_twl S \<equiv> candidates_propagate (rough_state_of_twl S)"
 
 abbreviation raw_trail_twl :: "'a wf_twl \<Rightarrow> ('a, nat, 'a twl_clause) marked_lit list" where
@@ -565,7 +565,7 @@ lemma wf_candidates_twl_conflict_complete:
   assumes
     c_mem: "C \<in> set (raw_clauses_twl S)" and
     unsat: "trail_twl S \<Turnstile>as CNot (mset (raw_clause C))"
-  shows "raw_clause C \<in> candidates_conflict_twl S"
+  shows "C \<in> candidates_conflict_twl S"
   using c_mem unsat wf_candidates_conflict_complete wf_twl_state_rough_state_of_twl by blast
 
 abbreviation update_backtrack_lvl where
