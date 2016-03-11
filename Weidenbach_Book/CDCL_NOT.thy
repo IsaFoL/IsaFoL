@@ -3146,7 +3146,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn =
     forget_cond :: "'cls \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" +
   assumes
-     dpll_bj_inv: "\<And>S T.  dpll_bj S T \<Longrightarrow> inv S \<Longrightarrow> inv T" and
+     dpll_merge_bj_inv: "\<And>S T.  dpll_bj S T \<Longrightarrow> inv S \<Longrightarrow> inv T" and
      learn_inv: "\<And>S T. learn S T \<Longrightarrow> inv S \<Longrightarrow> inv T"
 begin
 
@@ -3159,7 +3159,7 @@ sublocale
      forget_cond
   apply unfold_locales
   using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_forget\<^sub>N\<^sub>O\<^sub>T cdcl_merged_inv learn_inv
-  by (auto simp add: cdcl\<^sub>N\<^sub>O\<^sub>T.simps dpll_bj_inv)
+  by (auto simp add: cdcl\<^sub>N\<^sub>O\<^sub>T.simps dpll_merge_bj_inv)
 
 lemma backjump_l_learn_backjump:
   assumes bt: "backjump_l S T" and inv: "inv S" and n_d: "no_dup (trail S)"
