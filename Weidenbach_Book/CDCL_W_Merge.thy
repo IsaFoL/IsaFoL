@@ -1665,7 +1665,7 @@ next
         using st(1) by auto
       moreover have "no_step cdcl\<^sub>W_s' T"
         using inv_T \<open>full cdcl\<^sub>W_cp T T\<close> \<open>full cdcl\<^sub>W_stgy S T\<close> unfolding full_def
-        by (metis cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_then_exists_cdcl\<^sub>W_stgy_step 
+        by (metis cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_then_exists_cdcl\<^sub>W_stgy_step
           n_step_cdcl\<^sub>W_stgy_iff_no_step_cdcl\<^sub>W_cl_cdcl\<^sub>W_o)
       ultimately show ?thesis
         unfolding full_def by blast
@@ -1952,8 +1952,8 @@ proof (rule ccontr)
         using n_s by blast
       then have "conflict S T"
         using local.conflict' tranclp_cdcl\<^sub>W_cp_propagate_with_conflict_or_not[of S T]
-        unfolding full1_def by (metis full1_def local.conflict'_without_decide rtranclp_unfold
-          tranclp_unfold_begin)
+        local.conflict'_without_decide unfolding full1_def  rtranclp_unfold
+        by (metis tranclp_unfold_begin)
       moreover
         then obtain T' where "full cdcl\<^sub>W_bj T T'"
           using cdcl\<^sub>W_bj_exists_normal_form inv_T by blast
@@ -2494,7 +2494,8 @@ next
               case V'_W
               then show ?thesis
                 using confl_V' local.decide'(1,2) s' conf_V
-                no_step_cdcl\<^sub>W_cp_no_step_cdcl\<^sub>W_merge_restart[of V] by (auto elim: rulesE)
+                no_step_cdcl\<^sub>W_cp_no_step_cdcl\<^sub>W_merge_restart[of V] 
+                by auto
             next
               case propa
               then show ?thesis using local.decide'(1,2) s' by (metis cdcl\<^sub>W_merge_cp.simps conf_V
@@ -2711,12 +2712,12 @@ next
                   moreover have "no_step cdcl\<^sub>W_merge_stgy V'"
                     using confl \<open>no_step cdcl\<^sub>W_merge_cp V'\<close> by (auto simp: cdcl\<^sub>W_merge_stgy.simps
                       full1_def dest!: tranclpD elim: rulesE)
-                  ultimately have "cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R V'" by auto                
+                  ultimately have "cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R V'" by auto
                   { fix ss :: 'st
                     have "cdcl\<^sub>W_merge_cp U W"
                       using V'_W \<open>cdcl\<^sub>W_merge_cp U V'\<close> by blast
                     then have "\<not> cdcl\<^sub>W_bj W ss"
-                      by (meson conflicting_not_true_rtranclp_cdcl\<^sub>W_merge_cp_no_step_cdcl\<^sub>W_bj 
+                      by (meson conflicting_not_true_rtranclp_cdcl\<^sub>W_merge_cp_no_step_cdcl\<^sub>W_bj
                         cp_confl(1) rtranclp.rtrancl_into_rtrancl step.prems)
                     then have "cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R W \<and> conflicting W = None \<or>
                       cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R W \<and> \<not> cdcl\<^sub>W_bj W ss"
