@@ -2918,14 +2918,14 @@ proof -
 qed
 end
 
-text \<open>We will discharge the assumption later\<close>
+text \<open>We will discharge the assumption later.\<close>
 locale conflict_driven_clause_learning\<^sub>W_termination =
   conflict_driven_clause_learning\<^sub>W +
-  assumes wf_cdcl\<^sub>W_merge: "wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge S T}"
+  assumes wf_cdcl\<^sub>W_merge_inv: "wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge S T}"
 begin
 
 lemma wf_tranclp_cdcl\<^sub>W_merge: "wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge\<^sup>+\<^sup>+ S T}"
-  using wf_trancl[OF wf_cdcl\<^sub>W_merge]
+  using wf_trancl[OF wf_cdcl\<^sub>W_merge_inv]
   apply (rule wf_subset)
   by (auto simp: trancl_set_tranclp
     cdcl\<^sub>W_all_struct_inv_tranclp_cdcl\<^sub>W_merge_tranclp_cdcl\<^sub>W_merge_cdcl\<^sub>W_all_struct_inv)
