@@ -592,7 +592,7 @@ locale abstract_twl =
     clause_rewatch: "mset (raw_clause (rewatch L' S C')) = mset (raw_clause C')" and
     wf_rewatch:
       "no_dup (trail S) \<Longrightarrow> undefined_lit (trail S) (lit_of L) \<Longrightarrow> wf_twl_cls (trail S) C' \<Longrightarrow>
-        wf_twl_cls (L # raw_trail S) (rewatch (lit_of L) S C')"
+        wf_twl_cls (L # trail S) (rewatch (lit_of L) S C')"
       and
     restart_learned: "mset (restart_learned S) \<subseteq># mset (raw_learned_clss S)" -- \<open>We need
       @{term mset} and not @{term set} to take care of duplicates. \<close>
@@ -990,12 +990,11 @@ proof -
 qed
 
 lemma clause_rewatch_witness':
-  fixes L :: "('a, nat, 'a twl_clause) marked_lit"
   assumes
     wf: "wf_twl_cls (trail S) C" and
     n_d: "no_dup (raw_trail S)" and
     undef: "undefined_lit (trail S) (lit_of L)"
-  shows "wf_twl_cls (L # raw_trail S) (rewatch_nat (lit_of L) S C)"
+  shows "wf_twl_cls (L # trail S) (rewatch_nat (lit_of L) S C)"
 proof (cases "- lit_of L \<in> set (watched C)")
   case False
   then show ?thesis
@@ -1106,7 +1105,7 @@ next
               next
                 case False note LxW = this
                 have f9: "L' \<in> set [l\<leftarrow>unwatched C. l \<notin> set (watched (TWL_Clause W UW))
-                    \<and> - l \<notin> lits_of_l (L # raw_trail S)]"
+                    \<and> - l \<notin> lits_of_l (L # trail S)]"
                   using 1(2) 5 C by auto
                 moreover then have f11: "- xW \<in> lits_of_l (trail S)"
                   using 1(3) LxW by (auto simp: uminus_lit_swap)

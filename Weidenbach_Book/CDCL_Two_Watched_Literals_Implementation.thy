@@ -93,11 +93,12 @@ definition cons_trail_twl :: "('v, nat, 'v twl_clause) marked_lit \<Rightarrow> 
 "cons_trail_twl L S \<equiv> twl_of_rough_state (cons_trail L (rough_state_of_twl S))"
 
 lemma wf_twl_state_cons_trail:
-  "undefined_lit (trail S) (lit_of L) \<Longrightarrow> wf_twl_state S \<Longrightarrow> wf_twl_state (cons_trail L S)"
-  unfolding wf_twl_state_def
-  apply (auto simp: cons_trail_def wf_rewatch defined_lit_map
-    comp_def image_def raw_clauses_def)
-  sorry
+  assumes
+    undef: "undefined_lit (trail S) (lit_of L)" and
+    wf: "wf_twl_state S"
+  shows "wf_twl_state (cons_trail L S)"
+  using undef wf wf_rewatch[of S "mmset_of_mlit' L"] unfolding wf_twl_state_def Ball_def
+  by (auto simp: cons_trail_def defined_lit_map comp_def image_def raw_clauses_def)
 
 lemma rough_state_of_twl_cons_trail:
   "undefined_lit (trail_twl S) (lit_of L) \<Longrightarrow>
@@ -109,7 +110,8 @@ abbreviation add_init_cls_twl where
 "add_init_cls_twl C S \<equiv> twl_of_rough_state (add_init_cls C (rough_state_of_twl S))"
 
 lemma wf_twl_add_init_cls: "wf_twl_state S \<Longrightarrow> wf_twl_state (add_init_cls L S)"
-  unfolding wf_twl_state_def by (auto simp: wf_watch add_init_cls_def split: if_split_asm)
+  unfolding wf_twl_state_def by (auto simp: wf_watch add_init_cls_def comp_def raw_clauses_def
+    split: if_split_asm)
 
 lemma rough_state_of_twl_add_init_cls:
   "rough_state_of_twl (add_init_cls_twl L S) = add_init_cls L (rough_state_of_twl S)"
@@ -119,7 +121,8 @@ abbreviation add_learned_cls_twl where
 "add_learned_cls_twl C S \<equiv> twl_of_rough_state (add_learned_cls C (rough_state_of_twl S))"
 
 lemma wf_twl_add_learned_cls: "wf_twl_state S \<Longrightarrow> wf_twl_state (add_learned_cls L S)"
-  unfolding wf_twl_state_def by (auto simp: wf_watch add_learned_cls_def split: if_split_asm)
+  unfolding wf_twl_state_def by (auto simp: wf_watch add_learned_cls_def raw_clauses_def
+    split: if_split_asm)
 
 lemma rough_state_of_twl_add_learned_cls:
   "rough_state_of_twl (add_learned_cls_twl L S) = add_learned_cls L (rough_state_of_twl S)"
@@ -128,8 +131,12 @@ lemma rough_state_of_twl_add_learned_cls:
 abbreviation remove_cls_twl where
 "remove_cls_twl C S \<equiv> twl_of_rough_state (remove_cls C (rough_state_of_twl S))"
 
+lemma set_removeAll_condD: "x \<in> set (removeAll_cond f xs) \<Longrightarrow> x \<in> set xs"
+  by (induction xs) (auto split: if_split_asm)
+
 lemma wf_twl_remove_cls: "wf_twl_state S \<Longrightarrow> wf_twl_state (remove_cls L S)"
-  unfolding wf_twl_state_def by (auto simp: wf_watch remove_cls_def split: if_split_asm)
+  unfolding wf_twl_state_def by (auto simp: wf_watch remove_cls_def raw_clauses_def comp_def
+    split: if_split_asm dest: set_removeAll_condD)  
 
 lemma rough_state_of_twl_remove_cls:
   "rough_state_of_twl (remove_cls_twl L S) = remove_cls L (rough_state_of_twl S)"
@@ -161,7 +168,7 @@ abbreviation tl_trail_twl where
 
 lemma wf_twl_state_tl_trail: "wf_twl_state S \<Longrightarrow> wf_twl_state (tl_trail S)"
   by (auto simp add: twl_of_rough_state_inverse wf_twl_init_state wf_twl_cls_wf_twl_cls_tl
-    tl_trail_def wf_twl_state_def distinct_tl map_tl)
+    tl_trail_def wf_twl_state_def distinct_tl map_tl comp_def raw_clauses_def)
 
 lemma rough_state_of_twl_tl_trail:
   "rough_state_of_twl (tl_trail_twl S) = tl_trail (rough_state_of_twl S)"
@@ -172,7 +179,7 @@ abbreviation update_backtrack_lvl_twl where
 
 lemma wf_twl_state_update_backtrack_lvl:
   "wf_twl_state S \<Longrightarrow> wf_twl_state (update_backtrack_lvl k S)"
-  unfolding wf_twl_state_def by auto
+  unfolding wf_twl_state_def by (auto simp: comp_def raw_clauses_def)
 
 lemma rough_state_of_twl_update_backtrack_lvl:
   "rough_state_of_twl (update_backtrack_lvl_twl k S) = update_backtrack_lvl k
@@ -184,7 +191,7 @@ abbreviation update_conflicting_twl where
 
 lemma wf_twl_state_update_conflicting:
   "wf_twl_state S \<Longrightarrow> wf_twl_state (update_conflicting k S)"
-  unfolding wf_twl_state_def by auto
+  unfolding wf_twl_state_def by (auto simp: raw_clauses_def comp_def)
 
 lemma rough_state_of_twl_update_conflicting:
   "rough_state_of_twl (update_conflicting_twl k S) = update_conflicting k
@@ -196,6 +203,9 @@ abbreviation raw_clauses_twl where
 
 abbreviation restart_twl where
 "restart_twl S \<equiv> twl_of_rough_state (restart' (rough_state_of_twl S))"
+lemma mset_union_mset_setD:
+  "mset A \<subseteq># mset B \<Longrightarrow> set A \<subseteq> set B"
+  by auto
 
 lemma wf_wf_restart': "wf_twl_state S \<Longrightarrow> wf_twl_state (restart' S)"
   unfolding restart'_def wf_twl_state_def apply standard
@@ -203,7 +213,7 @@ lemma wf_wf_restart': "wf_twl_state S \<Longrightarrow> wf_twl_state (restart' S
    apply (rename_tac x)
    apply (subgoal_tac "wf_twl_cls (trail S) x")
     apply (case_tac x)
-  using restart_learned by fastforce+
+  using restart_learned by (auto simp: raw_clauses_def comp_def dest: mset_union_mset_setD)
 
 lemma rough_state_of_twl_restart_twl:
   "rough_state_of_twl (restart_twl S) = restart' (rough_state_of_twl S)"
