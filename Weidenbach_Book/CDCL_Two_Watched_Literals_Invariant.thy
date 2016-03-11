@@ -1,8 +1,8 @@
-(*  Title: Implementation of CDCL with Two Watched Literals
+(*  Title: Invariants of CDCL with Two Watched Literals
     Author: Mathias Fleury <mathias.fleury@mpi-inf.mpg.de>
 *)
 
-section \<open>Implementation for 2 Watched-Literals\<close>
+section \<open>Invariants for 2 Watched-Literals\<close>
 
 theory CDCL_Two_Watched_Literals_Invariant
 imports CDCL_Two_Watched_Literals DPLL_CDCL_W_Implementation
