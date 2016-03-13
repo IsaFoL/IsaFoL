@@ -3,8 +3,8 @@ imports Partial_Annotated_Clausal_Logic
 begin
 
 subsubsection \<open>Level of literals and clauses\<close>
-text \<open>Getting the level of a variable, implies that the list has to be reversed. Here is the funtion
-  after reversing.\<close>
+text \<open>Getting the level of a variable, implies that the list has to be reversed. Here is the 
+  function after reversing.\<close>
 fun get_rev_level :: "('v, nat, 'a) marked_lits \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> nat" where
 "get_rev_level [] _ _ = 0" |
 "get_rev_level (Marked l level # Ls) n L =

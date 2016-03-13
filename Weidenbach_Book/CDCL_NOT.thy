@@ -879,7 +879,7 @@ proof -
         using \<open>I\<Turnstile>s ?N\<close> true_clss_union_increase by force
       have tot': "total_over_m ?I (?N\<union>?O)"
         using atm_I_N tot unfolding total_over_m_def total_over_set_def
-        by (force simp: image_iff lits_of_def dest!: is_marked_ex_Marked)
+        by (force simp: lits_of_def dest!: is_marked_ex_Marked)
 
       have atms_N_M: "atms_of_ms ?N \<subseteq> atm_of ` lits_of_l ?M"
         proof (rule ccontr)
@@ -895,15 +895,15 @@ proof -
             using l_N n_s by (metis literal.sel(1) state_eq\<^sub>N\<^sub>O\<^sub>T_ref)
         qed
       have "?M \<Turnstile>as CNot C"
-        by (metis (no_types, lifting) \<open>C \<in> set_mset (clauses\<^sub>N\<^sub>O\<^sub>T S)\<close> \<open>\<not> trail S \<Turnstile>a C\<close>
-          all_variables_defined_not_imply_cnot atms_N_M atms_of_atms_of_ms_mono
-          atms_of_ms_CNot_atms_of atms_of_ms_CNot_atms_of_ms subset_eq)
+        apply (rule all_variables_defined_not_imply_cnot)
+        using \<open>C \<in> set_mset (clauses\<^sub>N\<^sub>O\<^sub>T S)\<close> \<open>\<not> trail S \<Turnstile>a C\<close>
+           atms_N_M by (auto dest: atms_of_atms_of_ms_mono)
       have "\<exists>l \<in> set ?M. is_marked l"
         proof (rule ccontr)
           let ?O = "{{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M \<and> atm_of (lit_of L) \<notin> atms_of_ms ?N}"
           have \<theta>[iff]: "\<And>I. total_over_m I (?N \<union> ?O \<union> unmark_l ?M)
             \<longleftrightarrow> total_over_m I (?N \<union>unmark_l ?M)"
-            unfolding total_over_set_def total_over_m_def atms_of_ms_def by auto
+            unfolding total_over_set_def total_over_m_def atms_of_ms_def by blast
           assume "\<not> ?thesis"
           then have [simp]:"{{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M}
             = {{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M \<and> atm_of (lit_of L) \<notin> atms_of_ms ?N}"
@@ -1449,12 +1449,13 @@ next
       then have "unmark_l a \<union> set_mset (clauses\<^sub>N\<^sub>O\<^sub>T S) \<Turnstile>ps unmark_l b"
         using decomp T by (auto simp add: all_decomposition_implies_def)
       moreover
-        have "mset_cls C \<in> set_mset (clauses\<^sub>N\<^sub>O\<^sub>T S)"
+        have a1:"mset_cls C \<in> set_mset (clauses\<^sub>N\<^sub>O\<^sub>T S)"
           using C by blast
+        have "clauses\<^sub>N\<^sub>O\<^sub>T T = clauses\<^sub>N\<^sub>O\<^sub>T (remove_cls\<^sub>N\<^sub>O\<^sub>T C S)"
+         using T state_eq\<^sub>N\<^sub>O\<^sub>T_clauses by blast
         then have "set_mset (clauses\<^sub>N\<^sub>O\<^sub>T T) \<Turnstile>ps set_mset (clauses\<^sub>N\<^sub>O\<^sub>T S)"
-          by (metis (no_types, lifting) T clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T cls_C insert_Diff order_refl
-            set_mset_minus_replicate_mset(1) state_eq\<^sub>N\<^sub>O\<^sub>T_clauses true_clss_clss_def
-            true_clss_clss_insert)
+          using a1 by (metis (no_types) clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T cls_C insert_Diff order_refl
+          set_mset_minus_replicate_mset(1) true_clss_clss_def true_clss_clss_insert)
       ultimately show "unmark_l a \<union> set_mset (clauses\<^sub>N\<^sub>O\<^sub>T T)
         \<Turnstile>ps unmark_l b"
         using true_clss_clss_generalise_true_clss_clss by blast
@@ -1784,10 +1785,10 @@ proof
   then show ?B
     apply induction
       apply (simp add: tranclp.r_into_trancl)
-    by (metis (no_types, lifting) cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv tranclp.simps tranclp_into_rtranclp)
+    by (subst tranclp.simps) (auto intro: cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv tranclp_into_rtranclp)
 next
   assume ?B
-  then have "?A" by induction auto
+  then have ?A by induction auto
   moreover have ?I using \<open>?B\<close> tranclpD by fastforce
   ultimately show "?A \<and> ?I" by blast
 qed
@@ -3182,20 +3183,13 @@ proof -
      not_tauto: "\<not> tautology (mset_cls D)"
      using bt inv by (elim backjump_lE) simp
    have atms_C':  "atms_of C' \<subseteq>  atm_of ` (lits_of_l F)"
-     proof -
-       obtain ll :: "'v \<Rightarrow> ('v literal \<Rightarrow> 'v) \<Rightarrow> 'v literal set \<Rightarrow> 'v literal" where
-         "\<forall>v f L. v \<notin> f ` L \<or> v = f (ll v f L) \<and> ll v f L \<in> L"
-         by moura
-       then show ?thesis unfolding tr_S
-         by (metis (no_types) \<open>F \<Turnstile>as CNot C'\<close> atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
-           atms_of_def in_CNot_implies_uminus(2) subsetI)
-     qed
+     by (metis D(2) atms_of_def image_subsetI true_annots_CNot_all_atms_defined)
    then have "atms_of (C' + {#L#}) \<subseteq> atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<union> atm_of ` (lits_of_l (trail S))"
      using atm_L tr_S by auto
    moreover have learn: "learn S (add_cls\<^sub>N\<^sub>O\<^sub>T D S)"
      apply (rule learn.intros)
          apply (rule clss_C)
-       using atms_C' atm_L D apply (fastforce simp add: tr_S  in_plus_implies_atm_of_on_atms_of_ms)
+       using atms_C' atm_L D apply (fastforce simp add: tr_S in_plus_implies_atm_of_on_atms_of_ms)
      apply standard
       apply (rule distinct)
       apply (rule not_tauto)
@@ -3491,14 +3485,15 @@ proof -
         qed
 
       have "?M \<Turnstile>as CNot C"
-        by (metis atms_N_M \<open>C \<in> ?N\<close> \<open>\<not> ?M \<Turnstile>a C\<close> all_variables_defined_not_imply_cnot
-          atms_of_atms_of_ms_mono atms_of_ms_CNot_atms_of atms_of_ms_CNot_atms_of_ms subsetCE)
+      apply (rule all_variables_defined_not_imply_cnot)
+        using atms_N_M \<open>C \<in> ?N\<close> \<open>\<not> ?M \<Turnstile>a C\<close> atms_of_atms_of_ms_mono[OF \<open>C \<in> ?N\<close>]
+        by (auto dest: atms_of_atms_of_ms_mono)
       have "\<exists>l \<in> set ?M. is_marked l"
         proof (rule ccontr)
           let ?O = "{{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M \<and> atm_of (lit_of L) \<notin> atms_of_ms ?N}"
           have \<theta>[iff]: "\<And>I. total_over_m I (?N \<union> ?O \<union> unmark_l ?M)
             \<longleftrightarrow> total_over_m I (?N \<union>unmark_l ?M)"
-            unfolding total_over_set_def total_over_m_def atms_of_ms_def by auto
+            unfolding total_over_set_def total_over_m_def atms_of_ms_def by blast
           assume "\<not> ?thesis"
           then have [simp]:"{{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M}
             = {{#lit_of L#} |L. is_marked L \<and> L \<in> set ?M \<and> atm_of (lit_of L) \<notin> atms_of_ms ?N}"

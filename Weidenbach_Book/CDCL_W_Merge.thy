@@ -2572,7 +2572,7 @@ next
               moreover have "conflicting V' = None"
                 using decide'(1) by (auto elim: rulesE)
               ultimately show ?thesis
-                using \<open>cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R V\<close> decide'  \<open>no_step cdcl\<^sub>W_merge_cp V\<close> by blast
+                using \<open>cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R V\<close> decide' \<open>no_step cdcl\<^sub>W_merge_cp V\<close> by blast
             next
               case propa
               moreover then have "cdcl\<^sub>W_merge_cp V' W"
