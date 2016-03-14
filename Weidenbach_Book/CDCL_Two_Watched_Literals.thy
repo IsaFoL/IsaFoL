@@ -162,7 +162,7 @@ lemma size_mset_2: "size x1 = 2 \<longleftrightarrow> (\<exists>a b. x1 = {#a, b
 lemma distinct_mset_size_2: "distinct_mset {#a, b#} \<longleftrightarrow> a \<noteq> b"
   unfolding distinct_mset_def by auto
 
-lemma wf_twl_cls_annotation_indepnedant:
+lemma wf_twl_cls_annotation_independant:
   assumes M: "map lit_of M = map lit_of M'"
   shows "wf_twl_cls M (TWL_Clause W UW) \<longleftrightarrow> wf_twl_cls M' (TWL_Clause W UW)"
 proof -
@@ -227,14 +227,6 @@ qed
 
 definition wf_twl_state :: "'v twl_state \<Rightarrow> bool" where
   "wf_twl_state S \<longleftrightarrow> (\<forall>C \<in> set (twl.raw_clauses S). wf_twl_cls (trail S) C) \<and> no_dup (trail S)"
-
-lemma length_list_Suc_0:
-  "length W = Suc 0 \<longleftrightarrow> (\<exists>L. W = [L])"
-  apply (cases W)
-    apply simp
-  apply (rename_tac a W', case_tac W')
-  apply auto
-  done
 
 lemma wf_candidates_propagate_sound:
   assumes wf: "wf_twl_state S" and

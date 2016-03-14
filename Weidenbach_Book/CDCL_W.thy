@@ -2101,11 +2101,6 @@ proof -
     using ff3 ff2 ff1 a3 by (metis (no_types) Marked_Propagated_in_iff_in_lits_of_l)
 qed
 
-(* TODO Move, mark as simp? *)
-lemma true_annot_CNot_remove1_mset_remove1_mset:
-  "I \<Turnstile>as CNot C \<Longrightarrow> I \<Turnstile>as CNot (remove1_mset L C)"
-  by (auto simp: true_annots_true_cls_def_iff_negation_in_model dest: in_diffD)
-
 lemma cdcl\<^sub>W_propagate_is_conclusion:
   assumes
     "cdcl\<^sub>W S S'" and
@@ -2167,9 +2162,9 @@ next
         apply (rule true_clss_clss_in_imp_true_clss_cls[of _
             "set_mset (init_clss S) \<union> set_mset (learned_clss S)"])
         using learned propa L by (auto simp: raw_clauses_def cdcl\<^sub>W_learned_clause_def
-          true_annot_CNot_remove1_mset_remove1_mset)
+          true_annot_CNot_diff)
     next
-      have "(\<lambda>m. {#lit_of m#}) ` set (trail S) \<Turnstile>ps CNot (remove1_mset L (mset_cls C))"
+      have "unmark_l (trail S) \<Turnstile>ps CNot (remove1_mset L (mset_cls C))"
         using \<open>(trail S) \<Turnstile>as CNot (remove1_mset L (mset_cls C))\<close> true_annots_true_clss_clss
         by blast
       then show "?I \<Turnstile>ps CNot (remove1_mset L (mset_cls C))"
@@ -2368,7 +2363,7 @@ next
           then have "M1 \<Turnstile>as CNot ?D'"
             using true_annots_remove_if_notin_vars[of "M0 @ M2 @ Marked K (i + 1) # []"
               M1 "CNot ?D'"] \<open>trail S \<Turnstile>as CNot ?D\<close> unfolding M lits_of_def
-            by (simp add: true_annot_CNot_remove1_mset_remove1_mset)
+            by (simp add: true_annot_CNot_diff)
           then show "b \<Turnstile>as CNot (mark - {#La#}) \<and> La \<in>#  mark"
             using P LD b by auto
         next
@@ -2573,7 +2568,7 @@ proof (rule ccontr)
   have l0: "{unmark L |L. is_marked L \<and> L \<in> set M} = {}" using marked by auto
   have "atms_of_ms (set_mset N \<union> unmark_l M) = atms_of_mm N"
     using atm_incl state unfolding no_strange_atm_def by auto
-  then have "total_over_m I (set_mset N \<union> (\<lambda>a. {#lit_of a#}) ` (set M))"
+  then have "total_over_m I (set_mset N \<union> unmark_l M)"
     using tot unfolding total_over_m_def by auto
   then have "I \<Turnstile>s unmark_l M"
     using all_decomposition_implies_propagated_lits_are_implied[OF inv] cons I

@@ -722,7 +722,7 @@ proof -
   then have conf: "cdcl\<^sub>W_conflicting S" unfolding cdcl\<^sub>W_all_struct_inv_def by blast
   then have "trail S \<Turnstile>as CNot ?E" unfolding cdcl\<^sub>W_conflicting_def confl_S by auto
   then have MD: "trail S \<Turnstile>as CNot ?E" by auto
-  then have MD': "trail S \<Turnstile>as CNot ?E'" using true_annot_CNot_remove1_mset_remove1_mset by blast
+  then have MD': "trail S \<Turnstile>as CNot ?E'" using true_annot_CNot_diff by blast
   have lev': "cdcl\<^sub>W_M_level_inv S" using invS  unfolding cdcl\<^sub>W_all_struct_inv_def by blast
 
   have get_lvls_M: "get_all_levels_of_marked (trail S) = rev [1..<Suc (backtrack_lvl S)]"

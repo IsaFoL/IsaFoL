@@ -130,12 +130,12 @@ lemma true_clss_singleton_lit_of_implies_incl:
   unfolding true_clss_def lits_of_def by auto
 
 lemma true_annot_true_clss_cls:
-  "MLs \<Turnstile>a \<psi> \<Longrightarrow> set (map (\<lambda>a. {#lit_of a#}) MLs) \<Turnstile>p \<psi>"
+  "MLs \<Turnstile>a \<psi> \<Longrightarrow> set (map unmark MLs) \<Turnstile>p \<psi>"
   unfolding true_annot_def true_clss_cls_def true_cls_def
   by (auto dest: true_clss_singleton_lit_of_implies_incl)
 
 lemma true_annots_true_clss_cls:
-  "MLs \<Turnstile>as \<psi> \<Longrightarrow> set (map (\<lambda>a. {#lit_of a#}) MLs) \<Turnstile>ps \<psi>"
+  "MLs \<Turnstile>as \<psi> \<Longrightarrow> set (map unmark MLs) \<Turnstile>ps \<psi>"
   by (auto
     dest: true_clss_singleton_lit_of_implies_incl
     simp add: true_clss_def true_annots_def true_annot_def lits_of_def true_cls_def
@@ -546,8 +546,8 @@ lemma all_decomposition_implies_cons_single[iff]:
 
 lemma all_decomposition_implies_trail_is_implied:
   assumes "all_decomposition_implies N (get_all_marked_decomposition M)"
-  shows "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}
-    \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition M))"
+  shows "N \<union> {unmark L |L. is_marked L \<and> L \<in> set M}
+    \<Turnstile>ps unmark ` \<Union>(set ` snd ` set (get_all_marked_decomposition M))"
 using assms
 proof (induct "length (get_all_marked_decomposition M)" arbitrary: M)
   case 0
@@ -569,10 +569,10 @@ next
       }
       moreover {
         assume l: "length a = 1" and m: "is_marked (hd a)" and hd: "hd a \<in> set M"
-        then have "(\<lambda>a. {#lit_of a#}) (hd a) \<in> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}" by auto
-        then have H: "unmark_l a \<union> N \<subseteq> N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"
+        then have "unmark (hd a) \<in> {unmark L |L. is_marked L \<and> L \<in> set M}" by auto
+        then have H: "unmark_l a \<union> N \<subseteq> N \<union> {unmark L |L. is_marked L \<and> L \<in> set M}"
           using l by (cases a) auto
-        have f1: "(\<lambda>m. {#lit_of m#}) ` set a \<union> N \<Turnstile>ps (\<lambda>m. {#lit_of m#}) ` set b"
+        have f1: "unmark_l a \<union> N \<Turnstile>ps unmark_l b"
           using decomp unfolding all_decomposition_implies_def g by simp
         have ?thesis
           apply (rule true_clss_clss_subset) using f1 H g by auto
@@ -652,7 +652,7 @@ qed
 
 lemma all_decomposition_implies_propagated_lits_are_implied:
   assumes "all_decomposition_implies N (get_all_marked_decomposition M)"
-  shows "N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps unmark_l M"
+  shows "N \<union> {unmark L |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps unmark_l M"
     (is "?I \<Turnstile>ps ?A")
 proof -
   have "?I \<Turnstile>ps unmark_s {L |L. is_marked L \<and> L \<in> set M}"
@@ -762,6 +762,11 @@ lemma true_annots_true_cls_def_iff_negation_in_model:
   "M \<Turnstile>as CNot C \<longleftrightarrow> (\<forall>L \<in># C. -L \<in> lits_of_l M)"
   unfolding CNot_def true_annots_true_cls true_clss_def by auto
 
+(* TODO Mark as [simp]? *)
+lemma true_annot_CNot_diff:
+  "I \<Turnstile>as CNot C \<Longrightarrow> I \<Turnstile>as CNot (C - C')"
+  by (auto simp: true_annots_true_cls_def_iff_negation_in_model dest: in_diffD)
+
 lemma consistent_CNot_not_tautology:
   "consistent_interp M \<Longrightarrow> M \<Turnstile>s CNot D \<Longrightarrow> \<not>tautology D"
   by (metis atms_of_ms_CNot_atms_of consistent_CNot_not satisfiable_carac' satisfiable_def
@@ -774,6 +779,8 @@ lemma total_over_m_CNot_toal_over_m[simp]:
   "total_over_m I (CNot C) = total_over_set I (atms_of C)"
   unfolding total_over_m_def total_over_set_def by auto
 
+text \<open>The following lemma is very useful when in the goal appears an axioms like @{term "-L = K"}:
+  this lemma allows the simplifier to rewrite L.\<close>
 lemma uminus_lit_swap: "-(a::'a literal) = i \<longleftrightarrow> a = -i"
   by auto
 

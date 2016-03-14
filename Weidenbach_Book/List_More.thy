@@ -105,6 +105,14 @@ proof -
   show "B = [m + length A..<n]" using assms by (metis append_eq_conv_conj drop_upt)
 qed
 
+lemma length_list_Suc_0:
+  "length W = Suc 0 \<longleftrightarrow> (\<exists>L. W = [L])"
+  apply (cases W)
+    apply simp
+  apply (rename_tac a W', case_tac W')
+  apply auto
+  done
+
 text \<open>The converse of @{thm append_cons_eq_upt} does not hold, for example if @{term B} is
 empty and @{term A} is @{term "[0]"}:\<close>
 lemma "A @ B = [m..< n] \<longleftrightarrow> A = [m ..<m+length A] \<and> B = [m + length A..<n]"
