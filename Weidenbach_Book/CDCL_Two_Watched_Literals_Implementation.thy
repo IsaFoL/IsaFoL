@@ -71,8 +71,8 @@ where
            (Some (find_earliest_conflict M C (conflict Ks))))
          else
            if set (remove1 (-L) (watched C)) \<subseteq> lits_of_l (M @ prop_queue Ks)
-             (* it contains at most one variable, so... *)
-           then (C # Cs, Ks)
+             (* it contains at most one variable, so it is easy to do in practice *)
+           then (if conflict Ks = None then C # Cs else Cs, Ks)
            else (C # Cs, Prop_Or_Conf (Propagated L C # prop_queue Ks) (conflict Ks)))
      | L' # _ \<Rightarrow>
        (TWL_Clause (L' # remove1 (-L) (watched C)) (-L # remove1 L' (unwatched C)) # Cs, Ks)
@@ -90,7 +90,7 @@ fun rewatch_nat_cand :: "'a literal \<Rightarrow> 'a twl_state_cands \<Rightarro
     (TWL_State (raw_trail S) N U (backtrack_lvl S) (raw_conflicting S))
     K')"
 
-lemma
+lemma no_dup_rewatch_nat_cand_single_clause:
   assumes
     undef: "undefined_lit (M @ prop_queue Ks) L" and
     wf: "wf_twl_cls M C" and
@@ -99,8 +99,20 @@ lemma
   unfolding rewatch_nat_cand_single_clause.simps
   apply (cases Ks; cases C)
   apply (rename_tac M' Confl W UW)
-  using undef n_d wf by (auto split: list.splits simp: atm_of_eq_atm_of filter_empty_conv
-    true_annots_true_cls_def_iff_negation_in_model lits_of_def length_list_2 image_Un
-    simp add: defined_lit_map) (* Very SLOW *)
+  using undef n_d wf by (auto split: list.splits simp: length_list_2 defined_lit_map) (* SLOW ~3s*)
 
+
+lemma 
+  assumes
+    undef: "undefined_lit (M @ prop_queue Ks) L" and
+    wf: "wf_twl_cls M C" and
+    "conflict Ks = Some D" and 
+    "conflict (snd (rewatch_nat_cand_single_clause L M C (Cs, Ks))) = Some D'" and
+    n_d: "M @ prop_queue Ks \<Turnstile>as CNot (mset (raw_clause D))"
+  shows "M @ prop_queue Ks \<Turnstile>as CNot (mset (raw_clause D'))"
+  apply (cases Ks; cases C)
+  apply (rename_tac M' Confl W UW)
+  using assms (* by (auto split: list.splits if_splits simp: length_list_2 defined_lit_map
+    rewatch_nat_cand_single_clause.simps) *) (* SLOW ~3s*)
+oops
 end
