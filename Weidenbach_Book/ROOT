@@ -11,6 +11,8 @@ session "Weidenbach_Book" (main) = "HOL" +
     Prop_Abstract_Transformation
     Prop_Normalisation
     "../lib/Clausal_Logic"
+    Partial_Clausal_Logic
+    Prop_Logic_Multiset
     Prop_Resolution
     Partial_Annotated_Clausal_Logic
     DPLL_W
@@ -30,7 +32,7 @@ session "Weidenbach_Book" (main) = "HOL" +
   theories [quick_and_dirty]
     Prop_Superposition
     Weidenbach_Book
-    CDCL_Two_Watched_Literals_Implementation
+    (* CDCL_Two_Watched_Literals_Implementation *)
   document_files
     "root.tex"
     "biblio.bib"

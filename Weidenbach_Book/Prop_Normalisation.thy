@@ -1,5 +1,5 @@
 theory Prop_Normalisation
-imports Main Prop_Logic Prop_Abstract_Transformation
+imports Main Prop_Logic Prop_Abstract_Transformation "../lib/Multiset_More"
 begin
 text \<open>Given the previous definition about abstract rewriting and theorem about them, we now have the
   detailed rule making the transformation into CNF/DNF.\<close>
@@ -1709,10 +1709,10 @@ lemma or_in_and_only_conjunction_in_disj:
   unfolding is_conj_with_TF_def or_in_and_only_def c_in_c'_only_def
   by (simp add: c_in_c'_only_def c_in_c'_only_super_grouped_by)
 
-definition is_cnf where "is_cnf \<phi> == is_conj_with_TF \<phi> \<and> no_T_F_except_top_level \<phi>"
+definition is_cnf where 
+"is_cnf \<phi> \<equiv> is_conj_with_TF \<phi> \<and> no_T_F_except_top_level \<phi>"
 
-
-subsubsection "Full CNF transformation"
+subsubsection \<open>Full CNF transformation\<close>
 
 text \<open>The full1 CNF transformation consists simply in chaining all the transformation defined
   before.\<close>

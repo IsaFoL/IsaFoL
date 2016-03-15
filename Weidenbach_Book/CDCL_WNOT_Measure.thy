@@ -84,7 +84,7 @@ lemma \<mu>\<^sub>C_cons_non_empty_inf:
   shows "\<mu>\<^sub>C s b M \<ge> b ^  (s - length M)"
   using assms by (cases M) (auto simp: mult_eq_if \<mu>\<^sub>C_cons)
 
-text \<open>Duplicate of @{file "~~/src/HOL/ex/NatSum.thy"} (but generalized to @{term "k\<ge>0"})\<close>
+text \<open>Copy of @{file "~~/src/HOL/ex/NatSum.thy"} (but generalized to @{term "k\<ge>(0::nat)"})\<close>
 lemma sum_of_powers: "0 \<le> k \<Longrightarrow> (k - 1) * (\<Sum>i=0..<n. k^i) = k^n - (1::nat)"
   apply (cases "k = 0")
     apply (cases n; simp)
