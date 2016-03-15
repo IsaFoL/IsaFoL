@@ -315,7 +315,7 @@ proof -
   then have H: "\<And>L. L\<in>#mset_ccls D \<Longrightarrow> get_level (trail S) L  = get_level M\<^sub>T L"
     unfolding M by (fastforce simp: lits_of_def)
   have [simp]: "get_maximum_level (trail S) (mset_ccls D) = get_maximum_level M\<^sub>T (mset_ccls D)"
-    by (metis \<open>M\<^sub>T \<Turnstile>as CNot (mset_ccls D)\<close>  M nm true_annots_CNot_all_atms_defined
+    using \<open>M\<^sub>T \<Turnstile>as CNot (mset_ccls D)\<close>  M nm by (metis true_annots_CNot_all_atms_defined
       get_maximum_level_skip_un_marked_not_present)
 
   have lev_l': "get_level M\<^sub>T L = backtrack_lvl S"
@@ -1806,8 +1806,7 @@ next
               tranclp_into_rtranclp)
           have "cdcl\<^sub>W_s'_without_decide\<^sup>*\<^sup>* S U'"
             using \<open>full1 cdcl\<^sub>W_cp T' U'\<close> conflict'_without_decide s' by force
-          have "full1 cdcl\<^sub>W_bj U' V \<or> V = U'"
-            by (metis (lifting) full_unfold local.bj)
+          have "full1 cdcl\<^sub>W_bj U' V \<or> V = U'" using bj unfolding full_unfold by blast
           then show ?thesis
             using \<open>cdcl\<^sub>W_s'_without_decide\<^sup>*\<^sup>* S U'\<close> by blast
         next
@@ -1822,11 +1821,10 @@ next
           then have "cdcl\<^sub>W_s'_without_decide\<^sup>*\<^sup>* S U'"
             using s' rtranclp.intros(2)[of _ S T' U'] by blast
           then show ?thesis
-            by (metis full_unfold local.bj rtranclp.rtrancl_refl)
+            using local.bj unfolding full_unfold by blast
         qed
     qed
 qed
-
 
 lemma rtranclp_cdcl\<^sub>W_s'_without_decide_is_rtranclp_cdcl\<^sub>W_merge_cp:
   assumes
@@ -2494,7 +2492,7 @@ next
               case V'_W
               then show ?thesis
                 using confl_V' local.decide'(1,2) s' conf_V
-                no_step_cdcl\<^sub>W_cp_no_step_cdcl\<^sub>W_merge_restart[of V] 
+                no_step_cdcl\<^sub>W_cp_no_step_cdcl\<^sub>W_merge_restart[of V]
                 by auto
             next
               case propa
@@ -2828,31 +2826,17 @@ next
   from fw show ?case
     proof (cases rule: cdcl\<^sub>W_merge_stgy_cases)
       case fw_s_cp
-      then show ?thesis
-        proof -
-          assume a1: "full1 cdcl\<^sub>W_merge_cp S T"
-          obtain ss :: "('st \<Rightarrow> 'st \<Rightarrow> bool) \<Rightarrow> 'st \<Rightarrow> 'st" where
-            f2: "\<And>p s sa pa sb sc sd pb se sf. (\<not> full1 p (s::'st) sa \<or> p\<^sup>+\<^sup>+ s sa)
-              \<and> (\<not> pa (sb::'st) sc \<or> \<not> full1 pa sd sb) \<and> (\<not> pb\<^sup>+\<^sup>+ se sf \<or> pb sf (ss pb sf)
-              \<or> full1 pb se sf)"
-            by (metis (no_types) full1_def)
-          then have f3: "cdcl\<^sub>W_merge_cp\<^sup>+\<^sup>+ S T"
-            using a1 by auto
-          obtain ssa :: "('st \<Rightarrow> 'st \<Rightarrow> bool) \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> 'st" where
-            f4: "\<And>p s sa. \<not> p\<^sup>+\<^sup>+ s sa \<or> p s (ssa p s sa)"
-            by (meson tranclp_unfold_begin)
-          then have f5: "\<And>s. \<not> full1 cdcl\<^sub>W_merge_cp s S"
-            using f3 f2 by (metis (full_types))
-          have "\<And>s. \<not> full cdcl\<^sub>W_merge_cp s S"
-            using f4 f3 by (meson full_def)
-          then have "S = R"
-            using f5 by (metis cdcl\<^sub>W_cp.conflict' cdcl\<^sub>W_cp.propagate' cdcl\<^sub>W_merge_cp.cases f3 f4 inv
-              rtranclp_cdcl\<^sub>W_merge_stgy'_no_step_cdcl\<^sub>W_cp_or_eq st)
-          then show ?thesis
-            using f2 a1 by (metis (no_types) \<open>cdcl\<^sub>W_all_struct_inv S\<close>
-              conflicting_true_full1_cdcl\<^sub>W_merge_cp_imp_full1_cdcl\<^sub>W_s'_without_decode
-              rtranclp_cdcl\<^sub>W_s'_without_decide_rtranclp_cdcl\<^sub>W_s' rtranclp_unfold)
-        qed
+      have "\<And>s. \<not> full cdcl\<^sub>W_merge_cp s S"
+        using fw_s_cp unfolding full_def full1_def by (metis tranclp_unfold_begin)
+      then have "S = R"
+        using fw_s_cp unfolding full1_def by (metis cdcl\<^sub>W_cp.conflict' cdcl\<^sub>W_cp.propagate'
+          cdcl\<^sub>W_merge_cp.cases  tranclp_unfold_begin inv st
+          rtranclp_cdcl\<^sub>W_merge_stgy'_no_step_cdcl\<^sub>W_cp_or_eq)
+      then have "full1 cdcl\<^sub>W_s'_without_decide R T"
+        using inv local.fw_s_cp
+        by (blast intro: conflicting_true_full1_cdcl\<^sub>W_merge_cp_imp_full1_cdcl\<^sub>W_s'_without_decode)
+      then show ?thesis unfolding full1_def
+        by (metis (no_types) rtranclp_cdcl\<^sub>W_s'_without_decide_rtranclp_cdcl\<^sub>W_s'  rtranclp_unfold)
     next
       case (fw_s_decide S') note dec = this(1) and n_S = this(2) and full = this(3)
       moreover then have "conflicting S' = None"
@@ -2862,7 +2846,7 @@ next
           rtranclp_cdcl\<^sub>W_all_struct_inv_inv
           conflicting_true_full_cdcl\<^sub>W_merge_cp_iff_full_cdcl\<^sub>W_s'_without_decode)
       then have a1: "cdcl\<^sub>W_s'\<^sup>*\<^sup>* S' T"
-        unfolding full_def by (metis (full_types)rtranclp_cdcl\<^sub>W_s'_without_decide_rtranclp_cdcl\<^sub>W_s')
+        unfolding full_def by (metis (full_types) rtranclp_cdcl\<^sub>W_s'_without_decide_rtranclp_cdcl\<^sub>W_s')
       have "cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* S T"
         using fw by blast
       then have "cdcl\<^sub>W_s'\<^sup>*\<^sup>* S T"
