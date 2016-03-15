@@ -710,7 +710,7 @@ lemma redundant_mono:
   apply (induction rule: redundant.induct)
   by (meson subset_mset.less_le_trans subsumption)
 
-locale truc=
+locale truc =
     selection S for S :: "nat clause \<Rightarrow> nat clause"
 begin
 (*

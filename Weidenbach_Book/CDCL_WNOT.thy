@@ -322,7 +322,7 @@ next
     using T undef_L unfolding state_eq_def state_eq\<^sub>N\<^sub>O\<^sub>T_def by (auto simp: raw_clauses_def)
   then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_decide\<^sub>N\<^sub>O\<^sub>T by blast
 next
-  case (fw_forget S T) note rf =this(1) and inv = this(2)
+  case (fw_forget S T) note rf = this(1) and inv = this(2)
   then obtain C where
      S: "conflicting S = None" and
      C_le: "C !\<in>! raw_learned_clss S" and

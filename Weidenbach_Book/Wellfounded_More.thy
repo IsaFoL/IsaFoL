@@ -63,7 +63,7 @@ proof (induction arbitrary: )
   case base
   then show ?case by auto
 next
-  case (step z' z'') note z = this(2) and IH =this(3)[OF this(4-5)]
+  case (step z' z'') note z = this(2) and IH = this(3)[OF this(4-5)]
   show ?case
     apply (cases "P z' z''")
       apply (rule exI[of _ z'], rule exI[of _ z''])

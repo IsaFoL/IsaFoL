@@ -64,7 +64,7 @@ lemma cdcl\<^sub>W_o_new_clause_learned_is_backtrack_step:
   shows "backtrack S T \<and> conflicting S = Some D"
   using cdcl\<^sub>W lev learned new
 proof (induction rule: cdcl\<^sub>W_o_induct_lev2)
-  case (backtrack K i M1 M2 L C T) note decomp =this(3) and undef = this(6) and andef = this(7) and
+  case (backtrack K i M1 M2 L C T) note decomp = this(3) and undef = this(6) and andef = this(7) and
     T = this(8) and D_T = this(9) and D_S = this(10)
   then have "D = mset_ccls C"
     using not_gr0 lev by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
@@ -107,7 +107,7 @@ proof (induction rule: rtranclp_induct)
   case base
   then show ?case by blast
 next
-  case (step T U) note st =this(1) and o = this(2) and IH = this(3) and
+  case (step T U) note st = this(1) and o = this(2) and IH = this(3) and
     D_U = this(4) and D_S = this(5)
   show ?case
     proof (cases "D \<in># learned_clss T")
@@ -168,7 +168,7 @@ lemma cdcl\<^sub>W_o_no_more_Marked_lit:
   shows "Marked K i \<in> set (trail S') \<longrightarrow> Marked K i \<in> set (trail S)"
   using assms
 proof (induct rule: cdcl\<^sub>W_o_induct_lev2)
-  case backtrack note decomp = this(3) and undef = this(7) and T =this(8)
+  case backtrack note decomp = this(3) and undef = this(7) and T = this(8)
   then show ?case using lev by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
 next
   case (decide L T)
@@ -183,7 +183,7 @@ lemma cdcl\<^sub>W_new_marked_at_beginning_is_decide:
   shows "\<exists>T. decide S T \<and> no_step cdcl\<^sub>W_cp S"
   using assms
 proof (induct rule: cdcl\<^sub>W_stgy.induct)
-  case (conflict' S') note st =this(1) and no_dup = this(2) and S' = this(3) and S = this(4)
+  case (conflict' S') note st = this(1) and no_dup = this(2) and S' = this(3) and S = this(4)
   have "cdcl\<^sub>W_M_level_inv S'"
     using full1_cdcl\<^sub>W_cp_consistent_inv no_dup st by blast
   then have "Marked L i \<in> set (trail S')" and "Marked L i \<notin> set (trail S)"
@@ -263,7 +263,7 @@ next
           then have False using nd V by auto
           then show ?case by fast
         next
-          case (other' T' U) note o = this(1) and ns =this(2) and cp = this(3) and nd = this(4)
+          case (other' T' U) note o = this(1) and ns = this(2) and cp = this(3) and nd = this(4)
             and U = this(5) and st = this(6)
           obtain M\<^sub>0 where "trail U = M\<^sub>0 @ trail T'" and nmarked: "\<forall>l\<in>set M\<^sub>0. \<not> is_marked l"
             using rtranclp_cdcl\<^sub>W_cp_dropWhile_trail cp unfolding full_def by meson
@@ -384,7 +384,7 @@ next
   case base
   then show ?case
     proof (induction rule: cdcl\<^sub>W_stgy.induct)
-      case (conflict' T) note cp = this(1) and nd = this(2) and M' =this(3) and no_dup = this(3)
+      case (conflict' T) note cp = this(1) and nd = this(2) and M' = this(3) and no_dup = this(3)
       then obtain M' where M': "trail T = M' @ Marked L i # H @ M" by metis
       obtain M'' where M'': "trail T = M'' @ trail S" and nm: "\<forall>m\<in> set M''. \<not>is_marked m"
         using cp unfolding full1_def
@@ -1041,7 +1041,7 @@ next
   then show ?case using finite by simp
 next
   case (backtrack K i M1 M2 L D T) note conf = this(1) and decomp = this(3) and undef = this(7) and
-    T =this(8) and lev = this(9)
+    T = this(8) and lev = this(9)
   let ?S' = "T"
   have bt: "backtrack S ?S'"
     using backtrack.hyps backtrack.intros[of S D L K i] by auto
@@ -1139,7 +1139,7 @@ proof induction
   case base
   then show ?case using cdcl\<^sub>W_cp_measure_decreasing by blast
 next
-  case (step T U) note st = this(1) and step = this(2) and IH =this(3) and inv = this(4)
+  case (step T U) note st = this(1) and step = this(2) and IH = this(3) and inv = this(4)
   then have "(cdcl\<^sub>W_measure T, cdcl\<^sub>W_measure S) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3" by blast
 
   moreover have "(cdcl\<^sub>W_measure U, cdcl\<^sub>W_measure T) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3"
@@ -1168,7 +1168,7 @@ proof -
          using tranclp_cdcl\<^sub>W_cp_measure_decreasing[OF HOL.conjunct1[OF cp[unfolded full1_def]] inv]
          .
     next
-      case (other' T U) note st = this(1) and H= this(4,5,6,7) and cp = this(3)
+      case (other' T U) note st = this(1) and H = this(4,5,6,7) and cp = this(3)
       have "cdcl\<^sub>W_all_struct_inv T"
         using cdcl\<^sub>W_all_struct_inv_inv other other'.hyps(1) other'.prems(4) by blast
       from tranclp_cdcl\<^sub>W_cp_measure_decreasing[OF _ this]

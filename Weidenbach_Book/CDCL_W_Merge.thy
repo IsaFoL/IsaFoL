@@ -949,7 +949,7 @@ proof induction
   case base
   then show ?case using inv by auto
 next
-  case (step c d) note st =this(1) and fw = this(2) and IH = this(3)
+  case (step c d) note st = this(1) and fw = this(2) and IH = this(3)
   have "cdcl\<^sub>W_all_struct_inv c"
     using tranclp_into_rtranclp[OF st] cdcl\<^sub>W_merge_rtranclp_cdcl\<^sub>W
     assms(1) rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_mono[of cdcl\<^sub>W_merge "cdcl\<^sub>W\<^sup>*\<^sup>*"] by fastforce
@@ -1162,7 +1162,7 @@ proof (induction rule: converse_rtranclp_induct)
   case base
   then show ?case by (metis cdcl\<^sub>W_stgy.conflict' full_unfold rtranclp.simps)
 next
-  case (step T U) note st =this(2) and bj = this(1) and IH = this(3)[OF this(4)]
+  case (step T U) note st = this(2) and bj = this(1) and IH = this(3)[OF this(4)]
   have "no_step cdcl\<^sub>W_cp T"
     using bj by (auto simp add: cdcl\<^sub>W_bj.simps cdcl\<^sub>W_cp.simps elim!: rulesE)
   consider
@@ -2610,7 +2610,7 @@ next
         using IH by meson
       then show ?thesis
         proof cases
-          case s' note _ =this(2)
+          case s' note _ = this(2)
           then have False
             using bj'(1) unfolding full1_def by (force dest!: tranclpD simp: cdcl\<^sub>W_bj.simps
               elim: rulesE)
@@ -2751,7 +2751,7 @@ lemma decide_rtranclp_cdcl\<^sub>W_s'_rtranclp_cdcl\<^sub>W_s':
   shows "cdcl\<^sub>W_s'\<^sup>*\<^sup>* S U"
   using assms(2,4)
 proof induction
-  case (step U V) note st =this(1) and s' = this(2) and IH = this(3) and n_s = this(4)
+  case (step U V) note st = this(1) and s' = this(2) and IH = this(3) and n_s = this(4)
   consider
       (TU) "T = U"
     | (s'_st) T' where "cdcl\<^sub>W_s' T T'" and "cdcl\<^sub>W_s'\<^sup>*\<^sup>* T' U"

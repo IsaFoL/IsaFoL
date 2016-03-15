@@ -180,7 +180,7 @@ lemma
     state_eq\<^sub>N\<^sub>O\<^sub>T_clauses: "S \<sim> T \<Longrightarrow> clauses\<^sub>N\<^sub>O\<^sub>T S = clauses\<^sub>N\<^sub>O\<^sub>T T"
   unfolding state_eq\<^sub>N\<^sub>O\<^sub>T_def by auto
 
-lemmas state_simp\<^sub>N\<^sub>O\<^sub>T[simp]= state_eq\<^sub>N\<^sub>O\<^sub>T_trail state_eq\<^sub>N\<^sub>O\<^sub>T_clauses
+lemmas state_simp\<^sub>N\<^sub>O\<^sub>T[simp] = state_eq\<^sub>N\<^sub>O\<^sub>T_trail state_eq\<^sub>N\<^sub>O\<^sub>T_clauses
 
 lemma trail_eq_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_eq:
   "trail S = trail T \<Longrightarrow> trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S) = trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F T)"
@@ -603,7 +603,7 @@ lemma dpll_bj_trail_mes_increasing_prop:
     > \<mu>\<^sub>C (1+card (atms_of_ms A)) (2+card (atms_of_ms A)) (trail_weight S)"
   using assms(1,2)
 proof (induction rule: dpll_bj_all_induct)
-  case (propagate\<^sub>N\<^sub>O\<^sub>T C L) note CLN = this(1) and MC =this(2) and undef_L = this(3) and T = this(4)
+  case (propagate\<^sub>N\<^sub>O\<^sub>T C L) note CLN = this(1) and MC = this(2) and undef_L = this(3) and T = this(4)
   have incl: "atm_of ` lits_of_l (Propagated L () # trail S) \<subseteq> atms_of_ms A"
     using propagate\<^sub>N\<^sub>O\<^sub>T dpll_bj_atms_in_trail_in_set bj_propagate\<^sub>N\<^sub>O\<^sub>T NA MA CLN
     by (auto simp: in_plus_implies_atm_of_on_atms_of_ms)
@@ -638,7 +638,7 @@ next
     by (simp add: card_mono)
   show ?case using T undef_L by (simp add: \<mu>\<^sub>C_cons)
 next
-  case (backjump C F' K F L C' T) note undef_L = this(4) and MC =this(1) and tr_S = this(3) and
+  case (backjump C F' K F L C' T) note undef_L = this(4) and MC = this(1) and tr_S = this(3) and
     L = this(5) and T = this(8)
   have incl: "atm_of ` lits_of_l (Propagated L () # F) \<subseteq> atms_of_ms A"
     using dpll_bj_atms_in_trail_in_set NA MA L by (auto simp: tr_S)
@@ -2586,7 +2586,7 @@ proof (induction n arbitrary: T)
   case 0
   then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_measure by auto
 next
-  case (Suc n) note IH =this(1)[OF _ this(3) this(4)] and S_T =this(2) and b_inv = this(3) and
+  case (Suc n) note IH = this(1)[OF _ this(3) this(4)] and S_T = this(2) and b_inv = this(3) and
   c_inv = this(4)
   obtain U :: 'st where S_U: "(cdcl\<^sub>N\<^sub>O\<^sub>T^^(Suc n)) S U" and U_T: "cdcl\<^sub>N\<^sub>O\<^sub>T U T" using S_T by auto
   then have "\<mu> A U < \<mu> A S - n" using IH[of U] by simp
@@ -2613,7 +2613,7 @@ proof (induction rule: rtranclp_induct)
   case base
   then show ?case by auto
 next
-  case (step T U) note IH =this(3)[OF this(4) this(5)] and st =this(1) and cdcl\<^sub>N\<^sub>O\<^sub>T= this(2) and
+  case (step T U) note IH = this(3)[OF this(4) this(5)] and st = this(1) and cdcl\<^sub>N\<^sub>O\<^sub>T = this(2) and
     b_inv = this(4) and c_inv = this(5)
   have "bound_inv A T"
     by (meson cdcl\<^sub>N\<^sub>O\<^sub>T_bound_inv rtranclp_imp_relpowp st step.prems)
@@ -2847,7 +2847,7 @@ proof (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_restart.induct)
   then show ?case by auto
 next
   case (restart_step m S T n U) note st = this(1) and f = this(2) and bound_inv = this(4) and
-    cdcl\<^sub>N\<^sub>O\<^sub>T_inv =this(5) and \<mu> = this(6)
+    cdcl\<^sub>N\<^sub>O\<^sub>T_inv = this(5) and \<mu> = this(6)
   then obtain m' where m: "m = Suc m'" by (cases m) auto
   have "\<mu> A S - m' = 0"
     using f bound_inv cdcl\<^sub>N\<^sub>O\<^sub>T_inv \<mu> m rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_raw_restart_measure_bound by fastforce
@@ -3211,7 +3211,7 @@ proof (induction rule: rtranclp_induct)
   case base
   then show ?case by auto
 next
-  case (step T U) note st =this(1) and cdcl\<^sub>N\<^sub>O\<^sub>T = this(2) and IH = this(3)[OF this(4-)] and
+  case (step T U) note st = this(1) and cdcl\<^sub>N\<^sub>O\<^sub>T = this(2) and IH = this(3)[OF this(4-)] and
     inv = this(4) and n_d = this(5)
   have "cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* T U"
     using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_is_tranclp_cdcl\<^sub>N\<^sub>O\<^sub>T[OF cdcl\<^sub>N\<^sub>O\<^sub>T] IH
@@ -4048,7 +4048,7 @@ next
 qed
 
 abbreviation \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound where
-"\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A T ==  ((2+card (atms_of_ms A)) ^ (1+card (atms_of_ms A))) * 2
+"\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A T \<equiv>  ((2+card (atms_of_ms A)) ^ (1+card (atms_of_ms A))) * 2
      + card (set_mset (not_simplified_cls(clauses\<^sub>N\<^sub>O\<^sub>T T)))
      + 3 ^ card (atms_of_ms A) "
 
@@ -4193,7 +4193,8 @@ proof induction
     by (auto dest: tranclp_into_rtranclp)
   then show ?case by (auto simp: card_mono set_mset_mono)
 next
-  case (restart_step m S T n U) note st = this(1) and U = this(3) and n_d =this(4) and inv = this(5)
+  case (restart_step m S T n U) note st = this(1) and U = this(3) and n_d = this(4) and 
+    inv = this(5)
   then have st': "cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn\<^sup>*\<^sup>* S T"
     by (blast dest: relpowp_imp_rtranclp)
   then have st'': "cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T"
