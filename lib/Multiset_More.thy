@@ -227,6 +227,9 @@ lemma size_mset_remove1_mset_le_iff:
   apply (rule mset_less_size)
   by (auto elim: in_countE simp: subset_mset_def multiset_eq_iff)
 
+lemma set_mset_remove1_mset[simp]:
+  "set_mset (remove1_mset L (mset W)) = set (remove1 L W)"
+  by (metis mset_remove1 set_mset_mset)
 
 subsection \<open>Replicate\<close>
 
@@ -380,6 +383,10 @@ lemma count_mset_set_if:
   "count (mset_set A) a = (if a \<in> A \<and> finite A then 1 else 0)"
   by auto
 
+lemma distinct_mset_mset_set:
+  "distinct_mset (mset_set A)"
+  unfolding distinct_mset_def count_mset_set_if by (auto simp: not_in_iff)
+
 lemma distinct_mset_rempdups_union_mset:
   assumes "distinct_mset A" and "distinct_mset B"
   shows "A #\<union> B = remdups_mset (A + B)"
@@ -402,7 +409,7 @@ lemma distinct_mset_add_single:
 
 lemma distinct_mset_single_add:
   "distinct_mset (L + {#a#}) \<longleftrightarrow> distinct_mset L \<and> a \<notin># L"
-  using add.commute[of L "{#a#}"] distinct_mset_add_single by force
+  unfolding add.commute[of L "{#a#}"] distinct_mset_add_single by fast
 
 lemma distinct_mset_size_eq_card:
   "distinct_mset C \<Longrightarrow> size C = card (set_mset C)"
@@ -422,9 +429,9 @@ proof (rule iffI)
   moreover have L': "distinct_mset L'"
     using \<open>distinct_mset (L + L')\<close> distinct_mset_union unfolding add.commute[of L L'] by blast
   moreover have "L #\<inter> L' = {#}"
-    using L L' unfolding multiset_inter_def multiset_eq_iff  by (metis Nat.diff_le_self
-      \<open>distinct_mset (L + L')\<close> add_diff_cancel_left' count_diff count_empty
-      diff_is_0_eq distinct_mset_count_less_1 eq_iff le_neq_implies_less less_one)
+    using L L' \<open>?A\<close> unfolding multiset_inter_def multiset_eq_iff distinct_mset_count_less_1
+    by (metis Nat.diff_le_self add_diff_cancel_left' count_diff count_empty diff_is_0_eq eq_iff
+      le_neq_implies_less less_one)
   ultimately show ?B by fast
 next
   assume ?B
@@ -450,8 +457,7 @@ lemma distinct_mset_set_mset_ident[simp]: "distinct_mset M \<Longrightarrow> mse
    apply (simp add: not_in_iff[symmetric])
   apply (case_tac "count M x = 1")
    apply (simp add: count_inI)
-  unfolding distinct_mset_count_less_1
-  by (meson le_neq_implies_less less_one)
+  unfolding distinct_mset_count_less_1 by (meson le_neq_implies_less less_one)
 
 lemma distinct_finite_set_mset_subseteq_iff[iff]:
   assumes dist: "distinct_mset M" and fin: "finite N"

@@ -7,6 +7,25 @@ section \<open>Implementation for 2 Watched-Literals\<close>
 theory CDCL_Two_Watched_Literals_Implementation
 imports CDCL_Two_Watched_Literals_Invariant
 begin
+text \<open>The general idea is the following:
+  \<^enum> Build a ``propagate'' queue and a conflict clause.
+  \<^enum> While updating the data-structure: if you find a conflicting clause, update the conflict
+  clause. Otherwise prepend the propagated clause.
+  \<^enum> While updating, when looking for conflicts and propagation, work with respect to the
+  trail of the state and the propagate queue (and not only the trail of the state).
+  \<^enum> As long as the propagate queue is not empty, dequeue the first element, push it on the
+  trail (with the @{term conflict_driven_clause_learning\<^sub>W.propagate} rule), propagate, and update
+  the data-structure.
+  \<^enum> if a conflict has been found such that it is entailed by the trail only (i.e.\ without
+  the propagate queue), then apply the @{term conflict_driven_clause_learning\<^sub>W.conflict} rule.\<close>
+text \<open>It is important to remember that a conflicting clause with respect to the trail and the queue
+  might not be the earliest conflicting clause, meaning that the proof of non-redundancy should not
+  work anymore.
+
+  However, once a conflict has been found, we can stop adding literals to the queue: we just have to
+  finish updating the data-structure (both to keep the invariant and find a potentially better
+  conflict). A conflict is better when it involves less literals, i.e.\ less propagations before
+  finding the conflict.\<close>
 datatype 'v candidate =
   Prop_Or_Conf
     (prop_queue: "('v, nat, 'v twl_clause) marked_lit list")
@@ -71,23 +90,17 @@ fun rewatch_nat_cand :: "'a literal \<Rightarrow> 'a twl_state_cands \<Rightarro
     (TWL_State (raw_trail S) N U (backtrack_lvl S) (raw_conflicting S))
     K')"
 
-lemma length_Suc_Suc_0: "length S = 2 \<longleftrightarrow> (\<exists>a b. S = [a, b])"
-  sorry
-lemma XX: "set_mset (remove1_mset (- lit_of l) (mset W)) = set (remove1 (-lit_of L) W)"
-apply auto
-sorry
 lemma
   assumes
-    undef: "undefined L M" and
-    "wf_twl_cls M C" and
+    undef: "undefined_lit (M @ prop_queue Ks) L" and
+    wf: "wf_twl_cls M C" and
     n_d: "no_dup (M @ prop_queue Ks)"
-  shows "no_dup (prop_queue (snd (rewatch_nat_cand_single_clause L M C (Cs, Ks))))"
+  shows "no_dup (M @ prop_queue (snd (rewatch_nat_cand_single_clause L M C (Cs, Ks))))"
   unfolding rewatch_nat_cand_single_clause.simps
   apply (cases Ks; cases C)
   apply (rename_tac M' Confl W UW)
-  using undef n_d apply (auto split: list.splits simp: atm_of_eq_atm_of filter_empty_conv
-    true_annots_true_cls_def_iff_negation_in_model lits_of_def length_Suc_Suc_0 image_Un
-    simp add: XX)
+  using undef n_d wf by (auto split: list.splits simp: atm_of_eq_atm_of filter_empty_conv
+    true_annots_true_cls_def_iff_negation_in_model lits_of_def length_list_2 image_Un
+    simp add: defined_lit_map) (* Very SLOW *)
 
-  oops
 end

@@ -113,6 +113,13 @@ lemma length_list_Suc_0:
   apply auto
   done
 
+lemma length_list_2: "length S = 2 \<longleftrightarrow> (\<exists>a b. S = [a, b])"
+  apply (cases S)
+   apply simp
+  apply (rename_tac a S')
+  apply (case_tac S')
+  by simp_all
+
 text \<open>The converse of @{thm append_cons_eq_upt} does not hold, for example if @{term B} is
 empty and @{term A} is @{term "[0]"}:\<close>
 lemma "A @ B = [m..< n] \<longleftrightarrow> A = [m ..<m+length A] \<and> B = [m + length A..<n]"
