@@ -640,7 +640,6 @@ skip_rule:
    T \<sim> tl_trail S \<Longrightarrow>
    skip S T"
 
-(* TODO? inductive_cases skipE: "skip S T" *)
 inductive_cases skipE: "skip S T"
 
 text \<open>@{term "get_maximum_level (Propagated L (C + {#L#}) # M) D = k \<or> k = 0"} (that was in a

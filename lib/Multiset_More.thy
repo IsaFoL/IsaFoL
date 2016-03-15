@@ -212,6 +212,22 @@ proof -
     by (metis (no_types) count_diff diff_zero mem_Collect_eq set_mset_def)
 qed
 
+lemma size_mset_removeAll_mset_le_iff:
+  "size (removeAll_mset x M) < size M \<longleftrightarrow> x \<in># M"
+  apply (rule iffI)
+    apply (force intro: count_inI)
+  apply (rule mset_less_size)
+  apply (auto simp: subset_mset_def multiset_eq_iff)
+  done
+
+lemma size_mset_remove1_mset_le_iff:
+  "size (remove1_mset x M) < size M \<longleftrightarrow> x \<in># M"
+  apply (rule iffI)
+    using less_irrefl apply fastforce
+  apply (rule mset_less_size)
+  by (auto elim: in_countE simp: subset_mset_def multiset_eq_iff)
+
+
 subsection \<open>Replicate\<close>
 
 lemma replicate_mset_plus: "replicate_mset (a + b) C = replicate_mset a C + replicate_mset b C"
@@ -496,9 +512,6 @@ lemma mset_filter_compl: "mset (filter p xs) + mset (filter (Not \<circ> p) xs) 
     (metis (no_types) add_diff_cancel_left' comp_apply filter.simps(2) mset.simps(2)
        mset_compl_union)
 
-lemma singleton_subseteq_iff[iff]: "{#x#} \<subseteq># A \<longleftrightarrow> x \<in># A"
-  by (meson mset_leD mset_le_single multi_member_last)
-
 lemma image_mset_subseteq_mono: "A \<subseteq># B \<Longrightarrow> image_mset f A \<subseteq># image_mset f B"
   by (metis image_mset_union subset_mset.le_iff_add)
 
@@ -531,8 +544,7 @@ lemma msetsum_distrib[simp]:
 
 lemma msetsum_union_disjoint:
   assumes "A #\<inter> B = {#}"
-  shows "(\<Sum>La\<in>#A #\<union> B. f La) =
-    (\<Sum>La\<in>#A. f La) + (\<Sum>La\<in>#B. f La)"
+  shows "(\<Sum>La\<in>#A #\<union> B. f La) = (\<Sum>La\<in>#A. f La) + (\<Sum>La\<in>#B. f La)"
   by (metis assms diff_zero empty_sup image_mset_union  msetsum.union multiset_inter_commute
     multiset_union_diff_commute sup_subset_mset_def zero_diff)
 
