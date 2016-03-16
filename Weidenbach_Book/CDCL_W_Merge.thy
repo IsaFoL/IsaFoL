@@ -1704,8 +1704,8 @@ lemma rtranclp_cdcl\<^sub>W_cp_conflicting_Some:
   using rtranclpD tranclpD by fastforce
 
 inductive cdcl\<^sub>W_merge_cp :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
-conflict'[intro]: "conflict S T \<Longrightarrow> full cdcl\<^sub>W_bj T U \<Longrightarrow> cdcl\<^sub>W_merge_cp S U" |
-propagate'[intro]: "propagate\<^sup>+\<^sup>+ S S' \<Longrightarrow> cdcl\<^sub>W_merge_cp S S'"
+conflict': "conflict S T \<Longrightarrow> full cdcl\<^sub>W_bj T U \<Longrightarrow> cdcl\<^sub>W_merge_cp S U" |
+propagate': "propagate\<^sup>+\<^sup>+ S S' \<Longrightarrow> cdcl\<^sub>W_merge_cp S S'"
 
 lemma cdcl\<^sub>W_merge_restart_cases[consumes 1, case_names conflict propagate]:
   assumes
@@ -1859,7 +1859,7 @@ next
         proof cases
           case propa
           then have "cdcl\<^sub>W_merge_cp U V"
-            by auto
+            by (auto intro: cdcl\<^sub>W_merge_cp.intros)
           moreover have "conflicting V = None"
             using propa unfolding tranclp_unfold_end by (auto elim: rulesE)
           ultimately show ?thesis using \<open>cdcl\<^sub>W_merge_cp\<^sup>*\<^sup>* S U\<close> by (auto elim!: rulesE
@@ -1869,7 +1869,7 @@ next
           then show ?thesis using \<open>cdcl\<^sub>W_merge_cp\<^sup>*\<^sup>* S U\<close> by auto
         next
           case propa_confl' note propa = this(1) and confl' = this(2)
-          then have "cdcl\<^sub>W_merge_cp U U'" by auto
+          then have "cdcl\<^sub>W_merge_cp U U'" by (auto intro: cdcl\<^sub>W_merge_cp.intros)
           then have "cdcl\<^sub>W_merge_cp\<^sup>*\<^sup>* S U'" using \<open>cdcl\<^sub>W_merge_cp\<^sup>*\<^sup>* S U\<close> by auto
           then show ?thesis using \<open>cdcl\<^sub>W_merge_cp\<^sup>*\<^sup>* S U\<close> confl' by auto
         qed
@@ -1894,7 +1894,7 @@ next
       then show ?thesis
         proof cases
           case propa
-          then have "cdcl\<^sub>W_merge_cp U' V" by auto
+          then have "cdcl\<^sub>W_merge_cp U' V" by (blast intro: cdcl\<^sub>W_merge_cp.intros)
           moreover have "conflicting V = None"
             using propa unfolding tranclp_unfold_end by (auto elim: rulesE)
           ultimately show ?thesis using S_U' by (auto elim: rulesE
@@ -1904,7 +1904,7 @@ next
           then show ?thesis using S_U' by auto
         next
           case propa_confl' note propa = this(1) and confl = this(2)
-          have "cdcl\<^sub>W_merge_cp U' U''" using propa by auto
+          have "cdcl\<^sub>W_merge_cp U' U''" using propa by (blast intro: cdcl\<^sub>W_merge_cp.intros)
           then show ?thesis using S_U' confl by (meson rtranclp.rtrancl_into_rtrancl)
         next
           case n_s
@@ -1947,7 +1947,7 @@ proof (rule ccontr)
     proof cases
       case conflict'_without_decide
       have "no_step propagate S"
-        using n_s by blast
+        using n_s by (blast intro: cdcl\<^sub>W_merge_cp.intros)
       then have "conflict S T"
         using local.conflict' tranclp_cdcl\<^sub>W_cp_propagate_with_conflict_or_not[of S T]
         local.conflict'_without_decide unfolding full1_def  rtranclp_unfold
@@ -2407,7 +2407,7 @@ next
               then show ?thesis using \<open>R = V\<close> n_s_R by simp
             next
               case propa
-              then show ?thesis using \<open>R = V\<close> by auto
+              then show ?thesis using \<open>R = V\<close> by (auto intro: cdcl\<^sub>W_merge_cp.intros)
             next
               case propa_confl
               moreover
@@ -2534,8 +2534,7 @@ next
                 using \<open>cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R V\<close> decide' \<open>no_step cdcl\<^sub>W_merge_cp V\<close> by blast
             next
               case propa
-              moreover then have "cdcl\<^sub>W_merge_cp V' W"
-                by auto
+              moreover then have "cdcl\<^sub>W_merge_cp V' W" by (blast intro: cdcl\<^sub>W_merge_cp.intros)
               ultimately show ?thesis
                 using \<open>cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R V\<close> decide' \<open>no_step cdcl\<^sub>W_merge_cp V\<close>
                 by (meson r_into_rtranclp)
@@ -2574,7 +2573,7 @@ next
             next
               case propa
               moreover then have "cdcl\<^sub>W_merge_cp V' W"
-                by auto
+                by (blast intro: cdcl\<^sub>W_merge_cp.intros)
               ultimately show ?thesis using \<open>cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* R V\<close> decide'
                 \<open>no_step cdcl\<^sub>W_merge_cp V\<close> by (meson r_into_rtranclp)
             next
@@ -2660,8 +2659,7 @@ next
                 qed
             next
               case propa
-              moreover then have "cdcl\<^sub>W_merge_cp V' W"
-                by auto
+              moreover then have "cdcl\<^sub>W_merge_cp V' W" by (blast intro: cdcl\<^sub>W_merge_cp.intros)
               ultimately show ?thesis using decide' by (meson \<open>cdcl\<^sub>W_merge_cp\<^sup>*\<^sup>* T V'\<close> dec_confl(1-3)
                 rtranclp.rtrancl_into_rtrancl)
             next
@@ -2726,7 +2724,7 @@ next
             next
               case propa
               moreover then have "cdcl\<^sub>W_merge_cp V' W"
-                by auto
+                by (blast intro: cdcl\<^sub>W_merge_cp.intros)
               ultimately show ?thesis using \<open>cdcl\<^sub>W_merge_cp U V'\<close> cp_confl(1) by force
             next
               case propa_confl

@@ -1,7 +1,8 @@
 theory Prop_Superposition
 imports Partial_Clausal_Logic "../lib/Herbrand_Interpretation"
 begin
-sledgehammer_params[verbose]
+section \<open>Superposition\<close>
+
 no_notation Herbrand_Interpretation.true_cls (infix "\<Turnstile>" 50)
 notation Herbrand_Interpretation.true_cls (infix "\<Turnstile>h" 50)
 
@@ -50,7 +51,8 @@ context
   fixes N :: "'a clause set"
 begin
 
-text \<open>We do not create an equivalent of @{term \<delta>}, but we directly defined @{term N\<^sub>C} by inlining the definition.\<close>
+text \<open>We do not create an equivalent of @{term \<delta>}, but we directly defined @{term N\<^sub>C} by inlining
+  the definition.\<close>
 function
   production :: "'a clause \<Rightarrow> 'a interp"
 where
@@ -75,7 +77,8 @@ abbreviation produces :: "'a clause \<Rightarrow> 'a \<Rightarrow> bool" where
   "produces C A \<equiv> production C = {A}"
 
 lemma producesD:
-  "produces C A \<Longrightarrow> C \<in> N \<and> C \<noteq> {#} \<and> Pos A = Max (set_mset C) \<and> count C (Pos A) \<le> 1\<and> \<not> interp C \<Turnstile>h C \<and> S C = {#}"
+  "produces C A \<Longrightarrow> C \<in> N \<and> C \<noteq> {#} \<and> Pos A = Max (set_mset C) \<and> count C (Pos A) \<le> 1 \<and>
+    \<not> interp C \<Turnstile>h C \<and> S C = {#}"
   unfolding production_unfold by auto
 
 lemma "produces C A \<Longrightarrow> Pos A \<in># C"
@@ -277,7 +280,8 @@ next
     using a_in_c subs not_produces_imp_notin_production by auto
 qed
 
-text \<open>This lemma corresponds to \cwref{prop:prop:suppmcprop}{theorem 2.7.6 page 66}. Here the strict maximality is important\<close>
+text \<open>This lemma corresponds to \cwref{prop:prop:suppmcprop}{theorem 2.7.6 page 66}. Here the strict
+  maximality is important\<close>
 lemma true_interp_imp_interp: "C #\<subseteq># D \<Longrightarrow> D #\<subset># D' \<Longrightarrow> interp D \<Turnstile>h C \<Longrightarrow> interp D' \<Turnstile>h C"
   using interp_def true_interp_imp_general by simp
 
@@ -292,7 +296,8 @@ lemma true_interp_imp_INTERP: "C #\<subseteq># D \<Longrightarrow> interp D \<Tu
 lemma productive_imp_false_interp: "productive C \<Longrightarrow> \<not> interp C \<Turnstile>h C"
   unfolding production_unfold by auto
 
-text \<open>This lemma corresponds to \cwref{prop:prop:suppmcprop}{theorem 2.7.6 page 66}. Here the strict maximality is important\<close>
+text \<open>This lemma corresponds to \cwref{prop:prop:suppmcprop}{theorem 2.7.6 page 66}. Here the strict
+  maximality is important\<close>
 lemma cls_gt_double_pos_no_production:
   assumes D: "{#Pos P, Pos P#} #\<subset># C"
   shows "\<not>produces C P"
@@ -444,7 +449,8 @@ proof -
             (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I})) \<in> I
             \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I}"
         by auto
-      hence "total_over_set (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I}) (atms_of_ms A \<union> atms_of_ms {B})"
+      hence "total_over_set (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I})
+        (atms_of_ms A \<union> atms_of_ms {B})"
         using f2 by (meson total_over_set_def)
       thus ?thesis
         by (simp add: total_over_m_def)
