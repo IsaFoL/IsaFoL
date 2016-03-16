@@ -46,6 +46,10 @@ fun find_earliest_conflict :: "('v, nat, 'v twl_clause) marked_lits \<Rightarrow
   | (True, False) \<Rightarrow> C
   | _ \<Rightarrow> C)"
 
+lemma find_earliest_conflict_cases:
+  "find_earliest_conflict M C (Some D) = C \<or> find_earliest_conflict M C (Some D) = D"
+  by (induction M) (auto split: bool.splits)
+  
 text \<open>While updating the clauses, there are several cases:
   \<^item> @{term L} is not watched and there is nothing to do;
   \<^item> there is a literal to be watched: there are swapped;
@@ -89,18 +93,81 @@ fun rewatch_nat_cand :: "'a literal \<Rightarrow> 'a twl_state_cands \<Rightarro
   TWL_State_Cand
     (TWL_State (raw_trail S) N U (backtrack_lvl S) (raw_conflicting S))
     K')"
+lemmas XX = imageI["of" _ "set _" "(\<lambda>l. atm_of (lit_of l))"]
 
 lemma no_dup_rewatch_nat_cand_single_clause:
+  fixes L :: "'v literal"
   assumes
-    undef: "undefined_lit (M @ prop_queue Ks) L" and
+    L: "L \<in> lits_of_l M" and
     wf: "wf_twl_cls M C" and
     n_d: "no_dup (M @ prop_queue Ks)"
   shows "no_dup (M @ prop_queue (snd (rewatch_nat_cand_single_clause L M C (Cs, Ks))))"
   unfolding rewatch_nat_cand_single_clause.simps
   apply (cases Ks; cases C)
   apply (rename_tac M' Confl W UW)
-  using undef n_d wf by (auto split: list.splits simp: length_list_2 defined_lit_map) (* SLOW ~3s*)
+  using L n_d wf apply (auto split: list.splits simp: length_list_2 defined_lit_map
+    atm_of_eq_atm_of lits_of_def image_Un dest: XX)
 
+  apply (drule imageI["of" _ "set _" "(\<lambda>l. atm_of (lit_of l))"])
+proof -
+  fix M' :: "('v, nat, 'v twl_clause) marked_lit list" and UW :: "'v literal list" and l :: "('v, nat, 'v twl_clause) marked_lit" and a :: "'v literal"
+  assume a1: "lit_of l \<in> lits_of_l M"
+  assume a2: "(\<lambda>l. atm_of (lit_of l)) ` set M \<inter> (\<lambda>l. atm_of (lit_of l)) ` set M' = {}"
+  assume a3: "L = lit_of l"
+  assume a4: "atm_of (lit_of l) \<in> (\<lambda>l. atm_of (lit_of l)) ` set M'"
+  have "L \<in> lit_of ` set M"
+    using a3 a1 lits_of_def by blast
+  then show False
+    using a4 a3 a2 by (metis (no_types) IntI XX empty_iff imageE)
+next
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  apply (auto simp add: lits_of_def dest: imageI["of" _ "set _" "(\<lambda>l. atm_of (lit_of l))"])[]
+proof -
+  fix M' :: "('a, nat, 'a twl_clause) marked_lit list" and UW :: "'a literal list" and l :: "('a, nat, 'a twl_clause) marked_lit" and a :: "'a literal" and x :: "('a, nat, 'a twl_clause) marked_lit"
+  assume a1: "l \<in> set M'"
+  assume a2: "L = lit_of x"
+  assume a3: "x \<in> set M"
+  assume a4: "lit_of l = lit_of x"
+  assume "(\<lambda>l. atm_of (lit_of l)) ` set M \<inter> (\<lambda>l. atm_of (lit_of l)) ` set M' = {}"
+  then have "atm_of L \<notin> (\<lambda>m. atm_of (lit_of m)) ` set M"
+    using a4 a2 a1 by (metis (no_types) IntI empty_iff imageI["of" _ _ "(\<lambda>l. atm_of (lit_of l))"]) (* 154 ms *)
+  then show False
+    using a3 a2 by blast (* 3 ms *)
+next
+  
+oops  
 
 lemma 
   assumes
@@ -112,7 +179,8 @@ lemma
   shows "M @ prop_queue Ks \<Turnstile>as CNot (mset (raw_clause D'))"
   apply (cases Ks; cases C)
   apply (rename_tac M' Confl W UW)
-  using assms (* by (auto split: list.splits if_splits simp: length_list_2 defined_lit_map
-    rewatch_nat_cand_single_clause.simps) *) (* SLOW ~3s*)
+  using assms find_earliest_conflict_cases[of M C D] 
+  apply (auto split: list.splits if_splits simp: length_list_2 defined_lit_map
+    rewatch_nat_cand_single_clause.simps raw_clause_def) 
 oops
 end

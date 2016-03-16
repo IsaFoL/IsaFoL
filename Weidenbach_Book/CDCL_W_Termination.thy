@@ -962,14 +962,6 @@ proof -
     by (meson atms_of_ms_finite simple_clss_card finite_set_mset order_trans)
 qed
 
-lemma lexn3[intro!, simp]:
-  "a < a' \<or> (a = a' \<and> b < b') \<or> (a = a' \<and> b = b' \<and> c < c')
-    \<Longrightarrow> ([a::nat, b, c], [a', b', c']) \<in> lexn {(x, y). x < y} 3"
-  apply auto
-  unfolding lexn_conv apply fastforce
-  unfolding lexn_conv apply auto
-  apply (metis append.simps(1) append.simps(2))+
-  done
 
 lemma cdcl\<^sub>W_measure_decreasing:
   fixes S :: 'st
@@ -1009,7 +1001,7 @@ proof (induct rule: cdcl\<^sub>W_all_induct_lev2)
   then have H: "card (atms_of_mm (init_clss S)) - length (trail S)
     = Suc (card (atms_of_mm (init_clss S)) - Suc (length (trail S)))"
     by simp
-  show ?case using conf T undef by (auto simp: H)
+  show ?case using conf T undef by (auto simp: H lexn3_conv)
 next
   case (decide L) note conf = this(1) and undef = this(2) and T = this(4)
   moreover
@@ -1029,16 +1021,16 @@ next
       using no_dup undef
       length_model_le_vars[of "cons_trail (Marked L (backtrack_lvl S + 1)) (incr_lvl S)"]
       by fastforce
-  ultimately show ?case using conf by auto
+  ultimately show ?case using conf by (simp add: lexn3_conv)
 next
   case (skip L C' M D) note tr = this(1) and conf = this(2) and T = this(5)
-  show ?case using conf T by (simp add: tr)
+  show ?case using conf T by (simp add: tr lexn3_conv)
 next
   case conflict
-  then show ?case by simp
+  then show ?case by (simp add: lexn3_conv)
 next
   case resolve
-  then show ?case using finite by simp
+  then show ?case using finite by (simp add: lexn3_conv)
 next
   case (backtrack K i M1 M2 L D T) note conf = this(1) and decomp = this(3) and undef = this(7) and
     T = this(8) and lev = this(9)
@@ -1072,7 +1064,7 @@ next
     \<ge> card (set_mset ({#mset_ccls D#} + learned_clss S))"
     using le_trans by blast
   then show ?case using decomp undef diff_less_mono2 card_T T M_level
-    by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
+    by (auto simp: cdcl\<^sub>W_M_level_inv_decomp lexn3_conv)
 next
   case restart
   then show ?case using alien by (auto simp: state_eq_def simp del: state_simp)
@@ -1208,13 +1200,13 @@ proof -
             using inv unfolding cdcl\<^sub>W_all_struct_inv_def by simp
         next
           case skip
-          then show ?case by force
+          then show ?case by (auto simp: lexn3_conv)
         next
           case resolve
-          then show ?case by force
+          then show ?case by (auto simp: lexn3_conv)
         qed
       ultimately show ?case
-        by (metis lexn_transI transD trans_le)
+        by (metis (full_types) lexn_transI transD trans_le)
     qed
 qed
 

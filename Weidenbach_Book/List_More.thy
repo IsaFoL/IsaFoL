@@ -205,16 +205,32 @@ proof -
       upt_eq_Cons_conv upt_rec ys)
 qed
 
-subsection \<open>Lexicographic ordering\<close>
+subsection \<open>Lexicographic Ordering\<close>
+lemma lexn_Suc:
+  "(x # xs, y # ys) \<in> lexn r (Suc n) \<longleftrightarrow>
+  (length xs = n \<and> length ys = n) \<and> ((x, y) \<in> r \<or> (x = y \<and> (xs, ys) \<in> lexn r n))"
+  by (auto simp: map_prod_def image_iff lex_prod_def)
 
-text \<open>We are working a lot on lexicographic ordering over pairs.\<close>
-lemma list_length2_append_cons:
-  "[c, d] = ys @ y # ys' \<longleftrightarrow> (ys = [] \<and> y = c \<and> ys' = [d]) \<or> (ys = [c] \<and> y = d \<and> ys' = [])"
-  by (cases ys; cases ys') auto
+lemma lexn_n:
+  "n > 0 \<Longrightarrow> (x # xs, y # ys) \<in> lexn r n \<longleftrightarrow>
+  (length xs = n-1 \<and> length ys = n-1) \<and> ((x, y) \<in> r \<or> (x = y \<and> (xs, ys) \<in> lexn r (n - 1)))"
+  apply (cases n)
+   apply simp
+  by (auto simp: map_prod_def image_iff lex_prod_def)
+
+text \<open>There is some subtle point in the proof here. @{term "1::nat"} is converted to
+  @{term "Suc 0::nat"}, but  @{term "2::nat"} is not: meaning that @{term "1::nat"} is automatically
+  simplified by default using the default simplification rule @{thm lexn.simps}. However, the
+  latter needs additional simplification rule.\<close>
 
 lemma lexn2_conv:
   "([a, b], [c, d]) \<in> lexn r 2 \<longleftrightarrow> (a, c) \<in> r \<or> (a = c \<and> (b, d) \<in>r)"
-  unfolding lexn_conv by (auto simp add: list_length2_append_cons)
+  by (auto simp: lexn_n simp del: lexn.simps(2))
+
+lemma lexn3_conv:
+  "([a, b, c], [a', b', c']) \<in> lexn r 3 \<longleftrightarrow>
+    (a, a') \<in> r \<or> (a = a' \<and> (b, b') \<in> r) \<or> (a = a' \<and> b = b' \<and> (c, c') \<in> r)"
+  by (auto simp: lexn_n simp del: lexn.simps(2))
 
 subsection \<open>Remove and Multiset equality\<close>
 
@@ -239,10 +255,11 @@ fun removeAll_cond where
   (if f C' then removeAll_cond f L else C' # removeAll_cond f L)"
 
 lemma mset_map_mset_removeAll_cond:
-  "mset (map mset (removeAll_cond (\<lambda>b. mset b = mset a) C)) 
+  "mset (map mset (removeAll_cond (\<lambda>b. mset b = mset a) C))
     = removeAll_mset (mset a) (mset (map mset C))"
   by (induction C) (auto simp: ac_simps mset_less_eqI multiset_diff_union_assoc)
 
+text \<open>Take from @{file "../lib/Multiset_More.thy"}, but named:\<close>
 abbreviation union_mset_list where
 "union_mset_list xs ys \<equiv> case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
 
@@ -254,4 +271,5 @@ proof -
     by (induct xs arbitrary: ys) (simp_all add: multiset_eq_iff)
   then show ?thesis by simp
 qed
+
 end
