@@ -107,10 +107,11 @@ lemma grouped_by_COr_mset_of_formula:
   "grouped_by COr \<phi> \<Longrightarrow> mset_of_formula \<phi> = (if \<phi> = FT then {} else {mset_of_conj \<phi>})"
   by (induction \<phi>) (auto simp add: grouped_by_COr_FNot)
 
-text \<open>When a formula is in CNF form, then there is equisatisfiability. Remark that the definition
-  for the entailment are slightly different: @{term eval} uses a function assigning @{term True} or
-  @{term False}, while @{term Partial_Clausal_Logic.true_clss} uses a set where being in the list
-  means entailment of a literal.
+text \<open>When a formula is in CNF form, then there is equisatisfiability between the multiset version 
+  and the CNF form. Remark that the definition for the entailment are slightly different: 
+  @{term eval} uses a function assigning @{term True} or @{term False}, while 
+  @{term Partial_Clausal_Logic.true_clss} uses a set where being in the list means entailment of a 
+  literal.
   \<close>
 theorem 
   fixes \<phi> :: "'v propo"
