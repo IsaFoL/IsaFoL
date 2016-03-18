@@ -43,7 +43,7 @@ lemma lits_of_insert[simp]:
   "lits_of (insert L Ls) = insert (lit_of L) (lits_of Ls)"
   unfolding lits_of_def by auto
 
-lemma lits_of_l_append[simp]:
+lemma lits_of_l_Un[simp]:
   "lits_of (l \<union> l') = lits_of l \<union> lits_of l'"
   unfolding lits_of_def by auto
 
