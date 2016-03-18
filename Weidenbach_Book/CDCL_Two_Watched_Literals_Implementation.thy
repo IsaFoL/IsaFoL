@@ -36,20 +36,22 @@ datatype 'v twl_state_cands =
     (cand: "'v candidate")
 
 fun find_earliest_conflict :: "('v, nat, 'v twl_clause) marked_lits \<Rightarrow>
-  'v twl_clause \<Rightarrow> 'v twl_clause option \<Rightarrow> 'v twl_clause" where
+  'v twl_clause option \<Rightarrow> 'v twl_clause option \<Rightarrow> 'v twl_clause option" where
+"find_earliest_conflict _ None C = C" |
 "find_earliest_conflict _ C None = C" |
 "find_earliest_conflict [] C _ = C" |
-"find_earliest_conflict (L # M) C (Some D) =
+"find_earliest_conflict (L # M) (Some C) (Some D) =
   (case (M \<Turnstile>a mset (raw_clause C), \<not>M\<Turnstile>a mset (raw_clause D)) of
-    (True, True) \<Rightarrow> find_earliest_conflict M C (Some D)
-  | (False, True) \<Rightarrow> D
-  | (True, False) \<Rightarrow> C
-  | _ \<Rightarrow> C)"
+    (True, True) \<Rightarrow> find_earliest_conflict M (Some C) (Some D)
+  | (False, True) \<Rightarrow> Some D
+  | (True, False) \<Rightarrow> Some C
+  | _ \<Rightarrow> Some C)"
 
 lemma find_earliest_conflict_cases:
-  "find_earliest_conflict M C (Some D) = C \<or> find_earliest_conflict M C (Some D) = D"
+  "find_earliest_conflict M (Some C) (Some D) = Some C \<or>
+   find_earliest_conflict M (Some C) (Some D) = Some D"
   by (induction M) (auto split: bool.splits)
-  
+
 text \<open>While updating the clauses, there are several cases:
   \<^item> @{term L} is not watched and there is nothing to do;
   \<^item> there is a literal to be watched: there are swapped;
@@ -58,7 +60,9 @@ text \<open>While updating the clauses, there are several cases:
   \<^item> there is no literal to be watched, but the other literal is true: there is nothing to
   do;
   \<^item> there is no literal to be watched, but the other literal is false: the clause is a
-  conflict candidate.\<close>
+  conflict candidate.
+
+  The function returns a couple composed of a list of clauses and a candidate.\<close>
 fun
   rewatch_nat_cand_single_clause ::
   "'v literal \<Rightarrow> ('v, nat, 'v twl_clause) marked_lits \<Rightarrow> 'v twl_clause \<Rightarrow>
@@ -67,17 +71,19 @@ fun
 where
 "rewatch_nat_cand_single_clause L M C (Cs, Ks) =
   (if - L \<in> set (watched C) then
-     case filter (\<lambda>L'. L' \<notin> set (watched C) \<and> - L' \<notin> insert L (lits_of_l M))
-        (unwatched C) of
+     case filter (\<lambda>L'. L' \<notin> set (watched C) \<and> - L' \<notin> insert L (lits_of_l M)) (unwatched C) of
        [] \<Rightarrow>
-         (if M @ prop_queue Ks \<Turnstile>as CNot (mset (remove1 (-L) (watched C)))
-         then (C # Cs, Prop_Or_Conf (prop_queue Ks)
-           (Some (find_earliest_conflict M C (conflict Ks))))
-         else
-           if set (remove1 (-L) (watched C)) \<subseteq> lits_of_l (M @ prop_queue Ks)
-             (* it contains at most one variable, so it is easy to do in practice *)
-           then (if conflict Ks = None then C # Cs else Cs, Ks)
-           else (C # Cs, Prop_Or_Conf (Propagated L C # prop_queue Ks) (conflict Ks)))
+         (case remove1 (-L) (watched C) of (* contains at most a single element *)
+             [] \<Rightarrow> (C # Cs, Prop_Or_Conf (prop_queue Ks)
+               (find_earliest_conflict (M @ prop_queue Ks) (Some C) (conflict Ks)))
+           | L' # _ \<Rightarrow>
+             if undefined_lit (M @ prop_queue Ks) L'
+             then (C # Cs, Prop_Or_Conf (Propagated L' C # prop_queue Ks) (conflict Ks))
+             else
+               (if -L' \<in> lits_of_l (M @ prop_queue Ks)
+               then (C # Cs, Prop_Or_Conf (prop_queue Ks)
+                 (find_earliest_conflict (M @ prop_queue Ks) (Some C) (conflict Ks)))
+               else (C # Cs, Ks)))
      | L' # _ \<Rightarrow>
        (TWL_Clause (L' # remove1 (-L) (watched C)) (-L # remove1 L' (unwatched C)) # Cs, Ks)
   else
@@ -85,102 +91,189 @@ where
 
 declare rewatch_nat_cand_single_clause.simps[simp del]
 
-fun rewatch_nat_cand :: "'a literal \<Rightarrow> 'a twl_state_cands \<Rightarrow> 'a twl_state_cands"  where
-"rewatch_nat_cand L (TWL_State_Cand S Ks) =
-  (let update = \<lambda>Cs Ks. foldr (rewatch_nat_cand_single_clause L (raw_trail S)) Cs ([], Ks);
-    (N, K) = update (raw_init_clss S) Ks;
-    (U, K') = update (raw_learned_clss S) K in
-  TWL_State_Cand
-    (TWL_State (raw_trail S) N U (backtrack_lvl S) (raw_conflicting S))
-    K')"
-lemmas XX = imageI["of" _ "set _" "(\<lambda>l. atm_of (lit_of l))"]
+lemma remove1_nil:
+  "remove1 (- L) W = [] \<longleftrightarrow> (W = [] \<or> W = [-L])"
+  by (cases W) auto
+
+lemma XX: "set UW \<subseteq> {- L} \<longleftrightarrow> (UW = [] \<or> (\<exists>n. UW = -L # replicate n (-L)))"
+  by (induction UW) (auto intro: exI[of _ "Suc _"])
+
+lemma [simp]: "CNot (mset (replicate n (- L))) = (if n = 0 then {} else {{#L#}})"
+  by (induction n) auto
+
+lemma rewatch_nat_cand_single_clause_cases[consumes 1, case_names lit_notin propagate conflict
+  no_conflict update_cls]:
+  assumes
+    wf: "wf_twl_cls (M @ prop_queue Ks) C" and
+    lit_notin: "-L \<notin> set (watched C) \<Longrightarrow>
+      rewatch_nat_cand_single_clause L M C (Cs, Ks) = (C # Cs, Ks) \<Longrightarrow>
+      P"
+      and
+    single_lit_watched: "-L \<in> set (watched C) \<Longrightarrow>
+      filter (\<lambda>L'. L' \<notin> set (watched C) \<and> - L' \<notin> insert L (lits_of_l M)) (unwatched C) = [] \<Longrightarrow>
+      watched C = [-L] \<Longrightarrow>
+      set (unwatched C) \<subseteq> {-L} \<Longrightarrow>
+      rewatch_nat_cand_single_clause L M C (Cs, Ks) = (C # Cs, Prop_Or_Conf (prop_queue Ks)
+        (find_earliest_conflict (M @ prop_queue Ks) (Some C) (conflict Ks))) \<Longrightarrow>
+      P"
+      and
+    propagate: "\<And>L'. -L \<in> set (watched C) \<Longrightarrow>
+      filter (\<lambda>L'. L' \<notin> set (watched C) \<and> - L' \<notin> insert L (lits_of_l M)) (unwatched C) = [] \<Longrightarrow>
+      set (watched C) = {-L, L'} \<Longrightarrow>
+      undefined_lit (M @ prop_queue Ks) L' \<Longrightarrow>
+      rewatch_nat_cand_single_clause L M C (Cs, Ks) =
+        (C # Cs, Prop_Or_Conf (Propagated L' C # prop_queue Ks) (conflict Ks)) \<Longrightarrow>
+      P"
+      and
+    conflict: "\<And>L'. -L \<in> set (watched C) \<Longrightarrow>
+      filter (\<lambda>L'. L' \<notin> set (watched C) \<and> - L' \<notin> insert L (lits_of_l M)) (unwatched C) = [] \<Longrightarrow>
+      set (watched C) = {-L, L'} \<Longrightarrow>
+      -L' \<in> lits_of_l (M @ prop_queue Ks) \<Longrightarrow>
+      rewatch_nat_cand_single_clause L M C (Cs, Ks) = (C # Cs, Prop_Or_Conf (prop_queue Ks)
+        (find_earliest_conflict (M @ prop_queue Ks) (Some C) (conflict Ks))) \<Longrightarrow>
+      P"
+      and
+    no_conflict: "\<And>L'. -L \<in> set (watched C) \<Longrightarrow>
+      filter (\<lambda>L'. L' \<notin> set (watched C) \<and> - L' \<notin> insert L (lits_of_l M)) (unwatched C) = [] \<Longrightarrow>
+      set (watched C) = {-L, L'} \<Longrightarrow>
+      L' \<in> lits_of_l (M @ prop_queue Ks) \<Longrightarrow>
+      rewatch_nat_cand_single_clause L M C (Cs, Ks) = (C # Cs, Ks) \<Longrightarrow>
+      P"
+      and
+    update_cls: "\<And>L' fUW. -L \<in> set (watched C) \<Longrightarrow>
+      filter (\<lambda>L'. L' \<notin> set (watched C) \<and> - L' \<notin> insert L (lits_of_l M)) (unwatched C) = L' # fUW
+        \<Longrightarrow>
+      rewatch_nat_cand_single_clause L M C (Cs, Ks) =
+        (TWL_Clause (L' # remove1 (-L) (watched C)) (-L # remove1 L' (unwatched C)) # Cs, Ks) \<Longrightarrow>
+      P"
+  shows P
+proof -
+  show ?thesis
+    proof (cases "- L \<notin> set (watched C)")
+      case l: True
+      then show ?thesis
+        by (rule lit_notin; auto simp add: rewatch_nat_cand_single_clause.simps)
+    next
+      case False
+      then have L: "- L \<in> set (watched C)"
+        by blast
+      show ?thesis
+        proof (cases "filter (\<lambda>L'. L' \<notin> set (watched C) \<and> - L' \<notin> insert L (lits_of_l M))
+          (unwatched C)")
+          case (Cons L' fUW)
+          then show ?thesis
+            apply - by (rule update_cls; auto simp add: rewatch_nat_cand_single_clause.simps L)
+        next
+          case filter: Nil
+          then show ?thesis
+            proof (cases "remove1 (-L) (watched C)")
+              case Nil
+              then show ?thesis apply -
+                apply (rule single_lit_watched; cases C)
+                using wf L filter by (auto simp: rewatch_nat_cand_single_clause.simps length_list_2
+                  remove1_nil)[5]
+            next
+              case (Cons L' fW)
+              then have dist: "distinct (watched C)" and l_W: "length (watched C) \<le> 2"
+                using wf by (cases C, auto)+
+              then have [simp]: "fW = []" using Cons
+                by (metis L One_nat_def Suc_1 Suc_eq_plus1 add_diff_cancel_left' add_right_imp_eq
+                  diff_is_0_eq le_Suc_eq length_0_conv length_remove1 list.distinct(1) list.size(4))
+              then have C: "set (watched C) = {-L, L'}"
+                using l_W L dist arg_cong[OF Cons, of set, simplified] by auto
+              show ?thesis
+                apply (cases "undefined_lit (M @ prop_queue Ks) L'")
+                apply (rule propagate)
+                  using L filter C Cons apply (auto simp: rewatch_nat_cand_single_clause.simps)[5]
+                apply (cases "-L' \<in> lits_of_l (M @ prop_queue Ks)")
+                apply (rule conflict)
+                  using L filter C Cons apply (auto simp: rewatch_nat_cand_single_clause.simps)[5]
+                apply (rule no_conflict)
+                  using L filter C Cons by (auto simp: rewatch_nat_cand_single_clause.simps
+                    defined_lit_map lits_of_def image_Un atm_of_eq_atm_of)
+            qed
+        qed
+    qed
+qed
 
 lemma no_dup_rewatch_nat_cand_single_clause:
   fixes L :: "'v literal"
   assumes
     L: "L \<in> lits_of_l M" and
-    wf: "wf_twl_cls M C" and
+    wf: "wf_twl_cls (M @ prop_queue Ks) C" and
     n_d: "no_dup (M @ prop_queue Ks)"
   shows "no_dup (M @ prop_queue (snd (rewatch_nat_cand_single_clause L M C (Cs, Ks))))"
-  unfolding rewatch_nat_cand_single_clause.simps
-  apply (cases Ks; cases C)
-  apply (rename_tac M' Confl W UW)
-  using L n_d wf apply (auto split: list.splits simp: length_list_2 defined_lit_map
-    atm_of_eq_atm_of lits_of_def image_Un dest: XX)
+  using wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of M Ks C L Cs])
+  using L n_d by (auto simp: defined_lit_map)
 
-  apply (drule imageI["of" _ "set _" "(\<lambda>l. atm_of (lit_of l))"])
-proof -
-  fix M' :: "('v, nat, 'v twl_clause) marked_lit list" and UW :: "'v literal list" and l :: "('v, nat, 'v twl_clause) marked_lit" and a :: "'v literal"
-  assume a1: "lit_of l \<in> lits_of_l M"
-  assume a2: "(\<lambda>l. atm_of (lit_of l)) ` set M \<inter> (\<lambda>l. atm_of (lit_of l)) ` set M' = {}"
-  assume a3: "L = lit_of l"
-  assume a4: "atm_of (lit_of l) \<in> (\<lambda>l. atm_of (lit_of l)) ` set M'"
-  have "L \<in> lit_of ` set M"
-    using a3 a1 lits_of_def by blast
-  then show False
-    using a4 a3 a2 by (metis (no_types) IntI XX empty_iff imageE)
-next
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  apply (auto simp add: lits_of_def dest: imageI["of" _ "set _" "(\<lambda>l. atm_of (lit_of l))"])[]
-proof -
-  fix M' :: "('a, nat, 'a twl_clause) marked_lit list" and UW :: "'a literal list" and l :: "('a, nat, 'a twl_clause) marked_lit" and a :: "'a literal" and x :: "('a, nat, 'a twl_clause) marked_lit"
-  assume a1: "l \<in> set M'"
-  assume a2: "L = lit_of x"
-  assume a3: "x \<in> set M"
-  assume a4: "lit_of l = lit_of x"
-  assume "(\<lambda>l. atm_of (lit_of l)) ` set M \<inter> (\<lambda>l. atm_of (lit_of l)) ` set M' = {}"
-  then have "atm_of L \<notin> (\<lambda>m. atm_of (lit_of m)) ` set M"
-    using a4 a2 a1 by (metis (no_types) IntI empty_iff imageI["of" _ _ "(\<lambda>l. atm_of (lit_of l))"]) (* 154 ms *)
-  then show False
-    using a3 a2 by blast (* 3 ms *)
-next
-  
-oops  
-
-lemma 
+lemma
   assumes
-    undef: "undefined_lit (M @ prop_queue Ks) L" and
-    wf: "wf_twl_cls M C" and
-    "conflict Ks = Some D" and 
-    "conflict (snd (rewatch_nat_cand_single_clause L M C (Cs, Ks))) = Some D'" and
+    L: "L \<in> lits_of_l M" and
+    wf: "wf_twl_cls (M @ prop_queue Ks) C" and
+    conf: "conflict Ks = Some D" and
+    conf': "conflict (snd (rewatch_nat_cand_single_clause L M C (Cs, Ks))) = Some D'" and
     n_d: "M @ prop_queue Ks \<Turnstile>as CNot (mset (raw_clause D))"
   shows "M @ prop_queue Ks \<Turnstile>as CNot (mset (raw_clause D'))"
-  apply (cases Ks; cases C)
-  apply (rename_tac M' Confl W UW)
-  using assms find_earliest_conflict_cases[of M C D] 
-  apply (auto split: list.splits if_splits simp: length_list_2 defined_lit_map
-    rewatch_nat_cand_single_clause.simps raw_clause_def) 
-oops
+  apply (cases C)
+  using wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of M  Ks C L Cs])
+  using conf conf' n_d L find_earliest_conflict_cases[of "M @ prop_queue Ks" C D] wf
+  apply (auto simp add:
+     raw_clause_def XX Set.doubleton_eq_iff filter_empty_conv
+     true_annots_true_cls_def_iff_negation_in_model
+     simp del: watched_decided_most_recently.simps
+    ) (* TODO Slow ~ 15s *)
+  done
+
+lemma
+  assumes
+    L: "L \<in> lits_of_l M" and
+    wf: "wf_twl_cls (M @ prop_queue Ks) C" and
+    conf: "conflict Ks = None" and
+    conf': "conflict (snd (rewatch_nat_cand_single_clause L M C (Cs, Ks))) = Some D'"
+  shows "M @ prop_queue Ks \<Turnstile>as CNot (mset (raw_clause D'))"
+  apply (cases C)
+  using wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of M  Ks C L Cs])
+  using conf conf' L
+  by (auto simp add:
+     raw_clause_def XX Set.doubleton_eq_iff filter_empty_conv
+     true_annots_true_cls_def_iff_negation_in_model
+     simp del: watched_decided_most_recently.simps
+    )
+
+lemma
+  assumes
+    L: "L \<in> lits_of_l M" and
+    wf: "wf_twl_cls (M @ prop_queue Ks) C"
+  shows "clauses_of_l (map raw_clause (fst (rewatch_nat_cand_single_clause L M C (Cs, Ks)))) =
+      clauses_of_l (map raw_clause (C # Cs))"
+  apply (cases C)
+  using wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of M  Ks C L Cs])
+  using  L
+  apply (auto split:  simp add:
+     raw_clause_def XX Set.doubleton_eq_iff filter_empty_conv
+     true_annots_true_cls_def_iff_negation_in_model
+     simp del: watched_decided_most_recently.simps
+    )
+  apply (auto dest:filter_in_list_prop_verifiedD simp: multiset_eq_iff)
+  done
+
+fun
+  rewatch_nat_cand_clss ::
+  "'v literal \<Rightarrow> ('v, nat, 'v twl_clause) marked_lits \<Rightarrow>
+    'v twl_clause list \<times> 'v candidate \<Rightarrow>
+     'v twl_clause list  \<times> 'v candidate"
+where
+"rewatch_nat_cand_clss L M (Cs, Ks) =
+  foldr (rewatch_nat_cand_single_clause L M) Cs ([], Ks)
+"
+
+fun rewatch_nat_cand :: "'a literal \<Rightarrow> 'a twl_state_cands \<Rightarrow> 'a twl_state_cands"  where
+"rewatch_nat_cand L (TWL_State_Cand S Ks) =
+  (let
+    (N, K) = rewatch_nat_cand_clss L (raw_trail S) (raw_init_clss S, Ks);
+    (U, K') = rewatch_nat_cand_clss L (raw_trail S) (raw_learned_clss S, K) in
+  TWL_State_Cand
+    (TWL_State (raw_trail S) N U (backtrack_lvl S) (raw_conflicting S))
+    K')"
+
 end
