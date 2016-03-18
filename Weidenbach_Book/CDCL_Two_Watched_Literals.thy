@@ -987,14 +987,13 @@ qed
 lemma clause_rewatch_witness':
   assumes
     wf: "wf_twl_cls (trail S) C" and
-    n_d: "no_dup (raw_trail S)" and
     undef: "undefined_lit (trail S) (lit_of L)"
   shows "wf_twl_cls (L # trail S) (rewatch_nat (lit_of L) S C)"
 proof (cases "- lit_of L \<in> set (watched C)")
   case False
   then show ?thesis
     apply (cases C)
-    using wf n_d undef unfolding rewatch_nat_def
+    using wf undef unfolding rewatch_nat_def
     by (auto simp: uminus_lit_swap Marked_Propagated_in_iff_in_lits_of_l comp_def)
 next
   case falsified: True
