@@ -195,6 +195,10 @@ lemma mset_removeAll[simp, code]:
   "removeAll_mset C (mset L) = mset (removeAll C L)"
   by (induction L) (auto simp: ac_simps multiset_eq_iff split: if_split_asm)
 
+lemma removeAll_mset_filter_mset:
+  "removeAll_mset C M = filter_mset (op \<noteq> C) M"
+  by (induction M) (auto simp: ac_simps multiset_eq_iff)
+
 abbreviation remove1_mset :: "'a \<Rightarrow> 'a multiset \<Rightarrow> 'a multiset" where
 "remove1_mset C M \<equiv> M - {#C#}"
 
@@ -235,6 +239,10 @@ subsection \<open>Replicate\<close>
 
 lemma replicate_mset_plus: "replicate_mset (a + b) C = replicate_mset a C + replicate_mset b C"
   by (induct a) (auto simp: ac_simps)
+
+lemma mset_replicate_replicate_mset:
+  "mset (replicate n L) = replicate_mset n L"
+  by (induction n) auto
 
 lemma set_mset_single_iff_replicate_mset:
   "set_mset U = {a}  \<longleftrightarrow> (\<exists>n>0. U = replicate_mset n a)" (is "?S \<longleftrightarrow> ?R")
