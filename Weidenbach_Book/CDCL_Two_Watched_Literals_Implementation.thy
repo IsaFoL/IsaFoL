@@ -96,11 +96,10 @@ lemma CNot_mset_replicate[simp]:
   "CNot (mset (replicate n (- L))) = (if n = 0 then {} else {{#L#}})"
   by (induction n) auto
 
-
-lemma rewatch_nat_cand_single_clause_cases[consumes 1, case_names wf lit_notin propagate conflict
+lemma wf_rewatch_nat_cand_single_clause_cases[consumes 1, case_names wf lit_notin propagate conflict
   no_conflict update_cls]:
   assumes
-    wf: "wf_twl_cls (prop_queue Ks @ M) C" and
+    wf: "wf_twl_cls M C" and
     lit_notin: "-L \<notin> set (watched C) \<Longrightarrow>
       rewatch_nat_cand_single_clause L M C (Cs, Ks) = (C # Cs, Ks) \<Longrightarrow>
       P"
@@ -192,6 +191,10 @@ proof -
     qed
 qed
 
+lemmas rewatch_nat_cand_single_clause_cases =
+  wf_rewatch_nat_cand_single_clause_cases[OF wf_twl_cls_append[of "prop_queue _"], consumes 2,
+    case_names wf lit_notin propagate conflict no_conflict update_cls]
+
 lemma no_dup_rewatch_nat_cand_single_clause:
   fixes L :: "'v literal"
   assumes
@@ -199,7 +202,7 @@ lemma no_dup_rewatch_nat_cand_single_clause:
     wf: "wf_twl_cls (prop_queue Ks @ M) C" and
     n_d: "no_dup (prop_queue Ks @ M)"
   shows "no_dup (M @ prop_queue (snd (rewatch_nat_cand_single_clause L M C (Cs, Ks))))"
-  using wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs])
+  using n_d wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs Ks])
   using L n_d by (auto simp: defined_lit_map)
 
 lemma wf_twl_cls_prop_in_trailD:
@@ -213,16 +216,17 @@ lemma
     wf: "wf_twl_cls (prop_queue Ks @ M) C" and
     conf: "conflict Ks = Some D" and
     conf': "conflict (snd (rewatch_nat_cand_single_clause L M C (Cs, Ks))) = Some D'" and
-    n_d: "prop_queue Ks @ M \<Turnstile>as CNot (mset (raw_clause D))"
+    n_d: "no_dup (prop_queue Ks @ M)" and
+    confI: "prop_queue Ks @ M \<Turnstile>as CNot (mset (raw_clause D))"
   shows "prop_queue Ks @ M \<Turnstile>as CNot (mset (raw_clause D'))"
   apply (cases C)
-  using wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs])
+  using n_d wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs Ks])
   prefer 4
-    using conf conf' n_d L find_earliest_conflict_cases[of "prop_queue Ks @ M" C D] wf
+    using conf conf' confI L find_earliest_conflict_cases[of "prop_queue Ks @ M" C D] wf
     apply (fastforce simp add: raw_clause_def true_annots_true_cls_def_iff_negation_in_model
         simp del: watched_decided_most_recently.simps wf_twl_cls.simps
         dest!: wf_twl_cls_prop_in_trailD)[]
-  using conf conf' n_d L find_earliest_conflict_cases[of "prop_queue Ks @ M" C D]
+  using conf conf' confI L find_earliest_conflict_cases[of "prop_queue Ks @ M" C D]
   apply (auto simp add: raw_clause_def  true_annots_true_cls_def_iff_negation_in_model
       simp del: watched_decided_most_recently.simps
     )[5]
@@ -232,22 +236,24 @@ lemma
   assumes
     L: "L \<in> lits_of_l M" and
     wf: "wf_twl_cls (prop_queue Ks @ M) C" and
+    n_d: "no_dup (prop_queue Ks @ M)" and
     conf: "conflict Ks = None" and
     conf': "conflict (snd (rewatch_nat_cand_single_clause L M C (Cs, Ks))) = Some D'"
   shows "prop_queue Ks @ M \<Turnstile>as CNot (mset (raw_clause D'))"
   apply (cases C)
-  using wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs])
+  using n_d wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs Ks])
   using conf conf' L
   by (auto simp add: raw_clause_def filter_empty_conv true_annots_true_cls_def_iff_negation_in_model
      simp del: watched_decided_most_recently.simps)
 
 lemma
   assumes
-    wf: "wf_twl_cls (prop_queue Ks @ M) C"
+    wf: "wf_twl_cls (prop_queue Ks @ M) C" and
+    n_d: "no_dup (prop_queue Ks @ M)"
   shows "clauses_of_l (map raw_clause (fst (rewatch_nat_cand_single_clause L M C (Cs, Ks)))) =
       clauses_of_l (map raw_clause (C # Cs))"
   apply (cases C)
-  using wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs])
+  using n_d wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs Ks])
   apply (auto simp: raw_clause_def filter_empty_conv true_annots_true_cls_def_iff_negation_in_model
      simp del: watched_decided_most_recently.simps)
   apply (auto dest:filter_in_list_prop_verifiedD simp: multiset_eq_iff)
@@ -272,19 +278,22 @@ fun rewatch_nat_cand :: "'a literal \<Rightarrow> 'a twl_state_cands \<Rightarro
     (TWL_State (raw_trail S) N U (backtrack_lvl S) (raw_conflicting S))
     K')"
 
-lemma wf_rewatch_nat_cand_single_clause:
+text \<open>This lemma is \<^emph>\<open>wrong\<close>: we are speaking of half-update data-structure, meaning that
+  @{term "wf_twl_cls (prop_queue Ks @ M) C"} is the wrong assumption to use.\<close>
+lemma
   fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) marked_lit list"
   and L :: "'v literal" and Cs :: "'v twl_clause list" and C :: "'v twl_clause"
   defines "S \<equiv> rewatch_nat_cand_single_clause L M C (Cs, Ks)"
-  assumes wf: "wf_twl_cls (prop_queue Ks @ M) C"
+  assumes wf: "wf_twl_cls (prop_queue Ks @ M) C" and
+    n_d: "no_dup (prop_queue Ks @ M)"
   shows "wf_twl_cls (prop_queue (snd S) @ M) C"
 proof -
   obtain W UW where C: "C = TWL_Clause W UW"
     by (cases C)
 
   show ?thesis
-    using wf
-    proof (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs])
+    using n_d wf
+    proof (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs Ks])
       case lit_notin
       show ?thesis
         using wf unfolding S_def lit_notin by simp
@@ -329,6 +338,103 @@ proof -
       case t: wf
       then show ?thesis
         using wf unfolding S_def by simp
+    qed
+qed
+
+lemma
+  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) marked_lit list"
+  and L :: "('v, nat, 'v twl_clause) marked_lit" and Cs :: "'v twl_clause list" and
+    C :: "'v twl_clause"
+  defines "S \<equiv> rewatch_nat_cand_single_clause (lit_of L) M C (Cs, Ks)"
+  assumes
+    wf: "wf_twl_cls M C" and
+    undef: "undefined_lit (prop_queue Ks @ M) (lit_of L)" and
+    n_d: "no_dup (prop_queue Ks @ M)"
+  shows "wf_twl_cls (L # M) (hd (fst S))"
+proof -
+  obtain W UW where C: "C = TWL_Clause W UW"
+    by (cases C)
+  have t: "watched_decided_most_recently M (TWL_Clause W UW)" and
+    wf': "distinct W \<and> length W \<le> 2 \<and> (length W < 2 \<longrightarrow> set UW \<subseteq> set W)" and
+    H: "\<forall>L \<in> set W. -L \<in> lits_of_l M \<longrightarrow> (\<forall>L' \<in> set UW. L' \<notin> set W \<longrightarrow> -L' \<in> lits_of_l M)"
+    using wf C by auto
+  show ?thesis
+    using wf
+    proof (cases rule: wf_rewatch_nat_cand_single_clause_cases[of M C "lit_of L" Cs Ks])
+      case lit_notin
+      show ?thesis
+        using wf' unfolding S_def lit_notin unfolding C apply simp
+        using C lit_notin by auto
+    next
+      case propagate note L = this(1) and filter = this(2) and wC = this(3) and uC = this(4) and
+       rewatch = this(5)
+      show ?thesis
+        using wf' filter wC uC unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def
+        fst_conv  List.list.sel(1)
+        apply (intro allI conjI impI)
+              apply (auto simp add: C simp del: watched_decided_most_recently.simps)[3]
+         apply (auto simp add: filter_empty_conv uminus_lit_swap)[]
+        apply (auto simp add: filter_empty_conv Marked_Propagated_in_iff_in_lits_of_l lits_of_def
+           image_Un)[]
+         done
+    next
+      case (conflict L') note L = this(1) and filter = this(2) and wC = this(3) and uC = this(4) and
+       rewatch = this(5)
+       show ?thesis
+         using filter wC uC unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def fst_conv
+          List.list.sel(1)
+         apply (intro allI conjI impI)
+         using wf' apply (auto simp add: C filter_empty_conv Marked_Propagated_in_iff_in_lits_of_l lits_of_def
+           image_Un simp del: watched_decided_most_recently.simps)[4]
+         using t apply simp
+         done
+    next
+      case (no_conflict L') note L = this(1) and filter = this(2) and wC = this(3) and uC = this(4)
+        and rewatch = this(5)
+       show ?thesis
+         using filter wC uC unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def fst_conv
+          List.list.sel(1)
+         apply (intro allI conjI impI)
+         using wf' apply (auto simp add: C filter_empty_conv uminus_lit_swap lits_of_def image_Un
+          simp del: watched_decided_most_recently.simps)[4]
+         using t apply simp
+         done
+    next
+      case (update_cls L') note L = this(1) and filter = this(2) and rewatch = this(3)
+      show ?thesis
+         using filter unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def fst_conv
+           List.list.sel(1)
+         apply (intro allI conjI impI)
+         using wf' L apply (auto simp add: C filter_empty_conv uminus_lit_swap lits_of_def
+           image_Un length_remove1 subset_iff
+          simp del: watched_decided_most_recently.simps dest: filter_in_list_prop_verifiedD)[3]
+         using H wf' apply (auto simp add: C  filter_empty_conv uminus_lit_swap lits_of_def
+           image_Un length_remove1 subset_iff
+          simp del: watched_decided_most_recently.simps dest: filter_in_list_prop_verifiedD
+          split: if_split_asm)[]
+
+         using t L wf' H apply (auto simp add: C uminus_lit_swap
+          dest: filter_eq_ConsD)[]
+         done
+    next
+      case t: wf note L = this(1) and rewatch = this(2)
+      show ?thesis
+        using n_d wf L undef unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def fst_conv
+           List.list.sel(1) watched_decided_most_recently.simps
+         apply (intro allI conjI impI)
+           apply (auto simp: uminus_lit_swap)[4]
+        apply (rename_tac L' La)
+        unfolding list.map index.simps
+        apply simp
+        apply (intro allI impI conjI)
+        defer apply auto[]
+
+        apply (subgoal_tac "defined_lit M (-La)")
+        defer unfolding defined_lit_map
+          apply (metis atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set atm_of_uminus image_image
+            lits_of_def)
+        apply (auto simp add: lits_of_def)
+        done
     qed
 qed
 
