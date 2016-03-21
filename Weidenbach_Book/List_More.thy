@@ -232,27 +232,44 @@ lemma lexn3_conv:
     (a, a') \<in> r \<or> (a = a' \<and> (b, b') \<in> r) \<or> (a = a' \<and> b = b' \<and> (c, c') \<in> r)"
   by (auto simp: lexn_n simp del: lexn.simps(2))
 
-subsection \<open>Remove and Multiset equality\<close>
+subsection \<open>Remove\<close>
+subsubsection \<open>More lemmas about remove\<close>
+lemma remove1_nil:
+  "remove1 (- L) W = [] \<longleftrightarrow> (W = [] \<or> W = [-L])"
+  by (cases W) auto
 
 lemma remove1_mset_single_add:
   "a \<noteq> b \<Longrightarrow> remove1_mset a ({#b#} + C) = {#b#} + remove1_mset a C"
   "remove1_mset a ({#a#} + C) = C"
   by (auto simp: multiset_eq_iff)
 
-text \<open>This is the sams as @{term remove1} under the assumptions of non-duplication inside a clause.\<close>
+subsubsection \<open>Remove under condition\<close>
+
+text \<open>This function removes the first element when the condition @{term f} holds. It generalises
+  @{term List.remove1}.\<close>
 fun remove1_cond where
 "remove1_cond f [] = []" |
 "remove1_cond f (C' # L) = (if f  C' then L else C' # remove1_cond f L)"
+
+lemma "remove1 x xs = remove1_cond ((op =) x) xs"
+  by (induction xs) auto
 
 lemma mset_map_mset_remove1_cond:
   "mset (map mset (remove1_cond (\<lambda>L. mset L = mset a) C)) =
     remove1_mset (mset a) (mset (map mset C))"
   by (induction C) (auto simp: ac_simps remove1_mset_single_add)
 
+text \<open>We can also generalise @{term List.removeAll}, which is close to @{term List.filter}:\<close>
 fun removeAll_cond where
 "removeAll_cond f [] = []" |
 "removeAll_cond f (C' # L) =
   (if f C' then removeAll_cond f L else C' # removeAll_cond f L)"
+
+lemma "removeAll x xs = removeAll_cond ((op =) x) xs"
+  by (induction xs) auto
+
+lemma "removeAll_cond P xs = filter (\<lambda>x. \<not>P x) xs"
+  by (induction xs) auto
 
 lemma mset_map_mset_removeAll_cond:
   "mset (map mset (removeAll_cond (\<lambda>b. mset b = mset a) C))
