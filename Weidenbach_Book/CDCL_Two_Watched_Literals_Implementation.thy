@@ -91,15 +91,11 @@ where
 
 declare rewatch_nat_cand_single_clause.simps[simp del]
 
-lemma remove1_nil:
-  "remove1 (- L) W = [] \<longleftrightarrow> (W = [] \<or> W = [-L])"
-  by (cases W) auto
 
-lemma XX: "set UW \<subseteq> {- L} \<longleftrightarrow> (UW = [] \<or> (\<exists>n. UW = -L # replicate n (-L)))"
-  by (induction UW) (auto intro: exI[of _ "Suc _"])
-
-lemma [simp]: "CNot (mset (replicate n (- L))) = (if n = 0 then {} else {{#L#}})"
+lemma CNot_mset_replicate[simp]:
+  "CNot (mset (replicate n (- L))) = (if n = 0 then {} else {{#L#}})"
   by (induction n) auto
+
 
 lemma rewatch_nat_cand_single_clause_cases[consumes 1, case_names wf lit_notin propagate conflict
   no_conflict update_cls]:
@@ -206,6 +202,11 @@ lemma no_dup_rewatch_nat_cand_single_clause:
   using wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs])
   using L n_d by (auto simp: defined_lit_map)
 
+lemma wf_twl_cls_prop_in_trailD:
+  assumes "wf_twl_cls M (TWL_Clause W UW)"
+  shows "\<forall>L \<in> set W. -L \<in> lits_of_l M \<longrightarrow> (\<forall>L' \<in> set UW. L' \<notin> set W \<longrightarrow> -L' \<in> lits_of_l M)"
+  using assms by auto
+
 lemma
   assumes
     L: "L \<in> lits_of_l M" and
@@ -216,12 +217,15 @@ lemma
   shows "prop_queue Ks @ M \<Turnstile>as CNot (mset (raw_clause D'))"
   apply (cases C)
   using wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs])
-  using conf conf' n_d L find_earliest_conflict_cases[of "prop_queue Ks @ M" C D] wf
-  apply (auto simp add:
-     raw_clause_def XX Set.doubleton_eq_iff filter_empty_conv
-     true_annots_true_cls_def_iff_negation_in_model
-     simp del: watched_decided_most_recently.simps
-    ) (* TODO Slow ~ 15s *)
+  prefer 4
+    using conf conf' n_d L find_earliest_conflict_cases[of "prop_queue Ks @ M" C D] wf
+    apply (fastforce simp add: raw_clause_def true_annots_true_cls_def_iff_negation_in_model
+        simp del: watched_decided_most_recently.simps wf_twl_cls.simps
+        dest!: wf_twl_cls_prop_in_trailD)[]
+  using conf conf' n_d L find_earliest_conflict_cases[of "prop_queue Ks @ M" C D]
+  apply (auto simp add: raw_clause_def  true_annots_true_cls_def_iff_negation_in_model
+      simp del: watched_decided_most_recently.simps
+    )[5]
   done
 
 lemma
@@ -234,11 +238,8 @@ lemma
   apply (cases C)
   using wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs])
   using conf conf' L
-  by (auto simp add:
-     raw_clause_def XX Set.doubleton_eq_iff filter_empty_conv
-     true_annots_true_cls_def_iff_negation_in_model
-     simp del: watched_decided_most_recently.simps
-    )
+  by (auto simp add: raw_clause_def filter_empty_conv true_annots_true_cls_def_iff_negation_in_model
+     simp del: watched_decided_most_recently.simps)
 
 lemma
   assumes
@@ -247,11 +248,8 @@ lemma
       clauses_of_l (map raw_clause (C # Cs))"
   apply (cases C)
   using wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs])
-  apply (auto split:  simp add:
-     raw_clause_def XX Set.doubleton_eq_iff filter_empty_conv
-     true_annots_true_cls_def_iff_negation_in_model
-     simp del: watched_decided_most_recently.simps
-    )
+  apply (auto simp: raw_clause_def filter_empty_conv true_annots_true_cls_def_iff_negation_in_model
+     simp del: watched_decided_most_recently.simps)
   apply (auto dest:filter_in_list_prop_verifiedD simp: multiset_eq_iff)
   done
 
@@ -274,7 +272,7 @@ fun rewatch_nat_cand :: "'a literal \<Rightarrow> 'a twl_state_cands \<Rightarro
     (TWL_State (raw_trail S) N U (backtrack_lvl S) (raw_conflicting S))
     K')"
 
-lemma
+lemma wf_rewatch_nat_cand_single_clause:
   fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) marked_lit list"
   and L :: "'v literal" and Cs :: "'v twl_clause list" and C :: "'v twl_clause"
   defines "S \<equiv> rewatch_nat_cand_single_clause L M C (Cs, Ks)"
@@ -296,9 +294,9 @@ proof -
       show ?thesis
         using wf filter wC uC unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def
         apply (intro allI conjI impI)
-         apply (auto simp add: C simp del: watched_decided_most_recently.simps)[3]
+              apply (auto simp add: C simp del: watched_decided_most_recently.simps)[3]
          apply (auto simp add: filter_empty_conv uminus_lit_swap)[]
-         apply (auto simp add: filter_empty_conv Marked_Propagated_in_iff_in_lits_of_l lits_of_def
+        apply (auto simp add: filter_empty_conv Marked_Propagated_in_iff_in_lits_of_l lits_of_def
            image_Un)[]
          done
     next
@@ -311,8 +309,8 @@ proof -
            image_Un simp del: watched_decided_most_recently.simps)
          done
     next
-      case (no_conflict L') note L = this(1) and filter = this(2) and wC = this(3) and uC = this(4) and
-       rewatch = this(5)
+      case (no_conflict L') note L = this(1) and filter = this(2) and wC = this(3) and uC = this(4)
+        and rewatch = this(5)
        show ?thesis
          using wf filter wC uC unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def
          apply (intro allI conjI impI)
