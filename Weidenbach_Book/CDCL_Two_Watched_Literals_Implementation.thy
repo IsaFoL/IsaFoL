@@ -62,7 +62,9 @@ text \<open>While updating the clauses, there are several cases:
   \<^item> there is no literal to be watched, but the other literal is false: the clause is a
   conflict candidate.
 
-  The function returns a couple composed of a list of clauses and a candidate.\<close>
+  The function returns a couple composed of a list of clauses and a candidate.
+  
+  TODO: check what is going on when the other literal is L.\<close>
 fun
   rewatch_nat_cand_single_clause ::
   "'v literal \<Rightarrow> ('v, nat, 'v twl_clause) marked_lits \<Rightarrow> 'v twl_clause \<Rightarrow>
@@ -90,7 +92,6 @@ where
     (C # Cs, Ks))"
 
 declare rewatch_nat_cand_single_clause.simps[simp del]
-
 
 lemma CNot_mset_replicate[simp]:
   "CNot (mset (replicate n (- L))) = (if n = 0 then {} else {{#L#}})"
@@ -210,7 +211,7 @@ lemma wf_twl_cls_prop_in_trailD:
   shows "\<forall>L \<in> set W. -L \<in> lits_of_l M \<longrightarrow> (\<forall>L' \<in> set UW. L' \<notin> set W \<longrightarrow> -L' \<in> lits_of_l M)"
   using assms by auto
 
-lemma
+lemma rewatch_nat_cand_single_clause_conflict:
   assumes
     L: "L \<in> lits_of_l M" and
     wf: "wf_twl_cls (prop_queue Ks @ M) C" and
@@ -232,7 +233,7 @@ lemma
     )[5]
   done
 
-lemma
+lemma rewatch_nat_cand_single_clause_conflict_found:
   assumes
     L: "L \<in> lits_of_l M" and
     wf: "wf_twl_cls (prop_queue Ks @ M) C" and
@@ -246,7 +247,7 @@ lemma
   by (auto simp add: raw_clause_def filter_empty_conv true_annots_true_cls_def_iff_negation_in_model
      simp del: watched_decided_most_recently.simps)
 
-lemma
+lemma rewatch_nat_cand_single_clause_clauses:
   assumes
     wf: "wf_twl_cls (prop_queue Ks @ M) C" and
     n_d: "no_dup (prop_queue Ks @ M)"
@@ -258,25 +259,6 @@ lemma
      simp del: watched_decided_most_recently.simps)
   apply (auto dest:filter_in_list_prop_verifiedD simp: multiset_eq_iff)
   done
-
-fun
-  rewatch_nat_cand_clss ::
-  "'v literal \<Rightarrow> ('v, nat, 'v twl_clause) marked_lits \<Rightarrow>
-    'v twl_clause list \<times> 'v candidate \<Rightarrow>
-     'v twl_clause list  \<times> 'v candidate"
-where
-"rewatch_nat_cand_clss L M (Cs, Ks) =
-  foldr (rewatch_nat_cand_single_clause L M) Cs ([], Ks)
-"
-
-fun rewatch_nat_cand :: "'a literal \<Rightarrow> 'a twl_state_cands \<Rightarrow> 'a twl_state_cands"  where
-"rewatch_nat_cand L (TWL_State_Cand S Ks) =
-  (let
-    (N, K) = rewatch_nat_cand_clss L (raw_trail S) (raw_init_clss S, Ks);
-    (U, K') = rewatch_nat_cand_clss L (raw_trail S) (raw_learned_clss S, K) in
-  TWL_State_Cand
-    (TWL_State (raw_trail S) N U (backtrack_lvl S) (raw_conflicting S))
-    K')"
 
 text \<open>This lemma is \<^emph>\<open>wrong\<close>: we are speaking of half-update data-structure, meaning that
   @{term "wf_twl_cls (prop_queue Ks @ M) C"} is the wrong assumption to use.\<close>
@@ -341,14 +323,13 @@ proof -
     qed
 qed
 
-lemma
-  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) marked_lit list"
-  and L :: "('v, nat, 'v twl_clause) marked_lit" and Cs :: "'v twl_clause list" and
+lemma wf_rewatch_nat_cand_single_clause:
+  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) marked_lit list" and 
+    L :: "('v, nat, 'v twl_clause) marked_lit" and Cs :: "'v twl_clause list" and
     C :: "'v twl_clause"
   defines "S \<equiv> rewatch_nat_cand_single_clause (lit_of L) M C (Cs, Ks)"
   assumes
     wf: "wf_twl_cls M C" and
-    undef: "undefined_lit (prop_queue Ks @ M) (lit_of L)" and
     n_d: "no_dup (prop_queue Ks @ M)"
   shows "wf_twl_cls (L # M) (hd (fst S))"
 proof -
@@ -419,7 +400,7 @@ proof -
     next
       case t: wf note L = this(1) and rewatch = this(2)
       show ?thesis
-        using n_d wf L undef unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def fst_conv
+        using n_d wf L unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def fst_conv
            List.list.sel(1) watched_decided_most_recently.simps
          apply (intro allI conjI impI)
            apply (auto simp: uminus_lit_swap)[4]
@@ -434,8 +415,98 @@ proof -
           apply (metis atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set atm_of_uminus image_image
             lits_of_def)
         apply (auto simp add: lits_of_def)
-        done
+        apply (auto simp: atm_of_eq_atm_of uminus_lit_swap)
+apply (smt imageE imageI no_dup_cannot_not_lit_and_uminus uminus_of_uminus_id)
+sledgehammer
+        sorry
     qed
+qed
+
+lemma rewatch_nat_cand_single_clause_no_dup:
+  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) marked_lit list"
+  and L :: "'v literal" and Cs :: "'v twl_clause list" and C :: "'v twl_clause"
+  defines "S \<equiv> rewatch_nat_cand_single_clause L M C (Cs, Ks)"
+  assumes wf: "wf_twl_cls M C" and
+    n_d: "no_dup (prop_queue Ks @ M)" and
+    undef: "undefined_lit (prop_queue Ks @ M) L" 
+  shows "no_dup (prop_queue (snd S) @ M)"
+  using wf n_d  apply (cases rule: wf_rewatch_nat_cand_single_clause_cases[of M C L Cs Ks])
+  using undef unfolding S_def by (simp_all add: defined_lit_map image_Un)
+
+
+fun
+  rewatch_nat_cand_clss ::
+  "'v literal \<Rightarrow> ('v, nat, 'v twl_clause) marked_lits \<Rightarrow>
+    'v twl_clause list \<times> 'v candidate \<Rightarrow>
+     'v twl_clause list  \<times> 'v candidate"
+where
+"rewatch_nat_cand_clss L M (Cs, Ks) =
+  foldr (rewatch_nat_cand_single_clause L M) Cs ([], Ks)"
+
+fun rewatch_nat_cand :: "'a literal \<Rightarrow> 'a twl_state_cands \<Rightarrow> 'a twl_state_cands"  where
+"rewatch_nat_cand L (TWL_State_Cand S Ks) =
+  (let
+    (N, K) = rewatch_nat_cand_clss L (raw_trail S) (raw_init_clss S, Ks);
+    (U, K') = rewatch_nat_cand_clss L (raw_trail S) (raw_learned_clss S, K) in
+  TWL_State_Cand
+    (TWL_State (raw_trail S) N U (backtrack_lvl S) (raw_conflicting S))
+    K')"
+
+lemma
+  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) marked_lits" and 
+    L :: "('v, nat, 'v twl_clause) marked_lit" and Cs :: "'v twl_clause list" and 
+    C :: "'v twl_clause"
+  defines "S \<equiv> foldr (rewatch_nat_cand_single_clause (lit_of L) M) Cs ([], Ks)"
+  assumes
+    L: "lit_of L \<in> lits_of_l M" and
+    wf: "\<forall>C \<in> set Cs. wf_twl_cls M C" and
+    n_d: "no_dup (prop_queue Ks @ M)" and
+    undef: "undefined_lit (prop_queue Ks @ M) (lit_of L)"
+  shows 
+    "(\<forall>C \<in> set (fst S). wf_twl_cls (L # M) C) \<and>
+     undefined_lit (prop_queue (snd S) @ M) (lit_of L) \<and>
+     no_dup (prop_queue (snd S) @ M)" (is "?wf S \<and> ?undef S \<and> ?n_d S")
+  using wf unfolding S_def 
+proof (induction Cs)
+  case Nil note wf = this(1)
+  show ?case
+    using undef n_d by simp
+next
+  case (Cons C Cs) note IH = this(1) and wf = this(2)
+  let ?S = "foldr (rewatch_nat_cand_single_clause (lit_of L) M) Cs ([], Ks)"
+  let ?T = "rewatch_nat_cand_single_clause (lit_of L) M C ?S"
+  have wf': "\<forall>a\<in>set Cs. wf_twl_cls M a" and wf_C: "wf_twl_cls M C"
+    using wf by simp_all
+  then have 
+    IH_wf: "\<forall>a\<in>set (fst ?S). wf_twl_cls (L # M) a" and
+    IH_undef: "undefined_lit (prop_queue (snd ?S) @ M) (lit_of L)" and
+    IH_nd: "no_dup (prop_queue (snd ?S) @ M)"
+    using IH[OF wf'] by blast+
+        
+  have wf_C': "wf_twl_cls (L # M) (hd (fst (rewatch_nat_cand_single_clause (lit_of L) M C 
+    (fst ?S, snd ?S))))"
+    using wf_rewatch_nat_cand_single_clause[of M C  "snd ?S" L "fst ?S"]
+    using IH_wf IH_undef IH_nd wf by simp
+  have "?wf ?T"
+    using wf_C  apply (cases rule: wf_rewatch_nat_cand_single_clause_cases[of M C "lit_of L" 
+     "fst ?S" "snd ?S"])
+    using IH_wf wf_C' by (auto simp del: wf_twl_cls.simps)
+  moreover have "?undef ?T"
+    using wf_C  apply (cases rule: wf_rewatch_nat_cand_single_clause_cases[of M C "lit_of L" 
+     "fst ?S" "snd ?S"])
+    using IH_undef wf_C L apply (auto simp del: wf_twl_cls.simps simp: defined_lit_map)
+    apply (cases C)
+    apply (auto simp del: wf_twl_cls.simps simp: defined_lit_map atm_of_eq_atm_of
+      image_Un uminus_lit_swap)
+    sorry
+  moreover have "?n_d ?T"
+    using wf_C  apply (cases rule: wf_rewatch_nat_cand_single_clause_cases[of M C "lit_of L" 
+     "fst ?S" "snd ?S"])
+    using IH_nd by (auto simp del: wf_twl_cls.simps simp: defined_lit_map)
+    
+  ultimately show ?case 
+    apply simp
+    sorry
 qed
 
 end
