@@ -2,7 +2,7 @@
     Author:      Jasmin Blanchette <blanchette at in.tum.de>, 2014, 2015
     Author:      Dmitriy Traytel <traytel at in.tum.de>, 2014
     Author:      Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>, 2015
-    Maintainer:  Jasmin Blanchette <blanchette at in.tum.de>
+    Maintainer:  Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>
 *)
 
 
