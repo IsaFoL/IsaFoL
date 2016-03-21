@@ -225,6 +225,15 @@ next
   ultimately show ?thesis by (auto simp add: M C)
 qed
 
+lemma wf_twl_cls_append:
+  assumes 
+    n_d: "no_dup (M' @ M)" and
+    wf: "wf_twl_cls (M' @ M) C"
+  shows "wf_twl_cls M C"
+  using wf n_d apply (induction M')
+    apply simp
+  using wf_twl_cls_wf_twl_cls_tl by fastforce
+
 definition wf_twl_state :: "'v twl_state \<Rightarrow> bool" where
   "wf_twl_state S \<longleftrightarrow> (\<forall>C \<in> set (twl.raw_clauses S). wf_twl_cls (trail S) C) \<and> no_dup (trail S)"
 
@@ -1077,9 +1086,9 @@ next
           apply (case_tac "- lit_of L = xW"; case_tac "xW = xUW"; case_tac "L' = xW")
                   apply (auto simp: uminus_lit_swap)[2]
                 apply (force dest: filter_in_list_prop_verifiedD)
-               using H distinct apply (fastforce split: if_split_asm)
-             using distinct apply (fastforce split: if_split_asm)
-            using distinct apply (fastforce split: if_split_asm)
+               using H distinct apply (fastforce)
+             using distinct apply (fastforce)
+            using distinct apply (fastforce)
            apply (force dest: filter_in_list_prop_verifiedD)
           using H by (auto simp: uminus_lit_swap)
       next
