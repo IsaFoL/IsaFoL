@@ -118,12 +118,12 @@ where
    {(L, C) | L C.
      C \<in> set (twl.raw_clauses S)  \<and>
      set (watched C) - (uminus ` lits_of_l (trail S)) = {L} \<and>
-     undefined_lit (trail S) L}"
+     undefined_lit (raw_trail S) L}"
 
 definition candidates_conflict :: "'v twl_state \<Rightarrow> 'v twl_clause set" where
   "candidates_conflict S =
    {C. C \<in> set (twl.raw_clauses S) \<and>
-     set (watched C) \<subseteq> uminus ` lits_of_l (trail S)}"
+     set (watched C) \<subseteq> uminus ` lits_of_l (raw_trail S)}"
 
 primrec (nonexhaustive) index :: "'a list \<Rightarrow>'a \<Rightarrow> nat" where
 "index (a # l) c = (if a = c then 0 else 1+index l c)"
@@ -226,7 +226,7 @@ next
 qed
 
 lemma wf_twl_cls_append:
-  assumes 
+  assumes
     n_d: "no_dup (M' @ M)" and
     wf: "wf_twl_cls (M' @ M) C"
   shows "wf_twl_cls M C"
@@ -235,15 +235,16 @@ lemma wf_twl_cls_append:
   using wf_twl_cls_wf_twl_cls_tl by fastforce
 
 definition wf_twl_state :: "'v twl_state \<Rightarrow> bool" where
-  "wf_twl_state S \<longleftrightarrow> (\<forall>C \<in> set (twl.raw_clauses S). wf_twl_cls (trail S) C) \<and> no_dup (trail S)"
+  "wf_twl_state S \<longleftrightarrow>
+    (\<forall>C \<in> set (twl.raw_clauses S). wf_twl_cls (raw_trail S) C) \<and> no_dup (raw_trail S)"
 
 lemma wf_candidates_propagate_sound:
   assumes wf: "wf_twl_state S" and
     cand: "(L, C) \<in> candidates_propagate S"
-  shows "trail S \<Turnstile>as CNot (mset (removeAll L (raw_clause C))) \<and> undefined_lit (trail S) L"
+  shows "raw_trail S \<Turnstile>as CNot (mset (removeAll L (raw_clause C))) \<and> undefined_lit (raw_trail S) L"
     (is "?Not \<and> ?undef")
 proof
-  def M \<equiv> "trail S"
+  def M \<equiv> "raw_trail S"
   def N \<equiv> "raw_init_clss S"
   def U \<equiv> "raw_learned_clss S"
 
@@ -332,7 +333,7 @@ proof
     unfolding true_annots_def by (auto simp: image_image Ball_def CNot_def)
 
   show ?undef
-    using cw(3) M_def by blast
+    using cw(3) unfolding M_def by blast
 qed
 
 lemma wf_candidates_propagate_complete:
@@ -340,10 +341,10 @@ lemma wf_candidates_propagate_complete:
     c_mem: "C \<in> set (twl.raw_clauses S)" and
     l_mem: "L \<in> set (raw_clause C)" and
     unsat: "trail S \<Turnstile>as CNot (mset_set (set (raw_clause C) - {L}))" and
-    undef: "undefined_lit (trail S) L"
+    undef: "undefined_lit (raw_trail S) L"
   shows "(L, C) \<in> candidates_propagate S"
 proof -
-  def M \<equiv> "trail S"
+  def M \<equiv> "raw_trail S"
   def N \<equiv> "raw_init_clss S"
   def U \<equiv> "raw_learned_clss S"
 
@@ -361,7 +362,7 @@ proof -
     "\<And>L L'. L \<in> set W \<Longrightarrow> -L \<in> lits_of_l M \<Longrightarrow> L' \<in> set UW \<Longrightarrow> L' \<notin> set W \<Longrightarrow> -L' \<in> lits_of_l M"
    using wf_c unfolding cw_eq by (auto simp: image_image)
 
-  have unit_set: "set W -(uminus ` lits_of_l M) = {L}" (is "?W = ?L")
+  have unit_set: "set W - (uminus ` lits_of_l M) = {L}" (is "?W = ?L")
   proof
     show "?W \<subseteq> {L}"
     proof
@@ -423,7 +424,7 @@ lemma wf_candidates_conflict_sound:
     cand: "C \<in> candidates_conflict S"
   shows "trail S \<Turnstile>as CNot (mset (raw_clause C)) \<and> C \<in> set (twl.raw_clauses S)"
 proof
-  def M \<equiv> "trail S"
+  def M \<equiv> "raw_trail S"
   def N \<equiv> "raw_init_clss S"
   def U \<equiv> "raw_learned_clss S"
 
@@ -467,9 +468,10 @@ proof
       next
         case False
         thus ?thesis
-          by (metis (no_types, hide_lams) M_def UnE W' contra_subsetD cw(2) cw_eq imageE
-            insertI1 l list.set(2) set_append twl_clause.sel(1) twl_clause.sel(2)
-            uminus_of_uminus_id w_nw(3) raw_clause_def)
+          using W' cw(2) cw_eq l w_nw(3) unfolding M_def raw_clause_def
+          by (metis (no_types, lifting) UnE imageE list.set_intros(1)
+            lits_of_mmset_of_mlit'  rev_subsetD set_append set_map twl_clause.sel(1)
+            twl_clause.sel(2) uminus_of_uminus_id)
       qed
     qed
   qed
@@ -486,7 +488,7 @@ lemma wf_candidates_conflict_complete:
     unsat: "trail S \<Turnstile>as CNot (mset (raw_clause C))"
   shows "C \<in> candidates_conflict S"
 proof -
-  def M \<equiv> "trail S"
+  def M \<equiv> "raw_trail S"
   def N \<equiv> "twl.init_clss S"
   def U \<equiv> "twl.learned_clss S"
 
@@ -591,12 +593,13 @@ locale abstract_twl =
       'v twl_clause \<Rightarrow> 'v twl_clause" and
     restart_learned :: "'v twl_state \<Rightarrow> 'v twl_clause list"
   assumes
-    clause_watch: "no_dup (trail S) \<Longrightarrow> mset (raw_clause (watch S C)) = mset C" and
-    wf_watch: "no_dup (trail S) \<Longrightarrow> wf_twl_cls (trail S) (watch S C)" and
+    clause_watch: "no_dup (raw_trail S) \<Longrightarrow> mset (raw_clause (watch S C)) = mset C" and
+    wf_watch: "no_dup (raw_trail S) \<Longrightarrow> wf_twl_cls (raw_trail S) (watch S C)" and
     clause_rewatch: "mset (raw_clause (rewatch L' S C')) = mset (raw_clause C')" and
     wf_rewatch:
-      "no_dup (trail S) \<Longrightarrow> undefined_lit (trail S) (lit_of L) \<Longrightarrow> wf_twl_cls (trail S) C' \<Longrightarrow>
-        wf_twl_cls (L # trail S) (rewatch (lit_of L) S C')"
+      "no_dup (raw_trail S) \<Longrightarrow> undefined_lit (raw_trail S) (lit_of L) \<Longrightarrow>
+        wf_twl_cls (raw_trail S) C' \<Longrightarrow>
+        wf_twl_cls (L # raw_trail S) (rewatch (lit_of L) S C')"
       and
     restart_learned: "mset (restart_learned S) \<subseteq># mset (raw_learned_clss S)" -- \<open>We need
       @{term mset} and not @{term set} to take care of duplicates. \<close>
@@ -823,7 +826,7 @@ lemma wf_watch_witness:
       W: "W \<equiv> take 2 (neg_not_assigned @ neg_assigned_sorted_by_trail)"
   assumes
     n_d[simp]: "no_dup (raw_trail S)"
-  shows "wf_twl_cls (trail S) (TWL_Clause W (foldr remove1 W C))"
+  shows "wf_twl_cls (raw_trail S) (TWL_Clause W (foldr remove1 W C))"
   unfolding wf_twl_cls.simps
 proof (intro conjI, goal_cases)
   case 1
@@ -933,7 +936,7 @@ next
     qed
 qed
 
-lemma wf_watch_nat: "no_dup (raw_trail S) \<Longrightarrow> wf_twl_cls (trail S) (watch_nat S C)"
+lemma wf_watch_nat: "no_dup (raw_trail S) \<Longrightarrow> wf_twl_cls (raw_trail S) (watch_nat S C)"
   using wf_watch_witness[of S C] watch_nat_def by metis
 
 definition
@@ -995,9 +998,9 @@ qed
 
 lemma clause_rewatch_witness':
   assumes
-    wf: "wf_twl_cls (trail S) C" and
-    undef: "undefined_lit (trail S) (lit_of L)"
-  shows "wf_twl_cls (L # trail S) (rewatch_nat (lit_of L) S C)"
+    wf: "wf_twl_cls (raw_trail S) C" and
+    undef: "undefined_lit (raw_trail S) (lit_of L)"
+  shows "wf_twl_cls (L # raw_trail S) (rewatch_nat (lit_of L) S C)"
 proof (cases "- lit_of L \<in> set (watched C)")
   case False
   then show ?thesis
@@ -1108,7 +1111,7 @@ next
               next
                 case False note LxW = this
                 have f9: "L' \<in> set [l\<leftarrow>unwatched C. l \<notin> set (watched (TWL_Clause W UW))
-                    \<and> - l \<notin> lits_of_l (L # trail S)]"
+                    \<and> - l \<notin> lits_of_l (L # raw_trail S)]"
                   using 1(2) 5 C by auto
                 moreover then have f11: "- xW \<in> lits_of_l (trail S)"
                   using 1(3) LxW by (auto simp: uminus_lit_swap)
