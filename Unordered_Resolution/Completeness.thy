@@ -101,7 +101,7 @@ lemma complements_do_not_falsify':
   shows "False"
 proof (cases l1)
   case (Pos p ts)
-  let ?i1 = "nat_from_fatom (Pos p ts)"
+  let ?i1 = "nat_from_fatom (p, ts)"
 
   from assms have gr: "groundl l1" unfolding falsifiesl_def by auto
   then have Neg: "l2 = Neg p ts" using comp Pos by (cases l2) auto
@@ -109,26 +109,26 @@ proof (cases l1)
   from falsif have "falsifiesl G l1" using l1C1' by auto
   then have "G ! ?i1 = False" using l1C1' Pos unfolding falsifiesl_def by (induction "Pos p ts") auto
   moreover
-  let ?i2 = "nat_from_fatom l2"
+  let ?i2 = "nat_from_fatom (get_atom l2)"
   from falsif have "falsifiesl G l2" using l2C1' by auto
   then have "G ! ?i2 = (~sign l2)" unfolding falsifiesl_def by meson
-  then have "G ! ?i1 = (~sign l2)" using Pos Neg comp undiag_neg by simp
+  then have "G ! ?i1 = (~sign l2)" using Pos Neg comp by simp
   then have "G ! ?i1 = True" using Neg by auto
   ultimately show ?thesis by auto
 next
   case (Neg p ts)
-  let ?i1 = "nat_from_fatom (Neg p ts)"
+  let ?i1 = "nat_from_fatom (p,ts)"
 
   from assms have gr: "groundl l1" unfolding falsifiesl_def by auto
   then have Pos: "l2 = Pos p ts" using comp Neg by (cases l2) auto
 
   from falsif have "falsifiesl G l1" using l1C1' by auto
-  then have "G ! ?i1 = True" using l1C1' Neg unfolding falsifiesl_def by (meson literal.disc(2))
+  then have "G ! ?i1 = True" using l1C1' Neg unfolding falsifiesl_def by (metis get_atom.simps(2) literal.disc(2)) 
   moreover
-  let ?i2 = "nat_from_fatom l2"
+  let ?i2 = "nat_from_fatom (get_atom l2)"
   from falsif have "falsifiesl G l2" using l2C1' by auto
   then have "G ! ?i2 = (~sign l2)" unfolding falsifiesl_def by meson
-  then have "G ! ?i1 = (~sign l2)" using Pos Neg comp undiag_neg by simp
+  then have "G ! ?i1 = (~sign l2)" using Pos Neg comp by simp
   then have "G ! ?i1 = False" using Pos using literal.disc(1) by blast
   ultimately show ?thesis by auto
 qed
@@ -155,11 +155,11 @@ using assms less_Suc_eq by auto
 
 lemma other_falsified:
   assumes C1'_p: "groundls C1' \<and> falsifiesg (B@[d]) C1'" 
-  assumes l_p: "l \<in> C1'" "nat_from_fatom l = length B"
+  assumes l_p: "l \<in> C1'" "nat_from_fatom (get_atom l) = length B"
   assumes other: "lo \<in> C1'" "lo \<noteq> l"
   shows "falsifiesl B lo"
 proof -
-  let ?i = "nat_from_fatom lo"
+  let ?i = "nat_from_fatom (get_atom lo)"
   have ground_l2: "groundl l" using l_p C1'_p by auto
   (* They are, of course, also ground *)
   have ground_lo: "groundl lo" using C1'_p other by auto
@@ -168,18 +168,20 @@ proof -
   then have loB2: "falsifiesl (B@[d]) lo" using other by auto
   then have "?i < length (B @ [d])" unfolding falsifiesl_def by meson
   (* And they have numbers in the range of B2, i.e. less than B + 1*)
-  then have "nat_from_fatom lo < length B + 1" using undiag_neg undiag_diag_fatom by (cases lo) auto
+  then have "nat_from_fatom (get_atom lo) < length B + 1" using undiag_diag_fatom by (cases lo) auto
   moreover
   have l_lo: "l\<noteq>lo" using other by auto
   (* The are not the complement of l2, since then the clause could not be falsified *)
   have lc_lo: "lo \<noteq> l\<^sup>c" using C1'_p l_p other complements_do_not_falsify[of lo C1' l "(B@[d])"] by auto
-  from l_lo lc_lo have "get_pred l \<noteq> get_pred lo \<or> get_terms l \<noteq> get_terms lo" using literal.expand sign_comp by blast
-  then have "nat_from_fatom lo \<noteq> nat_from_fatom l" using nat_from_fatom_inj_mod_sign ground_lo ground_l2 by metis
+  from l_lo lc_lo have "get_atom l \<noteq> get_atom lo" using sign_comp_atom by metis
+  then have "nat_from_fatom (get_atom lo) \<noteq> nat_from_fatom (get_atom l)" 
+    using nat_from_fatom_bij ground_lo ground_l2 groundl_ground_fatom 
+    unfolding bij_betw_def inj_on_def by metis
   (* Therefore they have different numbers *)
-  then have "nat_from_fatom lo \<noteq> length B" using l_p by auto
+  then have "nat_from_fatom (get_atom lo) \<noteq> length B" using l_p by auto
   ultimately 
   (* So their numbers are in the range of B *)
-  have "nat_from_fatom lo < length B" by auto
+  have "nat_from_fatom (get_atom lo) < length B" by auto
   (* So we did not need the last index of B2 to falsify them, i.e. B suffices *)
   then show "falsifiesl B lo" using loB2 shorter_falsifiesl by blast
 qed
@@ -238,7 +240,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
 
     (* C1' contains a literal l1 that is falsified by B1, but not B *)
     from C1'_p l_B obtain l1 where l1_p: "l1 \<in> C1' \<and> falsifiesl (B@[True]) l1 \<and> \<not>(falsifiesl B l1)" by auto
-    let ?i = "nat_from_fatom l1"
+    let ?i = "nat_from_fatom (get_atom l1)"
 
     (* l1 is ofcourse ground *)
     have ground_l1: "groundl l1" using C1'_p l1_p by auto
@@ -252,7 +254,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
 
     (* l1 is negative *)
     from l1_sign_no have l1_sign: "sign l1 = False" by auto
-    from l1_sign_no have l1_no: "nat_from_fatom l1 = length B" by auto
+    from l1_sign_no have l1_no: "nat_from_fatom (get_atom l1) = length B" by auto
 
     (* All the other literals in C1' must be falsified by B, since they are falsified by B1, but not l1. *)
     from C1'_p l1_no l1_p have B_C1'l1: "falsifiesg B (C1' - {l1})" (* This should be a lemma *)
@@ -267,7 +269,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     
     (* C2' contains a literal l1 that is falsified by B1, but not B *)
     from C2'_p l_B obtain l2 where l2_p: "l2 \<in> C2' \<and> falsifiesl (B@[False]) l2 \<and> \<not>(falsifiesl B l2)" by auto
-    let ?i = "nat_from_fatom l2"
+    let ?i = "nat_from_fatom (get_atom l2)"
 
     have ground_l2: "groundl l2" using C2'_p l2_p by auto
 
@@ -280,7 +282,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
 
     (* l1 is negative *)
     from l2_sign_no have l2_sign: "sign l2 = True" by auto
-    from l2_sign_no have l2_no: "nat_from_fatom l2 = length B" by auto
+    from l2_sign_no have l2_no: "nat_from_fatom (get_atom l2) = length B" by auto
 
     (* All the other literals in C2' must be falsified by B, since they are falsified by B2, but not l2. *)
     from C2'_p l2_no l2_p have B_C2'l2: "falsifiesg B (C2' - {l2})"
@@ -289,10 +291,10 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     (* Proving some properties about C1' and C2', l1 and l2, as well as the resolvent of C1' and C2' *)
     have l2cisl1: "l2\<^sup>c = l1" (* Could perhaps be a lemma *)
       proof -
-        from l1_no l2_no ground_l1 ground_l2 have "get_pred l1 = get_pred l2" using nat_from_fatom_inj_mod_sign by auto
-        moreover
-        from l1_no l2_no ground_l1 ground_l2 have "get_terms l1 = get_terms l2" using nat_from_fatom_inj_mod_sign by auto
-        ultimately show "l2\<^sup>c = l1" using l1_sign l2_sign using sign_comp by metis 
+        from l1_no l2_no ground_l1 ground_l2 have "get_atom l1 = get_atom l2"
+              using nat_from_fatom_bij groundl_ground_fatom 
+              unfolding bij_betw_def inj_on_def by metis
+        then show "l2\<^sup>c = l1" using l1_sign l2_sign using sign_comp_atom by metis 
       qed
     
     have "applicable C1' C2' {l1} {l2} Resolution.\<epsilon>" unfolding applicable_def

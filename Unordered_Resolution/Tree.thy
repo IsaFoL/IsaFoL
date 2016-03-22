@@ -33,24 +33,18 @@ fun path :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
 | "path _ _ \<longleftrightarrow> False"
 
 lemma path_inv_Leaf: "path p Leaf \<longleftrightarrow> p = []"
-apply (induction p)
-apply auto
-done
+  by (induction p)  auto
 
 lemma path_inv_Cons: "path (a#ds) T \<longrightarrow> (\<exists>l r. T=Branching l r)"
-apply (cases T)
-apply (auto simp add: path_inv_Leaf)
-done
+  by  (cases T) (auto simp add: path_inv_Leaf)
+
 
 lemma path_inv_Branching_Left: "path (Left#p) (Branching l r) \<longleftrightarrow> path p l"
-apply (induction p)
-using Left_def Right_def path.cases apply auto
-done
+  using Left_def Right_def path.cases by (induction p) auto
 
 lemma path_inv_Branching_Right: "path (Right#p) (Branching l r) \<longleftrightarrow> path p r"
-apply (induction p)
-using Left_def Right_def path.cases apply auto
-done
+using Left_def Right_def path.cases by (induction p)  auto
+
 
 lemma path_inv_Branching: 
   "path p (Branching l r) \<longleftrightarrow> (p=[] \<or> (\<exists>a p'. p=a#p'\<and> (a \<longrightarrow> path p' l) \<and> (\<not>a \<longrightarrow> path p' r)))" (is "?L \<longleftrightarrow> ?R")
@@ -654,10 +648,11 @@ abbreviation wf_infpath :: "(nat \<Rightarrow> 'a list) \<Rightarrow> bool" wher
   "wf_infpath f \<equiv> (f 0 = []) \<and> (\<forall>n. \<exists>a. f (Suc n) = (f n) @ [a])"
 
 lemma chain_length: "wf_infpath f \<Longrightarrow> length (f n) = n"
-apply (induction n)
-apply auto
-apply (metis length_append_singleton)
-done
+proof (induction n)
+  case 0 then show ?case by auto
+next
+  case (Suc n) then show ?case by (metis length_append_singleton)
+qed
 
 lemma chain_prefix: "wf_infpath f \<Longrightarrow> n\<^sub>1 \<le> n\<^sub>2 \<Longrightarrow> \<exists>a. (f n\<^sub>1) @ a = (f n\<^sub>2)"
 proof (induction n\<^sub>2)
