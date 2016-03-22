@@ -524,6 +524,16 @@ fun rewatch_nat_cand :: "'a literal \<Rightarrow> 'a twl_state_cands \<Rightarro
 fun raw_cons_trail where
 "raw_cons_trail L (TWL_State M N U k C) = TWL_State (L # M) N U k C"
 
+lemma length_raw_trail_raw_cons_trails[simp]:
+  "length (raw_trail (raw_cons_trail (Propagated L C') S)) = Suc (length (raw_trail S))"
+  by (cases S) auto
+
+fun raw_cons_trail_pq where
+"raw_cons_trail_pq L (TWL_State_Cand S Q) = TWL_State_Cand (raw_cons_trail L S) Q"
+
+fun update_conflicting_pq where
+"update_conflicting_pq L (TWL_State_Cand S Q) = TWL_State_Cand (update_conflicting L S) Q"
+
 lemma
   fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) marked_lits" and
     L :: "('v, nat, 'v twl_clause) marked_lit" and Cs :: "'v twl_clause list" and
@@ -559,4 +569,36 @@ proof -
     CDCL_Two_Watched_Literals.twl.raw_clauses_def defined_lit_map)
 qed
 
+function do_propagate_or_conflict_step :: "'a twl_state_cands \<Rightarrow> 'a twl_state_cands" where
+"do_propagate_or_conflict_step (TWL_State_Cand S (Prop_Or_Conf [] (Some D))) =
+  (if trail S \<Turnstile>as CNot (mset (raw_clause D))
+  then do_propagate_or_conflict_step
+    (update_conflicting_pq (Some (raw_clause D)) (TWL_State_Cand S (Prop_Or_Conf [] None)))
+  else TWL_State_Cand S (Prop_Or_Conf [] (Some D)))" |
+"do_propagate_or_conflict_step (TWL_State_Cand S (Prop_Or_Conf [] None)) =
+  TWL_State_Cand S (Prop_Or_Conf [] None)" |
+"do_propagate_or_conflict_step (TWL_State_Cand S (Prop_Or_Conf (l @ [(L, C')]) (Some D))) =
+  (if trail S \<Turnstile>as CNot (mset (raw_clause D))
+  then do_propagate_or_conflict_step
+    (update_conflicting_pq (Some (raw_clause D)) (TWL_State_Cand S (Prop_Or_Conf l None)))
+  else do_propagate_or_conflict_step
+    (raw_cons_trail_pq (Propagated L C') (TWL_State_Cand S (Prop_Or_Conf l (Some D)))))" |
+"do_propagate_or_conflict_step (TWL_State_Cand S (Prop_Or_Conf (l @ [(L, C')]) None)) =
+  do_propagate_or_conflict_step
+    (raw_cons_trail_pq (Propagated L C') (TWL_State_Cand S (Prop_Or_Conf l None)))"
+  apply (rename_tac P x)
+  apply (case_tac x, case_tac "cand x"; case_tac "conflict (cand x)";
+    case_tac "prop_queue (cand x)" rule: rev_cases; simp)
+  by auto
+
+(* TODO have to use the initial Q *)
+termination apply (relation "{(T, S).
+    (case (S:: 'v twl_state_cands, T:: 'v twl_state_cands) of
+    (TWL_State_Cand U (Prop_Or_Conf Q D), TWL_State_Cand U' (Prop_Or_Conf Q' D')) \<Rightarrow>
+    D' \<noteq> None \<or> length (raw_init_clss U) + length (raw_learned_clss U)
+      + length Q - length (trail U)
+    > length (raw_init_clss U) + length (raw_learned_clss U) + length Q - length (trail U'))}")
+  defer
+  apply auto
+  sorry
 end
