@@ -29,10 +29,11 @@ session "Weidenbach_Book" (main) = "HOL" +
     CDCL_W_Incremental
     CDCL_Two_Watched_Literals
     CDCL_Two_Watched_Literals_Invariant
-  theories [quick_and_dirty]
+  theories [quick_and_dirty, document = true]
     Prop_Superposition
-    Weidenbach_Book
     CDCL_Two_Watched_Literals_Implementation
+  theories [quick_and_dirty, document = false]
+    Weidenbach_Book
   document_files
     "root.tex"
     "biblio.bib"
