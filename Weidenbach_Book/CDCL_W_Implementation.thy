@@ -7,10 +7,10 @@ notation image_mset (infixr "`#" 90)
 type_synonym 'a cdcl\<^sub>W_mark = "'a clause"
 type_synonym cdcl\<^sub>W_marked_level = nat
 
-type_synonym 'v cdcl\<^sub>W_marked_lit = "('v, cdcl\<^sub>W_marked_level, 'v cdcl\<^sub>W_mark) marked_lit"
-type_synonym 'v cdcl\<^sub>W_marked_lits = "('v, cdcl\<^sub>W_marked_level, 'v cdcl\<^sub>W_mark) marked_lits"
+type_synonym 'v cdcl\<^sub>W_ann_literal = "('v, cdcl\<^sub>W_marked_level, 'v cdcl\<^sub>W_mark) ann_literal"
+type_synonym 'v cdcl\<^sub>W_ann_literals = "('v, cdcl\<^sub>W_marked_level, 'v cdcl\<^sub>W_mark) ann_literals"
 type_synonym 'v cdcl\<^sub>W_state =
-  "'v cdcl\<^sub>W_marked_lits \<times> 'v clauses \<times> 'v clauses \<times> nat \<times> 'v clause option"
+  "'v cdcl\<^sub>W_ann_literals \<times> 'v clauses \<times> 'v clauses \<times> nat \<times> 'v clause option"
 
 abbreviation trail :: "'a \<times> 'b \<times> 'c \<times> 'd \<times> 'e \<Rightarrow> 'a" where
 "trail \<equiv> (\<lambda>(M, _). M)"
@@ -106,13 +106,13 @@ unfolding satisfiable_carac[symmetric] by simp
 value "backtrack_split [Marked (Pos (Suc 0)) ()]"
 value "\<exists>C \<in> set [[Pos (Suc 0), Neg (Suc 0)]]. (\<forall>c \<in> set C. -c \<in> lits_of [Marked (Pos (Suc 0)) ()])"
 
-type_synonym cdcl\<^sub>W_state_inv_st = "(nat, nat, nat literal list) marked_lit list \<times>
+type_synonym cdcl\<^sub>W_state_inv_st = "(nat, nat, nat literal list) ann_literal list \<times>
   nat literal list list \<times> nat literal list list \<times> nat \<times> nat literal list option"
 
 text \<open>We need some functions to convert between our abstract state @{typ "nat cdcl\<^sub>W_state"} and the
  concrete state @{typ "cdcl\<^sub>W_state_inv_st"}.\<close>
 
-fun convert :: "('a, 'b, 'c list) marked_lit \<Rightarrow> ('a, 'b, 'c multiset) marked_lit"  where
+fun convert :: "('a, 'b, 'c list) ann_literal \<Rightarrow> ('a, 'b, 'c multiset) ann_literal"  where
 "convert (Propagated L C) = Propagated L (mset C)" |
 "convert (Marked K i) = Marked K i"
 
@@ -125,7 +125,7 @@ lemma convert_Propagated[elim!]:
 
 lemma get_rev_level_map_convert:
   "get_rev_level (map convert M) n x = get_rev_level M n x"
-  by (induction M arbitrary: n rule: marked_lit_list_induct) auto
+  by (induction M arbitrary: n rule: ann_literal_list_induct) auto
 
 lemma get_level_map_convert[simp]:
   "get_level (map convert M) = get_level M"
@@ -138,7 +138,7 @@ lemma get_maximum_level_map_convert[simp]:
 
 lemma get_all_levels_of_marked_map_convert[simp]:
   "get_all_levels_of_marked (map convert M) = (get_all_levels_of_marked M)"
-  by (induction M rule: marked_lit_list_induct) auto
+  by (induction M rule: ann_literal_list_induct) auto
 
 text \<open>Conversion function\<close>
 fun toS :: "cdcl\<^sub>W_state_inv_st \<Rightarrow> nat cdcl\<^sub>W_state" where
@@ -161,14 +161,14 @@ instance
 end
 
 lemma lits_of_map_convert[simp]: "lits_of (map convert M) = lits_of M"
-  by (induction M rule: marked_lit_list_induct) simp_all
+  by (induction M rule: ann_literal_list_induct) simp_all
 
 lemma undefined_lit_map_convert[iff]:
   "undefined_lit (map convert M) L \<longleftrightarrow> undefined_lit M L"
   by (auto simp add: Marked_Propagated_in_iff_in_lits_of)
 
 lemma true_annot_map_convert[simp]: "map convert M \<Turnstile>a N \<longleftrightarrow> M \<Turnstile>a N"
-  by (induction M rule: marked_lit_list_induct) (simp_all add: true_annot_def)
+  by (induction M rule: ann_literal_list_induct) (simp_all add: true_annot_def)
 
 lemma true_annots_map_convert[simp]: "map convert M \<Turnstile>as N \<longleftrightarrow> M \<Turnstile>as N"
   unfolding true_annots_def by auto
@@ -409,7 +409,7 @@ lemma do_skip_step_trail_is_None[iff]:
   by (cases S rule: do_skip_step.cases) auto
 
 paragraph \<open>Resolve\<close>
-fun maximum_level_code:: "'a literal list \<Rightarrow> ('a, nat, 'a literal list) marked_lit list \<Rightarrow> nat"
+fun maximum_level_code:: "'a literal list \<Rightarrow> ('a, nat, 'a literal list) ann_literal list \<Rightarrow> nat"
   where
 "maximum_level_code [] _ = 0" |
 "maximum_level_code (L # Ls) M = max (get_level M L) (maximum_level_code Ls M)"
@@ -567,11 +567,11 @@ lemma bt_cut_some_decomp:
   by (induction i M rule: bt_cut.induct) (auto split: split_if_asm)
 
 lemma bt_cut_not_none: "M = M2 @ Marked K (Suc i) # M' \<Longrightarrow> bt_cut i M \<noteq> None"
-  by (induction M2 arbitrary: M rule: marked_lit_list_induct) auto
+  by (induction M2 arbitrary: M rule: ann_literal_list_induct) auto
 
 lemma get_all_marked_decomposition_ex:
   "\<exists>N. (Marked K (Suc i) # M', N) \<in> set (get_all_marked_decomposition (M2@Marked K (Suc i) # M'))"
-  apply (induction M2 rule: marked_lit_list_induct)
+  apply (induction M2 rule: ann_literal_list_induct)
     apply auto[2]
   by (rename_tac L m xs,  case_tac "get_all_marked_decomposition (xs @ Marked K (Suc i) # M')")
   auto
@@ -594,7 +594,7 @@ fun do_backtrack_step where
 lemma get_all_marked_decomposition_map_convert:
   "(get_all_marked_decomposition (map convert M)) =
     map (\<lambda>(a, b). (map convert a, map convert b)) (get_all_marked_decomposition M)"
-  apply (induction M rule: marked_lit_list_induct)
+  apply (induction M rule: ann_literal_list_induct)
     apply simp
   by (rename_tac L l xs, case_tac "get_all_marked_decomposition xs"; auto)+
 
@@ -629,7 +629,7 @@ lemma do_backtrack_step:
     from arg_cong[OF this, of "\<lambda>a. Suc j \<in> set a"] have "j \<le> k" unfolding c by auto
     have max_l_j: "maximum_level_code C' M = j"
       using db fd M\<^sub>2 C unfolding S E by (auto
-          split: option.splits list.splits marked_lit.splits
+          split: option.splits list.splits ann_literal.splits
           dest!: find_level_decomp_some)[1]
     have "get_maximum_level M (mset C) \<ge> k"
       using \<open>L \<in> set C\<close> get_maximum_level_ge_get_level levL by blast
@@ -723,7 +723,7 @@ next
     apply (rule bt_cut_not_none[of M "_ @ _"])
     using c by simp
   show ?case using db unfolding S  E
-    by (auto split: option.splits list.splits marked_lit.splits
+    by (auto split: option.splits list.splits ann_literal.splits
       simp add: fd_some  L' j' btc_none
       dest: bt_cut_some_decomp)
 qed
@@ -758,11 +758,11 @@ lemma do_decide_step:
           dest: find_first_unused_var_undefined find_first_unused_var_Some
           intro: atms_of_atms_of_ms_mono)[1]
 proof -
-  fix a :: "(nat, nat, nat literal list) marked_lit list" and
+  fix a :: "(nat, nat, nat literal list) ann_literal list" and
         b :: "nat literal list list" and  c :: "nat literal list list" and
         d :: nat and e :: "nat literal list option"
   {
-    fix a :: "(nat, nat, nat literal list) marked_lit list" and
+    fix a :: "(nat, nat, nat literal list) ann_literal list" and
         b :: "nat literal list list" and  c :: "nat literal list list" and
         d :: nat and x2 :: "nat literal" and m :: "nat literal list"
     assume a1: "m \<in> set b"
@@ -1115,7 +1115,7 @@ proof -
            apply (cases S rule: do_skip_step.cases; auto split: split_if_asm)
 
           apply (cases S rule: do_backtrack_step.cases;
-            auto split: split_if_asm option.splits list.splits marked_lit.splits
+            auto split: split_if_asm option.splits list.splits ann_literal.splits
               dest!: bt_cut_some_decomp simp: Let_def)
         using d apply (cases S rule: do_decide_step.cases; auto split: option.splits)[]
         done
@@ -1263,7 +1263,7 @@ lemma conflicting_do_decide_step_iff[iff]:
 lemma conflicting_do_backtrack_step_imp[simp]:
   "do_backtrack_step S \<noteq> S \<Longrightarrow> conflicting (do_backtrack_step S) = None"
   by (cases S rule: do_backtrack_step.cases)
-     (auto simp add: Let_def split: list.splits option.splits marked_lit.splits)
+     (auto simp add: Let_def split: list.splits option.splits ann_literal.splits)
 
 lemma do_skip_step_eq_iff_trail_eq:
   "do_skip_step S = S \<longleftrightarrow> trail (do_skip_step S) = trail S"
@@ -1276,7 +1276,7 @@ lemma do_decide_step_eq_iff_trail_eq:
 lemma do_backtrack_step_eq_iff_trail_eq:
   "do_backtrack_step S = S \<longleftrightarrow> trail (do_backtrack_step S) = trail S"
   by (cases S rule: do_backtrack_step.cases)
-     (auto split: option.split list.splits marked_lit.splits
+     (auto split: option.split list.splits ann_literal.splits
        dest!: bt_cut_in_get_all_marked_decomposition)
 
 lemma do_resolve_step_eq_iff_trail_eq:
@@ -1786,28 +1786,28 @@ fun uminus_literal l = (if is_pos l then Neg else Pos) (atm_of l);
 end; (*struct Clausal_Logic*)
 
 structure Partial_Annotated_Clausal_Logic : sig
-  datatype ('a, 'b, 'c) marked_lit = Marked of 'a Clausal_Logic.literal * 'b |
+  datatype ('a, 'b, 'c) ann_literal = Marked of 'a Clausal_Logic.literal * 'b |
     Propagated of 'a Clausal_Logic.literal * 'c
-  val equal_marked_lit :
+  val equal_ann_literal :
     'a HOL.equal -> 'b HOL.equal -> 'c HOL.equal ->
-      ('a, 'b, 'c) marked_lit HOL.equal
-  val lits_of : ('a, 'b, 'c) marked_lit list -> 'a Clausal_Logic.literal Set.set
+      ('a, 'b, 'c) ann_literal HOL.equal
+  val lits_of : ('a, 'b, 'c) ann_literal list -> 'a Clausal_Logic.literal Set.set
 end = struct
 
-datatype ('a, 'b, 'c) marked_lit = Marked of 'a Clausal_Logic.literal * 'b |
+datatype ('a, 'b, 'c) ann_literal = Marked of 'a Clausal_Logic.literal * 'b |
   Propagated of 'a Clausal_Logic.literal * 'c;
 
-fun equal_marked_lita A_ B_ C_ (Marked (x11, x12)) (Propagated (x21, x22)) =
+fun equal_ann_literala A_ B_ C_ (Marked (x11, x12)) (Propagated (x21, x22)) =
   false
-  | equal_marked_lita A_ B_ C_ (Propagated (x21, x22)) (Marked (x11, x12)) =
+  | equal_ann_literala A_ B_ C_ (Propagated (x21, x22)) (Marked (x11, x12)) =
     false
-  | equal_marked_lita A_ B_ C_ (Propagated (x21, x22)) (Propagated (y21, y22)) =
+  | equal_ann_literala A_ B_ C_ (Propagated (x21, x22)) (Propagated (y21, y22)) =
     Clausal_Logic.equal_literala A_ x21 y21 andalso HOL.eq C_ x22 y22
-  | equal_marked_lita A_ B_ C_ (Marked (x11, x12)) (Marked (y11, y12)) =
+  | equal_ann_literala A_ B_ C_ (Marked (x11, x12)) (Marked (y11, y12)) =
     Clausal_Logic.equal_literala A_ x11 y11 andalso HOL.eq B_ x12 y12;
 
-fun equal_marked_lit A_ B_ C_ = {equal = equal_marked_lita A_ B_ C_} :
-  ('a, 'b, 'c) marked_lit HOL.equal;
+fun equal_ann_literal A_ B_ C_ = {equal = equal_ann_literala A_ B_ C_} :
+  ('a, 'b, 'c) ann_literal HOL.equal;
 
 fun lit_of (Marked (x11, x12)) = x11
   | lit_of (Propagated (x21, x22)) = x21;
@@ -1833,11 +1833,11 @@ end; (*struct Lattices_Big*)
 structure CDCL_W_Level : sig
   val get_rev_level :
     'a HOL.equal ->
-      ('a, Arith.nat, 'b) Partial_Annotated_Clausal_Logic.marked_lit list ->
+      ('a, Arith.nat, 'b) Partial_Annotated_Clausal_Logic.ann_literal list ->
         Arith.nat -> 'a Clausal_Logic.literal -> Arith.nat
   val get_maximum_level :
     'a HOL.equal ->
-      ('a, Arith.nat, 'b) Partial_Annotated_Clausal_Logic.marked_lit list ->
+      ('a, Arith.nat, 'b) Partial_Annotated_Clausal_Logic.ann_literal list ->
         'a Clausal_Logic.literal Multiset.multiset -> Arith.nat
 end = struct
 
@@ -1880,7 +1880,7 @@ structure DPLL_CDCL_W_Implementation : sig
   val find_first_unit_clause :
     'a HOL.equal ->
       ('a Clausal_Logic.literal list) list ->
-        ('a, 'b, 'c) Partial_Annotated_Clausal_Logic.marked_lit list ->
+        ('a, 'b, 'c) Partial_Annotated_Clausal_Logic.ann_literal list ->
           ('a Clausal_Logic.literal * 'a Clausal_Logic.literal list) option
 end = struct
 
@@ -1925,7 +1925,7 @@ structure CDCL_W_Implementation : sig
   datatype cdcl_W_state_inv_from_init_state =
     ConI of
       ((Arith.nat, Arith.nat, (Arith.nat Clausal_Logic.literal list))
-         Partial_Annotated_Clausal_Logic.marked_lit list *
+         Partial_Annotated_Clausal_Logic.ann_literal list *
         ((Arith.nat Clausal_Logic.literal list) list *
           ((Arith.nat Clausal_Logic.literal list) list *
             (Arith.nat * (Arith.nat Clausal_Logic.literal list) option))));
@@ -1937,7 +1937,7 @@ end = struct
 datatype cdcl_W_state_inv =
   Con of
     ((Arith.nat, Arith.nat, (Arith.nat Clausal_Logic.literal list))
-       Partial_Annotated_Clausal_Logic.marked_lit list *
+       Partial_Annotated_Clausal_Logic.ann_literal list *
       ((Arith.nat Clausal_Logic.literal list) list *
         ((Arith.nat Clausal_Logic.literal list) list *
           (Arith.nat * (Arith.nat Clausal_Logic.literal list) option))));
@@ -1945,7 +1945,7 @@ datatype cdcl_W_state_inv =
 datatype cdcl_W_state_inv_from_init_state =
   ConI of
     ((Arith.nat, Arith.nat, (Arith.nat Clausal_Logic.literal list))
-       Partial_Annotated_Clausal_Logic.marked_lit list *
+       Partial_Annotated_Clausal_Logic.ann_literal list *
       ((Arith.nat Clausal_Logic.literal list) list *
         ((Arith.nat Clausal_Logic.literal list) list *
           (Arith.nat * (Arith.nat Clausal_Logic.literal list) option))));
@@ -2086,7 +2086,7 @@ fun do_other_step s =
   in
     (if not (Product_Type.equal_proda
               (List.equal_list
-                (Partial_Annotated_Clausal_Logic.equal_marked_lit
+                (Partial_Annotated_Clausal_Logic.equal_ann_literal
                   Arith.equal_nat Arith.equal_nat
                   (List.equal_list
                     (Clausal_Logic.equal_literal Arith.equal_nat))))
@@ -2109,7 +2109,7 @@ fun do_other_step s =
            in
              (if not (Product_Type.equal_proda
                        (List.equal_list
-                         (Partial_Annotated_Clausal_Logic.equal_marked_lit
+                         (Partial_Annotated_Clausal_Logic.equal_ann_literal
                            Arith.equal_nat Arith.equal_nat
                            (List.equal_list
                              (Clausal_Logic.equal_literal Arith.equal_nat))))
@@ -2133,7 +2133,7 @@ fun do_other_step s =
                     in
                       (if not (Product_Type.equal_proda
                                 (List.equal_list
-                                  (Partial_Annotated_Clausal_Logic.equal_marked_lit
+                                  (Partial_Annotated_Clausal_Logic.equal_ann_literal
                                     Arith.equal_nat Arith.equal_nat
                                     (List.equal_list
                                       (Clausal_Logic.equal_literal
@@ -2161,7 +2161,7 @@ fun do_other_stepa s = Con (do_other_step (rough_state_of s));
 fun equal_cdcl_W_state_inv sa s =
   Product_Type.equal_proda
     (List.equal_list
-      (Partial_Annotated_Clausal_Logic.equal_marked_lit Arith.equal_nat
+      (Partial_Annotated_Clausal_Logic.equal_ann_literal Arith.equal_nat
         Arith.equal_nat
         (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat))))
     (Product_Type.equal_prod
@@ -2185,7 +2185,7 @@ fun do_full1_cp_step s =
 fun equal_cdcl_W_state_inv_from_init_state sa s =
   Product_Type.equal_proda
     (List.equal_list
-      (Partial_Annotated_Clausal_Logic.equal_marked_lit Arith.equal_nat
+      (Partial_Annotated_Clausal_Logic.equal_ann_literal Arith.equal_nat
         Arith.equal_nat
         (List.equal_list (Clausal_Logic.equal_literal Arith.equal_nat))))
     (Product_Type.equal_prod

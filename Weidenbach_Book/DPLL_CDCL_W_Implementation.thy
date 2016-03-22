@@ -11,14 +11,14 @@ lemma lits_of_unfold[iff]:
   unfolding true_annots_def Ball_def true_annot_def CNot_def mem_set_multiset_eq by auto
 text \<open>The right-hand version is written at a high-level, but only the left-hand side is executable.\<close>
 
-definition is_unit_clause :: "'a literal list \<Rightarrow> ('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal option"
+definition is_unit_clause :: "'a literal list \<Rightarrow> ('a, 'b, 'c) ann_literal list \<Rightarrow> 'a literal option"
  where
  "is_unit_clause l M =
    (case List.filter (\<lambda>a. atm_of a \<notin> atm_of ` lits_of M) l of
      a # [] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
    | _ \<Rightarrow> None)"
 
-definition is_unit_clause_code :: "'a literal list \<Rightarrow> ('a, 'b, 'c) marked_lit list
+definition is_unit_clause_code :: "'a literal list \<Rightarrow> ('a, 'b, 'c) ann_literal list
   \<Rightarrow> 'a literal option" where
  "is_unit_clause_code l M =
    (case List.filter (\<lambda>a. atm_of a \<notin> atm_of ` lits_of M) l of
@@ -80,7 +80,7 @@ lemma is_unit_clause_nil[simp]: "is_unit_clause [] M = None"
 
 subsubsection \<open>Unit propagation for all clauses\<close>
 text \<open>Finding the first clause to propagate\<close>
-fun find_first_unit_clause :: "'a literal list list \<Rightarrow> ('a, 'b, 'c) marked_lit list
+fun find_first_unit_clause :: "'a literal list list \<Rightarrow> ('a, 'b, 'c) ann_literal list
   \<Rightarrow> ('a literal \<times> 'a literal list) option"  where
 "find_first_unit_clause (a # l) M =
   (case is_unit_clause a M of

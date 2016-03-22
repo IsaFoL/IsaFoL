@@ -5,11 +5,11 @@ begin
 
 section \<open>DPLL\<close>
 subsection \<open>Rules\<close>
-type_synonym 'a dpll\<^sub>W_marked_lit = "('a, unit, unit) marked_lit"
-type_synonym 'a dpll\<^sub>W_marked_lits = "('a, unit, unit) marked_lits"
-type_synonym 'v dpll\<^sub>W_state = "'v dpll\<^sub>W_marked_lits \<times> 'v clauses"
+type_synonym 'a dpll\<^sub>W_ann_literal = "('a, unit, unit) ann_literal"
+type_synonym 'a dpll\<^sub>W_ann_literals = "('a, unit, unit) ann_literals"
+type_synonym 'v dpll\<^sub>W_state = "'v dpll\<^sub>W_ann_literals \<times> 'v clauses"
 
-abbreviation trail :: "'v dpll\<^sub>W_state \<Rightarrow> 'v dpll\<^sub>W_marked_lits" where
+abbreviation trail :: "'v dpll\<^sub>W_state \<Rightarrow> 'v dpll\<^sub>W_ann_literals" where
 "trail \<equiv> fst"
 abbreviation clauses :: "'v dpll\<^sub>W_state \<Rightarrow> 'v clauses" where
 "clauses \<equiv> snd"
@@ -209,14 +209,14 @@ next
               by blast
             then show ?thesis
               using f1 marked by (metis (no_types) get_all_marked_decomposition.simps(1) length_tl
-                list.sel(3) list.size(3) marked_lit.collapse(1))
+                list.sel(3) list.size(3) ann_literal.collapse(1))
           qed
         obtain M0' M0 where
           L0: "hd (tl (get_all_marked_decomposition (M' @ L # M))) = (M0, M0')"
           by (cases "hd (tl (get_all_marked_decomposition (M' @ L # M)))")
         have x'': "x = (M0, Propagated (-lit_of L) P # M0')"
           unfolding x' using get_all_marked_decomposition_last_choice tl M' L0
-          by (metis marked marked_lit.collapse(1))
+          by (metis marked ann_literal.collapse(1))
         obtain l_get_all_marked_decomposition where
           "get_all_marked_decomposition (trail S) = (L # M, M') # (M0, M0') #
             l_get_all_marked_decomposition"

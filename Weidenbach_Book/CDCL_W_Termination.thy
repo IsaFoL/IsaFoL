@@ -355,7 +355,7 @@ proof -
   have "A = drop (length M) (M' @ Marked K i # H)"
     using arg_cong[OF A, of "drop (length M)"] by auto
   moreover have "drop (length M) (M' @ Marked K i # H) = drop (length M) M' @ Marked K i # H"
-    using nm by (metis (no_types, lifting) A drop_Cons' drop_append marked_lit.disc(1) not_gr0
+    using nm by (metis (no_types, lifting) A drop_Cons' drop_append ann_literal.disc(1) not_gr0
       nth_append nth_append_length nth_mem zero_less_diff)
   finally show ?thesis by fast
 qed
@@ -447,7 +447,7 @@ proof (induction rule: cdcl\<^sub>W_o_induct_lev2)
     using backtrack.prems(6) decomp undef T lev by (force simp: cdcl\<^sub>W_M_level_inv_def)
   then obtain d where d: "M1 = d @ Marked Kh i # H"
     by (metis (no_types) decomp in_get_all_marked_decomposition_trail_update_trail list.inject
-      list.sel(3) marked_lit.distinct(1) self_append_conv2 tl_append2)
+      list.sel(3) ann_literal.distinct(1) self_append_conv2 tl_append2)
   have "i \<in> set (get_all_levels_of_marked (M3 @ M2 @ Marked K (Suc j) # d @ Marked Kh i # H))"
     by auto
   then have "i > 0" unfolding H[unfolded M3 d] by auto
@@ -938,7 +938,7 @@ proof (induct rule: cdcl\<^sub>W_all_induct_lev2)
   have propa: "propagate S (cons_trail (Propagated L (C + {#L#})) S)"
     using propagate_rule[OF _ propagate.hyps(1,2)] propagate.hyps by auto
   then have no_dup': "no_dup (Propagated L ( (C + {#L#})) # trail S)"
-    by (metis M_level cdcl\<^sub>W_M_level_inv_decomp(2) marked_lit.sel(2) propagate'
+    by (metis M_level cdcl\<^sub>W_M_level_inv_decomp(2) ann_literal.sel(2) propagate'
       r_into_rtranclp rtranclp_cdcl\<^sub>W_cp_consistent_inv trail_cons_trail undef)
 
   let ?N = "init_clss S"

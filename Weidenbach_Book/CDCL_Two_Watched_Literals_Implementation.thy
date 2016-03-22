@@ -9,14 +9,14 @@ imports CDCL_Two_Watched_Literals DPLL_CDCL_W_Implementation
 begin
   
 type_synonym 'v conc_twl_state =
-  "(('v, nat, 'v literal list) marked_lit, 'v literal list twl_clause list, nat, 'v literal list)
+  "(('v, nat, 'v literal list) ann_literal, 'v literal list twl_clause list, nat, 'v literal list)
     twl_state"
 
-fun convert :: "('a, 'b, 'c list) marked_lit \<Rightarrow> ('a, 'b, 'c multiset) marked_lit"  where
+fun convert :: "('a, 'b, 'c list) ann_literal \<Rightarrow> ('a, 'b, 'c multiset) ann_literal"  where
 "convert (Propagated L C) = Propagated L (mset C)" |
 "convert (Marked K i) = Marked K i"
 
-abbreviation convert_tr :: "('a, 'b, 'c list) marked_lits \<Rightarrow> ('a, 'b, 'c multiset) marked_lits"
+abbreviation convert_tr :: "('a, 'b, 'c list) ann_literals \<Rightarrow> ('a, 'b, 'c multiset) ann_literals"
   where
 "convert_tr \<equiv> map convert"
 
@@ -66,7 +66,7 @@ oops
 (* 
 definition
   rewatch_nat ::
-  "(nat, nat, nat literal list) marked_lit \<Rightarrow> conc_twl_state \<Rightarrow>
+  "(nat, nat, nat literal list) ann_literal \<Rightarrow> conc_twl_state \<Rightarrow>
     nat literal list twl_clause \<Rightarrow> nat literal list twl_clause"
 where
   "rewatch_nat L S C =
@@ -214,7 +214,7 @@ next
     "D \<noteq> {#}" and
     "st_of_raw T = tl_trail (st_of_raw S)"
     using conf unfolding do_skip_step_def
-    by (auto split: list.splits marked_lit.splits split_if_asm simp: conflicting_raw_conflicting)
+    by (auto split: list.splits ann_literal.splits split_if_asm simp: conflicting_raw_conflicting)
   then show ?thesis
     using skip_rule[of "st_of_raw S" L C M "init_clss (st_of_raw S)"
       "learned_clss (st_of_raw S)" "backtrack_lvl (st_of_raw S)"]
@@ -232,7 +232,7 @@ next
   case Some
   then show ?thesis
     using conf unfolding do_skip_step_def
-    by (auto split: list.splits marked_lit.splits split_if_asm simp: conflicting_raw_conflicting)
+    by (auto split: list.splits ann_literal.splits split_if_asm simp: conflicting_raw_conflicting)
 qed
 
 definition do_resolve_step :: "'conc_st \<Rightarrow> 'conc_st option" where
@@ -273,7 +273,7 @@ next
     "maximum_level (remove (-L) D) S = raw_backtrack_lvl S" and
     empty: "trail (st_of_raw S) \<noteq> []"
     using conf Some unfolding do_resolve_step_def
-    by (auto split: list.splits marked_lit.splits split_if_asm simp: conflicting_raw_conflicting)
+    by (auto split: list.splits ann_literal.splits split_if_asm simp: conflicting_raw_conflicting)
   moreover have "trail (st_of_raw S) = Propagated L (cls_of_raw_cls C) # M"
     using empty raw_hd_trail[of S] C M_def by (cases "trail (st_of_raw S)") simp_all
   moreover then have "L \<in># cls_of_raw_cls C"

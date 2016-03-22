@@ -211,9 +211,9 @@ subsubsection \<open>The state\<close>
 text \<open>We define here an abstraction over operation on the state we are manipulating.\<close>
 locale dpll_state =
   fixes
-    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
-    prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow>'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st"
@@ -352,12 +352,12 @@ end
 subsubsection \<open>Definition of the operation\<close>
 locale propagate_ops =
   dpll_state trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T for
-    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
-    prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_cond :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool"
+    propagate_cond :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> bool"
 begin
 inductive propagate\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 propagate\<^sub>N\<^sub>O\<^sub>T[intro]: "C + {#L#} \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C
@@ -371,9 +371,9 @@ end
 
 locale decide_ops =
   dpll_state trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T for
-    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
-    prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st"
 begin
@@ -388,9 +388,9 @@ end
 locale backjumping_ops =
   dpll_state trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
   for
-    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
-    prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" +
   fixes
@@ -417,12 +417,12 @@ locale dpll_with_backjumping_ops =
   decide_ops trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T +
   backjumping_ops trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T backjump_conds
   for
-    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
-    prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_conds :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
     backjump_conds :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" +
   assumes
@@ -636,7 +636,7 @@ lemma length_get_all_marked_decomposition_append_Marked:
     length (get_all_marked_decomposition F')
     + length (get_all_marked_decomposition (Marked K () # F))
     - 1"
-  by (induction F' rule: marked_lit_list_induct) auto
+  by (induction F' rule: ann_literal_list_induct) auto
 
 lemma take_length_get_all_marked_decomposition_marked_sandwich:
   "take (length (get_all_marked_decomposition F))
@@ -644,7 +644,7 @@ lemma take_length_get_all_marked_decomposition_marked_sandwich:
       =
      map (f o snd) (rev (get_all_marked_decomposition F))
     "
-proof (induction F' rule: marked_lit_list_induct)
+proof (induction F' rule: ann_literal_list_induct)
   case nil
   then show ?case by auto
 next
@@ -663,7 +663,7 @@ qed
 
 lemma length_get_all_marked_decomposition_length:
   "length (get_all_marked_decomposition M) \<le> 1 + length M"
-  by (induction M rule: marked_lit_list_induct) auto
+  by (induction M rule: ann_literal_list_induct) auto
 
 lemma length_in_get_all_marked_decomposition_bounded:
   assumes i:"i \<in> set (trail_weight S)"
@@ -690,7 +690,7 @@ text \<open>The bounds are the following:
 abbreviation unassigned_lit ::  "'b literal multiset set \<Rightarrow> 'a list \<Rightarrow> nat" where
   "unassigned_lit N M \<equiv> card (atms_of_ms N) - length M"
 lemma dpll_bj_trail_mes_increasing_prop:
-  fixes M :: "('v, unit, unit) marked_lits " and N :: "'v clauses"
+  fixes M :: "('v, unit, unit) ann_literals " and N :: "'v clauses"
   assumes
     "dpll_bj S T" and
     "inv S" and
@@ -999,11 +999,11 @@ proof -
           then show False using M by fast
         qed
       from List.split_list_first_propE[OF this] obtain K :: "'v literal" and
-        F F' :: "('v, unit, unit) marked_lit list" where
+        F F' :: "('v, unit, unit) ann_literal list" where
         M_K: "?M = F' @ Marked K () # F" and
         nm: "\<forall>f\<in>set F'. \<not>is_marked f"
         unfolding is_marked_def by (metis (full_types) old.unit.exhaust)
-      let ?K = "Marked K ()::('v, unit, unit) marked_lit"
+      let ?K = "Marked K ()::('v, unit, unit) ann_literal"
       have "?K \<in> set ?M"
         unfolding M_K by auto
       let ?C = "image_mset lit_of {#L\<in>#mset ?M. is_marked L \<and> L\<noteq>?K#} :: 'v literal multiset"
@@ -1044,7 +1044,7 @@ proof -
             have tot': "total_over_set I
                (atm_of ` lit_of ` (set ?M \<inter> {L. is_marked L \<and> L \<noteq> Marked K ()}))"
               using tot by (auto simp add: atms_of_uminus_lit_atm_of_lit_of)
-            { fix x :: "('v, unit, unit) marked_lit"
+            { fix x :: "('v, unit, unit) ann_literal"
               assume
                 a3: "lit_of x \<notin> I" and
                 a1: "x \<in> set ?M" and
@@ -1084,11 +1084,11 @@ locale dpll_with_backjumping =
   dpll_with_backjumping_ops trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
   propagate_conds inv backjump_conds
   for
-    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
-    prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and tl_trail :: "'st \<Rightarrow> 'st" and
+    prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_conds :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
     backjump_conds :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool"
   +
@@ -1292,9 +1292,9 @@ subsubsection \<open>Learn and Forget\<close>
 locale learn_ops =
   dpll_state trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
   for
-    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
-    prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and tl_trail :: "'st \<Rightarrow> 'st" and
+    prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" +
   fixes
     learn_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
@@ -1316,9 +1316,9 @@ end
 locale forget_ops =
   dpll_state trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
   for
-    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
-    prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and tl_trail :: "'st \<Rightarrow> 'st" and
+    prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" +
   fixes
     forget_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
@@ -1341,9 +1341,9 @@ locale learn_and_forget\<^sub>N\<^sub>O\<^sub>T =
   learn_ops trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T learn_cond +
   forget_ops trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T forget_cond
   for
-    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
-    prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     learn_cond forget_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
@@ -1361,12 +1361,12 @@ locale conflict_driven_clause_learning_ops =
   learn_and_forget\<^sub>N\<^sub>O\<^sub>T trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T learn_cond
     forget_cond
     for
-      trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+      trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
       clauses :: "'st \<Rightarrow> 'v clauses" and
-      prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+      prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
       tl_trail :: "'st \<Rightarrow> 'st" and
       add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-      propagate_conds :: "('v, unit, unit) marked_lit \<Rightarrow>'st \<Rightarrow> bool" and
+      propagate_conds :: "('v, unit, unit) ann_literal \<Rightarrow>'st \<Rightarrow> bool" and
       inv :: "'st \<Rightarrow> bool" and
       backjump_conds ::  "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
       learn_cond forget_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
@@ -1859,12 +1859,12 @@ locale conflict_driven_clause_learning_learning_before_backjump_only_distinct_le
   "\<lambda>C S. \<not>(\<exists>F' F K d L. trail S = F' @ Marked K () # F \<and> F \<Turnstile>as CNot (C - {#L#}))
     \<and> forget_restrictions C S"
     for
-      trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+      trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
       clauses :: "'st \<Rightarrow> 'v clauses" and
-      prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+      prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
       tl_trail :: "'st \<Rightarrow> 'st" and
       add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-      propagate_conds :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+      propagate_conds :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> bool" and
       inv :: "'st \<Rightarrow> bool" and
       backjump_conds :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
       learn_restrictions forget_restrictions :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
@@ -2469,12 +2469,12 @@ locale conflict_driven_clause_learning_with_restarts =
   conflict_driven_clause_learning trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
   propagate_conds inv backjump_conds learn_cond forget_cond
     for
-      trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+      trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
       clauses :: "'st \<Rightarrow> 'v clauses" and
-      prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+      prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
       tl_trail :: "'st \<Rightarrow> 'st" and
       add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-      propagate_conds :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+      propagate_conds :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> bool" and
       inv :: "'st \<Rightarrow> bool" and
       backjump_conds ::  "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
       learn_cond forget_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
@@ -2698,9 +2698,9 @@ end
 locale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts =
   cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts_ops restart cdcl\<^sub>N\<^sub>O\<^sub>T f bound_inv \<mu> cdcl\<^sub>N\<^sub>O\<^sub>T_inv \<mu>_bound
   for
-    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
-    prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     f :: "nat \<Rightarrow> nat" and
@@ -2886,12 +2886,12 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops =
   forget_ops trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T forget_cond +
   propagate_ops trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T propagate_conds
   for
-    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
-    prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_conds :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> bool" and
     forget_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" +
   fixes backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool"
 begin
@@ -2930,12 +2930,12 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy =
     propagate_conds forget_conds "\<lambda>C C' L' S.  backjump_l_cond C C' L' S
     \<and> distinct_mset (C' + {#L'#}) \<and> \<not>tautology (C' + {#L'#})"
   for
-    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
-    prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_conds :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
     backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool" +
   fixes
@@ -3002,12 +3002,12 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2 =
   cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
     propagate_conds forget_conds backjump_l_cond inv
   for
-    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
-    prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_conds :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
     backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool"
@@ -3023,12 +3023,12 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn =
   cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2 trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
     propagate_conds inv forget_conds backjump_l_cond
   for
-    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
-    prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_conds :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
     backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool" +
@@ -3399,11 +3399,11 @@ proof -
           then show False using M by fast
         qed
       from List.split_list_first_propE[OF this] obtain K :: "'v literal" and d :: unit and
-        F F' :: "('v, unit, unit) marked_lit list" where
+        F F' :: "('v, unit, unit) ann_literal list" where
         M_K: "?M = F' @ Marked K () # F" and
         nm: "\<forall>f\<in>set F'. \<not>is_marked f"
         unfolding is_marked_def by (metis (full_types) old.unit.exhaust)
-      let ?K = "Marked K ()::('v, unit, unit) marked_lit"
+      let ?K = "Marked K ()::('v, unit, unit) ann_literal"
       have "?K \<in> set ?M"
         unfolding M_K by auto
       let ?C = "image_mset lit_of {#L\<in>#mset ?M. is_marked L \<and> L\<noteq>?K#} :: 'v literal multiset"
@@ -3444,7 +3444,7 @@ proof -
             have tot': "total_over_set I
                (atm_of ` lit_of ` (set ?M \<inter> {L. is_marked L \<and> L \<noteq> Marked K ()}))"
               using tot by (auto simp add: atms_of_uminus_lit_atm_of_lit_of)
-            { fix x :: "('v, unit, unit) marked_lit"
+            { fix x :: "('v, unit, unit) ann_literal"
               assume
                 a3: "lit_of x \<notin> I" and
                 a1: "x \<in> set ?M" and
@@ -3518,12 +3518,12 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_with_backtrack_and_restarts =
     prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T propagate_conds inv backjump_conds
     learn_restrictions forget_restrictions
   for
-    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
-    prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_conds :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
     backjump_conds :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
     learn_restrictions forget_restrictions :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
@@ -3785,12 +3785,12 @@ locale most_general_cdcl\<^sub>N\<^sub>O\<^sub>T =
     propagate_ops trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T propagate_conds +
     backjumping_ops trail clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T "\<lambda>_ _ _ _ _. True"
   for
-    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
-    prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_conds :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool"
 begin
 lemma backjump_bj_can_jump:
@@ -3818,12 +3818,12 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_with_backtrack_restarts =
     propagate_conds inv forget_conds
     "\<lambda>C C' L' S. distinct_mset (C' + {#L'#}) \<and> backjump_l_cond C C' L' S"
     for
-    trail :: "'st \<Rightarrow> ('v, unit, unit) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, unit, unit) ann_literals" and
     clauses :: "'st \<Rightarrow> 'v clauses" and
-    prepend_trail :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    prepend_trail :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T:: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    propagate_conds :: "('v, unit, unit) marked_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, unit, unit) ann_literal \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
     backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> bool"

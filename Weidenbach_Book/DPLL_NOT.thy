@@ -6,14 +6,14 @@ section \<open>DPLL as an instance of NOT\<close>
 subsection \<open>DPLL with simple backtrack\<close>
 locale dpll_with_backtrack
 begin
-inductive backtrack :: "('v, unit, unit) marked_lit list \<times> 'v clauses
-  \<Rightarrow> ('v, unit, unit) marked_lit list \<times> 'v clauses \<Rightarrow> bool" where
+inductive backtrack :: "('v, unit, unit) ann_literal list \<times> 'v clauses
+  \<Rightarrow> ('v, unit, unit) ann_literal list \<times> 'v clauses \<Rightarrow> bool" where
 "backtrack_split (fst S)  = (M', L # M) \<Longrightarrow> is_marked L \<Longrightarrow> D \<in># snd S
   \<Longrightarrow> fst S \<Turnstile>as CNot D \<Longrightarrow> backtrack S (Propagated (- (lit_of L)) () # M, snd S)"
 
 inductive_cases backtrackE[elim]: "backtrack (M, N) (M', N')"
 lemma backtrack_is_backjump:
-  fixes M M' :: "('v, unit, unit) marked_lit list"
+  fixes M M' :: "('v, unit, unit) ann_literal list"
   assumes
     backtrack: "backtrack (M, N) (M', N')" and
     no_dup: "(no_dup \<circ> fst) (M, N)" and
@@ -96,7 +96,7 @@ proof -
             lit_of x \<notin> I \<Longrightarrow> x \<in> set M \<Longrightarrow>is_marked x
             \<Longrightarrow> x \<noteq> Marked K d \<Longrightarrow> -lit_of x \<in> I"
           proof -
-            fix x :: "('v, unit, unit) marked_lit"
+            fix x :: "('v, unit, unit) ann_literal"
             assume a1: "x \<noteq> Marked K d"
             assume a2: "is_marked x"
             assume a3: "x \<in> set M"
@@ -129,7 +129,7 @@ proof -
 qed
 
 lemma backtrack_is_backjump':
-  fixes M M' :: "('v, unit, unit) marked_lit list"
+  fixes M M' :: "('v, unit, unit) ann_literal list"
   assumes
     backtrack: "backtrack S T" and
     no_dup: "(no_dup \<circ> fst) S" and
@@ -152,7 +152,7 @@ sublocale backjumping_ops fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, 
   by unfold_locales
 
 lemma backtrack_is_backjump'':
-  fixes M M' :: "('v, unit, unit) marked_lit list"
+  fixes M M' :: "('v, unit, unit) ann_literal list"
   assumes
     backtrack: "backtrack S T" and
     no_dup: "(no_dup \<circ> fst) S" and
@@ -183,7 +183,7 @@ lemma can_do_bt_step:
 proof -
   obtain L G' G where
     "backtrack_split (fst S) = (G', L # G)"
-    unfolding M by (induction F' rule: marked_lit_list_induct) auto
+    unfolding M by (induction F' rule: ann_literal_list_induct) auto
   moreover then have "is_marked L"
      by (metis backtrack_split_snd_hd_marked list.distinct(1) list.sel(1) snd_conv)
   ultimately show ?thesis
@@ -226,19 +226,19 @@ context dpll_with_backtrack
 begin
 lemma wf_tranclp_dpll_inital_state:
   assumes fin: "finite A"
-  shows "wf {((M'::('v, unit, unit) marked_lits, N'::'v clauses), ([], N))|M' N' N.
+  shows "wf {((M'::('v, unit, unit) ann_literals, N'::'v clauses), ([], N))|M' N' N.
     dpll_bj\<^sup>+\<^sup>+ ([], N) (M', N') \<and> atms_of_msu N \<subseteq> atms_of_ms A}"
   using wf_tranclp_dpll_bj[OF assms(1)] by (rule wf_subset) auto
 
 corollary full_dpll_final_state_conclusive:
-  fixes M M' :: "('v, unit, unit) marked_lit list"
+  fixes M M' :: "('v, unit, unit) ann_literal list"
   assumes
     full: "full dpll_bj ([], N) (M', N')"
   shows "unsatisfiable (set_mset N) \<or> (M' \<Turnstile>asm N \<and> satisfiable (set_mset N))"
   using assms full_dpll_backjump_final_state[of "([],N)" "(M', N')" "set_mset N"] by auto
 
 corollary full_dpll_normal_form_from_init_state:
-  fixes M M' :: "('v, unit, unit) marked_lit list"
+  fixes M M' :: "('v, unit, unit) ann_literal list"
   assumes
     full: "full dpll_bj ([], N) (M', N')"
   shows "M' \<Turnstile>asm N \<longleftrightarrow> satisfiable (set_mset N)"

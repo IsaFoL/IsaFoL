@@ -11,11 +11,11 @@ text \<open>We here define marked literals (that will be used in both DPLL and C
   corresponding to it.\<close>
 subsection \<open>Marked Literals\<close>
 subsubsection \<open>Definition\<close>
-datatype ('v, 'lvl, 'mark) marked_lit =
+datatype ('v, 'lvl, 'mark) ann_literal =
   is_marked: Marked (lit_of: "'v literal") (level_of: "'lvl") |
   is_proped: Propagated (lit_of: "'v literal") (mark_of: 'mark)
 
-lemma marked_lit_list_induct[case_names nil marked proped]:
+lemma ann_literal_list_induct[case_names nil marked proped]:
   assumes "P []" and
   "\<And>L l xs. P xs \<Longrightarrow> P (Marked L l # xs)" and
   "\<And>L m xs. P xs \<Longrightarrow> P (Propagated L m # xs)"
@@ -27,9 +27,9 @@ lemma is_marked_ex_Marked:
   "is_marked L \<Longrightarrow> \<exists>K lvl. L = Marked K lvl"
   by (cases L) auto
 
-type_synonym ('v, 'l, 'm) marked_lits = "('v, 'l, 'm) marked_lit list"
+type_synonym ('v, 'l, 'm) ann_literals = "('v, 'l, 'm) ann_literal list"
 
-definition lits_of :: "('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal set" where
+definition lits_of :: "('a, 'b, 'c) ann_literal list \<Rightarrow> 'a literal set" where
 "lits_of Ls = lit_of ` (set Ls)"
 
 lemma lits_of_empty[simp]:
@@ -65,10 +65,10 @@ lemma lits_of_empty_is_empty[iff]:
   by (induct M) auto
 
 subsubsection \<open>Entailment\<close>
-definition true_annot :: "('a, 'l, 'm) marked_lits \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>a" 49) where
+definition true_annot :: "('a, 'l, 'm) ann_literals \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>a" 49) where
   "I \<Turnstile>a C \<longleftrightarrow> (lits_of I) \<Turnstile> C"
 
-definition true_annots :: "('a, 'l, 'm) marked_lits \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>as" 49) where
+definition true_annots :: "('a, 'l, 'm) ann_literals \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>as" 49) where
   "I \<Turnstile>as CC \<longleftrightarrow> (\<forall>C \<in> CC. I \<Turnstile>a C)"
 
 lemma true_annot_empty_model[simp]:
@@ -172,12 +172,12 @@ lemma true_annots_mono:
   unfolding true_annots_def by auto
 
 subsubsection \<open>Defined and undefined literals\<close>
-definition defined_lit :: "('a, 'l, 'm) marked_lit list  \<Rightarrow> 'a literal \<Rightarrow> bool"
+definition defined_lit :: "('a, 'l, 'm) ann_literal list  \<Rightarrow> 'a literal \<Rightarrow> bool"
   where
 "defined_lit I L \<longleftrightarrow> (\<exists>l. Marked L l \<in> set I) \<or> (\<exists>P. Propagated L P \<in> set I)
   \<or> (\<exists>l. Marked (-L) l \<in> set I) \<or> (\<exists>P. Propagated (-L) P \<in> set I)"
 
-abbreviation undefined_lit :: "('a, 'l, 'm) marked_lit list  \<Rightarrow> 'a literal \<Rightarrow>  bool"
+abbreviation undefined_lit :: "('a, 'l, 'm) ann_literal list  \<Rightarrow> 'a literal \<Rightarrow>  bool"
 where "undefined_lit I L \<equiv> \<not>defined_lit I L"
 
 lemma defined_lit_rev[simp]:
@@ -191,7 +191,7 @@ lemma atm_imp_marked_or_proped:
     \<or> (\<exists>l. Marked (lit_of x) l \<in> set I)
     \<or> (\<exists>l. Propagated (- lit_of x) l \<in> set I)
     \<or> (\<exists>l. Propagated (lit_of x) l \<in> set I)"
-  using assms marked_lit.exhaust_sel by metis
+  using assms ann_literal.exhaust_sel by metis
 
 lemma literal_is_lit_of_marked:
   assumes "L = lit_of x"
@@ -233,22 +233,22 @@ lemma decided_empty[simp]:
   unfolding defined_lit_def by simp
 
 subsection \<open>Backtracking\<close>
-fun backtrack_split :: "('v, 'l, 'm) marked_lits
-  \<Rightarrow> ('v, 'l, 'm) marked_lits \<times> ('v, 'l, 'm) marked_lits" where
+fun backtrack_split :: "('v, 'l, 'm) ann_literals
+  \<Rightarrow> ('v, 'l, 'm) ann_literals \<times> ('v, 'l, 'm) ann_literals" where
 "backtrack_split [] = ([], [])" |
 "backtrack_split (Propagated L P # mlits) = apfst ((op #) (Propagated L P)) (backtrack_split mlits)" |
 "backtrack_split (Marked L l # mlits) = ([], Marked L l # mlits)"
 
 lemma backtrack_split_fst_not_marked: "a \<in> set (fst (backtrack_split l)) \<Longrightarrow> \<not>is_marked a"
-  by (induct l rule: marked_lit_list_induct) auto
+  by (induct l rule: ann_literal_list_induct) auto
 
 lemma backtrack_split_snd_hd_marked:
   "snd (backtrack_split l) \<noteq> [] \<Longrightarrow> is_marked (hd (snd (backtrack_split l)))"
-  by (induct l rule: marked_lit_list_induct) auto
+  by (induct l rule: ann_literal_list_induct) auto
 
 lemma backtrack_split_list_eq[simp]:
   "fst (backtrack_split l) @ (snd (backtrack_split l)) = l"
-  by (induct l rule: marked_lit_list_induct) auto
+  by (induct l rule: ann_literal_list_induct) auto
 
 lemma backtrack_snd_empty_not_marked:
   "backtrack_split M = (M'', []) \<Longrightarrow> \<forall>l\<in>set M. \<not> is_marked l"
@@ -278,8 +278,8 @@ Split function in 2 + list.product
 *)
 text \<open>The pattern @{term "get_all_marked_decomposition [] = [([], [])]"} is necessary otherwise, we
   can call the @{term hd} function in the other pattern. \<close>
-fun get_all_marked_decomposition :: "('a, 'l, 'm) marked_lits
-  \<Rightarrow> (('a, 'l, 'm) marked_lits \<times> ('a, 'l, 'm) marked_lits) list" where
+fun get_all_marked_decomposition :: "('a, 'l, 'm) ann_literals
+  \<Rightarrow> (('a, 'l, 'm) ann_literals \<times> ('a, 'l, 'm) ann_literals) list" where
 "get_all_marked_decomposition (Marked L l # Ls) =
   (Marked L l # Ls, []) # get_all_marked_decomposition Ls" |
 "get_all_marked_decomposition (Propagated L P# Ls) =
@@ -358,7 +358,7 @@ qed
 lemma get_all_marked_decomposition_fst_empty_or_hd_in_M:
   assumes "get_all_marked_decomposition M = (a, b) # l"
   shows "a = [] \<or> (is_marked (hd a) \<and> hd a \<in> set M)"
-  using assms apply (induct M arbitrary: a b rule: marked_lit_list_induct)
+  using assms apply (induct M arbitrary: a b rule: ann_literal_list_induct)
     apply auto[2]
   by (metis UnCI backtrack_split_snd_hd_marked get_all_marked_decomposition_backtrack_split
     get_all_marked_decomposition_decomp hd_in_set list.sel(1) set_append snd_conv)
@@ -367,14 +367,14 @@ lemma get_all_marked_decomposition_snd_not_marked:
   assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
   and "L \<in> set b"
   shows "\<not>is_marked L"
-  using assms apply (induct M arbitrary: a b rule: marked_lit_list_induct, simp)
+  using assms apply (induct M arbitrary: a b rule: ann_literal_list_induct, simp)
   by (rename_tac L' l xs a b, case_tac "get_all_marked_decomposition xs"; fastforce)+
 
 lemma tl_get_all_marked_decomposition_skip_some:
   assumes "x \<in> set (tl (get_all_marked_decomposition M1))"
   shows "x \<in> set (tl (get_all_marked_decomposition (M0 @ M1)))"
   using assms
-  by (induct M0 rule: marked_lit_list_induct)
+  by (induct M0 rule: ann_literal_list_induct)
      (auto simp add: list.set_sel(2))
 
 lemma hd_get_all_marked_decomposition_skip_some:
@@ -425,7 +425,7 @@ qed
 lemma in_get_all_marked_decomposition_in_get_all_marked_decomposition_prepend:
   "(a, b) \<in> set (get_all_marked_decomposition M') \<Longrightarrow>
     \<exists>b'. (a, b' @ b) \<in> set (get_all_marked_decomposition (M @ M'))"
-  apply (induction M rule: marked_lit_list_induct)
+  apply (induction M rule: ann_literal_list_induct)
     apply (metis append_Nil)
    apply auto[]
   by (rename_tac L' m xs, case_tac "get_all_marked_decomposition (xs @ M')") auto
@@ -434,7 +434,7 @@ lemma get_all_marked_decomposition_remove_unmarked_length:
   assumes "\<forall>l \<in> set M'. \<not>is_marked l"
   shows "length (get_all_marked_decomposition (M' @ M''))
     = length (get_all_marked_decomposition M'')"
-  using assms by (induct M' arbitrary: M'' rule: marked_lit_list_induct) auto
+  using assms by (induct M' arbitrary: M'' rule: ann_literal_list_induct) auto
 
 lemma get_all_marked_decomposition_not_is_marked_length:
   assumes "\<forall>l \<in> set M'. \<not>is_marked l"
@@ -447,13 +447,13 @@ lemma get_all_marked_decomposition_last_choice:
   and "\<forall>l \<in> set M'. \<not>is_marked l"
   and "hd (tl (get_all_marked_decomposition (M' @ Marked L l # M))) = (M0', M0)"
   shows "hd (get_all_marked_decomposition (Propagated (-L) P # M)) = (M0', Propagated (-L) P # M0)"
-  using assms by (induct M' rule: marked_lit_list_induct) auto
+  using assms by (induct M' rule: ann_literal_list_induct) auto
 
 lemma get_all_marked_decomposition_except_last_choice_equal:
   assumes "\<forall>l \<in> set M'. \<not>is_marked l"
   shows "tl (get_all_marked_decomposition (Propagated (-L) P # M))
     = tl (tl (get_all_marked_decomposition (M' @ Marked L l # M)))"
-  using assms by (induct M'  rule: marked_lit_list_induct) auto
+  using assms by (induct M'  rule: ann_literal_list_induct) auto
 
 lemma get_all_marked_decomposition_hd_hd:
   assumes "get_all_marked_decomposition Ls = (M, C) # (M0, M0') # l"
@@ -482,7 +482,7 @@ qed
 lemma get_all_marked_decomposition_exists_prepend[dest]:
   assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
   shows "\<exists>c. M = c @ b @ a"
-  using assms apply (induct M rule: marked_lit_list_induct)
+  using assms apply (induct M rule: ann_literal_list_induct)
     apply simp
   by (rename_tac L' m xs, case_tac "get_all_marked_decomposition xs";
     auto dest!: arg_cong[of "get_all_marked_decomposition _" _ hd]
@@ -496,7 +496,7 @@ lemma get_all_marked_decomposition_incl:
 lemma get_all_marked_decomposition_exists_prepend':
   assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
   obtains c where "M = c @ b @ a"
-  using assms apply (induct M rule: marked_lit_list_induct)
+  using assms apply (induct M rule: ann_literal_list_induct)
     apply auto[1]
   by (rename_tac L' m xs, case_tac "hd (get_all_marked_decomposition xs)",
     auto dest!: get_all_marked_decomposition_decomp simp add: list.set_sel(2))+
@@ -508,7 +508,7 @@ lemma union_in_get_all_marked_decomposition_is_subset:
 
 
 definition all_decomposition_implies :: "'a literal multiset set
-  \<Rightarrow> (('a, 'l, 'm) marked_lit list \<times> ('a, 'l, 'm) marked_lit list) list \<Rightarrow> bool" where
+  \<Rightarrow> (('a, 'l, 'm) ann_literal list \<times> ('a, 'l, 'm) ann_literal list) list \<Rightarrow> bool" where
  "all_decomposition_implies N S
    \<longleftrightarrow> (\<forall>(Ls, seen) \<in> set S. unmark Ls \<union> N \<Turnstile>ps unmark seen)"
 

@@ -25,7 +25,7 @@ datatype ('a, 'b, 'c, 'd) twl_state =
     (conflicting: "'d option")
 
 type_synonym ('v, 'lvl, 'mark) twl_state_abs =
-  "(('v, 'lvl, 'mark) marked_lit, 'v clause twl_clause multiset, 'lvl, 'v clause) twl_state"
+  "(('v, 'lvl, 'mark) ann_literal, 'v clause twl_clause multiset, 'lvl, 'v clause) twl_state"
 
 abbreviation raw_init_clss where
   "raw_init_clss S \<equiv> image_mset raw_clause (init_clss S)"
@@ -64,7 +64,7 @@ text \<open>We need the following property about updates: if there is a literal 
   @{term "-L"} in the trail, and @{term L} is not  watched, then it stays unwatched; i.e., while
   updating with @{term rewatch} it does not get swap with a watched literal @{term L'} such that
   @{term "-L'"} is in the trail.\<close>
-primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v clause twl_clause
+primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) ann_literal list \<Rightarrow> 'v clause twl_clause
   \<Rightarrow> bool"
   where
 "watched_decided_most_recently M (TWL_Clause W UW) \<longleftrightarrow>
@@ -73,7 +73,7 @@ primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) marked_lit list \<Ri
       index (map lit_of M) (-L') \<le> index (map lit_of M) (-L))"
 
 text \<open>Here are the invariant strictly related to the 2-WL data structure.\<close>
-primrec wf_twl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v clause twl_clause \<Rightarrow> bool" where
+primrec wf_twl_cls :: "('v, 'lvl, 'mark) ann_literal list \<Rightarrow> 'v clause twl_clause \<Rightarrow> bool" where
   "wf_twl_cls M (TWL_Clause W UW) \<longleftrightarrow>
    distinct_mset W \<and> size W \<le> 2 \<and> (size W < 2 \<longrightarrow> set_mset UW \<subseteq> set_mset W) \<and>
    (\<forall>L \<in># W. -L \<in> lits_of M \<longrightarrow> (\<forall>L' \<in># UW. L' \<notin># W \<longrightarrow> -L' \<in> lits_of M)) \<and>
@@ -461,7 +461,7 @@ qed
 typedef 'v wf_twl = "{S::('v, nat, 'v clause) twl_state_abs. wf_twl_state S}"
 morphisms rough_state_of_twl twl_of_rough_state
 proof -
-  have "TWL_State ([]::('v, nat, 'v clause) marked_lits)
+  have "TWL_State ([]::('v, nat, 'v clause) ann_literals)
     {#} {#} 0 None \<in> {S:: ('v, nat, 'v clause) twl_state_abs. wf_twl_state S} "
     by (auto simp: wf_twl_state_def)
   then show ?thesis by auto
@@ -480,7 +480,7 @@ abbreviation candidates_conflict_twl :: "'v wf_twl \<Rightarrow> 'v literal mult
 abbreviation candidates_propagate_twl :: "'v wf_twl \<Rightarrow> ('v literal \<times> 'v clause) set" where
 "candidates_propagate_twl S \<equiv> candidates_propagate (rough_state_of_twl S)"
 
-abbreviation trail_twl :: "'a wf_twl \<Rightarrow> ('a, nat, 'a literal multiset) marked_lit list" where
+abbreviation trail_twl :: "'a wf_twl \<Rightarrow> ('a, nat, 'a literal multiset) ann_literal list" where
 "trail_twl S \<equiv> trail (rough_state_of_twl S)"
 
 abbreviation clauses_twl :: "'a wf_twl \<Rightarrow> 'a literal multiset multiset" where
@@ -521,7 +521,7 @@ definition tl_trail where
 locale abstract_twl =
   fixes
     watch :: "('v, nat, 'v clause) twl_state_abs \<Rightarrow> 'v clause \<Rightarrow> 'v clause twl_clause" and
-    rewatch :: "('v, nat, 'v literal multiset) marked_lit \<Rightarrow> ('v, nat, 'v clause) twl_state_abs \<Rightarrow>
+    rewatch :: "('v, nat, 'v literal multiset) ann_literal \<Rightarrow> ('v, nat, 'v clause) twl_state_abs \<Rightarrow>
       'v clause twl_clause \<Rightarrow> 'v clause twl_clause" and
     linearize :: "'v clauses \<Rightarrow> 'v clause list" and
     restart_learned :: "('v, nat, 'v clause) twl_state_abs \<Rightarrow> 'v clause twl_clause multiset"
@@ -541,7 +541,7 @@ lemma linearize_mempty[simp]: "linearize {#} = []"
   using linearize mset_zero_iff by blast
 
 definition
-  cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> ('v, nat, 'v clause) twl_state_abs \<Rightarrow>
+  cons_trail :: "('v, nat, 'v clause) ann_literal \<Rightarrow> ('v, nat, 'v clause) twl_state_abs \<Rightarrow>
     ('v, nat, 'v clause) twl_state_abs"
 where
   "cons_trail L S =
@@ -650,7 +650,7 @@ lemma watch_nat_list_cases_witness[consumes 2, case_names nil_nil nil_single nil
   fixes
     C :: "'v literal multiset" and
     C' :: "'v literal list" and
-    S :: "(('v, 'b, 'c) marked_lit, 'd, 'e, 'f) twl_state"
+    S :: "(('v, 'b, 'c) ann_literal, 'd, 'e, 'f) twl_state"
   defines
     "xs \<equiv> [L\<leftarrow>remdups C'. - L \<notin> lits_of (trail S)]" and
     "ys \<equiv> [L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C]"
@@ -693,7 +693,7 @@ lemma watch_nat_list_cases [consumes 1, case_names nil_nil nil_single nil_other 
   single_other other]:
   fixes
     C :: "'v::linorder literal multiset" and
-    S :: "(('v, 'b, 'c) marked_lit, 'd, 'e, 'f) twl_state"
+    S :: "(('v, 'b, 'c) ann_literal, 'd, 'e, 'f) twl_state"
   defines
     "xs \<equiv> [L\<leftarrow>remdups (sorted_list_of_set (set_mset C)) . - L \<notin> lits_of (trail S)]" and
     "ys \<equiv> [L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C]"
@@ -715,7 +715,7 @@ lemma watch_nat_lists_set_union_witness:
   fixes
     C :: "'v literal multiset" and
     C' ::  "'v literal list" and
-    S :: "(('v, 'b, 'c) marked_lit, 'd, 'e, 'f) twl_state"
+    S :: "(('v, 'b, 'c) ann_literal, 'd, 'e, 'f) twl_state"
   defines
     "xs \<equiv> [L\<leftarrow>remdups C'. - L \<notin> lits_of (trail S)]" and
     "ys \<equiv> [L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C]"
@@ -726,7 +726,7 @@ lemma watch_nat_lists_set_union_witness:
 lemma watch_nat_lists_set_union:
   fixes
     C :: "'v::linorder literal multiset" and
-    S :: "(('v, 'b, 'c) marked_lit, 'd, 'e, 'f) twl_state"
+    S :: "(('v, 'b, 'c) ann_literal, 'd, 'e, 'f) twl_state"
   defines
     "xs \<equiv> [L\<leftarrow>remdups (sorted_list_of_set (set_mset C)). - L \<notin> lits_of (trail S)]" and
     "ys \<equiv> [L\<leftarrow>map (\<lambda>L. - lit_of L) (trail S) . L \<in># C]"
@@ -764,7 +764,7 @@ lemma index_filter:
 
 lemma wf_watch_witness:
    fixes C :: "'a literal multiset" and C'::" 'a literal list" and
-     S :: "(('a, 'b, 'c) marked_lit, 'd, 'e, 'f) twl_state"
+     S :: "(('a, 'b, 'c) ann_literal, 'd, 'e, 'f) twl_state"
    defines
      ass: "negation_not_assigned \<equiv> filter (\<lambda>L. -L \<notin> lits_of (trail S)) (remdups C')" and
      tr: "negation_assigned_sorted_by_trail \<equiv> filter (\<lambda>L. L \<in># C) (map (\<lambda>L. -lit_of L) (trail S))"
@@ -902,7 +902,7 @@ lemma wf_watch_nat: "no_dup (trail S) \<Longrightarrow> wf_twl_cls (trail S) (wa
 
 definition
   rewatch_nat ::
-  "(nat, nat, nat literal multiset) marked_lit \<Rightarrow> (nat, nat, nat clause) twl_state_abs \<Rightarrow>
+  "(nat, nat, nat literal multiset) ann_literal \<Rightarrow> (nat, nat, nat clause) twl_state_abs \<Rightarrow>
     nat clause twl_clause \<Rightarrow> nat clause twl_clause"
 where
   "rewatch_nat L S C =
@@ -917,8 +917,8 @@ where
 
 lemma clause_rewatch_witness:
   fixes UW :: "'a literal list" and
-    S :: "(('a, 'b, 'c) marked_lit, 'd, 'e, 'f) twl_state" and
-    L :: "('a, 'b, 'c) marked_lit" and C :: "'a literal multiset twl_clause"
+    S :: "(('a, 'b, 'c) ann_literal, 'd, 'e, 'f) twl_state" and
+    L :: "('a, 'b, 'c) ann_literal" and C :: "'a literal multiset twl_clause"
   defines "C' \<equiv> (if - lit_of L \<in># watched C then
       case filter (\<lambda>L'. L' \<notin># watched C \<and> - L' \<notin> lits_of (L # trail S)) UW of
         [] \<Rightarrow> C
@@ -971,8 +971,8 @@ qed
 
 lemma clause_rewatch_witness':
   fixes UWC :: "'a literal list" and
-    S :: "(('a, 'b, 'c) marked_lit, 'd, 'e, 'f) twl_state" and
-    L :: "('a, 'b, 'c) marked_lit" and C :: "'a literal multiset twl_clause"
+    S :: "(('a, 'b, 'c) ann_literal, 'd, 'e, 'f) twl_state" and
+    L :: "('a, 'b, 'c) ann_literal" and C :: "'a literal multiset twl_clause"
   defines "C' \<equiv> (if - lit_of L \<in># watched C then
       case filter (\<lambda>L'. L' \<notin># watched C \<and> - L' \<notin> lits_of (L # trail S)) UWC of
         [] \<Rightarrow> C
@@ -1168,7 +1168,7 @@ interpretation rough_cdcl: cdcl\<^sub>W trail raw_init_clss raw_learned_clss bac
 (* interpretation cdcl\<^sub>N\<^sub>O\<^sub>T: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops
   "\<lambda>S. convert_trail_from_W (trail S)"
   rough_cdcl.clauses
-  "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
+  "\<lambda>L S. cons_trail (convert_ann_literal_from_NOT L) S"
   "\<lambda>S. tl_trail S"
   "\<lambda>C S. add_learned_cls C S"
   "\<lambda>C S. remove_cls C S"
@@ -1181,7 +1181,7 @@ subsubsection \<open>Opaque Type with Invariant\<close>
 
 declare rough_cdcl.state_simp[simp del]
 
-definition cons_trail_twl :: "('v, nat, 'v literal multiset) marked_lit \<Rightarrow> 'v wf_twl \<Rightarrow> 'v wf_twl"
+definition cons_trail_twl :: "('v, nat, 'v literal multiset) ann_literal \<Rightarrow> 'v wf_twl \<Rightarrow> 'v wf_twl"
   where
 "cons_trail_twl L S \<equiv> twl_of_rough_state (cons_trail L (rough_state_of_twl S))"
 
@@ -1303,7 +1303,7 @@ lemma rough_state_of_twl_restart_twl:
 interpretation cdcl\<^sub>W_twl_NOT: dpll_state
   "\<lambda>S. convert_trail_from_W (trail_twl S)"
   raw_clauses_twl
-  "\<lambda>L S. cons_trail_twl (convert_marked_lit_from_NOT L) S"
+  "\<lambda>L S. cons_trail_twl (convert_ann_literal_from_NOT L) S"
   "\<lambda>S. tl_trail_twl S"
   "\<lambda>C S. add_learned_cls_twl C S"
   "\<lambda>C S. remove_cls_twl C S"
@@ -1550,7 +1550,7 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: backjumping_ops
   abstract_twl.raw_clauses_twl
   "\<lambda>L (S:: 'v wf_twl).
     cons_trail_twl
-      (convert_marked_lit_from_NOT L) (S:: 'v wf_twl)"
+      (convert_ann_literal_from_NOT L) (S:: 'v wf_twl)"
   tl_trail_twl
   add_learned_cls_twl
   remove_cls_twl
@@ -1590,7 +1590,7 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: dpll_with_backjumping_ops
   abstract_twl.raw_clauses_twl
   "\<lambda>L S.
     cons_trail_twl
-      (convert_marked_lit_from_NOT L) S"
+      (convert_ann_literal_from_NOT L) S"
   tl_trail_twl
   add_learned_cls_twl
   remove_cls_twl
@@ -1622,11 +1622,7 @@ proof (unfold_locales, goal_cases)
      by (simp add: cdcl\<^sub>W_twl.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_reduce_trail_convert)
 
   have "learned_clss_twl ?T = learned_clss_twl (cdcl\<^sub>W_twl.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S)"
-    by (smt "1"(3) "1"(6) append_assoc cdcl\<^sub>W_twl.learned_clss_cons_trail
-      cdcl\<^sub>W_twl_NOT.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_eq_length cdcl\<^sub>W_twl_NOT.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_nil
-      cdcl\<^sub>W_twl_NOT.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_skip_beginning comp_apply defined_lit_convert_trail_from_W
-      list.sel(3) marked_lit.sel(2) rev.simps(2) rev_append rev_eq_Cons_iff
-      cons_trail_twl_def)
+    by (simp add: undef')
   moreover have "learned_clss_twl (cdcl\<^sub>W_twl.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S)
     = learned_clss_twl S"
     by (simp add: cdcl\<^sub>W_twl.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_reduce_trail_convert)
@@ -1641,10 +1637,10 @@ proof (unfold_locales, goal_cases)
     using 1(5) by (simp add: tr_L_F_S true_annots_true_cls lits_of_convert_trail_from_NOT)
 
   have "cdcl\<^sub>N\<^sub>O\<^sub>T_twl.backjump S
-    (cons_trail_twl (convert_marked_lit_from_NOT (Propagated L ()))
+    (cons_trail_twl (convert_ann_literal_from_NOT (Propagated L ()))
       (cdcl\<^sub>W_twl.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S))"
     apply (rule cdcl\<^sub>N\<^sub>O\<^sub>T_twl.backjump.intros[of S F' K F _ L C, OF 1(3) _ 1(4-6) _ 1(8-9)])
-      unfolding cdcl\<^sub>W_twl_NOT.state_eq\<^sub>N\<^sub>O\<^sub>T_def apply (metis convert_marked_lit_from_NOT.simps(1))
+      unfolding cdcl\<^sub>W_twl_NOT.state_eq\<^sub>N\<^sub>O\<^sub>T_def apply (metis convert_ann_literal_from_NOT.simps(1))
      using 1(7) 1(3) apply presburger
     using C_confl_cand by simp
   then show ?case
@@ -1656,7 +1652,7 @@ interpretation cdcl\<^sub>N\<^sub>O\<^sub>T_twl: dpll_with_backjumping
   abstract_twl.raw_clauses_twl
   "\<lambda>L (S:: 'v wf_twl).
     cons_trail_twl
-      (convert_marked_lit_from_NOT L) (S:: 'v wf_twl)"
+      (convert_ann_literal_from_NOT L) (S:: 'v wf_twl)"
   tl_trail_twl
   add_learned_cls_twl
   remove_cls_twl

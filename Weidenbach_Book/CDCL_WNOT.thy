@@ -84,21 +84,21 @@ definition inv\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> bool" where
 declare inv\<^sub>N\<^sub>O\<^sub>T_def[simp]
 end
 
-fun convert_marked_lit_from_W where
-"convert_marked_lit_from_W (Propagated L _) = Propagated L ()" |
-"convert_marked_lit_from_W (Marked L _) = Marked L ()"
+fun convert_ann_literal_from_W where
+"convert_ann_literal_from_W (Propagated L _) = Propagated L ()" |
+"convert_ann_literal_from_W (Marked L _) = Marked L ()"
 
 abbreviation convert_trail_from_W ::
-  "('v,  'lvl, 'a) marked_lit list
-    \<Rightarrow> ('v, unit, unit) marked_lit list"  where
-"convert_trail_from_W \<equiv> map convert_marked_lit_from_W"
+  "('v,  'lvl, 'a) ann_literal list
+    \<Rightarrow> ('v, unit, unit) ann_literal list"  where
+"convert_trail_from_W \<equiv> map convert_ann_literal_from_W"
 
 lemma lits_of_convert_trail_from_W[simp]:
   "lits_of (convert_trail_from_W M) = lits_of M"
-  by (induction rule: marked_lit_list_induct) simp_all
+  by (induction rule: ann_literal_list_induct) simp_all
 
 lemma lit_of_convert_trail_from_W[simp]:
-  "lit_of (convert_marked_lit_from_W L) = lit_of L"
+  "lit_of (convert_ann_literal_from_W L) = lit_of L"
   by (cases L) auto
 
 lemma no_dup_convert_from_W[simp]:
@@ -114,28 +114,28 @@ lemma defined_lit_convert_trail_from_W[simp]:
   by (auto simp: defined_lit_map image_comp)
 
 text \<open>The values @{term "0::nat"} and @{term "{#}"} are dummy values.\<close>
-fun convert_marked_lit_from_NOT
-  :: "('a, 'e, 'b) marked_lit \<Rightarrow> ('a, nat, 'a literal multiset) marked_lit"  where
-"convert_marked_lit_from_NOT (Propagated L _) = Propagated L {#}" |
-"convert_marked_lit_from_NOT (Marked L _) = Marked L 0"
+fun convert_ann_literal_from_NOT
+  :: "('a, 'e, 'b) ann_literal \<Rightarrow> ('a, nat, 'a literal multiset) ann_literal"  where
+"convert_ann_literal_from_NOT (Propagated L _) = Propagated L {#}" |
+"convert_ann_literal_from_NOT (Marked L _) = Marked L 0"
 
 abbreviation convert_trail_from_NOT where
-"convert_trail_from_NOT \<equiv> map convert_marked_lit_from_NOT"
+"convert_trail_from_NOT \<equiv> map convert_ann_literal_from_NOT"
 
 lemma undefined_lit_convert_trail_from_NOT[simp]:
   "undefined_lit (convert_trail_from_NOT F) L \<longleftrightarrow> undefined_lit F L"
-  by (induction F rule: marked_lit_list_induct) (auto simp: defined_lit_map)
+  by (induction F rule: ann_literal_list_induct) (auto simp: defined_lit_map)
 
 lemma lits_of_convert_trail_from_NOT:
   "lits_of (convert_trail_from_NOT F) = lits_of F"
-  by (induction F rule: marked_lit_list_induct) auto
+  by (induction F rule: ann_literal_list_induct) auto
 
 lemma convert_trail_from_W_from_NOT[simp]:
   "convert_trail_from_W (convert_trail_from_NOT M) = M"
-  by (induction rule: marked_lit_list_induct) auto
+  by (induction rule: ann_literal_list_induct) auto
 
 lemma convert_trail_from_W_convert_lit_from_NOT[simp]:
-  "convert_marked_lit_from_W (convert_marked_lit_from_NOT L) = L"
+  "convert_ann_literal_from_W (convert_ann_literal_from_NOT L) = L"
   by (cases L) auto
 
 abbreviation trail\<^sub>N\<^sub>O\<^sub>T where
@@ -145,14 +145,14 @@ lemma undefined_lit_convert_trail_from_W[iff]:
   "undefined_lit (convert_trail_from_W M) L \<longleftrightarrow> undefined_lit M L"
   by (auto simp: defined_lit_map image_comp)
 
-lemma lit_of_convert_marked_lit_from_NOT[iff]:
-  "lit_of (convert_marked_lit_from_NOT L) = lit_of L"
+lemma lit_of_convert_ann_literal_from_NOT[iff]:
+  "lit_of (convert_ann_literal_from_NOT L) = lit_of L"
   by (cases L) auto
 
 sublocale state\<^sub>W \<subseteq> dpll_state
   "\<lambda>S. convert_trail_from_W (trail S)"
   clauses
-  "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
+  "\<lambda>L S. cons_trail (convert_ann_literal_from_NOT L) S"
   "\<lambda>S. tl_trail S"
   "\<lambda>C S. add_learned_cls C S"
   "\<lambda>C S. remove_cls C S"
@@ -166,7 +166,7 @@ end
 sublocale cdcl\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops
   "\<lambda>S. convert_trail_from_W (trail S)"
   clauses
-  "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
+  "\<lambda>L S. cons_trail (convert_ann_literal_from_NOT L) S"
   "\<lambda>S. tl_trail S"
   "\<lambda>C S. add_learned_cls C S"
   "\<lambda>C S. remove_cls C S"
@@ -178,7 +178,7 @@ sublocale cdcl\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_o
 sublocale cdcl\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy
   "\<lambda>S. convert_trail_from_W (trail S)"
   clauses
-  "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
+  "\<lambda>L S. cons_trail (convert_ann_literal_from_NOT L) S"
   "\<lambda>S. tl_trail S"
   "\<lambda>C S. add_learned_cls C S"
   "\<lambda>C S. remove_cls C S"
@@ -234,7 +234,7 @@ qed
 sublocale cdcl\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2
   "\<lambda>S. convert_trail_from_W (trail S)"
   clauses
-  "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
+  "\<lambda>L S. cons_trail (convert_ann_literal_from_NOT L) S"
   "\<lambda>S. tl_trail S"
   "\<lambda>C S. add_learned_cls C S"
   "\<lambda>C S. remove_cls C S" "\<lambda>_ _. True"  inv\<^sub>N\<^sub>O\<^sub>T
@@ -244,7 +244,7 @@ sublocale cdcl\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_p
 sublocale cdcl\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn
   "\<lambda>S. convert_trail_from_W (trail S)"
   clauses
-  "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
+  "\<lambda>L S. cons_trail (convert_ann_literal_from_NOT L) S"
   "\<lambda>S. tl_trail S"
   "\<lambda>C S. add_learned_cls C S"
   "\<lambda>C S. remove_cls C S" "\<lambda>_ _. True"  inv\<^sub>N\<^sub>O\<^sub>T
@@ -448,7 +448,7 @@ lemma fst_get_all_marked_decomposition_prepend_not_marked:
   assumes "\<forall>m\<in>set MS. \<not> is_marked m"
   shows "set (map fst (get_all_marked_decomposition M))
     = set (map fst (get_all_marked_decomposition (MS @ M)))"
-    using assms apply (induction MS rule: marked_lit_list_induct)
+    using assms apply (induction MS rule: ann_literal_list_induct)
     apply auto[2]
     by (rename_tac L m xs; case_tac "get_all_marked_decomposition (xs @ M)") simp_all
 
@@ -528,7 +528,7 @@ proof -
     using lev_l_D by (auto simp: H)
   have [simp]: "get_maximum_level M D = get_maximum_level M\<^sub>T D"
     proof -
-      have "\<And>ms m. \<not> (ms::('v, nat, 'v literal multiset) marked_lit list) \<Turnstile>as CNot m
+      have "\<And>ms m. \<not> (ms::('v, nat, 'v literal multiset) ann_literal list) \<Turnstile>as CNot m
           \<or> (\<forall>l\<in>#m. atm_of l \<in> atm_of ` lits_of ms)"
         by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set in_CNot_implies_uminus(2))
       then have "\<forall>l\<in>#D. atm_of l \<in> atm_of ` lits_of M\<^sub>T"
@@ -3570,13 +3570,13 @@ locale cdcl\<^sub>W_restart =
    add_learned_cls remove_cls update_backtrack_lvl update_conflicting init_state
    restart_state
   for
-    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) ann_literals" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
     backtrack_lvl :: "'st \<Rightarrow> nat" and
     conflicting :: "'st \<Rightarrow>'v clause option" and
 
-    cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    cons_trail :: "('v, nat, 'v clause) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     add_learned_cls remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -4093,12 +4093,12 @@ locale luby_sequence_restart =
     restart_state
   for
     ur :: nat and
-    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) ann_literals" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
     backtrack_lvl :: "'st \<Rightarrow> nat" and
     conflicting :: "'st \<Rightarrow>'v clause option" and
-    cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    cons_trail :: "('v, nat, 'v clause) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     add_learned_cls remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and

@@ -79,7 +79,7 @@ lemma conflicting_clss_cut_trail_wrt_clause[simp]:
 
 lemma trail_cut_trail_wrt_clause:
   "\<exists>M.  trail S = M @ trail (cut_trail_wrt_clause C (trail S) S)"
-proof (induction "trail S" arbitrary:S rule: marked_lit_list_induct)
+proof (induction "trail S" arbitrary:S rule: ann_literal_list_induct)
   case nil
   then show ?case by simp
 next
@@ -108,7 +108,7 @@ lemma cut_trail_wrt_clause_backtrack_lvl_length_marked:
   "backtrack_lvl (cut_trail_wrt_clause C (trail T) T) =
      length (get_all_levels_of_marked (trail (cut_trail_wrt_clause C (trail T) T)))"
   using assms
-proof (induction "trail T" arbitrary:T rule: marked_lit_list_induct)
+proof (induction "trail T" arbitrary:T rule: ann_literal_list_induct)
   case nil
   then show ?case by simp
 next
@@ -127,7 +127,7 @@ lemma cut_trail_wrt_clause_get_all_levels_of_marked:
     "get_all_levels_of_marked (trail ((cut_trail_wrt_clause C (trail T) T))) = rev [Suc 0..<
     Suc (length (get_all_levels_of_marked (trail  ((cut_trail_wrt_clause C (trail T) T)))))]"
   using assms
-proof (induction "trail T" arbitrary:T rule: marked_lit_list_induct)
+proof (induction "trail T" arbitrary:T rule: ann_literal_list_induct)
   case nil
   then show ?case by simp
 next
@@ -144,7 +144,7 @@ lemma cut_trail_wrt_clause_CNot_trail:
   shows
     "(trail ((cut_trail_wrt_clause C (trail T) T))) \<Turnstile>as CNot C"
   using assms
-proof (induction "trail T" arbitrary:T rule: marked_lit_list_induct)
+proof (induction "trail T" arbitrary:T rule: ann_literal_list_induct)
   case nil
   then show ?case by simp
 next
@@ -193,7 +193,7 @@ lemma cut_trail_wrt_clause_hd_trail_in_or_empty_trail:
     \<or> (-lit_of (hd (trail (cut_trail_wrt_clause C (trail T) T))) \<in># C
        \<and> length (trail (cut_trail_wrt_clause C (trail T) T)) \<ge> 1)"
   using assms
-proof (induction "trail T" arbitrary:T rule: marked_lit_list_induct)
+proof (induction "trail T" arbitrary:T rule: ann_literal_list_induct)
   case nil
   then show ?case by simp
 next
@@ -665,8 +665,8 @@ next
     using append_nm[of _ M'] nm  unfolding M by simp
 qed
 
-inductive Tcons :: "('v, nat, 'v clause) marked_lits \<Rightarrow>('v, nat, 'v clause) marked_lits \<Rightarrow> bool"
-  for M :: "('v, nat, 'v clause) marked_lits" where
+inductive Tcons :: "('v, nat, 'v clause) ann_literals \<Rightarrow>('v, nat, 'v clause) ann_literals \<Rightarrow> bool"
+  for M :: "('v, nat, 'v clause) ann_literals" where
 "Tcons M []" |
 "Tcons M M' \<Longrightarrow> M = M'' @ M' \<Longrightarrow> (\<forall>m \<in> set M''. \<not>is_marked m) \<Longrightarrow> Tcons M (M'' @ M')" |
 "Tcons M M' \<Longrightarrow> is_marked L \<Longrightarrow> M = M''' @ L # M'' @ M' \<Longrightarrow> (\<forall>m \<in> set M''. \<not>is_marked m) \<Longrightarrow>

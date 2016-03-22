@@ -1157,8 +1157,8 @@ Shared by the second layer of type 'a \<Rightarrow> 'b set \<Rightarrow> bool:
 *   true_cls      \<Turnstile>l  'a interp \<Rightarrow> 'a clause \<Rightarrow> bool
 \<longrightarrow> true_clss     \<Turnstile>s  'a interp \<Rightarrow> 'a clauses \<Rightarrow> bool
 
-*   true_annot    \<Turnstile>a   marked_lits \<Rightarrow> 'a clause \<Rightarrow> bool
-\<longrightarrow> true_annots   \<Turnstile>as  marked_lits \<Rightarrow> 'a clauses \<Rightarrow> bool
+*   true_annot    \<Turnstile>a   ann_literals \<Rightarrow> 'a clause \<Rightarrow> bool
+\<longrightarrow> true_annots   \<Turnstile>as  ann_literals \<Rightarrow> 'a clauses \<Rightarrow> bool
 
 Formula version :
 *   true_cls_cls   \<Turnstile>f  'a clause \<Rightarrow> 'a clause \<Rightarrow> bool

@@ -13,13 +13,13 @@ declare upt.simps(2)[simp del]
 subsection \<open>The State\<close>
 locale state\<^sub>W =
   fixes
-    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) ann_literals" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
     backtrack_lvl :: "'st \<Rightarrow> nat" and
     conflicting :: "'st \<Rightarrow>'v clause option" and
 
-    cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    cons_trail :: "('v, nat, 'v clause) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow>'st" and
     add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -145,7 +145,7 @@ lemma
     prefer 9 using clauses_def learned_clss_restart_state apply fastforce
     by (auto simp: ac_simps replicate_mset_plus clauses_def intro: multiset_eqI)
 
-abbreviation state ::  "'st \<Rightarrow> ('v, nat, 'v clause) marked_lit list \<times> 'v clauses \<times> 'v clauses
+abbreviation state ::  "'st \<Rightarrow> ('v, nat, 'v clause) ann_literal list \<times> 'v clauses \<times> 'v clauses
   \<times> nat \<times> 'v clause option" where
 "state S \<equiv> (trail S, init_clss S, learned_clss S, backtrack_lvl S, conflicting S)"
 
@@ -214,7 +214,7 @@ lemma trail_reduce_trail_to_length_le:
 
 lemma trail_reduce_trail_to_nil[simp]:
   "trail (reduce_trail_to [] S) = []"
-  apply (induction "[]::  ('v, nat, 'v clause) marked_lits" S rule: reduce_trail_to.induct)
+  apply (induction "[]::  ('v, nat, 'v clause) ann_literals" S rule: reduce_trail_to.induct)
   by (metis length_0_conv reduce_trail_to_length_ne reduce_trail_to_nil)
 
 lemma clauses_reduce_trail_to_nil:
@@ -384,13 +384,13 @@ locale
    add_learned_cls remove_cls update_backtrack_lvl update_conflicting init_state
    restart_state
   for
-    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) marked_lits" and
+    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) ann_literals" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
     backtrack_lvl :: "'st \<Rightarrow> nat" and
     conflicting :: "'st \<Rightarrow>'v clause option" and
 
-    cons_trail :: "('v, nat, 'v clause) marked_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    cons_trail :: "('v, nat, 'v clause) ann_literal \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -903,7 +903,7 @@ proof -
     using in_get_all_levels_of_marked_iff_decomp[of "i+1" "trail S"] by auto
 
   obtain M1 M2 where "(Marked K (i + 1) # M1, M2) \<in> set (get_all_marked_decomposition (trail S))"
-    unfolding tr_S apply (induct c rule: marked_lit_list_induct)
+    unfolding tr_S apply (induct c rule: ann_literal_list_induct)
       apply auto[2]
     apply (rename_tac L m xs,
         case_tac "hd (get_all_marked_decomposition (xs @ Marked K (Suc i) # c'))")
@@ -1561,7 +1561,7 @@ definition "cdcl\<^sub>W_conflicting S \<equiv>
   \<and> every_mark_is_a_conflict S"
 
 lemma backtrack_atms_of_D_in_M1:
-  fixes M1 :: "('v, nat, 'v clause) marked_lits"
+  fixes M1 :: "('v, nat, 'v clause) ann_literals"
   assumes
     inv: "cdcl\<^sub>W_M_level_inv S" and
     undef: "undefined_lit M1 L" and
@@ -1643,7 +1643,7 @@ lemma distinct_atms_of_incl_not_in_other:
 proof -
   { fix aa :: 'a
     have ff1: "\<And>l ms. undefined_lit ms l \<or> atm_of l
-      \<in> set (map (\<lambda>m. atm_of (lit_of (m::('a, 'b, 'c) marked_lit))) ms)"
+      \<in> set (map (\<lambda>m. atm_of (lit_of (m::('a, 'b, 'c) ann_literal))) ms)"
       by (simp add: defined_lit_map)
     have ff2: "\<And>a. a \<notin> atms_of D \<or> a \<in> atm_of ` lits_of M'"
       using a2 by (meson subsetCE)
@@ -1959,7 +1959,7 @@ proof (induct rule: cdcl\<^sub>W_all_induct_lev2)
           \<open>Propagated L C' # M \<Turnstile>as CNot D\<close> by simp
         then show False
           by (metis M_lev cdcl\<^sub>W_M_level_inv_decomp(1) consistent_interp_def insert_iff
-            lits_of_cons marked_lit.sel(2) skip.hyps(1))
+            lits_of_cons ann_literal.sel(2) skip.hyps(1))
       qed
   ultimately show ?case
     using skip.hyps(1-3) true_annots_CNot_lit_of_notin_skip T unfolding cdcl\<^sub>W_M_level_inv_def
@@ -2532,7 +2532,7 @@ lemma cdcl\<^sub>W_cp_dropWhile_trail':
 
 lemma rtranclp_cdcl\<^sub>W_cp_dropWhile_trail':
   assumes "cdcl\<^sub>W_cp\<^sup>*\<^sup>* S S'"
-  obtains M :: "('v, nat, 'v clause) marked_lit list" where
+  obtains M :: "('v, nat, 'v clause) ann_literal list" where
     "trail S' = M @ trail S" and "\<forall>l \<in> set M. \<not>is_marked l"
   using assms by induction (fastforce dest!: cdcl\<^sub>W_cp_dropWhile_trail')+
 
@@ -2885,8 +2885,8 @@ proof (intro allI impI)
       moreover
         have "no_dup (trail U)"
           using inv_U unfolding cdcl\<^sub>W_M_level_inv_def by auto
-        { fix x :: "('v, nat, 'v literal multiset) marked_lit" and
-            xb :: "('v, nat, 'v literal multiset) marked_lit"
+        { fix x :: "('v, nat, 'v literal multiset) ann_literal" and
+            xb :: "('v, nat, 'v literal multiset) ann_literal"
           assume a1: "atm_of L = atm_of (lit_of xb)"
           moreover assume a2: "- L = lit_of x"
           moreover assume a3: "(\<lambda>l. atm_of (lit_of l)) ` set M
@@ -3171,7 +3171,7 @@ proof -
           ultimately have "get_level (hd (trail S) # tl (trail S)) L = get_level (tl ?M) L"
             using cdcl\<^sub>W_M_level_inv_decomp(1)[OF level_inv] unfolding L' consistent_interp_def
             by (metis (no_types, lifting) L' M atm_of_eq_atm_of get_level_skip_beginning insert_iff
-              lits_of_cons marked_lit.sel(1))
+              lits_of_cons ann_literal.sel(1))
 
           moreover
             have "length (get_all_levels_of_marked (trail S)) = ?k"
@@ -3381,7 +3381,7 @@ proof (induct rule: cdcl\<^sub>W_o_induct_lev2)
       moreover have "no_dup (Propagated L ( (C + {#L#})) # M)"
         using lev tr_S unfolding cdcl\<^sub>W_M_level_inv_def by auto
       ultimately show False unfolding lits_of_def by (metis consistent_interp_def image_eqI
-        list.set_intros(1) lits_of_def marked_lit.sel(2) distinctconsistent_interp)
+        list.set_intros(1) lits_of_def ann_literal.sel(2) distinctconsistent_interp)
     qed
 
   ultimately
@@ -3856,7 +3856,7 @@ next
               then have "no_dup (Propagated L (D + {#L#}) # M1)"
                 using decomp undef lev unfolding cdcl\<^sub>W_M_level_inv_def by auto
             ultimately show False by (metis consistent_interp_def distinctconsistent_interp
-              insertCI lits_of_cons marked_lit.sel(2))
+              insertCI lits_of_cons ann_literal.sel(2))
           qed
       }
       ultimately show "\<not>M \<Turnstile>as CNot Da"
@@ -3888,7 +3888,7 @@ proof (intro allI impI)
     "undefined_lit M L"
     using propagate by auto
   have "tl M'' @ Marked K i # M' = trail S" using M' S S'
-    by (metis Pair_inject list.inject list.sel(3) marked_lit.distinct(1) self_append_conv2
+    by (metis Pair_inject list.inject list.sel(3) ann_literal.distinct(1) self_append_conv2
       tl_append2)
   then have "\<not>M' \<Turnstile>as CNot D "
     using \<open>D \<in># clauses S'\<close> n_l S S' clauses_def unfolding no_smaller_confl_def by auto
@@ -4020,7 +4020,7 @@ proof (induct rule: cdcl\<^sub>W_o_induct_lev2)
                 true_cls_def Bex_mset_def by auto
               show "\<exists>L \<in># x. lits_of ?M \<Turnstile>l L" unfolding Bex_mset_def
                 by (metis \<open>- L \<notin># D\<close> \<open>L'' \<in># x\<close> L' \<open>lits_of (Marked L (?k + 1) # ?M) \<Turnstile>l L''\<close>
-                  count_single insertE less_numeral_extra(3) lits_of_cons marked_lit.sel(1)
+                  count_single insertE less_numeral_extra(3) lits_of_cons ann_literal.sel(1)
                   true_lit_def uminus_of_uminus_id)
             qed
           then show False using \<open>\<not> ?M \<Turnstile>as CNot D\<close> by auto
@@ -4077,7 +4077,7 @@ next
       then have "-L \<in># Da"
         using M_D \<open>- L \<notin> lits_of M1\<close> in_CNot_implies_uminus(2)
            true_annots_CNot_lit_of_notin_skip T unfolding tr_T
-        by (smt insert_iff lits_of_cons marked_lit.sel(2))
+        by (smt insert_iff lits_of_cons ann_literal.sel(2))
       have g_M1: "get_all_levels_of_marked M1 = rev [1..<i+1]"
         using lev lev' T decomp undef unfolding cdcl\<^sub>W_M_level_inv_def by auto
       have "no_dup (Propagated L (D + {#L#}) # M1)"
@@ -4265,8 +4265,8 @@ next
            moreover
              have LS': "-L \<in> lits_of (trail S')"
                using \<open>trail S' \<Turnstile>as CNot D\<close> \<open>L \<in># D\<close> in_CNot_implies_uminus(2) by blast
-             {  fix x :: "('v, nat, 'v literal multiset) marked_lit" and
-                 xb :: "('v, nat, 'v literal multiset) marked_lit"
+             {  fix x :: "('v, nat, 'v literal multiset) ann_literal" and
+                 xb :: "('v, nat, 'v literal multiset) ann_literal"
                assume a1: "x \<in> set (trail S')" and
                  a2: "xb \<in> set M" and
                  a3: "(\<lambda>l. atm_of (lit_of l)) ` set M  \<inter> (\<lambda>l. atm_of (lit_of l)) ` set (trail S')
@@ -4289,8 +4289,8 @@ next
              using \<open>trail S'' \<Turnstile>as CNot D\<close>
                by (auto simp add: CNot_def true_cls_def  M true_annots_def true_annot_def
                      split: split_if_asm)
-           { fix x :: "('v, nat, 'v literal multiset) marked_lit" and
-               xb :: "('v, nat, 'v literal multiset) marked_lit"
+           { fix x :: "('v, nat, 'v literal multiset) ann_literal" and
+               xb :: "('v, nat, 'v literal multiset) ann_literal"
              assume a1: "xb \<in> set (trail S')" and
                a2: "x \<in> set M" and
                a3: "atm_of L = atm_of (lit_of xb)" and
@@ -4556,7 +4556,7 @@ next
       then have step_s: "\<exists>T. cdcl\<^sub>W_stgy S T"
         using \<open>no_step cdcl\<^sub>W_cp S\<close> other' by (meson bj resolve skip)
       have "get_all_marked_decomposition (L # M) = [([], L#M)]"
-        using nm unfolding K apply (induction M rule: marked_lit_list_induct, simp)
+        using nm unfolding K apply (induction M rule: ann_literal_list_induct, simp)
           by (rename_tac L l xs, case_tac "hd (get_all_marked_decomposition xs)", auto)+
       then have no_b: "no_step backtrack S"
         using nm S by auto
