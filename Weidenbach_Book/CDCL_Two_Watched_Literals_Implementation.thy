@@ -447,20 +447,11 @@ where
 "rewatch_nat_cand_clss L M (Cs, Ks) =
   foldr (rewatch_nat_cand_single_clause L M) Cs ([], Ks)"
 
-fun rewatch_nat_cand :: "'a literal \<Rightarrow> 'a twl_state_cands \<Rightarrow> 'a twl_state_cands"  where
-"rewatch_nat_cand L (TWL_State_Cand S Ks) =
-  (let
-    (N, K) = rewatch_nat_cand_clss L (raw_trail S) (raw_init_clss S, Ks);
-    (U, K') = rewatch_nat_cand_clss L (raw_trail S) (raw_learned_clss S, K) in
-  TWL_State_Cand
-    (TWL_State (raw_trail S) N U (backtrack_lvl S) (raw_conflicting S))
-    K')"
-
 lemma wf_foldr_rewatch_nat_cand_single_clause:
   fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) marked_lits" and
     L :: "('v, nat, 'v twl_clause) marked_lit" and Cs :: "'v twl_clause list" and
     C :: "'v twl_clause"
-  defines "S \<equiv> foldr (rewatch_nat_cand_single_clause (lit_of L) M) Cs ([], Ks)"
+  defines "S \<equiv> rewatch_nat_cand_clss (lit_of L) M (Cs, Ks)"
   assumes
     wf: "\<forall>C \<in> set Cs. wf_twl_cls M C" and
     n_d: "no_dup (prop_queue Ks @ M)" and
@@ -484,7 +475,7 @@ next
     IH_wf: "\<forall>a\<in>set (fst ?S). wf_twl_cls (L # M) a" and
     IH_undef: "undefined_lit (prop_queue (snd ?S) @ M) (lit_of L)" and
     IH_nd: "no_dup (prop_queue (snd ?S) @ M)"
-    using IH[OF wf'] by blast+
+    using IH[OF wf'] unfolding rewatch_nat_cand_clss.simps by blast+
   have wf_C': "wf_twl_cls (L # M) (hd (fst (rewatch_nat_cand_single_clause (lit_of L) M C
     (fst ?S, snd ?S))))"
     using wf_rewatch_nat_cand_single_clause[of M C  "snd ?S" L "fst ?S"]
@@ -504,6 +495,55 @@ next
      "fst ?S" "snd ?S"])
     using IH_nd by (auto simp del: wf_twl_cls.simps simp: defined_lit_map)
   ultimately show ?case by simp
+qed
+
+declare rewatch_nat_cand_clss.simps[simp del]
+
+fun rewatch_nat_cand :: "'a literal \<Rightarrow> 'a twl_state_cands \<Rightarrow> 'a twl_state_cands"  where
+"rewatch_nat_cand L (TWL_State_Cand S Ks) =
+  (let
+    (N, K) = rewatch_nat_cand_clss L (raw_trail S) (raw_init_clss S, Ks);
+    (U, K') = rewatch_nat_cand_clss L (raw_trail S) (raw_learned_clss S, K) in
+  TWL_State_Cand
+    (TWL_State (raw_trail S) N U (backtrack_lvl S) (raw_conflicting S))
+    K')"
+
+fun raw_cons_trail where
+"raw_cons_trail L (TWL_State M N U k C) = TWL_State (L # M) N U k C"
+
+lemma
+  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) marked_lits" and
+    L :: "('v, nat, 'v twl_clause) marked_lit" and Cs :: "'v twl_clause list" and
+    C :: "'v twl_clause" and S :: "'v twl_state"
+  defines "T \<equiv> rewatch_nat_cand (lit_of L) (TWL_State_Cand S Ks)"
+  assumes
+    wf: "wf_twl_state S" and
+    n_d: "no_dup (prop_queue Ks @ raw_trail S)" and
+    undef: "undefined_lit (prop_queue Ks @ raw_trail S) (lit_of L)"
+  shows "wf_twl_state (raw_cons_trail L (twl_state T))"
+proof -
+  obtain U K' where
+    U: "rewatch_nat_cand_clss (lit_of L) (raw_trail S) (raw_init_clss S, Ks) = (U, K')"
+    (is "?H = _") by (cases ?H)
+
+  obtain V K'' where
+    V: "rewatch_nat_cand_clss (lit_of L) (raw_trail S) (raw_learned_clss S, K') = (V, K'')"
+    (is "?H = _") by (cases ?H)
+  have
+    wf_U: "(\<forall>C\<in>set U. wf_twl_cls (L # raw_trail S) C)" and
+    undef_K: "undefined_lit (prop_queue K' @ raw_trail S) (lit_of L)" and
+    n_d_K: "no_dup (prop_queue K' @ raw_trail S)"
+    using wf n_d wf_foldr_rewatch_nat_cand_single_clause[of "raw_init_clss S" "raw_trail S"
+      Ks L] undef unfolding wf_twl_state_def by (simp_all add:
+      CDCL_Two_Watched_Literals.twl.raw_clauses_def U)
+
+  have wf_V: "(\<forall>C\<in>set V. wf_twl_cls (L # raw_trail S) C)"
+    using wf undef_K n_d_K wf_foldr_rewatch_nat_cand_single_clause[of "raw_learned_clss S"
+      "raw_trail S" K' L] unfolding wf_twl_state_def by (simp add:
+      CDCL_Two_Watched_Literals.twl.raw_clauses_def U V)
+  show ?thesis
+    using undef n_d  wf_U wf_V unfolding T_def wf_twl_state_def by (auto simp: U V comp_def
+    CDCL_Two_Watched_Literals.twl.raw_clauses_def defined_lit_map)
 qed
 
 end
