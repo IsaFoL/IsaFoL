@@ -42,7 +42,6 @@ by (cases l1; cases l2) auto
 section {* Clauses *}
 
 type_synonym 't clause = "'t literal set"
-(* I Could also use fset or list or (finite) multisets of literals*)
 
 abbreviation complementls :: "'t literal set \<Rightarrow> 't literal set" ("_\<^sup>C" [300] 300) where 
   "L\<^sup>C \<equiv> complement ` L"
@@ -60,7 +59,7 @@ proof -
   then show ?thesis using cancel_compls1[of L\<^sub>1] cancel_compls1[of L\<^sub>2] by simp
 qed
 
-fun varst  :: "fterm \<Rightarrow> var_sym set" (* I could use map here *) where
+fun varst  :: "fterm \<Rightarrow> var_sym set" where
   "varst (Var x) = {x}"
 | "varst (Fun f ts) = (\<Union>t \<in> set ts. varst t)"
 
@@ -114,9 +113,6 @@ definition evalc :: "'u fun_denot \<Rightarrow> 'u pred_denot \<Rightarrow> fter
 definition evalcs :: "'u fun_denot \<Rightarrow> 'u pred_denot \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "evalcs F G Cs \<longleftrightarrow> (\<forall>C \<in> Cs. evalc F G C)"
 
-definition validcs :: "fterm clause set \<Rightarrow> bool" where
-  "validcs Cs \<longleftrightarrow> (\<forall>F G. evalcs F G Cs)"
-
 subsection {* Semantics of Ground Terms *}
 
 lemma ground_var_denott: "ground t \<Longrightarrow> (evalt E F t = evalt E' F t)"
@@ -149,13 +145,6 @@ section {* Substitutions *}
 
 type_synonym substitution = "var_sym \<Rightarrow> fterm" 
 
-(* Alternatives: 
-    some more Concrete datastructure, e.g. association list
-    var \<Rightarrow> Some fterm
-   Both of those are Closer to both Ben-Ari and Chang&Lee, but they are more Complicated
-*)
-
-(* Another opportunity to use map. Mix-fix? *)
 fun sub  :: "fterm \<Rightarrow> substitution \<Rightarrow> fterm" ("_{_}\<^sub>t" [300,0] 300) where
   "(Var x){\<sigma>}\<^sub>t = \<sigma> x"
 | "(Fun f ts){\<sigma>}\<^sub>t = Fun f (map (\<lambda>t. t {\<sigma>}\<^sub>t) ts)"
@@ -194,19 +183,9 @@ done
 
 lemma subls_union: "(L\<^sub>1 \<union> L\<^sub>2) {\<sigma>}\<^sub>l\<^sub>s = L\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s \<union> L\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s" by auto
 
-(* This definition Could be tighter. For instance with this definition we allow
-  x \<rightarrow> Var x
-  y \<rightarrow> Var x
-   that two variable point to the same. We could and should perhaps disallow this.
-   It could be done something like
-   var_renaming \<sigma> \<longleftrightarrow> (\<exists>b. bijection b (UNIV::var_symbol) (UNIV::var_symbol) \<and> \<forall>x. \<sigma> x = Var (b x))
-
-  Simple idea: Variable_renaming takes two clauses, and sees if they can be substituted to each other. I use this simple idea.
+(* 
+  Alternative: apply a substitution that is a bijection between the set of variables in C1 and some other set.
  *)
-
-(* definition var_renaming :: "substitution \<Rightarrow> bool" where 
-  "var_renaming \<sigma> \<longleftrightarrow> (\<forall>x. \<exists>y. \<sigma> x = Var y)" *)
-
 definition var_renaming_of :: "fterm clause \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "var_renaming_of C1 C2 \<longleftrightarrow> instance_ofls C1 C2 \<and> instance_ofls C2 C1"
 
@@ -289,8 +268,6 @@ qed
 
 subsection {* Composition *}
 
-(* apply \<sigma>\<^sub>2 to all the range of \<sigma>\<^sub>1 
-  - because of the substitution definition, this is different from (and simpler than) in the books. *)
 definition composition :: "substitution \<Rightarrow> substitution \<Rightarrow> substitution"  (infixl "\<cdot>" 55) where
   "(\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2) x = (\<sigma>\<^sub>1 x){\<sigma>\<^sub>2}\<^sub>t"
 
@@ -400,31 +377,32 @@ proof -
 qed
 
 subsection {* Merging substitutions *}
+
 lemma project_sub:
-  assumes inst_C:"C {\<mu>}\<^sub>l\<^sub>s = C'" (* lmbd instead of mu would fit better with below proofs *) (* This equality could be removed from the lemma *)
+  assumes inst_C:"C {lmbd}\<^sub>l\<^sub>s = C'" 
   assumes L'sub: "L' \<subseteq> C'"
-  shows "\<exists>L \<subseteq> C. L {\<mu>}\<^sub>l\<^sub>s = L' \<and> (C-L) {\<mu>}\<^sub>l\<^sub>s = C' - L'"
+  shows "\<exists>L \<subseteq> C. L {lmbd}\<^sub>l\<^sub>s = L' \<and> (C-L) {lmbd}\<^sub>l\<^sub>s = C' - L'"
 proof -
-  let ?L = "{l \<in> C. \<exists>l' \<in> L'. l {\<mu>}\<^sub>l = l'}"
+  let ?L = "{l \<in> C. \<exists>l' \<in> L'. l {lmbd}\<^sub>l = l'}"
   have "?L \<subseteq> C" by auto
   moreover
-  have "?L {\<mu>}\<^sub>l\<^sub>s = L'"
+  have "?L {lmbd}\<^sub>l\<^sub>s = L'"
     proof (rule Orderings.order_antisym; rule Set.subsetI)
       fix l'
       assume l'L: "l' \<in> L'"
-      from inst_C have "{l {\<mu>}\<^sub>l|l. l \<in> C} = C'" unfolding subls_def2 by -
-      then have "\<exists>l. l' = l {\<mu>}\<^sub>l \<and> l \<in> C \<and> l{\<mu>}\<^sub>l \<in> L'" using L'sub l'L by auto
-      then have " l' \<in> {l \<in> C. l{\<mu>}\<^sub>l \<in> L'}{\<mu>}\<^sub>l\<^sub>s" by auto
-      then show " l' \<in> {l \<in> C. \<exists>l'\<in>L'. l{\<mu>}\<^sub>l = l'}{\<mu>}\<^sub>l\<^sub>s" by auto
+      from inst_C have "{l {lmbd}\<^sub>l|l. l \<in> C} = C'" unfolding subls_def2 by -
+      then have "\<exists>l. l' = l {lmbd}\<^sub>l \<and> l \<in> C \<and> l{lmbd}\<^sub>l \<in> L'" using L'sub l'L by auto
+      then have " l' \<in> {l \<in> C. l{lmbd}\<^sub>l \<in> L'}{lmbd}\<^sub>l\<^sub>s" by auto
+      then show " l' \<in> {l \<in> C. \<exists>l'\<in>L'. l{lmbd}\<^sub>l = l'}{lmbd}\<^sub>l\<^sub>s" by auto
     qed auto
   moreover
-  have "(C-?L) {\<mu>}\<^sub>l\<^sub>s = C' - L'" using inst_C by auto
+  have "(C-?L) {lmbd}\<^sub>l\<^sub>s = C' - L'" using inst_C by auto
   moreover
   ultimately show ?thesis by auto
 qed
 
 lemma relevant_vars_subt:
-  "\<forall>x \<in> varst t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> t {\<sigma>\<^sub>1}\<^sub>t = t {\<sigma>\<^sub>2}\<^sub>t" (* "\<forall>x \<in> varsts ts. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> ts {\<sigma>\<^sub>1}\<^sub>t\<^sub>s = ts {\<sigma>\<^sub>2}\<^sub>t\<^sub>s"*)
+  "\<forall>x \<in> varst t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> t {\<sigma>\<^sub>1}\<^sub>t = t {\<sigma>\<^sub>2}\<^sub>t"
 proof (induction t)
   case (Fun f ts)
   have f: "\<And>t. t \<in> set ts \<Longrightarrow> varst t \<subseteq> varsts ts" by (induction ts) auto
@@ -439,7 +417,7 @@ proof (induction t)
   then show ?case by auto
 qed auto
 
-lemma relevant_vars_subts: (* copy paste from above proof *)
+lemma relevant_vars_subts: (* similar to above proof *)
   assumes asm: "\<forall>x \<in> varsts ts. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
   shows "ts {\<sigma>\<^sub>1}\<^sub>t\<^sub>s = ts {\<sigma>\<^sub>2}\<^sub>t\<^sub>s" 
 proof -
@@ -479,7 +457,7 @@ proof -
   then show ?thesis by (meson image_cong) 
 qed
 
-lemma merge_sub: (* To prove this I should make a lemma that says literals only care about the variables that are in them *)
+lemma merge_sub:
   assumes dist: "varsls C \<inter> varsls D = {}"
   assumes CC': "C {lmbd}\<^sub>l\<^sub>s = C'"
   assumes DD': "D {\<mu>}\<^sub>l\<^sub>s = D'"
@@ -557,18 +535,10 @@ section {* Unifiers *}
 
 definition unifierts :: "substitution \<Rightarrow> fterm set \<Rightarrow> bool" where
   "unifierts \<sigma> ts \<longleftrightarrow> (\<exists>t'. \<forall>t \<in> ts. t{\<sigma>}\<^sub>t = t')"
-(* Alternative:
-   \<^sub>1. Define unifier for a pair of formulas. Then extend this to a set by looking at all pairs of the set.
-   \<^sub>2. The result is singleton  
- *)
 
 definition unifierls :: "substitution \<Rightarrow> fterm literal set \<Rightarrow> bool" where
   "unifierls \<sigma> L \<longleftrightarrow> (\<exists>l'. \<forall>l \<in> L. l{\<sigma>}\<^sub>l = l')"
 
-(* Not used anywhere 
-lemma unifierls_same: "unifierls \<sigma> L \<Longrightarrow> l\<^sub>1  \<in> L  \<Longrightarrow> l\<^sub>2  \<in> L  \<Longrightarrow> l\<^sub>1 {\<sigma>}\<^sub>l = l\<^sub>2 {\<sigma>}\<^sub>l" 
-  unfolding unifierls_def by auto
-*)
 lemma unif_sub:
   assumes unif: "unifierls \<sigma> L"
   assumes nonempty: "L \<noteq> {}"
@@ -608,7 +578,6 @@ next
   then have "\<forall>l' \<in> L. l'{\<sigma>}\<^sub>l = l" by auto
   then show "unifierls \<sigma> L" unfolding unifierls_def by auto
 qed
-(* I Could use this lemma for great effect in the Combining soundness proof *)
 
 lemma groundls_unif_singleton:
   assumes groundls: "groundls L" 
@@ -707,7 +676,7 @@ inductive resolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<
   resolution_rule: 
     "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<Longrightarrow> 
        resolution_step Cs (Cs \<union> {resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>})"
-| standardize_apart: (* Maybe rename would be a better name? ? ? *)
+| standardize_apart: (* rename *)
     "C \<in> Cs \<Longrightarrow> var_renaming_of C C' \<Longrightarrow> resolution_step Cs (Cs \<union> {C'})"
 
 definition mresolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
@@ -715,43 +684,6 @@ definition mresolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set
 
 definition resolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "resolution_deriv = rtranclp resolution_step"
-
-(* Very nice lemma, but it is not used. 
-  Could be used in a Completeness proof *)
-lemma ground_mresolution:
-  assumes ground: "groundls C\<^sub>1 \<and> groundls C\<^sub>2"
-  assumes appl: "applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>"
-  shows "mresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = (C\<^sub>1 - L\<^sub>1) \<union> (C\<^sub>2 - L\<^sub>2) \<and> (\<exists>l. L\<^sub>1 = {l} \<and> L\<^sub>2 = {l}\<^sup>C)"
-proof -
-  from appl ground have groundl: "groundls L\<^sub>1 \<and> groundls L\<^sub>2" unfolding applicable_def by auto
-  from this ground appl have resl: "(C\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s - L\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s) \<union> (C\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s - L\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s) = (C\<^sub>1 - L\<^sub>1) \<union> (C\<^sub>2 - L\<^sub>2)" 
-    using groundls_subls unfolding applicable_def by auto
-
-  from ground appl have l\<^sub>1'l\<^sub>2'ground: "groundls L\<^sub>1 \<and> groundls L\<^sub>2" 
-    unfolding applicable_def by auto
-  then have "groundls (L\<^sub>1 \<union> L\<^sub>2\<^sup>C)" using ground_compls by auto
-  moreover
-  from appl have "unifierls \<sigma> (L\<^sub>1 \<union> L\<^sub>2\<^sup>C)" unfolding mguls_def applicable_def by auto
-  ultimately
-  obtain l where "L\<^sub>1 \<union> L\<^sub>2\<^sup>C = {l}" 
-    using appl groundls_unif_singleton 
-    unfolding applicable_def by (metis sup_eq_bot_iff)
-  from appl this have "L\<^sub>1 = {l} \<and> L\<^sub>2\<^sup>C = {l}" unfolding applicable_def by (metis image_is_empty singleton_Un_iff) 
-  then have l_p: "L\<^sub>1 = {l} \<and> L\<^sub>2 = {l}\<^sup>C" using cancel_compls1[of L\<^sub>2] by auto
-
-  from resl l_p show ?thesis unfolding mresolution_def by auto
-qed
-
-(* Very nice lemma, but it is not used. 
-  Could be used in a Completeness proof *)
-lemma ground_mresolution_ground: 
-  assumes asm: "groundls C\<^sub>1 \<and> groundls C\<^sub>2"
-  assumes appl: "applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>"
-  shows "groundls (mresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>)"
-proof -
-  from asm appl have "mresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = (C\<^sub>1 - L\<^sub>1) \<union> (C\<^sub>2 - L\<^sub>2)" using ground_mresolution by auto
-  then show ?thesis using asm by auto
-qed
 
 section {* Soundness *}
 (* Proving instantiation sound *)
@@ -844,7 +776,7 @@ proof -
 
   from unified\<^sub>1 unified\<^sub>2 appl have "l\<^sub>1 {\<sigma>}\<^sub>l = (l\<^sub>2\<^sup>c){\<sigma>}\<^sub>l" 
     unfolding mguls_def unifierls_def applicable_def by auto
-  then have comp: "(l\<^sub>1 {\<sigma>}\<^sub>l)\<^sup>c = l\<^sub>2 {\<sigma>}\<^sub>l" using comp_sub comp_swap by auto (* These steps could be lemmas *)
+  then have comp: "(l\<^sub>1 {\<sigma>}\<^sub>l)\<^sup>c = l\<^sub>2 {\<sigma>}\<^sub>l" using comp_sub comp_swap by auto 
 
   from appl have "unifierls \<sigma> (L\<^sub>2\<^sup>C)" 
     using unifier_sub2 unfolding mguls_def applicable_def by blast
@@ -1034,9 +966,7 @@ next
   show ?case by blast
 qed
 
-(* Under an Herbrand interpretation, an environment is equivalent to a substitution
-   Why have this conjunction of two lemmas?
-*)
+(* Under an Herbrand interpretation, an environment is equivalent to a substitution *)
 lemma sub_of_denot_equiv_ground': 
   "evall E HFun G l = evall E HFun G (l {sub_of_denot E}\<^sub>l) \<and> groundl (l {sub_of_denot E}\<^sub>l)"
     using sub_of_denot_equivl ground_sub_of_denotl by auto
@@ -1134,7 +1064,7 @@ qed
 lemma extend_preserves_model: (* only for ground *)
   assumes f_chain: "wf_infpath (f :: nat \<Rightarrow> partial_pred_denot)" 
   assumes C_ground: "groundls C"
-  assumes C_sat: "~falsifiesc (f (Suc n)) C" (* probably - this should be falsifiesg now *)
+  assumes C_sat: "\<not>falsifiesc (f (Suc n)) C"
   assumes n_max: "\<forall>l\<in>C. nat_from_fatom (get_atom l) \<le> n"
   shows "evalc HFun (extend f) C"
 proof -
@@ -1188,7 +1118,7 @@ lemma extend_preserves_model2: (* only for ground *)
   assumes f_chain: "wf_infpath (f :: nat \<Rightarrow> partial_pred_denot)" 
   assumes C_ground: "groundls C"
   assumes fin_c: "finite C"
-  assumes model_C: "\<forall>n. \<not>falsifiesc (f n) C" (* probably - this should be falsifiesg now *)
+  assumes model_C: "\<forall>n. \<not>falsifiesc (f n) C"
   shows C_false: "evalc HFun (extend f) C"
 proof -
   (* Since C is finite, C {sub_of_denot E}\<^sub>l\<^sub>s has a largest index of a literal.  *)
@@ -1235,7 +1165,7 @@ proof -
   let ?F = "HFun"
     
   have "\<forall>C \<in> Cs. evalc ?F (extend f) C"  
-    proof (rule ballI) (* Maybe this proof should be a lemma *)
+    proof (rule ballI)
       fix C
       assume asm: "C \<in> Cs"
       then have "\<forall>n. \<not> falsifiesc (f n) C" using model_cs by auto
@@ -1309,7 +1239,7 @@ proof -
   ultimately show ?thesis by auto
 qed
 
-(* We use this so that we can apply königs lemma *)
+(* We use this so that we can apply König's lemma *)
 lemma longer_falsifies:  
   assumes "falsifiescs ds Cs"
   shows "falsifiescs (ds @ d) Cs"
@@ -1350,7 +1280,6 @@ proof -
   (* Apply above Chain lemma *)
   then show "\<exists>G. evalcs HFun G Cs" using list_chain_model finite_cs by auto
 qed
-(* This lemma is interesting: lemma "\<forall>G. \<not> evalcs F G Cs \<Longrightarrow> \<forall>G. \<not> evalcs HFun G Cs" oops*)
 
 lemma shorter_falsifiesl:
   assumes "falsifiesl (ds@d) l"

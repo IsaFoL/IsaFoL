@@ -68,9 +68,8 @@ qed
 
 
 section {* Completeness *}
-(* assumes openb: "\<forall>T. \<exists>G. open_branch G T Cs" assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C" shows "\<exists>G. evalcs HFun G Cs" *)
 
-lemma falsifiesg_empty: (* Maybe move to partial interpretation section *)
+lemma falsifiesg_empty:
   assumes "falsifiesg [] C"
   shows "C = {}"
 proof -
