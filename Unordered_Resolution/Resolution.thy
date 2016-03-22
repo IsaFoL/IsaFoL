@@ -34,10 +34,10 @@ proof -
 qed
 
 lemma sign_comp: "sign l1 \<noteq> sign l2 \<and> get_pred l1 = get_pred l2 \<and> get_terms l1 = get_terms l2 \<longleftrightarrow> l2 = l1\<^sup>c"
-apply (cases l1)
-apply (cases l2)
-apply auto
-done
+by (cases l1; cases l2) auto
+
+lemma sign_comp_atom: "sign l1 \<noteq> sign l2 \<and> get_atom l1 = get_atom l2 \<longleftrightarrow> l2 = l1\<^sup>c"
+by (cases l1; cases l2) auto
 
 section {* Clauses *}
 
@@ -48,8 +48,7 @@ abbreviation complementls :: "'t literal set \<Rightarrow> 't literal set" ("_\<
   "L\<^sup>C \<equiv> complement ` L"
 
 lemma cancel_compls1: "(L\<^sup>C)\<^sup>C = L"
-apply auto
-apply (simp add: cancel_comp1)
+apply (auto simp add: cancel_comp1)
 apply (metis imageI cancel_comp1) 
 done
 
@@ -75,13 +74,11 @@ definition varsls :: "fterm literal set \<Rightarrow> var_sym set" where
   "varsls L \<equiv> \<Union>l\<in>L. varsl l"
 
 lemma ground_varst: "ground t \<Longrightarrow> varst t = {}" 
-apply (induction t)
-apply auto
-done
+by (induction t) auto
+
 
 lemma grounds_varsts: "grounds ts \<Longrightarrow> varsts ts = {}"
-using ground_varst apply auto
-done
+using ground_varst by auto
 
 
 lemma groundl_varsl: "groundl l \<Longrightarrow> varsl l = {}" unfolding varsl_def using ground_varst by auto
@@ -219,9 +216,7 @@ abbreviation \<epsilon> :: "substitution" where
   "\<epsilon> \<equiv> Var"
 
 lemma empty_subt: "(t :: fterm){\<epsilon>}\<^sub>t = t" 
-apply (induction t)
-apply (auto simp add: map_idI)
-done
+by (induction t) (auto simp add: map_idI)
 
 lemma empty_subts: "ts {\<epsilon>}\<^sub>t\<^sub>s = ts" 
 using empty_subt by auto
@@ -259,9 +254,7 @@ qed
 subsection {* Substitutions and Ground Terms *}
 
 lemma ground_sub: "ground t \<Longrightarrow> t {\<sigma>}\<^sub>t = t"
-apply (induction t)
-apply (auto simp add: map_idI)
-done
+by (induction t) (auto simp add: map_idI)
 
 lemma ground_subs: "grounds ts \<Longrightarrow> ts {\<sigma>}\<^sub>t\<^sub>s = ts" 
 using ground_sub by (simp add: map_idI)
@@ -514,9 +507,8 @@ abbreviation std2 :: "fterm clause \<Rightarrow> fterm clause" where
 
 lemma std_apart_apart'': 
   "x\<in>varst  (t  {\<lambda>x::char list. Var (y @ x) }\<^sub>t ) \<Longrightarrow> \<exists>x'. x=y@x'"
-apply (induction t)
-apply auto
-done
+by (induction t) auto
+
 
 lemma std_apart_apart': "x\<in>varsl (l {\<lambda>x::char list. Var  (y@x) }\<^sub>l) \<Longrightarrow> \<exists>x'. x=y@x'"
 unfolding varsl_def using std_apart_apart'' by (cases l) auto
@@ -941,22 +933,6 @@ next
   case (rtrancl_into_rtrancl Cs\<^sub>1 Cs\<^sub>2 Cs\<^sub>3) then show ?case using lsound_step by auto
 qed
 
-section {* Enumerations *}
-
-fun hlit_of_flit :: "fterm literal \<Rightarrow> hterm literal" where (*  Already defined in terms and literals*)
-  "hlit_of_flit (Pos P ts) = Pos P (hterms_of_fterms ts)"
-| "hlit_of_flit (Neg P ts) = Neg P (hterms_of_fterms ts)"
-
-lemma ground_h_undiag: "groundl l \<Longrightarrow> nat_from_hatom (hlit_of_flit l) = nat_from_fatom l"
-proof (induction l) (* Not really induction *)
-  case (Pos P ts) 
-  then show ?case unfolding nat_from_fatom_def by auto
-next
-  case (Neg P ts) 
-  then show ?case using undiag_neg undiag_neg2 unfolding nat_from_fatom_def by auto
-qed
-
-
 section {* Herbrand Interpretations *}
 
 (* HFun is the Herbrand function denotation in which terms are mapped to themselves  *)
@@ -985,7 +961,7 @@ type_synonym partial_pred_denot = "bool list"
 definition falsifiesl :: "partial_pred_denot \<Rightarrow> fterm literal \<Rightarrow> bool" where
   "falsifiesl G l \<longleftrightarrow>
         groundl l
-     \<and> (let i = nat_from_fatom l in
+     \<and> (let i = nat_from_fatom (get_atom l) in
           i < length G \<and> G ! i = (~sign l)
         )"
 
@@ -1001,7 +977,7 @@ abbreviation falsifiescs :: "partial_pred_denot \<Rightarrow> fterm clause set \
 
 abbreviation extend :: "(nat \<Rightarrow> partial_pred_denot) \<Rightarrow> hterm pred_denot" where
   "extend f P ts \<equiv> (
-     let n = nat_from_hatom (Pos P ts) in
+     let n = nat_from_hatom (P, ts) in
        f (Suc n) ! n
      )"
 
@@ -1013,9 +989,8 @@ lemma ground_sub_of_denott: "ground ((t :: fterm) {sub_of_denot E}\<^sub>t)"
 
 
 lemma ground_sub_of_denotts: "grounds ((ts :: fterm list) {sub_of_denot E}\<^sub>t\<^sub>s)"
-apply auto
-using ground_sub_of_denott apply simp 
-done
+using ground_sub_of_denott by simp 
+
 
 lemma ground_sub_of_denotl: "groundl ((l :: fterm literal) {sub_of_denot E}\<^sub>l)"
 proof -
@@ -1037,13 +1012,10 @@ qed
 
 lemma sub_of_denot_equivt:
     "evalt E HFun (t {sub_of_denot E}\<^sub>t) = evalt E HFun t"
-apply (induction t)
-using sub_of_denot_equivx apply auto
-done
+using sub_of_denot_equivx  by (induction t) auto
 
 lemma sub_of_denot_equivts: "evalts E HFun (ts {sub_of_denot E}\<^sub>t\<^sub>s) = evalts E HFun ts"
-using sub_of_denot_equivt apply simp
-done
+using sub_of_denot_equivt by simp
 
 lemma sub_of_denot_equivl: "evall E HFun G (l {sub_of_denot E}\<^sub>l) \<longleftrightarrow> evall E HFun G l"
 proof (induction l)
@@ -1163,7 +1135,7 @@ lemma extend_preserves_model: (* only for ground *)
   assumes f_chain: "wf_infpath (f :: nat \<Rightarrow> partial_pred_denot)" 
   assumes C_ground: "groundls C"
   assumes C_sat: "~falsifiesc (f (Suc n)) C" (* probably - this should be falsifiesg now *)
-  assumes n_max: "\<forall>l\<in>C. nat_from_fatom l \<le> n"
+  assumes n_max: "\<forall>l\<in>C. nat_from_fatom (get_atom l) \<le> n"
   shows "evalc HFun (extend f) C"
 proof -
   let ?F = "HFun" 
@@ -1173,7 +1145,7 @@ proof -
     from C_sat have "\<forall>C'. (~instance_ofls C' C \<or> ~ falsifiesg (f (Suc n)) C')" by auto
     then have "~falsifiesg (f (Suc n)) C" using instance_ofls_self by auto
     then obtain l where l_p: "l\<in>C \<and> ~falsifiesl (f (Suc n)) l" using C_ground by blast
-    let ?i = "nat_from_fatom l"
+    let ?i = "nat_from_fatom (get_atom l)"
      
     from l_p have i_n: "?i \<le> n" using n_max by auto
     then have j_n: "?i < length (f (Suc n))" using f_chain chain_length[of f] by auto
@@ -1182,7 +1154,6 @@ proof -
       proof (cases l)
         case (Pos P ts)
         from Pos l_p C_ground have ts_ground: "grounds ts" by auto
-        from Pos l_p C_ground have undiag_l: "nat_from_hatom (hlit_of_flit l) = ?i" using ground_h_undiag by blast
 
         have "~falsifiesl (f (Suc n)) l" using l_p by auto
         then have "f (Suc n) ! ?i = True" 
@@ -1190,22 +1161,21 @@ proof -
         moreover have "f (Suc ?i) ! ?i = f (Suc n) ! ?i" 
           using f_chain i_n j_n chain_length[of f] ith_in_extension[of f] by simp
         ultimately
-        have "f (Suc ?i) ! ?i = True" using Pos undiag_l by auto
-        then have "?G P (hterms_of_fterms ts)" using Pos undiag_l by auto
+        have "f (Suc ?i) ! ?i = True" using Pos by auto
+        then have "?G P (hterms_of_fterms ts)" using Pos by (simp add: nat_from_fatom_def) 
         then show ?thesis using evall_grounds[of ts _ ?G P] ts_ground Pos by auto
       next
         case (Neg P ts) (* Symmetric *)
         from Neg l_p C_ground have ts_ground: "grounds ts" by auto
-        from Neg l_p C_ground have undiag_l: "nat_from_hatom (hlit_of_flit l) = ?i" using ground_h_undiag by blast
 
         have "~falsifiesl (f (Suc n)) l" using l_p by auto  
         then have "f (Suc n) ! ?i = False" 
-          using j_n Neg ts_ground empty_subts[of ts] undiag_neg unfolding falsifiesl_def by auto
+          using j_n Neg ts_ground empty_subts[of ts] unfolding falsifiesl_def by auto
         moreover have "f (Suc ?i) ! ?i = f (Suc n) ! ?i" 
           using f_chain i_n j_n chain_length[of f] ith_in_extension[of f] by simp
         ultimately
-        have "f (Suc ?i) ! ?i = False" using Neg undiag_l by auto
-        then have "~?G P (hterms_of_fterms ts)" using Neg undiag_l undiag_neg2 by simp 
+        have "f (Suc ?i) ! ?i = False" using Neg by auto
+        then have "~?G P (hterms_of_fterms ts)" using Neg by (simp add: nat_from_fatom_def) 
         then show ?thesis using Neg evall_grounds[of ts _ ?G P] ts_ground by auto
       qed
     then have "\<exists>l \<in> C. evall E HFun (extend f) l" using l_p by auto
@@ -1222,7 +1192,7 @@ lemma extend_preserves_model2: (* only for ground *)
   shows C_false: "evalc HFun (extend f) C"
 proof -
   (* Since C is finite, C {sub_of_denot E}\<^sub>l\<^sub>s has a largest index of a literal.  *)
-  obtain n where largest: "\<forall>l \<in> C. nat_from_fatom l \<le> n" using fin_c maximum by blast
+  obtain n where largest: "\<forall>l \<in> C. nat_from_fatom (get_atom l) \<le> n" using fin_c maximum[of C "\<lambda>l. nat_from_fatom (get_atom l)"] by blast
   moreover
   then have "\<not>falsifiesc (f (Suc n)) C" using model_C by auto
   ultimately show ?thesis using model_C f_chain C_ground extend_preserves_model[of f C n ] by blast
@@ -1308,7 +1278,7 @@ lemma longer_falsifiesl:
   assumes "falsifiesl ds l"
   shows "falsifiesl (ds@d) l"
 proof - 
-  let ?i = "nat_from_fatom l"
+  let ?i = "nat_from_fatom (get_atom l)"
   from assms have i_p: "groundl l \<and>  ?i < length ds \<and> ds ! ?i = (~sign l)" unfolding falsifiesl_def by meson
   moreover
   from i_p have "?i < length (ds@d)" by auto
@@ -1384,10 +1354,10 @@ qed
 
 lemma shorter_falsifiesl:
   assumes "falsifiesl (ds@d) l"
-  assumes "nat_from_fatom l < length ds"
+  assumes "nat_from_fatom (get_atom l) < length ds"
   shows "falsifiesl ds l"
 proof -
-  let ?i = "nat_from_fatom l"
+  let ?i = "nat_from_fatom (get_atom l)"
   from assms have i_p: "groundl l \<and>  ?i < length (ds@d) \<and> (ds@d) ! ?i = (~sign l)" unfolding falsifiesl_def by meson
   moreover
   then have "?i < length ds" using assms by auto
