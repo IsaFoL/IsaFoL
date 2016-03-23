@@ -30,7 +30,8 @@ To process all the theory files, change to branch ```git checkout sat_solver_lea
 
 ## Documentation ##
 
-A recent version of the theory files is also available as [a PDF document](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Weidenbach_Book/output/document.pdf).
+A recent version of the theory files is also available as [a PDF outline without proofs](https://bitbucket.org/jasmin_blanchette/isafol/src/sat_solver_learn_forget_restart_incrementality/Weidenbach_Book/output/outline.pdf) or
+as [a PDF document with all proofs](https://bitbucket.org/jasmin_blanchette/isafol/src/sat_solver_learn_forget_restart_incrementality/Weidenbach_Book/output/document.pdf).
 
 The draft [A Verified SAT Solver Framework](http://people.mpi-inf.mpg.de/~jblanche/sat.pdf) refers to theorems in the formalization. The following table establishes a correspondence between the two sources.
 
