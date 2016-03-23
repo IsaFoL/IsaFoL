@@ -1,17 +1,28 @@
 session "Weidenbach_Book" (main) = "HOL" +
   options [document = pdf, document_output = "output", timeout=300]
+
+  (* Removing HOL imports of the document*)
   theories [document = false]
+    "~~/src/HOL/Library/Multiset"
+    "~~/src/HOL/Library/Multiset_Order"
     "../lib/Multiset_More"
     "../lib/Herbrand_Interpretation"
+    "~~/src/HOL/Library/Code_Target_Int"
+    "~~/src/HOL/Library/Code_Abstract_Nat"
+    "~~/src/HOL/Library/Code_Target_Nat"
     "~~/src/HOL/Library/Code_Target_Numeral"
-  theories [document = true]
-    Wellfounded_More
-    List_More
+
+  (* Removing imports unrelated to the paper of the document*)
+  theories [document = false]
     Prop_Logic
     Prop_Abstract_Transformation
     Prop_Normalisation
-    "../lib/Clausal_Logic"
     Prop_Resolution
+
+  theories [document = pdf]
+    Wellfounded_More
+    List_More
+    "../lib/Clausal_Logic"
     Partial_Annotated_Clausal_Logic
     DPLL_W
     CDCL_W_Level
@@ -25,9 +36,12 @@ session "Weidenbach_Book" (main) = "HOL" +
     CDCL_W_Incremental
     CDCL_Two_Watched_Literals
   theories [quick_and_dirty]
+    CDCL_Two_Watched_Literals_Implementation
+
+  (* Removing imports unrelated to the paper of the document, but needing quick_and_dirty*)
+  theories [quick_and_dirty, document = false]
     Prop_Superposition
     Weidenbach_Book
-    CDCL_Two_Watched_Literals_Implementation
   document_files
     "root.tex"
     "biblio.bib"
