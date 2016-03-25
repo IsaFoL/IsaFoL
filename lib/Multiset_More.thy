@@ -515,7 +515,8 @@ lemma remdups_mset_singleton[simp]:
   "remdups_mset {#a#} = {#a#}"
   unfolding remdups_mset_def by auto
 
-lemma set_mset_remdups[simp]: "set_mset (remdups_mset (D + C)) = set_mset (D + C) " by auto
+lemma set_mset_remdups[simp]: "set_mset (remdups_mset C) = set_mset C"
+  by auto
 
 lemma remdups_mset_eq_empty[iff]:
   "remdups_mset D = {#} \<longleftrightarrow> D = {#}"
@@ -747,7 +748,10 @@ lemma msetsum_union_disjoint:
     multiset_union_diff_commute sup_subset_mset_def zero_diff)
 
 subsection \<open>Order\<close>
-(*TODO: remove when multiset is of sort ord again*)  
+
+text \<open>Instantiating multiset order as a linear order.
+
+  TODO: remove when multiset is of sort ord again\<close>
 instantiation multiset :: (linorder) linorder
 begin
 

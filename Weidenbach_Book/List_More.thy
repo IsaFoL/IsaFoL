@@ -1,5 +1,5 @@
 theory List_More
-imports Main
+imports Main "../lib/Multiset_More"
 begin
 
 section \<open>Various Lemmas\<close>
@@ -20,7 +20,7 @@ lemma if_0_1_ge_0[simp]:
   "0 < (if P then a else (0::nat)) \<longleftrightarrow> P \<and> 0 < a"
   by auto
 
-text \<open>Bounded function have not been defined in Isabelle.\<close>
+text \<open>Bounded function have not yet been defined in Isabelle.\<close>
 definition bounded where
 "bounded f \<longleftrightarrow> (\<exists>b. \<forall>n. f n \<le> b)"
 
@@ -45,6 +45,9 @@ proof (rule ccontr)
     using unbound unfolding bounded_def by auto
 qed
 
+text \<open>A function is bounded iff its product with a non-zero constant is bounded. The non-zero
+  condition is needed only for the reverse implication (see for example @{term "k = 0"} and
+  @{term "f = (\<lambda>i. i)"} for a counter-example).\<close>
 lemma bounded_const_product:
   fixes k :: nat and f :: "nat \<Rightarrow> nat"
   assumes "k > 0"
@@ -187,15 +190,88 @@ proof -
       upt_eq_Cons_conv upt_rec ys)
 qed
 
-subsection \<open>Lexicographic ordering\<close>
+text \<open>The following two lemmas are useful as simp rules for case-distinction. The case 
+  @{term "length l = 0"} is already simplified by default.\<close>
+lemma length_list_Suc_0:
+  "length W = Suc 0 \<longleftrightarrow> (\<exists>L. W = [L])"
+  apply (cases W)
+    apply simp
+  apply (rename_tac a W', case_tac W')
+  apply auto
+  done
 
-text \<open>We are working a lot on lexicographic ordering over pairs.\<close>
-lemma list_length2_append_cons:
-  "[c, d] = ys @ y # ys' \<longleftrightarrow> (ys = [] \<and> y = c \<and> ys' = [d]) \<or> (ys = [c] \<and> y = d \<and> ys' = [])"
-  by (cases ys; cases ys') auto
+lemma length_list_2: "length S = 2 \<longleftrightarrow> (\<exists>a b. S = [a, b])"
+  apply (cases S)
+   apply simp
+  apply (rename_tac a S')
+  apply (case_tac S')
+  by simp_all
+
+subsection \<open>Lexicographic Ordering\<close>
+lemma lexn_Suc:
+  "(x # xs, y # ys) \<in> lexn r (Suc n) \<longleftrightarrow>
+  (length xs = n \<and> length ys = n) \<and> ((x, y) \<in> r \<or> (x = y \<and> (xs, ys) \<in> lexn r n))"
+  by (auto simp: map_prod_def image_iff lex_prod_def)
+
+lemma lexn_n:
+  "n > 0 \<Longrightarrow> (x # xs, y # ys) \<in> lexn r n \<longleftrightarrow>
+  (length xs = n-1 \<and> length ys = n-1) \<and> ((x, y) \<in> r \<or> (x = y \<and> (xs, ys) \<in> lexn r (n - 1)))"
+  apply (cases n)
+   apply simp
+  by (auto simp: map_prod_def image_iff lex_prod_def)
+
+text \<open>There is some subtle point in the proof here. @{term "1::nat"} is converted to
+  @{term "Suc 0::nat"}, but  @{term "2::nat"} is not: meaning that @{term "1::nat"} is automatically
+  simplified by default using the default simplification rule @{thm lexn.simps}. However, the
+  latter needs additional simplification rule (see the proof of the theorem above).\<close>
 
 lemma lexn2_conv:
-  "([a, b], [c, d]) \<in> lexn r 2 \<longleftrightarrow> (a, c)\<in>r \<or> (a = c \<and> (b, d) \<in>r)"
-  unfolding lexn_conv by (auto simp add: list_length2_append_cons)
+  "([a, b], [c, d]) \<in> lexn r 2 \<longleftrightarrow> (a, c) \<in> r \<or> (a = c \<and> (b, d) \<in>r)"
+  by (auto simp: lexn_n simp del: lexn.simps(2))
+
+lemma lexn3_conv:
+  "([a, b, c], [a', b', c']) \<in> lexn r 3 \<longleftrightarrow>
+    (a, a') \<in> r \<or> (a = a' \<and> (b, b') \<in> r) \<or> (a = a' \<and> b = b' \<and> (c, c') \<in> r)"
+  by (auto simp: lexn_n simp del: lexn.simps(2))
+
+subsection \<open>Remove\<close>
+subsubsection \<open>More lemmas about remove\<close>
+lemma remove1_nil:
+  "remove1 (- L) W = [] \<longleftrightarrow> (W = [] \<or> W = [-L])"
+  by (cases W) auto
+
+text \<open>This function removes the first element such that the condition @{term f} holds. It 
+  generalises @{term List.remove1}.\<close>
+fun remove1_cond where
+"remove1_cond f [] = []" |
+"remove1_cond f (C' # L) = (if f C' then L else C' # remove1_cond f L)"
+
+lemma "remove1 x xs = remove1_cond ((op =) x) xs"
+  by (induction xs) auto
+
+text \<open>We can also generalise @{term List.removeAll}, which is close to @{term List.filter}:\<close>
+fun removeAll_cond where
+"removeAll_cond f [] = []" |
+"removeAll_cond f (C' # L) =
+  (if f C' then removeAll_cond f L else C' # removeAll_cond f L)"
+
+lemma "removeAll x xs = removeAll_cond ((op =) x) xs"
+  by (induction xs) auto
+
+lemma "removeAll_cond P xs = filter (\<lambda>x. \<not>P x) xs"
+  by (induction xs) auto
+
+text \<open>Take from @{file "../lib/Multiset_More.thy"}, but named:\<close>
+abbreviation union_mset_list where
+"union_mset_list xs ys \<equiv> case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
+
+lemma union_mset_list:
+  "mset xs #\<union> mset ys = mset (union_mset_list xs ys)"
+proof -
+  have "\<And>zs. mset (case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, zs))) =
+      (mset xs #\<union> mset ys) + mset zs"
+    by (induct xs arbitrary: ys) (simp_all add: multiset_eq_iff)
+  then show ?thesis by simp
+qed
 
 end

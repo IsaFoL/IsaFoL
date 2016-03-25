@@ -1,12 +1,16 @@
+(*  Title:       More about Relations
+    Author:      Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>
+*)
+section \<open>Transitions\<close>
+
+text \<open>This theory contains some facts about closure, the definition of full transformations, and
+  well-foundedness.\<close>
+
 theory Wellfounded_More
 imports Main
 
 begin
 
-section \<open>Transitions\<close>
-
-text \<open>This theory contains more facts about closure, the definition of full transformations, and
-  well-foundedness.\<close>
 subsection \<open>More theorems about Closures\<close>
 
 text \<open>This is the equivalent of @{thm rtranclp_mono} for @{term tranclp}\<close>
@@ -32,13 +36,16 @@ lemma trancl_idemp: "(r\<^sup>+)\<^sup>+ = r\<^sup>+"
 lemmas tranclp_idemp[simp] = trancl_idemp[to_pred]
 
 text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and sledgehammer uses it), but
-  it makes sense to duplicate it, because it is unclear how stable the lemmas in Nitpick are.\<close>
+  it makes sense to duplicate it, because it is unclear how stable the lemmas in the
+  @{file "~~/src/HOL/Nitpick.thy"} theory are.\<close>
 lemma rtranclp_unfold: "rtranclp r a b \<longleftrightarrow> (a = b \<or> tranclp r a b)"
   by (meson rtranclp.simps rtranclpD tranclp_into_rtranclp)
 
+(* TODO destruction rule instead of simp rule *)
 lemma tranclp_unfold_end: "tranclp r a b \<longleftrightarrow> (\<exists>a'. rtranclp r a a' \<and> r a' b)"
   by (metis rtranclp.rtrancl_refl rtranclp_into_tranclp1 tranclp.cases tranclp_into_rtranclp)
 
+text \<open>Near duplicate of @{thm tranclpD}:\<close>
 lemma tranclp_unfold_begin: "tranclp r a b \<longleftrightarrow> (\<exists>a'. r a a' \<and> rtranclp r a' b)"
   by (meson rtranclp_into_tranclp2 tranclpD)
 
@@ -59,7 +66,7 @@ lemma rtranclp_exists_last_with_prop:
   and "R\<^sup>*\<^sup>* z z'" and "P x z"
   shows "\<exists>y y'. R\<^sup>*\<^sup>* x y \<and> R y y' \<and> P y y' \<and> (\<lambda>a b. R a b \<and> \<not>P a b)\<^sup>*\<^sup>* y' z'"
   using assms(2,1,3)
-proof (induction arbitrary: )
+proof (induction)
   case base
   then show ?case by auto
 next
@@ -83,6 +90,10 @@ definition full1 :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \
 
 definition full:: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" (*"_\<^sup>\<down>"*) where
 "full transf = (\<lambda>S S'. rtranclp transf S S' \<and> (\<forall>S''. \<not> transf S' S''))"
+
+text \<open>We define output notations only for printing:\<close>
+notation (output) full1 ("_\<^sup>+\<^sup>\<down>") 
+notation (output) full ("_\<^sup>\<down>")
 
 lemma rtranclp_full1I:
   "R\<^sup>*\<^sup>* a b \<Longrightarrow> full1 R b c \<Longrightarrow> full1 R a c"
