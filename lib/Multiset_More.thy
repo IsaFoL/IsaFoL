@@ -314,7 +314,8 @@ lemma remdups_mset_singleton[simp]:
   "remdups_mset {#a#} = {#a#}"
   unfolding remdups_mset_def by auto
 
-lemma set_mset_remdups[simp]: "set_mset (remdups_mset (D + C)) = set_mset (D + C) " by auto
+lemma set_mset_remdups[simp]: "set_mset (remdups_mset C) = set_mset C"
+  by auto
 
 lemma remdups_mset_eq_empty[iff]:
   "remdups_mset D = {#} \<longleftrightarrow> D = {#}"
@@ -358,15 +359,15 @@ lemma distinct_mset_set_union[iff]:
   unfolding distinct_mset_set_def by auto
 
 lemma distinct_mset_union:
-  "distinct_mset (A + B) \<Longrightarrow> distinct_mset A"
+  assumes dist: "distinct_mset (A + B)"
+  shows "distinct_mset A"
 proof -
-  assume a1: "distinct_mset (A + B)"
   obtain aa :: "'a multiset \<Rightarrow> 'a" where
     f2: "(\<forall>m. \<not> distinct_mset m \<or> (\<forall>a. (a::'a) \<notin># m \<or> count m a = 1))"
       "(\<forall>m. aa m \<in># m \<and> count m (aa m) \<noteq> 1 \<or> distinct_mset m)"
     by (metis (full_types) distinct_mset_def)
   then have "count (A + B) (aa A) = 1 \<or> distinct_mset A"
-    using a1 by (meson mset_leD mset_le_add_left)
+    using dist by (meson mset_leD mset_le_add_left)
   then show ?thesis
     using f2 by (metis (no_types) One_nat_def add_is_1 count_union mem_Collect_eq order_less_irrefl
       set_mset_def)
@@ -563,7 +564,9 @@ lemma msetsum_union_disjoint:
     multiset_union_diff_commute sup_subset_mset_def zero_diff)
 
 subsection \<open>Order\<close>
-(*TODO: remove when multiset is of sort ord again*)
+text \<open>Instantiating multiset order as a linear order.
+
+  TODO: remove when multiset is of sort ord again\<close>
 instantiation multiset :: (linorder) linorder
 begin
 

@@ -204,7 +204,7 @@ next
           proof -
             have f1: "\<And>ms. length (get_all_marked_decomposition (M' @ ms))
               = length (get_all_marked_decomposition ms)"
-              by (simp add: M' get_all_marked_decomposition_remove_unmark_ssed_length)
+              by (simp add: M' get_all_marked_decomposition_remove_unmarked_length)
             have "Suc (length (get_all_marked_decomposition M)) \<noteq> Suc 0"
               by blast
             then show ?thesis

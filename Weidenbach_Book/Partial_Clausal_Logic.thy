@@ -10,6 +10,13 @@ theory Partial_Clausal_Logic
 imports "../lib/Clausal_Logic" List_More
 begin
 
+text \<open>We define here entailment by a set of literals. This is \<^emph>\<open>not\<close> an Herbrand interpretation and
+  has different properties. One key difference is that such a set can be inconsistent (i.e.\
+  containing both @{term "L::'a literal"} and @{term "-L::'a literal"}).
+
+  Satisfiability is defined by the existence of a total and consistent model.
+  \<close>
+
 subsection \<open>Clauses\<close>
 
 text \<open>
@@ -27,7 +34,6 @@ definition true_lit :: "'a interp \<Rightarrow> 'a literal \<Rightarrow> bool" (
   "I \<Turnstile>l L \<longleftrightarrow> L \<in> I"
 
 declare true_lit_def[simp]
-
 
 subsubsection \<open>Consistency\<close>
 definition consistent_interp :: "'a literal set \<Rightarrow> bool" where
@@ -59,6 +65,8 @@ lemma consistent_interp_insert_not_in:
   unfolding consistent_interp_def by auto
 
 subsubsection \<open>Atoms\<close>
+text \<open>We define here various lifting of @{term atm_of} (applied to a single literal) to set and
+  multisets of literals.\<close>
 definition atms_of_ms :: "'a literal multiset set \<Rightarrow> 'a set" where
 "atms_of_ms \<psi>s = \<Union>(atms_of ` \<psi>s)"
 
@@ -227,8 +235,9 @@ qed
 
 lemma total_over_m_consistent_extension:
   fixes I :: "'v literal set" and A :: "'v clauses"
-  assumes total: "total_over_m I A"
-  and cons: "consistent_interp I"
+  assumes
+    total: "total_over_m I A" and
+    cons: "consistent_interp I"
   shows "\<exists>I'. total_over_m (I \<union> I') (A \<union> B)
     \<and> (\<forall>x\<in>I'. atm_of x \<in> atms_of_ms B \<and> atm_of x \<notin> atms_of_ms A) \<and> consistent_interp (I \<union> I')"
 proof -
@@ -306,8 +315,9 @@ lemma true_cls_mono_leD[dest]: "A \<subseteq># B \<Longrightarrow> I \<Turnstile
 
 lemma
   assumes "I \<Turnstile> \<psi>"
-  shows true_cls_union_increase[simp]: "I \<union> I' \<Turnstile> \<psi>"
-  and true_cls_union_increase'[simp]: "I' \<union> I \<Turnstile> \<psi>"
+  shows
+    true_cls_union_increase[simp]: "I \<union> I' \<Turnstile> \<psi>" and
+    true_cls_union_increase'[simp]: "I' \<union> I \<Turnstile> \<psi>"
   using assms unfolding true_cls_def by auto
 
 lemma true_cls_mono_set_mset_l:
@@ -323,8 +333,7 @@ lemma true_cls_empty_entails[iff]: "\<not> {} \<Turnstile> N"
   by (auto simp add: true_cls_def)
 
 lemma true_cls_not_in_remove:
-  assumes "L \<notin># \<chi>"
-  and " I \<union> {L} \<Turnstile> \<chi>"
+  assumes "L \<notin># \<chi>" and "I \<union> {L} \<Turnstile> \<chi>"
   shows "I \<Turnstile> \<chi>"
   using assms unfolding true_cls_def by auto
 
@@ -543,6 +552,8 @@ lemma total_over_set_atm_of:
   unfolding total_over_set_def by (metis atms_of_s_def in_atms_of_s_decomp)
 
 subsubsection \<open>Tautologies\<close>
+text \<open>We define tautologies as clauses entailed by every total model and show later that is
+  equivalent to containing a literal and its negation.\<close>
 definition "tautology (\<psi>:: 'v clause) \<equiv> \<forall>I. total_over_set I (atms_of \<psi>) \<longrightarrow> I \<Turnstile> \<psi>"
 
 lemma tautology_Pos_Neg[intro]:
@@ -553,7 +564,7 @@ lemma tautology_Pos_Neg[intro]:
 
 lemma tautology_minus[simp]:
   assumes "L \<in># A" and "-L \<in># A"
-  shows  "tautology A"
+  shows "tautology A"
   by (metis assms literal.exhaust tautology_Pos_Neg uminus_Neg uminus_Pos)
 
 lemma tautology_exists_Pos_Neg:
@@ -613,6 +624,7 @@ proof (intro allI HOL.impI)
 qed
 
 subsubsection \<open>Entailment for clauses and propositions\<close>
+text \<open>We also need entailment of clauses by other clauses.\<close>
 definition true_cls_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>f" 49) where
 "\<psi> \<Turnstile>f \<chi> \<longleftrightarrow> (\<forall>I. total_over_m I ({\<psi>} \<union> {\<chi>}) \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile> \<psi> \<longrightarrow> I \<Turnstile> \<chi>)"
 
@@ -868,6 +880,7 @@ proof (intro allI impI)
   ultimately show "I \<Turnstile> D #\<union> C" by blast
 qed
 
+(* TODO Move upper *)
 lemma satisfiable_carac[iff]:
   "(\<exists>I. consistent_interp I \<and> I \<Turnstile>s \<phi>) \<longleftrightarrow> satisfiable \<phi>" (is "(\<exists>I. ?Q I) \<longleftrightarrow> ?S")
 proof
@@ -971,6 +984,13 @@ lemma true_clss_cls_remdups_mset[iff]: "A \<Turnstile>p remdups_mset C \<longlef
   unfolding true_clss_cls_def total_over_m_def by auto
 
 subsection \<open>Set of all Simple Clauses\<close>
+text \<open>A simple clause with respect to a set of atoms is such that
+  \<^enum> its atoms are included in the considered set of atoms;
+  \<^enum> it is not a tautology;
+  \<^enum> it does not contains duplicate literals.
+
+  It corresponds to the clauses that cannot be simplified away in a calculus without considering
+  the other clauses.\<close>
 definition simple_clss :: "'v set \<Rightarrow> 'v clause set" where
 "simple_clss atms = {C. atms_of C \<subseteq> atms \<and> \<not>tautology C \<and> distinct_mset C}"
 
@@ -1223,6 +1243,14 @@ interpretation true_cls: entail true_cls
   by standard (auto simp add: true_cls_def)
 
 subsection \<open>Entailment to be extended\<close>
+text \<open>In some cases we want a more general version of entailment to have for example
+  @{term "{} \<Turnstile> {#L, -L#}"}. This is useful when the model we are building might not be total (the
+  literal @{term L} might have been definitely removed from the set of clauses), but we still want
+  to have a property of entailment considering that theses removed literals are not important.
+
+  We can given a model @{term I} consider all the natural extensions: @{term C} is entailed
+  by an extended @{term I}, if for all total extension of @{term I}, this model entails @{term C}.
+  \<close>
 definition true_clss_ext :: "'a literal set \<Rightarrow> 'a literal multiset set \<Rightarrow> bool" (infix "\<Turnstile>sext" 49)
 where
 "I \<Turnstile>sext N \<longleftrightarrow> (\<forall>J. I \<subseteq> J \<longrightarrow> consistent_interp J \<longrightarrow> total_over_m J N \<longrightarrow> J \<Turnstile>s N)"
@@ -1272,6 +1300,6 @@ lemma consistent_true_clss_ext_satisfiable:
 
 lemma not_consistent_true_clss_ext:
   assumes "\<not>consistent_interp I"
-  shows "I\<Turnstile>sext A"
+  shows "I \<Turnstile>sext A"
   by (meson assms consistent_interp_subset true_clss_ext_def)
 end
