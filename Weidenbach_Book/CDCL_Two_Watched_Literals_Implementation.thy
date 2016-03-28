@@ -322,7 +322,7 @@ lemma
            TWL_State_Cand (TWL_State M N U k C) K')) =
   \<mu>TWL (raw_cons_trail_pq E (TWL_State_Cand (TWL_State M N U k C) (Prop_Or_Conf l D)))"
   apply (auto simp: comp_def)
-sorry         
+sorry
 
 text \<open>Implementation-wise, @{term "trail S \<Turnstile>as CNot (mset (raw_clause D))"} should be equivalent
   to @{term "trail S"}.\<close>
