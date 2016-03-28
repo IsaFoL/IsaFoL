@@ -18,18 +18,18 @@ locale state\<^sub>W_ops =
   raw_ccls_union mset_ccls union_ccls insert_ccls remove_clit
   for
     -- \<open>Clause\<close>
-    mset_cls:: "'cls \<Rightarrow> 'v clause" and
+    mset_cls :: "'cls \<Rightarrow> 'v clause" and
     insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
     -- \<open>Multiset of Clauses\<close>
-    mset_clss:: "'clss \<Rightarrow> 'v clauses" and
+    mset_clss :: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
     in_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> bool" and
     insert_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
     remove_from_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss"  and
 
-    mset_ccls:: "'ccls \<Rightarrow> 'v clause" and
+    mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
     union_ccls :: "'ccls \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
     insert_ccls :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
     remove_clit :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls"
@@ -98,7 +98,24 @@ abbreviation clauses :: "'st \<Rightarrow> 'v clauses" where
 "clauses S \<equiv> mset_clss (raw_clauses S)"
 
 end
+text \<open>We are using an abstract state to abstract away the detail of the implementation: we do not 
+  need to know how the clauses are represented internally, we just need to know that they can be
+  converted to multisets.\<close>
+text \<open>Weidenbach state is a five-tuple composed of:
+  \<^enum> the trail is a list of marked literals;
+  \<^enum> the initial set of clauses (that is not changed during the whole calculus);
+  \<^enum> the learned clauses (clauses can be added or remove);
+  \<^enum> the maximum level of the trail;
+  \<^enum> the conflicting clause (if any has been found so far).\<close>
+text \<open>
+  There are two different clause representation: one for the conflicting clause (@{typ "'ccl'"}, 
+  standing for conflicting clause) and one for the initial and learned clauses (@{typ "'cls"}, 
+  standing for clause). The representation of the clauses annotating literals in the trail
+  is slightly different: being able to convert it to @{typ 'cls} is enough (needed for function
+  @{term "hd_raw_trail"} below). 
 
+  There are several axioms to state the independance of the different fields of the state: for 
+  example, adding a clause to the learned clauses does not change the trail.\<close>
 locale state\<^sub>W =
   state\<^sub>W_ops
     -- \<open>functions for clauses: \<close>
@@ -111,28 +128,28 @@ locale state\<^sub>W =
     -- \<open>Conversion between conflicting and non-conflicting\<close>
     ccls_of_cls cls_of_ccls
 
-    -- \<open>functions for the state: \<close>
-      -- \<open>access functions:\<close>
+    -- \<open>functions about the state: \<close>
+      -- \<open>getter:\<close>
     trail hd_raw_trail raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
-      -- \<open>changing state:\<close>
+      -- \<open>setter:\<close>
     cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
     update_conflicting
 
-      -- \<open>get state:\<close>
+      -- \<open>Some specific states:\<close>
     init_state
     restart_state
   for
-    mset_cls:: "'cls \<Rightarrow> 'v clause" and
+    mset_cls :: "'cls \<Rightarrow> 'v clause" and
     insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
-    mset_clss:: "'clss \<Rightarrow> 'v clauses" and
+    mset_clss :: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
     in_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> bool" and
     insert_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
     remove_from_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
 
-    mset_ccls:: "'ccls \<Rightarrow> 'v clause" and
+    mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
     union_ccls :: "'ccls \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
     insert_ccls :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
     remove_clit :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
@@ -315,6 +332,9 @@ lemma state_eq_raw_conflicting_None:
   "S \<sim> T \<Longrightarrow> conflicting T = None \<Longrightarrow> raw_conflicting S = None"
   unfolding state_eq_def raw_clauses_def by auto
 
+text \<open>We combine all simplification rules about @{term state_eq} in a single list of theorems. While
+  they are handy as simplification rule as long as we are working on the state, they also cause a 
+  \<^emph>\<open>huge\<close> slow-down in all other cases.\<close>
 lemmas state_simp[simp] = state_eq_trail state_eq_init_clss state_eq_learned_clss
   state_eq_backtrack_lvl state_eq_conflicting state_eq_clauses state_eq_undefined_lit
   state_eq_raw_conflicting_None
@@ -545,17 +565,17 @@ locale conflict_driven_clause_learning\<^sub>W =
     init_state
     restart_state
   for
-    mset_cls:: "'cls \<Rightarrow> 'v clause" and
+    mset_cls :: "'cls \<Rightarrow> 'v clause" and
     insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
-    mset_clss:: "'clss \<Rightarrow> 'v clauses" and
+    mset_clss :: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
     in_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> bool" and
     insert_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
     remove_from_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss"  and
 
-    mset_ccls:: "'ccls \<Rightarrow> 'v clause" and
+    mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
     union_ccls :: "'ccls \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
     insert_ccls :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
     remove_clit :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
@@ -669,7 +689,7 @@ inductive_cases restartE: "restart S T"
 
 text \<open>We add the condition @{term "C \<notin># init_clss S"}, to maintain consistency even without the
   strategy.\<close>
-inductive forget:: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+inductive forget :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 forget_rule:
   "conflicting S = None \<Longrightarrow>
   C !\<in>! raw_learned_clss S \<Longrightarrow>
@@ -692,7 +712,7 @@ backtrack: "backtrack S S' \<Longrightarrow> cdcl\<^sub>W_bj S S'"
 
 inductive_cases cdcl\<^sub>W_bjE: "cdcl\<^sub>W_bj S T"
 
-inductive cdcl\<^sub>W_o:: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
+inductive cdcl\<^sub>W_o :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 decide: "decide S S' \<Longrightarrow> cdcl\<^sub>W_o S S'" |
 bj: "cdcl\<^sub>W_bj S S' \<Longrightarrow> cdcl\<^sub>W_o S S'"
 
@@ -1687,7 +1707,7 @@ text \<open>This invariant shows that:
   \<^item> the marks are entailed by the clauses. A more precise version would be to show that either
   these marked are learned or are in the set of clauses\<close>
 
-definition "cdcl\<^sub>W_learned_clause (S:: 'st) \<longleftrightarrow>
+definition "cdcl\<^sub>W_learned_clause (S :: 'st) \<longleftrightarrow>
   (init_clss S \<Turnstile>psm learned_clss S
   \<and> (\<forall>T. conflicting S = Some T \<longrightarrow> init_clss S \<Turnstile>pm T)
   \<and> set (get_all_mark_of_propagated (trail S)) \<subseteq> set_mset (clauses S))"
@@ -1932,14 +1952,14 @@ lemma rtranclp_cdcl\<^sub>W_no_strange_atm_inv:
 subsubsection \<open>No duplicates all around\<close>
 text \<open>This invariant shows that there is no duplicate (no literal appearing twice in the formula).
   The last part could be proven using the previous invariant moreover.\<close>
-definition "distinct_cdcl\<^sub>W_state (S::'st)
+definition "distinct_cdcl\<^sub>W_state (S ::'st)
   \<longleftrightarrow> ((\<forall>T. conflicting S = Some T \<longrightarrow> distinct_mset T)
     \<and> distinct_mset_mset (learned_clss S)
     \<and> distinct_mset_mset (init_clss S)
     \<and> (\<forall>L mark. (Propagated L mark \<in> set (trail S) \<longrightarrow> distinct_mset (mark))))"
 
 lemma distinct_cdcl\<^sub>W_state_decomp:
-  assumes "distinct_cdcl\<^sub>W_state (S::'st)"
+  assumes "distinct_cdcl\<^sub>W_state (S ::'st)"
   shows "\<forall>T. conflicting S = Some T \<longrightarrow> distinct_mset T"
   and "distinct_mset_mset (learned_clss S)"
   and "distinct_mset_mset (init_clss S)"
@@ -1947,7 +1967,7 @@ lemma distinct_cdcl\<^sub>W_state_decomp:
   using assms unfolding distinct_cdcl\<^sub>W_state_def by blast+
 
 lemma distinct_cdcl\<^sub>W_state_decomp_2:
-  assumes "distinct_cdcl\<^sub>W_state (S::'st)"
+  assumes "distinct_cdcl\<^sub>W_state (S ::'st)"
   shows "conflicting S = Some T \<Longrightarrow> distinct_mset T"
   using assms unfolding distinct_cdcl\<^sub>W_state_def by auto
 
@@ -2085,14 +2105,14 @@ lemma distinct_atms_of_incl_not_in_other:
   shows "x \<notin> atm_of ` lits_of_l M"
 proof -
   have ff1: "\<And>l ms. undefined_lit ms l \<or> atm_of l
-    \<in> set (map (\<lambda>m. atm_of (lit_of (m::('a, 'b, 'c) marked_lit))) ms)"
+    \<in> set (map (\<lambda>m. atm_of (lit_of (m ::('a, 'b, 'c) marked_lit))) ms)"
     by (simp add: defined_lit_map)
   have ff2: "\<And>a. a \<notin> atms_of D \<or> a \<in> atm_of ` lits_of_l M'"
     using a2 by (meson subsetCE)
   have ff3: "\<And>a. a \<notin> set (map (\<lambda>m. atm_of (lit_of m)) M')
     \<or> a \<notin> set (map (\<lambda>m. atm_of (lit_of m)) M)"
     using a1 by (metis (lifting) IntI distinct_append empty_iff map_append)
-  have "\<forall>L a f. \<exists>l. ((a::'a) \<notin> f ` L \<or> (l::'a literal) \<in> L) \<and> (a \<notin> f ` L \<or> f l = a)"
+  have "\<forall>L a f. \<exists>l. ((a::'a) \<notin> f ` L \<or> (l ::'a literal) \<in> L) \<and> (a \<notin> f ` L \<or> f l = a)"
     by blast
   then show "x \<notin> atm_of ` lits_of_l M"
     using ff3 ff2 ff1 a3 by (metis (no_types) Marked_Propagated_in_iff_in_lits_of_l)
@@ -2647,12 +2667,12 @@ next
     by (metis (no_types, lifting) set_mset_mono subsetCE)
 qed (auto dest!: in_diffD)
 
-definition "final_cdcl\<^sub>W_state (S:: 'st)
+definition "final_cdcl\<^sub>W_state (S :: 'st)
   \<longleftrightarrow> (trail S \<Turnstile>asm init_clss S
     \<or> ((\<forall>L \<in> set (trail S). \<not>is_marked L) \<and>
        (\<exists>C \<in># init_clss S. trail S \<Turnstile>as CNot C)))"
 
-definition "termination_cdcl\<^sub>W_state (S:: 'st)
+definition "termination_cdcl\<^sub>W_state (S :: 'st)
    \<longleftrightarrow> (trail S \<Turnstile>asm init_clss S
      \<or> ((\<forall>L \<in> atms_of_mm (init_clss S). L \<in> atm_of ` lits_of_l (trail S))
         \<and> (\<exists>C \<in># init_clss S. trail S \<Turnstile>as CNot C)))"
@@ -3312,7 +3332,7 @@ proof (intro allI impI)
           then have "cdcl\<^sub>W_cp\<^sup>+\<^sup>+ S U"
             by (metis full full_def rtranclpD)
           have "\<And>p pa. \<not> propagate p pa \<or> conflicting pa =
-            (None::'v clause option)"
+            (None :: 'v clause option)"
             by (auto elim: propagateE)
           then show ?thesis
             using f5 that tranclp_cdcl\<^sub>W_cp_propagate_with_conflict_or_not[OF \<open>cdcl\<^sub>W_cp\<^sup>+\<^sup>+ S U\<close>]
@@ -3400,7 +3420,7 @@ definition mark_is_false_with_level :: "'st \<Rightarrow> bool" where
   \<forall>D M1 M2 L.  M1 @ Propagated L D # M2 = trail S' \<longrightarrow>  D - {#L#} \<noteq> {#}
     \<longrightarrow> (\<exists>L. L \<in>#  D \<and> get_level (trail S') L = get_maximum_possible_level M1)"
 
-definition no_more_propagation_to_do:: "'st \<Rightarrow> bool" where
+definition no_more_propagation_to_do :: "'st \<Rightarrow> bool" where
 "no_more_propagation_to_do S \<equiv>
   \<forall>D M M' L. D + {#L#} \<in># clauses S \<longrightarrow> trail S = M' @ M \<longrightarrow> M \<Turnstile>as CNot D
     \<longrightarrow> undefined_lit M L \<longrightarrow> get_maximum_possible_level M < backtrack_lvl S
@@ -3887,7 +3907,7 @@ proof (induct rule: cdcl\<^sub>W_o_induct_lev2)
     have g_D: "get_maximum_level (Propagated L (mset_cls C) # M) (remove1_mset (-L) (mset_ccls D))
       = get_maximum_level M (remove1_mset (-L) (mset_ccls D))"
     proof -
-      have "\<forall>a f L. ((a::'v) \<in> f ` L) = (\<exists>l. (l::'v literal) \<in> L \<and> a = f l)"
+      have "\<forall>a f L. ((a::'v) \<in> f ` L) = (\<exists>l. (l :: 'v literal) \<in> L \<and> a = f l)"
         by blast
       then show ?thesis
         using get_maximum_level_skip_first[of L "remove1_mset (-L) (mset_ccls D)" "mset_cls C" M]
@@ -4303,7 +4323,7 @@ qed
 subsubsection \<open>No conflict with only variables of level less than backtrack level\<close>
 text \<open>This invariant is stronger than the previous argument in the sense that it is a property about
   all possible conflicts.\<close>
-definition "no_smaller_confl (S::'st) \<equiv>
+definition "no_smaller_confl (S ::'st) \<equiv>
   (\<forall>M K i M' D. M' @ Marked K i # M = trail S \<longrightarrow> D \<in># clauses S
     \<longrightarrow> \<not>M \<Turnstile>as CNot D)"
 
@@ -5147,7 +5167,7 @@ proof -
     using cdcl\<^sub>W_cp.conflict'[of ?S] conflict_is_full1_cdcl\<^sub>W_cp cdcl\<^sub>W_stgy.intros(1) by metis
   have "S' \<noteq> ?S"  using \<open>no_step cdcl\<^sub>W_stgy S'\<close> cdcl\<^sub>W_stgy by blast
 
-  then obtain St:: 'st where St: "cdcl\<^sub>W_stgy ?S St" and "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* St S'"
+  then obtain St :: 'st where St: "cdcl\<^sub>W_stgy ?S St" and "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* St S'"
     using plus_or_eq by (metis (no_types) \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ?S S'\<close> converse_rtranclpE)
   have st: "cdcl\<^sub>W\<^sup>*\<^sup>* ?S St"
     by (simp add: rtranclp_unfold \<open>cdcl\<^sub>W_stgy ?S St\<close> cdcl\<^sub>W_stgy_tranclp_cdcl\<^sub>W)

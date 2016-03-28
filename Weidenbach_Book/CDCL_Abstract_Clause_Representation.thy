@@ -16,7 +16,7 @@ text \<open>We will abstract the representation of clause and clauses via two lo
 
 locale raw_cls =
   fixes
-    mset_cls:: "'cls \<Rightarrow> 'v clause" and
+    mset_cls :: "'cls \<Rightarrow> 'v clause" and
     insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls"
   assumes
@@ -27,7 +27,7 @@ end
 
 locale raw_ccls_union =
   fixes
-    mset_cls:: "'cls \<Rightarrow> 'v clause" and
+    mset_cls :: "'cls \<Rightarrow> 'v clause" and
     union_cls :: "'cls \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls"
@@ -69,7 +69,7 @@ text \<open>Over the abstract clauses, we have the following properties:
 locale raw_clss =
   raw_cls mset_cls insert_cls remove_lit
   for
-    mset_cls:: "'cls \<Rightarrow> 'v clause" and
+    mset_cls :: "'cls \<Rightarrow> 'v clause" and
     insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" +
   fixes
