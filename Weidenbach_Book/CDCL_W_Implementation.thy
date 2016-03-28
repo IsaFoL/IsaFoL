@@ -252,7 +252,7 @@ proof (induction F S rule: reduce_trail_to.induct)
 qed
 
 text \<open>Definition an abstract type\<close>
-typedef 'v  cdcl\<^sub>W_state_inv =  "{S::'v cdcl\<^sub>W_state_inv_st. cdcl\<^sub>W_all_struct_inv S}"
+typedef 'v  cdcl\<^sub>W_state_inv = "{S::'v cdcl\<^sub>W_state_inv_st. cdcl\<^sub>W_all_struct_inv S}"
   morphisms rough_state_of state_of
 proof
   show "([],[], [], 0, None) \<in> {S. cdcl\<^sub>W_all_struct_inv S}"
@@ -1507,15 +1507,15 @@ lemma raw_init_clss_do_cp_step[simp]:
  by (cases S) (auto simp: do_cp_step_def do_propagate_step_def do_conflict_step_def
   split: option.splits)
 lemma raw_init_clss_do_cp_step'[simp]:
-  "raw_init_clss (rough_state_of (do_cp_step' S)) =  raw_init_clss (rough_state_of S)"
+  "raw_init_clss (rough_state_of (do_cp_step' S)) = raw_init_clss (rough_state_of S)"
   by (simp add: do_cp_step'_def)
 
 lemma raw_init_clss_rough_state_of_do_full1_cp_step[simp]:
   "raw_init_clss (rough_state_of (do_full1_cp_step S))
-  = raw_init_clss (rough_state_of S)"
+ = raw_init_clss (rough_state_of S)"
   apply (rule do_full1_cp_step.induct[of "\<lambda>S.
     raw_init_clss (rough_state_of (do_full1_cp_step S))
-  = raw_init_clss (rough_state_of S)"])
+ = raw_init_clss (rough_state_of S)"])
   by (metis (mono_tags, lifting) do_full1_cp_step.simps raw_init_clss_do_cp_step')
 
 lemma raw_init_clss_do_skip_def[simp]:

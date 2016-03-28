@@ -517,7 +517,7 @@ proof (induction rule: cdcl\<^sub>W_o_induct_lev2)
               unfolding M apply (auto simp add: rev_swap[symmetric])
                 by (metis (no_types, hide_lams) Nil_is_append_conv Suc_le_eq less_Suc_eq list.sel(1)
                   rev.simps(2) rev_rev_ident upt_Suc upt_rec)
-            have "get_level (trail y) L  = get_level (c @ [Marked Kh i]) L"
+            have "get_level (trail y) L = get_level (c @ [Marked Kh i]) L"
               using L_cKh LH unfolding M by simp
             have "get_level (c @ [Marked Kh i]) L \<ge> i"
               using L_cKh levL

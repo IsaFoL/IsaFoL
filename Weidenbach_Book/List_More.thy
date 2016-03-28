@@ -278,7 +278,7 @@ lemma "removeAll_cond P xs = filter (\<lambda>x. \<not>P x) xs"
 
 lemma mset_map_mset_removeAll_cond:
   "mset (map mset (removeAll_cond (\<lambda>b. mset b = mset a) C))
-    = removeAll_mset (mset a) (mset (map mset C))"
+ = removeAll_mset (mset a) (mset (map mset C))"
   by (induction C) (auto simp: ac_simps mset_less_eqI multiset_diff_union_assoc)
 
 text \<open>Take from @{file "../lib/Multiset_More.thy"}, but named:\<close>

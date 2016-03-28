@@ -1290,7 +1290,7 @@ lemma push_conn_inside_full_propo_rew_step:
     "no_T_F_except_top_level \<phi>" and
     "simple_not \<phi>" and
     "c = CAnd \<or> c = COr" and
-    "c'  = CAnd \<or> c' = COr"
+    "c' = CAnd \<or> c' = COr"
   shows "c_in_c'_only c c' \<psi>"
   using c_in_c'_symb_rew assms full_propo_rew_step_subformula by blast
 
@@ -1901,8 +1901,8 @@ proof (induct rule: propo_rew_step.induct)
   assume a1: "no_T_F \<phi>'"
   assume a2: "elim_equiv \<phi>' \<psi>'"
   have "\<forall>x0 x1. (\<not> elim_equiv (x1 :: 'v propo) x0 \<or> (\<exists>v2 v3 v4 v5 v6 v7. x1 = FEq v2 v3
-    \<and> x0 =  FAnd (FImp v4 v5) (FImp v6 v7) \<and> v2 = v4 \<and> v4 = v7 \<and> v3 = v5 \<and> v3 = v6))
-      = (\<not> elim_equiv x1 x0 \<or> (\<exists>v2 v3 v4 v5 v6 v7. x1 = FEq v2 v3
+    \<and> x0 = FAnd (FImp v4 v5) (FImp v6 v7) \<and> v2 = v4 \<and> v4 = v7 \<and> v3 = v5 \<and> v3 = v6))
+ = (\<not> elim_equiv x1 x0 \<or> (\<exists>v2 v3 v4 v5 v6 v7. x1 = FEq v2 v3
     \<and> x0 = FAnd (FImp v4 v5) (FImp v6 v7) \<and> v2 = v4 \<and> v4 = v7 \<and> v3 = v5 \<and> v3 = v6))"
     by meson
   then have "\<forall>p pa. \<not> elim_equiv (p :: 'v propo) pa \<or> (\<exists>pb pc pd pe pf pg. p = FEq pb pc

@@ -25,6 +25,7 @@ lemma marked_lit_list_induct[case_names nil marked proped]:
   using assms apply (induction xs, simp)
   by (rename_tac a xs, case_tac a) auto
 
+(* TODO elim rule, instead of dest rule. *)
 lemma is_marked_ex_Marked:
   "is_marked L \<Longrightarrow> \<exists>K lvl. L = Marked K lvl"
   by (cases L) auto
@@ -416,13 +417,13 @@ lemma in_get_all_marked_decomposition_in_get_all_marked_decomposition_prepend:
 lemma get_all_marked_decomposition_remove_unmarked_length:
   assumes "\<forall>l \<in> set M'. \<not>is_marked l"
   shows "length (get_all_marked_decomposition (M' @ M''))
-    = length (get_all_marked_decomposition M'')"
+ = length (get_all_marked_decomposition M'')"
   using assms by (induct M' arbitrary: M'' rule: marked_lit_list_induct) auto
 
 lemma get_all_marked_decomposition_not_is_marked_length:
   assumes "\<forall>l \<in> set M'. \<not>is_marked l"
   shows "1 + length (get_all_marked_decomposition (Propagated (-L) P # M))
-    = length (get_all_marked_decomposition (M' @ Marked L l # M))"
+ = length (get_all_marked_decomposition (M' @ Marked L l # M))"
  using assms get_all_marked_decomposition_remove_unmarked_length by fastforce
 
 lemma get_all_marked_decomposition_last_choice:
@@ -435,7 +436,7 @@ lemma get_all_marked_decomposition_last_choice:
 lemma get_all_marked_decomposition_except_last_choice_equal:
   assumes "\<forall>l \<in> set M'. \<not>is_marked l"
   shows "tl (get_all_marked_decomposition (Propagated (-L) P # M))
-    = tl (tl (get_all_marked_decomposition (M' @ Marked L l # M)))"
+ = tl (tl (get_all_marked_decomposition (M' @ Marked L l # M)))"
   using assms by (induct M'  rule: marked_lit_list_induct) auto
 
 lemma get_all_marked_decomposition_hd_hd:
@@ -885,7 +886,7 @@ lemma no_dup_rev[simp]:
 
 lemma no_dup_length_eq_card_atm_of_lits_of_l:
   assumes "no_dup M"
-  shows "length M  = card (atm_of ` lits_of_l M)"
+  shows "length M = card (atm_of ` lits_of_l M)"
   using assms unfolding lits_of_def by (induct M) (auto simp add: image_image)
 
 lemma distinct_consistent_interp:

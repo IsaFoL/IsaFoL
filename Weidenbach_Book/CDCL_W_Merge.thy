@@ -169,7 +169,7 @@ next
     E: "mset_ccls E \<noteq> {#}" and
     V: "V \<sim> tl_trail T"
     using skip by (elim skipE) metis
-  let ?M =  "Propagated L' C' # trail V"
+  let ?M = "Propagated L' C' # trail V"
   have tr_M: "trail T = ?M"
     using tr V by auto
   have MT: "M = tl (trail T)" and MV: "M = trail V"
@@ -312,7 +312,7 @@ proof -
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
   ultimately have "\<forall>L\<in>#mset_ccls D. atm_of L \<notin> atm_of ` lits_of_l MS"
     unfolding M unfolding lits_of_def by auto
-  then have H: "\<And>L. L\<in>#mset_ccls D \<Longrightarrow> get_level (trail S) L  = get_level M\<^sub>T L"
+  then have H: "\<And>L. L\<in>#mset_ccls D \<Longrightarrow> get_level (trail S) L = get_level M\<^sub>T L"
     unfolding M by (fastforce simp: lits_of_def)
   have [simp]: "get_maximum_level (trail S) (mset_ccls D) = get_maximum_level M\<^sub>T (mset_ccls D)"
     using \<open>M\<^sub>T \<Turnstile>as CNot (mset_ccls D)\<close>  M nm by (metis true_annots_CNot_all_atms_defined
@@ -477,7 +477,7 @@ proof (rule ccontr)
 
   obtain L E D where
     U: "trail U \<noteq> []" and
-    tr_U: "hd_raw_trail U  = Propagated L E" and
+    tr_U: "hd_raw_trail U = Propagated L E" and
     LE: "L \<in># mset_cls E" and
     raw_U: "raw_conflicting U = Some D" and
     LD: "-L \<in># mset_ccls D" and

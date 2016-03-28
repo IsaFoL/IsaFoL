@@ -649,7 +649,7 @@ text \<open>@{term "get_maximum_level (Propagated L (C + {#L#}) # M) D = k \<or>
 
 inductive resolve :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 resolve_rule: "trail S \<noteq> [] \<Longrightarrow>
-  hd_raw_trail S  = Propagated L E \<Longrightarrow>
+  hd_raw_trail S = Propagated L E \<Longrightarrow>
   L \<in># mset_cls E \<Longrightarrow>
   raw_conflicting S = Some D' \<Longrightarrow>
   -L \<in># mset_ccls D' \<Longrightarrow>
@@ -788,7 +788,7 @@ lemma cdcl\<^sub>W_all_induct[consumes 1, case_names propagate conflict forget r
     resolveH: "\<And>L E M D T.
       trail S = Propagated L (mset_cls E) # M \<Longrightarrow>
       L \<in># mset_cls E \<Longrightarrow>
-      hd_raw_trail S  = Propagated L E \<Longrightarrow>
+      hd_raw_trail S = Propagated L E \<Longrightarrow>
       raw_conflicting S = Some D \<Longrightarrow>
       -L \<in># mset_ccls D \<Longrightarrow>
       get_maximum_level (trail S) (mset_ccls (remove_clit (-L) D)) = backtrack_lvl S \<Longrightarrow>
@@ -858,7 +858,7 @@ lemma cdcl\<^sub>W_o_induct[consumes 1, case_names decide skip resolve backtrack
     resolveH: "\<And>L E M D T.
       trail S = Propagated L (mset_cls E) # M \<Longrightarrow>
       L \<in># mset_cls E \<Longrightarrow>
-      hd_raw_trail S  = Propagated L E \<Longrightarrow>
+      hd_raw_trail S = Propagated L E \<Longrightarrow>
       raw_conflicting S = Some D \<Longrightarrow>
       -L \<in># mset_ccls D \<Longrightarrow>
       get_maximum_level (trail S) (mset_ccls (remove_clit (-L) D)) = backtrack_lvl S \<Longrightarrow>
@@ -1238,7 +1238,7 @@ lemma cdcl\<^sub>W_all_induct_lev_full:
     resolveH: "\<And>L E M D T.
       trail S = Propagated L (mset_cls E) # M \<Longrightarrow>
       L \<in># mset_cls E \<Longrightarrow>
-      hd_raw_trail S  = Propagated L E \<Longrightarrow>
+      hd_raw_trail S = Propagated L E \<Longrightarrow>
       raw_conflicting S = Some D \<Longrightarrow>
       -L \<in># mset_ccls D \<Longrightarrow>
       get_maximum_level (trail S) (mset_ccls (remove_clit (-L) D)) = backtrack_lvl S \<Longrightarrow>
@@ -1322,7 +1322,7 @@ lemma cdcl\<^sub>W_o_induct_lev[consumes 1, case_names M_lev decide skip resolve
     resolveH: "\<And>L E M D T.
       trail S = Propagated L (mset_cls E) # M \<Longrightarrow>
       L \<in># mset_cls E \<Longrightarrow>
-      hd_raw_trail S  = Propagated L E \<Longrightarrow>
+      hd_raw_trail S = Propagated L E \<Longrightarrow>
       raw_conflicting S = Some D \<Longrightarrow>
       -L \<in># mset_ccls D \<Longrightarrow>
       get_maximum_level (trail S) (mset_ccls (remove_clit (-L) D)) = backtrack_lvl S \<Longrightarrow>
@@ -1530,7 +1530,7 @@ lemma resolve_state_eq_compatible:
 proof -
   obtain E D L where
     tr: "trail S \<noteq> []" and
-    hd: "hd_raw_trail S  = Propagated L E" and
+    hd: "hd_raw_trail S = Propagated L E" and
     L: "L \<in># mset_cls E" and
     raw: "raw_conflicting S = Some D" and
     LD: "-L \<in># mset_ccls D" and
@@ -2527,7 +2527,7 @@ lemma all_invariant_S0_cdcl\<^sub>W:
     "\<forall>T. conflicting (init_state N) = Some T \<longrightarrow> (trail (init_state N))\<Turnstile>as CNot T" and
     "no_strange_atm (init_state N)" and
     "consistent_interp (lits_of_l (trail (init_state N)))" and
-    "\<forall>L mark a b. a @ Propagated L mark # b =  trail (init_state N) \<longrightarrow>
+    "\<forall>L mark a b. a @ Propagated L mark # b = trail (init_state N) \<longrightarrow>
      (b \<Turnstile>as CNot ( mark - {#L#}) \<and> L \<in>#  mark)" and
      "distinct_cdcl\<^sub>W_state (init_state N)"
   using assms by auto

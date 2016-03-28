@@ -11,7 +11,7 @@ locale dpll_with_backtrack
 begin
 inductive backtrack :: "('v, unit, unit) marked_lit list \<times> 'v clauses
   \<Rightarrow> ('v, unit, unit) marked_lit list \<times> 'v clauses \<Rightarrow> bool" where
-"backtrack_split (fst S)  = (M', L # M) \<Longrightarrow> is_marked L \<Longrightarrow> D \<in># snd S
+"backtrack_split (fst S) = (M', L # M) \<Longrightarrow> is_marked L \<Longrightarrow> D \<in># snd S
   \<Longrightarrow> fst S \<Turnstile>as CNot D \<Longrightarrow> backtrack S (Propagated (- (lit_of L)) () # M, snd S)"
 
 inductive_cases backtrackE[elim]: "backtrack (M, N) (M', N')"
@@ -55,7 +55,7 @@ proof -
   moreover
     have "set_mset N \<union> ?C' \<Turnstile>ps {{#}}"
       proof -
-        have A: "set_mset N \<union> ?C' \<union> unmark_l M  =
+        have A: "set_mset N \<union> ?C' \<union> unmark_l M =
           set_mset  N \<union> unmark_l M"
           unfolding M L by auto
         have "set_mset  N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}

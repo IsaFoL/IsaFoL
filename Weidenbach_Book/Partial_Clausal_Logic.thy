@@ -75,7 +75,7 @@ lemma atms_of_mmltiset[simp]:
   by (induct a) auto
 
 lemma atms_of_ms_mset_unfold:
-  "atms_of_ms (mset ` b) =  (\<Union>x\<in>b. atm_of ` set x)"
+  "atms_of_ms (mset ` b) = (\<Union>x\<in>b. atm_of ` set x)"
   unfolding atms_of_ms_def by simp
 
 definition atms_of_s :: "'a literal set \<Rightarrow> 'a set" where
@@ -912,7 +912,7 @@ lemma subsumption_total_over_m:
 
 lemma atms_of_replicate_mset_replicate_mset_uminus[simp]:
   "atms_of (D - replicate_mset (count D L) L  - replicate_mset (count D (-L)) (-L))
-    = atms_of D - {atm_of L}"
+ = atms_of D - {atm_of L}"
   by (fastforce simp: atm_of_eq_atm_of atms_of_def)
 
 lemma subsumption_chained:

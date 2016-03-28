@@ -674,7 +674,7 @@ definition watch_nat :: "'v twl_state \<Rightarrow> 'v literal list \<Rightarrow
    (let
       C' = remdups C;
       neg_not_assigned = filter (\<lambda>L. -L \<notin> lits_of_l (raw_trail S)) C';
-      neg_assigned_sorted_by_trail =  filter (\<lambda>L. L \<in> set C) (map (\<lambda>L. -lit_of L) (raw_trail S));
+      neg_assigned_sorted_by_trail = filter (\<lambda>L. L \<in> set C) (map (\<lambda>L. -lit_of L) (raw_trail S));
       W = take 2 (neg_not_assigned @ neg_assigned_sorted_by_trail);
       UW = foldr remove1 W C
     in TWL_Clause W UW)"

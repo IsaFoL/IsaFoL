@@ -145,7 +145,7 @@ fun toS :: "cdcl\<^sub>W_state_inv_st \<Rightarrow> nat cdcl\<^sub>W_state" wher
 "toS (M, N, U, k, C) = (map convert M, mset (map mset N),  mset (map mset U), k, convertC C)"
 
 text \<open>Definition an abstract type\<close>
-typedef cdcl\<^sub>W_state_inv =  "{S::cdcl\<^sub>W_state_inv_st. cdcl\<^sub>W_all_struct_inv (toS S)}"
+typedef cdcl\<^sub>W_state_inv = "{S::cdcl\<^sub>W_state_inv_st. cdcl\<^sub>W_all_struct_inv (toS S)}"
   morphisms rough_state_of state_of
 proof
   show "([],[], [], 0, None) \<in> {S. cdcl\<^sub>W_all_struct_inv (toS S)}"

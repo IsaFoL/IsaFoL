@@ -57,7 +57,7 @@ proof -
   { assume unit: "find_first_unit_clause N Ms = None"
     assume exC: "\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C)"
     then obtain C where C: "C \<in> set N" and Ms: "Ms \<Turnstile>as CNot (mset C)" by auto
-    then obtain L M M' where bt: "backtrack_split Ms  = (M', L # M)"
+    then obtain L M M' where bt: "backtrack_split Ms = (M', L # M)"
       using step exC neq unfolding DPLL_step_def prod.case unit
       by (cases "backtrack_split Ms", rename_tac b, case_tac b) auto
     hence "is_marked L" using backtrack_split_snd_hd_marked[of Ms] by auto
@@ -326,7 +326,7 @@ proof (induct arbitrary: Ms' N' rule: DPLL_ci.induct)
     moreover have "DPLL_ci Ms N = DPLL_ci S\<^sub>1 N"
       proof -
         have "(case (S\<^sub>1, N) of (ms, lss) \<Rightarrow> if (ms, lss) = (Ms, N) then (Ms, N) else DPLL_ci ms N)
-          = DPLL_ci Ms N"
+ = DPLL_ci Ms N"
           using S DPLL_ci.simps[of Ms N] calculation inv by presburger
         hence "(if (S\<^sub>1, N) = (Ms, N) then (Ms, N) else DPLL_ci S\<^sub>1 N) = DPLL_ci Ms N"
           by fastforce
@@ -465,8 +465,8 @@ lemma DPLL_tot_final_state:
   assumes "DPLL_tot S = S"
   shows "conclusive_dpll\<^sub>W_state (toS' (rough_state_of S))"
 proof -
-  have "DPLL_step' S =  S" using assms[symmetric] DOPLL_step'_DPLL_tot by metis
-  hence "DPLL_step (rough_state_of S) =  (rough_state_of S)"
+  have "DPLL_step' S = S" using assms[symmetric] DOPLL_step'_DPLL_tot by metis
+  hence "DPLL_step (rough_state_of S) = (rough_state_of S)"
     unfolding DPLL_step'_def using DPLL_step_dpll\<^sub>W_conc_inv rough_state_of_inverse
     by (metis rough_state_of_DPLL_step'_DPLL_step)
   thus ?thesis
@@ -486,7 +486,7 @@ proof (induction arbitrary: S' rule: DPLL_tot.induct)
   moreover {
     assume S: "?x \<noteq> S"
     have ?case
-      apply (cases "DPLL_step' S  = S")
+      apply (cases "DPLL_step' S = S")
         using S apply blast
       by (smt "1.IH" "1.prems" DPLL_step_is_a_dpll\<^sub>W_step DPLL_tot.simps case_prodE2
         rough_state_of_DPLL_step'_DPLL_step rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl
@@ -503,7 +503,7 @@ lemma rough_state_of_rough_state_of_nil[simp]:
 text \<open>Theorem of correctness\<close>
 lemma DPLL_tot_correct:
   assumes "rough_state_of (DPLL_tot (state_of (([], N)))) = (M, N')"
-  and "(M', N'') =  toS' (M, N')"
+  and "(M', N'') = toS' (M, N')"
   shows "M' \<Turnstile>asm N'' \<longleftrightarrow> satisfiable (set_mset N'')"
 proof -
   have "dpll\<^sub>W\<^sup>*\<^sup>* (toS' ([], N)) (toS' (M, N'))" using DPLL_tot_star[OF assms(1)] by auto

@@ -73,7 +73,7 @@ lemma connective_cases_arity_2[case_names nullary unary binary]:
 text \<open>Our previous definition is not necessary correct (connective and list of arguments) , so we
   define an inductive predicate.\<close>
 inductive wf_conn :: "'v connective \<Rightarrow> 'v propo list \<Rightarrow> bool" for c :: "'v connective" where
-wf_conn_nullary[simp]: "(c = CT \<or> c = CF \<or> c  = CVar v) \<Longrightarrow> wf_conn c []" |
+wf_conn_nullary[simp]: "(c = CT \<or> c = CF \<or> c = CVar v) \<Longrightarrow> wf_conn c []" |
 wf_conn_unary[simp]: "c = CNot \<Longrightarrow> wf_conn c [\<psi>]" |
 wf_conn_binary[simp]: "c \<in> binary_connectives \<Longrightarrow> wf_conn c (\<psi> # \<psi>' # [])"
 thm wf_conn.induct
@@ -273,7 +273,7 @@ lemma subformula_trans:
 lemma subformula_leaf:
   fixes \<phi> \<psi> :: "'v propo"
   assumes incl: "\<phi> \<preceq>  \<psi>"
-  and simple: "\<psi> = FT \<or> \<psi> = FF \<or> \<psi>  = FVar x"
+  and simple: "\<psi> = FT \<or> \<psi> = FF \<or> \<psi> = FVar x"
   shows "\<phi> = \<psi>"
   using incl simple
   by (induct rule: subformula.induct, auto simp: wf_conn_list)
@@ -440,7 +440,7 @@ next
   have "{f p |p. p \<in> insert x s} = insert (f x) {f p |p. p\<in> s}" by auto
   then have "card {f p |p. p \<in> insert x s} = 1 + card {f p |p. p \<in> s}"
     using finite card_insert_disjoint f' notin' by auto
-  moreover have "\<dots> =  card (insert x s)" using notin f IH by auto
+  moreover have "\<dots> = card (insert x s)" using notin f IH by auto
   finally show "card {f p |p. p \<in> insert x s} = card (insert x s)" .
 qed
 
@@ -481,7 +481,7 @@ proof -
   and IH2: "card (vars_of_prop \<phi>2) \<le> card (pos \<phi>2)"
   let ?L = "{L # p |p. p \<in> pos \<phi>1}"
   let ?R = "{R # p |p. p \<in> pos \<phi>2}"
-  have "card (?L \<union> ?R) =  card ?L +  card ?R"
+  have "card (?L \<union> ?R) = card ?L +  card ?R"
     using card_seperate finite_pos by blast
   moreover have "\<dots> = card (pos \<phi>1) + card (pos \<phi>2)"
     by (simp add: cons_inject finite_inj_comp_set finite_pos)

@@ -20,7 +20,7 @@ propagate: "C + {#L#} \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as 
   \<Longrightarrow> dpll\<^sub>W S (Propagated L () # trail S, clauses S)" |
 decided: "undefined_lit (trail S) L \<Longrightarrow> atm_of L \<in> atms_of_mm (clauses S)
   \<Longrightarrow> dpll\<^sub>W S (Marked L () # trail S, clauses S)" |
-backtrack: "backtrack_split (trail S)  = (M', L # M) \<Longrightarrow> is_marked L \<Longrightarrow> D \<in># clauses S
+backtrack: "backtrack_split (trail S) = (M', L # M) \<Longrightarrow> is_marked L \<Longrightarrow> D \<in># clauses S
   \<Longrightarrow> trail S \<Turnstile>as CNot D \<Longrightarrow> dpll\<^sub>W S (Propagated (- (lit_of L)) () # M, clauses S)"
 
 subsection \<open>Invariants\<close>
