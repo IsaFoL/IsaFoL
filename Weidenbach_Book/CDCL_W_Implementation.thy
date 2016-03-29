@@ -1756,7 +1756,7 @@ text \<open>The SML code is skipped in the documentation, but stays to ensure th
  exported code is working. The only difference between the generated code and the one used here is
  the export of the constructor ConI.\<close>
 
-(* < *)
+(*<*)
 fun gene where
 "gene 0 = [[Pos 0], [Neg 0]]" |
 "gene (Suc n) = map (op # (Pos (Suc n))) (gene n) @ map (op # (Neg (Suc n))) (gene n)"
@@ -2349,6 +2349,6 @@ let
   f
 end
 \<close>
-(* > *)
+(*>*)
 
 end
