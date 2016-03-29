@@ -175,8 +175,7 @@ lemma reduce_trail_to_map[simp]:
   by (rule ext) (auto intro: reduce_trail_to_length)
 
 subsection \<open>CDCL Implementation\<close>
-subsubsection \<open>Definition of the rules\<close>
-paragraph \<open>Types\<close>
+subsubsection \<open>Types and Additional Lemmas\<close>
 lemma true_clss_remdups[simp]:
   "I \<Turnstile>s (mset \<circ> remdups) ` N \<longleftrightarrow>  I \<Turnstile>s mset ` N"
   by (simp add: true_clss_def)
@@ -1751,7 +1750,8 @@ paragraph \<open>The Code\<close>
 text \<open>The SML code is skipped in the documentation, but stays to ensure that some version of the
  exported code is working. The only difference between the generated code and the one used here is
  the export of the constructor ConI.\<close>
-(*<*)
+
+(* < *)
 fun gene where
 "gene 0 = [[Pos 0], [Neg 0]]" |
 "gene (Suc n) = map (op # (Pos (Suc n))) (gene n) @ map (op # (Neg (Suc n))) (gene n)"
@@ -2406,7 +2406,6 @@ let
   f
 end
 \<close>
-term removeAll 
-term filter
-(*>*)
+(* > *)
+
 end

@@ -2,12 +2,21 @@
     Author: Mathias Fleury <mathias.fleury@mpi-inf.mpg.de>
 *)
 
-section \<open>Implementation for 2 Watched-Literals\<close>
+subsection \<open>Implementation for 2 Watched-Literals\<close>
 
 theory CDCL_Two_Watched_Literals_Implementation
 imports CDCL_Two_Watched_Literals_Invariant
 begin
-text \<open>The general idea is the following:
+text \<open>The difference between an implementation and the core described in the previous sections are
+  the following:
+  \<^item> the candidates are cached while updating the datastructure.
+  \<^item> instead of updating with respect to the trail only, we update with respect to the trail \<^emph>\<open>and\<close>
+  the candidates (referred as propagate queue later).\<close>
+text \<open>The latter change means that we do not do the propagation as single steps where the state
+  well-founded as described in the previous paragraph, but we do all the propagation and identify
+  the propagation \<^emph>\<open>before\<close> the invariants folds again.
+
+  The general idea is the following:
   \<^enum> Build a ``propagate'' queue and a conflict clause.
   \<^enum> While updating the data-structure: if you find a conflicting clause, update the conflict
   clause. Otherwise prepend the propagated clause.
@@ -66,7 +75,7 @@ notation Quickcheck_Exhaustive.orelse (infixr "orelse" 55)
 text \<open>Once a conflict has been found we do not need to add element to the trail of the list.\<close>
 fun cons_if_no_conflict where
 "cons_if_no_conflict K C Cs Ks =
-  (if conflict Ks = None 
+  (if conflict Ks = None
   then (C # Cs, Prop_Or_Conf (K # prop_queue Ks) (conflict Ks))
   else (C # Cs, Prop_Or_Conf (prop_queue Ks) (conflict Ks)))"
 
@@ -156,7 +165,7 @@ lemma wf_rewatch_nat_cand_single_clause_cases[consumes 1, case_names wf lit_noti
     wf: "wf_twl_cls M C" and
     lit_notin: "-L \<notin> set (watched C) \<Longrightarrow>
       rewatch_nat_cand_single_clause L M C (Cs, Ks) = (C # Cs, Ks) \<Longrightarrow>
-      P"             
+      P"
       and
     single_lit_watched: "
       -L \<in> set (watched C) \<Longrightarrow>
@@ -164,7 +173,7 @@ lemma wf_rewatch_nat_cand_single_clause_cases[consumes 1, case_names wf lit_noti
         - L' \<notin> insert L (lits_of_l (M @ get_trail_of_cand Ks))) (unwatched C) = [] \<Longrightarrow>
       watched C = [-L] \<Longrightarrow>
       set (unwatched C) \<subseteq> {-L} \<Longrightarrow>
-      rewatch_nat_cand_single_clause L M C (Cs, Ks) = 
+      rewatch_nat_cand_single_clause L M C (Cs, Ks) =
         (C # Cs, Prop_Or_Conf (prop_queue Ks) (conflict Ks orelse Some C)) \<Longrightarrow>
       P"
       and
@@ -182,7 +191,7 @@ lemma wf_rewatch_nat_cand_single_clause_cases[consumes 1, case_names wf lit_noti
         - L' \<notin> insert L (lits_of_l (M @ get_trail_of_cand Ks))) (unwatched C) = [] \<Longrightarrow>
       set (watched C) = {-L, L'} \<Longrightarrow>
       -L' \<in> insert L (lits_of_l (get_trail_of_cand Ks @ M)) \<Longrightarrow>
-      rewatch_nat_cand_single_clause L M C (Cs, Ks) = 
+      rewatch_nat_cand_single_clause L M C (Cs, Ks) =
         (C # Cs, Prop_Or_Conf (prop_queue Ks) (conflict Ks orelse Some C)) \<Longrightarrow>
       P"
       and
@@ -287,7 +296,7 @@ lemma rewatch_nat_cand_single_clause_hd:
 lemma rewatch_nat_cand_single_clause_clauses:
   "clauses_of_l (map raw_clause (fst (rewatch_nat_cand_clss L M (N, Ks)))) =
       clauses_of_l (map raw_clause N)"
-  by (induction N) (simp_all add: rewatch_nat_cand_clss.simps 
+  by (induction N) (simp_all add: rewatch_nat_cand_clss.simps
     rewatch_nat_cand_single_clause_hd[simplified])
 
 lemma "twl.clauses (twl_state (rewatch_nat_cand L S)) = twl.clauses (twl_state S)"
@@ -301,18 +310,18 @@ proof -
   obtain V K'' where
     V: "rewatch_nat_cand_clss L (raw_trail T) (raw_learned_clss T, K') = (V, K'')"
     (is "?H = _") by (cases ?H)
-    
-  have "mset (map (\<lambda>x. mset (raw_clause x)) U) = mset (map (\<lambda>x. mset (raw_clause x)) (raw_init_clss T))"   
-    using rewatch_nat_cand_single_clause_clauses[of L "raw_trail T" "raw_init_clss T" 
+
+  have "mset (map (\<lambda>x. mset (raw_clause x)) U) = mset (map (\<lambda>x. mset (raw_clause x)) (raw_init_clss T))"
+    using rewatch_nat_cand_single_clause_clauses[of L "raw_trail T" "raw_init_clss T"
       "Ks"] by (auto simp: comp_def U)
-  moreover have "mset (map (\<lambda>x. mset (raw_clause x)) V) = mset (map (\<lambda>x. mset (raw_clause x)) 
-  (raw_learned_clss T))"  
-    using rewatch_nat_cand_single_clause_clauses[of L "raw_trail T" "raw_learned_clss T" 
+  moreover have "mset (map (\<lambda>x. mset (raw_clause x)) V) = mset (map (\<lambda>x. mset (raw_clause x))
+  (raw_learned_clss T))"
+    using rewatch_nat_cand_single_clause_clauses[of L "raw_trail T" "raw_learned_clss T"
       "K'"] by (auto simp: comp_def V)
   ultimately show ?thesis  unfolding S
     by (auto simp: comp_def twl.raw_clauses_def U V)
 qed
-lemma 
+lemma
   "\<mu>TWL
     (raw_cons_trail_pq E
       (case rewatch_nat_cand_clss L M (N, Prop_Or_Conf l D) of
@@ -337,11 +346,11 @@ function do_propagate_or_conflict_step :: "'a twl_state_cands \<Rightarrow> 'a t
   (if trail S \<Turnstile>as CNot (mset (raw_clause D))
   then update_conflicting_pq (Some (raw_clause D)) (TWL_State_Cand S (Prop_Or_Conf l None))
   else do_propagate_or_conflict_step
-    (raw_cons_trail_pq (Propagated L C') 
+    (raw_cons_trail_pq (Propagated L C')
       (rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l (Some D))))))" |
 "do_propagate_or_conflict_step (TWL_State_Cand S (Prop_Or_Conf (l @ [(L, C')]) None)) =
   do_propagate_or_conflict_step
-    (raw_cons_trail_pq (Propagated L C') 
+    (raw_cons_trail_pq (Propagated L C')
       (rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l None))))"
   apply (rename_tac P x)
   apply (case_tac x, case_tac "cand x"; case_tac "conflict (cand x)";
@@ -480,7 +489,7 @@ proof -
         using wf unfolding S_def by simp
     qed
 qed
-(* 
+(*
 lemma wf_rewatch_nat_cand_single_clause:
   fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) marked_lit list" and
     L :: "('v, nat, 'v twl_clause) marked_lit" and Cs :: "'v twl_clause list" and

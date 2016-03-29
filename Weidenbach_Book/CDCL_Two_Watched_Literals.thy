@@ -8,10 +8,20 @@ section \<open>2-Watched-Literal\<close>
 theory CDCL_Two_Watched_Literals
 imports CDCL_WNOT (* Have to decide which imports are the best *)
 begin
-text \<open>We will directly on the two-watched literals datastructure with lists: it could be also
+text \<open>First we define here the core of the two-watched literal datastructure:
+  \<^enum> A clause is composed of (at most) two watched literals.
+  \<^enum> It is sufficient to find the candidates for propagation and conflict from the clauses such that
+  the new literal is watched.\<close>
+text \<open>
+  While this it the principle behind the two-watched literals, an implementation have to remember
+  the candidates that have been found so far while updating the datstructure.
+
+  We will directly on the two-watched literals datastructure with lists: it could be also
   seen as a state over some abstract clause representation we would later refine as lists. However,
   as we need a way to select element from a clause, working on lists is better.\<close>
-subsection \<open>Datastructure and Access Functions\<close>
+subsection \<open>Essence of 2-WL\<close>
+subsubsection \<open>Datastructure and Access Functions\<close>
+
 text \<open>Only the 2-watched literals have to be verified here: the backtrack level and the trail that
   appear in the state are not related to the 2-watched algoritm.\<close>
 
@@ -56,7 +66,7 @@ interpretation raw_cls
     mset_map_mset_remove1_cond ex_mset raw_clause_def
     simp del: )
 
-lemma XXX:
+lemma mset_map_clause_remove1_cond:
   "mset (map (\<lambda>x. mset (unwatched x) + mset (watched x))
     (remove1_cond (\<lambda>D. mset (raw_clause D) = mset (raw_clause a)) Cs)) =
    remove1_mset (mset (raw_clause a)) (mset (map (\<lambda>x. mset (raw_clause x)) Cs))"
@@ -72,7 +82,7 @@ interpretation raw_clss
   "\<lambda>C. clauses_of_l (map raw_clause C)" "op @"
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. mset (raw_clause D) = mset (raw_clause C))"
   apply (unfold_locales)
-  using XXX by (auto simp:hd_map comp_def map_tl ac_simps raw_clause_def
+  using mset_map_clause_remove1_cond by (auto simp:hd_map comp_def map_tl ac_simps raw_clause_def
     union_mset_list mset_map_mset_remove1_cond ex_mset
     simp del: )
 
@@ -132,7 +142,7 @@ lemma index_nth:
   "a \<in> set l \<Longrightarrow> l ! (index l a) = a"
   by (induction l) auto
 
-subsection \<open>Invariants\<close>
+subsubsection \<open>Invariants\<close>
 
 text \<open>We need the following property about updates: if there is a literal @{term L} with
   @{term "-L"} in the trail, and @{term L} is not  watched, then it stays unwatched; i.e., while
@@ -579,7 +589,7 @@ abbreviation update_conflicting where
   "update_conflicting C S \<equiv>
     TWL_State (raw_trail S) (raw_init_clss S) (raw_learned_clss S) (backtrack_lvl S) C"
 
-subsection \<open>Abstract 2-WL\<close>
+subsubsection \<open>Abstract 2-WL\<close>
 
 definition tl_trail where
   "tl_trail S =
@@ -667,7 +677,7 @@ definition restart' where
 
 end
 
-subsection \<open>Instanciation of the previous locale\<close>
+subsubsection \<open>Instanciation of the previous locale\<close>
 
 definition watch_nat :: "'v twl_state \<Rightarrow> 'v literal list \<Rightarrow> 'v twl_clause" where
   "watch_nat S C =

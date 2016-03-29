@@ -2,19 +2,21 @@
     Author: Mathias Fleury <mathias.fleury@mpi-inf.mpg.de>
 *)
 
-section \<open>Invariants for 2 Watched-Literals\<close>
+subsection \<open>Two Watched-Literals with invariant\<close>
 
 theory CDCL_Two_Watched_Literals_Invariant
 imports CDCL_Two_Watched_Literals DPLL_CDCL_W_Implementation
 begin
 
-subsection \<open>Interpretation for @{term conflict_driven_clause_learning\<^sub>W.cdcl\<^sub>W}\<close>
+subsubsection \<open>Interpretation for @{term conflict_driven_clause_learning\<^sub>W.cdcl\<^sub>W}\<close>
 
-text \<open>We define here the 2-WL with the invariant and show the role of the candidates.\<close>
+text \<open>We define here the 2-WL with the invariant of well-foundedness and show the role of the
+  candidates by defining an equivalent CDCL procedure using the candidates given by the
+  datastructure.\<close>
 context abstract_twl
 begin
 
-subsubsection \<open>Direct Interpretation\<close>
+paragraph \<open>Direct Interpretation\<close>
 lemma mset_map_removeAll_cond:
   "mset (map (\<lambda>x. mset (raw_clause x))
     (removeAll_cond (\<lambda>D. mset (raw_clause D) = mset (raw_clause C)) N))
@@ -75,7 +77,7 @@ interpretation rough_cdcl: conflict_driven_clause_learning\<^sub>W
 
 declare local.rough_cdcl.mset_ccls_ccls_of_cls[simp del]
 
-subsubsection \<open>Opaque Type with Invariant\<close>
+paragraph \<open>Opaque Type with Invariant\<close>
 
 declare rough_cdcl.state_simp[simp del]
 
@@ -282,6 +284,7 @@ declare wf_twl.state_simp[simp del]
 text \<open>To avoid ambiguities:\<close>
 no_notation state_eq_twl (infix "\<sim>" 51)
 
+paragraph \<open>Alternative Definition of CDCL using the candidates of 2-WL\<close>
 inductive propagate_twl :: "'v wf_twl \<Rightarrow> 'v wf_twl \<Rightarrow> bool" where
 propagate_twl_rule: "(L, C) \<in> candidates_propagate_twl S \<Longrightarrow>
   S' \<sim> cons_trail_twl (Propagated L C) S \<Longrightarrow>
@@ -359,8 +362,8 @@ next
       apply (simp add: distinct_mset_remove1_All true_annots_true_cls)
      using undef apply simp
     using T undef by (smt wf_twl.backtrack_lvl_cons_trail confl wf_twl.init_clss_cons_trail
-      wf_twl.learned_clss_cons_trail marked_lit.sel(2) wf_twl.raw_conflicting_cons_trail 
-      wf_twl.state_eq_def wf_twl.trail_cons_trail wf_twl.mmset_of_mlit.simps(1) 
+      wf_twl.learned_clss_cons_trail marked_lit.sel(2) wf_twl.raw_conflicting_cons_trail
+      wf_twl.state_eq_def wf_twl.trail_cons_trail wf_twl.mmset_of_mlit.simps(1)
       wf_twl.mset_cls_cls_of_ccls)
 qed
 
