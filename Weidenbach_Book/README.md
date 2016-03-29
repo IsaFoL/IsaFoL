@@ -15,7 +15,9 @@
 ## Publications ##
 
 * [A Verified SAT Solver Framework with Learn, Forget, Restart, and Incrementality](http://people.mpi-inf.mpg.de/~jblanche/sat.pdf).
-  J. C. Blanchette, M. Fleury, and C. Weidenbach. Submitted draft.
+  J. C. Blanchette, M. Fleury, and C. Weidenbach.
+  In Olivetti, N., Tiwari, A. (eds.) 8th International Joint Conference on
+  Automated Reasoning (IJCAR 2016), LNCS, Springer, 2016.
 
 * [Formalisation of Ground Inference Systems in a Proof Assistant](http://www.mpi-inf.mpg.de/fileadmin/inf/rg1/Documents/fleury_master_thesis.pdf).
   M. Fleury.
@@ -30,11 +32,14 @@ To process all the theory files, change to branch ```git checkout sat_solver_lea
 
 ## Documentation ##
 
-A version of the theory files from the ```sat_solver_learn_forget_restart_incrementality``` is also available as 
-[a PDF outline without proofs](https://bitbucket.org/jasmin_blanchette/isafol/src/sat_solver_learn_forget_restart_incrementality/Weidenbach_Book/output/outline.pdf) or
-as [a PDF document with all proofs](https://bitbucket.org/jasmin_blanchette/isafol/src/sat_solver_learn_forget_restart_incrementality/Weidenbach_Book/output/document.pdf).
+A version of the theory files from the
+```sat_solver_learn_forget_restart_incrementality``` branch is also available as
+[a PDF outline without proofs](https://bitbucket.org/jasmin_blanchette/isafol/src/sat_solver_learn_forget_restart_incrementality/Weidenbach_Book/output/outline.pdf) or as
+[a PDF document with all proofs](https://bitbucket.org/jasmin_blanchette/isafol/src/sat_solver_learn_forget_restart_incrementality/Weidenbach_Book/output/document.pdf).
 
-The draft [A Verified SAT Solver Framework](http://people.mpi-inf.mpg.de/~jblanche/sat.pdf) refers to theorems in the formalization. The following table establishes a correspondence between the two sources.
+The paper [A Verified SAT Solver Framework](http://people.mpi-inf.mpg.de/~jblanche/sat.pdf) refers to theorems in the
+formalization. The following table establishes a correspondence between the two
+sources.
 
     Paper        Theory file           Theorem name
     -----------------------------------------------------------------------------------------------------
@@ -47,12 +52,15 @@ The draft [A Verified SAT Solver Framework](http://people.mpi-inf.mpg.de/~jblanc
     Theorem 7    CDCL_W_Termination    cdcl\<^sub>W_stgy_distinct_mset_clauses
     Theorem 8    CDCL_W_Incremental    incremental_conclusive_state
 
-The Standard ML code produced by the SAT solver can be viewed by moving the cursor to the ```export_code``` line in ```CDCL_W_Implementation.thy```.
+The Standard ML code produced by the SAT solver can be viewed by moving the
+cursor to the ```export_code``` line in ```CDCL_W_Implementation.thy```.
 
 ## Status ##
 
-Our partial implementation of two watched literals is located in ```CDCL_Two_Watched_Literals.thy```, but needs a recent repository version of Isabelle.
+Our partial implementation of two watched literals is located in
+```CDCL_Two_Watched_Literals.thy```, but needs a recent repository version of
+Isabelle.
 
 A recent version of the theory files is also available as 
-[a PDF outline without proofs](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Weidenbach_Book/output/outline.pdf) or
-as [a PDF document with all proofs](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Weidenbach_Book/output/document.pdf).
+[a PDF outline without proofs](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Weidenbach_Book/output/outline.pdf) or as
+[a PDF document with all proofs](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Weidenbach_Book/output/document.pdf).
