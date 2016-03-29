@@ -193,7 +193,7 @@ proof -
       upt_eq_Cons_conv upt_rec ys)
 qed
 
-text \<open>The following two lemmas are useful as simp rules for case-distinction. The case 
+text \<open>The following two lemmas are useful as simp rules for case-distinction. The case
   @{term "length l = 0"} is already simplified by default.\<close>
 lemma length_list_Suc_0:
   "length W = Suc 0 \<longleftrightarrow> (\<exists>L. W = [L])"
@@ -209,6 +209,50 @@ lemma length_list_2: "length S = 2 \<longleftrightarrow> (\<exists>a b. S = [a, 
   apply (rename_tac a S')
   apply (case_tac S')
   by simp_all
+
+lemma finite_bounded_list:
+  fixes b :: nat
+  shows "finite {xs. length xs < s \<and> (\<forall>i< length xs. xs ! i < b)}" (is "finite (?S s)")
+proof (induction s)
+  case 0
+  then show ?case by auto
+next
+  case (Suc s) note IH = this(1)
+  have H: "?S (Suc s) \<subseteq> ?S s \<union> {x # xs| x xs. x < b \<and> length xs < s \<and> (\<forall>i< length xs. xs ! i < b)}
+    \<union> {[]}"
+    (is "_ \<subseteq> _ \<union> ?C \<union> _")
+    proof
+      fix xs
+      assume "xs \<in> ?S (Suc s)"
+      then have B: "\<forall>i<length xs. xs ! i < b" and len: "length xs < Suc s"
+        by auto
+      consider
+        (st) "length xs < s" |
+        (s)  "length xs = 0" and "s = 0" |
+        (s') s' where "length xs = Suc s'"
+        using len by (cases s) (auto simp add: Nat.less_Suc_eq)
+      then show "xs \<in> ?S s \<union> ?C \<union> {[]}"
+        proof cases
+          case st
+          then show ?thesis using B by auto
+        next
+          case s
+          then show ?thesis using B by auto
+        next
+          case s' note len_xs = this(1)
+          then obtain x xs' where xs: "xs = x # xs'" by (cases xs) auto
+          then show ?thesis using len_xs B len s' unfolding xs by auto
+        qed
+    qed
+  have "?C \<subseteq> (case_prod Cons) ` ({x. x < b} \<times> ?S s)"
+    by auto
+  moreover have "finite ({x. x < b} \<times> ?S s)"
+    using IH by (auto simp: finite_cartesian_product_iff)
+  ultimately have "finite ?C" by (simp add: finite_surj)
+  then have "finite (?S s \<union> ?C \<union> {[]})"
+    using IH by auto
+  then show ?case using H by (auto intro: finite_subset)
+qed
 
 subsection \<open>Lexicographic Ordering\<close>
 lemma lexn_Suc:
@@ -250,7 +294,7 @@ lemma remove1_mset_single_add:
 
 subsubsection \<open>Remove under condition\<close>
 
-text \<open>This function removes the first element such that the condition @{term f} holds. It 
+text \<open>This function removes the first element such that the condition @{term f} holds. It
   generalises @{term List.remove1}.\<close>
 fun remove1_cond where
 "remove1_cond f [] = []" |
