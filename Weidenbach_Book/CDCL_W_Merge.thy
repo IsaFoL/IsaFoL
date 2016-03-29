@@ -1,8 +1,22 @@
+(*  Title: Merging some rules of Weidenbach's CDCL
+    Author: Mathias Fleury <mathias.fleury@mpi-inf.mpg.de>
+*)
+
+section \<open>Merging backjump rules\<close>
+
 theory CDCL_W_Merge
 imports CDCL_W_Termination
 begin
+text \<open>Before showing that Weidenbach's CDCL is included in  NOT's CDCL, we need to work on a variant
+  of Weidenbach's calculus: @{term conflict_driven_clause_learning\<^sub>W.conflict}, 
+  @{term conflict_driven_clause_learning\<^sub>W.resolve}, @{term conflict_driven_clause_learning\<^sub>W.skip},
+  and @{term conflict_driven_clause_learning\<^sub>W.backtrack} have to be done in a single step since they 
+  have a single counterpart in NOTs CDCL.
 
-section \<open>Link between Weidenbach's and NOT's CDCL\<close>
+  We show that this new calculus has the same final states than Weidenbach's CDCL if the calculus 
+  starts in a state such that the invariant holds and no conflict has been found yet. The latter
+  condition holds for initial state.\<close>
+
 subsection \<open>Inclusion of the states\<close>
 
 context conflict_driven_clause_learning\<^sub>W
@@ -1733,6 +1747,7 @@ lemma full1_cdcl\<^sub>W_bj_no_step_cdcl\<^sub>W_bj:
   unfolding full1_def by (metis rtranclp_unfold cdcl\<^sub>W_cp_conflicting_not_empty option.exhaust
     rtranclp_cdcl\<^sub>W_merge_restart_no_step_cdcl\<^sub>W_bj tranclpD)
 
+subsubsection \<open>Full Transformation\<close>
 inductive cdcl\<^sub>W_s'_without_decide where
 conflict'_without_decide[intro]: "full1 cdcl\<^sub>W_cp S S' \<Longrightarrow> cdcl\<^sub>W_s'_without_decide S S'" |
 bj'_without_decide[intro]: "full1 cdcl\<^sub>W_bj S S' \<Longrightarrow> no_step cdcl\<^sub>W_cp S \<Longrightarrow> full cdcl\<^sub>W_cp S' S''
@@ -2171,7 +2186,7 @@ qed
 inductive cdcl\<^sub>W_merge_stgy where
 fw_s_cp[intro]: "full1 cdcl\<^sub>W_merge_cp S T \<Longrightarrow> cdcl\<^sub>W_merge_stgy S T" |
 fw_s_decide[intro]: "decide S T \<Longrightarrow> no_step cdcl\<^sub>W_merge_cp S \<Longrightarrow> full cdcl\<^sub>W_merge_cp T U
-  \<Longrightarrow>  cdcl\<^sub>W_merge_stgy S U"
+  \<Longrightarrow> cdcl\<^sub>W_merge_stgy S U"
 
 lemma cdcl\<^sub>W_merge_stgy_tranclp_cdcl\<^sub>W_merge:
   assumes fw: "cdcl\<^sub>W_merge_stgy S T"
@@ -2901,7 +2916,8 @@ proof -
 qed
 end
 
-text \<open>We will discharge the assumption later.\<close>
+subsubsection \<open>Termination and full Equivalence\<close>
+text \<open>We will discharge the assumption later using NOT's proof of termination.\<close>
 locale conflict_driven_clause_learning\<^sub>W_termination =
   conflict_driven_clause_learning\<^sub>W +
   assumes wf_cdcl\<^sub>W_merge_inv: "wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_merge S T}"

@@ -972,7 +972,7 @@ lemma [code abstype]:
   using rough_state_from_init_state_of[of S] unfolding ConI_def
   by (simp add: rough_state_from_init_state_of_inverse)
 
-definition id_of_I_to:: "'v cdcl\<^sub>W_state_inv_from_init_state \<Rightarrow> 'v cdcl\<^sub>W_state_inv" where
+definition id_of_I_to :: "'v cdcl\<^sub>W_state_inv_from_init_state \<Rightarrow> 'v cdcl\<^sub>W_state_inv" where
 "id_of_I_to S = state_of (rough_state_from_init_state_of S)"
 
 lemma [code abstract]:
