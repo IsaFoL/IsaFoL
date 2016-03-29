@@ -1021,14 +1021,19 @@ proof (standard; standard)
   then show "C \<in> ?U"
     proof cases
       case Add
-      then have "L \<notin># C - {#L#}"
+      then have LCL: "L \<notin># C - {#L#}"
         using dist unfolding distinct_mset_def by (auto simp: not_in_iff)
-      moreover have "-L \<notin># C"
+      have LC: "-L \<notin># C"
         using taut Add by auto
-      ultimately have "atms_of (C - {#L#}) \<subseteq> atms"
-        using atms Add by (smt H atms_of_def imageE in_diffD insertE literal.exhaust_sel
-          subset_iff uminus_Neg uminus_Pos)
-
+      obtain aa :: 'a where
+        f4: "(aa \<in> atms_of (remove1_mset L C) \<longrightarrow> aa \<in> atms) \<longrightarrow> atms_of (remove1_mset L C) \<subseteq> atms"
+        by (meson subset_iff)
+      obtain ll :: "'a literal" where
+        "aa \<notin> atm_of ` set_mset (remove1_mset L C) \<or> aa = atm_of ll \<and> ll \<in># remove1_mset L C"
+        by blast
+      then have "atms_of (C - {#L#}) \<subseteq> atms"
+        using f4 Add LCL LC H unfolding atms_of_def by (metis H  in_diffD insertE 
+          literal.exhaust_sel uminus_Neg uminus_Pos)
       moreover have "\<not> tautology (C - {#L#})"
         using taut by (metis Add(1) insert_DiffM tautology_add_single)
       moreover have "distinct_mset (C - {#L#})"
