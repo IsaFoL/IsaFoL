@@ -491,14 +491,19 @@ lemma do_skip_step_trail_is_None[iff]:
   by (cases S rule: do_skip_step.cases) auto
 
 paragraph \<open>Resolve\<close>
-fun maximum_level_code:: "'a literal list \<Rightarrow> ('a, nat, 'a literal list) marked_lit list \<Rightarrow> nat"
+fun maximum_level_code:: "'a literal list \<Rightarrow> ('a, nat, 'b) marked_lit list \<Rightarrow> nat"
   where
 "maximum_level_code [] _ = 0" |
 "maximum_level_code (L # Ls) M = max (get_level M L) (maximum_level_code Ls M)"
 
-lemma maximum_level_code_eq_get_maximum_level[code, simp]:
+lemma maximum_level_code_eq_get_maximum_level[simp]:
   "maximum_level_code D M = get_maximum_level M (mset D)"
   by (induction D) (auto simp add: get_maximum_level_plus)
+
+lemma [code]:
+  fixes M :: "('a::{type}, nat, 'b) marked_lit list"
+  shows "get_maximum_level M (mset D) = maximum_level_code D M"
+  by simp
 
 fun do_resolve_step :: "'v cdcl\<^sub>W_state_inv_st \<Rightarrow> 'v cdcl\<^sub>W_state_inv_st" where
 "do_resolve_step (Propagated L C # Ls, N, U, k, Some D) =
@@ -1775,7 +1780,6 @@ end; (*struct HOL*)
 
 structure List : sig
   val equal_list : 'a HOL.equal -> ('a list) HOL.equal
-  val fold : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
   val rev : 'a list -> 'a list
   val find : ('a -> bool) -> 'a list -> 'a option
   val null : 'a list -> bool
@@ -1847,27 +1851,12 @@ structure Orderings : sig
   type 'a ord
   val less_eq : 'a ord -> 'a -> 'a -> bool
   val less : 'a ord -> 'a -> 'a -> bool
-  type 'a preorder
-  val ord_preorder : 'a preorder -> 'a ord
-  type 'a order
-  val preorder_order : 'a order -> 'a preorder
-  type 'a linorder
-  val order_linorder : 'a linorder -> 'a order
   val max : 'a ord -> 'a -> 'a -> 'a
 end = struct
 
 type 'a ord = {less_eq : 'a -> 'a -> bool, less : 'a -> 'a -> bool};
 val less_eq = #less_eq : 'a ord -> 'a -> 'a -> bool;
 val less = #less : 'a ord -> 'a -> 'a -> bool;
-
-type 'a preorder = {ord_preorder : 'a ord};
-val ord_preorder = #ord_preorder : 'a preorder -> 'a ord;
-
-type 'a order = {preorder_order : 'a preorder};
-val preorder_order = #preorder_order : 'a order -> 'a preorder;
-
-type 'a linorder = {order_linorder : 'a order};
-val order_linorder = #order_linorder : 'a linorder -> 'a order;
 
 fun max A_ a b = (if less_eq A_ a b then b else a);
 
@@ -1878,7 +1867,7 @@ structure Arith : sig
   val equal_nata : nat -> nat -> bool
   val equal_nat : nat HOL.equal
   val less_nat : nat -> nat -> bool
-  val linorder_nat : nat Orderings.linorder
+  val ord_nat : nat Orderings.ord
   val one_nat : nat
   val plus_nat : nat -> nat -> nat
 end = struct
@@ -1899,12 +1888,6 @@ and less_nat m (Suc n) = less_eq_nat m n
 
 val ord_nat = {less_eq = less_eq_nat, less = less_nat} : nat Orderings.ord;
 
-val preorder_nat = {ord_preorder = ord_nat} : nat Orderings.preorder;
-
-val order_nat = {preorder_order = preorder_nat} : nat Orderings.order;
-
-val linorder_nat = {order_linorder = order_nat} : nat Orderings.linorder;
-
 val one_nat : nat = Suc Zero_nat;
 
 fun plus_nat (Suc m) n = plus_nat m (Suc n)
@@ -1924,26 +1907,6 @@ fun equal_optiona A_ NONE (SOME x2) = false
 fun equal_option A_ = {equal = equal_optiona A_} : ('a option) HOL.equal;
 
 end; (*struct Option*)
-
-structure Multiset : sig
-  datatype 'a multiset = Mset of 'a list
-  val single : 'a -> 'a multiset
-  val set_mset : 'a multiset -> 'a Set.set
-  val image_mset : ('a -> 'b) -> 'a multiset -> 'b multiset
-  val plus_multiset : 'a multiset -> 'a multiset -> 'a multiset
-end = struct
-
-datatype 'a multiset = Mset of 'a list;
-
-fun single x = Mset [x];
-
-fun set_mset (Mset x) = Set.Set x;
-
-fun image_mset f (Mset xs) = Mset (List.map f xs);
-
-fun plus_multiset (Mset xs) (Mset ys) = Mset (xs @ ys);
-
-end; (*struct Multiset*)
 
 structure Clausal_Logic : sig
   datatype 'a literal = Pos of 'a | Neg of 'a
@@ -1978,7 +1941,8 @@ structure Partial_Annotated_Clausal_Logic : sig
   val equal_marked_lit :
     'a HOL.equal -> 'b HOL.equal -> 'c HOL.equal ->
       ('a, 'b, 'c) marked_lit HOL.equal
-  val lit_of : ('a, 'b, 'c) marked_lit -> 'a Clausal_Logic.literal
+  val lits_of :
+    ('a, 'b, 'c) marked_lit Set.set -> 'a Clausal_Logic.literal Set.set
 end = struct
 
 datatype ('a, 'b, 'c) marked_lit = Marked of 'a Clausal_Logic.literal * 'b |
@@ -1999,31 +1963,15 @@ fun equal_marked_lit A_ B_ C_ = {equal = equal_marked_lita A_ B_ C_} :
 fun lit_of (Marked (x11, x12)) = x11
   | lit_of (Propagated (x21, x22)) = x21;
 
+fun lits_of ls = Set.image lit_of ls;
+
 end; (*struct Partial_Annotated_Clausal_Logic*)
-
-structure Lattices_Big : sig
-  val max : 'a Orderings.linorder -> 'a Set.set -> 'a
-end = struct
-
-fun max A_ (Set.Set (x :: xs)) =
-  List.fold
-    (Orderings.max
-      ((Orderings.ord_preorder o Orderings.preorder_order o
-         Orderings.order_linorder)
-        A_))
-    xs x;
-
-end; (*struct Lattices_Big*)
 
 structure CDCL_W_Level : sig
   val get_rev_level :
     'a HOL.equal ->
       ('a, Arith.nat, 'b) Partial_Annotated_Clausal_Logic.marked_lit list ->
         Arith.nat -> 'a Clausal_Logic.literal -> Arith.nat
-  val get_maximum_level :
-    'a HOL.equal ->
-      ('a, Arith.nat, 'b) Partial_Annotated_Clausal_Logic.marked_lit list ->
-        'a Clausal_Logic.literal Multiset.multiset -> Arith.nat
 end = struct
 
 fun get_rev_level A_ [] uu uv = Arith.Zero_nat
@@ -2035,13 +1983,6 @@ fun get_rev_level A_ [] uu uv = Arith.Zero_nat
     n l =
     (if HOL.eq A_ (Clausal_Logic.atm_of la) (Clausal_Logic.atm_of l) then n
       else get_rev_level A_ ls n l);
-
-fun get_maximum_level A_ m d =
-  Lattices_Big.max Arith.linorder_nat
-    (Multiset.set_mset
-      (Multiset.plus_multiset (Multiset.single Arith.Zero_nat)
-        (Multiset.image_mset (get_rev_level A_ (List.rev m) Arith.Zero_nat)
-          d)));
 
 end; (*struct CDCL_W_Level*)
 
@@ -2074,8 +2015,7 @@ fun is_unit_clause_code A_ l m =
           (fn a =>
             not (Set.member A_ (Clausal_Logic.atm_of a)
                   (Set.image Clausal_Logic.atm_of
-                    (Set.image Partial_Annotated_Clausal_Logic.lit_of
-                      (Set.Set m)))))
+                    (Partial_Annotated_Clausal_Logic.lits_of (Set.Set m)))))
           l
     of [] => NONE
     | [a] =>
@@ -2083,7 +2023,7 @@ fun is_unit_clause_code A_ l m =
             (fn c =>
               Set.member (Clausal_Logic.equal_literal A_)
                 (Clausal_Logic.uminus_literal c)
-                (Set.image Partial_Annotated_Clausal_Logic.lit_of (Set.Set m)))
+                (Partial_Annotated_Clausal_Logic.lits_of (Set.Set m)))
             (List.remove1 (Clausal_Logic.equal_literal A_) a l)
         then SOME a else NONE)
     | _ :: _ :: _ => NONE);
@@ -2114,7 +2054,7 @@ structure CDCL_W_Implementation : sig
          Partial_Annotated_Clausal_Logic.marked_lit list *
         (('a Clausal_Logic.literal list) list *
           (('a Clausal_Logic.literal list) list *
-            (Arith.nat * ('a Clausal_Logic.literal list) option))));
+            (Arith.nat * ('a Clausal_Logic.literal list) option))))
   val gene : Arith.nat -> (Arith.nat Clausal_Logic.literal list) list
   val do_all_cdcl_W_stgy :
     'a HOL.equal ->
@@ -2167,7 +2107,7 @@ fun find_conflict A_ m [] = NONE
           (fn c =>
             Set.member (Clausal_Logic.equal_literal A_)
               (Clausal_Logic.uminus_literal c)
-              (Set.image Partial_Annotated_Clausal_Logic.lit_of (Set.Set m)))
+              (Partial_Annotated_Clausal_Logic.lits_of (Set.Set m)))
           n
       then SOME n else find_conflict A_ m ns);
 
@@ -2202,8 +2142,11 @@ fun do_skip_step A_
     = (Partial_Annotated_Clausal_Logic.Marked (vd, ve) :: vc, va)
   | do_skip_step A_ (v, (vb, (vd, (vf, NONE)))) = (v, (vb, (vd, (vf, NONE))));
 
-fun maximum_level_code A_ d m =
-  CDCL_W_Level.get_maximum_level A_ m (Multiset.Mset d);
+fun maximum_level_code A_ [] uu = Arith.Zero_nat
+  | maximum_level_code A_ (l :: ls) m =
+    Orderings.max Arith.ord_nat
+      (CDCL_W_Level.get_rev_level A_ (List.rev m) Arith.Zero_nat l)
+      (maximum_level_code A_ ls m);
 
 fun find_level_decomp A_ m [] d k = NONE
   | find_level_decomp A_ m (l :: ls) d k =
@@ -2257,7 +2200,7 @@ fun do_resolve_step A_
 
 fun do_decide_step A_ (m, (n, (u, (k, NONE)))) =
   (case DPLL_CDCL_W_Implementation.find_first_unused_var A_ n
-          (Set.image Partial_Annotated_Clausal_Logic.lit_of (Set.Set m))
+          (Partial_Annotated_Clausal_Logic.lits_of (Set.Set m))
     of NONE => (m, (n, (u, (k, NONE))))
     | SOME l =>
       (Partial_Annotated_Clausal_Logic.Marked (l, Arith.Suc k) :: m,
