@@ -1,11 +1,11 @@
 theory CDCL_WNOT_Measure
-imports Main
+imports Main List_More
 begin
 
 section \<open>Measure\<close>
-text \<open>This measure show the termination of the core of CDCL: each step improves the number of 
+text \<open>This measure show the termination of the core of CDCL: each step improves the number of
   literals we know for sure.
-  
+
   This measure can also be seen as the increasing lexicographic order: it is an order on bounded
   sequences, when each element is bounded. The proof involves a measure like the one defined here
   (the same?).\<close>
@@ -142,7 +142,7 @@ qed
 text \<open>In the degenerate case @{term "b=0"}, the list @{term M} is empty (since the list cannot
   contain any element).\<close>
 lemma \<mu>\<^sub>C_bounded:
-  fixes b ::nat
+  fixes b :: nat
   assumes
     M_le: "\<forall>i < length M. M!i < b" and
     "s \<ge> length M"
@@ -183,5 +183,46 @@ proof -
     then have "\<mu>\<^sub>C s 0 M = 0" unfolding \<mu>\<^sub>C_def by auto}
   ultimately show ?thesis using assms unfolding \<mu>\<^sub>C_def by linarith
 qed
+
+lemma finite_bounded_pair_list:
+  fixes b :: nat
+  shows "finite {(ys, xs). length xs < s \<and> length ys < s \<and>
+    (\<forall>i< length xs. xs ! i < b) \<and> (\<forall>i< length ys. ys ! i < b)}"
+proof -
+  have H: "{(ys, xs). length xs < s \<and> length ys < s \<and>
+    (\<forall>i< length xs. xs ! i < b) \<and> (\<forall>i< length ys. ys ! i < b)}
+    \<subseteq>
+    {xs. length xs < s \<and> (\<forall>i< length xs. xs ! i < b)} \<times>
+    {xs. length xs < s \<and> (\<forall>i< length xs. xs ! i < b)}"
+    by auto
+  moreover have "finite {xs. length xs < s \<and> (\<forall>i< length xs. xs ! i < b)}"
+    by (rule finite_bounded_list)
+  ultimately show ?thesis by (auto simp: finite_subset)
+qed
+
+definition \<nu>NOT :: "nat \<Rightarrow> nat \<Rightarrow> (nat list \<times> nat list) set" where
+"\<nu>NOT s base = {(ys, xs). length xs < s \<and> length ys < s \<and>
+  (\<forall>i< length xs. xs ! i < base) \<and> (\<forall>i< length ys. ys ! i < base) \<and>
+  (ys, xs) \<in> lenlex less_than}"
+
+lemma finite_\<nu>NOT[simp]:
+  "finite (\<nu>NOT s base)"
+proof -
+  have "\<nu>NOT s base \<subseteq> {(ys, xs). length xs < s \<and> length ys < s \<and>
+    (\<forall>i< length xs. xs ! i < base) \<and> (\<forall>i< length ys. ys ! i < base)}"
+    by (auto simp: \<nu>NOT_def)
+  moreover have "finite {(ys, xs). length xs < s \<and> length ys < s \<and>
+    (\<forall>i< length xs. xs ! i < base) \<and> (\<forall>i< length ys. ys ! i < base)}"
+      by (rule finite_bounded_pair_list)
+  ultimately show ?thesis by (auto simp: finite_subset)
+qed
+
+lemma acyclic_\<nu>NOT: "acyclic (\<nu>NOT s base)"
+  apply (rule acyclic_subset[of "lenlex less_than" "\<nu>NOT s base"])
+    apply (rule wf_acyclic)
+  by (auto simp: \<nu>NOT_def)
+
+lemma wf_\<nu>NOT: "wf (\<nu>NOT s base)"
+  by (rule finite_acyclic_wf) (auto simp: acyclic_\<nu>NOT)
 
 end
