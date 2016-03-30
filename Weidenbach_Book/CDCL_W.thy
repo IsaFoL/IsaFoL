@@ -108,7 +108,7 @@ text \<open>Weidenbach state is a five-tuple composed of:
   \<^enum> the maximum level of the trail;
   \<^enum> the conflicting clause (if any has been found so far).\<close>
 text \<open>
-  There are two different clause representation: one for the conflicting clause (@{typ "'ccl'"},
+  There are two different clause representation: one for the conflicting clause (@{typ "'ccls"},
   standing for conflicting clause) and one for the initial and learned clauses (@{typ "'cls"},
   standing for clause). The representation of the clauses annotating literals in the trail
   is slightly different: being able to convert it to @{typ 'cls} is enough (needed for function
