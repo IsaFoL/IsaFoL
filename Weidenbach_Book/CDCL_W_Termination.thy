@@ -978,7 +978,7 @@ lemma cdcl\<^sub>W_measure_decreasing:
     no_taut: "\<forall>s \<in># learned_clss S. \<not>tautology s" and
     no_dup: "distinct_cdcl\<^sub>W_state S" and
     confl: "cdcl\<^sub>W_conflicting S"
-  shows "(cdcl\<^sub>W_measure S', cdcl\<^sub>W_measure S) \<in> lexn {(a, b). a < b} 3"
+  shows "(cdcl\<^sub>W_measure S', cdcl\<^sub>W_measure S) \<in> lexn less_than 3"
   using assms(1) M_level assms(2,3)
 proof (induct rule: cdcl\<^sub>W_all_induct_lev2)
   case (propagate C L) note conf = this(1) and undef = this(5) and T = this(6)
@@ -1078,7 +1078,7 @@ qed
 lemma propagate_measure_decreasing:
   fixes S :: 'st
   assumes "propagate S S'" and "cdcl\<^sub>W_all_struct_inv S"
-  shows "(cdcl\<^sub>W_measure S', cdcl\<^sub>W_measure S) \<in> lexn {(a, b). a < b} 3"
+  shows "(cdcl\<^sub>W_measure S', cdcl\<^sub>W_measure S) \<in> lexn less_than 3"
   apply (rule cdcl\<^sub>W_measure_decreasing)
   using assms(1) propagate apply blast
            using assms(1) apply (auto simp add: propagate.simps)[3]
@@ -1088,7 +1088,7 @@ lemma propagate_measure_decreasing:
 lemma conflict_measure_decreasing:
   fixes S :: 'st
   assumes "conflict S S'" and "cdcl\<^sub>W_all_struct_inv S"
-  shows "(cdcl\<^sub>W_measure S', cdcl\<^sub>W_measure S) \<in> lexn {(a, b). a < b} 3"
+  shows "(cdcl\<^sub>W_measure S', cdcl\<^sub>W_measure S) \<in> lexn less_than 3"
   apply (rule cdcl\<^sub>W_measure_decreasing)
   using assms(1) conflict apply blast
             using assms(1) apply (auto simp: state_eq_def simp del: state_simp elim!: conflictE)[3]
@@ -1098,21 +1098,17 @@ lemma conflict_measure_decreasing:
 lemma decide_measure_decreasing:
   fixes S :: 'st
   assumes "decide S S'" and "cdcl\<^sub>W_all_struct_inv S"
-  shows "(cdcl\<^sub>W_measure S', cdcl\<^sub>W_measure S) \<in> lexn {(a, b). a < b} 3"
+  shows "(cdcl\<^sub>W_measure S', cdcl\<^sub>W_measure S) \<in> lexn less_than 3"
   apply (rule cdcl\<^sub>W_measure_decreasing)
   using assms(1) decide other apply blast
             using assms(1) apply (auto simp: state_eq_def simp del: state_simp elim!: decideE)[3]
          using assms(2) apply (auto simp add: cdcl\<^sub>W_all_struct_inv_def elim: decideE)
   done
 
-lemma trans_le:
-  "trans {(a, (b::nat)). a < b}"
-  unfolding trans_def by auto
-
 lemma cdcl\<^sub>W_cp_measure_decreasing:
   fixes S :: 'st
   assumes "cdcl\<^sub>W_cp S S'" and "cdcl\<^sub>W_all_struct_inv S"
-  shows "(cdcl\<^sub>W_measure S', cdcl\<^sub>W_measure S) \<in> lexn {(a, b). a < b} 3"
+  shows "(cdcl\<^sub>W_measure S', cdcl\<^sub>W_measure S) \<in> lexn less_than 3"
   using assms
 proof induction
   case conflict'
@@ -1125,21 +1121,21 @@ qed
 lemma tranclp_cdcl\<^sub>W_cp_measure_decreasing:
   fixes S :: 'st
   assumes "cdcl\<^sub>W_cp\<^sup>+\<^sup>+ S S'" and "cdcl\<^sub>W_all_struct_inv S"
-  shows "(cdcl\<^sub>W_measure S', cdcl\<^sub>W_measure S) \<in> lexn {(a, b). a < b} 3"
+  shows "(cdcl\<^sub>W_measure S', cdcl\<^sub>W_measure S) \<in> lexn less_than 3"
   using assms
 proof induction
   case base
   then show ?case using cdcl\<^sub>W_cp_measure_decreasing by blast
 next
   case (step T U) note st = this(1) and step = this(2) and IH = this(3) and inv = this(4)
-  then have "(cdcl\<^sub>W_measure T, cdcl\<^sub>W_measure S) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3" by blast
+  then have "(cdcl\<^sub>W_measure T, cdcl\<^sub>W_measure S) \<in> lexn less_than 3" by blast
 
-  moreover have "(cdcl\<^sub>W_measure U, cdcl\<^sub>W_measure T) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3"
+  moreover have "(cdcl\<^sub>W_measure U, cdcl\<^sub>W_measure T) \<in> lexn less_than 3"
     using cdcl\<^sub>W_cp_measure_decreasing[OF step] rtranclp_cdcl\<^sub>W_all_struct_inv_inv inv
     tranclp_cdcl\<^sub>W_cp_tranclp_cdcl\<^sub>W[OF st]
     unfolding trans_def rtranclp_unfold
     by blast
-  ultimately show ?case using lexn_transI[OF trans_le] unfolding trans_def by blast
+  ultimately show ?case using lexn_transI[OF trans_less_than] unfolding trans_def by blast
 qed
 
 lemma cdcl\<^sub>W_stgy_step_decreasing:
@@ -1148,7 +1144,7 @@ lemma cdcl\<^sub>W_stgy_step_decreasing:
   "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* R S"
   "trail R = []" and
   "cdcl\<^sub>W_all_struct_inv R"
-  shows "(cdcl\<^sub>W_measure T, cdcl\<^sub>W_measure S) \<in> lexn {(a, b). a < b} 3"
+  shows "(cdcl\<^sub>W_measure T, cdcl\<^sub>W_measure S) \<in> lexn less_than 3"
 proof -
   have "cdcl\<^sub>W_all_struct_inv S"
     using assms
@@ -1164,13 +1160,13 @@ proof -
       have "cdcl\<^sub>W_all_struct_inv T"
         using cdcl\<^sub>W_all_struct_inv_inv other other'.hyps(1) other'.prems(4) by blast
       from tranclp_cdcl\<^sub>W_cp_measure_decreasing[OF _ this]
-      have le_or_eq: "(cdcl\<^sub>W_measure U, cdcl\<^sub>W_measure T) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3 \<or>
+      have le_or_eq: "(cdcl\<^sub>W_measure U, cdcl\<^sub>W_measure T) \<in> lexn less_than 3 \<or>
         cdcl\<^sub>W_measure U = cdcl\<^sub>W_measure T"
         using cp unfolding full_def rtranclp_unfold by blast
       moreover
         have "cdcl\<^sub>W_M_level_inv S"
           using cdcl\<^sub>W_all_struct_inv_def other'.prems(4) by blast
-        with st have "(cdcl\<^sub>W_measure T, cdcl\<^sub>W_measure S) \<in> lexn {a. case a of (a, b) \<Rightarrow> a < b} 3"
+        with st have "(cdcl\<^sub>W_measure T, cdcl\<^sub>W_measure S) \<in> lexn less_than 3"
         proof (induction rule:cdcl\<^sub>W_o_induct_lev2)
           case (decide T)
           then show ?case using decide_measure_decreasing H decide.intros[OF decide.hyps] by blast
@@ -1206,28 +1202,30 @@ proof -
           then show ?case by (auto simp: lexn3_conv)
         qed
       ultimately show ?case
-        by (metis (full_types) lexn_transI transD trans_le)
+        by (metis (full_types) lexn_transI transD trans_less_than)
     qed
 qed
 
+text \<open>Roughly corresponds to \cwref{theo:prop:cdcltermlc}{theorem 2.9.15 page 86}
+  (using a different bound)\<close>
 lemma tranclp_cdcl\<^sub>W_stgy_decreasing:
   fixes R S T :: 'st
   assumes "cdcl\<^sub>W_stgy\<^sup>+\<^sup>+ R S"
   "trail R = []" and
   "cdcl\<^sub>W_all_struct_inv R"
-  shows "(cdcl\<^sub>W_measure S, cdcl\<^sub>W_measure R) \<in> lexn {(a, b). a < b} 3"
+  shows "(cdcl\<^sub>W_measure S, cdcl\<^sub>W_measure R) \<in> lexn less_than 3"
   using assms
   apply induction
    using cdcl\<^sub>W_stgy_step_decreasing[of R _ R] apply blast
   using cdcl\<^sub>W_stgy_step_decreasing[of _ _ R]  tranclp_into_rtranclp[of cdcl\<^sub>W_stgy R]
-  lexn_transI[OF trans_le, of 3] unfolding trans_def by blast
+  lexn_transI[OF trans_less_than, of 3] unfolding trans_def by blast
 
 lemma tranclp_cdcl\<^sub>W_stgy_S0_decreasing:
   fixes R S T :: 'st
   assumes
     pl: "cdcl\<^sub>W_stgy\<^sup>+\<^sup>+ (init_state N) S" and
     no_dup: "distinct_mset_mset (mset_clss N)"
-  shows "(cdcl\<^sub>W_measure S, cdcl\<^sub>W_measure (init_state N)) \<in> lexn {(a, b). a < b} 3"
+  shows "(cdcl\<^sub>W_measure S, cdcl\<^sub>W_measure (init_state N)) \<in> lexn less_than 3"
 proof -
   have "cdcl\<^sub>W_all_struct_inv (init_state N)"
     using no_dup unfolding cdcl\<^sub>W_all_struct_inv_def by auto
@@ -1237,7 +1235,7 @@ qed
 lemma wf_tranclp_cdcl\<^sub>W_stgy:
   "wf {(S::'st, init_state N)|
      S N. distinct_mset_mset (mset_clss N) \<and> cdcl\<^sub>W_stgy\<^sup>+\<^sup>+ (init_state N) S}"
-  apply (rule wf_wf_if_measure'_notation2[of "lexn {(a, b). a < b} 3" _ _ cdcl\<^sub>W_measure])
+  apply (rule wf_wf_if_measure'_notation2[of "lexn less_than 3" _ _ cdcl\<^sub>W_measure])
    apply (simp add: wf wf_lexn)
   using tranclp_cdcl\<^sub>W_stgy_S0_decreasing by blast
 

@@ -1584,7 +1584,7 @@ termination
 proof (relation "{(T, S).
     (cdcl\<^sub>W_measure (rough_state_from_init_state_of T),
     cdcl\<^sub>W_measure (rough_state_from_init_state_of S))
-      \<in> lexn {(a, b). a < b} 3}", goal_cases)
+      \<in> lexn less_than 3}", goal_cases)
   case 1
   show ?case by (rule wf_if_measure_f) (auto intro!: wf_lexn wf_less)
 next
