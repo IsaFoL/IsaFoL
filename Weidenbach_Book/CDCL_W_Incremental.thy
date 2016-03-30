@@ -49,7 +49,7 @@ text \<open>When we add a new clause, we reduce the trail until we get to tho fi
   Then we can mark the conflict.\<close>
 fun cut_trail_wrt_clause where
 "cut_trail_wrt_clause C [] S = S" |
-"cut_trail_wrt_clause C (Marked L _ # M) S =
+"cut_trail_wrt_clause C (Decided L _ # M) S =
   (if -L \<in># C then S
     else cut_trail_wrt_clause C M (decr_bt_lvl (tl_trail S)))" |
 "cut_trail_wrt_clause C (Propagated L _ # M) S =
@@ -78,11 +78,11 @@ lemma conflicting_clss_cut_trail_wrt_clause[simp]:
 
 lemma trail_cut_trail_wrt_clause:
   "\<exists>M.  trail S = M @ trail (cut_trail_wrt_clause C (trail S) S)"
-proof (induction "trail S" arbitrary: S rule: marked_lit_list_induct)
+proof (induction "trail S" arbitrary: S rule: ann_lit_list_induct)
   case nil
   then show ?case by simp
 next
-  case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail S)"] and M = this(2)[symmetric]
+  case (decided L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail S)"] and M = this(2)[symmetric]
   then show ?case using Cons_eq_appendI by fastforce+
 next
   case (proped L l M) note IH = this(1)[of "tl_trail S"] and M = this(2)[symmetric]
@@ -100,18 +100,18 @@ proof -
     using n_d unfolding arg_cong[OF M, of no_dup] by auto
 qed
 
-lemma cut_trail_wrt_clause_backtrack_lvl_length_marked:
+lemma cut_trail_wrt_clause_backtrack_lvl_length_decided:
   assumes
-     "backtrack_lvl T = length (get_all_levels_of_marked (trail T))"
+     "backtrack_lvl T = length (get_all_levels_of_ann (trail T))"
   shows
   "backtrack_lvl (cut_trail_wrt_clause C (trail T) T) =
-     length (get_all_levels_of_marked (trail (cut_trail_wrt_clause C (trail T) T)))"
+     length (get_all_levels_of_ann (trail (cut_trail_wrt_clause C (trail T) T)))"
   using assms
-proof (induction "trail T" arbitrary:T rule: marked_lit_list_induct)
+proof (induction "trail T" arbitrary:T rule: ann_lit_list_induct)
   case nil
   then show ?case by simp
 next
-  case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
+  case (decided L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
     and bt = this(3)
   then show ?case by auto
 next
@@ -119,18 +119,18 @@ next
   then show ?case by auto
 qed
 
-lemma cut_trail_wrt_clause_get_all_levels_of_marked:
-  assumes "get_all_levels_of_marked (trail T) = rev [Suc 0..<
-    Suc (length (get_all_levels_of_marked (trail T)))]"
+lemma cut_trail_wrt_clause_get_all_levels_of_ann:
+  assumes "get_all_levels_of_ann (trail T) = rev [Suc 0..<
+    Suc (length (get_all_levels_of_ann (trail T)))]"
   shows
-    "get_all_levels_of_marked (trail ((cut_trail_wrt_clause C (trail T) T))) = rev [Suc 0..<
-    Suc (length (get_all_levels_of_marked (trail  ((cut_trail_wrt_clause C (trail T) T)))))]"
+    "get_all_levels_of_ann (trail ((cut_trail_wrt_clause C (trail T) T))) = rev [Suc 0..<
+    Suc (length (get_all_levels_of_ann (trail  ((cut_trail_wrt_clause C (trail T) T)))))]"
   using assms
-proof (induction "trail T" arbitrary:T rule: marked_lit_list_induct)
+proof (induction "trail T" arbitrary:T rule: ann_lit_list_induct)
   case nil
   then show ?case by simp
 next
-  case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
+  case (decided L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
     and bt = this(3)
   then show ?case by (cases "count C L = 0") auto
 next
@@ -143,11 +143,11 @@ lemma cut_trail_wrt_clause_CNot_trail:
   shows
     "(trail ((cut_trail_wrt_clause C (trail T) T))) \<Turnstile>as CNot C"
   using assms
-proof (induction "trail T" arbitrary:T rule: marked_lit_list_induct)
+proof (induction "trail T" arbitrary:T rule: ann_lit_list_induct)
   case nil
   then show ?case by simp
 next
-  case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
+  case (decided L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
     and bt = this(3)
   show ?case
     proof (cases "count C (-L) = 0")
@@ -192,11 +192,11 @@ lemma cut_trail_wrt_clause_hd_trail_in_or_empty_trail:
     \<or> (-lit_of (hd (trail (cut_trail_wrt_clause C (trail T) T))) \<in># C
        \<and> length (trail (cut_trail_wrt_clause C (trail T) T)) \<ge> 1)"
   using assms
-proof (induction "trail T" arbitrary:T rule: marked_lit_list_induct)
+proof (induction "trail T" arbitrary:T rule: ann_lit_list_induct)
   case nil
   then show ?case by simp
 next
-  case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
+  case (decided L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
   then show ?case by simp force
 next
   case (proped L l M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric]
@@ -261,9 +261,9 @@ proof -
     unfolding consistent_interp_def by auto
 
   have [simp]: "cdcl\<^sub>W_M_level_inv ?T"
-    using M_lev cut_trail_wrt_clause_get_all_levels_of_marked[of T "mset_ccls C"]
+    using M_lev cut_trail_wrt_clause_get_all_levels_of_ann[of T "mset_ccls C"]
     unfolding cdcl\<^sub>W_M_level_inv_def by (auto dest: H H'
-      simp: M_lev cdcl\<^sub>W_M_level_inv_def cut_trail_wrt_clause_backtrack_lvl_length_marked)
+      simp: M_lev cdcl\<^sub>W_M_level_inv_def cut_trail_wrt_clause_backtrack_lvl_length_decided)
 
   have [simp]: "\<And>s. s \<in># learned_clss T \<Longrightarrow> \<not>tautology s"
     using inv_T unfolding cdcl\<^sub>W_all_struct_inv_def by auto
@@ -282,17 +282,17 @@ proof -
     by (metis M \<open>cdcl\<^sub>W_conflicting T\<close> append_assoc cdcl\<^sub>W_conflicting_decomp(2))
 
   have
-    decomp_T: "all_decomposition_implies_m (init_clss T) (get_all_marked_decomposition (trail T))"
+    decomp_T: "all_decomposition_implies_m (init_clss T) (get_all_ann_decomposition (trail T))"
     using inv_T unfolding cdcl\<^sub>W_all_struct_inv_def by auto
   have  "all_decomposition_implies_m  (init_clss ?T)
-    (get_all_marked_decomposition (trail ?T))"
+    (get_all_ann_decomposition (trail ?T))"
     unfolding all_decomposition_implies_def
     proof clarify
       fix a b
-      assume "(a, b) \<in> set (get_all_marked_decomposition (trail ?T))"
-      from in_get_all_marked_decomposition_in_get_all_marked_decomposition_prepend[OF this, of M]
+      assume "(a, b) \<in> set (get_all_ann_decomposition (trail ?T))"
+      from in_get_all_ann_decomposition_in_get_all_ann_decomposition_prepend[OF this, of M]
       obtain b' where
-        "(a, b' @ b) \<in> set (get_all_marked_decomposition (trail T))"
+        "(a, b' @ b) \<in> set (get_all_ann_decomposition (trail T))"
         using M by auto
       then have "unmark_l a \<union> set_mset (init_clss T) \<Turnstile>ps unmark_l (b' @ b)"
         using decomp_T unfolding all_decomposition_implies_def by fastforce
@@ -307,7 +307,7 @@ proof -
     by (auto dest!: H_proped simp: raw_clauses_def)
   show ?thesis
     using \<open>all_decomposition_implies_m  (init_clss ?T)
-    (get_all_marked_decomposition (trail ?T))\<close>
+    (get_all_ann_decomposition (trail ?T))\<close>
     unfolding cdcl\<^sub>W_all_struct_inv_def by (auto simp: add_new_clause_and_update_def)
 qed
 
@@ -352,13 +352,13 @@ proof -
     next
       case not_false note C = this(1) and l = this(2)
       let ?L = "- lit_of (hd (trail (cut_trail_wrt_clause (mset_ccls C) (trail T) T)))"
-      have "get_all_levels_of_marked (trail (add_new_clause_and_update C T)) =
-        rev [1..<1 + length (get_all_levels_of_marked (trail (add_new_clause_and_update C T)))]"
+      have "get_all_levels_of_ann (trail (add_new_clause_and_update C T)) =
+        rev [1..<1 + length (get_all_levels_of_ann (trail (add_new_clause_and_update C T)))]"
         using \<open>cdcl\<^sub>W_all_struct_inv ?T'\<close> unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
         by blast
       moreover
         have "backtrack_lvl (cut_trail_wrt_clause (mset_ccls C) (trail T) T) =
-          length (get_all_levels_of_marked (trail (add_new_clause_and_update C T)))"
+          length (get_all_levels_of_ann (trail (add_new_clause_and_update C T)))"
           using \<open>cdcl\<^sub>W_all_struct_inv ?T'\<close> unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
           by (auto simp:add_new_clause_and_update_def)
       moreover
@@ -371,8 +371,8 @@ proof -
           (auto simp: lits_of_def)
 
       ultimately have L: "get_level (trail (cut_trail_wrt_clause (mset_ccls C) (trail T) T)) (-?L)
-        = length (get_all_levels_of_marked (trail (cut_trail_wrt_clause (mset_ccls C) (trail T) T)))"
-        using get_level_get_rev_level_get_all_levels_of_marked[OF
+        = length (get_all_levels_of_ann (trail (cut_trail_wrt_clause (mset_ccls C) (trail T) T)))"
+        using get_level_get_rev_level_get_all_levels_of_ann[OF
           \<open>atm_of ?L \<notin> atm_of ` lits_of_l (tl (trail (cut_trail_wrt_clause (mset_ccls C) 
             (trail T) T)))\<close>,
           of "[hd (trail (cut_trail_wrt_clause (mset_ccls C) (trail T) T))]"]
@@ -384,7 +384,7 @@ proof -
           using l by (auto split: if_split_asm
             simp:rev_swap[symmetric] add_new_clause_and_update_def)
 
-      have L': "length (get_all_levels_of_marked (trail (cut_trail_wrt_clause (mset_ccls C) 
+      have L': "length (get_all_levels_of_ann (trail (cut_trail_wrt_clause (mset_ccls C) 
         (trail T) T)))
         = backtrack_lvl (cut_trail_wrt_clause (mset_ccls C) (trail T) T)"
         using \<open>cdcl\<^sub>W_all_struct_inv ?T'\<close> unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
@@ -404,7 +404,7 @@ proof -
             case D_T
             have "no_smaller_confl T"
               using inv_s unfolding cdcl\<^sub>W_stgy_invariant_def by auto
-            have "(MT @ M') @ Marked K i # M = trail T "
+            have "(MT @ M') @ Decided K i # M = trail T "
               using MT 1(1) by auto
             thus False using D_T \<open>no_smaller_confl T\<close> 1(3) unfolding no_smaller_confl_def by blast
           next
@@ -412,15 +412,15 @@ proof -
             then have "atm_of (-?L) \<in> atm_of ` (lits_of_l M)"
               using 1(3) C in_CNot_implies_uminus(2) by blast
             moreover
-              have "lit_of (hd (M' @ Marked K i # [])) = -?L"
+              have "lit_of (hd (M' @ Decided K i # [])) = -?L"
                 using l 1(1)[symmetric] inv
                 by (cases "trail (add_init_cls (cls_of_ccls C)
                     (cut_trail_wrt_clause (mset_ccls C) (trail T) T))")
                 (auto dest!: arg_cong[of "_ # _" _ hd] simp: hd_append cdcl\<^sub>W_all_struct_inv_def
                   cdcl\<^sub>W_M_level_inv_def)
               from arg_cong[OF this, of atm_of]
-              have "atm_of (-?L) \<in> atm_of ` (lits_of_l (M' @ Marked K i # []))"
-                by (cases " (M' @ Marked K i # [])") auto
+              have "atm_of (-?L) \<in> atm_of ` (lits_of_l (M' @ Decided K i # []))"
+                by (cases " (M' @ Decided K i # [])") auto
             moreover have "no_dup (trail (cut_trail_wrt_clause (mset_ccls C) (trail T) T))"
               using \<open>cdcl\<^sub>W_all_struct_inv ?T'\<close> unfolding cdcl\<^sub>W_all_struct_inv_def
               cdcl\<^sub>W_M_level_inv_def by (auto simp: add_new_clause_and_update_def)
@@ -500,7 +500,7 @@ next
   then show ?case
     using add_no_confl(5) unfolding full_def by (auto intro: rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv)
   case 2
-  have nc: "\<forall>M. (\<exists>K i M'. trail S = M' @ Marked K i # M) \<longrightarrow> \<not> M \<Turnstile>as CNot (mset_ccls C)"
+  have nc: "\<forall>M. (\<exists>K i M'. trail S = M' @ Decided K i # M) \<longrightarrow> \<not> M \<Turnstile>as CNot (mset_ccls C)"
     using  \<open>\<not> trail S \<Turnstile>as CNot (mset_ccls C)\<close>
     by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
 

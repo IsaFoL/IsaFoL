@@ -11,14 +11,14 @@ lemma lits_of_l_unfold[iff]:
   unfolding true_annots_def Ball_def true_annot_def CNot_def by auto
 text \<open>The right-hand version is written at a high-level, but only the left-hand side is executable.\<close>
 
-definition is_unit_clause :: "'a literal list \<Rightarrow> ('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal option"
+definition is_unit_clause :: "'a literal list \<Rightarrow> ('a, 'b, 'c) ann_lit list \<Rightarrow> 'a literal option"
  where
  "is_unit_clause l M =
    (case List.filter (\<lambda>a. atm_of a \<notin> atm_of ` lits_of_l M) l of
      a # [] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
    | _ \<Rightarrow> None)"
 
-definition is_unit_clause_code :: "'a literal list \<Rightarrow> ('a, 'b, 'c) marked_lit list
+definition is_unit_clause_code :: "'a literal list \<Rightarrow> ('a, 'b, 'c) ann_lit list
   \<Rightarrow> 'a literal option" where
  "is_unit_clause_code l M =
    (case List.filter (\<lambda>a. atm_of a \<notin> atm_of ` lits_of_l M) l of
@@ -48,7 +48,7 @@ proof -
     apply (rename_tac aa list; case_tac list) by (auto split: if_split_asm)
   hence "atm_of a \<notin> atm_of ` lits_of_l M" by auto
   thus ?thesis
-    by (simp add: Marked_Propagated_in_iff_in_lits_of_l
+    by (simp add: Decided_Propagated_in_iff_in_lits_of_l
       atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set )
 qed
 
@@ -80,7 +80,7 @@ lemma is_unit_clause_nil[simp]: "is_unit_clause [] M = None"
 
 subsubsection \<open>Unit propagation for all clauses\<close>
 text \<open>Finding the first clause to propagate\<close>
-fun find_first_unit_clause :: "'a literal list list \<Rightarrow> ('a, 'b, 'c) marked_lit list
+fun find_first_unit_clause :: "'a literal list list \<Rightarrow> ('a, 'b, 'c) ann_lit list
   \<Rightarrow> ('a literal \<times> 'a literal list) option"  where
 "find_first_unit_clause (a # l) M =
   (case is_unit_clause a M of
@@ -114,7 +114,7 @@ proof -
           case True
           thus ?thesis using Cons
             by (auto simp del: lits_of_l_unfold
-                 simp add: lits_of_l_unfold[symmetric] Marked_Propagated_in_iff_in_lits_of_l
+                 simp add: lits_of_l_unfold[symmetric] Decided_Propagated_in_iff_in_lits_of_l
                    atm_of_eq_atm_of atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
         next
           case False
@@ -172,7 +172,7 @@ lemma find_first_unused_var_Some:
 
 lemma find_first_unused_var_undefined:
   "find_first_unused_var l (lits_of_l Ms) = Some a \<Longrightarrow> undefined_lit Ms a"
-  using find_first_unused_var_Some[of l "lits_of_l Ms" a] Marked_Propagated_in_iff_in_lits_of_l
+  using find_first_unused_var_Some[of l "lits_of_l Ms" a] Decided_Propagated_in_iff_in_lits_of_l
   by blast
 
 end

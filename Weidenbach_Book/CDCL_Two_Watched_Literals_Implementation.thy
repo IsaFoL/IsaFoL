@@ -41,8 +41,8 @@ datatype 'v candidate =
     (conflict: "'v twl_clause option")
 
 text \<open>Morally instead of @{typ "('v literal \<times> 'v twl_clause) list"}, we should use
-  @{typ "('v, nat, 'v twl_clause) marked_lits"} with only @{term Propagated}. However, we do not
-  want to define the function for @{term Marked} too. The following function makes the conversion
+  @{typ "('v, nat, 'v twl_clause) ann_lits"} with only @{term Propagated}. However, we do not
+  want to define the function for @{term Decided} too. The following function makes the conversion
   from the pair to the trail:
   \<close>
 abbreviation get_trail_of_cand where
@@ -73,7 +73,7 @@ lemma raw_trail_raw_cons_trail[simp]:
   "raw_trail (raw_cons_trail L S) = L # raw_trail S"
   by (cases S) auto
 
-fun find_earliest_conflict :: "('v, nat, 'v twl_clause) marked_lits \<Rightarrow>
+fun find_earliest_conflict :: "('v, nat, 'v twl_clause) ann_lits \<Rightarrow>
   'v twl_clause option \<Rightarrow> 'v twl_clause option \<Rightarrow> 'v twl_clause option" where
 "find_earliest_conflict _ None C = C" |
 "find_earliest_conflict _ C None = C" |
@@ -114,7 +114,7 @@ text \<open>While updating the clauses, there are several cases:
 
   The function returns a couple composed of a list of clauses and a candidate.\<close>fun
   rewatch_nat_cand_single_clause ::
-  "'v literal \<Rightarrow> ('v, nat, 'v twl_clause) marked_lits \<Rightarrow> 'v twl_clause \<Rightarrow>
+  "'v literal \<Rightarrow> ('v, nat, 'v twl_clause) ann_lits \<Rightarrow> 'v twl_clause \<Rightarrow>
     'v twl_clause list \<times> 'v candidate \<Rightarrow>
      'v twl_clause list  \<times> 'v candidate"
 where
@@ -145,7 +145,7 @@ fun \<mu>TWL where
 
 fun
   rewatch_nat_cand_clss ::
-  "'v literal \<Rightarrow> ('v, nat, 'v twl_clause) marked_lits \<Rightarrow>
+  "'v literal \<Rightarrow> ('v, nat, 'v twl_clause) ann_lits \<Rightarrow>
     'v twl_clause list \<times> 'v candidate \<Rightarrow>
      'v twl_clause list  \<times> 'v candidate"
 where
@@ -543,7 +543,7 @@ lemma rewatch_nat_cand_single_clause_conflict_found:
 text \<open>This lemma is \<^emph>\<open>wrong\<close>: we are speaking of half-update data-structure, meaning that
   @{term "wf_twl_cls (get_trail_of_cand K @ M) C"} is the wrong assumption to use.\<close>
 lemma
-  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) marked_lit list"
+  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) ann_lit list"
   and L :: "'v literal" and Cs :: "'v twl_clause list" and C :: "'v twl_clause"
   defines "S \<equiv> rewatch_nat_cand_single_clause L M C (Cs, Ks)"
   assumes wf: "wf_twl_cls (get_trail_of_cand Ks @ M) C" and
@@ -567,7 +567,7 @@ proof -
         apply (intro allI conjI impI)
               apply (auto simp add: C simp del: watched_decided_most_recently.simps)[3]
          apply (auto simp add: filter_empty_conv uminus_lit_swap)[]
-        apply (auto simp add: filter_empty_conv Marked_Propagated_in_iff_in_lits_of_l lits_of_def
+        apply (auto simp add: filter_empty_conv Decided_Propagated_in_iff_in_lits_of_l lits_of_def
            image_Un Ball_def)[]
          done
     next
@@ -576,7 +576,7 @@ proof -
        show ?thesis
          using wf filter wC uC unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def
          apply (intro allI conjI impI)
-         apply (auto simp add: C filter_empty_conv Marked_Propagated_in_iff_in_lits_of_l lits_of_def
+         apply (auto simp add: C filter_empty_conv Decided_Propagated_in_iff_in_lits_of_l lits_of_def
            image_Un simp del: watched_decided_most_recently.simps)
          done
     next
@@ -605,8 +605,8 @@ proof -
 qed
 (*
 lemma wf_rewatch_nat_cand_single_clause:
-  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) marked_lit list" and
-    L :: "('v, nat, 'v twl_clause) marked_lit" and Cs :: "'v twl_clause list" and
+  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) ann_lit list" and
+    L :: "('v, nat, 'v twl_clause) ann_lit" and Cs :: "'v twl_clause list" and
     C :: "'v twl_clause"
   defines "S \<equiv> rewatch_nat_cand_single_clause (lit_of L) M C (Cs, Ks)"
   assumes
@@ -638,7 +638,7 @@ proof -
         apply (intro allI conjI impI)
               apply (auto simp add: C simp del: watched_decided_most_recently.simps)[3]
          apply (auto simp add: filter_empty_conv uminus_lit_swap)[]
-        apply (auto simp add: filter_empty_conv Marked_Propagated_in_iff_in_lits_of_l lits_of_def
+        apply (auto simp add: filter_empty_conv Decided_Propagated_in_iff_in_lits_of_l lits_of_def
            image_Un)[]
          done
     next
@@ -648,7 +648,7 @@ proof -
          using filter wC uC unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def fst_conv
           List.list.sel(1)
          apply (intro allI conjI impI)
-         using wf' apply (auto simp add: C filter_empty_conv Marked_Propagated_in_iff_in_lits_of_l
+         using wf' apply (auto simp add: C filter_empty_conv Decided_Propagated_in_iff_in_lits_of_l
            lits_of_def image_Un simp del: watched_decided_most_recently.simps)[4]
          using t apply simp
          done
@@ -703,7 +703,7 @@ proof -
 qed
  *)
 lemma rewatch_nat_cand_single_clause_no_dup:
-  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) marked_lit list"
+  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) ann_lit list"
   and L :: "'v literal" and Cs :: "'v twl_clause list" and C :: "'v twl_clause"
   defines "S \<equiv> rewatch_nat_cand_single_clause L M C (Cs, Ks)"
   assumes wf: "wf_twl_cls M C" and
@@ -714,8 +714,8 @@ lemma rewatch_nat_cand_single_clause_no_dup:
   using undef unfolding S_def by (auto simp add: defined_lit_map image_Un image_image comp_def)
 
 (* lemma wf_foldr_rewatch_nat_cand_single_clause:
-  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) marked_lits" and
-    L :: "('v, nat, 'v twl_clause) marked_lit" and Cs :: "'v twl_clause list" and
+  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) ann_lits" and
+    L :: "('v, nat, 'v twl_clause) ann_lit" and Cs :: "'v twl_clause list" and
     C :: "'v twl_clause"
   defines "S \<equiv> rewatch_nat_cand_clss (lit_of L) M (Cs, Ks)"
   assumes
@@ -766,8 +766,8 @@ qed
  *)
 
 (*lemma
-  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) marked_lits" and
-    L :: "('v, nat, 'v twl_clause) marked_lit" and Cs :: "'v twl_clause list" and
+  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) ann_lits" and
+    L :: "('v, nat, 'v twl_clause) ann_lit" and Cs :: "'v twl_clause list" and
     C :: "'v twl_clause" and S :: "'v twl_state"
   defines "T \<equiv> rewatch_nat_cand (lit_of L) (TWL_State_Cand S Ks)"
   assumes

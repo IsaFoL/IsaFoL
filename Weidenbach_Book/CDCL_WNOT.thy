@@ -6,21 +6,21 @@ section \<open>Link between Weidenbach's and NOT's CDCL\<close>
 subsection \<open>Inclusion of the states\<close>
 declare upt.simps(2)[simp del]
 
-fun convert_marked_lit_from_W where
-"convert_marked_lit_from_W (Propagated L _) = Propagated L ()" |
-"convert_marked_lit_from_W (Marked L _) = Marked L ()"
+fun convert_ann_lit_from_W where
+"convert_ann_lit_from_W (Propagated L _) = Propagated L ()" |
+"convert_ann_lit_from_W (Decided L _) = Decided L ()"
 
 abbreviation convert_trail_from_W ::
-  "('v,  'lvl, 'a) marked_lit list
-    \<Rightarrow> ('v, unit, unit) marked_lit list"  where
-"convert_trail_from_W \<equiv> map convert_marked_lit_from_W"
+  "('v,  'lvl, 'a) ann_lit list
+    \<Rightarrow> ('v, unit, unit) ann_lit list"  where
+"convert_trail_from_W \<equiv> map convert_ann_lit_from_W"
 
 lemma lits_of_l_convert_trail_from_W[simp]:
   "lits_of_l (convert_trail_from_W M) = lits_of_l M"
-  by (induction rule: marked_lit_list_induct) simp_all
+  by (induction rule: ann_lit_list_induct) simp_all
 
 lemma lit_of_convert_trail_from_W[simp]:
-  "lit_of (convert_marked_lit_from_W L) = lit_of L"
+  "lit_of (convert_ann_lit_from_W L) = lit_of L"
   by (cases L) auto
 
 lemma no_dup_convert_from_W[simp]:
@@ -37,28 +37,28 @@ lemma defined_lit_convert_trail_from_W[simp]:
 
 text \<open>The values @{term "0::nat"} and @{term "{#}"} are dummy values.\<close>
 consts dummy_cls :: 'cls
-fun convert_marked_lit_from_NOT
-  :: "('a, 'e, 'b) marked_lit \<Rightarrow> ('a, nat, 'cls) marked_lit"  where
-"convert_marked_lit_from_NOT (Propagated L _) = Propagated L dummy_cls" |
-"convert_marked_lit_from_NOT (Marked L _) = Marked L 0"
+fun convert_ann_lit_from_NOT
+  :: "('a, 'e, 'b) ann_lit \<Rightarrow> ('a, nat, 'cls) ann_lit"  where
+"convert_ann_lit_from_NOT (Propagated L _) = Propagated L dummy_cls" |
+"convert_ann_lit_from_NOT (Decided L _) = Decided L 0"
 
 abbreviation convert_trail_from_NOT where
-"convert_trail_from_NOT \<equiv> map convert_marked_lit_from_NOT"
+"convert_trail_from_NOT \<equiv> map convert_ann_lit_from_NOT"
 
 lemma undefined_lit_convert_trail_from_NOT[simp]:
   "undefined_lit (convert_trail_from_NOT F) L \<longleftrightarrow> undefined_lit F L"
-  by (induction F rule: marked_lit_list_induct) (auto simp: defined_lit_map)
+  by (induction F rule: ann_lit_list_induct) (auto simp: defined_lit_map)
 
 lemma lits_of_l_convert_trail_from_NOT:
   "lits_of_l (convert_trail_from_NOT F) = lits_of_l F"
-  by (induction F rule: marked_lit_list_induct) auto
+  by (induction F rule: ann_lit_list_induct) auto
 
 lemma convert_trail_from_W_from_NOT[simp]:
   "convert_trail_from_W (convert_trail_from_NOT M) = M"
-  by (induction rule: marked_lit_list_induct) auto
+  by (induction rule: ann_lit_list_induct) auto
 
 lemma convert_trail_from_W_convert_lit_from_NOT[simp]:
-  "convert_marked_lit_from_W (convert_marked_lit_from_NOT L) = L"
+  "convert_ann_lit_from_W (convert_ann_lit_from_NOT L) = L"
   by (cases L) auto
 
 abbreviation trail\<^sub>N\<^sub>O\<^sub>T where
@@ -68,8 +68,8 @@ lemma undefined_lit_convert_trail_from_W[iff]:
   "undefined_lit (convert_trail_from_W M) L \<longleftrightarrow> undefined_lit M L"
   by (auto simp: defined_lit_map image_comp)
 
-lemma lit_of_convert_marked_lit_from_NOT[iff]:
-  "lit_of (convert_marked_lit_from_NOT L) = lit_of L"
+lemma lit_of_convert_ann_lit_from_NOT[iff]:
+  "lit_of (convert_ann_lit_from_NOT L) = lit_of L"
   by (cases L) auto
 
 sublocale state\<^sub>W \<subseteq> dpll_state_ops
@@ -77,7 +77,7 @@ sublocale state\<^sub>W \<subseteq> dpll_state_ops
    mset_clss union_clss in_clss insert_clss remove_from_clss
    "\<lambda>S. convert_trail_from_W (trail S)"
    raw_clauses
-   "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
+   "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S"
    "\<lambda>S. tl_trail S"
    "\<lambda>C S. add_learned_cls C S"
    "\<lambda>C S. remove_cls C S"
@@ -85,8 +85,8 @@ sublocale state\<^sub>W \<subseteq> dpll_state_ops
 
 context state\<^sub>W
 begin
-lemma convert_marked_lit_from_W_convert_marked_lit_from_NOT[simp]:
-  "convert_marked_lit_from_W (mmset_of_mlit (convert_marked_lit_from_NOT L)) = L"
+lemma convert_ann_lit_from_W_convert_ann_lit_from_NOT[simp]:
+  "convert_ann_lit_from_W (mmset_of_mlit (convert_ann_lit_from_NOT L)) = L"
   by (cases L) auto
 end
 
@@ -95,7 +95,7 @@ sublocale state\<^sub>W \<subseteq> dpll_state
    mset_clss union_clss in_clss insert_clss remove_from_clss
    "\<lambda>S. convert_trail_from_W (trail S)"
    raw_clauses
-   "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
+   "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S"
    "\<lambda>S. tl_trail S"
    "\<lambda>C S. add_learned_cls C S"
    "\<lambda>C S. remove_cls C S"
@@ -114,7 +114,7 @@ sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub
   mset_clss union_clss in_clss insert_clss remove_from_clss
   "\<lambda>S. convert_trail_from_W (trail S)"
   raw_clauses
-  "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
+  "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S"
   "\<lambda>S. tl_trail S"
   "\<lambda>C S. add_learned_cls C S"
   "\<lambda>C S. remove_cls C S"
@@ -130,7 +130,7 @@ sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub
   mset_clss union_clss in_clss insert_clss remove_from_clss
   "\<lambda>S. convert_trail_from_W (trail S)"
   raw_clauses
-  "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
+  "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S"
   "\<lambda>S. tl_trail S"
   "\<lambda>C S. add_learned_cls C S"
   "\<lambda>C S. remove_cls C S"
@@ -147,13 +147,13 @@ next
   moreover
     let ?C' = "remdups_mset C'"
     have "L \<notin># C'"
-      using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit F L\<close> Marked_Propagated_in_iff_in_lits_of_l
+      using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit F L\<close> Decided_Propagated_in_iff_in_lits_of_l
       in_CNot_implies_uminus(2) by fast
     then have "distinct_mset (?C' + {#L#})"
       by (simp add: distinct_mset_single_add)
   moreover
     have "no_dup F"
-      using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> \<open>convert_trail_from_W (trail S) = F' @ Marked K () # F\<close>
+      using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> \<open>convert_trail_from_W (trail S) = F' @ Decided K () # F\<close>
       unfolding inv\<^sub>N\<^sub>O\<^sub>T_def
       by (smt comp_apply distinct.simps(2) distinct_append list.simps(9) map_append
         no_dup_convert_from_W)
@@ -163,7 +163,7 @@ next
       using \<open>F \<Turnstile>as CNot C'\<close> consistent_CNot_not_tautology true_annots_true_cls by blast
     then have "\<not> tautology (?C' + {#L#})"
       using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit F L\<close> by (metis  CNot_remdups_mset
-        Marked_Propagated_in_iff_in_lits_of_l add.commute in_CNot_uminus tautology_add_single
+        Decided_Propagated_in_iff_in_lits_of_l add.commute in_CNot_uminus tautology_add_single
         tautology_remdups_mset true_annot_singleton true_annots_def)
   show ?case
     proof -
@@ -171,8 +171,8 @@ next
         using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> unfolding inv\<^sub>N\<^sub>O\<^sub>T_def by (simp add: o_def)
       have f3: "atm_of L \<in> atms_of_mm (clauses S)
         \<union> atm_of ` lits_of_l (convert_trail_from_W (trail S))"
-        using \<open>convert_trail_from_W (trail S) = F' @ Marked K () # F\<close>
-        \<open>atm_of L \<in> atms_of_mm (clauses S) \<union> atm_of ` lits_of_l (F' @ Marked K () # F)\<close> by auto
+        using \<open>convert_trail_from_W (trail S) = F' @ Decided K () # F\<close>
+        \<open>atm_of L \<in> atms_of_mm (clauses S) \<union> atm_of ` lits_of_l (F' @ Decided K () # F)\<close> by auto
       have f4: "clauses S \<Turnstile>pm remdups_mset C' + {#L#}"
         by (metis (no_types) \<open>L \<notin># C'\<close> \<open>clauses S \<Turnstile>pm C' + {#L#}\<close> remdups_mset_singleton_sum(2)
           true_clss_cls_remdups_mset union_commute)
@@ -194,7 +194,7 @@ qed
 sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2  _ _ _ _ _ _ _ _
   "\<lambda>S. convert_trail_from_W (trail S)"
   raw_clauses
-  "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
+  "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S"
   "\<lambda>S. tl_trail S"
   "\<lambda>C S. add_learned_cls C S"
   "\<lambda>C S. remove_cls C S"
@@ -205,7 +205,7 @@ sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub
 sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn _ _ _ _ _ _ _ _
   "\<lambda>S. convert_trail_from_W (trail S)"
   raw_clauses
-  "\<lambda>L S. cons_trail (convert_marked_lit_from_NOT L) S"
+  "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S"
   "\<lambda>S. tl_trail S"
   "\<lambda>C S. add_learned_cls C S"
   "\<lambda>C S. remove_cls C S"
@@ -256,7 +256,7 @@ lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_map[simp]:
 lemma skip_or_resolve_state_change:
   assumes "skip_or_resolve\<^sup>*\<^sup>* S T"
   shows
-    "\<exists>M. trail S = M @ trail T \<and> (\<forall>m \<in> set M. \<not>is_marked m)"
+    "\<exists>M. trail S = M @ trail T \<and> (\<forall>m \<in> set M. \<not>is_decided m)"
     "clauses S = clauses T"
     "backtrack_lvl S = backtrack_lvl T"
   using assms
@@ -311,7 +311,7 @@ next
   then obtain L where
     undef_L: "undefined_lit (trail S) L" and
     atm_L: "atm_of L \<in> atms_of_mm (init_clss S)" and
-    T: "T \<sim> cons_trail (Marked L (Suc (backtrack_lvl S)))
+    T: "T \<sim> cons_trail (Decided L (Suc (backtrack_lvl S)))
       (update_backtrack_lvl (Suc (backtrack_lvl S)) S)"
     by (auto elim: decideE)
   have "decide\<^sub>N\<^sub>O\<^sub>T S T"
@@ -380,7 +380,7 @@ next
       then obtain M1 M2 i D L K where
         confl_T': "raw_conflicting T' = Some D" and
         LD: "L \<in># mset_ccls D" and
-        M1_M2:"(Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition (trail T'))" and
+        M1_M2:"(Decided K (i+1) # M1, M2) \<in> set (get_all_ann_decomposition (trail T'))" and
         "get_level (trail T') L = backtrack_lvl T'" and
         "get_level (trail T') L = get_maximum_level (trail T') (mset_ccls D)" and
         "get_maximum_level (trail T') (mset_ccls (remove_clit L D)) = i" and
@@ -425,12 +425,12 @@ next
       obtain M where tr_T: "trail T = M @ trail T'"
         using s_or_r skip_or_resolve_state_change by meson
       obtain M' where
-        tr_T': "trail T' = M' @  Marked K (i+1) # tl (trail U)" and
+        tr_T': "trail T' = M' @  Decided K (i+1) # tl (trail U)" and
         tr_U: "trail U = Propagated L (mset_ccls D) # tl (trail U)"
         using U M1_M2 undef_L inv_T' unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
         by fastforce
       def M'' \<equiv> "M @ M'"
-      have tr_T: "trail S = M'' @  Marked K (i+1) # tl (trail U)"
+      have tr_T: "trail S = M'' @  Decided K (i+1) # tl (trail U)"
         using tr_T tr_T' confl unfolding M''_def by (auto elim: rulesE)
       have "init_clss T' + learned_clss S \<Turnstile>pm mset_ccls D"
         using inv_T' confl_T' unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def
@@ -439,9 +439,9 @@ next
         reduce_trail_to M1 S"
         by (rule reduce_trail_to_length) simp
       moreover have "trail (reduce_trail_to M1 S) = M1"
-        apply (rule reduce_trail_to_skip_beginning[of _ "M @ _ @ M2 @ [Marked K (Suc i)]"])
+        apply (rule reduce_trail_to_skip_beginning[of _ "M @ _ @ M2 @ [Decided K (Suc i)]"])
         using confl M1_M2 \<open>trail T = M @ trail T'\<close>
-          apply (auto dest!: get_all_marked_decomposition_exists_prepend
+          apply (auto dest!: get_all_ann_decomposition_exists_prepend
             elim!: conflictE)
           by (rule sym) auto
       ultimately have [simp]: "trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M1 S) = M1"

@@ -5,11 +5,11 @@ begin
 
 section \<open>DPLL\<close>
 subsection \<open>Rules\<close>
-type_synonym 'a dpll\<^sub>W_marked_lit = "('a, unit, unit) marked_lit"
-type_synonym 'a dpll\<^sub>W_marked_lits = "('a, unit, unit) marked_lits"
-type_synonym 'v dpll\<^sub>W_state = "'v dpll\<^sub>W_marked_lits \<times> 'v clauses"
+type_synonym 'a dpll\<^sub>W_ann_lit = "('a, unit, unit) ann_lit"
+type_synonym 'a dpll\<^sub>W_ann_lits = "('a, unit, unit) ann_lits"
+type_synonym 'v dpll\<^sub>W_state = "'v dpll\<^sub>W_ann_lits \<times> 'v clauses"
 
-abbreviation trail :: "'v dpll\<^sub>W_state \<Rightarrow> 'v dpll\<^sub>W_marked_lits" where
+abbreviation trail :: "'v dpll\<^sub>W_state \<Rightarrow> 'v dpll\<^sub>W_ann_lits" where
 "trail \<equiv> fst"
 abbreviation clauses :: "'v dpll\<^sub>W_state \<Rightarrow> 'v clauses" where
 "clauses \<equiv> snd"
@@ -18,8 +18,8 @@ inductive dpll\<^sub>W :: "'v dpll\<^sub>W_state \<Rightarrow> 'v dpll\<^sub>W_s
 propagate: "C + {#L#} \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit (trail S) L
   \<Longrightarrow> dpll\<^sub>W S (Propagated L () # trail S, clauses S)" |
 decided: "undefined_lit (trail S) L \<Longrightarrow> atm_of L \<in> atms_of_mm (clauses S)
-  \<Longrightarrow> dpll\<^sub>W S (Marked L () # trail S, clauses S)" |
-backtrack: "backtrack_split (trail S) = (M', L # M) \<Longrightarrow> is_marked L \<Longrightarrow> D \<in># clauses S
+  \<Longrightarrow> dpll\<^sub>W S (Decided L () # trail S, clauses S)" |
+backtrack: "backtrack_split (trail S) = (M', L # M) \<Longrightarrow> is_decided L \<Longrightarrow> D \<in># clauses S
   \<Longrightarrow> trail S \<Turnstile>as CNot D \<Longrightarrow> dpll\<^sub>W S (Propagated (- (lit_of L)) () # M, clauses S)"
 
 subsection \<open>Invariants\<close>
@@ -47,7 +47,7 @@ lemma dpll\<^sub>W_consistent_interp_inv:
   shows "consistent_interp (lits_of_l (trail S'))"
   using assms
 proof (induct rule: dpll\<^sub>W.induct)
-  case (backtrack S M' L M D) note extracted = this(1) and marked = this(2) and D = this(4) and
+  case (backtrack S M' L M D) note extracted = this(1) and decided = this(2) and D = this(4) and
     cons = this(5) and no_dup = this(6)
   have no_dup': "no_dup M"
     by (metis (no_types) backtrack_split_list_eq distinct.simps(2) distinct_append extracted
@@ -92,9 +92,9 @@ lemma atms_of_ms_lit_of_atms_of: "atms_of_ms ((\<lambda>a. {#lit_of a#}) ` c) = 
 text \<open>\cwref{dpll:sound:model}{theorem 2.8.2 page 73}\<close>
 lemma dpll\<^sub>W_propagate_is_conclusion:
   assumes "dpll\<^sub>W S S'"
-  and "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))"
+  and "all_decomposition_implies_m (clauses S) (get_all_ann_decomposition (trail S))"
   and "atm_of ` lits_of_l (trail S) \<subseteq> atms_of_mm (clauses S)"
-  shows "all_decomposition_implies_m (clauses S') (get_all_marked_decomposition (trail S'))"
+  shows "all_decomposition_implies_m (clauses S') (get_all_ann_decomposition (trail S'))"
   using assms
 proof (induct rule: dpll\<^sub>W.induct)
   case (decided L S)
@@ -106,24 +106,24 @@ next
   moreover have "?I \<Turnstile>ps CNot C" using true_annots_true_clss_cls cnot by fastforce
   ultimately have "?I \<Turnstile>p {#L#}" using true_clss_cls_plus_CNot[of ?I C L] inS by blast
   {
-    assume "get_all_marked_decomposition (trail S) = []"
+    assume "get_all_ann_decomposition (trail S) = []"
     then have ?case by blast
   }
   moreover {
-    assume n: "get_all_marked_decomposition (trail S) \<noteq> []"
-    have 1: "\<And>a b. (a, b) \<in> set (tl (get_all_marked_decomposition (trail S)))
+    assume n: "get_all_ann_decomposition (trail S) \<noteq> []"
+    have 1: "\<And>a b. (a, b) \<in> set (tl (get_all_ann_decomposition (trail S)))
       \<Longrightarrow> (unmark_l a \<union> set_mset (clauses S)) \<Turnstile>ps unmark_l b"
       using IH unfolding all_decomposition_implies_def by (fastforce simp add: list.set_sel(2) n)
-    moreover have 2: "\<And>a c. hd (get_all_marked_decomposition (trail S)) = (a, c)
+    moreover have 2: "\<And>a c. hd (get_all_ann_decomposition (trail S)) = (a, c)
       \<Longrightarrow> (unmark_l a \<union> set_mset (clauses S)) \<Turnstile>ps (unmark_l c)"
       by (metis IH all_decomposition_implies_cons_pair all_decomposition_implies_single
         list.collapse n)
-    moreover have 3: "\<And>a c. hd (get_all_marked_decomposition (trail S)) = (a, c)
+    moreover have 3: "\<And>a c. hd (get_all_ann_decomposition (trail S)) = (a, c)
       \<Longrightarrow> (unmark_l a \<union> set_mset (clauses S)) \<Turnstile>p {#L#}"
       proof -
         fix a c
-        assume h: "hd (get_all_marked_decomposition (trail S)) = (a, c)"
-        have h': "trail S = c @ a" using get_all_marked_decomposition_decomp h by blast
+        assume h: "hd (get_all_ann_decomposition (trail S)) = (a, c)"
+        have h': "trail S = c @ a" using get_all_ann_decomposition_decomp h by blast
         have I: "set (map (\<lambda>a. {#lit_of a#})  a) \<union> set_mset (clauses S)
           \<union> unmark_l c \<Turnstile>ps CNot C"
           using \<open>?I \<Turnstile>ps CNot C\<close> unfolding h' by (simp add: Un_commute Un_left_commute)
@@ -143,21 +143,21 @@ next
             true_clss_cls_in true_clss_cls_plus_CNot)
       qed
     ultimately have ?case
-      by (cases "hd (get_all_marked_decomposition (trail S))")
+      by (cases "hd (get_all_ann_decomposition (trail S))")
          (auto simp: all_decomposition_implies_def)
   }
   ultimately show ?case by auto
 next
-  case (backtrack S M' L M D) note extracted = this(1) and marked = this(2) and D = this(3) and
+  case (backtrack S M' L M D) note extracted = this(1) and decided = this(2) and D = this(3) and
     cnot = this(4) and cons = this(4) and IH = this(5) and atms_incl = this(6)
   have S: "trail S = M' @ L # M"
     using backtrack_split_list_eq[of "trail S"] unfolding extracted by auto
-  have M': "\<forall>l \<in> set M'. \<not>is_marked l"
-    using extracted backtrack_split_fst_not_marked[of _ "trail S"] by simp
-  have n: "get_all_marked_decomposition (trail S) \<noteq> []" by auto
+  have M': "\<forall>l \<in> set M'. \<not>is_decided l"
+    using extracted backtrack_split_fst_not_decided[of _ "trail S"] by simp
+  have n: "get_all_ann_decomposition (trail S) \<noteq> []" by auto
   then have "all_decomposition_implies_m (clauses S) ((L # M, M')
-           # tl (get_all_marked_decomposition (trail S)))"
-    by (metis (no_types) IH extracted get_all_marked_decomposition_backtrack_split list.exhaust_sel)
+           # tl (get_all_ann_decomposition (trail S)))"
+    by (metis (no_types) IH extracted get_all_ann_decomposition_backtrack_split list.exhaust_sel)
   then have 1: "unmark_l (L # M) \<union> set_mset (clauses S) \<Turnstile>ps(\<lambda>a.{#lit_of a#}) ` set M'"
     by simp
   moreover
@@ -178,50 +178,50 @@ next
   show ?case unfolding S all_decomposition_implies_def
     proof
       fix x P level
-      assume x: "x \<in> set (get_all_marked_decomposition
+      assume x: "x \<in> set (get_all_ann_decomposition
         (fst (Propagated (- lit_of L) P # M, clauses S)))"
       let ?M' = "Propagated (- lit_of L) P # M"
-      let ?hd = "hd (get_all_marked_decomposition ?M')"
-      let ?tl = "tl (get_all_marked_decomposition ?M')"
+      let ?hd = "hd (get_all_ann_decomposition ?M')"
+      let ?tl = "tl (get_all_ann_decomposition ?M')"
       have "x = ?hd \<or> x \<in> set ?tl"
         using x
-        by (cases "get_all_marked_decomposition ?M'")
+        by (cases "get_all_ann_decomposition ?M'")
            auto
       moreover {
         assume x': "x \<in> set ?tl"
-        have L': "Marked (lit_of L) () = L" using marked by (cases L, auto)
-        have "x \<in> set (get_all_marked_decomposition (M' @ L # M))"
-          using x' get_all_marked_decomposition_except_last_choice_equal[of M' "lit_of L" P M]
+        have L': "Decided (lit_of L) () = L" using decided by (cases L, auto)
+        have "x \<in> set (get_all_ann_decomposition (M' @ L # M))"
+          using x' get_all_ann_decomposition_except_last_choice_equal[of M' "lit_of L" P M]
           L' by (metis (no_types) M' list.set_sel(2) tl_Nil)
         then have "case x of (Ls, seen) \<Rightarrow> unmark_l Ls \<union> set_mset (clauses S)
           \<Turnstile>ps unmark_l seen"
-          using marked IH by (cases L) (auto simp add: S all_decomposition_implies_def)
+          using decided IH by (cases L) (auto simp add: S all_decomposition_implies_def)
       }
       moreover {
         assume x': "x = ?hd"
-        have tl: "tl (get_all_marked_decomposition (M' @ L # M)) \<noteq> []"
+        have tl: "tl (get_all_ann_decomposition (M' @ L # M)) \<noteq> []"
           proof -
-            have f1: "\<And>ms. length (get_all_marked_decomposition (M' @ ms))
-              = length (get_all_marked_decomposition ms)"
-              by (simp add: M' get_all_marked_decomposition_remove_unmarked_length)
-            have "Suc (length (get_all_marked_decomposition M)) \<noteq> Suc 0"
+            have f1: "\<And>ms. length (get_all_ann_decomposition (M' @ ms))
+              = length (get_all_ann_decomposition ms)"
+              by (simp add: M' get_all_ann_decomposition_remove_undecided_length)
+            have "Suc (length (get_all_ann_decomposition M)) \<noteq> Suc 0"
               by blast
             then show ?thesis
-              using f1 marked by (metis (no_types) get_all_marked_decomposition.simps(1) length_tl
-                list.sel(3) list.size(3) marked_lit.collapse(1))
+              using f1 decided by (metis (no_types) get_all_ann_decomposition.simps(1) length_tl
+                list.sel(3) list.size(3) ann_lit.collapse(1))
           qed
         obtain M0' M0 where
-          L0: "hd (tl (get_all_marked_decomposition (M' @ L # M))) = (M0, M0')"
-          by (cases "hd (tl (get_all_marked_decomposition (M' @ L # M)))")
+          L0: "hd (tl (get_all_ann_decomposition (M' @ L # M))) = (M0, M0')"
+          by (cases "hd (tl (get_all_ann_decomposition (M' @ L # M)))")
         have x'': "x = (M0, Propagated (-lit_of L) P # M0')"
-          unfolding x' using get_all_marked_decomposition_last_choice tl M' L0
-          by (metis marked marked_lit.collapse(1))
-        obtain l_get_all_marked_decomposition where
-          "get_all_marked_decomposition (trail S) = (L # M, M') # (M0, M0') #
-            l_get_all_marked_decomposition"
-          using get_all_marked_decomposition_backtrack_split extracted by (metis (no_types) L0 S
+          unfolding x' using get_all_ann_decomposition_last_choice tl M' L0
+          by (metis decided ann_lit.collapse(1))
+        obtain l_get_all_ann_decomposition where
+          "get_all_ann_decomposition (trail S) = (L # M, M') # (M0, M0') #
+            l_get_all_ann_decomposition"
+          using get_all_ann_decomposition_backtrack_split extracted by (metis (no_types) L0 S
             hd_Cons_tl n tl)
-        then have "M = M0' @ M0" using get_all_marked_decomposition_hd_hd by fastforce
+        then have "M = M0' @ M0" using get_all_ann_decomposition_hd_hd by fastforce
         then have IL':  "unmark_l M0 \<union> set_mset (clauses S)
           \<union> unmark_l M0' \<Turnstile>ps {{#- lit_of L#}}"
           using IL by (simp add: Un_commute Un_left_commute image_Un)
@@ -243,17 +243,17 @@ qed
 text \<open>\cwref{dpll:sound:propLits:valuation}{theorem 2.8.3 page 73}\<close>
 theorem dpll\<^sub>W_propagate_is_conclusion_of_decided:
   assumes "dpll\<^sub>W S S'"
-  and "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))"
+  and "all_decomposition_implies_m (clauses S) (get_all_ann_decomposition (trail S))"
   and "atm_of ` lits_of_l (trail S) \<subseteq> atms_of_mm (clauses S)"
-  shows "set_mset (clauses S') \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set (trail S')}
-    \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition (trail S')))"
+  shows "set_mset (clauses S') \<union> {{#lit_of L#} |L. is_decided L \<and> L \<in> set (trail S')}
+    \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_ann_decomposition (trail S')))"
   using all_decomposition_implies_trail_is_implied[OF dpll\<^sub>W_propagate_is_conclusion[OF assms]] .
 
 text \<open>\cwref{dpll:sound:propLits:unsat}{theorem 2.8.4 page 73}\<close>
 lemma only_propagated_vars_unsat:
-  assumes marked: "\<forall>x \<in> set M. \<not> is_marked x"
+  assumes decided: "\<forall>x \<in> set M. \<not> is_decided x"
   and DN: "D \<in> N" and D: "M \<Turnstile>as CNot D"
-  and inv: "all_decomposition_implies N (get_all_marked_decomposition M)"
+  and inv: "all_decomposition_implies N (get_all_ann_decomposition M)"
   and atm_incl: "atm_of ` lits_of_l M  \<subseteq> atms_of_ms N"
   shows "unsatisfiable N"
 proof (rule ccontr)
@@ -266,7 +266,7 @@ proof (rule ccontr)
   then have I_D: "I \<Turnstile> D"
     using DN unfolding true_clss_def by auto
 
-  have l0: "{{#lit_of L#} |L. is_marked L \<and> L \<in> set M} = {}" using marked by auto
+  have l0: "{{#lit_of L#} |L. is_decided L \<and> L \<in> set M} = {}" using decided by auto
   have "atms_of_ms (N \<union> unmark_l M) = atms_of_ms N"
     using atm_incl unfolding atms_of_ms_def lits_of_def by auto
 
@@ -295,11 +295,11 @@ lemma dpll\<^sub>W_same_clauses:
 
 lemma rtranclp_dpll\<^sub>W_inv:
   assumes "rtranclp dpll\<^sub>W S S'"
-  and inv: "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))"
+  and inv: "all_decomposition_implies_m (clauses S) (get_all_ann_decomposition (trail S))"
   and atm_incl: "atm_of ` lits_of_l (trail S) \<subseteq> atms_of_mm (clauses S)"
   and "consistent_interp (lits_of_l (trail S))"
   and "no_dup (trail S)"
-  shows "all_decomposition_implies_m (clauses S') (get_all_marked_decomposition (trail S'))"
+  shows "all_decomposition_implies_m (clauses S') (get_all_ann_decomposition (trail S'))"
   and "atm_of ` lits_of_l (trail S')  \<subseteq> atms_of_mm (clauses S')"
   and "clauses S = clauses S'"
   and "consistent_interp (lits_of_l (trail S'))"
@@ -308,7 +308,7 @@ lemma rtranclp_dpll\<^sub>W_inv:
 proof (induct rule: rtranclp_induct)
   case base
   show
-    "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))" and
+    "all_decomposition_implies_m (clauses S) (get_all_ann_decomposition (trail S))" and
     "atm_of ` lits_of_l (trail S) \<subseteq> atms_of_mm (clauses S)" and
     "clauses S = clauses S" and
     "consistent_interp (lits_of_l (trail S))" and
@@ -318,19 +318,19 @@ next
     dpll\<^sub>W = this(2)
   moreover
     assume
-      inv: "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))" and
+      inv: "all_decomposition_implies_m (clauses S) (get_all_ann_decomposition (trail S))" and
       atm_incl: "atm_of ` lits_of_l (trail S)  \<subseteq> atms_of_mm (clauses S)" and
       cons: "consistent_interp (lits_of_l (trail S))" and
       "no_dup (trail S)"
   ultimately have decomp: "all_decomposition_implies_m (clauses S')
-    (get_all_marked_decomposition (trail S'))" and
+    (get_all_ann_decomposition (trail S'))" and
     atm_incl': "atm_of ` lits_of_l (trail S') \<subseteq> atms_of_mm (clauses S')" and
     snd: "clauses S = clauses S'" and
     cons': "consistent_interp (lits_of_l (trail S'))" and
     no_dup': "no_dup (trail S')" by blast+
   show "clauses S = clauses S''" using dpll\<^sub>W_same_clauses[OF dpll\<^sub>W] snd by metis
 
-  show "all_decomposition_implies_m (clauses S'') (get_all_marked_decomposition (trail S''))"
+  show "all_decomposition_implies_m (clauses S'') (get_all_ann_decomposition (trail S''))"
     using dpll\<^sub>W_propagate_is_conclusion[OF dpll\<^sub>W] decomp atm_incl' by auto
   show "atm_of ` lits_of_l (trail S'') \<subseteq> atms_of_mm (clauses S'')"
     using dpll\<^sub>W_vars_in_snd_inv[OF dpll\<^sub>W]  atm_incl atm_incl' by auto
@@ -340,14 +340,14 @@ next
 qed
 
 definition "dpll\<^sub>W_all_inv S \<equiv>
-  (all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))
+  (all_decomposition_implies_m (clauses S) (get_all_ann_decomposition (trail S))
   \<and> atm_of ` lits_of_l (trail S)  \<subseteq> atms_of_mm (clauses S)
   \<and> consistent_interp (lits_of_l (trail S))
   \<and> no_dup (trail S))"
 
 lemma dpll\<^sub>W_all_inv_dest[dest]:
   assumes "dpll\<^sub>W_all_inv S"
-  shows "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))"
+  shows "all_decomposition_implies_m (clauses S) (get_all_ann_decomposition (trail S))"
   and "atm_of ` lits_of_l (trail S)  \<subseteq> atms_of_mm (clauses S)"
   and "consistent_interp (lits_of_l (trail S)) \<and> no_dup (trail S)"
   using assms unfolding dpll\<^sub>W_all_inv_def lits_of_def by auto
@@ -378,17 +378,17 @@ lemma dpll\<^sub>W_can_do_step:
   assumes "consistent_interp (set M)"
   and "distinct M"
   and "atm_of ` (set M) \<subseteq> atms_of_mm N"
-  shows "rtranclp dpll\<^sub>W ([], N) (map (\<lambda>M. Marked M ()) M, N)"
+  shows "rtranclp dpll\<^sub>W ([], N) (map (\<lambda>M. Decided M ()) M, N)"
   using assms
 proof (induct M)
   case Nil
   then show ?case by auto
 next
   case (Cons L M)
-  then have "undefined_lit (map (\<lambda>M. Marked M ()) M) L"
+  then have "undefined_lit (map (\<lambda>M. Decided M ()) M) L"
     unfolding defined_lit_def consistent_interp_def by auto
   moreover have "atm_of L \<in> atms_of_mm N" using Cons.prems(3) by auto
-  ultimately have "dpll\<^sub>W (map (\<lambda>M. Marked M ()) M, N) (map (\<lambda>M. Marked M ()) (L # M), N)"
+  ultimately have "dpll\<^sub>W (map (\<lambda>M. Decided M ()) M, N) (map (\<lambda>M. Decided M ()) (L # M), N)"
     using dpll\<^sub>W.decided by auto
   moreover have "consistent_interp (set M)" and "distinct M" and "atm_of ` set M \<subseteq> atms_of_mm N"
     using Cons.prems unfolding consistent_interp_def by auto
@@ -396,7 +396,7 @@ next
 qed
 
 definition "conclusive_dpll\<^sub>W_state (S:: 'v dpll\<^sub>W_state) \<longleftrightarrow>
-  (trail S \<Turnstile>asm clauses S \<or> ((\<forall>L \<in> set (trail S). \<not>is_marked L)
+  (trail S \<Turnstile>asm clauses S \<or> ((\<forall>L \<in> set (trail S). \<not>is_decided L)
   \<and> (\<exists>C \<in># clauses S. trail S \<Turnstile>as CNot C)))"
 
 text \<open>\cwref{prop:prop:dpllcomplete}{theorem 2.8.6 page 74}\<close> 
@@ -405,12 +405,12 @@ lemma dpll\<^sub>W_strong_completeness:
   and "consistent_interp (set M)"
   and "distinct M"
   and "atm_of ` (set M) \<subseteq> atms_of_mm N"
-  shows "dpll\<^sub>W\<^sup>*\<^sup>* ([], N) (map (\<lambda>M. Marked M ()) M, N)"
-  and "conclusive_dpll\<^sub>W_state (map (\<lambda>M. Marked M ())  M, N)"
+  shows "dpll\<^sub>W\<^sup>*\<^sup>* ([], N) (map (\<lambda>M. Decided M ()) M, N)"
+  and "conclusive_dpll\<^sub>W_state (map (\<lambda>M. Decided M ())  M, N)"
 proof -
-  show "rtranclp dpll\<^sub>W ([], N) (map (\<lambda>M. Marked M ()) M, N)" using dpll\<^sub>W_can_do_step assms by auto
-  have "map (\<lambda>M. Marked M ()) M \<Turnstile>asm N" using assms(1) true_annots_marked_true_cls by auto
-  then show "conclusive_dpll\<^sub>W_state (map (\<lambda>M. Marked M ()) M, N)"
+  show "rtranclp dpll\<^sub>W ([], N) (map (\<lambda>M. Decided M ()) M, N)" using dpll\<^sub>W_can_do_step assms by auto
+  have "map (\<lambda>M. Decided M ()) M \<Turnstile>asm N" using assms(1) true_annots_decided_true_cls by auto
+  then show "conclusive_dpll\<^sub>W_state (map (\<lambda>M. Decided M ()) M, N)"
     unfolding conclusive_dpll\<^sub>W_state_def by auto
 qed
 
@@ -438,7 +438,7 @@ next
             using n unfolding true_annots_def Ball_def by auto
           then have "(\<exists>L. undefined_lit M L \<and> atm_of L \<in> atms_of D) \<or> M \<Turnstile>as CNot D"
              unfolding true_annots_def Ball_def CNot_def true_annot_def
-             using atm_of_lit_in_atms_of true_annot_iff_marked_or_true_lit true_cls_def by blast
+             using atm_of_lit_in_atms_of true_annot_iff_decided_or_true_lit true_cls_def by blast
           then show ?thesis
             by (metis Bex_def D atms_of_atms_of_ms_mono rev_subsetD)
         qed
@@ -450,7 +450,7 @@ next
         assume "\<exists>D\<in>#N. M \<Turnstile>as CNot D"
         then obtain D where DN: "D \<in># N" and MD: "M \<Turnstile>as CNot D" by auto
         {
-          assume "\<forall>l \<in> set M. \<not> is_marked l"
+          assume "\<forall>l \<in> set M. \<not> is_decided l"
           moreover have "dpll\<^sub>W_all_inv ([], N)"
             using assms unfolding all_decomposition_implies_def dpll\<^sub>W_all_inv_def by auto
           ultimately have "unsatisfiable (set_mset N)"
@@ -459,11 +459,11 @@ next
           then have False using \<open>?B\<close> by blast
         }
         moreover {
-          assume l: "\<exists>l \<in> set M. is_marked l"
+          assume l: "\<exists>l \<in> set M. is_decided l"
           then have False
             using backtrack[of "(M, N)" _ _ _ D ] DN MD assms(2)
-              backtrack_split_some_is_marked_then_snd_has_hd[OF l]
-            by (metis backtrack_split_snd_hd_marked fst_conv list.distinct(1) list.sel(1) snd_conv)
+              backtrack_split_some_is_decided_then_snd_has_hd[OF l]
+            by (metis backtrack_split_snd_hd_decided fst_conv list.distinct(1) list.sel(1) snd_conv)
         }
         ultimately have False by blast
       }
@@ -473,7 +473,7 @@ qed
 
 subsection \<open>Termination\<close>
 definition "dpll\<^sub>W_mes M n =
-  map (\<lambda>l. if is_marked l then 2 else (1::nat)) (rev M) @ replicate (n - length M) 3"
+  map (\<lambda>l. if is_decided l then 2 else (1::nat)) (rev M) @ replicate (n - length M) 3"
 
 lemma length_dpll\<^sub>W_mes:
   assumes "length M \<le> n"
@@ -493,25 +493,25 @@ lemma dpll\<^sub>W_card_decrease:
   using assms
 proof (induct rule: dpll\<^sub>W.induct)
   case (propagate C L S)
-  have m: "map (\<lambda>l. if is_marked l then 2 else 1) (rev (trail S))
+  have m: "map (\<lambda>l. if is_decided l then 2 else 1) (rev (trail S))
        @ replicate (card vars - length (trail S)) 3
-     =  map (\<lambda>l. if is_marked l then 2 else 1) (rev (trail S)) @ 3
+     =  map (\<lambda>l. if is_decided l then 2 else 1) (rev (trail S)) @ 3
          # replicate (card vars - Suc (length (trail S))) 3"
      using propagate.prems[simplified] using Suc_diff_le by fastforce
   then show ?case
     using propagate.prems(1) unfolding dpll\<^sub>W_mes_def by (fastforce simp add: lexn_conv assms(2))
 next
   case (decided S L)
-  have m: "map (\<lambda>l. if is_marked l then 2 else 1) (rev (trail S))
+  have m: "map (\<lambda>l. if is_decided l then 2 else 1) (rev (trail S))
       @ replicate (card vars - length (trail S)) 3
-    =  map (\<lambda>l. if is_marked l then 2 else 1) (rev (trail S)) @ 3
+    =  map (\<lambda>l. if is_decided l then 2 else 1) (rev (trail S)) @ 3
       # replicate (card vars - Suc (length (trail S))) 3"
     using decided.prems[simplified] using Suc_diff_le by fastforce
   then show ?case
     using decided.prems unfolding dpll\<^sub>W_mes_def by (force simp add: lexn_conv assms(2))
 next
   case (backtrack S M' L M D)
-  have L: "is_marked L" using backtrack.hyps(2) by auto
+  have L: "is_decided L" using backtrack.hyps(2) by auto
   have S: "trail S = M' @ L # M"
     using backtrack.hyps(1) backtrack_split_list_eq[of "trail S"] by auto
   show ?case
@@ -620,7 +620,7 @@ proof -
         L_notin_trail: "L \<notin> atm_of ` lits_of_l (trail S)" by metis
       obtain L' where L': "atm_of L' = L" by (meson literal.sel(2))
       then have "undefined_lit (trail S) L'"
-        unfolding Marked_Propagated_in_iff_in_lits_of_l by (metis L_notin_trail atm_of_uminus imageI)
+        unfolding Decided_Propagated_in_iff_in_lits_of_l by (metis L_notin_trail atm_of_uminus imageI)
       then show False using dpll\<^sub>W.decided assms(1) L_in_atms L' by blast
     qed
   show ?thesis
@@ -628,20 +628,20 @@ proof -
       assume not_final: "\<not> ?thesis"
       then have
         "\<not> trail S \<Turnstile>asm clauses S" and
-        "(\<exists>L\<in>set (trail S). is_marked L) \<or> (\<forall>C\<in>#clauses S. \<not>trail S \<Turnstile>as CNot C)"
+        "(\<exists>L\<in>set (trail S). is_decided L) \<or> (\<forall>C\<in>#clauses S. \<not>trail S \<Turnstile>as CNot C)"
         unfolding conclusive_dpll\<^sub>W_state_def by auto
       moreover {
-        assume "\<exists>L\<in>set (trail S). is_marked L"
+        assume "\<exists>L\<in>set (trail S). is_decided L"
         then obtain L M' M where L: "backtrack_split (trail S) = (M', L # M)"
-          using backtrack_split_some_is_marked_then_snd_has_hd by blast
+          using backtrack_split_some_is_decided_then_snd_has_hd by blast
         obtain D where "D \<in># clauses S" and "\<not> trail S \<Turnstile>a D"
           using \<open>\<not> trail S \<Turnstile>asm clauses S\<close> unfolding true_annots_def by auto
         then have "\<forall>s\<in>atms_of_ms {D}. s \<in> atm_of ` lits_of_l (trail S)"
           using vars unfolding atms_of_ms_def by auto
         then have "trail S \<Turnstile>as CNot D"
           using all_variables_defined_not_imply_cnot[of D] \<open>\<not> trail S \<Turnstile>a D\<close> by auto
-        moreover have "is_marked L"
-          using L by (metis backtrack_split_snd_hd_marked list.distinct(1) list.sel(1) snd_conv)
+        moreover have "is_decided L"
+          using L by (metis backtrack_split_snd_hd_decided list.distinct(1) list.sel(1) snd_conv)
         ultimately have False
           using assms(1) dpll\<^sub>W.backtrack L \<open>D \<in># clauses S\<close> \<open>trail S \<Turnstile>as CNot D\<close> by blast
       }
@@ -674,7 +674,7 @@ next
   show ?A
     proof (rule ccontr)
       assume n: "\<not> ?A"
-      have no_mark: "\<forall>L\<in>set M. \<not> is_marked L"  "\<exists>C \<in># N. M \<Turnstile>as CNot C"
+      have no_mark: "\<forall>L\<in>set M. \<not> is_decided L"  "\<exists>C \<in># N. M \<Turnstile>as CNot C"
         using n assms(2) unfolding conclusive_dpll\<^sub>W_state_def by auto
       moreover obtain D where DN: "D \<in># N" and MD: "M \<Turnstile>as CNot D" using no_mark by auto
       ultimately have "unsatisfiable (set_mset N)"

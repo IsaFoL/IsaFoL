@@ -81,7 +81,7 @@ paragraph \<open>Opaque Type with Invariant\<close>
 
 declare rough_cdcl.state_simp[simp del]
 
-definition cons_trail_twl :: "('v, nat, 'v twl_clause) marked_lit \<Rightarrow> 'v wf_twl \<Rightarrow> 'v wf_twl"
+definition cons_trail_twl :: "('v, nat, 'v twl_clause) ann_lit \<Rightarrow> 'v wf_twl \<Rightarrow> 'v wf_twl"
   where
 "cons_trail_twl L S \<equiv> twl_of_rough_state (cons_trail L (rough_state_of_twl S))"
 
@@ -362,7 +362,7 @@ next
       apply (simp add: distinct_mset_remove1_All true_annots_true_cls)
      using undef apply simp
     using T undef by (smt wf_twl.backtrack_lvl_cons_trail confl wf_twl.init_clss_cons_trail
-      wf_twl.learned_clss_cons_trail marked_lit.sel(2) wf_twl.raw_conflicting_cons_trail
+      wf_twl.learned_clss_cons_trail ann_lit.sel(2) wf_twl.raw_conflicting_cons_trail
       wf_twl.state_eq_def wf_twl.trail_cons_trail wf_twl.mmset_of_mlit.simps(1)
       wf_twl.mset_cls_cls_of_ccls)
 qed

@@ -9,30 +9,30 @@ text \<open>We are using a concrete couple instead of an abstract state.\<close>
 
 locale dpll_with_backtrack
 begin
-inductive backtrack :: "('v, unit, unit) marked_lit list \<times> 'v clauses
-  \<Rightarrow> ('v, unit, unit) marked_lit list \<times> 'v clauses \<Rightarrow> bool" where
-"backtrack_split (fst S) = (M', L # M) \<Longrightarrow> is_marked L \<Longrightarrow> D \<in># snd S
+inductive backtrack :: "('v, unit, unit) ann_lit list \<times> 'v clauses
+  \<Rightarrow> ('v, unit, unit) ann_lit list \<times> 'v clauses \<Rightarrow> bool" where
+"backtrack_split (fst S) = (M', L # M) \<Longrightarrow> is_decided L \<Longrightarrow> D \<in># snd S
   \<Longrightarrow> fst S \<Turnstile>as CNot D \<Longrightarrow> backtrack S (Propagated (- (lit_of L)) () # M, snd S)"
 
 inductive_cases backtrackE[elim]: "backtrack (M, N) (M', N')"
 lemma backtrack_is_backjump:
-  fixes M M' :: "('v, unit, unit) marked_lit list"
+  fixes M M' :: "('v, unit, unit) ann_lit list"
   assumes
     backtrack: "backtrack (M, N) (M', N')" and
     no_dup: "(no_dup \<circ> fst) (M, N)" and
-    decomp: "all_decomposition_implies_m N (get_all_marked_decomposition M)"
+    decomp: "all_decomposition_implies_m N (get_all_ann_decomposition M)"
     shows "
        \<exists>C F' K F L l C'.
-          M = F' @ Marked K () # F \<and>
-          M' = Propagated L l # F \<and> N = N' \<and> C \<in># N \<and> F' @ Marked K d # F \<Turnstile>as CNot C \<and>
-          undefined_lit F L \<and> atm_of L \<in> atms_of_mm N \<union> atm_of ` lits_of_l (F' @ Marked K d # F) \<and>
+          M = F' @ Decided K () # F \<and>
+          M' = Propagated L l # F \<and> N = N' \<and> C \<in># N \<and> F' @ Decided K d # F \<Turnstile>as CNot C \<and>
+          undefined_lit F L \<and> atm_of L \<in> atms_of_mm N \<union> atm_of ` lits_of_l (F' @ Decided K d # F) \<and>
           N \<Turnstile>pm C' + {#L#} \<and> F \<Turnstile>as CNot C'"
 proof -
   let ?S = "(M, N)"
   let ?T = "(M', N')"
   obtain F F' P L D where
     b_sp: "backtrack_split M = (F', L # F)"  and
-    "is_marked L" and
+    "is_decided L" and
     "D \<in># snd ?S" and
     "M \<Turnstile>as CNot D" and
     bt: "backtrack ?S (Propagated (- (lit_of L)) P # F, N)" and
@@ -40,17 +40,17 @@ proof -
     [simp]: "N' = N"
   using backtrackE[OF backtrack] by (metis backtrack fstI sndI)
   let ?K = "lit_of L"
-  let ?C = "image_mset lit_of {#K\<in>#mset M. is_marked K \<and> K\<noteq>L#} :: 'v literal multiset"
+  let ?C = "image_mset lit_of {#K\<in>#mset M. is_decided K \<and> K\<noteq>L#} :: 'v literal multiset"
   let ?C' = "set_mset (image_mset single (?C+{#?K#}))"
-  obtain K where L: "L = Marked K ()" using \<open>is_marked L\<close> by (cases L) auto
+  obtain K where L: "L = Decided K ()" using \<open>is_decided L\<close> by (cases L) auto
 
-  have M: "M = F' @ Marked K () # F"
+  have M: "M = F' @ Decided K () # F"
     using b_sp  by (metis L backtrack_split_list_eq fst_conv snd_conv)
-  moreover have "F' @ Marked K () # F \<Turnstile>as CNot D"
+  moreover have "F' @ Decided K () # F \<Turnstile>as CNot D"
     using \<open>M\<Turnstile>as CNot D\<close> unfolding M .
   moreover have "undefined_lit F (-?K)"
     using no_dup unfolding M L by (simp add: defined_lit_map)
-  moreover have "atm_of (-K) \<in> atms_of_mm N \<union> atm_of ` lits_of_l (F' @ Marked K d # F)"
+  moreover have "atm_of (-K) \<in> atms_of_mm N \<union> atm_of ` lits_of_l (F' @ Decided K d # F)"
     by auto
   moreover
     have "set_mset N \<union> ?C' \<Turnstile>ps {{#}}"
@@ -58,10 +58,10 @@ proof -
         have A: "set_mset N \<union> ?C' \<union> unmark_l M =
           set_mset  N \<union> unmark_l M"
           unfolding M L by auto
-        have "set_mset  N \<union> {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}
+        have "set_mset  N \<union> {{#lit_of L#} |L. is_decided L \<and> L \<in> set M}
             \<Turnstile>ps unmark_l M"
           using all_decomposition_implies_propagated_lits_are_implied[OF decomp] .
-        moreover have C': "?C' = {{#lit_of L#} |L. is_marked L \<and> L \<in> set M}"
+        moreover have C': "?C' = {{#lit_of L#} |L. is_decided L \<and> L \<in> set M}"
           unfolding M L apply standard
             apply force
           using IntI by auto
@@ -92,24 +92,24 @@ proof -
           "I \<Turnstile>sm N"
         have "(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)"
           using cons tot unfolding consistent_interp_def L by (cases K) auto
-        have "{a \<in> set M. is_marked a \<and> a \<noteq> Marked K ()} =
-          set M \<inter> {L. is_marked L \<and> L \<noteq> Marked K ()}"
+        have "{a \<in> set M. is_decided a \<and> a \<noteq> Decided K ()} =
+          set M \<inter> {L. is_decided L \<and> L \<noteq> Decided K ()}"
           by auto
         then have
-          tI: "total_over_set I (atm_of ` lit_of ` (set M \<inter> {L. is_marked L \<and> L \<noteq> Marked K d}))"
+          tI: "total_over_set I (atm_of ` lit_of ` (set M \<inter> {L. is_decided L \<and> L \<noteq> Decided K d}))"
           using tot by (auto simp add: L atms_of_uminus_lit_atm_of_lit_of)
 
         then have H: "\<And>x.
-            lit_of x \<notin> I \<Longrightarrow> x \<in> set M \<Longrightarrow>is_marked x
-            \<Longrightarrow> x \<noteq> Marked K d \<Longrightarrow> -lit_of x \<in> I"
+            lit_of x \<notin> I \<Longrightarrow> x \<in> set M \<Longrightarrow>is_decided x
+            \<Longrightarrow> x \<noteq> Decided K d \<Longrightarrow> -lit_of x \<in> I"
           proof -
-            fix x :: "('v, unit, unit) marked_lit"
-            assume a1: "x \<noteq> Marked K d"
-            assume a2: "is_marked x"
+            fix x :: "('v, unit, unit) ann_lit"
+            assume a1: "x \<noteq> Decided K d"
+            assume a2: "is_decided x"
             assume a3: "x \<in> set M"
             assume a4: "lit_of x \<notin> I"
             have "atm_of (lit_of x) \<in> atm_of ` lit_of `
-              (set M \<inter> {m. is_marked m \<and> m \<noteq> Marked K d})"
+              (set M \<inter> {m. is_decided m \<and> m \<noteq> Decided K d})"
               using a3 a2 a1 by blast
             then have "Pos (atm_of (lit_of x)) \<in> I \<or> Neg (atm_of (lit_of x)) \<in> I"
               using tI unfolding total_over_set_def by blast
@@ -127,8 +127,8 @@ proof -
           unfolding L by (auto dest!: H)
       qed
   moreover
-    have "set F' \<inter> {K. is_marked K \<and> K \<noteq> L} = {}"
-      using backtrack_split_fst_not_marked[of _ M] b_sp by auto
+    have "set F' \<inter> {K. is_decided K \<and> K \<noteq> L} = {}"
+      using backtrack_split_fst_not_decided[of _ M] b_sp by auto
     then have "F \<Turnstile>as CNot (image_mset uminus ?C)"
        unfolding M CNot_def true_annots_def by (auto simp add: L lits_of_def)
   ultimately show ?thesis
@@ -136,14 +136,14 @@ proof -
 qed
 
 lemma backtrack_is_backjump':
-  fixes M M' :: "('v, unit, unit) marked_lit list"
+  fixes M M' :: "('v, unit, unit) ann_lit list"
   assumes
     backtrack: "backtrack S T" and
     no_dup: "(no_dup \<circ> fst) S" and
-    decomp: "all_decomposition_implies_m (snd S) (get_all_marked_decomposition (fst S))"
+    decomp: "all_decomposition_implies_m (snd S) (get_all_ann_decomposition (fst S))"
     shows "
         \<exists>C F' K F L l C'.
-          fst S = F' @ Marked K () # F \<and>
+          fst S = F' @ Decided K () # F \<and>
           T = (Propagated L l # F, snd S) \<and> C \<in># snd S \<and> fst S \<Turnstile>as CNot C
           \<and> undefined_lit F L \<and> atm_of L \<in> atms_of_mm (snd S) \<union> atm_of ` lits_of_l (fst S) \<and>
           snd S \<Turnstile>pm C' + {#L#} \<and> F \<Turnstile>as CNot C'"
@@ -185,15 +185,15 @@ proof -
 qed
 
 lemma backtrack_is_backjump'':
-  fixes M M' :: "('v, unit, unit) marked_lit list"
+  fixes M M' :: "('v, unit, unit) ann_lit list"
   assumes
     backtrack: "backtrack S T" and
     no_dup: "(no_dup \<circ> fst) S" and
-    decomp: "all_decomposition_implies_m (snd S) (get_all_marked_decomposition (fst S))"
+    decomp: "all_decomposition_implies_m (snd S) (get_all_ann_decomposition (fst S))"
     shows "backjump S T"
 proof -
   obtain C F' K F L l C' where
-    1: "fst S = F' @ Marked K () # F" and
+    1: "fst S = F' @ Decided K () # F" and
     2: "T = (Propagated L l # F, snd S)" and
     3: "C \<in># snd S" and
     4: "fst S \<Turnstile>as CNot C" and
@@ -211,16 +211,16 @@ qed
 
 lemma can_do_bt_step:
    assumes
-     M: "fst S = F' @ Marked K d # F" and
+     M: "fst S = F' @ Decided K d # F" and
      "C \<in># snd S" and
      C: "fst S \<Turnstile>as CNot C"
    shows "\<not> no_step backtrack S"
 proof -
   obtain L G' G where
     "backtrack_split (fst S) = (G', L # G)"
-    unfolding M by (induction F' rule: marked_lit_list_induct) auto
-  moreover then have "is_marked L"
-     by (metis backtrack_split_snd_hd_marked list.distinct(1) list.sel(1) snd_conv)
+    unfolding M by (induction F' rule: ann_lit_list_induct) auto
+  moreover then have "is_decided L"
+     by (metis backtrack_split_snd_hd_decided list.distinct(1) list.sel(1) snd_conv)
   ultimately show ?thesis
      using backtrack.intros[of S G' L G C] \<open>C \<in># snd S\<close> C unfolding M by auto
 qed
@@ -232,7 +232,7 @@ sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops
     id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
     fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
-  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
+  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
   "\<lambda>_ _ _ S T. backtrack S T"
   "\<lambda>_ _. True"
   apply unfold_locales
@@ -244,7 +244,7 @@ sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping
     id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
     fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
-  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
+  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
   "\<lambda>_ _ _ S T. backtrack S T"
   "\<lambda>_ _. True"
   apply unfold_locales
@@ -261,7 +261,7 @@ sublocale dpll_with_backtrack \<subseteq> conflict_driven_clause_learning
     id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
     fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
-  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
+  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
   "\<lambda>_ _ _ S T. backtrack S T"
   "\<lambda>_ _. True" "\<lambda>_ _. False" "\<lambda>_ _. False"
   apply unfold_locales
@@ -274,19 +274,19 @@ context dpll_with_backtrack
 begin
 lemma wf_tranclp_dpll_inital_state:
   assumes fin: "finite A"
-  shows "wf {((M'::('v, unit, unit) marked_lits, N'::'v clauses), ([], N))|M' N' N.
+  shows "wf {((M'::('v, unit, unit) ann_lits, N'::'v clauses), ([], N))|M' N' N.
     dpll_bj\<^sup>+\<^sup>+ ([], N) (M', N') \<and> atms_of_mm N \<subseteq> atms_of_ms A}"
   using wf_tranclp_dpll_bj[OF assms(1)] by (rule wf_subset) auto
 
 corollary full_dpll_final_state_conclusive:
-  fixes M M' :: "('v, unit, unit) marked_lit list"
+  fixes M M' :: "('v, unit, unit) ann_lit list"
   assumes
     full: "full dpll_bj ([], N) (M', N')"
   shows "unsatisfiable (set_mset N) \<or> (M' \<Turnstile>asm N \<and> satisfiable (set_mset N))"
   using assms full_dpll_backjump_final_state[of "([],N)" "(M', N')" "set_mset N"] by auto
 
 corollary full_dpll_normal_form_from_init_state:
-  fixes M M' :: "('v, unit, unit) marked_lit list"
+  fixes M M' :: "('v, unit, unit) ann_lit list"
   assumes
     full: "full dpll_bj ([], N) (M', N')"
   shows "M' \<Turnstile>asm N \<longleftrightarrow> satisfiable (set_mset N)"
@@ -305,7 +305,7 @@ interpretation conflict_driven_clause_learning_ops
     id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
     fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
-  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
+  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
   "\<lambda>_ _ _ S T. backtrack S T"
   "\<lambda>_ _. True" "\<lambda>_ _. False" "\<lambda>_ _. False"
   by unfold_locales
@@ -315,7 +315,7 @@ interpretation conflict_driven_clause_learning
     id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
     fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
-  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
+  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
   "\<lambda>_ _ _ S T. backtrack S T"
   "\<lambda>_ _. True" "\<lambda>_ _. False" "\<lambda>_ _. False"
   apply unfold_locales
@@ -345,10 +345,10 @@ begin
   fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
     "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" f "\<lambda>(_, N) S. S = ([], N)"
   "\<lambda>A (M, N). atms_of_mm N \<subseteq> atms_of_ms A \<and> atm_of ` lits_of_l M \<subseteq> atms_of_ms A \<and> finite A
-    \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
+    \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
   "\<lambda>A T. (2+card (atms_of_ms A)) ^ (1+card (atms_of_ms A))
                - \<mu>\<^sub>C (1+card (atms_of_ms A)) (2+card (atms_of_ms A)) (trail_weight T)" dpll_bj
-  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_marked_decomposition M)"
+  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
   "\<lambda>A _.  (2+card (atms_of_ms A)) ^ (1+card (atms_of_ms A))"
   apply unfold_locales
           apply (rule unbounded)

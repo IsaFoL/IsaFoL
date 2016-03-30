@@ -3,7 +3,7 @@
 *)
 
 section \<open>Partial Clausal Logic\<close>
-text \<open>We here define marked literals (that will be used in both DPLL and CDCL) and the entailment
+text \<open>We here define decided literals (that will be used in both DPLL and CDCL) and the entailment
   corresponding to it.\<close>
 
 theory Partial_Annotated_Clausal_Logic
@@ -11,31 +11,31 @@ imports Partial_Clausal_Logic
 
 begin
 
-subsection \<open>Marked Literals\<close>
+subsection \<open>Decided Literals\<close>
 subsubsection \<open>Definition\<close>
-datatype ('v, 'lvl, 'mark) marked_lit =
-  is_marked: Marked (lit_of: "'v literal") (level_of: "'lvl") |
+datatype ('v, 'lvl, 'mark) ann_lit =
+  is_decided: Decided (lit_of: "'v literal") (level_of: "'lvl") |
   is_proped: Propagated (lit_of: "'v literal") (mark_of: 'mark)
 
-lemma marked_lit_list_induct[case_names nil marked proped]:
+lemma ann_lit_list_induct[case_names nil decided proped]:
   assumes "P []" and
-  "\<And>L l xs. P xs \<Longrightarrow> P (Marked L l # xs)" and
+  "\<And>L l xs. P xs \<Longrightarrow> P (Decided L l # xs)" and
   "\<And>L m xs. P xs \<Longrightarrow> P (Propagated L m # xs)"
   shows "P xs"
   using assms apply (induction xs, simp)
   by (rename_tac a xs, case_tac a) auto
 
 (* TODO elim rule, instead of dest rule. *)
-lemma is_marked_ex_Marked:
-  "is_marked L \<Longrightarrow> \<exists>K lvl. L = Marked K lvl"
+lemma is_decided_ex_Decided:
+  "is_decided L \<Longrightarrow> \<exists>K lvl. L = Decided K lvl"
   by (cases L) auto
 
-type_synonym ('v, 'l, 'm) marked_lits = "('v, 'l, 'm) marked_lit list"
+type_synonym ('v, 'l, 'm) ann_lits = "('v, 'l, 'm) ann_lit list"
 
-definition lits_of :: "('a, 'b, 'c) marked_lit set \<Rightarrow> 'a literal set" where
+definition lits_of :: "('a, 'b, 'c) ann_lit set \<Rightarrow> 'a literal set" where
 "lits_of Ls = lit_of ` Ls"
 
-abbreviation lits_of_l :: "('a, 'b, 'c) marked_lit list \<Rightarrow> 'a literal set" where
+abbreviation lits_of_l :: "('a, 'b, 'c) ann_lit list \<Rightarrow> 'a literal set" where
 "lits_of_l Ls \<equiv> lits_of (set Ls)"
 
 lemma lits_of_l_empty[simp]:
@@ -72,10 +72,10 @@ lemma lits_of_l_empty_is_empty[iff]:
   by (induct M) (auto simp: lits_of_def)
 
 subsubsection \<open>Entailment\<close>
-definition true_annot :: "('a, 'l, 'm) marked_lits \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>a" 49) where
+definition true_annot :: "('a, 'l, 'm) ann_lits \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>a" 49) where
   "I \<Turnstile>a C \<longleftrightarrow> (lits_of_l I) \<Turnstile> C"
 
-definition true_annots :: "('a, 'l, 'm) marked_lits \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>as" 49) where
+definition true_annots :: "('a, 'l, 'm) ann_lits \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>as" 49) where
   "I \<Turnstile>as CC \<longleftrightarrow> (\<forall>C \<in> CC. I \<Turnstile>a C)"
 
 lemma true_annot_empty_model[simp]:
@@ -144,10 +144,10 @@ lemma true_annots_true_clss_cls:
     simp add: true_clss_def true_annots_def true_annot_def lits_of_def true_cls_def
     true_clss_clss_def)
 
-lemma true_annots_marked_true_cls[iff]:
-  "map (\<lambda>M. Marked M a) M \<Turnstile>as N \<longleftrightarrow> set M \<Turnstile>s N"
+lemma true_annots_decided_true_cls[iff]:
+  "map (\<lambda>M. Decided M a) M \<Turnstile>as N \<longleftrightarrow> set M \<Turnstile>s N"
 proof -
-  have *: "lit_of ` (\<lambda>M. Marked M a) ` set M = set M" unfolding lits_of_def by force
+  have *: "lit_of ` (\<lambda>M. Decided M a) ` set M = set M" unfolding lits_of_def by force
   show ?thesis by (simp add: true_annots_true_cls * lits_of_def)
 qed
 
@@ -179,40 +179,40 @@ lemma true_annots_mono:
 
 subsubsection \<open>Defined and undefined literals\<close>
 text \<open>We introduce the functions @{term defined_lit} and @{term undefined_lit} to know whether a
-  literal is defined with respect to a list of marked literals (aka a trail in most cases).
+  literal is defined with respect to a list of decided literals (aka a trail in most cases).
 
   Remark that @{term undefined} already exists and is a completely different Isabelle function.
   \<close>
-definition defined_lit :: "('a, 'l, 'm) marked_lits  \<Rightarrow> 'a literal \<Rightarrow> bool"
+definition defined_lit :: "('a, 'l, 'm) ann_lits  \<Rightarrow> 'a literal \<Rightarrow> bool"
   where
-"defined_lit I L \<longleftrightarrow> (\<exists>l. Marked L l \<in> set I) \<or> (\<exists>P. Propagated L P \<in> set I)
-  \<or> (\<exists>l. Marked (-L) l \<in> set I) \<or> (\<exists>P. Propagated (-L) P \<in> set I)"
+"defined_lit I L \<longleftrightarrow> (\<exists>l. Decided L l \<in> set I) \<or> (\<exists>P. Propagated L P \<in> set I)
+  \<or> (\<exists>l. Decided (-L) l \<in> set I) \<or> (\<exists>P. Propagated (-L) P \<in> set I)"
 
-abbreviation undefined_lit :: "('a, 'l, 'm) marked_lit list  \<Rightarrow> 'a literal \<Rightarrow>  bool"
+abbreviation undefined_lit :: "('a, 'l, 'm) ann_lit list  \<Rightarrow> 'a literal \<Rightarrow>  bool"
 where "undefined_lit I L \<equiv> \<not>defined_lit I L"
 
 lemma defined_lit_rev[simp]:
   "defined_lit (rev M) L \<longleftrightarrow> defined_lit M L"
   unfolding defined_lit_def by auto
 
-lemma atm_imp_marked_or_proped:
+lemma atm_imp_decided_or_proped:
   assumes "x \<in> set I"
   shows
-    "(\<exists>l. Marked (- lit_of x) l \<in> set I)
-    \<or> (\<exists>l. Marked (lit_of x) l \<in> set I)
+    "(\<exists>l. Decided (- lit_of x) l \<in> set I)
+    \<or> (\<exists>l. Decided (lit_of x) l \<in> set I)
     \<or> (\<exists>l. Propagated (- lit_of x) l \<in> set I)
     \<or> (\<exists>l. Propagated (lit_of x) l \<in> set I)"
-  using assms marked_lit.exhaust_sel by metis
+  using assms ann_lit.exhaust_sel by metis
 
-lemma literal_is_lit_of_marked:
+lemma literal_is_lit_of_decided:
   assumes "L = lit_of x"
-  shows "(\<exists>l. x = Marked L l) \<or> (\<exists>l'. x = Propagated L l')"
+  shows "(\<exists>l. x = Decided L l) \<or> (\<exists>l'. x = Propagated L l')"
   using assms by (cases x) auto
 
-lemma true_annot_iff_marked_or_true_lit:
+lemma true_annot_iff_decided_or_true_lit:
   "defined_lit I L \<longleftrightarrow> (lits_of_l I \<Turnstile>l L \<or> lits_of_l I \<Turnstile>l -L)"
   unfolding defined_lit_def by (auto simp add: lits_of_def rev_image_eqI
-    dest!: literal_is_lit_of_marked)
+    dest!: literal_is_lit_of_decided)
 
 lemma consistent_inter_true_annots_satisfiable:
   "consistent_interp (lits_of_l I) \<Longrightarrow> I \<Turnstile>as N \<Longrightarrow> satisfiable N"
@@ -222,122 +222,122 @@ lemma defined_lit_map:
   "defined_lit Ls L \<longleftrightarrow> atm_of L \<in> (\<lambda>l. atm_of (lit_of l)) ` set Ls"
  unfolding defined_lit_def apply (rule iffI)
    using image_iff apply fastforce
- by (fastforce simp add: atm_of_eq_atm_of dest: atm_imp_marked_or_proped)
+ by (fastforce simp add: atm_of_eq_atm_of dest: atm_imp_decided_or_proped)
 
 lemma defined_lit_uminus[iff]:
   "defined_lit I (-L) \<longleftrightarrow> defined_lit I L"
   unfolding defined_lit_def by auto
 
-lemma Marked_Propagated_in_iff_in_lits_of_l:
+lemma Decided_Propagated_in_iff_in_lits_of_l:
   "defined_lit I L \<longleftrightarrow> (L \<in> lits_of_l I \<or> -L \<in> lits_of_l I)"
-  unfolding lits_of_def by (metis lits_of_def true_annot_iff_marked_or_true_lit true_lit_def)
+  unfolding lits_of_def by (metis lits_of_def true_annot_iff_decided_or_true_lit true_lit_def)
 
 lemma consistent_add_undefined_lit_consistent[simp]:
   assumes
     "consistent_interp (lits_of_l Ls)" and
     "undefined_lit Ls L"
   shows "consistent_interp (insert L (lits_of_l Ls))"
-  using assms unfolding consistent_interp_def by (auto simp: Marked_Propagated_in_iff_in_lits_of_l)
+  using assms unfolding consistent_interp_def by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
 
 lemma decided_empty[simp]:
   "\<not>defined_lit [] L"
   unfolding defined_lit_def by simp
 
 subsection \<open>Backtracking\<close>
-fun backtrack_split :: "('v, 'l, 'm) marked_lits
-  \<Rightarrow> ('v, 'l, 'm) marked_lits \<times> ('v, 'l, 'm) marked_lits" where
+fun backtrack_split :: "('v, 'l, 'm) ann_lits
+  \<Rightarrow> ('v, 'l, 'm) ann_lits \<times> ('v, 'l, 'm) ann_lits" where
 "backtrack_split [] = ([], [])" |
 "backtrack_split (Propagated L P # mlits) = apfst ((op #) (Propagated L P)) (backtrack_split mlits)" |
-"backtrack_split (Marked L l # mlits) = ([], Marked L l # mlits)"
+"backtrack_split (Decided L l # mlits) = ([], Decided L l # mlits)"
 
-lemma backtrack_split_fst_not_marked: "a \<in> set (fst (backtrack_split l)) \<Longrightarrow> \<not>is_marked a"
-  by (induct l rule: marked_lit_list_induct) auto
+lemma backtrack_split_fst_not_decided: "a \<in> set (fst (backtrack_split l)) \<Longrightarrow> \<not>is_decided a"
+  by (induct l rule: ann_lit_list_induct) auto
 
-lemma backtrack_split_snd_hd_marked:
-  "snd (backtrack_split l) \<noteq> [] \<Longrightarrow> is_marked (hd (snd (backtrack_split l)))"
-  by (induct l rule: marked_lit_list_induct) auto
+lemma backtrack_split_snd_hd_decided:
+  "snd (backtrack_split l) \<noteq> [] \<Longrightarrow> is_decided (hd (snd (backtrack_split l)))"
+  by (induct l rule: ann_lit_list_induct) auto
 
 lemma backtrack_split_list_eq[simp]:
   "fst (backtrack_split l) @ (snd (backtrack_split l)) = l"
-  by (induct l rule: marked_lit_list_induct) auto
+  by (induct l rule: ann_lit_list_induct) auto
 
-lemma backtrack_snd_empty_not_marked:
-  "backtrack_split M = (M'', []) \<Longrightarrow> \<forall>l\<in>set M. \<not> is_marked l"
-  by (metis append_Nil2 backtrack_split_fst_not_marked backtrack_split_list_eq snd_conv)
+lemma backtrack_snd_empty_not_decided:
+  "backtrack_split M = (M'', []) \<Longrightarrow> \<forall>l\<in>set M. \<not> is_decided l"
+  by (metis append_Nil2 backtrack_split_fst_not_decided backtrack_split_list_eq snd_conv)
 
-lemma backtrack_split_some_is_marked_then_snd_has_hd:
-  "\<exists>l\<in>set M. is_marked l \<Longrightarrow> \<exists>M' L' M''. backtrack_split M = (M'', L' # M')"
-  by (metis backtrack_snd_empty_not_marked list.exhaust prod.collapse)
+lemma backtrack_split_some_is_decided_then_snd_has_hd:
+  "\<exists>l\<in>set M. is_decided l \<Longrightarrow> \<exists>M' L' M''. backtrack_split M = (M'', L' # M')"
+  by (metis backtrack_snd_empty_not_decided list.exhaust prod.collapse)
 
 text \<open>Another characterisation of the result of @{const backtrack_split}. This view allows some
   simpler proofs, since @{term takeWhile} and @{term dropWhile} are highly automated:\<close>
 lemma backtrack_split_takeWhile_dropWhile:
-  "backtrack_split M = (takeWhile (Not o is_marked) M, dropWhile (Not o is_marked) M)"
-  by (induction M rule: marked_lit_list_induct) auto
+  "backtrack_split M = (takeWhile (Not o is_decided) M, dropWhile (Not o is_decided) M)"
+  by (induction M rule: ann_lit_list_induct) auto
 
-subsection \<open>Decomposition with respect to the First Marked Literals\<close>
-text \<open>In this section we define a function that returns a decomposition with the first marked
+subsection \<open>Decomposition with respect to the First Decided Literals\<close>
+text \<open>In this section we define a function that returns a decomposition with the first decided
   literal. This function is useful to define the backtracking of DPLL.\<close>
 subsubsection \<open>Definition\<close>
 (*TODO: replace apsnd by let? Try to find some better expression on this function.
 Ideas:
-  * swap the side of Marked
-  * case on the form of dropWhile (Not o is_marked)
+  * swap the side of Decided
+  * case on the form of dropWhile (Not o is_decided)
 
 Split function in 2 + list.product
 *)
-text \<open>The pattern @{term "get_all_marked_decomposition [] = [([], [])]"} is necessary otherwise, we
+text \<open>The pattern @{term "get_all_ann_decomposition [] = [([], [])]"} is necessary otherwise, we
   can call the @{term hd} function in the other pattern. \<close>
-fun get_all_marked_decomposition :: "('a, 'l, 'm) marked_lits
-  \<Rightarrow> (('a, 'l, 'm) marked_lits \<times> ('a, 'l, 'm) marked_lits) list" where
-"get_all_marked_decomposition (Marked L l # Ls) =
-  (Marked L l # Ls, []) # get_all_marked_decomposition Ls" |
-"get_all_marked_decomposition (Propagated L P# Ls) =
-  (apsnd ((op #) (Propagated L P)) (hd (get_all_marked_decomposition Ls)))
-    # tl (get_all_marked_decomposition Ls)" |
-"get_all_marked_decomposition [] = [([], [])]"
+fun get_all_ann_decomposition :: "('a, 'l, 'm) ann_lits
+  \<Rightarrow> (('a, 'l, 'm) ann_lits \<times> ('a, 'l, 'm) ann_lits) list" where
+"get_all_ann_decomposition (Decided L l # Ls) =
+  (Decided L l # Ls, []) # get_all_ann_decomposition Ls" |
+"get_all_ann_decomposition (Propagated L P# Ls) =
+  (apsnd ((op #) (Propagated L P)) (hd (get_all_ann_decomposition Ls)))
+    # tl (get_all_ann_decomposition Ls)" |
+"get_all_ann_decomposition [] = [([], [])]"
 
-value "get_all_marked_decomposition [Propagated A5 B5, Marked C4 D4, Propagated A3 B3,
-  Propagated A2 B2, Marked C1 D1, Propagated A0 B0]"
+value "get_all_ann_decomposition [Propagated A5 B5, Decided C4 D4, Propagated A3 B3,
+  Propagated A2 B2, Decided C1 D1, Propagated A0 B0]"
 
 (*
 
-fun get_all_marked_decomp where
-"get_all_marked_decomp [] ls = [([], ls)]" |
-"get_all_marked_decomp (L # Ls) ls =
-  (if is_marked L then (L # Ls, ls) # get_all_marked_decomp Ls []
-   else get_all_marked_decomp Ls (L # ls)) "
+fun get_all_ann_decomp where
+"get_all_ann_decomp [] ls = [([], ls)]" |
+"get_all_ann_decomp (L # Ls) ls =
+  (if is_decided L then (L # Ls, ls) # get_all_ann_decomp Ls []
+   else get_all_ann_decomp Ls (L # ls)) "
 
-abbreviation get_all_marked_decomposition where
-"get_all_marked_decomposition l \<equiv> get_all_marked_decomp l []"
+abbreviation get_all_ann_decomposition where
+"get_all_ann_decomposition l \<equiv> get_all_ann_decomp l []"
 
-lemma get_all_marked_decomposition_never_empty[iff]:
-  "get_all_marked_decomp M l = [] \<longleftrightarrow> False"
+lemma get_all_ann_decomposition_never_empty[iff]:
+  "get_all_ann_decomp M l = [] \<longleftrightarrow> False"
   by (induct M arbitrary: l, simp) (case_tac a, auto)
 *)
 
 text \<open>Now we can prove several simple properties about the function.\<close>
 
-lemma get_all_marked_decomposition_never_empty[iff]:
-  "get_all_marked_decomposition M = [] \<longleftrightarrow> False"
+lemma get_all_ann_decomposition_never_empty[iff]:
+  "get_all_ann_decomposition M = [] \<longleftrightarrow> False"
   by (induct M, simp) (rename_tac a xs, case_tac a, auto)
 
-lemma get_all_marked_decomposition_never_empty_sym[iff]:
-  "[] = get_all_marked_decomposition M \<longleftrightarrow> False"
-  using get_all_marked_decomposition_never_empty[of M] by presburger
+lemma get_all_ann_decomposition_never_empty_sym[iff]:
+  "[] = get_all_ann_decomposition M \<longleftrightarrow> False"
+  using get_all_ann_decomposition_never_empty[of M] by presburger
 
-lemma get_all_marked_decomposition_decomp:
-  "hd (get_all_marked_decomposition S) = (a, c) \<Longrightarrow> S = c @ a"
+lemma get_all_ann_decomposition_decomp:
+  "hd (get_all_ann_decomposition S) = (a, c) \<Longrightarrow> S = c @ a"
 proof (induct S arbitrary: a c)
   case Nil
   then show ?case by simp
 next
   case (Cons x A)
-  then show ?case by (cases x; cases "hd (get_all_marked_decomposition A)") auto
+  then show ?case by (cases x; cases "hd (get_all_ann_decomposition A)") auto
 qed
 
-lemma get_all_marked_decomposition_backtrack_split:
-  "backtrack_split S = (M, M') \<longleftrightarrow> hd (get_all_marked_decomposition S) = (M', M)"
+lemma get_all_ann_decomposition_backtrack_split:
+  "backtrack_split S = (M, M') \<longleftrightarrow> hd (get_all_ann_decomposition S) = (M', M)"
 proof (induction S arbitrary: M M')
   case Nil
   then show ?case by auto
@@ -346,102 +346,102 @@ next
   then show ?case using backtrack_split_takeWhile_dropWhile by (cases a) force+
 qed
 
-lemma get_all_marked_decomposition_nil_backtrack_split_snd_nil:
-  "get_all_marked_decomposition S = [([], A)] \<Longrightarrow> snd (backtrack_split S) = []"
-  by (simp add: get_all_marked_decomposition_backtrack_split sndI)
+lemma get_all_ann_decomposition_nil_backtrack_split_snd_nil:
+  "get_all_ann_decomposition S = [([], A)] \<Longrightarrow> snd (backtrack_split S) = []"
+  by (simp add: get_all_ann_decomposition_backtrack_split sndI)
 
-text \<open>This functions says that the first element is either empty or starts with a marked element
+text \<open>This functions says that the first element is either empty or starts with a decided element
   of the list.\<close>
-lemma get_all_marked_decomposition_length_1_fst_empty_or_length_1:
-  assumes "get_all_marked_decomposition M = (a, b) # []"
-  shows "a = [] \<or> (length a = 1 \<and> is_marked (hd a) \<and> hd a \<in> set M)"
+lemma get_all_ann_decomposition_length_1_fst_empty_or_length_1:
+  assumes "get_all_ann_decomposition M = (a, b) # []"
+  shows "a = [] \<or> (length a = 1 \<and> is_decided (hd a) \<and> hd a \<in> set M)"
   using assms
-proof (induct M arbitrary: a b rule: marked_lit_list_induct)
+proof (induct M arbitrary: a b rule: ann_lit_list_induct)
   case nil then show ?case by simp
 next
-  case (marked L mark M)
+  case (decided L mark M)
   then show ?case by simp
 next
   case (proped L mark M)
-  then show ?case by (cases "get_all_marked_decomposition M") force+
+  then show ?case by (cases "get_all_ann_decomposition M") force+
 qed
 
-lemma get_all_marked_decomposition_fst_empty_or_hd_in_M:
-  assumes "get_all_marked_decomposition M = (a, b) # l"
-  shows "a = [] \<or> (is_marked (hd a) \<and> hd a \<in> set M)"
-  using assms apply (induct M arbitrary: a b rule: marked_lit_list_induct)
+lemma get_all_ann_decomposition_fst_empty_or_hd_in_M:
+  assumes "get_all_ann_decomposition M = (a, b) # l"
+  shows "a = [] \<or> (is_decided (hd a) \<and> hd a \<in> set M)"
+  using assms apply (induct M arbitrary: a b rule: ann_lit_list_induct)
     apply auto[2]
-  by (metis UnCI backtrack_split_snd_hd_marked get_all_marked_decomposition_backtrack_split
-    get_all_marked_decomposition_decomp hd_in_set list.sel(1) set_append snd_conv)
+  by (metis UnCI backtrack_split_snd_hd_decided get_all_ann_decomposition_backtrack_split
+    get_all_ann_decomposition_decomp hd_in_set list.sel(1) set_append snd_conv)
 
-lemma get_all_marked_decomposition_snd_not_marked:
-  assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
+lemma get_all_ann_decomposition_snd_not_decided:
+  assumes "(a, b) \<in> set (get_all_ann_decomposition M)"
   and "L \<in> set b"
-  shows "\<not>is_marked L"
-  using assms apply (induct M arbitrary: a b rule: marked_lit_list_induct, simp)
-  by (rename_tac L' l xs a b, case_tac "get_all_marked_decomposition xs"; fastforce)+
+  shows "\<not>is_decided L"
+  using assms apply (induct M arbitrary: a b rule: ann_lit_list_induct, simp)
+  by (rename_tac L' l xs a b, case_tac "get_all_ann_decomposition xs"; fastforce)+
 
-lemma tl_get_all_marked_decomposition_skip_some:
-  assumes "x \<in> set (tl (get_all_marked_decomposition M1))"
-  shows "x \<in> set (tl (get_all_marked_decomposition (M0 @ M1)))"
+lemma tl_get_all_ann_decomposition_skip_some:
+  assumes "x \<in> set (tl (get_all_ann_decomposition M1))"
+  shows "x \<in> set (tl (get_all_ann_decomposition (M0 @ M1)))"
   using assms
-  by (induct M0 rule: marked_lit_list_induct)
+  by (induct M0 rule: ann_lit_list_induct)
      (auto simp add: list.set_sel(2))
 
-lemma hd_get_all_marked_decomposition_skip_some:
-  assumes "(x, y) = hd (get_all_marked_decomposition M1)"
-  shows "(x, y) \<in> set (get_all_marked_decomposition (M0 @ Marked K i # M1))"
+lemma hd_get_all_ann_decomposition_skip_some:
+  assumes "(x, y) = hd (get_all_ann_decomposition M1)"
+  shows "(x, y) \<in> set (get_all_ann_decomposition (M0 @ Decided K i # M1))"
   using assms
-proof (induction M0 rule: marked_lit_list_induct)
+proof (induction M0 rule: ann_lit_list_induct)
   case nil
   then show ?case by auto
 next
-  case (marked L m M0)
+  case (decided L m M0)
   then show ?case by auto
 next
   case (proped L C M0) note xy = this(1)[OF this(2-)] and hd = this(2)
   then show ?case
-    by (cases "get_all_marked_decomposition (M0 @ Marked K i # M1)")
-       (auto dest!: get_all_marked_decomposition_decomp
-          arg_cong[of "get_all_marked_decomposition _"  _ hd])
+    by (cases "get_all_ann_decomposition (M0 @ Decided K i # M1)")
+       (auto dest!: get_all_ann_decomposition_decomp
+          arg_cong[of "get_all_ann_decomposition _"  _ hd])
 qed
 
-lemma in_get_all_marked_decomposition_in_get_all_marked_decomposition_prepend:
-  "(a, b) \<in> set (get_all_marked_decomposition M') \<Longrightarrow>
-    \<exists>b'. (a, b' @ b) \<in> set (get_all_marked_decomposition (M @ M'))"
-  apply (induction M rule: marked_lit_list_induct)
+lemma in_get_all_ann_decomposition_in_get_all_ann_decomposition_prepend:
+  "(a, b) \<in> set (get_all_ann_decomposition M') \<Longrightarrow>
+    \<exists>b'. (a, b' @ b) \<in> set (get_all_ann_decomposition (M @ M'))"
+  apply (induction M rule: ann_lit_list_induct)
     apply (metis append_Nil)
    apply auto[]
-  by (rename_tac L' m xs, case_tac "get_all_marked_decomposition (xs @ M')") auto
+  by (rename_tac L' m xs, case_tac "get_all_ann_decomposition (xs @ M')") auto
 
-lemma get_all_marked_decomposition_remove_unmarked_length:
-  assumes "\<forall>l \<in> set M'. \<not>is_marked l"
-  shows "length (get_all_marked_decomposition (M' @ M''))
- = length (get_all_marked_decomposition M'')"
-  using assms by (induct M' arbitrary: M'' rule: marked_lit_list_induct) auto
+lemma get_all_ann_decomposition_remove_undecided_length:
+  assumes "\<forall>l \<in> set M'. \<not>is_decided l"
+  shows "length (get_all_ann_decomposition (M' @ M''))
+ = length (get_all_ann_decomposition M'')"
+  using assms by (induct M' arbitrary: M'' rule: ann_lit_list_induct) auto
 
-lemma get_all_marked_decomposition_not_is_marked_length:
-  assumes "\<forall>l \<in> set M'. \<not>is_marked l"
-  shows "1 + length (get_all_marked_decomposition (Propagated (-L) P # M))
- = length (get_all_marked_decomposition (M' @ Marked L l # M))"
- using assms get_all_marked_decomposition_remove_unmarked_length by fastforce
+lemma get_all_ann_decomposition_not_is_decided_length:
+  assumes "\<forall>l \<in> set M'. \<not>is_decided l"
+  shows "1 + length (get_all_ann_decomposition (Propagated (-L) P # M))
+ = length (get_all_ann_decomposition (M' @ Decided L l # M))"
+ using assms get_all_ann_decomposition_remove_undecided_length by fastforce
 
-lemma get_all_marked_decomposition_last_choice:
-  assumes "tl (get_all_marked_decomposition (M' @ Marked L l # M)) \<noteq> []"
-  and "\<forall>l \<in> set M'. \<not>is_marked l"
-  and "hd (tl (get_all_marked_decomposition (M' @ Marked L l # M))) = (M0', M0)"
-  shows "hd (get_all_marked_decomposition (Propagated (-L) P # M)) = (M0', Propagated (-L) P # M0)"
-  using assms by (induct M' rule: marked_lit_list_induct) auto
+lemma get_all_ann_decomposition_last_choice:
+  assumes "tl (get_all_ann_decomposition (M' @ Decided L l # M)) \<noteq> []"
+  and "\<forall>l \<in> set M'. \<not>is_decided l"
+  and "hd (tl (get_all_ann_decomposition (M' @ Decided L l # M))) = (M0', M0)"
+  shows "hd (get_all_ann_decomposition (Propagated (-L) P # M)) = (M0', Propagated (-L) P # M0)"
+  using assms by (induct M' rule: ann_lit_list_induct) auto
 
-lemma get_all_marked_decomposition_except_last_choice_equal:
-  assumes "\<forall>l \<in> set M'. \<not>is_marked l"
-  shows "tl (get_all_marked_decomposition (Propagated (-L) P # M))
- = tl (tl (get_all_marked_decomposition (M' @ Marked L l # M)))"
-  using assms by (induct M'  rule: marked_lit_list_induct) auto
+lemma get_all_ann_decomposition_except_last_choice_equal:
+  assumes "\<forall>l \<in> set M'. \<not>is_decided l"
+  shows "tl (get_all_ann_decomposition (Propagated (-L) P # M))
+ = tl (tl (get_all_ann_decomposition (M' @ Decided L l # M)))"
+  using assms by (induct M'  rule: ann_lit_list_induct) auto
 
-lemma get_all_marked_decomposition_hd_hd:
-  assumes "get_all_marked_decomposition Ls = (M, C) # (M0, M0') # l"
-  shows "tl M = M0' @ M0 \<and> is_marked (hd M)"
+lemma get_all_ann_decomposition_hd_hd:
+  assumes "get_all_ann_decomposition Ls = (M, C) # (M0, M0') # l"
+  shows "tl M = M0' @ M0 \<and> is_decided (hd M)"
   using assms
 proof (induct Ls arbitrary: M C M0 M0' l)
   case Nil
@@ -449,76 +449,76 @@ proof (induct Ls arbitrary: M C M0 M0' l)
 next
   case (Cons a Ls M C M0 M0' l) note IH = this(1) and g = this(2)
   { fix L level
-    assume a: "a = Marked L level"
+    assume a: "a = Decided L level"
     have "Ls = M0' @ M0"
-      using g a by (force intro: get_all_marked_decomposition_decomp)
-    then have "tl M = M0' @ M0 \<and> is_marked (hd M)" using g a by auto
+      using g a by (force intro: get_all_ann_decomposition_decomp)
+    then have "tl M = M0' @ M0 \<and> is_decided (hd M)" using g a by auto
   }
   moreover {
     fix L P
     assume a: "a = Propagated L P"
-    have "tl M = M0' @ M0 \<and> is_marked (hd M)"
-      using IH Cons.prems unfolding a by (cases "get_all_marked_decomposition Ls") auto
+    have "tl M = M0' @ M0 \<and> is_decided (hd M)"
+      using IH Cons.prems unfolding a by (cases "get_all_ann_decomposition Ls") auto
   }
   ultimately show ?case by (cases a) auto
 qed
 
-lemma get_all_marked_decomposition_exists_prepend[dest]:
-  assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
+lemma get_all_ann_decomposition_exists_prepend[dest]:
+  assumes "(a, b) \<in> set (get_all_ann_decomposition M)"
   shows "\<exists>c. M = c @ b @ a"
-  using assms apply (induct M rule: marked_lit_list_induct)
+  using assms apply (induct M rule: ann_lit_list_induct)
     apply simp
-  by (rename_tac L' m xs, case_tac "get_all_marked_decomposition xs";
-    auto dest!: arg_cong[of "get_all_marked_decomposition _" _ hd]
-      get_all_marked_decomposition_decomp)+
+  by (rename_tac L' m xs, case_tac "get_all_ann_decomposition xs";
+    auto dest!: arg_cong[of "get_all_ann_decomposition _" _ hd]
+      get_all_ann_decomposition_decomp)+
 
-lemma get_all_marked_decomposition_incl:
-  assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
+lemma get_all_ann_decomposition_incl:
+  assumes "(a, b) \<in> set (get_all_ann_decomposition M)"
   shows "set b \<subseteq> set M" and "set a \<subseteq> set M"
-  using assms get_all_marked_decomposition_exists_prepend by fastforce+
+  using assms get_all_ann_decomposition_exists_prepend by fastforce+
 
-lemma get_all_marked_decomposition_exists_prepend':
-  assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
+lemma get_all_ann_decomposition_exists_prepend':
+  assumes "(a, b) \<in> set (get_all_ann_decomposition M)"
   obtains c where "M = c @ b @ a"
-  using assms apply (induct M rule: marked_lit_list_induct)
+  using assms apply (induct M rule: ann_lit_list_induct)
     apply auto[1]
-  by (rename_tac L' m xs, case_tac "hd (get_all_marked_decomposition xs)",
-    auto dest!: get_all_marked_decomposition_decomp simp add: list.set_sel(2))+
+  by (rename_tac L' m xs, case_tac "hd (get_all_ann_decomposition xs)",
+    auto dest!: get_all_ann_decomposition_decomp simp add: list.set_sel(2))+
 
-lemma union_in_get_all_marked_decomposition_is_subset:
-  assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
+lemma union_in_get_all_ann_decomposition_is_subset:
+  assumes "(a, b) \<in> set (get_all_ann_decomposition M)"
   shows "set a \<union> set b \<subseteq> set M"
   using assms by force
 
-lemma Marked_cons_in_get_all_marked_decomposition_append_Marked_cons:
-  "\<exists>M1 M2. (Marked K i # M1, M2) \<in> set (get_all_marked_decomposition (c @ Marked K i # c'))"
-  apply (induction c rule: marked_lit_list_induct)
+lemma Decided_cons_in_get_all_ann_decomposition_append_Decided_cons:
+  "\<exists>M1 M2. (Decided K i # M1, M2) \<in> set (get_all_ann_decomposition (c @ Decided K i # c'))"
+  apply (induction c rule: ann_lit_list_induct)
     apply auto[2]
   apply (rename_tac L m xs,
-      case_tac "hd (get_all_marked_decomposition (xs @ Marked K i # c'))")
-  apply (case_tac "get_all_marked_decomposition (xs @ Marked K i # c')")
+      case_tac "hd (get_all_ann_decomposition (xs @ Decided K i # c'))")
+  apply (case_tac "get_all_ann_decomposition (xs @ Decided K i # c')")
   by auto
 
-subsubsection \<open>Entailment of the Propagated by the Marked Literal\<close>
-lemma get_all_marked_decomposition_snd_union:
-  "set M = \<Union>(set ` snd ` set (get_all_marked_decomposition M)) \<union> {L |L. is_marked L \<and> L \<in> set M}"
+subsubsection \<open>Entailment of the Propagated by the Decided Literal\<close>
+lemma get_all_ann_decomposition_snd_union:
+  "set M = \<Union>(set ` snd ` set (get_all_ann_decomposition M)) \<union> {L |L. is_decided L \<and> L \<in> set M}"
   (is "?M M = ?U M \<union> ?Ls M")
-proof (induct M rule: marked_lit_list_induct)
+proof (induct M rule: ann_lit_list_induct)
   case nil
   then show ?case by simp
 next
-  case (marked L l M) note IH = this(1)
-  then have "Marked L l \<in> ?Ls (Marked L l #M)" by auto
-  moreover have "?U (Marked L l#M) = ?U M" by auto
+  case (decided L l M) note IH = this(1)
+  then have "Decided L l \<in> ?Ls (Decided L l #M)" by auto
+  moreover have "?U (Decided L l#M) = ?U M" by auto
   moreover have "?M M = ?U M \<union> ?Ls M" using IH by auto
   ultimately show ?case by auto
 next
   case (proped L m M)
-  then show ?case by (cases "(get_all_marked_decomposition M)") auto
+  then show ?case by (cases "(get_all_ann_decomposition M)") auto
 qed
 
 definition all_decomposition_implies :: "'a literal multiset set
-  \<Rightarrow> (('a, 'l, 'm) marked_lit list \<times> ('a, 'l, 'm) marked_lit list) list \<Rightarrow> bool" where
+  \<Rightarrow> (('a, 'l, 'm) ann_lit list \<times> ('a, 'l, 'm) ann_lit list) list \<Rightarrow> bool" where
  "all_decomposition_implies N S \<longleftrightarrow> (\<forall>(Ls, seen) \<in> set S. unmark_l Ls \<union> N \<Turnstile>ps unmark_l seen)"
 
 lemma all_decomposition_implies_empty[iff]:
@@ -545,32 +545,32 @@ lemma all_decomposition_implies_cons_single[iff]:
   unfolding all_decomposition_implies_def by auto
 
 lemma all_decomposition_implies_trail_is_implied:
-  assumes "all_decomposition_implies N (get_all_marked_decomposition M)"
-  shows "N \<union> {unmark L |L. is_marked L \<and> L \<in> set M}
-    \<Turnstile>ps unmark ` \<Union>(set ` snd ` set (get_all_marked_decomposition M))"
+  assumes "all_decomposition_implies N (get_all_ann_decomposition M)"
+  shows "N \<union> {unmark L |L. is_decided L \<and> L \<in> set M}
+    \<Turnstile>ps unmark ` \<Union>(set ` snd ` set (get_all_ann_decomposition M))"
 using assms
-proof (induct "length (get_all_marked_decomposition M)" arbitrary: M)
+proof (induct "length (get_all_ann_decomposition M)" arbitrary: M)
   case 0
   then show ?case by auto
 next
   case (Suc n) note IH = this(1) and length = this(2) and decomp = this(3)
   consider
-      (le1) "length (get_all_marked_decomposition M) \<le> 1"
-    | (gt1) "length (get_all_marked_decomposition M) > 1"
+      (le1) "length (get_all_ann_decomposition M) \<le> 1"
+    | (gt1) "length (get_all_ann_decomposition M) > 1"
     by arith
   then show ?case
     proof cases
       case le1
-      then obtain a b where g: "get_all_marked_decomposition M = (a, b) # []"
-        by (cases "get_all_marked_decomposition M") auto
+      then obtain a b where g: "get_all_ann_decomposition M = (a, b) # []"
+        by (cases "get_all_ann_decomposition M") auto
       moreover {
         assume "a = []"
         then have ?thesis using Suc.prems g by auto
       }
       moreover {
-        assume l: "length a = 1" and m: "is_marked (hd a)" and hd: "hd a \<in> set M"
-        then have "unmark (hd a) \<in> {unmark L |L. is_marked L \<and> L \<in> set M}" by auto
-        then have H: "unmark_l a \<union> N \<subseteq> N \<union> {unmark L |L. is_marked L \<and> L \<in> set M}"
+        assume l: "length a = 1" and m: "is_decided (hd a)" and hd: "hd a \<in> set M"
+        then have "unmark (hd a) \<in> {unmark L |L. is_decided L \<and> L \<in> set M}" by auto
+        then have H: "unmark_l a \<union> N \<subseteq> N \<union> {unmark L |L. is_decided L \<and> L \<in> set M}"
           using l by (cases a) auto
         have f1: "unmark_l a \<union> N \<Turnstile>ps unmark_l b"
           using decomp unfolding all_decomposition_implies_def g by simp
@@ -578,29 +578,29 @@ next
           apply (rule true_clss_clss_subset) using f1 H g by auto
       }
       ultimately show ?thesis
-        using get_all_marked_decomposition_length_1_fst_empty_or_length_1 by blast
+        using get_all_ann_decomposition_length_1_fst_empty_or_length_1 by blast
     next
       case gt1
       then obtain Ls0 seen0 M' where
-        Ls0: "get_all_marked_decomposition M = (Ls0, seen0) # get_all_marked_decomposition M'" and
-        length': "length (get_all_marked_decomposition M') = n" and
+        Ls0: "get_all_ann_decomposition M = (Ls0, seen0) # get_all_ann_decomposition M'" and
+        length': "length (get_all_ann_decomposition M') = n" and
         M'_in_M: "set M' \<subseteq> set M"
-        using length by (induct M rule: marked_lit_list_induct) (auto simp: subset_insertI2)
-      let ?d = "\<Union>(set ` snd ` set (get_all_marked_decomposition M'))"
-      let ?unM = "{unmark L |L. is_marked L \<and> L \<in> set M}"
-      let ?unM' = "{unmark L |L. is_marked L \<and> L \<in> set M'}"
+        using length by (induct M rule: ann_lit_list_induct) (auto simp: subset_insertI2)
+      let ?d = "\<Union>(set ` snd ` set (get_all_ann_decomposition M'))"
+      let ?unM = "{unmark L |L. is_decided L \<and> L \<in> set M}"
+      let ?unM' = "{unmark L |L. is_decided L \<and> L \<in> set M'}"
       {
         assume "n = 0"
-        then have "get_all_marked_decomposition M' = []" using length' by auto
+        then have "get_all_ann_decomposition M' = []" using length' by auto
         then have ?thesis using Suc.prems unfolding all_decomposition_implies_def Ls0 by auto
       }
       moreover {
         assume n: "n > 0"
         then obtain Ls1 seen1 l where
-          Ls1: "get_all_marked_decomposition M' = (Ls1, seen1) # l"
-          using length' by (induct M' rule: marked_lit_list_induct) auto
+          Ls1: "get_all_ann_decomposition M' = (Ls1, seen1) # l"
+          using length' by (induct M' rule: ann_lit_list_induct) auto
 
-        have "all_decomposition_implies N (get_all_marked_decomposition M')"
+        have "all_decomposition_implies N (get_all_ann_decomposition M')"
           using decomp unfolding Ls0 by auto
         then have N: "N \<union> ?unM' \<Turnstile>ps unmark_s ?d"
           using IH length' by auto
@@ -608,25 +608,25 @@ next
           using M'_in_M by auto
         from true_clss_clss_subset[OF this N]
         have \<Psi>N: "N \<union> ?unM \<Turnstile>ps unmark_s ?d" by auto
-        have "is_marked (hd Ls0)" and LS: "tl Ls0 = seen1 @ Ls1"
-          using get_all_marked_decomposition_hd_hd[of M] unfolding Ls0 Ls1 by auto
+        have "is_decided (hd Ls0)" and LS: "tl Ls0 = seen1 @ Ls1"
+          using get_all_ann_decomposition_hd_hd[of M] unfolding Ls0 Ls1 by auto
 
-        have LSM: "seen1 @ Ls1 = M'" using get_all_marked_decomposition_decomp[of M'] Ls1 by auto
-        have M': "set M' = ?d \<union> {L |L. is_marked L \<and> L \<in> set M'}"
-          using get_all_marked_decomposition_snd_union by auto
+        have LSM: "seen1 @ Ls1 = M'" using get_all_ann_decomposition_decomp[of M'] Ls1 by auto
+        have M': "set M' = ?d \<union> {L |L. is_decided L \<and> L \<in> set M'}"
+          using get_all_ann_decomposition_snd_union by auto
 
         {
           assume "Ls0 \<noteq> []"
           then have "hd Ls0 \<in> set M"
-            using get_all_marked_decomposition_fst_empty_or_hd_in_M Ls0 by blast
+            using get_all_ann_decomposition_fst_empty_or_hd_in_M Ls0 by blast
           then have "N \<union> ?unM \<Turnstile>p unmark (hd Ls0)"
-            using \<open>is_marked (hd Ls0)\<close> by (metis (mono_tags, lifting) UnCI mem_Collect_eq
+            using \<open>is_decided (hd Ls0)\<close> by (metis (mono_tags, lifting) UnCI mem_Collect_eq
               true_clss_cls_in)
         } note hd_Ls0 = this
 
-        have l: "unmark ` (?d \<union> {L |L. is_marked L \<and> L \<in> set M'}) = unmark_s ?d \<union> ?unM'"
+        have l: "unmark ` (?d \<union> {L |L. is_decided L \<and> L \<in> set M'}) = unmark_s ?d \<union> ?unM'"
           by auto
-        have "N \<union> ?unM' \<Turnstile>ps unmark ` (?d \<union> {L |L. is_marked L \<and> L \<in> set M'})"
+        have "N \<union> ?unM' \<Turnstile>ps unmark ` (?d \<union> {L |L. is_decided L \<and> L \<in> set M'})"
           unfolding l using N by (auto simp: all_in_true_clss_clss)
         then have t: "N \<union> ?unM' \<Turnstile>ps unmark_l (tl Ls0)"
           using M' unfolding LS LSM  by auto
@@ -651,20 +651,20 @@ next
 qed
 
 lemma all_decomposition_implies_propagated_lits_are_implied:
-  assumes "all_decomposition_implies N (get_all_marked_decomposition M)"
-  shows "N \<union> {unmark L |L. is_marked L \<and> L \<in> set M} \<Turnstile>ps unmark_l M"
+  assumes "all_decomposition_implies N (get_all_ann_decomposition M)"
+  shows "N \<union> {unmark L |L. is_decided L \<and> L \<in> set M} \<Turnstile>ps unmark_l M"
     (is "?I \<Turnstile>ps ?A")
 proof -
-  have "?I \<Turnstile>ps unmark_s {L |L. is_marked L \<and> L \<in> set M}"
+  have "?I \<Turnstile>ps unmark_s {L |L. is_decided L \<and> L \<in> set M}"
     by (auto intro: all_in_true_clss_clss)
-  moreover have "?I \<Turnstile>ps unmark ` \<Union>(set ` snd ` set (get_all_marked_decomposition M))"
+  moreover have "?I \<Turnstile>ps unmark ` \<Union>(set ` snd ` set (get_all_ann_decomposition M))"
     using all_decomposition_implies_trail_is_implied assms by blast
-  ultimately have "N \<union> {unmark m |m. is_marked m \<and> m \<in> set M}
-    \<Turnstile>ps unmark ` \<Union>(set ` snd ` set (get_all_marked_decomposition M))
-      \<union> unmark ` {m |m. is_marked m \<and> m \<in> set M}"
+  ultimately have "N \<union> {unmark m |m. is_decided m \<and> m \<in> set M}
+    \<Turnstile>ps unmark ` \<Union>(set ` snd ` set (get_all_ann_decomposition M))
+      \<union> unmark ` {m |m. is_decided m \<and> m \<in> set M}"
       by blast
   then show ?thesis
-    by (metis (no_types) get_all_marked_decomposition_snd_union[of M] image_Un)
+    by (metis (no_types) get_all_ann_decomposition_snd_union[of M] image_Un)
 qed
 
 lemma all_decomposition_implies_insert_single:
@@ -904,8 +904,8 @@ next
     using a1 by simp
 qed
 
-lemma distinct_get_all_marked_decomposition_no_dup:
-  assumes "(a, b) \<in> set (get_all_marked_decomposition M)"
+lemma distinct_get_all_ann_decomposition_no_dup:
+  assumes "(a, b) \<in> set (get_all_ann_decomposition M)"
   and "no_dup M"
   shows "no_dup (a @ b)"
   using assms by force

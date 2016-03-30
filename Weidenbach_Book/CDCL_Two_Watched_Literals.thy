@@ -29,15 +29,15 @@ datatype 'v twl_clause =
   TWL_Clause (watched: "'v literal list") (unwatched: "'v literal list")
 
 datatype 'v twl_state =
-  TWL_State (raw_trail: "('v, nat, 'v twl_clause) marked_lit list")
+  TWL_State (raw_trail: "('v, nat, 'v twl_clause) ann_lit list")
     (raw_init_clss: "'v twl_clause list")
     (raw_learned_clss: "'v twl_clause list") (backtrack_lvl: nat)
     (raw_conflicting: "'v literal list option")
 
-fun mmset_of_mlit' :: "('v, nat, 'v twl_clause) marked_lit  \<Rightarrow> ('v, nat, 'v clause) marked_lit"
+fun mmset_of_mlit' :: "('v, nat, 'v twl_clause) ann_lit  \<Rightarrow> ('v, nat, 'v clause) ann_lit"
   where
 "mmset_of_mlit' (Propagated L C) = Propagated L (mset (watched C @ unwatched C))" |
-"mmset_of_mlit' (Marked L i) = Marked L i"
+"mmset_of_mlit' (Decided L i) = Decided L i"
 
 lemma lit_of_mmset_of_mlit'[simp]: "lit_of (mmset_of_mlit' x) = lit_of x"
   by (cases x) auto
@@ -148,7 +148,7 @@ text \<open>We need the following property about updates: if there is a literal 
   @{term "-L"} in the trail, and @{term L} is not  watched, then it stays unwatched; i.e., while
   updating with @{term rewatch} it does not get swap with a watched literal @{term L'} such that
   @{term "-L'"} is in the trail.\<close>
-primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow>
+primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) ann_lit list \<Rightarrow>
   'v twl_clause \<Rightarrow> bool"
   where
 "watched_decided_most_recently M (TWL_Clause W UW) \<longleftrightarrow>
@@ -157,7 +157,7 @@ primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) marked_lit list \<Ri
       index (map lit_of M) (-L') \<le> index (map lit_of M) (-L))"
 
 text \<open>Here are the invariant strictly related to the 2-WL data structure.\<close>
-primrec wf_twl_cls :: "('v, 'lvl, 'mark) marked_lit list \<Rightarrow> 'v twl_clause \<Rightarrow> bool" where
+primrec wf_twl_cls :: "('v, 'lvl, 'mark) ann_lit list \<Rightarrow> 'v twl_clause \<Rightarrow> bool" where
   "wf_twl_cls M (TWL_Clause W UW) \<longleftrightarrow>
    distinct W \<and> length W \<le> 2 \<and> (length W < 2 \<longrightarrow> set UW \<subseteq> set W) \<and>
    (\<forall>L \<in> set W. -L \<in> lits_of_l M \<longrightarrow> (\<forall>L' \<in> set UW. L' \<notin> set W \<longrightarrow> -L' \<in> lits_of_l M)) \<and>
@@ -223,7 +223,7 @@ next
       moreover
         have "lit_of l \<noteq> - L'"
         using n_d unfolding M
-          by (metis (no_types) L'M M Marked_Propagated_in_iff_in_lits_of_l defined_lit_map
+          by (metis (no_types) L'M M Decided_Propagated_in_iff_in_lits_of_l defined_lit_map
             distinct.simps(2) list.simps(9) set_map)
       moreover have "watched_decided_most_recently M C"
         using wf by (auto simp: C)
@@ -414,11 +414,11 @@ proof -
             by (fastforce simp: raw_clause_def)
           then show ?thesis
             using Cons cw_eq l_mem undef w_nw(3)
-            by (auto simp: Marked_Propagated_in_iff_in_lits_of_l raw_clause_def)
+            by (auto simp: Decided_Propagated_in_iff_in_lits_of_l raw_clause_def)
         qed
       qed
       moreover have "L \<notin># mset_set (uminus ` lits_of_l M)"
-        using undef by (auto simp: Marked_Propagated_in_iff_in_lits_of_l image_image)
+        using undef by (auto simp: Decided_Propagated_in_iff_in_lits_of_l image_image)
       ultimately show "L \<in> ?W"
         by simp
     qed
@@ -534,7 +534,7 @@ qed
 typedef 'v wf_twl = "{S::'v twl_state. wf_twl_state S}"
 morphisms rough_state_of_twl twl_of_rough_state
 proof -
-  have "TWL_State ([]::('v, nat, 'v twl_clause) marked_lits)
+  have "TWL_State ([]::('v, nat, 'v twl_clause) ann_lits)
     [] [] 0 None \<in> {S:: 'v twl_state. wf_twl_state S} "
     by (auto simp: wf_twl_state_def twl.raw_clauses_def)
   then show ?thesis by auto
@@ -553,10 +553,10 @@ abbreviation candidates_conflict_twl :: "'v wf_twl \<Rightarrow> 'v twl_clause s
 abbreviation candidates_propagate_twl :: "'v wf_twl \<Rightarrow> ('v literal \<times> 'v twl_clause) set" where
 "candidates_propagate_twl S \<equiv> candidates_propagate (rough_state_of_twl S)"
 
-abbreviation raw_trail_twl :: "'a wf_twl \<Rightarrow> ('a, nat, 'a twl_clause) marked_lit list" where
+abbreviation raw_trail_twl :: "'a wf_twl \<Rightarrow> ('a, nat, 'a twl_clause) ann_lit list" where
 "raw_trail_twl S \<equiv> raw_trail (rough_state_of_twl S)"
 
-abbreviation trail_twl :: "'a wf_twl \<Rightarrow> ('a, nat, 'a literal multiset) marked_lit list" where
+abbreviation trail_twl :: "'a wf_twl \<Rightarrow> ('a, nat, 'a literal multiset) ann_lit list" where
 "trail_twl S \<equiv> trail (rough_state_of_twl S)"
 
 abbreviation raw_clauses_twl :: "'a wf_twl \<Rightarrow> 'a twl_clause list" where
@@ -616,7 +616,7 @@ locale abstract_twl =
 begin
 
 definition
-  cons_trail :: "('v, nat, 'v twl_clause) marked_lit \<Rightarrow> 'v twl_state \<Rightarrow> 'v twl_state"
+  cons_trail :: "('v, nat, 'v twl_clause) ann_lit \<Rightarrow> 'v twl_state \<Rightarrow> 'v twl_state"
 where
   "cons_trail L S =
    TWL_State (L # raw_trail S) (map (rewatch (lit_of L) S) (raw_init_clss S))
@@ -1016,7 +1016,7 @@ proof (cases "- lit_of L \<in> set (watched C)")
   then show ?thesis
     apply (cases C)
     using wf undef unfolding rewatch_nat_def
-    by (auto simp: uminus_lit_swap Marked_Propagated_in_iff_in_lits_of_l comp_def)
+    by (auto simp: uminus_lit_swap Decided_Propagated_in_iff_in_lits_of_l comp_def)
 next
   case falsified: True
 
