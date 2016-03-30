@@ -184,7 +184,7 @@ lemma production_subseteq_INTERP: "production C \<subseteq> INTERP"
 lemma Interp_subseteq_INTERP: "Interp C \<subseteq> INTERP"
   unfolding Interp_def by (auto intro!: interp_subseteq_INTERP production_subseteq_INTERP)
 
-text \<open>This lemma corresponds to \cwref{prop:prop:suppmcprop}{theorem 2.7.6 page 66}.\<close>
+text \<open>This lemma corresponds to \cwref{prop:prop:suppmcprop}{theorem 2.7.6 page 67}.\<close>
 lemma produces_imp_in_interp:
   assumes a_in_c: "Neg A \<in># C" and d: "produces D A"
   shows "A \<in> interp C"
@@ -280,7 +280,7 @@ next
     using a_in_c subs not_produces_imp_notin_production by auto
 qed
 
-text \<open>This lemma corresponds to \cwref{prop:prop:suppmcprop}{theorem 2.7.6 page 66}. Here the strict
+text \<open>This lemma corresponds to \cwref{prop:prop:suppmcprop}{theorem 2.7.6 page 67}. Here the strict
   maximality is important\<close>
 lemma true_interp_imp_interp: "C #\<subseteq># D \<Longrightarrow> D #\<subset># D' \<Longrightarrow> interp D \<Turnstile>h C \<Longrightarrow> interp D' \<Turnstile>h C"
   using interp_def true_interp_imp_general by simp
@@ -296,7 +296,7 @@ lemma true_interp_imp_INTERP: "C #\<subseteq># D \<Longrightarrow> interp D \<Tu
 lemma productive_imp_false_interp: "productive C \<Longrightarrow> \<not> interp C \<Turnstile>h C"
   unfolding production_unfold by auto
 
-text \<open>This lemma corresponds to \cwref{prop:prop:suppmcprop}{theorem 2.7.6 page 66}. Here the strict
+text \<open>This lemma corresponds to \cwref{prop:prop:suppmcprop}{theorem 2.7.6 page 67}. Here the strict
   maximality is important\<close>
 lemma cls_gt_double_pos_no_production:
   assumes D: "{#Pos P, Pos P#} #\<subset># C"
@@ -325,7 +325,7 @@ proof -
 qed
 
 
-text \<open>This lemma corresponds to \cwref{prop:prop:suppmcprop}{theorem 2.7.6 page 66}.\<close>
+text \<open>This lemma corresponds to \cwref{prop:prop:suppmcprop}{theorem 2.7.6 page 67}.\<close>
 lemma
   assumes D: "C+{#Neg P#} #\<subset># D"
   shows "production D \<noteq> {P}"

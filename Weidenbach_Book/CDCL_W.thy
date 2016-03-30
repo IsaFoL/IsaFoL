@@ -98,7 +98,7 @@ abbreviation clauses :: "'st \<Rightarrow> 'v clauses" where
 "clauses S \<equiv> mset_clss (raw_clauses S)"
 
 end
-text \<open>We are using an abstract state to abstract away the detail of the implementation: we do not 
+text \<open>We are using an abstract state to abstract away the detail of the implementation: we do not
   need to know how the clauses are represented internally, we just need to know that they can be
   converted to multisets.\<close>
 text \<open>Weidenbach state is a five-tuple composed of:
@@ -108,13 +108,13 @@ text \<open>Weidenbach state is a five-tuple composed of:
   \<^enum> the maximum level of the trail;
   \<^enum> the conflicting clause (if any has been found so far).\<close>
 text \<open>
-  There are two different clause representation: one for the conflicting clause (@{typ "'ccl'"}, 
-  standing for conflicting clause) and one for the initial and learned clauses (@{typ "'cls"}, 
+  There are two different clause representation: one for the conflicting clause (@{typ "'ccl'"},
+  standing for conflicting clause) and one for the initial and learned clauses (@{typ "'cls"},
   standing for clause). The representation of the clauses annotating literals in the trail
   is slightly different: being able to convert it to @{typ 'cls} is enough (needed for function
-  @{term "hd_raw_trail"} below). 
+  @{term "hd_raw_trail"} below).
 
-  There are several axioms to state the independance of the different fields of the state: for 
+  There are several axioms to state the independance of the different fields of the state: for
   example, adding a clause to the learned clauses does not change the trail.\<close>
 locale state\<^sub>W =
   state\<^sub>W_ops
@@ -333,7 +333,7 @@ lemma state_eq_raw_conflicting_None:
   unfolding state_eq_def raw_clauses_def by auto
 
 text \<open>We combine all simplification rules about @{term state_eq} in a single list of theorems. While
-  they are handy as simplification rule as long as we are working on the state, they also cause a 
+  they are handy as simplification rule as long as we are working on the state, they also cause a
   \<^emph>\<open>huge\<close> slow-down in all other cases.\<close>
 lemmas state_simp[simp] = state_eq_trail state_eq_init_clss state_eq_learned_clss
   state_eq_backtrack_lvl state_eq_conflicting state_eq_clauses state_eq_undefined_lit
@@ -516,26 +516,26 @@ proof -
      (auto simp: tr_S L)
 qed
 
-lemma raw_conflicting_cons_trail[simp]: 
+lemma raw_conflicting_cons_trail[simp]:
   assumes "undefined_lit (trail S) (lit_of L)"
   shows
     "raw_conflicting (cons_trail L S) = None \<longleftrightarrow> raw_conflicting S = None"
   using assms conflicting_cons_trail[of S L] map_option_is_None by fastforce+
 
-lemma raw_conflicting_add_init_cls[simp]: 
+lemma raw_conflicting_add_init_cls[simp]:
   "no_dup (trail S) \<Longrightarrow>
     raw_conflicting (add_init_cls C S) = None \<longleftrightarrow> raw_conflicting S = None"
   using map_option_is_None conflicting_add_init_cls[of S C] by fastforce+
 
-lemma raw_conflicting_add_learned_cls[simp]: 
+lemma raw_conflicting_add_learned_cls[simp]:
   "no_dup (trail S) \<Longrightarrow>
     raw_conflicting (add_learned_cls C S) = None \<longleftrightarrow> raw_conflicting S = None"
   using map_option_is_None conflicting_add_learned_cls[of S C] by fastforce+
 
-lemma raw_conflicting_update_backtracl_lvl[simp]: 
+lemma raw_conflicting_update_backtracl_lvl[simp]:
   "raw_conflicting (update_backtrack_lvl k S) = None \<longleftrightarrow> raw_conflicting S = None"
   using map_option_is_None conflicting_update_backtrack_lvl[of k S] by fastforce+
- 
+
 end -- \<open>end of \<open>state\<^sub>W\<close> locale\<close>
 
 
@@ -933,9 +933,9 @@ lemma cdcl\<^sub>W_o_rule_cases[consumes 1, case_names decide backtrack skip res
 subsection \<open>Invariants\<close>
 subsubsection \<open>Properties of the trail\<close>
 text \<open>We here establish that:
-  * the marks are exactly 1..k where k is the level
-  * the consistency of the trail
-  * the fact that there is no duplicate in the trail.\<close>
+  \<^item> the marks are exactly @{term "[1..<Suc k]"} where @{term k} is the level;
+  \<^item> the consistency of the trail;
+  \<^item> the fact that there is no duplicate in the trail.\<close>
 lemma backtrack_lit_skiped:
   assumes
     L: "get_level (trail S) L = backtrack_lvl S" and
@@ -943,7 +943,7 @@ lemma backtrack_lit_skiped:
     no_dup: "no_dup (trail S)" and
     bt_l: "backtrack_lvl S = length (get_all_levels_of_marked (trail S))" and
     order: "get_all_levels_of_marked (trail S)
-    = rev [1..<(1+length (get_all_levels_of_marked (trail S)))]"
+    = rev [1..<1+length (get_all_levels_of_marked (trail S))]"
   shows "atm_of L \<notin> atm_of ` lits_of_l M1"
 proof (rule ccontr)
   let ?M = "trail S"
@@ -988,6 +988,7 @@ proof (induct rule: cdcl\<^sub>W_all_induct)
   ultimately show ?case using decomp T n_d by simp
 qed (auto simp: defined_lit_map)
 
+text \<open>\cwref{prop:prop:cdclconsis}{Item 1 page 81}\<close>
 lemma cdcl\<^sub>W_consistent_inv_2:
   assumes
     "cdcl\<^sub>W S S'" and
@@ -1002,7 +1003,7 @@ lemma cdcl\<^sub>W_o_bt:
     "cdcl\<^sub>W_o S S'" and
     "backtrack_lvl S = length (get_all_levels_of_marked (trail S))" and
     "get_all_levels_of_marked (trail S) =
-      rev ([1..<(1+length (get_all_levels_of_marked (trail S)))])" and
+      rev [1..<1+length (get_all_levels_of_marked (trail S))]" and
     n_d[simp]: "no_dup (trail S)"
   shows "backtrack_lvl S' = length (get_all_levels_of_marked (trail S'))"
   using assms
@@ -1033,6 +1034,7 @@ lemma cdcl\<^sub>W_rf_bt:
   shows "backtrack_lvl S' = length (get_all_levels_of_marked (trail S'))"
   using assms by (induct rule: cdcl\<^sub>W_rf.induct) (auto elim: restartE forgetE)
 
+text \<open>\cwref{prop:prop:cdclbacktrack}{Item 7 page 81}\<close>
 lemma cdcl\<^sub>W_bt:
   assumes
     "cdcl\<^sub>W S S'" and
@@ -1044,6 +1046,7 @@ lemma cdcl\<^sub>W_bt:
   using assms by (induct rule: cdcl\<^sub>W.induct) (auto simp add: cdcl\<^sub>W_o_bt cdcl\<^sub>W_rf_bt
     elim: conflictE propagateE)
 
+text \<open>Stated in proof of \cwref{prop:prop:cdclbacktrack}{Item 7 page 81}\<close>
 lemma cdcl\<^sub>W_bt_level':
   assumes
     "cdcl\<^sub>W S S'" and
@@ -1717,6 +1720,8 @@ lemma cdcl\<^sub>W_learned_clause_S0_cdcl\<^sub>W[simp]:
    "cdcl\<^sub>W_learned_clause (init_state N)"
   unfolding cdcl\<^sub>W_learned_clause_def by auto
 
+text \<open>\cwref{prop:prop:cdclvaluation}{Item 4 page 81} and
+  \cwref{prop:prop:cdclvaluation}{Item 4 page 81}\<close>
 lemma cdcl\<^sub>W_learned_clss:
   assumes
     "cdcl\<^sub>W S S'" and
@@ -1781,7 +1786,8 @@ lemma rtranclp_cdcl\<^sub>W_learned_clss:
 
 
 subsubsection \<open>No alien atom in the state\<close>
-text \<open>This invariant means that all the literals are in the set of clauses.\<close>
+text \<open>This invariant means that all the literals are in the set of clauses. They are implicit in
+  Weidenbach's book.\<close>
 definition "no_strange_atm S' \<longleftrightarrow> (
     (\<forall>T. conflicting S' = Some T \<longrightarrow> atms_of T \<subseteq> atms_of_mm (init_clss S'))
   \<and> (\<forall>L mark. Propagated L mark \<in> set (trail S')
@@ -1951,24 +1957,25 @@ lemma rtranclp_cdcl\<^sub>W_no_strange_atm_inv:
 
 subsubsection \<open>No duplicates all around\<close>
 text \<open>This invariant shows that there is no duplicate (no literal appearing twice in the formula).
-  The last part could be proven using the previous invariant moreover.\<close>
+  The last part could be proven using the previous invariant.\<close>
 definition "distinct_cdcl\<^sub>W_state (S ::'st)
   \<longleftrightarrow> ((\<forall>T. conflicting S = Some T \<longrightarrow> distinct_mset T)
     \<and> distinct_mset_mset (learned_clss S)
     \<and> distinct_mset_mset (init_clss S)
-    \<and> (\<forall>L mark. (Propagated L mark \<in> set (trail S) \<longrightarrow> distinct_mset (mark))))"
+    \<and> (\<forall>L mark. (Propagated L mark \<in> set (trail S) \<longrightarrow> distinct_mset mark)))"
 
 lemma distinct_cdcl\<^sub>W_state_decomp:
   assumes "distinct_cdcl\<^sub>W_state (S ::'st)"
-  shows "\<forall>T. conflicting S = Some T \<longrightarrow> distinct_mset T"
-  and "distinct_mset_mset (learned_clss S)"
-  and "distinct_mset_mset (init_clss S)"
-  and "\<forall>L mark. (Propagated L mark \<in> set (trail S) \<longrightarrow> distinct_mset ( mark))"
+  shows
+    "\<forall>T. conflicting S = Some T \<longrightarrow> distinct_mset T" and
+    "distinct_mset_mset (learned_clss S)" and
+    "distinct_mset_mset (init_clss S)" and
+    "\<forall>L mark. (Propagated L mark \<in> set (trail S) \<longrightarrow> distinct_mset ( mark))"
   using assms unfolding distinct_cdcl\<^sub>W_state_def by blast+
 
 lemma distinct_cdcl\<^sub>W_state_decomp_2:
-  assumes "distinct_cdcl\<^sub>W_state (S ::'st)"
-  shows "conflicting S = Some T \<Longrightarrow> distinct_mset T"
+  assumes "distinct_cdcl\<^sub>W_state (S ::'st)" and "conflicting S = Some T"
+  shows "distinct_mset T"
   using assms unfolding distinct_cdcl\<^sub>W_state_def by auto
 
 lemma distinct_cdcl\<^sub>W_state_S0_cdcl\<^sub>W[simp]:
@@ -2016,9 +2023,9 @@ text \<open>This invariant shows that each mark contains a contradiction only re
 abbreviation every_mark_is_a_conflict :: "'st \<Rightarrow> bool" where
 "every_mark_is_a_conflict S \<equiv>
  \<forall>L mark a b. a @ Propagated L mark # b = (trail S)
-   \<longrightarrow> (b \<Turnstile>as CNot ( mark - {#L#}) \<and> L \<in>#  mark)"
+   \<longrightarrow> (b \<Turnstile>as CNot (mark - {#L#}) \<and> L \<in>#  mark)"
 
-definition "cdcl\<^sub>W_conflicting S \<equiv>
+definition "cdcl\<^sub>W_conflicting S \<longleftrightarrow>
   (\<forall>T. conflicting S = Some T \<longrightarrow> trail S \<Turnstile>as CNot T)
   \<and> every_mark_is_a_conflict S"
 
@@ -2118,6 +2125,7 @@ proof -
     using ff3 ff2 ff1 a3 by (metis (no_types) Marked_Propagated_in_iff_in_lits_of_l)
 qed
 
+text \<open>\cwref{prop:prop:cdclPropLitsUnsat}{Item 5 page 81}\<close>
 lemma cdcl\<^sub>W_propagate_is_conclusion:
   assumes
     "cdcl\<^sub>W S S'" and
@@ -2552,7 +2560,7 @@ lemma all_invariant_S0_cdcl\<^sub>W:
      "distinct_cdcl\<^sub>W_state (init_state N)"
   using assms by auto
 
-(*prop 2.10.5.5*)
+text \<open>\cwref{prop:prop:cdclUnsat}{Item 6 page 81}\<close>
 lemma cdcl\<^sub>W_only_propagated_vars_unsat:
   assumes
     marked: "\<forall>x \<in> set M. \<not> is_marked x" and
@@ -2602,7 +2610,7 @@ proof (rule ccontr)
   then show False using I_D by blast
 qed
 
-(*prop 2.10.5.4*)
+text \<open>\cwref{prop:prop:cdclPropLitsUnsat}{Item 5 page 81}\<close>
 text \<open>We have actually a much stronger theorem, namely
   @{thm all_decomposition_implies_propagated_lits_are_implied}, that show that the only choices
   we made are marked in the formula\<close>
@@ -2616,7 +2624,7 @@ proof -
     using all_decomposition_implies_propagated_lits_are_implied[OF assms(1)] unfolding T by simp
 qed
 
-(*prop 2.10.5.6*)
+text \<open>\cwref{prop:prop:cdclbacktrack}{Item 7 page 81} (part 1)\<close>
 lemma conflict_with_false_implies_unsat:
   assumes
     cdcl\<^sub>W: "cdcl\<^sub>W S S'" and
@@ -2633,10 +2641,11 @@ proof -
   then show ?thesis unfolding satisfiable_def true_clss_cls_def by auto
 qed
 
+text \<open>\cwref{prop:prop:cdclbacktrack}{Item 7 page 81} (part 2)\<close>
 lemma conflict_with_false_implies_terminated:
   assumes "cdcl\<^sub>W S S'"
   and "conflicting S = Some {#}"
-  shows "False"
+  shows False
   using assms by (induct rule: cdcl\<^sub>W_all_induct) auto
 
 subsubsection \<open>No tautology is learned\<close>
@@ -2735,6 +2744,7 @@ next
     using S undef by (auto intro!: exI[of _ ?S\<^sub>0] del: simp del: )
 qed
 
+text \<open>\cwref{cdcl:completeness}{theorem 2.9.11 page 84}\<close>
 lemma cdcl\<^sub>W_strong_completeness:
   assumes
     MN: "set M \<Turnstile>sm mset_clss N" and
@@ -4279,6 +4289,7 @@ next
   ultimately show ?case by blast
 qed
 
+text \<open>\cwref{cdcl:completeness}{theorem 2.9.11 page 84} (with strategy)\<close>
 lemma cdcl\<^sub>W_stgy_strong_completeness:
   assumes
     MN: "set M \<Turnstile>s set_mset (mset_clss N)" and
@@ -5227,7 +5238,7 @@ proof -
   ultimately show ?thesis by auto
 qed
 
-(** prop 2.10.9 \cwref{lem:prop:cddlsoundtermStates}{}*)
+text \<open>\cwref{lem:prop:cdclsoundtermStates}{theorem 2.9.9 page 83}\<close>
 lemma full_cdcl\<^sub>W_stgy_final_state_conclusive:
   fixes S' :: 'st
   assumes full: "full cdcl\<^sub>W_stgy (init_state N) S'" and no_d: "distinct_mset_mset (mset_clss N)"
@@ -5236,6 +5247,7 @@ lemma full_cdcl\<^sub>W_stgy_final_state_conclusive:
   using assms full_cdcl\<^sub>W_stgy_final_state_conclusive_is_one_false
   full_cdcl\<^sub>W_stgy_final_state_conclusive_non_false by blast
 
+text \<open>\cwref{lem:prop:cdclsoundtermStates}{theorem 2.9.9 page 83}\<close>
 lemma full_cdcl\<^sub>W_stgy_final_state_conclusive_from_init_state:
   fixes S' :: "'st"
   assumes full: "full cdcl\<^sub>W_stgy (init_state N) S'"

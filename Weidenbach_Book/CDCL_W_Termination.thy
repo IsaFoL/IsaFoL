@@ -684,6 +684,7 @@ next
   then show ?case using cp by blast
 qed
 
+text \<open>\cwref{lem:prop:cdclredundancy}{theorem 2.9.7 page 83}\<close>
 lemma cdcl\<^sub>W_stgy_no_relearned_clause:
   assumes
     invR: "cdcl\<^sub>W_all_struct_inv R" and

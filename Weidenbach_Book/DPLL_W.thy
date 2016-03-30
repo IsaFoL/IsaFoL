@@ -14,7 +14,6 @@ abbreviation trail :: "'v dpll\<^sub>W_state \<Rightarrow> 'v dpll\<^sub>W_marke
 abbreviation clauses :: "'v dpll\<^sub>W_state \<Rightarrow> 'v clauses" where
 "clauses \<equiv> snd"
 
-text \<open>The definition of DPLL is given in \cwref{fig:prop:dpllcalc}{figure 2.13 page 70}.\<close>
 inductive dpll\<^sub>W :: "'v dpll\<^sub>W_state \<Rightarrow> 'v dpll\<^sub>W_state \<Rightarrow> bool" where
 propagate: "C + {#L#} \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit (trail S) L
   \<Longrightarrow> dpll\<^sub>W S (Propagated L () # trail S, clauses S)" |
@@ -90,7 +89,7 @@ qed (auto simp: in_plus_implies_atm_of_on_atms_of_ms)
 lemma atms_of_ms_lit_of_atms_of: "atms_of_ms ((\<lambda>a. {#lit_of a#}) ` c) = atm_of ` lit_of ` c"
   unfolding atms_of_ms_def using image_iff by force
 
-text \<open>Lemma \cwref{dpll:sound:model}{theorem 2.8.2 page 71}\<close>
+text \<open>\cwref{dpll:sound:model}{theorem 2.8.2 page 73}\<close>
 lemma dpll\<^sub>W_propagate_is_conclusion:
   assumes "dpll\<^sub>W S S'"
   and "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))"
@@ -241,7 +240,7 @@ next
     qed
 qed
 
-text \<open>Lemma \cwref{dpll:sound:propLits:valuation}{theorem 2.8.3 page 72}\<close>
+text \<open>\cwref{dpll:sound:propLits:valuation}{theorem 2.8.3 page 73}\<close>
 theorem dpll\<^sub>W_propagate_is_conclusion_of_decided:
   assumes "dpll\<^sub>W S S'"
   and "all_decomposition_implies_m (clauses S) (get_all_marked_decomposition (trail S))"
@@ -250,7 +249,7 @@ theorem dpll\<^sub>W_propagate_is_conclusion_of_decided:
     \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_marked_decomposition (trail S')))"
   using all_decomposition_implies_trail_is_implied[OF dpll\<^sub>W_propagate_is_conclusion[OF assms]] .
 
-text \<open>Lemma \cwref{dpll:sound:propLits:unsat}{theorem 2.8.4 page 72}\<close>
+text \<open>\cwref{dpll:sound:propLits:unsat}{theorem 2.8.4 page 73}\<close>
 lemma only_propagated_vars_unsat:
   assumes marked: "\<forall>x \<in> set M. \<not> is_marked x"
   and DN: "D \<in> N" and D: "M \<Turnstile>as CNot D"
@@ -400,7 +399,7 @@ definition "conclusive_dpll\<^sub>W_state (S:: 'v dpll\<^sub>W_state) \<longleft
   (trail S \<Turnstile>asm clauses S \<or> ((\<forall>L \<in> set (trail S). \<not>is_marked L)
   \<and> (\<exists>C \<in># clauses S. trail S \<Turnstile>as CNot C)))"
 
-(*Proposition \cwref{prop:prop:dpll\<^sub>Wcomplete}{theorem 2.8.6 page 73}*)
+text \<open>\cwref{prop:prop:dpllcomplete}{theorem 2.8.6 page 74}\<close> 
 lemma dpll\<^sub>W_strong_completeness:
   assumes "set M \<Turnstile>sm N"
   and "consistent_interp (set M)"
@@ -415,7 +414,7 @@ proof -
     unfolding conclusive_dpll\<^sub>W_state_def by auto
 qed
 
-(*Proposition \cwref{prop:prop:dpll\<^sub>Wsound}{theorem 2.8.5 page 72}*)
+text \<open>\cwref{prop:prop:dpllsound}{theorem 2.8.5 page 73}\<close>
 lemma dpll\<^sub>W_sound:
   assumes
     "rtranclp dpll\<^sub>W ([], N) (M, N)" and
@@ -519,7 +518,7 @@ next
     using backtrack.prems L unfolding dpll\<^sub>W_mes_def S by (fastforce simp add: lexn_conv assms(2))
 qed
 
-text \<open>Proposition \cwref{prop:prop:dpllterminating}{theorem 2.8.7 page 73}\<close>
+text \<open>\cwref{prop:prop:dpllterminating}{theorem 2.8.7 page 74}\<close>
 lemma dpll\<^sub>W_card_decrease':
   assumes dpll: "dpll\<^sub>W S S'"
   and atm_incl: "atm_of ` lits_of_l (trail S) \<subseteq> atms_of_mm (clauses S)"
