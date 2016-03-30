@@ -1,8 +1,6 @@
 # Formalization of First-Order Unordered Resolution #
 
-[This directory](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Unordered_Resolution/)
-contains an ongoing Isabelle formalization of unordered resolution for
-first-order logic.
+[This directory](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Unordered_Resolution/) contains an ongoing Isabelle formalization of unordered resolution for first-order logic.
 
 ## Author ##
 
