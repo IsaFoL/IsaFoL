@@ -49,11 +49,11 @@ The goal is to develop lemma libraries and methodology for formalizing modern re
 * [Unified Classical Logic Completeness: A Coinductive Pearl](http://www.loria.fr/~jablanch/compl.pdf).
   J. C. Blanchette, A. Popescu, and D. Traytel.
   In Demri, S., Kapur, D., Weidenbach, C. (eds) 7th International Joint
-  Conference on Automated Reasoning (IJCAR 2014), LNAI 8562, pp. 46-60,
+  Conference on Automated Reasoning (IJCAR 2014), LNCS 8562, pp. 46-60,
   Springer, 2014.
 
 * [Mechanizing the Metatheory of Sledgehammer](http://www.loria.fr/~jablanch/self.pdf).
   J. C. Blanchette and A. Popescu.
   In Fontaine, P., Ringeissen, C., Schmidt, R. A. (eds.) 9th International
-  Symposium on Frontiers of Combining Systems (FroCoS 2013), LNAI 8152,
+  Symposium on Frontiers of Combining Systems (FroCoS 2013), LNCS 8152,
   pp. 245-260, Springer, 2013.
