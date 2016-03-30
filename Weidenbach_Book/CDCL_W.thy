@@ -1030,7 +1030,7 @@ lemma cdcl\<^sub>W_rf_bt:
   assumes
     "cdcl\<^sub>W_rf S S'" and
     "backtrack_lvl S = length (get_all_levels_of_marked (trail S))" and
-    "get_all_levels_of_marked (trail S) = rev [1..<(1+length (get_all_levels_of_marked (trail S)))]"
+    "get_all_levels_of_marked (trail S) = rev [1..<1+length (get_all_levels_of_marked (trail S))]"
   shows "backtrack_lvl S' = length (get_all_levels_of_marked (trail S'))"
   using assms by (induct rule: cdcl\<^sub>W_rf.induct) (auto elim: restartE forgetE)
 
@@ -1040,7 +1040,7 @@ lemma cdcl\<^sub>W_bt:
     "cdcl\<^sub>W S S'" and
     "backtrack_lvl S = length (get_all_levels_of_marked (trail S))" and
     "get_all_levels_of_marked (trail S)
-    = rev ([1..<(1+length (get_all_levels_of_marked (trail S)))])" and
+    = rev ([1..<1+length (get_all_levels_of_marked (trail S))])" and
     "no_dup (trail S)"
   shows "backtrack_lvl S' = length (get_all_levels_of_marked (trail S'))"
   using assms by (induct rule: cdcl\<^sub>W.induct) (auto simp add: cdcl\<^sub>W_o_bt cdcl\<^sub>W_rf_bt
@@ -1052,7 +1052,7 @@ lemma cdcl\<^sub>W_bt_level':
     "cdcl\<^sub>W S S'" and
     "backtrack_lvl S = length (get_all_levels_of_marked (trail S))" and
     "get_all_levels_of_marked (trail S)
-      = rev ([1..<(1+length (get_all_levels_of_marked (trail S)))])" and
+      = rev ([1..<1+length (get_all_levels_of_marked (trail S))])" and
     n_d: "no_dup (trail S)"
   shows "get_all_levels_of_marked (trail S')
     = rev [1..<1+length (get_all_levels_of_marked (trail S'))]"
@@ -1466,7 +1466,6 @@ lemma backtrack_levE[consumes 2]:
                       (update_conflicting None S)))) \<Longrightarrow> P) \<Longrightarrow>
   P"
   using assms by (induction rule: backtrack_induction_lev2) metis
-thm allI
 
 lemma backtrack_state_eq_compatible:
   assumes
@@ -2017,7 +2016,7 @@ lemma rtanclp_distinct_cdcl\<^sub>W_state_inv:
   using assms apply (induct rule: rtranclp_induct)
   using distinct_cdcl\<^sub>W_state_inv rtranclp_cdcl\<^sub>W_consistent_inv by blast+
 
-subsubsection \<open>Conflicts and co\<close>
+subsubsection \<open>Conflicts\<close>
 text \<open>This invariant shows that each mark contains a contradiction only related to the previously
   defined variable.\<close>
 abbreviation every_mark_is_a_conflict :: "'st \<Rightarrow> bool" where
@@ -3492,7 +3491,7 @@ proof -
         assume "M2 = []" and M1: "M1 = Propagated L (mset_cls E) # trail S"
         have "cdcl\<^sub>W_M_level_inv S'"
           using cdcl\<^sub>W_consistent_inv[OF _ lev_inv] cdcl\<^sub>W.propagate[OF propagate] by blast
-        then have "get_all_levels_of_marked (trail S') = rev [Suc 0..<(Suc 0+backtrack_lvl S)]"
+        then have "get_all_levels_of_marked (trail S') = rev [Suc 0..<Suc 0+backtrack_lvl S]"
           using S' undefL unfolding cdcl\<^sub>W_M_level_inv_def by auto
         then have "get_maximum_possible_level M1 = backtrack_lvl S'"
           using get_maximum_possible_level_max_get_all_levels_of_marked[of M1] S' M1 undefL
