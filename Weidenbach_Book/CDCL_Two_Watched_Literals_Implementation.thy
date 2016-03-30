@@ -110,9 +110,9 @@ text \<open>While updating the clauses, there are several cases:
   \<^item> there is no literal to be watched, but the other literal is true: there is nothing to
   do;
   \<^item> there is no literal to be watched, but the other literal is false: the clause is a
-  conflict candidate.
-
-  The function returns a couple composed of a list of clauses and a candidate.\<close>fun
+  conflict candidate.\<close>
+text \<open>The function returns a couple composed of a list of clauses and a candidate.\<close>
+fun
   rewatch_nat_cand_single_clause ::
   "'v literal \<Rightarrow> ('v, nat, 'v twl_clause) ann_lits \<Rightarrow> 'v twl_clause \<Rightarrow>
     'v twl_clause list \<times> 'v candidate \<Rightarrow>

@@ -25,9 +25,8 @@ lemma ann_lit_list_induct[case_names nil decided proped]:
   using assms apply (induction xs, simp)
   by (rename_tac a xs, case_tac a) auto
 
-(* TODO elim rule, instead of dest rule. *)
 lemma is_decided_ex_Decided:
-  "is_decided L \<Longrightarrow> \<exists>K lvl. L = Decided K lvl"
+  "is_decided L \<Longrightarrow> (\<And>K lvl. L = Decided K lvl \<Longrightarrow> P) \<Longrightarrow> P"
   by (cases L) auto
 
 type_synonym ('v, 'l, 'm) ann_lits = "('v, 'l, 'm) ann_lit list"

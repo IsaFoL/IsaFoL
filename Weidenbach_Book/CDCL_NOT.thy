@@ -863,7 +863,7 @@ proof -
         using \<open>I\<Turnstile>s ?N\<close> true_clss_union_increase by force
       have tot': "total_over_m ?I (?N\<union>?O)"
         using atm_I_N tot unfolding total_over_m_def total_over_set_def
-        by (force simp: lits_of_def dest!: is_decided_ex_Decided)
+        by (force simp: lits_of_def elim!: is_decided_ex_Decided)
 
       have atms_N_M: "atms_of_ms ?N \<subseteq> atm_of ` lits_of_l ?M"
         proof (rule ccontr)
@@ -3463,7 +3463,7 @@ proof -
         using \<open>I\<Turnstile>s ?N\<close> true_clss_union_increase by force
       have tot': "total_over_m ?I (?N\<union>?O)"
         using atm_I_N tot unfolding total_over_m_def total_over_set_def
-        by (force simp: image_iff lits_of_def dest!: is_decided_ex_Decided)
+        by (force simp: lits_of_def elim!: is_decided_ex_Decided)
 
       have atms_N_M: "atms_of_ms ?N \<subseteq> atm_of ` lits_of_l ?M"
         proof (rule ccontr)
