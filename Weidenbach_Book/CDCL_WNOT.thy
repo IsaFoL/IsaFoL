@@ -13,8 +13,8 @@ begin
 lemma backtrack_levE:
   "backtrack S S' \<Longrightarrow> cdcl\<^sub>W_M_level_inv S \<Longrightarrow>
   (\<And>D L K M1 M2.
-    (Marked K (Suc (get_maximum_level (trail S) D)) # M1, M2)
-      \<in> set (get_all_marked_decomposition (trail S)) \<Longrightarrow>
+    (Decided K (Suc (get_maximum_level (trail S) D)) # M1, M2)
+      \<in> set (get_all_decided_decomposition (trail S)) \<Longrightarrow>
     get_level (trail S) L = get_maximum_level (trail S) (D + {#L#})  \<Longrightarrow>
     undefined_lit M1 L \<Longrightarrow>
     S' \<sim> cons_trail (Propagated L (D + {#L#}))
@@ -86,7 +86,7 @@ end
 
 fun convert_ann_literal_from_W where
 "convert_ann_literal_from_W (Propagated L _) = Propagated L ()" |
-"convert_ann_literal_from_W (Marked L _) = Marked L ()"
+"convert_ann_literal_from_W (Decided L _) = Decided L ()"
 
 abbreviation convert_trail_from_W ::
   "('v,  'lvl, 'a) ann_literal list
@@ -117,7 +117,7 @@ text \<open>The values @{term "0::nat"} and @{term "{#}"} are dummy values.\<clo
 fun convert_ann_literal_from_NOT
   :: "('a, 'e, 'b) ann_literal \<Rightarrow> ('a, nat, 'a literal multiset) ann_literal"  where
 "convert_ann_literal_from_NOT (Propagated L _) = Propagated L {#}" |
-"convert_ann_literal_from_NOT (Marked L _) = Marked L 0"
+"convert_ann_literal_from_NOT (Decided L _) = Decided L 0"
 
 abbreviation convert_trail_from_NOT where
 "convert_trail_from_NOT \<equiv> map convert_ann_literal_from_NOT"
@@ -192,14 +192,14 @@ next
   moreover
     let ?C' = "remdups_mset C'"
     have "L \<notin># C'"
-      using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit F L\<close> Marked_Propagated_in_iff_in_lits_of
+      using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit F L\<close> Decided_Propagated_in_iff_in_lits_of
       in_CNot_implies_uminus(2) by blast
     then have "distinct_mset (?C' + {#L#})"
       by (metis count_mset_set(3) distinct_mset_remdups_mset distinct_mset_single_add
         less_irrefl_nat mem_set_mset_iff remdups_mset_def)
   moreover
     have "no_dup F"
-      using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> \<open>convert_trail_from_W (trail S) = F' @ Marked K () # F\<close>
+      using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> \<open>convert_trail_from_W (trail S) = F' @ Decided K () # F\<close>
       unfolding inv\<^sub>N\<^sub>O\<^sub>T_def
       by (smt comp_apply distinct.simps(2) distinct_append list.simps(9) map_append
         no_dup_convert_from_W)
@@ -209,7 +209,7 @@ next
       using \<open>F \<Turnstile>as CNot C'\<close> consistent_CNot_not_tautology true_annots_true_cls by blast
     then have "\<not> tautology (?C' + {#L#})"
       using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit F L\<close> by (metis  CNot_remdups_mset
-        Marked_Propagated_in_iff_in_lits_of add.commute in_CNot_uminus tautology_add_single
+        Decided_Propagated_in_iff_in_lits_of add.commute in_CNot_uminus tautology_add_single
         tautology_remdups_mset true_annot_singleton true_annots_def)
   show ?case
     proof -
@@ -217,8 +217,8 @@ next
         using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> unfolding inv\<^sub>N\<^sub>O\<^sub>T_def by (simp add: o_def)
       have f3: "atm_of L \<in> atms_of_msu (clauses S)
         \<union> atm_of ` lits_of (convert_trail_from_W (trail S))"
-        using \<open>convert_trail_from_W (trail S) = F' @ Marked K () # F\<close>
-        \<open>atm_of L \<in> atms_of_msu (clauses S) \<union> atm_of ` lits_of (F' @ Marked K () # F)\<close> by auto
+        using \<open>convert_trail_from_W (trail S) = F' @ Decided K () # F\<close>
+        \<open>atm_of L \<in> atms_of_msu (clauses S) \<union> atm_of ` lits_of (F' @ Decided K () # F)\<close> by auto
       have f4: "clauses S \<Turnstile>pm remdups_mset C' + {#L#}"
         by (metis (no_types) \<open>L \<notin># C'\<close> \<open>clauses S \<Turnstile>pm C' + {#L#}\<close> remdups_mset_singleton_sum(2)
           true_clss_cls_remdups_mset union_commute)
@@ -303,7 +303,7 @@ lemma cdcl\<^sub>W_bj_measure:
     > length (trail T) +  (if conflicting T = None then 0 else 1)"
   using assms by (induction rule: cdcl\<^sub>W_bj.induct)
   (force dest:arg_cong[of _ _ length]
-    intro: get_all_marked_decomposition_exists_prepend
+    intro: get_all_decided_decomposition_exists_prepend
     elim!: backtrack_levE
     simp: cdcl\<^sub>W_M_level_inv_def)+
 
@@ -332,7 +332,7 @@ qed
 lemma rtranclp_skip_state_decomp:
   assumes "skip\<^sup>*\<^sup>* S T" and "no_dup (trail S)"
   shows
-    "\<exists>M. trail S = M @ trail T \<and> (\<forall>m\<in>set M. \<not>is_marked m)" and
+    "\<exists>M. trail S = M @ trail T \<and> (\<forall>m\<in>set M. \<not>is_decided m)" and
     "T \<sim> delete_trail_and_rebuild (trail T) S"
   using assms by (induction rule: rtranclp_induct)
   (auto simp del: state_simp simp: state_eq_def state_access_simp)
@@ -363,8 +363,8 @@ next
     V: "state V = (trail V, N, U, k, Some (D + {#L#}))" and
     W: "state W = (Propagated L (D + {#L#}) # M1, N, {#D + {#L#}#} + U,
       get_maximum_level (trail V) D, None)" and
-    decomp: "(Marked K (Suc i) # M1, M2)
-      \<in> set (get_all_marked_decomposition (trail V))" and
+    decomp: "(Decided K (Suc i) # M1, M2)
+      \<in> set (get_all_decided_decomposition (trail V))" and
     "k = get_maximum_level (trail V) (D + {#L#})" and
     lev_L: "get_level (trail V) L = k" and
     undef: "undefined_lit M1 L" and
@@ -408,7 +408,7 @@ next
       split: split_if_asm)
   have [simp]: "trail (reduce_trail_to M1 T) = M1"
     by (metis (mono_tags, lifting) One_nat_def Pair_inject T \<open>V \<sim> tl_trail T\<close> decomp
-      diff_less in_get_all_marked_decomposition_trail_update_trail length_greater_0_conv
+      diff_less in_get_all_decided_decomposition_trail_update_trail length_greater_0_conv
       length_tl lessI list.distinct(1) reduce_trail_to_length_ne state_eq_trail
       trail_reduce_trail_to_length_le trail_tl_trail)
   have "skip\<^sup>*\<^sup>* S V"
@@ -423,9 +423,9 @@ next
     using W i T undef M_lev by (auto simp del: state_simp simp: state_eq_def cdcl\<^sub>W_M_level_inv_def)
 
   obtain M2' where
-    "(Marked K (i+1) # M1, M2') \<in> set (get_all_marked_decomposition ?M)"
-    using decomp V by (cases "hd (get_all_marked_decomposition (trail V))",
-      cases "get_all_marked_decomposition (trail V)") auto
+    "(Decided K (i+1) # M1, M2') \<in> set (get_all_decided_decomposition ?M)"
+    using decomp V by (cases "hd (get_all_decided_decomposition (trail V))",
+      cases "get_all_decided_decomposition (trail V)") auto
   moreover
     from L_L' have "get_level ?M L = k"
       using lev_L \<open>-L' \<notin># ?D\<close> V  by (auto split: split_if_asm)
@@ -444,13 +444,13 @@ next
   then show ?thesis using IH inv by blast
 qed
 
-lemma fst_get_all_marked_decomposition_prepend_not_marked:
-  assumes "\<forall>m\<in>set MS. \<not> is_marked m"
-  shows "set (map fst (get_all_marked_decomposition M))
-    = set (map fst (get_all_marked_decomposition (MS @ M)))"
+lemma fst_get_all_decided_decomposition_prepend_not_decided:
+  assumes "\<forall>m\<in>set MS. \<not> is_decided m"
+  shows "set (map fst (get_all_decided_decomposition M))
+    = set (map fst (get_all_decided_decomposition (MS @ M)))"
     using assms apply (induction MS rule: ann_literal_list_induct)
     apply auto[2]
-    by (rename_tac L m xs; case_tac "get_all_marked_decomposition (xs @ M)") simp_all
+    by (rename_tac L m xs; case_tac "get_all_decided_decomposition (xs @ M)") simp_all
 
 text \<open>See also @{thm rtranclp_skip_backtrack_backtrack}\<close>
 lemma rtranclp_skip_backtrack_backtrack_end:
@@ -467,7 +467,7 @@ proof -
     S: "state S = (M, N, U, k, Some (D + {#L#}))" and
     W: "state W = (Propagated L (D + {#L#}) # M1, N, {#D + {#L#}#} + U, get_maximum_level M D,
       None)" and
-    decomp: "(Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition M)" and
+    decomp: "(Decided K (i+1) # M1, M2) \<in> set (get_all_decided_decomposition M)" and
     lev_l: "get_level M L = k" and
     lev_l_D: "get_level M L = get_maximum_level M (D+{#L#})" and
     i: "i = get_maximum_level M D" and
@@ -484,7 +484,7 @@ proof -
   then have [simp]: "no_dup (trail T)"
     unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
   (* M\<^sub>T is a proxy to allow auto to unfold T*)
-  obtain MS M\<^sub>T where M: "M = MS @ M\<^sub>T" and M\<^sub>T: "M\<^sub>T = trail T" and nm: "\<forall>m\<in>set MS. \<not>is_marked m"
+  obtain MS M\<^sub>T where M: "M = MS @ M\<^sub>T" and M\<^sub>T: "M\<^sub>T = trail T" and nm: "\<forall>m\<in>set MS. \<not>is_decided m"
     using rtranclp_skip_state_decomp(1)[OF skip] S M_lev by auto
   have T: "state T = (M\<^sub>T, N, U, k, Some ?D)"
     using M\<^sub>T rtranclp_skip_state_decomp(2)[of S T] skip S
@@ -513,13 +513,13 @@ proof -
     unfolding M by (fastforce simp: lits_of_def)
   have [simp]: "get_maximum_level M ?D = get_maximum_level M\<^sub>T ?D"
     by (metis \<open>M\<^sub>T \<Turnstile>as CNot (D + {#L#})\<close>  M nm ball_msetI true_annots_CNot_all_atms_defined
-      get_maximum_level_skip_un_marked_not_present)
+      get_maximum_level_skip_un_decided_not_present)
 
   have lev_l': "get_level M\<^sub>T L = k"
     using lev_l by (auto simp: H)
   have [simp]: "trail (reduce_trail_to M1 T) = M1"
-    using T decomp M nm by (smt M\<^sub>T append_assoc beginning_not_marked_invert
-      get_all_marked_decomposition_exists_prepend reduce_trail_to_trail_tl_trail_decomp)
+    using T decomp M nm by (smt M\<^sub>T append_assoc beginning_not_decided_invert
+      get_all_decided_decomposition_exists_prepend reduce_trail_to_trail_tl_trail_decomp)
   have W: "W \<sim> cons_trail (Propagated L (D + {#L#})) (reduce_trail_to M1
     (add_learned_cls (D + {#L#}) (update_backtrack_lvl i (update_conflicting None T))))"
     using W T i decomp undef by (auto simp del: state_simp simp: state_eq_def)
@@ -534,15 +534,15 @@ proof -
       then have "\<forall>l\<in>#D. atm_of l \<in> atm_of ` lits_of M\<^sub>T"
         using \<open>M\<^sub>T \<Turnstile>as CNot (D + {#L#})\<close> by auto
       then show ?thesis
-        by (metis M get_maximum_level_skip_un_marked_not_present nm)
+        by (metis M get_maximum_level_skip_un_decided_not_present nm)
     qed
   then have i': "i = get_maximum_level M\<^sub>T D"
     using i by auto
-  have "Marked K (i + 1) # M1 \<in> set (map fst (get_all_marked_decomposition M))"
+  have "Decided K (i + 1) # M1 \<in> set (map fst (get_all_decided_decomposition M))"
     using Set.imageI[OF decomp, of fst] by auto
-  then have "Marked K (i + 1) # M1 \<in> set (map fst (get_all_marked_decomposition M\<^sub>T))"
-    using fst_get_all_marked_decomposition_prepend_not_marked[OF nm] unfolding M  by auto
-  then obtain M2' where decomp':"(Marked K (i+1) # M1, M2') \<in> set (get_all_marked_decomposition M\<^sub>T)"
+  then have "Decided K (i + 1) # M1 \<in> set (map fst (get_all_decided_decomposition M\<^sub>T))"
+    using fst_get_all_decided_decomposition_prepend_not_decided[OF nm] unfolding M  by auto
+  then obtain M2' where decomp':"(Decided K (i+1) # M1, M2') \<in> set (get_all_decided_decomposition M\<^sub>T)"
     by auto
   then show "backtrack T W"
     using backtrack.intros[OF T decomp' lev_l'] lev_l_D' i' W by force
@@ -596,7 +596,7 @@ proof -
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def by auto
   then obtain M N U' k D L i K M1 M2 where
     S: "state S = (M, N, U', k, Some (D + {#L#}))" and
-    decomp: "(Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition M)" and
+    decomp: "(Decided K (i+1) # M1, M2) \<in> set (get_all_decided_decomposition M)" and
     "get_level M L = k" and
     "get_level M L = get_maximum_level M (D+{#L#})" and
     "get_maximum_level M D = i" and
@@ -607,7 +607,7 @@ proof -
 
   obtain  D' L' i' K' M1' M2' where
     S': "state S = (M, N, U', k, Some (D' + {#L'#}))" and
-    decomp': "(Marked K' (i'+1) # M1', M2') \<in> set (get_all_marked_decomposition M)" and
+    decomp': "(Decided K' (i'+1) # M1', M2') \<in> set (get_all_decided_decomposition M)" and
     "get_level M L' = k" and
     "get_level M L' = get_maximum_level M (D'+{#L'#})" and
     "get_maximum_level M D' = i'" and
@@ -615,11 +615,11 @@ proof -
     undef: "undefined_lit M1' L'"
     using bt_U lev S by (elim backtrack_levE)
     (force simp: cdcl\<^sub>W_M_level_inv_def  state_eq_def simp del: state_simp)+
-  obtain c where M: "M = c @ M2 @ Marked K (i + 1) # M1"
+  obtain c where M: "M = c @ M2 @ Decided K (i + 1) # M1"
     using decomp by auto
-  obtain c' where M': "M = c' @ M2' @ Marked K' (i' + 1) # M1'"
+  obtain c' where M': "M = c' @ M2' @ Decided K' (i' + 1) # M1'"
     using decomp' by auto
-  have marked: "get_all_levels_of_marked M = rev [1..<1+k]"
+  have decided: "get_all_levels_of_decided M = rev [1..<1+k]"
     using inv S unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
   then have "i < k"
     unfolding M
@@ -641,20 +641,20 @@ proof -
   text \<open>Automation in a step later...\<close>
   have H: "\<And>a A B. insert a A = B \<Longrightarrow> a : B"
     by blast
-  have "get_all_levels_of_marked (c@M2) = rev [i+2..<1+k]" and
-    "get_all_levels_of_marked (c'@M2') = rev [i+2..<1+k]"
-    using marked unfolding M
-    using marked unfolding M'
+  have "get_all_levels_of_decided (c@M2) = rev [i+2..<1+k]" and
+    "get_all_levels_of_decided (c'@M2') = rev [i+2..<1+k]"
+    using decided unfolding M
+    using decided unfolding M'
     unfolding rev_swap[symmetric] by (auto dest: append_cons_eq_upt_length_i_end)
   from arg_cong[OF this(1), of set] arg_cong[OF this(2), of set]
   have
-    "dropWhile (\<lambda>L. \<not>is_marked L \<or> level_of L \<noteq> Suc i) (c @ M2) = []" and
-    "dropWhile (\<lambda>L. \<not>is_marked L \<or> level_of L \<noteq> Suc i) (c' @ M2') = []"
+    "dropWhile (\<lambda>L. \<not>is_decided L \<or> level_of L \<noteq> Suc i) (c @ M2) = []" and
+    "dropWhile (\<lambda>L. \<not>is_decided L \<or> level_of L \<noteq> Suc i) (c' @ M2') = []"
       unfolding dropWhile_eq_Nil_conv Ball_def
       by (intro allI; rename_tac x; case_tac x; auto dest!: H simp add: in_set_conv_decomp)+
 
   then have "M1 = M1'"
-    using arg_cong[OF M, of "dropWhile (\<lambda>L. \<not>is_marked L \<or> level_of L \<noteq> Suc i)"]
+    using arg_cong[OF M, of "dropWhile (\<lambda>L. \<not>is_decided L \<or> level_of L \<noteq> Suc i)"]
     unfolding M' by auto
   then show ?thesis using T U by (auto simp del: state_simp simp: state_eq_def)
 qed
@@ -687,21 +687,21 @@ proof (rule ccontr)
     by (auto simp del: state_simp simp: state_eq_def state_access_simp)
   obtain M\<^sub>0 where
     tr_S: "trail S = M\<^sub>0 @ trail U" and
-    nm: "\<forall>m\<in>set M\<^sub>0. \<not>is_marked m"
+    nm: "\<forall>m\<in>set M\<^sub>0. \<not>is_decided m"
     using rtranclp_skip_state_decomp[OF skip] by blast
 
   obtain M' D' L' i K M1 M2 where
     S': "state S = (M', N, U', k, Some (D' + {#L'#}))"  and
-    decomp: "(Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition M')" and
+    decomp: "(Decided K (i+1) # M1, M2) \<in> set (get_all_decided_decomposition M')" and
     "get_level M' L' = k" and
     "get_level M' L' = get_maximum_level M' (D'+{#L'#})" and
     "get_maximum_level M' D' = i" and
     undef: "undefined_lit M1 L'" and
     T: "state T = (Propagated L' (D'+{#L'#}) # M1 , N, {#D' + {#L'#}#}+U', i, None)"
     using bt by (elim backtrack_levE) (fastforce simp: S state_eq_def simp del:state_simp)+
-  obtain c where M: "M' = c @ M2 @ Marked K (i + 1) # M1"
-    using get_all_marked_decomposition_exists_prepend[OF decomp] by auto
-  have marked: "get_all_levels_of_marked M' = rev [1..<1+k]"
+  obtain c where M: "M' = c @ M2 @ Decided K (i + 1) # M1"
+    using get_all_decided_decomposition_exists_prepend[OF decomp] by auto
+  have decided: "get_all_levels_of_decided M' = rev [1..<1+k]"
     using inv S' unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
   then have "i < k"
     unfolding M by (force simp add: rev_swap[symmetric] dest!: arg_cong[of _ _ set])
@@ -721,13 +721,13 @@ proof (rule ccontr)
            using inv U S' unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
         have atm_L_notin_M: "atm_of L \<notin> atm_of ` (lits_of M)"
           using \<open>no_dup M'\<close> M' U S S' by (auto simp: lits_of_def)
-        have "get_all_levels_of_marked M' = rev [1..<1+k]"
+        have "get_all_levels_of_decided M' = rev [1..<1+k]"
           using inv U S' unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
-        then have "get_all_levels_of_marked M = rev [1..<1+k]"
-          using nm M' S' U by (simp add: get_all_levels_of_marked_no_marked)
+        then have "get_all_levels_of_decided M = rev [1..<1+k]"
+          using nm M' S' U by (simp add: get_all_levels_of_decided_no_decided)
         then have get_lev_L:
           "get_level(Propagated L (C + {#L#}) # M) L = k"
-          using get_level_get_rev_level_get_all_levels_of_marked[OF atm_L_notin_M,
+          using get_level_get_rev_level_get_all_levels_of_decided[OF atm_L_notin_M,
             of "[Propagated L ((C + {#L#}))]"] by simp
         have "atm_of L \<notin> atm_of ` (lits_of (rev M\<^sub>0))"
           using \<open>no_dup M'\<close> M' U S' by (auto simp: lits_of_def)
@@ -753,7 +753,7 @@ proof (rule ccontr)
       sup_bot.comm_neutral)
   then have "get_maximum_level M' D = k"
      using tr_S nm U S'
-       get_maximum_level_skip_un_marked_not_present[of D "
+       get_maximum_level_skip_un_decided_not_present[of D "
          Propagated L (C + {#L#}) # M" M\<^sub>0]
      unfolding  \<open>get_maximum_level (Propagated L (C + {#L#}) # M) D = k\<close>
      unfolding \<open>D = D'\<close>
@@ -1138,7 +1138,7 @@ next
   then obtain L where
     undef_L: "undefined_lit (trail S) L" and
     atm_L: "atm_of L \<in> atms_of_msu (init_clss S)" and
-    T: "T \<sim> cons_trail (Marked L (Suc (backtrack_lvl S)))
+    T: "T \<sim> cons_trail (Decided L (Suc (backtrack_lvl S)))
       (update_backtrack_lvl (Suc (backtrack_lvl S)) S)"
     by auto
   have "decide\<^sub>N\<^sub>O\<^sub>T S T"
@@ -1208,7 +1208,7 @@ next
         using rtranclp_cdcl\<^sub>W_consistent_inv \<open>cdcl\<^sub>W_M_level_inv T\<close> by blast
       then obtain M1 M2 i D L K where
         confl_T': "conflicting T' = Some (D + {#L#})" and
-        M1_M2:"(Marked K (i+1) # M1, M2) \<in> set (get_all_marked_decomposition (trail T'))" and
+        M1_M2:"(Decided K (i+1) # M1, M2) \<in> set (get_all_decided_decomposition (trail T'))" and
         "get_level (trail T') L = backtrack_lvl T'" and
         "get_level (trail T') L = get_maximum_level (trail T') (D+{#L#})" and
         "get_maximum_level (trail T') D = i" and
@@ -1252,12 +1252,12 @@ next
       obtain M where tr_T: "trail T = M @ trail T'"
         using s_or_r by (induction rule: rtranclp_induct) auto
       obtain M' where
-        tr_T': "trail T' = M' @  Marked K (i+1) # tl (trail U)" and
+        tr_T': "trail T' = M' @  Decided K (i+1) # tl (trail U)" and
         tr_U: "trail U = Propagated L (D + {#L#}) # tl (trail U)"
         using U M1_M2 undef_L inv_T' unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
         by fastforce
       def M'' \<equiv> "M @ M'"
-        have tr_T: "trail S = M'' @  Marked K (i+1) # tl (trail U)"
+        have tr_T: "trail S = M'' @  Decided K (i+1) # tl (trail U)"
         using tr_T tr_T' confl unfolding M''_def by auto
       have "init_clss T' + learned_clss S \<Turnstile>pm D + {#L#}"
         using inv_T' confl_T' unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def clauses_def
@@ -1266,9 +1266,9 @@ next
         reduce_trail_to M1 S"
         by (rule reduce_trail_to_length) simp
       moreover have "trail (reduce_trail_to M1 S) = M1"
-        apply (rule reduce_trail_to_skip_beginning[of _ "M @ _ @ M2 @ [Marked K (Suc i)]"])
+        apply (rule reduce_trail_to_skip_beginning[of _ "M @ _ @ M2 @ [Decided K (Suc i)]"])
         using confl M1_M2 \<open>trail T = M @ trail T'\<close>
-          apply (auto dest!: get_all_marked_decomposition_exists_prepend
+          apply (auto dest!: get_all_decided_decomposition_exists_prepend
             elim!: conflictE)
           by (rule sym) auto
       ultimately have [simp]: "trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T (convert_trail_from_W M1) S) = M1"

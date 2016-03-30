@@ -51,7 +51,7 @@ text \<open>When we add a new clause, we reduce the trail until we get to tho fi
   Then we can mark the conflict.\<close>
 fun cut_trail_wrt_clause where
 "cut_trail_wrt_clause C [] S = S" |
-"cut_trail_wrt_clause C (Marked L _ # M) S =
+"cut_trail_wrt_clause C (Decided L _ # M) S =
   (if -L \<in># C then S
     else cut_trail_wrt_clause C M (decr_bt_lvl (tl_trail S)))" |
 "cut_trail_wrt_clause C (Propagated L _ # M) S =
@@ -83,7 +83,7 @@ proof (induction "trail S" arbitrary:S rule: ann_literal_list_induct)
   case nil
   then show ?case by simp
 next
-  case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail S)"] and M = this(2)[symmetric]
+  case (decided L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail S)"] and M = this(2)[symmetric]
   then show ?case using Cons_eq_appendI by fastforce+
 next
   case (proped L l M) note IH = this(1)[of "tl_trail S"] and M = this(2)[symmetric]
@@ -101,18 +101,18 @@ proof -
     using n_d unfolding arg_cong[OF M, of no_dup] by auto
 qed
 
-lemma cut_trail_wrt_clause_backtrack_lvl_length_marked:
+lemma cut_trail_wrt_clause_backtrack_lvl_length_decided:
   assumes
-     "backtrack_lvl T = length (get_all_levels_of_marked (trail T))"
+     "backtrack_lvl T = length (get_all_levels_of_decided (trail T))"
   shows
   "backtrack_lvl (cut_trail_wrt_clause C (trail T) T) =
-     length (get_all_levels_of_marked (trail (cut_trail_wrt_clause C (trail T) T)))"
+     length (get_all_levels_of_decided (trail (cut_trail_wrt_clause C (trail T) T)))"
   using assms
 proof (induction "trail T" arbitrary:T rule: ann_literal_list_induct)
   case nil
   then show ?case by simp
 next
-  case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
+  case (decided L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
     and bt = this(3)
   then show ?case by auto
 next
@@ -120,18 +120,18 @@ next
   then show ?case by auto
 qed
 
-lemma cut_trail_wrt_clause_get_all_levels_of_marked:
-  assumes "get_all_levels_of_marked (trail T) = rev [Suc 0..<
-    Suc (length (get_all_levels_of_marked (trail T)))]"
+lemma cut_trail_wrt_clause_get_all_levels_of_decided:
+  assumes "get_all_levels_of_decided (trail T) = rev [Suc 0..<
+    Suc (length (get_all_levels_of_decided (trail T)))]"
   shows
-    "get_all_levels_of_marked (trail ((cut_trail_wrt_clause C (trail T) T))) = rev [Suc 0..<
-    Suc (length (get_all_levels_of_marked (trail  ((cut_trail_wrt_clause C (trail T) T)))))]"
+    "get_all_levels_of_decided (trail ((cut_trail_wrt_clause C (trail T) T))) = rev [Suc 0..<
+    Suc (length (get_all_levels_of_decided (trail  ((cut_trail_wrt_clause C (trail T) T)))))]"
   using assms
 proof (induction "trail T" arbitrary:T rule: ann_literal_list_induct)
   case nil
   then show ?case by simp
 next
-  case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
+  case (decided L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
     and bt = this(3)
   then show ?case by (cases "count C L = 0") auto
 next
@@ -148,7 +148,7 @@ proof (induction "trail T" arbitrary:T rule: ann_literal_list_induct)
   case nil
   then show ?case by simp
 next
-  case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
+  case (decided L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
     and bt = this(3)
   show ?case
     proof (cases "count C (-L) = 0")
@@ -197,7 +197,7 @@ proof (induction "trail T" arbitrary:T rule: ann_literal_list_induct)
   case nil
   then show ?case by simp
 next
-  case (marked L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
+  case (decided L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
   then show ?case by simp force
 next
   case (proped L l M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric]
@@ -312,9 +312,9 @@ proof -
 
   have [simp]: "cdcl\<^sub>W_M_level_inv ?T"
 
-    using M_lev cut_trail_wrt_clause_get_all_levels_of_marked[of T C]
+    using M_lev cut_trail_wrt_clause_get_all_levels_of_decided[of T C]
     unfolding cdcl\<^sub>W_M_level_inv_def by (auto dest: H H'
-      simp: M_lev cdcl\<^sub>W_M_level_inv_def cut_trail_wrt_clause_backtrack_lvl_length_marked)
+      simp: M_lev cdcl\<^sub>W_M_level_inv_def cut_trail_wrt_clause_backtrack_lvl_length_decided)
 
   have [simp]: "\<And>s. s \<in># learned_clss T \<Longrightarrow> \<not>tautology s"
     using inv_T unfolding cdcl\<^sub>W_all_struct_inv_def by auto
@@ -333,17 +333,17 @@ proof -
     by (metis M \<open>cdcl\<^sub>W_conflicting T\<close> append_assoc cdcl\<^sub>W_conflicting_decomp(2))
 
   have
-    decomp_T: "all_decomposition_implies_m (init_clss T) (get_all_marked_decomposition (trail T))"
+    decomp_T: "all_decomposition_implies_m (init_clss T) (get_all_decided_decomposition (trail T))"
     using inv_T unfolding cdcl\<^sub>W_all_struct_inv_def by auto
   have  "all_decomposition_implies_m  (init_clss ?T)
-    (get_all_marked_decomposition (trail ?T))"
+    (get_all_decided_decomposition (trail ?T))"
     unfolding all_decomposition_implies_def
     proof clarify
       fix a b
-      assume "(a, b) \<in> set (get_all_marked_decomposition (trail ?T))"
-      from in_get_all_marked_decomposition_in_get_all_marked_decomposition_prepend[OF this, of M]
+      assume "(a, b) \<in> set (get_all_decided_decomposition (trail ?T))"
+      from in_get_all_decided_decomposition_in_get_all_decided_decomposition_prepend[OF this, of M]
       obtain b' where
-        "(a, b' @ b) \<in> set (get_all_marked_decomposition (trail T))"
+        "(a, b' @ b) \<in> set (get_all_decided_decomposition (trail T))"
         using M by auto
       then have "unmark a \<union> set_mset (init_clss T) \<Turnstile>ps unmark (b' @ b)"
         using decomp_T unfolding all_decomposition_implies_def by fastforce
@@ -360,7 +360,7 @@ proof -
     by (auto dest!: H_proped simp: clauses_def)
   show ?thesis
     using \<open>all_decomposition_implies_m  (init_clss ?T)
-    (get_all_marked_decomposition (trail ?T))\<close>
+    (get_all_decided_decomposition (trail ?T))\<close>
     unfolding cdcl\<^sub>W_all_struct_inv_def by (auto simp: add_new_clause_and_update_def)
 qed
 
@@ -402,13 +402,13 @@ proof -
     next
       case not_false note C = this(1) and l = this(2)
       let ?L = "- lit_of (hd (trail (cut_trail_wrt_clause C (trail T) T)))"
-      have "get_all_levels_of_marked (trail (add_new_clause_and_update C T)) =
-        rev [1..<1 + length (get_all_levels_of_marked (trail (add_new_clause_and_update C T)))]"
+      have "get_all_levels_of_decided (trail (add_new_clause_and_update C T)) =
+        rev [1..<1 + length (get_all_levels_of_decided (trail (add_new_clause_and_update C T)))]"
         using \<open>cdcl\<^sub>W_all_struct_inv ?T'\<close> unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
         by blast
       moreover
         have "backtrack_lvl (cut_trail_wrt_clause C (trail T) T) =
-          length (get_all_levels_of_marked (trail (add_new_clause_and_update C T)))"
+          length (get_all_levels_of_decided (trail (add_new_clause_and_update C T)))"
           using \<open>cdcl\<^sub>W_all_struct_inv ?T'\<close> unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
           by (auto simp:add_new_clause_and_update_def)
       moreover
@@ -418,11 +418,11 @@ proof -
         then have "atm_of ?L \<notin> atm_of ` lits_of (tl (trail (cut_trail_wrt_clause C (trail T) T)))"
           apply (cases "trail (cut_trail_wrt_clause C (trail T) T)")
           apply (auto)
-          using Marked_Propagated_in_iff_in_lits_of defined_lit_map by blast
+          using Decided_Propagated_in_iff_in_lits_of defined_lit_map by blast
 
       ultimately have L: "get_level (trail (cut_trail_wrt_clause C (trail T) T)) (-?L)
-        = length (get_all_levels_of_marked (trail (cut_trail_wrt_clause C (trail T) T)))"
-        using get_level_get_rev_level_get_all_levels_of_marked[OF
+        = length (get_all_levels_of_decided (trail (cut_trail_wrt_clause C (trail T) T)))"
+        using get_level_get_rev_level_get_all_levels_of_decided[OF
           \<open>atm_of ?L \<notin> atm_of ` lits_of (tl (trail (cut_trail_wrt_clause C (trail T) T)))\<close>,
           of "[hd (trail (cut_trail_wrt_clause C (trail T) T))]"]
           (* the expression \<open>trail (add_init_cls C (cut_trail_wrt_clause C (trail T) T)))\<close> can be
@@ -432,7 +432,7 @@ proof -
           using l by (auto split: split_if_asm
             simp:rev_swap[symmetric] add_new_clause_and_update_def)
 
-      have L': "length (get_all_levels_of_marked (trail (cut_trail_wrt_clause C (trail T) T)))
+      have L': "length (get_all_levels_of_decided (trail (cut_trail_wrt_clause C (trail T) T)))
         = backtrack_lvl (cut_trail_wrt_clause C (trail T) T)"
         using \<open>cdcl\<^sub>W_all_struct_inv ?T'\<close> unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
         by (auto simp:add_new_clause_and_update_def)
@@ -451,7 +451,7 @@ proof -
             case D_T
             have "no_smaller_confl T"
               using inv_s unfolding cdcl\<^sub>W_stgy_invariant_def by auto
-            have "(MT @ M') @ Marked K i # M = trail T "
+            have "(MT @ M') @ Decided K i # M = trail T "
               using MT 1(1) by auto
             thus False using D_T \<open>no_smaller_confl T\<close> 1(3) unfolding no_smaller_confl_def by blast
           next
@@ -459,22 +459,22 @@ proof -
             then have "atm_of (-?L) \<in> atm_of ` (lits_of M)"
               using 1(3) C in_CNot_implies_uminus(2) by blast
             moreover
-              have "lit_of (hd (M' @ Marked K i # [])) = -?L"
+              have "lit_of (hd (M' @ Decided K i # [])) = -?L"
                 using l 1(1)[symmetric] inv
                 by (cases "trail (add_init_cls C (cut_trail_wrt_clause C (trail T) T))")
                 (auto dest!: arg_cong[of "_ # _" _ hd] simp: hd_append cdcl\<^sub>W_all_struct_inv_def
                   cdcl\<^sub>W_M_level_inv_def)
               from arg_cong[OF this, of atm_of]
-              have "atm_of (-?L) \<in> atm_of ` (lits_of (M' @ Marked K i # []))"
-                by (cases " (M' @ Marked K i # [])") auto
+              have "atm_of (-?L) \<in> atm_of ` (lits_of (M' @ Decided K i # []))"
+                by (cases " (M' @ Decided K i # [])") auto
             moreover have "no_dup (trail (cut_trail_wrt_clause C (trail T) T))"
               using \<open>cdcl\<^sub>W_all_struct_inv ?T'\<close> unfolding cdcl\<^sub>W_all_struct_inv_def
               cdcl\<^sub>W_M_level_inv_def by (auto simp: add_new_clause_and_update_def)
             ultimately show False
               unfolding 1(1)[symmetric, simplified]
               apply auto
-              using Marked_Propagated_in_iff_in_lits_of defined_lit_map apply blast
-              by (metis IntI Marked_Propagated_in_iff_in_lits_of defined_lit_map empty_iff)
+              using Decided_Propagated_in_iff_in_lits_of defined_lit_map apply blast
+              by (metis IntI Decided_Propagated_in_iff_in_lits_of defined_lit_map empty_iff)
         qed
       qed
       show ?thesis using L L' C
@@ -594,41 +594,41 @@ lemma tranclp_incremental_correct:
   by (meson incremental_conclusive_state inv rtranclp_incremental_cdcl\<^sub>W_inv s_inv
     tranclp_into_rtranclp)
 
-lemma blocked_induction_with_marked:
+lemma blocked_induction_with_decided:
   assumes
     n_d: "no_dup (L # M)" and
     nil: "P []" and
-    append: "\<And>M L M'. P M \<Longrightarrow> is_marked L \<Longrightarrow> \<forall>m \<in> set M'. \<not>is_marked m \<Longrightarrow> no_dup (L # M' @ M) \<Longrightarrow>
+    append: "\<And>M L M'. P M \<Longrightarrow> is_decided L \<Longrightarrow> \<forall>m \<in> set M'. \<not>is_decided m \<Longrightarrow> no_dup (L # M' @ M) \<Longrightarrow>
       P (L # M' @ M)" and
-    L: "is_marked L"
+    L: "is_decided L"
   shows
     "P (L # M)"
   using n_d L
-proof (induction "card {L' \<in> set M. is_marked L'}" arbitrary: L M)
+proof (induction "card {L' \<in> set M. is_decided L'}" arbitrary: L M)
   case 0 note n = this(1) and n_d = this(2) and L = this(3)
-  then have "\<forall>m \<in> set M. \<not>is_marked m" by auto
+  then have "\<forall>m \<in> set M. \<not>is_decided m" by auto
   then show ?case using append[of "[]" L M] L nil n_d by auto
 next
   case (Suc n) note IH = this(1) and n = this(2) and n_d = this(3) and L = this(4)
-  have "\<exists>L' \<in> set M. is_marked L'"
+  have "\<exists>L' \<in> set M. is_decided L'"
     proof (rule ccontr)
       assume "\<not>?thesis"
-      then have H: "{L' \<in> set M. is_marked L'} = {}"
+      then have H: "{L' \<in> set M. is_decided L'} = {}"
         by auto
       show False using n unfolding H by auto
     qed
   then obtain L' M' M'' where
     M: "M = M' @ L' # M''" and
-    L': "is_marked L'" and
-    nm: "\<forall>m\<in>set M'. \<not>is_marked m"
+    L': "is_decided L'" and
+    nm: "\<forall>m\<in>set M'. \<not>is_decided m"
     by (auto elim!: split_list_first_propE)
-  have "Suc n = card {L' \<in> set M. is_marked L'}"
+  have "Suc n = card {L' \<in> set M. is_decided L'}"
     using n .
-  moreover have "{L' \<in> set M. is_marked L'} = {L'} \<union> {L' \<in> set M''. is_marked L'}"
+  moreover have "{L' \<in> set M. is_decided L'} = {L'} \<union> {L' \<in> set M''. is_decided L'}"
     using nm L' n_d unfolding M by auto
-  moreover have "L' \<notin> {L' \<in> set M''. is_marked L'}"
+  moreover have "L' \<notin> {L' \<in> set M''. is_decided L'}"
     using n_d unfolding M by auto
-  ultimately  have "n = card {L'' \<in> set M''. is_marked L''}"
+  ultimately  have "n = card {L'' \<in> set M''. is_decided L''}"
     using n L' by auto
   then have "P (L' # M'')" using IH L' n_d M by auto
   then show ?case using append[of "L' # M''" L M'] nm L n_d unfolding M by blast
@@ -638,25 +638,25 @@ lemma trail_bloc_induction:
   assumes
     n_d: "no_dup M" and
     nil: "P []" and
-    append: "\<And>M L M'. P M \<Longrightarrow> is_marked L \<Longrightarrow> \<forall>m \<in> set M'. \<not>is_marked m \<Longrightarrow> no_dup (L # M' @ M) \<Longrightarrow>
+    append: "\<And>M L M'. P M \<Longrightarrow> is_decided L \<Longrightarrow> \<forall>m \<in> set M'. \<not>is_decided m \<Longrightarrow> no_dup (L # M' @ M) \<Longrightarrow>
       P (L # M' @ M)" and
-    append_nm: "\<And>M' M''. P M' \<Longrightarrow> M = M'' @  M' \<Longrightarrow> \<forall>m\<in>set M''. \<not>is_marked m \<Longrightarrow> P M"
+    append_nm: "\<And>M' M''. P M' \<Longrightarrow> M = M'' @  M' \<Longrightarrow> \<forall>m\<in>set M''. \<not>is_decided m \<Longrightarrow> P M"
   shows
     "P M"
-proof (cases "{L' \<in> set M. is_marked L'} = {}")
+proof (cases "{L' \<in> set M. is_decided L'} = {}")
   case True
   then show ?thesis using append_nm[of "[]" M] nil by auto
 next
   case False
-  then have "\<exists>L' \<in> set M. is_marked L'"
+  then have "\<exists>L' \<in> set M. is_decided L'"
     by auto
   then obtain L' M' M'' where
     M: "M = M' @ L' # M''" and
-    L': "is_marked L'" and
-    nm: "\<forall>m\<in>set M'. \<not>is_marked m"
+    L': "is_decided L'" and
+    nm: "\<forall>m\<in>set M'. \<not>is_decided m"
     by (auto elim!: split_list_first_propE)
   have "P (L' # M'')"
-    apply (rule blocked_induction_with_marked)
+    apply (rule blocked_induction_with_decided)
        using n_d unfolding M apply simp
       using nil apply simp
      using append apply simp
@@ -668,8 +668,8 @@ qed
 inductive Tcons :: "('v, nat, 'v clause) ann_literals \<Rightarrow>('v, nat, 'v clause) ann_literals \<Rightarrow> bool"
   for M :: "('v, nat, 'v clause) ann_literals" where
 "Tcons M []" |
-"Tcons M M' \<Longrightarrow> M = M'' @ M' \<Longrightarrow> (\<forall>m \<in> set M''. \<not>is_marked m) \<Longrightarrow> Tcons M (M'' @ M')" |
-"Tcons M M' \<Longrightarrow> is_marked L \<Longrightarrow> M = M''' @ L # M'' @ M' \<Longrightarrow> (\<forall>m \<in> set M''. \<not>is_marked m) \<Longrightarrow>
+"Tcons M M' \<Longrightarrow> M = M'' @ M' \<Longrightarrow> (\<forall>m \<in> set M''. \<not>is_decided m) \<Longrightarrow> Tcons M (M'' @ M')" |
+"Tcons M M' \<Longrightarrow> is_decided L \<Longrightarrow> M = M''' @ L # M'' @ M' \<Longrightarrow> (\<forall>m \<in> set M''. \<not>is_decided m) \<Longrightarrow>
   Tcons M (L # M'' @ M')"
 
 lemma Tcons_same_end: "Tcons M M' \<Longrightarrow> \<exists>M''. M = M'' @ M'"

@@ -143,7 +143,7 @@ next
       moreover
         have "lit_of l \<noteq> - L'"
         using n_d unfolding M
-          by (metis (no_types) L'M M Marked_Propagated_in_iff_in_lits_of defined_lit_map
+          by (metis (no_types) L'M M Decided_Propagated_in_iff_in_lits_of defined_lit_map
             distinct.simps(2) list.simps(9) set_map)
       moreover have "watched_decided_most_recently M C"
         using wf by (auto simp: C)
@@ -332,13 +332,13 @@ proof -
             using False add cw(1) cw_eq unsat[unfolded CNot_def true_annots_def, simplified]
             by fastforce
           then show ?thesis
-            by (metis M_def Marked_Propagated_in_iff_in_lits_of add add.left_neutral count_union
+            by (metis M_def Decided_Propagated_in_iff_in_lits_of add add.left_neutral count_union
               cw(1) cw_eq gr0I l_mem twl_clause.sel(1) twl_clause.sel(2) undef union_single_eq_member
               w_nw(3))
         qed
       qed
       moreover have "L \<notin># mset_set (uminus ` lits_of M)"
-        using Marked_Propagated_in_iff_in_lits_of undef by auto
+        using Decided_Propagated_in_iff_in_lits_of undef by auto
       ultimately show "L \<in> set_mset (W - mset_set (uminus ` lits_of M))"
         by auto
     qed
@@ -998,7 +998,7 @@ proof (cases "- lit_of L \<in># watched C")
        apply blast
       apply (smt ball_mset_cong bspec_mset insert_iff lits_of_cons nat_neq_iff twl_clause.sel(1)
         uminus_of_uminus_id)
-     apply (auto simp: Marked_Propagated_in_iff_in_lits_of)
+     apply (auto simp: Decided_Propagated_in_iff_in_lits_of)
     done
   then show ?thesis
     using False C'_def by simp
@@ -1563,9 +1563,9 @@ lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_skip_beginning_twl:
   using assms by (induction F' arbitrary: S) auto
 
 lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_trail_tl_trail_twl_decomp[simp]:
-  "trail_twl S = convert_trail_from_NOT (F' @ Marked K () # F) \<Longrightarrow>
+  "trail_twl S = convert_trail_from_NOT (F' @ Decided K () # F) \<Longrightarrow>
      trail_twl (cdcl\<^sub>W_twl.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F (tl_trail_twl S)) = convert_trail_from_NOT F"
-  apply (rule reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_skip_beginning_twl[of _ "tl (F' @ Marked K () # [])"])
+  apply (rule reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_skip_beginning_twl[of _ "tl (F' @ Decided K () # [])"])
   by (cases F') (auto simp add:tl_append rough_cdcl.reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_skip_beginning)
 
 lemma trail_twl_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_drop:

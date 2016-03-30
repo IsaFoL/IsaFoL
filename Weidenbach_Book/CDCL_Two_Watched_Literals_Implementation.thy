@@ -14,7 +14,7 @@ type_synonym 'v conc_twl_state =
 
 fun convert :: "('a, 'b, 'c list) ann_literal \<Rightarrow> ('a, 'b, 'c multiset) ann_literal"  where
 "convert (Propagated L C) = Propagated L (mset C)" |
-"convert (Marked K i) = Marked K i"
+"convert (Decided K i) = Decided K i"
 
 abbreviation convert_tr :: "('a, 'b, 'c list) ann_literals \<Rightarrow> ('a, 'b, 'c multiset) ann_literals"
   where

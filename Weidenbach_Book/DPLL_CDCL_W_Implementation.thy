@@ -48,7 +48,7 @@ proof -
     apply (rename_tac aa list; case_tac list) by (auto split: split_if_asm)
   hence "atm_of a \<notin> atm_of ` lits_of M" by auto
   thus ?thesis
-    by (simp add: Marked_Propagated_in_iff_in_lits_of
+    by (simp add: Decided_Propagated_in_iff_in_lits_of
       atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set )
 qed
 
@@ -114,7 +114,7 @@ proof -
           case True
           thus ?thesis using Cons
             by (auto simp del: lits_of_unfold
-                 simp add: lits_of_unfold[symmetric] Marked_Propagated_in_iff_in_lits_of
+                 simp add: lits_of_unfold[symmetric] Decided_Propagated_in_iff_in_lits_of
                    atm_of_eq_atm_of atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
         next
           case False
@@ -172,7 +172,7 @@ lemma find_first_unused_var_Some:
 
 lemma find_first_unused_var_undefined:
   "find_first_unused_var l (lits_of Ms) = Some a \<Longrightarrow> undefined_lit Ms a"
-  using find_first_unused_var_Some[of l "lits_of Ms" a] Marked_Propagated_in_iff_in_lits_of
+  using find_first_unused_var_Some[of l "lits_of Ms" a] Decided_Propagated_in_iff_in_lits_of
   by blast
 
 end
