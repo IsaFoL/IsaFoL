@@ -1,18 +1,66 @@
-session "Weidenbach_Book" (main) = "HOL" +
+chapter Weidenbach_Book
+
+session "Imports" (Weidenbach_Book) = "HOL" +
+  description \<open>This session imports HOL, some additional useful theories from HOL, and our own
+  extensions above these lemmas.\<close>
+  options [document = pdf, document_output = "output"]
+  theories [document = false]
+    "~~/src/HOL/Library/Code_Target_Numeral"
+    "~~/src/HOL/Library/Multiset"
+    "~~/src/HOL/Library/Multiset_Order"
+  theories [document = true]
+    "../lib/Multiset_More"
+    Wellfounded_More
+    List_More
+  document_files
+    "root.tex"
+    "biblio.bib"
+
+session "Entailment_Definition" (Weidenbach_Book) = "Imports" +
+  description \<open>This session contains various (but still general) definition of entailment used
+  later.\<close>
+  options [document = pdf, document_output = "output"]
+  theories [document = false]
+    "~~/src/HOL/Library/Code_Target_Numeral"
+  theories [document = true]
+    "../lib/Herbrand_Interpretation"
+    "../lib/Clausal_Logic"
+    Partial_Clausal_Logic
+    Prop_Logic
+  document_files
+    "root.tex"
+    "biblio.bib"
+
+session "Normalisation" (Weidenbach_Book) = "Entailment_Definition"
+  +  description \<open>This session contains the normalisation from general formulas to CNF and DNF.\<close>
   options [document = pdf, document_output = "output"]
   theories [document = false]
     "../lib/Multiset_More"
     "../lib/Herbrand_Interpretation"
-    "~~/src/HOL/Library/Code_Target_Numeral"
   theories [document = true]
-    Wellfounded_More
-    List_More
-    Prop_Logic
     Prop_Abstract_Transformation
     Prop_Normalisation
-    "../lib/Clausal_Logic"
-    Partial_Clausal_Logic
     Prop_Logic_Multiset
+  document_files
+    "root.tex"
+    "biblio.bib"
+
+session "Resolution_Superposition" (Weidenbach_Book) = "Entailment_Definition" +
+  description \<open>This session contains the formalisation of resolution and the beginning of
+  superposition.\<close>
+  options [document = pdf, document_output = "output"]
+  theories [document = true]
+    Prop_Resolution
+  theories [quick_and_dirty, document = true]
+    Prop_Superposition
+  document_files
+    "root.tex"
+    "biblio.bib"
+
+session "DPLL_CDCL" (Weidenbach_Book) = "Entailment_Definition" +
+  description \<open>This session contains CDCL and DPLL both NOT's and W's version.\<close>
+  options [document = pdf, document_output = "output"]
+  theories [document = true]
     Prop_Resolution
     Partial_Annotated_Clausal_Logic
     DPLL_W
@@ -31,7 +79,13 @@ session "Weidenbach_Book" (main) = "HOL" +
     CDCL_Two_Watched_Literals_Invariant
   theories [quick_and_dirty, document = true]
     CDCL_Two_Watched_Literals_Implementation
-    Prop_Superposition
+  document_files
+    "root.tex"
+    "biblio.bib"
+
+session "Full" (Weidenbach_Book) = "DPLL_CDCL"  +
+  description \<open>This session imports all theories.\<close>
+  options [document = pdf, document_output = "output"]
   theories [quick_and_dirty, document = false]
     Weidenbach_Book
   document_files
