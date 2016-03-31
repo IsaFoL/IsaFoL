@@ -587,8 +587,12 @@ qed
 
 text \<open>Remark that:
   \<^item> we do not change the conflicting clause, once one has been found. It should be possible
-  to take the shorter of the conflicts with respect to the trail.\<close>
-(* One variant:
+  to take the shorter of the conflicts with respect to the trail.
+  
+  TODO: we could do even better, we do not have to finish updating the datastructure, since the 
+  literals since the latest decision are all removed (and the datastructure was well-founded before
+  the decision).\<close>
+(* One variant: 
  function do_propagate_or_conflict_step :: "'a twl_state_cands \<Rightarrow> 'a twl_state_cands" where
  "do_propagate_or_conflict_step (TWL_State_Cand S (Prop_Or_Conf [] (Some D))) =
   (if trail S \<Turnstile>as CNot (clause D)
