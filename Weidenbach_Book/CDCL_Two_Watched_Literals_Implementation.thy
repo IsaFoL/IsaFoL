@@ -55,6 +55,14 @@ datatype 'v twl_state_cands =
 fun raw_cons_trail where
 "raw_cons_trail L (TWL_State M N U k C) = TWL_State (L # M) N U k C"
 
+lemma raw_init_clss_raw_cons_trail[simp]:
+  "raw_init_clss (raw_cons_trail L T) = raw_init_clss T"
+  by (cases T) auto
+
+lemma raw_learned_clss_raw_cons_trail[simp]:
+  "raw_learned_clss (raw_cons_trail L T) = raw_learned_clss T"
+  by (cases T) auto
+
 lemma length_raw_trail_raw_cons_trails[simp]:
   "length (raw_trail (raw_cons_trail (Propagated L C') S)) = Suc (length (raw_trail S))"
   by (cases S) auto
@@ -79,7 +87,7 @@ fun find_earliest_conflict :: "('v, nat, 'v twl_clause) ann_lits \<Rightarrow>
 "find_earliest_conflict _ C None = C" |
 "find_earliest_conflict [] C _ = C" |
 "find_earliest_conflict (L # M) (Some C) (Some D) =
-  (case (M \<Turnstile>a mset (raw_clause C), \<not>M\<Turnstile>a mset (raw_clause D)) of
+  (case (M \<Turnstile>a clause C, \<not>M\<Turnstile>a clause D) of
     (True, True) \<Rightarrow> find_earliest_conflict M (Some C) (Some D)
   | (False, True) \<Rightarrow> Some D
   | (True, False) \<Rightarrow> Some C
@@ -139,12 +147,21 @@ where
 
 declare rewatch_nat_cand_single_clause.simps[simp del]
 
+text \<open>We do no check if the structural invariants about the 2-WL clauses holds. Otherwise,
+  @{term "raw_trail U @ get_trail_of_cand (Prop_Or_Conf Q D) \<Turnstile>a clause C"} would work to and
+  would be a better definition.\<close>
 fun \<mu>TWL where
-"\<mu>TWL (TWL_State_Cand U (Prop_Or_Conf Q D)) =
-  card {C \<in> set_mset (twl.clauses U). \<not>raw_trail U @ get_trail_of_cand (Prop_Or_Conf Q D) \<Turnstile>a C}"
+"\<mu>TWL (TWL_State_Cand U K) =
+  card {L \<in> atms_of_mm (twl.clauses U). L \<notin> atm_of ` lits_of_l (raw_trail U @ get_trail_of_cand K)}"
 
-fun
-  rewatch_nat_cand_clss ::
+lemma get_all_mark_of_propagated_get_trail_cond[simp]:
+  "get_all_mark_of_propagated (get_trail_of_cand K) = map snd (prop_queue K)"
+proof -
+  obtain Q D where K: "K = Prop_Or_Conf Q D" by (cases K)
+  show ?thesis unfolding K by (induction Q) auto
+qed
+
+fun rewatch_nat_cand_clss ::
   "'v literal \<Rightarrow> ('v, nat, 'v twl_clause) ann_lits \<Rightarrow>
     'v twl_clause list \<times> 'v candidate \<Rightarrow>
      'v twl_clause list  \<times> 'v candidate"
@@ -153,10 +170,6 @@ where
   foldr (rewatch_nat_cand_single_clause L M) Cs ([], Ks)"
 
 declare rewatch_nat_cand_clss.simps[simp del]
-
-lemma CNot_mset_replicate[simp]:
-  "CNot (mset (replicate n L)) = (if n = 0 then {} else {{#-L#}})"
-  by (induction n) auto
 
 lemma struct_wf_rewatch_nat_cand_single_clause_cases[consumes 1, case_names wf lit_notin propagate
   conflict no_conflict update_cls]:
@@ -226,7 +239,7 @@ proof -
           (unwatched C)")
           case (Cons L' fUW)
           then show ?thesis
-            apply - by (rule update_cls; auto simp add: rewatch_nat_cand_single_clause.simps L)
+            apply - by (rule update_cls) (auto simp add: rewatch_nat_cand_single_clause.simps L)
         next
           case filter: Nil
           then show ?thesis
@@ -288,7 +301,7 @@ lemma prop_queue_first_is_undefined:
   shows
     "undefined_lit (get_trail_of_cand (snd S) @ M) (fst L')" and
     "snd L' = C" and
-    "fst L' \<in># mset (raw_clause C)"
+    "fst L' \<in># clause C"
     using assms
       apply (cases C, cases S)
       apply (auto simp: rewatch_nat_cand_single_clause.simps
@@ -301,7 +314,8 @@ lemma prop_queue_first_is_undefined:
       simp del: watched_decided_most_recently.simps)
   using assms
   apply (cases C, cases S)
-  apply (auto simp: rewatch_nat_cand_single_clause.simps raw_clause_def
+  (* TODO tune proof *)
+  apply (auto simp: rewatch_nat_cand_single_clause.simps clause_def raw_clause_def
     split: list.splits if_splits
     simp del: watched_decided_most_recently.simps)
   by (metis in_set_remove1 list.set_intros(1))
@@ -393,7 +407,8 @@ proof -
     by (auto simp: comp_def twl.raw_clauses_def U V)
 qed
 
-lemma "twl.clauses (twl_state (rewatch_nat_cand L S)) = twl.clauses (twl_state S)"
+lemma twl_clauses_rewatch_nat_cand[simp]:
+  "twl.clauses (twl_state (rewatch_nat_cand L S)) = twl.clauses (twl_state S)"
 proof -
   obtain T Ks where S: "S = TWL_State_Cand T Ks"
     by (cases S)
@@ -405,26 +420,16 @@ proof -
     V: "rewatch_nat_cand_clss L (raw_trail T) (raw_learned_clss T, K') = (V, K'')"
     (is "?H = _") by (cases ?H)
 
-  have "mset (map (\<lambda>x. mset (raw_clause x)) U) = mset (map (\<lambda>x. mset (raw_clause x)) (raw_init_clss T))"
+  have "mset (map clause U) = mset (map clause (raw_init_clss T))"
     using rewatch_nat_cand_single_clause_clauses[of L "raw_trail T" "raw_init_clss T"
-      "Ks"] by (auto simp: comp_def U)
-  moreover have "mset (map (\<lambda>x. mset (raw_clause x)) V) = mset (map (\<lambda>x. mset (raw_clause x))
+      "Ks"] by (auto simp: comp_def U clause_def raw_clause_def clause_def_lambda)
+  moreover have "mset (map clause V) = mset (map clause
   (raw_learned_clss T))"
     using rewatch_nat_cand_single_clause_clauses[of L "raw_trail T" "raw_learned_clss T"
-      "K'"] by (auto simp: comp_def V)
+      "K'"] by (auto simp: comp_def V clause_def_lambda raw_clause_def)
   ultimately show ?thesis  unfolding S
-    by (auto simp: comp_def twl.raw_clauses_def U V)
+    by (auto simp: comp_def twl.raw_clauses_def U V clause_def raw_clause_def)
 qed
-
-(* TODO Move me *)
-lemma raw_init_clss_raw_cons_trail[simp]:
-  "raw_init_clss (raw_cons_trail L T) = raw_init_clss T"
-  by (cases T) auto
-
-lemma raw_learned_clss_raw_cons_trail[simp]:
-  "raw_learned_clss (raw_cons_trail L T) = raw_learned_clss T"
-  by (cases T) auto
-(* END Move Me *)
 
 lemma true_annot_mono_append_append:
   "A @ C \<Turnstile>a D \<Longrightarrow> A @ B @ C \<Turnstile>a D"
@@ -434,6 +439,19 @@ lemma true_annot_mono_append_append:
 lemma true_annot_mono':
   "\<not>I' \<Turnstile>a N \<Longrightarrow> I \<Turnstile>a N \<Longrightarrow> \<not>set I \<subseteq> set I' "
   using true_annot_mono by blast
+
+lemma prop_queue_cand_raw_cons_trail[simp]:
+  "prop_queue (cand (raw_cons_trail_pq (Propagated L C') S)) = prop_queue (cand S)"
+  by (cases S) auto
+
+lemma \<mu>TWL_Prop_Or_Conf_append_raw_cons_trail:
+  "\<mu>TWL (TWL_State_Cand S (Prop_Or_Conf (l @ [(L, C')]) D)) =
+    \<mu>TWL (TWL_State_Cand (raw_cons_trail (Propagated L C') S) (Prop_Or_Conf l D))"
+  by (auto simp: comp_def)
+
+lemma get_all_mark_of_propagated_map_Propagated[simp]:
+  "get_all_mark_of_propagated (map (\<lambda>(x, y). Propagated x y) Q) = map snd Q"
+  by (induction Q) auto
 
 lemma YYY:
   "\<mu>TWL (raw_cons_trail_pq (Propagated L C')
@@ -454,62 +472,32 @@ proof -
     using prop_queue_rewatch_nat_cand_eq_or_cons[of L "TWL_State_Cand S (Prop_Or_Conf Q D)"]
     by (auto simp: comp_def twl.raw_clauses_def U V K'')
 
-  have H1: "set_mset (mset (map (\<lambda>t. mset (raw_clause t)) U)) =
-    (\<lambda>t. mset (raw_clause t)) ` set_mset (mset (raw_init_clss S))"
+  have H1: "set_mset (mset (map clause U)) =
+    clause ` set_mset (mset (raw_init_clss S))"
     using rewatch_nat_cand_single_clause_clauses[of L "raw_trail S" "raw_init_clss S"
-      "Prop_Or_Conf Q D"] by (auto simp: comp_def U)
+      "Prop_Or_Conf Q D"] by (auto simp: comp_def U clause_def_lambda)
   moreover
-    have H2: "set_mset (mset (map (\<lambda>t. mset (raw_clause t)) V)) =
-      (\<lambda>t. mset (raw_clause t)) ` set_mset (mset (raw_learned_clss S))"
+    have H2: "set_mset (mset (map clause V)) =
+      clause ` set_mset (mset (raw_learned_clss S))"
       using rewatch_nat_cand_single_clause_clauses[of L "raw_trail S" "raw_learned_clss S"
-        "K'"] by (auto simp: comp_def V)
-  ultimately
-    have "card ((\<lambda>x. mset (raw_clause x)) ` set (raw_init_clss S)
-      \<union> (\<lambda>x. mset (raw_clause x)) ` set (raw_learned_clss S)) =
-      card ((\<lambda>x. mset (raw_clause x)) ` set U \<union> (\<lambda>x. mset (raw_clause x)) ` set V)"
-      by simp
-  moreover
-    have
-      "card {C. C \<in> (\<lambda>x. mset (raw_clause x)) ` set (twl.raw_clauses S) \<and>
-         \<not>(Propagated L C') # raw_trail S @ map (\<lambda>(x, y). Propagated x y) Q'' \<Turnstile>a C}
-    \<le> card {C. C \<in> (\<lambda>x. mset (raw_clause x)) ` set (twl.raw_clauses S) \<and>
-         \<not>raw_trail S @ map (\<lambda>(x, y). Propagated x y) Q @ [Propagated L C'] \<Turnstile>a C}"
-    apply (rule card_mono)
-    apply (auto)
-    (* TODO Proof *)
-    apply (drule true_annot_mono')
-    apply (auto simp: P)[2]
-    done
-  moreover
-    have "(\<lambda>x. mset (raw_clause x)) ` set (twl.raw_clauses
-       (TWL_State (Propagated L C' # raw_trail S) U V (backtrack_lvl S) (raw_conflicting S))) =
-     (\<lambda>x. mset (raw_clause x)) ` set (twl.raw_clauses S)"
-     using H1 H2 by (auto simp: twl.raw_clauses_def)
-  ultimately show ?thesis
-    by (auto simp: comp_def U V K'' intro!: Nat.diff_le_mono2)
+        "K'"] by (auto simp: comp_def V clause_def_lambda)
+  show ?thesis
+    using H1 H2
+    by (auto simp: comp_def U V K'' twl.raw_clauses_def image_Un P (* raw_clause_def *)
+      clause_def image_image lits_of_def intro!: Nat.diff_le_mono2 card_mono)
 qed
 
-lemma prop_queue_cand_raw_cons_trail[simp]:
-  "prop_queue (cand (raw_cons_trail_pq (Propagated L C') S)) = prop_queue (cand S)"
-  by (cases S) auto
-lemma \<mu>TWL_Prop_Or_Conf_append_raw_cons_trail:
-  "\<mu>TWL (TWL_State_Cand S (Prop_Or_Conf (l @ [(L, C')]) D)) =
-    \<mu>TWL (TWL_State_Cand (raw_cons_trail (Propagated L C') S) (Prop_Or_Conf l D))"
-  (* TODO Proof *)
-  apply (auto simp: comp_def)
-  by (metis (no_types, lifting) append.simps(1) append.simps(2) append_assoc true_annot_commute)
-
-text \<open>Implementation-wise, @{term "trail S \<Turnstile>as CNot (mset (raw_clause D))"} should be equivalent
+text \<open>Implementation-wise, @{term "trail S \<Turnstile>as CNot (clause D)"} should be equivalent
   to there is no more propagation to do.\<close>
 function do_propagate_or_conflict_step :: "'a twl_state_cands \<Rightarrow> 'a twl_state_cands" where
 "do_propagate_or_conflict_step (TWL_State_Cand S (Prop_Or_Conf [] (Some D))) =
-  (if trail S \<Turnstile>as CNot (mset (raw_clause D))
+  (if trail S \<Turnstile>as CNot (clause D)
   then (update_conflicting_pq (Some (raw_clause D)) (TWL_State_Cand S (Prop_Or_Conf [] None)))
   else TWL_State_Cand S (Prop_Or_Conf [] (Some D)))" |
 "do_propagate_or_conflict_step (TWL_State_Cand S (Prop_Or_Conf [] None)) =
   TWL_State_Cand S (Prop_Or_Conf [] None)" |
 "do_propagate_or_conflict_step (TWL_State_Cand S (Prop_Or_Conf (l @ [(L, C')]) (Some D))) =
-  (if trail S \<Turnstile>as CNot (mset (raw_clause D))
+  (if trail S \<Turnstile>as CNot (clause D)
   then update_conflicting_pq (Some (raw_clause D)) (TWL_State_Cand S (Prop_Or_Conf l None))
   else do_propagate_or_conflict_step
     (raw_cons_trail_pq (Propagated L C')
@@ -531,16 +519,27 @@ proof (goal_cases)
   show ?case by (auto simp: wf_lexn intro!: wf_if_measure_f)
 next
   case (2 S l L C' D)
+  obtain T Q' where T: "rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l (Some D))) =
+    TWL_State_Cand T Q'"
+    by (cases "rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l (Some D)))")
+  have ST: "clause ` set (twl.raw_clauses T) =
+    clause ` set (twl.raw_clauses S)"
+    using twl_clauses_rewatch_nat_cand[of L "TWL_State_Cand S (Prop_Or_Conf l (Some D))"]
+    unfolding T
+    (* TODO tune proof *)
+    apply (auto simp: comp_def twl.raw_clauses_def image_Un
+          simp del: rewatch_nat_cand.simps)
+    apply (metis (no_types, lifting) Un_iff image_eqI set_append set_map set_mset_mset union_code)+
+    done
+  have [simp]: "raw_trail T = raw_trail S"
+    using T by (auto split: Product_Type.prod.splits)
   show ?case
-    apply (cases "rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l (Some D)))")
-    apply (case_tac x2)
     using YYY[of L C' S l "Some D"]
     prop_queue_rewatch_nat_cand_eq_or_cons[of L "TWL_State_Cand S (Prop_Or_Conf l (Some D))"]
     apply (auto simp add: comp_def lexn_n \<mu>TWL_Prop_Or_Conf_append_raw_cons_trail
-
+      T ST
       simp del: lexn.simps(2) rewatch_nat_cand.simps
-      \<mu>TWL.simps)
-sledgehammer
+      simp add: lits_of_def image_image image_Un \<mu>TWL.simps)
 (* idea if L' is not empty, then cannot have \<mu>TWL equality *)
     sorry
 next
@@ -572,8 +571,8 @@ lemma rewatch_nat_cand_single_clause_conflict:
     conf: "conflict Ks = Some D" and
     conf': "conflict (snd (rewatch_nat_cand_single_clause L M C (Cs, Ks))) = Some D'" and
     n_d: "no_dup (get_trail_of_cand Ks @ M)" and
-    confI: "get_trail_of_cand Ks @ M \<Turnstile>as CNot (mset (raw_clause D))"
-  shows "get_trail_of_cand Ks @ M \<Turnstile>as CNot (mset (raw_clause D'))"
+    confI: "get_trail_of_cand Ks @ M \<Turnstile>as CNot (clause D)"
+  shows "get_trail_of_cand Ks @ M \<Turnstile>as CNot (clause D')"
   apply (cases C)
   using n_d wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs Ks])
   prefer 4
@@ -594,7 +593,7 @@ lemma rewatch_nat_cand_single_clause_conflict_found:
     n_d: "no_dup (get_trail_of_cand Ks @ M)" and
     conf: "conflict Ks = None" and
     conf': "conflict (snd (rewatch_nat_cand_single_clause L M C (Cs, Ks))) = Some D'"
-  shows "get_trail_of_cand Ks @ M \<Turnstile>as CNot (mset (raw_clause D'))"
+  shows "get_trail_of_cand Ks @ M \<Turnstile>as CNot (clause D')"
   apply (cases C)
   using n_d wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs Ks])
   using conf conf' L

@@ -768,6 +768,10 @@ lemma true_annot_CNot_diff:
   "I \<Turnstile>as CNot C \<Longrightarrow> I \<Turnstile>as CNot (C - C')"
   by (auto simp: true_annots_true_cls_def_iff_negation_in_model dest: in_diffD)
 
+lemma CNot_mset_replicate[simp]:
+  "CNot (mset (replicate n L)) = (if n = 0 then {} else {{#-L#}})"
+  by (induction n) auto
+
 lemma consistent_CNot_not_tautology:
   "consistent_interp M \<Longrightarrow> M \<Turnstile>s CNot D \<Longrightarrow> \<not>tautology D"
   by (metis atms_of_ms_CNot_atms_of consistent_CNot_not satisfiable_carac' satisfiable_def
