@@ -54,37 +54,45 @@ abbreviation clauses_of_l where
 definition raw_clause :: "'v twl_clause \<Rightarrow> 'v literal list" where
   "raw_clause C \<equiv> watched C @ unwatched C"
 
+definition clause :: "'v twl_clause \<Rightarrow> 'v clause" where
+  "clause C \<equiv> mset (raw_clause C)"
+
+lemma clause_def_lambda:
+  "clause = (\<lambda>C. mset (raw_clause C))"
+  by (auto simp: clause_def)
+
 abbreviation raw_clss :: "'v twl_state \<Rightarrow> 'v clauses" where
-  "raw_clss S \<equiv> clauses_of_l (map raw_clause (raw_init_clss S @ raw_learned_clss S))"
+  "raw_clss S \<equiv> mset (map clause (raw_init_clss S @ raw_learned_clss S))"
+
+abbreviation raw_clss_l :: "'a twl_clause list \<Rightarrow> 'a literal multiset multiset" where
+  "raw_clss_l C \<equiv> mset (map clause C)"
 
 interpretation raw_cls
-  "\<lambda>C. mset (raw_clause C)"
+  clause
   "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
   "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
   apply (unfold_locales)
   by (auto simp:hd_map comp_def map_tl ac_simps
-    mset_map_mset_remove1_cond ex_mset raw_clause_def
-    simp del: )
+    mset_map_mset_remove1_cond ex_mset raw_clause_def clause_def)
 
 lemma mset_map_clause_remove1_cond:
   "mset (map (\<lambda>x. mset (unwatched x) + mset (watched x))
-    (remove1_cond (\<lambda>D. mset (raw_clause D) = mset (raw_clause a)) Cs)) =
-   remove1_mset (mset (raw_clause a)) (mset (map (\<lambda>x. mset (raw_clause x)) Cs))"
+    (remove1_cond (\<lambda>D. clause D = clause a) Cs)) =
+   remove1_mset (clause a) (mset (map clause Cs))"
    apply (induction Cs)
      apply simp
-   by (auto simp: ac_simps remove1_mset_single_add raw_clause_def)
+   by (auto simp: ac_simps remove1_mset_single_add raw_clause_def clause_def)
 
 interpretation raw_clss
-  "\<lambda>C. mset (raw_clause C)"
+  clause
     (* does not matter if the invariants do not hold *)
   "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
   "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
-  "\<lambda>C. clauses_of_l (map raw_clause C)" "op @"
-  "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. mset (raw_clause D) = mset (raw_clause C))"
+  raw_clss_l "op @"
+  "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
   apply (unfold_locales)
-  using mset_map_clause_remove1_cond by (auto simp:hd_map comp_def map_tl ac_simps raw_clause_def
-    union_mset_list mset_map_mset_remove1_cond ex_mset
-    simp del: )
+  using mset_map_clause_remove1_cond by (auto simp: hd_map comp_def map_tl ac_simps raw_clause_def
+    union_mset_list mset_map_mset_remove1_cond ex_mset clause_def_lambda)
 
 lemma ex_mset_unwatched_watched:
   "\<exists>a. mset (unwatched a) + mset (watched a) = E"
@@ -98,12 +106,12 @@ qed
 
 thm CDCL_Two_Watched_Literals.raw_cls_axioms
 interpretation twl: state\<^sub>W_ops
-  "\<lambda>C. mset (raw_clause C)"
+  clause
     (* does not matter if the invariants do not hold *)
   "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
   "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
-  "\<lambda>C. clauses_of_l (map raw_clause C)" "op @"
-  "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. mset (raw_clause D) = mset (raw_clause C))"
+  raw_clss_l "op @"
+  "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
   mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
   "op #" remove1
@@ -113,13 +121,14 @@ interpretation twl: state\<^sub>W_ops
   raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
 
   apply unfold_locales apply (auto simp: hd_map comp_def map_tl ac_simps raw_clause_def
-    union_mset_list mset_map_mset_remove1_cond ex_mset_unwatched_watched)
+    union_mset_list mset_map_mset_remove1_cond ex_mset_unwatched_watched clause_def)
   done
 declare CDCL_Two_Watched_Literals.twl.mset_ccls_ccls_of_cls[simp del]
 
 lemma mmset_of_mlit'_mmset_of_mlit[simp]:
   "twl.mmset_of_mlit L = mmset_of_mlit' L"
-  by (metis mmset_of_mlit'.simps(1) mmset_of_mlit'.simps(2)  twl.mmset_of_mlit.elims raw_clause_def)
+  by (metis mmset_of_mlit'.simps(1) mmset_of_mlit'.simps(2) twl.mmset_of_mlit.elims raw_clause_def
+    clause_def)
 
 definition
   candidates_propagate :: "'v twl_state \<Rightarrow> ('v literal \<times> 'v twl_clause) set"
@@ -441,7 +450,7 @@ qed
 lemma wf_candidates_conflict_sound:
   assumes wf: "wf_twl_state S" and
     cand: "C \<in> candidates_conflict S"
-  shows "trail S \<Turnstile>as CNot (mset (raw_clause C)) \<and> C \<in> set (twl.raw_clauses S)"
+  shows "trail S \<Turnstile>as CNot (clause C) \<and> C \<in> set (twl.raw_clauses S)"
 proof
   def M \<equiv> "raw_trail S"
   def N \<equiv> "raw_init_clss S"
@@ -494,8 +503,8 @@ proof
       qed
     qed
   qed
-  then show "trail S \<Turnstile>as CNot (mset (raw_clause C))"
-    unfolding CNot_def true_annots_def by auto
+  then show "trail S \<Turnstile>as CNot (clause C)"
+    unfolding CNot_def true_annots_def clause_def by auto
 
   show "C \<in> set (twl.raw_clauses S)"
     using cw unfolding twl.raw_clauses_def by auto
@@ -504,7 +513,7 @@ qed
 lemma wf_candidates_conflict_complete:
   assumes wf: "wf_twl_state S" and
     c_mem: "C \<in> set (twl.raw_clauses S)" and
-    unsat: "trail S \<Turnstile>as CNot (mset (raw_clause C))"
+    unsat: "trail S \<Turnstile>as CNot (clause C)"
   shows "C \<in> candidates_conflict S"
 proof -
   def M \<equiv> "raw_trail S"
@@ -526,7 +535,8 @@ proof -
    using wf_c unfolding cw_eq by (auto simp: image_image)
 
   have "\<And>L. L \<in> set (raw_clause C) \<Longrightarrow> -L \<in> lits_of_l M"
-    unfolding M_def using unsat[unfolded CNot_def true_annots_def, simplified] by auto
+    unfolding M_def using unsat[unfolded CNot_def true_annots_def, simplified]
+    by (auto simp: clause_def)
   then have "set (raw_clause C) \<subseteq> uminus ` lits_of_l M"
     by (metis imageI subsetI uminus_of_uminus_id)
   then have "set W \<subseteq> uminus ` lits_of_l M"
@@ -586,7 +596,7 @@ abbreviation raw_conflicting_twl where
 lemma wf_candidates_twl_conflict_complete:
   assumes
     c_mem: "C \<in> set (raw_clauses_twl S)" and
-    unsat: "trail_twl S \<Turnstile>as CNot (mset (raw_clause C))"
+    unsat: "trail_twl S \<Turnstile>as CNot (clause C)"
   shows "C \<in> candidates_conflict_twl S"
   using c_mem unsat wf_candidates_conflict_complete wf_twl_state_rough_state_of_twl by blast
 
@@ -612,9 +622,9 @@ locale abstract_twl =
       'v twl_clause \<Rightarrow> 'v twl_clause" and
     restart_learned :: "'v twl_state \<Rightarrow> 'v twl_clause list"
   assumes
-    clause_watch: "no_dup (raw_trail S) \<Longrightarrow> mset (raw_clause (watch S C)) = mset C" and
+    clause_watch: "no_dup (raw_trail S) \<Longrightarrow> clause (watch S C) = mset C" and
     wf_watch: "no_dup (raw_trail S) \<Longrightarrow> wf_twl_cls (raw_trail S) (watch S C)" and
-    clause_rewatch: "mset (raw_clause (rewatch L' S C')) = mset (raw_clause C')" and
+    clause_rewatch: "clause (rewatch L' S C') = clause C'" and
     wf_rewatch:
       "no_dup (raw_trail S) \<Longrightarrow> undefined_lit (raw_trail S) (lit_of L) \<Longrightarrow>
         wf_twl_cls (raw_trail S) C' \<Longrightarrow>
@@ -650,8 +660,8 @@ definition
 where
   "remove_cls C S =
    TWL_State (raw_trail S)
-     (removeAll_cond (\<lambda>D. mset (raw_clause D) = mset C) (raw_init_clss S))
-     (removeAll_cond (\<lambda>D. mset (raw_clause D) = mset C) (raw_learned_clss S))
+     (removeAll_cond (\<lambda>D. clause D = mset C) (raw_init_clss S))
+     (removeAll_cond (\<lambda>D. clause D = mset C) (raw_learned_clss S))
      (backtrack_lvl S)
      (raw_conflicting S)"
 
@@ -675,8 +685,9 @@ lemma unchanged_init_state[simp]:
 lemma clauses_init_fold_add_init:
   "no_dup M \<Longrightarrow>
    twl.init_clss (fold add_init_cls Cs (TWL_State M N U k C)) =
-   clauses_of_l Cs + clauses_of_l (map raw_clause N)"
-  by (induct Cs arbitrary: N) (auto simp: add_init_cls_def clause_watch comp_def ac_simps)
+   clauses_of_l Cs + raw_clss_l N"
+  by (induct Cs arbitrary: N) (auto simp: add_init_cls_def clause_watch comp_def ac_simps
+    clause_def[symmetric])
 
 lemma init_clss_init_state[simp]: "twl.init_clss (init_state N) = clauses_of_l N"
   unfolding init_state_def by (subst clauses_init_fold_add_init) simp_all
@@ -805,10 +816,11 @@ lemma mset_intersection_inclusion: "A + (B - A) = B \<longleftrightarrow> A \<su
 
 lemma clause_watch_nat:
   assumes "no_dup (raw_trail S)"
-  shows "mset (raw_clause (watch_nat S C)) = mset C"
+  shows "clause (watch_nat S C) = mset C"
   using assms
   apply (cases rule: watch_nat_list_cases[OF assms(1), of C])
-  by (auto dest: filter_in_list_prop_verifiedD simp: watch_nat_def multiset_eq_iff raw_clause_def)
+  by (auto dest: filter_in_list_prop_verifiedD simp: watch_nat_def multiset_eq_iff raw_clause_def
+    clause_def)
 
 lemma index_uminus_index_map_uminus:
   "-a \<in> set L \<Longrightarrow> index L (-a) = index (map uminus L) (a::'a literal)"
@@ -976,10 +988,10 @@ lemma clause_rewatch_nat:
   fixes UW :: "'v literal list" and
     S :: "'v twl_state" and
     L :: "'v literal" and C :: "'v twl_clause"
-  shows "mset (raw_clause (rewatch_nat L S C)) = mset (raw_clause C)"
+  shows "clause (rewatch_nat L S C) = clause C"
   using List.set_remove1_subset[of "-L" "watched C"]
   apply (cases C)
-  by (auto simp: raw_clause_def rewatch_nat_def ac_simps multiset_eq_iff
+  by (auto simp: raw_clause_def rewatch_nat_def ac_simps multiset_eq_iff clause_def
     split: list.split
     dest: filter_in_list_prop_verifiedD)
 
