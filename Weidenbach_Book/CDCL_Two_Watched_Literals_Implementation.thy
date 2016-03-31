@@ -715,7 +715,7 @@ lemma rewatch_nat_cand_single_clause_conflict_found:
   using n_d wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L M Cs Ks])
   using conf conf' L
   (* TODO tune proof *)
-  apply (auto simp add: raw_clause_def filter_empty_conv true_annots_true_cls_def_iff_negation_in_model
+  apply (auto simp: raw_clause_def filter_empty_conv true_annots_true_cls_def_iff_negation_in_model
     Quickcheck_Exhaustive.orelse_def lits_of_def image_image image_Un clause_def
      simp del: watched_decided_most_recently.simps)
   apply force+

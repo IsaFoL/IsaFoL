@@ -152,11 +152,19 @@ lemma index_nth:
   by (induction l) auto
 
 subsubsection \<open>Invariants\<close>
+text \<open>The structural invariants states that there are at most two watched elements, that the watched
+  literals are distinct, and that there are 2 watched literals if there are at least than two
+  different literals in the full clauses.\<close>
+primrec struct_wf_twl_cls :: "'v twl_clause \<Rightarrow> bool" where
+"struct_wf_twl_cls (TWL_Clause W UW) \<longleftrightarrow>
+   distinct W \<and> length W \<le> 2 \<and> (length W < 2 \<longrightarrow> set UW \<subseteq> set W)"
 
 text \<open>We need the following property about updates: if there is a literal @{term L} with
   @{term "-L"} in the trail, and @{term L} is not  watched, then it stays unwatched; i.e., while
   updating with @{term rewatch}, @{term L} does not get swapped with a watched literal @{term L'}
-  such that @{term "-L'"} is in the trail. This corresponds to the laziness of the data structure.\<close>
+  such that @{term "-L'"} is in the trail. This corresponds to the laziness of the data structure.
+  
+  Remark that @{term M} is a trail: literals at the end were the first to be added to the trail.\<close>
 primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) ann_lit list \<Rightarrow>
   'v twl_clause \<Rightarrow> bool"
   where
@@ -164,13 +172,6 @@ primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) ann_lit list \<Right
   (\<forall>L'\<in> set W. \<forall>L\<in> set UW.
     -L' \<in> lits_of_l M \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L \<notin># mset W \<longrightarrow>
       index (map lit_of M) (-L') \<le> index (map lit_of M) (-L))"
-
-text \<open>The structural invariants states that there are at most two watched elements, that the watched
-  literals are distinct, and that there are 2 watched literals if there are at least than two
-  different literals in the full clauses.\<close>
-primrec struct_wf_twl_cls :: "'v twl_clause \<Rightarrow> bool" where
-"struct_wf_twl_cls (TWL_Clause W UW) \<longleftrightarrow>
-   distinct W \<and> length W \<le> 2 \<and> (length W < 2 \<longrightarrow> set UW \<subseteq> set W)"
 
 text \<open>Here are the invariant strictly related to the 2-WL data structure.\<close>
 primrec wf_twl_cls :: "('v, 'lvl, 'mark) ann_lit list \<Rightarrow> 'v twl_clause \<Rightarrow> bool" where
