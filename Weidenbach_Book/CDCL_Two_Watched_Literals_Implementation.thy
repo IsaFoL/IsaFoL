@@ -399,7 +399,8 @@ proof -
     next
       case (Cons C Cs)
       then obtain L' where
-        L': "prop_queue (snd (rewatch_nat_cand_clss L M (Cs, Q))) = L' @ prop_queue (snd (Cs, Q))" and
+        L': "prop_queue (snd (rewatch_nat_cand_clss L M (Cs, Q))) = L' @ prop_queue (snd (Cs, Q))"
+          and
         undef: "undefined_lit_list L' (get_trail_of_cand (snd (Cs, Q)) @ M)" and
         aL': "\<forall>a\<in>set L'. case a of (l, C) \<Rightarrow> C \<in> set (fst (Cs, Q)) \<and> l \<in># clause C \<and> l \<noteq> -L \<and>
           l \<noteq> L"
@@ -731,5 +732,12 @@ lemma rewatch_nat_cand_single_clause_no_dup:
   shows "no_dup (get_trail_of_cand (snd S) @ M)"
   using wf n_d apply (cases rule: wf_rewatch_nat_cand_single_clause_cases[of M C L M Cs Ks])
   using undef unfolding S_def by (auto simp add: defined_lit_map image_Un image_image comp_def)
+
+text \<open>The full invariant does not hold while running @{term "do_propagate_or_conflict_step"}:
+  the data structure is only partly well-founded.\<close>
+primrec watched_wf_twl_cls_pq :: "('a, 'b, 'c) ann_lit list \<Rightarrow> 'a literal list \<Rightarrow> 'a twl_clause \<Rightarrow>
+  bool" where
+"watched_wf_twl_cls_pq M Q (TWL_Clause W UW) \<longleftrightarrow>
+   (\<forall>L \<in> set W. -L \<in> lits_of_l M \<longrightarrow> (\<forall>L' \<in> set UW. L' \<notin> set (W @ Q) \<longrightarrow> -L' \<in> lits_of_l M))"
 
 end

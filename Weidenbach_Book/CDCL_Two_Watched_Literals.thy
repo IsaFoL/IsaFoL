@@ -163,7 +163,7 @@ text \<open>We need the following property about updates: if there is a literal 
   @{term "-L"} in the trail, and @{term L} is not  watched, then it stays unwatched; i.e., while
   updating with @{term rewatch}, @{term L} does not get swapped with a watched literal @{term L'}
   such that @{term "-L'"} is in the trail. This corresponds to the laziness of the data structure.
-  
+
   Remark that @{term M} is a trail: literals at the end were the first to be added to the trail.\<close>
 primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) ann_lit list \<Rightarrow>
   'v twl_clause \<Rightarrow> bool"
@@ -173,11 +173,18 @@ primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) ann_lit list \<Right
     -L' \<in> lits_of_l M \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L \<notin># mset W \<longrightarrow>
       index (map lit_of M) (-L') \<le> index (map lit_of M) (-L))"
 
+text \<open>If the negation of a watched literal is included in the trail, then the negation of
+  every unwatched literals is also included in the trail. Otherwise, the data-structure has to be
+  updated.\<close>
+primrec watched_wf_twl_cls :: "('a, 'b, 'c) ann_lit list \<Rightarrow> 'a twl_clause \<Rightarrow>
+  bool" where
+"watched_wf_twl_cls M (TWL_Clause W UW) \<longleftrightarrow>
+   (\<forall>L \<in> set W. -L \<in> lits_of_l M \<longrightarrow> (\<forall>L' \<in> set UW. L' \<notin> set W \<longrightarrow> -L' \<in> lits_of_l M))"
+
 text \<open>Here are the invariant strictly related to the 2-WL data structure.\<close>
 primrec wf_twl_cls :: "('v, 'lvl, 'mark) ann_lit list \<Rightarrow> 'v twl_clause \<Rightarrow> bool" where
   "wf_twl_cls M (TWL_Clause W UW) \<longleftrightarrow>
-   struct_wf_twl_cls (TWL_Clause W UW) \<and>
-   (\<forall>L \<in> set W. -L \<in> lits_of_l M \<longrightarrow> (\<forall>L' \<in> set UW. L' \<notin> set W \<longrightarrow> -L' \<in> lits_of_l M)) \<and>
+   struct_wf_twl_cls (TWL_Clause W UW) \<and> watched_wf_twl_cls M (TWL_Clause W UW) \<and>
    watched_decided_most_recently M (TWL_Clause W UW)"
 
 (* TODO Move *)
@@ -1117,6 +1124,7 @@ next
         show ?case
           using 4
           unfolding C watched_decided_most_recently.simps Ball_def twl_clause.sel
+            watched_wf_twl_cls.simps
           apply (intro allI impI)
           apply (rename_tac xW xUW)
           apply (case_tac "- lit_of L = xW"; case_tac "xW = xUW"; case_tac "L' = xW")
