@@ -119,6 +119,11 @@ text \<open>While updating the clauses, there are several cases:
   do;
   \<^item> there is no literal to be watched, but the other literal is false: the clause is a
   conflict candidate.\<close>
+text \<open>We make the function slightly more general than needed:
+  \<^item> @{term removeAll} could be replace by @{term remove1}, since there are no duplicates in
+  well-founded two-watched literals.
+  \<^item> we match @{term "removeAll (-L) (watched C)"} with respect to @{term "L' # Ls'"}, while
+  @{term "[L']"} is enough.\<close>
 text \<open>The function returns a couple composed of a list of clauses and a candidate.\<close>
 fun
   rewatch_nat_cand_single_clause ::
@@ -131,7 +136,7 @@ where
      case filter (\<lambda>L'. L' \<notin> set (watched C) \<and>
        - L' \<notin> insert L (lits_of_l (M @ get_trail_of_cand Ks))) (unwatched C) of
        [] \<Rightarrow>
-         (case remove1 (-L) (watched C) of (* contains at most a single element *)
+         (case removeAll (-L) (watched C) of (* contains at most a single element *)
              [] \<Rightarrow> (C # Cs, Prop_Or_Conf (prop_queue Ks) (conflict Ks orelse Some C))
            | L' # _ \<Rightarrow>
              if undefined_lit (get_trail_of_cand Ks @ M) L' \<and> atm_of L \<noteq> atm_of L'
@@ -258,6 +263,8 @@ proof -
                   diff_is_0_eq le_Suc_eq length_0_conv length_remove1 list.distinct(1) list.size(4))
               then have C: "set (watched C) = {-L, L'}"
                 using l_W L dist arg_cong[OF Cons, of set, simplified] by auto
+              have [simp]: "\<And>L'. removeAll L' (watched C) = remove1 L' (watched C)"
+                using dist by (simp add: distinct_remove1_removeAll)
               have [simp]: "remove1 L' (watched C) \<noteq> [L']"
                 by (metis DiffD2 dist insertI1 list.simps(15) set_remove1_eq)
               show ?thesis
@@ -301,24 +308,38 @@ lemma prop_queue_first_is_undefined:
   shows
     "undefined_lit (get_trail_of_cand (snd S) @ M) (fst L')" and
     "snd L' = C" and
-    "fst L' \<in># clause C"
-    using assms
+    "fst L' \<in># clause C" and
+    "fst L' \<noteq> -L" and
+    "fst L' \<noteq> L"
+        using assms
+          apply (cases C, cases S)
+          apply (auto simp: rewatch_nat_cand_single_clause.simps
+            split: list.splits if_splits
+            simp del: watched_decided_most_recently.simps)
+        using assms
+        apply (cases C, cases S)
+        apply (auto simp: rewatch_nat_cand_single_clause.simps
+          split: list.splits if_splits
+          simp del: watched_decided_most_recently.simps)
+      using assms
       apply (cases C, cases S)
-      apply (auto simp: rewatch_nat_cand_single_clause.simps
+      apply (auto simp: rewatch_nat_cand_single_clause.simps clause_def raw_clause_def
         split: list.splits if_splits
-        simp del: watched_decided_most_recently.simps)
-    using assms
+        simp del: watched_decided_most_recently.simps
+        dest!: arg_cong[of "removeAll _ _" _ set])
+      using assms
     apply (cases C, cases S)
-    apply (auto simp: rewatch_nat_cand_single_clause.simps
+    apply (auto simp: rewatch_nat_cand_single_clause.simps clause_def raw_clause_def
       split: list.splits if_splits
-      simp del: watched_decided_most_recently.simps)
-  using assms
+      simp del: watched_decided_most_recently.simps
+      dest!: arg_cong[of "removeAll _ _" _ set])
+    using assms
   apply (cases C, cases S)
-  (* TODO tune proof *)
   apply (auto simp: rewatch_nat_cand_single_clause.simps clause_def raw_clause_def
     split: list.splits if_splits
-    simp del: watched_decided_most_recently.simps)
-  by (metis in_set_remove1 list.set_intros(1))
+    simp del: watched_decided_most_recently.simps
+    dest!: arg_cong[of "removeAll _ _" _ set])
+  done
 
 lemmas rewatch_nat_cand_single_clause_cases =
   wf_rewatch_nat_cand_single_clause_cases[OF wf_twl_cls_append[of "get_trail_of_cand _"],
@@ -334,18 +355,19 @@ fun rewatch_nat_cand :: "'a literal \<Rightarrow> 'a twl_state_cands \<Rightarro
     K')"
 
 lemma rewatch_nat_cand_single_clause_hd:
-  "clauses_of_l (map raw_clause (fst (rewatch_nat_cand_single_clause L M C K))) =
-      clauses_of_l (map raw_clause (C # (fst K)))"
+  "raw_clss_l (fst (rewatch_nat_cand_single_clause L M C K)) =
+      raw_clss_l ((C # (fst K)))"
   apply (cases C, cases K)
   apply (auto simp: raw_clause_def filter_empty_conv true_annots_true_cls_def_iff_negation_in_model
-    comp_def rewatch_nat_cand_single_clause.simps lits_of_def image_image split: list.splits
+    comp_def rewatch_nat_cand_single_clause.simps lits_of_def image_image
+    clause_def
+    split: list.splits
      simp del: watched_decided_most_recently.simps)
   apply (auto dest: filter_in_list_prop_verifiedD simp: multiset_eq_iff)
   done
 
 lemma rewatch_nat_cand_single_clause_clauses:
-  "clauses_of_l (map raw_clause (fst (rewatch_nat_cand_clss L M (N, Ks)))) =
-      clauses_of_l (map raw_clause N)"
+  "raw_clss_l (fst (rewatch_nat_cand_clss L M (N, Ks))) = raw_clss_l N"
   by (induction N) (simp_all add: rewatch_nat_cand_clss.simps
     rewatch_nat_cand_single_clause_hd[simplified])
 
@@ -362,9 +384,9 @@ lemma undefined_lit_list_append[simp]:
   by (induction Ls) auto
 
 lemma prop_queue_rewatch_nat_cand_clss_eq_or_cons:
-  "(\<exists>L'. prop_queue (snd (rewatch_nat_cand_clss L M K)) = L' @ prop_queue (snd K)
+  "\<exists>L'. prop_queue (snd (rewatch_nat_cand_clss L M K)) = L' @ prop_queue (snd K)
   \<and> undefined_lit_list L' (get_trail_of_cand (snd K) @ M)
-  \<and> (\<forall>(l, C) \<in> set L'. C \<in> set (fst K)))"
+  \<and> (\<forall>(l, C) \<in> set L'. C \<in> set (fst K) \<and> l \<in># clause C \<and> l \<noteq> -L \<and> l \<noteq> L)" (is "\<exists>L'. ?P K L'")
 proof -
   obtain Cs Q where K: "K = (Cs, Q)"
     by (cases K)
@@ -376,20 +398,42 @@ proof -
        by (auto simp: rewatch_nat_cand_clss.simps)[]
     next
       case (Cons C Cs)
-      then show ?case
+      then obtain L' where
+        L': "prop_queue (snd (rewatch_nat_cand_clss L M (Cs, Q))) = L' @ prop_queue (snd (Cs, Q))" and
+        undef: "undefined_lit_list L' (get_trail_of_cand (snd (Cs, Q)) @ M)" and
+        aL': "\<forall>a\<in>set L'. case a of (l, C) \<Rightarrow> C \<in> set (fst (Cs, Q)) \<and> l \<in># clause C \<and> l \<noteq> -L \<and>
+          l \<noteq> L"
+        by fast
+      consider
+          (Nil) "prop_queue (snd (rewatch_nat_cand_single_clause L M C
+             (foldr (rewatch_nat_cand_single_clause L M) Cs ([], Q)))) =
+           prop_queue (snd (foldr (rewatch_nat_cand_single_clause L M) Cs ([], Q)))"
+        | (Cons) L'' where
+          "prop_queue (snd (rewatch_nat_cand_single_clause L M C
+             (foldr (rewatch_nat_cand_single_clause L M) Cs ([], Q)))) =
+           L'' # prop_queue (snd (foldr (rewatch_nat_cand_single_clause L M) Cs ([], Q)))"
         using prop_queue_rewatch_nat_cand_single_clause_eq_or_cons[of L M C
-         "foldr (rewatch_nat_cand_single_clause L M) Cs ([], Q)"]
-        prop_queue_first_is_undefined[of L M C
-         "foldr (rewatch_nat_cand_single_clause L M) Cs ([], Q)"]
-        by (auto simp: rewatch_nat_cand_clss.simps)
+         "foldr (rewatch_nat_cand_single_clause L M) Cs ([], Q)"] by blast
+    then show ?case
+      proof cases
+        case Nil
+        then show ?thesis
+          using L' undef aL' by (auto simp: rewatch_nat_cand_clss.simps)[]
+      next
+        case (Cons L'')
+        then show ?thesis
+          using L' undef aL'  prop_queue_first_is_undefined[of L M C
+           "foldr (rewatch_nat_cand_single_clause L M) Cs ([], Q)" L'']
+          by (auto simp: rewatch_nat_cand_clss.simps)
+      qed
     qed
 qed
 
 lemma prop_queue_rewatch_nat_cand_eq_or_cons:
-  "(\<exists>L'. prop_queue (cand (rewatch_nat_cand L S)) = L' @ prop_queue (cand S)
+  "\<exists>L'. prop_queue (cand (rewatch_nat_cand L S)) = L' @ prop_queue (cand S)
   \<and> undefined_lit_list L' (get_trail_of_cand (cand S) @ raw_trail (twl_state S))
-  \<and> (\<forall>(l, C) \<in> set L'. C \<in> set (raw_init_clss (twl_state S) @
-    raw_learned_clss (twl_state S))))"
+  \<and> (\<forall>(l, C) \<in> set L'. C \<in> set (twl.raw_clauses (twl_state S)) \<and> l \<in># clause C
+    \<and> l \<noteq> -L \<and> l \<noteq> L)"
 proof -
   obtain T Ks where S: "S = TWL_State_Cand T Ks"
     by (cases S)
@@ -487,6 +531,59 @@ proof -
       clause_def image_image lits_of_def intro!: Nat.diff_le_mono2 card_mono)
 qed
 
+text \<open>This purely technical lemma states that if there is no new defined literals, then @{term Ls}
+  is empty.\<close>
+lemma \<mu>TWL_eq_no_new_propagated_lit:
+  assumes
+    c: "card {La \<in> atms_of_ms (clause ` set (twl.raw_clauses S)).
+      La \<noteq> atm_of L \<and> La \<notin> (\<lambda>x. atm_of (lit_of x)) ` set (raw_trail S) \<and>
+      La \<notin> (\<lambda>x. atm_of (fst x)) ` set Ls \<and>
+      La \<notin> (\<lambda>x. atm_of (fst x)) ` set l} =
+    card {La \<in> atms_of_ms (clause ` set (twl.raw_clauses S)).
+      La \<noteq> atm_of L \<and> La \<notin> (\<lambda>x. atm_of (lit_of x)) ` set (raw_trail S) \<and>
+      La \<notin> (\<lambda>x. atm_of (fst x)) ` set l}" and
+    undef: "undefined_lit_list Ls (map (\<lambda>(x, y). Propagated x y) l @ raw_trail S)" and
+    C: "\<forall>(l, C)\<in>set Ls. C \<in> set (twl.raw_clauses S) \<and> l \<in># clause C \<and> l \<noteq> - L \<and> l \<noteq> L"
+  shows "Ls = []"
+proof (rule ccontr)
+  assume "Ls \<noteq> []"
+  then obtain L' C' Ls' where Ls: "Ls = (L', C') # Ls'"
+    by (cases Ls) auto
+  let ?D =" {La \<in> atms_of_ms (clause ` set (twl.raw_clauses S)).
+      La \<noteq> atm_of L \<and> La \<notin> (\<lambda>x. atm_of (lit_of x)) ` set (raw_trail S) \<and>
+      La \<notin> (\<lambda>x. atm_of (fst x)) ` set Ls \<and>
+      La \<notin> (\<lambda>x. atm_of (fst x)) ` set l}"
+  let ?C = " {La \<in> atms_of_ms (clause ` set (twl.raw_clauses S)).
+      La \<noteq> atm_of L \<and> La \<notin> (\<lambda>x. atm_of (lit_of x)) ` set (raw_trail S) \<and>
+      La \<notin> (\<lambda>x. atm_of (fst x)) ` set l}"
+  have "?D \<subseteq> ?C"
+    by blast
+  moreover have "finite ?D"
+    by auto
+  ultimately have "?D = ?C"
+    by (simp add: c card_subset_eq)
+  then have H: "\<And>La. La \<in> atms_of_ms (clause ` set (twl.raw_clauses S)) \<Longrightarrow>
+    La \<noteq> atm_of L \<Longrightarrow> La \<notin> (\<lambda>x. atm_of (lit_of x)) ` set (raw_trail S) \<Longrightarrow>
+    La \<notin> (\<lambda>x. atm_of (fst x)) ` set l \<Longrightarrow>
+    La \<notin> (\<lambda>x. atm_of (fst x)) ` set Ls"
+    by blast
+  have undef: "undefined_lit
+    (map (\<lambda>(x, y). Propagated x y) Ls' @ map (\<lambda>(x, y). Propagated x y) l @ raw_trail S) L'"
+    using undef unfolding Ls by auto
+  have C': "C' \<in> set (twl.raw_clauses S)" and "L' \<in># clause C'" and LL': "L' \<noteq> -L" "L' \<noteq> L"
+    using C unfolding Ls by auto
+  then have "atm_of L' \<in> atms_of_ms (clause ` set (twl.raw_clauses S))"
+    by (simp add: C' in_implies_atm_of_on_atms_of_ms)
+  moreover have "atm_of L' \<noteq> atm_of L"
+    using LL' by (auto simp: atm_of_eq_atm_of)
+  moreover have "atm_of L' \<notin> (\<lambda>x. atm_of (lit_of x)) ` set (raw_trail S)" and
+    "atm_of L' \<notin> (\<lambda>x. atm_of (fst x)) ` set l"
+    using undef by (auto simp: defined_lit_map image_Un image_image)
+  moreover have "atm_of L' \<in> (\<lambda>x. atm_of (fst x)) ` set Ls"
+    unfolding Ls by auto
+  ultimately show False using H[of "atm_of L'"] by fast
+qed
+
 text \<open>Implementation-wise, @{term "trail S \<Turnstile>as CNot (clause D)"} should be equivalent
   to there is no more propagation to do.\<close>
 function do_propagate_or_conflict_step :: "'a twl_state_cands \<Rightarrow> 'a twl_state_cands" where
@@ -537,15 +634,34 @@ next
     using YYY[of L C' S l "Some D"]
     prop_queue_rewatch_nat_cand_eq_or_cons[of L "TWL_State_Cand S (Prop_Or_Conf l (Some D))"]
     apply (auto simp add: comp_def lexn_n \<mu>TWL_Prop_Or_Conf_append_raw_cons_trail
-      T ST
+      T ST \<mu>TWL_eq_no_new_propagated_lit[of S]
       simp del: lexn.simps(2) rewatch_nat_cand.simps
-      simp add: lits_of_def image_image image_Un \<mu>TWL.simps)
-(* idea if L' is not empty, then cannot have \<mu>TWL equality *)
-    sorry
+      simp add: lits_of_def image_image image_Un)
+    done
 next
   case (3 S l L C')
+  obtain T Q' where T: "rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l None)) =
+    TWL_State_Cand T Q'"
+    by (cases "rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l None))")
+  have ST: "clause ` set (twl.raw_clauses T) =
+    clause ` set (twl.raw_clauses S)"
+    using twl_clauses_rewatch_nat_cand[of L "TWL_State_Cand S (Prop_Or_Conf l None)"]
+    unfolding T
+    (* TODO tune proof *)
+    apply (auto simp: comp_def twl.raw_clauses_def image_Un
+          simp del: rewatch_nat_cand.simps)
+    apply (metis (no_types, lifting) Un_iff image_eqI set_append set_map set_mset_mset union_code)+
+    done
+  have [simp]: "raw_trail T = raw_trail S"
+    using T by (auto split: Product_Type.prod.splits)
   show ?case
-    by (auto simp add: comp_def lexn_n true_annot_def simp del: lexn.simps(2))
+    using YYY[of L C' S l None]
+    prop_queue_rewatch_nat_cand_eq_or_cons[of L "TWL_State_Cand S (Prop_Or_Conf l None)"]
+    apply (auto simp add: comp_def lexn_n \<mu>TWL_Prop_Or_Conf_append_raw_cons_trail
+      T ST \<mu>TWL_eq_no_new_propagated_lit[of S]
+      simp del: lexn.simps(2) rewatch_nat_cand.simps
+      simp add: lits_of_def image_image image_Un)
+    done
 qed
 
 lemma no_dup_rewatch_nat_cand_single_clause:
@@ -555,9 +671,8 @@ lemma no_dup_rewatch_nat_cand_single_clause:
     wf: "wf_twl_cls (get_trail_of_cand Ks @ M) C" and
     n_d: "no_dup (get_trail_of_cand Ks @ M)"
   shows "no_dup (M @ get_trail_of_cand (snd (rewatch_nat_cand_single_clause L M C (Cs, Ks))))"
-  using n_d wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs Ks])
+  using n_d wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L M Cs Ks])
   using L n_d by (auto simp: defined_lit_map comp_def image_image image_Un)
-
 
 lemma wf_twl_cls_prop_in_trailD:
   assumes "wf_twl_cls M (TWL_Clause W UW)"
@@ -574,14 +689,16 @@ lemma rewatch_nat_cand_single_clause_conflict:
     confI: "get_trail_of_cand Ks @ M \<Turnstile>as CNot (clause D)"
   shows "get_trail_of_cand Ks @ M \<Turnstile>as CNot (clause D')"
   apply (cases C)
-  using n_d wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs Ks])
+  using n_d wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L M Cs Ks])
   prefer 4
-    using conf conf' confI L find_earliest_conflict_cases[of "get_trail_of_cand Ks @ M" C D] wf
-    apply (fastforce simp add: raw_clause_def true_annots_true_cls_def_iff_negation_in_model
+    using conf conf' confI L
+    apply (auto simp add: raw_clause_def true_annots_true_cls_def_iff_negation_in_model
+      lits_of_def image_image image_Un Quickcheck_Exhaustive.orelse_def
         simp del: watched_decided_most_recently.simps wf_twl_cls.simps
         dest!: wf_twl_cls_prop_in_trailD)[]
   using conf conf' confI L find_earliest_conflict_cases[of "get_trail_of_cand Ks @ M" C D]
   apply (auto simp add: raw_clause_def  true_annots_true_cls_def_iff_negation_in_model
+    Quickcheck_Exhaustive.orelse_def
       simp del: watched_decided_most_recently.simps
     )[5]
   done
@@ -595,174 +712,15 @@ lemma rewatch_nat_cand_single_clause_conflict_found:
     conf': "conflict (snd (rewatch_nat_cand_single_clause L M C (Cs, Ks))) = Some D'"
   shows "get_trail_of_cand Ks @ M \<Turnstile>as CNot (clause D')"
   apply (cases C)
-  using n_d wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs Ks])
+  using n_d wf apply (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L M Cs Ks])
   using conf conf' L
-  by (auto simp add: raw_clause_def filter_empty_conv true_annots_true_cls_def_iff_negation_in_model
+  (* TODO tune proof *)
+  apply (auto simp add: raw_clause_def filter_empty_conv true_annots_true_cls_def_iff_negation_in_model
+    Quickcheck_Exhaustive.orelse_def lits_of_def image_image image_Un clause_def
      simp del: watched_decided_most_recently.simps)
+  apply force+
+  done
 
-
-text \<open>This lemma is \<^emph>\<open>wrong\<close>: we are speaking of half-update data-structure, meaning that
-  @{term "wf_twl_cls (get_trail_of_cand K @ M) C"} is the wrong assumption to use.\<close>
-lemma
-  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) ann_lit list"
-  and L :: "'v literal" and Cs :: "'v twl_clause list" and C :: "'v twl_clause"
-  defines "S \<equiv> rewatch_nat_cand_single_clause L M C (Cs, Ks)"
-  assumes wf: "wf_twl_cls (get_trail_of_cand Ks @ M) C" and
-    n_d: "no_dup (get_trail_of_cand Ks @ M)"
-  shows "wf_twl_cls (get_trail_of_cand (snd S) @ M) C"
-proof -
-  obtain W UW where C: "C = TWL_Clause W UW"
-    by (cases C)
-
-  show ?thesis
-    using n_d wf
-    proof (cases rule: rewatch_nat_cand_single_clause_cases[of Ks M C L Cs Ks])
-      case lit_notin
-      show ?thesis
-        using wf unfolding S_def lit_notin by simp
-    next
-      case (propagate L') note L = this(1) and filter = this(2) and wC = this(3) and uC = this(4)
-        and rewatch = this(6)
-      show ?thesis
-        using wf filter wC uC unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def
-        apply (intro allI conjI impI)
-              apply (auto simp add: C simp del: watched_decided_most_recently.simps)[3]
-         apply (auto simp add: filter_empty_conv uminus_lit_swap)[]
-        apply (auto simp add: filter_empty_conv Decided_Propagated_in_iff_in_lits_of_l lits_of_def
-           image_Un Ball_def)[]
-         done
-    next
-      case (conflict L') note L = this(1) and filter = this(2) and wC = this(3) and uC = this(4) and
-       rewatch = this(5)
-       show ?thesis
-         using wf filter wC uC unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def
-         apply (intro allI conjI impI)
-         apply (auto simp add: C filter_empty_conv Decided_Propagated_in_iff_in_lits_of_l lits_of_def
-           image_Un simp del: watched_decided_most_recently.simps)
-         done
-    next
-      case (no_conflict L') note L = this(1) and filter = this(2) and wC = this(3) and uC = this(4)
-        and rewatch = this(5)
-       show ?thesis
-         using wf filter wC uC unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def
-         apply (intro allI conjI impI)
-         apply (auto simp add: C filter_empty_conv uminus_lit_swap lits_of_def image_Un
-          simp del: watched_decided_most_recently.simps)
-         done
-    next
-      case (update_cls L') note L = this(1) and filter = this(2) and rewatch = this(3)
-       show ?thesis
-         using wf filter unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def
-         apply (intro allI conjI impI)
-         apply (auto simp add: C  filter_empty_conv uminus_lit_swap lits_of_def image_Un
-           image_image comp_def
-          simp del: watched_decided_most_recently.simps)
-         done
-    next
-      case t: wf
-      then show ?thesis
-        using wf unfolding S_def by simp
-    qed
-qed
-(*
-lemma wf_rewatch_nat_cand_single_clause:
-  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) ann_lit list" and
-    L :: "('v, nat, 'v twl_clause) ann_lit" and Cs :: "'v twl_clause list" and
-    C :: "'v twl_clause"
-  defines "S \<equiv> rewatch_nat_cand_single_clause (lit_of L) M C (Cs, Ks)"
-  assumes
-    wf: "wf_twl_cls (get_trail_of_cand Ks @ M) C" and
-    n_d: "no_dup (get_trail_of_cand Ks @ M)" and
-    undef: "undefined_lit (get_trail_of_cand Ks @ M) (lit_of L)"
-  shows "wf_twl_cls (get_trail_of_cand Ks @ L # M) (hd (fst S))"
-proof -
-  obtain W UW where C: "C = TWL_Clause W UW"
-    by (cases C)
-  have t: "watched_decided_most_recently (get_trail_of_cand Ks @ M) (TWL_Clause W UW)" and
-    wf': "distinct W \<and> length W \<le> 2 \<and> (length W < 2 \<longrightarrow> set UW \<subseteq> set W)" and
-    H: "\<forall>L \<in> set W. -L \<in> lits_of_l (get_trail_of_cand Ks @ M) \<longrightarrow>
-      (\<forall>L' \<in> set UW. L' \<notin> set W \<longrightarrow> -L' \<in> lits_of_l (get_trail_of_cand Ks @ M))"
-    using wf unfolding C by (auto simp add: comp_def lits_of_def image_image image_Un)
-  show ?thesis
-    using wf
-    proof (cases rule: wf_rewatch_nat_cand_single_clause_cases[of M C "lit_of L" Cs Ks])
-      case lit_notin
-      show ?thesis
-        using wf' unfolding S_def lit_notin unfolding C apply simp
-        using C lit_notin by auto
-    next
-      case propagate note L = this(1) and filter = this(2) and wC = this(3) and uC = this(4) and
-       rewatch = this(6)
-      show ?thesis
-        using wf' filter wC uC unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def
-        fst_conv  List.list.sel(1)
-        apply (intro allI conjI impI)
-              apply (auto simp add: C simp del: watched_decided_most_recently.simps)[3]
-         apply (auto simp add: filter_empty_conv uminus_lit_swap)[]
-        apply (auto simp add: filter_empty_conv Decided_Propagated_in_iff_in_lits_of_l lits_of_def
-           image_Un)[]
-         done
-    next
-      case (conflict L') note L = this(1) and filter = this(2) and wC = this(3) and uC = this(4) and
-       rewatch = this(5)
-       show ?thesis
-         using filter wC uC unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def fst_conv
-          List.list.sel(1)
-         apply (intro allI conjI impI)
-         using wf' apply (auto simp add: C filter_empty_conv Decided_Propagated_in_iff_in_lits_of_l
-           lits_of_def image_Un simp del: watched_decided_most_recently.simps)[4]
-         using t apply simp
-         done
-    next
-      case (no_conflict L') note L = this(1) and filter = this(2) and wC = this(3) and uC = this(4)
-        and rewatch = this(5)
-       show ?thesis
-         using filter wC uC unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def fst_conv
-          List.list.sel(1)
-         apply (intro allI conjI impI)
-         using wf' apply (auto simp add: C filter_empty_conv uminus_lit_swap lits_of_def image_Un
-          simp del: watched_decided_most_recently.simps)[4]
-         using t apply simp
-         done
-    next
-      case (update_cls L') note L = this(1) and filter = this(2) and rewatch = this(3)
-      show ?thesis
-         using filter unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def fst_conv
-           List.list.sel(1)
-         apply (intro allI conjI impI)
-         using wf' L apply (auto simp add: C filter_empty_conv uminus_lit_swap lits_of_def
-           image_Un length_remove1 subset_iff
-          simp del: watched_decided_most_recently.simps dest: filter_in_list_prop_verifiedD)[3]
-         using H wf' apply (auto simp add: C  filter_empty_conv uminus_lit_swap lits_of_def
-           image_Un length_remove1 subset_iff
-          simp del: watched_decided_most_recently.simps dest: filter_in_list_prop_verifiedD
-          split: if_split_asm)[]
-
-         using t L wf' H apply (auto simp add: C uminus_lit_swap
-          dest: filter_eq_ConsD)[]
-         done
-    next
-      case t: wf note L = this(1) and rewatch = this(2)
-      show ?thesis
-        using n_d wf L unfolding S_def rewatch unfolding C wf_twl_cls.simps Ball_def fst_conv
-           List.list.sel(1) watched_decided_most_recently.simps
-         apply (intro allI conjI impI)
-           apply (auto simp: uminus_lit_swap)[4]
-        apply (rename_tac L' La)
-        unfolding list.map index.simps
-        apply simp
-        apply (intro allI impI conjI)
-        defer apply auto[]
-
-        apply (subgoal_tac "defined_lit M (-La)")
-        defer unfolding defined_lit_map
-          apply (metis atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set atm_of_uminus image_image
-            lits_of_def)
-        using undef apply (auto simp: defined_lit_map lits_of_def)
-        done
-    qed
-qed
- *)
 lemma rewatch_nat_cand_single_clause_no_dup:
   fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) ann_lit list"
   and L :: "'v literal" and Cs :: "'v twl_clause list" and C :: "'v twl_clause"
@@ -771,94 +729,7 @@ lemma rewatch_nat_cand_single_clause_no_dup:
     n_d: "no_dup (get_trail_of_cand Ks @ M)" and
     undef: "undefined_lit (get_trail_of_cand Ks @ M) L"
   shows "no_dup (get_trail_of_cand (snd S) @ M)"
-  using wf n_d apply (cases rule: wf_rewatch_nat_cand_single_clause_cases[of M C L Cs Ks])
+  using wf n_d apply (cases rule: wf_rewatch_nat_cand_single_clause_cases[of M C L M Cs Ks])
   using undef unfolding S_def by (auto simp add: defined_lit_map image_Un image_image comp_def)
 
-(* lemma wf_foldr_rewatch_nat_cand_single_clause:
-  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) ann_lits" and
-    L :: "('v, nat, 'v twl_clause) ann_lit" and Cs :: "'v twl_clause list" and
-    C :: "'v twl_clause"
-  defines "S \<equiv> rewatch_nat_cand_clss (lit_of L) M (Cs, Ks)"
-  assumes
-    wf: "\<forall>C \<in> set Cs. wf_twl_cls M C" and
-    n_d: "no_dup (get_trail_of_cand Ks @ M)" and
-    undef: "undefined_lit (get_trail_of_cand Ks @ M) (lit_of L)"
-  shows
-    "(\<forall>C \<in> set (fst S). wf_twl_cls (L # M) C) \<and>
-     undefined_lit (get_trail_of_cand (snd S) @ M) (lit_of L) \<and>
-     no_dup (get_trail_of_cand (snd S) @ M)" (is "?wf S \<and> ?undef S \<and> ?n_d S")
-  using wf unfolding S_def
-proof (induction Cs)
-  case Nil note wf = this(1)
-  show ?case
-    using undef n_d by simp
-next
-  case (Cons C Cs) note IH = this(1) and wf = this(2)
-  let ?S = "foldr (rewatch_nat_cand_single_clause (lit_of L) M) Cs ([], Ks)"
-  let ?T = "rewatch_nat_cand_single_clause (lit_of L) M C ?S"
-  have wf': "\<forall>a\<in>set Cs. wf_twl_cls M a" and wf_C: "wf_twl_cls M C"
-    using wf by simp_all
-  then have
-    IH_wf: "\<forall>a\<in>set (fst ?S). wf_twl_cls (L # M) a" and
-    IH_undef: "undefined_lit (get_trail_of_cand (snd ?S) @ M) (lit_of L)" and
-    IH_nd: "no_dup (get_trail_of_cand (snd ?S) @ M)"
-    using IH[OF wf'] unfolding rewatch_nat_cand_clss.simps by blast+
-  have wf_C': "wf_twl_cls (L # M) (hd (fst (rewatch_nat_cand_single_clause (lit_of L) M C
-    (fst ?S, snd ?S))))"
-    using wf_rewatch_nat_cand_single_clause[of M C  "snd ?S" L "fst ?S"]
-    using IH_wf IH_undef IH_nd wf by auto
-  have "?wf ?T"
-    using wf_C apply (cases rule: wf_rewatch_nat_cand_single_clause_cases[of M C "lit_of L"
-     "fst ?S" "snd ?S"])
-    using IH_wf wf_C' by (auto simp del: wf_twl_cls.simps)
-  moreover have "?undef ?T"
-    using wf_C apply (cases rule: wf_rewatch_nat_cand_single_clause_cases[of M C "lit_of L"
-     "fst ?S" "snd ?S"])
-    using IH_undef by (auto simp del: wf_twl_cls.simps simp:
-       atm_of_eq_atm_of defined_lit_map
-      image_Un uminus_lit_swap lits_of_def)
-  moreover have "?n_d ?T"
-    using wf_C apply (cases rule: wf_rewatch_nat_cand_single_clause_cases[of M C "lit_of L"
-     "fst ?S" "snd ?S"])
-    using IH_nd by (auto simp del: wf_twl_cls.simps simp: defined_lit_map image_Un image_image
-      comp_def)
-  ultimately show ?case by simp
-qed
- *)
-
-(*lemma
-  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) ann_lits" and
-    L :: "('v, nat, 'v twl_clause) ann_lit" and Cs :: "'v twl_clause list" and
-    C :: "'v twl_clause" and S :: "'v twl_state"
-  defines "T \<equiv> rewatch_nat_cand (lit_of L) (TWL_State_Cand S Ks)"
-  assumes
-    wf: "wf_twl_state S" and
-    n_d: "no_dup (get_trail_of_cand Ks @ raw_trail S)" and
-    undef: "undefined_lit (get_trail_of_cand Ks @ raw_trail S) (lit_of L)"
-  shows "wf_twl_state (raw_cons_trail L (twl_state T))"
-proof -
-  obtain U K' where
-    U: "rewatch_nat_cand_clss (lit_of L) (raw_trail S) (raw_init_clss S, Ks) = (U, K')"
-    (is "?H = _") by (cases ?H)
-
-  obtain V K'' where
-    V: "rewatch_nat_cand_clss (lit_of L) (raw_trail S) (raw_learned_clss S, K') = (V, K'')"
-    (is "?H = _") by (cases ?H)
-  have
-    wf_U: "(\<forall>C\<in>set U. wf_twl_cls (L # raw_trail S) C)" and
-    undef_K: "undefined_lit (get_trail_of_cand K' @ raw_trail S) (lit_of L)" and
-    n_d_K: "no_dup (get_trail_of_cand K' @ raw_trail S)"
-    using wf n_d wf_foldr_rewatch_nat_cand_single_clause[of "raw_init_clss S" "raw_trail S"
-      Ks L] undef unfolding wf_twl_state_def by (simp_all add:
-      CDCL_Two_Watched_Literals.twl.raw_clauses_def U)
-
-  have wf_V: "(\<forall>C\<in>set V. wf_twl_cls (L # raw_trail S) C)"
-    using wf undef_K n_d_K wf_foldr_rewatch_nat_cand_single_clause[of "raw_learned_clss S"
-      "raw_trail S" K' L] unfolding wf_twl_state_def by (simp add:
-      CDCL_Two_Watched_Literals.twl.raw_clauses_def U V)
-  show ?thesis
-    using undef n_d  wf_U wf_V unfolding T_def wf_twl_state_def by (auto simp: U V comp_def
-    CDCL_Two_Watched_Literals.twl.raw_clauses_def defined_lit_map)
-qed
- *)
 end
