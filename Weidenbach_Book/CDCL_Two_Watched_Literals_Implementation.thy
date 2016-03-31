@@ -585,38 +585,28 @@ proof (rule ccontr)
   ultimately show False using H[of "atm_of L'"] by fast
 qed
 
-text \<open>Implementation-wise, @{term "trail S \<Turnstile>as CNot (clause D)"} should be equivalent
-  to there is no more propagation to do.\<close>
-function do_propagate_or_conflict_step :: "'a twl_state_cands \<Rightarrow> 'a twl_state_cands" where
-"do_propagate_or_conflict_step (TWL_State_Cand S (Prop_Or_Conf [] (Some D))) =
+text \<open>Remark that:
+  \<^item> we do not change the conflicting clause, once one has been found. It should be possible
+  to take the shorter of the conflicts with respect to the trail.\<close>
+(* One variant:
+ function do_propagate_or_conflict_step :: "'a twl_state_cands \<Rightarrow> 'a twl_state_cands" where
+ "do_propagate_or_conflict_step (TWL_State_Cand S (Prop_Or_Conf [] (Some D))) =
   (if trail S \<Turnstile>as CNot (clause D)
   then (update_conflicting_pq (Some (raw_clause D)) (TWL_State_Cand S (Prop_Or_Conf [] None)))
   else TWL_State_Cand S (Prop_Or_Conf [] (Some D)))" |
-"do_propagate_or_conflict_step (TWL_State_Cand S (Prop_Or_Conf [] None)) =
-  TWL_State_Cand S (Prop_Or_Conf [] None)" |
+ "do_propagate_or_conflict_step (TWL_State_Cand S (Prop_Or_Conf [] None)) =
+   TWL_State_Cand S (Prop_Or_Conf [] None)" |
 "do_propagate_or_conflict_step (TWL_State_Cand S (Prop_Or_Conf (l @ [(L, C')]) (Some D))) =
   (if trail S \<Turnstile>as CNot (clause D)
   then update_conflicting_pq (Some (raw_clause D)) (TWL_State_Cand S (Prop_Or_Conf l None))
   else do_propagate_or_conflict_step
-    (raw_cons_trail_pq (Propagated L C')
+     (raw_cons_trail_pq (Propagated L C')
       (rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l (Some D))))))" |
 "do_propagate_or_conflict_step (TWL_State_Cand S (Prop_Or_Conf (l @ [(L, C')]) None)) =
   do_propagate_or_conflict_step
     (raw_cons_trail_pq (Propagated L C')
       (rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l None))))"
-  apply (rename_tac P x)
-  apply (case_tac x, case_tac "cand x"; case_tac "conflict (cand x)";
-    case_tac "prop_queue (cand x)" rule: rev_cases; simp)
-  by auto
-termination
-  apply (relation "{(T, S).
-    ([\<mu>TWL T, length (prop_queue (cand T))], [\<mu>TWL S, length (prop_queue (cand S))])
-    \<in> lexn less_than 2}")
-proof (goal_cases)
-  case 1
-  show ?case by (auto simp: wf_lexn intro!: wf_if_measure_f)
-next
-  case (2 S l L C' D)
+   case (2 S l L C' D)
   obtain T Q' where T: "rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l (Some D))) =
     TWL_State_Cand T Q'"
     by (cases "rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l (Some D)))")
@@ -639,14 +629,35 @@ next
       simp del: lexn.simps(2) rewatch_nat_cand.simps
       simp add: lits_of_def image_image image_Un)
     done
+*)
+function do_propagate_or_conflict_step :: "'a twl_state_cands \<Rightarrow> 'a twl_state_cands" where
+"do_propagate_or_conflict_step (TWL_State_Cand S (Prop_Or_Conf [] (Some D))) =
+  update_conflicting_pq (Some (raw_clause D)) (TWL_State_Cand S (Prop_Or_Conf [] None))" |
+"do_propagate_or_conflict_step (TWL_State_Cand S (Prop_Or_Conf [] None)) =
+  TWL_State_Cand S (Prop_Or_Conf [] None)" |
+"do_propagate_or_conflict_step (TWL_State_Cand S (Prop_Or_Conf (l @ [(L, C')]) D)) =
+  (do_propagate_or_conflict_step
+    (raw_cons_trail_pq (Propagated L C')
+      (rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l D)))))"
+  apply (rename_tac P x)
+  apply (case_tac x, case_tac "cand x"; case_tac "conflict (cand x)";
+    case_tac "prop_queue (cand x)" rule: rev_cases; simp)
+  by auto
+termination
+  apply (relation "{(T, S).
+    ([\<mu>TWL T, length (prop_queue (cand T))], [\<mu>TWL S, length (prop_queue (cand S))])
+    \<in> lexn less_than 2}")
+proof (goal_cases)
+  case 1
+  show ?case by (auto simp: wf_lexn intro!: wf_if_measure_f)
 next
-  case (3 S l L C')
-  obtain T Q' where T: "rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l None)) =
+  case (2 S l L C' D)
+  obtain T Q' where T: "rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l D)) =
     TWL_State_Cand T Q'"
-    by (cases "rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l None))")
+    by (cases "rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l D))")
   have ST: "clause ` set (twl.raw_clauses T) =
     clause ` set (twl.raw_clauses S)"
-    using twl_clauses_rewatch_nat_cand[of L "TWL_State_Cand S (Prop_Or_Conf l None)"]
+    using twl_clauses_rewatch_nat_cand[of L "TWL_State_Cand S (Prop_Or_Conf l D)"]
     unfolding T
     (* TODO tune proof *)
     apply (auto simp: comp_def twl.raw_clauses_def image_Un
@@ -656,8 +667,8 @@ next
   have [simp]: "raw_trail T = raw_trail S"
     using T by (auto split: Product_Type.prod.splits)
   show ?case
-    using YYY[of L C' S l None]
-    prop_queue_rewatch_nat_cand_eq_or_cons[of L "TWL_State_Cand S (Prop_Or_Conf l None)"]
+    using YYY[of L C' S l D]
+    prop_queue_rewatch_nat_cand_eq_or_cons[of L "TWL_State_Cand S (Prop_Or_Conf l D)"]
     apply (auto simp add: comp_def lexn_n \<mu>TWL_Prop_Or_Conf_append_raw_cons_trail
       T ST \<mu>TWL_eq_no_new_propagated_lit[of S]
       simp del: lexn.simps(2) rewatch_nat_cand.simps
@@ -740,4 +751,41 @@ primrec watched_wf_twl_cls_pq :: "('a, 'b, 'c) ann_lit list \<Rightarrow> 'a lit
 "watched_wf_twl_cls_pq M Q (TWL_Clause W UW) \<longleftrightarrow>
    (\<forall>L \<in> set W. -L \<in> lits_of_l M \<longrightarrow> (\<forall>L' \<in> set UW. L' \<notin> set (W @ Q) \<longrightarrow> -L' \<in> lits_of_l M))"
 
+primrec wf_twl_cls_pq :: "('v, 'lvl, 'mark) ann_lit list \<Rightarrow> 'v literal list \<Rightarrow> 'v twl_clause \<Rightarrow>
+  bool" where
+"wf_twl_cls_pq M Q (TWL_Clause W UW) \<longleftrightarrow>
+   struct_wf_twl_cls (TWL_Clause W UW) \<and> watched_wf_twl_cls_pq M Q (TWL_Clause W UW) \<and>
+   watched_decided_most_recently M (TWL_Clause W UW)"
+
+definition wf_twl_state_pq :: "'v twl_state_cands \<Rightarrow> bool" where
+"wf_twl_state_pq S \<longleftrightarrow>
+  (\<forall>C \<in> set (twl.raw_clauses (twl_state S)).
+    wf_twl_cls_pq (raw_trail (twl_state S)) (map fst (prop_queue (cand S))) C) \<and>
+    no_dup (raw_trail (twl_state S) @ get_trail_of_cand (cand S))"
+
+lemma twl_raw_clauses_update_conflicting[simp]:
+  "twl.raw_clauses (update_conflicting D S) = twl.raw_clauses S"
+  unfolding twl.raw_clauses_def by auto
+
+lemma wf_twl_state_pq_TWL_State_Cand_update_conflicting:
+  "wf_twl_state_pq (TWL_State_Cand (update_conflicting D S) Q) \<longleftrightarrow>
+   wf_twl_state_pq (TWL_State_Cand S Q)"
+  unfolding wf_twl_state_pq_def by (auto simp del: wf_twl_cls_pq.simps simp: comp_def)
+
+lemma wf_twl_state_pq_conflicting_Some_None:
+  "wf_twl_state_pq (TWL_State_Cand S (Prop_Or_Conf [] (Some D))) \<longleftrightarrow>
+  wf_twl_state_pq (TWL_State_Cand S (Prop_Or_Conf [] None))"
+  unfolding wf_twl_state_pq_def by (auto simp del: wf_twl_cls_pq.simps simp: comp_def)
+
+lemma
+  assumes "wf_twl_state_pq S"
+  shows "wf_twl_state_pq (do_propagate_or_conflict_step S)"
+  using assms
+  apply (induction S rule: do_propagate_or_conflict_step.induct)
+  apply (auto simp: wf_twl_state_pq_TWL_State_Cand_update_conflicting
+    wf_twl_state_pq_conflicting_Some_None)[2]
+  apply (auto simp: wf_twl_state_pq_TWL_State_Cand_update_conflicting
+    wf_twl_state_pq_conflicting_Some_None
+    simp del: rewatch_nat_cand.simps)[]
+  sorry
 end
