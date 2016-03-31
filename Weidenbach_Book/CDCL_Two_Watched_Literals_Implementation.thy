@@ -14,7 +14,7 @@ text \<open>The difference between an implementation and the core described in t
   the candidates (referred as propagate queue later).\<close>
 text \<open>The latter change means that we do not do the propagation as single steps where the state
   well-founded as described in the previous paragraph, but we do all the propagation and identify
-  the propagation \<^emph>\<open>before\<close> the invariants folds again.
+  the propagation \<^emph>\<open>before\<close> the invariants holds again.
 
   The general idea is the following:
   \<^enum> Build a ``propagate'' queue and a conflict clause.
@@ -158,10 +158,10 @@ lemma CNot_mset_replicate[simp]:
   "CNot (mset (replicate n L)) = (if n = 0 then {} else {{#-L#}})"
   by (induction n) auto
 
-lemma wf_rewatch_nat_cand_single_clause_cases[consumes 1, case_names wf lit_notin propagate conflict
-  no_conflict update_cls]:
+lemma struct_wf_rewatch_nat_cand_single_clause_cases[consumes 1, case_names wf lit_notin propagate
+  conflict no_conflict update_cls]:
   assumes
-    wf: "wf_twl_cls M C" and
+    wf: "struct_wf_twl_cls C" and
     lit_notin: "-L \<notin> set (watched C) \<Longrightarrow>
       rewatch_nat_cand_single_clause L M C (Cs, Ks) = (C # Cs, Ks) \<Longrightarrow>
       P"
@@ -265,6 +265,12 @@ proof -
     qed
 qed
 
+lemma wf_twl_cls_struct_wf_twl_cls: "wf_twl_cls M C \<Longrightarrow> struct_wf_twl_cls C"
+  by (cases C) auto
+
+lemmas wf_rewatch_nat_cand_single_clause_cases =
+  struct_wf_rewatch_nat_cand_single_clause_cases[OF wf_twl_cls_struct_wf_twl_cls]
+
 lemma prop_queue_rewatch_nat_cand_single_clause_eq_or_cons:
   "prop_queue (snd (rewatch_nat_cand_single_clause L M C S)) = prop_queue (snd S) \<or>
   (\<exists>L'. prop_queue (snd (rewatch_nat_cand_single_clause L M C S)) = L' # prop_queue (snd S))"
@@ -274,12 +280,35 @@ lemma prop_queue_rewatch_nat_cand_single_clause_eq_or_cons:
      simp del: watched_decided_most_recently.simps)
   done
 
+lemma lit_of_case_Propagated[simp]: "lit_of (case x of (x, xa) \<Rightarrow> Propagated x xa) = fst x"
+  by (cases x) auto
+
+lemma prop_queue_first_is_undefined:
+  assumes "prop_queue (snd (rewatch_nat_cand_single_clause L M C S)) = L' # prop_queue (snd S)"
+  shows
+    "undefined_lit (get_trail_of_cand (snd S) @ M) (fst L')" and
+    "snd L' = C" and
+    "fst L' \<in># mset (raw_clause C)"
+    using assms
+      apply (cases C, cases S)
+      apply (auto simp: rewatch_nat_cand_single_clause.simps
+        split: list.splits if_splits
+        simp del: watched_decided_most_recently.simps)
+    using assms
+    apply (cases C, cases S)
+    apply (auto simp: rewatch_nat_cand_single_clause.simps
+      split: list.splits if_splits
+      simp del: watched_decided_most_recently.simps)
+  using assms
+  apply (cases C, cases S)
+  apply (auto simp: rewatch_nat_cand_single_clause.simps raw_clause_def
+    split: list.splits if_splits
+    simp del: watched_decided_most_recently.simps)
+  by (metis in_set_remove1 list.set_intros(1))
+
 lemmas rewatch_nat_cand_single_clause_cases =
   wf_rewatch_nat_cand_single_clause_cases[OF wf_twl_cls_append[of "get_trail_of_cand _"],
     consumes 2, case_names wf lit_notin propagate conflict no_conflict update_cls]
-
-lemma lit_of_case_Propagated[simp]: "lit_of (case x of (x, xa) \<Rightarrow> Propagated x xa) = fst x"
-  by (cases x) auto
 
 fun rewatch_nat_cand :: "'a literal \<Rightarrow> 'a twl_state_cands \<Rightarrow> 'a twl_state_cands"  where
 "rewatch_nat_cand L (TWL_State_Cand S Ks) =
@@ -297,7 +326,7 @@ lemma rewatch_nat_cand_single_clause_hd:
   apply (auto simp: raw_clause_def filter_empty_conv true_annots_true_cls_def_iff_negation_in_model
     comp_def rewatch_nat_cand_single_clause.simps lits_of_def image_image split: list.splits
      simp del: watched_decided_most_recently.simps)
-  apply (auto dest:filter_in_list_prop_verifiedD simp: multiset_eq_iff)
+  apply (auto dest: filter_in_list_prop_verifiedD simp: multiset_eq_iff)
   done
 
 lemma rewatch_nat_cand_single_clause_clauses:
@@ -306,8 +335,22 @@ lemma rewatch_nat_cand_single_clause_clauses:
   by (induction N) (simp_all add: rewatch_nat_cand_clss.simps
     rewatch_nat_cand_single_clause_hd[simplified])
 
+fun undefined_lit_list :: "('a literal \<times> 'a twl_clause) list
+   \<Rightarrow> ('a, 'b, 'a twl_clause) ann_lit list \<Rightarrow> bool" where
+"undefined_lit_list [] _ \<longleftrightarrow> True" |
+"undefined_lit_list (L # Ls) M \<longleftrightarrow> undefined_lit (map (case_prod Propagated) Ls @ M) (fst L) \<and>
+  undefined_lit_list Ls M"
+
+lemma undefined_lit_list_append[simp]:
+  "undefined_lit_list (Ls @ Ls') M \<longleftrightarrow>
+    undefined_lit_list Ls (map (case_prod Propagated) Ls' @ M) \<and>
+    undefined_lit_list Ls' M"
+  by (induction Ls) auto
+
 lemma prop_queue_rewatch_nat_cand_clss_eq_or_cons:
-  "(\<exists>L'. prop_queue (snd (rewatch_nat_cand_clss L M K)) = L' @ prop_queue (snd K))"
+  "(\<exists>L'. prop_queue (snd (rewatch_nat_cand_clss L M K)) = L' @ prop_queue (snd K)
+  \<and> undefined_lit_list L' (get_trail_of_cand (snd K) @ M)
+  \<and> (\<forall>(l, C) \<in> set L'. C \<in> set (fst K)))"
 proof -
   obtain Cs Q where K: "K = (Cs, Q)"
     by (cases K)
@@ -322,12 +365,17 @@ proof -
       then show ?case
         using prop_queue_rewatch_nat_cand_single_clause_eq_or_cons[of L M C
          "foldr (rewatch_nat_cand_single_clause L M) Cs ([], Q)"]
-         by (auto simp: rewatch_nat_cand_clss.simps)
+        prop_queue_first_is_undefined[of L M C
+         "foldr (rewatch_nat_cand_single_clause L M) Cs ([], Q)"]
+        by (auto simp: rewatch_nat_cand_clss.simps)
     qed
 qed
 
 lemma prop_queue_rewatch_nat_cand_eq_or_cons:
-  "(\<exists>L'. prop_queue (cand (rewatch_nat_cand L S)) = L' @ prop_queue (cand S))"
+  "(\<exists>L'. prop_queue (cand (rewatch_nat_cand L S)) = L' @ prop_queue (cand S)
+  \<and> undefined_lit_list L' (get_trail_of_cand (cand S) @ raw_trail (twl_state S))
+  \<and> (\<forall>(l, C) \<in> set L'. C \<in> set (raw_init_clss (twl_state S) @
+    raw_learned_clss (twl_state S))))"
 proof -
   obtain T Ks where S: "S = TWL_State_Cand T Ks"
     by (cases S)
@@ -379,8 +427,8 @@ lemma raw_learned_clss_raw_cons_trail[simp]:
 (* END Move Me *)
 
 lemma true_annot_mono_append_append:
-  "A @ C \<Turnstile>a D \<Longrightarrow>  A @ B @ C \<Turnstile>a D"
-  "A @ C \<Turnstile>a D \<Longrightarrow>  L # A @ B @ C \<Turnstile>a D"
+  "A @ C \<Turnstile>a D \<Longrightarrow> A @ B @ C \<Turnstile>a D"
+  "A @ C \<Turnstile>a D \<Longrightarrow> L # A @ B @ C \<Turnstile>a D"
   by (rule true_annot_mono; auto)+
 
 lemma true_annot_mono':
@@ -441,7 +489,15 @@ proof -
     by (auto simp: comp_def U V K'' intro!: Nat.diff_le_mono2)
 qed
 
-
+lemma prop_queue_cand_raw_cons_trail[simp]:
+  "prop_queue (cand (raw_cons_trail_pq (Propagated L C') S)) = prop_queue (cand S)"
+  by (cases S) auto
+lemma \<mu>TWL_Prop_Or_Conf_append_raw_cons_trail:
+  "\<mu>TWL (TWL_State_Cand S (Prop_Or_Conf (l @ [(L, C')]) D)) =
+    \<mu>TWL (TWL_State_Cand (raw_cons_trail (Propagated L C') S) (Prop_Or_Conf l D))"
+  (* TODO Proof *)
+  apply (auto simp: comp_def)
+  by (metis (no_types, lifting) append.simps(1) append.simps(2) append_assoc true_annot_commute)
 
 text \<open>Implementation-wise, @{term "trail S \<Turnstile>as CNot (mset (raw_clause D))"} should be equivalent
   to there is no more propagation to do.\<close>
@@ -476,10 +532,16 @@ proof (goal_cases)
 next
   case (2 S l L C' D)
   show ?case
+    apply (cases "rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l (Some D)))")
+    apply (case_tac x2)
     using YYY[of L C' S l "Some D"]
-    apply (auto simp add: comp_def lexn_n simp del: lexn.simps(2) rewatch_nat_cand.simps
-      \<mu>TWL.simps)
+    prop_queue_rewatch_nat_cand_eq_or_cons[of L "TWL_State_Cand S (Prop_Or_Conf l (Some D))"]
+    apply (auto simp add: comp_def lexn_n \<mu>TWL_Prop_Or_Conf_append_raw_cons_trail
 
+      simp del: lexn.simps(2) rewatch_nat_cand.simps
+      \<mu>TWL.simps)
+sledgehammer
+(* idea if L' is not empty, then cannot have \<mu>TWL equality *)
     sorry
 next
   case (3 S l L C')

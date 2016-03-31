@@ -146,8 +146,8 @@ subsubsection \<open>Invariants\<close>
 
 text \<open>We need the following property about updates: if there is a literal @{term L} with
   @{term "-L"} in the trail, and @{term L} is not  watched, then it stays unwatched; i.e., while
-  updating with @{term rewatch} it does not get swap with a watched literal @{term L'} such that
-  @{term "-L'"} is in the trail.\<close>
+  updating with @{term rewatch}, @{term L} does not get swapped with a watched literal @{term L'}
+  such that @{term "-L'"} is in the trail. This corresponds to the laziness of the data structure.\<close>
 primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) ann_lit list \<Rightarrow>
   'v twl_clause \<Rightarrow> bool"
   where
@@ -156,19 +156,28 @@ primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) ann_lit list \<Right
     -L' \<in> lits_of_l M \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L \<notin># mset W \<longrightarrow>
       index (map lit_of M) (-L') \<le> index (map lit_of M) (-L))"
 
+text \<open>The structural invariants states that there are at most two watched elements, that the watched
+  literals are distinct, and that there are 2 watched literals if there are at least than two
+  different literals in the full clauses.\<close>
+primrec struct_wf_twl_cls :: "'v twl_clause \<Rightarrow> bool" where
+"struct_wf_twl_cls (TWL_Clause W UW) \<longleftrightarrow>
+   distinct W \<and> length W \<le> 2 \<and> (length W < 2 \<longrightarrow> set UW \<subseteq> set W)"
+
 text \<open>Here are the invariant strictly related to the 2-WL data structure.\<close>
 primrec wf_twl_cls :: "('v, 'lvl, 'mark) ann_lit list \<Rightarrow> 'v twl_clause \<Rightarrow> bool" where
   "wf_twl_cls M (TWL_Clause W UW) \<longleftrightarrow>
-   distinct W \<and> length W \<le> 2 \<and> (length W < 2 \<longrightarrow> set UW \<subseteq> set W) \<and>
+   struct_wf_twl_cls (TWL_Clause W UW) \<and>
    (\<forall>L \<in> set W. -L \<in> lits_of_l M \<longrightarrow> (\<forall>L' \<in> set UW. L' \<notin> set W \<longrightarrow> -L' \<in> lits_of_l M)) \<and>
    watched_decided_most_recently M (TWL_Clause W UW)"
 
+(* TODO Move *)
 lemma size_mset_2: "size x1 = 2 \<longleftrightarrow> (\<exists>a b. x1 = {#a, b#})"
   apply (cases x1)
    apply simp
   by (metis (no_types, hide_lams) Suc_eq_plus1 one_add_one size_1_singleton_mset
   size_Diff_singleton size_Suc_Diff1 size_single union_single_eq_diff union_single_eq_member)
 
+(* TODO Move Me *)
 lemma distinct_mset_size_2: "distinct_mset {#a, b#} \<longleftrightarrow> a \<noteq> b"
   unfolding distinct_mset_def by auto
 
@@ -837,7 +846,7 @@ lemma wf_watch_witness:
   assumes
     n_d[simp]: "no_dup (raw_trail S)"
   shows "wf_twl_cls (raw_trail S) (TWL_Clause W (foldr remove1 W C))"
-  unfolding wf_twl_cls.simps
+  unfolding wf_twl_cls.simps struct_wf_twl_cls.simps
 proof (intro conjI, goal_cases)
   case 1
   then show ?case using n_d W unfolding ass tr
@@ -1030,7 +1039,8 @@ next
     case Nil
     show ?thesis
       using falsified Nil
-      apply (simp only: wf_twl_cls.simps if_True list.cases C rewatch_nat_def)
+      apply (simp only: wf_twl_cls.simps if_True list.cases C rewatch_nat_def
+        struct_wf_twl_cls.simps)
       apply (intro conjI)
       proof goal_cases
         case 1
@@ -1057,7 +1067,7 @@ next
     show ?thesis
       unfolding rewatch_nat_def
       using falsified Cons
-      apply (simp only: wf_twl_cls.simps if_True list.cases C)
+      apply (simp only: wf_twl_cls.simps if_True list.cases C struct_wf_twl_cls.simps)
       apply (intro conjI)
       proof goal_cases
         case 1
