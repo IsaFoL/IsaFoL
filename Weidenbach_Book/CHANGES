@@ -1,0 +1,4 @@
+Since IJCAR 2016's Submission:
+  * add_init_cls add been removed from CDCL_W and CDCL_W_Restart 
+  * CDCL_W_Incremental has its own state locale including add_init_cls
+  * CDCL_Two_Watched_Literals is under heavy changes.
