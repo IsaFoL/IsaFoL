@@ -16,8 +16,7 @@
 
 * [A Verified SAT Solver Framework with Learn, Forget, Restart, and Incrementality](http://people.mpi-inf.mpg.de/~jblanche/sat.pdf).
   J. C. Blanchette, M. Fleury, and C. Weidenbach.
-  In Olivetti, N., Tiwari, A. (eds.) 8th International Joint Conference on
-  Automated Reasoning (IJCAR 2016), LNCS, Springer, 2016.
+  In Olivetti, N., Tiwari, A. (eds.) 8th International Joint Conference on Automated Reasoning (IJCAR 2016), LNCS, Springer, 2016.
 
 * [Formalisation of Ground Inference Systems in a Proof Assistant](http://www.mpi-inf.mpg.de/fileadmin/inf/rg1/Documents/fleury_master_thesis.pdf).
   M. Fleury.

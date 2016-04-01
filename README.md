@@ -33,10 +33,13 @@ The goal is to develop lemma libraries and methodology for formalizing modern re
 
 ## Publications ##
 
+* [A Verified SAT Solver Framework with Learn, Forget, Restart, and Incrementality](http://people.mpi-inf.mpg.de/~jblanche/sat.pdf).
+  J. C. Blanchette, M. Fleury, and C. Weidenbach.
+  In Olivetti, N., Tiwari, A. (eds.) 8th International Joint Conference on Automated Reasoning (IJCAR 2016), LNCS, Springer, 2016.
+
 * [Meta-Logical Reasoning in Higher-Order Logic](http://orbit.dtu.dk/files/118776437/logica_poster.pdf).
   J. Villadsen, A. Schlichtkrull, and A. V. Hess.
-  Poster session presented at 29th Annual International Symposia Devoted to
-  Logic (LOGICA 2015), 2015.
+  Poster session presented at 29th Annual International Symposia Devoted to Logic (LOGICA 2015), 2015.
 
 * [Formalization of Resolution Calculus in Isabelle](http://people.compute.dtu.dk/andschl/Thesis.pdf).
   A. Schlichtkrull.
@@ -48,12 +51,8 @@ The goal is to develop lemma libraries and methodology for formalizing modern re
 
 * [Unified Classical Logic Completeness: A Coinductive Pearl](http://www.loria.fr/~jablanch/compl.pdf).
   J. C. Blanchette, A. Popescu, and D. Traytel.
-  In Demri, S., Kapur, D., Weidenbach, C. (eds) 7th International Joint
-  Conference on Automated Reasoning (IJCAR 2014), LNCS 8562, pp. 46-60,
-  Springer, 2014.
+  In Demri, S., Kapur, D., Weidenbach, C. (eds) 7th International Joint Conference on Automated Reasoning (IJCAR 2014), LNCS 8562, pp. 46-60, Springer, 2014.
 
 * [Mechanizing the Metatheory of Sledgehammer](http://www.loria.fr/~jablanch/self.pdf).
   J. C. Blanchette and A. Popescu.
-  In Fontaine, P., Ringeissen, C., Schmidt, R. A. (eds.) 9th International
-  Symposium on Frontiers of Combining Systems (FroCoS 2013), LNCS 8152,
-  pp. 245-260, Springer, 2013.
+  In Fontaine, P., Ringeissen, C., Schmidt, R. A. (eds.) 9th International Symposium on Frontiers of Combining Systems (FroCoS 2013), LNCS 8152, pp. 245-260, Springer, 2013.
