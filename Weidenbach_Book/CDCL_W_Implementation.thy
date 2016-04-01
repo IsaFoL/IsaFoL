@@ -555,99 +555,6 @@ lemma do_resolve_step_trail_is_None[iff]:
   by (cases S rule: do_resolve_step.cases) auto
 
 paragraph \<open>Backjumping\<close>
-fun find_level_decomp where
-"find_level_decomp M [] D k = None" |
-"find_level_decomp M (L # Ls) D k =
-  (case (get_level M L, maximum_level_code (D @ Ls) M) of
-    (i, j) \<Rightarrow> if i = k \<and> j < i then Some (L, j) else find_level_decomp M Ls (L#D) k
-  )"
-
-lemma find_level_decomp_some:
-  assumes "find_level_decomp M Ls D k = Some (L, j)"
-  shows "L \<in> set Ls \<and> get_maximum_level M (mset (remove1 L (Ls @ D))) = j \<and> get_level M L = k"
-  using assms
-proof (induction Ls arbitrary: D)
-  case Nil
-  then show ?case by simp
-next
-  case (Cons L' Ls) note IH = this(1) and H = this(2)
-  (* heavily modified sledgehammer proof *)
-  def find \<equiv> "(if get_level M L' \<noteq> k \<or> \<not> get_maximum_level M (mset D + mset Ls) < get_level M L'
-    then find_level_decomp M Ls (L' # D) k
-    else Some (L', get_maximum_level M (mset D + mset Ls)))"
-  have a1: "\<And>D. find_level_decomp M Ls D k = Some (L, j) \<Longrightarrow>
-     L \<in> set Ls \<and> get_maximum_level M (mset Ls + mset D - {#L#}) = j \<and> get_level M L = k"
-    using IH by simp
-  have a2: "find = Some (L, j)"
-    using H unfolding find_def by (auto split: if_split_asm)
-  { assume "Some (L', get_maximum_level M (mset D + mset Ls)) \<noteq> find"
-    then have f3: "L \<in> set Ls" and "get_maximum_level M (mset Ls + mset (L' # D) - {#L#}) = j"
-      using a1 IH a2 unfolding find_def by meson+
-    moreover then have "mset Ls + mset D - {#L#} + {#L'#} = {#L'#} + mset D + (mset Ls - {#L#})"
-      by (auto simp: ac_simps multiset_eq_iff Suc_leI)
-    ultimately have f4: "get_maximum_level M (mset Ls + mset D - {#L#} + {#L'#}) = j"
-      by (metis add.commute diff_union_single_conv in_multiset_in_set mset.simps(2))
-  } note f4 = this
-  have "{#L'#} + (mset Ls + mset D) = mset Ls + (mset D + {#L'#})"
-      by (auto simp: ac_simps)
-  then have
-    "(L = L' \<longrightarrow> get_maximum_level M (mset Ls + mset D) = j \<and> get_level M L' = k)" and
-    "(L \<noteq> L' \<longrightarrow> L \<in> set Ls \<and> get_maximum_level M (mset Ls + mset D - {#L#} + {#L'#}) = j \<and>
-      get_level M L = k)"
-    using f4 a2 a1[of "L' # D"] unfolding find_def by (metis (no_types) add_diff_cancel_left'
-      mset.simps(2) option.inject prod.inject union_commute)+
-  then show ?case by simp
-qed
-
-lemma find_level_decomp_none:
-  assumes "find_level_decomp M Ls E k = None" and "mset (L#D) = mset (Ls @ E)"
-  shows "\<not>(L \<in> set Ls \<and> get_maximum_level M (mset D) < k \<and> k = get_level M L)"
-  using assms
-proof (induction Ls arbitrary: E L D)
-  case Nil
-  then show ?case by simp
-next
-  case (Cons L' Ls) note IH = this(1) and find_none = this(2) and LD = this(3)
-  have "mset D + {#L'#} = mset E + (mset Ls + {#L'#})  \<Longrightarrow> mset D = mset E + mset Ls"
-    by (metis add_right_imp_eq union_assoc)
-  then show ?case
-    using find_none IH[of "L' # E" L D] LD by (auto simp add: ac_simps split: if_split_asm)
-qed
-
-fun bt_cut where
-"bt_cut i (Propagated _ _ # Ls) = bt_cut i Ls" |
-"bt_cut i (Decided K k # Ls) = (if k = Suc i then Some (Decided K k # Ls) else bt_cut i Ls)" |
-"bt_cut i [] = None"
-
-lemma bt_cut_some_decomp:
-  "bt_cut i M = Some M' \<Longrightarrow> \<exists>K M2 M1. M = M2 @ M' \<and> M' = Decided K (i+1) # M1"
-  by (induction i M rule: bt_cut.induct) (auto split: if_split_asm)
-
-lemma bt_cut_not_none: "M = M2 @ Decided K (Suc i) # M' \<Longrightarrow> bt_cut i M \<noteq> None"
-  by (induction M2 arbitrary: M rule: ann_lit_list_induct) auto
-
-lemma get_all_ann_decomposition_ex:
-  "\<exists>N. (Decided K (Suc i) # M', N) \<in> set (get_all_ann_decomposition (M2@Decided K (Suc i) # M'))"
-  apply (induction M2 rule: ann_lit_list_induct)
-    apply auto[2]
-  by (rename_tac L m xs,  case_tac "get_all_ann_decomposition (xs @ Decided K (Suc i) # M')")
-  auto
-
-lemma bt_cut_in_get_all_ann_decomposition:
-  "bt_cut i M = Some M' \<Longrightarrow> \<exists>M2. (M', M2) \<in> set (get_all_ann_decomposition M)"
-  by (auto dest!: bt_cut_some_decomp simp add: get_all_ann_decomposition_ex)
-
-fun do_backtrack_step where
-"do_backtrack_step (M, N, U, k, Some D) =
-  (case find_level_decomp M D [] k of
-    None \<Rightarrow> (M, N, U, k, Some D)
-  | Some (L, j) \<Rightarrow>
-    (case bt_cut j M of
-      Some (Decided _ _ # Ls) \<Rightarrow> (Propagated L D # Ls, N, D # U, j, None)
-    | _ \<Rightarrow> (M, N, U, k, Some D))
-  )" |
-"do_backtrack_step S = S"
-
 lemma get_all_ann_decomposition_map_convert:
   "(get_all_ann_decomposition (map mmset_of_mlit' M)) =
     map (\<lambda>(a, b). (map mmset_of_mlit' a, map mmset_of_mlit' b)) (get_all_ann_decomposition M)"
@@ -756,15 +663,6 @@ next
       using inv unfolding  cdcl\<^sub>W_all_struct_inv_def apply fast
     apply (cases S)
     by (auto simp add: get_all_ann_decomposition_map_convert)
-(*     levL: "get_level M L = get_maximum_level M (D + {#L#})" and
-    k: "k = get_maximum_level M (D + {#L#})" and
-    j: "j = get_maximum_level M D" and
-    CE: "convertC E = Some (D + {#L#})" and
-    decomp: "(z # M1, b) \<in> set (get_all_ann_decomposition M)" and
-    z: "Decided K (Suc j) = mmset_of_mlit' z" using bt unfolding S
-      by (auto split: option.splits elim!: backtrackE
-        simp: get_all_ann_decomposition_map_convert reduce_trail_to
-        dest!: get_all_ann_decomposition_exists_prepend) *)
   obtain c where c: "trail S = c @ M2 @ Decided K (Suc j) # M1"
     using decomp by blast
   have "get_all_levels_of_ann (trail S) = rev [1..<Suc k]"
@@ -880,7 +778,7 @@ proof -
      "S = (a, b, c, d, e)" and
      "conflicting S = None"
   then show "decide S (do_decide_step S)"
-    using H H' by (auto split: option.splits simp: lits_of_def decide.simps 
+    using H H' by (auto split: option.splits simp: lits_of_def decide.simps
       Decided_Propagated_in_iff_in_lits_of_l
       dest!: find_first_unused_var_Some)
 qed
@@ -1749,7 +1647,7 @@ fun gene where
 
 value "gene 1"
 
-text \<open>@{term maximum_level_code} and @{term get_level} have to be declared in the same module. 
+text \<open>@{term maximum_level_code} and @{term get_level} have to be declared in the same module.
   Otherwise, the code-generator complains about cyclic dependency.\<close>
 code_identifier
  code_module CDCL_W_Level \<rightharpoonup> (SML) CDCL_W_Level |
