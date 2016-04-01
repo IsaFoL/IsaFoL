@@ -297,7 +297,7 @@ lemma prop_queue_rewatch_nat_cand_single_clause_eq_or_cons:
   apply (cases C, cases S)
   apply (auto simp: raw_clause_def filter_empty_conv true_annots_true_cls_def_iff_negation_in_model
     comp_def rewatch_nat_cand_single_clause.simps lits_of_def image_image split: list.splits
-     simp del: watched_decided_most_recently.simps)
+     simp del: watched_only_lazy_updates.simps)
   done
 
 lemma lit_of_case_Propagated[simp]: "lit_of (case x of (x, xa) \<Rightarrow> Propagated x xa) = fst x"
@@ -315,29 +315,29 @@ lemma prop_queue_first_is_undefined:
           apply (cases C, cases S)
           apply (auto simp: rewatch_nat_cand_single_clause.simps
             split: list.splits if_splits
-            simp del: watched_decided_most_recently.simps)
+            simp del: watched_only_lazy_updates.simps)
         using assms
         apply (cases C, cases S)
         apply (auto simp: rewatch_nat_cand_single_clause.simps
           split: list.splits if_splits
-          simp del: watched_decided_most_recently.simps)
+          simp del: watched_only_lazy_updates.simps)
       using assms
       apply (cases C, cases S)
       apply (auto simp: rewatch_nat_cand_single_clause.simps clause_def raw_clause_def
         split: list.splits if_splits
-        simp del: watched_decided_most_recently.simps
+        simp del: watched_only_lazy_updates.simps
         dest!: arg_cong[of "removeAll _ _" _ set])
       using assms
     apply (cases C, cases S)
     apply (auto simp: rewatch_nat_cand_single_clause.simps clause_def raw_clause_def
       split: list.splits if_splits
-      simp del: watched_decided_most_recently.simps
+      simp del: watched_only_lazy_updates.simps
       dest!: arg_cong[of "removeAll _ _" _ set])
     using assms
   apply (cases C, cases S)
   apply (auto simp: rewatch_nat_cand_single_clause.simps clause_def raw_clause_def
     split: list.splits if_splits
-    simp del: watched_decided_most_recently.simps
+    simp del: watched_only_lazy_updates.simps
     dest!: arg_cong[of "removeAll _ _" _ set])
   done
 
@@ -362,7 +362,7 @@ lemma rewatch_nat_cand_single_clause_hd:
     comp_def rewatch_nat_cand_single_clause.simps lits_of_def image_image
     clause_def
     split: list.splits
-     simp del: watched_decided_most_recently.simps)
+     simp del: watched_only_lazy_updates.simps)
   apply (auto dest: filter_in_list_prop_verifiedD simp: multiset_eq_iff)
   done
 
@@ -710,12 +710,12 @@ lemma rewatch_nat_cand_single_clause_conflict:
     using conf conf' confI L
     apply (auto simp add: raw_clause_def true_annots_true_cls_def_iff_negation_in_model
       lits_of_def image_image image_Un Quickcheck_Exhaustive.orelse_def
-        simp del: watched_decided_most_recently.simps wf_twl_cls.simps
+        simp del: watched_only_lazy_updates.simps wf_twl_cls.simps
         dest!: wf_twl_cls_prop_in_trailD)[]
   using conf conf' confI L find_earliest_conflict_cases[of "get_trail_of_cand Ks @ M" C D]
   apply (auto simp add: raw_clause_def  true_annots_true_cls_def_iff_negation_in_model
     Quickcheck_Exhaustive.orelse_def
-      simp del: watched_decided_most_recently.simps
+      simp del: watched_only_lazy_updates.simps
     )[5]
   done
 
@@ -733,7 +733,7 @@ lemma rewatch_nat_cand_single_clause_conflict_found:
   (* TODO tune proof *)
   apply (auto simp: raw_clause_def filter_empty_conv true_annots_true_cls_def_iff_negation_in_model
     Quickcheck_Exhaustive.orelse_def lits_of_def image_image image_Un clause_def
-     simp del: watched_decided_most_recently.simps)
+     simp del: watched_only_lazy_updates.simps)
   apply force+
   done
 
@@ -759,7 +759,7 @@ primrec wf_twl_cls_pq :: "('v, 'lvl, 'mark) ann_lit list \<Rightarrow> 'v litera
   bool" where
 "wf_twl_cls_pq M Q (TWL_Clause W UW) \<longleftrightarrow>
    struct_wf_twl_cls (TWL_Clause W UW) \<and> watched_wf_twl_cls_pq M Q (TWL_Clause W UW) \<and>
-   watched_decided_most_recently M (TWL_Clause W UW)"
+   watched_only_lazy_updates M (TWL_Clause W UW)"
 
 definition wf_twl_state_pq :: "'v twl_state_cands \<Rightarrow> bool" where
 "wf_twl_state_pq S \<longleftrightarrow>

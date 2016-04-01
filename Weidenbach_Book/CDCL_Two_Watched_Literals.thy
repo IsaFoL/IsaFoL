@@ -165,10 +165,10 @@ text \<open>We need the following property about updates: if there is a literal 
   such that @{term "-L'"} is in the trail. This corresponds to the laziness of the data structure.
 
   Remark that @{term M} is a trail: literals at the end were the first to be added to the trail.\<close>
-primrec watched_decided_most_recently :: "('v, 'lvl, 'mark) ann_lit list \<Rightarrow>
+primrec watched_only_lazy_updates :: "('v, 'lvl, 'mark) ann_lit list \<Rightarrow>
   'v twl_clause \<Rightarrow> bool"
   where
-"watched_decided_most_recently M (TWL_Clause W UW) \<longleftrightarrow>
+"watched_only_lazy_updates M (TWL_Clause W UW) \<longleftrightarrow>
   (\<forall>L'\<in> set W. \<forall>L\<in> set UW.
     -L' \<in> lits_of_l M \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L \<notin># mset W \<longrightarrow>
       index (map lit_of M) (-L') \<le> index (map lit_of M) (-L))"
@@ -185,7 +185,7 @@ text \<open>Here are the invariant strictly related to the 2-WL data structure.\
 primrec wf_twl_cls :: "('v, 'lvl, 'mark) ann_lit list \<Rightarrow> 'v twl_clause \<Rightarrow> bool" where
   "wf_twl_cls M (TWL_Clause W UW) \<longleftrightarrow>
    struct_wf_twl_cls (TWL_Clause W UW) \<and> watched_wf_twl_cls M (TWL_Clause W UW) \<and>
-   watched_decided_most_recently M (TWL_Clause W UW)"
+   watched_only_lazy_updates M (TWL_Clause W UW)"
 
 (* TODO Move *)
 lemma size_mset_2: "size x1 = 2 \<longleftrightarrow> (\<exists>a b. x1 = {#a, b#})"
@@ -228,7 +228,7 @@ next
     then have
       L'M: "- L' \<in> lits_of_l M"
       using wf by (auto simp: C M)
-    have "watched_decided_most_recently M C"
+    have "watched_only_lazy_updates M C"
       using wf by (auto simp: C)
     then have
       "index (map lit_of M) (-L) \<le> index (map lit_of M) (-L')"
@@ -251,7 +251,7 @@ next
         using n_d unfolding M
           by (metis (no_types) L'M M Decided_Propagated_in_iff_in_lits_of_l defined_lit_map
             distinct.simps(2) list.simps(9) set_map)
-      moreover have "watched_decided_most_recently M C"
+      moreover have "watched_only_lazy_updates M C"
         using wf by (auto simp: C)
       ultimately have "index (map lit_of M') (- L') \<le> index (map lit_of M') (- L)"
         by (fastforce simp: M C split: if_split_asm)
@@ -931,7 +931,7 @@ next
     next
       case nil_other
       then show ?thesis
-        unfolding watched_decided_most_recently.simps Ball_def
+        unfolding watched_only_lazy_updates.simps Ball_def
         apply (intro allI impI)
         apply (subst index_uminus_index_map_uminus,
           simp add: index_uminus_index_map_uminus lits_of_def o_def)
@@ -948,7 +948,7 @@ next
     next
       case single_other
       then show ?thesis
-        unfolding watched_decided_most_recently.simps Ball_def
+        unfolding watched_only_lazy_updates.simps Ball_def
         apply (clarify)
         apply (subst index_uminus_index_map_uminus,
           simp add: index_uminus_index_map_uminus lits_of_def image_image o_def)
@@ -961,7 +961,7 @@ next
     next
       case other
       then show ?thesis
-        unfolding watched_decided_most_recently.simps
+        unfolding watched_only_lazy_updates.simps
         apply clarify
         apply (subst index_uminus_index_map_uminus,
           simp add: index_uminus_index_map_uminus lits_of_def o_def)[1]
@@ -1123,7 +1123,7 @@ next
           using wf by (auto simp: C)
         show ?case
           using 4
-          unfolding C watched_decided_most_recently.simps Ball_def twl_clause.sel
+          unfolding C watched_only_lazy_updates.simps Ball_def twl_clause.sel
             watched_wf_twl_cls.simps
           apply (intro allI impI)
           apply (rename_tac xW xUW)
@@ -1141,7 +1141,7 @@ next
           \<longrightarrow> - x \<in> lits_of_l (trail S))"
           using wf by (auto simp: C)
         show ?case
-          unfolding C watched_decided_most_recently.simps Ball_def
+          unfolding C watched_only_lazy_updates.simps Ball_def
           proof (intro allI impI conjI, goal_cases)
             case (1 xW x)
             show ?case
