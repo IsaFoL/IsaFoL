@@ -2,6 +2,7 @@ theory CDCL_W_Implementation
 imports DPLL_CDCL_W_Implementation CDCL_W_Termination
 begin
 
+subsubsection \<open>Types and Instantiation\<close>
 notation image_mset (infixr "`#" 90)
 
 type_synonym 'a cdcl\<^sub>W_mark = "'a literal list"
@@ -88,7 +89,6 @@ global_interpretation state\<^sub>W_ops
 
   "\<lambda>L (M, S). (L # M, S)"
   "\<lambda>(M, S). (tl M, S)"
-  "\<lambda>C (M, N, S). (M, C # N, S)"
   "\<lambda>C (M, N, U, S). (M, N, C # U, S)"
   "\<lambda>C (M, N, U, S). (M, filter (\<lambda>L. mset L \<noteq> mset C) N, filter (\<lambda>L. mset L \<noteq> mset C) U, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
@@ -126,7 +126,6 @@ interpretation state\<^sub>W
 
   "\<lambda>L (M, S). (L # M, S)"
   "\<lambda>(M, S). (tl M, S)"
-  "\<lambda>C (M, N, S). (M, C # N, S)"
   "\<lambda>C (M, N, U, S). (M, N, C # U, S)"
   "\<lambda>C (M, N, U, S). (M, filter (\<lambda>L. mset L \<noteq> mset C) N, filter (\<lambda>L. mset L \<noteq> mset C) U, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
@@ -157,7 +156,6 @@ global_interpretation conflict_driven_clause_learning\<^sub>W
 
   "\<lambda>L (M, S). (L # M, S)"
   "\<lambda>(M, S). (tl M, S)"
-  "\<lambda>C (M, N, S). (M, C # N, S)"
   "\<lambda>C (M, N, U, S). (M, N, C # U, S)"
   "\<lambda>C (M, N, U, S). (M, filter (\<lambda>L. mset L \<noteq> mset C) N, filter (\<lambda>L. mset L \<noteq> mset C) U, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
@@ -246,7 +244,7 @@ proof (induction F S rule: reduce_trail_to.induct)
         apply (cases "Suc (length M) > length F")
          prefer 2 using IH reduce_trail_to_length_ne[of S F] apply (cases S) apply auto[]
         apply (subgoal_tac "Suc (length M) - length F = Suc (length M - length F)")
-        using reduce_trail_to_length_ne[of S F] IH by (cases S) (auto simp add:)
+        using reduce_trail_to_length_ne[of S F] IH by (cases S) auto
     qed
 qed
 

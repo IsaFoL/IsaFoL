@@ -42,7 +42,7 @@ interpretation rough_cdcl: state\<^sub>W
   raw_clause "\<lambda>C. TWL_Clause [] C"
   trail "\<lambda>S. hd (raw_trail S)"
   raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
-  cons_trail tl_trail "\<lambda>C. add_init_cls (raw_clause C)" "\<lambda>C. add_learned_cls (raw_clause C)"
+  cons_trail tl_trail "\<lambda>C. add_learned_cls (raw_clause C)"
   "\<lambda>C. remove_cls (raw_clause C)"
   update_backtrack_lvl
   update_conflicting "\<lambda>N. init_state (map raw_clause N)" restart'
@@ -70,7 +70,7 @@ interpretation rough_cdcl: conflict_driven_clause_learning\<^sub>W
   "\<lambda>C. raw_clause C" "\<lambda>C. TWL_Clause [] C"
   trail "\<lambda>S. hd (raw_trail S)"
   raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
-  cons_trail tl_trail "\<lambda>C. add_init_cls (raw_clause C)" "\<lambda>C. add_learned_cls (raw_clause C)"
+  cons_trail tl_trail "\<lambda>C. add_learned_cls (raw_clause C)"
   "\<lambda>C. remove_cls (raw_clause C)"
   update_backtrack_lvl
   update_conflicting "\<lambda>N. init_state (map raw_clause N)" restart'
@@ -236,7 +236,6 @@ sublocale wf_twl: conflict_driven_clause_learning\<^sub>W
   raw_conflicting_twl
   cons_trail_twl
   tl_trail_twl
-  "\<lambda>C. add_init_cls_twl (raw_clause C)"
   "\<lambda>C. add_learned_cls_twl (raw_clause C)"
   "\<lambda>C. remove_cls_twl (raw_clause C)"
   update_backtrack_lvl_twl
@@ -250,7 +249,7 @@ sublocale wf_twl: conflict_driven_clause_learning\<^sub>W
            rough_state_of_twl_remove_cls rough_state_of_twl_update_backtrack_lvl
            rough_state_of_twl_update_conflicting)[7]
        using rough_cdcl.init_clss_cons_trail rough_cdcl.init_clss_tl_trail
-       rough_cdcl.init_clss_add_init_cls rough_cdcl.init_clss_remove_cls
+       rough_cdcl.init_clss_remove_cls
        rough_cdcl.init_clss_add_learned_cls
        rough_cdcl.init_clss_update_backtrack_lvl
        rough_cdcl.init_clss_update_conflicting
@@ -259,7 +258,7 @@ sublocale wf_twl: conflict_driven_clause_learning\<^sub>W
          rough_state_of_twl_remove_cls rough_state_of_twl_update_backtrack_lvl
          rough_state_of_twl_update_conflicting comp_def)[7]
        using rough_cdcl.learned_clss_cons_trail rough_cdcl.learned_clss_tl_trail
-       rough_cdcl.learned_clss_add_init_cls rough_cdcl.learned_clss_remove_cls
+       rough_cdcl.learned_clss_remove_cls
        rough_cdcl.learned_clss_add_learned_cls
        rough_cdcl.learned_clss_update_backtrack_lvl
        rough_cdcl.learned_clss_update_conflicting

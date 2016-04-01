@@ -187,7 +187,7 @@ lemma maximum_level_code_eq_get_maximum_level[simp]:
   by (induction D) (auto simp add: get_maximum_level_plus)
 
 lemma [code]:
-  fixes M :: "('a::{type}, nat, 'b) ann_lit list"
+  fixes M :: "('a, nat, 'b) ann_lit list"
   shows "get_maximum_level M (mset D) = maximum_level_code D M"
   by simp
 

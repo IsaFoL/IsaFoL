@@ -37,6 +37,7 @@ lemma backtrack_no_cdcl\<^sub>W_bj:
  (*  by (force elim!: backtrack_levE[OF _ inv] simp: cdcl\<^sub>W_M_level_inv_def) works too,
  but is much slower (6s vs less than 1s)*)
 
+text \<open>@{term skip_or_resolve} corresponds to the \<^emph>\<open>analyze\<close> function in the code of MiniSAT.\<close>
 inductive skip_or_resolve :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 s_or_r_skip[intro]: "skip S T \<Longrightarrow> skip_or_resolve S T" |
 s_or_r_resolve[intro]: "resolve S T \<Longrightarrow> skip_or_resolve S T"

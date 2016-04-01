@@ -20,7 +20,7 @@ locale cdcl\<^sub>W_restart =
       -- \<open>access functions:\<close>
     trail hd_raw_trail raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
       -- \<open>changing state:\<close>
-    cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
+    cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
     update_conflicting
 
       -- \<open>get state:\<close>
@@ -54,7 +54,6 @@ locale cdcl\<^sub>W_restart =
 
     cons_trail :: "('v, nat, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
-    add_init_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     add_learned_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -585,7 +584,7 @@ locale luby_sequence_restart =
       -- \<open>access functions:\<close>
     trail hd_raw_trail raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
       -- \<open>changing state:\<close>
-    cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
+    cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
     update_conflicting
 
       -- \<open>get state:\<close>
@@ -620,7 +619,6 @@ locale luby_sequence_restart =
 
     cons_trail :: "('v, nat, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
-    add_init_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     add_learned_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -630,7 +628,7 @@ locale luby_sequence_restart =
     restart_state :: "'st \<Rightarrow> 'st"
 begin
 
-sublocale cdcl\<^sub>W_restart _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ luby_sequence
+sublocale cdcl\<^sub>W_restart _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ luby_sequence
   apply unfold_locales
   using bounded_luby_sequence by blast
 

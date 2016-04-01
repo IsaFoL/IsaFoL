@@ -47,7 +47,6 @@ locale state\<^sub>W_ops =
 
     cons_trail :: "('v, nat, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
-    add_init_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     add_learned_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -132,7 +131,7 @@ locale state\<^sub>W =
       -- \<open>getter:\<close>
     trail hd_raw_trail raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
       -- \<open>setter:\<close>
-    cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
+    cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
     update_conflicting
 
       -- \<open>Some specific states:\<close>
@@ -166,7 +165,6 @@ locale state\<^sub>W =
 
     cons_trail :: "('v, nat, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
-    add_init_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     add_learned_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -180,8 +178,6 @@ locale state\<^sub>W =
       "\<And>L st. undefined_lit (trail st) (lit_of L) \<Longrightarrow>
         trail (cons_trail L st) = mmset_of_mlit L # trail st" and
     trail_tl_trail[simp]: "\<And>st. trail (tl_trail st) = tl (trail st)" and
-    trail_add_init_cls[simp]:
-      "\<And>st C. no_dup (trail st) \<Longrightarrow> trail (add_init_cls C st) = trail st" and
     trail_add_learned_cls[simp]:
       "\<And>C st. no_dup (trail st) \<Longrightarrow> trail (add_learned_cls C st) = trail st" and
     trail_remove_cls[simp]:
@@ -195,9 +191,6 @@ locale state\<^sub>W =
       and
     init_clss_tl_trail[simp]:
       "\<And>st. init_clss (tl_trail st) = init_clss st" and
-    init_clss_add_init_cls[simp]:
-      "\<And>st C. no_dup (trail st) \<Longrightarrow> init_clss (add_init_cls C st) = {#mset_cls C#} + init_clss st"
-      and
     init_clss_add_learned_cls[simp]:
       "\<And>C st. no_dup (trail st) \<Longrightarrow> init_clss (add_learned_cls C st) = init_clss st" and
     init_clss_remove_cls[simp]:
@@ -212,8 +205,6 @@ locale state\<^sub>W =
         learned_clss (cons_trail M st) = learned_clss st" and
     learned_clss_tl_trail[simp]:
       "\<And>st. learned_clss (tl_trail st) = learned_clss st" and
-    learned_clss_add_init_cls[simp]:
-      "\<And>st C. no_dup (trail st) \<Longrightarrow> learned_clss (add_init_cls C st) = learned_clss st" and
     learned_clss_add_learned_cls[simp]:
       "\<And>C st. no_dup (trail st) \<Longrightarrow>
         learned_clss (add_learned_cls C st) = {#mset_cls C#} + learned_clss st" and
@@ -229,8 +220,6 @@ locale state\<^sub>W =
         backtrack_lvl (cons_trail M st) = backtrack_lvl st" and
     backtrack_lvl_tl_trail[simp]:
       "\<And>st. backtrack_lvl (tl_trail st) = backtrack_lvl st" and
-    backtrack_lvl_add_init_cls[simp]:
-      "\<And>st C. no_dup (trail st) \<Longrightarrow> backtrack_lvl (add_init_cls C st) = backtrack_lvl st" and
     backtrack_lvl_add_learned_cls[simp]:
       "\<And>C st. no_dup (trail st) \<Longrightarrow> backtrack_lvl (add_learned_cls C st) = backtrack_lvl st" and
     backtrack_lvl_remove_cls[simp]:
@@ -245,8 +234,6 @@ locale state\<^sub>W =
         conflicting (cons_trail M st) = conflicting st" and
     conflicting_tl_trail[simp]:
       "\<And>st. conflicting (tl_trail st) = conflicting st" and
-    conflicting_add_init_cls[simp]:
-      "\<And>st C. no_dup (trail st) \<Longrightarrow> conflicting (add_init_cls C st) = conflicting st" and
     conflicting_add_learned_cls[simp]:
       "\<And>C st. no_dup (trail st) \<Longrightarrow> conflicting (add_learned_cls C st) = conflicting st"
       and
@@ -281,9 +268,6 @@ lemma
       "no_dup (trail S) \<Longrightarrow> clauses (add_learned_cls U S) =
          {#mset_cls U#} + learned_clss S + init_clss S"
       and
-    clauses_add_init_cls[simp]:
-      "no_dup (trail S) \<Longrightarrow>
-        clauses (add_init_cls N S) = {#mset_cls N#} + init_clss S + learned_clss S" and
     clauses_update_backtrack_lvl[simp]: "clauses (update_backtrack_lvl k S) = clauses S" and
     clauses_update_conflicting[simp]: "clauses (update_conflicting D S) = clauses S" and
     clauses_remove_cls[simp]:
@@ -447,11 +431,6 @@ lemma reduce_trail_to_add_learned_cls[simp]:
     trail (reduce_trail_to F (add_learned_cls C S)) = trail (reduce_trail_to F S)"
   by (rule trail_eq_reduce_trail_to_eq) auto
 
-lemma reduce_trail_to_add_init_cls[simp]:
-  "no_dup (trail S) \<Longrightarrow>
-    trail (reduce_trail_to F (add_init_cls C S)) = trail (reduce_trail_to F S)"
-  by (rule trail_eq_reduce_trail_to_eq) auto
-
 lemma reduce_trail_to_remove_learned_cls[simp]:
   "trail (reduce_trail_to F (remove_cls C S)) = trail (reduce_trail_to F S)"
   by (rule trail_eq_reduce_trail_to_eq) auto
@@ -522,11 +501,6 @@ lemma raw_conflicting_cons_trail[simp]:
     "raw_conflicting (cons_trail L S) = None \<longleftrightarrow> raw_conflicting S = None"
   using assms conflicting_cons_trail[of S L] map_option_is_None by fastforce+
 
-lemma raw_conflicting_add_init_cls[simp]:
-  "no_dup (trail S) \<Longrightarrow>
-    raw_conflicting (add_init_cls C S) = None \<longleftrightarrow> raw_conflicting S = None"
-  using map_option_is_None conflicting_add_init_cls[of S C] by fastforce+
-
 lemma raw_conflicting_add_learned_cls[simp]:
   "no_dup (trail S) \<Longrightarrow>
     raw_conflicting (add_learned_cls C S) = None \<longleftrightarrow> raw_conflicting S = None"
@@ -558,7 +532,7 @@ locale conflict_driven_clause_learning\<^sub>W =
       -- \<open>access functions:\<close>
     trail hd_raw_trail raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
       -- \<open>changing state:\<close>
-    cons_trail tl_trail add_init_cls add_learned_cls remove_cls update_backtrack_lvl
+    cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
     update_conflicting
 
       -- \<open>get state:\<close>
@@ -592,7 +566,6 @@ locale conflict_driven_clause_learning\<^sub>W =
 
     cons_trail :: "('v, nat, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
-    add_init_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     add_learned_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and

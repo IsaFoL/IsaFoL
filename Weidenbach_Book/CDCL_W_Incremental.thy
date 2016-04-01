@@ -3,8 +3,159 @@ imports CDCL_W_Termination
 begin
 
 section \<open>Incremental SAT solving\<close>
-context conflict_driven_clause_learning\<^sub>W
+locale state\<^sub>W_adding_init_clause =
+  state\<^sub>W
+    -- \<open>functions for clauses: \<close>
+    mset_cls insert_cls remove_lit
+      mset_clss union_clss in_clss insert_clss remove_from_clss
+
+    -- \<open>functions for the conflicting clause: \<close>
+    mset_ccls union_ccls insert_ccls remove_clit
+
+    -- \<open>Conversion between conflicting and non-conflicting\<close>
+    ccls_of_cls cls_of_ccls
+
+    -- \<open>functions about the state: \<close>
+      -- \<open>getter:\<close>
+    trail hd_raw_trail raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
+      -- \<open>setter:\<close>
+    cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
+    update_conflicting
+
+      -- \<open>Some specific states:\<close>
+    init_state
+    restart_state
+  for
+    mset_cls :: "'cls \<Rightarrow> 'v clause" and
+    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
+    remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
+
+    mset_clss :: "'clss \<Rightarrow> 'v clauses" and
+    union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
+    in_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> bool" and
+    insert_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
+    remove_from_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
+
+    mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
+    union_ccls :: "'ccls \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
+    insert_ccls :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
+    remove_clit :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
+
+    ccls_of_cls :: "'cls \<Rightarrow> 'ccls" and
+    cls_of_ccls :: "'ccls \<Rightarrow> 'cls" and
+
+    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) ann_lits" and
+    hd_raw_trail :: "'st \<Rightarrow> ('v, nat, 'cls) ann_lit" and
+    raw_init_clss :: "'st \<Rightarrow> 'clss" and
+    raw_learned_clss :: "'st \<Rightarrow> 'clss" and
+    backtrack_lvl :: "'st \<Rightarrow> nat" and
+    raw_conflicting :: "'st \<Rightarrow> 'ccls option" and
+
+    cons_trail :: "('v, nat, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_trail :: "'st \<Rightarrow> 'st" and
+    add_learned_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conflicting :: "'ccls option \<Rightarrow> 'st \<Rightarrow> 'st" and
+
+    init_state :: "'clss \<Rightarrow> 'st" and
+    restart_state :: "'st \<Rightarrow> 'st" +
+  fixes
+    add_init_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st"
+  assumes
+    trail_add_init_cls[simp]:
+      "\<And>st C. no_dup (trail st) \<Longrightarrow> trail (add_init_cls C st) = trail st" and
+    init_clss_add_init_cls[simp]:
+      "\<And>st C. no_dup (trail st) \<Longrightarrow> init_clss (add_init_cls C st) = {#mset_cls C#} + init_clss st"
+      and
+    learned_clss_add_init_cls[simp]:
+      "\<And>st C. no_dup (trail st) \<Longrightarrow> learned_clss (add_init_cls C st) =
+        learned_clss st" and
+    backtrack_lvl_add_init_cls[simp]:
+      "\<And>st C. no_dup (trail st) \<Longrightarrow> backtrack_lvl (add_init_cls C st) = backtrack_lvl st" and
+    conflicting_add_init_cls[simp]:
+      "\<And>st C. no_dup (trail st) \<Longrightarrow> conflicting (add_init_cls C st) = conflicting st"
 begin
+lemma clauses_add_init_cls[simp]:
+   "no_dup (trail S) \<Longrightarrow>
+     clauses (add_init_cls N S) = {#mset_cls N#} + init_clss S + learned_clss S"
+   unfolding raw_clauses_def by auto
+
+lemma reduce_trail_to_add_init_cls[simp]:
+  "no_dup (trail S) \<Longrightarrow>
+    trail (reduce_trail_to F (add_init_cls C S)) = trail (reduce_trail_to F S)"
+  by (rule trail_eq_reduce_trail_to_eq) auto
+
+lemma raw_conflicting_add_init_cls[simp]:
+  "no_dup (trail S) \<Longrightarrow>
+    raw_conflicting (add_init_cls C S) = None \<longleftrightarrow> raw_conflicting S = None"
+  using map_option_is_None conflicting_add_init_cls[of S C] by fastforce+
+end
+
+locale conflict_driven_clause_learning_with_adding_init_clause\<^sub>W =
+  state\<^sub>W_adding_init_clause
+    -- \<open>functions for clauses: \<close>
+    mset_cls insert_cls remove_lit
+    mset_clss union_clss in_clss insert_clss remove_from_clss
+
+    -- \<open>functions for the conflicting clause: \<close>
+    mset_ccls union_ccls insert_ccls remove_clit
+
+    -- \<open>conversion\<close>
+    ccls_of_cls cls_of_ccls
+
+    -- \<open>functions for the state: \<close>
+      -- \<open>access functions:\<close>
+    trail hd_raw_trail raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
+      -- \<open>changing state:\<close>
+    cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
+    update_conflicting
+
+      -- \<open>get state:\<close>
+    init_state
+    restart_state
+      -- \<open>Adding a clause:\<close>
+    add_init_cls
+  for
+    mset_cls :: "'cls \<Rightarrow> 'v clause" and
+    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
+    remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
+
+    mset_clss :: "'clss \<Rightarrow> 'v clauses" and
+    union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
+    in_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> bool" and
+    insert_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
+    remove_from_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss"  and
+
+    mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
+    union_ccls :: "'ccls \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
+    insert_ccls :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
+    remove_clit :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
+
+    ccls_of_cls :: "'cls \<Rightarrow> 'ccls" and
+    cls_of_ccls :: "'ccls \<Rightarrow> 'cls" and
+
+    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) ann_lits" and
+    hd_raw_trail :: "'st \<Rightarrow> ('v, nat, 'cls) ann_lit" and
+    raw_init_clss :: "'st \<Rightarrow> 'clss" and
+    raw_learned_clss :: "'st \<Rightarrow> 'clss" and
+    backtrack_lvl :: "'st \<Rightarrow> nat" and
+    raw_conflicting :: "'st \<Rightarrow> 'ccls option" and
+
+    cons_trail :: "('v, nat, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_trail :: "'st \<Rightarrow> 'st" and
+    add_learned_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conflicting :: "'ccls option \<Rightarrow> 'st \<Rightarrow> 'st" and
+
+    init_state :: "'clss \<Rightarrow> 'st" and
+    restart_state :: "'st \<Rightarrow> 'st" and
+    add_init_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st"
+begin
+
+sublocale conflict_driven_clause_learning\<^sub>W 
+  by unfold_locales
 
 text \<open>This invariant holds all the invariant related to the strategy. See the structural invariant
     in @{term cdcl\<^sub>W_all_struct_inv}\<close>

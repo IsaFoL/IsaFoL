@@ -807,5 +807,39 @@ lemma struct_wf_twl_cls_do_propagate_or_conflict_step:
   by (simp del: rewatch_nat_cand.simps
     add: struct_wf_twl_cls_rewatch_nat_cand)
 
+subsection \<open>Skip and Resolve\<close>
+fun do_analyse_step :: "'v twl_state \<Rightarrow> 'v twl_state" where
+"do_analyse_step (TWL_State (Propagated L C # Ls) N U k (Some D)) =
+  (if -L \<notin> set D
+  then TWL_State (Propagated L C # Ls) N U k (Some D)
+  else if get_maximum_level (Propagated L C # Ls) (mset (remove1 (-L) D)) = k
+  then (TWL_State Ls N U k (Some (remdups (remove1 L (raw_clause C) @ remove1 (-L) D))))
+  else (TWL_State (Propagated L C # Ls) N U k (Some D)))" |
+"do_analyse_step S = S"
+
+fun raw_tl_trail where
+"raw_tl_trail (TWL_State M N U k C) = TWL_State (tl M) N U k C"
+
+
+interpretation twl: conflict_driven_clause_learning\<^sub>W
+  clause
+    (* does not matter if the invariants do not hold *)
+  "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
+  "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
+  raw_clss_l "op @"
+  "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
+
+  mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
+  "op #" remove1
+
+  raw_clause "\<lambda>C. TWL_Clause [] C"
+  trail "\<lambda>S. hd (raw_trail S)"
+  raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
+
+  raw_cons_trail raw_tl_trail
+
+  apply unfold_locales apply (auto simp: hd_map comp_def map_tl ac_simps raw_clause_def
+    union_mset_list mset_map_mset_remove1_cond ex_mset_unwatched_watched clause_def)
+oops
 
 end
