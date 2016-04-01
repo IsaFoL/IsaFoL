@@ -33,6 +33,9 @@ The goal is to develop lemma libraries and methodology for formalizing modern re
 
 ## Publications ##
 
+* [Soundness and Completeness Proofs by Coinductive Methods](http://www.loria.fr/~jablanch/compl2.pdf)
+  J. C. Blanchette, A. Popescu, and D. Traytel. Accepted with minor changes in _Journal of Automated Reasoning_.
+
 * [A Verified SAT Solver Framework with Learn, Forget, Restart, and Incrementality](http://people.mpi-inf.mpg.de/~jblanche/sat.pdf).
   J. C. Blanchette, M. Fleury, and C. Weidenbach.
   In Olivetti, N., Tiwari, A. (eds.) 8th International Joint Conference on Automated Reasoning (IJCAR 2016), LNCS, Springer, 2016.
