@@ -491,23 +491,9 @@ lemma do_skip_step_trail_is_None[iff]:
   by (cases S rule: do_skip_step.cases) auto
 
 paragraph \<open>Resolve\<close>
-fun maximum_level_code:: "'a literal list \<Rightarrow> ('a, nat, 'b) ann_lit list \<Rightarrow> nat"
-  where
-"maximum_level_code [] _ = 0" |
-"maximum_level_code (L # Ls) M = max (get_level M L) (maximum_level_code Ls M)"
-
-lemma maximum_level_code_eq_get_maximum_level[simp]:
-  "maximum_level_code D M = get_maximum_level M (mset D)"
-  by (induction D) (auto simp add: get_maximum_level_plus)
-
-lemma [code]:
-  fixes M :: "('a::{type}, nat, 'b) ann_lit list"
-  shows "get_maximum_level M (mset D) = maximum_level_code D M"
-  by simp
-
 fun do_resolve_step :: "'v cdcl\<^sub>W_state_inv_st \<Rightarrow> 'v cdcl\<^sub>W_state_inv_st" where
 "do_resolve_step (Propagated L C # Ls, N, U, k, Some D) =
-  (if -L \<in> set D \<and> maximum_level_code (remove1 (-L) D) (Propagated L C # Ls) = k
+  (if -L \<in> set D \<and> get_maximum_level (Propagated L C # Ls) (mset (remove1 (-L) D)) = k
   then (Ls, N, U, k, Some (remdups (remove1 L C @ remove1 (-L) D)))
   else (Propagated L C # Ls, N, U, k, Some D))" |
 "do_resolve_step S = S"
@@ -1754,7 +1740,7 @@ qed
 paragraph \<open>The Code\<close>
 text \<open>The SML code is skipped in the documentation, but stays to ensure that some version of the
  exported code is working. The only difference between the generated code and the one used here is
- the export of the constructor ConI.\<close>
+ the export of the constructor ConI (such that we can use it).\<close>
 
 (*<*)
 fun gene where
@@ -1762,6 +1748,12 @@ fun gene where
 "gene (Suc n) = map (op # (Pos (Suc n))) (gene n) @ map (op # (Neg (Suc n))) (gene n)"
 
 value "gene 1"
+
+text \<open>@{term maximum_level_code} and @{term get_level} have to be declared in the same module. 
+  Otherwise, the code-generator complains about cyclic dependency.\<close>
+code_identifier
+ code_module CDCL_W_Level \<rightharpoonup> (SML) CDCL_W_Level |
+ code_module DPLL_CDCL_W_Implementation \<rightharpoonup> (SML) CDCL_W_Level
 
 export_code do_all_cdcl\<^sub>W_stgy gene in SML
 ML \<open>
@@ -1908,6 +1900,14 @@ fun equal_option A_ = {equal = equal_optiona A_} : ('a option) HOL.equal;
 
 end; (*struct Option*)
 
+structure Multiset : sig
+  datatype 'a multiset = Mset of 'a list
+end = struct
+
+datatype 'a multiset = Mset of 'a list;
+
+end; (*struct Multiset*)
+
 structure Clausal_Logic : sig
   datatype 'a literal = Pos of 'a | Neg of 'a
   val equal_literala : 'a HOL.equal -> 'a literal -> 'a literal -> bool
@@ -1941,17 +1941,14 @@ structure Partial_Annotated_Clausal_Logic : sig
   val equal_ann_lit :
     'a HOL.equal -> 'b HOL.equal -> 'c HOL.equal ->
       ('a, 'b, 'c) ann_lit HOL.equal
-  val lits_of :
-    ('a, 'b, 'c) ann_lit Set.set -> 'a Clausal_Logic.literal Set.set
+  val lits_of : ('a, 'b, 'c) ann_lit Set.set -> 'a Clausal_Logic.literal Set.set
 end = struct
 
 datatype ('a, 'b, 'c) ann_lit = Decided of 'a Clausal_Logic.literal * 'b |
   Propagated of 'a Clausal_Logic.literal * 'c;
 
-fun equal_ann_lita A_ B_ C_ (Decided (x11, x12)) (Propagated (x21, x22)) =
-  false
-  | equal_ann_lita A_ B_ C_ (Propagated (x21, x22)) (Decided (x11, x12)) =
-    false
+fun equal_ann_lita A_ B_ C_ (Decided (x11, x12)) (Propagated (x21, x22)) = false
+  | equal_ann_lita A_ B_ C_ (Propagated (x21, x22)) (Decided (x11, x12)) = false
   | equal_ann_lita A_ B_ C_ (Propagated (x21, x22)) (Propagated (y21, y22)) =
     Clausal_Logic.equal_literala A_ x21 y21 andalso HOL.eq C_ x22 y22
   | equal_ann_lita A_ B_ C_ (Decided (x11, x12)) (Decided (y11, y12)) =
@@ -1972,6 +1969,24 @@ structure CDCL_W_Level : sig
     'a HOL.equal ->
       ('a, Arith.nat, 'b) Partial_Annotated_Clausal_Logic.ann_lit list ->
         Arith.nat -> 'a Clausal_Logic.literal -> Arith.nat
+  val maximum_level_code :
+    'a HOL.equal ->
+      'a Clausal_Logic.literal list ->
+        ('a, Arith.nat, 'b) Partial_Annotated_Clausal_Logic.ann_lit list ->
+          Arith.nat
+  val get_maximum_level :
+    'a HOL.equal ->
+      ('a, Arith.nat, 'b) Partial_Annotated_Clausal_Logic.ann_lit list ->
+        'a Clausal_Logic.literal Multiset.multiset -> Arith.nat
+  val find_first_unused_var :
+    'a HOL.equal ->
+      ('a Clausal_Logic.literal list) list ->
+        'a Clausal_Logic.literal Set.set -> 'a Clausal_Logic.literal option
+  val find_first_unit_clause :
+    'a HOL.equal ->
+      ('a Clausal_Logic.literal list) list ->
+        ('a, 'b, 'c) Partial_Annotated_Clausal_Logic.ann_lit list ->
+          ('a Clausal_Logic.literal * 'a Clausal_Logic.literal list) option
 end = struct
 
 fun get_rev_level A_ [] uu uv = Arith.Zero_nat
@@ -1984,31 +1999,12 @@ fun get_rev_level A_ [] uu uv = Arith.Zero_nat
     (if HOL.eq A_ (Clausal_Logic.atm_of la) (Clausal_Logic.atm_of l) then n
       else get_rev_level A_ ls n l);
 
-end; (*struct CDCL_W_Level*)
+fun maximum_level_code A_ [] uu = Arith.Zero_nat
+  | maximum_level_code A_ (l :: ls) m =
+    Orderings.max Arith.ord_nat (get_rev_level A_ (List.rev m) Arith.Zero_nat l)
+      (maximum_level_code A_ ls m);
 
-structure Product_Type : sig
-  val equal_proda : 'a HOL.equal -> 'b HOL.equal -> 'a * 'b -> 'a * 'b -> bool
-  val equal_prod : 'a HOL.equal -> 'b HOL.equal -> ('a * 'b) HOL.equal
-end = struct
-
-fun equal_proda A_ B_ (x1, x2) (y1, y2) =
-  HOL.eq A_ x1 y1 andalso HOL.eq B_ x2 y2;
-
-fun equal_prod A_ B_ = {equal = equal_proda A_ B_} : ('a * 'b) HOL.equal;
-
-end; (*struct Product_Type*)
-
-structure DPLL_CDCL_W_Implementation : sig
-  val find_first_unused_var :
-    'a HOL.equal ->
-      ('a Clausal_Logic.literal list) list ->
-        'a Clausal_Logic.literal Set.set -> 'a Clausal_Logic.literal option
-  val find_first_unit_clause :
-    'a HOL.equal ->
-      ('a Clausal_Logic.literal list) list ->
-        ('a, 'b, 'c) Partial_Annotated_Clausal_Logic.ann_lit list ->
-          ('a Clausal_Logic.literal * 'a Clausal_Logic.literal list) option
-end = struct
+fun get_maximum_level A_ m (Multiset.Mset d) = maximum_level_code A_ d m;
 
 fun is_unit_clause_code A_ l m =
   (case List.filter
@@ -2045,7 +2041,19 @@ fun find_first_unit_clause A_ (a :: l) m =
     | SOME la => SOME (la, a))
   | find_first_unit_clause A_ [] uu = NONE;
 
-end; (*struct DPLL_CDCL_W_Implementation*)
+end; (*struct CDCL_W_Level*)
+
+structure Product_Type : sig
+  val equal_proda : 'a HOL.equal -> 'b HOL.equal -> 'a * 'b -> 'a * 'b -> bool
+  val equal_prod : 'a HOL.equal -> 'b HOL.equal -> ('a * 'b) HOL.equal
+end = struct
+
+fun equal_proda A_ B_ (x1, x2) (y1, y2) =
+  HOL.eq A_ x1 y1 andalso HOL.eq B_ x2 y2;
+
+fun equal_prod A_ B_ = {equal = equal_proda A_ B_} : ('a * 'b) HOL.equal;
+
+end; (*struct Product_Type*)
 
 structure CDCL_W_Implementation : sig
   datatype 'a cdcl_W_state_inv_from_init_state =
@@ -2094,7 +2102,7 @@ fun bt_cut i (Partial_Annotated_Clausal_Logic.Propagated (uu, uv) :: ls) =
 fun do_propagate_step A_ s =
   (case s
     of (m, (n, (u, (k, NONE)))) =>
-      (case DPLL_CDCL_W_Implementation.find_first_unit_clause A_ (n @ u) m
+      (case CDCL_W_Level.find_first_unit_clause A_ (n @ u) m
         of NONE => (m, (n, (u, (k, NONE))))
         | SOME (l, c) =>
           (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: m,
@@ -2142,18 +2150,12 @@ fun do_skip_step A_
     = (Partial_Annotated_Clausal_Logic.Decided (vd, ve) :: vc, va)
   | do_skip_step A_ (v, (vb, (vd, (vf, NONE)))) = (v, (vb, (vd, (vf, NONE))));
 
-fun maximum_level_code A_ [] uu = Arith.Zero_nat
-  | maximum_level_code A_ (l :: ls) m =
-    Orderings.max Arith.ord_nat
-      (CDCL_W_Level.get_rev_level A_ (List.rev m) Arith.Zero_nat l)
-      (maximum_level_code A_ ls m);
-
 fun find_level_decomp A_ m [] d k = NONE
   | find_level_decomp A_ m (l :: ls) d k =
     let
       val (i, j) =
         (CDCL_W_Level.get_rev_level A_ (List.rev m) Arith.Zero_nat l,
-          maximum_level_code A_ (d @ ls) m);
+          CDCL_W_Level.maximum_level_code A_ (d @ ls) m);
     in
       (if Arith.equal_nata i k andalso Arith.less_nat j i then SOME (l, j)
         else find_level_decomp A_ m ls (l :: d) k)
@@ -2178,10 +2180,11 @@ fun do_resolve_step A_
   = (if List.member (Clausal_Logic.equal_literal A_) d
           (Clausal_Logic.uminus_literal l) andalso
           Arith.equal_nata
-            (maximum_level_code A_
-              (List.remove1 (Clausal_Logic.equal_literal A_)
-                (Clausal_Logic.uminus_literal l) d)
-              (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls))
+            (CDCL_W_Level.get_maximum_level A_
+              (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls)
+              (Multiset.Mset
+                (List.remove1 (Clausal_Logic.equal_literal A_)
+                  (Clausal_Logic.uminus_literal l) d)))
             k
       then (ls, (n, (u, (k, SOME (List.remdups (Clausal_Logic.equal_literal A_)
                                    (List.remove1
@@ -2199,7 +2202,7 @@ fun do_resolve_step A_
     (v, (vb, (vd, (vf, NONE))));
 
 fun do_decide_step A_ (m, (n, (u, (k, NONE)))) =
-  (case DPLL_CDCL_W_Implementation.find_first_unused_var A_ n
+  (case CDCL_W_Level.find_first_unused_var A_ n
           (Partial_Annotated_Clausal_Logic.lits_of (Set.Set m))
     of NONE => (m, (n, (u, (k, NONE))))
     | SOME l =>
