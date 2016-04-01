@@ -5,7 +5,7 @@
 subsection \<open>Implementation for 2 Watched-Literals\<close>
 
 theory CDCL_Two_Watched_Literals_Implementation
-imports CDCL_Two_Watched_Literals_Invariant
+imports CDCL_Two_Watched_Literals_Invariant DPLL_CDCL_W_Implementation
 begin
 text \<open>The difference between an implementation and the core described in the previous sections are
   the following:
@@ -55,9 +55,6 @@ datatype 'v twl_state_cands =
 fun raw_cons_trail where
 "raw_cons_trail L (TWL_State M N U k C) = TWL_State (L # M) N U k C"
 
-fun raw_prepend_trail where
-"raw_prepend_trail Ms (TWL_State M N U k C) = TWL_State (Ms @ M) N U k C"
-
 lemma raw_init_clss_raw_cons_trail[simp]:
   "raw_init_clss (raw_cons_trail L T) = raw_init_clss T"
   by (cases T) auto
@@ -67,11 +64,30 @@ lemma raw_learned_clss_raw_cons_trail[simp]:
   by (cases T) auto
 
 lemma length_raw_trail_raw_cons_trails[simp]:
-  "length (raw_trail (raw_cons_trail (Propagated L C') S)) = Suc (length (raw_trail S))"
+  "length (raw_trail (raw_cons_trail L S)) = Suc (length (raw_trail S))"
   by (cases S) auto
 
 lemma twl_raw_clauses_raw_cons_trail[simp]:
-  "twl.raw_clauses (raw_cons_trail (Propagated L C') S) = twl.raw_clauses S"
+  "twl.raw_clauses (raw_cons_trail L S) = twl.raw_clauses S"
+  by (cases S) (auto simp: twl.raw_clauses_def)
+
+fun raw_prepend_trail where
+"raw_prepend_trail Ms (TWL_State M N U k C) = TWL_State (Ms @ M) N U k C"
+
+lemma raw_init_clss_raw_prepend_trail[simp]:
+  "raw_init_clss (raw_prepend_trail L T) = raw_init_clss T"
+  by (cases T) auto
+
+lemma raw_learned_clss_raw_prepend_trail[simp]:
+  "raw_learned_clss (raw_prepend_trail L T) = raw_learned_clss T"
+  by (cases T) auto
+
+lemma length_raw_trail_raw_prepend_trails[simp]:
+  "length (raw_trail (raw_prepend_trail L S)) = length L + length (raw_trail S)"
+  by (cases S) auto
+
+lemma twl_raw_clauses_raw_prepend_trail[simp]:
+  "twl.raw_clauses (raw_prepend_trail L S) = twl.raw_clauses S"
   by (cases S) (auto simp: twl.raw_clauses_def)
 
 fun raw_cons_trail_pq where
@@ -89,6 +105,14 @@ lemma raw_trail_raw_cons_trail[simp]:
 
 lemma raw_trail_raw_prepend_trail[simp]:
   "raw_trail (raw_prepend_trail Ls S) = Ls @ raw_trail S"
+  by (cases S) auto
+
+lemma raw_init_clss_twl_state_raw_cons_trail[simp]:
+  "raw_init_clss (twl_state (raw_cons_trail_pq L S)) = raw_init_clss (twl_state S)"
+  by (cases S) auto
+
+lemma raw_learned_clss_twl_state_raw_cons_trail[simp]:
+  "raw_learned_clss (twl_state (raw_cons_trail_pq L S)) = raw_learned_clss (twl_state S)"
   by (cases S) auto
 
 text \<open>Useful function to chose the first non-@{term None} between two elements.\<close>
@@ -725,16 +749,63 @@ lemma wf_twl_state_pq_conflicting_Some_None:
   "wf_twl_state_pq (TWL_State_Cand S (Prop_Or_Conf [] (Some D))) \<longleftrightarrow>
   wf_twl_state_pq (TWL_State_Cand S (Prop_Or_Conf [] None))"
   unfolding wf_twl_state_pq_def by (auto simp del: wf_twl_cls_pq.simps simp: comp_def)
+thm do_propagate_or_conflict_step.induct remdups_adj.induct
 
-lemma
+lemma struct_wf_twl_cls_rewatch_nat_cand_clss:
+  assumes "\<forall>x\<in>set Cs. struct_wf_twl_cls x"
+  shows "\<forall>x\<in>set (fst (rewatch_nat_cand_clss L M (Cs, Ks))). struct_wf_twl_cls x"
+  using assms
+proof (induction Cs)
+  case Nil
+  then show ?case by (auto simp: rewatch_nat_cand_clss.simps)
+next
+  case (Cons C Cs)
+  then show ?case
+  apply (cases "(foldr (rewatch_nat_cand_single_clause L M) Cs ([], Ks))")
+  apply (cases C)
+    apply (cases "rewatch_nat_cand_single_clause L M C (foldr (rewatch_nat_cand_single_clause L M)
+      Cs ([], Ks))";
+      cases "snd (rewatch_nat_cand_single_clause L M C (foldr (rewatch_nat_cand_single_clause L M)
+      Cs ([], Ks)))")
+  by (auto simp: rewatch_nat_cand_clss.simps rewatch_nat_cand_single_clause.simps lits_of_def
+    image_image image_Un length_list_2
+    split: if_splits list.splits
+    dest!: filter_eq_ConsD)
+qed
+
+lemma struct_wf_twl_cls_rewatch_nat_cand:
+  assumes wf: "\<forall>x\<in>set (twl.raw_clauses T). struct_wf_twl_cls x"
+  shows "\<forall>x\<in>set (twl.raw_clauses (twl_state (raw_cons_trail_pq (Propagated L C')
+    (rewatch_nat_cand L (TWL_State_Cand T Ks))))). struct_wf_twl_cls x"
+proof -
+  obtain U K' where
+    U: "rewatch_nat_cand_clss L (raw_trail T) (raw_init_clss T, Ks) = (U, K')"
+    (is "?H = _") by (cases ?H)
+
+  obtain V K'' where
+    V: "rewatch_nat_cand_clss L (raw_trail T) (raw_learned_clss T, K') = (V, K'')"
+    (is "?H = _") by (cases ?H)
+  have "\<And>x. x \<in> set U \<Longrightarrow> struct_wf_twl_cls x"
+    using struct_wf_twl_cls_rewatch_nat_cand_clss[of "raw_init_clss T" L "raw_trail T" Ks] wf U
+    by (cases T) (auto simp: twl.raw_clauses_def)
+
+  moreover have "\<And>x. x \<in> set V \<Longrightarrow> struct_wf_twl_cls x"
+    using struct_wf_twl_cls_rewatch_nat_cand_clss[of "raw_learned_clss T" L "raw_trail T" K'] wf V
+    by (cases T) (auto simp: twl.raw_clauses_def)
+  ultimately show ?thesis
+    by (auto simp: twl.raw_clauses_def Product_Type.prod.case_distrib U V)[]
+qed
+
+lemma struct_wf_twl_cls_do_propagate_or_conflict_step:
   assumes "\<forall>C\<in>set (twl.raw_clauses (twl_state S)). struct_wf_twl_cls C" and
    "C \<in> set (twl.raw_clauses (twl_state (do_propagate_or_conflict_step S)))"
   shows "struct_wf_twl_cls C"
   using assms
   apply (induction S rule: do_propagate_or_conflict_step.induct)
-  apply (auto simp: )
-apply (metis (no_types, lifting) raw_prepend_trail.simps twl.raw_clauses_def twl_state.collapse
-  twl_state.inject)
+    apply (auto simp: twl.raw_clauses_def Product_Type.prod.case_distrib)[]
+   apply (auto simp: twl.raw_clauses_def Product_Type.prod.case_distrib)[]
+  by (simp del: rewatch_nat_cand.simps
+    add: struct_wf_twl_cls_rewatch_nat_cand)
 
-oops
+
 end
