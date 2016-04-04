@@ -497,9 +497,7 @@ proof (rule ccontr)
     raw_U: "raw_conflicting U = Some D" and
     LD: "-L \<in># mset_ccls D" and
     "get_maximum_level (trail U) (mset_ccls (remove_clit (-L) D)) = backtrack_lvl U" and
-    V: "V \<sim> update_conflicting (Some (union_ccls (remove_clit (-L) D)
-      (ccls_of_cls (remove_lit L E))))
-      (tl_trail U) "
+    V: "V \<sim> update_conflicting (Some (resolve_cls L D E)) (tl_trail U) "
     using resolve by (auto elim!: resolveE)
   have "cdcl\<^sub>W_all_struct_inv U"
     using mono_rtranclp[of skip cdcl\<^sub>W] by (meson bj cdcl\<^sub>W_bj.skip inv local.skip other

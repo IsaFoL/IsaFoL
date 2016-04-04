@@ -92,7 +92,11 @@ definition raw_clauses :: "'st \<Rightarrow> 'clss" where
 abbreviation clauses :: "'st \<Rightarrow> 'v clauses" where
 "clauses S \<equiv> mset_clss (raw_clauses S)"
 
+abbreviation resolve_cls where
+"resolve_cls L D' E \<equiv> union_ccls (remove_clit (-L) D') (ccls_of_cls (remove_lit L E))"
+
 end
+
 text \<open>We are using an abstract state to abstract away the detail of the implementation: we do not
   need to know how the clauses are represented internally, we just need to know that they can be
   converted to multisets.\<close>
@@ -639,7 +643,7 @@ resolve_rule: "trail S \<noteq> [] \<Longrightarrow>
   raw_conflicting S = Some D' \<Longrightarrow>
   -L \<in># mset_ccls D' \<Longrightarrow>
   get_maximum_level (trail S) (mset_ccls (remove_clit (-L) D')) = backtrack_lvl S \<Longrightarrow>
-  T \<sim> update_conflicting (Some (union_ccls (remove_clit (-L) D') (ccls_of_cls (remove_lit L E))))
+  T \<sim> update_conflicting (Some (resolve_cls L D' E))
     (tl_trail S) \<Longrightarrow>
   resolve S T"
 
@@ -778,7 +782,7 @@ lemma cdcl\<^sub>W_all_induct[consumes 1, case_names propagate conflict forget r
       -L \<in># mset_ccls D \<Longrightarrow>
       get_maximum_level (trail S) (mset_ccls (remove_clit (-L) D)) = backtrack_lvl S \<Longrightarrow>
       T \<sim> update_conflicting
-        (Some (union_ccls (remove_clit (-L) D) (ccls_of_cls (remove_lit L E)))) (tl_trail S) \<Longrightarrow>
+        (Some (resolve_cls L D E)) (tl_trail S) \<Longrightarrow>
       P S T" and
     backtrackH: "\<And>L D K i M1 M2 T.
       raw_conflicting S = Some D \<Longrightarrow>
@@ -848,7 +852,7 @@ lemma cdcl\<^sub>W_o_induct[consumes 1, case_names decide skip resolve backtrack
       -L \<in># mset_ccls D \<Longrightarrow>
       get_maximum_level (trail S) (mset_ccls (remove_clit (-L) D)) = backtrack_lvl S \<Longrightarrow>
       T \<sim> update_conflicting
-        (Some (union_ccls (remove_clit (-L) D) (ccls_of_cls (remove_lit L E)))) (tl_trail S) \<Longrightarrow>
+        (Some (resolve_cls L D E)) (tl_trail S) \<Longrightarrow>
       P S T" and
     backtrackH: "\<And>L D K i M1 M2 T.
       raw_conflicting S = Some D \<Longrightarrow>
@@ -1231,7 +1235,7 @@ lemma cdcl\<^sub>W_all_induct_lev_full:
       -L \<in># mset_ccls D \<Longrightarrow>
       get_maximum_level (trail S) (mset_ccls (remove_clit (-L) D)) = backtrack_lvl S \<Longrightarrow>
       T \<sim> update_conflicting
-        (Some (union_ccls (remove_clit (-L) D) (ccls_of_cls (remove_lit L E)))) (tl_trail S) \<Longrightarrow>
+        (Some (resolve_cls L D E)) (tl_trail S) \<Longrightarrow>
       P S T" and
     backtrackH: "\<And>K i M1 M2 L D T.
       raw_conflicting S = Some D \<Longrightarrow>
@@ -1315,7 +1319,7 @@ lemma cdcl\<^sub>W_o_induct_lev[consumes 1, case_names M_lev decide skip resolve
       -L \<in># mset_ccls D \<Longrightarrow>
       get_maximum_level (trail S) (mset_ccls (remove_clit (-L) D)) = backtrack_lvl S \<Longrightarrow>
       T \<sim> update_conflicting
-        (Some (union_ccls (remove_clit (-L) D) (ccls_of_cls (remove_lit L E)))) (tl_trail S) \<Longrightarrow>
+        (Some (resolve_cls L D E)) (tl_trail S) \<Longrightarrow>
       P S T" and
     backtrackH: "\<And>K i M1 M2 L D T.
       raw_conflicting S = Some D \<Longrightarrow>
@@ -1522,8 +1526,7 @@ proof -
     raw: "raw_conflicting S = Some D" and
     LD: "-L \<in># mset_ccls D" and
     i: "get_maximum_level (trail S) (mset_ccls (remove_clit (-L) D)) = backtrack_lvl S" and
-    T: "T \<sim> update_conflicting (Some (union_ccls (remove_clit (-L) D)
-       (ccls_of_cls (remove_lit L E)))) (tl_trail S)"
+    T: "T \<sim> update_conflicting (Some (resolve_cls L D E)) (tl_trail S)"
   using assms by (elim resolveE) simp
 
   obtain E' where
