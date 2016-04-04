@@ -1,3 +1,5 @@
+chapter Bachmair_Ganzinger
+
 session Bachmair_Ganzinger_Base = HOL +
   theories [document = false]
     "~~/src/HOL/Library/Multiset"
