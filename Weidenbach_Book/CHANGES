@@ -1,4 +1,9 @@
 Since IJCAR 2016's Submission:
-  * add_init_cls add been removed from CDCL_W and CDCL_W_Restart 
-  * CDCL_W_Incremental has its own state locale including add_init_cls
+* Weidenbach's CDCL
+  * add_init_cls add been removed from CDCL_W and CDCL_W_Restart. CDCL_W_Incremental has its own
+    state locale including add_init_cls.
+  * the clauses of the state have been abstracted: they can be converted to multiset, but do not
+    need to be multiset anymore. This change is useful for implementations.
+
+* Two watched literals:
   * CDCL_Two_Watched_Literals is under heavy changes.
