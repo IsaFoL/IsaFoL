@@ -151,14 +151,14 @@ lemma backtrack_is_backjump':
   using backtrack_is_backjump[of "fst S" "snd S" "fst T" "snd T"] assms by fastforce
 
 sublocale dpll_state
-  "id" remove1_mset
+  "id"
   id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
   fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
   "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
   by unfold_locales (auto simp: ac_simps)
 
 sublocale backjumping_ops
-  "id" remove1_mset
+  "id"
   id  "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
   fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
   "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" "\<lambda>_ _ _ S T. backtrack S T"
@@ -228,7 +228,7 @@ qed
 end
 
 sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops
-    id remove1_mset
+    id
     id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
     fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
@@ -240,7 +240,7 @@ sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops
     dpll_with_backtrack.can_do_bt_step id_apply)
 
 sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping
-    id remove1_mset
+    id
     id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
     fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
@@ -282,7 +282,7 @@ proof -
 qed
 
 interpretation conflict_driven_clause_learning_ops
-    id remove1_mset
+    id
     id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
     fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
@@ -292,7 +292,7 @@ interpretation conflict_driven_clause_learning_ops
   by unfold_locales
 
 interpretation conflict_driven_clause_learning
-    id remove1_mset
+    id
     id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
     fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
@@ -321,7 +321,7 @@ locale dpll_withbacktrack_and_restarts =
   assumes unbounded: "unbounded f" and f_ge_1:"\<And>n. n\<ge> 1 \<Longrightarrow> f n \<ge> 1"
 begin
   sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts
-    id remove1_mset
+    id
     id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
   fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
     "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" f "\<lambda>(_, N) S. S = ([], N)"

@@ -12,14 +12,13 @@ text \<open>We will abstract the representation of clause and clauses via two lo
   or whatever other representation.\<close>
 
 locale state\<^sub>W_ops =
-  raw_clss mset_cls remove_lit
+  raw_clss mset_cls
     mset_clss union_clss in_clss insert_clss remove_from_clss
     +
   raw_ccls_union mset_ccls union_ccls remove_clit
   for
     -- \<open>Clause\<close>
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
     -- \<open>Multiset of Clauses\<close>
     mset_clss :: "'clss \<Rightarrow> 'v clauses" and
@@ -93,7 +92,7 @@ abbreviation clauses :: "'st \<Rightarrow> 'v clauses" where
 "clauses S \<equiv> mset_clss (raw_clauses S)"
 
 abbreviation resolve_cls where
-"resolve_cls L D' E \<equiv> union_ccls (remove_clit (-L) D') (ccls_of_cls (remove_lit L E))"
+"resolve_cls L D' E \<equiv> union_ccls (remove_clit (-L) D') (remove_clit L (ccls_of_cls E))"
 
 end
 
@@ -118,7 +117,7 @@ text \<open>
 locale state\<^sub>W =
   state\<^sub>W_ops
     -- \<open>functions for clauses: \<close>
-    mset_cls remove_lit
+    mset_cls
       mset_clss union_clss in_clss insert_clss remove_from_clss
 
     -- \<open>functions for the conflicting clause: \<close>
@@ -139,7 +138,6 @@ locale state\<^sub>W =
     restart_state
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
     mset_clss :: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -517,7 +515,7 @@ text \<open>Because of the strategy we will later use, we distinguish propagate,
 locale conflict_driven_clause_learning\<^sub>W =
   state\<^sub>W
     -- \<open>functions for clauses: \<close>
-    mset_cls remove_lit
+    mset_cls
     mset_clss union_clss in_clss insert_clss remove_from_clss
 
     -- \<open>functions for the conflicting clause: \<close>
@@ -538,7 +536,6 @@ locale conflict_driven_clause_learning\<^sub>W =
     restart_state
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
     mset_clss :: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -575,7 +572,7 @@ inductive propagate :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st w
 propagate_rule: "conflicting S = None \<Longrightarrow>
   E !\<in>! raw_clauses S \<Longrightarrow>
   L \<in># mset_cls E \<Longrightarrow>
-  trail S \<Turnstile>as CNot (mset_cls (remove_lit L E)) \<Longrightarrow>
+  trail S \<Turnstile>as CNot (mset_cls E - {#L#}) \<Longrightarrow>
   undefined_lit (trail S) L \<Longrightarrow>
   T \<sim> cons_trail (Propagated L E) S \<Longrightarrow>
   propagate S T"
@@ -1385,7 +1382,7 @@ proof -
     in_mset_clss_exists_preimage[of "mset_cls C" "raw_init_clss S'"]
     apply -
     apply (frule in_clss_mset_clss)
-    by (auto simp: state_eq_def raw_clauses_def simp del: state_simp dest: in_clss_mset_clss)
+    by (auto simp: state_eq_def raw_clauses_def simp del: state_simp)
 
   show ?thesis
     apply (rule propagate_rule[of _ C'])
@@ -1899,8 +1896,7 @@ next
   ultimately show ?case by blast
 next
   case (resolve L C M D T) note trail_S = this(1) and confl = this(4) and T = this(7)
-  let ?T = "update_conflicting (Some ((remove_clit (-L) D) !\<union> ccls_of_cls ((remove_lit L C))))
-    (tl_trail S)"
+  let ?T = "update_conflicting (Some (resolve_cls L D  C)) (tl_trail S)"
   have "?C ?T"
     using confl trail_S conf decided by (auto dest!: in_atms_of_remove1_mset_in_atms_of)
   moreover have  "?M ?T"
@@ -3119,7 +3115,7 @@ proof (induct "card (atms_of_mm (init_clss S) - atm_of `lits_of_l (trail S))" ar
       S: "conflicting S = None" and
       E:  "E !\<in>! raw_clauses S" and
       LE: "L \<in># mset_cls E" and
-      tr: "trail S \<Turnstile>as CNot (mset_cls (remove_lit L E))" and
+      tr: "trail S \<Turnstile>as CNot (mset_cls E - {#L#})" and
       undef: "undefined_lit (trail S) L" and
       S': "S' \<sim> cons_trail (Propagated L E) S"
       by (elim propagateE) simp
@@ -3147,7 +3143,7 @@ next
       S: "conflicting S = None" and
       E:  "E !\<in>! raw_clauses S" and
       LE: "L \<in># mset_cls E" and
-      tr: "trail S \<Turnstile>as CNot (mset_cls (remove_lit L E))" and
+      tr: "trail S \<Turnstile>as CNot (mset_cls E - {#L#})" and
       undef: "undefined_lit (trail S) L" and
       S': "S' \<sim> cons_trail (Propagated L E) S"
       by (elim propagateE) simp
@@ -3414,7 +3410,7 @@ proof -
     S: "conflicting S = None" and
     E:  "E !\<in>! raw_clauses S" and
     LE: "L \<in># mset_cls E" and
-    tr: "trail S \<Turnstile>as CNot (mset_cls (remove_lit L E))" and
+    tr: "trail S \<Turnstile>as CNot (mset_cls E - {#L#})" and
     undefL: "undefined_lit (trail S) L" and
     S': "S' \<sim> cons_trail (Propagated L E) S"
     using propagate by (elim propagateE) simp
@@ -3962,7 +3958,7 @@ proof -
     conf: "conflicting S = None" and
     E: "E !\<in>! raw_clauses S" and
     LE: "L \<in># mset_cls E" and
-    tr: "trail S \<Turnstile>as CNot (mset_cls (remove_lit L E))" and
+    tr: "trail S \<Turnstile>as CNot (mset_cls E - {#L#})" and
     undef: "undefined_lit (trail S) L" and
     T: "T \<sim> cons_trail (Propagated L E) S"
     using assms by (elim propagateE) simp

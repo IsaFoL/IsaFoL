@@ -30,8 +30,6 @@ lemma mset_raw_init_clss_init_state:
 
 interpretation rough_cdcl: state\<^sub>W
   clause
-    (* does not matter if the invariants do not hold *)
-  "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
   raw_clss_l "op @"
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
@@ -57,8 +55,6 @@ interpretation rough_cdcl: state\<^sub>W
 
 interpretation rough_cdcl: conflict_driven_clause_learning\<^sub>W
   clause
-    (* does not matter if the invariants do not hold *)
-  "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
   raw_clss_l "op @"
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
@@ -217,8 +213,6 @@ lemma undefined_lit_trail_twl_raw_trail[iff]:
 
 sublocale wf_twl: conflict_driven_clause_learning\<^sub>W
   clause
-    (* does not matter if the invariants do not hold *)
-  "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
   raw_clss_l "op @"
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
@@ -349,12 +343,9 @@ next
        using C'S unfolding twl.raw_clauses_def apply (simp add: wf_twl.raw_clauses_def)
        using L unfolding candidates_propagate_def apply (auto simp: raw_clause_def clause_def)[]
       using wf_candidates_propagate_sound[OF _ LC] rough_state_of_twl dist
-      apply (simp add: distinct_mset_remove1_All true_annots_true_cls)
+      apply (simp add: distinct_mset_remove1_All true_annots_true_cls clause_def)
      using undef apply simp
-    using T undef by (smt wf_twl.backtrack_lvl_cons_trail confl wf_twl.init_clss_cons_trail
-      wf_twl.learned_clss_cons_trail ann_lit.sel(2) wf_twl.raw_conflicting_cons_trail
-      wf_twl.state_eq_def wf_twl.trail_cons_trail wf_twl.mmset_of_mlit.simps(1)
-      wf_twl.mset_cls_cls_of_ccls)
+    using T undef unfolding wf_twl.state_eq_def by auto
 qed
 
 no_notation twl.state_eq_twl (infix "\<sim>TWL" 51)

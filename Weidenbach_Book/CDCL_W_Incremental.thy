@@ -6,7 +6,7 @@ section \<open>Incremental SAT solving\<close>
 locale state\<^sub>W_adding_init_clause =
   state\<^sub>W
     -- \<open>functions for clauses: \<close>
-    mset_cls remove_lit
+    mset_cls
       mset_clss union_clss in_clss insert_clss remove_from_clss
 
     -- \<open>functions for the conflicting clause: \<close>
@@ -27,7 +27,6 @@ locale state\<^sub>W_adding_init_clause =
     restart_state
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
     mset_clss :: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -93,7 +92,7 @@ end
 locale conflict_driven_clause_learning_with_adding_init_clause\<^sub>W =
   state\<^sub>W_adding_init_clause
     -- \<open>functions for clauses: \<close>
-    mset_cls remove_lit
+    mset_cls
     mset_clss union_clss in_clss insert_clss remove_from_clss
 
     -- \<open>functions for the conflicting clause: \<close>
@@ -116,7 +115,6 @@ locale conflict_driven_clause_learning_with_adding_init_clause\<^sub>W =
     add_init_cls
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
     mset_clss :: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and

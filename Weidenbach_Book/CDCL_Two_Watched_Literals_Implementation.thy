@@ -823,8 +823,6 @@ fun raw_tl_trail where
 
 interpretation twl: conflict_driven_clause_learning\<^sub>W
   clause
-    (* does not matter if the invariants do not hold *)
-  "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
   raw_clss_l "op @"
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 

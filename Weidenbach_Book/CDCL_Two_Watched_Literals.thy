@@ -69,12 +69,7 @@ abbreviation raw_clss :: "'v twl_state \<Rightarrow> 'v clauses" where
 abbreviation raw_clss_l :: "'a twl_clause list \<Rightarrow> 'a literal multiset multiset" where
   "raw_clss_l C \<equiv> mset (map clause C)"
 
-interpretation raw_cls
-  clause
-  "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
-  apply (unfold_locales)
-  by (auto simp:hd_map comp_def map_tl ac_simps
-    mset_map_mset_remove1_cond ex_mset raw_clause_def clause_def)
+interpretation raw_cls clause .
 
 lemma mset_map_clause_remove1_cond:
   "mset (map (\<lambda>x. mset (unwatched x) + mset (watched x))
@@ -86,8 +81,6 @@ lemma mset_map_clause_remove1_cond:
 
 interpretation raw_clss
   clause
-    (* does not matter if the invariants do not hold *)
-  "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
   raw_clss_l "op @"
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
   apply (unfold_locales)
@@ -104,11 +97,8 @@ proof -
   then show ?thesis by fast
 qed
 
-thm CDCL_Two_Watched_Literals.raw_cls_axioms
 interpretation twl: state\<^sub>W_ops
   clause
-    (* does not matter if the invariants do not hold *)
-  "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
   raw_clss_l "op @"
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 

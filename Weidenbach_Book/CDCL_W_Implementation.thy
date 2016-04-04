@@ -72,7 +72,6 @@ abbreviation clauses_of_l where
 
 global_interpretation state\<^sub>W_ops
   "mset::'v literal list \<Rightarrow> 'v clause"
-  remove1
 
   clauses_of_l "op @" "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>L. mset L = mset C)"
 
@@ -109,7 +108,6 @@ lemma clauses_of_l_filter_removeAll:
 
 interpretation state\<^sub>W
   "mset::'v literal list \<Rightarrow> 'v clause"
-  remove1
 
   clauses_of_l "op @" "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>L. mset L = mset C)"
 
@@ -139,7 +137,6 @@ interpretation state\<^sub>W
 
 global_interpretation conflict_driven_clause_learning\<^sub>W
   "mset::'v literal list \<Rightarrow> 'v clause"
-  remove1
 
   clauses_of_l "op @" "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>L. mset L = mset C)"
 
