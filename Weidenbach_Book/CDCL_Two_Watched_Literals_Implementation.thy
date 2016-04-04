@@ -9,12 +9,12 @@ imports CDCL_Two_Watched_Literals_Invariant DPLL_CDCL_W_Implementation
 begin
 text \<open>The difference between an implementation and the core described in the previous sections are
   the following:
-  \<^item> the candidates are cached while updating the datastructure.
+  \<^item> the candidates are cached while updating the data structure.
   \<^item> instead of updating with respect to the trail only, we update with respect to the trail \<^emph>\<open>and\<close>
   the candidates (referred as propagate queue later).\<close>
 text \<open>The latter change means that we do not do the propagation as single steps where the state
   well-founded as described in the previous paragraph, but we do all the propagation and identify
-  the propagation \<^emph>\<open>before\<close> the invariants holds again.
+  the propagation \<^emph>\<open>before\<close> the invariants hold again.
 
   The general idea is the following:
   \<^enum> Build a ``propagate'' queue and a conflict clause.
@@ -23,10 +23,10 @@ text \<open>The latter change means that we do not do the propagation as single 
   \<^enum> While updating, when looking for conflicts and propagation, work with respect to the
   trail of the state and the propagate queue (and not only the trail of the state).
   \<^enum> As long as the propagate queue is not empty, dequeue the first element, push it on the
-  trail (with the @{term conflict_driven_clause_learning\<^sub>W.propagate} rule), propagate, and update
+  trail (with the @{const conflict_driven_clause_learning\<^sub>W.propagate} rule), propagate, and update
   the data-structure.
   \<^enum> If a conflict has been found such that it is entailed by the trail only (i.e.\ without
-  the propagate queue), then apply the @{term conflict_driven_clause_learning\<^sub>W.conflict} rule.\<close>
+  the propagate queue), then apply the @{const conflict_driven_clause_learning\<^sub>W.conflict} rule.\<close>
 text \<open>It is important to remember that a conflicting clause with respect to the trail and the queue
   might not be the earliest conflicting clause, meaning that the proof of non-redundancy should not
   work anymore.
@@ -824,13 +824,12 @@ fun raw_tl_trail where
 interpretation twl: conflict_driven_clause_learning\<^sub>W
   clause
     (* does not matter if the invariants do not hold *)
-  "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
   "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
   raw_clss_l "op @"
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
   mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-  "op #" remove1
+  remove1
 
   raw_clause "\<lambda>C. TWL_Clause [] C"
   trail "\<lambda>S. hd (raw_trail S)"

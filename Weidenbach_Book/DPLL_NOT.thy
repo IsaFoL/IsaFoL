@@ -151,14 +151,14 @@ lemma backtrack_is_backjump':
   using backtrack_is_backjump[of "fst S" "snd S" "fst T" "snd T"] assms by fastforce
 
 sublocale dpll_state
-  "id" "\<lambda>L C. C + {#L#}" remove1_mset
-  id  "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
+  "id" remove1_mset
+  id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
   fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
   "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
   by unfold_locales (auto simp: ac_simps)
 
 sublocale backjumping_ops
-  "id" "\<lambda>L C. C + {#L#}" remove1_mset
+  "id" remove1_mset
   id  "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
   fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
   "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" "\<lambda>_ _ _ S T. backtrack S T"
@@ -228,7 +228,7 @@ qed
 end
 
 sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops
-    id "\<lambda>L C. C + {#L#}" remove1_mset
+    id remove1_mset
     id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
     fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
@@ -240,7 +240,7 @@ sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops
     dpll_with_backtrack.can_do_bt_step id_apply)
 
 sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping
-    id "\<lambda>L C. C + {#L#}" remove1_mset
+    id remove1_mset
     id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
     fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
@@ -250,25 +250,6 @@ sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping
   apply unfold_locales
   using dpll_bj_no_dup dpll_bj_all_decomposition_implies_inv apply fastforce
   done
-
-context dpll_with_backtrack
-begin
-term learn
-end
-(*
-sublocale dpll_with_backtrack \<subseteq> conflict_driven_clause_learning
-    id "op #\<union>" "\<lambda>L C. C + {#L#}" remove1_mset
-    id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
-    fst snd "\<lambda>L (M, N). (L # M, N)"
-  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
-  "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
-  "\<lambda>_ _ _ S T. backtrack S T"
-  "\<lambda>_ _. True" "\<lambda>_ _. False" "\<lambda>_ _. False"
-  apply unfold_locales
-  using cdcl\<^sub>N\<^sub>O\<^sub>T_all_decomposition_implies cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup by auto
-(*   using cdcl\<^sub>N\<^sub>O\<^sub>T.simps dpll_bj_inv forget\<^sub>N\<^sub>O\<^sub>TE learn\<^sub>N\<^sub>O\<^sub>TE by blast *)
-
- *)
 
 context dpll_with_backtrack
 begin
@@ -301,7 +282,7 @@ proof -
 qed
 
 interpretation conflict_driven_clause_learning_ops
-    id "\<lambda>L C. C + {#L#}" remove1_mset
+    id remove1_mset
     id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
     fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
@@ -311,7 +292,7 @@ interpretation conflict_driven_clause_learning_ops
   by unfold_locales
 
 interpretation conflict_driven_clause_learning
-    id "\<lambda>L C. C + {#L#}" remove1_mset
+    id remove1_mset
     id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
     fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
@@ -340,7 +321,7 @@ locale dpll_withbacktrack_and_restarts =
   assumes unbounded: "unbounded f" and f_ge_1:"\<And>n. n\<ge> 1 \<Longrightarrow> f n \<ge> 1"
 begin
   sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts
-    id "\<lambda>L C. C + {#L#}" remove1_mset
+    id remove1_mset
     id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
   fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
     "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" f "\<lambda>(_, N) S. S = ([], N)"

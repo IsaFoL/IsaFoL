@@ -29,11 +29,10 @@ subsubsection \<open>The state\<close>
 
 text \<open>We define here an abstraction over operation on the state we are manipulating.\<close>
 locale dpll_state_ops =
-  raw_clss mset_cls insert_cls remove_lit
+  raw_clss mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -49,8 +48,6 @@ locale dpll_state_ops =
     remove_cls\<^sub>N\<^sub>O\<^sub>T :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st"
 begin
 
-notation insert_cls (infix "!++" 50)
-
 notation in_clss (infix "!\<in>!" 50)
 notation union_clss (infix "\<oplus>" 50)
 notation insert_clss (infix "!++!" 50)
@@ -64,12 +61,11 @@ text \<open>NOT's state is basically a pair composed of the trail (i.e.\ the can
   set of clauses. We abstract this state to convert this state to other states. like Weidenbach's
   five-tuple.\<close>
 locale dpll_state =
-  dpll_state_ops mset_cls insert_cls remove_lit -- \<open>related to each clause\<close>
+  dpll_state_ops mset_cls remove_lit -- \<open>related to each clause\<close>
     mset_clss union_clss in_clss insert_clss remove_from_clss -- \<open>related to the clauses\<close>
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T -- \<open>related to the state\<close>
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -229,12 +225,11 @@ subsubsection \<open>Definition of the operation\<close>
 
 text \<open>Each possible is in its own locale.\<close>
 locale propagate_ops =
-  dpll_state  mset_cls insert_cls remove_lit
+  dpll_state  mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -261,12 +256,11 @@ inductive_cases propagate\<^sub>N\<^sub>O\<^sub>TE[elim]: "propagate\<^sub>N\<^s
 end
 
 locale decide_ops =
-  dpll_state  mset_cls insert_cls remove_lit
+  dpll_state  mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -289,12 +283,11 @@ inductive_cases decide\<^sub>N\<^sub>O\<^sub>TE[elim]: "decide\<^sub>N\<^sub>O\<
 end
 
 locale backjumping_ops =
-  dpll_state  mset_cls insert_cls remove_lit
+  dpll_state  mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -330,18 +323,17 @@ end
 
 subsection \<open>DPLL with backjumping\<close>
 locale dpll_with_backjumping_ops =
-  propagate_ops mset_cls insert_cls remove_lit
+  propagate_ops mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T propagate_conds +
-  decide_ops  mset_cls insert_cls remove_lit
+  decide_ops  mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T +
-  backjumping_ops mset_cls insert_cls remove_lit
+  backjumping_ops mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T backjump_conds
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -987,13 +979,12 @@ qed
 end -- \<open>End of \<open>dpll_with_backjumping_ops\<close>\<close>
 
 locale dpll_with_backjumping =
-  dpll_with_backjumping_ops mset_cls insert_cls remove_lit
+  dpll_with_backjumping_ops mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T inv backjump_conds
     propagate_conds
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -1211,12 +1202,11 @@ subsubsection \<open>Learn and Forget\<close>
 
 text \<open>Learning adds a new clause where all the literals are already included in the clauses.\<close>
 locale learn_ops =
-  dpll_state mset_cls insert_cls remove_lit
+  dpll_state mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -1249,12 +1239,11 @@ end
 text \<open>Forget removes an information that can be deduced from the context (e.g.\ redundant clauses,
   tautologies)\<close>
 locale forget_ops =
-  dpll_state mset_cls insert_cls remove_lit
+  dpll_state mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -1286,15 +1275,14 @@ lemma forget_\<mu>\<^sub>C_stable:
 end
 
 locale learn_and_forget\<^sub>N\<^sub>O\<^sub>T =
-  learn_ops mset_cls insert_cls remove_lit
+  learn_ops mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T learn_cond +
-  forget_ops mset_cls insert_cls remove_lit
+  forget_ops mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T forget_cond
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -1317,17 +1305,16 @@ end
 
 subsubsection \<open>Definition of CDCL\<close>
 locale conflict_driven_clause_learning_ops =
-  dpll_with_backjumping_ops mset_cls insert_cls remove_lit
+  dpll_with_backjumping_ops mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
     inv backjump_conds propagate_conds +
-  learn_and_forget\<^sub>N\<^sub>O\<^sub>T mset_cls insert_cls remove_lit
+  learn_and_forget\<^sub>N\<^sub>O\<^sub>T mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T learn_cond
     forget_cond
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -1832,10 +1819,10 @@ text \<open>To prove termination we need to restrict learn and forget. Otherwise
 subsubsection \<open>Restricting learn and forget\<close>
 
 locale conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt =
-  dpll_state  mset_cls insert_cls remove_lit
+  dpll_state  mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T +
-  conflict_driven_clause_learning mset_cls insert_cls remove_lit
+  conflict_driven_clause_learning mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
     inv backjump_conds propagate_conds
@@ -1846,7 +1833,6 @@ locale conflict_driven_clause_learning_learning_before_backjump_only_distinct_le
     \<and> forget_restrictions C S"
     for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -2484,13 +2470,12 @@ inductive cdcl\<^sub>N\<^sub>O\<^sub>T_raw_restart  :: "'st \<Rightarrow> 'st \<
 end
 
 locale conflict_driven_clause_learning_with_restarts =
-  conflict_driven_clause_learning mset_cls insert_cls remove_lit
+  conflict_driven_clause_learning mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
     inv backjump_conds propagate_conds learn_cond forget_cond
     for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -2726,12 +2711,11 @@ end
 
 locale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts =
   cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts_ops restart cdcl\<^sub>N\<^sub>O\<^sub>T f bound_inv \<mu> cdcl\<^sub>N\<^sub>O\<^sub>T_inv \<mu>_bound +
-  dpll_state  mset_cls insert_cls remove_lit
+  dpll_state  mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -2922,18 +2906,17 @@ end
 
 subsection \<open>Merging backjump and learning\<close>
 locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops =
-  decide_ops mset_cls insert_cls remove_lit
+  decide_ops mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T +
-  forget_ops mset_cls insert_cls remove_lit
+  forget_ops mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T forget_cond +
-  propagate_ops mset_cls insert_cls remove_lit
+  propagate_ops mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T propagate_conds
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -2989,7 +2972,7 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_no_dup_inv:
 end
 
 locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy =
-  cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops mset_cls insert_cls remove_lit
+  cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T propagate_conds
     forget_cond
@@ -2997,7 +2980,6 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy =
     \<and> distinct_mset (C' + {#L'#}) \<and> \<not>tautology (C' + {#L'#})"
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -3036,7 +3018,7 @@ abbreviation backjump_conds :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 
 
 text \<open>Without additional knowledge on @{term backjump_l_cond}, it is impossible to have the same
   invariant.\<close>
-sublocale dpll_with_backjumping_ops mset_cls insert_cls remove_lit
+sublocale dpll_with_backjumping_ops mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T inv
     backjump_conds propagate_conds
@@ -3061,7 +3043,7 @@ proof (unfold_locales, goal_cases)
       cond: "backjump_l_cond C C' L S S'"
       "mset_cls D = C' + {#L#}"
       by (elim backjump_lE) metis
-    interpret backjumping_ops mset_cls insert_cls remove_lit
+    interpret backjumping_ops mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
     backjump_conds
@@ -3086,13 +3068,12 @@ qed
 end
 
 locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2 =
-  cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy mset_cls insert_cls remove_lit
+  cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
     propagate_conds forget_cond backjump_l_cond inv
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -3111,7 +3092,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2 =
     inv :: "'st \<Rightarrow> bool"
 begin
 
-sublocale conflict_driven_clause_learning_ops mset_cls insert_cls remove_lit
+sublocale conflict_driven_clause_learning_ops mset_cls remove_lit
   mset_clss union_clss in_clss insert_clss remove_from_clss
   trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
   inv backjump_conds propagate_conds
@@ -3121,13 +3102,12 @@ sublocale conflict_driven_clause_learning_ops mset_cls insert_cls remove_lit
 end
 
 locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn =
-  cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2  mset_cls insert_cls remove_lit
+  cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2  mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
     propagate_conds forget_cond backjump_l_cond inv
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -3150,7 +3130,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn =
 begin
 
 sublocale
-   conflict_driven_clause_learning mset_cls insert_cls remove_lit
+   conflict_driven_clause_learning mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
      inv backjump_conds propagate_conds
@@ -3628,13 +3608,12 @@ text \<open>In this section, we instantiate the previous locales to ensure that 
   contradictory.\<close>
 locale cdcl\<^sub>N\<^sub>O\<^sub>T_with_backtrack_and_restarts =
   conflict_driven_clause_learning_learning_before_backjump_only_distinct_learnt
-    mset_cls insert_cls remove_lit
+    mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
     inv backjump_conds propagate_conds learn_restrictions forget_restrictions
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -3756,7 +3735,7 @@ next
     using full 2 unfolding full1_def by force+
 qed
 
-sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts _ _ _ _ _ _ _ _ _ _ _ _ _ _
+sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts _ _ _ _ _ _ _ _ _ _ _ _ _
     f
    (* restart *) "\<lambda>S T. T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T ([]::'a list) S"
    (* bound_inv *)"\<lambda>A S. atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<subseteq> atms_of_ms A
@@ -3900,14 +3879,13 @@ end \<comment> \<open>end of \<open>cdcl\<^sub>N\<^sub>O\<^sub>T_with_backtrack_
 text \<open>The restart does only reset the trail, contrary to Weidenbach's version where
   forget and restart are always combined. But there is a forget rule.\<close>
 locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_with_backtrack_restarts =
-  cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn mset_cls insert_cls remove_lit
+  cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     trail raw_clauses prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
     "\<lambda>C C' L' S T. distinct_mset (C' + {#L'#}) \<and> backjump_l_cond C C' L' S T"
     propagate_conds forget_conds inv
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
@@ -4247,7 +4225,7 @@ next
 qed
 
 
-sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts _ _ _ _ _ _ _ _ _ _ _ _ _ _ f
+sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts _ _ _ _ _ _ _ _ _ _ _ _ _ f
    "\<lambda>S T. T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T ([]::'a list) S"
    (* bound_inv *)"\<lambda>A S. atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<subseteq> atms_of_ms A
      \<and> atm_of ` lits_of_l (trail S) \<subseteq> atms_of_ms A \<and> finite A"

@@ -17,10 +17,8 @@ text \<open>We will abstract the representation of clause and clauses via two lo
 locale raw_cls =
   fixes
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls"
   assumes
-    insert_cls[simp]: "mset_cls (insert_cls L C) = mset_cls C + {#L#}" and
     remove_lit[simp]: "mset_cls (remove_lit L C) = remove1_mset L (mset_cls C)"
 begin
 end
@@ -29,12 +27,10 @@ locale raw_ccls_union =
   fixes
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
     union_cls :: "'cls \<Rightarrow> 'cls \<Rightarrow> 'cls" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
-    remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls"
+    remove_clit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls"
   assumes
-    insert_ccls[simp]: "mset_cls (insert_cls L C) = mset_cls C + {#L#}" and
     mset_ccls_union_cls[simp]: "mset_cls (union_cls C D) = mset_cls C #\<union> mset_cls D" and
-    remove_clit[simp]: "mset_cls (remove_lit L C) = remove1_mset L (mset_cls C)"
+    remove_clit[simp]: "mset_cls (remove_clit L C) = remove1_mset L (mset_cls C)"
 begin
 end
 
@@ -42,21 +38,17 @@ text \<open>Instantiation of the previous locale, in an unnamed context to avoid
   rules\<close>
 context
 begin
-  interpretation list_cls: raw_cls mset
-    "op #" remove1
+  interpretation list_cls: raw_cls mset remove1
     by unfold_locales (auto simp: union_mset_list ex_mset)
 
-  interpretation cls_cls: raw_cls id
-    "\<lambda>L C. C + {#L#}" remove1_mset
+  interpretation cls_cls: raw_cls id remove1_mset
     by unfold_locales (auto simp: union_mset_list)
     
   interpretation list_cls: raw_ccls_union mset
-    union_mset_list
-    "op #" remove1
+    union_mset_list remove1
     by unfold_locales (auto simp: union_mset_list ex_mset)
 
-  interpretation cls_cls: raw_ccls_union id
-    "op #\<union>" "\<lambda>L C. C + {#L#}" remove1_mset
+  interpretation cls_cls: raw_ccls_union id "op #\<union>" remove1_mset
     by unfold_locales (auto simp: union_mset_list)
 end
 
@@ -67,10 +59,9 @@ text \<open>Over the abstract clauses, we have the following properties:
    \<^item> if a concrete clause is contained the abstract clauses, then there is an abstract clause
   \<close>
 locale raw_clss =
-  raw_cls mset_cls insert_cls remove_lit
+  raw_cls mset_cls remove_lit
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" +
   fixes
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
@@ -102,12 +93,12 @@ begin
     "mset (map mset (remove_first a C)) = remove1_mset (mset a) (mset (map mset C))"
     by (induction C) (auto simp: ac_simps remove1_mset_single_add)
 
-  interpretation clss_clss: raw_clss id "\<lambda>L C. C + {#L#}" remove1_mset
+  interpretation clss_clss: raw_clss id remove1_mset
     id "op +" "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
     by unfold_locales (auto simp: ac_simps)
 
   interpretation list_clss: raw_clss mset
-    "op #" remove1 "\<lambda>L. mset (map mset L)" "op @" "\<lambda>L C. L \<in> set C" "op #"
+    remove1 "\<lambda>L. mset (map mset L)" "op @" "\<lambda>L C. L \<in> set C" "op #"
     remove_first
     by unfold_locales (auto simp: ac_simps union_mset_list mset_map_mset_remove_first ex_mset)
 end

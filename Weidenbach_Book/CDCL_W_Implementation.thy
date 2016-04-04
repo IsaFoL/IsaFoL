@@ -72,12 +72,12 @@ abbreviation clauses_of_l where
 
 global_interpretation state\<^sub>W_ops
   "mset::'v literal list \<Rightarrow> 'v clause"
-  "op #" remove1
+  remove1
 
   clauses_of_l "op @" "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>L. mset L = mset C)"
 
   mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-  "op #" remove1
+  remove1
 
   id id
 
@@ -109,12 +109,12 @@ lemma clauses_of_l_filter_removeAll:
 
 interpretation state\<^sub>W
   "mset::'v literal list \<Rightarrow> 'v clause"
-  "op #" remove1
+  remove1
 
   clauses_of_l "op @" "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>L. mset L = mset C)"
 
   mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-  "op #" remove1
+  remove1
 
   id id
 
@@ -139,12 +139,12 @@ interpretation state\<^sub>W
 
 global_interpretation conflict_driven_clause_learning\<^sub>W
   "mset::'v literal list \<Rightarrow> 'v clause"
-  "op #" remove1
+  remove1
 
   clauses_of_l "op @" "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>L. mset L = mset C)"
 
   mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-  "op #" remove1
+  remove1
 
   id id
 

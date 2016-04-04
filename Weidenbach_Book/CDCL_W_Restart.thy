@@ -7,11 +7,11 @@ subsection \<open>Adding Restarts\<close>
 locale cdcl\<^sub>W_restart =
   conflict_driven_clause_learning\<^sub>W
     -- \<open>functions for clauses: \<close>
-    mset_cls insert_cls remove_lit
+    mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
 
     -- \<open>functions for the conflicting clause: \<close>
-    mset_ccls union_ccls insert_ccls remove_clit
+    mset_ccls union_ccls remove_clit
 
     -- \<open>conversion\<close>
     ccls_of_cls cls_of_ccls
@@ -28,7 +28,6 @@ locale cdcl\<^sub>W_restart =
     restart_state
   for
     mset_cls:: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
@@ -39,7 +38,6 @@ locale cdcl\<^sub>W_restart =
 
     mset_ccls:: "'ccls \<Rightarrow> 'v clause" and
     union_ccls :: "'ccls \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
-    insert_ccls :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
     remove_clit :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
 
     ccls_of_cls :: "'cls \<Rightarrow> 'ccls" and
@@ -571,11 +569,11 @@ end
 locale luby_sequence_restart =
   luby_sequence ur +
   conflict_driven_clause_learning\<^sub>W  -- \<open>functions for clauses: \<close>
-    mset_cls insert_cls remove_lit
+    mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
 
     -- \<open>functions for the conflicting clause: \<close>
-    mset_ccls union_ccls insert_ccls remove_clit
+    mset_ccls union_ccls remove_clit
 
     -- \<open>conversion\<close>
     ccls_of_cls cls_of_ccls
@@ -628,7 +626,7 @@ locale luby_sequence_restart =
     restart_state :: "'st \<Rightarrow> 'st"
 begin
 
-sublocale cdcl\<^sub>W_restart _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ luby_sequence
+sublocale cdcl\<^sub>W_restart _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ luby_sequence
   apply unfold_locales
   using bounded_luby_sequence by blast
 

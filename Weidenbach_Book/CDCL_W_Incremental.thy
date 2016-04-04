@@ -6,11 +6,11 @@ section \<open>Incremental SAT solving\<close>
 locale state\<^sub>W_adding_init_clause =
   state\<^sub>W
     -- \<open>functions for clauses: \<close>
-    mset_cls insert_cls remove_lit
+    mset_cls remove_lit
       mset_clss union_clss in_clss insert_clss remove_from_clss
 
     -- \<open>functions for the conflicting clause: \<close>
-    mset_ccls union_ccls insert_ccls remove_clit
+    mset_ccls union_ccls remove_clit
 
     -- \<open>Conversion between conflicting and non-conflicting\<close>
     ccls_of_cls cls_of_ccls
@@ -27,7 +27,6 @@ locale state\<^sub>W_adding_init_clause =
     restart_state
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
     mset_clss :: "'clss \<Rightarrow> 'v clauses" and
@@ -38,7 +37,6 @@ locale state\<^sub>W_adding_init_clause =
 
     mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
     union_ccls :: "'ccls \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
-    insert_ccls :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
     remove_clit :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
 
     ccls_of_cls :: "'cls \<Rightarrow> 'ccls" and
@@ -95,11 +93,11 @@ end
 locale conflict_driven_clause_learning_with_adding_init_clause\<^sub>W =
   state\<^sub>W_adding_init_clause
     -- \<open>functions for clauses: \<close>
-    mset_cls insert_cls remove_lit
+    mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
 
     -- \<open>functions for the conflicting clause: \<close>
-    mset_ccls union_ccls insert_ccls remove_clit
+    mset_ccls union_ccls remove_clit
 
     -- \<open>conversion\<close>
     ccls_of_cls cls_of_ccls
@@ -118,7 +116,6 @@ locale conflict_driven_clause_learning_with_adding_init_clause\<^sub>W =
     add_init_cls
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
     mset_clss :: "'clss \<Rightarrow> 'v clauses" and
@@ -129,7 +126,6 @@ locale conflict_driven_clause_learning_with_adding_init_clause\<^sub>W =
 
     mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
     union_ccls :: "'ccls \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
-    insert_ccls :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
     remove_clit :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
 
     ccls_of_cls :: "'cls \<Rightarrow> 'ccls" and

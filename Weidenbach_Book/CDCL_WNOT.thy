@@ -73,7 +73,7 @@ lemma lit_of_convert_ann_lit_from_NOT[iff]:
   by (cases L) auto
 
 sublocale state\<^sub>W \<subseteq> dpll_state_ops
-   mset_cls insert_cls remove_lit
+   mset_cls remove_lit
    mset_clss union_clss in_clss insert_clss remove_from_clss
    "\<lambda>S. convert_trail_from_W (trail S)"
    raw_clauses
@@ -91,7 +91,7 @@ lemma convert_ann_lit_from_W_convert_ann_lit_from_NOT[simp]:
 end
 
 sublocale state\<^sub>W \<subseteq> dpll_state
-   mset_cls insert_cls remove_lit
+   mset_cls remove_lit
    mset_clss union_clss in_clss insert_clss remove_from_clss
    "\<lambda>S. convert_trail_from_W (trail S)"
    raw_clauses
@@ -110,7 +110,7 @@ declare state_simp\<^sub>N\<^sub>O\<^sub>T[simp del]
 end
 
 sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops
-  mset_cls insert_cls remove_lit
+  mset_cls remove_lit
   mset_clss union_clss in_clss insert_clss remove_from_clss
   "\<lambda>S. convert_trail_from_W (trail S)"
   raw_clauses
@@ -126,7 +126,7 @@ sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub
 
 thm cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy.axioms
 sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy
-  mset_cls insert_cls remove_lit
+  mset_cls remove_lit
   mset_clss union_clss in_clss insert_clss remove_from_clss
   "\<lambda>S. convert_trail_from_W (trail S)"
   raw_clauses
@@ -191,7 +191,7 @@ next
     qed
 qed
 
-sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2  _ _ _ _ _ _ _ _
+sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2  _ _ _ _ _ _ _
   "\<lambda>S. convert_trail_from_W (trail S)"
   raw_clauses
   "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S"
@@ -202,7 +202,7 @@ sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub
   "\<lambda>_ S. raw_conflicting S = None"  backjump_l_cond inv\<^sub>N\<^sub>O\<^sub>T
   by unfold_locales
 
-sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn _ _ _ _ _ _ _ _
+sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn _ _ _ _ _ _ _
   "\<lambda>S. convert_trail_from_W (trail S)"
   raw_clauses
   "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S"

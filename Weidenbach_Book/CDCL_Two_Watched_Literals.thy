@@ -8,7 +8,7 @@ section \<open>2-Watched-Literal\<close>
 theory CDCL_Two_Watched_Literals
 imports CDCL_WNOT (* Have to decide which imports are the best *)
 begin
-text \<open>First we define here the core of the two-watched literal datastructure:
+text \<open>First we define here the core of the two-watched literal data structure:
   \<^enum> A clause is composed of (at most) two watched literals.
   \<^enum> It is sufficient to find the candidates for propagation and conflict from the clauses such that
   the new literal is watched.\<close>
@@ -19,6 +19,8 @@ text \<open>
   We will directly on the two-watched literals data structure with lists: it could be also
   seen as a state over some abstract clause representation we would later refine as lists. However,
   as we need a way to select element from a clause, working on lists is better.\<close>
+
+
 subsection \<open>Essence of 2-WL\<close>
 subsubsection \<open>Data structure and Access Functions\<close>
 
@@ -69,7 +71,6 @@ abbreviation raw_clss_l :: "'a twl_clause list \<Rightarrow> 'a literal multiset
 
 interpretation raw_cls
   clause
-  "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
   "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
   apply (unfold_locales)
   by (auto simp:hd_map comp_def map_tl ac_simps
@@ -86,7 +87,6 @@ lemma mset_map_clause_remove1_cond:
 interpretation raw_clss
   clause
     (* does not matter if the invariants do not hold *)
-  "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
   "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
   raw_clss_l "op @"
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
@@ -108,13 +108,12 @@ thm CDCL_Two_Watched_Literals.raw_cls_axioms
 interpretation twl: state\<^sub>W_ops
   clause
     (* does not matter if the invariants do not hold *)
-  "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
   "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
   raw_clss_l "op @"
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
   mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-  "op #" remove1
+  remove1
 
   raw_clause "\<lambda>C. TWL_Clause [] C"
   trail "\<lambda>S. hd (raw_trail S)"
@@ -185,7 +184,7 @@ primrec watched_only_lazy_updates :: "('v, 'lvl, 'mark) ann_lit list \<Rightarro
   where
 "watched_only_lazy_updates M (TWL_Clause W UW) \<longleftrightarrow>
   (\<forall>L'\<in> set W. \<forall>L\<in> set UW.
-    -L' \<in> lits_of_l M \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L \<notin># mset W \<longrightarrow>
+    -L' \<in> lits_of_l M \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L \<notin> set W \<longrightarrow>
       index (map lit_of M) (-L') \<le> index (map lit_of M) (-L))"
 
 text \<open>If the negation of a watched literal is included in the trail, then the negation of

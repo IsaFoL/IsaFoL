@@ -31,13 +31,12 @@ lemma mset_raw_init_clss_init_state:
 interpretation rough_cdcl: state\<^sub>W
   clause
     (* does not matter if the invariants do not hold *)
-  "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
   "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
   raw_clss_l "op @"
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
   mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-  "op #" remove1
+  remove1
 
   raw_clause "\<lambda>C. TWL_Clause [] C"
   trail "\<lambda>S. hd (raw_trail S)"
@@ -59,13 +58,12 @@ interpretation rough_cdcl: state\<^sub>W
 interpretation rough_cdcl: conflict_driven_clause_learning\<^sub>W
   clause
     (* does not matter if the invariants do not hold *)
-  "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
   "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
   raw_clss_l "op @"
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
   mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-  "op #" remove1
+  remove1
 
   "\<lambda>C. raw_clause C" "\<lambda>C. TWL_Clause [] C"
   trail "\<lambda>S. hd (raw_trail S)"
@@ -220,13 +218,12 @@ lemma undefined_lit_trail_twl_raw_trail[iff]:
 sublocale wf_twl: conflict_driven_clause_learning\<^sub>W
   clause
     (* does not matter if the invariants do not hold *)
-  "\<lambda>L C. TWL_Clause (watched C) (L # unwatched C)"
   "\<lambda>L C. TWL_Clause [] (remove1 L (raw_clause C))"
   raw_clss_l "op @"
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
   mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-  "op #" remove1
+  remove1
 
   "\<lambda>C. raw_clause C" "\<lambda>C. TWL_Clause [] C"
   trail_twl "\<lambda>S. hd (raw_trail_twl S)"

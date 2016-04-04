@@ -12,14 +12,13 @@ text \<open>We will abstract the representation of clause and clauses via two lo
   or whatever other representation.\<close>
 
 locale state\<^sub>W_ops =
-  raw_clss mset_cls insert_cls remove_lit
+  raw_clss mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
     +
-  raw_ccls_union mset_ccls union_ccls insert_ccls remove_clit
+  raw_ccls_union mset_ccls union_ccls remove_clit
   for
     -- \<open>Clause\<close>
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
     -- \<open>Multiset of Clauses\<close>
@@ -31,7 +30,6 @@ locale state\<^sub>W_ops =
 
     mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
     union_ccls :: "'ccls \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
-    insert_ccls :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
     remove_clit :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls"
     +
   fixes
@@ -82,8 +80,6 @@ abbreviation "init_clss \<equiv> \<lambda>S. mset_clss (raw_init_clss S)"
 abbreviation "learned_clss \<equiv> \<lambda>S. mset_clss (raw_learned_clss S)"
 abbreviation "conflicting \<equiv> \<lambda>S. map_option mset_ccls (raw_conflicting S)"
 
-notation insert_cls (infix "!++" 50)
-
 notation in_clss (infix "!\<in>!" 50)
 notation union_clss (infix "\<oplus>" 50)
 notation insert_clss (infix "!++!" 50)
@@ -118,11 +114,11 @@ text \<open>
 locale state\<^sub>W =
   state\<^sub>W_ops
     -- \<open>functions for clauses: \<close>
-    mset_cls insert_cls remove_lit
+    mset_cls remove_lit
       mset_clss union_clss in_clss insert_clss remove_from_clss
 
     -- \<open>functions for the conflicting clause: \<close>
-    mset_ccls union_ccls insert_ccls remove_clit
+    mset_ccls union_ccls remove_clit
 
     -- \<open>Conversion between conflicting and non-conflicting\<close>
     ccls_of_cls cls_of_ccls
@@ -139,7 +135,6 @@ locale state\<^sub>W =
     restart_state
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
     mset_clss :: "'clss \<Rightarrow> 'v clauses" and
@@ -150,7 +145,6 @@ locale state\<^sub>W =
 
     mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
     union_ccls :: "'ccls \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
-    insert_ccls :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
     remove_clit :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
 
     ccls_of_cls :: "'cls \<Rightarrow> 'ccls" and
@@ -519,11 +513,11 @@ text \<open>Because of the strategy we will later use, we distinguish propagate,
 locale conflict_driven_clause_learning\<^sub>W =
   state\<^sub>W
     -- \<open>functions for clauses: \<close>
-    mset_cls insert_cls remove_lit
+    mset_cls remove_lit
     mset_clss union_clss in_clss insert_clss remove_from_clss
 
     -- \<open>functions for the conflicting clause: \<close>
-    mset_ccls union_ccls insert_ccls remove_clit
+    mset_ccls union_ccls remove_clit
 
     -- \<open>conversion\<close>
     ccls_of_cls cls_of_ccls
@@ -540,7 +534,6 @@ locale conflict_driven_clause_learning\<^sub>W =
     restart_state
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    insert_cls :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
     remove_lit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls" and
 
     mset_clss :: "'clss \<Rightarrow> 'v clauses" and
@@ -551,7 +544,6 @@ locale conflict_driven_clause_learning\<^sub>W =
 
     mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
     union_ccls :: "'ccls \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
-    insert_ccls :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
     remove_clit :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
 
     ccls_of_cls :: "'cls \<Rightarrow> 'ccls" and
@@ -603,7 +595,7 @@ backtrack_rule: "
   (Decided K (i+1) # M1, M2) \<in> set (get_all_ann_decomposition (trail S)) \<Longrightarrow>
   get_level (trail S) L = backtrack_lvl S \<Longrightarrow>
   get_level (trail S) L = get_maximum_level (trail S) (mset_ccls D) \<Longrightarrow>
-  get_maximum_level (trail S) (mset_ccls (remove_clit L D)) \<equiv> i \<Longrightarrow>
+  get_maximum_level (trail S) (mset_ccls D - {#L#}) \<equiv> i \<Longrightarrow>
   T \<sim> cons_trail (Propagated L (cls_of_ccls D))
             (reduce_trail_to M1
               (add_learned_cls (cls_of_ccls D)
@@ -2307,8 +2299,8 @@ next
     proof (intro allI impI)
       fix  L' mark a b
       assume "a @ Propagated L' mark # b = trail T"
-      then have "(Propagated L (mset_cls (L !++ C)) # a) @ Propagated L' mark # b
-        = Propagated L (mset_cls (L !++ C)) # M"
+      then have "(Propagated L (mset_cls C + {#L#}) # a) @ Propagated L' mark # b
+        = Propagated L (mset_cls C + {#L#}) # M"
         using T tr_S by auto
       then show "b \<Turnstile>as CNot (mark - {#L'#}) \<and> L' \<in>#  mark"
         using mark_confl unfolding tr_S by (metis Cons_eq_appendI list.sel(3))
@@ -2326,7 +2318,7 @@ next
     using get_all_ann_decomposition_snd_not_decided decomp by blast
   obtain M0 where M: "trail S = M0 @ M2 @ Decided K (i + 1) # M1"
     using decomp by auto
-  have [simp]: "trail  (reduce_trail_to M1 (add_learned_cls (cls_of_ccls (insert_ccls L D))
+  have [simp]: "trail (reduce_trail_to M1 (add_learned_cls (cls_of_ccls D)
     (update_backtrack_lvl i (update_conflicting None S)))) = M1"
     using decomp lev by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
   let ?D = "mset_ccls D"
