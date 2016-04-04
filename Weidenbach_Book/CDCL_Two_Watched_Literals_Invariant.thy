@@ -294,14 +294,6 @@ propagate_twl_rule: "(L, C) \<in> candidates_propagate_twl S \<Longrightarrow>
 
 inductive_cases propagate_twlE: "propagate_twl S T"
 
-lemma distinct_filter_eq_if:
-  "distinct C \<Longrightarrow> length (filter (op = L) C) = (if L \<in> set C then 1 else 0)"
-  by (induction C) auto
-
-lemma distinct_mset_remove1_All:
-  "distinct_mset C \<Longrightarrow> remove1_mset L C = removeAll_mset L C"
-  by (auto simp: multiset_eq_iff distinct_mset_count_less_1)
-
 lemma propagate_twl_iff_propagate:
   assumes inv: "wf_twl.cdcl\<^sub>W_all_struct_inv S"
   shows "wf_twl.propagate S T \<longleftrightarrow> propagate_twl S T" (is "?P \<longleftrightarrow> ?T")

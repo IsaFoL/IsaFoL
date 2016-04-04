@@ -14,13 +14,13 @@ text \<open>First we define here the core of the two-watched literal datastructu
   the new literal is watched.\<close>
 text \<open>
   While this it the principle behind the two-watched literals, an implementation have to remember
-  the candidates that have been found so far while updating the datstructure.
+  the candidates that have been found so far while updating the data structure.
 
-  We will directly on the two-watched literals datastructure with lists: it could be also
+  We will directly on the two-watched literals data structure with lists: it could be also
   seen as a state over some abstract clause representation we would later refine as lists. However,
   as we need a way to select element from a clause, working on lists is better.\<close>
 subsection \<open>Essence of 2-WL\<close>
-subsubsection \<open>Datastructure and Access Functions\<close>
+subsubsection \<open>Data structure and Access Functions\<close>
 
 text \<open>Only the 2-watched literals have to be verified here: the backtrack level and the trail that
   appear in the state are not related to the 2-watched algoritm.\<close>
@@ -34,19 +34,19 @@ datatype 'v twl_state =
     (raw_learned_clss: "'v twl_clause list") (backtrack_lvl: nat)
     (raw_conflicting: "'v literal list option")
 
-fun mmset_of_mlit' :: "('v, nat, 'v twl_clause) ann_lit  \<Rightarrow> ('v, nat, 'v clause) ann_lit"
+fun mmset_of_mlit :: "('v, nat, 'v twl_clause) ann_lit  \<Rightarrow> ('v, nat, 'v clause) ann_lit"
   where
-"mmset_of_mlit' (Propagated L C) = Propagated L (mset (watched C @ unwatched C))" |
-"mmset_of_mlit' (Decided L i) = Decided L i"
+"mmset_of_mlit (Propagated L C) = Propagated L (mset (watched C @ unwatched C))" |
+"mmset_of_mlit (Decided L i) = Decided L i"
 
-lemma lit_of_mmset_of_mlit'[simp]: "lit_of (mmset_of_mlit' x) = lit_of x"
+lemma lit_of_mmset_of_mlit[simp]: "lit_of (mmset_of_mlit x) = lit_of x"
   by (cases x) auto
 
-lemma lits_of_mmset_of_mlit'[simp]: "lits_of (mmset_of_mlit' ` S) = lits_of S"
+lemma lits_of_mmset_of_mlit[simp]: "lits_of (mmset_of_mlit ` S) = lits_of S"
   by (auto simp: lits_of_def image_image)
 
 abbreviation trail where
-"trail S \<equiv> map mmset_of_mlit' (raw_trail S)"
+"trail S \<equiv> map mmset_of_mlit (raw_trail S)"
 
 abbreviation clauses_of_l where
   "clauses_of_l \<equiv> \<lambda>L. mset (map mset L)"
@@ -119,15 +119,29 @@ interpretation twl: state\<^sub>W_ops
   raw_clause "\<lambda>C. TWL_Clause [] C"
   trail "\<lambda>S. hd (raw_trail S)"
   raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
-
+  rewrites
+    "twl.mmset_of_mlit = mmset_of_mlit"
+proof goal_cases
+  case 1
+  show H: ?case
   apply unfold_locales apply (auto simp: hd_map comp_def map_tl ac_simps raw_clause_def
     union_mset_list mset_map_mset_remove1_cond ex_mset_unwatched_watched clause_def)
   done
+
+  case 2
+  show ?case
+    apply (rule ext)
+    apply (rename_tac x)
+    apply (case_tac x)
+    apply (simp_all add: state\<^sub>W_ops.mmset_of_mlit.simps[OF H] raw_clause_def clause_def)
+  done
+qed
+
 declare CDCL_Two_Watched_Literals.twl.mset_ccls_ccls_of_cls[simp del]
 
-lemma mmset_of_mlit'_mmset_of_mlit[simp]:
-  "twl.mmset_of_mlit L = mmset_of_mlit' L"
-  by (metis mmset_of_mlit'.simps(1) mmset_of_mlit'.simps(2) twl.mmset_of_mlit.elims raw_clause_def
+lemma mmset_of_mlit_mmset_of_mlit[simp]:
+  "twl.mmset_of_mlit L = mmset_of_mlit L"
+  by (metis mmset_of_mlit.simps(1) mmset_of_mlit.simps(2) twl.mmset_of_mlit.elims raw_clause_def
     clause_def)
 
 definition
@@ -150,6 +164,7 @@ primrec (nonexhaustive) index :: "'a list \<Rightarrow>'a \<Rightarrow> nat" whe
 lemma index_nth:
   "a \<in> set l \<Longrightarrow> l ! (index l a) = a"
   by (induction l) auto
+
 
 subsubsection \<open>Invariants\<close>
 text \<open>The structural invariants states that there are at most two watched elements, that the watched
@@ -495,7 +510,7 @@ proof
         thus ?thesis
           using W' cw(2) cw_eq l w_nw(3) unfolding M_def raw_clause_def
           by (metis (no_types, lifting) UnE imageE list.set_intros(1)
-            lits_of_mmset_of_mlit'  rev_subsetD set_append set_map twl_clause.sel(1)
+            lits_of_mmset_of_mlit  rev_subsetD set_append set_map twl_clause.sel(1)
             twl_clause.sel(2) uminus_of_uminus_id)
       qed
     qed
@@ -831,8 +846,8 @@ lemma index_filter:
 lemma foldr_remove1_W_Nil[simp]: "foldr remove1 W [] = []"
   by (induct W) auto
 
-lemma image_lit_of_mmset_of_mlit'[simp]:
-  "lit_of ` mmset_of_mlit' ` A = lit_of ` A"
+lemma image_lit_of_mmset_of_mlit[simp]:
+  "lit_of ` mmset_of_mlit ` A = lit_of ` A"
   by (auto simp: image_image comp_def)
 
 lemma distinct_filter_eq:
