@@ -52,7 +52,7 @@ lemma rev_bex_msetI [intro]: "x\<in>#A ==> P x ==> \<exists>x\<in>#A. P x"
   \<comment> \<open>The best argument order when there is only one @{prop "x\<in>#A"}.\<close>
   by  blast
 
-subsection \<open>Lemmas about intersection\<close>
+subsection \<open>Lemmas about intersections\<close>
 (* Unsure if suited as simp rules or if only slowing down stuff\<dots>*)
 lemma mset_inter_single:
   "x \<in># \<Sigma> \<Longrightarrow> \<Sigma> #\<inter> {#x#} = {#x#}"
@@ -60,10 +60,13 @@ lemma mset_inter_single:
     apply (simp add: mset_le_single subset_mset.inf_absorb2)
   by (simp add: multiset_inter_def)
 
-subsection \<open>Lemmas about cardinality\<close>
+subsection \<open>Lemmas about size\<close>
 text \<open>
 This sections adds various lemmas about size. Most lemmas have a finite set equivalent.
 \<close>
+lemma size_mset_SucE: "size A = Suc n \<Longrightarrow> (\<And>a B. A = {#a#} + B \<Longrightarrow> size B = n \<Longrightarrow> P) \<Longrightarrow> P"
+  by (cases A) (auto simp add: ac_simps)
+
 lemma size_Suc_Diff1:
   "x \<in># \<Sigma> \<Longrightarrow> Suc (size (\<Sigma> - {#x#})) = size \<Sigma>"
   using arg_cong[OF insert_DiffM, of _ _ size] by simp
@@ -265,6 +268,10 @@ qed
 
 subsection \<open>Multiset and set conversion\<close>
 
+lemma count_mset_set_if:
+  "count (mset_set A) a = (if a \<in> A \<and> finite A then 1 else 0)"
+  by auto
+
 lemma mset_set_set_mset_empty_mempty[iff]:
   "mset_set (set_mset D) = {#} \<longleftrightarrow> D = {#}"
   by (auto dest: arg_cong[of _ _ set_mset])
@@ -387,10 +394,6 @@ lemma distinct_mset_remdups_mset[simp]: "distinct_mset (remdups_mset S)"
 lemma distinct_mset_distinct[simp]:
   "distinct_mset (mset x) = distinct x"
   unfolding distinct_mset_def by (auto simp: distinct_count_atmost_1 not_in_iff[symmetric])
-
-lemma count_mset_set_if:
-  "count (mset_set A) a = (if a \<in> A \<and> finite A then 1 else 0)"
-  by auto
 
 lemma distinct_mset_mset_set:
   "distinct_mset (mset_set A)"
@@ -519,6 +522,14 @@ lemma distinct_mset_inter_mset:
   shows "distinct_mset (D #\<inter> C)"
   using assms unfolding distinct_mset_count_less_1
   by (meson dual_order.trans subset_mset.inf_le2 subseteq_mset_def)
+
+lemma distinct_mset_remove1_All:
+  "distinct_mset C \<Longrightarrow> remove1_mset L C = removeAll_mset L C"
+  by (auto simp: multiset_eq_iff distinct_mset_count_less_1)
+
+lemma distinct_mset_size_2: "distinct_mset {#a, b#} \<longleftrightarrow> a \<noteq> b"
+  unfolding distinct_mset_def by auto
+
 
 subsection \<open>Filter\<close>
 lemma mset_filter_compl: "mset (filter p xs) + mset (filter (Not \<circ> p) xs) = mset xs"

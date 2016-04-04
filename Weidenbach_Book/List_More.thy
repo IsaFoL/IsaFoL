@@ -338,4 +338,9 @@ proof -
   then show ?thesis by simp
 qed
 
+subsubsection \<open>Filter\<close>
+lemma distinct_filter_eq_if:
+  "distinct C \<Longrightarrow> length (filter (op = L) C) = (if L \<in> set C then 1 else 0)"
+  by (induction C) auto
+
 end

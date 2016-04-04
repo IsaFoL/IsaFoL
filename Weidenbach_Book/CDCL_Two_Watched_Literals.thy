@@ -187,17 +187,6 @@ primrec wf_twl_cls :: "('v, 'lvl, 'mark) ann_lit list \<Rightarrow> 'v twl_claus
    struct_wf_twl_cls (TWL_Clause W UW) \<and> watched_wf_twl_cls M (TWL_Clause W UW) \<and>
    watched_only_lazy_updates M (TWL_Clause W UW)"
 
-(* TODO Move *)
-lemma size_mset_2: "size x1 = 2 \<longleftrightarrow> (\<exists>a b. x1 = {#a, b#})"
-  apply (cases x1)
-   apply simp
-  by (metis (no_types, hide_lams) Suc_eq_plus1 one_add_one size_1_singleton_mset
-  size_Diff_singleton size_Suc_Diff1 size_single union_single_eq_diff union_single_eq_member)
-
-(* TODO Move Me *)
-lemma distinct_mset_size_2: "distinct_mset {#a, b#} \<longleftrightarrow> a \<noteq> b"
-  unfolding distinct_mset_def by auto
-
 lemma wf_twl_cls_annotation_independant:
   assumes M: "map lit_of M = map lit_of M'"
   shows "wf_twl_cls M (TWL_Clause W UW) \<longleftrightarrow> wf_twl_cls M' (TWL_Clause W UW)"
@@ -1019,9 +1008,12 @@ lemma mset_minus_single_eq_mempty:
 lemma size_mset_le_2_cases:
   assumes "size W \<le> 2"
   shows "W = {#} \<or> (\<exists>a. W = {#a#}) \<or> (\<exists>a b. W = {#a,b#})"
-  by (metis One_nat_def Suc_1 Suc_eq_plus1_left assms linorder_not_less nat_less_le
-    not_less_eq_eq le_iff_add size_1_singleton_mset
-    size_eq_0_iff_empty size_mset_2)
+proof -
+  have "size W = 0 \<or> size W = 1 \<or> size W  = 2"
+    using assms by linarith
+  then show ?thesis
+    using assms by (fastforce elim!: size_mset_SucE simp: Num.numeral_2_eq_2)
+qed
 
 lemma filter_sorted_list_of_multiset_eqD:
   assumes "[x \<leftarrow> sorted_list_of_multiset A. p x] = x # xs" (is "?comp = _")
