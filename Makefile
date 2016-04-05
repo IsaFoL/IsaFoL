@@ -1,10 +1,10 @@
-ISABELLE2016=/home/zmaths/isabelle/Isabelle2016/bin/isabelle
-ISABELLE=/home/zmaths/isabelle/isabelle/bin/isabelle
+ISABELLE2016=~/isabelle/Isabelle2016/bin/isabelle
+ISABELLE=~/isabelle/isabelle/bin/isabelle
 
-ISABELLE_HOME=/home/zmaths/.isabelle/browser_info
-ISABELLE2016_HOME=/home/zmaths/.isabelle/Isabelle2016/browser_info
+ISABELLE_HOME=~/.isabelle/browser_info
+ISABELLE2016_HOME=~/.isabelle/Isabelle2016/browser_info
 
-DESTINATION=/home/zmaths/ENS/isafol/html
+DESTINATION=~/ENS/isafol/html
 
 all: current
 
@@ -16,7 +16,7 @@ current:
 	$(ISABELLE) build -o browser_info -v -D Bachmair_Ganzinger
 	cp -R $(ISABELLE_HOME)/Bachmair_Ganzinger $(DESTINATION)/current
 
-	$(ISABELLE2016) build -o browser_info -v -D Unordered_Resolution
+	$(ISABELLE2016) build -o browser_info  -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -D Unordered_Resolution
 	cp -R $(ISABELLE2016_HOME)/Unsorted/Unordered_Resolution $(DESTINATION)/current
 
 conference:
