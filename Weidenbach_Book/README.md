@@ -2,6 +2,14 @@
 
 [This directory](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Weidenbach_Book/) contains an ongoing Isabelle formalization of Christoph Weidenbach's forthcoming book _Automated Reasoning―The Art of Generic Problem Solving_.
 
+## Organisation of the Development ##
+* The branch [master]() contains the latest development and is based on Isabelle's repository version.
+* The branch IJCAR2016 contains the version of the development related to the paper.
+
+## Documentation ##
+
+A recent version of the documentation the theory files is also available as [here](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/current/Weidenbach_Book).
+
 ## Authors ##
 
 * [Mathias Fleury](mailto:mathias.fleury shtrudel mpi-inf.mpg.de)
@@ -22,15 +30,20 @@
   M. Fleury.
   M.Sc. thesis, École normale supérieure Rennes, 2015.
 
-## Execution ##
 
-A recent version of Isabelle is necessary to process the theory files (e.g., [Isabelle2016](http://isabelle.in.tum.de/website-Isabelle2016)).
+## IJCAR 2016 ##
 
-To process all the theory files, change to branch ```git checkout sat_solver_learn_forget_restart_incrementality``` and simply load ```Weidenbach_Book.thy```.
+First switch to the correct branch using git checkout.
 
-## Documentation ##
+### Execution ###
 
-A version of the theory files from the ```sat_solver_learn_forget_restart_incrementality``` branch is also available as [here](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/IJCAR2016/Weidenbach_Book) (the 
+[Isabelle2016](http://isabelle.in.tum.de/website-Isabelle2016) is required to run the development.
+
+To process all the theory files, simply load ```Weidenbach_Book.thy```.
+
+### Documentation ###
+
+The documentation is available available [here](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/IJCAR2016/Weidenbach_Book) (the 
 [outline](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/IJCAR2016/Weidenbach_Book/outline.pdf) contains the definitions and theorems, but the proofs are skipped).
 
 The paper [A Verified SAT Solver Framework](http://people.mpi-inf.mpg.de/~jblanche/sat.pdf) refers to theorems in the formalization. The following table establishes a correspondence between the two sources.
@@ -47,9 +60,3 @@ The paper [A Verified SAT Solver Framework](http://people.mpi-inf.mpg.de/~jblanc
     Theorem 8    CDCL_W_Incremental    incremental_conclusive_state
 
 The Standard ML code produced by the SAT solver can be viewed by moving the cursor to the ```export_code``` line in ```CDCL_W_Implementation.thy```.
-
-## Status ##
-
-Our partial implementation of two watched literals is located in ```CDCL_Two_Watched_Literals.thy```, but needs a recent repository version of Isabelle.
-
-A recent version of the documentation the theory files is also available as [here](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/current/Weidenbach_Book).
