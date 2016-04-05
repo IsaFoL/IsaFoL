@@ -9,7 +9,7 @@ This branch contains the version of the development related to the paper
 
 1. [Isabelle2016](http://isabelle.in.tum.de/website-Isabelle2016) is needed to process the files.
 2. Ensure that you are on the correct branch IJCAR2016.
-3. To process all the theory files, simply load ```Weidenbach_Book.thy```.
+3. To process all the theory files, simply load ```Weidenbach_Book.thy``` in Isabelle2016.
 
 ### Documentation ###
 
