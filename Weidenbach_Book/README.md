@@ -1,6 +1,6 @@
 # Formalization of Weidenbach's _Automated Reasoning―The Art of Generic Problem Solving_ #
 
-[This directory](https://bitbucket.org/jasmin_blanchette/isafol/src/IJCAR2016/Weidenbach_Book/) contains an ongoing Isabelle formalization of Christoph Weidenbach's forthcoming book _Automated Reasoning―The Art of Generic Problem Solving_. 
+[This directory](https://bitbucket.org/jasmin_blanchette/isafol/src/IJCAR2016/Weidenbach_Book/) contains an ongoing Isabelle formalization of Christoph Weidenbach's forthcoming book _Automated Reasoning―The Art of Generic Problem Solving_.
 
 This branch contains the version of the development related to the paper
 [A Verified SAT Solver Framework with Learn, Forget, Restart, and Incrementality](http://people.mpi-inf.mpg.de/~jblanche/sat.pdf) (IJCAR 2016).
