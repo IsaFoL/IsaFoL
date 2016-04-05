@@ -30,7 +30,8 @@ To process all the theory files, change to branch ```git checkout sat_solver_lea
 
 ## Documentation ##
 
-A version of the theory files from the ```sat_solver_learn_forget_restart_incrementality``` branch is also available as [a PDF outline without proofs](https://bitbucket.org/jasmin_blanchette/isafol/src/sat_solver_learn_forget_restart_incrementality/Weidenbach_Book/output/outline.pdf) or as [a PDF document with all proofs](https://bitbucket.org/jasmin_blanchette/isafol/src/sat_solver_learn_forget_restart_incrementality/Weidenbach_Book/output/document.pdf).
+A version of the theory files from the ```sat_solver_learn_forget_restart_incrementality``` branch is also available as [here](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/IJCAR2016/Weidenbach_Book) (the 
+[outline](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/IJCAR2016/Weidenbach_Book/outline.pdf) contains the definitions and theorems, but the proofs are skipped).
 
 The paper [A Verified SAT Solver Framework](http://people.mpi-inf.mpg.de/~jblanche/sat.pdf) refers to theorems in the formalization. The following table establishes a correspondence between the two sources.
 
@@ -51,4 +52,4 @@ The Standard ML code produced by the SAT solver can be viewed by moving the curs
 
 Our partial implementation of two watched literals is located in ```CDCL_Two_Watched_Literals.thy```, but needs a recent repository version of Isabelle.
 
-A recent version of the theory files is also available as [a PDF outline without proofs](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Weidenbach_Book/output/outline.pdf) or as [a PDF document with all proofs](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Weidenbach_Book/output/document.pdf).
+A recent version of the theory files is also available as [here](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/current/Weidenbach_Book).
