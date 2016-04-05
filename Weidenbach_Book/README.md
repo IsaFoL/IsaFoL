@@ -52,4 +52,4 @@ The Standard ML code produced by the SAT solver can be viewed by moving the curs
 
 Our partial implementation of two watched literals is located in ```CDCL_Two_Watched_Literals.thy```, but needs a recent repository version of Isabelle.
 
-A recent version of the theory files is also available as [here](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/current/Weidenbach_Book).
+A recent version of the documentation the theory files is also available as [here](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/current/Weidenbach_Book).
