@@ -61,7 +61,6 @@ session "DPLL_CDCL" (Weidenbach_Book) = "Entailment_Definition" +
   description \<open>This session contains CDCL and DPLL both NOT's and W's version.\<close>
   options [document = pdf, document_output = "output"]
   theories [document = true]
-    Prop_Resolution
     Partial_Annotated_Clausal_Logic
     DPLL_W
     CDCL_W_Level
