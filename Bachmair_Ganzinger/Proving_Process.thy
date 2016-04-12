@@ -343,7 +343,7 @@ definition Ri :: "'a clause set \<Rightarrow> 'a inference set" where
   "Ri N = {\<gamma>. \<gamma> \<in> \<Gamma> \<and> concl_of \<gamma> \<in> N}"
 
 sublocale effective_redundancy_criterion \<Gamma> Rf Ri
-  by default (auto simp: Rf_def Ri_def)
+  by standard (auto simp: Rf_def Ri_def)
 
 lemma saturated_upto_iff: "saturated_upto N \<longleftrightarrow> concls_of (inferences_from N) \<subseteq> N"
   unfolding saturated_upto_def inferences_from_def Rf_def Ri_def by auto
