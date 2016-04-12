@@ -11,20 +11,20 @@ all: current
 
 current:
 	$(ISABELLE) build -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -D Weidenbach_Book
-	cp -R $(ISABELLE_HOME)/Weidenbach_Book $(DESTINATION)/current
+	cp -R $(ISABELLE_HOME)/Weidenbach_Book $(DESTINATION)/current || :
 
 	$(ISABELLE) build -o browser_info -v -D Bachmair_Ganzinger
-	cp -R $(ISABELLE_HOME)/Bachmair_Ganzinger $(DESTINATION)/current
+	cp -R $(ISABELLE_HOME)/Bachmair_Ganzinger $(DESTINATION)/current || :
 
 	$(ISABELLE2016) build -o browser_info  -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -D Unordered_Resolution
-	cp -R $(ISABELLE2016_HOME)/Unsorted/Unordered_Resolution $(DESTINATION)/current
+	cp -R $(ISABELLE2016_HOME)/Unsorted/Unordered_Resolution $(DESTINATION)/current || :
 
 conference:
 	$(ISABELLE2016) build -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -D Weidenbach_Book
-	cp -R $(ISABELLE2016_HOME)/Unsorted/Weidenbach_Book $(DESTINATION)/IJCAR2016
+	cp -R $(ISABELLE2016_HOME)/Unsorted/Weidenbach_Book $(DESTINATION)/IJCAR2016 || :
 
 	$(ISABELLE2016) build -o browser_info -v -D Bachmair_Ganzinger
-	cp -R $(ISABELLE2016_HOME)/Unsorted/Bachmair_Ganzinger $(DESTINATION)/IJCAR2016
+	cp -R $(ISABELLE2016_HOME)/Unsorted/Bachmair_Ganzinger $(DESTINATION)/IJCAR2016 || :
 
 refs:
 	../isafol-private/Other/update_refs.pl  --unsafe
