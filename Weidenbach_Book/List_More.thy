@@ -283,7 +283,7 @@ lemma lexn3_conv:
 
 subsection \<open>Remove\<close>
 subsubsection \<open>More lemmas about remove\<close>
-lemma remove1_nil:
+lemma remove1_Nil:
   "remove1 (- L) W = [] \<longleftrightarrow> (W = [] \<or> W = [-L])"
   by (cases W) auto
 

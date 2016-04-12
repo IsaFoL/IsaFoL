@@ -6,10 +6,9 @@ subsubsection \<open>Types and Instantiation\<close>
 notation image_mset (infixr "`#" 90)
 
 type_synonym 'a cdcl\<^sub>W_mark = "'a literal list"
-type_synonym cdcl\<^sub>W_decided_level = nat
 
-type_synonym 'v cdcl\<^sub>W_ann_lit = "('v, cdcl\<^sub>W_decided_level, 'v cdcl\<^sub>W_mark) ann_lit"
-type_synonym 'v cdcl\<^sub>W_ann_lits = "('v, cdcl\<^sub>W_decided_level, 'v cdcl\<^sub>W_mark) ann_lits"
+type_synonym 'v cdcl\<^sub>W_ann_lit = "('v,  'v cdcl\<^sub>W_mark) ann_lit"
+type_synonym 'v cdcl\<^sub>W_ann_lits = "('v, 'v cdcl\<^sub>W_mark) ann_lits"
 type_synonym 'v cdcl\<^sub>W_state =
   "'v cdcl\<^sub>W_ann_lits \<times> 'v literal list list \<times> 'v literal list list \<times> nat \<times>
   'v literal list option"
@@ -50,15 +49,15 @@ abbreviation raw_add_learned_cls where
 abbreviation raw_remove_cls where
 "raw_remove_cls \<equiv> \<lambda>C (M, N, U, S). (M, removeAll_mset C N, removeAll_mset C U, S)"
 
-type_synonym 'v cdcl\<^sub>W_state_inv_st = "('v, unit, 'v literal list) ann_lit list \<times>
+type_synonym 'v cdcl\<^sub>W_state_inv_st = "('v, 'v literal list) ann_lits \<times>
   'v literal list list \<times> 'v literal list list \<times> nat \<times> 'v literal list option"
 
 abbreviation "raw_S0_cdcl\<^sub>W N \<equiv> (([], N, [], 0, None):: 'v cdcl\<^sub>W_state_inv_st)"
 
-fun mmset_of_mlit' :: "('v, unit, 'v literal list) ann_lit \<Rightarrow> ('v, unit, 'v clause) ann_lit"
+fun mmset_of_mlit' :: "('v, 'v literal list) ann_lit \<Rightarrow> ('v, 'v clause) ann_lit"
   where
 "mmset_of_mlit' (Propagated L C) = Propagated L (mset C)" |
-"mmset_of_mlit' (Decided L i) = Decided L i"
+"mmset_of_mlit' (Decided L) = Decided L"
 
 lemma lit_of_mmset_of_mlit'[simp]:
   "lit_of (mmset_of_mlit' xa) = lit_of xa"
@@ -204,10 +203,6 @@ lemma get_rev_level_map_mmsetof_mlit[simp]:
 lemma get_maximum_level_map_convert[simp]:
   "get_maximum_level (map mmset_of_mlit' M) D = get_maximum_level M D"
   by (induction D) (auto simp add: get_maximum_level_plus)
-
-lemma get_all_levels_of_ann_map_convert[simp]:
-  "get_all_levels_of_ann (map mmset_of_mlit' M) = (get_all_levels_of_ann M)"
-  by (induction M rule: ann_lit_list_induct) auto
 
 lemma reduce_trail_to_empty_trail[simp]:
   "reduce_trail_to F ([], aa, ab, ac, b) = ([], aa, ab, ac, b)"
@@ -551,7 +546,7 @@ lemma get_all_ann_decomposition_map_convert:
     map (\<lambda>(a, b). (map mmset_of_mlit' a, map mmset_of_mlit' b)) (get_all_ann_decomposition M)"
   apply (induction M rule: ann_lit_list_induct)
     apply simp
-  by (rename_tac L l xs, case_tac "get_all_ann_decomposition xs"; auto)+
+  by (rename_tac L xs, case_tac "get_all_ann_decomposition xs"; auto)+
 
 lemma do_backtrack_step:
   assumes
@@ -578,9 +573,9 @@ lemma do_backtrack_step:
       using db fd unfolding S E by (auto split: option.splits)
     have "no_dup M" and k: "k = count_decided (filter is_decided M)"
       using inv S unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by (auto simp: comp_def)
-    then obtain M1 K where M1: "M\<^sub>2 = Decided K () # M1" and lev_K: "get_level M K = j + 1"
+    then obtain M1 K where M1: "M\<^sub>2 = Decided K # M1" and lev_K: "get_level M K = j + 1"
       using bt_cut_some_decomp[OF _ M\<^sub>2] by (cases M\<^sub>2) auto
-    obtain c where c: "M = c @ Decided K () # M1"
+    obtain c where c: "M = c @ Decided K # M1"
        using bt_cut_in_get_all_ann_decomposition[OF \<open>no_dup M\<close> M\<^sub>2]
        unfolding M1 by fastforce
     have "j \<le> k" unfolding c j[symmetric] k
@@ -600,7 +595,7 @@ lemma do_backtrack_step:
     obtain M2 where M2: "(M\<^sub>2, M2) \<in> set (get_all_ann_decomposition M)"
       using bt_cut_in_get_all_ann_decomposition[OF \<open>no_dup M\<close> M\<^sub>2] by metis
     have decomp:
-      "(Decided K () # (map mmset_of_mlit' M1),
+      "(Decided K # (map mmset_of_mlit' M1),
       (map mmset_of_mlit' M2)) \<in>
       set (get_all_ann_decomposition (map mmset_of_mlit' M))"
       using imageI[of _ _ "\<lambda>(a, b). (map mmset_of_mlit' a, map mmset_of_mlit' b)", OF M2] j
@@ -643,7 +638,7 @@ next
   obtain K j M1 M2 L D where
     CE: "raw_conflicting S = Some D" and
     LD: "L \<in># mset D" and
-    decomp: "(Decided K () # M1, M2) \<in> set (get_all_ann_decomposition (trail S))" and
+    decomp: "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))" and
     levL: "get_level (raw_trail S) L = raw_backtrack_lvl S"  and
     k: "get_level (raw_trail S) L = get_maximum_level (raw_trail S) (mset D)" and
     j: "get_maximum_level (raw_trail S) (remove1_mset L (mset D)) \<equiv> j" and
@@ -654,7 +649,7 @@ next
       using inv unfolding  cdcl\<^sub>W_all_struct_inv_def apply fast
     apply (cases S)
     by (auto simp add: get_all_ann_decomposition_map_convert)
-  obtain c where c: "trail S = c @ M2 @ Decided K () # M1"
+  obtain c where c: "trail S = c @ M2 @ Decided K # M1"
     using decomp by blast
   have "k = count_decided (trail S)" and n_d: "no_dup M"
     using inv S unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by (auto simp: comp_def)
@@ -690,10 +685,10 @@ next
     qed
   then have j': "j' = j" using find_level_decomp_some[OF fd_some] j S DD' by auto
 
-  obtain c' M1' where cM: "M = c' @ Decided K () # M1'"
-    apply (rule map_mmset_of_mlit_eq_cons[of M "c @ M2" "Decided K () # M1"])
+  obtain c' M1' where cM: "M = c' @ Decided K # M1'"
+    apply (rule map_mmset_of_mlit_eq_cons[of M "c @ M2" "Decided K # M1"])
       using c S apply simp
-    apply (rule map_mmset_of_mlit_eq_cons[of _ "[Decided K ()]" " M1"])
+    apply (rule map_mmset_of_mlit_eq_cons[of _ "[Decided K]" " M1"])
      apply auto[]
     apply (rename_tac a b' aa b, case_tac aa)
      apply auto[]
@@ -728,7 +723,7 @@ fun do_decide_step where
 "do_decide_step (M, N, U, k, None) =
   (case find_first_unused_var N (lits_of_l M) of
     None \<Rightarrow> (M, N, U, k, None)
-  | Some L \<Rightarrow> (Decided L () # M, N, U, k+1, None))" |
+  | Some L \<Rightarrow> (Decided L # M, N, U, k+1, None))" |
 "do_decide_step S = S"
 
 lemma do_decide_step:
@@ -742,11 +737,11 @@ lemma do_decide_step:
           dest: find_first_unused_var_undefined find_first_unused_var_Some
           intro:)[1]
 proof -
-  fix a :: "('v, unit, 'v literal list) ann_lit list" and
+  fix a :: "('v, 'v literal list) ann_lits" and
         b :: "'v literal list list" and  c :: "'v literal list list" and
         d :: nat and e :: "'v literal list option"
   {
-    fix a :: "('v, unit, 'v literal list) ann_lit list" and
+    fix a :: "('v, 'v literal list) ann_lits" and
         b :: "'v literal list list" and  c :: "'v literal list list" and
         d :: nat and x2 :: "'v literal" and m :: "'v literal list"
     assume a1: "m \<in> set b"
@@ -778,7 +773,7 @@ proof -
       dest!: find_first_unused_var_Some)
 qed
 
-lemma mmset_of_mlit'_eq_Decided[iff]: "mmset_of_mlit' z = Decided x k \<longleftrightarrow> z = Decided x k"
+lemma mmset_of_mlit'_eq_Decided[iff]: "mmset_of_mlit' z = Decided x \<longleftrightarrow> z = Decided x"
   by (cases z) auto
 
 lemma do_decide_step_no:
@@ -1670,27 +1665,12 @@ structure Orderings : sig
   type 'a ord
   val less_eq : 'a ord -> 'a -> 'a -> bool
   val less : 'a ord -> 'a -> 'a -> bool
-  type 'a preorder
-  val ord_preorder : 'a preorder -> 'a ord
-  type 'a order
-  val preorder_order : 'a order -> 'a preorder
-  type 'a linorder
-  val order_linorder : 'a linorder -> 'a order
   val max : 'a ord -> 'a -> 'a -> 'a
 end = struct
 
 type 'a ord = {less_eq : 'a -> 'a -> bool, less : 'a -> 'a -> bool};
 val less_eq = #less_eq : 'a ord -> 'a -> 'a -> bool;
 val less = #less : 'a ord -> 'a -> 'a -> bool;
-
-type 'a preorder = {ord_preorder : 'a ord};
-val ord_preorder = #ord_preorder : 'a preorder -> 'a ord;
-
-type 'a order = {preorder_order : 'a preorder};
-val preorder_order = #preorder_order : 'a order -> 'a preorder;
-
-type 'a linorder = {order_linorder : 'a order};
-val order_linorder = #order_linorder : 'a linorder -> 'a order;
 
 fun max A_ a b = (if less_eq A_ a b then b else a);
 
@@ -1708,7 +1688,6 @@ structure Arith : sig
   val plus_nat : nat plus
   val less_nat : nat -> nat -> bool
   val ord_nat : nat Orderings.ord
-  val linorder_nat : nat Orderings.linorder
 end = struct
 
 datatype nat = Zero_nat | Suc of nat;
@@ -1742,18 +1721,11 @@ and less_nat m (Suc n) = less_eq_nat m n
 
 val ord_nat = {less_eq = less_eq_nat, less = less_nat} : nat Orderings.ord;
 
-val preorder_nat = {ord_preorder = ord_nat} : nat Orderings.preorder;
-
-val order_nat = {preorder_order = preorder_nat} : nat Orderings.order;
-
-val linorder_nat = {order_linorder = order_nat} : nat Orderings.linorder;
-
 end; (*struct Arith*)
 
 structure List : sig
   val equal_list : 'a HOL.equal -> ('a list) HOL.equal
   val find : ('a -> bool) -> 'a list -> 'a option
-  val fold : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
   val null : 'a list -> bool
   val filter : ('a -> bool) -> 'a list -> 'a list
   val member : 'a HOL.equal -> 'a list -> 'a -> bool
@@ -1775,9 +1747,6 @@ fun equal_list A_ = {equal = equal_lista A_} : ('a list) HOL.equal;
 
 fun find uu [] = NONE
   | find p (x :: xs) = (if p x then SOME x else find p xs);
-
-fun fold f (x :: xs) s = fold f xs (f x s)
-  | fold f [] s = s;
 
 fun null [] = true
   | null (x :: xs) = false;
@@ -1842,21 +1811,9 @@ end; (*struct Option*)
 
 structure Multiset : sig
   datatype 'a multiset = Mset of 'a list
-  val single : 'a -> 'a multiset
-  val set_mset : 'a multiset -> 'a Set.set
-  val image_mset : ('a -> 'b) -> 'a multiset -> 'b multiset
-  val plus_multiset : 'a multiset -> 'a multiset -> 'a multiset
 end = struct
 
 datatype 'a multiset = Mset of 'a list;
-
-fun single x = Mset [x];
-
-fun set_mset (Mset x) = Set.Set x;
-
-fun image_mset f (Mset xs) = Mset (List.map f xs);
-
-fun plus_multiset (Mset xs) (Mset ys) = Mset (xs @ ys);
 
 end; (*struct Multiset*)
 
@@ -1888,35 +1845,33 @@ fun uminus_literal l = (if is_pos l then Neg else Pos) (atm_of l);
 end; (*struct Clausal_Logic*)
 
 structure Partial_Annotated_Clausal_Logic : sig
-  datatype ('a, 'b, 'c) ann_lit = Decided of 'a Clausal_Logic.literal * 'b |
-    Propagated of 'a Clausal_Logic.literal * 'c
-  val equal_ann_lit :
-    'a HOL.equal -> 'b HOL.equal -> 'c HOL.equal ->
-      ('a, 'b, 'c) ann_lit HOL.equal
-  val lit_of : ('a, 'b, 'c) ann_lit -> 'a Clausal_Logic.literal
-  val lits_of : ('a, 'b, 'c) ann_lit Set.set -> 'a Clausal_Logic.literal Set.set
-  val is_decided : ('a, 'b, 'c) ann_lit -> bool
+  datatype ('a, 'b) ann_lit = Decided of 'a Clausal_Logic.literal |
+    Propagated of 'a Clausal_Logic.literal * 'b
+  val equal_ann_lit : 'a HOL.equal -> 'b HOL.equal -> ('a, 'b) ann_lit HOL.equal
+  val lit_of : ('a, 'b) ann_lit -> 'a Clausal_Logic.literal
+  val lits_of : ('a, 'b) ann_lit Set.set -> 'a Clausal_Logic.literal Set.set
+  val is_decided : ('a, 'b) ann_lit -> bool
 end = struct
 
-datatype ('a, 'b, 'c) ann_lit = Decided of 'a Clausal_Logic.literal * 'b |
-  Propagated of 'a Clausal_Logic.literal * 'c;
+datatype ('a, 'b) ann_lit = Decided of 'a Clausal_Logic.literal |
+  Propagated of 'a Clausal_Logic.literal * 'b;
 
-fun equal_ann_lita A_ B_ C_ (Decided (x11, x12)) (Propagated (x21, x22)) = false
-  | equal_ann_lita A_ B_ C_ (Propagated (x21, x22)) (Decided (x11, x12)) = false
-  | equal_ann_lita A_ B_ C_ (Propagated (x21, x22)) (Propagated (y21, y22)) =
-    Clausal_Logic.equal_literala A_ x21 y21 andalso HOL.eq C_ x22 y22
-  | equal_ann_lita A_ B_ C_ (Decided (x11, x12)) (Decided (y11, y12)) =
-    Clausal_Logic.equal_literala A_ x11 y11 andalso HOL.eq B_ x12 y12;
+fun equal_ann_lita A_ B_ (Decided x1) (Propagated (x21, x22)) = false
+  | equal_ann_lita A_ B_ (Propagated (x21, x22)) (Decided x1) = false
+  | equal_ann_lita A_ B_ (Propagated (x21, x22)) (Propagated (y21, y22)) =
+    Clausal_Logic.equal_literala A_ x21 y21 andalso HOL.eq B_ x22 y22
+  | equal_ann_lita A_ B_ (Decided x1) (Decided y1) =
+    Clausal_Logic.equal_literala A_ x1 y1;
 
-fun equal_ann_lit A_ B_ C_ = {equal = equal_ann_lita A_ B_ C_} :
-  ('a, 'b, 'c) ann_lit HOL.equal;
+fun equal_ann_lit A_ B_ = {equal = equal_ann_lita A_ B_} :
+  ('a, 'b) ann_lit HOL.equal;
 
-fun lit_of (Decided (x11, x12)) = x11
+fun lit_of (Decided x1) = x1
   | lit_of (Propagated (x21, x22)) = x21;
 
 fun lits_of ls = Set.image lit_of ls;
 
-fun is_decided (Decided (x11, x12)) = true
+fun is_decided (Decided x1) = true
   | is_decided (Propagated (x21, x22)) = false;
 
 end; (*struct Partial_Annotated_Clausal_Logic*)
@@ -1924,7 +1879,6 @@ end; (*struct Partial_Annotated_Clausal_Logic*)
 structure Product_Type : sig
   val equal_proda : 'a HOL.equal -> 'b HOL.equal -> 'a * 'b -> 'a * 'b -> bool
   val equal_prod : 'a HOL.equal -> 'b HOL.equal -> ('a * 'b) HOL.equal
-  val equal_unit : unit HOL.equal
 end = struct
 
 fun equal_proda A_ B_ (x1, x2) (y1, y2) =
@@ -1932,38 +1886,20 @@ fun equal_proda A_ B_ (x1, x2) (y1, y2) =
 
 fun equal_prod A_ B_ = {equal = equal_proda A_ B_} : ('a * 'b) HOL.equal;
 
-fun equal_unita u v = true;
-
-val equal_unit = {equal = equal_unita} : unit HOL.equal;
-
 end; (*struct Product_Type*)
-
-structure Lattices_Big : sig
-  val max : 'a Orderings.linorder -> 'a Set.set -> 'a
-end = struct
-
-fun max A_ (Set.Set (x :: xs)) =
-  List.fold
-    (Orderings.max
-      ((Orderings.ord_preorder o Orderings.preorder_order o
-         Orderings.order_linorder)
-        A_))
-    xs x;
-
-end; (*struct Lattices_Big*)
 
 structure CDCL_W_Level : sig
   val get_maximum_level :
     'a HOL.equal ->
-      ('a, 'b, 'c) Partial_Annotated_Clausal_Logic.ann_lit list ->
+      ('a, 'b) Partial_Annotated_Clausal_Logic.ann_lit list ->
         'a Clausal_Logic.literal Multiset.multiset -> Arith.nat
   val do_backtrack_step :
     'a HOL.equal ->
-      ('a, unit, ('a Clausal_Logic.literal list))
+      ('a, ('a Clausal_Logic.literal list))
         Partial_Annotated_Clausal_Logic.ann_lit list *
         ('b * (('a Clausal_Logic.literal list) list *
                 (Arith.nat * ('a Clausal_Logic.literal list) option))) ->
-        ('a, unit, ('a Clausal_Logic.literal list))
+        ('a, ('a Clausal_Logic.literal list))
           Partial_Annotated_Clausal_Logic.ann_lit list *
           ('b * (('a Clausal_Logic.literal list) list *
                   (Arith.nat * ('a Clausal_Logic.literal list) option)))
@@ -1974,35 +1910,34 @@ structure CDCL_W_Level : sig
   val find_first_unit_clause :
     'a HOL.equal ->
       ('a Clausal_Logic.literal list) list ->
-        ('a, 'b, 'c) Partial_Annotated_Clausal_Logic.ann_lit list ->
+        ('a, 'b) Partial_Annotated_Clausal_Logic.ann_lit list ->
           ('a Clausal_Logic.literal * 'a Clausal_Logic.literal list) option
 end = struct
 
-fun get_maximum_level A_ m d =
-  Lattices_Big.max Arith.linorder_nat
-    (Multiset.set_mset
-      (Multiset.plus_multiset (Multiset.single Arith.Zero_nat)
-        (Multiset.image_mset
-          (fn l =>
-            List.size_list
-              (List.filter Partial_Annotated_Clausal_Logic.is_decided
-                (List.dropWhile
-                  (fn s =>
-                    not (HOL.eq A_
-                          (Clausal_Logic.atm_of
-                            (Partial_Annotated_Clausal_Logic.lit_of s))
-                          (Clausal_Logic.atm_of l)))
-                  m)))
-          d)));
+fun maximum_level_code A_ [] uu = Arith.Zero_nat
+  | maximum_level_code A_ (l :: ls) m =
+    Orderings.max Arith.ord_nat
+      (List.size_list
+        (List.filter Partial_Annotated_Clausal_Logic.is_decided
+          (List.dropWhile
+            (fn s =>
+              not (HOL.eq A_
+                    (Clausal_Logic.atm_of
+                      (Partial_Annotated_Clausal_Logic.lit_of s))
+                    (Clausal_Logic.atm_of l)))
+            m)))
+      (maximum_level_code A_ ls m);
+
+fun get_maximum_level A_ m (Multiset.Mset d) = maximum_level_code A_ d m;
 
 fun bt_cut i (Partial_Annotated_Clausal_Logic.Propagated (uu, uv) :: ls) =
   bt_cut i ls
-  | bt_cut i (Partial_Annotated_Clausal_Logic.Decided (k, ()) :: ls) =
+  | bt_cut i (Partial_Annotated_Clausal_Logic.Decided k :: ls) =
     (if Arith.equal_nata
           (List.size_list
             (List.filter Partial_Annotated_Clausal_Logic.is_decided ls))
           i
-      then SOME (Partial_Annotated_Clausal_Logic.Decided (k, ()) :: ls)
+      then SOME (Partial_Annotated_Clausal_Logic.Decided k :: ls)
       else bt_cut i ls)
   | bt_cut i [] = NONE;
 
@@ -2025,20 +1960,6 @@ fun is_unit_clause_code A_ l m =
     | _ :: _ :: _ => NONE);
 
 fun is_unit_clause A_ l m = is_unit_clause_code A_ l m;
-
-fun maximum_level_code A_ [] uu = Arith.Zero_nat
-  | maximum_level_code A_ (l :: ls) m =
-    Orderings.max Arith.ord_nat
-      (List.size_list
-        (List.filter Partial_Annotated_Clausal_Logic.is_decided
-          (List.dropWhile
-            (fn s =>
-              not (HOL.eq A_
-                    (Clausal_Logic.atm_of
-                      (Partial_Annotated_Clausal_Logic.lit_of s))
-                    (Clausal_Logic.atm_of l)))
-            m)))
-      (maximum_level_code A_ ls m);
 
 fun find_level_decomp A_ m [] d k = NONE
   | find_level_decomp A_ m (l :: ls) d k =
@@ -2064,7 +1985,7 @@ fun do_backtrack_step A_ (m, (n, (u, (k, SOME d)))) =
     | SOME (l, j) =>
       (case bt_cut j m of NONE => (m, (n, (u, (k, SOME d))))
         | SOME [] => (m, (n, (u, (k, SOME d))))
-        | SOME (Partial_Annotated_Clausal_Logic.Decided (_, _) :: ls) =>
+        | SOME (Partial_Annotated_Clausal_Logic.Decided _ :: ls) =>
           (Partial_Annotated_Clausal_Logic.Propagated (l, d) :: ls,
             (n, (d :: u, (j, NONE))))
         | SOME (Partial_Annotated_Clausal_Logic.Propagated (_, _) :: _) =>
@@ -2092,7 +2013,7 @@ end; (*struct CDCL_W_Level*)
 structure CDCL_W_Implementation : sig
   datatype 'a cdcl_W_state_inv_from_init_state =
     ConI of
-      (('a, unit, ('a Clausal_Logic.literal list))
+      (('a, ('a Clausal_Logic.literal list))
          Partial_Annotated_Clausal_Logic.ann_lit list *
         (('a Clausal_Logic.literal list) list *
           (('a Clausal_Logic.literal list) list *
@@ -2105,7 +2026,7 @@ end = struct
 
 datatype 'a cdcl_W_state_inv =
   Con of
-    (('a, unit, ('a Clausal_Logic.literal list))
+    (('a, ('a Clausal_Logic.literal list))
        Partial_Annotated_Clausal_Logic.ann_lit list *
       (('a Clausal_Logic.literal list) list *
         (('a Clausal_Logic.literal list) list *
@@ -2113,7 +2034,7 @@ datatype 'a cdcl_W_state_inv =
 
 datatype 'a cdcl_W_state_inv_from_init_state =
   ConI of
-    (('a, unit, ('a Clausal_Logic.literal list))
+    (('a, ('a Clausal_Logic.literal list))
        Partial_Annotated_Clausal_Logic.ann_lit list *
       (('a Clausal_Logic.literal list) list *
         (('a Clausal_Logic.literal list) list *
@@ -2172,8 +2093,8 @@ fun do_skip_step A_
       else (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls,
              (n, (u, (k, SOME d)))))
   | do_skip_step A_ ([], va) = ([], va)
-  | do_skip_step A_ (Partial_Annotated_Clausal_Logic.Decided (vd, ve) :: vc, va)
-    = (Partial_Annotated_Clausal_Logic.Decided (vd, ve) :: vc, va)
+  | do_skip_step A_ (Partial_Annotated_Clausal_Logic.Decided vd :: vc, va) =
+    (Partial_Annotated_Clausal_Logic.Decided vd :: vc, va)
   | do_skip_step A_ (v, (vb, (vd, (vf, NONE)))) = (v, (vb, (vd, (vf, NONE))));
 
 fun do_resolve_step A_
@@ -2197,9 +2118,8 @@ fun do_resolve_step A_
       else (Partial_Annotated_Clausal_Logic.Propagated (l, c) :: ls,
              (n, (u, (k, SOME d)))))
   | do_resolve_step A_ ([], va) = ([], va)
-  | do_resolve_step A_
-    (Partial_Annotated_Clausal_Logic.Decided (vd, ve) :: vc, va) =
-    (Partial_Annotated_Clausal_Logic.Decided (vd, ve) :: vc, va)
+  | do_resolve_step A_ (Partial_Annotated_Clausal_Logic.Decided vd :: vc, va) =
+    (Partial_Annotated_Clausal_Logic.Decided vd :: vc, va)
   | do_resolve_step A_ (v, (vb, (vd, (vf, NONE)))) =
     (v, (vb, (vd, (vf, NONE))));
 
@@ -2208,7 +2128,7 @@ fun do_decide_step A_ (D1_, D2_) (m, (n, (u, (k, NONE)))) =
           (Partial_Annotated_Clausal_Logic.lits_of (Set.Set m))
     of NONE => (m, (n, (u, (k, NONE))))
     | SOME l =>
-      (Partial_Annotated_Clausal_Logic.Decided (l, ()) :: m,
+      (Partial_Annotated_Clausal_Logic.Decided l :: m,
         (n, (u, (Arith.plus D2_ k (Arith.one D1_), NONE)))))
   | do_decide_step A_ (D1_, D2_) (v, (vb, (vd, (vf, SOME vh)))) =
     (v, (vb, (vd, (vf, SOME vh))));
@@ -2220,7 +2140,6 @@ fun do_other_step A_ s =
     (if not (Product_Type.equal_proda
               (List.equal_list
                 (Partial_Annotated_Clausal_Logic.equal_ann_lit A_
-                  Product_Type.equal_unit
                   (List.equal_list (Clausal_Logic.equal_literal A_))))
               (Product_Type.equal_prod
                 (List.equal_list
@@ -2239,7 +2158,6 @@ fun do_other_step A_ s =
              (if not (Product_Type.equal_proda
                        (List.equal_list
                          (Partial_Annotated_Clausal_Logic.equal_ann_lit A_
-                           Product_Type.equal_unit
                            (List.equal_list (Clausal_Logic.equal_literal A_))))
                        (Product_Type.equal_prod
                          (List.equal_list
@@ -2259,9 +2177,8 @@ fun do_other_step A_ s =
                       (if not (Product_Type.equal_proda
                                 (List.equal_list
                                   (Partial_Annotated_Clausal_Logic.equal_ann_lit
-                                    A_ Product_Type.equal_unit
-                                    (List.equal_list
-                                      (Clausal_Logic.equal_literal A_))))
+                                    A_ (List.equal_list
+ (Clausal_Logic.equal_literal A_))))
                                 (Product_Type.equal_prod
                                   (List.equal_list
                                     (List.equal_list
@@ -2286,7 +2203,7 @@ fun do_other_stepa A_ s = Con (do_other_step A_ (rough_state_of s));
 fun equal_cdcl_W_state_inv A_ sa s =
   Product_Type.equal_proda
     (List.equal_list
-      (Partial_Annotated_Clausal_Logic.equal_ann_lit A_ Product_Type.equal_unit
+      (Partial_Annotated_Clausal_Logic.equal_ann_lit A_
         (List.equal_list (Clausal_Logic.equal_literal A_))))
     (Product_Type.equal_prod
       (List.equal_list (List.equal_list (Clausal_Logic.equal_literal A_)))
@@ -2307,7 +2224,7 @@ fun do_full1_cp_step A_ s =
 fun equal_cdcl_W_state_inv_from_init_state A_ sa s =
   Product_Type.equal_proda
     (List.equal_list
-      (Partial_Annotated_Clausal_Logic.equal_ann_lit A_ Product_Type.equal_unit
+      (Partial_Annotated_Clausal_Logic.equal_ann_lit A_
         (List.equal_list (Clausal_Logic.equal_literal A_))))
     (Product_Type.equal_prod
       (List.equal_list (List.equal_list (Clausal_Logic.equal_literal A_)))

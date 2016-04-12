@@ -41,7 +41,7 @@ datatype 'v candidate =
     (conflict: "'v twl_clause option")
 
 text \<open>Morally instead of @{typ "('v literal \<times> 'v twl_clause) list"}, we should use
-  @{typ "('v, nat, 'v twl_clause) ann_lits"} with only @{term Propagated}. However, we do not
+  @{typ "('v, 'v twl_clause) ann_lits"} with only @{term Propagated}. However, we do not
   want to define the function for @{term Decided} too. The following function makes the conversion
   from the pair to the trail:
   \<close>
@@ -137,7 +137,7 @@ text \<open>We make the function slightly more general than needed:
 text \<open>The function returns a couple composed of a list of clauses and a candidate.\<close>
 fun
   rewatch_nat_cand_single_clause ::
-  "'v literal \<Rightarrow> ('v, unit, 'v twl_clause) ann_lits \<Rightarrow> 'v twl_clause \<Rightarrow>
+  "'v literal \<Rightarrow> ('v, 'v twl_clause) ann_lits \<Rightarrow> 'v twl_clause \<Rightarrow>
    'v twl_clause list \<times> 'v candidate \<Rightarrow> 'v twl_clause list \<times> 'v candidate"
 where
 "rewatch_nat_cand_single_clause L M C (Cs, Ks) =
@@ -178,7 +178,7 @@ qed
 text \<open>This function could be optimised: once a conflict has been found, we could stop going through
   the list and directly prepend all elements.\<close>
 fun rewatch_nat_cand_clss ::
-  "'v literal \<Rightarrow> ('v, unit, 'v twl_clause) ann_lits \<Rightarrow>
+  "'v literal \<Rightarrow> ('v, 'v twl_clause) ann_lits \<Rightarrow>
     'v twl_clause list \<times> 'v candidate \<Rightarrow>
      'v twl_clause list  \<times> 'v candidate"
 where
@@ -264,7 +264,7 @@ proof -
               then show ?thesis apply -
                 apply (rule single_lit_watched; cases C)
                 using wf L filter by (auto simp: rewatch_nat_cand_single_clause.simps length_list_2
-                  remove1_nil)
+                  remove1_Nil)
             next
               case (Cons L' fW)
               then have dist: "distinct (watched C)" and l_W: "length (watched C) \<le> 2"
@@ -384,7 +384,7 @@ lemma rewatch_nat_cand_single_clause_clauses:
     rewatch_nat_cand_single_clause_hd[simplified])
 
 fun undefined_lit_list :: "('a literal \<times> 'a twl_clause) list
-   \<Rightarrow> ('a, 'b, 'a twl_clause) ann_lit list \<Rightarrow> bool" where
+   \<Rightarrow> ('a, 'a twl_clause) ann_lits \<Rightarrow> bool" where
 "undefined_lit_list [] _ \<longleftrightarrow> True" |
 "undefined_lit_list (L # Ls) M \<longleftrightarrow> undefined_lit (map (case_prod Propagated) Ls @ M) (fst L) \<and>
   undefined_lit_list Ls M"
@@ -707,7 +707,7 @@ lemma rewatch_nat_cand_single_clause_conflict_found:
   done
 
 lemma rewatch_nat_cand_single_clause_no_dup:
-  fixes Ks :: "'v candidate" and M :: "('v, unit, 'v twl_clause) ann_lit list"
+  fixes Ks :: "'v candidate" and M :: "('v, 'v twl_clause) ann_lits"
   and L :: "'v literal" and Cs :: "'v twl_clause list" and C :: "'v twl_clause"
   defines "S \<equiv> rewatch_nat_cand_single_clause L M C (Cs, Ks)"
   assumes wf: "wf_twl_cls M C" and
@@ -719,12 +719,12 @@ lemma rewatch_nat_cand_single_clause_no_dup:
 
 text \<open>The full invariant does not hold while running @{term "do_propagate_or_conflict_step"}:
   the data structure is only partly well-founded.\<close>
-primrec watched_wf_twl_cls_pq :: "('a, 'b, 'c) ann_lit list \<Rightarrow> 'a literal list \<Rightarrow> 'a twl_clause \<Rightarrow>
+primrec watched_wf_twl_cls_pq :: "('a, 'b) ann_lits \<Rightarrow> 'a literal list \<Rightarrow> 'a twl_clause \<Rightarrow>
   bool" where
 "watched_wf_twl_cls_pq M Q (TWL_Clause W UW) \<longleftrightarrow>
    (\<forall>L \<in> set W. -L \<in> lits_of_l M \<longrightarrow> (\<forall>L' \<in> set UW. L' \<notin> set (W @ Q) \<longrightarrow> -L' \<in> lits_of_l M))"
 
-primrec wf_twl_cls_pq :: "('v, 'lvl, 'mark) ann_lit list \<Rightarrow> 'v literal list \<Rightarrow> 'v twl_clause \<Rightarrow>
+primrec wf_twl_cls_pq :: "('v, 'mark) ann_lits \<Rightarrow> 'v literal list \<Rightarrow> 'v twl_clause \<Rightarrow>
   bool" where
 "wf_twl_cls_pq M Q (TWL_Clause W UW) \<longleftrightarrow>
    struct_wf_twl_cls (TWL_Clause W UW) \<and> watched_wf_twl_cls_pq M Q (TWL_Clause W UW) \<and>
@@ -749,7 +749,6 @@ lemma wf_twl_state_pq_conflicting_Some_None:
   "wf_twl_state_pq (TWL_State_Cand S (Prop_Or_Conf [] (Some D))) \<longleftrightarrow>
   wf_twl_state_pq (TWL_State_Cand S (Prop_Or_Conf [] None))"
   unfolding wf_twl_state_pq_def by (auto simp del: wf_twl_cls_pq.simps simp: comp_def)
-thm do_propagate_or_conflict_step.induct remdups_adj.induct
 
 lemma struct_wf_twl_cls_rewatch_nat_cand_clss:
   assumes "\<forall>x\<in>set Cs. struct_wf_twl_cls x"
@@ -770,7 +769,7 @@ next
   by (auto simp: rewatch_nat_cand_clss.simps rewatch_nat_cand_single_clause.simps lits_of_def
     image_image image_Un length_list_2
     split: if_splits list.splits
-    dest!: filter_eq_ConsD)
+    dest!: filter_eq_ConsD)[]
 qed
 
 lemma struct_wf_twl_cls_rewatch_nat_cand:

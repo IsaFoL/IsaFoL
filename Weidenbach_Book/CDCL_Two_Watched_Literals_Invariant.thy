@@ -28,30 +28,73 @@ lemma mset_raw_init_clss_init_state:
   = mset (map clause N)"
   by (metis (no_types, lifting) init_clss_init_state map_eq_conv map_map o_def clause_def)
 
-interpretation rough_cdcl: state\<^sub>W
-  clause
-  raw_clss_l "op @"
-  "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
+interpretation rough_cdcl: state\<^sub>W_ops
+    clause
+    raw_clss_l "op @"
+    "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
-  mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-  remove1
+    mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
+    remove1
 
-  raw_clause "\<lambda>C. TWL_Clause [] C"
-  trail "\<lambda>S. hd (raw_trail S)"
-  raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
-  cons_trail tl_trail "\<lambda>C. add_learned_cls (raw_clause C)"
-  "\<lambda>C. remove_cls (raw_clause C)"
-  update_backtrack_lvl
-  update_conflicting "\<lambda>N. init_state (map raw_clause N)" restart'
-  apply unfold_locales
-  apply (case_tac "raw_trail S")
-  apply (simp_all add: add_init_cls_def add_learned_cls_def clause_rewatch clause_watch
-    cons_trail_def remove_cls_def restart'_def tl_trail_def map_tl comp_def
-    ac_simps mset_map_removeAll_cond mset_raw_init_clss_init_state
-    clause_def[symmetric])
+    raw_clause "\<lambda>C. TWL_Clause [] C"
+    trail "\<lambda>S. hd (raw_trail S)"
+    raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
+    cons_trail tl_trail "\<lambda>C. add_learned_cls (raw_clause C)"
+    "\<lambda>C. remove_cls (raw_clause C)"
+    update_backtrack_lvl
+    update_conflicting "\<lambda>N. init_state (map raw_clause N)" restart'
+  rewrites
+    "rough_cdcl.mmset_of_mlit = mmset_of_mlit"
+proof goal_cases
+  case 1
+  show H: ?case by unfold_locales
 
-  apply (auto simp: mset_map image_mset_subseteq_mono[OF restart_learned] clause_def)
+  case 2
+  show ?case
+    apply (rule ext)
+    apply (rename_tac x)
+    apply (case_tac x)
+    apply (simp_all add: state\<^sub>W_ops.mmset_of_mlit.simps[OF H] raw_clause_def clause_def)
   done
+qed
+
+interpretation rough_cdcl: state\<^sub>W
+    clause
+    raw_clss_l "op @"
+    "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
+
+    mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
+    remove1
+
+    raw_clause "\<lambda>C. TWL_Clause [] C"
+    trail "\<lambda>S. hd (raw_trail S)"
+    raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
+    cons_trail tl_trail "\<lambda>C. add_learned_cls (raw_clause C)"
+    "\<lambda>C. remove_cls (raw_clause C)"
+    update_backtrack_lvl
+    update_conflicting "\<lambda>N. init_state (map raw_clause N)" restart'
+proof goal_cases
+  case 1
+  have stupid_locales: "state\<^sub>W_ops clause raw_clss_l op @ (\<lambda>L C. L \<in> set C) op #
+    (\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)) mset union_mset_list remove1 raw_clause
+    (TWL_Clause [])"
+    by unfold_locales
+  have [simp]: "state\<^sub>W_ops.mmset_of_mlit clause = mmset_of_mlit"
+    apply (rule ext, rename_tac L, case_tac L)
+    by (auto simp: state\<^sub>W_ops.mmset_of_mlit.simps[OF stupid_locales] clause_def
+    raw_clause_def)
+  have [simp]: "\<And>S. raw_clss_l (restart_learned S) \<subseteq># rough_cdcl.learned_clss S"
+    using image_mset_subseteq_mono[OF restart_learned] unfolding mset_map
+     by blast
+
+  show H: ?case
+    apply unfold_locales
+    apply (case_tac "raw_trail S"; case_tac "hd (raw_trail S)")
+    by (simp_all add: add_init_cls_def add_learned_cls_def clause_rewatch clause_watch
+      cons_trail_def remove_cls_def restart'_def tl_trail_def map_tl comp_def
+      ac_simps mset_map_removeAll_cond mset_raw_init_clss_init_state
+      clause_def[symmetric])
+qed
 
 interpretation rough_cdcl: conflict_driven_clause_learning\<^sub>W
   clause
@@ -76,7 +119,7 @@ paragraph \<open>Opaque Type with Invariant\<close>
 
 declare rough_cdcl.state_simp[simp del]
 
-definition cons_trail_twl :: "('v, unit, 'v twl_clause) ann_lit \<Rightarrow> 'v wf_twl \<Rightarrow> 'v wf_twl"
+definition cons_trail_twl :: "('v, 'v twl_clause) ann_lit \<Rightarrow> 'v wf_twl \<Rightarrow> 'v wf_twl"
   where
 "cons_trail_twl L S \<equiv> twl_of_rough_state (cons_trail L (rough_state_of_twl S))"
 
@@ -233,8 +276,23 @@ sublocale wf_twl: conflict_driven_clause_learning\<^sub>W
   update_conflicting_twl
   "\<lambda>N. init_state_twl (map raw_clause N)"
   restart_twl
-  apply unfold_locales
-           using rough_cdcl.hd_raw_trail apply blast
+proof goal_cases
+  case 1
+  have stupid_locales: "state\<^sub>W_ops clause raw_clss_l op @ (\<lambda>L C. L \<in> set C) op #
+    (\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)) mset union_mset_list remove1 raw_clause
+    (TWL_Clause [])"
+    by unfold_locales
+  have ugly[simp]: "state\<^sub>W_ops.mmset_of_mlit clause = mmset_of_mlit"
+    apply (rule ext, rename_tac L, case_tac L)
+    by (auto simp: state\<^sub>W_ops.mmset_of_mlit.simps[OF stupid_locales] clause_def
+    raw_clause_def)
+  have [simp]: "\<And>S. raw_clss_l (restart_learned S) \<subseteq># rough_cdcl.learned_clss S"
+    using image_mset_subseteq_mono[OF restart_learned] unfolding mset_map
+     by blast
+
+  show H: ?case
+    apply unfold_locales
+           using rough_cdcl.hd_raw_trail unfolding ugly apply blast
          apply (simp_all add: rough_state_of_twl_cons_trail rough_state_of_twl_tl_trail
            rough_state_of_twl_add_init_cls rough_state_of_twl_add_learned_cls
            rough_state_of_twl_remove_cls rough_state_of_twl_update_backtrack_lvl
@@ -266,6 +324,7 @@ sublocale wf_twl: conflict_driven_clause_learning\<^sub>W
   using rough_cdcl.init_clss_restart_state rough_cdcl.learned_clss_restart_state
   apply (auto simp: rough_state_of_twl_restart_twl)[5]
   done
+qed
 
 declare local.rough_cdcl.mset_ccls_ccls_of_cls[simp del]
 abbreviation state_eq_twl (infix "\<sim>TWL" 51) where

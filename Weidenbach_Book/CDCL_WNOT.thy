@@ -8,11 +8,11 @@ declare upt.simps(2)[simp del]
 
 fun convert_ann_lit_from_W where
 "convert_ann_lit_from_W (Propagated L _) = Propagated L ()" |
-"convert_ann_lit_from_W (Decided L _) = Decided L ()"
+"convert_ann_lit_from_W (Decided L) = Decided L"
 
 abbreviation convert_trail_from_W ::
-  "('v,  'lvl, 'a) ann_lit list
-    \<Rightarrow> ('v, unit, unit) ann_lit list"  where
+  "('v, 'mark) ann_lits
+    \<Rightarrow> ('v, unit) ann_lits"  where
 "convert_trail_from_W \<equiv> map convert_ann_lit_from_W"
 
 lemma lits_of_l_convert_trail_from_W[simp]:
@@ -38,9 +38,9 @@ lemma defined_lit_convert_trail_from_W[simp]:
 text \<open>The values @{term "0::nat"} and @{term "{#}"} are dummy values.\<close>
 consts dummy_cls :: 'cls
 fun convert_ann_lit_from_NOT
-  :: "('a, 'e, 'b) ann_lit \<Rightarrow> ('a, unit, 'cls) ann_lit"  where
+  :: "('v, 'mark) ann_lit \<Rightarrow> ('v, 'cls) ann_lit"  where
 "convert_ann_lit_from_NOT (Propagated L _) = Propagated L dummy_cls" |
-"convert_ann_lit_from_NOT (Decided L _) = Decided L ()"
+"convert_ann_lit_from_NOT (Decided L) = Decided L"
 
 abbreviation convert_trail_from_NOT where
 "convert_trail_from_NOT \<equiv> map convert_ann_lit_from_NOT"
@@ -101,8 +101,6 @@ sublocale state\<^sub>W \<subseteq> dpll_state
    "\<lambda>C S. remove_cls C S"
    by unfold_locales (auto simp: map_tl o_def)
 
-
-
 context state\<^sub>W
 begin
 declare state_simp\<^sub>N\<^sub>O\<^sub>T[simp del]
@@ -153,7 +151,7 @@ next
       by (simp add: distinct_mset_single_add)
   moreover
     have "no_dup F"
-      using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> \<open>convert_trail_from_W (trail S) = F' @ Decided K () # F\<close>
+      using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> \<open>convert_trail_from_W (trail S) = F' @ Decided K # F\<close>
       unfolding inv\<^sub>N\<^sub>O\<^sub>T_def
       by (smt comp_apply distinct.simps(2) distinct_append list.simps(9) map_append
         no_dup_convert_from_W)
@@ -171,8 +169,8 @@ next
         using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> unfolding inv\<^sub>N\<^sub>O\<^sub>T_def by (simp add: o_def)
       have f3: "atm_of L \<in> atms_of_mm (clauses S)
         \<union> atm_of ` lits_of_l (convert_trail_from_W (trail S))"
-        using \<open>convert_trail_from_W (trail S) = F' @ Decided K () # F\<close>
-        \<open>atm_of L \<in> atms_of_mm (clauses S) \<union> atm_of ` lits_of_l (F' @ Decided K () # F)\<close> by auto
+        using \<open>convert_trail_from_W (trail S) = F' @ Decided K # F\<close>
+        \<open>atm_of L \<in> atms_of_mm (clauses S) \<union> atm_of ` lits_of_l (F' @ Decided K # F)\<close> by auto
       have f4: "clauses S \<Turnstile>pm remdups_mset C' + {#L#}"
         by (metis (no_types) \<open>L \<notin># C'\<close> \<open>clauses S \<Turnstile>pm C' + {#L#}\<close> remdups_mset_singleton_sum(2)
           true_clss_cls_remdups_mset union_commute)
@@ -311,7 +309,7 @@ next
   then obtain L where
     undef_L: "undefined_lit (trail S) L" and
     atm_L: "atm_of L \<in> atms_of_mm (init_clss S)" and
-    T: "T \<sim> cons_trail (Decided L ())
+    T: "T \<sim> cons_trail (Decided L)
       (update_backtrack_lvl (Suc (backtrack_lvl S)) S)"
     by (auto elim: decideE)
   have "decide\<^sub>N\<^sub>O\<^sub>T S T"
@@ -380,7 +378,7 @@ next
       then obtain M1 M2 i D L K where
         confl_T': "raw_conflicting T' = Some D" and
         LD: "L \<in># mset_ccls D" and
-        M1_M2:"(Decided K () # M1, M2) \<in> set (get_all_ann_decomposition (trail T'))" and
+        M1_M2:"(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail T'))" and
         "get_level (trail T') K = i+1"
         "get_level (trail T') L = backtrack_lvl T'" and
         "get_level (trail T') L = get_maximum_level (trail T') (mset_ccls D)" and
@@ -426,12 +424,12 @@ next
       obtain M where tr_T: "trail T = M @ trail T'"
         using s_or_r skip_or_resolve_state_change by meson
       obtain M' where
-        tr_T': "trail T' = M' @  Decided K () # tl (trail U)" and
+        tr_T': "trail T' = M' @  Decided K # tl (trail U)" and
         tr_U: "trail U = Propagated L (mset_ccls D) # tl (trail U)"
         using U M1_M2 undef_L inv_T' unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
         by fastforce
       def M'' \<equiv> "M @ M'"
-      have tr_T: "trail S = M'' @  Decided K () # tl (trail U)"
+      have tr_T: "trail S = M'' @  Decided K # tl (trail U)"
         using tr_T tr_T' confl unfolding M''_def by (auto elim: rulesE)
       have "init_clss T' + learned_clss S \<Turnstile>pm mset_ccls D"
         using inv_T' confl_T' unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def
@@ -440,7 +438,7 @@ next
         reduce_trail_to M1 S"
         by (rule reduce_trail_to_length) simp
       moreover have "trail (reduce_trail_to M1 S) = M1"
-        apply (rule reduce_trail_to_skip_beginning[of _ "M @ _ @ M2 @ [Decided K ()]"])
+        apply (rule reduce_trail_to_skip_beginning[of _ "M @ _ @ M2 @ [Decided K]"])
         using confl M1_M2 \<open>trail T = M @ trail T'\<close>
           apply (auto dest!: get_all_ann_decomposition_exists_prepend
             elim!: conflictE)

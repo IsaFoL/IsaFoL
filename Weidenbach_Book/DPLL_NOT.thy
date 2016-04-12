@@ -9,23 +9,23 @@ text \<open>We are using a concrete couple instead of an abstract state.\<close>
 
 locale dpll_with_backtrack
 begin
-inductive backtrack :: "('v, unit, unit) ann_lit list \<times> 'v clauses
-  \<Rightarrow> ('v, unit, unit) ann_lit list \<times> 'v clauses \<Rightarrow> bool" where
+inductive backtrack :: "('v, unit) ann_lits \<times> 'v clauses
+  \<Rightarrow> ('v, unit) ann_lits \<times> 'v clauses \<Rightarrow> bool" where
 "backtrack_split (fst S) = (M', L # M) \<Longrightarrow> is_decided L \<Longrightarrow> D \<in># snd S
   \<Longrightarrow> fst S \<Turnstile>as CNot D \<Longrightarrow> backtrack S (Propagated (- (lit_of L)) () # M, snd S)"
 
 inductive_cases backtrackE[elim]: "backtrack (M, N) (M', N')"
 lemma backtrack_is_backjump:
-  fixes M M' :: "('v, unit, unit) ann_lit list"
+  fixes M M' :: "('v, unit) ann_lits"
   assumes
     backtrack: "backtrack (M, N) (M', N')" and
     no_dup: "(no_dup \<circ> fst) (M, N)" and
     decomp: "all_decomposition_implies_m N (get_all_ann_decomposition M)"
     shows "
        \<exists>C F' K F L l C'.
-          M = F' @ Decided K () # F \<and>
-          M' = Propagated L l # F \<and> N = N' \<and> C \<in># N \<and> F' @ Decided K d # F \<Turnstile>as CNot C \<and>
-          undefined_lit F L \<and> atm_of L \<in> atms_of_mm N \<union> atm_of ` lits_of_l (F' @ Decided K d # F) \<and>
+          M = F' @ Decided K # F \<and>
+          M' = Propagated L l # F \<and> N = N' \<and> C \<in># N \<and> F' @ Decided K # F \<Turnstile>as CNot C \<and>
+          undefined_lit F L \<and> atm_of L \<in> atms_of_mm N \<union> atm_of ` lits_of_l (F' @ Decided K # F) \<and>
           N \<Turnstile>pm C' + {#L#} \<and> F \<Turnstile>as CNot C'"
 proof -
   let ?S = "(M, N)"
@@ -40,17 +40,17 @@ proof -
     [simp]: "N' = N"
   using backtrackE[OF backtrack] by (metis backtrack fstI sndI)
   let ?K = "lit_of L"
-  let ?C = "image_mset lit_of {#K\<in>#mset M. is_decided K \<and> K\<noteq>L#} :: 'v literal multiset"
+  let ?C = "image_mset lit_of {#K\<in>#mset M. is_decided K \<and> K\<noteq>L#} :: 'v clause"
   let ?C' = "set_mset (image_mset single (?C+{#?K#}))"
-  obtain K where L: "L = Decided K ()" using \<open>is_decided L\<close> by (cases L) auto
+  obtain K where L: "L = Decided K" using \<open>is_decided L\<close> by (cases L) auto
 
-  have M: "M = F' @ Decided K () # F"
+  have M: "M = F' @ Decided K # F"
     using b_sp  by (metis L backtrack_split_list_eq fst_conv snd_conv)
-  moreover have "F' @ Decided K () # F \<Turnstile>as CNot D"
+  moreover have "F' @ Decided K # F \<Turnstile>as CNot D"
     using \<open>M\<Turnstile>as CNot D\<close> unfolding M .
   moreover have "undefined_lit F (-?K)"
     using no_dup unfolding M L by (simp add: defined_lit_map)
-  moreover have "atm_of (-K) \<in> atms_of_mm N \<union> atm_of ` lits_of_l (F' @ Decided K d # F)"
+  moreover have "atm_of (-K) \<in> atms_of_mm N \<union> atm_of ` lits_of_l (F' @ Decided K # F)"
     by auto
   moreover
     have "set_mset N \<union> ?C' \<Turnstile>ps {{#}}"
@@ -92,24 +92,24 @@ proof -
           "I \<Turnstile>sm N"
         have "(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)"
           using cons tot unfolding consistent_interp_def L by (cases K) auto
-        have "{a \<in> set M. is_decided a \<and> a \<noteq> Decided K ()} =
-          set M \<inter> {L. is_decided L \<and> L \<noteq> Decided K ()}"
+        have "{a \<in> set M. is_decided a \<and> a \<noteq> Decided K} =
+          set M \<inter> {L. is_decided L \<and> L \<noteq> Decided K}"
           by auto
         then have
-          tI: "total_over_set I (atm_of ` lit_of ` (set M \<inter> {L. is_decided L \<and> L \<noteq> Decided K d}))"
+          tI: "total_over_set I (atm_of ` lit_of ` (set M \<inter> {L. is_decided L \<and> L \<noteq> Decided K}))"
           using tot by (auto simp add: L atms_of_uminus_lit_atm_of_lit_of)
 
         then have H: "\<And>x.
             lit_of x \<notin> I \<Longrightarrow> x \<in> set M \<Longrightarrow>is_decided x
-            \<Longrightarrow> x \<noteq> Decided K d \<Longrightarrow> -lit_of x \<in> I"
+            \<Longrightarrow> x \<noteq> Decided K \<Longrightarrow> -lit_of x \<in> I"
           proof -
-            fix x :: "('v, unit, unit) ann_lit"
-            assume a1: "x \<noteq> Decided K d"
+            fix x :: "('v, unit) ann_lit"
+            assume a1: "x \<noteq> Decided K"
             assume a2: "is_decided x"
             assume a3: "x \<in> set M"
             assume a4: "lit_of x \<notin> I"
             have "atm_of (lit_of x) \<in> atm_of ` lit_of `
-              (set M \<inter> {m. is_decided m \<and> m \<noteq> Decided K d})"
+              (set M \<inter> {m. is_decided m \<and> m \<noteq> Decided K})"
               using a3 a2 a1 by blast
             then have "Pos (atm_of (lit_of x)) \<in> I \<or> Neg (atm_of (lit_of x)) \<in> I"
               using tI unfolding total_over_set_def by blast
@@ -136,14 +136,14 @@ proof -
 qed
 
 lemma backtrack_is_backjump':
-  fixes M M' :: "('v, unit, unit) ann_lit list"
+  fixes M M' :: "('v, unit) ann_lits"
   assumes
     backtrack: "backtrack S T" and
     no_dup: "(no_dup \<circ> fst) S" and
     decomp: "all_decomposition_implies_m (snd S) (get_all_ann_decomposition (fst S))"
     shows "
         \<exists>C F' K F L l C'.
-          fst S = F' @ Decided K () # F \<and>
+          fst S = F' @ Decided K # F \<and>
           T = (Propagated L l # F, snd S) \<and> C \<in># snd S \<and> fst S \<Turnstile>as CNot C
           \<and> undefined_lit F L \<and> atm_of L \<in> atms_of_mm (snd S) \<union> atm_of ` lits_of_l (fst S) \<and>
           snd S \<Turnstile>pm C' + {#L#} \<and> F \<Turnstile>as CNot C'"
@@ -185,7 +185,7 @@ proof -
 qed
 
 lemma backtrack_is_backjump'':
-  fixes M M' :: "('v, unit, unit) ann_lit list"
+  fixes M M' :: "('v, unit) ann_lits"
   assumes
     backtrack: "backtrack S T" and
     no_dup: "(no_dup \<circ> fst) S" and
@@ -193,7 +193,7 @@ lemma backtrack_is_backjump'':
     shows "backjump S T"
 proof -
   obtain C F' K F L l C' where
-    1: "fst S = F' @ Decided K () # F" and
+    1: "fst S = F' @ Decided K # F" and
     2: "T = (Propagated L l # F, snd S)" and
     3: "C \<in># snd S" and
     4: "fst S \<Turnstile>as CNot C" and
@@ -211,7 +211,7 @@ qed
 
 lemma can_do_bt_step:
    assumes
-     M: "fst S = F' @ Decided K d # F" and
+     M: "fst S = F' @ Decided K # F" and
      "C \<in># snd S" and
      C: "fst S \<Turnstile>as CNot C"
    shows "\<not> no_step backtrack S"
@@ -255,19 +255,19 @@ context dpll_with_backtrack
 begin
 lemma wf_tranclp_dpll_inital_state:
   assumes fin: "finite A"
-  shows "wf {((M'::('v, unit, unit) ann_lits, N'::'v clauses), ([], N))|M' N' N.
+  shows "wf {((M'::('v, unit) ann_lits, N'::'v clauses), ([], N))|M' N' N.
     dpll_bj\<^sup>+\<^sup>+ ([], N) (M', N') \<and> atms_of_mm N \<subseteq> atms_of_ms A}"
   using wf_tranclp_dpll_bj[OF assms(1)] by (rule wf_subset) auto
 
 corollary full_dpll_final_state_conclusive:
-  fixes M M' :: "('v, unit, unit) ann_lit list"
+  fixes M M' :: "('v, unit) ann_lits"
   assumes
     full: "full dpll_bj ([], N) (M', N')"
   shows "unsatisfiable (set_mset N) \<or> (M' \<Turnstile>asm N \<and> satisfiable (set_mset N))"
   using assms full_dpll_backjump_final_state[of "([],N)" "(M', N')" "set_mset N"] by auto
 
 corollary full_dpll_normal_form_from_init_state:
-  fixes M M' :: "('v, unit, unit) ann_lit list"
+  fixes M M' :: "('v, unit) ann_lits"
   assumes
     full: "full dpll_bj ([], N) (M', N')"
   shows "M' \<Turnstile>asm N \<longleftrightarrow> satisfiable (set_mset N)"

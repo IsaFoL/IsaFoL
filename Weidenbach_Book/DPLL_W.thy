@@ -5,8 +5,8 @@ begin
 
 section \<open>DPLL\<close>
 subsection \<open>Rules\<close>
-type_synonym 'a dpll\<^sub>W_ann_lit = "('a, unit, unit) ann_lit"
-type_synonym 'a dpll\<^sub>W_ann_lits = "('a, unit, unit) ann_lits"
+type_synonym 'a dpll\<^sub>W_ann_lit = "('a, unit) ann_lit"
+type_synonym 'a dpll\<^sub>W_ann_lits = "('a, unit) ann_lits"
 type_synonym 'v dpll\<^sub>W_state = "'v dpll\<^sub>W_ann_lits \<times> 'v clauses"
 
 abbreviation trail :: "'v dpll\<^sub>W_state \<Rightarrow> 'v dpll\<^sub>W_ann_lits" where
@@ -18,7 +18,7 @@ inductive dpll\<^sub>W :: "'v dpll\<^sub>W_state \<Rightarrow> 'v dpll\<^sub>W_s
 propagate: "C + {#L#} \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit (trail S) L
   \<Longrightarrow> dpll\<^sub>W S (Propagated L () # trail S, clauses S)" |
 decided: "undefined_lit (trail S) L \<Longrightarrow> atm_of L \<in> atms_of_mm (clauses S)
-  \<Longrightarrow> dpll\<^sub>W S (Decided L () # trail S, clauses S)" |
+  \<Longrightarrow> dpll\<^sub>W S (Decided L # trail S, clauses S)" |
 backtrack: "backtrack_split (trail S) = (M', L # M) \<Longrightarrow> is_decided L \<Longrightarrow> D \<in># clauses S
   \<Longrightarrow> trail S \<Turnstile>as CNot D \<Longrightarrow> dpll\<^sub>W S (Propagated (- (lit_of L)) () # M, clauses S)"
 
@@ -189,7 +189,7 @@ next
            auto
       moreover {
         assume x': "x \<in> set ?tl"
-        have L': "Decided (lit_of L) () = L" using decided by (cases L, auto)
+        have L': "Decided (lit_of L) = L" using decided by (cases L, auto)
         have "x \<in> set (get_all_ann_decomposition (M' @ L # M))"
           using x' get_all_ann_decomposition_except_last_choice_equal[of M' "lit_of L" P M]
           L' by (metis (no_types) M' list.set_sel(2) tl_Nil)
@@ -378,17 +378,17 @@ lemma dpll\<^sub>W_can_do_step:
   assumes "consistent_interp (set M)"
   and "distinct M"
   and "atm_of ` (set M) \<subseteq> atms_of_mm N"
-  shows "rtranclp dpll\<^sub>W ([], N) (map (\<lambda>M. Decided M ()) M, N)"
+  shows "rtranclp dpll\<^sub>W ([], N) (map Decided M, N)"
   using assms
 proof (induct M)
   case Nil
   then show ?case by auto
 next
   case (Cons L M)
-  then have "undefined_lit (map (\<lambda>M. Decided M ()) M) L"
+  then have "undefined_lit (map Decided M) L"
     unfolding defined_lit_def consistent_interp_def by auto
   moreover have "atm_of L \<in> atms_of_mm N" using Cons.prems(3) by auto
-  ultimately have "dpll\<^sub>W (map (\<lambda>M. Decided M ()) M, N) (map (\<lambda>M. Decided M ()) (L # M), N)"
+  ultimately have "dpll\<^sub>W (map Decided M, N) (map Decided (L # M), N)"
     using dpll\<^sub>W.decided by auto
   moreover have "consistent_interp (set M)" and "distinct M" and "atm_of ` set M \<subseteq> atms_of_mm N"
     using Cons.prems unfolding consistent_interp_def by auto
@@ -405,12 +405,12 @@ lemma dpll\<^sub>W_strong_completeness:
   and "consistent_interp (set M)"
   and "distinct M"
   and "atm_of ` (set M) \<subseteq> atms_of_mm N"
-  shows "dpll\<^sub>W\<^sup>*\<^sup>* ([], N) (map (\<lambda>M. Decided M ()) M, N)"
-  and "conclusive_dpll\<^sub>W_state (map (\<lambda>M. Decided M ())  M, N)"
+  shows "dpll\<^sub>W\<^sup>*\<^sup>* ([], N) (map Decided M, N)"
+  and "conclusive_dpll\<^sub>W_state (map Decided  M, N)"
 proof -
-  show "rtranclp dpll\<^sub>W ([], N) (map (\<lambda>M. Decided M ()) M, N)" using dpll\<^sub>W_can_do_step assms by auto
-  have "map (\<lambda>M. Decided M ()) M \<Turnstile>asm N" using assms(1) true_annots_decided_true_cls by auto
-  then show "conclusive_dpll\<^sub>W_state (map (\<lambda>M. Decided M ()) M, N)"
+  show "rtranclp dpll\<^sub>W ([], N) (map Decided M, N)" using dpll\<^sub>W_can_do_step assms by auto
+  have "map Decided M \<Turnstile>asm N" using assms(1) true_annots_decided_true_cls by auto
+  then show "conclusive_dpll\<^sub>W_state (map Decided M, N)"
     unfolding conclusive_dpll\<^sub>W_state_def by auto
 qed
 
@@ -607,7 +607,7 @@ lemma dpll\<^sub>W_wf_plus:
 
 
 subsection \<open>Final States\<close>
-(*Proposition 2.8.1: final states are the normal forms of @{term dpll\<^sub>W}*)
+text \<open>Proposition 2.8.1: final states are the normal forms of @{term dpll\<^sub>W}\<close>
 lemma dpll\<^sub>W_no_more_step_is_a_conclusive_state:
   assumes "\<forall>S'. \<not>dpll\<^sub>W S S'"
   shows "conclusive_dpll\<^sub>W_state S"

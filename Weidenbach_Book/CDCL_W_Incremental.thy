@@ -41,14 +41,14 @@ locale state\<^sub>W_adding_init_clause =
     ccls_of_cls :: "'cls \<Rightarrow> 'ccls" and
     cls_of_ccls :: "'ccls \<Rightarrow> 'cls" and
 
-    trail :: "'st \<Rightarrow> ('v, unit, 'v clause) ann_lits" and
-    hd_raw_trail :: "'st \<Rightarrow> ('v, unit, 'cls) ann_lit" and
+    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    hd_raw_trail :: "'st \<Rightarrow> ('v, 'cls) ann_lit" and
     raw_init_clss :: "'st \<Rightarrow> 'clss" and
     raw_learned_clss :: "'st \<Rightarrow> 'clss" and
     backtrack_lvl :: "'st \<Rightarrow> nat" and
     raw_conflicting :: "'st \<Rightarrow> 'ccls option" and
 
-    cons_trail :: "('v, unit, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    cons_trail :: "('v, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_learned_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -129,14 +129,14 @@ locale conflict_driven_clause_learning_with_adding_init_clause\<^sub>W =
     ccls_of_cls :: "'cls \<Rightarrow> 'ccls" and
     cls_of_ccls :: "'ccls \<Rightarrow> 'cls" and
 
-    trail :: "'st \<Rightarrow> ('v, unit, 'v clause) ann_lits" and
-    hd_raw_trail :: "'st \<Rightarrow> ('v, unit, 'cls) ann_lit" and
+    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    hd_raw_trail :: "'st \<Rightarrow> ('v, 'cls) ann_lit" and
     raw_init_clss :: "'st \<Rightarrow> 'clss" and
     raw_learned_clss :: "'st \<Rightarrow> 'clss" and
     backtrack_lvl :: "'st \<Rightarrow> nat" and
     raw_conflicting :: "'st \<Rightarrow> 'ccls option" and
 
-    cons_trail :: "('v, unit, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    cons_trail :: "('v, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_learned_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -194,7 +194,7 @@ text \<open>When we add a new clause, we reduce the trail until we get to tho fi
   Then we can mark the conflict.\<close>
 fun cut_trail_wrt_clause where
 "cut_trail_wrt_clause C [] S = S" |
-"cut_trail_wrt_clause C (Decided L _ # M) S =
+"cut_trail_wrt_clause C (Decided L # M) S =
   (if -L \<in># C then S
     else cut_trail_wrt_clause C M (decr_bt_lvl (tl_trail S)))" |
 "cut_trail_wrt_clause C (Propagated L _ # M) S =
@@ -224,13 +224,13 @@ lemma conflicting_clss_cut_trail_wrt_clause[simp]:
 lemma trail_cut_trail_wrt_clause:
   "\<exists>M.  trail S = M @ trail (cut_trail_wrt_clause C (trail S) S)"
 proof (induction "trail S" arbitrary: S rule: ann_lit_list_induct)
-  case nil
+  case Nil
   then show ?case by simp
 next
-  case (decided L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail S)"] and M = this(2)[symmetric]
+  case (Decided L M) note IH = this(1)[of "decr_bt_lvl (tl_trail S)"] and M = this(2)[symmetric]
   then show ?case using Cons_eq_appendI by fastforce+
 next
-  case (proped L l M) note IH = this(1)[of "tl_trail S"] and M = this(2)[symmetric]
+  case (Propagated L l M) note IH = this(1)[of "tl_trail S"] and M = this(2)[symmetric]
   then show ?case using Cons_eq_appendI by fastforce+
 qed
 
@@ -249,18 +249,18 @@ lemma cut_trail_wrt_clause_backtrack_lvl_length_decided:
   assumes
      "backtrack_lvl T = count_decided (trail T)"
   shows
-  "backtrack_lvl (cut_trail_wrt_clause C (trail T) T) =
-     count_decided (trail (cut_trail_wrt_clause C (trail T) T))"
+    "backtrack_lvl (cut_trail_wrt_clause C (trail T) T) =
+      count_decided (trail (cut_trail_wrt_clause C (trail T) T))"
   using assms
 proof (induction "trail T" arbitrary:T rule: ann_lit_list_induct)
-  case nil
+  case Nil
   then show ?case by simp
 next
-  case (decided L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
+  case (Decided L M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
     and bt = this(3)
   then show ?case by auto
 next
-  case (proped L l M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric] and bt = this(3)
+  case (Propagated L l M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric] and bt = this(3)
   then show ?case by auto
 qed
 
@@ -270,10 +270,10 @@ lemma cut_trail_wrt_clause_CNot_trail:
     "(trail ((cut_trail_wrt_clause C (trail T) T))) \<Turnstile>as CNot C"
   using assms
 proof (induction "trail T" arbitrary:T rule: ann_lit_list_induct)
-  case nil
+  case Nil
   then show ?case by simp
 next
-  case (decided L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
+  case (Decided L M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
     and bt = this(3)
   show ?case
     proof (cases "count C (-L) = 0")
@@ -282,7 +282,7 @@ next
         using IH M bt by (auto simp: true_annots_true_cls)
     next
       case True
-      obtain mma :: "'v literal multiset" where
+      obtain mma :: "'v clause" where
         f6: "(mma \<in> {{#- l#} |l. l \<in># C} \<longrightarrow> M \<Turnstile>a mma) \<longrightarrow> M \<Turnstile>as {{#- l#} |l. l \<in># C}"
         using true_annots_def by blast
       have "mma \<in> {{#- l#} |l. l \<in># C} \<longrightarrow> trail T \<Turnstile>a mma"
@@ -293,7 +293,7 @@ next
         using IH true_annots_true_cls M by (auto simp: CNot_def)
     qed
 next
-  case (proped L l M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric] and bt = this(3)
+  case (Propagated L l M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric] and bt = this(3)
   show ?case
     proof (cases "count C (-L) = 0")
       case False
@@ -301,7 +301,7 @@ next
         using IH M bt by (auto simp: true_annots_true_cls)
     next
       case True
-      obtain mma :: "'v literal multiset" where
+      obtain mma :: "'v clause" where
         f6: "(mma \<in> {{#- l#} |l. l \<in># C} \<longrightarrow> M \<Turnstile>a mma) \<longrightarrow> M \<Turnstile>as {{#- l#} |l. l \<in># C}"
         using true_annots_def by blast
       have "mma \<in> {{#- l#} |l. l \<in># C} \<longrightarrow> trail T \<Turnstile>a mma"
@@ -319,13 +319,13 @@ lemma cut_trail_wrt_clause_hd_trail_in_or_empty_trail:
        \<and> length (trail (cut_trail_wrt_clause C (trail T) T)) \<ge> 1)"
   using assms
 proof (induction "trail T" arbitrary:T rule: ann_lit_list_induct)
-  case nil
+  case Nil
   then show ?case by simp
 next
-  case (decided L l M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
+  case (Decided L M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
   then show ?case by simp force
 next
-  case (proped L l M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric]
+  case (Propagated L l M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric]
   then show ?case by simp force
 qed
 
@@ -505,7 +505,7 @@ proof -
             case D_T
             have "no_smaller_confl T"
               using inv_s unfolding cdcl\<^sub>W_stgy_invariant_def by auto
-            have "(MT @ M') @ Decided K () # M = trail T "
+            have "(MT @ M') @ Decided K # M = trail T "
               using MT 1(1) by auto
             thus False using D_T \<open>no_smaller_confl T\<close> 1(3) unfolding no_smaller_confl_def by blast
           next
@@ -513,15 +513,15 @@ proof -
             then have "atm_of (-?L) \<in> atm_of ` (lits_of_l M)"
               using 1(3) C in_CNot_implies_uminus(2) by blast
             moreover
-              have "lit_of (hd (M' @ Decided K () # [])) = -?L"
+              have "lit_of (hd (M' @ Decided K # [])) = -?L"
                 using l 1(1)[symmetric] inv
                 by (cases "trail (add_init_cls (cls_of_ccls C)
                     (cut_trail_wrt_clause (mset_ccls C) (trail T) T))")
                 (auto dest!: arg_cong[of "_ # _" _ hd] simp: hd_append cdcl\<^sub>W_all_struct_inv_def
                   cdcl\<^sub>W_M_level_inv_def)
               from arg_cong[OF this, of atm_of]
-              have "atm_of (-?L) \<in> atm_of ` (lits_of_l (M' @ Decided K i # []))"
-                by (cases " (M' @ Decided K i # [])") auto
+              have "atm_of (-?L) \<in> atm_of ` (lits_of_l (M' @ Decided K # []))"
+                by (cases " (M' @ Decided K # [])") auto
             moreover have "no_dup (trail (cut_trail_wrt_clause (mset_ccls C) (trail T) T))"
               using \<open>cdcl\<^sub>W_all_struct_inv ?T'\<close> unfolding cdcl\<^sub>W_all_struct_inv_def
               cdcl\<^sub>W_M_level_inv_def by (auto simp: add_new_clause_and_update_def)
@@ -601,7 +601,7 @@ next
   then show ?case
     using add_no_confl(5) unfolding full_def by (auto intro: rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv)
   case 2
-  have nc: "\<forall>M. (\<exists>K i M'. trail S = M' @ Decided K i # M) \<longrightarrow> \<not> M \<Turnstile>as CNot (mset_ccls C)"
+  have nc: "\<forall>M. (\<exists>K i M'. trail S = M' @ Decided K # M) \<longrightarrow> \<not> M \<Turnstile>as CNot (mset_ccls C)"
     using  \<open>\<not> trail S \<Turnstile>as CNot (mset_ccls C)\<close>
     by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
 

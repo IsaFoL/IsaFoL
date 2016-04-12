@@ -12,7 +12,7 @@ text \<open>This measure show the termination of the core of CDCL: each step imp
 definition \<mu>\<^sub>C  :: "nat \<Rightarrow> nat \<Rightarrow> nat list \<Rightarrow> nat" where
 "\<mu>\<^sub>C s b M \<equiv> (\<Sum>i=0..<length M. M!i * b^ (s +i - length M))"
 
-lemma \<mu>\<^sub>C_nil[simp]:
+lemma \<mu>\<^sub>C_Nil[simp]:
   "\<mu>\<^sub>C s b [] = 0"
   unfolding \<mu>\<^sub>C_def by auto
 

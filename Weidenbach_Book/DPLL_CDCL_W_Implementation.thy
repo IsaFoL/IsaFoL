@@ -11,14 +11,14 @@ lemma lits_of_l_unfold[iff]:
   unfolding true_annots_def Ball_def true_annot_def CNot_def by auto
 text \<open>The right-hand version is written at a high-level, but only the left-hand side is executable.\<close>
 
-definition is_unit_clause :: "'a literal list \<Rightarrow> ('a, 'b, 'c) ann_lit list \<Rightarrow> 'a literal option"
+definition is_unit_clause :: "'a literal list \<Rightarrow> ('a, 'b) ann_lits \<Rightarrow> 'a literal option"
  where
  "is_unit_clause l M =
    (case List.filter (\<lambda>a. atm_of a \<notin> atm_of ` lits_of_l M) l of
      a # [] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
    | _ \<Rightarrow> None)"
 
-definition is_unit_clause_code :: "'a literal list \<Rightarrow> ('a, 'b, 'c) ann_lit list
+definition is_unit_clause_code :: "'a literal list \<Rightarrow> ('a, 'b) ann_lits
   \<Rightarrow> 'a literal option" where
  "is_unit_clause_code l M =
    (case List.filter (\<lambda>a. atm_of a \<notin> atm_of ` lits_of_l M) l of
@@ -75,12 +75,12 @@ proof -
        (fastforce dest: filter_eq_ConsD split: if_split_asm  split: list.splits)+
 qed
 
-lemma is_unit_clause_nil[simp]: "is_unit_clause [] M = None"
+lemma is_unit_clause_Nil[simp]: "is_unit_clause [] M = None"
   unfolding is_unit_clause_def by auto
 
 subsubsection \<open>Unit propagation for all clauses\<close>
 text \<open>Finding the first clause to propagate\<close>
-fun find_first_unit_clause :: "'a literal list list \<Rightarrow> ('a, 'b, 'c) ann_lit list
+fun find_first_unit_clause :: "'a literal list list \<Rightarrow> ('a, 'b) ann_lits
   \<Rightarrow> ('a literal \<times> 'a literal list) option"  where
 "find_first_unit_clause (a # l) M =
   (case is_unit_clause a M of
@@ -177,7 +177,7 @@ lemma find_first_unused_var_undefined:
 
 subsection \<open>CDCL specific functions\<close>
 subsubsection \<open>Level\<close>
-fun maximum_level_code:: "'a literal list \<Rightarrow> ('a, unit, 'b) ann_lit list \<Rightarrow> nat"
+fun maximum_level_code:: "'a literal list \<Rightarrow> ('a, 'b) ann_lits \<Rightarrow> nat"
   where
 "maximum_level_code [] _ = 0" |
 "maximum_level_code (L # Ls) M = max (get_level M L) (maximum_level_code Ls M)"
@@ -187,7 +187,7 @@ lemma maximum_level_code_eq_get_maximum_level[simp]:
   by (induction D) (auto simp add: get_maximum_level_plus)
 
 lemma [code]:
-  fixes M :: "('a, unit, 'b) ann_lit list"
+  fixes M :: "('a, 'b) ann_lits"
   shows "get_maximum_level M (mset D) = maximum_level_code D M"
   by simp
 
@@ -254,25 +254,25 @@ qed
 
 fun bt_cut where
 "bt_cut i (Propagated _ _ # Ls) = bt_cut i Ls" |
-"bt_cut i (Decided K () # Ls) = (if count_decided Ls = i then Some (Decided K () # Ls) else bt_cut i Ls)" |
+"bt_cut i (Decided K # Ls) = (if count_decided Ls = i then Some (Decided K # Ls) else bt_cut i Ls)" |
 "bt_cut i [] = None"
 
 lemma bt_cut_some_decomp:
   assumes "no_dup M" and "bt_cut i M = Some M'"
-  shows "\<exists>K M2 M1. M = M2 @ M' \<and> M' = Decided K () # M1 \<and> get_level M K = (i+1)"
+  shows "\<exists>K M2 M1. M = M2 @ M' \<and> M' = Decided K # M1 \<and> get_level M K = (i+1)"
   using assms by (induction i M rule: bt_cut.induct) (auto split: if_split_asm)
 
 lemma bt_cut_not_none: 
-  assumes "no_dup M" and "M = M2 @ Decided K () # M'" and "get_level M K = (i+1)"
+  assumes "no_dup M" and "M = M2 @ Decided K # M'" and "get_level M K = (i+1)"
   shows "bt_cut i M \<noteq> None"
   using assms by (induction M2 arbitrary: M rule: ann_lit_list_induct) 
-  (auto simp: atm_lit_of_set_list_of_l)
+  (auto simp: atm_lit_of_set_lits_of_l)
 
 lemma get_all_ann_decomposition_ex:
-  "\<exists>N. (Decided K () # M', N) \<in> set (get_all_ann_decomposition (M2@Decided K () # M'))"
+  "\<exists>N. (Decided K # M', N) \<in> set (get_all_ann_decomposition (M2@Decided K # M'))"
   apply (induction M2 rule: ann_lit_list_induct)
     apply auto[2]
-  by (rename_tac L m xs,  case_tac "get_all_ann_decomposition (xs @ Decided K () # M')")
+  by (rename_tac L m xs,  case_tac "get_all_ann_decomposition (xs @ Decided K # M')")
   auto
 
 lemma bt_cut_in_get_all_ann_decomposition:
@@ -286,7 +286,7 @@ fun do_backtrack_step where
     None \<Rightarrow> (M, N, U, k, Some D)
   | Some (L, j) \<Rightarrow>
     (case bt_cut j M of
-      Some (Decided _ _ # Ls) \<Rightarrow> (Propagated L D # Ls, N, D # U, j, None)
+      Some (Decided _ # Ls) \<Rightarrow> (Propagated L D # Ls, N, D # U, j, None)
     | _ \<Rightarrow> (M, N, U, k, Some D))
   )" |
 "do_backtrack_step S = S"

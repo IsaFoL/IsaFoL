@@ -42,14 +42,14 @@ locale cdcl\<^sub>W_restart =
     ccls_of_cls :: "'cls \<Rightarrow> 'ccls" and
     cls_of_ccls :: "'ccls \<Rightarrow> 'cls" and
 
-    trail :: "'st \<Rightarrow> ('v, unit, 'v clause) ann_lits" and
-    hd_raw_trail :: "'st \<Rightarrow> ('v, unit, 'cls) ann_lit" and
+    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    hd_raw_trail :: "'st \<Rightarrow> ('v, 'cls) ann_lit" and
     raw_init_clss :: "'st \<Rightarrow> 'clss" and
     raw_learned_clss :: "'st \<Rightarrow> 'clss" and
     backtrack_lvl :: "'st \<Rightarrow> nat" and
     raw_conflicting :: "'st \<Rightarrow> 'ccls option" and
 
-    cons_trail :: "('v, unit, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    cons_trail :: "('v, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_learned_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -606,14 +606,14 @@ locale luby_sequence_restart =
     ccls_of_cls :: "'cls \<Rightarrow> 'ccls" and
     cls_of_ccls :: "'ccls \<Rightarrow> 'cls" and
 
-    trail :: "'st \<Rightarrow> ('v, unit, 'v clause) ann_lits" and
-    hd_raw_trail :: "'st \<Rightarrow> ('v, unit, 'cls) ann_lit" and
+    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    hd_raw_trail :: "'st \<Rightarrow> ('v, 'cls) ann_lit" and
     raw_init_clss :: "'st \<Rightarrow> 'clss" and
     raw_learned_clss :: "'st \<Rightarrow> 'clss" and
     backtrack_lvl :: "'st \<Rightarrow> nat" and
     raw_conflicting :: "'st \<Rightarrow> 'ccls option" and
 
-    cons_trail :: "('v, unit, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    cons_trail :: "('v, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_learned_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and

@@ -13,28 +13,28 @@ begin
 
 subsection \<open>Decided Literals\<close>
 subsubsection \<open>Definition\<close>
-datatype ('v, 'lvl, 'mark) ann_lit =
-  is_decided: Decided (lit_of: "'v literal") (level_of: "'lvl") |
+datatype ('v, 'mark) ann_lit =
+  is_decided: Decided (lit_of: "'v literal") |
   is_proped: Propagated (lit_of: "'v literal") (mark_of: 'mark)
 
-lemma ann_lit_list_induct[case_names nil decided proped]:
+lemma ann_lit_list_induct[case_names Nil Decided Propagated]:
   assumes "P []" and
-  "\<And>L l xs. P xs \<Longrightarrow> P (Decided L l # xs)" and
+  "\<And>L xs. P xs \<Longrightarrow> P (Decided L # xs)" and
   "\<And>L m xs. P xs \<Longrightarrow> P (Propagated L m # xs)"
   shows "P xs"
   using assms apply (induction xs, simp)
   by (rename_tac a xs, case_tac a) auto
 
 lemma is_decided_ex_Decided:
-  "is_decided L \<Longrightarrow> (\<And>K lvl. L = Decided K lvl \<Longrightarrow> P) \<Longrightarrow> P"
+  "is_decided L \<Longrightarrow> (\<And>K. L = Decided K \<Longrightarrow> P) \<Longrightarrow> P"
   by (cases L) auto
 
-type_synonym ('v, 'l, 'm) ann_lits = "('v, 'l, 'm) ann_lit list"
+type_synonym ('v, 'm) ann_lits = "('v, 'm) ann_lit list"
 
-definition lits_of :: "('a, 'b, 'c) ann_lit set \<Rightarrow> 'a literal set" where
+definition lits_of :: "('a, 'b) ann_lit set \<Rightarrow> 'a literal set" where
 "lits_of Ls = lit_of ` Ls"
 
-abbreviation lits_of_l :: "('a, 'b, 'c) ann_lit list \<Rightarrow> 'a literal set" where
+abbreviation lits_of_l :: "('a, 'b) ann_lits \<Rightarrow> 'a literal set" where
 "lits_of_l Ls \<equiv> lits_of (set Ls)"
 
 lemma lits_of_l_empty[simp]:
@@ -71,10 +71,10 @@ lemma lits_of_l_empty_is_empty[iff]:
   by (induct M) (auto simp: lits_of_def)
 
 subsubsection \<open>Entailment\<close>
-definition true_annot :: "('a, 'l, 'm) ann_lits \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>a" 49) where
+definition true_annot :: "('a, 'm) ann_lits \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>a" 49) where
   "I \<Turnstile>a C \<longleftrightarrow> (lits_of_l I) \<Turnstile> C"
 
-definition true_annots :: "('a, 'l, 'm) ann_lits \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>as" 49) where
+definition true_annots :: "('a, 'm) ann_lits \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>as" 49) where
   "I \<Turnstile>as CC \<longleftrightarrow> (\<forall>C \<in> CC. I \<Turnstile>a C)"
 
 lemma true_annot_empty_model[simp]:
@@ -144,9 +144,9 @@ lemma true_annots_true_clss_cls:
     true_clss_clss_def)
 
 lemma true_annots_decided_true_cls[iff]:
-  "map (\<lambda>M. Decided M a) M \<Turnstile>as N \<longleftrightarrow> set M \<Turnstile>s N"
+  "map Decided M \<Turnstile>as N \<longleftrightarrow> set M \<Turnstile>s N"
 proof -
-  have *: "lit_of ` (\<lambda>M. Decided M a) ` set M = set M" unfolding lits_of_def by force
+  have *: "lit_of ` Decided ` set M = set M" unfolding lits_of_def by force
   show ?thesis by (simp add: true_annots_true_cls * lits_of_def)
 qed
 
@@ -182,12 +182,12 @@ text \<open>We introduce the functions @{term defined_lit} and @{term undefined_
 
   Remark that @{term undefined} already exists and is a completely different Isabelle function.
   \<close>
-definition defined_lit :: "('a, 'l, 'm) ann_lits  \<Rightarrow> 'a literal \<Rightarrow> bool"
+definition defined_lit :: "('a, 'm) ann_lits  \<Rightarrow> 'a literal \<Rightarrow> bool"
   where
-"defined_lit I L \<longleftrightarrow> (\<exists>l. Decided L l \<in> set I) \<or> (\<exists>P. Propagated L P \<in> set I)
-  \<or> (\<exists>l. Decided (-L) l \<in> set I) \<or> (\<exists>P. Propagated (-L) P \<in> set I)"
+"defined_lit I L \<longleftrightarrow> (Decided L \<in> set I) \<or> (\<exists>P. Propagated L P \<in> set I)
+  \<or> (Decided (-L) \<in> set I) \<or> (\<exists>P. Propagated (-L) P \<in> set I)"
 
-abbreviation undefined_lit :: "('a, 'l, 'm) ann_lit list  \<Rightarrow> 'a literal \<Rightarrow>  bool"
+abbreviation undefined_lit :: "('a, 'm) ann_lits  \<Rightarrow> 'a literal \<Rightarrow>  bool"
 where "undefined_lit I L \<equiv> \<not>defined_lit I L"
 
 lemma defined_lit_rev[simp]:
@@ -197,15 +197,15 @@ lemma defined_lit_rev[simp]:
 lemma atm_imp_decided_or_proped:
   assumes "x \<in> set I"
   shows
-    "(\<exists>l. Decided (- lit_of x) l \<in> set I)
-    \<or> (\<exists>l. Decided (lit_of x) l \<in> set I)
+    "(Decided (- lit_of x) \<in> set I)
+    \<or> (Decided (lit_of x) \<in> set I)
     \<or> (\<exists>l. Propagated (- lit_of x) l \<in> set I)
     \<or> (\<exists>l. Propagated (lit_of x) l \<in> set I)"
   using assms ann_lit.exhaust_sel by metis
 
 lemma literal_is_lit_of_decided:
   assumes "L = lit_of x"
-  shows "(\<exists>l. x = Decided L l) \<or> (\<exists>l'. x = Propagated L l')"
+  shows "(x = Decided L) \<or> (\<exists>l'. x = Propagated L l')"
   using assms by (cases x) auto
 
 lemma true_annot_iff_decided_or_true_lit:
@@ -243,11 +243,11 @@ lemma decided_empty[simp]:
   unfolding defined_lit_def by simp
 
 subsection \<open>Backtracking\<close>
-fun backtrack_split :: "('v, 'l, 'm) ann_lits
-  \<Rightarrow> ('v, 'l, 'm) ann_lits \<times> ('v, 'l, 'm) ann_lits" where
+fun backtrack_split :: "('v, 'm) ann_lits
+  \<Rightarrow> ('v, 'm) ann_lits \<times> ('v, 'm) ann_lits" where
 "backtrack_split [] = ([], [])" |
 "backtrack_split (Propagated L P # mlits) = apfst ((op #) (Propagated L P)) (backtrack_split mlits)" |
-"backtrack_split (Decided L l # mlits) = ([], Decided L l # mlits)"
+"backtrack_split (Decided L # mlits) = ([], Decided L # mlits)"
 
 lemma backtrack_split_fst_not_decided: "a \<in> set (fst (backtrack_split l)) \<Longrightarrow> \<not>is_decided a"
   by (induct l rule: ann_lit_list_induct) auto
@@ -287,17 +287,17 @@ Split function in 2 + list.product
 *)
 text \<open>The pattern @{term "get_all_ann_decomposition [] = [([], [])]"} is necessary otherwise, we
   can call the @{term hd} function in the other pattern. \<close>
-fun get_all_ann_decomposition :: "('a, 'l, 'm) ann_lits
-  \<Rightarrow> (('a, 'l, 'm) ann_lits \<times> ('a, 'l, 'm) ann_lits) list" where
-"get_all_ann_decomposition (Decided L l # Ls) =
-  (Decided L l # Ls, []) # get_all_ann_decomposition Ls" |
+fun get_all_ann_decomposition :: "('a, 'm) ann_lits
+  \<Rightarrow> (('a, 'm) ann_lits \<times> ('a, 'm) ann_lits) list" where
+"get_all_ann_decomposition (Decided L # Ls) =
+  (Decided L # Ls, []) # get_all_ann_decomposition Ls" |
 "get_all_ann_decomposition (Propagated L P# Ls) =
   (apsnd ((op #) (Propagated L P)) (hd (get_all_ann_decomposition Ls)))
     # tl (get_all_ann_decomposition Ls)" |
 "get_all_ann_decomposition [] = [([], [])]"
 
-value "get_all_ann_decomposition [Propagated A5 B5, Decided C4 D4, Propagated A3 B3,
-  Propagated A2 B2, Decided C1 D1, Propagated A0 B0]"
+value "get_all_ann_decomposition [Propagated A5 B5, Decided C4, Propagated A3 B3,
+  Propagated A2 B2, Decided C1, Propagated A0 B0]"
 
 (*
 
@@ -345,7 +345,7 @@ next
   then show ?case using backtrack_split_takeWhile_dropWhile by (cases a) force+
 qed
 
-lemma get_all_ann_decomposition_nil_backtrack_split_snd_nil:
+lemma get_all_ann_decomposition_Nil_backtrack_split_snd_Nil:
   "get_all_ann_decomposition S = [([], A)] \<Longrightarrow> snd (backtrack_split S) = []"
   by (simp add: get_all_ann_decomposition_backtrack_split sndI)
 
@@ -356,12 +356,12 @@ lemma get_all_ann_decomposition_length_1_fst_empty_or_length_1:
   shows "a = [] \<or> (length a = 1 \<and> is_decided (hd a) \<and> hd a \<in> set M)"
   using assms
 proof (induct M arbitrary: a b rule: ann_lit_list_induct)
-  case nil then show ?case by simp
+  case Nil then show ?case by simp
 next
-  case (decided L mark M)
+  case (Decided L mark)
   then show ?case by simp
 next
-  case (proped L mark M)
+  case (Propagated L mark M)
   then show ?case by (cases "get_all_ann_decomposition M") force+
 qed
 
@@ -378,7 +378,7 @@ lemma get_all_ann_decomposition_snd_not_decided:
   and "L \<in> set b"
   shows "\<not>is_decided L"
   using assms apply (induct M arbitrary: a b rule: ann_lit_list_induct, simp)
-  by (rename_tac L' l xs a b, case_tac "get_all_ann_decomposition xs"; fastforce)+
+  by (rename_tac L' xs a b, case_tac "get_all_ann_decomposition xs"; fastforce)+
 
 lemma tl_get_all_ann_decomposition_skip_some:
   assumes "x \<in> set (tl (get_all_ann_decomposition M1))"
@@ -389,18 +389,18 @@ lemma tl_get_all_ann_decomposition_skip_some:
 
 lemma hd_get_all_ann_decomposition_skip_some:
   assumes "(x, y) = hd (get_all_ann_decomposition M1)"
-  shows "(x, y) \<in> set (get_all_ann_decomposition (M0 @ Decided K i # M1))"
+  shows "(x, y) \<in> set (get_all_ann_decomposition (M0 @ Decided K # M1))"
   using assms
 proof (induction M0 rule: ann_lit_list_induct)
-  case nil
+  case Nil
   then show ?case by auto
 next
-  case (decided L m M0)
+  case (Decided L M0)
   then show ?case by auto
 next
-  case (proped L C M0) note xy = this(1)[OF this(2-)] and hd = this(2)
+  case (Propagated L C M0) note xy = this(1)[OF this(2-)] and hd = this(2)
   then show ?case
-    by (cases "get_all_ann_decomposition (M0 @ Decided K i # M1)")
+    by (cases "get_all_ann_decomposition (M0 @ Decided K # M1)")
        (auto dest!: get_all_ann_decomposition_decomp
           arg_cong[of "get_all_ann_decomposition _"  _ hd])
 qed
@@ -422,20 +422,20 @@ lemma get_all_ann_decomposition_remove_undecided_length:
 lemma get_all_ann_decomposition_not_is_decided_length:
   assumes "\<forall>l \<in> set M'. \<not>is_decided l"
   shows "1 + length (get_all_ann_decomposition (Propagated (-L) P # M))
- = length (get_all_ann_decomposition (M' @ Decided L l # M))"
+ = length (get_all_ann_decomposition (M' @ Decided L # M))"
  using assms get_all_ann_decomposition_remove_undecided_length by fastforce
 
 lemma get_all_ann_decomposition_last_choice:
-  assumes "tl (get_all_ann_decomposition (M' @ Decided L l # M)) \<noteq> []"
+  assumes "tl (get_all_ann_decomposition (M' @ Decided L # M)) \<noteq> []"
   and "\<forall>l \<in> set M'. \<not>is_decided l"
-  and "hd (tl (get_all_ann_decomposition (M' @ Decided L l # M))) = (M0', M0)"
+  and "hd (tl (get_all_ann_decomposition (M' @ Decided L # M))) = (M0', M0)"
   shows "hd (get_all_ann_decomposition (Propagated (-L) P # M)) = (M0', Propagated (-L) P # M0)"
   using assms by (induct M' rule: ann_lit_list_induct) auto
 
 lemma get_all_ann_decomposition_except_last_choice_equal:
   assumes "\<forall>l \<in> set M'. \<not>is_decided l"
   shows "tl (get_all_ann_decomposition (Propagated (-L) P # M))
- = tl (tl (get_all_ann_decomposition (M' @ Decided L l # M)))"
+ = tl (tl (get_all_ann_decomposition (M' @ Decided L # M)))"
   using assms by (induct M'  rule: ann_lit_list_induct) auto
 
 lemma get_all_ann_decomposition_hd_hd:
@@ -448,7 +448,7 @@ proof (induct Ls arbitrary: M C M0 M0' l)
 next
   case (Cons a Ls M C M0 M0' l) note IH = this(1) and g = this(2)
   { fix L level
-    assume a: "a = Decided L level"
+    assume a: "a = Decided L"
     have "Ls = M0' @ M0"
       using g a by (force intro: get_all_ann_decomposition_decomp)
     then have "tl M = M0' @ M0 \<and> is_decided (hd M)" using g a by auto
@@ -467,7 +467,7 @@ lemma get_all_ann_decomposition_exists_prepend[dest]:
   shows "\<exists>c. M = c @ b @ a"
   using assms apply (induct M rule: ann_lit_list_induct)
     apply simp
-  by (rename_tac L' m xs, case_tac "get_all_ann_decomposition xs";
+  by (rename_tac L' xs, case_tac "get_all_ann_decomposition xs";
     auto dest!: arg_cong[of "get_all_ann_decomposition _" _ hd]
       get_all_ann_decomposition_decomp)+
 
@@ -481,7 +481,7 @@ lemma get_all_ann_decomposition_exists_prepend':
   obtains c where "M = c @ b @ a"
   using assms apply (induct M rule: ann_lit_list_induct)
     apply auto[1]
-  by (rename_tac L' m xs, case_tac "hd (get_all_ann_decomposition xs)",
+  by (rename_tac L' xs, case_tac "hd (get_all_ann_decomposition xs)",
     auto dest!: get_all_ann_decomposition_decomp simp add: list.set_sel(2))+
 
 lemma union_in_get_all_ann_decomposition_is_subset:
@@ -490,34 +490,42 @@ lemma union_in_get_all_ann_decomposition_is_subset:
   using assms by force
 
 lemma Decided_cons_in_get_all_ann_decomposition_append_Decided_cons:
-  "\<exists>M1 M2. (Decided K i # M1, M2) \<in> set (get_all_ann_decomposition (c @ Decided K i # c'))"
+  "\<exists>M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (c @ Decided K # c'))"
   apply (induction c rule: ann_lit_list_induct)
     apply auto[2]
-  apply (rename_tac L m xs,
-      case_tac "hd (get_all_ann_decomposition (xs @ Decided K i # c'))")
-  apply (case_tac "get_all_ann_decomposition (xs @ Decided K i # c')")
+  apply (rename_tac L xs,
+      case_tac "hd (get_all_ann_decomposition (xs @ Decided K # c'))")
+  apply (case_tac "get_all_ann_decomposition (xs @ Decided K # c')")
   by auto
+
+lemma fst_get_all_ann_decomposition_prepend_not_decided:
+  assumes "\<forall>m\<in>set MS. \<not> is_decided m"
+  shows "set (map fst (get_all_ann_decomposition M))
+    = set (map fst (get_all_ann_decomposition (MS @ M)))"
+    using assms apply (induction MS rule: ann_lit_list_induct)
+    apply auto[2]
+    by (rename_tac L m xs; case_tac "get_all_ann_decomposition (xs @ M)") simp_all
 
 subsubsection \<open>Entailment of the Propagated by the Decided Literal\<close>
 lemma get_all_ann_decomposition_snd_union:
   "set M = \<Union>(set ` snd ` set (get_all_ann_decomposition M)) \<union> {L |L. is_decided L \<and> L \<in> set M}"
   (is "?M M = ?U M \<union> ?Ls M")
 proof (induct M rule: ann_lit_list_induct)
-  case nil
+  case Nil
   then show ?case by simp
 next
-  case (decided L l M) note IH = this(1)
-  then have "Decided L l \<in> ?Ls (Decided L l #M)" by auto
-  moreover have "?U (Decided L l#M) = ?U M" by auto
+  case (Decided L M) note IH = this(1)
+  then have "Decided L \<in> ?Ls (Decided L #M)" by auto
+  moreover have "?U (Decided L #M) = ?U M" by auto
   moreover have "?M M = ?U M \<union> ?Ls M" using IH by auto
   ultimately show ?case by auto
 next
-  case (proped L m M)
+  case (Propagated L m M)
   then show ?case by (cases "(get_all_ann_decomposition M)") auto
 qed
 
 definition all_decomposition_implies :: "'a literal multiset set
-  \<Rightarrow> (('a, 'l, 'm) ann_lit list \<times> ('a, 'l, 'm) ann_lit list) list \<Rightarrow> bool" where
+  \<Rightarrow> (('a, 'm) ann_lits \<times> ('a, 'm) ann_lits) list \<Rightarrow> bool" where
  "all_decomposition_implies N S \<longleftrightarrow> (\<forall>(Ls, seen) \<in> set S. unmark_l Ls \<union> N \<Turnstile>ps unmark_l seen)"
 
 lemma all_decomposition_implies_empty[iff]:
