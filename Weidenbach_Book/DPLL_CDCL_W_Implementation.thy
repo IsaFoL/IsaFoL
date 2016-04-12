@@ -177,7 +177,7 @@ lemma find_first_unused_var_undefined:
 
 subsection \<open>CDCL specific functions\<close>
 subsubsection \<open>Level\<close>
-fun maximum_level_code:: "'a literal list \<Rightarrow> ('a, nat, 'b) ann_lit list \<Rightarrow> nat"
+fun maximum_level_code:: "'a literal list \<Rightarrow> ('a, unit, 'b) ann_lit list \<Rightarrow> nat"
   where
 "maximum_level_code [] _ = 0" |
 "maximum_level_code (L # Ls) M = max (get_level M L) (maximum_level_code Ls M)"
@@ -187,7 +187,7 @@ lemma maximum_level_code_eq_get_maximum_level[simp]:
   by (induction D) (auto simp add: get_maximum_level_plus)
 
 lemma [code]:
-  fixes M :: "('a, nat, 'b) ann_lit list"
+  fixes M :: "('a, unit, 'b) ann_lit list"
   shows "get_maximum_level M (mset D) = maximum_level_code D M"
   by simp
 
@@ -231,8 +231,9 @@ next
     "(L = L' \<longrightarrow> get_maximum_level M (mset Ls + mset D) = j \<and> get_level M L' = k)" and
     "(L \<noteq> L' \<longrightarrow> L \<in> set Ls \<and> get_maximum_level M (mset Ls + mset D - {#L#} + {#L'#}) = j \<and>
       get_level M L = k)"
-    using f4 a2 a1[of "L' # D"] unfolding find_def by (metis (no_types) add_diff_cancel_left'
-      mset.simps(2) option.inject prod.inject union_commute)+
+      using a2 a1[of "L' # D"] unfolding find_def apply (metis add_diff_cancel_left' mset.simps(2) 
+        option.inject prod.inject union_commute)
+    using f4 a2 a1[of "L' # D"] unfolding find_def by (metis option.inject prod.inject)
   then show ?case by simp
 qed
 
@@ -253,26 +254,31 @@ qed
 
 fun bt_cut where
 "bt_cut i (Propagated _ _ # Ls) = bt_cut i Ls" |
-"bt_cut i (Decided K k # Ls) = (if k = Suc i then Some (Decided K k # Ls) else bt_cut i Ls)" |
+"bt_cut i (Decided K () # Ls) = (if count_decided Ls = i then Some (Decided K () # Ls) else bt_cut i Ls)" |
 "bt_cut i [] = None"
 
 lemma bt_cut_some_decomp:
-  "bt_cut i M = Some M' \<Longrightarrow> \<exists>K M2 M1. M = M2 @ M' \<and> M' = Decided K (i+1) # M1"
-  by (induction i M rule: bt_cut.induct) (auto split: if_split_asm)
+  assumes "no_dup M" and "bt_cut i M = Some M'"
+  shows "\<exists>K M2 M1. M = M2 @ M' \<and> M' = Decided K () # M1 \<and> get_level M K = (i+1)"
+  using assms by (induction i M rule: bt_cut.induct) (auto split: if_split_asm)
 
-lemma bt_cut_not_none: "M = M2 @ Decided K (Suc i) # M' \<Longrightarrow> bt_cut i M \<noteq> None"
-  by (induction M2 arbitrary: M rule: ann_lit_list_induct) auto
+lemma bt_cut_not_none: 
+  assumes "no_dup M" and "M = M2 @ Decided K () # M'" and "get_level M K = (i+1)"
+  shows "bt_cut i M \<noteq> None"
+  using assms by (induction M2 arbitrary: M rule: ann_lit_list_induct) 
+  (auto simp: atm_lit_of_set_list_of_l)
 
 lemma get_all_ann_decomposition_ex:
-  "\<exists>N. (Decided K (Suc i) # M', N) \<in> set (get_all_ann_decomposition (M2@Decided K (Suc i) # M'))"
+  "\<exists>N. (Decided K () # M', N) \<in> set (get_all_ann_decomposition (M2@Decided K () # M'))"
   apply (induction M2 rule: ann_lit_list_induct)
     apply auto[2]
-  by (rename_tac L m xs,  case_tac "get_all_ann_decomposition (xs @ Decided K (Suc i) # M')")
+  by (rename_tac L m xs,  case_tac "get_all_ann_decomposition (xs @ Decided K () # M')")
   auto
 
 lemma bt_cut_in_get_all_ann_decomposition:
-  "bt_cut i M = Some M' \<Longrightarrow> \<exists>M2. (M', M2) \<in> set (get_all_ann_decomposition M)"
-  by (auto dest!: bt_cut_some_decomp simp add: get_all_ann_decomposition_ex)
+  assumes "no_dup M" and "bt_cut i M = Some M'"
+  shows "\<exists>M2. (M', M2) \<in> set (get_all_ann_decomposition M)"
+  using bt_cut_some_decomp[OF assms] by (auto simp add: get_all_ann_decomposition_ex)
 
 fun do_backtrack_step where
 "do_backtrack_step (M, N, U, k, Some D) =

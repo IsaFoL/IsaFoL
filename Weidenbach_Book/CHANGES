@@ -1,7 +1,11 @@
 Since IJCAR 2016's Submission:
 * Weidenbach's CDCL
+  * In the trail, the level annotation has been removed: annotating the decided literals with
+  the level is only an optimisation, but is not necessary for the proof.
+
   * add_init_cls add been removed from CDCL_W and CDCL_W_Restart. CDCL_W_Incremental has its own
     state locale including add_init_cls.
+
   * the clauses of the state have been abstracted: they can be converted to multiset, but do not
     need to be multiset anymore. This change is useful for implementations.
 

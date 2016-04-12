@@ -20,7 +20,7 @@ lemma atm_of_notin_get_rev_level_eq_0[simp]:
   shows "get_level M L = 0"
   using assms by (induct M rule: ann_lit_list_induct) auto
 
-lemma get_rev_level_ge_0_atm_of_in:
+lemma get_level_ge_0_atm_of_in:
   assumes  "get_level M L > n"
   shows "atm_of L \<in> atm_of ` lits_of_l M"
   using assms by (induct M arbitrary: n rule: ann_lit_list_induct) fastforce+

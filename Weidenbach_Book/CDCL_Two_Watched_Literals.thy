@@ -31,15 +31,15 @@ datatype 'v twl_clause =
   TWL_Clause (watched: "'v literal list") (unwatched: "'v literal list")
 
 datatype 'v twl_state =
-  TWL_State (raw_trail: "('v, nat, 'v twl_clause) ann_lit list")
+  TWL_State (raw_trail: "('v, unit, 'v twl_clause) ann_lit list")
     (raw_init_clss: "'v twl_clause list")
     (raw_learned_clss: "'v twl_clause list") (backtrack_lvl: nat)
     (raw_conflicting: "'v literal list option")
 
-fun mmset_of_mlit :: "('v, nat, 'v twl_clause) ann_lit  \<Rightarrow> ('v, nat, 'v clause) ann_lit"
+fun mmset_of_mlit :: "('v, unit, 'v twl_clause) ann_lit  \<Rightarrow> ('v, unit, 'v clause) ann_lit"
   where
 "mmset_of_mlit (Propagated L C) = Propagated L (mset (watched C @ unwatched C))" |
-"mmset_of_mlit (Decided L i) = Decided L i"
+"mmset_of_mlit (Decided L ()) = Decided L ()"
 
 lemma lit_of_mmset_of_mlit[simp]: "lit_of (mmset_of_mlit x) = lit_of x"
   by (cases x) auto
@@ -130,8 +130,8 @@ declare CDCL_Two_Watched_Literals.twl.mset_ccls_ccls_of_cls[simp del]
 
 lemma mmset_of_mlit_mmset_of_mlit[simp]:
   "twl.mmset_of_mlit L = mmset_of_mlit L"
-  by (metis mmset_of_mlit.simps(1) mmset_of_mlit.simps(2) twl.mmset_of_mlit.elims raw_clause_def
-    clause_def)
+  by (metis clause_def mmset_of_mlit.elims raw_clause_def twl.mmset_of_mlit.simps(1)
+    twl.mmset_of_mlit.simps(2))
 
 definition
   candidates_propagate :: "'v twl_state \<Rightarrow> ('v literal \<times> 'v twl_clause) set"
@@ -554,7 +554,7 @@ qed
 typedef 'v wf_twl = "{S::'v twl_state. wf_twl_state S}"
 morphisms rough_state_of_twl twl_of_rough_state
 proof -
-  have "TWL_State ([]::('v, nat, 'v twl_clause) ann_lits)
+  have "TWL_State ([]::('v, unit, 'v twl_clause) ann_lits)
     [] [] 0 None \<in> {S:: 'v twl_state. wf_twl_state S} "
     by (auto simp: wf_twl_state_def twl.raw_clauses_def)
   then show ?thesis by auto
@@ -573,10 +573,10 @@ abbreviation candidates_conflict_twl :: "'v wf_twl \<Rightarrow> 'v twl_clause s
 abbreviation candidates_propagate_twl :: "'v wf_twl \<Rightarrow> ('v literal \<times> 'v twl_clause) set" where
 "candidates_propagate_twl S \<equiv> candidates_propagate (rough_state_of_twl S)"
 
-abbreviation raw_trail_twl :: "'a wf_twl \<Rightarrow> ('a, nat, 'a twl_clause) ann_lit list" where
+abbreviation raw_trail_twl :: "'a wf_twl \<Rightarrow> ('a, unit, 'a twl_clause) ann_lit list" where
 "raw_trail_twl S \<equiv> raw_trail (rough_state_of_twl S)"
 
-abbreviation trail_twl :: "'a wf_twl \<Rightarrow> ('a, nat, 'a literal multiset) ann_lit list" where
+abbreviation trail_twl :: "'a wf_twl \<Rightarrow> ('a, unit, 'a literal multiset) ann_lit list" where
 "trail_twl S \<equiv> trail (rough_state_of_twl S)"
 
 abbreviation raw_clauses_twl :: "'a wf_twl \<Rightarrow> 'a twl_clause list" where
@@ -636,7 +636,7 @@ locale abstract_twl =
 begin
 
 definition
-  cons_trail :: "('v, nat, 'v twl_clause) ann_lit \<Rightarrow> 'v twl_state \<Rightarrow> 'v twl_state"
+  cons_trail :: "('v, unit, 'v twl_clause) ann_lit \<Rightarrow> 'v twl_state \<Rightarrow> 'v twl_state"
 where
   "cons_trail L S =
    TWL_State (L # raw_trail S) (map (rewatch (lit_of L) S) (raw_init_clss S))

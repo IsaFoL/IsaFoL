@@ -76,7 +76,7 @@ paragraph \<open>Opaque Type with Invariant\<close>
 
 declare rough_cdcl.state_simp[simp del]
 
-definition cons_trail_twl :: "('v, nat, 'v twl_clause) ann_lit \<Rightarrow> 'v wf_twl \<Rightarrow> 'v wf_twl"
+definition cons_trail_twl :: "('v, unit, 'v twl_clause) ann_lit \<Rightarrow> 'v wf_twl \<Rightarrow> 'v wf_twl"
   where
 "cons_trail_twl L S \<equiv> twl_of_rough_state (cons_trail L (rough_state_of_twl S))"
 

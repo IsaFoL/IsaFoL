@@ -137,7 +137,7 @@ text \<open>We make the function slightly more general than needed:
 text \<open>The function returns a couple composed of a list of clauses and a candidate.\<close>
 fun
   rewatch_nat_cand_single_clause ::
-  "'v literal \<Rightarrow> ('v, nat, 'v twl_clause) ann_lits \<Rightarrow> 'v twl_clause \<Rightarrow>
+  "'v literal \<Rightarrow> ('v, unit, 'v twl_clause) ann_lits \<Rightarrow> 'v twl_clause \<Rightarrow>
    'v twl_clause list \<times> 'v candidate \<Rightarrow> 'v twl_clause list \<times> 'v candidate"
 where
 "rewatch_nat_cand_single_clause L M C (Cs, Ks) =
@@ -178,7 +178,7 @@ qed
 text \<open>This function could be optimised: once a conflict has been found, we could stop going through
   the list and directly prepend all elements.\<close>
 fun rewatch_nat_cand_clss ::
-  "'v literal \<Rightarrow> ('v, nat, 'v twl_clause) ann_lits \<Rightarrow>
+  "'v literal \<Rightarrow> ('v, unit, 'v twl_clause) ann_lits \<Rightarrow>
     'v twl_clause list \<times> 'v candidate \<Rightarrow>
      'v twl_clause list  \<times> 'v candidate"
 where
@@ -707,7 +707,7 @@ lemma rewatch_nat_cand_single_clause_conflict_found:
   done
 
 lemma rewatch_nat_cand_single_clause_no_dup:
-  fixes Ks :: "'v candidate" and M :: "('v, nat, 'v twl_clause) ann_lit list"
+  fixes Ks :: "'v candidate" and M :: "('v, unit, 'v twl_clause) ann_lit list"
   and L :: "'v literal" and Cs :: "'v twl_clause list" and C :: "'v twl_clause"
   defines "S \<equiv> rewatch_nat_cand_single_clause L M C (Cs, Ks)"
   assumes wf: "wf_twl_cls M C" and
