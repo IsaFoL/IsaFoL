@@ -413,10 +413,23 @@ lemma in_get_all_ann_decomposition_in_get_all_ann_decomposition_prepend:
    apply auto[]
   by (rename_tac L' m xs, case_tac "get_all_ann_decomposition (xs @ M')") auto
 
+lemma in_get_all_ann_decomposition_decided_or_empty:
+  assumes "(a, b) \<in> set (get_all_ann_decomposition M)"
+  shows "a = [] \<or> (is_decided (hd a))"
+  using assms
+proof (induct M arbitrary: a b rule: ann_lit_list_induct)
+  case Nil then show ?case by simp
+next
+  case (Decided l M)
+  then show ?case by auto
+next
+  case (Propagated l mark M)
+  then show ?case by (cases "get_all_ann_decomposition M") force+
+qed
+
 lemma get_all_ann_decomposition_remove_undecided_length:
   assumes "\<forall>l \<in> set M'. \<not>is_decided l"
-  shows "length (get_all_ann_decomposition (M' @ M''))
- = length (get_all_ann_decomposition M'')"
+  shows "length (get_all_ann_decomposition (M' @ M'')) = length (get_all_ann_decomposition M'')"
   using assms by (induct M' arbitrary: M'' rule: ann_lit_list_induct) auto
 
 lemma get_all_ann_decomposition_not_is_decided_length:

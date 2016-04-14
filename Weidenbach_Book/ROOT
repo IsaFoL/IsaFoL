@@ -68,16 +68,16 @@ session "DPLL_CDCL" (Weidenbach_Book) = "Entailment_Definition" +
     CDCL_W_Termination
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
-    CDCL_W_Implementation
+    (* CDCL_W_Implementation *)
     CDCL_W_Merge
     CDCL_W_Restart
     CDCL_NOT
     CDCL_WNOT
     CDCL_W_Incremental
-    CDCL_Two_Watched_Literals
-    CDCL_Two_Watched_Literals_Invariant
+(*     CDCL_Two_Watched_Literals
+    CDCL_Two_Watched_Literals_Invariant *)
   theories [quick_and_dirty, document = true]
-    CDCL_Two_Watched_Literals_Implementation
+(*     CDCL_Two_Watched_Literals_Implementation *)
   document_files
     "root.tex"
     "biblio.bib"
