@@ -4,22 +4,22 @@
     Maintainer:  Jasmin Blanchette <jasmin.blanchette at inria.fr>
 *)
 
-section {* Clausal Logic *}
+section \<open>Clausal Logic\<close>
 
 theory Herbrand_Interpretation
 imports Clausal_Logic
 begin
 
-text {*
+text \<open>
 Resolution operates of clauses, which are disjunctions of literals. The material formalized here
 corresponds roughly to Sections 2.2 (``Herbrand Interpretations'') of Bachmair and Ganzinger, excluding the formula and term syntax.
-*}
+\<close>
 
-subsection {* Herbrand Interpretations *}
+subsection \<open>Herbrand Interpretations\<close>
 
-text {*
+text \<open>
 A Herbrand interpretation is a set of ground atoms that are to be considered true.
-*}
+\<close>
 
 type_synonym 'a interp = "'a set"
 

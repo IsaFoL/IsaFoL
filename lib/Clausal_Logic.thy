@@ -5,24 +5,24 @@
     Maintainer: Jasmin Blanchette <jasmin.blanchette at inria.fr>
 *)
 
-section {* Clausal Logic *}
+section \<open>Clausal Logic\<close>
 
 theory Clausal_Logic
 imports "../lib/Multiset_More"
 begin
 
-text {*
+text \<open>
 Resolution operates of clauses, which are disjunctions of literals. The material formalized here
 corresponds roughly to Sections 2.1 (``Formulas and Clauses'') of Bachmair and Ganzinger, excluding
 the formula and term syntax.
-*}
+\<close>
 
 
-subsection {* Literals *}
+subsection \<open>Literals\<close>
 
-text {*
+text \<open>
 Literals consist of a polarity (positive or negative) and an atom, of type @{typ 'a}.
-*}
+\<close>
 
 datatype 'a literal =
   is_pos: Pos (atm_of: 'a)
@@ -163,11 +163,11 @@ qed
 end
 
 
-subsection {* Clauses *}
+subsection \<open>Clauses\<close>
 
-text {*
+text \<open>
 Clauses are (finite) multisets of literals.
-*}
+\<close>
 
 type_synonym 'a clause = "'a literal multiset"
 
