@@ -586,7 +586,7 @@ proof (induction rule: cdcl\<^sub>W_o_induct)
               by auto
           qed
         moreover
-          have "atm_of L'' \<in> atms_of ( remove1_mset L D')"
+          have "atm_of L'' \<in> atms_of (remove1_mset L D')"
             using \<open>L''\<in># remove1_mset L D'\<close> by (auto simp: atms_of_def)
 
           then have "atm_of L'' \<in> atm_of ` lits_of_l H"

@@ -3351,7 +3351,7 @@ next
   obtain K p where K: "L = Propagated K p"
     using nm by (cases L) auto
   have "every_mark_is_a_conflict S" using inv unfolding cdcl\<^sub>W_conc_conflicting_def by auto
-  then have MpK: "M \<Turnstile>as CNot ( p - {#K#})" and Kp: "K \<in># p"
+  then have MpK: "M \<Turnstile>as CNot (p - {#K#})" and Kp: "K \<in># p"
     using S unfolding K by fastforce+
   then have p: "p = (p - {#K#}) + {#K#}"
     by (auto simp add: multiset_eq_iff)

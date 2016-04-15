@@ -1299,7 +1299,7 @@ lemma no_strange_atm_decomp:
   assumes "no_strange_atm S"
   shows "conflicting S = Some T \<Longrightarrow> atms_of T \<subseteq> atms_of_mm (init_clss S)"
   and "(\<forall>L mark. Propagated L mark \<in> set (trail S)
-    \<longrightarrow> atms_of ( mark) \<subseteq> atms_of_mm (init_clss S))"
+    \<longrightarrow> atms_of mark \<subseteq> atms_of_mm (init_clss S))"
   and "atms_of_mm (learned_clss S) \<subseteq> atms_of_mm (init_clss S)"
   and "atm_of ` (lits_of_l (trail S)) \<subseteq> atms_of_mm (init_clss S)"
   using assms unfolding no_strange_atm_def by blast+
@@ -1361,7 +1361,7 @@ lemma cdcl\<^sub>W_no_strange_atm_explicit:
   shows
     "(\<forall>T. conflicting S' = Some T \<longrightarrow> atms_of T \<subseteq> atms_of_mm (init_clss S')) \<and>
     (\<forall>L mark. Propagated L mark \<in> set (trail S')
-      \<longrightarrow> atms_of ( mark) \<subseteq> atms_of_mm (init_clss S')) \<and>
+      \<longrightarrow> atms_of mark \<subseteq> atms_of_mm (init_clss S')) \<and>
     atms_of_mm (learned_clss S') \<subseteq> atms_of_mm (init_clss S') \<and>
     atm_of ` (lits_of_l (trail S')) \<subseteq> atms_of_mm (init_clss S')"
     (is "?C S' \<and> ?M S' \<and> ?U S' \<and> ?V S'")
@@ -1470,7 +1470,7 @@ lemma distinct_cdcl\<^sub>W_state_decomp:
     "\<forall>T. conflicting S = Some T \<longrightarrow> distinct_mset T" and
     "distinct_mset_mset (learned_clss S)" and
     "distinct_mset_mset (init_clss S)" and
-    "\<forall>L mark. (Propagated L mark \<in> set (trail S) \<longrightarrow> distinct_mset ( mark))"
+    "\<forall>L mark. (Propagated L mark \<in> set (trail S) \<longrightarrow> distinct_mset mark)"
   using assms unfolding distinct_cdcl\<^sub>W_state_def by blast+
 
 lemma distinct_cdcl\<^sub>W_state_decomp_2:
@@ -1826,7 +1826,7 @@ next
       then have "a @ Propagated L' mark # b = M" using tr T by simp
       then have "(Propagated L C' # a) @ Propagated L' mark # b = Propagated L C' # M" by auto
       moreover have "\<forall>La mark a b. a @ Propagated La mark # b = Propagated L C' # M
-        \<longrightarrow> b \<Turnstile>as CNot ( mark - {#La#}) \<and> La \<in># mark"
+        \<longrightarrow> b \<Turnstile>as CNot (mark - {#La#}) \<and> La \<in># mark"
         using mark_confl unfolding skip.hyps(1) by simp
       ultimately show "b \<Turnstile>as CNot (mark - {#L'#}) \<and> L' \<in># mark" by blast
     qed
@@ -1965,7 +1965,7 @@ lemma cdcl\<^sub>W_conflicting_decomp:
   assumes "cdcl\<^sub>W_conflicting S"
   shows "\<forall>T. conflicting S = Some T \<longrightarrow> trail S \<Turnstile>as CNot T"
   and "\<forall>L mark a b. a @ Propagated L mark # b = (trail S)
-    \<longrightarrow> (b \<Turnstile>as CNot ( mark - {#L#}) \<and> L \<in># mark)"
+    \<longrightarrow> (b \<Turnstile>as CNot (mark - {#L#}) \<and> L \<in># mark)"
   using assms unfolding cdcl\<^sub>W_conflicting_def by blast+
 
 lemma cdcl\<^sub>W_conflicting_decomp2:
@@ -2059,7 +2059,7 @@ lemma all_invariant_S0_cdcl\<^sub>W:
     "no_strange_atm (init_state N)" and
     "consistent_interp (lits_of_l (trail (init_state N)))" and
     "\<forall>L mark a b. a @ Propagated L mark # b = trail (init_state N) \<longrightarrow>
-     (b \<Turnstile>as CNot ( mark - {#L#}) \<and> L \<in># mark)" and
+     (b \<Turnstile>as CNot (mark - {#L#}) \<and> L \<in># mark)" and
      "distinct_cdcl\<^sub>W_state (init_state N)"
   using assms by auto
 
@@ -4466,7 +4466,7 @@ next
   obtain K p where K: "L = Propagated K p"
     using nm by (cases L) auto
   have "every_mark_is_a_conflict S" using inv unfolding cdcl\<^sub>W_conflicting_def by auto
-  then have MpK: "M \<Turnstile>as CNot ( p - {#K#})" and Kp: "K \<in># p"
+  then have MpK: "M \<Turnstile>as CNot (p - {#K#})" and Kp: "K \<in># p"
     using S unfolding K by fastforce+
   then have p: "p = (p - {#K#}) + {#K#}"
     by (auto simp add: multiset_eq_iff)

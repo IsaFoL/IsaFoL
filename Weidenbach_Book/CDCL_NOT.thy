@@ -1908,7 +1908,7 @@ proof -
         F: "F \<Turnstile>as CNot C'" and
         C_S:"C' + {#L#} \<notin># clauses\<^sub>N\<^sub>O\<^sub>T S"
         by blast
-      moreover have "distinct_mset ( C)" "\<not> tautology C" using inv by blast+
+      moreover have "distinct_mset C" "\<not> tautology C" using inv by blast+
       ultimately have "C' + {#L#} \<in> conflicting_bj_clss T"
         using T n_d unfolding conflicting_bj_clss_def by fastforce
       moreover have "C' + {#L#} \<notin> conflicting_bj_clss S"
