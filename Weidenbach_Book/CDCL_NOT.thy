@@ -1140,7 +1140,7 @@ locale learn_ops =
 begin
 inductive learn :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 learn\<^sub>N\<^sub>O\<^sub>T_rule: "clauses\<^sub>N\<^sub>O\<^sub>T S \<Turnstile>pm C  \<Longrightarrow>
-  atms_of (C) \<subseteq> atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<union> atm_of ` (lits_of_l (trail S)) \<Longrightarrow>
+  atms_of C \<subseteq> atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<union> atm_of ` (lits_of_l (trail S)) \<Longrightarrow>
   learn_cond C S \<Longrightarrow>
   T \<sim> add_cls\<^sub>N\<^sub>O\<^sub>T C S \<Longrightarrow>
   learn S T"
@@ -1168,7 +1168,7 @@ locale forget_ops =
 begin
 inductive forget\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 forget\<^sub>N\<^sub>O\<^sub>T:
-  "removeAll_mset (C)(clauses\<^sub>N\<^sub>O\<^sub>T S) \<Turnstile>pm C \<Longrightarrow>
+  "removeAll_mset C(clauses\<^sub>N\<^sub>O\<^sub>T S) \<Turnstile>pm C \<Longrightarrow>
   forget_cond C S \<Longrightarrow>
   C \<in># clauses\<^sub>N\<^sub>O\<^sub>T S \<Longrightarrow>
   T \<sim> remove_cls\<^sub>N\<^sub>O\<^sub>T C S \<Longrightarrow>
@@ -1229,10 +1229,10 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_all_induct[consumes 1, case_names dpll_bj lea
     dpll: "\<And>T. dpll_bj S T \<Longrightarrow> P S T" and
     learning:
       "\<And>C T. clauses\<^sub>N\<^sub>O\<^sub>T S \<Turnstile>pm C \<Longrightarrow>
-      atms_of (C) \<subseteq> atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<union> atm_of ` (lits_of_l (trail S)) \<Longrightarrow>
+      atms_of C \<subseteq> atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<union> atm_of ` (lits_of_l (trail S)) \<Longrightarrow>
       T \<sim> add_cls\<^sub>N\<^sub>O\<^sub>T C S \<Longrightarrow>
       P S T" and
-    forgetting: "\<And>C T. removeAll_mset (C) (clauses\<^sub>N\<^sub>O\<^sub>T S) \<Turnstile>pm C \<Longrightarrow>
+    forgetting: "\<And>C T. removeAll_mset C (clauses\<^sub>N\<^sub>O\<^sub>T S) \<Turnstile>pm C \<Longrightarrow>
       C \<in># clauses\<^sub>N\<^sub>O\<^sub>T S \<Longrightarrow>
       T \<sim> remove_cls\<^sub>N\<^sub>O\<^sub>T C S \<Longrightarrow>
       P S T"
@@ -1342,7 +1342,7 @@ next
         using tot cons unfolding true_clss_cls_def by auto
     ultimately have "J \<Turnstile>sm {#C#} + clauses\<^sub>N\<^sub>O\<^sub>T S" by auto
   }
-  then have H: "I \<Turnstile>sextm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<Longrightarrow> I \<Turnstile>sext insert (C) (set_mset (clauses\<^sub>N\<^sub>O\<^sub>T S))"
+  then have H: "I \<Turnstile>sextm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<Longrightarrow> I \<Turnstile>sext insert C (set_mset (clauses\<^sub>N\<^sub>O\<^sub>T S))"
     unfolding true_clss_ext_def by auto
   show ?case
     apply standard
@@ -1707,10 +1707,10 @@ locale conflict_driven_clause_learning_learning_before_backjump_only_distinct_le
   dpll_state trail clauses\<^sub>N\<^sub>O\<^sub>T prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T +
   conflict_driven_clause_learning trail clauses\<^sub>N\<^sub>O\<^sub>T prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
     inv backjump_conds propagate_conds
-  "\<lambda>C S.  distinct_mset (C) \<and> \<not>tautology (C) \<and> learn_restrictions C S \<and>
+  "\<lambda>C S.  distinct_mset C \<and> \<not>tautology C \<and> learn_restrictions C S \<and>
     (\<exists>F K d F' C' L.  trail S = F' @ Decided K # F \<and> C = C' + {#L#} \<and> F \<Turnstile>as CNot C'
       \<and> C' + {#L#} \<notin># clauses\<^sub>N\<^sub>O\<^sub>T S)"
-  "\<lambda>C S. \<not>(\<exists>F' F K d L. trail S = F' @ Decided K # F \<and> F \<Turnstile>as CNot (remove1_mset L (C)))
+  "\<lambda>C S. \<not>(\<exists>F' F K d L. trail S = F' @ Decided K # F \<and> F \<Turnstile>as CNot (remove1_mset L C))
     \<and> forget_restrictions C S"
     for
     trail :: "'st \<Rightarrow> ('v, unit) ann_lits" and
@@ -1731,9 +1731,9 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_learn_all_induct[consumes 1, case_names dpll_
     dpll: "\<And>T. dpll_bj S T \<Longrightarrow> P S T" and
     learning:
       "\<And>C F K F' C' L T. clauses\<^sub>N\<^sub>O\<^sub>T S \<Turnstile>pm C \<Longrightarrow>
-        atms_of (C) \<subseteq> atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<union> atm_of ` (lits_of_l (trail S)) \<Longrightarrow>
-        distinct_mset (C) \<Longrightarrow>
-        \<not> tautology (C) \<Longrightarrow>
+        atms_of C \<subseteq> atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<union> atm_of ` (lits_of_l (trail S)) \<Longrightarrow>
+        distinct_mset C \<Longrightarrow>
+        \<not> tautology C \<Longrightarrow>
         learn_restrictions C S \<Longrightarrow>
         trail S = F' @ Decided K # F \<Longrightarrow>
         C = C' + {#L#} \<Longrightarrow>
@@ -1741,7 +1741,7 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_learn_all_induct[consumes 1, case_names dpll_
         C' + {#L#} \<notin># clauses\<^sub>N\<^sub>O\<^sub>T S \<Longrightarrow>
         T \<sim> add_cls\<^sub>N\<^sub>O\<^sub>T C S \<Longrightarrow>
         P S T" and
-    forgetting: "\<And>C T. removeAll_mset (C) (clauses\<^sub>N\<^sub>O\<^sub>T S) \<Turnstile>pm C \<Longrightarrow>
+    forgetting: "\<And>C T. removeAll_mset C (clauses\<^sub>N\<^sub>O\<^sub>T S) \<Turnstile>pm C \<Longrightarrow>
       C \<in># clauses\<^sub>N\<^sub>O\<^sub>T S \<Longrightarrow>
       \<not>(\<exists>F' F K L. trail S = F' @ Decided K # F \<and> F \<Turnstile>as CNot (C - {#L#})) \<Longrightarrow>
       T \<sim> remove_cls\<^sub>N\<^sub>O\<^sub>T C S \<Longrightarrow>
@@ -1908,7 +1908,7 @@ proof -
         F: "F \<Turnstile>as CNot C'" and
         C_S:"C' + {#L#} \<notin># clauses\<^sub>N\<^sub>O\<^sub>T S"
         by blast
-      moreover have "distinct_mset ( C)" "\<not> tautology (C)" using inv by blast+
+      moreover have "distinct_mset ( C)" "\<not> tautology C" using inv by blast+
       ultimately have "C' + {#L#} \<in> conflicting_bj_clss T"
         using T n_d unfolding conflicting_bj_clss_def by fastforce
       moreover have "C' + {#L#} \<notin> conflicting_bj_clss S"
@@ -2063,7 +2063,7 @@ next
   case (learn C F' K F C' L T) note clss_S_C = this(1) and atms_C = this(2) and dist = this(3)
     and tauto = this(4) and learn_restr = this(5) and tr_S = this(6) and C' = this(7) and
     F_C = this(8) and C_new = this(9) and T = this(10)
-  have "insert (C) (conflicting_bj_clss S) \<subseteq> simple_clss (atms_of_ms A)"
+  have "insert C (conflicting_bj_clss S) \<subseteq> simple_clss (atms_of_ms A)"
     proof -
       have "C \<in> simple_clss (atms_of_ms A)"
         using C'
@@ -2084,10 +2084,10 @@ next
       ultimately show ?thesis
         by auto
     qed
-  then have "card (insert (C) (conflicting_bj_clss S)) \<le> 3 ^ (card (atms_of_ms A))"
+  then have "card (insert C (conflicting_bj_clss S)) \<le> 3 ^ (card (atms_of_ms A))"
     by (meson Nat.le_trans atms_of_ms_finite simple_clss_card simple_clss_finite
       card_mono fin_A)
-  moreover have [simp]: "card (insert (C) (conflicting_bj_clss S))
+  moreover have [simp]: "card (insert C (conflicting_bj_clss S))
     = Suc (card ((conflicting_bj_clss S)))"
     by (metis (no_types) C' C_new card_insert_if conflicting_bj_clss_incl_clauses contra_subsetD
       finite_conflicting_bj_clss)
@@ -2150,9 +2150,9 @@ next
 next
   case (learn C F K d F' C' L) note atms_C = this(2) and dist = this(3) and tauto = this(4) and
   T = this(10) and atms_clss_S = this(12) and atms_trail_S = this(13)
-  have "atms_of (C) \<subseteq> A"
+  have "atms_of C \<subseteq> A"
     using atms_C atms_clss_S atms_trail_S by fast
-  then have "simple_clss (atms_of (C)) \<subseteq> simple_clss A"
+  then have "simple_clss (atms_of C) \<subseteq> simple_clss A"
     by (simp add: simple_clss_mono)
   then have "C \<in> simple_clss A"
     using finite dist tauto by (auto dest: distinct_mset_not_tautology_implies_in_simple_clss)
@@ -2915,7 +2915,7 @@ begin
 
 sublocale conflict_driven_clause_learning_ops trail clauses\<^sub>N\<^sub>O\<^sub>T prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T
   remove_cls\<^sub>N\<^sub>O\<^sub>T inv backjump_conds propagate_conds
-  "\<lambda>C _.  distinct_mset (C) \<and> \<not>tautology (C)"
+  "\<lambda>C _.  distinct_mset C \<and> \<not>tautology C"
   forget_cond
   by unfold_locales
 end
@@ -2942,7 +2942,7 @@ begin
 sublocale
    conflict_driven_clause_learning trail clauses\<^sub>N\<^sub>O\<^sub>T prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
      inv backjump_conds propagate_conds
-     "\<lambda>C _.  distinct_mset (C) \<and> \<not>tautology (C)"
+     "\<lambda>C _.  distinct_mset C \<and> \<not>tautology C"
      forget_cond
   apply unfold_locales
   using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_forget\<^sub>N\<^sub>O\<^sub>T cdcl_merged_inv learn_inv
@@ -2965,8 +2965,8 @@ proof -
      clss_C: "clauses\<^sub>N\<^sub>O\<^sub>T S \<Turnstile>pm D" and
      D: "D = C' + {#L#}"
      "F \<Turnstile>as CNot C'" and
-     distinct:  "distinct_mset (D)" and
-     not_tauto: "\<not> tautology (D)"
+     distinct:  "distinct_mset D" and
+     not_tauto: "\<not> tautology D"
      using bt inv by (elim backjump_lE) simp
    have atms_C':  "atms_of C' \<subseteq>  atm_of ` (lits_of_l F)"
      by (metis D(2) atms_of_def image_subsetI true_annots_CNot_all_atms_defined)
@@ -4081,7 +4081,7 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_restart_all_decomposition_implies_m:
   shows "all_decomposition_implies_m (clauses\<^sub>N\<^sub>O\<^sub>T (fst T))
       (get_all_ann_decomposition (trail (fst T)))"
   using assms
-proof (induction)
+proof induction
   case (restart_full S T n) note full = this(1) and inv = this(2) and n_d = this(3) and
     decomp = this(4)
   have st: "cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn\<^sup>*\<^sup>* S T" and
@@ -4108,7 +4108,7 @@ lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_restart_all_decomposition_implies_m:
   shows "all_decomposition_implies_m (clauses\<^sub>N\<^sub>O\<^sub>T (fst T))
       (get_all_ann_decomposition (trail (fst T)))"
   using assms
-proof (induction)
+proof induction
   case base
   then show ?case using decomp by simp
 next
