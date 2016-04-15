@@ -11,10 +11,10 @@ text \<open>The condition that no learned clause is a tautology is overkill (in 
   The invariant contains all the structural invariants that holds,\<close>
 definition cdcl\<^sub>W_all_struct_inv where
   "cdcl\<^sub>W_all_struct_inv S \<longleftrightarrow>
-    no_strange_atm S  \<and>
+    no_strange_atm S \<and>
     cdcl\<^sub>W_M_level_inv S \<and>
     (\<forall>s \<in># learned_clss S. \<not>tautology s) \<and>
-    distinct_cdcl\<^sub>W_state S  \<and>
+    distinct_cdcl\<^sub>W_state S \<and>
     cdcl\<^sub>W_conflicting S \<and>
     all_decomposition_implies_m (init_clss S) (get_all_ann_decomposition (trail S)) \<and>
     cdcl\<^sub>W_learned_clause S"
@@ -90,7 +90,7 @@ next
   then have "D \<in># learned_clss S'"
     unfolding full_def by (auto dest: rtranclp_cdcl\<^sub>W_cp_learned_clause_inv)
   then show ?case
-    using  cdcl\<^sub>W_o_new_clause_learned_is_backtrack_step[OF _ \<open>D \<notin># learned_clss S\<close> \<open>cdcl\<^sub>W_o S S'\<close>]
+    using cdcl\<^sub>W_o_new_clause_learned_is_backtrack_step[OF _ \<open>D \<notin># learned_clss S\<close> \<open>cdcl\<^sub>W_o S S'\<close>]
     \<open>full cdcl\<^sub>W_cp S' S''\<close> lev by (metis cdcl\<^sub>W_stgy.conflict' full_unfold r_into_rtranclp
       rtranclp.rtrancl_refl)
 qed
@@ -248,13 +248,13 @@ next
       case False
       with s show ?thesis using U s st S
         proof induction
-          case (conflict' W) note cp = this(1) and  nd = this(2) and W = this(3)
+          case (conflict' W) note cp = this(1) and nd = this(2) and W = this(3)
           then obtain M\<^sub>0 where "trail W = M\<^sub>0 @ trail T" and ndecided: "\<forall>l\<in>set M\<^sub>0. \<not> is_decided l"
             using rtranclp_cdcl\<^sub>W_cp_dropWhile_trail unfolding full1_def rtranclp_unfold by meson
           then have MV: "M' @ Decided L # H @ M = M\<^sub>0 @ trail T" unfolding W by simp
           then have V: "trail T = drop (length M\<^sub>0) (M' @ Decided L # H @ M)"
             by auto
-          have "takeWhile (Not o is_decided) M' = M\<^sub>0  @ takeWhile (Not \<circ> is_decided) (trail T)"
+          have "takeWhile (Not o is_decided) M' = M\<^sub>0 @ takeWhile (Not \<circ> is_decided) (trail T)"
             using arg_cong[OF MV, of "takeWhile (Not o is_decided)"] ndecided
             by (simp add: takeWhile_tail)
           from arg_cong[OF this, of length] have "length M\<^sub>0 \<le> length M'"
@@ -270,10 +270,10 @@ next
           then have MV: "M' @ Decided L # H @ M = M\<^sub>0 @ trail T'" unfolding U by simp
           then have V: "trail T' = drop (length M\<^sub>0) (M' @ Decided L # H @ M)"
             by auto
-          have "takeWhile (Not o is_decided) M' = M\<^sub>0  @ takeWhile (Not \<circ> is_decided) (trail T')"
+          have "takeWhile (Not o is_decided) M' = M\<^sub>0 @ takeWhile (Not \<circ> is_decided) (trail T')"
             using arg_cong[OF MV, of "takeWhile (Not o is_decided)"] ndecided
             by (simp add: takeWhile_tail)
-          from arg_cong[OF this, of length]  have "length M\<^sub>0 \<le> length M'"
+          from arg_cong[OF this, of length] have "length M\<^sub>0 \<le> length M'"
             unfolding length_append by (metis (no_types, lifting) Nat.le_trans le_add1
               length_takeWhile_le)
           then have tr_T': "trail T' = drop (length M\<^sub>0) M' @ Decided L # H @ M" using V by auto
@@ -282,15 +282,15 @@ next
             have "cdcl\<^sub>W_M_level_inv T"
               using lev rtranclp_cdcl\<^sub>W_stgy_consistent_inv step.hyps(1) by blast
             then have "decide T T'" using o nd tr_T' cdcl\<^sub>W_o_is_decide by metis
-          ultimately  have "decide T T'" using cdcl\<^sub>W_o_no_more_Decided_lit[OF o] by blast
+          ultimately have "decide T T'" using cdcl\<^sub>W_o_no_more_Decided_lit[OF o] by blast
           then have 1: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* R T" and 2: "decide T T'" and 3: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* T' U"
             using st other'.prems(4)
             by (metis cdcl\<^sub>W_stgy.conflict' cp full_unfold r_into_rtranclp rtranclp.rtrancl_refl)+
           have [simp]: "drop (length M\<^sub>0) M' = []"
-            using \<open>decide T T'\<close> \<open>Decided L \<in> set (trail T')\<close>  nd tr_T'
+            using \<open>decide T T'\<close> \<open>Decided L \<in> set (trail T')\<close> nd tr_T'
             by (auto simp add: Cons_eq_append_conv elim: decideE)
           have T': "drop (length M\<^sub>0) M' @ Decided L # H @ M = Decided L # trail T"
-            using \<open>decide T T'\<close> \<open>Decided L \<in> set (trail T')\<close>  nd tr_T'
+            using \<open>decide T T'\<close> \<open>Decided L \<in> set (trail T')\<close> nd tr_T'
             by (auto elim: decideE)
           have "trail T' = Decided L # trail T"
             using \<open>decide T T'\<close> \<open>Decided L \<in> set (trail T')\<close> tr_T'
@@ -325,7 +325,7 @@ next
       moreover have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S' U" using "8" s by auto
       moreover have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S''' U" using 10 s by auto
       ultimately show ?thesis apply - apply (rule exI[of _ S'], rule exI[of _ S''])
-        using 1 2 4 6 7 8 9  by blast
+        using 1 2 4 6 7 8 9 by blast
     qed
 qed
 
@@ -411,7 +411,7 @@ next
           then show ?case using cp decide.prems by (meson decide_state_eq_compatible ns state_eq_ref
             state_eq_sym)
         next
-          case (backtrack L' D K j M1 M2 T) note decomp = this(3)  and undef = this(8) and
+          case (backtrack L' D K j M1 M2 T) note decomp = this(3) and undef = this(8) and
             T = this(9) and trT = this(13)
           obtain MS3 where MS3: "trail S = MS3 @ M2 @ Decided K # M1"
             using get_all_ann_decomposition_exists_prepend[OF decomp] by metis
@@ -470,9 +470,9 @@ proof (induction rule: cdcl\<^sub>W_o_induct)
     using levT unfolding cdcl\<^sub>W_M_level_inv_def z
     by (auto simp: atm_lit_of_set_lits_of_l)
   then have count_H: "count_decided H = i - 1" "i > 0"
-    unfolding z  i_def by auto
+    unfolding z i_def by auto
   have n_d_y: "no_dup (trail y)" and bt_y: "backtrack_lvl y = count_decided (trail y)"
-    using lev unfolding  cdcl\<^sub>W_M_level_inv_def by auto
+    using lev unfolding cdcl\<^sub>W_M_level_inv_def by auto
   have tr_T: "trail T = Propagated L' D' # M1"
     using decomp T n_d_y by auto
 
@@ -482,7 +482,7 @@ proof (induction rule: cdcl\<^sub>W_o_induct)
       then have DLD': "D = D'"
         using DL T neq0_conv decomp n_d_y by fastforce
       have L_cKh: "atm_of L \<in> atm_of ` lits_of_l (c @ [Decided Kh])"
-        using LH learned  M DLD'[symmetric] confl LD' LD
+        using LH learned M DLD'[symmetric] confl LD' LD
         (* TODO Tune proof *)
         apply (auto simp add: image_iff dest!: in_CNot_implies_uminus)
         apply (metis atm_of_uminus)+ done
@@ -543,7 +543,7 @@ proof (induction rule: cdcl\<^sub>W_o_induct)
       { assume D: "remove1_mset L D' = {#}"
         then have j0: "j = 0" using levD j by (simp add: LL')
         have "\<forall>m \<in> set M1. \<not>is_decided m"
-          using lev_K unfolding j0 M3 by (auto simp:  atm_lit_of_set_lits_of_l image_Un
+          using lev_K unfolding j0 M3 by (auto simp: atm_lit_of_set_lits_of_l image_Un
             filter_empty_conv)
         then have False using d by auto
       }
@@ -623,8 +623,8 @@ next
     using cp beginning_not_decided_invert[of _ "trail T" c' Kh H]
       rtranclp_cdcl\<^sub>W_cp_dropWhile_trail[of T U] unfolding trU full_def by fastforce
   show ?case
-    using cdcl\<^sub>W_o_cannot_learn[OF o lev trY notin LD DH LH  confl c']
-      rtranclp_cdcl\<^sub>W_cp_learned_clause_inv cp  unfolding full_def by auto
+    using cdcl\<^sub>W_o_cannot_learn[OF o lev trY notin LD DH LH confl c']
+      rtranclp_cdcl\<^sub>W_cp_learned_clause_inv cp unfolding full_def by auto
 qed
 
 lemma rtranclp_cdcl\<^sub>W_stgy_with_trail_end_has_not_been_learned:
@@ -728,7 +728,7 @@ proof -
   then have "trail S \<Turnstile>as CNot ?E" unfolding cdcl\<^sub>W_conflicting_def confl_S by auto
   then have MD: "trail S \<Turnstile>as CNot ?E" by auto
   then have MD': "trail S \<Turnstile>as CNot ?E'" using true_annot_CNot_diff by blast
-  have lev': "cdcl\<^sub>W_M_level_inv S" using invS  unfolding cdcl\<^sub>W_all_struct_inv_def by blast
+  have lev': "cdcl\<^sub>W_M_level_inv S" using invS unfolding cdcl\<^sub>W_all_struct_inv_def by blast
 
   have lev: "cdcl\<^sub>W_M_level_inv R" using invR unfolding cdcl\<^sub>W_all_struct_inv_def by blast
   then have vars_of_D: "atms_of ?E' \<subseteq> atm_of ` lits_of_l M1"
@@ -795,7 +795,7 @@ proof -
     YZ: "cdcl\<^sub>W_stgy Y Z" and
     nt: "\<not> (\<exists>c. trail Y = c @ Decided K' # M1' @ [])" and
     Z: "(\<lambda>a b. cdcl\<^sub>W_stgy a b \<and> (\<exists>c. trail a = c @ Decided K' # M1' @ []))\<^sup>*\<^sup>* Z S"
-    using rtranclp_cdcl\<^sub>W_new_decided_at_beginning_is_decide'[OF  st' _ _ lev, of Ls K'
+    using rtranclp_cdcl\<^sub>W_new_decided_at_beginning_is_decide'[OF st' _ _ lev, of Ls K'
       M1' "[]"] unfolding R M' by auto
   have [simp]: "cdcl\<^sub>W_M_level_inv Y"
     using RY lev rtranclp_cdcl\<^sub>W_stgy_consistent_inv by blast
@@ -817,7 +817,7 @@ proof -
       obtain M''' where "trail Y' = M''' @ Decided K' # M1'"
         using M'' unfolding M
         by (metis (no_types, lifting) \<open>\<forall>m\<in>set M''. \<not> is_decided m\<close> beginning_not_decided_invert)
-      then show ?thesis using dec nt  by (induction M''') (auto elim: decideE)
+      then show ?thesis using dec nt by (induction M''') (auto elim: decideE)
     qed
   have Y_CT: "conflicting Y = None" using \<open>decide Y Y'\<close> by (auto elim: decideE)
   have "cdcl\<^sub>W\<^sup>*\<^sup>* R Y" by (simp add: RY rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W)
@@ -829,11 +829,11 @@ proof -
     then have LM1: "undefined_lit M1 L"
       by (metis Decided_Propagated_in_iff_in_lits_of_l atm_of_uminus image_eqI)
     have L_trY: "undefined_lit (trail Y) L"
-      using  L_notin \<open>no_dup (trail S)\<close> unfolding defined_lit_map trY M'
+      using L_notin \<open>no_dup (trail S)\<close> unfolding defined_lit_map trY M'
       by (auto simp add: image_iff lits_of_def)
     have "Ex (propagate Y)"
       using propagate_rule[of Y E L] DL M1'_D L_trY Y_CT trY LD by auto
-    then have False using \<open>no_step cdcl\<^sub>W_cp Y\<close>  propagate' by blast
+    then have False using \<open>no_step cdcl\<^sub>W_cp Y\<close> propagate' by blast
   }
   moreover {
     assume DL: "E \<notin># clauses Y"
@@ -977,7 +977,7 @@ proof (induct rule: cdcl\<^sub>W_all_induct)
   let ?N = "init_clss S"
   have "no_strange_atm (cons_trail (Propagated L C) S)"
     using alien cdcl\<^sub>W.propagate cdcl\<^sub>W_no_strange_atm_inv propa M_level by blast
-  then have  "atm_of ` lits_of_l (Propagated L C # trail S)
+  then have "atm_of ` lits_of_l (Propagated L C # trail S)
     \<subseteq> atms_of_mm (init_clss S)"
     using undef unfolding no_strange_atm_def by auto
   then have "card (atm_of ` lits_of_l (Propagated L C # trail S))
@@ -1206,7 +1206,7 @@ lemma tranclp_cdcl\<^sub>W_stgy_decreasing:
   using assms
   apply induction
    using cdcl\<^sub>W_stgy_step_decreasing[of R _ R] apply blast
-  using cdcl\<^sub>W_stgy_step_decreasing[of _ _ R]  tranclp_into_rtranclp[of cdcl\<^sub>W_stgy R]
+  using cdcl\<^sub>W_stgy_step_decreasing[of _ _ R] tranclp_into_rtranclp[of cdcl\<^sub>W_stgy R]
   lexn_transI[OF trans_less_than, of 3] unfolding trans_def by blast
 
 lemma tranclp_cdcl\<^sub>W_stgy_S0_decreasing:
@@ -1237,7 +1237,7 @@ proof (rule wf_bounded_measure[of _
   case (1 S S')
   then have "cdcl\<^sub>W_all_struct_inv S" and "cdcl\<^sub>W_cp S S'" by auto
   moreover then have "cdcl\<^sub>W_all_struct_inv S'"
-    using cdcl\<^sub>W_cp.simps  cdcl\<^sub>W_all_struct_inv_inv conflict cdcl\<^sub>W.intros cdcl\<^sub>W_all_struct_inv_inv
+    using cdcl\<^sub>W_cp.simps cdcl\<^sub>W_all_struct_inv_inv conflict cdcl\<^sub>W.intros cdcl\<^sub>W_all_struct_inv_inv
     by blast+
   ultimately show ?case
     by (auto simp:cdcl\<^sub>W_cp.simps state_eq_def simp del: state_simp elim!: conflictE propagateE

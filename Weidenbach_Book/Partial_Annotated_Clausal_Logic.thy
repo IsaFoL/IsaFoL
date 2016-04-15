@@ -1,4 +1,4 @@
-(*  Title:       Partial Clausal Logic
+(* Title:       Partial Clausal Logic
     Author:      Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>, 2014
 *)
 
@@ -182,12 +182,12 @@ text \<open>We introduce the functions @{term defined_lit} and @{term undefined_
 
   Remark that @{term undefined} already exists and is a completely different Isabelle function.
   \<close>
-definition defined_lit :: "('a, 'm) ann_lits  \<Rightarrow> 'a literal \<Rightarrow> bool"
+definition defined_lit :: "('a, 'm) ann_lits \<Rightarrow> 'a literal \<Rightarrow> bool"
   where
 "defined_lit I L \<longleftrightarrow> (Decided L \<in> set I) \<or> (\<exists>P. Propagated L P \<in> set I)
   \<or> (Decided (-L) \<in> set I) \<or> (\<exists>P. Propagated (-L) P \<in> set I)"
 
-abbreviation undefined_lit :: "('a, 'm) ann_lits  \<Rightarrow> 'a literal \<Rightarrow>  bool"
+abbreviation undefined_lit :: "('a, 'm) ann_lits \<Rightarrow> 'a literal \<Rightarrow> bool"
 where "undefined_lit I L \<equiv> \<not>defined_lit I L"
 
 lemma defined_lit_rev[simp]:
@@ -402,7 +402,7 @@ next
   then show ?case
     by (cases "get_all_ann_decomposition (M0 @ Decided K # M1)")
        (auto dest!: get_all_ann_decomposition_decomp
-          arg_cong[of "get_all_ann_decomposition _"  _ hd])
+          arg_cong[of "get_all_ann_decomposition _" _ hd])
 qed
 
 lemma in_get_all_ann_decomposition_in_get_all_ann_decomposition_prepend:
@@ -449,7 +449,7 @@ lemma get_all_ann_decomposition_except_last_choice_equal:
   assumes "\<forall>l \<in> set M'. \<not>is_decided l"
   shows "tl (get_all_ann_decomposition (Propagated (-L) P # M))
  = tl (tl (get_all_ann_decomposition (M' @ Decided L # M)))"
-  using assms by (induct M'  rule: ann_lit_list_induct) auto
+  using assms by (induct M' rule: ann_lit_list_induct) auto
 
 lemma get_all_ann_decomposition_hd_hd:
   assumes "get_all_ann_decomposition Ls = (M, C) # (M0, M0') # l"
@@ -649,7 +649,7 @@ next
         have "N \<union> ?unM' \<Turnstile>ps unmark ` (?d \<union> {L |L. is_decided L \<and> L \<in> set M'})"
           unfolding l using N by (auto simp: all_in_true_clss_clss)
         then have t: "N \<union> ?unM' \<Turnstile>ps unmark_l (tl Ls0)"
-          using M' unfolding LS LSM  by auto
+          using M' unfolding LS LSM by auto
         then have "N \<union> ?unM \<Turnstile>ps unmark_l (tl Ls0)"
           using M'_in_M true_clss_clss_subset[OF _ t, of "N \<union> ?unM"] by auto
         then have "N \<union> ?unM \<Turnstile>ps unmark_l Ls0"
@@ -696,7 +696,7 @@ subsection \<open>Negation of Clauses\<close>
 text \<open>We define the negation of a @{typ "'a clause"}: it converts it from the a single clause to
   a set of clauses, wherein each clause is a single negated literal.\<close>
 definition CNot :: "'v clause \<Rightarrow> 'v clauses" where
-"CNot \<psi> = { {#-L#} | L.  L \<in># \<psi> }"
+"CNot \<psi> = { {#-L#} | L. L \<in># \<psi> }"
 
 lemma in_CNot_uminus[iff]:
   shows "{#L#} \<in> CNot \<psi> \<longleftrightarrow> -L \<in># \<psi>"
@@ -986,7 +986,7 @@ lemma "atms_of_mm U \<equiv> set_mset (\<Union># image_mset (image_mset atm_of) 
 abbreviation true_clss_m:: "'a interp \<Rightarrow> 'a clause multiset \<Rightarrow> bool" (infix "\<Turnstile>sm" 50) where
 "I \<Turnstile>sm C \<equiv> I \<Turnstile>s set_mset C"
 
-abbreviation true_clss_ext_m  (infix "\<Turnstile>sextm" 49) where
+abbreviation true_clss_ext_m (infix "\<Turnstile>sextm" 49) where
 "I \<Turnstile>sextm C \<equiv> I \<Turnstile>sext set_mset C"
 
 end

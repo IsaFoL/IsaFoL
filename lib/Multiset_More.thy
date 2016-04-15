@@ -1,8 +1,8 @@
-(*  Title:       More about Multisets
+(* Title:       More about Multisets
     Author:      Jasmin Blanchette <blanchette at in.tum.de>, 2014, 2015
     Author:      Dmitriy Traytel <traytel at in.tum.de>, 2014
     Author:      Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>, 2015
-    Maintainer:  Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>
+    Maintainer: Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>
 *)
 
 
@@ -36,7 +36,7 @@ by (hypsubst, rule image_mset_cong)
 
 (*@{thm psubsetE} is the set counter part*)
 lemma subset_msetE [elim!]:
-  "[|A \<subset># B;  [|A \<subseteq># B; ~ (B\<subseteq>#A)|] ==> R|] ==> R"
+  "[|A \<subset># B; [|A \<subseteq># B; ~ (B\<subseteq>#A)|] ==> R|] ==> R"
   unfolding subseteq_mset_def subset_mset_def by (meson mset_less_eqI subset_mset.eq_iff)
 
 (* TODO check why auto needs these lemma sometimes *)
@@ -46,11 +46,11 @@ lemma ball_msetE [elim]: "\<forall>x\<in>#A. P x ==> (P x ==> Q) ==> (x \<notin>
 lemma bex_msetI [intro]: "P x ==> x\<in>#A ==> \<exists>x\<in>#A. P x"
   \<comment> \<open>Normally the best argument order: @{prop "P x"} constrains the
     choice of @{prop "x\<in>#A"}.\<close>
-  by  blast
+  by blast
 
 lemma rev_bex_msetI [intro]: "x\<in>#A ==> P x ==> \<exists>x\<in>#A. P x"
   \<comment> \<open>The best argument order when there is only one @{prop "x\<in>#A"}.\<close>
-  by  blast
+  by blast
 
 subsection \<open>Lemmas about intersections\<close>
 (* Unsure if suited as simp rules or if only slowing down stuff\<dots>*)
@@ -101,7 +101,7 @@ proof -
   show ?thesis unfolding * using size_Diff_submset subset_mset.inf.cobounded1 by blast
 qed
 
-lemma diff_size_le_size_Diff:  "size (\<Sigma>:: _ multiset) - size \<Sigma>' \<le> size (\<Sigma> - \<Sigma>')"
+lemma diff_size_le_size_Diff: "size (\<Sigma>:: _ multiset) - size \<Sigma>' \<le> size (\<Sigma> - \<Sigma>')"
 proof-
   have "size \<Sigma> - size \<Sigma>' \<le> size \<Sigma> - size (\<Sigma> #\<inter> \<Sigma>')"
     using size_mset_mono diff_le_mono2 subset_mset.inf_le2 by blast
@@ -248,13 +248,13 @@ lemma mset_replicate_replicate_mset:
   by (induction n) auto
 
 lemma set_mset_single_iff_replicate_mset:
-  "set_mset U = {a}  \<longleftrightarrow> (\<exists>n>0. U = replicate_mset n a)" (is "?S \<longleftrightarrow> ?R")
+  "set_mset U = {a} \<longleftrightarrow> (\<exists>n>0. U = replicate_mset n a)" (is "?S \<longleftrightarrow> ?R")
 proof
   assume ?R
   then show ?S by auto
 next
   assume ?S
-  show  ?R
+  show ?R
     proof (rule ccontr)
       assume "\<not> ?R"
       have "\<forall>n. U \<noteq> replicate_mset n a"
@@ -437,7 +437,7 @@ lemma distinct_mset_add:
 proof (rule iffI)
   assume ?A
   have L: "distinct_mset L"
-    using \<open>distinct_mset (L + L')\<close> distinct_mset_union  by blast
+    using \<open>distinct_mset (L + L')\<close> distinct_mset_union by blast
   moreover have L': "distinct_mset L'"
     using \<open>distinct_mset (L + L')\<close> distinct_mset_union unfolding add.commute[of L L'] by blast
   moreover have "L #\<inter> L' = {#}"
@@ -571,7 +571,7 @@ lemma msetsum_distrib[simp]:
 lemma msetsum_union_disjoint:
   assumes "A #\<inter> B = {#}"
   shows "(\<Sum>La\<in>#A #\<union> B. f La) = (\<Sum>La\<in>#A. f La) + (\<Sum>La\<in>#B. f La)"
-  by (metis assms diff_zero empty_sup image_mset_union  msetsum.union multiset_inter_commute
+  by (metis assms diff_zero empty_sup image_mset_union msetsum.union multiset_inter_commute
     multiset_union_diff_commute sup_subset_mset_def zero_diff)
 
 subsection \<open>Order\<close>

@@ -228,7 +228,7 @@ next
         by auto
       consider
         (st) "length xs < s" |
-        (s)  "length xs = 0" and "s = 0" |
+        (s) "length xs = 0" and "s = 0" |
         (s') s' where "length xs = Suc s'"
         using len by (cases s) (auto simp add: Nat.less_Suc_eq)
       then show "xs \<in> ?S s \<union> ?C \<union> {[]}"
@@ -268,7 +268,7 @@ lemma lexn_n:
   by (auto simp: map_prod_def image_iff lex_prod_def)
 
 text \<open>There is some subtle point in the proof here. @{term "1::nat"} is converted to
-  @{term "Suc 0::nat"}, but  @{term "2::nat"} is not: meaning that @{term "1::nat"} is automatically
+  @{term "Suc 0::nat"}, but @{term "2::nat"} is not: meaning that @{term "1::nat"} is automatically
   simplified by default using the default simplification rule @{thm lexn.simps}. However, the
   latter needs additional simplification rule (see the proof of the theorem above).\<close>
 

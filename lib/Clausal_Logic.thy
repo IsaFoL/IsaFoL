@@ -1,8 +1,8 @@
-(*  Title:       Clausal Logic
+(* Title:       Clausal Logic
     Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
     Author:      Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>, 2014 
-    Maintainer:  Jasmin Blanchette <jasmin.blanchette at inria.fr>
+    Maintainer: Jasmin Blanchette <jasmin.blanchette at inria.fr>
 *)
 
 section {* Clausal Logic *}
@@ -13,7 +13,7 @@ begin
 
 text {*
 Resolution operates of clauses, which are disjunctions of literals. The material formalized here
-corresponds roughly to Sections 2.1 (``Formulas and Clauses'')  of Bachmair and Ganzinger, excluding
+corresponds roughly to Sections 2.1 (``Formulas and Clauses'') of Bachmair and Ganzinger, excluding
 the formula and term syntax.
 *}
 

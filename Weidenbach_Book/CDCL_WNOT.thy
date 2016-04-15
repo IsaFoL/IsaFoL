@@ -12,7 +12,7 @@ fun convert_ann_lit_from_W where
 
 abbreviation convert_trail_from_W ::
   "('v, 'mark) ann_lits
-    \<Rightarrow> ('v, unit) ann_lits"  where
+    \<Rightarrow> ('v, unit) ann_lits" where
 "convert_trail_from_W \<equiv> map convert_ann_lit_from_W"
 
 lemma lits_of_l_convert_trail_from_W[simp]:
@@ -38,7 +38,7 @@ lemma defined_lit_convert_trail_from_W[simp]:
 text \<open>The values @{term "0::nat"} and @{term "{#}"} are dummy values.\<close>
 consts dummy_cls :: 'cls
 fun convert_ann_lit_from_NOT
-  :: "('v, 'mark) ann_lit \<Rightarrow> ('v, 'cls) ann_lit"  where
+  :: "('v, 'mark) ann_lit \<Rightarrow> ('v, 'cls) ann_lit" where
 "convert_ann_lit_from_NOT (Propagated L _) = Propagated L dummy_cls" |
 "convert_ann_lit_from_NOT (Decided L) = Decided L"
 
@@ -144,7 +144,7 @@ next
     then have "\<not> tautology C'"
       using \<open>F \<Turnstile>as CNot C'\<close> consistent_CNot_not_tautology true_annots_true_cls by blast
     then have "\<not> tautology (?C' + {#L#})"
-      using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit F L\<close> by (metis  CNot_remdups_mset
+      using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit F L\<close> by (metis CNot_remdups_mset
         Decided_Propagated_in_iff_in_lits_of_l add.commute in_CNot_uminus tautology_add_single
         tautology_remdups_mset true_annot_singleton true_annots_def)
   show ?case
@@ -162,7 +162,7 @@ next
         by (simp add: \<open>F \<Turnstile>as CNot C'\<close>)
       have "Ex (backjump_l S)"
         apply standard
-        apply (rule backjump_l.intros[OF  _ f2, of _ _ _ ])
+        apply (rule backjump_l.intros[OF _ f2, of _ _ _ ])
         using f4 f3 f2 \<open>\<not> tautology (remdups_mset C' + {#L#})\<close>
         calculation(2-5,9) \<open>F \<Turnstile>as CNot (remdups_mset C')\<close>
         state_eq\<^sub>N\<^sub>O\<^sub>T_ref unfolding backjump_l_cond_def by blast+
@@ -179,7 +179,7 @@ sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub
   "\<lambda>C S. add_learned_cls C S"
   "\<lambda>C S. remove_cls C S"
   "\<lambda>_ _. True"
-  "\<lambda>_ S. conflicting S = None"  backjump_l_cond inv\<^sub>N\<^sub>O\<^sub>T
+  "\<lambda>_ S. conflicting S = None" backjump_l_cond inv\<^sub>N\<^sub>O\<^sub>T
   by unfold_locales
 
 sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn
@@ -191,10 +191,10 @@ sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub
   "\<lambda>C S. remove_cls C S"
   backjump_l_cond
   "\<lambda>_ _. True"
-  "\<lambda>_ S. conflicting S = None"  inv\<^sub>N\<^sub>O\<^sub>T
+  "\<lambda>_ S. conflicting S = None" inv\<^sub>N\<^sub>O\<^sub>T
   apply unfold_locales
    using dpll_bj_no_dup apply (simp add: comp_def)
-  using cdcl\<^sub>N\<^sub>O\<^sub>T.simps cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup no_dup_convert_from_W  unfolding inv\<^sub>N\<^sub>O\<^sub>T_def by blast
+  using cdcl\<^sub>N\<^sub>O\<^sub>T.simps cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup no_dup_convert_from_W unfolding inv\<^sub>N\<^sub>O\<^sub>T_def by blast
 
 context conflict_driven_clause_learning\<^sub>W
 begin
@@ -404,12 +404,12 @@ next
       obtain M where tr_T: "trail T = M @ trail T'"
         using s_or_r skip_or_resolve_state_change by meson
       obtain M' where
-        tr_T': "trail T' = M' @  Decided K # tl (trail U)" and
+        tr_T': "trail T' = M' @ Decided K # tl (trail U)" and
         tr_U: "trail U = Propagated L D # tl (trail U)"
         using U M1_M2 inv_T' unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
         by fastforce
       def M'' \<equiv> "M @ M'"
-      have tr_T: "trail S = M'' @  Decided K # tl (trail U)"
+      have tr_T: "trail S = M'' @ Decided K # tl (trail U)"
         using tr_T tr_T' confl unfolding M''_def by (auto elim: rulesE)
       have "init_clss T' + learned_clss S \<Turnstile>pm D"
         using inv_T' confl_T' unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def
@@ -450,7 +450,7 @@ next
           apply simp
          using LD apply simp
         apply (metis U_D convert_trail_from_W_true_annots)
-        using  inv_T' inv_U U confl_T' undef_L M1_M2 LD unfolding cdcl\<^sub>W_all_struct_inv_def
+        using inv_T' inv_U U confl_T' undef_L M1_M2 LD unfolding cdcl\<^sub>W_all_struct_inv_def
         distinct_cdcl\<^sub>W_state_def by (simp add: cdcl\<^sub>W_M_level_inv_decomp backjump_l_cond_def)
       then show ?thesis using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_backjump_l by fast
     qed
@@ -513,7 +513,7 @@ proof -
   have [simp]: "init_clss S = init_clss T"
     using cdcl\<^sub>W_merge_restart_cdcl\<^sub>W[of S T] inv rtranclp_cdcl\<^sub>W_init_clss
     unfolding cdcl\<^sub>W_all_struct_inv_def
-    by (meson cdcl\<^sub>W_merge.simps cdcl\<^sub>W_merge_restart.simps  cdcl\<^sub>W_rf.simps fw)
+    by (meson cdcl\<^sub>W_merge.simps cdcl\<^sub>W_merge_restart.simps cdcl\<^sub>W_rf.simps fw)
   consider
       (merged) "cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn S T"
     | (n_s) "no_step cdcl\<^sub>W_merge T"

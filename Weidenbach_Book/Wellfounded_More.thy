@@ -1,4 +1,4 @@
-(*  Title:       More about Relations
+(* Title:       More about Relations
     Author:      Mathias Fleury <mathias.fleury at mpi-inf.mpg.de>
 *)
 section \<open>Transitions\<close>
@@ -210,7 +210,7 @@ lemma wf_if_measure_in_wf:
   by (metis in_inv_image wfE_min wfI_min wf_inv_image)
 
 lemma wfP_if_measure: fixes f :: "'a \<Rightarrow> nat"
-shows "(\<And>x y. P x \<Longrightarrow> g x y  \<Longrightarrow> f y < f x) \<Longrightarrow> wf {(y,x). P x \<and> g x y}"
+shows "(\<And>x y. P x \<Longrightarrow> g x y \<Longrightarrow> f y < f x) \<Longrightarrow> wf {(y,x). P x \<and> g x y}"
   apply(insert wf_measure[of f])
   apply(simp only: measure_def inv_image_def less_than_def less_eq)
   apply(erule wf_subset)
@@ -241,7 +241,7 @@ proof -
 qed
 
 lemma wfP_if_measure2: fixes f :: "'a \<Rightarrow> nat"
-shows "(\<And>x y. P x y \<Longrightarrow> g x y  \<Longrightarrow> f x < f y) \<Longrightarrow> wf {(x,y). P x y \<and> g x y}"
+shows "(\<And>x y. P x y \<Longrightarrow> g x y \<Longrightarrow> f x < f y) \<Longrightarrow> wf {(x,y). P x y \<and> g x y}"
   apply(insert wf_measure[of f])
   apply(simp only: measure_def inv_image_def less_than_def less_eq)
   apply(erule wf_subset)

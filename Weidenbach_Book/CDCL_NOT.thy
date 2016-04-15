@@ -150,7 +150,7 @@ lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_trail_tl_trail_decomp[simp]:
 
 lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_length:
   "length M = length M' \<Longrightarrow> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M S = reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M' S"
-  apply (induction M S arbitrary:  rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
+  apply (induction M S arbitrary: rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
   by (simp add: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.simps)
 
 abbreviation trail_weight where
@@ -230,7 +230,7 @@ locale decide_ops =
     add_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st"
 begin
-inductive decide\<^sub>N\<^sub>O\<^sub>T ::  "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+inductive decide\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 decide\<^sub>N\<^sub>O\<^sub>T[intro]: "undefined_lit (trail S) L \<Longrightarrow> atm_of L \<in> atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S)
   \<Longrightarrow> T \<sim> prepend_trail (Decided L) S
   \<Longrightarrow> decide\<^sub>N\<^sub>O\<^sub>T S T"
@@ -308,9 +308,9 @@ subsubsection \<open>Definition\<close>
 
 text \<open>We define dpll with backjumping:\<close>
 inductive dpll_bj :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
-bj_decide\<^sub>N\<^sub>O\<^sub>T:  "decide\<^sub>N\<^sub>O\<^sub>T S S' \<Longrightarrow> dpll_bj S S'" |
+bj_decide\<^sub>N\<^sub>O\<^sub>T: "decide\<^sub>N\<^sub>O\<^sub>T S S' \<Longrightarrow> dpll_bj S S'" |
 bj_propagate\<^sub>N\<^sub>O\<^sub>T: "propagate\<^sub>N\<^sub>O\<^sub>T S S' \<Longrightarrow> dpll_bj S S'" |
-bj_backjump:  "backjump S S' \<Longrightarrow> dpll_bj S S'"
+bj_backjump: "backjump S S' \<Longrightarrow> dpll_bj S S'"
 
 lemmas dpll_bj_induct = dpll_bj.induct[split_format(complete)]
 thm dpll_bj_induct[OF dpll_with_backjumping_ops_axioms]
@@ -525,7 +525,7 @@ text \<open>The bounds are the following:
   of elements, where adding one is necessary for the same reason as for the bound on the list, and
   one is needed to have a strict bound.
   \<close>
-abbreviation unassigned_lit ::  "'b literal multiset set \<Rightarrow> 'a list \<Rightarrow> nat" where
+abbreviation unassigned_lit :: "'b literal multiset set \<Rightarrow> 'a list \<Rightarrow> nat" where
   "unassigned_lit N M \<equiv> card (atms_of_ms N) - length M"
 lemma dpll_bj_trail_mes_increasing_prop:
   fixes M :: "('v, unit) ann_lits " and N :: "'v clauses"
@@ -588,10 +588,10 @@ next
     using get_all_ann_decomposition_decomp[of "trail S"] by (simp add: M)
   have fin_atms_A: "finite (atms_of_ms A)" using finite by simp
 
-  then have F_le_A: "length (Propagated L () # F) \<le>  card (atms_of_ms A)"
+  then have F_le_A: "length (Propagated L () # F) \<le> card (atms_of_ms A)"
     using incl finite unfolding no_dup_length_eq_card_atm_of_lits_of_l[OF no_dup]
     by (simp add: card_mono)
-  have tr_S_le_A: "length (trail S) \<le>  (card (atms_of_ms A))"
+  have tr_S_le_A: "length (trail S) \<le> card (atms_of_ms A)"
     using n_d MA by (metis fin_atms_A card_mono no_dup_length_eq_card_atm_of_lits_of_l)
   obtain a b l where F: "get_all_ann_decomposition F = (a, b) # l"
     by (cases "get_all_ann_decomposition F") auto
@@ -629,7 +629,7 @@ next
 qed
 
 lemma dpll_bj_trail_mes_decreasing_prop:
-  assumes dpll: "dpll_bj S T"  and inv: "inv S" and
+  assumes dpll: "dpll_bj S T" and inv: "inv S" and
   N_A: "atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<subseteq> atms_of_ms A" and
   M_A: "atm_of ` lits_of_l (trail S) \<subseteq> atms_of_ms A" and
   nd: "no_dup (trail S)" and
@@ -649,7 +649,7 @@ proof -
   { fix i :: nat and xs :: "'a list"
     have "i < length xs \<Longrightarrow> length xs - Suc i < length xs"
       by auto
-    then have H: "i<length xs \<Longrightarrow>  xs ! i \<in> set xs"
+    then have H: "i<length xs \<Longrightarrow> xs ! i \<in> set xs"
       using rev_nth[of i xs] unfolding in_set_conv_nth by (force simp add: in_set_conv_nth)
   } note H = this
 
@@ -702,7 +702,7 @@ proof (rule wf_bounded_measure[of _
   { fix i :: nat and xs :: "'a list"
     have "i < length xs \<Longrightarrow> length xs - Suc i < length xs"
       by auto
-    then have H: "i<length xs \<Longrightarrow>  xs ! i \<in> set xs"
+    then have H: "i<length xs \<Longrightarrow> xs ! i \<in> set xs"
       using rev_nth[of i xs] unfolding in_set_conv_nth by (force simp add: in_set_conv_nth)
   } note H = this
 
@@ -777,7 +777,7 @@ proof -
       let ?I = "I \<union> {P| P. P \<in> lits_of_l ?M \<and> atm_of P \<notin> atm_of ` I}"
       let ?O = "{unmark L |L. is_decided L \<and> L \<in> set ?M \<and> atm_of (lit_of L) \<notin> atms_of_ms ?N}"
       have cons_I': "consistent_interp ?I"
-        using cons using \<open>no_dup ?M\<close>  unfolding consistent_interp_def
+        using cons using \<open>no_dup ?M\<close> unfolding consistent_interp_def
         by (auto simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def
           dest!: no_dup_cannot_not_lit_and_uminus)
       have tot_I': "total_over_m ?I (?N \<union> unmark_l ?M)"
@@ -1085,7 +1085,7 @@ corollary full_dpll_backjump_final_state_from_init_state:
   using assms full_dpll_backjump_final_state[of S T "set_mset N"] by auto
 
 lemma tranclp_dpll_bj_trail_mes_decreasing_prop:
-  assumes dpll: "dpll_bj\<^sup>+\<^sup>+ S T"  and inv: "inv S" and
+  assumes dpll: "dpll_bj\<^sup>+\<^sup>+ S T" and inv: "inv S" and
   N_A: "atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<subseteq> atms_of_ms A" and
   M_A: "atm_of ` lits_of_l (trail S) \<subseteq> atms_of_ms A" and
   n_d: "no_dup (trail S)" and
@@ -1139,7 +1139,7 @@ locale learn_ops =
     learn_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
 begin
 inductive learn :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
-learn\<^sub>N\<^sub>O\<^sub>T_rule: "clauses\<^sub>N\<^sub>O\<^sub>T S \<Turnstile>pm C  \<Longrightarrow>
+learn\<^sub>N\<^sub>O\<^sub>T_rule: "clauses\<^sub>N\<^sub>O\<^sub>T S \<Turnstile>pm C \<Longrightarrow>
   atms_of C \<subseteq> atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<union> atm_of ` (lits_of_l (trail S)) \<Longrightarrow>
   learn_cond C S \<Longrightarrow>
   T \<sim> add_cls\<^sub>N\<^sub>O\<^sub>T C S \<Longrightarrow>
@@ -1213,7 +1213,7 @@ locale conflict_driven_clause_learning_ops =
     add_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     inv :: "'st \<Rightarrow> bool" and
-    backjump_conds ::  "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
+    backjump_conds :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
     propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     learn_cond forget_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
 begin
@@ -1401,7 +1401,7 @@ lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_trail_clauses_bound:
     n_d: "no_dup (trail S)" and
     atms_clauses_S: "atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<subseteq> A" and
     atms_trail_S: "atm_of `(lits_of_l (trail S)) \<subseteq> A"
-  shows "atm_of ` (lits_of_l (trail T)) \<subseteq> A \<and> atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T T) \<subseteq>  A"
+  shows "atm_of ` (lits_of_l (trail T)) \<subseteq> A \<and> atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T T) \<subseteq> A"
   using cdcl
 proof (induction rule: rtranclp_induct)
   case base
@@ -1477,7 +1477,7 @@ proof -
         using forget_\<mu>\<^sub>C_stable learn_\<mu>\<^sub>C_stable inv unfolding cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv_def by presburger
     qed
   moreover have "cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv A T"
-     using rtranclp_learn_or_forget_cdcl\<^sub>N\<^sub>O\<^sub>T  cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv  l_f inv by blast
+     using rtranclp_learn_or_forget_cdcl\<^sub>N\<^sub>O\<^sub>T cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv l_f inv by blast
   ultimately show ?thesis
     using dpll_bj_trail_mes_decreasing_prop[of T U A, OF dpll] finite
     unfolding cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv_def by presburger
@@ -1512,9 +1512,9 @@ proof (induction "(2+card (atms_of_ms A)) ^ (1+card (atms_of_ms A))
         proof -
           obtain i\<^sub>0 where "\<not> learn (f i\<^sub>0) (f (Suc i\<^sub>0)) \<and> \<not>forget\<^sub>N\<^sub>O\<^sub>T (f i\<^sub>0) (f (Suc i\<^sub>0))"
             using j by auto
-          then have "{i. i\<le>i\<^sub>0 \<and>  \<not> learn (f i) (f (Suc i)) \<and> \<not>forget\<^sub>N\<^sub>O\<^sub>T (f i) (f (Suc i))} \<noteq> {}"
+          then have "{i. i\<le>i\<^sub>0 \<and> \<not> learn (f i) (f (Suc i)) \<and> \<not>forget\<^sub>N\<^sub>O\<^sub>T (f i) (f (Suc i))} \<noteq> {}"
             by auto
-          let ?I = "{i. i\<le>i\<^sub>0 \<and>  \<not> learn (f i) (f (Suc i)) \<and> \<not>forget\<^sub>N\<^sub>O\<^sub>T (f i) (f (Suc i))}"
+          let ?I = "{i. i\<le>i\<^sub>0 \<and> \<not> learn (f i) (f (Suc i)) \<and> \<not>forget\<^sub>N\<^sub>O\<^sub>T (f i) (f (Suc i))}"
           let ?i = "Min ?I"
           have "finite ?I"
             by auto
@@ -1551,7 +1551,7 @@ proof (induction "(2+card (atms_of_ms A)) ^ (1+card (atms_of_ms A))
       moreover have cdcl\<^sub>N\<^sub>O\<^sub>T_i: "cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* (f 0) (g 0)"
         using rtranclp_learn_or_forget_cdcl\<^sub>N\<^sub>O\<^sub>T[of "f 0" "f i"] \<open>learn_or_forget\<^sup>*\<^sup>* (f 0) (f i)\<close>
         cdcl\<^sub>N\<^sub>O\<^sub>T[of i] unfolding g_def by auto
-      moreover have "\<And>i. cdcl\<^sub>N\<^sub>O\<^sub>T (g  i) (g (Suc i))"
+      moreover have "\<And>i. cdcl\<^sub>N\<^sub>O\<^sub>T (g i) (g (Suc i))"
         using cdcl\<^sub>N\<^sub>O\<^sub>T g_def by auto
       moreover have "cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv A (g 0)"
         using inv cdcl\<^sub>N\<^sub>O\<^sub>T_i rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_trail_clauses_bound g_def cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv by auto
@@ -1582,9 +1582,9 @@ next
         proof -
           obtain i\<^sub>0 where "\<not> learn (f i\<^sub>0) (f (Suc i\<^sub>0)) \<and> \<not>forget\<^sub>N\<^sub>O\<^sub>T (f i\<^sub>0) (f (Suc i\<^sub>0))"
             using j by auto
-          then have "{i. i\<le>i\<^sub>0 \<and>  \<not> learn (f i) (f (Suc i)) \<and> \<not>forget\<^sub>N\<^sub>O\<^sub>T (f i) (f (Suc i))} \<noteq> {}"
+          then have "{i. i\<le>i\<^sub>0 \<and> \<not> learn (f i) (f (Suc i)) \<and> \<not>forget\<^sub>N\<^sub>O\<^sub>T (f i) (f (Suc i))} \<noteq> {}"
             by auto
-          let ?I = "{i. i\<le>i\<^sub>0 \<and>  \<not> learn (f i) (f (Suc i)) \<and> \<not>forget\<^sub>N\<^sub>O\<^sub>T (f i) (f (Suc i))}"
+          let ?I = "{i. i\<le>i\<^sub>0 \<and> \<not> learn (f i) (f (Suc i)) \<and> \<not>forget\<^sub>N\<^sub>O\<^sub>T (f i) (f (Suc i))}"
           let ?i = "Min ?I"
           have "finite ?I"
             by auto
@@ -1612,7 +1612,7 @@ next
       then have "learn_or_forget\<^sup>*\<^sup>* (f 0) (f i)" by blast
 
       then show False
-        using learn_or_forget_dpll_\<mu>\<^sub>C[of "f 0" "f i" "f (Suc i)" A] inv  0
+        using learn_or_forget_dpll_\<mu>\<^sub>C[of "f 0" "f i" "f (Suc i)" A] inv 0
         \<open>dpll_bj (f i) (f (Suc i))\<close> unfolding cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv_def by linarith
     qed
 qed
@@ -1707,8 +1707,8 @@ locale conflict_driven_clause_learning_learning_before_backjump_only_distinct_le
   dpll_state trail clauses\<^sub>N\<^sub>O\<^sub>T prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T +
   conflict_driven_clause_learning trail clauses\<^sub>N\<^sub>O\<^sub>T prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
     inv backjump_conds propagate_conds
-  "\<lambda>C S.  distinct_mset C \<and> \<not>tautology C \<and> learn_restrictions C S \<and>
-    (\<exists>F K d F' C' L.  trail S = F' @ Decided K # F \<and> C = C' + {#L#} \<and> F \<Turnstile>as CNot C'
+  "\<lambda>C S. distinct_mset C \<and> \<not>tautology C \<and> learn_restrictions C S \<and>
+    (\<exists>F K d F' C' L. trail S = F' @ Decided K # F \<and> C = C' + {#L#} \<and> F \<Turnstile>as CNot C'
       \<and> C' + {#L#} \<notin># clauses\<^sub>N\<^sub>O\<^sub>T S)"
   "\<lambda>C S. \<not>(\<exists>F' F K d L. trail S = F' @ Decided K # F \<and> F \<Turnstile>as CNot (remove1_mset L C))
     \<and> forget_restrictions C S"
@@ -1720,7 +1720,7 @@ locale conflict_driven_clause_learning_learning_before_backjump_only_distinct_le
     add_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     inv :: "'st \<Rightarrow> bool" and
-    backjump_conds ::  "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
+    backjump_conds :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
     propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     learn_restrictions forget_restrictions :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
 begin
@@ -1779,7 +1779,7 @@ proof
   moreover have "finite (atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<union> atm_of ` lits_of_l (trail S))"
      by auto
   ultimately show "C \<in> simple_clss (atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<union> atm_of ` lits_of_l (trail S))"
-    using simple_clss_mono  by (metis (no_types) insert_subset mk_disjoint_insert)
+    using simple_clss_mono by (metis (no_types) insert_subset mk_disjoint_insert)
 qed
 
 definition "conflicting_bj_clss S \<equiv>
@@ -1805,7 +1805,7 @@ lemma conflicting_bj_clss_add_cls\<^sub>N\<^sub>O\<^sub>T_state_eq:
      \<and> (\<exists>F' K d F. trail S = F' @ Decided K # F \<and> F \<Turnstile>as CNot C)
      then {C'} else {})"
 proof -
-  def P \<equiv> "\<lambda>C L T.  distinct_mset (C + {#L#}) \<and> \<not> tautology (C + {#L#}) \<and>
+  def P \<equiv> "\<lambda>C L T. distinct_mset (C + {#L#}) \<and> \<not> tautology (C + {#L#}) \<and>
     (\<exists>F' K F. trail T = F' @ Decided K # F \<and> F \<Turnstile>as CNot C)"
   have conf: "\<And>T. conflicting_bj_clss T = {C + {#L#} |C L. C + {#L#} \<in># clauses\<^sub>N\<^sub>O\<^sub>T T \<and> P C L T}"
     unfolding conflicting_bj_clss_def P_def by auto
@@ -1929,8 +1929,8 @@ proof -
       unfolding conflicting_bj_clss_def by auto
     have T: "conflicting_bj_clss T
     \<subseteq> simple_clss (atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T T) \<union> atm_of ` lits_of_l (trail T))"
-      by standard (meson "1" "2" fin'  \<open>finite (conflicting_bj_clss T)\<close> simple_clss_mono
-        distinct_mset_set_def  simplified_in_simple_clss subsetCE sup.coboundedI1)
+      by standard (meson "1" "2" fin' \<open>finite (conflicting_bj_clss T)\<close> simple_clss_mono
+        distinct_mset_set_def simplified_in_simple_clss subsetCE sup.coboundedI1)
   moreover
     then have #: "3 ^ card (atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T T) \<union> atm_of ` lits_of_l (trail T))
         \<ge> card (conflicting_bj_clss T)"
@@ -1961,7 +1961,7 @@ definition \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L where
             conflicting_bj_clss_yet (card (atms_of_ms A)) T, card (set_mset (clauses\<^sub>N\<^sub>O\<^sub>T T)))"
 lemma cdcl\<^sub>N\<^sub>O\<^sub>T_decreasing_measure:
   assumes
-    "cdcl\<^sub>N\<^sub>O\<^sub>T S T"  and
+    "cdcl\<^sub>N\<^sub>O\<^sub>T S T" and
     inv: "inv S" and
     atm_clss: "atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<subseteq> atms_of_ms A" and
     atm_lits: "atm_of ` lits_of_l (trail S) \<subseteq> atms_of_ms A" and
@@ -2036,7 +2036,7 @@ proof (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_learn_all_induct)
     unfolding Nat.add_mult_distrib
     by presburger
   moreover
-    have cl_T_S:  "clauses\<^sub>N\<^sub>O\<^sub>T T = clauses\<^sub>N\<^sub>O\<^sub>T S"
+    have cl_T_S: "clauses\<^sub>N\<^sub>O\<^sub>T T = clauses\<^sub>N\<^sub>O\<^sub>T S"
       using dpll_bj.hyps inv dpll_bj_clauses by auto
     have "conflicting_bj_clss_yet (card (atms_of_ms A)) S < 1+ 3 ^ card (atms_of_ms A)"
     by simp
@@ -2127,7 +2127,7 @@ next
     by (metis T card_Diff1_less clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T finite_set_mset forget\<^sub>N\<^sub>O\<^sub>T.hyps(2)
       order_refl set_mset_minus_replicate_mset(1) state_eq\<^sub>N\<^sub>O\<^sub>T_clauses)
   ultimately show ?case unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def
-    using T \<open>\<mu>\<^sub>C' A (remove_cls\<^sub>N\<^sub>O\<^sub>T C S) = \<mu>\<^sub>C' A S\<close> by (metis (no_types)  add_le_cancel_left
+    using T \<open>\<mu>\<^sub>C' A (remove_cls\<^sub>N\<^sub>O\<^sub>T C S) = \<mu>\<^sub>C' A S\<close> by (metis (no_types) add_le_cancel_left
       \<mu>\<^sub>C'_def not_le state_eq\<^sub>N\<^sub>O\<^sub>T_trail)
 qed
 
@@ -2280,7 +2280,7 @@ proof -
       \<le> card {C. C \<in># clauses\<^sub>N\<^sub>O\<^sub>T S \<and> (tautology C \<or> \<not>distinct_mset C)} + 3 ^ card (atms_of_ms A)"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_card_simple_clauses_bound[OF assms(1-6)] U by auto
   ultimately show ?thesis
-    unfolding  \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_def by linarith
+    unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_def by linarith
 qed
 
 lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound:
@@ -2294,7 +2294,7 @@ lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>
   shows "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A T \<le> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A S"
 proof -
   have "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T (trail T) T) = \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L' A T"
-    unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def  \<mu>\<^sub>C'_def conflicting_bj_clss_def by auto
+    unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_def \<mu>\<^sub>C'_def conflicting_bj_clss_def by auto
   then show ?thesis using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T[OF assms, of _ "trail T"]
     state_eq\<^sub>N\<^sub>O\<^sub>T_ref by fastforce
 qed
@@ -2337,7 +2337,7 @@ locale restart_ops =
     cdcl\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
     restart :: "'st \<Rightarrow> 'st \<Rightarrow> bool"
 begin
-inductive cdcl\<^sub>N\<^sub>O\<^sub>T_raw_restart  :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+inductive cdcl\<^sub>N\<^sub>O\<^sub>T_raw_restart :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 "cdcl\<^sub>N\<^sub>O\<^sub>T S T \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_raw_restart S T" |
 "restart S T \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_raw_restart S T"
 
@@ -2354,7 +2354,7 @@ locale conflict_driven_clause_learning_with_restarts =
     add_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     inv :: "'st \<Rightarrow> bool" and
-    backjump_conds ::  "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
+    backjump_conds :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
     propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     learn_cond forget_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
 begin
@@ -2382,10 +2382,10 @@ end
 subsubsection \<open>Increasing restarts\<close>
 text \<open>To add restarts we needs some assumptions on the predicate (called @{term cdcl\<^sub>N\<^sub>O\<^sub>T} here):
   \<^item> a function @{term f} that is strictly monotonic. The first step is actually only used as a
-  restart  to clean the state (e.g. to ensure that the trail is empty). Then we assume that
+  restart to clean the state (e.g. to ensure that the trail is empty). Then we assume that
   @{term "f n \<ge> 1"} for @{term "n \<ge> 1"}: it means that between two consecutive
-  restarts, at least one step will be done. This is necessary to avoid sequence. like:  full --
-  restart --  full -- ...
+  restarts, at least one step will be done. This is necessary to avoid sequence. like: full --
+  restart -- full -- ...
   \<^item> a measure @{term "\<mu>"}: it should decrease under the assumptions @{term bound_inv}, whenever a
   @{term cdcl\<^sub>N\<^sub>O\<^sub>T} or a @{term restart} is done. A parameter is given to @{term \<mu>}: for conflict-
   driven clause learning, it is an upper-bound of the clauses. We are assuming that such a bound
@@ -2468,7 +2468,7 @@ next
   then have "\<mu> A U < \<mu> A S - n" using IH[of U] by simp
   moreover
     have "bound_inv A U"
-      using S_U b_inv  cdcl\<^sub>N\<^sub>O\<^sub>T_bound_inv c_inv by blast
+      using S_U b_inv cdcl\<^sub>N\<^sub>O\<^sub>T_bound_inv c_inv by blast
     then have "\<mu> A T < \<mu> A U" using cdcl\<^sub>N\<^sub>O\<^sub>T_measure[OF _ _ U_T] S_U c_inv cdcl\<^sub>N\<^sub>O\<^sub>T_cdcl\<^sub>N\<^sub>O\<^sub>T_inv by auto
   ultimately show ?case by linarith
 qed
@@ -2546,7 +2546,7 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_cdcl\<^sub>N\<^sub>O\<^sub>T_inv
   assumes
     "cdcl\<^sub>N\<^sub>O\<^sub>T_restart S T" and
     "cdcl\<^sub>N\<^sub>O\<^sub>T_inv (fst S)"
-  shows "cdcl\<^sub>N\<^sub>O\<^sub>T_inv (fst  T)"
+  shows "cdcl\<^sub>N\<^sub>O\<^sub>T_inv (fst T)"
   using assms apply induction
     apply (metis cdcl\<^sub>N\<^sub>O\<^sub>T_cdcl\<^sub>N\<^sub>O\<^sub>T_inv cdcl\<^sub>N\<^sub>O\<^sub>T_inv_restart fst_conv)
    apply (metis fstI full_def full_unfold rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_cdcl\<^sub>N\<^sub>O\<^sub>T_inv)
@@ -2595,12 +2595,12 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts =
     measure_bound: "\<And>A T V n. cdcl\<^sub>N\<^sub>O\<^sub>T_inv T \<Longrightarrow> bound_inv A T
       \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_restart (T, n) (V, Suc n) \<Longrightarrow> \<mu> A V \<le> \<mu>_bound A T" and
     cdcl\<^sub>N\<^sub>O\<^sub>T_raw_restart_\<mu>_bound:
-      "cdcl\<^sub>N\<^sub>O\<^sub>T_restart (T, a) (V, b) \<Longrightarrow>  cdcl\<^sub>N\<^sub>O\<^sub>T_inv T \<Longrightarrow> bound_inv A T
+      "cdcl\<^sub>N\<^sub>O\<^sub>T_restart (T, a) (V, b) \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_inv T \<Longrightarrow> bound_inv A T
         \<Longrightarrow> \<mu>_bound A V \<le> \<mu>_bound A T"
 begin
 
 lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_raw_restart_\<mu>_bound:
-  "cdcl\<^sub>N\<^sub>O\<^sub>T_restart\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow>  cdcl\<^sub>N\<^sub>O\<^sub>T_inv T \<Longrightarrow> bound_inv A T
+  "cdcl\<^sub>N\<^sub>O\<^sub>T_restart\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_inv T \<Longrightarrow> bound_inv A T
     \<Longrightarrow> \<mu>_bound A V \<le> \<mu>_bound A T"
   apply (induction rule: rtranclp_induct2)
    apply simp
@@ -2608,7 +2608,7 @@ lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_raw_restart_\<mu>_bound:
     rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_bound_inv rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_cdcl\<^sub>N\<^sub>O\<^sub>T_inv)
 
 lemma cdcl\<^sub>N\<^sub>O\<^sub>T_raw_restart_measure_bound:
-  "cdcl\<^sub>N\<^sub>O\<^sub>T_restart (T, a) (V, b) \<Longrightarrow>  cdcl\<^sub>N\<^sub>O\<^sub>T_inv T \<Longrightarrow> bound_inv A T
+  "cdcl\<^sub>N\<^sub>O\<^sub>T_restart (T, a) (V, b) \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_inv T \<Longrightarrow> bound_inv A T
     \<Longrightarrow> \<mu> A V \<le> \<mu>_bound A T"
   apply (cases rule: cdcl\<^sub>N\<^sub>O\<^sub>T_restart.cases)
      apply simp
@@ -2616,7 +2616,7 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_raw_restart_measure_bound:
    by (metis full_def full_unfold measure_bound2 prod.inject)
 
 lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_raw_restart_measure_bound:
-  "cdcl\<^sub>N\<^sub>O\<^sub>T_restart\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow>  cdcl\<^sub>N\<^sub>O\<^sub>T_inv T \<Longrightarrow> bound_inv A T
+  "cdcl\<^sub>N\<^sub>O\<^sub>T_restart\<^sup>*\<^sup>* (T, a) (V, b) \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_inv T \<Longrightarrow> bound_inv A T
     \<Longrightarrow> \<mu> A V \<le> \<mu>_bound A T"
   apply (induction rule: rtranclp_induct2)
     apply (simp add: measure_bound2)
@@ -2796,12 +2796,12 @@ text \<open>Avoid (meaningless) simplification in the theorem generated by \<ope
 declare reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_length_ne[simp del] Set.Un_iff[simp del] Set.insert_iff[simp del]
 inductive_cases backjump_lE: "backjump_l S T"
 thm backjump_lE
-declare reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_length_ne[simp]  Set.Un_iff[simp] Set.insert_iff[simp]
+declare reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_length_ne[simp] Set.Un_iff[simp] Set.insert_iff[simp]
 
 inductive cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
-cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_decide\<^sub>N\<^sub>O\<^sub>T:  "decide\<^sub>N\<^sub>O\<^sub>T S S' \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn S S'" |
+cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_decide\<^sub>N\<^sub>O\<^sub>T: "decide\<^sub>N\<^sub>O\<^sub>T S S' \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn S S'" |
 cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_propagate\<^sub>N\<^sub>O\<^sub>T: "propagate\<^sub>N\<^sub>O\<^sub>T S S' \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn S S'" |
-cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_backjump_l:  "backjump_l S S' \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn S S'" |
+cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_backjump_l: "backjump_l S S' \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn S S'" |
 cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_forget\<^sub>N\<^sub>O\<^sub>T: "forget\<^sub>N\<^sub>O\<^sub>T S S' \<Longrightarrow> cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn S S'"
 
 lemma cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_no_dup_inv:
@@ -2863,7 +2863,7 @@ proof (unfold_locales, goal_cases)
         and
       tr_S: "trail S = F' @ Decided K # F" and
       C: "C \<in># clauses\<^sub>N\<^sub>O\<^sub>T S" and
-      tr_S_C: "trail S \<Turnstile>as CNot C"  and
+      tr_S_C: "trail S \<Turnstile>as CNot C" and
       undef_L: "undefined_lit F L" and
       atm_L:
        "atm_of L \<in> insert (atm_of K) (atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<union> atm_of ` (lits_of_l F' \<union> lits_of_l F))"
@@ -2915,7 +2915,7 @@ begin
 
 sublocale conflict_driven_clause_learning_ops trail clauses\<^sub>N\<^sub>O\<^sub>T prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T
   remove_cls\<^sub>N\<^sub>O\<^sub>T inv backjump_conds propagate_conds
-  "\<lambda>C _.  distinct_mset C \<and> \<not>tautology C"
+  "\<lambda>C _. distinct_mset C \<and> \<not>tautology C"
   forget_cond
   by unfold_locales
 end
@@ -2935,14 +2935,14 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn =
     forget_cond :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" +
   assumes
-    dpll_merge_bj_inv: "\<And>S T.  dpll_bj S T \<Longrightarrow> inv S \<Longrightarrow> inv T" and
+    dpll_merge_bj_inv: "\<And>S T. dpll_bj S T \<Longrightarrow> inv S \<Longrightarrow> inv T" and
     learn_inv: "\<And>S T. learn S T \<Longrightarrow> inv S \<Longrightarrow> inv T"
 begin
 
 sublocale
    conflict_driven_clause_learning trail clauses\<^sub>N\<^sub>O\<^sub>T prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T
      inv backjump_conds propagate_conds
-     "\<lambda>C _.  distinct_mset C \<and> \<not>tautology C"
+     "\<lambda>C _. distinct_mset C \<and> \<not>tautology C"
      forget_cond
   apply unfold_locales
   using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_forget\<^sub>N\<^sub>O\<^sub>T cdcl_merged_inv learn_inv
@@ -2965,10 +2965,10 @@ proof -
      clss_C: "clauses\<^sub>N\<^sub>O\<^sub>T S \<Turnstile>pm D" and
      D: "D = C' + {#L#}"
      "F \<Turnstile>as CNot C'" and
-     distinct:  "distinct_mset D" and
+     distinct: "distinct_mset D" and
      not_tauto: "\<not> tautology D"
      using bt inv by (elim backjump_lE) simp
-   have atms_C':  "atms_of C' \<subseteq>  atm_of ` (lits_of_l F)"
+   have atms_C': "atms_of C' \<subseteq> atm_of ` (lits_of_l F)"
      by (metis D(2) atms_of_def image_subsetI true_annots_CNot_all_atms_defined)
    then have "atms_of (C' + {#L#}) \<subseteq> atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<union> atm_of ` (lits_of_l (trail S))"
      using atm_L tr_S by auto
@@ -3171,7 +3171,7 @@ next
   case (step T U) note st = this(1) and cdcl\<^sub>N\<^sub>O\<^sub>T = this(2) and IH = this(3)
   have "cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T"
     apply (rule rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_is_rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T)
-    using st cdcl\<^sub>N\<^sub>O\<^sub>T inv  n_d atm_clss atm_trail inv by auto
+    using st cdcl\<^sub>N\<^sub>O\<^sub>T inv n_d atm_clss atm_trail inv by auto
   have "inv T"
     apply (rule rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_inv)
       using inv st cdcl\<^sub>N\<^sub>O\<^sub>T n_d atm_clss atm_trail inv by auto
@@ -3182,7 +3182,7 @@ next
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_trail_clauses_bound[OF \<open>cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T\<close> inv n_d atm_clss atm_trail]
     by fast
   moreover have "no_dup (trail T)"
-    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup[OF  \<open>cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T\<close> inv n_d] by fast
+    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup[OF \<open>cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T\<close> inv n_d] by fast
   ultimately have "(U, T) \<in> ?P"
     using cdcl\<^sub>N\<^sub>O\<^sub>T by auto
   then show ?case using IH by (simp add: trancl_into_trancl2)
@@ -3239,7 +3239,7 @@ proof -
       let ?I = "I \<union> {P| P. P \<in> lits_of_l ?M \<and> atm_of P \<notin> atm_of ` I}"
       let ?O = "{unmark L |L. is_decided L \<and> L \<in> set ?M \<and> atm_of (lit_of L) \<notin> atms_of_ms ?N}"
       have cons_I': "consistent_interp ?I"
-        using cons using \<open>no_dup ?M\<close>  unfolding consistent_interp_def
+        using cons using \<open>no_dup ?M\<close> unfolding consistent_interp_def
         by (auto simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set lits_of_def
           dest!: no_dup_cannot_not_lit_and_uminus)
       have tot_I': "total_over_m ?I (?N \<union> unmark_l ?M)"
@@ -3426,7 +3426,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_with_backtrack_and_restarts =
     add_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     inv :: "'st \<Rightarrow> bool" and
-    backjump_conds ::  "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
+    backjump_conds :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
     propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> bool" and
     learn_restrictions forget_restrictions :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
     +
@@ -3524,7 +3524,7 @@ proof (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_induct[OF cdcl\
   case (1 m S T n U) note U = this(3)
   have "\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A T \<le> \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound A S"
      apply (rule rtranclp_\<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_decreasing)
-         using \<open>(cdcl\<^sub>N\<^sub>O\<^sub>T ^^ m) S T\<close>  apply (fastforce dest: relpowp_imp_rtranclp)
+         using \<open>(cdcl\<^sub>N\<^sub>O\<^sub>T ^^ m) S T\<close> apply (fastforce dest: relpowp_imp_rtranclp)
         using 1 by auto
   then show ?case using U unfolding \<mu>\<^sub>C\<^sub>D\<^sub>C\<^sub>L'_bound_def by auto
 next
@@ -3763,7 +3763,7 @@ next
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_trail_clauses_bound[OF \<open>cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T\<close> inv n_d atms_clss atms_trail]
     by fast
   moreover have "no_dup (trail T)"
-    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup[OF  \<open>cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T\<close> inv n_d] by fast
+    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup[OF \<open>cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T\<close> inv n_d] by fast
 
   obtain F' K F L l C' C D where
     tr_S: "trail S = F' @ Decided K # F" and
@@ -3795,7 +3795,7 @@ qed
 
 lemma cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_not_simplified_decreasing:
   assumes "cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn S T"
-  shows "(not_simplified_cls (clauses\<^sub>N\<^sub>O\<^sub>T T)) \<subseteq>#  (not_simplified_cls (clauses\<^sub>N\<^sub>O\<^sub>T S))"
+  shows "(not_simplified_cls (clauses\<^sub>N\<^sub>O\<^sub>T T)) \<subseteq># (not_simplified_cls (clauses\<^sub>N\<^sub>O\<^sub>T S))"
   using assms apply induction
   prefer 4
   unfolding not_simplified_cls_def apply (auto elim!: backjump_lE forget\<^sub>N\<^sub>O\<^sub>TE)[3]
@@ -3835,10 +3835,10 @@ next
       using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_trail_clauses_bound[OF st'] inv atms_clss_S atms_trail_S n_d
       by blast+
   moreover moreover have "no_dup (trail T)"
-    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup[OF  \<open>cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T\<close> inv n_d] by fast
+    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup[OF \<open>cdcl\<^sub>N\<^sub>O\<^sub>T\<^sup>*\<^sup>* S T\<close> inv n_d] by fast
   ultimately have "set_mset (clauses\<^sub>N\<^sub>O\<^sub>T U)
     \<subseteq> set_mset (not_simplified_cls (clauses\<^sub>N\<^sub>O\<^sub>T T)) \<union> simple_clss (atms_of_ms A)"
-    using cdcl\<^sub>N\<^sub>O\<^sub>T finite  cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_clauses_bound
+    using cdcl\<^sub>N\<^sub>O\<^sub>T finite cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_clauses_bound
     by (auto intro!: cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_clauses_bound)
   moreover have "set_mset (not_simplified_cls (clauses\<^sub>N\<^sub>O\<^sub>T T))
     \<subseteq> set_mset (not_simplified_cls (clauses\<^sub>N\<^sub>O\<^sub>T S))"
@@ -3917,7 +3917,7 @@ proof induction
   show ?case
     unfolding fst_conv
     apply (rule rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_clauses_bound_card)
-    using  restart_full unfolding full1_def by (force dest!: tranclp_into_rtranclp)+
+    using restart_full unfolding full1_def by (force dest!: tranclp_into_rtranclp)+
 next
   case (restart_step m S T n U) note st = this(1) and U = this(3) and inv = this(4) and
     n_d = this(5) and atms_clss = this(6) and atms_trail = this(7) and finite = this(8)
@@ -4068,7 +4068,7 @@ next
   have "inv (fst T)" and "no_dup (trail (fst T))"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_cdcl\<^sub>N\<^sub>O\<^sub>T_inv using st inv n_d by blast+
   then have "I\<Turnstile>sextm clauses\<^sub>N\<^sub>O\<^sub>T (fst T) \<longleftrightarrow> I \<Turnstile>sextm clauses\<^sub>N\<^sub>O\<^sub>T (fst U)"
-    using  cdcl\<^sub>N\<^sub>O\<^sub>T_restart_eq_sat_iff cdcl by blast
+    using cdcl\<^sub>N\<^sub>O\<^sub>T_restart_eq_sat_iff cdcl by blast
   then show ?case using IH by blast
 qed
 
@@ -4092,7 +4092,7 @@ proof induction
   have "inv T"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_cdcl\<^sub>N\<^sub>O\<^sub>T_inv[OF st] inv n_d by auto
   then show ?case
-    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_all_decomposition_implies[OF _  _ n_d decomp] st' inv by auto
+    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_all_decomposition_implies[OF _ _ n_d decomp] st' inv by auto
 next
   case (restart_step m S T n U) note st = this(1) and U = this(3) and inv = this(4) and
     n_d = this(5) and decomp = this(6)
@@ -4188,7 +4188,7 @@ corollary full_cdcl\<^sub>N\<^sub>O\<^sub>T_restart_normal_form_init_state:
     inv: "inv S"
   shows "unsatisfiable (set_mset N)
     \<or> lits_of_l (trail (fst T)) \<Turnstile>sextm N \<and> satisfiable (set_mset N)"
-  using  full_cdcl\<^sub>N\<^sub>O\<^sub>T_restart_normal_form[of "(S, 0)" T] assms by auto
+  using full_cdcl\<^sub>N\<^sub>O\<^sub>T_restart_normal_form[of "(S, 0)" T] assms by auto
 
 end
 

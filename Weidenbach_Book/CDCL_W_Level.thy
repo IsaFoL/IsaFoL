@@ -21,20 +21,20 @@ lemma atm_of_notin_get_rev_level_eq_0[simp]:
   using assms by (induct M rule: ann_lit_list_induct) auto
 
 lemma get_level_ge_0_atm_of_in:
-  assumes  "get_level M L > n"
+  assumes "get_level M L > n"
   shows "atm_of L \<in> atm_of ` lits_of_l M"
   using assms by (induct M arbitrary: n rule: ann_lit_list_induct) fastforce+
 
 text \<open>In @{const get_level} (resp. @{const get_level}), the beginning (resp. the end) can be
   skipped if the literal is not in the beginning (resp. the end).\<close>
 lemma get_rev_level_skip[simp]:
-  assumes  "atm_of L \<notin> atm_of ` lits_of_l M"
+  assumes "atm_of L \<notin> atm_of ` lits_of_l M"
   shows "get_level (M @ M') L = get_level M' L"
   using assms by (induct M rule: ann_lit_list_induct) auto
 
 text \<open>If the literal is at the beginning, then the end can be skipped\<close>
 lemma get_rev_level_skip_end[simp]:
-  assumes  "atm_of L \<in> atm_of ` lits_of_l M"
+  assumes "atm_of L \<in> atm_of ` lits_of_l M"
   shows "get_level (M @ M') L = get_level M L + length (filter is_decided M')"
   using assms by (induct M' rule: ann_lit_list_induct) (auto simp: lits_of_def)
 
@@ -50,7 +50,7 @@ lemma get_level_skip_beginning_not_decided[simp]:
   using assms apply (induction S rule: ann_lit_list_induct)
     apply auto[2]
   apply (case_tac "atm_of L \<in> atm_of ` lits_of_l M")
-  apply (auto simp:  image_iff lits_of_def filter_empty_conv dest: set_dropWhileD)
+  apply (auto simp: image_iff lits_of_def filter_empty_conv dest: set_dropWhileD)
   done
 
 lemma get_level_skip_in_all_not_decided:
@@ -68,7 +68,7 @@ lemma get_level_skip_all_not_decided[simp]:
 
 abbreviation "MMax M \<equiv> Max (set_mset M)"
 
-text \<open>the @{term "{#0#}"}  is there to ensures that the set is not empty.\<close>
+text \<open>the @{term "{#0#}"} is there to ensures that the set is not empty.\<close>
 definition get_maximum_level :: "('a, 'b) ann_lits \<Rightarrow> 'a literal multiset \<Rightarrow> nat"
   where
 "get_maximum_level M D = MMax ({#0#} + image_mset (get_level M) D)"

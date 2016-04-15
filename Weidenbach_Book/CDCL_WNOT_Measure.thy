@@ -9,7 +9,7 @@ text \<open>This measure show the termination of the core of CDCL: each step imp
   This measure can also be seen as the increasing lexicographic order: it is an order on bounded
   sequences, when each element is bounded. The proof involves a measure like the one defined here
   (the same?).\<close>
-definition \<mu>\<^sub>C  :: "nat \<Rightarrow> nat \<Rightarrow> nat list \<Rightarrow> nat" where
+definition \<mu>\<^sub>C :: "nat \<Rightarrow> nat \<Rightarrow> nat list \<Rightarrow> nat" where
 "\<mu>\<^sub>C s b M \<equiv> (\<Sum>i=0..<length M. M!i * b^ (s +i - length M))"
 
 lemma \<mu>\<^sub>C_Nil[simp]:
@@ -81,7 +81,7 @@ qed
 
 lemma \<mu>\<^sub>C_cons_non_empty_inf:
   assumes M_ge_1: "\<forall>i\<in>set M. i \<ge> 1" and M: "M \<noteq> []"
-  shows "\<mu>\<^sub>C s b M \<ge> b ^  (s - length M)"
+  shows "\<mu>\<^sub>C s b M \<ge> b ^ (s - length M)"
   using assms by (cases M) (auto simp: mult_eq_if \<mu>\<^sub>C_cons)
 
 text \<open>Copy of @{file "~~/src/HOL/ex/NatSum.thy"} (but generalized to @{term "k\<ge>(0::nat)"})\<close>
@@ -112,7 +112,7 @@ proof -
       case b
       have "\<forall> i \<in> {0..<length M}. M!i * b^ (s +i - length M) \<le> (b-1) * b^ (s +i - length M)"
         using M_le \<open>b > 1\<close> by auto
-      then have "\<mu>\<^sub>C s b M \<le>  (\<Sum>i=0..<length M. (b-1) * b^ (s +i - length M))"
+      then have "\<mu>\<^sub>C s b M \<le> (\<Sum>i=0..<length M. (b-1) * b^ (s +i - length M))"
          using \<open>M\<noteq>[]\<close> \<open>b>0\<close> unfolding \<mu>\<^sub>C_def by (auto intro: setsum_mono)
       also
         have "\<forall> i \<in> {0..<length M}. (b-1) * b^ (s +i - length M) = (b-1) * b^ i * b^(s - length M)"
