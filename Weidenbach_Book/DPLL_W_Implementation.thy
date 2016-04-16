@@ -40,7 +40,7 @@ proof -
   let ?S = "(Ms, mset (map mset N))"
   { fix L E
     assume unit: "find_first_unit_clause N Ms = Some (L, E)"
-    hence Ms'N: "(Ms', N') = (Propagated L () # Ms, N)"
+    then have Ms'N: "(Ms', N') = (Propagated L () # Ms, N)"
       using step unfolding DPLL_step_def by auto
     obtain C where
       C: "C \<in> set N" and
@@ -51,7 +51,7 @@ proof -
          (Propagated L () # fst (Ms, mset (map mset N)), snd (Ms, mset (map mset N)))"
       apply (rule dpll\<^sub>W.propagate)
       using Ms undef C \<open>L \<in> set C\<close> by (auto simp add: C)
-    hence ?thesis using Ms'N by auto
+    then have ?thesis using Ms'N by auto
   }
   moreover
   { assume unit: "find_first_unit_clause N Ms = None"
@@ -60,7 +60,7 @@ proof -
     then obtain L M M' where bt: "backtrack_split Ms = (M', L # M)"
       using step exC neq unfolding DPLL_step_def prod.case unit
       by (cases "backtrack_split Ms", rename_tac b, case_tac b) auto
-    hence "is_decided L" using backtrack_split_snd_hd_decided[of Ms] by auto
+    then have "is_decided L" using backtrack_split_snd_hd_decided[of Ms] by auto
     have 1: "dpll\<^sub>W (Ms, mset (map mset N))
                   (Propagated (- lit_of L) () # M, snd (Ms, mset (map mset N)))"
       apply (rule dpll\<^sub>W.backtrack[OF _ \<open>is_decided L\<close>, of ])
@@ -95,7 +95,7 @@ proof -
     using step unfolding DPLL_step_def by (auto split:option.splits)
 
   { assume n: "\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C)"
-    hence Ms: "(Ms, N) = (case backtrack_split Ms of (x, []) \<Rightarrow> (Ms, N)
+    then have Ms: "(Ms, N) = (case backtrack_split Ms of (x, []) \<Rightarrow> (Ms, N)
                          | (x, L # M) \<Rightarrow> (Propagated (- lit_of L) () # M, N))"
       using step unfolding DPLL_step_def by (simp add:unit)
 
@@ -103,41 +103,41 @@ proof -
     proof (cases "backtrack_split Ms", cases "snd (backtrack_split Ms)")
       fix a b
       assume "backtrack_split Ms = (a, b)" and "snd (backtrack_split Ms) = []"
-      thus "snd (backtrack_split Ms) = []" by blast
+      then show "snd (backtrack_split Ms) = []" by blast
     next
       fix a b aa list
       assume
         bt: "backtrack_split Ms = (a, b)" and
         bt': "snd (backtrack_split Ms) = aa # list"
-      hence Ms: "Ms = Propagated (- lit_of aa) () # list" using Ms by auto
+      then have Ms: "Ms = Propagated (- lit_of aa) () # list" using Ms by auto
       have "is_decided aa" using backtrack_split_snd_hd_decided[of Ms] bt bt' by auto
       moreover have "fst (backtrack_split Ms) @ aa # list = Ms"
         using backtrack_split_list_eq[of Ms] bt' by auto
       ultimately have False unfolding Ms by auto
-      thus "snd (backtrack_split Ms) = []" by blast
+      then show "snd (backtrack_split Ms) = []" by blast
     qed
 
-    hence ?thesis
+    then have ?thesis
       using n backtrack_snd_empty_not_decided[of Ms] unfolding conclusive_dpll\<^sub>W_state_def
       by (cases "backtrack_split Ms") auto
   }
   moreover {
     assume n: "\<not> (\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C))"
-    hence "find_first_unused_var N (lits_of_l Ms) = None"
+    then have "find_first_unused_var N (lits_of_l Ms) = None"
       using step unfolding DPLL_step_def by (simp add: unit split: option.splits)
-    hence a: "\<forall>a \<in> set N. atm_of ` set a \<subseteq> atm_of ` (lits_of_l Ms)" by auto
+    then have a: "\<forall>a \<in> set N. atm_of ` set a \<subseteq> atm_of ` (lits_of_l Ms)" by auto
     have "fst (toS Ms N) \<Turnstile>asm snd (toS Ms N)" unfolding true_annots_def CNot_def Ball_def
       proof clarify
         fix x
         assume x: "x \<in> set_mset (clauses (toS Ms N))"
-        hence "\<not>Ms \<Turnstile>as CNot  x" using n unfolding true_annots_def CNot_def Ball_def by auto
+        then have "\<not>Ms \<Turnstile>as CNot  x" using n unfolding true_annots_def CNot_def Ball_def by auto
         moreover have "total_over_m (lits_of_l Ms) {x}"
           using a x image_iff in_mono atms_of_s_def
           unfolding total_over_m_def total_over_set_def lits_of_def by fastforce
         ultimately show "fst (toS Ms N) \<Turnstile>a x"
           using total_not_CNot[of "lits_of_l Ms" x] by (simp add: true_annot_def true_annots_true_cls)
       qed
-    hence ?thesis unfolding conclusive_dpll\<^sub>W_state_def by blast
+    then have ?thesis unfolding conclusive_dpll\<^sub>W_state_def by blast
   }
   ultimately show ?thesis by blast
 qed
@@ -163,7 +163,7 @@ next
   and step: "x = DPLL_step (Ms, N)"
   and x: "(xa, y) = x"
   and "(xa, y) \<noteq> (Ms, N)"
-  thus "((xa, N), Ms, N) \<in> {(S', S). (toS' S', toS' S) \<in> {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W S S'}}"
+  then show "((xa, N), Ms, N) \<in> {(S', S). (toS' S', toS' S) \<in> {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W S S'}}"
     using DPLL_step_is_a_dpll\<^sub>W_step dpll\<^sub>W_same_clauses split_conv by fastforce
 qed
 
@@ -190,16 +190,16 @@ proof (induct rule: DPLL_ci.induct)
   have inv': "dpll\<^sub>W_all_inv (toS Ms' N)" by (metis (mono_tags) "1.prems" DPLL_step_is_a_dpll\<^sub>W_step
     Ms' dpll\<^sub>W_all_inv old.prod.inject)
   { assume "(Ms', N) \<noteq> (Ms, N)"
-    hence "DPLL_ci Ms' N = DPLL_part Ms' N \<and> DPLL_part_dom (Ms', N)" using 1(1)[of _ Ms' N] Ms'
+    then have "DPLL_ci Ms' N = DPLL_part Ms' N \<and> DPLL_part_dom (Ms', N)" using 1(1)[of _ Ms' N] Ms'
       1(2) inv' by auto
-    hence "DPLL_part_dom (Ms, N)" using DPLL_part.domintros Ms' by fastforce
+    then have "DPLL_part_dom (Ms, N)" using DPLL_part.domintros Ms' by fastforce
     moreover have "DPLL_ci Ms N = DPLL_part Ms N" using "1.prems" DPLL_part.psimps Ms'
       \<open>DPLL_ci Ms' N = DPLL_part Ms' N \<and> DPLL_part_dom (Ms', N)\<close> \<open>DPLL_part_dom (Ms, N)\<close> by auto
     ultimately have ?case by blast
   }
   moreover {
     assume "(Ms', N) = (Ms, N)"
-    hence ?case using DPLL_part.domintros DPLL_part.psimps Ms' by fastforce
+    then have ?case using DPLL_part.domintros DPLL_part.psimps Ms' by fastforce
   }
   ultimately show ?case by blast
 qed
@@ -213,13 +213,13 @@ proof (induct Ms N arbitrary: Ms' N' rule: DPLL_ci.induct)
   obtain S\<^sub>1 S\<^sub>2 where S: "(S\<^sub>1, S\<^sub>2) = DPLL_step (Ms, N)" by (cases "DPLL_step (Ms, N)") auto
 
   { assume "\<not>dpll\<^sub>W_all_inv (toS Ms N)"
-    hence "(Ms, N) = (Ms', N)" using step by auto
-    hence ?case by auto
+    then have "(Ms, N) = (Ms', N)" using step by auto
+    then have ?case by auto
   }
   moreover
   { assume "dpll\<^sub>W_all_inv (toS Ms N)"
     and "(S\<^sub>1, S\<^sub>2) = (Ms, N)"
-    hence ?case using S step by auto
+    then have ?case using S step by auto
   }
   moreover
   { assume "dpll\<^sub>W_all_inv (toS Ms N)"
@@ -230,9 +230,9 @@ proof (induct Ms N arbitrary: Ms' N' rule: DPLL_ci.induct)
         have "(case (S\<^sub>1, S\<^sub>2) of (ms, lss) \<Rightarrow>
           if (ms, lss) = (Ms, N) then (Ms, N) else DPLL_ci ms N) = DPLL_ci Ms N"
           using S DPLL_ci.simps[of Ms N] calculation by presburger
-        hence "(if (S\<^sub>1, S\<^sub>2) = (Ms, N) then (Ms, N) else DPLL_ci S\<^sub>1 N) = DPLL_ci Ms N"
+        then have "(if (S\<^sub>1, S\<^sub>2) = (Ms, N) then (Ms, N) else DPLL_ci S\<^sub>1 N) = DPLL_ci Ms N"
           by fastforce
-        thus ?thesis
+        then show ?thesis
           using calculation(2) by presburger
       qed
     ultimately have "dpll\<^sub>W\<^sup>*\<^sup>* (toS S\<^sub>1' N) (toS Ms' N)" using IH[of "(S\<^sub>1, S\<^sub>2)" S\<^sub>1 S\<^sub>2] S step by simp
@@ -253,7 +253,7 @@ lemma dpll\<^sub>W_all_inv_dpll\<^sub>W_tranclp_irrefl:
 proof -
   have 1: "wf {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W\<^sup>+\<^sup>+ S S'}" using dpll\<^sub>W_wf_tranclp by auto
   have "((Ms, N), (Ms, N)) \<in> {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W\<^sup>+\<^sup>+ S S'}" using assms by auto
-  thus False using wf_not_refl[OF 1] by blast
+  then show False using wf_not_refl[OF 1] by blast
 qed
 
 lemma DPLL_ci_final_state:
@@ -267,13 +267,13 @@ proof  -
       obtain Ms' N' where Ms'N: "(Ms', N') = DPLL_step (Ms, N)"
         by (cases "DPLL_step (Ms, N)") auto
       assume "\<not> ?thesis"
-      hence "DPLL_ci Ms' N = (Ms, N)" using step inv st Ms'N[symmetric] by fastforce
-      hence "dpll\<^sub>W\<^sup>+\<^sup>+ (toS Ms N) (toS Ms N)"
+      then have "DPLL_ci Ms' N = (Ms, N)" using step inv st Ms'N[symmetric] by fastforce
+      then have "dpll\<^sub>W\<^sup>+\<^sup>+ (toS Ms N) (toS Ms N)"
         by (metis DPLL_ci_dpll\<^sub>W_rtranclp DPLL_step_is_a_dpll\<^sub>W_step Ms'N \<open>DPLL_step (Ms, N) \<noteq> (Ms, N)\<close>
           prod.sel(2) rtranclp_into_tranclp2 snd_DPLL_step)
-      thus False using dpll\<^sub>W_all_inv_dpll\<^sub>W_tranclp_irrefl inv by auto
+      then show False using dpll\<^sub>W_all_inv_dpll\<^sub>W_tranclp_irrefl inv by auto
     qed
-  thus ?thesis using DPLL_step_stuck_final_state[of Ms N] by simp
+  then show ?thesis using DPLL_step_stuck_final_state[of Ms N] by simp
 qed
 
 lemma DPLL_step_obtains:
@@ -286,19 +286,19 @@ proof (induct rule: DPLL_ci.induct)
   case (1 Ms N) note IH = this(1) and that = this(2)
   obtain S where SN: "(S, N) = DPLL_step (Ms, N)" using DPLL_step_obtains by metis
   { assume "\<not> dpll\<^sub>W_all_inv (toS Ms N)"
-    hence ?case using that by auto
+    then have ?case using that by auto
   }
   moreover {
     assume n: "(S, N) \<noteq> (Ms, N)"
     and inv: "dpll\<^sub>W_all_inv (toS Ms N)"
     have "\<exists>ms. DPLL_step (Ms, N) = (ms, N)"
       by (metis \<open>\<And>thesisa. (\<And>S. (S, N) = DPLL_step (Ms, N) \<Longrightarrow> thesisa) \<Longrightarrow> thesisa\<close>)
-    hence ?thesis
+    then have ?thesis
       using IH that by fastforce
   }
   moreover {
     assume n: "(S, N) = (Ms, N)"
-    hence ?case using SN that by fastforce
+    then have ?case using SN that by fastforce
  }
   ultimately show ?case by blast
 qed
@@ -312,12 +312,12 @@ proof (induct arbitrary: Ms' N' rule: DPLL_ci.induct)
   case (1 Ms N Ms' N') note IH = this(1) and step = this(2)
   obtain S\<^sub>1 where S: "(S\<^sub>1, N) = DPLL_step (Ms, N)" using DPLL_step_obtains by auto
   { assume "\<not>dpll\<^sub>W_all_inv (toS Ms N)"
-    hence ?case using step by auto
+    then have ?case using step by auto
   }
   moreover {
     assume "dpll\<^sub>W_all_inv (toS Ms N)"
     and "(S\<^sub>1, N) = (Ms, N)"
-    hence ?case using S step by auto
+    then have ?case using S step by auto
   }
   moreover
   { assume inv: "dpll\<^sub>W_all_inv (toS Ms N)"
@@ -328,9 +328,9 @@ proof (induct arbitrary: Ms' N' rule: DPLL_ci.induct)
         have "(case (S\<^sub>1, N) of (ms, lss) \<Rightarrow> if (ms, lss) = (Ms, N) then (Ms, N) else DPLL_ci ms N)
  = DPLL_ci Ms N"
           using S DPLL_ci.simps[of Ms N] calculation inv by presburger
-        hence "(if (S\<^sub>1, N) = (Ms, N) then (Ms, N) else DPLL_ci S\<^sub>1 N) = DPLL_ci Ms N"
+        then have "(if (S\<^sub>1, N) = (Ms, N) then (Ms, N) else DPLL_ci S\<^sub>1 N) = DPLL_ci Ms N"
           by fastforce
-        thus ?thesis
+        then show ?thesis
           using calculation n by presburger
       qed
     moreover
@@ -349,8 +349,8 @@ lemma DPLL_part_dpll\<^sub>W_all_inv_final:
   shows "conclusive_dpll\<^sub>W_state (toS Ms' N) \<and> dpll\<^sub>W\<^sup>*\<^sup>* (toS Ms N) (toS Ms' N)"
 proof -
   have 2: "DPLL_ci Ms N = DPLL_part Ms N" using inv dpll\<^sub>W_all_inv_implieS_2_eq3_and_dom by blast
-  hence star: "dpll\<^sub>W\<^sup>*\<^sup>* (toS Ms N) (toS Ms' N)" unfolding MsN using DPLL_ci_dpll\<^sub>W_rtranclp by blast
-  hence inv': "dpll\<^sub>W_all_inv (toS Ms' N)" using inv rtranclp_dpll\<^sub>W_all_inv by blast
+  then have star: "dpll\<^sub>W\<^sup>*\<^sup>* (toS Ms N) (toS Ms' N)" unfolding MsN using DPLL_ci_dpll\<^sub>W_rtranclp by blast
+  then have inv': "dpll\<^sub>W_all_inv (toS Ms' N)" using inv rtranclp_dpll\<^sub>W_all_inv by blast
   show ?thesis using star DPLL_ci_final_state[OF DPLL_ci_no_more_step inv'] 2 unfolding MsN by blast
 qed
 
@@ -426,7 +426,7 @@ next
       have "dpll\<^sub>W (toS Ms N) (toS Ms' N')"
         apply (rule DPLL_step_is_a_dpll\<^sub>W_step[of Ms' N' Ms N])
         unfolding Ms Ms' using \<open>x \<noteq> S\<close> rough_state_of_inject x by fastforce+
-      thus ?thesis unfolding Ms[symmetric] Ms'[symmetric] by auto
+      then show ?thesis unfolding Ms[symmetric] Ms'[symmetric] by auto
     qed
   ultimately show "(x, S) \<in> {(T', T). (rough_state_of T', rough_state_of T)
     \<in> {(S', S). (toS' S', toS' S) \<in> {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W S S'}}}"
@@ -466,10 +466,10 @@ lemma DPLL_tot_final_state:
   shows "conclusive_dpll\<^sub>W_state (toS' (rough_state_of S))"
 proof -
   have "DPLL_step' S = S" using assms[symmetric] DOPLL_step'_DPLL_tot by metis
-  hence "DPLL_step (rough_state_of S) = (rough_state_of S)"
+  then have "DPLL_step (rough_state_of S) = (rough_state_of S)"
     unfolding DPLL_step'_def using DPLL_step_dpll\<^sub>W_conc_inv rough_state_of_inverse
     by (metis rough_state_of_DPLL_step'_DPLL_step)
-  thus ?thesis
+  then show ?thesis
     by (metis (mono_tags, lifting) DPLL_step_stuck_final_state old.prod.exhaust split_conv)
 qed
 

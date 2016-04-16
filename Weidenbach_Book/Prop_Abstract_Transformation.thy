@@ -41,7 +41,7 @@ lemma propo_rew_step_subformula_rec:
   shows "\<psi> \<preceq> \<phi> \<Longrightarrow> r \<psi> \<psi>' \<Longrightarrow> (\<exists>\<phi>'. \<psi>' \<preceq> \<phi>' \<and> propo_rew_step r \<phi> \<phi>')"
 proof (induct \<phi> rule: subformula.induct)
   case subformula_refl
-  hence "propo_rew_step r \<psi> \<psi>'" using propo_rew_step.intros by auto
+  then have "propo_rew_step r \<psi> \<psi>'" using propo_rew_step.intros by auto
   moreover have "\<psi>' \<preceq> \<psi>'" using Prop_Logic.subformula_refl by auto
   ultimately show "\<exists>\<phi>'. \<psi>' \<preceq> \<phi>' \<and> propo_rew_step r \<psi> \<phi>'" by fastforce
 next
@@ -68,13 +68,13 @@ lemma consistency_decompose_into_list:
   shows "(A \<Turnstile> conn c l) = (A \<Turnstile> conn c l')"
 proof (cases c rule: connective_cases_arity_2)
   case nullary
-  thus "(A \<Turnstile> conn c l) \<longleftrightarrow> (A \<Turnstile> conn c l')" using wf wf' by auto
+  then show "(A \<Turnstile> conn c l) \<longleftrightarrow> (A \<Turnstile> conn c l')" using wf wf' by auto
 next
   case unary note c = this
   then obtain a where l: "l = [a]" using wf_conn_Not_decomp wf by metis
   obtain a' where l': "l' = [a']" using wf_conn_Not_decomp wf' c by metis
   have "A \<Turnstile> a \<longleftrightarrow> A \<Turnstile> a'" using l l' by (metis nth_Cons_0 same)
-  thus "A \<Turnstile> conn c l \<longleftrightarrow> A \<Turnstile> conn c l'" using  l l' c by auto
+  then show "A \<Turnstile> conn c l \<longleftrightarrow> A \<Turnstile> conn c l'" using  l l' c by auto
 next
   case binary note c = this
   then obtain a b where l: "l = [a, b]"
@@ -108,14 +108,14 @@ next
   {
      fix x :: "'v"
      assume "c = CT \<or> c = CF \<or> c = CVar x"
-     hence False using corr by auto
-     hence "\<exists>\<psi> \<psi>' p. r \<psi> \<psi>' \<and> path_to p (conn c (\<xi>@ (\<phi> # \<xi>'))) \<psi>
+     then have False using corr by auto
+     then have "\<exists>\<psi> \<psi>' p. r \<psi> \<psi>' \<and> path_to p (conn c (\<xi>@ (\<phi> # \<xi>'))) \<psi>
                        \<and> replace_at p (conn c (\<xi>@ (\<phi> # \<xi>'))) \<psi>' = conn c (\<xi>@ (\<phi>' # \<xi>')) "
        by fast
   }
   moreover {
      assume c: "c = CNot"
-     hence empty: "\<xi> =[]" "\<xi>'=[]" using corr by auto
+     then have empty: "\<xi> =[]" "\<xi>'=[]" using corr by auto
      have "path_to (L#p) (conn c (\<xi>@ (\<phi> # \<xi>'))) \<psi>"
        using c empty IH wf_conn_unary path_to_l by fastforce
      moreover have "replace_at (L#p) (conn c (\<xi>@ (\<phi> # \<xi>'))) \<psi>' = conn c (\<xi>@ (\<phi>' # \<xi>'))"
@@ -127,8 +127,8 @@ next
   moreover {
      assume c: "c \<in> binary_connectives"
      have "length (\<xi>@ \<phi> # \<xi>') = 2" using wf_conn_bin_list_length corr c by metis
-     hence "length \<xi> + length \<xi>' = 1" by auto
-     hence ld: "(length \<xi> = 1 \<and> length \<xi>' = 0) \<or> (length \<xi> = 0 \<and> length \<xi>' = 1) " by arith
+     then have "length \<xi> + length \<xi>' = 1" by auto
+     then have ld: "(length \<xi> = 1 \<and> length \<xi>' = 0) \<or> (length \<xi> = 0 \<and> length \<xi>' = 1) " by arith
      obtain a b where ab: "(\<xi>=[] \<and> \<xi>'=[b]) \<or> (\<xi>=[a] \<and> \<xi>'=[])"
        using ld by (case_tac \<xi>, case_tac \<xi>', auto)
      {
@@ -143,7 +143,7 @@ next
      }
      moreover {
         assume \<phi>: "\<xi>=[a]" " \<xi>'=[]"
-        hence "path_to (R#p) (conn c (\<xi>@ (\<phi> # \<xi>'))) \<psi>"
+        then have "path_to (R#p) (conn c (\<xi>@ (\<phi> # \<xi>'))) \<psi>"
           using c IH corr path_to_r corr \<phi>  by (simp add: path_to_r)
         moreover have "replace_at (R#p) (conn c (\<xi>@ (\<phi> # \<xi>'))) \<psi>' = conn c (\<xi>@ (\<phi>' # \<xi>'))"
           using c IH ab \<phi> unfolding binary_connectives_def by auto
@@ -168,7 +168,7 @@ lemma propo_rew_step_preservers_val_explicit:
   unfolding preserves_un_sat_def
 proof (induction rule: propo_rew_step.induct)
   case global_rel
-  thus ?case by simp
+  then show ?case by simp
 next
   case (propo_rew_one_step_lift \<phi> \<phi>' c \<xi> \<xi>') note rel = this(1) and wf = this(2)
     and IH = this(3)[OF this(4) this(1)]  and consistent = this(4)
@@ -177,11 +177,11 @@ next
     from IH have "\<forall>n. (A \<Turnstile> (\<xi> @ \<phi> # \<xi>') ! n) = (A \<Turnstile> (\<xi> @ \<phi>' # \<xi>') ! n)"
       by (metis (mono_tags, hide_lams) list_update_length nth_Cons_0 nth_append_length_plus
         nth_list_update_neq)
-    hence " (A \<Turnstile> conn c (\<xi> @ \<phi> # \<xi>')) = (A \<Turnstile> conn c (\<xi> @ \<phi>' # \<xi>'))"
+    then have " (A \<Turnstile> conn c (\<xi> @ \<phi> # \<xi>')) = (A \<Turnstile> conn c (\<xi> @ \<phi>' # \<xi>'))"
       by (meson consistency_decompose_into_list wf wf_conn_no_arity_change_helper
         wf_conn_no_arity_change)
   }
-  thus "\<forall>A. A \<Turnstile> conn c (\<xi> @ \<phi> # \<xi>') \<longleftrightarrow> A \<Turnstile> conn c (\<xi> @ \<phi>' # \<xi>')" by auto
+  then show "\<forall>A. A \<Turnstile> conn c (\<xi> @ \<phi> # \<xi>') \<longleftrightarrow> A \<Turnstile> conn c (\<xi> @ \<phi>' # \<xi>')" by auto
 qed
 
 
@@ -344,7 +344,7 @@ lemma no_test_symb_step_exists:
   using assms
 proof (induct \<phi> rule: propo_induct_arity)
   case (nullary \<phi> x)
-  thus "\<exists>\<psi> \<psi>'. \<psi> \<preceq> \<phi> \<and> r \<psi> \<psi>'"
+  then show "\<exists>\<psi> \<psi>'. \<psi> \<preceq> \<phi> \<and> r \<psi> \<psi>'"
     using wf_conn_nullary test_symb_false_nullary by fastforce
 next
   case (unary \<phi>) note IH = this(1)[OF this(2)] and r = this(2)  and nst = this(3) and subf = this(4)
@@ -358,9 +358,9 @@ next
   }
   moreover {
     assume n: "test_symb (FNot \<phi>)"
-    hence "\<not> all_subformula_st test_symb \<phi>"
+    then have "\<not> all_subformula_st test_symb \<phi>"
       using all_subformula_st_decomp_explicit(3) nst subf by blast
-    hence "\<exists>\<psi> \<psi>'. \<psi> \<preceq> FNot \<phi> \<and> r \<psi> \<psi>'"
+    then have "\<exists>\<psi> \<psi>'. \<psi> \<preceq> FNot \<phi> \<and> r \<psi> \<psi>'"
       using H subformula_in_subformula_not subformula_refl subformula_trans by blast
   }
   ultimately show "\<exists>\<psi> \<psi>'. \<psi> \<preceq> FNot \<phi> \<and> r \<psi> \<psi>'" by blast
@@ -373,7 +373,7 @@ next
     c: "(c = CAnd \<or> c = COr \<or> c = CImp \<or> c = CEq) \<and> conn c [\<phi>1, \<phi>2] = \<phi>"
     using \<phi> by fastforce
 
-  hence corr: "wf_conn c [\<phi>1, \<phi>2]" using wf_conn.simps unfolding binary_connectives_def by auto
+  then have corr: "wf_conn c [\<phi>1, \<phi>2]" using wf_conn.simps unfolding binary_connectives_def by auto
   have inc: "\<phi>1 \<preceq> \<phi>" "\<phi>2 \<preceq> \<phi>" using binary_connectives_def c subformula_in_binary_conn by blast+
   from r IH\<phi>1_0 have IH\<phi>1: "\<not> all_subformula_st test_symb \<phi>1 \<Longrightarrow> \<exists>\<psi> \<psi>'. \<psi> \<preceq> \<phi>1 \<and> r \<psi> \<psi>'"
     using inc(1) subformula_trans le by blast
@@ -422,7 +422,7 @@ lemma propo_rew_step_inv_stay':
   using assms(3-5)
 proof (induct rule: propo_rew_step.induct)
   case global_rel
-  thus ?case using H by simp
+  then show ?case using H by simp
 next
   case (propo_rew_one_step_lift \<phi> \<phi>' c \<xi> \<xi>')
   note rel = this(1) and \<phi> = this(2) and corr = this(3) and \<Phi> = this(4) and nst = this(5)
@@ -431,15 +431,15 @@ next
     by (metis in_set_conv_decomp)
   from corr have "\<forall> \<psi>. \<psi> \<in> set (\<xi> @ \<phi> # \<xi>') \<longrightarrow> all_subformula_st test_symb \<psi>"
     using all_subformula_st_decomp nst by blast
-  hence *: "\<forall>\<psi>. \<psi> \<in> set (\<xi> @ \<phi>' # \<xi>') \<longrightarrow> all_subformula_st test_symb \<psi>" using \<phi> sq by fastforce
-  hence "test_symb \<phi>'" using all_subformula_st_test_symb_true_phi by auto
+  then have *: "\<forall>\<psi>. \<psi> \<in> set (\<xi> @ \<phi>' # \<xi>') \<longrightarrow> all_subformula_st test_symb \<psi>" using \<phi> sq by fastforce
+  then have "test_symb \<phi>'" using all_subformula_st_test_symb_true_phi by auto
   moreover from corr nst have "test_symb (conn c (\<xi> @ \<phi> # \<xi>'))"
     using all_subformula_st_decomp by blast
   ultimately have test_symb: "test_symb (conn c (\<xi> @ \<phi>' # \<xi>'))" using H' sq corr rel by blast
 
   have "wf_conn c (\<xi> @ \<phi>' # \<xi>')"
     by (metis wf_conn_no_arity_change_helper corr wf_conn_no_arity_change)
-  thus "all_subformula_st test_symb (conn c (\<xi> @ \<phi>' # \<xi>'))"
+  then show "all_subformula_st test_symb (conn c (\<xi> @ \<phi>' # \<xi>'))"
     using * test_symb by (metis all_subformula_st_decomp)
 qed
 
@@ -481,7 +481,7 @@ lemma full_propo_rew_step_inv_stay_with_inc:
 proof -
   have rel: "(propo_rew_step r)\<^sup>*\<^sup>* \<phi> \<psi>"
     using full unfolding full_def by auto
-  thus "all_subformula_st test_symb \<psi> "
+  then show "all_subformula_st test_symb \<psi> "
     using init
     proof (induct rule: rtranclp_induct)
       case base
@@ -520,16 +520,16 @@ lemma full_propo_rew_step_inv_stay:
 proof -
   have rel: "(propo_rew_step r)^** \<phi> \<psi>"
     using full unfolding full_def by auto
-  thus "all_subformula_st test_symb \<psi>"
+  then show "all_subformula_st test_symb \<psi>"
     using init
     proof (induct rule: rtranclp_induct)
       case base
-      thus "all_subformula_st test_symb \<phi>" by blast
+      then show "all_subformula_st test_symb \<phi>" by blast
     next
       case (step b c)
       note star = this(1) and IH = this(3) and one = this(2) and all = this(4)
-      hence "all_subformula_st test_symb b" by metis
-      thus "all_subformula_st test_symb c"
+      then have "all_subformula_st test_symb b" by metis
+      then show "all_subformula_st test_symb c"
         using propo_rew_step_inv_stay subformula_refl H H' rel one by auto
     qed
 qed
@@ -549,7 +549,7 @@ proof -
   have "\<And>(c:: 'v connective) \<xi> \<phi> \<xi>' \<phi>'. wf_conn c (\<xi> @ \<phi> # \<xi>')
     \<Longrightarrow> test_symb (conn c (\<xi> @ \<phi> # \<xi>')) \<Longrightarrow> test_symb \<phi>' \<Longrightarrow> test_symb (conn c (\<xi> @ \<phi>' # \<xi>'))"
     using H'  by (metis wf_conn_no_arity_change_helper wf_conn_no_arity_change)
-  thus "all_subformula_st test_symb \<psi>"
+  then show "all_subformula_st test_symb \<psi>"
     using H  full init full_propo_rew_step_inv_stay by blast
 qed
 

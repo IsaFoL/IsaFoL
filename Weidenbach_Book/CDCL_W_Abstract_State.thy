@@ -130,10 +130,10 @@ locale abs_state\<^sub>W_ops =
     +
   raw_ccls_union mset_ccls union_ccls remove_clit
   for
-    -- \<open>Clause\<close>
+    \<comment> \<open>Clause\<close>
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
 
-    -- \<open>Multiset of Clauses\<close>
+    \<comment> \<open>Multiset of Clauses\<close>
     mset_clss :: "'clss \<Rightarrow> 'v clauses" and
     union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
     in_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> bool" and
@@ -230,24 +230,24 @@ text \<open>
   example, adding a clause to the learned clauses does not change the conc_trail.\<close>
 locale abs_state\<^sub>W =
   abs_state\<^sub>W_ops
-    -- \<open>functions for clauses: \<close>
+    \<comment> \<open>functions for clauses: \<close>
     mset_cls
       mset_clss union_clss in_clss insert_clss remove_from_clss
 
-    -- \<open>functions for the conc_conflicting clause: \<close>
+    \<comment> \<open>functions for the conc_conflicting clause: \<close>
     mset_ccls union_ccls remove_clit
 
-    -- \<open>Conversion between conc_conflicting and non-conc_conflicting\<close>
+    \<comment> \<open>Conversion between conc_conflicting and non-conc_conflicting\<close>
     ccls_of_cls cls_of_ccls
 
-    -- \<open>functions about the state: \<close>
-      -- \<open>getter:\<close>
+    \<comment> \<open>functions about the state: \<close>
+      \<comment> \<open>getter:\<close>
     conc_trail hd_raw_conc_trail raw_conc_init_clss raw_conc_learned_clss conc_backtrack_lvl raw_conc_conflicting
-      -- \<open>setter:\<close>
+      \<comment> \<open>setter:\<close>
     cons_conc_trail tl_conc_trail add_conc_learned_cls remove_cls update_conc_backtrack_lvl
     update_conc_conflicting reduce_conc_trail_to
 
-      -- \<open>Some specific states:\<close>
+      \<comment> \<open>Some specific states:\<close>
     init_state
     restart_state
   for
@@ -466,31 +466,31 @@ lemma raw_conc_conflicting_update_backtracl_lvl[simp]:
   "raw_conc_conflicting (update_conc_backtrack_lvl k S) = None \<longleftrightarrow> raw_conc_conflicting S = None"
   using map_option_is_None conc_conflicting_update_conc_backtrack_lvl[of k S] by fastforce+
 
-end -- \<open>end of \<open>state\<^sub>W\<close> locale\<close>
+end \<comment> \<open>end of \<open>state\<^sub>W\<close> locale\<close>
 
 
 subsection \<open>CDCL Rules\<close>
 
 locale abs_conflict_driven_clause_learning\<^sub>W =
   abs_state\<^sub>W
-    -- \<open>functions for clauses: \<close>
+    \<comment> \<open>functions for clauses: \<close>
     mset_cls
     mset_clss union_clss in_clss insert_clss remove_from_clss
 
-    -- \<open>functions for the conc_conflicting clause: \<close>
+    \<comment> \<open>functions for the conc_conflicting clause: \<close>
     mset_ccls union_ccls remove_clit
 
-    -- \<open>conversion\<close>
+    \<comment> \<open>conversion\<close>
     ccls_of_cls cls_of_ccls
 
-    -- \<open>functions for the state: \<close>
-      -- \<open>access functions:\<close>
+    \<comment> \<open>functions for the state: \<close>
+      \<comment> \<open>access functions:\<close>
     conc_trail hd_raw_conc_trail raw_conc_init_clss raw_conc_learned_clss conc_backtrack_lvl raw_conc_conflicting
-      -- \<open>changing state:\<close>
+      \<comment> \<open>changing state:\<close>
     cons_conc_trail tl_conc_trail add_conc_learned_cls remove_cls update_conc_backtrack_lvl
     update_conc_conflicting reduce_conc_trail_to
 
-      -- \<open>get state:\<close>
+      \<comment> \<open>get state:\<close>
     init_state
     restart_state
   for

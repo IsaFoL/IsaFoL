@@ -5,14 +5,14 @@ begin
 section \<open>Incremental SAT solving\<close>
 locale state\<^sub>W_adding_init_clause =
   state\<^sub>W
-    -- \<open>functions about the state: \<close>
-      -- \<open>getter:\<close>
+    \<comment> \<open>functions about the state: \<close>
+      \<comment> \<open>getter:\<close>
     trail init_clss learned_clss backtrack_lvl conflicting
-      -- \<open>setter:\<close>
+      \<comment> \<open>setter:\<close>
     cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
     update_conflicting
 
-      -- \<open>Some specific states:\<close>
+      \<comment> \<open>Some specific states:\<close>
     init_state
     restart_state
   for
@@ -62,17 +62,17 @@ end
 locale conflict_driven_clause_learning_with_adding_init_clause\<^sub>W =
   state\<^sub>W_adding_init_clause
 
-    -- \<open>functions for the state: \<close>
-      -- \<open>access functions:\<close>
+    \<comment> \<open>functions for the state: \<close>
+      \<comment> \<open>access functions:\<close>
     trail init_clss learned_clss backtrack_lvl conflicting
-      -- \<open>changing state:\<close>
+      \<comment> \<open>changing state:\<close>
     cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
     update_conflicting
 
-      -- \<open>get state:\<close>
+      \<comment> \<open>get state:\<close>
     init_state
     restart_state
-      -- \<open>Adding a clause:\<close>
+      \<comment> \<open>Adding a clause:\<close>
     add_init_cls
   for
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
@@ -453,7 +453,7 @@ proof -
               using inv_s unfolding cdcl\<^sub>W_stgy_invariant_def by auto
             have "(MT @ M') @ Decided K # M = trail T "
               using MT 1(1) by auto
-            thus False using D_T \<open>no_smaller_confl T\<close> 1(3) unfolding no_smaller_confl_def by blast
+            then show False using D_T \<open>no_smaller_confl T\<close> 1(3) unfolding no_smaller_confl_def by blast
           next
             case DC note _[simp] = this
             then have "atm_of (-?L) \<in> atm_of ` (lits_of_l M)"

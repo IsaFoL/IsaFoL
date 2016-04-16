@@ -191,7 +191,7 @@ lemma produces_imp_in_interp:
 proof -
   from d have "Max (set_mset D) = Pos A"
     using production_unfold by blast
-  hence "D #\<subset># {#Neg A#}"
+  then have "D #\<subset># {#Neg A#}"
     by (auto intro: Max_pos_neg_less_multiset)
   moreover have "{#Neg A#} #\<subseteq># C"
     by (rule less_eq_imp_le_multiset) (rule mset_le_single[OF a_in_c])
@@ -232,15 +232,15 @@ proof (cases "\<exists>A. Pos A \<in># C \<and> A \<in> Interp D")
     by blast
   from a_at_d have "A \<in> interp D'"
     using d_lt_d' less_imp_Interp_subseteq_interp by blast
-  thus ?thesis
+  then show ?thesis
     using subs a_in_c by (blast dest: contra_subsetD)
 next
   case False
   then obtain A where a_in_c: "Neg A \<in># C" and "A \<notin> Interp D"
     using c_at_d unfolding true_cls_def by blast
-  hence "\<And>D''. \<not> produces D'' A"
+  then have "\<And>D''. \<not> produces D'' A"
     using c_le_d neg_notin_Interp_not_produce by simp
-  thus ?thesis
+  then show ?thesis
     using a_in_c subs not_produces_imp_notin_production by auto
 qed
 
@@ -268,15 +268,15 @@ proof (cases "\<exists>A. Pos A \<in># C \<and> A \<in> interp D")
     by blast
   from a_at_d have "A \<in> interp D'"
     using d_lt_d' less_eq_imp_interp_subseteq_interp[OF multiset_order.less_imp_le] by blast
-  thus ?thesis
+  then show ?thesis
     using subs a_in_c by (blast dest: contra_subsetD)
 next
   case False
   then obtain A where a_in_c: "Neg A \<in># C" and "A \<notin> interp D"
     using c_at_d unfolding true_cls_def by blast
-  hence "\<And>D''. \<not> produces D'' A"
+  then have "\<And>D''. \<not> produces D'' A"
     using c_le_d by (auto dest: produces_imp_in_interp less_eq_imp_interp_subseteq_interp)
-  thus ?thesis
+  then show ?thesis
     using a_in_c subs not_produces_imp_notin_production by auto
 qed
 
@@ -308,18 +308,18 @@ proof -
     (P) "count C (Pos P) \<ge> 2"
   | (Q) Q where "Q > Pos P" and "Q \<in># C "
     using HOL.spec[OF HOL.conjunct2[OF D'], of "Pos P"] by (auto split: if_split_asm)
-  thus ?thesis
+  then show ?thesis
     proof cases
       case Q
       have "Q \<in> set_mset C"
         using Q(2) by (auto split: if_split_asm)
       then have "Max (set_mset C) > Pos P"
         using Q(1) Max_gr_iff by blast
-      thus ?thesis
+      then show ?thesis
         unfolding production_unfold by auto
     next
       case P
-      thus ?thesis
+      then show ?thesis
         unfolding production_unfold by auto
     qed
 qed
@@ -335,22 +335,22 @@ proof -
     (P) "Neg P \<in># D"
   | (Q) Q where "Q > Neg P" and "count D Q > count (C + {#Neg P#}) Q"
     using HOL.spec[OF HOL.conjunct2[OF D'], of "Neg P"] count_greater_zero_iff by fastforce
-  thus ?thesis
+  then show ?thesis
     proof cases
       case Q
       have "Q \<in> set_mset D"
         using Q(2) gr_implies_not0 by fastforce
       then have "Max (set_mset D) > Neg P"
         using Q(1) Max_gr_iff by blast
-      hence "Max (set_mset D) > Pos P"
+      then have "Max (set_mset D) > Pos P"
         using less_trans[of "Pos P" "Neg P" "Max (set_mset D)"] by auto
-      thus ?thesis
+      then show ?thesis
         unfolding production_unfold by auto
     next
       case P
-      hence "Max (set_mset D) > Pos P"
+      then have "Max (set_mset D) > Pos P"
         by (meson Max_ge finite_set_mset le_less_trans linorder_not_le pos_less_neg)
-      thus ?thesis
+      then show ?thesis
         unfolding production_unfold by auto
     qed
 qed
@@ -413,7 +413,7 @@ lemma abstract_red_subset_mset_abstract_red:
 proof -
   have "{D \<in> N. D #\<subset># C} \<subseteq> {D' \<in> N. D' #\<subset># D}"
     using c_lt_d less_eq_imp_le_multiset by fastforce
-  thus ?thesis
+  then show ?thesis
     using abstr unfolding abstract_red_def clss_lt_def
     by (metis (no_types, lifting) c_lt_d subset_mset.diff_add true_clss_cls_mono_r'
       true_clss_cls_subset)
@@ -441,7 +441,7 @@ proof -
         by moura
       have "\<forall>a. a \<notin> atms_of_ms A \<or> Pos a \<in> I \<or> Neg a \<in> I"
         using tot by (simp add: total_over_m_def total_over_set_def)
-      hence "aa (atms_of_ms A \<union> atms_of_ms {B}) (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I})
+      then have "aa (atms_of_ms A \<union> atms_of_ms {B}) (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I})
         \<notin> atms_of_ms A \<union> atms_of_ms {B} \<or> Pos (aa (atms_of_ms A \<union> atms_of_ms {B})
           (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I})) \<in> I
             \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I}
@@ -449,17 +449,17 @@ proof -
             (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I})) \<in> I
             \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I}"
         by auto
-      hence "total_over_set (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I})
+      then have "total_over_set (I \<union> {Pos a |a. a \<in> atms_of B \<and> a \<notin> atms_of_s I})
         (atms_of_ms A \<union> atms_of_ms {B})"
         using f2 by (meson total_over_set_def)
-      thus ?thesis
+      then show ?thesis
         by (simp add: total_over_m_def)
     qed
   moreover have "?I \<Turnstile>s A"
     using I_A by auto
   ultimately have "?I \<Turnstile> B"
     using \<open>A\<Turnstile>pB\<close> unfolding true_clss_cls_def by auto
-  thus ?thesis
+  then show ?thesis
 oops
 lemma
   assumes
@@ -488,7 +488,7 @@ lemma
 proof (rule ccontr)
   let ?N\<^sub>\<I> = "INTERP N"
   assume "\<not> ?thesis"
-  hence not_empty: "{E\<in>N. \<not>?N\<^sub>\<I> \<Turnstile>h E} \<noteq> {}"
+  then have not_empty: "{E\<in>N. \<not>?N\<^sub>\<I> \<Turnstile>h E} \<noteq> {}"
     unfolding true_clss_def Ball_def by auto
   def D \<equiv> "Min {E\<in>N. \<not>?N\<^sub>\<I> \<Turnstile>h E}"
   have [simp]: "D \<in> N"
@@ -505,9 +505,9 @@ proof (rule ccontr)
       then obtain L where "L \<in># S D"
         using Max_in_lits by blast
       moreover
-        hence "L \<in># D"
+        then have "L \<in># D"
           using S_selects_subseteq[of D] by auto
-        hence "D = (D - {#L#}) + {#L#}"
+        then have "D = (D - {#L#}) + {#L#}"
           by auto
       ultimately show ?thesis using that by blast
     next
@@ -516,7 +516,7 @@ proof (rule ccontr)
       moreover
         have "?L \<in># D"
           by (metis (no_types, lifting) Max_in_lits \<open>D \<in> N\<close> empty)
-        hence "D = (D - {#?L#}) + {#?L#}"
+        then have "D = (D - {#?L#}) + {#?L#}"
           by auto
       ultimately show ?thesis using that by blast
     qed
@@ -525,9 +525,9 @@ proof (rule ccontr)
       assume red[simplified]: "~~redundant D N"
       have "\<forall>E < D. E \<in> N \<longrightarrow> ?N\<^sub>\<I> \<Turnstile>h E"
         using cls_not_D not_le by fastforce
-      hence "?N\<^sub>\<I> \<Turnstile>hs clss_lt N D"
+      then have "?N\<^sub>\<I> \<Turnstile>hs clss_lt N D"
         unfolding clss_lt_def true_clss_def Ball_def by blast
-      thus False
+      then show False
         using  red not_d_interp unfolding abstract_red_def redundant_iff_abstract
         using herbrand_true_clss_true_clss_cls_herbrand_true_clss by fast
     qed
@@ -536,26 +536,26 @@ proof (rule ccontr)
     (L) P where "L = Pos P" and "S D = {#}" and "Max (set_mset D) = Pos P"
   | (Lneg) P where "L = Neg P"
     using LSD S_selects_neg_lits[of L D] by (cases L) auto
-  thus False
+  then show False
     proof cases
       case L note P = this(1) and S = this(2) and max = this(3)
       have "count D L > 1"
         proof (rule ccontr)
           assume "~ ?thesis"
-          hence count: "count D L = 1"
+          then have count: "count D L = 1"
             unfolding D by (auto simp: not_in_iff)
           have "\<not>?N\<^sub>\<I>\<Turnstile>h D"
             using not_d_interp true_interp_imp_INTERP ground_resolution_with_selection_axioms
               by blast
-          hence "produces N D P"
+          then have "produces N D P"
             using not_empty empty finite \<open>D \<in> N\<close> count L
               true_interp_imp_INTERP unfolding production_iff_produces unfolding production_unfold
             by (auto simp add: max not_empty)
-          hence "INTERP N \<Turnstile>h D"
+          then have "INTERP N \<Turnstile>h D"
             unfolding D
             by (metis pos_literal_in_imp_true_cls produces_imp_Pos_in_lits
               production_subseteq_INTERP singletonI subsetCE)
-          thus False
+          then show False
             using not_d_interp by blast
         qed
       then have "Pos P \<in># C"
@@ -593,7 +593,7 @@ proof (rule ccontr)
         using in_interp_is_produced by blast
       have sup_EC: "superposition_rules (E + {#Pos P#}) (C + {#Neg P#}) (E + C)"
         using superposition_l by fast
-      hence "superposition N (N \<union> {E+C})"
+      then have "superposition N (N \<union> {E+C})"
         using DPN \<open>D \<in> N\<close> unfolding D L by (auto simp add: superposition.simps)
       have
         PMax: "Pos P = MMax (E + {#Pos P#})" and
@@ -603,7 +603,7 @@ proof (rule ccontr)
         using prod unfolding production_unfold by auto
       have "Neg P \<notin># E"
         using prod produces_imp_neg_notin_lits by force
-      hence "\<And>y. y \<in># (E + {#Pos P#})
+      then have "\<And>y. y \<in># (E + {#Pos P#})
         \<Longrightarrow> count (E + {#Pos P#}) (Neg P) < count (C + {#Neg P#}) (Neg P)"
         using count_greater_zero_iff by fastforce
       moreover have  "\<And>y. y \<in># (E + {#Pos P#}) \<Longrightarrow> y < Neg P"
@@ -623,7 +623,7 @@ proof (rule ccontr)
         using D \<open>P \<in> ground_resolution_with_selection.INTERP S N\<close>
           \<open>count (E + {#Pos P#}) (Pos P) \<le> 1\<close> multi_member_skip not_d_interp
           by (auto simp: not_in_iff)
-      hence "\<And>y. y \<in># C+E
+      then have "\<And>y. y \<in># C+E
         \<Longrightarrow> count (C+E) (Pos P) < count (E + {#Pos P#}) (Pos P)"
         using set_mset_def by fastforce
 (*       moreover
@@ -648,7 +648,7 @@ proof (rule ccontr)
                   "total_over_m I (clss_lt N (C + E) \<union> {E + {#Pos P#}})" and
                   "consistent_interp I" and
                   "I \<Turnstile>s clss_lt N (C + E)"
-                  hence "I \<Turnstile> C + E"
+                  then have "I \<Turnstile> C + E"
                     using (* true_clss_cls_extended *) abs sorry
                   moreover have "\<not> I \<Turnstile> C + {#Neg P#}"
                     using CP unfolding true_clss_cls_def (* TODO same here *)
@@ -692,7 +692,7 @@ lemma subsumed_is_redundant:
 proof -
   have "A \<in> clss_lt N B" using AN AB unfolding clss_lt_def
     by (auto dest: less_eq_imp_le_multiset simp add: multiset_order.dual_order.order_iff_strict)
-  thus ?thesis
+  then show ?thesis
     using AB unfolding abstract_red_def true_clss_cls_def Partial_Clausal_Logic.true_clss_def
     by blast
 qed
@@ -707,7 +707,7 @@ lemma redundant_is_redundancy_criterion:
   using assms
 proof (induction rule: redundant.induct)
   case (subsumption A B N)
-  thus ?case
+  then show ?case
     using subsumed_is_redundant[of A N B] unfolding abstract_red_def clss_lt_def by auto
 qed
 

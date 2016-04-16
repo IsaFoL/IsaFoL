@@ -34,7 +34,7 @@ lemma is_unit_clause_is_unit_clause_code[code]:
 proof -
   have 1: "\<And>a. (\<forall>c\<in>set (remove1 a l). - c \<in> lits_of_l M) \<longleftrightarrow> M \<Turnstile>as CNot (mset l - {#a#})"
     using lits_of_l_unfold[of "remove1 _ l", of _ M] by simp
-  thus ?thesis
+  then show ?thesis
     unfolding is_unit_clause_code_def is_unit_clause_def 1 by blast
 qed
 
@@ -46,12 +46,12 @@ proof -
           | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
           | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
     using assms unfolding is_unit_clause_def .
-  hence "a \<in> set [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of_l M]"
+  then have "a \<in> set [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of_l M]"
     apply (cases "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of_l M]")
       apply simp
     apply (rename_tac aa list; case_tac list) by (auto split: if_split_asm)
-  hence "atm_of a \<notin> atm_of ` lits_of_l M" by auto
-  thus ?thesis
+  then have "atm_of a \<notin> atm_of ` lits_of_l M" by auto
+  then show ?thesis
     by (simp add: Decided_Propagated_in_iff_in_lits_of_l
       atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set )
 qed
@@ -62,7 +62,7 @@ proof -
   assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of_l M] of [] \<Rightarrow> None
           | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
           | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
-  thus ?thesis
+  then show ?thesis
     apply (cases "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of_l M]", simp)
       apply simp
     apply (rename_tac aa list, case_tac list) by (auto split: if_split_asm)
@@ -74,7 +74,7 @@ proof -
   assume "(case [a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of_l M] of [] \<Rightarrow> None
          | [a] \<Rightarrow> if M \<Turnstile>as CNot (mset l - {#a#}) then Some a else None
          | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
-  thus "a \<in> set l"
+  then show "a \<in> set l"
     by (cases "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of_l M]")
        (fastforce dest: filter_eq_ConsD split: if_split_asm  split: list.splits)+
 qed
@@ -110,25 +110,25 @@ proof -
   have "[a\<leftarrow>c . atm_of a \<notin> atm_of ` lits_of_l M] = [a]"
     using assms
     proof (induction c)
-      case Nil thus ?case by simp
+      case Nil then show ?case by simp
     next
       case (Cons ac c)
       show ?case
         proof (cases "a = ac")
           case True
-          thus ?thesis using Cons
+          then show ?thesis using Cons
             by (auto simp del: lits_of_l_unfold
                  simp add: lits_of_l_unfold[symmetric] Decided_Propagated_in_iff_in_lits_of_l
                    atm_of_eq_atm_of atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
         next
           case False
-          hence T: "mset c + {#ac#} - {#a#} = mset c - {#a#} + {#ac#}"
+          then have T: "mset c + {#ac#} - {#a#} = mset c - {#a#} + {#ac#}"
             by (auto simp add: multiset_eq_iff)
           show ?thesis using False Cons
             by (auto simp add: T atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
         qed
     qed
-  thus ?thesis
+  then show ?thesis
     using M unfolding is_unit_clause_def by auto
 qed
 
@@ -167,7 +167,7 @@ lemma find_first_unused_var_Some_not_all_incl:
 proof -
   have "find_first_unused_var l M \<noteq> None"
     using assms by (cases "find_first_unused_var l M") auto
-  thus "\<not>(\<forall>a \<in> set l. atm_of ` set a \<subseteq> atm_of `  M)" by auto
+  then show "\<not>(\<forall>a \<in> set l. atm_of ` set a \<subseteq> atm_of `  M)" by auto
 qed
 
 lemma find_first_unused_var_Some:

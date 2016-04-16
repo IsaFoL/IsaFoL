@@ -45,7 +45,7 @@ text \<open>NOT's state is basically a pair composed of the trail (i.e.\ the can
   five-tuple.\<close>
 locale dpll_state =
   dpll_state_ops
-    trail clauses\<^sub>N\<^sub>O\<^sub>T prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T -- \<open>related to the state\<close>
+    trail clauses\<^sub>N\<^sub>O\<^sub>T prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T \<comment> \<open>related to the state\<close>
   for
     trail :: "'st \<Rightarrow> ('v, unit) ann_lits" and
     clauses\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> 'v clauses" and
@@ -910,7 +910,7 @@ proof -
     qed auto
 qed
 
-end -- \<open>End of \<open>dpll_with_backjumping_ops\<close>\<close>
+end \<comment> \<open>End of \<open>dpll_with_backjumping_ops\<close>\<close>
 
 locale dpll_with_backjumping =
   dpll_with_backjumping_ops trail clauses\<^sub>N\<^sub>O\<^sub>T prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T inv
@@ -1117,7 +1117,7 @@ next
     using IH dpll_bj_trail_mes_decreasing_prop[of T U A] dpll fin_A by linarith
 qed
 
-end -- \<open>End of \<open>dpll_with_backjumping\<close>\<close>
+end \<comment> \<open>End of \<open>dpll_with_backjumping\<close>\<close>
 
 subsection \<open>CDCL\<close>
 text \<open>In this section we will now define the conflict driven clause learning above DPLL: we first

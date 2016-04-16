@@ -6,14 +6,14 @@ begin
 subsection \<open>Adding Restarts\<close>
 locale cdcl\<^sub>W_restart =
   conflict_driven_clause_learning\<^sub>W
-    -- \<open>functions for the state: \<close>
-      -- \<open>access functions:\<close>
+    \<comment> \<open>functions for the state: \<close>
+      \<comment> \<open>access functions:\<close>
     trail init_clss learned_clss backtrack_lvl conflicting
-      -- \<open>changing state:\<close>
+      \<comment> \<open>changing state:\<close>
     cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
     update_conflicting
 
-      -- \<open>get state:\<close>
+      \<comment> \<open>get state:\<close>
     init_state
     restart_state
   for
@@ -541,15 +541,15 @@ end
 
 locale luby_sequence_restart =
   luby_sequence ur +
-  conflict_driven_clause_learning\<^sub>W  -- \<open>functions for clauses: \<close>
-    -- \<open>functions for the state: \<close>
-      -- \<open>access functions:\<close>
+  conflict_driven_clause_learning\<^sub>W  \<comment> \<open>functions for clauses: \<close>
+    \<comment> \<open>functions for the state: \<close>
+      \<comment> \<open>access functions:\<close>
     trail init_clss learned_clss backtrack_lvl conflicting
-      -- \<open>changing state:\<close>
+      \<comment> \<open>changing state:\<close>
     cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
     update_conflicting
 
-      -- \<open>get state:\<close>
+      \<comment> \<open>get state:\<close>
     init_state
     restart_state
   for

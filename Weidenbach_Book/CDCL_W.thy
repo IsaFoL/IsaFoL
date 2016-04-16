@@ -83,14 +83,14 @@ text \<open>
 locale state\<^sub>W =
   state\<^sub>W_ops
 
-    -- \<open>functions about the state: \<close>
-      -- \<open>getter:\<close>
+    \<comment> \<open>functions about the state: \<close>
+      \<comment> \<open>getter:\<close>
     trail init_clss learned_clss backtrack_lvl conflicting
-      -- \<open>setter:\<close>
+      \<comment> \<open>setter:\<close>
     cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
     update_conflicting
 
-      -- \<open>Some specific states:\<close>
+      \<comment> \<open>Some specific states:\<close>
     init_state
     restart_state
   for
@@ -417,7 +417,7 @@ lemma conflicting_update_backtracl_lvl[simp]:
   "conflicting (update_backtrack_lvl k S) = None \<longleftrightarrow> conflicting S = None"
   using map_option_is_None conflicting_update_backtrack_lvl[of k S] by fastforce+
 
-end -- \<open>end of \<open>state\<^sub>W\<close> locale\<close>
+end \<comment> \<open>end of \<open>state\<^sub>W\<close> locale\<close>
 
 
 subsection \<open>CDCL Rules\<close>
@@ -425,14 +425,14 @@ text \<open>Because of the strategy we will later use, we distinguish propagate,
   rules\<close>
 locale conflict_driven_clause_learning\<^sub>W =
   state\<^sub>W
-    -- \<open>functions for the state: \<close>
-      -- \<open>access functions:\<close>
+    \<comment> \<open>functions for the state: \<close>
+      \<comment> \<open>access functions:\<close>
     trail init_clss learned_clss backtrack_lvl conflicting
-      -- \<open>changing state:\<close>
+      \<comment> \<open>changing state:\<close>
     cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
     update_conflicting
 
-      -- \<open>get state:\<close>
+      \<comment> \<open>get state:\<close>
     init_state
     restart_state
   for

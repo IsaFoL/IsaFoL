@@ -317,18 +317,18 @@ proof
       have ex_la: "\<exists>La. La \<noteq> L \<and> La \<in> set W"
       proof (cases W)
         case w: Nil
-        thus ?thesis
+        then show ?thesis
           using l_w by auto
       next
         case lb: (Cons Lb W')
         show ?thesis
         proof (cases W')
           case Nil
-          thus ?thesis
+          then show ?thesis
             using lb sz2 by simp
         next
           case lc: (Cons Lc W'')
-          thus ?thesis
+          then show ?thesis
             by (metis distinct_length_2_or_more lb list.set_intros(1) list.set_intros(2) w_nw(1))
         qed
       qed
@@ -392,7 +392,7 @@ proof -
     proof
       fix L'
       assume l': "L' \<in> ?W"
-      hence l'_mem_w: "L' \<in> set W"
+      then have l'_mem_w: "L' \<in> set W"
         by (simp add: in_diffD)
       have "L' \<notin> uminus ` lits_of_l M"
         using l' by blast
@@ -412,14 +412,14 @@ proof -
       have "L \<in> set W"
       proof (cases W)
         case Nil
-        thus ?thesis
+        then show ?thesis
           using w_nw(2) cw_eq l_mem by (auto simp: raw_clause_def)
       next
         case (Cons La W')
-        thus ?thesis
+        then show ?thesis
         proof (cases "La = L")
           case True
-          thus ?thesis
+          then show ?thesis
             using Cons by simp
         next
           case False
@@ -487,11 +487,11 @@ proof
       show "-L \<in> lits_of_l M"
       proof (cases "L \<in> set W")
         case True
-        thus ?thesis
+        then show ?thesis
           using cw(2) cw_eq by fastforce
       next
         case False
-        thus ?thesis
+        then show ?thesis
           using W' cw(2) cw_eq l w_nw(3) unfolding M_def raw_clause_def
           by (metis (no_types, lifting) UnE imageE list.set_intros(1)
             lits_of_mmset_of_mlit  rev_subsetD set_append set_map twl_clause.sel(1)
@@ -626,7 +626,7 @@ locale abstract_twl =
         wf_twl_cls (raw_trail S) C' \<Longrightarrow>
         wf_twl_cls (L # raw_trail S) (rewatch (lit_of L) S C')"
       and
-    restart_learned: "mset (restart_learned S) \<subseteq># mset (raw_learned_clss S)" -- \<open>We need
+    restart_learned: "mset (restart_learned S) \<subseteq># mset (raw_learned_clss S)" \<comment> \<open>We need
       @{term mset} and not @{term set} to take care of duplicates. \<close>
 begin
 
