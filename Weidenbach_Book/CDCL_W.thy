@@ -1353,9 +1353,7 @@ proof (induction)
     next
       case (2 L' mark')
       then show ?case
-        using C_L T alien undef atm_CL
-        (* TODO tune proof *)
-        unfolding no_strange_atm_def clauses_def apply auto by blast
+        using C_L T alien undef atm_CL unfolding no_strange_atm_def clauses_def by (auto 5 5)
     next
       case (3)
       show ?case using T alien undef unfolding no_strange_atm_def by auto

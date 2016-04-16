@@ -1850,14 +1850,19 @@ abbreviation "conflicting_bj_clss_yet b S \<equiv>
 abbreviation \<mu>\<^sub>L :: "nat \<Rightarrow> 'st \<Rightarrow> nat \<times> nat" where
   "\<mu>\<^sub>L b S \<equiv> (conflicting_bj_clss_yet b S, card (set_mset (clauses\<^sub>N\<^sub>O\<^sub>T S)))"
 
+lemma remove1_mset_single_add_if:
+  "remove1_mset L (C + {#L'#}) = (if L = L' then C else remove1_mset L C + {#L'#})"
+  by (auto simp: multiset_eq_iff)
+
 lemma do_not_forget_before_backtrack_rule_clause_learned_clause_untouched:
   assumes "forget\<^sub>N\<^sub>O\<^sub>T S T"
   shows "conflicting_bj_clss S = conflicting_bj_clss T"
-  using assms apply (elim forget\<^sub>N\<^sub>O\<^sub>TE) (* TODO Tune proof *)
-  apply auto
-  unfolding conflicting_bj_clss_def
-  apply clarify
-  using diff_union_cancelR by (metis diff_union_cancelR)
+  using assms apply (elim forget\<^sub>N\<^sub>O\<^sub>TE)
+  apply rule
+   apply (subst conflicting_bj_clss_remove_cls\<^sub>N\<^sub>O\<^sub>T'[of T], simp)
+   apply (fastforce simp: conflicting_bj_clss_def remove1_mset_single_add_if split: if_splits)
+  apply fastforce
+  done
 
 lemma forget_\<mu>\<^sub>L_decrease:
   assumes forget\<^sub>N\<^sub>O\<^sub>T: "forget\<^sub>N\<^sub>O\<^sub>T S T"
