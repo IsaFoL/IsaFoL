@@ -3,7 +3,6 @@
 
 This theory is based on Blanchette's and Traytel's Clausal logic
 *)
-
 section \<open>Partial Clausal Logic\<close>
 
 theory Partial_Clausal_Logic

@@ -2,16 +2,20 @@ theory Prop_Resolution
 imports Partial_Clausal_Logic List_More Wellfounded_More
 
 begin
+chapter \<open>Resolution based techniques\<close>
+
+text \<open>This chapter contains the formalisation of resolution and superposition.\<close>
+
 section \<open>Resolution\<close>
 subsection \<open>Simplification Rules\<close>
 
 inductive simplify  :: "'v clauses \<Rightarrow> 'v clauses \<Rightarrow> bool" for N :: "'v clause set" where
 tautology_deletion:
-    "(A + {#Pos P#} + {#Neg P#})\<in> N \<Longrightarrow> simplify  N (N - {A + {#Pos P#} + {#Neg P#}})"|
+  "(A + {#Pos P#} + {#Neg P#})\<in> N \<Longrightarrow> simplify  N (N - {A + {#Pos P#} + {#Neg P#}})"|
 condensation:
-    "(A + {#L#} + {#L#}) \<in> N \<Longrightarrow> simplify N ( N- {A + {#L#} + {#L#}} \<union> {A + {#L#}})" |
+  "(A + {#L#} + {#L#}) \<in> N \<Longrightarrow> simplify N ( N- {A + {#L#} + {#L#}} \<union> {A + {#L#}})" |
 subsumption:
-    "A \<in> N \<Longrightarrow> A \<subset># B \<Longrightarrow> B \<in> N \<Longrightarrow> simplify N (N - {B})"
+  "A \<in> N \<Longrightarrow> A \<subset># B \<Longrightarrow> B \<in> N \<Longrightarrow> simplify N (N - {B})"
 
 lemma simplify_preserves_un_sat':
   fixes N N' :: "'v clauses"
@@ -639,7 +643,7 @@ next
    moreover {
      assume "n > 0"
      then have "\<exists>C. \<chi> = C + {#L, L#}"
-        by (smt L Suc_eq_plus1_left add.left_commute add_diff_cancel_left' add_diff_cancel_right' 
+        by (smt L Suc_eq_plus1_left add.left_commute add_diff_cancel_left' add_diff_cancel_right'
           count_greater_zero_iff count_single local.count multi_member_split plus_multiset.rep_eq)
      then obtain C where C: "\<chi> = C + {#L, L#}" by metis
      let ?\<chi>' = "C +{#L#}"
@@ -754,8 +758,8 @@ proof (induct arbitrary: I rule: sem_tree_size)
             have "\<And>m. Suc 0 - count m (Neg v) = count (\<chi>2 - m) (Neg v)"
               by (simp add: count\<chi>2)
             then show ?thesis
-              using that by (metis (no_types) One_nat_def Posv Suc_inject Suc_pred \<chi>\<chi>2_incl 
-                count_diff count_single insert_DiffM2 mem_Collect_eq multi_member_skip neg 
+              using that by (metis (no_types) One_nat_def Posv Suc_inject Suc_pred \<chi>\<chi>2_incl
+                count_diff count_single insert_DiffM2 mem_Collect_eq multi_member_skip neg
                 not_gr0 set_mset_def union_commute)
           qed
 
@@ -772,7 +776,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
             have "count {#Pos v#} (Pos v) = 1"
               by simp
             then show ?thesis
-              by (metis \<chi>'\<chi>2_incl \<open>Neg v \<notin># \<chi>2' - {#Pos v#}\<close> a1 count\<chi>2' count_diff f2 
+              by (metis \<chi>'\<chi>2_incl \<open>Neg v \<notin># \<chi>2' - {#Pos v#}\<close> a1 count\<chi>2' count_diff f2
                 insert_DiffM2 less_numeral_extra(3) mem_Collect_eq pos set_mset_def)
           qed
 
@@ -1106,7 +1110,7 @@ proof -
       assume "\<not>?thesis"
       then obtain \<chi> where "\<chi> \<in> \<psi>'" and "\<not>distinct_mset \<chi>" unfolding distinct_mset_set_def by auto
       then obtain L where "count \<chi> L \<ge> 2"
-        unfolding distinct_mset_def 
+        unfolding distinct_mset_def
         by (meson count_greater_eq_one_iff le_antisym simp simplified_count)
       then show False by (metis Suc_1 \<open>\<chi> \<in> \<psi>'\<close> not_less_eq_eq simp simplified_count)
     qed
@@ -1236,7 +1240,7 @@ next
         then have "simplified {A}" using simplified_in H(1,5) by auto
         moreover have "simplified {B}" using eq simplified_in H(2,5) by auto
         moreover have "atms_of A \<subseteq> atms_of_ms N"
-          using eq H(1) 
+          using eq H(1)
           using atms_of_atms_of_ms_mono[of A N] by auto
         moreover have "atms_of B \<subseteq> atms_of_ms N"
           using eq H(2) atms_of_atms_of_ms_mono[of B N] by auto
@@ -1898,23 +1902,23 @@ proof (induct arbitrary: I rule: sem_tree_size)
        moreover {
           assume neg: "Neg v \<in># \<chi>" and pos: "Pos v \<in># \<chi>'"
           have "count \<chi> (Neg v) = 1"
-            using simplified_count[OF simp \<chi>\<psi>] neg 
+            using simplified_count[OF simp \<chi>\<psi>] neg
             by (simp add: dual_order.antisym)
           have "count \<chi>' (Pos v) = 1"
-            using simplified_count[OF simp \<chi>'\<psi>] pos 
+            using simplified_count[OF simp \<chi>'\<psi>] pos
             by (simp add: dual_order.antisym)
 
           obtain C where \<chi>C: "\<chi> = C + {#Neg v#}" and negC: "Neg v \<notin># C" and posC: "Pos v \<notin># C"
-            by (metis (no_types, lifting) One_nat_def Posv Suc_eq_plus1_left \<open>count \<chi> (Neg v) = 1\<close> 
-              add_diff_cancel_left' count_diff count_greater_eq_one_iff count_single insert_DiffM   
+            by (metis (no_types, lifting) One_nat_def Posv Suc_eq_plus1_left \<open>count \<chi> (Neg v) = 1\<close>
+              add_diff_cancel_left' count_diff count_greater_eq_one_iff count_single insert_DiffM
               insert_DiffM2 less_numeral_extra(3) multi_member_skip not_le not_less_eq_eq)
 
           obtain C' where
             \<chi>C': "\<chi>' = C' + {#Pos v#}" and
             posC': "Pos v \<notin># C'" and
             negC': "Neg v \<notin># C'"
-            by (metis (no_types, lifting) One_nat_def Negv Suc_eq_plus1_left \<open>count \<chi>' (Pos v) = 1\<close> 
-              add_diff_cancel_left' count_diff count_greater_eq_one_iff count_single insert_DiffM   
+            by (metis (no_types, lifting) One_nat_def Negv Suc_eq_plus1_left \<open>count \<chi>' (Pos v) = 1\<close>
+              add_diff_cancel_left' count_diff count_greater_eq_one_iff count_single insert_DiffM
               insert_DiffM2 less_numeral_extra(3) multi_member_skip not_le not_less_eq_eq)
 
           have totC: "total_over_m I {C}"

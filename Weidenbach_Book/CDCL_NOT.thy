@@ -150,7 +150,7 @@ lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_trail_tl_trail_decomp[simp]:
 
 lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_length:
   "length M = length M' \<Longrightarrow> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M S = reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M' S"
-  apply (induction M S arbitrary: rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
+  apply (induction M S rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
   by (simp add: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.simps)
 
 abbreviation trail_weight where

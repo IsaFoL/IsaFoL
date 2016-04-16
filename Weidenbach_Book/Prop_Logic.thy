@@ -1,8 +1,11 @@
 theory Prop_Logic
-
 imports Main
-
 begin
+
+chapter \<open>Normalisation\<close>
+
+text \<open>We define here the normalisation from formula towards conjunctive and disjunctive normal form,
+  including normalisation towards multiset of multisets to represent CNF.\<close>
 
 section \<open>Logics\<close>
 text \<open>In this section we define the syntax of the formula and an abstraction over it to have simpler

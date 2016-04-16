@@ -1,6 +1,10 @@
 theory DPLL_CDCL_W_Implementation
 imports Partial_Annotated_Clausal_Logic CDCL_W_Level
 begin
+chapter \<open>Implementation of DPLL and CDCL\<close>
+text \<open>We then reuse all the theorems to go towards an implementation using 2-watched literals:
+  \<^item> @{file CDCL_W_Abstract_State.thy} defines a better-suited state: the operation operating on it
+  are more constrained, allowing simpler proofs and less edge cases later.\<close>
 
 section \<open>Simple Implementation of the DPLL and CDCL\<close>
 subsection \<open>Common Rules\<close>

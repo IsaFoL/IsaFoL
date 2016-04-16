@@ -9,6 +9,7 @@ session "Imports" (Weidenbach_Book) = "HOL" +
     "~~/src/HOL/Library/Multiset"
     "~~/src/HOL/Library/Multiset_Order"
   theories [document = true]
+    Doc_Libraries
     "../lib/Multiset_More"
     Wellfounded_More
     List_More
@@ -23,6 +24,7 @@ session "Entailment_Definition" (Weidenbach_Book) = "Imports" +
   theories [document = false]
     "~~/src/HOL/Library/Code_Target_Numeral"
   theories [document = true]
+    Doc_Entailment
     "../lib/Herbrand_Interpretation"
     "../lib/Clausal_Logic"
     Partial_Clausal_Logic
@@ -60,20 +62,25 @@ session "Resolution_Superposition" (Weidenbach_Book) = "Entailment_Definition" +
 session "DPLL_CDCL" (Weidenbach_Book) = "Entailment_Definition" +
   description \<open>This session contains CDCL and DPLL both NOT's and W's version.\<close>
   options [document = pdf, document_output = "output"]
+  theories [document = false]
+    "~~/src/HOL/Library/Code_Target_Numeral"
+    "~~/src/HOL/Library/Multiset"
+    "~~/src/HOL/Library/Multiset_Order"
   theories [document = true]
     Partial_Annotated_Clausal_Logic
     DPLL_W
     CDCL_W_Level
     CDCL_W
     CDCL_W_Termination
-    DPLL_CDCL_W_Implementation
-    DPLL_W_Implementation
     (* CDCL_W_Implementation *)
     CDCL_W_Merge
-    CDCL_W_Restart
     CDCL_NOT
     CDCL_WNOT
     CDCL_W_Incremental
+    CDCL_W_Restart
+
+    DPLL_CDCL_W_Implementation
+    DPLL_W_Implementation
 (*     CDCL_Two_Watched_Literals
     CDCL_Two_Watched_Literals_Invariant *)
   theories [quick_and_dirty, document = true]
@@ -82,10 +89,48 @@ session "DPLL_CDCL" (Weidenbach_Book) = "Entailment_Definition" +
     "root.tex"
     "biblio.bib"
 
-session "Full" (Weidenbach_Book) = "DPLL_CDCL"  +
-  description \<open>This session imports all theories.\<close>
+session "Full" (Weidenbach_Book) = "HOL"  +
+  description \<open>This session imports all theories and contains the complete documentation.\<close>
   options [document = pdf, document_output = "output"]
-  theories [quick_and_dirty, document = false]
+  theories [document = false]
+    "~~/src/HOL/Library/Code_Target_Numeral"
+    "~~/src/HOL/Library/Multiset"
+    "~~/src/HOL/Library/Multiset_Order"
+
+  theories [quick_and_dirty, document = true]
+    Doc_Libraries
+    "../lib/Multiset_More"
+    Wellfounded_More
+    List_More
+
+    Doc_Entailment
+    "../lib/Herbrand_Interpretation"
+    "../lib/Clausal_Logic"
+    Partial_Clausal_Logic
+
+    Prop_Logic
+    Prop_Abstract_Transformation
+    Prop_Normalisation
+    Prop_Logic_Multiset
+
+    Prop_Resolution
+  theories [quick_and_dirty, document = true]
+    Prop_Superposition
+
+  theories [document = true]
+    Partial_Annotated_Clausal_Logic
+    DPLL_W
+    CDCL_W_Level
+    CDCL_W
+    CDCL_W_Termination
+    CDCL_W_Merge
+    CDCL_NOT
+    CDCL_WNOT
+    CDCL_W_Restart
+    CDCL_W_Incremental
+    DPLL_CDCL_W_Implementation
+    DPLL_W_Implementation
+    (* CDCL_W_Implementation *)
     Weidenbach_Book
   document_files
     "root.tex"

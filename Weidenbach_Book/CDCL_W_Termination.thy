@@ -55,7 +55,7 @@ lemma rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv:
   "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_all_struct_inv S \<Longrightarrow> cdcl\<^sub>W_all_struct_inv T"
   by (induction rule: rtranclp_induct) (auto intro: cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv)
 
-subsection \<open>No Relearning of a clause\<close>
+subsubsection \<open>No Relearning of a clause\<close>
 lemma cdcl\<^sub>W_o_new_clause_learned_is_backtrack_step:
   assumes learned: "D \<in># learned_clss T" and
   new: "D \<notin># learned_clss S" and
@@ -913,7 +913,7 @@ lemma cdcl\<^sub>W_stgy_distinct_mset_clauses:
   using rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses[OF _ st] assms
   by (auto simp: cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def)
 
-subsection \<open>Decrease of a measure\<close>
+subsubsection \<open>Decrease of a Measure\<close>
 fun cdcl\<^sub>W_measure where
 "cdcl\<^sub>W_measure S =
   [(3::nat) ^ (card (atms_of_mm (init_clss S))) - card (set_mset (learned_clss S)),

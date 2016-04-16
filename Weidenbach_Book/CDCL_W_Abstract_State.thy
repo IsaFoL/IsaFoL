@@ -5,9 +5,12 @@ imports CDCL_Abstract_Clause_Representation List_More CDCL_W_Level Wellfounded_M
 begin
 
 section \<open>Weidenbach's CDCL with Abstract Clause Representation\<close>
-declare upt.simps(2)[simp del]
 
-subsubsection \<open>Instantiation of the Multiset Version\<close>
+text \<open>We first instantiate the locale of Weidenbach's locale. Then we define another abstract state:
+  the goal of this state is to be used for implementations. We add more assumptions on the function 
+  about the state. For example @{term cons_trail} is restricted to undefined literals.\<close>
+
+subsection \<open>Instantiation of the Multiset Version\<close>
 
 type_synonym 'v cdcl\<^sub>W_mset = "('v, 'v clause) ann_lit list \<times>
   'v clauses \<times>
@@ -31,7 +34,6 @@ definition conflicting :: "'v cdcl\<^sub>W_mset \<Rightarrow> 'v clause option" 
 
 definition cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'v cdcl\<^sub>W_mset \<Rightarrow> 'v cdcl\<^sub>W_mset" where
 "cons_trail \<equiv> \<lambda>L (M, R). (L # M, R)"
-
 
 definition tl_trail where
 "tl_trail \<equiv> \<lambda>(M, R). (tl M, R)"
@@ -116,9 +118,8 @@ lemma cdcl\<^sub>W_mset_state_eq_eq: "cdcl\<^sub>W_mset.state_eq = (op =)"
 
 notation cdcl\<^sub>W_mset.state_eq (infix "\<sim>m" 49)
 
-(* declare cdcl\<^sub>W_mset.state_simp[simp del] *)
-
 subsection \<open>The State\<close>
+
 text \<open>We will abstract the representation of clause and clauses via two locales. We expect our
   representation to behave like multiset, but the internal representation can be done using list
   or whatever other representation.\<close>
@@ -469,8 +470,7 @@ end -- \<open>end of \<open>state\<^sub>W\<close> locale\<close>
 
 
 subsection \<open>CDCL Rules\<close>
-text \<open>Because of the strategy we will later use, we distinguish propagate, conflict from the other
-  rules\<close>
+
 locale abs_conflict_driven_clause_learning\<^sub>W =
   abs_state\<^sub>W
     -- \<open>functions for clauses: \<close>

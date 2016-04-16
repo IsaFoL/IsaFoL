@@ -4,7 +4,7 @@ begin
 text \<open>Given the previous definition about abstract rewriting and theorem about them, we now have the
   detailed rule making the transformation into CNF/DNF.\<close>
 
-section "Rewrite Rules"
+section \<open>Rewrite Rules\<close>
 text \<open>The idea of Christoph Weidenbach's book is to remove gradually the operators: first
   equivalencies, then implication, after that the unused true/false and finally the reorganizing the
   or/and.  We will prove each transformation seperately.\<close>

@@ -1,6 +1,18 @@
+chapter \<open>NOT's CDCL and DPLL\<close>
+
 theory CDCL_WNOT_Measure
 imports Main List_More
 begin
+
+text \<open>The organisation of the development is the following:
+  \<^item> @{file CDCL_WNOT_Measure.thy} contains the measure used to show the termination the core of
+  CDCL.
+  \<^item> @{file CDCL_NOT.thy} contains the specification of the rules: the rules are 
+  defined, and we proof the correctness and termination for some strategies CDCL.
+  \<^item> @{file DPLL_NOT.thy} contains the DPLL calculus based on the CDCL version.
+  \<^item> @{file DPLL_W.thy} contains Weidenbach's version of DPLL and the proof of equivalence between
+  the two DPLL versions.
+\<close>
 
 section \<open>Measure\<close>
 text \<open>This measure show the termination of the core of CDCL: each step improves the number of

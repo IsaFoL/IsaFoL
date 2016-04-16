@@ -2,14 +2,36 @@ theory CDCL_W
 imports CDCL_Abstract_Clause_Representation List_More CDCL_W_Level Wellfounded_More
 
 begin
+chapter \<open>Weidenbach's CDCL\<close>
 
+text \<open>The organisation of the development is the following:
+  \<^item> @{file CDCL_W.thy} contains the specification of the rules: the rules and the strategy are 
+  defined, and we proof the correctness of CDCL.
+  \<^item> @{file CDCL_W_Termination.thy} contains the proof of termination.
+  \<^item> @{file CDCL_W_Merge.thy} contains a variant of the calculus: some rules of the raw calculus are
+  always applied together (like the rules analysing the conflict and then backtracking). We define 
+  an equivalent version  of the calculus where these rules are applied together. This is useful for
+  implementations.
+  \<^item> @{file CDCL_WNOT.thy} proves the inclusion of Weidenbach's version of CDCL in NOT's version. We
+  use here the version defined in @{file CDCL_W_Merge.thy}. We need this, because NOT's backjump
+  corresponds to multiple applications of three rules in Weidenbach's calculus. We show also the
+  termination of the calculus without strategy.
+
+We have some variants build on the top of Weidenbach's CDCL calculus:
+  \<^item> @{file CDCL_W_Incremental.thy} adds incrementality on the top of @{file CDCL_W.thy}. The way we 
+  are doing it is not compatible with @{file CDCL_W_Merge.thy} , because we add conflicts and the
+  @{file CDCL_W_Merge.thy} cannot analyse conflicts added externally, because the conflict and
+  analyse are merged.
+  \<^item> @{file CDCL_W_Restart.thy} adds restart. It is built on the top of @{file CDCL_W_Merge.thy}.
+
+\<close>
 section \<open>Weidenbach's CDCL with Multisets\<close>
 declare upt.simps(2)[simp del]
 
 subsection \<open>The State\<close>
-text \<open>We will abstract the representation of clause and clauses via two locales. We expect our
-  representation to behave like multiset, but the internal representation can be done using list
-  or whatever other representation.\<close>
+text \<open>We will abstract the representation of clause and clauses via two locales. We here use 
+  multisets, contrary to @{file CDCL_W_Abstract_State.thy} where we assume only the existence of a 
+  conversion to the state.\<close>
 
 locale state\<^sub>W_ops =
   fixes
@@ -349,7 +371,7 @@ lemma reduce_trail_to_update_backtrack_lvl[simp]:
 
 lemma reduce_trail_to_length:
   "length M = length M' \<Longrightarrow> reduce_trail_to M S = reduce_trail_to M' S"
-  apply (induction M S arbitrary: rule: reduce_trail_to.induct)
+  apply (induction M S rule: reduce_trail_to.induct)
   by (simp add: reduce_trail_to.simps)
 
 lemma trail_reduce_trail_to_drop:
@@ -762,10 +784,9 @@ lemma cdcl\<^sub>W_o_rule_cases[consumes 1, case_names decide backtrack skip res
   shows P
   using assms by (auto simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps)
 
-subsection \<open>Invariants\<close>
+subsection \<open>Structural Invariants\<close>
 subsubsection \<open>Properties of the trail\<close>
 text \<open>We here establish that:
-  \<^item> the marks are exactly @{term "[1..<Suc k]"} where @{term k} is the level;
   \<^item> the consistency of the trail;
   \<^item> the fact that there is no duplicate in the trail.\<close>
 lemma backtrack_lit_skiped:

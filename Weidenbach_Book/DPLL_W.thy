@@ -3,7 +3,7 @@ imports Main Partial_Clausal_Logic Partial_Annotated_Clausal_Logic List_More Wel
   DPLL_NOT
 begin
 
-section \<open>DPLL\<close>
+section \<open>Weidenbach's DPLL\<close>
 subsection \<open>Rules\<close>
 type_synonym 'a dpll\<^sub>W_ann_lit = "('a, unit) ann_lit"
 type_synonym 'a dpll\<^sub>W_ann_lits = "('a, unit) ann_lits"
