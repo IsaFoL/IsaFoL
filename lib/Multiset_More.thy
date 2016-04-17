@@ -370,8 +370,8 @@ lemma distinct_mset_union:
   shows "distinct_mset A"
 proof -
   obtain aa :: "'a multiset \<Rightarrow> 'a" where
-    f2: "(\<forall>m. \<not> distinct_mset m \<or> (\<forall>a. (a::'a) \<notin># m \<or> count m a = 1))"
-      "(\<forall>m. aa m \<in># m \<and> count m (aa m) \<noteq> 1 \<or> distinct_mset m)"
+    f2: "\<forall>m. \<not> distinct_mset m \<or> (\<forall>a. (a::'a) \<notin># m \<or> count m a = 1)"
+      "\<forall>m. aa m \<in># m \<and> count m (aa m) \<noteq> 1 \<or> distinct_mset m"
     by (metis (full_types) distinct_mset_def)
   then have "count (A + B) (aa A) = 1 \<or> distinct_mset A"
     using dist by (meson mset_leD mset_le_add_left)

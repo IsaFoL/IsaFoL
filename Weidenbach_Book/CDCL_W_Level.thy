@@ -200,15 +200,15 @@ next
             using IH n_d_M by blast
           show ?thesis
             apply (rule exI[of _ "Decided L # c"])
-            apply (rule exI[of _ "K"])
-            apply (rule exI[of _ "c'"])
+            apply (rule exI[of _ K])
+            apply (rule exI[of _ c'])
             using lev_K n_d unfolding M by auto
         next
           case False
           show ?thesis
             apply (rule exI[of _ "[]"])
-            apply (rule exI[of _ "L"])
-            apply (rule exI[of _ "M"])
+            apply (rule exI[of _ L])
+            apply (rule exI[of _ M])
             using False i by auto
         qed
       next

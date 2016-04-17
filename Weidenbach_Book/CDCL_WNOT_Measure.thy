@@ -7,7 +7,7 @@ begin
 text \<open>The organisation of the development is the following:
   \<^item> @{file CDCL_WNOT_Measure.thy} contains the measure used to show the termination the core of
   CDCL.
-  \<^item> @{file CDCL_NOT.thy} contains the specification of the rules: the rules are 
+  \<^item> @{file CDCL_NOT.thy} contains the specification of the rules: the rules are
   defined, and we proof the correctness and termination for some strategies CDCL.
   \<^item> @{file DPLL_NOT.thy} contains the DPLL calculus based on the CDCL version.
   \<^item> @{file DPLL_W.thy} contains Weidenbach's version of DPLL and the proof of equivalence between

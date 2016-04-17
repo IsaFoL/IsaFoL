@@ -399,7 +399,7 @@ definition "conclusive_dpll\<^sub>W_state (S:: 'v dpll\<^sub>W_state) \<longleft
   (trail S \<Turnstile>asm clauses S \<or> ((\<forall>L \<in> set (trail S). \<not>is_decided L)
   \<and> (\<exists>C \<in># clauses S. trail S \<Turnstile>as CNot C)))"
 
-text \<open>\cwref{prop:prop:dpllcomplete}{theorem 2.8.6 page 74}\<close> 
+text \<open>\cwref{prop:prop:dpllcomplete}{theorem 2.8.6 page 74}\<close>
 lemma dpll\<^sub>W_strong_completeness:
   assumes "set M \<Turnstile>sm N"
   and "consistent_interp (set M)"
@@ -700,7 +700,7 @@ lemma dpll\<^sub>W_dpll\<^sub>W_bj:
     apply fastforce
    apply (rule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.bj_decide\<^sub>N\<^sub>O\<^sub>T)
    apply (rule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.decide\<^sub>N\<^sub>O\<^sub>T.decide\<^sub>N\<^sub>O\<^sub>T; simp?)
-   apply fastforce    
+   apply fastforce
   apply (frule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backtrack.intros[of _ _  _ _ _], simp_all)
   apply (rule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.bj_backjump)
   apply (rule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backtrack_is_backjump'',
@@ -714,7 +714,7 @@ lemma dpll\<^sub>W_bj_dpll:
   apply (induction rule: dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.induct)
     apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.decide\<^sub>N\<^sub>O\<^sub>TE, cases S)
     apply (frule decided; simp)
-    
+
    apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.propagate\<^sub>N\<^sub>O\<^sub>TE, cases S)
    apply (auto intro!: propagate[of _ _ "(_, _)", simplified])[]
   apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backjumpE, cases S)

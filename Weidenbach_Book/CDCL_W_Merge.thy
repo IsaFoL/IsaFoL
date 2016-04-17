@@ -202,7 +202,7 @@ next
   have "?k > 0"
     using decomp M_lev V tr unfolding cdcl\<^sub>W_M_level_inv_def by auto
   then have "atm_of L \<in> atm_of ` lits_of_l (trail V)"
-    using lev_L get_level_ge_0_atm_of_in[of 0 L "(trail V)"] by auto
+    using lev_L get_level_ge_0_atm_of_in[of 0 L "trail V"] by auto
   then have L_L': "atm_of L \<noteq> atm_of L'"
     using n_d' unfolding lits_of_def by auto
   have L'_M: "atm_of L' \<notin> atm_of ` lits_of_l (trail V)"
@@ -373,7 +373,7 @@ next
   case (step T U) note st = this(1) and bj = this(2) and IH = this(3)
   have IH: "skip_or_resolve\<^sup>*\<^sup>* S T"
     proof -
-      { assume "(\<exists>U. skip_or_resolve\<^sup>*\<^sup>* S U \<and> backtrack U T)"
+      { assume "\<exists>U. skip_or_resolve\<^sup>*\<^sup>* S U \<and> backtrack U T"
         then obtain V where
           bt: "backtrack V T" and
           "skip_or_resolve\<^sup>*\<^sup>* S V"
@@ -1803,7 +1803,7 @@ lemma cdcl\<^sub>W_merge_restart_cases[consumes 1, case_names conflict propagate
     "cdcl\<^sub>W_merge_cp S U" and
     "\<And>T. conflict S T \<Longrightarrow> full cdcl\<^sub>W_bj T U \<Longrightarrow> P" and
     "propagate\<^sup>+\<^sup>+ S U \<Longrightarrow> P"
-  shows "P"
+  shows P
   using assms unfolding cdcl\<^sub>W_merge_cp.simps by auto
 
 lemma cdcl\<^sub>W_merge_cp_tranclp_cdcl\<^sub>W_merge:
@@ -2306,7 +2306,7 @@ lemma cdcl\<^sub>W_merge_stgy_cases[consumes 1, case_names fw_s_cp fw_s_decide]:
     "cdcl\<^sub>W_merge_stgy S U"
     "full1 cdcl\<^sub>W_merge_cp S U \<Longrightarrow> P"
     "\<And>T. decide S T \<Longrightarrow> no_step cdcl\<^sub>W_merge_cp S \<Longrightarrow> full cdcl\<^sub>W_merge_cp T U \<Longrightarrow> P"
-  shows "P"
+  shows P
   using assms by (auto simp: cdcl\<^sub>W_merge_stgy.simps)
 
 inductive cdcl\<^sub>W_s'_w :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
@@ -2482,10 +2482,9 @@ next
         using IH by meson
       then show ?thesis
         proof cases
-        next
           case s'
-          then have "R = V"
-            by (metis full1_def inv local.conflict' tranclp_unfold_begin
+          then have "R = V" using inv local.conflict' unfolding full1_def
+            by (metis tranclp_unfold_begin
               rtranclp_cdcl\<^sub>W_merge_stgy'_no_step_cdcl\<^sub>W_cp_or_eq)
           consider
               (V_W) "V = W"

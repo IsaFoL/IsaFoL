@@ -368,7 +368,7 @@ proof (relation "less_than", goal_cases)
   then show ?case by auto
 next
   case (2 i)
-  let ?k = "(SOME k. 2 ^ (k - 1) \<le> i \<and> i < 2 ^ k - 1)"
+  let ?k = "SOME k. 2 ^ (k - 1) \<le> i \<and> i < 2 ^ k - 1"
   have "2 ^ (?k - 1) \<le> i \<and> i < 2 ^ ?k - 1"
     apply (rule someI_ex)
     using "2" exists_luby_decomp by blast

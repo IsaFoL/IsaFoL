@@ -232,10 +232,10 @@ next
   have "{#L'#} + (mset Ls + mset D) = mset Ls + (mset D + {#L'#})"
       by (auto simp: ac_simps)
   then have
-    "(L = L' \<longrightarrow> get_maximum_level M (mset Ls + mset D) = j \<and> get_level M L' = k)" and
-    "(L \<noteq> L' \<longrightarrow> L \<in> set Ls \<and> get_maximum_level M (mset Ls + mset D - {#L#} + {#L'#}) = j \<and>
-      get_level M L = k)"
-      using a2 a1[of "L' # D"] unfolding find_def apply (metis add_diff_cancel_left' mset.simps(2) 
+    "L = L' \<longrightarrow> get_maximum_level M (mset Ls + mset D) = j \<and> get_level M L' = k" and
+    "L \<noteq> L' \<longrightarrow> L \<in> set Ls \<and> get_maximum_level M (mset Ls + mset D - {#L#} + {#L'#}) = j \<and>
+      get_level M L = k"
+      using a2 a1[of "L' # D"] unfolding find_def apply (metis add_diff_cancel_left' mset.simps(2)
         option.inject prod.inject union_commute)
     using f4 a2 a1[of "L' # D"] unfolding find_def by (metis option.inject prod.inject)
   then show ?case by simp
@@ -266,10 +266,10 @@ lemma bt_cut_some_decomp:
   shows "\<exists>K M2 M1. M = M2 @ M' \<and> M' = Decided K # M1 \<and> get_level M K = (i+1)"
   using assms by (induction i M rule: bt_cut.induct) (auto split: if_split_asm)
 
-lemma bt_cut_not_none: 
+lemma bt_cut_not_none:
   assumes "no_dup M" and "M = M2 @ Decided K # M'" and "get_level M K = (i+1)"
   shows "bt_cut i M \<noteq> None"
-  using assms by (induction M2 arbitrary: M rule: ann_lit_list_induct) 
+  using assms by (induction M2 arbitrary: M rule: ann_lit_list_induct)
   (auto simp: atm_lit_of_set_lits_of_l)
 
 lemma get_all_ann_decomposition_ex:

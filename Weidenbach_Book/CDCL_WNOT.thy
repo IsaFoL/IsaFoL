@@ -262,12 +262,14 @@ next
     qed
 qed
 
-subsection \<open>More lemmas conflict--propagate and backjumping\<close>
-subsection \<open>CDCL FW\<close>
+subsection \<open>Inclusion of Weidenbach's CDCL in NOT's CDCL\<close>
+
+text \<open>This lemma shows the inclusion of Weidenbach's CDCL @{const cdcl\<^sub>W_merge} (with merging) in
+  NOT's @{const cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn}.\<close>
 lemma cdcl\<^sub>W_merge_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn:
   assumes
     inv: "cdcl\<^sub>W_all_struct_inv S" and
-    cdcl\<^sub>W:"cdcl\<^sub>W_merge S T"
+    cdcl\<^sub>W: "cdcl\<^sub>W_merge S T"
   shows "cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn S T
     \<or> (no_step cdcl\<^sub>W_merge T \<and> conflicting T \<noteq> None)"
   using cdcl\<^sub>W inv
@@ -431,7 +433,7 @@ next
       then have U_D: "tl (trail U) \<Turnstile>as CNot (remove1_mset L D)"
         by (metis append_self_conv2 tr_U)
       have undef_L: "undefined_lit (tl (trail U)) L"
-        using U M1_M2 inv_U unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def 
+        using U M1_M2 inv_U unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
         by (auto simp: lits_of_def defined_lit_map)
       have "backjump_l S U"
         apply (rule backjump_l[of _ _ _ _ _ L D _ "remove1_mset L D"])
@@ -537,6 +539,9 @@ lemma wf_cdcl\<^sub>W_merge: "wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> c
 sublocale conflict_driven_clause_learning\<^sub>W_termination
   by unfold_locales (simp add: wf_cdcl\<^sub>W_merge)
 
+
+subsection \<open>Correctness of @{const cdcl\<^sub>W_merge_stgy}\<close>
+
 lemma full_cdcl\<^sub>W_s'_full_cdcl\<^sub>W_merge_restart:
   assumes
     "conflicting R = None" and
@@ -560,8 +565,8 @@ proof
           ff1: "\<forall>s. \<not> cdcl\<^sub>W_all_struct_inv s \<or> cdcl\<^sub>W_s'_without_decide s (ssa s)
             \<or> no_step cdcl\<^sub>W_merge_cp s"
           using conflicting_true_no_step_s'_without_decide_no_step_cdcl\<^sub>W_merge_cp by moura
-        have "(\<forall>p s sa. \<not> full p (s::'st) sa \<or> p\<^sup>*\<^sup>* s sa \<and> no_step p sa)" and
-          "(\<forall>p s sa. (\<not> p\<^sup>*\<^sup>* (s::'st) sa \<or> (\<exists>s. p sa s)) \<or> full p s sa)"
+        have "\<forall>p s sa. \<not> full p (s::'st) sa \<or> p\<^sup>*\<^sup>* s sa \<and> no_step p sa" and
+          "\<forall>p s sa. (\<not> p\<^sup>*\<^sup>* (s::'st) sa \<or> (\<exists>s. p sa s)) \<or> full p s sa"
           by (meson full_def)+
         then have "\<not> cdcl\<^sub>W_merge_cp V ss"
           using ff1 by (metis (no_types) \<open>cdcl\<^sub>W_all_struct_inv V\<close> \<open>full cdcl\<^sub>W_s' R V\<close> cdcl\<^sub>W_s'.simps
@@ -646,15 +651,15 @@ qed
 lemma full_cdcl\<^sub>W_stgy_full_cdcl\<^sub>W_merge:
   assumes
     "conflicting R = None" and
-    inv: "cdcl\<^sub>W_all_struct_inv R"
+    "cdcl\<^sub>W_all_struct_inv R"
   shows "full cdcl\<^sub>W_stgy R V \<longleftrightarrow> full cdcl\<^sub>W_merge_stgy R V"
-  by (simp add: assms(1) full_cdcl\<^sub>W_s'_full_cdcl\<^sub>W_merge_restart full_cdcl\<^sub>W_stgy_iff_full_cdcl\<^sub>W_s'
-    inv)
+  by (simp add: assms full_cdcl\<^sub>W_s'_full_cdcl\<^sub>W_merge_restart full_cdcl\<^sub>W_stgy_iff_full_cdcl\<^sub>W_s')
 
 lemma full_cdcl\<^sub>W_merge_stgy_final_state_conclusive':
-  fixes S' :: "'st"
-  assumes full: "full cdcl\<^sub>W_merge_stgy (init_state N) S'"
-  and no_d: "distinct_mset_mset N"
+  fixes S' :: 'st
+  assumes
+    full: "full cdcl\<^sub>W_merge_stgy (init_state N) S'" and
+    no_d: "distinct_mset_mset N"
   shows "(conflicting S' = Some {#} \<and> unsatisfiable (set_mset N))
     \<or> (conflicting S' = None \<and> trail S' \<Turnstile>asm N \<and> satisfiable (set_mset N))"
 proof -

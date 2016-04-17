@@ -138,7 +138,7 @@ lemma atms_of_ms_empty_iff:
 lemma in_implies_atm_of_on_atms_of_ms:
   assumes "L \<in># C" and "C \<in> N"
   shows "atm_of L \<in> atms_of_ms N"
-  using atms_of_atms_of_ms_mono[of "C" N] assms by (simp add: atm_of_lit_in_atms_of subset_iff)
+  using atms_of_atms_of_ms_mono[of C N] assms by (simp add: atm_of_lit_in_atms_of subset_iff)
 
 lemma in_plus_implies_atm_of_on_atms_of_ms:
   assumes "C+{#L#} \<in> N"
@@ -226,7 +226,7 @@ lemma total_over_m_extension:
     \<and> (\<forall>x\<in>I'. atm_of x \<in> atms_of_ms B \<and> atm_of x \<notin> atms_of_ms A)"
 proof -
   let ?I' = "{Pos v |v. v\<in> atms_of_ms B \<and> v \<notin> atms_of_ms A}"
-  have "(\<forall>x\<in>?I'. atm_of x \<in> atms_of_ms B \<and> atm_of x \<notin> atms_of_ms A)" by auto
+  have "\<forall>x\<in>?I'. atm_of x \<in> atms_of_ms B \<and> atm_of x \<notin> atms_of_ms A" by auto
   moreover have "total_over_m (I \<union> ?I') (A\<union>B)"
     using total unfolding total_over_m_def total_over_set_def by auto
   ultimately show ?thesis by blast
@@ -241,7 +241,7 @@ lemma total_over_m_consistent_extension:
     \<and> (\<forall>x\<in>I'. atm_of x \<in> atms_of_ms B \<and> atm_of x \<notin> atms_of_ms A) \<and> consistent_interp (I \<union> I')"
 proof -
   let ?I' = "{Pos v |v. v\<in> atms_of_ms B \<and> v \<notin> atms_of_ms A \<and> Pos v \<notin> I \<and> Neg v \<notin> I}"
-  have "(\<forall>x\<in>?I'. atm_of x \<in> atms_of_ms B \<and> atm_of x \<notin> atms_of_ms A)" by auto
+  have "\<forall>x\<in>?I'. atm_of x \<in> atms_of_ms B \<and> atm_of x \<notin> atms_of_ms A" by auto
   moreover have "total_over_m (I \<union> ?I') (A\<union>B)"
     using total unfolding total_over_m_def total_over_set_def by auto
   moreover have "consistent_interp (I \<union> ?I')"
@@ -262,7 +262,7 @@ lemma total_over_set_literal_defined:
 
 lemma tot_over_m_remove:
   assumes "total_over_m (I \<union> {L}) {\<psi>}"
-  and L: "\<not> L \<in># \<psi>" "-L \<notin># \<psi>"
+  and L: "L \<notin># \<psi>" "-L \<notin># \<psi>"
   shows "total_over_m I {\<psi>}"
   unfolding total_over_m_def total_over_set_def
 proof
@@ -1031,7 +1031,7 @@ proof (standard; standard)
         "aa \<notin> atm_of ` set_mset (remove1_mset L C) \<or> aa = atm_of ll \<and> ll \<in># remove1_mset L C"
         by blast
       then have "atms_of (C - {#L#}) \<subseteq> atms"
-        using f4 Add LCL LC H unfolding atms_of_def by (metis H in_diffD insertE 
+        using f4 Add LCL LC H unfolding atms_of_def by (metis H in_diffD insertE
           literal.exhaust_sel uminus_Neg uminus_Pos)
       moreover have "\<not> tautology (C - {#L#})"
         using taut by (metis Add(1) insert_DiffM tautology_add_single)
@@ -1114,7 +1114,7 @@ next
   have H: "\<And>C' D. {#Pos l#} + C' = {#Neg l#} + D \<Longrightarrow> D \<in> simple_clss C \<Longrightarrow> False"
     proof -
       fix C' D
-      assume C'D: "{#Pos l#} + C' = {#Neg l#} + D" and D: "D \<in> simple_clss C "
+      assume C'D: "{#Pos l#} + C' = {#Neg l#} + D" and D: "D \<in> simple_clss C"
       then have "Pos l \<in># D" by (metis insert_noteq_member literal.distinct(1) union_commute)
       then have "l \<in> atms_of D"
         by (simp add: atm_iff_pos_or_neg_lit)
@@ -1232,7 +1232,7 @@ lemma entails_union_increase[simp]:
  using assms unfolding entails_def by auto
 
 lemma true_clss_commute_l:
-  "(I \<union> I' \<Turnstile>es \<psi>) \<longleftrightarrow> (I' \<union> I \<Turnstile>es \<psi>)"
+  "I \<union> I' \<Turnstile>es \<psi> \<longleftrightarrow> I' \<union> I \<Turnstile>es \<psi>"
   by (simp add: Un_commute)
 
 lemma entails_remove[simp]: "I \<Turnstile>es N \<Longrightarrow> I \<Turnstile>es Set.remove a N"

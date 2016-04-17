@@ -64,8 +64,8 @@ lemma propo_rew_step_subformula:
 
 lemma consistency_decompose_into_list:
   assumes wf: "wf_conn c l" and wf': "wf_conn c l'"
-  and same: "\<forall>n. (A \<Turnstile> l ! n \<longleftrightarrow> (A \<Turnstile> l' ! n))"
-  shows "(A \<Turnstile> conn c l) = (A \<Turnstile> conn c l')"
+  and same: "\<forall>n. A \<Turnstile> l ! n \<longleftrightarrow> (A \<Turnstile> l' ! n)"
+  shows "A \<Turnstile> conn c l \<longleftrightarrow> A \<Turnstile> conn c l'"
 proof (cases c rule: connective_cases_arity_2)
   case nullary
   then show "(A \<Turnstile> conn c l) \<longleftrightarrow> (A \<Turnstile> conn c l')" using wf wf' by auto
@@ -337,10 +337,11 @@ text \<open>The following theorem @{prop no_test_symb_step_exists} shows the lin
 lemma no_test_symb_step_exists:
   fixes r:: "'v propo \<Rightarrow> 'v propo \<Rightarrow> bool" and test_symb:: "'v propo \<Rightarrow> bool" and x :: "'v"
   and \<phi> :: "'v propo"
-  assumes test_symb_false_nullary: "\<forall>x. test_symb FF \<and> test_symb FT \<and> test_symb (FVar x)"
-  and "\<forall>\<phi>'. \<phi>' \<preceq> \<phi> \<longrightarrow> (\<not>test_symb \<phi>') \<longrightarrow>  (\<exists> \<psi>. r \<phi>' \<psi>)" and
-  "\<not> all_subformula_st test_symb \<phi>"
-  shows "(\<exists>\<psi> \<psi>'. \<psi> \<preceq> \<phi> \<and> r \<psi> \<psi>')"
+  assumes
+    test_symb_false_nullary: "\<forall>x. test_symb FF \<and> test_symb FT \<and> test_symb (FVar x)" and
+    "\<forall>\<phi>'. \<phi>' \<preceq> \<phi> \<longrightarrow> (\<not>test_symb \<phi>') \<longrightarrow>  (\<exists> \<psi>. r \<phi>' \<psi>)" and
+    "\<not> all_subformula_st test_symb \<phi>"
+  shows "\<exists>\<psi> \<psi>'. \<psi> \<preceq> \<phi> \<and> r \<psi> \<psi>'"
   using assms
 proof (induct \<phi> rule: propo_induct_arity)
   case (nullary \<phi> x)
@@ -415,8 +416,8 @@ lemma propo_rew_step_inv_stay':
   and H': "\<forall>(c:: 'v connective) \<xi> \<phi> \<xi>' \<phi>'. \<phi> \<preceq> \<Phi> \<longrightarrow> propo_rew_step r \<phi> \<phi>'
     \<longrightarrow> wf_conn c (\<xi> @ \<phi> # \<xi>') \<longrightarrow> test_symb (conn c (\<xi> @ \<phi> # \<xi>')) \<longrightarrow> test_symb \<phi>'
     \<longrightarrow> test_symb (conn c (\<xi> @ \<phi>' # \<xi>'))" and
-    "propo_rew_step r \<phi> \<psi> " and
-    "\<phi> \<preceq> \<Phi> " and
+    "propo_rew_step r \<phi> \<psi>" and
+    "\<phi> \<preceq> \<Phi>" and
     "all_subformula_st test_symb \<phi>"
   shows "all_subformula_st test_symb \<psi>"
   using assms(3-5)

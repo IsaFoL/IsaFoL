@@ -322,7 +322,7 @@ next
         10: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S''' T"
           by blast
       have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S'' U" using s \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S'' T \<close> by auto
-      moreover have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S' U" using "8" s by auto
+      moreover have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S' U" using 8 s by auto
       moreover have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S''' U" using 10 s by auto
       ultimately show ?thesis apply - apply (rule exI[of _ S'], rule exI[of _ S''])
         using 1 2 4 6 7 8 9 by blast
@@ -720,13 +720,12 @@ proof -
   obtain M2 where
     M: "trail S = M2 @ Decided K # M1"
     using get_all_ann_decomposition_exists_prepend[OF decomp] unfolding i by (metis append_assoc)
-  let ?E = "E"
-  let ?E' = "remove1_mset L ?E"
+  let ?E' = "remove1_mset L E"
   have invS: "cdcl\<^sub>W_all_struct_inv S"
     using invR rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W st' by blast
   then have conf: "cdcl\<^sub>W_conflicting S" unfolding cdcl\<^sub>W_all_struct_inv_def by blast
-  then have "trail S \<Turnstile>as CNot ?E" unfolding cdcl\<^sub>W_conflicting_def confl_S by auto
-  then have MD: "trail S \<Turnstile>as CNot ?E" by auto
+  then have "trail S \<Turnstile>as CNot E" unfolding cdcl\<^sub>W_conflicting_def confl_S by auto
+  then have MD: "trail S \<Turnstile>as CNot E" by auto
   then have MD': "trail S \<Turnstile>as CNot ?E'" using true_annot_CNot_diff by blast
   have lev': "cdcl\<^sub>W_M_level_inv S" using invS unfolding cdcl\<^sub>W_all_struct_inv_def by blast
 
@@ -845,7 +844,7 @@ proof -
         rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W)
     have n: "E \<notin># learned_clss Z"
        using DL lY_lZ YZ unfolding clauses_def by auto
-    have "?E \<notin>#learned_clss S"
+    have "E \<notin>#learned_clss S"
       apply (rule rtranclp_cdcl\<^sub>W_stgy_with_trail_end_has_not_been_learned[OF Z invZ trZ])
           apply (simp add: n)
          using LD apply simp
@@ -1021,17 +1020,16 @@ next
 next
   case (backtrack L D K i M1 M2 T) note conf = this(1) and decomp = this(3) and T = this(8) and
   lev = this(9)
-  let ?S' = "T"
-  have bt: "backtrack S ?S'"
-    using backtrack.hyps backtrack.intros[of S D L K] by auto
+  have bt: "backtrack S T"
+    using backtrack_rule[OF backtrack.hyps] by auto
   have "D \<notin># learned_clss S"
     using no_relearn conf bt by auto
   then have card_T:
     "card (set_mset ({#D#} + learned_clss S)) = Suc (card (set_mset (learned_clss S)))"
     by simp
-  have "distinct_cdcl\<^sub>W_state ?S'"
+  have "distinct_cdcl\<^sub>W_state T"
     using bt M_level distinct_cdcl\<^sub>W_state_inv no_dup other cdcl\<^sub>W_o.intros cdcl\<^sub>W_bj.intros by blast
-  moreover have "\<forall>s\<in>#learned_clss ?S'. \<not> tautology s"
+  moreover have "\<forall>s\<in>#learned_clss T. \<not> tautology s"
     using learned_clss_are_not_tautologies[OF cdcl\<^sub>W.other[OF cdcl\<^sub>W_o.bj[OF
       cdcl\<^sub>W_bj.backtrack[OF bt]]]] M_level no_taut confl by auto
   ultimately have "card (set_mset (learned_clss T)) \<le> 3 ^ card (atms_of_mm (learned_clss T))"

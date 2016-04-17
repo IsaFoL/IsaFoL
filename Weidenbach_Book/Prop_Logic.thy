@@ -34,10 +34,10 @@ text \<open>We define our own induction principal: instead of distinguishing eve
 
 lemma propo_induct_arity[case_names nullary unary binary]:
   fixes \<phi> \<psi> :: "'v propo"
-  assumes nullary: "(\<And>\<phi> x. \<phi> = FF \<or> \<phi> = FT \<or> \<phi> = FVar x \<Longrightarrow> P \<phi>)"
-  and unary: "(\<And>\<psi>. P \<psi> \<Longrightarrow> P (FNot \<psi>))"
-  and binary: "(\<And>\<phi> \<psi>1 \<psi>2. P \<psi>1 \<Longrightarrow> P \<psi>2 \<Longrightarrow> \<phi> = FAnd \<psi>1 \<psi>2 \<or> \<phi> = FOr \<psi>1 \<psi>2 \<or> \<phi> = FImp \<psi>1 \<psi>2
-    \<or> \<phi> = FEq \<psi>1 \<psi>2 \<Longrightarrow> P \<phi>)"
+  assumes nullary: "\<And>\<phi> x. \<phi> = FF \<or> \<phi> = FT \<or> \<phi> = FVar x \<Longrightarrow> P \<phi>"
+  and unary: "\<And>\<psi>. P \<psi> \<Longrightarrow> P (FNot \<psi>)"
+  and binary: "\<And>\<phi> \<psi>1 \<psi>2. P \<psi>1 \<Longrightarrow> P \<psi>2 \<Longrightarrow> \<phi> = FAnd \<psi>1 \<psi>2 \<or> \<phi> = FOr \<psi>1 \<psi>2 \<or> \<phi> = FImp \<psi>1 \<psi>2
+    \<or> \<phi> = FEq \<psi>1 \<psi>2 \<Longrightarrow> P \<phi>"
   shows "P \<psi>"
   apply (induct rule: propo.induct)
   using assms by metis+
@@ -82,15 +82,15 @@ wf_conn_binary[simp]: "c \<in> binary_connectives \<Longrightarrow> wf_conn c (\
 thm wf_conn.induct
 lemma wf_conn_induct[consumes 1, case_names CT CF CVar CNot COr CAnd CImp CEq]:
   assumes "wf_conn c x" and
-    "(\<And>v. c = CT \<Longrightarrow> P [])" and
-    "(\<And>v. c = CF \<Longrightarrow> P [])" and
-    "(\<And>v. c = CVar v \<Longrightarrow> P [])" and
-    "(\<And>\<psi>. c = CNot \<Longrightarrow> P [\<psi>])" and
-    "(\<And>\<psi> \<psi>'. c = COr \<Longrightarrow> P [\<psi>, \<psi>']) " and
-    "(\<And>\<psi> \<psi>'. c = CAnd \<Longrightarrow> P [\<psi>, \<psi>']) " and
-    "(\<And>\<psi> \<psi>'. c = CImp \<Longrightarrow> P [\<psi>, \<psi>']) " and
-    "(\<And>\<psi> \<psi>'. c = CEq \<Longrightarrow> P [\<psi>, \<psi>']) "
-  shows " P x"
+    "\<And>v. c = CT \<Longrightarrow> P []" and
+    "\<And>v. c = CF \<Longrightarrow> P []" and
+    "\<And>v. c = CVar v \<Longrightarrow> P []" and
+    "\<And>\<psi>. c = CNot \<Longrightarrow> P [\<psi>]" and
+    "\<And>\<psi> \<psi>'. c = COr \<Longrightarrow> P [\<psi>, \<psi>']" and
+    "\<And>\<psi> \<psi>'. c = CAnd \<Longrightarrow> P [\<psi>, \<psi>']" and
+    "\<And>\<psi> \<psi>'. c = CImp \<Longrightarrow> P [\<psi>, \<psi>']" and
+    "\<And>\<psi> \<psi>'. c = CEq \<Longrightarrow> P [\<psi>, \<psi>']"
+  shows "P x"
   using assms by induction (auto simp: binary_connectives_def)
 
 subsection \<open>properties of the abstraction\<close>
@@ -248,7 +248,7 @@ text \<open>On the @{prop subformula_into_subformula}, we can see why we use our
 
 text \<open>This is an example of a property related to subformulas.\<close>
 lemma subformula_in_subformula_not:
-shows b: "FNot \<phi> \<preceq> \<psi> \<Longrightarrow> \<phi> \<preceq> \<psi> "
+shows b: "FNot \<phi> \<preceq> \<psi> \<Longrightarrow> \<phi> \<preceq> \<psi>"
   apply (induct rule: subformula.induct)
   using subformula_into_subformula wf_conn_unary subformula_refl  list.set_intros(1) subformula_refl
     by (fastforce intro: subformula_into_subformula)+
@@ -584,12 +584,12 @@ definition evalf (infix "\<Turnstile>f" 50) where
 
 text \<open>The deduction rule is in the book. And the proof looks like to the one of the book.\<close>
 theorem deduction_theorem:
-  "(\<phi> \<Turnstile>f \<psi>) \<longleftrightarrow> (\<forall>A. (A \<Turnstile> FImp \<phi> \<psi>))"
+  "\<phi> \<Turnstile>f \<psi> \<longleftrightarrow> (\<forall>A. A \<Turnstile> FImp \<phi> \<psi>)"
 proof
   assume H: "\<phi> \<Turnstile>f \<psi>"
   {
     fix A
-    have "A \<Turnstile> FImp \<phi> \<psi>" 
+    have "A \<Turnstile> FImp \<phi> \<psi>"
       proof (cases "A \<Turnstile> \<phi>")
         case True
         then have "A \<Turnstile> \<psi>" using H unfolding evalf_def by metis
@@ -621,7 +621,7 @@ definition same_over_set:: "('v \<Rightarrow> bool) \<Rightarrow>('v \<Rightarro
 text \<open>If two mapping @{term A} and @{term B} have the same value over the variables, then the same
   formula are satisfiable.\<close>
 lemma same_over_set_eval:
-  assumes "same_over_set A B (vars_of_prop \<phi>)" 
+  assumes "same_over_set A B (vars_of_prop \<phi>)"
   shows "A \<Turnstile> \<phi> \<longleftrightarrow> B \<Turnstile> \<phi>"
   using assms unfolding same_over_set_def by (induct \<phi>, auto)
 

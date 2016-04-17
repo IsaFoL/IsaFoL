@@ -62,8 +62,7 @@ lemma tranclp_rtranclp_rtranclp[simp]: "R\<^sup>+\<^sup>+\<^sup>*\<^sup>* = R\<^
   by (fastforce simp: rtranclp_unfold)
 
 lemma rtranclp_exists_last_with_prop:
-  assumes "R x z"
-  and "R\<^sup>*\<^sup>* z z'" and "P x z"
+  assumes "R x z" and "R\<^sup>*\<^sup>* z z'" and "P x z"
   shows "\<exists>y y'. R\<^sup>*\<^sup>* x y \<and> R y y' \<and> P y y' \<and> (\<lambda>a b. R a b \<and> \<not>P a b)\<^sup>*\<^sup>* y' z'"
   using assms(2,1,3)
 proof (induction)
@@ -92,7 +91,7 @@ definition full:: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<R
 "full transf = (\<lambda>S S'. rtranclp transf S S' \<and> (\<forall>S''. \<not> transf S' S''))"
 
 text \<open>We define output notations only for printing:\<close>
-notation (output) full1 ("_\<^sup>+\<^sup>\<down>") 
+notation (output) full1 ("_\<^sup>+\<^sup>\<down>")
 notation (output) full ("_\<^sup>\<down>")
 
 lemma rtranclp_full1I:
@@ -210,7 +209,7 @@ lemma wf_if_measure_in_wf:
   by (metis in_inv_image wfE_min wfI_min wf_inv_image)
 
 lemma wfP_if_measure: fixes f :: "'a \<Rightarrow> nat"
-shows "(\<And>x y. P x \<Longrightarrow> g x y \<Longrightarrow> f y < f x) \<Longrightarrow> wf {(y,x). P x \<and> g x y}"
+  shows "(\<And>x y. P x \<Longrightarrow> g x y \<Longrightarrow> f y < f x) \<Longrightarrow> wf {(y,x). P x \<and> g x y}"
   apply(insert wf_measure[of f])
   apply(simp only: measure_def inv_image_def less_than_def less_eq)
   apply(erule wf_subset)
@@ -218,13 +217,13 @@ shows "(\<And>x y. P x \<Longrightarrow> g x y \<Longrightarrow> f y < f x) \<Lo
   done
 
 lemma wf_if_measure_f:
-assumes "wf r"
-shows "wf {(b, a). (f b, f a) \<in> r}"
+  assumes "wf r"
+  shows "wf {(b, a). (f b, f a) \<in> r}"
   using assms by (metis inv_image_def wf_inv_image)
 
 lemma wf_wf_if_measure':
-assumes "wf r" and H: "(\<And>x y. P x \<Longrightarrow> g x y \<Longrightarrow> (f y, f x) \<in> r)"
-shows "wf {(y,x). P x \<and> g x y}"
+  assumes "wf r" and H: "\<And>x y. P x \<Longrightarrow> g x y \<Longrightarrow> (f y, f x) \<in> r"
+  shows "wf {(y,x). P x \<and> g x y}"
 proof -
   have "wf {(b, a). (f b, f a) \<in> r}" using assms(1) wf_if_measure_f by auto
   then have "wf {(b, a). P a \<and> g a b \<and> (f b, f a) \<in> r}"
@@ -241,7 +240,7 @@ proof -
 qed
 
 lemma wfP_if_measure2: fixes f :: "'a \<Rightarrow> nat"
-shows "(\<And>x y. P x y \<Longrightarrow> g x y \<Longrightarrow> f x < f y) \<Longrightarrow> wf {(x,y). P x y \<and> g x y}"
+  shows "(\<And>x y. P x y \<Longrightarrow> g x y \<Longrightarrow> f x < f y) \<Longrightarrow> wf {(x,y). P x y \<and> g x y}"
   apply(insert wf_measure[of f])
   apply(simp only: measure_def inv_image_def less_than_def less_eq)
   apply(erule wf_subset)
@@ -314,8 +313,8 @@ lemma wf_if_measure_f_notation2:
   using wf_if_measure_f[OF assms, of f] by auto
 
 lemma wf_wf_if_measure'_notation2:
-assumes "wf r" and H: "(\<And>x y. P x \<Longrightarrow> g x y \<Longrightarrow> (f y, f (h x)) \<in> r)"
-shows "wf {(y,h x)| y x. P x \<and> g x y}"
+  assumes "wf r" and H: "\<And>x y. P x \<Longrightarrow> g x y \<Longrightarrow> (f y, f (h x)) \<in> r"
+  shows "wf {(y,h x)| y x. P x \<and> g x y}"
 proof -
   have "wf {(b, h a)|b a. (f b, f (h a)) \<in> r}" using assms(1) wf_if_measure_f_notation2 by auto
   then have "wf {(b, h a)|b a. P a \<and> g a b \<and> (f b, f (h a)) \<in> r}"

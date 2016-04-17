@@ -7,8 +7,8 @@ type_synonym 'v clauses = "'v clause multiset"
 subsection \<open>Abstract Clause Representation\<close>
 text \<open>We will abstract the representation of clause and clauses via two locales. We expect our
   representation to behave like multiset, but the internal representation can be done using list
-  or whatever other representation. 
-  
+  or whatever other representation.
+
   We assume the following:
   \<^item> there is an equivalent to adding and removing a literal and to taking the union of clauses.
   \<close>
@@ -40,7 +40,7 @@ begin
 
   interpretation cls_cls: raw_cls id
     by unfold_locales
-    
+
   interpretation list_cls: raw_ccls_union mset
     union_mset_list remove1
     by unfold_locales (auto simp: union_mset_list ex_mset)

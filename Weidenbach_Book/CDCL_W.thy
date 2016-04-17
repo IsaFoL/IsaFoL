@@ -5,11 +5,11 @@ begin
 chapter \<open>Weidenbach's CDCL\<close>
 
 text \<open>The organisation of the development is the following:
-  \<^item> @{file CDCL_W.thy} contains the specification of the rules: the rules and the strategy are 
+  \<^item> @{file CDCL_W.thy} contains the specification of the rules: the rules and the strategy are
   defined, and we proof the correctness of CDCL.
   \<^item> @{file CDCL_W_Termination.thy} contains the proof of termination.
   \<^item> @{file CDCL_W_Merge.thy} contains a variant of the calculus: some rules of the raw calculus are
-  always applied together (like the rules analysing the conflict and then backtracking). We define 
+  always applied together (like the rules analysing the conflict and then backtracking). We define
   an equivalent version  of the calculus where these rules are applied together. This is useful for
   implementations.
   \<^item> @{file CDCL_WNOT.thy} proves the inclusion of Weidenbach's version of CDCL in NOT's version. We
@@ -18,7 +18,7 @@ text \<open>The organisation of the development is the following:
   termination of the calculus without strategy.
 
 We have some variants build on the top of Weidenbach's CDCL calculus:
-  \<^item> @{file CDCL_W_Incremental.thy} adds incrementality on the top of @{file CDCL_W.thy}. The way we 
+  \<^item> @{file CDCL_W_Incremental.thy} adds incrementality on the top of @{file CDCL_W.thy}. The way we
   are doing it is not compatible with @{file CDCL_W_Merge.thy} , because we add conflicts and the
   @{file CDCL_W_Merge.thy} cannot analyse conflicts added externally, because the conflict and
   analyse are merged.
@@ -29,8 +29,8 @@ section \<open>Weidenbach's CDCL with Multisets\<close>
 declare upt.simps(2)[simp del]
 
 subsection \<open>The State\<close>
-text \<open>We will abstract the representation of clause and clauses via two locales. We here use 
-  multisets, contrary to @{file CDCL_W_Abstract_State.thy} where we assume only the existence of a 
+text \<open>We will abstract the representation of clause and clauses via two locales. We here use
+  multisets, contrary to @{file CDCL_W_Abstract_State.thy} where we assume only the existence of a
   conversion to the state.\<close>
 
 locale state\<^sub>W_ops =
@@ -949,7 +949,7 @@ proof -
     using i_S M_l by (auto simp: cdcl\<^sub>W_M_level_inv_def)
   then obtain c K c' where tr_S: "trail S = c @ Decided K # c'" and
     lev_K: "get_level (trail S) K = Suc i"
-    using le_count_decided_decomp[of "trail S" "i"] M_l by (auto simp: cdcl\<^sub>W_M_level_inv_def)
+    using le_count_decided_decomp[of "trail S" i] M_l by (auto simp: cdcl\<^sub>W_M_level_inv_def)
   obtain M1 M2 where "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))"
     using Decided_cons_in_get_all_ann_decomposition_append_Decided_cons unfolding tr_S by fast
   then show ?thesis using lev_K by blast
@@ -1568,10 +1568,9 @@ lemma backtrack_atms_of_D_in_M1:
   shows "atms_of ((remove1_mset L D)) \<subseteq> atm_of ` lits_of_l (tl (trail T))"
 proof (rule ccontr)
   let ?k = "get_maximum_level (trail S) D"
-  let ?D = "D"
-  let ?D' = "(remove1_mset L D)"
-  have "trail S \<Turnstile>as CNot ?D" using confl S_confl by auto
-  then have vars_of_D: "atms_of ?D \<subseteq> atm_of ` lits_of_l (trail S)" unfolding atms_of_def
+  let ?D' = "remove1_mset L D"
+  have "trail S \<Turnstile>as CNot D" using confl S_confl by auto
+  then have vars_of_D: "atms_of D \<subseteq> atm_of ` lits_of_l (trail S)" unfolding atms_of_def
     by (meson image_subsetI true_annots_CNot_all_atms_defined)
 
   obtain M0 where M: "trail S = M0 @ M2 @ Decided K # M1"
@@ -1734,8 +1733,7 @@ next
 next
   case (backtrack L D K i M1 M2 T) note conf = this(1) and LD = this(2) and decomp' = this(3) and
     lev_L = this(4) and lev_K = this(7) and undef = this(8) and T = this(9)
-  let ?D = "D"
-  let ?D' = "(remove1_mset L D)"
+  let ?D' = "remove1_mset L D"
   have "\<forall>l \<in> set M2. \<not>is_decided l"
     using get_all_ann_decomposition_snd_not_decided decomp' by blast
   obtain M0 where M: "trail S = M0 @ M2 @ Decided K # M1"
@@ -1744,9 +1742,9 @@ next
     proof
       fix x
       assume "x \<in> set (get_all_ann_decomposition (trail T))"
-      then have x: "x \<in> set (get_all_ann_decomposition (Propagated L ?D # M1))"
+      then have x: "x \<in> set (get_all_ann_decomposition (Propagated L D # M1))"
         using T decomp' undef inv by (simp add: cdcl\<^sub>W_M_level_inv_decomp)
-      let ?m = "get_all_ann_decomposition (Propagated L ?D # M1)"
+      let ?m = "get_all_ann_decomposition (Propagated L D # M1)"
       let ?hd = "hd ?m"
       let ?tl = "tl ?m"
       consider
@@ -1766,7 +1764,7 @@ next
           case hd
           obtain M1' M1'' where M1: "hd (get_all_ann_decomposition M1) = (M1', M1'')"
             by (cases "hd (get_all_ann_decomposition M1)")
-          then have x': "x = (M1', Propagated L ?D # M1'')"
+          then have x': "x = (M1', Propagated L D # M1'')"
             using \<open>x = ?hd\<close> by auto
           have "(M1', M1'') \<in> set (get_all_ann_decomposition (trail S))"
             using M1[symmetric] hd_get_all_ann_decomposition_skip_some[OF M1[symmetric],
@@ -1880,8 +1878,7 @@ next
   have [simp]: "trail (reduce_trail_to M1 (add_learned_cls D
     (update_backtrack_lvl i (update_conflicting None S)))) = M1"
     using decomp lev by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
-  let ?D = "D"
-  let ?D' = "(remove1_mset L D)"
+  let ?D' = "remove1_mset L D"
   show ?case
     proof (intro allI impI)
       fix La :: "'v literal" and mark :: "'v clause" and
@@ -1889,15 +1886,15 @@ next
       assume "a @ Propagated La mark # b = trail T"
       then consider
           (hd_tr) "a = []" and
-            "(Propagated La mark :: ('v, 'v clause) ann_lit) = Propagated L ?D" and
+            "(Propagated La mark :: ('v, 'v clause) ann_lit) = Propagated L D" and
             "b = M1"
         | (tl_tr) "tl a @ Propagated La mark # b = M1"
         using M T decomp lev by (cases a) (auto simp: cdcl\<^sub>W_M_level_inv_def)
       then show "b \<Turnstile>as CNot (mark - {#La#}) \<and> La \<in># mark"
         proof cases
           case hd_tr note A = this(1) and P = this(2) and b = this(3)
-          have "trail S \<Turnstile>as CNot ?D" using conf confl by auto
-          then have vars_of_D: "atms_of ?D \<subseteq> atm_of ` lits_of_l (trail S)"
+          have "trail S \<Turnstile>as CNot D" using conf confl by auto
+          then have vars_of_D: "atms_of D \<subseteq> atm_of ` lits_of_l (trail S)"
             unfolding atms_of_def
             by (meson image_subsetI true_annots_CNot_all_atms_defined)
           have vars_of_D: "atms_of ?D' \<subseteq> atm_of ` lits_of_l M1"
@@ -1909,7 +1906,7 @@ next
               "M0 @ M2 @ Decided K # []" M1] unfolding M by auto
           then have "M1 \<Turnstile>as CNot ?D'"
             using true_annots_remove_if_notin_vars[of "M0 @ M2 @ Decided K # []"
-              M1 "CNot ?D'"] \<open>trail S \<Turnstile>as CNot ?D\<close> unfolding M lits_of_def
+              M1 "CNot ?D'"] \<open>trail S \<Turnstile>as CNot D\<close> unfolding M lits_of_def
             by (simp add: true_annot_CNot_diff)
           then show "b \<Turnstile>as CNot (mark - {#La#}) \<and> La \<in># mark"
             using P LD b by auto
@@ -1935,15 +1932,14 @@ lemma cdcl\<^sub>W_conflicting_is_false:
   using assms(1,2)
 proof (induct rule: cdcl\<^sub>W_all_induct)
   case (skip L C' M D T) note tr_S = this(1) and confl = this(2) and L_D = this(3) and T = this(5)
-  let ?D = "D"
   have D: "Propagated L C' # M \<Turnstile>as CNot D" using assms skip by auto
   moreover
-    have "L \<notin># ?D"
+    have "L \<notin># D"
       proof (rule ccontr)
         assume "\<not> ?thesis"
         then have "- L \<in> lits_of_l M"
-          using in_CNot_implies_uminus(2)[of L ?D "Propagated L C' # M"]
-          \<open>Propagated L C' # M \<Turnstile>as CNot ?D\<close> by simp
+          using in_CNot_implies_uminus(2)[of L D "Propagated L C' # M"]
+          \<open>Propagated L C' # M \<Turnstile>as CNot D\<close> by simp
         then show False
           by (metis (no_types, hide_lams) M_lev cdcl\<^sub>W_M_level_inv_decomp(1) consistent_interp_def
             image_insert insert_iff list.set(2) lits_of_def ann_lit.sel(2) tr_S)
@@ -1968,7 +1964,7 @@ next
         have "M \<Turnstile>as CNot ?D"
           proof -
             have "Propagated L (?C + {#L#}) # M \<Turnstile>as CNot ?D \<union> CNot {#- L#}"
-              using confl tr confl_inv LC by (metis CNot_plus LD insert_DiffM2 option.simps(9))
+              using confl tr confl_inv LC by (metis CNot_plus LD insert_DiffM2)
             then show ?thesis
               using M_lev \<open>- L \<notin># ?D\<close> tr true_annots_lit_of_notin_skip
               unfolding cdcl\<^sub>W_M_level_inv_def by force
@@ -3375,7 +3371,7 @@ proof (induct rule: cdcl\<^sub>W_o_induct)
   ultimately
     have g_D: "get_maximum_level (Propagated L C # M) (remove1_mset (-L) D)
       = get_maximum_level M (remove1_mset (-L) D)"
-      using get_maximum_level_skip_first[of L "remove1_mset (-L) D" "C" M]
+      using get_maximum_level_skip_first[of L "remove1_mset (-L) D" C M]
       by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set atms_of_def)
   have lev_L[simp]: "get_level M L = 0"
     apply (rule atm_of_notin_get_rev_level_eq_0)
@@ -3408,8 +3404,7 @@ next
         have "Propagated L C' # M \<Turnstile>as CNot D"
           using conflicting tr_S D unfolding cdcl\<^sub>W_conflicting_def by auto
         then have "-L \<in> lits_of_l M"
-          using \<open>La \<in># D\<close> in_CNot_implies_uminus(2)[of L "D"
-            "Propagated L C' # M"] unfolding La
+          using \<open>La \<in># D\<close> in_CNot_implies_uminus(2)[of L D "Propagated L C' # M"] unfolding La
           by auto
         then show False using lev tr_S unfolding cdcl\<^sub>W_M_level_inv_def consistent_interp_def by auto
       qed

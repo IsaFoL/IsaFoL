@@ -754,7 +754,7 @@ lemma true_clss_clss_contradiction_true_clss_cls_false:
     consistent_CNot_not insert_absorb sup_bot.left_neutral true_clss_def)
 
 lemma true_annots_CNot_all_atms_defined:
-  assumes "M \<Turnstile>as CNot T" and a1: " L \<in># T"
+  assumes "M \<Turnstile>as CNot T" and a1: "L \<in># T"
   shows "atm_of L \<in> atm_of ` lits_of_l M"
   by (metis assms atm_of_uminus image_eqI in_CNot_implies_uminus(1) true_annot_singleton)
 

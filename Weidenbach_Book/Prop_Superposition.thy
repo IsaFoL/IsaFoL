@@ -139,7 +139,7 @@ lemma produces_imp_atms_leq: "produces C A \<Longrightarrow> B \<in> atms_of C \
   by (metis Max_ge finite_atms_of insert_not_empty productive_imp_produces_Max_atom
     singleton_inject)
 
-lemma produces_imp_neg_notin_lits: "produces C A \<Longrightarrow> \<not> Neg A \<in># C"
+lemma produces_imp_neg_notin_lits: "produces C A \<Longrightarrow> Neg A \<notin># C"
   by (rule pos_Max_imp_neg_notin) (auto dest: producesD)
 
 lemma less_eq_imp_interp_subseteq_interp: "C #\<subseteq># D \<Longrightarrow> interp C \<subseteq> interp D"
@@ -423,7 +423,7 @@ qed
 lemma true_clss_cls_extended:
   assumes
     "A \<Turnstile>p B" and
-    tot: "total_over_m I (A)" and
+    tot: "total_over_m I A" and
     cons: "consistent_interp I" and
     I_A: "I \<Turnstile>s A"
   shows "I \<Turnstile> B"

@@ -404,8 +404,8 @@ proof -
       next
         case False
         let ?S = "S"
-        let ?T = "(do_propagate_step S)"
-        let ?U = "(do_conflict_step (do_propagate_step S))"
+        let ?T = "do_propagate_step S"
+        let ?U = "do_conflict_step (do_propagate_step S)"
         have propa: "propagate S ?T" using False do_propgate_step by blast
         moreover have ns: "no_step conflict S" using confl do_conflict_step_no_step by blast
         ultimately show ?thesis
@@ -522,7 +522,7 @@ qed auto
 
 lemma do_resolve_step_no:
   "do_resolve_step S = S \<Longrightarrow> no_step resolve S"
-  apply (cases S; cases "(raw_trail S)"; cases "raw_conflicting S")
+  apply (cases S; cases "raw_trail S"; cases "raw_conflicting S")
   by (auto
     elim!: resolveE  split: if_split_asm
     dest!: union_single_eq_member
@@ -1436,7 +1436,7 @@ lemma rough_state_from_init_state_of_do_cdcl\<^sub>W_stgy_step'[code abstract]:
  "rough_state_from_init_state_of (do_cdcl\<^sub>W_stgy_step' S) =
    rough_state_of (do_cdcl\<^sub>W_stgy_step (id_of_I_to S))"
 proof -
-  let ?S = "(rough_state_from_init_state_of S)"
+  let ?S = "rough_state_from_init_state_of S"
   have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (raw_S0_cdcl\<^sub>W (raw_init_clss (rough_state_from_init_state_of S)))
     (rough_state_from_init_state_of S)"
     using rough_state_from_init_state_of[of S] by auto

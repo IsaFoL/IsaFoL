@@ -62,7 +62,7 @@ lemma bounded_const_product:
 text \<open>This lemma is not used, but here to show that a property that can be expected from
   @{term bounded} holds.\<close>
 lemma bounded_finite_linorder:
-  fixes f :: "'a \<Rightarrow> 'a ::{finite, linorder}"
+  fixes f :: "'a \<Rightarrow> 'a :: {finite, linorder}"
   shows "bounded f"
 proof -
   have "\<And>x. f x \<le> Max {f x|x. True}"

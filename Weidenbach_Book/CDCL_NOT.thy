@@ -1934,7 +1934,7 @@ proof -
       unfolding conflicting_bj_clss_def by auto
     have T: "conflicting_bj_clss T
     \<subseteq> simple_clss (atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T T) \<union> atm_of ` lits_of_l (trail T))"
-      by standard (meson "1" "2" fin' \<open>finite (conflicting_bj_clss T)\<close> simple_clss_mono
+      by standard (meson 1 2 fin' \<open>finite (conflicting_bj_clss T)\<close> simple_clss_mono
         distinct_mset_set_def simplified_in_simple_clss subsetCE sup.coboundedI1)
   moreover
     then have #: "3 ^ card (atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T T) \<union> atm_of ` lits_of_l (trail T))
@@ -2033,7 +2033,7 @@ proof (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_learn_all_induct)
   then have XX: "((2+card (atms_of_ms A)) ^ (1+card (atms_of_ms A)) - \<mu>\<^sub>C' A T) + 1
     \<le> (2+card (atms_of_ms A)) ^ (1+card (atms_of_ms A)) - \<mu>\<^sub>C' A S"
     by auto
-  from mult_le_mono1[OF this, of "(1 + 3 ^ card (atms_of_ms A))"]
+  from mult_le_mono1[OF this, of "1 + 3 ^ card (atms_of_ms A)"]
   have "((2 + card (atms_of_ms A)) ^ (1 + card (atms_of_ms A)) - \<mu>\<^sub>C' A T) *
       (1 + 3 ^ card (atms_of_ms A)) + (1 + 3 ^ card (atms_of_ms A))
     \<le> ((2 + card (atms_of_ms A)) ^ (1 + card (atms_of_ms A)) - \<mu>\<^sub>C' A S)
@@ -2391,7 +2391,7 @@ text \<open>To add restarts we needs some assumptions on the predicate (called @
   @{term "f n \<ge> 1"} for @{term "n \<ge> 1"}: it means that between two consecutive
   restarts, at least one step will be done. This is necessary to avoid sequence. like: full --
   restart -- full -- ...
-  \<^item> a measure @{term "\<mu>"}: it should decrease under the assumptions @{term bound_inv}, whenever a
+  \<^item> a measure @{term \<mu>}: it should decrease under the assumptions @{term bound_inv}, whenever a
   @{term cdcl\<^sub>N\<^sub>O\<^sub>T} or a @{term restart} is done. A parameter is given to @{term \<mu>}: for conflict-
   driven clause learning, it is an upper-bound of the clauses. We are assuming that such a bound
   can be found after a restart whenever the invariant holds.
@@ -2695,7 +2695,7 @@ proof (rule ccontr)
   obtain T m where
     cdcl\<^sub>N\<^sub>O\<^sub>T_m: "(cdcl\<^sub>N\<^sub>O\<^sub>T ^^ m) (fst (g j)) T" and
     f_m: "f (snd (g j)) \<le> m"
-    using H[of "j"] by blast
+    using H[of j] by blast
   have "?j < m"
     using f_m j Nat.le_trans by linarith
 
@@ -3800,7 +3800,7 @@ qed
 
 lemma cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_not_simplified_decreasing:
   assumes "cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn S T"
-  shows "(not_simplified_cls (clauses\<^sub>N\<^sub>O\<^sub>T T)) \<subseteq># (not_simplified_cls (clauses\<^sub>N\<^sub>O\<^sub>T S))"
+  shows "not_simplified_cls (clauses\<^sub>N\<^sub>O\<^sub>T T) \<subseteq># not_simplified_cls (clauses\<^sub>N\<^sub>O\<^sub>T S)"
   using assms apply induction
   prefer 4
   unfolding not_simplified_cls_def apply (auto elim!: backjump_lE forget\<^sub>N\<^sub>O\<^sub>TE)[3]
@@ -3808,7 +3808,7 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_not_simplified_decreasing:
 
 lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_not_simplified_decreasing:
   assumes "cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn\<^sup>*\<^sup>* S T"
-  shows "(not_simplified_cls (clauses\<^sub>N\<^sub>O\<^sub>T T)) \<subseteq># (not_simplified_cls (clauses\<^sub>N\<^sub>O\<^sub>T S))"
+  shows "not_simplified_cls (clauses\<^sub>N\<^sub>O\<^sub>T T) \<subseteq># not_simplified_cls (clauses\<^sub>N\<^sub>O\<^sub>T S)"
   using assms apply induction
     apply simp
    by (drule cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_not_simplified_decreasing) auto

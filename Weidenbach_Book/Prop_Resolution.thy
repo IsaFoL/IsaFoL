@@ -11,9 +11,9 @@ subsection \<open>Simplification Rules\<close>
 
 inductive simplify  :: "'v clauses \<Rightarrow> 'v clauses \<Rightarrow> bool" for N :: "'v clause set" where
 tautology_deletion:
-  "(A + {#Pos P#} + {#Neg P#})\<in> N \<Longrightarrow> simplify  N (N - {A + {#Pos P#} + {#Neg P#}})"|
+  "A + {#Pos P#} + {#Neg P#} \<in> N \<Longrightarrow> simplify  N (N - {A + {#Pos P#} + {#Neg P#}})"|
 condensation:
-  "(A + {#L#} + {#L#}) \<in> N \<Longrightarrow> simplify N ( N- {A + {#L#} + {#L#}} \<union> {A + {#L#}})" |
+  "A + {#L#} + {#L#} \<in> N \<Longrightarrow> simplify N (N - {A + {#L#} + {#L#}} \<union> {A + {#L#}})" |
 subsumption:
   "A \<in> N \<Longrightarrow> A \<subset># B \<Longrightarrow> B \<in> N \<Longrightarrow> simplify N (N - {B})"
 
@@ -707,10 +707,10 @@ proof (induct arbitrary: I rule: sem_tree_size)
         tot\<chi>': "total_over_m (I \<union> {Neg v}) {\<chi>'}" and
         \<chi>'\<psi>: "\<chi>' \<in> fst \<psi>"
         using part unfolding xs by auto
-      have Posv: "\<not>Pos v \<in># \<chi>" using \<chi> unfolding true_cls_def true_lit_def by auto
-      have Negv: "\<not>Neg v \<in># \<chi>'" using \<chi>' unfolding true_cls_def true_lit_def by auto
+      have Posv: "Pos v \<notin># \<chi>" using \<chi> unfolding true_cls_def true_lit_def by auto
+      have Negv: "Neg v \<notin># \<chi>'" using \<chi>' unfolding true_cls_def true_lit_def by auto
       {
-        assume Neg\<chi>: "\<not>Neg v \<in># \<chi>"
+        assume Neg\<chi>: "Neg v \<notin># \<chi>"
         have "\<not> I \<Turnstile> \<chi>" using \<chi> Posv unfolding true_cls_def true_lit_def by auto
         moreover have "total_over_m I {\<chi>}"
           using Posv Neg\<chi> atm_imp_pos_or_neg_lit tot\<chi> unfolding total_over_m_def total_over_set_def
@@ -721,7 +721,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
           unfolding xs by (auto simp add: \<chi>\<psi>)
       }
       moreover {
-        assume Pos\<chi>: "\<not>Pos v \<in># \<chi>'"
+        assume Pos\<chi>: "Pos v \<notin># \<chi>'"
         then have I\<chi>: "\<not> I \<Turnstile> \<chi>'" using \<chi>' Posv unfolding true_cls_def true_lit_def by auto
         moreover have "total_over_m I {\<chi>'}"
           using Negv Pos\<chi> atm_imp_pos_or_neg_lit tot\<chi>'
@@ -1033,13 +1033,13 @@ lemma simplified_remove:
 proof (rule ccontr)
   assume ns: "\<not> simplified {\<psi> - {#l#}}"
   {
-    assume "\<not> l\<in># \<psi> "
+    assume "l \<notin># \<psi>"
     then have "\<psi> - {#l#} = \<psi>" by simp
     then have False using ns assms by auto
   }
   moreover {
     assume l\<psi>: "l\<in># \<psi>"
-    have A: "\<And>A. A \<in> {\<psi> - {#l#}} \<longleftrightarrow> A + {#l#} \<in> {\<psi>} " by (auto simp add: l\<psi>)
+    have A: "\<And>A. A \<in> {\<psi> - {#l#}} \<longleftrightarrow> A + {#l#} \<in> {\<psi>}" by (auto simp add: l\<psi>)
     obtain l' where l': "simplify {\<psi> - {#l#}} l'" using ns by metis
     then have "\<exists>l'. simplify {\<psi>} l'"
       proof (induction rule: simplify.induct)
@@ -1444,7 +1444,7 @@ lemma tranclp_resolution_card_simple_decreasing_2:
   and "simplified (fst \<psi>)"
   shows "card_simple (atms_of_ms (fst \<psi>)) (snd \<psi>') < card_simple (atms_of_ms (fst \<psi>)) (snd \<psi>)"
 proof -
-  let ?vars = "(atms_of_ms (fst \<psi>))"
+  let ?vars = "atms_of_ms (fst \<psi>)"
   have "already_used_all_simple (snd \<psi>) ?vars" unfolding empty_snd by auto
   moreover have "atms_of_ms (fst \<psi>) \<subseteq> ?vars" by auto
   moreover have finite_v: "finite ?vars" using finite_fst by auto
@@ -1620,7 +1620,7 @@ lemma rtranclp_resolution_preserve_partial_tree:
 
 lemma nat_ge_induct[case_names 0 Suc]:
   assumes "P 0"
-  and "(\<And>n. (\<And>m. m<Suc n \<Longrightarrow> P m) \<Longrightarrow> P (Suc n))"
+  and "\<And>n. (\<And>m. m<Suc n \<Longrightarrow> P m) \<Longrightarrow> P (Suc n)"
   shows "P n"
   using assms apply (induct rule: nat_less_induct)
   by (rename_tac n, case_tac n) auto
@@ -1645,18 +1645,6 @@ next
   ultimately show ?case using IH finite_subset by fastforce
 qed
 
-
- value card
- value filter_mset
-value "{#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#}"
-value "(\<lambda>\<phi>. msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})"
-
-syntax
-  "_comprehension1'_mset" :: "'a \<Rightarrow> 'b \<Rightarrow> 'b multiset \<Rightarrow> 'a multiset"
-      ("({#_/. _ : setof _#})")
-translations
-  "{#e. x: setof M#}" == "CONST set_mset (CONST image_mset (%x. e) M)"
-value "{# a. a : setof {#1,1,2::int#}#} = {1,2}"
 
 definition sum_count_ge_2 :: "'a multiset set \<Rightarrow> nat" ("\<Xi>") where
 "sum_count_ge_2 \<equiv> folding.F (\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0"
@@ -1879,25 +1867,26 @@ proof (induct arbitrary: I rule: sem_tree_size)
        have Posv: "Pos v \<notin># \<chi>" using \<chi> unfolding true_cls_def true_lit_def by auto
        have Negv: "Neg v \<notin># \<chi>'" using \<chi>' unfolding true_cls_def true_lit_def by auto
        {
-         assume Neg\<chi>: "\<not>Neg v \<in># \<chi>"
+         assume Neg\<chi>: "Neg v \<notin># \<chi>"
          then have "\<not> I \<Turnstile> \<chi>" using \<chi> Posv unfolding true_cls_def true_lit_def by auto
          moreover have "total_over_m I {\<chi>}"
            using Posv Neg\<chi> atm_imp_pos_or_neg_lit tot\<chi> unfolding total_over_m_def total_over_set_def
            by fastforce
          ultimately have "partial_interps Leaf I (fst \<psi>)"
-         and "sem_tree_size Leaf < sem_tree_size xs"
-         and "resolution\<^sup>*\<^sup>* \<psi> \<psi>"
+           and "sem_tree_size Leaf < sem_tree_size xs"
+           and "resolution\<^sup>*\<^sup>* \<psi> \<psi>"
            unfolding xs by (auto simp add: \<chi>\<psi>)
        }
        moreover {
-          assume Pos\<chi>: "\<not>Pos v \<in># \<chi>'"
+          assume Pos\<chi>: "Pos v \<notin># \<chi>'"
           then have I\<chi>: "\<not> I \<Turnstile> \<chi>'" using \<chi>' Posv unfolding true_cls_def true_lit_def by auto
           moreover have "total_over_m I {\<chi>'}"
             using Negv Pos\<chi> atm_imp_pos_or_neg_lit tot\<chi>'
             unfolding total_over_m_def total_over_set_def by fastforce
           ultimately have  "partial_interps Leaf I (fst \<psi>)"
-          and "sem_tree_size Leaf < sem_tree_size xs"
-          and "resolution\<^sup>*\<^sup>* \<psi> \<psi>" using \<chi>'\<psi> I\<chi> unfolding xs by auto
+            and "sem_tree_size Leaf < sem_tree_size xs"
+            and "resolution\<^sup>*\<^sup>* \<psi> \<psi>"
+            using \<chi>'\<psi> I\<chi> unfolding xs by auto
        }
        moreover {
           assume neg: "Neg v \<in># \<chi>" and pos: "Pos v \<in># \<chi>'"

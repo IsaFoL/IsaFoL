@@ -76,7 +76,7 @@ text \<open>A theorem to show the link between the rewrite relation @{term elim_
 lemma no_equiv_elim_equiv_step:
   fixes \<phi> :: "'v propo"
   assumes no_equiv: "\<not> no_equiv \<phi>"
-  shows "\<exists>\<psi> \<psi>'. \<psi> \<preceq> \<phi> \<and> elim_equiv \<psi> \<psi>' "
+  shows "\<exists>\<psi> \<psi>'. \<psi> \<preceq> \<phi> \<and> elim_equiv \<psi> \<psi>'"
 proof -
   have test_symb_false_nullary:
     "\<forall>x::'v. no_equiv_symb FF \<and> no_equiv_symb FT \<and> no_equiv_symb (FVar x)"
@@ -180,7 +180,7 @@ proof -
   moreover
     have "\<And>\<phi>. \<not> no_imp_symb \<phi> \<Longrightarrow> \<exists>\<psi>. elim_imp \<phi> \<psi>"
       by (case_tac \<phi>) (force simp: elim_imp.simps)+
-    then have "(\<And>\<phi>'. \<phi>' \<preceq> \<phi> \<Longrightarrow> \<not>no_imp_symb \<phi>' \<Longrightarrow>  \<exists> \<psi>. elim_imp \<phi>' \<psi>)" by force
+    then have "\<And>\<phi>'. \<phi>' \<preceq> \<phi> \<Longrightarrow> \<not>no_imp_symb \<phi>' \<Longrightarrow>  \<exists> \<psi>. elim_imp \<phi>' \<psi>" by force
   ultimately show ?thesis
     using no_test_symb_step_exists no_equiv test_symb_false_nullary unfolding no_imp_def by blast
 qed
@@ -468,7 +468,7 @@ proof -
   moreover {
      fix c:: "'v connective" and  l :: "'v propo list" and \<psi> :: "'v propo"
      have H: "elimTB (conn c l) \<psi> \<Longrightarrow> \<not>no_T_F_symb_except_toplevel (conn c l) "
-       by (cases "(conn c l)" rule: elimTB.cases, auto)
+       by (cases "conn c l" rule: elimTB.cases, auto)
   }
   moreover {
      fix x :: "'v"
@@ -604,7 +604,7 @@ proof -
   moreover {
      fix c:: "'v connective" and  l :: "'v propo list" and \<psi> :: "'v propo"
      have H: "pushNeg (conn c l) \<psi> \<Longrightarrow> \<not>simple_not_symb (conn c l)"
-       by (cases "(conn c l)" rule: pushNeg.cases) auto
+       by (cases "conn c l" rule: pushNeg.cases) auto
   }
   moreover {
      fix x :: "'v"
@@ -1296,7 +1296,7 @@ lemma push_conn_inside_full_propo_rew_step:
 
 
 subsubsection \<open>Only one type of connective in the formula (+ not)\<close>
-inductive only_c_inside_symb :: "'v connective \<Rightarrow> 'v propo \<Rightarrow> bool" for c:: "'v connective" where
+inductive only_c_inside_symb :: "'v connective \<Rightarrow> 'v propo \<Rightarrow> bool" for c :: "'v connective" where
 simple_only_c_inside[simp]: "simple \<phi> \<Longrightarrow>  only_c_inside_symb c \<phi>" |
 simple_cnot_only_c_inside[simp]: "simple \<phi> \<Longrightarrow>  only_c_inside_symb c (FNot \<phi>)" |
 only_c_inside_into_only_c_inside: "wf_conn c l \<Longrightarrow> only_c_inside_symb c (conn c l)"
@@ -1709,7 +1709,7 @@ lemma or_in_and_only_conjunction_in_disj:
   unfolding is_conj_with_TF_def or_in_and_only_def c_in_c'_only_def
   by (simp add: c_in_c'_only_def c_in_c'_only_super_grouped_by)
 
-definition is_cnf where 
+definition is_cnf where
 "is_cnf \<phi> \<equiv> is_conj_with_TF \<phi> \<and> no_T_F_except_top_level \<phi>"
 
 subsubsection \<open>Full CNF transformation\<close>
@@ -1876,7 +1876,7 @@ proof -
   moreover {
     fix c:: "'v connective" and  l :: "'v propo list" and \<psi> :: "'v propo"
     have H: "elimTBFull (conn c l) \<psi> \<Longrightarrow> \<not>no_T_F_symb_except_toplevel (conn c l)"
-      by (cases "(conn c l)" rule: elimTBFull.cases) auto
+      by (cases "conn c l" rule: elimTBFull.cases) auto
   }
   ultimately show ?thesis
     using no_test_symb_step_exists[of no_T_F_symb_except_toplevel \<phi> elimTBFull] noTB

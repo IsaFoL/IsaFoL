@@ -760,7 +760,7 @@ proof (induction Cs)
 next
   case (Cons C Cs)
   then show ?case
-  apply (cases "(foldr (rewatch_nat_cand_single_clause L M) Cs ([], Ks))")
+  apply (cases "foldr (rewatch_nat_cand_single_clause L M) Cs ([], Ks)")
   apply (cases C)
     apply (cases "rewatch_nat_cand_single_clause L M C (foldr (rewatch_nat_cand_single_clause L M)
       Cs ([], Ks))";
