@@ -130,6 +130,8 @@ session "Full" (Weidenbach_Book) = "HOL"  +
     CDCL_W_Incremental
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
+    
+    CDCL_W_Abstract_State
     (* CDCL_W_Implementation *)
     Weidenbach_Book
   document_files
