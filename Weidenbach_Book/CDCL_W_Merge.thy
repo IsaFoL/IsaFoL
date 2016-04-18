@@ -1794,7 +1794,7 @@ lemma rtranclp_cdcl\<^sub>W_cp_conflicting_Some:
   "cdcl\<^sub>W_cp\<^sup>*\<^sup>* S T \<Longrightarrow> conflicting S = Some D \<Longrightarrow> S = T"
   using rtranclpD tranclpD by fastforce
 
-inductive cdcl\<^sub>W_merge_cp :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+inductive cdcl\<^sub>W_merge_cp :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 conflict': "conflict S T \<Longrightarrow> full cdcl\<^sub>W_bj T U \<Longrightarrow> cdcl\<^sub>W_merge_cp S U" |
 propagate': "propagate\<^sup>+\<^sup>+ S S' \<Longrightarrow> cdcl\<^sub>W_merge_cp S S'"
 
