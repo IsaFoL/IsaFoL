@@ -265,7 +265,7 @@ qed
 subsection \<open>Inclusion of Weidenbach's CDCL in NOT's CDCL\<close>
 
 text \<open>This lemma shows the inclusion of Weidenbach's CDCL @{const cdcl\<^sub>W_merge} (with merging) in
-  NOT's @{const cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn}.\<close>
+  NOT's @{const cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn}.\<close>
 lemma cdcl\<^sub>W_merge_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn:
   assumes
     inv: "cdcl\<^sub>W_all_struct_inv S" and
