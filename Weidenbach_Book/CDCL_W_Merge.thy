@@ -2260,7 +2260,7 @@ proof -
     using conflicting_true_full1_cdcl\<^sub>W_merge_cp_iff_full1_cdcl\<^sub>W_s'_without_decode fw inv by simp
 qed
 
-inductive cdcl\<^sub>W_merge_stgy where
+inductive cdcl\<^sub>W_merge_stgy for S :: 'st where
 fw_s_cp[intro]: "full1 cdcl\<^sub>W_merge_cp S T \<Longrightarrow> cdcl\<^sub>W_merge_stgy S T" |
 fw_s_decide[intro]: "decide S T \<Longrightarrow> no_step cdcl\<^sub>W_merge_cp S \<Longrightarrow> full cdcl\<^sub>W_merge_cp T U
   \<Longrightarrow> cdcl\<^sub>W_merge_stgy S U"
