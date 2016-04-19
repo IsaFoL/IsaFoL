@@ -81,8 +81,9 @@ session "DPLL_CDCL" (Weidenbach_Book) = "Entailment_Definition" +
 
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
-(*     CDCL_Two_Watched_Literals
-    CDCL_Two_Watched_Literals_Invariant *)
+    CDCL_W_Abstract_State
+    CDCL_Two_Watched_Literals
+    CDCL_Two_Watched_Literals_Invariant
   theories [quick_and_dirty, document = true]
 (*     CDCL_Two_Watched_Literals_Implementation *)
   document_files
@@ -132,6 +133,8 @@ session "Full" (Weidenbach_Book) = "HOL"  +
     DPLL_W_Implementation
     
     CDCL_W_Abstract_State
+    CDCL_Two_Watched_Literals
+    CDCL_Two_Watched_Literals_Invariant
     (* CDCL_W_Implementation *)
     Weidenbach_Book
   document_files
