@@ -1,5 +1,5 @@
 theory CDCL_W
-imports List_More CDCL_W_Level Wellfounded_More Partial_Annotated_Clausal_logic
+imports List_More CDCL_W_Level Wellfounded_More Partial_Annotated_Clausal_Logic
 
 begin
 chapter \<open>Weidenbach's CDCL\<close>
@@ -954,6 +954,15 @@ proof -
     using Decided_cons_in_get_all_ann_decomposition_append_Decided_cons unfolding tr_S by fast
   then show ?thesis using lev_K by blast
 qed
+
+lemma backtrack_lvl_backtrack_decrease:
+  assumes inv: "cdcl\<^sub>W_M_level_inv S" and bt: "backtrack S T"
+  shows "backtrack_lvl T < backtrack_lvl S"
+  using inv bt  le_count_decided_decomp[of "trail S" "backtrack_lvl T"] 
+  unfolding cdcl\<^sub>W_M_level_inv_def
+  (* TODO tune proof *)
+  apply (auto elim!: backtrackE dest!: get_all_ann_decomposition_exists_prepend)
+  by (metis append_assoc)
 
 
 subsubsection \<open>Compatibility with @{term state_eq}\<close>
