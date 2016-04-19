@@ -125,7 +125,7 @@ subsection \<open>Abstract Relation and Relation Theorems\<close>
 text \<open>This locales makes the lifting from the relation defined with multiset @{term R} and the
   version with an abstract state @{term R_abs}. We are lifting many different relations (each rule
   and the the strategy).\<close>
-locale relation_relation_abs =
+locale relation_implied_relation_abs =
   fixes
     R :: "'v cdcl\<^sub>W_mset \<Rightarrow> 'v cdcl\<^sub>W_mset \<Rightarrow> bool" and
     R_abs :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
@@ -133,20 +133,42 @@ locale relation_relation_abs =
     inv :: "'v cdcl\<^sub>W_mset \<Rightarrow> bool"
   assumes
     relation_compatible_state:
-      "inv (state S) \<Longrightarrow> R (state S) (state T) \<longleftrightarrow> R_abs S T" and
+      "inv (state S) \<Longrightarrow> R_abs S T \<Longrightarrow> R (state S) (state T)" and
     relation_compatible_abs:
       "\<And>S S' T. inv S \<Longrightarrow> S \<sim>m state S' \<Longrightarrow> R S T \<Longrightarrow> \<exists>U. R_abs S' U \<and> T \<sim>m state U" and
     relation_invariant:
-      "\<And>S T. R S T \<Longrightarrow> inv S \<Longrightarrow> inv T"
+      "\<And>S T. R S T \<Longrightarrow> inv S \<Longrightarrow> inv T" and
+    relation_abs_right_compatible:
+      "\<And>S T U. inv (state S) \<Longrightarrow> R_abs S T \<Longrightarrow> state T \<sim>m state U \<Longrightarrow> R_abs S U"
 begin
 
 lemma relation_compatible_eq:
-  "inv (state S) \<Longrightarrow> R_abs S T \<Longrightarrow> state S \<sim>m state S' \<Longrightarrow> state T \<sim>m state T' \<Longrightarrow> R_abs S' T'"
-  by (simp add: cdcl\<^sub>W_mset_state_eq_eq relation_compatible_state[symmetric])
+  assumes
+    inv: "inv (state S)" and
+    abs: "R_abs S T" and
+    SS': "state S \<sim>m state S'" and
+    TT': "state T \<sim>m state T'"
+  shows "R_abs S' T'"
+proof -
+  have "R (state S) (state T)"
+    using relation_compatible_state inv abs by blast
+  then obtain U where S'U: "R_abs S' U" and TU: "state T \<sim>m state U"
+    using relation_compatible_abs[OF inv SS'] by blast
+  then show ?thesis
+    using relation_abs_right_compatible[OF _ S'U, of T'] TT' inv SS'[unfolded cdcl\<^sub>W_mset_state_eq_eq]
+    cdcl\<^sub>W_mset.state_eq_trans[of "state T'" "state T" "state U"]
+    by (auto simp add: cdcl\<^sub>W_mset.state_eq_sym)
+qed
 
 lemma rtranclp_relation_invariant:
   "R\<^sup>+\<^sup>+ S T \<Longrightarrow> inv S \<Longrightarrow> inv T"
   by (induction rule: tranclp_induct) (auto simp: relation_invariant)
+
+lemma rtranclp_abs_rtranclp:
+  "R_abs\<^sup>*\<^sup>* S T \<Longrightarrow> inv (state S) \<Longrightarrow> R\<^sup>*\<^sup>* (state S) (state T)"
+  apply (induction rule: rtranclp_induct)
+    apply simp
+  by (metis relation_compatible_state rtranclp.simps rtranclpD rtranclp_relation_invariant)
 
 lemma tranclp_relation_tranclp_relation_abs_compatible:
   fixes S :: 'st
@@ -222,7 +244,7 @@ lemma
     tranclp_relation_abs_invariant: "inv (state U)"
     using tranclp_relation_compatible_eq_and_inv[OF assms] by blast+
 
-lemma rtranclp_abs_tranclp: "R_abs\<^sup>+\<^sup>+ S T \<Longrightarrow> inv (state S) \<Longrightarrow> R\<^sup>+\<^sup>+ (state S) (state T)"
+lemma tranclp_abs_tranclp: "R_abs\<^sup>+\<^sup>+ S T \<Longrightarrow> inv (state S) \<Longrightarrow> R\<^sup>+\<^sup>+ (state S) (state T)"
   apply (induction rule: tranclp_induct)
     apply (auto simp add: relation_compatible_state)[]
   apply clarsimp
@@ -248,7 +270,7 @@ next
   assume ?R_abs
   then have st: "R_abs\<^sup>+\<^sup>+ S T" and ns: "no_step R_abs T" unfolding full1_def by auto
   have "R\<^sup>+\<^sup>+ (state S) (state T)"
-    using st rtranclp_abs_tranclp inv by blast
+    using st tranclp_abs_tranclp inv by blast
   moreover
     have invT: "inv (state T)"
       using inv tranclp_relation_abs_invariant st by blast
@@ -301,6 +323,75 @@ proof -
     qed
 qed
 
+lemma full1_exists_full1_abs:
+  assumes inv: "inv (state S)" and full1: "full1 R (state S) T"
+  obtains U where "full1 R_abs S U" and "T \<sim>m state U"
+proof -
+  obtain U where
+    "R_abs\<^sup>+\<^sup>+ S U" and "T \<sim>m state U"
+    using tranclp_relation_tranclp_relation_abs_compatible inv full1 unfolding full1_def
+    by blast
+  then show ?thesis
+    using full1 that[of U] full1_iff[OF inv] unfolding cdcl\<^sub>W_mset_state_eq_eq by blast
+qed
+
+lemma full1_right_compatible:
+  assumes "inv (state S)" and
+    full1: "full1 R_abs S T" and TV: "state T \<sim>m state V"
+  shows "full1 R_abs S V"
+  by (metis (full_types) TV assms(1) cdcl\<^sub>W_mset_state_eq_eq full1 full1_iff)
+
+lemma full_right_compatible:
+  assumes inv: "inv (state S)" and
+    full_ST: "full R_abs S T" and TU: "state T \<sim>m state U"
+  shows "full R_abs S U \<or> (S = T \<and> no_step R_abs S)"
+proof -
+  consider
+    (0) "S = T" and "no_step R_abs T" |
+    (full1) "full1 R_abs S T"
+    using full_ST unfolding full_unfold by blast
+  then show ?thesis
+    proof cases
+      case full1
+      then show ?thesis
+        using full1_right_compatible[OF inv, of T U] TU full_unfold by blast
+    next
+      case 0
+      then show ?thesis by fast
+    qed
+qed
+
+end
+
+locale relation_relation_abs =
+  fixes
+    R :: "'v cdcl\<^sub>W_mset \<Rightarrow> 'v cdcl\<^sub>W_mset \<Rightarrow> bool" and
+    R_abs :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
+    state :: "'st \<Rightarrow> 'v cdcl\<^sub>W_mset" and
+    inv :: "'v cdcl\<^sub>W_mset \<Rightarrow> bool"
+  assumes
+    relation_compatible_state:
+      "inv (state S) \<Longrightarrow> R (state S) (state T) \<longleftrightarrow> R_abs S T" and
+    relation_compatible_abs:
+      "\<And>S S' T. inv S \<Longrightarrow> S \<sim>m state S' \<Longrightarrow> R S T \<Longrightarrow> \<exists>U. R_abs S' U \<and> T \<sim>m state U" and
+    relation_invariant:
+      "\<And>S T. R S T \<Longrightarrow> inv S \<Longrightarrow> inv T"
+begin
+
+lemma relation_compatible_eq:
+  "inv (state S) \<Longrightarrow> R_abs S T \<Longrightarrow> state S \<sim>m state S' \<Longrightarrow> state T \<sim>m state T' \<Longrightarrow> R_abs S' T'"
+  by (simp add: cdcl\<^sub>W_mset_state_eq_eq relation_compatible_state[symmetric])
+
+lemma relation_right_compatible:
+  "inv (state S) \<Longrightarrow> R_abs S T \<Longrightarrow> state T \<sim>m state U \<Longrightarrow> R_abs S U"
+  by (simp add: cdcl\<^sub>W_mset_state_eq_eq relation_compatible_state[symmetric])
+
+
+sublocale relation_implied_relation_abs
+  apply unfold_locales
+  using relation_compatible_eq relation_compatible_state relation_compatible_abs relation_invariant
+  relation_right_compatible by blast+
+
 end
 
 subsection \<open>The State\<close>
@@ -348,7 +439,7 @@ locale abs_state\<^sub>W_ops =
     update_conc_conflicting :: "'ccls option \<Rightarrow> 'st \<Rightarrow> 'st" and
     reduce_conc_trail_to :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-    init_state :: "'clss \<Rightarrow> 'st" and
+    conc_init_state :: "'clss \<Rightarrow> 'st" and
     restart_state :: "'st \<Rightarrow> 'st"
   assumes
     mset_ccls_ccls_of_cls[simp]:
@@ -402,7 +493,7 @@ text \<open>Weidenbach state is a five-tuple composed of:
   \<^enum> the trail is a list of decided literals;
   \<^enum> the initial set of clauses (that is not changed during the whole calculus);
   \<^enum> the learned clauses (clauses can be added or remove);
-  \<^enum> the maximum level of the conc_trail;
+  \<^enum> the maximum level of the trail;
   \<^enum> the conflicting clause (if any has been found so far).\<close>
 text \<open>
   There are two different clause representation: one for the conflicting clause (@{typ "'ccls"},
@@ -419,13 +510,13 @@ locale abs_state\<^sub>W =
     mset_cls
       mset_clss union_clss in_clss insert_clss remove_from_clss
 
-    \<comment> \<open>functions for the conflicting clause: \<close>
+    \<comment> \<open>functions for the conflicting clause:\<close>
     mset_ccls union_ccls remove_clit
 
     \<comment> \<open>Conversion between conflicting and non-conflicting\<close>
     ccls_of_cls cls_of_ccls
 
-    \<comment> \<open>functions about the state: \<close>
+    \<comment> \<open>functions about the state:\<close>
       \<comment> \<open>getter:\<close>
     conc_trail hd_raw_conc_trail raw_conc_init_clss raw_conc_learned_clss conc_backtrack_lvl
     raw_conc_conflicting
@@ -434,7 +525,7 @@ locale abs_state\<^sub>W =
     update_conc_conflicting reduce_conc_trail_to
 
       \<comment> \<open>Some specific states:\<close>
-    init_state
+    conc_init_state
     restart_state
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
@@ -467,14 +558,14 @@ locale abs_state\<^sub>W =
     update_conc_conflicting :: "'ccls option \<Rightarrow> 'st \<Rightarrow> 'st" and
     reduce_conc_trail_to :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-    init_state :: "'clss \<Rightarrow> 'st" and
+    conc_init_state :: "'clss \<Rightarrow> 'st" and
     restart_state :: "'st \<Rightarrow> 'st" +
   assumes
-    \<comment> \<open>Definition of \<open>hd_raw_trail\<close>:\<close>
+    \<comment> \<open>Definition of @{term hd_raw_trail}:\<close>
     hd_raw_conc_trail:
       "conc_trail S \<noteq> [] \<Longrightarrow> mmset_of_mlit (hd_raw_conc_trail S) = hd (conc_trail S)" and
 
-    \<comment> \<open>Properties about the trail \<open>conc_trail\<close>:\<close>
+    \<comment> \<open>Properties about the trail @{term conc_trail}:\<close>
     conc_trail_cons_conc_trail[simp]:
       "\<And>L st. undefined_lit (conc_trail st) (lit_of L) \<Longrightarrow>
         conc_trail (cons_conc_trail L st) = mmset_of_mlit L # conc_trail st" and
@@ -488,7 +579,7 @@ locale abs_state\<^sub>W =
     conc_trail_update_conc_conflicting[simp]:
       "\<And>C st. conc_trail (update_conc_conflicting C st) = conc_trail st" and
 
-    \<comment> \<open>Properties about the inital clauses \<open>conc_init_clss\<close>:\<close>
+    \<comment> \<open>Properties about the initial clauses @{term conc_init_clss}:\<close>
     conc_init_clss_cons_conc_trail[simp]:
       "\<And>M st. undefined_lit (conc_trail st) (lit_of M) \<Longrightarrow>
         conc_init_clss (cons_conc_trail M st) = conc_init_clss st"
@@ -505,7 +596,7 @@ locale abs_state\<^sub>W =
     conc_init_clss_update_conc_conflicting[simp]:
       "\<And>C st. conc_init_clss (update_conc_conflicting C st) = conc_init_clss st" and
 
-    \<comment> \<open>Properties about the learned clauses \<open>conc_learned_clss\<close>:\<close>
+    \<comment> \<open>Properties about the learned clauses @{term conc_learned_clss}:\<close>
     conc_learned_clss_cons_conc_trail[simp]:
       "\<And>M st. undefined_lit (conc_trail st) (lit_of M) \<Longrightarrow>
         conc_learned_clss (cons_conc_trail M st) = conc_learned_clss st" and
@@ -521,7 +612,7 @@ locale abs_state\<^sub>W =
     conc_learned_clss_update_conc_conflicting[simp]:
       "\<And>C st. conc_learned_clss (update_conc_conflicting C st) = conc_learned_clss st" and
 
-      \<comment> \<open>Properties about the backtracking level \<open>conc_backtrack_lvl\<close>:\<close>
+      \<comment> \<open>Properties about the backtracking level @{term conc_backtrack_lvl}:\<close>
     conc_backtrack_lvl_cons_conc_trail[simp]:
       "\<And>M st. undefined_lit (conc_trail st) (lit_of M) \<Longrightarrow>
         conc_backtrack_lvl (cons_conc_trail M st) = conc_backtrack_lvl st" and
@@ -537,7 +628,7 @@ locale abs_state\<^sub>W =
     conc_backtrack_lvl_update_conc_conflicting[simp]:
       "\<And>C st. conc_backtrack_lvl (update_conc_conflicting C st) = conc_backtrack_lvl st" and
 
-      \<comment> \<open>Properties about the conflicting clause \<open>conc_conflicting\<close>:\<close>
+      \<comment> \<open>Properties about the conflicting clause @{term conc_conflicting}:\<close>
     conc_conflicting_cons_conc_trail[simp]:
       "\<And>M st. undefined_lit (conc_trail st) (lit_of M) \<Longrightarrow>
         conc_conflicting (cons_conc_trail M st) = conc_conflicting st" and
@@ -554,14 +645,14 @@ locale abs_state\<^sub>W =
     conc_conflicting_update_conc_conflicting[simp]:
       "\<And>C st. raw_conc_conflicting (update_conc_conflicting C st) = C" and
 
-    \<comment> \<open>Properties about the initial state \<open>init_state\<close>:\<close>
-    init_state_conc_trail[simp]: "\<And>N. conc_trail (init_state N) = []" and
-    init_state_clss[simp]: "\<And>N. (conc_init_clss (init_state N)) = mset_clss N" and
-    init_state_conc_learned_clss[simp]: "\<And>N. conc_learned_clss (init_state N) = {#}" and
-    init_state_conc_backtrack_lvl[simp]: "\<And>N. conc_backtrack_lvl (init_state N) = 0" and
-    init_state_conc_conflicting[simp]: "\<And>N. conc_conflicting (init_state N) = None" and
+    \<comment> \<open>Properties about the initial state @{term conc_init_state}:\<close>
+    conc_init_state_conc_trail[simp]: "\<And>N. conc_trail (conc_init_state N) = []" and
+    conc_init_state_clss[simp]: "\<And>N. (conc_init_clss (conc_init_state N)) = mset_clss N" and
+    conc_init_state_conc_learned_clss[simp]: "\<And>N. conc_learned_clss (conc_init_state N) = {#}" and
+    conc_init_state_conc_backtrack_lvl[simp]: "\<And>N. conc_backtrack_lvl (conc_init_state N) = 0" and
+    conc_init_state_conc_conflicting[simp]: "\<And>N. conc_conflicting (conc_init_state N) = None" and
 
-    \<comment> \<open>Properties about restarting \<open>restart_state\<close>:\<close>
+    \<comment> \<open>Properties about restarting @{term restart_state}:\<close>
     conc_trail_restart_state[simp]: "conc_trail (restart_state S) = []" and
     conc_init_clss_restart_state[simp]: "conc_init_clss (restart_state S) = conc_init_clss S" and
     conc_learned_clss_restart_state[intro]:
@@ -569,17 +660,21 @@ locale abs_state\<^sub>W =
     conc_backtrack_lvl_restart_state[simp]: "conc_backtrack_lvl (restart_state S) = 0" and
     conc_conflicting_restart_state[simp]: "conc_conflicting (restart_state S) = None" and
 
-    \<comment> \<open>Properties about \<open>reduce_conc_trail_to\<close>:\<close>
+    \<comment> \<open>Properties about @{term reduce_conc_trail_to}:\<close>
     trail_reduce_conc_trail_to[simp]:
       "conc_trail st = M2 @ M1 \<Longrightarrow> conc_trail (reduce_conc_trail_to M1 st) = M1" and
     raw_conc_init_clss_reduce_conc_trail_to[simp]:
-      "raw_conc_init_clss (reduce_conc_trail_to M1 st) = raw_conc_init_clss st" and
+      "conc_trail st = M2 @ M1 \<Longrightarrow> 
+        raw_conc_init_clss (reduce_conc_trail_to M1 st) = raw_conc_init_clss st" and
     raw_conc_learned_clss_reduce_conc_trail_to[simp]:
-    "raw_conc_learned_clss (reduce_conc_trail_to M1 st) = raw_conc_learned_clss st" and
+      "conc_trail st = M2 @ M1 \<Longrightarrow>
+        raw_conc_learned_clss (reduce_conc_trail_to M1 st) = raw_conc_learned_clss st" and
     conc_backtrack_lvl_reduce_conc_trail_to[simp]:
-    "conc_backtrack_lvl (reduce_conc_trail_to M1 st) = conc_backtrack_lvl st" and
+      "conc_trail st = M2 @ M1 \<Longrightarrow>
+        conc_backtrack_lvl (reduce_conc_trail_to M1 st) = conc_backtrack_lvl st" and
     conc_conflicting_reduce_conc_trail_to[simp]:
-    "conc_conflicting (reduce_conc_trail_to M1 st) = conc_conflicting st"
+      "conc_trail st = M2 @ M1 \<Longrightarrow>
+        conc_conflicting (reduce_conc_trail_to M1 st) = conc_conflicting st"
 begin
 
 lemma
@@ -603,7 +698,7 @@ lemma
       "no_dup (conc_trail S) \<Longrightarrow>
         conc_clauses (add_conc_learned_cls C S) = {#mset_cls C#} + conc_clauses S" and
     clauses_restart[simp]: "conc_clauses (restart_state S) \<subseteq># conc_clauses S" and
-    clauses_init_state[simp]: "\<And>N. conc_clauses (init_state N) = mset_clss N"
+    clauses_conc_init_state[simp]: "\<And>N. conc_clauses (conc_init_state N) = mset_clss N"
     prefer 9 using raw_clauses_def conc_learned_clss_restart_state apply fastforce
     by (auto simp: ac_simps replicate_mset_plus raw_clauses_def intro: multiset_eqI)
 
@@ -649,7 +744,7 @@ lemma atms_of_ms_conc_learned_clss_restart_state_in_atms_of_ms_conc_learned_clss
   by (meson atms_of_ms_mono conc_learned_clss_restart_state set_mset_mono subsetCE)
 
 lemma clauses_reduce_conc_trail_to[simp]:
-  "conc_clauses (reduce_conc_trail_to F S) = conc_clauses S"
+  "conc_trail S = M2 @ M1 \<Longrightarrow> conc_clauses (reduce_conc_trail_to M1 S) = conc_clauses S"
   unfolding raw_clauses_def by auto
 
 lemma in_get_all_ann_decomposition_conc_trail_update_conc_trail[simp]:
@@ -683,7 +778,7 @@ locale abs_conflict_driven_clause_learning\<^sub>W =
     mset_cls
     mset_clss union_clss in_clss insert_clss remove_from_clss
 
-    \<comment> \<open>functions for the conc_conflicting clause: \<close>
+    \<comment> \<open>functions for the conflicting clause: \<close>
     mset_ccls union_ccls remove_clit
 
     \<comment> \<open>conversion\<close>
@@ -698,7 +793,7 @@ locale abs_conflict_driven_clause_learning\<^sub>W =
     update_conc_conflicting reduce_conc_trail_to
 
       \<comment> \<open>get state:\<close>
-    init_state
+    conc_init_state
     restart_state
   for
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
@@ -722,7 +817,6 @@ locale abs_conflict_driven_clause_learning\<^sub>W =
     raw_conc_learned_clss :: "'st \<Rightarrow> 'clss" and
     conc_backtrack_lvl :: "'st \<Rightarrow> nat" and
     raw_conc_conflicting :: "'st \<Rightarrow> 'ccls option" and
-    reduce_conc_trail_to :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     cons_conc_trail :: "('v, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_conc_trail :: "'st \<Rightarrow> 'st" and
@@ -730,8 +824,9 @@ locale abs_conflict_driven_clause_learning\<^sub>W =
     remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conc_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conc_conflicting :: "'ccls option \<Rightarrow> 'st \<Rightarrow> 'st" and
+    reduce_conc_trail_to :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-    init_state :: "'clss \<Rightarrow> 'st" and
+    conc_init_state :: "'clss \<Rightarrow> 'st" and
     restart_state :: "'st \<Rightarrow> 'st"
 begin
 
@@ -881,6 +976,11 @@ proof -
     apply (cases "cdcl\<^sub>W_mset.reduce_trail_to M1 (state S)")
     by simp
 qed
+
+lemma state_conc_init_state: "state (conc_init_state N) = init_state (mset_clss N)"
+  by (auto simp: cdcl\<^sub>W_mset_state state_def simp del: trail_state_conc_trail
+    init_clss_state_conc_init_clss
+    learned_clss_state_conc_learned_clss local.state_simp)
 
 text \<open>More robust version of @{thm in_mset_clss_exists_preimage}:\<close>
 lemma in_clauses_preimage:
@@ -1459,7 +1559,7 @@ inductive_cases cdcl\<^sub>W_abs_bjE: "cdcl\<^sub>W_abs_bj S T"
 
 lemma cdcl\<^sub>W_abs_bj_cdcl\<^sub>W_abs_bj:
   "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state S) \<Longrightarrow>
-    cdcl\<^sub>W_mset.cdcl\<^sub>W_bj (state S) (state T) = cdcl\<^sub>W_abs_bj S T"
+    cdcl\<^sub>W_mset.cdcl\<^sub>W_bj (state S) (state T) \<longleftrightarrow> cdcl\<^sub>W_abs_bj S T"
   by (auto simp: cdcl\<^sub>W_mset.cdcl\<^sub>W_bj.simps cdcl\<^sub>W_abs_bj.simps
     backtrack_backtrack_abs skip_skip_abs resolve_resolve_abs)
 
@@ -1478,14 +1578,13 @@ bj: "cdcl\<^sub>W_abs_bj S S' \<Longrightarrow> cdcl\<^sub>W_abs_o S S'"
 inductive cdcl\<^sub>W_abs :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 propagate: "propagate_abs S S' \<Longrightarrow> cdcl\<^sub>W_abs S S'" |
 conflict: "conflict_abs S S' \<Longrightarrow> cdcl\<^sub>W_abs S S'" |
-other: "cdcl\<^sub>W_o S S' \<Longrightarrow> cdcl\<^sub>W_abs S S'"|
-rf: "cdcl\<^sub>W_rf S S' \<Longrightarrow> cdcl\<^sub>W_abs S S'"
+other: "cdcl\<^sub>W_abs_o S S' \<Longrightarrow> cdcl\<^sub>W_abs S S'"|
+rf: "cdcl\<^sub>W_abs_rf S S' \<Longrightarrow> cdcl\<^sub>W_abs S S'"
 
 subsection \<open>Higher level strategy\<close>
 
-text \<open>The rules described previously do not lead to a conclusive state. We have to add a strategy.\<close>
-
-subsubsection \<open>Definition\<close>
+text \<open>The rules described previously do not lead to a conclusive state. We have add a strategy and
+  show the inclusion in the multiset version.\<close>
 
 inductive cdcl\<^sub>W_merge_abs_cp :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 conflict': "conflict_abs S T \<Longrightarrow> full cdcl\<^sub>W_abs_bj T U \<Longrightarrow> cdcl\<^sub>W_merge_abs_cp S U" |
@@ -1511,7 +1610,7 @@ proof (induction rule: cdcl\<^sub>W_merge_abs_cp.induct)
 next
   case (propagate' T)
   then show ?case
-    by (auto simp: propagate_abs.rtranclp_abs_tranclp intro: cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_cp.propagate')
+    by (auto simp: propagate_abs.tranclp_abs_tranclp intro: cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_cp.propagate')
 qed
 
 lemma cdcl\<^sub>W_merge_cp_abs_exists_cdcl\<^sub>W_merge_cp:
@@ -1540,7 +1639,6 @@ next
     propagate_abs.tranclp_relation_tranclp_relation_abs_compatible by blast
 qed
 
-
 lemma no_step_cdcl\<^sub>W_merge_cp_no_step_cdcl\<^sub>W_abs_merge_cp:
   assumes
     inv: "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state S)"
@@ -1562,89 +1660,55 @@ next
     using cdcl\<^sub>W_merge_cp_cdcl\<^sub>W_abs_merge_cp inv by blast
 qed
 
-lemma rtranclp_cdcl\<^sub>W_merge_cp_rtranclp_cdcl\<^sub>W_abs_merge_cp:
-  assumes
-    cp: "cdcl\<^sub>W_merge_abs_cp\<^sup>*\<^sup>* S T" and
-    inv: "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state S)"
-  shows "cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_cp\<^sup>*\<^sup>* (state S) (state T)"
-  using cp
-proof (induction rule: rtranclp_induct)
-  case base
-  then show ?case by simp
+lemma cdcl\<^sub>W_merge_abs_cp_right_compatible:
+  "cdcl\<^sub>W_merge_abs_cp S V \<Longrightarrow> cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state S) \<Longrightarrow>
+  V \<sim> W \<Longrightarrow> cdcl\<^sub>W_merge_abs_cp S W"
+proof (induction rule: cdcl\<^sub>W_merge_abs_cp.induct)
+  case (conflict' T U) note confl = this(1) and full = this(2) and inv = this(3) and UW = this(4)
+  have inv_T: "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state T)"
+    using cdcl\<^sub>W_mset.cdcl\<^sub>W_stgy.simps cdcl\<^sub>W_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv
+    cdcl\<^sub>W_mset.conflict_is_full1_cdcl\<^sub>W_cp confl conflict_conflict_abs inv by blast
+  then have "full cdcl\<^sub>W_abs_bj T W \<or> (T = U \<and> no_step cdcl\<^sub>W_abs_bj T)"
+    using cdcl\<^sub>W_abs_bj.full_right_compatible[OF _ full UW] full by blast
+  then consider
+      (full) "full cdcl\<^sub>W_abs_bj T W" |
+      (0) "T = U" and "no_step cdcl\<^sub>W_abs_bj T"
+    by blast
+  then show ?case
+    proof cases
+      case full
+      then show ?thesis using confl by (blast intro: cdcl\<^sub>W_merge_abs_cp.intros)
+    next
+      case 0
+      then have "conflict_abs S W" and "no_step cdcl\<^sub>W_abs_bj W"
+         using confl UW conflict_abs.relation_right_compatible apply blast
+        using full unfolding full_def
+        by (metis (mono_tags, lifting) "0"(1) UW inv_T cdcl\<^sub>W_abs_bj_cdcl\<^sub>W_abs_bj
+          cdcl\<^sub>W_mset_state_eq_eq)
+      moreover then have "full cdcl\<^sub>W_abs_bj W W"
+        unfolding full_def by auto
+      ultimately show ?thesis by (blast intro: cdcl\<^sub>W_merge_abs_cp.intros)
+    qed
 next
-  case (step T U) note st = this(1) and cp = this(2) and IH = this(3)
-  have "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state T)"
-    using inv cdcl\<^sub>W_mset.rtranclp_cdcl\<^sub>W_all_struct_inv_inv IH
-    cdcl\<^sub>W_mset.rtranclp_cdcl\<^sub>W_merge_cp_rtranclp_cdcl\<^sub>W by blast
-  then have "cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_cp (state T) (state U)"
-    using cp cdcl\<^sub>W_merge_cp_cdcl\<^sub>W_abs_merge_cp by blast
-  then show ?case using IH by auto
+  case (propagate')
+  then show ?case using propagate_abs.tranclp_relation_compatible_eq
+    by (blast intro: cdcl\<^sub>W_merge_abs_cp.propagate')
 qed
 
-lemma tranclp_cdcl\<^sub>W_merge_cp_tranclp_cdcl\<^sub>W_abs_merge_cp:
-  assumes
-    cp: "cdcl\<^sub>W_merge_abs_cp\<^sup>+\<^sup>+ S T" and
-    inv: "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state S)"
-  shows "cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_cp\<^sup>+\<^sup>+ (state S) (state T)"
-  using cp
-proof (induction rule: tranclp_induct)
-  case (base T)
-  then show ?case using inv cdcl\<^sub>W_merge_cp_cdcl\<^sub>W_abs_merge_cp[of S T] by simp
-next
-  case (step T U) note st = this(1) and cp = this(2) and IH = this(3)
-  have "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state T)"
-    using inv cdcl\<^sub>W_mset.rtranclp_cdcl\<^sub>W_all_struct_inv_inv IH
-    cdcl\<^sub>W_mset.rtranclp_cdcl\<^sub>W_merge_cp_rtranclp_cdcl\<^sub>W
-    by (metis tranclp_into_rtranclp)
-  then have "cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_cp (state T) (state U)"
-    using cp cdcl\<^sub>W_merge_cp_cdcl\<^sub>W_abs_merge_cp by blast
-  then show ?case using IH by auto
-qed
-
-lemma full1_cdcl\<^sub>W_merge_abs_cp_full1_cdcl\<^sub>W_merge_cp:
-  assumes
-    inv: "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state S)" and
-    full: "full1 cdcl\<^sub>W_merge_abs_cp S T"
-  shows "full1 cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_cp (state S) (state T)"
-proof -
-  have st: "cdcl\<^sub>W_merge_abs_cp\<^sup>+\<^sup>+ S T" and n_s: "no_step cdcl\<^sub>W_merge_abs_cp T"
-    using full unfolding full1_def by simp_all
-  have "cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_cp\<^sup>+\<^sup>+ (state S) (state T)"
-    using st tranclp_cdcl\<^sub>W_merge_cp_tranclp_cdcl\<^sub>W_abs_merge_cp inv by fast
-  moreover
-    then have "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state T)"
-      using inv cdcl\<^sub>W_mset.rtranclp_cdcl\<^sub>W_all_struct_inv_inv
-      cdcl\<^sub>W_mset.rtranclp_cdcl\<^sub>W_merge_cp_rtranclp_cdcl\<^sub>W
-      by (metis tranclp_into_rtranclp)
-    then have "no_step cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_cp (state T)"
-      using no_step_cdcl\<^sub>W_merge_cp_no_step_cdcl\<^sub>W_abs_merge_cp n_s by blast
-  ultimately show ?thesis unfolding full1_def by blast
-qed
-
-lemma full_cdcl\<^sub>W_merge_abs_cp_full_cdcl\<^sub>W_merge_cp:
-  assumes
-    inv: "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state S)" and
-    full: "full cdcl\<^sub>W_merge_abs_cp S T"
-  shows "full cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_cp (state S) (state T)"
-proof -
-  have st: "cdcl\<^sub>W_merge_abs_cp\<^sup>*\<^sup>* S T" and n_s: "no_step cdcl\<^sub>W_merge_abs_cp T"
-    using full unfolding full_def by simp_all
-  have "cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_cp\<^sup>*\<^sup>* (state S) (state T)"
-    using st rtranclp_cdcl\<^sub>W_merge_cp_rtranclp_cdcl\<^sub>W_abs_merge_cp inv by fast
-  moreover
-    then have "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state T)"
-      using inv cdcl\<^sub>W_mset.rtranclp_cdcl\<^sub>W_all_struct_inv_inv
-      cdcl\<^sub>W_mset.rtranclp_cdcl\<^sub>W_merge_cp_rtranclp_cdcl\<^sub>W
-      by metis
-    then have "no_step cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_cp (state T)"
-      using no_step_cdcl\<^sub>W_merge_cp_no_step_cdcl\<^sub>W_abs_merge_cp n_s by blast
-  ultimately show ?thesis unfolding full_def by blast
-qed
+interpretation cdcl\<^sub>W_merge_abs_cp: relation_implied_relation_abs
+  cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_cp cdcl\<^sub>W_merge_abs_cp state cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv
+  apply unfold_locales
+     using cdcl\<^sub>W_merge_cp_cdcl\<^sub>W_abs_merge_cp apply blast
+    using cdcl\<^sub>W_merge_cp_abs_exists_cdcl\<^sub>W_merge_cp unfolding cdcl\<^sub>W_mset_state_eq_eq apply blast
+   using cdcl\<^sub>W_mset.rtranclp_cdcl\<^sub>W_all_struct_inv_inv
+   cdcl\<^sub>W_mset.rtranclp_cdcl\<^sub>W_merge_cp_rtranclp_cdcl\<^sub>W apply blast
+  using cdcl\<^sub>W_merge_abs_cp_right_compatible unfolding cdcl\<^sub>W_mset_state_eq_eq by blast
 
 inductive cdcl\<^sub>W_merge_abs_stgy for S :: 'st where
 fw_s_cp: "full1 cdcl\<^sub>W_merge_abs_cp S T \<Longrightarrow> cdcl\<^sub>W_merge_abs_stgy S T" |
 fw_s_decide: "decide_abs S T \<Longrightarrow> no_step cdcl\<^sub>W_merge_abs_cp S \<Longrightarrow> full cdcl\<^sub>W_merge_abs_cp T U
   \<Longrightarrow> cdcl\<^sub>W_merge_abs_stgy S U"
+
 
 lemma cdcl\<^sub>W_cp_cdcl\<^sub>W_abs_cp:
   assumes stgy: "cdcl\<^sub>W_merge_abs_stgy S T" and
@@ -1655,7 +1719,7 @@ proof (induction rule: cdcl\<^sub>W_merge_abs_stgy.induct)
   case (fw_s_cp T)
   show ?case
     apply (rule cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_stgy.fw_s_cp)
-    using fw_s_cp inv by (simp add: full1_cdcl\<^sub>W_merge_abs_cp_full1_cdcl\<^sub>W_merge_cp)
+    using fw_s_cp inv by (simp add: cdcl\<^sub>W_merge_abs_cp.full1_iff)
 next
   case (fw_s_decide T U) note dec = this(1) and ns = this(2) and full = this(3)
   have dec': "cdcl\<^sub>W_mset.decide (state S) (state T)"
@@ -1664,10 +1728,110 @@ next
     using inv cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv_inv
     by (blast dest: cdcl\<^sub>W_mset.cdcl\<^sub>W.other cdcl\<^sub>W_mset.cdcl\<^sub>W_o.decide)
   then have "full cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_cp (state T) (state U)"
-    using full full_cdcl\<^sub>W_merge_abs_cp_full_cdcl\<^sub>W_merge_cp by blast
+    using full cdcl\<^sub>W_merge_abs_cp.full_if_full_abs by blast
   then show ?case
     using dec' cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_stgy.fw_s_decide[of "state S" "state T" "state U"] ns inv
     by (simp add: no_step_cdcl\<^sub>W_merge_cp_no_step_cdcl\<^sub>W_abs_merge_cp)
 qed
+
+lemma cdcl\<^sub>W_merge_abs_stgy_exists_cdcl\<^sub>W_merge_stgy:
+  assumes
+    inv: "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv S" and
+    SS': "S \<sim>m state S'" and
+    st: "cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_stgy S T"
+  shows "\<exists>U. cdcl\<^sub>W_merge_abs_stgy S' U \<and> T \<sim>m state U"
+  using st
+proof (induction rule: cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_stgy.induct)
+  case (fw_s_cp T)
+  then show ?case using cdcl\<^sub>W_merge_abs_cp.full1_exists_full1_abs[of S' T] inv
+    unfolding SS'[unfolded cdcl\<^sub>W_mset_state_eq_eq] by (metis cdcl\<^sub>W_merge_abs_stgy.fw_s_cp)
+next
+  case (fw_s_decide T U) note dec = this(1) and n_s = this(2) and full = this(3)
+  have SS': "S = state S'"
+    using SS' unfolding cdcl\<^sub>W_mset_state_eq_eq .
+  obtain T' where "decide_abs S' T'" and TT': "T \<sim>m state T'"
+    using dec decide_abs.relation_compatible_abs[of S S' T] SS' by auto
+  moreover
+    have "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state T')"
+      using SS' calculation(1) cdcl\<^sub>W_mset.cdcl\<^sub>W.intros(3) cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv_inv
+      cdcl\<^sub>W_mset.decide decide_decide_abs inv by blast
+    then obtain U' where "full cdcl\<^sub>W_merge_abs_cp T' U'" and "U \<sim>m state U'"
+      using full cdcl\<^sub>W_merge_abs_cp.full_exists_full_abs unfolding TT'[unfolded cdcl\<^sub>W_mset_state_eq_eq]
+      by blast
+  moreover have "no_step cdcl\<^sub>W_merge_abs_cp S'"
+    using n_s cdcl\<^sub>W_merge_abs_cp.no_step_iff inv unfolding SS' by blast
+  ultimately show ?case
+    using cdcl\<^sub>W_merge_abs_stgy.fw_s_decide[of S' T' U'] by fast
+qed
+
+lemma cdcl\<^sub>W_merge_abs_stgy_right_compatible:
+  assumes
+    inv: "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state S)" and
+    st: "cdcl\<^sub>W_merge_abs_stgy S T" and
+    TU: "T \<sim> V"
+  shows "cdcl\<^sub>W_merge_abs_stgy S V"
+  using st TU
+proof (induction rule: cdcl\<^sub>W_merge_abs_stgy.induct)
+  case (fw_s_cp T)
+  then show ?thesis
+    using cdcl\<^sub>W_merge_abs_cp.full1_right_compatible cdcl\<^sub>W_merge_abs_stgy.fw_s_cp inv by blast
+next
+  case (fw_s_decide T U) note dec = this(1) and n_s = this(2) and full = this(3) and UV = this(4)
+  have inv_T: "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state T)"
+    using dec inv  cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv_inv[of "state S" "state T"]
+    by (auto dest!: cdcl\<^sub>W_mset.cdcl\<^sub>W_o.decide cdcl\<^sub>W_mset.cdcl\<^sub>W.other
+      simp: decide_decide_abs[symmetric])
+  then have "full cdcl\<^sub>W_merge_abs_cp T V \<or> (T = U \<and> no_step cdcl\<^sub>W_merge_abs_cp T)"
+    using cdcl\<^sub>W_merge_abs_cp.full_right_compatible[of T U V] full UV by blast
+  then consider
+    (full) "full cdcl\<^sub>W_merge_abs_cp T V" |
+    (0) "T = U" and "no_step cdcl\<^sub>W_merge_abs_cp T"
+    by blast
+  then show ?case
+    proof cases
+      case full
+      then show ?thesis
+        using n_s dec by (blast intro: cdcl\<^sub>W_merge_abs_stgy.intros)
+    next
+      case 0 note TU = this(1) and n_s' = this(2)
+      have "decide_abs S V"
+        using TU dec UV decide_abs.relation_abs_right_compatible by auto
+      moreover
+        have "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state V)"
+          using inv_T by (metis (full_types) TU cdcl\<^sub>W_mset_state_eq_eq fw_s_decide.prems)
+        then have "full cdcl\<^sub>W_merge_abs_cp V V"
+          using n_s' TU UV[unfolded cdcl\<^sub>W_mset_state_eq_eq]
+          unfolding full_def by (metis cdcl\<^sub>W_merge_abs_cp.no_step_iff rtranclp_unfold)
+      ultimately show ?thesis using n_s by (blast intro: cdcl\<^sub>W_merge_abs_stgy.intros)
+    qed
+qed
+
+interpretation cdcl\<^sub>W_merge_abs_stgy: relation_implied_relation_abs
+  cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_stgy cdcl\<^sub>W_merge_abs_stgy state cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv
+  apply unfold_locales
+     using cdcl\<^sub>W_cp_cdcl\<^sub>W_abs_cp apply blast
+    using cdcl\<^sub>W_merge_abs_stgy_exists_cdcl\<^sub>W_merge_stgy apply blast
+   using cdcl\<^sub>W_mset.cdcl\<^sub>W_merge_stgy_rtranclp_cdcl\<^sub>W cdcl\<^sub>W_mset.rtranclp_cdcl\<^sub>W_all_struct_inv_inv
+   apply blast
+  using cdcl\<^sub>W_merge_abs_stgy_right_compatible by blast
+
+lemma cdcl\<^sub>W_merge_abs_stgy_final_State_conclusive:
+  fixes T :: 'st
+  assumes
+    full: "full cdcl\<^sub>W_merge_abs_stgy (conc_init_state N) T" and
+    n_d: "distinct_mset_mset (mset_clss N)"
+  shows "(conc_conflicting T = Some {#} \<and> unsatisfiable (set_mset (mset_clss N)))
+    \<or> (conc_conflicting T = None \<and> conc_trail T \<Turnstile>asm mset_clss N
+      \<and> satisfiable (set_mset (mset_clss N)))"
+proof -
+  have "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state (conc_init_state N))"
+    using n_d unfolding cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv_def by (auto simp: state_conc_init_state)
+  then show ?thesis
+    using cdcl\<^sub>W_mset.full_cdcl\<^sub>W_merge_stgy_final_state_conclusive'[of "mset_clss N" "state T"]
+    cdcl\<^sub>W_merge_abs_stgy.full_if_full_abs[of "conc_init_state N" T] full
+    by (auto simp: state_conc_init_state n_d)
+qed
+
+end
 
 end
