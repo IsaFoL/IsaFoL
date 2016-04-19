@@ -1,5 +1,5 @@
 theory CDCL_W_Implementation
-imports DPLL_CDCL_W_Implementation CDCL_W_Termination
+imports DPLL_CDCL_W_Implementation CDCL_W_Abstract_State
 begin
 
 subsubsection \<open>Types and Instantiation\<close>
@@ -285,44 +285,44 @@ definition do_propagate_step where
   | S \<Rightarrow> S)"
 
 lemma do_propgate_step:
-  "do_propagate_step S \<noteq> S \<Longrightarrow> propagate S (do_propagate_step S)"
-  apply (cases S, cases "conflicting S")
+  "do_propagate_step S \<noteq> S \<Longrightarrow> propagate_abs S (do_propagate_step S)"
+  apply (cases S, cases "conc_conflicting S")
   using find_first_unit_clause_some_is_propagate[of "raw_init_clss S" "raw_learned_clss S"]
   by (auto simp add: do_propagate_step_def split: option.splits)
 
 lemma do_propagate_step_option[simp]:
-  "conflicting S \<noteq> None \<Longrightarrow> do_propagate_step S = S"
-  unfolding do_propagate_step_def by (cases S, cases "conflicting S") auto
+  "conc_conflicting S \<noteq> None \<Longrightarrow> do_propagate_step S = S"
+  unfolding do_propagate_step_def by (cases S, cases "conc_conflicting S") auto
 thm prod_cases
 
 lemma do_propagate_step_no_step:
   assumes dist: "\<forall>c\<in>set (raw_clauses S). distinct c" and
   prop_step: "do_propagate_step S = S"
-  shows "no_step propagate S"
+  shows "no_step propagate_abs S"
 proof (standard, standard)
   fix T
-  assume "propagate S T"
+  assume "propagate_abs S T"
   then obtain C L where
-    toSS: "conflicting S = None" and
+    toSS: "conc_conflicting S = None" and
     C: "C \<in> set (raw_clauses S)" and
     L: "L \<in> set C" and
     MC: "raw_trail S \<Turnstile>as CNot (mset (remove1 L C))" and
-    T: " T \<sim> raw_cons_trail (Propagated L C) S" and
+    T: "T \<sim> raw_cons_trail (Propagated L C) S" and
     undef: "undefined_lit (raw_trail S) L"
     apply (cases S rule: prod_cases5)
-    by (elim propagateE) simp
+    by (elim propagate_absE) simp
   let ?M = "raw_trail S"
   let ?N = "raw_init_clss S"
   let ?U = "raw_learned_clss S"
   let ?k = "raw_backtrack_lvl S"
   let ?D = "None"
   have S: "S = (?M, ?N, ?U, ?k, ?D)"
-    using toSS by (cases S, cases "conflicting S") simp_all
+    using toSS by (cases S, cases "conc_conflicting S") simp_all
 
   have "find_first_unit_clause (?N @ ?U) ?M \<noteq> None"
     apply (rule dist find_first_unit_clause_none[of C "?N @ ?U" ?M L, OF _])
         using C dist apply auto[]
-       using C apply auto[1]
+       using C apply (cases S) apply (auto simp: raw_clauses_def)[1]
       using MC apply auto[1]
      using undef apply auto[1]
     using L by auto

@@ -1,6 +1,6 @@
-theory CDCL_W_Abstract_State
+theory CDCL_W_Abstract_State 
 imports CDCL_Abstract_Clause_Representation List_More CDCL_W_Level Wellfounded_More
-  CDCL_WNOT
+  CDCL_WNOT CDCL_Abstract_Clause_Representation
 
 begin
 
