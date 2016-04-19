@@ -989,4 +989,5 @@ abbreviation true_clss_m:: "'a interp \<Rightarrow> 'a clause multiset \<Rightar
 abbreviation true_clss_ext_m (infix "\<Turnstile>sextm" 49) where
 "I \<Turnstile>sextm C \<equiv> I \<Turnstile>sext set_mset C"
 
+type_synonym 'v clauses = "'v clause multiset"
 end
