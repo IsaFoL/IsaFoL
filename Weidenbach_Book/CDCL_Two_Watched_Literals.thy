@@ -6,7 +6,7 @@
 section \<open>2-Watched-Literal\<close>
 
 theory CDCL_Two_Watched_Literals
-imports CDCL_WNOT (* Have to decide which imports are the best *)
+imports CDCL_W_Abstract_State (* Have to decide which imports are the best *)
 begin
 text \<open>First we define here the core of the two-watched literal data structure:
   \<^enum> A clause is composed of (at most) two watched literals.
@@ -97,7 +97,7 @@ proof -
   then show ?thesis by fast
 qed
 
-interpretation twl: state\<^sub>W_ops
+interpretation twl: abs_state\<^sub>W_ops
   clause
   raw_clss_l "op @"
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
@@ -122,7 +122,7 @@ proof goal_cases
     apply (rule ext)
     apply (rename_tac x)
     apply (case_tac x)
-    apply (simp_all add: state\<^sub>W_ops.mmset_of_mlit.simps[OF H] raw_clause_def clause_def)
+    apply (simp_all add: abs_state\<^sub>W_ops.mmset_of_mlit.simps[OF H] raw_clause_def clause_def)
   done
 qed
 
@@ -513,8 +513,8 @@ lemma wf_candidates_conflict_complete:
   shows "C \<in> candidates_conflict S"
 proof -
   def M \<equiv> "raw_trail S"
-  def N \<equiv> "twl.init_clss S"
-  def U \<equiv> "twl.learned_clss S"
+  def N \<equiv> "twl.conc_init_clss S"
+  def U \<equiv> "twl.conc_learned_clss S"
 
   note MNU_defs [simp] = M_def N_def U_def
 
@@ -680,12 +680,12 @@ lemma unchanged_init_state[simp]:
 
 lemma clauses_init_fold_add_init:
   "no_dup M \<Longrightarrow>
-   twl.init_clss (fold add_init_cls Cs (TWL_State M N U k C)) =
+   twl.conc_init_clss (fold add_init_cls Cs (TWL_State M N U k C)) =
    clauses_of_l Cs + raw_clss_l N"
   by (induct Cs arbitrary: N) (auto simp: add_init_cls_def clause_watch comp_def ac_simps
     clause_def[symmetric])
 
-lemma init_clss_init_state[simp]: "twl.init_clss (init_state N) = clauses_of_l N"
+lemma init_clss_init_state[simp]: "twl.conc_init_clss (init_state N) = clauses_of_l N"
   unfolding init_state_def by (subst clauses_init_fold_add_init) simp_all
 
 definition restart' where
