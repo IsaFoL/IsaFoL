@@ -427,11 +427,12 @@ locale abs_state\<^sub>W_ops =
 
     cons_conc_trail :: "('v, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_conc_trail :: "'st \<Rightarrow> 'st" and
-    add_conc_learned_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_conc_confl_to_learned_cls :: "'st \<Rightarrow> 'st" and
     remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conc_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_conc_conflicting :: "'ccls option \<Rightarrow> 'st \<Rightarrow> 'st" and
+    mark_conflicting :: "'ccls \<Rightarrow> 'st \<Rightarrow> 'st" and
     reduce_conc_trail_to :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    resolve_conflicting :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     conc_init_state :: "'clss \<Rightarrow> 'st" and
     restart_state :: "'st \<Rightarrow> 'st"
@@ -475,9 +476,6 @@ definition raw_clauses :: "'st \<Rightarrow> 'clss" where
 abbreviation conc_clauses :: "'st \<Rightarrow> 'v clauses" where
 "conc_clauses S \<equiv> mset_clss (raw_clauses S)"
 
-abbreviation resolve_cls where
-"resolve_cls L D' E \<equiv> union_ccls (remove_clit (-L) D') (remove_clit L (ccls_of_cls E))"
-
 definition state :: "'st \<Rightarrow> 'v cdcl\<^sub>W_mset" where
 "state = (\<lambda>S. (conc_trail S, conc_init_clss S, conc_learned_clss S, conc_backtrack_lvl S,
   conc_conflicting S))"
@@ -501,7 +499,17 @@ text \<open>
   function @{term "hd_raw_conc_trail"} below).
 
   There are several axioms to state the independance of the different fields of the state: for
-  example, adding a clause to the learned clauses does not change the trail.\<close>
+  example, adding a clause to the learned clauses does not change the trail.
+
+  We define the following operations on the elements
+  \<^item> trail: @{term cons_trail}, @{term tl_trail}, and @{term reduce_conc_trail_to}.
+  \<^item> initial set of clauses: none.
+  \<^item> learned clauses: @{term add_conc_confl_to_learned_cls} moves the conflicting clause to the
+  learned clauses.
+  \<^item> backtrack level: it can be arbitrary set.
+  \<^item> conflicting clause: there is @{term resolve_conflicting} that does a resolve step,
+  @{term mark_conflicting} setting a conflict, and @{term add_conc_confl_to_learned_cls} setting
+  the conflicting clause to @{term None}.\<close>
 locale abs_state\<^sub>W =
   abs_state\<^sub>W_ops
     \<comment> \<open>functions for clauses: \<close>
@@ -519,8 +527,8 @@ locale abs_state\<^sub>W =
     conc_trail hd_raw_conc_trail raw_conc_init_clss raw_conc_learned_clss conc_backtrack_lvl
     raw_conc_conflicting
       \<comment> \<open>setter:\<close>
-    cons_conc_trail tl_conc_trail add_conc_learned_cls remove_cls update_conc_backtrack_lvl
-    update_conc_conflicting reduce_conc_trail_to
+    cons_conc_trail tl_conc_trail add_conc_confl_to_learned_cls remove_cls update_conc_backtrack_lvl
+    mark_conflicting reduce_conc_trail_to resolve_conflicting
 
       \<comment> \<open>Some specific states:\<close>
     conc_init_state
@@ -550,11 +558,12 @@ locale abs_state\<^sub>W =
 
     cons_conc_trail :: "('v, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_conc_trail :: "'st \<Rightarrow> 'st" and
-    add_conc_learned_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_conc_confl_to_learned_cls :: "'st \<Rightarrow> 'st" and
     remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conc_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_conc_conflicting :: "'ccls option \<Rightarrow> 'st \<Rightarrow> 'st" and
+    mark_conflicting :: "'ccls \<Rightarrow> 'st \<Rightarrow> 'st" and
     reduce_conc_trail_to :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    resolve_conflicting :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     conc_init_state :: "'clss \<Rightarrow> 'st" and
     restart_state :: "'st \<Rightarrow> 'st" +
@@ -576,21 +585,25 @@ locale abs_state\<^sub>W =
         state (remove_cls C st) =
           (M, removeAll_mset (mset_cls C) N, removeAll_mset (mset_cls C) U, S')" and
 
-    add_conc_learned_cls:
-      "\<And>S'. no_dup (conc_trail st) \<Longrightarrow> state st = (M, N, U, S') \<Longrightarrow>
-        state (add_conc_learned_cls C st) =
-          (M, N, {#mset_cls C#} + U, S')" and
+    add_conc_confl_to_learned_cls:
+      "no_dup (conc_trail st) \<Longrightarrow> state st = (M, N, U, k, Some F) \<Longrightarrow>
+        state (add_conc_confl_to_learned_cls st) =
+          (M, N, {#F#} + U, k, None)" and
 
     update_conc_backtrack_lvl:
       "\<And>S'. state st = (M, N, U, k, S') \<Longrightarrow>
         state (update_conc_backtrack_lvl k' st) = (M, N, U, k', S')" and
 
-    update_conc_conflicting:
-      "state st = (M, N, U, k, D) \<Longrightarrow>
-        state (update_conc_conflicting E st) = (M, N, U, k, map_option mset_ccls E)" and
+    mark_conflicting:
+      "state st = (M, N, U, k, None) \<Longrightarrow>
+        state (mark_conflicting E st) = (M, N, U, k, Some (mset_ccls E))" and
 
-    conc_conflicting_update_conc_conflicting[simp]:
-      "raw_conc_conflicting (update_conc_conflicting E st) = E" and
+    conc_conflicting_mark_conflicting[simp]:
+      "raw_conc_conflicting (mark_conflicting E st) = Some E" and
+    resolve_conflicting:
+      "state st = (M, N, U, k, Some F) \<Longrightarrow> -L' \<in># F \<Longrightarrow> L' \<in># mset_cls D \<Longrightarrow>
+        state (resolve_conflicting L' D st) =
+          (M, N, U, k, Some (cdcl\<^sub>W_mset.resolve_cls L' F (mset_cls D)))" and
 
     conc_init_state:
       "state (conc_init_state Ns) = ([], mset_clss Ns, {#}, 0, None)" and
@@ -616,14 +629,18 @@ lemma
         conc_trail (cons_conc_trail L st) = mmset_of_mlit L # conc_trail st" and
     conc_trail_tl_conc_trail[simp]:
       "conc_trail (tl_conc_trail st) = tl (conc_trail st)" and
-    conc_trail_add_conc_learned_cls[simp]:
-      "no_dup (conc_trail st) \<Longrightarrow> conc_trail (add_conc_learned_cls C st) = conc_trail st" and
+    conc_trail_add_conc_confl_to_learned_cls[simp]:
+      "no_dup (conc_trail st) \<Longrightarrow> conc_conflicting st \<noteq> None \<Longrightarrow>
+        conc_trail (add_conc_confl_to_learned_cls st) = conc_trail st" and
     conc_trail_remove_cls[simp]:
       "conc_trail (remove_cls C st) = conc_trail st" and
     conc_trail_update_conc_backtrack_lvl[simp]:
       "conc_trail (update_conc_backtrack_lvl k st) = conc_trail st" and
-    conc_trail_update_conc_conflicting[simp]:
-      "conc_trail (update_conc_conflicting E st) = conc_trail st" and
+    conc_trail_mark_conflicting[simp]:
+      "raw_conc_conflicting st = None \<Longrightarrow> conc_trail (mark_conflicting E st) = conc_trail st" and
+    conc_trail_resolve_conflicting[simp]:
+      "conc_conflicting st = Some F \<Longrightarrow> -L' \<in># F \<Longrightarrow> L' \<in># mset_cls D \<Longrightarrow>
+        conc_trail (resolve_conflicting L' D st) = conc_trail st" and
 
     \<comment> \<open>Properties about the initial clauses @{term conc_init_clss}:\<close>
     conc_init_clss_cons_conc_trail[simp]:
@@ -632,15 +649,19 @@ lemma
       and
     conc_init_clss_tl_conc_trail[simp]:
       "conc_init_clss (tl_conc_trail st) = conc_init_clss st" and
-    conc_init_clss_add_conc_learned_cls[simp]:
-      "no_dup (conc_trail st) \<Longrightarrow>
-        conc_init_clss (add_conc_learned_cls C st) = conc_init_clss st" and
+    conc_init_clss_add_conc_confl_to_learned_cls[simp]:
+      "no_dup (conc_trail st) \<Longrightarrow> conc_conflicting st \<noteq> None \<Longrightarrow>
+        conc_init_clss (add_conc_confl_to_learned_cls st) = conc_init_clss st" and
     conc_init_clss_remove_cls[simp]:
       "conc_init_clss (remove_cls C st) = removeAll_mset (mset_cls C) (conc_init_clss st)" and
     conc_init_clss_update_conc_backtrack_lvl[simp]:
       "conc_init_clss (update_conc_backtrack_lvl k st) = conc_init_clss st" and
-    conc_init_clss_update_conc_conflicting[simp]:
-      "conc_init_clss (update_conc_conflicting E st) = conc_init_clss st" and
+    conc_init_clss_mark_conflicting[simp]:
+      "raw_conc_conflicting st = None \<Longrightarrow>
+        conc_init_clss (mark_conflicting E st) = conc_init_clss st" and
+    conc_init_clss_resolve_conflicting[simp]:
+      "conc_conflicting st = Some F \<Longrightarrow> -L' \<in># F \<Longrightarrow> L' \<in># mset_cls D \<Longrightarrow>
+        conc_init_clss (resolve_conflicting L' D st) = conc_init_clss st" and
 
     \<comment> \<open>Properties about the learned clauses @{term conc_learned_clss}:\<close>
     conc_learned_clss_cons_conc_trail[simp]:
@@ -648,15 +669,19 @@ lemma
         conc_learned_clss (cons_conc_trail L st) = conc_learned_clss st" and
     conc_learned_clss_tl_conc_trail[simp]:
       "conc_learned_clss (tl_conc_trail st) = conc_learned_clss st" and
-    conc_learned_clss_add_conc_learned_cls[simp]:
-      "no_dup (conc_trail st) \<Longrightarrow>
-        conc_learned_clss (add_conc_learned_cls C st) = {#mset_cls C#} + conc_learned_clss st" and
+    conc_learned_clss_add_conc_confl_to_learned_cls[simp]:
+      "no_dup (conc_trail st) \<Longrightarrow> conc_conflicting st = Some C' \<Longrightarrow>
+        conc_learned_clss (add_conc_confl_to_learned_cls st) = {#C'#} + conc_learned_clss st" and
     conc_learned_clss_remove_cls[simp]:
       "conc_learned_clss (remove_cls C st) = removeAll_mset (mset_cls C) (conc_learned_clss st)" and
     conc_learned_clss_update_conc_backtrack_lvl[simp]:
       "conc_learned_clss (update_conc_backtrack_lvl k st) = conc_learned_clss st" and
-    conc_learned_clss_update_conc_conflicting[simp]:
-      "conc_learned_clss (update_conc_conflicting E st) = conc_learned_clss st" and
+    conc_learned_clss_mark_conflicting[simp]:
+      "raw_conc_conflicting st = None \<Longrightarrow>
+        conc_learned_clss (mark_conflicting E st) = conc_learned_clss st" and
+    conc_learned_clss_clss_resolve_conflicting[simp]:
+      "conc_conflicting st = Some F \<Longrightarrow> -L' \<in># F \<Longrightarrow> L' \<in># mset_cls D \<Longrightarrow>
+        conc_learned_clss (resolve_conflicting L' D st) = conc_learned_clss st" and
 
       \<comment> \<open>Properties about the backtracking level @{term conc_backtrack_lvl}:\<close>
     conc_backtrack_lvl_cons_conc_trail[simp]:
@@ -664,15 +689,19 @@ lemma
         conc_backtrack_lvl (cons_conc_trail L st) = conc_backtrack_lvl st" and
     conc_backtrack_lvl_tl_conc_trail[simp]:
       "conc_backtrack_lvl (tl_conc_trail st) = conc_backtrack_lvl st" and
-    conc_backtrack_lvl_add_conc_learned_cls[simp]:
-      "no_dup (conc_trail st) \<Longrightarrow>
-        conc_backtrack_lvl (add_conc_learned_cls C st) = conc_backtrack_lvl st" and
+    conc_backtrack_lvl_add_conc_confl_to_learned_cls[simp]:
+      "no_dup (conc_trail st) \<Longrightarrow> conc_conflicting st \<noteq> None \<Longrightarrow>
+        conc_backtrack_lvl (add_conc_confl_to_learned_cls st) = conc_backtrack_lvl st" and
     conc_backtrack_lvl_remove_cls[simp]:
       "conc_backtrack_lvl (remove_cls C st) = conc_backtrack_lvl st" and
     conc_backtrack_lvl_update_conc_backtrack_lvl[simp]:
       "conc_backtrack_lvl (update_conc_backtrack_lvl k st) = k" and
-    conc_backtrack_lvl_update_conc_conflicting[simp]:
-      "conc_backtrack_lvl (update_conc_conflicting E st) = conc_backtrack_lvl st" and
+    conc_backtrack_lvl_mark_conflicting[simp]:
+      "raw_conc_conflicting st = None \<Longrightarrow>
+        conc_backtrack_lvl (mark_conflicting E st) = conc_backtrack_lvl st" and
+    conc_backtrack_lvl_clss_clss_resolve_conflicting[simp]:
+      "conc_conflicting st = Some F \<Longrightarrow> -L' \<in># F \<Longrightarrow> L' \<in># mset_cls D \<Longrightarrow>
+        conc_backtrack_lvl (resolve_conflicting L' D st) = conc_backtrack_lvl st" and
 
       \<comment> \<open>Properties about the conflicting clause @{term conc_conflicting}:\<close>
     conc_conflicting_cons_conc_trail[simp]:
@@ -680,14 +709,21 @@ lemma
         conc_conflicting (cons_conc_trail L st) = conc_conflicting st" and
     conc_conflicting_tl_conc_trail[simp]:
       "conc_conflicting (tl_conc_trail st) = conc_conflicting st" and
-    conc_conflicting_add_conc_learned_cls[simp]:
-      "no_dup (conc_trail st) \<Longrightarrow>
-        conc_conflicting (add_conc_learned_cls C st) = conc_conflicting st"
+    conc_conflicting_add_conc_confl_to_learned_cls[simp]:
+      "no_dup (conc_trail st) \<Longrightarrow> conc_conflicting st = Some C' \<Longrightarrow>
+        conc_conflicting (add_conc_confl_to_learned_cls st) = None"
       and
+    raw_conc_conflicting_add_conc_confl_to_learned_cls[simp]:
+      "no_dup (conc_trail st) \<Longrightarrow> conc_conflicting st = Some C' \<Longrightarrow>
+        raw_conc_conflicting (add_conc_confl_to_learned_cls st) = None" and
     conc_conflicting_remove_cls[simp]:
       "conc_conflicting (remove_cls C st) = conc_conflicting st" and
     conc_conflicting_update_conc_backtrack_lvl[simp]:
       "conc_conflicting (update_conc_backtrack_lvl k st) = conc_conflicting st" and
+    conc_conflicting_clss_clss_resolve_conflicting[simp]:
+      "conc_conflicting st = Some F \<Longrightarrow> -L' \<in># F \<Longrightarrow> L' \<in># mset_cls D \<Longrightarrow>
+        conc_conflicting (resolve_conflicting L' D st) =
+          Some (cdcl\<^sub>W_mset.resolve_cls L' F (mset_cls D))" and
 
     \<comment> \<open>Properties about the initial state @{term conc_init_state}:\<close>
     conc_init_state_conc_trail[simp]: "conc_trail (conc_init_state Ns) = []" and
@@ -712,15 +748,15 @@ lemma
       "conc_trail st = M2 @ M1 \<Longrightarrow>
         conc_conflicting (reduce_conc_trail_to M1 st) = conc_conflicting st"
   using cons_conc_trail[of st L "conc_trail st" "snd (state st)"] tl_conc_trail[of st]
-  add_conc_learned_cls[of st  "conc_trail st" _ _ _ C]
+  add_conc_confl_to_learned_cls[of st  "conc_trail st" _ _ _ ]
   update_conc_backtrack_lvl[of st _ _ _ _ _ k]
-  update_conc_conflicting[of st _ _ _ _ _ E]
+  mark_conflicting[of st _ _ _ _ E]
   remove_cls[of st _ _ _ _ C]
   conc_init_state[of Ns]
   reduce_conc_trail_to[of st]
-  unfolding state_def
-  by (case_tac "state st"; auto)+
-  (* TODO very slow ~ 12s, but very stupid proof *)
+  resolve_conflicting[of st _ _ _ _ F L' D]
+  unfolding state_def by auto
+  (* TODO very slow ~ 12s, but very stupid proofs *)
 
 lemma
   shows
@@ -729,22 +765,19 @@ lemma
         conc_clauses (cons_conc_trail L S) = conc_clauses S" and
     (* non-standard to avoid name clash with NOT's clauses_tl_conc_trail *)
     clss_tl_conc_trail[simp]: "conc_clauses (tl_conc_trail S) = conc_clauses S" and
-    clauses_add_conc_learned_cls_unfolded:
-      "no_dup (conc_trail S) \<Longrightarrow> conc_clauses (add_conc_learned_cls U S) =
-         {#mset_cls U#} + conc_learned_clss S + conc_init_clss S"
-      and
     clauses_update_conc_backtrack_lvl[simp]:
       "conc_clauses (update_conc_backtrack_lvl k S) = conc_clauses S" and
-    clauses_update_conc_conflicting[simp]:
-      "conc_clauses (update_conc_conflicting D S) = conc_clauses S" and
+    clauses_mark_conflicting[simp]:
+      "raw_conc_conflicting S = None \<Longrightarrow>
+        conc_clauses (mark_conflicting D S) = conc_clauses S" and
     clauses_remove_cls[simp]:
       "conc_clauses (remove_cls C S) = removeAll_mset (mset_cls C) (conc_clauses S)" and
-    clauses_add_conc_learned_cls[simp]:
-      "no_dup (conc_trail S) \<Longrightarrow>
-        conc_clauses (add_conc_learned_cls C S) = {#mset_cls C#} + conc_clauses S" and
+    clauses_add_conc_confl_to_learned_cls[simp]:
+      "no_dup (conc_trail S) \<Longrightarrow> conc_conflicting S = Some C' \<Longrightarrow>
+        conc_clauses (add_conc_confl_to_learned_cls S) = {#C'#} + conc_clauses S" and
     clauses_restart[simp]: "conc_clauses (restart_state S) \<subseteq># conc_clauses S" and
     clauses_conc_init_state[simp]: "\<And>N. conc_clauses (conc_init_state N) = mset_clss N"
-    prefer 9 using raw_clauses_def conc_learned_clss_restart_state apply fastforce
+    prefer 8 using raw_clauses_def conc_learned_clss_restart_state apply fastforce
     by (auto simp: ac_simps replicate_mset_plus raw_clauses_def intro: multiset_eqI)
 
 abbreviation incr_lvl :: "'st \<Rightarrow> 'st" where
@@ -799,11 +832,6 @@ lemma raw_conc_conflicting_cons_conc_trail[simp]:
     "raw_conc_conflicting (cons_conc_trail L S) = None \<longleftrightarrow> raw_conc_conflicting S = None"
   using assms conc_conflicting_cons_conc_trail[of S L] map_option_is_None by fastforce+
 
-lemma raw_conc_conflicting_add_conc_learned_cls[simp]:
-  "no_dup (conc_trail S) \<Longrightarrow>
-    raw_conc_conflicting (add_conc_learned_cls C S) = None \<longleftrightarrow> raw_conc_conflicting S = None"
-  using map_option_is_None conc_conflicting_add_conc_learned_cls[of S C] by fastforce+
-
 lemma raw_conc_conflicting_update_backtracl_lvl[simp]:
   "raw_conc_conflicting (update_conc_backtrack_lvl k S) = None \<longleftrightarrow> raw_conc_conflicting S = None"
   using map_option_is_None conc_conflicting_update_conc_backtrack_lvl[of k S] by fastforce+
@@ -830,8 +858,8 @@ locale abs_conflict_driven_clause_learning\<^sub>W =
     conc_trail hd_raw_conc_trail raw_conc_init_clss raw_conc_learned_clss conc_backtrack_lvl
     raw_conc_conflicting
       \<comment> \<open>changing state:\<close>
-    cons_conc_trail tl_conc_trail add_conc_learned_cls remove_cls update_conc_backtrack_lvl
-    update_conc_conflicting reduce_conc_trail_to
+    cons_conc_trail tl_conc_trail add_conc_confl_to_learned_cls remove_cls update_conc_backtrack_lvl
+    mark_conflicting reduce_conc_trail_to resolve_conflicting
 
       \<comment> \<open>get state:\<close>
     conc_init_state
@@ -861,11 +889,12 @@ locale abs_conflict_driven_clause_learning\<^sub>W =
 
     cons_conc_trail :: "('v, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_conc_trail :: "'st \<Rightarrow> 'st" and
-    add_conc_learned_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_conc_confl_to_learned_cls :: "'st \<Rightarrow> 'st" and
     remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conc_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_conc_conflicting :: "'ccls option \<Rightarrow> 'st \<Rightarrow> 'st" and
+    mark_conflicting :: "'ccls \<Rightarrow> 'st \<Rightarrow> 'st" and
     reduce_conc_trail_to :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    resolve_conflicting :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     conc_init_state :: "'clss \<Rightarrow> 'st" and
     restart_state :: "'st \<Rightarrow> 'st"
@@ -881,8 +910,9 @@ lemma conflicting_None_iff_raw_conc_conflicting[simp]:
   "conflicting (state S) = None \<longleftrightarrow> raw_conc_conflicting S = None"
   unfolding state_def conflicting_def by simp
 
-lemma trail_state_add_conc_learned_cls:
-  "no_dup (conc_trail S) \<Longrightarrow> trail (state (add_conc_learned_cls D S)) = trail (state S)"
+lemma trail_state_add_conc_confl_to_learned_cls:
+  "no_dup (conc_trail S) \<Longrightarrow> conc_conflicting S \<noteq> None \<Longrightarrow>
+    trail (state (add_conc_confl_to_learned_cls S)) = trail (state S)"
   unfolding trail_def state_def by simp
 
 lemma trail_state_update_backtrack_lvl:
@@ -890,7 +920,7 @@ lemma trail_state_update_backtrack_lvl:
   unfolding trail_def state_def by simp
 
 lemma trail_state_update_conflicting:
-  "trail (state (update_conc_conflicting i S)) = trail (state S)"
+  "raw_conc_conflicting S = None \<Longrightarrow> trail (state (mark_conflicting i S)) = trail (state S)"
   unfolding trail_def state_def by simp
 
 lemma trail_state_conc_trail[simp]:
@@ -911,9 +941,10 @@ lemma tl_trail_state_tl_con_trail[simp]:
     init_clss_state_conc_init_clss
     learned_clss_state_conc_learned_clss local.state_simp)
 
-lemma add_learned_cls_state_add_conc_learned_cls[simp]:
-  assumes "no_dup (conc_trail S)"
-  shows "add_learned_cls (mset_ccls D') (state S) = state (add_conc_learned_cls (cls_of_ccls D') S)"
+lemma add_learned_cls_state_add_conc_confl_to_learned_cls[simp]:
+  assumes "no_dup (conc_trail S)" and "raw_conc_conflicting S = Some D"
+  shows "update_conflicting None (add_learned_cls (mset_ccls D) (state S)) =
+    state (add_conc_confl_to_learned_cls S)"
   using assms by (auto simp: cdcl\<^sub>W_mset_state state_def simp del: trail_state_conc_trail
     init_clss_state_conc_init_clss
     learned_clss_state_conc_learned_clss local.state_simp)
@@ -941,17 +972,13 @@ lemma state_cons_cons_trail_cons_trail_decided[simp]:
     cons_trail (Decided K) (state S) = state (cons_conc_trail (Decided K) S)"
   using state_cons_cons_trail_cons_trail[of S "Decided K"] by simp
 
-lemma state_update_conc_conflicting_update_conflicting[simp]:
-  "update_conflicting (Some (mset_ccls D)) (state S) = state (update_conc_conflicting (Some D) S)"
-  "update_conflicting (Some (mset_cls D')) (state S) =
-    state (update_conc_conflicting (Some (ccls_of_cls D')) S)"
-  by (auto simp: cdcl\<^sub>W_mset_state state_def simp del: trail_state_conc_trail
-    init_clss_state_conc_init_clss
-    learned_clss_state_conc_learned_clss local.state_simp)
-
-lemma update_conflicting_None_state[simp]:
-  "update_conflicting None (state S) = state (update_conc_conflicting None S)"
-  by (auto simp: cdcl\<^sub>W_mset_state state_def simp del: trail_state_conc_trail
+lemma state_mark_conflicting_update_conflicting[simp]:
+  assumes "raw_conc_conflicting S = None"
+  shows
+    "update_conflicting (Some (mset_ccls D)) (state S) = state (mark_conflicting D S)"
+    "update_conflicting (Some (mset_cls D')) (state S) =
+      state (mark_conflicting ((ccls_of_cls D')) S)"
+  using assms by (auto simp: cdcl\<^sub>W_mset_state state_def simp del: trail_state_conc_trail
     init_clss_state_conc_init_clss
     learned_clss_state_conc_learned_clss local.state_simp)
 
@@ -967,10 +994,21 @@ lemma conc_conflicting_conflicting[simp]:
     init_clss_state_conc_init_clss
     learned_clss_state_conc_learned_clss local.state_simp)
 
-lemma update_conflicting_resolve_state_update_conc_conflicting[simp]:
-  "update_conflicting (Some (remove1_mset (- L) (mset_ccls D') #\<union> remove1_mset L (mset_cls E')))
+lemma update_conflicting_resolve_state_mark_conflicting[simp]:
+  "raw_conc_conflicting S = Some D' \<Longrightarrow>  -L \<in># mset_ccls D' \<Longrightarrow> L \<in># mset_cls E' \<Longrightarrow>
+   update_conflicting (Some (remove1_mset (- L) (mset_ccls D') #\<union> remove1_mset L (mset_cls E')))
     (state (tl_conc_trail S)) =
-   state (update_conc_conflicting (Some (resolve_cls L D' E')) (tl_conc_trail S))"
+   state (resolve_conflicting L E' (tl_conc_trail S))"
+  by (auto simp: cdcl\<^sub>W_mset_state state_def simp del: trail_state_conc_trail
+    init_clss_state_conc_init_clss
+    learned_clss_state_conc_learned_clss local.state_simp)
+
+lemma add_learned_update_backtrack_update_conflicting[simp]:
+"no_dup (conc_trail S) \<Longrightarrow> raw_conc_conflicting S = Some D' \<Longrightarrow> add_learned_cls (mset_ccls D')
+         (update_backtrack_lvl i
+           (update_conflicting None
+             (state S))) =
+  state (add_conc_confl_to_learned_cls (update_conc_backtrack_lvl i S))"
   by (auto simp: cdcl\<^sub>W_mset_state state_def simp del: trail_state_conc_trail
     init_clss_state_conc_init_clss
     learned_clss_state_conc_learned_clss local.state_simp)
@@ -1126,7 +1164,7 @@ conflict_abs_rule: "
   conc_conflicting S = None \<Longrightarrow>
   D !\<in>! raw_clauses S \<Longrightarrow>
   conc_trail S \<Turnstile>as CNot (mset_cls D) \<Longrightarrow>
-  T \<sim> update_conc_conflicting (Some (ccls_of_cls D)) S \<Longrightarrow>
+  T \<sim> mark_conflicting (ccls_of_cls D) S \<Longrightarrow>
   conflict_abs S T"
 
 inductive_cases conflict_absE: "conflict_abs S T"
@@ -1139,14 +1177,14 @@ proof
     confl: "conc_conflicting S = None" and
     D: "D !\<in>! raw_clauses S" and
     tr_D: "conc_trail S \<Turnstile>as CNot (mset_cls D)" and
-    T: "T \<sim> update_conc_conflicting (Some (ccls_of_cls D)) S"
+    T: "T \<sim> mark_conflicting (ccls_of_cls D) S"
     by (auto elim!: conflict_absE)
   show ?mset
     apply (rule cdcl\<^sub>W_mset.conflict_rule)
        using confl apply simp
       using D apply auto[]
      using tr_D apply simp
-    using T apply auto
+    using T confl apply auto
     done
 next
   assume ?mset
@@ -1163,7 +1201,7 @@ next
        using confl apply simp
       using D' apply simp
      using tr_D apply simp
-    using T by auto
+    using T confl by auto
 qed
 
 lemma conflict_compatible_abs:
@@ -1178,7 +1216,7 @@ proof -
     using conflict by (auto elim: cdcl\<^sub>W_mset.conflictE)
   obtain D' where D': "D' !\<in>! raw_clauses S'" and DD'[simp]: "D = mset_cls D'"
     using D SS' by (auto dest!: in_mset_clss_exists_preimage)[]
-  let ?U = "update_conc_conflicting (Some (ccls_of_cls D')) S'"
+  let ?U = "mark_conflicting (ccls_of_cls D') S'"
   have "conflict_abs S' ?U"
     apply (rule conflict_abs_rule)
        using confl SS' apply simp
@@ -1186,7 +1224,7 @@ proof -
      using tr_D SS' apply simp
     using T by auto
   moreover have "T \<sim>m state ?U"
-    using T SS' by (auto simp: cdcl\<^sub>W_mset_state_eq_eq)
+    using T SS' confl by (auto simp: cdcl\<^sub>W_mset_state_eq_eq)
   ultimately show thesis using that[of ?U] by fast
 qed
 
@@ -1207,9 +1245,8 @@ backtrack_abs_rule: "
   get_level (conc_trail S) K = i + 1 \<Longrightarrow>
   T \<sim> cons_conc_trail (Propagated L (cls_of_ccls D))
         (reduce_conc_trail_to M1
-          (add_conc_learned_cls (cls_of_ccls D)
-            (update_conc_backtrack_lvl i
-              (update_conc_conflicting None S)))) \<Longrightarrow>
+          (add_conc_confl_to_learned_cls
+            (update_conc_backtrack_lvl i S))) \<Longrightarrow>
   backtrack_abs S T"
 
 inductive_cases backtrack_absE: "backtrack_abs S T"
@@ -1229,9 +1266,8 @@ proof
   lev_K: "get_level (conc_trail S) K = i + 1" and
   T: "T \<sim> cons_conc_trail (Propagated L (cls_of_ccls D))
         (reduce_conc_trail_to M1
-          (add_conc_learned_cls (cls_of_ccls D)
-            (update_conc_backtrack_lvl i
-              (update_conc_conflicting None S))))"
+          (add_conc_confl_to_learned_cls
+            (update_conc_backtrack_lvl i S)))"
     by (auto elim!: backtrack_absE)
   have n_d: "no_dup (trail (state S))"
     using lev_L inv unfolding cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_mset.cdcl\<^sub>W_M_level_inv_def
@@ -1260,7 +1296,7 @@ proof
        using lev_Max apply simp
       using i apply simp
      using lev_K apply simp
-    using T undef n_d tr unfolding cdcl\<^sub>W_mset.state_eq_def
+    using T undef n_d tr D unfolding cdcl\<^sub>W_mset.state_eq_def
     by auto
 next
   assume ?conc
@@ -1306,7 +1342,7 @@ next
        using lev_max apply simp
       using i apply simp
      using lev_K apply simp
-    using T undef n_d decomp by auto
+    using T undef n_d decomp confl' by auto
 qed
 
 lemma backtrack_exists_backtrack_abs_step:
@@ -1350,9 +1386,8 @@ proof -
 
   let ?U = "cons_conc_trail (Propagated L (cls_of_ccls D'))
           (reduce_conc_trail_to M1
-            (add_conc_learned_cls (cls_of_ccls D')
-              (update_conc_backtrack_lvl i
-                (update_conc_conflicting None S'))))"
+            (add_conc_confl_to_learned_cls
+              (update_conc_backtrack_lvl i S')))"
   have "backtrack_abs S' ?U"
     apply (rule backtrack_abs_rule)
            using confl' apply simp
@@ -1364,7 +1399,7 @@ proof -
      using lev_K  SS' apply simp
     using T undef n_d decomp by auto
   moreover have "T \<sim>m state ?U"
-    using undef decomp T n_d SS'[unfolded cdcl\<^sub>W_mset_state_eq_eq] by auto
+    using undef decomp T n_d SS'[unfolded cdcl\<^sub>W_mset_state_eq_eq] confl' by auto
   ultimately show thesis using that[of ?U] by fast
 qed
 
@@ -1475,8 +1510,7 @@ resolve_abs_rule: "conc_trail S \<noteq> [] \<Longrightarrow>
   raw_conc_conflicting S = Some D' \<Longrightarrow>
   -L \<in># mset_ccls D' \<Longrightarrow>
   get_maximum_level (conc_trail S) (mset_ccls (remove_clit (-L) D')) = conc_backtrack_lvl S \<Longrightarrow>
-  T \<sim> update_conc_conflicting (Some (resolve_cls L D' E))
-    (tl_conc_trail S) \<Longrightarrow>
+  T \<sim> resolve_conflicting L E (tl_conc_trail S) \<Longrightarrow>
   resolve_abs S T"
 
 inductive_cases resolve_absE: "resolve_abs S T"
@@ -1511,7 +1545,7 @@ proof
        using confl' apply simp
       using LD apply simp
      using lvl_max apply simp
-    using T by simp
+    using T confl' LE LD by simp
 next
   assume ?abs
   then show ?conc
@@ -1543,7 +1577,7 @@ proof -
     confl': "raw_conc_conflicting S' = Some D'" and
     [simp]: "D = mset_ccls D'"
     using confl SS' by auto
-  let ?U = "(update_conc_conflicting (Some (resolve_cls L D' E')) (tl_conc_trail S'))"
+  let ?U = "resolve_conflicting L E' (tl_conc_trail S')"
   have "resolve_abs S' ?U"
     apply (rule resolve_abs_rule)
           using tr SS' apply simp
@@ -1554,7 +1588,7 @@ proof -
      using lvl_max SS' apply simp
     using T by simp
   moreover have "T \<sim>m state ?U"
-    using T SS' unfolding cdcl\<^sub>W_mset.state_eq_def by auto
+    using T SS' confl LE LD unfolding cdcl\<^sub>W_mset.state_eq_def by fastforce
   ultimately show thesis using that[of ?U] by fast
 qed
 
