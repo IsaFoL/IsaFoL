@@ -1,4 +1,4 @@
-theory CDCL_W_Abstract_State 
+theory CDCL_W_Abstract_State
 imports CDCL_Abstract_Clause_Representation List_More CDCL_W_Level Wellfounded_More
   CDCL_WNOT CDCL_Abstract_Clause_Representation
 
@@ -484,6 +484,10 @@ abbreviation conc_clauses :: "'st \<Rightarrow> 'v clauses" where
 abbreviation resolve_cls where
 "resolve_cls L D' E \<equiv> union_ccls (remove_clit (-L) D') (remove_clit L (ccls_of_cls E))"
 
+definition state :: "'st \<Rightarrow> 'v cdcl\<^sub>W_mset" where
+"state = (\<lambda>S. (conc_trail S, conc_init_clss S, conc_learned_clss S, conc_backtrack_lvl S,
+  conc_conflicting S))"
+
 end
 
 text \<open>We are using an abstract state to abstract away the detail of the implementation: we do not
@@ -565,92 +569,37 @@ locale abs_state\<^sub>W =
     hd_raw_conc_trail:
       "conc_trail S \<noteq> [] \<Longrightarrow> mmset_of_mlit (hd_raw_conc_trail S) = hd (conc_trail S)" and
 
-    \<comment> \<open>Properties about the trail @{term conc_trail}:\<close>
-    conc_trail_cons_conc_trail[simp]:
-      "\<And>L st. undefined_lit (conc_trail st) (lit_of L) \<Longrightarrow>
-        conc_trail (cons_conc_trail L st) = mmset_of_mlit L # conc_trail st" and
-    conc_trail_tl_conc_trail[simp]: "\<And>st. conc_trail (tl_conc_trail st) = tl (conc_trail st)" and
-    conc_trail_add_conc_learned_cls[simp]:
-      "\<And>C st. no_dup (conc_trail st) \<Longrightarrow> conc_trail (add_conc_learned_cls C st) = conc_trail st" and
-    conc_trail_remove_cls[simp]:
-      "\<And>C st. conc_trail (remove_cls C st) = conc_trail st" and
-    conc_trail_update_conc_backtrack_lvl[simp]:
-      "\<And>st C. conc_trail (update_conc_backtrack_lvl C st) = conc_trail st" and
-    conc_trail_update_conc_conflicting[simp]:
-      "\<And>C st. conc_trail (update_conc_conflicting C st) = conc_trail st" and
+    cons_conc_trail:
+      "\<And>S'. undefined_lit (conc_trail st) (lit_of L) \<Longrightarrow>
+        state st = (M, S') \<Longrightarrow>
+        state (cons_conc_trail L st) = (mmset_of_mlit L # M, S')" and
 
-    \<comment> \<open>Properties about the initial clauses @{term conc_init_clss}:\<close>
-    conc_init_clss_cons_conc_trail[simp]:
-      "\<And>M st. undefined_lit (conc_trail st) (lit_of M) \<Longrightarrow>
-        conc_init_clss (cons_conc_trail M st) = conc_init_clss st"
-      and
-    conc_init_clss_tl_conc_trail[simp]:
-      "\<And>st. conc_init_clss (tl_conc_trail st) = conc_init_clss st" and
-    conc_init_clss_add_conc_learned_cls[simp]:
-      "\<And>C st. no_dup (conc_trail st) \<Longrightarrow>
-        conc_init_clss (add_conc_learned_cls C st) = conc_init_clss st" and
-    conc_init_clss_remove_cls[simp]:
-      "\<And>C st. conc_init_clss (remove_cls C st) = removeAll_mset (mset_cls C) (conc_init_clss st)" and
-    conc_init_clss_update_conc_backtrack_lvl[simp]:
-      "\<And>st C. conc_init_clss (update_conc_backtrack_lvl C st) = conc_init_clss st" and
-    conc_init_clss_update_conc_conflicting[simp]:
-      "\<And>C st. conc_init_clss (update_conc_conflicting C st) = conc_init_clss st" and
+    tl_conc_trail:
+      "\<And>S'. state st = (M, S') \<Longrightarrow> state (tl_conc_trail st) = (tl M, S')" and
 
-    \<comment> \<open>Properties about the learned clauses @{term conc_learned_clss}:\<close>
-    conc_learned_clss_cons_conc_trail[simp]:
-      "\<And>M st. undefined_lit (conc_trail st) (lit_of M) \<Longrightarrow>
-        conc_learned_clss (cons_conc_trail M st) = conc_learned_clss st" and
-    conc_learned_clss_tl_conc_trail[simp]:
-      "\<And>st. conc_learned_clss (tl_conc_trail st) = conc_learned_clss st" and
-    conc_learned_clss_add_conc_learned_cls[simp]:
-      "\<And>C st. no_dup (conc_trail st) \<Longrightarrow>
-        conc_learned_clss (add_conc_learned_cls C st) = {#mset_cls C#} + conc_learned_clss st" and
-    conc_learned_clss_remove_cls[simp]:
-      "\<And>C st. conc_learned_clss (remove_cls C st) = removeAll_mset (mset_cls C) (conc_learned_clss st)" and
-    conc_learned_clss_update_conc_backtrack_lvl[simp]:
-      "\<And>st C. conc_learned_clss (update_conc_backtrack_lvl C st) = conc_learned_clss st" and
-    conc_learned_clss_update_conc_conflicting[simp]:
-      "\<And>C st. conc_learned_clss (update_conc_conflicting C st) = conc_learned_clss st" and
+    remove_cls:
+      "\<And>S'. state st = (M, N, U, S') \<Longrightarrow>
+        state (remove_cls C st) =
+          (M, removeAll_mset (mset_cls C) N, removeAll_mset (mset_cls C) U, S')" and
 
-      \<comment> \<open>Properties about the backtracking level @{term conc_backtrack_lvl}:\<close>
-    conc_backtrack_lvl_cons_conc_trail[simp]:
-      "\<And>M st. undefined_lit (conc_trail st) (lit_of M) \<Longrightarrow>
-        conc_backtrack_lvl (cons_conc_trail M st) = conc_backtrack_lvl st" and
-    conc_backtrack_lvl_tl_conc_trail[simp]:
-      "\<And>st. conc_backtrack_lvl (tl_conc_trail st) = conc_backtrack_lvl st" and
-    conc_backtrack_lvl_add_conc_learned_cls[simp]:
-      "\<And>C st. no_dup (conc_trail st) \<Longrightarrow>
-        conc_backtrack_lvl (add_conc_learned_cls C st) = conc_backtrack_lvl st" and
-    conc_backtrack_lvl_remove_cls[simp]:
-      "\<And>C st. conc_backtrack_lvl (remove_cls C st) = conc_backtrack_lvl st" and
-    conc_backtrack_lvl_update_conc_backtrack_lvl[simp]:
-      "\<And>st k. conc_backtrack_lvl (update_conc_backtrack_lvl k st) = k" and
-    conc_backtrack_lvl_update_conc_conflicting[simp]:
-      "\<And>C st. conc_backtrack_lvl (update_conc_conflicting C st) = conc_backtrack_lvl st" and
+    add_conc_learned_cls:
+      "\<And>S'. no_dup (conc_trail st) \<Longrightarrow> state st = (M, N, U, S') \<Longrightarrow>
+        state (add_conc_learned_cls C st) =
+          (M, N, {#mset_cls C#} + U, S')" and
 
-      \<comment> \<open>Properties about the conflicting clause @{term conc_conflicting}:\<close>
-    conc_conflicting_cons_conc_trail[simp]:
-      "\<And>M st. undefined_lit (conc_trail st) (lit_of M) \<Longrightarrow>
-        conc_conflicting (cons_conc_trail M st) = conc_conflicting st" and
-    conc_conflicting_tl_conc_trail[simp]:
-      "\<And>st. conc_conflicting (tl_conc_trail st) = conc_conflicting st" and
-    conc_conflicting_add_conc_learned_cls[simp]:
-      "\<And>C st. no_dup (conc_trail st) \<Longrightarrow>
-        conc_conflicting (add_conc_learned_cls C st) = conc_conflicting st"
-      and
-    conc_conflicting_remove_cls[simp]:
-      "\<And>C st. conc_conflicting (remove_cls C st) = conc_conflicting st" and
-    conc_conflicting_update_conc_backtrack_lvl[simp]:
-      "\<And>st C. conc_conflicting (update_conc_backtrack_lvl C st) = conc_conflicting st" and
+    update_conc_backtrack_lvl:
+      "\<And>S'. state st = (M, N, U, k, S') \<Longrightarrow>
+        state (update_conc_backtrack_lvl k' st) = (M, N, U, k', S')" and
+
+    update_conc_conflicting:
+      "state st = (M, N, U, k, D) \<Longrightarrow>
+        state (update_conc_conflicting E st) = (M, N, U, k, map_option mset_ccls E)" and
+
     conc_conflicting_update_conc_conflicting[simp]:
-      "\<And>C st. raw_conc_conflicting (update_conc_conflicting C st) = C" and
+      "raw_conc_conflicting (update_conc_conflicting E st) = E" and
 
-    \<comment> \<open>Properties about the initial state @{term conc_init_state}:\<close>
-    conc_init_state_conc_trail[simp]: "\<And>N. conc_trail (conc_init_state N) = []" and
-    conc_init_state_clss[simp]: "\<And>N. (conc_init_clss (conc_init_state N)) = mset_clss N" and
-    conc_init_state_conc_learned_clss[simp]: "\<And>N. conc_learned_clss (conc_init_state N) = {#}" and
-    conc_init_state_conc_backtrack_lvl[simp]: "\<And>N. conc_backtrack_lvl (conc_init_state N) = 0" and
-    conc_init_state_conc_conflicting[simp]: "\<And>N. conc_conflicting (conc_init_state N) = None" and
+    conc_init_state:
+      "state (conc_init_state Ns) = ([], mset_clss Ns, {#}, 0, None)" and
 
     \<comment> \<open>Properties about restarting @{term restart_state}:\<close>
     conc_trail_restart_state[simp]: "conc_trail (restart_state S) = []" and
@@ -661,27 +610,129 @@ locale abs_state\<^sub>W =
     conc_conflicting_restart_state[simp]: "conc_conflicting (restart_state S) = None" and
 
     \<comment> \<open>Properties about @{term reduce_conc_trail_to}:\<close>
+    reduce_conc_trail_to[simp]:
+      "\<And>S'. conc_trail st = M2 @ M1 \<Longrightarrow> state st = (M, S') \<Longrightarrow>
+        state (reduce_conc_trail_to M1 st) = (M1, S')"
+begin
+
+lemma
+    \<comment> \<open>Properties about the trail @{term conc_trail}:\<close>
+    conc_trail_cons_conc_trail[simp]:
+      "undefined_lit (conc_trail st) (lit_of L) \<Longrightarrow>
+        conc_trail (cons_conc_trail L st) = mmset_of_mlit L # conc_trail st" and
+    conc_trail_tl_conc_trail[simp]:
+      "conc_trail (tl_conc_trail st) = tl (conc_trail st)" and
+    conc_trail_add_conc_learned_cls[simp]:
+      "no_dup (conc_trail st) \<Longrightarrow> conc_trail (add_conc_learned_cls C st) = conc_trail st" and
+    conc_trail_remove_cls[simp]:
+      "conc_trail (remove_cls C st) = conc_trail st" and
+    conc_trail_update_conc_backtrack_lvl[simp]:
+      "conc_trail (update_conc_backtrack_lvl k st) = conc_trail st" and
+    conc_trail_update_conc_conflicting[simp]:
+      "conc_trail (update_conc_conflicting E st) = conc_trail st" and
+
+    \<comment> \<open>Properties about the initial clauses @{term conc_init_clss}:\<close>
+    conc_init_clss_cons_conc_trail[simp]:
+      "undefined_lit (conc_trail st) (lit_of L) \<Longrightarrow>
+        conc_init_clss (cons_conc_trail L st) = conc_init_clss st"
+      and
+    conc_init_clss_tl_conc_trail[simp]:
+      "conc_init_clss (tl_conc_trail st) = conc_init_clss st" and
+    conc_init_clss_add_conc_learned_cls[simp]:
+      "no_dup (conc_trail st) \<Longrightarrow>
+        conc_init_clss (add_conc_learned_cls C st) = conc_init_clss st" and
+    conc_init_clss_remove_cls[simp]:
+      "conc_init_clss (remove_cls C st) = removeAll_mset (mset_cls C) (conc_init_clss st)" and
+    conc_init_clss_update_conc_backtrack_lvl[simp]:
+      "conc_init_clss (update_conc_backtrack_lvl k st) = conc_init_clss st" and
+    conc_init_clss_update_conc_conflicting[simp]:
+      "conc_init_clss (update_conc_conflicting E st) = conc_init_clss st" and
+
+    \<comment> \<open>Properties about the learned clauses @{term conc_learned_clss}:\<close>
+    conc_learned_clss_cons_conc_trail[simp]:
+      "undefined_lit (conc_trail st) (lit_of L) \<Longrightarrow>
+        conc_learned_clss (cons_conc_trail L st) = conc_learned_clss st" and
+    conc_learned_clss_tl_conc_trail[simp]:
+      "conc_learned_clss (tl_conc_trail st) = conc_learned_clss st" and
+    conc_learned_clss_add_conc_learned_cls[simp]:
+      "no_dup (conc_trail st) \<Longrightarrow>
+        conc_learned_clss (add_conc_learned_cls C st) = {#mset_cls C#} + conc_learned_clss st" and
+    conc_learned_clss_remove_cls[simp]:
+      "conc_learned_clss (remove_cls C st) = removeAll_mset (mset_cls C) (conc_learned_clss st)" and
+    conc_learned_clss_update_conc_backtrack_lvl[simp]:
+      "conc_learned_clss (update_conc_backtrack_lvl k st) = conc_learned_clss st" and
+    conc_learned_clss_update_conc_conflicting[simp]:
+      "conc_learned_clss (update_conc_conflicting E st) = conc_learned_clss st" and
+
+      \<comment> \<open>Properties about the backtracking level @{term conc_backtrack_lvl}:\<close>
+    conc_backtrack_lvl_cons_conc_trail[simp]:
+      "undefined_lit (conc_trail st) (lit_of L) \<Longrightarrow>
+        conc_backtrack_lvl (cons_conc_trail L st) = conc_backtrack_lvl st" and
+    conc_backtrack_lvl_tl_conc_trail[simp]:
+      "conc_backtrack_lvl (tl_conc_trail st) = conc_backtrack_lvl st" and
+    conc_backtrack_lvl_add_conc_learned_cls[simp]:
+      "no_dup (conc_trail st) \<Longrightarrow>
+        conc_backtrack_lvl (add_conc_learned_cls C st) = conc_backtrack_lvl st" and
+    conc_backtrack_lvl_remove_cls[simp]:
+      "conc_backtrack_lvl (remove_cls C st) = conc_backtrack_lvl st" and
+    conc_backtrack_lvl_update_conc_backtrack_lvl[simp]:
+      "conc_backtrack_lvl (update_conc_backtrack_lvl k st) = k" and
+    conc_backtrack_lvl_update_conc_conflicting[simp]:
+      "conc_backtrack_lvl (update_conc_conflicting E st) = conc_backtrack_lvl st" and
+
+      \<comment> \<open>Properties about the conflicting clause @{term conc_conflicting}:\<close>
+    conc_conflicting_cons_conc_trail[simp]:
+      "undefined_lit (conc_trail st) (lit_of L) \<Longrightarrow>
+        conc_conflicting (cons_conc_trail L st) = conc_conflicting st" and
+    conc_conflicting_tl_conc_trail[simp]:
+      "conc_conflicting (tl_conc_trail st) = conc_conflicting st" and
+    conc_conflicting_add_conc_learned_cls[simp]:
+      "no_dup (conc_trail st) \<Longrightarrow>
+        conc_conflicting (add_conc_learned_cls C st) = conc_conflicting st"
+      and
+    conc_conflicting_remove_cls[simp]:
+      "conc_conflicting (remove_cls C st) = conc_conflicting st" and
+    conc_conflicting_update_conc_backtrack_lvl[simp]:
+      "conc_conflicting (update_conc_backtrack_lvl k st) = conc_conflicting st" and
+
+    \<comment> \<open>Properties about the initial state @{term conc_init_state}:\<close>
+    conc_init_state_conc_trail[simp]: "conc_trail (conc_init_state Ns) = []" and
+    conc_init_state_clss[simp]: "conc_init_clss (conc_init_state Ns) = mset_clss Ns" and
+    conc_init_state_conc_learned_clss[simp]: "conc_learned_clss (conc_init_state Ns) = {#}" and
+    conc_init_state_conc_backtrack_lvl[simp]: "conc_backtrack_lvl (conc_init_state Ns) = 0" and
+    conc_init_state_conc_conflicting[simp]: "conc_conflicting (conc_init_state Ns) = None" and
+
+    \<comment> \<open>Properties about @{term reduce_conc_trail_to}:\<close>
     trail_reduce_conc_trail_to[simp]:
       "conc_trail st = M2 @ M1 \<Longrightarrow> conc_trail (reduce_conc_trail_to M1 st) = M1" and
-    raw_conc_init_clss_reduce_conc_trail_to[simp]:
-      "conc_trail st = M2 @ M1 \<Longrightarrow> 
-        raw_conc_init_clss (reduce_conc_trail_to M1 st) = raw_conc_init_clss st" and
-    raw_conc_learned_clss_reduce_conc_trail_to[simp]:
+    conc_init_clss_reduce_conc_trail_to[simp]:
       "conc_trail st = M2 @ M1 \<Longrightarrow>
-        raw_conc_learned_clss (reduce_conc_trail_to M1 st) = raw_conc_learned_clss st" and
+        conc_init_clss (reduce_conc_trail_to M1 st) = conc_init_clss st" and
+    conc_learned_clss_reduce_conc_trail_to[simp]:
+      "conc_trail st = M2 @ M1 \<Longrightarrow>
+        conc_learned_clss (reduce_conc_trail_to M1 st) = conc_learned_clss st" and
     conc_backtrack_lvl_reduce_conc_trail_to[simp]:
       "conc_trail st = M2 @ M1 \<Longrightarrow>
         conc_backtrack_lvl (reduce_conc_trail_to M1 st) = conc_backtrack_lvl st" and
     conc_conflicting_reduce_conc_trail_to[simp]:
       "conc_trail st = M2 @ M1 \<Longrightarrow>
         conc_conflicting (reduce_conc_trail_to M1 st) = conc_conflicting st"
-begin
+  using cons_conc_trail[of st L "conc_trail st" "snd (state st)"] tl_conc_trail[of st]
+  add_conc_learned_cls[of st  "conc_trail st" _ _ _ C]
+  update_conc_backtrack_lvl[of st _ _ _ _ _ k]
+  update_conc_conflicting[of st _ _ _ _ _ E]
+  remove_cls[of st _ _ _ _ C]
+  conc_init_state[of Ns]
+  reduce_conc_trail_to[of st]
+  unfolding state_def
+  by (case_tac "state st"; auto)+
+  (* TODO very slow ~ 12s, but very stupid proof *)
 
 lemma
   shows
     clauses_cons_conc_trail[simp]:
-      "undefined_lit (conc_trail S) (lit_of M) \<Longrightarrow>
-        conc_clauses (cons_conc_trail M S) = conc_clauses S" and
+      "undefined_lit (conc_trail S) (lit_of L) \<Longrightarrow>
+        conc_clauses (cons_conc_trail L S) = conc_clauses S" and
     (* non-standard to avoid name clash with NOT's clauses_tl_conc_trail *)
     clss_tl_conc_trail[simp]: "conc_clauses (tl_conc_trail S) = conc_clauses S" and
     clauses_add_conc_learned_cls_unfolded:
@@ -701,10 +752,6 @@ lemma
     clauses_conc_init_state[simp]: "\<And>N. conc_clauses (conc_init_state N) = mset_clss N"
     prefer 9 using raw_clauses_def conc_learned_clss_restart_state apply fastforce
     by (auto simp: ac_simps replicate_mset_plus raw_clauses_def intro: multiset_eqI)
-
-definition state :: "'st \<Rightarrow> 'v cdcl\<^sub>W_mset" where
-"state = (\<lambda>S. (conc_trail S, conc_init_clss S, conc_learned_clss S, conc_backtrack_lvl S,
-  conc_conflicting S))"
 
 abbreviation incr_lvl :: "'st \<Rightarrow> 'st" where
 "incr_lvl S \<equiv> update_conc_backtrack_lvl (conc_backtrack_lvl S + 1) S"
