@@ -982,7 +982,7 @@ lemma state_conc_init_state: "state (conc_init_state N) = init_state (mset_clss 
     init_clss_state_conc_init_clss
     learned_clss_state_conc_learned_clss local.state_simp)
 
-text \<open>More robust version of @{thm in_mset_clss_exists_preimage}:\<close>
+text \<open>More robust version of @{thm [source] in_mset_clss_exists_preimage}:\<close>
 lemma in_clauses_preimage:
   assumes b: "b \<in># cdcl\<^sub>W_mset.clauses (state C)"
   shows "\<exists>b'. b' !\<in>! raw_clauses C \<and> mset_cls b' = b"

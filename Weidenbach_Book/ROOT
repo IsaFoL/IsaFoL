@@ -138,7 +138,7 @@ session "Full" (Weidenbach_Book) = "HOL"  +
     CDCL_W_Abstract_State
     CDCL_Two_Watched_Literals
     CDCL_Two_Watched_Literals_Invariant
-    (* CDCL_W_Implementation *)
+
     Weidenbach_Book
   document_files
     "root.tex"

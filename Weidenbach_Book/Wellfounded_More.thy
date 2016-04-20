@@ -13,7 +13,7 @@ begin
 
 subsection \<open>More theorems about Closures\<close>
 
-text \<open>This is the equivalent of @{thm rtranclp_mono} for @{term tranclp}\<close>
+text \<open>This is the equivalent of the theorem @{thm [source] rtranclp_mono} for @{term tranclp}\<close>
 lemma tranclp_mono_explicit:
   "r\<^sup>+\<^sup>+ a b \<Longrightarrow> r \<le> s \<Longrightarrow> s\<^sup>+\<^sup>+ a b"
     using rtranclp_mono by (auto dest!: tranclpD intro: rtranclp_into_tranclp2)
@@ -29,15 +29,15 @@ lemma tranclp_idemp_rel:
     prefer 2 apply blast
   by (induction rule: tranclp_induct) auto
 
-text \<open>Equivalent of @{thm rtranclp_idemp}\<close>
+text \<open>Equivalent of the theorem @{thm [source] rtranclp_idemp}\<close>
 lemma trancl_idemp: "(r\<^sup>+)\<^sup>+ = r\<^sup>+"
   by simp
 
 lemmas tranclp_idemp[simp] = trancl_idemp[to_pred]
 
-text \<open>This theorem already exists as @{thm Nitpick.rtranclp_unfold} (and sledgehammer uses it), but
-  it makes sense to duplicate it, because it is unclear how stable the lemmas in the
-  @{file "~~/src/HOL/Nitpick.thy"} theory are.\<close>
+text \<open>This theorem already exists as theroem @{thm [source] Nitpick.rtranclp_unfold} (and
+  sledgehammer uses it), but it makes sense to duplicate it, because it is unclear how stable the
+  lemmas in the @{file "~~/src/HOL/Nitpick.thy"} theory are.\<close>
 lemma rtranclp_unfold: "rtranclp r a b \<longleftrightarrow> (a = b \<or> tranclp r a b)"
   by (meson rtranclp.simps rtranclpD tranclp_into_rtranclp)
 
@@ -45,7 +45,7 @@ lemma rtranclp_unfold: "rtranclp r a b \<longleftrightarrow> (a = b \<or> trancl
 lemma tranclp_unfold_end: "tranclp r a b \<longleftrightarrow> (\<exists>a'. rtranclp r a a' \<and> r a' b)"
   by (metis rtranclp.rtrancl_refl rtranclp_into_tranclp1 tranclp.cases tranclp_into_rtranclp)
 
-text \<open>Near duplicate of @{thm tranclpD}:\<close>
+text \<open>Near duplicate of theorem @{thm [source] tranclpD}:\<close>
 lemma tranclp_unfold_begin: "tranclp r a b \<longleftrightarrow> (\<exists>a'. r a a' \<and> rtranclp r a' b)"
   by (meson rtranclp_into_tranclp2 tranclpD)
 
@@ -195,14 +195,14 @@ proof (rule ccontr)
 qed
 
 lemma wf_exists_normal_form_full:
-  assumes wf:"wf {(x, y). R y x}"
+  assumes wf: "wf {(x, y). R y x}"
   shows "\<exists>b. full R a b"
   using wf_exists_normal_form[OF assms] unfolding full_def by blast
 
 subsection \<open>More Well-Foundedness\<close>
 text \<open>A little list of theorems that could be useful, but are hidden:
-  \<^item> link between @{term wf} and infinite chains: @{thm wf_iff_no_infinite_down_chain},
-  @{thm wf_no_infinite_down_chainE}\<close>
+  \<^item> link between @{term wf} and infinite chains: theorems
+  @{thm [source] wf_iff_no_infinite_down_chain} and @{thm [source] wf_no_infinite_down_chainE}.\<close>
 
 lemma wf_if_measure_in_wf:
   "wf R \<Longrightarrow> (\<And>a b. (a, b) \<in> S \<Longrightarrow> (\<nu> a, \<nu> b)\<in>R) \<Longrightarrow> wf S"

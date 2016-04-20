@@ -958,7 +958,7 @@ qed
 lemma backtrack_lvl_backtrack_decrease:
   assumes inv: "cdcl\<^sub>W_M_level_inv S" and bt: "backtrack S T"
   shows "backtrack_lvl T < backtrack_lvl S"
-  using inv bt  le_count_decided_decomp[of "trail S" "backtrack_lvl T"] 
+  using inv bt  le_count_decided_decomp[of "trail S" "backtrack_lvl T"]
   unfolding cdcl\<^sub>W_M_level_inv_def
   (* TODO tune proof *)
   apply (auto elim!: backtrackE dest!: get_all_ann_decomposition_exists_prepend)
@@ -2139,8 +2139,8 @@ qed
 
 text \<open>\cwref{prop:prop:cdclPropLitsUnsat}{Item 5 page 81}\<close>
 text \<open>We have actually a much stronger theorem, namely
-  @{thm all_decomposition_implies_propagated_lits_are_implied}, that show that the only choices
-  we made are decided in the formula\<close>
+  @{thm [source] all_decomposition_implies_propagated_lits_are_implied}, that show that the only
+  choices we made are decided in the formula\<close>
 lemma
   assumes "all_decomposition_implies_m N (get_all_ann_decomposition M)"
   and "\<forall>m \<in> set M. \<not>is_decided m"
@@ -3557,7 +3557,7 @@ proof -
     qed
 qed
 
-text \<open>See also @{thm rtranclp_cdcl\<^sub>W_cp_dropWhile_trail}\<close>
+text \<open>See also @{thm [source] rtranclp_cdcl\<^sub>W_cp_dropWhile_trail}\<close>
 lemma rtranclp_propagate_is_trail_append:
   "propagate\<^sup>*\<^sup>* S T \<Longrightarrow> \<exists>c. trail T = c @ trail S"
   by (induction rule: rtranclp_induct) (auto elim: propagateE)

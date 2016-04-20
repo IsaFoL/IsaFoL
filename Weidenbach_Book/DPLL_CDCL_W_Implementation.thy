@@ -6,10 +6,18 @@ text \<open>We then reuse all the theorems to go towards an implementation using
   \<^item> @{file CDCL_W_Abstract_State.thy} defines a better-suited state: the operation operating on it
   are more constrained, allowing simpler proofs and less edge cases later.\<close>
 
-section \<open>Simple Implementation of the DPLL and CDCL\<close>
+section \<open>Simple List-Based Implementation of the DPLL and CDCL\<close>
+
+text \<open>The idea of the list-based implementation is to test the stack: the theories about the
+  calculi, adapting the theorems to a simple implementation and the code exportation. The
+  implementation are very simple ans simply iterate over-and-over on lists.\<close>
+
 subsection \<open>Common Rules\<close>
+
 subsubsection \<open>Propagation\<close>
+
 text \<open>The following theorem holds:\<close>
+
 lemma lits_of_l_unfold[iff]:
   "(\<forall>c \<in> set C. -c \<in> lits_of_l Ms) \<longleftrightarrow> Ms \<Turnstile>as CNot (mset C)"
   unfolding true_annots_def Ball_def true_annot_def CNot_def by auto

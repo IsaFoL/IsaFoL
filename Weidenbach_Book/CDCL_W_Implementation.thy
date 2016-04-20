@@ -2,6 +2,15 @@ theory CDCL_W_Implementation
 imports DPLL_CDCL_W_Implementation CDCL_W_Termination
 begin
 
+subsection \<open>List-based CDCL Implementation\<close>
+
+text \<open>We here have a very simple implementation of Weidenbach's CDCL, based on the same principle as
+  the implementation of DPLL: iterating over-and-over on lists. We do not use any fancy
+  data-structure (see the two-watched literals for a better suited data-structure).
+
+  The goal was (as for DPLL) to test the infrastructure and see if an important lemma was missing to
+  prove the correctness and the termination of a simple implementation.\<close>
+
 subsubsection \<open>Types and Instantiation\<close>
 notation image_mset (infixr "`#" 90)
 

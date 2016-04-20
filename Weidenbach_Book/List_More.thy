@@ -6,8 +6,8 @@ text \<open>Sledgehammer parameters\<close>
 sledgehammer_params[debug]
 
 section \<open>Various Lemmas\<close>
-text \<open>Close to @{thm nat_less_induct}, but with a separation between zero and non-zero, and case
-  names.\<close>
+text \<open>Close to the theorem @{thm [source] nat_less_induct} (@{thm nat_less_induct}), but with a 
+  separation between the zero and non-zero case.\<close>
 thm nat_less_induct
 lemma nat_less_induct_case[case_names 0 Suc]:
   assumes
@@ -18,7 +18,8 @@ lemma nat_less_induct_case[case_names 0 Suc]:
   by (rename_tac n, case_tac n) (auto intro: assms)
 
 text \<open>This is only proved in simple cases by auto. In assumptions, nothing happens, and
-  @{thm if_split_asm} can blow up goals (because of other if expression).\<close>
+  the theorem @{thm [source] if_split_asm} can blow up goals (because of other if-expressions either
+  in the context or as simplification rules).\<close>
 lemma if_0_1_ge_0[simp]:
   "0 < (if P then a else (0::nat)) \<longleftrightarrow> P \<and> 0 < a"
   by auto
@@ -49,7 +50,7 @@ proof (rule ccontr)
 qed
 
 text \<open>A function is bounded iff its product with a non-zero constant is bounded. The non-zero
-  condition is needed only for the reverse implication (see for example @{term "k = 0"} and
+  condition is needed only for the reverse implication (see for example @{term "k = (0::nat)"} and
   @{term "f = (\<lambda>i. i)"} for a counter-example).\<close>
 lemma bounded_const_product:
   fixes k :: nat and f :: "nat \<Rightarrow> nat"
@@ -59,7 +60,7 @@ lemma bounded_const_product:
    using mult_le_mono2 apply blast
   by (meson assms le_less_trans less_or_eq_imp_le nat_mult_less_cancel_disj split_div_lemma)
 
-text \<open>This lemma is not used, but here to show that a property that can be expected from
+text \<open>This lemma is not used, but here to show that property that can be expected from
   @{term bounded} holds.\<close>
 lemma bounded_finite_linorder:
   fixes f :: "'a \<Rightarrow> 'a :: {finite, linorder}"
@@ -74,8 +75,9 @@ qed
 section \<open>More List\<close>
 
 subsection \<open>@{term upt}\<close>
-text \<open>The simplification rules are not very handy, because @{thm upt.simps(2)} leads to a case
-  distinction, that we do not want if the condition is not in the context.\<close>
+text \<open>The simplification rules are not very handy, because theorem @{thm [source] upt.simps(2)}
+    (i.e.\ @{thm upt.simps(2)}) leads to a case distinction, that we do not want if the condition
+    is not in the context.\<close>
 lemma upt_Suc_le_append: "\<not>i \<le> j \<Longrightarrow> [i..<Suc j] = []"
   by auto
 
@@ -83,14 +85,8 @@ lemmas upt_simps[simp] = upt_Suc_append upt_Suc_le_append
 
 declare upt.simps(2)[simp del]
 
-  (* Sledgehammer one-liner: *)
-lemma
-  assumes "i \<le> n - m"
-  shows "take i [m..<n] = [m..<m+i]"
-  by (metis Nat.le_diff_conv2 add.commute assms diff_is_0_eq' linear take_upt upt_conv_Nil)
-
-text \<open>The counterpart for this lemma when @{term "i > n-m"} is @{thm take_all}. It is close to
-  @{thm take_upt}, but seems more general.\<close>
+text \<open>The counterpart for this lemma when @{term "i > n-m"} is theorem @{thm [source] take_all}. It 
+  is close to theorem @{thm take_upt}, but seems more general.\<close>
 lemma take_upt_bound_minus[simp]:
   assumes "i \<le> n - m"
   shows "take i [m..<n] = [m ..<m+i]"
@@ -108,8 +104,8 @@ proof -
   show "B = [m + length A..<n]" using assms by (metis append_eq_conv_conj drop_upt)
 qed
 
-text \<open>The converse of @{thm append_cons_eq_upt} does not hold, for example if @{term B} is
-empty and @{term A} is @{term "[0]"}:\<close>
+text \<open>The converse of theorem @{thm [source] append_cons_eq_upt} does not hold, for example if @
+  {term "B:: nat list"} is empty and @{term "A :: nat list"} is @{term "[0]"}:\<close>
 lemma "A @ B = [m..< n] \<longleftrightarrow> A = [m ..<m+length A] \<and> B = [m + length A..<n]"
 (*
 Auto Quickcheck found a counterexample:
@@ -269,8 +265,8 @@ lemma lexn_n:
 
 text \<open>There is some subtle point in the proof here. @{term "1::nat"} is converted to
   @{term "Suc 0::nat"}, but @{term "2::nat"} is not: meaning that @{term "1::nat"} is automatically
-  simplified by default using the default simplification rule @{thm lexn.simps}. However, the
-  latter needs additional simplification rule (see the proof of the theorem above).\<close>
+  simplified by default using the default simplification rule @{thm [source] lexn.simps}. However,
+  the latter needs additional simplification rule (see the proof of the theorem above).\<close>
 
 lemma lexn2_conv:
   "([a, b], [c, d]) \<in> lexn r 2 \<longleftrightarrow> (a, c) \<in> r \<or> (a = c \<and> (b, d) \<in>r)"
@@ -325,7 +321,8 @@ lemma mset_map_mset_removeAll_cond:
  = removeAll_mset (mset a) (mset (map mset C))"
   by (induction C) (auto simp: ac_simps mset_less_eqI multiset_diff_union_assoc)
 
-text \<open>Take from @{file "../lib/Multiset_More.thy"}, but named:\<close>
+text \<open>The definition and the correctness theorem are from the multiset theory
+  @{file "~~/src/HOL/Library/Multiset.thy"}, but a name is necessary to refer to them:\<close>
 abbreviation union_mset_list where
 "union_mset_list xs ys \<equiv> case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
 

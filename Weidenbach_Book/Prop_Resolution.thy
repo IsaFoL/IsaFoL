@@ -2,7 +2,7 @@ theory Prop_Resolution
 imports Partial_Clausal_Logic List_More Wellfounded_More
 
 begin
-chapter \<open>Resolution based techniques\<close>
+chapter \<open>Resolution-based techniques\<close>
 
 text \<open>This chapter contains the formalisation of resolution and superposition.\<close>
 

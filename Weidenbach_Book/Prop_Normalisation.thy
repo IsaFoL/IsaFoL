@@ -1841,8 +1841,9 @@ proof -
   then show ?thesis using preserves_un_sat_def by auto
 qed
 
-text \<open>Contrary to the theorem @{thm no_T_F_symb_except_toplevel_step_exists}, we do not need the
-  assumption @{term "no_equiv \<phi>"} and @{term "no_imp \<phi>"}, since our transformation is more general.\<close>
+text \<open>Contrary to the theorem @{thm [source] no_T_F_symb_except_toplevel_step_exists}, we do not
+  need the assumption @{term "no_equiv \<phi>"} and @{term "no_imp \<phi>"}, since our transformation is
+  more general.\<close>
 lemma no_T_F_symb_except_toplevel_step_exists':
   fixes \<phi> :: "'v propo"
   shows "\<psi> \<preceq> \<phi> \<Longrightarrow> \<not> no_T_F_symb_except_toplevel \<psi> \<Longrightarrow> \<exists>\<psi>'. elimTBFull \<psi> \<psi>'"

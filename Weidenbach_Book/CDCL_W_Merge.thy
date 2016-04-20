@@ -8,14 +8,17 @@ theory CDCL_W_Merge
 imports CDCL_W_Termination
 begin
 text \<open>Before showing that Weidenbach's CDCL is included in NOT's CDCL, we need to work on a variant
-  of Weidenbach's calculus: @{term conflict_driven_clause_learning\<^sub>W.conflict},
-  @{term conflict_driven_clause_learning\<^sub>W.resolve}, @{term conflict_driven_clause_learning\<^sub>W.skip},
-  and @{term conflict_driven_clause_learning\<^sub>W.backtrack} have to be done in a single step since they
-  have a single counterpart in NOTs CDCL.
+  of Weidenbach's calculus: NOT's backjump assumes the existence of a clause that is suitable to
+  backjump. This clause is obtained in W's CDCL by applying:
+    \<^enum> @{term conflict_driven_clause_learning\<^sub>W.conflict} to find the conflict
+    \<^enum> the conflict is analysed by repetitive application of
+      @{term conflict_driven_clause_learning\<^sub>W.resolve} and
+      @{term conflict_driven_clause_learning\<^sub>W.skip},
+    \<^enum> finally @{term conflict_driven_clause_learning\<^sub>W.backtrack} is used to backtrack.
 
   We show that this new calculus has the same final states than Weidenbach's CDCL if the calculus
   starts in a state such that the invariant holds and no conflict has been found yet. The latter
-  condition holds for initial state.\<close>
+  condition holds for initial states.\<close>
 
 subsection \<open>Inclusion of the states\<close>
 
@@ -266,7 +269,7 @@ next
   then show ?thesis using IH inv by blast
 qed
 
-text \<open>See also @{thm rtranclp_skip_backtrack_backtrack}\<close>
+text \<open>See also theorem @{thm [source] rtranclp_skip_backtrack_backtrack}\<close>
 lemma rtranclp_skip_backtrack_backtrack_end:
   assumes
     skip: "skip\<^sup>*\<^sup>* S T" and
@@ -965,7 +968,7 @@ lemma full_cdcl\<^sub>W_bj_unique_normal_form:
  shows "T \<sim> U"
    using cdcl\<^sub>W_bj_unique_normal_form assms unfolding full_def by blast
 
-subsection \<open>CDCL FW\<close>
+subsection \<open>CDCL with Merging\<close>
 inductive cdcl\<^sub>W_merge_restart :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 fw_r_propagate: "propagate S S' \<Longrightarrow> cdcl\<^sub>W_merge_restart S S'" |
 fw_r_conflict: "conflict S T \<Longrightarrow> full cdcl\<^sub>W_bj T U \<Longrightarrow> cdcl\<^sub>W_merge_restart S U" |
@@ -1238,7 +1241,7 @@ lemma init_state_true_full_cdcl\<^sub>W_iff_full_cdcl\<^sub>W_merge:
   shows "full cdcl\<^sub>W (init_state N) V \<longleftrightarrow> full cdcl\<^sub>W_merge_restart (init_state N) V"
   by (rule conflicting_true_full_cdcl\<^sub>W_iff_full_cdcl\<^sub>W_merge) auto
 
-subsection \<open>FW with strategy\<close>
+subsection \<open>CDCL with Merge and Strategy\<close>
 subsubsection \<open>The intermediate step\<close>
 inductive cdcl\<^sub>W_s' :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 conflict': "full1 cdcl\<^sub>W_cp S S' \<Longrightarrow> cdcl\<^sub>W_s' S S'" |
