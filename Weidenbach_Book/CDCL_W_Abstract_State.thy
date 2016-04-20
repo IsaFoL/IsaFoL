@@ -55,12 +55,9 @@ definition update_conflicting where
 definition init_state where
 "init_state \<equiv> \<lambda>N. ([], N, {#}, 0, None)"
 
-definition restart_state where
-"restart_state \<equiv> \<lambda>(_, N, U, _, _). ([], N, U, 0, None)"
-
 lemmas cdcl\<^sub>W_mset_state = trail_def cons_trail_def tl_trail_def add_learned_cls_def
     remove_cls_def update_backtrack_lvl_def update_conflicting_def init_clss_def learned_clss_def
-    backtrack_lvl_def conflicting_def init_state_def restart_state_def
+    backtrack_lvl_def conflicting_def init_state_def
 
 interpretation cdcl\<^sub>W_mset: state\<^sub>W_ops where
   trail = trail and
@@ -75,8 +72,7 @@ interpretation cdcl\<^sub>W_mset: state\<^sub>W_ops where
   remove_cls = remove_cls and
   update_backtrack_lvl = update_backtrack_lvl and
   update_conflicting = update_conflicting and
-  init_state = init_state and
-  restart_state = restart_state
+  init_state = init_state
   .
 
 interpretation cdcl\<^sub>W_mset: state\<^sub>W where
@@ -92,8 +88,7 @@ interpretation cdcl\<^sub>W_mset: state\<^sub>W where
   remove_cls = remove_cls and
   update_backtrack_lvl = update_backtrack_lvl and
   update_conflicting = update_conflicting and
-  init_state = init_state and
-  restart_state = restart_state
+  init_state = init_state
   by unfold_locales (auto simp: cdcl\<^sub>W_mset_state)
 
 interpretation cdcl\<^sub>W_mset: conflict_driven_clause_learning\<^sub>W where
@@ -109,8 +104,7 @@ interpretation cdcl\<^sub>W_mset: conflict_driven_clause_learning\<^sub>W where
   remove_cls = remove_cls and
   update_backtrack_lvl = update_backtrack_lvl and
   update_conflicting = update_conflicting and
-  init_state = init_state and
-  restart_state = restart_state
+  init_state = init_state
   by unfold_locales auto
 
 lemma cdcl\<^sub>W_mset_state_eq_eq: "cdcl\<^sub>W_mset.state_eq = (op =)"

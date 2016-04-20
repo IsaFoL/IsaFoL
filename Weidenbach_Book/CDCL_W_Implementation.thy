@@ -80,7 +80,6 @@ interpretation state\<^sub>W
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
   "\<lambda>N. ([], N, {#}, 0, None)"
-  "\<lambda>(_, N, U, _). ([], N, U, 0, None)"
   by unfold_locales auto
 
 interpretation conflict_driven_clause_learning\<^sub>W raw_trail raw_init_clss raw_learned_clss raw_backtrack_lvl raw_conflicting
@@ -91,7 +90,6 @@ interpretation conflict_driven_clause_learning\<^sub>W raw_trail raw_init_clss r
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
   "\<lambda>N. ([], N, {#}, 0, None)"
-  "\<lambda>(_, N, U, _). ([], N, U, 0, None)"
   by unfold_locales auto
 
 declare clauses_def[simp]

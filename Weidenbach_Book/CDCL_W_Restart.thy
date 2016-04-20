@@ -15,7 +15,6 @@ locale cdcl\<^sub>W_restart =
 
       \<comment> \<open>get state:\<close>
     init_state
-    restart_state
   for
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
@@ -30,8 +29,7 @@ locale cdcl\<^sub>W_restart =
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-    init_state :: "'v clauses \<Rightarrow> 'st" and
-    restart_state :: "'st \<Rightarrow> 'st" +
+    init_state :: "'v clauses \<Rightarrow> 'st" +
   fixes f :: "nat \<Rightarrow> nat"
   assumes f: "unbounded f"
 begin
@@ -185,8 +183,8 @@ next
   then have "distinct_mset (clauses T)"
     using rtranclp_cdcl\<^sub>W_merge_stgy_distinct_mset_clauses[of S T] unfolding full1_def
     by (auto dest: relpowp_imp_rtranclp)
-  then show ?case using \<open>restart T U\<close> by (metis clauses_restart distinct_mset_union fstI
-    mset_le_exists_conv restart.cases state_eq_clauses)
+  then show ?case using \<open>restart T U\<close>  unfolding clauses_def
+    by (metis  distinct_mset_union fstI restartE subset_mset.le_iff_add union_assoc)
 qed
 
 inductive cdcl\<^sub>W_with_restart where
@@ -306,8 +304,8 @@ next
   case (restart_step T S n U)
   then have "distinct_mset (clauses T)" using rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses[of S T]
     unfolding full1_def by (auto dest: relpowp_imp_rtranclp)
-  then show ?case using \<open>restart T U\<close> by (metis clauses_restart distinct_mset_union fstI
-    mset_le_exists_conv restart.cases state_eq_clauses)
+  then show ?case using \<open>restart T U\<close> unfolding clauses_def
+    by (metis  distinct_mset_union fstI restartE subset_mset.le_iff_add union_assoc)
 qed
 end
 
@@ -541,7 +539,7 @@ end
 
 locale luby_sequence_restart =
   luby_sequence ur +
-  conflict_driven_clause_learning\<^sub>W  \<comment> \<open>functions for clauses: \<close>
+  conflict_driven_clause_learning\<^sub>W
     \<comment> \<open>functions for the state: \<close>
       \<comment> \<open>access functions:\<close>
     trail init_clss learned_clss backtrack_lvl conflicting
@@ -551,7 +549,6 @@ locale luby_sequence_restart =
 
       \<comment> \<open>get state:\<close>
     init_state
-    restart_state
   for
     ur :: nat and
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
@@ -568,11 +565,10 @@ locale luby_sequence_restart =
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-    init_state :: "'v clauses \<Rightarrow> 'st" and
-    restart_state :: "'st \<Rightarrow> 'st"
+    init_state :: "'v clauses \<Rightarrow> 'st"
 begin
 
-sublocale cdcl\<^sub>W_restart _ _ _ _ _ _ _ _ _ _ _ _ _ luby_sequence
+sublocale cdcl\<^sub>W_restart _ _ _ _ _ _ _ _ _ _ _ _ luby_sequence
   apply unfold_locales
   using bounded_luby_sequence by blast
 

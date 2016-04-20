@@ -48,8 +48,7 @@ locale state\<^sub>W_ops =
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-    init_state :: "'v clauses \<Rightarrow> 'st" and
-    restart_state :: "'st \<Rightarrow> 'st"
+    init_state :: "'v clauses \<Rightarrow> 'st"
 begin
 abbreviation hd_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lit" where
 "hd_trail S \<equiv> hd (trail S)"
@@ -92,7 +91,6 @@ locale state\<^sub>W =
 
       \<comment> \<open>Some specific states:\<close>
     init_state
-    restart_state
   for
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
@@ -107,8 +105,7 @@ locale state\<^sub>W =
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-    init_state :: "'v clauses \<Rightarrow> 'st" and
-    restart_state :: "'st \<Rightarrow> 'st" +
+    init_state :: "'v clauses \<Rightarrow> 'st" +
   assumes
     trail_cons_trail[simp]:
       "\<And>L st. trail (cons_trail L st) = L # trail st" and
@@ -178,14 +175,7 @@ locale state\<^sub>W =
     init_state_clss[simp]: "\<And>N. init_clss (init_state N) = N" and
     init_state_learned_clss[simp]: "\<And>N. learned_clss (init_state N) = {#}" and
     init_state_backtrack_lvl[simp]: "\<And>N. backtrack_lvl (init_state N) = 0" and
-    init_state_conflicting[simp]: "\<And>N. conflicting (init_state N) = None" and
-
-    trail_restart_state[simp]: "trail (restart_state S) = []" and
-    init_clss_restart_state[simp]: "init_clss (restart_state S) = init_clss S" and
-    learned_clss_restart_state[intro]:
-      "learned_clss (restart_state S) \<subseteq># learned_clss S" and
-    backtrack_lvl_restart_state[simp]: "backtrack_lvl (restart_state S) = 0" and
-    conflicting_restart_state[simp]: "conflicting (restart_state S) = None"
+    init_state_conflicting[simp]: "\<And>N. conflicting (init_state N) = None"
 begin
 
 lemma
@@ -203,7 +193,6 @@ lemma
       "clauses (remove_cls C S) = removeAll_mset C (clauses S)" and
     clauses_add_learned_cls[simp]:
       " clauses (add_learned_cls C S) = {#C#} + clauses S" and
-    clauses_restart[simp]: "clauses (restart_state S) \<subseteq># clauses S" and
     clauses_init_state[simp]: "clauses (init_state N) = N"
     by (auto simp: ac_simps replicate_mset_plus clauses_def intro: multiset_eqI)
 
@@ -250,10 +239,6 @@ text \<open>We combine all simplification rules about @{term state_eq} in a sing
 lemmas state_simp[simp] = state_eq_trail state_eq_init_clss state_eq_learned_clss
   state_eq_backtrack_lvl state_eq_conflicting state_eq_clauses state_eq_undefined_lit
   state_eq_conflicting_None
-
-lemma atms_of_ms_learned_clss_restart_state_in_atms_of_ms_learned_clssI[intro]:
-  "x \<in> atms_of_mm (learned_clss (restart_state S)) \<Longrightarrow> x \<in> atms_of_mm (learned_clss S)"
-  by (meson atms_of_ms_mono learned_clss_restart_state set_mset_mono subsetCE)
 
 function reduce_trail_to :: "'a list \<Rightarrow> 'st \<Rightarrow> 'st" where
 "reduce_trail_to F S =
@@ -434,7 +419,6 @@ locale conflict_driven_clause_learning\<^sub>W =
 
       \<comment> \<open>get state:\<close>
     init_state
-    restart_state
   for
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
@@ -449,8 +433,7 @@ locale conflict_driven_clause_learning\<^sub>W =
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-    init_state :: "'v clauses \<Rightarrow> 'st" and
-    restart_state :: "'st \<Rightarrow> 'st"
+    init_state :: "'v clauses \<Rightarrow> 'st"
 begin
 
 inductive propagate :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
@@ -533,9 +516,11 @@ resolve_rule: "trail S \<noteq> [] \<Longrightarrow>
 inductive_cases resolveE: "resolve S T"
 
 inductive restart :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
-restart: "state S = (M, N, U, k, None) \<Longrightarrow> \<not>M \<Turnstile>asm clauses S
-  \<Longrightarrow> T \<sim> restart_state S
-  \<Longrightarrow> restart S T"
+restart: "state S = (M, N, U, k, None) \<Longrightarrow>
+  \<not>M \<Turnstile>asm clauses S \<Longrightarrow>
+  U' \<subseteq># U \<Longrightarrow>
+  state T = ([], N, U', 0, None) \<Longrightarrow>
+  restart S T"
 
 inductive_cases restartE: "restart S T"
 
@@ -642,9 +627,10 @@ lemma cdcl\<^sub>W_all_induct[consumes 1, case_names propagate conflict forget r
       C \<notin># init_clss S \<Longrightarrow>
       T \<sim> remove_cls C S \<Longrightarrow>
       P S T" and
-    restartH: "\<And>T. \<not>trail S \<Turnstile>asm clauses S \<Longrightarrow>
+    restartH: "\<And>T U. \<not>trail S \<Turnstile>asm clauses S \<Longrightarrow>
       conflicting S = None \<Longrightarrow>
-      T \<sim> restart_state S \<Longrightarrow>
+      state T = ([], init_clss S, U, 0, None) \<Longrightarrow>
+      U \<subseteq># learned_clss S \<Longrightarrow>
       P S T" and
     decideH: "\<And>L T. conflicting S = None \<Longrightarrow>
       undefined_lit (trail S) L \<Longrightarrow>
@@ -1287,7 +1273,7 @@ next
 next
   case (restart T)
   then show ?case
-    using learned learned_clss_restart_state[of T]
+    using learned
     by (auto
       simp: clauses_def state_eq_def cdcl\<^sub>W_learned_clause_def
       simp del: state_simp
@@ -1377,6 +1363,13 @@ lemma in_atms_of_remove1_mset_in_atms_of:
   "x \<in> atms_of (remove1_mset L C) \<Longrightarrow> x \<in> atms_of C"
   using in_diffD unfolding atms_of_def by fastforce
 
+lemma atms_of_ms_learned_clss_restart_state_in_atms_of_ms_learned_clssI:
+  "atms_of_mm (learned_clss S) \<subseteq> atms_of_mm (init_clss S) \<Longrightarrow>
+   x \<in> atms_of_mm (learned_clss T) \<Longrightarrow>
+   learned_clss T \<subseteq># learned_clss S \<Longrightarrow>
+   x \<in> atms_of_mm (init_clss S)"
+  by (meson atms_of_ms_mono contra_subsetD set_mset_mono)
+
 lemma cdcl\<^sub>W_no_strange_atm_explicit:
   assumes
     "cdcl\<^sub>W S S'" and
@@ -1428,7 +1421,8 @@ next
     by (auto simp add: H)
 next
   case (restart T)
-  then show ?case using learned decided conf trail by auto
+  then show ?case using learned decided conf trail
+    by (auto intro: atms_of_ms_learned_clss_restart_state_in_atms_of_ms_learned_clssI)
 next
   case (forget C T) note confl = this(1) and C = this(4) and C_le = this(5) and
     T = this(6)
@@ -1525,8 +1519,7 @@ proof (induct rule: cdcl\<^sub>W_all_induct)
 next
   case restart
   then show ?case
-    unfolding distinct_cdcl\<^sub>W_state_def distinct_mset_set_def clauses_def
-    using learned_clss_restart_state[of S] by auto
+    unfolding distinct_cdcl\<^sub>W_state_def distinct_mset_set_def clauses_def by auto
 next
   case resolve
   then show ?case
@@ -2199,8 +2192,8 @@ proof (induct rule: cdcl\<^sub>W_all_induct)
     by (auto simp: cdcl\<^sub>W_M_level_inv_decomp split: if_split_asm)
 next
   case restart
-  then show ?case using learned_clss_restart_state state_eq_learned_clss no_tauto
-    by (metis (no_types, lifting) set_mset_mono subsetCE)
+  then show ?case using state_eq_learned_clss no_tauto
+    by (auto intro: atms_of_ms_learned_clss_restart_state_in_atms_of_ms_learned_clssI)
 qed (auto dest!: in_diffD)
 
 definition "final_cdcl\<^sub>W_state (S :: 'st)

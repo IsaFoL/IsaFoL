@@ -14,7 +14,6 @@ locale state\<^sub>W_adding_init_clause =
 
       \<comment> \<open>Some specific states:\<close>
     init_state
-    restart_state
   for
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
@@ -29,8 +28,7 @@ locale state\<^sub>W_adding_init_clause =
     update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-    init_state :: "'v clauses \<Rightarrow> 'st" and
-    restart_state :: "'st \<Rightarrow> 'st" +
+    init_state :: "'v clauses \<Rightarrow> 'st" +
   fixes
     add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st"
   assumes
@@ -71,7 +69,6 @@ locale conflict_driven_clause_learning_with_adding_init_clause\<^sub>W =
 
       \<comment> \<open>get state:\<close>
     init_state
-    restart_state
       \<comment> \<open>Adding a clause:\<close>
     add_init_cls
   for
@@ -90,7 +87,6 @@ locale conflict_driven_clause_learning_with_adding_init_clause\<^sub>W =
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     init_state :: "'v clauses \<Rightarrow> 'st" and
-    restart_state :: "'st \<Rightarrow> 'st" and
     add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st"
 begin
 
