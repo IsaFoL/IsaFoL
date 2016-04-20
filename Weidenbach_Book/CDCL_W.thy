@@ -59,6 +59,9 @@ definition clauses :: "'st \<Rightarrow> 'v clauses" where
 abbreviation resolve_cls where
 "resolve_cls L D' E \<equiv> remove1_mset (-L) D' #\<union> remove1_mset L E"
 
+abbreviation state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses
+  \<times> nat \<times> 'v clause option" where
+"state S \<equiv> (trail S, init_clss S, learned_clss S, backtrack_lvl S, conflicting S)"
 end
 
 text \<open>We are using an abstract state to abstract away the detail of the implementation: we do not
@@ -107,76 +110,109 @@ locale state\<^sub>W =
 
     init_state :: "'v clauses \<Rightarrow> 'st" +
   assumes
+    cons_trail:
+      "\<And>S'. state st = (M, S') \<Longrightarrow>
+        state (cons_trail L st) = (L # M, S')" and
+
+    tl_trail:
+      "\<And>S'. state st = (M, S') \<Longrightarrow> state (tl_trail st) = (tl M, S')" and
+
+    remove_cls:
+      "\<And>S'. state st = (M, N, U, S') \<Longrightarrow>
+        state (remove_cls C st) =
+          (M, removeAll_mset C N, removeAll_mset C U, S')" and
+
+    add_learned_cls:
+      "\<And>S'. state st = (M, N, U, S') \<Longrightarrow>
+        state (add_learned_cls C st) = (M, N, {#C#} + U, S')" and
+
+    update_backtrack_lvl:
+      "\<And>S'. state st = (M, N, U, k, S') \<Longrightarrow>
+        state (update_backtrack_lvl k' st) = (M, N, U, k', S')" and
+
+    update_conflicting:
+      "state st = (M, N, U, k, D) \<Longrightarrow>
+        state (update_conflicting E st) = (M, N, U, k, E)" and
+
+    init_state:
+      "state (init_state N) = ([], N, {#}, 0, None)"
+begin
+  lemma
     trail_cons_trail[simp]:
-      "\<And>L st. trail (cons_trail L st) = L # trail st" and
-    trail_tl_trail[simp]: "\<And>st. trail (tl_trail st) = tl (trail st)" and
+      "trail (cons_trail L st) = L # trail st" and
+    trail_tl_trail[simp]: "trail (tl_trail st) = tl (trail st)" and
     trail_add_learned_cls[simp]:
-      "\<And>C st. trail (add_learned_cls C st) = trail st" and
+      "trail (add_learned_cls C st) = trail st" and
     trail_remove_cls[simp]:
-      "\<And>C st. trail (remove_cls C st) = trail st" and
-    trail_update_backtrack_lvl[simp]: "\<And>st C. trail (update_backtrack_lvl C st) = trail st" and
-    trail_update_conflicting[simp]: "\<And>C st. trail (update_conflicting C st) = trail st" and
+      "trail (remove_cls C st) = trail st" and
+    trail_update_backtrack_lvl[simp]: "trail (update_backtrack_lvl k st) = trail st" and
+    trail_update_conflicting[simp]: "trail (update_conflicting E st) = trail st" and
 
     init_clss_cons_trail[simp]:
-      "\<And>M st. init_clss (cons_trail M st) = init_clss st"
+      "init_clss (cons_trail M st) = init_clss st"
       and
     init_clss_tl_trail[simp]:
-      "\<And>st. init_clss (tl_trail st) = init_clss st" and
+      "init_clss (tl_trail st) = init_clss st" and
     init_clss_add_learned_cls[simp]:
-      "\<And>C st. init_clss (add_learned_cls C st) = init_clss st" and
+      "init_clss (add_learned_cls C st) = init_clss st" and
     init_clss_remove_cls[simp]:
-      "\<And>C st. init_clss (remove_cls C st) = removeAll_mset C (init_clss st)" and
+      "init_clss (remove_cls C st) = removeAll_mset C (init_clss st)" and
     init_clss_update_backtrack_lvl[simp]:
-      "\<And>st C. init_clss (update_backtrack_lvl C st) = init_clss st" and
+      "init_clss (update_backtrack_lvl k st) = init_clss st" and
     init_clss_update_conflicting[simp]:
-      "\<And>C st. init_clss (update_conflicting C st) = init_clss st" and
+      "init_clss (update_conflicting E st) = init_clss st" and
 
     learned_clss_cons_trail[simp]:
-      "\<And>M st. learned_clss (cons_trail M st) = learned_clss st" and
+      "learned_clss (cons_trail M st) = learned_clss st" and
     learned_clss_tl_trail[simp]:
-      "\<And>st. learned_clss (tl_trail st) = learned_clss st" and
+      "learned_clss (tl_trail st) = learned_clss st" and
     learned_clss_add_learned_cls[simp]:
-      "\<And>C st. learned_clss (add_learned_cls C st) = {#C#} + learned_clss st" and
+      "learned_clss (add_learned_cls C st) = {#C#} + learned_clss st" and
     learned_clss_remove_cls[simp]:
-      "\<And>C st. learned_clss (remove_cls C st) = removeAll_mset C (learned_clss st)" and
+      "learned_clss (remove_cls C st) = removeAll_mset C (learned_clss st)" and
     learned_clss_update_backtrack_lvl[simp]:
-      "\<And>st C. learned_clss (update_backtrack_lvl C st) = learned_clss st" and
+      "learned_clss (update_backtrack_lvl k st) = learned_clss st" and
     learned_clss_update_conflicting[simp]:
-      "\<And>C st. learned_clss (update_conflicting C st) = learned_clss st" and
+      "learned_clss (update_conflicting E st) = learned_clss st" and
 
     backtrack_lvl_cons_trail[simp]:
-      "\<And>M st. backtrack_lvl (cons_trail M st) = backtrack_lvl st" and
+      "backtrack_lvl (cons_trail M st) = backtrack_lvl st" and
     backtrack_lvl_tl_trail[simp]:
-      "\<And>st. backtrack_lvl (tl_trail st) = backtrack_lvl st" and
+      "backtrack_lvl (tl_trail st) = backtrack_lvl st" and
     backtrack_lvl_add_learned_cls[simp]:
-      "\<And>C st. backtrack_lvl (add_learned_cls C st) = backtrack_lvl st" and
+      "backtrack_lvl (add_learned_cls C st) = backtrack_lvl st" and
     backtrack_lvl_remove_cls[simp]:
-      "\<And>C st. backtrack_lvl (remove_cls C st) = backtrack_lvl st" and
+      "backtrack_lvl (remove_cls C st) = backtrack_lvl st" and
     backtrack_lvl_update_backtrack_lvl[simp]:
-      "\<And>st k. backtrack_lvl (update_backtrack_lvl k st) = k" and
+      "backtrack_lvl (update_backtrack_lvl k st) = k" and
     backtrack_lvl_update_conflicting[simp]:
-      "\<And>C st. backtrack_lvl (update_conflicting C st) = backtrack_lvl st" and
+      "backtrack_lvl (update_conflicting E st) = backtrack_lvl st" and
 
     conflicting_cons_trail[simp]:
-      "\<And>M st. conflicting (cons_trail M st) = conflicting st" and
+      "conflicting (cons_trail M st) = conflicting st" and
     conflicting_tl_trail[simp]:
-      "\<And>st. conflicting (tl_trail st) = conflicting st" and
+      "conflicting (tl_trail st) = conflicting st" and
     conflicting_add_learned_cls[simp]:
-      "\<And>C st. conflicting (add_learned_cls C st) = conflicting st"
+      "conflicting (add_learned_cls C st) = conflicting st"
       and
     conflicting_remove_cls[simp]:
-      "\<And>C st. conflicting (remove_cls C st) = conflicting st" and
+      "conflicting (remove_cls C st) = conflicting st" and
     conflicting_update_backtrack_lvl[simp]:
-      "\<And>st C. conflicting (update_backtrack_lvl C st) = conflicting st" and
+      "conflicting (update_backtrack_lvl k st) = conflicting st" and
     conflicting_update_conflicting[simp]:
-      "\<And>C st. conflicting (update_conflicting C st) = C" and
+      "conflicting (update_conflicting E st) = E" and
 
-    init_state_trail[simp]: "\<And>N. trail (init_state N) = []" and
-    init_state_clss[simp]: "\<And>N. init_clss (init_state N) = N" and
-    init_state_learned_clss[simp]: "\<And>N. learned_clss (init_state N) = {#}" and
-    init_state_backtrack_lvl[simp]: "\<And>N. backtrack_lvl (init_state N) = 0" and
-    init_state_conflicting[simp]: "\<And>N. conflicting (init_state N) = None"
-begin
+    init_state_trail[simp]: "trail (init_state N) = []" and
+    init_state_clss[simp]: "init_clss (init_state N) = N" and
+    init_state_learned_clss[simp]: "learned_clss (init_state N) = {#}" and
+    init_state_backtrack_lvl[simp]: "backtrack_lvl (init_state N) = 0" and
+    init_state_conflicting[simp]: "conflicting (init_state N) = None"
+
+  using cons_trail[of st] tl_trail[of st] add_learned_cls[of st _ _ _ _ C]
+  update_backtrack_lvl[of st _ _ _ _ _ k] update_conflicting[of st _ _ _ _ _ E]
+  remove_cls[of st _ _ _ _ C]
+  init_state[of N]
+  by (cases "state st"; auto simp:)+
 
 lemma
   shows
@@ -195,10 +231,6 @@ lemma
       " clauses (add_learned_cls C S) = {#C#} + clauses S" and
     clauses_init_state[simp]: "clauses (init_state N) = N"
     by (auto simp: ac_simps replicate_mset_plus clauses_def intro: multiset_eqI)
-
-abbreviation state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses
-  \<times> nat \<times> 'v clause option" where
-"state S \<equiv> (trail S, init_clss S, learned_clss S, backtrack_lvl S, conflicting S)"
 
 abbreviation incr_lvl :: "'st \<Rightarrow> 'st" where
 "incr_lvl S \<equiv> update_backtrack_lvl (backtrack_lvl S + 1) S"
@@ -351,7 +383,7 @@ lemma reduce_trail_to_update_conflicting[simp]:
   by (rule trail_eq_reduce_trail_to_eq) auto
 
 lemma reduce_trail_to_update_backtrack_lvl[simp]:
-  "trail (reduce_trail_to F (update_backtrack_lvl C S)) = trail (reduce_trail_to F S)"
+  "trail (reduce_trail_to F (update_backtrack_lvl k S)) = trail (reduce_trail_to F S)"
   by (rule trail_eq_reduce_trail_to_eq) auto
 
 lemma reduce_trail_to_length:

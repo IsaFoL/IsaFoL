@@ -36,7 +36,8 @@ locale dpll_state_ops =
     add_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st"
 begin
-
+abbreviation state\<^sub>N\<^sub>O\<^sub>T  :: "'st \<Rightarrow> ('v, unit) ann_lit list \<times> 'v clauses" where
+"state\<^sub>N\<^sub>O\<^sub>T S \<equiv> (trail S, clauses\<^sub>N\<^sub>O\<^sub>T S)"
 end
 
 text \<open>NOT's state is basically a pair composed of the trail (i.e.\ the candidate model) and the
@@ -53,22 +54,33 @@ locale dpll_state =
     add_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" +
   assumes
-    trail_prepend_trail[simp]:
-      "\<And>st L. trail (prepend_trail L st) = L # trail st"
-      and
-    tl_trail[simp]: "trail (tl_trail S) = tl (trail S)" and
-    trail_add_cls\<^sub>N\<^sub>O\<^sub>T[simp]: "\<And>st C. trail (add_cls\<^sub>N\<^sub>O\<^sub>T C st) = trail st" and
-    trail_remove_cls\<^sub>N\<^sub>O\<^sub>T[simp]: "\<And>st C. trail (remove_cls\<^sub>N\<^sub>O\<^sub>T C st) = trail st" and
-
-    clauses_prepend_trail[simp]:
-      "\<And>st L. clauses\<^sub>N\<^sub>O\<^sub>T (prepend_trail L st) = clauses\<^sub>N\<^sub>O\<^sub>T st"
-      and
-    clauses_tl_trail[simp]: "\<And>st. clauses\<^sub>N\<^sub>O\<^sub>T (tl_trail st) = clauses\<^sub>N\<^sub>O\<^sub>T st" and
-    clauses_add_cls\<^sub>N\<^sub>O\<^sub>T[simp]:
-      "\<And>st C. clauses\<^sub>N\<^sub>O\<^sub>T (add_cls\<^sub>N\<^sub>O\<^sub>T C st) = {#C#} + clauses\<^sub>N\<^sub>O\<^sub>T st" and
-    clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T[simp]:
-      "\<And>st C. clauses\<^sub>N\<^sub>O\<^sub>T (remove_cls\<^sub>N\<^sub>O\<^sub>T C st) = removeAll_mset C (clauses\<^sub>N\<^sub>O\<^sub>T st)"
+    prepend_trail\<^sub>N\<^sub>O\<^sub>T:
+      "state\<^sub>N\<^sub>O\<^sub>T (prepend_trail L st) = (L # trail st, clauses\<^sub>N\<^sub>O\<^sub>T st)" and
+    tl_trail\<^sub>N\<^sub>O\<^sub>T:
+      "state\<^sub>N\<^sub>O\<^sub>T (tl_trail st) = (tl (trail st), clauses\<^sub>N\<^sub>O\<^sub>T st)" and
+    add_cls\<^sub>N\<^sub>O\<^sub>T:
+      "state\<^sub>N\<^sub>O\<^sub>T (add_cls\<^sub>N\<^sub>O\<^sub>T C st) = (trail st, {#C#} + clauses\<^sub>N\<^sub>O\<^sub>T st)" and
+    remove_cls\<^sub>N\<^sub>O\<^sub>T:
+      "state\<^sub>N\<^sub>O\<^sub>T (remove_cls\<^sub>N\<^sub>O\<^sub>T C st) = (trail st, removeAll_mset C (clauses\<^sub>N\<^sub>O\<^sub>T st))"
 begin
+lemma
+  trail_prepend_trail[simp]:
+    "trail (prepend_trail L st) = L # trail st"
+    and
+  trail_tl_trail\<^sub>N\<^sub>O\<^sub>T[simp]: "trail (tl_trail st) = tl (trail st)" and
+  trail_add_cls\<^sub>N\<^sub>O\<^sub>T[simp]: "trail (add_cls\<^sub>N\<^sub>O\<^sub>T C st) = trail st" and
+  trail_remove_cls\<^sub>N\<^sub>O\<^sub>T[simp]: "trail (remove_cls\<^sub>N\<^sub>O\<^sub>T C st) = trail st" and
+
+  clauses_prepend_trail[simp]:
+    "clauses\<^sub>N\<^sub>O\<^sub>T (prepend_trail L st) = clauses\<^sub>N\<^sub>O\<^sub>T st"
+    and
+  clauses_tl_trail[simp]: "clauses\<^sub>N\<^sub>O\<^sub>T (tl_trail st) = clauses\<^sub>N\<^sub>O\<^sub>T st" and
+  clauses_add_cls\<^sub>N\<^sub>O\<^sub>T[simp]:
+    "clauses\<^sub>N\<^sub>O\<^sub>T (add_cls\<^sub>N\<^sub>O\<^sub>T C st) = {#C#} + clauses\<^sub>N\<^sub>O\<^sub>T st" and
+  clauses_remove_cls\<^sub>N\<^sub>O\<^sub>T[simp]:
+    "clauses\<^sub>N\<^sub>O\<^sub>T (remove_cls\<^sub>N\<^sub>O\<^sub>T C st) = removeAll_mset C (clauses\<^sub>N\<^sub>O\<^sub>T st)"
+  using prepend_trail\<^sub>N\<^sub>O\<^sub>T[of L st] tl_trail\<^sub>N\<^sub>O\<^sub>T[of st] add_cls\<^sub>N\<^sub>O\<^sub>T[of C st] remove_cls\<^sub>N\<^sub>O\<^sub>T[of C st]
+  by (cases "state\<^sub>N\<^sub>O\<^sub>T st"; auto)+
 
 text \<open>We define the following function doing the backtrack in the trail:\<close>
 function reduce_trail_to\<^sub>N\<^sub>O\<^sub>T :: "'a list \<Rightarrow> 'st \<Rightarrow> 'st" where
@@ -134,7 +146,8 @@ lemma reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_clauses[simp]:
 lemma trail_eq_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_eq:
   "trail S = trail T \<Longrightarrow> trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S) = trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F T)"
   apply (induction F S arbitrary: T rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
-  by (metis tl_trail reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_eq_length reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_length_ne reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_Nil)
+  by (metis trail_tl_trail\<^sub>N\<^sub>O\<^sub>T reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_eq_length reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_length_ne
+    reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_Nil)
 
 lemma trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_add_cls\<^sub>N\<^sub>O\<^sub>T[simp]:
   "no_dup (trail S) \<Longrightarrow>
@@ -158,6 +171,7 @@ abbreviation trail_weight where
 text \<open>As we are defining abstract states, the Isabelle equality about them is too strong: we want
   the weaker equivalence stating that two states are equal if they cannot be distinguished, i.e.\
   given the getter @{term trail} and @{term clauses\<^sub>N\<^sub>O\<^sub>T} do not distinguish them.\<close>
+
 definition state_eq\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) where
 "S \<sim> T \<longleftrightarrow> trail S = trail T \<and> clauses\<^sub>N\<^sub>O\<^sub>T S = clauses\<^sub>N\<^sub>O\<^sub>T T"
 
@@ -4134,7 +4148,8 @@ lemma full_cdcl\<^sub>N\<^sub>O\<^sub>T_restart_normal_form:
     atms_trail: "atm_of ` lits_of_l (trail (fst S)) \<subseteq> atms_of_ms A" and
     fin: "finite A"
   shows "unsatisfiable (set_mset (clauses\<^sub>N\<^sub>O\<^sub>T (fst S)))
-    \<or> lits_of_l (trail (fst T)) \<Turnstile>sextm clauses\<^sub>N\<^sub>O\<^sub>T (fst S) \<and> satisfiable (set_mset (clauses\<^sub>N\<^sub>O\<^sub>T (fst S)))"
+    \<or> lits_of_l (trail (fst T)) \<Turnstile>sextm clauses\<^sub>N\<^sub>O\<^sub>T (fst S) \<and>
+       satisfiable (set_mset (clauses\<^sub>N\<^sub>O\<^sub>T (fst S)))"
 proof -
   have inv_T: "inv (fst T)" and n_d_T: "no_dup (trail (fst T))"
     using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_with_restart_cdcl\<^sub>N\<^sub>O\<^sub>T_inv using full inv n_d unfolding full_def by blast+
@@ -4164,7 +4179,8 @@ proof -
     | (sat) "trail (fst T) \<Turnstile>asm clauses\<^sub>N\<^sub>O\<^sub>T (fst T)" and "satisfiable (set_mset (clauses\<^sub>N\<^sub>O\<^sub>T (fst T)))"
     by auto
   then show "unsatisfiable (set_mset (clauses\<^sub>N\<^sub>O\<^sub>T (fst S)))
-    \<or> lits_of_l (trail (fst T)) \<Turnstile>sextm clauses\<^sub>N\<^sub>O\<^sub>T (fst S) \<and> satisfiable (set_mset (clauses\<^sub>N\<^sub>O\<^sub>T (fst S)))"
+    \<or> lits_of_l (trail (fst T)) \<Turnstile>sextm clauses\<^sub>N\<^sub>O\<^sub>T (fst S) \<and>
+       satisfiable (set_mset (clauses\<^sub>N\<^sub>O\<^sub>T (fst S)))"
     proof cases
       case unsat
       then have "unsatisfiable (set_mset (clauses\<^sub>N\<^sub>O\<^sub>T (fst S)))"

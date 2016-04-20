@@ -32,18 +32,25 @@ locale state\<^sub>W_adding_init_clause =
   fixes
     add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st"
   assumes
-    trail_add_init_cls[simp]:
-      "\<And>st C. trail (add_init_cls C st) = trail st" and
-    init_clss_add_init_cls[simp]:
-      "\<And>st C. init_clss (add_init_cls C st) = {#C#} + init_clss st"
-      and
-    learned_clss_add_init_cls[simp]:
-      "\<And>st C. learned_clss (add_init_cls C st) = learned_clss st" and
-    backtrack_lvl_add_init_cls[simp]:
-      "\<And>st C. no_dup (trail st) \<Longrightarrow> backtrack_lvl (add_init_cls C st) = backtrack_lvl st" and
-    conflicting_add_init_cls[simp]:
-      "\<And>st C. conflicting (add_init_cls C st) = conflicting st"
+    add_init_cls:
+      "state st = (M, N, U, S') \<Longrightarrow>
+        state (add_init_cls C st) = (M, {#C#} + N, U, S')"
 begin
+
+lemma
+  trail_add_init_cls[simp]:
+    "trail (add_init_cls C st) = trail st" and
+  init_clss_add_init_cls[simp]:
+    "init_clss (add_init_cls C st) = {#C#} + init_clss st"
+    and
+  learned_clss_add_init_cls[simp]:
+    "learned_clss (add_init_cls C st) = learned_clss st" and
+  backtrack_lvl_add_init_cls[simp]:
+    "backtrack_lvl (add_init_cls C st) = backtrack_lvl st" and
+  conflicting_add_init_cls[simp]:
+    "conflicting (add_init_cls C st) = conflicting st"
+  using add_init_cls[of st _ _ _ _ C] by (cases "state st"; auto)+
+
 lemma clauses_add_init_cls[simp]:
    "clauses (add_init_cls N S) = {#N#} + init_clss S + learned_clss S"
    unfolding clauses_def by auto
