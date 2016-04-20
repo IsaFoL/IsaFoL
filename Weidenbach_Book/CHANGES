@@ -5,7 +5,15 @@ Since IJCAR 2016's Submission:
   removed from the datatype; i.e. Decided K () ~> Decided K
 
   * add_init_cls add been removed from CDCL_W and CDCL_W_Restart. CDCL_W_Incremental has its own
-    state locale including add_init_cls.
+  state locale including add_init_cls.
+
+  * the axioms about the states have been rewritten to use the associated state: that way the
+  number of axioms is linear in the number of selectors.
 
 * Two watched literals:
-  * CDCL_Two_Watched_Literals is under heavy changes and has been remove temporarly from the ROOT file.
+  * the organisation of the development has been changed and CDCL_Abstract_State has been added
+  between CDCL_W and the implementations: the restrictions on the operators are added in that
+  state.
+
+  * CDCL_Two_Watched_Literals is under heavy changes and has been remove temporarly from the ROOT
+  file.
