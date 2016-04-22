@@ -396,7 +396,7 @@ text \<open>We will abstract the representation of clause and clauses via two lo
 
 locale abs_state\<^sub>W_ops =
   raw_clss mset_cls
-    mset_clss in_clss insert_clss remove_from_clss
+    mset_clss in_clss insert_clss
     +
   raw_cls mset_ccls
   for
@@ -407,7 +407,6 @@ locale abs_state\<^sub>W_ops =
     mset_clss :: "'clss \<Rightarrow> 'v clauses" and
     in_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> bool" and
     insert_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
-    remove_from_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
 
     mset_ccls :: "'ccls \<Rightarrow> 'v clause"
     +
@@ -511,7 +510,7 @@ locale abs_state\<^sub>W =
   abs_state\<^sub>W_ops
     \<comment> \<open>functions for clauses: \<close>
     mset_cls
-      mset_clss in_clss insert_clss remove_from_clss
+      mset_clss in_clss insert_clss
 
     \<comment> \<open>functions for the conflicting clause:\<close>
     mset_ccls
@@ -536,7 +535,6 @@ locale abs_state\<^sub>W =
     mset_clss :: "'clss \<Rightarrow> 'v clauses" and
     in_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> bool" and
     insert_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
-    remove_from_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
 
     mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
 
@@ -836,7 +834,7 @@ locale abs_conflict_driven_clause_learning\<^sub>W =
   abs_state\<^sub>W
     \<comment> \<open>functions for clauses: \<close>
     mset_cls
-    mset_clss in_clss insert_clss remove_from_clss
+    mset_clss in_clss insert_clss
 
     \<comment> \<open>functions for the conflicting clause: \<close>
     mset_ccls
@@ -861,7 +859,6 @@ locale abs_conflict_driven_clause_learning\<^sub>W =
     mset_clss :: "'clss \<Rightarrow> 'v clauses" and
     in_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> bool" and
     insert_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
-    remove_from_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
 
     mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
 

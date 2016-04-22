@@ -45,14 +45,11 @@ locale raw_clss =
   fixes
     mset_clss:: "'clss \<Rightarrow> 'v clauses" and
     in_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> bool" and
-    insert_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
-    remove_from_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss"
+    insert_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss"
   assumes
     insert_clss[simp]: "mset_clss (insert_clss L C) = mset_clss C + {#mset_cls L#}" and
     in_clss_mset_clss[dest]: "in_clss a C \<Longrightarrow> mset_cls a \<in># mset_clss C" and
-    in_mset_clss_exists_preimage: "b \<in># mset_clss C \<Longrightarrow> \<exists>b'. in_clss b' C \<and> mset_cls b' = b" and
-    remove_from_clss_mset_clss[simp]:
-      "mset_clss (remove_from_clss a C) = mset_clss C - {#mset_cls a#}"
+    in_mset_clss_exists_preimage: "b \<in># mset_clss C \<Longrightarrow> \<exists>b'. in_clss b' C \<and> mset_cls b' = b"
 begin
 
 end
@@ -68,12 +65,11 @@ begin
     by (induction C) (auto simp: ac_simps remove1_mset_single_add)
 
   interpretation clss_clss: raw_clss id
-    id "op \<in>#" "\<lambda>L C. C + {#L#}" remove1_mset
+    id "op \<in>#" "\<lambda>L C. C + {#L#}"
     by unfold_locales (auto simp: ac_simps)
 
   interpretation list_clss: raw_clss mset
     "\<lambda>L. mset (map mset L)" "\<lambda>L C. L \<in> set C" "op #"
-    remove_first
     by unfold_locales (auto simp: ac_simps union_mset_list mset_map_mset_remove_first ex_mset)
 end
 

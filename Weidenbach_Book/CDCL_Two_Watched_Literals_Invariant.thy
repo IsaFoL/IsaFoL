@@ -45,7 +45,7 @@ abbreviation resolve_conflicting where
 interpretation rough_cdcl: abs_state\<^sub>W_ops
     clause
     raw_clss_l
-    "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
+    "\<lambda>L C. L \<in> set C" "op #"
 
     mset
 
@@ -77,7 +77,7 @@ qed
 interpretation rough_cdcl: abs_state\<^sub>W
   clause
   raw_clss_l
-  "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
+  "\<lambda>L C. L \<in> set C" "op #"
 
   mset
 
@@ -94,8 +94,7 @@ interpretation rough_cdcl: abs_state\<^sub>W
 proof goal_cases
   case 1
   have stupid_locales: "abs_state\<^sub>W_ops clause raw_clss_l (\<lambda>L C. L \<in> set C) op #
-    (\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)) mset raw_clause
-    (TWL_Clause [])"
+    mset raw_clause (TWL_Clause [])"
     by unfold_locales
   have [simp]: "abs_state\<^sub>W_ops.mmset_of_mlit clause = mmset_of_mlit"
     apply (rule ext, rename_tac L, case_tac L)
@@ -124,7 +123,7 @@ qed
 interpretation rough_cdcl: abs_conflict_driven_clause_learning\<^sub>W
   clause
   raw_clss_l
-  "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
+  "\<lambda>L C. L \<in> set C" "op #"
 
   mset
 
@@ -401,7 +400,7 @@ lemma add_learned_cls_rough_state_of_twl_simp:
 sublocale wf_twl: abs_state\<^sub>W_ops
   clause
   raw_clss_l
-  "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
+  "\<lambda>L C. L \<in> set C" "op #"
 
   mset
 
@@ -431,7 +430,7 @@ lemma wf_twl_conc_init_clss_restart_twl[simp]:
 sublocale wf_twl: abs_state\<^sub>W
   clause
   raw_clss_l
-  "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
+  "\<lambda>L C. L \<in> set C" "op #"
 
   mset
 
@@ -455,8 +454,7 @@ sublocale wf_twl: abs_state\<^sub>W
 proof goal_cases
   case 1
   have stupid_locales: "abs_state\<^sub>W_ops clause raw_clss_l (\<lambda>L C. L \<in> set C) op #
-    (\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)) mset raw_clause
-    (TWL_Clause [])"
+    mset raw_clause (TWL_Clause [])"
     by unfold_locales
   have ugly[simp]: "abs_state\<^sub>W_ops.mmset_of_mlit clause = mmset_of_mlit"
     apply (rule ext, rename_tac L, case_tac L)
@@ -467,7 +465,7 @@ proof goal_cases
      by blast
   interpret abs_state\<^sub>W_ops  clause
     raw_clss_l
-    "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
+    "\<lambda>L C. L \<in> set C" "op #"
     mset
 
     "\<lambda>C. raw_clause C" "\<lambda>C. TWL_Clause [] C"
@@ -507,7 +505,7 @@ proof goal_cases
 sublocale wf_twl: abs_conflict_driven_clause_learning\<^sub>W
   clause
   raw_clss_l
-  "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
+  "\<lambda>L C. L \<in> set C" "op #"
 
   mset
 

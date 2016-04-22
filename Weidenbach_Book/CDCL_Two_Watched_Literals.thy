@@ -83,7 +83,7 @@ lemma mset_map_clause_remove1_cond:
 interpretation raw_clss
   clause
   raw_clss_l
-  "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
+  "\<lambda>L C. L \<in> set C" "op #"
   apply (unfold_locales)
   using mset_map_clause_remove1_cond by (auto simp: hd_map comp_def map_tl ac_simps raw_clause_def
     union_mset_list mset_map_mset_remove1_cond ex_mset clause_def_lambda)
@@ -104,7 +104,7 @@ abbreviation conc_learned_clss where
 interpretation twl: abs_state\<^sub>W_ops
   clause
   raw_clss_l
-  "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
+  "\<lambda>L C. L \<in> set C" "op #"
 
   mset
 
