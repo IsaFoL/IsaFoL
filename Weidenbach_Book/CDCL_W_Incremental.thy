@@ -479,8 +479,8 @@ proof -
         qed
       qed
       show ?thesis using L L' C
-        unfolding cdcl\<^sub>W_stgy_invariant_def
-        unfolding cdcl\<^sub>W_all_struct_inv_def by (auto simp: add_new_clause_and_update_def)
+        unfolding cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_all_struct_inv_def
+        by (auto simp: add_new_clause_and_update_def intro: rev_bexI)
     qed
 qed
 

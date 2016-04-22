@@ -39,28 +39,18 @@ lemma subset_msetE [elim!]:
   "[|A \<subset># B; [|A \<subseteq># B; ~ (B\<subseteq>#A)|] ==> R|] ==> R"
   unfolding subseteq_mset_def subset_mset_def by (meson mset_less_eqI subset_mset.eq_iff)
 
-(* TODO check why auto needs these lemma sometimes *)
-lemma ball_msetE [elim]: "\<forall>x\<in>#A. P x ==> (P x ==> Q) ==> (x \<notin># A ==> Q) ==> Q"
-  by blast
-
-lemma bex_msetI [intro]: "P x ==> x\<in>#A ==> \<exists>x\<in>#A. P x"
-  \<comment> \<open>Normally the best argument order: @{prop "P x"} constrains the
-    choice of @{prop "x\<in>#A"}.\<close>
-  by blast
-
-lemma rev_bex_msetI [intro]: "x\<in>#A ==> P x ==> \<exists>x\<in>#A. P x"
-  \<comment> \<open>The best argument order when there is only one @{prop "x\<in>#A"}.\<close>
-  by blast
 
 subsection \<open>Lemmas about intersections\<close>
-(* Unsure if suited as simp rules or if only slowing down stuff\<dots>*)
+
 lemma mset_inter_single:
   "x \<in># \<Sigma> \<Longrightarrow> \<Sigma> #\<inter> {#x#} = {#x#}"
   "x \<notin># \<Sigma> \<Longrightarrow> \<Sigma> #\<inter> {#x#} = {#}"
     apply (simp add: mset_le_single subset_mset.inf_absorb2)
   by (simp add: multiset_inter_def)
 
+
 subsection \<open>Lemmas about size\<close>
+
 text \<open>
 This sections adds various lemmas about size. Most lemmas have a finite set equivalent.
 \<close>
