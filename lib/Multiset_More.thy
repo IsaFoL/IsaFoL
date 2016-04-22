@@ -562,7 +562,20 @@ lemma filter_mset_mset_set:
   "finite A \<Longrightarrow> filter_mset P (mset_set A) = mset_set {a \<in> A. P a}"
   by (auto simp: multiset_eq_iff count_mset_set_if)
 
+text \<open>See @{thm [source] filter_cong} for the set version. Mark as \<open>[fundef_cong]\<close> too?\<close>
+lemma filter_mset_cong:
+  assumes [simp]: "M = M'" and [simp]: "\<And>a. a \<in># M \<Longrightarrow> P a = Q a"
+  shows "filter_mset P M = filter_mset Q M"
+proof -
+  have "M - filter_mset Q M = filter_mset (\<lambda>a. \<not>Q a) M"
+    by (subst multiset_partition[of _ Q]) simp
+  then show ?thesis
+    by (auto simp: filter_mset_eq_conv)
+qed
+
+
 subsection \<open>Sums\<close>
+
 lemma msetsum_distrib[simp]:
   fixes C D :: "'a \<Rightarrow> 'b::{comm_monoid_add}"
   shows "(\<Sum>x\<in>#A. C x + D x) = (\<Sum>x\<in>#A. C x) + (\<Sum>x\<in>#A. D x)"
