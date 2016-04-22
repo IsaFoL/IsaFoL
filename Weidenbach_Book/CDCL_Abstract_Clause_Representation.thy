@@ -23,11 +23,9 @@ end
 locale raw_ccls_union =
   fixes
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
-    union_cls :: "'cls \<Rightarrow> 'cls \<Rightarrow> 'cls" and
-    remove_clit :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'cls"
+    union_cls :: "'cls \<Rightarrow> 'cls \<Rightarrow> 'cls"
   assumes
-    mset_ccls_union_cls[simp]: "mset_cls (union_cls C D) = mset_cls C #\<union> mset_cls D" and
-    remove_clit[simp]: "mset_cls (remove_clit L C) = remove1_mset L (mset_cls C)"
+    mset_ccls_union_cls[simp]: "mset_cls (union_cls C D) = mset_cls C #\<union> mset_cls D"
 begin
 end
 
@@ -42,10 +40,10 @@ begin
     by unfold_locales
 
   interpretation list_cls: raw_ccls_union mset
-    union_mset_list remove1
+    union_mset_list
     by unfold_locales (auto simp: union_mset_list ex_mset)
 
-  interpretation cls_cls: raw_ccls_union id "op #\<union>" remove1_mset
+  interpretation cls_cls: raw_ccls_union id "op #\<union>"
     by unfold_locales (auto simp: union_mset_list)
 end
 

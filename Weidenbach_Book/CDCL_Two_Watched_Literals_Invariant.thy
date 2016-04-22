@@ -45,7 +45,6 @@ interpretation rough_cdcl: abs_state\<^sub>W_ops
     "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
     mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-    remove1
 
     raw_clause "\<lambda>C. TWL_Clause [] C"
     trail "\<lambda>S. hd (raw_trail S)"
@@ -76,7 +75,6 @@ interpretation rough_cdcl: abs_state\<^sub>W
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
   mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-  remove1
 
   raw_clause "\<lambda>C. TWL_Clause [] C"
   trail "\<lambda>S. hd (raw_trail S)"
@@ -89,7 +87,7 @@ interpretation rough_cdcl: abs_state\<^sub>W
 proof goal_cases
   case 1
   have stupid_locales: "abs_state\<^sub>W_ops clause raw_clss_l op @ (\<lambda>L C. L \<in> set C) op #
-    (\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)) mset union_mset_list remove1 raw_clause
+    (\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)) mset union_mset_list raw_clause
     (TWL_Clause [])"
     by unfold_locales
   have [simp]: "abs_state\<^sub>W_ops.mmset_of_mlit clause = mmset_of_mlit"
@@ -117,7 +115,6 @@ interpretation rough_cdcl: abs_conflict_driven_clause_learning\<^sub>W
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
   mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-  remove1
 
   raw_clause "\<lambda>C. TWL_Clause [] C"
   trail "\<lambda>S. hd (raw_trail S)"
@@ -389,7 +386,6 @@ sublocale wf_twl: abs_state\<^sub>W_ops
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
   mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-  remove1
 
   "\<lambda>C. raw_clause C" "\<lambda>C. TWL_Clause [] C"
   trail_twl "\<lambda>S. hd (raw_trail_twl S)"
@@ -415,7 +411,6 @@ sublocale wf_twl: abs_state\<^sub>W
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
   mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-  remove1
 
   "\<lambda>C. raw_clause C" "\<lambda>C. TWL_Clause [] C"
   trail_twl "\<lambda>S. hd (raw_trail_twl S)"
@@ -436,7 +431,7 @@ sublocale wf_twl: abs_state\<^sub>W
 proof goal_cases
   case 1
   have stupid_locales: "abs_state\<^sub>W_ops clause raw_clss_l op @ (\<lambda>L C. L \<in> set C) op #
-    (\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)) mset union_mset_list remove1 raw_clause
+    (\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)) mset union_mset_list raw_clause
     (TWL_Clause [])"
     by unfold_locales
   have ugly[simp]: "abs_state\<^sub>W_ops.mmset_of_mlit clause = mmset_of_mlit"
@@ -451,7 +446,6 @@ proof goal_cases
     "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
     mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-    remove1
 
     "\<lambda>C. raw_clause C" "\<lambda>C. TWL_Clause [] C"
     by unfold_locales
@@ -493,7 +487,6 @@ sublocale wf_twl: abs_conflict_driven_clause_learning\<^sub>W
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
   mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
-  remove1
 
   "\<lambda>C. raw_clause C" "\<lambda>C. TWL_Clause [] C"
   trail_twl "\<lambda>S. hd (raw_trail_twl S)"

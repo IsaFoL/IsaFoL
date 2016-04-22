@@ -398,7 +398,7 @@ locale abs_state\<^sub>W_ops =
   raw_clss mset_cls
     mset_clss union_clss in_clss insert_clss remove_from_clss
     +
-  raw_ccls_union mset_ccls union_ccls remove_clit
+  raw_ccls_union mset_ccls union_ccls
   for
     \<comment> \<open>Clause\<close>
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
@@ -411,8 +411,7 @@ locale abs_state\<^sub>W_ops =
     remove_from_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
 
     mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
-    union_ccls :: "'ccls \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
-    remove_clit :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls"
+    union_ccls :: "'ccls \<Rightarrow> 'ccls \<Rightarrow> 'ccls"
     +
   fixes
     ccls_of_cls :: "'cls \<Rightarrow> 'ccls" and
@@ -517,7 +516,7 @@ locale abs_state\<^sub>W =
       mset_clss union_clss in_clss insert_clss remove_from_clss
 
     \<comment> \<open>functions for the conflicting clause:\<close>
-    mset_ccls union_ccls remove_clit
+    mset_ccls union_ccls
 
     \<comment> \<open>Conversion between conflicting and non-conflicting\<close>
     ccls_of_cls cls_of_ccls
@@ -544,7 +543,6 @@ locale abs_state\<^sub>W =
 
     mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
     union_ccls :: "'ccls \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
-    remove_clit :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
 
     ccls_of_cls :: "'cls \<Rightarrow> 'ccls" and
     cls_of_ccls :: "'ccls \<Rightarrow> 'cls" and
@@ -848,7 +846,7 @@ locale abs_conflict_driven_clause_learning\<^sub>W =
     mset_clss union_clss in_clss insert_clss remove_from_clss
 
     \<comment> \<open>functions for the conflicting clause: \<close>
-    mset_ccls union_ccls remove_clit
+    mset_ccls union_ccls
 
     \<comment> \<open>conversion\<close>
     ccls_of_cls cls_of_ccls
@@ -875,7 +873,6 @@ locale abs_conflict_driven_clause_learning\<^sub>W =
 
     mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
     union_ccls :: "'ccls \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
-    remove_clit :: "'v literal \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
 
     ccls_of_cls :: "'cls \<Rightarrow> 'ccls" and
     cls_of_ccls :: "'ccls \<Rightarrow> 'cls" and
@@ -1509,7 +1506,7 @@ resolve_abs_rule: "conc_trail S \<noteq> [] \<Longrightarrow>
   L \<in># mset_cls E \<Longrightarrow>
   raw_conc_conflicting S = Some D' \<Longrightarrow>
   -L \<in># mset_ccls D' \<Longrightarrow>
-  get_maximum_level (conc_trail S) (mset_ccls (remove_clit (-L) D')) = conc_backtrack_lvl S \<Longrightarrow>
+  get_maximum_level (conc_trail S) (remove1_mset (-L) (mset_ccls D')) = conc_backtrack_lvl S \<Longrightarrow>
   T \<sim> resolve_conflicting L E (tl_conc_trail S) \<Longrightarrow>
   resolve_abs S T"
 
