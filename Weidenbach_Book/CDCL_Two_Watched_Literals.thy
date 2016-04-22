@@ -63,11 +63,14 @@ lemma clause_def_lambda:
   "clause = (\<lambda>C. mset (raw_clause C))"
   by (auto simp: clause_def)
 
-abbreviation raw_clss :: "'v twl_state \<Rightarrow> 'v clauses" where
-  "raw_clss S \<equiv> mset (map clause (raw_init_clss S @ raw_learned_clss S))"
-
-abbreviation raw_clss_l :: "'a twl_clause list \<Rightarrow> 'a literal multiset multiset" where
+abbreviation raw_clss_l :: "'a twl_clause list \<Rightarrow> 'a clauses" where
   "raw_clss_l C \<equiv> mset (map clause C)"
+
+abbreviation raw_clauses :: "'v twl_state \<Rightarrow> 'v twl_clause list" where
+  "raw_clauses S \<equiv> raw_init_clss S @ raw_learned_clss S"
+
+abbreviation raw_clss :: "'v twl_state \<Rightarrow> 'v clauses" where
+  "raw_clss S \<equiv> raw_clss_l (raw_clauses S)"
 
 interpretation raw_cls clause .
 
@@ -97,6 +100,9 @@ proof -
   then show ?thesis by fast
 qed
 
+abbreviation conc_learned_clss where
+"conc_learned_clss \<equiv> \<lambda>S. mset (map clause (raw_learned_clss S))"
+
 interpretation twl: abs_state\<^sub>W_ops
   clause
   raw_clss_l "op @"
@@ -106,7 +112,8 @@ interpretation twl: abs_state\<^sub>W_ops
 
   raw_clause "\<lambda>C. TWL_Clause [] C"
   trail "\<lambda>S. hd (raw_trail S)"
-  raw_init_clss raw_learned_clss backtrack_lvl raw_conflicting
+  "(\<lambda>S. raw_init_clss S @ raw_learned_clss S)" backtrack_lvl raw_conflicting
+  conc_learned_clss
   rewrites
     "twl.mmset_of_mlit = mmset_of_mlit"
 proof goal_cases
@@ -132,13 +139,13 @@ definition
 where
   "candidates_propagate S =
    {(L, C) | L C.
-     C \<in> set (twl.raw_clauses S)  \<and>
+     C \<in> set (raw_clauses S)  \<and>
      set (watched C) - (uminus ` lits_of_l (trail S)) = {L} \<and>
      undefined_lit (raw_trail S) L}"
 
 definition candidates_conflict :: "'v twl_state \<Rightarrow> 'v twl_clause set" where
   "candidates_conflict S =
-   {C. C \<in> set (twl.raw_clauses S) \<and>
+   {C. C \<in> set (raw_clauses S) \<and>
      set (watched C) \<subseteq> uminus ` lits_of_l (raw_trail S)}"
 
 primrec (nonexhaustive) index :: "'a list \<Rightarrow>'a \<Rightarrow> nat" where
@@ -259,7 +266,7 @@ lemma wf_twl_cls_append:
 
 definition wf_twl_state :: "'v twl_state \<Rightarrow> bool" where
   "wf_twl_state S \<longleftrightarrow>
-    (\<forall>C \<in> set (twl.raw_clauses S). wf_twl_cls (raw_trail S) C) \<and> no_dup (raw_trail S)"
+    (\<forall>C \<in> set (raw_clauses S). wf_twl_cls (raw_trail S) C) \<and> no_dup (raw_trail S)"
 
 lemma wf_candidates_propagate_sound:
   assumes wf: "wf_twl_state S" and
@@ -277,7 +284,7 @@ proof
     "C \<in> set (N @ U)"
     "set (watched C) - uminus ` lits_of_l M = {L}"
     "undefined_lit M L"
-    using cand unfolding candidates_propagate_def MNU_defs twl.raw_clauses_def by auto
+    using cand unfolding candidates_propagate_def MNU_defs by auto
 
   obtain W UW where cw_eq: "C = TWL_Clause W UW"
     by (cases C)
@@ -286,7 +293,7 @@ proof
     using cw(2) cw_eq by auto
 
   have wf_c: "wf_twl_cls M C"
-    using wf cw(1) unfolding wf_twl_state_def by (simp add: twl.raw_clauses_def)
+    using wf cw(1) unfolding wf_twl_state_def by simp
 
   have w_nw:
     "distinct W"
@@ -361,7 +368,7 @@ qed
 
 lemma wf_candidates_propagate_complete:
   assumes wf: "wf_twl_state S" and
-    c_mem: "C \<in> set (twl.raw_clauses S)" and
+    c_mem: "C \<in> set (raw_clauses S)" and
     l_mem: "L \<in> set (raw_clause C)" and
     unsat: "trail S \<Turnstile>as CNot (mset_set (set (raw_clause C) - {L}))" and
     undef: "undefined_lit (raw_trail S) L"
@@ -445,7 +452,7 @@ qed
 lemma wf_candidates_conflict_sound:
   assumes wf: "wf_twl_state S" and
     cand: "C \<in> candidates_conflict S"
-  shows "trail S \<Turnstile>as CNot (clause C) \<and> C \<in> set (twl.raw_clauses S)"
+  shows "trail S \<Turnstile>as CNot (clause C) \<and> C \<in> set (raw_clauses S)"
 proof
   def M \<equiv> "raw_trail S"
   def N \<equiv> "raw_init_clss S"
@@ -456,13 +463,13 @@ proof
   have cw:
     "C \<in> set (N @ U)"
     "set (watched C) \<subseteq> uminus ` lits_of_l (trail S)"
-    using cand[unfolded candidates_conflict_def, simplified] unfolding twl.raw_clauses_def by auto
+    using cand[unfolded candidates_conflict_def, simplified] by auto
 
   obtain W UW where cw_eq: "C = TWL_Clause W UW"
     by (cases C, blast)
 
   have wf_c: "wf_twl_cls M C"
-    using wf cw(1) unfolding wf_twl_state_def by (simp add: comp_def twl.raw_clauses_def)
+    using wf cw(1) unfolding wf_twl_state_def by simp
 
   have w_nw:
     "distinct W"
@@ -501,19 +508,19 @@ proof
   then show "trail S \<Turnstile>as CNot (clause C)"
     unfolding CNot_def true_annots_def clause_def by auto
 
-  show "C \<in> set (twl.raw_clauses S)"
-    using cw unfolding twl.raw_clauses_def by auto
+  show "C \<in> set (raw_clauses S)"
+    using cw by auto
 qed
 
 lemma wf_candidates_conflict_complete:
   assumes wf: "wf_twl_state S" and
-    c_mem: "C \<in> set (twl.raw_clauses S)" and
+    c_mem: "C \<in> set (raw_clauses S)" and
     unsat: "trail S \<Turnstile>as CNot (clause C)"
   shows "C \<in> candidates_conflict S"
 proof -
   def M \<equiv> "raw_trail S"
   def N \<equiv> "twl.conc_init_clss S"
-  def U \<equiv> "twl.conc_learned_clss S"
+  def U \<equiv> "conc_learned_clss S"
 
   note MNU_defs [simp] = M_def N_def U_def
 
@@ -550,7 +557,7 @@ morphisms rough_state_of_twl twl_of_rough_state
 proof -
   have "TWL_State ([]::('v, 'v twl_clause) ann_lits)
     [] [] 0 None \<in> {S:: 'v twl_state. wf_twl_state S} "
-    by (auto simp: wf_twl_state_def twl.raw_clauses_def)
+    by (auto simp: wf_twl_state_def)
   then show ?thesis by auto
 qed
 
@@ -574,13 +581,16 @@ abbreviation trail_twl :: "'a wf_twl \<Rightarrow> ('a, 'a literal multiset) ann
 "trail_twl S \<equiv> trail (rough_state_of_twl S)"
 
 abbreviation raw_clauses_twl :: "'a wf_twl \<Rightarrow> 'a twl_clause list" where
-"raw_clauses_twl S \<equiv> twl.raw_clauses (rough_state_of_twl S)"
+"raw_clauses_twl S \<equiv> raw_clauses (rough_state_of_twl S)"
 
 abbreviation raw_init_clss_twl :: "'a wf_twl \<Rightarrow> 'a twl_clause list" where
 "raw_init_clss_twl S \<equiv> raw_init_clss (rough_state_of_twl S)"
 
 abbreviation raw_learned_clss_twl :: "'a wf_twl \<Rightarrow> 'a twl_clause list" where
 "raw_learned_clss_twl S \<equiv> raw_learned_clss (rough_state_of_twl S)"
+
+abbreviation conc_learned_clss_twl :: "'a wf_twl \<Rightarrow> 'a clauses" where
+"conc_learned_clss_twl S \<equiv> conc_learned_clss (rough_state_of_twl S)"
 
 abbreviation backtrack_lvl_twl where
 "backtrack_lvl_twl S \<equiv> backtrack_lvl (rough_state_of_twl S)"
@@ -676,6 +686,10 @@ lemma unchanged_init_state[simp]:
   "backtrack_lvl (init_state N) = 0"
   "raw_conflicting (init_state N) = None"
   unfolding init_state_def by (rule unchanged_fold_add_init_cls)+
+
+lemma conc_init_clss[simp]:
+  "twl.conc_init_clss (TWL_State M N U k C) = raw_clss_l N"
+  by (simp add: twl.conc_init_clss_def)
 
 lemma clauses_init_fold_add_init:
   "no_dup M \<Longrightarrow>
