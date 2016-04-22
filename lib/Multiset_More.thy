@@ -174,6 +174,7 @@ lemma ex_gt_imp_less_mset_mset:
   using less_mset_mset\<^sub>H\<^sub>O by (metis count_greater_zero_iff count_inI less_nat_zero_code
     multiset_linorder.not_less_iff_gr_or_eq)
 
+
 subsection \<open>Remove\<close>
 
 lemma set_mset_minus_replicate_mset[simp]:
@@ -255,6 +256,7 @@ next
         using \<open>?S\<close> by auto
     qed
 qed
+
 
 subsection \<open>Multiset and set conversion\<close>
 
@@ -522,6 +524,7 @@ lemma distinct_mset_size_2: "distinct_mset {#a, b#} \<longleftrightarrow> a \<no
 
 
 subsection \<open>Filter\<close>
+
 lemma mset_filter_compl: "mset (filter p xs) + mset (filter (Not \<circ> p) xs) = mset xs"
   apply (induct xs)
   by simp
@@ -577,7 +580,9 @@ lemma msetsum_union_disjoint:
   by (metis assms diff_zero empty_sup image_mset_union msetsum.union multiset_inter_commute
     multiset_union_diff_commute sup_subset_mset_def zero_diff)
 
+
 subsection \<open>Order\<close>
+
 text \<open>Instantiating multiset order as a linear order.
 
   TODO: remove when multiset is of sort ord again\<close>
