@@ -456,7 +456,8 @@ proof -
               using inv_s unfolding cdcl\<^sub>W_stgy_invariant_def by auto
             have "(MT @ M') @ Decided K # M = trail T "
               using MT 1(1) by auto
-            then show False using D_T \<open>no_smaller_confl T\<close> 1(3) unfolding no_smaller_confl_def by blast
+            then show False
+              using D_T \<open>no_smaller_confl T\<close> 1(3) unfolding no_smaller_confl_def by blast
           next
             case DC note _[simp] = this
             then have "atm_of (-?L) \<in> atm_of ` (lits_of_l M)"

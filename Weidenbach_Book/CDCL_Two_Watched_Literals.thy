@@ -6,7 +6,7 @@
 section \<open>2-Watched-Literal\<close>
 
 theory CDCL_Two_Watched_Literals
-imports CDCL_W_Abstract_State (* Have to decide which imports are the best *)
+imports CDCL_W_Abstract_State
 begin
 text \<open>First we define here the core of the two-watched literal data structure:
   \<^enum> A clause is composed of (at most) two watched literals.
@@ -353,7 +353,7 @@ proof
       qed
     qed
   qed
-  then show "?Not"
+  then show ?Not
     unfolding true_annots_def by (auto simp: image_image Ball_def CNot_def)
 
   show ?undef

@@ -446,7 +446,30 @@ next
   ultimately show ?B by auto
 qed
 
+lemma satisfiable_carac[iff]:
+  "(\<exists>I. consistent_interp I \<and> I \<Turnstile>s \<phi>) \<longleftrightarrow> satisfiable \<phi>" (is "(\<exists>I. ?Q I) \<longleftrightarrow> ?S")
+proof
+  assume "?S"
+  then show "\<exists>I. ?Q I" unfolding satisfiable_def by auto
+next
+  assume "\<exists>I. ?Q I"
+  then obtain I where cons: "consistent_interp I" and I: "I \<Turnstile>s \<phi>" by metis
+  let ?I' = "{Pos v |v. v \<notin> atms_of_s I \<and> v \<in> atms_of_ms \<phi>}"
+  have "consistent_interp (I \<union> ?I')"
+    using cons unfolding consistent_interp_def by (intro allI) (rename_tac L, case_tac L, auto)
+  moreover have "total_over_m (I \<union> ?I') \<phi>"
+    unfolding total_over_m_def total_over_set_def by auto
+  moreover have "I \<union> ?I' \<Turnstile>s \<phi>"
+    using I unfolding Ball_def true_clss_def true_cls_def by auto
+  ultimately show ?S unfolding satisfiable_def by blast
+qed
+
+lemma satisfiable_carac'[simp]: "consistent_interp I \<Longrightarrow> I \<Turnstile>s \<phi> \<Longrightarrow> satisfiable \<phi>"
+  using satisfiable_carac by metis
+
+
 subsubsection \<open>Entailment for Multisets of Clauses\<close>
+
 definition true_cls_mset :: "'a interp \<Rightarrow> 'a clause multiset \<Rightarrow> bool" (infix "\<Turnstile>m" 50) where
   "I \<Turnstile>m CC \<longleftrightarrow> (\<forall>C \<in># CC. I \<Turnstile> C)"
 
@@ -751,7 +774,7 @@ lemma union_trus_clss_clss[simp]: "A \<union> B \<Turnstile>ps B"
   unfolding true_clss_clss_def by auto
 
 lemma true_clss_clss_remove[simp]:
-  "A \<Turnstile>ps B \<Longrightarrow> A\<Turnstile>ps B - C"
+  "A \<Turnstile>ps B \<Longrightarrow> A \<Turnstile>ps B - C"
   by (metis Un_Diff_Int true_clss_clss_union_and)
 
 lemma true_clss_clss_subsetE:
@@ -878,28 +901,6 @@ proof (intro allI impI)
   }
   ultimately show "I \<Turnstile> D #\<union> C" by blast
 qed
-
-(* TODO Move upper *)
-lemma satisfiable_carac[iff]:
-  "(\<exists>I. consistent_interp I \<and> I \<Turnstile>s \<phi>) \<longleftrightarrow> satisfiable \<phi>" (is "(\<exists>I. ?Q I) \<longleftrightarrow> ?S")
-proof
-  assume "?S"
-  then show "\<exists>I. ?Q I" unfolding satisfiable_def by auto
-next
-  assume "\<exists>I. ?Q I"
-  then obtain I where cons: "consistent_interp I" and I: "I \<Turnstile>s \<phi>" by metis
-  let ?I' = "{Pos v |v. v \<notin> atms_of_s I \<and> v \<in> atms_of_ms \<phi>}"
-  have "consistent_interp (I \<union> ?I')"
-    using cons unfolding consistent_interp_def by (intro allI) (rename_tac L, case_tac L, auto)
-  moreover have "total_over_m (I \<union> ?I') \<phi>"
-    unfolding total_over_m_def total_over_set_def by auto
-  moreover have "I \<union> ?I' \<Turnstile>s \<phi>"
-    using I unfolding Ball_def true_clss_def true_cls_def by auto
-  ultimately show ?S unfolding satisfiable_def by blast
-qed
-
-lemma satisfiable_carac'[simp]: "consistent_interp I \<Longrightarrow> I \<Turnstile>s \<phi> \<Longrightarrow> satisfiable \<phi>"
-  using satisfiable_carac by metis
 
 
 subsection \<open>Subsumptions\<close>

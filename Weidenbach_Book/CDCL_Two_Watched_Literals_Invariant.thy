@@ -231,7 +231,7 @@ lemma wf_twl_state_update_backtrack_lvl:
 lemma rough_state_of_twl_update_backtrack_lvl:
   "rough_state_of_twl (update_backtrack_lvl_twl k S) = update_backtrack_lvl k
     (rough_state_of_twl S)"
-  using rough_state_of_twl[of S] (* TODO remove explicit instantiation *)
+  using rough_state_of_twl
     twl_of_rough_state_inverse[of "update_backtrack_lvl k (rough_state_of_twl S)"]
     wf_twl_state_update_backtrack_lvl[of "rough_state_of_twl S" k] by fast
 
@@ -255,7 +255,8 @@ abbreviation reduce_trail_to_twl where
 "reduce_trail_to_twl M1 S \<equiv> twl_of_rough_state (reduce_trail_to M1 (rough_state_of_twl S))"
 
 abbreviation resolve_conflicting_twl where
-"resolve_conflicting_twl L D S \<equiv> twl_of_rough_state (resolve_conflicting L D (rough_state_of_twl S))"
+"resolve_conflicting_twl L D S \<equiv>
+  twl_of_rough_state (resolve_conflicting L D (rough_state_of_twl S))"
 
 lemma rough_state_of_twl_update_conflicting:
   "rough_state_of_twl (update_conflicting_twl k S) = update_conflicting k

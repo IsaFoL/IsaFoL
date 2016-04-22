@@ -976,12 +976,10 @@ qed
 lemma backtrack_lvl_backtrack_decrease:
   assumes inv: "cdcl\<^sub>W_M_level_inv S" and bt: "backtrack S T"
   shows "backtrack_lvl T < backtrack_lvl S"
-  using inv bt  le_count_decided_decomp[of "trail S" "backtrack_lvl T"]
+  using inv bt le_count_decided_decomp[of "trail S" "backtrack_lvl T"]
   unfolding cdcl\<^sub>W_M_level_inv_def
-  (* TODO tune proof *)
-  apply (auto elim!: backtrackE dest!: get_all_ann_decomposition_exists_prepend)
-  by (metis append_assoc)
-
+  by (fastforce elim!: backtrackE dest!: get_all_ann_decomposition_exists_prepend
+    simp: append_assoc[of _ _ "_# _", symmetric] simp del: append_assoc)
 
 subsubsection \<open>Compatibility with @{term state_eq}\<close>
 lemma propagate_state_eq_compatible:

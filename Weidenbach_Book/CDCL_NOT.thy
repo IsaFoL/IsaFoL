@@ -848,7 +848,7 @@ proof -
         F F' :: "('v, unit) ann_lits" where
         M_K: "?M = F' @ Decided K # F" and
         nm: "\<forall>f\<in>set F'. \<not>is_decided f"
-        unfolding is_decided_def by (metis (full_types) old.unit.exhaust)
+        unfolding is_decided_def by metis
       let ?K = "Decided K :: ('v, unit) ann_lit"
       have "?K \<in> set ?M"
         unfolding M_K by auto
@@ -3716,10 +3716,14 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_with_backtrack_restarts =
     unbounded: "unbounded f" and f_ge_1: "\<And>n. n \<ge> 1 \<Longrightarrow> f n \<ge> 1" and
     inv_restart:"\<And>S T. inv S \<Longrightarrow> T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T [] S \<Longrightarrow> inv T"
 begin
-(* TODO rename into not_simplified_clss_of, change def to
-abbreviation "not_simplified_cls A = {#C \<in># A. \<not>simple_clss (atms_of_ms A)#}"
-*)
-definition "not_simplified_cls A = {#C \<in># A. tautology C \<or> \<not>distinct_mset C#}"
+
+definition not_simplified_cls :: "'b literal multiset multiset \<Rightarrow> 'b literal multiset multiset"
+where
+"not_simplified_cls A \<equiv> {#C \<in># A. C \<notin> simple_clss (atms_of_mm A)#}"
+
+lemma not_simplified_cls_tautology_distinct_mset:
+  "not_simplified_cls A = {#C \<in># A. tautology C \<or> \<not>distinct_mset C#}"
+  unfolding not_simplified_cls_def by (rule filter_mset_cong) (auto simp: simple_clss_def)
 
 lemma simple_clss_or_not_simplified_cls:
   assumes "atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<subseteq> atms_of_ms A" and
@@ -3741,7 +3745,7 @@ proof -
     next
       case n_simp
       then have "x \<in># not_simplified_cls (clauses\<^sub>N\<^sub>O\<^sub>T S)"
-        using \<open>x \<in># clauses\<^sub>N\<^sub>O\<^sub>T S\<close> unfolding not_simplified_cls_def by auto
+        using \<open>x \<in># clauses\<^sub>N\<^sub>O\<^sub>T S\<close> unfolding not_simplified_cls_tautology_distinct_mset by auto
       then show ?thesis by blast
     qed
 qed
@@ -3816,7 +3820,7 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_not_simplified_decreasing:
   shows "not_simplified_cls (clauses\<^sub>N\<^sub>O\<^sub>T T) \<subseteq># not_simplified_cls (clauses\<^sub>N\<^sub>O\<^sub>T S)"
   using assms apply induction
   prefer 4
-  unfolding not_simplified_cls_def apply (auto elim!: backjump_lE forget\<^sub>N\<^sub>O\<^sub>TE)[3]
+  unfolding not_simplified_cls_tautology_distinct_mset apply (auto elim!: backjump_lE forget\<^sub>N\<^sub>O\<^sub>TE)[3]
   by (elim backjump_lE) auto
 
 lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_not_simplified_decreasing:
