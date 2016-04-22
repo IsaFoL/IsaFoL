@@ -396,22 +396,20 @@ text \<open>We will abstract the representation of clause and clauses via two lo
 
 locale abs_state\<^sub>W_ops =
   raw_clss mset_cls
-    mset_clss union_clss in_clss insert_clss remove_from_clss
+    mset_clss in_clss insert_clss remove_from_clss
     +
-  raw_ccls_union mset_ccls union_ccls
+  raw_cls mset_ccls
   for
     \<comment> \<open>Clause\<close>
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
 
     \<comment> \<open>Multiset of Clauses\<close>
     mset_clss :: "'clss \<Rightarrow> 'v clauses" and
-    union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
     in_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> bool" and
     insert_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
     remove_from_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
 
-    mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
-    union_ccls :: "'ccls \<Rightarrow> 'ccls \<Rightarrow> 'ccls"
+    mset_ccls :: "'ccls \<Rightarrow> 'v clause"
     +
   fixes
     ccls_of_cls :: "'cls \<Rightarrow> 'ccls" and
@@ -465,10 +463,7 @@ definition "conc_init_clss \<equiv> \<lambda>S. mset_clss (raw_clauses S) - conc
 abbreviation "conc_conflicting \<equiv> \<lambda>S. map_option mset_ccls (raw_conc_conflicting S)"
 
 notation in_clss (infix "!\<in>!" 50)
-notation union_clss (infix "\<oplus>" 50)
 notation insert_clss (infix "!++!" 50)
-
-notation union_ccls (infix "!\<union>" 50)
 
 abbreviation conc_clauses :: "'st \<Rightarrow> 'v clauses" where
 "conc_clauses S \<equiv> mset_clss (raw_clauses S)"
@@ -500,7 +495,7 @@ text \<open>
 
   We define the following operations on the elements
   \<^item> trail: @{term cons_trail}, @{term tl_trail}, and @{term reduce_conc_trail_to}.
-  \<^item> initial set of clauses: none.
+  \<^item> initial set of clauses: a clause can be removed.
   \<^item> learned clauses: @{term add_conc_confl_to_learned_cls} moves the conflicting clause to the
   learned clauses.
   \<^item> backtrack level: it can be arbitrary set.
@@ -516,10 +511,10 @@ locale abs_state\<^sub>W =
   abs_state\<^sub>W_ops
     \<comment> \<open>functions for clauses: \<close>
     mset_cls
-      mset_clss union_clss in_clss insert_clss remove_from_clss
+      mset_clss in_clss insert_clss remove_from_clss
 
     \<comment> \<open>functions for the conflicting clause:\<close>
-    mset_ccls union_ccls
+    mset_ccls
 
     \<comment> \<open>Conversion between conflicting and non-conflicting\<close>
     ccls_of_cls cls_of_ccls
@@ -539,13 +534,11 @@ locale abs_state\<^sub>W =
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
 
     mset_clss :: "'clss \<Rightarrow> 'v clauses" and
-    union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
     in_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> bool" and
     insert_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
     remove_from_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
 
     mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
-    union_ccls :: "'ccls \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
 
     ccls_of_cls :: "'cls \<Rightarrow> 'ccls" and
     cls_of_ccls :: "'ccls \<Rightarrow> 'cls" and
@@ -843,10 +836,10 @@ locale abs_conflict_driven_clause_learning\<^sub>W =
   abs_state\<^sub>W
     \<comment> \<open>functions for clauses: \<close>
     mset_cls
-    mset_clss union_clss in_clss insert_clss remove_from_clss
+    mset_clss in_clss insert_clss remove_from_clss
 
     \<comment> \<open>functions for the conflicting clause: \<close>
-    mset_ccls union_ccls
+    mset_ccls
 
     \<comment> \<open>conversion\<close>
     ccls_of_cls cls_of_ccls
@@ -866,13 +859,11 @@ locale abs_conflict_driven_clause_learning\<^sub>W =
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
 
     mset_clss :: "'clss \<Rightarrow> 'v clauses" and
-    union_clss :: "'clss \<Rightarrow> 'clss \<Rightarrow> 'clss" and
     in_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> bool" and
     insert_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
     remove_from_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
 
     mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
-    union_ccls :: "'ccls \<Rightarrow> 'ccls \<Rightarrow> 'ccls" and
 
     ccls_of_cls :: "'cls \<Rightarrow> 'ccls" and
     cls_of_ccls :: "'ccls \<Rightarrow> 'cls" and

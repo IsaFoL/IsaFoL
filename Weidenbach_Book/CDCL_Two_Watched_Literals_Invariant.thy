@@ -44,10 +44,10 @@ abbreviation resolve_conflicting where
 
 interpretation rough_cdcl: abs_state\<^sub>W_ops
     clause
-    raw_clss_l "op @"
+    raw_clss_l
     "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
-    mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
+    mset
 
     raw_clause "\<lambda>C. TWL_Clause [] C"
     trail "\<lambda>S. hd (raw_trail S)"
@@ -76,10 +76,10 @@ qed
 
 interpretation rough_cdcl: abs_state\<^sub>W
   clause
-  raw_clss_l "op @"
+  raw_clss_l
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
-  mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
+  mset
 
   raw_clause "\<lambda>C. TWL_Clause [] C"
   trail "\<lambda>S. hd (raw_trail S)"
@@ -93,8 +93,8 @@ interpretation rough_cdcl: abs_state\<^sub>W
   "\<lambda>N. init_state (map raw_clause N)" restart'
 proof goal_cases
   case 1
-  have stupid_locales: "abs_state\<^sub>W_ops clause raw_clss_l op @ (\<lambda>L C. L \<in> set C) op #
-    (\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)) mset union_mset_list raw_clause
+  have stupid_locales: "abs_state\<^sub>W_ops clause raw_clss_l (\<lambda>L C. L \<in> set C) op #
+    (\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)) mset raw_clause
     (TWL_Clause [])"
     by unfold_locales
   have [simp]: "abs_state\<^sub>W_ops.mmset_of_mlit clause = mmset_of_mlit"
@@ -106,8 +106,8 @@ proof goal_cases
      by blast
   have [simp]: "\<And>st C. mset (removeAll (clause C) (map clause (raw_init_clss st))) =
        removeAll_mset (clause C) (rough_cdcl.conc_init_clss st)"
-    unfolding rough_cdcl.conc_init_clss_def by (metis add.commute add_diff_cancel_left'
-      mset_removeAll union_clss)
+    unfolding rough_cdcl.conc_init_clss_def by (metis mset_removeAll rough_cdcl.conc_init_clss_def
+      twl2.raw_clss_l_raw_init_clss_conc_init_clss)
 
   have H: "\<And>M2 M1 x1. M2 @ M1 = map mmset_of_mlit x1 \<Longrightarrow>
        map mmset_of_mlit (drop (length x1 - length M1) x1) = M1"
@@ -118,15 +118,15 @@ proof goal_cases
     by (auto simp add: add_init_cls_def add_learned_cls_def clause_rewatch clause_watch
       cons_trail_def remove_cls_def restart'_def tl_trail_def map_tl comp_def
       ac_simps mset_map_removeAll_cond mset_raw_init_clss_init_state rough_cdcl.state_def
-      clause_def[symmetric] H split: twl_state.splits)
+      clause_def[symmetric] H union_mset_list[symmetric] split: twl_state.splits)
 qed
 
 interpretation rough_cdcl: abs_conflict_driven_clause_learning\<^sub>W
   clause
-  raw_clss_l "op @"
+  raw_clss_l
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
-  mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
+  mset
 
   raw_clause "\<lambda>C. TWL_Clause [] C"
   trail "\<lambda>S. hd (raw_trail S)"
@@ -400,10 +400,10 @@ lemma add_learned_cls_rough_state_of_twl_simp:
 
 sublocale wf_twl: abs_state\<^sub>W_ops
   clause
-  raw_clss_l "op @"
+  raw_clss_l
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
-  mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
+  mset
 
   "\<lambda>C. raw_clause C" "\<lambda>C. TWL_Clause [] C"
   trail_twl "\<lambda>S. hd (raw_trail_twl S)"
@@ -430,10 +430,10 @@ lemma wf_twl_conc_init_clss_restart_twl[simp]:
 
 sublocale wf_twl: abs_state\<^sub>W
   clause
-  raw_clss_l "op @"
+  raw_clss_l
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
-  mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
+  mset
 
   "\<lambda>C. raw_clause C" "\<lambda>C. TWL_Clause [] C"
   trail_twl "\<lambda>S. hd (raw_trail_twl S)"
@@ -454,8 +454,8 @@ sublocale wf_twl: abs_state\<^sub>W
   restart_twl
 proof goal_cases
   case 1
-  have stupid_locales: "abs_state\<^sub>W_ops clause raw_clss_l op @ (\<lambda>L C. L \<in> set C) op #
-    (\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)) mset union_mset_list raw_clause
+  have stupid_locales: "abs_state\<^sub>W_ops clause raw_clss_l (\<lambda>L C. L \<in> set C) op #
+    (\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)) mset raw_clause
     (TWL_Clause [])"
     by unfold_locales
   have ugly[simp]: "abs_state\<^sub>W_ops.mmset_of_mlit clause = mmset_of_mlit"
@@ -466,10 +466,9 @@ proof goal_cases
     using image_mset_subseteq_mono[OF restart_learned] unfolding mset_map
      by blast
   interpret abs_state\<^sub>W_ops  clause
-    raw_clss_l "op @"
+    raw_clss_l
     "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
-
-    mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
+    mset
 
     "\<lambda>C. raw_clause C" "\<lambda>C. TWL_Clause [] C"
     by unfold_locales
@@ -507,10 +506,10 @@ proof goal_cases
 
 sublocale wf_twl: abs_conflict_driven_clause_learning\<^sub>W
   clause
-  raw_clss_l "op @"
+  raw_clss_l
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
-  mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
+  mset
 
   "\<lambda>C. raw_clause C" "\<lambda>C. TWL_Clause [] C"
   trail_twl "\<lambda>S. hd (raw_trail_twl S)"
@@ -551,9 +550,8 @@ lemma cdcl\<^sub>W_all_struct_inv_clause_distinct_mset:
     C \<in> set (CDCL_Two_Watched_Literals.raw_clauses_twl S) \<Longrightarrow> distinct (raw_clause C)"
   unfolding cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_mset.distinct_cdcl\<^sub>W_state_def
      distinct_mset_set_def wf_twl.conc_clauses_init_learned
-  by (metis distinct_mset_distinct in_clss_mset_clss in_clss_union_clss
-    rough_cdcl.conc_init_clss_def twl2.raw_clss_l_raw_init_clss_conc_init_clss
-    wf_twl.conc_init_clss_def wf_twl.init_clss_state_conc_init_clss
+  by (metis (no_types, lifting) distinct_mset_distinct in_clss_mset_clss union_iff
+    wf_twl.conc_clauses_init_learned wf_twl.init_clss_state_conc_init_clss
     wf_twl.learned_clss_state_conc_learned_clss wf_twl.mset_ccls_ccls_of_cls)
 
 inductive_cases propagate_twlE: "propagate_twl S T"

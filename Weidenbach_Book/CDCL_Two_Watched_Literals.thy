@@ -75,16 +75,14 @@ abbreviation raw_clss :: "'v twl_state \<Rightarrow> 'v clauses" where
 interpretation raw_cls clause .
 
 lemma mset_map_clause_remove1_cond:
-  "mset (map (\<lambda>x. mset (unwatched x) + mset (watched x))
-    (remove1_cond (\<lambda>D. clause D = clause a) Cs)) =
-   remove1_mset (clause a) (mset (map clause Cs))"
+  "raw_clss_l (remove1_cond (\<lambda>D. clause D = clause a) Cs) = remove1_mset (clause a) (raw_clss_l Cs)"
    apply (induction Cs)
      apply simp
    by (auto simp: ac_simps remove1_mset_single_add raw_clause_def clause_def)
 
 interpretation raw_clss
   clause
-  raw_clss_l "op @"
+  raw_clss_l
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
   apply (unfold_locales)
   using mset_map_clause_remove1_cond by (auto simp: hd_map comp_def map_tl ac_simps raw_clause_def
@@ -105,10 +103,10 @@ abbreviation conc_learned_clss where
 
 interpretation twl: abs_state\<^sub>W_ops
   clause
-  raw_clss_l "op @"
+  raw_clss_l
   "\<lambda>L C. L \<in> set C" "op #" "\<lambda>C. remove1_cond (\<lambda>D. clause D = clause C)"
 
-  mset "\<lambda>xs ys. case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
+  mset
 
   raw_clause "\<lambda>C. TWL_Clause [] C"
   trail "\<lambda>S. hd (raw_trail S)"
@@ -120,7 +118,8 @@ proof goal_cases
   case 1
   show H: ?case
   apply unfold_locales apply (auto simp: hd_map comp_def map_tl ac_simps raw_clause_def
-    union_mset_list mset_map_mset_remove1_cond ex_mset_unwatched_watched clause_def)
+     mset_map_mset_remove1_cond ex_mset_unwatched_watched clause_def)[3]
+  using mset_map_mset_remove1_cond
   done
 
   case 2
