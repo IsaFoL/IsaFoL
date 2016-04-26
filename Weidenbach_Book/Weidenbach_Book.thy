@@ -25,7 +25,7 @@ imports
 
   CDCL_W_Abstract_State
   CDCL_Two_Watched_Literals
-  CDCL_Two_Watched_Literals_Invariant
+  (* CDCL_Two_Watched_Literals_Invariant *)
 
 begin
 text \<open>This theory imports all the other theories (and is not needed in the documentation).\<close>
