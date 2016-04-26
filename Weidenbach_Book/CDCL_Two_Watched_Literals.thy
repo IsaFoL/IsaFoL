@@ -69,8 +69,8 @@ abbreviation raw_clss_l :: "'a twl_clause list \<Rightarrow> 'a clauses" where
 abbreviation raw_clauses :: "'v twl_state \<Rightarrow> 'v twl_clause list" where
   "raw_clauses S \<equiv> raw_init_clss S @ raw_learned_clss S"
 
-abbreviation raw_clss :: "'v twl_state \<Rightarrow> 'v clauses" where
-  "raw_clss S \<equiv> raw_clss_l (raw_clauses S)"
+(* abbreviation raw_clss :: "'v twl_state \<Rightarrow> 'v clauses" where
+  "raw_clss S \<equiv> raw_clss_l (raw_clauses S)" *)
 
 interpretation raw_cls clause .
 
@@ -79,11 +79,15 @@ lemma mset_map_clause_remove1_cond:
    apply (induction Cs)
      apply simp
    by (auto simp: ac_simps remove1_mset_single_add raw_clause_def clause_def)
-
+term raw_clss
 interpretation raw_clss
+  "\<lambda>_ L. L"
+  "\<lambda>L C. L \<in> set (raw_clause C)"
   clause
-  raw_clss_l
-  "\<lambda>L C. L \<in> set C" "op #"
+
+  "\<lambda>_ C. C"
+  "\<lambda>C Cs. C \<in> set Cs"
+  mset
   apply (unfold_locales)
   using mset_map_clause_remove1_cond by (auto simp: hd_map comp_def map_tl ac_simps raw_clause_def
     union_mset_list mset_map_mset_remove1_cond ex_mset clause_def_lambda)
@@ -102,24 +106,24 @@ abbreviation conc_learned_clss where
 "conc_learned_clss \<equiv> \<lambda>S. mset (map clause (raw_learned_clss S))"
 
 interpretation twl: abs_state\<^sub>W_ops
+  "\<lambda>_ L. L"
+  "\<lambda>L C. L \<in> set (raw_clause C)"
   clause
-  raw_clss_l
-  "\<lambda>L C. L \<in> set C" "op #"
 
+  "\<lambda>_ C. C"
+  "\<lambda>C Cs. C \<in> set Cs"
   mset
 
-  raw_clause "\<lambda>C. TWL_Clause [] C"
+  mset
   trail "\<lambda>S. hd (raw_trail S)"
   "(\<lambda>S. raw_init_clss S @ raw_learned_clss S)" backtrack_lvl raw_conflicting
   conc_learned_clss
   rewrites
-    "twl.mmset_of_mlit = mmset_of_mlit"
+    "twl.mmset_of_mlit S = mmset_of_mlit"
 proof goal_cases
   case 1
   show H: ?case
-  apply unfold_locales apply (auto simp: hd_map comp_def map_tl ac_simps raw_clause_def
-     mset_map_mset_remove1_cond ex_mset_unwatched_watched clause_def)[3]
-  using mset_map_mset_remove1_cond
+  apply unfold_locales
   done
 
   case 2
@@ -130,8 +134,6 @@ proof goal_cases
     apply (simp_all add: abs_state\<^sub>W_ops.mmset_of_mlit.simps[OF H] raw_clause_def clause_def)
   done
 qed
-
-declare CDCL_Two_Watched_Literals.twl.mset_ccls_ccls_of_cls[simp del]
 
 definition
   candidates_propagate :: "'v twl_state \<Rightarrow> ('v literal \<times> 'v twl_clause) set"
@@ -156,6 +158,7 @@ lemma index_nth:
 
 
 subsubsection \<open>Invariants\<close>
+
 text \<open>The structural invariants states that there are at most two watched elements, that the watched
   literals are distinct, and that there are 2 watched literals if there are at least than two
   different literals in the full clauses.\<close>
@@ -686,9 +689,19 @@ lemma unchanged_init_state[simp]:
   "raw_conflicting (init_state N) = None"
   unfolding init_state_def by (rule unchanged_fold_add_init_cls)+
 
+lemma raw_clss_l_raw_clss[simp]: "CDCL_Two_Watched_Literals.raw_clss = raw_clss_l"
+  apply (rule sym)
+  using mset_map by blast
+
 lemma conc_init_clss[simp]:
   "twl.conc_init_clss (TWL_State M N U k C) = raw_clss_l N"
-  by (simp add: twl.conc_init_clss_def)
+proof -
+  have "\<And>t. twl.conc_clauses (t::'a twl_state) - conc_learned_clss t = raw_clss_l (raw_init_clss t)"
+    by (metis (no_types) diff_union_cancelR map_append raw_clss_l_raw_clss twl.conc_clauses_def
+      union_code)
+  then show ?thesis
+    by (simp add: twl.conc_init_clss_def)
+qed
 
 lemma clauses_init_fold_add_init:
   "no_dup M \<Longrightarrow>

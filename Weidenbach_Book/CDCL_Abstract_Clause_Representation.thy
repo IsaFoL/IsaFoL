@@ -4,7 +4,10 @@ begin
 
 type_synonym 'v clause = "'v literal multiset"
 type_synonym 'v clauses = "'v clause multiset"
+
+
 subsection \<open>Abstract Clause Representation\<close>
+
 text \<open>We will abstract the representation of clause and clauses via two locales. We expect our
   representation to behave like multiset, but the internal representation can be done using list
   or whatever other representation.
@@ -13,64 +16,85 @@ text \<open>We will abstract the representation of clause and clauses via two lo
   \<^item> there is an equivalent to adding and removing a literal and to taking the union of clauses.
   \<close>
 
-
 locale raw_cls =
-  fixes
+   fixes
     mset_cls :: "'cls \<Rightarrow> 'v clause"
 begin
 end
 
-text \<open>Instantiation of the previous locale, in an unnamed context to avoid polluating with simp
-  rules\<close>
-context
-begin
-  interpretation list_cls: raw_cls mset
-    by unfold_locales
-
-  interpretation cls_cls: raw_cls id
-    by unfold_locales
-
-end
-
-text \<open>Over the abstract clauses, we have the following properties:
-   \<^item> We can insert a clause
-   \<^item> We can take the union (used only in proofs for the definition of @{term clauses})
-   \<^item> there is an operator indicating whether the abstract clause is contained or not
-   \<^item> if a concrete clause is contained the abstract clauses, then there is an abstract clause
-  \<close>
-locale raw_clss =
-  raw_cls mset_cls
-  for
-    mset_cls :: "'cls \<Rightarrow> 'v clause" +
+text \<open>The two following locales are the \<^emph>\<open>exact same\<close> locale, but we two different locales. 
+  Otherwise, instantiating @{text raw_clss} would lead to duplicate constants. 
+  (TODO: better idea?).\<close>
+locale abstract_with_index =
   fixes
-    mset_clss:: "'clss \<Rightarrow> 'v clauses" and
-    in_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> bool" and
-    insert_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss"
+    get :: "'a \<Rightarrow> 'it \<Rightarrow> 'conc" and
+    valid :: "'it \<Rightarrow> 'a  \<Rightarrow> bool" and
+    convert_to_mset :: "'a \<Rightarrow> 'conc multiset"
   assumes
-    insert_clss[simp]: "mset_clss (insert_clss L C) = mset_clss C + {#mset_cls L#}" and
-    in_clss_mset_clss[dest]: "in_clss a C \<Longrightarrow> mset_cls a \<in># mset_clss C" and
-    in_mset_clss_exists_preimage: "b \<in># mset_clss C \<Longrightarrow> \<exists>b'. in_clss b' C \<and> mset_cls b' = b"
-begin
+    in_clss_mset_cls[dest]:
+      "valid a Cs \<Longrightarrow> get Cs a \<in># convert_to_mset Cs" and
+    in_mset_cls_exists_preimage:
+      "b \<in># convert_to_mset Cs \<Longrightarrow> \<exists>b'. valid b' Cs \<and> get Cs b' = b"
 
+locale abstract_with_index2 =
+  fixes
+    get :: "'a \<Rightarrow> 'it \<Rightarrow> 'conc" and
+    valid :: "'it \<Rightarrow> 'a  \<Rightarrow> bool" and
+    convert_to_mset :: "'a \<Rightarrow> 'conc multiset"
+  assumes
+    in_clss_mset_clss[dest]:
+      "valid a Cs \<Longrightarrow> get Cs a \<in># convert_to_mset Cs" and
+    in_mset_clss_exists_preimage:
+      "b \<in># convert_to_mset Cs \<Longrightarrow> \<exists>b'. valid b' Cs \<and> get Cs b' = b"
+
+locale raw_clss =
+  abstract_with_index cls_lit in_cls mset_cls +
+  abstract_with_index2 clss_cls in_clss mset_clss
+  for
+    cls_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal" and
+    in_cls :: "'lit \<Rightarrow> 'cls \<Rightarrow> bool" and
+    mset_cls :: "'cls \<Rightarrow> 'v clause" and
+
+    clss_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls" and
+    in_clss :: "'cls_it \<Rightarrow> 'clss \<Rightarrow> bool" and
+    mset_clss:: "'clss \<Rightarrow> 'cls multiset"
+begin
+notation in_cls (infix "\<in>\<down>" 49)
+notation in_clss (infix "\<in>\<Down>" 49)
+
+notation cls_lit (infix "\<down>" 49)
+notation clss_cls (infix "\<Down>" 49)
+
+abbreviation raw_clss where
+"raw_clss S \<equiv> image_mset mset_cls (mset_clss S)"
 end
 
 experiment
 begin
-  fun remove_first where
-  "remove_first _ [] = []" |
-  "remove_first C (C' # L) = (if mset C = mset C' then L else C' # remove_first C L)"
+  interpretation abstract_with_index
+    nth
+    "\<lambda>L C. L < length C"
+    mset
+    apply unfold_locales
+    by (metis in_set_conv_nth set_mset_mset)+
+    
+  interpretation abstract_with_index2
+    nth
+    "\<lambda>L C. L < length C"
+    mset
+    apply unfold_locales
+    by (metis in_set_conv_nth set_mset_mset)+
+    
+  interpretation list_cls: raw_clss
+    nth
+    "\<lambda>L C. L < length C"
+    mset
 
-  lemma mset_map_mset_remove_first:
-    "mset (map mset (remove_first a C)) = remove1_mset (mset a) (mset (map mset C))"
-    by (induction C) (auto simp: ac_simps remove1_mset_single_add)
+    nth
+    "\<lambda>C Cs. C < length Cs"
+    "\<lambda>Cs. mset Cs"
+    by unfold_locales
 
-  interpretation clss_clss: raw_clss id
-    id "op \<in>#" "\<lambda>L C. C + {#L#}"
-    by unfold_locales (auto simp: ac_simps)
-
-  interpretation list_clss: raw_clss mset
-    "\<lambda>L. mset (map mset L)" "\<lambda>L C. L \<in> set C" "op #"
-    by unfold_locales (auto simp: ac_simps union_mset_list mset_map_mset_remove_first ex_mset)
 end
 
 end

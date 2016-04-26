@@ -3580,7 +3580,7 @@ proof -
     qed
 qed
 
-text \<open>See also @{thm [source] rtranclp_cdcl\<^sub>W_cp_dropWhile_trail}\<close>
+text \<open>See also theorem @{thm [source] rtranclp_cdcl\<^sub>W_cp_dropWhile_trail}\<close>
 lemma rtranclp_propagate_is_trail_append:
   "propagate\<^sup>*\<^sup>* S T \<Longrightarrow> \<exists>c. trail T = c @ trail S"
   by (induction rule: rtranclp_induct) (auto elim: propagateE)

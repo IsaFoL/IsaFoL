@@ -68,8 +68,8 @@ lemma length_raw_trail_raw_cons_trails[simp]:
   by (cases S) auto
 
 lemma twl_raw_clauses_raw_cons_trail[simp]:
-  "twl.raw_clauses (raw_cons_trail L S) = twl.raw_clauses S"
-  by (cases S) (auto simp: twl.raw_clauses_def)
+  "raw_clauses (raw_cons_trail L S) = raw_clauses S"
+  by (cases S) auto
 
 fun raw_prepend_trail where
 "raw_prepend_trail Ms (TWL_State M N U k C) = TWL_State (Ms @ M) N U k C"
@@ -87,8 +87,8 @@ lemma length_raw_trail_raw_prepend_trails[simp]:
   by (cases S) auto
 
 lemma twl_raw_clauses_raw_prepend_trail[simp]:
-  "twl.raw_clauses (raw_prepend_trail L S) = twl.raw_clauses S"
-  by (cases S) (auto simp: twl.raw_clauses_def)
+  "raw_clauses (raw_prepend_trail L S) = raw_clauses S"
+  by (cases S) auto
 
 fun raw_cons_trail_pq where
 "raw_cons_trail_pq L (TWL_State_Cand S Q) = TWL_State_Cand (raw_cons_trail L S) Q"
@@ -445,7 +445,7 @@ qed
 lemma prop_queue_rewatch_nat_cand_eq_or_cons:
   "\<exists>L'. prop_queue (cand (rewatch_nat_cand L S)) = L' @ prop_queue (cand S)
   \<and> undefined_lit_list L' (get_trail_of_cand (cand S) @ raw_trail (twl_state S))
-  \<and> (\<forall>(l, C) \<in> set L'. C \<in> set (twl.raw_clauses (twl_state S)) \<and> l \<in># clause C
+  \<and> (\<forall>(l, C) \<in> set L'. C \<in> set (raw_clauses (twl_state S)) \<and> l \<in># clause C
     \<and> l \<noteq> -L \<and> l \<noteq> L)"
 proof -
   obtain T Ks where S: "S = TWL_State_Cand T Ks"
@@ -461,7 +461,7 @@ proof -
   show ?thesis unfolding S
     using prop_queue_rewatch_nat_cand_clss_eq_or_cons[of L "raw_trail T" "(raw_init_clss T, Ks)"]
     using prop_queue_rewatch_nat_cand_clss_eq_or_cons[of L "raw_trail T" "(raw_learned_clss T, K')"]
-    by (auto simp: comp_def twl.raw_clauses_def U V)
+    by (auto simp: comp_def U V)
 qed
 
 lemma twl_clauses_rewatch_nat_cand[simp]:
@@ -485,7 +485,7 @@ proof -
     using rewatch_nat_cand_single_clause_clauses[of L "raw_trail T" "raw_learned_clss T"
       "K'"] by (auto simp: comp_def V clause_def_lambda raw_clause_def)
   ultimately show ?thesis  unfolding S
-    by (auto simp: comp_def twl.raw_clauses_def U V clause_def raw_clause_def)
+    by (auto simp: comp_def raw_clauses_def U V clause_def raw_clause_def)
 qed
 
 lemma true_annot_mono_append_append:
@@ -527,7 +527,7 @@ proof -
     by (cases K'')
   obtain P where P: "Q'' = P @ Q"
     using prop_queue_rewatch_nat_cand_eq_or_cons[of L "TWL_State_Cand S (Prop_Or_Conf Q D)"]
-    by (auto simp: comp_def twl.raw_clauses_def U V K'')
+    by (auto simp: comp_def U V K'')
 
   have H1: "set_mset (mset (map clause U)) =
     clause ` set_mset (mset (raw_init_clss S))"
@@ -540,7 +540,7 @@ proof -
         "K'"] by (auto simp: comp_def V clause_def_lambda)
   show ?thesis
     using H1 H2
-    by (auto simp: comp_def U V K'' twl.raw_clauses_def image_Un P (* raw_clause_def *)
+    by (auto simp: comp_def U V K'' image_Un P (* raw_clause_def *)
       clause_def image_image lits_of_def intro!: Nat.diff_le_mono2 card_mono)
 qed
 
@@ -548,25 +548,25 @@ text \<open>This purely technical lemma states that if there is no new defined l
   is empty.\<close>
 lemma \<mu>TWL_eq_no_new_propagated_lit:
   assumes
-    c: "card {La \<in> atms_of_ms (clause ` set (twl.raw_clauses S)).
+    c: "card {La \<in> atms_of_ms (clause ` set (raw_clauses S)).
       La \<noteq> atm_of L \<and> La \<notin> (\<lambda>x. atm_of (lit_of x)) ` set (raw_trail S) \<and>
       La \<notin> (\<lambda>x. atm_of (fst x)) ` set Ls \<and>
       La \<notin> (\<lambda>x. atm_of (fst x)) ` set l} =
-    card {La \<in> atms_of_ms (clause ` set (twl.raw_clauses S)).
+    card {La \<in> atms_of_ms (clause ` set (raw_clauses S)).
       La \<noteq> atm_of L \<and> La \<notin> (\<lambda>x. atm_of (lit_of x)) ` set (raw_trail S) \<and>
       La \<notin> (\<lambda>x. atm_of (fst x)) ` set l}" and
     undef: "undefined_lit_list Ls (map (\<lambda>(x, y). Propagated x y) l @ raw_trail S)" and
-    C: "\<forall>(l, C)\<in>set Ls. C \<in> set (twl.raw_clauses S) \<and> l \<in># clause C \<and> l \<noteq> - L \<and> l \<noteq> L"
+    C: "\<forall>(l, C)\<in>set Ls. C \<in> set (raw_clauses S) \<and> l \<in># clause C \<and> l \<noteq> - L \<and> l \<noteq> L"
   shows "Ls = []"
 proof (rule ccontr)
   assume "Ls \<noteq> []"
   then obtain L' C' Ls' where Ls: "Ls = (L', C') # Ls'"
     by (cases Ls) auto
-  let ?D =" {La \<in> atms_of_ms (clause ` set (twl.raw_clauses S)).
+  let ?D =" {La \<in> atms_of_ms (clause ` set (raw_clauses S)).
       La \<noteq> atm_of L \<and> La \<notin> (\<lambda>x. atm_of (lit_of x)) ` set (raw_trail S) \<and>
       La \<notin> (\<lambda>x. atm_of (fst x)) ` set Ls \<and>
       La \<notin> (\<lambda>x. atm_of (fst x)) ` set l}"
-  let ?C = " {La \<in> atms_of_ms (clause ` set (twl.raw_clauses S)).
+  let ?C = " {La \<in> atms_of_ms (clause ` set (raw_clauses S)).
       La \<noteq> atm_of L \<and> La \<notin> (\<lambda>x. atm_of (lit_of x)) ` set (raw_trail S) \<and>
       La \<notin> (\<lambda>x. atm_of (fst x)) ` set l}"
   have "?D \<subseteq> ?C"
@@ -575,7 +575,7 @@ proof (rule ccontr)
     by auto
   ultimately have "?D = ?C"
     by (simp add: c card_subset_eq)
-  then have H: "\<And>La. La \<in> atms_of_ms (clause ` set (twl.raw_clauses S)) \<Longrightarrow>
+  then have H: "\<And>La. La \<in> atms_of_ms (clause ` set (raw_clauses S)) \<Longrightarrow>
     La \<noteq> atm_of L \<Longrightarrow> La \<notin> (\<lambda>x. atm_of (lit_of x)) ` set (raw_trail S) \<Longrightarrow>
     La \<notin> (\<lambda>x. atm_of (fst x)) ` set l \<Longrightarrow>
     La \<notin> (\<lambda>x. atm_of (fst x)) ` set Ls"
@@ -583,9 +583,9 @@ proof (rule ccontr)
   have undef: "undefined_lit
     (map (\<lambda>(x, y). Propagated x y) Ls' @ map (\<lambda>(x, y). Propagated x y) l @ raw_trail S) L'"
     using undef unfolding Ls by auto
-  have C': "C' \<in> set (twl.raw_clauses S)" and "L' \<in># clause C'" and LL': "L' \<noteq> -L" "L' \<noteq> L"
+  have C': "C' \<in> set (raw_clauses S)" and "L' \<in># clause C'" and LL': "L' \<noteq> -L" "L' \<noteq> L"
     using C unfolding Ls by auto
-  then have "atm_of L' \<in> atms_of_ms (clause ` set (twl.raw_clauses S))"
+  then have "atm_of L' \<in> atms_of_ms (clause ` set (raw_clauses S))"
     by (simp add: C' in_implies_atm_of_on_atms_of_ms)
   moreover have "atm_of L' \<noteq> atm_of L"
     using LL' by (auto simp: atm_of_eq_atm_of)
@@ -628,12 +628,12 @@ next
   obtain T Q' where T: "rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l None)) =
     TWL_State_Cand T Q'"
     by (cases "rewatch_nat_cand L (TWL_State_Cand S (Prop_Or_Conf l None))")
-  have ST: "clause ` set (twl.raw_clauses T) =
-    clause ` set (twl.raw_clauses S)"
+  have ST: "clause ` set (raw_clauses T) =
+    clause ` set (raw_clauses S)"
     using twl_clauses_rewatch_nat_cand[of L "TWL_State_Cand S (Prop_Or_Conf l None)"]
     unfolding T
     (* TODO tune proof *)
-    apply (auto simp: comp_def twl.raw_clauses_def image_Un
+    apply (auto simp: comp_def image_Un
           simp del: rewatch_nat_cand.simps)
     apply (metis (no_types, lifting) Un_iff image_eqI set_append set_map set_mset_mset union_code)+
     done
@@ -732,13 +732,13 @@ primrec wf_twl_cls_pq :: "('v, 'mark) ann_lits \<Rightarrow> 'v literal list \<R
 
 definition wf_twl_state_pq :: "'v twl_state_cands \<Rightarrow> bool" where
 "wf_twl_state_pq S \<longleftrightarrow>
-  (\<forall>C \<in> set (twl.raw_clauses (twl_state S)).
+  (\<forall>C \<in> set (raw_clauses (twl_state S)).
     wf_twl_cls_pq (raw_trail (twl_state S)) (map fst (prop_queue (cand S))) C) \<and>
     no_dup (raw_trail (twl_state S) @ get_trail_of_cand (cand S))"
 
 lemma twl_raw_clauses_update_conflicting[simp]:
-  "twl.raw_clauses (update_conflicting D S) = twl.raw_clauses S"
-  unfolding twl.raw_clauses_def by auto
+  "raw_clauses (update_conflicting D S) = raw_clauses S"
+  unfolding raw_clauses_def by auto
 
 lemma wf_twl_state_pq_TWL_State_Cand_update_conflicting:
   "wf_twl_state_pq (TWL_State_Cand (update_conflicting D S) Q) \<longleftrightarrow>
@@ -773,8 +773,8 @@ next
 qed
 
 lemma struct_wf_twl_cls_rewatch_nat_cand:
-  assumes wf: "\<forall>x\<in>set (twl.raw_clauses T). struct_wf_twl_cls x"
-  shows "\<forall>x\<in>set (twl.raw_clauses (twl_state (raw_cons_trail_pq (Propagated L C')
+  assumes wf: "\<forall>x\<in>set (raw_clauses T). struct_wf_twl_cls x"
+  shows "\<forall>x\<in>set (raw_clauses (twl_state (raw_cons_trail_pq (Propagated L C')
     (rewatch_nat_cand L (TWL_State_Cand T Ks))))). struct_wf_twl_cls x"
 proof -
   obtain U K' where
@@ -786,23 +786,23 @@ proof -
     (is "?H = _") by (cases ?H)
   have "\<And>x. x \<in> set U \<Longrightarrow> struct_wf_twl_cls x"
     using struct_wf_twl_cls_rewatch_nat_cand_clss[of "raw_init_clss T" L "raw_trail T" Ks] wf U
-    by (cases T) (auto simp: twl.raw_clauses_def)
+    by (cases T) (auto simp: raw_clauses_def)
 
   moreover have "\<And>x. x \<in> set V \<Longrightarrow> struct_wf_twl_cls x"
     using struct_wf_twl_cls_rewatch_nat_cand_clss[of "raw_learned_clss T" L "raw_trail T" K'] wf V
-    by (cases T) (auto simp: twl.raw_clauses_def)
+    by (cases T) (auto simp: raw_clauses_def)
   ultimately show ?thesis
-    by (auto simp: twl.raw_clauses_def Product_Type.prod.case_distrib U V)[]
+    by (auto simp: raw_clauses_def Product_Type.prod.case_distrib U V)[]
 qed
 
 lemma struct_wf_twl_cls_do_propagate_or_conflict_step:
-  assumes "\<forall>C\<in>set (twl.raw_clauses (twl_state S)). struct_wf_twl_cls C" and
-   "C \<in> set (twl.raw_clauses (twl_state (do_propagate_or_conflict_step S)))"
+  assumes "\<forall>C\<in>set (raw_clauses (twl_state S)). struct_wf_twl_cls C" and
+   "C \<in> set (raw_clauses (twl_state (do_propagate_or_conflict_step S)))"
   shows "struct_wf_twl_cls C"
   using assms
   apply (induction S rule: do_propagate_or_conflict_step.induct)
-    apply (auto simp: twl.raw_clauses_def Product_Type.prod.case_distrib)[]
-   apply (auto simp: twl.raw_clauses_def Product_Type.prod.case_distrib)[]
+    apply (auto simp: Product_Type.prod.case_distrib)[]
+   apply (auto simp: Product_Type.prod.case_distrib)[]
   by (simp del: rewatch_nat_cand.simps
     add: struct_wf_twl_cls_rewatch_nat_cand)
 
