@@ -88,7 +88,7 @@ qed *)
 
 lemma raw_clss_l_twl_clauses_of_clss[simp]:
   "raw_clss_l = twl.clauses_of_clss"
-  by (rule ext) (metis twl.clauses_of_clss_def twl2.raw_clss_l_raw_clss)
+  by (rule ext) (metis twl.clauses_of_clss_def twl.raw_clss_l_raw_clss)
 
 interpretation twl: abs_state\<^sub>W where
     cls_lit = "\<lambda>_ L. L" and
@@ -133,7 +133,7 @@ proof goal_cases
      by blast
   have [simp]: "conc_learned_clss S \<subseteq># twl.conc_clauses S" for S
     by (metis (mono_tags, lifting) map_append mset_append mset_le_add_right twl.conc_clauses_def
-      twl2.raw_clss_l_raw_clss)
+      twl.raw_clss_l_raw_clss)
   have [simp]: "mset (removeAll (clause C) (map clause (raw_init_clss st))) =
        removeAll_mset (clause C) (twl.conc_init_clss st)" for st C
     unfolding mset_removeAll[symmetric] by (auto simp: twl.conc_init_clss_def)
@@ -420,7 +420,7 @@ proof -
   moreover have "trail_twl (twl_of_rough_state (reduce_trail_to M1 (rough_state_of_twl st))) = M1"
     using trail_twl_twl_rough_state_reduce_trail_to[OF assms(1)] .
   ultimately show ?st using S unfolding twl.state_def
-    by (metis (no_types) prod.inject twl2.raw_clss_l_raw_init_clss_conc_init_clss)
+    by (metis (no_types) prod.inject twl.raw_clss_l_raw_init_clss_conc_init_clss)
 qed
 
 lemma add_learned_cls_rough_state_of_twl_simp:
@@ -484,7 +484,7 @@ proof -
     by auto
   then show ?thesis
     by (simp add: local.twl.conc_clauses_def local.twl.conc_init_clss_def 
-      rough_state_of_twl_restart_twl twl2.wf_twl.conc_init_clss_def wf_twl.conc_clauses_def)
+      rough_state_of_twl_restart_twl twl.wf_twl.conc_init_clss_def wf_twl.conc_clauses_def)
 qed
 
 sublocale wf_twl: abs_state\<^sub>W where
@@ -552,7 +552,7 @@ proof goal_cases
              using wf_twl.conc_init_clss_cons_trail
 apply (metis (mono_tags, lifting) local.twl.conc_clauses_def local.twl.conc_init_clss_def
   rough_state_of_twl_cons_trail twl.conc_init_clss_cons_conc_trail
-  twl.undefined_lit_trail_twl_raw_trail twl2.wf_twl.conc_clauses_def
+  twl.undefined_lit_trail_twl_raw_trail twl.wf_twl.conc_clauses_def
   twl.wf_twl.conc_init_clss_def)
             apply (auto simp add: rough_state_of_twl_tl_trail wf_twl.state_def abs)[]
             
@@ -572,7 +572,7 @@ apply (metis (mono_tags, lifting) local.twl.conc_clauses_def local.twl.conc_init
            rough_state_of_twl_update_conflicting abs; fail)[]
      using twl_of_rough_state_reduce_trail_to(1) unfolding abs
      using twl.conc_init_clss_restart_state twl.conc_learned_clss_restart_state
-     apply (simp add: twl.resolve_conflicting twl2.rough_state_of_twl_update_conflicting;
+     apply (simp add: twl.resolve_conflicting twl.rough_state_of_twl_update_conflicting;
        fail)
   using twl_of_rough_state_reduce_trail_to(1) unfolding abs
   using twl.conc_init_clss_restart_state twl.conc_learned_clss_restart_state

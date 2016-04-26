@@ -187,7 +187,6 @@ next
   then show ?case using UW by blast
 qed
 
-(* TODO Merge with previous *)
 lemma rtranclp_relation_rtranclp_relation_abs_compatible:
   fixes S :: 'st
   assumes
@@ -473,7 +472,7 @@ fun valid_annotation :: "'st \<Rightarrow> ('a, 'cls_it) ann_lit \<Rightarrow> b
 
 end
 
-(* TODO resolve_cls could take a 'cls_it instead of 'cls *)
+
 text \<open>We are using an abstract state to abstract away the detail of the implementation: we do not
   need to know how the clauses are represented internally, we just need to know that they can be
   converted to multisets.\<close>
@@ -975,7 +974,6 @@ lemma conc_clauses_add_conc_confl_to_learned_cls[simp]:
     conc_clauses (add_conc_confl_to_learned_cls S) = {#C#} + conc_clauses S"
   unfolding conc_clauses_init_learned by (auto simp: ac_simps)
 
-(* TODO [dest!] might not be optimal, but no information is lost. *)
 lemma raw_conc_conflicting_update_conc_backtrack_lvl:
   "raw_conc_conflicting (update_conc_backtrack_lvl i S) = Some z' \<Longrightarrow>
      (raw_conc_conflicting S \<noteq> None \<and> conc_conflicting S = Some (mset_ccls z'))"

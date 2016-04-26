@@ -5,7 +5,7 @@
 subsection \<open>Implementation for 2 Watched-Literals\<close>
 
 theory CDCL_Two_Watched_Literals_Implementation
-imports CDCL_Two_Watched_Literals_Invariant DPLL_CDCL_W_Implementation
+imports CDCL_Two_Watched_Literals
 begin
 text \<open>The difference between an implementation and the core described in the previous sections are
   the following:

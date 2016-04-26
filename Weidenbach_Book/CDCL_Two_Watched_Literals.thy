@@ -276,9 +276,10 @@ lemma wf_candidates_propagate_sound:
   shows "raw_trail S \<Turnstile>as CNot (mset (removeAll L (raw_clause C))) \<and> undefined_lit (raw_trail S) L"
     (is "?Not \<and> ?undef")
 proof
-  def M \<equiv> "raw_trail S"
-  def N \<equiv> "raw_init_clss S"
-  def U \<equiv> "raw_learned_clss S"
+  define M N U where 
+    M_def:"M = raw_trail S" and
+    N_def: "N = raw_init_clss S" and
+    U_def: "U = raw_learned_clss S"
 
   note MNU_defs [simp] = M_def N_def U_def
 
@@ -626,8 +627,7 @@ locale abstract_twl =
   fixes
     watch :: "'v twl_state \<Rightarrow> 'v literal list \<Rightarrow> 'v twl_clause" and
     rewatch :: "'v literal \<Rightarrow> 'v twl_state \<Rightarrow>
-      'v twl_clause \<Rightarrow> 'v twl_clause" and
-    restart_learned :: "'v twl_state \<Rightarrow> 'v twl_clause list"
+      'v twl_clause \<Rightarrow> 'v twl_clause"
   assumes
     clause_watch: "no_dup (raw_trail S) \<Longrightarrow> clause (watch S C) = mset C" and
     wf_watch: "no_dup (raw_trail S) \<Longrightarrow> wf_twl_cls (raw_trail S) (watch S C)" and
@@ -636,9 +636,6 @@ locale abstract_twl =
       "no_dup (raw_trail S) \<Longrightarrow> undefined_lit (raw_trail S) (lit_of L) \<Longrightarrow>
         wf_twl_cls (raw_trail S) C' \<Longrightarrow>
         wf_twl_cls (L # raw_trail S) (rewatch (lit_of L) S C')"
-      and
-    restart_learned: "mset (restart_learned S) \<subseteq># mset (raw_learned_clss S)" \<comment> \<open>We need
-      @{term mset} and not @{term set} to take care of duplicates. \<close>
 begin
 
 definition
@@ -712,9 +709,6 @@ lemma clauses_init_fold_add_init:
 
 lemma init_clss_init_state[simp]: "twl.conc_init_clss (init_state N) = clauses_of_l N"
   unfolding init_state_def by (subst clauses_init_fold_add_init) simp_all
-
-definition restart' where
-  "restart' S = TWL_State [] (raw_init_clss S) (restart_learned S) 0 None"
 
 end
 
@@ -1187,22 +1181,12 @@ qed
 
 (* implementation of watch etc. *)
 
-interpretation twl: abstract_twl watch_nat rewatch_nat raw_learned_clss
+interpretation twl: abstract_twl watch_nat rewatch_nat
   apply unfold_locales
   apply (rule clause_watch_nat; simp add: image_image comp_def)
   apply (rule wf_watch_nat; simp add: image_image comp_def)
   apply (rule clause_rewatch_nat)
   apply (rule clause_rewatch_witness'; simp add: image_image comp_def)
-  apply (simp)
-  done
-
-interpretation twl2: abstract_twl watch_nat rewatch_nat "\<lambda>_. []"
-  apply unfold_locales
-  apply (rule clause_watch_nat; simp add: image_image comp_def)
-  apply (rule wf_watch_nat; simp add: image_image comp_def)
-  apply (rule clause_rewatch_nat)
-  apply (rule clause_rewatch_witness'; simp add: image_image comp_def)
-  apply (simp)
   done
 
 end
