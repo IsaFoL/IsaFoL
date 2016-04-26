@@ -28,15 +28,15 @@ text \<open>Only the 2-watched literals have to be verified here: the backtrack 
   appear in the state are not related to the 2-watched algoritm.\<close>
 
 datatype 'v twl_clause =
-  TWL_Clause (watched: "'v literal list") (unwatched: "'v literal list")
+  TWL_Clause (watched: 'v) (unwatched: 'v)
 
 datatype 'v twl_state =
-  TWL_State (raw_trail: "('v, 'v twl_clause) ann_lits")
-    (raw_init_clss: "'v twl_clause list")
-    (raw_learned_clss: "'v twl_clause list") (backtrack_lvl: nat)
+  TWL_State (raw_trail: "('v, 'v literal list twl_clause) ann_lits")
+    (raw_init_clss: "'v literal list twl_clause list")
+    (raw_learned_clss: "'v literal list twl_clause list") (backtrack_lvl: nat)
     (raw_conflicting: "'v literal list option")
 
-fun mmset_of_mlit :: "('v, 'v twl_clause) ann_lit  \<Rightarrow> ('v, 'v clause) ann_lit"
+fun mmset_of_mlit :: "('v, 'v literal list twl_clause) ann_lit  \<Rightarrow> ('v, 'v clause) ann_lit"
   where
 "mmset_of_mlit (Propagated L C) = Propagated L (mset (watched C @ unwatched C))" |
 "mmset_of_mlit (Decided L) = Decided L"
@@ -53,20 +53,20 @@ abbreviation trail where
 abbreviation clauses_of_l where
   "clauses_of_l \<equiv> \<lambda>L. mset (map mset L)"
 
-definition raw_clause :: "'v twl_clause \<Rightarrow> 'v literal list" where
+definition raw_clause :: "'v literal list twl_clause \<Rightarrow> 'v literal list" where
   "raw_clause C \<equiv> watched C @ unwatched C"
 
-definition clause :: "'v twl_clause \<Rightarrow> 'v clause" where
+definition clause :: "'v literal list twl_clause \<Rightarrow> 'v clause" where
   "clause C \<equiv> mset (raw_clause C)"
 
 lemma clause_def_lambda:
   "clause = (\<lambda>C. mset (raw_clause C))"
   by (auto simp: clause_def)
 
-abbreviation raw_clss_l :: "'a twl_clause list \<Rightarrow> 'a clauses" where
+abbreviation raw_clss_l :: "'a literal list twl_clause list \<Rightarrow> 'a clauses" where
   "raw_clss_l C \<equiv> mset (map clause C)"
 
-abbreviation raw_clauses :: "'v twl_state \<Rightarrow> 'v twl_clause list" where
+abbreviation raw_clauses :: "'v twl_state \<Rightarrow> 'v literal list twl_clause list" where
   "raw_clauses S \<equiv> raw_init_clss S @ raw_learned_clss S"
 
 (* abbreviation raw_clss :: "'v twl_state \<Rightarrow> 'v clauses" where
@@ -105,7 +105,7 @@ qed
 abbreviation conc_learned_clss where
 "conc_learned_clss \<equiv> \<lambda>S. mset (map clause (raw_learned_clss S))"
 
-interpretation twl: abs_state\<^sub>W_ops
+interpretation twl: abs_state\<^sub>W_clss_ops
   "\<lambda>_ L. L"
   "\<lambda>L C. L \<in> set (raw_clause C)"
   clause
@@ -115,9 +115,6 @@ interpretation twl: abs_state\<^sub>W_ops
   mset
 
   mset
-  trail "\<lambda>S. hd (raw_trail S)"
-  "(\<lambda>S. raw_init_clss S @ raw_learned_clss S)" backtrack_lvl raw_conflicting
-  conc_learned_clss
   rewrites
     "twl.mmset_of_mlit S = mmset_of_mlit"
 proof goal_cases
@@ -131,12 +128,27 @@ proof goal_cases
     apply (rule ext)
     apply (rename_tac x)
     apply (case_tac x)
-    apply (simp_all add: abs_state\<^sub>W_ops.mmset_of_mlit.simps[OF H] raw_clause_def clause_def)
+    apply (simp_all add: abs_state\<^sub>W_clss_ops.mmset_of_mlit.simps[OF H] raw_clause_def clause_def)
   done
 qed
 
+interpretation twl: abs_state\<^sub>W_ops
+  "\<lambda>_ L. L"
+  "\<lambda>L C. L \<in> set (raw_clause C)"
+  clause
+
+  "\<lambda>_ C. C"
+  "\<lambda>C Cs. C \<in> set Cs"
+  mset
+
+  mset
+  trail "\<lambda>S. hd (raw_trail S)"
+  "(\<lambda>S. raw_init_clss S @ raw_learned_clss S)" backtrack_lvl raw_conflicting
+  conc_learned_clss
+  by unfold_locales
+
 definition
-  candidates_propagate :: "'v twl_state \<Rightarrow> ('v literal \<times> 'v twl_clause) set"
+  candidates_propagate :: "'v twl_state \<Rightarrow> ('v literal \<times> 'v literal list twl_clause) set"
 where
   "candidates_propagate S =
    {(L, C) | L C.
@@ -144,7 +156,7 @@ where
      set (watched C) - (uminus ` lits_of_l (trail S)) = {L} \<and>
      undefined_lit (raw_trail S) L}"
 
-definition candidates_conflict :: "'v twl_state \<Rightarrow> 'v twl_clause set" where
+definition candidates_conflict :: "'v twl_state \<Rightarrow> 'v literal list twl_clause set" where
   "candidates_conflict S =
    {C. C \<in> set (raw_clauses S) \<and>
      set (watched C) \<subseteq> uminus ` lits_of_l (raw_trail S)}"
@@ -162,7 +174,7 @@ subsubsection \<open>Invariants\<close>
 text \<open>The structural invariants states that there are at most two watched elements, that the watched
   literals are distinct, and that there are 2 watched literals if there are at least than two
   different literals in the full clauses.\<close>
-primrec struct_wf_twl_cls :: "'v twl_clause \<Rightarrow> bool" where
+primrec struct_wf_twl_cls :: "'v literal list twl_clause \<Rightarrow> bool" where
 "struct_wf_twl_cls (TWL_Clause W UW) \<longleftrightarrow>
    distinct W \<and> length W \<le> 2 \<and> (length W < 2 \<longrightarrow> set UW \<subseteq> set W)"
 
@@ -173,7 +185,7 @@ text \<open>We need the following property about updates: if there is a literal 
 
   Remark that @{term M} is a trail: literals at the end were the first to be added to the trail.\<close>
 primrec watched_only_lazy_updates :: "('v, 'mark) ann_lits \<Rightarrow>
-  'v twl_clause \<Rightarrow> bool"
+  'v literal list twl_clause \<Rightarrow> bool"
   where
 "watched_only_lazy_updates M (TWL_Clause W UW) \<longleftrightarrow>
   (\<forall>L'\<in> set W. \<forall>L\<in> set UW.
@@ -183,13 +195,13 @@ primrec watched_only_lazy_updates :: "('v, 'mark) ann_lits \<Rightarrow>
 text \<open>If the negation of a watched literal is included in the trail, then the negation of
   every unwatched literals is also included in the trail. Otherwise, the data-structure has to be
   updated.\<close>
-primrec watched_wf_twl_cls :: "('a, 'b) ann_lits \<Rightarrow> 'a twl_clause \<Rightarrow>
+primrec watched_wf_twl_cls :: "('a, 'b) ann_lits \<Rightarrow> 'a literal list twl_clause \<Rightarrow>
   bool" where
 "watched_wf_twl_cls M (TWL_Clause W UW) \<longleftrightarrow>
    (\<forall>L \<in> set W. -L \<in> lits_of_l M \<longrightarrow> (\<forall>L' \<in> set UW. L' \<notin> set W \<longrightarrow> -L' \<in> lits_of_l M))"
 
 text \<open>Here are the invariant strictly related to the 2-WL data structure.\<close>
-primrec wf_twl_cls :: "('v, 'mark) ann_lits \<Rightarrow> 'v twl_clause \<Rightarrow> bool" where
+primrec wf_twl_cls :: "('v, 'mark) ann_lits \<Rightarrow> 'v literal list twl_clause \<Rightarrow> bool" where
   "wf_twl_cls M (TWL_Clause W UW) \<longleftrightarrow>
    struct_wf_twl_cls (TWL_Clause W UW) \<and> watched_wf_twl_cls M (TWL_Clause W UW) \<and>
    watched_only_lazy_updates M (TWL_Clause W UW)"
@@ -377,9 +389,10 @@ lemma wf_candidates_propagate_complete:
     undef: "undefined_lit (raw_trail S) L"
   shows "(L, C) \<in> candidates_propagate S"
 proof -
-  def M \<equiv> "raw_trail S"
-  def N \<equiv> "raw_init_clss S"
-  def U \<equiv> "raw_learned_clss S"
+  define M N U where
+    M_def: "M = raw_trail S" and
+    N_def: "N = raw_init_clss S" and
+    U_def: "U = raw_learned_clss S"
 
   note MNU_defs [simp] = M_def N_def U_def
 
@@ -457,10 +470,11 @@ lemma wf_candidates_conflict_sound:
     cand: "C \<in> candidates_conflict S"
   shows "trail S \<Turnstile>as CNot (clause C) \<and> C \<in> set (raw_clauses S)"
 proof
-  def M \<equiv> "raw_trail S"
-  def N \<equiv> "raw_init_clss S"
-  def U \<equiv> "raw_learned_clss S"
-
+  define M N U where
+    M_def: "M = raw_trail S" and
+    N_def: "N = raw_init_clss S" and
+    U_def: "U = raw_learned_clss S"
+    
   note MNU_defs [simp] = M_def N_def U_def
 
   have cw:
@@ -521,9 +535,10 @@ lemma wf_candidates_conflict_complete:
     unsat: "trail S \<Turnstile>as CNot (clause C)"
   shows "C \<in> candidates_conflict S"
 proof -
-  def M \<equiv> "raw_trail S"
-  def N \<equiv> "twl.conc_init_clss S"
-  def U \<equiv> "conc_learned_clss S"
+  define M N U where
+    M_def: "M = raw_trail S" and
+    N_def: "N = twl.conc_init_clss S" and
+    U_def: "U = conc_learned_clss S"
 
   note MNU_defs [simp] = M_def N_def U_def
 
@@ -558,7 +573,7 @@ qed
 typedef 'v wf_twl = "{S::'v twl_state. wf_twl_state S}"
 morphisms rough_state_of_twl twl_of_rough_state
 proof -
-  have "TWL_State ([]::('v, 'v twl_clause) ann_lits)
+  have "TWL_State ([]::('v, 'v literal list twl_clause) ann_lits)
     [] [] 0 None \<in> {S:: 'v twl_state. wf_twl_state S} "
     by (auto simp: wf_twl_state_def)
   then show ?thesis by auto
@@ -571,25 +586,25 @@ lemma [code abstype]:
 lemma wf_twl_state_rough_state_of_twl[simp]: "wf_twl_state (rough_state_of_twl S)"
   using rough_state_of_twl by auto
 
-abbreviation candidates_conflict_twl :: "'v wf_twl \<Rightarrow> 'v twl_clause set" where
+abbreviation candidates_conflict_twl :: "'v wf_twl \<Rightarrow> 'v literal list twl_clause set" where
 "candidates_conflict_twl S \<equiv> candidates_conflict (rough_state_of_twl S)"
 
-abbreviation candidates_propagate_twl :: "'v wf_twl \<Rightarrow> ('v literal \<times> 'v twl_clause) set" where
+abbreviation candidates_propagate_twl :: "'v wf_twl \<Rightarrow> ('v literal \<times> 'v literal list twl_clause) set" where
 "candidates_propagate_twl S \<equiv> candidates_propagate (rough_state_of_twl S)"
 
-abbreviation raw_trail_twl :: "'a wf_twl \<Rightarrow> ('a, 'a twl_clause) ann_lits" where
+abbreviation raw_trail_twl :: "'a wf_twl \<Rightarrow> ('a, 'a literal list twl_clause) ann_lits" where
 "raw_trail_twl S \<equiv> raw_trail (rough_state_of_twl S)"
 
 abbreviation trail_twl :: "'a wf_twl \<Rightarrow> ('a, 'a literal multiset) ann_lits" where
 "trail_twl S \<equiv> trail (rough_state_of_twl S)"
 
-abbreviation raw_clauses_twl :: "'a wf_twl \<Rightarrow> 'a twl_clause list" where
+abbreviation raw_clauses_twl :: "'a wf_twl \<Rightarrow> 'a literal list twl_clause list" where
 "raw_clauses_twl S \<equiv> raw_clauses (rough_state_of_twl S)"
 
-abbreviation raw_init_clss_twl :: "'a wf_twl \<Rightarrow> 'a twl_clause list" where
+abbreviation raw_init_clss_twl :: "'a wf_twl \<Rightarrow> 'a literal list twl_clause list" where
 "raw_init_clss_twl S \<equiv> raw_init_clss (rough_state_of_twl S)"
 
-abbreviation raw_learned_clss_twl :: "'a wf_twl \<Rightarrow> 'a twl_clause list" where
+abbreviation raw_learned_clss_twl :: "'a wf_twl \<Rightarrow> 'a literal list twl_clause list" where
 "raw_learned_clss_twl S \<equiv> raw_learned_clss (rough_state_of_twl S)"
 
 abbreviation conc_learned_clss_twl :: "'a wf_twl \<Rightarrow> 'a clauses" where
@@ -616,18 +631,19 @@ abbreviation update_conflicting where
   "update_conflicting C S \<equiv>
     TWL_State (raw_trail S) (raw_init_clss S) (raw_learned_clss S) (backtrack_lvl S) C"
 
-subsubsection \<open>Abstract 2-WL\<close>
-
 definition tl_trail where
   "tl_trail S =
    TWL_State (tl (raw_trail S)) (raw_init_clss S) (raw_learned_clss S) (backtrack_lvl S)
    (raw_conflicting S)"
 
+
+subsubsection \<open>Abstract 2-WL\<close>
+
 locale abstract_twl =
   fixes
-    watch :: "'v twl_state \<Rightarrow> 'v literal list \<Rightarrow> 'v twl_clause" and
+    watch :: "'v twl_state \<Rightarrow> 'v literal list \<Rightarrow> 'v literal list twl_clause" and
     rewatch :: "'v literal \<Rightarrow> 'v twl_state \<Rightarrow>
-      'v twl_clause \<Rightarrow> 'v twl_clause"
+      'v literal list twl_clause \<Rightarrow> 'v literal list twl_clause"
   assumes
     clause_watch: "no_dup (raw_trail S) \<Longrightarrow> clause (watch S C) = mset C" and
     wf_watch: "no_dup (raw_trail S) \<Longrightarrow> wf_twl_cls (raw_trail S) (watch S C)" and
@@ -639,7 +655,7 @@ locale abstract_twl =
 begin
 
 definition
-  cons_trail :: "('v, 'v twl_clause) ann_lit \<Rightarrow> 'v twl_state \<Rightarrow> 'v twl_state"
+  cons_trail :: "('v, 'v literal list twl_clause) ann_lit \<Rightarrow> 'v twl_state \<Rightarrow> 'v twl_state"
 where
   "cons_trail L S =
    TWL_State (L # raw_trail S) (map (rewatch (lit_of L) S) (raw_init_clss S))
@@ -714,7 +730,7 @@ end
 
 subsubsection \<open>Instanciation of the previous locale\<close>
 
-definition watch_nat :: "'v twl_state \<Rightarrow> 'v literal list \<Rightarrow> 'v twl_clause" where
+definition watch_nat :: "'v twl_state \<Rightarrow> 'v literal list \<Rightarrow> 'v literal list twl_clause" where
   "watch_nat S C =
    (let
       C' = remdups C;
@@ -988,7 +1004,7 @@ lemma wf_watch_nat: "no_dup (raw_trail S) \<Longrightarrow> wf_twl_cls (raw_trai
 
 definition
   rewatch_nat ::
-  "'v literal \<Rightarrow> 'v twl_state \<Rightarrow> 'v twl_clause \<Rightarrow> 'v twl_clause"
+  "'v literal \<Rightarrow> 'v twl_state \<Rightarrow> 'v literal list twl_clause \<Rightarrow> 'v literal list twl_clause"
 where
   "rewatch_nat L S C =
    (if - L \<in> set (watched C) then
@@ -1003,7 +1019,7 @@ where
 lemma clause_rewatch_nat:
   fixes UW :: "'v literal list" and
     S :: "'v twl_state" and
-    L :: "'v literal" and C :: "'v twl_clause"
+    L :: "'v literal" and C :: "'v literal list twl_clause"
   shows "clause (rewatch_nat L S C) = clause C"
   using List.set_remove1_subset[of "-L" "watched C"]
   apply (cases C)

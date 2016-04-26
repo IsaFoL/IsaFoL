@@ -392,7 +392,7 @@ text \<open>We will abstract the representation of clause and clauses via two lo
   representation to behave like multiset, but the internal representation can be done using list
   or whatever other representation.\<close>
 
-locale abs_state\<^sub>W_ops =
+locale abs_state\<^sub>W_clss_ops =
   raw_clss cls_lit in_cls mset_cls
      clss_cls in_clss mset_clss
     +
@@ -410,27 +410,6 @@ locale abs_state\<^sub>W_ops =
 
     \<comment> \<open>Conflicting clause:\<close>
     mset_ccls :: "'ccls \<Rightarrow> 'v clause"
-    +
-  fixes
-    conc_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
-    hd_raw_conc_trail :: "'st \<Rightarrow> ('v, 'cls_it) ann_lit" and
-    raw_clauses :: "'st \<Rightarrow> 'clss" and
-    conc_backtrack_lvl :: "'st \<Rightarrow> nat" and
-    raw_conc_conflicting :: "'st \<Rightarrow> 'ccls option" and
-
-    conc_learned_clss :: "'st \<Rightarrow> 'v clauses" and
-
-    cons_conc_trail :: "('v, 'cls_it) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
-    tl_conc_trail :: "'st \<Rightarrow> 'st" and
-    add_conc_confl_to_learned_cls :: "'st \<Rightarrow> 'st" and
-    remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_conc_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
-    mark_conflicting :: "'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" and
-    reduce_conc_trail_to :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
-    resolve_conflicting :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
-
-    conc_init_state :: "'clss \<Rightarrow> 'st" and
-    restart_state :: "'st \<Rightarrow> 'st"
 begin
 
 fun mmset_of_mlit :: "'clss \<Rightarrow> ('v, 'cls_it) ann_lit \<Rightarrow> ('v, 'v clause) ann_lit"
@@ -452,6 +431,51 @@ lemma map_mmset_of_mlit_true_annots_true_cls[simp]:
 
 definition clauses_of_clss where
 "clauses_of_clss N \<equiv> image_mset mset_cls (mset_clss N)"
+
+end
+
+locale abs_state\<^sub>W_ops =
+  abs_state\<^sub>W_clss_ops
+    \<comment> \<open>functions for clauses: \<close>
+    cls_lit in_cls mset_cls
+    clss_cls in_clss mset_clss
+
+    \<comment> \<open>functions for the conflicting clause:\<close>
+    mset_ccls
+  for
+    \<comment> \<open>Clause:\<close>
+    cls_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal" and
+    in_cls :: "'lit \<Rightarrow> 'cls \<Rightarrow> bool" and
+    mset_cls :: "'cls \<Rightarrow> 'v clause" and
+
+    \<comment> \<open>Multiset of Clauses:\<close>
+    clss_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls" and
+    in_clss :: "'cls_it \<Rightarrow> 'clss \<Rightarrow> bool" and
+    mset_clss:: "'clss \<Rightarrow> 'cls multiset" and
+
+    \<comment> \<open>Conflicting clause:\<close>
+    mset_ccls :: "'ccls \<Rightarrow> 'v clause" +
+  fixes
+    conc_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    hd_raw_conc_trail :: "'st \<Rightarrow> ('v, 'cls_it) ann_lit" and
+    raw_clauses :: "'st \<Rightarrow> 'clss" and
+    conc_backtrack_lvl :: "'st \<Rightarrow> nat" and
+    raw_conc_conflicting :: "'st \<Rightarrow> 'ccls option" and
+
+    conc_learned_clss :: "'st \<Rightarrow> 'v clauses" and
+
+    cons_conc_trail :: "('v, 'cls_it) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_conc_trail :: "'st \<Rightarrow> 'st" and
+    add_conc_confl_to_learned_cls :: "'st \<Rightarrow> 'st" and
+    remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conc_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
+    mark_conflicting :: "'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" and
+    reduce_conc_trail_to :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    resolve_conflicting :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+
+    conc_init_state :: "'clss \<Rightarrow> 'st" and
+    restart_state :: "'st \<Rightarrow> 'st"
+begin
 
 definition conc_clauses :: "'st \<Rightarrow> 'v clauses" where
 "conc_clauses S \<equiv> image_mset mset_cls (mset_clss (raw_clauses S))"

@@ -40,6 +40,91 @@ datatype 'v candidate =
     (prop_queue: "('v literal \<times> 'v twl_clause) list")
     (conflict: "'v twl_clause option")
 
+fun twl_clause_to_mset where
+"twl_clause_to_mset (TWL_Clause W UW) = TWL_Clause (mset W) (mset UW)"
+
+locale raw_clss_with_update =
+  raw_clss cls_lit in_cls mset_cls clss_cls in_clss mset_clss
+  for
+    cls_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal" and
+    in_cls :: "'lit \<Rightarrow> 'cls \<Rightarrow> bool" and
+    mset_cls :: "'cls \<Rightarrow> 'v clause" and
+
+    clss_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls" and
+    in_clss :: "'cls_it \<Rightarrow> 'clss \<Rightarrow> bool" and
+    mset_clss:: "'clss \<Rightarrow> 'cls multiset" +
+  fixes
+    twl_cls :: "'cls \<Rightarrow> 'v literal list twl_clause" and
+    clss_update :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'clss" and
+    swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls" and
+    exists_in_unwatched :: "('lit \<Rightarrow> bool) \<Rightarrow> 'cls \<Rightarrow> 'lit option"
+  assumes
+    clause_twl_cls:
+      "clause (twl_cls C) = mset_cls C" and
+    clss_update:
+      "i \<in>\<Down> Cs \<Longrightarrow> clss_cls (clss_update Cs i C) = (clss_cls Cs) (i := C)" and
+    swap_lit:
+      "twl_clause_to_mset (twl_cls (swap_lit C j k)) = 
+        TWL_Clause
+          ({#C\<down>k#} + mset (remove1 (C\<down>j) (watched (twl_cls C)))) 
+          ({#C\<down>j#} + mset (remove1 (C\<down>k) (watched (twl_cls C))))"
+      and
+    exists_Some:
+      "exists_in_unwatched P C = Some j \<Longrightarrow> (P j \<and> j \<in>\<down> C \<and> (C \<down> j) \<in> set (unwatched (twl_cls C)))"
+      and
+    exists_None:
+      "exists_in_unwatched P C = None \<longleftrightarrow> 
+        (\<forall>j. j \<in>\<down> C \<longrightarrow> (C \<down> j) \<in> set (unwatched (twl_cls C)) \<longrightarrow> \<not>P j)"
+begin
+
+end
+
+locale twl_state\<^sub>W_clss_ops =
+  raw_clss_with_update cls_lit in_cls mset_cls
+     clss_cls in_clss mset_clss
+     
+     twl_cls clss_update swap_lit
+    +
+  raw_cls mset_ccls
+  for
+    \<comment> \<open>Clause:\<close>
+    cls_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal" and
+    in_cls :: "'lit \<Rightarrow> 'cls \<Rightarrow> bool" and
+    mset_cls :: "'cls \<Rightarrow> 'v clause" and
+
+    \<comment> \<open>Multiset of Clauses:\<close>
+    clss_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls" and
+    in_clss :: "'cls_it \<Rightarrow> 'clss \<Rightarrow> bool" and
+    mset_clss:: "'clss \<Rightarrow> 'cls multiset" and
+
+    \<comment> \<open>Conflicting clause:\<close>
+    mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
+
+    \<comment> \<open>2 watched literals conversion:\<close>
+    twl_cls :: "'cls \<Rightarrow> 'v literal list twl_clause" and
+    clss_update :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'clss" and
+    swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls" +
+  fixes
+    conc_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    hd_raw_conc_trail :: "'st \<Rightarrow> ('v, 'cls_it) ann_lit" and
+    raw_clauses :: "'st \<Rightarrow> 'clss" and
+    conc_backtrack_lvl :: "'st \<Rightarrow> nat" and
+    raw_conc_conflicting :: "'st \<Rightarrow> 'ccls option" and
+
+    conc_learned_clss :: "'st \<Rightarrow> 'v clauses" and
+
+    cons_conc_trail :: "('v, 'cls_it) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_conc_trail :: "'st \<Rightarrow> 'st" and
+    add_conc_confl_to_learned_cls :: "'st \<Rightarrow> 'st" and
+    remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conc_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
+    mark_conflicting :: "'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" and
+    reduce_conc_trail_to :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    resolve_conflicting :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+
+    conc_init_state :: "'clss \<Rightarrow> 'st" and
+    restart_state :: "'st \<Rightarrow> 'st"
+    
 text \<open>Morally instead of @{typ "('v literal \<times> 'v twl_clause) list"}, we should use
   @{typ "('v, 'v twl_clause) ann_lits"} with only @{term Propagated}. However, we do not
   want to define the function for @{term Decided} too. The following function makes the conversion
