@@ -66,11 +66,11 @@ lemma clause_def_lambda:
 abbreviation raw_clss_l :: "'a literal list twl_clause list \<Rightarrow> 'a clauses" where
   "raw_clss_l C \<equiv> mset (map clause C)"
 
-abbreviation raw_clauses :: "'v twl_state \<Rightarrow> 'v literal list twl_clause list" where
-  "raw_clauses S \<equiv> raw_init_clss S @ raw_learned_clss S"
+abbreviation raw_clauses_of_twl :: "'v twl_state \<Rightarrow> 'v literal list twl_clause list" where
+  "raw_clauses_of_twl S \<equiv> raw_init_clss S @ raw_learned_clss S"
 
 (* abbreviation raw_clss :: "'v twl_state \<Rightarrow> 'v clauses" where
-  "raw_clss S \<equiv> raw_clss_l (raw_clauses S)" *)
+  "raw_clss S \<equiv> raw_clss_l (raw_clauses_of_twl S)" *)
 
 interpretation raw_cls clause .
 
@@ -152,13 +152,13 @@ definition
 where
   "candidates_propagate S =
    {(L, C) | L C.
-     C \<in> set (raw_clauses S)  \<and>
+     C \<in> set (raw_clauses_of_twl S)  \<and>
      set (watched C) - (uminus ` lits_of_l (trail S)) = {L} \<and>
      undefined_lit (raw_trail S) L}"
 
 definition candidates_conflict :: "'v twl_state \<Rightarrow> 'v literal list twl_clause set" where
   "candidates_conflict S =
-   {C. C \<in> set (raw_clauses S) \<and>
+   {C. C \<in> set (raw_clauses_of_twl S) \<and>
      set (watched C) \<subseteq> uminus ` lits_of_l (raw_trail S)}"
 
 primrec (nonexhaustive) index :: "'a list \<Rightarrow>'a \<Rightarrow> nat" where
@@ -280,7 +280,7 @@ lemma wf_twl_cls_append:
 
 definition wf_twl_state :: "'v twl_state \<Rightarrow> bool" where
   "wf_twl_state S \<longleftrightarrow>
-    (\<forall>C \<in> set (raw_clauses S). wf_twl_cls (raw_trail S) C) \<and> no_dup (raw_trail S)"
+    (\<forall>C \<in> set (raw_clauses_of_twl S). wf_twl_cls (raw_trail S) C) \<and> no_dup (raw_trail S)"
 
 lemma wf_candidates_propagate_sound:
   assumes wf: "wf_twl_state S" and
@@ -383,7 +383,7 @@ qed
 
 lemma wf_candidates_propagate_complete:
   assumes wf: "wf_twl_state S" and
-    c_mem: "C \<in> set (raw_clauses S)" and
+    c_mem: "C \<in> set (raw_clauses_of_twl S)" and
     l_mem: "L \<in> set (raw_clause C)" and
     unsat: "trail S \<Turnstile>as CNot (mset_set (set (raw_clause C) - {L}))" and
     undef: "undefined_lit (raw_trail S) L"
@@ -468,7 +468,7 @@ qed
 lemma wf_candidates_conflict_sound:
   assumes wf: "wf_twl_state S" and
     cand: "C \<in> candidates_conflict S"
-  shows "trail S \<Turnstile>as CNot (clause C) \<and> C \<in> set (raw_clauses S)"
+  shows "trail S \<Turnstile>as CNot (clause C) \<and> C \<in> set (raw_clauses_of_twl S)"
 proof
   define M N U where
     M_def: "M = raw_trail S" and
@@ -525,13 +525,13 @@ proof
   then show "trail S \<Turnstile>as CNot (clause C)"
     unfolding CNot_def true_annots_def clause_def by auto
 
-  show "C \<in> set (raw_clauses S)"
+  show "C \<in> set (raw_clauses_of_twl S)"
     using cw by auto
 qed
 
 lemma wf_candidates_conflict_complete:
   assumes wf: "wf_twl_state S" and
-    c_mem: "C \<in> set (raw_clauses S)" and
+    c_mem: "C \<in> set (raw_clauses_of_twl S)" and
     unsat: "trail S \<Turnstile>as CNot (clause C)"
   shows "C \<in> candidates_conflict S"
 proof -
@@ -598,8 +598,8 @@ abbreviation raw_trail_twl :: "'a wf_twl \<Rightarrow> ('a, 'a literal list twl_
 abbreviation trail_twl :: "'a wf_twl \<Rightarrow> ('a, 'a literal multiset) ann_lits" where
 "trail_twl S \<equiv> trail (rough_state_of_twl S)"
 
-abbreviation raw_clauses_twl :: "'a wf_twl \<Rightarrow> 'a literal list twl_clause list" where
-"raw_clauses_twl S \<equiv> raw_clauses (rough_state_of_twl S)"
+abbreviation raw_clauses_of_twl_twl :: "'a wf_twl \<Rightarrow> 'a literal list twl_clause list" where
+"raw_clauses_of_twl_twl S \<equiv> raw_clauses_of_twl (rough_state_of_twl S)"
 
 abbreviation raw_init_clss_twl :: "'a wf_twl \<Rightarrow> 'a literal list twl_clause list" where
 "raw_init_clss_twl S \<equiv> raw_init_clss (rough_state_of_twl S)"
@@ -618,7 +618,7 @@ abbreviation raw_conflicting_twl where
 
 lemma wf_candidates_twl_conflict_complete:
   assumes
-    c_mem: "C \<in> set (raw_clauses_twl S)" and
+    c_mem: "C \<in> set (raw_clauses_of_twl_twl S)" and
     unsat: "trail_twl S \<Turnstile>as CNot (clause C)"
   shows "C \<in> candidates_conflict_twl S"
   using c_mem unsat wf_candidates_conflict_complete wf_twl_state_rough_state_of_twl by blast
@@ -676,9 +676,9 @@ where
      (raw_conflicting S)"
 
 definition
-  remove_cls :: "'v literal list \<Rightarrow> 'v twl_state \<Rightarrow> 'v twl_state"
+  remove_cls_of_twl_state :: "'v literal list \<Rightarrow> 'v twl_state \<Rightarrow> 'v twl_state"
 where
-  "remove_cls C S =
+  "remove_cls_of_twl_state C S =
    TWL_State (raw_trail S)
      (removeAll_cond (\<lambda>D. clause D = mset C) (raw_init_clss S))
      (removeAll_cond (\<lambda>D. clause D = mset C) (raw_learned_clss S))

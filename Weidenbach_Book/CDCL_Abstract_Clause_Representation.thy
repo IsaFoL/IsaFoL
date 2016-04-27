@@ -22,7 +22,7 @@ locale raw_cls =
 begin
 end
 
-text \<open>The two following locales are the \<^emph>\<open>exact same\<close> locale, but we two different locales. 
+text \<open>The two following locales are the \<^emph>\<open>exact same\<close> locale, but we need two different locales. 
   Otherwise, instantiating @{text raw_clss} would lead to duplicate constants. 
   (TODO: better idea?).\<close>
 locale abstract_with_index =

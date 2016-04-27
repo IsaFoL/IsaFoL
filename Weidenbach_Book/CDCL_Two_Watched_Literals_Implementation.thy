@@ -37,7 +37,7 @@ text \<open>It is important to remember that a conflicting clause with respect t
   before finding the conflict.\<close>
 datatype 'v candidate =
   Prop_Or_Conf
-    (prop_queue: "('v literal \<times> 'v twl_clause) list")
+    (prop_queue: "('v literal \<times> 'v literal list twl_clause) list")
     (conflict: "'v twl_clause option")
 
 fun twl_clause_to_mset where
@@ -64,28 +64,46 @@ locale raw_clss_with_update =
     clss_update:
       "i \<in>\<Down> Cs \<Longrightarrow> clss_cls (clss_update Cs i C) = (clss_cls Cs) (i := C)" and
     swap_lit:
-      "twl_clause_to_mset (twl_cls (swap_lit C j k)) = 
+      "j \<in>\<down> C \<Longrightarrow> k \<in>\<down> C \<Longrightarrow>
+        twl_clause_to_mset (twl_cls (swap_lit C j k)) =
         TWL_Clause
-          ({#C\<down>k#} + mset (remove1 (C\<down>j) (watched (twl_cls C)))) 
+          ({#C\<down>k#} + mset (remove1 (C\<down>j) (watched (twl_cls C))))
           ({#C\<down>j#} + mset (remove1 (C\<down>k) (watched (twl_cls C))))"
       and
     exists_Some:
       "exists_in_unwatched P C = Some j \<Longrightarrow> (P j \<and> j \<in>\<down> C \<and> (C \<down> j) \<in> set (unwatched (twl_cls C)))"
       and
     exists_None:
-      "exists_in_unwatched P C = None \<longleftrightarrow> 
+      "exists_in_unwatched P C = None \<longleftrightarrow>
         (\<forall>j. j \<in>\<down> C \<longrightarrow> (C \<down> j) \<in> set (unwatched (twl_cls C)) \<longrightarrow> \<not>P j)"
 begin
 
 end
 
 locale twl_state\<^sub>W_clss_ops =
-  raw_clss_with_update cls_lit in_cls mset_cls
-     clss_cls in_clss mset_clss
-     
-     twl_cls clss_update swap_lit
+  abs_state\<^sub>W
+    \<comment> \<open>functions for clauses: \<close>
+    cls_lit in_cls mset_cls
+    clss_cls in_clss mset_clss
+
+    \<comment> \<open>functions for the conflicting clause:\<close>
+    mset_ccls
+
+    \<comment> \<open>functions about the state:\<close>
+      \<comment> \<open>getter:\<close>
+    conc_trail hd_raw_conc_trail raw_clauses conc_backtrack_lvl
+    raw_conc_conflicting conc_learned_clss
+      \<comment> \<open>setter:\<close>
+    cons_conc_trail tl_conc_trail add_conc_confl_to_learned_cls conc_remove_cls
+    update_conc_backtrack_lvl
+    mark_conflicting reduce_conc_trail_to resolve_conflicting
+
+      \<comment> \<open>Some specific states:\<close>
+    conc_init_state
+    restart_state
     +
-  raw_cls mset_ccls
+  raw_clss_with_update cls_lit in_cls mset_cls clss_cls in_clss mset_clss twl_cls clss_update
+    swap_lit  exists_in_unwatched
   for
     \<comment> \<open>Clause:\<close>
     cls_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal" and
@@ -103,8 +121,8 @@ locale twl_state\<^sub>W_clss_ops =
     \<comment> \<open>2 watched literals conversion:\<close>
     twl_cls :: "'cls \<Rightarrow> 'v literal list twl_clause" and
     clss_update :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'clss" and
-    swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls" +
-  fixes
+    swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls" and
+    exists_in_unwatched :: "('lit \<Rightarrow> bool) \<Rightarrow> 'cls \<Rightarrow> 'lit option" and
     conc_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     hd_raw_conc_trail :: "'st \<Rightarrow> ('v, 'cls_it) ann_lit" and
     raw_clauses :: "'st \<Rightarrow> 'clss" and
@@ -116,15 +134,51 @@ locale twl_state\<^sub>W_clss_ops =
     cons_conc_trail :: "('v, 'cls_it) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_conc_trail :: "'st \<Rightarrow> 'st" and
     add_conc_confl_to_learned_cls :: "'st \<Rightarrow> 'st" and
-    remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+    conc_remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conc_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     mark_conflicting :: "'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" and
     reduce_conc_trail_to :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
     resolve_conflicting :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
 
+    prop_queue :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    cons_prop_queue :: "('v, 'cls_it) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    hd_prop_queue_to_trail :: "'st \<Rightarrow> 'st" and
+    prop_queue_to_trail :: "'st \<Rightarrow> 'st" and
+
+    get_undecided_lit :: "'st \<Rightarrow> 'v literal option" and
+
     conc_init_state :: "'clss \<Rightarrow> 'st" and
-    restart_state :: "'st \<Rightarrow> 'st"
-    
+    restart_state :: "'st \<Rightarrow> 'st" +
+  assumes
+    state_cons_prop_queue:
+      "undefined_lit (conc_trail T @ prop_queue T) (lit_of L) \<Longrightarrow>
+        state (cons_prop_queue L T) = state T" and
+    cons_prop_queue_prop_queue:
+      "undefined_lit (conc_trail T @ prop_queue T) (lit_of L) \<Longrightarrow>
+         prop_queue (cons_prop_queue L T) = mmset_of_mlit (raw_clauses T) L # prop_queue T" and
+    hd_prop_queue_to_trail_state:
+      "prop_queue T \<noteq> [] \<Longrightarrow> 
+        state T = (M, N, U, k, C) \<Longrightarrow>
+        state (hd_prop_queue_to_trail T) = 
+           (hd (prop_queue T) # M, N, U, k, C)" and
+    hd_prop_queue_to_trail:
+      "prop_queue T \<noteq> [] \<Longrightarrow> 
+        prop_queue (hd_prop_queue_to_trail T) = 
+           tl (prop_queue T)" and
+    prop_queue_to_trail_state:
+      "state T = (M, N, U, k, C) \<Longrightarrow>
+        state (prop_queue_to_trail T) = (prop_queue (prop_queue_to_trail T) @ M, N, U, k, C)" and
+    prop_queue_to_trail:
+      "prop_queue (prop_queue_to_trail T) = []" and
+      
+    get_undecided_lit_Some:
+      "get_undecided_lit T = Some L' \<Longrightarrow> undefined_lit (conc_trail T) L' \<and>
+        atm_of L' \<in> atms_of_mm (conc_clauses T)" and
+    get_undecided_lit_None:
+      "get_undecided_lit T = None \<longleftrightarrow>
+         (\<forall>L'. atm_of L' \<in> atms_of_mm (conc_clauses T) \<longrightarrow> \<not>undefined_lit (conc_trail T) L')"
+
+      
 text \<open>Morally instead of @{typ "('v literal \<times> 'v twl_clause) list"}, we should use
   @{typ "('v, 'v twl_clause) ann_lits"} with only @{term Propagated}. However, we do not
   want to define the function for @{term Decided} too. The following function makes the conversion
@@ -153,7 +207,7 @@ lemma length_raw_trail_raw_cons_trails[simp]:
   by (cases S) auto
 
 lemma twl_raw_clauses_raw_cons_trail[simp]:
-  "raw_clauses (raw_cons_trail L S) = raw_clauses S"
+  "raw_clauses_of_twl (raw_cons_trail L S) = raw_clauses_of_twl S"
   by (cases S) auto
 
 fun raw_prepend_trail where
@@ -172,7 +226,7 @@ lemma length_raw_trail_raw_prepend_trails[simp]:
   by (cases S) auto
 
 lemma twl_raw_clauses_raw_prepend_trail[simp]:
-  "raw_clauses (raw_prepend_trail L S) = raw_clauses S"
+  "raw_clauses_of_twl (raw_prepend_trail L S) = raw_clauses_of_twl S"
   by (cases S) auto
 
 fun raw_cons_trail_pq where
@@ -222,8 +276,8 @@ text \<open>We make the function slightly more general than needed:
 text \<open>The function returns a couple composed of a list of clauses and a candidate.\<close>
 fun
   rewatch_nat_cand_single_clause ::
-  "'v literal \<Rightarrow> ('v, 'v twl_clause) ann_lits \<Rightarrow> 'v twl_clause \<Rightarrow>
-   'v twl_clause list \<times> 'v candidate \<Rightarrow> 'v twl_clause list \<times> 'v candidate"
+  "'v literal \<Rightarrow> ('v, 'v twl_clause) ann_lits \<Rightarrow> 'v literal list twl_clause \<Rightarrow>
+   'v literal list twl_clause list \<times> 'v candidate \<Rightarrow> 'v literal list twl_clause list \<times> 'v candidate"
 where
 "rewatch_nat_cand_single_clause L M C (Cs, Ks) =
   (if - L \<in> set (watched C) \<and> conflict Ks = None then
