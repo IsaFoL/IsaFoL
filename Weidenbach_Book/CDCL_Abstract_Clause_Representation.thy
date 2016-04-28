@@ -22,79 +22,98 @@ locale raw_cls =
 begin
 end
 
-text \<open>The two following locales are the \<^emph>\<open>exact same\<close> locale, but we need two different locales. 
-  Otherwise, instantiating @{text raw_clss} would lead to duplicate constants. 
+text \<open>The two following locales are the \<^emph>\<open>exact same\<close> locale, but we need two different locales.
+  Otherwise, instantiating @{text raw_clss} would lead to duplicate constants.
   (TODO: better idea?).\<close>
 locale abstract_with_index =
   fixes
-    get :: "'a \<Rightarrow> 'it \<Rightarrow> 'conc" and
-    valid :: "'it \<Rightarrow> 'a  \<Rightarrow> bool" and
+    get_lit :: "'a \<Rightarrow> 'it \<Rightarrow> 'conc option" and
     convert_to_mset :: "'a \<Rightarrow> 'conc multiset"
   assumes
     in_clss_mset_cls[dest]:
-      "valid a Cs \<Longrightarrow> get Cs a \<in># convert_to_mset Cs" and
+      "get_lit Cs a = Some e \<Longrightarrow> e \<in># convert_to_mset Cs" and
     in_mset_cls_exists_preimage:
-      "b \<in># convert_to_mset Cs \<Longrightarrow> \<exists>b'. valid b' Cs \<and> get Cs b' = b"
+      "b \<in># convert_to_mset Cs \<Longrightarrow> \<exists>b'. get_lit Cs b' = Some b"
 
 locale abstract_with_index2 =
   fixes
-    get :: "'a \<Rightarrow> 'it \<Rightarrow> 'conc" and
-    valid :: "'it \<Rightarrow> 'a  \<Rightarrow> bool" and
+    get_lit :: "'a \<Rightarrow> 'it \<Rightarrow> 'conc option" and
     convert_to_mset :: "'a \<Rightarrow> 'conc multiset"
   assumes
     in_clss_mset_clss[dest]:
-      "valid a Cs \<Longrightarrow> get Cs a \<in># convert_to_mset Cs" and
+      "get_lit Cs a = Some e \<Longrightarrow> e \<in># convert_to_mset Cs" and
     in_mset_clss_exists_preimage:
-      "b \<in># convert_to_mset Cs \<Longrightarrow> \<exists>b'. valid b' Cs \<and> get Cs b' = b"
+      "b \<in># convert_to_mset Cs \<Longrightarrow> \<exists>b'. get_lit Cs b' = Some b"
 
 locale raw_clss =
-  abstract_with_index cls_lit in_cls mset_cls +
-  abstract_with_index2 clss_cls in_clss mset_clss
+  abstract_with_index get_lit mset_cls +
+  abstract_with_index2 get_cls mset_clss
   for
-    cls_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal" and
-    in_cls :: "'lit \<Rightarrow> 'cls \<Rightarrow> bool" and
+    get_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal option" and
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
 
-    clss_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls" and
-    in_clss :: "'cls_it \<Rightarrow> 'clss \<Rightarrow> bool" and
+    get_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls option" and
     mset_clss:: "'clss \<Rightarrow> 'cls multiset"
 begin
-notation in_cls (infix "\<in>\<down>" 49)
-notation in_clss (infix "\<in>\<Down>" 49)
 
-notation cls_lit (infix "\<down>" 49)
-notation clss_cls (infix "\<Down>" 49)
+definition cls_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal" (infix "\<down>" 49) where
+"C \<down> a \<equiv> the (get_lit C a)"
 
-abbreviation raw_clss where
+definition clss_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls" (infix "\<Down>" 49) where
+"C \<Down> a \<equiv> the (get_cls C a)"
+
+definition in_cls :: "'lit \<Rightarrow> 'cls \<Rightarrow> bool" (infix "\<in>\<down>" 49) where
+"a \<in>\<down> Cs \<equiv> get_lit Cs a \<noteq> None"
+
+definition in_clss :: "'cls_it \<Rightarrow> 'clss \<Rightarrow> bool" (infix "\<in>\<Down>" 49) where
+"a \<in>\<Down> Cs \<equiv> get_cls Cs a \<noteq> None"
+
+definition raw_clss where
 "raw_clss S \<equiv> image_mset mset_cls (mset_clss S)"
+
 end
 
 experiment
 begin
+  fun safe_nth where
+  "safe_nth (x # _) 0 = Some x" |
+  "safe_nth (_ # xs) (Suc n) = safe_nth xs n"  |
+  "safe_nth [] _ = None"
+
+  lemma safe_nth_nth: "n < length l \<Longrightarrow> safe_nth l n = Some (nth l n)"
+    by (induction l n rule: safe_nth.induct) auto
+
+  lemma safe_nth_None: "n \<ge> length l \<Longrightarrow> safe_nth l n = None"
+    by (induction l n rule: safe_nth.induct) auto
+
+  lemma safe_nth_Some_iff: "safe_nth l n = Some m \<longleftrightarrow> n < length l \<and> m = nth l n"
+    apply (rule iffI)
+      defer apply (auto simp: safe_nth_nth)[]
+    by (induction l n rule: safe_nth.induct) auto
+
+  lemma safe_nth_None_iff: "safe_nth l n = None \<longleftrightarrow> n \<ge> length l"
+    apply (rule iffI)
+      defer apply (auto simp: safe_nth_None)[]
+    by (induction l n rule: safe_nth.induct) auto
+
   interpretation abstract_with_index
-    nth
-    "\<lambda>L C. L < length C"
+    safe_nth
     mset
     apply unfold_locales
-    by (metis in_set_conv_nth set_mset_mset)+
-    
+      apply (simp add: safe_nth_Some_iff)
+    by (metis in_set_conv_nth safe_nth_nth set_mset_mset)
+
   interpretation abstract_with_index2
-    nth
-    "\<lambda>L C. L < length C"
+    safe_nth
     mset
     apply unfold_locales
-    by (metis in_set_conv_nth set_mset_mset)+
-    
+      apply (simp add: safe_nth_Some_iff)
+    by (metis in_set_conv_nth safe_nth_nth set_mset_mset)
+
   interpretation list_cls: raw_clss
-    nth
-    "\<lambda>L C. L < length C"
-    mset
-
-    nth
-    "\<lambda>C Cs. C < length Cs"
-    "\<lambda>Cs. mset Cs"
+    safe_nth mset
+    safe_nth mset
     by unfold_locales
-
 end
 
 end

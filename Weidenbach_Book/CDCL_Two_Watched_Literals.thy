@@ -81,16 +81,15 @@ lemma mset_map_clause_remove1_cond:
    by (auto simp: ac_simps remove1_mset_single_add raw_clause_def clause_def)
 term raw_clss
 interpretation raw_clss
-  "\<lambda>_ L. L"
-  "\<lambda>L C. L \<in> set (raw_clause C)"
+  "\<lambda>C L. if L \<in> set (raw_clause C) then Some L else None"
   clause
 
-  "\<lambda>_ C. C"
-  "\<lambda>C Cs. C \<in> set Cs"
+  "\<lambda>Cs C. if C \<in> set Cs then Some C else None"
   mset
   apply (unfold_locales)
   using mset_map_clause_remove1_cond by (auto simp: hd_map comp_def map_tl ac_simps raw_clause_def
-    union_mset_list mset_map_mset_remove1_cond ex_mset clause_def_lambda)
+    union_mset_list mset_map_mset_remove1_cond ex_mset clause_def_lambda
+    split: if_splits)
 
 lemma ex_mset_unwatched_watched:
   "\<exists>a. mset (unwatched a) + mset (watched a) = E"
@@ -106,12 +105,10 @@ abbreviation conc_learned_clss where
 "conc_learned_clss \<equiv> \<lambda>S. mset (map clause (raw_learned_clss S))"
 
 interpretation twl: abs_state\<^sub>W_clss_ops
-  "\<lambda>_ L. L"
-  "\<lambda>L C. L \<in> set (raw_clause C)"
+  "\<lambda>C L. if L \<in> set (raw_clause C) then Some L else None"
   clause
 
-  "\<lambda>_ C. C"
-  "\<lambda>C Cs. C \<in> set Cs"
+  "\<lambda>Cs C. if C \<in> set Cs then Some C else None"
   mset
 
   mset
@@ -128,7 +125,8 @@ proof goal_cases
     apply (rule ext)
     apply (rename_tac x)
     apply (case_tac x)
-    apply (simp_all add: abs_state\<^sub>W_clss_ops.mmset_of_mlit.simps[OF H] raw_clause_def clause_def)
+    apply (simp_all add: abs_state\<^sub>W_clss_ops.mmset_of_mlit.simps[OF H] raw_clause_def clause_def
+      clss_cls_def)
   done
 qed
 

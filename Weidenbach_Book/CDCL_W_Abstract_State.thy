@@ -393,19 +393,17 @@ text \<open>We will abstract the representation of clause and clauses via two lo
   or whatever other representation.\<close>
 
 locale abs_state\<^sub>W_clss_ops =
-  raw_clss cls_lit in_cls mset_cls
-     clss_cls in_clss mset_clss
+  raw_clss get_lit mset_cls
+     get_cls mset_clss
     +
   raw_cls mset_ccls
   for
     \<comment> \<open>Clause:\<close>
-    cls_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal" and
-    in_cls :: "'lit \<Rightarrow> 'cls \<Rightarrow> bool" and
+    get_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal option" and
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
 
     \<comment> \<open>Multiset of Clauses:\<close>
-    clss_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls" and
-    in_clss :: "'cls_it \<Rightarrow> 'clss \<Rightarrow> bool" and
+    get_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls option" and
     mset_clss:: "'clss \<Rightarrow> 'cls multiset" and
 
     \<comment> \<open>Conflicting clause:\<close>
@@ -432,25 +430,27 @@ lemma map_mmset_of_mlit_true_annots_true_cls[simp]:
 definition clauses_of_clss where
 "clauses_of_clss N \<equiv> image_mset mset_cls (mset_clss N)"
 
+notation cls_lit (infix "\<down>" 49)
+notation clss_cls (infix "\<Down>" 49)
+notation in_cls (infix "\<in>\<down>" 49)
+notation in_clss (infix "\<in>\<Down>" 49)
 end
 
 locale abs_state\<^sub>W_ops =
   abs_state\<^sub>W_clss_ops
     \<comment> \<open>functions for clauses: \<close>
-    cls_lit in_cls mset_cls
-    clss_cls in_clss mset_clss
+    cls_lit mset_cls
+    clss_cls mset_clss
 
     \<comment> \<open>functions for the conflicting clause:\<close>
     mset_ccls
   for
     \<comment> \<open>Clause:\<close>
-    cls_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal" and
-    in_cls :: "'lit \<Rightarrow> 'cls \<Rightarrow> bool" and
+    cls_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal option" and
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
 
     \<comment> \<open>Multiset of Clauses:\<close>
-    clss_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls" and
-    in_clss :: "'cls_it \<Rightarrow> 'clss \<Rightarrow> bool" and
+    clss_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls option" and
     mset_clss:: "'clss \<Rightarrow> 'cls multiset" and
 
     \<comment> \<open>Conflicting clause:\<close>
@@ -491,7 +491,7 @@ definition state :: "'st \<Rightarrow> 'v cdcl\<^sub>W_mset" where
   conc_conflicting S))"
 
 fun valid_annotation :: "'st \<Rightarrow> ('a, 'cls_it) ann_lit \<Rightarrow> bool" where
-"valid_annotation S (Propagated _ E) \<longleftrightarrow> E \<in>\<Down> raw_clauses S" |
+"valid_annotation S (Propagated _ E) \<longleftrightarrow> E \<in>\<Down> (raw_clauses S)" |
 "valid_annotation S (Decided _) \<longleftrightarrow> True"
 
 end
@@ -533,8 +533,8 @@ text \<open>
 locale abs_state\<^sub>W =
   abs_state\<^sub>W_ops
     \<comment> \<open>functions for clauses: \<close>
-    cls_lit in_cls mset_cls
-    clss_cls in_clss mset_clss
+    get_lit mset_cls
+    get_cls mset_clss
 
     \<comment> \<open>functions for the conflicting clause:\<close>
     mset_ccls
@@ -552,13 +552,11 @@ locale abs_state\<^sub>W =
     restart_state
   for
     \<comment> \<open>Clause:\<close>
-    cls_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal" and
-    in_cls :: "'lit \<Rightarrow> 'cls \<Rightarrow> bool" and
+    get_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal option" and
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
 
     \<comment> \<open>Multiset of Clauses:\<close>
-    clss_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls" and
-    in_clss :: "'cls_it \<Rightarrow> 'clss \<Rightarrow> bool" and
+    get_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls option" and
     mset_clss:: "'clss \<Rightarrow> 'cls multiset" and
 
     \<comment> \<open>Conflicting clause:\<close>
@@ -613,9 +611,6 @@ locale abs_state\<^sub>W =
     mark_conflicting:
       "state st = (M, N, U, k, None) \<Longrightarrow> E \<in>\<Down> raw_clauses st \<Longrightarrow>
         state (mark_conflicting E st) = (M, N, U, k, Some (mset_cls (raw_clauses st \<Down> E)))" and
-
-(*     conc_conflicting_mark_conflicting[simp]:
-      "raw_conc_conflicting (mark_conflicting E st) = Some E" and *)
 
     resolve_conflicting:
       "state st = (M, N, U, k, Some F) \<Longrightarrow> -L' \<in># F \<Longrightarrow> L' \<in># mset_cls D \<Longrightarrow>
@@ -877,7 +872,7 @@ lemma raw_conc_conflicting_update_backtracl_lvl[simp]:
 lemma conc_conflicting_mark_conflicting[simp]:
   "raw_conc_conflicting S = None \<Longrightarrow> E \<in>\<Down> raw_clauses S \<Longrightarrow>
     conc_conflicting (mark_conflicting E S) = Some (mset_cls (raw_clauses S \<Down> E))"
-  using mark_conflicting unfolding state_def by fastforce
+  using mark_conflicting unfolding state_def by blast
 
 lemma conflicting_None_iff_raw_conc_conflicting[simp]:
   "conflicting (state S) = None \<longleftrightarrow> raw_conc_conflicting S = None"
@@ -1016,7 +1011,8 @@ proof -
   have "b \<in># conc_clauses C"
     using b by auto
   then show ?thesis
-    using in_mset_clss_exists_preimage unfolding conc_clauses_def by fastforce
+    using in_mset_clss_exists_preimage unfolding conc_clauses_def clss_cls_def in_clss_def
+    by fastforce
 qed
 
 lemma state_reduce_conc_trail_to_reduce_conc_trail_to_decomp[simp]:
@@ -1032,8 +1028,8 @@ subsection \<open>CDCL Rules\<close>
 locale abs_conflict_driven_clause_learning\<^sub>W =
   abs_state\<^sub>W
     \<comment> \<open>functions for clauses: \<close>
-    cls_lit in_cls mset_cls
-    clss_cls in_clss mset_clss
+    get_lit mset_cls
+    get_cls mset_clss
 
     \<comment> \<open>functions for the conflicting clause:\<close>
     mset_ccls
@@ -1051,13 +1047,11 @@ locale abs_conflict_driven_clause_learning\<^sub>W =
     restart_state
   for
     \<comment> \<open>Clause:\<close>
-    cls_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal" and
-    in_cls :: "'lit \<Rightarrow> 'cls \<Rightarrow> bool" and
+    get_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal option" and
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
 
     \<comment> \<open>Multiset of Clauses:\<close>
-    clss_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls" and
-    in_clss :: "'cls_it \<Rightarrow> 'clss \<Rightarrow> bool" and
+    get_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls option" and
     mset_clss:: "'clss \<Rightarrow> 'cls multiset" and
 
     \<comment> \<open>Conflicting clause:\<close>
@@ -1094,6 +1088,11 @@ propagate_abs_rule: "conc_conflicting S = None \<Longrightarrow>
 
 inductive_cases propagate_absE: "propagate_abs S T"
 
+lemma in_clss_mset_clss:
+  assumes H: "a \<in>\<Down> Cs"
+  shows "(Cs \<Down> a) \<in># mset_clss Cs"
+  using H by (simp add: in_clss_mset_clss in_clss_def clss_cls_def)
+
 lemma propagate_propagate_abs:
   "cdcl\<^sub>W_mset.propagate (state S) (state T) \<longleftrightarrow> propagate_abs S T" (is "?mset \<longleftrightarrow> ?abs")
 proof
@@ -1105,12 +1104,11 @@ proof
     tr_E: "conc_trail S \<Turnstile>as CNot (mset_cls (raw_clauses S \<Down> E) - {#L#})" and
     undef: "undefined_lit (conc_trail S) L" and
     T: "T \<sim> cons_conc_trail (Propagated L E) S"
-    by (auto elim: propagate_absE)
-
+    by (auto elim!: propagate_absE)
   show ?mset
     apply (rule cdcl\<^sub>W_mset.propagate_rule)
         using confl apply (auto; fail)[]
-       using E apply (auto simp: conc_clauses_def; fail)[]
+       using in_clss_mset_clss[OF E] apply (auto simp add: conc_clauses_def; fail)[]
       using L apply (auto; fail)[]
      using tr_E apply (auto; fail)[]
      using undef apply (auto; fail)[]
@@ -1124,7 +1122,7 @@ next
     "conc_trail S \<Turnstile>as CNot (mset_cls (raw_clauses S \<Down> E) - {#L#})" and
     "undefined_lit (conc_trail S) L" and
     "state T \<sim>m cons_trail (Propagated L (mset_cls (raw_clauses S \<Down> E))) (state S)"
-    by (auto elim!: cdcl\<^sub>W_mset.propagateE dest!: in_clauses_preimage
+    by (fastforce elim!: cdcl\<^sub>W_mset.propagateE dest!: in_clauses_preimage
       simp: cdcl\<^sub>W_mset.clauses_def)
   then show ?abs
     by (auto intro!: propagate_abs_rule)
@@ -1189,7 +1187,7 @@ proof
   show ?mset
     apply (rule cdcl\<^sub>W_mset.conflict_rule)
        using confl apply simp
-      using D apply (auto simp: conc_clauses_def; fail)[]
+      using in_clss_mset_clss[OF D] apply (auto simp: conc_clauses_def; fail)[]
      using tr_D apply simp
     using T confl D apply auto
     done
@@ -1202,7 +1200,7 @@ next
     T: "state T \<sim>m update_conflicting (Some D) (state S)"
     by (cases "state S") (auto elim: cdcl\<^sub>W_mset.conflictE)
   obtain D' where D': "D' \<in>\<Down> raw_clauses S" and DD'[simp]: "D = mset_cls (raw_clauses S \<Down> D')"
-    using D by (auto dest!: in_mset_clss_exists_preimage simp: conc_clauses_def)[]
+    using D in_clauses_preimage by blast
   show ?abs
     apply (rule conflict_abs_rule)
        using confl apply simp
@@ -1222,7 +1220,7 @@ proof -
     T: "T \<sim>m update_conflicting (Some D) S"
     using conflict by (auto elim: cdcl\<^sub>W_mset.conflictE)
   obtain D' where D': "D' \<in>\<Down> raw_clauses S'" and DD'[simp]: "D = mset_cls (raw_clauses S' \<Down> D')"
-    using D SS' by (auto dest!: in_mset_clss_exists_preimage simp: conc_clauses_def)[]
+    using D SS' in_clauses_preimage by force
   let ?U = "mark_conflicting D' S'"
   have "conflict_abs S' ?U"
     apply (rule conflict_abs_rule)
@@ -1288,7 +1286,9 @@ proof
         (reduce_conc_trail_to M1
           (add_conc_confl_to_learned_cls
             (update_conc_backtrack_lvl i S)))"
-    by (auto elim!: backtrack_absE)
+    apply (elim backtrack_absE)
+    apply auto
+    done
   have n_d: "no_dup (trail (state S))"
     using lev_L inv unfolding cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_mset.cdcl\<^sub>W_M_level_inv_def
     by simp
@@ -1309,13 +1309,13 @@ proof
     using decomp by auto
   show ?conc
     apply (rule cdcl\<^sub>W_mset.backtrack_rule)
-           using D apply simp
-          using L apply simp
-         using decomp apply simp
-        using lev_L apply simp
-       using lev_Max apply simp
-      using i apply simp
-     using lev_K apply simp
+           using D apply (simp; fail)
+          using L apply (simp; fail)
+         using decomp apply (simp; fail)
+        using lev_L apply (simp; fail)
+       using lev_Max apply (simp; fail)
+      using i apply (simp; fail)
+     using lev_K apply (simp; fail)
     using T undef n_d tr D D' D'T unfolding Product_Type.prod.inject by auto
 next
   assume ?conc

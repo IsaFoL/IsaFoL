@@ -119,7 +119,6 @@ section \<open>Definition of the State\<close>
 
 subsection \<open>Trail\<close>
 
-
 fun get_part_trail :: "(nat, 'a) RBT.rbt \<Rightarrow> nat \<Rightarrow> 'a list"  where
 "get_part_trail C 0 = []" |
 "get_part_trail C (Suc n) = the (RBT.lookup C (Suc n)) # get_part_trail C n"
@@ -156,7 +155,6 @@ proof -
         by (subst H, subst (1) H) (auto simp: distinct_card[symmetric])
       then have l: "length (RBT.keys t) = Suc (length (RBT.keys (RBT.delete (length (RBT.keys t)) t)))"
         using True by (auto simp: wf_rbt_array_def distinct_card[symmetric] keys_delete Set.remove_def)
-
       have r: "Set.remove (length (RBT.keys t)) (set (RBT.keys t)) =
         {Suc 0..length (RBT.keys t) - Suc 0}"
         by (subst H) auto
@@ -236,4 +234,10 @@ proof -
 qed
 
 
+subsection \<open>Clauses\<close>
+
+subsection \<open>Conflicting\<close>
+
+
+section \<open>Putting things together\<close>
 end
