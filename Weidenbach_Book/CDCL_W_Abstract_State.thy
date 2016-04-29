@@ -1078,13 +1078,14 @@ locale abs_conflict_driven_clause_learning\<^sub>W =
 begin
 
 inductive propagate_abs :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
-propagate_abs_rule: "conc_conflicting S = None \<Longrightarrow>
-  E \<in>\<Down> raw_clauses S \<Longrightarrow>
-  L \<in># mset_cls (raw_clauses S \<Down> E) \<Longrightarrow>
-  conc_trail S \<Turnstile>as CNot (mset_cls (raw_clauses S \<Down> E) - {#L#}) \<Longrightarrow>
-  undefined_lit (conc_trail S) L \<Longrightarrow>
-  T \<sim> cons_conc_trail (Propagated L E) S \<Longrightarrow>
-  propagate_abs S T"
+propagate_abs_rule: "propagate_abs S T"
+  if
+    "conc_conflicting S = None" and
+    "E \<in>\<Down> raw_clauses S" and
+    "L \<in># mset_cls (raw_clauses S \<Down> E)" and
+    "conc_trail S \<Turnstile>as CNot (mset_cls (raw_clauses S \<Down> E) - {#L#})" and
+    "undefined_lit (conc_trail S) L" and
+    "T \<sim> cons_conc_trail (Propagated L E) S"
 
 inductive_cases propagate_absE: "propagate_abs S T"
 
