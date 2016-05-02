@@ -4,7 +4,7 @@
     Maintainer:  Jasmin Blanchette <jasmin.blanchette at inria.fr>
 *)
 
-section \<open>Clausal Logic\<close>
+section \<open>CHerbrand Intepretation\<close>
 
 theory Herbrand_Interpretation
 imports Clausal_Logic

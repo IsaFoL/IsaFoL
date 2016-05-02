@@ -170,8 +170,7 @@ text {*
 Cf. Corollary 3.10:
 *}
 
-corollary saturated_refute_complete:
-  "saturated N \<Longrightarrow> \<not> satisfiable N \<Longrightarrow> {#} \<in> N"
+corollary saturated_refute_complete: "saturated N \<Longrightarrow> \<not> satisfiable N \<Longrightarrow> {#} \<in> N"
   by (metis saturated_no_empty_imp_model)
 
 end
