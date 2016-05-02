@@ -54,7 +54,7 @@ text {*
 $A_{ii}$ vs.\ $A_i$
 \end{nit}
 *}
-
+ 
 context
   fixes S :: "'a clause \<Rightarrow> 'a clause"
 begin
@@ -74,6 +74,23 @@ inductive ord_resolve_raw :: "'a clause multiset \<Rightarrow> 'a clause \<Right
    (\<forall>(C', A, _) \<in> set_mset ZZ. \<forall>B \<in> atms_of (C' \<cdot> \<sigma>). \<not> less_eq_atm (A \<cdot>a \<sigma>) B) \<Longrightarrow>
    (\<forall>C. C \<in># CC \<longrightarrow> S C = {#}) \<Longrightarrow>
    ord_resolve_raw CC D ((Cf' + D') \<cdot> \<sigma>)"
+
+term "\<lambda>(C,AA).True"
+
+inductive ord_resolve_raw2 :: "'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  ord_resolve_raw:
+  "length (Cs :: 'a clause list) = n \<Longrightarrow> (* list of  C1, ..., Cn *)
+   length (AAs :: 'a multiset list) = n \<Longrightarrow> (* list of corresponding  Aij's *)
+     (\<forall>AA \<in> set AAs. AA \<noteq> {#}) \<Longrightarrow>
+   length (As :: 'a list) = n \<Longrightarrow> (* list of  A1, ..., An  *)
+   (DAs :: 'a clause) = negs (mset As) + D \<Longrightarrow> (* The premise  \<not>A1 \<or> ... \<or> \<not>An \<or> D *)
+   (CC :: 'a clause multiset) = mset (map (\<lambda>(C,AA). C + poss AA) (zip Cs AAs)) \<Longrightarrow>  (* Side premises *)  (* This is how far I got - could this premise be better? *)
+   Some \<sigma> = mgu (set (map (\<lambda>(AA,A). set_mset (AA + {#A#})) (zip AAs As))) \<Longrightarrow>
+   S DAs = negs (mset As) \<or>
+     S DAs = {#} \<and> length As = 1 \<and> (\<forall>B \<in> atms_of (D \<cdot> \<sigma>). \<not> less_atm ((As!0) \<cdot>a \<sigma>) B) \<Longrightarrow>
+   (\<forall>i < n. \<forall>B \<in> atms_of (Cs ! i \<cdot> \<sigma>). \<not> less_eq_atm (As ! i \<cdot>a \<sigma>) B) \<Longrightarrow>
+   (\<forall>C. C \<in># CC \<longrightarrow> S C = {#}) \<Longrightarrow>
+   ord_resolve_raw2 CC D ((\<Union>#(mset Cs) + D) \<cdot> \<sigma>)"
 
 inductive ord_resolve :: "'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve:
@@ -193,7 +210,7 @@ begin
 interpretation selection
   by (rule select)
 
-definition S_M :: "'a literal multiset \<Rightarrow> 'a literal multiset" where
+definition S_M :: "'a clause \<Rightarrow> 'a clause" where
   "S_M C = (if C \<in> grounding_of_clss M
     then (SOME C'. \<exists>D \<sigma>. D \<in> M \<and> C = D \<cdot> \<sigma> \<and> C' = S D \<cdot> \<sigma> \<and> is_ground_subst \<sigma>) else S C)"
 
@@ -232,7 +249,7 @@ qed (simp add: S_M_not_grounding_of_clss S_selects_neg_lits)
 
 
 interpretation gd: ground_resolution_with_selection S_M
-  by unfold_locales (auto simp: S_M_selects_subseteq S_M_selects_neg_lits)
+  apply unfold_locales apply (auto simp: S_M_selects_subseteq S_M_selects_neg_lits) done
 
 (*"grounding_of_clss N0"*)
 
@@ -637,5 +654,8 @@ text {*
 *}
 
 end
+
+
+
 
 end
