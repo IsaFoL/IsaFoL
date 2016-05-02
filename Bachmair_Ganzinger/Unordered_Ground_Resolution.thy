@@ -7,7 +7,8 @@
 section {* Unordered Ground Resolution *}
 
 theory Unordered_Ground_Resolution
-imports Inference_System Ground_Resolution_Model keywords "anders"
+imports Inference_System Ground_Resolution_Model
+keywords "anders" :: diag
 begin
 
 text {*
@@ -179,7 +180,6 @@ lemmas (in ground_resolution_without_selection) clausal_logic_compact = clausal_
 
 
 ML \<open>
-local
 val _ =
   Outer_Syntax.command @{command_keyword anders} "visualize locale dependencies"
     (Scan.succeed
@@ -189,7 +189,7 @@ val _ =
           ((name, Graph_Display.content_node (Locale.extern thy name) [body]), parents))
         |> Graph_Display.display_graph_old))));
 \<close>
-
+anders
 context ground_resolution_without_selection begin
 locale_deps
 end
