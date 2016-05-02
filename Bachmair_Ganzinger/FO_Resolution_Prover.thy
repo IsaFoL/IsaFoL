@@ -247,7 +247,6 @@ using assms proof cases
     using assms S_selects_neg_lits by auto
 qed (simp add: S_M_not_grounding_of_clss S_selects_neg_lits)
 
-
 interpretation gd: ground_resolution_with_selection S_M
   apply unfold_locales apply (auto simp: S_M_selects_subseteq S_M_selects_neg_lits) done
 
@@ -269,7 +268,7 @@ lemma gd_ord_\<Gamma>_ngd_ord_\<Gamma>: "gd.ord_\<Gamma> \<subseteq> gd_ord_\<Ga
 
 interpretation src_ext:
   redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "(\<lambda>N. src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>))"
-  by (rule satandard_redundancy_criterion_extension[OF gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion])
+  by (rule standard_redundancy_criterion_extension[OF gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion])
 (*find_theorems name: src_ext*)
 
 end
@@ -572,7 +571,7 @@ text {*
 @{text O} denotes relation composition in Isabelle, so the formalization uses @{text Q} instead.
 *}
 inductive resolution_prover (infix "\<leadsto>" 50) where
- tautology_deletion: "(\<forall>I. I \<Turnstile> C) \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
+  tautology_deletion: "(\<forall>I. I \<Turnstile> C) \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
 | forward_subsumption: "(\<exists>D \<in> P \<union> Q. subsumes D C) \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
 | backward_subsumption_P: "(\<exists>D \<in> N. properly_subsumes D C) \<Longrightarrow> (N, P \<union> {C}, Q) \<leadsto> (N, P, Q)"
 | backward_subsumption_Q: "(\<exists>D \<in> N. properly_subsumes D C) \<Longrightarrow> (N, P, Q \<union> {C}) \<leadsto> (N, P, Q)"

@@ -217,7 +217,7 @@ proof -
   obtain C' where c: "C = negs AA + C'"
     using negs_aa_le_c mset_le_exists_conv by blast
   from negs_aa_le_c have neg_a_in_c: "\<And>A. A \<in># AA \<Longrightarrow> Neg A \<in># C"
-    by (fastforce dest: mset_leD)
+    by fastforce
   have "\<And>A. A \<in># AA \<Longrightarrow> A \<in> INTERP N"
     using c_cex neg_a_in_c by force
   hence prod_ex: "\<And>A. A \<in># AA \<Longrightarrow> \<exists>D. produces N D A"

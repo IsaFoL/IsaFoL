@@ -350,7 +350,7 @@ lemma saturated_upto_iff: "saturated_upto N \<longleftrightarrow> concls_of (inf
 
 end
 
-lemma satandard_redundancy_criterion_extension:
+lemma standard_redundancy_criterion_extension:
   assumes "\<Gamma> \<subseteq> \<Gamma>'" and "redundancy_criterion \<Gamma> Rf Ri"
   shows "redundancy_criterion \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>))"
   using assms unfolding redundancy_criterion_def
