@@ -125,8 +125,14 @@ proof goal_cases
     apply (rule ext)
     apply (rename_tac x)
     apply (case_tac x)
-    apply (simp_all add: abs_state\<^sub>W_clss_ops.mmset_of_mlit.simps[OF H] raw_clause_def clause_def
-      clss_cls_def)
+    apply (simp add: abs_state\<^sub>W_clss_ops.mmset_of_mlit.simps[OF H] raw_clause_def clause_def
+      clss_cls_def)[]
+    apply simp
+    unfolding abs_state\<^sub>W_clss_ops.mmset_of_mlit.simps[OF H] 
+    apply (simp add: clss_cls_def)
+    apply (auto simp add: abs_state\<^sub>W_clss_ops.mmset_of_mlit.simps[OF H] raw_clause_def clause_def
+      clss_cls_def)[]
+    
   done
 qed
 

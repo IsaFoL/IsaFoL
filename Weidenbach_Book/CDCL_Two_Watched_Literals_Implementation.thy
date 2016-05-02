@@ -54,8 +54,7 @@ locale raw_clss_with_update =
   fixes
     twl_cls :: "'cls \<Rightarrow> 'v literal list twl_clause" and
     clss_update :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'clss" and
-    swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls" and
-    exists_in_unwatched :: "('lit \<Rightarrow> bool) \<Rightarrow> 'cls \<Rightarrow> 'lit option"
+    swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls"
   assumes
     clause_twl_cls:
       "clause (twl_cls C) = mset_cls C" and
@@ -67,13 +66,6 @@ locale raw_clss_with_update =
         TWL_Clause
           ({#C\<down>k#} + mset (remove1 (C\<down>j) (watched (twl_cls C))))
           ({#C\<down>j#} + mset (remove1 (C\<down>k) (watched (twl_cls C))))"
-      and
-    exists_Some:
-      "exists_in_unwatched P C = Some j \<Longrightarrow> (P j \<and> j \<in>\<down> C \<and> (C \<down> j) \<in> set (unwatched (twl_cls C)))"
-      and
-    exists_None:
-      "exists_in_unwatched P C = None \<longleftrightarrow>
-        (\<forall>j. j \<in>\<down> C \<longrightarrow> (C \<down> j) \<in> set (unwatched (twl_cls C)) \<longrightarrow> \<not>P j)"
 begin
 
 end
@@ -81,7 +73,7 @@ end
 locale abs_state\<^sub>W_clss_twl_ops =
   raw_clss_with_update
     get_lit mset_cls get_cls mset_clss
-    twl_cls clss_update swap_lit exists_in_unwatched
+    twl_cls clss_update swap_lit
     +
   raw_cls mset_ccls
   for
@@ -96,7 +88,6 @@ locale abs_state\<^sub>W_clss_twl_ops =
     twl_cls :: "'cls \<Rightarrow> 'v literal list twl_clause" and
     clss_update :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'clss" and
     swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls" and
-    exists_in_unwatched :: "('lit \<Rightarrow> bool) \<Rightarrow> 'cls \<Rightarrow> 'lit option" and
 
     \<comment> \<open>Conflicting clause:\<close>
     mset_ccls :: "'ccls \<Rightarrow> 'v clause"
@@ -149,7 +140,7 @@ locale abs_state\<^sub>W_twl_ops =
     \<comment> \<open>functions for clauses: \<close>
     cls_lit mset_cls
     clss_cls mset_clss
-    twl_cls clss_update swap_lit exists_in_unwatched
+    twl_cls clss_update swap_lit
 
     \<comment> \<open>functions for the conflicting clause:\<close>
     mset_ccls
@@ -165,11 +156,11 @@ locale abs_state\<^sub>W_twl_ops =
     twl_cls :: "'cls \<Rightarrow> 'v literal list twl_clause" and
     clss_update :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'clss" and
     swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls" and
-    exists_in_unwatched :: "('lit \<Rightarrow> bool) \<Rightarrow> 'cls \<Rightarrow> 'lit option" and
 
     \<comment> \<open>Conflicting clause:\<close>
     mset_ccls :: "'ccls \<Rightarrow> 'v clause" +
   fixes
+    find_undef_in_unwatched :: "'st \<Rightarrow> 'cls \<Rightarrow> 'lit option" and
     conc_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     hd_raw_conc_trail :: "'st \<Rightarrow> ('v, 'cls_it) ann_lit" and
     prop_queue :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
@@ -207,7 +198,7 @@ definition full_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" where
 "full_trail S = prop_queue S @ conc_trail S"
 
 definition conc_clauses :: "'st \<Rightarrow> 'v clauses" where
-"conc_clauses S \<equiv> image_mset mset_cls (mset_clss (raw_clauses S))"
+"conc_clauses S \<equiv> clauses_of_clss (raw_clauses S)"
 
 definition conc_init_clss  :: "'st \<Rightarrow> 'v literal multiset multiset" where
 "conc_init_clss = (\<lambda>S. conc_clauses S - conc_learned_clss S)"
@@ -230,11 +221,13 @@ locale abs_state\<^sub>W_twl =
   abs_state\<^sub>W_twl_ops
     cls_lit mset_cls
     clss_cls mset_clss
-    twl_cls clss_update swap_lit exists_in_unwatched
+    twl_cls clss_update swap_lit
 
     \<comment> \<open>functions for the conflicting clause:\<close>
     mset_ccls
-
+    
+    find_undef_in_unwatched
+    
     conc_trail hd_raw_conc_trail prop_queue raw_clauses conc_backtrack_lvl raw_conc_conflicting
 
     conc_learned_clss
@@ -263,10 +256,11 @@ locale abs_state\<^sub>W_twl =
     twl_cls :: "'cls \<Rightarrow> 'v literal list twl_clause" and
     clss_update :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'clss" and
     swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls" and
-    exists_in_unwatched :: "('lit \<Rightarrow> bool) \<Rightarrow> 'cls \<Rightarrow> 'lit option" and
 
     \<comment> \<open>Conflicting clause:\<close>
     mset_ccls :: "'ccls \<Rightarrow> 'v clause" and
+
+    find_undef_in_unwatched :: "'st \<Rightarrow> 'cls \<Rightarrow> 'lit option" and
 
     conc_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     hd_raw_conc_trail :: "'st \<Rightarrow> ('v, 'cls_it) ann_lit" and
@@ -336,19 +330,60 @@ locale abs_state\<^sub>W_twl =
         clss_cls (raw_clauses (update_clause S i E)) = (clss_cls (raw_clauses S)) (i := Some E)" and
     update_clause_state:
       "i \<in>\<Down> raw_clauses S \<Longrightarrow> state S = (M, N, U, k, C) \<Longrightarrow>
-        state (update_clause S i E) = (M, conc_init_clss S, conc_learned_clss S, k, C)"
+        state (update_clause S i E) = (M, conc_init_clss S, conc_learned_clss S, k, C)" and
+        
+    find_undef_in_unwatched_Some:
+      "find_undef_in_unwatched S E = Some j \<Longrightarrow> j \<in>\<down> E \<and> undefined_lit (full_trail S) (E\<down>j) \<and>
+        (E\<down>j) \<in> set (unwatched (twl_cls E))" and
+    find_undef_in_unwatched_None:
+      "find_undef_in_unwatched S E = None \<longleftrightarrow> 
+        (\<forall>j. j \<in>\<down> E \<longrightarrow> (E\<down>j) \<in> set (unwatched (twl_cls E)) \<longrightarrow>
+           \<not>undefined_lit (full_trail S) (E\<down>j))"
 begin
 
 lemma
   assumes
-    "i \<in>\<Down> raw_clauses S"
+    "i \<in>\<Down> raw_clauses S" and [simp]: "distinct_mset (clauses_of_clss (raw_clauses S))" and
+    [simp]: "mset_cls (raw_clauses S \<Down> i) = mset_cls E"
   shows
-    "conc_clauses (update S i E) =
-       remove1_mset (mset_cls (raw_clauses S \<Down> i)) (conc_clauses S) + {#E#}"
-    unfolding conc_clauses_def
-    apply (subst update_clause)
-    apply (simp add: update_clause assms)
-
+    "conc_clauses (update_clause S i E) =
+       remove1_mset (mset_cls (raw_clauses S \<Down> i)) (conc_clauses S) + {#mset_cls E#}"
+     (is "?conc = ?r")
+proof -
+  have H: "clauses_of_clss (raw_clauses S) =
+    mset_set {mset_cls (raw_clauses S \<Down> i) |i. i \<in>\<Down> raw_clauses S}"
+    using clauses_of_clss_mset_met_cls by auto
+  then have dist': "distinct_mset ?r"
+    unfolding conc_clauses_def clauses_of_clss_mset_met_cls[OF assms(2)] 
+    using assms(2) H  distinct_mem_diff_mset distinct_mset_single_add by fastforce
+    
+  have T: "remove1_mset (mset_cls E) (mset_set {mset_cls (raw_clauses S \<Down> i) |i. i \<in>\<Down> raw_clauses S})
+    + {#mset_cls E#} = mset_set {mset_cls (raw_clauses S \<Down> i) |i. i \<in>\<Down> raw_clauses S}"
+proof -
+  have "mset_cls E \<in> {mset_cls (raw_clauses S \<Down> c) |c. c \<in>\<Down> raw_clauses S}"
+    using assms(1) by force (* 2 ms *)
+  then show ?thesis
+    by (metis (no_types) H clauses_of_clss_met_cls insert_DiffM union_commute) (* 696 ms *)
+qed
+  then have [simp]:
+    "remove1_mset (mset_cls E) (image_mset mset_cls (mset_clss (raw_clauses S))) + {#mset_cls E#} =
+      image_mset mset_cls (mset_clss (raw_clauses S))"
+    using H unfolding clauses_of_clss_def by auto
+  show ?thesis
+    unfolding conc_clauses_def clauses_of_clss_mset_met_cls[OF assms(2)]
+    clauses_of_clss_def
+    using update_clause 
+    apply (auto simp add: update_clause assms(1))
+    apply (subst (2) clauses_of_clss_mset_met_cls[unfolded clauses_of_clss_def])
+      using dist' unfolding conc_clauses_def clauses_of_clss_mset_met_cls[OF assms(2)]
+    clauses_of_clss_def apply (auto simp:) 
+    defer
+      defer
+      
+    using clauses_of_clss_mset_met_cls unfolding clauses_of_clss_def
+    
+    unfolding conc_clauses_def clauses_of_clss_mset_met_cls[OF ]
+    
 end
 
 locale abs_conflict_driven_clause_learning\<^sub>W_clss =
