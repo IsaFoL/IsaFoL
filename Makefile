@@ -6,25 +6,28 @@ ISABELLE2016_HOME=~/.isabelle/Isabelle2016/browser_info
 
 DESTINATION=./html
 
-all: current
+all: current doc
 
-
+# build the documentation and the files
 current:
-	$(ISABELLE) build -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -D Weidenbach_Book
-	cp -R $(ISABELLE_HOME)/Weidenbach_Book $(DESTINATION)/current || :
-
+	$(ISABELLE) build -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -d Weidenbach_Book Full
 	$(ISABELLE) build -o browser_info -v -D Bachmair_Ganzinger
-	cp -R $(ISABELLE_HOME)/Bachmair_Ganzinger $(DESTINATION)/current || :
-
 	$(ISABELLE2016) build -o browser_info -v -D Unordered_Resolution
-	cp -R $(ISABELLE2016_HOME)/Unsorted/Unordered_Resolution $(DESTINATION)/current || :
 
+
+# need to be in the IJCAR branch
 conference:
 	$(ISABELLE2016) build -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -D Weidenbach_Book
 	cp -R $(ISABELLE2016_HOME)/Unsorted/Weidenbach_Book $(DESTINATION)/IJCAR2016 || :
 
 	$(ISABELLE2016) build -o browser_info -v -D Bachmair_Ganzinger
 	cp -R $(ISABELLE2016_HOME)/Unsorted/Bachmair_Ganzinger $(DESTINATION)/IJCAR2016 || :
+
+# move the html documentation to the locale directory
+doc:
+	cp -R $(ISABELLE_HOME)/Weidenbach_Book $(DESTINATION)/current || :
+	cp -R $(ISABELLE_HOME)/Bachmair_Ganzinger $(DESTINATION)/current || :
+	cp -R $(ISABELLE2016_HOME)/Unsorted/Unordered_Resolution $(DESTINATION)/current || :
 
 refs:
 	../isafol-private/Other/update_refs.pl  --unsafe
