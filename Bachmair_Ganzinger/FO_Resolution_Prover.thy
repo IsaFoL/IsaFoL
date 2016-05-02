@@ -75,7 +75,7 @@ inductive ord_resolve_raw :: "'a clause multiset \<Rightarrow> 'a clause \<Right
    (\<forall>C. C \<in># CC \<longrightarrow> S C = {#}) \<Longrightarrow>
    ord_resolve_raw CC D ((Cf' + D') \<cdot> \<sigma>)"
 
-term "\<lambda>(C,AA).True"
+term mset_set
 
 inductive ord_resolve_raw2 :: "'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve_raw:
@@ -83,11 +83,11 @@ inductive ord_resolve_raw2 :: "'a clause multiset \<Rightarrow> 'a clause \<Righ
    length (AAs :: 'a multiset list) = n \<Longrightarrow> (* list of corresponding  Aij's *)
      (\<forall>AA \<in> set AAs. AA \<noteq> {#}) \<Longrightarrow>
    length (As :: 'a list) = n \<Longrightarrow> (* list of  A1, ..., An  *)
-   (DAs :: 'a clause) = negs (mset As) + D \<Longrightarrow> (* The premise  \<not>A1 \<or> ... \<or> \<not>An \<or> D *)
-   (CC :: 'a clause multiset) = mset (map (\<lambda>(C,AA). C + poss AA) (zip Cs AAs)) \<Longrightarrow>  (* Side premises *)  (* This is how far I got - could this premise be better? *)
-   Some \<sigma> = mgu (set (map (\<lambda>(AA,A). set_mset (AA + {#A#})) (zip AAs As))) \<Longrightarrow>
-   S DAs = negs (mset As) \<or>
-     S DAs = {#} \<and> length As = 1 \<and> (\<forall>B \<in> atms_of (D \<cdot> \<sigma>). \<not> less_atm ((As!0) \<cdot>a \<sigma>) B) \<Longrightarrow>
+   (AsD :: 'a clause) = negs (mset As) + D \<Longrightarrow> (* The premise  \<not>A1 \<or> ... \<or> \<not>An \<or> D *)
+   (CC :: 'a clause multiset) = {# C + poss AA . (C,AA) \<in># mset (zip Cs AAs) #} \<Longrightarrow>   (* Side premises *)  
+   Some \<sigma> = mgu {set_mset AA \<union> {A} | AA A. (AA,A) \<in> set (zip AAs As)} \<Longrightarrow> 
+   S AsD = negs (mset As) \<or>
+     S AsD = {#} \<and> length As = 1 \<and> (\<forall>B \<in> atms_of (D \<cdot> \<sigma>). \<not> less_atm ((As!0) \<cdot>a \<sigma>) B) \<Longrightarrow> 
    (\<forall>i < n. \<forall>B \<in> atms_of (Cs ! i \<cdot> \<sigma>). \<not> less_eq_atm (As ! i \<cdot>a \<sigma>) B) \<Longrightarrow>
    (\<forall>C. C \<in># CC \<longrightarrow> S C = {#}) \<Longrightarrow>
    ord_resolve_raw2 CC D ((\<Union>#(mset Cs) + D) \<cdot> \<sigma>)"
