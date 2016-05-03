@@ -562,27 +562,20 @@ locale abs_conflict_driven_clause_learning\<^sub>W_clss =
 
     conc_init_state :: "'clss \<Rightarrow> 'st" and
     restart_state :: "'st \<Rightarrow> 'st"
-begin(*
+begin
 
-fun other_watched_lit  where
-"other_watched_lit S i L =
-  (case remove1 L (watched (twl_cls (raw_clauses S \<Down> i))) of
-     [] \<Rightarrow> None
-   | a # _ \<Rightarrow> Some a)"
-
-fun update_clause where
-"update_clause L S i =
-  (case other_watched_lit S i L of
-     None \<Rightarrow> S
-   | Some L' \<Rightarrow>
-     if L' \<in> lits_of_l (conc_trail S)
-     then S
-     else
-       (case exists_in_unwatched
-         (\<lambda>j. undefined_lit (conc_trail S) ((raw_clauses S \<Down> i) \<down> j)) (raw_clauses S \<Down> i) of
-         None \<Rightarrow> mark_conflicting i S
-       | Some _ \<Rightarrow> S)
-     )" *)
+fun update_clause2 where
+"update_clause2 L S i =
+  (case it_of_other_watched (raw_clauses S \<Down> i) L of
+    None \<Rightarrow> S
+  | Some L' \<Rightarrow>
+    if ((raw_clauses S \<Down> i) \<down> L') \<in> lits_of_l (conc_trail S)
+    then S
+    else
+      (case find_undef_in_unwatched S (raw_clauses S \<Down> i) of
+        None \<Rightarrow> mark_conflicting i S
+      | Some _ \<Rightarrow> S)
+    )"
 
 end
 
