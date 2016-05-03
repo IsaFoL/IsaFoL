@@ -542,6 +542,10 @@ lemma comprehension_mset_False[simp]:
    "{# L \<in># A. False#} = {#}"
   by (auto simp: multiset_eq_iff)
 
+lemma subseteq_image_mset_minus:
+  "A \<subseteq># B \<Longrightarrow> image_mset f (B - A) = image_mset f B - image_mset f A"
+  using subset_mset.le_imp_diff_is_add by fastforce
+
 text \<open>Near duplicate of @{thm [source] filter_eq_replicate_mset}: @{thm filter_eq_replicate_mset}.\<close>
 lemma filter_mset_eq:
    "filter_mset (op = L) A = replicate_mset (count A L) L"
