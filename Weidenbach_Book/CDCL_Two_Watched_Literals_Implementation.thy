@@ -314,7 +314,7 @@ locale abs_state\<^sub>W_twl_ops =
     update_abs_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     mark_conflicting :: "'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" and
-    resolve_conflicting :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+    resolve_abs_conflicting :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     get_undecided_lit :: "'st \<Rightarrow> 'v literal option" and
     get_clause_watched_by :: "'st \<Rightarrow> 'v literal \<Rightarrow> 'cls_it list" and
@@ -345,10 +345,10 @@ sublocale abs_state\<^sub>W_ops where
   add_conc_confl_to_learned_cls = "\<lambda>S. add_abs_confl_to_learned_cls (prop_queue_to_trail S)" and
   remove_cls = abs_remove_cls and
   update_conc_backtrack_lvl = update_abs_backtrack_lvl and
-  mark_conflicting = "\<lambda>i S. mark_conflicting i (prop_queue_to_trail S)"and
-  reduce_conc_trail_to = reduce_abs_trail_to and
-  resolve_conflicting = resolve_conflicting and
-  conc_init_state = conc_init_state and
+  mark_conflicting = "\<lambda>i S. mark_conflicting i (prop_queue_to_trail S)" and
+  reduce_conc_trail_to = "\<lambda>M S. reduce_abs_trail_to M (prop_queue_to_trail S)" and
+  resolve_conflicting = "\<lambda>L D S. resolve_abs_conflicting L D (prop_queue_to_trail S)" and
+  conc_init_state = abs_init_state and
   restart_state = restart_state
   by unfold_locales
 
@@ -407,7 +407,7 @@ locale abs_state\<^sub>W_twl =
 
     add_abs_confl_to_learned_cls abs_remove_cls
 
-    update_abs_backtrack_lvl mark_conflicting resolve_conflicting
+    update_abs_backtrack_lvl mark_conflicting resolve_abs_conflicting
 
     get_undecided_lit get_clause_watched_by update_clause
 
@@ -456,7 +456,7 @@ locale abs_state\<^sub>W_twl =
     update_abs_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     mark_conflicting :: "'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" and
-    resolve_conflicting :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+    resolve_abs_conflicting :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     get_undecided_lit :: "'st \<Rightarrow> 'v literal option" and
     get_clause_watched_by :: "'st \<Rightarrow> 'v literal \<Rightarrow> 'cls_it list" and
@@ -504,21 +504,22 @@ locale abs_state\<^sub>W_twl =
       "\<And>S'. prop_state st = (P, M, N, U, k, S') \<Longrightarrow>
         prop_state (update_abs_backtrack_lvl k' st) = (P, M, N, U, k', S')" and
 
-    mark_conflicting:
+    mark_conflicting_prop_state:
       "prop_state st = (P, M, N, U, k, None) \<Longrightarrow> E \<in>\<Down> raw_clauses st \<Longrightarrow>
         prop_state (mark_conflicting E st) =
           (P, M, N, U, k, Some (clause_of_cls (raw_clauses st \<Down> E)))"
       and
 
-    resolve_conflicting:
+    resolve_abs_conflicting:
       "prop_state st = ([], M, N, U, k, Some F) \<Longrightarrow> -L' \<in># F \<Longrightarrow> L' \<in># clause_of_cls D \<Longrightarrow>
-        prop_state (resolve_conflicting L' D st) =
+        prop_state (resolve_abs_conflicting L' D st) =
           ([], M, N, U, k, Some (cdcl\<^sub>W_mset.resolve_cls L' F (clause_of_cls D)))" and
 
-    abs_init_state:
-      "state (abs_init_state Ns) = ([], clauses_of_clss Ns, {#}, 0, None)" and
+    prop_state_abs_init_state:
+      "prop_state (abs_init_state Ns) = ([], [], clauses_of_clss Ns, {#}, 0, None)" and
 
     \<comment> \<open>Properties about restarting @{term restart_state}:\<close>
+    prop_queue_restart_state[simp]: "prop_queue (restart_state S) = []" and
     abs_trail_restart_state[simp]: "abs_trail (restart_state S) = []" and
     conc_init_clss_restart_state[simp]: "conc_init_clss (restart_state S) = conc_init_clss S" and
     abs_learned_clss_restart_state[intro]:
@@ -527,9 +528,9 @@ locale abs_state\<^sub>W_twl =
     conc_conflicting_restart_state[simp]: "conc_conflicting (restart_state S) = None" and
 
     \<comment> \<open>Properties about @{term reduce_abs_trail_to}:\<close>
-    reduce_abs_trail_to[simp]:
-      "\<And>S'. abs_trail st = M2 @ M1 \<Longrightarrow> state st = (M, S') \<Longrightarrow>
-        state (reduce_abs_trail_to M1 st) = (M1, S')" and
+    reduce_abs_trail_to:
+      "\<And>S'. abs_trail st = M2 @ M1 \<Longrightarrow> prop_state st = ([], M, S') \<Longrightarrow>
+        prop_state (reduce_abs_trail_to M1 st) = ([], M1, S')" and
 
     learned_clauses:
       "abs_learned_clss S \<subseteq># conc_clauses S" and
@@ -651,15 +652,37 @@ lemma add_conc_confl_to_learned_cls:
   using add_abs_confl_to_learned_cls[of "prop_queue_to_trail st" M N U k F] assms
   unfolding prop_state_def state_def by (auto simp: full_trail_def)
 
-lemma
+lemma mark_conflicting:
   assumes
     "state st = (M, N, U, k, None)" and
     "E \<in>\<Down> raw_clauses st"
   shows "state (mark_conflicting E (prop_queue_to_trail st)) =
     (M, N, U, k, Some (clause_of_cls (raw_clauses st \<Down> E)))"
-  using mark_conflicting[of "prop_queue_to_trail st" "[]" M N U k E] assms
+  using mark_conflicting_prop_state[of "prop_queue_to_trail st" "[]" M N U k E] assms
   unfolding prop_state_def state_def by (auto simp: full_trail_def)
 
+lemma abs_init_state:
+  "state (abs_init_state Ns) = ([], clauses_of_clss Ns, {#}, 0, None)"
+  using prop_state_abs_init_state[of Ns] by (auto simp: state_def prop_state_def full_trail_def)
+
+lemma reduce_conc_trail_to:
+  assumes 
+    "full_trail st = M2 @ M1" and
+    "state st = (M, S')"
+  shows "state (reduce_abs_trail_to M1 (prop_queue_to_trail st)) = (M1, S')"
+  using reduce_abs_trail_to[of "prop_queue_to_trail st" M2 M1 M S'] assms
+  unfolding full_trail_def state_def prop_state_def by auto
+
+lemma resolve_conflicting:
+  assumes 
+    "state st = (M, N, U, k, Some F)" and
+    "- L' \<in># F" and
+    "L' \<in># clause_of_cls D" 
+  shows "state (resolve_abs_conflicting L' D (prop_queue_to_trail st)) = 
+    (M, N, U, k, Some (remove1_mset (- L') F #\<union> remove1_mset L' (clause_of_cls D)))"
+  using resolve_abs_conflicting[of "prop_queue_to_trail st" M N U k F L' D] assms
+  unfolding full_trail_def state_def prop_state_def by auto
+  
 sublocale abs_state\<^sub>W where
   cls_lit = lit_lookup and
   mset_cls = clause_of_cls and
@@ -678,20 +701,29 @@ sublocale abs_state\<^sub>W where
   add_conc_confl_to_learned_cls = "\<lambda>S. add_abs_confl_to_learned_cls (prop_queue_to_trail S)" and
   remove_cls = abs_remove_cls and
   update_conc_backtrack_lvl = update_abs_backtrack_lvl and
-  mark_conflicting = "\<lambda>i S. mark_conflicting i (prop_queue_to_trail S)"and
-  reduce_conc_trail_to = reduce_abs_trail_to and
-  resolve_conflicting = resolve_conflicting and
-  conc_init_state = conc_init_state and
+  mark_conflicting = "\<lambda>i S. mark_conflicting i (prop_queue_to_trail S)" and
+  reduce_conc_trail_to = "\<lambda>M S. reduce_abs_trail_to M (prop_queue_to_trail S)" and
+  resolve_conflicting = "\<lambda>L D S. resolve_abs_conflicting L D (prop_queue_to_trail S)" and
+  conc_init_state = abs_init_state and
   restart_state = restart_state
   apply unfold_locales
-                 using hd_raw_abs_trail apply (simp; fail)
-                using state_cons_prop_queue apply (simp; fail)
-               using cons_conc_trail apply (simp; fail)
-              using remove_cls apply (simp; fail)
-             using add_conc_confl_to_learned_cls apply (simp; fail)
-            using prop_state_def prop_state_state update_abs_backtrack_lvl apply (auto; fail)[1]
-
-  sorry
+                  using hd_raw_abs_trail apply (simp; fail)
+                 using state_cons_prop_queue apply (simp; fail)
+                using cons_conc_trail apply (simp; fail)
+               using remove_cls apply (simp; fail)
+              using add_conc_confl_to_learned_cls apply (simp; fail)
+             using prop_state_def prop_state_state update_abs_backtrack_lvl apply (auto; fail)[1]
+            using mark_conflicting apply (simp; fail)
+           using resolve_conflicting apply (blast; fail)
+          using abs_init_state apply (simp; fail) 
+         apply (simp add: full_trail_def; fail)
+        apply (simp add: full_trail_def; fail)
+       apply (simp add: abs_learned_clss_restart_state; fail)
+     using abs_backtrack_lvl_restart_state apply blast
+    apply simp
+   using reduce_conc_trail_to apply (blast; fail)
+  apply (simp add: learned_clauses; fail)
+  done
 
 lemma conc_clauses_update_clause:
   assumes
@@ -748,7 +780,7 @@ locale abs_conflict_driven_clause_learning\<^sub>W_clss =
 
     add_abs_confl_to_learned_cls abs_remove_cls
 
-    update_abs_backtrack_lvl mark_conflicting resolve_conflicting
+    update_abs_backtrack_lvl mark_conflicting resolve_abs_conflicting
 
     get_undecided_lit get_clause_watched_by update_clause
 
@@ -798,7 +830,7 @@ locale abs_conflict_driven_clause_learning\<^sub>W_clss =
     update_abs_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     mark_conflicting :: "'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" and
-    resolve_conflicting :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+    resolve_abs_conflicting :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     get_undecided_lit :: "'st \<Rightarrow> 'v literal option" and
     get_clause_watched_by :: "'st \<Rightarrow> 'v literal \<Rightarrow> 'cls_it list" and
