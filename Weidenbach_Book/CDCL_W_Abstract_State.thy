@@ -533,8 +533,8 @@ text \<open>
 locale abs_state\<^sub>W =
   abs_state\<^sub>W_ops
     \<comment> \<open>functions for clauses: \<close>
-    get_lit mset_cls
-    get_cls mset_clss
+    cls_lit mset_cls
+    clss_cls mset_clss
 
     \<comment> \<open>functions for the conflicting clause:\<close>
     mset_ccls
@@ -552,11 +552,11 @@ locale abs_state\<^sub>W =
     restart_state
   for
     \<comment> \<open>Clause:\<close>
-    get_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal option" and
+    cls_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal option" and
     mset_cls :: "'cls \<Rightarrow> 'v clause" and
 
     \<comment> \<open>Multiset of Clauses:\<close>
-    get_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls option" and
+    clss_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls option" and
     mset_clss:: "'clss \<Rightarrow> 'cls multiset" and
 
     \<comment> \<open>Conflicting clause:\<close>

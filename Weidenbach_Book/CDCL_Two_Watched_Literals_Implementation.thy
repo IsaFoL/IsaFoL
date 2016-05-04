@@ -54,7 +54,7 @@ locale abstract_clause_representation_ops =
     twl_cls :: "'cls \<Rightarrow> 'lit multiset twl_clause" and
     swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls" and
     it_of_other_watched :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit option" and
-    cls_ot_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls"
+    cls_of_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls"
 begin
 
 abbreviation twl_clause :: "'cls \<Rightarrow> 'v literal multiset twl_clause" where
@@ -67,7 +67,7 @@ end
 
 locale abstract_clause_representation =
   abstract_clause_representation_ops lit_lookup lit_keys twl_cls swap_lit
-    it_of_other_watched cls_ot_twl_list
+    it_of_other_watched cls_of_twl_list
   for
     lit_lookup :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal option" and
     lit_keys :: "'cls \<Rightarrow> 'lit multiset" and
@@ -75,10 +75,10 @@ locale abstract_clause_representation =
     twl_cls :: "'cls \<Rightarrow> 'lit multiset twl_clause" and
     swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls" and
     it_of_other_watched :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit option" and
-    cls_ot_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls" +
+    cls_of_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls" +
   assumes
     distinct_lit_keys[simp]: "distinct_mset (lit_keys C)" and
-    get_all_it: "i \<in># keys C \<longleftrightarrow> lit_lookup C i \<noteq> None" and
+    valid_lit_keys: "i \<in># lit_keys C \<longleftrightarrow> lit_lookup C i \<noteq> None" and
     swap_lit:
       "j \<in># watched (twl_cls C) \<Longrightarrow> k \<in># unwatched (twl_cls C) \<Longrightarrow>
         twl_cls (swap_lit C j k) =
@@ -91,13 +91,43 @@ locale abstract_clause_representation =
          lit_lookup C k \<noteq> None \<and> k \<in># remove1_mset j (watched (twl_cls C))" and
 
     twl_cls_valid:
-      "keys C = clause (twl_cls C)" and
+      "lit_keys C = clause (twl_cls C)" and
 
-    cls_ot_twl_list:
+    cls_of_twl_list:
       "distinct (watched D @ unwatched D) \<Longrightarrow>
-        twl_clause (cls_ot_twl_list D) = map_twl_clause mset D"
+        twl_clause (cls_of_twl_list D) = map_twl_clause mset D"
 begin
 
+lemma lit_lookup_Some_in_clause_of_cls:
+  assumes L: "lit_lookup C i = Some L"
+  shows "L \<in># clause_of_cls C"
+proof -
+  have "i \<in># clause (twl_cls C)"
+     using L by (auto simp: valid_lit_keys twl_cls_valid[symmetric])
+  then have "L \<in> (\<lambda>l. the (lit_lookup C l)) ` set_mset (clause (twl_cls C))"
+    by (metis (no_types) assms image_eqI option.sel)
+  then show ?thesis
+    by (metis (no_types) clause.simps image_mset_union set_image_mset twl_clause.collapse
+      twl_clause.map)
+qed
+
+lemma clause_of_cls_valid_lit_lookup:
+  assumes L: "L \<in># clause_of_cls C"
+  shows "\<exists>i. lit_lookup C i = Some L"
+proof -
+  obtain i where
+    "L = the (lit_lookup C i)" and
+    "i \<in># clause (twl_cls C)"
+    using L by (cases "twl_cls C") auto
+  then have "lit_lookup C i = Some L"
+    by (auto simp: twl_cls_valid[symmetric] valid_lit_keys)
+  then show ?thesis by blast
+qed
+
+sublocale abstract_with_index where
+  get_lit = lit_lookup and
+  convert_to_mset = clause_of_cls
+  by unfold_locales (auto simp: lit_lookup_Some_in_clause_of_cls clause_of_cls_valid_lit_lookup)
 end
 
 locale abstract_clauses_representation =
@@ -122,18 +152,34 @@ lemma add_cls_new_key:
   "add_cls Cs C = (Cs', i) \<Longrightarrow> i \<in># cls_keys Cs'"
   unfolding cls_keys by (simp add: add_cls)
 
-abbreviation raw_clss :: "'clss \<Rightarrow> 'cls multiset" where
-"raw_clss Cs \<equiv> image_mset (\<lambda>L. the (cls_lookup Cs L)) (cls_keys Cs)"
+abbreviation raw_cls_of_clss :: "'clss \<Rightarrow> 'cls multiset" where
+"raw_cls_of_clss Cs \<equiv> image_mset (\<lambda>L. the (cls_lookup Cs L)) (cls_keys Cs)"
 
 lemma cls_keys_clss_update[simp]:
   "cls_lookup Cs i \<noteq> None \<Longrightarrow> cls_keys (clss_update Cs i E) = cls_keys Cs"
   by (rule distinct_set_mset_eq) (auto simp: cls_keys clss_update split: if_splits)
 
+lemma cls_lookup_Some_in_raw_cls_of_clss:
+  assumes L: "cls_lookup Cs i = Some C"
+  shows "C \<in># raw_cls_of_clss Cs"
+   by (metis (mono_tags, lifting) assms cls_keys image_iff option.distinct(1) option.sel
+     set_image_mset)
+
+lemma raw_cls_of_clss_valid_cls_lookup:
+  assumes L: "C \<in># raw_cls_of_clss Cs"
+  shows "\<exists>i. cls_lookup Cs i = Some C"
+  using assms by (auto simp: cls_keys)
+
+sublocale abstract_with_index2 where
+  get_lit = cls_lookup and
+  convert_to_mset = raw_cls_of_clss
+  by unfold_locales (metis cls_lookup_Some_in_raw_cls_of_clss raw_cls_of_clss_valid_cls_lookup)+
+
 end
 
 locale abstract_clause_clauses_representation =
   abstract_clause_representation lit_lookup lit_keys twl_cls swap_lit
-    it_of_other_watched cls_ot_twl_list +
+    it_of_other_watched cls_of_twl_list +
   abstract_clauses_representation cls_lookup cls_keys clss_update add_cls
   for
     lit_lookup :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal option" and
@@ -143,35 +189,27 @@ locale abstract_clause_clauses_representation =
     swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls" and
     it_of_other_watched :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit option" and
 
-    cls_ot_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls" and
+    cls_of_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls" and
     cls_lookup :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls option" and
     cls_keys :: "'clss \<Rightarrow> 'cls_it multiset" and
     clss_update :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'clss" and
     add_cls :: "'clss \<Rightarrow> 'cls \<Rightarrow> 'clss \<times> 'cls_it"
 begin
 
-definition clauses_of_clss :: "'clss \<Rightarrow> 'v literal multiset multiset" where
-"clauses_of_clss N \<equiv> image_mset clause_of_cls (raw_clss N)"
 
-text \<open>The following abbreviation are useful to write shorter formula. Kill?\<close>
-definition the_lit_lookup :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal" (infix "\<down>" 49) where
-"C \<down> a \<equiv> the (lit_lookup C a)"
-
-definition the_cls_lookup :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls" (infix "\<Down>" 49) where
-"C \<Down> a \<equiv> the (cls_lookup C a)"
-
-definition valid_lit_lookup :: "'lit \<Rightarrow> 'cls \<Rightarrow> bool" (infix "\<in>\<down>" 49) where
-"a \<in>\<down> Cs \<equiv> lit_lookup Cs a \<noteq> None"
-
-definition valid_cls_lookup :: "'cls_it \<Rightarrow> 'clss \<Rightarrow> bool" (infix "\<in>\<Down>" 49) where
-"a \<in>\<Down> Cs \<equiv> cls_lookup Cs a \<noteq> None"
+sublocale raw_clss where
+  get_lit = lit_lookup and
+  mset_cls = clause_of_cls and
+  get_cls = cls_lookup and
+  mset_clss = raw_cls_of_clss
+  by unfold_locales
 
 end
 
 locale abs_state\<^sub>W_clss_twl_ops =
   abstract_clause_clauses_representation
     lit_lookup lit_keys twl_cls swap_lit
-    it_of_other_watched cls_ot_twl_list
+    it_of_other_watched cls_of_twl_list
 
     cls_lookup cls_keys clss_update add_cls
     +
@@ -186,7 +224,7 @@ locale abs_state\<^sub>W_clss_twl_ops =
     it_of_other_watched :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit option" and
 
     \<comment> \<open>Clauses\<close>
-    cls_ot_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls" and
+    cls_of_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls" and
     cls_lookup :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls option" and
     cls_keys :: "'clss \<Rightarrow> 'cls_it multiset" and
     clss_update :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'clss" and
@@ -196,21 +234,29 @@ locale abs_state\<^sub>W_clss_twl_ops =
     mset_ccls :: "'ccls \<Rightarrow> 'v clause"
 begin
 
-fun mmset_of_mlit :: "'clss \<Rightarrow> ('v, 'cls_it) ann_lit \<Rightarrow> ('v, 'v clause) ann_lit"
-  where
-"mmset_of_mlit Cs (Propagated L C) = Propagated L (clause_of_cls (Cs \<Down> C))" |
-"mmset_of_mlit _ (Decided L) = Decided L"
+sublocale abs_state\<^sub>W_clss_ops where
+  get_lit = lit_lookup and
+  mset_cls = clause_of_cls and
+  get_cls = cls_lookup and
+  mset_clss = raw_cls_of_clss and
+  mset_ccls = mset_ccls
+  by unfold_locales
 
-lemma lit_of_mmset_of_mlit[simp]:
-  "lit_of (mmset_of_mlit Cs a) = lit_of a"
+fun abs_mlit :: "'clss \<Rightarrow> ('v, 'cls_it) ann_lit \<Rightarrow> ('v, 'v clause) ann_lit"
+  where
+"abs_mlit Cs (Propagated L C) = Propagated L (clause_of_cls (Cs \<Down> C))" |
+"abs_mlit _ (Decided L) = Decided L"
+
+lemma lit_of_abs_mlit[simp]:
+  "lit_of (abs_mlit Cs a) = lit_of a"
   by (cases a) auto
 
-lemma lit_of_mmset_of_mlit_set_lit_of_l[simp]:
-  "lit_of ` mmset_of_mlit Cs ` set M' = lits_of_l M'"
+lemma lit_of_abs_mlit_set_lit_of_l[simp]:
+  "lit_of ` abs_mlit Cs ` set M' = lits_of_l M'"
   by (induction M') auto
 
-lemma map_mmset_of_mlit_true_annots_true_cls[simp]:
-  "map (mmset_of_mlit Cs) M' \<Turnstile>as C \<longleftrightarrow> M' \<Turnstile>as C"
+lemma map_abs_mlit_true_annots_true_cls[simp]:
+  "map (abs_mlit Cs) M' \<Turnstile>as C \<longleftrightarrow> M' \<Turnstile>as C"
   by (simp add: true_annots_true_cls lits_of_def)
 
 end
@@ -220,7 +266,7 @@ locale abs_state\<^sub>W_twl_ops =
   abs_state\<^sub>W_clss_twl_ops
     \<comment> \<open>functions for clauses: \<close>
     lit_lookup lit_keys twl_cls swap_lit
-    it_of_other_watched cls_ot_twl_list
+    it_of_other_watched cls_of_twl_list
 
     cls_lookup cls_keys clss_update add_cls
 
@@ -236,7 +282,7 @@ locale abs_state\<^sub>W_twl_ops =
     it_of_other_watched :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit option" and
 
     \<comment> \<open>Clauses\<close>
-    cls_ot_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls" and
+    cls_of_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls" and
     cls_lookup :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls option" and
     cls_keys :: "'clss \<Rightarrow> 'cls_it multiset" and
     clss_update :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'clss" and
@@ -246,27 +292,26 @@ locale abs_state\<^sub>W_twl_ops =
     mset_ccls :: "'ccls \<Rightarrow> 'v clause" +
   fixes
     find_undef_in_unwatched :: "'st \<Rightarrow> 'cls \<Rightarrow> 'lit option" and
-    conc_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
-    hd_raw_conc_trail :: "'st \<Rightarrow> ('v, 'cls_it) ann_lit" and
+    abs_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    hd_raw_abs_trail :: "'st \<Rightarrow> ('v, 'cls_it) ann_lit" and
     prop_queue :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     raw_clauses :: "'st \<Rightarrow> 'clss" and
-    conc_backtrack_lvl :: "'st \<Rightarrow> nat" and
+    abs_backtrack_lvl :: "'st \<Rightarrow> nat" and
     raw_conc_conflicting :: "'st \<Rightarrow> 'ccls option" and
 
-    conc_learned_clss :: "'st \<Rightarrow> 'v clauses" and
+    abs_learned_clss :: "'st \<Rightarrow> 'v clauses" and
 
-    cons_conc_trail :: "('v, 'cls_it) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
-    tl_conc_trail :: "'st \<Rightarrow> 'st" and
-    reduce_conc_trail_to :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_abs_trail :: "'st \<Rightarrow> 'st" and
+    reduce_abs_trail_to :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     cons_prop_queue :: "('v, 'cls_it) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
-    hd_prop_queue_to_trail :: "'st \<Rightarrow> 'st" and
+    last_prop_queue_to_trail :: "'st \<Rightarrow> 'st" and
     prop_queue_to_trail :: "'st \<Rightarrow> 'st" and
 
-    add_conc_confl_to_learned_cls :: "'st \<Rightarrow> 'st" and
-    conc_remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_abs_confl_to_learned_cls :: "'st \<Rightarrow> 'st" and
+    abs_remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-    update_conc_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_abs_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     mark_conflicting :: "'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" and
     resolve_conflicting :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -275,30 +320,49 @@ locale abs_state\<^sub>W_twl_ops =
     get_clause_watched_by :: "'st \<Rightarrow> 'v literal \<Rightarrow> 'cls_it list" and
     update_clause :: "'st \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'st" and
 
-    conc_init_state :: "'clss \<Rightarrow> 'st" and
+    abs_init_state :: "'clss \<Rightarrow> 'st" and
     restart_state :: "'st \<Rightarrow> 'st"
 begin
 
 definition full_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" where
-"full_trail S = prop_queue S @ conc_trail S"
+"full_trail S = prop_queue S @ abs_trail S"
 
-definition conc_clauses :: "'st \<Rightarrow> 'v clauses" where
-"conc_clauses S \<equiv> clauses_of_clss (raw_clauses S)"
+sublocale abs_state\<^sub>W_ops where
+  cls_lit = lit_lookup and
+  mset_cls = clause_of_cls and
+  clss_cls = cls_lookup and
+  mset_clss = raw_cls_of_clss and
+  mset_ccls = mset_ccls and
 
-definition conc_init_clss  :: "'st \<Rightarrow> 'v literal multiset multiset" where
-"conc_init_clss = (\<lambda>S. conc_clauses S - conc_learned_clss S)"
+  conc_trail = full_trail and
+  hd_raw_conc_trail = hd_raw_abs_trail  and
+  raw_clauses = raw_clauses and
+  conc_backtrack_lvl = abs_backtrack_lvl and
+  raw_conc_conflicting = raw_conc_conflicting and
+  conc_learned_clss = abs_learned_clss and
+  cons_conc_trail = cons_prop_queue and
+  tl_conc_trail = "\<lambda>S. tl_abs_trail (prop_queue_to_trail S)" and
+  add_conc_confl_to_learned_cls = "\<lambda>S. add_abs_confl_to_learned_cls (prop_queue_to_trail S)" and
+  remove_cls = abs_remove_cls and
+  update_conc_backtrack_lvl = update_abs_backtrack_lvl and
+  mark_conflicting = "\<lambda>i S. mark_conflicting i (prop_queue_to_trail S)"and
+  reduce_conc_trail_to = reduce_abs_trail_to and
+  resolve_conflicting = resolve_conflicting and
+  conc_init_state = conc_init_state and
+  restart_state = restart_state
+  by unfold_locales
 
-abbreviation conc_conflicting :: "'st \<Rightarrow> 'v clause option" where
-"conc_conflicting \<equiv> \<lambda>S. map_option mset_ccls (raw_conc_conflicting S)"
+lemma mmset_of_mlit_abs_mlit[simp]: "mmset_of_mlit = abs_mlit"
+  by (intro ext, rename_tac S L, case_tac L) auto
 
-definition state :: "'st \<Rightarrow> 'v cdcl\<^sub>W_mset" where
-"state = (\<lambda>S. (full_trail S, conc_init_clss S, conc_learned_clss S, conc_backtrack_lvl S,
-  conc_conflicting S))"
+definition prop_state ::
+    "'st \<Rightarrow> ('v, 'v clause) ann_lit list \<times> ('v, 'v clause) ann_lit list \<times> 'v clauses \<times>
+      'v clauses \<times> nat \<times> 'v clause option" where
+"prop_state S = (prop_queue S, abs_trail S, conc_init_clss S, abs_learned_clss S,
+  abs_backtrack_lvl S, conc_conflicting S)"
 
-fun valid_annotation :: "'st \<Rightarrow> ('a, 'cls_it) ann_lit \<Rightarrow> bool" where
-"valid_annotation S (Propagated _ E) \<longleftrightarrow> E \<in>\<Down> (raw_clauses S)" |
-"valid_annotation S (Decided _) \<longleftrightarrow> True"
-
+lemma prop_state_state: "prop_state S = (P, M, N, U, k, C) \<Longrightarrow> state S = (P @ M, N, U, k, C)"
+  unfolding prop_state_def state_def full_trail_def by auto
 end
 
 
@@ -324,7 +388,7 @@ locale abs_state\<^sub>W_twl =
   abs_state\<^sub>W_twl_ops
     \<comment> \<open>functions for clauses: \<close>
     lit_lookup lit_keys twl_cls swap_lit
-    it_of_other_watched cls_ot_twl_list
+    it_of_other_watched cls_of_twl_list
 
     cls_lookup cls_keys clss_update add_cls
 
@@ -333,21 +397,21 @@ locale abs_state\<^sub>W_twl =
 
     find_undef_in_unwatched
 
-    conc_trail hd_raw_conc_trail prop_queue raw_clauses conc_backtrack_lvl raw_conc_conflicting
+    abs_trail hd_raw_abs_trail prop_queue raw_clauses abs_backtrack_lvl raw_conc_conflicting
 
-    conc_learned_clss
+    abs_learned_clss
 
-    cons_conc_trail tl_conc_trail reduce_conc_trail_to
+    tl_abs_trail reduce_abs_trail_to
 
-    cons_prop_queue hd_prop_queue_to_trail prop_queue_to_trail
+    cons_prop_queue last_prop_queue_to_trail prop_queue_to_trail
 
-    add_conc_confl_to_learned_cls conc_remove_cls
+    add_abs_confl_to_learned_cls abs_remove_cls
 
-    update_conc_backtrack_lvl mark_conflicting resolve_conflicting
+    update_abs_backtrack_lvl mark_conflicting resolve_conflicting
 
     get_undecided_lit get_clause_watched_by update_clause
 
-    conc_init_state restart_state
+    abs_init_state restart_state
 
   for
     \<comment> \<open>Clause:\<close>
@@ -359,7 +423,7 @@ locale abs_state\<^sub>W_twl =
     it_of_other_watched :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit option" and
 
     \<comment> \<open>Clauses\<close>
-    cls_ot_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls" and
+    cls_of_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls" and
     cls_lookup :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls option" and
     cls_keys :: "'clss \<Rightarrow> 'cls_it multiset" and
     clss_update :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'clss" and
@@ -370,27 +434,26 @@ locale abs_state\<^sub>W_twl =
 
     find_undef_in_unwatched :: "'st \<Rightarrow> 'cls \<Rightarrow> 'lit option" and
 
-    conc_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
-    hd_raw_conc_trail :: "'st \<Rightarrow> ('v, 'cls_it) ann_lit" and
+    abs_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    hd_raw_abs_trail :: "'st \<Rightarrow> ('v, 'cls_it) ann_lit" and
     prop_queue :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     raw_clauses :: "'st \<Rightarrow> 'clss" and
-    conc_backtrack_lvl :: "'st \<Rightarrow> nat" and
+    abs_backtrack_lvl :: "'st \<Rightarrow> nat" and
     raw_conc_conflicting :: "'st \<Rightarrow> 'ccls option" and
 
-    conc_learned_clss :: "'st \<Rightarrow> 'v clauses" and
+    abs_learned_clss :: "'st \<Rightarrow> 'v clauses" and
 
-    cons_conc_trail :: "('v, 'cls_it) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
-    tl_conc_trail :: "'st \<Rightarrow> 'st" and
-    reduce_conc_trail_to :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_abs_trail :: "'st \<Rightarrow> 'st" and
+    reduce_abs_trail_to :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     cons_prop_queue :: "('v, 'cls_it) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
-    hd_prop_queue_to_trail :: "'st \<Rightarrow> 'st" and
+    last_prop_queue_to_trail :: "'st \<Rightarrow> 'st" and
     prop_queue_to_trail :: "'st \<Rightarrow> 'st" and
 
-    add_conc_confl_to_learned_cls :: "'st \<Rightarrow> 'st" and
-    conc_remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_abs_confl_to_learned_cls :: "'st \<Rightarrow> 'st" and
+    abs_remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-    update_conc_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_abs_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     mark_conflicting :: "'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" and
     resolve_conflicting :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -399,36 +462,84 @@ locale abs_state\<^sub>W_twl =
     get_clause_watched_by :: "'st \<Rightarrow> 'v literal \<Rightarrow> 'cls_it list" and
     update_clause :: "'st \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'st" and
 
-    conc_init_state :: "'clss \<Rightarrow> 'st" and
+    abs_init_state :: "'clss \<Rightarrow> 'st" and
     restart_state :: "'st \<Rightarrow> 'st" +
   assumes
-    state_cons_prop_queue:
-      "undefined_lit (conc_trail T @ prop_queue T) (lit_of L) \<Longrightarrow>
-        state (cons_prop_queue L T) = state T" and
-    cons_prop_queue_prop_queue:
-      "undefined_lit (conc_trail T @ prop_queue T) (lit_of L) \<Longrightarrow>
-         prop_queue (cons_prop_queue L T) = mmset_of_mlit (raw_clauses T) L # prop_queue T" and
-    hd_prop_queue_to_trail_state:
-      "prop_queue T \<noteq> [] \<Longrightarrow>
-        state T = (M, N, U, k, C) \<Longrightarrow>
-        state (hd_prop_queue_to_trail T) =
-           (hd (prop_queue T) # M, N, U, k, C)" and
-    hd_prop_queue_to_trail:
-      "prop_queue T \<noteq> [] \<Longrightarrow>
-        prop_queue (hd_prop_queue_to_trail T) =
-           tl (prop_queue T)" and
-    prop_queue_to_trail_state:
-      "state T = (M, N, U, k, C) \<Longrightarrow>
-        state (prop_queue_to_trail T) = (prop_queue (prop_queue_to_trail T) @ M, N, U, k, C)" and
-    prop_queue_to_trail:
-      "prop_queue (prop_queue_to_trail T) = []" and
+    prop_state_cons_prop_queue:
+      "\<And>T'. undefined_lit (full_trail T) (lit_of L) \<Longrightarrow>
+        prop_state T = (P, T') \<Longrightarrow> valid_annotation T L \<Longrightarrow>
+        prop_state (cons_prop_queue L T) = (abs_mlit (raw_clauses T) L # P,  T')" and
+
+    last_prop_queue_to_trail_prop_state:
+      "\<And>T'. prop_queue T \<noteq> [] \<Longrightarrow>
+        prop_state T = (P, M, T') \<Longrightarrow>
+        prop_state (last_prop_queue_to_trail T) =
+           (but_last P, last P # M, T')" and
+    prop_queue_to_trail_prop_state:
+      "\<And>T'. prop_state T = (P, M, T') \<Longrightarrow>
+        prop_state (prop_queue_to_trail T) = ([], P @ M, T')" and
+    raw_conc_conflicting_prop_queue_to_trail[simp]:
+      "raw_conc_conflicting (prop_queue_to_trail st) = raw_conc_conflicting st" and
+    raw_clauses_prop_queue_to_trail[simp]:
+      "raw_clauses (prop_queue_to_trail st) = raw_clauses st" and
+
+    hd_raw_abs_trail:
+      "full_trail st \<noteq> [] \<Longrightarrow>
+        mmset_of_mlit (raw_clauses st) (hd_raw_abs_trail st) = hd (full_trail st)" and
+
+    tl_abs_trail_prop_state:
+      "\<And>S'. prop_state st = ([], M, S') \<Longrightarrow> prop_state (tl_abs_trail st) = ([], tl M, S')" and
+
+    abs_remove_cls:
+      "\<And>S'. prop_state st = (P, M, N, U, S') \<Longrightarrow>
+        prop_state (abs_remove_cls C' st) =
+          (P, M, removeAll_mset (clause_of_cls C') N, removeAll_mset (clause_of_cls C') U, S')" and
+
+    add_abs_confl_to_learned_cls:
+      "no_dup (full_trail st) \<Longrightarrow> prop_state st = ([], M, N, U, k, Some F) \<Longrightarrow>
+        prop_state (add_abs_confl_to_learned_cls st) =
+          ([], M, N, {#F#} + U, k, None)" and
+
+    update_abs_backtrack_lvl:
+      "\<And>S'. prop_state st = (P, M, N, U, k, S') \<Longrightarrow>
+        prop_state (update_abs_backtrack_lvl k' st) = (P, M, N, U, k', S')" and
+
+    mark_conflicting:
+      "prop_state st = (P, M, N, U, k, None) \<Longrightarrow> E \<in>\<Down> raw_clauses st \<Longrightarrow>
+        prop_state (mark_conflicting E st) =
+          (P, M, N, U, k, Some (clause_of_cls (raw_clauses st \<Down> E)))"
+      and
+
+    resolve_conflicting:
+      "prop_state st = ([], M, N, U, k, Some F) \<Longrightarrow> -L' \<in># F \<Longrightarrow> L' \<in># clause_of_cls D \<Longrightarrow>
+        prop_state (resolve_conflicting L' D st) =
+          ([], M, N, U, k, Some (cdcl\<^sub>W_mset.resolve_cls L' F (clause_of_cls D)))" and
+
+    abs_init_state:
+      "state (abs_init_state Ns) = ([], clauses_of_clss Ns, {#}, 0, None)" and
+
+    \<comment> \<open>Properties about restarting @{term restart_state}:\<close>
+    abs_trail_restart_state[simp]: "abs_trail (restart_state S) = []" and
+    conc_init_clss_restart_state[simp]: "conc_init_clss (restart_state S) = conc_init_clss S" and
+    abs_learned_clss_restart_state[intro]:
+      "abs_learned_clss (restart_state S) \<subseteq># abs_learned_clss S" and
+    abs_backtrack_lvl_restart_state[simp]: "abs_backtrack_lvl (restart_state S) = 0" and
+    conc_conflicting_restart_state[simp]: "conc_conflicting (restart_state S) = None" and
+
+    \<comment> \<open>Properties about @{term reduce_abs_trail_to}:\<close>
+    reduce_abs_trail_to[simp]:
+      "\<And>S'. abs_trail st = M2 @ M1 \<Longrightarrow> state st = (M, S') \<Longrightarrow>
+        state (reduce_abs_trail_to M1 st) = (M1, S')" and
+
+    learned_clauses:
+      "abs_learned_clss S \<subseteq># conc_clauses S" and
 
     get_undecided_lit_Some:
-      "get_undecided_lit T = Some L' \<Longrightarrow> undefined_lit (conc_trail T) L' \<and>
+      "get_undecided_lit T = Some L' \<Longrightarrow> undefined_lit (abs_trail T) L' \<and>
         atm_of L' \<in> atms_of_mm (conc_clauses T)" and
     get_undecided_lit_None:
       "get_undecided_lit T = None \<longleftrightarrow>
-         (\<forall>L'. atm_of L' \<in> atms_of_mm (conc_clauses T) \<longrightarrow> \<not>undefined_lit (conc_trail T) L')" and
+         (\<forall>L'. atm_of L' \<in> atms_of_mm (conc_clauses T) \<longrightarrow> \<not>undefined_lit (abs_trail T) L')" and
     get_clause_watched_by:
       "i \<in> set (get_clause_watched_by T K) \<longleftrightarrow> K \<in># watched (twl_clause (raw_clauses T \<Down> i))" and
     get_clause_watched_by_distinct:
@@ -436,19 +547,151 @@ locale abs_state\<^sub>W_twl =
 
     update_clause:
       "i \<in>\<Down> raw_clauses S \<Longrightarrow>
-        raw_clauses (update_clause S i E) = clss_update (raw_clauses S) i E" and
+        raw_clauses (update_clause S i E') = clss_update (raw_clauses S) i E'" and
     update_clause_state:
-      "i \<in>\<Down> raw_clauses S \<Longrightarrow> state S = (M, N, U, k, C) \<Longrightarrow>
-        state (update_clause S i E) = (M, conc_init_clss S, conc_learned_clss S, k, C)" and
+      "i \<in>\<Down> raw_clauses S \<Longrightarrow> prop_state S = (P, M, N, U, k, C) \<Longrightarrow>
+        prop_state (update_clause S i E') = (P, M, conc_init_clss S, abs_learned_clss S, k, C)" and
 
     find_undef_in_unwatched_Some:
-      "find_undef_in_unwatched S E = Some j \<Longrightarrow> j \<in>\<down> E \<and> undefined_lit (full_trail S) (E\<down>j) \<and>
-        (E\<down>j) \<in># unwatched (twl_clause E)" and
+      "find_undef_in_unwatched S E' = Some j \<Longrightarrow> j \<in>\<down> E' \<and> undefined_lit (full_trail S) (E'\<down>j) \<and>
+        (E'\<down>j) \<in># unwatched (twl_clause E')" and
     find_undef_in_unwatched_None:
-      "find_undef_in_unwatched S E = None \<longleftrightarrow>
-        (\<forall>j. j \<in>\<down> E \<longrightarrow> (E\<down>j) \<in># unwatched (twl_clause E) \<longrightarrow>
-           \<not>undefined_lit (full_trail S) (E\<down>j))"
+      "find_undef_in_unwatched S E' = None \<longleftrightarrow>
+        (\<forall>j. j \<in>\<down> E' \<longrightarrow> (E'\<down>j) \<in># unwatched (twl_clause E') \<longrightarrow>
+           \<not>undefined_lit (full_trail S) (E'\<down>j))"
 begin
+lemma
+  prop_queue_prop_queue_to_trail[simp]:
+    "prop_queue (prop_queue_to_trail S) = []" and
+  abs_trail_prop_queue_to_trail[simp]:
+    "abs_trail (prop_queue_to_trail S) = prop_queue S @ abs_trail S" and
+  full_trail_prop_queue_to_trail[simp]:
+    "full_trail (prop_queue_to_trail S) = prop_queue S @ abs_trail S" and
+  conc_init_clss_prop_queue_to_trail[simp]:
+    "conc_init_clss (prop_queue_to_trail S) = conc_init_clss S" and
+  abs_learned_clss_prop_queue_to_trail[simp]:
+    "abs_learned_clss (prop_queue_to_trail S) = abs_learned_clss S" and
+  abs_backtrack_lvl_prop_queue_to_trail[simp]:
+    "abs_backtrack_lvl (prop_queue_to_trail S) = abs_backtrack_lvl S" and
+  conc_conflicting_prop_queue_to_trail[simp]:
+    "conc_conflicting (prop_queue_to_trail S) = conc_conflicting S"
+  using prop_queue_to_trail_prop_state[of S "prop_queue S"]
+  by (cases "prop_state (prop_queue_to_trail S)"; auto simp: prop_state_def full_trail_def; fail)+
+
+lemma
+  assumes "prop_queue S = []"
+  shows
+    prop_queue_tl_abs_trail[simp]:
+      "prop_queue (tl_abs_trail S) = []" and
+    abs_trail_tl_abs_trail[simp]:
+      "abs_trail (tl_abs_trail S) = tl (abs_trail S)" and
+    full_trail_tl_abs_trail[simp]:
+      "full_trail (tl_abs_trail S) = tl (full_trail S)" and
+    conc_init_clss_tl_abs_trail[simp]:
+      "conc_init_clss (tl_abs_trail S) = conc_init_clss S" and
+    abs_learned_clss_tl_abs_trail[simp]:
+      "abs_learned_clss (tl_abs_trail S) = abs_learned_clss S" and
+    abs_backtrack_lvl_tl_abs_trail[simp]:
+      "abs_backtrack_lvl (tl_abs_trail S) = abs_backtrack_lvl S" and
+    conc_conflicting_tl_abs_trail[simp]:
+      "conc_conflicting (tl_abs_trail S) = conc_conflicting S"
+  using tl_abs_trail_prop_state[of S "abs_trail S"] assms
+  by (cases "prop_state (tl_abs_trail S)"; auto simp: prop_state_def full_trail_def; fail)+
+
+lemma
+  assumes "prop_queue S = []" and "raw_conc_conflicting S = Some F" and "no_dup (full_trail S)"
+  shows
+    prop_queue_add_abs_confl_to_learned_cls[simp]:
+      "prop_queue (add_abs_confl_to_learned_cls S) = []" and
+    abs_trail_add_abs_confl_to_learned_cls[simp]:
+      "abs_trail (add_abs_confl_to_learned_cls S) = abs_trail S" and
+    full_trail_add_abs_confl_to_learned_cls[simp]:
+      "full_trail (add_abs_confl_to_learned_cls S) = full_trail S" and
+    conc_init_clss_add_abs_confl_to_learned_cls[simp]:
+      "conc_init_clss (add_abs_confl_to_learned_cls S) = conc_init_clss S" and
+    abs_learned_clss_add_abs_confl_to_learned_cls[simp]:
+      "abs_learned_clss (add_abs_confl_to_learned_cls S) = {#mset_ccls F#} + abs_learned_clss S" and
+    abs_backtrack_lvl_add_abs_confl_to_learned_cls[simp]:
+      "abs_backtrack_lvl (add_abs_confl_to_learned_cls S) = abs_backtrack_lvl S" and
+    conc_conflicting_add_abs_confl_to_learned_cls[simp]:
+      "conc_conflicting (add_abs_confl_to_learned_cls S) = None"
+  using add_abs_confl_to_learned_cls[of S "abs_trail S" _ _ _ "mset_ccls F"] assms
+  by (cases "prop_state (add_abs_confl_to_learned_cls S)";
+    auto simp: prop_state_def full_trail_def; fail)+
+
+lemma state_cons_prop_queue:
+  assumes
+    undef: "undefined_lit (full_trail st) (lit_of L)" and
+    st: "state st = (M, S')" and
+    "valid_annotation st L"
+  shows "state (cons_prop_queue L st) = (mmset_of_mlit (raw_clauses st) L # M, S')"
+  using assms prop_state_cons_prop_queue[of st L "prop_queue st" "(abs_trail st, S')"]
+  unfolding prop_state_def state_def full_trail_def by auto
+
+lemma cons_conc_trail:
+  assumes "state st = (M, S')"
+  shows "state (tl_abs_trail (prop_queue_to_trail st)) = (tl M, S')"
+  using assms tl_abs_trail_prop_state[of "prop_queue_to_trail st"
+      "abs_trail (prop_queue_to_trail st)" S']
+  unfolding prop_state_def state_def
+  by (auto simp: full_trail_def)
+
+lemma remove_cls:
+  assumes "state st = (M, N, U, S')"
+  shows "state (abs_remove_cls C st) =
+    (M, removeAll_mset (clause_of_cls C) N, removeAll_mset (clause_of_cls C) U, S')"
+  using abs_remove_cls[of st "prop_queue st" "abs_trail st" "conc_init_clss st"
+    "abs_learned_clss st"] assms
+  unfolding prop_state_def state_def by (auto simp: full_trail_def)
+
+lemma add_conc_confl_to_learned_cls:
+  assumes "no_dup (full_trail st)" and
+    "state st = (M, N, U, k, Some F)"
+  shows "state (add_abs_confl_to_learned_cls (prop_queue_to_trail st)) = (M, N, {#F#} + U, k, None)"
+  using add_abs_confl_to_learned_cls[of "prop_queue_to_trail st" M N U k F] assms
+  unfolding prop_state_def state_def by (auto simp: full_trail_def)
+
+lemma
+  assumes
+    "state st = (M, N, U, k, None)" and
+    "E \<in>\<Down> raw_clauses st"
+  shows "state (mark_conflicting E (prop_queue_to_trail st)) =
+    (M, N, U, k, Some (clause_of_cls (raw_clauses st \<Down> E)))"
+  using mark_conflicting[of "prop_queue_to_trail st" "[]" M N U k E] assms
+  unfolding prop_state_def state_def by (auto simp: full_trail_def)
+
+sublocale abs_state\<^sub>W where
+  cls_lit = lit_lookup and
+  mset_cls = clause_of_cls and
+  clss_cls = cls_lookup and
+  mset_clss = raw_cls_of_clss and
+  mset_ccls = mset_ccls and
+
+  conc_trail = full_trail and
+  hd_raw_conc_trail = hd_raw_abs_trail  and
+  raw_clauses = raw_clauses and
+  conc_backtrack_lvl = abs_backtrack_lvl and
+  raw_conc_conflicting = raw_conc_conflicting and
+  conc_learned_clss = abs_learned_clss and
+  cons_conc_trail = cons_prop_queue and
+  tl_conc_trail = "\<lambda>S. tl_abs_trail (prop_queue_to_trail S)" and
+  add_conc_confl_to_learned_cls = "\<lambda>S. add_abs_confl_to_learned_cls (prop_queue_to_trail S)" and
+  remove_cls = abs_remove_cls and
+  update_conc_backtrack_lvl = update_abs_backtrack_lvl and
+  mark_conflicting = "\<lambda>i S. mark_conflicting i (prop_queue_to_trail S)"and
+  reduce_conc_trail_to = reduce_abs_trail_to and
+  resolve_conflicting = resolve_conflicting and
+  conc_init_state = conc_init_state and
+  restart_state = restart_state
+  apply unfold_locales
+                 using hd_raw_abs_trail apply (simp; fail)
+                using state_cons_prop_queue apply (simp; fail)
+               using cons_conc_trail apply (simp; fail)
+              using remove_cls apply (simp; fail)
+             using add_conc_confl_to_learned_cls apply (simp; fail)
+            using prop_state_def prop_state_state update_abs_backtrack_lvl apply (auto; fail)[1]
+
+  sorry
 
 lemma conc_clauses_update_clause:
   assumes
@@ -456,7 +699,7 @@ lemma conc_clauses_update_clause:
   shows
     "conc_clauses (update_clause S i E) =
        remove1_mset (clause_of_cls (raw_clauses S \<Down> i)) (conc_clauses S) + {#clause_of_cls E#}"
-     (is "?conc = ?r")
+     (is "?abs = ?r")
 proof-
   have XX: "\<And>x. clause_of_cls (the (if x = i then Some E else cls_lookup (raw_clauses S) x)) =
     (if x = i then clause_of_cls E else clause_of_cls (the (cls_lookup (raw_clauses S) x)))"
@@ -466,15 +709,16 @@ proof-
     {#clause_of_cls (the (cls_lookup (raw_clauses S) x)).
        x \<in># remove1_mset i (cls_keys (raw_clauses S))#}"
      apply (subst subseteq_image_mset_minus)
-     using i by (auto simp: valid_cls_lookup_def cls_keys the_cls_lookup_def)
+     using i by (auto simp add: cls_keys in_clss_def clss_cls_def)
 
   have c: "count (cls_keys (raw_clauses S)) i = 1"
-    by (meson cls_keys cls_keys_distinct distinct_mset_def i valid_cls_lookup_def)
+
+    by (meson cls_keys cls_keys_distinct distinct_mset_def i in_clss_def)
   then have [simp]: "replicate_mset (count (cls_keys (raw_clauses S)) i) (clause_of_cls E) =
     {#clause_of_cls E#}"
     by simp
   show ?thesis
-     using i unfolding conc_clauses_def clauses_of_clss_def valid_cls_lookup_def
+     using i unfolding conc_clauses_def clauses_of_clss_def in_clss_def
      by (auto simp: update_clause[OF i] clss_update XX YY image_mset_if_eq_index
        distinct_mset_remove1_All)
 qed
@@ -485,7 +729,7 @@ locale abs_conflict_driven_clause_learning\<^sub>W_clss =
   abs_state\<^sub>W_twl
      \<comment> \<open>functions for clauses: \<close>
     lit_lookup lit_keys twl_cls swap_lit
-    it_of_other_watched cls_ot_twl_list
+    it_of_other_watched cls_of_twl_list
 
     cls_lookup cls_keys clss_update add_cls
 
@@ -494,21 +738,21 @@ locale abs_conflict_driven_clause_learning\<^sub>W_clss =
 
     find_undef_in_unwatched
 
-    conc_trail hd_raw_conc_trail prop_queue raw_clauses conc_backtrack_lvl raw_conc_conflicting
+    abs_trail hd_raw_abs_trail prop_queue raw_clauses abs_backtrack_lvl raw_conc_conflicting
 
-    conc_learned_clss
+    abs_learned_clss
 
-    cons_conc_trail tl_conc_trail reduce_conc_trail_to
+    cons_abs_trail tl_abs_trail reduce_abs_trail_to
 
-    cons_prop_queue hd_prop_queue_to_trail prop_queue_to_trail
+    cons_prop_queue last_prop_queue_to_trail prop_queue_to_trail
 
-    add_conc_confl_to_learned_cls conc_remove_cls
+    add_abs_confl_to_learned_cls abs_remove_cls
 
-    update_conc_backtrack_lvl mark_conflicting resolve_conflicting
+    update_abs_backtrack_lvl mark_conflicting resolve_conflicting
 
     get_undecided_lit get_clause_watched_by update_clause
 
-    conc_init_state restart_state
+    abs_init_state restart_state
 
   for
     \<comment> \<open>Clause:\<close>
@@ -520,7 +764,7 @@ locale abs_conflict_driven_clause_learning\<^sub>W_clss =
     it_of_other_watched :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit option" and
 
     \<comment> \<open>Clauses\<close>
-    cls_ot_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls" and
+    cls_of_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls" and
     cls_lookup :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls option" and
     cls_keys :: "'clss \<Rightarrow> 'cls_it multiset" and
     clss_update :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'clss" and
@@ -531,27 +775,27 @@ locale abs_conflict_driven_clause_learning\<^sub>W_clss =
 
     find_undef_in_unwatched :: "'st \<Rightarrow> 'cls \<Rightarrow> 'lit option" and
 
-    conc_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
-    hd_raw_conc_trail :: "'st \<Rightarrow> ('v, 'cls_it) ann_lit" and
+    abs_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    hd_raw_abs_trail :: "'st \<Rightarrow> ('v, 'cls_it) ann_lit" and
     prop_queue :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     raw_clauses :: "'st \<Rightarrow> 'clss" and
-    conc_backtrack_lvl :: "'st \<Rightarrow> nat" and
+    abs_backtrack_lvl :: "'st \<Rightarrow> nat" and
     raw_conc_conflicting :: "'st \<Rightarrow> 'ccls option" and
 
-    conc_learned_clss :: "'st \<Rightarrow> 'v clauses" and
+    abs_learned_clss :: "'st \<Rightarrow> 'v clauses" and
 
-    cons_conc_trail :: "('v, 'cls_it) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
-    tl_conc_trail :: "'st \<Rightarrow> 'st" and
-    reduce_conc_trail_to :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
+    cons_abs_trail :: "('v, 'cls_it) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_abs_trail :: "'st \<Rightarrow> 'st" and
+    reduce_abs_trail_to :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     cons_prop_queue :: "('v, 'cls_it) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
-    hd_prop_queue_to_trail :: "'st \<Rightarrow> 'st" and
+    last_prop_queue_to_trail :: "'st \<Rightarrow> 'st" and
     prop_queue_to_trail :: "'st \<Rightarrow> 'st" and
 
-    add_conc_confl_to_learned_cls :: "'st \<Rightarrow> 'st" and
-    conc_remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+    add_abs_confl_to_learned_cls :: "'st \<Rightarrow> 'st" and
+    abs_remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-    update_conc_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_abs_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     mark_conflicting :: "'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" and
     resolve_conflicting :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -560,7 +804,7 @@ locale abs_conflict_driven_clause_learning\<^sub>W_clss =
     get_clause_watched_by :: "'st \<Rightarrow> 'v literal \<Rightarrow> 'cls_it list" and
     update_clause :: "'st \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'st" and
 
-    conc_init_state :: "'clss \<Rightarrow> 'st" and
+    abs_init_state :: "'clss \<Rightarrow> 'st" and
     restart_state :: "'st \<Rightarrow> 'st"
 begin
 
@@ -569,7 +813,7 @@ fun update_clause2 where
   (case it_of_other_watched (raw_clauses S \<Down> i) L of
     None \<Rightarrow> S
   | Some L' \<Rightarrow>
-    if ((raw_clauses S \<Down> i) \<down> L') \<in> lits_of_l (conc_trail S)
+    if ((raw_clauses S \<Down> i) \<down> L') \<in> lits_of_l (abs_trail S)
     then S
     else
       (case find_undef_in_unwatched S (raw_clauses S \<Down> i) of
