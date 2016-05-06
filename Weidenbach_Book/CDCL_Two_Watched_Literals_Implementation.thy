@@ -36,7 +36,7 @@ text \<open>It is important to remember that a conflicting clause with respect t
   conflict). A conflict is better when it involves less literals, i.e.\ less propagations are needed
   before finding the conflict.\<close>
 
-subsection \<open>Two-watched literals\<close>
+subsubsection \<open>Two-watched literals\<close>
 datatype 'v twl_clause =
   TWL_Clause (watched: 'v) (unwatched: 'v)
 
@@ -85,6 +85,10 @@ lemma watched_map_wf_twl_clause:
   "watched (map_wf_twl_clause f C) = f (wf_watched C)"
   by (simp add: map_wf_twl_clause.rep_eq twl_clause.map_sel(1) wf_watched.rep_eq)
 
+lemma unwatched_map_wf_twl_clause:
+  "unwatched (map_wf_twl_clause f C) = f (wf_unwatched C)"
+  by (simp add: map_wf_twl_clause.rep_eq twl_clause.map_sel wf_unwatched.rep_eq)
+
 lemma wf_clause_watched_unwatched: "wf_clause C = wf_watched C + wf_unwatched C"
   by (cases "twl_clause_of_wf C") (auto simp: wf_clause_def wf_watched_def wf_unwatched_def)
 
@@ -132,7 +136,7 @@ proof -
       elim!: remove1_mset_eqE[of _ L])
 qed
 
-subsection \<open>Clauses\<close>
+subsubsection \<open>Clauses\<close>
 
 locale abstract_clause_representation_ops =
   fixes
@@ -210,7 +214,6 @@ locale abstract_clause_representation =
         twl_clause (cls_of_twl_list D) = map_twl_clause mset D"
 begin
 
-
 lemma lit_lookup_Some_in_clause_of_cls:
   assumes L: "lit_lookup C i = Some L"
   shows "L \<in># clause_of_cls C"
@@ -262,6 +265,52 @@ proof -
     using k unfolding valid_lit_keys[symmetric] twl_cls_valid by auto
 qed
 
+lemma unwatched_twl_clause_twl_clause_of_wff_iff:
+  "unwatched (twl_clause C) = {#} \<longleftrightarrow> unwatched (twl_clause_of_wf (twl_cls C)) = {#}"
+  apply (cases "twl_cls C")
+  apply (rename_tac y, case_tac y)
+  by (auto simp: unwatched_map_wf_twl_clause wf_unwatched.rep_eq)
+
+lemma it_of_watched_ordered_cases:
+  assumes L: "L \<in># watched (twl_clause C)"
+  shows
+    "(\<exists>j. it_of_watched_ordered C L = [j] \<and> lit_lookup C j = Some L \<and>
+      unwatched (twl_clause C) = {#} \<and>  wf_watched (twl_cls C) = {#j#}) \<or>
+     (\<exists>j k. it_of_watched_ordered C L = [j, k] \<and> lit_lookup C j = Some L \<and> lit_lookup C k \<noteq> None \<and>
+        wf_watched (twl_cls C) = {#j, k#})"
+proof -
+  have "size (mset (it_of_watched_ordered C L)) \<le> 2"
+    using it_of_watched_ordered[OF assms] twl_clause_of_wf[of "twl_cls C"]
+    by (cases "twl_clause_of_wf (twl_cls C)") (auto simp add: wf_watched.rep_eq)
+  moreover have "it_of_watched_ordered C L \<noteq> []"
+    using assms by (metis image_mset_is_empty_iff insert_DiffM it_of_watched_ordered mset.simps(1)
+      single_not_empty union_eq_empty watched_map_wf_twl_clause)
+  ultimately consider
+    (single_watched) j where "it_of_watched_ordered C L = [j]" |
+    (two_watched) j k where "it_of_watched_ordered C L = [j, k]"
+    by (metis add_cancel_left_left le_eq_less_or_eq length_0_conv length_list_2 less_2_cases
+      list.exhaust list.size(4) size_mset)
+  then show ?thesis
+    proof cases
+      case (single_watched j) note j = this(1)
+      moreover
+        have "unwatched (twl_clause C) = {#}"
+          using twl_clause_of_wf[of "twl_cls C"] it_of_watched_ordered[OF assms]
+          apply (auto simp add:)
+          apply (cases "twl_clause_of_wf (twl_cls C)")
+          by (auto simp: j wf_watched.rep_eq subset_eq_mset_single_iff
+            distinct_mset_size_2 unwatched_twl_clause_twl_clause_of_wff_iff)
+      ultimately show ?thesis
+        using it_of_watched_ordered[OF L] by auto
+    next
+      case (two_watched j k)
+      moreover have "{#j, k#} = {#k, j#}"
+        by (auto simp: multiset_eq_iff)
+      ultimately show ?thesis
+        using it_of_watched_ordered_not_None[OF L] it_of_watched_ordered[OF assms] by auto
+    qed
+qed
+
 end
 
 locale abstract_clauses_representation =
@@ -310,6 +359,9 @@ sublocale abstract_with_index2 where
   by unfold_locales (metis cls_lookup_Some_in_raw_cls_of_clss raw_cls_of_clss_valid_cls_lookup)+
 
 end
+
+
+subsubsection \<open>State\<close>
 
 locale abstract_clause_clauses_representation =
   abstract_clause_representation lit_lookup lit_keys twl_cls swap_lit
@@ -897,6 +949,8 @@ qed
 
 end
 
+subsubsection \<open>The new Calculus\<close>
+
 locale abs_conflict_driven_clause_learning\<^sub>W_clss =
   abs_state\<^sub>W_twl
     \<comment> \<open>functions for clauses: \<close>
@@ -1006,7 +1060,7 @@ sublocale abs_conflict_driven_clause_learning\<^sub>W where
   by unfold_locales
 
 abbreviation mark_conflicting_and_flush where
-"mark_conflicting_and_flush  i S \<equiv> prop_queue_to_trail (mark_conflicting i S)"
+"mark_conflicting_and_flush  i S \<equiv> mark_conflicting i (prop_queue_to_trail S)"
 
 text \<open>When we update a clause with respect to the literal L, there are several cases:
   \<^enum> the only literal is L: this is a conflict.
@@ -1029,6 +1083,46 @@ fun update_watched_clause :: "'st \<Rightarrow> 'v literal \<Rightarrow> 'cls_it
       | Some _ \<Rightarrow> update_clause S i (swap_lit (raw_clauses S \<Down> i) j k))
   )"
 
+lemma
+  fixes i :: 'cls_it and S :: 'st and L :: "'v literal"
+  defines S': "S' \<equiv> update_watched_clause S L i"
+  assumes
+    "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state S)" and
+    L: "L \<in># watched (twl_clause (raw_clauses S \<Down> i))" and
+    confl: "raw_conc_conflicting S = None" and
+    i: "i \<in>\<Down> raw_clauses S" and
+    L_trail: "- L \<in> lits_of_l (full_trail S)"
+  shows "propagate_abs S S' \<or> conflict_abs S S'"
+proof -
+  let ?C = "raw_clauses S \<Down> i"
+  consider
+    (single_watched) j :: 'lit where "it_of_watched_ordered (raw_clauses S \<Down> i) L = [j]" and
+      "lit_lookup ?C j = Some L" and "unwatched (twl_clause (raw_clauses S \<Down> i)) = {#}" and
+      "wf_watched (twl_cls (raw_clauses S \<Down> i)) = {#j#}" |
+    (two_watched) j k :: 'lit where "it_of_watched_ordered (raw_clauses S \<Down> i) L = [j, k]" and
+      "lit_lookup ?C j = Some L" and "lit_lookup ?C k \<noteq> None"
+    using it_of_watched_ordered_cases[OF L] by blast
+  then show ?thesis
+    proof cases
+      case (single_watched j) note it = this(1) and lit = this(2) and C = this(3) and W = this(4)
+      moreover
+        have iL: "clause_of_cls (raw_clauses S \<Down> i) = {#L#}"
+          by (auto simp: clause_map_wf_twl_clause_wf_clause wf_clause_watched_unwatched C
+            wf_unwatched.rep_eq W lit unwatched_twl_clause_twl_clause_of_wff_iff[symmetric])
+        have "conflict_abs S (mark_conflicting_and_flush i S)"
+          apply (rule conflict_abs_rule[of _ i])
+             using confl apply auto[]
+            using i apply simp
+           using L_trail iL apply simp
+          by simp
+      ultimately show ?thesis
+        unfolding S' by auto
+    next
+      case (two_watched j k) note jk = this(1) and it_L = this(2) and k = this(3)
+      then show ?thesis
+         unfolding S' apply auto
+oops
+
 text \<open>Possible optimisation: @{term "Option.is_none (raw_conc_conflicting S')"} is the same as
   checking whether a mark_conflicting has been done by @{term update_watched_clause}.\<close>
 fun update_watched_clauses  :: "'st \<Rightarrow> 'v literal \<Rightarrow> 'cls_it list \<Rightarrow> 'st" where
@@ -1042,8 +1136,6 @@ fun update_watched_clauses  :: "'st \<Rightarrow> 'v literal \<Rightarrow> 'cls_
 definition propagate_and_conflict_one_lit where
 "propagate_and_conflict_one_lit S L =
   update_watched_clauses S L (get_clause_watched_by S L)"
-
-  (* TODO Move upper or kill*)
 
 lemma raw_conc_conflicting_mark_conflicting:
   assumes "i \<in>\<Down> raw_clauses S" and "raw_conc_conflicting S = None"
