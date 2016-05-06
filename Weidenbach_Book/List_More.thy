@@ -321,6 +321,15 @@ lemma mset_map_mset_removeAll_cond:
  = removeAll_mset (mset a) (mset (map mset C))"
   by (induction C) (auto simp: ac_simps mset_less_eqI multiset_diff_union_assoc)
 
+
+subsubsection \<open>Filter\<close>
+lemma distinct_filter_eq_if:
+  "distinct C \<Longrightarrow> length (filter (op = L) C) = (if L \<in> set C then 1 else 0)"
+  by (induction C) auto
+
+
+subsection \<open>Multisets\<close>
+
 text \<open>The definition and the correctness theorem are from the multiset theory
   @{file "~~/src/HOL/Library/Multiset.thy"}, but a name is necessary to refer to them:\<close>
 abbreviation union_mset_list where
@@ -335,9 +344,21 @@ proof -
   then show ?thesis by simp
 qed
 
-subsubsection \<open>Filter\<close>
-lemma distinct_filter_eq_if:
-  "distinct C \<Longrightarrow> length (filter (op = L) C) = (if L \<in> set C then 1 else 0)"
-  by (induction C) auto
+lemma size_le_Suc_0_iff: "size M \<le> Suc 0 \<longleftrightarrow> ((\<exists>a b. M = {#a#}) \<or> M = {#})"
+   using size_1_singleton_mset by (auto simp: le_Suc_eq)
+
+lemma size_2_iff: "size M = 2 \<longleftrightarrow> (\<exists>a b. M = {#a, b#})"
+  by (metis Suc_1 one_add_one size_1_singleton_mset size_mset_SucE size_single size_union)
+
+lemma remove1_mset_eqE:
+  "remove1_mset L x1 = M \<Longrightarrow>
+    (L \<in># x1 \<Longrightarrow> x1 = M + {#L#} \<Longrightarrow> P) \<Longrightarrow>
+    (L \<notin># x1 \<Longrightarrow> x1 = M \<Longrightarrow> P) \<Longrightarrow>
+  P"
+  by (cases "L \<in># x1") auto
+
+lemma subset_eq_mset_single_iff: "x2 \<subseteq># {#L#} \<longleftrightarrow> x2 = {#} \<or> x2 = {#L#}"
+  by (metis single_is_union subset_mset.add_diff_inverse subset_mset.eq_refl subset_mset.zero_le)
+
 
 end

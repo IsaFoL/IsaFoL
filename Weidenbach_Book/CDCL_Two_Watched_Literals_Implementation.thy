@@ -73,21 +73,25 @@ lift_definition map_wf_twl_clause :: "('v multiset \<Rightarrow> 'w multiset) \<
 "map_twl_clause ::  ('v multiset \<Rightarrow> 'w multiset) \<Rightarrow> 'v multiset twl_clause \<Rightarrow> 'w multiset twl_clause"
 .
 
-lemma size_le_Suc_0_iff: "size M \<le> Suc 0 \<longleftrightarrow> ((\<exists>a b. M = {#a#}) \<or> M = {#})"
-   using size_1_singleton_mset by (auto simp: le_Suc_eq)
+lemma wf_unwatched_wf_of_twl_clause:
+  "struct_wf_twl_cls C \<Longrightarrow> wf_unwatched (wf_of_twl_clause C) = unwatched C"
+  by (simp add: wf_of_twl_clause_inverse wf_unwatched.rep_eq)
 
-lemma size_2_iff: "size M = 2 \<longleftrightarrow> (\<exists>a b. M = {#a, b#})"
-  by (metis Suc_1 one_add_one size_1_singleton_mset size_mset_SucE size_single size_union)
+lemma wf_watched_wf_of_twl_clause:
+  "struct_wf_twl_cls C \<Longrightarrow> wf_watched (wf_of_twl_clause C) = watched C"
+  by (simp add: wf_of_twl_clause_inverse wf_watched.rep_eq)
 
-lemma remove1_mset_eqE:
-  "remove1_mset L x1 = M \<Longrightarrow>
-    (L \<in># x1 \<Longrightarrow> x1 = M + {#L#} \<Longrightarrow> P) \<Longrightarrow>
-    (L \<notin># x1 \<Longrightarrow> x1 = M \<Longrightarrow> P) \<Longrightarrow>
-  P"
-  by (cases "L \<in># x1") auto
+lemma watched_map_wf_twl_clause:
+  "watched (map_wf_twl_clause f C) = f (wf_watched C)"
+  by (simp add: map_wf_twl_clause.rep_eq twl_clause.map_sel(1) wf_watched.rep_eq)
 
-lemma subset_eq_mset_single_iff: "x2 \<subseteq># {#L#} \<longleftrightarrow> x2 = {#} \<or> x2 = {#L#}"
-  by (metis single_is_union subset_mset.add_diff_inverse subset_mset.eq_refl subset_mset.zero_le)
+lemma wf_clause_watched_unwatched: "wf_clause C = wf_watched C + wf_unwatched C"
+  by (cases "twl_clause_of_wf C") (auto simp: wf_clause_def wf_watched_def wf_unwatched_def)
+
+lemma clause_map_wf_twl_clause_wf_clause:
+  assumes "\<And>x1 x2. f (x1 + x2) = f x1 + f x2 "
+  shows "clause (map_wf_twl_clause f C) = f (wf_clause C)"
+  by (cases "twl_clause_of_wf C") (auto simp: assms wf_clause_def map_wf_twl_clause_def)
 
 lemma
   assumes "L \<in># wf_watched C" and "L' \<in># wf_unwatched C"
@@ -147,6 +151,29 @@ abbreviation twl_clause :: "'cls \<Rightarrow> 'v literal multiset twl_clause" w
 abbreviation clause_of_cls :: "'cls \<Rightarrow> 'v clause" where
 "clause_of_cls C \<equiv> clause (twl_clause C)"
 
+lemma wf_watched_watched_empty_iff:
+  "wf_watched (twl_cls C) = {#} \<longleftrightarrow> watched (twl_clause C) = {#}"
+proof -
+  obtain twl_C where
+    C: "twl_cls C = wf_of_twl_clause twl_C" and wf: "twl_C \<in> {C. struct_wf_twl_cls C}"
+    by (cases "twl_cls C")
+  obtain W UW where
+    twl_C: "twl_C = TWL_Clause W UW"
+    by (cases twl_C)
+  have "wf_watched (twl_cls C) = {#} \<longleftrightarrow> wf_clause (twl_cls C) = {#}"
+    using wf unfolding C twl_C
+    by (auto simp: wf_clause_watched_unwatched wf_of_twl_clause_inverse wf_watched.rep_eq
+      wf_unwatched.rep_eq)
+  also have "wf_clause (twl_cls C) = {#} \<longleftrightarrow> clause_of_cls C = {#}"
+    by (auto simp: clause_map_wf_twl_clause_wf_clause)
+  also have "clause_of_cls C = {#} \<longleftrightarrow> watched (twl_clause C) = {#}"
+    using wf unfolding C twl_C
+    by (auto simp: clause_map_wf_twl_clause_wf_clause watched_map_wf_twl_clause
+      wf_of_twl_clause_inverse wf_watched.rep_eq wf_unwatched.rep_eq
+      wf_clause_watched_unwatched)
+  finally show ?thesis .
+qed
+
 end
 
 locale abstract_clause_representation =
@@ -183,10 +210,6 @@ locale abstract_clause_representation =
         twl_clause (cls_of_twl_list D) = map_twl_clause mset D"
 begin
 
-lemma clause_map_wf_twl_clause_wf_clause:
-  assumes "\<And>x1 x2. f (x1 + x2) = f x1 + f x2 "
-  shows "clause (map_wf_twl_clause f C) = f (wf_clause C)"
-  by (cases "twl_clause_of_wf C") (auto simp: assms wf_clause_def map_wf_twl_clause_def)
 
 lemma lit_lookup_Some_in_clause_of_cls:
   assumes L: "lit_lookup C i = Some L"
@@ -218,8 +241,6 @@ sublocale abstract_with_index where
   convert_to_mset = clause_of_cls
   by unfold_locales (auto simp: lit_lookup_Some_in_clause_of_cls clause_of_cls_valid_lit_lookup)
 
-lemma wf_clause_watched_unwatched: "wf_clause C = wf_watched C + wf_unwatched C"
-  by (cases "twl_clause_of_wf C") (auto simp: wf_clause_def wf_watched_def wf_unwatched_def)
 
 lemma it_of_watched_ordered_not_None:
   assumes
@@ -657,7 +678,8 @@ locale abs_state\<^sub>W_twl =
       "get_undecided_lit T = None \<longleftrightarrow>
          (\<forall>L'. atm_of L' \<in> atms_of_mm (conc_clauses T) \<longrightarrow> \<not>undefined_lit (abs_trail T) L')" and
     get_clause_watched_by:
-      "i \<in> set (get_clause_watched_by T K) \<longleftrightarrow> K \<in># watched (twl_clause (raw_clauses T \<Down> i))" and
+      "i \<in> set (get_clause_watched_by T K) \<longleftrightarrow> (K \<in># watched (twl_clause (raw_clauses T \<Down> i)) \<and>
+        i \<in>\<Down> raw_clauses S)" and
     get_clause_watched_by_distinct:
       "distinct (get_clause_watched_by T K)" and
 
@@ -1021,17 +1043,41 @@ definition propagate_and_conflict_one_lit where
 "propagate_and_conflict_one_lit S L =
   update_watched_clauses S L (get_clause_watched_by S L)"
 
+  (* TODO Move upper or kill*)
+
+lemma raw_conc_conflicting_mark_conflicting:
+  assumes "i \<in>\<Down> raw_clauses S" and "raw_conc_conflicting S = None"
+  shows "raw_conc_conflicting (mark_conflicting i S) \<noteq> None"
+  using assms mark_conflicting_prop_state[of S _ _ _ _ _ i]
+  by (fastforce simp: prop_state_def state_def)
+
 lemma
-  assumes "Option.is_none (raw_conc_conflicting S)"
+  assumes "Option.is_none (raw_conc_conflicting S)" and "-L \<in> lits_of_l (full_trail S)"
   shows
     "state S = state (propagate_and_conflict_one_lit S L) \<or>
     conflict_abs S (propagate_and_conflict_one_lit S L)"
-  unfolding propagate_and_conflict_one_lit_def
-  apply (induction "get_clause_watched_by S L" arbitrary: S L)
-    apply auto[]
-  apply auto
+  using assms unfolding propagate_and_conflict_one_lit_def
+proof (induction "get_clause_watched_by S L" arbitrary: S L)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons i Cs) note IH = this(1) and watched = this(2)[symmetric] and confl = this(3) and
+    L = this(4)
+  let ?C = "raw_clauses S \<Down> i"
+  have "L \<in># watched (twl_clause ?C)"
+    using get_clause_watched_by[of i S L] unfolding watched by simp
+  then have [simp]: "it_of_watched_ordered ?C L \<noteq> []" and
+    "lit_lookup (raw_clauses S \<Down> i) (hd (it_of_watched_ordered (raw_clauses S \<Down> i) L)) = Some L"
+    using it_of_watched_ordered[of L ?C] by (auto simp: wf_watched_watched_empty_iff)
 
-
+  have "L \<in># watched (twl_clause ?C)" and "i \<in>\<Down> raw_clauses S"
+    using get_clause_watched_by[of i S L] unfolding watched by auto
+  then have [simp]: "\<not>Option.is_none (raw_conc_conflicting (mark_conflicting i S))"
+    using confl raw_conc_conflicting_mark_conflicting[of i S] by (auto simp: Option.is_none_def)
+  show ?case
+    unfolding watched
+    apply (auto simp: )
+oops
 
 
 function propagate_and_conflict where
