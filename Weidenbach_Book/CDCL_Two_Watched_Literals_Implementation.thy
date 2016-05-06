@@ -1045,5 +1045,32 @@ by auto
 termination sorry
 end
 
+locale type_definition =
+  fixes Abs :: "'a \<Rightarrow> 'inv" and Rep :: "'inv \<Rightarrow> 'a" and inv :: "'a \<Rightarrow> bool"
+  assumes
+    Rep_inv: "Abs (Rep x) = x" and
+    Rep: "Rep x \<in> {a. inv a}" and
+    Rep_inject: "Rep x = Rep y \<longleftrightarrow> x = y" and
+    Abs_inverse: "z \<in> {a. inv a} \<Longrightarrow> Rep (Abs z) = z" and
+    Abs_induct: "(\<And>y. y \<in> {a. inv a} \<Longrightarrow> P (Abs y)) \<Longrightarrow> P y" and
+    Rep_induct: "z \<in> {a. inv a} \<Longrightarrow> (\<And>z. P' (Rep z)) \<Longrightarrow> P' z" and
+    Abs_cases: "(\<And>y. x = Abs y \<Longrightarrow> y \<in> {a. inv a} \<Longrightarrow> Q) \<Longrightarrow> Q" and
+    Rep_cases: "z \<in> {a. inv a} \<Longrightarrow> (\<And>y. z = Rep y \<Longrightarrow> Q) \<Longrightarrow> Q" and
+    Abs_inject: "z \<in> {a. inv a} \<Longrightarrow> z' \<in> {a. inv a} \<Longrightarrow> Abs z = Abs z' \<longleftrightarrow> z = z'"
+
+interpretation 2: type_definition where Rep = twl_clause_of_wf and Abs = wf_of_twl_clause and
+inv = struct_wf_twl_cls
+apply unfold_locales
+using twl_clause_of_wf_inverse apply metis
+using twl_clause_of_wf apply metis
+using twl_clause_of_wf_inject apply metis
+using wf_of_twl_clause_inverse apply metis
+using wf_of_twl_clause_induct apply metis
+using twl_clause_of_wf_induct apply metis
+using wf_of_twl_clause_cases  apply metis
+using twl_clause_of_wf_cases  apply metis
+using wf_of_twl_clause_inject apply metis
+done
+
 
 end
