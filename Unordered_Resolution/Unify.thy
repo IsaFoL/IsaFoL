@@ -48,7 +48,7 @@ abbreviation(input) fsub_to_isub :: "substitution \<Rightarrow> (fun_sym, var_sy
 abbreviation(input) isub_to_fsub :: "(fun_sym, var_sym) subst \<Rightarrow> substitution" where
   "isub_to_fsub \<sigma> == \<lambda>x. iterm_to_fterm (\<sigma> x)"
 
-lemma iterm_to_fterm_subt: "(iterm_to_fterm t1) {\<sigma>}\<^sub>t = iterm_to_fterm (t1 \<cdot> (\<lambda>x. fterm_to_iterm (\<sigma> x)))"
+lemma iterm_to_fterm_subt: "(iterm_to_fterm t1) \<cdot>\<^sub>t \<sigma> = iterm_to_fterm (t1 \<cdot> (\<lambda>x. fterm_to_iterm (\<sigma> x)))"
   by (induction t1) auto
 
 lemma unifiert_unifiers:
@@ -60,7 +60,7 @@ proof -
       fix t1 t2 
       assume t1_p: "t1 \<in> fterm_to_iterm ` ts" assume t2_p: "t2 \<in> fterm_to_iterm ` ts"
       from t1_p t2_p have "iterm_to_fterm t1 \<in> ts \<and> iterm_to_fterm t2 \<in> ts" by auto 
-      then have "(iterm_to_fterm t1) {\<sigma>}\<^sub>t = (iterm_to_fterm t2) {\<sigma>}\<^sub>t" using assms unfolding unifierts_def by auto
+      then have "(iterm_to_fterm t1) \<cdot>\<^sub>t \<sigma> = (iterm_to_fterm t2) \<cdot>\<^sub>t \<sigma>" using assms unfolding unifierts_def by auto
       then have "iterm_to_fterm (t1 \<cdot> (fsub_to_isub \<sigma>)) = iterm_to_fterm (t2 \<cdot> (fsub_to_isub \<sigma>))" using iterm_to_fterm_subt by auto 
       then have "fterm_to_iterm (iterm_to_fterm (t1 \<cdot> (fsub_to_isub \<sigma>))) = fterm_to_iterm (iterm_to_fterm (t2 \<cdot> (fsub_to_isub \<sigma>)))" by auto
       then show "t1 \<cdot> (fsub_to_isub \<sigma>) = t2 \<cdot> (fsub_to_isub \<sigma>)" using fterm_to_iterm_cancel by auto
@@ -80,7 +80,7 @@ proof -
   then show ?thesis using unify_sound by auto
 qed
 
-lemma fterm_to_iterm_subst: "(fterm_to_iterm t1) \<cdot> \<sigma> =fterm_to_iterm (t1{isub_to_fsub \<sigma>}\<^sub>t)"
+lemma fterm_to_iterm_subst: "(fterm_to_iterm t1) \<cdot> \<sigma> =fterm_to_iterm (t1 \<cdot>\<^sub>t isub_to_fsub \<sigma>)"
   by (induction t1) auto
 
 lemma unifiers_unifiert:
@@ -93,7 +93,7 @@ next
   assume "ts \<noteq> {}"
   then obtain t' where t'_p: "t' \<in> ts" by auto
 
-  have "\<forall>t1\<in>ts. \<forall>t2\<in>ts. t1 {isub_to_fsub \<sigma>}\<^sub>t = t2 {isub_to_fsub \<sigma>}\<^sub>t"
+  have "\<forall>t1\<in>ts. \<forall>t2\<in>ts. t1 \<cdot>\<^sub>t isub_to_fsub \<sigma> = t2 \<cdot>\<^sub>t isub_to_fsub \<sigma>"
     proof (rule ballI ; rule ballI)
       fix t1 t2 
       assume "t1 \<in> ts" "t2 \<in> ts" 
@@ -101,11 +101,11 @@ next
       then have "(fterm_to_iterm t1, fterm_to_iterm t2) \<in> (fterm_to_iterm ` ts \<times> fterm_to_iterm ` ts)" by auto
       then have "(fterm_to_iterm t1) \<cdot> \<sigma> = (fterm_to_iterm t2) \<cdot> \<sigma>" using assms unfolding unifiers_def
          by (metis (no_types, lifting) assms fst_conv member_unifiersE snd_conv) 
-      then have "fterm_to_iterm (t1{isub_to_fsub \<sigma>}\<^sub>t) = fterm_to_iterm (t2{isub_to_fsub \<sigma>}\<^sub>t)" using fterm_to_iterm_subst by auto
-      then have "iterm_to_fterm (fterm_to_iterm (t1{isub_to_fsub \<sigma>}\<^sub>t)) =iterm_to_fterm (fterm_to_iterm (t2{isub_to_fsub \<sigma>}\<^sub>t))" by auto
-      then show "t1{isub_to_fsub \<sigma>}\<^sub>t = t2{isub_to_fsub \<sigma>}\<^sub>t" by auto
+      then have "fterm_to_iterm (t1 \<cdot>\<^sub>t isub_to_fsub \<sigma>) = fterm_to_iterm (t2 \<cdot>\<^sub>t isub_to_fsub \<sigma>)" using fterm_to_iterm_subst by auto
+      then have "iterm_to_fterm (fterm_to_iterm (t1 \<cdot>\<^sub>t (isub_to_fsub \<sigma>))) = iterm_to_fterm (fterm_to_iterm (t2 \<cdot>\<^sub>t isub_to_fsub \<sigma>))" by auto
+      then show "t1 \<cdot>\<^sub>t isub_to_fsub \<sigma> = t2 \<cdot>\<^sub>t isub_to_fsub \<sigma>" by auto
     qed
-  then have "\<forall>t2\<in>ts. t' {isub_to_fsub \<sigma>}\<^sub>t = t2 {isub_to_fsub \<sigma>}\<^sub>t" using t'_p by blast            
+  then have "\<forall>t2\<in>ts. t' \<cdot>\<^sub>t isub_to_fsub \<sigma> = t2 \<cdot>\<^sub>t isub_to_fsub \<sigma>" using t'_p by blast            
   then show "unifierts (isub_to_fsub \<sigma>) ts" unfolding unifierts_def by metis
 qed
 
@@ -113,7 +113,7 @@ lemma icomp_fcomp: "\<theta> \<circ>\<^sub>s i = fsub_to_isub ((isub_to_fsub \<t
   unfolding composition_def subst_compose_def
 proof
   fix x
-  show "\<theta> x \<cdot> i = fterm_to_iterm (iterm_to_fterm (\<theta> x){\<lambda>x. iterm_to_fterm (i x)}\<^sub>t)" using iterm_to_fterm_subt by auto
+  show "\<theta> x \<cdot> i = fterm_to_iterm (iterm_to_fterm (\<theta> x) \<cdot>\<^sub>t (\<lambda>x. iterm_to_fterm (i x)))" using iterm_to_fterm_subt by auto
 qed
 
 
@@ -163,7 +163,7 @@ fun term_to_literal :: "fterm \<Rightarrow> fterm literal" where
 lemma term_to_literal_cancel[simp]: "term_to_literal (literal_to_term l) = l"
   by (cases l) auto
 
-lemma literal_to_term_sub: "literal_to_term (l{\<sigma>}\<^sub>l) = (literal_to_term l) {\<sigma>}\<^sub>t"
+lemma literal_to_term_sub: "literal_to_term (l \<cdot>\<^sub>l \<sigma>) = (literal_to_term l) \<cdot>\<^sub>t \<sigma>"
   by (induction l) auto
 
 
@@ -171,10 +171,10 @@ lemma unifierls_unifierts:
   assumes "unifierls \<sigma> L"
   shows "unifierts \<sigma> (literal_to_term `  L)"
 proof -
-  from assms obtain l' where "\<forall>l\<in>L. l{\<sigma>}\<^sub>l = l'" unfolding unifierls_def by auto
-  then have "\<forall>l\<in>L. literal_to_term (l{\<sigma>}\<^sub>l) = literal_to_term l'" by auto
-  then have "\<forall>l\<in>L. (literal_to_term l) {\<sigma>}\<^sub>t = literal_to_term l'" using literal_to_term_sub by auto
-  then have "\<forall>t\<in>literal_to_term ` L. t{\<sigma>}\<^sub>t = literal_to_term l'" by auto 
+  from assms obtain l' where "\<forall>l\<in>L. l \<cdot>\<^sub>l \<sigma> = l'" unfolding unifierls_def by auto
+  then have "\<forall>l\<in>L. literal_to_term (l \<cdot>\<^sub>l \<sigma>) = literal_to_term l'" by auto
+  then have "\<forall>l\<in>L. (literal_to_term l) \<cdot>\<^sub>t \<sigma> = literal_to_term l'" using literal_to_term_sub by auto
+  then have "\<forall>t\<in>literal_to_term ` L. t \<cdot>\<^sub>t \<sigma> = literal_to_term l'" by auto 
   then show ?thesis unfolding unifierts_def by auto
 qed
 
@@ -182,11 +182,11 @@ lemma unifiert_unifierls:
   assumes "unifierts \<sigma> (literal_to_term `  L)"
   shows "unifierls \<sigma> L"
 proof -
-  from assms obtain t' where "\<forall>t\<in>literal_to_term ` L. t{\<sigma>}\<^sub>t = t'" unfolding unifierts_def by auto
-  then have "\<forall>t\<in>literal_to_term ` L. term_to_literal (t{\<sigma>}\<^sub>t) = term_to_literal t'"  by auto
-  then have "\<forall>l\<in> L. term_to_literal ((literal_to_term l){\<sigma>}\<^sub>t) = term_to_literal t'" by auto
-  then have "\<forall>l\<in> L. term_to_literal ((literal_to_term (l{\<sigma>}\<^sub>l))) = term_to_literal t'" using literal_to_term_sub by auto
-  then have "\<forall>l\<in> L. l{\<sigma>}\<^sub>l = term_to_literal t'" by auto 
+  from assms obtain t' where "\<forall>t\<in>literal_to_term ` L. t \<cdot>\<^sub>t \<sigma> = t'" unfolding unifierts_def by auto
+  then have "\<forall>t\<in>literal_to_term ` L. term_to_literal (t \<cdot>\<^sub>t \<sigma>) = term_to_literal t'"  by auto
+  then have "\<forall>l\<in> L. term_to_literal ((literal_to_term l) \<cdot>\<^sub>t \<sigma>) = term_to_literal t'" by auto
+  then have "\<forall>l\<in> L. term_to_literal ((literal_to_term (l \<cdot>\<^sub>l \<sigma>))) = term_to_literal t'" using literal_to_term_sub by auto
+  then have "\<forall>l\<in> L. l \<cdot>\<^sub>l \<sigma> = term_to_literal t'" by auto 
   then show ?thesis unfolding unifierls_def by auto
 qed
 
@@ -216,5 +216,5 @@ proof -
   then have "mguls \<theta> L" using mguts_mguls by auto
   then show ?thesis by auto
 qed
-  
+
 end

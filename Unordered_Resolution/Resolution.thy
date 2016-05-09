@@ -145,43 +145,43 @@ section {* Substitutions *}
 
 type_synonym substitution = "var_sym \<Rightarrow> fterm" 
 
-fun sub  :: "fterm \<Rightarrow> substitution \<Rightarrow> fterm" ("_{_}\<^sub>t" [300,0] 300) where
-  "(Var x){\<sigma>}\<^sub>t = \<sigma> x"
-| "(Fun f ts){\<sigma>}\<^sub>t = Fun f (map (\<lambda>t. t {\<sigma>}\<^sub>t) ts)"
+fun sub  :: "fterm \<Rightarrow> substitution \<Rightarrow> fterm" (infixl "\<cdot>\<^sub>t" 55) where
+  "(Var x) \<cdot>\<^sub>t \<sigma> = \<sigma> x"
+| "(Fun f ts) \<cdot>\<^sub>t \<sigma> = Fun f (map (\<lambda>t. t \<cdot>\<^sub>t \<sigma>) ts)"
 
-abbreviation subs :: "fterm list \<Rightarrow> substitution \<Rightarrow> fterm list" ("_{_}\<^sub>t\<^sub>s" [300,0] 300) where
-  "ts{\<sigma>}\<^sub>t\<^sub>s \<equiv> (map (\<lambda>t. t {\<sigma>}\<^sub>t) ts)"
+abbreviation subs :: "fterm list \<Rightarrow> substitution \<Rightarrow> fterm list" (infixl "\<cdot>\<^sub>t\<^sub>s" 55) where
+  "ts \<cdot>\<^sub>t\<^sub>s \<sigma> \<equiv> (map (\<lambda>t. t \<cdot>\<^sub>t \<sigma>) ts)"
 
-fun subl :: "fterm literal \<Rightarrow> substitution \<Rightarrow> fterm literal" ("_{_}\<^sub>l" [300,0] 300) where
-  "(Pos p ts){\<sigma>}\<^sub>l = Pos p (ts{\<sigma>}\<^sub>t\<^sub>s)"
-| "(Neg p ts){\<sigma>}\<^sub>l = Neg p (ts{\<sigma>}\<^sub>t\<^sub>s)"
+fun subl :: "fterm literal \<Rightarrow> substitution \<Rightarrow> fterm literal" (infixl "\<cdot>\<^sub>l" 55) where
+  "(Pos p ts) \<cdot>\<^sub>l \<sigma> = Pos p (ts \<cdot>\<^sub>t\<^sub>s \<sigma>)"
+| "(Neg p ts) \<cdot>\<^sub>l \<sigma> = Neg p (ts \<cdot>\<^sub>t\<^sub>s \<sigma>)"
 
-abbreviation subls :: "fterm literal set \<Rightarrow> substitution \<Rightarrow> fterm literal set" ("_{_}\<^sub>l\<^sub>s" [300,0] 300) where
-  "L {\<sigma>}\<^sub>l\<^sub>s \<equiv> (\<lambda>l. l {\<sigma>}\<^sub>l) ` L"
+abbreviation subls :: "fterm literal set \<Rightarrow> substitution \<Rightarrow> fterm literal set" (infixl "\<cdot>\<^sub>l\<^sub>s" 55) where
+  "L \<cdot>\<^sub>l\<^sub>s \<sigma> \<equiv> (\<lambda>l. l \<cdot>\<^sub>l \<sigma>) ` L"
 
-lemma subls_def2: "L {\<sigma>}\<^sub>l\<^sub>s = {l {\<sigma>}\<^sub>l|l. l \<in> L}" by auto
+lemma subls_def2: "L \<cdot>\<^sub>l\<^sub>s \<sigma> = {l \<cdot>\<^sub>l \<sigma>|l. l \<in> L}" by auto
 
 definition instance_oft :: "fterm \<Rightarrow> fterm \<Rightarrow> bool" where
-  "instance_oft t\<^sub>1 t\<^sub>2 \<longleftrightarrow> (\<exists>\<sigma>. t\<^sub>1 = t\<^sub>2{\<sigma>}\<^sub>t)"
+  "instance_oft t\<^sub>1 t\<^sub>2 \<longleftrightarrow> (\<exists>\<sigma>. t\<^sub>1 = t\<^sub>2 \<cdot>\<^sub>t \<sigma>)"
 
 definition instance_ofts :: "fterm list \<Rightarrow> fterm list \<Rightarrow> bool" where
-  "instance_ofts ts\<^sub>1 ts\<^sub>2 \<longleftrightarrow> (\<exists>\<sigma>. ts\<^sub>1 = ts\<^sub>2{\<sigma>}\<^sub>t\<^sub>s)"
+  "instance_ofts ts\<^sub>1 ts\<^sub>2 \<longleftrightarrow> (\<exists>\<sigma>. ts\<^sub>1 = ts\<^sub>2 \<cdot>\<^sub>t\<^sub>s \<sigma>)"
 
 definition instance_ofl :: "fterm literal \<Rightarrow> fterm literal \<Rightarrow> bool" where
-  "instance_ofl l\<^sub>1 l\<^sub>2 \<longleftrightarrow> (\<exists>\<sigma>. l\<^sub>1 = l\<^sub>2{\<sigma>}\<^sub>l)"
+  "instance_ofl l\<^sub>1 l\<^sub>2 \<longleftrightarrow> (\<exists>\<sigma>. l\<^sub>1 = l\<^sub>2 \<cdot>\<^sub>l \<sigma>)"
 
 definition instance_ofls :: "fterm clause \<Rightarrow> fterm clause \<Rightarrow> bool" where
-  "instance_ofls C\<^sub>1 C\<^sub>2 \<longleftrightarrow> (\<exists>\<sigma>. C\<^sub>1 = C\<^sub>2{\<sigma>}\<^sub>l\<^sub>s)"
+  "instance_ofls C\<^sub>1 C\<^sub>2 \<longleftrightarrow> (\<exists>\<sigma>. C\<^sub>1 = C\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<sigma>)"
 
-lemma comp_sub: "(l\<^sup>c) {\<sigma>}\<^sub>l=(l {\<sigma>}\<^sub>l)\<^sup>c" 
+lemma comp_sub: "(l\<^sup>c) \<cdot>\<^sub>l \<sigma>=(l \<cdot>\<^sub>l \<sigma>)\<^sup>c" 
 by (cases l) auto
 
-lemma compls_subls: "(L\<^sup>C) {\<sigma>}\<^sub>l\<^sub>s=(L {\<sigma>}\<^sub>l\<^sub>s)\<^sup>C" 
+lemma compls_subls: "(L\<^sup>C) \<cdot>\<^sub>l\<^sub>s \<sigma>=(L \<cdot>\<^sub>l\<^sub>s \<sigma>)\<^sup>C" 
 using comp_sub apply auto
 apply (metis image_eqI)
 done
 
-lemma subls_union: "(L\<^sub>1 \<union> L\<^sub>2) {\<sigma>}\<^sub>l\<^sub>s = L\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s \<union> L\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s" by auto
+lemma subls_union: "(L\<^sub>1 \<union> L\<^sub>2) \<cdot>\<^sub>l\<^sub>s \<sigma> = (L\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<sigma>) \<union> (L\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<sigma>)" by auto
 
 (* 
   Alternative: apply a substitution that is a bijection between the set of variables in C1 and some other set.
@@ -194,72 +194,72 @@ subsection {* The Empty Substitution *}
 abbreviation \<epsilon> :: "substitution" where
   "\<epsilon> \<equiv> Var"
 
-lemma empty_subt: "(t :: fterm){\<epsilon>}\<^sub>t = t" 
+lemma empty_subt: "(t :: fterm) \<cdot>\<^sub>t \<epsilon> = t" 
 by (induction t) (auto simp add: map_idI)
 
-lemma empty_subts: "ts {\<epsilon>}\<^sub>t\<^sub>s = ts" 
+lemma empty_subts: "ts \<cdot>\<^sub>t\<^sub>s \<epsilon> = ts" 
 using empty_subt by auto
 
-lemma empty_subl: "l {\<epsilon>}\<^sub>l = l" 
+lemma empty_subl: "l \<cdot>\<^sub>l \<epsilon> = l" 
 using empty_subts by (cases l) auto
 
-lemma empty_subls: "L {\<epsilon>}\<^sub>l\<^sub>s = L" 
+lemma empty_subls: "L \<cdot>\<^sub>l\<^sub>s \<epsilon> = L" 
 using empty_subl by auto
 
 lemma instance_oft_self: "instance_oft t t"
 unfolding instance_oft_def
 proof 
-  show "t = t{\<epsilon>}\<^sub>t" using empty_subt by auto
+  show "t = t \<cdot>\<^sub>t \<epsilon>" using empty_subt by auto
 qed
 
 lemma instance_ofts_self: "instance_ofts ts ts"
 unfolding instance_ofts_def
 proof 
-  show "ts = ts{\<epsilon>}\<^sub>t\<^sub>s" using empty_subts by auto
+  show "ts = ts \<cdot>\<^sub>t\<^sub>s \<epsilon>" using empty_subts by auto
 qed
 
 lemma instance_ofl_self: "instance_ofl l l"
 unfolding instance_ofl_def
 proof 
-  show "l = l{\<epsilon>}\<^sub>l" using empty_subl by auto
+  show "l = l \<cdot>\<^sub>l \<epsilon>" using empty_subl by auto
 qed
 
 lemma instance_ofls_self: "instance_ofls L L"
 unfolding instance_ofls_def
 proof
-  show "L = L{\<epsilon>}\<^sub>l\<^sub>s" using empty_subls by auto
+  show "L = L \<cdot>\<^sub>l\<^sub>s \<epsilon>" using empty_subls by auto
 qed
 
 subsection {* Substitutions and Ground Terms *}
 
-lemma ground_sub: "ground t \<Longrightarrow> t {\<sigma>}\<^sub>t = t"
+lemma ground_sub: "ground t \<Longrightarrow> t \<cdot>\<^sub>t \<sigma> = t"
 by (induction t) (auto simp add: map_idI)
 
-lemma ground_subs: "grounds ts \<Longrightarrow> ts {\<sigma>}\<^sub>t\<^sub>s = ts" 
+lemma ground_subs: "grounds ts \<Longrightarrow> ts \<cdot>\<^sub>t\<^sub>s \<sigma> = ts" 
 using ground_sub by (simp add: map_idI)
 
-lemma groundl_subs: "groundl l \<Longrightarrow> l {\<sigma>}\<^sub>l = l" 
+lemma groundl_subs: "groundl l \<Longrightarrow> l \<cdot>\<^sub>l \<sigma> = l" 
 using ground_subs by (cases l) auto
 
 lemma groundls_subls:
   assumes ground: "groundls L"
-  shows "L {\<sigma>}\<^sub>l\<^sub>s = L"
+  shows "L \<cdot>\<^sub>l\<^sub>s \<sigma> = L"
 proof -
   {
     fix l
     assume l_L: "l \<in> L"
     then have "groundl l" using ground by auto
-    then have "l = l{\<sigma>}\<^sub>l" using groundl_subs by auto
+    then have "l = l \<cdot>\<^sub>l \<sigma>" using groundl_subs by auto
     moreover
-    then have "l {\<sigma>}\<^sub>l \<in> L {\<sigma>}\<^sub>l\<^sub>s" using l_L by auto
+    then have "l \<cdot>\<^sub>l \<sigma> \<in> L \<cdot>\<^sub>l\<^sub>s \<sigma>" using l_L by auto
     ultimately
-    have "l \<in> L {\<sigma>}\<^sub>l\<^sub>s" by auto
+    have "l \<in> L \<cdot>\<^sub>l\<^sub>s \<sigma>" by auto
   }
   moreover
   {
     fix l
-    assume l_L: "l \<in> L {\<sigma>}\<^sub>l\<^sub>s"
-    then obtain l' where l'_p: "l' \<in> L \<and> l' {\<sigma>}\<^sub>l = l" by auto
+    assume l_L: "l \<in> L \<cdot>\<^sub>l\<^sub>s \<sigma>"
+    then obtain l' where l'_p: "l' \<in> L \<and> l' \<cdot>\<^sub>l \<sigma> = l" by auto
     then have "l' = l" using ground groundl_subs by auto
     from l_L l'_p this have "l \<in> L" by auto
   } 
@@ -269,12 +269,12 @@ qed
 subsection {* Composition *}
 
 definition composition :: "substitution \<Rightarrow> substitution \<Rightarrow> substitution"  (infixl "\<cdot>" 55) where
-  "(\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2) x = (\<sigma>\<^sub>1 x){\<sigma>\<^sub>2}\<^sub>t"
+  "(\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2) x = (\<sigma>\<^sub>1 x) \<cdot>\<^sub>t \<sigma>\<^sub>2"
 
-lemma composition_conseq2t:  "t{\<sigma>\<^sub>1}\<^sub>t{\<sigma>\<^sub>2}\<^sub>t = t{\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2}\<^sub>t" 
+lemma composition_conseq2t:  "(t \<cdot>\<^sub>t \<sigma>\<^sub>1) \<cdot>\<^sub>t \<sigma>\<^sub>2 = t \<cdot>\<^sub>t (\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2)" 
 proof (induction t)
   case (Var x) 
-  have "(Var x){\<sigma>\<^sub>1}\<^sub>t{\<sigma>\<^sub>2}\<^sub>t = (\<sigma>\<^sub>1 x){\<sigma>\<^sub>2}\<^sub>t" by simp
+  have "((Var x) \<cdot>\<^sub>t \<sigma>\<^sub>1) \<cdot>\<^sub>t \<sigma>\<^sub>2 = (\<sigma>\<^sub>1 x) \<cdot>\<^sub>t \<sigma>\<^sub>2" by simp
   also have " ... = (\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2) x" unfolding composition_def by simp
   finally show ?case by auto
 next
@@ -282,13 +282,13 @@ next
   then show ?case unfolding composition_def by auto
 qed
 
-lemma composition_conseq2ts: "ts{\<sigma>\<^sub>1}\<^sub>t\<^sub>s{\<sigma>\<^sub>2}\<^sub>t\<^sub>s = ts{\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2}\<^sub>t\<^sub>s"
+lemma composition_conseq2ts: "(ts \<cdot>\<^sub>t\<^sub>s \<sigma>\<^sub>1) \<cdot>\<^sub>t\<^sub>s \<sigma>\<^sub>2 = ts \<cdot>\<^sub>t\<^sub>s (\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2)"
   using composition_conseq2t by auto
 
-lemma composition_conseq2l: "l{\<sigma>\<^sub>1}\<^sub>l{\<sigma>\<^sub>2}\<^sub>l = l{\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2}\<^sub>l" 
+lemma composition_conseq2l: "(l \<cdot>\<^sub>l \<sigma>\<^sub>1) \<cdot>\<^sub>l \<sigma>\<^sub>2 = l \<cdot>\<^sub>l (\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2)" 
   using composition_conseq2t by (cases l) auto 
 
-lemma composition_conseq2ls: "L{\<sigma>\<^sub>1}\<^sub>l\<^sub>s{\<sigma>\<^sub>2}\<^sub>l\<^sub>s = L{\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2}\<^sub>l\<^sub>s" 
+lemma composition_conseq2ls: "(L \<cdot>\<^sub>l\<^sub>s \<sigma>\<^sub>1) \<cdot>\<^sub>l\<^sub>s \<sigma>\<^sub>2 = L \<cdot>\<^sub>l\<^sub>s (\<sigma>\<^sub>1 \<cdot> \<sigma>\<^sub>2)" 
 using composition_conseq2l apply auto
 apply (metis imageI) 
 done
@@ -317,14 +317,14 @@ lemma instance_oft_trans :
   assumes t\<^sub>2\<^sub>3: "instance_oft t\<^sub>2 t\<^sub>3"
   shows "instance_oft t\<^sub>1 t\<^sub>3"
 proof -
-  from t\<^sub>1\<^sub>2 obtain \<sigma>\<^sub>1\<^sub>2 where "t\<^sub>1 = t\<^sub>2 {\<sigma>\<^sub>1\<^sub>2}\<^sub>t" 
+  from t\<^sub>1\<^sub>2 obtain \<sigma>\<^sub>1\<^sub>2 where "t\<^sub>1 = t\<^sub>2 \<cdot>\<^sub>t \<sigma>\<^sub>1\<^sub>2" 
     unfolding instance_oft_def by auto
   moreover
-  from t\<^sub>2\<^sub>3 obtain \<sigma>\<^sub>2\<^sub>3 where "t\<^sub>2 = t\<^sub>3 {\<sigma>\<^sub>2\<^sub>3}\<^sub>t" 
+  from t\<^sub>2\<^sub>3 obtain \<sigma>\<^sub>2\<^sub>3 where "t\<^sub>2 = t\<^sub>3 \<cdot>\<^sub>t \<sigma>\<^sub>2\<^sub>3" 
     unfolding instance_oft_def by auto
   ultimately
-  have "t\<^sub>1 = t\<^sub>3 {\<sigma>\<^sub>2\<^sub>3}\<^sub>t {\<sigma>\<^sub>1\<^sub>2}\<^sub>t" by auto
-  then have "t\<^sub>1 = t\<^sub>3 {\<sigma>\<^sub>2\<^sub>3 \<cdot> \<sigma>\<^sub>1\<^sub>2}\<^sub>t" using composition_conseq2t by simp
+  have "t\<^sub>1 = (t\<^sub>3 \<cdot>\<^sub>t \<sigma>\<^sub>2\<^sub>3) \<cdot>\<^sub>t \<sigma>\<^sub>1\<^sub>2" by auto
+  then have "t\<^sub>1 = t\<^sub>3 \<cdot>\<^sub>t (\<sigma>\<^sub>2\<^sub>3 \<cdot> \<sigma>\<^sub>1\<^sub>2)" using composition_conseq2t by simp
   then show ?thesis unfolding instance_oft_def by auto
 qed
 
@@ -333,14 +333,14 @@ lemma instance_ofts_trans :
   assumes ts\<^sub>2\<^sub>3: "instance_ofts ts\<^sub>2 ts\<^sub>3"
   shows "instance_ofts ts\<^sub>1 ts\<^sub>3"
 proof -
-  from ts\<^sub>1\<^sub>2 obtain \<sigma>\<^sub>1\<^sub>2 where "ts\<^sub>1 = ts\<^sub>2 {\<sigma>\<^sub>1\<^sub>2}\<^sub>t\<^sub>s" 
+  from ts\<^sub>1\<^sub>2 obtain \<sigma>\<^sub>1\<^sub>2 where "ts\<^sub>1 = ts\<^sub>2 \<cdot>\<^sub>t\<^sub>s \<sigma>\<^sub>1\<^sub>2" 
     unfolding instance_ofts_def by auto
   moreover
-  from ts\<^sub>2\<^sub>3 obtain \<sigma>\<^sub>2\<^sub>3 where "ts\<^sub>2 = ts\<^sub>3 {\<sigma>\<^sub>2\<^sub>3}\<^sub>t\<^sub>s" 
+  from ts\<^sub>2\<^sub>3 obtain \<sigma>\<^sub>2\<^sub>3 where "ts\<^sub>2 = ts\<^sub>3 \<cdot>\<^sub>t\<^sub>s \<sigma>\<^sub>2\<^sub>3" 
     unfolding instance_ofts_def by auto
   ultimately
-  have "ts\<^sub>1 = ts\<^sub>3 {\<sigma>\<^sub>2\<^sub>3}\<^sub>t\<^sub>s {\<sigma>\<^sub>1\<^sub>2}\<^sub>t\<^sub>s" by auto
-  then have "ts\<^sub>1 = ts\<^sub>3 {\<sigma>\<^sub>2\<^sub>3 \<cdot> \<sigma>\<^sub>1\<^sub>2}\<^sub>t\<^sub>s" using composition_conseq2ts by simp
+  have "ts\<^sub>1 = (ts\<^sub>3 \<cdot>\<^sub>t\<^sub>s \<sigma>\<^sub>2\<^sub>3) \<cdot>\<^sub>t\<^sub>s \<sigma>\<^sub>1\<^sub>2" by auto
+  then have "ts\<^sub>1 = ts\<^sub>3 \<cdot>\<^sub>t\<^sub>s (\<sigma>\<^sub>2\<^sub>3 \<cdot> \<sigma>\<^sub>1\<^sub>2)" using composition_conseq2ts by simp
   then show ?thesis unfolding instance_ofts_def by auto
 qed
 
@@ -349,14 +349,14 @@ lemma instance_ofl_trans :
   assumes l\<^sub>2\<^sub>3: "instance_ofl l\<^sub>2 l\<^sub>3"
   shows "instance_ofl l\<^sub>1 l\<^sub>3"
 proof -
-  from l\<^sub>1\<^sub>2 obtain \<sigma>\<^sub>1\<^sub>2 where "l\<^sub>1 = l\<^sub>2 {\<sigma>\<^sub>1\<^sub>2}\<^sub>l" 
+  from l\<^sub>1\<^sub>2 obtain \<sigma>\<^sub>1\<^sub>2 where "l\<^sub>1 = l\<^sub>2 \<cdot>\<^sub>l \<sigma>\<^sub>1\<^sub>2" 
     unfolding instance_ofl_def by auto
   moreover
-  from l\<^sub>2\<^sub>3 obtain \<sigma>\<^sub>2\<^sub>3 where "l\<^sub>2 = l\<^sub>3 {\<sigma>\<^sub>2\<^sub>3}\<^sub>l" 
+  from l\<^sub>2\<^sub>3 obtain \<sigma>\<^sub>2\<^sub>3 where "l\<^sub>2 = l\<^sub>3 \<cdot>\<^sub>l \<sigma>\<^sub>2\<^sub>3" 
     unfolding instance_ofl_def by auto
   ultimately
-  have "l\<^sub>1 = l\<^sub>3 {\<sigma>\<^sub>2\<^sub>3}\<^sub>l {\<sigma>\<^sub>1\<^sub>2}\<^sub>l" by auto
-  then have "l\<^sub>1 = l\<^sub>3 {\<sigma>\<^sub>2\<^sub>3 \<cdot> \<sigma>\<^sub>1\<^sub>2}\<^sub>l" using composition_conseq2l by simp
+  have "l\<^sub>1 = (l\<^sub>3 \<cdot>\<^sub>l \<sigma>\<^sub>2\<^sub>3) \<cdot>\<^sub>l \<sigma>\<^sub>1\<^sub>2" by auto
+  then have "l\<^sub>1 = l\<^sub>3 \<cdot>\<^sub>l (\<sigma>\<^sub>2\<^sub>3 \<cdot> \<sigma>\<^sub>1\<^sub>2)" using composition_conseq2l by simp
   then show ?thesis unfolding instance_ofl_def by auto
 qed
 
@@ -365,75 +365,75 @@ lemma instance_ofls_trans :
   assumes L\<^sub>2\<^sub>3: "instance_ofls L\<^sub>2 L\<^sub>3"
   shows "instance_ofls L\<^sub>1 L\<^sub>3"
 proof -
-  from L\<^sub>1\<^sub>2 obtain \<sigma>\<^sub>1\<^sub>2 where "L\<^sub>1 = L\<^sub>2 {\<sigma>\<^sub>1\<^sub>2}\<^sub>l\<^sub>s" 
+  from L\<^sub>1\<^sub>2 obtain \<sigma>\<^sub>1\<^sub>2 where "L\<^sub>1 = L\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<sigma>\<^sub>1\<^sub>2" 
     unfolding instance_ofls_def by auto
   moreover
-  from L\<^sub>2\<^sub>3 obtain \<sigma>\<^sub>2\<^sub>3 where "L\<^sub>2 = L\<^sub>3 {\<sigma>\<^sub>2\<^sub>3}\<^sub>l\<^sub>s" 
+  from L\<^sub>2\<^sub>3 obtain \<sigma>\<^sub>2\<^sub>3 where "L\<^sub>2 = L\<^sub>3 \<cdot>\<^sub>l\<^sub>s \<sigma>\<^sub>2\<^sub>3" 
     unfolding instance_ofls_def by auto
   ultimately
-  have "L\<^sub>1 = L\<^sub>3 {\<sigma>\<^sub>2\<^sub>3}\<^sub>l\<^sub>s {\<sigma>\<^sub>1\<^sub>2}\<^sub>l\<^sub>s" by auto
-  then have "L\<^sub>1 = L\<^sub>3 {\<sigma>\<^sub>2\<^sub>3 \<cdot> \<sigma>\<^sub>1\<^sub>2}\<^sub>l\<^sub>s" using composition_conseq2ls by simp
+  have "L\<^sub>1 = (L\<^sub>3 \<cdot>\<^sub>l\<^sub>s \<sigma>\<^sub>2\<^sub>3) \<cdot>\<^sub>l\<^sub>s \<sigma>\<^sub>1\<^sub>2" by auto
+  then have "L\<^sub>1 = L\<^sub>3 \<cdot>\<^sub>l\<^sub>s (\<sigma>\<^sub>2\<^sub>3 \<cdot> \<sigma>\<^sub>1\<^sub>2)" using composition_conseq2ls by simp
   then show ?thesis unfolding instance_ofls_def by auto
 qed
 
 subsection {* Merging substitutions *}
 
 lemma project_sub:
-  assumes inst_C:"C {lmbd}\<^sub>l\<^sub>s = C'" 
+  assumes inst_C:"C \<cdot>\<^sub>l\<^sub>s lmbd = C'" 
   assumes L'sub: "L' \<subseteq> C'"
-  shows "\<exists>L \<subseteq> C. L {lmbd}\<^sub>l\<^sub>s = L' \<and> (C-L) {lmbd}\<^sub>l\<^sub>s = C' - L'"
+  shows "\<exists>L \<subseteq> C. L \<cdot>\<^sub>l\<^sub>s lmbd = L' \<and> (C-L) \<cdot>\<^sub>l\<^sub>s lmbd = C' - L'"
 proof -
-  let ?L = "{l \<in> C. \<exists>l' \<in> L'. l {lmbd}\<^sub>l = l'}"
+  let ?L = "{l \<in> C. \<exists>l' \<in> L'. l \<cdot>\<^sub>l lmbd = l'}"
   have "?L \<subseteq> C" by auto
   moreover
-  have "?L {lmbd}\<^sub>l\<^sub>s = L'"
+  have "?L \<cdot>\<^sub>l\<^sub>s lmbd = L'"
     proof (rule Orderings.order_antisym; rule Set.subsetI)
       fix l'
       assume l'L: "l' \<in> L'"
-      from inst_C have "{l {lmbd}\<^sub>l|l. l \<in> C} = C'" unfolding subls_def2 by -
-      then have "\<exists>l. l' = l {lmbd}\<^sub>l \<and> l \<in> C \<and> l{lmbd}\<^sub>l \<in> L'" using L'sub l'L by auto
-      then have " l' \<in> {l \<in> C. l{lmbd}\<^sub>l \<in> L'}{lmbd}\<^sub>l\<^sub>s" by auto
-      then show " l' \<in> {l \<in> C. \<exists>l'\<in>L'. l{lmbd}\<^sub>l = l'}{lmbd}\<^sub>l\<^sub>s" by auto
+      from inst_C have "{l \<cdot>\<^sub>l lmbd|l. l \<in> C} = C'" unfolding subls_def2 by -
+      then have "\<exists>l. l' = l \<cdot>\<^sub>l lmbd \<and> l \<in> C \<and> l \<cdot>\<^sub>l lmbd \<in> L'" using L'sub l'L by auto
+      then have " l' \<in> {l \<in> C. l \<cdot>\<^sub>l lmbd \<in> L'} \<cdot>\<^sub>l\<^sub>s lmbd" by auto
+      then show " l' \<in> {l \<in> C. \<exists>l'\<in>L'. l \<cdot>\<^sub>l lmbd = l'} \<cdot>\<^sub>l\<^sub>s lmbd" by auto
     qed auto
   moreover
-  have "(C-?L) {lmbd}\<^sub>l\<^sub>s = C' - L'" using inst_C by auto
+  have "(C-?L) \<cdot>\<^sub>l\<^sub>s lmbd = C' - L'" using inst_C by auto
   moreover
   ultimately show ?thesis by auto
 qed
 
 lemma relevant_vars_subt:
-  "\<forall>x \<in> varst t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> t {\<sigma>\<^sub>1}\<^sub>t = t {\<sigma>\<^sub>2}\<^sub>t"
+  "\<forall>x \<in> varst t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> t \<cdot>\<^sub>t \<sigma>\<^sub>1 = t \<cdot>\<^sub>t \<sigma>\<^sub>2"
 proof (induction t)
   case (Fun f ts)
   have f: "\<And>t. t \<in> set ts \<Longrightarrow> varst t \<subseteq> varsts ts" by (induction ts) auto
-  have "\<forall>t\<in>set ts. t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" 
+  have "\<forall>t\<in>set ts. t \<cdot>\<^sub>t \<sigma>\<^sub>1 = t \<cdot>\<^sub>t \<sigma>\<^sub>2" 
     proof
       fix t
       assume tints: "t \<in> set ts"
       then have "\<forall>x\<in>varst t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f Fun(2) by auto
-      then show "t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" using Fun tints by auto
+      then show "t \<cdot>\<^sub>t \<sigma>\<^sub>1 = t \<cdot>\<^sub>t \<sigma>\<^sub>2" using Fun tints by auto
     qed
-  then have "ts{\<sigma>\<^sub>1}\<^sub>t\<^sub>s = ts{\<sigma>\<^sub>2}\<^sub>t\<^sub>s" by auto
+  then have "ts \<cdot>\<^sub>t\<^sub>s \<sigma>\<^sub>1 = ts \<cdot>\<^sub>t\<^sub>s \<sigma>\<^sub>2" by auto
   then show ?case by auto
 qed auto
 
 lemma relevant_vars_subts: (* similar to above proof *)
   assumes asm: "\<forall>x \<in> varsts ts. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
-  shows "ts {\<sigma>\<^sub>1}\<^sub>t\<^sub>s = ts {\<sigma>\<^sub>2}\<^sub>t\<^sub>s" 
+  shows "ts \<cdot>\<^sub>t\<^sub>s \<sigma>\<^sub>1 = ts \<cdot>\<^sub>t\<^sub>s \<sigma>\<^sub>2" 
 proof -
    have f: "\<And>t. t \<in> set ts \<Longrightarrow> varst t \<subseteq> varsts ts" by (induction ts) auto
-   have "\<forall>t\<in>set ts. t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" 
+   have "\<forall>t\<in>set ts. t \<cdot>\<^sub>t \<sigma>\<^sub>1 = t \<cdot>\<^sub>t \<sigma>\<^sub>2" 
     proof
       fix t
       assume tints: "t \<in> set ts"
       then have "\<forall>x\<in>varst t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f asm by auto
-      then show "t{\<sigma>\<^sub>1}\<^sub>t = t{\<sigma>\<^sub>2}\<^sub>t" using relevant_vars_subt tints by auto
+      then show "t \<cdot>\<^sub>t \<sigma>\<^sub>1 = t \<cdot>\<^sub>t \<sigma>\<^sub>2" using relevant_vars_subt tints by auto
     qed
   then show ?thesis by auto
 qed
 
 lemma relevant_vars_subl:
-  "\<forall>x \<in> varsl l. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> l {\<sigma>\<^sub>1}\<^sub>l = l {\<sigma>\<^sub>2}\<^sub>l"
+  "\<forall>x \<in> varsl l. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> l \<cdot>\<^sub>l \<sigma>\<^sub>1 = l \<cdot>\<^sub>l \<sigma>\<^sub>2"
 proof (induction l)
   case (Pos p ts)
   then show ?case using relevant_vars_subts unfolding varsl_def by auto
@@ -444,33 +444,33 @@ qed
 
 lemma relevant_vars_subls: (* in many ways a mirror of relevant_vars_subts  *)
   assumes asm: "\<forall>x \<in> varsls L. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
-  shows "L {\<sigma>\<^sub>1}\<^sub>l\<^sub>s = L {\<sigma>\<^sub>2}\<^sub>l\<^sub>s"
+  shows "L \<cdot>\<^sub>l\<^sub>s \<sigma>\<^sub>1 = L \<cdot>\<^sub>l\<^sub>s \<sigma>\<^sub>2"
 proof -
   have f: "\<And>l. l \<in> L \<Longrightarrow> varsl l \<subseteq> varsls L" unfolding varsls_def by auto
-  have "\<forall>l \<in> L. l {\<sigma>\<^sub>1}\<^sub>l = l {\<sigma>\<^sub>2}\<^sub>l"
+  have "\<forall>l \<in> L. l \<cdot>\<^sub>l \<sigma>\<^sub>1 = l \<cdot>\<^sub>l \<sigma>\<^sub>2"
     proof
       fix l
       assume linls: "l\<in>L"
       then have "\<forall>x\<in>varsl l. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f asm by auto
-      then show "l{\<sigma>\<^sub>1}\<^sub>l = l{\<sigma>\<^sub>2}\<^sub>l" using relevant_vars_subl linls by auto
+      then show "l \<cdot>\<^sub>l \<sigma>\<^sub>1 = l \<cdot>\<^sub>l \<sigma>\<^sub>2" using relevant_vars_subl linls by auto
     qed
   then show ?thesis by (meson image_cong) 
 qed
 
 lemma merge_sub:
   assumes dist: "varsls C \<inter> varsls D = {}"
-  assumes CC': "C {lmbd}\<^sub>l\<^sub>s = C'"
-  assumes DD': "D {\<mu>}\<^sub>l\<^sub>s = D'"
-  shows "\<exists>\<eta>. C {\<eta>}\<^sub>l\<^sub>s = C' \<and> D {\<eta>}\<^sub>l\<^sub>s = D'"
+  assumes CC': "C \<cdot>\<^sub>l\<^sub>s lmbd = C'"
+  assumes DD': "D \<cdot>\<^sub>l\<^sub>s \<mu> = D'"
+  shows "\<exists>\<eta>. C \<cdot>\<^sub>l\<^sub>s \<eta> = C' \<and> D \<cdot>\<^sub>l\<^sub>s \<eta> = D'"
 proof -
   let ?\<eta> = "\<lambda>x. if x \<in> varsls C then lmbd x else \<mu> x"
   have " \<forall>x\<in>varsls C. ?\<eta> x = lmbd x" by auto
-  then have "C {?\<eta>}\<^sub>l\<^sub>s = C {lmbd}\<^sub>l\<^sub>s" using relevant_vars_subls[of C ?\<eta> lmbd] by auto
-  then have "C {?\<eta>}\<^sub>l\<^sub>s = C'" using CC' by auto
+  then have "C \<cdot>\<^sub>l\<^sub>s ?\<eta> = C \<cdot>\<^sub>l\<^sub>s lmbd" using relevant_vars_subls[of C ?\<eta> lmbd] by auto
+  then have "C \<cdot>\<^sub>l\<^sub>s ?\<eta> = C'" using CC' by auto
   moreover
   have " \<forall>x\<in>varsls D. ?\<eta> x = \<mu> x" using dist by auto
-  then have "D {?\<eta>}\<^sub>l\<^sub>s = D {\<mu>}\<^sub>l\<^sub>s" using relevant_vars_subls[of D ?\<eta> \<mu>] by auto
-  then have "D {?\<eta>}\<^sub>l\<^sub>s = D'" using DD' by auto
+  then have "D \<cdot>\<^sub>l\<^sub>s ?\<eta> = D \<cdot>\<^sub>l\<^sub>s \<mu>" using relevant_vars_subls[of D ?\<eta> \<mu>] by auto
+  then have "D \<cdot>\<^sub>l\<^sub>s ?\<eta> = D'" using DD' by auto
   ultimately
   show ?thesis by auto
 qed
@@ -478,17 +478,17 @@ qed
 subsection {* Standardizing apart *}
 
 abbreviation std1 :: "fterm clause \<Rightarrow> fterm clause" where
-  "std1 C == C{\<lambda>x. Var (''1'' @ x)}\<^sub>l\<^sub>s"
+  "std1 C == C \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (''1'' @ x))"
 
 abbreviation std2 :: "fterm clause \<Rightarrow> fterm clause" where
-  "std2 C == C{\<lambda>x. Var (''2'' @ x)}\<^sub>l\<^sub>s"
+  "std2 C == C \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (''2'' @ x))"
 
 lemma std_apart_apart'': 
-  "x\<in>varst  (t  {\<lambda>x::char list. Var (y @ x) }\<^sub>t ) \<Longrightarrow> \<exists>x'. x=y@x'"
+  "x\<in>varst  (t \<cdot>\<^sub>t (\<lambda>x::char list. Var (y @ x))) \<Longrightarrow> \<exists>x'. x=y@x'"
 by (induction t) auto
 
 
-lemma std_apart_apart': "x\<in>varsl (l {\<lambda>x::char list. Var  (y@x) }\<^sub>l) \<Longrightarrow> \<exists>x'. x=y@x'"
+lemma std_apart_apart': "x\<in>varsl (l \<cdot>\<^sub>l (\<lambda>x. Var  (y@x))) \<Longrightarrow> \<exists>x'. x=y@x'"
 unfolding varsl_def using std_apart_apart'' by (cases l) auto
 
 lemma std_apart_apart: "varsls (std1 C1) \<inter> varsls (std2 C2) = {}"
@@ -513,10 +513,10 @@ lemma std_apart_instance_ofls1: "instance_ofls C1 (std1 C1)"
 proof -
   have empty: "(\<lambda>x. Var (''1''@x)) \<cdot> (\<lambda>x. Var (tl x)) = \<epsilon>" using composition_def by auto
 
-  have "C1 {\<epsilon>}\<^sub>l\<^sub>s = C1" using empty_subls by auto
-  then have "C1{(\<lambda>x. Var (''1''@x)) \<cdot> (\<lambda>x. Var (tl x)) }\<^sub>l\<^sub>s = C1" using empty by auto
-  then have "C1{\<lambda>x. Var (''1''@x) }\<^sub>l\<^sub>s {\<lambda>x. Var (tl x) }\<^sub>l\<^sub>s = C1" using composition_conseq2ls by auto
-  then have "C1 = (std1 C1) {\<lambda>x. Var (tl x) }\<^sub>l\<^sub>s" by auto
+  have "C1 \<cdot>\<^sub>l\<^sub>s \<epsilon> = C1" using empty_subls by auto
+  then have "C1 \<cdot>\<^sub>l\<^sub>s ((\<lambda>x. Var (''1''@x)) \<cdot> (\<lambda>x. Var (tl x))) = C1" using empty by auto
+  then have "(C1 \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (''1''@x))) \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (tl x)) = C1" using composition_conseq2ls by auto
+  then have "C1 = (std1 C1) \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (tl x))" by auto
   then show "instance_ofls C1 (std1 C1)" unfolding instance_ofls_def by auto
 qed
 
@@ -524,20 +524,20 @@ lemma std_apart_instance_ofls2: "instance_ofls C2 (std2 C2)"
 proof -
   have empty: "(\<lambda>x. Var (''2''@x)) \<cdot> (\<lambda>x. Var (tl x)) = \<epsilon>" using composition_def by auto
 
-  have "C2 {\<epsilon>}\<^sub>l\<^sub>s = C2" using empty_subls by auto
-  then have "C2{(\<lambda>x. Var (''2''@x)) \<cdot> (\<lambda>x. Var (tl x)) }\<^sub>l\<^sub>s = C2" using empty by auto
-  then have "C2{\<lambda>x. Var (''2''@x) }\<^sub>l\<^sub>s {\<lambda>x. Var (tl x) }\<^sub>l\<^sub>s = C2" using composition_conseq2ls by auto
-  then have "C2 = (std2 C2) {\<lambda>x. Var (tl x) }\<^sub>l\<^sub>s" by auto
+  have "C2 \<cdot>\<^sub>l\<^sub>s \<epsilon> = C2" using empty_subls by auto
+  then have "C2 \<cdot>\<^sub>l\<^sub>s ((\<lambda>x. Var (''2''@x)) \<cdot> (\<lambda>x. Var (tl x))) = C2" using empty by auto
+  then have "(C2 \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (''2''@x))) \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (tl x)) = C2" using composition_conseq2ls by auto
+  then have "C2 = (std2 C2) \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (tl x))" by auto
   then show "instance_ofls C2 (std2 C2)" unfolding instance_ofls_def by auto
 qed
 
 section {* Unifiers *}
 
 definition unifierts :: "substitution \<Rightarrow> fterm set \<Rightarrow> bool" where
-  "unifierts \<sigma> ts \<longleftrightarrow> (\<exists>t'. \<forall>t \<in> ts. t{\<sigma>}\<^sub>t = t')"
+  "unifierts \<sigma> ts \<longleftrightarrow> (\<exists>t'. \<forall>t \<in> ts. t \<cdot>\<^sub>t \<sigma> = t')"
 
 definition unifierls :: "substitution \<Rightarrow> fterm literal set \<Rightarrow> bool" where
-  "unifierls \<sigma> L \<longleftrightarrow> (\<exists>l'. \<forall>l \<in> L. l{\<sigma>}\<^sub>l = l')"
+  "unifierls \<sigma> L \<longleftrightarrow> (\<exists>l'. \<forall>l \<in> L. l \<cdot>\<^sub>l \<sigma> = l')"
 
 lemma unif_sub:
   assumes unif: "unifierls \<sigma> L"
@@ -545,7 +545,7 @@ lemma unif_sub:
   shows "\<exists>l. subls L \<sigma> = {subl l \<sigma>}"
 proof -
   from nonempty obtain l where "l \<in> L" by auto
-  from unif this have "L {\<sigma>}\<^sub>l\<^sub>s = {l {\<sigma>}\<^sub>l}" unfolding unifierls_def by auto
+  from unif this have "L \<cdot>\<^sub>l\<^sub>s \<sigma> = {l \<cdot>\<^sub>l \<sigma>}" unfolding unifierls_def by auto
   then show ?thesis by auto
 qed
 
@@ -555,27 +555,27 @@ lemma unifiert_def2: (* Pretty ugly lemma... (\<lambda>t. sub t \<sigma>) ` ts s
 proof
   assume unif: "unifierts \<sigma> ts"
   from L_elem obtain t where "t \<in> ts" by auto
-  then have "(\<lambda>t. sub t \<sigma>) ` ts = {t {\<sigma>}\<^sub>t}" using unif unfolding unifierts_def by auto
+  then have "(\<lambda>t. sub t \<sigma>) ` ts = {t \<cdot>\<^sub>t \<sigma>}" using unif unfolding unifierts_def by auto
   then show "\<exists>l. (\<lambda>t. sub t \<sigma>) ` ts = {l}" by auto
 next
   assume "\<exists>l. (\<lambda>t. sub t \<sigma>) ` ts ={l}"
   then obtain l where "(\<lambda>t. sub t \<sigma>) ` ts = {l}" by auto
-  then have "\<forall>l' \<in> ts. l'{\<sigma>}\<^sub>t = l" by auto
+  then have "\<forall>l' \<in> ts. l' \<cdot>\<^sub>t \<sigma> = l" by auto
   then show "unifierts \<sigma> ts" unfolding unifierts_def by auto
 qed
 
 lemma unifierls_def2: 
   assumes L_elem: "L \<noteq> {}"
-  shows "unifierls \<sigma> L \<longleftrightarrow> (\<exists>l. L {\<sigma>}\<^sub>l\<^sub>s ={l})"
+  shows "unifierls \<sigma> L \<longleftrightarrow> (\<exists>l. L \<cdot>\<^sub>l\<^sub>s \<sigma> = {l})"
 proof
   assume unif: "unifierls \<sigma> L"
   from L_elem obtain l where "l \<in> L" by auto
-  then have "L {\<sigma>}\<^sub>l\<^sub>s = {l {\<sigma>}\<^sub>l}" using unif unfolding unifierls_def by auto
-  then show "\<exists>l. L{\<sigma>}\<^sub>l\<^sub>s = {l}" by auto
+  then have "L \<cdot>\<^sub>l\<^sub>s \<sigma> = {l \<cdot>\<^sub>l \<sigma>}" using unif unfolding unifierls_def by auto
+  then show "\<exists>l. L \<cdot>\<^sub>l\<^sub>s \<sigma> = {l}" by auto
 next
-  assume "\<exists>l. L {\<sigma>}\<^sub>l\<^sub>s ={l}"
-  then obtain l where "L {\<sigma>}\<^sub>l\<^sub>s = {l}" by auto
-  then have "\<forall>l' \<in> L. l'{\<sigma>}\<^sub>l = l" by auto
+  assume "\<exists>l. L \<cdot>\<^sub>l\<^sub>s \<sigma> ={l}"
+  then obtain l where "L \<cdot>\<^sub>l\<^sub>s \<sigma> = {l}" by auto
+  then have "\<forall>l' \<in> L. l' \<cdot>\<^sub>l \<sigma> = l" by auto
   then show "unifierls \<sigma> L" unfolding unifierls_def by auto
 qed
 
@@ -585,7 +585,7 @@ lemma groundls_unif_singleton:
   assumes empt: "L \<noteq> {}"
   shows "\<exists>l. L = {l}"
 proof -
-  from unif empt have "\<exists>l. L {\<sigma>'}\<^sub>l\<^sub>s = {l}" using unif_sub by auto
+  from unif empt have "\<exists>l. L \<cdot>\<^sub>l\<^sub>s \<sigma>' = {l}" using unif_sub by auto
   then show ?thesis using groundls_subls groundls by auto
 qed
 
@@ -598,29 +598,29 @@ definition unifiablels :: "fterm literal set \<Rightarrow> bool" where
 lemma unifier_comp[simp]: "unifierls \<sigma> (L\<^sup>C) \<longleftrightarrow> unifierls \<sigma> L"
 proof
   assume "unifierls \<sigma> (L\<^sup>C)" 
-  then obtain l'' where l''_p: "\<forall>l \<in> L\<^sup>C. l{\<sigma>}\<^sub>l = l''" 
+  then obtain l'' where l''_p: "\<forall>l \<in> L\<^sup>C. l \<cdot>\<^sub>l \<sigma> = l''" 
     unfolding unifierls_def by auto
   obtain l' where "(l')\<^sup>c = l''" using comp_exi2[of l''] by auto
-  from this l''_p have l'_p:"\<forall>l \<in> L\<^sup>C. l{\<sigma>}\<^sub>l = (l')\<^sup>c" by auto
-  have "\<forall>l \<in> L. l{\<sigma>}\<^sub>l = l'"
+  from this l''_p have l'_p:"\<forall>l \<in> L\<^sup>C. l \<cdot>\<^sub>l \<sigma> = (l')\<^sup>c" by auto
+  have "\<forall>l \<in> L. l \<cdot>\<^sub>l \<sigma> = l'"
     proof
       fix l
       assume "l\<in>L"
       then have "l\<^sup>c \<in> L\<^sup>C" by auto
-      then have "(l\<^sup>c){\<sigma>}\<^sub>l = (l')\<^sup>c" using l'_p by auto
-      then have "(l {\<sigma>}\<^sub>l)\<^sup>c = (l')\<^sup>c" by (cases l) auto
-      then show "l{\<sigma>}\<^sub>l = l'" using cancel_comp2 by blast
+      then have "(l\<^sup>c) \<cdot>\<^sub>l \<sigma> = (l')\<^sup>c" using l'_p by auto
+      then have "(l \<cdot>\<^sub>l \<sigma>)\<^sup>c = (l')\<^sup>c" by (cases l) auto
+      then show "l \<cdot>\<^sub>l \<sigma> = l'" using cancel_comp2 by blast
     qed
   then show "unifierls \<sigma> L" unfolding unifierls_def by auto
 next
   assume "unifierls \<sigma> L"
-  then obtain l' where l'_p: "\<forall>l \<in> L. l{\<sigma>}\<^sub>l = l'" unfolding unifierls_def by auto
-  have "\<forall>l \<in> L\<^sup>C. l{\<sigma>}\<^sub>l = (l')\<^sup>c"
+  then obtain l' where l'_p: "\<forall>l \<in> L. l \<cdot>\<^sub>l \<sigma> = l'" unfolding unifierls_def by auto
+  have "\<forall>l \<in> L\<^sup>C. l \<cdot>\<^sub>l \<sigma> = (l')\<^sup>c"
     proof
       fix l
       assume "l \<in> L\<^sup>C"
       then have "l\<^sup>c \<in> L" using cancel_comp1 by (metis image_iff)
-      then show "l{\<sigma>}\<^sub>l = (l')\<^sup>c" using l'_p comp_sub cancel_comp1 by metis
+      then show "l \<cdot>\<^sub>l \<sigma> = (l')\<^sup>c" using l'_p comp_sub cancel_comp1 by metis
     qed
   then show "unifierls \<sigma> (L\<^sup>C)" unfolding unifierls_def by auto
 qed
@@ -658,12 +658,12 @@ definition applicable :: "   fterm clause \<Rightarrow> fterm clause
 definition mresolution :: "   fterm clause \<Rightarrow> fterm clause 
                           \<Rightarrow> fterm literal set \<Rightarrow> fterm literal set 
                           \<Rightarrow> substitution \<Rightarrow> fterm clause" where
-  "mresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = (C\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s - L\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s) \<union> (C\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s - L\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s)"
+  "mresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = ((C\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<sigma>)- (L\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<sigma>)) \<union> ((C\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<sigma>) - (L\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<sigma>))"
 
 definition resolution :: "   fterm clause \<Rightarrow> fterm clause 
                           \<Rightarrow> fterm literal set \<Rightarrow> fterm literal set 
                           \<Rightarrow> substitution \<Rightarrow> fterm clause" where
-  "resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = ((C\<^sub>1 - L\<^sub>1) \<union> (C\<^sub>2 - L\<^sub>2)) {\<sigma>}\<^sub>l\<^sub>s"
+  "resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = ((C\<^sub>1 - L\<^sub>1) \<union> (C\<^sub>2 - L\<^sub>2)) \<cdot>\<^sub>l\<^sub>s \<sigma>"
 
 inductive mresolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   mresolution_rule: 
@@ -691,16 +691,16 @@ section {* Soundness *}
 definition evalsub :: "'u fun_denot \<Rightarrow> 'u var_denot \<Rightarrow> substitution \<Rightarrow> 'u var_denot" where
   "evalsub F E \<sigma> = (evalt E F) \<circ> \<sigma>"
 
-lemma substitutiont: "evalt E F (t {\<sigma>}\<^sub>t) = evalt (evalsub F E \<sigma>) F t"
+lemma substitutiont: "evalt E F (t \<cdot>\<^sub>t \<sigma>) = evalt (evalsub F E \<sigma>) F t"
 apply (induction t)
 unfolding evalsub_def apply auto
 apply (metis (mono_tags, lifting) comp_apply map_cong)
 done
 
-lemma substitutionts: "evalts E F (ts {\<sigma>}\<^sub>t\<^sub>s) = evalts (evalsub F E \<sigma>) F ts"
+lemma substitutionts: "evalts E F (ts \<cdot>\<^sub>t\<^sub>s \<sigma>) = evalts (evalsub F E \<sigma>) F ts"
 using substitutiont by auto
 
-lemma substitution: "evall E F G (l {\<sigma>}\<^sub>l) \<longleftrightarrow> evall (evalsub F E \<sigma>) F G l"
+lemma substitution: "evall E F G (l \<cdot>\<^sub>l \<sigma>) \<longleftrightarrow> evall (evalsub F E \<sigma>) F G l"
 apply (induction l) 
 using substitutionts apply (metis evall.simps(1) subl.simps(1)) 
 using substitutionts apply (metis evall.simps(2) subl.simps(2))
@@ -708,16 +708,16 @@ done
 
 lemma subst_sound:
  assumes asm: "evalc F G C"
- shows "evalc F G (C {\<sigma>}\<^sub>l\<^sub>s)"
+ shows "evalc F G (C \<cdot>\<^sub>l\<^sub>s \<sigma>)"
 proof - 
- have "\<forall>E. \<exists>l \<in> C {\<sigma>}\<^sub>l\<^sub>s. evall E F G l"
+ have "\<forall>E. \<exists>l \<in> C \<cdot>\<^sub>l\<^sub>s \<sigma>. evall E F G l"
   proof
    fix E
    from asm have "\<forall>E. \<exists>l \<in> C. evall E F G l" unfolding evalc_def by auto
    then have "\<exists>l \<in> C. evall (evalsub F E \<sigma>) F G l" by auto
-   then show "\<exists>l \<in> C {\<sigma>}\<^sub>l\<^sub>s. evall E F G l" using substitution by blast
+   then show "\<exists>l \<in> C \<cdot>\<^sub>l\<^sub>s \<sigma>. evall E F G l" using substitution by blast
   qed
- then show "evalc F G (C {\<sigma>}\<^sub>l\<^sub>s)" unfolding evalc_def by auto
+ then show "evalc F G (C \<cdot>\<^sub>l\<^sub>s \<sigma>)" unfolding evalc_def by auto
 qed
 
 lemma simple_resolution_sound:
@@ -754,36 +754,36 @@ lemma mresolution_sound:
   assumes appl: "applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>"
   shows "evalc F G (mresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>)"
 proof -
-  from sat\<^sub>1 have sat\<^sub>1\<sigma>: "evalc F G (C\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s)" using subst_sound by blast
-  from sat\<^sub>2 have sat\<^sub>2\<sigma>: "evalc F G (C\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s)" using subst_sound by blast
+  from sat\<^sub>1 have sat\<^sub>1\<sigma>: "evalc F G (C\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<sigma>)" using subst_sound by blast
+  from sat\<^sub>2 have sat\<^sub>2\<sigma>: "evalc F G (C\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<sigma>)" using subst_sound by blast
 
   from appl obtain l\<^sub>1 where l\<^sub>1_p: "l\<^sub>1 \<in> L\<^sub>1" unfolding applicable_def by auto
 
   from l\<^sub>1_p appl have "l\<^sub>1 \<in> C\<^sub>1" unfolding applicable_def by auto
-  then have inc\<^sub>1\<sigma>: "l\<^sub>1 {\<sigma>}\<^sub>l \<in> C\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s" by auto
+  then have inc\<^sub>1\<sigma>: "l\<^sub>1 \<cdot>\<^sub>l \<sigma> \<in> C\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<sigma>" by auto
   
   from l\<^sub>1_p have unified\<^sub>1: "l\<^sub>1 \<in> (L\<^sub>1 \<union> (L\<^sub>2\<^sup>C))" by auto
 
-  from l\<^sub>1_p appl have l\<^sub>1\<sigma>isl\<^sub>1\<sigma>: "{l\<^sub>1{\<sigma>}\<^sub>l} = L\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s"  
+  from l\<^sub>1_p appl have l\<^sub>1\<sigma>isl\<^sub>1\<sigma>: "{l\<^sub>1 \<cdot>\<^sub>l \<sigma>} = L\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<sigma>"  
     unfolding mguls_def unifierls_def applicable_def by auto
 
   from appl obtain l\<^sub>2 where l\<^sub>2_p: "l\<^sub>2 \<in> L\<^sub>2" unfolding applicable_def by auto
   
   from l\<^sub>2_p appl have "l\<^sub>2 \<in> C\<^sub>2" unfolding applicable_def by auto
-  then have inc\<^sub>2\<sigma>: "l\<^sub>2 {\<sigma>}\<^sub>l \<in> C\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s" by auto
+  then have inc\<^sub>2\<sigma>: "l\<^sub>2 \<cdot>\<^sub>l \<sigma> \<in> C\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<sigma>" by auto
 
   from l\<^sub>2_p have unified\<^sub>2: "l\<^sub>2\<^sup>c \<in> (L\<^sub>1 \<union> (L\<^sub>2\<^sup>C))" by auto
 
-  from unified\<^sub>1 unified\<^sub>2 appl have "l\<^sub>1 {\<sigma>}\<^sub>l = (l\<^sub>2\<^sup>c){\<sigma>}\<^sub>l" 
+  from unified\<^sub>1 unified\<^sub>2 appl have "l\<^sub>1 \<cdot>\<^sub>l \<sigma> = (l\<^sub>2\<^sup>c) \<cdot>\<^sub>l \<sigma>" 
     unfolding mguls_def unifierls_def applicable_def by auto
-  then have comp: "(l\<^sub>1 {\<sigma>}\<^sub>l)\<^sup>c = l\<^sub>2 {\<sigma>}\<^sub>l" using comp_sub comp_swap by auto 
+  then have comp: "(l\<^sub>1 \<cdot>\<^sub>l \<sigma>)\<^sup>c = l\<^sub>2 \<cdot>\<^sub>l \<sigma>" using comp_sub comp_swap by auto 
 
   from appl have "unifierls \<sigma> (L\<^sub>2\<^sup>C)" 
     using unifier_sub2 unfolding mguls_def applicable_def by blast
   then have "unifierls \<sigma> L\<^sub>2" by auto
-  from this l\<^sub>2_p have l\<^sub>2\<sigma>isl\<^sub>2\<sigma>: "{l\<^sub>2{\<sigma>}\<^sub>l} = L\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s" unfolding unifierls_def by auto
+  from this l\<^sub>2_p have l\<^sub>2\<sigma>isl\<^sub>2\<sigma>: "{l\<^sub>2 \<cdot>\<^sub>l \<sigma>} = L\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<sigma>" unfolding unifierls_def by auto
 
-  from sat\<^sub>1\<sigma> sat\<^sub>2\<sigma> inc\<^sub>1\<sigma> inc\<^sub>2\<sigma> comp have "evalc F G (C\<^sub>1{\<sigma>}\<^sub>l\<^sub>s - {l\<^sub>1{\<sigma>}\<^sub>l} \<union> (C\<^sub>2{\<sigma>}\<^sub>l\<^sub>s - {l\<^sub>2{\<sigma>}\<^sub>l}))" using simple_resolution_sound[of F G "C\<^sub>1 {\<sigma>}\<^sub>l\<^sub>s" "C\<^sub>2 {\<sigma>}\<^sub>l\<^sub>s" "l\<^sub>1 {\<sigma>}\<^sub>l" " l\<^sub>2 {\<sigma>}\<^sub>l"]
+  from sat\<^sub>1\<sigma> sat\<^sub>2\<sigma> inc\<^sub>1\<sigma> inc\<^sub>2\<sigma> comp have "evalc F G ((C\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<sigma>) - {l\<^sub>1 \<cdot>\<^sub>l \<sigma>} \<union> ((C\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<sigma>) - {l\<^sub>2 \<cdot>\<^sub>l \<sigma>}))" using simple_resolution_sound[of F G "C\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<sigma>" "C\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<sigma>" "l\<^sub>1 \<cdot>\<^sub>l \<sigma>" " l\<^sub>2 \<cdot>\<^sub>l \<sigma>"]
     by auto
   from this l\<^sub>1\<sigma>isl\<^sub>1\<sigma> l\<^sub>2\<sigma>isl\<^sub>2\<sigma> show ?thesis unfolding mresolution_def by auto
 qed
@@ -916,17 +916,17 @@ abbreviation extend :: "(nat \<Rightarrow> partial_pred_denot) \<Rightarrow> hte
 fun sub_of_denot :: "hterm var_denot \<Rightarrow> substitution" where
   "sub_of_denot E = fterm_of_hterm \<circ> E"
 
-lemma ground_sub_of_denott: "ground ((t :: fterm) {sub_of_denot E}\<^sub>t)" 
+lemma ground_sub_of_denott: "ground (t \<cdot>\<^sub>t (sub_of_denot E))" 
   by (induction t) (auto simp add: ground_fterm_of_hterm)
 
 
-lemma ground_sub_of_denotts: "grounds ((ts :: fterm list) {sub_of_denot E}\<^sub>t\<^sub>s)"
+lemma ground_sub_of_denotts: "grounds (ts \<cdot>\<^sub>t\<^sub>s sub_of_denot E)"
 using ground_sub_of_denott by simp 
 
 
-lemma ground_sub_of_denotl: "groundl ((l :: fterm literal) {sub_of_denot E}\<^sub>l)"
+lemma ground_sub_of_denotl: "groundl (l \<cdot>\<^sub>l sub_of_denot E)"
 proof -
-  have "grounds (subs (get_terms l :: fterm list) (sub_of_denot E))" 
+  have "grounds (subs (get_terms l) (sub_of_denot E))" 
     using ground_sub_of_denotts by auto
   then show ?thesis by (cases l)  auto
 qed
@@ -943,23 +943,23 @@ proof -
 qed
 
 lemma sub_of_denot_equivt:
-    "evalt E HFun (t {sub_of_denot E}\<^sub>t) = evalt E HFun t"
+    "evalt E HFun (t \<cdot>\<^sub>t (sub_of_denot E)) = evalt E HFun t"
 using sub_of_denot_equivx  by (induction t) auto
 
-lemma sub_of_denot_equivts: "evalts E HFun (ts {sub_of_denot E}\<^sub>t\<^sub>s) = evalts E HFun ts"
+lemma sub_of_denot_equivts: "evalts E HFun (ts \<cdot>\<^sub>t\<^sub>s (sub_of_denot E)) = evalts E HFun ts"
 using sub_of_denot_equivt by simp
 
-lemma sub_of_denot_equivl: "evall E HFun G (l {sub_of_denot E}\<^sub>l) \<longleftrightarrow> evall E HFun G l"
+lemma sub_of_denot_equivl: "evall E HFun G (l \<cdot>\<^sub>l sub_of_denot E) \<longleftrightarrow> evall E HFun G l"
 proof (induction l)
   case (Pos p ts)
-  have "evall E HFun G ((Pos p ts) {sub_of_denot E}\<^sub>l) \<longleftrightarrow> G p (evalts E HFun (ts {sub_of_denot E}\<^sub>t\<^sub>s))" by auto
+  have "evall E HFun G ((Pos p ts) \<cdot>\<^sub>l sub_of_denot E) \<longleftrightarrow> G p (evalts E HFun (ts \<cdot>\<^sub>t\<^sub>s (sub_of_denot E)))" by auto
   also have " ... \<longleftrightarrow> G p (evalts E HFun ts)" using sub_of_denot_equivts[of E ts] by metis
   also have " ... \<longleftrightarrow> evall E HFun G (Pos p ts)" by simp
   finally
   show ?case by blast
 next
  case (Neg p ts)
-  have "evall E HFun G ((Neg p ts) {sub_of_denot E}\<^sub>l) \<longleftrightarrow> \<not>G p (evalts E HFun (ts {sub_of_denot E}\<^sub>t\<^sub>s))" by auto
+  have "evall E HFun G ((Neg p ts) \<cdot>\<^sub>l sub_of_denot E) \<longleftrightarrow> \<not>G p (evalts E HFun (ts \<cdot>\<^sub>t\<^sub>s (sub_of_denot E)))" by auto
   also have " ... \<longleftrightarrow> \<not>G p (evalts E HFun ts)" using sub_of_denot_equivts[of E ts] by metis
   also have " ... = evall E HFun G (Neg p ts)" by simp
   finally
@@ -968,24 +968,24 @@ qed
 
 (* Under an Herbrand interpretation, an environment is equivalent to a substitution *)
 lemma sub_of_denot_equiv_ground': 
-  "evall E HFun G l = evall E HFun G (l {sub_of_denot E}\<^sub>l) \<and> groundl (l {sub_of_denot E}\<^sub>l)"
+  "evall E HFun G l = evall E HFun G (l \<cdot>\<^sub>l sub_of_denot E) \<and> groundl (l \<cdot>\<^sub>l sub_of_denot E)"
     using sub_of_denot_equivl ground_sub_of_denotl by auto
 
 (* Under an Herbrand interpretation, an environment is "equivalent" to a substitution - also for partial interpretations *)
 lemma partial_equiv_subst:
-  assumes "falsifiesc G (C {\<tau>}\<^sub>l\<^sub>s)"
+  assumes "falsifiesc G (C \<cdot>\<^sub>l\<^sub>s \<tau>)"
   shows "falsifiesc G C"
 proof -
-  from assms obtain C' where C'_p: "instance_ofls C' (C {\<tau>}\<^sub>l\<^sub>s) \<and> falsifiesg G C'" by auto
-  then have "instance_ofls (C {\<tau>}\<^sub>l\<^sub>s) C" unfolding instance_ofls_def by auto
+  from assms obtain C' where C'_p: "instance_ofls C' (C \<cdot>\<^sub>l\<^sub>s \<tau>) \<and> falsifiesg G C'" by auto
+  then have "instance_ofls (C \<cdot>\<^sub>l\<^sub>s \<tau>) C" unfolding instance_ofls_def by auto
   then have "instance_ofls C' C" using C'_p instance_ofls_trans by auto
   then show ?thesis using C'_p by auto
 qed
 
 (* Under an Herbrand interpretation, an environment is equivalent to a substitution*)
 lemma sub_of_denot_equiv_ground:
-  "((\<exists>l \<in> C. evall E HFun G l) \<longleftrightarrow> (\<exists>l \<in> C {sub_of_denot E}\<^sub>l\<^sub>s. evall E HFun G l))
-           \<and> groundls (C {sub_of_denot E}\<^sub>l\<^sub>s)"
+  "((\<exists>l \<in> C. evall E HFun G l) \<longleftrightarrow> (\<exists>l \<in> C \<cdot>\<^sub>l\<^sub>s sub_of_denot E. evall E HFun G l))
+           \<and> groundls (C \<cdot>\<^sub>l\<^sub>s sub_of_denot E)"
   using sub_of_denot_equiv_ground' by auto
 
 lemma std_apart_falsifies1: "falsifiesc G C1 \<longleftrightarrow> falsifiesc G (std1 C1)"
@@ -1140,17 +1140,17 @@ unfolding evalc_def proof
   let ?\<sigma> = "sub_of_denot E"
   
   (* Since C is finite, C {sub_of_denot E}\<^sub>l\<^sub>s has a largest index of a literal. *)
-  from fin_c model_c have fin_c\<sigma>: "finite (C {sub_of_denot E}\<^sub>l\<^sub>s)" by auto
-  have groundc\<sigma>: "groundls (C {sub_of_denot E}\<^sub>l\<^sub>s)" using sub_of_denot_equiv_ground by auto
+  from fin_c model_c have fin_c\<sigma>: "finite (C \<cdot>\<^sub>l\<^sub>s sub_of_denot E)" by auto
+  have groundc\<sigma>: "groundls (C \<cdot>\<^sub>l\<^sub>s sub_of_denot E)" using sub_of_denot_equiv_ground by auto
 
   (* Here starts the proof *)
   (* We go from syntactic FO world to syntactic ground world: *)
-  from model_c have "\<forall>n. \<not>falsifiesc (f n) (C {?\<sigma>}\<^sub>l\<^sub>s)" using partial_equiv_subst by blast
+  from model_c have "\<forall>n. \<not>falsifiesc (f n) (C \<cdot>\<^sub>l\<^sub>s ?\<sigma>)" using partial_equiv_subst by blast
   (* Then from syntactic ground world to semantic ground world: *)
-  then have "evalc HFun ?G (C {?\<sigma>}\<^sub>l\<^sub>s)" using groundc\<sigma> f_chain fin_c\<sigma>  extend_preserves_model2[of f "C {?\<sigma>}\<^sub>l\<^sub>s"] by blast
+  then have "evalc HFun ?G (C \<cdot>\<^sub>l\<^sub>s ?\<sigma>)" using groundc\<sigma> f_chain fin_c\<sigma>  extend_preserves_model2[of f "C \<cdot>\<^sub>l\<^sub>s ?\<sigma>"] by blast
   (* Then from semantic ground world to semantic FO world: *)
-  then have "\<forall>E. \<exists>l \<in> (C {?\<sigma>}\<^sub>l\<^sub>s). evall E ?F ?G l" unfolding evalc_def by auto
-  then have "\<exists>l \<in> (C {?\<sigma>}\<^sub>l\<^sub>s). evall E ?F ?G l" by auto
+  then have "\<forall>E. \<exists>l \<in> (C \<cdot>\<^sub>l\<^sub>s ?\<sigma>). evall E ?F ?G l" unfolding evalc_def by auto
+  then have "\<exists>l \<in> (C \<cdot>\<^sub>l\<^sub>s ?\<sigma>). evall E ?F ?G l" by auto
   then show "\<exists>l \<in> C. evall E ?F ?G l" using sub_of_denot_equiv_ground[of C E "extend f"] by blast
 qed
 
