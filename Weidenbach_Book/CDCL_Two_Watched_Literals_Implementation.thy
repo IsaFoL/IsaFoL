@@ -136,6 +136,277 @@ proof -
       elim!: remove1_mset_eqE[of _ L])
 qed
 
+primrec (nonexhaustive) index :: "'a list \<Rightarrow>'a \<Rightarrow> nat" where
+"index (a # l) c = (if a = c then 0 else 1+index l c)"
+
+lemma index_nth:
+  "a \<in> set l \<Longrightarrow> l ! (index l a) = a"
+  by (induction l) auto
+
+
+definition defined_before :: "('a, 'b) ann_lit list \<Rightarrow> 'a literal \<Rightarrow> 'a literal \<Rightarrow> bool" where
+"defined_before M L L' \<equiv> index (map lit_of M) L' \<le> index (map lit_of M) L"
+
+lemma defined_before_tl:
+  assumes
+    L: "L' \<in> lits_of_l M" and
+    L_hd: "L \<noteq> hd (map lit_of M)" and
+    L'_hd: "L' \<noteq> hd (map lit_of M)" and
+    def_M: "defined_before M L L'"
+  shows "defined_before (tl M) L L'"
+  using L_hd L'_hd def_M  unfolding defined_before_def by (cases M) auto
+
+text \<open>We need the following property about updates: if there is a literal @{term L} with
+  @{term "-L"} in the trail, and @{term L} is not  watched, then it stays unwatched; i.e., while
+  updating with @{term rewatch}, @{term L} does not get swapped with a watched literal @{term L'}
+  such that @{term "-L'"} is in the trail. This corresponds to the laziness of the data structure.
+
+  Remark that @{term M} is a trail: literals at the end were the first to be added to the trail.\<close>
+primrec watched_only_lazy_updates :: "('v, 'mark) ann_lits \<Rightarrow>
+  'v literal multiset twl_clause \<Rightarrow> bool" where
+"watched_only_lazy_updates M (TWL_Clause W UW) \<longleftrightarrow>
+  (\<forall>L'\<in># W. \<forall>L \<in># UW.
+    -L' \<in> lits_of_l M \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L \<notin># W \<longrightarrow>
+      defined_before M (-L) (-L'))"
+
+primrec watched_wf_twl_cls_decision where
+"watched_wf_twl_cls_decision M (TWL_Clause W UW) \<longleftrightarrow>
+  (\<forall>L \<in># W. -L \<in> lits_of_l M \<longrightarrow> remove1_mset L W \<subseteq># image_mset lit_of (mset M) \<longrightarrow>
+    (\<forall>L' \<in># W. L \<noteq> L' \<longrightarrow> defined_before M L' (-L)))"
+
+primrec watched_wf_twl_cls_no_decision where
+"watched_wf_twl_cls_no_decision M (TWL_Clause W UW) \<longleftrightarrow>
+  (\<forall>L \<in># W. -L \<in> lits_of_l M \<longrightarrow> \<not>remove1_mset L W \<subseteq># image_mset lit_of (mset M) \<longrightarrow>
+    (\<forall>L' \<in># UW. L' \<notin># W \<longrightarrow> -L' \<in> lits_of_l M))"
+
+
+text \<open>If the negation of a watched literal is included in the trail, then the negation of
+  every unwatched literals is also included in the trail. Otherwise, the data-structure has to be
+  updated.\<close>
+fun watched_wf_twl_cls :: "('a, 'b) ann_lits \<Rightarrow> 'a literal multiset twl_clause \<Rightarrow>
+  bool" where
+"watched_wf_twl_cls M C \<longleftrightarrow>
+   watched_wf_twl_cls_no_decision M C \<and> watched_wf_twl_cls_decision M C"
+
+lemma watched_wf_twl_cls_single_Ball:
+  "watched_wf_twl_cls M (TWL_Clause W UW) =
+    (\<forall>L \<in># W. -L \<in> lits_of_l M \<longrightarrow>
+      ((remove1_mset L W \<subseteq># image_mset lit_of (mset M) \<longrightarrow>
+        (\<forall>L' \<in># W. L \<noteq> L' \<longrightarrow> defined_before M L' (-L))) \<and>
+      (\<not>remove1_mset L W \<subseteq># image_mset lit_of (mset M) \<longrightarrow>
+        (\<forall>L' \<in># UW. L' \<notin># W \<longrightarrow> -L' \<in> lits_of_l M))))"
+  unfolding watched_wf_twl_cls.simps watched_wf_twl_cls_no_decision.simps
+  watched_wf_twl_cls_decision.simps by blast
+
+text \<open>Here are the invariant strictly related to the 2-WL data structure.\<close>
+primrec wf_twl_cls :: "('v, 'mark) ann_lits \<Rightarrow> 'v literal multiset twl_clause \<Rightarrow> bool" where
+  "wf_twl_cls M (TWL_Clause W UW) \<longleftrightarrow>
+   struct_wf_twl_cls (TWL_Clause W UW) \<and>
+   watched_wf_twl_cls M (TWL_Clause W UW) \<and>
+   watched_only_lazy_updates M (TWL_Clause W UW)"
+
+lemma wf_twl_cls_annotation_independant:
+  assumes M: "map lit_of M = map lit_of M'"
+  shows "wf_twl_cls M (TWL_Clause W UW) \<longleftrightarrow> wf_twl_cls M' (TWL_Clause W UW)"
+proof -
+  have "lits_of_l M = lits_of_l M'"
+    using arg_cong[OF M, of set] by (simp add: lits_of_def)
+  moreover have "image_mset lit_of (mset M) = image_mset lit_of (mset M')"
+    by (metis M mset_map)
+  moreover have "defined_before M = defined_before M'"
+    by (intro ext) (auto simp: defined_before_def M)
+  ultimately show ?thesis
+    by auto
+qed
+
+lemma less_eq_2_iff_eq_2_less_eq_Suc_1: "a \<le> 2 \<longleftrightarrow> a = 2 \<or> a \<le> Suc 0"
+by linarith
+
+lemma remove_1_mset_single_add_if:
+  "remove1_mset K ({#L#} + xs) = (if K = L then xs else {#L#} + remove1_mset K xs)"
+  by (auto simp: multiset_eq_iff)
+
+lemma remove_1_mset_single_if:
+  "remove1_mset K {#L#} = (if K = L then {#} else {#L#})"
+  by (auto simp: multiset_eq_iff)
+
+lemma wf_twl_cls_wf_twl_cls_tl:
+  fixes C :: "'v clause twl_clause"
+  assumes wf: "wf_twl_cls M C" and n_d: "no_dup M"
+  shows "wf_twl_cls (tl M) C"
+proof (cases M)
+  case Nil
+  then show ?thesis using wf
+    by (cases C) (simp add: wf_twl_cls.simps[of "tl _"])
+next
+  case (Cons l M') note M = this(1)
+  obtain W UW where C: "C = TWL_Clause W UW"
+    by (cases C)
+  show ?thesis
+    unfolding C wf_twl_cls.simps
+    proof (intro conjI)
+      show struct_wf: "struct_wf_twl_cls (TWL_Clause W UW)"
+        using wf unfolding C wf_twl_cls.simps by fast
+      have wf_cls: "watched_wf_twl_cls M (TWL_Clause W UW)"
+        using wf unfolding C by auto
+      have wf_lazy: "watched_only_lazy_updates M (TWL_Clause W UW)"
+        using wf unfolding C by auto
+      have wf_lazy_dec: "watched_wf_twl_cls_decision M (TWL_Clause W UW)"
+        using wf unfolding C by auto
+
+      show "watched_wf_twl_cls (tl M) (TWL_Clause W UW)"
+        proof -
+          consider
+              (empty) "W = {#}" and "UW = {#}"
+            |  (single) L where "W = {#L#}" and "UW = {#}"
+            | (two_watched) L L' where "W = {#L, L'#}"
+            using struct_wf size_le_Suc_0_iff[of W] by (auto simp: size_2_iff
+              less_eq_2_iff_eq_2_less_eq_Suc_1 subset_eq_mset_single_iff
+              distinct_mset_size_2)
+          then show ?thesis
+            proof cases
+              case empty
+              then show ?thesis
+                by auto
+            next
+              case (single L)
+              then show ?thesis by auto
+            next
+              case (two_watched L L') note W = this(1)
+              have remove_M_M': "remove1_mset K W \<subseteq># image_mset lit_of (mset M)"
+                if "remove1_mset K W \<subseteq># image_mset lit_of (mset M')" for K :: "'v literal"
+                using subset_mset.order.trans that unfolding M by fastforce
+              have K_M'_L: "K \<noteq> lit_of l" if "K \<in> lits_of_l M'" for K :: "'v literal"
+                using that n_d unfolding M lits_of_def by (auto simp: image_iff)
+              have u_K_M'_L: "K \<noteq> lit_of l" if "-K \<in> lits_of_l M'" for K :: "'v literal"
+                using that n_d unfolding M lits_of_def by (metis consistent_interp_def
+                  distinct_consistent_interp image_insert insertCI list.simps(15) lits_of_def)
+              show ?thesis
+                unfolding watched_wf_twl_cls_single_Ball Ball_def
+                proof (intro allI impI conjI)
+                  fix K K' :: "'v literal"
+                  assume
+                    KW: "K \<in># W" and
+                    KM: "- K \<in> lits_of_l (tl M)" and
+                    WM: "remove1_mset K W \<subseteq># image_mset lit_of (mset (tl M))" and
+                    K': "K' \<in># W" and
+                    KK': "K \<noteq> K'"
+                  moreover have "remove1_mset K W \<subseteq># image_mset lit_of (mset M)"
+                    using WM subset_mset.order.trans unfolding M by fastforce
+                  ultimately have "defined_before M K' (- K)"
+                    using wf_cls unfolding M by simp
+                  moreover have "K' \<noteq> lit_of l"
+                    using K' KK' KW K_M'_L M WM unfolding lits_of_def W by fastforce
+                  moreover have "- K \<noteq> lit_of l"
+                    using KM K_M'_L M by auto
+                  ultimately show "defined_before (tl M) K' (- K)"
+                    apply - apply (rule defined_before_tl)
+                      using KM KK' unfolding M by (auto simp: defined_before_tl)
+                next
+                  fix K K' :: "'v literal"
+                  assume
+                    KW: "K \<in># W" and
+                    KM: "- K \<in> lits_of_l (tl M)" and
+                    WM: "\<not>remove1_mset K W \<subseteq># image_mset lit_of (mset (tl M))" and
+                    K': "K' \<in># UW" and
+                    KK': "K' \<notin># W"
+                  have LL': "L \<noteq> L'"
+                    using struct_wf W by (auto simp: distinct_mset_add)
+                  then consider
+                      (L') "L = lit_of l" and "K = L'"
+                    | (L) "L' = lit_of l" and "K = L"
+                    | (rem)  "\<not>remove1_mset K W \<subseteq># image_mset lit_of (mset M)"
+                    using KW WM unfolding M W by fastforce
+                  then show "- K' \<in> lits_of_l (tl M)"
+                    proof cases
+                      case rem
+                      then have "- K' \<in> lits_of_l (l # M')" and "- K \<in> lits_of_l (l # M')"
+                        using wf_cls KW KM K' KK' unfolding watched_wf_twl_cls.simps
+                        watched_wf_twl_cls_no_decision.simps M Ball_def
+                        by auto
+                      moreover
+                        have H:
+                          "L\<in>#UW \<Longrightarrow> - L \<in> lits_of_l M \<Longrightarrow> L \<notin># W \<Longrightarrow>
+                            defined_before M (- L) (- L')"
+                          if "L'\<in>#W" "- L' \<in> lits_of_l M" for L' L
+                              using that wf_lazy by auto
+                        have False if "K' = - lit_of l"
+                          proof -
+                            have "lit_of l \<notin># W"
+                              using KM KW M u_K_M'_L rem two_watched by auto
+                            have "-lit_of l \<notin># W"
+                              using KK' that by blast
+                            moreover
+                            then have "defined_before M (-K') (-K)"
+                              using H[of K K'] KW KM that K' KK' unfolding M by auto
+                            then show False
+                              using KK' KW unfolding M defined_before_def that
+                              by (auto split: if_splits)
+                          qed
+                      ultimately show ?thesis
+                        using LL' KM  unfolding M by (auto simp: uminus_lit_swap)
+                    next
+                      case L note L' = this(1) and K = this(2)
+                      have [simp]: "lit_of l \<noteq> - L"
+                        using K KM K_M'_L M by fastforce
+                      have "remove1_mset K W \<subseteq># image_mset lit_of (mset M)"
+                        unfolding W K L' M by auto
+                      then have "defined_before M L' (-K)"
+                        using wf_lazy_dec KW KM unfolding M by (auto simp add: K LL' two_watched)
+                      then show ?thesis
+                        unfolding L' K M defined_before_def by (auto split: if_splits)
+                    next
+                      case L' note L = this(1) and K = this(2)
+                      have [simp]: "lit_of l \<noteq> - L'"
+                        using K KM K_M'_L M by fastforce
+                      have "remove1_mset K W \<subseteq># image_mset lit_of (mset M)"
+                        unfolding L W K M by auto
+                      then have "defined_before M L (-K)"
+                        using wf_lazy_dec KW KM unfolding M by (auto simp add: K LL' two_watched)
+                      then show ?thesis
+                        unfolding K L M defined_before_def by (auto split: if_splits)
+                    qed
+                qed
+            qed
+        qed
+      show "watched_only_lazy_updates (tl M) (TWL_Clause W UW)"
+          unfolding watched_only_lazy_updates.simps Ball_def
+        proof (intro allI impI)
+          fix K K' :: "'v literal"
+          assume "K \<in># W" and
+            "K' \<in># UW" and
+            K'M: "- K \<in> lits_of_l (tl M)" and
+            "- K' \<in> lits_of_l (tl M)" and
+            "K' \<notin># W"
+          moreover
+            have "lit_of l \<noteq> - K'"
+              using n_d unfolding M by (metis (no_types) M atm_lit_of_set_lits_of_l
+                atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set calculation(4) distinct.simps(2)
+                list.sel(3) list.set_map list.simps(9))
+          moreover have "watched_only_lazy_updates M C"
+            using wf by (auto simp: C)
+          moreover have "lit_of l \<notin> lits_of_l M'" using n_d
+            by (simp add: M atm_lit_of_set_lits_of_l atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
+          ultimately show "defined_before (tl M) (- K') (- K)"
+            unfolding defined_before_def
+            by (auto simp: M C defined_before_def split: if_split_asm)
+        qed
+    qed
+qed
+
+lemma wf_twl_cls_append:
+  assumes
+    n_d: "no_dup (M' @ M)" and
+    wf: "wf_twl_cls (M' @ M) C"
+  shows "wf_twl_cls M C"
+  using wf n_d apply (induction M')
+    apply simp
+  using wf_twl_cls_wf_twl_cls_tl by fastforce
+
+(* definition wf_twl_state :: "'st \<Rightarrow> bool" where
+  "wf_twl_state S \<longleftrightarrow>
+    (\<forall>C \<in> set (raw_clauses_of_twl S). wf_twl_cls (conc_trail S) C) \<and> no_dup (raw_trail S)" *)
+
 subsubsection \<open>Clauses\<close>
 
 locale abstract_clause_representation_ops =
@@ -676,7 +947,7 @@ locale abs_state\<^sub>W_twl =
         mmset_of_mlit (raw_clauses st) (hd_raw_abs_trail st) = hd (full_trail st)" and
 
     tl_abs_trail_prop_state:
-      "\<And>S'. prop_state st = (P, M, S') \<Longrightarrow> 
+      "\<And>S'. prop_state st = (P, M, S') \<Longrightarrow>
         prop_state (tl_abs_trail st) = (tl P, if P = [] then tl M else M, S')" and
 
     abs_remove_cls:
@@ -946,6 +1217,9 @@ proof-
        distinct_mset_remove1_All)
 qed
 
+definition wf_prop_queue :: "'st \<Rightarrow> bool" where
+"wf_prop_queue S \<longleftrightarrow> (\<forall>M \<in> set (prop_queue S). is_proped M)"
+
 end
 
 subsubsection \<open>The new Calculus\<close>
@@ -1136,10 +1410,11 @@ definition propagate_and_conflict_one_lit where
 "propagate_and_conflict_one_lit S L =
   update_watched_clauses S L (get_clause_watched_by S L)"
 
+
 lemma raw_conc_conflicting_mark_conflicting:
   assumes "i \<in>\<Down> raw_clauses S" and "raw_conc_conflicting S = None"
   shows "raw_conc_conflicting (mark_conflicting i S) \<noteq> None"
-  by (metis (no_types) \<open>i \<in>\<Down> raw_clauses S\<close> \<open>raw_conc_conflicting S = None\<close> 
+  by (metis (no_types) \<open>i \<in>\<Down> raw_clauses S\<close> \<open>raw_conc_conflicting S = None\<close>
     conc_conflicting_mark_conflicting conflicting_None_iff_raw_conc_conflicting
     conflicting_conc_conflicting option.distinct(1))
 
@@ -1171,7 +1446,7 @@ next
     apply (auto simp: )
 oops
 
-(* TODO: do not flush: should be an optimisation only. *)
+
 function propagate_and_conflict where
 "propagate_and_conflict S =
   (if prop_queue_null S
