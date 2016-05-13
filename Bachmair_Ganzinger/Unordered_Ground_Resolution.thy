@@ -8,7 +8,6 @@ section {* Unordered Ground Resolution *}
 
 theory Unordered_Ground_Resolution
 imports Inference_System Ground_Resolution_Model
-keywords "anders" :: diag
 begin
 
 text {*
@@ -27,7 +26,7 @@ sound and counterexample-reducing.
 locale ground_resolution_without_selection
 
 sublocale ground_resolution_without_selection \<subseteq> ground_resolution_with_selection where S = "\<lambda>_. {#}"
-  apply unfold_locales apply auto done
+  by unfold_locales auto 
 
 context ground_resolution_without_selection
 begin
@@ -178,20 +177,5 @@ system:
 lemmas (in ground_resolution_without_selection) clausal_logic_compact = clausal_logic_compact
 
 
-
-ML \<open>
-val _ =
-  Outer_Syntax.command @{command_keyword anders} "visualize locale dependencies"
-    (Scan.succeed
-      (Toplevel.keep (Toplevel.theory_of #> (fn thy =>
-        Locale.pretty_locale_deps thy
-        |> map (fn {name, parents, body} =>
-          ((name, Graph_Display.content_node (Locale.extern thy name) [body]), parents))
-        |> Graph_Display.display_graph_old))));
-\<close>
-anders
-context ground_resolution_without_selection begin
-locale_deps
-end
 
 end

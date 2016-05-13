@@ -75,8 +75,6 @@ inductive ord_resolve_raw :: "'a clause multiset \<Rightarrow> 'a clause \<Right
    (\<forall>C. C \<in># CC \<longrightarrow> S C = {#}) \<Longrightarrow>
    ord_resolve_raw CC D ((Cf' + D') \<cdot> \<sigma>)"
 
-term mset_set
-
 inductive ord_resolve_raw2 :: "'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve_raw2:
   "length (Cs :: 'a clause list) = n \<Longrightarrow> (* list of  C1, ..., Cn *)
@@ -91,6 +89,25 @@ inductive ord_resolve_raw2 :: "'a clause multiset \<Rightarrow> 'a clause \<Righ
    (\<forall>i < n. \<forall>B \<in> atms_of (Cs ! i \<cdot> \<sigma>). \<not> less_eq_atm (As ! i \<cdot>a \<sigma>) B) \<Longrightarrow>
    (\<forall>C. C \<in># CC \<longrightarrow> S C = {#}) \<Longrightarrow>
    ord_resolve_raw2 CC AsD ((\<Union>#(mset Cs) + D) \<cdot> \<sigma>)"
+
+inductive ord_resolve_rawer3 :: "'a clause list \<Rightarrow> 'a clause list \<Rightarrow> 'a literal list \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  ord_resolve_rawer3: 
+  "length Cs = n \<Longrightarrow> length AAs = n \<Longrightarrow> length As = n \<Longrightarrow>
+   ord_resolve_rawer3 Cs AAs As D ((\<Union>#(mset Cs) + D) \<cdot> \<sigma>)"
+
+inductive ord_resolve_raw3 :: "'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  ord_resolve_raw3: 
+  "CC = mset Cs \<Longrightarrow> (* Defines the list of side premises *)
+   (\<And>C. C \<in># CC \<Longrightarrow> AA C \<subseteq># C) \<Longrightarrow> (* Defines a function taking a side premise and giving its A's *)
+   (\<And>C A. C \<in># CC \<Longrightarrow> A \<in># AA C \<Longrightarrow> is_pos A) \<Longrightarrow> 
+   mset AD \<subseteq># D \<Longrightarrow> (* Defines the set containing the A's of the main premise *)
+   (\<forall>A \<in> set AD. is_neg A) \<Longrightarrow>
+   size CC = length AD \<Longrightarrow>
+   Some \<sigma> = mgu {(atms_of (Cs ! i)) \<union> {atm_of (AD ! i)}|i. i<size CC} \<Longrightarrow>
+   ((S D :: 'a clause) = (mset AD :: 'a clause)) \<or> 
+      ((S D :: 'a clause) = {#} \<and> (AD :: 'a literal list) = [A1::'a literal] \<and> (\<forall>B :: 'a \<in> atms_of (D :: 'a clause). \<not> less_atm ((atm_of A1 ) \<cdot>a \<sigma>) B) ) \<Longrightarrow>
+
+   ord_resolve_raw3 (mset Cs) D ((Cf' + D') \<cdot> \<sigma>)"
 
 inductive ord_resolve :: "'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve:
@@ -296,7 +313,12 @@ lemma ord_resolve_lifting:
   obtains \<sigma> CC' D' E' where
     "is_ground_subst \<sigma>"
     "ord_resolve_raw S CC' D' E'"
-    "CC = CC' \<cdot>cc \<sigma>" "D = D' \<cdot> \<sigma>" "E = E' \<cdot> \<sigma>"
+    "CC = CC' \<cdot>cc \<sigma>" "D = D' \<cdot> \<sigma>" "E = E' \<cdot> \<sigma>" 
+    (* Jeg har lidt på fornemmelsen at det er for meget forlangt at vi bruger den samme substitution 
+       Der kunne jo være to clauses som indeholder den samme variabel, men skal instantiere til to
+       forskellige ting.
+       Kig på lifting lemma i bogen. Og kig på hvor det bliver brugt.
+    *)
     "{D', E'} \<union> set_mset CC' \<subseteq> M"
 using resolve proof (atomize_elim, cases rule: ord_resolve_raw.cases)
   case (ord_resolve_raw Cf' ZZ AA AAA D' \<sigma>)
@@ -324,11 +346,11 @@ using resolve proof (atomize_elim, cases rule: ord_resolve_raw.cases)
 
   let ?Cs = "multiset_linorder.sorted_list_of_multiset CC"
   let ?n = "length ?Cs"
-  def Cs \<equiv> "map pickC ?Cs"
+  define Cs where "Cs \<equiv> map pickC ?Cs"
   then have Cs_M: "\<forall>C \<in> set Cs. C \<in> M" and "length Cs = ?n"
     using pick by auto
 
-  def \<sigma>s \<equiv> "map pick\<sigma> ?Cs"
+  define \<sigma>s where "\<sigma>s \<equiv> map pick\<sigma> ?Cs"
   then have "length \<sigma>s = ?n" and ground_\<sigma>s: "\<forall>\<sigma> \<in> set \<sigma>s. is_ground_subst \<sigma>"
     using pick by auto
 
@@ -361,11 +383,37 @@ using resolve proof (atomize_elim, cases rule: ord_resolve_raw.cases)
   ultimately have "D =  Dp \<cdot> \<rho>D \<cdot> \<tau>" "CC = mset (Cs \<cdot>cls \<rho>s) \<cdot>cc \<tau>"
     using pickD by (simp_all add: subst_cls_list_def subst_cls_mset_def mset_map)
 
-  def CC' \<equiv> "mset Cs"
-  def P \<equiv> "mset \<rho>s"
-  def CC'P \<equiv> "mset (zip Cs \<rho>s)"
-  def CC'\<rho> \<equiv> "mset (Cs \<cdot>cls \<rho>s)"
-  def ZZ\<rho> \<equiv> "ZZ"
+  have "\<exists>SDp\<rho>D. SDp\<rho>D \<subseteq># Dp \<cdot> \<rho>D \<and> SDp\<rho>D \<cdot> \<tau> = S_M S M D" sorry
+  then obtain SDp\<rho>D where "SDp\<rho>D \<subseteq># Dp \<cdot> \<rho>D \<and> SDp\<rho>D \<cdot> \<tau> = S_M S M D" sorry
+
+  define CC' where "CC' \<equiv> mset Cs"
+  define P where "P \<equiv> mset \<rho>s"
+  define CC'P where "CC'P \<equiv> mset (zip Cs \<rho>s)"
+  define CC'\<rho> where "CC'\<rho> \<equiv> mset (Cs \<cdot>cls \<rho>s)"
+  define ZZ\<rho> where "ZZ\<rho> = ZZ"
+  define E' where "E' \<equiv> ((undefined + undefined) \<cdot> undefined) :: 'a literal multiset" (* should be made from Dp \<cdot> \<rho>D and Cs \<cdot> \<rho>s *)
+(* ((?Cf' + ?D') \<cdot> ?\<sigma>)  *)
+  have \<tau>_ground: "is_ground_subst \<tau>" using \<tau> by auto
+  have fo_resolve: "ord_resolve_raw S CC'\<rho> (Dp \<cdot> \<rho>D) E'" 
+    using ord_resolve_raw.intros[of _ _ "image_mset atm_of SDp\<rho>D" _ CC'\<rho> "Dp \<cdot> \<rho>D" _ _ S] sorry
+  have instanceCC: "CC = CC'\<rho> \<cdot>cc \<tau>" using \<open>CC = mset (Cs \<cdot>cls \<rho>s) \<cdot>cc \<tau>\<close> unfolding CC'\<rho>_def by auto
+  have instanceD: "D = (Dp \<cdot> \<rho>D) \<cdot> \<tau>" using \<open>D = Dp \<cdot> \<rho>D \<cdot> \<tau>\<close> by auto
+  have instanceE: "E = E' \<cdot> \<tau>" sorry
+
+  have DinM: "Dp \<cdot> \<rho>D \<in> M" using pickD \<rho>s M_renaming_invariant by auto
+  have E'inM: "E' \<in> M" sorry
+  have C''inM: "set_mset CC'\<rho> \<subseteq> M"
+  proof
+    fix C'\<rho>
+    assume "C'\<rho> \<in># CC'\<rho>"
+    then have "\<exists>i. i < length (Cs \<cdot>cls \<rho>s) \<and> (Cs \<cdot>cls \<rho>s) ! i = C'\<rho>" unfolding CC'\<rho>_def by (simp add: in_set_conv_nth)
+    then have "\<exists>i. i < length (Cs \<cdot>cls \<rho>s) \<and> (Cs ! i) \<cdot> (\<rho>s ! i) = C'\<rho>" unfolding subst_cls_lists_def by auto
+    then show "C'\<rho> \<in> M" using M_renaming_invariant \<rho>s(3) Cs_M by auto
+  qed  
+
+  from \<tau>_ground fo_resolve instanceCC instanceD instanceE DinM E'inM C''inM 
+    show "\<exists>\<sigma> CC' D' E'. is_ground_subst \<sigma> \<and> ord_resolve_raw S CC' D' E' \<and>
+      CC = CC' \<cdot>cc \<sigma> \<and> D = D' \<cdot> \<sigma> \<and> E = E' \<cdot> \<sigma> \<and> {D', E'} \<union> set_mset CC' \<subseteq> M" by auto
 
   show "\<exists>\<sigma> CC' D' E'. is_ground_subst \<sigma> \<and> ord_resolve_raw S CC' D' E' \<and>
     CC = CC' \<cdot>cc \<sigma> \<and> D = D' \<cdot> \<sigma> \<and> E = E' \<cdot> \<sigma> \<and> {D', E'} \<union> set_mset CC' \<subseteq> M"
@@ -653,7 +701,6 @@ text {*
 *}
 
 end
-
 
 
 
