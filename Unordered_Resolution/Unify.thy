@@ -52,7 +52,7 @@ lemma iterm_to_fterm_subt: "(iterm_to_fterm t1) \<cdot>\<^sub>t \<sigma> = iterm
   by (induction t1) auto
 
 lemma unifiert_unifiers:
-  assumes "unifierts \<sigma> ts"
+  assumes "unifier\<^sub>t\<^sub>s \<sigma> ts"
   shows "fsub_to_isub \<sigma> \<in> unifiers (fterm_to_iterm ` ts \<times> fterm_to_iterm ` ts)"
 proof -
   have "\<forall>t1 \<in> fterm_to_iterm ` ts. \<forall>t2 \<in> fterm_to_iterm ` ts. t1 \<cdot> (fsub_to_isub \<sigma>) = t2 \<cdot> (fsub_to_isub \<sigma>)"
@@ -60,7 +60,7 @@ proof -
       fix t1 t2 
       assume t1_p: "t1 \<in> fterm_to_iterm ` ts" assume t2_p: "t2 \<in> fterm_to_iterm ` ts"
       from t1_p t2_p have "iterm_to_fterm t1 \<in> ts \<and> iterm_to_fterm t2 \<in> ts" by auto 
-      then have "(iterm_to_fterm t1) \<cdot>\<^sub>t \<sigma> = (iterm_to_fterm t2) \<cdot>\<^sub>t \<sigma>" using assms unfolding unifierts_def by auto
+      then have "(iterm_to_fterm t1) \<cdot>\<^sub>t \<sigma> = (iterm_to_fterm t2) \<cdot>\<^sub>t \<sigma>" using assms unfolding unifier\<^sub>t\<^sub>s_def by auto
       then have "iterm_to_fterm (t1 \<cdot> (fsub_to_isub \<sigma>)) = iterm_to_fterm (t2 \<cdot> (fsub_to_isub \<sigma>))" using iterm_to_fterm_subt by auto 
       then have "fterm_to_iterm (iterm_to_fterm (t1 \<cdot> (fsub_to_isub \<sigma>))) = fterm_to_iterm (iterm_to_fterm (t2 \<cdot> (fsub_to_isub \<sigma>)))" by auto
       then show "t1 \<cdot> (fsub_to_isub \<sigma>) = t2 \<cdot> (fsub_to_isub \<sigma>)" using fterm_to_iterm_cancel by auto
@@ -85,10 +85,10 @@ lemma fterm_to_iterm_subst: "(fterm_to_iterm t1) \<cdot> \<sigma> =fterm_to_iter
 
 lemma unifiers_unifiert:
   assumes "\<sigma> \<in> unifiers (fterm_to_iterm ` ts \<times> fterm_to_iterm ` ts)"
-  shows "unifierts (isub_to_fsub \<sigma>) ts"
+  shows "unifier\<^sub>t\<^sub>s (isub_to_fsub \<sigma>) ts"
 proof (cases "ts={}")
   assume "ts = {}"
-  then show "unifierts (isub_to_fsub \<sigma>) ts" unfolding unifierts_def by auto
+  then show "unifier\<^sub>t\<^sub>s (isub_to_fsub \<sigma>) ts" unfolding unifier\<^sub>t\<^sub>s_def by auto
 next
   assume "ts \<noteq> {}"
   then obtain t' where t'_p: "t' \<in> ts" by auto
@@ -106,7 +106,7 @@ next
       then show "t1 \<cdot>\<^sub>t isub_to_fsub \<sigma> = t2 \<cdot>\<^sub>t isub_to_fsub \<sigma>" by auto
     qed
   then have "\<forall>t2\<in>ts. t' \<cdot>\<^sub>t isub_to_fsub \<sigma> = t2 \<cdot>\<^sub>t isub_to_fsub \<sigma>" using t'_p by blast            
-  then show "unifierts (isub_to_fsub \<sigma>) ts" unfolding unifierts_def by metis
+  then show "unifier\<^sub>t\<^sub>s (isub_to_fsub \<sigma>) ts" unfolding unifier\<^sub>t\<^sub>s_def by metis
 qed
 
 lemma icomp_fcomp: "\<theta> \<circ>\<^sub>s i = fsub_to_isub ((isub_to_fsub \<theta>) \<cdot> (isub_to_fsub i))"
@@ -117,16 +117,16 @@ proof
 qed
 
 
-lemma is_mgu_mguts: 
+lemma is_mgu_mgu\<^sub>t\<^sub>s: 
   assumes "finite ts"
   assumes "is_imgu \<theta> (fterm_to_iterm ` ts \<times> fterm_to_iterm ` ts)"
-  shows "mguts (isub_to_fsub \<theta>) ts"
+  shows "mgu\<^sub>t\<^sub>s (isub_to_fsub \<theta>) ts"
 proof -
-  from assms have "unifierts (isub_to_fsub \<theta>) ts" unfolding is_imgu_def using unifiers_unifiert by auto
-  moreover have "\<forall>u. unifierts u ts \<longrightarrow> (\<exists>i. u = (isub_to_fsub \<theta>) \<cdot> i)"
+  from assms have "unifier\<^sub>t\<^sub>s (isub_to_fsub \<theta>) ts" unfolding is_imgu_def using unifiers_unifiert by auto
+  moreover have "\<forall>u. unifier\<^sub>t\<^sub>s u ts \<longrightarrow> (\<exists>i. u = (isub_to_fsub \<theta>) \<cdot> i)"
     proof (rule allI; rule impI)
       fix u
-      assume "unifierts u ts"
+      assume "unifier\<^sub>t\<^sub>s u ts"
       then have "fsub_to_isub u \<in> unifiers (fterm_to_iterm ` ts \<times> fterm_to_iterm ` ts)" using unifiert_unifiers by auto
       then have "\<exists>i. fsub_to_isub u = \<theta> \<circ>\<^sub>s i" using assms unfolding is_imgu_def by auto
       then obtain i where "fsub_to_isub u = \<theta> \<circ>\<^sub>s i" by auto 
@@ -135,13 +135,13 @@ proof -
       then have "u = (isub_to_fsub \<theta>) \<cdot> (isub_to_fsub i)" by auto
       then show "\<exists>i. u = (isub_to_fsub \<theta>) \<cdot> i" by metis
     qed
-  ultimately show ?thesis unfolding mguts_def by auto
+  ultimately show ?thesis unfolding mgu\<^sub>t\<^sub>s_def by auto
 qed
 
 lemma unification':
   assumes "finite ts"
-  assumes  "unifierts \<sigma> ts"
-  shows "\<exists>\<theta>. mguts \<theta> ts"
+  assumes  "unifier\<^sub>t\<^sub>s \<sigma> ts"
+  shows "\<exists>\<theta>. mgu\<^sub>t\<^sub>s \<theta> ts"
 proof -
   let ?E = "fterm_to_iterm ` ts \<times> fterm_to_iterm ` ts"
   let ?lE = "set_to_list ?E"
@@ -149,7 +149,7 @@ proof -
   then have "\<exists>\<theta>. is_imgu \<theta> ?E"
     using unify_unification[of "fsub_to_isub \<sigma>" ?lE] assms by (simp add: set_set_to_list)
   then obtain \<theta> where "is_imgu \<theta> ?E" unfolding set_to_list_def by auto
-  then have "mguts (isub_to_fsub \<theta>) ts" using assms is_mgu_mguts by auto
+  then have "mgu\<^sub>t\<^sub>s (isub_to_fsub \<theta>) ts" using assms is_mgu_mgu\<^sub>t\<^sub>s by auto
   then show ?thesis by auto
 qed
 
@@ -167,53 +167,53 @@ lemma literal_to_term_sub: "literal_to_term (l \<cdot>\<^sub>l \<sigma>) = (lite
   by (induction l) auto
 
 
-lemma unifierls_unifierts:
-  assumes "unifierls \<sigma> L"
-  shows "unifierts \<sigma> (literal_to_term `  L)"
+lemma unifier\<^sub>l\<^sub>s_unifier\<^sub>t\<^sub>s:
+  assumes "unifier\<^sub>l\<^sub>s \<sigma> L"
+  shows "unifier\<^sub>t\<^sub>s \<sigma> (literal_to_term `  L)"
 proof -
-  from assms obtain l' where "\<forall>l\<in>L. l \<cdot>\<^sub>l \<sigma> = l'" unfolding unifierls_def by auto
+  from assms obtain l' where "\<forall>l\<in>L. l \<cdot>\<^sub>l \<sigma> = l'" unfolding unifier\<^sub>l\<^sub>s_def by auto
   then have "\<forall>l\<in>L. literal_to_term (l \<cdot>\<^sub>l \<sigma>) = literal_to_term l'" by auto
   then have "\<forall>l\<in>L. (literal_to_term l) \<cdot>\<^sub>t \<sigma> = literal_to_term l'" using literal_to_term_sub by auto
   then have "\<forall>t\<in>literal_to_term ` L. t \<cdot>\<^sub>t \<sigma> = literal_to_term l'" by auto 
-  then show ?thesis unfolding unifierts_def by auto
+  then show ?thesis unfolding unifier\<^sub>t\<^sub>s_def by auto
 qed
 
-lemma unifiert_unifierls:
-  assumes "unifierts \<sigma> (literal_to_term `  L)"
-  shows "unifierls \<sigma> L"
+lemma unifiert_unifier\<^sub>l\<^sub>s:
+  assumes "unifier\<^sub>t\<^sub>s \<sigma> (literal_to_term `  L)"
+  shows "unifier\<^sub>l\<^sub>s \<sigma> L"
 proof -
-  from assms obtain t' where "\<forall>t\<in>literal_to_term ` L. t \<cdot>\<^sub>t \<sigma> = t'" unfolding unifierts_def by auto
+  from assms obtain t' where "\<forall>t\<in>literal_to_term ` L. t \<cdot>\<^sub>t \<sigma> = t'" unfolding unifier\<^sub>t\<^sub>s_def by auto
   then have "\<forall>t\<in>literal_to_term ` L. term_to_literal (t \<cdot>\<^sub>t \<sigma>) = term_to_literal t'"  by auto
   then have "\<forall>l\<in> L. term_to_literal ((literal_to_term l) \<cdot>\<^sub>t \<sigma>) = term_to_literal t'" by auto
   then have "\<forall>l\<in> L. term_to_literal ((literal_to_term (l \<cdot>\<^sub>l \<sigma>))) = term_to_literal t'" using literal_to_term_sub by auto
   then have "\<forall>l\<in> L. l \<cdot>\<^sub>l \<sigma> = term_to_literal t'" by auto 
-  then show ?thesis unfolding unifierls_def by auto
+  then show ?thesis unfolding unifier\<^sub>l\<^sub>s_def by auto
 qed
 
-lemma mguts_mguls:
-  assumes "mguts \<theta> (literal_to_term `  L)"
-  shows "mguls \<theta> L"
+lemma mgu\<^sub>t\<^sub>s_mgu\<^sub>l\<^sub>s:
+  assumes "mgu\<^sub>t\<^sub>s \<theta> (literal_to_term `  L)"
+  shows "mgu\<^sub>l\<^sub>s \<theta> L"
 proof -
-  from assms have "unifierts \<theta> (literal_to_term `  L)" unfolding mguts_def by auto
-  then have "unifierls \<theta> L" using unifiert_unifierls by auto
+  from assms have "unifier\<^sub>t\<^sub>s \<theta> (literal_to_term `  L)" unfolding mgu\<^sub>t\<^sub>s_def by auto
+  then have "unifier\<^sub>l\<^sub>s \<theta> L" using unifiert_unifier\<^sub>l\<^sub>s by auto
   moreover
   {
     fix u
-    assume "unifierls u L"
-    then have "unifierts u (literal_to_term `  L)" using unifierls_unifierts by auto
-    then have "\<exists>i. u = \<theta> \<cdot> i" using assms unfolding mguts_def by auto
+    assume "unifier\<^sub>l\<^sub>s u L"
+    then have "unifier\<^sub>t\<^sub>s u (literal_to_term `  L)" using unifier\<^sub>l\<^sub>s_unifier\<^sub>t\<^sub>s by auto
+    then have "\<exists>i. u = \<theta> \<cdot> i" using assms unfolding mgu\<^sub>t\<^sub>s_def by auto
   }
-  ultimately show ?thesis unfolding mguls_def by auto
+  ultimately show ?thesis unfolding mgu\<^sub>l\<^sub>s_def by auto
 qed
 
 lemma unification:
   assumes fin: "finite L"
-  assumes uni: "unifierls \<sigma> L"
-  shows "\<exists>\<theta>. mguls \<theta> L"
+  assumes uni: "unifier\<^sub>l\<^sub>s \<sigma> L"
+  shows "\<exists>\<theta>. mgu\<^sub>l\<^sub>s \<theta> L"
 proof -
-  from uni have "unifierts \<sigma> (literal_to_term `  L)" using unifierls_unifierts by auto
-  then obtain \<theta> where "mguts \<theta> (literal_to_term `  L)" using fin unification' by blast
-  then have "mguls \<theta> L" using mguts_mguls by auto
+  from uni have "unifier\<^sub>t\<^sub>s \<sigma> (literal_to_term `  L)" using unifier\<^sub>l\<^sub>s_unifier\<^sub>t\<^sub>s by auto
+  then obtain \<theta> where "mgu\<^sub>t\<^sub>s \<theta> (literal_to_term `  L)" using fin unification' by blast
+  then have "mgu\<^sub>l\<^sub>s \<theta> L" using mgu\<^sub>t\<^sub>s_mgu\<^sub>l\<^sub>s by auto
   then show ?thesis by auto
 qed
 

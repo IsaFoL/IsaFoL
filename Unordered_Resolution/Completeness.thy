@@ -4,7 +4,7 @@ section {* Lifting Lemma *}
 
 lemma lifting:
   assumes fin: "finite C \<and> finite D "
-  assumes apart: "varsls C \<inter> varsls D = {}"
+  assumes apart: "vars\<^sub>l\<^sub>s C \<inter> vars\<^sub>l\<^sub>s D = {}"
   assumes inst\<^sub>1: "instance_ofls C' C"
   assumes inst\<^sub>2: "instance_ofls D' D"
   assumes appl: "applicable C' D' L' M' \<sigma>"
@@ -27,14 +27,14 @@ proof -
   then obtain M where M_p: "M \<subseteq> D \<and> M \<cdot>\<^sub>l\<^sub>s \<eta> = M' \<and> (D - M) \<cdot>\<^sub>l\<^sub>s \<eta> = ?D'\<^sub>1" by auto
   let ?D\<^sub>1 = "D - M"
 
-  from appl have "mguls \<sigma> (L' \<union> M'\<^sup>C)" unfolding applicable_def by auto
-  then have "mguls \<sigma> ((L \<cdot>\<^sub>l\<^sub>s \<eta>) \<union> (M \<cdot>\<^sub>l\<^sub>s \<eta>)\<^sup>C)" using L_p M_p by auto
-  then have "mguls \<sigma> ((L  \<union> M\<^sup>C) \<cdot>\<^sub>l\<^sub>s \<eta>)" using compls_subls subls_union by auto
-  then have "unifierls \<sigma> ((L  \<union> M\<^sup>C) \<cdot>\<^sub>l\<^sub>s \<eta>)" unfolding mguls_def by auto
-  then have \<eta>\<sigma>uni: "unifierls (\<eta> \<cdot> \<sigma>) (L  \<union> M\<^sup>C)" 
-    unfolding unifierls_def using composition_conseq2l by auto
-  then obtain \<tau> where \<tau>_p: "mguls \<tau> (L  \<union> M\<^sup>C)" using unification fin by (meson L_p M_p finite_UnI finite_imageI rev_finite_subset) 
-  then obtain \<phi> where \<phi>_p: "\<tau> \<cdot> \<phi> = \<eta> \<cdot> \<sigma>" using \<eta>\<sigma>uni unfolding mguls_def by auto
+  from appl have "mgu\<^sub>l\<^sub>s \<sigma> (L' \<union> M'\<^sup>C)" unfolding applicable_def by auto
+  then have "mgu\<^sub>l\<^sub>s \<sigma> ((L \<cdot>\<^sub>l\<^sub>s \<eta>) \<union> (M \<cdot>\<^sub>l\<^sub>s \<eta>)\<^sup>C)" using L_p M_p by auto
+  then have "mgu\<^sub>l\<^sub>s \<sigma> ((L  \<union> M\<^sup>C) \<cdot>\<^sub>l\<^sub>s \<eta>)" using compls_subls subls_union by auto
+  then have "unifier\<^sub>l\<^sub>s \<sigma> ((L  \<union> M\<^sup>C) \<cdot>\<^sub>l\<^sub>s \<eta>)" unfolding mgu\<^sub>l\<^sub>s_def by auto
+  then have \<eta>\<sigma>uni: "unifier\<^sub>l\<^sub>s (\<eta> \<cdot> \<sigma>) (L  \<union> M\<^sup>C)" 
+    unfolding unifier\<^sub>l\<^sub>s_def using composition_conseq2l by auto
+  then obtain \<tau> where \<tau>_p: "mgu\<^sub>l\<^sub>s \<tau> (L  \<union> M\<^sup>C)" using unification fin by (meson L_p M_p finite_UnI finite_imageI rev_finite_subset) 
+  then obtain \<phi> where \<phi>_p: "\<tau> \<cdot> \<phi> = \<eta> \<cdot> \<sigma>" using \<eta>\<sigma>uni unfolding mgu\<^sub>l\<^sub>s_def by auto
   
   (* Showing that we have the desired resolvent *)
   let ?E = "((C - L)  \<union> (D - M)) \<cdot>\<^sub>l\<^sub>s \<tau>"
@@ -297,7 +297,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
       qed
     
     have "applicable C1' C2' {l1} {l2} Resolution.\<epsilon>" unfolding applicable_def
-      using l1_p l2_p C1'_p groundls_varsls l2cisl1 empty_comp2 unfolding mguls_def unifierls_def by auto
+      using l1_p l2_p C1'_p groundls_vars\<^sub>l\<^sub>s l2cisl1 empty_comp2 unfolding mgu\<^sub>l\<^sub>s_def unifier\<^sub>l\<^sub>s_def by auto
     (* Lifting to get a resolvent of C1 and C2 *)
     then obtain L1 L2 \<tau> where L1L2\<tau>_p: "applicable ?C1 ?C2 L1 L2 \<tau>  \<and> instance_ofls (resolution C1' C2' {l1} {l2} Resolution.\<epsilon>) (resolution ?C1 ?C2 L1 L2 \<tau>)"
       using std_apart_apart C1'_p C2'_p lifting[of ?C1 ?C2 C1' C2' "{l1}" "{l2}" Resolution.\<epsilon>] fin by auto
@@ -366,10 +366,10 @@ qed
 
 theorem completeness:
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
-  assumes unsat: "\<forall>(F::hterm fun_denot) (G::hterm pred_denot) . \<not>evalcs F G Cs"
+  assumes unsat: "\<forall>(F::hterm fun_denot) (G::hterm pred_denot) . \<not>eval\<^sub>c\<^sub>s F G Cs"
   shows "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
 proof -
-  from unsat have "\<forall>(G::hterm pred_denot) . \<not>evalcs HFun G Cs" by auto
+  from unsat have "\<forall>(G::hterm pred_denot) . \<not>eval\<^sub>c\<^sub>s HFun G Cs" by auto
   then obtain T where "closed_tree T Cs" using herbrand assms by blast
   then show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" using completeness' assms by auto
 qed
