@@ -6,7 +6,7 @@ ISABELLE2016_HOME=~/.isabelle/Isabelle2016/browser_info
 
 DESTINATION=./html
 
-all: current doc
+all: current
 
 # build the documentation and the files
 current:
