@@ -266,7 +266,6 @@ lemma cut_trail_wrt_clause_hd_trail_in_or_empty_trail:
   "((\<forall>L \<in>#C. -L \<notin> lits_of_l (trail T)) \<and> trail (cut_trail_wrt_clause C (trail T) T) = [])
     \<or> (-lit_of (hd (trail (cut_trail_wrt_clause C (trail T) T))) \<in># C
        \<and> length (trail (cut_trail_wrt_clause C (trail T) T)) \<ge> 1)"
-  using assms
 proof (induction "trail T" arbitrary:T rule: ann_lit_list_induct)
   case Nil
   then show ?case by simp

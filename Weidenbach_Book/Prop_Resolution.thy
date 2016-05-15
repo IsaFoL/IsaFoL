@@ -1774,9 +1774,8 @@ qed
 
 lemma simplify_terminates:
   "wf {(N', N). finite N \<and> simplify N N'}"
-  using assms apply (rule wfP_if_measure[of finite simplify "\<lambda>N. card N + \<Xi> N"])
+   apply (rule wfP_if_measure[of finite simplify "\<lambda>N. card N + \<Xi> N"])
   using simplify_finite_measure_decrease by blast
-
 
 
 lemma wf_terminates:

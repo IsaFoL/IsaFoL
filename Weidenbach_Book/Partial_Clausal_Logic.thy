@@ -209,7 +209,7 @@ lemma total_over_m_subset:
 
 lemma total_over_m_sum[iff]:
   shows "total_over_m I {C + D} \<longleftrightarrow> (total_over_m I {C} \<and> total_over_m I {D})"
-  using assms unfolding total_over_m_def total_over_set_def by auto
+  unfolding total_over_m_def total_over_set_def by auto
 
 lemma total_over_m_union[iff]:
   "total_over_m I (A \<union> B) \<longleftrightarrow> (total_over_m I A \<and> total_over_m I B)"
