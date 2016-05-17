@@ -7,6 +7,7 @@ subsection \<open>Implementation for 2 Watched-Literals\<close>
 theory CDCL_Two_Watched_Literals_Implementation
 imports CDCL_W_Abstract_State
 begin
+sledgehammer_params[spy]
 text \<open>The difference between an implementation and the core described in the previous sections are
   the following:
   \<^item> the candidates are cached while updating the data structure.
@@ -1058,7 +1059,7 @@ lemma
       "abs_backtrack_lvl (tl_abs_trail S) = abs_backtrack_lvl S" and
     conc_conflicting_tl_abs_trail[simp]:
       "conc_conflicting (tl_abs_trail S) = conc_conflicting S"
-  using tl_abs_trail_prop_state[of S "prop_queue S" "abs_trail S"] assms
+  using tl_abs_trail_prop_state[of S "prop_queue S" "abs_trail S"]
   by (cases "prop_state (tl_abs_trail S)"; auto simp: prop_state_def full_trail_def; fail)+
 
 lemma
@@ -1335,6 +1336,173 @@ sublocale abs_conflict_driven_clause_learning\<^sub>W where
 abbreviation mark_conflicting_and_flush where
 "mark_conflicting_and_flush  i S \<equiv> mark_conflicting i (prop_queue_to_trail S)"
 
+fun is_of_maximum_level :: "'v clause \<Rightarrow> ('v, 'b) ann_lit list \<Rightarrow> bool" where
+"is_of_maximum_level C [] \<longleftrightarrow> True" |
+"is_of_maximum_level C (Decided L' # M) \<longleftrightarrow> -L' \<notin># C" |
+"is_of_maximum_level C (Propagated L' _ # M) \<longleftrightarrow> -L' \<notin># C \<and> is_of_maximum_level C M"
+
+lemma is_of_maximum_level_decomposition:
+  assumes "is_of_maximum_level C M"
+  shows
+    "\<exists> M' L' M''. ((M = M' @ Decided L' # M'' \<and> -L' \<notin># C) \<or> (M = M' \<and> M'' = [])) \<and>
+     (\<forall>m \<in> set M'. \<not>is_decided m) \<and> 
+     uminus ` set_mset C \<inter> lits_of_l M' = {}"
+  using assms
+proof (induction M rule: ann_lit_list_induct)
+  case Nil
+  then show ?case by fastforce
+next
+  case (Decided L M)
+  then have "Decided L # M = [] @ Decided L # M" and
+    "\<forall>m \<in> set []. \<not>is_decided m" and
+    "uminus ` set_mset C \<inter> lits_of_l [] = {}" and
+    "-L \<notin># C"
+    by auto
+  then show ?case
+    by metis
+next
+  case (Propagated L D M) note IH = this(1) and max = this(2)
+  let ?L = "Propagated L D"
+  let ?M = "?L # M"
+  have LC: "-L \<notin># C" and "is_of_maximum_level C M"
+    using max by auto
+  then obtain M' L' M'' where
+    M: "(M = M' @ Decided L' # M'' \<and> -L' \<notin># C) \<or> M = M' \<and> M'' = []" and
+    nm: "\<forall>m\<in>set M'. \<not> is_decided m" and
+    inter: "uminus ` set_mset C \<inter> lits_of_l M' = {}"
+    using IH by auto
+  then have  M: "(?M = (?L # M') @ Decided L' # M'' \<and> -L' \<notin># C) \<or> ?M = ?L # M' \<and> M'' = []" and
+    nm: "\<forall>m\<in>set (?L # M'). \<not> is_decided m" and
+    inter: "uminus ` set_mset C \<inter> lits_of_l (?L # M') = {}"
+    using LC by auto
+  then show ?case
+    by blast
+qed
+
+lemma true_annots_CNot_uminus_incl_iff:
+  "M \<Turnstile>as CNot C \<longleftrightarrow> uminus ` set_mset C \<subseteq> lits_of_l M"
+  by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
+
+lemma get_maximum_level_skip_Decide_first:
+  assumes "atm_of L \<notin> atms_of D" and "atms_of D \<subseteq> atm_of ` lits_of_l M"
+  shows "get_maximum_level (Decided L # M) D = get_maximum_level M D"
+  using assms unfolding get_maximum_level_def atms_of_def
+    atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+  by (smt ann_lit.sel(1) assms(1) atms_of_def get_level_skip_beginning image_iff multiset.map_cong0)
+
+text \<open>The following lemma gives the relation between @{term is_of_maximum_level} and the inequality 
+  on the level. The clause @{term C} is expected to be instantiated by a clause like
+  @{term "remove1_mset L (mset_ccls E)"}, where @{term E} is the conflicting clause. \<close>
+lemma
+  fixes M :: "('v, 'b) ann_lits" and L :: "'v literal" and D :: 'b
+  defines LM[simp]: "LM \<equiv> Propagated L D # M"
+  assumes 
+    n_d: "no_dup LM" and
+    max: "is_of_maximum_level C M" and
+    M_C: "LM \<Turnstile>as CNot C" and
+    L_C: "-L \<notin># C"
+  shows 
+    "get_maximum_level (Propagated L D # M) C < count_decided (Propagated L D # M) \<or> C = {#}"
+proof -
+  consider 
+    (no_decide) "\<forall>m\<in>set M. \<not> is_decided m" and 
+      "uminus ` set_mset C \<inter> lits_of_l M = {}" |
+    (decide) M' L' M'' where "M = M' @ Decided L' # M''" and "\<forall>m\<in>set M'. \<not> is_decided m" and
+      "-L' \<notin># C" and "uminus ` set_mset C \<inter> lits_of_l M' = {}"
+    using is_of_maximum_level_decomposition[OF max] by auto
+  then show ?thesis
+    proof cases
+      case no_decide note nm = this(1) and inter = this(2)
+      have "C = {#}"
+        using inter M_C L_C by (cases C) (auto simp: true_annots_true_cls true_clss_def)
+      then show ?thesis by blast
+    next
+      case (decide M' L' M'') note M = this(1) and nm = this(2) and L' = this(3) and inter = this(4)
+      have uL_M: "-L \<notin> lits_of_l (Propagated L D # M)"
+        using n_d by (auto simp: lits_of_def uminus_lit_swap)
+      then have atm_L_C: "atm_of L \<notin> atms_of C"
+        using M_C unfolding LM by (metis L_C atm_of_in_atm_of_set_in_uminus atms_of_def 
+          true_annots_true_cls_def_iff_negation_in_model)
+      have "atm_of xa \<in> atms_of C \<Longrightarrow> atm_of xa \<noteq> atm_of L" for xa :: "'v literal"
+        using M_C uL_M L_C
+        unfolding true_annots_true_cls_def_iff_negation_in_model lits_of_def atms_of_def
+        by (fastforce simp: atm_of_eq_atm_of uminus_lit_swap)
+      have "atms_of C \<inter> atm_of ` lits_of_l M' = {}"
+        proof (rule ccontr)
+          assume "\<not> ?thesis"
+          then obtain a where
+            a_C: "a \<in> atms_of C" and
+            a_M': "a \<in> atm_of ` lits_of_l M'"
+            by auto
+          then obtain K where K_C: "K \<in># C" and a: "a = atm_of K"
+            by (auto simp: atms_of_def)
+          have "K \<noteq> -L"
+            using L_C \<open>K \<in># C\<close> by blast
+          then have "-K \<in> lits_of_l M"
+            using a_C M_C \<open>K \<in># C\<close> unfolding a 
+            by (auto simp: uminus_lit_swap atm_of_eq_atm_of atms_of_def lits_of_def
+              true_annots_true_cls_def_iff_negation_in_model)
+          then have "-K \<in> lits_of_l M'"
+            using n_d a_M' unfolding a by (fastforce simp: M atms_of_def lits_of_def
+              uminus_lit_swap)
+          moreover have "-K \<in> uminus ` set_mset C"
+            using K_C by auto
+          ultimately show False using inter by fast
+        qed
+      then have atms_C_M': "\<forall>x\<in>atms_of C. x \<notin> atm_of ` lits_of_l M'"
+        by blast
+      have False if "L' \<in># C"
+        proof -
+          have "-L' \<in> lits_of_l M"
+            using that M_C L_C unfolding true_annots_true_cls_def_iff_negation_in_model by auto
+          then show False
+            using n_d by (metis LM M ann_lit.sel(1) consistent_interp_def distinct.simps(2) 
+              distinct_consistent_interp image_iff in_set_conv_decomp list.simps(9) lits_of_def)
+        qed    
+      then have atm_L'_C: "atm_of L' \<notin> atms_of C"
+        using L' by (auto simp: atms_of_def atm_of_eq_atm_of)
+      
+      have atms_C_M'': "atms_of C \<subseteq> atm_of ` lits_of_l M''"
+        proof
+          fix a
+          assume a_C: "a \<in> atms_of C"
+          then obtain K where K_C: "K \<in># C" and a: "a = atm_of K"
+            by (auto simp: atms_of_def)
+          have "K \<noteq> -L"
+            using L_C \<open>K \<in># C\<close> by blast
+          then have "-K \<in> lits_of_l M"
+            using a_C M_C \<open>K \<in># C\<close> unfolding a 
+            by (auto simp: uminus_lit_swap atm_of_eq_atm_of atms_of_def lits_of_def
+              true_annots_true_cls_def_iff_negation_in_model)
+          then have "atm_of (-K) \<in> atm_of ` lits_of_l M"
+            by fast
+          then have "atm_of K \<in> atm_of ` lits_of_l M"
+            by simp
+          then show "a \<in> atm_of ` lits_of_l M''"
+            using atms_C_M'  a_C atm_L'_C  unfolding a M by auto
+        qed
+      have max_C: "get_maximum_level (Propagated L D # M' @ Decided L' # M'') C =
+        get_maximum_level M'' C"
+        apply (subst get_maximum_level_skip_first)
+          using atm_L_C apply simp
+        apply (subst get_maximum_level_skip_beginning)
+          using atms_C_M' apply simp
+        apply (subst get_maximum_level_skip_Decide_first)
+          using atm_L'_C apply simp
+         using atms_C_M'' apply simp
+        by (rule refl)
+      show ?thesis 
+        using count_decided_ge_get_maximum_level[of M'' "C"] by (auto simp: M nm max_C)
+    qed
+qed
+
+function skip_or_resolve where
+"skip_or_resolve S =
+  (case full_trail S of
+    [] \<Rightarrow> S
+  | Decided L # _ \<Rightarrow> S
+  | Propagated L C # _ \<Rightarrow> S)"
+oops
 text \<open>When we update a clause with respect to the literal L, there are several cases:
   \<^enum> the only literal is L: this is a conflict.
   \<^enum> if the other watched literal is true, there is noting to do.
