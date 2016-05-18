@@ -1345,7 +1345,7 @@ lemma is_of_maximum_level_decomposition:
   assumes "is_of_maximum_level C M"
   shows
     "\<exists> M' L' M''. ((M = M' @ Decided L' # M'' \<and> -L' \<notin># C) \<or> (M = M' \<and> M'' = [])) \<and>
-     (\<forall>m \<in> set M'. \<not>is_decided m) \<and> 
+     (\<forall>m \<in> set M'. \<not>is_decided m) \<and>
      uminus ` set_mset C \<inter> lits_of_l M' = {}"
   using assms
 proof (induction M rule: ann_lit_list_induct)
@@ -1390,22 +1390,22 @@ lemma get_maximum_level_skip_Decide_first:
     atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
   by (smt ann_lit.sel(1) assms(1) atms_of_def get_level_skip_beginning image_iff multiset.map_cong0)
 
-text \<open>The following lemma gives the relation between @{term is_of_maximum_level} and the inequality 
+text \<open>The following lemma gives the relation between @{term is_of_maximum_level} and the inequality
   on the level. The clause @{term C} is expected to be instantiated by a clause like
   @{term "remove1_mset L (mset_ccls E)"}, where @{term E} is the conflicting clause. \<close>
 lemma
   fixes M :: "('v, 'b) ann_lits" and L :: "'v literal" and D :: 'b
   defines LM[simp]: "LM \<equiv> Propagated L D # M"
-  assumes 
+  assumes
     n_d: "no_dup LM" and
     max: "is_of_maximum_level C M" and
     M_C: "LM \<Turnstile>as CNot C" and
     L_C: "-L \<notin># C"
-  shows 
+  shows
     "get_maximum_level (Propagated L D # M) C < count_decided (Propagated L D # M) \<or> C = {#}"
 proof -
-  consider 
-    (no_decide) "\<forall>m\<in>set M. \<not> is_decided m" and 
+  consider
+    (no_decide) "\<forall>m\<in>set M. \<not> is_decided m" and
       "uminus ` set_mset C \<inter> lits_of_l M = {}" |
     (decide) M' L' M'' where "M = M' @ Decided L' # M''" and "\<forall>m\<in>set M'. \<not> is_decided m" and
       "-L' \<notin># C" and "uminus ` set_mset C \<inter> lits_of_l M' = {}"
@@ -1421,7 +1421,7 @@ proof -
       have uL_M: "-L \<notin> lits_of_l (Propagated L D # M)"
         using n_d by (auto simp: lits_of_def uminus_lit_swap)
       then have atm_L_C: "atm_of L \<notin> atms_of C"
-        using M_C unfolding LM by (metis L_C atm_of_in_atm_of_set_in_uminus atms_of_def 
+        using M_C unfolding LM by (metis L_C atm_of_in_atm_of_set_in_uminus atms_of_def
           true_annots_true_cls_def_iff_negation_in_model)
       have "atm_of xa \<in> atms_of C \<Longrightarrow> atm_of xa \<noteq> atm_of L" for xa :: "'v literal"
         using M_C uL_M L_C
@@ -1439,7 +1439,7 @@ proof -
           have "K \<noteq> -L"
             using L_C \<open>K \<in># C\<close> by blast
           then have "-K \<in> lits_of_l M"
-            using a_C M_C \<open>K \<in># C\<close> unfolding a 
+            using a_C M_C \<open>K \<in># C\<close> unfolding a
             by (auto simp: uminus_lit_swap atm_of_eq_atm_of atms_of_def lits_of_def
               true_annots_true_cls_def_iff_negation_in_model)
           then have "-K \<in> lits_of_l M'"
@@ -1456,12 +1456,13 @@ proof -
           have "-L' \<in> lits_of_l M"
             using that M_C L_C unfolding true_annots_true_cls_def_iff_negation_in_model by auto
           then show False
-            using n_d by (metis LM M ann_lit.sel(1) consistent_interp_def distinct.simps(2) 
-              distinct_consistent_interp image_iff in_set_conv_decomp list.simps(9) lits_of_def)
-        qed    
+            using n_d unfolding LM by (metis M ann_lit.sel(1) consistent_interp_def image_iff
+              distinct.simps(2)  distinct_consistent_interp in_set_conv_decomp list.simps(9)
+              lits_of_def)
+        qed
       then have atm_L'_C: "atm_of L' \<notin> atms_of C"
         using L' by (auto simp: atms_of_def atm_of_eq_atm_of)
-      
+
       have atms_C_M'': "atms_of C \<subseteq> atm_of ` lits_of_l M''"
         proof
           fix a
@@ -1471,7 +1472,7 @@ proof -
           have "K \<noteq> -L"
             using L_C \<open>K \<in># C\<close> by blast
           then have "-K \<in> lits_of_l M"
-            using a_C M_C \<open>K \<in># C\<close> unfolding a 
+            using a_C M_C \<open>K \<in># C\<close> unfolding a
             by (auto simp: uminus_lit_swap atm_of_eq_atm_of atms_of_def lits_of_def
               true_annots_true_cls_def_iff_negation_in_model)
           then have "atm_of (-K) \<in> atm_of ` lits_of_l M"
@@ -1491,18 +1492,27 @@ proof -
           using atm_L'_C apply simp
          using atms_C_M'' apply simp
         by (rule refl)
-      show ?thesis 
+      show ?thesis
         using count_decided_ge_get_maximum_level[of M'' "C"] by (auto simp: M nm max_C)
     qed
 qed
 
 function skip_or_resolve where
 "skip_or_resolve S =
-  (case full_trail S of
-    [] \<Rightarrow> S
-  | Decided L # _ \<Rightarrow> S
-  | Propagated L C # _ \<Rightarrow> S)"
-oops
+  (if full_trail S = [] then S
+  else
+    case hd_raw_abs_trail S of
+      Decided L \<Rightarrow> S
+    | Propagated L C \<Rightarrow>
+      if L \<in># mset_ccls (the (raw_conc_conflicting S))
+      then skip_or_resolve (tl_abs_trail (resolve_abs_conflicting L (raw_clauses S \<Down> C) S))
+      else skip_or_resolve (tl_abs_trail S))"
+  by auto
+termination
+  apply (relation "measure (\<lambda>S. length (full_trail S))")
+  apply auto
+  oops
+
 text \<open>When we update a clause with respect to the literal L, there are several cases:
   \<^enum> the only literal is L: this is a conflict.
   \<^enum> if the other watched literal is true, there is noting to do.
