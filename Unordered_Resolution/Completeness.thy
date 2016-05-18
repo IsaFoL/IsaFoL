@@ -102,7 +102,7 @@ proof (cases l1)
   case (Pos p ts)
   let ?i1 = "nat_from_fatom (p, ts)"
 
-  from assms have gr: "groundl l1" unfolding falsifies\<^sub>l_def by auto
+  from assms have gr: "ground\<^sub>l l1" unfolding falsifies\<^sub>l_def by auto
   then have Neg: "l2 = Neg p ts" using comp Pos by (cases l2) auto
 
   from falsif have "falsifies\<^sub>l G l1" using l1C1' by auto
@@ -118,7 +118,7 @@ next
   case (Neg p ts)
   let ?i1 = "nat_from_fatom (p,ts)"
 
-  from assms have gr: "groundl l1" unfolding falsifies\<^sub>l_def by auto
+  from assms have gr: "ground\<^sub>l l1" unfolding falsifies\<^sub>l_def by auto
   then have Pos: "l2 = Pos p ts" using comp Neg by (cases l2) auto
 
   from falsif have "falsifies\<^sub>l G l1" using l1C1' by auto
@@ -145,15 +145,15 @@ lemma number_lemma:
 using assms less_Suc_eq by auto
 
 lemma other_falsified:
-  assumes C1'_p: "groundls C1' \<and> falsifies\<^sub>g (B@[d]) C1'" 
+  assumes C1'_p: "ground\<^sub>l\<^sub>s C1' \<and> falsifies\<^sub>g (B@[d]) C1'" 
   assumes l_p: "l \<in> C1'" "nat_from_fatom (get_atom l) = length B"
   assumes other: "lo \<in> C1'" "lo \<noteq> l"
   shows "falsifies\<^sub>l B lo"
 proof -
   let ?i = "nat_from_fatom (get_atom lo)"
-  have ground_l2: "groundl l" using l_p C1'_p by auto
+  have ground_l2: "ground\<^sub>l l" using l_p C1'_p by auto
   (* They are, of course, also ground *)
-  have ground_lo: "groundl lo" using C1'_p other by auto
+  have ground_lo: "ground\<^sub>l lo" using C1'_p other by auto
   from C1'_p have "falsifies\<^sub>g (B@[d]) (C1' - {l})" by auto
   (* And indeed, falsified by B2 *)
   then have loB2: "falsifies\<^sub>l (B@[d]) lo" using other by auto
@@ -166,7 +166,7 @@ proof -
   have lc_lo: "lo \<noteq> l\<^sup>c" using C1'_p l_p other complements_do_not_falsify[of lo C1' l "(B@[d])"] by auto
   from l_lo lc_lo have "get_atom l \<noteq> get_atom lo" using sign_comp_atom by metis
   then have "nat_from_fatom (get_atom lo) \<noteq> nat_from_fatom (get_atom l)" 
-    using nat_from_fatom_bij ground_lo ground_l2 groundl_ground_fatom 
+    using nat_from_fatom_bij ground_lo ground_l2 ground\<^sub>l_ground_fatom 
     unfolding bij_betw_def inj_on_def by metis
   (* Therefore they have different numbers *)
   then have "nat_from_fatom (get_atom lo) \<noteq> length B" using l_p by auto
@@ -211,8 +211,8 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     obtain C2o where C2o_p: "C2o \<in> Cs \<and> falsifies\<^sub>c ?B2 C2o" using b_p clo unfolding closed_tree_def by metis
 
     (* Standardizing the clauses apart *)
-    let ?C1 = "std1 C1o"
-    let ?C2 = "std2 C2o"
+    let ?C1 = "std\<^sub>1 C1o"
+    let ?C2 = "std\<^sub>2 C2o"
     have C1_p: "falsifies\<^sub>c ?B1 ?C1" using std_apart_falsifies1 C1o_p by auto
     have C2_p: "falsifies\<^sub>c ?B2 ?C2" using std_apart_falsifies2 C2o_p by auto
 
@@ -222,7 +222,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     (* Finding the falsifying ground instance C1' of C1, and proving properties about it *)
     
     (* C1' is falsified by B1: *)
-    from C1_p  obtain C1' where C1'_p: "groundls C1' \<and> instance_of\<^sub>l\<^sub>s C1' ?C1 \<and> falsifies\<^sub>g ?B1 C1'" by metis
+    from C1_p  obtain C1' where C1'_p: "ground\<^sub>l\<^sub>s C1' \<and> instance_of\<^sub>l\<^sub>s C1' ?C1 \<and> falsifies\<^sub>g ?B1 C1'" by metis
 
     have "\<not>falsifies\<^sub>c B C1o" using C1o_p b_p clo unfolding closed_tree_def by metis
     then have "\<not>falsifies\<^sub>c B ?C1" using std_apart_falsifies1 using prod.exhaust_sel by blast
@@ -234,7 +234,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     let ?i = "nat_from_fatom (get_atom l1)"
 
     (* l1 is ofcourse ground *)
-    have ground_l1: "groundl l1" using C1'_p l1_p by auto
+    have ground_l1: "ground\<^sub>l l1" using C1'_p l1_p by auto
 
     from l1_p have "\<not>(?i < length B \<and> B ! ?i = (\<not> sign l1))" using ground_l1 unfolding falsifies\<^sub>l_def by meson
     then have "\<not>(?i < length B \<and> (B@[True]) ! ?i = (\<not> sign l1))" by (metis nth_append) (* Not falsified by B *)
@@ -252,7 +252,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
       using other_falsified by blast
 
     (* We do the same exercise for C2, C2', B2, l2 *)
-    from C2_p obtain C2' where C2'_p: "groundls C2' \<and> instance_of\<^sub>l\<^sub>s C2' ?C2 \<and> falsifies\<^sub>g ?B2 C2'" by metis
+    from C2_p obtain C2' where C2'_p: "ground\<^sub>l\<^sub>s C2' \<and> instance_of\<^sub>l\<^sub>s C2' ?C2 \<and> falsifies\<^sub>g ?B2 C2'" by metis
 
     have "\<not>falsifies\<^sub>c B C2o" using C2o_p b_p clo unfolding closed_tree_def by metis
     then have "\<not>falsifies\<^sub>c B ?C2" using std_apart_falsifies2 using prod.exhaust_sel by blast
@@ -262,7 +262,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     from C2'_p l_B obtain l2 where l2_p: "l2 \<in> C2' \<and> falsifies\<^sub>l (B@[False]) l2 \<and> \<not>(falsifies\<^sub>l B l2)" by auto
     let ?i = "nat_from_fatom (get_atom l2)"
 
-    have ground_l2: "groundl l2" using C2'_p l2_p by auto
+    have ground_l2: "ground\<^sub>l l2" using C2'_p l2_p by auto
 
     from l2_p have "\<not>(?i < length B \<and> B ! ?i = (\<not> sign l2))" using ground_l2 unfolding falsifies\<^sub>l_def by meson
     then have "\<not>(?i < length B \<and> (B@[False]) ! ?i = (\<not> sign l2))" by (metis nth_append) (* Not falsified by B *)
@@ -283,13 +283,13 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     have l2cisl1: "l2\<^sup>c = l1" (* Could perhaps be a lemma *)
       proof -
         from l1_no l2_no ground_l1 ground_l2 have "get_atom l1 = get_atom l2"
-              using nat_from_fatom_bij groundl_ground_fatom 
+              using nat_from_fatom_bij ground\<^sub>l_ground_fatom 
               unfolding bij_betw_def inj_on_def by metis
         then show "l2\<^sup>c = l1" using l1_sign l2_sign using sign_comp_atom by metis 
       qed
     
     have "applicable C1' C2' {l1} {l2} Resolution.\<epsilon>" unfolding applicable_def
-      using l1_p l2_p C1'_p groundls_vars\<^sub>l\<^sub>s l2cisl1 empty_comp2 unfolding mgu\<^sub>l\<^sub>s_def unifier\<^sub>l\<^sub>s_def by auto
+      using l1_p l2_p C1'_p ground\<^sub>l\<^sub>s_vars\<^sub>l\<^sub>s l2cisl1 empty_comp2 unfolding mgu\<^sub>l\<^sub>s_def unifier\<^sub>l\<^sub>s_def by auto
     (* Lifting to get a resolvent of C1 and C2 *)
     then obtain L1 L2 \<tau> where L1L2\<tau>_p: "applicable ?C1 ?C2 L1 L2 \<tau>  \<and> instance_of\<^sub>l\<^sub>s (resolution C1' C2' {l1} {l2} Resolution.\<epsilon>) (resolution ?C1 ?C2 L1 L2 \<tau>)"
       using std_apart_apart C1'_p C2'_p lifting[of ?C1 ?C2 C1' C2' "{l1}" "{l2}" Resolution.\<epsilon>] fin by auto
