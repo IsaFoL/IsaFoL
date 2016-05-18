@@ -647,7 +647,7 @@ section {* Infinite Paths *}
 abbreviation wf_infpath :: "(nat \<Rightarrow> 'a list) \<Rightarrow> bool" where (* Previously called list_chain *)
   "wf_infpath f \<equiv> (f 0 = []) \<and> (\<forall>n. \<exists>a. f (Suc n) = (f n) @ [a])"
 
-lemma chain_length: "wf_infpath f \<Longrightarrow> length (f n) = n"
+lemma infpath_length: "wf_infpath f \<Longrightarrow> length (f n) = n"
 proof (induction n)
   case 0 then show ?case by auto
 next

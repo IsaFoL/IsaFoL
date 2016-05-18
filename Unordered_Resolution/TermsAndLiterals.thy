@@ -25,24 +25,24 @@ fun get_atom :: "'t literal \<Rightarrow> 't atom" where
 
 subsection {* Ground *}
 
-fun ground :: "fterm \<Rightarrow> bool" where
-  "ground (Var x) \<longleftrightarrow> False"
-| "ground (Fun f ts) \<longleftrightarrow> (\<forall>t \<in> set ts. ground t)"
+fun ground\<^sub>t :: "fterm \<Rightarrow> bool" where
+  "ground\<^sub>t (Var x) \<longleftrightarrow> False"
+| "ground\<^sub>t (Fun f ts) \<longleftrightarrow> (\<forall>t \<in> set ts. ground\<^sub>t t)"
 
-abbreviation grounds :: "fterm list \<Rightarrow> bool" where
-  "grounds ts \<equiv> (\<forall>t \<in> set ts. ground t)"
+abbreviation ground\<^sub>t\<^sub>s :: "fterm list \<Rightarrow> bool" where
+  "ground\<^sub>t\<^sub>s ts \<equiv> (\<forall>t \<in> set ts. ground\<^sub>t t)"
 
-abbreviation groundl :: "fterm literal \<Rightarrow> bool" where
-  "groundl l \<equiv> grounds (get_terms l)"
+abbreviation ground\<^sub>l :: "fterm literal \<Rightarrow> bool" where
+  "ground\<^sub>l l \<equiv> ground\<^sub>t\<^sub>s (get_terms l)"
 
-abbreviation groundls :: "fterm literal set \<Rightarrow> bool" where
-  "groundls C \<equiv> (\<forall>l \<in> C. groundl l)"
+abbreviation ground\<^sub>l\<^sub>s :: "fterm literal set \<Rightarrow> bool" where
+  "ground\<^sub>l\<^sub>s C \<equiv> (\<forall>l \<in> C. ground\<^sub>l l)"
 
 
 definition ground_fatoms :: "fterm atom set" where
-  "ground_fatoms \<equiv> {a. grounds (snd a)}"
+  "ground_fatoms \<equiv> {a. ground\<^sub>t\<^sub>s (snd a)}"
 
-lemma groundl_ground_fatom: "groundl l \<Longrightarrow> get_atom l \<in> ground_fatoms"
+lemma ground\<^sub>l_ground_fatom: "ground\<^sub>l l \<Longrightarrow> get_atom l \<in> ground_fatoms"
   unfolding ground_fatoms_def by (induction l) auto
 
 subsection {* Auxiliary *}
@@ -91,16 +91,16 @@ lemma [simp]: "hterm_of_fterm (fterm_of_hterm t) = t"
 lemma [simp]: "hterms_of_fterms (fterms_of_hterms ts) = ts" 
   unfolding hterms_of_fterms_def fterms_of_hterms_def by (simp add: map_idI)
 
-lemma [simp]: "ground t \<Longrightarrow> fterm_of_hterm (hterm_of_fterm t) = t" 
+lemma [simp]: "ground\<^sub>t t \<Longrightarrow> fterm_of_hterm (hterm_of_fterm t) = t" 
   by (induction t) (auto simp add: map_idI)
 
-lemma [simp]: "grounds ts \<Longrightarrow>fterms_of_hterms (hterms_of_fterms ts) = ts" 
+lemma [simp]: "ground\<^sub>t\<^sub>s ts \<Longrightarrow>fterms_of_hterms (hterms_of_fterms ts) = ts" 
   unfolding fterms_of_hterms_def hterms_of_fterms_def by (simp add: map_idI)
 
-lemma ground_fterm_of_hterm:  "ground (fterm_of_hterm t)"
+lemma ground_fterm_of_hterm:  "ground\<^sub>t (fterm_of_hterm t)"
   by (induction t) (auto simp add: map_idI)
 
-lemma ground_fterms_of_hterms: "grounds (fterms_of_hterms ts)"
+lemma ground_fterms_of_hterms: "ground\<^sub>t\<^sub>s (fterms_of_hterms ts)"
   unfolding fterms_of_hterms_def using ground_fterm_of_hterm by auto
 
 subsubsection {* Converstions literals and herbrand literals *}
@@ -113,37 +113,37 @@ fun hlit_of_flit :: "fterm literal \<Rightarrow> hterm literal" where
   "hlit_of_flit (Pos p ts) = Pos p (hterms_of_fterms ts)"
 | "hlit_of_flit (Neg p ts) = Neg p (hterms_of_fterms ts)"
 
-lemma ground_flit_of_hlit: "groundl (flit_of_hlit l)" 
+lemma ground_flit_of_hlit: "ground\<^sub>l (flit_of_hlit l)" 
   by  (induction l)  (simp add: ground_fterms_of_hterms)+
 
 theorem hlit_of_flit_flit_of_hlit [simp]: "hlit_of_flit (flit_of_hlit l) =  l" by (cases l) auto
 
-theorem flit_of_hlit_hlit_of_flit [simp]: "groundl l \<Longrightarrow> flit_of_hlit (hlit_of_flit l) = l" by (cases l) auto
+theorem flit_of_hlit_hlit_of_flit [simp]: "ground\<^sub>l l \<Longrightarrow> flit_of_hlit (hlit_of_flit l) = l" by (cases l) auto
 
 lemma sign_flit_of_hlit: "sign (flit_of_hlit l) = sign l" by (cases l) auto
 
-lemma hlit_of_flit_bij: "bij_betw hlit_of_flit {l. groundl l} UNIV" 
+lemma hlit_of_flit_bij: "bij_betw hlit_of_flit {l. ground\<^sub>l l} UNIV" 
  unfolding bij_betw_def
 proof
-  show "inj_on hlit_of_flit {l. groundl l}" using inj_on_inverseI flit_of_hlit_hlit_of_flit 
+  show "inj_on hlit_of_flit {l. ground\<^sub>l l}" using inj_on_inverseI flit_of_hlit_hlit_of_flit 
     by (metis (mono_tags, lifting) mem_Collect_eq) 
 next 
-  have "\<forall>l. \<exists>l'. groundl l' \<and> l = hlit_of_flit l'" 
+  have "\<forall>l. \<exists>l'. ground\<^sub>l l' \<and> l = hlit_of_flit l'" 
     using ground_flit_of_hlit hlit_of_flit_flit_of_hlit by metis
-  then show "hlit_of_flit ` {l. groundl l} = UNIV" by auto
+  then show "hlit_of_flit ` {l. ground\<^sub>l l} = UNIV" by auto
 qed
 
-lemma flit_of_hlit_bij: "bij_betw flit_of_hlit UNIV {l. groundl l}" 
+lemma flit_of_hlit_bij: "bij_betw flit_of_hlit UNIV {l. ground\<^sub>l l}" 
  unfolding bij_betw_def inj_on_def
 proof
   show "\<forall>x\<in>UNIV. \<forall>y\<in>UNIV. flit_of_hlit x = flit_of_hlit y \<longrightarrow> x = y" 
     using ground_flit_of_hlit hlit_of_flit_flit_of_hlit by metis
 next
-  have "\<forall>l. groundl l \<longrightarrow> (l = flit_of_hlit (hlit_of_flit l))" using hlit_of_flit_flit_of_hlit by auto
-  then have "{l. groundl l}  \<subseteq> flit_of_hlit ` UNIV " by blast
+  have "\<forall>l. ground\<^sub>l l \<longrightarrow> (l = flit_of_hlit (hlit_of_flit l))" using hlit_of_flit_flit_of_hlit by auto
+  then have "{l. ground\<^sub>l l}  \<subseteq> flit_of_hlit ` UNIV " by blast
   moreover
-  have "\<forall>l. groundl (flit_of_hlit l)" using ground_flit_of_hlit by auto
-  ultimately show "flit_of_hlit ` UNIV = {l. groundl l}" using hlit_of_flit_flit_of_hlit ground_flit_of_hlit by auto
+  have "\<forall>l. ground\<^sub>l (flit_of_hlit l)" using ground_flit_of_hlit by auto
+  ultimately show "flit_of_hlit ` UNIV = {l. ground\<^sub>l l}" using hlit_of_flit_flit_of_hlit ground_flit_of_hlit by auto
 qed
 
 subsubsection {* Convertions atoms and herbrand atoms *}
@@ -154,12 +154,12 @@ fun fatom_of_hatom :: "hterm atom \<Rightarrow> fterm atom" where
 fun hatom_of_fatom :: "fterm atom \<Rightarrow> hterm atom" where
   "hatom_of_fatom (p, ts) = (p, hterms_of_fterms ts)"
 
-lemma ground_fatom_of_hatom: "grounds (snd (fatom_of_hatom a))" 
+lemma ground_fatom_of_hatom: "ground\<^sub>t\<^sub>s (snd (fatom_of_hatom a))" 
   by  (induction a) (simp add: ground_fterms_of_hterms)+
 
 theorem hatom_of_fatom_fatom_of_hatom [simp]: "hatom_of_fatom (fatom_of_hatom l) =  l" by (cases l) auto
 
-theorem fatom_of_hatom_hatom_of_fatom [simp]: "grounds (snd l) \<Longrightarrow> fatom_of_hatom (hatom_of_fatom l) = l" by (cases l) auto
+theorem fatom_of_hatom_hatom_of_fatom [simp]: "ground\<^sub>t\<^sub>s (snd l) \<Longrightarrow> fatom_of_hatom (hatom_of_fatom l) = l" by (cases l) auto
 
 lemma hatom_of_fatom_bij: "bij_betw hatom_of_fatom ground_fatoms UNIV" 
  unfolding bij_betw_def
@@ -167,7 +167,7 @@ proof
   show "inj_on hatom_of_fatom ground_fatoms" using inj_on_inverseI fatom_of_hatom_hatom_of_fatom unfolding ground_fatoms_def 
     by (metis (mono_tags, lifting) mem_Collect_eq) 
 next 
-  have "\<forall>a. \<exists>a'. grounds (snd a') \<and> a = hatom_of_fatom a'" 
+  have "\<forall>a. \<exists>a'. ground\<^sub>t\<^sub>s (snd a') \<and> a = hatom_of_fatom a'" 
     using ground_fatom_of_hatom hatom_of_fatom_fatom_of_hatom by metis
   then show "hatom_of_fatom ` ground_fatoms = UNIV" unfolding ground_fatoms_def by blast
 qed
@@ -178,10 +178,10 @@ proof
   show "\<forall>x\<in>UNIV. \<forall>y\<in>UNIV. fatom_of_hatom x = fatom_of_hatom y \<longrightarrow> x = y" 
     using ground_fatom_of_hatom hatom_of_fatom_fatom_of_hatom by metis
 next
-  have "\<forall>a. grounds (snd a) \<longrightarrow> (a = fatom_of_hatom (hatom_of_fatom a))" using hatom_of_fatom_fatom_of_hatom by auto
+  have "\<forall>a. ground\<^sub>t\<^sub>s (snd a) \<longrightarrow> (a = fatom_of_hatom (hatom_of_fatom a))" using hatom_of_fatom_fatom_of_hatom by auto
   then have "ground_fatoms  \<subseteq> fatom_of_hatom ` UNIV " unfolding ground_fatoms_def by blast
   moreover
-  have "\<forall>l. grounds (snd (fatom_of_hatom l))" using ground_fatom_of_hatom by auto
+  have "\<forall>l. ground\<^sub>t\<^sub>s (snd (fatom_of_hatom l))" using ground_fatom_of_hatom by auto
   ultimately show "fatom_of_hatom ` UNIV = ground_fatoms" 
     using hatom_of_fatom_fatom_of_hatom ground_fatom_of_hatom unfolding ground_fatoms_def by auto
 qed
@@ -270,7 +270,7 @@ definition fatom_from_nat :: "nat \<Rightarrow> fterm atom" where
 definition nat_from_fatom :: "fterm atom \<Rightarrow> nat" where
   "nat_from_fatom = (\<lambda>t. nat_from_hatom (hatom_of_fatom t))"
 
-theorem diag_undiag_fatom[simp]: "grounds ts \<Longrightarrow> fatom_from_nat (nat_from_fatom (p,ts)) = (p,ts)"
+theorem diag_undiag_fatom[simp]: "ground\<^sub>t\<^sub>s ts \<Longrightarrow> fatom_from_nat (nat_from_fatom (p,ts)) = (p,ts)"
 unfolding fatom_from_nat_def nat_from_fatom_def by auto
 
 theorem undiag_diag_fatom[simp]: "nat_from_fatom (fatom_from_nat n) = n" unfolding fatom_from_nat_def nat_from_fatom_def by auto
@@ -279,7 +279,7 @@ lemma fatom_from_nat_bij: "bij_betw fatom_from_nat UNIV ground_fatoms"
   using hatom_from_nat_bij bij_betw_trans fatom_of_hatom_bij hatom_from_nat_bij unfolding fatom_from_nat_def comp_def by blast
 
 
-lemma ground_fatom_from_nat: "grounds (snd (fatom_from_nat x))" unfolding fatom_from_nat_def using ground_fatom_of_hatom by auto
+lemma ground_fatom_from_nat: "ground\<^sub>t\<^sub>s (snd (fatom_from_nat x))" unfolding fatom_from_nat_def using ground_fatom_of_hatom by auto
 
 lemma nat_from_fatom_bij: "bij_betw nat_from_fatom ground_fatoms UNIV"
    using nat_from_hatom_bij bij_betw_trans hatom_of_fatom_bij hatom_from_nat_bij unfolding nat_from_fatom_def comp_def by blast
