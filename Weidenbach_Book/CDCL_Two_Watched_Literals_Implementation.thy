@@ -7,7 +7,25 @@ subsection \<open>Implementation for 2 Watched-Literals\<close>
 theory CDCL_Two_Watched_Literals_Implementation
 imports CDCL_W_Abstract_State
 begin
+
 sledgehammer_params[spy]
+
+text \<open>The following locale axiomatizes a type introduced by the @{text typedef} command, by
+  assuming that all generated theorems are true. This is necessary because one cannot create a new
+  type in a locale.\<close>
+locale type_definition_locale =
+  fixes Abs :: "'a \<Rightarrow> 'inv" and Rep :: "'inv \<Rightarrow> 'a" and inv :: "'a \<Rightarrow> bool"
+  assumes
+    Rep_inv: "Abs (Rep x) = x" and
+    Rep: "Rep x \<in> {a. inv a}" and
+    Rep_inject: "Rep x = Rep y \<longleftrightarrow> x = y" and
+    Abs_inverse: "z \<in> {a. inv a} \<Longrightarrow> Rep (Abs z) = z" and
+    Abs_induct: "(\<And>y. y \<in> {a. inv a} \<Longrightarrow> P (Abs y)) \<Longrightarrow> P y" and
+    Rep_induct: "z \<in> {a. inv a} \<Longrightarrow> (\<And>z. P' (Rep z)) \<Longrightarrow> P' z" and
+    Abs_cases: "(\<And>y. x = Abs y \<Longrightarrow> y \<in> {a. inv a} \<Longrightarrow> Q) \<Longrightarrow> Q" and
+    Rep_cases: "z \<in> {a. inv a} \<Longrightarrow> (\<And>y. z = Rep y \<Longrightarrow> Q) \<Longrightarrow> Q" and
+    Abs_inject: "z \<in> {a. inv a} \<Longrightarrow> z' \<in> {a. inv a} \<Longrightarrow> Abs z = Abs z' \<longleftrightarrow> z = z'"
+
 text \<open>The difference between an implementation and the core described in the previous sections are
   the following:
   \<^item> the candidates are cached while updating the data structure.
@@ -143,7 +161,6 @@ primrec (nonexhaustive) index :: "'a list \<Rightarrow>'a \<Rightarrow> nat" whe
 lemma index_nth:
   "a \<in> set l \<Longrightarrow> l ! (index l a) = a"
   by (induction l) auto
-
 
 definition defined_before :: "('a, 'b) ann_lit list \<Rightarrow> 'a literal \<Rightarrow> 'a literal \<Rightarrow> bool" where
 "defined_before M L L' \<equiv> index (map lit_of M) L' \<le> index (map lit_of M) L"
@@ -452,6 +469,7 @@ qed
 
 end
 
+
 locale abstract_clause_representation =
   abstract_clause_representation_ops lit_lookup lit_keys twl_cls swap_lit
     it_of_watched_ordered cls_of_twl_list
@@ -478,7 +496,7 @@ locale abstract_clause_representation =
          mset (it_of_watched_ordered C L) = wf_watched (twl_cls C) \<and>
          lit_lookup C (hd (it_of_watched_ordered C L)) = Some L" and
 
-    twl_cls_valid:
+    twl_cls_valid: -- \<open>this states that all the valid indexes are included in @{term "twl_cls C"}.\<close>
       "lit_keys C = wf_clause (twl_cls C)" and
 
     cls_of_twl_list:
@@ -822,6 +840,7 @@ definition prop_state ::
 
 lemma prop_state_state: "prop_state S = (P, M, N, U, k, C) \<Longrightarrow> state S = (P @ M, N, U, k, C)"
   unfolding prop_state_def state_def full_trail_def by auto
+
 end
 
 
@@ -1221,6 +1240,23 @@ qed
 definition wf_prop_queue :: "'st \<Rightarrow> bool" where
 "wf_prop_queue S \<longleftrightarrow> (\<forall>M \<in> set (prop_queue S). is_proped M)"
 
+function all_annotation_valid where
+"all_annotation_valid S \<longleftrightarrow> 
+  (if full_trail S = [] 
+  then True 
+  else valid_annotation S (hd_raw_abs_trail S) \<and> all_annotation_valid (tl_abs_trail S))"
+by auto
+termination
+  apply (relation "measure (\<lambda>S. length (full_trail S))")
+  apply auto
+  done
+
+definition wf_twl_state where
+"wf_twl_state S \<longleftrightarrow> 
+  (full_trail S \<noteq> [] \<longrightarrow> valid_annotation S (hd_raw_abs_trail S)) \<and>
+  cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state S) \<and>
+  wf_prop_queue S"
+
 end
 
 subsubsection \<open>The new Calculus\<close>
@@ -1252,8 +1288,9 @@ locale abs_conflict_driven_clause_learning\<^sub>W_clss =
 
     get_undecided_lit get_clause_watched_by update_clause
 
-    abs_init_state restart_state
-
+    abs_init_state restart_state +
+  type_definition_locale 
+    wf_state_of abs_state_of wf_twl_state
   for
     \<comment> \<open>Clause:\<close>
     lit_lookup :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal option" and
@@ -1305,7 +1342,10 @@ locale abs_conflict_driven_clause_learning\<^sub>W_clss =
     update_clause :: "'st \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'st" and
 
     abs_init_state :: "'clss \<Rightarrow> 'st" and
-    restart_state :: "'st \<Rightarrow> 'st"
+    restart_state :: "'st \<Rightarrow> 'st" and
+    
+    wf_state_of :: "'st \<Rightarrow> 'inv" and
+    abs_state_of :: "'inv \<Rightarrow> 'st"
 begin
 
 sublocale abs_conflict_driven_clause_learning\<^sub>W where
@@ -1332,6 +1372,27 @@ sublocale abs_conflict_driven_clause_learning\<^sub>W where
   conc_init_state = abs_init_state and
   restart_state = restart_state
   by unfold_locales
+
+lemma XXX: "type_definition abs_state_of wf_state_of {S. wf_twl_state S}"
+  unfolding type_definition_def
+  using Rep by (auto intro: Abs_inverse simp: Rep_inv)
+
+definition wf_resolve :: "'inv \<Rightarrow> 'inv \<Rightarrow> bool" where
+"wf_resolve S T \<equiv> resolve_abs (abs_state_of S) (abs_state_of T)"
+
+lemma
+  assumes res: "resolve_abs S T" and wf: "wf_twl_state S"
+  shows "wf_resolve (wf_state_of S) (wf_state_of T)"
+proof -
+  have "wf_twl_state T"
+    using wf res unfolding wf_twl_state_def
+    apply (auto elim: resolve_absE)
+    using [[smt_trace]]sledgehammer[debug, verit, overlord]()
+    sorry
+  then show ?thesis
+    by (simp add: Abs_inverse local.wf res wf_resolve_def)
+qed
+
 
 abbreviation mark_conflicting_and_flush where
 "mark_conflicting_and_flush  i S \<equiv> mark_conflicting i (prop_queue_to_trail S)"
@@ -1497,6 +1558,45 @@ proof -
     qed
 qed
 
+ML \<open>
+  let
+  fun is_Type (Type q) = (writeln ("Type " ^ @{make_string} q); true)
+    | is_Type (TFree q) = (writeln ("TFree " ^ @{make_string} q); false)
+    | is_Type (TVar q) = (writeln ("TVar " ^ @{make_string} q); false)
+  fun check_qty qty = if not (is_Type qty) 
+      then (writeln (@{make_string} qty); ())
+      else ()
+  fun check_rty_type ctxt rty quot_thm =
+   let  
+     val thy = Proof_Context.theory_of ctxt
+     val (rty_forced, _) = Lifting_Util.quot_thm_rty_qty quot_thm
+     val _ = writeln ("rty_forced: " ^ @{make_string} rty_forced)
+     val rty_schematic = Logic.type_map (singleton (Variable.polymorphic ctxt)) rty
+      
+     val _ = Sign.typ_match thy (rty_schematic, rty_forced) Vartab.empty
+       handle Type.TYPE_MATCH => raise Lifting_Term.CHECK_RTY (rty_schematic, rty_forced)
+     in
+       ()
+     end
+  val id_actions = { constr = K I, lift = K I, comp_lift = K I }
+
+  val qty = @{typ 'inv}
+  val ctxt = @{context}
+  val rty = @{typ 'st}
+  val quotients = Lifting_Info.get_quotients ctxt
+  val (schematic_quot_thm, _) = Lifting_Term.prove_schematic_quot_thm id_actions quotients @{context} (rty, qty) ()
+  val quot_thm = Lifting_Term.force_qty_type ctxt qty schematic_quot_thm
+ 
+   in (check_qty @{typ "('v, 'c) ann_lit"}, check_qty @{typ "'inv"},
+   check_rty_type @{context} @{typ "'inv"} quot_thm) end\<close>
+thm type_definition_natural
+term nat_of_natural
+term abs_state_of
+
+lift_definition wf_resolve :: "'inv \<Rightarrow> 'inv \<Rightarrow> bool" is "resolve_abs"
+
+lift_definition wf_tl_abs_trail :: "'inv \<Rightarrow> 'inv" is tl_abs_trail
+
 function skip_or_resolve where
 "skip_or_resolve S =
   (if full_trail S = [] then S
@@ -1636,20 +1736,8 @@ by auto
 termination sorry
 end
 
-locale type_definition =
-  fixes Abs :: "'a \<Rightarrow> 'inv" and Rep :: "'inv \<Rightarrow> 'a" and inv :: "'a \<Rightarrow> bool"
-  assumes
-    Rep_inv: "Abs (Rep x) = x" and
-    Rep: "Rep x \<in> {a. inv a}" and
-    Rep_inject: "Rep x = Rep y \<longleftrightarrow> x = y" and
-    Abs_inverse: "z \<in> {a. inv a} \<Longrightarrow> Rep (Abs z) = z" and
-    Abs_induct: "(\<And>y. y \<in> {a. inv a} \<Longrightarrow> P (Abs y)) \<Longrightarrow> P y" and
-    Rep_induct: "z \<in> {a. inv a} \<Longrightarrow> (\<And>z. P' (Rep z)) \<Longrightarrow> P' z" and
-    Abs_cases: "(\<And>y. x = Abs y \<Longrightarrow> y \<in> {a. inv a} \<Longrightarrow> Q) \<Longrightarrow> Q" and
-    Rep_cases: "z \<in> {a. inv a} \<Longrightarrow> (\<And>y. z = Rep y \<Longrightarrow> Q) \<Longrightarrow> Q" and
-    Abs_inject: "z \<in> {a. inv a} \<Longrightarrow> z' \<in> {a. inv a} \<Longrightarrow> Abs z = Abs z' \<longleftrightarrow> z = z'"
 
-interpretation 2: type_definition where Rep = twl_clause_of_wf and Abs = wf_of_twl_clause and
+interpretation 2: type_definition_locale where Rep = twl_clause_of_wf and Abs = wf_of_twl_clause and
 inv = struct_wf_twl_cls
 apply unfold_locales
 using twl_clause_of_wf_inverse apply metis
