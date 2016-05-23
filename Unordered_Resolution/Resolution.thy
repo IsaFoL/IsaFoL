@@ -82,7 +82,7 @@ using ground_vars\<^sub>t by auto
 
 lemma ground\<^sub>l_vars\<^sub>l: "ground\<^sub>l l \<Longrightarrow> vars\<^sub>l l = {}" unfolding vars\<^sub>l_def using ground_vars\<^sub>t by auto
 
-lemma ground\<^sub>l\<^sub>s_vars\<^sub>l\<^sub>s: "ground\<^sub>l\<^sub>s ls \<Longrightarrow> vars\<^sub>l\<^sub>s ls = {}" unfolding vars\<^sub>l\<^sub>s_def using ground\<^sub>l_vars\<^sub>l by auto
+lemma ground\<^sub>l\<^sub>s_vars\<^sub>l\<^sub>s: "ground\<^sub>l\<^sub>s L \<Longrightarrow> vars\<^sub>l\<^sub>s L = {}" unfolding vars\<^sub>l\<^sub>s_def using ground\<^sub>l_vars\<^sub>l by auto
 
 lemma ground_comp: "ground\<^sub>l (l\<^sup>c) \<longleftrightarrow> ground\<^sub>l l" by (cases l) auto
 
@@ -688,19 +688,19 @@ definition resolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set 
 section {* Soundness *}
 (* Proving instantiation sound *)
 
-definition evalsub :: "'u fun_denot \<Rightarrow> 'u var_denot \<Rightarrow> substitution \<Rightarrow> 'u var_denot" where
-  "evalsub F E \<sigma> = (eval\<^sub>t E F) \<circ> \<sigma>"
+definition evalsub :: "'u var_denot \<Rightarrow> 'u fun_denot \<Rightarrow> substitution \<Rightarrow> 'u var_denot" where
+  "evalsub E F \<sigma> = eval\<^sub>t E F \<circ> \<sigma>"
 
-lemma substitutiont: "eval\<^sub>t E F (t \<cdot>\<^sub>t \<sigma>) = eval\<^sub>t (evalsub F E \<sigma>) F t"
+lemma substitutiont: "eval\<^sub>t E F (t \<cdot>\<^sub>t \<sigma>) = eval\<^sub>t (evalsub E F \<sigma>) F t"
 apply (induction t)
 unfolding evalsub_def apply auto
 apply (metis (mono_tags, lifting) comp_apply map_cong)
 done
 
-lemma substitutionts: "eval\<^sub>t\<^sub>s E F (ts \<cdot>\<^sub>t\<^sub>s \<sigma>) = eval\<^sub>t\<^sub>s (evalsub F E \<sigma>) F ts"
+lemma substitutionts: "eval\<^sub>t\<^sub>s E F (ts \<cdot>\<^sub>t\<^sub>s \<sigma>) = eval\<^sub>t\<^sub>s (evalsub E F \<sigma>) F ts"
 using substitutiont by auto
 
-lemma substitution: "eval\<^sub>l E F G (l \<cdot>\<^sub>l \<sigma>) \<longleftrightarrow> eval\<^sub>l (evalsub F E \<sigma>) F G l"
+lemma substitution: "eval\<^sub>l E F G (l \<cdot>\<^sub>l \<sigma>) \<longleftrightarrow> eval\<^sub>l (evalsub E F \<sigma>) F G l"
 apply (induction l) 
 using substitutionts apply (metis eval\<^sub>l.simps(1) subl.simps(1)) 
 using substitutionts apply (metis eval\<^sub>l.simps(2) subl.simps(2))
@@ -714,7 +714,7 @@ proof -
   proof
    fix E
    from asm have "\<forall>E. \<exists>l \<in> C. eval\<^sub>l E F G l" unfolding eval\<^sub>c_def by auto
-   then have "\<exists>l \<in> C. eval\<^sub>l (evalsub F E \<sigma>) F G l" by auto
+   then have "\<exists>l \<in> C. eval\<^sub>l (evalsub E F \<sigma>) F G l" by auto
    then show "\<exists>l \<in> C \<cdot>\<^sub>l\<^sub>s \<sigma>. eval\<^sub>l E F G l" using substitution by blast
   qed
  then show "eval\<^sub>c F G (C \<cdot>\<^sub>l\<^sub>s \<sigma>)" unfolding eval\<^sub>c_def by auto
@@ -1083,7 +1083,7 @@ proof -
         case (Pos P ts)
         from Pos l_p C_ground have ts_ground: "ground\<^sub>t\<^sub>s ts" by auto
 
-        have "~falsifies\<^sub>l (f (Suc n)) l" using l_p by auto
+        have "\<not>falsifies\<^sub>l (f (Suc n)) l" using l_p by auto
         then have "f (Suc n) ! ?i = True" 
           using j_n Pos ts_ground empty_subts[of ts] unfolding falsifies\<^sub>l_def by auto
         moreover have "f (Suc ?i) ! ?i = f (Suc n) ! ?i" 
@@ -1096,7 +1096,7 @@ proof -
         case (Neg P ts) (* Symmetric *)
         from Neg l_p C_ground have ts_ground: "ground\<^sub>t\<^sub>s ts" by auto
 
-        have "~falsifies\<^sub>l (f (Suc n)) l" using l_p by auto  
+        have "\<not>falsifies\<^sub>l (f (Suc n)) l" using l_p by auto  
         then have "f (Suc n) ! ?i = False" 
           using j_n Neg ts_ground empty_subts[of ts] unfolding falsifies\<^sub>l_def by auto
         moreover have "f (Suc ?i) ! ?i = f (Suc n) ! ?i" 
