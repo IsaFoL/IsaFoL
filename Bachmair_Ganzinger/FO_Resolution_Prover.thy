@@ -380,7 +380,7 @@ using resolve proof (atomize_elim, cases rule: ord_resolve_raw.cases)
   from \<tau>_ground fo_resolve instanceCC instanceD instanceE DinM E'inM C''inM 
     show "\<exists>\<sigma> CC' D' E'. is_ground_subst \<sigma> \<and> ord_resolve_raw S CC' D' E' \<and>
       CC = CC' \<cdot>cc \<sigma> \<and> D = D' \<cdot> \<sigma> \<and> E = E' \<cdot> \<sigma> \<and> {D', E'} \<union> set_mset CC' \<subseteq> M" by auto
-
+(*
   show "\<exists>\<sigma> CC' D' E'. is_ground_subst \<sigma> \<and> ord_resolve_raw S CC' D' E' \<and>
     CC = CC' \<cdot>cc \<sigma> \<and> D = D' \<cdot> \<sigma> \<and> E = E' \<cdot> \<sigma> \<and> {D', E'} \<union> set_mset CC' \<subseteq> M"
   proof (intro exI conjI)
@@ -399,7 +399,7 @@ using resolve proof (atomize_elim, cases rule: ord_resolve_raw.cases)
     from \<rho>s \<open>Dp \<in> M\<close> Cs_M show "{Dp \<cdot> \<rho>D, (cf + d) \<cdot> x} \<union> set_mset CC'\<rho> \<subseteq> M"
       apply (auto simp: M_renaming_invariant CC'\<rho>_def subst_cls_lists_def set_zip)
       sorry
-  qed
+  qed *)
 qed
 
 end
