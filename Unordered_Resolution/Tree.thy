@@ -8,10 +8,9 @@ definition Right :: bool where "Right = False"
 declare Left_def [simp]
 declare Right_def [simp]
 
-(* hide_const (open) Leaf Branching *)
 datatype tree =
   Leaf
-| Branching (ltree: tree) (rtree: tree) (* Branching might be a better name *)
+| Branching (ltree: tree) (rtree: tree) 
 
 
 section {* Sizes *}
@@ -33,27 +32,19 @@ fun path :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
 | "path (d#ds) (Branching T1 T2) \<longleftrightarrow> (if d then path ds T1 else path ds T2)"
 | "path _ _ \<longleftrightarrow> False"
 
-(* I could use anonymous variable *)
-
 lemma path_inv_Leaf: "path p Leaf \<longleftrightarrow> p = []"
-apply (induction p)
-apply auto
-done
+  by (induction p)  auto
 
 lemma path_inv_Cons: "path (a#ds) T \<longrightarrow> (\<exists>l r. T=Branching l r)"
-apply (cases T)
-apply (auto simp add: path_inv_Leaf)
-done
+  by  (cases T) (auto simp add: path_inv_Leaf)
+
 
 lemma path_inv_Branching_Left: "path (Left#p) (Branching l r) \<longleftrightarrow> path p l"
-apply (induction p)
-using Left_def Right_def path.cases apply auto
-done
+  using Left_def Right_def path.cases by (induction p) auto
 
 lemma path_inv_Branching_Right: "path (Right#p) (Branching l r) \<longleftrightarrow> path p r"
-apply (induction p)
-using Left_def Right_def path.cases apply auto
-done
+using Left_def Right_def path.cases by (induction p)  auto
+
 
 lemma path_inv_Branching: 
   "path p (Branching l r) \<longleftrightarrow> (p=[] \<or> (\<exists>a p'. p=a#p'\<and> (a \<longrightarrow> path p' l) \<and> (\<not>a \<longrightarrow> path p' r)))" (is "?L \<longleftrightarrow> ?R")
@@ -158,46 +149,45 @@ next
   then show "?case" using ds_p by (cases a) auto
 qed
 
-lemma Branching_Leaf_Leaf_Tree: "(T = Branching l r \<longrightarrow> (\<exists>B. branch (B@[True]) T \<and> branch (B@[False]) T)) \<and> (T=Leaf \<longrightarrow> branch [] T )"
-proof (induction T arbitrary: l r)
+lemma Branching_Leaf_Leaf_Tree: "T = Branching T1 T2 \<Longrightarrow> (\<exists>B. branch (B@[True]) T \<and> branch (B@[False]) T)"
+proof (induction T arbitrary: T1 T2)
   case Leaf then show ?case by auto
 next
-  case (Branching T1 T2) 
-  then show ?case
-    apply (cases T1)
-    apply (cases T2)
-    apply auto
-      proof -
-        have "branch ([] @ [True]) (Branching Leaf Leaf) \<and> branch ([] @ [False]) (Branching Leaf Leaf)"  by auto
-        then show "\<exists>B. branch (B @ [True]) (Branching Leaf Leaf) \<and> branch (B @ [False]) (Branching Leaf Leaf)" by blast
-      next
-        fix x21 x22
-        assume "(\<And>l r. x21 = l \<and> x22 = r \<longrightarrow>  (\<exists>B. branch (B @ [True]) (Branching l r) \<and> branch (B @ [False]) (Branching l r)))"
-        then have "\<exists>B'. branch (B' @ [True]) (Branching x21 x22) \<and> branch (B' @ [False]) (Branching x21 x22)" by blast
-        then obtain B' where "branch (B' @ [True]) (Branching x21 x22) \<and> branch (B' @ [False]) (Branching x21 x22)" by auto
-        then have "branch (False # (B' @ [True])) (Branching Leaf (Branching x21 x22)) \<and> branch (False # (B' @ [False])) (Branching Leaf (Branching x21 x22))" 
-           by auto
-        then have "branch ((False # B') @ [True]) (Branching Leaf (Branching x21 x22)) \<and> branch ((False # B') @ [False]) (Branching Leaf (Branching x21 x22))" by auto
-        then show "\<exists>B. branch (B @ [True]) (Branching Leaf (Branching x21 x22)) \<and> branch (B @ [False]) (Branching Leaf (Branching x21 x22))" by metis
-      next
-        fix x21 x22
-        assume "(\<And>l r. x21 = l \<and> x22 = r \<longrightarrow>   (\<exists>B. branch (B @ [True]) (Branching l r) \<and> branch (B @ [False]) (Branching l r)))"
-        then have "(\<exists>B. branch (B @ [True]) (Branching x21 x22) \<and> branch (B @ [False]) (Branching x21 x22))" by auto
-        then obtain B' where "branch (B' @ [True]) (Branching x21 x22) \<and> branch (B' @ [False]) (Branching x21 x22)" by auto
-        then have "branch (True # (B' @ [True])) (Branching (Branching x21 x22) r) \<and> branch (True # (B' @ [False])) (Branching (Branching x21 x22) r) " 
-           by auto
-        then have "branch ((True # B') @ [True]) (Branching (Branching x21 x22) r) \<and> branch ((True # B') @ [False]) (Branching (Branching x21 x22) r) " by auto
-        then show "\<exists>B. branch (B @ [True]) (Branching (Branching x21 x22) r) \<and>
-           branch (B @ [False]) (Branching (Branching x21 x22) r)" by metis
-      qed qed
-
+  case (Branching T1' T2')
+  {
+    assume "T1'=Leaf \<and> T2'=Leaf"
+    then have "branch ([] @ [True]) (Branching T1' T2') \<and> branch ([] @ [False]) (Branching T1' T2')" by auto
+    then have ?case by metis
+  }
+  moreover
+  {
+    fix T11 T12
+    assume "T1' = Branching T11 T12"
+    then obtain B where "branch (B @ [True]) T1' 
+                       \<and> branch (B @ [False]) T1'" using Branching by blast
+    then have "branch (([True] @ B) @ [True]) (Branching T1' T2') 
+             \<and> branch (([True] @ B) @ [False]) (Branching T1' T2')" by auto
+    then have ?case by blast
+  }
+  moreover
+  {
+    fix T11 T12
+    assume "T2' = Branching T11 T12"
+    then obtain B where "branch (B @ [True]) T2' 
+                       \<and> branch (B @ [False]) T2'" using Branching by blast
+    then have "branch (([False] @ B) @ [True]) (Branching T1' T2') 
+             \<and> branch (([False] @ B) @ [False]) (Branching T1' T2')" by auto
+    then have ?case by blast
+  }
+  ultimately show ?case using tree.exhaust by blast
+qed
+      
 section {* Internal Paths *}
 
 fun internal :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
   "internal [] (Branching l r) \<longleftrightarrow> True"
 | "internal (d#ds) (Branching l r) \<longleftrightarrow> (if d then internal ds l else internal ds r)"
 | "internal _ _ \<longleftrightarrow> False"
-(* Could use anonymous var in first case *)
 
 lemma internal_inv_Leaf: "\<not>internal b Leaf" using internal.simps by blast
 
@@ -288,18 +278,6 @@ qed
 fun parent :: "dir list \<Rightarrow> dir list" where
   "parent ds = tl ds"
 
-(* abbreviation prefix :: "'a list \<Rightarrow> 'a list \<Rightarrow> bool" where
-  "prefix a b \<equiv> \<exists>c. a @ c = b" 
-
-abbreviation pprefix :: "'a list \<Rightarrow> 'a list \<Rightarrow> bool" where
-  "pprefix a b \<equiv> \<exists>c. a @ c = b \<and> a\<noteq>b" 
-
-abbreviation postfix :: "'a list \<Rightarrow> 'a list \<Rightarrow> bool" where
-  "postfix a b \<equiv> \<exists>c. c @ a = b"
-
-abbreviation ppostfix :: "'a list \<Rightarrow> 'a list \<Rightarrow> bool" where
-  "ppostfix a b \<equiv> \<exists>c. c @ a = b \<and> a\<noteq>b" *)
-
 section {* Deleting Nodes *}
 
 fun delete :: "dir list \<Rightarrow> tree \<Rightarrow> tree" where
@@ -307,7 +285,6 @@ fun delete :: "dir list \<Rightarrow> tree \<Rightarrow> tree" where
 | "delete (True#ds)  (Branching T\<^sub>1 T\<^sub>2) = Branching (delete ds T\<^sub>1) T\<^sub>2"
 | "delete (False#ds) (Branching T\<^sub>1 T\<^sub>2) = Branching T\<^sub>1 (delete ds T\<^sub>2)"
 | "delete (a#ds) Leaf = Leaf"
-(* First case could use anonymous variable*) (* Red could also be defined as a tree, i.e. a dir list set *)
 
 lemma delete_Leaf: "delete T Leaf = Leaf" by (cases T) auto
 
@@ -323,11 +300,7 @@ next
   then obtain dT1 dT2 where "delete ds T = Branching dT1 dT2" by auto
 
   then have "\<exists>T1 T2. T=Branching T1 T2" (* Is there a lemma hidden here that I could extract? *)
-        apply (cases T)
-        apply auto
-        apply (cases ds)
-        apply auto
-        done
+        by (cases T; cases ds) auto
   then obtain T1 T2 where T1T2_p: "T=Branching T1 T2" by auto
 
   {
@@ -384,11 +357,7 @@ next
   then obtain dT1 dT2 where "delete ds T = Branching dT1 dT2" by auto
 
   then have "\<exists>T1 T2. T=Branching T1 T2" (* Is there a lemma hidden here that I could extract? *)
-        apply (cases T)
-        apply auto
-        apply (cases ds)
-        apply auto
-        done
+        by (cases T; cases ds) auto
   then obtain T1 T2 where T1T2_p: "T=Branching T1 T2" by auto
 
   {
@@ -443,11 +412,7 @@ next
   then obtain dT1 dT2 where "delete ds T = Branching dT1 dT2" by auto
 
   then have "\<exists>T1 T2. T=Branching T1 T2" (* Is there a lemma hidden here that I could extract? *)
-        apply (cases T)
-        apply auto
-        apply (cases ds)
-        apply auto
-        done
+        by (cases T; cases ds) auto
   then obtain T1 T2 where T1T2_p: "T=Branching T1 T2" by auto
 
   {
@@ -520,7 +485,10 @@ fun cutoff :: "(dir list \<Rightarrow> bool) \<Rightarrow> dir list \<Rightarrow
      (if red ds then Leaf else Branching (cutoff red (ds@[Left])  T\<^sub>1) (cutoff red (ds@[Right]) T\<^sub>2))"
 | "cutoff red ds Leaf = Leaf"
 (* Initially you should call this with ds = []*)
-(* Hvis alle branches er røde, så giver cut_off et subtree *)(* Hvis alle branches er røde, så gælder det sammme for cut_off *)(* Alle interne stier er ikke røde *)
+(* Red could also be defined as a tree, i.e. a dir list set, but not really a tree, since it is not wellformed *)
+(* If all branches are red, then cut_off gives a subtree *)
+(* If all branches are red, then so are the ones in cut_off *)
+(* The internal paths of cut_off are not red *)
 
 lemma treesize_cutoff: "treesize (cutoff red ds T) \<le> treesize T"
 proof (induction T arbitrary: ds)
@@ -668,17 +636,23 @@ proof (rule subsetI; rule Set.UnCI)
   then show "x \<in> ?subtree (ds @ [Left]) \<union> ?subtree (ds @ [Right])" using asm by auto
 qed
 
-(* Infinite paths in trees should probably be nat \<Rightarrow> dir, instead of nat \<Rightarrow> dir list .   The nat \<Rightarrow> dir list are only useful locally.    I do the conversion in Resolution, I think, but I should rather do it here.    I am not 100% sure though. Perhaps this just means I must convert back to nat \<Rightarrow> dir list,    and that would be rather pointless. Perhaps, I could just do the conversion as a    corollary or something.*)
+(* Infinite paths in trees should probably be nat \<Rightarrow> dir, instead of nat \<Rightarrow> dir list .   
+   The nat \<Rightarrow> dir list are only useful locally.    
+   I do the conversion in Resolution, I think, but I should rather do it here.
+   I am not 100% sure though. Perhaps this just means I must convert back to nat \<Rightarrow> dir list,    
+   and that would be rather pointless. Perhaps, I could just do the conversion as a    
+   corollary or something.*)
+
 section {* Infinite Paths *}
-(* aka list-chains *)
 abbreviation wf_infpath :: "(nat \<Rightarrow> 'a list) \<Rightarrow> bool" where (* Previously called list_chain *)
   "wf_infpath f \<equiv> (f 0 = []) \<and> (\<forall>n. \<exists>a. f (Suc n) = (f n) @ [a])"
 
-lemma chain_length: "wf_infpath f \<Longrightarrow> length (f n) = n"
-apply (induction n)
-apply auto
-apply (metis length_append_singleton)
-done
+lemma infpath_length: "wf_infpath f \<Longrightarrow> length (f n) = n"
+proof (induction n)
+  case 0 then show ?case by auto
+next
+  case (Suc n) then show ?case by (metis length_append_singleton)
+qed
 
 lemma chain_prefix: "wf_infpath f \<Longrightarrow> n\<^sub>1 \<le> n\<^sub>2 \<Longrightarrow> \<exists>a. (f n\<^sub>1) @ a = (f n\<^sub>2)"
 proof (induction n\<^sub>2)
@@ -732,7 +706,6 @@ fun buildchain :: "(dir list \<Rightarrow> dir list) \<Rightarrow> nat \<Rightar
   "buildchain next 0 = []"
 | "buildchain next (Suc n) = next (buildchain next n)"
 
-(* I have a function intree that checks if a path (node) is in the tree. Assume there are infinite such nodes.  Prove that I can make a chain of paths in the tree*)
 lemma konig:
   assumes inf: "\<not>finite T"
   assumes wellformed: "wf_tree T"
