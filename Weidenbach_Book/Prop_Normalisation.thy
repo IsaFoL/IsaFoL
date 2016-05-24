@@ -407,7 +407,7 @@ lemma no_T_F_comp_expanded_explicit[simp]:
     "no_T_F (FOr \<phi> \<psi>)  \<longleftrightarrow> (no_T_F \<phi> \<and> no_T_F \<psi>)"
     "no_T_F (FEq \<phi> \<psi>)  \<longleftrightarrow> (no_T_F \<phi> \<and> no_T_F \<psi>)"
     "no_T_F (FImp \<phi> \<psi>) \<longleftrightarrow> (no_T_F \<phi> \<and> no_T_F \<psi>)"
-  using assms conn.simps(5-8) no_T_F_bin_decomp_expanded by (metis (no_types))+
+  using conn.simps(5-8) no_T_F_bin_decomp_expanded by (metis (no_types))+
 
 lemma no_T_F_comp_not[simp]:
   fixes \<phi> \<psi> :: "'v propo"

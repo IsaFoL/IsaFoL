@@ -95,7 +95,7 @@ lemma diff_size_le_size_Diff: "size (\<Sigma>:: _ multiset) - size \<Sigma>' \<l
 proof-
   have "size \<Sigma> - size \<Sigma>' \<le> size \<Sigma> - size (\<Sigma> #\<inter> \<Sigma>')"
     using size_mset_mono diff_le_mono2 subset_mset.inf_le2 by blast
-  also have "\<dots> = size(\<Sigma>-\<Sigma>')" using assms by(simp add: size_Diff_subset_Int)
+  also have "\<dots> = size(\<Sigma>-\<Sigma>')" by(simp add: size_Diff_subset_Int)
   finally show ?thesis .
 qed
 

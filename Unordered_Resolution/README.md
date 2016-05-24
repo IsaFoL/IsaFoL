@@ -12,6 +12,10 @@
 
 ## Publications ##
 
+* Formalization of the Resolution Calculus for First-Order Logic.
+  A. Schlichtkrull.
+  In Blanchette, J. C., Merz, S. (eds.) 7th International Conference on Interactive Theorem Proving (ITP 2016), LNCS 9807, Springer, 2016.
+
 * [Meta-Logical Reasoning in Higher-Order Logic](http://orbit.dtu.dk/files/118776437/logica_poster.pdf).
   J. Villadsen, A. Schlichtkrull, and A. V. Hess.
   Poster session presented at 29th Annual International Symposia Devoted to Logic (LOGICA 2015), 2015.

@@ -366,7 +366,7 @@ qed
 
 lemma
   "DPLL_part_dom ([], N)"
-  using assms  dpll\<^sub>W_all_inv_implieS_2_eq3_and_dom[of "[]" N] by (simp add: dpll\<^sub>W_all_inv_def)
+  using dpll\<^sub>W_all_inv_implieS_2_eq3_and_dom[of "[]" N] by (simp add: dpll\<^sub>W_all_inv_def)
 
 paragraph \<open>Some type classes\<close>
 instantiation dpll\<^sub>W_state :: equal

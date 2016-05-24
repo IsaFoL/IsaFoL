@@ -601,9 +601,9 @@ lemma dpll\<^sub>W_wf_tranclp: "wf {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\
   unfolding dpll\<^sub>W_tranclp_star_commute[symmetric] by (simp add: dpll\<^sub>W_wf wf_trancl)
 
 lemma dpll\<^sub>W_wf_plus:
-  shows "wf {(S', ([], N))| S'. dpll\<^sub>W\<^sup>+\<^sup>+ ([], N) S'}"  (is "wf ?P")
+  "wf {(S', ([], N))| S'. dpll\<^sub>W\<^sup>+\<^sup>+ ([], N) S'}"  (is "wf ?P")
   apply (rule wf_subset[OF dpll\<^sub>W_wf_tranclp, of ?P])
-  using assms unfolding dpll\<^sub>W_all_inv_def by auto
+  unfolding dpll\<^sub>W_all_inv_def by auto
 
 
 subsection \<open>Final States\<close>
