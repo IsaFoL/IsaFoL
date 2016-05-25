@@ -237,7 +237,7 @@ lemma rtranclp_cdcl\<^sub>W_new_decided_at_beginning_is_decide:
       no_step cdcl\<^sub>W_cp S \<and> trail T = Decided L # H @ M \<and> trail S = H @ M \<and> cdcl\<^sub>W_stgy S T' \<and>
       cdcl\<^sub>W_stgy\<^sup>*\<^sup>* T' U"
   using assms
-proof (induct arbitrary: M H M' i rule: rtranclp_induct)
+proof (induct arbitrary: M H M' rule: rtranclp_induct)
   case base
   then show ?case by auto
 next
@@ -868,7 +868,7 @@ lemma rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses:
     R: "trail R = []"
   shows "distinct_mset (clauses S)"
   using st
-proof (induction)
+proof (induction rule: rtranclp_induct)
   case base
   then show ?case using dist by simp
 next
