@@ -35,8 +35,8 @@ oops
 definition applicable where
   "applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<longleftrightarrow> 
        C\<^sub>1 \<noteq> {} \<and> C\<^sub>2 \<noteq> {} \<and> L\<^sub>1 \<noteq> {} \<and> L\<^sub>2 \<noteq> {}
-     \<and> varsls C\<^sub>1 \<inter> varsls C\<^sub>2 = {} 
+     \<and> vars\<^sub>l\<^sub>s C\<^sub>1 \<inter> vars\<^sub>l\<^sub>s C\<^sub>2 = {} 
      \<and> L\<^sub>1 \<subseteq> C\<^sub>1 \<and> L\<^sub>2 \<subseteq> C\<^sub>2 
-     \<and> mguls \<sigma> (L\<^sub>1 \<union> (L\<^sub>2\<^sup>C))"
+     \<and> mgu\<^sub>l\<^sub>s \<sigma> (L\<^sub>1 \<union> (L\<^sub>2\<^sup>C))"
 
 end  
