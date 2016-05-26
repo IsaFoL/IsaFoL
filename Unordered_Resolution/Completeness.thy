@@ -139,11 +139,6 @@ lemma complements_do_not_falsify:
   shows "l1 \<noteq> l2\<^sup>c"
 using assms complements_do_not_falsify' by blast
 
-lemma number_lemma:
-  assumes "\<not>i < length B \<and> i < length (B @ [d])"
-  shows "i = length B"
-using assms less_Suc_eq by auto
-
 lemma other_falsified:
   assumes C1'_p: "ground\<^sub>l\<^sub>s C1' \<and> falsifies\<^sub>g (B@[d]) C1'" 
   assumes l_p: "l \<in> C1'" "nat_from_fatom (get_atom l) = length B"
@@ -241,7 +236,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     moreover
     from l1_p have "?i < length (B @ [True]) \<and> (B @ [True]) ! ?i = (\<not> sign l1)" unfolding falsifies\<^sub>l_def by meson
     ultimately
-    have l1_sign_no: "?i = length B \<and> (B @ [True]) ! ?i = (\<not> sign l1)" using number_lemma by auto
+    have l1_sign_no: "?i = length B \<and> (B @ [True]) ! ?i = (\<not> sign l1)" by auto
 
     (* l1 is negative *)
     from l1_sign_no have l1_sign: "sign l1 = False" by auto
@@ -269,7 +264,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     moreover
     from l2_p have "?i < length (B @ [False]) \<and> (B @ [False]) ! ?i = (\<not> sign l2)" unfolding falsifies\<^sub>l_def by meson
     ultimately
-    have l2_sign_no: "?i = length B \<and> (B @ [False]) ! ?i = (\<not> sign l2)" using number_lemma by auto
+    have l2_sign_no: "?i = length B \<and> (B @ [False]) ! ?i = (\<not> sign l2)" by auto
 
     (* l2 is negative *)
     from l2_sign_no have l2_sign: "sign l2 = True" by auto
