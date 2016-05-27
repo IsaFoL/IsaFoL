@@ -104,8 +104,8 @@ abbreviation eval\<^sub>t\<^sub>s :: "'u var_denot \<Rightarrow> 'u fun_denot \<
   "eval\<^sub>t\<^sub>s E F ts \<equiv> map (eval\<^sub>t E F) ts"
 
 fun eval\<^sub>l :: "'u var_denot \<Rightarrow> 'u fun_denot \<Rightarrow> 'u pred_denot \<Rightarrow> fterm literal \<Rightarrow> bool" where
-  "eval\<^sub>l E F G (Pos p ts) \<longleftrightarrow>  (G p (eval\<^sub>t\<^sub>s E F ts))"
-| "eval\<^sub>l E F G (Neg p ts) \<longleftrightarrow> \<not>(G p (eval\<^sub>t\<^sub>s E F ts))"
+  "eval\<^sub>l E F G (Pos p ts) \<longleftrightarrow>  G p (eval\<^sub>t\<^sub>s E F ts)"
+| "eval\<^sub>l E F G (Neg p ts) \<longleftrightarrow> \<not>G p (eval\<^sub>t\<^sub>s E F ts)"
 
 definition eval\<^sub>c :: "'u fun_denot \<Rightarrow> 'u pred_denot \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "eval\<^sub>c F G C \<longleftrightarrow> (\<forall>E. \<exists>l \<in> C. eval\<^sub>l E F G l)"
@@ -187,7 +187,7 @@ lemma subls_union: "(L\<^sub>1 \<union> L\<^sub>2) \<cdot>\<^sub>l\<^sub>s \<sig
   Alternative: apply a substitution that is a bijection between the set of variables in C1 and some other set.
  *)
 definition var_renaming_of :: "fterm clause \<Rightarrow> fterm clause \<Rightarrow> bool" where
-  "var_renaming_of C1 C2 \<longleftrightarrow> instance_of\<^sub>l\<^sub>s C1 C2 \<and> instance_of\<^sub>l\<^sub>s C2 C1"
+  "var_renaming_of C\<^sub>1 C\<^sub>2 \<longleftrightarrow> instance_of\<^sub>l\<^sub>s C\<^sub>1 C\<^sub>2 \<and> instance_of\<^sub>l\<^sub>s C\<^sub>2 C\<^sub>1"
 
 subsection {* The Empty Substitution *}
 
@@ -491,16 +491,16 @@ by (induction t) auto
 lemma std_apart_apart': "x\<in>vars\<^sub>l (l \<cdot>\<^sub>l (\<lambda>x. Var  (y@x))) \<Longrightarrow> \<exists>x'. x=y@x'"
 unfolding vars\<^sub>l_def using std_apart_apart'' by (cases l) auto
 
-lemma std_apart_apart: "vars\<^sub>l\<^sub>s (std\<^sub>1 C1) \<inter> vars\<^sub>l\<^sub>s (std\<^sub>2 C2) = {}"
+lemma std_apart_apart: "vars\<^sub>l\<^sub>s (std\<^sub>1 C\<^sub>1) \<inter> vars\<^sub>l\<^sub>s (std\<^sub>2 C\<^sub>2) = {}"
 proof -
   {
     fix x
-    assume xin: "x \<in> vars\<^sub>l\<^sub>s (std\<^sub>1 C1) \<inter> vars\<^sub>l\<^sub>s (std\<^sub>2 C2)"
-    from xin have "x \<in> vars\<^sub>l\<^sub>s (std\<^sub>1 C1)" by auto
+    assume xin: "x \<in> vars\<^sub>l\<^sub>s (std\<^sub>1 C\<^sub>1) \<inter> vars\<^sub>l\<^sub>s (std\<^sub>2 C\<^sub>2)"
+    from xin have "x \<in> vars\<^sub>l\<^sub>s (std\<^sub>1 C\<^sub>1)" by auto
     then have "\<exists>x'.  x=''1'' @ x'" 
       using std_apart_apart'[of x _ "''1''"] unfolding vars\<^sub>l\<^sub>s_def by auto
     moreover
-    from xin have "x \<in> vars\<^sub>l\<^sub>s (std\<^sub>2 C2)" by auto
+    from xin have "x \<in> vars\<^sub>l\<^sub>s (std\<^sub>2 C\<^sub>2)" by auto
     then have "\<exists>x'. x= ''2'' @x' " 
       using std_apart_apart'[of x _ "''2''"] unfolding vars\<^sub>l\<^sub>s_def by auto
     ultimately have "False" by auto
@@ -986,7 +986,7 @@ lemma sub_of_denot_equiv_ground:
            \<and> ground\<^sub>l\<^sub>s (C \<cdot>\<^sub>l\<^sub>s sub_of_denot E)"
   using sub_of_denot_equiv_ground' by auto
 
-lemma std_apart_falsifies1: "falsifies\<^sub>c G C1 \<longleftrightarrow> falsifies\<^sub>c G (std\<^sub>1 C1)"
+lemma std\<^sub>1_falsifies: "falsifies\<^sub>c G C1 \<longleftrightarrow> falsifies\<^sub>c G (std\<^sub>1 C1)"
 proof 
   assume asm: "falsifies\<^sub>c G C1"
   then obtain Cg where "instance_of\<^sub>l\<^sub>s Cg C1  \<and> falsifies\<^sub>g G Cg" by auto
@@ -1005,7 +1005,7 @@ next
   show "falsifies\<^sub>c G C1" by auto
 qed
 
-lemma std_apart_falsifies2: "falsifies\<^sub>c G C2 \<longleftrightarrow> falsifies\<^sub>c G (std\<^sub>2 C2)"
+lemma std\<^sub>2_falsifies: "falsifies\<^sub>c G C2 \<longleftrightarrow> falsifies\<^sub>c G (std\<^sub>2 C2)"
 proof 
   assume asm: "falsifies\<^sub>c G C2"
   then obtain Cg where "instance_of\<^sub>l\<^sub>s Cg C2  \<and> falsifies\<^sub>g G Cg" by auto
@@ -1024,14 +1024,14 @@ next
   show "falsifies\<^sub>c G C2" by auto
 qed
 
-lemma std_apart_renames1: "var_renaming_of C1 (std\<^sub>1 C1)"
+lemma std\<^sub>1_renames: "var_renaming_of C1 (std\<^sub>1 C1)"
 proof -
   have "instance_of\<^sub>l\<^sub>s C1 (std\<^sub>1 C1)" using std_apart_instance_of\<^sub>l\<^sub>s1 assms by auto
   moreover have "instance_of\<^sub>l\<^sub>s (std\<^sub>1 C1) C1" using assms unfolding instance_of\<^sub>l\<^sub>s_def by auto
   ultimately show "var_renaming_of C1 (std\<^sub>1 C1)" unfolding var_renaming_of_def by auto
 qed
 
-lemma std_apart_renames2: "var_renaming_of C2 (std\<^sub>2 C2)"
+lemma std\<^sub>2_renames: "var_renaming_of C2 (std\<^sub>2 C2)"
 proof -
   have "instance_of\<^sub>l\<^sub>s C2 (std\<^sub>2 C2)" using std_apart_instance_of\<^sub>l\<^sub>s2 assms by auto
   moreover have "instance_of\<^sub>l\<^sub>s (std\<^sub>2 C2) C2" using assms unfolding instance_of\<^sub>l\<^sub>s_def by auto

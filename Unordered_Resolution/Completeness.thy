@@ -140,16 +140,16 @@ lemma complements_do_not_falsify:
 using assms complements_do_not_falsify' by blast
 
 lemma other_falsified:
-  assumes C1'_p: "ground\<^sub>l\<^sub>s C1' \<and> falsifies\<^sub>g (B@[d]) C1'" 
-  assumes l_p: "l \<in> C1'" "nat_from_fatom (get_atom l) = length B"
-  assumes other: "lo \<in> C1'" "lo \<noteq> l"
+  assumes C1'_p: "ground\<^sub>l\<^sub>s C\<^sub>1' \<and> falsifies\<^sub>g (B@[d]) C\<^sub>1'" 
+  assumes l_p: "l \<in> C\<^sub>1'" "nat_from_fatom (get_atom l) = length B"
+  assumes other: "lo \<in> C\<^sub>1'" "lo \<noteq> l"
   shows "falsifies\<^sub>l B lo"
 proof -
   let ?i = "nat_from_fatom (get_atom lo)"
   have ground_l2: "ground\<^sub>l l" using l_p C1'_p by auto
   (* They are, of course, also ground *)
   have ground_lo: "ground\<^sub>l lo" using C1'_p other by auto
-  from C1'_p have "falsifies\<^sub>g (B@[d]) (C1' - {l})" by auto
+  from C1'_p have "falsifies\<^sub>g (B@[d]) (C\<^sub>1' - {l})" by auto
   (* And indeed, falsified by B2 *)
   then have loB2: "falsifies\<^sub>l (B@[d]) lo" using other by auto
   then have "?i < length (B @ [d])" unfolding falsifies\<^sub>l_def by meson
@@ -158,7 +158,7 @@ proof -
   moreover
   have l_lo: "l\<noteq>lo" using other by auto
   (* The are not the complement of l2, since then the clause could not be falsified *)
-  have lc_lo: "lo \<noteq> l\<^sup>c" using C1'_p l_p other complements_do_not_falsify[of lo C1' l "(B@[d])"] by auto
+  have lc_lo: "lo \<noteq> l\<^sup>c" using C1'_p l_p other complements_do_not_falsify[of lo C\<^sub>1' l "(B@[d])"] by auto
   from l_lo lc_lo have "get_atom l \<noteq> get_atom lo" using sign_comp_atom by metis
   then have "nat_from_fatom (get_atom lo) \<noteq> nat_from_fatom (get_atom l)" 
     using nat_from_fatom_bij ground_lo ground_l2 ground\<^sub>l_ground_fatom 
@@ -208,8 +208,8 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     (* Standardizing the clauses apart *)
     let ?C1 = "std\<^sub>1 C1o"
     let ?C2 = "std\<^sub>2 C2o"
-    have C1_p: "falsifies\<^sub>c ?B1 ?C1" using std_apart_falsifies1 C1o_p by auto
-    have C2_p: "falsifies\<^sub>c ?B2 ?C2" using std_apart_falsifies2 C2o_p by auto
+    have C1_p: "falsifies\<^sub>c ?B1 ?C1" using std\<^sub>1_falsifies C1o_p by auto
+    have C2_p: "falsifies\<^sub>c ?B2 ?C2" using std\<^sub>2_falsifies C2o_p by auto
 
     have fin: "finite ?C1 \<and> finite ?C2" using C1o_p C2o_p finite_Cs by auto
 
@@ -220,7 +220,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     from C1_p  obtain C1' where C1'_p: "ground\<^sub>l\<^sub>s C1' \<and> instance_of\<^sub>l\<^sub>s C1' ?C1 \<and> falsifies\<^sub>g ?B1 C1'" by metis
 
     have "\<not>falsifies\<^sub>c B C1o" using C1o_p b_p clo unfolding closed_tree_def by metis
-    then have "\<not>falsifies\<^sub>c B ?C1" using std_apart_falsifies1 using prod.exhaust_sel by blast
+    then have "\<not>falsifies\<^sub>c B ?C1" using std\<^sub>1_falsifies using prod.exhaust_sel by blast
     (* C1' is not falsified by B *)
     then have l_B: "\<not>falsifies\<^sub>g B C1'" using C1'_p by auto
 
@@ -250,7 +250,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     from C2_p obtain C2' where C2'_p: "ground\<^sub>l\<^sub>s C2' \<and> instance_of\<^sub>l\<^sub>s C2' ?C2 \<and> falsifies\<^sub>g ?B2 C2'" by metis
 
     have "\<not>falsifies\<^sub>c B C2o" using C2o_p b_p clo unfolding closed_tree_def by metis
-    then have "\<not>falsifies\<^sub>c B ?C2" using std_apart_falsifies2 using prod.exhaust_sel by blast
+    then have "\<not>falsifies\<^sub>c B ?C2" using std\<^sub>2_falsifies using prod.exhaust_sel by blast
     then have l_B: "\<not>falsifies\<^sub>g B C2'" using C2'_p by auto (* I already had something called l_B... I should give it a new name *)
     
     (* C2' contains a literal l2 that is falsified by B2, but not B *)
@@ -333,9 +333,9 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     then obtain Cs'' where Cs''_p: "resolution_deriv CsNext Cs'' \<and> {} \<in> Cs''" by auto
     moreover
     { (* Proving that we can actually derive the new clausal form *)
-      have "resolution_step Cs (Cs \<union> {?C1})" using std_apart_renames1 standardize_apart C1o_p by (metis Un_insert_right prod.collapse)
+      have "resolution_step Cs (Cs \<union> {?C1})" using std\<^sub>1_renames standardize_apart C1o_p by (metis Un_insert_right prod.collapse)
       moreover
-      have "resolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1} \<union> {?C2})" using std_apart_renames2[of C2o] standardize_apart[of C2o _ ?C2] C2o_p by auto 
+      have "resolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1} \<union> {?C2})" using std\<^sub>2_renames[of C2o] standardize_apart[of C2o _ ?C2] C2o_p by auto 
       then have "resolution_step (Cs \<union> {?C1}) (Cs \<union> {?C1,?C2})" by (simp add: insert_commute)
       moreover
       then have "resolution_step (Cs \<union> {?C1,?C2}) (Cs \<union> {?C1,?C2} \<union> {C})" 
