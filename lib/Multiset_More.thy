@@ -229,6 +229,15 @@ lemma set_mset_remove1_mset[simp]:
   "set_mset (remove1_mset L (mset W)) = set (remove1 L W)"
   by (metis mset_remove1 set_mset_mset)
 
+lemma single_remove1_mset_eq:
+  "{#a#} + remove1_mset a M = M \<longleftrightarrow> a \<in># M"
+  by (cases "count M a") (auto simp: multiset_eq_iff count_eq_zero_iff count_inI)
+
+lemma remove_1_mset_id_iff_notin:
+  "remove1_mset a M = M \<longleftrightarrow> a \<notin># M"
+  by (meson diff_single_trivial multi_drop_mem_not_eq)
+
+
 subsection \<open>Replicate\<close>
 
 lemma replicate_mset_plus: "replicate_mset (a + b) C = replicate_mset a C + replicate_mset b C"
@@ -522,6 +531,9 @@ lemma distinct_mset_remove1_All:
 lemma distinct_mset_size_2: "distinct_mset {#a, b#} \<longleftrightarrow> a \<noteq> b"
   unfolding distinct_mset_def by auto
 
+lemma distinct_mset_filter:
+  "distinct_mset M \<Longrightarrow> distinct_mset {# L \<in># M. P L#}"
+  by (simp add: distinct_mset_def)
 
 subsection \<open>Filter\<close>
 
@@ -542,10 +554,6 @@ lemma comprehension_mset_False[simp]:
    "{# L \<in># A. False#} = {#}"
   by (auto simp: multiset_eq_iff)
 
-lemma subseteq_image_mset_minus:
-  "A \<subseteq># B \<Longrightarrow> image_mset f (B - A) = image_mset f B - image_mset f A"
-  using subset_mset.le_imp_diff_is_add by fastforce
-
 text \<open>Near duplicate of @{thm [source] filter_eq_replicate_mset}: @{thm filter_eq_replicate_mset}.\<close>
 lemma filter_mset_eq:
    "filter_mset (op = L) A = replicate_mset (count A L) L"
@@ -554,10 +562,6 @@ lemma filter_mset_eq:
 lemma filter_mset_union_mset:
   "filter_mset P (A #\<union> B) = filter_mset P A #\<union> filter_mset P B"
   by (auto simp: multiset_eq_iff)
-
-lemma filter_mset_mset_set:
-  "finite A \<Longrightarrow> filter_mset P (mset_set A) = mset_set {a \<in> A. P a}"
-  by (auto simp: multiset_eq_iff count_mset_set_if)
 
 text \<open>See @{thm [source] filter_cong} for the set version. Mark as \<open>[fundef_cong]\<close> too?\<close>
 lemma filter_mset_cong:
@@ -570,6 +574,10 @@ proof -
     by (auto simp: filter_mset_eq_conv)
 qed
 
+lemma image_mset_remove1_mset_if:
+  "image_mset f (remove1_mset a M) =
+    (if a \<in># M then remove1_mset (f a) (image_mset f M) else image_mset f M)"
+  by (auto simp: image_mset_Diff)
 
 subsection \<open>Sums\<close>
 
