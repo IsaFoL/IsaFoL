@@ -58,92 +58,93 @@ text \<open>It is important to remember that a conflicting clause with respect t
 subsubsection \<open>Clauses\<close>
 
 locale abstract_clause_representation_ops =
+  well_formed_two_watched_literal_clauses wf_watched wf_unwatched
+  for
+    wf_watched :: "'cls \<Rightarrow> 'lit multiset" and
+    wf_unwatched :: "'cls \<Rightarrow> 'lit multiset"
+  +
   fixes
     lit_lookup :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal option" and
     lit_keys :: "'cls \<Rightarrow> 'lit multiset" and
 
-    twl_cls :: "'cls \<Rightarrow> 'lit wf_twl_clause" and
     swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls" and
     it_of_watched_ordered :: "'cls \<Rightarrow> 'v literal \<Rightarrow> 'lit list" and
-    cls_of_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls"
+    cls_of_twl_list :: "'v literal list \<Rightarrow> 'cls"
 begin
-term map_twl_clause
-abbreviation twl_clause :: "'cls \<Rightarrow> 'v literal multiset twl_clause" where
-"twl_clause C \<equiv> map_wf_twl_clause (image_mset (\<lambda>L. the (lit_lookup C L))) (twl_cls C)"
 
-abbreviation clause_of_cls :: "'cls \<Rightarrow> 'v clause" where
+fun map_wf_twl_clause where
+"map_wf_twl_clause f C = TWL_Clause (f (wf_watched C)) (f (wf_unwatched C))"
+
+lemma clause_map_wf_twl_clause_wf_clause:
+  assumes "\<And>x1 x2. f (x1 + x2) = f x1 + f x2 "
+  shows "clause (map_wf_twl_clause f C) = f (wf_clause C)"
+  by (auto simp: assms wf_clause_def)
+
+abbreviation twl_clause :: "'cls \<Rightarrow> 'v literal multiset twl_clause" where
+"twl_clause C \<equiv> map_wf_twl_clause (image_mset (\<lambda>L. the (lit_lookup C L))) C"
+
+definition clause_of_cls :: "'cls \<Rightarrow> 'v clause" where
 "clause_of_cls C \<equiv> clause (twl_clause C)"
 
 lemma wf_watched_watched_empty_iff:
-  "wf_watched (twl_cls C) = {#} \<longleftrightarrow> watched (twl_clause C) = {#}"
-proof -
-  obtain twl_C where
-    C: "twl_cls C = wf_of_twl_clause twl_C" and wf: "twl_C \<in> {C. struct_wf_twl_cls C}"
-    by (cases "twl_cls C")
-  obtain W UW where
-    twl_C: "twl_C = TWL_Clause W UW"
-    by (cases twl_C)
-  have "wf_watched (twl_cls C) = {#} \<longleftrightarrow> wf_clause (twl_cls C) = {#}"
-    using wf unfolding C twl_C
-    by (auto simp: wf_clause_watched_unwatched wf_of_twl_clause_inverse wf_watched.rep_eq
-      wf_unwatched.rep_eq)
-  also have "wf_clause (twl_cls C) = {#} \<longleftrightarrow> clause_of_cls C = {#}"
-    by (auto simp: clause_map_wf_twl_clause_wf_clause)
-  also have "clause_of_cls C = {#} \<longleftrightarrow> watched (twl_clause C) = {#}"
-    using wf unfolding C twl_C
-    by (auto simp: clause_map_wf_twl_clause_wf_clause watched_map_wf_twl_clause
-      wf_of_twl_clause_inverse wf_watched.rep_eq wf_unwatched.rep_eq
-      wf_clause_watched_unwatched)
-  finally show ?thesis .
-qed
+  "wf_watched C = {#} \<longleftrightarrow> watched (twl_clause C) = {#}"
+  by simp
+
+lemma wf_watched_empty_then_wf_unwatched_empty:
+  "wf_watched C = {#} \<Longrightarrow> wf_unwatched C = {#}"
+  using twl_cls_wf[of C] by simp
 
 end
 
 
 locale abstract_clause_representation =
-  abstract_clause_representation_ops lit_lookup lit_keys twl_cls swap_lit
+  abstract_clause_representation_ops wf_watched wf_unwatched lit_lookup lit_keys swap_lit
     it_of_watched_ordered cls_of_twl_list
   for
+    wf_watched :: "'cls \<Rightarrow> 'lit multiset" and
+    wf_unwatched :: "'cls \<Rightarrow> 'lit multiset" and
     lit_lookup :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal option" and
     lit_keys :: "'cls \<Rightarrow> 'lit multiset" and
 
-    twl_cls :: "'cls \<Rightarrow> 'lit wf_twl_clause" and
     swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls" and
     it_of_watched_ordered :: "'cls \<Rightarrow> 'v literal \<Rightarrow> 'lit list" and
-    cls_of_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls" +
+    cls_of_twl_list :: "'v literal list \<Rightarrow> 'cls" +
   assumes
     distinct_lit_keys[simp]: "distinct_mset (lit_keys C)" and
     valid_lit_keys: "i \<in># lit_keys C \<longleftrightarrow> lit_lookup C i \<noteq> None" and
     swap_lit:
-      "j \<in># wf_watched (twl_cls C) \<Longrightarrow> k \<in># wf_unwatched (twl_cls C) \<Longrightarrow>
-        twl_clause_of_wf (twl_cls (swap_lit C j k)) =
+      "j \<in># wf_watched C \<Longrightarrow> k \<in># wf_unwatched C \<Longrightarrow>
+        twl_cls_wf (swap_lit C j k) =
           TWL_Clause
-            ({#k#} + remove1_mset j (wf_watched (twl_cls C)))
-            ({#j#} + remove1_mset k (wf_unwatched (twl_cls C)))" and
+            ({#k#} + remove1_mset j (wf_watched C))
+            ({#j#} + remove1_mset k (wf_unwatched C))" and
 
     it_of_watched_ordered:
       "L \<in># watched (twl_clause C) \<Longrightarrow>
-         mset (it_of_watched_ordered C L) = wf_watched (twl_cls C) \<and>
+         mset (it_of_watched_ordered C L) = wf_watched C \<and>
          lit_lookup C (hd (it_of_watched_ordered C L)) = Some L" and
 
-    twl_cls_valid: -- \<open>this states that all the valid indexes are included in @{term "twl_cls C"}.\<close>
-      "lit_keys C = wf_clause (twl_cls C)" and
+    twl_cls_valid: -- \<open>this states that all the valid indexes are included in @{term "C"}.\<close>
+      "lit_keys C = wf_clause C" and
 
     cls_of_twl_list:
-      "distinct (watched D @ unwatched D) \<Longrightarrow>
-        twl_clause (cls_of_twl_list D) = map_twl_clause mset D"
+      "distinct D \<Longrightarrow>
+        clause_of_cls (cls_of_twl_list D) = mset D"
 begin
+
+lemma valid_lit_keys_SomeD: "lit_lookup C i = Some e \<Longrightarrow> i \<in># lit_keys C"
+  unfolding valid_lit_keys by auto
 
 lemma lit_lookup_Some_in_clause_of_cls:
   assumes L: "lit_lookup C i = Some L"
   shows "L \<in># clause_of_cls C"
 proof -
-  have "i \<in># wf_clause (twl_cls C)"
+  have "i \<in># wf_clause C"
      using L by (auto simp: valid_lit_keys twl_cls_valid[symmetric])
-  then have "L \<in> (\<lambda>l. the (lit_lookup C l)) ` set_mset (wf_clause (twl_cls C))"
+  then have "L \<in> (\<lambda>l. the (lit_lookup C l)) ` set_mset (wf_clause C)"
     by (metis (no_types) assms image_eqI option.sel)
   then show ?thesis
-    by (auto simp:clause_map_wf_twl_clause_wf_clause)
+    by (auto simp: clause_map_wf_twl_clause_wf_clause wf_clause_def clause_of_cls_def)
 qed
 
 lemma clause_of_cls_valid_lit_lookup:
@@ -152,8 +153,8 @@ lemma clause_of_cls_valid_lit_lookup:
 proof -
   obtain i where
     "L = the (lit_lookup C i)" and
-    "i \<in># wf_clause (twl_cls C)"
-    using L by (cases "twl_cls C") (auto simp: clause_map_wf_twl_clause_wf_clause)
+    "i \<in># wf_clause C"
+    using L by (auto simp: clause_map_wf_twl_clause_wf_clause wf_clause_def clause_of_cls_def)
   then have "lit_lookup C i = Some L"
     by (auto simp: twl_cls_valid[symmetric] valid_lit_keys)
   then show ?thesis by blast
@@ -162,8 +163,10 @@ qed
 sublocale abstract_with_index where
   get_lit = lit_lookup and
   convert_to_mset = clause_of_cls
-  by unfold_locales (auto simp: lit_lookup_Some_in_clause_of_cls clause_of_cls_valid_lit_lookup)
-
+  apply unfold_locales
+  apply (frule valid_lit_keys_SomeD)
+  by (force simp: lit_lookup_Some_in_clause_of_cls clause_of_cls_valid_lit_lookup
+    twl_cls_valid valid_lit_keys[symmetric] wf_clause_def)+
 
 lemma it_of_watched_ordered_not_None:
   assumes
@@ -173,11 +176,11 @@ lemma it_of_watched_ordered_not_None:
     "lit_lookup C j = Some L" and
     "lit_lookup C k \<noteq> None"
 proof -
-  have jk: "{#j, k#} = wf_watched (twl_cls C)" and
+  have jk: "{#j, k#} = wf_watched C" and
     j: "lit_lookup C j = Some L"
     using it_of_watched_ordered[OF L] unfolding it by (auto simp: ac_simps)
-  have k: "k \<in># wf_clause (twl_cls C)"
-    using jk[symmetric] by (auto simp: wf_clause_watched_unwatched)
+  have k: "k \<in># wf_clause C"
+    using jk[symmetric] by (auto simp: wf_clause_def)
 
   show "lit_lookup C j = Some L"
     using j by simp
@@ -185,26 +188,27 @@ proof -
     using k unfolding valid_lit_keys[symmetric] twl_cls_valid by auto
 qed
 
-lemma unwatched_twl_clause_twl_clause_of_wff_iff:
-  "unwatched (twl_clause C) = {#} \<longleftrightarrow> unwatched (twl_clause_of_wf (twl_cls C)) = {#}"
-  apply (cases "twl_cls C")
-  apply (rename_tac y, case_tac y)
-  by (auto simp: unwatched_map_wf_twl_clause wf_unwatched.rep_eq)
+lemma unwatched_twl_clause_twl_cls_wff_iff:
+  "unwatched (twl_clause C) = {#} \<longleftrightarrow> unwatched (twl_cls_wf C) = {#}"
+  by auto
+
+lemma distinct_plus_subset_mset_empty:
+  "distinct_mset (B + A) \<Longrightarrow> A \<subseteq># B \<Longrightarrow> A = {#}"
+  using add.commute[of B A] by (metis distinct_mset_add subset_mset.inf.orderE)
 
 lemma it_of_watched_ordered_cases:
   assumes L: "L \<in># watched (twl_clause C)"
   shows
     "(\<exists>j. it_of_watched_ordered C L = [j] \<and> lit_lookup C j = Some L \<and>
-      unwatched (twl_clause C) = {#} \<and>  wf_watched (twl_cls C) = {#j#}) \<or>
+      wf_unwatched C = {#} \<and> wf_watched C = {#j#}) \<or>
      (\<exists>j k. it_of_watched_ordered C L = [j, k] \<and> lit_lookup C j = Some L \<and> lit_lookup C k \<noteq> None \<and>
-        wf_watched (twl_cls C) = {#j, k#})"
+        wf_watched C = {#j, k#})"
 proof -
   have "size (mset (it_of_watched_ordered C L)) \<le> 2"
-    using it_of_watched_ordered[OF assms] twl_clause_of_wf[of "twl_cls C"]
-    by (cases "twl_clause_of_wf (twl_cls C)") (auto simp add: wf_watched.rep_eq)
+    using it_of_watched_ordered[OF assms] twl_cls_wf[of "C"]
+    by (cases "twl_cls_wf C") auto
   moreover have "it_of_watched_ordered C L \<noteq> []"
-    using assms by (metis image_mset_is_empty_iff insert_DiffM it_of_watched_ordered mset.simps(1)
-      single_not_empty union_eq_empty watched_map_wf_twl_clause)
+    using assms it_of_watched_ordered by fastforce
   ultimately consider
     (single_watched) j where "it_of_watched_ordered C L = [j]" |
     (two_watched) j k where "it_of_watched_ordered C L = [j, k]"
@@ -215,11 +219,8 @@ proof -
       case (single_watched j) note j = this(1)
       moreover
         have "unwatched (twl_clause C) = {#}"
-          using twl_clause_of_wf[of "twl_cls C"] it_of_watched_ordered[OF assms]
-          apply (auto simp add:)
-          apply (cases "twl_clause_of_wf (twl_cls C)")
-          by (auto simp: j wf_watched.rep_eq subset_eq_mset_single_iff
-            distinct_mset_size_2 unwatched_twl_clause_twl_clause_of_wff_iff)
+          using twl_cls_wf[of "C"] it_of_watched_ordered[OF assms]
+          by (cases "twl_cls_wf C") (auto simp: j distinct_plus_subset_mset_empty)
       ultimately show ?thesis
         using it_of_watched_ordered[OF L] by auto
     next
@@ -265,8 +266,8 @@ lemma cls_keys_clss_update[simp]:
 lemma cls_lookup_Some_in_raw_cls_of_clss:
   assumes L: "cls_lookup Cs i = Some C"
   shows "C \<in># raw_cls_of_clss Cs"
-   by (metis (mono_tags, lifting) assms cls_keys image_iff option.distinct(1) option.sel
-     set_image_mset)
+  by (metis (mono_tags, lifting) assms cls_keys image_iff option.distinct(1) option.sel
+    set_image_mset)
 
 lemma raw_cls_of_clss_valid_cls_lookup:
   assumes L: "C \<in># raw_cls_of_clss Cs"
@@ -284,18 +285,19 @@ end
 subsubsection \<open>State\<close>
 
 locale abstract_clause_clauses_representation =
-  abstract_clause_representation lit_lookup lit_keys twl_cls swap_lit
+  abstract_clause_representation wf_watched wf_unwatched lit_lookup lit_keys swap_lit
     it_of_watched_ordered cls_of_twl_list +
   abstract_clauses_representation cls_lookup cls_keys clss_update add_cls
   for
+    wf_watched :: "'cls \<Rightarrow> 'lit multiset" and
+    wf_unwatched :: "'cls \<Rightarrow> 'lit multiset" and
     lit_lookup :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal option" and
     lit_keys :: "'cls \<Rightarrow> 'lit multiset" and
 
-    twl_cls :: "'cls \<Rightarrow> 'lit wf_twl_clause" and
     swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls" and
     it_of_watched_ordered :: "'cls \<Rightarrow> 'v literal \<Rightarrow> 'lit list" and
 
-    cls_of_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls" and
+    cls_of_twl_list :: "'v literal list \<Rightarrow> 'cls" and
     cls_lookup :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls option" and
     cls_keys :: "'clss \<Rightarrow> 'cls_it multiset" and
     clss_update :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'clss" and
@@ -314,7 +316,8 @@ end
 
 locale abs_state\<^sub>W_clss_twl_ops =
   abstract_clause_clauses_representation
-    lit_lookup lit_keys twl_cls swap_lit
+    wf_watched wf_unwatched
+    lit_lookup lit_keys swap_lit
     it_of_watched_ordered cls_of_twl_list
 
     cls_lookup cls_keys clss_update add_cls
@@ -322,15 +325,16 @@ locale abs_state\<^sub>W_clss_twl_ops =
   raw_cls mset_ccls
   for
     \<comment> \<open>Clause:\<close>
+    wf_watched :: "'cls \<Rightarrow> 'lit multiset" and
+    wf_unwatched :: "'cls \<Rightarrow> 'lit multiset" and
     lit_lookup :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal option" and
     lit_keys :: "'cls \<Rightarrow> 'lit multiset" and
 
-    twl_cls :: "'cls \<Rightarrow> 'lit wf_twl_clause" and
     swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls" and
     it_of_watched_ordered :: "'cls \<Rightarrow> 'v literal \<Rightarrow> 'lit list" and
 
     \<comment> \<open>Clauses\<close>
-    cls_of_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls" and
+    cls_of_twl_list :: "'v literal list \<Rightarrow> 'cls" and
     cls_lookup :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls option" and
     cls_keys :: "'clss \<Rightarrow> 'cls_it multiset" and
     clss_update :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'clss" and
@@ -371,7 +375,8 @@ end
 locale abs_state\<^sub>W_twl_ops =
   abs_state\<^sub>W_clss_twl_ops
     \<comment> \<open>functions for clauses: \<close>
-    lit_lookup lit_keys twl_cls swap_lit
+    wf_watched wf_unwatched
+    lit_lookup lit_keys swap_lit
     it_of_watched_ordered cls_of_twl_list
 
     cls_lookup cls_keys clss_update add_cls
@@ -380,15 +385,16 @@ locale abs_state\<^sub>W_twl_ops =
     mset_ccls
   for
     \<comment> \<open>Clause:\<close>
+    wf_watched :: "'cls \<Rightarrow> 'lit multiset" and
+    wf_unwatched :: "'cls \<Rightarrow> 'lit multiset" and
     lit_lookup :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal option" and
     lit_keys :: "'cls \<Rightarrow> 'lit multiset" and
 
-    twl_cls :: "'cls \<Rightarrow> 'lit wf_twl_clause" and
     swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls" and
     it_of_watched_ordered :: "'cls \<Rightarrow> 'v literal \<Rightarrow> 'lit list" and
 
     \<comment> \<open>Clauses\<close>
-    cls_of_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls" and
+    cls_of_twl_list :: "'v literal list \<Rightarrow> 'cls" and
     cls_lookup :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls option" and
     cls_keys :: "'clss \<Rightarrow> 'cls_it multiset" and
     clss_update :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'clss" and
@@ -495,7 +501,8 @@ qed
 locale abs_state\<^sub>W_twl =
   abs_state\<^sub>W_twl_ops
     \<comment> \<open>functions for clauses: \<close>
-    lit_lookup lit_keys twl_cls swap_lit
+    wf_watched wf_unwatched
+    lit_lookup lit_keys swap_lit
     it_of_watched_ordered cls_of_twl_list
 
     cls_lookup cls_keys clss_update add_cls
@@ -523,15 +530,16 @@ locale abs_state\<^sub>W_twl =
 
   for
     \<comment> \<open>Clause:\<close>
+    wf_watched :: "'cls \<Rightarrow> 'lit multiset" and
+    wf_unwatched :: "'cls \<Rightarrow> 'lit multiset" and
     lit_lookup :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal option" and
     lit_keys :: "'cls \<Rightarrow> 'lit multiset" and
 
-    twl_cls :: "'cls \<Rightarrow> 'lit wf_twl_clause" and
     swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls" and
     it_of_watched_ordered :: "'cls \<Rightarrow> 'v literal \<Rightarrow> 'lit list" and
 
     \<comment> \<open>Clauses\<close>
-    cls_of_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls" and
+    cls_of_twl_list :: "'v literal list \<Rightarrow> 'cls" and
     cls_lookup :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls option" and
     cls_keys :: "'clss \<Rightarrow> 'cls_it multiset" and
     clss_update :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'clss" and
@@ -999,7 +1007,8 @@ lemma count_decided_tl_dropWhile_not_decided:
 locale abs_conflict_driven_clause_learning\<^sub>W_clss =
   abs_state\<^sub>W_twl
     \<comment> \<open>functions for clauses: \<close>
-    lit_lookup lit_keys twl_cls swap_lit
+    wf_watched wf_unwatched
+    lit_lookup lit_keys swap_lit
     it_of_watched_ordered cls_of_twl_list
 
     cls_lookup cls_keys clss_update add_cls
@@ -1028,15 +1037,16 @@ locale abs_conflict_driven_clause_learning\<^sub>W_clss =
     abs_state_of rough_state_of wf_twl_state
   for
     \<comment> \<open>Clause:\<close>
+    wf_watched :: "'cls \<Rightarrow> 'lit multiset" and
+    wf_unwatched :: "'cls \<Rightarrow> 'lit multiset" and
     lit_lookup :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal option" and
     lit_keys :: "'cls \<Rightarrow> 'lit multiset" and
 
-    twl_cls :: "'cls \<Rightarrow> 'lit wf_twl_clause" and
     swap_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'lit \<Rightarrow> 'cls" and
     it_of_watched_ordered :: "'cls \<Rightarrow> 'v literal \<Rightarrow> 'lit list" and
 
     \<comment> \<open>Clauses\<close>
-    cls_of_twl_list :: "'v literal list twl_clause \<Rightarrow> 'cls" and
+    cls_of_twl_list :: "'v literal list \<Rightarrow> 'cls" and
     cls_lookup :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls option" and
     cls_keys :: "'clss \<Rightarrow> 'cls_it multiset" and
     clss_update :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls \<Rightarrow> 'clss" and
@@ -1384,19 +1394,20 @@ lemma
 proof -
   let ?C = "raw_clauses S \<Down> i"
   consider
-    (single_watched) j :: 'lit where "it_of_watched_ordered (raw_clauses S \<Down> i) L = [j]" and
-      "lit_lookup ?C j = Some L" and "unwatched (twl_clause (raw_clauses S \<Down> i)) = {#}" and
-      "wf_watched (twl_cls (raw_clauses S \<Down> i)) = {#j#}" |
-    (two_watched) j k :: 'lit where "it_of_watched_ordered (raw_clauses S \<Down> i) L = [j, k]" and
-      "lit_lookup ?C j = Some L" and "lit_lookup ?C k \<noteq> None"
+    (single_watched) j :: 'lit where "it_of_watched_ordered ?C L = [j]" and
+      "lit_lookup ?C j = Some L" and "wf_unwatched ?C = {#}" and
+      "wf_watched (raw_clauses S \<Down> i) = {#j#}" |
+    (two_watched) j k :: 'lit where "it_of_watched_ordered ?C L = [j, k]" and
+      "lit_lookup ?C j = Some L" and "lit_lookup ?C k \<noteq> None" and
+      "wf_watched (raw_clauses S \<Down> i) = {#j, k#}"
     using it_of_watched_ordered_cases[OF L] by blast
   then show ?thesis
     proof cases
       case (single_watched j) note it = this(1) and lit = this(2) and C = this(3) and W = this(4)
       moreover
         have iL: "clause_of_cls (raw_clauses S \<Down> i) = {#L#}"
-          by (auto simp: clause_map_wf_twl_clause_wf_clause wf_clause_watched_unwatched C
-            wf_unwatched.rep_eq W lit unwatched_twl_clause_twl_clause_of_wff_iff[symmetric])
+          by (auto simp: clause_map_wf_twl_clause_wf_clause wf_clause_def C
+             W lit unwatched_twl_clause_twl_cls_wff_iff[symmetric] clause_of_cls_def)
         have "conflict_abs S (mark_conflicting i S)"
           apply (rule conflict_abs_rule[of _ i])
              using confl apply auto[]
@@ -1425,7 +1436,6 @@ definition propagate_and_conflict_one_lit where
 "propagate_and_conflict_one_lit S L =
   update_watched_clauses S L (get_clause_watched_by S L)"
 
-
 lemma raw_conc_conflicting_mark_conflicting:
   assumes "i \<in>\<Down> raw_clauses S" and "raw_conc_conflicting S = None"
   shows "raw_conc_conflicting (mark_conflicting i S) \<noteq> None"
@@ -1450,7 +1460,7 @@ next
     using get_clause_watched_by[of i S L] unfolding watched by simp
   then have [simp]: "it_of_watched_ordered ?C L \<noteq> []" and
     "lit_lookup (raw_clauses S \<Down> i) (hd (it_of_watched_ordered (raw_clauses S \<Down> i) L)) = Some L"
-    using it_of_watched_ordered[of L ?C] by (auto simp: wf_watched_watched_empty_iff)
+    using it_of_watched_ordered[of L ?C] by auto
 
   have "L \<in># watched (twl_clause ?C)" and "i \<in>\<Down> raw_clauses S"
     using get_clause_watched_by[of i S L] unfolding watched by auto
@@ -1462,7 +1472,7 @@ next
 oops
 
 
-function propagate_and_conflict where
+function (domintros) propagate_and_conflict where
 "propagate_and_conflict S =
   (if prop_queue_null S
   then S
@@ -1470,23 +1480,7 @@ function propagate_and_conflict where
     let S' = prop_queue_to_trail S in
     propagate_and_conflict (propagate_and_conflict_one_lit S' (lit_of (hd_raw_abs_trail S'))))"
 by auto
-termination sorry
+
 end
-
-
-interpretation 2: type_definition_locale where Rep = twl_clause_of_wf and Abs = wf_of_twl_clause and
-inv = struct_wf_twl_cls
-apply unfold_locales
-using twl_clause_of_wf_inverse apply metis
-using twl_clause_of_wf apply metis
-using twl_clause_of_wf_inject apply metis
-using wf_of_twl_clause_inverse apply metis
-using wf_of_twl_clause_induct apply metis
-using twl_clause_of_wf_induct apply metis
-using wf_of_twl_clause_cases  apply metis
-using twl_clause_of_wf_cases  apply metis
-using wf_of_twl_clause_inject apply metis
-done
-
 
 end
