@@ -54,7 +54,6 @@ lemma "eval\<^sub>l E\<^sub>n\<^sub>a\<^sub>t F\<^sub>n\<^sub>a\<^sub>t G\<^sub>
          ,Var ''x'']
        ) = True" 
   by auto
-(* value "diag 0" value "diag 1" value "diag 2" value "diag 3" value "diag 4" value "diag_hatom 0" value "undiag_hatom (diag_hatom 0)" value "diag_hatom (undiag_hatom (diag_hatom 0))" value "undiag_hatom (diag_hatom 1)" value "undiag_hatom (diag_hatom 2)" value "diag_hatom 2" value "diag_hatom 3" value "diag_hatom 4" value "diag_hatom 5" value "diag_hatom 90"  *)
 
 definition PP :: "fterm literal" where
   "PP = Pos ''P'' [Fun ''c'' []]"
@@ -71,7 +70,7 @@ definition NQ :: "fterm literal" where
 theorem empty_mgu: "unifier\<^sub>l\<^sub>s \<epsilon> L \<Longrightarrow> mgu\<^sub>l\<^sub>s \<epsilon> L"
 unfolding unifier\<^sub>l\<^sub>s_def mgu\<^sub>l\<^sub>s_def apply auto
 apply (rule_tac x=u in exI)
-using empty_comp1 empty_comp2 apply (auto)
+using empty_comp1 empty_comp2 apply auto
 done
 
 theorem unifier_single: "unifier\<^sub>l\<^sub>s \<sigma> {l}" 
@@ -118,7 +117,7 @@ proof -
     apply (rule resolution_rule'[of "{NP}" _ "{PP}" "{NP}" "{PP}" \<epsilon>])
     unfolding applicable_def vars\<^sub>l\<^sub>s_def  vars\<^sub>l_def 
               NQ_def NP_def PQ_def PP_def resolution_def
-    using unifier_single empty_mgu apply (auto)
+    using unifier_single empty_mgu apply auto
     done
   then have "resolution_step
          {{NP,PQ},{NQ},{PP,PQ},{NP},{PP}}
@@ -184,8 +183,8 @@ proof -
           }
           ultimately show "(?\<sigma> \<cdot> u) x = u x" by auto
         qed
-      then have "(\<exists>i. ?\<sigma> \<cdot> i = u)" by auto
-      then show "(\<exists>i. u = ?\<sigma> \<cdot> i)" by auto
+      then have "\<exists>i. ?\<sigma> \<cdot> i = u" by auto
+      then show "\<exists>i. u = ?\<sigma> \<cdot> i" by auto
      qed
    from a b show ?thesis unfolding mgu\<^sub>l\<^sub>s_def unfolding mguPaaPax_def by auto
 qed
@@ -217,7 +216,7 @@ proof -
     apply (rule resolution_rule'[of "{Nb,Na}" _ "{Na,Pb}" "{Nb}" "{Pb}" \<epsilon>])
     unfolding applicable_def vars\<^sub>l\<^sub>s_def  vars\<^sub>l_def 
               Pb_def Nb_def Na_def PP_def resolution_def
-    using unifier_single empty_mgu apply (auto)
+    using unifier_single empty_mgu apply auto
     done
   then have "resolution_step 
           {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa},{Na,Pb}}
@@ -230,7 +229,7 @@ proof -
     apply (rule resolution_rule'[of "{Na}" _ "{Pa}" "{Na}" "{Pa}" \<epsilon>])
     unfolding applicable_def vars\<^sub>l\<^sub>s_def  vars\<^sub>l_def 
               Pa_def Nb_def Na_def PP_def resolution_def
-    using unifier_single empty_mgu apply (auto)
+    using unifier_single empty_mgu apply auto
     done
   then have "resolution_step 
           {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa},{Na,Pb},{Na}}

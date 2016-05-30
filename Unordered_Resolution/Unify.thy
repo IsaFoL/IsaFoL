@@ -2,18 +2,6 @@ theory Unify imports
   "$ISAFOR/Rewriting/Unification" Resolution
 begin
 
-(* This theory obtains a proof of the unification lemma (the existence of mgus) by encoding literals as the terms used in IsaFoR. 
-   Then the theory uses the unification lemma from IsaFoR.
-   
-   Here are two suggestions for other ways to solve the problem:
-     1. Prove the unification lemma by adapting the relevant parts of IsaFoR in to this file.
-        A clear advantage would be that this could lead to a smaller theory, since IsaFoR is quite big.
-     2. Integrate the Unordered_Resolution project more closely with IsaFoR. That is, instead of having a definition of terms, 
-        substitutions, unifiers, etc., this project could import these definitions from IsaFoR.
-        A clear advantage is that then the two projects could take advantage of each others theorems. And it is (almost) always nice
-        to reuse the work of others.
- *)
-
 definition set_to_list :: "'a set \<Rightarrow> 'a list" where
   "set_to_list \<equiv> inv set"
 
@@ -24,7 +12,7 @@ proof (induction rule: finite.induct)
   then show ?case unfolding set_to_list_def inv_into_def by auto
 next
   case (insertI A a)
-  then have "set (a#(set_to_list A)) = insert a A" by auto
+  then have "set (a#set_to_list A) = insert a A" by auto
   then show ?case unfolding set_to_list_def inv_into_def by (metis (mono_tags, lifting) UNIV_I someI) 
 qed
 
@@ -43,10 +31,10 @@ lemma fterm_to_iterm_cancel[simp]: "fterm_to_iterm (iterm_to_fterm t) = t"
   by (induction t) (auto simp add: map_idI)
 
 abbreviation(input) fsub_to_isub :: "substitution \<Rightarrow> (fun_sym, var_sym) subst" where
-  "fsub_to_isub \<sigma> == \<lambda>x. fterm_to_iterm (\<sigma> x)"
+  "fsub_to_isub \<sigma> \<equiv> \<lambda>x. fterm_to_iterm (\<sigma> x)"
 
 abbreviation(input) isub_to_fsub :: "(fun_sym, var_sym) subst \<Rightarrow> substitution" where
-  "isub_to_fsub \<sigma> == \<lambda>x. iterm_to_fterm (\<sigma> x)"
+  "isub_to_fsub \<sigma> \<equiv> \<lambda>x. iterm_to_fterm (\<sigma> x)"
 
 lemma iterm_to_fterm_subt: "(iterm_to_fterm t1) \<cdot>\<^sub>t \<sigma> = iterm_to_fterm (t1 \<cdot> (\<lambda>x. fterm_to_iterm (\<sigma> x)))"
   by (induction t1) auto
@@ -61,11 +49,11 @@ proof -
       assume t1_p: "t1 \<in> fterm_to_iterm ` ts" assume t2_p: "t2 \<in> fterm_to_iterm ` ts"
       from t1_p t2_p have "iterm_to_fterm t1 \<in> ts \<and> iterm_to_fterm t2 \<in> ts" by auto 
       then have "(iterm_to_fterm t1) \<cdot>\<^sub>t \<sigma> = (iterm_to_fterm t2) \<cdot>\<^sub>t \<sigma>" using assms unfolding unifier\<^sub>t\<^sub>s_def by auto
-      then have "iterm_to_fterm (t1 \<cdot> (fsub_to_isub \<sigma>)) = iterm_to_fterm (t2 \<cdot> (fsub_to_isub \<sigma>))" using iterm_to_fterm_subt by auto 
-      then have "fterm_to_iterm (iterm_to_fterm (t1 \<cdot> (fsub_to_isub \<sigma>))) = fterm_to_iterm (iterm_to_fterm (t2 \<cdot> (fsub_to_isub \<sigma>)))" by auto
-      then show "t1 \<cdot> (fsub_to_isub \<sigma>) = t2 \<cdot> (fsub_to_isub \<sigma>)" using fterm_to_iterm_cancel by auto
+      then have "iterm_to_fterm (t1 \<cdot> fsub_to_isub \<sigma>) = iterm_to_fterm (t2 \<cdot> fsub_to_isub \<sigma>)" using iterm_to_fterm_subt by auto 
+      then have "fterm_to_iterm (iterm_to_fterm (t1 \<cdot> fsub_to_isub \<sigma>)) = fterm_to_iterm (iterm_to_fterm (t2 \<cdot> fsub_to_isub \<sigma>))" by auto
+      then show "t1 \<cdot> fsub_to_isub \<sigma> = t2 \<cdot> fsub_to_isub \<sigma>" using fterm_to_iterm_cancel by auto
     qed
-  then have "\<forall>p\<in>fterm_to_iterm ` ts \<times> fterm_to_iterm ` ts. fst p \<cdot> (fsub_to_isub \<sigma>) = snd p \<cdot> (fsub_to_isub \<sigma>)" by (metis mem_Times_iff) 
+  then have "\<forall>p\<in>fterm_to_iterm ` ts \<times> fterm_to_iterm ` ts. fst p \<cdot> fsub_to_isub \<sigma> = snd p \<cdot> fsub_to_isub \<sigma>" by (metis mem_Times_iff) 
   then show ?thesis unfolding unifiers_def by blast
 qed
 
@@ -93,23 +81,23 @@ next
   assume "ts \<noteq> {}"
   then obtain t' where t'_p: "t' \<in> ts" by auto
 
-  have "\<forall>t1\<in>ts. \<forall>t2\<in>ts. t1 \<cdot>\<^sub>t isub_to_fsub \<sigma> = t2 \<cdot>\<^sub>t isub_to_fsub \<sigma>"
+  have "\<forall>t\<^sub>1\<in>ts. \<forall>t\<^sub>2\<in>ts. t\<^sub>1 \<cdot>\<^sub>t isub_to_fsub \<sigma> = t\<^sub>2 \<cdot>\<^sub>t isub_to_fsub \<sigma>"
     proof (rule ballI ; rule ballI)
-      fix t1 t2 
-      assume "t1 \<in> ts" "t2 \<in> ts" 
-      then have "fterm_to_iterm t1 \<in> fterm_to_iterm ` ts" "fterm_to_iterm t2 \<in> fterm_to_iterm ` ts" by auto
-      then have "(fterm_to_iterm t1, fterm_to_iterm t2) \<in> (fterm_to_iterm ` ts \<times> fterm_to_iterm ` ts)" by auto
-      then have "(fterm_to_iterm t1) \<cdot> \<sigma> = (fterm_to_iterm t2) \<cdot> \<sigma>" using assms unfolding unifiers_def
+      fix t\<^sub>1 t\<^sub>2 
+      assume "t\<^sub>1 \<in> ts" "t\<^sub>2 \<in> ts" 
+      then have "fterm_to_iterm t\<^sub>1 \<in> fterm_to_iterm ` ts" "fterm_to_iterm t\<^sub>2 \<in> fterm_to_iterm ` ts" by auto
+      then have "(fterm_to_iterm t\<^sub>1, fterm_to_iterm t\<^sub>2) \<in> (fterm_to_iterm ` ts \<times> fterm_to_iterm ` ts)" by auto
+      then have "(fterm_to_iterm t\<^sub>1) \<cdot> \<sigma> = (fterm_to_iterm t\<^sub>2) \<cdot> \<sigma>" using assms unfolding unifiers_def
          by (metis (no_types, lifting) assms fst_conv member_unifiersE snd_conv) 
-      then have "fterm_to_iterm (t1 \<cdot>\<^sub>t isub_to_fsub \<sigma>) = fterm_to_iterm (t2 \<cdot>\<^sub>t isub_to_fsub \<sigma>)" using fterm_to_iterm_subst by auto
-      then have "iterm_to_fterm (fterm_to_iterm (t1 \<cdot>\<^sub>t (isub_to_fsub \<sigma>))) = iterm_to_fterm (fterm_to_iterm (t2 \<cdot>\<^sub>t isub_to_fsub \<sigma>))" by auto
-      then show "t1 \<cdot>\<^sub>t isub_to_fsub \<sigma> = t2 \<cdot>\<^sub>t isub_to_fsub \<sigma>" by auto
+      then have "fterm_to_iterm (t\<^sub>1 \<cdot>\<^sub>t isub_to_fsub \<sigma>) = fterm_to_iterm (t\<^sub>2 \<cdot>\<^sub>t isub_to_fsub \<sigma>)" using fterm_to_iterm_subst by auto
+      then have "iterm_to_fterm (fterm_to_iterm (t\<^sub>1 \<cdot>\<^sub>t (isub_to_fsub \<sigma>))) = iterm_to_fterm (fterm_to_iterm (t\<^sub>2 \<cdot>\<^sub>t isub_to_fsub \<sigma>))" by auto
+      then show "t\<^sub>1 \<cdot>\<^sub>t isub_to_fsub \<sigma> = t\<^sub>2 \<cdot>\<^sub>t isub_to_fsub \<sigma>" by auto
     qed
-  then have "\<forall>t2\<in>ts. t' \<cdot>\<^sub>t isub_to_fsub \<sigma> = t2 \<cdot>\<^sub>t isub_to_fsub \<sigma>" using t'_p by blast            
+  then have "\<forall>t\<^sub>2\<in>ts. t' \<cdot>\<^sub>t isub_to_fsub \<sigma> = t\<^sub>2 \<cdot>\<^sub>t isub_to_fsub \<sigma>" using t'_p by blast            
   then show "unifier\<^sub>t\<^sub>s (isub_to_fsub \<sigma>) ts" unfolding unifier\<^sub>t\<^sub>s_def by metis
 qed
 
-lemma icomp_fcomp: "\<theta> \<circ>\<^sub>s i = fsub_to_isub ((isub_to_fsub \<theta>) \<cdot> (isub_to_fsub i))"
+lemma icomp_fcomp: "\<theta> \<circ>\<^sub>s i = fsub_to_isub (isub_to_fsub \<theta> \<cdot> isub_to_fsub i)"
   unfolding composition_def subst_compose_def
 proof
   fix x
@@ -130,10 +118,10 @@ proof -
       then have "fsub_to_isub u \<in> unifiers (fterm_to_iterm ` ts \<times> fterm_to_iterm ` ts)" using unifiert_unifiers by auto
       then have "\<exists>i. fsub_to_isub u = \<theta> \<circ>\<^sub>s i" using assms unfolding is_imgu_def by auto
       then obtain i where "fsub_to_isub u = \<theta> \<circ>\<^sub>s i" by auto 
-      then have "fsub_to_isub u =  fsub_to_isub ((isub_to_fsub \<theta>) \<cdot> (isub_to_fsub i))" using icomp_fcomp by auto
-      then have "isub_to_fsub (fsub_to_isub u) = isub_to_fsub (fsub_to_isub ((isub_to_fsub \<theta>) \<cdot> (isub_to_fsub i)))" by metis
-      then have "u = (isub_to_fsub \<theta>) \<cdot> (isub_to_fsub i)" by auto
-      then show "\<exists>i. u = (isub_to_fsub \<theta>) \<cdot> i" by metis
+      then have "fsub_to_isub u =  fsub_to_isub (isub_to_fsub \<theta> \<cdot> isub_to_fsub i)" using icomp_fcomp by auto
+      then have "isub_to_fsub (fsub_to_isub u) = isub_to_fsub (fsub_to_isub (isub_to_fsub \<theta> \<cdot> isub_to_fsub i))" by metis
+      then have "u = isub_to_fsub \<theta> \<cdot> isub_to_fsub i" by auto
+      then show "\<exists>i. u = isub_to_fsub \<theta> \<cdot> i" by metis
     qed
   ultimately show ?thesis unfolding mgu\<^sub>t\<^sub>s_def by auto
 qed

@@ -94,7 +94,7 @@ lemma [simp]: "hterms_of_fterms (fterms_of_hterms ts) = ts"
 lemma [simp]: "ground\<^sub>t t \<Longrightarrow> fterm_of_hterm (hterm_of_fterm t) = t" 
   by (induction t) (auto simp add: map_idI)
 
-lemma [simp]: "ground\<^sub>t\<^sub>s ts \<Longrightarrow>fterms_of_hterms (hterms_of_fterms ts) = ts" 
+lemma [simp]: "ground\<^sub>t\<^sub>s ts \<Longrightarrow> fterms_of_hterms (hterms_of_fterms ts) = ts" 
   unfolding fterms_of_hterms_def hterms_of_fterms_def by (simp add: map_idI)
 
 lemma ground_fterm_of_hterm:  "ground\<^sub>t (fterm_of_hterm t)"
@@ -157,7 +157,7 @@ fun hatom_of_fatom :: "fterm atom \<Rightarrow> hterm atom" where
 lemma ground_fatom_of_hatom: "ground\<^sub>t\<^sub>s (snd (fatom_of_hatom a))" 
   by  (induction a) (simp add: ground_fterms_of_hterms)+
 
-theorem hatom_of_fatom_fatom_of_hatom [simp]: "hatom_of_fatom (fatom_of_hatom l) =  l" by (cases l) auto
+theorem hatom_of_fatom_fatom_of_hatom [simp]: "hatom_of_fatom (fatom_of_hatom l) = l" by (cases l) auto
 
 theorem fatom_of_hatom_hatom_of_fatom [simp]: "ground\<^sub>t\<^sub>s (snd l) \<Longrightarrow> fatom_of_hatom (hatom_of_fatom l) = l" by (cases l) auto
 
@@ -246,7 +246,7 @@ proof -
   moreover
   have "infinite ?S" using infinite_hatoms by auto
   ultimately
-  obtain x where "bij (x:: hterm atom \<Rightarrow> nat)" using countableE_infinite[of ?S] by blast
+  obtain x where "bij (x :: hterm atom \<Rightarrow> nat)" using countableE_infinite[of ?S] by blast
   then have "bij nat_from_hatom" unfolding nat_from_hatom_def using someI by metis
   then show "?thesis" unfolding bij_betw_def inj_on_def unfolding nat_from_hatom_def by simp
 qed

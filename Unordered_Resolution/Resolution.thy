@@ -33,11 +33,11 @@ proof -
   show ?thesis by auto
 qed
 
-lemma sign_comp: "sign l1 \<noteq> sign l2 \<and> get_pred l1 = get_pred l2 \<and> get_terms l1 = get_terms l2 \<longleftrightarrow> l2 = l1\<^sup>c"
-by (cases l1; cases l2) auto
+lemma sign_comp: "sign l\<^sub>1 \<noteq> sign l\<^sub>2 \<and> get_pred l\<^sub>1 = get_pred l\<^sub>2 \<and> get_terms l\<^sub>1 = get_terms l\<^sub>2 \<longleftrightarrow> l\<^sub>2 = l\<^sub>1\<^sup>c"
+by (cases l\<^sub>1; cases l\<^sub>2) auto
 
-lemma sign_comp_atom: "sign l1 \<noteq> sign l2 \<and> get_atom l1 = get_atom l2 \<longleftrightarrow> l2 = l1\<^sup>c"
-by (cases l1; cases l2) auto
+lemma sign_comp_atom: "sign l\<^sub>1 \<noteq> sign l\<^sub>2 \<and> get_atom l\<^sub>1 = get_atom l\<^sub>2 \<longleftrightarrow> l\<^sub>2 = l\<^sub>1\<^sup>c"
+by (cases l\<^sub>1; cases l\<^sub>2) auto
 
 section {* Clauses *}
 
@@ -75,10 +75,8 @@ definition vars\<^sub>l\<^sub>s :: "fterm literal set \<Rightarrow> var_sym set"
 lemma ground_vars\<^sub>t: "ground\<^sub>t t \<Longrightarrow> vars\<^sub>t t = {}" 
 by (induction t) auto
 
-
 lemma ground\<^sub>t\<^sub>s_vars\<^sub>t\<^sub>s: "ground\<^sub>t\<^sub>s ts \<Longrightarrow> vars\<^sub>t\<^sub>s ts = {}"
 using ground_vars\<^sub>t by auto
-
 
 lemma ground\<^sub>l_vars\<^sub>l: "ground\<^sub>l l \<Longrightarrow> vars\<^sub>l l = {}" unfolding vars\<^sub>l_def using ground_vars\<^sub>t by auto
 
@@ -410,7 +408,7 @@ proof (induction t)
     proof
       fix t
       assume tints: "t \<in> set ts"
-      then have "\<forall>x\<in>vars\<^sub>t t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f Fun(2) by auto
+      then have "\<forall>x \<in> vars\<^sub>t t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f Fun(2) by auto
       then show "t \<cdot>\<^sub>t \<sigma>\<^sub>1 = t \<cdot>\<^sub>t \<sigma>\<^sub>2" using Fun tints by auto
     qed
   then have "ts \<cdot>\<^sub>t\<^sub>s \<sigma>\<^sub>1 = ts \<cdot>\<^sub>t\<^sub>s \<sigma>\<^sub>2" by auto
@@ -426,7 +424,7 @@ proof -
     proof
       fix t
       assume tints: "t \<in> set ts"
-      then have "\<forall>x\<in>vars\<^sub>t t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f asm by auto
+      then have "\<forall>x \<in> vars\<^sub>t t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x" using f asm by auto
       then show "t \<cdot>\<^sub>t \<sigma>\<^sub>1 = t \<cdot>\<^sub>t \<sigma>\<^sub>2" using relevant_vars_subt tints by auto
     qed
   then show ?thesis by auto
@@ -468,7 +466,7 @@ proof -
   then have "C \<cdot>\<^sub>l\<^sub>s ?\<eta> = C \<cdot>\<^sub>l\<^sub>s lmbd" using relevant_vars_subls[of C ?\<eta> lmbd] by auto
   then have "C \<cdot>\<^sub>l\<^sub>s ?\<eta> = C'" using CC' by auto
   moreover
-  have " \<forall>x\<in>vars\<^sub>l\<^sub>s D. ?\<eta> x = \<mu> x" using dist by auto
+  have " \<forall>x \<in> vars\<^sub>l\<^sub>s D. ?\<eta> x = \<mu> x" using dist by auto
   then have "D \<cdot>\<^sub>l\<^sub>s ?\<eta> = D \<cdot>\<^sub>l\<^sub>s \<mu>" using relevant_vars_subls[of D ?\<eta> \<mu>] by auto
   then have "D \<cdot>\<^sub>l\<^sub>s ?\<eta> = D'" using DD' by auto
   ultimately
@@ -478,17 +476,17 @@ qed
 subsection {* Standardizing apart *}
 
 abbreviation std\<^sub>1 :: "fterm clause \<Rightarrow> fterm clause" where
-  "std\<^sub>1 C == C \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (''1'' @ x))"
+  "std\<^sub>1 C \<equiv> C \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (''1'' @ x))"
 
 abbreviation std\<^sub>2 :: "fterm clause \<Rightarrow> fterm clause" where
-  "std\<^sub>2 C == C \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (''2'' @ x))"
+  "std\<^sub>2 C \<equiv> C \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (''2'' @ x))"
 
 lemma std_apart_apart'': 
-  "x\<in>vars\<^sub>t  (t \<cdot>\<^sub>t (\<lambda>x::char list. Var (y @ x))) \<Longrightarrow> \<exists>x'. x=y@x'"
+  "x \<in> vars\<^sub>t  (t \<cdot>\<^sub>t (\<lambda>x::char list. Var (y @ x))) \<Longrightarrow> \<exists>x'. x = y@x'"
 by (induction t) auto
 
 
-lemma std_apart_apart': "x\<in>vars\<^sub>l (l \<cdot>\<^sub>l (\<lambda>x. Var  (y@x))) \<Longrightarrow> \<exists>x'. x=y@x'"
+lemma std_apart_apart': "x \<in> vars\<^sub>l (l \<cdot>\<^sub>l (\<lambda>x. Var  (y@x))) \<Longrightarrow> \<exists>x'. x = y@x'"
 unfolding vars\<^sub>l_def using std_apart_apart'' by (cases l) auto
 
 lemma std_apart_apart: "vars\<^sub>l\<^sub>s (std\<^sub>1 C\<^sub>1) \<inter> vars\<^sub>l\<^sub>s (std\<^sub>2 C\<^sub>2) = {}"
@@ -497,7 +495,7 @@ proof -
     fix x
     assume xin: "x \<in> vars\<^sub>l\<^sub>s (std\<^sub>1 C\<^sub>1) \<inter> vars\<^sub>l\<^sub>s (std\<^sub>2 C\<^sub>2)"
     from xin have "x \<in> vars\<^sub>l\<^sub>s (std\<^sub>1 C\<^sub>1)" by auto
-    then have "\<exists>x'.  x=''1'' @ x'" 
+    then have "\<exists>x'. x=''1'' @ x'" 
       using std_apart_apart'[of x _ "''1''"] unfolding vars\<^sub>l\<^sub>s_def by auto
     moreover
     from xin have "x \<in> vars\<^sub>l\<^sub>s (std\<^sub>2 C\<^sub>2)" by auto
@@ -509,15 +507,15 @@ proof -
   then show ?thesis by auto 
 qed
 
-lemma std_apart_instance_of\<^sub>l\<^sub>s1: "instance_of\<^sub>l\<^sub>s C1 (std\<^sub>1 C1)"
+lemma std_apart_instance_of\<^sub>l\<^sub>s1: "instance_of\<^sub>l\<^sub>s C\<^sub>1 (std\<^sub>1 C\<^sub>1)"
 proof -
   have empty: "(\<lambda>x. Var (''1''@x)) \<cdot> (\<lambda>x. Var (tl x)) = \<epsilon>" using composition_def by auto
 
-  have "C1 \<cdot>\<^sub>l\<^sub>s \<epsilon> = C1" using empty_subls by auto
-  then have "C1 \<cdot>\<^sub>l\<^sub>s ((\<lambda>x. Var (''1''@x)) \<cdot> (\<lambda>x. Var (tl x))) = C1" using empty by auto
-  then have "(C1 \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (''1''@x))) \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (tl x)) = C1" using composition_conseq2ls by auto
-  then have "C1 = (std\<^sub>1 C1) \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (tl x))" by auto
-  then show "instance_of\<^sub>l\<^sub>s C1 (std\<^sub>1 C1)" unfolding instance_of\<^sub>l\<^sub>s_def by auto
+  have "C\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<epsilon> = C\<^sub>1" using empty_subls by auto
+  then have "C\<^sub>1 \<cdot>\<^sub>l\<^sub>s ((\<lambda>x. Var (''1''@x)) \<cdot> (\<lambda>x. Var (tl x))) = C\<^sub>1" using empty by auto
+  then have "(C\<^sub>1 \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (''1''@x))) \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (tl x)) = C\<^sub>1" using composition_conseq2ls by auto
+  then have "C\<^sub>1 = (std\<^sub>1 C\<^sub>1) \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (tl x))" by auto
+  then show "instance_of\<^sub>l\<^sub>s C\<^sub>1 (std\<^sub>1 C\<^sub>1)" unfolding instance_of\<^sub>l\<^sub>s_def by auto
 qed
 
 lemma std_apart_instance_of\<^sub>l\<^sub>s2: "instance_of\<^sub>l\<^sub>s C2 (std\<^sub>2 C2)"
@@ -986,56 +984,56 @@ lemma sub_of_denot_equiv_ground:
            \<and> ground\<^sub>l\<^sub>s (C \<cdot>\<^sub>l\<^sub>s sub_of_denot E)"
   using sub_of_denot_equiv_ground' by auto
 
-lemma std\<^sub>1_falsifies: "falsifies\<^sub>c G C1 \<longleftrightarrow> falsifies\<^sub>c G (std\<^sub>1 C1)"
+lemma std\<^sub>1_falsifies: "falsifies\<^sub>c G C\<^sub>1 \<longleftrightarrow> falsifies\<^sub>c G (std\<^sub>1 C\<^sub>1)"
 proof 
-  assume asm: "falsifies\<^sub>c G C1"
-  then obtain Cg where "instance_of\<^sub>l\<^sub>s Cg C1  \<and> falsifies\<^sub>g G Cg" by auto
+  assume asm: "falsifies\<^sub>c G C\<^sub>1"
+  then obtain Cg where "instance_of\<^sub>l\<^sub>s Cg C\<^sub>1  \<and> falsifies\<^sub>g G Cg" by auto
   moreover
-  then have "instance_of\<^sub>l\<^sub>s Cg (std\<^sub>1 C1)" using std_apart_instance_of\<^sub>l\<^sub>s1 instance_of\<^sub>l\<^sub>s_trans asm by blast
+  then have "instance_of\<^sub>l\<^sub>s Cg (std\<^sub>1 C\<^sub>1)" using std_apart_instance_of\<^sub>l\<^sub>s1 instance_of\<^sub>l\<^sub>s_trans asm by blast
   ultimately
-  show "falsifies\<^sub>c G (std\<^sub>1 C1)" by auto
+  show "falsifies\<^sub>c G (std\<^sub>1 C\<^sub>1)" by auto
 next
-  assume asm: "falsifies\<^sub>c G (std\<^sub>1 C1)"
-  then have inst: "instance_of\<^sub>l\<^sub>s (std\<^sub>1 C1) C1" unfolding instance_of\<^sub>l\<^sub>s_def by auto
+  assume asm: "falsifies\<^sub>c G (std\<^sub>1 C\<^sub>1)"
+  then have inst: "instance_of\<^sub>l\<^sub>s (std\<^sub>1 C\<^sub>1) C\<^sub>1" unfolding instance_of\<^sub>l\<^sub>s_def by auto
 
-  from asm obtain Cg where "instance_of\<^sub>l\<^sub>s Cg (std\<^sub>1 C1)  \<and> falsifies\<^sub>g G Cg" by auto
+  from asm obtain Cg where "instance_of\<^sub>l\<^sub>s Cg (std\<^sub>1 C\<^sub>1)  \<and> falsifies\<^sub>g G Cg" by auto
   moreover
-  then have "instance_of\<^sub>l\<^sub>s Cg C1" using inst instance_of\<^sub>l\<^sub>s_trans assms by blast
+  then have "instance_of\<^sub>l\<^sub>s Cg C\<^sub>1" using inst instance_of\<^sub>l\<^sub>s_trans assms by blast
   ultimately
-  show "falsifies\<^sub>c G C1" by auto
+  show "falsifies\<^sub>c G C\<^sub>1" by auto
 qed
 
-lemma std\<^sub>2_falsifies: "falsifies\<^sub>c G C2 \<longleftrightarrow> falsifies\<^sub>c G (std\<^sub>2 C2)"
+lemma std\<^sub>2_falsifies: "falsifies\<^sub>c G C\<^sub>2 \<longleftrightarrow> falsifies\<^sub>c G (std\<^sub>2 C\<^sub>2)"
 proof 
-  assume asm: "falsifies\<^sub>c G C2"
-  then obtain Cg where "instance_of\<^sub>l\<^sub>s Cg C2  \<and> falsifies\<^sub>g G Cg" by auto
+  assume asm: "falsifies\<^sub>c G C\<^sub>2"
+  then obtain Cg where "instance_of\<^sub>l\<^sub>s Cg C\<^sub>2  \<and> falsifies\<^sub>g G Cg" by auto
   moreover
-  then have "instance_of\<^sub>l\<^sub>s Cg (std\<^sub>2 C2)" using std_apart_instance_of\<^sub>l\<^sub>s2 instance_of\<^sub>l\<^sub>s_trans asm by blast
+  then have "instance_of\<^sub>l\<^sub>s Cg (std\<^sub>2 C\<^sub>2)" using std_apart_instance_of\<^sub>l\<^sub>s2 instance_of\<^sub>l\<^sub>s_trans asm by blast
   ultimately
-  show "falsifies\<^sub>c G (std\<^sub>2 C2)" by auto
+  show "falsifies\<^sub>c G (std\<^sub>2 C\<^sub>2)" by auto
 next
-  assume asm: "falsifies\<^sub>c G (std\<^sub>2 C2)"
-  then have inst: "instance_of\<^sub>l\<^sub>s (std\<^sub>2 C2) C2" unfolding instance_of\<^sub>l\<^sub>s_def by auto
+  assume asm: "falsifies\<^sub>c G (std\<^sub>2 C\<^sub>2)"
+  then have inst: "instance_of\<^sub>l\<^sub>s (std\<^sub>2 C\<^sub>2) C\<^sub>2" unfolding instance_of\<^sub>l\<^sub>s_def by auto
 
-  from asm obtain Cg where "instance_of\<^sub>l\<^sub>s Cg (std\<^sub>2 C2)  \<and> falsifies\<^sub>g G Cg" by auto
+  from asm obtain Cg where "instance_of\<^sub>l\<^sub>s Cg (std\<^sub>2 C\<^sub>2)  \<and> falsifies\<^sub>g G Cg" by auto
   moreover
-  then have "instance_of\<^sub>l\<^sub>s Cg C2" using inst instance_of\<^sub>l\<^sub>s_trans assms by blast
+  then have "instance_of\<^sub>l\<^sub>s Cg C\<^sub>2" using inst instance_of\<^sub>l\<^sub>s_trans assms by blast
   ultimately
-  show "falsifies\<^sub>c G C2" by auto
+  show "falsifies\<^sub>c G C\<^sub>2" by auto
 qed
 
-lemma std\<^sub>1_renames: "var_renaming_of C1 (std\<^sub>1 C1)"
+lemma std\<^sub>1_renames: "var_renaming_of C\<^sub>1 (std\<^sub>1 C\<^sub>1)"
 proof -
-  have "instance_of\<^sub>l\<^sub>s C1 (std\<^sub>1 C1)" using std_apart_instance_of\<^sub>l\<^sub>s1 assms by auto
-  moreover have "instance_of\<^sub>l\<^sub>s (std\<^sub>1 C1) C1" using assms unfolding instance_of\<^sub>l\<^sub>s_def by auto
-  ultimately show "var_renaming_of C1 (std\<^sub>1 C1)" unfolding var_renaming_of_def by auto
+  have "instance_of\<^sub>l\<^sub>s C\<^sub>1 (std\<^sub>1 C\<^sub>1)" using std_apart_instance_of\<^sub>l\<^sub>s1 assms by auto
+  moreover have "instance_of\<^sub>l\<^sub>s (std\<^sub>1 C\<^sub>1) C\<^sub>1" using assms unfolding instance_of\<^sub>l\<^sub>s_def by auto
+  ultimately show "var_renaming_of C\<^sub>1 (std\<^sub>1 C\<^sub>1)" unfolding var_renaming_of_def by auto
 qed
 
-lemma std\<^sub>2_renames: "var_renaming_of C2 (std\<^sub>2 C2)"
+lemma std\<^sub>2_renames: "var_renaming_of C\<^sub>2 (std\<^sub>2 C\<^sub>2)"
 proof -
-  have "instance_of\<^sub>l\<^sub>s C2 (std\<^sub>2 C2)" using std_apart_instance_of\<^sub>l\<^sub>s2 assms by auto
-  moreover have "instance_of\<^sub>l\<^sub>s (std\<^sub>2 C2) C2" using assms unfolding instance_of\<^sub>l\<^sub>s_def by auto
-  ultimately show "var_renaming_of C2 (std\<^sub>2 C2)" unfolding var_renaming_of_def by auto
+  have "instance_of\<^sub>l\<^sub>s C\<^sub>2 (std\<^sub>2 C\<^sub>2)" using std_apart_instance_of\<^sub>l\<^sub>s2 assms by auto
+  moreover have "instance_of\<^sub>l\<^sub>s (std\<^sub>2 C\<^sub>2) C\<^sub>2" using assms unfolding instance_of\<^sub>l\<^sub>s_def by auto
+  ultimately show "var_renaming_of C\<^sub>2 (std\<^sub>2 C\<^sub>2)" unfolding var_renaming_of_def by auto
 qed
 
 subsection {* Semantic Trees *}
@@ -1070,9 +1068,9 @@ proof -
   let ?G = "extend f"
   {
     fix E
-    from C_sat have "\<forall>C'. (~instance_of\<^sub>l\<^sub>s C' C \<or> ~ falsifies\<^sub>g (f (Suc n)) C')" by auto
-    then have "~falsifies\<^sub>g (f (Suc n)) C" using instance_of\<^sub>l\<^sub>s_self by auto
-    then obtain l where l_p: "l\<in>C \<and> ~falsifies\<^sub>l (f (Suc n)) l" using C_ground by blast
+    from C_sat have "\<forall>C'. (\<not>instance_of\<^sub>l\<^sub>s C' C \<or> \<not>falsifies\<^sub>g (f (Suc n)) C')" by auto
+    then have "\<not>falsifies\<^sub>g (f (Suc n)) C" using instance_of\<^sub>l\<^sub>s_self by auto
+    then obtain l where l_p: "l\<in>C \<and> \<not>falsifies\<^sub>l (f (Suc n)) l" using C_ground by blast
     let ?i = "nat_from_fatom (get_atom l)"
      
     from l_p have i_n: "?i \<le> n" using n_max by auto
@@ -1103,7 +1101,7 @@ proof -
           using f_infpath i_n j_n infpath_length[of f] ith_in_extension[of f] by simp
         ultimately
         have "f (Suc ?i) ! ?i = False" using Neg by auto
-        then have "~?G P (hterms_of_fterms ts)" using Neg by (simp add: nat_from_fatom_def) 
+        then have "\<not>?G P (hterms_of_fterms ts)" using Neg by (simp add: nat_from_fatom_def) 
         then show ?thesis using Neg eval\<^sub>l_ground\<^sub>t\<^sub>s[of ts _ ?G P] ts_ground by auto
       qed
     then have "\<exists>l \<in> C. eval\<^sub>l E HFun (extend f) l" using l_p by auto
@@ -1164,7 +1162,7 @@ proof -
     proof (rule ballI)
       fix C
       assume asm: "C \<in> Cs"
-      then have "\<forall>n. \<not> falsifies\<^sub>c (f n) C" using model_cs by auto
+      then have "\<forall>n. \<not>falsifies\<^sub>c (f n) C" using model_cs by auto
       then show "eval\<^sub>c ?F (extend f) C" using fin_c asm f_infpath extend_infpath[of f C] by auto
     qed                                                                      
   then show "eval\<^sub>c\<^sub>s ?F (extend f) Cs" unfolding eval\<^sub>c\<^sub>s_def by auto
@@ -1180,7 +1178,7 @@ proof (induction n arbitrary: b)
 next
   case (Suc n)
   then have "branch b (Branching (deeptree n) (deeptree n))" by auto
-  then obtain a b' where p: "b=a#b'\<and> branch b' (deeptree n)" using branch_inv_Branching[of b] by blast
+  then obtain a b' where p: "b = a#b'\<and> branch b' (deeptree n)" using branch_inv_Branching[of b] by blast
   then have "length b' = n" using Suc by auto
   then show ?case using p by auto
 qed
@@ -1202,11 +1200,11 @@ lemma longer_falsifies\<^sub>l:
   shows "falsifies\<^sub>l (ds@d) l"
 proof - 
   let ?i = "nat_from_fatom (get_atom l)"
-  from assms have i_p: "ground\<^sub>l l \<and>  ?i < length ds \<and> ds ! ?i = (~sign l)" unfolding falsifies\<^sub>l_def by meson
+  from assms have i_p: "ground\<^sub>l l \<and>  ?i < length ds \<and> ds ! ?i = (\<not>sign l)" unfolding falsifies\<^sub>l_def by meson
   moreover
   from i_p have "?i < length (ds@d)" by auto
   moreover
-  from i_p have "(ds@d) ! ?i = (~sign l)" by (simp add: nth_append) 
+  from i_p have "(ds@d) ! ?i = (\<not>sign l)" by (simp add: nth_append) 
   ultimately
   show ?thesis unfolding falsifies\<^sub>l_def by simp
 qed
@@ -1256,7 +1254,7 @@ proof -
   let ?diag = "(\<lambda>l. SOME b. open_branch b (deeptree l) Cs) :: nat \<Rightarrow> partial_pred_denot"
 
   from openb have diag_open: "\<forall>l. open_branch (?diag l) (deeptree l) Cs"
-    using someI_ex[of "%b. open_branch b (deeptree _) Cs"] by auto
+    using someI_ex[of "\<lambda>b. open_branch b (deeptree _) Cs"] by auto
   then have "\<forall>n. ?undiag (?diag n) = n" using branch_length by auto
   moreover
   have "\<forall>n. (?diag n) \<in> ?tree" using diag_open by auto
@@ -1280,11 +1278,11 @@ lemma shorter_falsifies\<^sub>l:
   shows "falsifies\<^sub>l ds l"
 proof -
   let ?i = "nat_from_fatom (get_atom l)"
-  from assms have i_p: "ground\<^sub>l l \<and>  ?i < length (ds@d) \<and> (ds@d) ! ?i = (~sign l)" unfolding falsifies\<^sub>l_def by meson
+  from assms have i_p: "ground\<^sub>l l \<and>  ?i < length (ds@d) \<and> (ds@d) ! ?i = (\<not>sign l)" unfolding falsifies\<^sub>l_def by meson
   moreover
   then have "?i < length ds" using assms by auto
   moreover
-  then have "ds ! ?i = (~sign l)" using i_p nth_append[of ds d ?i] by auto
+  then have "ds ! ?i = (\<not>sign l)" using i_p nth_append[of ds d ?i] by auto
   ultimately show ?thesis using assms unfolding falsifies\<^sub>l_def by simp
 qed
 
@@ -1298,13 +1296,13 @@ proof -
 qed
 
 theorem herbrand:
-  assumes unsat: "\<forall>G. \<not> eval\<^sub>c\<^sub>s HFun G Cs"
+  assumes unsat: "\<forall>G. \<not>eval\<^sub>c\<^sub>s HFun G Cs"
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
   shows "\<exists>T. closed_tree T Cs"
 proof -
   from unsat finite_cs obtain T where "anybranch T (\<lambda>b. closed_branch b T Cs)" using herbrand'_contra[of Cs] by blast
   then have "\<exists>T. anybranch T (\<lambda>p. falsifies\<^sub>c\<^sub>s p Cs) \<and> anyinternal T (\<lambda>p. \<not> falsifies\<^sub>c\<^sub>s p Cs)" 
-    using cutoff_branch_internal[of T "(\<lambda>p. falsifies\<^sub>c\<^sub>s p Cs)"] by blast
+    using cutoff_branch_internal[of T "\<lambda>p. falsifies\<^sub>c\<^sub>s p Cs"] by blast
   then show ?thesis unfolding closed_tree_def by auto
 qed
 
