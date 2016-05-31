@@ -535,6 +535,7 @@ lemma distinct_mset_filter:
   "distinct_mset M \<Longrightarrow> distinct_mset {# L \<in># M. P L#}"
   by (simp add: distinct_mset_def)
 
+
 subsection \<open>Filter\<close>
 
 lemma mset_filter_compl: "mset (filter p xs) + mset (filter (Not \<circ> p) xs) = mset xs"
@@ -574,10 +575,32 @@ proof -
     by (auto simp: filter_mset_eq_conv)
 qed
 
+lemma filter_mset_filter_mset:
+  "filter_mset Q (filter_mset P M) = {# x \<in># M. P x \<and> Q x#}"
+  by (auto simp: multiset_eq_iff)
+
 lemma image_mset_remove1_mset_if:
   "image_mset f (remove1_mset a M) =
     (if a \<in># M then remove1_mset (f a) (image_mset f M) else image_mset f M)"
   by (auto simp: image_mset_Diff)
+
+lemma image_mset_const:
+  "{#c. x \<in># M#} = replicate_mset (size M) c"
+  by (induction M) auto
+
+lemma image_mset_mset_mset_map:
+  "image_mset f (mset l) = mset (map f l)"
+  by (induction l) auto
+
+lemma filter_mset_neq:
+  "{# x\<in>#M. P x \<and> x \<noteq> y#} = removeAll_mset y {# x\<in>#M. P x#}"
+  by (metis add_diff_cancel_left' filter_eq_replicate_mset filter_mset_filter_mset
+    multiset_partition)
+
+lemma image_mset_filter_swap:
+  "image_mset f {# x \<in># M. P (f x)#} = {# x \<in># image_mset f M. P x#}"
+   by (induction M) auto
+
 
 subsection \<open>Sums\<close>
 
