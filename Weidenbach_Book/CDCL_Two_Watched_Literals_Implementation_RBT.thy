@@ -1,0 +1,964 @@
+theory CDCL_Two_Watched_Literals_Implementation_RBT
+imports Main RBT_More CDCL_Abstract_Clause_Representation CDCL_W_Level
+  CDCL_Two_Watched_Literals CDCL_Two_Watched_Literals_Implementation
+begin
+
+
+type_synonym lit = nat
+
+interpretation raw_clss where
+  get_lit = RBT.lookup and
+  mset_cls = "\<lambda>C. mset (map snd (RBT.entries C))" and
+  get_cls = RBT.lookup and
+  mset_clss = "\<lambda>C. mset (map snd (RBT.entries C))"
+  apply unfold_locales
+     apply (metis RBT.keys_entries Range.RangeI Range_snd image_set in_multiset_in_set
+       lookup_in_tree option.sel)
+    apply (metis (no_types, lifting) RBT.keys_entries image_iff image_set in_multiset_in_set
+      lookup_in_tree option.sel prod.exhaust_sel)
+   apply (metis RBT.keys_entries Range.RangeI Range_snd image_set in_multiset_in_set
+     lookup_in_tree option.sel)
+  apply (metis (no_types, lifting) RBT.keys_entries image_iff image_set in_multiset_in_set
+    lookup_in_tree option.sel prod.exhaust_sel)
+  done
+
+definition get_unwatched_lits :: "(nat, 'b) RBT.rbt \<Rightarrow> lit multiset" where
+"get_unwatched_lits C = mset (map fst (filter (\<lambda>L. fst L \<ge> 2) (RBT.entries C)))"
+
+definition get_watched_lits :: "(nat, 'b) RBT.rbt \<Rightarrow> lit multiset" where
+"get_watched_lits C =
+  (let append_if_not_None =
+    (\<lambda>i. case RBT.lookup C i of None \<Rightarrow> op + {#} | Some a \<Rightarrow> op + {#i#}) in
+    append_if_not_None 0 (append_if_not_None 1 {#}))"
+
+lemma ge_Suc_Suc_0_iff: "a \<ge> Suc (Suc 0) \<longleftrightarrow> a \<noteq> 0 \<and> a \<noteq> Suc 0"
+  by linarith
+
+lemma less_2_iff: "n < 2 \<longleftrightarrow> n = 0 \<or> n = Suc 0"
+  by (auto simp: less_2_cases)
+
+
+lemma filter_RBT_entries_le_2:
+  "{# x \<in># mset (RBT.entries C). fst x < (2::nat)#} =
+  (if RBT.lookup C 0 \<noteq> None then {#(0, the (RBT.lookup C 0))#} else {#}) +
+  (if RBT.lookup C 1 \<noteq> None then {#(1, the (RBT.lookup C 1))#} else {#})"
+  by (auto simp: less_2_iff multiset_eq_iff count_RBT_entries)
+
+text \<open>Gere is another definition of @{const get_watched_lits}, analog to @{const get_unwatched_lits}:\<close>
+lemma get_watched_lits_map_le_2:
+  "get_watched_lits C = mset (map fst (filter (\<lambda>L. \<not>fst L \<ge> 2) (RBT.entries C)))"
+proof -
+  have [iff]: "\<not>a \<ge> (2::nat) \<longleftrightarrow> a < 2" for a :: nat
+    by auto
+  show ?thesis
+    by (auto simp: get_watched_lits_def mset_map mset_filter filter_RBT_entries_le_2
+      split: option.splits)
+qed
+
+definition get_watched_lits_list :: "(nat, 'b) RBT.rbt \<Rightarrow> lit list" where
+"get_watched_lits_list C =
+  (let append_if_not_None =
+    (\<lambda>i. case RBT.lookup C i of None \<Rightarrow> id | Some a \<Rightarrow> op # i) in
+    append_if_not_None 0 (append_if_not_None 1 []))"
+
+lemma get_watched_lits_mset_get_watched_lits_list:
+  "get_watched_lits C = mset (get_watched_lits_list C)"
+  by (auto simp: get_watched_lits_def get_watched_lits_list_def ac_simps
+    split: option.splits)
+
+definition lits_twl_clause_of_RBT :: "(nat, 'a) RBT.rbt \<Rightarrow> nat multiset twl_clause"  where
+"lits_twl_clause_of_RBT C = TWL_Clause (get_watched_lits C) (get_unwatched_lits C)"
+
+typedef 'v wf_clause_RBT =
+  "{C :: (nat, 'v) RBT.rbt. struct_wf_twl_cls (lits_twl_clause_of_RBT C)}"
+  morphisms conc_RBT_cls abs_RBT_cls
+proof
+  show "RBT.empty \<in> ?wf_clause_RBT"
+    by (auto simp: get_watched_lits_def get_unwatched_lits_def lits_twl_clause_of_RBT_def)
+qed
+
+
+fun RBT_clause :: "(nat, 'v) RBT.rbt \<Rightarrow> 'v multiset" where
+"RBT_clause C = image_mset snd (mset (RBT.entries C))"
+
+
+text \<open>We expect the following link between @{const RBT_clause}, @{const get_watched_lits} and
+  @{const get_unwatched_lits}:\<close>
+lemma RBT_clause_get_watched_lits_get_unwatched_lits:
+  "RBT_clause C = image_mset (the o RBT.lookup C) (get_watched_lits C + get_unwatched_lits C)"
+  unfolding get_watched_lits_map_le_2 get_unwatched_lits_def
+  by (auto simp: image_mset_union[symmetric] mset_map mset_filter multiset_partition[symmetric]
+    ac_simps snd_entries_the_lookup simp del: image_mset_union)
+
+setup_lifting type_definition_wf_clause_RBT
+lift_definition wf_watched_lits :: "'v wf_clause_RBT \<Rightarrow> lit multiset" is get_watched_lits .
+lift_definition wf_watched_lits_list :: "'v wf_clause_RBT \<Rightarrow> lit list" is get_watched_lits_list .
+lift_definition wf_unwatched_lits :: "'v wf_clause_RBT \<Rightarrow> lit multiset" is get_unwatched_lits .
+lift_definition lit_lookup :: "'v wf_clause_RBT \<Rightarrow> lit \<rightharpoonup> 'v" is RBT.lookup .
+lift_definition lit_keys :: "'v wf_clause_RBT \<Rightarrow> lit multiset" is "\<lambda>C. mset (RBT.keys C)" .
+lift_definition wf_RBT_clause :: "'v wf_clause_RBT \<Rightarrow> 'v multiset" is RBT_clause .
+
+lemma wf_RBT_clause_wf_watched_lits_wf_unwatched_lits:
+  "wf_RBT_clause C = image_mset (the o lit_lookup C) (wf_watched_lits C + wf_unwatched_lits C)"
+  by (metis RBT_clause_get_watched_lits_get_unwatched_lits lit_lookup.rep_eq wf_RBT_clause.rep_eq
+    wf_unwatched_lits.rep_eq wf_watched_lits.rep_eq)
+
+lemma lit_keys_wf_watched_lits_wf_unwatched_lits:
+  "lit_keys C = wf_watched_lits C + wf_unwatched_lits C"
+  unfolding lit_keys.rep_eq wf_unwatched_lits.rep_eq wf_watched_lits.rep_eq
+  get_unwatched_lits_def get_watched_lits_map_le_2
+  by (auto simp: mset_map mset_filter image_mset_union[symmetric]
+    multiset_partition[symmetric] ac_simps keys_def_alt
+    simp del: image_mset_union)
+
+lemma wf_watched_lits_mset_wf_watched_lits_list:
+  "wf_watched_lits C = mset (wf_watched_lits_list C)"
+  by (auto simp: get_watched_lits_mset_get_watched_lits_list wf_watched_lits.rep_eq
+    wf_watched_lits_list.rep_eq)
+
+text \<open>The following function is a bit more general than needed: we only call it when @{term i}
+  and @{term j} are well-formed indexes.\<close>
+fun swap_lit_safe :: "('a::linorder, 'b) RBT.rbt \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> ('a, 'b) RBT.rbt" where
+"swap_lit_safe C i j =
+  (case (RBT.lookup C i, RBT.lookup C j) of
+    (Some i', Some j') \<Rightarrow> RBT.insert j i' (RBT.insert i j' C)
+  | _ \<Rightarrow> C)"
+
+
+interpretation well_formed_two_watched_literal_clauses_ops where
+  wf_watched = wf_watched_lits and
+  wf_unwatched = wf_unwatched_lits
+  by unfold_locales
+
+interpretation raw_RBT_clause: well_formed_two_watched_literal_clauses_ops where
+  wf_watched = get_watched_lits and
+  wf_unwatched = get_unwatched_lits
+  by unfold_locales
+
+interpretation well_formed_two_watched_literal_clauses where
+  wf_watched = wf_watched_lits and
+  wf_unwatched = wf_unwatched_lits
+proof (unfold_locales)
+  fix C :: "'a wf_clause_RBT"
+  have "struct_wf_twl_cls (TWL_Clause (get_watched_lits (conc_RBT_cls C))
+    (get_unwatched_lits (conc_RBT_cls C)))"
+    using conc_RBT_cls unfolding lits_twl_clause_of_RBT_def by blast
+  then show "struct_wf_twl_cls (twl_cls_wf C)"
+    by (simp add: wf_unwatched_lits.rep_eq wf_watched_lits.rep_eq)
+qed
+
+lemma mset_entries_map_snd_insert:
+  "P (j, j') \<Longrightarrow> P (j, i') \<Longrightarrow> RBT.lookup C j = Some j' \<Longrightarrow>
+    mset (map fst [L\<leftarrow>RBT.entries (RBT.insert j i' C) . P L]) =
+      {#j#} + remove1_mset j (mset (map fst [L\<leftarrow>RBT.entries C. P L]))"
+  unfolding mset_map mset_filter
+  by (auto simp add: mset_entries_insert image_mset_remove1_mset_if lookup_in_tree)
+
+lemma lits_twl_clause_of_RBT_swap_lit_safe_commute_index:
+  "lits_twl_clause_of_RBT (swap_lit_safe C i j) = lits_twl_clause_of_RBT (swap_lit_safe C j i)"
+proof -
+  have "get_watched_lits (RBT.insert j x2 (RBT.insert i x2a C)) =
+      get_watched_lits (RBT.insert i x2a (RBT.insert j x2 C))"
+    if "RBT.lookup C i = Some x2" and "RBT.lookup C j = Some x2a" for x2 x2a
+    by (metis (no_types, lifting) that RBT.map_of_entries get_watched_lits_def lookup_insert
+     rbt_insert_swap(1))
+  moreover have "get_unwatched_lits (RBT.insert j x2 (RBT.insert i x2a C)) =
+    get_unwatched_lits (RBT.insert i x2a (RBT.insert j x2 C))"
+    if "RBT.lookup C i = Some x2" and "RBT.lookup C j = Some x2a" for x2 x2a
+    by (metis that get_unwatched_lits_def option.sel rbt_insert_swap(1))
+  ultimately show ?thesis
+    by (auto simp: lits_twl_clause_of_RBT_def split: option.splits)
+qed
+
+lemma image_mset_snd_remove1_mset_entries:
+  "RBT.lookup C j = Some j' \<Longrightarrow> P (j, j') \<Longrightarrow>
+  image_mset fst
+     (remove1_mset (j, j')
+       {# x \<in># mset (RBT.entries C). P x#}) =
+   remove1_mset j
+     (image_mset fst
+       {# x \<in># mset (RBT.entries C). P x#})"
+  by (auto simp: multiset_eq_iff image_mset_remove1_mset_if lookup_in_tree)
+
+lemma lits_twl_clause_of_RBT_swap_lit_safe:
+  assumes "i \<le> j" and "struct_wf_twl_cls (TWL_Clause (get_watched_lits C) (get_unwatched_lits C))"
+  shows "lits_twl_clause_of_RBT (swap_lit_safe C i j) = lits_twl_clause_of_RBT C"
+proof -
+  consider
+      (not_empty) i' j' where "RBT.lookup C i = Some i'" and "RBT.lookup C j = Some j'"
+    | (empty) "RBT.lookup C i = None \<or> RBT.lookup C j = None"
+    by (cases "RBT.lookup C i"; cases "RBT.lookup C j") auto
+  then show ?thesis
+    proof cases
+      case empty
+      then show ?thesis by (auto simp: lits_twl_clause_of_RBT_def split: option.splits)
+    next
+      case (not_empty i' j') note i' = this(1) and j' = this(2)
+
+      consider
+          (both_watched) "i < 2" and "j < 2"
+        | (i_watched) "i < 2" and "j \<ge> 2"
+        | (both_unwatched) "i \<ge> 2" and "j \<ge> 2"
+        using \<open>i \<le> j\<close> by linarith
+      then show ?thesis
+        proof cases
+          case both_watched
+          moreover have "{#j', i'#} = {#i', j'#}" by (auto simp: multiset_eq_iff)
+          ultimately show ?thesis
+            using i' j'
+            by (auto simp: lits_twl_clause_of_RBT_def get_watched_lits_def get_unwatched_lits_def
+              mset_RBT_entries_insert mset_filter mset_map
+              single_remove1_mset_eq
+              split: option.splits
+              dest!: less_2_cases)
+        next
+          case i_watched
+          moreover have "{#x, j'#} = {#j', x#}" for x by (auto simp: multiset_eq_iff)
+          moreover have "j \<in> fst ` {a \<in> set (RBT.entries C). 2 \<le> fst a} \<longleftrightarrow>
+            RBT.lookup C j \<noteq> None \<and> j \<ge> 2"
+            by (auto simp: lookup_in_tree keys_entries image_iff)
+          ultimately show ?thesis
+            using i' j' unfolding mset_filter mset_map
+            by (auto simp: lits_twl_clause_of_RBT_def get_watched_lits_def get_unwatched_lits_def
+              mset_RBT_entries_insert mset_filter mset_map
+              image_mset_snd_remove1_mset_entries
+              single_remove1_mset_eq
+              split: option.splits
+              dest: less_2_cases)
+        next
+          case (both_unwatched)
+          have "(i, i') \<in> set (RBT.entries C)"
+            using i' by (simp add: lookup_in_tree)
+          then have "i \<in> fst ` {p \<in> set (RBT.entries C). 2 \<le> fst p}"
+            by (auto simp add: single_remove1_mset_eq lookup_in_tree keys_entries image_iff
+              \<open>2 \<le> i\<close>)
+          then have i: "{#i#} + remove1_mset i (mset (map fst [L\<leftarrow>RBT.entries C. 2 \<le> fst L])) =
+            mset (map fst [L\<leftarrow>RBT.entries C . 2 \<le> fst L])"
+            using i'
+            by (auto simp add: single_remove1_mset_eq)
+           have [iff]: "i \<in> fst ` {a \<in> set (RBT.entries C). 2 \<le> fst a} \<longleftrightarrow>
+            RBT.lookup C i \<noteq> None \<and> i \<ge> 2" for i :: nat
+            by (auto simp: lookup_in_tree keys_entries image_iff)
+          show ?thesis
+            using i' j' both_unwatched
+            by (auto simp: lits_twl_clause_of_RBT_def get_watched_lits_def get_unwatched_lits_def
+              mset_entries_map_snd_insert single_remove1_mset_eq i)
+        qed
+    qed
+qed
+
+lift_definition swap_lit :: "'v wf_clause_RBT \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v wf_clause_RBT" is
+  swap_lit_safe
+proof -
+  fix C :: "(nat, 'v) RBT.rbt" and i j :: nat
+  assume wf: "struct_wf_twl_cls (lits_twl_clause_of_RBT C)"
+  let ?D = "swap_lit_safe C i j"
+  {
+    fix i j :: nat
+    let ?D = "swap_lit_safe C i j"
+    assume ij: "i \<le> j"
+    have H: "x2a \<in> snd ` {x \<in> set (RBT.entries C). 2 \<le> fst x}"
+      if "\<not> j < 2" and "RBT.lookup C j = Some x2a" for x2a :: 'v
+      using that by (metis (no_types, lifting) Range.RangeI Range_snd leI lookup_in_tree
+        mem_Collect_eq prod.sel(1))
+    have "struct_wf_twl_cls (TWL_Clause (get_watched_lits ?D) (get_unwatched_lits ?D))"
+      apply (subst lits_twl_clause_of_RBT_swap_lit_safe[unfolded lits_twl_clause_of_RBT_def])
+      using wf ij by (auto simp del: struct_wf_twl_cls.simps
+        simp: lits_twl_clause_of_RBT_def split: option.splits)
+  } note H = this(1)
+
+  consider
+      (ij) "i \<le> j"
+    | (ji) "j \<le> i"
+    by linarith
+  then show "struct_wf_twl_cls (lits_twl_clause_of_RBT ?D)"
+    proof cases
+      case ij
+      then show ?thesis using H unfolding lits_twl_clause_of_RBT_def by blast
+    next
+      case ji
+      show ?thesis
+        unfolding lits_twl_clause_of_RBT_def[symmetric]
+        apply (subst lits_twl_clause_of_RBT_swap_lit_safe_commute_index[of C i j])
+        using ji H[of j i] unfolding lits_twl_clause_of_RBT_def[symmetric] by blast
+    qed
+qed
+
+fun it_of_watched_ordered :: "'a wf_clause_RBT \<Rightarrow> 'a \<Rightarrow> lit list"  where
+"it_of_watched_ordered C L =
+  (case wf_watched_lits_list C of
+    [i] \<Rightarrow> [i]
+  | [i, j] \<Rightarrow>
+    if lit_lookup C i = Some L
+    then [i, j]
+    else [j, i])"
+
+fun list_to_RBT :: "'a list \<Rightarrow> nat \<Rightarrow> (nat, 'a) RBT.rbt"  where
+"list_to_RBT [] _ = RBT.empty" |
+"list_to_RBT (L # C) n = RBT.insert n L (list_to_RBT C (Suc n))"
+
+text \<open>The following functions works only if there are no duplicate in @{term C}. Otherwise, the
+  result is not specified.\<close>
+fun cls_of_twl_list :: "'a list \<Rightarrow> 'a wf_clause_RBT" where
+"cls_of_twl_list C = abs_RBT_cls (list_to_RBT C 0)"
+
+lemma RBT_lookup_list_to_RBT:
+  "RBT.lookup (list_to_RBT C i) j = (if j \<ge> i \<and> j < i + length C then Some (C ! (j - i)) else None)"
+  by (induction C i rule: list_to_RBT.induct) auto
+
+lemma mset_RBT_entries_list_to_RBT:
+  "mset (RBT.entries (list_to_RBT C i)) = mset (zip [i..< i+length C] C)"
+proof (induction C arbitrary: i)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons L C) note IH = this(1)[of]
+  consider
+    (empty) "[i..<i + length C] = []" |
+    (first) "[i..<i + length C] = i # [Suc i..<i + length C]"
+    by (meson upt_rec)
+  then show ?case
+    proof cases
+      case empty
+      then show ?thesis
+        by (auto simp: mset_RBT_entries_insert ac_simps)
+    next
+      case first
+      then have "[i..<Suc (i + length C)] = i # [Suc i..<Suc (i + length C)]"
+        by (simp add: upt_rec)
+      then show ?thesis
+        by (auto simp: mset_RBT_entries_insert ac_simps IH RBT_lookup_list_to_RBT
+          remove_1_mset_id_iff_notin
+          dest: List.set_zip_leftD)
+    qed
+qed
+
+lemma mset_zip_image_mset:
+  "mset (zip xs ys) = {# (xs!i, ys!i). i \<in># mset [0..< min (length xs) (length ys)] #}"
+proof (induction xs ys rule: list_induct2')
+  case 1
+  then show ?case by simp
+next
+  case 2
+  then show ?case by simp
+next
+  case 3
+  then show ?case by simp
+next
+  case (4 x xs y ys)
+  have "[0..<min (length (x # xs)) (length (y # ys))] =
+    0 # map Suc [0..<min (length xs) (length ys)]"
+    by (subst upt_rec) (simp add: map_Suc_upt)
+  then show ?case
+    using 4 by (auto simp: mset_map)
+qed
+
+lemma mset_set_eq:
+  "finite A \<Longrightarrow> finite B \<Longrightarrow> mset_set A = mset_set B \<longleftrightarrow> A = B"
+  using finite_set_mset_mset_set by fastforce+
+
+lemma filter_image_mset:
+  "{# L \<in># {#P x. x \<in># M#}. Q L#} = {#P x| x \<in># M. Q (P x)#}"
+  by (induction M) auto
+
+lemma image_mset_mset_mset_map:
+  "image_mset f (mset l) = mset (map f l)"
+  by (induction l) auto
+
+lemma image_mset_nth_upt:
+  "image_mset (op ! C) (mset_set {0..<length C}) = mset C"
+proof -
+  have C: "mset_set {0..<length C} = mset [0 ..< length C]"
+    by auto
+  show ?thesis
+    unfolding C image_mset_mset_mset_map by (auto simp: map_nth)
+qed
+
+lemma image_mset_snd_mset_RBT_entries:
+  "image_mset snd (mset (RBT.entries (list_to_RBT C 0))) = mset C"
+  by (auto simp: mset_zip_image_mset filter_image_mset image_mset_union[symmetric]
+      image_mset_nth_upt mset_RBT_entries_list_to_RBT)
+
+lemma wf_RBT_clause_cls_of_twl_list:
+  assumes dist_C: "distinct C"
+  shows "wf_RBT_clause (cls_of_twl_list C) = mset C"
+proof -
+  have C_size_1: "\<exists>L. C = [L]" if "\<not> Suc 0 < length C" and "C \<noteq> []"
+    using that by (cases C) auto
+  have [iff]:  "x < length C \<and> 2 \<le> [0..<length C] ! x \<longleftrightarrow> x \<ge> 2 \<and> x < length C" for x :: nat
+    by auto
+  have "{x::nat. x < 2} = {0, 1}"
+    by auto
+  then have C: "{#C ! 0, C ! Suc 0#} = image_mset (op ! C) (mset_set {x. x < 2})"
+    by auto
+  have mset_set_2: "mset_set {x. x < 2} + mset_set {x. 2 \<le> x \<and> x < length C} =
+    mset [0 ..< length C]" if "length C \<ge> 2"
+    using that by (subst mset_set_Union[symmetric]) (auto simp: mset_set_eq)
+
+  have [simp]: "struct_wf_twl_cls (lits_twl_clause_of_RBT (list_to_RBT C 0))"
+    by (auto simp: dist_C lits_twl_clause_of_RBT_def get_watched_lits_def get_unwatched_lits_def
+        RBT_lookup_list_to_RBT  distinct_mset_add_single ac_simps
+        distinct_map_filter distinct_entries
+      split: option.splits
+      dest!: C_size_1)
+  show ?thesis
+    unfolding cls_of_twl_list.simps wf_RBT_clause.rep_eq
+    by (auto simp: abs_RBT_cls_inverse get_watched_lits_map_le_2 get_unwatched_lits_def
+      mset_map image_mset_union[symmetric] image_mset_snd_mset_RBT_entries
+      simp del: image_mset_union)
+qed
+
+lemma mset_RBT_entries:
+  "mset (map fst (RBT.entries C)) = get_watched_lits C + get_unwatched_lits C"
+  unfolding get_watched_lits_map_le_2 get_unwatched_lits_def mset_map mset_filter
+    using multiset_partition[symmetric, of "\<lambda>L. (2::nat) \<le> fst L"
+      "mset (RBT.entries C)"]
+  by (auto simp: abs_RBT_cls_inverse get_watched_lits_map_le_2 get_unwatched_lits_def
+        mset_map image_mset_union[symmetric] image_mset_snd_mset_RBT_entries ac_simps
+      simp del: image_mset_union)
+
+fun twl_lits_twl_clause_of_RBT where
+"twl_lits_twl_clause_of_RBT C =
+  (let append_if_not_None =
+    (\<lambda>i. case RBT.lookup C i of None \<Rightarrow> id | Some a \<Rightarrow> Cons a) in
+  TWL_Clause (get_watched_lits C) (get_unwatched_lits C))"
+
+lemma RBT_lookup_swap_lit_safe:
+  assumes "i \<in> set (RBT.keys C)" and "j \<in> set (RBT.keys C)"
+  shows "RBT.lookup (swap_lit_safe C j i) =
+     RBT.lookup C(j \<mapsto> the (RBT.lookup C i), i \<mapsto> the (RBT.lookup C j))"
+  using assms by (auto simp: keys_entries lookup_in_tree[symmetric])
+
+interpretation abstract_clause_representation_ops where
+  wf_watched_lits = "wf_watched_lits :: 'v literal wf_clause_RBT \<Rightarrow> lit multiset" and
+  wf_unwatched_lits = wf_unwatched_lits and
+  lit_lookup = lit_lookup and
+  lit_keys = lit_keys and
+  swap_lit = swap_lit and
+  it_of_watched_ordered = it_of_watched_ordered and
+  cls_of_twl_list = cls_of_twl_list
+  by unfold_locales
+
+(* TODO Move *)
+
+
+(* END Move *)
+
+lemma size_filter_mset_RBT_entries_fst_eq:
+  assumes P: "\<And>x. P x \<Longrightarrow> fst x = a"
+  shows
+    "size {# x \<in># mset (RBT.entries C). P x#} =
+      (if RBT.lookup C a \<noteq> None \<and> P (a, the (RBT.lookup C a)) then 1 else 0)"
+proof -
+  have [dest]: "RBT.lookup C aa = Some b \<Longrightarrow> P (aa, b) \<Longrightarrow> P (a, the (RBT.lookup C a))" for aa b
+    using assms by auto
+  have "{# x \<in># mset (RBT.entries C). P x#} =
+    (if RBT.lookup C a \<noteq> None \<and> P (a, the (RBT.lookup C a))
+    then {#(a, the (RBT.lookup C a))#}
+    else {#})"
+    by (rule distinct_set_mset_eq)
+    (auto simp: distinct_mset_filter distinct_rbt_entries lookup_in_tree[symmetric]
+      dest: P)
+  then show ?thesis by auto
+qed
+
+
+
+lemma image_mset_fst_mset_RBT_entries:
+  "{#f (fst x). x \<in># {# x \<in># mset (RBT.entries C). P (fst x)#}#} =
+    {#f k. k \<in># {# k \<in># mset (RBT.keys C). P k#}#}" (is "?A = ?B")
+proof -
+  let ?M = "{# x \<in># mset (RBT.entries C). P (fst x)#}"
+  have "?A = image_mset f (image_mset fst ?M)"
+    by auto
+  also have "image_mset fst ?M = {# fst x|x \<in># mset (RBT.entries C). P (fst x)#}"
+    by auto
+  moreover have "{# fst x|x \<in># mset (RBT.entries C). P (fst x)#} = {# k \<in># mset (RBT.keys C). P k#}"
+    by (auto simp: image_mset_filter_swap image_mset_fst_RBT_entries_keys)
+  ultimately show ?thesis by fastforce
+qed
+
+
+lemma clause_of_RBT_swap_lit_safe:
+  assumes "i \<le> j"
+  shows "twl_clause (swap_lit C i j) =
+  (case (lit_lookup C i, lit_lookup C j) of
+    (Some i', Some j') \<Rightarrow>
+      if i < 2 \<and> j < 2
+      then twl_clause C
+      else if i < 2 \<and> j \<ge> 2
+        then TWL_Clause ({#j'#} + remove1_mset i' (wf_watched C))
+          ({#i'#} + remove1_mset j' (wf_unwatched C))
+        else twl_clause C
+  | _ \<Rightarrow> twl_clause C)"
+proof -
+  consider
+      (not_empty) i' j' :: "'a literal" where "lit_lookup C i = Some i'" and
+        "lit_lookup C j = Some j'"
+    | (empty) "lit_lookup C i = None \<or> lit_lookup C j = None"
+    by (cases "lit_lookup C i"; cases "lit_lookup C j") auto
+  then show ?thesis
+    proof cases
+      case empty
+      then show ?thesis by (auto simp: lits_twl_clause_of_RBT_def swap_lit.rep_eq
+        lit_lookup.rep_eq wf_watched_lits.rep_eq wf_unwatched_lits.rep_eq
+         split: option.splits)
+    next
+      case (not_empty i' j') note i' = this(1) and j' = this(2)
+
+      consider
+          (both_watched) "i < 2" and "j < 2"
+        | (i_watched) "i < 2" and "j \<ge> 2"
+        | (both_unwatched) "i \<ge> 2" and "j \<ge> 2"
+        using \<open>i \<le> j\<close> by linarith
+      then show ?thesis
+        proof cases
+          case both_watched
+          have i:
+            "{#the (if fst x = a then Some i' else (RBT.lookup (conc_RBT_cls C)(b \<mapsto> k')) (fst x)).
+               x \<in># {# x \<in># mset (RBT.entries (conc_RBT_cls C)). 2 \<le> fst x#}#} =
+            {#the (RBT.lookup (conc_RBT_cls C) (fst x)).
+               x \<in># {# x \<in># mset (RBT.entries (conc_RBT_cls C)). 2 \<le> fst x#}#}"
+              if "a < 2" and "b < 2" for a b :: nat and i' j' k' :: "'a literal"
+            using that apply -
+            by (rule image_mset_cong2; auto simp: )
+          have "{#j', i'#} = {#i', j'#}" by (auto simp: multiset_eq_iff)
+          then show ?thesis
+            using i' j' both_watched
+            by (auto simp: lits_twl_clause_of_RBT_def get_watched_lits_def get_unwatched_lits_def
+                mset_RBT_entries_insert mset_filter mset_map swap_lit.rep_eq
+                lit_lookup.rep_eq wf_watched_lits.rep_eq wf_unwatched_lits.rep_eq i
+              split: option.splits
+              dest!: less_2_cases)
+        next
+          case i_watched
+          moreover have "{#x, j'#} = {#j', x#}" for x by (auto simp: multiset_eq_iff)
+          have filter_mset_ne2:
+            "{# k \<in># M. P k \<and> k \<noteq> a \<and> k \<noteq> b#} =
+               removeAll_mset b
+                 (removeAll_mset a {# k \<in># M. P k#})"
+               for M :: "nat multiset" and a b :: nat and P :: "nat \<Rightarrow> bool"
+            using filter_mset_neq[of "\<lambda>k. P k \<and> k \<noteq> a" _]
+            using filter_mset_neq[of "\<lambda>k. P k"]
+            by (auto split: if_splits simp: ac_simps)
+
+
+          have "{#the (if fst x = a then Some i' else (RBT.lookup (conc_RBT_cls C)(a \<mapsto> k')) (fst x)).
+               x \<in># {# x \<in># mset (RBT.entries (conc_RBT_cls C)). 2 \<le> fst x#}#}  =
+            {#i'#} + {#the (RBT.lookup (conc_RBT_cls C) x).
+               x \<in># filter_mset (op \<le> 2) (remove1_mset a (mset (RBT.keys (conc_RBT_cls C))))#} "
+              for a b :: nat and i' j' k' :: "'a literal"
+              apply (auto simp: if_distrib image_mset_If filter_mset_filter_mset image_mset_const
+                 size_filter_mset_RBT_entries_fst_eq[of "\<lambda>x. 2 \<le> fst x \<and> fst x = a"]
+                 size_filter_mset_RBT_entries_fst_eq[of "\<lambda>x. 2 \<le> fst x \<and> fst x \<noteq> a \<and> fst x = b"]
+                 image_mset_fst_mset_RBT_entries[of "\<lambda>x. the (RBT.lookup (conc_RBT_cls C) x)"
+                   "\<lambda>x. 2 \<le> x \<and> x \<noteq> a \<and> x \<noteq> b" ]
+                 image_mset_fst_mset_RBT_entries[of "\<lambda>x. the (RBT.lookup (conc_RBT_cls C) x)"
+                   "\<lambda>k. 2 \<le> k \<and> k \<noteq> a" ]
+                 filter_mset_ne2 filter_mset_neq
+                count_RBT_keys
+                 )
+              sorry
+          ultimately show ?thesis
+            using i' j' unfolding mset_filter mset_map
+            (* apply (auto simp: lits_twl_clause_of_RBT_def get_watched_lits_def get_unwatched_lits_def
+              mset_RBT_entries_insert mset_filter mset_map
+              image_mset_snd_remove1_mset_entries
+              single_remove1_mset_eq swap_lit.rep_eq
+        lit_lookup.rep_eq wf_watched_lits.rep_eq wf_unwatched_lits.rep_eq
+        wf_watched_def wf_unwatched_def image_mset_remove1_mset_if image_mset_If
+              split: option.splits
+              dest: less_2_cases)
+            apply (rule image_mset_cong2; auto) *)
+            sorry
+        next
+          case (both_unwatched)
+          (* have "(i, i') \<in> set (RBT.entries C)"
+            using i' by (simp add: lookup_in_tree)
+          then have "i \<in> fst ` {p \<in> set (RBT.entries C). 2 \<le> fst p}"
+            by (auto simp add: single_remove1_mset_eq lookup_in_tree keys_entries image_iff
+              \<open>2 \<le> i\<close>)
+          then have i: "{#i#} + remove1_mset i (mset (map fst [L\<leftarrow>RBT.entries C. 2 \<le> fst L])) =
+            mset (map fst [L\<leftarrow>RBT.entries C . 2 \<le> fst L])"
+            using i'
+            by (auto simp add: single_remove1_mset_eq)
+           have [iff]: "i \<in> fst ` {a \<in> set (RBT.entries C). 2 \<le> fst a} \<longleftrightarrow>
+            RBT.lookup C i \<noteq> None \<and> i \<ge> 2" for i :: nat
+            by (auto simp: lookup_in_tree keys_entries image_iff) *)
+          show ?thesis
+            (* using i' j' both_unwatched
+            by (auto simp: lits_twl_clause_of_RBT_def get_watched_lits_def get_unwatched_lits_def
+              mset_entries_map_snd_insert single_remove1_mset_eq i) *)
+              sorry
+        qed
+    qed
+qed
+
+interpretation abstract_clause_representation where
+  wf_watched_lits = "wf_watched_lits :: 'v literal wf_clause_RBT \<Rightarrow> lit multiset" and
+  wf_unwatched_lits = wf_unwatched_lits and
+  lit_lookup = lit_lookup and
+  lit_keys = lit_keys and
+  swap_lit = swap_lit and
+  it_of_watched_ordered = it_of_watched_ordered and
+  cls_of_twl_list = "cls_of_twl_list :: 'v literal list \<Rightarrow> 'v literal wf_clause_RBT"
+proof unfold_locales
+  show "distinct_mset (lit_keys C)" for C :: "'a wf_clause_RBT"
+    by (simp add: lit_keys.rep_eq)
+
+  show "i \<in># lit_keys C \<longleftrightarrow> lit_lookup C i \<noteq> None" for i :: nat and C :: "'a wf_clause_RBT"
+    by (auto simp add: lit_keys.rep_eq lookup_in_tree lit_lookup.rep_eq keys_entries)
+
+  show "lit_keys C = wf_clause C" for C :: "'a wf_clause_RBT"
+    by (auto simp: lit_keys_wf_watched_lits_wf_unwatched_lits wf_clause_def)
+
+  show "mset (it_of_watched_ordered C L) = wf_watched_lits C \<and>
+    lit_lookup C (hd (it_of_watched_ordered C L)) = Some L"
+    if "L \<in># watched (twl_clause C)" for C:: "'a literal wf_clause_RBT" and L :: "'a literal"
+    using that by (auto simp: wf_watched_lits_mset_wf_watched_lits_list
+      wf_watched_lits_list.rep_eq get_watched_lits_list_def lit_lookup.rep_eq ac_simps
+      split: list.splits option.splits)
+
+  show "clause_of_cls (cls_of_twl_list D) = mset D"
+    if "distinct D" for D :: "'a literal list"
+    proof -
+      have "wf_RBT_clause (cls_of_twl_list D) = clause (twl_clause (cls_of_twl_list D))"
+        by (simp add: wf_RBT_clause_wf_watched_lits_wf_unwatched_lits)
+      then show ?thesis
+        by (metis (no_types) clause_of_cls_def that wf_RBT_clause_cls_of_twl_list)
+    qed
+  show "twl_clause (swap_lit C j k) =
+    TWL_Clause ({#the (lit_lookup C k)#} + remove1_mset (the (lit_lookup C j)) (wf_watched C))
+     ({#the (lit_lookup C j)#} + remove1_mset (the (lit_lookup C k)) (wf_unwatched C))"
+    if "j \<in># wf_watched_lits C" and "k \<in># wf_unwatched_lits C"
+    for C :: "'a literal wf_clause_RBT" and j k :: lit
+    oops
+
+(*
+interpretation  raw_clss_with_update where
+  cls_lit = "\<lambda>C L. the (RBT.lookup C L)"
+
+fun map_on_annot :: "('a \<Rightarrow> 'b) \<Rightarrow> ('c, 'a) ann_lit \<Rightarrow> ('c, 'b) ann_lit" where
+"map_on_annot f (Propagated L C) = Propagated L (f C)" |
+"map_on_annot _ (Decided L) = Decided L"
+
+type_synonym keys = nat
+datatype 'v w =
+  W (raw_trail: "('v, keys) ann_lits")
+    (raw_init_clss: "'v literal list option list")
+    (raw_learned_clss: "'v literal list option list")
+    (backtrack_lvl: nat)
+    (raw_conflicting: "'v literal list option")
+
+fun remove_first where
+"remove_first _ [] = []" |
+"remove_first C (C' # L) = (if mset C = mset C' then L else C' # remove_first C L)"
+
+lemma mset_map_mset_remove_first:
+  "mset (map mset (remove_first a C)) = remove1_mset (mset a) (mset (map mset C))"
+  by (induction C) (auto simp: ac_simps remove1_mset_single_add)
+
+interpretation abstract_clause_representation_ops where
+  lit_lookup = RBT.lookup and
+  lit_keys = RBT.entries and
+  twl_cls = id and
+  swap_lit = swap_lit and
+  it_of_watched_ordered = "\<lambda>i. case i of 0 \<Rightarrow> 1 | 1 \<Rightarrow> 0" and
+  cls_of_twl_list = id
+
+interpretation abs_state\<^sub>W_clss_twl_ops
+  "\<lambda>L i. mset (the (L ! i))"
+  "\<lambda>L. mset (map mset (map the (filter (op \<noteq> None) L)))"
+  "\<lambda>i C. i < length C \<and> C ! i \<noteq> None"
+
+  mset
+  "\<lambda>S i. the (S ! i)"
+  "\<lambda>S Cs L C. remdups (remove1 (-L) (the (raw_conflicting S)) @ remove1 L (the (Cs ! C)))"
+  "\<lambda>S. map (map_on_annot (\<lambda>i. mset (the ((raw_init_clss S @ raw_learned_clss S) ! i))))
+         (raw_trail S)"
+  "\<lambda>S. hd (raw_trail S)"
+  "\<lambda>S. raw_init_clss S @ raw_learned_clss S"
+  backtrack_lvl
+  raw_conflicting
+  "\<lambda>S. mset (map mset (map the (filter (op \<noteq> None) (raw_learned_clss S))))"
+  "\<lambda>L S. W (L # raw_trail S) (raw_init_clss S) (raw_learned_clss S) (backtrack_lvl S)
+    (raw_conflicting S)"
+  "\<lambda>S. W (tl (raw_trail S)) (raw_init_clss S) (raw_learned_clss S) (backtrack_lvl S)
+    (raw_conflicting S)"
+  "\<lambda>S. W (raw_trail S) (raw_init_clss S) (raw_learned_clss S @ [raw_conflicting S])
+    (backtrack_lvl S) (raw_conflicting S)"
+  "\<lambda>i S. W (raw_trail S) (list_update (raw_init_clss S) i None)
+    (list_update (raw_learned_clss S) i None)
+    (backtrack_lvl S) (raw_conflicting S)"
+  "\<lambda>k S. W (raw_trail S) (raw_init_clss S) (raw_learned_clss S) k
+    (raw_conflicting S)"
+  "\<lambda>C S. W (raw_trail S) (raw_init_clss S) (raw_learned_clss S) (backtrack_lvl S)
+    C"
+  "\<lambda>N. W [] N [] 0 None"
+  "id"
+
+proof (unfold_locales, goal_cases)
+  case (1 i l)
+  then have "l ! i \<in> {x \<in> set l. x \<noteq> None}"
+    using List.nth_mem by (auto simp: comp_def)
+  then show ?case
+    by (auto simp: comp_def)
+next
+  case (2 b l)
+  then obtain i b' where
+    "l ! i = Some b'" and
+    "i < length l"
+    "b = mset b'"
+    apply auto
+    apply (case_tac x)
+    by (auto simp: in_set_conv_nth)
+  then show ?case by auto
+qed auto
+
+declare RBT_CDCL_W.mset_ccls_ccls_of_cls[simp del]
+interpretation state\<^sub>W
+  "\<lambda>L i. mset (the (L ! i))"
+  "\<lambda>L. mset (map mset (map the (filter (op \<noteq> None) L)))"
+  "\<lambda>i C. i < length C \<and> C ! i \<noteq> None"
+
+  mset
+  "\<lambda>S i. the (S ! i)"
+  "\<lambda>S Cs L C. remdups (remove1 (-L) (the (raw_conflicting S)) @ remove1 L (the (Cs ! C)))"
+  "\<lambda>S. map (map_on_annot (\<lambda>i. mset (the ((raw_init_clss S @ raw_learned_clss S) ! i))))
+         (raw_trail S)"
+  "\<lambda>S. hd (raw_trail S)"
+  "\<lambda>S. raw_init_clss S @ raw_learned_clss S"
+  backtrack_lvl
+  raw_conflicting
+  "\<lambda>S. mset (map mset (map the (filter (op \<noteq> None) (raw_learned_clss S))))"
+  "\<lambda>L S. W (L # raw_trail S) (raw_init_clss S) (raw_learned_clss S) (backtrack_lvl S)
+    (raw_conflicting S)"
+  "\<lambda>S. W (tl (raw_trail S)) (raw_init_clss S) (raw_learned_clss S) (backtrack_lvl S)
+    (raw_conflicting S)"
+  "\<lambda>S. W (raw_trail S) (raw_init_clss S) (raw_learned_clss S @ [raw_conflicting S])
+    (backtrack_lvl S) (raw_conflicting S)"
+  "\<lambda>i S. W (raw_trail S) (list_update (raw_init_clss S) i None)
+    (list_update (raw_learned_clss S) i None)
+    (backtrack_lvl S) (raw_conflicting S)"
+  "\<lambda>k S. W (raw_trail S) (raw_init_clss S) (raw_learned_clss S) k
+    (raw_conflicting S)"
+  "\<lambda>C S. W (raw_trail S) (raw_init_clss S) (raw_learned_clss S) (backtrack_lvl S)
+    C"
+  "\<lambda>N. W [] N [] 0 None"
+  "\<lambda>S. W [] (raw_init_clss S) [] 0 None"
+
+  apply unfold_locales
+  prefer 47 apply simp
+  prefer 46 apply simp
+  prefer 45 apply simp
+  prefer 44 apply (simp del: List.map_map add: init_clss_def)
+  prefer 43 apply simp
+  prefer 42 apply simp
+  prefer 41 apply simp
+  prefer 40 apply simp
+  prefer 39 apply (simp del: List.map_map add: init_clss_def)
+  prefer 38 apply simp
+
+  apply (auto simp: comp_def ac_simps)
+  apply (auto simp: comp_def hd_map map_tl ac_simps)
+  defer defer defer defer
+  apply (auto simp: clauses_init_learned comp_def ac_simps nth_append)[2]
+  defer
+  apply (auto simp: comp_def ac_simps)
+  thm nth_append
+  done
+  oops
+
+by (simp add: nth_append)
+interpretation state\<^sub>W
+  "\<lambda>L i. mset (the (RBT.lookup L i)) :: 'v clause"
+  "\<lambda>L. mset (map (\<lambda>L. mset (snd L)) (RBT.entries L)) :: 'v clauses"
+  "\<lambda>i L. RBT.lookup L i \<noteq> None"
+  "\<lambda>i C. RBT.delete i C"
+
+  mset
+  "\<lambda>L i. the (RBT.lookup L i)"
+  "\<lambda>S Cs L C. remdups (remove1 (-L) (the (raw_conflicting (Conc S)))
+    @ remove1 L (the (RBT.lookup Cs C)))"
+  "\<lambda>S. map (map_on_annot (\<lambda>i. mset (the (RBT.lookup (RBT.union (raw_init_clss (Conc S))
+    (raw_learned_clss (Conc S))) i)))) (raw_trail (Conc S))"
+  "\<lambda>S. hd (raw_trail (Conc S)) :: ('v, nat, keys) ann_lit"
+  "\<lambda>S. RBT.union (raw_init_clss (Conc S)) (raw_learned_clss (Conc S))"
+  "\<lambda>S. backtrack_lvl (Conc S)"
+  "\<lambda>S. raw_conflicting (Conc S)"
+  "\<lambda>S. mset (map (\<lambda>L. mset (snd L)) (RBT.entries (raw_learned_clss (Conc S))))"
+  apply unfold_locales
+  apply (case_tac "raw_trail (Conc S)")
+  apply (auto simp: comp_def)[10]
+  oops
+
+
+
+lemma distinct_entries_rbt[simp]: "distinct (RBT.entries C)"
+  using distinct_entries[of C] by (metis distinct_zipI1 zip_map_fst_snd)
+
+lemma rbt_impl_of_rbt_Empty:
+  "rbt.impl_of (RBT rbt.Empty) = rbt.Empty"
+  by (metis empty.abs_eq impl_of_empty)
+
+lemma keys_empty [simp]:
+  "RBT.keys RBT.empty = []"
+  unfolding RBT.keys_def RBT.empty_def by (auto simp: rbt_impl_of_rbt_Empty)
+
+lemma mset_entries_delete:
+  assumes
+    ab: "RBT.lookup C a = Some b"
+  shows "mset (RBT.entries (RBT.delete a C)) = remove1_mset (a, b) (mset (RBT.entries C))"
+proof -
+  { fix x y
+    have "(x, y) \<in> set (RBT.entries (RBT.delete a C)) \<longleftrightarrow>
+    (x, y) \<in> set (RBT.entries C) - {(a, b)}"
+      using rbt_delete_in_tree[of "RBT.impl_of C" "x" "y" a] ab
+      unfolding lookup_in_tree[symmetric]
+      apply (auto split: if_splits simp: lookup_in_tree[symmetric])
+      done
+  }
+  then show ?thesis
+    by (auto simp: distinct_mset_remove1_All distinct_removeAll
+      set_eq_iff_mset_eq_distinct[symmetric])
+qed
+abbreviation rbt_values where
+"rbt_values C \<equiv> snd ` set (RBT.entries C)"
+
+
+interpretation list_clss_nth: raw_clss
+  "\<lambda>L i. mset (the (RBT.lookup L i))"
+  "\<lambda>L. mset (map (\<lambda>L. mset (snd L)) (RBT.entries L))"
+  "\<lambda>i L. i \<in> set (RBT.keys L)"
+  "\<lambda>i C. RBT.delete i C"
+  apply unfold_locales
+    apply (auto simp: keys_entries lookup_in_tree[symmetric])[]
+    apply (force simp add: lookup_in_tree)[]
+  apply (fastforce simp: mset_map mset_entries_delete image_mset_mset_removeAll keys_entries
+    lookup_in_tree[symmetric])[]
+  apply (fastforce simp: mset_map mset_entries_delete image_mset_mset_removeAll keys_entries
+    lookup_in_tree[symmetric])[]
+  done
+
+type_synonym keys = nat
+datatype 'v map_rbt = MRBT (rbt: "(nat, 'v) RBT_Impl.rbt") (max_index: "nat")
+
+datatype 'v w =
+  W (raw_trail: "('v, nat, keys) ann_lits")
+    (raw_init_clss: "(keys, 'v literal list) rbt")
+    (raw_learned_clss: "(keys, 'v literal list) rbt")
+    (backtrack_lvl: nat)
+    (raw_conflicting: "'v literal list option")
+
+typedef 'v w_wf = "{S::'v w.
+  fst ` set (RBT.entries (raw_init_clss S)) \<subseteq> {0..length (RBT.entries (raw_init_clss S))}}"
+morphisms Conc Wf
+proof
+  show "W [] RBT.empty RBT.empty 0 None \<in> ?w_wf"
+  apply (auto simp: RBT.entries_def empty.abs_eq impl_of_empty)
+  apply (metis empty.abs_eq empty_iff entries.simps(1) impl_of_empty list.set(1))+
+  done
+qed
+
+lemma ""
+definition tl_trail :: "'v w \<Rightarrow>'v w" where
+  "tl_trail S = W (tl (raw_trail S)) (raw_init_clss S)
+    (raw_learned_clss S) (backtrack_lvl S)
+    (raw_conflicting S)"
+
+lift_definition t :: "'v w_wf \<Rightarrow> 'v w_wf \<rightharpoonup> 'v w_wf" is tl_trail
+definition cons_trail :: "('v, nat, keys) ann_lit \<Rightarrow> 'v w_wf \<Rightarrow>'v w_wf" where
+  "cons_trail L S = Wf (W (L # raw_trail (Conc S)) (raw_init_clss (Conc S))
+    (raw_learned_clss (Conc S)) (backtrack_lvl (Conc S))
+    (raw_conflicting (Conc S)))"
+
+
+locale state\<^sub>W_ops =
+  raw_clss mset_cls mset_clss valid_in_clss remove_from_clss
+    +
+  raw_cls mset_ccls
+  for
+    -- \<open>Clause\<close>
+    mset_cls :: "'clss \<Rightarrow> 'cls \<Rightarrow> 'v clause" and
+
+    -- \<open>Multiset of Clauses\<close>
+    mset_clss :: "'clss \<Rightarrow> 'v clauses" and
+    valid_in_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> bool"and
+    remove_from_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss" and
+    -- \<open>Conflicting clauses:\<close>
+    mset_ccls :: "'ccls \<Rightarrow> 'v clause" +
+  fixes
+    ccls_of_cls :: "'clss \<Rightarrow> 'cls \<Rightarrow> 'ccls" and
+    resolve_cls :: "'st \<Rightarrow> 'clss \<Rightarrow> 'v literal \<Rightarrow> 'cls \<Rightarrow> 'ccls" and
+    trail :: "'st \<Rightarrow> ('v, nat, 'v clause) ann_lits" and
+    hd_raw_trail :: "'st \<Rightarrow> ('v, nat, 'cls) ann_lit" and
+    raw_clauses :: "'st \<Rightarrow> 'clss" and
+    backtrack_lvl :: "'st \<Rightarrow> nat" and
+    raw_conflicting :: "'st \<Rightarrow> 'ccls option" and
+
+    learned_clss :: "'st \<Rightarrow> 'v clauses" and
+
+    cons_trail :: "('v, nat, 'cls) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_trail :: "'st \<Rightarrow> 'st" and
+    confl_to_learned :: "'st \<Rightarrow> 'st" and
+    remove_cls :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conflicting :: "'ccls option \<Rightarrow> 'st \<Rightarrow> 'st" and
+
+    init_state :: "'clss \<Rightarrow> 'st" and
+    restart_state :: "'st \<Rightarrow> 'st"
+  assumes
+    mset_ccls_ccls_of_cls[simp]:
+      "valid_in_clss C Cs \<Longrightarrow> mset_ccls (ccls_of_cls Cs C) = mset_cls Cs C" and
+    mset_ccls_resolve_cls:
+      "valid_in_clss C Cs \<Longrightarrow> raw_conflicting S = Some U \<Longrightarrow>
+        mset_ccls (resolve_cls S Cs L C) =
+          remdups_mset (remove1_mset (-L) (mset_ccls U)
+             + remove1_mset L (mset_cls Cs C))" and
+    learned_clauses_raw_clauses:
+      "learned_clss S \<subseteq># mset_clss (raw_clauses S)"
+
+interpretation state\<^sub>W_ops
+  "\<lambda>L i. mset (the (RBT.lookup L i))"
+  "\<lambda>L. mset (map (\<lambda>L. mset (snd L)) (RBT.entries L))"
+  "\<lambda>i L. i \<in> set (RBT.keys L)"
+  "\<lambda>i C. RBT.delete i C"
+
+  mset
+  "\<lambda>L i. the (RBT.lookup L i)"
+  "\<lambda>S Cs L C. remdups (remove1 (-L) (the (raw_conflicting (Conc S)))
+    @ remove1 L (the (RBT.lookup Cs C)))"
+  "\<lambda>S. map (map_on_annot (\<lambda>i. mset (the (RBT.lookup (RBT.union (raw_init_clss (Conc S))
+    (raw_learned_clss (Conc S))) i)))) (raw_trail (Conc S))"
+  "\<lambda>S. hd (raw_trail (Conc S)) :: ('v, nat, keys) ann_lit"
+  "\<lambda>S. RBT.union (raw_init_clss (Conc S)) (raw_learned_clss (Conc S))"
+  "\<lambda>S. backtrack_lvl (Conc S)"
+  "\<lambda>S. raw_conflicting (Conc S)"
+  "\<lambda>S. mset (map (\<lambda>L. mset (snd L)) (RBT.entries (raw_learned_clss (Conc S))))"
+  apply unfold_locales
+  apply (auto simp: )
+  sorry
+
+interpretation state\<^sub>W
+  "\<lambda>L i. mset (the (RBT.lookup L i)) :: 'v clause"
+  "\<lambda>L. mset (map (\<lambda>L. mset (snd L)) (RBT.entries L)) :: 'v clauses"
+  "\<lambda>i L. RBT.lookup L i \<noteq> None"
+  "\<lambda>i C. RBT.delete i C"
+
+  mset
+  "\<lambda>L i. the (RBT.lookup L i)"
+  "\<lambda>S Cs L C. remdups (remove1 (-L) (the (raw_conflicting (Conc S)))
+    @ remove1 L (the (RBT.lookup Cs C)))"
+  "\<lambda>S. map (map_on_annot (\<lambda>i. mset (the (RBT.lookup (RBT.union (raw_init_clss (Conc S))
+    (raw_learned_clss (Conc S))) i)))) (raw_trail (Conc S))"
+  "\<lambda>S. hd (raw_trail (Conc S)) :: ('v, nat, keys) ann_lit"
+  "\<lambda>S. RBT.union (raw_init_clss (Conc S)) (raw_learned_clss (Conc S))"
+  "\<lambda>S. backtrack_lvl (Conc S)"
+  "\<lambda>S. raw_conflicting (Conc S)"
+  "\<lambda>S. mset (map (\<lambda>L. mset (snd L)) (RBT.entries (raw_learned_clss (Conc S))))"
+  apply unfold_locales
+  apply (case_tac "raw_trail (Conc S)")
+  apply (auto simp: comp_def)[10]
+  oops
+  *)
+end
