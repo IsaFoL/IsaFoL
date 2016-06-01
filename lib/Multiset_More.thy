@@ -593,6 +593,10 @@ lemma image_mset_mset_mset_map:
   by (induction l) auto
 
 lemma filter_mset_neq:
+  "{# x\<in>#M. x \<noteq> y#} = removeAll_mset y M"
+  by (metis add_diff_cancel_left' filter_eq_replicate_mset multiset_partition)
+
+lemma filter_mset_neq_cond:
   "{# x\<in>#M. P x \<and> x \<noteq> y#} = removeAll_mset y {# x\<in>#M. P x#}"
   by (metis add_diff_cancel_left' filter_eq_replicate_mset filter_mset_filter_mset
     multiset_partition)
