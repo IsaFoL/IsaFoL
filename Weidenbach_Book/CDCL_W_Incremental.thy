@@ -102,39 +102,39 @@ sublocale conflict_driven_clause_learning\<^sub>W
 
 text \<open>This invariant holds all the invariant related to the strategy. See the structural invariant
     in @{term cdcl\<^sub>W_restart_all_struct_inv}\<close>
-definition cdcl\<^sub>W_restart_stgy_invariant where
-"cdcl\<^sub>W_restart_stgy_invariant S \<longleftrightarrow>
+definition cdcl\<^sub>W_stgy_invariant where
+"cdcl\<^sub>W_stgy_invariant S \<longleftrightarrow>
   conflict_is_false_with_level S
   \<and> no_clause_is_false S
   \<and> no_smaller_confl S
   \<and> no_clause_is_false S"
 
-lemma cdcl\<^sub>W_restart_stgy_cdcl\<^sub>W_restart_stgy_invariant:
+lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant:
   assumes
-   cdcl\<^sub>W_restart: "cdcl\<^sub>W_restart_stgy S T" and
-   inv_s: "cdcl\<^sub>W_restart_stgy_invariant S" and
+   cdcl\<^sub>W_restart: "cdcl\<^sub>W_stgy S T" and
+   inv_s: "cdcl\<^sub>W_stgy_invariant S" and
    inv: "cdcl\<^sub>W_restart_all_struct_inv S"
   shows
-    "cdcl\<^sub>W_restart_stgy_invariant T"
-  unfolding cdcl\<^sub>W_restart_stgy_invariant_def cdcl\<^sub>W_restart_all_struct_inv_def apply (intro conjI)
-    apply (rule cdcl\<^sub>W_restart_stgy_ex_lit_of_max_level[of S])
-    using assms unfolding cdcl\<^sub>W_restart_stgy_invariant_def cdcl\<^sub>W_restart_all_struct_inv_def apply auto[7]
-    using cdcl\<^sub>W_restart cdcl\<^sub>W_restart_stgy_not_non_negated_init_clss apply simp
-  apply (rule cdcl\<^sub>W_restart_stgy_no_smaller_confl_inv)
-   using assms unfolding cdcl\<^sub>W_restart_stgy_invariant_def cdcl\<^sub>W_restart_all_struct_inv_def apply auto[4]
-  using cdcl\<^sub>W_restart cdcl\<^sub>W_restart_stgy_not_non_negated_init_clss by auto
+    "cdcl\<^sub>W_stgy_invariant T"
+  unfolding cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_restart_all_struct_inv_def apply (intro conjI)
+    apply (rule cdcl\<^sub>W_stgy_ex_lit_of_max_level[of S])
+    using assms unfolding cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_restart_all_struct_inv_def apply auto[7]
+    using cdcl\<^sub>W_restart cdcl\<^sub>W_stgy_not_non_negated_init_clss apply simp
+  apply (rule cdcl\<^sub>W_stgy_no_smaller_confl_inv)
+   using assms unfolding cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_restart_all_struct_inv_def apply auto[4]
+  using cdcl\<^sub>W_restart cdcl\<^sub>W_stgy_not_non_negated_init_clss by auto
 
-lemma rtranclp_cdcl\<^sub>W_restart_stgy_cdcl\<^sub>W_restart_stgy_invariant:
+lemma rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant:
   assumes
-   cdcl\<^sub>W_restart: "cdcl\<^sub>W_restart_stgy\<^sup>*\<^sup>* S T" and
-   inv_s: "cdcl\<^sub>W_restart_stgy_invariant S" and
+   cdcl\<^sub>W_restart: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T" and
+   inv_s: "cdcl\<^sub>W_stgy_invariant S" and
    inv: "cdcl\<^sub>W_restart_all_struct_inv S"
   shows
-    "cdcl\<^sub>W_restart_stgy_invariant T"
+    "cdcl\<^sub>W_stgy_invariant T"
   using assms apply (induction)
     apply simp
-  using cdcl\<^sub>W_restart_stgy_cdcl\<^sub>W_restart_stgy_invariant rtranclp_cdcl\<^sub>W_restart_all_struct_inv_inv
-  rtranclp_cdcl\<^sub>W_restart_stgy_rtranclp_cdcl\<^sub>W_restart by blast
+  using cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant rtranclp_cdcl\<^sub>W_restart_all_struct_inv_inv
+  rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart by blast
 
 abbreviation decr_bt_lvl where
 "decr_bt_lvl S \<equiv> update_backtrack_lvl (backtrack_lvl S - 1) S"
@@ -284,14 +284,14 @@ inductive incremental_cdcl\<^sub>W_restart :: "'st \<Rightarrow> 'st \<Rightarro
 add_confl:
   "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = None \<Longrightarrow>
    trail S \<Turnstile>as CNot C \<Longrightarrow>
-   full cdcl\<^sub>W_restart_stgy
+   full cdcl\<^sub>W_stgy
      (update_conflicting (Some C)
        (add_init_cls C (cut_trail_wrt_clause C (trail S) S))) T \<Longrightarrow>
    incremental_cdcl\<^sub>W_restart S T" |
 add_no_confl:
   "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = None \<Longrightarrow>
    \<not>trail S \<Turnstile>as CNot C \<Longrightarrow>
-   full cdcl\<^sub>W_restart_stgy (add_init_cls C S) T  \<Longrightarrow>
+   full cdcl\<^sub>W_stgy (add_init_cls C S) T  \<Longrightarrow>
    incremental_cdcl\<^sub>W_restart S T"
 
 lemma cdcl\<^sub>W_restart_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_restart_all_struct_inv:
@@ -384,15 +384,15 @@ proof -
     unfolding cdcl\<^sub>W_restart_all_struct_inv_def by (auto simp: add_new_clause_and_update_def)
 qed
 
-lemma cdcl\<^sub>W_restart_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_restart_stgy_inv:
+lemma cdcl\<^sub>W_restart_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_stgy_inv:
   assumes
-    inv_s: "cdcl\<^sub>W_restart_stgy_invariant T" and
+    inv_s: "cdcl\<^sub>W_stgy_invariant T" and
     inv: "cdcl\<^sub>W_restart_all_struct_inv T" and
     tr_T_N[simp]: "trail T \<Turnstile>asm N" and
     tr_C[simp]: "trail T \<Turnstile>as CNot C" and
     [simp]: "distinct_mset C"
-  shows "cdcl\<^sub>W_restart_stgy_invariant (add_new_clause_and_update C T)"
-    (is "cdcl\<^sub>W_restart_stgy_invariant ?T'")
+  shows "cdcl\<^sub>W_stgy_invariant (add_new_clause_and_update C T)"
+    (is "cdcl\<^sub>W_stgy_invariant ?T'")
 proof -
   have "cdcl\<^sub>W_restart_all_struct_inv ?T'"
     using cdcl\<^sub>W_restart_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_restart_all_struct_inv assms by blast
@@ -420,7 +420,7 @@ proof -
       then have [simp]: "C = {#}"
         by (simp add: in_CNot_implies_uminus(2) multiset_eqI)
       show ?thesis
-        using empty_tr unfolding cdcl\<^sub>W_restart_stgy_invariant_def no_smaller_confl_def
+        using empty_tr unfolding cdcl\<^sub>W_stgy_invariant_def no_smaller_confl_def
         cdcl\<^sub>W_restart_all_struct_inv_def by (auto simp: add_new_clause_and_update_def)
     next
       case not_false note C = this(1) and l = this(2)
@@ -452,7 +452,7 @@ proof -
           proof cases
             case D_T
             have "no_smaller_confl T"
-              using inv_s unfolding cdcl\<^sub>W_restart_stgy_invariant_def by auto
+              using inv_s unfolding cdcl\<^sub>W_stgy_invariant_def by auto
             have "(MT @ M') @ Decided K # M = trail T "
               using MT 1(1) by auto
             then show False
@@ -479,35 +479,35 @@ proof -
         qed
       qed
       show ?thesis using L L' C
-        unfolding cdcl\<^sub>W_restart_stgy_invariant_def cdcl\<^sub>W_restart_all_struct_inv_def
+        unfolding cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_restart_all_struct_inv_def
         by (auto simp: add_new_clause_and_update_def intro: rev_bexI)
     qed
 qed
 
-lemma full_cdcl\<^sub>W_restart_stgy_inv_normal_form:
+lemma full_cdcl\<^sub>W_stgy_inv_normal_form:
   assumes
-    full: "full cdcl\<^sub>W_restart_stgy S T" and
-    inv_s: "cdcl\<^sub>W_restart_stgy_invariant S" and
+    full: "full cdcl\<^sub>W_stgy S T" and
+    inv_s: "cdcl\<^sub>W_stgy_invariant S" and
     inv: "cdcl\<^sub>W_restart_all_struct_inv S"
   shows "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss S))
     \<or> conflicting T = None \<and> trail T \<Turnstile>asm init_clss S \<and> satisfiable (set_mset (init_clss S))"
 proof -
-  have "no_step cdcl\<^sub>W_restart_stgy T"
+  have "no_step cdcl\<^sub>W_stgy T"
     using full unfolding full_def by blast
-  moreover have "cdcl\<^sub>W_restart_all_struct_inv T" and inv_s: "cdcl\<^sub>W_restart_stgy_invariant T"
-    apply (metis rtranclp_cdcl\<^sub>W_restart_stgy_rtranclp_cdcl\<^sub>W_restart full full_def inv
+  moreover have "cdcl\<^sub>W_restart_all_struct_inv T" and inv_s: "cdcl\<^sub>W_stgy_invariant T"
+    apply (metis rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart full full_def inv
       rtranclp_cdcl\<^sub>W_restart_all_struct_inv_inv)
-    by (metis full full_def inv inv_s rtranclp_cdcl\<^sub>W_restart_stgy_cdcl\<^sub>W_restart_stgy_invariant)
+    by (metis full full_def inv inv_s rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant)
   ultimately have "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss T))
     \<or> conflicting T = None \<and> trail T \<Turnstile>asm init_clss T"
-    using cdcl\<^sub>W_restart_stgy_final_state_conclusive[of T] full
-    unfolding cdcl\<^sub>W_restart_all_struct_inv_def cdcl\<^sub>W_restart_stgy_invariant_def full_def by fast
+    using cdcl\<^sub>W_stgy_final_state_conclusive[of T] full
+    unfolding cdcl\<^sub>W_restart_all_struct_inv_def cdcl\<^sub>W_stgy_invariant_def full_def by fast
   moreover have "consistent_interp (lits_of_l (trail T))"
     using \<open>cdcl\<^sub>W_restart_all_struct_inv T\<close> unfolding cdcl\<^sub>W_restart_all_struct_inv_def cdcl\<^sub>W_restart_M_level_inv_def
     by auto
   moreover have "init_clss S = init_clss T"
     using inv unfolding cdcl\<^sub>W_restart_all_struct_inv_def
-    by (metis rtranclp_cdcl\<^sub>W_restart_stgy_no_more_init_clss full full_def)
+    by (metis rtranclp_cdcl\<^sub>W_stgy_no_more_init_clss full full_def)
   ultimately show ?thesis
     by (metis satisfiable_carac' true_annot_def true_annots_def true_clss_def)
 qed
@@ -516,29 +516,29 @@ lemma incremental_cdcl\<^sub>W_restart_inv:
   assumes
     inc: "incremental_cdcl\<^sub>W_restart S T" and
     inv: "cdcl\<^sub>W_restart_all_struct_inv S" and
-    s_inv: "cdcl\<^sub>W_restart_stgy_invariant S"
+    s_inv: "cdcl\<^sub>W_stgy_invariant S"
   shows
     "cdcl\<^sub>W_restart_all_struct_inv T" and
-    "cdcl\<^sub>W_restart_stgy_invariant T"
+    "cdcl\<^sub>W_stgy_invariant T"
   using inc
 proof (induction)
   case (add_confl C T)
   let ?T = "(update_conflicting (Some C) (add_init_cls C
     (cut_trail_wrt_clause C (trail S) S)))"
-  have "cdcl\<^sub>W_restart_all_struct_inv ?T" and inv_s_T: "cdcl\<^sub>W_restart_stgy_invariant ?T"
+  have "cdcl\<^sub>W_restart_all_struct_inv ?T" and inv_s_T: "cdcl\<^sub>W_stgy_invariant ?T"
     using add_confl.hyps(1,2,4) add_new_clause_and_update_def
     cdcl\<^sub>W_restart_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_restart_all_struct_inv inv apply auto[1]
     using add_confl.hyps(1,2,4) add_new_clause_and_update_def
-    cdcl\<^sub>W_restart_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_restart_stgy_inv inv s_inv by auto
+    cdcl\<^sub>W_restart_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_stgy_inv inv s_inv by auto
   case 1 show ?case
      by (metis add_confl.hyps(1,2,4,5) add_new_clause_and_update_def
        cdcl\<^sub>W_restart_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_restart_all_struct_inv
-       rtranclp_cdcl\<^sub>W_restart_all_struct_inv_inv rtranclp_cdcl\<^sub>W_restart_stgy_rtranclp_cdcl\<^sub>W_restart full_def inv)
+       rtranclp_cdcl\<^sub>W_restart_all_struct_inv_inv rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart full_def inv)
 
   case 2  show ?case
     by (metis inv_s_T add_confl.hyps(1,2,4,5) add_new_clause_and_update_def
       cdcl\<^sub>W_restart_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_restart_all_struct_inv full_def inv
-      rtranclp_cdcl\<^sub>W_restart_stgy_cdcl\<^sub>W_restart_stgy_invariant)
+      rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant)
 next
   case (add_no_confl C T)
   case 1
@@ -548,29 +548,29 @@ next
     by (auto 9 1 simp: all_decomposition_implies_insert_single clauses_def)
     (* SLOW ~2s *)
   then show ?case
-    using add_no_confl(5) unfolding full_def by (auto intro: rtranclp_cdcl\<^sub>W_restart_stgy_cdcl\<^sub>W_restart_all_struct_inv)
+    using add_no_confl(5) unfolding full_def by (auto intro: rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_restart_all_struct_inv)
   case 2
   have nc: "\<forall>M. (\<exists>K i M'. trail S = M' @ Decided K # M) \<longrightarrow> \<not> M \<Turnstile>as CNot C"
     using  \<open>\<not> trail S \<Turnstile>as CNot C\<close>
     by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
 
-  have "cdcl\<^sub>W_restart_stgy_invariant (add_init_cls C S)"
-    using s_inv \<open>\<not> trail S \<Turnstile>as CNot C\<close> inv unfolding cdcl\<^sub>W_restart_stgy_invariant_def
+  have "cdcl\<^sub>W_stgy_invariant (add_init_cls C S)"
+    using s_inv \<open>\<not> trail S \<Turnstile>as CNot C\<close> inv unfolding cdcl\<^sub>W_stgy_invariant_def
     no_smaller_confl_def eq_commute[of "_" "trail _"] cdcl\<^sub>W_restart_M_level_inv_def cdcl\<^sub>W_restart_all_struct_inv_def
     by (auto simp: clauses_def nc)
   then show ?case
     by (metis \<open>cdcl\<^sub>W_restart_all_struct_inv (add_init_cls C S)\<close> add_no_confl.hyps(5) full_def
-      rtranclp_cdcl\<^sub>W_restart_stgy_cdcl\<^sub>W_restart_stgy_invariant)
+      rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant)
 qed
 
 lemma rtranclp_incremental_cdcl\<^sub>W_restart_inv:
   assumes
     inc: "incremental_cdcl\<^sub>W_restart\<^sup>*\<^sup>* S T" and
     inv: "cdcl\<^sub>W_restart_all_struct_inv S" and
-    s_inv: "cdcl\<^sub>W_restart_stgy_invariant S"
+    s_inv: "cdcl\<^sub>W_stgy_invariant S"
   shows
     "cdcl\<^sub>W_restart_all_struct_inv T" and
-    "cdcl\<^sub>W_restart_stgy_invariant T"
+    "cdcl\<^sub>W_stgy_invariant T"
      using inc apply induction
     using inv apply simp
    using s_inv apply simp
@@ -580,7 +580,7 @@ lemma incremental_conclusive_state:
   assumes
     inc: "incremental_cdcl\<^sub>W_restart S T" and
     inv: "cdcl\<^sub>W_restart_all_struct_inv S" and
-    s_inv: "cdcl\<^sub>W_restart_stgy_invariant S"
+    s_inv: "cdcl\<^sub>W_stgy_invariant S"
   shows "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss T))
     \<or> conflicting T = None \<and> trail T \<Turnstile>asm init_clss T \<and> satisfiable (set_mset (init_clss T))"
   using inc
@@ -589,20 +589,20 @@ proof induction
   case (add_confl C T) note tr = this(1) and dist = this(2) and conf = this(3) and C = this(4) and
   full = this(5)
   (* Here I thank Sledgehammer for its invaluable services *)
-  have "full cdcl\<^sub>W_restart_stgy T T"
+  have "full cdcl\<^sub>W_stgy T T"
     using full unfolding full_def by auto
   then show ?case
     using full C conf dist tr
-    by (metis full_cdcl\<^sub>W_restart_stgy_inv_normal_form incremental_cdcl\<^sub>W_restart.simps incremental_cdcl\<^sub>W_restart_inv(1)
+    by (metis full_cdcl\<^sub>W_stgy_inv_normal_form incremental_cdcl\<^sub>W_restart.simps incremental_cdcl\<^sub>W_restart_inv(1)
       incremental_cdcl\<^sub>W_restart_inv(2) inv s_inv)
 next
   case (add_no_confl C T) note tr = this(1) and dist = this(2) and conf = this(3) and C = this(4)
     and   full = this(5)
   (* Here I thank Sledgehammer for its invaluable services *)
-  have "full cdcl\<^sub>W_restart_stgy T T"
+  have "full cdcl\<^sub>W_stgy T T"
     using full unfolding full_def by auto
   then show ?case
-     by (meson C conf dist full full_cdcl\<^sub>W_restart_stgy_inv_normal_form incremental_cdcl\<^sub>W_restart.add_no_confl
+     by (meson C conf dist full full_cdcl\<^sub>W_stgy_inv_normal_form incremental_cdcl\<^sub>W_restart.add_no_confl
        incremental_cdcl\<^sub>W_restart_inv(1) incremental_cdcl\<^sub>W_restart_inv(2) inv s_inv tr)
 qed
 
@@ -610,7 +610,7 @@ lemma tranclp_incremental_correct:
   assumes
     inc: "incremental_cdcl\<^sub>W_restart\<^sup>+\<^sup>+ S T" and
     inv: "cdcl\<^sub>W_restart_all_struct_inv S" and
-    s_inv: "cdcl\<^sub>W_restart_stgy_invariant S"
+    s_inv: "cdcl\<^sub>W_stgy_invariant S"
   shows "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss T))
     \<or> conflicting T = None \<and> trail T \<Turnstile>asm init_clss T \<and> satisfiable (set_mset (init_clss T))"
   using inc apply induction

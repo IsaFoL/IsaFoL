@@ -1686,8 +1686,8 @@ proof (induction rule: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_cp.induct)
     using conflict_abs.relation_compatible_abs[of "state S" S] confl by blast
   have inv_V: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_all_struct_inv (state V)" and
     inv_T: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_all_struct_inv T"
-    using TV bj cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_stgy.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_stgy_cdcl\<^sub>W_restart_all_struct_inv
-    cdcl\<^sub>W_restart_mset.conflict_is_full1_cdcl\<^sub>W_restart_cp confl inv unfolding cdcl\<^sub>W_restart_mset_state_eq_eq by blast+
+    using TV bj cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W_restart_all_struct_inv
+    cdcl\<^sub>W_restart_mset.conflict_is_full1_cdcl\<^sub>W_cp confl inv unfolding cdcl\<^sub>W_restart_mset_state_eq_eq by blast+
   then obtain T' where "full cdcl\<^sub>W_restart_abs_bj V T'" and "U \<sim>m state T'"
     using TV bj cdcl\<^sub>W_restart_abs_bj.full_exists_full_abs[of V U] unfolding cdcl\<^sub>W_restart_mset_state_eq_eq
     by blast
@@ -1726,8 +1726,8 @@ lemma cdcl\<^sub>W_merge_abs_cp_right_compatible:
 proof (induction rule: cdcl\<^sub>W_merge_abs_cp.induct)
   case (conflict' T U) note confl = this(1) and full = this(2) and inv = this(3) and UW = this(4)
   have inv_T: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_all_struct_inv (state T)"
-    using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_stgy.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_stgy_cdcl\<^sub>W_restart_all_struct_inv
-    cdcl\<^sub>W_restart_mset.conflict_is_full1_cdcl\<^sub>W_restart_cp confl conflict_conflict_abs inv by blast
+    using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W_restart_all_struct_inv
+    cdcl\<^sub>W_restart_mset.conflict_is_full1_cdcl\<^sub>W_cp confl conflict_conflict_abs inv by blast
   then have "full cdcl\<^sub>W_restart_abs_bj T W \<or> (T = U \<and> no_step cdcl\<^sub>W_restart_abs_bj T)"
     using cdcl\<^sub>W_restart_abs_bj.full_right_compatible[OF _ full UW] full by blast
   then consider
@@ -1770,7 +1770,7 @@ fw_s_decide: "decide_abs S T \<Longrightarrow> no_step cdcl\<^sub>W_merge_abs_cp
   \<Longrightarrow> cdcl\<^sub>W_merge_abs_stgy S U"
 
 
-lemma cdcl\<^sub>W_restart_cp_cdcl\<^sub>W_restart_abs_cp:
+lemma cdcl\<^sub>W_cp_cdcl\<^sub>W_restart_abs_cp:
   assumes stgy: "cdcl\<^sub>W_merge_abs_stgy S T" and
     inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_all_struct_inv (state S)"
   shows "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_stgy (state S) (state T)"
@@ -1869,7 +1869,7 @@ qed
 interpretation cdcl\<^sub>W_merge_abs_stgy: relation_implied_relation_abs
   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_stgy cdcl\<^sub>W_merge_abs_stgy state cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_all_struct_inv
   apply unfold_locales
-     using cdcl\<^sub>W_restart_cp_cdcl\<^sub>W_restart_abs_cp apply blast
+     using cdcl\<^sub>W_cp_cdcl\<^sub>W_restart_abs_cp apply blast
     using cdcl\<^sub>W_merge_abs_stgy_exists_cdcl\<^sub>W_merge_stgy apply blast
    using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_stgy_rtranclp_cdcl\<^sub>W_restart cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_restart_all_struct_inv_inv
    apply blast

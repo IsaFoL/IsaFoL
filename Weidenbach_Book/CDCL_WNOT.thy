@@ -386,8 +386,8 @@ next
           then show ?case using IH by auto
         qed
       have inv_T: "cdcl\<^sub>W_restart_all_struct_inv T"
-        by (meson cdcl\<^sub>W_restart_cp.simps confl inv r_into_rtranclp rtranclp_cdcl\<^sub>W_restart_all_struct_inv_inv
-          rtranclp_cdcl\<^sub>W_restart_cp_rtranclp_cdcl\<^sub>W_restart)
+        by (meson cdcl\<^sub>W_cp.simps confl inv r_into_rtranclp rtranclp_cdcl\<^sub>W_restart_all_struct_inv_inv
+          rtranclp_cdcl\<^sub>W_cp_rtranclp_cdcl\<^sub>W_restart)
       have "cdcl\<^sub>W_restart\<^sup>*\<^sup>* T T'"
         using rtranclp_skip_or_resolve_rtranclp_cdcl\<^sub>W_restart s_or_r by blast
       have inv_T': "cdcl\<^sub>W_restart_all_struct_inv T'"
@@ -557,7 +557,7 @@ proof
     using no_step_cdcl\<^sub>W_s'_no_step_cdcl\<^sub>W_merge_stgy by (meson \<open>full cdcl\<^sub>W_s' R V\<close> full_def)
   have n_s_bj: "no_step cdcl\<^sub>W_bj V"
     by (metis \<open>cdcl\<^sub>W_restart_all_struct_inv V\<close> \<open>full cdcl\<^sub>W_s' R V\<close> bj full_def
-      n_step_cdcl\<^sub>W_restart_stgy_iff_no_step_cdcl\<^sub>W_restart_cl_cdcl\<^sub>W_o)
+      n_step_cdcl\<^sub>W_stgy_iff_no_step_cdcl\<^sub>W_restart_cl_cdcl\<^sub>W_o)
   have n_s_cp: "no_step cdcl\<^sub>W_merge_cp V"
     proof -
       { fix ss :: 'st
@@ -642,18 +642,18 @@ next
       then have "no_step cdcl\<^sub>W_bj V"
       using rtranclp_cdcl\<^sub>W_merge_stgy_no_step_cdcl\<^sub>W_bj by (meson \<open>full cdcl\<^sub>W_merge_stgy R V\<close>
         assms(1) full_def)
-      then show ?thesis using confl_V by (fastforce simp: cdcl\<^sub>W_s'.simps full1_def cdcl\<^sub>W_restart_cp.simps
+      then show ?thesis using confl_V by (fastforce simp: cdcl\<^sub>W_s'.simps full1_def cdcl\<^sub>W_cp.simps
         dest!: tranclpD elim: rulesE)
     qed
   ultimately show ?s' unfolding full_def by blast
 qed
 
-lemma full_cdcl\<^sub>W_restart_stgy_full_cdcl\<^sub>W_merge:
+lemma full_cdcl\<^sub>W_stgy_full_cdcl\<^sub>W_merge:
   assumes
     "conflicting R = None" and
     "cdcl\<^sub>W_restart_all_struct_inv R"
-  shows "full cdcl\<^sub>W_restart_stgy R V \<longleftrightarrow> full cdcl\<^sub>W_merge_stgy R V"
-  by (simp add: assms full_cdcl\<^sub>W_s'_full_cdcl\<^sub>W_merge_restart full_cdcl\<^sub>W_restart_stgy_iff_full_cdcl\<^sub>W_s')
+  shows "full cdcl\<^sub>W_stgy R V \<longleftrightarrow> full cdcl\<^sub>W_merge_stgy R V"
+  by (simp add: assms full_cdcl\<^sub>W_s'_full_cdcl\<^sub>W_merge_restart full_cdcl\<^sub>W_stgy_iff_full_cdcl\<^sub>W_s')
 
 lemma full_cdcl\<^sub>W_merge_stgy_final_state_conclusive':
   fixes S' :: 'st
@@ -668,8 +668,8 @@ proof -
   moreover have "conflicting (init_state N) = None"
     by auto
   ultimately show ?thesis
-    using full full_cdcl\<^sub>W_restart_stgy_final_state_conclusive_from_init_state
-    full_cdcl\<^sub>W_restart_stgy_full_cdcl\<^sub>W_merge no_d by presburger
+    using full full_cdcl\<^sub>W_stgy_final_state_conclusive_from_init_state
+    full_cdcl\<^sub>W_stgy_full_cdcl\<^sub>W_merge no_d by presburger
 qed
 end
 
