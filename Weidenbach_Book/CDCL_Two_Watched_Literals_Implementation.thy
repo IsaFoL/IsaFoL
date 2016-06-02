@@ -253,13 +253,14 @@ locale abstract_clauses_representation =
       "cls_lookup Cs i \<noteq> None \<Longrightarrow> cls_lookup (clss_update Cs i C) = (cls_lookup Cs) (i := Some C)"
       and
     add_cls:
-      "add_cls Cs C = (Cs', i) \<Longrightarrow> cls_lookup Cs' = (cls_lookup Cs) (i := Some C)"  and
+      "cls_lookup Cs i \<noteq> None \<Longrightarrow> add_cls Cs C = (Cs', i) \<Longrightarrow> 
+        cls_lookup Cs' = (cls_lookup Cs) (i := Some C)"  and
     add_cls_new_keys:
-      "add_cls Cs C = (Cs', i) \<Longrightarrow> i \<notin># cls_keys Cs"
+      "cls_lookup Cs i \<noteq> None \<Longrightarrow> add_cls Cs C = (Cs', i) \<Longrightarrow> i \<notin># cls_keys Cs"
 begin
 
 lemma add_cls_new_key:
-  "add_cls Cs C = (Cs', i) \<Longrightarrow> i \<in># cls_keys Cs'"
+  "cls_lookup Cs i \<noteq> None \<Longrightarrow> add_cls Cs C = (Cs', i) \<Longrightarrow> i \<in># cls_keys Cs'"
   unfolding cls_keys by (simp add: add_cls)
 
 abbreviation raw_cls_of_clss :: "'clss \<Rightarrow> 'cls multiset" where

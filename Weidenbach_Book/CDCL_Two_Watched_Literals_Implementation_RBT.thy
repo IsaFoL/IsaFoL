@@ -23,7 +23,7 @@ interpretation raw_clss where
   done
 
 definition get_unwatched_lits :: "(nat, 'b) RBT.rbt \<Rightarrow> lit multiset" where
-"get_unwatched_lits C = mset (map fst (filter (\<lambda>L. fst L \<ge> 2) (RBT.entries C)))"
+"get_unwatched_lits C = mset (map fst (List.filter (\<lambda>L. fst L \<ge> 2) (RBT.entries C)))"
 
 definition get_watched_lits :: "(nat, 'b) RBT.rbt \<Rightarrow> lit multiset" where
 "get_watched_lits C =
@@ -46,7 +46,7 @@ lemma filter_RBT_entries_le_2:
 
 text \<open>Gere is another definition of @{const get_watched_lits}, analog to @{const get_unwatched_lits}:\<close>
 lemma get_watched_lits_map_le_2:
-  "get_watched_lits C = mset (map fst (filter (\<lambda>L. \<not>fst L \<ge> 2) (RBT.entries C)))"
+  "get_watched_lits C = mset (map fst (List.filter (\<lambda>L. \<not>fst L \<ge> 2) (RBT.entries C)))"
 proof -
   have [iff]: "\<not>a \<ge> (2::nat) \<longleftrightarrow> a < 2" for a :: nat
     by auto
@@ -767,6 +767,75 @@ proof unfold_locales
     for C :: "'a literal wf_clause_RBT" and j k :: lit
     using twl_clause_swap_lit that by fast
 qed
+
+
+typedef 'v RBT_array  =
+  "{C :: (nat, 'v) RBT.rbt. mset (RBT.keys C) = mset [0..< length (RBT.keys C)]}"
+  morphisms conc_RBT_array abs_RBT_array
+proof
+  show "RBT.empty \<in> ?RBT_array"
+    by auto
+qed
+
+setup_lifting type_definition_RBT_array
+lift_definition cls_lookup :: "'v RBT_array \<Rightarrow> nat \<Rightarrow> 'v option" is RBT.lookup .
+lift_definition cls_keys :: "'v RBT_array \<Rightarrow> nat multiset" is
+"\<lambda>Cs :: (nat, 'v) RBT.rbt. mset (RBT.keys Cs)" .
+
+fun clss_update_safe where
+"clss_update_safe Cs i C =
+  (case RBT.lookup Cs i of
+    None \<Rightarrow> Cs
+  | Some _ \<Rightarrow> RBT.insert i C Cs)
+"
+lift_definition clss_update :: "'v RBT_array \<Rightarrow> nat \<Rightarrow> 'v \<Rightarrow> 'v RBT_array" is clss_update_safe
+proof -
+  fix rbt :: "(nat, 'v) RBT.rbt" and nat ::nat and v :: 'v
+  assume H: "mset (RBT.keys rbt) = mset [0..<length (RBT.keys rbt)]"
+    have False if
+    "mset (RBT.keys rbt) = mset_set {0..<length (RBT.keys rbt)}" and
+    "\<not> nat < length (RBT.keys rbt)" and
+    " RBT.lookup rbt nat = Some i" for i
+    using that
+    by (metis RBT.keys_entries atLeastLessThan_iff lookup_in_tree mset_sorted_list_of_multiset
+      set_mset_mset set_upt sorted_list_of_mset_set sorted_list_of_set_range)
+  then show "mset (RBT.keys (clss_update_safe rbt nat v)) =
+    mset [0..<length (RBT.keys (clss_update_safe rbt nat v))]"
+    using H by (auto split: option.splits simp: mset_RBT_keys_insert length_RBT_keys_insert
+    atLeastLessThanSuc)
+qed
+
+fun RBT_append :: "(nat, 'v) RBT.rbt \<Rightarrow> 'v \<Rightarrow> (nat, 'v) RBT.rbt \<times> nat" where
+"RBT_append Cs C =
+  (let i = length (RBT.keys Cs) in
+    (RBT.insert i C Cs, i))"
+
+lift_definition add_cls :: "'v RBT_array \<Rightarrow> 'v \<Rightarrow> 'v RBT_array \<times> nat" is
+RBT_append
+  by (auto simp: Let_def mset_RBT_keys_insert length_RBT_keys_insert ac_simps atLeastLessThanSuc)
+
+interpretation RBT: abstract_clauses_representation where
+  cls_lookup = cls_lookup and
+  cls_keys = cls_keys and
+  add_cls = add_cls and
+  clss_update = clss_update
+  apply unfold_locales
+     apply (auto simp: keys_entries lookup_in_tree cls_keys.rep_eq)[]
+    apply (auto simp: keys_entries lookup_in_tree cls_keys.rep_eq
+      cls_lookup.rep_eq)[]
+    apply (auto simp: keys_entries lookup_in_tree[symmetric] cls_keys.rep_eq
+      cls_lookup.rep_eq clss_update.rep_eq split: option.splits)[]
+    (* TODO tune proof *)
+   apply (auto simp: keys_entries lookup_in_tree[symmetric] cls_keys.rep_eq
+     cls_lookup.rep_eq clss_update.rep_eq add_cls.rep_eq add_cls_def Let_def
+     split: option.splits)[]
+apply (metis (mono_tags, lifting) atLeastLessThan_iff conc_RBT_array domI lookup_keys
+  mem_Collect_eq not_le order_refl set_mset_mset set_upt)
+   apply (auto simp: keys_entries lookup_in_tree[symmetric] cls_keys.rep_eq
+     cls_lookup.rep_eq clss_update.rep_eq add_cls.rep_eq add_cls_def Let_def
+     split: option.splits)[]
+by (metis (mono_tags, lifting) atLeastLessThan_iff conc_RBT_array domI less_irrefl
+  lookup_keys mem_Collect_eq set_mset_mset set_upt)
 
 (*
 interpretation  raw_clss_with_update where
