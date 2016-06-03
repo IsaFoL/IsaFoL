@@ -1,5 +1,5 @@
 theory CDCL_W_Incremental
-imports CDCL_W_Termination
+imports CDCL_W_Full
 begin
 
 section \<open>Incremental SAT solving\<close>
