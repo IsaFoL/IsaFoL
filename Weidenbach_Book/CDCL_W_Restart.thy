@@ -1,7 +1,6 @@
 theory CDCL_W_Restart
-imports CDCL_W_Merge
+imports CDCL_W_Full
 begin
-
 
 subsection \<open>Adding Restarts\<close>
 locale cdcl\<^sub>W_restart_restart =
@@ -63,51 +62,51 @@ lemma cdcl\<^sub>W_merge_with_restart_increasing_number:
 lemma "full1 cdcl\<^sub>W_merge_stgy S T \<Longrightarrow> cdcl\<^sub>W_merge_with_restart (S, n) (T, Suc n)"
   using restart_full by blast
 
-lemma cdcl\<^sub>W_restart_all_struct_inv_learned_clss_bound:
-  assumes inv: "cdcl\<^sub>W_restart_all_struct_inv S"
+lemma cdcl\<^sub>W_all_struct_inv_learned_clss_bound:
+  assumes inv: "cdcl\<^sub>W_all_struct_inv S"
   shows "set_mset (learned_clss S) \<subseteq> simple_clss (atms_of_mm (init_clss S))"
 proof
   fix C
   assume C: "C \<in> set_mset (learned_clss S)"
   have "distinct_mset C"
-    using C inv unfolding cdcl\<^sub>W_restart_all_struct_inv_def distinct_cdcl\<^sub>W_restart_state_def distinct_mset_set_def
+    using C inv unfolding cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def distinct_mset_set_def
     by auto
   moreover have "\<not>tautology C"
-    using C inv unfolding cdcl\<^sub>W_restart_all_struct_inv_def cdcl\<^sub>W_restart_learned_clause_def by auto
+    using C inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def by auto
   moreover
     have "atms_of C \<subseteq> atms_of_mm (learned_clss S)"
       using C by auto
     then have "atms_of C \<subseteq> atms_of_mm (init_clss S)"
-    using inv  unfolding cdcl\<^sub>W_restart_all_struct_inv_def no_strange_atm_def by force
+    using inv  unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def by force
   moreover have "finite (atms_of_mm (init_clss S))"
-    using inv unfolding cdcl\<^sub>W_restart_all_struct_inv_def by auto
+    using inv unfolding cdcl\<^sub>W_all_struct_inv_def by auto
   ultimately show "C \<in> simple_clss (atms_of_mm (init_clss S))"
     using distinct_mset_not_tautology_implies_in_simple_clss simple_clss_mono
     by blast
 qed
 
 lemma cdcl\<^sub>W_merge_with_restart_init_clss:
-  "cdcl\<^sub>W_merge_with_restart S T \<Longrightarrow> cdcl\<^sub>W_restart_M_level_inv (fst S) \<Longrightarrow>
+  "cdcl\<^sub>W_merge_with_restart S T \<Longrightarrow> cdcl\<^sub>W_M_level_inv (fst S) \<Longrightarrow>
   init_clss (fst S) = init_clss (fst T)"
   using cdcl\<^sub>W_merge_with_restart_rtranclp_cdcl\<^sub>W_restart rtranclp_cdcl\<^sub>W_restart_init_clss by blast
 
 lemma
-  "wf {(T, S). cdcl\<^sub>W_restart_all_struct_inv (fst S) \<and> cdcl\<^sub>W_merge_with_restart S T}"
+  "wf {(T, S). cdcl\<^sub>W_all_struct_inv (fst S) \<and> cdcl\<^sub>W_merge_with_restart S T}"
 proof (rule ccontr)
   assume "\<not> ?thesis"
     then obtain g where
     g: "\<And>i. cdcl\<^sub>W_merge_with_restart (g i) (g (Suc i))" and
-    inv: "\<And>i. cdcl\<^sub>W_restart_all_struct_inv (fst (g i))"
+    inv: "\<And>i. cdcl\<^sub>W_all_struct_inv (fst (g i))"
     unfolding wf_iff_no_infinite_down_chain by fast
   { fix i
     have "init_clss (fst (g i)) = init_clss (fst (g 0))"
       apply (induction i)
         apply simp
-      using g inv unfolding cdcl\<^sub>W_restart_all_struct_inv_def by (metis cdcl\<^sub>W_merge_with_restart_init_clss)
+      using g inv unfolding cdcl\<^sub>W_all_struct_inv_def by (metis cdcl\<^sub>W_merge_with_restart_init_clss)
     } note init_g = this
   let ?S = "g 0"
   have "finite (atms_of_mm (init_clss (fst ?S)))"
-    using inv unfolding cdcl\<^sub>W_restart_all_struct_inv_def by auto
+    using inv unfolding cdcl\<^sub>W_all_struct_inv_def by auto
   have snd_g: "\<And>i. snd (g i) = i + snd (g 0)"
     apply (induct_tac i)
       apply simp
@@ -146,8 +145,8 @@ proof (rule ccontr)
     using g[of k] H[of "Suc k"] by (force simp: cdcl\<^sub>W_merge_with_restart.simps full1_def)
   have "cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* (fst (g k)) T"
     using cdcl\<^sub>W_merge_stgy relpowp_imp_rtranclp by metis
-  then have "cdcl\<^sub>W_restart_all_struct_inv T"
-    using inv[of k]  rtranclp_cdcl\<^sub>W_restart_all_struct_inv_inv rtranclp_cdcl\<^sub>W_merge_stgy_rtranclp_cdcl\<^sub>W_restart
+  then have "cdcl\<^sub>W_all_struct_inv T"
+    using inv[of k]  rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_merge_stgy_rtranclp_cdcl\<^sub>W_restart
     by blast
   moreover have "card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g k))))
       > card (simple_clss (atms_of_mm (init_clss (fst ?S))))"
@@ -158,17 +157,17 @@ proof (rule ccontr)
   moreover
     have "init_clss (fst (g k)) = init_clss T"
       using \<open>cdcl\<^sub>W_merge_stgy\<^sup>*\<^sup>* (fst (g k)) T\<close> rtranclp_cdcl\<^sub>W_merge_stgy_rtranclp_cdcl\<^sub>W_restart
-      rtranclp_cdcl\<^sub>W_restart_init_clss inv unfolding cdcl\<^sub>W_restart_all_struct_inv_def by blast
+      rtranclp_cdcl\<^sub>W_restart_init_clss inv unfolding cdcl\<^sub>W_all_struct_inv_def by blast
     then have "init_clss (fst ?S) = init_clss T"
       using init_g[of k] by auto
   ultimately show False
-    using cdcl\<^sub>W_restart_all_struct_inv_learned_clss_bound
+    using cdcl\<^sub>W_all_struct_inv_learned_clss_bound
     by (simp add: \<open>finite (atms_of_mm (init_clss (fst (g 0))))\<close> simple_clss_finite
       card_mono leD)
 qed
 
 lemma cdcl\<^sub>W_merge_with_restart_distinct_mset_clauses:
-  assumes invR: "cdcl\<^sub>W_restart_all_struct_inv (fst R)" and
+  assumes invR: "cdcl\<^sub>W_all_struct_inv (fst R)" and
   st: "cdcl\<^sub>W_merge_with_restart R S" and
   dist: "distinct_mset (clauses (fst R))" and
   R: "trail (fst R) = []"
@@ -210,26 +209,26 @@ lemma "full1 cdcl\<^sub>W_stgy S T \<Longrightarrow> cdcl\<^sub>W_restart_with_r
   using restart_full by blast
 
 lemma cdcl\<^sub>W_restart_with_restart_init_clss:
-  "cdcl\<^sub>W_restart_with_restart S T \<Longrightarrow>  cdcl\<^sub>W_restart_M_level_inv (fst S) \<Longrightarrow> init_clss (fst S) = init_clss (fst T)"
+  "cdcl\<^sub>W_restart_with_restart S T \<Longrightarrow>  cdcl\<^sub>W_M_level_inv (fst S) \<Longrightarrow> init_clss (fst S) = init_clss (fst T)"
   using cdcl\<^sub>W_restart_with_restart_rtranclp_cdcl\<^sub>W_restart rtranclp_cdcl\<^sub>W_restart_init_clss by blast
 
 lemma
-  "wf {(T, S). cdcl\<^sub>W_restart_all_struct_inv (fst S) \<and> cdcl\<^sub>W_restart_with_restart S T}"
+  "wf {(T, S). cdcl\<^sub>W_all_struct_inv (fst S) \<and> cdcl\<^sub>W_restart_with_restart S T}"
 proof (rule ccontr)
   assume "\<not> ?thesis"
     then obtain g where
     g: "\<And>i. cdcl\<^sub>W_restart_with_restart (g i) (g (Suc i))" and
-    inv: "\<And>i. cdcl\<^sub>W_restart_all_struct_inv (fst (g i))"
+    inv: "\<And>i. cdcl\<^sub>W_all_struct_inv (fst (g i))"
     unfolding wf_iff_no_infinite_down_chain by fast
   { fix i
     have "init_clss (fst (g i)) = init_clss (fst (g 0))"
       apply (induction i)
         apply simp
-      using g inv unfolding cdcl\<^sub>W_restart_all_struct_inv_def by (metis cdcl\<^sub>W_restart_with_restart_init_clss)
+      using g inv unfolding cdcl\<^sub>W_all_struct_inv_def by (metis cdcl\<^sub>W_restart_with_restart_init_clss)
     } note init_g = this
   let ?S = "g 0"
   have "finite (atms_of_mm (init_clss (fst ?S)))"
-    using inv unfolding cdcl\<^sub>W_restart_all_struct_inv_def by auto
+    using inv unfolding cdcl\<^sub>W_all_struct_inv_def by auto
   have snd_g: "\<And>i. snd (g i) = i + snd (g 0)"
     apply (induct_tac i)
       apply simp
@@ -268,8 +267,8 @@ proof (rule ccontr)
     using g[of k] H[of "Suc k"] by (force simp: cdcl\<^sub>W_restart_with_restart.simps full1_def)
   have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (fst (g k)) T"
     using cdcl\<^sub>W_merge_stgy relpowp_imp_rtranclp by metis
-  then have "cdcl\<^sub>W_restart_all_struct_inv T"
-    using inv[of k]  rtranclp_cdcl\<^sub>W_restart_all_struct_inv_inv rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart by blast
+  then have "cdcl\<^sub>W_all_struct_inv T"
+    using inv[of k]  rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart by blast
   moreover have "card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g k))))
       > card (simple_clss (atms_of_mm (init_clss (fst ?S))))"
       unfolding m[symmetric] using \<open>m > f (snd (g k))\<close> f_g_k by linarith
@@ -279,18 +278,18 @@ proof (rule ccontr)
   moreover
     have "init_clss (fst (g k)) = init_clss T"
       using \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (fst (g k)) T\<close> rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart rtranclp_cdcl\<^sub>W_restart_init_clss
-      inv unfolding cdcl\<^sub>W_restart_all_struct_inv_def
+      inv unfolding cdcl\<^sub>W_all_struct_inv_def
       by blast
     then have "init_clss (fst ?S) = init_clss T"
       using init_g[of k] by auto
   ultimately show False
-    using cdcl\<^sub>W_restart_all_struct_inv_learned_clss_bound
+    using cdcl\<^sub>W_all_struct_inv_learned_clss_bound
     by (simp add: \<open>finite (atms_of_mm (init_clss (fst (g 0))))\<close> simple_clss_finite
       card_mono leD)
 qed
 
 lemma cdcl\<^sub>W_restart_with_restart_distinct_mset_clauses:
-  assumes invR: "cdcl\<^sub>W_restart_all_struct_inv (fst R)" and
+  assumes invR: "cdcl\<^sub>W_all_struct_inv (fst R)" and
   st: "cdcl\<^sub>W_restart_with_restart R S" and
   dist: "distinct_mset (clauses (fst R))" and
   R: "trail (fst R) = []"

@@ -76,6 +76,7 @@ session "DPLL_CDCL" (Weidenbach_Book) = "Entailment_Definition" +
     CDCL_W_Merge
     CDCL_NOT
     CDCL_WNOT
+    CDCL_W_Full
     CDCL_W_Incremental
     CDCL_W_Restart
 
@@ -128,6 +129,7 @@ session "Full" (Weidenbach_Book) = "HOL"  +
     CDCL_W_Merge
     CDCL_NOT
     CDCL_WNOT
+    CDCL_W_Full
     CDCL_W_Restart
     CDCL_W_Incremental
 

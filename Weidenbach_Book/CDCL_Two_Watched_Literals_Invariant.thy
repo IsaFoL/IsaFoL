@@ -543,10 +543,10 @@ propagate_twl_rule: "(L, C) \<in> candidates_propagate_twl S \<Longrightarrow>
   raw_conflicting_twl S = None \<Longrightarrow>
   propagate_twl S S'"
 
-lemma cdcl\<^sub>W_restart_all_struct_inv_clause_distinct_mset:
-  "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_all_struct_inv (wf_twl.state S) \<Longrightarrow>
+lemma cdcl\<^sub>W_all_struct_inv_clause_distinct_mset:
+  "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (wf_twl.state S) \<Longrightarrow>
     C \<in> set (CDCL_Two_Watched_Literals.raw_clauses_twl S) \<Longrightarrow> distinct (raw_clause C)"
-  unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_all_struct_inv_def cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_restart_state_def
+  unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
      distinct_mset_set_def wf_twl.conc_clauses_init_learned
   by (metis (no_types, lifting) distinct_mset_distinct in_clss_mset_clss union_iff
     wf_twl.conc_clauses_init_learned wf_twl.init_clss_state_conc_init_clss
@@ -554,7 +554,7 @@ lemma cdcl\<^sub>W_restart_all_struct_inv_clause_distinct_mset:
 
 inductive_cases propagate_twlE: "propagate_twl S T"
 lemma propagate_twl_iff_propagate:
-  assumes inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_all_struct_inv (wf_twl.state S)"
+  assumes inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (wf_twl.state S)"
   shows "wf_twl.propagate_abs S T \<longleftrightarrow> propagate_twl S T" (is "?P \<longleftrightarrow> ?T")
 proof
   assume ?P
@@ -567,7 +567,7 @@ proof
     "T \<sim> cons_trail_twl (Propagated L E) S"
     by (blast elim: wf_twl.propagate_absE)
   have "distinct (raw_clause E)"
-    using inv CL_Clauses cdcl\<^sub>W_restart_all_struct_inv_clause_distinct_mset by blast
+    using inv CL_Clauses cdcl\<^sub>W_all_struct_inv_clause_distinct_mset by blast
   then have X: "remove1_mset L (mset (raw_clause E)) = mset_set (set (raw_clause E) - {L})"
     by (auto simp: multiset_eq_iff raw_clause_def count_mset distinct_filter_eq_if)
   have "(L, E) \<in> candidates_propagate_twl S"
@@ -597,7 +597,7 @@ next
     undef: "undefined_lit (trail_twl S) L"
     using LC unfolding candidates_propagate_def by auto
   have dist: "distinct (raw_clause C)"
-    using inv C'S cdcl\<^sub>W_restart_all_struct_inv_clause_distinct_mset by blast
+    using inv C'S cdcl\<^sub>W_all_struct_inv_clause_distinct_mset by blast
   then have C_L_L: "mset_set (set (raw_clause C) - {L}) = clause C - {#L#}"
     by (metis distinct_mset_distinct distinct_mset_minus distinct_mset_set_mset_ident mset_remove1
       set_mset_mset set_remove1_eq clause_def)
