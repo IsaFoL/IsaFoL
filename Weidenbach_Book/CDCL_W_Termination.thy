@@ -7,91 +7,6 @@ begin
 subsection \<open>Termination\<close>
 
 subsubsection \<open>No Relearning of a clause\<close>
-lemma cdcl\<^sub>W_o_new_clause_learned_is_backtrack_step:
-  assumes learned: "D \<in># learned_clss T" and
-  new: "D \<notin># learned_clss S" and
-  cdcl\<^sub>W_restart: "cdcl\<^sub>W_o S T" and
-  lev: "cdcl\<^sub>W_M_level_inv S"
-  shows "backtrack S T \<and> conflicting S = Some D"
-  using cdcl\<^sub>W_restart lev learned new
-proof (induction rule: cdcl\<^sub>W_o_induct)
-  case (backtrack L C K i M1 M2 T) note decomp = this(3) and undef = this(6) and T = this(8) and
-    D_T = this(10) and D_S = this(11)
-  then have "D = C"
-    using not_gr0 lev by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
-  then show ?case
-    using T backtrack.hyps(1-5) backtrack.intros[OF backtrack.hyps(1,2)] backtrack.hyps(3-7)
-    by auto
-qed auto
-
-lemma cdcl\<^sub>W_cp_new_clause_learned_has_backtrack_step:
-  assumes learned: "D \<in># learned_clss T" and
-  new: "D \<notin># learned_clss S" and
-  cdcl\<^sub>W_restart: "cdcl\<^sub>W_stgy S T" and
-  lev: "cdcl\<^sub>W_M_level_inv S"
-  shows "\<exists>S'. backtrack S S' \<and> cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S' T \<and> conflicting S = Some D"
-  using cdcl\<^sub>W_restart learned new
-proof (induction rule: cdcl\<^sub>W_stgy.induct)
-  case (conflict' S')
-  then show ?case
-    unfolding full1_def by (metis (mono_tags, lifting) rtranclp_cdcl\<^sub>W_cp_learned_clause_inv
-      tranclp_into_rtranclp)
-next
-  case (other' S' S'')
-  then have "D \<in># learned_clss S'"
-    unfolding full_def by (auto dest: rtranclp_cdcl\<^sub>W_cp_learned_clause_inv)
-  then show ?case
-    using cdcl\<^sub>W_o_new_clause_learned_is_backtrack_step[OF _ \<open>D \<notin># learned_clss S\<close> \<open>cdcl\<^sub>W_o S S'\<close>]
-    \<open>full cdcl\<^sub>W_cp S' S''\<close> lev by (metis cdcl\<^sub>W_stgy.conflict' full_unfold r_into_rtranclp
-      rtranclp.rtrancl_refl)
-qed
-
-lemma rtranclp_cdcl\<^sub>W_cp_new_clause_learned_has_backtrack_step:
-  assumes learned: "D \<in># learned_clss T" and
-  new: "D \<notin># learned_clss S" and
-  cdcl\<^sub>W_restart: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T" and
-  lev: "cdcl\<^sub>W_M_level_inv S"
-  shows "\<exists>S' S''. cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S S' \<and> backtrack S' S'' \<and> conflicting S' = Some D \<and>
-    cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S'' T"
-  using cdcl\<^sub>W_restart learned new
-proof (induction rule: rtranclp_induct)
-  case base
-  then show ?case by blast
-next
-  case (step T U) note st = this(1) and o = this(2) and IH = this(3) and
-    D_U = this(4) and D_S = this(5)
-  show ?case
-    proof (cases "D \<in># learned_clss T")
-      case True
-      then obtain S' S'' where
-        st': "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S S'" and
-        bt: "backtrack S' S''" and
-        confl: "conflicting S' = Some D" and
-        st'': "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S'' T"
-        using IH D_S by metis
-      have "cdcl\<^sub>W_stgy\<^sup>+\<^sup>+ S'' U"
-        using st'' o by force
-      then show ?thesis
-        by (meson bt confl rtranclp_unfold st')
-    next
-      case False
-      have "cdcl\<^sub>W_M_level_inv T"
-        using lev rtranclp_cdcl\<^sub>W_stgy_consistent_inv st by blast
-      then obtain S' where
-        bt: "backtrack T S'" and
-        st': "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S' U" and
-        confl: "conflicting T = Some D"
-        using cdcl\<^sub>W_cp_new_clause_learned_has_backtrack_step[OF D_U False o]
-         by metis
-      then have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T" and
-        "backtrack T S'" and
-        "conflicting T = Some D" and
-        "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S' U"
-        using o st by auto
-      then show ?thesis by blast
-    qed
-qed
-
 lemma propagate_no_more_Decided_lit:
   assumes "propagate S S'"
   shows "Decided K \<in> set (trail S) \<longleftrightarrow> Decided K \<in> set (trail S')"
@@ -126,37 +41,6 @@ next
   then show ?case using decide_rule[OF decide.hyps] by blast
 qed auto
 
-lemma cdcl\<^sub>W_restart_new_decided_at_beginning_is_decide:
-  assumes "cdcl\<^sub>W_stgy S S'" and
-  lev: "cdcl\<^sub>W_M_level_inv S" and
-  "trail S' = M' @ Decided L # M" and
-  "trail S = M"
-  shows "\<exists>T. decide S T \<and> no_step cdcl\<^sub>W_cp S"
-  using assms
-proof (induct rule: cdcl\<^sub>W_stgy.induct)
-  case (conflict' S') note st = this(1) and no_dup = this(2) and S' = this(3) and S = this(4)
-  have "cdcl\<^sub>W_M_level_inv S'"
-    using full1_cdcl\<^sub>W_cp_consistent_inv no_dup st by blast
-  then have "Decided L \<in> set (trail S')" and "Decided L \<notin> set (trail S)"
-    using no_dup unfolding S S' cdcl\<^sub>W_M_level_inv_def by (auto simp add: rev_image_eqI)
-  then have False
-    using st rtranclp_cdcl\<^sub>W_cp_no_more_Decided_lit[of S S']
-    unfolding full1_def rtranclp_unfold by blast
-  then show ?case by fast
-next
-  case (other' T U) note o = this(1) and ns = this(2) and st = this(3) and no_dup = this(4) and
-    S' = this(5) and S = this(6)
-  have "cdcl\<^sub>W_M_level_inv U"
-    by (metis (full_types) lev cdcl\<^sub>W_restart.simps cdcl\<^sub>W_restart_consistent_inv full_def o
-      other'.hyps(3) rtranclp_cdcl\<^sub>W_cp_consistent_inv)
-  then have "Decided L \<in> set (trail U)" and "Decided L \<notin> set (trail S)"
-    using no_dup unfolding S S' cdcl\<^sub>W_M_level_inv_def by (auto simp add: rev_image_eqI)
-  then have "Decided L \<in> set (trail T)"
-    using st rtranclp_cdcl\<^sub>W_cp_no_more_Decided_lit unfolding full_def by blast
-  then show ?case
-    using cdcl\<^sub>W_o_no_more_Decided_lit[OF o] \<open>Decided L \<notin> set (trail S)\<close> ns lev by meson
-qed
-
 lemma cdcl\<^sub>W_o_is_decide:
   assumes "cdcl\<^sub>W_o S T" and lev: "cdcl\<^sub>W_M_level_inv S"
   "trail T = drop (length M\<^sub>0) M' @ Decided L # H @ M"and
@@ -188,7 +72,7 @@ lemma rtranclp_cdcl\<^sub>W_restart_new_decided_at_beginning_is_decide:
       no_step cdcl\<^sub>W_cp S \<and> trail T = Decided L # H @ M \<and> trail S = H @ M \<and> cdcl\<^sub>W_stgy S T' \<and>
       cdcl\<^sub>W_stgy\<^sup>*\<^sup>* T' U"
   using assms
-proof (induct arbitrary: M H M' i rule: rtranclp_induct)
+proof (induct arbitrary: M H M' rule: rtranclp_induct)
   case base
   then show ?case by auto
 next
@@ -392,7 +276,7 @@ proof (induction rule: cdcl\<^sub>W_o_induct)
   case (backtrack L' D' K j M1 M2 T) note confl = this(1) and LD' = this(2) and decomp = this(3)
     and levL = this(4) and levD = this(5) and j = this(6) and lev_K = this(7) and T = this(8) and
     z = this(15)
-  def i \<equiv> "get_level (trail T) Kh"
+  define i where i_def: "i = get_level (trail T) Kh"
   have levT: "cdcl\<^sub>W_M_level_inv T"
     using backtrack_rule[OF confl LD' decomp levL levD _ _ T] lev_K j lev
     by (metis Suc_eq_plus1 cdcl\<^sub>W_restart.simps cdcl\<^sub>W_bj.simps cdcl\<^sub>W_restart_consistent_inv cdcl\<^sub>W_o.simps)
@@ -602,25 +486,6 @@ next
   show ?case
     apply (rule cdcl\<^sub>W_stgy_with_trail_end_has_not_been_learned[OF _ _ c _ LD DH LH confl' c'])
     using s lev' IH c unfolding cdcl\<^sub>W_all_struct_inv_def by blast+
-qed
-
-lemma cdcl\<^sub>W_stgy_new_learned_clause:
-  assumes "cdcl\<^sub>W_stgy S T" and
-    lev: "cdcl\<^sub>W_M_level_inv S" and
-    "E \<notin># learned_clss S" and
-    "E \<in># learned_clss T"
-  shows "\<exists>S'. backtrack S S' \<and> conflicting S = Some E \<and> full cdcl\<^sub>W_cp S' T"
-  using assms
-proof induction
-  case conflict'
-  then show ?case unfolding full1_def by (auto dest: tranclp_cdcl\<^sub>W_cp_learned_clause_inv)
-next
-  case (other' T U) note o = this(1) and cp = this(3) and not_yet = this(5) and learned = this(6)
-  have "E \<in># learned_clss T"
-    using learned cp rtranclp_cdcl\<^sub>W_cp_learned_clause_inv unfolding full_def by auto
-  then have "backtrack S T" and "conflicting S = Some E"
-    using cdcl\<^sub>W_o_new_clause_learned_is_backtrack_step[OF _ not_yet o] lev by blast+
-  then show ?case using cp by blast
 qed
 
 text \<open>\cwref{lem:prop:cdclredundancy}{theorem 2.9.7 page 83}\<close>
@@ -864,10 +729,6 @@ lemma length_model_le_vars_all_inv:
   shows "length (trail S) \<le> card (atms_of_mm (init_clss S))"
   using assms length_model_le_vars[of S] unfolding cdcl\<^sub>W_all_struct_inv_def
   by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
-end
-
-context conflict_driven_clause_learning\<^sub>W
-begin
 
 lemma learned_clss_less_upper_bound:
   fixes S :: 'st
