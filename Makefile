@@ -1,38 +1,55 @@
-ISABELLE2016=~/isabelle/Isabelle2016/bin/isabelle
-ISABELLE=~/isabelle/isabelle/bin/isabelle
+ISABELLE2016=~/isabelle/Isabelle2016
+ISABELLE=~/isabelle/isabelle
+
+RUN_ISABELLE="$(ISABELLE)/bin/isabelle"
+RUN_ISABELLE2016="$(ISABELLE2016)/bin/isabelle"
 
 ISABELLE_HOME=~/.isabelle/browser_info
 ISABELLE2016_HOME=~/.isabelle/Isabelle2016/browser_info
 
-DESTINATION=./html
+ATP=$(ISABELLE)/../afp-devel
+DESTINATION="$(shell pwd)/html"
+
+ISABELLE_version= $(shell (cd $(ISABELLE) && hg id --id))
+ATP_version= $(shell (cd $(ATP) && hg id --id))
+ISAFOL_version= $(shell (git log --pretty=format:'%h' -n 1))
+
+
+test_vars:
+	echo "Isabelle: $(ISABELLE_version)"
+	echo "ATP: $(ATP_version)"
+	echo "IsaFoL: $(ISAFOL_version)"
 
 all: current
 
 # build the documentation and the files
 current:
-	$(ISABELLE) build -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -d Weidenbach_Book Full
-	$(ISABELLE) build -o browser_info -v -D Bachmair_Ganzinger
-	$(ISABELLE2016) build -o browser_info -v -D Unordered_Resolution
+	$(RUN_ISABELLE) build -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -d Weidenbach_Book Full
+	$(RUN_ISABELLE) build -o browser_info -v -D Bachmair_Ganzinger
+	$(RUN_ISABELLE2016) build -o browser_info -v -D Unordered_Resolution
 
 
 # need to be in the IJCAR branch
 conference:
-	$(ISABELLE2016) build -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -D Weidenbach_Book
+	$(RUN_ISABELLE2016) build -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -D Weidenbach_Book
 	cp -R $(ISABELLE2016_HOME)/Unsorted/Weidenbach_Book $(DESTINATION)/IJCAR2016 || :
 
-	$(ISABELLE2016) build -o browser_info -v -D Bachmair_Ganzinger
+	$(RUN_ISABELLE2016) build -o browser_info -v -D Bachmair_Ganzinger
 	cp -R $(ISABELLE2016_HOME)/Unsorted/Bachmair_Ganzinger $(DESTINATION)/IJCAR2016 || :
 
 # move the html documentation to the locale directory
 doc:
+	mkdir -p $(DESTINATION)/current
 	cp -R $(ISABELLE_HOME)/Weidenbach_Book $(DESTINATION)/current || :
 	cp -R $(ISABELLE_HOME)/Bachmair_Ganzinger $(DESTINATION)/current || :
 	cp -R $(ISABELLE2016_HOME)/Unsorted/Unordered_Resolution $(DESTINATION)/current || :
+	./add_dates.pl --verbose --unsafe --isabelle="$(ISABELLE_version)" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --atp="$(ATP_version)"
 
 refs:
 	../isafol-private/Other/update_refs.pl  --unsafe
 
 clean:
-	$(ISABELLE) build -c -v -D Weidenbach_Book
-	$(ISABELLE) build -c -v -D Bachmair_Ganzinger
-	$(ISABELLE2016) build -c -v -D Unordered_Resolution
+	$(RUN_ISABELLE) build -c -v -D Weidenbach_Book
+	$(RUN_ISABELLE) build -c -v -D Bachmair_Ganzinger
+	$(RUN_ISABELLE2016) build -c -v -D Unordered_Resolution
+	rm -rf $(DESTINATION)/current
