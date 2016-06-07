@@ -43,7 +43,7 @@ doc:
 	cp -R $(ISABELLE_HOME)/Weidenbach_Book $(DESTINATION)/current || :
 	cp -R $(ISABELLE_HOME)/Bachmair_Ganzinger $(DESTINATION)/current || :
 	cp -R $(ISABELLE2016_HOME)/Unsorted/Unordered_Resolution $(DESTINATION)/current || :
-	./add_dates.pl --verbose --unsafe --isabelle="$(ISABELLE_version)" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --atp="$(ATP_version)"
+	./add_dates.pl --noverbose --unsafe --isabelle="$(ISABELLE_version)" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --atp="$(ATP_version)"
 
 refs:
 	../isafol-private/Other/update_refs.pl  --unsafe
