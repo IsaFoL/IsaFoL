@@ -26,7 +26,7 @@ my $date = "";
 $date = strftime "%F", localtime;
 
 my $full_date = "";
-$full_date = strftime "%A %d %B %Y", localtime;
+$full_date = strftime "%A, %d %B, %Y", localtime;
 
 sub replace_unidentifier_repository_version {
     my $name = "$_";
