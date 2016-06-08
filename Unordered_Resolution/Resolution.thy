@@ -691,7 +691,7 @@ definition evalsub :: "'u var_denot \<Rightarrow> 'u fun_denot \<Rightarrow> sub
 
 lemma substitutiont: "eval\<^sub>t E F (t \<cdot>\<^sub>t \<sigma>) = eval\<^sub>t (evalsub E F \<sigma>) F t"
 apply (induction t)
-unfolding evalsub_def apply auto
+ unfolding evalsub_def apply auto
 apply (metis (mono_tags, lifting) comp_apply map_cong)
 done
 
@@ -700,7 +700,7 @@ using substitutiont by auto
 
 lemma substitution: "eval\<^sub>l E F G (l \<cdot>\<^sub>l \<sigma>) \<longleftrightarrow> eval\<^sub>l (evalsub E F \<sigma>) F G l"
 apply (induction l) 
-using substitutionts apply (metis eval\<^sub>l.simps(1) subl.simps(1)) 
+ using substitutionts apply (metis eval\<^sub>l.simps(1) subl.simps(1)) 
 using substitutionts apply (metis eval\<^sub>l.simps(2) subl.simps(2))
 done
 

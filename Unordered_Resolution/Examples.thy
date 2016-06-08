@@ -92,9 +92,11 @@ proof -
           {{NP,PQ},{NQ},{PP,PQ}}
          ({{NP,PQ},{NQ},{PP,PQ}} \<union> {{NP}})"
     apply (rule resolution_rule'[of "{NP,PQ}" _ "{NQ}" "{PQ}" "{NQ}" \<epsilon>])
-    unfolding applicable_def vars\<^sub>l\<^sub>s_def  vars\<^sub>l_def 
+       unfolding applicable_def vars\<^sub>l\<^sub>s_def  vars\<^sub>l_def 
               NQ_def NP_def PQ_def PP_def resolution_def
-    using unifier_single empty_mgu using empty_subls by auto 
+       using unifier_single empty_mgu using empty_subls
+       apply auto 
+    done
   then have "resolution_step 
           {{NP,PQ},{NQ},{PP,PQ}}
          ({{NP,PQ},{NQ},{PP,PQ},{NP}})" 
@@ -104,9 +106,9 @@ proof -
          {{NP,PQ},{NQ},{PP,PQ},{NP}}
         ({{NP,PQ},{NQ},{PP,PQ},{NP}} \<union> {{PP}})"
     apply (rule resolution_rule'[of "{NQ}" _ "{PP,PQ}" "{NQ}" "{PQ}" \<epsilon>])
-    unfolding applicable_def vars\<^sub>l\<^sub>s_def  vars\<^sub>l_def 
+       unfolding applicable_def vars\<^sub>l\<^sub>s_def  vars\<^sub>l_def 
               NQ_def NP_def PQ_def PP_def resolution_def
-    using unifier_single empty_mgu empty_subls apply auto
+       using unifier_single empty_mgu empty_subls apply auto
     done
   then have "resolution_step
          {{NP,PQ},{NQ},{PP,PQ},{NP}}
@@ -117,9 +119,9 @@ proof -
          {{NP,PQ},{NQ},{PP,PQ},{NP},{PP}}
         ({{NP,PQ},{NQ},{PP,PQ},{NP},{PP}} \<union> {{}})"
     apply (rule resolution_rule'[of "{NP}" _ "{PP}" "{NP}" "{PP}" \<epsilon>])
-    unfolding applicable_def vars\<^sub>l\<^sub>s_def  vars\<^sub>l_def 
+       unfolding applicable_def vars\<^sub>l\<^sub>s_def  vars\<^sub>l_def 
               NQ_def NP_def PQ_def PP_def resolution_def
-    using unifier_single empty_mgu apply auto
+       using unifier_single empty_mgu apply auto
     done
   then have "resolution_step
          {{NP,PQ},{NQ},{PP,PQ},{NP},{PP}}
@@ -199,13 +201,13 @@ proof -
           {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa}}
          ({{Nb,Na},{Pax},{Pa},{Na,Pb,Naa}} \<union> {{Na,Pb}})"
     apply (rule resolution_rule'[of "{Pax}" _ "{Na,Pb,Naa}" "{Pax}" "{Naa}" mguPaaPax ])
-    using mguPaaPax_mgu unfolding applicable_def vars\<^sub>l\<^sub>s_def  vars\<^sub>l_def 
+       using mguPaaPax_mgu unfolding applicable_def vars\<^sub>l\<^sub>s_def  vars\<^sub>l_def 
           Nb_def Na_def Pax_def Pa_def Pb_def Naa_def Paa_def mguPaaPax_def resolution_def
-    apply auto
-    apply (rule_tac x=Na in image_eqI)
-    unfolding Na_def apply auto
+       apply auto
+     apply (rule_tac x=Na in image_eqI)
+      unfolding Na_def apply auto
     apply (rule_tac x=Pb in image_eqI)
-    unfolding Pb_def apply auto
+     unfolding Pb_def apply auto
     done
   then have "resolution_step 
           {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa}}
@@ -216,9 +218,9 @@ proof -
           {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa},{Na,Pb}}
          ({{Nb,Na},{Pax},{Pa},{Na,Pb,Naa},{Na,Pb}} \<union> {{Na}})"
     apply (rule resolution_rule'[of "{Nb,Na}" _ "{Na,Pb}" "{Nb}" "{Pb}" \<epsilon>])
-    unfolding applicable_def vars\<^sub>l\<^sub>s_def  vars\<^sub>l_def 
-              Pb_def Nb_def Na_def PP_def resolution_def
-    using unifier_single empty_mgu apply auto
+       unfolding applicable_def vars\<^sub>l\<^sub>s_def  vars\<^sub>l_def 
+                 Pb_def Nb_def Na_def PP_def resolution_def
+       using unifier_single empty_mgu apply auto
     done
   then have "resolution_step 
           {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa},{Na,Pb}}
@@ -229,9 +231,9 @@ proof -
           {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa},{Na,Pb},{Na}}
          ({{Nb,Na},{Pax},{Pa},{Na,Pb,Naa},{Na,Pb},{Na}} \<union> {{}})"
     apply (rule resolution_rule'[of "{Na}" _ "{Pa}" "{Na}" "{Pa}" \<epsilon>])
-    unfolding applicable_def vars\<^sub>l\<^sub>s_def  vars\<^sub>l_def 
-              Pa_def Nb_def Na_def PP_def resolution_def
-    using unifier_single empty_mgu apply auto
+       unfolding applicable_def vars\<^sub>l\<^sub>s_def  vars\<^sub>l_def 
+                  Pa_def Nb_def Na_def PP_def resolution_def
+       using unifier_single empty_mgu apply auto
     done
   then have "resolution_step 
           {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa},{Na,Pb},{Na}}
