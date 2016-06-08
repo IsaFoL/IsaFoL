@@ -1306,15 +1306,22 @@ proof -
 qed
 
 definition wf_state :: "'st \<Rightarrow> 'inv" where
-"wf_state S = abs_state_of (if cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state S) then S else S)"
+"wf_state S = abs_state_of (if wf_twl_state S then S else S)"
 
 lemma [code abstype]:
   "wf_state (rough_state_of S) = S"
   by (simp add: Rep_inv wf_state_def)
 
-fun backtrack_implementation where
+(* TODO wrong level *)
+definition backtrack_implementation :: "'st \<Rightarrow> 'st"  where
 "backtrack_implementation S =
-  reduce_abs_trail_to (reduce_trail_to_lvl (abs_backtrack_lvl S) (full_trail S))"
+  reduce_abs_trail_to (reduce_trail_to_lvl (abs_backtrack_lvl S) (full_trail S)) S"
+
+definition resolve_implementation :: "'v literal \<Rightarrow> 'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" where
+"resolve_implementation L C S = tl_abs_trail (resolve_abs_conflicting L (raw_clauses S \<Down> C) S)"
+
+definition skip_implementation :: "'st \<Rightarrow> 'st" where
+"skip_implementation S = tl_abs_trail S"
 
 function (domintros) skip_or_resolve where
 "skip_or_resolve S =
@@ -1326,9 +1333,9 @@ function (domintros) skip_or_resolve where
       if -L \<in># mset_ccls (the (raw_conc_conflicting S))
       then
         if is_of_maximum_level (mset_ccls (the (raw_conc_conflicting S))) (tl (full_trail S))
-        then S
-        else skip_or_resolve (tl_abs_trail (resolve_abs_conflicting L (raw_clauses S \<Down> C) S))
-      else skip_or_resolve (tl_abs_trail S))"
+        then backtrack_implementation S
+        else skip_or_resolve (resolve_implementation L C S)
+      else skip_or_resolve (skip_implementation S))"
   by auto
 
 lemma
@@ -1359,7 +1366,7 @@ next
       show ?thesis
         proof (cases "-l \<in># mset_ccls (the (raw_conc_conflicting S))")
           case True
-          let ?T = "tl_abs_trail (resolve_abs_conflicting l (raw_clauses S \<Down> E) S)"
+          let ?T = "resolve_abs_conflicting l (raw_clauses S \<Down> E) (tl_abs_trail S)"
           obtain C where
             C: "raw_conc_conflicting S = Some C"
             using confl by auto
@@ -1372,6 +1379,8 @@ next
                using l apply simp
               using C apply force
              using True C apply simp
+             defer
+             apply simp
             sorry
 
   oops
