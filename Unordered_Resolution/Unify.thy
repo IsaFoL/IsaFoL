@@ -1,3 +1,5 @@
+section {* The Unification Theorem *}
+
 theory Unify imports
   "$ISAFOR/Rewriting/Unification" Resolution
 begin
@@ -194,7 +196,7 @@ proof -
   ultimately show ?thesis unfolding mgu\<^sub>l\<^sub>s_def by auto
 qed
 
-lemma unification:
+theorem unification:
   assumes fin: "finite L"
   assumes uni: "unifier\<^sub>l\<^sub>s \<sigma> L"
   shows "\<exists>\<theta>. mgu\<^sub>l\<^sub>s \<theta> L"

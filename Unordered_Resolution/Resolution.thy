@@ -1,6 +1,6 @@
-theory Resolution imports TermsAndLiterals Tree begin
+section {* More Terms and Literals *}
 
-section {* Terms and literals *}
+theory Resolution imports TermsAndLiterals Tree begin
 
 fun complement :: "'t literal \<Rightarrow> 't literal" ("_\<^sup>c" [300] 300) where
   "(Pos P ts)\<^sup>c = Neg P ts"  
@@ -509,7 +509,7 @@ qed
 
 lemma std_apart_instance_of\<^sub>l\<^sub>s1: "instance_of\<^sub>l\<^sub>s C\<^sub>1 (std\<^sub>1 C\<^sub>1)"
 proof -
-  have empty: "(\<lambda>x. Var (''1''@x)) \<cdot> (\<lambda>x. Var (tl x)) = \<epsilon>" using composition_def by auto
+  have empty: "(\<lambda>x. Var (''1''@x)) \<cdot> (\<lambda>x. Var (tl x)) = \<epsilon>" using composition_def by auto         
 
   have "C\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<epsilon> = C\<^sub>1" using empty_subls by auto
   then have "C\<^sub>1 \<cdot>\<^sub>l\<^sub>s ((\<lambda>x. Var (''1''@x)) \<cdot> (\<lambda>x. Var (tl x))) = C\<^sub>1" using empty by auto
@@ -518,7 +518,7 @@ proof -
   then show "instance_of\<^sub>l\<^sub>s C\<^sub>1 (std\<^sub>1 C\<^sub>1)" unfolding instance_of\<^sub>l\<^sub>s_def by auto
 qed
 
-lemma std_apart_instance_of\<^sub>l\<^sub>s2: "instance_of\<^sub>l\<^sub>s C2 (std\<^sub>2 C2)"
+lemma std_apart_instance_of\<^sub>l\<^sub>s2: "instance_of\<^sub>l\<^sub>s C2 (std\<^sub>2 C2)"  
 proof -
   have empty: "(\<lambda>x. Var (''2''@x)) \<cdot> (\<lambda>x. Var (tl x)) = \<epsilon>" using composition_def by auto
 
@@ -1036,7 +1036,7 @@ proof -
   ultimately show "var_renaming_of C\<^sub>2 (std\<^sub>2 C\<^sub>2)" unfolding var_renaming_of_def by auto
 qed
 
-subsection {* Semantic Trees *}
+section {* Semantic Trees *}
 
 abbreviation closed_branch :: "partial_pred_denot \<Rightarrow> tree \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "closed_branch G T Cs \<equiv> branch G T \<and> falsifies\<^sub>c\<^sub>s G Cs"

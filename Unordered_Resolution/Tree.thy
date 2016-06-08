@@ -1,3 +1,5 @@
+section {* Trees *}
+
 theory Tree imports Main begin
 
 (* Sometimes it is nice to think of bool's as directions in a binary tree *)
@@ -13,7 +15,7 @@ datatype tree =
 | Branching (ltree: tree) (rtree: tree) 
 
 
-section {* Sizes *}
+subsection {* Sizes *}
 
 fun treesize :: "tree \<Rightarrow> nat" where
   "treesize Leaf = 0"
@@ -24,7 +26,7 @@ lemma treesize_Leaf: "treesize T = 0 \<Longrightarrow> T = Leaf" by (cases T) au
 lemma treesize_Branching: "treesize T = Suc n \<Longrightarrow> \<exists>l r. T = Branching l r" by (cases T) auto
 
 
-section {* Paths *}
+subsection {* Paths *}
 
 (* Recursive is better? *)
 fun path :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
@@ -83,7 +85,7 @@ next
   case (Nil) then show ?case  by auto
 qed
       
-section {* Branches *}
+subsection {* Branches *}
 
 fun branch :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
   "branch [] Leaf \<longleftrightarrow> True"    
@@ -182,7 +184,7 @@ next
   ultimately show ?case using tree.exhaust by blast
 qed
       
-section {* Internal Paths *}
+subsection {* Internal Paths *}
 
 fun internal :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
   "internal [] (Branching l r) \<longleftrightarrow> True"
@@ -278,7 +280,7 @@ qed
 fun parent :: "dir list \<Rightarrow> dir list" where
   "parent ds = tl ds"
 
-section {* Deleting Nodes *}
+subsection {* Deleting Nodes *}
 
 fun delete :: "dir list \<Rightarrow> tree \<Rightarrow> tree" where
   "delete [] T = Leaf"
@@ -643,7 +645,8 @@ qed
    and that would be rather pointless. Perhaps, I could just do the conversion as a    
    corollary or something.*)
 
-section {* Infinite Paths *}
+subsection {* Infinite Paths *}
+
 abbreviation wf_infpath :: "(nat \<Rightarrow> 'a list) \<Rightarrow> bool" where (* Previously called list_chain *)
   "wf_infpath f \<equiv> (f 0 = []) \<and> (\<forall>n. \<exists>a. f (Suc n) = (f n) @ [a])"
 

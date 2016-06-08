@@ -1,6 +1,6 @@
-theory Completeness imports Unify begin
-
 section {* Lifting Lemma *}
+
+theory Completeness imports Unify begin
 
 lemma lifting:
   assumes fin: "finite C \<and> finite D "

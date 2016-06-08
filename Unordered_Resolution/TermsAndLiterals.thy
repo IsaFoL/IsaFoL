@@ -1,6 +1,6 @@
-theory TermsAndLiterals imports Main "~~/src/HOL/Library/Countable_Set" begin
-
 section{* Terms and Literals *}
+
+theory TermsAndLiterals imports Main "~~/src/HOL/Library/Countable_Set" begin
 
 type_synonym var_sym  = string
 type_synonym fun_sym  = string
@@ -71,7 +71,7 @@ lemma f_inv_into_f:
 using assms bij_betw_inv_into_right by metis
 
 subsection {* Conversions *}
-subsubsection {* Convertions terms and Herbrand term *}
+subsubsection {* Convertions - Terms and Herbrand Terms *}
 
 fun fterm_of_hterm :: "hterm \<Rightarrow> fterm" where
   "fterm_of_hterm (HFun p ts) = Fun p (map fterm_of_hterm ts)"
@@ -103,7 +103,7 @@ lemma ground_fterm_of_hterm:  "ground\<^sub>t (fterm_of_hterm t)"
 lemma ground_fterms_of_hterms: "ground\<^sub>t\<^sub>s (fterms_of_hterms ts)"
   unfolding fterms_of_hterms_def using ground_fterm_of_hterm by auto
 
-subsubsection {* Converstions literals and herbrand literals *}
+subsubsection {* Conversions -  Literals and Herbrand Literals *}
 
 fun flit_of_hlit :: "hterm literal \<Rightarrow> fterm literal" where
   "flit_of_hlit (Pos p ts) = Pos p (fterms_of_hterms ts)"
@@ -146,7 +146,7 @@ next
   ultimately show "flit_of_hlit ` UNIV = {l. ground\<^sub>l l}" using hlit_of_flit_flit_of_hlit ground_flit_of_hlit by auto
 qed
 
-subsubsection {* Convertions atoms and herbrand atoms *}
+subsubsection {* Convertions - Atoms and Herbrand Atoms *}
 
 fun fatom_of_hatom :: "hterm atom \<Rightarrow> fterm atom" where
   "fatom_of_hatom (p, ts) = (p, fterms_of_hterms ts)"
@@ -189,7 +189,7 @@ qed
 
 subsection {* Enumerations *}
 
-subsubsection {* Enumerating strings *}
+subsubsection {* Enumerating Strings *}
 
 definition nat_from_string:: "string \<Rightarrow> nat" where
   "nat_from_string \<equiv> (SOME f. bij f)"
@@ -217,7 +217,7 @@ lemma string_from_nat_nat_from_string[simp]: "string_from_nat (nat_from_string n
   unfolding string_from_nat_def 
   using nat_from_string_bij inv_into_f_f[of nat_from_string] by simp
 
-subsubsection {* Enumerating hatoms *}
+subsubsection {* Enumerating Herbrand Atoms *}
 
 definition nat_from_hatom:: "hterm atom \<Rightarrow> nat" where
   "nat_from_hatom \<equiv> (SOME f. bij f)"
@@ -262,7 +262,7 @@ lemma hatom_from_nat_nat_from_hatom[simp]: "hatom_from_nat (nat_from_hatom l) = 
   using nat_from_hatom_bij inv_into_f_f[of nat_from_hatom _ UNIV] by simp
 
 
-subsubsection {* Enumerating ground atoms *}
+subsubsection {* Enumerating Ground Atoms *}
 
 definition fatom_from_nat :: "nat \<Rightarrow> fterm atom" where
   "fatom_from_nat = (\<lambda>n. fatom_of_hatom (hatom_from_nat n))"

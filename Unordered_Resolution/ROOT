@@ -1,11 +1,14 @@
-session Unordered_Resolution = "HOL" +
-   options [
-     document_output = "generated"]
+session "Unordered_Resolution" = "HOL" +
+   options [document = pdf, document_output = "output",
+    document_variants = "document:outline=/proof,/ML"]
+   theories [document = false]
+     "~~/src/HOL/Library/Countable_Set" 
+     "$ISAFOR/Rewriting/Unification"
    theories
-     Completeness
-     Resolution
-     Unify
-   theories[quick_and_dirty]
-     TermsAndLiterals
-     Resolution
-     Examples
+    TermsAndLiterals 
+    Resolution
+    Unify
+    Completeness
+    Examples
+   document_files
+     "root.tex"

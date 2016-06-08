@@ -1,3 +1,5 @@
+section {* Examples *}
+
 theory Examples imports Resolution begin
 
 value "Var ''x''"
