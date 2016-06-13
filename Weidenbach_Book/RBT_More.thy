@@ -10,13 +10,29 @@ text \<open>The file @{file "~~/src/HOL/Library/RBT.thy"} contains the lifting f
 lemma RBT_entries_empty[simp]: "RBT.entries RBT.empty = []"
   by (simp add: empty.rep_eq entries.rep_eq)
 
-
 lemma keys_empty[simp]: "RBT.keys RBT.empty = []"
   by (simp add: keys_def_alt)
+
+
+definition RBT_elements :: "('a :: linorder, 'b) RBT.rbt \<Rightarrow> 'b list" where
+"RBT_elements C = map snd (RBT.entries C)"
+
+lemma RBT_entries_zip_keys_elements:
+  "RBT.entries C = zip (RBT.keys C) (RBT_elements C)"
+  by (simp add: keys_def_alt zip_map_fst_snd RBT_elements_def)
 
 lemma image_mset_fst_RBT_entries_keys:
   "image_mset fst (mset (RBT.entries C)) = mset (RBT.keys C)"
   by (simp add: image_mset_mset_mset_map keys_def_alt)
+
+abbreviation RBT_entries_mset :: "('a::linorder, 'b) RBT.rbt \<Rightarrow> ('a \<times> 'b) multiset" where
+"RBT_entries_mset C \<equiv> mset (RBT.entries C)"
+
+abbreviation RBT_keys_mset :: "('a::linorder, 'b) RBT.rbt \<Rightarrow> 'a multiset" where
+"RBT_keys_mset C \<equiv> mset (RBT.keys C)"
+
+abbreviation RBT_elements_mset :: "('a::linorder, 'b) RBT.rbt \<Rightarrow> 'b multiset" where
+"RBT_elements_mset C \<equiv> mset (RBT_elements C)"
 
 lemma rbt_insert_swap:
   "i \<noteq> j \<Longrightarrow>
@@ -92,5 +108,8 @@ lemma count_RBT_entries:
 lemma count_RBT_keys:
   "count (mset (RBT.keys C)) a = (if RBT.lookup C a \<noteq> None then 1 else 0)"
   by (metis RBT.distinct_keys RBT.keys_entries distinct_count_atmost_1 lookup_in_tree not_Some_eq)  
+
+lemma in_RBT_keys_lookup: "j \<in> set (RBT.keys C) \<longleftrightarrow> RBT.lookup C j \<noteq> None"
+  unfolding lookup_keys[symmetric] by fastforce
 
 end

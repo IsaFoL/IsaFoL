@@ -253,7 +253,7 @@ locale abstract_clauses_representation =
       "cls_lookup Cs i \<noteq> None \<Longrightarrow> cls_lookup (clss_update Cs i C) = (cls_lookup Cs) (i := Some C)"
       and
     add_cls:
-      "cls_lookup Cs i \<noteq> None \<Longrightarrow> add_cls Cs C = (Cs', i) \<Longrightarrow> 
+      "cls_lookup Cs i \<noteq> None \<Longrightarrow> add_cls Cs C = (Cs', i) \<Longrightarrow>
         cls_lookup Cs' = (cls_lookup Cs) (i := Some C)"  and
     add_cls_new_keys:
       "cls_lookup Cs i \<noteq> None \<Longrightarrow> add_cls Cs C = (Cs', i) \<Longrightarrow> i \<notin># cls_keys Cs"
@@ -920,6 +920,10 @@ definition wf_twl_state :: "'st \<Rightarrow> bool" where
   cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state S) \<and>
   wf_prop_queue S"
 
+definition wf_twl_confl_state :: "'st \<Rightarrow> bool" where
+"wf_twl_confl_state S \<longleftrightarrow>
+  (wf_twl_state S \<and> raw_conc_conflicting S \<noteq> None)"
+
 end
 
 subsubsection \<open>The new Calculus\<close>
@@ -1050,7 +1054,9 @@ locale abs_conflict_driven_clause_learning\<^sub>W_clss =
 
     abs_init_state restart_state +
   type_definition_locale
-    abs_state_of rough_state_of wf_twl_state
+    abs_state_of rough_state_of wf_twl_state (* +
+  type_definition_locale
+    abs_confl_state_of rough_confl_state_of wf_twl_confl_state *)
   for
     \<comment> \<open>Clause:\<close>
     wf_watched_lits :: "'cls \<Rightarrow> 'lit multiset" and
@@ -1106,7 +1112,10 @@ locale abs_conflict_driven_clause_learning\<^sub>W_clss =
     restart_state :: "'st \<Rightarrow> 'st" and
 
     abs_state_of :: "'st \<Rightarrow> 'inv" and
-    rough_state_of :: "'inv \<Rightarrow> 'st"
+    rough_state_of :: "'inv \<Rightarrow> 'st" and
+
+    abs_confl_state_of :: "'st \<Rightarrow> 'inv" and
+    rough_confl_state_of :: "'inv \<Rightarrow> 'st"
 begin
 
 sublocale abs_conflict_driven_clause_learning\<^sub>W where
@@ -1136,7 +1145,9 @@ sublocale abs_conflict_driven_clause_learning\<^sub>W where
 
 lemma XXX: "type_definition rough_state_of abs_state_of {S. wf_twl_state S}"
   unfolding type_definition_def
-  using Rep by (auto intro: Abs_inverse simp: Rep_inv)
+  using Rep by (meson abs_conflict_driven_clause_learning\<^sub>W_clss_axioms
+  abs_conflict_driven_clause_learning\<^sub>W_clss_def
+  type_definition_locale.Abs_inverse type_definition_locale.Rep type_definition_locale.Rep_inv)
 
 definition wf_resolve :: "'inv \<Rightarrow> 'inv \<Rightarrow> bool" where
 "wf_resolve S T \<equiv> resolve_abs (rough_state_of S) (rough_state_of T)"
@@ -1313,9 +1324,9 @@ lemma [code abstype]:
   by (simp add: Rep_inv wf_state_def)
 
 (* TODO wrong level *)
-definition backtrack_implementation :: "'st \<Rightarrow> 'st"  where
-"backtrack_implementation S =
-  reduce_abs_trail_to (reduce_trail_to_lvl (abs_backtrack_lvl S) (full_trail S)) S"
+definition backtrack_implementation :: "nat \<Rightarrow> 'st \<Rightarrow> 'st"  where
+"backtrack_implementation k S =
+  reduce_abs_trail_to (reduce_trail_to_lvl k (full_trail S)) S"
 
 definition resolve_implementation :: "'v literal \<Rightarrow> 'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" where
 "resolve_implementation L C S = tl_abs_trail (resolve_abs_conflicting L (raw_clauses S \<Down> C) S)"
@@ -1323,68 +1334,27 @@ definition resolve_implementation :: "'v literal \<Rightarrow> 'cls_it \<Rightar
 definition skip_implementation :: "'st \<Rightarrow> 'st" where
 "skip_implementation S = tl_abs_trail S"
 
-function (domintros) skip_or_resolve where
-"skip_or_resolve S =
-  (if full_trail S = [] then S
+function skip_or_resolve_implementation :: "'st \<Rightarrow> 'st" where
+"skip_or_resolve_implementation S =
+  (if full_trail S = [] \<or> raw_conc_conflicting S = None then S
   else
     case hd_raw_abs_trail S of
-      Decided L \<Rightarrow> S
+      Decided L \<Rightarrow>
+      backtrack_implementation (get_maximum_level (full_trail S) (the (conc_conflicting S))) S
     | Propagated L C \<Rightarrow>
       if -L \<in># mset_ccls (the (raw_conc_conflicting S))
       then
         if is_of_maximum_level (mset_ccls (the (raw_conc_conflicting S))) (tl (full_trail S))
-        then backtrack_implementation S
-        else skip_or_resolve (resolve_implementation L C S)
-      else skip_or_resolve (skip_implementation S))"
+        then backtrack_implementation (get_maximum_level (full_trail S) (the (conc_conflicting S)))
+          S
+        else skip_or_resolve_implementation (resolve_implementation L C S)
+      else skip_or_resolve_implementation (skip_implementation S))"
   by auto
 
-lemma
-  assumes
-    "cdcl\<^sub>W_mset.cdcl\<^sub>W_all_struct_inv (state S)" and
-    "raw_conc_conflicting S \<noteq> None"
-  shows "skip_or_resolve_dom S"
-  using assms
-proof (induction "full_trail S" arbitrary: S)
-  case Nil
-  then show ?case
-    by (metis skip_or_resolve.domintros)
-next
-  case (Cons L M) note IH = this(1) and ft[symmetric] = this(2) and wf = this(3) and confl = this(4)
-  let ?L = "hd_raw_abs_trail S"
-  let ?l = "lit_of ?L"
-
-
-  show ?case
-    proof (cases ?L)
-      case (Decided l)
-      then show ?thesis
-        by (metis ann_lit.distinct(1) skip_or_resolve.domintros)
-    next
-      case (Propagated l E) note hd [simp] = this(1)
-      have ft: "full_trail S = mmset_of_mlit (raw_clauses S) (Propagated l E) # tl (full_trail S)"
-        by (metis (no_types, lifting) ft hd hd_raw_conc_trail list.distinct(1) list.sel(1,3))
-      show ?thesis
-        proof (cases "-l \<in># mset_ccls (the (raw_conc_conflicting S))")
-          case True
-          let ?T = "resolve_abs_conflicting l (raw_clauses S \<Down> E) (tl_abs_trail S)"
-          obtain C where
-            C: "raw_conc_conflicting S = Some C"
-            using confl by auto
-          have l: "l \<in># clause_of_cls (raw_clauses S \<Down> E)"
-            sorry
-          have "resolve_abs S ?T"
-            apply (rule resolve_abs_rule)
-                 apply (subst ft, simp)
-                apply simp
-               using l apply simp
-              using C apply force
-             using True C apply simp
-             defer
-             apply simp
-            sorry
-
+termination skip_or_resolve_implementation
+  apply (relation  "measure (\<lambda>S. length (full_trail S))")
+  apply (auto simp: resolve_implementation_def skip_implementation_def)
   oops
-
 text \<open>When we update a clause with respect to the literal L, there are several cases:
   \<^enum> the only literal is L: this is a conflict.
   \<^enum> if the other watched literal is true, there is noting to do.
