@@ -164,4 +164,13 @@ proof -
       remove1_idem set_insort_key set_mset_mset sorted_distinct_set_unique sorted_insort
       sorted_keys)
 qed
+
+lemma length_RBT_entries_keys:
+  "length (RBT.entries C) = length (RBT.keys C)"
+  by (simp add: keys_def_alt)
+
+lemma RBT_lookup_Some_in_keysD:
+  "RBT.lookup C k = Some a \<Longrightarrow> k \<in> set (RBT.keys C)"
+  by (simp add: in_RBT_keys_lookup)
+
 end

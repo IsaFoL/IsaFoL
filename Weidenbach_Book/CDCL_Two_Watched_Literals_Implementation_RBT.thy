@@ -742,6 +742,7 @@ qed
 subsection \<open>Definition of the Clauses\<close>
 
 subsubsection \<open>Definition and Lifting\<close>
+
 typedef 'v RBT_array  =
   "{C :: (nat, 'v) RBT.rbt. RBT.keys C = [0..< length (RBT.keys C)]}"
   morphisms conc_RBT_array abs_RBT_array
@@ -818,9 +819,6 @@ lemma in_fst_RBT_entries:
   "a \<in> fst ` set (RBT.entries C) \<longleftrightarrow> RBT.lookup C a \<noteq> None"
   by (force simp: lookup_in_tree)
 
-lemma sorted_removeAll: "sorted C \<Longrightarrow> sorted (removeAll k C)"
-  by (metis map_ident removeAll_filter_not_eq sorted_filter)
-
 lemma sorted_distinct_removeAll_insort:
   assumes "sorted C" and "distinct C" and "k' \<notin> set C"
   shows "removeAll k (insort k' C) = (if k = k' then removeAll k C else insort k' (removeAll k C))"
@@ -844,16 +842,6 @@ lemma RBT_keys_delete_and_move_insert:
   by (auto simp: RBT_keys_RBT_delete_and_move_RBT_insert
     RBT_keys_eq_iff_dom_eq RBT_lookup_RBT_delete_and_move
     split: if_splits)
-
-lemma removeAll_insert_removeAll: "removeAll k (insort k xs) = removeAll k xs"
-  by (simp add: filter_insort_triv removeAll_filter_not_eq)
-
-lemma filter_sorted: "sorted xs \<Longrightarrow> sorted (filter P xs)"
-  by (metis list.map_ident sorted_filter)
-
-lemma removeAll_insort:
-  "sorted xs \<Longrightarrow> k \<noteq> k' \<Longrightarrow> removeAll k' (insort k xs) = insort k (removeAll k' xs)"
-  by (simp add: filter_insort removeAll_filter_not_eq)
 
 lemma RBT_keys_RBT_delete_and_move:
   "RBT.keys (RBT_delete_and_move k C) =
@@ -908,14 +896,6 @@ next
     done
 qed
 
-lemma length_RBT_entries_keys:
-  "length (RBT.entries C) = length (RBT.keys C)"
-  by (simp add: keys_def_alt)
-
-lemma RBT_lookup_Some_in_keysD:
-  "RBT.lookup C k = Some a \<Longrightarrow> k \<in> set (RBT.keys C)"
-  by (simp add: in_RBT_keys_lookup)
-
 lemma length_RBT_entries_RBT_delete_and_move: "length (RBT.entries (RBT_delete_and_move k C)) =
   (if RBT.lookup C k \<noteq> None then length (RBT.entries C) - 1 else length (RBT.entries C))"
   by (auto simp: RBT_keys_RBT_delete_and_move length_RBT_entries_keys
@@ -930,29 +910,6 @@ lift_definition cls_entries :: "'v RBT_array \<Rightarrow> (nat \<times> 'v) lis
 lift_definition cls_empty :: "'v RBT_array" is RBT.empty by auto
 lift_definition cls_length :: "'v RBT_array \<Rightarrow> nat" is "\<lambda>C. length (RBT.keys C)" .
 
-lemma count_mset_count_list:
-  "count (mset xs) x = count_list xs x"
-  by (induction xs) auto
-
-lemma length_removeAll_count_list:
-  "length (removeAll x xs) = length xs - count_list xs x"
-proof -
-  have "length (removeAll x xs) = size (removeAll_mset x (mset xs))"
-    by auto
-  also have "\<dots> = size (mset xs) - count (mset xs) x"
-    by (metis count_le_replicate_mset_le le_refl size_Diff_submset size_replicate_mset)
-  also have " \<dots> = length xs - count_list xs x"
-    unfolding count_mset_count_list by simp
-  finally show ?thesis .
-qed
-
-lemma removeAll_upt:
-  "removeAll k [a..<b] = (if k \<ge> a \<and> k < b then [a..<k] @ [Suc k..<b] else [a..<b])"
-  by (induction b) auto
-
-lemma remove1_upt:
-  "remove1 k [a..<b] = (if k \<ge> a \<and> k < b then [a..<k] @ [Suc k..<b] else [a..<b])"
-  by (subst distinct_remove1_removeAll) (auto simp: removeAll_upt)
 
 lift_definition cls_delete :: "nat \<Rightarrow> 'v RBT_array  \<Rightarrow> 'v RBT_array" is RBT_delete_and_move
 proof -
@@ -1018,35 +975,6 @@ definition RBT_append :: "(nat, 'v) RBT.rbt \<Rightarrow> 'v \<Rightarrow> (nat,
 "RBT_append Cs C =
   (let i = length (RBT.keys Cs) in
     (RBT.insert i C Cs, i))"
-
-text \<open>@{thm insort_is_Cons} is more general.\<close>
-lemma insort_is_append: "\<forall>x\<in>set xs. a \<ge> x \<Longrightarrow> sorted xs \<Longrightarrow> insort a xs = xs @ [a]"
-by (induction xs) (auto simp add: insort_is_Cons sorted_Cons)
-
-text \<open>See @{thm sorted_distinct_set_unique}.\<close>
-lemma sorted_mset_unique:
-  fixes xs :: "'a :: linorder list"
-  shows "sorted xs \<Longrightarrow> sorted ys \<Longrightarrow> mset xs = mset ys \<Longrightarrow> xs = ys"
-  using properties_for_sort by auto
-
-lemma insort_upt: "insort k [a..<b] =
-  (if k < a then k # [a..<b]
-  else if k < b then [a..<k] @ k # [k ..<b]
-  else [a..<b] @[k])"
-proof -
-  have H: "k < Suc b \<Longrightarrow> \<not> k < a \<Longrightarrow> {a..<b} = {a..<k} \<union> {k..<b}" for a b :: nat
-    by (simp add: ivl_disj_un_two(3))
-  show ?thesis
-
-  apply (induction b)
-   apply simp
-  apply (case_tac "\<not>k < a \<and> k < Suc b")
-   apply (rule sorted_mset_unique)
-      apply (auto simp add: sorted_append sorted_insort sorted_Cons ac_simps mset_set_Union
-        dest!: H)[4]
-    apply (auto simp: insort_is_Cons insort_is_append sorted_append)
-  done
-qed
 
 lemma RBT_lookup_fst_RBT_append:
   "RBT.lookup (fst (RBT_append Cs C)) = (RBT.lookup Cs) (length (RBT.keys Cs) \<mapsto> C)"
