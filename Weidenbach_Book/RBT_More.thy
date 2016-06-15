@@ -7,23 +7,29 @@ section \<open>More red-black trees\<close>
 text \<open>The file @{file "~~/src/HOL/Library/RBT.thy"} contains the lifting from a red-black tree to
   the version with invariants (sorted keys for example). However, some properties are missing\<close>
 
+subsection \<open>Keys and Entries\<close>
+
+subsubsection \<open>Additional Properties\<close>
+
+lemma RBT_keys_RBT_delete: "RBT.keys (RBT.delete k C) = remove1 k (RBT.keys C)"
+  by (rule sorted_distinct_set_unique) (auto simp: sorted_remove1 lookup_keys[symmetric])
+
 lemma RBT_entries_empty[simp]: "RBT.entries RBT.empty = []"
   by (simp add: empty.rep_eq entries.rep_eq)
 
 lemma keys_empty[simp]: "RBT.keys RBT.empty = []"
   by (simp add: keys_def_alt)
 
-
-definition RBT_elements :: "('a :: linorder, 'b) RBT.rbt \<Rightarrow> 'b list" where
-"RBT_elements C = map snd (RBT.entries C)"
-
-lemma RBT_entries_zip_keys_elements:
-  "RBT.entries C = zip (RBT.keys C) (RBT_elements C)"
-  by (simp add: keys_def_alt zip_map_fst_snd RBT_elements_def)
-
 lemma image_mset_fst_RBT_entries_keys:
   "image_mset fst (mset (RBT.entries C)) = mset (RBT.keys C)"
   by (simp add: image_mset_mset_mset_map keys_def_alt)
+
+lemma distinct_rbt_entries:
+  "distinct (RBT.entries t)"
+  using RBT.distinct_entries by (metis distinct_zipI1 zip_map_fst_snd)
+
+
+subsubsection \<open>Multiset version\<close>
 
 abbreviation RBT_entries_mset :: "('a::linorder, 'b) RBT.rbt \<Rightarrow> ('a \<times> 'b) multiset" where
 "RBT_entries_mset C \<equiv> mset (RBT.entries C)"
@@ -31,18 +37,12 @@ abbreviation RBT_entries_mset :: "('a::linorder, 'b) RBT.rbt \<Rightarrow> ('a \
 abbreviation RBT_keys_mset :: "('a::linorder, 'b) RBT.rbt \<Rightarrow> 'a multiset" where
 "RBT_keys_mset C \<equiv> mset (RBT.keys C)"
 
-abbreviation RBT_elements_mset :: "('a::linorder, 'b) RBT.rbt \<Rightarrow> 'b multiset" where
-"RBT_elements_mset C \<equiv> mset (RBT_elements C)"
 
 lemma rbt_insert_swap:
   "i \<noteq> j \<Longrightarrow>
   RBT.entries (RBT.insert j b (RBT.insert i a C)) = RBT.entries (RBT.insert i a (RBT.insert j b C))"
   "RBT.entries (RBT.insert i a (RBT.insert i a C)) = RBT.entries (RBT.insert i a (RBT.insert i b C))"
   unfolding entries_lookup by (rule ext) auto
-
-lemma distinct_rbt_entries:
-  "distinct (RBT.entries t)"
-  using RBT.distinct_entries by (metis distinct_zipI1 zip_map_fst_snd)
 
 lemma mset_entries_insert:
   "RBT.lookup C j = Some j' \<Longrightarrow>
@@ -55,8 +55,6 @@ lemma mset_entries_insert:
       multi_member_last option.sel)
   by (auto simp add: distinct_rbt_entries lookup_in_tree[symmetric] split: if_splits)
 
-text \<open>As there is no property about the ordering of the result of @{term RBT.entries}, multiset are
-  the natural representation of the output.\<close>
 lemma mset_RBT_entries_insert:
   "mset (RBT.entries (RBT.insert a a' C)) =
     {#(a, a')#} + remove1_mset (a, the (RBT.lookup C a)) (mset (RBT.entries C))"
@@ -112,13 +110,50 @@ lemma count_RBT_keys:
 lemma in_RBT_keys_lookup: "j \<in> set (RBT.keys C) \<longleftrightarrow> RBT.lookup C j \<noteq> None"
   unfolding lookup_keys[symmetric] by fastforce
 
+lemma RBT_keys_insert_insort:
+  "RBT.keys (RBT.insert k v C) = insort k (remove1 k (RBT.keys C))"
+proof -
+  have "\<And>f a. dom f = insert (a::'a) (dom f) \<or> (None::'b option) = f a"
+    by (metis (no_types) dom_fun_upd fun_upd_triv)
+  then have "RBT.keys (RBT.insert k v C) = insort k (remove1 k (RBT.keys C))"
+    if "k \<in># RBT_keys_mset C" using that
+    by (metis (no_types) RBT.distinct_keys domIff dom_fun_upd insort_remove1 lookup_insert
+      lookup_keys option.simps(3) set_mset_mset sorted_distinct_set_unique sorted_keys)
+  then show ?thesis
+    by (metis (no_types) Multiset.mset_insort RBT.distinct_keys distinct_mset_add_single
+      distinct_mset_distinct dom_fun_upd lookup_insert lookup_keys option.simps(3)
+      remove1_idem set_insort_key set_mset_mset sorted_distinct_set_unique sorted_insort
+      sorted_keys)
+qed
+
+lemma length_RBT_entries_keys:
+  "length (RBT.entries C) = length (RBT.keys C)"
+  by (simp add: keys_def_alt)
+
+lemma RBT_lookup_Some_in_keysD:
+  "RBT.lookup C k = Some a \<Longrightarrow> k \<in> set (RBT.keys C)"
+  by (simp add: in_RBT_keys_lookup)
+
+
+subsection \<open>Elements\<close>
+
+definition RBT_elements :: "('a :: linorder, 'b) RBT.rbt \<Rightarrow> 'b list" where
+"RBT_elements C = map snd (RBT.entries C)"
+
+lemma RBT_entries_zip_keys_elements:
+  "RBT.entries C = zip (RBT.keys C) (RBT_elements C)"
+  by (simp add: keys_def_alt zip_map_fst_snd RBT_elements_def)
+
+abbreviation RBT_elements_mset :: "('a::linorder, 'b) RBT.rbt \<Rightarrow> 'b multiset" where
+"RBT_elements_mset C \<equiv> mset (RBT_elements C)"
+
 lemma RBT_elements_mset_image_mset_lookup_keys_mset:
   "RBT_elements_mset C = {#the (RBT.lookup C x). x \<in># RBT_keys_mset C#}"
   by (metis (no_types, lifting) RBT.distinct_keys RBT.map_of_entries RBT_elements_def
     image_mset_cong2 image_mset_map_of keys_def_alt)
 
-lemma RBT_keys_RBT_delete: "RBT.keys (RBT.delete k C) = remove1 k (RBT.keys C)"
-  by (rule sorted_distinct_set_unique) (auto simp: sorted_remove1 lookup_keys[symmetric])
+
+subsection \<open>Induction Principle\<close>
 
 text \<open>The first assumptions is needed. Otherwise the predicate @{term P} could rely on the internal
   data-structure.\<close>
@@ -149,28 +184,5 @@ next
     using \<open>RBT.lookup C k \<noteq> None\<close> by auto
 qed
 
-lemma RBT_keys_insert_insort:
-  "RBT.keys (RBT.insert k v C) = insort k (remove1 k (RBT.keys C))"
-proof -
-  have "\<And>f a. dom f = insert (a::'a) (dom f) \<or> (None::'b option) = f a"
-    by (metis (no_types) dom_fun_upd fun_upd_triv)
-  then have "RBT.keys (RBT.insert k v C) = insort k (remove1 k (RBT.keys C))"
-    if "k \<in># RBT_keys_mset C" using that
-    by (metis (no_types) RBT.distinct_keys domIff dom_fun_upd insort_remove1 lookup_insert
-      lookup_keys option.simps(3) set_mset_mset sorted_distinct_set_unique sorted_keys)
-  then show ?thesis
-    by (metis (no_types) Multiset.mset_insort RBT.distinct_keys distinct_mset_add_single
-      distinct_mset_distinct dom_fun_upd lookup_insert lookup_keys option.simps(3)
-      remove1_idem set_insort_key set_mset_mset sorted_distinct_set_unique sorted_insort
-      sorted_keys)
-qed
-
-lemma length_RBT_entries_keys:
-  "length (RBT.entries C) = length (RBT.keys C)"
-  by (simp add: keys_def_alt)
-
-lemma RBT_lookup_Some_in_keysD:
-  "RBT.lookup C k = Some a \<Longrightarrow> k \<in> set (RBT.keys C)"
-  by (simp add: in_RBT_keys_lookup)
 
 end
