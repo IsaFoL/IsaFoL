@@ -1,5 +1,5 @@
 theory RBT_More
-imports Main "~~/src/HOL/Library/RBT" "../lib/Multiset_More" 
+imports Main "~~/src/HOL/Library/RBT" "../lib/Multiset_More"
 begin
 
 section \<open>More red-black trees\<close>
@@ -54,15 +54,15 @@ lemma mset_entries_insert:
       distinct_mset_minus distinct_rbt_entries in_diffD in_multiset_in_set lookup_in_tree
       multi_member_last option.sel)
   by (auto simp add: distinct_rbt_entries lookup_in_tree[symmetric] split: if_splits)
-  
-text \<open>As there is no property about the ordering of the result of @{term RBT.entries}, multiset are 
+
+text \<open>As there is no property about the ordering of the result of @{term RBT.entries}, multiset are
   the natural representation of the output.\<close>
 lemma mset_RBT_entries_insert:
-  "mset (RBT.entries (RBT.insert a a' C)) = 
+  "mset (RBT.entries (RBT.insert a a' C)) =
     {#(a, a')#} + remove1_mset (a, the (RBT.lookup C a)) (mset (RBT.entries C))"
   apply (rule distinct_set_mset_eq)
     apply (simp add: distinct_mset_filter distinct_rbt_entries; fail)
-   apply (auto simp: distinct_mset_add_single distinct_rbt_entries lookup_in_tree[symmetric]; 
+   apply (auto simp: distinct_mset_add_single distinct_rbt_entries lookup_in_tree[symmetric];
      fail)[]
   by (auto simp add: distinct_mset_filter distinct_rbt_entries lookup_in_tree[symmetric] split: if_splits )
 
@@ -83,7 +83,7 @@ lemma RBT_entries_insert_empty[simp]:
 proof -
   have M: "mset (RBT.entries (RBT.insert a L RBT.empty)) = mset [(a, L)]"
     by (auto simp: mset_RBT_entries_insert)
-  have l: "list = []" "aa = a" "b = L" if "mset list + {#(aa, b)#} = {#(a, L)#}" 
+  have l: "list = []" "aa = a" "b = L" if "mset list + {#(aa, b)#} = {#(a, L)#}"
     for list :: "('a \<times> 'v) list" and aa :: 'a and b :: 'v
     proof -
       show [simp]: "list = []"
@@ -96,9 +96,9 @@ proof -
 qed
 
 lemma snd_entries_the_lookup:
-  "image_mset snd (mset (RBT.entries C)) = 
+  "image_mset snd (mset (RBT.entries C)) =
     {#the (RBT.lookup C (fst x)). x \<in># mset (RBT.entries C)#}"
-  unfolding multiset_eq_iff by (metis (mono_tags, lifting) image_mset_cong2 lookup_in_tree 
+  unfolding multiset_eq_iff by (metis (mono_tags, lifting) image_mset_cong2 lookup_in_tree
     option.sel prod.collapse set_mset_mset)
 
 lemma count_RBT_entries:
@@ -107,9 +107,61 @@ lemma count_RBT_entries:
 
 lemma count_RBT_keys:
   "count (mset (RBT.keys C)) a = (if RBT.lookup C a \<noteq> None then 1 else 0)"
-  by (metis RBT.distinct_keys RBT.keys_entries distinct_count_atmost_1 lookup_in_tree not_Some_eq)  
+  by (metis RBT.distinct_keys RBT.keys_entries distinct_count_atmost_1 lookup_in_tree not_Some_eq)
 
 lemma in_RBT_keys_lookup: "j \<in> set (RBT.keys C) \<longleftrightarrow> RBT.lookup C j \<noteq> None"
   unfolding lookup_keys[symmetric] by fastforce
 
+lemma RBT_elements_mset_image_mset_lookup_keys_mset:
+  "RBT_elements_mset C = {#the (RBT.lookup C x). x \<in># RBT_keys_mset C#}"
+  by (metis (no_types, lifting) RBT.distinct_keys RBT.map_of_entries RBT_elements_def
+    image_mset_cong2 image_mset_map_of keys_def_alt)
+
+lemma RBT_keys_RBT_delete: "RBT.keys (RBT.delete k C) = remove1 k (RBT.keys C)"
+  by (rule sorted_distinct_set_unique) (auto simp: sorted_remove1 lookup_keys[symmetric])
+
+text \<open>The first assumptions is needed. Otherwise the predicate @{term P} could rely on the internal
+  data-structure.\<close>
+lemma rbt_induct[case_names independancy empty insert]:
+  assumes
+    indep_of_imp: "\<And>S T. RBT.lookup S = RBT.lookup T \<Longrightarrow> P S \<Longrightarrow> P T" and
+    empty: "P RBT.empty" and
+    insert: "\<And>k v C. (\<forall>k' \<in> set (RBT.keys C). k < k') \<Longrightarrow> P C \<Longrightarrow> P (RBT.insert k v C)"
+  shows "P C"
+proof (induction "RBT.keys C" arbitrary: C)
+  case Nil
+  then show ?case by (metis empty non_empty_keys)
+next
+  case (Cons k ks C) note IH = this(1) and keys = this(2)
+  let ?C = "RBT.delete k C"
+  have "RBT.lookup C k \<noteq> None"
+    by (metis append_Nil domIff in_set_conv_decomp keys lookup_keys)
+  have keys_C: "RBT.keys ?C = ks"
+    by (simp add: RBT_keys_RBT_delete keys[symmetric])
+  then have "P ?C" using IH[of ?C] by blast
+  moreover have "\<forall>k' \<in> set (RBT.keys ?C). k < k'"
+    using sorted_keys[of C] distinct_keys[of C] le_imp_less_or_eq unfolding keys[symmetric] keys_C
+    by (auto simp: sorted_Cons)
+  ultimately have [simp]: "P (RBT.insert k (the (RBT.lookup C k)) ?C)"
+    using insert[of ?C] by blast
+  show ?case
+    apply (rule indep_of_imp[of "RBT.insert k (the (RBT.lookup C k)) ?C"])
+    using \<open>RBT.lookup C k \<noteq> None\<close> by auto
+qed
+
+lemma RBT_keys_insert_insort:
+  "RBT.keys (RBT.insert k v C) = insort k (remove1 k (RBT.keys C))"
+proof -
+  have "\<And>f a. dom f = insert (a::'a) (dom f) \<or> (None::'b option) = f a"
+    by (metis (no_types) dom_fun_upd fun_upd_triv)
+  then have "RBT.keys (RBT.insert k v C) = insort k (remove1 k (RBT.keys C))"
+    if "k \<in># RBT_keys_mset C" using that
+    by (metis (no_types) RBT.distinct_keys domIff dom_fun_upd insort_remove1 lookup_insert
+      lookup_keys option.simps(3) set_mset_mset sorted_distinct_set_unique sorted_keys)
+  then show ?thesis
+    by (metis (no_types) Multiset.mset_insort RBT.distinct_keys distinct_mset_add_single
+      distinct_mset_distinct dom_fun_upd lookup_insert lookup_keys option.simps(3)
+      remove1_idem set_insort_key set_mset_mset sorted_distinct_set_unique sorted_insort
+      sorted_keys)
+qed
 end
