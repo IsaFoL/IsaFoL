@@ -7,16 +7,16 @@ RUN_ISABELLE2016="$(ISABELLE2016)/bin/isabelle"
 ISABELLE_HOME=~/.isabelle/browser_info
 ISABELLE2016_HOME=~/.isabelle/Isabelle2016/browser_info
 
-ATP=$(ISABELLE)/../afp-devel
+AFP=$(ISABELLE)/../afp-devel
 DESTINATION="$(shell pwd)/html"
 
 ISABELLE_version= $(shell (cd $(ISABELLE) && hg id --id))
-ATP_version= $(shell (cd $(ATP) && hg id --id))
+AFP_version= $(shell (cd $(AFP) && hg id --id))
 ISAFOL_version= $(shell (git log --pretty=format:'%h' -n 1))
 
 test_vars:
 	echo "Isabelle: $(ISABELLE_version)"
-	echo "ATP: $(ATP_version)"
+	echo "AFP: $(AFP_version)"
 	echo "IsaFoL: $(ISAFOL_version)"
 
 all: current
@@ -41,7 +41,7 @@ doc:
 	cp -R $(ISABELLE_HOME)/Weidenbach_Book $(DESTINATION)/current || :
 	cp -R $(ISABELLE_HOME)/Bachmair_Ganzinger $(DESTINATION)/current || :
 	cp -R $(ISABELLE2016_HOME)/Unsorted/Unordered_Resolution $(DESTINATION)/current || :
-	./add_dates.pl --noverbose --unsafe --isabelle="$(ISABELLE_version)" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --atp="$(ATP_version)"
+	./add_dates.pl --noverbose --unsafe --isabelle="$(ISABELLE_version)" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP_version)"
 
 refs:
 	../isafol-private/Other/update_refs.pl  --unsafe
