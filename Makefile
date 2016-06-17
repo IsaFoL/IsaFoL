@@ -19,7 +19,10 @@ test_vars:
 	echo "AFP: $(AFP_version)"
 	echo "IsaFoL: $(ISAFOL_version)"
 
-all: current
+all:
+	$(RUN_ISABELLE) build -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -D Weidenbach_Book
+	$(RUN_ISABELLE) build -o browser_info -v -D Bachmair_Ganzinger
+	$(RUN_ISABELLE2016) build -o browser_info -v -D Unordered_Resolution
 
 # build the documentation and the files
 current:
