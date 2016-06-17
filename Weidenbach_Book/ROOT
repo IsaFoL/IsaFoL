@@ -13,6 +13,7 @@ session "Imports" (Weidenbach_Book) = "HOL" +
     "../lib/Multiset_More"
     Wellfounded_More
     List_More
+    RBT_More
   document_files
     "root.tex"
     "biblio.bib"
@@ -66,6 +67,8 @@ session "DPLL_CDCL" (Weidenbach_Book) = "Entailment_Definition" +
     "~~/src/HOL/Library/Code_Target_Numeral"
     "~~/src/HOL/Library/Multiset"
     "~~/src/HOL/Library/Multiset_Order"
+    "~~/src/HOL/Library/RBT"
+    RBT_More
   theories [document = true]
     Partial_Annotated_Clausal_Logic
     DPLL_W
@@ -84,10 +87,9 @@ session "DPLL_CDCL" (Weidenbach_Book) = "Entailment_Definition" +
     DPLL_W_Implementation
     CDCL_W_Implementation
     CDCL_W_Abstract_State
-    CDCL_Two_Watched_Literals
-    CDCL_Two_Watched_Literals_Invariant
   theories [quick_and_dirty, document = true]
-(*     CDCL_Two_Watched_Literals_Implementation *)
+    CDCL_Two_Watched_Literals
+    CDCL_Two_Watched_Literals_Implementation
   document_files
     "root.tex"
     "biblio.bib"
@@ -99,6 +101,8 @@ session "Full" (Weidenbach_Book) = "HOL"  +
     "~~/src/HOL/Library/Code_Target_Numeral"
     "~~/src/HOL/Library/Multiset"
     "~~/src/HOL/Library/Multiset_Order"
+    "~~/src/HOL/Library/RBT"
+    RBT_More
 
   theories [quick_and_dirty, document = true]
     Doc_Libraries
@@ -138,9 +142,11 @@ session "Full" (Weidenbach_Book) = "HOL"  +
     CDCL_W_Implementation
 
     CDCL_W_Abstract_State
-    CDCL_Two_Watched_Literals
-    CDCL_Two_Watched_Literals_Invariant
 
+  theories [quick_and_dirty, document = true]
+    CDCL_Two_Watched_Literals
+    CDCL_Two_Watched_Literals_Implementation
+    CDCL_Two_Watched_Literals_Implementation_RBT
     Weidenbach_Book
   document_files
     "root.tex"

@@ -176,6 +176,4 @@ system:
 
 lemmas (in ground_resolution_without_selection) clausal_logic_compact = clausal_logic_compact
 
-
-
 end

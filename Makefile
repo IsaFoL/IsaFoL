@@ -14,7 +14,6 @@ ISABELLE_version= $(shell (cd $(ISABELLE) && hg id --id))
 ATP_version= $(shell (cd $(ATP) && hg id --id))
 ISAFOL_version= $(shell (git log --pretty=format:'%h' -n 1))
 
-
 test_vars:
 	echo "Isabelle: $(ISABELLE_version)"
 	echo "ATP: $(ATP_version)"
@@ -27,7 +26,6 @@ current:
 	$(RUN_ISABELLE) build -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -d Weidenbach_Book Full
 	$(RUN_ISABELLE) build -o browser_info -v -D Bachmair_Ganzinger
 	$(RUN_ISABELLE2016) build -o browser_info -v -D Unordered_Resolution
-
 
 # need to be in the IJCAR branch
 conference:

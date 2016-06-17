@@ -26,6 +26,7 @@ lemma mset_map_removeAll_cond:
 lemma raw_clss_l_raw_init_clss_conc_init_clss[simp]:
   "raw_clss_l (raw_init_clss S) = twl.conc_init_clss S"
   by (cases S) auto
+
 lemma mset_raw_init_clss_init_state:
   "raw_clss_l (raw_init_clss (init_state (map raw_clause N))) = raw_clss_l N"
   unfolding raw_clss_l_raw_init_clss_conc_init_clss
@@ -42,25 +43,36 @@ abbreviation resolve_conflicting where
   (Some (union_mset_list (remove1 (-L) (the (raw_conflicting S))) (remove1 L (raw_clause D))))
   S"
 
-interpretation rough_cdcl: abs_state\<^sub>W_ops
-    clause
-    raw_clss_l
-    "\<lambda>L C. L \<in> set C" "op #"
+(* interpretation twl: abs_state\<^sub>W_ops where
+    cls_lit = "\<lambda>_ L. L" and
+    in_cls = "\<lambda>L C. L \<in> set (raw_clause C)" and
+    mset_cls = clause and
+   
+    clss_cls = "\<lambda>_ C. C" and
+    in_clss = "\<lambda>C Cs. C \<in> set Cs" and
+    mset_clss = mset and
 
-    mset
+    mset_ccls = mset and
 
-    raw_clause "\<lambda>C. TWL_Clause [] C"
-    trail "\<lambda>S. hd (raw_trail S)"
-    "(\<lambda>S. raw_init_clss S @ raw_learned_clss S)" backtrack_lvl raw_conflicting
-    conc_learned_clss
+    conc_trail = trail and  
+    hd_raw_conc_trail = "\<lambda>S. hd (raw_trail S)" and
+    conc_backtrack_lvl = backtrack_lvl and
+    raw_conc_conflicting = raw_conflicting and
+    conc_learned_clss = conc_learned_clss and
 
-    cons_trail tl_trail "\<lambda>S. update_conflicting None (add_learned_cls (the (raw_conflicting S)) S)"
-    "\<lambda>C. remove_cls (raw_clause C)"
-    update_backtrack_lvl
-    "\<lambda>C. update_conflicting (Some C)" reduce_trail_to resolve_conflicting
-    "\<lambda>N. init_state (map raw_clause N)" restart'
+    cons_conc_trail = cons_trail and 
+    tl_conc_trail = tl_trail and 
+    add_conc_confl_to_learned_cls = 
+      "\<lambda>S. update_conflicting None (add_learned_cls (the (raw_conflicting S)) S)" and
+    remove_cls = "\<lambda>C. remove_cls (raw_clause C)" and
+    update_conc_backtrack_lvl = update_backtrack_lvl and
+    mark_conflicting = "\<lambda>C. update_conflicting (Some (raw_clause C))" and 
+    reduce_conc_trail_to = reduce_trail_to and 
+    resolve_conflicting = resolve_conflicting and
+    conc_init_state = "\<lambda>N. init_state (map raw_clause N)" and 
+    restart_state = restart'
   rewrites
-    "rough_cdcl.mmset_of_mlit = mmset_of_mlit"
+    "twl.mmset_of_mlit S = mmset_of_mlit"
 proof goal_cases
   case 1
   show H: ?case by unfold_locales
@@ -72,82 +84,112 @@ proof goal_cases
     apply (case_tac x)
     apply (simp_all add: abs_state\<^sub>W_ops.mmset_of_mlit.simps[OF H] raw_clause_def clause_def)
   done
-qed
+qed *)
 
-interpretation rough_cdcl: abs_state\<^sub>W
-  clause
-  raw_clss_l
-  "\<lambda>L C. L \<in> set C" "op #"
+lemma raw_clss_l_twl_clauses_of_clss[simp]:
+  "raw_clss_l = twl.clauses_of_clss"
+  by (rule ext) (metis twl.clauses_of_clss_def twl.raw_clss_l_raw_clss)
 
-  mset
+interpretation twl: abs_state\<^sub>W where
+    cls_lit = "\<lambda>_ L. L" and
+    in_cls = "\<lambda>L C. L \<in> set (raw_clause C)" and
+    mset_cls = clause and
+   
+    clss_cls = "\<lambda>_ C. C" and
+    in_clss = "\<lambda>C Cs. C \<in> set Cs" and
+    mset_clss = mset and
 
-  raw_clause "\<lambda>C. TWL_Clause [] C"
-  trail "\<lambda>S. hd (raw_trail S)"
-  "(\<lambda>S. raw_init_clss S @ raw_learned_clss S)" backtrack_lvl raw_conflicting
-  conc_learned_clss
+    mset_ccls = mset and
 
-  cons_trail tl_trail "\<lambda>S. update_conflicting None (add_learned_cls (the (raw_conflicting S)) S)"
-  "\<lambda>C. remove_cls (raw_clause C)"
-  update_backtrack_lvl
-  "\<lambda>C. update_conflicting (Some C)" reduce_trail_to resolve_conflicting
-  "\<lambda>N. init_state (map raw_clause N)" restart'
+    conc_trail = trail and  
+    hd_raw_conc_trail = "\<lambda>S. hd (raw_trail S)" and
+    conc_backtrack_lvl = backtrack_lvl and
+    raw_conc_conflicting = raw_conflicting and
+    conc_learned_clss = conc_learned_clss and
+    raw_clauses = raw_clauses and
+
+    cons_conc_trail = cons_trail and 
+    tl_conc_trail = tl_trail and 
+    add_conc_confl_to_learned_cls = 
+      "\<lambda>S. update_conflicting None (add_learned_cls (the (raw_conflicting S)) S)" and
+    remove_cls = "\<lambda>C. remove_cls (raw_clause C)" and
+    update_conc_backtrack_lvl = update_backtrack_lvl and
+    mark_conflicting = "\<lambda>C. update_conflicting (Some (raw_clause C))" and 
+    reduce_conc_trail_to = reduce_trail_to and 
+    resolve_conflicting = resolve_conflicting and
+    conc_init_state = "\<lambda>N. init_state (map raw_clause N)" and 
+    restart_state = restart'
 proof goal_cases
   case 1
-  have stupid_locales: "abs_state\<^sub>W_ops clause raw_clss_l (\<lambda>L C. L \<in> set C) op #
-    mset raw_clause (TWL_Clause [])"
-    by unfold_locales
-  have [simp]: "abs_state\<^sub>W_ops.mmset_of_mlit clause = mmset_of_mlit"
-    apply (rule ext, rename_tac L, case_tac L)
-    by (auto simp: abs_state\<^sub>W_ops.mmset_of_mlit.simps[OF stupid_locales] clause_def
-    raw_clause_def)
+  have [simp]: "\<And>S (L :: ('v, 'v twl_clause) ann_lit). abs_state\<^sub>W_ops.mmset_of_mlit clause 
+    (\<lambda>(_::'v twl_clause list) C::'v twl_clause. C) (S ::'v twl_clause list) L =
+    mmset_of_mlit L"
+    by (case_tac L) 
+    (auto simp: abs_state\<^sub>W_ops.mmset_of_mlit.simps[OF twl.abs_state\<^sub>W_ops_axioms]
+      clause_def raw_clause_def)
+ 
   have [simp]: "\<And>S. raw_clss_l (restart_learned S) \<subseteq># conc_learned_clss S"
     using image_mset_subseteq_mono[OF restart_learned] unfolding mset_map
      by blast
-  have [simp]: "\<And>st C. mset (removeAll (clause C) (map clause (raw_init_clss st))) =
-       removeAll_mset (clause C) (rough_cdcl.conc_init_clss st)"
-    unfolding rough_cdcl.conc_init_clss_def by (metis mset_removeAll rough_cdcl.conc_init_clss_def
-      twl2.raw_clss_l_raw_init_clss_conc_init_clss)
-
+  have [simp]: "conc_learned_clss S \<subseteq># twl.conc_clauses S" for S
+    by (metis (mono_tags, lifting) map_append mset_append mset_le_add_right twl.conc_clauses_def
+      twl.raw_clss_l_raw_clss)
+  have [simp]: "mset (removeAll (clause C) (map clause (raw_init_clss st))) =
+       removeAll_mset (clause C) (twl.conc_init_clss st)" for st C
+    unfolding mset_removeAll[symmetric] by (auto simp: twl.conc_init_clss_def)
+  thm abs_state\<^sub>W_ops.state_def[OF twl.abs_state\<^sub>W_ops_axioms]
   have H: "\<And>M2 M1 x1. M2 @ M1 = map mmset_of_mlit x1 \<Longrightarrow>
        map mmset_of_mlit (drop (length x1 - length M1) x1) = M1"
     by (metis add_diff_cancel_right' append_eq_conv_conj drop_map length_append length_map)
   show H: ?case
     apply unfold_locales
-    apply (case_tac "raw_trail S"; case_tac "hd (raw_trail S)")
+    apply (case_tac "raw_trail st"; case_tac "hd (raw_trail st)")
+    unfolding abs_state\<^sub>W_ops.state_def[OF twl.abs_state\<^sub>W_ops_axioms]
+    raw_clss_l_twl_clauses_of_clss[symmetric] 
     by (auto simp add: add_init_cls_def add_learned_cls_def clause_rewatch clause_watch
       cons_trail_def remove_cls_def restart'_def tl_trail_def map_tl comp_def
-      ac_simps mset_map_removeAll_cond mset_raw_init_clss_init_state rough_cdcl.state_def
+      ac_simps mset_map_removeAll_cond mset_raw_init_clss_init_state twl.state_def
       clause_def[symmetric] H union_mset_list[symmetric] split: twl_state.splits)
 qed
 
-interpretation rough_cdcl: abs_conflict_driven_clause_learning\<^sub>W
-  clause
-  raw_clss_l
-  "\<lambda>L C. L \<in> set C" "op #"
+interpretation rough_cdcl: abs_conflict_driven_clause_learning\<^sub>W where
+    cls_lit = "\<lambda>_ L. L" and
+    in_cls = "\<lambda>L C. L \<in> set (raw_clause C)" and
+    mset_cls = clause and
+   
+    clss_cls = "\<lambda>_ C. C" and
+    in_clss = "\<lambda>C Cs. C \<in> set Cs" and
+    mset_clss = mset and
 
-  mset
+    mset_ccls = mset and
 
-  raw_clause "\<lambda>C. TWL_Clause [] C"
-  trail "\<lambda>S. hd (raw_trail S)"
-  "(\<lambda>S. raw_init_clss S @ raw_learned_clss S)" backtrack_lvl raw_conflicting
-  conc_learned_clss
+    conc_trail = trail and  
+    hd_raw_conc_trail = "\<lambda>S. hd (raw_trail S)" and
+    conc_backtrack_lvl = backtrack_lvl and
+    raw_conc_conflicting = raw_conflicting and
+    conc_learned_clss = conc_learned_clss and
+    raw_clauses = raw_clauses and
 
-  cons_trail tl_trail "\<lambda>S. update_conflicting None (add_learned_cls (the (raw_conflicting S)) S)"
-  "\<lambda>C. remove_cls (raw_clause C)"
-  update_backtrack_lvl
-  "\<lambda>C. update_conflicting (Some C)" reduce_trail_to resolve_conflicting
-  "\<lambda>N. init_state (map raw_clause N)" restart'
+    cons_conc_trail = cons_trail and 
+    tl_conc_trail = tl_trail and 
+    add_conc_confl_to_learned_cls = 
+      "\<lambda>S. update_conflicting None (add_learned_cls (the (raw_conflicting S)) S)" and
+    remove_cls = "\<lambda>C. remove_cls (raw_clause C)" and
+    update_conc_backtrack_lvl = update_backtrack_lvl and
+    mark_conflicting = "\<lambda>C. update_conflicting (Some (raw_clause C))" and 
+    reduce_conc_trail_to = reduce_trail_to and 
+    resolve_conflicting = resolve_conflicting and
+    conc_init_state = "\<lambda>N. init_state (map raw_clause N)" and 
+    restart_state = restart'
   by unfold_locales
-
-declare local.rough_cdcl.mset_ccls_ccls_of_cls[simp del]
 
 paragraph \<open>Opaque Type with Invariant\<close>
 
-declare rough_cdcl.state_simp[simp del]
+declare twl.state_simp[simp del]
 
 definition cons_trail_twl :: "('v, 'v twl_clause) ann_lit \<Rightarrow> 'v wf_twl \<Rightarrow> 'v wf_twl"
   where
-"cons_trail_twl L S \<equiv> twl_of_rough_state (cons_trail L (rough_state_of_twl S))"
+"cons_trail_twl L S = twl_of_rough_state (cons_trail L (rough_state_of_twl S))"
 
 lemma wf_twl_state_cons_trail:
   assumes
@@ -156,7 +198,7 @@ lemma wf_twl_state_cons_trail:
   shows "wf_twl_state (cons_trail L S)"
   using undef wf wf_rewatch[of S ] unfolding wf_twl_state_def Ball_def
   by (auto simp: cons_trail_def defined_lit_map comp_def image_def
-    rough_cdcl.conc_clauses_init_learned)
+    twl.conc_clauses_init_learned)
 
 lemma rough_state_of_twl_cons_trail:
   "undefined_lit (raw_trail_twl S) (lit_of L) \<Longrightarrow>
@@ -169,7 +211,7 @@ abbreviation add_init_cls_twl where
 
 lemma wf_twl_add_init_cls: "wf_twl_state S \<Longrightarrow> wf_twl_state (add_init_cls L S)"
   unfolding wf_twl_state_def by (auto simp: wf_watch add_init_cls_def comp_def
-    rough_cdcl.conc_clauses_init_learned
+    twl.conc_clauses_init_learned
     split: if_split_asm)
 
 lemma rough_state_of_twl_add_init_cls:
@@ -181,7 +223,7 @@ abbreviation add_learned_cls_twl where
 
 lemma wf_twl_add_learned_cls: "wf_twl_state S \<Longrightarrow> wf_twl_state (add_learned_cls L S)"
   unfolding wf_twl_state_def by (auto simp: wf_watch add_learned_cls_def
-    rough_cdcl.conc_clauses_init_learned
+    twl.conc_clauses_init_learned
     split: if_split_asm)
 
 lemma rough_state_of_twl_add_learned_cls:
@@ -343,9 +385,9 @@ qed
 
 lemma twl_of_rough_state_reduce_trail_to:
   assumes "trail_twl st = M2 @ M1" and
-    S: "rough_cdcl.state (rough_state_of_twl st) = (M, S)"
+    S: "twl.state (rough_state_of_twl st) = (M, S)"
   shows
-    "rough_cdcl.state
+    "twl.state
       (rough_state_of_twl (twl_of_rough_state (reduce_trail_to M1 (rough_state_of_twl st)))) =
       (M1, S)" (is "?st") and
     "raw_init_clss_twl (twl_of_rough_state (reduce_trail_to M1 (rough_state_of_twl st)))
@@ -354,9 +396,9 @@ lemma twl_of_rough_state_reduce_trail_to:
       = raw_learned_clss_twl st" (is "?B") and
     "backtrack_lvl_twl (twl_of_rough_state (reduce_trail_to M1 (rough_state_of_twl st)))
       = backtrack_lvl_twl st" (is "?C") and
-    "rough_cdcl.conc_conflicting (rough_state_of_twl (twl_of_rough_state
+    "twl.conc_conflicting (rough_state_of_twl (twl_of_rough_state
          (reduce_trail_to M1 (rough_state_of_twl st))))
-      = rough_cdcl.conc_conflicting (rough_state_of_twl st)"  (is "?D")
+      = twl.conc_conflicting (rough_state_of_twl st)"  (is "?D")
 proof -
 
   have "wf_twl_state (reduce_trail_to M1 (rough_state_of_twl st))"
@@ -368,8 +410,8 @@ proof -
       "raw_init_clss (reduce_trail_to M1 (rough_state_of_twl st)) = raw_init_clss_twl st"
       "raw_learned_clss (reduce_trail_to M1 (rough_state_of_twl st)) = raw_learned_clss_twl st"
       "backtrack_lvl (reduce_trail_to M1 (rough_state_of_twl st)) = backtrack_lvl_twl st"
-      "rough_cdcl.conc_conflicting (reduce_trail_to M1 (rough_state_of_twl st)) =
-        rough_cdcl.conc_conflicting (rough_state_of_twl st)"
+      "twl.conc_conflicting (reduce_trail_to M1 (rough_state_of_twl st)) =
+        twl.conc_conflicting (rough_state_of_twl st)"
       using assms by (cases "rough_state_of_twl st", auto simp: drop_map[symmetric])+
   ultimately show ?A ?B ?C ?D
     using twl_of_rough_state_inverse[of "reduce_trail_to M1 (rough_state_of_twl st)"]
@@ -377,16 +419,16 @@ proof -
     by (auto simp add: assms)
   moreover have "trail_twl (twl_of_rough_state (reduce_trail_to M1 (rough_state_of_twl st))) = M1"
     using trail_twl_twl_rough_state_reduce_trail_to[OF assms(1)] .
-  ultimately show ?st using S unfolding rough_cdcl.state_def
-    by (metis (no_types) prod.inject twl2.raw_clss_l_raw_init_clss_conc_init_clss)
+  ultimately show ?st using S unfolding twl.state_def
+    by (metis (no_types) prod.inject twl.raw_clss_l_raw_init_clss_conc_init_clss)
 qed
 
 lemma add_learned_cls_rough_state_of_twl_simp:
   assumes "raw_conflicting_twl st = Some z"
   shows
     "trail (add_learned_cls z (rough_state_of_twl st)) = trail_twl st"
-    "rough_cdcl.conc_init_clss (add_learned_cls z (rough_state_of_twl st)) =
-      rough_cdcl.conc_init_clss (rough_state_of_twl st)"
+    "twl.conc_init_clss (add_learned_cls z (rough_state_of_twl st)) =
+      twl.conc_init_clss (rough_state_of_twl st)"
     "conc_learned_clss (local.add_learned_cls z (rough_state_of_twl st)) =
       {#mset z#} + conc_learned_clss (rough_state_of_twl st)"
     "backtrack_lvl (add_learned_cls z (rough_state_of_twl st)) = backtrack_lvl_twl st"
@@ -397,73 +439,94 @@ lemma add_learned_cls_rough_state_of_twl_simp:
     split: if_split_asm)
   done
 
-sublocale wf_twl: abs_state\<^sub>W_ops
-  clause
-  raw_clss_l
-  "\<lambda>L C. L \<in> set C" "op #"
+sublocale wf_twl: abs_state\<^sub>W_ops where
+    cls_lit = "\<lambda>_ L. L" and
+    in_cls = "\<lambda>L C. L \<in> set (raw_clause C)" and
+    mset_cls = clause and
+   
+    clss_cls = "\<lambda>_ C. C" and
+    in_clss = "\<lambda>C Cs. C \<in> set Cs" and
+    mset_clss = mset and
 
-  mset
+    mset_ccls = mset and
 
-  "\<lambda>C. raw_clause C" "\<lambda>C. TWL_Clause [] C"
-  trail_twl "\<lambda>S. hd (raw_trail_twl S)"
-  raw_clauses_twl
-  backtrack_lvl_twl
-  raw_conflicting_twl
-  conc_learned_clss_twl
+    conc_trail = trail_twl and  
+    hd_raw_conc_trail = "\<lambda>S. hd (raw_trail_twl S)" and
+    conc_backtrack_lvl = backtrack_lvl_twl and
+    raw_conc_conflicting = raw_conflicting_twl and
+    conc_learned_clss = conc_learned_clss_twl and
+    raw_clauses = raw_clauses_twl and
 
-  cons_trail_twl
-  tl_trail_twl
-  "\<lambda>S. update_conflicting_twl None (add_learned_cls_twl (the (raw_conflicting_twl S)) S)"
-  "\<lambda>C. remove_cls_twl (raw_clause C)"
-  update_backtrack_lvl_twl
-  "\<lambda>C. update_conflicting_twl (Some C)"
-  reduce_trail_to_twl
-  resolve_conflicting_twl
-  "\<lambda>N. init_state_twl (map raw_clause N)"
-  restart_twl
-  by unfold_locales
-
+    cons_conc_trail = cons_trail_twl and 
+    tl_conc_trail = tl_trail_twl and 
+    add_conc_confl_to_learned_cls = 
+      "\<lambda>S. update_conflicting_twl None (add_learned_cls_twl (the (raw_conflicting_twl S)) S)" and
+    remove_cls = "\<lambda>C. remove_cls_twl (raw_clause C)" and
+    update_conc_backtrack_lvl = update_backtrack_lvl_twl and
+    mark_conflicting = "\<lambda>C. update_conflicting_twl (Some (raw_clause C))" and 
+    reduce_conc_trail_to = reduce_trail_to_twl and 
+    resolve_conflicting = resolve_conflicting_twl and
+    conc_init_state = "\<lambda>N. init_state_twl (map raw_clause N)" and 
+    restart_state = restart_twl
+  rewrites
+    "wf_twl.valid_annotation st L = local.twl.valid_annotation (rough_state_of_twl st) L"
+proof goal_cases
+  case 1 show H: ?case by unfold_locales
+  case 2 show ?case
+    by (cases L) (auto simp: abs_state\<^sub>W_ops.valid_annotation.simps[OF H])
+qed  
+  
 lemma wf_twl_conc_init_clss_restart_twl[simp]:
   "wf_twl.conc_init_clss (restart_twl S) = wf_twl.conc_init_clss S"
-  using rough_state_of_twl_restart_twl wf_twl.conc_init_clss_def by auto
+proof -
+  have "raw_clss_l (raw_init_clss (restart' (rough_state_of_twl S))) = 
+    raw_clss_l (raw_init_clss_twl S)"
+    by auto
+  then show ?thesis
+    by (simp add: local.twl.conc_clauses_def local.twl.conc_init_clss_def 
+      rough_state_of_twl_restart_twl twl.wf_twl.conc_init_clss_def wf_twl.conc_clauses_def)
+qed
 
-sublocale wf_twl: abs_state\<^sub>W
-  clause
-  raw_clss_l
-  "\<lambda>L C. L \<in> set C" "op #"
+sublocale wf_twl: abs_state\<^sub>W where
+    cls_lit = "\<lambda>_ L. L" and
+    in_cls = "\<lambda>L C. L \<in> set (raw_clause C)" and
+    mset_cls = clause and
+   
+    clss_cls = "\<lambda>_ C. C" and
+    in_clss = "\<lambda>C Cs. C \<in> set Cs" and
+    mset_clss = mset and
 
-  mset
+    mset_ccls = mset and
 
-  "\<lambda>C. raw_clause C" "\<lambda>C. TWL_Clause [] C"
-  trail_twl "\<lambda>S. hd (raw_trail_twl S)"
-  raw_clauses_twl
-  backtrack_lvl_twl
-  raw_conflicting_twl
-  conc_learned_clss_twl
+    conc_trail = trail_twl and  
+    hd_raw_conc_trail = "\<lambda>S. hd (raw_trail_twl S)" and
+    conc_backtrack_lvl = backtrack_lvl_twl and
+    raw_conc_conflicting = raw_conflicting_twl and
+    conc_learned_clss = conc_learned_clss_twl and
+    raw_clauses = raw_clauses_twl and
 
-  cons_trail_twl
-  tl_trail_twl
-  "\<lambda>S. update_conflicting_twl None (add_learned_cls_twl (the (raw_conflicting_twl S)) S)"
-  "\<lambda>C. remove_cls_twl (raw_clause C)"
-  update_backtrack_lvl_twl
-  "\<lambda>C. update_conflicting_twl (Some C)"
-  reduce_trail_to_twl
-  resolve_conflicting_twl
-  "\<lambda>N. init_state_twl (map raw_clause N)"
-  restart_twl
+    cons_conc_trail = cons_trail_twl and 
+    tl_conc_trail = tl_trail_twl and 
+    add_conc_confl_to_learned_cls = 
+      "\<lambda>S. update_conflicting_twl None (add_learned_cls_twl (the (raw_conflicting_twl S)) S)" and
+    remove_cls = "\<lambda>C. remove_cls_twl (raw_clause C)" and
+    update_conc_backtrack_lvl = update_backtrack_lvl_twl and
+    mark_conflicting = "\<lambda>C. update_conflicting_twl (Some (raw_clause C))" and 
+    reduce_conc_trail_to = reduce_trail_to_twl and 
+    resolve_conflicting = resolve_conflicting_twl and
+    conc_init_state = "\<lambda>N. init_state_twl (map raw_clause N)" and 
+    restart_state = restart_twl
 proof goal_cases
   case 1
-  have stupid_locales: "abs_state\<^sub>W_ops clause raw_clss_l (\<lambda>L C. L \<in> set C) op #
-    mset raw_clause (TWL_Clause [])"
-    by unfold_locales
-  have ugly[simp]: "abs_state\<^sub>W_ops.mmset_of_mlit clause = mmset_of_mlit"
+  thm abs_state\<^sub>W_ops.mmset_of_mlit.simps[OF  wf_twl.abs_state\<^sub>W_ops_axioms]
+(*   have ugly[simp]: "abs_state\<^sub>W_ops.mmset_of_mlit clause Q Q' = mmset_of_mlit" for Q Q'
     apply (rule ext, rename_tac L, case_tac L)
-    by (auto simp: abs_state\<^sub>W_ops.mmset_of_mlit.simps[OF stupid_locales] clause_def
-    raw_clause_def)
+    by (auto simp: abs_state\<^sub>W_ops.mmset_of_mlit.simps[OF  wf_twl.abs_state\<^sub>W_ops_axioms] clause_def
+    raw_clause_def) *)
   have [simp]: "\<And>S. raw_clss_l (restart_learned S) \<subseteq># conc_learned_clss S"
     using image_mset_subseteq_mono[OF restart_learned] unfolding mset_map
      by blast
-  interpret abs_state\<^sub>W_ops  clause
+(*   interpret abs_state\<^sub>W_ops  clause
     raw_clss_l
     "\<lambda>L C. L \<in> set C" "op #"
     mset
@@ -472,33 +535,49 @@ proof goal_cases
     by unfold_locales
   have abs: "\<And>S. abs_state\<^sub>W_ops.state raw_clss_l mset trail_twl raw_clauses_twl
     backtrack_lvl_twl raw_conflicting_twl conc_learned_clss_twl S =
-    rough_cdcl.state (rough_state_of_twl S)"
+    twl.state (rough_state_of_twl S)"
     using wf_twl.conc_init_clss_def unfolding abs_state\<^sub>W_ops.state_def[OF stupid_locales] by auto
-  show ?case
+ *)
+   have locales_are_weird[simp]:
+     "abs_state\<^sub>W_ops.valid_annotation (\<lambda>C Cs. C \<in> set Cs) CDCL_Two_Watched_Literals.raw_clauses_twl
+        st L = 
+     local.twl.valid_annotation (rough_state_of_twl st) L" for st L
+     by (cases L) (auto simp: abs_state\<^sub>W_ops.valid_annotation.simps[OF wf_twl.abs_state\<^sub>W_ops_axioms])
+   have abs: True by simp
+   show ?case
      apply unfold_locales
-               using rough_cdcl.hd_raw_conc_trail unfolding ugly apply blast
-             apply (auto simp add: rough_state_of_twl_cons_trail rough_cdcl.state_def abs; fail)[]
-            apply (auto simp add: rough_state_of_twl_tl_trail rough_cdcl.state_def abs; fail)[]
+               using twl.hd_raw_conc_trail apply blast
+             apply (auto simp add: rough_state_of_twl_cons_trail wf_twl.state_def)[]
+             apply (case_tac "rough_state_of_twl st") apply (auto simp: cons_trail_twl_def)[]
+             using wf_twl.conc_init_clss_cons_trail
+apply (metis (mono_tags, lifting) local.twl.conc_clauses_def local.twl.conc_init_clss_def
+  rough_state_of_twl_cons_trail twl.conc_init_clss_cons_conc_trail
+  twl.undefined_lit_trail_twl_raw_trail twl.wf_twl.conc_clauses_def
+  twl.wf_twl.conc_init_clss_def)
+            apply (auto simp add: rough_state_of_twl_tl_trail wf_twl.state_def abs)[]
+            
+            
+            oops
            apply (auto simp add: rough_state_of_twl_remove_cls
-             rough_state_of_twl_update_backtrack_lvl rough_cdcl.state_def abs; fail)[]
-         apply (auto simp add: rough_state_of_twl_update_add_learned_cls rough_cdcl.state_def
+             rough_state_of_twl_update_backtrack_lvl twl.state_def abs; fail)[]
+         apply (auto simp add: rough_state_of_twl_update_add_learned_cls twl.state_def
            add_learned_cls_rough_state_of_twl_simp
            abs; fail)[]
         apply (auto simp add:  rough_state_of_twl_update_backtrack_lvl
-           rough_state_of_twl_update_conflicting rough_cdcl.state_def abs; fail)[]
-       apply (auto simp add: rough_state_of_twl_update_add_learned_cls rough_cdcl.state_def
+           rough_state_of_twl_update_conflicting twl.state_def abs; fail)[]
+       apply (auto simp add: rough_state_of_twl_update_add_learned_cls twl.state_def
            add_learned_cls_rough_state_of_twl_simp
            rough_state_of_twl_update_conflicting abs; fail)[]
-      apply (auto simp add: rough_state_of_twl_update_add_learned_cls rough_cdcl.state_def
+      apply (auto simp add: rough_state_of_twl_update_add_learned_cls twl.state_def
            rough_state_of_twl_update_conflicting abs; fail)[]
      using twl_of_rough_state_reduce_trail_to(1) unfolding abs
-     using rough_cdcl.conc_init_clss_restart_state rough_cdcl.conc_learned_clss_restart_state
-     apply (simp add: rough_cdcl.resolve_conflicting twl2.rough_state_of_twl_update_conflicting;
+     using twl.conc_init_clss_restart_state twl.conc_learned_clss_restart_state
+     apply (simp add: twl.resolve_conflicting twl.rough_state_of_twl_update_conflicting;
        fail)
   using twl_of_rough_state_reduce_trail_to(1) unfolding abs
-  using rough_cdcl.conc_init_clss_restart_state rough_cdcl.conc_learned_clss_restart_state
+  using twl.conc_init_clss_restart_state twl.conc_learned_clss_restart_state
   by (auto simp: rough_state_of_twl_restart_twl abs
-    rough_cdcl.state_def rough_state_of_twl_init_state comp_def)[8]
+    twl.state_def rough_state_of_twl_init_state comp_def)[8]
   qed
 
 
@@ -528,9 +607,9 @@ sublocale wf_twl: abs_conflict_driven_clause_learning\<^sub>W
   restart_twl
   by unfold_locales
 
-declare local.rough_cdcl.mset_ccls_ccls_of_cls[simp del]
+declare local.twl.mset_ccls_ccls_of_cls[simp del]
 abbreviation state_eq_twl (infix "\<sim>TWL" 51) where
-"state_eq_twl S S' \<equiv> rough_cdcl.state_eq (rough_state_of_twl S) (rough_state_of_twl S')"
+"state_eq_twl S S' \<equiv> twl.state_eq (rough_state_of_twl S) (rough_state_of_twl S')"
 notation wf_twl.state_eq (infix "\<sim>" 51)
 
 text \<open>To avoid ambiguities:\<close>

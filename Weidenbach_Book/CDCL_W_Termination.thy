@@ -671,7 +671,7 @@ lemma rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses:
     R: "trail R = []"
   shows "distinct_mset (clauses S)"
   using st
-proof (induction)
+proof (induction rule: rtranclp_induct)
   case base
   then show ?case using dist by simp
 next
