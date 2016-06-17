@@ -194,7 +194,7 @@ proof -
         true_Interp_imp_INTERP)
     then obtain A where
       "{#A#} \<noteq> {#}" and "{#Neg A#} \<le># C" and "A = Max (atms_of C)"
-      by (auto intro: mset_le_single)
+      by (auto intro: mset_subset_eq_single)
     thus ?thesis
       using s_c_e unfolding One_nat_def
       by (metis (no_types) One_nat_def image_mset_single multi_member_last size_single)
@@ -215,7 +215,7 @@ proof -
     s_c: "S C = negs AA \<or> S C = {#} \<and> size AA = 1 \<and> Max (atms_of C) \<in># AA"
     by blast
   obtain C' where c: "C = negs AA + C'"
-    using negs_aa_le_c mset_le_exists_conv by blast
+    using negs_aa_le_c mset_subset_eq_exists_conv by blast
   from negs_aa_le_c have neg_a_in_c: "\<And>A. A \<in># AA \<Longrightarrow> Neg A \<in># C"
     by fastforce
   have "\<And>A. A \<in># AA \<Longrightarrow> A \<in> INTERP N"

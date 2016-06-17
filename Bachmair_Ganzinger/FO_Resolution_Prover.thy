@@ -475,7 +475,7 @@ using res_e proof (cases rule: ground_resolution_with_S.ord_resolve.cases)
   have gr_aa: "\<And>A. A \<in># AA \<Longrightarrow> is_ground_atm A"
     using gr_d unfolding d is_ground_cls_as_atms by auto
   have gr_d': "is_ground_cls D'"
-    using d by (metis add.commute gr_d is_ground_cls_mono mset_le_add_left)
+    using d by (metis add.commute gr_d is_ground_cls_mono mset_subset_eq_add_left)
 
   have gr_cf': "is_ground_cls Cf'"
     unfolding cf'_fo using gr_cc[unfolded cc_fo] by (auto simp: is_ground_cls_mset_def)

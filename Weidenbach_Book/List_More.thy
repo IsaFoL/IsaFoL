@@ -331,7 +331,7 @@ lemma "removeAll_cond P xs = filter (\<lambda>x. \<not>P x) xs"
 lemma mset_map_mset_removeAll_cond:
   "mset (map mset (removeAll_cond (\<lambda>b. mset b = mset a) C))
  = removeAll_mset (mset a) (mset (map mset C))"
-  by (induction C) (auto simp: ac_simps mset_less_eqI multiset_diff_union_assoc)
+  by (induction C) (auto simp: ac_simps mset_subset_eqI multiset_diff_union_assoc)
 
 lemma count_mset_count_list:
   "count (mset xs) x = count_list xs x"
@@ -343,7 +343,7 @@ proof -
   have "length (removeAll x xs) = size (removeAll_mset x (mset xs))"
     by auto
   also have "\<dots> = size (mset xs) - count (mset xs) x"
-    by (metis count_le_replicate_mset_le le_refl size_Diff_submset size_replicate_mset)
+    by (metis count_le_replicate_mset_subset_eq le_refl size_Diff_submset size_replicate_mset)
   also have " \<dots> = length xs - count_list xs x"
     unfolding count_mset_count_list by simp
   finally show ?thesis .

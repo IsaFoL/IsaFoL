@@ -843,7 +843,7 @@ lemma image_mset_mset_remove1: "a \<in># B \<Longrightarrow>
 
 lemma distinct_disinst_mset_incl_iff_set_incl:
   "distinct A \<Longrightarrow> distinct B \<Longrightarrow> mset A \<subseteq># mset B \<longleftrightarrow> set A \<subseteq> set B"
-  by (auto simp: distinct_count_atmost_1 intro!: mset_less_eqI)
+  by (auto simp: distinct_count_atmost_1 intro!: mset_subset_eqI)
 
 lemma conc_clauses_update_clause:
   assumes

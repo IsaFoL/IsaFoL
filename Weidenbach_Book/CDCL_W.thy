@@ -3267,7 +3267,7 @@ proof -
                   using \<open>L'' \<noteq> - L\<close> by (auto simp: L' L'_L split: if_splits)
               qed
             then have taut: "tautology (D + {#L#})"
-              using \<open>L'' \<in># D\<close> by (metis add.commute mset_leD mset_le_add_left multi_member_this
+              using \<open>L'' \<in># D\<close> by (metis add.commute mset_subset_eqD mset_subset_eq_add_left multi_member_this
                 tautology_minus)
             have "consistent_interp (lits_of_l ?M)"
               using level_inv unfolding cdcl\<^sub>W_M_level_inv_def by auto

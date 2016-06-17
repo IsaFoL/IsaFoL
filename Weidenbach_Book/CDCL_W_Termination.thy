@@ -857,7 +857,7 @@ next
   then have "C \<in># learned_clss S" and "C \<notin># learned_clss T"
     using forget.hyps by auto
   then have "\<not> learned_clss S \<subseteq># learned_clss T"
-     by (auto simp add: mset_leD)
+     by (auto simp add: mset_subset_eqD)
   then show ?case using no_forget by blast
 qed
 

@@ -642,7 +642,7 @@ proof -
                 then have "{#i', j'#} \<subseteq># ?M"
                   using i' j' by auto
                 then have "count {#i', j'#} j' \<le> count ?M j'"
-                  by (meson mset_less_eq_count)
+                  by (meson mset_subset_eq_count)
                 then show ?thesis
                   by (auto simp: \<open>i' = j'\<close>)
               qed

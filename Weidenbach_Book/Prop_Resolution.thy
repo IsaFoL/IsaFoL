@@ -489,7 +489,7 @@ lemma simplify_preserve_partial_leaf:
     using union_lcomm apply auto[1]
    apply (simp, metis atms_of_plus total_over_set_union true_cls_union)
   apply simp
-  by (metis atms_of_ms_singleton mset_le_exists_conv subset_mset_def true_cls_mono_leD
+  by (metis atms_of_ms_singleton mset_subset_eq_exists_conv subset_mset_def true_cls_mono_leD
     total_over_m_def total_over_m_sum)
 
 
@@ -2189,7 +2189,7 @@ lemma simplified_falsity:
 proof (rule ccontr)
   assume H: "\<not> ?thesis"
   then obtain \<chi> where "\<chi> \<in> \<psi>" and "\<chi> \<noteq> {#}" using assms(2) by blast
-  then have "{#} \<subset># \<chi>" by (simp add: mset_less_empty_nonempty)
+  then have "{#} \<subset># \<chi>" by (simp add: mset_subset_empty_nonempty)
   then have "simplify \<psi> (\<psi> - {\<chi>})"
     using simplify.subsumption[OF assms(2) \<open>{#} \<subset># \<chi>\<close> \<open>\<chi> \<in> \<psi>\<close>] by blast
   then show False using simp by blast
