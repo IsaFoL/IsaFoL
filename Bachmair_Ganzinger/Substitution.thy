@@ -246,7 +246,7 @@ lemma subst_cls_mono: "set_mset C \<subseteq> set_mset D \<Longrightarrow> set_m
   unfolding subst_cls_def by auto
 
 lemma subst_cls_mono_mset: "C \<le># D \<Longrightarrow> C \<cdot> \<sigma> \<le># D \<cdot> \<sigma>"
-  unfolding subst_clss_def by (metis mset_le_exists_conv subst_cls_union)
+  unfolding subst_clss_def by (metis mset_subset_eq_exists_conv subst_cls_union)
 
 lemma subst_atms_id_subst[simp]: "AA \<cdot>s id_subst = AA"
   unfolding subst_atms_def by simp
@@ -329,7 +329,7 @@ lemma is_ground_clss_mono: "CC \<le> DD \<Longrightarrow> is_ground_clss DD \<Lo
   unfolding is_ground_clss_def by blast
 
 lemma is_ground_cls_mset_mono: "CC \<le># DD \<Longrightarrow> is_ground_cls_mset DD \<Longrightarrow> is_ground_cls_mset CC"
-  unfolding is_ground_cls_mset_def by (metis mset_leD)
+  unfolding is_ground_cls_mset_def by (metis mset_subset_eqD)
 
 lemma is_ground_cls_imp_is_ground_lit: "L \<in># C \<Longrightarrow> is_ground_cls C \<Longrightarrow> is_ground_lit L"
   unfolding is_ground_cls_def by auto

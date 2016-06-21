@@ -75,6 +75,23 @@ inductive ord_resolve_raw :: "'a clause multiset \<Rightarrow> 'a clause \<Right
    (\<forall>C. C \<in># CC \<longrightarrow> S C = {#}) \<Longrightarrow>
    ord_resolve_raw CC D ((Cf' + D') \<cdot> \<sigma>)"
 
+term mset_set
+
+inductive ord_resolve_raw2 :: "'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  ord_resolve_raw2:
+  "length (Cs :: 'a clause list) = n \<Longrightarrow> (* list of  C1, ..., Cn *)
+   length (AAs :: 'a multiset list) = n \<Longrightarrow> (* list of corresponding  Aij's *)
+     (\<forall>AA \<in> set AAs. AA \<noteq> {#}) \<Longrightarrow>
+   length (As :: 'a list) = n \<Longrightarrow> (* list of  A1, ..., An  *)
+   (AsD :: 'a clause) = negs (mset As) + D \<Longrightarrow> (* The premise  \<not>A1 \<or> ... \<or> \<not>An \<or> D *)
+   (CC :: 'a clause multiset) = {# C + poss AA . (C,AA) \<in># mset (zip Cs AAs) #} \<Longrightarrow> (* Side premises *)  
+   Some \<sigma> = mgu {set_mset AA \<union> {A} | AA A. (AA,A) \<in> set (zip AAs As)} \<Longrightarrow> 
+   S AsD = negs (mset As) \<or>
+     S AsD = {#} \<and> length As = 1 \<and> (\<forall>B \<in> atms_of (D \<cdot> \<sigma>). \<not> less_atm ((As ! 0) \<cdot>a \<sigma>) B) \<Longrightarrow> 
+   (\<forall>i < n. \<forall>B \<in> atms_of (Cs ! i \<cdot> \<sigma>). \<not> less_eq_atm (As ! i \<cdot>a \<sigma>) B) \<Longrightarrow>
+   (\<forall>C. C \<in># CC \<longrightarrow> S C = {#}) \<Longrightarrow>
+   ord_resolve_raw2 CC AsD ((\<Union>#(mset Cs) + D) \<cdot> \<sigma>)"
+
 inductive ord_resolve :: "'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve:
   "CC = {#C. (C, \<rho>) \<in># CCP#} \<Longrightarrow>
@@ -458,7 +475,7 @@ using res_e proof (cases rule: ground_resolution_with_S.ord_resolve.cases)
   have gr_aa: "\<And>A. A \<in># AA \<Longrightarrow> is_ground_atm A"
     using gr_d unfolding d is_ground_cls_as_atms by auto
   have gr_d': "is_ground_cls D'"
-    using d by (metis add.commute gr_d is_ground_cls_mono mset_le_add_left)
+    using d by (metis add.commute gr_d is_ground_cls_mono mset_subset_eq_add_left)
 
   have gr_cf': "is_ground_cls Cf'"
     unfolding cf'_fo using gr_cc[unfolded cc_fo] by (auto simp: is_ground_cls_mset_def)
@@ -667,7 +684,6 @@ text {*
 *}
 
 end
-
 
 
 end

@@ -79,7 +79,7 @@ proof -
       unfolding DD_def
       proof (rule union_less_mset_mset_diff_plus)
         show "{#D#} \<le># CC"
-          using d_in_cc by (metis insert_DiffM mset_le_exists_conv)
+          using d_in_cc by (metis insert_DiffM mset_subset_eq_exists_conv)
       next
         show "CC' #\<subset>## {#D#}"
           using cc'_lt_d ex_gt_imp_less_mset_mset unfolding Bex_def 

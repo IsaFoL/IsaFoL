@@ -908,7 +908,7 @@ lemma subsumption_total_over_m:
   assumes "A \<subseteq># B"
   shows "total_over_m I {B} \<Longrightarrow> total_over_m I {A}"
   using assms unfolding subset_mset_def total_over_m_def total_over_set_def
-  by (auto simp add: mset_le_exists_conv)
+  by (auto simp add: mset_subset_eq_exists_conv)
 
 lemma atms_of_replicate_mset_replicate_mset_uminus[simp]:
   "atms_of (D - replicate_mset (count D L) L - replicate_mset (count D (-L)) (-L))

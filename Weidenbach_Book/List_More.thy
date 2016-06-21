@@ -6,7 +6,7 @@ text \<open>Sledgehammer parameters\<close>
 sledgehammer_params[debug]
 
 section \<open>Various Lemmas\<close>
-text \<open>Close to the theorem @{thm [source] nat_less_induct} (@{thm nat_less_induct}), but with a 
+text \<open>Close to the theorem @{thm [source] nat_less_induct} (@{thm nat_less_induct}), but with a
   separation between the zero and non-zero case.\<close>
 thm nat_less_induct
 lemma nat_less_induct_case[case_names 0 Suc]:
@@ -85,7 +85,7 @@ lemmas upt_simps[simp] = upt_Suc_append upt_Suc_le_append
 
 declare upt.simps(2)[simp del]
 
-text \<open>The counterpart for this lemma when @{term "i > n-m"} is theorem @{thm [source] take_all}. It 
+text \<open>The counterpart for this lemma when @{term "i > n-m"} is theorem @{thm [source] take_all}. It
   is close to theorem @{thm take_upt}, but seems more general.\<close>
 lemma take_upt_bound_minus[simp]:
   assumes "i \<le> n - m"
@@ -283,10 +283,22 @@ lemma remove1_Nil:
   "remove1 (- L) W = [] \<longleftrightarrow> (W = [] \<or> W = [-L])"
   by (cases W) auto
 
+lemma removeAll_upt:
+  "removeAll k [a..<b] = (if k \<ge> a \<and> k < b then [a..<k] @ [Suc k..<b] else [a..<b])"
+  by (induction b) auto
+
+lemma remove1_upt:
+  "remove1 k [a..<b] = (if k \<ge> a \<and> k < b then [a..<k] @ [Suc k..<b] else [a..<b])"
+  by (subst distinct_remove1_removeAll) (auto simp: removeAll_upt)
+
 lemma remove1_mset_single_add:
   "a \<noteq> b \<Longrightarrow> remove1_mset a ({#b#} + C) = {#b#} + remove1_mset a C"
   "remove1_mset a ({#a#} + C) = C"
   by (auto simp: multiset_eq_iff)
+
+lemma sorted_removeAll: "sorted C \<Longrightarrow> sorted (removeAll k C)"
+  by (metis map_ident removeAll_filter_not_eq sorted_filter)
+
 
 subsubsection \<open>Remove under condition\<close>
 
@@ -319,7 +331,32 @@ lemma "removeAll_cond P xs = filter (\<lambda>x. \<not>P x) xs"
 lemma mset_map_mset_removeAll_cond:
   "mset (map mset (removeAll_cond (\<lambda>b. mset b = mset a) C))
  = removeAll_mset (mset a) (mset (map mset C))"
-  by (induction C) (auto simp: ac_simps mset_less_eqI multiset_diff_union_assoc)
+  by (induction C) (auto simp: ac_simps mset_subset_eqI multiset_diff_union_assoc)
+
+lemma count_mset_count_list:
+  "count (mset xs) x = count_list xs x"
+  by (induction xs) auto
+
+lemma length_removeAll_count_list:
+  "length (removeAll x xs) = length xs - count_list xs x"
+proof -
+  have "length (removeAll x xs) = size (removeAll_mset x (mset xs))"
+    by auto
+  also have "\<dots> = size (mset xs) - count (mset xs) x"
+    by (metis count_le_replicate_mset_subset_eq le_refl size_Diff_submset size_replicate_mset)
+  also have " \<dots> = length xs - count_list xs x"
+    unfolding count_mset_count_list by simp
+  finally show ?thesis .
+qed
+
+
+subsubsection \<open>Filter\<close>
+lemma distinct_filter_eq_if:
+  "distinct C \<Longrightarrow> length (filter (op = L) C) = (if L \<in> set C then 1 else 0)"
+  by (induction C) auto
+
+
+subsection \<open>Multisets\<close>
 
 text \<open>The definition and the correctness theorem are from the multiset theory
   @{file "~~/src/HOL/Library/Multiset.thy"}, but a name is necessary to refer to them:\<close>
@@ -335,9 +372,62 @@ proof -
   then show ?thesis by simp
 qed
 
-subsubsection \<open>Filter\<close>
-lemma distinct_filter_eq_if:
-  "distinct C \<Longrightarrow> length (filter (op = L) C) = (if L \<in> set C then 1 else 0)"
-  by (induction C) auto
+lemma size_le_Suc_0_iff: "size M \<le> Suc 0 \<longleftrightarrow> ((\<exists>a b. M = {#a#}) \<or> M = {#})"
+   using size_1_singleton_mset by (auto simp: le_Suc_eq)
+
+lemma size_2_iff: "size M = 2 \<longleftrightarrow> (\<exists>a b. M = {#a, b#})"
+  by (metis Suc_1 one_add_one size_1_singleton_mset size_mset_SucE size_single size_union)
+
+lemma remove1_mset_eqE:
+  "remove1_mset L x1 = M \<Longrightarrow>
+    (L \<in># x1 \<Longrightarrow> x1 = M + {#L#} \<Longrightarrow> P) \<Longrightarrow>
+    (L \<notin># x1 \<Longrightarrow> x1 = M \<Longrightarrow> P) \<Longrightarrow>
+  P"
+  by (cases "L \<in># x1") auto
+
+lemma subset_eq_mset_single_iff: "x2 \<subseteq># {#L#} \<longleftrightarrow> x2 = {#} \<or> x2 = {#L#}"
+  by (metis single_is_union subset_mset.add_diff_inverse subset_mset.eq_refl subset_mset.zero_le)
+
+
+subsection \<open>Sorting\<close>
+
+text \<open>@{thm insort_is_Cons} is more general.\<close>
+lemma insort_is_append: "\<forall>x\<in>set xs. a \<ge> x \<Longrightarrow> sorted xs \<Longrightarrow> insort a xs = xs @ [a]"
+by (induction xs) (auto simp add: insort_is_Cons sorted_Cons)
+
+text \<open>See @{thm sorted_distinct_set_unique}.\<close>
+lemma sorted_mset_unique:
+  fixes xs :: "'a :: linorder list"
+  shows "sorted xs \<Longrightarrow> sorted ys \<Longrightarrow> mset xs = mset ys \<Longrightarrow> xs = ys"
+  using properties_for_sort by auto
+
+lemma insort_upt: "insort k [a..<b] =
+  (if k < a then k # [a..<b]
+  else if k < b then [a..<k] @ k # [k ..<b]
+  else [a..<b] @[k])"
+proof -
+  have H: "k < Suc b \<Longrightarrow> \<not> k < a \<Longrightarrow> {a..<b} = {a..<k} \<union> {k..<b}" for a b :: nat
+    by (simp add: ivl_disj_un_two(3))
+  show ?thesis
+  apply (induction b)
+   apply simp
+  apply (case_tac "\<not>k < a \<and> k < Suc b")
+   apply (rule sorted_mset_unique)
+      apply (auto simp add: sorted_append sorted_insort sorted_Cons ac_simps mset_set_Union
+        dest!: H)[2]
+    apply (auto simp: insort_is_Cons insort_is_append sorted_append mset_set_Union
+      ac_simps dest: H)
+  done
+qed
+
+lemma removeAll_insert_removeAll: "removeAll k (insort k xs) = removeAll k xs"
+  by (simp add: filter_insort_triv removeAll_filter_not_eq)
+
+lemma filter_sorted: "sorted xs \<Longrightarrow> sorted (filter P xs)"
+  by (metis list.map_ident sorted_filter)
+
+lemma removeAll_insort:
+  "sorted xs \<Longrightarrow> k \<noteq> k' \<Longrightarrow> removeAll k' (insort k xs) = insort k (removeAll k' xs)"
+  by (simp add: filter_insort removeAll_filter_not_eq)
 
 end

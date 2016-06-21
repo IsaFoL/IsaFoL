@@ -1,5 +1,5 @@
 theory CDCL_W_Incremental
-imports CDCL_W_Termination
+imports CDCL_W_Full
 begin
 
 section \<open>Incremental SAT solving\<close>
@@ -111,7 +111,7 @@ definition cdcl\<^sub>W_stgy_invariant where
 
 lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant:
   assumes
-   cdcl\<^sub>W: "cdcl\<^sub>W_stgy S T" and
+   cdcl\<^sub>W_restart: "cdcl\<^sub>W_stgy S T" and
    inv_s: "cdcl\<^sub>W_stgy_invariant S" and
    inv: "cdcl\<^sub>W_all_struct_inv S"
   shows
@@ -119,14 +119,14 @@ lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant:
   unfolding cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_all_struct_inv_def apply (intro conjI)
     apply (rule cdcl\<^sub>W_stgy_ex_lit_of_max_level[of S])
     using assms unfolding cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_all_struct_inv_def apply auto[7]
-    using cdcl\<^sub>W cdcl\<^sub>W_stgy_not_non_negated_init_clss apply simp
+    using cdcl\<^sub>W_restart cdcl\<^sub>W_stgy_not_non_negated_init_clss apply simp
   apply (rule cdcl\<^sub>W_stgy_no_smaller_confl_inv)
    using assms unfolding cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_all_struct_inv_def apply auto[4]
-  using cdcl\<^sub>W cdcl\<^sub>W_stgy_not_non_negated_init_clss by auto
+  using cdcl\<^sub>W_restart cdcl\<^sub>W_stgy_not_non_negated_init_clss by auto
 
 lemma rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant:
   assumes
-   cdcl\<^sub>W: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T" and
+   cdcl\<^sub>W_restart: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T" and
    inv_s: "cdcl\<^sub>W_stgy_invariant S" and
    inv: "cdcl\<^sub>W_all_struct_inv S"
   shows
@@ -134,7 +134,7 @@ lemma rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant:
   using assms apply (induction)
     apply simp
   using cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant rtranclp_cdcl\<^sub>W_all_struct_inv_inv
-  rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W by blast
+  rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart by blast
 
 abbreviation decr_bt_lvl where
 "decr_bt_lvl S \<equiv> update_backtrack_lvl (backtrack_lvl S - 1) S"
@@ -277,22 +277,22 @@ next
   then show ?case by simp force
 qed
 
-text \<open>We can fully run @{term cdcl\<^sub>W_s} or add a clause. Remark that we use @{term cdcl\<^sub>W_s} to avoid
+text \<open>We can fully run @{term cdcl\<^sub>W_restart_s} or add a clause. Remark that we use @{term cdcl\<^sub>W_restart_s} to avoid
 an explicit @{term skip}, @{term resolve}, and @{term backtrack} normalisation to get rid of the
 conflict @{term C} if possible.\<close>
-inductive incremental_cdcl\<^sub>W :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S where
+inductive incremental_cdcl\<^sub>W_restart :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S where
 add_confl:
   "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = None \<Longrightarrow>
    trail S \<Turnstile>as CNot C \<Longrightarrow>
    full cdcl\<^sub>W_stgy
      (update_conflicting (Some C)
        (add_init_cls C (cut_trail_wrt_clause C (trail S) S))) T \<Longrightarrow>
-   incremental_cdcl\<^sub>W S T" |
+   incremental_cdcl\<^sub>W_restart S T" |
 add_no_confl:
   "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = None \<Longrightarrow>
    \<not>trail S \<Turnstile>as CNot C \<Longrightarrow>
    full cdcl\<^sub>W_stgy (add_init_cls C S) T  \<Longrightarrow>
-   incremental_cdcl\<^sub>W S T"
+   incremental_cdcl\<^sub>W_restart S T"
 
 lemma cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_all_struct_inv:
   assumes
@@ -495,7 +495,7 @@ proof -
   have "no_step cdcl\<^sub>W_stgy T"
     using full unfolding full_def by blast
   moreover have "cdcl\<^sub>W_all_struct_inv T" and inv_s: "cdcl\<^sub>W_stgy_invariant T"
-    apply (metis rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W full full_def inv
+    apply (metis rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart full full_def inv
       rtranclp_cdcl\<^sub>W_all_struct_inv_inv)
     by (metis full full_def inv inv_s rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant)
   ultimately have "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss T))
@@ -512,9 +512,9 @@ proof -
     by (metis satisfiable_carac' true_annot_def true_annots_def true_clss_def)
 qed
 
-lemma incremental_cdcl\<^sub>W_inv:
+lemma incremental_cdcl\<^sub>W_restart_inv:
   assumes
-    inc: "incremental_cdcl\<^sub>W S T" and
+    inc: "incremental_cdcl\<^sub>W_restart S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
     s_inv: "cdcl\<^sub>W_stgy_invariant S"
   shows
@@ -533,7 +533,7 @@ proof (induction)
   case 1 show ?case
      by (metis add_confl.hyps(1,2,4,5) add_new_clause_and_update_def
        cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_all_struct_inv
-       rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W full_def inv)
+       rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart full_def inv)
 
   case 2  show ?case
     by (metis inv_s_T add_confl.hyps(1,2,4,5) add_new_clause_and_update_def
@@ -563,9 +563,9 @@ next
       rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant)
 qed
 
-lemma rtranclp_incremental_cdcl\<^sub>W_inv:
+lemma rtranclp_incremental_cdcl\<^sub>W_restart_inv:
   assumes
-    inc: "incremental_cdcl\<^sub>W\<^sup>*\<^sup>* S T" and
+    inc: "incremental_cdcl\<^sub>W_restart\<^sup>*\<^sup>* S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
     s_inv: "cdcl\<^sub>W_stgy_invariant S"
   shows
@@ -574,11 +574,11 @@ lemma rtranclp_incremental_cdcl\<^sub>W_inv:
      using inc apply induction
     using inv apply simp
    using s_inv apply simp
-  using incremental_cdcl\<^sub>W_inv by blast+
+  using incremental_cdcl\<^sub>W_restart_inv by blast+
 
 lemma incremental_conclusive_state:
   assumes
-    inc: "incremental_cdcl\<^sub>W S T" and
+    inc: "incremental_cdcl\<^sub>W_restart S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
     s_inv: "cdcl\<^sub>W_stgy_invariant S"
   shows "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss T))
@@ -593,8 +593,8 @@ proof induction
     using full unfolding full_def by auto
   then show ?case
     using full C conf dist tr
-    by (metis full_cdcl\<^sub>W_stgy_inv_normal_form incremental_cdcl\<^sub>W.simps incremental_cdcl\<^sub>W_inv(1)
-      incremental_cdcl\<^sub>W_inv(2) inv s_inv)
+    by (metis full_cdcl\<^sub>W_stgy_inv_normal_form incremental_cdcl\<^sub>W_restart.simps incremental_cdcl\<^sub>W_restart_inv(1)
+      incremental_cdcl\<^sub>W_restart_inv(2) inv s_inv)
 next
   case (add_no_confl C T) note tr = this(1) and dist = this(2) and conf = this(3) and C = this(4)
     and   full = this(5)
@@ -602,20 +602,20 @@ next
   have "full cdcl\<^sub>W_stgy T T"
     using full unfolding full_def by auto
   then show ?case
-     by (meson C conf dist full full_cdcl\<^sub>W_stgy_inv_normal_form incremental_cdcl\<^sub>W.add_no_confl
-       incremental_cdcl\<^sub>W_inv(1) incremental_cdcl\<^sub>W_inv(2) inv s_inv tr)
+     by (meson C conf dist full full_cdcl\<^sub>W_stgy_inv_normal_form incremental_cdcl\<^sub>W_restart.add_no_confl
+       incremental_cdcl\<^sub>W_restart_inv(1) incremental_cdcl\<^sub>W_restart_inv(2) inv s_inv tr)
 qed
 
 lemma tranclp_incremental_correct:
   assumes
-    inc: "incremental_cdcl\<^sub>W\<^sup>+\<^sup>+ S T" and
+    inc: "incremental_cdcl\<^sub>W_restart\<^sup>+\<^sup>+ S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
     s_inv: "cdcl\<^sub>W_stgy_invariant S"
   shows "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss T))
     \<or> conflicting T = None \<and> trail T \<Turnstile>asm init_clss T \<and> satisfiable (set_mset (init_clss T))"
   using inc apply induction
    using assms incremental_conclusive_state apply blast
-  by (meson incremental_conclusive_state inv rtranclp_incremental_cdcl\<^sub>W_inv s_inv
+  by (meson incremental_conclusive_state inv rtranclp_incremental_cdcl\<^sub>W_restart_inv s_inv
     tranclp_into_rtranclp)
 
 end

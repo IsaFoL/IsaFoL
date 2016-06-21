@@ -194,7 +194,7 @@ proof -
   then have "D #\<subset># {#Neg A#}"
     by (auto intro: Max_pos_neg_less_multiset)
   moreover have "{#Neg A#} #\<subseteq># C"
-    by (rule less_eq_imp_le_multiset) (rule mset_le_single[OF a_in_c])
+    by (rule less_eq_imp_le_multiset) (rule mset_subset_eq_single[OF a_in_c])
   ultimately show ?thesis
     using d by (blast dest: less_eq_imp_interp_subseteq_interp less_imp_production_subseteq_interp)
 qed

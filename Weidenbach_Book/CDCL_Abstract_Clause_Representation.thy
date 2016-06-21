@@ -4,7 +4,10 @@ begin
 
 type_synonym 'v clause = "'v literal multiset"
 type_synonym 'v clauses = "'v clause multiset"
+
+
 subsection \<open>Abstract Clause Representation\<close>
+
 text \<open>We will abstract the representation of clause and clauses via two locales. We expect our
   representation to behave like multiset, but the internal representation can be done using list
   or whatever other representation.
@@ -13,64 +16,104 @@ text \<open>We will abstract the representation of clause and clauses via two lo
   \<^item> there is an equivalent to adding and removing a literal and to taking the union of clauses.
   \<close>
 
-
 locale raw_cls =
-  fixes
+   fixes
     mset_cls :: "'cls \<Rightarrow> 'v clause"
 begin
 end
 
-text \<open>Instantiation of the previous locale, in an unnamed context to avoid polluating with simp
-  rules\<close>
-context
-begin
-  interpretation list_cls: raw_cls mset
-    by unfold_locales
-
-  interpretation cls_cls: raw_cls id
-    by unfold_locales
-
-end
-
-text \<open>Over the abstract clauses, we have the following properties:
-   \<^item> We can insert a clause
-   \<^item> We can take the union (used only in proofs for the definition of @{term clauses})
-   \<^item> there is an operator indicating whether the abstract clause is contained or not
-   \<^item> if a concrete clause is contained the abstract clauses, then there is an abstract clause
-  \<close>
-locale raw_clss =
-  raw_cls mset_cls
-  for
-    mset_cls :: "'cls \<Rightarrow> 'v clause" +
+text \<open>The two following locales are the \<^emph>\<open>exact same\<close> locale, but we need two different locales.
+  Otherwise, instantiating @{text raw_clss} would lead to duplicate constants.
+  (TODO: better idea?).\<close>
+locale abstract_with_index =
   fixes
-    mset_clss:: "'clss \<Rightarrow> 'v clauses" and
-    in_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> bool" and
-    insert_clss :: "'cls \<Rightarrow> 'clss \<Rightarrow> 'clss"
+    get_lit :: "'a \<Rightarrow> 'it \<Rightarrow> 'conc option" and
+    convert_to_mset :: "'a \<Rightarrow> 'conc multiset"
   assumes
-    insert_clss[simp]: "mset_clss (insert_clss L C) = mset_clss C + {#mset_cls L#}" and
-    in_clss_mset_clss[dest]: "in_clss a C \<Longrightarrow> mset_cls a \<in># mset_clss C" and
-    in_mset_clss_exists_preimage: "b \<in># mset_clss C \<Longrightarrow> \<exists>b'. in_clss b' C \<and> mset_cls b' = b"
+    in_clss_mset_cls[dest]:
+      "get_lit Cs a = Some e \<Longrightarrow> e \<in># convert_to_mset Cs" and
+    in_mset_cls_exists_preimage:
+      "b \<in># convert_to_mset Cs \<Longrightarrow> \<exists>b'. get_lit Cs b' = Some b"
+
+locale abstract_with_index2 =
+  fixes
+    get_lit :: "'a \<Rightarrow> 'it \<Rightarrow> 'conc option" and
+    convert_to_mset :: "'a \<Rightarrow> 'conc multiset"
+  assumes
+    in_clss_mset_clss[dest]:
+      "get_lit Cs a = Some e \<Longrightarrow> e \<in># convert_to_mset Cs" and
+    in_mset_clss_exists_preimage:
+      "b \<in># convert_to_mset Cs \<Longrightarrow> \<exists>b'. get_lit Cs b' = Some b"
+
+locale raw_clss =
+  abstract_with_index get_lit mset_cls +
+  abstract_with_index2 get_cls mset_clss
+  for
+    get_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal option" and
+    mset_cls :: "'cls \<Rightarrow> 'v clause" and
+
+    get_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls option" and
+    mset_clss:: "'clss \<Rightarrow> 'cls multiset"
 begin
+
+definition cls_lit :: "'cls \<Rightarrow> 'lit \<Rightarrow> 'v literal" (infix "\<down>" 49) where
+"C \<down> a \<equiv> the (get_lit C a)"
+
+definition clss_cls :: "'clss \<Rightarrow> 'cls_it \<Rightarrow> 'cls" (infix "\<Down>" 49) where
+"C \<Down> a \<equiv> the (get_cls C a)"
+
+definition in_cls :: "'lit \<Rightarrow> 'cls \<Rightarrow> bool" (infix "\<in>\<down>" 49) where
+"a \<in>\<down> Cs \<equiv> get_lit Cs a \<noteq> None"
+
+definition in_clss :: "'cls_it \<Rightarrow> 'clss \<Rightarrow> bool" (infix "\<in>\<Down>" 49) where
+"a \<in>\<Down> Cs \<equiv> get_cls Cs a \<noteq> None"
+
+definition raw_clss where
+"raw_clss S \<equiv> image_mset mset_cls (mset_clss S)"
 
 end
 
 experiment
 begin
-  fun remove_first where
-  "remove_first _ [] = []" |
-  "remove_first C (C' # L) = (if mset C = mset C' then L else C' # remove_first C L)"
+  fun safe_nth where
+  "safe_nth (x # _) 0 = Some x" |
+  "safe_nth (_ # xs) (Suc n) = safe_nth xs n"  |
+  "safe_nth [] _ = None"
 
-  lemma mset_map_mset_remove_first:
-    "mset (map mset (remove_first a C)) = remove1_mset (mset a) (mset (map mset C))"
-    by (induction C) (auto simp: ac_simps remove1_mset_single_add)
+  lemma safe_nth_nth: "n < length l \<Longrightarrow> safe_nth l n = Some (nth l n)"
+    by (induction l n rule: safe_nth.induct) auto
 
-  interpretation clss_clss: raw_clss id
-    id "op \<in>#" "\<lambda>L C. C + {#L#}"
-    by unfold_locales (auto simp: ac_simps)
+  lemma safe_nth_None: "n \<ge> length l \<Longrightarrow> safe_nth l n = None"
+    by (induction l n rule: safe_nth.induct) auto
 
-  interpretation list_clss: raw_clss mset
-    "\<lambda>L. mset (map mset L)" "\<lambda>L C. L \<in> set C" "op #"
-    by unfold_locales (auto simp: ac_simps union_mset_list mset_map_mset_remove_first ex_mset)
+  lemma safe_nth_Some_iff: "safe_nth l n = Some m \<longleftrightarrow> n < length l \<and> m = nth l n"
+    apply (rule iffI)
+      defer apply (auto simp: safe_nth_nth)[]
+    by (induction l n rule: safe_nth.induct) auto
+
+  lemma safe_nth_None_iff: "safe_nth l n = None \<longleftrightarrow> n \<ge> length l"
+    apply (rule iffI)
+      defer apply (auto simp: safe_nth_None)[]
+    by (induction l n rule: safe_nth.induct) auto
+
+  interpretation abstract_with_index
+    safe_nth
+    mset
+    apply unfold_locales
+      apply (simp add: safe_nth_Some_iff)
+    by (metis in_set_conv_nth safe_nth_nth set_mset_mset)
+
+  interpretation abstract_with_index2
+    safe_nth
+    mset
+    apply unfold_locales
+      apply (simp add: safe_nth_Some_iff)
+    by (metis in_set_conv_nth safe_nth_nth set_mset_mset)
+
+  interpretation list_cls: raw_clss
+    safe_nth mset
+    safe_nth mset
+    by unfold_locales
 end
 
 end
