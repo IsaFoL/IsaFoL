@@ -5,6 +5,11 @@ theory Completeness imports Resolution begin
 locale unification =
   assumes unification: "\<And>\<sigma> L. finite L \<Longrightarrow> unifier\<^sub>l\<^sub>s \<sigma> L \<Longrightarrow> \<exists>\<theta>. mgu\<^sub>l\<^sub>s \<theta> L"
 begin
+text {*
+  A proof of this assumption is available \cite{unify} in the IsaFoL project \cite{isafol}.
+  It uses a similar theorem from the IsaFoR \cite{isafor} project.
+*}
+
 
 lemma lifting:
   assumes fin: "finite C \<and> finite D "
