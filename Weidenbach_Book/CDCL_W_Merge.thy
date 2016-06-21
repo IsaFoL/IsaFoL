@@ -79,7 +79,17 @@ lemma rtranclp_skip_or_resolve_rtranclp_cdcl\<^sub>W_restart:
   (auto dest!: cdcl\<^sub>W_bj.intros cdcl\<^sub>W_restart.intros cdcl\<^sub>W_o.intros simp: skip_or_resolve.simps)
 
 definition backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" where
-"backjump_l_cond \<equiv> \<lambda>C C' L' S T. True"
+"backjump_l_cond \<equiv> \<lambda>C C' L S T. True"
+
+lemma wf_skip_or_resolve:
+  "wf {(T, S). skip_or_resolve S T}"
+proof -
+  have " skip_or_resolve x y \<Longrightarrow> length (trail y) < length (trail x)" for x y
+    by (auto simp: skip_or_resolve.simps elim!: skipE resolveE)
+  then show ?thesis
+    using wfP_if_measure[of "\<lambda>_. True" skip_or_resolve "\<lambda>S. length (trail S)"]
+    by meson
+qed
 
 definition inv\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> bool" where
 "inv\<^sub>N\<^sub>O\<^sub>T \<equiv> \<lambda>S. no_dup (trail S)"

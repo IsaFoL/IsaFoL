@@ -2899,8 +2899,8 @@ proof (intro allI impI)
       obtain D' where
         "conflicting T = None" and
         D': "D' \<in># clauses T" and
-        tr: "trail T \<Turnstile>as CNot (D')" and
-        U: "U \<sim> update_conflicting (Some (D')) T"
+        tr: "trail T \<Turnstile>as CNot D'" and
+        U: "U \<sim> update_conflicting (Some D') T"
         using TU by (auto elim!: conflictE)
       have "init_clss T = init_clss S" and "learned_clss T = learned_clss S"
         using U \<open>init_clss U = init_clss S\<close> \<open>learned_clss U = learned_clss S\<close> by auto
@@ -3125,7 +3125,7 @@ proof -
       (None) "conflicting S = None"
     | (Some_Empty) E where "conflicting S = Some E" and "E = {#}"
     | (Some) E' where "conflicting S = Some E'" and
-      "conflicting S = Some (E')" and "E' \<noteq> {#}"
+      "conflicting S = Some E'" and "E' \<noteq> {#}"
     by (cases "conflicting S", simp) auto
   then show ?thesis
     proof cases

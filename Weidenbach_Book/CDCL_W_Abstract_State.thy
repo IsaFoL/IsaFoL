@@ -923,7 +923,7 @@ lemma state_mark_conflicting_update_conflicting[simp]:
   assumes "raw_conflicting S = None" and "D \<in>\<Down> raw_clauses S"
   shows
     "update_conflicting (Some (mset_cls (raw_clauses S \<Down> D))) (state S) =
-      state (mark_conflicting (D) S)"
+      state (mark_conflicting D S)"
   using assms by (auto simp: cdcl\<^sub>W_restart_mset_state state_def)
 
 lemma update_backtrack_lvl_state[simp]:
@@ -1326,10 +1326,10 @@ next
     L: "L \<in># D" and
     decomp: "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail (state S)))" and
     lev_L: "get_level (trail (state S)) L = backtrack_lvl (state S)" and
-    lev_max: "get_level (trail (state S)) L = get_maximum_level (trail (state S)) (D)" and
+    lev_max: "get_level (trail (state S)) L = get_maximum_level (trail (state S)) D" and
     i: "get_maximum_level (trail (state S)) (D - {#L#}) \<equiv> i" and
     lev_K: "get_level (trail (state S)) K = i + 1" and
-    T: "state T \<sim>m cons_trail (Propagated L (D))
+    T: "state T \<sim>m cons_trail (Propagated L D)
           (cdcl\<^sub>W_restart_mset.reduce_trail_to M1
             (add_learned_cls D
               (update_backtrack_lvl i
@@ -1383,7 +1383,7 @@ proof -
     L: "L \<in># D" and
     decomp: "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))" and
     lev_L: "get_level (trail S) L = backtrack_lvl S" and
-    lev_max: "get_level (trail S) L = get_maximum_level (trail S) (D)" and
+    lev_max: "get_level (trail S) L = get_maximum_level (trail S) D" and
     i: "get_maximum_level (trail S) (D - {#L#}) \<equiv> i" and
     lev_K: "get_level (trail S) K = i + 1" and
     T: "T \<sim>m cons_trail (Propagated L D)
