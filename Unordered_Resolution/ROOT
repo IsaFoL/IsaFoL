@@ -10,5 +10,6 @@ session "Unordered_Resolution" = "HOL" +
     Unify
     Completeness
     Examples
+    Complete
    document_files
      "root.tex"

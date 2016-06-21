@@ -1,6 +1,10 @@
 section {* Lifting Lemma *}
 
-theory Completeness imports Unify begin
+theory Completeness imports Resolution begin
+
+locale unification =
+  assumes unification: "\<And>\<sigma> L. finite L \<Longrightarrow> unifier\<^sub>l\<^sub>s \<sigma> L \<Longrightarrow> \<exists>\<theta>. mgu\<^sub>l\<^sub>s \<theta> L"
+begin
 
 lemma lifting:
   assumes fin: "finite C \<and> finite D "
@@ -359,6 +363,8 @@ proof -
   from unsat have "\<forall>(G::hterm pred_denot) . \<not>eval\<^sub>c\<^sub>s HFun G Cs" by auto
   then obtain T where "closed_tree T Cs" using herbrand assms by blast
   then show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" using completeness' assms by auto
-qed
+qed 
+
+end -- {* unification locale *}
 
 end
