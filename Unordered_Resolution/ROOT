@@ -1,8 +1,6 @@
 chapter AFP
 
 session "Resolution_FOL" (AFP) = HOL +
-   options [document = pdf, document_output = "output",
-    document_variants = "document:outline=/proof,/ML"]
    theories [document = false]
      "~~/src/HOL/Library/Countable_Set" 
    theories
