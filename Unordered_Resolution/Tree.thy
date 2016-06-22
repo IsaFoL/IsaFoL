@@ -2,7 +2,7 @@ section {* Trees *}
 
 theory Tree imports Main begin
 
-(* Sometimes it is nice to think of bool's as directions in a binary tree *)
+(* Sometimes it is nice to think of bools as directions in a binary tree *)
 hide_const (open) Left Right
 type_synonym dir = bool
 definition Left :: bool where "Left = True"
@@ -28,7 +28,6 @@ lemma treesize_Branching: "treesize T = Suc n \<Longrightarrow> \<exists>l r. T 
 
 subsection {* Paths *}
 
-(* Recursive is better? *)
 fun path :: "dir list \<Rightarrow> tree \<Rightarrow> bool" where
   "path [] T \<longleftrightarrow> True"
 | "path (d#ds) (Branching T1 T2) \<longleftrightarrow> (if d then path ds T1 else path ds T2)"
@@ -488,9 +487,9 @@ fun cutoff :: "(dir list \<Rightarrow> bool) \<Rightarrow> dir list \<Rightarrow
 | "cutoff red ds Leaf = Leaf"
 (* Initially you should call this with ds = []*)
 (* Red could also be defined as a tree, i.e. a dir list set, but not really a tree, since it is not wellformed *)
-(* If all branches are red, then cut_off gives a subtree *)
-(* If all branches are red, then so are the ones in cut_off *)
-(* The internal paths of cut_off are not red *)
+(* If all branches are red, then cutoff gives a subtree *)
+(* If all branches are red, then so are the ones in cutoff *)
+(* The internal paths of cutoff are not red *)
 
 lemma treesize_cutoff: "treesize (cutoff red ds T) \<le> treesize T"
 proof (induction T arbitrary: ds)
@@ -647,7 +646,7 @@ qed
 
 subsection {* Infinite Paths *}
 
-abbreviation wf_infpath :: "(nat \<Rightarrow> 'a list) \<Rightarrow> bool" where (* Previously called list_chain *)
+abbreviation wf_infpath :: "(nat \<Rightarrow> 'a list) \<Rightarrow> bool" where
   "wf_infpath f \<equiv> (f 0 = []) \<and> (\<forall>n. \<exists>a. f (Suc n) = (f n) @ [a])"
 
 lemma infpath_length: "wf_infpath f \<Longrightarrow> length (f n) = n"
@@ -715,7 +714,7 @@ lemma konig:
   shows "\<exists>c. wf_infpath c \<and> (\<forall>n. (c n) \<in> T)"
 proof
   let ?subtree = "subtree T"
-  let ?nextnode = "\<lambda>ds. (if \<not>finite (subtree T (ds @ [Left])) then ds @ [Left] else ds @ [Right])"  (*?subtree instead of "subtree T" *)
+  let ?nextnode = "\<lambda>ds. (if \<not>finite (?subtree (ds @ [Left])) then ds @ [Left] else ds @ [Right])" 
 
   let ?c = "buildchain ?nextnode"
 

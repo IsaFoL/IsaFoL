@@ -547,7 +547,7 @@ proof -
   then show ?thesis by auto
 qed
 
-lemma unifiert_def2: (*  (\<lambda>t. sub t \<sigma>) ` ts should have some nice notation maybe *)
+lemma unifiert_def2: (*  (\<lambda>t. sub t \<sigma>) ` ts could have some nice notation maybe *)
   assumes L_elem: "ts \<noteq> {}"
   shows "unifier\<^sub>t\<^sub>s \<sigma> ts \<longleftrightarrow> (\<exists>l. (\<lambda>t. sub t \<sigma>) ` ts ={l})"
 proof
@@ -684,7 +684,6 @@ definition resolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set 
   "resolution_deriv = rtranclp resolution_step"
 
 section {* Soundness *}
-(* Proving instantiation sound *)
 
 definition evalsub :: "'u var_denot \<Rightarrow> 'u fun_denot \<Rightarrow> substitution \<Rightarrow> 'u var_denot" where
   "evalsub E F \<sigma> = eval\<^sub>t E F \<circ> \<sigma>"
@@ -893,7 +892,7 @@ definition falsifies\<^sub>l :: "partial_pred_denot \<Rightarrow> fterm literal 
           i < length G \<and> G ! i = (\<not>sign l)
         )"
 
-(* A ground\<^sub>t clause is falsified if it is actually ground\<^sub>t and all its literals are falsified *)
+(* A ground clause is falsified if it is actually ground and all its literals are falsified *)
 abbreviation falsifies\<^sub>g :: "partial_pred_denot \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "falsifies\<^sub>g G C \<equiv> ground\<^sub>l\<^sub>s C \<and> (\<forall>l \<in> C. falsifies\<^sub>l G l)"
 

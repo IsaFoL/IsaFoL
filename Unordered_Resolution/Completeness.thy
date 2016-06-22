@@ -92,7 +92,7 @@ proof -
   then show ?thesis by auto
 qed
 
-lemma falsifies\<^sub>c\<^sub>s_empty:  (* Maybe move to partial interpretation section *)
+lemma falsifies\<^sub>c\<^sub>s_empty:
   assumes "falsifies\<^sub>c [] C"
   shows "C = {}"
 proof -
