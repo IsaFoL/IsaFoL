@@ -12,3 +12,4 @@ session "Unordered_Resolution" = "HOL" +
     Examples
    document_files
      "root.tex"
+     "root.bib"
