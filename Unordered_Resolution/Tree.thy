@@ -2,7 +2,7 @@ section {* Trees *}
 
 theory Tree imports Main begin
 
-(* Sometimes it is nice to think of bools as directions in a binary tree *)
+text {* Sometimes it is nice to think of @{typ bool}s as directions in a binary tree *}
 hide_const (open) Left Right
 type_synonym dir = bool
 definition Left :: bool where "Left = True"
@@ -485,11 +485,10 @@ fun cutoff :: "(dir list \<Rightarrow> bool) \<Rightarrow> dir list \<Rightarrow
   "cutoff red ds (Branching T\<^sub>1 T\<^sub>2) = 
      (if red ds then Leaf else Branching (cutoff red (ds@[Left])  T\<^sub>1) (cutoff red (ds@[Right]) T\<^sub>2))"
 | "cutoff red ds Leaf = Leaf"
-(* Initially you should call this with ds = []*)
-(* Red could also be defined as a tree, i.e. a dir list set, but not really a tree, since it is not wellformed *)
-(* If all branches are red, then cutoff gives a subtree *)
-(* If all branches are red, then so are the ones in cutoff *)
-(* The internal paths of cutoff are not red *)
+text {* Initially you should call @{const cutoff} with @{term "ds = []"}.
+ If all branches are red, then @{const cutoff} gives a subtree.
+ If all branches are red, then so are the ones in @{const cutoff}.
+ The internal paths of @{const cutoff} are not red. *}
 
 lemma treesize_cutoff: "treesize (cutoff red ds T) \<le> treesize T"
 proof (induction T arbitrary: ds)
@@ -614,16 +613,16 @@ lemma cutoff_branch_internal:
   using cutoff_branch_internal' by blast
 
 section {* Possibly Infinite Trees *}
-(* Possibly infinite trees are of type dir list set *)
+text {* Possibly infinite trees are of type @{typ "dir list set"}. *}
 
 abbreviation wf_tree :: "dir list set \<Rightarrow> bool" where
   "wf_tree T \<equiv> (\<forall>ds d. (ds @ d) \<in> T \<longrightarrow> ds \<in> T)"
 
-(* The subtree in with root r *)
+text {* The subtree in with root r *}
 fun subtree :: "dir list set \<Rightarrow> dir list \<Rightarrow> dir list set" where 
   "subtree T r = {ds \<in> T. \<exists>ds'. ds = r @ ds'}" 
 
-(* A subtree of a tree is either in the left branch, the right branch, or is the tree itself *)
+text {* A subtree of a tree is either in the left branch, the right branch, or is the tree itself *}
 lemma subtree_pos: 
   "subtree T ds \<subseteq> subtree T (ds @ [Left]) \<union> subtree T (ds @ [Right]) \<union> {ds}"
 proof (rule subsetI; rule Set.UnCI)
@@ -636,13 +635,6 @@ proof (rule subsetI; rule Set.UnCI)
   then have "(\<exists>e. x = ds @ [Left] @ e) \<or> (\<exists>e. x = ds @ [Right] @ e)" using bool.exhaust by auto
   then show "x \<in> ?subtree (ds @ [Left]) \<union> ?subtree (ds @ [Right])" using asm by auto
 qed
-
-(* Infinite paths in trees should probably be nat \<Rightarrow> dir, instead of nat \<Rightarrow> dir list .   
-   The nat \<Rightarrow> dir list are only useful locally.    
-   I do the conversion in Resolution, I think, but I should rather do it here.
-   I am not 100% sure though. Perhaps this just means I must convert back to nat \<Rightarrow> dir list,    
-   and that would be rather pointless. Perhaps, I could just do the conversion as a    
-   corollary or something.*)
 
 subsection {* Infinite Paths *}
 
@@ -674,7 +666,7 @@ proof (induction n\<^sub>2)
     qed
 qed auto
 
-(* If we make a lookup in a list, then looking up in an extension gives us the same value *)
+text {* If we make a lookup in a list, then looking up in an extension gives us the same value. *}
 lemma ith_in_extension:
   assumes chain: "wf_infpath f"
   assumes smalli: "i < length (f n\<^sub>1)"

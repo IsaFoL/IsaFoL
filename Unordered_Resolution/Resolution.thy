@@ -674,7 +674,7 @@ inductive resolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<
   resolution_rule: 
     "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<Longrightarrow> 
        resolution_step Cs (Cs \<union> {resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>})"
-| standardize_apart: (* rename *)
+| standardize_apart: (* renaming *)
     "C \<in> Cs \<Longrightarrow> var_renaming_of C C' \<Longrightarrow> resolution_step Cs (Cs \<union> {C'})"
 
 definition mresolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
@@ -862,7 +862,7 @@ qed
 
 section {* Herbrand Interpretations *}
 
-(* HFun is the Herbrand function denotation in which terms are mapped to themselves  *)
+text {* @{const HFun} is the Herbrand function denotation in which terms are mapped to themselves. *}
 term HFun
 
 lemma eval_ground\<^sub>t: "ground\<^sub>t t \<Longrightarrow> (eval\<^sub>t E HFun t) = hterm_of_fterm t"
@@ -892,7 +892,7 @@ definition falsifies\<^sub>l :: "partial_pred_denot \<Rightarrow> fterm literal 
           i < length G \<and> G ! i = (\<not>sign l)
         )"
 
-(* A ground clause is falsified if it is actually ground and all its literals are falsified *)
+text {* A ground clause is falsified if it is actually ground and all its literals are falsified. *}
 abbreviation falsifies\<^sub>g :: "partial_pred_denot \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "falsifies\<^sub>g G C \<equiv> ground\<^sub>l\<^sub>s C \<and> (\<forall>l \<in> C. falsifies\<^sub>l G l)"
 
@@ -961,12 +961,12 @@ next
   show ?case by blast
 qed
 
-(* Under an Herbrand interpretation, an environment is equivalent to a substitution *)
+text {* Under an Herbrand interpretation, an environment is equivalent to a substitution. *}
 lemma sub_of_denot_equiv_ground': 
   "eval\<^sub>l E HFun G l = eval\<^sub>l E HFun G (l \<cdot>\<^sub>l sub_of_denot E) \<and> ground\<^sub>l (l \<cdot>\<^sub>l sub_of_denot E)"
     using sub_of_denot_equivl ground_sub_of_denotl by auto
 
-(* Under an Herbrand interpretation, an environment is "equivalent" to a substitution - also for partial interpretations *)
+text {* Under an Herbrand interpretation, an environment is similar to a substitution - also for partial interpretations. *}
 lemma partial_equiv_subst:
   assumes "falsifies\<^sub>c G (C \<cdot>\<^sub>l\<^sub>s \<tau>)"
   shows "falsifies\<^sub>c G C"
@@ -977,7 +977,7 @@ proof -
   then show ?thesis using C'_p by auto
 qed
 
-(* Under an Herbrand interpretation, an environment is equivalent to a substitution*)
+text {* Under an Herbrand interpretation, an environment is equivalent to a substitution. *}
 lemma sub_of_denot_equiv_ground:
   "((\<exists>l \<in> C. eval\<^sub>l E HFun G l) \<longleftrightarrow> (\<exists>l \<in> C \<cdot>\<^sub>l\<^sub>s sub_of_denot E. eval\<^sub>l E HFun G l))
            \<and> ground\<^sub>l\<^sub>s (C \<cdot>\<^sub>l\<^sub>s sub_of_denot E)"
@@ -1056,7 +1056,7 @@ proof
   from asm show "\<forall>l\<in>C. f l \<le> (Max (f ` C))" by auto
 qed
 
-lemma extend_preserves_model: (* only for ground\<^sub>t *)
+lemma extend_preserves_model: (* only for ground *)
   assumes f_infpath: "wf_infpath (f :: nat \<Rightarrow> partial_pred_denot)" 
   assumes C_ground: "ground\<^sub>l\<^sub>s C"
   assumes C_sat: "\<not>falsifies\<^sub>c (f (Suc n)) C"
@@ -1109,14 +1109,14 @@ proof -
   then show ?thesis using instance_of\<^sub>l\<^sub>s_self by auto
 qed
 
-lemma extend_preserves_model2: (* only for ground\<^sub>t *)
+lemma extend_preserves_model2: (* only for ground *)
   assumes f_infpath: "wf_infpath (f :: nat \<Rightarrow> partial_pred_denot)" 
   assumes C_ground: "ground\<^sub>l\<^sub>s C"
   assumes fin_c: "finite C"
   assumes model_C: "\<forall>n. \<not>falsifies\<^sub>c (f n) C"
   shows C_false: "eval\<^sub>c HFun (extend f) C"
 proof -
-  (* Since C is finite, C {sub_of_denot E}\<^sub>l\<^sub>s has a largest index of a literal.  *)
+  -- {* Since C is finite, C has a largest index of a literal. *}
   obtain n where largest: "\<forall>l \<in> C. nat_from_fatom (get_atom l) \<le> n" using fin_c maximum[of C "\<lambda>l. nat_from_fatom (get_atom l)"] by blast
   moreover
   then have "\<not>falsifies\<^sub>c (f (Suc n)) C" using model_C by auto
@@ -1136,18 +1136,18 @@ unfolding eval\<^sub>c_def proof
   from fin_c have fin_c\<sigma>: "finite (C \<cdot>\<^sub>l\<^sub>s sub_of_denot E)" by auto
   have groundc\<sigma>: "ground\<^sub>l\<^sub>s (C \<cdot>\<^sub>l\<^sub>s sub_of_denot E)" using sub_of_denot_equiv_ground by auto
 
-  (* Here starts the proof *)
-  (* We go from syntactic FO world to syntactic ground\<^sub>t world: *)
+  -- {* Here starts the proof *}
+  -- {* We go from syntactic FO world to syntactic ground world: *}
   from model_c have "\<forall>n. \<not>falsifies\<^sub>c (f n) (C \<cdot>\<^sub>l\<^sub>s ?\<sigma>)" using partial_equiv_subst by blast
-  (* Then from syntactic ground\<^sub>t world to semantic ground\<^sub>t world: *)
+  -- {* Then from syntactic ground world to semantic ground world: *}
   then have "eval\<^sub>c HFun ?G (C \<cdot>\<^sub>l\<^sub>s ?\<sigma>)" using groundc\<sigma> f_infpath fin_c\<sigma> extend_preserves_model2[of f "C \<cdot>\<^sub>l\<^sub>s ?\<sigma>"] by blast
-  (* Then from semantic ground\<^sub>t world to semantic FO world: *)
+  -- {* Then from semantic ground world to semantic FO world: *}
   then have "\<forall>E. \<exists>l \<in> (C \<cdot>\<^sub>l\<^sub>s ?\<sigma>). eval\<^sub>l E HFun ?G l" unfolding eval\<^sub>c_def by auto
   then have "\<exists>l \<in> (C \<cdot>\<^sub>l\<^sub>s ?\<sigma>). eval\<^sub>l E HFun ?G l" by auto
   then show "\<exists>l \<in> C. eval\<^sub>l E HFun ?G l" using sub_of_denot_equiv_ground[of C E "extend f"] by blast
 qed
 
-(* If we have a infpath of partial models, then we have a model. *)
+text {* If we have a infpath of partial models, then we have a model. *}
 lemma infpath_model:
   assumes f_infpath: "wf_infpath (f :: nat \<Rightarrow> partial_pred_denot)"
   assumes model_cs: "\<forall>n. \<not>falsifies\<^sub>c\<^sub>s (f n) Cs" 
@@ -1229,7 +1229,7 @@ proof -
   ultimately show ?thesis by auto
 qed
 
-(* We use this so that we can apply König's lemma *)
+text {* We use this so that we can apply König's lemma. *}
 lemma longer_falsifies:  
   assumes "falsifies\<^sub>c\<^sub>s ds Cs"
   shows "falsifies\<^sub>c\<^sub>s (ds @ d) Cs"
@@ -1241,13 +1241,13 @@ proof -
   show ?thesis by auto
 qed
 
-(* "If all finite semantic trees have an open branch, then the set of clauses has a model." *)
+text {* If all finite semantic trees have an open branch, then the set of clauses has a model. *}
 theorem herbrand':
   assumes openb: "\<forall>T. \<exists>G. open_branch G T Cs"
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
   shows "\<exists>G. eval\<^sub>c\<^sub>s HFun G Cs"
 proof -
-  (* Show T infinite *)
+  -- {* Show T infinite: *}
   let ?tree = "{G. \<not>falsifies\<^sub>c\<^sub>s G Cs}"
   let ?undiag = length
   let ?diag = "(\<lambda>l. SOME b. open_branch b (deeptree l) Cs) :: nat \<Rightarrow> partial_pred_denot"
@@ -1259,7 +1259,7 @@ proof -
   have "\<forall>n. (?diag n) \<in> ?tree" using diag_open by auto
   ultimately
   have "\<not>finite ?tree" using infinity[of _ "\<lambda>n. SOME b. open_branch b (_ n) Cs"] by simp
-  (* Get infinite path *)
+  -- {* Get infinite path: *}
   moreover 
   have "\<forall>ds d. \<not>falsifies\<^sub>c\<^sub>s (ds @ d) Cs \<longrightarrow> \<not>falsifies\<^sub>c\<^sub>s ds Cs" 
     using longer_falsifies[of Cs] by blast
@@ -1267,7 +1267,7 @@ proof -
   ultimately
   have "\<exists>c. wf_infpath c \<and> (\<forall>n. c n \<in> ?tree)" using konig[of ?tree] by blast
   then have "\<exists>G. wf_infpath G \<and> (\<forall>n. \<not> falsifies\<^sub>c\<^sub>s (G n) Cs)" by auto
-  (* Apply above infpath lemma *)
+  -- {* Apply above infpath lemma: *}
   then show "\<exists>G. eval\<^sub>c\<^sub>s HFun G Cs" using infpath_model finite_cs by auto
 qed
 

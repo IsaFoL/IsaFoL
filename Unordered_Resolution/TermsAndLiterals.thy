@@ -10,7 +10,7 @@ datatype fterm =
   Fun fun_sym (get_sub_terms: "fterm list")
 | Var var_sym
 
-datatype hterm = HFun fun_sym "hterm list" (* Herbrand terms defined as in Berghofer's FOL-Fitting *)
+datatype hterm = HFun fun_sym "hterm list" -- {* Herbrand terms defined as in Berghofer's FOL-Fitting *}
 
 
 type_synonym 't atom = "pred_sym * 't list"
