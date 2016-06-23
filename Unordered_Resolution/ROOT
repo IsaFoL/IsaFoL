@@ -4,7 +4,8 @@ session "Resolution_FOL" (AFP) = HOL +
    theories [document = false]
      "~~/src/HOL/Library/Countable_Set" 
    theories
-    TermsAndLiterals 
+    TermsAndLiterals
+    Tree
     Resolution
     Completeness
     Examples

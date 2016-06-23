@@ -345,7 +345,7 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     then obtain Cs'' where Cs''_p: "resolution_deriv CsNext Cs'' \<and> {} \<in> Cs''" by auto
     moreover
     { -- {* Proving that we can actually derive the new clausal form: *}
-      have "resolution_step Cs (Cs \<union> {?C\<^sub>1})" using std\<^sub>1_renames standardize_apart C\<^sub>1o_p by (metis Un_insert_right prod.collapse)
+      have "resolution_step Cs (Cs \<union> {?C\<^sub>1})" using std\<^sub>1_renames standardize_apart C\<^sub>1o_p by (metis Un_insert_right)
       moreover
       have "resolution_step (Cs \<union> {?C\<^sub>1}) (Cs \<union> {?C\<^sub>1} \<union> {?C\<^sub>2})" using std\<^sub>2_renames[of C\<^sub>2o] standardize_apart[of C\<^sub>2o _ ?C\<^sub>2] C\<^sub>2o_p by auto 
       then have "resolution_step (Cs \<union> {?C\<^sub>1}) (Cs \<union> {?C\<^sub>1,?C\<^sub>2})" by (simp add: insert_commute)
