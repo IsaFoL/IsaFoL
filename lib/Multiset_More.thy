@@ -863,8 +863,14 @@ lemma repeat_mset_compower: "repeat_mset n A = ((op + A) ^^ n) {#}"
 lemma repeat_mset_distrib: "repeat_mset n (A + B) = repeat_mset n A + repeat_mset n B"
   by (induction n) (auto simp: ac_simps)
 
+lemma repeat_mset_distrib_nat: "repeat_mset (m + n) A = repeat_mset m A + repeat_mset n A"
+  by (induction m) (auto simp: ac_simps)
+
 lemma repeat_mset_single[simp]: "repeat_mset n {#a#} = replicate_mset n a"
   by (induction n) (auto simp: ac_simps)
+
+lemma repeat_mset_prod: "repeat_mset (m * n) A = ((op + (repeat_mset n A)) ^^ m) {#}"
+  by (induction m) (auto simp: repeat_mset_distrib_nat)
 
 lemma repeat_mset_empty[simp]: "repeat_mset n {#} = {#}"
   by (induction n) auto
@@ -890,7 +896,7 @@ begin
 qualified definition product_mset :: "'a multiset \<Rightarrow> 'b multiset \<Rightarrow> ('a \<times> 'b) multiset" where
   [code_abbrev]: "product_mset A B = A \<times>mset B"
 
-lemma member_product:
+lemma member_product_mset:
   "x \<in># Multiset_More.product_mset A B \<longleftrightarrow> x \<in># A \<times>mset B"
   by (simp add: Multiset_More.product_mset_def)
 
