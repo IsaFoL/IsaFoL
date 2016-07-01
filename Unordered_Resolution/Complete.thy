@@ -1,4 +1,6 @@
-theory Complete imports Unify Completeness begin
+section {* Completeness Revisited *}
+
+theory Complete imports Unify "$AFP/Resolution_FOL/Completeness" begin
 
 interpretation unification using unification by unfold_locales auto
 

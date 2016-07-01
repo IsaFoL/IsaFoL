@@ -1,14 +1,14 @@
-chapter AFP
-
-session "Resolution_FOL" (AFP) = HOL +
+session "Unordered_Resolution" = HOL +
+   options [document = pdf, document_output = "output",
+    document_variants = "document:outline=/proof,/ML"]
    theories [document = false]
-     "~~/src/HOL/Library/Countable_Set" 
+     "~~/src/HOL/Library/Countable_Set"
+     "$ISAFOR/Rewriting/Unification"
+     "$AFP/Resolution_FOL/Resolution"
+     "$AFP/Resolution_FOL/Completeness"
    theories
-    TermsAndLiterals
-    Tree
-    Resolution
-    Completeness
-    Examples
+     Unify
+     Complete
    document_files
      "root.bib"
      "root.tex"
