@@ -63,10 +63,9 @@ $A_{ii}$ vs.\ $A_i$
 *}
  
 context
-  fixes S :: "'a clause \<Rightarrow> 'a multiset"
+  fixes S :: "'a clause \<Rightarrow> 'a clause"
 begin
 
-(*
 inductive ord_resolve_raw :: "'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve_raw:
   "Cf' = \<Union># {#C'. (C', A, AA') \<in># ZZ#} \<Longrightarrow>
@@ -82,21 +81,7 @@ inductive ord_resolve_raw :: "'a clause multiset \<Rightarrow> 'a clause \<Right
    (\<forall>(C', A, _) \<in> set_mset ZZ. \<forall>B \<in> atms_of (C' \<cdot> \<sigma>). \<not> less_eq_atm (A \<cdot>a \<sigma>) B) \<Longrightarrow>
    (\<forall>C. C \<in># CC \<longrightarrow> S C = {#}) \<Longrightarrow>
    ord_resolve_raw CC D ((Cf' + D') \<cdot> \<sigma>)"
-*)
-typ "'a main_clause"
-term Neg
-term less_atm
 
-(* Formalizes figure 4 *)
-inductive ord_resolve_raw3 :: "'a side_clause list \<Rightarrow> 'a main_clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  ord_resolve_raw3:
-  "length Cs = length AD \<Longrightarrow>
-   Some \<sigma> = mgu (set (map (\<lambda>(C,A). ((set_mset (getAs C)) \<union> {A})) (zip Cs AD))) \<Longrightarrow>
-   S (main_clause (D,AD)) = mset AD
-     \<or> (S (main_clause (D,AD)) = {#} \<and> AD = [A1] \<and> maximal_in (A1 \<cdot>a \<sigma>) (D \<cdot> \<sigma>)) \<Longrightarrow>
-   (\<forall>(C,AC) \<in> set Cs. \<forall>Aij \<in> set_mset AC. str_maximal_in (Aij \<cdot>a \<sigma>) (C \<cdot> \<sigma>)) \<Longrightarrow>
-   (\<forall>(C,AC) \<in> set Cs. S (side_clause (C,AC)) = {#}) \<Longrightarrow>
-   ord_resolve_raw3 Cs (D,AD) ((\<Union># {#getC C. C \<in># mset Cs#}) \<cdot> \<sigma>)"
 
 inductive ord_resolve :: "'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve:
