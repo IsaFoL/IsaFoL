@@ -10,6 +10,10 @@ theory Ordered_Ground_Resolution
 imports Inference_System Ground_Resolution_Model
 begin
 
+type_synonym 'a side_clause = "'a clause * 'a multiset"
+type_synonym 'a main_clause = "'a clause * 'a list"
+
+
 text {*
 Ordered ground resolution with selection is the second inference system studied in Section 3
 (``Standard Resolution'') of Bachmair and Ganzinger's chapter.

@@ -28,6 +28,13 @@ begin
 definition less_eq_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
   "less_eq_atm A B \<longleftrightarrow> less_atm A B \<or> A = B"
 
+abbreviation "maximal_in A D \<equiv> (\<forall>B \<in> atms_of D. \<not> less_atm A B)"
+abbreviation "str_maximal_in A D \<equiv> (\<forall>B \<in> atms_of D. \<not> less_eq_atm A B)"
+abbreviation "main_clause \<equiv> (\<lambda>(D,A). D + {#Neg Atm. Atm \<in># mset A #})"
+abbreviation "side_clause \<equiv> (\<lambda>(C,A). C + {#Pos Atm. Atm \<in># A #})"
+abbreviation "getAs \<equiv> snd"
+abbreviation "getC \<equiv> fst"
+
 lemma ground_less_atm_iff: "is_ground_atm A \<Longrightarrow> is_ground_atm B \<Longrightarrow> less_atm A B \<longleftrightarrow> A < B"
   unfolding is_ground_atm_def less_atm_iff by (auto intro: ex_ground_subst)
 
@@ -56,9 +63,10 @@ $A_{ii}$ vs.\ $A_i$
 *}
  
 context
-  fixes S :: "'a clause \<Rightarrow> 'a clause"
+  fixes S :: "'a clause \<Rightarrow> 'a multiset"
 begin
 
+(*
 inductive ord_resolve_raw :: "'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve_raw:
   "Cf' = \<Union># {#C'. (C', A, AA') \<in># ZZ#} \<Longrightarrow>
@@ -74,23 +82,21 @@ inductive ord_resolve_raw :: "'a clause multiset \<Rightarrow> 'a clause \<Right
    (\<forall>(C', A, _) \<in> set_mset ZZ. \<forall>B \<in> atms_of (C' \<cdot> \<sigma>). \<not> less_eq_atm (A \<cdot>a \<sigma>) B) \<Longrightarrow>
    (\<forall>C. C \<in># CC \<longrightarrow> S C = {#}) \<Longrightarrow>
    ord_resolve_raw CC D ((Cf' + D') \<cdot> \<sigma>)"
+*)
+typ "'a main_clause"
+term Neg
+term less_atm
 
-term mset_set
-
-inductive ord_resolve_raw2 :: "'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  ord_resolve_raw2:
-  "length (Cs :: 'a clause list) = n \<Longrightarrow> (* list of  C1, ..., Cn *)
-   length (AAs :: 'a multiset list) = n \<Longrightarrow> (* list of corresponding  Aij's *)
-     (\<forall>AA \<in> set AAs. AA \<noteq> {#}) \<Longrightarrow>
-   length (As :: 'a list) = n \<Longrightarrow> (* list of  A1, ..., An  *)
-   (AsD :: 'a clause) = negs (mset As) + D \<Longrightarrow> (* The premise  \<not>A1 \<or> ... \<or> \<not>An \<or> D *)
-   (CC :: 'a clause multiset) = {# C + poss AA . (C,AA) \<in># mset (zip Cs AAs) #} \<Longrightarrow> (* Side premises *)  
-   Some \<sigma> = mgu {set_mset AA \<union> {A} | AA A. (AA,A) \<in> set (zip AAs As)} \<Longrightarrow> 
-   S AsD = negs (mset As) \<or>
-     S AsD = {#} \<and> length As = 1 \<and> (\<forall>B \<in> atms_of (D \<cdot> \<sigma>). \<not> less_atm ((As ! 0) \<cdot>a \<sigma>) B) \<Longrightarrow> 
-   (\<forall>i < n. \<forall>B \<in> atms_of (Cs ! i \<cdot> \<sigma>). \<not> less_eq_atm (As ! i \<cdot>a \<sigma>) B) \<Longrightarrow>
-   (\<forall>C. C \<in># CC \<longrightarrow> S C = {#}) \<Longrightarrow>
-   ord_resolve_raw2 CC AsD ((\<Union>#(mset Cs) + D) \<cdot> \<sigma>)"
+(* Formalizes figure 4 *)
+inductive ord_resolve_raw3 :: "'a side_clause list \<Rightarrow> 'a main_clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  ord_resolve_raw3:
+  "length Cs = length AD \<Longrightarrow>
+   Some \<sigma> = mgu (set (map (\<lambda>(C,A). ((set_mset (getAs C)) \<union> {A})) (zip Cs AD))) \<Longrightarrow>
+   S (main_clause (D,AD)) = mset AD
+     \<or> (S (main_clause (D,AD)) = {#} \<and> AD = [A1] \<and> maximal_in (A1 \<cdot>a \<sigma>) (D \<cdot> \<sigma>)) \<Longrightarrow>
+   (\<forall>(C,AC) \<in> set Cs. \<forall>Aij \<in> set_mset AC. str_maximal_in (Aij \<cdot>a \<sigma>) (C \<cdot> \<sigma>)) \<Longrightarrow>
+   (\<forall>(C,AC) \<in> set Cs. S (side_clause (C,AC)) = {#}) \<Longrightarrow>
+   ord_resolve_raw3 Cs (D,AD) ((\<Union># {#getC C. C \<in># mset Cs#}) \<cdot> \<sigma>)"
 
 inductive ord_resolve :: "'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve:
