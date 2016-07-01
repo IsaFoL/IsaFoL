@@ -53,9 +53,9 @@ proof -
      by auto
   moreover {
     have "(\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M))) =
-           (\<Sum>i=0..<length (M). (L#M)!(Suc i) * b^ (s + (Suc i) - length (L#M)))"
+           (\<Sum>i=0..<length M. (L#M)!(Suc i) * b^ (s + (Suc i) - length (L#M)))"
      unfolding length_Cons set_sum_atLeastLessThan_Suc by blast
-    also have "\<dots> = (\<Sum>i=0..<length (M). M!i * b^ (s + i - length M))"
+    also have "\<dots> = (\<Sum>i=0..<length M. M!i * b^ (s + i - length M))"
       by auto
     finally have "(\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M))) = \<mu>\<^sub>C s b M"
       unfolding \<mu>\<^sub>C_def .

@@ -535,7 +535,7 @@ text \<open>A slightly different version of @{term DPLL_tot} where the returned 
   result.\<close>
 definition DPLL_tot_rep where
 "DPLL_tot_rep S =
-  (let (M, N) = (rough_state_of (DPLL_tot S)) in (\<forall>A \<in> set N. (\<exists>a\<in>set A. a \<in> lits_of_l (M)), M))"
+  (let (M, N) = (rough_state_of (DPLL_tot S)) in (\<forall>A \<in> set N. (\<exists>a\<in>set A. a \<in> lits_of_l M), M))"
 
 text \<open>One version of the generated SML code is here, but not included in the generated document.
   The only differences are:

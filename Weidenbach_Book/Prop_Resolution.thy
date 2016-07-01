@@ -111,7 +111,7 @@ type_synonym 'v uncon_state = "'v clauses"
 inductive uncon_res :: "'v uncon_state \<Rightarrow> 'v uncon_state \<Rightarrow> bool" where
 resolution:
   "{#Pos p#} + C \<in> N \<Longrightarrow> {#Neg p#} + D \<in> N \<Longrightarrow> ({#Pos p#} + C, {#Neg p#} + D) \<notin> already_used
-    \<Longrightarrow> uncon_res (N) (N \<union> {C + D})" |
+    \<Longrightarrow> uncon_res N (N \<union> {C + D})" |
 factoring: "{#L#} + {#L#} + C \<in> N \<Longrightarrow> uncon_res N (N \<union>{C + {#L#}})"
 
 lemma uncon_res_increasing:
@@ -1651,14 +1651,14 @@ definition sum_count_ge_2 :: "'a multiset set \<Rightarrow> nat" ("\<Xi>") where
 
 
 interpretation sum_count_ge_2:
-  folding "(\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#}))" 0
+  folding "\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})" 0
 rewrites
   "folding.F (\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0 = sum_count_ge_2"
 proof -
   show "folding (\<lambda>\<phi>. op + (msetsum (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#})))"
     by standard auto
   then interpret sum_count_ge_2:
-    folding "(\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#}))" 0 .
+    folding "\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})" 0 .
   show "folding.F (\<lambda>\<phi>. op + (msetsum (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#}))) 0
     = sum_count_ge_2" by (auto simp add: sum_count_ge_2_def)
 qed
@@ -1783,7 +1783,7 @@ lemma wf_terminates:
   shows "\<exists>N'.(N', N)\<in> r\<^sup>*  \<and> (\<forall>N''. (N'', N')\<notin> r)"
 proof -
   let ?P = "\<lambda>N. (\<exists>N'.(N', N)\<in> r\<^sup>*  \<and> (\<forall>N''. (N'', N')\<notin> r))"
-  have "(\<forall>x. (\<forall>y. (y, x) \<in> r \<longrightarrow> ?P y) \<longrightarrow> ?P x)"
+  have "\<forall>x. (\<forall>y. (y, x) \<in> r \<longrightarrow> ?P y) \<longrightarrow> ?P x"
     proof clarify
       fix x
       assume H: "\<forall>y. (y, x) \<in> r \<longrightarrow> ?P y"
@@ -1812,7 +1812,7 @@ proof -
   then have wf: "wf {(N', N). simplify N N' \<and> finite N}"
     using simplify_terminates by (simp add: H)
   obtain N' where N': "(N', N)\<in> {(b, a). simplify a b \<and> finite a}\<^sup>*" and
-    more: "(\<forall>N''. (N'', N')\<notin> {(b, a). simplify a b \<and> finite a})"
+    more: "\<forall>N''. (N'', N')\<notin> {(b, a). simplify a b \<and> finite a}"
     using  Prop_Resolution.wf_terminates[OF wf, of N] by blast
   have 1: "simplify\<^sup>*\<^sup>* N N'"
     using N' by (induction rule: rtrancl.induct) auto

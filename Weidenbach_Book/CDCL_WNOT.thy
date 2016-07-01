@@ -72,22 +72,22 @@ lemma lit_of_convert_ann_lit_from_NOT[iff]:
   "lit_of (convert_ann_lit_from_NOT L) = lit_of L"
   by (cases L) auto
 
-sublocale state\<^sub>W \<subseteq> dpll_state_ops
-   "\<lambda>S. convert_trail_from_W (trail S)"
-   clauses
-   "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S"
-   "\<lambda>S. tl_trail S"
-   "\<lambda>C S. add_learned_cls C S"
-   "\<lambda>C S. remove_cls C S"
-   by unfold_locales
+sublocale state\<^sub>W \<subseteq> dpll_state_ops where
+  trail = "\<lambda>S. convert_trail_from_W (trail S)" and
+  clauses\<^sub>N\<^sub>O\<^sub>T = clauses and
+  prepend_trail = "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S" and
+  tl_trail = "\<lambda>S. tl_trail S" and
+  add_cls\<^sub>N\<^sub>O\<^sub>T = "\<lambda>C S. add_learned_cls C S" and
+  remove_cls\<^sub>N\<^sub>O\<^sub>T = "\<lambda>C S. remove_cls C S"
+  by unfold_locales
 
-sublocale state\<^sub>W \<subseteq> dpll_state
-   "\<lambda>S. convert_trail_from_W (trail S)"
-   clauses
-   "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S"
-   "\<lambda>S. tl_trail S"
-   "\<lambda>C S. add_learned_cls C S"
-   "\<lambda>C S. remove_cls C S"
+sublocale state\<^sub>W \<subseteq> dpll_state where
+  trail = "\<lambda>S. convert_trail_from_W (trail S)" and
+  clauses\<^sub>N\<^sub>O\<^sub>T = clauses and
+  prepend_trail = "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S" and
+  tl_trail = "\<lambda>S. tl_trail S" and
+  add_cls\<^sub>N\<^sub>O\<^sub>T = "\<lambda>C S. add_learned_cls C S" and
+  remove_cls\<^sub>N\<^sub>O\<^sub>T = "\<lambda>C S. remove_cls C S"
   by unfold_locales (auto simp: map_tl o_def)
 
 context state\<^sub>W
@@ -95,32 +95,31 @@ begin
 declare state_simp\<^sub>N\<^sub>O\<^sub>T[simp del]
 end
 
-sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops
-  "\<lambda>S. convert_trail_from_W (trail S)"
-  clauses
-  "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S"
-  "\<lambda>S. tl_trail S"
-  "\<lambda>C S. add_learned_cls C S"
-  "\<lambda>C S. remove_cls C S"
-  (* propagate conditions: *)"\<lambda>_ _. True"
-  (* forget conditions: *) "\<lambda>_ S. conflicting S = None"
-  "\<lambda>C C' L' S T. backjump_l_cond C C' L' S T
+sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops where
+  trail = "\<lambda>S. convert_trail_from_W (trail S)" and
+  clauses\<^sub>N\<^sub>O\<^sub>T = clauses and
+  prepend_trail = "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S" and
+  tl_trail = "\<lambda>S. tl_trail S" and
+  add_cls\<^sub>N\<^sub>O\<^sub>T = "\<lambda>C S. add_learned_cls C S" and
+  remove_cls\<^sub>N\<^sub>O\<^sub>T = "\<lambda>C S. remove_cls C S" and
+  propagate_conds = "\<lambda>_ _. True" and
+  forget_cond =  "\<lambda>_ S. conflicting S = None" and
+  backjump_l_cond = "\<lambda>C C' L' S T. backjump_l_cond C C' L' S T
     \<and> distinct_mset (C' + {#L'#}) \<and> \<not>tautology (C' + {#L'#})"
   by unfold_locales
 
 thm cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy.axioms
-sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy
-  "\<lambda>S. convert_trail_from_W (trail S)"
-  clauses
-  "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S"
-  "\<lambda>S. tl_trail S"
-  "\<lambda>C S. add_learned_cls C S"
-  "\<lambda>C S. remove_cls C S"
-
-  "\<lambda>_ _. True"
-  "\<lambda>_ S. conflicting S = None"
-  backjump_l_cond
-  inv\<^sub>N\<^sub>O\<^sub>T
+sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy where
+  trail = "\<lambda>S. convert_trail_from_W (trail S)" and
+  clauses\<^sub>N\<^sub>O\<^sub>T = clauses and
+  prepend_trail = "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S" and
+  tl_trail = "\<lambda>S. tl_trail S" and
+  add_cls\<^sub>N\<^sub>O\<^sub>T = "\<lambda>C S. add_learned_cls C S" and
+  remove_cls\<^sub>N\<^sub>O\<^sub>T = "\<lambda>C S. remove_cls C S" and
+  propagate_conds = "\<lambda>_ _. True" and
+  forget_cond =  "\<lambda>_ S. conflicting S = None" and
+  backjump_l_cond = backjump_l_cond and
+  inv = inv\<^sub>N\<^sub>O\<^sub>T
 proof (unfold_locales, goal_cases)
   case 2
   then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_no_dup_inv by (auto simp: comp_def)
@@ -171,27 +170,30 @@ next
     qed
 qed
 
-sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2
-  "\<lambda>S. convert_trail_from_W (trail S)"
-  clauses
-  "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S"
-  "\<lambda>S. tl_trail S"
-  "\<lambda>C S. add_learned_cls C S"
-  "\<lambda>C S. remove_cls C S"
-  "\<lambda>_ _. True"
-  "\<lambda>_ S. conflicting S = None" backjump_l_cond inv\<^sub>N\<^sub>O\<^sub>T
+sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2 where
+  trail = "\<lambda>S. convert_trail_from_W (trail S)" and
+  clauses\<^sub>N\<^sub>O\<^sub>T = clauses and
+  prepend_trail = "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S" and
+  tl_trail = "\<lambda>S. tl_trail S" and
+  add_cls\<^sub>N\<^sub>O\<^sub>T = "\<lambda>C S. add_learned_cls C S" and
+  remove_cls\<^sub>N\<^sub>O\<^sub>T = "\<lambda>C S. remove_cls C S" and
+  propagate_conds = "\<lambda>_ _. True" and
+  forget_cond =  "\<lambda>_ S. conflicting S = None" and
+  backjump_l_cond = backjump_l_cond and
+  inv = inv\<^sub>N\<^sub>O\<^sub>T
   by unfold_locales
 
-sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn
-  "\<lambda>S. convert_trail_from_W (trail S)"
-  clauses
-  "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S"
-  "\<lambda>S. tl_trail S"
-  "\<lambda>C S. add_learned_cls C S"
-  "\<lambda>C S. remove_cls C S"
-  backjump_l_cond
-  "\<lambda>_ _. True"
-  "\<lambda>_ S. conflicting S = None" inv\<^sub>N\<^sub>O\<^sub>T
+sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn where
+  trail = "\<lambda>S. convert_trail_from_W (trail S)" and
+  clauses\<^sub>N\<^sub>O\<^sub>T = clauses and
+  prepend_trail = "\<lambda>L S. cons_trail (convert_ann_lit_from_NOT L) S" and
+  tl_trail = "\<lambda>S. tl_trail S" and
+  add_cls\<^sub>N\<^sub>O\<^sub>T = "\<lambda>C S. add_learned_cls C S" and
+  remove_cls\<^sub>N\<^sub>O\<^sub>T = "\<lambda>C S. remove_cls C S" and
+  propagate_conds = "\<lambda>_ _. True" and
+  forget_cond =  "\<lambda>_ S. conflicting S = None" and
+  backjump_l_cond = backjump_l_cond and
+  inv = inv\<^sub>N\<^sub>O\<^sub>T
   apply unfold_locales
    using dpll_bj_no_dup apply (simp add: comp_def)
   using cdcl\<^sub>N\<^sub>O\<^sub>T.simps cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup no_dup_convert_from_W unfolding inv\<^sub>N\<^sub>O\<^sub>T_def by blast
