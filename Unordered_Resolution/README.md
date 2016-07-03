@@ -1,8 +1,6 @@
 # Formalization of First-Order Unordered Resolution #
 
-[This directory](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Unordered_Resolution/) contains an Isabelle formalization of unordered resolution for first-order logic. It has [moved to the Archive of Formal Proofs](https://www.isa-afp.org/entries/Resolution_FOL.shtml). 
-
-The only exception is a formal proof of the unification theorem. It is proven here by loading it from a theory in the [IsaFoR project](http://cl-informatik.uibk.ac.at/software/ceta/) and doing conversions between the terms of the two theories. The assumption in the unification locale can then be instantiated, and we obtain the completeness theorem from the locale.
+[This directory](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Unordered_Resolution/) contains an Isabelle formalization of unordered resolution for first-order logic. It has been [moved to the Archive of Formal Proofs](https://www.isa-afp.org/entries/Resolution_FOL.shtml). The only exception is a formal proof of the unification theorem. It is proved here by loading it from a theory in the [IsaFoR project](http://cl-informatik.uibk.ac.at/software/ceta/) and doing conversions between the terms of the two theories. The assumption in the unification locale can then be instantiated, and we obtain the completeness theorem from the locale.
 
 ## Author ##
 
