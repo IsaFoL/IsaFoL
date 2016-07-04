@@ -621,7 +621,6 @@ lemma msetsum_union_disjoint:
 
 
 subsection \<open>Order\<close>
-
 text \<open>Instantiating multiset order as a linear order.
 
   TODO: remove when multiset is of sort ord again\<close>
