@@ -48,14 +48,14 @@ theorem unord_resolve_counterex_reducing:
     ec_ni_n: "{#} \<notin> N" and
     c_in_n: "C \<in> N" and
     c_cex: "\<not> INTERP N \<Turnstile> C" and
-    c_min: "\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C #\<subseteq># D"
+    c_min: "\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D"
   obtains D E where
     "D \<in> N"
     "INTERP N \<Turnstile> D"
     "productive N D"
     "unord_resolve D C E"
     "\<not> INTERP N \<Turnstile> E"
-    "E #\<subset># C"
+    "E < C"
 proof -
   have c_ne: "C \<noteq> {#}"
     using c_in_n ec_ni_n by blast
@@ -99,7 +99,7 @@ proof -
   hence res_e: "unord_resolve D C (D' + C')"
     unfolding c d by (fast intro: unord_resolve.intros)
 
-  have d'_le_d: "D' #\<subseteq># D"
+  have d'_le_d: "D' \<le> D"
     unfolding d by simp
   have a_max_d: "A = Max (atms_of D)"
     using d0 productive_imp_produces_Max_atom by auto
@@ -125,7 +125,7 @@ proof -
     using d0 d'_subs contra_subsetD lits_subseteq_imp_atms_subseteq produces_imp_atms_leq by metis
   hence "\<And>L. L \<in># D' \<Longrightarrow> L < Neg A"
     using neg_a_ni_d' antisym_conv1 atms_less_eq_imp_lit_less_eq_neg by metis
-  hence lt_cex: "D' + C' #\<subset># C"
+  hence lt_cex: "D' + C' < C"
     by (force intro: add.commute simp: c less_multiset\<^sub>D\<^sub>M intro: exI[of _ "{#Neg A#}"])
 
   from d_in_n d_true prod_d res_e e_cex lt_cex show ?thesis ..
@@ -145,20 +145,20 @@ definition unord_\<Gamma> :: "'a inference set" where
 sublocale sound_counterex_reducing_inference_system unord_\<Gamma> INTERP
 proof unfold_locales
   fix C E and N :: "('b :: wellorder) clause set"
-  assume "{#} \<notin> N" and "C \<in> N" and "\<not> INTERP N \<Turnstile> C" and "\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C #\<subseteq># D"
+  assume "{#} \<notin> N" and "C \<in> N" and "\<not> INTERP N \<Turnstile> C" and "\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D"
   then obtain D E where
     d_in_n: "D \<in> N" and
     d_true: "INTERP N \<Turnstile> D" and
     res_e: "unord_resolve D C E" and
     e_cex: "\<not> INTERP N \<Turnstile> E" and
-    e_lt_c: "E #\<subset># C"
+    e_lt_c: "E < C"
     using unord_resolve_counterex_reducing by (metis (no_types))
   from d_in_n have "set_mset {#D#} \<subseteq> N"
     by auto
   moreover have "Infer {#D#} C E \<in> unord_\<Gamma>"
     unfolding unord_\<Gamma>_def using res_e by blast
   ultimately show
-    "\<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> unord_\<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E #\<subset># C"
+    "\<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> unord_\<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < C"
     using d_in_n d_true e_cex e_lt_c by blast
 next
   fix CC D E and I :: "'b interp"

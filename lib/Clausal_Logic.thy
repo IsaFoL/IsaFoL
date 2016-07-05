@@ -186,7 +186,7 @@ lemma Max_atm_of_set_mset_commute: "C \<noteq> {#} \<Longrightarrow> Max (atm_of
 
 lemma Max_pos_neg_less_multiset:
   assumes max: "Max (set_mset C) = Pos A" and neg: "Neg A \<in># D"
-  shows "C #\<subset># D"
+  shows "C < D"
 proof -
   have "Max (set_mset C) < Neg A"
     using max by simp
@@ -198,8 +198,8 @@ qed
 lemma pos_Max_imp_neg_notin: "Max (set_mset C) = Pos A \<Longrightarrow> Neg A \<notin># C"
   using Max_pos_neg_less_multiset[unfolded multiset_linorder.not_le[symmetric]] by blast
 
-lemma less_eq_Max_lit: "C \<noteq> {#} \<Longrightarrow> C #\<subseteq># D \<Longrightarrow> Max (set_mset C) \<le> Max (set_mset D)"
-proof (unfold le_multiset\<^sub>H\<^sub>O)
+lemma less_eq_Max_lit: "C \<noteq> {#} \<Longrightarrow> C \<le> D \<Longrightarrow> Max (set_mset C) \<le> Max (set_mset D)"
+proof (unfold less_eq_multiset\<^sub>H\<^sub>O)
   assume ne: "C \<noteq> {#}" and ex_gt: "\<forall>x. count D x < count C x \<longrightarrow> (\<exists>y > x. count C y < count D y)"
   from ne have "Max (set_mset C) \<in># C"
     by (fast intro: Max_in_lits)
@@ -266,13 +266,13 @@ lemma
   atms_of_negg[simp]: "atms_of (negs AA) = set_mset AA"
   unfolding atms_of_def image_def by auto
 
-lemma less_eq_Max_atms_of: "C \<noteq> {#} \<Longrightarrow> C #\<subseteq># D \<Longrightarrow> Max (atms_of C) \<le> Max (atms_of D)"
+lemma less_eq_Max_atms_of: "C \<noteq> {#} \<Longrightarrow> C \<le> D \<Longrightarrow> Max (atms_of C) \<le> Max (atms_of D)"
   unfolding atms_of_def
-  by (metis Max_atm_of_set_mset_commute le_multiset_empty_right leq_imp_less_eq_atm_of
-    less_eq_Max_lit)
+  by (metis Max_atm_of_set_mset_commute leq_imp_less_eq_atm_of less_eq_Max_lit 
+    less_eq_multiset_empty_right)
 
 lemma le_multiset_Max_in_imp_Max:
-  "Max (atms_of D) = A \<Longrightarrow> C #\<subseteq># D \<Longrightarrow> A \<in> atms_of C \<Longrightarrow> Max (atms_of C) = A"
+  "Max (atms_of D) = A \<Longrightarrow> C \<le> D \<Longrightarrow> A \<in> atms_of C \<Longrightarrow> Max (atms_of C) = A"
   by (metis Max.coboundedI[OF finite_atms_of] atms_of_def empty_iff eq_iff image_subsetI
     less_eq_Max_atms_of set_mset_empty subset_Compl_self_eq)
 

@@ -32,7 +32,7 @@ lemma herbrand_interp_iff_partial_interp_clss:
   Partial_Clausal_Logic.true_clss_def by auto
 
 definition clss_lt :: "'a::wellorder clauses \<Rightarrow> 'a clause \<Rightarrow> 'a clauses"  where
-"clss_lt N C = {D \<in> N. D #\<subset># C}"
+"clss_lt N C = {D \<in> N. D < C}"
 
 notation (latex output)
  clss_lt ("_<^bsup>_<^esup>")
@@ -58,14 +58,14 @@ function
 where
   "production C =
    {A. C \<in> N \<and> C \<noteq> {#} \<and> Max (set_mset C) = Pos A \<and> count C (Pos A) \<le> 1
-     \<and> \<not> (\<Union>D \<in> {D. D #\<subset># C}. production D) \<Turnstile>h C \<and> S C = {#}}"
+     \<and> \<not> (\<Union>D \<in> {D. D < C}. production D) \<Turnstile>h C \<and> S C = {#}}"
   by auto
-termination by (relation "{(D, C). D #\<subset># C}") (auto simp: wf_less_multiset)
+termination by (relation "{(D, C). D < C}") (auto simp: wf_less_multiset)
 
 declare production.simps[simp del]
 
 definition interp :: "'a clause \<Rightarrow> 'a interp" where
-  "interp C = (\<Union>D \<in> {D. D #\<subset># C}. production D)"
+  "interp C = (\<Union>D \<in> {D. D < C}. production D)"
 
 lemma production_unfold:
   "production C = {A. C \<in> N \<and> C \<noteq> {#} \<and> Max (set_mset C) = Pos A\<and> count C (Pos A) \<le> 1 \<and> \<not> interp C \<Turnstile>h C \<and> S C = {#}}"
@@ -85,7 +85,7 @@ lemma "produces C A \<Longrightarrow> Pos A \<in># C"
   by (simp add: Max_in_lits producesD)
 
 lemma interp'_def_in_set:
-  "interp C = (\<Union>D \<in> {D \<in> N. D #\<subset># C}. production D)"
+  "interp C = (\<Union>D \<in> {D \<in> N. D < C}. production D)"
   unfolding interp_def apply auto
   unfolding production_unfold apply auto
   done
@@ -110,8 +110,8 @@ definition INTERP :: "'a interp" where
 lemma interp_subseteq_Interp[simp]: "interp C \<subseteq> Interp C"
   unfolding Interp_def by simp
 
-lemma Interp_as_UNION: "Interp C = (\<Union>D \<in> {D. D #\<subseteq># C}. production D)"
-  unfolding Interp_def interp_def le_multiset_def by fast
+lemma Interp_as_UNION: "Interp C = (\<Union>D \<in> {D. D \<le> C}. production D)"
+  unfolding Interp_def interp_def less_eq_multiset_def by fast
 
 lemma productive_not_empty: "productive C \<Longrightarrow> C \<noteq> {#}"
   unfolding production_unfold by auto
@@ -142,37 +142,37 @@ lemma produces_imp_atms_leq: "produces C A \<Longrightarrow> B \<in> atms_of C \
 lemma produces_imp_neg_notin_lits: "produces C A \<Longrightarrow> Neg A \<notin># C"
   by (rule pos_Max_imp_neg_notin) (auto dest: producesD)
 
-lemma less_eq_imp_interp_subseteq_interp: "C #\<subseteq># D \<Longrightarrow> interp C \<subseteq> interp D"
-  unfolding interp_def by auto (metis multiset_order.order.strict_trans2)
+lemma less_eq_imp_interp_subseteq_interp: "C \<le> D \<Longrightarrow> interp C \<subseteq> interp D"
+  unfolding interp_def by auto (metis order.strict_trans2)
 
-lemma less_eq_imp_interp_subseteq_Interp: "C #\<subseteq># D \<Longrightarrow> interp C \<subseteq> Interp D"
+lemma less_eq_imp_interp_subseteq_Interp: "C \<le> D \<Longrightarrow> interp C \<subseteq> Interp D"
   unfolding Interp_def using less_eq_imp_interp_subseteq_interp by blast
 
-lemma less_imp_production_subseteq_interp: "C #\<subset># D \<Longrightarrow> production C \<subseteq> interp D"
+lemma less_imp_production_subseteq_interp: "C < D \<Longrightarrow> production C \<subseteq> interp D"
   unfolding interp_def by fast
 
-lemma less_eq_imp_production_subseteq_Interp: "C #\<subseteq># D \<Longrightarrow> production C \<subseteq> Interp D"
+lemma less_eq_imp_production_subseteq_Interp: "C \<le> D \<Longrightarrow> production C \<subseteq> Interp D"
   unfolding Interp_def using less_imp_production_subseteq_interp
-  by (metis multiset_order.le_imp_less_or_eq le_supI1 sup_ge2)
+  by (metis le_imp_less_or_eq le_supI1 sup_ge2)
 
-lemma less_imp_Interp_subseteq_interp: "C #\<subset># D \<Longrightarrow> Interp C \<subseteq> interp D"
+lemma less_imp_Interp_subseteq_interp: "C < D \<Longrightarrow> Interp C \<subseteq> interp D"
   unfolding Interp_def
   by (auto simp: less_eq_imp_interp_subseteq_interp less_imp_production_subseteq_interp)
 
-lemma less_eq_imp_Interp_subseteq_Interp: "C #\<subseteq># D \<Longrightarrow> Interp C \<subseteq> Interp D"
+lemma less_eq_imp_Interp_subseteq_Interp: "C \<le> D \<Longrightarrow> Interp C \<subseteq> Interp D"
   using less_imp_Interp_subseteq_interp
-  unfolding Interp_def by (metis multiset_order.le_imp_less_or_eq le_supI2 subset_refl sup_commute)
+  unfolding Interp_def by (metis le_imp_less_or_eq le_supI2 subset_refl sup_commute)
 
-lemma false_Interp_to_true_interp_imp_less_multiset: "A \<notin> Interp C \<Longrightarrow> A \<in> interp D \<Longrightarrow> C #\<subset># D"
+lemma false_Interp_to_true_interp_imp_less_multiset: "A \<notin> Interp C \<Longrightarrow> A \<in> interp D \<Longrightarrow> C < D"
   using less_eq_imp_interp_subseteq_Interp multiset_linorder.not_less by blast
 
-lemma false_interp_to_true_interp_imp_less_multiset: "A \<notin> interp C \<Longrightarrow> A \<in> interp D \<Longrightarrow> C #\<subset># D"
+lemma false_interp_to_true_interp_imp_less_multiset: "A \<notin> interp C \<Longrightarrow> A \<in> interp D \<Longrightarrow> C < D"
   using less_eq_imp_interp_subseteq_interp multiset_linorder.not_less by blast
 
-lemma false_Interp_to_true_Interp_imp_less_multiset: "A \<notin> Interp C \<Longrightarrow> A \<in> Interp D \<Longrightarrow> C #\<subset># D"
+lemma false_Interp_to_true_Interp_imp_less_multiset: "A \<notin> Interp C \<Longrightarrow> A \<in> Interp D \<Longrightarrow> C < D"
   using less_eq_imp_Interp_subseteq_Interp multiset_linorder.not_less by blast
 
-lemma false_interp_to_true_Interp_imp_le_multiset: "A \<notin> interp C \<Longrightarrow> A \<in> Interp D \<Longrightarrow> C #\<subseteq># D"
+lemma false_interp_to_true_Interp_imp_le_multiset: "A \<notin> interp C \<Longrightarrow> A \<in> Interp D \<Longrightarrow> C \<le> D"
   using less_imp_Interp_subseteq_interp multiset_linorder.not_less by blast
 
 lemma interp_subseteq_INTERP: "interp C \<subseteq> INTERP"
@@ -191,15 +191,15 @@ lemma produces_imp_in_interp:
 proof -
   from d have "Max (set_mset D) = Pos A"
     using production_unfold by blast
-  then have "D #\<subset># {#Neg A#}"
+  then have "D < {#Neg A#}"
     by (auto intro: Max_pos_neg_less_multiset)
-  moreover have "{#Neg A#} #\<subseteq># C"
-    by (rule less_eq_imp_le_multiset) (rule mset_subset_eq_single[OF a_in_c])
+  moreover have "{#Neg A#} \<le> C"
+    by (rule subset_eq_imp_le_multiset) (rule mset_subset_eq_single[OF a_in_c])
   ultimately show ?thesis
     using d by (blast dest: less_eq_imp_interp_subseteq_interp less_imp_production_subseteq_interp)
 qed
 
-lemma neg_notin_Interp_not_produce: "Neg A \<in># C \<Longrightarrow> A \<notin> Interp D \<Longrightarrow> C #\<subseteq># D \<Longrightarrow> \<not> produces D'' A"
+lemma neg_notin_Interp_not_produce: "Neg A \<in># C \<Longrightarrow> A \<notin> Interp D \<Longrightarrow> C \<le> D \<Longrightarrow> \<not> produces D'' A"
   by (auto dest: produces_imp_in_interp less_eq_imp_interp_subseteq_Interp)
 
 lemma in_production_imp_produces: "A \<in> production C \<Longrightarrow> produces C A"
@@ -221,8 +221,8 @@ If $D = D'$ and $D$ is productive, $I^D \subseteq I_{D'}$ does not hold.
 
 lemma true_Interp_imp_general:
   assumes
-    c_le_d: "C #\<subseteq># D" and
-    d_lt_d': "D #\<subset># D'" and
+    c_le_d: "C \<le> D" and
+    d_lt_d': "D < D'" and
     c_at_d: "Interp D \<Turnstile>h C" and
     subs: "interp D' \<subseteq> (\<Union>C \<in> CC. production C)"
   shows "(\<Union>C \<in> CC. production C) \<Turnstile>h C"
@@ -244,21 +244,21 @@ next
     using a_in_c subs not_produces_imp_notin_production by auto
 qed
 
-lemma true_Interp_imp_interp: "C #\<subseteq># D \<Longrightarrow> D #\<subset># D' \<Longrightarrow> Interp D \<Turnstile>h C \<Longrightarrow> interp D' \<Turnstile>h C"
+lemma true_Interp_imp_interp: "C \<le> D \<Longrightarrow> D < D' \<Longrightarrow> Interp D \<Turnstile>h C \<Longrightarrow> interp D' \<Turnstile>h C"
   using interp_def true_Interp_imp_general by simp
 
-lemma true_Interp_imp_Interp: "C #\<subseteq># D \<Longrightarrow> D #\<subset># D' \<Longrightarrow> Interp D \<Turnstile>h C \<Longrightarrow> Interp D' \<Turnstile>h C"
+lemma true_Interp_imp_Interp: "C \<le> D \<Longrightarrow> D < D' \<Longrightarrow> Interp D \<Turnstile>h C \<Longrightarrow> Interp D' \<Turnstile>h C"
   using Interp_as_UNION interp_subseteq_Interp true_Interp_imp_general by simp
 
-lemma true_Interp_imp_INTERP: "C #\<subseteq># D \<Longrightarrow> Interp D \<Turnstile>h C \<Longrightarrow> INTERP \<Turnstile>h C"
+lemma true_Interp_imp_INTERP: "C \<le> D \<Longrightarrow> Interp D \<Turnstile>h C \<Longrightarrow> INTERP \<Turnstile>h C"
   using INTERP_def interp_subseteq_INTERP
-    true_Interp_imp_general[OF _ less_multiset_right_total]
+    true_Interp_imp_general[OF _ le_multiset_right_total]
   by simp
 
 lemma true_interp_imp_general:
   assumes
-    c_le_d: "C #\<subseteq># D" and
-    d_lt_d': "D #\<subset># D'" and
+    c_le_d: "C \<le> D" and
+    d_lt_d': "D < D'" and
     c_at_d: "interp D \<Turnstile>h C" and
     subs: "interp D' \<subseteq> (\<Union>C \<in> CC. production C)"
   shows "(\<Union>C \<in> CC. production C) \<Turnstile>h C"
@@ -267,7 +267,7 @@ proof (cases "\<exists>A. Pos A \<in># C \<and> A \<in> interp D")
   then obtain A where a_in_c: "Pos A \<in># C" and a_at_d: "A \<in> interp D"
     by blast
   from a_at_d have "A \<in> interp D'"
-    using d_lt_d' less_eq_imp_interp_subseteq_interp[OF multiset_order.less_imp_le] by blast
+    using d_lt_d' less_eq_imp_interp_subseteq_interp[OF less_imp_le] by blast
   then show ?thesis
     using subs a_in_c by (blast dest: contra_subsetD)
 next
@@ -282,15 +282,15 @@ qed
 
 text \<open>This lemma corresponds to \cwref{prop:prop:suppmcprop}{theorem 2.7.6 page 67}. Here the strict
   maximality is important\<close>
-lemma true_interp_imp_interp: "C #\<subseteq># D \<Longrightarrow> D #\<subset># D' \<Longrightarrow> interp D \<Turnstile>h C \<Longrightarrow> interp D' \<Turnstile>h C"
+lemma true_interp_imp_interp: "C \<le> D \<Longrightarrow> D < D' \<Longrightarrow> interp D \<Turnstile>h C \<Longrightarrow> interp D' \<Turnstile>h C"
   using interp_def true_interp_imp_general by simp
 
-lemma true_interp_imp_Interp: "C #\<subseteq># D \<Longrightarrow> D #\<subset># D' \<Longrightarrow> interp D \<Turnstile>h C \<Longrightarrow> Interp D' \<Turnstile>h C"
+lemma true_interp_imp_Interp: "C \<le> D \<Longrightarrow> D < D' \<Longrightarrow> interp D \<Turnstile>h C \<Longrightarrow> Interp D' \<Turnstile>h C"
   using Interp_as_UNION interp_subseteq_Interp[of D'] true_interp_imp_general by simp
 
-lemma true_interp_imp_INTERP: "C #\<subseteq># D \<Longrightarrow> interp D \<Turnstile>h C \<Longrightarrow> INTERP \<Turnstile>h C"
+lemma true_interp_imp_INTERP: "C \<le> D \<Longrightarrow> interp D \<Turnstile>h C \<Longrightarrow> INTERP \<Turnstile>h C"
   using INTERP_def interp_subseteq_INTERP
-    true_interp_imp_general[OF _ less_multiset_right_total]
+    true_interp_imp_general[OF _ le_multiset_right_total]
   by simp
 
 lemma productive_imp_false_interp: "productive C \<Longrightarrow> \<not> interp C \<Turnstile>h C"
@@ -299,7 +299,7 @@ lemma productive_imp_false_interp: "productive C \<Longrightarrow> \<not> interp
 text \<open>This lemma corresponds to \cwref{prop:prop:suppmcprop}{theorem 2.7.6 page 67}. Here the strict
   maximality is important\<close>
 lemma cls_gt_double_pos_no_production:
-  assumes D: "{#Pos P, Pos P#} #\<subset># C"
+  assumes D: "{#Pos P, Pos P#} < C"
   shows "\<not>produces C P"
 proof -
   let ?D = "{#Pos P, Pos P#}"
@@ -327,7 +327,7 @@ qed
 
 text \<open>This lemma corresponds to \cwref{prop:prop:suppmcprop}{theorem 2.7.6 page 67}.\<close>
 lemma
-  assumes D: "C+{#Neg P#} #\<subset># D"
+  assumes D: "C+{#Neg P#} < D"
   shows "production D \<noteq> {P}"
 proof -
   note D' = D[unfolded less_multiset\<^sub>H\<^sub>O]
@@ -380,12 +380,6 @@ superposition: "A \<in> N \<Longrightarrow> B \<in> N \<Longrightarrow> superpos
 definition abstract_red :: "'a::wellorder clause \<Rightarrow> 'a clauses \<Rightarrow> bool" where
 "abstract_red C N = (clss_lt N C \<Turnstile>p C)"
 
-lemma less_multiset[iff]: "M < N \<longleftrightarrow> M #\<subset># N"
-  unfolding less_multiset_def by auto
-
-lemma less_eq_multiset[iff]: "M \<le> N \<longleftrightarrow> M #\<subseteq># N"
-  unfolding less_eq_multiset_def by auto
-
 lemma herbrand_true_clss_true_clss_cls_herbrand_true_clss:
   assumes
     AB: "A \<Turnstile>hs B" and
@@ -411,8 +405,9 @@ lemma abstract_red_subset_mset_abstract_red:
     c_lt_d: "C \<subseteq># D"
   shows "abstract_red D N"
 proof -
-  have "{D \<in> N. D #\<subset># C} \<subseteq> {D' \<in> N. D' #\<subset># D}"
-    using c_lt_d less_eq_imp_le_multiset by fastforce
+  have "{D \<in> N. D < C} \<subseteq> {D' \<in> N. D' < D}"
+    using subset_eq_imp_le_multiset[OF c_lt_d] 
+    by (metis (no_types, lifting) Collect_mono order.strict_trans2)
   then show ?thesis
     using abstr unfolding abstract_red_def clss_lt_def
     by (metis (no_types, lifting) c_lt_d subset_mset.diff_add true_clss_cls_mono_r'
@@ -498,7 +493,7 @@ proof (rule ccontr)
     unfolding D_def
     by (metis (mono_tags, lifting) Min_in finite mem_Collect_eq not_empty rev_finite_subset subsetI)
   have cls_not_D: "\<And>E. E \<in> N \<Longrightarrow> E \<noteq> D \<Longrightarrow> \<not>?N\<^sub>\<I> \<Turnstile>h E \<Longrightarrow> D \<le> E"
-    using finite D_def by (auto simp del: less_eq_multiset)
+    using finite D_def by auto
   obtain C L where D: "D = C + {#L#}" and LSD: "L \<in># S D \<or> (S D = {#} \<and> Max (set_mset D) = L)"
     proof (cases "S D = {#}")
       case False
@@ -524,7 +519,7 @@ proof (rule ccontr)
     proof (rule ccontr)
       assume red[simplified]: "~~redundant D N"
       have "\<forall>E < D. E \<in> N \<longrightarrow> ?N\<^sub>\<I> \<Turnstile>h E"
-        using cls_not_D not_le by fastforce
+        using cls_not_D unfolding not_le[symmetric] by fastforce
       then have "?N\<^sub>\<I> \<Turnstile>hs clss_lt N D"
         unfolding clss_lt_def true_clss_def Ball_def by blast
       then show False
@@ -564,14 +559,14 @@ proof (rule ccontr)
         unfolding D by (metis (full_types) P insert_DiffM2)
       have sup: "superposition_rules D D (D - {#L#})"
         unfolding C' L by (auto simp add: superposition_rules.simps)
-      have "C' + {#Pos P#}  #\<subset># C' + {#Pos P#} + {#Pos P#}"
+      have "C' + {#Pos P#}  < C' + {#Pos P#} + {#Pos P#}"
         by auto
       moreover have "\<not>?N\<^sub>\<I> \<Turnstile>h (D - {#L#})"
         using not_d_interp unfolding C' L by auto
       ultimately have "C' + {#Pos P#} \<notin> N"
-        by (metis (no_types, lifting) C' P add_diff_cancel_right' cls_not_D less_multiset
+        by (metis (no_types, lifting) C' P add_diff_cancel_right' cls_not_D
           multi_self_add_other_not_self not_le)
-      have "D - {#L#} #\<subset># D"
+      have "D - {#L#} < D"
         unfolding C' L by auto
       have c'_p_p: "C' + {#Pos P#} + {#Pos P#} - {#Pos P#} = C' + {#Pos P#}"
         by auto
@@ -611,9 +606,9 @@ proof (rule ccontr)
           set_mset_eq_empty_iff)
       moreover have "E + {#Pos P#} \<noteq> C + {#Neg P#}"
         using prod produces_imp_neg_notin_lits by force
-      ultimately have "E + {#Pos P#} #\<subset># C + {#Neg P#}"
+      ultimately have "E + {#Pos P#} < C + {#Neg P#}"
         unfolding less_multiset\<^sub>H\<^sub>O by (metis count_greater_zero_iff less_iff_Suc_add zero_less_Suc)
-      have ce_lt_d: "C + E #\<subset># D"
+      have ce_lt_d: "C + E < D"
         unfolding D L by (simp add: \<open>\<And>y. y \<in># E + {#Pos P#} \<Longrightarrow> y < Neg P\<close> ex_gt_imp_less_multiset)
       have "?N\<^sub>\<I> \<Turnstile>h E + {#Pos P#}"
         using \<open>P \<in> ?N\<^sub>\<I>\<close> by blast
@@ -633,7 +628,7 @@ proof (rule ccontr)
         using PMax apply auto
         defer
         sorry
-      ultimately have ce_lt_ep: "C + E #\<subset># E + {#Pos P#}"
+      ultimately have ce_lt_ep: "C + E < E + {#Pos P#}"
         using ex_gt_imp_less_multiset prod produces_imp_Pos_in_lits by blast  *)
       have "\<not>redundant (C + E) N"
         proof (rule ccontr)
@@ -659,7 +654,8 @@ proof (rule ccontr)
                 unfolding true_clss_cls_def by auto
             qed
           moreover have "clss_lt N (C + E) \<subseteq> clss_lt N (C + {#Neg P#})"
-            using ce_lt_d mult_less_trans unfolding clss_lt_def D L by force
+            using ce_lt_d order.strict_trans2 unfolding clss_lt_def D L  
+            by (blast dest: less_imp_le)
           ultimately have "redundant (C + {#Neg P#}) N \<or> clss_lt N (C + E) \<Turnstile>p E + {#Pos P#} "
             unfolding redundant_iff_abstract abstract_red_def using true_clss_cls_subset by blast
           show False sorry
@@ -691,7 +687,7 @@ lemma subsumed_is_redundant:
   shows "abstract_red B N"
 proof -
   have "A \<in> clss_lt N B" using AN AB unfolding clss_lt_def
-    by (auto dest: less_eq_imp_le_multiset simp add: multiset_order.dual_order.order_iff_strict)
+    by (auto dest: subset_eq_imp_le_multiset simp add: dual_order.order_iff_strict)
   then show ?thesis
     using AB unfolding abstract_red_def true_clss_cls_def Partial_Clausal_Logic.true_clss_def
     by blast

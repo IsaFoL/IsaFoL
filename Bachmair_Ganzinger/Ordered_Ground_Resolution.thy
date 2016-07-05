@@ -109,7 +109,7 @@ This corresponds to Lemma 3.13:
 
 lemma ord_resolve_reductive:
   assumes res_e: "ord_resolve CC D E"
-  shows "E #\<subset># D"
+  shows "E < D"
 using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve Cf' ZZ AA D')
   note e = this(1) and cf' = this(2) and aa = this(3) and d = this(5) and zz_ne = this(6) and
@@ -151,7 +151,7 @@ using res_e proof (cases rule: ord_resolve.cases)
       using cf'_lt_ma by (fastforce intro: neg_lit_in_atms_of)
     moreover have "Neg max_A \<in># negs AA"
       using ma_in mc_lt_ma by simp
-    ultimately have "Cf' #\<subset># negs AA"
+    ultimately have "Cf' < negs AA"
       using cf'_lt_ma unfolding less_multiset\<^sub>H\<^sub>O
       (* TODO tune proof *)
       by (auto simp: cf'_ne_neg_aa not_in_iff intro!: exI[of _ "Neg max_A"])
@@ -171,14 +171,14 @@ theorem ord_resolve_counterex_reducing:
     ec_ni_n: "{#} \<notin> N" and
     c_in_n: "C \<in> N" and
     c_cex: "\<not> INTERP N \<Turnstile> C" and
-    c_min: "\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C #\<subseteq># D"
+    c_min: "\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D"
   obtains DD E where
     "set_mset DD \<subseteq> N"
     "INTERP N \<Turnstile>m DD"
     "\<And>D. D \<in># DD \<Longrightarrow> productive N D"
     "ord_resolve DD C E"
     "\<not> INTERP N \<Turnstile> E"
-    "E #\<subset># C"
+    "E < C"
 proof -
   have c_ne: "C \<noteq> {#}"
     using c_in_n ec_ni_n by blast
@@ -282,8 +282,8 @@ proof -
     by (drule prod_d0) (auto dest: produces_imp_neg_notin_lits)
   hence a_ni_d': "\<And>A. A \<in># AA \<Longrightarrow> A \<notin> atms_of (D'_of A)"
     unfolding d'_of using atm_imp_pos_or_neg_lit by force
-  have d'_le_d: "\<And>A. D'_of A #\<subseteq># D_of A"
-    unfolding d'_of by (auto intro: less_eq_imp_le_multiset)
+  have d'_le_d: "\<And>A. D'_of A \<le> D_of A"
+    unfolding d'_of by (auto intro: subset_eq_imp_le_multiset)
   have a_max_d: "\<And>A. A \<in># AA \<Longrightarrow> A = Max (atms_of (D_of A))"
     using prod_d0 productive_imp_produces_Max_atom[of N] by auto
   hence "\<And>A. A \<in># AA \<Longrightarrow> D'_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (D'_of A)) \<le> A"
@@ -310,7 +310,7 @@ proof -
   ultimately have e_cex: "\<not> INTERP N \<Turnstile> Df' + C'"
     by simp
 
-  have lt_cex: "Df' + C' #\<subset># C"
+  have lt_cex: "Df' + C' < C"
     using res_e ord_resolve_reductive by blast
 
   from dd_subs_n dd_true prod_d res_e e_cex lt_cex show ?thesis ..
@@ -349,17 +349,17 @@ sublocale
   reductive_inference_system "ground_resolution_with_selection.ord_\<Gamma> S"
 proof unfold_locales
   fix C :: "'a clause" and N :: "'a clause set"
-  assume "{#} \<notin> N" and "C \<in> N" and "\<not> INTERP N \<Turnstile> C" and "\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C #\<subseteq># D"
+  assume "{#} \<notin> N" and "C \<in> N" and "\<not> INTERP N \<Turnstile> C" and "\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D"
   then obtain DD E where
     dd_sset_n: "set_mset DD \<subseteq> N" and
     dd_true: "INTERP N \<Turnstile>m DD" and
     res_e: "ord_resolve DD C E" and
     e_cex: "\<not> INTERP N \<Turnstile> E" and
-    e_lt_c: "E #\<subset># C"
+    e_lt_c: "E < C"
     using ord_resolve_counterex_reducing by metis
   from res_e have "Infer DD C E \<in> ord_\<Gamma>"
     unfolding ord_\<Gamma>_def by blast
-  thus "\<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> ord_\<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E #\<subset># C"
+  thus "\<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> ord_\<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < C"
     using dd_sset_n dd_true e_cex e_lt_c by blast
 next
   fix CC D E and I
@@ -369,7 +369,7 @@ next
 next
   fix \<gamma>
   assume "\<gamma> \<in> ord_\<Gamma>"
-  thus "concl_of \<gamma> #\<subset># main_prem_of \<gamma>"
+  thus "concl_of \<gamma> < main_prem_of \<gamma>"
     unfolding ord_\<Gamma>_def using ord_resolve_reductive by auto
 qed
 

@@ -98,7 +98,7 @@ sublocale sat_preserving_inference_system
 end
 
 locale reductive_inference_system = inference_system \<Gamma> for \<Gamma> :: "('a :: wellorder) inference set" +
-  assumes \<Gamma>_reductive: "\<And>\<gamma>. \<gamma> \<in> \<Gamma> \<Longrightarrow> concl_of \<gamma> #\<subset># main_prem_of \<gamma>"
+  assumes \<Gamma>_reductive: "\<And>\<gamma>. \<gamma> \<in> \<Gamma> \<Longrightarrow> concl_of \<gamma> < main_prem_of \<gamma>"
 
 
 subsection {* Refutational Completeness *}
@@ -118,14 +118,14 @@ locale counterex_reducing_inference_system =
   inference_system \<Gamma> for \<Gamma> :: "('a :: wellorder) inference set" +
   fixes INTERP :: "'a clause set \<Rightarrow> 'a interp"
   assumes \<Gamma>_counterex_reducing:
-    "\<And>N. {#} \<notin> N \<Longrightarrow> C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> (\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C #\<subseteq># D) \<Longrightarrow>
-       \<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> \<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E #\<subset># C"
+    "\<And>N. {#} \<notin> N \<Longrightarrow> C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> (\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D) \<Longrightarrow>
+       \<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> \<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < C"
 begin
 
 lemma ex_min_counterex:
   fixes N :: "('a :: wellorder) clause set"
   assumes "\<not> I \<Turnstile>s N"
-  shows "\<exists>C \<in> N. \<not> I \<Turnstile> C \<and> (\<forall>D \<in> N. D #\<subset># C \<longrightarrow> I \<Turnstile> D)"
+  shows "\<exists>C \<in> N. \<not> I \<Turnstile> C \<and> (\<forall>D \<in> N. D < C \<longrightarrow> I \<Turnstile> D)"
 proof -
   obtain C where "C \<in> N" and "\<not> I \<Turnstile> C"
     using assms unfolding true_clss_def by auto
@@ -150,13 +150,13 @@ proof -
     then obtain C where
       c_in_n: "C \<in> N" and
       c_cex: "\<not> INTERP N \<Turnstile> C" and
-      c_min: "\<And>D. D \<in> N \<Longrightarrow> D #\<subset># C \<Longrightarrow> INTERP N \<Turnstile> D"
+      c_min: "\<And>D. D \<in> N \<Longrightarrow> D < C \<Longrightarrow> INTERP N \<Turnstile> D"
       using ex_min_counterex by meson
     then obtain DD E where
       dd_subs_n: "set_mset DD \<subseteq> N" and
       inf_e: "Infer DD C E \<in> \<Gamma>" and
       e_cex: "\<not> INTERP N \<Turnstile> E" and
-      e_lt_c: "E #\<subset># C"
+      e_lt_c: "E < C"
       using \<Gamma>_counterex_reducing[OF ec_ni_n] multiset_linorder.not_less by metis
     from dd_subs_n inf_e have "E \<in> N"
       using c_in_n satur by (blast dest: saturatedD)
