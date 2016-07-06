@@ -113,73 +113,11 @@ lemma size_Diff1_le: "size (\<Sigma> - {#x#}) \<le> size \<Sigma>"
 lemma size_psubset: "(\<Sigma>:: _ multiset) \<le># \<Sigma>' \<Longrightarrow> size \<Sigma> < size \<Sigma>' \<Longrightarrow> \<Sigma> <# \<Sigma>'"
   using less_irrefl subset_mset_def by blast
 
-
-(* subsection \<open>Multiset Extension of Multiset Ordering\<close>
-
-text \<open>
-The \<open>op <#\<close> and \<open>op \<le>#\<close> operators are introduced as the multiset extension of
-the multiset orderings of @{term "op <"} and @{term "op \<le>"}.
-\<close>
-
-definition less_mset_mset :: "('a :: order) multiset multiset \<Rightarrow> 'a multiset multiset \<Rightarrow> bool"
-  (infix "#<##" 50)
-where
-  "M' #<## M \<longleftrightarrow> (M', M) \<in> mult {(x', x). x' < x}"
-
-lemma
-  fixes M M' :: "'a :: order multiset multiset"
-  shows "M < M' \<longleftrightarrow> M #<## M'"
-  unfolding less_mset_mset_def less_multiset_def ..
-definition le_mset_mset :: "('a :: order) multiset multiset \<Rightarrow> 'a multiset multiset \<Rightarrow> bool"
-  (infix "#<=##" 50)
-where
-  "M' #<=## M \<longleftrightarrow> M' #<## M \<or> M' = M"
-
-notation less_mset_mset (infix "<#" 50)
-notation le_mset_mset (infix "\<le>#" 50)
-
-lemmas less_mset_mset\<^sub>D\<^sub>M = order.mult\<^sub>D\<^sub>M[OF order_multiset, folded less_mset_mset_def]
-lemmas less_mset_mset\<^sub>H\<^sub>O = order.mult\<^sub>H\<^sub>O[OF order_multiset, folded less_mset_mset_def]
-
-interpretation multiset_multiset_order: order
-  "le_mset_mset :: ('a :: linorder) multiset multiset \<Rightarrow> ('a :: linorder) multiset multiset \<Rightarrow> bool"
-  "less_mset_mset :: ('a :: linorder) multiset multiset \<Rightarrow> ('a::linorder) multiset multiset \<Rightarrow> bool"
-  unfolding less_mset_mset_def[abs_def] le_mset_mset_def[abs_def] less_multiset_def[abs_def]
-  by (rule order.order_mult)+ standard
-
-interpretation multiset_multiset_linorder: linorder
-  "le_mset_mset :: ('a :: linorder) multiset multiset \<Rightarrow> ('a :: linorder) multiset multiset \<Rightarrow> bool"
-  "less_mset_mset :: ('a :: linorder) multiset multiset \<Rightarrow> ('a::linorder) multiset multiset \<Rightarrow> bool"
-  unfolding less_mset_mset_def[abs_def] le_mset_mset_def[abs_def]
-  by (rule linorder.linorder_mult[OF linorder_multiset])
-
-lemma wf_less_mset_mset: "wf {(\<Sigma> :: ('a :: wellorder) multiset multiset, T). \<Sigma> <# T}"
-  unfolding less_mset_mset_def by (auto intro: wf_mult wf_less_multiset)
-
-interpretation multiset_multiset_wellorder: wellorder
-  "le_mset_mset :: ('a::wellorder) multiset multiset \<Rightarrow> ('a::wellorder) multiset multiset \<Rightarrow> bool"
-  "less_mset_mset :: ('a::wellorder) multiset multiset \<Rightarrow> ('a::wellorder) multiset multiset \<Rightarrow> bool"
-  by unfold_locales (blast intro: wf_less_mset_mset[unfolded wf_def, rule_format])
-
-lemma union_less_mset_mset_mono2: "B <# D \<Longrightarrow> C + B <# C + (D::'a::order multiset multiset)"
-apply (unfold less_mset_mset_def mult_def)
-apply (erule trancl_induct)
- apply (blast intro: mult1_union)
-apply (blast intro: mult1_union trancl_trans)
-done
-
-T U "\<Sigma> - U"] by simp
-
-lemma ex_gt_imp_less_mset_mset:
-  "(\<exists>y :: 'a :: linorder multiset \<in># T. (\<forall>x. x \<in># \<Sigma> \<longrightarrow> x < y)) \<Longrightarrow> \<Sigma> <# T"
-  using less_mset_mset\<^sub>H\<^sub>O by (metis count_greater_zero_iff count_inI less_nat_zero_code
-    multiset_linorder.not_less_iff_gr_or_eq)
- *)
 lemma ex_gt_imp_less_mset_mset:
   "(\<exists>y :: 'a :: linorder multiset \<in># T. (\<forall>x. x \<in># \<Sigma> \<longrightarrow> x < y)) \<Longrightarrow> \<Sigma> < T"
   using order.mult\<^sub>H\<^sub>O[OF order_multiset,  folded less_multiset_def] by (metis count_greater_zero_iff count_inI less_nat_zero_code
     multiset_linorder.not_less_iff_gr_or_eq)
-  
+
 instantiation multiset :: (linorder) linorder
 begin
 instance
