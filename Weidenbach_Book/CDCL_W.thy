@@ -2521,6 +2521,9 @@ proof -
       have "?M \<Turnstile>as CNot ?D" using confl LD unfolding cdcl\<^sub>W_conflicting_def by auto
       then have "?M \<noteq> []" unfolding true_annots_def Ball_def true_annot_def true_cls_def by force
       have M: "?M = hd ?M # tl ?M" using \<open>?M \<noteq> []\<close> list.collapse by fastforce
+      
+      have n_s: "no_step conflict S" "no_step propagate S"
+        using termi by (blast intro: cdcl\<^sub>W_stgy.intros)+
 
       have n_s: "no_step conflict S" "no_step propagate S"
         using termi by (blast intro: cdcl\<^sub>W_stgy.intros)+
@@ -2528,7 +2531,6 @@ proof -
       have g_k: "get_maximum_level (trail S) D \<le> ?k"
         using count_decided_ge_get_maximum_level[of ?M] level_inv unfolding cdcl\<^sub>W_M_level_inv_def
         by auto
-
       have not_is_decided: "\<not> is_decided (hd ?M)"
         proof (rule ccontr)
           assume decided: "\<not> ?thesis"
@@ -2536,7 +2538,6 @@ proof -
           then obtain k' where k': "k' + 1 = ?k"
             using level_inv M unfolding cdcl\<^sub>W_M_level_inv_def by (cases "trail S") auto
           define M' where M': "M' = tl ?M"
-
           have L'_L: "L' = -L"
             proof (rule ccontr)
               assume "\<not> ?thesis"
@@ -2555,7 +2556,6 @@ proof -
               finally show False using lev_L M unfolding M' by auto
             qed
           then have L: "hd ?M = Decided (-L)" using L' by auto
-
           have H: "get_maximum_level (trail S) D < ?k"
             proof (rule ccontr)
               assume "\<not> ?thesis"
@@ -3367,7 +3367,7 @@ lemma cdcl\<^sub>W_stgy_ex_lit_of_max_level:
     "distinct_cdcl\<^sub>W_state S" and
     "cdcl\<^sub>W_conflicting S"
   shows "conflict_is_false_with_level S'"
-  using assms
+  using assms        
 proof (induct rule: cdcl\<^sub>W_stgy.induct)
   case (conflict' S')
   then have "no_smaller_confl S'"
