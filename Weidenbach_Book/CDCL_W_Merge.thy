@@ -103,43 +103,22 @@ begin
 subsection \<open>More lemmas conflict--propagate and backjumping\<close>
 subsubsection \<open>Termination\<close>
 
-lemma cdcl\<^sub>W_cp_normalized_element_all_inv:
-  assumes inv: "cdcl\<^sub>W_all_struct_inv S"
-  obtains T where "full cdcl\<^sub>W_cp S T"
-  using assms cdcl\<^sub>W_cp_normalized_element unfolding cdcl\<^sub>W_all_struct_inv_def by blast
-thm backtrackE
-
 lemma cdcl\<^sub>W_bj_measure:
-  assumes "cdcl\<^sub>W_bj S T" and "cdcl\<^sub>W_M_level_inv S"
+  assumes "cdcl\<^sub>W_bj S T"
   shows "length (trail S) + (if conflicting S = None then 0 else 1)
     > length (trail T) + (if conflicting T = None then 0 else 1)"
-  using assms by (induction rule: cdcl\<^sub>W_bj.induct)
-  (force dest: arg_cong[of _ _ length]
-    intro: get_all_ann_decomposition_exists_prepend
-    elim!: backtrackE skipE resolveE
-    simp: cdcl\<^sub>W_M_level_inv_def)+
+  using assms by (induction rule: cdcl\<^sub>W_bj.induct) (force elim!: backtrackE skipE resolveE)+
 
 lemma wf_cdcl\<^sub>W_bj:
-  "wf {(b,a). cdcl\<^sub>W_bj a b \<and> cdcl\<^sub>W_M_level_inv a}"
+  "wf {(b,a). cdcl\<^sub>W_bj a b}"
   apply (rule wfP_if_measure[of "\<lambda>_. True"
       _ "\<lambda>T. length (trail T) + (if conflicting T = None then 0 else 1)", simplified])
   using cdcl\<^sub>W_bj_measure by simp
 
 lemma cdcl\<^sub>W_bj_exists_normal_form:
-  assumes lev: "cdcl\<^sub>W_M_level_inv S"
   shows "\<exists>T. full cdcl\<^sub>W_bj S T"
-proof -
-  obtain T where T: "full (\<lambda>a b. cdcl\<^sub>W_bj a b \<and> cdcl\<^sub>W_M_level_inv a) S T"
-    using wf_exists_normal_form_full[OF wf_cdcl\<^sub>W_bj] by auto
-  then have "cdcl\<^sub>W_bj\<^sup>*\<^sup>* S T"
-     by (auto dest: rtranclp_and_rtranclp_left simp: full_def)
-  moreover
-    then have "cdcl\<^sub>W_restart\<^sup>*\<^sup>* S T"
-      using mono_rtranclp[of cdcl\<^sub>W_bj cdcl\<^sub>W_restart] by blast
-    then have "cdcl\<^sub>W_M_level_inv T"
-      using rtranclp_cdcl\<^sub>W_restart_consistent_inv lev by auto
-  ultimately show ?thesis using T unfolding full_def by auto
-qed
+  using wf_exists_normal_form_full[OF wf_cdcl\<^sub>W_bj] .
+
 lemma rtranclp_skip_state_decomp:
   assumes "skip\<^sup>*\<^sup>* S T" and "no_dup (trail S)"
   shows
@@ -151,7 +130,9 @@ lemma rtranclp_skip_state_decomp:
   using assms by (induction rule: rtranclp_induct)
   (auto simp del: state_simp simp: state_eq_def elim!: skipE)
 
-subsubsection \<open>More backjumping\<close>
+
+subsubsection \<open>Analysing is confluent\<close>
+
 paragraph \<open>Backjumping after skipping or jump directly\<close>
 
 lemma rtranclp_skip_backtrack_backtrack:
@@ -407,6 +388,7 @@ next
     qed (metis (no_types, lifting) IH rtranclp.simps skip_or_resolve.simps)+
 qed
 
+paragraph \<open>Uniqueness of the jumping\<close>
 lemma resolve_skip_deterministic:
   "resolve S T \<Longrightarrow> skip S U \<Longrightarrow> False"
   by (auto elim!: skipE resolveE)
@@ -859,6 +841,7 @@ next
     qed
 qed
 
+paragraph \<open>Confluence\<close>
 text \<open>The case distinction is needed, since @{term "T \<sim> V"} does not imply that @{term "R\<^sup>*\<^sup>* T V"}.\<close>
 lemma cdcl\<^sub>W_bj_strongly_confluent:
    assumes
@@ -978,7 +961,9 @@ lemma full_cdcl\<^sub>W_bj_unique_normal_form:
  shows "T \<sim> U"
    using cdcl\<^sub>W_bj_unique_normal_form assms unfolding full_def by blast
 
+
 subsection \<open>CDCL with Merging\<close>
+
 inductive cdcl\<^sub>W_merge_restart :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 fw_r_propagate: "propagate S S' \<Longrightarrow> cdcl\<^sub>W_merge_restart S S'" |
 fw_r_conflict: "conflict S T \<Longrightarrow> full cdcl\<^sub>W_bj T U \<Longrightarrow> cdcl\<^sub>W_merge_restart S U" |
