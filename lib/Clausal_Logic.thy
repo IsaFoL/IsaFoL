@@ -196,7 +196,7 @@ proof -
 qed
 
 lemma pos_Max_imp_neg_notin: "Max (set_mset C) = Pos A \<Longrightarrow> Neg A \<notin># C"
-  using Max_pos_neg_less_multiset[unfolded multiset_linorder.not_le[symmetric]] by blast
+  using Max_pos_neg_less_multiset[unfolded not_le[symmetric]] by blast
 
 lemma less_eq_Max_lit: "C \<noteq> {#} \<Longrightarrow> C \<le> D \<Longrightarrow> Max (set_mset C) \<le> Max (set_mset D)"
 proof (unfold less_eq_multiset\<^sub>H\<^sub>O)

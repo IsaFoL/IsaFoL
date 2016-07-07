@@ -128,16 +128,16 @@ lemma less_eq_imp_Interp_subseteq_Interp: "C \<le> D \<Longrightarrow> Interp C 
   unfolding Interp_def by (metis le_imp_less_or_eq le_supI2 subset_refl sup_commute)
 
 lemma false_Interp_to_true_interp_imp_less_multiset: "A \<notin> Interp C \<Longrightarrow> A \<in> interp D \<Longrightarrow> C < D"
-  using less_eq_imp_interp_subseteq_Interp multiset_linorder.not_less by blast
+  using less_eq_imp_interp_subseteq_Interp not_less by blast
 
 lemma false_interp_to_true_interp_imp_less_multiset: "A \<notin> interp C \<Longrightarrow> A \<in> interp D \<Longrightarrow> C < D"
-  using less_eq_imp_interp_subseteq_interp multiset_linorder.not_less by blast
+  using less_eq_imp_interp_subseteq_interp not_less by blast
 
 lemma false_Interp_to_true_Interp_imp_less_multiset: "A \<notin> Interp C \<Longrightarrow> A \<in> Interp D \<Longrightarrow> C < D"
-  using less_eq_imp_Interp_subseteq_Interp multiset_linorder.not_less by blast
+  using less_eq_imp_Interp_subseteq_Interp not_less by blast
 
 lemma false_interp_to_true_Interp_imp_le_multiset: "A \<notin> interp C \<Longrightarrow> A \<in> Interp D \<Longrightarrow> C \<le> D"
-  using less_imp_Interp_subseteq_interp multiset_linorder.not_less by blast
+  using less_imp_Interp_subseteq_interp not_less by blast
 
 definition INTERP :: "'a interp" where
   "INTERP = (\<Union>C \<in> N. production C)"

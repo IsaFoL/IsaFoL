@@ -82,8 +82,7 @@ proof -
           using d_in_cc by (metis insert_DiffM mset_subset_eq_exists_conv)
       next
         show "CC' < {#D#}"
-          using cc'_lt_d ex_gt_imp_less_mset_mset unfolding Bex_def 
-          by (metis multi_member_last)
+          using cc'_lt_d ex_gt_imp_less_multiset unfolding Bex_def  by (metis multi_member_last)
       qed
     ultimately show False
       using c_min antisym[of "_ :: 'a literal multiset multiset"] 
@@ -225,7 +224,7 @@ proof (rule ccontr)
       \<gamma>_in: "\<gamma> \<in> \<Gamma>" and
       d_cex: "\<not> INTERP M \<Turnstile> D" and
       d_lt_c: "D < C"
-      using \<Gamma>_counterex_reducing[OF ec_ni_m] multiset_linorder.not_less by metis
+      using \<Gamma>_counterex_reducing[OF ec_ni_m] not_less by metis
     have cc: "CC = side_prems_of \<gamma>" and c: "C = main_prem_of \<gamma>" and d: "D = concl_of \<gamma>"
       unfolding \<gamma> by simp_all
     have "\<gamma> \<in> Ri N"

@@ -157,11 +157,11 @@ proof -
       inf_e: "Infer DD C E \<in> \<Gamma>" and
       e_cex: "\<not> INTERP N \<Turnstile> E" and
       e_lt_c: "E < C"
-      using \<Gamma>_counterex_reducing[OF ec_ni_n] multiset_linorder.not_less by metis
+      using \<Gamma>_counterex_reducing[OF ec_ni_n] not_less by metis
     from dd_subs_n inf_e have "E \<in> N"
       using c_in_n satur by (blast dest: saturatedD)
     hence False
-      using e_cex e_lt_c c_min multiset_linorder.not_less by blast }
+      using e_cex e_lt_c c_min not_less by blast }
   thus ?thesis
     by satx
 qed

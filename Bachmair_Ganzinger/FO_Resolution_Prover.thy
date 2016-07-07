@@ -318,7 +318,7 @@ using resolve proof (atomize_elim, cases rule: ord_resolve_raw.cases)
     S_M S M C = S (pickC C) \<cdot> pick\<sigma> C \<and> is_ground_subst (pick\<sigma> C)"
     unfolding bchoice_iff by blast
 
-  let ?Cs = "multiset_linorder.sorted_list_of_multiset CC"
+  let ?Cs = "sorted_list_of_multiset CC"
   let ?n = "length ?Cs"
   define Cs where "Cs \<equiv> map pickC ?Cs"
   then have Cs_M: "\<forall>C \<in> set Cs. C \<in> M" and "length Cs = ?n"
@@ -349,7 +349,7 @@ using resolve proof (atomize_elim, cases rule: ord_resolve_raw.cases)
   moreover from pick have "?Cs = Cs \<cdot>cls \<sigma>s"
     unfolding subst_cls_lists_def Cs_def \<sigma>s_def
     by (auto simp only: set_map length_map length_zip nth_map nth_zip nth_mem list_eq_iff_nth_eq
-       multiset_linorder.set_sorted_list_of_multiset[symmetric])
+      set_sorted_list_of_multiset[symmetric])
 
   then have "mset ?Cs = mset (Cs \<cdot>cls \<sigma>s)"
     by simp
@@ -675,6 +675,5 @@ text {*
 *}
 
 end
-
 
 end
