@@ -218,20 +218,37 @@ qed
 
 end
 
+
+sublocale dpll_with_backtrack \<subseteq> decide_ops
+  fst snd "\<lambda>L (M, N). (L # M, N)"
+  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
+  "\<lambda>_ _. True"
+  by unfold_locales
+
+context dpll_with_backtrack
+begin
+lemma undefined_lit_ex_decide\<^sub>N\<^sub>O\<^sub>T:
+  "atm_of L \<in> atms_of_mm (snd S) \<Longrightarrow> undefined_lit (fst S) L \<Longrightarrow> Ex (decide\<^sub>N\<^sub>O\<^sub>T S)"
+  using decide\<^sub>N\<^sub>O\<^sub>T.intros[of S L] state_eq\<^sub>N\<^sub>O\<^sub>T_ref by blast
+end
+
 sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops
     fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
+  "\<lambda>_ _. True"
   "\<lambda>_ _ _ S T. backtrack S T"
   "\<lambda>_ _. True"
   apply unfold_locales
-  by (metis (mono_tags, lifting) case_prod_beta comp_def dpll_with_backtrack.backtrack_is_backjump''
-    dpll_with_backtrack.can_do_bt_step)
+   apply (metis (mono_tags, lifting) case_prod_beta comp_def dpll_with_backtrack.backtrack_is_backjump''
+     dpll_with_backtrack.can_do_bt_step)
+  using undefined_lit_ex_decide\<^sub>N\<^sub>O\<^sub>T by blast
 
 sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping
     fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
+  "\<lambda>_ _. True"
   "\<lambda>_ _ _ S T. backtrack S T"
   "\<lambda>_ _. True"
   apply unfold_locales
@@ -272,6 +289,7 @@ interpretation conflict_driven_clause_learning_ops
     fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
+  "\<lambda>_ _. True"
   "\<lambda>_ _ _ S T. backtrack S T"
   "\<lambda>_ _. True" "\<lambda>_ _. False" "\<lambda>_ _. False"
   by unfold_locales
@@ -280,6 +298,7 @@ interpretation conflict_driven_clause_learning
     fst snd "\<lambda>L (M, N). (L # M, N)"
   "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
+  "\<lambda>_ _. True"
   "\<lambda>_ _ _ S T. backtrack S T"
   "\<lambda>_ _. True" "\<lambda>_ _. False" "\<lambda>_ _. False"
   apply unfold_locales
