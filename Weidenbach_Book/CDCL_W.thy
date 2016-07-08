@@ -348,7 +348,7 @@ lemma learned_clss_update_trail[simp]:
 lemma conflicting_reduce_trail_to[simp]:
   "conflicting (reduce_trail_to F S) = None \<longleftrightarrow> conflicting S = None"
   apply (induction F S rule: reduce_trail_to.induct)
-  by (metis conflicting_update_trail map_option_is_None)
+  by (metis conflicting_update_trail)
 
 lemma trail_eq_reduce_trail_to_eq:
   "trail S = trail T \<Longrightarrow> trail (reduce_trail_to F S) = trail (reduce_trail_to F T)"
@@ -365,9 +365,9 @@ proof -
 qed
 
 lemma reduce_trail_to_trail_tl_trail_decomp[simp]:
-  "trail S = F' @ Decided K # F \<Longrightarrow> (trail (reduce_trail_to F S)) = F "
+  "trail S = F' @ Decided K # F \<Longrightarrow> trail (reduce_trail_to F S) = F "
   apply (rule reduce_trail_to_skip_beginning[of _ "F' @ Decided K # []"])
-  by (cases F') (auto simp add:tl_append reduce_trail_to_skip_beginning)
+  by (cases F') (auto simp add: tl_append reduce_trail_to_skip_beginning)
 
 lemma reduce_trail_to_add_learned_cls[simp]:
   "trail (reduce_trail_to F (add_learned_cls C S)) = trail (reduce_trail_to F S)"
@@ -419,17 +419,17 @@ proof -
      (auto simp: tr_S L)
 qed
 
-lemma conflicting_cons_trail_conflicting[simp]:
+lemma conflicting_cons_trail_conflicting[iff]:
   assumes "undefined_lit (trail S) (lit_of L)"
   shows
     "conflicting (cons_trail L S) = None \<longleftrightarrow> conflicting S = None"
   using assms conflicting_cons_trail[of L S] map_option_is_None by fastforce+
 
-lemma conflicting_add_learned_cls_conflicting[simp]:
+lemma conflicting_add_learned_cls_conflicting[iff]:
   "conflicting (add_learned_cls C S) = None \<longleftrightarrow> conflicting S = None"
   by fastforce+
 
-lemma conflicting_update_backtracl_lvl[simp]:
+lemma conflicting_update_backtracl_lvl[iff]:
   "conflicting (update_backtrack_lvl k S) = None \<longleftrightarrow> conflicting S = None"
   using map_option_is_None conflicting_update_backtrack_lvl[of k S] by fastforce+
 
@@ -608,7 +608,7 @@ lemma cdcl\<^sub>W_cdcl\<^sub>W_restart:
 
 lemma cdcl\<^sub>W_restart_all_rules_induct[consumes 1, case_names propagate conflict forget restart decide
     skip resolve backtrack]:
-  fixes S :: "'st"
+  fixes S :: 'st
   assumes
     cdcl\<^sub>W_restart: "cdcl\<^sub>W_restart S S'" and
     propagate: "\<And>T. propagate S T \<Longrightarrow> P S T" and
@@ -645,7 +645,7 @@ qed
 
 lemma cdcl\<^sub>W_restart_all_induct[consumes 1, case_names propagate conflict forget restart decide skip
     resolve backtrack]:
-  fixes S :: "'st"
+  fixes S :: 'st
   assumes
     cdcl\<^sub>W_restart: "cdcl\<^sub>W_restart S S'" and
     propagateH: "\<And>C L T. conflicting S = None \<Longrightarrow>
@@ -809,8 +809,11 @@ lemma cdcl\<^sub>W_o_rule_cases[consumes 1, case_names decide backtrack skip res
   shows P
   using assms by (auto simp: cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps)
 
+
 subsection \<open>Structural Invariants\<close>
+
 subsubsection \<open>Properties of the trail\<close>
+
 text \<open>We here establish that:
   \<^item> the consistency of the trail;
   \<^item> the fact that there is no duplicate in the trail.\<close>
@@ -917,8 +920,6 @@ lemma cdcl\<^sub>W_restart_bt:
   using assms by (induct rule: cdcl\<^sub>W_restart.induct) (auto simp: cdcl\<^sub>W_o_bt cdcl\<^sub>W_rf_bt
     elim: conflictE propagateE)
 
-text \<open>We write @{term "1+count_decided (trail S)"} instead of
-  @{term "backtrack_lvl S"} to avoid non termination of rewriting.\<close>
 definition cdcl\<^sub>W_M_level_inv :: "'st \<Rightarrow> bool" where
 "cdcl\<^sub>W_M_level_inv S \<longleftrightarrow>
   consistent_interp (lits_of_l (trail S))
@@ -988,10 +989,12 @@ lemma backtrack_lvl_backtrack_decrease:
   shows "backtrack_lvl T < backtrack_lvl S"
   using inv bt le_count_decided_decomp[of "trail S" "backtrack_lvl T"]
   unfolding cdcl\<^sub>W_M_level_inv_def
-  by (fastforce elim!: backtrackE dest!: get_all_ann_decomposition_exists_prepend
-    simp: append_assoc[of _ _ "_# _", symmetric] simp del: append_assoc)
+  by (fastforce elim!: backtrackE simp: append_assoc[of _ _ "_# _", symmetric]
+    simp del: append_assoc)
+
 
 subsubsection \<open>Compatibility with @{term state_eq}\<close>
+
 lemma propagate_state_eq_compatible:
   assumes
     propa: "propagate S T" and
@@ -1182,10 +1185,10 @@ lemma cdcl\<^sub>W_restart_state_eq_compatible:
     "T \<sim> T'" and
     "cdcl\<^sub>W_M_level_inv S"
   shows "cdcl\<^sub>W_restart S' T'"
-  using assms by (meson backtrack backtrack_state_eq_compatible bj cdcl\<^sub>W_restart.simps cdcl\<^sub>W_o_rule_cases
-    cdcl\<^sub>W_rf.cases conflict_state_eq_compatible decide decide_state_eq_compatible forget
-    forget_state_eq_compatible propagate_state_eq_compatible resolve resolve_state_eq_compatible
-    skip skip_state_eq_compatible state_eq_ref)
+  using assms by (meson backtrack backtrack_state_eq_compatible bj cdcl\<^sub>W_restart.simps
+    cdcl\<^sub>W_o_rule_cases cdcl\<^sub>W_rf.cases conflict_state_eq_compatible decide decide_state_eq_compatible
+    forget forget_state_eq_compatible propagate_state_eq_compatible
+    resolve resolve_state_eq_compatible skip skip_state_eq_compatible state_eq_ref)
 
 lemma cdcl\<^sub>W_bj_state_eq_compatible:
   assumes
@@ -1233,8 +1236,9 @@ lemma tranclp_cdcl\<^sub>W_o_no_more_init_clss:
     inv: "cdcl\<^sub>W_M_level_inv S"
   shows "init_clss S = init_clss S'"
   using assms apply (induct rule: tranclp.induct)
-  by (auto dest: cdcl\<^sub>W_o_no_more_init_clss
-    dest!: tranclp_cdcl\<^sub>W_restart_consistent_inv dest: tranclp_mono_explicit[of cdcl\<^sub>W_o _ _ cdcl\<^sub>W_restart]
+  by (auto
+    dest!: tranclp_cdcl\<^sub>W_restart_consistent_inv
+    dest: tranclp_mono_explicit[of cdcl\<^sub>W_o _ _ cdcl\<^sub>W_restart] cdcl\<^sub>W_o_no_more_init_clss
     simp: other)
 
 lemma rtranclp_cdcl\<^sub>W_o_no_more_init_clss:
@@ -1259,11 +1263,14 @@ lemma tranclp_cdcl\<^sub>W_restart_init_clss:
   "cdcl\<^sub>W_restart\<^sup>+\<^sup>+ S T \<Longrightarrow> init_clss S = init_clss T"
   using rtranclp_cdcl\<^sub>W_restart_init_clss[of S T] unfolding rtranclp_unfold by auto
 
+
 subsubsection \<open>Learned Clause\<close>
+
 text \<open>This invariant shows that:
   \<^item> the learned clauses are entailed by the initial set of clauses.
   \<^item> the conflicting clause is entailed by the initial set of clauses.
-  \<^item> the marks are entailed by the clauses.\<close>
+  \<^item> the marks belong to the clauses. We could also restrict it to entailment by the clauses, to
+  allow forgetting this clauses.\<close>
 
 definition "cdcl\<^sub>W_learned_clause (S :: 'st) \<longleftrightarrow>
   (init_clss S \<Turnstile>psm learned_clss S
@@ -1341,20 +1348,19 @@ lemma rtranclp_cdcl\<^sub>W_restart_learned_clss:
 
 
 subsubsection \<open>No alien atom in the state\<close>
+
 text \<open>This invariant means that all the literals are in the set of clauses. These properties are
   implicit in Weidenbach's book.\<close>
-definition "no_strange_atm S' \<longleftrightarrow> (
+definition "no_strange_atm S' \<longleftrightarrow>
     (\<forall>T. conflicting S' = Some T \<longrightarrow> atms_of T \<subseteq> atms_of_mm (init_clss S'))
-  \<and> (\<forall>L mark. Propagated L mark \<in> set (trail S')
-      \<longrightarrow> atms_of mark \<subseteq> atms_of_mm (init_clss S'))
+  \<and> (\<forall>L mark. Propagated L mark \<in> set (trail S') \<longrightarrow> atms_of mark \<subseteq> atms_of_mm (init_clss S'))
   \<and> atms_of_mm (learned_clss S') \<subseteq> atms_of_mm (init_clss S')
-  \<and> atm_of ` (lits_of_l (trail S')) \<subseteq> atms_of_mm (init_clss S'))"
+  \<and> atm_of ` (lits_of_l (trail S')) \<subseteq> atms_of_mm (init_clss S')"
 
 lemma no_strange_atm_decomp:
   assumes "no_strange_atm S"
   shows "conflicting S = Some T \<Longrightarrow> atms_of T \<subseteq> atms_of_mm (init_clss S)"
-  and "(\<forall>L mark. Propagated L mark \<in> set (trail S)
-    \<longrightarrow> atms_of mark \<subseteq> atms_of_mm (init_clss S))"
+  and "(\<forall>L mark. Propagated L mark \<in> set (trail S) \<longrightarrow> atms_of mark \<subseteq> atms_of_mm (init_clss S))"
   and "atms_of_mm (learned_clss S) \<subseteq> atms_of_mm (init_clss S)"
   and "atm_of ` (lits_of_l (trail S)) \<subseteq> atms_of_mm (init_clss S)"
   using assms unfolding no_strange_atm_def by blast+
@@ -1362,17 +1368,13 @@ lemma no_strange_atm_decomp:
 lemma no_strange_atm_S0 [simp]: "no_strange_atm (init_state N)"
   unfolding no_strange_atm_def by auto
 
-lemma in_atms_of_implies_atm_of_on_atms_of_ms:
-  "C + {#L#} \<in># A \<Longrightarrow> x \<in> atms_of C \<Longrightarrow> x \<in> atms_of_mm A"
-  using multi_member_split by fastforce
-
 lemma propagate_no_strange_atm_inv:
   assumes
     "propagate S T" and
     alien: "no_strange_atm S"
   shows "no_strange_atm T"
   using assms(1)
-proof (induction)
+proof (induction rule: propagate.induct)
   case (propagate_rule C L T) note confl = this(1) and C = this(2) and C_L = this(3) and
     tr = this(4) and undef = this(5) and T = this(6)
   have atm_CL: "atms_of C \<subseteq> atms_of_mm (init_clss S)"
@@ -1381,7 +1383,7 @@ proof (induction)
   show ?case
     unfolding no_strange_atm_def
     proof (intro conjI allI impI, goal_cases)
-      case 1
+      case (1 C)
       then show ?case
         using confl T undef by auto
     next
@@ -1389,10 +1391,10 @@ proof (induction)
       then show ?case
         using C_L T alien undef atm_CL unfolding no_strange_atm_def clauses_def by (auto 5 5)
     next
-      case (3)
+      case 3
       show ?case using T alien undef unfolding no_strange_atm_def by auto
     next
-      case (4)
+      case 4
       show ?case
         using T alien undef C_L atm_CL unfolding no_strange_atm_def by (auto simp: atms_of_def)
     qed
@@ -1508,14 +1510,18 @@ qed
 lemma cdcl\<^sub>W_restart_no_strange_atm_inv:
   assumes "cdcl\<^sub>W_restart S S'" and "no_strange_atm S" and "cdcl\<^sub>W_M_level_inv S"
   shows "no_strange_atm S'"
-  using cdcl\<^sub>W_restart_no_strange_atm_explicit[OF assms(1)] assms(2,3) unfolding no_strange_atm_def by fast
+  using cdcl\<^sub>W_restart_no_strange_atm_explicit[OF assms(1)] assms(2,3) unfolding no_strange_atm_def
+  by fast
 
 lemma rtranclp_cdcl\<^sub>W_restart_no_strange_atm_inv:
   assumes "cdcl\<^sub>W_restart\<^sup>*\<^sup>* S S'" and "no_strange_atm S" and "cdcl\<^sub>W_M_level_inv S"
   shows "no_strange_atm S'"
-  using assms by induction (auto intro: cdcl\<^sub>W_restart_no_strange_atm_inv rtranclp_cdcl\<^sub>W_restart_consistent_inv)
+  using assms by (induction rule: rtranclp_induct)
+  (auto intro: cdcl\<^sub>W_restart_no_strange_atm_inv rtranclp_cdcl\<^sub>W_restart_consistent_inv)
+
 
 subsubsection \<open>No Duplicates all Around\<close>
+
 text \<open>This invariant shows that there is no duplicate (no literal appearing twice in the formula).
   The last part could be proven using the previous invariant also. Remark that we will show later
   that there cannot be duplicate \<^emph>\<open>clause\<close>.\<close>
@@ -1526,7 +1532,7 @@ definition "distinct_cdcl\<^sub>W_state (S ::'st)
     \<and> (\<forall>L mark. (Propagated L mark \<in> set (trail S) \<longrightarrow> distinct_mset mark)))"
 
 lemma distinct_cdcl\<^sub>W_state_decomp:
-  assumes "distinct_cdcl\<^sub>W_state (S ::'st)"
+  assumes "distinct_cdcl\<^sub>W_state S"
   shows
     "\<forall>T. conflicting S = Some T \<longrightarrow> distinct_mset T" and
     "distinct_mset_mset (learned_clss S)" and
@@ -1535,7 +1541,7 @@ lemma distinct_cdcl\<^sub>W_state_decomp:
   using assms unfolding distinct_cdcl\<^sub>W_state_def by blast+
 
 lemma distinct_cdcl\<^sub>W_state_decomp_2:
-  assumes "distinct_cdcl\<^sub>W_state (S ::'st)" and "conflicting S = Some T"
+  assumes "distinct_cdcl\<^sub>W_state S" and "conflicting S = Some T"
   shows "distinct_mset T"
   using assms unfolding distinct_cdcl\<^sub>W_state_def by auto
 
@@ -1579,6 +1585,7 @@ lemma rtanclp_distinct_cdcl\<^sub>W_state_inv:
 
 
 subsubsection \<open>Conflicts and Annotations\<close>
+
 text \<open>This invariant shows that each mark contains a contradiction only related to the previously
   defined variable.\<close>
 abbreviation every_mark_is_a_conflict :: "'st \<Rightarrow> bool" where
@@ -1731,7 +1738,8 @@ next
   case decide note S = this(1) and undef = this(2) and T = this(4)
   show ?case using decomp T undef unfolding S all_decomposition_implies_def by auto
 next
-  case (propagate C L T) note propa = this(2) and L = this(3) and undef = this(5) and T = this(6)
+  case (propagate C L T) note propa = this(2) and L = this(3) and S_CNot_C = this(4) and
+  undef = this(5) and T = this(6)
   obtain a y where ay: "hd (get_all_ann_decomposition (trail S)) = (a, y)"
     by (cases "hd (get_all_ann_decomposition (trail S))")
   then have M: "trail S = y @ a" using get_all_ann_decomposition_decomp by blast
@@ -1741,8 +1749,7 @@ next
   have "unmark_l a \<union> set_mset (init_clss S) \<Turnstile>ps unmark_l y"
     using decomp ay unfolding all_decomposition_implies_def
     by (cases "get_all_ann_decomposition (trail S)") fastforce+
-  then have a_Un_N_M: "unmark_l a \<union> set_mset (init_clss S)
-    \<Turnstile>ps unmark_l (trail S)"
+  then have a_Un_N_M: "unmark_l a \<union> set_mset (init_clss S) \<Turnstile>ps unmark_l (trail S)"
     unfolding M by (auto simp add: all_in_true_clss_clss image_Un)
 
   have "unmark_l a \<union> set_mset (init_clss S) \<Turnstile>p {#L#}" (is "?I \<Turnstile>p _")
@@ -1754,8 +1761,7 @@ next
           true_annot_CNot_diff)
     next
       have "unmark_l (trail S) \<Turnstile>ps CNot (remove1_mset L C)"
-        using \<open>(trail S) \<Turnstile>as CNot (remove1_mset L C)\<close> true_annots_true_clss_clss
-        by blast
+        using S_CNot_C by (blast dest: true_annots_true_clss_clss)
       then show "?I \<Turnstile>ps CNot (remove1_mset L C)"
         using a_Un_N_M true_clss_clss_left_right true_clss_clss_union_l_r by blast
     qed
@@ -2033,7 +2039,9 @@ lemma cdcl\<^sub>W_conflicting_S0_cdcl\<^sub>W_restart[simp]:
   "cdcl\<^sub>W_conflicting (init_state N)"
   unfolding cdcl\<^sub>W_conflicting_def by auto
 
-subsubsection \<open>Putting all the invariants together\<close>
+
+subsubsection \<open>Putting all the Invariants Together\<close>
+
 lemma cdcl\<^sub>W_restart_all_inv:
   assumes
     cdcl\<^sub>W_restart: "cdcl\<^sub>W_restart S S'" and
@@ -2052,16 +2060,16 @@ lemma cdcl\<^sub>W_restart_all_inv:
     "cdcl\<^sub>W_conflicting S'"
 proof -
   show S1: "all_decomposition_implies_m (init_clss S') (get_all_ann_decomposition (trail S'))"
-    using cdcl\<^sub>W_restart_propagate_is_conclusion[OF cdcl\<^sub>W_restart 4 1 2 _ 5] 8 unfolding cdcl\<^sub>W_conflicting_def
-    by blast
+    using cdcl\<^sub>W_restart_propagate_is_conclusion[OF cdcl\<^sub>W_restart 4 1 2 _ 5] 8
+    unfolding cdcl\<^sub>W_conflicting_def by blast
   show S2: "cdcl\<^sub>W_learned_clause S'" using cdcl\<^sub>W_restart_learned_clss[OF cdcl\<^sub>W_restart 2 4] .
   show S4: "cdcl\<^sub>W_M_level_inv S'" using cdcl\<^sub>W_restart_consistent_inv[OF cdcl\<^sub>W_restart 4] .
   show S5: "no_strange_atm S'" using cdcl\<^sub>W_restart_no_strange_atm_inv[OF cdcl\<^sub>W_restart 5 4] .
   show S7: "distinct_cdcl\<^sub>W_state S'" using distinct_cdcl\<^sub>W_state_inv[OF cdcl\<^sub>W_restart 4 7] .
   show S8: "cdcl\<^sub>W_conflicting S'"
-    using cdcl\<^sub>W_conflicting_is_false[OF cdcl\<^sub>W_restart 4 _ _ 7] 8 cdcl\<^sub>W_restart_propagate_is_false[OF cdcl\<^sub>W_restart 4 2 1 _
-      5]
-    unfolding cdcl\<^sub>W_conflicting_def by fast
+    using cdcl\<^sub>W_conflicting_is_false[OF cdcl\<^sub>W_restart 4 _ _ 7] 8
+    cdcl\<^sub>W_restart_propagate_is_false[OF cdcl\<^sub>W_restart 4 2 1 _ 5] unfolding cdcl\<^sub>W_conflicting_def
+    by fast
 qed
 
 lemma rtranclp_cdcl\<^sub>W_restart_all_inv:
@@ -2154,17 +2162,15 @@ proof (rule ccontr)
     using atm_incl state unfolding no_strange_atm_def by auto
   then have "total_over_m I (set_mset N \<union> unmark_l M)"
     using tot unfolding total_over_m_def by auto
-  then have "I \<Turnstile>s unmark_l M"
+  then have IM: "I \<Turnstile>s unmark_l M"
     using all_decomposition_implies_propagated_lits_are_implied[OF inv] cons I
     unfolding true_clss_clss_def l0 by auto
-  then have IM: "I \<Turnstile>s unmark_l M" by auto
-  {
-    fix K
-    assume "K \<in># D"
-    then have "-K \<in> lits_of_l M"
-      using D unfolding true_annots_def Ball_def CNot_def true_annot_def true_cls_def true_lit_def
-      Bex_def by force
-    then have "-K \<in> I" using IM true_clss_singleton_lit_of_implies_incl lits_of_def by fastforce }
+  have "-K \<in> I" if "K \<in># D" for K
+    proof -
+      have "-K \<in> lits_of_l M"
+        using D that unfolding true_annots_def by force
+      then show "-K \<in> I" using IM true_clss_singleton_lit_of_implies_incl  by fastforce
+    qed
   then have "\<not> I \<Turnstile> D" using cons unfolding true_cls_def true_lit_def consistent_interp_def by auto
   then show False using I_D by blast
 qed
@@ -2202,12 +2208,13 @@ qed
 
 text \<open>\cwref{prop:prop:cdclbacktrack}{Item 7 page 81} (part 2)\<close>
 lemma conflict_with_false_implies_terminated:
-  assumes "cdcl\<^sub>W_restart S S'"
-  and "conflicting S = Some {#}"
+  assumes "cdcl\<^sub>W_restart S S'" and "conflicting S = Some {#}"
   shows False
   using assms by (induct rule: cdcl\<^sub>W_restart_all_induct) auto
 
+
 subsubsection \<open>No tautology is learned\<close>
+
 text \<open>This is a simple consequence of all we have shown previously. It is not strictly necessary,
   but helps finding a better bound on the number of learned clauses.\<close>
 lemma learned_clss_are_not_tautologies:
@@ -2245,7 +2252,9 @@ definition "termination_cdcl\<^sub>W_restart_state (S :: 'st)
      \<or> ((\<forall>L \<in> atms_of_mm (init_clss S). L \<in> atm_of ` lits_of_l (trail S))
         \<and> (\<exists>C \<in># init_clss S. trail S \<Turnstile>as CNot C)))"
 
+
 subsection \<open>CDCL Strong Completeness\<close>
+
 lemma cdcl\<^sub>W_restart_can_do_step:
   assumes
     "consistent_interp (set M)" and
@@ -2279,7 +2288,7 @@ next
   then have "cdcl\<^sub>W_restart\<^sup>*\<^sup>* (init_state N) ?S\<^sub>0"
     using st by auto
   then show ?case
-    using S undef by (auto intro!: exI[of _ ?S\<^sub>0] del: simp del: )
+    using S undef by (auto intro!: exI[of _ ?S\<^sub>0])
 qed
 
 text \<open>\cwref{cdcl:completeness}{theorem 2.9.11 page 84}\<close>
@@ -2306,11 +2315,17 @@ proof -
   then show ?thesis using that st S by blast
 qed
 
+
 subsection \<open>Higher level strategy\<close>
 
-text \<open>The rules described previously do not lead to a conclusive state. We have to add a strategy.\<close>
+text \<open>The rules described previously do not necessary lead to a conclusive state. We have to add a
+  strategy:
+  \<^item> do propagate and conflict when possible;
+  \<^item> otherwise, do another rule (except forget and restart).\<close>
+
 
 subsubsection \<open>Definition\<close>
+
 lemma tranclp_conflict:
   "tranclp conflict S S' \<Longrightarrow> conflict S S'"
   apply (induct rule: tranclp.induct)
@@ -2318,7 +2333,7 @@ lemma tranclp_conflict:
   by (metis conflictE conflicting_update_conflicting option.distinct(1) state_eq_conflicting)
 
 text \<open>TODO see if useful\<close>
-lemma tranclp_conflict_iff[iff]:
+lemma tranclp_conflict_iff:
   "full1 conflict S S' \<longleftrightarrow> conflict S S'"
 proof -
   have "tranclp conflict S S' \<Longrightarrow> conflict S S'" by (meson tranclp_conflict rtranclpD)
@@ -2343,7 +2358,6 @@ lemma no_propagate_after_conflict:
   "conflict S T \<Longrightarrow> \<not>propagate T U"
   by (metis conflictE conflicting_update_conflicting option.distinct(1) propagate.cases
     state_eq_conflicting)
-
 
 inductive cdcl\<^sub>W_stgy :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 conflict': "conflict S S' \<Longrightarrow> cdcl\<^sub>W_stgy S S'" |
@@ -2383,28 +2397,13 @@ lemma rtranclp_cdcl\<^sub>W_stgy_no_more_init_clss:
 subsubsection \<open>Literal of highest level in conflicting clauses\<close>
 
 text \<open>One important property of the @{term cdcl\<^sub>W_restart} with strategy is that, whenever a conflict
-  takes place, there is at least a literal of level k involved (except if we have derived the false
-  clause). The reason is that we apply conflicts before a decision is taken.\<close>
-abbreviation no_clause_is_false :: "'st \<Rightarrow> bool" where
-"no_clause_is_false \<equiv>
-  \<lambda>S. (conflicting S = None \<longrightarrow> (\<forall>D \<in># clauses S. \<not>trail S \<Turnstile>as CNot D))"
-
+  takes place, there is at least a literal of level @{term k} involved (except if we have derived
+  the false clause). The reason is that we apply conflicts before a decision is taken.\<close>
 definition conflict_is_false_with_level :: "'st \<Rightarrow> bool" where
 "conflict_is_false_with_level S \<equiv> \<forall>D. conflicting S = Some D \<longrightarrow> D \<noteq> {#}
   \<longrightarrow> (\<exists>L \<in># D. get_level (trail S) L = backtrack_lvl S)"
 
 declare conflict_is_false_with_level_def[simp]
-
-lemma not_conflict_not_any_negated_init_clss:
-  assumes "\<forall> S'. \<not>conflict S S'"
-  shows "no_clause_is_false S"
-proof (clarify)
-  fix D
-  assume "D \<in># local.clauses S" and "conflicting S = None" and "trail S \<Turnstile>as CNot D "
-  then show False
-    using conflict_rule[of S D "update_conflicting (Some D) S"] assms
-    by auto
-qed
 
 lemma no_chained_conflict:
   assumes "conflict S S'" and "conflict S' S''"
@@ -2414,6 +2413,7 @@ lemma no_chained_conflict:
 
 
 subsubsection \<open>Literal of highest level in decided literals\<close>
+
 definition mark_is_false_with_level :: "'st \<Rightarrow> bool" where
 "mark_is_false_with_level S' \<equiv>
   \<forall>D M1 M2 L. M1 @ Propagated L D # M2 = trail S' \<longrightarrow> D - {#L#} \<noteq> {#}
@@ -2503,8 +2503,8 @@ proof -
             using total_not_true_cls_true_clss_CNot \<open>\<not> trail S \<Turnstile>a D\<close> unfolding true_annot_def
             true_annots_true_cls by fastforce
           then have "\<exists>S'. conflict S S'"
-            using \<open>trail S \<Turnstile>as CNot D\<close> \<open>D \<in># init_clss S\<close> not_conflict_not_any_negated_init_clss
-            None unfolding clauses_def by auto
+            using \<open>trail S \<Turnstile>as CNot D\<close> \<open>D \<in># init_clss S\<close>
+            None unfolding clauses_def by (auto simp: conflict.simps clauses_def)
           then show False
             using termi by (blast intro: cdcl\<^sub>W_stgy.intros)
         qed
@@ -2521,7 +2521,7 @@ proof -
       have "?M \<Turnstile>as CNot ?D" using confl LD unfolding cdcl\<^sub>W_conflicting_def by auto
       then have "?M \<noteq> []" unfolding true_annots_def Ball_def true_annot_def true_cls_def by force
       have M: "?M = hd ?M # tl ?M" using \<open>?M \<noteq> []\<close> list.collapse by fastforce
-      
+
       have n_s: "no_step conflict S" "no_step propagate S"
         using termi by (blast intro: cdcl\<^sub>W_stgy.intros)+
 
@@ -3057,10 +3057,10 @@ lemma cdcl\<^sub>W_o_no_smaller_confl_inv:
   fixes S S' :: "'st"
   assumes
     "cdcl\<^sub>W_o S S'" and
+    n_s: "no_step conflict S" and
     lev: "cdcl\<^sub>W_M_level_inv S" and
     max_lev: "conflict_is_false_with_level S" and
-    smaller: "no_smaller_confl S" and
-    no_f: "no_clause_is_false S"
+    smaller: "no_smaller_confl S"
   shows "no_smaller_confl S'"
   using assms(1,2) unfolding no_smaller_confl_def
 proof (induct rule: cdcl\<^sub>W_o_induct)
@@ -3078,20 +3078,20 @@ proof (induct rule: cdcl\<^sub>W_o_induct)
       moreover {
         assume "tl M'' @ Decided K # M' = trail S"
         then have "\<not>M' \<Turnstile>as CNot Da"
-          using D T undef no_f confl smaller unfolding no_smaller_confl_def smaller by fastforce
+          using D T undef confl smaller unfolding no_smaller_confl_def smaller by fastforce
       }
       moreover {
         assume "Decided K # M' = Decided L # trail S"
-        then have "\<not>M' \<Turnstile>as CNot Da" using no_f D confl T by auto
+        then have "\<not>M' \<Turnstile>as CNot Da" using smaller D confl T n_s by (auto simp: conflict.simps)
       }
       ultimately show "\<not>M' \<Turnstile>as CNot Da" by fast
    qed
 next
   case resolve
-  then show ?case using smaller no_f max_lev unfolding no_smaller_confl_def by auto
+  then show ?case using smaller max_lev unfolding no_smaller_confl_def by auto
 next
   case skip
-  then show ?case using smaller no_f max_lev unfolding no_smaller_confl_def by auto
+  then show ?case using smaller max_lev unfolding no_smaller_confl_def by auto
 next
   case (backtrack L D K i M1 M2 T) note confl = this(1) and LD = this(2) and decomp = this(3) and
     T = this(8)
@@ -3187,117 +3187,7 @@ next
 next
   case (other' S')
   then show ?case
-    using cdcl\<^sub>W_o_no_smaller_confl_inv[of S] not_conflict_not_any_negated_init_clss by auto
-qed
-
-text \<open>TODO use proper function instead of \<open>init_clss S' + learned_clss\<close>\<close>
-lemma is_conflicting_exists_conflict:
-  assumes "\<not>(\<forall>D\<in>#init_clss S' + learned_clss S'. \<not> trail S' \<Turnstile>as CNot D)"
-  and "conflicting S' = None"
-  shows "\<exists>S''. conflict S' S''"
-  using assms clauses_def not_conflict_not_any_negated_init_clss by fastforce
-
-lemma cdcl\<^sub>W_o_conflict_is_no_clause_is_false:
-  fixes S S' :: "'st"
-  assumes
-    "cdcl\<^sub>W_o S S'" and
-    lev: "cdcl\<^sub>W_M_level_inv S" and
-    max_lev: "conflict_is_false_with_level S" and
-    no_l: "no_smaller_confl S" and
-    n_f: "no_step conflict S"
-  shows "no_clause_is_false S'
-    \<or> (conflicting S' = None
-        \<longrightarrow> (\<forall>D \<in># clauses S'. trail S' \<Turnstile>as CNot D
-             \<longrightarrow> (\<exists>L. L \<in># D \<and> get_level (trail S') L = backtrack_lvl S')))"
-  using assms(1,2)
-proof (induct rule: cdcl\<^sub>W_o_induct)
-  case (decide L T) note S = this(1) and undef = this(2) and T = this(4)
-  show ?case
-    proof (rule HOL.disjI2, clarify)
-      fix D
-      assume D: "D \<in># clauses T" and M_D: "trail T \<Turnstile>as CNot D"
-      let ?M = "trail S"
-      let ?M' = "trail T"
-      let ?k = "backtrack_lvl S"
-      have "\<not>?M \<Turnstile>as CNot D"
-        using n_f D S T undef by (auto simp: conflict.simps)
-      have "-L \<in># D"
-        proof (rule ccontr)
-          assume "\<not> ?thesis"
-          have "?M \<Turnstile>as CNot D"
-            unfolding true_annots_def Ball_def true_annot_def CNot_def true_cls_def
-            proof (intro allI impI)
-              fix x
-              assume x: "x \<in> {{#- L#} |L. L \<in># D}"
-
-              then obtain L' where L': "x = {#-L'#}" "L' \<in># D" by auto
-              obtain L'' where "L'' \<in># x" and L'': "lits_of_l (Decided L # ?M) \<Turnstile>l L''"
-                using M_D x T undef unfolding true_annots_def Ball_def true_annot_def CNot_def
-                true_cls_def Bex_def by auto
-              show "\<exists>L \<in># x. lits_of_l ?M \<Turnstile>l L" unfolding Bex_def
-                using L'(1) L'(2) \<open>- L \<notin># D\<close> \<open>L'' \<in># x\<close>
-                \<open>lits_of_l (Decided L # trail S) \<Turnstile>l L''\<close> by auto
-            qed
-          then show False using \<open>\<not> ?M \<Turnstile>as CNot D\<close> by auto
-        qed
-      have "atm_of L \<notin> atm_of ` (lits_of_l ?M)"
-        using undef defined_lit_map unfolding lits_of_def by fastforce
-      then have "get_level (Decided L # ?M) (-L) = ?k + 1"
-        using lev unfolding cdcl\<^sub>W_M_level_inv_def by auto
-      then have "-L \<in># D \<and> get_level ?M' (-L) = backtrack_lvl T"
-        using \<open>-L \<in># D\<close> T undef by auto
-      then show "\<exists>La. La \<in># D \<and> get_level ?M' La = backtrack_lvl T"
-        by blast
-    qed
-next
-  case resolve
-  then show ?case by auto
-next
-  case skip
-  then show ?case by auto
-next
-  case (backtrack L D K i M1 M2 T) note decomp = this(3) and lev_K = this(7) and T = this(8)
-  show ?case
-    proof (rule HOL.disjI2, clarify)
-      fix Da
-      assume Da: "Da \<in># clauses T" and M_D: "trail T \<Turnstile>as CNot Da"
-      obtain c where M: "trail S = c @ M2 @ Decided K # M1"
-        using decomp by auto
-      have tr_T: "trail T = Propagated L D # M1"
-        using T decomp lev by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
-      have "backtrack S T"
-        using backtrack_rule[of S] backtrack.hyps T
-        by (force simp del: state_simp simp: state_eq_def)
-      then have lev': "cdcl\<^sub>W_M_level_inv T"
-        using cdcl\<^sub>W_restart_consistent_inv lev other cdcl\<^sub>W_bj.backtrack cdcl\<^sub>W_o.bj by blast
-      then have "- L \<notin> lits_of_l M1"
-        using lev cdcl\<^sub>W_M_level_inv_def tr_T unfolding consistent_interp_def by (metis insert_iff
-          list.simps(15) lits_of_insert ann_lit.sel(2))
-      { assume "Da \<in># clauses S"
-        then have "\<not>M1 \<Turnstile>as CNot Da" using no_l M unfolding no_smaller_confl_def by auto
-      }
-      moreover {
-        assume Da: "Da = D"
-        have "\<not>M1 \<Turnstile>as CNot Da" using \<open>- L \<notin> lits_of_l M1\<close> unfolding Da
-          using backtrack.hyps(2) in_CNot_implies_uminus(2) by auto
-      }
-      ultimately have "\<not>M1 \<Turnstile>as CNot Da"
-        using Da T decomp lev by (fastforce simp: cdcl\<^sub>W_M_level_inv_decomp)
-      then have "-L \<in># Da"
-        using M_D \<open>- L \<notin> lits_of_l M1\<close> T unfolding tr_T true_annots_true_cls true_clss_def
-        by (auto simp: uminus_lit_swap)
-      have "no_dup (Propagated L D # M1)"
-        using lev lev' T decomp unfolding cdcl\<^sub>W_M_level_inv_def by auto
-      then have L: "atm_of L \<notin> atm_of ` lits_of_l M1" unfolding lits_of_def by auto
-      have "get_level (Propagated L D # M1) (-L) = i"
-        using lev_K lev unfolding cdcl\<^sub>W_M_level_inv_def
-        by (simp add: M image_Un atm_lit_of_set_lits_of_l)
-
-      then have "-L \<in># Da \<and> get_level (trail T) (-L) = backtrack_lvl T"
-        using \<open>-L \<in># Da\<close> T decomp lev by (auto simp: cdcl\<^sub>W_M_level_inv_def)
-      then show "\<exists>La. La \<in># Da \<and> get_level (trail T) La = backtrack_lvl T"
-        by blast
-    qed
+    using cdcl\<^sub>W_o_no_smaller_confl_inv[of S] by auto
 qed
 
 lemma conflict_conflict_is_false_with_level:
@@ -3354,7 +3244,6 @@ proof (cases rule: conflict.cases)
         using lev' not_D unfolding true_annots_true_cls_def_iff_negation_in_model by force
       then show False
         using smaller T tr_T D by (auto simp: no_smaller_confl_def)
-      let ?M = "dropWhile (\<lambda>L. \<not>(is_decided L)) (trail S)"
     qed
 qed
 
@@ -3367,7 +3256,7 @@ lemma cdcl\<^sub>W_stgy_ex_lit_of_max_level:
     "distinct_cdcl\<^sub>W_state S" and
     "cdcl\<^sub>W_conflicting S"
   shows "conflict_is_false_with_level S'"
-  using assms        
+  using assms
 proof (induct rule: cdcl\<^sub>W_stgy.induct)
   case (conflict' S')
   then have "no_smaller_confl S'"
@@ -3380,42 +3269,8 @@ next
   then show ?case by (auto elim: propagateE)
 next
   case (other' S') note n_s = this(1,2) and o = this(3) and lev = this(6)
-  have lev': "cdcl\<^sub>W_M_level_inv S'"
-    using cdcl\<^sub>W_restart_consistent_inv other o lev by blast
-  moreover
-    have "no_clause_is_false S'
-      \<or> (conflicting S' = None \<longrightarrow> (\<forall>D\<in>#clauses S'. trail S' \<Turnstile>as CNot D
-          \<longrightarrow> (\<exists>L. L \<in># D \<and> get_level (trail S') L = backtrack_lvl S')))"
-      using cdcl\<^sub>W_o_conflict_is_no_clause_is_false[of S S'] o other'.prems(1-4) n_s by fast
-  moreover {
-    assume "no_clause_is_false S'"
-    {
-      assume "conflicting S' = None"
-      then have "conflict_is_false_with_level S'" by auto
-    }
-    moreover
-    {
-      assume c: "conflicting S' \<noteq> None"
-      have "conflicting S \<noteq> None" using o c
-        by (induct rule: cdcl\<^sub>W_o_induct) auto
-      then have "conflict_is_false_with_level S'"
-        using cdcl\<^sub>W_o_conflict_is_false_with_level_inv[OF o] other'.prems by blast
-    }
-    ultimately have "conflict_is_false_with_level S'" by blast
-  }
-  moreover {
-     assume
-       confl: "conflicting S' = None" and
-       D_L: "\<forall>D \<in># clauses S'. trail S' \<Turnstile>as CNot D
-         \<longrightarrow> (\<exists>L. L \<in># D \<and> get_level (trail S') L = backtrack_lvl S')"
-     then have ?case by simp
-  }
-  moreover {
-    assume "conflicting S' \<noteq> None"
-    have "no_clause_is_false S'" using \<open>conflicting S' \<noteq> None\<close> by auto
-    then have "conflict_is_false_with_level S'" using calculation(3) by presburger
-  }
-  ultimately show ?case by blast
+  show ?case
+    using cdcl\<^sub>W_o_conflict_is_false_with_level_inv[OF o] other'.prems by blast
 qed
 
 lemma rtranclp_cdcl\<^sub>W_stgy_no_smaller_confl_inv:
@@ -3424,7 +3279,6 @@ lemma rtranclp_cdcl\<^sub>W_stgy_no_smaller_confl_inv:
     n_l: "no_smaller_confl S" and
     cls_false: "conflict_is_false_with_level S" and
     lev: "cdcl\<^sub>W_M_level_inv S" and
-    no_f: "no_clause_is_false S" and
     dist: "distinct_cdcl\<^sub>W_state S" and
     conflicting: "cdcl\<^sub>W_conflicting S" and
     decomp: "all_decomposition_implies_m (init_clss S) (get_all_ann_decomposition (trail S))" and
@@ -3453,13 +3307,14 @@ next
     by (auto simp del: simp add: cdcl\<^sub>W_stgy.simps elim!: propagateE)
 qed
 
+
 subsubsection \<open>Final States are Conclusive\<close>
-(*prop 2.10.7*)
-lemma full_cdcl\<^sub>W_stgy_final_state_conclusive_non_false:
-  fixes S' :: "'st"
+
+text \<open>\cwref{lem:prop:cdclsoundtermStates}{theorem 2.9.9 page 83}\<close>
+lemma full_cdcl\<^sub>W_stgy_final_state_conclusive:
+  fixes S' :: 'st
   assumes full: "full cdcl\<^sub>W_stgy (init_state N) S'"
   and no_d: "distinct_mset_mset N"
-  and no_empty: "\<forall>D\<in>#N. D \<noteq> {#}"
   shows "(conflicting S' = Some {#} \<and> unsatisfiable (set_mset (init_clss S')))
     \<or> (conflicting S' = None \<and> trail S' \<Turnstile>asm init_clss S')"
 proof -
@@ -3474,11 +3329,11 @@ proof -
     no_dup: "distinct_cdcl\<^sub>W_state S'" and
     confl: "cdcl\<^sub>W_conflicting S'" and
     decomp: "all_decomposition_implies_m (init_clss S') (get_all_ann_decomposition (trail S'))"
-    using no_d tranclp_cdcl\<^sub>W_stgy_tranclp_cdcl\<^sub>W_restart[of ?S S'] step rtranclp_cdcl\<^sub>W_restart_all_inv(1-6)[of ?S S']
+    using no_d tranclp_cdcl\<^sub>W_stgy_tranclp_cdcl\<^sub>W_restart[of ?S S'] step
+    rtranclp_cdcl\<^sub>W_restart_all_inv(1-6)[of ?S S']
     unfolding rtranclp_unfold by auto
   moreover
-    have "\<forall>D\<in>#N. \<not> [] \<Turnstile>as CNot D" using no_empty by auto
-    then have confl_k: "conflict_is_false_with_level S'"
+    have confl_k: "conflict_is_false_with_level S'"
       using rtranclp_cdcl\<^sub>W_stgy_no_smaller_confl_inv[OF step] no_d by auto
   show ?thesis
     using cdcl\<^sub>W_stgy_final_state_conclusive[OF termi decomp learned level_inv alien no_dup confl
@@ -3521,127 +3376,6 @@ lemma rtranclp_cdcl\<^sub>W_stgy_conflicting_is_false:
     apply simp
   using cdcl\<^sub>W_stgy_conflicting_is_false by blast
 
-lemma full_cdcl\<^sub>W_restart_init_clss_with_false_normal_form:
-  assumes
-    "\<forall> m\<in> set M. \<not>is_decided m" and
-    "E = Some D" and
-    "state S = (M, N, U, 0, E)"
-    "full cdcl\<^sub>W_stgy S S'" and
-    "all_decomposition_implies_m (init_clss S) (get_all_ann_decomposition (trail S))"
-    "cdcl\<^sub>W_learned_clause S"
-    "cdcl\<^sub>W_M_level_inv S"
-    "no_strange_atm S"
-    "distinct_cdcl\<^sub>W_state S"
-    "cdcl\<^sub>W_conflicting S"
-  shows "\<exists>M''. state S' = (M'', N, U, 0, Some {#})"
-  using assms(10,9,8,7,6,5,4,3,2,1)
-proof (induction M arbitrary: E D S)
-  case Nil
-  then show ?case
-    using rtranclp_cdcl\<^sub>W_stgy_conflicting_is_false unfolding full_def cdcl\<^sub>W_conflicting_def
-    by fastforce
-next
-  case (Cons L M) note IH = this(1) and full = this(8) and E = this(10) and inv = this(2-7) and
-    S = this(9) and nm = this(11)
-  obtain K p where K: "L = Propagated K p"
-    using nm by (cases L) auto
-  have "every_mark_is_a_conflict S" using inv unfolding cdcl\<^sub>W_conflicting_def by auto
-  then have MpK: "M \<Turnstile>as CNot (p - {#K#})" and Kp: "K \<in># p"
-    using S unfolding K by fastforce+
-  then have p: "p = (p - {#K#}) + {#K#}"
-    by (auto simp add: multiset_eq_iff)
-  then have K': "L = Propagated K ((p - {#K#}) + {#K#})"
-    using K by auto
-  obtain p' where
-    p': "hd_trail S = Propagated K p'" and
-    pp': "p' = p"
-    using S K by (cases "hd_trail S") auto
-  have "conflicting S = Some D"
-    using S E by (cases "conflicting S") auto
-  then have DD: "D = D"
-    using S E by auto
-  consider (D) "D = {#}" | (D') "D \<noteq> {#}" by blast
-  then show ?case
-    proof cases
-      case D
-      then show ?thesis
-        using full rtranclp_cdcl\<^sub>W_stgy_conflicting_is_false S unfolding full_def E D by auto
-    next
-      case D'
-      then have no_p: "no_step propagate S" and no_c: "no_step conflict S"
-        using S E by (auto elim: propagateE conflictE)
-      have res_skip: "\<exists>T. (resolve S T \<and> no_step skip S) \<or> (skip S T \<and> no_step resolve S)"
-        proof cases
-          assume "-lit_of L \<notin># D"
-          then obtain T where sk: "skip S T"
-            using S D' K skip_rule unfolding E by fastforce
-          then have res: "no_step resolve S"
-            using \<open>-lit_of L \<notin># D\<close> S D' K unfolding E
-            by (auto elim!: skipE resolveE)
-          then show ?thesis
-            using sk res by blast
-        next
-          assume LD: "\<not>-lit_of L \<notin># D"
-          then have D: "Some D = Some ((D - {#-lit_of L#}) + {#-lit_of L#})"
-            by (auto simp add: multiset_eq_iff)
-
-          have "\<And>L. get_level M L = 0"
-            by (simp add: nm)
-          then have "get_maximum_level (Propagated K (p - {#K#} + {#K#}) # M) (D - {#- K#}) = 0"
-            using LD get_maximum_level_exists_lit_of_max_level
-            proof -
-              obtain L' where "get_level (L#M) L' = get_maximum_level (L#M) D"
-                using LD get_maximum_level_exists_lit_of_max_level[of D "L#M"] by fastforce
-              then show ?thesis by (metis (mono_tags) K' get_level_skip_all_not_decided
-                get_maximum_level_exists_lit nm not_gr0)
-            qed
-          then obtain T where sk: "resolve S T"
-            using resolve_rule[of S K p' D] S p' \<open>K \<in># p\<close> D LD
-            unfolding K' D E pp' by auto
-          then have res: "no_step skip S"
-            using LD S D' K unfolding E
-            by (auto elim!: skipE resolveE)
-          then show ?thesis
-           using sk res by blast
-        qed
-      then have step_s: "\<exists>T. cdcl\<^sub>W_stgy S T"
-        using other' by (metis \<open>conflicting S = Some D\<close> bj conflict.cases no_p
-          option.simps(3) resolve skip)
-      have "get_all_ann_decomposition (L # M) = [([], L#M)]"
-        using nm unfolding K apply (induction M rule: ann_lit_list_induct, simp)
-          by (rename_tac L xs, case_tac "hd (get_all_ann_decomposition xs)", auto)+
-      then have no_b: "no_step backtrack S"
-        using nm S by (auto elim: backtrackE)
-      have no_d: "no_step decide S"
-        using S E by (auto elim: decideE)
-
-      obtain T where
-        s: "cdcl\<^sub>W_stgy S T" and st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* T S'"
-        using full step_s full unfolding full_def by (metis rtranclp_unfold tranclpD)
-      have "resolve S T \<or> skip S T"
-        by (meson cdcl\<^sub>W_o_rule_cases cdcl\<^sub>W_stgy.simps no_b no_c no_d no_p s)
-      then obtain D' where T: "state T = (M, N, U, 0, Some D')"
-        using S E by (auto elim!: skipE resolveE simp: state_eq_def simp del: state_simp)
-
-      have st_c: "cdcl\<^sub>W_restart\<^sup>*\<^sup>* S T"
-        using E T rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart s by blast
-      have "cdcl\<^sub>W_conflicting T"
-        using rtranclp_cdcl\<^sub>W_restart_all_inv(6)[OF st_c inv(6,5,4,3,2,1)] .
-      show ?thesis
-        apply (rule IH[of T])
-                  using rtranclp_cdcl\<^sub>W_restart_all_inv(6)[OF st_c inv(6,5,4,3,2,1)] apply blast
-                using rtranclp_cdcl\<^sub>W_restart_all_inv(5)[OF st_c inv(6,5,4,3,2,1)] apply blast
-               using rtranclp_cdcl\<^sub>W_restart_all_inv(4)[OF st_c inv(6,5,4,3,2,1)] apply blast
-              using rtranclp_cdcl\<^sub>W_restart_all_inv(3)[OF st_c inv(6,5,4,3,2,1)] apply blast
-             using rtranclp_cdcl\<^sub>W_restart_all_inv(2)[OF st_c inv(6,5,4,3,2,1)] apply blast
-            using rtranclp_cdcl\<^sub>W_restart_all_inv(1)[OF st_c inv(6,5,4,3,2,1)] apply blast
-           apply (metis full_def st full)
-          using T E apply blast
-         apply auto[]
-        using nm by simp
-    qed
-qed
-
 definition conflict_or_propagate :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 "conflict_or_propagate S T \<longleftrightarrow> conflict S T \<or> propagate S T"
 
@@ -3651,112 +3385,6 @@ lemma conflict_or_propagate_intros:
   "conflict S T \<Longrightarrow> conflict_or_propagate S T"
   "propagate S T \<Longrightarrow> conflict_or_propagate S T"
   by auto
-
-lemma full_cdcl\<^sub>W_stgy_final_state_conclusive_is_one_false:
-  fixes S' :: 'st
-  assumes full: "full cdcl\<^sub>W_stgy (init_state N) S'"
-  and no_d: "distinct_mset_mset N"
-  and empty: "{#} \<in># N"
-  shows "conflicting S' = Some {#} \<and> unsatisfiable (set_mset (init_clss S'))"
-proof -
-  let ?S = "init_state N"
-  have st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ?S S'" and n_s: "no_step cdcl\<^sub>W_stgy S'"
-    using full unfolding full_def by auto
-  have "{#} \<in># init_clss S'"
-    using rtranclp_cdcl\<^sub>W_restart_init_clss empty rtranclp_cdcl\<^sub>W_stgy_no_more_init_clss st
-    by fastforce
-  then have "conflicting S' \<noteq> None"
-    using conflict_rule[of S' "{#}" "update_conflicting (Some {#}) S'"] n_s cdcl\<^sub>W_stgy.conflict'
-    by (auto simp: clauses_def)
-  then obtain C where C: "conflicting S' = Some C" by auto
-  have "(\<lambda>S T. cdcl\<^sub>W_stgy S T \<and> \<not>decide S T)\<^sup>*\<^sup>* ?S S' \<and> {#} \<in># init_clss S'"
-      using st
-    proof (induction rule: rtranclp_induct)
-      case base
-      then show ?case using empty by auto
-    next
-      case (step T U) note st = this(1) and s = this(2) and IH = this(3)
-      have "\<not>decide T U"
-        using s apply (cases rule: cdcl\<^sub>W_stgy.cases)
-         apply (auto simp: state_eq_def simp del: state_simp elim!: conflictE decideE propagateE)[2]
-        using conflict_rule[of T "{#}" "update_conflicting (Some {#}) T"] IH
-        by (auto elim: decideE simp: clauses_def)
-      then have "(\<lambda>S T. cdcl\<^sub>W_stgy S T \<and> \<not> decide S T)\<^sup>*\<^sup>* T U"
-        using s by auto
-      moreover have "init_clss T = init_clss U"
-        using cdcl\<^sub>W_stgy_no_more_init_clss s by blast
-      ultimately show ?case
-        using IH by (auto simp: clauses_def)
-    qed
-  note st_dec = conjunct1[OF this] and empty' = conjunct2[OF this]
-
-  have st: "cdcl\<^sub>W_restart\<^sup>*\<^sup>* ?S S'"
-    by (simp add: rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart st)
-
-  have 5: "cdcl\<^sub>W_M_level_inv S'"
-    using rtranclp_cdcl\<^sub>W_restart_all_inv(3)[OF st] no_d by simp
-  have 8: "cdcl\<^sub>W_conflicting S'"
-    using rtranclp_cdcl\<^sub>W_restart_all_inv(6)[OF st] no_d by simp
-
-  moreover have [simp]: "init_clss S' = N"
-    using \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S'\<close> rtranclp_cdcl\<^sub>W_stgy_no_more_init_clss by fastforce
-  moreover have unsat: "unsatisfiable (set_mset N)"
-    by (meson empty satisfiable_def true_cls_empty true_clss_def)
-
-  have n_dec: "\<forall>m \<in> set (trail S'). \<not> is_decided m"
-    using st_dec apply (induction)
-      apply simp
-    apply clarify
-    apply (cases rule: cdcl\<^sub>W_stgy.cases, simp)
-      using empty apply (auto simp: cdcl\<^sub>W_stgy.simps cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps
-        elim!: conflictE propagateE)[2]
-    apply (cases rule: cdcl\<^sub>W_o.cases, simp)
-      apply (auto simp: cdcl\<^sub>W_stgy.simps cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps; fail)[]
-    apply (cases rule: cdcl\<^sub>W_bj.cases, simp)
-      apply (auto simp: cdcl\<^sub>W_stgy.simps cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps
-      elim!: skipE resolveE; fail)[]
-    apply (case_tac "trail y")
-      using empty apply (auto simp: cdcl\<^sub>W_stgy.simps cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps
-        elim!: skipE resolveE)[2]
-    using empty apply (auto simp: cdcl\<^sub>W_stgy.simps cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps
-      elim!: backtrackE)[]
-    done
-  have tr_C: "trail S' \<Turnstile>as CNot C"
-    using C 8 unfolding cdcl\<^sub>W_conflicting_def by auto
-  then have [simp]: "backtrack_lvl S' = 0"
-    using 5 n_dec unfolding cdcl\<^sub>W_M_level_inv_def by auto
-
-  have "C = {#}"
-    proof (rule ccontr)
-      assume C_n_empty: "\<not> ?thesis"
-      then have tr_n_empty: "trail S' \<noteq> []"
-        using tr_C by auto
-      then obtain L D M where LD: "trail S' = Propagated L D # M"
-        using n_dec by (cases "trail S'"; cases "hd (trail S')") auto
-      moreover have H: "get_maximum_level (Propagated L D # M) (remove1_mset (- L) C) = 0"
-        using n_dec count_decided_ge_get_maximum_level[of "trail S'" "remove1_mset (- L) C"]
-        using 5 unfolding cdcl\<^sub>W_M_level_inv_def LD by auto
-      moreover have "L \<in># D"
-        using 8 unfolding cdcl\<^sub>W_conflicting_def LD by blast
-      ultimately have "\<exists>S''. resolve S' S'' \<or> skip S' S''"
-        using resolve_rule[of S' L D C] skip_rule[of S' L D M C] C H tr_n_empty C_n_empty
-        by auto
-      then show False
-        using other'[of S'] n_s
-        by (auto simp: cdcl\<^sub>W_stgy.simps dest!: cdcl\<^sub>W_bj.intros cdcl\<^sub>W_o.intros)
-    qed
-  then show ?thesis
-    using unsat unfolding C by auto
-qed
-
-text \<open>\cwref{lem:prop:cdclsoundtermStates}{theorem 2.9.9 page 83}\<close>
-lemma full_cdcl\<^sub>W_stgy_final_state_conclusive:
-  fixes S' :: 'st
-  assumes full: "full cdcl\<^sub>W_stgy (init_state N) S'" and no_d: "distinct_mset_mset N"
-  shows "(conflicting S' = Some {#} \<and> unsatisfiable (set_mset (init_clss S')))
-    \<or> (conflicting S' = None \<and> trail S' \<Turnstile>asm init_clss S')"
-  using assms full_cdcl\<^sub>W_stgy_final_state_conclusive_is_one_false
-  full_cdcl\<^sub>W_stgy_final_state_conclusive_non_false by blast
 
 text \<open>\cwref{lem:prop:cdclsoundtermStates}{theorem 2.9.9 page 83}\<close>
 lemma full_cdcl\<^sub>W_stgy_final_state_conclusive_from_init_state:
@@ -3790,7 +3418,9 @@ proof -
     qed
 qed
 
+
 subsection \<open>Structural Invariant\<close>
+
 text \<open>The condition that no learned clause is a tautology is overkill for the termination (in the
   sense that the no-duplicate condition is enough), but it allows to reuse @{term simple_clss}.
 

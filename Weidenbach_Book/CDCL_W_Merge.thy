@@ -7,6 +7,7 @@ section \<open>Merging backjump rules\<close>
 theory CDCL_W_Merge
 imports CDCL_W
 begin
+
 text \<open>Before showing that Weidenbach's CDCL is included in NOT's CDCL, we need to work on a variant
   of Weidenbach's calculus: NOT's backjump assumes the existence of a clause that is suitable to
   backjump. This clause is obtained in W's CDCL by applying:

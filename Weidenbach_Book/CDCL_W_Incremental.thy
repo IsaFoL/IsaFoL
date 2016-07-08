@@ -105,7 +105,6 @@ text \<open>This invariant holds all the invariant related to the strategy. See 
 definition cdcl\<^sub>W_stgy_invariant where
 "cdcl\<^sub>W_stgy_invariant S \<longleftrightarrow>
   conflict_is_false_with_level S
-  \<and> no_clause_is_false S
   \<and> no_smaller_confl S
   \<and> no_clause_is_false S"
 
