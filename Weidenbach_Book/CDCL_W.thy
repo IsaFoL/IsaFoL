@@ -1186,8 +1186,8 @@ lemma cdcl\<^sub>W_restart_state_eq_compatible:
     "cdcl\<^sub>W_M_level_inv S"
   shows "cdcl\<^sub>W_restart S' T'"
   using assms by (meson backtrack backtrack_state_eq_compatible bj cdcl\<^sub>W_restart.simps
-    cdcl\<^sub>W_o_rule_cases cdcl\<^sub>W_rf.cases conflict_state_eq_compatible decide decide_state_eq_compatible
-    forget forget_state_eq_compatible propagate_state_eq_compatible
+    cdcl\<^sub>W_o_rule_cases cdcl\<^sub>W_rf.cases conflict_state_eq_compatible decide decide_state_eq_compatible 
+    forget forget_state_eq_compatible propagate_state_eq_compatible 
     resolve resolve_state_eq_compatible skip skip_state_eq_compatible state_eq_ref)
 
 lemma cdcl\<^sub>W_bj_state_eq_compatible:
@@ -1237,7 +1237,7 @@ lemma tranclp_cdcl\<^sub>W_o_no_more_init_clss:
   shows "init_clss S = init_clss S'"
   using assms apply (induct rule: tranclp.induct)
   by (auto
-    dest!: tranclp_cdcl\<^sub>W_restart_consistent_inv
+    dest!: tranclp_cdcl\<^sub>W_restart_consistent_inv 
     dest: tranclp_mono_explicit[of cdcl\<^sub>W_o _ _ cdcl\<^sub>W_restart] cdcl\<^sub>W_o_no_more_init_clss
     simp: other)
 
@@ -1351,7 +1351,7 @@ subsubsection \<open>No alien atom in the state\<close>
 
 text \<open>This invariant means that all the literals are in the set of clauses. These properties are
   implicit in Weidenbach's book.\<close>
-definition "no_strange_atm S' \<longleftrightarrow>
+definition "no_strange_atm S' \<longleftrightarrow> 
     (\<forall>T. conflicting S' = Some T \<longrightarrow> atms_of T \<subseteq> atms_of_mm (init_clss S'))
   \<and> (\<forall>L mark. Propagated L mark \<in> set (trail S') \<longrightarrow> atms_of mark \<subseteq> atms_of_mm (init_clss S'))
   \<and> atms_of_mm (learned_clss S') \<subseteq> atms_of_mm (init_clss S')
@@ -1516,7 +1516,7 @@ lemma cdcl\<^sub>W_restart_no_strange_atm_inv:
 lemma rtranclp_cdcl\<^sub>W_restart_no_strange_atm_inv:
   assumes "cdcl\<^sub>W_restart\<^sup>*\<^sup>* S S'" and "no_strange_atm S" and "cdcl\<^sub>W_M_level_inv S"
   shows "no_strange_atm S'"
-  using assms by (induction rule: rtranclp_induct)
+  using assms by (induction rule: rtranclp_induct) 
   (auto intro: cdcl\<^sub>W_restart_no_strange_atm_inv rtranclp_cdcl\<^sub>W_restart_consistent_inv)
 
 
@@ -1738,7 +1738,7 @@ next
   case decide note S = this(1) and undef = this(2) and T = this(4)
   show ?case using decomp T undef unfolding S all_decomposition_implies_def by auto
 next
-  case (propagate C L T) note propa = this(2) and L = this(3) and S_CNot_C = this(4) and
+  case (propagate C L T) note propa = this(2) and L = this(3) and S_CNot_C = this(4) and 
   undef = this(5) and T = this(6)
   obtain a y where ay: "hd (get_all_ann_decomposition (trail S)) = (a, y)"
     by (cases "hd (get_all_ann_decomposition (trail S))")
@@ -2067,7 +2067,7 @@ proof -
   show S5: "no_strange_atm S'" using cdcl\<^sub>W_restart_no_strange_atm_inv[OF cdcl\<^sub>W_restart 5 4] .
   show S7: "distinct_cdcl\<^sub>W_state S'" using distinct_cdcl\<^sub>W_state_inv[OF cdcl\<^sub>W_restart 4 7] .
   show S8: "cdcl\<^sub>W_conflicting S'"
-    using cdcl\<^sub>W_conflicting_is_false[OF cdcl\<^sub>W_restart 4 _ _ 7] 8
+    using cdcl\<^sub>W_conflicting_is_false[OF cdcl\<^sub>W_restart 4 _ _ 7] 8 
     cdcl\<^sub>W_restart_propagate_is_false[OF cdcl\<^sub>W_restart 4 2 1 _ 5] unfolding cdcl\<^sub>W_conflicting_def
     by fast
 qed
@@ -2318,7 +2318,7 @@ qed
 
 subsection \<open>Higher level strategy\<close>
 
-text \<open>The rules described previously do not necessary lead to a conclusive state. We have to add a
+text \<open>The rules described previously do not necessary lead to a conclusive state. We have to add a 
   strategy:
   \<^item> do propagate and conflict when possible;
   \<^item> otherwise, do another rule (except forget and restart).\<close>
@@ -2397,7 +2397,7 @@ lemma rtranclp_cdcl\<^sub>W_stgy_no_more_init_clss:
 subsubsection \<open>Literal of highest level in conflicting clauses\<close>
 
 text \<open>One important property of the @{term cdcl\<^sub>W_restart} with strategy is that, whenever a conflict
-  takes place, there is at least a literal of level @{term k} involved (except if we have derived
+  takes place, there is at least a literal of level @{term k} involved (except if we have derived 
   the false clause). The reason is that we apply conflicts before a decision is taken.\<close>
 definition conflict_is_false_with_level :: "'st \<Rightarrow> bool" where
 "conflict_is_false_with_level S \<equiv> \<forall>D. conflicting S = Some D \<longrightarrow> D \<noteq> {#}
@@ -2503,7 +2503,7 @@ proof -
             using total_not_true_cls_true_clss_CNot \<open>\<not> trail S \<Turnstile>a D\<close> unfolding true_annot_def
             true_annots_true_cls by fastforce
           then have "\<exists>S'. conflict S S'"
-            using \<open>trail S \<Turnstile>as CNot D\<close> \<open>D \<in># init_clss S\<close>
+            using \<open>trail S \<Turnstile>as CNot D\<close> \<open>D \<in># init_clss S\<close> 
             None unfolding clauses_def by (auto simp: conflict.simps clauses_def)
           then show False
             using termi by (blast intro: cdcl\<^sub>W_stgy.intros)
@@ -2521,7 +2521,7 @@ proof -
       have "?M \<Turnstile>as CNot ?D" using confl LD unfolding cdcl\<^sub>W_conflicting_def by auto
       then have "?M \<noteq> []" unfolding true_annots_def Ball_def true_annot_def true_cls_def by force
       have M: "?M = hd ?M # tl ?M" using \<open>?M \<noteq> []\<close> list.collapse by fastforce
-
+      
       have n_s: "no_step conflict S" "no_step propagate S"
         using termi by (blast intro: cdcl\<^sub>W_stgy.intros)+
 
@@ -3256,7 +3256,7 @@ lemma cdcl\<^sub>W_stgy_ex_lit_of_max_level:
     "distinct_cdcl\<^sub>W_state S" and
     "cdcl\<^sub>W_conflicting S"
   shows "conflict_is_false_with_level S'"
-  using assms
+  using assms        
 proof (induct rule: cdcl\<^sub>W_stgy.induct)
   case (conflict' S')
   then have "no_smaller_confl S'"
@@ -3329,7 +3329,7 @@ proof -
     no_dup: "distinct_cdcl\<^sub>W_state S'" and
     confl: "cdcl\<^sub>W_conflicting S'" and
     decomp: "all_decomposition_implies_m (init_clss S') (get_all_ann_decomposition (trail S'))"
-    using no_d tranclp_cdcl\<^sub>W_stgy_tranclp_cdcl\<^sub>W_restart[of ?S S'] step
+    using no_d tranclp_cdcl\<^sub>W_stgy_tranclp_cdcl\<^sub>W_restart[of ?S S'] step 
     rtranclp_cdcl\<^sub>W_restart_all_inv(1-6)[of ?S S']
     unfolding rtranclp_unfold by auto
   moreover

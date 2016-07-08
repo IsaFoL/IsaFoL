@@ -105,8 +105,7 @@ text \<open>This invariant holds all the invariant related to the strategy. See 
 definition cdcl\<^sub>W_stgy_invariant where
 "cdcl\<^sub>W_stgy_invariant S \<longleftrightarrow>
   conflict_is_false_with_level S
-  \<and> no_smaller_confl S
-  \<and> no_clause_is_false S"
+  \<and> no_smaller_confl S"
 
 lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant:
   assumes
@@ -118,10 +117,7 @@ lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant:
   unfolding cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_all_struct_inv_def apply (intro conjI)
     apply (rule cdcl\<^sub>W_stgy_ex_lit_of_max_level[of S])
     using assms unfolding cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_all_struct_inv_def apply auto[7]
-    using cdcl\<^sub>W_restart cdcl\<^sub>W_stgy_not_non_negated_init_clss apply simp
-  apply (rule cdcl\<^sub>W_stgy_no_smaller_confl_inv)
-   using assms unfolding cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_all_struct_inv_def apply auto[4]
-  using cdcl\<^sub>W_restart cdcl\<^sub>W_stgy_not_non_negated_init_clss by auto
+  using cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_stgy_no_smaller_confl inv_s by blast
 
 lemma rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant:
   assumes

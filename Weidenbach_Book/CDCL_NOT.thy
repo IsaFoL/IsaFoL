@@ -175,7 +175,7 @@ text \<open>As we are defining abstract states, the Isabelle equality about them
 definition state_eq\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) where
 "S \<sim> T \<longleftrightarrow> trail S = trail T \<and> clauses\<^sub>N\<^sub>O\<^sub>T S = clauses\<^sub>N\<^sub>O\<^sub>T T"
 
-lemma state_eq\<^sub>N\<^sub>O\<^sub>T_ref[simp]:
+lemma state_eq\<^sub>N\<^sub>O\<^sub>T_ref[intro, simp]:
   "S \<sim> S"
   unfolding state_eq\<^sub>N\<^sub>O\<^sub>T_def by auto
 
@@ -2924,6 +2924,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2 =
      can_propagate_or_decide_or_backjump:
        "atm_of L \<in> atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<Longrightarrow>
        undefined_lit (trail S) L \<Longrightarrow>
+       inv S \<Longrightarrow>
        \<exists>T. decide\<^sub>N\<^sub>O\<^sub>T S T \<or> propagate\<^sub>N\<^sub>O\<^sub>T S T \<or> backjump_l S T"
 begin
 
@@ -3390,7 +3391,7 @@ proof -
               atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set literal.sel(1))
           then show False
             using can_propagate_or_decide_or_backjump[of "Pos l" S] l_N
-            using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_decide\<^sub>N\<^sub>O\<^sub>T n_s
+            cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_decide\<^sub>N\<^sub>O\<^sub>T n_s inv
             by (auto dest!: cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn.intros)
         qed
 
