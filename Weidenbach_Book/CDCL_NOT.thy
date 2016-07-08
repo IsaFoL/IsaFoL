@@ -2921,7 +2921,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2 =
        \<Longrightarrow> F \<Turnstile>as CNot C'
        \<Longrightarrow> \<not>no_step backjump_l S" and
      cdcl_merged_inv: "\<And>S T. cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn S T \<Longrightarrow> inv S \<Longrightarrow> inv T"  and
-     can_propagate_or_decide_or_backjump:
+     can_propagate_or_decide_or_backjump_l:
        "atm_of L \<in> atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<Longrightarrow>
        undefined_lit (trail S) L \<Longrightarrow>
        inv S \<Longrightarrow>
@@ -3042,7 +3042,7 @@ proof (unfold_locales, goal_cases)
 next
   case 2
   then show ?case
-    using can_propagate_or_decide_or_backjump backjump_l_implies_exists_backjump by blast
+    using can_propagate_or_decide_or_backjump_l backjump_l_implies_exists_backjump by blast
 qed
 
 sublocale conflict_driven_clause_learning_ops trail clauses\<^sub>N\<^sub>O\<^sub>T prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T
@@ -3390,7 +3390,7 @@ proof -
             using l_M by (metis Decided_Propagated_in_iff_in_lits_of_l
               atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set literal.sel(1))
           then show False
-            using can_propagate_or_decide_or_backjump[of "Pos l" S] l_N
+            using can_propagate_or_decide_or_backjump_l[of "Pos l" S] l_N
             cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_decide\<^sub>N\<^sub>O\<^sub>T n_s inv
             by (auto dest!: cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn.intros)
         qed
