@@ -1198,7 +1198,7 @@ lemma rtranclp_resolution_include:
   shows "fst \<psi>' \<subseteq> simple_clss (atms_of_ms (fst \<psi>))"
   using assms apply (induct rule: tranclp.induct)
     apply (simp add: resolution_include)
-  by (meson simple_clss_mono order_class.le_trans resolution_include
+  by (meson simple_clss_mono order_trans resolution_include
     rtranclp_resolution_atms_of rtranclp_resolution_finite tranclp_into_rtranclp)
 
 abbreviation already_used_all_simple

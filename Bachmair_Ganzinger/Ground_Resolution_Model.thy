@@ -348,7 +348,7 @@ proof -
       using a_at_d d'_at_d prod_c'
       by (auto simp: Interp_def intro: false_interp_to_true_Interp_imp_le_multiset)
     hence "D' \<le> C'"
-      using d'_le_d le_trans by blast
+      using d'_le_d order_trans by blast
     hence max_d': "Max (atms_of D') = A"
       using a_in_d' max_c' by (fast intro: pos_lit_in_atms_of le_multiset_Max_in_imp_Max)
 
