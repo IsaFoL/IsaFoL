@@ -221,12 +221,12 @@ locale propagate_ops =
     add_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" +
   fixes
-    propagate_cond :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> bool"
+    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool"
 begin
 inductive propagate\<^sub>N\<^sub>O\<^sub>T :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 propagate\<^sub>N\<^sub>O\<^sub>T[intro]: "C + {#L#} \<in># clauses\<^sub>N\<^sub>O\<^sub>T S \<Longrightarrow> trail S \<Turnstile>as CNot C
     \<Longrightarrow> undefined_lit (trail S) L
-    \<Longrightarrow> propagate_cond (Propagated L ()) S
+    \<Longrightarrow> propagate_conds (Propagated L ()) S T
     \<Longrightarrow> T \<sim> prepend_trail (Propagated L ()) S
     \<Longrightarrow> propagate\<^sub>N\<^sub>O\<^sub>T S T"
 inductive_cases propagate\<^sub>N\<^sub>O\<^sub>TE[elim]: "propagate\<^sub>N\<^sub>O\<^sub>T S T"
@@ -270,7 +270,7 @@ locale backjumping_ops =
 begin
 
 inductive backjump where
-"trail S = F' @ Decided K# F
+"trail S = F' @ Decided K # F
    \<Longrightarrow> T \<sim> prepend_trail (Propagated L ()) (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S)
    \<Longrightarrow> C \<in># clauses\<^sub>N\<^sub>O\<^sub>T S
    \<Longrightarrow> trail S \<Turnstile>as CNot C
@@ -286,7 +286,9 @@ text \<open>The condition @{term "atm_of L \<in> atms_of_mm (clauses\<^sub>N\<^s
   is not implied by the the condition @{term "clauses\<^sub>N\<^sub>O\<^sub>T S \<Turnstile>pm C' + {#L#}"} (no negation).\<close>
 end
 
+
 subsection \<open>DPLL with backjumping\<close>
+
 locale dpll_with_backjumping_ops =
   propagate_ops trail clauses\<^sub>N\<^sub>O\<^sub>T prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T propagate_conds +
   decide_ops trail clauses\<^sub>N\<^sub>O\<^sub>T prepend_trail tl_trail add_cls\<^sub>N\<^sub>O\<^sub>T remove_cls\<^sub>N\<^sub>O\<^sub>T decide_conds +
@@ -301,7 +303,7 @@ locale dpll_with_backjumping_ops =
     inv :: "'st \<Rightarrow> bool" and
     decide_conds :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
     backjump_conds :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
-    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> bool" +
+    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" +
   assumes
     bj_can_jump:
       "\<And>S C F' K F L.
@@ -958,7 +960,7 @@ locale dpll_with_backjumping =
     inv :: "'st \<Rightarrow> bool" and
     decide_conds :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
     backjump_conds :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
-    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> bool"
+    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool"
   +
   assumes dpll_bj_inv: "\<And>S T. dpll_bj S T \<Longrightarrow> inv S \<Longrightarrow> inv T"
 begin
@@ -1254,7 +1256,7 @@ locale conflict_driven_clause_learning_ops =
     inv :: "'st \<Rightarrow> bool" and
     decide_conds :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
     backjump_conds :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
-    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
     learn_conds forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
 begin
 
@@ -1762,7 +1764,7 @@ locale conflict_driven_clause_learning_learning_before_backjump_only_distinct_le
     inv :: "'st \<Rightarrow> bool" and
     decide_conds :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
     backjump_conds :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
-    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
     learn_restrictions forget_restrictions :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
 begin
 
@@ -2402,7 +2404,7 @@ locale conflict_driven_clause_learning_with_restarts =
     inv :: "'st \<Rightarrow> bool" and
     decide_conds :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
     backjump_conds :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
-    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
     learn_conds forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
 begin
 
@@ -2820,7 +2822,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops =
     add_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     decide_conds :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
-    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" +
   fixes backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool"
 begin
@@ -2876,7 +2878,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy =
     add_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     decide_conds :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
-    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
     backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" +
   fixes
@@ -2904,7 +2906,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy2 =
     add_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     decide_conds :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
-    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
     backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" +
@@ -3064,7 +3066,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn =
     remove_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     decide_conds :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
     backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
-    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" +
   assumes
@@ -3553,7 +3555,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_with_backtrack_and_restarts =
     inv :: "'st \<Rightarrow> bool" and
     decide_conds :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
     backjump_conds :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
-    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
     learn_restrictions forget_restrictions :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool"
     +
   fixes f :: "nat \<Rightarrow> nat"
@@ -3815,7 +3817,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_with_backtrack_restarts =
     add_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls\<^sub>N\<^sub>O\<^sub>T :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     decide_conds :: "'st \<Rightarrow> 'st \<Rightarrow> bool" and
-    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> bool" and
+    propagate_conds :: "('v, unit) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" and
     inv :: "'st \<Rightarrow> bool" and
     forget_conds :: "'v clause \<Rightarrow> 'st \<Rightarrow> bool" and
     backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool"

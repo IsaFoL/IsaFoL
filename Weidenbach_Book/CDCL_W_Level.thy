@@ -167,7 +167,9 @@ lemma get_all_mark_of_propagated_append[simp]:
   "get_all_mark_of_propagated (A @ B) = get_all_mark_of_propagated A @ get_all_mark_of_propagated B"
   by (induct A rule: ann_lit_list_induct) auto
 
+
 subsubsection \<open>Properties about the levels\<close>
+
 lemma atm_lit_of_set_lits_of_l:
   "(\<lambda>l. atm_of (lit_of l)) ` set xs = atm_of ` lits_of_l xs"
   unfolding lits_of_def by auto

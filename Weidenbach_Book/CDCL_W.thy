@@ -2367,6 +2367,34 @@ other': "no_step conflict S \<Longrightarrow> no_step propagate S \<Longrightarr
 lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W: "cdcl\<^sub>W_stgy S T \<Longrightarrow> cdcl\<^sub>W S T"
   by (induction rule: cdcl\<^sub>W_stgy.induct) (auto intro: cdcl\<^sub>W.intros)
 
+lemma cdcl\<^sub>W_stgy_induct[consumes 1, case_names conflict propagate decide skip resolve backtrack]:
+  assumes 
+    \<open>cdcl\<^sub>W_stgy S T\<close> and
+    \<open>\<And>T. conflict S T \<Longrightarrow> P T\<close> and
+    \<open>\<And>T. propagate S T \<Longrightarrow> P T\<close> and
+    \<open>\<And>T. no_step conflict S \<Longrightarrow> no_step propagate S \<Longrightarrow> decide S T \<Longrightarrow> P T\<close> and
+    \<open>\<And>T. no_step conflict S \<Longrightarrow> no_step propagate S \<Longrightarrow> skip S T \<Longrightarrow> P T\<close> and
+    \<open>\<And>T. no_step conflict S \<Longrightarrow> no_step propagate S \<Longrightarrow> resolve S T \<Longrightarrow> P T\<close> and
+    \<open>\<And>T. no_step conflict S \<Longrightarrow> no_step propagate S \<Longrightarrow> backtrack S T \<Longrightarrow> P T\<close>
+  shows
+    \<open>P T\<close>
+  using assms(1) by (induction rule: cdcl\<^sub>W_stgy.induct)
+  (auto simp: assms(2-) cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps)
+
+lemma cdcl\<^sub>W_stgy_cases[consumes 1, case_names conflict propagate decide skip resolve backtrack]:
+  assumes 
+    \<open>cdcl\<^sub>W_stgy S T\<close> and
+    \<open>conflict S T \<Longrightarrow> P\<close> and
+    \<open>propagate S T \<Longrightarrow> P\<close> and
+    \<open>no_step conflict S \<Longrightarrow> no_step propagate S \<Longrightarrow> decide S T \<Longrightarrow> P\<close> and
+    \<open>no_step conflict S \<Longrightarrow> no_step propagate S \<Longrightarrow> skip S T \<Longrightarrow> P\<close> and
+    \<open>no_step conflict S \<Longrightarrow> no_step propagate S \<Longrightarrow> resolve S T \<Longrightarrow> P\<close> and
+    \<open>no_step conflict S \<Longrightarrow> no_step propagate S \<Longrightarrow> backtrack S T \<Longrightarrow> P\<close>
+  shows
+    \<open>P\<close>
+  using assms(1) by (cases rule: cdcl\<^sub>W_stgy.cases)
+  (auto simp: assms(2-) cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps)
+
 
 subsubsection \<open>Invariants\<close>
 

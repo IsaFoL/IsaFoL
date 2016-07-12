@@ -238,7 +238,7 @@ sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
   "\<lambda>_ _. True"
   "\<lambda>_ _ _ S T. backtrack S T"
-  "\<lambda>_ _. True"
+  "\<lambda>_ _ _. True"
   apply unfold_locales
    apply (metis (mono_tags, lifting) case_prod_beta comp_def dpll_with_backtrack.backtrack_is_backjump''
      dpll_with_backtrack.can_do_bt_step)
@@ -250,7 +250,7 @@ sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
   "\<lambda>_ _. True"
   "\<lambda>_ _ _ S T. backtrack S T"
-  "\<lambda>_ _. True"
+  "\<lambda>_ _ _. True"
   apply unfold_locales
   using dpll_bj_no_dup dpll_bj_all_decomposition_implies_inv apply fastforce
   done
@@ -291,7 +291,7 @@ interpretation conflict_driven_clause_learning_ops
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
   "\<lambda>_ _. True"
   "\<lambda>_ _ _ S T. backtrack S T"
-  "\<lambda>_ _. True" "\<lambda>_ _. False" "\<lambda>_ _. False"
+  "\<lambda>_ _ _. True" "\<lambda>_ _. False" "\<lambda>_ _. False"
   by unfold_locales
 
 interpretation conflict_driven_clause_learning
@@ -300,7 +300,7 @@ interpretation conflict_driven_clause_learning
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
   "\<lambda>_ _. True"
   "\<lambda>_ _ _ S T. backtrack S T"
-  "\<lambda>_ _. True" "\<lambda>_ _. False" "\<lambda>_ _. False"
+  "\<lambda>_ _ _. True" "\<lambda>_ _. False" "\<lambda>_ _. False"
   apply unfold_locales
   using cdcl\<^sub>N\<^sub>O\<^sub>T_all_decomposition_implies cdcl\<^sub>N\<^sub>O\<^sub>T_no_dup by fastforce
 

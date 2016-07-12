@@ -190,8 +190,8 @@ restart_full: "full1 cdcl\<^sub>W_stgy S T \<Longrightarrow> cdcl\<^sub>W_restar
 lemma cdcl\<^sub>W_restart_with_restart_rtranclp_cdcl\<^sub>W_restart:
   "cdcl\<^sub>W_restart_with_restart S T \<Longrightarrow> cdcl\<^sub>W_restart\<^sup>*\<^sup>* (fst S) (fst T)"
   apply (induction rule: cdcl\<^sub>W_restart_with_restart.induct)
-  by (auto dest!: relpowp_imp_rtranclp  tranclp_into_rtranclp fw_r_rf
-     cdcl\<^sub>W_rf.restart rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart cdcl\<^sub>W_merge_restart_cdcl\<^sub>W_restart
+  by (auto dest!: relpowp_imp_rtranclp  tranclp_into_rtranclp cdcl\<^sub>W_restart.rf
+     cdcl\<^sub>W_rf.restart rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart
     simp: full1_def)
 
 lemma cdcl\<^sub>W_restart_with_restart_increasing_number:

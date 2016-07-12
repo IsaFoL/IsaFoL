@@ -4,9 +4,11 @@ begin
 
 context conflict_driven_clause_learning\<^sub>W
 begin
+
 subsection \<open>Termination\<close>
 
 subsubsection \<open>No Relearning of a clause\<close>
+
 lemma propagate_no_more_Decided_lit:
   assumes "propagate S S'"
   shows "Decided K \<in> set (trail S) \<longleftrightarrow> Decided K \<in> set (trail S')"
@@ -638,7 +640,9 @@ lemma cdcl\<^sub>W_stgy_distinct_mset_clauses:
   using rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses[OF _ st] assms
   by (auto simp: cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def)
 
+
 subsubsection \<open>Decrease of a Measure\<close>
+
 fun cdcl\<^sub>W_restart_measure where
 "cdcl\<^sub>W_restart_measure S =
   [(3::nat) ^ (card (atms_of_mm (init_clss S))) - card (set_mset (learned_clss S)),
