@@ -102,34 +102,6 @@ sublocale conflict_driven_clause_learning\<^sub>W
 
 text \<open>This invariant holds all the invariant related to the strategy. See the structural invariant
     in @{term cdcl\<^sub>W_all_struct_inv}\<close>
-definition cdcl\<^sub>W_stgy_invariant where
-"cdcl\<^sub>W_stgy_invariant S \<longleftrightarrow>
-  conflict_is_false_with_level S
-  \<and> no_smaller_confl S"
-
-lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant:
-  assumes
-   cdcl\<^sub>W_restart: "cdcl\<^sub>W_stgy S T" and
-   inv_s: "cdcl\<^sub>W_stgy_invariant S" and
-   inv: "cdcl\<^sub>W_all_struct_inv S"
-  shows
-    "cdcl\<^sub>W_stgy_invariant T"
-  unfolding cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_all_struct_inv_def apply (intro conjI)
-    apply (rule cdcl\<^sub>W_stgy_ex_lit_of_max_level[of S])
-    using assms unfolding cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_all_struct_inv_def apply auto[7]
-  using cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_stgy_no_smaller_confl inv_s by blast
-
-lemma rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant:
-  assumes
-   cdcl\<^sub>W_restart: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T" and
-   inv_s: "cdcl\<^sub>W_stgy_invariant S" and
-   inv: "cdcl\<^sub>W_all_struct_inv S"
-  shows
-    "cdcl\<^sub>W_stgy_invariant T"
-  using assms apply (induction)
-    apply simp
-  using cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant rtranclp_cdcl\<^sub>W_all_struct_inv_inv
-  rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart by blast
 
 abbreviation decr_bt_lvl where
 "decr_bt_lvl S \<equiv> update_backtrack_lvl (backtrack_lvl S - 1) S"
@@ -448,7 +420,7 @@ proof -
             case D_T
             have "no_smaller_confl T"
               using inv_s unfolding cdcl\<^sub>W_stgy_invariant_def by auto
-            have "(MT @ M') @ Decided K # M = trail T "
+            have "trail T = (MT @ M') @ Decided K # M"
               using MT 1(1) by auto
             then show False
               using D_T \<open>no_smaller_confl T\<close> 1(3) unfolding no_smaller_confl_def by blast
@@ -470,41 +442,13 @@ proof -
               using \<open>cdcl\<^sub>W_all_struct_inv ?T'\<close> unfolding cdcl\<^sub>W_all_struct_inv_def
               cdcl\<^sub>W_M_level_inv_def by (auto simp: add_new_clause_and_update_def)
             ultimately show False
-              unfolding 1(1)[symmetric, simplified] by (auto simp: lits_of_def)
+              unfolding 1(1)[simplified] by (auto simp: lits_of_def)
         qed
       qed
       show ?thesis using L L' C
         unfolding cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_all_struct_inv_def
         by (auto simp: add_new_clause_and_update_def intro: rev_bexI)
     qed
-qed
-
-lemma full_cdcl\<^sub>W_stgy_inv_normal_form:
-  assumes
-    full: "full cdcl\<^sub>W_stgy S T" and
-    inv_s: "cdcl\<^sub>W_stgy_invariant S" and
-    inv: "cdcl\<^sub>W_all_struct_inv S"
-  shows "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss S))
-    \<or> conflicting T = None \<and> trail T \<Turnstile>asm init_clss S \<and> satisfiable (set_mset (init_clss S))"
-proof -
-  have "no_step cdcl\<^sub>W_stgy T"
-    using full unfolding full_def by blast
-  moreover have "cdcl\<^sub>W_all_struct_inv T" and inv_s: "cdcl\<^sub>W_stgy_invariant T"
-    apply (metis rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart full full_def inv
-      rtranclp_cdcl\<^sub>W_all_struct_inv_inv)
-    by (metis full full_def inv inv_s rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant)
-  ultimately have "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss T))
-    \<or> conflicting T = None \<and> trail T \<Turnstile>asm init_clss T"
-    using cdcl\<^sub>W_stgy_final_state_conclusive[of T] full
-    unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_stgy_invariant_def full_def by fast
-  moreover have "consistent_interp (lits_of_l (trail T))"
-    using \<open>cdcl\<^sub>W_all_struct_inv T\<close> unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
-    by auto
-  moreover have "init_clss S = init_clss T"
-    using inv unfolding cdcl\<^sub>W_all_struct_inv_def
-    by (metis rtranclp_cdcl\<^sub>W_stgy_no_more_init_clss full full_def)
-  ultimately show ?thesis
-    by (metis satisfiable_carac' true_annot_def true_annots_def true_clss_def)
 qed
 
 lemma incremental_cdcl\<^sub>W_restart_inv:
