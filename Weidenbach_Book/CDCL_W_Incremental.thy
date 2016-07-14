@@ -80,7 +80,6 @@ locale conflict_driven_clause_learning_with_adding_init_clause\<^sub>W =
     add_init_cls
   for
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
-    hd_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lit" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
     backtrack_lvl :: "'st \<Rightarrow> nat" and
@@ -536,7 +535,7 @@ proof induction
       incremental_cdcl\<^sub>W_restart_inv(2) inv s_inv)
 next
   case (add_no_confl C T) note tr = this(1) and dist = this(2) and conf = this(3) and C = this(4)
-    and   full = this(5)
+    and full = this(5)
   (* Here I thank Sledgehammer for its invaluable services *)
   have "full cdcl\<^sub>W_stgy T T"
     using full unfolding full_def by auto
