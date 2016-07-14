@@ -3575,5 +3575,210 @@ proof -
   ultimately show ?thesis
     by (metis satisfiable_carac' true_annot_def true_annots_def true_clss_def)
 qed
+
+definition "no_smaller_propa (S ::'st) \<equiv>
+  (\<forall>M K M' D L. trail S = M' @ Decided K # M \<longrightarrow> D + {#L#} \<in># clauses S \<longrightarrow> undefined_lit M L
+    \<longrightarrow> \<not>M \<Turnstile>as CNot D)"
+
+lemma propagated_cons_eq_append_decide_cons:
+  "Propagated L E # Ms = M' @ Decided K # M \<longleftrightarrow>
+    M' \<noteq> [] \<and> Ms = tl M' @ Decided K # M \<and> hd M' = Propagated L E"
+  by (metis (no_types, lifting) ann_lit.disc(1) ann_lit.disc(2) append_is_Nil_conv hd_append
+    list.exhaust_sel list.sel(1) list.sel(3) tl_append2)
+
+lemma in_get_all_mark_of_propagated_in_trail:
+ \<open>C \<in> set (get_all_mark_of_propagated M)  \<longleftrightarrow> (\<exists>L. Propagated L C \<in> set M)\<close>
+  by (induction M rule: ann_lit_list_induct) auto
+
+lemma no_smaller_propa_tl:
+  assumes
+    \<open>no_smaller_propa S\<close> and
+    \<open>trail S \<noteq> []\<close> and
+    \<open>\<not>is_decided(hd_trail S)\<close> and
+    \<open>trail U = tl (trail S)\<close> and
+    \<open>clauses U = clauses S\<close>
+  shows
+    \<open>no_smaller_propa U\<close>
+  using assms by (cases \<open>trail S\<close>) (auto simp: no_smaller_propa_def)
+
+lemma no_dup_append_in_atm_notin:
+   assumes \<open>no_dup (M @ M')\<close> and \<open>L \<in> lits_of_l M'\<close>
+     shows \<open>atm_of L \<notin> atm_of ` lits_of_l M\<close>
+  using assms by (auto simp add: atm_lit_of_set_lits_of_l)
+
+text \<open>TODO remove \<open>count_decided_ge_get_level\<close> from simp\<close>
+
+lemmas rulesE =
+  skipE resolveE backtrackE propagateE conflictE decideE restartE forgetE
+
+lemma cdcl\<^sub>W_stgy_no_smaller_propa:
+  assumes
+    cdcl: \<open>cdcl\<^sub>W_stgy S T\<close> and
+    smaller_propa: \<open>no_smaller_propa S\<close> and
+    inv: \<open>cdcl\<^sub>W_all_struct_inv S\<close>
+  shows \<open>no_smaller_propa T\<close>
+  using cdcl
+proof (cases rule: cdcl\<^sub>W_stgy_cases)
+  case conflict
+  then show ?thesis
+    using smaller_propa by (auto simp: no_smaller_propa_def elim!: rulesE)
+next
+  case propagate
+  then show ?thesis
+    using smaller_propa by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
+      elim!: rulesE)
+next
+  case skip
+  then show ?thesis
+    using smaller_propa by (auto intro: no_smaller_propa_tl elim!: rulesE)
+next
+  case resolve
+  then show ?thesis
+    using smaller_propa by (auto intro: no_smaller_propa_tl elim!: rulesE)
+next
+  case decide note n_s = this(1,2) and dec = this(3)
+  show ?thesis
+      unfolding no_smaller_propa_def
+    proof clarify
+      fix M K M' D L
+      assume
+        tr: \<open>trail T = M' @ Decided K # M\<close> and
+        D: \<open>D+{#L#} \<in># clauses T\<close> and
+        undef: \<open>undefined_lit M L\<close> and
+        M: \<open>M \<Turnstile>as CNot D\<close>
+      then have "Ex (propagate S)"
+        apply (cases M')
+        using propagate_rule[of S "D+{#L#}" L "cons_trail (Propagated L (D + {#L#})) S"] dec
+        smaller_propa
+        by (auto simp: no_smaller_propa_def elim!: rulesE)
+      then show False
+        using n_s by blast
+    qed
+next
+  case backtrack note n_s = this(1,2) and o = this(3)
+  have inv_T: "cdcl\<^sub>W_all_struct_inv T"
+    using cdcl cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv inv by blast
+  obtain D :: "'v literal multiset" and K L :: "'v literal"  and
+    M1 M2 :: "('v, 'v literal multiset) ann_lit list" and i :: nat where
+    "conflicting S = Some D" and
+    LD: "L \<in># D" and
+    decomp: "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))" and
+    "get_level (trail S) L = backtrack_lvl S" and
+    "get_level (trail S) L = get_maximum_level (trail S) D" and
+    i: "get_maximum_level (trail S) (D - {#L#}) \<equiv> i" and
+    "get_level (trail S) K = i + 1" and
+    T: "T \<sim> cons_trail (Propagated L D)
+        (reduce_trail_to M1
+          (add_learned_cls D
+            (update_backtrack_lvl i
+              (update_conflicting None S))))"
+    using o by (auto elim!: rulesE)
+  have [simp]: "trail (reduce_trail_to M1 S) = M1"
+    using decomp by auto
+  obtain M'' where M'': "trail S = M'' @ tl (trail T)"
+    using decomp T by auto
+  have M1: "M1 = tl (trail T)" and tr_T: "trail T = Propagated L D # M1"
+    using decomp T by auto
+  have lev_inv: "cdcl\<^sub>W_M_level_inv S"
+    using inv unfolding cdcl\<^sub>W_all_struct_inv_def by auto
+  then have lev_inv_T: "cdcl\<^sub>W_M_level_inv T"
+    using cdcl cdcl\<^sub>W_stgy_consistent_inv by blast
+  have n_d: "no_dup (trail S)"
+    using lev_inv unfolding cdcl\<^sub>W_M_level_inv_def by auto
+  have n_d_T: "no_dup (trail T)"
+    using lev_inv_T unfolding cdcl\<^sub>W_M_level_inv_def by auto
+  from o show ?thesis
+      unfolding no_smaller_propa_def
+    proof clarify
+      fix M K' M' D' L'
+      assume
+        tr: \<open>trail T = M' @ Decided K' # M\<close> and
+        D: \<open>D'+{#L'#} \<in># clauses T\<close> and
+        undef: \<open>undefined_lit M L'\<close> and
+        M: \<open>M \<Turnstile>as CNot D'\<close>
+      { assume D: \<open>D = D' + {#L'#}\<close> and M_D: \<open>M \<Turnstile>as CNot D'\<close>
+        { assume  \<open>i = 0\<close>
+          then have False
+            using tr T lev_inv_T unfolding cdcl\<^sub>W_M_level_inv_def by auto
+        }
+        moreover
+        { assume \<open>i \<noteq> 0\<close>
+          then have "D - {#L#} \<noteq> {#}"
+            using i D by auto
+          moreover
+            have "M1 \<Turnstile>as CNot (remove1_mset L D)"
+              using inv_T tr_T unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def
+              by auto
+            then have "get_maximum_level M1 (remove1_mset L D) = i"
+              using T i n_d unfolding M'' tr_T
+              apply (subst (asm) get_maximum_level_skip_beginning)
+              by (auto simp: get_maximum_level_skip_beginning true_annots_true_cls true_clss_def
+                atms_of_def atm_lit_of_set_lits_of_l
+                atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
+          ultimately obtain L_max where
+            L_max_in: "L_max \<in># remove1_mset L D" and
+            lev_L_max: "get_level M1 L_max = i"
+            using i not_empty_get_maximum_level_exists_lit[of "remove1_mset L D"]
+            by auto
+          have count_dec_M: "count_decided M < i"
+            using lev_inv_T T unfolding cdcl\<^sub>W_M_level_inv_def tr by auto
+          have "- L_max \<notin> lits_of_l M"
+          proof (rule ccontr)
+            assume \<open>\<not> ?thesis\<close>
+            then have \<open>- L_max \<notin> lits_of_l (M' @ [Decided K'])\<close>
+              using n_d_T unfolding tr by (auto simp: lits_of_def)
+            have \<open>atm_of L_max \<notin> atm_of ` lits_of_l (M' @ [Decided K'])\<close>
+              apply (subst atm_of_uminus[symmetric], rule no_dup_append_in_atm_notin)
+              using n_d_T \<open>\<not> - L_max \<notin> lits_of_l M\<close> unfolding tr by auto
+            then have "get_level (tl M' @ Decided K' # M) L_max < i"
+              apply (subst get_rev_level_skip)
+                apply (cases M'; auto simp add: atm_of_eq_atm_of lits_of_def)
+              using count_dec_M count_decided_ge_get_level[of L_max M]
+              by (auto simp del: count_decided_ge_get_level)
+            then show False
+              using lev_L_max tr unfolding tr_T by (auto simp: propagated_cons_eq_append_decide_cons)
+          qed
+          moreover have "- L \<notin> lits_of_l M"
+          proof (rule ccontr)
+            assume \<open>\<not> ?thesis\<close>
+            then have \<open>- L \<notin> lits_of_l (M' @ [Decided K'])\<close>
+              using n_d_T unfolding tr by (auto simp: lits_of_def)
+            have \<open>atm_of L \<notin> atm_of ` lits_of_l (M' @ [Decided K'])\<close>
+              apply (subst atm_of_uminus[symmetric], rule no_dup_append_in_atm_notin)
+              using n_d_T \<open>\<not> - L \<notin> lits_of_l M\<close> unfolding tr by auto
+            moreover have "M' = Propagated L D # tl M'"
+              using tr_T by (metis hd_Cons_tl propagated_cons_eq_append_decide_cons tr)
+            ultimately show False
+              by (metis (no_types) ann_lit.sel(2) append.simps(2) atm_lit_of_set_lits_of_l
+                  insert_iff list.map(2) list.set(2) set_map)
+          qed
+          moreover have "L_max \<in># D' \<or> L \<in># D'"
+            using D L_max_in LD
+            by (auto simp: count_greater_zero_iff[symmetric]
+              simp del: count_greater_zero_iff
+              split: if_splits)
+          ultimately have False
+            using M_D by (auto simp: true_annots_true_cls true_clss_def)
+        }
+        ultimately have False by blast
+      }
+      then show False
+        apply (cases M')
+        using M'' smaller_propa tr D undef M T
+        by (auto simp: no_smaller_propa_def elim!: rulesE)
+    qed
+qed
+
+lemma rtranclp_cdcl\<^sub>W_stgy_no_smaller_propa:
+  assumes
+    cdcl: \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T\<close> and
+    smaller_propa: \<open>no_smaller_propa S\<close> and
+    inv: \<open>cdcl\<^sub>W_all_struct_inv S\<close>
+  shows \<open>no_smaller_propa T\<close>
+  using cdcl apply (induction rule: rtranclp_induct)
+    using smaller_propa apply simp
+  using inv by (auto intro: rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv
+      cdcl\<^sub>W_stgy_no_smaller_propa)
+
 end
 end

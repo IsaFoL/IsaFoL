@@ -1022,9 +1022,6 @@ lemma rtranclp_cdcl\<^sub>W_merge_rtranclp_cdcl\<^sub>W_restart:
   "cdcl\<^sub>W_merge\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_restart\<^sup>*\<^sup>* S T"
   using rtranclp_mono[of cdcl\<^sub>W_merge "cdcl\<^sub>W_restart\<^sup>*\<^sup>*"] cdcl\<^sub>W_merge_rtranclp_cdcl\<^sub>W_restart by auto
 
-lemmas rulesE =
-  skipE resolveE backtrackE propagateE conflictE decideE restartE forgetE
-
 lemma cdcl\<^sub>W_all_struct_inv_tranclp_cdcl\<^sub>W_merge_tranclp_cdcl\<^sub>W_merge_cdcl\<^sub>W_all_struct_inv:
   assumes
     inv: "cdcl\<^sub>W_all_struct_inv b"

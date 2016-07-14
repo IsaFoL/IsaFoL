@@ -163,7 +163,7 @@ lemma cdcl\<^sub>W_merge_with_restart_distinct_mset_clauses:
   assumes invR: "cdcl\<^sub>W_all_struct_inv (fst R)" and
   st: "cdcl\<^sub>W_merge_with_restart R S" and
   dist: "distinct_mset (clauses (fst R))" and
-  R: "trail (fst R) = []"
+  R: \<open>no_smaller_propa (fst R)\<close>
   shows "distinct_mset (clauses (fst S))"
   using assms(2,1,3,4)
 proof (induction)
@@ -285,7 +285,7 @@ lemma cdcl\<^sub>W_restart_with_restart_distinct_mset_clauses:
   assumes invR: "cdcl\<^sub>W_all_struct_inv (fst R)" and
   st: "cdcl\<^sub>W_restart_with_restart R S" and
   dist: "distinct_mset (clauses (fst R))" and
-  R: "trail (fst R) = []"
+  R: \<open>no_smaller_propa (fst R)\<close>
   shows "distinct_mset (clauses (fst S))"
   using assms(2,1,3,4)
 proof (induction)

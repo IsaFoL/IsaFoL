@@ -1024,15 +1024,18 @@ next
       then show ?thesis
         using do_cdcl\<^sub>W_stgy_step  T  diff unfolding id_of_I_to_def  do_cdcl\<^sub>W_stgy_step by fastforce
     qed
-  moreover
-    have "cdcl\<^sub>W_all_struct_inv (toS (rough_state_from_init_state_of S))"
+  moreover have "cdcl\<^sub>W_all_struct_inv (toS (rough_state_from_init_state_of S))"
       using rough_state_from_init_state_of[of S] by auto
+  moreover
     then have "cdcl\<^sub>W_all_struct_inv (S0_cdcl\<^sub>W_restart (raw_init_clss (toS (rough_state_from_init_state_of S))))"
       by (cases "rough_state_from_init_state_of S")
          (auto simp add: cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def)
+    then have \<open>no_smaller_propa (toS (rough_state_from_init_state_of S))\<close>
+      using rtranclp_cdcl\<^sub>W_stgy_no_smaller_propa[OF S]
+      by (auto simp: empty_trail_no_smaller_propa)
   ultimately show ?case
     using tranclp_cdcl\<^sub>W_stgy_S0_decreasing
-    by (auto intro!: cdcl\<^sub>W_stgy_step_decreasing[of _ _ "S0_cdcl\<^sub>W_restart (raw_init_clss (toS ?S))"]
+    by (auto intro!: cdcl\<^sub>W_stgy_step_decreasing[of ]
       simp del: cdcl\<^sub>W_restart_measure.simps)
 qed
 
