@@ -149,7 +149,7 @@ lemma count_decided_rev[simp]:
   "count_decided (rev M) = count_decided M"
   by (auto simp: rev_filter[symmetric])
 
-lemma count_decided_ge_get_level[simp]:
+lemma count_decided_ge_get_level:
   "count_decided M \<ge> get_level M L"
   by (induct M rule: ann_lit_list_induct) (auto simp add: le_max_iff_disj)
 

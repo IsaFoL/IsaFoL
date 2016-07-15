@@ -964,7 +964,7 @@ lemma cdcl\<^sub>W_M_level_inv_get_level_le_backtrack_lvl:
   assumes inv: "cdcl\<^sub>W_M_level_inv S"
   shows "get_level (trail S) L \<le> backtrack_lvl S"
   using inv unfolding cdcl\<^sub>W_M_level_inv_def
-  by simp
+  by (simp add: count_decided_ge_get_level)
 
 lemma backtrack_ex_decomp:
   assumes
@@ -1221,6 +1221,17 @@ next
   then show ?case
     using IH[of T] by auto
 qed
+
+lemma skip_unique:
+  "skip S T \<Longrightarrow> skip S T' \<Longrightarrow> T \<sim> T'"
+  by (fastforce simp: state_eq_def simp del: state_simp elim: skipE)
+
+lemma resolve_unique:
+  "resolve S T \<Longrightarrow> resolve S T' \<Longrightarrow> T \<sim> T'"
+  by (fastforce simp: state_eq_def simp del: state_simp elim: resolveE)
+
+text \<open>The same holds for backtrack, but more invariants are needed.\<close>
+
 
 subsubsection \<open>Conservation of some Properties\<close>
 lemma cdcl\<^sub>W_o_no_more_init_clss:
@@ -2332,7 +2343,6 @@ lemma tranclp_conflict:
    apply simp
   by (metis conflictE conflicting_update_conflicting option.distinct(1) state_eq_conflicting)
 
-text \<open>TODO see if useful\<close>
 lemma tranclp_conflict_iff:
   "full1 conflict S S' \<longleftrightarrow> conflict S S'"
 proof -
@@ -2341,14 +2351,6 @@ proof -
   by (metis conflict.simps conflicting_update_conflicting option.distinct(1)
     state_eq_conflicting tranclp.intros(1))
 qed
-
-lemma skip_unique:
-  "skip S T \<Longrightarrow> skip S T' \<Longrightarrow> T \<sim> T'"
-  by (fastforce simp: state_eq_def simp del: state_simp elim: skipE)
-
-lemma resolve_unique:
-  "resolve S T \<Longrightarrow> resolve S T' \<Longrightarrow> T \<sim> T'"
-  by (fastforce simp: state_eq_def simp del: state_simp elim: resolveE)
 
 lemma no_conflict_after_conflict:
   "conflict S T \<Longrightarrow> \<not>conflict T U"
@@ -2550,7 +2552,7 @@ proof -
           by (auto simp: filter_empty_conv d) }
       moreover {
         have "get_level (tl (trail S)) L'' \<le> count_decided (tl (trail S))"
-          by auto
+          by (auto simp: count_decided_ge_get_level)
         then have "get_level (tl (trail S)) L'' < backtrack_lvl S"
           using level_inv unfolding cdcl\<^sub>W_M_level_inv_def apply (subst (asm)(5) M)
           by (auto simp: image_iff L' L'_L simp del: count_decided_ge_get_level) }
@@ -2876,15 +2878,15 @@ proof -
     by auto
 qed
 
-text \<open>TODO rename\<close>
-lemma cdcl\<^sub>W_cp_propagate_completeness:
-  assumes MN: "set M \<Turnstile>s set_mset N" and
-  cons: "consistent_interp (set M)" and
-  tot: "total_over_m (set M) (set_mset N)" and
-  "lits_of_l (trail S) \<subseteq> set M" and
-  "init_clss S = N" and
-  "propagate\<^sup>*\<^sup>* S S'" and
-  "learned_clss S = {#}"
+lemma cdcl\<^sub>W_propagate_conflict_completeness:
+  assumes 
+    MN: "set M \<Turnstile>s set_mset N" and
+    cons: "consistent_interp (set M)" and
+    tot: "total_over_m (set M) (set_mset N)" and
+    "lits_of_l (trail S) \<subseteq> set M" and
+    "init_clss S = N" and
+    "propagate\<^sup>*\<^sup>* S S'" and
+    "learned_clss S = {#}"
   shows "length (trail S) \<le> length (trail S') \<and> lits_of_l (trail S') \<subseteq> set M"
   using assms(6,4,5,7)
 proof (induction rule: rtranclp_induct)
@@ -2978,7 +2980,7 @@ next
     then have n_d'[simp]: "no_dup (trail S')"
       unfolding cdcl\<^sub>W_M_level_inv_def by auto
     have "length (trail S) \<le> length (trail S') \<and> lits_of_l (trail S') \<subseteq> set M"
-      using S' cdcl\<^sub>W_cp_propagate_completeness[OF assms(1-3), of S] M' S
+      using S' cdcl\<^sub>W_propagate_conflict_completeness[OF assms(1-3), of S] M' S
       by (auto simp: comp_def)
     moreover
       have "cdcl\<^sub>W_stgy S S'" using S' by (simp add: cdcl\<^sub>W_stgy.propagate')
@@ -3648,8 +3650,6 @@ lemma no_dup_append_in_atm_notin:
    assumes \<open>no_dup (M @ M')\<close> and \<open>L \<in> lits_of_l M'\<close>
      shows \<open>atm_of L \<notin> atm_of ` lits_of_l M\<close>
   using assms by (auto simp add: atm_lit_of_set_lits_of_l)
-
-text \<open>TODO remove \<open>count_decided_ge_get_level\<close> from simp\<close>
 
 lemmas rulesE =
   skipE resolveE backtrackE propagateE conflictE decideE restartE forgetE

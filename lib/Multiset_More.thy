@@ -39,13 +39,35 @@ lemma subset_msetE [elim!]:
   unfolding subseteq_mset_def subset_mset_def by (meson mset_subset_eqI subset_mset.eq_iff)
 
 
-subsection \<open>Lemmas about intersections\<close>
+subsection \<open>Lemmas about intersections and unions\<close>
 
 lemma mset_inter_single:
   "x \<in># \<Sigma> \<Longrightarrow> \<Sigma> #\<inter> {#x#} = {#x#}"
   "x \<notin># \<Sigma> \<Longrightarrow> \<Sigma> #\<inter> {#x#} = {#}"
     apply (simp add: mset_subset_eq_single subset_mset.inf_absorb2)
   by (simp add: multiset_inter_def)
+
+lemma inter_mset_empty_distrib_right: \<open>A #\<inter> (B + C) = {#} \<longleftrightarrow> A #\<inter> B = {#} \<and> A #\<inter> C = {#}\<close>
+  by (meson disjunct_not_in union_iff)
+
+lemma inter_mset_empty_distrib_left: \<open>(A + B) #\<inter> C = {#} \<longleftrightarrow> A #\<inter> C = {#} \<and> B #\<inter> C = {#}\<close>
+  by (meson disjunct_not_in union_iff)
+
+lemma
+  shows
+    inter_mset_single_right_empty[iff]: \<open>L #\<inter> {#x#} = {#} \<longleftrightarrow> x \<notin># L\<close> and
+    inter_mset_single_left_empty[iff]: \<open>{#x#} #\<inter> L = {#} \<longleftrightarrow> x \<notin># L\<close>
+    by (auto simp: disjunct_not_in)
+
+lemma sup_subset_mset_empty_iff[iff]: "A #\<union> B = {#} \<longleftrightarrow> A = {#} \<and> B = {#}"
+  by (auto simp: sup_subset_mset_def)
+
+text \<open>TODO mark as [iff]?\<close>
+lemma union_mset_mempty_iff: "\<Union># M = {#} \<longleftrightarrow> (\<forall>i\<in>#M. i = {#})"
+  by (induction M) auto
+
+lemma minus_eq_empty_iff_include: "A - B = {#} \<longleftrightarrow> A \<subseteq># B"
+  by (auto simp: multiset_eq_iff subseteq_mset_def)
 
 
 subsection \<open>Lemmas about size\<close>
@@ -348,49 +370,18 @@ lemma distinct_mset_single_add: "distinct_mset (L + {#a#}) \<longleftrightarrow>
 lemma distinct_mset_size_eq_card: "distinct_mset C \<Longrightarrow> size C = card (set_mset C)"
   by (induction C) (auto simp: distinct_mset_single_add)
 
-text \<open>Another characterisation of @{term distinct_mset}\<close>
+text \<open>Another characterisation of @{term distinct_mset}:\<close>
 
 lemma distinct_mset_count_less_1: "distinct_mset S \<longleftrightarrow> (\<forall>a. count S a \<le> 1)"
   using eq_iff nat_le_linear unfolding distinct_mset_def by fastforce
 
 lemma distinct_mset_add:
   "distinct_mset (L + L') \<longleftrightarrow> distinct_mset L \<and> distinct_mset L' \<and> L #\<inter> L' = {#}" (is "?A \<longleftrightarrow> ?B")
-proof (rule iffI)
-  assume ?A
-  have L: "distinct_mset L"
-    using \<open>distinct_mset (L + L')\<close> distinct_mset_union by blast
-  moreover have L': "distinct_mset L'"
-    using \<open>distinct_mset (L + L')\<close> distinct_mset_union unfolding add.commute[of L L'] by blast
-  moreover have "L #\<inter> L' = {#}"
-    using L L' \<open>?A\<close> unfolding multiset_inter_def multiset_eq_iff distinct_mset_count_less_1
-    by (metis Nat.diff_le_self add_diff_cancel_left' count_diff count_empty diff_is_0_eq eq_iff
-      le_neq_implies_less less_one)
-  ultimately show ?B by fast
-next
-  assume ?B
-  show ?A
-    unfolding distinct_mset_count_less_1
-    proof (intro allI)
-      fix a
-      have "count (L + L') a \<le> count L a + count L' a"
-        by auto
-      moreover have "count L a + count L' a \<le> 1"
-        using \<open>?B\<close> by (metis One_nat_def add.commute add_decreasing2 count_diff diff_add_zero
-          distinct_mset_count_less_1 le_SucE multiset_inter_count plus_multiset.rep_eq
-          subset_mset.inf.idem)
-      ultimately show "count (L + L') a \<le> 1"
-        by arith
-    qed
-qed
+  by (induction L arbitrary: L')
+   (auto simp add: ac_simps distinct_mset_single_add inter_mset_empty_distrib_right)
 
 lemma distinct_mset_set_mset_ident[simp]: "distinct_mset M \<Longrightarrow> mset_set (set_mset M) = M"
-  apply (auto simp: multiset_eq_iff)
-  apply (rename_tac x)
-  apply (case_tac "count M x = 0")
-   apply (simp add: not_in_iff[symmetric])
-  apply (case_tac "count M x = 1")
-   apply (simp add: count_inI)
-  unfolding distinct_mset_count_less_1 by (meson le_neq_implies_less less_one)
+  by (induction M) (auto simp: distinct_mset_add ac_simps)
 
 lemma distinct_finite_set_mset_subseteq_iff[iff]:
   assumes dist: "distinct_mset M" and fin: "finite N"
@@ -538,7 +529,7 @@ text \<open>Definition of the cartesian products over multisets. The constructio
   and Times). See file @{file "~~/src/HOL/Product_Type.thy"}\<close>
 
 definition Sigma_mset :: "'a multiset \<Rightarrow> ('a \<Rightarrow> 'b multiset) \<Rightarrow> ('a \<times> 'b) multiset" where
-  "Sigma_mset A B == \<Union># {#{#(a, b). b \<in># B a#}. a \<in># A #}"
+  "Sigma_mset A B \<equiv> \<Union># {#{#(a, b). b \<in># B a#}. a \<in># A #}"
 
 abbreviation Times_mset :: "'a multiset \<Rightarrow> 'b multiset \<Rightarrow> ('a \<times> 'b) multiset" (infixr "\<times>mset" 80) where
   "Times_mset A B \<equiv> Sigma_mset A (\<lambda>_. B)"
@@ -546,9 +537,9 @@ abbreviation Times_mset :: "'a multiset \<Rightarrow> 'b multiset \<Rightarrow> 
 hide_const (open) Times_mset
 
 syntax
-  "_Sigma_mset" :: "[pttrn, 'a multiset, 'b multiset] => ('a * 'b) multiset"  ("(3SIGMAMSET _:_./ _)" [0, 0, 10] 10)
+  "_Sigma_mset" :: "[pttrn, 'a multiset, 'b multiset] => ('a * 'b) multiset"  ("(3SIGMAMSET _\<in>#_./ _)" [0, 0, 10] 10)
 translations (* TODO why does \<in># not work? *)
-  "SIGMAMSET x:A. B" == "CONST Sigma_mset A (%x. B)"
+  "SIGMAMSET x\<in>#A. B" == "CONST Sigma_mset A (%x. B)"
 
 text \<open>Link between the multiset and the set cartesian product:\<close>
 
@@ -584,7 +575,7 @@ lemma Sigma_msetE2:
 
 lemma Sigma_mset_cong:
      "\<lbrakk>A = B; \<And>x. x \<in># B \<Longrightarrow> C x = D x\<rbrakk>
-      \<Longrightarrow> (SIGMAMSET x:A. C x) = (SIGMAMSET x: B. D x)"
+      \<Longrightarrow> (SIGMAMSET x\<in>#A. C x) = (SIGMAMSET x\<in># B. D x)"
   by (metis (mono_tags, lifting) Sigma_mset_def image_mset_cong)
 
 lemma count_msetsum: "count (\<Union>#M) b = (\<Sum>P\<in>#M. count P b)"
@@ -632,11 +623,7 @@ lemma mem_Sigma_mset_iff[iff]: "((a,b) \<in># Sigma_mset A B) = (a \<in># A \<an
 lemma mem_Times_mset_iff: "x \<in># A \<times>mset B \<longleftrightarrow> fst x \<in># A \<and> snd x \<in># B"
   by (induct x) simp
 
-(* TODO Move closer to the definition in @{file "Multiset.thy"}, mark as [iff]? *)
-lemma union_mset_mempty_iff: "\<Union># M = {#} \<longleftrightarrow> (\<forall>i\<in>#M. i = {#})"
-  by (induction M) auto
-
-lemma Sigma_mset_empty_iff: "(SIGMAMSET i:I. X i) = {#} \<longleftrightarrow> (\<forall>i\<in>#I. X i = {#})"
+lemma Sigma_mset_empty_iff: "(SIGMAMSET i\<in>#I. X i) = {#} \<longleftrightarrow> (\<forall>i\<in>#I. X i = {#})"
   by (auto simp: Sigma_mset_def union_mset_mempty_iff)
 
 lemma Times_mset_subset_mset_cancel2: "x \<in># C \<Longrightarrow> (A \<times>mset C \<subseteq># B \<times>mset C) = (A \<subseteq># B)"
@@ -684,7 +671,7 @@ lemma untion_image_mset_Pair_distribute:
 lemma Sigma_mset_Un_distrib1: "Sigma_mset (I #\<union> J) C = Sigma_mset I C #\<union> Sigma_mset J C"
   by (auto simp: Sigma_mset_def sup_subset_mset_def untion_image_mset_Pair_distribute)
 
-lemma Sigma_mset_Un_distrib2: "(SIGMAMSET i:I. A i #\<union> B i) = Sigma_mset I A #\<union> Sigma_mset I B"
+lemma Sigma_mset_Un_distrib2: "(SIGMAMSET i\<in>#I. A i #\<union> B i) = Sigma_mset I A #\<union> Sigma_mset I B"
   by (auto simp: multiset_eq_iff count_msetsum count_image_mset_Pair msetsum_if_eq_constant
     Sigma_mset_def diff_mult_distrib2 iterate_op_plus max_def not_in_iff)
 
@@ -692,7 +679,7 @@ lemma Sigma_mset_Int_distrib1: "Sigma_mset (I #\<inter> J) C = Sigma_mset I C #\
   by (auto simp: multiset_eq_iff count_msetsum count_image_mset_Pair msetsum_if_eq_constant
     Sigma_mset_def iterate_op_plus min_def not_in_iff)
 
-lemma Sigma_mset_Int_distrib2: "(SIGMAMSET i:I. A i #\<inter> B i) = Sigma_mset I A #\<inter> Sigma_mset I B"
+lemma Sigma_mset_Int_distrib2: "(SIGMAMSET i\<in>#I. A i #\<inter> B i) = Sigma_mset I A #\<inter> Sigma_mset I B"
   by (auto simp: multiset_eq_iff count_msetsum count_image_mset_Pair msetsum_if_eq_constant
     Sigma_mset_def iterate_op_plus min_def not_in_iff)
 
@@ -700,7 +687,7 @@ lemma Sigma_mset_Diff_distrib1: "Sigma_mset (I - J) C = Sigma_mset I C - Sigma_m
   by (auto simp: multiset_eq_iff count_msetsum count_image_mset_Pair msetsum_if_eq_constant
     Sigma_mset_def iterate_op_plus min_def not_in_iff diff_mult_distrib2)
 
-lemma Sigma_mset_Diff_distrib2: "(SIGMAMSET i:I. A i - B i) = Sigma_mset I A - Sigma_mset I B"
+lemma Sigma_mset_Diff_distrib2: "(SIGMAMSET i\<in>#I. A i - B i) = Sigma_mset I A - Sigma_mset I B"
   by (auto simp: multiset_eq_iff count_msetsum count_image_mset_Pair msetsum_if_eq_constant
     Sigma_mset_def iterate_op_plus min_def not_in_iff diff_mult_distrib)
 
@@ -728,6 +715,8 @@ lemma Times_mset_Diff_distrib1: "(A - B) \<times>mset C = A \<times>mset C - B \
 lemma Times_mset_empty[simp]: "A \<times>mset B = {#} \<longleftrightarrow> A = {#} \<or> B = {#}"
   by (auto simp: Sigma_mset_empty_iff)
 
+text \<open>This is not a duplicate of @{term replicate_mset}: the latter duplicates a single element, while
+  the former replicates a multiset.\<close>
 fun repeat_mset :: "nat \<Rightarrow> 'a multiset \<Rightarrow> 'a multiset" where
   "repeat_mset 0 _ = {#}" |
   "repeat_mset (Suc n) A = A + repeat_mset n A"

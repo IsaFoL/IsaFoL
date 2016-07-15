@@ -936,14 +936,6 @@ next
     using confl cdcl\<^sub>W_stgy.conflict'[of S T] by auto
 qed
 
-text \<open>Move to Multiset\<close>
-lemma sup_subset_mset_iff[iff]:
-  "A #\<union> B = {#} \<longleftrightarrow> A = {#} \<and> B = {#}"
-  by (auto simp: sup_subset_mset_def)
-
-lemma minus_eq_empty_iff_include: "A - B = {#} \<longleftrightarrow> A \<subseteq># B"
-  by (auto simp: multiset_eq_iff subseteq_mset_def)
-
 lemma rtranclp_transition_function:
   \<open>R\<^sup>*\<^sup>* a b \<Longrightarrow> \<exists>f j. (\<forall>i<j. R (f i) (f (Suc i))) \<and> f 0 = a \<and> f j = b\<close>
 proof (induction rule: rtranclp_induct)
