@@ -640,13 +640,9 @@ lemma split_paired_Bex_mset_Sigma_mset [simp, no_atp]:
   "(\<exists>z\<in>#Sigma_mset A B. P z) \<longleftrightarrow> (\<exists>x\<in>#A. \<exists>y\<in>#B x. P (x, y))"
   by blast
 
-lemma Sunc_minus_Suc_minus_iff: "Suc (a - b) = Suc a - b \<longleftrightarrow> ((a = 0 \<and> b = 0) \<or> a \<ge> b)"
-  by auto
-
 lemma minus_remove1_mset_if:
   "A - remove1_mset b B = (if b \<in># B \<and> b \<in># A \<and> count A b \<ge> count B b then {#b#} + (A - B) else A - B)"
   by (auto simp: multiset_eq_iff count_greater_zero_iff[symmetric]
-    Sunc_minus_Suc_minus_iff[symmetric]
   simp del: count_greater_zero_iff)
 
 lemma image_mset_replicate_mset[simp]: "image_mset f (replicate_mset n a) = replicate_mset n (f a)"
@@ -700,8 +696,8 @@ lemma Sigma_mset_Union: "Sigma_mset (\<Union>#X) B = (\<Union># (image_mset (\<l
   by (auto simp: multiset_eq_iff count_msetsum count_image_mset_Pair msetsum_if_eq_constant
     Sigma_mset_def iterate_op_plus min_def not_in_iff msetsum_right_distrib)
 
-
 end
+
 
 lemma Times_mset_Un_distrib1: "(A #\<union> B) \<times>mset C = A \<times>mset C #\<union> B \<times>mset C "
   by (fact Sigma_mset_Un_distrib1)
