@@ -521,6 +521,64 @@ lemma msetsum_union_disjoint:
   by (metis assms diff_zero empty_sup image_mset_union msetsum.union multiset_inter_commute
     multiset_union_diff_commute sup_subset_mset_def zero_diff)
 
+text \<open>Multiset equivalent of @{thm setsum_right_distrib} and @{thm setsum_left_distrib}\<close>
+lemma msetsum_right_distrib:
+  fixes f :: "'a => ('b::semiring_0)"
+  shows "a * (\<Sum>b \<in># B. f b) = (\<Sum>b \<in># B. a * f b)"
+  by (induction B) (auto simp: distrib_left)
+
+lemma msetsum_left_distrib:
+  fixes f :: "'a => ('b::semiring_0)"
+  shows "(\<Sum>b \<in># B. f b) * a = (\<Sum>b \<in># B. f b * a)"
+  by (induction B) (auto simp: distrib_right)
+
+lemma msetsum_constant [simp]:
+  fixes y :: "'b::semiring_1"
+  shows \<open>(\<Sum>x\<in>#A. y) = of_nat (size A) * y\<close>
+  by (induction A) (auto simp: algebra_simps)
+
+
+context comm_monoid_mset
+begin
+
+interpretation comp_fun_commute f
+  by standard (simp add: fun_eq_iff left_commute)
+
+interpretation comp?: comp_fun_commute "f \<circ> g"
+  by (fact comp_comp_fun_commute)
+
+lemma fold_mset_init_value:
+  fixes g :: \<open>'b \<Rightarrow> 'a\<close>
+  shows \<open>fold_mset op \<^bold>* (g x) A = g x \<^bold>* fold_mset op \<^bold>* \<^bold>1 A\<close>
+  by (induction A) (auto simp: ac_simps)
+
+lemma insert [simp]:
+  assumes \<open>x \<notin># A\<close>
+  shows "F (image_mset g ({#x#} + A)) = g x \<^bold>* F (image_mset g A)"
+  using assms by (simp add: eq_fold fold_mset_init_value)
+
+lemma neutral:
+  assumes "\<forall>x\<in>#A. x = \<^bold>1"
+  shows "F A = \<^bold>1"
+  using assms by (induct A) simp_all
+
+lemma neutral_const [simp]:
+  "F (image_mset (\<lambda>_. \<^bold>1) A) = \<^bold>1"
+  by (simp add: neutral)
+
+end
+
+text \<open>See theorem @{thm setsum.commute}\<close>
+lemma msetsum_commute:
+  fixes f :: "'a::{comm_monoid_add,times} => ('b::semiring_0)"
+  shows \<open>(\<Sum>x\<in>#B. \<Sum>b\<in>#A. f b * g x) = (\<Sum>i\<in>#A. \<Sum>j\<in>#B. f i * g j)\<close>
+  by (induction A) auto
+
+lemma msetsum_product:
+  fixes f :: "'a::{comm_monoid_add,times} => ('b::semiring_0)"
+  shows "(\<Sum>i \<in># A. f i) * (\<Sum>i \<in># B. g i) = (\<Sum>i\<in>#A. \<Sum>j\<in>#B. f i * g j)"
+  by (simp add: msetsum_right_distrib msetsum_left_distrib msetsum_commute)
+
 
 section \<open>Cartesian Product\<close>
 
@@ -536,9 +594,10 @@ abbreviation Times_mset :: "'a multiset \<Rightarrow> 'b multiset \<Rightarrow> 
 
 hide_const (open) Times_mset
 
+text \<open>Contrary to the set version @{term \<open>SIGMA x:A. B\<close>}, we use the non-ascii symbol \<open>\<in>#\<close>.\<close>
 syntax
   "_Sigma_mset" :: "[pttrn, 'a multiset, 'b multiset] => ('a * 'b) multiset"  ("(3SIGMAMSET _\<in>#_./ _)" [0, 0, 10] 10)
-translations (* TODO why does \<in># not work? *)
+translations
   "SIGMAMSET x\<in>#A. B" == "CONST Sigma_mset A (%x. B)"
 
 text \<open>Link between the multiset and the set cartesian product:\<close>
@@ -581,13 +640,6 @@ lemma Sigma_mset_cong:
 lemma count_msetsum: "count (\<Union>#M) b = (\<Sum>P\<in>#M. count P b)"
   by (induction M) auto
 
-lemma count_image_mset_Pair:
-  "count (image_mset (Pair a) B) (x, b) = (if x = a then count B b else 0)"
-  by (induction B) auto
-
-lemma count_Sigma_mset: "count (Sigma_mset A B) (a, b) = count A a * count (B a) b"
-  by (induction A) (auto simp: Sigma_mset_def count_image_mset_Pair)
-
 lemma Sigma_mset_plus_distrib1[simp]: "Sigma_mset (A + B) C = Sigma_mset A C + Sigma_mset B C"
   unfolding Sigma_mset_def by auto
 
@@ -600,6 +652,17 @@ lemma Times_mset_single_left: "{#a#} \<times>mset B = image_mset (Pair a) B"
 
 lemma Times_mset_single_right: "A \<times>mset {#b#} = image_mset (\<lambda>a. Pair a b) A"
   unfolding Sigma_mset_def by (induction A) auto
+
+context
+begin
+
+text \<open>Technical lemma, but not important enough to be part of the exported lemmas:\<close>
+private lemma count_image_mset_Pair:
+  "count (image_mset (Pair a) B) (x, b) = (if x = a then count B b else 0)"
+  by (induction B) auto
+
+lemma count_Sigma_mset: "count (Sigma_mset A B) (a, b) = count A a * count (B a) b"
+  by (induction A) (auto simp: Sigma_mset_def count_image_mset_Pair)
 
 lemma Sigma_mset_empty1 [simp]: "Sigma_mset {#} B = {#}"
   unfolding Sigma_mset_def by auto
@@ -652,9 +715,6 @@ lemma msetsum_if_eq_constant:
   "(\<Sum>x\<in>#M. if a = x then (f x) else 0) = ((op + (f a)) ^^ (count M a)) 0"
   by (induction M) (auto simp: ac_simps)
 
-context
-begin
-
 private lemma iterate_op_plus: "((op + k) ^^ m) 0 = k * m"
   by (induction m) auto
 
@@ -687,11 +747,6 @@ lemma Sigma_mset_Diff_distrib2: "(SIGMAMSET i\<in>#I. A i - B i) = Sigma_mset I 
   by (auto simp: multiset_eq_iff count_msetsum count_image_mset_Pair msetsum_if_eq_constant
     Sigma_mset_def iterate_op_plus min_def not_in_iff diff_mult_distrib)
 
-lemma msetsum_right_distrib:
-  fixes f :: "'a => ('b::semiring_0)"
-  shows "a * (\<Sum>b \<in># B. f b) = (\<Sum>b \<in># B. a * f b)"
-  by (induction B) (auto simp: distrib_left)
-
 lemma Sigma_mset_Union: "Sigma_mset (\<Union>#X) B = (\<Union># (image_mset (\<lambda>A. Sigma_mset A B) X))"
   by (auto simp: multiset_eq_iff count_msetsum count_image_mset_Pair msetsum_if_eq_constant
     Sigma_mset_def iterate_op_plus min_def not_in_iff msetsum_right_distrib)
@@ -711,8 +766,8 @@ lemma Times_mset_Diff_distrib1: "(A - B) \<times>mset C = A \<times>mset C - B \
 lemma Times_mset_empty[simp]: "A \<times>mset B = {#} \<longleftrightarrow> A = {#} \<or> B = {#}"
   by (auto simp: Sigma_mset_empty_iff)
 
-text \<open>This is not a duplicate of @{term replicate_mset}: the latter duplicates a single element, while
-  the former replicates a multiset.\<close>
+text \<open>This is not a duplicate of @{term replicate_mset}: the latter duplicates a single element,
+  while the former replicates a multiset.\<close>
 fun repeat_mset :: "nat \<Rightarrow> 'a multiset \<Rightarrow> 'a multiset" where
   "repeat_mset 0 _ = {#}" |
   "repeat_mset (Suc n) A = A + repeat_mset n A"
