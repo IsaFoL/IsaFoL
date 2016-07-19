@@ -849,8 +849,6 @@ abbreviation inv\<^sub>N\<^sub>O\<^sub>T_stgy where
 "inv\<^sub>N\<^sub>O\<^sub>T_stgy S \<equiv> conflicting S = None \<and> cdcl\<^sub>W_all_struct_inv S \<and> no_smaller_propa S \<and>
   cdcl\<^sub>W_stgy_invariant S \<and> propagated_clauses_clauses S"
 
-text \<open>TODO lemma should be useful for \<open>no_smaller_confl\<close>\<close>
-
 interpretation cdcl\<^sub>W_with_strategy: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_ops where
   trail = "\<lambda>S. convert_trail_from_W (trail S)" and
   clauses\<^sub>N\<^sub>O\<^sub>T = clauses and
