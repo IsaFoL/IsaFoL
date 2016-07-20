@@ -22,7 +22,7 @@ lemma keys_empty[simp]: "RBT.keys RBT.empty = []"
 
 lemma image_mset_fst_RBT_entries_keys:
   "image_mset fst (mset (RBT.entries C)) = mset (RBT.keys C)"
-  by (simp add: image_mset_mset_mset_map keys_def_alt)
+  by (simp add: keys_def_alt)
 
 lemma distinct_rbt_entries:
   "distinct (RBT.entries t)"

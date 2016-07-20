@@ -39,6 +39,7 @@ text \<open>It is important to remember that a conflicting clause with respect t
   conflict). A conflict is better when it involves less literals, i.e.\ less propagations are needed
   before finding the conflict.\<close>
 
+
 subsubsection \<open>Clauses\<close>
 
 locale abstract_clause_representation_ops =
@@ -83,6 +84,8 @@ definition wf_watched :: "'cls \<Rightarrow> 'v literal multiset" where
 
 definition wf_unwatched :: "'cls \<Rightarrow> 'v literal multiset" where
 "wf_unwatched C = image_mset (the o lit_lookup C) (wf_unwatched_lits C)"
+
+sublocale twl_mset: well_formed_two_watched_literal_clauses_ops wf_watched wf_unwatched .
 
 end
 
@@ -395,6 +398,7 @@ locale abs_state\<^sub>W_twl_ops =
     mset_ccls :: "'ccls \<Rightarrow> 'v clause" +
   fixes
     find_undef_in_unwatched :: "'st \<Rightarrow> 'cls \<Rightarrow> 'lit option" and
+    raw_full_trail_abs :: "'st \<Rightarrow> ('v, 'cls_it) ann_lits" and
     trail_abs :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     hd_raw_trail_abs :: "'st \<Rightarrow> ('v, 'cls_it) ann_lit" and
     prop_queue_abs :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
@@ -428,6 +432,13 @@ locale abs_state\<^sub>W_twl_ops =
     restart_state :: "'st \<Rightarrow> 'st"
 begin
 
+fun twl_cls_wf' :: "'cls \<Rightarrow> 'v literal multiset twl_clause" where
+"twl_cls_wf' C = TWL_Clause (wf_watched C) (wf_unwatched C)"
+
+definition twl_clauses :: "'st \<Rightarrow> 'v literal multiset twl_clause multiset" where
+  \<open>twl_clauses S =
+  image_mset (\<lambda>C. twl_mset.twl_cls_wf (raw_clauses_abs S \<Down> C)) (cls_keys (raw_clauses_abs S))\<close>
+
 definition full_trail_abs :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" where
 "full_trail_abs S = prop_queue_abs S @ trail_abs S"
 
@@ -456,8 +467,17 @@ sublocale abs_state\<^sub>W_ops where
   restart_state = restart_state
   by unfold_locales
 
+abbreviation conc_learned_clss :: "'st \<Rightarrow> 'v literal multiset multiset" where
+  \<open>conc_learned_clss \<equiv> learned_clss_abs\<close>
+
 lemma mmset_of_mlit_abs_mlit[simp]: "mmset_of_mlit = abs_mlit"
   by (intro ext, rename_tac S L, case_tac L) auto
+
+lemma image_mset_clause_twl_Clauses_conc_clauses:
+  \<open>image_mset clause (twl_clauses S) = conc_clauses S\<close>
+  unfolding conc_clauses_def twl_clauses_def
+  by (auto intro!: image_mset_cong
+      simp: clause_of_cls_def wf_watched_def wf_unwatched_def clss_cls_def)
 
 definition prop_state ::
     "'st \<Rightarrow> ('v, 'v clause) ann_lit list \<times> ('v, 'v clause) ann_lit list \<times> 'v clauses \<times>
@@ -468,26 +488,51 @@ definition prop_state ::
 lemma prop_state_state: "prop_state S = (P, M, N, U, k, C) \<Longrightarrow> state S = (P @ M, N, U, k, C)"
   unfolding prop_state_def state_def full_trail_abs_def by auto
 
+definition wf_prop_queue_abs :: "'st \<Rightarrow> bool" where
+"wf_prop_queue_abs S \<longleftrightarrow> (\<forall>M \<in> set (prop_queue_abs S). is_proped M)"
+
+definition all_annotation_valid where
+"all_annotation_valid S \<longleftrightarrow>
+  (\<forall>L \<in> set (raw_full_trail_abs S). valid_annotation S L)"
+
+definition wf_twl_state :: "'st \<Rightarrow> bool" where
+  "wf_twl_state S \<longleftrightarrow>
+  (\<forall>C \<in># (twl_clauses S). wf_twl_cls (full_trail_abs S) C) \<and> no_dup (full_trail_abs S)"
+
+definition wf_state :: "'st \<Rightarrow> bool" where
+"wf_state S \<longleftrightarrow>
+  all_annotation_valid S \<and>
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state S) \<and>
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state S) \<and>
+  wf_prop_queue_abs S \<and>
+  wf_twl_state S"
+
+definition wf_confl_state :: "'st \<Rightarrow> bool" where
+"wf_confl_state S \<longleftrightarrow> (wf_state S \<and> raw_conflicting_abs S \<noteq> None)"
+
 end
 
+(* TODO Move *)
+lemma image_mset_mset_remove1: "a \<in># B \<Longrightarrow>
+  {#f x. x \<in># remove1_mset a B#} = remove1_mset (f a) {#f x. x \<in># B#}"
+  unfolding mset_remove1
+  by (subst image_mset_Diff) (auto simp: subseteq_mset_def)
 
-lemma image_mset_if_eq_index:
-  "{#if x = i then P x else Q x. x \<in># M#} =
-  {#Q x. x \<in># removeAll_mset i M#} + replicate_mset (count M i) (P i)" (is "?M M = _")
-proof -
-  have M: "M = filter_mset (op = i) M + filter_mset (op \<noteq> i) M"
-    by (auto simp: multiset_eq_iff)
-  have "?M M = ?M (filter_mset (op = i) M) + ?M (filter_mset (op \<noteq> i) M)"
-     by (subst M) simp
-  moreover have "?M (filter_mset (op = i) M) = replicate_mset (count M i) (P i)"
-    by (simp add: filter_mset_eq)
-  moreover have "?M (filter_mset (op \<noteq> i) M) = {#Q x. x \<in># removeAll_mset i M#}"
-    apply (subst removeAll_mset_filter_mset)
-    apply (rule image_mset_cong2)
-    by auto
-  ultimately show ?thesis
-    by (auto simp: ac_simps not_in_iff)
-qed
+lemma distinct_disinst_mset_incl_iff_set_incl:
+  "distinct A \<Longrightarrow> distinct B \<Longrightarrow> mset A \<subseteq># mset B \<longleftrightarrow> set A \<subseteq> set B"
+  by (auto simp: distinct_count_atmost_1 intro!: mset_subset_eqI)
+
+text \<open>TODO Move and see if useful at other places\<close>
+lemma Suc_count_decided_gt_get_level:
+  \<open>get_level M L < Suc (count_decided M)\<close>
+  by (induction M rule: ann_lit_list_induct) auto
+
+lemma get_level_Succ_count_decided_neq[simp]:
+  \<open>get_level M L \<noteq> Suc (count_decided M)\<close>
+  using Suc_count_decided_gt_get_level[of L M] by auto
+text \<open>End TODO Move\<close>
+
+(* End Move *)
 
 locale abs_state\<^sub>W_twl =
   abs_state\<^sub>W_twl_ops
@@ -503,7 +548,8 @@ locale abs_state\<^sub>W_twl =
 
     find_undef_in_unwatched
 
-    trail_abs hd_raw_trail_abs prop_queue_abs raw_clauses_abs backtrack_lvl_abs raw_conflicting_abs
+    raw_full_trail_abs trail_abs hd_raw_trail_abs prop_queue_abs raw_clauses_abs backtrack_lvl_abs
+    raw_conflicting_abs
 
     learned_clss_abs
 
@@ -541,6 +587,7 @@ locale abs_state\<^sub>W_twl =
 
     find_undef_in_unwatched :: "'st \<Rightarrow> 'cls \<Rightarrow> 'lit option" and
 
+    raw_full_trail_abs :: "'st \<Rightarrow> ('v, 'cls_it) ann_lits" and
     trail_abs :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     hd_raw_trail_abs :: "'st \<Rightarrow> ('v, 'cls_it) ann_lit" and
     prop_queue_abs :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
@@ -591,9 +638,9 @@ locale abs_state\<^sub>W_twl =
     raw_clauses_abs_prop_queue_to_trail_abs[simp]:
       "raw_clauses_abs (prop_queue_to_trail_abs st) = raw_clauses_abs st" and
 
-    hd_raw_trail_abs[simp]:
-      "full_trail_abs st \<noteq> [] \<Longrightarrow>
-        hd (full_trail_abs st) = mmset_of_mlit (raw_clauses_abs st) (hd_raw_trail_abs st)" and
+    hd_raw_trail_abs_raw_full_trail_abs:
+      "raw_full_trail_abs st \<noteq> [] \<Longrightarrow>
+        hd_raw_trail_abs st = hd (raw_full_trail_abs st)" and
 
     tl_trail_abs_prop_state:
       "\<And>S'. prop_state st = (P, M, S') \<Longrightarrow>
@@ -672,8 +719,17 @@ locale abs_state\<^sub>W_twl =
            \<not>undefined_lit (full_trail_abs S) (E'\<down>j))" and
 
     prop_queue_abs_null[iff]:
-      "prop_queue_abs_null S \<longleftrightarrow> List.null (prop_queue_abs S)"
+      "prop_queue_abs_null S \<longleftrightarrow> List.null (prop_queue_abs S)" and
+
+    raw_full_trail_abs:
+      \<open>full_trail_abs S = map (mmset_of_mlit (raw_clauses_abs S)) (raw_full_trail_abs S)\<close>
 begin
+
+lemma hd_raw_trail_abs[simp]:
+  "full_trail_abs st \<noteq> [] \<Longrightarrow>
+    hd (full_trail_abs st) = mmset_of_mlit (raw_clauses_abs st) (hd_raw_trail_abs st)"
+  using hd_raw_trail_abs_raw_full_trail_abs[of st] raw_full_trail_abs[of st]
+  by (cases \<open>raw_full_trail_abs st\<close>) auto
 
 lemma
   prop_queue_abs_prop_queue_to_trail_abs[simp]:
@@ -691,7 +747,8 @@ lemma
   conc_conflicting_prop_queue_to_trail_abs[simp]:
     "conc_conflicting (prop_queue_to_trail_abs S) = conc_conflicting S"
   using prop_queue_to_trail_abs_prop_state[of S "prop_queue_abs S"]
-  by (cases "prop_state (prop_queue_to_trail_abs S)"; auto simp: prop_state_def full_trail_abs_def; fail)+
+  by (cases "prop_state (prop_queue_to_trail_abs S)"; auto simp: prop_state_def full_trail_abs_def;
+      fail)+
 
 lemma
   shows
@@ -836,15 +893,6 @@ sublocale abs_state\<^sub>W where
   apply (simp add: learned_clauses; fail)
   done
 
-lemma image_mset_mset_remove1: "a \<in># B \<Longrightarrow>
-  {#f x. x \<in># remove1_mset a B#} = remove1_mset (f a) {#f x. x \<in># B#}"
-  unfolding mset_remove1
-  by (subst image_mset_Diff) (auto simp: subseteq_mset_def)
-
-lemma distinct_disinst_mset_incl_iff_set_incl:
-  "distinct A \<Longrightarrow> distinct B \<Longrightarrow> mset A \<subseteq># mset B \<longleftrightarrow> set A \<subseteq> set B"
-  by (auto simp: distinct_count_atmost_1 intro!: mset_subset_eqI)
-
 lemma conc_clauses_update_clause:
   assumes
     i: "i \<in>\<Down> raw_clauses_abs S"
@@ -871,42 +919,10 @@ proof-
     by simp
   show ?thesis
      using i unfolding conc_clauses_def clauses_of_clss_def in_clss_def
-     by (auto simp: update_clause[OF i] clss_update XX YY image_mset_if_eq_index
-       distinct_mset_remove1_All)
+     by (auto simp: update_clause[OF i] clss_update XX YY image_mset_If ac_simps
+         filter_eq_replicate_mset filter_mset_neq
+         distinct_mset_remove1_All)
 qed
-
-definition wf_prop_queue_abs :: "'st \<Rightarrow> bool" where
-"wf_prop_queue_abs S \<longleftrightarrow> (\<forall>M \<in> set (prop_queue_abs S). is_proped M)"
-
-function all_annotation_valid where
-"all_annotation_valid S \<longleftrightarrow>
-  (if full_trail_abs S = []
-  then True
-  else valid_annotation S (hd_raw_trail_abs S) \<and> all_annotation_valid (tl_trail_abs S))"
-by auto
-termination
-  apply (relation "measure (\<lambda>S. length (full_trail_abs S))")
-  apply auto
-  done
-
-declare all_annotation_valid.simps[simp del]
-
-lemma all_annotation_valid_simps[simp]:
-  shows
-    "full_trail_abs S = [] \<Longrightarrow> all_annotation_valid S" and
-    "full_trail_abs S \<noteq> [] \<Longrightarrow> all_annotation_valid S = (valid_annotation S (hd_raw_trail_abs S)
-      \<and> all_annotation_valid (tl_trail_abs S))"
-    using all_annotation_valid.simps by metis+
-
-definition wf_twl_state :: "'st \<Rightarrow> bool" where
-"wf_twl_state S \<longleftrightarrow>
-  (full_trail_abs S \<noteq> [] \<longrightarrow> all_annotation_valid S) \<and>
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state S) \<and>
-  wf_prop_queue_abs S"
-
-definition wf_twl_confl_state :: "'st \<Rightarrow> bool" where
-"wf_twl_confl_state S \<longleftrightarrow>
-  (wf_twl_state S \<and> raw_conflicting_abs S \<noteq> None)"
 
 end
 
@@ -1007,16 +1023,6 @@ lemma count_decided_tl_dropWhile_not_decided:
   "count_decided (tl (dropWhile (\<lambda>L. \<not> is_decided L) M)) = count_decided M - 1"
   by (induction M rule: ann_lit_list_induct) auto
 
-text \<open>TODO Move\<close>
-lemma Decided_cons_in_get_all_ann_decomposition_append_Decided_cons:
-  "\<exists>c''. (Decided K # c, c'') \<in> set (get_all_ann_decomposition (c' @ Decided K # c))"
-  apply (induction c' rule: ann_lit_list_induct)
-    apply auto[2]
-  apply (rename_tac L xs,
-      case_tac "hd (get_all_ann_decomposition (xs @ Decided K # c))")
-  apply (case_tac "get_all_ann_decomposition (xs @ Decided K # c)")
-  by auto
-
 
 locale abs_conflict_driven_clause_learning\<^sub>W_clss =
   abs_state\<^sub>W_twl
@@ -1032,7 +1038,8 @@ locale abs_conflict_driven_clause_learning\<^sub>W_clss =
 
     find_undef_in_unwatched
 
-    trail_abs hd_raw_trail_abs prop_queue_abs raw_clauses_abs backtrack_lvl_abs raw_conflicting_abs
+    raw_full_trail_abs trail_abs hd_raw_trail_abs prop_queue_abs raw_clauses_abs backtrack_lvl_abs
+    raw_conflicting_abs
 
     learned_clss_abs
 
@@ -1071,6 +1078,7 @@ locale abs_conflict_driven_clause_learning\<^sub>W_clss =
 
     find_undef_in_unwatched :: "'st \<Rightarrow> 'cls \<Rightarrow> 'lit option" and
 
+    raw_full_trail_abs :: "'st \<Rightarrow> ('v, 'cls_it) ann_lits" and
     trail_abs :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     hd_raw_trail_abs :: "'st \<Rightarrow> ('v, 'cls_it) ann_lit" and
     prop_queue_abs :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
@@ -1136,12 +1144,12 @@ sublocale abs_conflict_driven_clause_learning\<^sub>W where
   by unfold_locales
 
 text \<open>Lifting the operators to type @{typ 'inv}\<close>
-definition wf_state :: "'st \<Rightarrow> 'inv" where
-"wf_state S = abs_state_of (if wf_twl_state S then S else S)"
+definition wf_state_abs :: "'st \<Rightarrow> 'inv" where
+"wf_state_abs S = abs_state_of (if wf_twl_state S then S else S)"
 
 lemma [code abstype]:
-  "wf_state (rough_state_of S) = S"
-  by (simp add: Rep_inverse wf_state_def)
+  "wf_state_abs (rough_state_of S) = S"
+  by (simp add: Rep_inverse wf_state_abs_def)
 
 definition full_trail_abs_inv ::  "'inv \<Rightarrow> ('v, 'v literal multiset) ann_lit list" where
 "full_trail_abs_inv S = full_trail_abs (rough_state_of S)"
@@ -1194,7 +1202,8 @@ lemma get_maximum_level_skip_Decide_first:
 
 definition backtrack_implementation_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st"  where
 "backtrack_implementation_lvl k S =
-  reduce_trail_to_abs (reduce_trail_to_lvl k (full_trail_abs S)) S"
+  add_confl_to_learned_cls_abs
+    (update_backtrack_lvl_abs k (reduce_trail_to_abs (reduce_trail_to_lvl k (full_trail_abs S)) S))"
 
 definition backtrack_implementation :: "'st \<Rightarrow> 'st" where
 "backtrack_implementation S =
@@ -1233,17 +1242,6 @@ lemma always_exists_state_eqI:
   unfolding CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.state_eq_def
   by (cases S) (auto simp: backtrack_lvl_def learned_clss_def init_clss_def trail_def
       conflicting_def)
-
-text \<open>TODO Move and see if useful at other places\<close>
-lemma Suc_count_decided_gt_get_level:
-  \<open>get_level M L < Suc (count_decided M)\<close>
-  by (induction M rule: ann_lit_list_induct) auto
-
-lemma get_level_Succ_count_decided_neq[simp]:
-  \<open>get_level M L \<noteq> Suc (count_decided M)\<close>
-  using Suc_count_decided_gt_get_level[of L M] by auto
-text \<open>End TODO Move\<close>
-
 
 lemma get_maximum_level_skip_un_decided_not_present:
   assumes
@@ -1384,17 +1382,45 @@ proof -
         simp del: CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.state_simp)[]
 qed
 
+lemma full_trail_abs_Cons_Decide_hd_raw_trail_abs:
+  \<open>full_trail_abs S = Decided L # list \<Longrightarrow> hd_raw_trail_abs S = Decided L\<close>
+  using hd_raw_trail_abs[of S] by (cases \<open>hd_raw_trail_abs S\<close>) (auto simp del: hd_raw_trail_abs)
+
 lemma
   assumes
     \<open>full_trail_abs S \<noteq> []\<close> and
-    confl: \<open>conc_conflicting S \<noteq> None\<close> \<open>conc_conflicting S \<noteq> Some {#}\<close>
+    confl: \<open>conc_conflicting S \<noteq> None\<close> \<open>conc_conflicting S \<noteq> Some {#}\<close> and
+    \<open>wf_state S\<close>
   shows \<open>get_maximum_level (tl (full_trail_abs S)) (the (conc_conflicting S)) < count_decided (full_trail_abs S)
   \<longleftrightarrow> hd_raw_trail_abs S = Decided L \<and> L \<in># the (conc_conflicting S)\<close>
   using assms apply (cases \<open>full_trail_abs S\<close>)
     apply auto[]
   using hd_raw_trail_abs[of S] apply (auto simp: cdcl\<^sub>W_restart_mset.skip.simps is_decided_def
+    full_trail_abs_Cons_Decide_hd_raw_trail_abs
           simp del: hd_raw_trail_abs)
 oops
+
+lemma reduce_trail_to_lvl_exists_prepend:
+  \<open>\<exists>M'. M = M' @ reduce_trail_to_lvl k M\<close>
+  apply (induction M rule: ann_lit_list_induct)
+    apply simp
+   apply (metis (no_types, hide_lams) append_Cons reduce_trail_to_lvl.simps(2) self_append_conv2)
+  by (metis append_Cons reduce_trail_to_lvl.simps(3))
+
+term conc_learned_clss
+lemma
+  fixes S :: 'st and k :: nat
+  defines [simp]: "M \<equiv> reduce_trail_to_lvl k (full_trail_abs S)"
+  assumes pq: \<open>prop_queue_abs S = []\<close>
+  shows
+    conc_init_clss_reduce_trail_to_abs[simp]:
+    \<open>conc_init_clss (reduce_trail_to_abs M S) = conc_init_clss S\<close> and
+    conc_learned_clss_reduce_trail_to_abs[simp]:
+    \<open>conc_learned_clss (reduce_trail_to_abs M S) = conc_learned_clss S\<close> and
+    backtrack_lvl_abs_reduce_trail_to_abs[simp]:
+    \<open>backtrack_lvl_abs (reduce_trail_to_abs M S) = backtrack_lvl_abs S\<close>
+  using reduce_trail_to_abs[of S _ M] pq reduce_trail_to_lvl_exists_prepend[of \<open>trail_abs S\<close> k]
+  by (auto simp: prop_state_def full_trail_abs_def)
 
 lemma
   assumes
@@ -1402,7 +1428,8 @@ lemma
     inv': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state S)\<close> and
     ne: \<open>full_trail_abs S \<noteq> []\<close> and
     confl: \<open>conc_conflicting S \<noteq> None\<close> \<open>conc_conflicting S \<noteq> Some {#}\<close> and
-    hd: \<open>hd_raw_trail_abs S = Decided L\<close>
+    hd: \<open>hd_raw_trail_abs S = Decided L\<close> and
+    pq[simp]: \<open>prop_queue_abs S = []\<close>
   shows \<open>cdcl\<^sub>W_restart_mset.backtrack (state S) (state (backtrack_implementation S))\<close>
   apply (rule backtrack_rule_reduce_trail_to_lvl)
            using inv apply (simp; fail)
@@ -1411,8 +1438,13 @@ lemma
        using confl apply (auto; fail)[]
       using hd ne hd_raw_trail_abs[of S] apply (auto simp: cdcl\<^sub>W_restart_mset.skip.simps
           simp del: hd_raw_trail_abs)[]
+    defer
+      using ne confl
+      apply (auto simp: CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.state_eq_def
+        backtrack_implementation_def backtrack_implementation_lvl_def
+        simp del: CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.state_simp)[]
 
-  
+
   using inv
 oops
 
@@ -1496,9 +1528,8 @@ proof -
     by (auto simp: cdcl\<^sub>W_restart_mset.skip.simps
         dest: full_trail_abs_hd_rase_trail_abs)
   ultimately show ?thesis
-    apply (auto simp: cdcl_bj_implementation_def assms split: ann_lit.splits)
-    apply (rule assms(5))
-    by (auto elim!: cdcl\<^sub>W_restart_mset.resolveE)
+    by (auto simp: cdcl_bj_implementation_def split: ann_lit.splits
+        elim!: cdcl\<^sub>W_restart_mset.resolveE intro: assms)
 qed
 
 

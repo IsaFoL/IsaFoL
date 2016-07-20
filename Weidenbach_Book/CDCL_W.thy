@@ -3564,6 +3564,9 @@ proof -
   finally show ?thesis by fast
 qed
 
+
+subsection \<open>Strategy-Specific Invariant\<close>
+
 definition cdcl\<^sub>W_stgy_invariant where
 "cdcl\<^sub>W_stgy_invariant S \<longleftrightarrow>
   conflict_is_false_with_level S

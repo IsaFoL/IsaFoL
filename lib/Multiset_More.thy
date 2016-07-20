@@ -494,9 +494,6 @@ lemma image_mset_remove1_mset_if:
 lemma image_mset_const: "{#c. x \<in># M#} = replicate_mset (size M) c"
   by (induction M) auto
 
-lemma image_mset_mset_mset_map: "image_mset f (mset l) = mset (map f l)"
-  by (induction l) auto
-
 lemma filter_mset_neq: "{#x \<in># M. x \<noteq> y#} = removeAll_mset y M"
   by (metis add_diff_cancel_left' filter_eq_replicate_mset multiset_partition)
 

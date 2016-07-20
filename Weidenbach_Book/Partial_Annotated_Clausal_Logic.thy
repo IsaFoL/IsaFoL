@@ -503,12 +503,12 @@ lemma union_in_get_all_ann_decomposition_is_subset:
   using assms by force
 
 lemma Decided_cons_in_get_all_ann_decomposition_append_Decided_cons:
-  "\<exists>M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (c @ Decided K # c'))"
-  apply (induction c rule: ann_lit_list_induct)
+  "\<exists>c''. (Decided K # c, c'') \<in> set (get_all_ann_decomposition (c' @ Decided K # c))"
+  apply (induction c' rule: ann_lit_list_induct)
     apply auto[2]
   apply (rename_tac L xs,
-      case_tac "hd (get_all_ann_decomposition (xs @ Decided K # c'))")
-  apply (case_tac "get_all_ann_decomposition (xs @ Decided K # c')")
+      case_tac "hd (get_all_ann_decomposition (xs @ Decided K # c))")
+  apply (case_tac "get_all_ann_decomposition (xs @ Decided K # c)")
   by auto
 
 lemma fst_get_all_ann_decomposition_prepend_not_decided:

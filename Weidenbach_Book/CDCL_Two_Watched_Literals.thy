@@ -289,10 +289,6 @@ lemma wf_twl_cls_append:
     apply simp
   using wf_twl_cls_wf_twl_cls_tl by fastforce
 
-(* definition wf_twl_state :: "'st \<Rightarrow> bool" where
-  "wf_twl_state S \<longleftrightarrow>
-    (\<forall>C \<in> set (raw_clauses_of_twl S). wf_twl_cls (conc_trail S) C) \<and> no_dup (raw_trail S)" *)
-
 
 locale well_formed_two_watched_literal_clauses_ops =
   fixes 
