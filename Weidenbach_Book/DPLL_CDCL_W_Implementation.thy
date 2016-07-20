@@ -109,7 +109,7 @@ lemma find_first_unit_clause_some:
          is_unit_clause_some_undef)
 
 lemma propagate_is_unit_clause_not_None:
-  assumes dist: "distinct c" and
+  assumes
   M: "M \<Turnstile>as CNot (mset c - {#a#})" and
   undef: "undefined_lit M a" and
   ac: "a \<in> set c"
@@ -141,7 +141,7 @@ proof -
 qed
 
 lemma find_first_unit_clause_none:
-  "distinct c \<Longrightarrow> c \<in> set l \<Longrightarrow>  M \<Turnstile>as CNot (mset c - {#a#}) \<Longrightarrow> undefined_lit M a \<Longrightarrow> a \<in> set c
+  "c \<in> set l \<Longrightarrow>  M \<Turnstile>as CNot (mset c - {#a#}) \<Longrightarrow> undefined_lit M a \<Longrightarrow> a \<in> set c
   \<Longrightarrow> find_first_unit_clause l M \<noteq> None"
   by (induction l)
      (auto split: option.split simp add: propagate_is_unit_clause_not_None)

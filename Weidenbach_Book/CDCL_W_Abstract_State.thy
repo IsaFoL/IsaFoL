@@ -1671,8 +1671,8 @@ lemma cdcl\<^sub>W_restart_abs_bj_cdcl\<^sub>W_restart_abs_bj:
   by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.simps cdcl\<^sub>W_restart_abs_bj.simps
     backtrack_backtrack_abs skip_skip_abs resolve_resolve_abs)
 
-interpretation cdcl\<^sub>W_restart_abs_bj: relation_relation_abs cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj cdcl\<^sub>W_restart_abs_bj state
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv
+interpretation cdcl\<^sub>W_restart_abs_bj: relation_relation_abs cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj 
+  cdcl\<^sub>W_restart_abs_bj state cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv
   apply unfold_locales
      apply (simp add: cdcl\<^sub>W_restart_abs_bj_cdcl\<^sub>W_restart_abs_bj)
     apply (metis (no_types, hide_lams) backtrack_exists_backtrack_abs_step cdcl\<^sub>W_restart_abs_bj.simps
@@ -1689,187 +1689,79 @@ conflict: "conflict_abs S S' \<Longrightarrow> cdcl\<^sub>W_restart_abs S S'" |
 other: "cdcl\<^sub>W_restart_abs_o S S' \<Longrightarrow> cdcl\<^sub>W_restart_abs S S'"|
 rf: "cdcl\<^sub>W_restart_abs_rf S S' \<Longrightarrow> cdcl\<^sub>W_restart_abs S S'"
 
+
 subsection \<open>Higher level strategy\<close>
 
 text \<open>The rules described previously do not lead to a conclusive state. We have add a strategy and
   show the inclusion in the multiset version.\<close>
 
-inductive cdcl\<^sub>W_merge_abs_cp :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
-conflict': "conflict_abs S T \<Longrightarrow> full cdcl\<^sub>W_restart_abs_bj T U \<Longrightarrow> cdcl\<^sub>W_merge_abs_cp S U" |
-propagate': "propagate_abs\<^sup>+\<^sup>+ S S' \<Longrightarrow> cdcl\<^sub>W_merge_abs_cp S S'"
-
-lemma cdcl\<^sub>W_merge_cp_cdcl\<^sub>W_restart_abs_merge_cp:
-  assumes
-    cp: "cdcl\<^sub>W_merge_abs_cp S T" and
-    inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state S)"
-  shows "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_cp (state S) (state T)"
-  using cp
-proof (induction rule: cdcl\<^sub>W_merge_abs_cp.induct)
-  case (conflict' T U) note confl = this(1) and bj = this(2)
-  then have "cdcl\<^sub>W_restart_mset.conflict (state S) (state T)"
-    by (auto simp: conflict_conflict_abs propagate_propagate_abs cdcl\<^sub>W_restart_abs_bj_cdcl\<^sub>W_restart_abs_bj)
-  moreover
-    have "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state T)"
-      using cdcl\<^sub>W_restart_mset.conflict cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_inv confl inv
-      unfolding conflict_conflict_abs[symmetric] by blast
-    then have "full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj (state T) (state U)"
-      using bj by (auto simp: cdcl\<^sub>W_restart_abs_bj.full_if_full_abs)
-  ultimately show ?case by (auto intro: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_cp.intros)
-next
-  case (propagate' T)
-  then show ?case
-    by (auto simp: propagate_abs.tranclp_abs_tranclp intro: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_cp.propagate')
-qed
-
-lemma cdcl\<^sub>W_merge_cp_abs_exists_cdcl\<^sub>W_merge_cp:
-  assumes
-    cp: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_cp (state S) T" and
-    inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state S)"
-  obtains U where "cdcl\<^sub>W_merge_abs_cp S U" and "T \<sim>m state U"
-  using cp
-proof (induction rule: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_cp.induct)
-  case (conflict' T U) note confl = this(1) and bj = this(2) and that = this(3)
-
-  obtain V where SV: "conflict_abs S V" and TV: "T \<sim>m state V"
-    using conflict_abs.relation_compatible_abs[of "state S" S] confl by blast
-  have inv_V: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state V)" and
-    inv_T: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv T"
-    using TV bj cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv
-    cdcl\<^sub>W_restart_mset.conflict_is_full1_cdcl\<^sub>W_cp confl inv unfolding cdcl\<^sub>W_restart_mset_state_eq_eq by blast+
-  then obtain T' where "full cdcl\<^sub>W_restart_abs_bj V T'" and "U \<sim>m state T'"
-    using TV bj cdcl\<^sub>W_restart_abs_bj.full_exists_full_abs[of V U] unfolding cdcl\<^sub>W_restart_mset_state_eq_eq
-    by blast
-  then show ?thesis using that cdcl\<^sub>W_merge_abs_cp.conflict'[of S V T'] SV by fast
-next
-  case (propagate' T)
-  then show ?case
-    using cdcl\<^sub>W_merge_abs_cp.propagate'
-    propagate_abs.tranclp_relation_tranclp_relation_abs_compatible by blast
-qed
-
-lemma no_step_cdcl\<^sub>W_merge_cp_no_step_cdcl\<^sub>W_restart_abs_merge_cp:
-  assumes
-    inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state S)"
-  shows "no_step cdcl\<^sub>W_merge_abs_cp S \<longleftrightarrow> no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_cp (state S)"
-  (is "?abs \<longleftrightarrow> ?conc")
-proof
-  assume ?abs
-  show ?conc
-    proof (rule ccontr)
-      assume "\<not> ?thesis"
-      then obtain T where "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_cp (state S) T"
-        by blast
-      then show False
-        using cdcl\<^sub>W_merge_cp_abs_exists_cdcl\<^sub>W_merge_cp[of S T] \<open>?abs\<close>  inv by auto
-    qed
-next
-  assume ?conc
-  then show ?abs
-    using cdcl\<^sub>W_merge_cp_cdcl\<^sub>W_restart_abs_merge_cp inv by blast
-qed
-
-lemma cdcl\<^sub>W_merge_abs_cp_right_compatible:
-  "cdcl\<^sub>W_merge_abs_cp S V \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state S) \<Longrightarrow>
-  V \<sim> W \<Longrightarrow> cdcl\<^sub>W_merge_abs_cp S W"
-proof (induction rule: cdcl\<^sub>W_merge_abs_cp.induct)
-  case (conflict' T U) note confl = this(1) and full = this(2) and inv = this(3) and UW = this(4)
-  have inv_T: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state T)"
-    using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv
-    cdcl\<^sub>W_restart_mset.conflict_is_full1_cdcl\<^sub>W_cp confl conflict_conflict_abs inv by blast
-  then have "full cdcl\<^sub>W_restart_abs_bj T W \<or> (T = U \<and> no_step cdcl\<^sub>W_restart_abs_bj T)"
-    using cdcl\<^sub>W_restart_abs_bj.full_right_compatible[OF _ full UW] full by blast
-  then consider
-      (full) "full cdcl\<^sub>W_restart_abs_bj T W" |
-      (0) "T = U" and "no_step cdcl\<^sub>W_restart_abs_bj T"
-    by blast
-  then show ?case
-    proof cases
-      case full
-      then show ?thesis using confl by (blast intro: cdcl\<^sub>W_merge_abs_cp.intros)
-    next
-      case 0
-      then have "conflict_abs S W" and "no_step cdcl\<^sub>W_restart_abs_bj W"
-         using confl UW conflict_abs.relation_right_compatible apply blast
-        using full unfolding full_def
-        by (metis (mono_tags, lifting) "0"(1) UW inv_T cdcl\<^sub>W_restart_abs_bj_cdcl\<^sub>W_restart_abs_bj
-          cdcl\<^sub>W_restart_mset_state_eq_eq)
-      moreover then have "full cdcl\<^sub>W_restart_abs_bj W W"
-        unfolding full_def by auto
-      ultimately show ?thesis by (blast intro: cdcl\<^sub>W_merge_abs_cp.intros)
-    qed
-next
-  case (propagate')
-  then show ?case using propagate_abs.tranclp_relation_compatible_eq
-    by (blast intro: cdcl\<^sub>W_merge_abs_cp.propagate')
-qed
-
-interpretation cdcl\<^sub>W_merge_abs_cp: relation_implied_relation_abs
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_cp cdcl\<^sub>W_merge_abs_cp state cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv
-  apply unfold_locales
-     using cdcl\<^sub>W_merge_cp_cdcl\<^sub>W_restart_abs_merge_cp apply blast
-    using cdcl\<^sub>W_merge_cp_abs_exists_cdcl\<^sub>W_merge_cp unfolding cdcl\<^sub>W_restart_mset_state_eq_eq apply blast
-   using cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_all_struct_inv_inv
-   cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_merge_cp_rtranclp_cdcl\<^sub>W_restart apply blast
-  using cdcl\<^sub>W_merge_abs_cp_right_compatible unfolding cdcl\<^sub>W_restart_mset_state_eq_eq by blast
 
 inductive cdcl\<^sub>W_merge_abs_stgy for S :: 'st where
-fw_s_cp: "full1 cdcl\<^sub>W_merge_abs_cp S T \<Longrightarrow> cdcl\<^sub>W_merge_abs_stgy S T" |
-fw_s_decide: "decide_abs S T \<Longrightarrow> no_step cdcl\<^sub>W_merge_abs_cp S \<Longrightarrow> full cdcl\<^sub>W_merge_abs_cp T U
-  \<Longrightarrow> cdcl\<^sub>W_merge_abs_stgy S U"
-
+fw_s_conflict': "conflict_abs S T \<Longrightarrow> cdcl\<^sub>W_merge_abs_stgy S T" |
+fw_s_propagate': "propagate_abs S T \<Longrightarrow> cdcl\<^sub>W_merge_abs_stgy S T" |
+fw_s_decide': "no_step conflict_abs S \<Longrightarrow> no_step propagate_abs S \<Longrightarrow> decide_abs S T
+  \<Longrightarrow> cdcl\<^sub>W_merge_abs_stgy S T" |
+fw_s_bj': "full1 cdcl\<^sub>W_restart_abs_bj S T \<Longrightarrow> cdcl\<^sub>W_merge_abs_stgy S T"
 
 lemma cdcl\<^sub>W_cp_cdcl\<^sub>W_restart_abs_cp:
   assumes stgy: "cdcl\<^sub>W_merge_abs_stgy S T" and
     inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state S)"
-  shows "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_stgy (state S) (state T)"
+  shows "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_s' (state S) (state T)"
   using stgy
 proof (induction rule: cdcl\<^sub>W_merge_abs_stgy.induct)
-  case (fw_s_cp T)
+  case (fw_s_conflict' T)
   show ?case
-    apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_stgy.fw_s_cp)
-    using fw_s_cp inv by (simp add: cdcl\<^sub>W_merge_abs_cp.full1_iff)
+    apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_s'.conflict')
+    using fw_s_conflict' inv conflict_abs.relation_compatible_state by blast
 next
-  case (fw_s_decide T U) note dec = this(1) and ns = this(2) and full = this(3)
-  have dec': "cdcl\<^sub>W_restart_mset.decide (state S) (state T)"
-    using dec decide_decide_abs by blast
-  then have "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state T)"
-    using inv cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_inv
-    by (blast dest: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart.other cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.decide)
-  then have "full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_cp (state T) (state U)"
-    using full cdcl\<^sub>W_merge_abs_cp.full_if_full_abs by blast
-  then show ?case
-    using dec' cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_stgy.fw_s_decide[of "state S" "state T" "state U"] ns inv
-    by (simp add: no_step_cdcl\<^sub>W_merge_cp_no_step_cdcl\<^sub>W_restart_abs_merge_cp)
+  case (fw_s_propagate' T)
+  show ?case
+    apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_s'.propagate')
+    using fw_s_propagate' inv propagate_abs.relation_compatible_state by blast
+next
+  case (fw_s_decide' T)
+  show ?case
+    apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_s'.decide')
+      using fw_s_decide' inv conflict_abs.no_step_iff apply blast
+     using fw_s_decide' inv propagate_abs.no_step_iff apply blast
+    using fw_s_decide' inv decide_abs.relation_compatible_state by blast
+next
+  case (fw_s_bj' T)
+  show ?case
+    apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_s'.bj')
+    using fw_s_bj' inv cdcl\<^sub>W_restart_abs_bj.full1_iff[of S T] by blast
 qed
 
-lemma cdcl\<^sub>W_merge_abs_stgy_exists_cdcl\<^sub>W_merge_stgy:
+lemma cdcl\<^sub>W_merge_abs_stgy_exists_cdcl\<^sub>W_s':
   assumes
     inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv S" and
     SS': "S \<sim>m state S'" and
-    st: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_stgy S T"
+    st: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_s' S T"
   shows "\<exists>U. cdcl\<^sub>W_merge_abs_stgy S' U \<and> T \<sim>m state U"
   using st
-proof (induction rule: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_stgy.induct)
-  case (fw_s_cp T)
-  then show ?case using cdcl\<^sub>W_merge_abs_cp.full1_exists_full1_abs[of S' T] inv
-    unfolding SS'[unfolded cdcl\<^sub>W_restart_mset_state_eq_eq] by (metis cdcl\<^sub>W_merge_abs_stgy.fw_s_cp)
+proof (cases rule: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_s'.cases)
+  case conflict'
+  then show ?thesis
+    by (meson SS' conflict_compatible_abs fw_s_conflict')
 next
-  case (fw_s_decide T U) note dec = this(1) and n_s = this(2) and full = this(3)
+  case propagate'
+  then show ?thesis
+    by (meson SS' propagate_compatible_abs fw_s_propagate')
+next
+  case decide' note dec = this(3) and n_s = this(1,2) and full = this(3)
   have SS': "S = state S'"
     using SS' unfolding cdcl\<^sub>W_restart_mset_state_eq_eq .
   obtain T' where "decide_abs S' T'" and TT': "T \<sim>m state T'"
     using dec decide_abs.relation_compatible_abs[of S S' T] SS' by auto
-  moreover
-    have "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state T')"
-      using SS' calculation(1) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart.intros(3) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_inv
-      cdcl\<^sub>W_restart_mset.decide decide_decide_abs inv by blast
-    then obtain U' where "full cdcl\<^sub>W_merge_abs_cp T' U'" and "U \<sim>m state U'"
-      using full cdcl\<^sub>W_merge_abs_cp.full_exists_full_abs unfolding TT'[unfolded cdcl\<^sub>W_restart_mset_state_eq_eq]
-      by blast
-  moreover have "no_step cdcl\<^sub>W_merge_abs_cp S'"
-    using n_s cdcl\<^sub>W_merge_abs_cp.no_step_iff inv unfolding SS' by blast
-  ultimately show ?case
-    using cdcl\<^sub>W_merge_abs_stgy.fw_s_decide[of S' T' U'] by fast
+  moreover have "no_step conflict_abs S'" "no_step propagate_abs S'"
+    using n_s conflict_abs.no_step_iff propagate_abs.no_step_iff inv unfolding SS' by blast+
+  ultimately show ?thesis
+    using cdcl\<^sub>W_merge_abs_stgy.fw_s_decide'[of S' T'] by fast
+next
+  case bj'
+  then show ?thesis 
+    by (metis (full_types) SS' cdcl\<^sub>W_restart_abs_bj.full1_exists_full1_abs 
+      cdcl\<^sub>W_restart_mset_state_eq_eq fw_s_bj' inv)
 qed
 
 lemma cdcl\<^sub>W_merge_abs_stgy_right_compatible:
@@ -1879,48 +1771,36 @@ lemma cdcl\<^sub>W_merge_abs_stgy_right_compatible:
     TU: "T \<sim> V"
   shows "cdcl\<^sub>W_merge_abs_stgy S V"
   using st TU
-proof (induction rule: cdcl\<^sub>W_merge_abs_stgy.induct)
-  case (fw_s_cp T)
+proof (cases rule: cdcl\<^sub>W_merge_abs_stgy.cases)
+  case (fw_s_conflict')
   then show ?thesis
-    using cdcl\<^sub>W_merge_abs_cp.full1_right_compatible cdcl\<^sub>W_merge_abs_stgy.fw_s_cp inv by blast
+     using inv TU cdcl\<^sub>W_merge_abs_stgy.fw_s_conflict' conflict_abs.relation_right_compatible
+     by blast
 next
-  case (fw_s_decide T U) note dec = this(1) and n_s = this(2) and full = this(3) and UV = this(4)
-  have inv_T: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state T)"
-    using dec inv  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_inv[of "state S" "state T"]
-    by (auto dest!: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.decide cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart.other
-      simp: decide_decide_abs[symmetric])
-  then have "full cdcl\<^sub>W_merge_abs_cp T V \<or> (T = U \<and> no_step cdcl\<^sub>W_merge_abs_cp T)"
-    using cdcl\<^sub>W_merge_abs_cp.full_right_compatible[of T U V] full UV by blast
-  then consider
-    (full) "full cdcl\<^sub>W_merge_abs_cp T V" |
-    (0) "T = U" and "no_step cdcl\<^sub>W_merge_abs_cp T"
-    by blast
-  then show ?case
-    proof cases
-      case full
-      then show ?thesis
-        using n_s dec by (blast intro: cdcl\<^sub>W_merge_abs_stgy.intros)
-    next
-      case 0 note TU = this(1) and n_s' = this(2)
-      have "decide_abs S V"
-        using TU dec UV decide_abs.relation_abs_right_compatible by auto
-      moreover
-        have "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state V)"
-          using inv_T by (metis (full_types) TU cdcl\<^sub>W_restart_mset_state_eq_eq fw_s_decide.prems)
-        then have "full cdcl\<^sub>W_merge_abs_cp V V"
-          using n_s' TU UV[unfolded cdcl\<^sub>W_restart_mset_state_eq_eq]
-          unfolding full_def by (metis cdcl\<^sub>W_merge_abs_cp.no_step_iff rtranclp_unfold)
-      ultimately show ?thesis using n_s by (blast intro: cdcl\<^sub>W_merge_abs_stgy.intros)
-    qed
+  case fw_s_propagate'
+  then show ?thesis
+     using inv TU  cdcl\<^sub>W_merge_abs_stgy.fw_s_propagate' propagate_abs.relation_right_compatible
+     by blast
+next
+  case fw_s_decide' note dec = this(3) and n_s = this(1,2) and full = this(3)
+  moreover have "decide_abs S V"
+    using TU decide_abs.relation_right_compatible full by blast
+  ultimately show ?thesis
+    using cdcl\<^sub>W_merge_abs_stgy.fw_s_decide' by blast
+next
+  case fw_s_bj'
+  show ?thesis
+    apply (rule cdcl\<^sub>W_merge_abs_stgy.fw_s_bj')
+    using TU cdcl\<^sub>W_restart_abs_bj.full1_right_compatible inv local.fw_s_bj' by blast
 qed
 
 interpretation cdcl\<^sub>W_merge_abs_stgy: relation_implied_relation_abs
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_stgy cdcl\<^sub>W_merge_abs_stgy state cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_s' cdcl\<^sub>W_merge_abs_stgy state cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv
   apply unfold_locales
      using cdcl\<^sub>W_cp_cdcl\<^sub>W_restart_abs_cp apply blast
-    using cdcl\<^sub>W_merge_abs_stgy_exists_cdcl\<^sub>W_merge_stgy apply blast
-   using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_merge_stgy_rtranclp_cdcl\<^sub>W_restart cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_all_struct_inv_inv
-   apply blast
+    using cdcl\<^sub>W_merge_abs_stgy_exists_cdcl\<^sub>W_s' apply blast
+   using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_s'_is_rtranclp_cdcl\<^sub>W_stgy 
+   cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv apply blast
   using cdcl\<^sub>W_merge_abs_stgy_right_compatible by blast
 
 lemma cdcl\<^sub>W_merge_abs_stgy_final_State_conclusive:
@@ -1932,11 +1812,14 @@ lemma cdcl\<^sub>W_merge_abs_stgy_final_State_conclusive:
     \<or> (conc_conflicting T = None \<and> conc_trail T \<Turnstile>asm clauses_of_clss N
       \<and> satisfiable (set_mset (clauses_of_clss N)))"
 proof -
-  have "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state (conc_init_state N))"
+  have inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state (conc_init_state N))"
     using n_d unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by (auto simp: state_conc_init_state)
   then show ?thesis
-    using cdcl\<^sub>W_restart_mset.full_cdcl\<^sub>W_merge_stgy_final_state_conclusive'[of "clauses_of_clss N" "state T"]
-    cdcl\<^sub>W_merge_abs_stgy.full_if_full_abs[of "conc_init_state N" T] full
+    using cdcl\<^sub>W_merge_abs_stgy.full_if_full_abs[of "conc_init_state N" T] full
+    using cdcl\<^sub>W_restart_mset.full_cdcl\<^sub>W_stgy_iff_full_cdcl\<^sub>W_s'
+      [of "state (conc_init_state N)" "state T", OF inv]
+    cdcl\<^sub>W_restart_mset.full_cdcl\<^sub>W_stgy_final_state_conclusive_from_init_state
+      [of "init_clss (state (conc_init_state N))" "state T"]
     by (auto simp: state_conc_init_state n_d)
 qed
 

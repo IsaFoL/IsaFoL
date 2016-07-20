@@ -690,6 +690,7 @@ interpretation dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T: dpll_with_backtrack .
 declare dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.state_simp\<^sub>N\<^sub>O\<^sub>T[simp del]
 lemma state_eq\<^sub>N\<^sub>O\<^sub>T_iff_eq[iff, simp]: "dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.state_eq\<^sub>N\<^sub>O\<^sub>T S T \<longleftrightarrow> S = T"
   unfolding dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.state_eq\<^sub>N\<^sub>O\<^sub>T_def by (cases S, cases T) auto
+
 lemma dpll\<^sub>W_dpll\<^sub>W_bj:
   assumes inv: "dpll\<^sub>W_all_inv S" and dpll: "dpll\<^sub>W S T"
   shows "dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj S T "

@@ -80,8 +80,10 @@ qed
 lemma rtranclp_and_rtranclp_left: "(\<lambda> a b. P a b \<and> Q a b)\<^sup>*\<^sup>* S T \<Longrightarrow> P\<^sup>*\<^sup>* S T"
   by (induction rule: rtranclp_induct) auto
 
+
 subsection \<open>Full Transitions\<close>
-text \<open>We define here properties to define properties after all possible transitions.\<close>
+
+text \<open>We define here predicates to define properties after all possible transitions.\<close>
 abbreviation "no_step step S \<equiv> (\<forall>S'. \<not>step S S')"
 
 definition full1 :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" (*"_\<^sup>+\<^sup>\<down>"*) where
@@ -160,7 +162,9 @@ lemma tranclp_full1_full1:
   "(full1 R)\<^sup>+\<^sup>+ a b \<longleftrightarrow> full1 R a b"
   by (metis full1_def rtranclp_full1_eq_or_full1 tranclp_unfold_begin)
 
+
 subsection \<open>Well-Foundedness and Full Transitions\<close>
+
 lemma wf_exists_normal_form:
   assumes wf:"wf {(x, y). R y x}"
   shows "\<exists>b. R\<^sup>*\<^sup>* a b \<and> no_step R b"
@@ -199,7 +203,9 @@ lemma wf_exists_normal_form_full:
   shows "\<exists>b. full R a b"
   using wf_exists_normal_form[OF assms] unfolding full_def by blast
 
+
 subsection \<open>More Well-Foundedness\<close>
+
 text \<open>A little list of theorems that could be useful, but are hidden:
   \<^item> link between @{term wf} and infinite chains: theorems
   @{thm [source] wf_iff_no_infinite_down_chain} and @{thm [source] wf_no_infinite_down_chainE}.\<close>

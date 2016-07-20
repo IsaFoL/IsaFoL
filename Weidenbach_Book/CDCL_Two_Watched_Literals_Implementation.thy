@@ -591,9 +591,9 @@ locale abs_state\<^sub>W_twl =
     raw_clauses_abs_prop_queue_to_trail_abs[simp]:
       "raw_clauses_abs (prop_queue_to_trail_abs st) = raw_clauses_abs st" and
 
-    hd_raw_trail_abs:
+    hd_raw_trail_abs[simp]:
       "full_trail_abs st \<noteq> [] \<Longrightarrow>
-        mmset_of_mlit (raw_clauses_abs st) (hd_raw_trail_abs st) = hd (full_trail_abs st)" and
+        hd (full_trail_abs st) = mmset_of_mlit (raw_clauses_abs st) (hd_raw_trail_abs st)" and
 
     tl_trail_abs_prop_state:
       "\<And>S'. prop_state st = (P, M, S') \<Longrightarrow>
@@ -1007,6 +1007,16 @@ lemma count_decided_tl_dropWhile_not_decided:
   "count_decided (tl (dropWhile (\<lambda>L. \<not> is_decided L) M)) = count_decided M - 1"
   by (induction M rule: ann_lit_list_induct) auto
 
+text \<open>TODO Move\<close>
+lemma Decided_cons_in_get_all_ann_decomposition_append_Decided_cons:
+  "\<exists>c''. (Decided K # c, c'') \<in> set (get_all_ann_decomposition (c' @ Decided K # c))"
+  apply (induction c' rule: ann_lit_list_induct)
+    apply auto[2]
+  apply (rename_tac L xs,
+      case_tac "hd (get_all_ann_decomposition (xs @ Decided K # c))")
+  apply (case_tac "get_all_ann_decomposition (xs @ Decided K # c)")
+  by auto
+
 
 locale abs_conflict_driven_clause_learning\<^sub>W_clss =
   abs_state\<^sub>W_twl
@@ -1171,49 +1181,6 @@ definition wf_resolve :: "'inv \<Rightarrow> 'inv \<Rightarrow> bool" where
 abbreviation mark_conflicting_abs_and_flush where
 "mark_conflicting_abs_and_flush  i S \<equiv> mark_conflicting_abs i (prop_queue_to_trail_abs S)"
 
-fun is_of_maximum_level :: "'v clause \<Rightarrow> ('v, 'b) ann_lit list \<Rightarrow> bool" where
-"is_of_maximum_level C [] \<longleftrightarrow> True" |
-"is_of_maximum_level C (Decided L' # M) \<longleftrightarrow> -L' \<notin># C" |
-"is_of_maximum_level C (Propagated L' _ # M) \<longleftrightarrow> -L' \<notin># C \<and> is_of_maximum_level C M"
-
-lemma is_of_maximum_level_decomposition:
-  assumes "is_of_maximum_level C M"
-  shows
-    "\<exists> M' L' M''. ((M = M' @ Decided L' # M'' \<and> -L' \<notin># C) \<or> (M = M' \<and> M'' = [])) \<and>
-     (\<forall>m \<in> set M'. \<not>is_decided m) \<and>
-     uminus ` set_mset C \<inter> lits_of_l M' = {}"
-  using assms
-proof (induction M rule: ann_lit_list_induct)
-  case Nil
-  then show ?case by fastforce
-next
-  case (Decided L M)
-  then have "Decided L # M = [] @ Decided L # M" and
-    "\<forall>m \<in> set []. \<not>is_decided m" and
-    "uminus ` set_mset C \<inter> lits_of_l [] = {}" and
-    "-L \<notin># C"
-    by auto
-  then show ?case
-    by metis
-next
-  case (Propagated L D M) note IH = this(1) and max = this(2)
-  let ?L = "Propagated L D"
-  let ?M = "?L # M"
-  have LC: "-L \<notin># C" and "is_of_maximum_level C M"
-    using max by auto
-  then obtain M' L' M'' where
-    M: "(M = M' @ Decided L' # M'' \<and> -L' \<notin># C) \<or> M = M' \<and> M'' = []" and
-    nm: "\<forall>m\<in>set M'. \<not> is_decided m" and
-    inter: "uminus ` set_mset C \<inter> lits_of_l M' = {}"
-    using IH by auto
-  then have  M: "(?M = (?L # M') @ Decided L' # M'' \<and> -L' \<notin># C) \<or> ?M = ?L # M' \<and> M'' = []" and
-    nm: "\<forall>m\<in>set (?L # M'). \<not> is_decided m" and
-    inter: "uminus ` set_mset C \<inter> lits_of_l (?L # M') = {}"
-    using LC by auto
-  then show ?case
-    by blast
-qed
-
 lemma true_annots_CNot_uminus_incl_iff:
   "M \<Turnstile>as CNot C \<longleftrightarrow> uminus ` set_mset C \<subseteq> lits_of_l M"
   by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
@@ -1225,116 +1192,13 @@ lemma get_maximum_level_skip_Decide_first:
     atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
   by (smt ann_lit.sel(1) assms(1) atms_of_def get_level_skip_beginning image_iff multiset.map_cong0)
 
-text \<open>The following lemma gives the relation between @{term is_of_maximum_level} and the inequality
-  on the level. The clause @{term C} is expected to be instantiated by a clause like
-  @{term "remove1_mset L (mset_ccls E)"}, where @{term E} is the conflicting clause. \<close>
-lemma
-  fixes M :: "('v, 'b) ann_lits" and L :: "'v literal" and D :: 'b
-  defines LM[simp]: "LM \<equiv> Propagated L D # M"
-  assumes
-    n_d: "no_dup LM" and
-    max: "is_of_maximum_level C M" and
-    M_C: "LM \<Turnstile>as CNot C" and
-    L_C: "-L \<notin># C"
-  shows
-    "get_maximum_level (Propagated L D # M) C < count_decided (Propagated L D # M) \<or> C = {#}"
-proof -
-  consider
-    (no_decide) "\<forall>m\<in>set M. \<not> is_decided m" and
-      "uminus ` set_mset C \<inter> lits_of_l M = {}" |
-    (decide) M' L' M'' where "M = M' @ Decided L' # M''" and "\<forall>m\<in>set M'. \<not> is_decided m" and
-      "-L' \<notin># C" and "uminus ` set_mset C \<inter> lits_of_l M' = {}"
-    using is_of_maximum_level_decomposition[OF max] by auto
-  then show ?thesis
-    proof cases
-      case no_decide note nm = this(1) and inter = this(2)
-      have "C = {#}"
-        using inter M_C L_C by (cases C) (auto simp: true_annots_true_cls true_clss_def)
-      then show ?thesis by blast
-    next
-      case (decide M' L' M'') note M = this(1) and nm = this(2) and L' = this(3) and inter = this(4)
-      have uL_M: "-L \<notin> lits_of_l (Propagated L D # M)"
-        using n_d by (auto simp: lits_of_def uminus_lit_swap)
-      then have atm_L_C: "atm_of L \<notin> atms_of C"
-        using M_C unfolding LM by (metis L_C atm_of_in_atm_of_set_in_uminus atms_of_def
-          true_annots_true_cls_def_iff_negation_in_model)
-      have "atm_of xa \<in> atms_of C \<Longrightarrow> atm_of xa \<noteq> atm_of L" for xa :: "'v literal"
-        using M_C uL_M L_C
-        unfolding true_annots_true_cls_def_iff_negation_in_model lits_of_def atms_of_def
-        by (fastforce simp: atm_of_eq_atm_of uminus_lit_swap)
-      have "atms_of C \<inter> atm_of ` lits_of_l M' = {}"
-        proof (rule ccontr)
-          assume "\<not> ?thesis"
-          then obtain a where
-            a_C: "a \<in> atms_of C" and
-            a_M': "a \<in> atm_of ` lits_of_l M'"
-            by auto
-          then obtain K where K_C: "K \<in># C" and a: "a = atm_of K"
-            by (auto simp: atms_of_def)
-          have "K \<noteq> -L"
-            using L_C \<open>K \<in># C\<close> by blast
-          then have "-K \<in> lits_of_l M"
-            using a_C M_C \<open>K \<in># C\<close> unfolding a
-            by (auto simp: uminus_lit_swap atm_of_eq_atm_of atms_of_def lits_of_def
-              true_annots_true_cls_def_iff_negation_in_model)
-          then have "-K \<in> lits_of_l M'"
-            using n_d a_M' unfolding a by (fastforce simp: M atms_of_def lits_of_def
-              uminus_lit_swap)
-          moreover have "-K \<in> uminus ` set_mset C"
-            using K_C by auto
-          ultimately show False using inter by fast
-        qed
-      then have atms_C_M': "\<forall>x\<in>atms_of C. x \<notin> atm_of ` lits_of_l M'"
-        by blast
-      have False if "L' \<in># C"
-        proof -
-          have "-L' \<in> lits_of_l M"
-            using that M_C L_C unfolding true_annots_true_cls_def_iff_negation_in_model by auto
-          then show False
-            using n_d unfolding LM by (metis M ann_lit.sel(1) consistent_interp_def image_iff
-              distinct.simps(2)  distinct_consistent_interp in_set_conv_decomp list.simps(9)
-              lits_of_def)
-        qed
-      then have atm_L'_C: "atm_of L' \<notin> atms_of C"
-        using L' by (auto simp: atms_of_def atm_of_eq_atm_of)
-
-      have atms_C_M'': "atms_of C \<subseteq> atm_of ` lits_of_l M''"
-        proof
-          fix a
-          assume a_C: "a \<in> atms_of C"
-          then obtain K where K_C: "K \<in># C" and a: "a = atm_of K"
-            by (auto simp: atms_of_def)
-          have "K \<noteq> -L"
-            using L_C \<open>K \<in># C\<close> by blast
-          then have "-K \<in> lits_of_l M"
-            using a_C M_C \<open>K \<in># C\<close> unfolding a
-            by (auto simp: uminus_lit_swap atm_of_eq_atm_of atms_of_def lits_of_def
-              true_annots_true_cls_def_iff_negation_in_model)
-          then have "atm_of (-K) \<in> atm_of ` lits_of_l M"
-            by fast
-          then have "atm_of K \<in> atm_of ` lits_of_l M"
-            by simp
-          then show "a \<in> atm_of ` lits_of_l M''"
-            using atms_C_M'  a_C atm_L'_C  unfolding a M by auto
-        qed
-      have max_C: "get_maximum_level (Propagated L D # M' @ Decided L' # M'') C =
-        get_maximum_level M'' C"
-        apply (subst get_maximum_level_skip_first)
-          using atm_L_C apply simp
-        apply (subst get_maximum_level_skip_beginning)
-          using atms_C_M' apply simp
-        apply (subst get_maximum_level_skip_Decide_first)
-          using atm_L'_C apply simp
-         using atms_C_M'' apply simp
-        by (rule refl)
-      show ?thesis
-        using count_decided_ge_get_maximum_level[of M'' "C"] by (auto simp: M nm max_C)
-    qed
-qed
-
-definition backtrack_implementation :: "nat \<Rightarrow> 'st \<Rightarrow> 'st"  where
-"backtrack_implementation k S =
+definition backtrack_implementation_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st"  where
+"backtrack_implementation_lvl k S =
   reduce_trail_to_abs (reduce_trail_to_lvl k (full_trail_abs S)) S"
+
+definition backtrack_implementation :: "'st \<Rightarrow> 'st" where
+"backtrack_implementation S =
+  backtrack_implementation_lvl (get_maximum_level (tl (full_trail_abs S)) (the (conc_conflicting S))) S"
 
 definition resolve_implementation :: "'v literal \<Rightarrow> 'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" where
 "resolve_implementation L C S = tl_trail_abs (resolve_conflicting_abs L (raw_clauses_abs S \<Down> C) S)"
@@ -1364,33 +1228,300 @@ proof -
     using assms M D by (auto simp: skip_implementation_def)
 qed
 
-function skip_or_resolve_implementation :: "'st \<Rightarrow> 'st" where
-"skip_or_resolve_implementation S =
-  (if full_trail_abs S = [] \<or> raw_conflicting_abs S = None \<or> conc_conflicting S = Some {#} then S
+lemma always_exists_state_eqI:
+  \<open>(\<forall>a aa ab ac b. \<not> (a, aa, ab, ac, b) \<sim>m S) \<longleftrightarrow> False\<close>
+  unfolding CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.state_eq_def
+  by (cases S) (auto simp: backtrack_lvl_def learned_clss_def init_clss_def trail_def
+      conflicting_def)
+
+text \<open>TODO Move and see if useful at other places\<close>
+lemma Suc_count_decided_gt_get_level:
+  \<open>get_level M L < Suc (count_decided M)\<close>
+  by (induction M rule: ann_lit_list_induct) auto
+
+lemma get_level_Succ_count_decided_neq[simp]:
+  \<open>get_level M L \<noteq> Suc (count_decided M)\<close>
+  using Suc_count_decided_gt_get_level[of L M] by auto
+text \<open>End TODO Move\<close>
+
+
+lemma get_maximum_level_skip_un_decided_not_present:
+  assumes
+    "\<forall>L\<in>#D. atm_of L \<notin> atm_of ` lits_of_l M"
+  shows "get_maximum_level (M @ aa) D = get_maximum_level aa D"
+  using assms unfolding get_maximum_level_def by simp
+
+lemma backtrack_rule_reduce_trail_to_lvl:
+  fixes S :: 'st
+  defines
+    \<open>i \<equiv> get_maximum_level (tl (full_trail_abs S)) (the (conc_conflicting S))\<close> and
+    \<open>D \<equiv> the (conc_conflicting S)\<close>
+  assumes
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state S)\<close> and
+    inv': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state S)\<close> and
+    confl: \<open>raw_conflicting_abs S \<noteq> None\<close> and
+    n_empty[simp]: \<open>D \<noteq> {#}\<close> and
+    n_s: \<open>no_step cdcl\<^sub>W_restart_mset.skip (state S)\<close> and
+    i: \<open>i < backtrack_lvl_abs S\<close> and
+    T: \<open>T \<sim>m cons_trail (Propagated (-lit_of (hd (full_trail_abs S))) D)
+          (cdcl\<^sub>W_restart_mset.reduce_trail_to (reduce_trail_to_lvl i (full_trail_abs S))
+            (add_learned_cls D
+              (update_backtrack_lvl i
+                (update_conflicting None (state S)))))\<close>
+  shows
+    \<open>cdcl\<^sub>W_restart_mset.backtrack (state S) T\<close>
+proof -
+  have confl'[simp]: \<open>conc_conflicting S = Some D\<close>
+    using confl D_def by auto
+  have n_d: \<open>no_dup (full_trail_abs S)\<close>
+    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by auto
+
+  have \<open>full_trail_abs S \<noteq> []\<close>
+    using n_empty inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+    by auto
+  then obtain L M where LM: \<open>full_trail_abs S = L # M\<close>
+    by (cases \<open>full_trail_abs S\<close>)auto
+
+  let ?L' = "-lit_of L"
+  have \<open>full_trail_abs S \<Turnstile>as CNot D\<close>
+    using n_empty inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+    by auto
+  have \<open>-lit_of L \<notin> lits_of_l M\<close>
+    using n_d by (auto simp: LM lits_of_def uminus_lit_swap)
+  then have \<open>lit_of L \<notin># D\<close>
+    using \<open>full_trail_abs S \<Turnstile>as CNot D\<close>
+    by (auto simp: LM true_annots_true_cls_def_iff_negation_in_model uminus_lit_swap)
+
+  have \<open>?L' \<in># D\<close> if \<open>\<not>is_decided L\<close>
+    using n_s that
+    by (cases L) (auto simp: cdcl\<^sub>W_restart_mset.skip.simps LM simp: always_exists_state_eqI)
+  moreover {
+    have \<open>cdcl\<^sub>W_restart_mset.conflict_is_false_with_level (state S)\<close>
+      using inv' unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by auto
+    moreover have \<open>backtrack_lvl (state S) = count_decided (trail (state S))\<close>
+      using n_empty inv' inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      by auto
+    moreover have \<open>full_trail_abs S \<Turnstile>as CNot D\<close>
+      using n_empty inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+      by auto
+    ultimately have \<open>get_level (trail (state S)) L' = backtrack_lvl (state S) \<longleftrightarrow> atm_of (lit_of L) = atm_of L'\<close>
+      if \<open>L' \<in># D\<close> and \<open>is_decided L\<close> for L'
+      using that by (cases L) (auto simp: LM split: if_splits)
+    then have \<open>?L' \<in># D\<close> if \<open>is_decided L\<close>
+      using that inv' \<open>lit_of L \<notin># D\<close> unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+      by (cases L) (auto simp: LM atm_of_eq_atm_of split:  if_splits) }
+  ultimately have \<open>?L' \<in># D\<close> by blast
+
+  obtain K M2 where
+    M1: \<open>trail (state S) = M2 @ Decided K # reduce_trail_to_lvl i (trail (state S))\<close> and
+    lvl_reduce_i: \<open>count_decided (reduce_trail_to_lvl i (trail (state S))) = i\<close>
+    using reduce_trail_to_lvl_decomp_lvl[of i \<open>trail (state S)\<close>]
+      i inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by auto
+  define M1 where \<open>M1 \<equiv> reduce_trail_to_lvl i (trail (state S))\<close>
+  obtain M2' where M2': \<open>(Decided K # M1, M2') \<in> set (get_all_ann_decomposition (trail (state S)))\<close>
+    using Decided_cons_in_get_all_ann_decomposition_append_Decided_cons[of K M1 M2] M1 M1_def by auto
+
+  have lev_L_S: \<open>get_level (trail (state S)) (- lit_of L) = backtrack_lvl (state S)\<close>
+    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: LM)
+
+  have \<open>get_maximum_level (trail (state S)) D \<le> get_level (trail (state S)) (- lit_of L)\<close>
+    using count_decided_ge_get_maximum_level[of "L#M"] inv
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (auto simp: LM)
+  moreover have \<open>get_maximum_level (trail (state S)) D \<ge> get_level (trail (state S)) ?L'\<close>
+    using get_maximum_level_ge_get_level[of ?L' D] \<open>?L' \<in># D\<close> by blast
+  ultimately have lev_L: \<open>get_level (trail (state S)) ?L' = get_maximum_level (trail (state S)) D\<close>
+    by linarith
+
+  have [simp]: \<open>get_level M (lit_of L) = 0\<close>
+    apply (rule atm_of_notin_get_rev_level_eq_0)
+    using n_d by (auto simp: LM lits_of_def)
+  have remove1_All: \<open>remove1_mset (- lit_of L) D = removeAll_mset (- lit_of L) D\<close>
+    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+    by (auto simp: distinct_mset_remove1_All)
+  have \<open>get_maximum_level M D =
+      get_maximum_level M (remove1_mset ?L' D)\<close>
+    using get_maximum_level_plus[of M \<open>remove1_mset ?L' D\<close> \<open>{#?L'#}\<close>] \<open>?L' \<in># D\<close>
+    by auto
+  also {
+    have H: \<open>\<forall>x\<in>atms_of (removeAll_mset (- lit_of L) D). x \<noteq> atm_of (lit_of L)\<close>
+      using \<open>lit_of L \<notin># D\<close> by (auto simp: atms_of_def atm_of_eq_atm_of)
+    have \<open>get_maximum_level M (remove1_mset ?L' D) = get_maximum_level (L # M) (remove1_mset ?L' D)\<close>
+      using get_maximum_level_skip_beginning[of \<open>removeAll_mset ?L' D\<close> \<open>[L]\<close> M]
+      by (auto simp: H remove1_All)
+    }
+  finally have lvl_D_I: \<open>get_maximum_level (trail (state S)) (remove1_mset ?L' D) = i\<close>
+    unfolding i_def by (auto simp: LM)
+  have \<open>get_level (trail (state S)) K = Suc (count_decided M1)\<close>
+    unfolding M1[unfolded M1_def[symmetric]]
+    apply (subst get_rev_level_skip)
+    using n_d M1[unfolded M1_def[symmetric]]
+    by (auto simp: lits_of_def)
+  then have lvl_K_i: \<open>get_level (trail (state S)) K = i + 1\<close>
+    using lvl_reduce_i by (auto simp: M1_def)
+
+  show ?thesis
+    apply (rule cdcl\<^sub>W_restart_mset.backtrack_rule)
+           using confl' apply (simp; fail)
+          using \<open>?L' \<in># D\<close> apply (simp; fail)
+         using M2' apply (simp; fail)
+        using lev_L_S apply (simp; fail)
+       using lev_L apply (simp; fail)
+      using lvl_D_I apply (simp; fail)
+     using lvl_K_i apply (simp; fail)
+    using T M2' by (auto simp: CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.state_eq_def LM M1_def
+        simp del: CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.state_simp)[]
+qed
+
+lemma
+  assumes
+    \<open>full_trail_abs S \<noteq> []\<close> and
+    confl: \<open>conc_conflicting S \<noteq> None\<close> \<open>conc_conflicting S \<noteq> Some {#}\<close>
+  shows \<open>get_maximum_level (tl (full_trail_abs S)) (the (conc_conflicting S)) < count_decided (full_trail_abs S)
+  \<longleftrightarrow> hd_raw_trail_abs S = Decided L \<and> L \<in># the (conc_conflicting S)\<close>
+  using assms apply (cases \<open>full_trail_abs S\<close>)
+    apply auto[]
+  using hd_raw_trail_abs[of S] apply (auto simp: cdcl\<^sub>W_restart_mset.skip.simps is_decided_def
+          simp del: hd_raw_trail_abs)
+oops
+
+lemma
+  assumes
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state S)\<close> and
+    inv': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state S)\<close> and
+    ne: \<open>full_trail_abs S \<noteq> []\<close> and
+    confl: \<open>conc_conflicting S \<noteq> None\<close> \<open>conc_conflicting S \<noteq> Some {#}\<close> and
+    hd: \<open>hd_raw_trail_abs S = Decided L\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.backtrack (state S) (state (backtrack_implementation S))\<close>
+  apply (rule backtrack_rule_reduce_trail_to_lvl)
+           using inv apply (simp; fail)
+          using inv' apply (simp; fail)
+        using confl apply (auto; fail)[]
+       using confl apply (auto; fail)[]
+      using hd ne hd_raw_trail_abs[of S] apply (auto simp: cdcl\<^sub>W_restart_mset.skip.simps
+          simp del: hd_raw_trail_abs)[]
+
+  
+  using inv
+oops
+
+definition cdcl_bj_implementation :: "'st \<Rightarrow> 'st" where
+"cdcl_bj_implementation S =
+  (if conc_conflicting S = None \<or> conc_conflicting S = Some {#} then S
   else
     case hd_raw_trail_abs S of
-      Decided L \<Rightarrow>
-      backtrack_implementation (get_maximum_level (full_trail_abs S) (the (conc_conflicting S))) S
+      Decided L \<Rightarrow> backtrack_implementation S
     | Propagated L C \<Rightarrow>
       if -L \<in># mset_ccls (the (raw_conflicting_abs S))
       then
-        if is_of_maximum_level (mset_ccls (the (raw_conflicting_abs S))) (tl (full_trail_abs S))
-        then backtrack_implementation (get_maximum_level (full_trail_abs S) (the (conc_conflicting S)))
-          S
-        else skip_or_resolve_implementation (resolve_implementation L C S)
-      else skip_or_resolve_implementation (skip_implementation S))"
-  by auto
+        if get_maximum_level (full_trail_abs S) (mset_ccls (the (raw_conflicting_abs S)) - {#-L#})
+        < backtrack_lvl_abs S
+        then backtrack_implementation S
+        else resolve_implementation L C S
+      else skip_implementation S)"
 
-termination skip_or_resolve_implementation
-  apply (relation  "measure (\<lambda>S. length (full_trail_abs S))")
-  apply (auto simp: resolve_implementation_def skip_implementation_def)
-  oops
+lemma full_trail_abs_hd_rase_trail_abs:
+  assumes \<open>full_trail_abs S = Propagated La C' # M\<close>
+    \<open>hd_raw_trail_abs S = Propagated L C\<close>
+  shows \<open>L = La\<close> and \<open>C' = clause_of_cls (raw_clauses_abs S \<Down> C)\<close>
+  using assms hd_raw_trail_abs[of S] by auto
+
+lemma get_maximum_level_cong:
+  assumes M_M': \<open>M = M'\<close> and D_D': \<open>atms_of D = atms_of D'\<close>
+  shows \<open>get_maximum_level M D = get_maximum_level M' D'\<close>
+proof -
+  have in_D_D': \<open>L \<in># D' \<or>  -L \<in># D'\<close> if \<open>L \<in># D\<close> for L
+    using D_D' that
+    by (auto simp: atms_of_def atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set[symmetric])
+  have in_D'_D: \<open>L \<in># D \<or>  -L \<in># D\<close> if \<open>L \<in># D'\<close> for L
+    using D_D' that
+    by (auto simp: atms_of_def atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set[symmetric])
+  have H: \<open> - L \<in># D \<Longrightarrow> get_level M' L = get_level M' (-L)\<close> for L D
+    by auto
+  have \<open>get_level M' ` set_mset D = get_level M' ` set_mset D'\<close>
+    apply (standard; standard)
+     apply (auto simp: H dest!: in_D_D' simp del: atm_of_uminus; fail)[]
+    by (auto simp: H  dest!: in_D'_D simp del: atm_of_uminus)[]
+  then show ?thesis
+    using M_M' unfolding get_maximum_level_def by auto
+qed
+
+lemma hd_full_trail_abs:
+  \<open>full_trail_abs S \<noteq> [] \<Longrightarrow>
+       hd_raw_trail_abs S = Propagated L C \<Longrightarrow>
+      hd (full_trail_abs S) = Propagated L (clause_of_cls (raw_clauses_abs S \<Down> C))\<close>
+  using hd_raw_trail_abs[of S] by auto
+
+lemma cdcl_bj_implementation_cases[consumes 1, case_names confl_None confl_False Decide_backtrack
+    Propagate_backtrack Propagate_Resolve Propagate_skip]:
+  assumes
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state S)\<close> and
+    \<open>conc_conflicting S = None \<Longrightarrow> P S S\<close> and
+    \<open>conc_conflicting S = Some {#} \<Longrightarrow> P S S\<close> and
+    \<open>\<And>L. full_trail_abs S \<noteq> [] \<Longrightarrow> hd_raw_trail_abs S = Decided L \<Longrightarrow>
+      P S (backtrack_implementation S)\<close> and
+    \<open>\<And>L C. full_trail_abs S \<noteq> [] \<Longrightarrow> hd_raw_trail_abs S = Propagated L C \<Longrightarrow>
+      -L \<in># mset_ccls (the (raw_conflicting_abs S)) \<Longrightarrow>
+      get_maximum_level (full_trail_abs S) (mset_ccls (the (raw_conflicting_abs S)) - {#-L#})
+        < backtrack_lvl_abs S \<Longrightarrow> no_step cdcl\<^sub>W_restart_mset.skip (state S) \<Longrightarrow>
+        no_step cdcl\<^sub>W_restart_mset.resolve (state S) \<Longrightarrow>
+       P S (backtrack_implementation S)\<close> and
+    \<open>\<And>L C. full_trail_abs S \<noteq> [] \<Longrightarrow> hd_raw_trail_abs S = Propagated L C \<Longrightarrow>
+      -L \<in># mset_ccls (the (raw_conflicting_abs S)) \<Longrightarrow>
+       \<not>get_maximum_level (full_trail_abs S) (mset_ccls (the (raw_conflicting_abs S)) - {#-L#})
+        < backtrack_lvl_abs S \<Longrightarrow>
+       P S (resolve_implementation L C S)\<close> and
+    \<open>\<And>L C. full_trail_abs S \<noteq> [] \<Longrightarrow> hd_raw_trail_abs S = Propagated L C \<Longrightarrow>
+      -L \<notin># mset_ccls (the (raw_conflicting_abs S)) \<Longrightarrow> P S (skip_implementation S)\<close>
+  shows \<open>P S (cdcl_bj_implementation S)\<close>
+proof -
+  have \<open>conc_conflicting S \<noteq> Some {#} \<Longrightarrow> conc_conflicting S \<noteq> None \<Longrightarrow> full_trail_abs S \<noteq> []\<close>
+    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+    by auto
+  moreover have \<open>full_trail_abs S \<noteq> [] \<Longrightarrow>conc_conflicting S \<noteq> None \<Longrightarrow> - L \<in># (the (conc_conflicting S)) \<Longrightarrow>
+       hd_raw_trail_abs S = Propagated L C \<Longrightarrow> no_step cdcl\<^sub>W_restart_mset.skip (state S)\<close>
+       for L C
+    by (auto simp: cdcl\<^sub>W_restart_mset.skip.simps
+        dest: full_trail_abs_hd_rase_trail_abs)
+  ultimately show ?thesis
+    apply (auto simp: cdcl_bj_implementation_def assms split: ann_lit.splits)
+    apply (rule assms(5))
+    by (auto elim!: cdcl\<^sub>W_restart_mset.resolveE)
+qed
+
+
+lemma
+  assumes
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state S)\<close> and
+    confl: \<open>conc_conflicting S \<noteq> None\<close>
+    \<open>conc_conflicting S \<noteq> Some {#}\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj (state S) (state (cdcl_bj_implementation S))\<close>
+  apply (rule cdcl_bj_implementation_cases)
+      using inv apply simp
+     using confl apply simp
+    using confl apply simp
+   using cdcl\<^sub>W_restart_mset.trail_begins_with_decided_conflicting_exists_backtrack(1)[of "state S"]
+oops
+
 text \<open>When we update a clause with respect to the literal L, there are several cases:
   \<^enum> the only literal is L: this is a conflict.
   \<^enum> if the other watched literal is true, there is noting to do.
   \<^enum> if it is false, then we have found a conflict (since every unwatched literal has to be false).
   \<^enum> otherwise, we have to check if we can find a literal to swap or propagate the variable.
 \<close>
+
 fun update_watched_clause :: "'st \<Rightarrow> 'v literal \<Rightarrow> 'cls_it \<Rightarrow> 'st"  where
 "update_watched_clause S L i =
   (case it_of_watched_ordered (raw_clauses_abs S \<Down> i) L of
@@ -1443,7 +1574,15 @@ proof -
         unfolding S' by auto
     next
       case (two_watched j k) note jk = this(1) and it_L = this(2) and k = this(3)
-      then show ?thesis
+      moreover {
+        have \<open>no_dup (trail_abs S)\<close>
+          sorry
+        then have \<open>- L \<in> lits_of_l (trail_abs S) \<Longrightarrow>  L \<notin> lits_of_l (trail_abs S)\<close> for L
+          using consistent_interp_def distinct_consistent_interp by blast
+        then have [simp]: \<open>- ((raw_clauses_abs S \<Down> i) \<down> k) \<in> lits_of_l (trail_abs S) \<Longrightarrow>
+          ((raw_clauses_abs S \<Down> i) \<down> k) \<notin> lits_of_l (trail_abs S)\<close>
+          by blast }
+      ultimately show ?thesis
          unfolding S' apply auto
 oops
 

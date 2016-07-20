@@ -6,7 +6,7 @@ session "Unordered_Resolution" = HOL +
      "$ISAFOR/Rewriting/Unification"
      "$AFP/Resolution_FOL/Resolution"
      "$AFP/Resolution_FOL/Completeness"
-   theories
+   theories [document = true]
      Unify
      Complete
    document_files
