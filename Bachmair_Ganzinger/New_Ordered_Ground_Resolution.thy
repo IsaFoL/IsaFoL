@@ -62,26 +62,6 @@ where
    (\<forall>C. C \<in># CC \<longrightarrow> S C = {#}) \<Longrightarrow>
    ord_resolve CC (D,As) (Cf' + D)"
 
-lemma ord_resolve_inv:
-  assumes "ord_resolve CC DAs Cf'D"
-  shows "\<exists>D As Cf' AA ZZ. (D,As) = DAs \<and> Cf'D = Cf' + D \<and>
-  Cf' = \<Union># {#C'. (C', A, m) \<in># ZZ#} \<and>
-   AA = {#A. (C', A, m) \<in># ZZ#} \<and>
-   AA = mset As \<and>
-   CC = {#C' + replicate_mset (Suc m) (Pos A). (C', A, m) \<in># ZZ#} \<and>
-   ZZ \<noteq> {#} \<and>
-   S (main_clause (D,As)) = negs AA \<or> S (main_clause (D,As)) = {#} \<and> size AA = 1 \<and> Max (atms_of (main_clause (D,As))) \<in># AA \<and>
-   (\<forall>(C', A, _) \<in> set_mset ZZ. \<forall>B \<in> atms_of C'. B < A) \<and>
-   (\<forall>C. C \<in># CC \<longrightarrow> S C = {#})"
-proof
-  define D where "D \<equiv> fst DAs"
-  define As where "As \<equiv> snd DAs"
-  from D_def As_def assms have "ord_resolve CC (D,As) Cf'D" by auto
-  define Cf' where "Cf' \<equiv> Cf'D - D"
-  have "Cf' + D = Cf'D" 
-oops
-
-
 lemma ord_resolve_sound:
   assumes
     res_e: "ord_resolve CC (D,As) E" and
