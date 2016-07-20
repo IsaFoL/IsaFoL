@@ -6,7 +6,7 @@
 
 section {* Ordered Ground Resolution with Selection *}
 
-theory Ordered_Ground_Resolution
+theory New_Ordered_Ground_Resolution
 imports Inference_System Ground_Resolution_Model
 begin
 
@@ -23,6 +23,14 @@ text {*
 Ordered ground resolution consists of a single rule, called @{text ord_resolve} below. Like
 @{text unord_resolve}, the rule is sound and counterexample-reducing. In addition, it is reductive.
 *}
+
+subsection {* Main and side clauses *} (* Should maybe be in Clausal_Logic *)
+
+type_synonym 'a side_clause = "'a clause * 'a multiset"
+type_synonym 'a main_clause = "'a clause * 'a list"
+
+abbreviation "main_clause \<equiv> (\<lambda>(D,A). D + {#Neg Atm. Atm \<in># mset A #})"
+abbreviation "side_clause \<equiv> (\<lambda>(C,A). C + {#Pos Atm. Atm \<in># A #})"
 
 context ground_resolution_with_selection
 begin
@@ -41,36 +49,56 @@ $S(C_i \lor A_i \lor \cdots \lor A_i)$. Apparently, the latter was meant.
 *}
 
 inductive
-  ord_resolve :: "'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool"
+  ord_resolve :: "'a clause multiset \<Rightarrow> 'a main_clause \<Rightarrow> 'a clause \<Rightarrow> bool"
 where
   ord_resolve:
   "Cf' = \<Union># {#C'. (C', A, m) \<in># ZZ#} \<Longrightarrow>
    AA = {#A. (C', A, m) \<in># ZZ#} \<Longrightarrow>
+   AA = mset As \<Longrightarrow>
    CC = {#C' + replicate_mset (Suc m) (Pos A). (C', A, m) \<in># ZZ#} \<Longrightarrow>
-   D = negs AA + D' \<Longrightarrow>
    ZZ \<noteq> {#} \<Longrightarrow>
-   S D = negs AA \<or> S D = {#} \<and> size AA = 1 \<and> Max (atms_of D) \<in># AA \<Longrightarrow>
+   S (main_clause (D,As)) = negs AA \<or> S (main_clause (D,As)) = {#} \<and> size AA = 1 \<and> Max (atms_of (main_clause (D,As))) \<in># AA \<Longrightarrow>
    (\<forall>(C', A, _) \<in> set_mset ZZ. \<forall>B \<in> atms_of C'. B < A) \<Longrightarrow>
    (\<forall>C. C \<in># CC \<longrightarrow> S C = {#}) \<Longrightarrow>
-   ord_resolve CC D (Cf' + D')"
+   ord_resolve CC (D,As) (Cf' + D)"
+
+lemma ord_resolve_inv:
+  assumes "ord_resolve CC DAs Cf'D"
+  shows "\<exists>D As Cf' AA ZZ. (D,As) = DAs \<and> Cf'D = Cf' + D \<and>
+  Cf' = \<Union># {#C'. (C', A, m) \<in># ZZ#} \<and>
+   AA = {#A. (C', A, m) \<in># ZZ#} \<and>
+   AA = mset As \<and>
+   CC = {#C' + replicate_mset (Suc m) (Pos A). (C', A, m) \<in># ZZ#} \<and>
+   ZZ \<noteq> {#} \<and>
+   S (main_clause (D,As)) = negs AA \<or> S (main_clause (D,As)) = {#} \<and> size AA = 1 \<and> Max (atms_of (main_clause (D,As))) \<in># AA \<and>
+   (\<forall>(C', A, _) \<in> set_mset ZZ. \<forall>B \<in> atms_of C'. B < A) \<and>
+   (\<forall>C. C \<in># CC \<longrightarrow> S C = {#})"
+proof
+  def d: D \<equiv> "fst DAs"
+  def as: As \<equiv> "snd DAs"
+  from d as assms have "ord_resolve CC (D,As) Cf'D" by auto
+  def cf': Cf' \<equiv> "Cf'D - D"
+  have "Cf' + D = Cf'D" 
+oops
+
 
 lemma ord_resolve_sound:
   assumes
-    res_e: "ord_resolve CC D E" and
+    res_e: "ord_resolve CC (D,As) E" and
     cc_true: "I \<Turnstile>m CC" and
-    d_true: "I \<Turnstile> D"
+    d_true: "I \<Turnstile> main_clause (D,As)"
   shows "I \<Turnstile> E"
 using res_e proof (cases rule: ord_resolve.cases)
-  case (ord_resolve Cf' ZZ AA D')
-  note e = this(1) and cf' = this(2) and aa = this(3) and cc = this(4) and d = this(5)
+  case (ord_resolve Cf' ZZ AA)
+  note e = this(1) and cf' = this(2) and aa = this(3) and aa' = this(4) and cc = this(5) and d = this(6)
 
   show ?thesis
   proof (cases "\<forall>A. A \<in># AA \<longrightarrow> A \<in> I")
     case True
     hence "\<not> I \<Turnstile> negs AA"
       unfolding true_cls_def by fastforce
-    hence "I \<Turnstile> D'"
-      using d_true unfolding d by fast
+    hence "I \<Turnstile> D"
+      using d_true unfolding d using aa' by fast
     thus ?thesis
       unfolding e by blast
   next
@@ -82,10 +110,9 @@ using res_e proof (cases rule: ord_resolve.cases)
     hence c_cf': "set_mset C' \<subseteq> set_mset Cf'"
       unfolding cf' by force
     obtain Am where
-      aaa: "Am = replicate_mset (Suc m) (Pos A)" and c_in_cc: "C' + Am \<in># CC"
-      using cam unfolding cc by force
-    have "\<not> I \<Turnstile> Am"
-      using aaa a_false by simp
+      aaa: "Am = replicate_mset (Suc m) (Pos A)" by simp
+    have c_in_cc: "C' + Am \<in># CC" using cam unfolding cc aaa by force
+    have "\<not> I \<Turnstile> Am" using aaa a_false by force
     moreover have "I \<Turnstile> C' + Am"
       using c_in_cc cc_true unfolding true_cls_mset_def by auto
     ultimately have "I \<Turnstile> C'"
@@ -108,20 +135,20 @@ This corresponds to Lemma 3.13:
 *}
 
 lemma ord_resolve_reductive:
-  assumes res_e: "ord_resolve CC D E"
-  shows "E < D"
+  assumes res_e: "ord_resolve CC (D,As) E"
+  shows "E < main_clause (D,As)"
 using res_e proof (cases rule: ord_resolve.cases)
-  case (ord_resolve Cf' ZZ AA D')
-  note e = this(1) and cf' = this(2) and aa = this(3) and d = this(5) and zz_ne = this(6) and
+  case (ord_resolve Cf' ZZ AA)
+  note e = this(1) and cf' = this(2) and aa = this(3) and aa' = this(4) and zz_ne = this(6) and
     a_max = this(8)
 
   show ?thesis
   proof (cases "Cf' = {#}")
     case True
     have "negs AA \<noteq> {#}"
-      unfolding aa using zz_ne by auto
+      unfolding aa using zz_ne aa by force
     thus ?thesis
-      unfolding e d True by auto
+      unfolding e aa' True by auto
   next
     case False
     then obtain max_C where
@@ -158,8 +185,7 @@ using res_e proof (cases rule: ord_resolve.cases)
         (metis atms_less_eq_imp_lit_less_eq_neg count_inI dual_order.strict_implies_order 
           gr_implies_not_zero order.not_eq_order_implies_strict)
     thus ?thesis
-      unfolding e d by simp
-    thm d
+      unfolding e aa' by (metis add.commute case_prod_conv le_multiset_plus_plus_left_iff) 
   qed
 qed
 
@@ -173,11 +199,12 @@ theorem ord_resolve_counterex_reducing:
     c_in_n: "C \<in> N" and
     c_cex: "\<not> INTERP N \<Turnstile> C" and
     c_min: "\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D"
-  obtains DD E where
+  obtains DD E mC where
+    "main_clause mC = C"
     "set_mset DD \<subseteq> N"
     "INTERP N \<Turnstile>m DD"
     "\<And>D. D \<in># DD \<Longrightarrow> productive N D"
-    "ord_resolve DD C E"
+    "ord_resolve DD mC E"
     "\<not> INTERP N \<Turnstile> E"
     "E < C"
 proof -
@@ -218,6 +245,10 @@ proof -
     by blast
   obtain C' where c: "C = negs AA + C'"
     using negs_aa_le_c mset_subset_eq_exists_conv by blast
+  def as: As \<equiv> "sorted_list_of_multiset AA"
+  have asaa: "AA = mset As" using as by auto
+  have c'asc: "main_clause (C',As) = C" by (simp add: asaa c union_commute)
+  from s_c c'asc have s_mc: "S (main_clause (C',As)) = negs AA \<or> S (main_clause (C',As)) = {#} \<and> size AA = 1 \<and> Max (atms_of (main_clause (C',As))) \<in># AA" by auto
   from negs_aa_le_c have neg_a_in_c: "\<And>A. A \<in># AA \<Longrightarrow> Neg A \<in># C"
     by fastforce
   have "\<And>A. A \<in># AA \<Longrightarrow> A \<in> INTERP N"
@@ -274,10 +305,11 @@ proof -
        (metis atm_of_lit_in_atms_of insert_not_empty le_imp_less_or_eq Pos_atm_of_iff
           Neg_atm_of_iff pos_neg_in_imp_true produces_imp_Pos_in_lits produces_imp_atms_leq
           productive_imp_false_interp)
+  moreover have "\<forall>C. C \<in># DD \<longrightarrow> S C = {#}" using s_dd_e by auto
   moreover have "\<not> interp N C \<Turnstile> C"
     by (metis c_cex c_in_n c_min true_interp_imp_INTERP)
-  ultimately have res_e: "ord_resolve DD C (Df' + C')"
-    using c s_c s_dd_e using ord_resolve.intros[of Df' ZZ AA DD C C'] by blast
+  ultimately have res_e: "ord_resolve DD (C', As) (Df' + C')"
+    using c s_mc s_dd_e asaa ord_resolve.intros[of Df' ZZ AA As DD C'] by blast
 
   have "\<And>A. A \<in># AA \<Longrightarrow> \<not> Neg A \<in># D_of A"
     by (drule prod_d0) (auto dest: produces_imp_neg_notin_lits)
@@ -311,22 +343,23 @@ proof -
   ultimately have e_cex: "\<not> INTERP N \<Turnstile> Df' + C'"
     by simp
 
-  have lt_cex: "Df' + C' < C"
-    using res_e ord_resolve_reductive by blast
+  have "Df' + C' < main_clause (C', As)" using res_e ord_resolve_reductive by simp
 
-  from dd_subs_n dd_true prod_d res_e e_cex lt_cex show ?thesis ..
+  then have lt_cex: "Df' + C' < C" by (simp add: asaa c union_commute) 
+ 
+  from c'asc dd_subs_n dd_true prod_d res_e e_cex lt_cex show ?thesis .. 
 qed
 
 lemma ord_resolve_atms_of_concl_subset:
-  assumes res_e: "ord_resolve CC D E"
-  shows "atms_of E \<subseteq> (\<Union>C \<in> set_mset CC. atms_of C) \<union> atms_of D"
+  assumes res_e: "ord_resolve CC (D,As) E"
+  shows "atms_of E \<subseteq> (\<Union>C \<in> set_mset CC. atms_of C) \<union> atms_of (main_clause (D,As))"
 using res_e proof (cases rule: ord_resolve.cases)
-  case (ord_resolve Cf' ZZ AA D')
-  note e = this(1) and cf' = this(2) and cc = this(4) and d = this(5)
-
+  case (ord_resolve Cf' ZZ AA)
+  note e = this(1) and cf' = this(2) and cc = this(5) and d = this(4)
+  thm d
   have "atms_of Cf' \<subseteq> (\<Union>C\<in>set_mset CC. atms_of C)"
     unfolding cf' cc by (auto simp: atms_of_def)
-  moreover have "atms_of D' \<subseteq> atms_of D"
+  moreover have "atms_of D \<subseteq> atms_of (main_clause (D,As))"
     unfolding d by simp
   ultimately show ?thesis
     unfolding e by auto
@@ -342,7 +375,7 @@ inference system.
 *}
 
 definition ord_\<Gamma> :: "'a inference set" where
-  "ord_\<Gamma> = {Infer CC D E | CC D E. ord_resolve CC D E}"
+  "ord_\<Gamma> = {Infer CC (main_clause (D,As)) E | CC D As E. ord_resolve CC (D,As) E}"
 
 sublocale 
   sound_counterex_reducing_inference_system "ground_resolution_with_selection.ord_\<Gamma> S"
@@ -350,22 +383,31 @@ sublocale
   reductive_inference_system "ground_resolution_with_selection.ord_\<Gamma> S"
 proof unfold_locales
   fix C :: "'a clause" and N :: "'a clause set"
+  thm ord_resolve_counterex_reducing
   assume "{#} \<notin> N" and "C \<in> N" and "\<not> INTERP N \<Turnstile> C" and "\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D"
-  then obtain DD E where
+  then obtain DD E mC where
+    mc: "main_clause mC = C" and
     dd_sset_n: "set_mset DD \<subseteq> N" and
     dd_true: "INTERP N \<Turnstile>m DD" and
-    res_e: "ord_resolve DD C E" and
+    res_e: "ord_resolve DD mC E" and
     e_cex: "\<not> INTERP N \<Turnstile> E" and
     e_lt_c: "E < C"
     using ord_resolve_counterex_reducing by metis
-  from res_e have "Infer DD C E \<in> ord_\<Gamma>"
-    unfolding ord_\<Gamma>_def by blast
+
+  have mc': "main_clause (fst mC, snd mC) = C" by (simp add: mc)
+
+  have "ord_resolve DD mC E" by (simp add: res_e)
+  then have "ord_resolve DD (fst mC, snd mC) E" by simp
+  then have "Infer DD C E \<in> ord_\<Gamma>"
+    using mc mc' unfolding ord_\<Gamma>_def by (metis (mono_tags, lifting) mem_Collect_eq)
   thus "\<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> ord_\<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < C"
-    using dd_sset_n dd_true e_cex e_lt_c by blast
+    using dd_sset_n dd_true e_cex e_lt_c by auto
 next
-  fix CC D E and I
-  assume "Infer CC D E \<in> ord_\<Gamma>" and "I \<Turnstile>m CC" and "I \<Turnstile> D"
-  thus "I \<Turnstile> E" using ord_\<Gamma>_def ord_resolve_sound by auto
+  fix CC DAs E and I
+  assume inf: "Infer CC DAs E \<in> ord_\<Gamma>" and icc: "I \<Turnstile>m CC" and id: "I \<Turnstile> DAs"
+  thm ord_\<Gamma>_def
+  from inf obtain D As where "main_clause (D,As) = DAs" "ord_resolve CC (D, As) E" using ord_\<Gamma>_def by auto
+  thus "I \<Turnstile> E" using id icc ord_resolve_sound[of CC D As E I] by auto
 next
   fix \<gamma>
   assume "\<gamma> \<in> ord_\<Gamma>"
