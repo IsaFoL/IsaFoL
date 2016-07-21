@@ -446,7 +446,7 @@ next
   ultimately show ?B by auto
 qed
 
-lemma satisfiable_carac[iff]:
+lemma satisfiable_carac:
   "(\<exists>I. consistent_interp I \<and> I \<Turnstile>s \<phi>) \<longleftrightarrow> satisfiable \<phi>" (is "(\<exists>I. ?Q I) \<longleftrightarrow> ?S")
 proof
   assume "?S"
