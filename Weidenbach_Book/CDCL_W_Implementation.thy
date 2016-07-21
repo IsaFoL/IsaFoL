@@ -135,10 +135,15 @@ lemma true_raw_init_clss_remdups[simp]:
   "I \<Turnstile>s (mset \<circ> remdups) ` N \<longleftrightarrow>  I \<Turnstile>s mset ` N"
   by (simp add: true_clss_def)
 
+lemma true_clss_raw_remdups_mset_mset[simp]:
+  \<open>I \<Turnstile>s (\<lambda>L. remdups_mset (mset L)) ` N' \<longleftrightarrow> I \<Turnstile>s mset ` N'\<close>
+  by (simp add: true_clss_def)
+
+declare satisfiable_carac[iff del]
 lemma satisfiable_mset_remdups[simp]:
   "satisfiable ((mset \<circ> remdups) ` N) \<longleftrightarrow> satisfiable (mset ` N)"
-unfolding satisfiable_carac[symmetric] by simp
-
+  "satisfiable ((\<lambda>L. remdups_mset (mset L)) ` N') \<longleftrightarrow> satisfiable (mset ` N')"
+  unfolding satisfiable_carac[symmetric] by simp_all
 
 type_synonym 'v cdcl\<^sub>W_restart_state_inv_st = "('v, 'v literal list) ann_lit list \<times>
   'v literal list list \<times> 'v literal list list \<times> nat \<times> 'v literal list option"
@@ -1145,10 +1150,9 @@ proof -
   have "(E \<noteq> Some {#} \<and> satisfiable (set (map mset ?N)))
     \<or> (E = Some {#} \<and> unsatisfiable (set (map mset ?N)))"
     using full_cdcl\<^sub>W_stgy_final_state_conclusive unfolding N' apply rule
-        using 1 apply simp
-       using 2 apply simp
-      using 3 apply simp
-     using S[symmetric] N' apply auto[1]
+        using 1 apply (simp; fail)
+      using 3 apply (simp add: comp_def; fail)
+     using S[symmetric] N' apply (auto; fail)[1]
    using S[symmetric] N' cons by (fastforce simp: true_annots_true_cls)
   then show ?thesis by auto
 qed
