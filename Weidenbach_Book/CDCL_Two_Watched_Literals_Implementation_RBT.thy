@@ -362,7 +362,7 @@ proof -
   have C: "mset_set {0..<length C} = mset [0 ..< length C]"
     by auto
   show ?thesis
-    unfolding C by (auto simp: map_nth)
+    unfolding C mset_map[symmetric] by (auto simp: map_nth simp del: mset_map)
 qed
 
 lemma image_mset_snd_mset_RBT_entries:
