@@ -378,13 +378,6 @@ lemma size_le_Suc_0_iff: "size M \<le> Suc 0 \<longleftrightarrow> ((\<exists>a 
 lemma size_2_iff: "size M = 2 \<longleftrightarrow> (\<exists>a b. M = {#a, b#})"
   by (metis Suc_1 one_add_one size_1_singleton_mset size_mset_SucE size_single size_union)
 
-lemma remove1_mset_eqE:
-  "remove1_mset L x1 = M \<Longrightarrow>
-    (L \<in># x1 \<Longrightarrow> x1 = M + {#L#} \<Longrightarrow> P) \<Longrightarrow>
-    (L \<notin># x1 \<Longrightarrow> x1 = M \<Longrightarrow> P) \<Longrightarrow>
-  P"
-  by (cases "L \<in># x1") auto
-
 lemma subset_eq_mset_single_iff: "x2 \<subseteq># {#L#} \<longleftrightarrow> x2 = {#} \<or> x2 = {#L#}"
   by (metis single_is_union subset_mset.add_diff_inverse subset_mset.eq_refl subset_mset.zero_le)
 
@@ -429,5 +422,41 @@ lemma filter_sorted: "sorted xs \<Longrightarrow> sorted (filter P xs)"
 lemma removeAll_insort:
   "sorted xs \<Longrightarrow> k \<noteq> k' \<Longrightarrow> removeAll k' (insort k xs) = insort k (removeAll k' xs)"
   by (simp add: filter_insort removeAll_filter_not_eq)
+
+
+subsection \<open>Distinct set of multisets\<close>
+
+definition distinct_mset_set :: "'a multiset set \<Rightarrow> bool" where
+  "distinct_mset_set \<Sigma> \<longleftrightarrow> (\<forall>S \<in> \<Sigma>. distinct_mset S)"
+
+lemma distinct_mset_set_empty[simp]: "distinct_mset_set {}"
+  unfolding distinct_mset_set_def by auto
+
+lemma distinct_mset_set_singleton[iff]: "distinct_mset_set {A} \<longleftrightarrow> distinct_mset A"
+  unfolding distinct_mset_set_def by auto
+
+lemma distinct_mset_set_insert[iff]:
+  "distinct_mset_set (insert S \<Sigma>) \<longleftrightarrow> (distinct_mset S \<and> distinct_mset_set \<Sigma>)"
+  unfolding distinct_mset_set_def by auto
+
+lemma distinct_mset_set_union[iff]:
+  "distinct_mset_set (\<Sigma> \<union> \<Sigma>') \<longleftrightarrow> (distinct_mset_set \<Sigma> \<and> distinct_mset_set \<Sigma>')"
+  unfolding distinct_mset_set_def by auto
+
+lemma in_distinct_mset_set_distinct_mset:
+  "a \<in> \<Sigma> \<Longrightarrow> distinct_mset_set \<Sigma> \<Longrightarrow> distinct_mset a"
+  unfolding distinct_mset_set_def by auto
+
+lemma distinct_mset_remdups_mset[simp]: "distinct_mset (remdups_mset S)"
+  using count_remdups_mset_eq_1 unfolding distinct_mset_def by metis
+
+lemma distinct_mset_distinct[simp]: "distinct_mset (mset x) = distinct x"
+  unfolding distinct_mset_def by (auto simp: distinct_count_atmost_1 not_in_iff[symmetric])
+
+lemma distinct_mset_mset_set: "distinct_mset (mset_set A)"
+  unfolding distinct_mset_def count_mset_set_if by (auto simp: not_in_iff)
+
+lemma distinct_mset_set_distinct: "distinct_mset_set (mset ` set Cs) \<longleftrightarrow> (\<forall>c\<in> set Cs. distinct c)"
+  unfolding distinct_mset_set_def by auto
 
 end
