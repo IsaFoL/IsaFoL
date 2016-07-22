@@ -351,6 +351,7 @@ qed
 
 
 subsubsection \<open>Filter\<close>
+
 lemma distinct_filter_eq_if:
   "distinct C \<Longrightarrow> length (filter (op = L) C) = (if L \<in> set C then 1 else 0)"
   by (induction C) auto
@@ -397,7 +398,7 @@ lemma sorted_mset_unique:
 lemma insort_upt: "insort k [a..<b] =
   (if k < a then k # [a..<b]
   else if k < b then [a..<k] @ k # [k ..<b]
-  else [a..<b] @[k])"
+  else [a..<b] @ [k])"
 proof -
   have H: "k < Suc b \<Longrightarrow> \<not> k < a \<Longrightarrow> {a..<b} = {a..<k} \<union> {k..<b}" for a b :: nat
     by (simp add: ivl_disj_un_two(3))

@@ -416,7 +416,7 @@ locale abs_state\<^sub>W_twl_ops =
     prop_queue_abs_null :: "'st \<Rightarrow> bool" and
     prop_queue_to_trail_abs :: "'st \<Rightarrow> 'st" and
 
-    add_confl_to_learned_cls_abs :: "'st \<Rightarrow> 'st" and
+    add_confl_to_learned_cls_abs :: "'st \<Rightarrow> 'st \<times> 'cls_it" and
     remove_cls_abs :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     update_backtrack_lvl_abs :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -457,7 +457,7 @@ sublocale abs_state\<^sub>W_ops where
   conc_learned_clss = learned_clss_abs and
   cons_conc_trail = cons_prop_queue_abs and
   tl_conc_trail = "\<lambda>S. tl_trail_abs S" and
-  add_conc_confl_to_learned_cls = "\<lambda>S. add_confl_to_learned_cls_abs S" and
+  add_conc_confl_to_learned_cls = "\<lambda>S. fst (add_confl_to_learned_cls_abs S)" and
   remove_cls = remove_cls_abs and
   update_conc_backtrack_lvl = update_backtrack_lvl_abs and
   mark_conflicting = mark_conflicting_abs and
@@ -513,15 +513,6 @@ definition wf_confl_state :: "'st \<Rightarrow> bool" where
 end
 
 (* TODO Move *)
-lemma image_mset_mset_remove1: "a \<in># B \<Longrightarrow>
-  {#f x. x \<in># remove1_mset a B#} = remove1_mset (f a) {#f x. x \<in># B#}"
-  unfolding mset_remove1
-  by (subst image_mset_Diff) (auto simp: subseteq_mset_def)
-
-lemma distinct_disinst_mset_incl_iff_set_incl:
-  "distinct A \<Longrightarrow> distinct B \<Longrightarrow> mset A \<subseteq># mset B \<longleftrightarrow> set A \<subseteq> set B"
-  by (auto simp: distinct_count_atmost_1 intro!: mset_subset_eqI)
-
 text \<open>TODO Move and see if useful at other places\<close>
 lemma Suc_count_decided_gt_get_level:
   \<open>get_level M L < Suc (count_decided M)\<close>
@@ -605,7 +596,7 @@ locale abs_state\<^sub>W_twl =
     prop_queue_abs_null :: "'st \<Rightarrow> bool" and
     prop_queue_to_trail_abs :: "'st \<Rightarrow> 'st" and
 
-    add_confl_to_learned_cls_abs :: "'st \<Rightarrow> 'st" and
+    add_confl_to_learned_cls_abs :: "'st \<Rightarrow> 'st \<times> 'cls_it" and
     remove_cls_abs :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     update_backtrack_lvl_abs :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -653,8 +644,13 @@ locale abs_state\<^sub>W_twl =
 
     add_confl_to_learned_cls_abs:
       "no_dup (full_trail_abs st) \<Longrightarrow> prop_state st = (P, M, N, U, k, Some F) \<Longrightarrow>
-        prop_state (add_confl_to_learned_cls_abs st) =
+        prop_state (fst (add_confl_to_learned_cls_abs st)) =
           (P, M, N, {#F#} + U, k, None)" and
+    add_confl_to_learned_cls_abs_valid:
+      "no_dup (full_trail_abs st) \<Longrightarrow> prop_state st = (P, M, N, U, k, Some F) \<Longrightarrow>
+         clause_of_cls (raw_clauses (fst (add_confl_to_learned_cls_abs st)) \<Down> snd (add_confl_to_learned_cls_abs st)) = F \<and>
+         cls_lookup (raw_clauses (fst (add_confl_to_learned_cls_abs st)))
+           (snd (add_confl_to_learned_cls_abs st)) \<noteq> None" and
 
     update_backtrack_lvl_abs:
       "\<And>S'. prop_state st = (P, M, N, U, k, S') \<Longrightarrow>
@@ -747,8 +743,7 @@ lemma
   conc_conflicting_prop_queue_to_trail_abs[simp]:
     "conc_conflicting (prop_queue_to_trail_abs S) = conc_conflicting S"
   using prop_queue_to_trail_abs_prop_state[of S "prop_queue_abs S"]
-  by (cases "prop_state (prop_queue_to_trail_abs S)"; auto simp: prop_state_def full_trail_abs_def;
-      fail)+
+  by (auto simp: prop_state_def full_trail_abs_def; fail)+
 
 lemma
   shows
@@ -765,28 +760,33 @@ lemma
     conc_conflicting_tl_trail_abs[simp]:
       "conc_conflicting (tl_trail_abs S) = conc_conflicting S"
   using tl_trail_abs_prop_state[of S "prop_queue_abs S" "trail_abs S"]
-  by (cases "prop_state (tl_trail_abs S)"; auto simp: prop_state_def full_trail_abs_def; fail)+
+  by (auto simp: prop_state_def full_trail_abs_def; fail)+
+
+lemma
+  assumes "raw_conflicting_abs S \<noteq> None" and "no_dup (full_trail_abs S)"
+  shows
+    prop_queue_abs_add_confl_to_learned_cls_abs[simp]:
+      "prop_queue_abs (fst (add_confl_to_learned_cls_abs S)) = prop_queue_abs S" and
+    trail_abs_add_confl_to_learned_cls_abs[simp]:
+      "trail_abs (fst (add_confl_to_learned_cls_abs S)) = trail_abs S" and
+    full_trail_abs_add_confl_to_learned_cls_abs[simp]:
+      "full_trail_abs (fst (add_confl_to_learned_cls_abs S)) = full_trail_abs S" and
+    conc_init_clss_add_confl_to_learned_cls_abs[simp]:
+      "conc_init_clss (fst (add_confl_to_learned_cls_abs S)) = conc_init_clss S" and
+    backtrack_lvl_abs_add_confl_to_learned_cls_abs[simp]:
+      "backtrack_lvl_abs (fst (add_confl_to_learned_cls_abs S)) = backtrack_lvl_abs S" and
+    conc_conflicting_add_confl_to_learned_cls_abs[simp]:
+      "conc_conflicting (fst (add_confl_to_learned_cls_abs S)) = None"
+  using add_confl_to_learned_cls_abs[of S _ "trail_abs S" _ _ _ _] assms
+  by (auto simp: prop_state_def full_trail_abs_def; fail)+
 
 lemma
   assumes "raw_conflicting_abs S = Some F" and "no_dup (full_trail_abs S)"
   shows
-    prop_queue_abs_add_confl_to_learned_cls_abs[simp]:
-      "prop_queue_abs (add_confl_to_learned_cls_abs S) = prop_queue_abs S" and
-    trail_abs_add_confl_to_learned_cls_abs[simp]:
-      "trail_abs (add_confl_to_learned_cls_abs S) = trail_abs S" and
-    full_trail_abs_add_confl_to_learned_cls_abs[simp]:
-      "full_trail_abs (add_confl_to_learned_cls_abs S) = full_trail_abs S" and
-    conc_init_clss_add_confl_to_learned_cls_abs[simp]:
-      "conc_init_clss (add_confl_to_learned_cls_abs S) = conc_init_clss S" and
     learned_clss_abs_add_confl_to_learned_cls_abs[simp]:
-      "learned_clss_abs (add_confl_to_learned_cls_abs S) = {#mset_ccls F#} + learned_clss_abs S" and
-    backtrack_lvl_abs_add_confl_to_learned_cls_abs[simp]:
-      "backtrack_lvl_abs (add_confl_to_learned_cls_abs S) = backtrack_lvl_abs S" and
-    conc_conflicting_add_confl_to_learned_cls_abs[simp]:
-      "conc_conflicting (add_confl_to_learned_cls_abs S) = None"
+      "learned_clss_abs (fst (add_confl_to_learned_cls_abs S)) = {#mset_ccls F#} + learned_clss_abs S"
   using add_confl_to_learned_cls_abs[of S _ "trail_abs S" _ _ _ "mset_ccls F"] assms
-  by (cases "prop_state (add_confl_to_learned_cls_abs S)";
-    auto simp: prop_state_def full_trail_abs_def; fail)+
+  by (auto simp: prop_state_def full_trail_abs_def; fail)+
 
 lemma state_cons_prop_queue_abs:
   assumes
@@ -816,7 +816,7 @@ lemma remove_cls:
 lemma add_conc_confl_to_learned_cls:
   assumes "no_dup (full_trail_abs st)" and
     "state st = (M, N, U, k, Some F)"
-  shows "state (add_confl_to_learned_cls_abs st) = (M, N, {#F#} + U, k, None)"
+  shows "state (fst (add_confl_to_learned_cls_abs st)) = (M, N, {#F#} + U, k, None)"
   using add_confl_to_learned_cls_abs[of st _ _ N U k F] assms
   unfolding prop_state_def state_def by (auto simp: full_trail_abs_def)
 
@@ -866,7 +866,7 @@ sublocale abs_state\<^sub>W where
   conc_learned_clss = learned_clss_abs and
   cons_conc_trail = cons_prop_queue_abs and
   tl_conc_trail = "\<lambda>S. tl_trail_abs S" and
-  add_conc_confl_to_learned_cls = "\<lambda>S. add_confl_to_learned_cls_abs S" and
+  add_conc_confl_to_learned_cls = "\<lambda>S. fst (add_confl_to_learned_cls_abs S)" and
   remove_cls = remove_cls_abs and
   update_conc_backtrack_lvl = update_backtrack_lvl_abs and
   mark_conflicting = "\<lambda>i S. mark_conflicting_abs i S" and
@@ -912,7 +912,6 @@ proof-
      using i by (auto simp add: cls_keys in_clss_def clss_cls_def)
 
   have c: "count (cls_keys (raw_clauses_abs S)) i = 1"
-
     by (meson cls_keys cls_keys_distinct distinct_mset_def i in_clss_def)
   then have [simp]: "replicate_mset (count (cls_keys (raw_clauses_abs S)) i) (clause_of_cls E) =
     {#clause_of_cls E#}"
@@ -1096,7 +1095,7 @@ locale abs_conflict_driven_clause_learning\<^sub>W_clss =
     prop_queue_abs_null :: "'st \<Rightarrow> bool" and
     prop_queue_to_trail_abs :: "'st \<Rightarrow> 'st" and
 
-    add_confl_to_learned_cls_abs :: "'st \<Rightarrow> 'st" and
+    add_confl_to_learned_cls_abs :: "'st \<Rightarrow> 'st \<times> 'cls_it" and
     remove_cls_abs :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     update_backtrack_lvl_abs :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -1133,7 +1132,7 @@ sublocale abs_conflict_driven_clause_learning\<^sub>W where
   conc_learned_clss = learned_clss_abs and
   cons_conc_trail = cons_prop_queue_abs and
   tl_conc_trail = "\<lambda>S. tl_trail_abs S" and
-  add_conc_confl_to_learned_cls = "\<lambda>S. add_confl_to_learned_cls_abs S" and
+  add_conc_confl_to_learned_cls = "\<lambda>S. fst (add_confl_to_learned_cls_abs S)" and
   remove_cls = remove_cls_abs and
   update_conc_backtrack_lvl = update_backtrack_lvl_abs and
   mark_conflicting = "\<lambda>i S. mark_conflicting_abs i S" and
@@ -1200,14 +1199,18 @@ lemma get_maximum_level_skip_Decide_first:
     atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
   by (smt ann_lit.sel(1) assms(1) atms_of_def get_level_skip_beginning image_iff multiset.map_cong0)
 
-definition backtrack_implementation_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st"  where
-"backtrack_implementation_lvl k S =
-  add_confl_to_learned_cls_abs
-    (update_backtrack_lvl_abs k (reduce_trail_to_abs (reduce_trail_to_lvl k (full_trail_abs S)) S))"
+definition backtrack_implementation_lvl :: "nat \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st"  where
+"backtrack_implementation_lvl k L S =
+  (let S =
+    add_confl_to_learned_cls_abs
+      (update_backtrack_lvl_abs k (reduce_trail_to_abs (reduce_trail_to_lvl k (full_trail_abs S)) S))
+   in cons_prop_queue_abs (Propagated L (snd S)) (fst S))"
 
-definition backtrack_implementation :: "'st \<Rightarrow> 'st" where
-"backtrack_implementation S =
-  backtrack_implementation_lvl (get_maximum_level (tl (full_trail_abs S)) (the (conc_conflicting S))) S"
+definition backtrack_implementation :: "'v literal \<Rightarrow> 'st \<Rightarrow> 'st" where
+"backtrack_implementation L S =
+  backtrack_implementation_lvl
+    (get_maximum_level (tl (full_trail_abs S)) (the (conc_conflicting S)))
+    L S"
 
 definition resolve_implementation :: "'v literal \<Rightarrow> 'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" where
 "resolve_implementation L C S = tl_trail_abs (resolve_conflicting_abs L (raw_clauses_abs S \<Down> C) S)"
@@ -1386,20 +1389,6 @@ lemma full_trail_abs_Cons_Decide_hd_raw_trail_abs:
   \<open>full_trail_abs S = Decided L # list \<Longrightarrow> hd_raw_trail_abs S = Decided L\<close>
   using hd_raw_trail_abs[of S] by (cases \<open>hd_raw_trail_abs S\<close>) (auto simp del: hd_raw_trail_abs)
 
-lemma
-  assumes
-    \<open>full_trail_abs S \<noteq> []\<close> and
-    confl: \<open>conc_conflicting S \<noteq> None\<close> \<open>conc_conflicting S \<noteq> Some {#}\<close> and
-    \<open>wf_state S\<close>
-  shows \<open>get_maximum_level (tl (full_trail_abs S)) (the (conc_conflicting S)) < count_decided (full_trail_abs S)
-  \<longleftrightarrow> hd_raw_trail_abs S = Decided L \<and> L \<in># the (conc_conflicting S)\<close>
-  using assms apply (cases \<open>full_trail_abs S\<close>)
-    apply auto[]
-  using hd_raw_trail_abs[of S] apply (auto simp: cdcl\<^sub>W_restart_mset.skip.simps is_decided_def
-    full_trail_abs_Cons_Decide_hd_raw_trail_abs
-          simp del: hd_raw_trail_abs)
-oops
-
 lemma reduce_trail_to_lvl_exists_prepend:
   \<open>\<exists>M'. M = M' @ reduce_trail_to_lvl k M\<close>
   apply (induction M rule: ann_lit_list_induct)
@@ -1407,7 +1396,6 @@ lemma reduce_trail_to_lvl_exists_prepend:
    apply (metis (no_types, hide_lams) append_Cons reduce_trail_to_lvl.simps(2) self_append_conv2)
   by (metis append_Cons reduce_trail_to_lvl.simps(3))
 
-term conc_learned_clss
 lemma
   fixes S :: 'st and k :: nat
   defines [simp]: "M \<equiv> reduce_trail_to_lvl k (full_trail_abs S)"
@@ -1422,7 +1410,28 @@ lemma
   using reduce_trail_to_abs[of S _ M] pq reduce_trail_to_lvl_exists_prepend[of \<open>trail_abs S\<close> k]
   by (auto simp: prop_state_def full_trail_abs_def)
 
+lemma raw_conflicting_abs_reduce_trail_to_abs:
+  \<open>trail_abs S = M2 @ M1 \<Longrightarrow> prop_queue_abs S = [] \<Longrightarrow>
+  raw_conflicting_abs (reduce_trail_to_abs M1 S) = None \<longleftrightarrow> raw_conflicting_abs S = None\<close>
+  using reduce_trail_to_abs[of S M2 M1]
+  by (cases \<open>raw_conflicting_abs S\<close>) (fastforce simp: prop_state_def)+
+
+schematic_goal
+  fixes k :: nat and M :: "('a, 'b) ann_lit list"
+  defines M1[symmetric, simp]: "M1 \<equiv> reduce_trail_to_lvl k M"
+  shows H: \<open>M = ?M' @ reduce_trail_to_lvl k M\<close>
+  using reduce_trail_to_lvl_exists_prepend[of M k]
+  apply auto
+  apply (rule sym)
+  apply auto
+  done
+
+thm prop_state_cons_prop_queue_abs
+
 lemma
+  fixes S :: 'st
+  defines M_def[symmetric, simp]: "M \<equiv> tl (trail_abs S)"
+  defines M1[symmetric, simp]: "M1 \<equiv> reduce_trail_to_lvl (get_maximum_level M (the (conc_conflicting S))) (trail_abs S)"
   assumes
     inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state S)\<close> and
     inv': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state S)\<close> and
@@ -1430,22 +1439,33 @@ lemma
     confl: \<open>conc_conflicting S \<noteq> None\<close> \<open>conc_conflicting S \<noteq> Some {#}\<close> and
     hd: \<open>hd_raw_trail_abs S = Decided L\<close> and
     pq[simp]: \<open>prop_queue_abs S = []\<close>
-  shows \<open>cdcl\<^sub>W_restart_mset.backtrack (state S) (state (backtrack_implementation S))\<close>
-  apply (rule backtrack_rule_reduce_trail_to_lvl)
-           using inv apply (simp; fail)
-          using inv' apply (simp; fail)
-        using confl apply (auto; fail)[]
-       using confl apply (auto; fail)[]
-      using hd ne hd_raw_trail_abs[of S] apply (auto simp: cdcl\<^sub>W_restart_mset.skip.simps
-          simp del: hd_raw_trail_abs)[]
-    defer
-      using ne confl
-      apply (auto simp: CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.state_eq_def
-        backtrack_implementation_def backtrack_implementation_lvl_def
-        simp del: CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.state_simp)[]
+  shows \<open>cdcl\<^sub>W_restart_mset.backtrack (state S) (state (backtrack_implementation L S))\<close>
+proof -
+  obtain D' where D': "raw_conflicting_abs S = Some D'"
+    using confl by auto
+  let ?T = \<open>add_confl_to_learned_cls_abs
+    (update_backtrack_lvl_abs (get_maximum_level (tl (full_trail_abs S)) (mset_ccls D'))
+      (reduce_trail_to_abs
+         (reduce_trail_to_lvl (get_maximum_level (tl (full_trail_abs S)) (mset_ccls D'))
+           (full_trail_abs S)) S))\<close>
+  have \<open>valid_annotation (fst ?T) (Propagated L (snd ?T))\<close>
+    using add_confl_to_learned_cls_abs_valid[of ]
+    sorry
+  show ?thesis
+    apply (rule backtrack_rule_reduce_trail_to_lvl)
+             using inv apply (simp; fail)
+            using inv' apply (simp; fail)
+          using confl apply (auto; fail)[]
+         using confl apply (auto; fail)[]
+        using hd ne hd_raw_trail_abs[of S] apply (auto simp: cdcl\<^sub>W_restart_mset.skip.simps
+            simp del: hd_raw_trail_abs)[]
+      defer
+    using D'
+        using ne confl
+        apply (auto simp: CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.state_eq_def
+          backtrack_implementation_def backtrack_implementation_lvl_def Let_def
+          simp del: CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.state_simp)[]
 
-
-  using inv
 oops
 
 definition cdcl_bj_implementation :: "'st \<Rightarrow> 'st" where
@@ -1453,13 +1473,13 @@ definition cdcl_bj_implementation :: "'st \<Rightarrow> 'st" where
   (if conc_conflicting S = None \<or> conc_conflicting S = Some {#} then S
   else
     case hd_raw_trail_abs S of
-      Decided L \<Rightarrow> backtrack_implementation S
+      Decided L \<Rightarrow> backtrack_implementation L S
     | Propagated L C \<Rightarrow>
       if -L \<in># mset_ccls (the (raw_conflicting_abs S))
       then
         if get_maximum_level (full_trail_abs S) (mset_ccls (the (raw_conflicting_abs S)) - {#-L#})
         < backtrack_lvl_abs S
-        then backtrack_implementation S
+        then backtrack_implementation L S
         else resolve_implementation L C S
       else skip_implementation S)"
 
@@ -1502,13 +1522,13 @@ lemma cdcl_bj_implementation_cases[consumes 1, case_names confl_None confl_False
     \<open>conc_conflicting S = None \<Longrightarrow> P S S\<close> and
     \<open>conc_conflicting S = Some {#} \<Longrightarrow> P S S\<close> and
     \<open>\<And>L. full_trail_abs S \<noteq> [] \<Longrightarrow> hd_raw_trail_abs S = Decided L \<Longrightarrow>
-      P S (backtrack_implementation S)\<close> and
+      P S (backtrack_implementation L S)\<close> and
     \<open>\<And>L C. full_trail_abs S \<noteq> [] \<Longrightarrow> hd_raw_trail_abs S = Propagated L C \<Longrightarrow>
       -L \<in># mset_ccls (the (raw_conflicting_abs S)) \<Longrightarrow>
       get_maximum_level (full_trail_abs S) (mset_ccls (the (raw_conflicting_abs S)) - {#-L#})
         < backtrack_lvl_abs S \<Longrightarrow> no_step cdcl\<^sub>W_restart_mset.skip (state S) \<Longrightarrow>
         no_step cdcl\<^sub>W_restart_mset.resolve (state S) \<Longrightarrow>
-       P S (backtrack_implementation S)\<close> and
+       P S (backtrack_implementation L S)\<close> and
     \<open>\<And>L C. full_trail_abs S \<noteq> [] \<Longrightarrow> hd_raw_trail_abs S = Propagated L C \<Longrightarrow>
       -L \<in># mset_ccls (the (raw_conflicting_abs S)) \<Longrightarrow>
        \<not>get_maximum_level (full_trail_abs S) (mset_ccls (the (raw_conflicting_abs S)) - {#-L#})
@@ -1533,18 +1553,6 @@ proof -
 qed
 
 
-lemma
-  assumes
-    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state S)\<close> and
-    confl: \<open>conc_conflicting S \<noteq> None\<close>
-    \<open>conc_conflicting S \<noteq> Some {#}\<close>
-  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj (state S) (state (cdcl_bj_implementation S))\<close>
-  apply (rule cdcl_bj_implementation_cases)
-      using inv apply simp
-     using confl apply simp
-    using confl apply simp
-   using cdcl\<^sub>W_restart_mset.trail_begins_with_decided_conflicting_exists_backtrack(1)[of "state S"]
-oops
 
 text \<open>When we update a clause with respect to the literal L, there are several cases:
   \<^enum> the only literal is L: this is a conflict.

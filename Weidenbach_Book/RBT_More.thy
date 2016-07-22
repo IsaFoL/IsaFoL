@@ -1,7 +1,6 @@
 theory RBT_More
 imports Main "~~/src/HOL/Library/RBT" "../lib/Multiset_More"
 begin
-
 section \<open>More red-black trees\<close>
 
 text \<open>The file @{file "~~/src/HOL/Library/RBT.thy"} contains the lifting from a red-black tree to
@@ -36,7 +35,6 @@ abbreviation RBT_entries_mset :: "('a::linorder, 'b) RBT.rbt \<Rightarrow> ('a \
 
 abbreviation RBT_keys_mset :: "('a::linorder, 'b) RBT.rbt \<Rightarrow> 'a multiset" where
 "RBT_keys_mset C \<equiv> mset (RBT.keys C)"
-
 
 lemma rbt_insert_swap:
   "i \<noteq> j \<Longrightarrow>
@@ -118,17 +116,26 @@ lemma in_RBT_keys_lookup: "j \<in> set (RBT.keys C) \<longleftrightarrow> RBT.lo
 lemma RBT_keys_insert_insort:
   "RBT.keys (RBT.insert k v C) = insort k (remove1 k (RBT.keys C))"
 proof -
-  have "\<And>f a. dom f = insert (a::'a) (dom f) \<or> (None::'b option) = f a"
-    by (metis (no_types) dom_fun_upd fun_upd_triv)
-  then have "RBT.keys (RBT.insert k v C) = insort k (remove1 k (RBT.keys C))"
-    if "k \<in># RBT_keys_mset C" using that
-    by (metis (no_types) RBT.distinct_keys domIff dom_fun_upd insort_remove1 lookup_insert
-      lookup_keys option.simps(3) set_mset_mset sorted_distinct_set_unique sorted_keys)
-  then show ?thesis
-    by (metis (no_types) Multiset.mset_insort RBT.distinct_keys distinct_mset_add_single
-      distinct_mset_distinct dom_fun_upd lookup_insert lookup_keys option.simps(3)
-      remove1_idem set_insort_key set_mset_mset sorted_distinct_set_unique sorted_insort
-      sorted_keys)
+  show ?thesis
+  proof (cases \<open>k \<in># RBT_keys_mset C\<close>)
+    case True
+    have "\<And>f a. dom f = insert (a::'a) (dom f) \<or> (None::'b option) = f a"
+      by (metis (no_types) dom_fun_upd fun_upd_triv)
+    then have H: "RBT.keys (RBT.insert k v C) = insort k (remove1 k (RBT.keys C))"
+      if "k \<in># RBT_keys_mset C" using that
+      by (metis (no_types) RBT.distinct_keys domIff dom_fun_upd insort_remove1 lookup_insert
+          lookup_keys option.simps(3) set_mset_mset sorted_distinct_set_unique sorted_keys)
+    then show ?thesis using True by auto
+  next
+    case False
+    assume a1: "k \<notin># RBT_keys_mset C"
+    then have "\<And>b. insort k (sorted_list_of_multiset (RBT_keys_mset C)) =
+        RBT.keys (RBT.insert k b C)"
+      by (metis (no_types) mset_RBT_keys_insert sorted_keys sorted_list_of_multiset_insert
+          sorted_list_of_multiset_mset sorted_sort_id union_commute)
+    then show ?thesis
+      using a1 by (simp add: remove1_idem sorted_sort_id)
+  qed
 qed
 
 lemma length_RBT_entries_keys:
