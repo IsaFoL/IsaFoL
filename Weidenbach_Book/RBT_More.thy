@@ -50,19 +50,24 @@ lemma mset_entries_insert:
     remove1_mset (j, j') (mset (RBT.entries C))"
   apply (rule distinct_set_mset_eq)
      apply (simp add: distinct_rbt_entries; fail)
-    apply (metis distinct_mem_diff_mset distinct_mset_add_single distinct_mset_distinct
-      distinct_mset_minus distinct_rbt_entries in_diffD in_multiset_in_set lookup_in_tree
-      multi_member_last option.sel)
-  by (auto simp add: distinct_rbt_entries lookup_in_tree[symmetric] split: if_splits)
+    apply (metis distinct_mem_diff_mset distinct_mset_add_single distinct_mset_minus
+      distinct_mset_mset_distinct distinct_rbt_entries in_diffD insert_iff lookup_in_tree
+      option.inject set_mset_mset set_mset_single)
+  by (auto simp add: distinct_rbt_entries lookup_in_tree[symmetric]
+      distinct_mset_remove1_All split: if_splits)
 
 lemma mset_RBT_entries_insert:
   "mset (RBT.entries (RBT.insert a a' C)) =
     {#(a, a')#} + remove1_mset (a, the (RBT.lookup C a)) (mset (RBT.entries C))"
   apply (rule distinct_set_mset_eq)
-    apply (simp add: distinct_mset_filter distinct_rbt_entries; fail)
-   apply (auto simp: distinct_mset_add_single distinct_rbt_entries lookup_in_tree[symmetric];
-     fail)[]
-  by (auto simp add: distinct_mset_filter distinct_rbt_entries lookup_in_tree[symmetric] split: if_splits )
+     apply (simp add: distinct_mset_filter distinct_rbt_entries; fail)
+    apply (metis distinct_mem_diff_mset distinct_mset_add_single distinct_mset_minus
+      distinct_mset_mset_distinct distinct_mset_singleton distinct_mset_size_2
+      distinct_rbt_entries in_diffD in_multiset_in_set lookup_in_tree option.sel)
+  by (auto simp add: distinct_mset_filter distinct_rbt_entries
+      distinct_remove1_removeAll Multiset.mset_remove1[symmetric]
+      lookup_in_tree[symmetric]
+      simp del: Multiset.mset_remove1 split: if_splits)
 
 lemma mset_RBT_keys_insert:
   "mset (RBT.keys (RBT.insert k v rbt)) =

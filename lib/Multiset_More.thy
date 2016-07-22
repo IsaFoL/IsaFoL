@@ -266,10 +266,6 @@ lemma removeAll_mset_filter_mset:
 abbreviation remove1_mset :: "'a \<Rightarrow> 'a multiset \<Rightarrow> 'a multiset" where
 "remove1_mset C M \<equiv> M - {#C#}"
 
-lemma remove1_mset_remove1[code]:
-  "remove1_mset C (mset L) = mset (remove1 C L)"
-  by auto
-
 lemma in_remove1_mset_neq:
   assumes ab: "a \<noteq> b"
   shows "a \<in># remove1_mset b C \<longleftrightarrow> a \<in># C"
@@ -298,7 +294,7 @@ lemma size_mset_remove1_mset_le_iff:
   apply (rule mset_subset_size)
   by (auto elim: in_countE simp: subset_mset_def multiset_eq_iff)
 
-lemma set_mset_remove1_mset[simp]:
+lemma set_mset_remove1_mset:
   "set_mset (remove1_mset L (mset W)) = set (remove1 L W)"
   by (metis mset_remove1 set_mset_mset)
 
@@ -548,6 +544,9 @@ lemma distinct_mset_size_2: "distinct_mset {#a, b#} \<longleftrightarrow> a \<no
 
 lemma distinct_mset_filter: "distinct_mset M \<Longrightarrow> distinct_mset {# L \<in># M. P L#}"
   by (simp add: distinct_mset_def)
+
+lemma distinct_mset_mset_distinct[simp]: \<open>distinct_mset (mset xs) = distinct xs\<close>
+  by (induction xs) (auto simp: distinct_mset_single_add)
 
 
 section \<open>Cartesian Product\<close>
