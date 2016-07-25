@@ -294,10 +294,6 @@ lemma size_mset_remove1_mset_le_iff:
   apply (rule mset_subset_size)
   by (auto elim: in_countE simp: subset_mset_def multiset_eq_iff)
 
-lemma set_mset_remove1_mset:
-  "set_mset (remove1_mset L (mset W)) = set (remove1 L W)"
-  by (metis mset_remove1 set_mset_mset)
-
 lemma single_remove1_mset_eq:
   "{#a#} + remove1_mset a M = M \<longleftrightarrow> a \<in># M"
   by (cases "count M a") (auto simp: multiset_eq_iff count_eq_zero_iff count_inI)
