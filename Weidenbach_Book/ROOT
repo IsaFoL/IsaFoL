@@ -82,7 +82,9 @@ session "DPLL_CDCL" (Weidenbach_Book) = "Entailment_Definition" +
     CDCL_W_Full
     CDCL_W_Incremental
     CDCL_W_Restart
-
+  theories [quick_and_dirty, document = true]
+    CDCL_W_Optimal_Model
+  theories [quick_and_dirty = false, document = true]
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
     CDCL_W_Implementation
@@ -137,6 +139,11 @@ session "Full" (Weidenbach_Book) = "HOL"  +
     CDCL_W_Restart
     CDCL_W_Incremental
 
+  theories [quick_and_dirty, document = true]
+    CDCL_W_Optimal_Model
+
+  theories [quick_and_dirty = false, document = true]
+    CDCL_W_Optimal_Model
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
     CDCL_W_Implementation

@@ -18,7 +18,7 @@ imports
   CDCL_WNOT
   CDCL_W_Restart
   CDCL_W_Incremental
-
+  CDCL_W_Optimal_Model
   DPLL_CDCL_W_Implementation
   DPLL_W_Implementation
   CDCL_W_Implementation
