@@ -431,7 +431,7 @@ lemma map_mmset_of_mlit_true_annots_true_cls[simp]:
   "map (mmset_of_mlit Cs) M' \<Turnstile>as C \<longleftrightarrow> M' \<Turnstile>as C"
   by (simp add: true_annots_true_cls lits_of_def)
 
-definition clauses_of_clss where
+definition clauses_of_clss :: "'clss \<Rightarrow> 'v literal multiset multiset" where
 "clauses_of_clss N \<equiv> image_mset mset_cls (mset_clss N)"
 
 notation cls_lit (infix "\<down>" 49)
@@ -1616,13 +1616,13 @@ proof -
   let ?U = "resolve_conflicting L (raw_clauses S' \<Down> E') (tl_conc_trail S')"
   have "resolve_abs S' ?U"
     apply (rule resolve_abs_rule)
-          using tr SS' apply simp
-         using hd' apply simp
-        using LE apply simp
-       using confl' apply simp
-      using LD apply simp
-     using lvl_max SS' apply simp
-    using T by simp
+          using tr SS' apply (simp; fail)
+         using hd' apply (simp; fail)
+        using LE apply (simp; fail)
+       using confl' apply (simp; fail)
+      using LD apply (simp; fail)
+     using lvl_max SS' apply (simp; fail)
+    using T by (simp; fail)
   moreover have "T \<sim>m state ?U"
     using T SS' confl LE LD unfolding state_eq_def by fastforce
   ultimately show thesis using that[of ?U] by fast
@@ -1648,18 +1648,15 @@ text \<open>We add the condition @{term "C \<notin># conc_init_clss S"}, to main
 inductive forget :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 forget_rule:
   "conc_conflicting S = None \<Longrightarrow>
-  C \<in>\<Down> raw_conc_learned_clss S \<Longrightarrow>
-  \<not>(conc_trail S) \<Turnstile>asm clauses S \<Longrightarrow>
+  C \<in>\<Down> raw_clauses S \<Longrightarrow>
+  mset_cls (raw_clauses S \<Down> C) \<in># conc_learned_clss S \<Longrightarrow>
+  \<not>(conc_trail S) \<Turnstile>asm conc_clauses S \<Longrightarrow>
   mset_cls (raw_clauses S \<Down> C) \<notin> set (get_all_mark_of_propagated (conc_trail S)) \<Longrightarrow>
   mset_cls (raw_clauses S \<Down> C) \<notin># conc_init_clss S \<Longrightarrow>
   T \<sim> remove_cls (raw_clauses S \<Down> C) S \<Longrightarrow>
   forget S T"
 
 inductive_cases forgetE: "forget S T"
-
-inductive cdcl\<^sub>W_restart_abs_rf :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
-restart: "restart_abs S T \<Longrightarrow> cdcl\<^sub>W_restart_abs_rf S T" |
-forget: "forget_abs S T \<Longrightarrow> cdcl\<^sub>W_restart_abs_rf S T"
 
 inductive cdcl\<^sub>W_restart_abs_bj :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 skip: "skip_abs S S' \<Longrightarrow> cdcl\<^sub>W_restart_abs_bj S S'" |
@@ -1689,8 +1686,7 @@ bj: "cdcl\<^sub>W_restart_abs_bj S S' \<Longrightarrow> cdcl\<^sub>W_restart_abs
 inductive cdcl\<^sub>W_restart_abs :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 propagate: "propagate_abs S S' \<Longrightarrow> cdcl\<^sub>W_restart_abs S S'" |
 conflict: "conflict_abs S S' \<Longrightarrow> cdcl\<^sub>W_restart_abs S S'" |
-other: "cdcl\<^sub>W_restart_abs_o S S' \<Longrightarrow> cdcl\<^sub>W_restart_abs S S'"|
-rf: "cdcl\<^sub>W_restart_abs_rf S S' \<Longrightarrow> cdcl\<^sub>W_restart_abs S S'"
+other: "cdcl\<^sub>W_restart_abs_o S S' \<Longrightarrow> cdcl\<^sub>W_restart_abs S S'"
 
 
 subsection \<open>Higher level strategy\<close>
