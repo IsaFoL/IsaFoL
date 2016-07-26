@@ -86,7 +86,7 @@ text \<open>
 
   There are several axioms to state the independance of the different fields of the state: for
   example, adding a clause to the learned clauses does not change the trail.\<close>
-locale state\<^sub>W =
+locale state\<^sub>W_no_state =
   state\<^sub>W_ops
     state
     \<comment> \<open>functions about the state: \<close>
@@ -122,9 +122,6 @@ locale state\<^sub>W =
     state_eq_trans: \<open>S \<sim> T \<Longrightarrow> T \<sim> U' \<Longrightarrow> S \<sim> U'\<close> and
     state_eq_state: \<open>S \<sim> T \<Longrightarrow> state S = state T\<close> and
 
-    state_prop[simp]:
-      \<open>state S = (trail S, init_clss S, learned_clss S, backtrack_lvl S,
-      conflicting S, additional_info S)\<close> and
     cons_trail:
       "\<And>S'. state st = (M, S') \<Longrightarrow>
         state (cons_trail L st) = (L # M, S')" and
@@ -176,6 +173,41 @@ locale state\<^sub>W =
       \<open>tl_trail (update_backtrack_lvl k T) \<sim> update_backtrack_lvl k (tl_trail T)\<close> and
     tl_trail_update_conflicting:
       \<open>tl_trail (update_conflicting D T) \<sim> update_conflicting D (tl_trail T)\<close>
+
+locale state\<^sub>W =
+  state\<^sub>W_no_state
+    state_eq state
+    \<comment> \<open>functions about the state: \<close>
+      \<comment> \<open>getter:\<close>
+    trail init_clss learned_clss backtrack_lvl conflicting
+      \<comment> \<open>setter:\<close>
+    cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
+    update_conflicting
+
+      \<comment> \<open>Some specific states:\<close>
+    init_state
+  for
+    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
+    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> nat \<times> 'v clause option \<times>
+      'b" and
+    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    init_clss :: "'st \<Rightarrow> 'v clauses" and
+    learned_clss :: "'st \<Rightarrow> 'v clauses" and
+    backtrack_lvl :: "'st \<Rightarrow> nat" and
+    conflicting :: "'st \<Rightarrow> 'v clause option" and
+
+    cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_trail :: "'st \<Rightarrow> 'st" and
+    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
+
+    init_state :: "'v clauses \<Rightarrow> 'st" +
+  assumes
+    state_prop[simp]:
+      \<open>state S = (trail S, init_clss S, learned_clss S, backtrack_lvl S,
+      conflicting S, additional_info S)\<close>
 begin
 
 lemma

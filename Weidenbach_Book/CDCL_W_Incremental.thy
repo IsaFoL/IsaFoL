@@ -3,8 +3,8 @@ imports CDCL_W_Full
 begin
 
 section \<open>Incremental SAT solving\<close>
-locale state\<^sub>W_adding_init_clause =
-  state\<^sub>W
+locale state\<^sub>W_adding_init_clause_no_state =
+  state\<^sub>W_no_state
     state_eq
     state
     \<comment> \<open>functions about the state: \<close>
@@ -40,7 +40,81 @@ locale state\<^sub>W_adding_init_clause =
     add_init_cls:
       "state st = (M, N, U, S') \<Longrightarrow>
         state (add_init_cls C st) = (M, {#C#} + N, U, S')"
+
+locale state\<^sub>W_adding_init_clause_ops =
+  state\<^sub>W_adding_init_clause_no_state
+    state_eq
+    state
+    \<comment> \<open>functions about the state: \<close>
+      \<comment> \<open>getter:\<close>
+    trail init_clss learned_clss backtrack_lvl conflicting
+      \<comment> \<open>setter:\<close>
+    cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
+    update_conflicting
+
+      \<comment> \<open>Some specific states:\<close>
+    init_state
+    add_init_cls
+  for
+    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
+    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> nat \<times> 'v clause option \<times>
+      'b" and
+    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    init_clss :: "'st \<Rightarrow> 'v clauses" and
+    learned_clss :: "'st \<Rightarrow> 'v clauses" and
+    backtrack_lvl :: "'st \<Rightarrow> nat" and
+    conflicting :: "'st \<Rightarrow> 'v clause option" and
+
+    cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_trail :: "'st \<Rightarrow> 'st" and
+    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
+
+    init_state :: "'v clauses \<Rightarrow> 'st" and
+    add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" +
+  assumes
+    state_prop[simp]:
+      \<open>state S = (trail S, init_clss S, learned_clss S, backtrack_lvl S,
+      conflicting S, additional_info S)\<close>
+
+locale state\<^sub>W_adding_init_clause =
+  state\<^sub>W_adding_init_clause_ops
+    state_eq
+    state
+    \<comment> \<open>functions about the state: \<close>
+      \<comment> \<open>getter:\<close>
+    trail init_clss learned_clss backtrack_lvl conflicting
+      \<comment> \<open>setter:\<close>
+    cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
+    update_conflicting
+
+      \<comment> \<open>Some specific states:\<close>
+    init_state add_init_cls
+  for
+    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
+    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> nat \<times> 'v clause option \<times>
+      'b" and
+    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    init_clss :: "'st \<Rightarrow> 'v clauses" and
+    learned_clss :: "'st \<Rightarrow> 'v clauses" and
+    backtrack_lvl :: "'st \<Rightarrow> nat" and
+    conflicting :: "'st \<Rightarrow> 'v clause option" and
+
+    cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_trail :: "'st \<Rightarrow> 'st" and
+    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
+
+    init_state :: "'v clauses \<Rightarrow> 'st" and
+    add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st"
 begin
+
+sublocale state\<^sub>W
+  by unfold_locales auto
 
 lemma
   trail_add_init_cls[simp]:
@@ -132,7 +206,6 @@ definition add_new_clause_and_update :: "'v clause \<Rightarrow> 'st \<Rightarro
     (cut_trail_wrt_clause C (trail S) S))
   else add_init_cls C S)"
 
-thm cut_trail_wrt_clause.induct
 lemma init_clss_cut_trail_wrt_clause[simp]:
   "init_clss (cut_trail_wrt_clause C M S) = init_clss S"
   by (induction rule: cut_trail_wrt_clause.induct) auto
@@ -184,7 +257,8 @@ next
     and bt = this(3)
   then show ?case by auto
 next
-  case (Propagated L l M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric] and bt = this(3)
+  case (Propagated L l M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric] and
+    bt = this(3)
   then show ?case by auto
 qed
 

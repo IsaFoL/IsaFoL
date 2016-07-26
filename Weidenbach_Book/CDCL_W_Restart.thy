@@ -34,8 +34,10 @@ locale cdcl\<^sub>W_restart_restart =
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     init_state :: "'v clauses \<Rightarrow> 'st" +
-  fixes f :: "nat \<Rightarrow> nat"
-  assumes f: "unbounded f"
+  fixes
+    f :: "nat \<Rightarrow> nat"
+  assumes
+    f: "unbounded f"
 begin
 text \<open>The condition of the differences of cardinality has to be strict.
   Otherwise, you could be in a strange state, where nothing remains to do, but a restart is done.
