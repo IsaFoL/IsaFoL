@@ -1245,7 +1245,7 @@ lemma always_exists_state_eqI:
   \<open>(\<forall>a aa ab ac b. \<not> (a, aa, ab, ac, b) \<sim>m S) \<longleftrightarrow> False\<close>
   unfolding state_eq_def
   by (cases S) (auto simp: backtrack_lvl_def learned_clss_def init_clss_def trail_def
-      conflicting_def)
+      conflicting_def CDCL_W_Abstract_State.state_def)
 
 lemma get_maximum_level_skip_un_decided_not_present:
   assumes
@@ -1511,7 +1511,6 @@ proof -
         backtrack_implementation_def backtrack_implementation_lvl_def Let_def
         M1[symmetric] M1'[symmetric] T'
         simp del: CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.state_simp M1)[]
-apply (subst conc_trail_cons_conc_trail)
     using inv_U unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
 

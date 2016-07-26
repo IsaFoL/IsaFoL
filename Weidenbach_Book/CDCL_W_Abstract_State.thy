@@ -58,7 +58,11 @@ lemmas cdcl\<^sub>W_restart_mset_state = trail_def cons_trail_def tl_trail_def a
     remove_cls_def update_backtrack_lvl_def update_conflicting_def init_clss_def learned_clss_def
     backtrack_lvl_def conflicting_def init_state_def
 
+definition state where
+\<open>state S = (trail S, init_clss S, learned_clss S, backtrack_lvl S, conflicting S, ())\<close>
+
 interpretation cdcl\<^sub>W_restart_mset: state\<^sub>W_ops where
+  state = state and
   trail = trail and
   init_clss = init_clss and
   learned_clss = learned_clss and
@@ -75,9 +79,10 @@ interpretation cdcl\<^sub>W_restart_mset: state\<^sub>W_ops where
   .
 
 definition state_eq :: "'v cdcl\<^sub>W_restart_mset \<Rightarrow> 'v cdcl\<^sub>W_restart_mset \<Rightarrow> bool" (infix "\<sim>m" 50) where
-\<open>S \<sim>m T \<longleftrightarrow> cdcl\<^sub>W_restart_mset.state S = cdcl\<^sub>W_restart_mset.state T\<close>
+\<open>S \<sim>m T \<longleftrightarrow> state S = state T\<close>
 
 interpretation cdcl\<^sub>W_restart_mset: state\<^sub>W where
+  state = state and
   trail = trail and
   init_clss = init_clss and
   learned_clss = learned_clss and
@@ -91,10 +96,11 @@ interpretation cdcl\<^sub>W_restart_mset: state\<^sub>W where
   update_backtrack_lvl = update_backtrack_lvl and
   update_conflicting = update_conflicting and
   init_state = init_state
-  by unfold_locales (auto simp: cdcl\<^sub>W_restart_mset_state state_eq_def)
+  by unfold_locales (auto simp: cdcl\<^sub>W_restart_mset_state state_eq_def state_def)
 
 
 interpretation cdcl\<^sub>W_restart_mset: conflict_driven_clause_learning\<^sub>W where
+  state = state and
   trail = trail and
   init_clss = init_clss and
   learned_clss = learned_clss and
@@ -114,7 +120,7 @@ interpretation cdcl\<^sub>W_restart_mset: conflict_driven_clause_learning\<^sub>
 lemma cdcl\<^sub>W_restart_mset_state_eq_eq: "state_eq = (op =)"
    apply (intro ext)
    unfolding state_eq_def
-   by (auto simp: cdcl\<^sub>W_restart_mset_state)
+   by (auto simp: cdcl\<^sub>W_restart_mset_state state_def)
 
 
 subsection \<open>Abstract Relation and Relation Theorems\<close>
@@ -837,7 +843,7 @@ lemma
     state_eq_undefined_lit:
       "S \<sim> T \<Longrightarrow> undefined_lit (conc_trail S) L = undefined_lit (conc_trail T) L"
   unfolding state_def state_eq_def conc_clauses_init_learned
-  by (auto simp: cdcl\<^sub>W_restart_mset_state)
+  by (auto simp: cdcl\<^sub>W_restart_mset_state simp: CDCL_W_Abstract_State.state_def)
 
 text \<open>We combine all simplification rules about @{term state_eq} in a single list of theorems. While
   they are handy as simplification rule as long as we are working on the state, they also cause a
@@ -949,11 +955,6 @@ mset_cls (T \<Down> D') = mset_ccls D \<Longrightarrow>
              (state S))) =
   state (add_conc_confl_to_learned_cls (update_conc_backtrack_lvl i S))"
   by (auto simp: cdcl\<^sub>W_restart_mset_state state_def)
-
-lemma state_state:
-  "cdcl\<^sub>W_restart_mset.state (state S) = (trail (state S), init_clss (state S), learned_clss (state S),
-  backtrack_lvl (state S), conflicting (state S))"
-  by (simp)
 
 lemma state_reduce_conc_trail_to_reduce_conc_trail_to[simp]:
   assumes [simp]: "conc_trail S = M2 @ M1"
@@ -1624,7 +1625,8 @@ proof -
      using lvl_max SS' apply (simp; fail)
     using T by (simp; fail)
   moreover have "T \<sim>m state ?U"
-    using T SS' confl LE LD unfolding state_eq_def by fastforce
+    using T SS' confl LE LD unfolding state_eq_def
+    by (auto simp: CDCL_W_Abstract_State.state_def confl')
   ultimately show thesis using that[of ?U] by fast
 qed
 

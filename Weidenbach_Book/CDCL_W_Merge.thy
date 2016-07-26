@@ -26,6 +26,7 @@ subsection \<open>Inclusion of the states\<close>
 context conflict_driven_clause_learning\<^sub>W
 begin
 declare cdcl\<^sub>W_restart.intros[intro] cdcl\<^sub>W_bj.intros[intro] cdcl\<^sub>W_o.intros[intro]
+state_prop [simp del]
 
 lemma backtrack_no_cdcl\<^sub>W_bj:
   assumes cdcl: "cdcl\<^sub>W_bj T U"
@@ -77,7 +78,8 @@ qed
 lemma rtranclp_skip_or_resolve_rtranclp_cdcl\<^sub>W_restart:
   "skip_or_resolve\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_restart\<^sup>*\<^sup>* S T"
   by (induction rule: rtranclp_induct)
-  (auto dest!: cdcl\<^sub>W_bj.intros cdcl\<^sub>W_restart.intros cdcl\<^sub>W_o.intros simp: skip_or_resolve.simps)
+  (auto dest!: cdcl\<^sub>W_bj.intros cdcl\<^sub>W_restart.intros cdcl\<^sub>W_o.intros simp: skip_or_resolve.simps
+    simp del: state_prop)
 
 definition backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" where
 "backjump_l_cond \<equiv> \<lambda>C C' L S T. True"
@@ -369,7 +371,7 @@ proof -
   (* M\<^sub>T is a proxy to allow auto to unfold T*)
   obtain MS M\<^sub>T where M: "trail S = MS @ M\<^sub>T" and M\<^sub>T: "M\<^sub>T = trail T" and nm: "\<forall>m\<in>set MS. \<not>is_decided m"
     using rtranclp_skip_state_decomp(1)[OF skip] S by auto
-  have T: "state T = (M\<^sub>T, init_clss S, learned_clss S, backtrack_lvl S, Some D)"
+  have T: "state_butlast T = (M\<^sub>T, init_clss S, learned_clss S, backtrack_lvl S, Some D)"
     using M\<^sub>T rtranclp_skip_state_decomp[of S T] skip S by auto
 
   have "cdcl\<^sub>W_all_struct_inv T"
@@ -782,10 +784,7 @@ next
       have "skip_or_resolve\<^sup>*\<^sup>* S T"
         using 1(1) by (auto dest!: rtranclp_and_rtranclp_left)
       then show False
-        by (metis (no_types, lifting) "1"(5) backtrack_no_cdcl\<^sub>W_bj
-           cdcl\<^sub>W_o.bj local.bj other
-          resolve rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_skip_backtrack_backtrack
-          rtranclp_skip_or_resolve_rtranclp_cdcl\<^sub>W_restart step.prems)
+        by (metis (no_types, lifting) "1"(5) backtrack_no_cdcl\<^sub>W_bj local.bj)
     next
       case 2
       then show ?case by (metis backtrack_no_cdcl\<^sub>W_bj local.bj)

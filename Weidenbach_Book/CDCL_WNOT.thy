@@ -275,11 +275,11 @@ lemma cdcl\<^sub>W_merge_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn:
 proof induction
   case (fw_propagate S T) note propa = this(1)
   then obtain M N U k L C where
-    H: "state S = (M, N, U, k, None)" and
+    H: "state_butlast S = (M, N, U, k, None)" and
     CL: "C + {#L#} \<in># clauses S" and
     M_C: "M \<Turnstile>as CNot C" and
     undef: "undefined_lit (trail S) L" and
-    T: "state T = (Propagated L (C + {#L#}) # M, N, U, k, None)"
+    T: "state_butlast T = (Propagated L (C + {#L#}) # M, N, U, k, None)"
     by (auto elim: propagate_high_levelE)
   have "propagate\<^sub>N\<^sub>O\<^sub>T S T"
     using H CL T undef M_C by (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def clauses_def simp del: state_simp)
@@ -1000,7 +1000,7 @@ qed
 lemma cdcl\<^sub>W_restart_propagated_clauses_clauses:
   \<open>cdcl\<^sub>W_restart S T \<Longrightarrow> propagated_clauses_clauses S \<Longrightarrow> propagated_clauses_clauses T\<close>
   by (induction rule: cdcl\<^sub>W_restart_all_induct) (auto simp: propagated_clauses_clauses_def
-      in_get_all_mark_of_propagated_in_trail)
+      in_get_all_mark_of_propagated_in_trail simp: state_prop)
 
 lemma rtranclp_cdcl\<^sub>W_restart_propagated_clauses_clauses:
   \<open>cdcl\<^sub>W_restart\<^sup>*\<^sup>* S T \<Longrightarrow> propagated_clauses_clauses S \<Longrightarrow> propagated_clauses_clauses T\<close>
@@ -1393,8 +1393,8 @@ next
       qed
       then show ?thesis
         using conflicting_clause_bt_lvl_gt_0_backjump[of S C]
-        conflict_full_skip_or_resolve_backtrack_backjump_l[of S] \<open>C \<in># clauses S\<close> \<open>trail S \<Turnstile>as CNot C\<close>
-        inv by fast
+        conflict_full_skip_or_resolve_backtrack_backjump_l[of S]
+        \<open>C \<in># clauses S\<close> \<open>trail S \<Turnstile>as CNot C\<close> inv by fast
     qed
   moreover
     have atm: \<open>atms_of_mm (clauses S) = atms_of_mm (init_clss S)\<close>

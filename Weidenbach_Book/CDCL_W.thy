@@ -33,6 +33,8 @@ text \<open>We will abstract the representation of clause and clauses via two lo
 
 locale state\<^sub>W_ops =
   fixes
+    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> nat \<times> 'v clause option \<times>
+      'b" and
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
@@ -57,9 +59,13 @@ definition clauses :: "'st \<Rightarrow> 'v clauses" where
 abbreviation resolve_cls where
 "resolve_cls L D' E \<equiv> remove1_mset (-L) D' #\<union> remove1_mset L E"
 
-abbreviation state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses
+abbreviation state_butlast :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses
   \<times> nat \<times> 'v clause option" where
-"state S \<equiv> (trail S, init_clss S, learned_clss S, backtrack_lvl S, conflicting S)"
+"state_butlast S \<equiv> (trail S, init_clss S, learned_clss S, backtrack_lvl S, conflicting S)"
+
+definition additional_info :: "'st \<Rightarrow> 'b" where
+"additional_info S = (\<lambda>(_, _, _, _, _, D). D) (state S)"
+
 end
 
 text \<open>We are using an abstract state to abstract away the detail of the implementation: we do not
@@ -82,7 +88,7 @@ text \<open>
   example, adding a clause to the learned clauses does not change the trail.\<close>
 locale state\<^sub>W =
   state\<^sub>W_ops
-
+    state
     \<comment> \<open>functions about the state: \<close>
       \<comment> \<open>getter:\<close>
     trail init_clss learned_clss backtrack_lvl conflicting
@@ -94,6 +100,8 @@ locale state\<^sub>W =
     init_state
   for
     state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
+    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> nat \<times> 'v clause option \<times>
+      'b" and
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
@@ -113,6 +121,10 @@ locale state\<^sub>W =
     state_eq_sym: \<open>S \<sim> T \<longleftrightarrow> T \<sim> S\<close> and
     state_eq_trans: \<open>S \<sim> T \<Longrightarrow> T \<sim> U' \<Longrightarrow> S \<sim> U'\<close> and
     state_eq_state: \<open>S \<sim> T \<Longrightarrow> state S = state T\<close> and
+
+    state_prop[simp]:
+      \<open>state S = (trail S, init_clss S, learned_clss S, backtrack_lvl S,
+      conflicting S, additional_info S)\<close> and
     cons_trail:
       "\<And>S'. state st = (M, S') \<Longrightarrow>
         state (cons_trail L st) = (L # M, S')" and
@@ -134,11 +146,11 @@ locale state\<^sub>W =
         state (update_backtrack_lvl k' st) = (M, N, U, k', S')" and
 
     update_conflicting:
-      "state st = (M, N, U, k, D) \<Longrightarrow>
-        state (update_conflicting E st) = (M, N, U, k, E)" and
+      "\<And>S'. state st = (M, N, U, k, D, S') \<Longrightarrow>
+        state (update_conflicting E st) = (M, N, U, k, E, S')" and
 
     init_state:
-      "state (init_state N) = ([], N, {#}, 0, None)" and
+      "state_butlast (init_state N) = ([], N, {#}, 0, None)" and
 
     cons_trail_state_eq:
       \<open>S \<sim> S' \<Longrightarrow> cons_trail L S \<sim> cons_trail L S'\<close> and
@@ -165,6 +177,7 @@ locale state\<^sub>W =
     tl_trail_update_conflicting:
       \<open>tl_trail (update_conflicting D T) \<sim> update_conflicting D (tl_trail T)\<close>
 begin
+
 lemma
   trail_cons_trail[simp]:
     "trail (cons_trail L st) = L # trail st" and
@@ -236,7 +249,7 @@ lemma
   init_state_backtrack_lvl[simp]: "backtrack_lvl (init_state N) = 0" and
   init_state_conflicting[simp]: "conflicting (init_state N) = None"
   using cons_trail[of st] tl_trail[of st] add_learned_cls[of st _ _ _ _ C]
-    update_backtrack_lvl[of st _ _ _ _ _ k] update_conflicting[of st _ _ _ _ _ E]
+    update_backtrack_lvl[of st _ _ _ _ _ k] update_conflicting[of st _ _ _ _ _ _]
     remove_cls[of st _ _ _ _ C]
     init_state[of N]
   by auto
@@ -469,6 +482,7 @@ text \<open>Because of the strategy we will later use, we distinguish propagate,
 locale conflict_driven_clause_learning\<^sub>W =
   state\<^sub>W
     state_eq
+    state
     \<comment> \<open>functions for the state: \<close>
       \<comment> \<open>access functions:\<close>
     trail init_clss learned_clss backtrack_lvl conflicting
@@ -480,6 +494,8 @@ locale conflict_driven_clause_learning\<^sub>W =
     init_state
   for
     state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
+    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> nat \<times> 'v clause option \<times>
+      'b" and
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
@@ -576,10 +592,10 @@ resolve_rule: "trail S \<noteq> [] \<Longrightarrow>
 inductive_cases resolveE: "resolve S T"
 
 inductive restart :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
-restart: "state S = (M, N, U, k, None) \<Longrightarrow>
+restart: "state S = (M, N, U, k, None, S') \<Longrightarrow>
   \<not>M \<Turnstile>asm clauses S \<Longrightarrow>
   U' \<subseteq># U \<Longrightarrow>
-  state T = ([], N, U', 0, None) \<Longrightarrow>
+  state T = ([], N, U', 0, None, S') \<Longrightarrow>
   restart S T"
 
 inductive_cases restartE: "restart S T"
@@ -633,7 +649,7 @@ W_other: "cdcl\<^sub>W_o S S' \<Longrightarrow> cdcl\<^sub>W S S'"
 
 lemma cdcl\<^sub>W_cdcl\<^sub>W_restart:
   "cdcl\<^sub>W S T \<Longrightarrow> cdcl\<^sub>W_restart S T"
-  by (induction rule: cdcl\<^sub>W.induct) (auto intro: cdcl\<^sub>W_restart.intros)
+  by (induction rule: cdcl\<^sub>W.induct) (auto intro: cdcl\<^sub>W_restart.intros simp del: state_prop)
 
 lemma cdcl\<^sub>W_restart_all_rules_induct[consumes 1, case_names propagate conflict forget restart decide
     skip resolve backtrack]:
@@ -698,7 +714,7 @@ lemma cdcl\<^sub>W_restart_all_induct[consumes 1, case_names propagate conflict 
       P S T" and
     restartH: "\<And>T U. \<not>trail S \<Turnstile>asm clauses S \<Longrightarrow>
       conflicting S = None \<Longrightarrow>
-      state T = ([], init_clss S, U, 0, None) \<Longrightarrow>
+      state T = ([], init_clss S, U, 0, None, additional_info S) \<Longrightarrow>
       U \<subseteq># learned_clss S \<Longrightarrow>
       P S T" and
     decideH: "\<And>L T. conflicting S = None \<Longrightarrow>
@@ -1192,7 +1208,7 @@ proof -
     (tl_trail S')\<close>
   proof -
     have "tl_trail S \<sim> tl_trail S'"
-      using SS' tl_trail_state_eq by auto
+      using SS' by (auto simp: tl_trail_state_eq)
     then show ?thesis
       using T T'T \<open>D = D'\<close> state_eq_trans update_conflicting_state_eq by blast
   qed
@@ -1745,9 +1761,6 @@ lemma distinct_atms_of_incl_not_in_other:
     a3: "x \<in> atms_of D"
   shows "x \<notin> atm_of ` lits_of_l M"
 proof -
-  have ff1: "\<And>l ms. undefined_lit ms l \<or> atm_of l
-    \<in> set (map (\<lambda>m. atm_of (lit_of (m ::('a, 'b) ann_lit))) ms)"
-    by (simp add: defined_lit_map)
   have ff2: "\<And>a. a \<notin> atms_of D \<or> a \<in> atm_of ` lits_of_l M'"
     using a2 by (meson subsetCE)
   have ff3: "\<And>a. a \<notin> set (map (\<lambda>m. atm_of (lit_of m)) M')
@@ -1756,7 +1769,7 @@ proof -
   have "\<forall>L a f. \<exists>l. ((a::'a) \<notin> f ` L \<or> (l ::'a literal) \<in> L) \<and> (a \<notin> f ` L \<or> f l = a)"
     by blast
   then show "x \<notin> atm_of ` lits_of_l M"
-    using ff3 ff2 ff1 a3 by (metis (no_types) Decided_Propagated_in_iff_in_lits_of_l)
+    using ff3 ff2 a3 by (simp add: atm_lit_of_set_lits_of_l)
 qed
 
 text \<open>\cwref{prop:prop:cdclPropLitsUnsat}{Item 5 page 81}\<close>
@@ -2324,7 +2337,7 @@ lemma cdcl\<^sub>W_restart_can_do_step:
     "distinct M" and
     "atm_of ` (set M) \<subseteq> atms_of_mm N"
   shows "\<exists>S. rtranclp cdcl\<^sub>W_restart (init_state N) S
-    \<and> state S = (map (\<lambda>L. Decided L) M, N, {#}, length M, None)"
+    \<and> state_butlast S = (map (\<lambda>L. Decided L) M, N, {#}, length M, None)"
   using assms
 proof (induct M)
   case Nil
@@ -2335,7 +2348,7 @@ next
     using Cons.prems(1-3) unfolding consistent_interp_def by auto
   then obtain S where
     st: "cdcl\<^sub>W_restart\<^sup>*\<^sup>* (init_state N) S" and
-    S: "state S = (map (\<lambda>L. Decided L) M, N, {#}, length M, None)"
+    S: "state_butlast S = (map (\<lambda>L. Decided L) M, N, {#}, length M, None)"
     using IH by blast
   let ?S\<^sub>0 = "cons_trail (Decided L) (incr_lvl S)"
   have "undefined_lit (map (\<lambda>L. Decided L) M) L"
@@ -2351,7 +2364,7 @@ next
   then have "cdcl\<^sub>W_restart\<^sup>*\<^sup>* (init_state N) ?S\<^sub>0"
     using st by auto
   then show ?case
-    using S undef by (auto intro!: exI[of _ ?S\<^sub>0])
+    using S undef by (auto intro!: exI[of _ ?S\<^sub>0] simp del: state_prop)
 qed
 
 text \<open>\cwref{cdcl:completeness}{theorem 2.9.11 page 84}\<close>
@@ -2362,13 +2375,13 @@ lemma cdcl\<^sub>W_restart_strong_completeness:
     dist: "distinct M" and
     atm: "atm_of ` (set M) \<subseteq> atms_of_mm N"
   obtains S where
-    "state S = (map (\<lambda>L. Decided L) M, N, {#}, length M, None)" and
+    "state_butlast S = (map (\<lambda>L. Decided L) M, N, {#}, length M, None)" and
     "rtranclp cdcl\<^sub>W_restart (init_state N) S" and
     "final_cdcl\<^sub>W_restart_state S"
 proof -
   obtain S where
     st: "rtranclp cdcl\<^sub>W_restart (init_state N) S" and
-    S: "state S = (map (\<lambda>L. Decided L) M, N, {#}, length M, None)"
+    S: "state_butlast S = (map (\<lambda>L. Decided L) M, N, {#}, length M, None)"
     using cdcl\<^sub>W_restart_can_do_step[OF cons dist atm] by auto
   have "lits_of_l (map (\<lambda>L. Decided L) M) = set M"
     by (induct M, auto)
@@ -2908,8 +2921,8 @@ subsubsection \<open>Strong completeness\<close>
 lemma propagate_high_levelE:
   assumes "propagate S T"
   obtains M' N' U k L C where
-    "state S = (M', N', U, k, None)" and
-    "state T = (Propagated L (C + {#L#}) # M', N', U, k, None)" and
+    "state_butlast S = (M', N', U, k, None)" and
+    "state_butlast T = (Propagated L (C + {#L#}) # M', N', U, k, None)" and
     "C + {#L#} \<in># local.clauses S" and
     "M' \<Turnstile>as CNot C" and
     "undefined_lit (trail S) L"
@@ -2923,7 +2936,7 @@ proof -
     T: "T \<sim> cons_trail (Propagated L E) S"
     using assms by (elim propagateE) simp
   obtain M N U k where
-    S: "state S = (M, N, U, k, None)"
+    S: "state_butlast S = (M, N, U, k, None)"
     using conf by auto
   show thesis
     using that[of M N U k L "remove1_mset L E"] S T LE E tr undef
@@ -2952,8 +2965,8 @@ next
      by blast+
 
   obtain M' N' U k C L where
-    Y: "state Y = (M', N', U, k, None)" and
-    Z: "state Z = (Propagated L (C + {#L#}) # M', N', U, k, None)" and
+    Y: "state_butlast Y = (M', N', U, k, None)" and
+    Z: "state_butlast Z = (Propagated L (C + {#L#}) # M', N', U, k, None)" and
     C: "C + {#L#} \<in># clauses Y" and
     M'_C: "M' \<Turnstile>as CNot C" and
     "undefined_lit (trail Y) L"
@@ -2994,12 +3007,12 @@ lemma cdcl\<^sub>W_stgy_strong_completeness_n:
     "\<exists>M' k S. length M' \<ge> n \<and>
       lits_of_l M' \<subseteq> set M \<and>
       no_dup M' \<and>
-      state S = (M', N, {#}, k, None) \<and>
+      state_butlast S = (M', N, {#}, k, None) \<and>
       cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S"
   using length
 proof (induction n)
   case 0
-  have "state (init_state N) = ([], N, {#}, 0, None)"
+  have "state_butlast (init_state N) = ([], N, {#}, 0, None)"
     by auto
   moreover have
     "0 \<le> length []" and
@@ -3014,7 +3027,7 @@ next
     l_M': "length M' \<ge> n" and
     M': "lits_of_l M' \<subseteq> set M" and
     n_d[simp]: "no_dup M'" and
-    S: "state S = (M', N, {#}, k, None)" and
+    S: "state_butlast S = (M', N, {#}, k, None)" and
     st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S"
     by auto
   have
@@ -3052,7 +3065,7 @@ next
         [simp]: "init_clss S' = init_clss S" and
         [simp]: "conflicting S' = None"
         using S S' by (auto elim: propagateE)
-      have S_S': "state S' = (trail S', N, {#}, backtrack_lvl S', None)"
+      have S_S': "state_butlast S' = (trail S', N, {#}, backtrack_lvl S', None)"
         using S by auto
       have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S'"
         apply (rule rtranclp.rtrancl_into_rtrancl)
@@ -3121,7 +3134,7 @@ next
             (update_backtrack_lvl (Suc (backtrack_lvl S)) S))"
             using S \<open>cdcl\<^sub>W_M_level_inv (cons_trail (Decided L) (incr_lvl S))\<close> by auto
           then have S'':
-            "state ?S' = (trail ?S', N, {#}, backtrack_lvl ?S', None)"
+            "state_butlast ?S' = (trail ?S', N, {#}, backtrack_lvl ?S', None)"
             using S undef n_d'' lev'' by auto
           then have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) ?S'"
             using no_step no_confl st dec by (auto dest: decide cdcl\<^sub>W_stgy.intros)
@@ -3142,7 +3155,7 @@ lemma cdcl\<^sub>W_stgy_strong_completeness:
   shows
     "\<exists>M' k S.
       lits_of_l M' = set M \<and>
-      state S = (M', N, {#}, k, None) \<and>
+      state_butlast S = (M', N, {#}, k, None) \<and>
       cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S \<and>
       final_cdcl\<^sub>W_restart_state S"
 proof -
@@ -3151,7 +3164,7 @@ proof -
     l: "length M \<le> length M'" and
     M'_M: "lits_of_l M' \<subseteq> set M" and
     no_dup: "no_dup M'" and
-    T: "state T = (M', N, {#}, k, None)" and
+    T: "state_butlast T = (M', N, {#}, k, None)" and
     st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) T"
     by auto
   have "card (set M) = length M" using distM by (simp add: distinct_card)
@@ -3289,8 +3302,8 @@ proof (intro allI impI)
   assume M': "trail S' = M'' @ Decided K # M'"
   and "D \<in># clauses S'"
   obtain M N U k C L where
-    S: "state S = (M, N, U, k, None)" and
-    S': "state S' = (Propagated L (C + {#L#}) # M, N, U, k, None)" and
+    S: "state_butlast S = (M, N, U, k, None)" and
+    S': "state_butlast S' = (Propagated L (C + {#L#}) # M, N, U, k, None)" and
     "C + {#L#} \<in># clauses S" and
     "M \<Turnstile>as CNot C" and
     "undefined_lit M L"

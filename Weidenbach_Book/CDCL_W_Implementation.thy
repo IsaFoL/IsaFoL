@@ -70,9 +70,13 @@ lemma state_conv:
   "S = (raw_trail S, raw_init_clss S, raw_learned_clss S, raw_backtrack_lvl S, raw_conflicting S)"
   by (cases S) auto
 
+definition state where
+\<open>state S = (raw_trail S, raw_init_clss S, raw_learned_clss S, raw_backtrack_lvl S,
+  raw_conflicting S, ())\<close>
 
 interpretation state\<^sub>W
   "op ="
+  state
   raw_trail raw_init_clss raw_learned_clss raw_backtrack_lvl raw_conflicting
   "\<lambda>L (M, S). (L # M, S)"
   "\<lambda>(M, S). (tl M, S)"
@@ -81,12 +85,12 @@ interpretation state\<^sub>W
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
   "\<lambda>N. ([], N, {#}, 0, None)"
-  by unfold_locales auto
+  by unfold_locales (auto simp: state_def)
 
 declare state_simp[simp del]
 
 interpretation conflict_driven_clause_learning\<^sub>W
-  "op ="
+  "op =" state
   raw_trail raw_init_clss raw_learned_clss
   raw_backtrack_lvl raw_conflicting
   "\<lambda>L (M, S). (L # M, S)"
