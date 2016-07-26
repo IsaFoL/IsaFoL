@@ -244,7 +244,7 @@ next
     by (auto simp: cdcl\<^sub>W_M_level_inv_decomp lexn3_conv)
 next
   case restart
-  then show ?case using alien by (auto simp: state_eq_def simp del: state_simp)
+  then show ?case using alien by auto
 next
   case (forget C T) note no_forget = this(9)
   then have "C \<in># learned_clss S" and "C \<notin># learned_clss T"
@@ -270,7 +270,7 @@ lemma conflict_measure_decreasing:
   shows "(cdcl\<^sub>W_restart_measure S', cdcl\<^sub>W_restart_measure S) \<in> lexn less_than 3"
   apply (rule cdcl\<^sub>W_restart_measure_decreasing)
   using assms(1) conflict apply blast
-            using assms(1) apply (auto simp: state_eq_def simp del: state_simp elim!: conflictE)[3]
+            using assms(1) apply (auto elim!: conflictE)[3]
          using assms(2) apply (auto simp add: cdcl\<^sub>W_all_struct_inv_def elim: conflictE)
   done
 
@@ -280,7 +280,7 @@ lemma decide_measure_decreasing:
   shows "(cdcl\<^sub>W_restart_measure S', cdcl\<^sub>W_restart_measure S) \<in> lexn less_than 3"
   apply (rule cdcl\<^sub>W_restart_measure_decreasing)
   using assms(1) decide other apply blast
-            using assms(1) apply (auto simp: state_eq_def simp del: state_simp elim!: decideE)[3]
+            using assms(1) apply (auto elim!: decideE)[3]
          using assms(2) apply (auto simp add: cdcl\<^sub>W_all_struct_inv_def elim: decideE)
   done
 

@@ -74,13 +74,16 @@ interpretation cdcl\<^sub>W_restart_mset: state\<^sub>W_ops where
   init_state = init_state
   .
 
+definition state_eq :: "'v cdcl\<^sub>W_restart_mset \<Rightarrow> 'v cdcl\<^sub>W_restart_mset \<Rightarrow> bool" (infix "\<sim>m" 50) where
+\<open>S \<sim>m T \<longleftrightarrow> cdcl\<^sub>W_restart_mset.state S = cdcl\<^sub>W_restart_mset.state T\<close>
+
 interpretation cdcl\<^sub>W_restart_mset: state\<^sub>W where
   trail = trail and
   init_clss = init_clss and
   learned_clss = learned_clss and
   backtrack_lvl = backtrack_lvl and
   conflicting = conflicting and
-
+  state_eq = state_eq and
   cons_trail = cons_trail and
   tl_trail = tl_trail and
   add_learned_cls = add_learned_cls and
@@ -88,7 +91,8 @@ interpretation cdcl\<^sub>W_restart_mset: state\<^sub>W where
   update_backtrack_lvl = update_backtrack_lvl and
   update_conflicting = update_conflicting and
   init_state = init_state
-  by unfold_locales (auto simp: cdcl\<^sub>W_restart_mset_state)
+  by unfold_locales (auto simp: cdcl\<^sub>W_restart_mset_state state_eq_def)
+
 
 interpretation cdcl\<^sub>W_restart_mset: conflict_driven_clause_learning\<^sub>W where
   trail = trail and
@@ -97,6 +101,7 @@ interpretation cdcl\<^sub>W_restart_mset: conflict_driven_clause_learning\<^sub>
   backtrack_lvl = backtrack_lvl and
   conflicting = conflicting and
 
+  state_eq = state_eq and
   cons_trail = cons_trail and
   tl_trail = tl_trail and
   add_learned_cls = add_learned_cls and
@@ -104,14 +109,12 @@ interpretation cdcl\<^sub>W_restart_mset: conflict_driven_clause_learning\<^sub>
   update_backtrack_lvl = update_backtrack_lvl and
   update_conflicting = update_conflicting and
   init_state = init_state
-  by unfold_locales auto
+  by unfold_locales
 
-lemma cdcl\<^sub>W_restart_mset_state_eq_eq: "cdcl\<^sub>W_restart_mset.state_eq = (op =)"
+lemma cdcl\<^sub>W_restart_mset_state_eq_eq: "state_eq = (op =)"
    apply (intro ext)
-   unfolding cdcl\<^sub>W_restart_mset.state_eq_def
+   unfolding state_eq_def
    by (auto simp: cdcl\<^sub>W_restart_mset_state)
-
-notation cdcl\<^sub>W_restart_mset.state_eq (infix "\<sim>m" 49)
 
 
 subsection \<open>Abstract Relation and Relation Theorems\<close>
@@ -833,7 +836,7 @@ lemma
     state_eq_clauses: "S \<sim> T \<Longrightarrow> conc_clauses S = conc_clauses T" and
     state_eq_undefined_lit:
       "S \<sim> T \<Longrightarrow> undefined_lit (conc_trail S) L = undefined_lit (conc_trail T) L"
-  unfolding state_def cdcl\<^sub>W_restart_mset.state_eq_def conc_clauses_init_learned
+  unfolding state_def state_eq_def conc_clauses_init_learned
   by (auto simp: cdcl\<^sub>W_restart_mset_state)
 
 text \<open>We combine all simplification rules about @{term state_eq} in a single list of theorems. While
@@ -1621,7 +1624,7 @@ proof -
      using lvl_max SS' apply simp
     using T by simp
   moreover have "T \<sim>m state ?U"
-    using T SS' confl LE LD unfolding cdcl\<^sub>W_restart_mset.state_eq_def by fastforce
+    using T SS' confl LE LD unfolding state_eq_def by fastforce
   ultimately show thesis using that[of ?U] by fast
 qed
 
@@ -1671,7 +1674,7 @@ lemma cdcl\<^sub>W_restart_abs_bj_cdcl\<^sub>W_restart_abs_bj:
   by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.simps cdcl\<^sub>W_restart_abs_bj.simps
     backtrack_backtrack_abs skip_skip_abs resolve_resolve_abs)
 
-interpretation cdcl\<^sub>W_restart_abs_bj: relation_relation_abs cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj 
+interpretation cdcl\<^sub>W_restart_abs_bj: relation_relation_abs cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj
   cdcl\<^sub>W_restart_abs_bj state cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv
   apply unfold_locales
      apply (simp add: cdcl\<^sub>W_restart_abs_bj_cdcl\<^sub>W_restart_abs_bj)
@@ -1759,8 +1762,8 @@ next
     using cdcl\<^sub>W_merge_abs_stgy.fw_s_decide'[of S' T'] by fast
 next
   case bj'
-  then show ?thesis 
-    by (metis (full_types) SS' cdcl\<^sub>W_restart_abs_bj.full1_exists_full1_abs 
+  then show ?thesis
+    by (metis (full_types) SS' cdcl\<^sub>W_restart_abs_bj.full1_exists_full1_abs
       cdcl\<^sub>W_restart_mset_state_eq_eq fw_s_bj' inv)
 qed
 
@@ -1799,7 +1802,7 @@ interpretation cdcl\<^sub>W_merge_abs_stgy: relation_implied_relation_abs
   apply unfold_locales
      using cdcl\<^sub>W_cp_cdcl\<^sub>W_restart_abs_cp apply blast
     using cdcl\<^sub>W_merge_abs_stgy_exists_cdcl\<^sub>W_s' apply blast
-   using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_s'_is_rtranclp_cdcl\<^sub>W_stgy 
+   using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_s'_is_rtranclp_cdcl\<^sub>W_stgy
    cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv apply blast
   using cdcl\<^sub>W_merge_abs_stgy_right_compatible by blast
 

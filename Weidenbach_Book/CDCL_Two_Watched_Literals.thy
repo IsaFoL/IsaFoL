@@ -291,7 +291,7 @@ lemma wf_twl_cls_append:
 
 
 locale well_formed_two_watched_literal_clauses_ops =
-  fixes 
+  fixes
     wf_watched :: "'cls \<Rightarrow> 'v multiset" and
     wf_unwatched :: "'cls \<Rightarrow> 'v multiset"
 begin
@@ -303,9 +303,9 @@ fun twl_cls_wf :: "'cls \<Rightarrow> 'v multiset twl_clause" where
 "twl_cls_wf C = TWL_Clause (wf_watched C) (wf_unwatched C)"
 
 lemma struct_wf_twl_cls_after_switch:
-  assumes 
-    "L \<in># wf_watched C" and 
-    "L' \<in># wf_unwatched C" and 
+  assumes
+    "L \<in># wf_watched C" and
+    "L' \<in># wf_unwatched C" and
     twl_cls_wf: "struct_wf_twl_cls (twl_cls_wf C)"
   shows
     "struct_wf_twl_cls
@@ -316,7 +316,7 @@ proof -
     proof
       assume "L = L'"
       then have "count (wf_clause C) L \<ge> 2"
-        unfolding wf_clause_def using assms 
+        unfolding wf_clause_def using assms
         by (auto simp: size_2_iff elim!: in_countE)
       moreover have "distinct_mset (wf_clause C)"
         unfolding wf_clause_def using assms twl_cls_wf by auto
@@ -343,7 +343,7 @@ end
 
 locale well_formed_two_watched_literal_clauses =
   well_formed_two_watched_literal_clauses_ops wf_watched wf_unwatched
-  for 
+  for
     wf_watched :: "'cls \<Rightarrow> 'v multiset" and
     wf_unwatched :: "'cls \<Rightarrow> 'v multiset" +
   assumes
@@ -364,40 +364,40 @@ begin
   qed
 
   setup_lifting type_definition_wf_twl_clause
-  
+
   lift_definition wf_watched :: "'v wf_twl_clause \<Rightarrow> 'v multiset" is
   "watched :: 'v multiset twl_clause \<Rightarrow> 'v multiset" .
-  
+
   lift_definition wf_unwatched :: "'v wf_twl_clause \<Rightarrow> 'v multiset" is
   "unwatched :: 'v multiset twl_clause \<Rightarrow> 'v multiset" .
-  
+
   lift_definition wf_clause :: "'v wf_twl_clause \<Rightarrow> 'v multiset" is
   "clause :: 'v multiset twl_clause \<Rightarrow> 'v multiset" .
-  
+
   lift_definition map_wf_twl_clause :: "('v multiset \<Rightarrow> 'w multiset) \<Rightarrow> 'v wf_twl_clause \<Rightarrow>
     'w multiset twl_clause" is
   "map_twl_clause ::  ('v multiset \<Rightarrow> 'w multiset) \<Rightarrow> 'v multiset twl_clause \<Rightarrow> 'w multiset twl_clause"
   .
-  
+
   lemma wf_unwatched_wf_of_twl_clause:
     "struct_wf_twl_cls C \<Longrightarrow> wf_unwatched (wf_of_twl_clause C) = unwatched C"
     by (simp add: wf_of_twl_clause_inverse wf_unwatched.rep_eq)
-  
+
   lemma wf_watched_wf_of_twl_clause:
     "struct_wf_twl_cls C \<Longrightarrow> wf_watched (wf_of_twl_clause C) = watched C"
     by (simp add: wf_of_twl_clause_inverse wf_watched.rep_eq)
-  
+
   lemma watched_map_wf_twl_clause:
     "watched (map_wf_twl_clause f C) = f (wf_watched C)"
     by (simp add: map_wf_twl_clause.rep_eq twl_clause.map_sel(1) wf_watched.rep_eq)
-  
+
   lemma unwatched_map_wf_twl_clause:
     "unwatched (map_wf_twl_clause f C) = f (wf_unwatched C)"
     by (simp add: map_wf_twl_clause.rep_eq twl_clause.map_sel wf_unwatched.rep_eq)
-  
+
   lemma wf_clause_watched_unwatched: "wf_clause C = wf_watched C + wf_unwatched C"
     by (cases "twl_clause_of_wf C") (auto simp: wf_clause_def wf_watched_def wf_unwatched_def)
-  
+
   lemma clause_map_wf_twl_clause_wf_clause:
     assumes "\<And>x1 x2. f (x1 + x2) = f x1 + f x2 "
     shows "clause (map_wf_twl_clause f C) = f (wf_clause C)"

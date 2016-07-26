@@ -5,6 +5,7 @@ begin
 subsection \<open>Adding Restarts\<close>
 locale cdcl\<^sub>W_restart_restart =
   conflict_driven_clause_learning\<^sub>W
+    state_eq
     \<comment> \<open>functions for the state: \<close>
       \<comment> \<open>access functions:\<close>
     trail init_clss learned_clss backtrack_lvl conflicting
@@ -15,6 +16,7 @@ locale cdcl\<^sub>W_restart_restart =
       \<comment> \<open>get state:\<close>
     init_state
   for
+    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
@@ -533,6 +535,7 @@ locale luby_sequence_restart =
   luby_sequence ur +
   conflict_driven_clause_learning\<^sub>W
     \<comment> \<open>functions for the state: \<close>
+    state_eq
       \<comment> \<open>access functions:\<close>
     trail init_clss learned_clss backtrack_lvl conflicting
       \<comment> \<open>changing state:\<close>
@@ -543,6 +546,7 @@ locale luby_sequence_restart =
     init_state
   for
     ur :: nat and
+    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     hd_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lit" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
@@ -560,7 +564,8 @@ locale luby_sequence_restart =
     init_state :: "'v clauses \<Rightarrow> 'st"
 begin
 
-sublocale cdcl\<^sub>W_restart_restart _ _ _ _ _ _ _ _ _ _ _ _ luby_sequence
+sublocale cdcl\<^sub>W_restart_restart where
+  f = luby_sequence
   apply unfold_locales
   using bounded_luby_sequence by blast
 

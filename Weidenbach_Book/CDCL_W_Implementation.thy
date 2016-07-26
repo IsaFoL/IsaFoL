@@ -72,6 +72,7 @@ lemma state_conv:
 
 
 interpretation state\<^sub>W
+  "op ="
   raw_trail raw_init_clss raw_learned_clss raw_backtrack_lvl raw_conflicting
   "\<lambda>L (M, S). (L # M, S)"
   "\<lambda>(M, S). (tl M, S)"
@@ -82,7 +83,11 @@ interpretation state\<^sub>W
   "\<lambda>N. ([], N, {#}, 0, None)"
   by unfold_locales auto
 
-interpretation conflict_driven_clause_learning\<^sub>W raw_trail raw_init_clss raw_learned_clss
+declare state_simp[simp del]
+
+interpretation conflict_driven_clause_learning\<^sub>W
+  "op ="
+  raw_trail raw_init_clss raw_learned_clss
   raw_backtrack_lvl raw_conflicting
   "\<lambda>L (M, S). (L # M, S)"
   "\<lambda>(M, S). (tl M, S)"
@@ -94,10 +99,6 @@ interpretation conflict_driven_clause_learning\<^sub>W raw_trail raw_init_clss r
   by unfold_locales auto
 
 declare clauses_def[simp]
-
-lemma cdcl\<^sub>W_restart_state_eq_equality[iff]: "state_eq S T \<longleftrightarrow> S = T"
-  unfolding state_eq_def by (cases S, cases T) auto
-declare state_simp[simp del]
 
 lemma reduce_trail_to_empty_trail[simp]:
   "reduce_trail_to F ([], aa, ab, ac, b) = ([], aa, ab, ac, b)"
@@ -527,8 +528,8 @@ lemma do_backtrack_step:
       apply (rule backtrack_rule)
         using M2 fd confl \<open>L \<in> set C\<close> j decomp levL \<open>get_maximum_level M (mset C) = k\<close>
         unfolding S E M1 apply (auto simp: mset_map)[6]
-      using M2' M2 fd j lev_K unfolding S E M1 CDCL_W_Implementation.state_eq_def
-      by (auto simp: comp_def ac_simps)[2]
+      using M2' M2 fd j lev_K unfolding S E M1
+      by (auto simp: comp_def ac_simps reduce_trail_to)[2]
 qed
 
 lemma map_eq_list_length:

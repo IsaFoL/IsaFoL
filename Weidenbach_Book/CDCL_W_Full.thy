@@ -5,7 +5,7 @@ begin
 context conflict_driven_clause_learning\<^sub>W
 begin
 lemma rtranclp_cdcl\<^sub>W_merge_stgy_distinct_mset_clauses:
-  assumes 
+  assumes
     invR: "cdcl\<^sub>W_all_struct_inv R" and
     st: "cdcl\<^sub>W_s'\<^sup>*\<^sup>* R S" and
     smaller: \<open>no_smaller_propa R\<close> and

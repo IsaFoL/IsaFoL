@@ -1243,7 +1243,7 @@ qed
 
 lemma always_exists_state_eqI:
   \<open>(\<forall>a aa ab ac b. \<not> (a, aa, ab, ac, b) \<sim>m S) \<longleftrightarrow> False\<close>
-  unfolding CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.state_eq_def
+  unfolding state_eq_def
   by (cases S) (auto simp: backtrack_lvl_def learned_clss_def init_clss_def trail_def
       conflicting_def)
 
@@ -1382,7 +1382,7 @@ proof -
        using lev_L apply (simp; fail)
       using lvl_D_I apply (simp; fail)
      using lvl_K_i apply (simp; fail)
-    using T M2' by (auto simp: CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.state_eq_def LM M1_def
+    using T M2' by (auto simp: state_eq_def LM M1_def
         simp del: CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.state_simp)[]
 qed
 
@@ -1507,7 +1507,7 @@ proof -
   have eq: \<open>?U \<sim>m state (backtrack_implementation L S)\<close>
     using D'
     using ne confl
-    apply (auto simp: CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.state_eq_def
+    apply (auto simp: state_eq_def
         backtrack_implementation_def backtrack_implementation_lvl_def Let_def
         M1[symmetric] M1'[symmetric] T'
         simp del: CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.state_simp M1)[]

@@ -282,8 +282,7 @@ proof induction
     T: "state T = (Propagated L (C + {#L#}) # M, N, U, k, None)"
     by (auto elim: propagate_high_levelE)
   have "propagate\<^sub>N\<^sub>O\<^sub>T S T"
-    using H CL T undef M_C by (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def state_eq_def clauses_def
-      simp del: state_simp)
+    using H CL T undef M_C by (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def clauses_def simp del: state_simp)
   then show ?case
     using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn.intros(2) by blast
 next
@@ -299,7 +298,7 @@ next
        using undef_L apply simp
      using atm_L inv unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def clauses_def
        apply auto[]
-    using T undef_L unfolding state_eq_def state_eq\<^sub>N\<^sub>O\<^sub>T_def by (auto simp: clauses_def)
+    using T undef_L unfolding state_eq\<^sub>N\<^sub>O\<^sub>T_def by (auto simp: clauses_def)
   then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_decide\<^sub>N\<^sub>O\<^sub>T by blast
 next
   case (fw_forget S T) note rf = this(1) and inv = this(2)
@@ -321,9 +320,7 @@ next
        using S_C apply blast
       using S apply simp
      using C_init C_le apply (simp add: clauses_def)
-    using T C_le C_init by (auto
-      simp: state_eq_def Un_Diff state_eq\<^sub>N\<^sub>O\<^sub>T_def clauses_def ac_simps
-      simp del: state_simp)
+    using T C_le C_init by (auto simp: Un_Diff state_eq\<^sub>N\<^sub>O\<^sub>T_def clauses_def ac_simps)
   then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_forget\<^sub>N\<^sub>O\<^sub>T by blast
 next
   case (fw_conflict S T U) note confl = this(1) and bj = this(2) and inv = this(3)
@@ -332,7 +329,7 @@ next
     CT: "CT = C\<^sub>S" and
     C\<^sub>S: "C\<^sub>S \<in># clauses S" and
     tr_S_C\<^sub>S: "trail S \<Turnstile>as CNot C\<^sub>S"
-    using confl by (elim conflictE) (auto simp del: state_simp simp: state_eq_def)
+    using confl by (elim conflictE) auto
   have inv_T: "cdcl\<^sub>W_all_struct_inv T"
     using cdcl\<^sub>W_restart.simps cdcl\<^sub>W_all_struct_inv_inv confl inv by blast
   then have "cdcl\<^sub>W_M_level_inv T"
@@ -346,7 +343,7 @@ next
       case no_bt
       then have "conflicting U \<noteq> None"
         using confl by (induction rule: rtranclp_induct)
-        (auto simp del: state_simp simp: skip_or_resolve.simps state_eq_def elim!: rulesE)
+        (auto simp: skip_or_resolve.simps elim!: rulesE)
       moreover then have "no_step cdcl\<^sub>W_merge U"
         by (auto simp: cdcl\<^sub>W_merge.simps elim: rulesE)
       ultimately show ?thesis by blast
@@ -611,7 +608,7 @@ next
     next
       case W_conflict
       moreover then have "conflicting U = None" and "conflicting V \<noteq> None"
-        by (auto elim!: conflictE simp del: state_simp simp: state_eq_def)
+        by (auto elim!: conflictE)
       moreover then have "cdcl\<^sub>W_merge\<^sup>*\<^sup>* S U"
         using IH by auto
       ultimately show ?thesis using IH by auto
@@ -636,8 +633,7 @@ next
                 rtranclp_cdcl\<^sub>W_merge_tranclp_cdcl\<^sub>W_merge_restart)
             have "conflicting V \<noteq> None \<and> conflicting U \<noteq> None"
               using \<open>skip_or_resolve U V\<close>
-              by (auto simp: skip_or_resolve.simps state_eq_def elim!: skipE resolveE
-                simp del: state_simp)
+              by (auto simp: skip_or_resolve.simps  elim!: skipE resolveE)
             then have ?thesis
               by (metis (full_types) IH f1 rtranclp_trans tranclp_into_rtranclp)
           }
@@ -1229,12 +1225,14 @@ proof -
     using decomp by auto
   have \<open>clauses V = {#D#} + clauses U\<close>
     using V by auto
-  then have V': \<open>V \<sim>\<^sub>N\<^sub>O\<^sub>T
+  moreover have \<open>trail V = (Propagated L D) # trail (reduce_trail_to M1 U)\<close>
+    using V T M tr_T_S[symmetric] M' clss_T_U[symmetric] unfolding state_eq\<^sub>N\<^sub>O\<^sub>T_def
+    by (auto simp del: state_simp dest!: state_simp(1))
+  ultimately have V': \<open>V \<sim>\<^sub>N\<^sub>O\<^sub>T
     cons_trail (Propagated L dummy_cls) (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T M1 (add_learned_cls D S))\<close>
-    using V T M tr_T_S[symmetric] M' clss_T_U[symmetric] unfolding state_eq\<^sub>N\<^sub>O\<^sub>T_def state_eq_def
-    by (auto simp: bt_T_U trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_drop trail_reduce_trail_to_drop
-        drop_map ac_simps drop_tl clss_T_S
-        simp del: state_simp)
+    using V T M tr_T_S[symmetric] M' clss_T_U[symmetric] unfolding state_eq\<^sub>N\<^sub>O\<^sub>T_def
+    by (auto simp del: state_simp
+        simp: trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_drop drop_map drop_tl clss_T_S)
   have \<open>no_dup (trail V)\<close>
     using inv_V V unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by blast
   then have undef_L: \<open>undefined_lit M1 L\<close>
@@ -1310,7 +1308,7 @@ next
        using tr_E apply (simp; fail)
       using undef apply (simp; fail)
      using \<open>?W\<close> apply (simp; fail)
-    using T by (simp add: state_eq_def state_eq\<^sub>N\<^sub>O\<^sub>T_def clauses_def del: state_simp state_simp\<^sub>N\<^sub>O\<^sub>T)
+    using T by (simp add: state_eq\<^sub>N\<^sub>O\<^sub>T_def clauses_def)
 qed
 
 text \<open>TODO Move\<close>

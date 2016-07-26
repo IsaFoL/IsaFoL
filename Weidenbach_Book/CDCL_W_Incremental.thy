@@ -5,6 +5,7 @@ begin
 section \<open>Incremental SAT solving\<close>
 locale state\<^sub>W_adding_init_clause =
   state\<^sub>W
+    state_eq
     \<comment> \<open>functions about the state: \<close>
       \<comment> \<open>getter:\<close>
     trail init_clss learned_clss backtrack_lvl conflicting
@@ -15,6 +16,7 @@ locale state\<^sub>W_adding_init_clause =
       \<comment> \<open>Some specific states:\<close>
     init_state
   for
+    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
@@ -66,7 +68,7 @@ end
 
 locale conflict_driven_clause_learning_with_adding_init_clause\<^sub>W =
   state\<^sub>W_adding_init_clause
-
+    state_eq
     \<comment> \<open>functions for the state: \<close>
       \<comment> \<open>access functions:\<close>
     trail init_clss learned_clss backtrack_lvl conflicting
@@ -79,6 +81,7 @@ locale conflict_driven_clause_learning_with_adding_init_clause\<^sub>W =
       \<comment> \<open>Adding a clause:\<close>
     add_init_cls
   for
+    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
