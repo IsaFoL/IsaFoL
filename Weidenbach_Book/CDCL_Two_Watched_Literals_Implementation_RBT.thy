@@ -345,7 +345,7 @@ next
     0 # map Suc [0..<min (length xs) (length ys)]"
     by (subst upt_rec) (simp add: map_Suc_upt)
   then show ?case
-    using 4 by (auto simp: mset_map)
+    using 4 by auto
 qed
 
 lemma mset_set_eq:
@@ -394,7 +394,7 @@ proof -
       dest!: C_size_1)
   show ?thesis
     unfolding cls_of_twl_list.simps wf_RBT_clause.rep_eq
-    by (auto simp: abs_RBT_cls_inverse mset_map  image_mset_snd_mset_RBT_entries
+    by (auto simp: abs_RBT_cls_inverse  image_mset_snd_mset_RBT_entries
       RBT_elements_def)
 qed
 
@@ -494,7 +494,7 @@ lemma
 lemma count_get_unwatched_lits_if:
   "count (get_unwatched_lits C) j = (if j \<ge> 2 \<and> RBT.lookup C j \<noteq> None then 1 else 0)"
   using image_mset_fst_mset_RBT_entries[of id _ C] RBT.distinct_keys[of C]
-  by (auto simp: get_unwatched_lits_def mset_map mset_filter lookup_in_tree keys_entries
+  by (auto simp: get_unwatched_lits_def mset_filter lookup_in_tree keys_entries
     not_in_iff[symmetric] image_mset_fst_RBT_entries_keys
       distinct_count_atmost_1)
 
@@ -505,7 +505,7 @@ lemma count_wf_unwatched_lits_if:
 lemma count_get_watched_lits_if:
   "count (get_watched_lits C) j = (if \<not>j \<ge> 2 \<and> RBT.lookup C j \<noteq> None then 1 else 0)"
   using image_mset_fst_mset_RBT_entries[of id "\<lambda>a. \<not> 2 \<le> a" C] RBT.distinct_keys[of C]
-  by (auto simp: get_watched_lits_map_le_2 mset_map mset_filter lookup_in_tree keys_entries
+  by (auto simp: get_watched_lits_map_le_2 mset_filter lookup_in_tree keys_entries
     not_in_iff[symmetric] image_mset_fst_RBT_entries_keys
       distinct_count_atmost_1)
 
@@ -579,7 +579,7 @@ proof -
           moreover
             then have "{#the (if x = j then Some i' else (RBT.lookup (conc_RBT_cls C)(i \<mapsto> j')) x).
               x \<in># wf_watched_lits C#} = {#j'#} + remove1_mset i' (wf_watched C)"
-              using i' j' unfolding mset_filter mset_map
+              using i' j' unfolding mset_filter
               apply (auto simp add: if_distrib filter_eq_replicate_mset lit_lookup.rep_eq
                 wf_watched_def count_wf_watched_lits_if filter_mset_neq
                 image_mset_If image_mset_remove1_mset_if not_in_iff)
@@ -587,12 +587,12 @@ proof -
           moreover
             have "{#the (if x = j then Some i' else (RBT.lookup (conc_RBT_cls C)(i \<mapsto> j')) x).
               x \<in># wf_unwatched_lits C#} = {#i'#} + remove1_mset j' (wf_unwatched C)"
-              using i' j' i_watched unfolding mset_filter mset_map
+              using i' j' i_watched unfolding mset_filter
               by (auto simp add: if_distrib filter_eq_replicate_mset lit_lookup.rep_eq
                 wf_unwatched_def count_wf_unwatched_lits_if filter_mset_neq
                 image_mset_If image_mset_remove1_mset_if not_in_iff)
           ultimately show ?thesis
-            using i' j' unfolding mset_filter mset_map
+            using i' j' unfolding mset_filter
             by (auto simp: lit_lookup.rep_eq swap_lit.rep_eq
               wf_watched_lits_swap_lit wf_unwatched_lits_swap_lit
               RBT_lookup_swap_lit_safe keys_entries image_iff lookup_in_tree[symmetric]
