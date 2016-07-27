@@ -2862,18 +2862,6 @@ lemma rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart:
    "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S S' \<Longrightarrow> cdcl\<^sub>W_restart\<^sup>*\<^sup>* S S'"
   using rtranclp_unfold[of cdcl\<^sub>W_stgy S S'] tranclp_cdcl\<^sub>W_stgy_tranclp_cdcl\<^sub>W_restart[of S S'] by auto
 
-lemma not_empty_get_maximum_level_exists_lit:
-  assumes n: "D \<noteq> {#}"
-  and max: "get_maximum_level M D = n"
-  shows "\<exists>L \<in>#D. get_level M L = n"
-proof -
-  have f: "finite (insert 0 ((\<lambda>L. get_level M L) ` set_mset D))" by auto
-  then have "n \<in> ((\<lambda>L. get_level M L) ` set_mset D)"
-    using n max get_maximum_level_exists_lit_of_max_level image_iff
-    unfolding get_maximum_level_def by force
-  then show "\<exists>L \<in># D. get_level M L = n" by auto
-qed
-
 lemma cdcl\<^sub>W_o_conflict_is_false_with_level_inv:
   assumes
     "cdcl\<^sub>W_o S S'" and
@@ -2921,7 +2909,7 @@ proof (induct rule: cdcl\<^sub>W_o_induct)
       backtrack_lvl S"
     by (auto simp: get_maximum_level_union_mset get_maximum_level_plus max_def D)
   then show ?case
-    using tr_S not_empty_get_maximum_level_exists_lit[of
+    using tr_S get_maximum_level_exists_lit_of_max_level[of
       "remove1_mset (- L) D #\<union> remove1_mset L C" M] T
     by auto
 next
