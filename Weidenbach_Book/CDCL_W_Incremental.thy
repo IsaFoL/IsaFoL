@@ -404,10 +404,9 @@ proof -
     by (metis M \<open>cdcl\<^sub>W_conflicting T\<close> append_assoc cdcl\<^sub>W_conflicting_decomp(2))
 
   have
-    decomp_T: "all_decomposition_implies_m (init_clss T) (get_all_ann_decomposition (trail T))"
+    decomp_T: "all_decomposition_implies_m (clauses T) (get_all_ann_decomposition (trail T))"
     using inv_T unfolding cdcl\<^sub>W_all_struct_inv_def by auto
-  have  "all_decomposition_implies_m  (init_clss ?T)
-    (get_all_ann_decomposition (trail ?T))"
+  have  "all_decomposition_implies_m (clauses ?T) (get_all_ann_decomposition (trail ?T))"
     unfolding all_decomposition_implies_def
     proof clarify
       fix a b
@@ -416,11 +415,11 @@ proof -
       obtain b' where
         "(a, b' @ b) \<in> set (get_all_ann_decomposition (trail T))"
         using M by auto
-      then have "unmark_l a \<union> set_mset (init_clss T) \<Turnstile>ps unmark_l (b' @ b)"
+      then have "unmark_l a \<union> set_mset (clauses T) \<Turnstile>ps unmark_l (b' @ b)"
         using decomp_T unfolding all_decomposition_implies_def by fastforce
-      then have "unmark_l a \<union> set_mset (init_clss ?T) \<Turnstile>ps unmark_l (b @ b')"
-        by (simp add: Un_commute)
-      then show "unmark_l a \<union> set_mset (init_clss ?T) \<Turnstile>ps unmark_l b"
+      then have "unmark_l a \<union> set_mset (clauses ?T) \<Turnstile>ps unmark_l (b' @ b)"
+        by (simp add: clauses_def)
+      then show "unmark_l a \<union> set_mset (clauses ?T) \<Turnstile>ps unmark_l b"
         by (auto simp: image_Un)
     qed
 
@@ -428,8 +427,7 @@ proof -
     using inv_T unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def
     by (auto dest!: H_proped simp: clauses_def)
   show ?thesis
-    using \<open>all_decomposition_implies_m  (init_clss ?T)
-    (get_all_ann_decomposition (trail ?T))\<close>
+    using \<open>all_decomposition_implies_m  (clauses ?T) (get_all_ann_decomposition (trail ?T))\<close>
     unfolding cdcl\<^sub>W_all_struct_inv_def by (auto simp: add_new_clause_and_update_def)
 qed
 
@@ -537,16 +535,18 @@ lemma incremental_cdcl\<^sub>W_restart_inv:
   assumes
     inc: "incremental_cdcl\<^sub>W_restart S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
-    s_inv: "cdcl\<^sub>W_stgy_invariant S"
+    s_inv: "cdcl\<^sub>W_stgy_invariant S" and
+    learned_entailed: \<open>learned_clauses_entailed_by_init S\<close>
   shows
     "cdcl\<^sub>W_all_struct_inv T" and
-    "cdcl\<^sub>W_stgy_invariant T"
+    "cdcl\<^sub>W_stgy_invariant T" and
+    learned_entailed: \<open>learned_clauses_entailed_by_init T\<close>
   using inc
 proof (induction)
   case (add_confl C T)
   let ?T = "(update_conflicting (Some C) (add_init_cls C
     (cut_trail_wrt_clause C (trail S) S)))"
-  have "cdcl\<^sub>W_all_struct_inv ?T" and inv_s_T: "cdcl\<^sub>W_stgy_invariant ?T"
+  have inv': "cdcl\<^sub>W_all_struct_inv ?T" and inv_s_T: "cdcl\<^sub>W_stgy_invariant ?T"
     using add_confl.hyps(1,2,4) add_new_clause_and_update_def
     cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_all_struct_inv inv apply auto[1]
     using add_confl.hyps(1,2,4) add_new_clause_and_update_def
@@ -556,20 +556,27 @@ proof (induction)
        cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_all_struct_inv
        rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart full_def inv)
 
-  case 2  show ?case
+  case 2 show ?case
     by (metis inv_s_T add_confl.hyps(1,2,4,5) add_new_clause_and_update_def
       cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_all_struct_inv full_def inv
       rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant)
+
+  case 3 show ?case
+    using learned_entailed rtranclp_learned_clauses_entailed[of ?T T]  add_confl inv'
+    unfolding cdcl\<^sub>W_all_struct_inv_def full_def
+    by (auto simp: learned_clauses_entailed_by_init_def
+        dest!: rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart)
 next
   case (add_no_confl C T)
-  case 1
-  have "cdcl\<^sub>W_all_struct_inv (add_init_cls C S)"
+  have inv': "cdcl\<^sub>W_all_struct_inv (add_init_cls C S)"
     using inv \<open>distinct_mset C\<close> unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def
     cdcl\<^sub>W_M_level_inv_def distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_learned_clause_def
     by (auto 9 1 simp: all_decomposition_implies_insert_single clauses_def)
     (* SLOW ~2s *)
-  then show ?case
-    using add_no_confl(5) unfolding full_def by (auto intro: rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv)
+  case 1
+  show ?case
+    using inv' add_no_confl(5) unfolding full_def by (auto intro: rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv)
+
   case 2
   have nc: "\<forall>M. (\<exists>K i M'. trail S = M' @ Decided K # M) \<longrightarrow> \<not> M \<Turnstile>as CNot C"
     using  \<open>\<not> trail S \<Turnstile>as CNot C\<close>
@@ -582,40 +589,53 @@ next
   then show ?case
     by (metis \<open>cdcl\<^sub>W_all_struct_inv (add_init_cls C S)\<close> add_no_confl.hyps(5) full_def
       rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant)
+
+  case 3
+  have \<open>learned_clauses_entailed_by_init (add_init_cls C S)\<close>
+    using learned_entailed by (auto simp: learned_clauses_entailed_by_init_def)
+  then show ?case
+    using add_no_confl(5) learned_entailed rtranclp_learned_clauses_entailed[of _ T]  add_confl inv'
+    unfolding cdcl\<^sub>W_all_struct_inv_def full_def
+    by (auto simp: learned_clauses_entailed_by_init_def
+        dest!: rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart)
 qed
 
 lemma rtranclp_incremental_cdcl\<^sub>W_restart_inv:
   assumes
     inc: "incremental_cdcl\<^sub>W_restart\<^sup>*\<^sup>* S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
-    s_inv: "cdcl\<^sub>W_stgy_invariant S"
+    s_inv: "cdcl\<^sub>W_stgy_invariant S" and
+    learned_entailed: \<open>learned_clauses_entailed_by_init S\<close>
   shows
     "cdcl\<^sub>W_all_struct_inv T" and
-    "cdcl\<^sub>W_stgy_invariant T"
+    "cdcl\<^sub>W_stgy_invariant T" and
+    \<open>learned_clauses_entailed_by_init T\<close>
      using inc apply induction
     using inv apply simp
    using s_inv apply simp
+   using learned_entailed apply simp
   using incremental_cdcl\<^sub>W_restart_inv by blast+
 
 lemma incremental_conclusive_state:
   assumes
     inc: "incremental_cdcl\<^sub>W_restart S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
-    s_inv: "cdcl\<^sub>W_stgy_invariant S"
+    s_inv: "cdcl\<^sub>W_stgy_invariant S" and
+    learned_entailed: \<open>learned_clauses_entailed_by_init S\<close>
   shows "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss T))
     \<or> conflicting T = None \<and> trail T \<Turnstile>asm init_clss T \<and> satisfiable (set_mset (init_clss T))"
   using inc
 proof induction
-  print_cases
   case (add_confl C T) note tr = this(1) and dist = this(2) and conf = this(3) and C = this(4) and
   full = this(5)
   (* Here I thank Sledgehammer for its invaluable services *)
   have "full cdcl\<^sub>W_stgy T T"
     using full unfolding full_def by auto
   then show ?case
-    using full C conf dist tr
-    by (metis full_cdcl\<^sub>W_stgy_inv_normal_form incremental_cdcl\<^sub>W_restart.simps incremental_cdcl\<^sub>W_restart_inv(1)
-      incremental_cdcl\<^sub>W_restart_inv(2) inv s_inv)
+    using C conf dist full incremental_cdcl\<^sub>W_restart.add_confl incremental_cdcl\<^sub>W_restart_inv
+      incremental_cdcl\<^sub>W_restart_inv inv learned_entailed
+      \<open>full cdcl\<^sub>W_stgy T T\<close> full_cdcl\<^sub>W_stgy_inv_normal_form
+      s_inv tr by blast
 next
   case (add_no_confl C T) note tr = this(1) and dist = this(2) and conf = this(3) and C = this(4)
     and full = this(5)
@@ -623,21 +643,23 @@ next
   have "full cdcl\<^sub>W_stgy T T"
     using full unfolding full_def by auto
   then show ?case
-     by (meson C conf dist full full_cdcl\<^sub>W_stgy_inv_normal_form incremental_cdcl\<^sub>W_restart.add_no_confl
-       incremental_cdcl\<^sub>W_restart_inv(1) incremental_cdcl\<^sub>W_restart_inv(2) inv s_inv tr)
+    using \<open>full cdcl\<^sub>W_stgy T T\<close> full_cdcl\<^sub>W_stgy_inv_normal_form C conf dist full
+      incremental_cdcl\<^sub>W_restart.add_no_confl incremental_cdcl\<^sub>W_restart_inv inv learned_entailed
+      s_inv tr by blast (* 46 ms *)
 qed
 
 lemma tranclp_incremental_correct:
   assumes
     inc: "incremental_cdcl\<^sub>W_restart\<^sup>+\<^sup>+ S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
-    s_inv: "cdcl\<^sub>W_stgy_invariant S"
+    s_inv: "cdcl\<^sub>W_stgy_invariant S" and
+    learned_entailed: \<open>learned_clauses_entailed_by_init S\<close>
   shows "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss T))
     \<or> conflicting T = None \<and> trail T \<Turnstile>asm init_clss T \<and> satisfiable (set_mset (init_clss T))"
   using inc apply induction
    using assms incremental_conclusive_state apply blast
   by (meson incremental_conclusive_state inv rtranclp_incremental_cdcl\<^sub>W_restart_inv s_inv
-    tranclp_into_rtranclp)
+    tranclp_into_rtranclp learned_entailed)
 
 end
 

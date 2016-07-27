@@ -246,7 +246,7 @@ next
   case restart
   then show ?case using alien by auto
 next
-  case (forget C T) note no_forget = this(9)
+  case (forget C T) note no_forget = this(10)
   then have "C \<in># learned_clss S" and "C \<notin># learned_clss T"
     using forget.hyps by auto
   then have "\<not> learned_clss S \<subseteq># learned_clss T"

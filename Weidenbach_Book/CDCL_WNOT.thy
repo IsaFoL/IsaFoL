@@ -311,11 +311,6 @@ next
      T: "T \<sim> remove_cls C S" and
      S_C: \<open>removeAll_mset C (clauses S) \<Turnstile>pm C\<close>
     by (auto elim: forgetE)
-  have "init_clss S \<Turnstile>pm C"
-    using inv C_le unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def clauses_def
-    by (meson true_clss_clss_in_imp_true_clss_cls)
-  then have S_C: "removeAll_mset C (clauses S) \<Turnstile>pm C"
-    using C_init C_le unfolding clauses_def by (auto simp add: Un_Diff ac_simps)
   have "forget\<^sub>N\<^sub>O\<^sub>T S T"
     apply (rule forget\<^sub>N\<^sub>O\<^sub>T.forget\<^sub>N\<^sub>O\<^sub>T)
        using S_C apply blast
@@ -351,7 +346,8 @@ next
     next
       case bt note s_or_r = this(1) and bt = this(2)
       have "cdcl\<^sub>W_restart\<^sup>*\<^sup>* T T'"
-        using s_or_r mono_rtranclp[of skip_or_resolve cdcl\<^sub>W_restart] rtranclp_skip_or_resolve_rtranclp_cdcl\<^sub>W_restart
+        using s_or_r mono_rtranclp[of skip_or_resolve cdcl\<^sub>W_restart]
+          rtranclp_skip_or_resolve_rtranclp_cdcl\<^sub>W_restart
         by blast
       then have "cdcl\<^sub>W_M_level_inv T'"
         using rtranclp_cdcl\<^sub>W_restart_consistent_inv \<open>cdcl\<^sub>W_M_level_inv T\<close> by blast
@@ -408,8 +404,8 @@ next
       have tr_T: "trail S = M'' @ Decided K # tl (trail U)"
         using tr_T tr_T' confl unfolding M''_def by (auto elim: rulesE)
       have "init_clss T' + learned_clss S \<Turnstile>pm D"
-        using inv_T' confl_T' unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def
-        clauses_def by simp
+        using inv_T' confl_T' \<open>clauses S = clauses T\<close> \<open>clauses T = clauses T'\<close>
+        unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def clauses_def by auto
       have "reduce_trail_to (convert_trail_from_NOT (convert_trail_from_W M1)) S =
         reduce_trail_to M1 S"
         by (rule reduce_trail_to_length) simp
@@ -1248,14 +1244,11 @@ proof -
 
   have DLL: \<open>D = (remove1_mset L D) + {#L#}\<close>
     using LD by auto
-  have \<open>init_clss U =  init_clss S\<close>
+  have \<open>init_clss U = init_clss S\<close>
     using V init_clss_V_S by auto
-  then have \<open>init_clss S \<Turnstile>pm D\<close>
-    using inv_U init_clss_V_S confl_D decomp
-    unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def
-    by auto
   then have \<open>clauses S \<Turnstile>pm D\<close>
-    by (auto simp: clauses_def)
+    using clss_T_S clss_T_U confl_D inv_U
+    unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def by auto
   then have \<open>clauses S \<Turnstile>pm (remove1_mset L D) + {#L#}\<close>
     unfolding DLL[symmetric] .
   have \<open>M1 \<Turnstile>as CNot (remove1_mset L D)\<close>
@@ -1369,18 +1362,18 @@ next
           using inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by simp
         then have \<open>get_all_ann_decomposition (trail S) = [([], trail S)]\<close>
           by (auto simp: filter_empty_conv no_decision_get_all_ann_decomposition)
-        then have \<open>set_mset (init_clss S) \<Turnstile>ps unmark_l (trail S)\<close>
+        then have \<open>set_mset (clauses S) \<Turnstile>ps unmark_l (trail S)\<close>
           using 3(3) unfolding cdcl\<^sub>W_all_struct_inv_def by auto
         obtain I where
           consistent: \<open>consistent_interp I\<close> and
           I_S: \<open>I \<Turnstile>m clauses S\<close> and
           tot: \<open>total_over_m I (set_mset (clauses S))\<close>
           using sat by (auto simp: satisfiable_def)
-        have \<open>total_over_m I (set_mset (init_clss S)) \<and> total_over_m I (unmark_l (trail S))\<close>
+        have \<open>total_over_m I (set_mset (clauses S)) \<and> total_over_m I (unmark_l (trail S))\<close>
           using tot inv unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def
           by (auto simp: clauses_def total_over_set_def total_over_m_def)
         then have \<open>I \<Turnstile>s unmark_l (trail S)\<close>
-          using \<open>set_mset (init_clss S) \<Turnstile>ps unmark_l (trail S)\<close> consistent I_S
+          using \<open>set_mset (clauses S) \<Turnstile>ps unmark_l (trail S)\<close> consistent I_S
           unfolding true_clss_clss_def clauses_def
           by auto
 
