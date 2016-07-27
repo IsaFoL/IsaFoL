@@ -174,9 +174,6 @@ type_synonym 'a clause = "'a literal multiset"
 abbreviation poss :: "'a multiset \<Rightarrow> 'a clause" where "poss AA \<equiv> {#Pos A. A \<in># AA#}"
 abbreviation negs :: "'a multiset \<Rightarrow> 'a clause" where "negs AA \<equiv> {#Neg A. A \<in># AA#}"
 
-lemma image_replicate_mset[simp]: "{#f A. A \<in># replicate_mset n A#} = replicate_mset n (f A)"
-  by (induct n) (simp, subst replicate_mset_Suc, simp)
-
 lemma Max_in_lits: "C \<noteq> {#} \<Longrightarrow> Max (set_mset C) \<in># C"
   by (rule Max_in[OF finite_set_mset, unfolded set_mset_eq_empty_iff])
 
