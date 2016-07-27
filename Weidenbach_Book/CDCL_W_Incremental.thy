@@ -645,7 +645,7 @@ next
   then show ?case
     using \<open>full cdcl\<^sub>W_stgy T T\<close> full_cdcl\<^sub>W_stgy_inv_normal_form C conf dist full
       incremental_cdcl\<^sub>W_restart.add_no_confl incremental_cdcl\<^sub>W_restart_inv inv learned_entailed
-      s_inv tr by blast (* 46 ms *)
+      s_inv tr by blast
 qed
 
 lemma tranclp_incremental_correct:
