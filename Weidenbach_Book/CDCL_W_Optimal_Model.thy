@@ -36,12 +36,10 @@ locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_s
     init_state :: "'v clauses \<Rightarrow> 'st" and
     add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" +
   fixes
-    cost :: "('v, 'v clause) ann_lits \<Rightarrow> nat" and
     add_additional_information :: "'st \<Rightarrow> 'st" and
-    is_conflicting :: "'st \<Rightarrow> bool" and
+    conflicting_clauses :: "'a \<Rightarrow> 'v literal clause" and
     weight :: \<open>'st \<Rightarrow> 'a\<close>
   assumes
-    cost: \<open>cost (L # M) \<ge> cost M\<close> and
     state_add_additional_information: \<open>state (add_additional_information S) = state S\<close> and
   weight_state_eq:
     \<open>S \<sim> T \<Longrightarrow> weight S = weight T\<close>
@@ -65,7 +63,7 @@ locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops 
       \<comment> \<open>get state:\<close>
     init_state
       \<comment> \<open>Adding a clause:\<close>
-    add_init_cls cost add_additional_information is_conflicting weight
+    add_init_cls add_additional_information conflicting_clauses weight
   for
     state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
     state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> nat \<times> 'v clause option \<times>
@@ -85,9 +83,8 @@ locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops 
 
     init_state :: "'v clauses \<Rightarrow> 'st" and
     add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    cost :: "('v, 'v clause) ann_lits \<Rightarrow> nat" and
     add_additional_information :: "'st \<Rightarrow> 'st" and
-    is_conflicting :: "'st \<Rightarrow> bool" and
+    conflicting_clauses :: "'a \<Rightarrow> 'v literal clause" and
     weight :: \<open>'st \<Rightarrow> 'a\<close> +
   assumes
     state_prop[simp]:
@@ -110,19 +107,22 @@ lemma add_additional_information_simp:
   \<open>clauses (add_additional_information S) = clauses S\<close> and
   \<open>backtrack_lvl (add_additional_information S) = backtrack_lvl S\<close> and
   \<open>conflicting (add_additional_information S) = conflicting S\<close>
-  apply (cases \<open>state S\<close>)
   using state_add_additional_information[of S] by (auto simp: clauses_def)
 
+abbreviation negate_trail :: "'st \<Rightarrow> 'v literal multiset" where
+  \<open>negate_trail S \<equiv> image_mset (\<lambda>L. - lit_of L) (mset (trail S))\<close>
+
 inductive conflict_opt :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
-  "is_conflicting S \<Longrightarrow> 
-  T \<sim> update_conflicting (Some (image_mset (\<lambda>L. - lit_of L) (mset (trail S)))) S \<Longrightarrow> 
+  "M \<in># conflicting_clauses (weight S) \<Longrightarrow> 
+  T \<sim> update_conflicting (Some (negate_trail S)) S \<Longrightarrow> 
   conflict_opt S T"
 
 inductive improve :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
   "trail S = M' @ M \<Longrightarrow>
   M \<Turnstile>asm init_clss S \<Longrightarrow>
-  T \<sim> update_conflicting (Some (image_mset (\<lambda>L. - lit_of L) (mset (trail S)))) S \<Longrightarrow> 
+  T \<sim> update_conflicting (Some (negate_trail S)) S \<Longrightarrow> 
   improve S (add_additional_information S)"
+
 
 end
 end
