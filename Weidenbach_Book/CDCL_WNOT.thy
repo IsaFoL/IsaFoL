@@ -308,7 +308,8 @@ next
      "\<not>(trail S) \<Turnstile>asm clauses S" and
      "C \<notin> set (get_all_mark_of_propagated (trail S))" and
      C_init: "C \<notin># init_clss S" and
-     T: "T \<sim> remove_cls C S"
+     T: "T \<sim> remove_cls C S" and
+     S_C: \<open>removeAll_mset C (clauses S) \<Turnstile>pm C\<close>
     by (auto elim: forgetE)
   have "init_clss S \<Turnstile>pm C"
     using inv C_le unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def clauses_def

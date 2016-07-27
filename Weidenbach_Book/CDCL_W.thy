@@ -641,6 +641,7 @@ forget_rule:
   \<not>(trail S) \<Turnstile>asm clauses S \<Longrightarrow>
   C \<notin> set (get_all_mark_of_propagated (trail S)) \<Longrightarrow>
   C \<notin># init_clss S \<Longrightarrow>
+  removeAll_mset C (clauses S) \<Turnstile>pm C \<Longrightarrow>
   T \<sim> remove_cls C S \<Longrightarrow>
   forget S T"
 
@@ -742,6 +743,7 @@ lemma cdcl\<^sub>W_restart_all_induct[consumes 1, case_names propagate conflict 
       \<not>(trail S) \<Turnstile>asm clauses S \<Longrightarrow>
       C \<notin> set (get_all_mark_of_propagated (trail S)) \<Longrightarrow>
       C \<notin># init_clss S \<Longrightarrow>
+      removeAll_mset C (clauses S) \<Turnstile>pm C \<Longrightarrow>
       T \<sim> remove_cls C S \<Longrightarrow>
       P S T" and
     restartH: "\<And>T U. \<not>trail S \<Turnstile>asm clauses S \<Longrightarrow>
@@ -1268,17 +1270,19 @@ proof -
     tr: "\<not>(trail S) \<Turnstile>asm clauses S" and
     C1: "C \<notin> set (get_all_mark_of_propagated (trail S))" and
     C2: "C \<notin># init_clss S" and
+    ent: \<open>removeAll_mset C (clauses S) \<Turnstile>pm C\<close> and
     T: "T \<sim> remove_cls C S"
     using forget by (elim forgetE) simp
   have T': \<open>T' \<sim> remove_cls C S'\<close>
     by (meson SS' T TT' remove_cls_state_eq state_eq_sym state_eq_trans)
   show ?thesis
     apply (rule forget_rule)
-         using SS' conf apply (simp; fail)
-        using C SS' apply (simp; fail)
-       using SS' tr apply (simp; fail)
-      using SS' C1 apply (simp; fail)
-     using SS' C2 apply (simp; fail)
+          using SS' conf apply (simp; fail)
+         using C SS' apply (simp; fail)
+        using SS' tr apply (simp; fail)
+       using SS' C1 apply (simp; fail)
+      using SS' C2 apply (simp; fail)
+     using ent SS' apply (simp; fail)
     using T' by auto
 qed
 
