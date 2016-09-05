@@ -56,6 +56,10 @@ definition subst_cls_lists :: "'a clause list \<Rightarrow> 's list \<Rightarrow
 definition subst_cls_mset :: "'a clause multiset \<Rightarrow> 's \<Rightarrow> 'a clause multiset" (infixl "\<cdot>cc" 67) where
   "CC \<cdot>cc \<sigma> = image_mset (\<lambda>A. A \<cdot> \<sigma>) CC"
 
+lemma subst_cls_mset_add_mset[iff]:
+  \<open>add_mset C CC \<cdot>cc \<sigma> = add_mset (C \<cdot> \<sigma>) (CC \<cdot>cc \<sigma>)\<close>
+  unfolding subst_cls_mset_def by auto
+
 definition is_renaming :: "'s \<Rightarrow> bool" where
   "is_renaming \<sigma> = (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst)"
 

@@ -564,8 +564,7 @@ proof (rule ccontr)
       moreover have "\<not>?N\<^sub>\<I> \<Turnstile>h (D - {#L#})"
         using not_d_interp unfolding C' L by auto
       ultimately have "C' + {#Pos P#} \<notin> N"
-        by (metis (no_types, lifting) C' P add_diff_cancel_right' cls_not_D
-          multi_self_add_other_not_self not_le)
+        using C' P cls_not_D by fastforce
       have "D - {#L#} < D"
         unfolding C' L by auto
       have c'_p_p: "C' + {#Pos P#} + {#Pos P#} - {#Pos P#} = C' + {#Pos P#}"

@@ -165,7 +165,7 @@ using res_e proof (cases rule: ord_resolve.cases)
         (metis atms_less_eq_imp_lit_less_eq_neg count_inI dual_order.strict_implies_order 
           gr_implies_not_zero order.not_eq_order_implies_strict)
     thus ?thesis
-      unfolding e aa' by (metis add.commute case_prod_conv le_multiset_plus_plus_left_iff) 
+      unfolding e aa' by simp
   qed
 qed
 
@@ -262,7 +262,8 @@ proof -
     unfolding Df'_def ZZ_def by auto
   have dd: "DD = {#D_of A. A \<in># AA#}"
     unfolding DD_def ZZ_def d_of
-    by simp (rule image_mset_cong, metis Suc_pred m_nz not_gr0 replicate_mset_Suc)
+    by simp (rule image_mset_cong, metis Suc_pred m_nz neq0_conv replicate_mset_Suc
+        union_mset_add_mset_right)
   have prod_d: "\<And>D. D \<in># DD \<Longrightarrow> productive N D"
     unfolding dd by (auto dest!: prod_d0)
   hence dd_subs_n: "set_mset DD \<subseteq> N"

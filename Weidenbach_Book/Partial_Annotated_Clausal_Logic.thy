@@ -704,7 +704,7 @@ lemma in_CNot_uminus[iff]:
 
 lemma
   shows
-    CNot_singleton[simp]: "CNot {#L#} = {{#-L#}}" and
+    CNot_add_mset[simp]: "CNot (add_mset L \<psi>) = insert {#-L#} (CNot \<psi>)" and
     CNot_empty[simp]: "CNot {#} = {}" and
     CNot_plus[simp]: "CNot (A + B) = CNot A \<union> CNot B"
   unfolding CNot_def by auto
@@ -812,7 +812,7 @@ lemma uminus_lit_swap: "-(a::'a literal) = i \<longleftrightarrow> a = -i"
 
 lemma true_clss_cls_plus_CNot:
   assumes
-    CC_L: "A \<Turnstile>p CC + {#L#}" and
+    CC_L: "A \<Turnstile>p add_mset L CC" and
     CNot_CC: "A \<Turnstile>ps CNot CC"
   shows "A \<Turnstile>p {#L#}"
   unfolding true_clss_clss_def true_clss_cls_def CNot_def total_over_m_def
@@ -831,9 +831,9 @@ proof (intro allI impI)
   have tot_CNot: "total_over_m ?I (A \<union> CNot CC)"
     using tot atms_of_s_def by (fastforce simp: total_over_m_def total_over_set_def)
 
-  then have tot_I_A_CC_L: "total_over_m ?I (A \<union> {CC + {#L#}})"
+  then have tot_I_A_CC_L: "total_over_m ?I (A \<union> {add_mset L CC})"
     using tot unfolding total_over_m_def total_over_set_atm_of by auto
-  then have "?I \<Turnstile> CC + {#L#}" using CC_L cons' I' unfolding true_clss_cls_def by blast
+  then have "?I \<Turnstile> add_mset L CC" using CC_L cons' I' unfolding true_clss_cls_def by blast
   moreover
     have "?I \<Turnstile>s CNot CC" using CNot_CC cons' I' tot_CNot unfolding true_clss_clss_def by auto
     then have "\<not>A \<Turnstile>p CC"
@@ -886,12 +886,12 @@ lemma all_variables_defined_not_imply_cnot:
   unfolding true_annot_def true_annots_def Ball_def CNot_def true_lit_def
 proof (clarify, rule ccontr)
   fix L
-  assume LB: "L \<in># B" and "\<not> lits_of_l A \<Turnstile>l - L"
+  assume LB: "L \<in># B" and L_false: "\<not> lits_of_l A \<Turnstile> {#}" and L_A: "- L \<notin> lits_of_l A"
   then have "atm_of L \<in> atm_of ` lits_of_l A"
     using assms(1) by (simp add: atm_of_lit_in_atms_of lits_of_def)
   then have "L \<in> lits_of_l A \<or> -L \<in> lits_of_l A"
     using atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set by metis
-  then have "L \<in> lits_of_l A" using \<open> \<not> lits_of_l A \<Turnstile>l - L\<close> by auto
+  then have "L \<in> lits_of_l A" using L_A by auto
   then show False
     using LB assms(2) unfolding true_annot_def true_lit_def true_cls_def Bex_def
     by blast

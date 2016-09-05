@@ -1417,7 +1417,7 @@ next
   case (resolve L C M D) note trail = this(1) and CL = this(2) and confl = this(4) and DL = this(5)
     and lvl = this(6) and T = this(7)
   moreover
-    have "clauses S \<Turnstile>pm C + {#L#}"
+    have "clauses S \<Turnstile>pm add_mset L C"
       using trail learned unfolding cdcl\<^sub>W_learned_clause_def clauses_def
       by (auto dest: true_clss_clss_in_imp_true_clss_cls)
   moreover have "remove1_mset (- L) D + {#- L#} = D"
@@ -1428,7 +1428,7 @@ next
     using learned T
     by (auto dest: mk_disjoint_insert
       simp add: cdcl\<^sub>W_learned_clause_def clauses_def
-      intro!: true_clss_cls_union_mset_true_clss_cls_or_not_true_clss_cls_or[of _ _ L])
+      intro!: true_clss_cls_union_mset_true_clss_cls_or_not_true_clss_cls_or[of _ L])
 next
   case (restart T)
   then show ?case
@@ -1681,7 +1681,7 @@ next
   case resolve
   then show ?case
     by (auto simp add: distinct_cdcl\<^sub>W_state_def distinct_mset_set_def clauses_def
-      distinct_mset_single_add distinct_mset_union_mset)
+      distinct_mset_union_mset)
 qed (auto simp: distinct_cdcl\<^sub>W_state_def distinct_mset_set_def clauses_def
   dest!: in_diffD)
 
@@ -1879,7 +1879,7 @@ next
 
   have "unmark_l a \<union> set_mset (clauses S) \<Turnstile>p {#L#}" (is "?I \<Turnstile>p _")
     proof (rule true_clss_cls_plus_CNot)
-      show "?I \<Turnstile>p remove1_mset L C + {#L#}"
+      show "?I \<Turnstile>p add_mset L (remove1_mset L C)"
         apply (rule true_clss_clss_in_imp_true_clss_cls[of _
             "set_mset (clauses S)"])
         using learned propa L by (auto simp: cdcl\<^sub>W_learned_clause_def true_annot_CNot_diff)
@@ -1964,8 +1964,8 @@ next
               unfolding \<open>M1 = M1'' @ M1'\<close> by (auto simp add: inf_sup_aci(5,7))
             have "clauses S \<Turnstile>pm ?D' + {#L#}"
               using conf learned confl LD unfolding cdcl\<^sub>W_learned_clause_def by auto
-            then have T': "unmark_l M1' \<union> set_mset (clauses S) \<Turnstile>p ?D' + {#L#}" by auto
-            have "atms_of (?D' + {#L#}) \<subseteq> atms_of_mm (clauses S)"
+            then have T': "unmark_l M1' \<union> set_mset (clauses S) \<Turnstile>p add_mset L ?D'" by auto
+            have "atms_of (add_mset L ?D') \<subseteq> atms_of_mm (clauses S)"
               using alien conf LD unfolding no_strange_atm_def clauses_def by auto
             then have "unmark_l M1' \<union> set_mset (clauses S) \<Turnstile>p {#L#}"
               using true_clss_cls_plus_CNot[OF T' TT] by auto
@@ -2130,8 +2130,7 @@ next
       moreover
         have "distinct_mset (?D + {#- L#})" using confl dist LD
           unfolding distinct_cdcl\<^sub>W_state_def by auto
-        then have "-L \<notin># ?D" unfolding distinct_mset_def
-          by (meson \<open>distinct_mset (?D + {#- L#})\<close> distinct_mset_single_add)
+        then have "-L \<notin># ?D" using \<open>distinct_mset (?D + {#- L#})\<close> by auto
         have "M \<Turnstile>as CNot ?D"
           proof -
             have "Propagated L (?C + {#L#}) # M \<Turnstile>as CNot ?D \<union> CNot {#- L#}"
@@ -2726,13 +2725,14 @@ proof -
       using confl no_dup conf unfolding cdcl\<^sub>W_conflicting_def by auto
     ultimately show False by blast
   qed
-  have "get_maximum_level (trail S) D < get_maximum_level (trail S) (D + {#L#})"
-    using H by (auto simp: get_maximum_level_plus lev_L max_def)
-  moreover have "backtrack_lvl S = get_maximum_level (trail S) (D + {#L#})"
-    using H by (auto simp: get_maximum_level_plus lev_L max_def)
+  have "get_maximum_level (trail S) D < get_maximum_level (trail S) (add_mset L D)"
+    using H by (auto simp: get_maximum_level_plus lev_L max_def get_maximum_level_add_mset)
+  moreover have "backtrack_lvl S = get_maximum_level (trail S) (add_mset L D)"
+    using H by (auto simp: get_maximum_level_plus lev_L max_def get_maximum_level_add_mset)
   ultimately show \<open>Ex (backtrack S)\<close>
     using backtrack_no_decomp[OF confl _ lev_L] level_inv
-      alien by (auto simp add: lev_L max_def n_s)
+      alien get_maximum_level_add_mset
+    by (auto simp add: lev_L max_def n_s)
 
   show \<open>no_step resolve S\<close>
     using L by (auto elim!: resolveE)
@@ -2777,7 +2777,7 @@ proof -
     using count_decided_ge_get_maximum_level[of ?M] level_inv unfolding cdcl\<^sub>W_M_level_inv_def
     by auto
 
-  let ?D = "D + {#L#}"
+  let ?D = "add_mset L D"
   have "?D \<noteq> {#}" by auto
   have "?M \<Turnstile>as CNot ?D" using confl conf unfolding cdcl\<^sub>W_conflicting_def by auto
   then have "?M \<noteq> []" unfolding true_annots_def Ball_def true_annot_def true_cls_def by force
@@ -2787,13 +2787,13 @@ proof -
     using \<open>trail S \<noteq> []\<close> by fastforce
   then have M: "?M = Propagated L' C # tl ?M"
     using \<open>?M \<noteq> []\<close> list.collapse by fastforce
-  then obtain C' where C': "C = C' + {#L'#}"
+  then obtain C' where C': "C = add_mset L' C'"
     using conf unfolding cdcl\<^sub>W_conflicting_def by (metis append_Nil diff_single_eq_union)
   have L'D: "-L' \<in># ?D"
     using n_s alien level_inv termi skip_rule[OF M confl]
     by (auto dest: other' cdcl\<^sub>W_o.intros cdcl\<^sub>W_bj.intros)
 
-  obtain D' where D': "?D = D' + {#-L'#}" using L'D by (metis insert_DiffM2)
+  obtain D' where D': "?D = add_mset (-L') D'" using L'D by (metis insert_DiffM)
   then have "get_maximum_level (trail S) D' \<le> ?k"
     using count_decided_ge_get_maximum_level[of "Propagated L' C # tl ?M"] M
     level_inv unfolding cdcl\<^sub>W_M_level_inv_def by auto
@@ -2807,21 +2807,21 @@ proof -
       then have f1: "get_maximum_level (trail S) D' = backtrack_lvl S"
         using M by auto
       then have "Ex (cdcl\<^sub>W_o S)"
-        using f1 resolve_rule[of S L' C , OF \<open>trail S \<noteq> []\<close> _ _ confl] conf g_D'_k
-          L'C L'D by (fastforce simp add: D' C' intro: cdcl\<^sub>W_o.intros cdcl\<^sub>W_bj.intros)
+        using resolve_rule[of S L' C , OF \<open>trail S \<noteq> []\<close> _ _ confl] conf
+          L'C L'D  D' C' by (auto dest: cdcl\<^sub>W_o.intros cdcl\<^sub>W_bj.intros)
       then show False
         using n_s termi by (auto dest: other' cdcl\<^sub>W_o.intros cdcl\<^sub>W_bj.intros)
     next
       case a1: D'_le_max_lvl
       then have f3: "get_maximum_level (trail S) D' < get_level (trail S) (-L')"
-        using a1 lev_L by (metis D' get_maximum_level_ge_get_level insert_noteq_member
+        using a1 lev_L D' by (metis D' get_maximum_level_ge_get_level insert_noteq_member
             not_less)
       moreover have "backtrack_lvl S = get_level (trail S) L'"
         apply (subst M)
         using level_inv unfolding cdcl\<^sub>W_M_level_inv_def
         by (subst (asm)(3) M) (auto simp add: cdcl\<^sub>W_M_level_inv_decomp)[]
       moreover then have "get_level (trail S) L' = get_maximum_level (trail S) (D' + {#- L'#})"
-        using a1 by (auto simp add: get_maximum_level_plus max_def)
+        using a1 by (auto simp add: get_maximum_level_add_mset max_def)
       ultimately show False
         using M backtrack_no_decomp[of S _ "-L'", OF confl] level_inv n_s termi
         by (auto simp: D' dest: other' cdcl\<^sub>W_o.intros cdcl\<^sub>W_bj.intros)

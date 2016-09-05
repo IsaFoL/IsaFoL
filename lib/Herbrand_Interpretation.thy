@@ -46,6 +46,9 @@ lemma true_cls_singleton[iff]: "I \<Turnstile> {#L#} \<longleftrightarrow> I \<T
 lemma true_cls_union[iff]: "I \<Turnstile> C + D \<longleftrightarrow> I \<Turnstile> C \<or> I \<Turnstile> D"
   unfolding true_cls_def by auto
 
+lemma true_cls_add_mset[iff]: "I \<Turnstile> add_mset C D \<longleftrightarrow> I \<Turnstile>l C \<or> I \<Turnstile> D"
+  unfolding true_cls_def by auto
+
 lemma true_cls_mono: "set_mset C \<subseteq> set_mset D \<Longrightarrow> I \<Turnstile> C \<Longrightarrow> I \<Turnstile> D"
   unfolding true_cls_def subset_eq by metis
 
@@ -97,6 +100,9 @@ lemma true_cls_mset_singleton[iff]: "I \<Turnstile>m {#C#} \<longleftrightarrow>
   unfolding true_cls_mset_def by auto
 
 lemma true_cls_mset_union[iff]: "I \<Turnstile>m CC + DD \<longleftrightarrow> I \<Turnstile>m CC \<and> I \<Turnstile>m DD"
+  unfolding true_cls_mset_def by auto
+
+lemma true_cls_mset_add_mset[iff]: "I \<Turnstile>m add_mset C CC \<longleftrightarrow> I \<Turnstile> C \<and> I \<Turnstile>m CC"
   unfolding true_cls_mset_def by auto
 
 lemma true_cls_mset_image_mset[iff]: "I \<Turnstile>m image_mset f A \<longleftrightarrow> (\<forall>x . x \<in># A \<longrightarrow> I \<Turnstile> f x)"

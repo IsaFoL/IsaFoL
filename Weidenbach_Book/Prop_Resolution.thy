@@ -11,9 +11,9 @@ subsection \<open>Simplification Rules\<close>
 
 inductive simplify  :: "'v clauses \<Rightarrow> 'v clauses \<Rightarrow> bool" for N :: "'v clause set" where
 tautology_deletion:
-  "A + {#Pos P#} + {#Neg P#} \<in> N \<Longrightarrow> simplify  N (N - {A + {#Pos P#} + {#Neg P#}})"|
+  "add_mset (Pos P) (add_mset (Neg P) A) \<in> N \<Longrightarrow> simplify  N (N - {add_mset (Pos P) (add_mset (Neg P) A)})"|
 condensation:
-  "A + {#L#} + {#L#} \<in> N \<Longrightarrow> simplify N (N - {A + {#L#} + {#L#}} \<union> {A + {#L#}})" |
+  "add_mset L (add_mset L A) \<in> N \<Longrightarrow> simplify N (N - {add_mset L (add_mset L A)} \<union> {add_mset L A})" |
 subsumption:
   "A \<in> N \<Longrightarrow> A \<subset># B \<Longrightarrow> B \<in> N \<Longrightarrow> simplify N (N - {B})"
 
@@ -24,15 +24,14 @@ lemma simplify_preserves_un_sat':
   shows "I \<Turnstile>s N' \<longrightarrow> I \<Turnstile>s N"
   using assms
 proof (induct rule: simplify.induct)
-  case (tautology_deletion A P)
-  then have "I \<Turnstile> A + {#Pos P#} + {#Neg P#}"
-    by (metis total_over_m_def total_over_set_literal_defined true_cls_singleton true_cls_union
-      true_lit_def uminus_Neg union_commute)
+  case (tautology_deletion P A)
+  then have "I \<Turnstile> add_mset (Pos P) (add_mset (Neg P) A)"
+    by (fastforce dest: mk_disjoint_insert)
   then show ?case by (metis Un_Diff_cancel2 true_clss_singleton true_clss_union)
 next
   case (condensation A P)
-  then show ?case by (metis Diff_insert_absorb Set.set_insert insertE true_cls_union true_clss_def
-    true_clss_singleton true_clss_union)
+  then show ?case 
+    by (fastforce dest: mk_disjoint_insert)
 next
   case (subsumption A B)
   have "A \<noteq> B" using subsumption.hyps(2) by auto
@@ -82,7 +81,7 @@ proof (induct rule: simplify.induct)
   case (tautology_deletion A P)
   then show ?case by auto
 next
-  case (condensation A P)
+  case (condensation P A)
   moreover have "A + {#P#} + {#P#} \<in> \<psi> \<Longrightarrow> \<exists>x\<in>\<psi>. atm_of P \<in> atm_of ` set_mset x"
     by (metis Un_iff atms_of_def atms_of_plus atms_of_singleton insert_iff)
   ultimately show ?case by (auto simp add: atms_of_def)
@@ -99,20 +98,23 @@ lemma rtranclp_simplify_atms_of_ms:
   using simplify_atms_of_ms by blast
 
 lemma factoring_imp_simplify:
-  assumes "{#L#} + {#L#} + C \<in> N"
+  assumes "{#L, L#} + C \<in> N"
   shows "\<exists>N'. simplify N N'"
 proof -
-  have "C + {#L#} + {#L#} \<in> N" using assms by (simp add: add.commute union_lcomm)
+  have "add_mset L (add_mset L C) \<in> N" using assms by (simp add: add.commute union_lcomm)
   from condensation[OF this] show ?thesis by blast
 qed
 
+
 subsection \<open>Unconstrained Resolution\<close>
+
 type_synonym 'v uncon_state = "'v clauses"
+
 inductive uncon_res :: "'v uncon_state \<Rightarrow> 'v uncon_state \<Rightarrow> bool" where
 resolution:
-  "{#Pos p#} + C \<in> N \<Longrightarrow> {#Neg p#} + D \<in> N \<Longrightarrow> ({#Pos p#} + C, {#Neg p#} + D) \<notin> already_used
+  "{#Pos p#} + C \<in> N \<Longrightarrow> {#Neg p#} + D \<in> N \<Longrightarrow> (add_mset (Pos p) C, add_mset (Neg P) D) \<notin> already_used
     \<Longrightarrow> uncon_res N (N \<union> {C + D})" |
-factoring: "{#L#} + {#L#} + C \<in> N \<Longrightarrow> uncon_res N (N \<union>{C + {#L#}})"
+factoring: "{#L#} + {#L#} + C \<in> N \<Longrightarrow> uncon_res N (insert (add_mset L C) N)"
 
 lemma uncon_res_increasing:
   assumes "uncon_res S S'" and "\<psi> \<in> S"
@@ -123,6 +125,7 @@ lemma rtranclp_uncon_inference_increasing:
   assumes "rtranclp uncon_res S S'" and "\<psi> \<in> S"
   shows "\<psi> \<in> S'"
   using assms by (induct rule: rtranclp_induct) (auto simp add: uncon_res_increasing)
+
 
 subsubsection \<open>Subsumption\<close>
 
@@ -144,19 +147,21 @@ lemma subsumes_subsumption:
   by (blast intro!: subset_mset.less_imp_le)
 
 lemma subsumes_tautology:
-  assumes "subsumes (C + {#Pos P#} + {#Neg P#}) \<chi>"
+  assumes "subsumes (add_mset (Pos P) (add_mset (Neg P) C)) \<chi>"
   shows "tautology \<chi>"
-  using assms unfolding subsumes_def by (simp add: tautology_def)
+  using assms unfolding subsumes_def by (auto simp add: tautology_def)
 
 
 subsection \<open>Inference Rule\<close>
+
 type_synonym 'v state = "'v clauses \<times> ('v clause \<times> 'v clause) set"
+
 inductive inference_clause :: "'v state \<Rightarrow> 'v clause \<times> ('v clause \<times> 'v clause) set \<Rightarrow> bool"
   (infix "\<Rightarrow>\<^sub>\<Res>" 100) where
 resolution:
   "{#Pos p#} + C \<in> N \<Longrightarrow> {#Neg p#} + D \<in> N \<Longrightarrow> ({#Pos p#} + C, {#Neg p#} + D) \<notin> already_used
   \<Longrightarrow> inference_clause (N, already_used) (C + D, already_used \<union> {({#Pos p#} + C, {#Neg p#} + D)})" |
-factoring: "{#L#} + {#L#} + C \<in> N \<Longrightarrow> inference_clause (N, already_used) (C + {#L#}, already_used)"
+factoring: "{#L, L#} + C \<in> N \<Longrightarrow> inference_clause (N, already_used) (C + {#L#}, already_used)"
 
 inductive inference :: "'v state \<Rightarrow> 'v state \<Rightarrow> bool" where
 inference_step: "inference_clause S (clause, already_used)
@@ -246,25 +251,25 @@ next
         qed
     qed
 next
-  case (tautology_deletion C P)
-  then show ?case apply clarify
-  proof -
+  case (tautology_deletion P C)
+  then show ?case
+  proof clarify
     fix a b
-    assume "C + {#Pos P#} + {#Neg P#} \<in> N"
+    assume "add_mset (Pos P) (add_mset (Neg P) C) \<in> N"
     assume "already_used_inv (N, already_used)"
-    and "(a, b) \<in> snd (N - {C + {#Pos P#} + {#Neg P#}}, already_used)"
+    and "(a, b) \<in> snd (N - {add_mset (Pos P) (add_mset (Neg P) C)}, already_used)"
     then obtain p where
       "Pos p \<in># a \<and> Neg p \<in># b \<and>
-        ((\<exists>\<chi>\<in>fst (N \<union> {C + {#Pos P#} + {#Neg P#}}, already_used).
+        ((\<exists>\<chi>\<in>fst (N \<union> {add_mset (Pos P) (add_mset (Neg P) C)}, already_used).
               subsumes \<chi> (a - {#Pos p#} + (b - {#Neg p#})))
           \<or> tautology (a - {#Pos p#} + (b - {#Neg p#})))"
       by fastforce
-    moreover have "tautology (C + {#Pos P#} + {#Neg P#})" by auto
+    moreover have "tautology (add_mset (Pos P) (add_mset (Neg P) C))" by auto
     ultimately show
-      "\<exists>p. Pos p \<in># a \<and> Neg p \<in># b
-      \<and> ((\<exists>\<chi>\<in>fst (N - {C + {#Pos P#} + {#Neg P#}}, already_used).
-            subsumes \<chi> (a - {#Pos p#} + (b - {#Neg p#})))
-          \<or> tautology (a - {#Pos p#} + (b - {#Neg p#})))"
+      "\<exists>p. Pos p \<in># a \<and> Neg p \<in># b \<and>
+      ((\<exists>\<chi>\<in>fst (N - {add_mset (Pos P) (add_mset (Neg P) C)}, already_used). 
+        subsumes \<chi> (remove1_mset (Pos p) a + remove1_mset (Neg p) b)) \<or>
+        tautology (remove1_mset (Pos p) a + remove1_mset (Neg p) b))"
       by (metis (no_types) Diff_iff Un_insert_right empty_iff fst_conv insertE subsumes_tautology
         sup_bot.right_neutral)
   qed
@@ -272,10 +277,10 @@ qed
 
 
 lemma
-  factoring_satisfiable: "I \<Turnstile> {#L#} + {#L#} + C \<longleftrightarrow> I \<Turnstile> {#L#} + C" and
+  factoring_satisfiable: "I \<Turnstile> add_mset L (add_mset L C) \<longleftrightarrow> I \<Turnstile> add_mset L C" and
   resolution_satisfiable:
-    "consistent_interp I \<Longrightarrow> I \<Turnstile> {#Pos p#} + C \<Longrightarrow> I \<Turnstile> {#Neg p#} + D \<Longrightarrow> I \<Turnstile> C + D" and
-    factoring_same_vars: "atms_of ({#L#} + {#L#} + C) = atms_of ({#L#} + C)"
+    "consistent_interp I \<Longrightarrow> I \<Turnstile> add_mset (Pos p) C \<Longrightarrow> I \<Turnstile> add_mset (Neg p) D \<Longrightarrow> I \<Turnstile> C + D" and
+    factoring_same_vars: "atms_of (add_mset L (add_mset L C)) = atms_of (add_mset L C)"
   unfolding true_cls_def consistent_interp_def by (fastforce split: if_split_asm)+
 
 lemma inference_increasing:
@@ -322,12 +327,7 @@ lemma inference_preserves_un_sat:
 lemma inference_clause_preserves_atms_of_ms:
   assumes "inference_clause S S'"
   shows "atms_of_ms (fst (fst S \<union> {fst S'}, snd S')) \<subseteq> atms_of_ms (fst S)"
-  using assms apply (induct rule: inference_clause.induct)
-   apply auto
-     apply (metis Set.set_insert UnCI atms_of_ms_insert atms_of_plus)
-    apply (metis Set.set_insert UnCI atms_of_ms_insert atms_of_plus)
-   apply (simp add: in_m_in_literals union_assoc)
-  unfolding atms_of_ms_def using assms by fastforce
+  using assms by (induct rule: inference_clause.induct) (auto dest!: atms_of_atms_of_ms_mono)
 
 lemma inference_preserves_atms_of_ms:
   fixes N N' :: "'v clauses"
@@ -399,8 +399,8 @@ lemma simplify_clause_preserves_sat:
   shows "satisfiable \<psi>"
   using assms
 proof induction
-  case (tautology_deletion A P) note AP = this(1) and sat = this(2)
-  let ?A' = "A + {#Pos P#} + {#Neg P#}"
+  case (tautology_deletion P A) note AP = this(1) and sat = this(2)
+  let ?A' = "add_mset (Pos P) (add_mset (Neg P) A)"
   let ?\<psi>' = "\<psi> - {?A'}"
   obtain I where
     I: "I \<Turnstile>s ?\<psi>'" and
@@ -416,8 +416,8 @@ proof induction
     assume Pos: "Pos P \<notin> I" and Neg: "Neg P \<notin> I"
     then have "consistent_interp (I \<union> {Pos P})" using cons by simp
     moreover have I'A: "I \<union> {Pos P} \<Turnstile> ?A'" by auto
-    have "{Pos P} \<union> I \<Turnstile>s \<psi> - {A + {#Pos P#} + {#Neg P#}}"
-      using \<open>I \<Turnstile>s \<psi> - {A + {#Pos P#} + {#Neg P#}}\<close> true_clss_union_increase' by blast
+    have "{Pos P} \<union> I \<Turnstile>s \<psi> - {?A'}"
+      using \<open>I \<Turnstile>s \<psi> - {?A'}\<close> true_clss_union_increase' by blast
     then have "I \<union> {Pos P} \<Turnstile>s \<psi>"
       by (metis (no_types) Un_empty_right Un_insert_left Un_insert_right I'A insert_Diff
         sup_bot.left_neutral tautology_deletion.hyps true_clss_insert)
@@ -425,22 +425,23 @@ proof induction
   }
   ultimately show ?case by blast
 next
-  case (condensation A L) note AL = this(1) and sat = this(2)
-  have f3: "simplify \<psi> (\<psi> - {A + {#L#} + {#L#}} \<union> {A + {#L#}})"
+  case (condensation L A) note AL = this(1) and sat = this(2)
+  let ?A' = "add_mset L A"
+  let ?A = "add_mset L (add_mset L A)"
+  have f3: "simplify \<psi> (\<psi> - {?A} \<union> {?A'})"
     using AL simplify.condensation by blast
-  obtain LL :: "'a literal multiset set \<Rightarrow> 'a literal set" where
-    f4: "LL (\<psi> - {A + {#L#} + {#L#}} \<union> {A + {#L#}}) \<Turnstile>s \<psi> - {A + {#L#} + {#L#}} \<union> {A + {#L#}}
-      \<and> consistent_interp (LL (\<psi> - {A + {#L#} + {#L#}} \<union> {A + {#L#}}))
-      \<and> total_over_m (LL (\<psi> - {A + {#L#} + {#L#}}
-                      \<union> {A + {#L#}})) (\<psi> - {A + {#L#} + {#L#}} \<union> {A + {#L#}})"
+  obtain LL :: "'a literal set" where
+    f4: "LL \<Turnstile>s \<psi> - {?A} \<union> {?A'}
+      \<and> consistent_interp LL
+      \<and> total_over_m LL (\<psi> - {?A} \<union> {?A'})"
     using sat by (meson satisfiable_def)
   have f5: "insert (A + {#L#} + {#L#}) (\<psi> - {A + {#L#} + {#L#}}) = \<psi>"
     using AL by fastforce
-  have "atms_of (A + {#L#} + {#L#}) = atms_of ({#L#} + A)"
+  have "atms_of (?A') = atms_of (?A)"
     by simp
   then show ?case
-    using f5 f4 f3 by (metis (no_types) add.commute satisfiable_def simplify_preserves_un_sat'
-      total_over_m_insert total_over_m_union)
+    using f5 f4 f3 by (metis Un_insert_right add_mset_add_single atms_of_ms_insert satisfiable_carac
+        simplify_preserves_un_sat' sup_bot.right_neutral total_over_m_def)
 next
   case (subsumption A B) note A = this(1) and AB = this(2) and B = this(3) and sat = this(4)
   let ?\<psi>' = "\<psi> - {B}"
@@ -487,11 +488,11 @@ lemma simplify_preserve_partial_leaf:
   "simplify N N' \<Longrightarrow> partial_interps Leaf I N \<Longrightarrow> partial_interps Leaf I N'"
   apply (induct rule: simplify.induct)
     using union_lcomm apply auto[1]
-   apply (simp, metis atms_of_plus total_over_set_union true_cls_union)
-  apply simp
-  by (metis atms_of_ms_singleton mset_subset_eq_exists_conv subset_mset_def true_cls_mono_leD
-    total_over_m_def total_over_m_sum)
-
+   apply (simp add: )
+   apply (metis atms_of_remdups_mset remdups_mset_singleton_sum true_cls_add_mset union_single_eq_member)
+  apply auto
+  by (metis atms_of_ms_emtpy_set subsumption_total_over_m total_over_m_def total_over_m_insert
+      total_over_set_empty true_cls_mono_leD)
 
 lemma simplify_preserve_partial_tree:
   assumes "simplify N N'"
@@ -643,14 +644,15 @@ next
    moreover {
      assume "n > 0"
      then have "\<exists>C. \<chi> = C + {#L, L#}"
-        by (smt L Suc_eq_plus1_left add.left_commute add_diff_cancel_left' add_diff_cancel_right'
-          count_greater_zero_iff count_single local.count multi_member_split plus_multiset.rep_eq)
+       by (metis Suc_inject union_mset_add_mset_right add_mset_add_single count_add_mset count_inI
+           less_not_refl3 local.count mset_add zero_less_Suc)
      then obtain C where C: "\<chi> = C + {#L, L#}" by metis
      let ?\<chi>' = "C +{#L#}"
      let ?\<psi>' = "(fst \<psi> \<union> {?\<chi>'}, snd \<psi>)"
      have \<phi>: "\<forall>\<phi> \<in> fst \<psi>. (\<phi> \<in> fst \<psi> \<or> \<phi> \<noteq> ?\<chi>') \<longleftrightarrow> \<phi> \<in> fst ?\<psi>'" unfolding C by auto
      have inf: "inference \<psi> ?\<psi>'"
-       using C factoring \<chi> prod.collapse union_commute inference_step by metis
+       using C factoring \<chi> prod.collapse union_commute inference_step 
+       by (metis add_mset_add_single)
      moreover have count': "count ?\<chi>' L = n" using C count by auto
      moreover have L\<chi>': "L \<in># ?\<chi>'" by auto
      moreover have \<chi>'\<psi>': "?\<chi>' \<in> fst ?\<psi>'" by auto
@@ -753,15 +755,12 @@ proof (induct arbitrary: I rule: sem_tree_size)
         and tot_imp\<chi>': "\<forall>I'. total_over_m I' {\<chi>'} \<longrightarrow> total_over_m I' {\<chi>2'}"
         using can_decrease_count[of \<chi>' "Pos v" " count \<chi>' (Pos v)" \<psi>' I] by auto
 
-        obtain C where \<chi>2: "\<chi>2 = C + {#Neg v#}" and negC: "Neg v \<notin># C" and posC: "Pos v \<notin># C"
-          proof -
-            have "\<And>m. Suc 0 - count m (Neg v) = count (\<chi>2 - m) (Neg v)"
-              by (simp add: count\<chi>2)
-            then show ?thesis
-              using that by (metis (no_types) One_nat_def Posv Suc_inject Suc_pred \<chi>\<chi>2_incl
-                count_diff count_single insert_DiffM2 mem_Collect_eq multi_member_skip neg
-                not_gr0 set_mset_def union_commute)
-          qed
+        define C where C: "C = \<chi>2 - {#Neg v#}"
+          
+        then have \<chi>2: "\<chi>2 = C + {#Neg v#}" and negC: "Neg v \<notin># C" and posC: "Pos v \<notin># C"
+            using \<chi>\<chi>2_incl neg apply auto[]
+           using C \<chi>\<chi>2_incl neg count\<chi>2 count_eq_zero_iff apply fastforce
+          using C Posv \<chi>\<chi>2_incl in_diffD by fastforce
 
         obtain C' where
           \<chi>2': "\<chi>2' = C' + {#Pos v#}" and
@@ -994,11 +993,11 @@ proof -
     then have "L \<in># \<chi> - {#L#}"
       by (metis (no_types) add.left_neutral add_diff_cancel_left' count_union diff_diff_add
         diff_single_trivial insert_DiffM mem_Collect_eq multi_member_this not_gr0 set_mset_def)
-    then have \<chi>': "?\<chi>' + {#L#} + {#L#} = \<chi>"
-      using f1 by (metis diff_diff_add diff_single_eq_union in_diffD)
+    then have \<chi>': "{#L, L#} + ?\<chi>' = \<chi>"
+      using f1 in_diffD insert_DiffM by fastforce
 
     have "\<exists>\<psi>'. simplify \<psi> \<psi>'"
-      by (metis (no_types, hide_lams) \<chi> \<chi>' add.commute factoring_imp_simplify union_assoc)
+      by (metis (no_types, hide_lams) \<chi> \<chi>' factoring_imp_simplify)
     then have False using simp by auto
   }
   then show ?thesis by arith
@@ -1010,10 +1009,14 @@ lemma simplified_no_both:
 proof (rule ccontr)
   assume "\<not> \<not> (L \<in># \<chi> \<and> - L \<in># \<chi>)"
   then have "L \<in># \<chi> \<and> - L \<in># \<chi>" by metis
-  then obtain  \<chi>' where "\<chi> = \<chi>' + {#Pos (atm_of L)#}+ {#Neg (atm_of L)#}"
-    by (metis Neg_atm_of_iff Pos_atm_of_iff diff_union_swap insert_DiffM2 uminus_Neg uminus_Pos)
-  then show False using \<chi> simp tautology_deletion by fastforce
+  then obtain  \<chi>' where "\<chi> = add_mset (Pos (atm_of L)) (add_mset (Neg (atm_of L)) \<chi>')"
+    by (cases L) (auto dest!: multi_member_split simp: add_eq_conv_ex)
+  then show False using \<chi> simp tautology_deletion by fast
 qed
+
+lemma add_mset_Neg_Pos_commute[simp]:
+  "add_mset (Neg P) (add_mset (Pos P) C) = add_mset (Pos P) (add_mset (Neg P) C)"
+  by (rule add_mset_commute)
 
 lemma simplified_not_tautology:
   assumes "simplified {\<psi>}"
@@ -1022,7 +1025,7 @@ proof (rule ccontr)
   assume "~ ?thesis"
   then obtain p where "Pos p \<in># \<psi> \<and> Neg p \<in># \<psi>" using tautology_decomp by metis
   then obtain \<chi> where "\<psi> = \<chi> + {#Pos p#} + {#Neg p#}"
-    by (metis insert_noteq_member literal.distinct(1) multi_member_split)
+    by (auto dest!: multi_member_split simp: add_eq_conv_ex)
   then have "~ simplified {\<psi>}" by (auto intro: tautology_deletion)
   then show False using assms by auto
 qed
@@ -1038,22 +1041,22 @@ proof (rule ccontr)
     then have False using ns assms by auto
   }
   moreover {
-    assume l\<psi>: "l\<in># \<psi>"
-    have A: "\<And>A. A \<in> {\<psi> - {#l#}} \<longleftrightarrow> A + {#l#} \<in> {\<psi>}" by (auto simp add: l\<psi>)
+    assume l\<psi>: "l \<in># \<psi>"
+    have A: "\<And>A. A \<in> {\<psi> - {#l#}} \<longleftrightarrow> add_mset l A \<in> {\<psi>}" by (auto simp add: l\<psi>)
     obtain l' where l': "simplify {\<psi> - {#l#}} l'" using ns by metis
     then have "\<exists>l'. simplify {\<psi>} l'"
       proof (induction rule: simplify.induct)
-        case (tautology_deletion A P)
-        have "{#Neg P#} + ({#Pos P#} + (A + {#l#})) \<in> {\<psi>}"
-          by (metis (no_types) A add.commute tautology_deletion.hyps union_lcomm)
+        case (tautology_deletion P A)
+        then have "{#Neg P#} + ({#Pos P#} + (A + {#l#})) \<in> {\<psi>}"
+          using A by (auto simp: single_remove1_mset_eq)
         then show ?thesis
-           by (metis simplify.tautology_deletion[of "A+{#l#}" P "{\<psi>}"] add.commute)
+          using simplified_no_both by fastforce
       next
-        case (condensation A L)
-        have "A + {#L#} + {#L#} + {#l#} \<in> {\<psi>}"
-          using A condensation.hyps by blast
+        case (condensation L A)
+        have "add_mset l (add_mset L (add_mset L A)) \<in> {\<psi>}"
+          using condensation.hyps unfolding A by blast
         then have "{#L, L#} + (A + {#l#}) \<in> {\<psi>}"
-          by (metis (no_types) union_assoc union_commute)
+          by auto
         then show ?case
           using factoring_imp_simplify by blast
       next
@@ -1306,8 +1309,9 @@ lemma inference_clause_simplified_already_used_subset:
   assumes "inference_clause S S'"
   and "simplified (fst S)"
   shows "snd S \<subset> snd S'"
-  using assms apply (induct rule: inference_clause.induct, auto)
-  using factoring_imp_simplify by blast
+  using assms apply (induct rule: inference_clause.induct)
+   using factoring_imp_simplify apply (simp; blast)
+  using factoring_imp_simplify by force
 
 lemma inference_simplified_already_used_subset:
   assumes "inference S S'"
@@ -1696,17 +1700,17 @@ qed
 lemma simplify_finite_measure_decrease:
   "simplify N N' \<Longrightarrow> finite N \<Longrightarrow> card N' + \<Xi> N' < card N + \<Xi> N"
 proof (induction rule: simplify.induct)
-  case (tautology_deletion A P) note an = this(1) and fin = this(2)
-  let ?N' = "N - {A + {#Pos P#} + {#Neg P#}}"
+  case (tautology_deletion P A) note an = this(1) and fin = this(2)
+  let ?N' = "N - {add_mset (Pos P) (add_mset (Neg P) A)}"
   have "card ?N' < card N"
     by (meson card_Diff1_less tautology_deletion.hyps tautology_deletion.prems)
   moreover have "?N' \<subseteq> N" by auto
   then have "sum_count_ge_2 ?N' \<le> sum_count_ge_2 N" using finite_incl_le_setsum[OF fin] by blast
   ultimately show ?case by linarith
 next
-  case (condensation A L) note AN = this(1) and fin = this(2)
-  let ?C' = "A + {#L#}"
-  let ?C = "A + {#L#} + {#L#}"
+  case (condensation L A) note AN = this(1) and fin = this(2)
+  let ?C' = "add_mset L A"
+  let ?C = "add_mset L ?C'"
   let ?N' = "N - {?C} \<union> {?C'}"
   have "card ?N' \<le> card N"
     using AN by (metis (no_types, lifting) Diff_subset Un_empty_right Un_insert_right card.remove
@@ -1721,8 +1725,13 @@ next
       have mset_decomp2: "{# La \<in># A. L \<noteq> La \<longrightarrow> 2 \<le> count A La#} =
         {# La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#} + replicate_mset (count A L) L"
         by (auto simp: multiset_eq_iff)
+      have *: "(\<Sum>x\<in>#B. if L = x then Suc (count A x) else count A x) \<le> 
+        (\<Sum>x\<in>#B. if L = x then Suc (count (add_mset L A) x) else count (add_mset L A) x)"
+        for B
+        by (auto intro!: msetsum_mono)
       show ?thesis
-        by (auto simp: mset_decomp mset_decomp2 filter_mset_eq ac_simps)
+        using *[of "{#La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#}"]
+        by (auto simp: mset_decomp mset_decomp2 filter_mset_eq)
    qed
   have "\<Xi> ?N' < \<Xi> N"
     proof cases
@@ -1735,12 +1744,12 @@ next
             by simp
           then have f4: "\<And>M m. M - {m::'a literal multiset} = M \<union> {} \<or> m \<in> M"
             using Diff_insert_absorb Un_empty_right by fastforce
-          have f5: "insert (A + {#L#} + {#L#}) N = N"
+          have f5: "insert ?C N = N"
             using f3 f2 Un_empty_right condensation.hyps insert_iff by fastforce
           have "\<And>m M. insert (m::'a literal multiset) M = M \<union> {} \<or> m \<notin> M"
             using f3 f2 Un_empty_right add.right_neutral insert_iff by fastforce
-          then have "\<Xi> (N - {A + {#L#} + {#L#}}) < \<Xi> N"
-            using f5 f4 by (metis Un_empty_right \<open>\<Xi> {A + {#L#}} < \<Xi> {A + {#L#} + {#L#}}\<close>
+          then have "\<Xi> (N - {?C}) < \<Xi> N"
+            using f5 f4 by (metis Un_empty_right \<open>\<Xi> {?C'} < \<Xi> {?C}\<close>
               add.right_neutral add_diff_cancel_left' add_gr_0 diff_less fin finite.emptyI not_le
               sum_count_ge_2.empty sum_count_ge_2.insert_remove trans_le_add2)
           then show ?thesis
@@ -1759,8 +1768,8 @@ next
         by (auto simp: multiset_eq_iff)
 
       show ?thesis
-        using \<open>\<Xi> {A + {#L#}} < \<Xi> {A + {#L#} + {#L#}}\<close> condensation.hyps fin
-        sum_count_ge_2.remove[of _ "A + {#L#} + {#L#}"] \<open>?C' \<notin> N\<close>
+        using \<open>\<Xi> {?C'} < \<Xi> {?C}\<close> condensation.hyps fin
+        sum_count_ge_2.remove[of _ ?C] \<open>?C' \<notin> N\<close>
         by (auto simp: mset_decomp mset_decomp2 filter_mset_eq)
     qed
   ultimately show ?case by linarith
@@ -1896,34 +1905,33 @@ proof (induct arbitrary: I rule: sem_tree_size)
             using simplified_count[OF simp \<chi>'\<psi>] pos
             by (simp add: dual_order.antisym)
 
-          obtain C where \<chi>C: "\<chi> = C + {#Neg v#}" and negC: "Neg v \<notin># C" and posC: "Pos v \<notin># C"
-            by (metis (no_types, lifting) One_nat_def Posv Suc_eq_plus1_left \<open>count \<chi> (Neg v) = 1\<close>
-              add_diff_cancel_left' count_diff count_greater_eq_one_iff count_single insert_DiffM
-              insert_DiffM2 less_numeral_extra(3) multi_member_skip not_le not_less_eq_eq)
+          obtain C where \<chi>C: "\<chi> = add_mset (Neg v) C" and negC: "Neg v \<notin># C" and posC: "Pos v \<notin># C"
+            by (metis (no_types, lifting) One_nat_def Posv \<open>count \<chi> (Neg v) = 1\<close> 
+                \<open>count \<chi>' (Pos v) = 1\<close> count_add_mset count_greater_eq_Suc_zero_iff insert_DiffM 
+                le_numeral_extra(2) nat.inject pos)
 
           obtain C' where
-            \<chi>C': "\<chi>' = C' + {#Pos v#}" and
+            \<chi>C': "\<chi>' = add_mset (Pos v) C'" and
             posC': "Pos v \<notin># C'" and
             negC': "Neg v \<notin># C'"
-            by (metis (no_types, lifting) One_nat_def Negv Suc_eq_plus1_left \<open>count \<chi>' (Pos v) = 1\<close>
-              add_diff_cancel_left' count_diff count_greater_eq_one_iff count_single insert_DiffM
-              insert_DiffM2 less_numeral_extra(3) multi_member_skip not_le not_less_eq_eq)
+            by (metis (no_types, lifting) Negv One_nat_def \<open>count \<chi>' (Pos v) = 1\<close> count_add_mset
+                count_eq_zero_iff mset_add nat.inject pos)
 
           have totC: "total_over_m I {C}"
-            using tot\<chi> tot_over_m_remove[of I "Pos v" C] negC posC unfolding \<chi>C
-            by (metis total_over_m_sum uminus_Neg uminus_of_uminus_id)
+            using tot\<chi> tot_over_m_remove[of I "Pos v" C] negC posC unfolding \<chi>C by auto
           have totC': "total_over_m I {C'}"
             using tot\<chi>' total_over_m_sum tot_over_m_remove[of I "Neg v" C'] negC' posC'
-            unfolding \<chi>C' by (metis total_over_m_sum uminus_Neg)
+            unfolding \<chi>C' by auto
           have "\<not> I \<Turnstile> C + C'"
             using \<chi> \<chi>' \<chi>C \<chi>C' by auto
           then have part_I_\<psi>''': "partial_interps Leaf I (fst \<psi> \<union> {C + C'})"
             using totC totC' \<open>\<not> I \<Turnstile> C + C'\<close> by (metis Un_insert_right insertI1
               partial_interps.simps(1) total_over_m_sum)
           {
-            assume "({#Pos v#} + C', {#Neg v#} + C) \<notin> snd \<psi>"
+            assume "(add_mset (Pos v) C', add_mset (Neg v) C) \<notin> snd \<psi>"
             then have inf'': "inference \<psi> (fst \<psi> \<union> {C + C'}, snd \<psi> \<union> {(\<chi>', \<chi>)})"
-              by (metis \<chi>'\<psi> \<chi>C \<chi>C' \<chi>\<psi> add.commute inference_step prod.collapse resolution)
+              by (metis \<chi>'\<psi> \<chi>C \<chi>C' \<chi>\<psi> add_mset_add_single inference_clause.resolution 
+                  inference_step prod.collapse union_commute)
             obtain N' where full: "full simplify (fst \<psi> \<union> {C + C'}) N'"
               by (metis finite_simplified_full_simp fst_conv inf'' inference_preserves_finite
                 local.finite)

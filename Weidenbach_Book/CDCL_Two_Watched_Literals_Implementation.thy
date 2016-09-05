@@ -213,7 +213,7 @@ proof -
       moreover
         have "unwatched (twl_clause C) = {#}"
           using twl_cls_wf[of "C"] it_of_watched_ordered[OF assms]
-          by (cases "twl_cls_wf C") (auto simp: j distinct_plus_subset_mset_empty)
+          by (cases "twl_cls_wf C") (auto simp: j dest: distinct_plus_subset_mset_empty)
       ultimately show ?thesis
         using it_of_watched_ordered[OF L] by auto
     next
@@ -1354,7 +1354,7 @@ proof -
     by (auto simp: distinct_mset_remove1_All)
   have \<open>get_maximum_level M D =
       get_maximum_level M (remove1_mset ?L' D)\<close>
-    using get_maximum_level_plus[of M \<open>remove1_mset ?L' D\<close> \<open>{#?L'#}\<close>] \<open>?L' \<in># D\<close>
+    using get_maximum_level_add_mset[of M ?L' \<open>remove1_mset ?L' D\<close>] \<open>?L' \<in># D\<close>
     by auto
   also {
     have H: \<open>\<forall>x\<in>atms_of (removeAll_mset (- lit_of L) D). x \<noteq> atm_of (lit_of L)\<close>

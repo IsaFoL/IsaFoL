@@ -196,7 +196,7 @@ fun maximum_level_code:: "'a literal list \<Rightarrow> ('a, 'b) ann_lits \<Righ
 
 lemma maximum_level_code_eq_get_maximum_level[simp]:
   "maximum_level_code D M = get_maximum_level M (mset D)"
-  by (induction D) (auto simp add: get_maximum_level_plus)
+  by (induction D) (auto simp add: get_maximum_level_add_mset)
 
 lemma [code]:
   fixes M :: "('a, 'b) ann_lits"
@@ -235,7 +235,7 @@ next
     moreover then have "mset Ls + mset D - {#L#} + {#L'#} = {#L'#} + mset D + (mset Ls - {#L#})"
       by (auto simp: ac_simps multiset_eq_iff Suc_leI)
     ultimately have f4: "get_maximum_level M (mset Ls + mset D - {#L#} + {#L'#}) = j"
-      by (metis add.commute diff_union_single_conv in_multiset_in_set mset.simps(2))
+      by auto
   } note f4 = this
   have "{#L'#} + (mset Ls + mset D) = mset Ls + (mset D + {#L'#})"
       by (auto simp: ac_simps)
@@ -243,8 +243,9 @@ next
     "L = L' \<longrightarrow> get_maximum_level M (mset Ls + mset D) = j \<and> get_level M L' = k" and
     "L \<noteq> L' \<longrightarrow> L \<in> set Ls \<and> get_maximum_level M (mset Ls + mset D - {#L#} + {#L'#}) = j \<and>
       get_level M L = k"
-      using a2 a1[of "L' # D"] unfolding find_def apply (metis add_diff_cancel_left' mset.simps(2)
-        option.inject prod.inject union_commute)
+     using a2 a1[of "L' # D"] unfolding find_def
+     apply (metis add.commute add_diff_cancel_left' add_mset_add_single mset.simps(2) 
+         option.inject prod.inject)
     using f4 a2 a1[of "L' # D"] unfolding find_def by (metis option.inject prod.inject)
   then show ?case by simp
 qed

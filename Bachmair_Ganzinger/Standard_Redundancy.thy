@@ -71,7 +71,8 @@ proof -
       by (meson contra_subsetD in_diffD subsetI union_iff)
     moreover have "\<forall>I. I \<Turnstile>m DD + EE \<longrightarrow> I \<Turnstile> E"
       using cc'_imp_d cc_imp_c d_in_cc unfolding DD_def true_cls_mset_def 
-      by (metis (no_types, lifting) add_eq_conv_ex insert_DiffM2 multi_member_last union_iff)
+      apply (auto simp: in_remove1_mset_neq) 
+      by (metis in_remove1_mset_neq)
     moreover have "\<forall>C'. C' \<in># DD \<longrightarrow> C' < C"
       using cc_lt_c cc'_lt_d d_in_cc unfolding DD_def
       by (metis insert_DiffM2 dual_order.strict_trans union_iff)
@@ -79,7 +80,7 @@ proof -
       unfolding DD_def
       proof (rule union_le_diff_plus)
         show "{#D#} \<le># CC"
-          using d_in_cc by (metis insert_DiffM mset_subset_eq_exists_conv)
+          using d_in_cc by simp
       next
         show "CC' < {#D#}"
           using cc'_lt_d ex_gt_imp_less_multiset unfolding Bex_def  by (metis multi_member_last)

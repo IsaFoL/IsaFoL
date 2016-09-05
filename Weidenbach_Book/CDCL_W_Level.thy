@@ -86,19 +86,19 @@ lemma get_maximum_level_exists_lit_of_max_level:
   unfolding get_maximum_level_def
   apply (induct D)
    apply simp
-  by (rename_tac D x, case_tac "D = {#}") (auto simp add: max_def)
+  by (rename_tac x D, case_tac "D = {#}") (auto simp add: max_def)
 
 lemma get_maximum_level_empty_list[simp]:
   "get_maximum_level [] D = 0"
   unfolding get_maximum_level_def by (simp add: image_constant_conv)
 
-lemma get_maximum_level_single[simp]:
-  "get_maximum_level M {#L#} = get_level M L"
+lemma get_maximum_level_add_mset:
+  "get_maximum_level M (add_mset L D) = max (get_level M L) (get_maximum_level M D)"
   unfolding get_maximum_level_def by simp
 
 lemma get_maximum_level_plus:
   "get_maximum_level M (D + D') = max (get_maximum_level M D) (get_maximum_level M D')"
-  by (induct D) (auto simp add: get_maximum_level_def)
+  by (induction D) (simp_all add: get_maximum_level_add_mset)
 
 lemma get_maximum_level_exists_lit:
   assumes n: "n > 0"

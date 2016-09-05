@@ -32,7 +32,7 @@ context ground_resolution_without_selection
 begin
 
 inductive unord_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  "unord_resolve (C + replicate_mset (Suc n) (Pos A)) ({#Neg A#} + D) (C + D)"
+  "unord_resolve (C + replicate_mset (Suc n) (Pos A)) (add_mset (Neg A) D) (C + D)"
 
 lemma unord_resolve_sound: "unord_resolve C D E \<Longrightarrow> I \<Turnstile> C \<Longrightarrow> I \<Turnstile> D \<Longrightarrow> I \<Turnstile> E"
   unfolding true_cls_def ex_lit_cases true_lit_simps
@@ -66,7 +66,7 @@ proof -
       max_pos_imp_true_in_Interp true_Interp_imp_INTERP by metis
   then obtain A where neg_a_in_c: "Neg A \<in># C"
     by blast
-  then obtain C' where c: "C = {#Neg A#} + C'"
+  then obtain C' where c: "C = add_mset (Neg A) C'"
     using insert_DiffM by metis
   have "A \<in> INTERP N"
     using neg_a_in_c c_cex[unfolded true_cls_def] by fast
@@ -97,7 +97,7 @@ proof -
     by (simp add: filter_eq_replicate_mset del: replicate_mset_Suc)
     (metis in_countE)
   hence res_e: "unord_resolve D C (D' + C')"
-    unfolding c d by (fast intro: unord_resolve.intros)
+    unfolding c d by (fastforce intro: unord_resolve.intros)
 
   have d'_le_d: "D' \<le> D"
     unfolding d by simp

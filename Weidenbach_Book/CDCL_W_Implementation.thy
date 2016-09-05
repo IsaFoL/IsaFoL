@@ -80,7 +80,7 @@ interpretation state\<^sub>W
   raw_trail raw_init_clss raw_learned_clss raw_backtrack_lvl raw_conflicting
   "\<lambda>L (M, S). (L # M, S)"
   "\<lambda>(M, S). (tl M, S)"
-  "\<lambda>C (M, N, U, S). (M, N, {#C#} + U, S)"
+  "\<lambda>C (M, N, U, S). (M, N, add_mset C U, S)"
   "\<lambda>C (M, N, U, S). (M, removeAll_mset C N, removeAll_mset C U, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
@@ -95,7 +95,7 @@ interpretation conflict_driven_clause_learning\<^sub>W
   raw_backtrack_lvl raw_conflicting
   "\<lambda>L (M, S). (L # M, S)"
   "\<lambda>(M, S). (tl M, S)"
-  "\<lambda>C (M, N, U, S). (M, N, {#C#} + U, S)"
+  "\<lambda>C (M, N, U, S). (M, N, add_mset C U, S)"
   "\<lambda>C (M, N, U, S). (M, removeAll_mset C N, removeAll_mset C U, S)"
   "\<lambda>(k::nat) (M, N, U, _, D). (M, N, U, k, D)"
   "\<lambda>D (M, N, U, k, _). (M, N, U, k, D)"
@@ -176,8 +176,7 @@ lemma get_level_map_convert[simp]:
 
 lemma get_maximum_level_map_convert[simp]:
   "get_maximum_level (map convert M) D = get_maximum_level M D"
-  by (induction D)
-     (auto simp add: get_maximum_level_plus)
+  by (induction D) (auto simp add: get_maximum_level_add_mset)
 
 text \<open>Conversion function\<close>
 fun toS :: "'v cdcl\<^sub>W_restart_state_inv_st \<Rightarrow> 'v cdcl\<^sub>W_restart_state" where
@@ -287,7 +286,8 @@ proof (standard, standard)
     setD: "set D = set (L' # C')" and
     C': "mset C' = C" and
     L: "L = L'"
-    using DCL by (metis ex_mset mset.simps(2) mset_eq_setD)
+    using DCL by (metis add_mset_add_single ex_mset list.simps(15) set_mset_add_mset_insert
+        set_mset_mset)
   have "find_first_unit_clause (?N @ ?U) ?M \<noteq> None"
     apply (rule find_first_unit_clause_none[of D "?N @ ?U" ?M L, OF D])
       using MC setD DCL M MC unfolding C'[symmetric] apply auto[1]
@@ -387,7 +387,7 @@ fun maximum_level_code:: "'a literal list \<Rightarrow> ('a, 'a literal list) an
 
 lemma maximum_level_code_eq_get_maximum_level[code, simp]:
   "maximum_level_code D M = get_maximum_level M (mset D)"
-  by (induction D) (auto simp add: get_maximum_level_plus)
+  by (induction D) (auto simp add: get_maximum_level_add_mset)
 
 fun do_resolve_step :: "'v cdcl\<^sub>W_restart_state_inv_st \<Rightarrow> 'v cdcl\<^sub>W_restart_state_inv_st" where
 "do_resolve_step (Propagated L C # Ls, N, U, k, Some D) =
@@ -410,16 +410,17 @@ proof (induction S rule: do_resolve_step.induct)
   have "every_mark_is_a_conflict (toS (Propagated L C # M, N, U, k, Some D))"
     using 1(1) unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def by fast
   then have "L \<in> set C" by fastforce
-  then obtain C' where C: "mset C = C' + {#L#}"
-    by (metis add.commute in_multiset_in_set insert_DiffM)
-  obtain D' where D: "mset D = D' + {#-L#}"
-    using \<open>- L \<in> set D\<close> by (metis add.commute in_multiset_in_set insert_DiffM)
+  then obtain C' where C: "mset C = add_mset L C'"
+    by (metis in_multiset_in_set insert_DiffM)
+  obtain D' where D: "mset D = add_mset (-L) D'"
+    using \<open>- L \<in> set D\<close> by (metis in_multiset_in_set insert_DiffM)
   have D'L:  "D' + {#- L#} - {#-L#} = D'" by (auto simp add: multiset_eq_iff)
 
   have CL: "mset C - {#L#} + {#L#} = mset C" using \<open>L \<in> set C\<close> by (auto simp add: multiset_eq_iff)
   have "get_maximum_level (Propagated L (C' + {#L#}) # map convert M) D' = k"
     using M[simplified] unfolding maximum_level_code_eq_get_maximum_level C[symmetric] CL
-    by (metis D D'L convert.simps(1) get_maximum_level_map_convert list.simps(9))
+    by (metis D D'L \<open>add_mset L C' = mset C\<close> add_mset_add_single convert.simps(1) 
+        get_maximum_level_map_convert list.simps(9))
   then have
     "resolve
        (map convert (Propagated L C # M), mset `# mset N, mset `# mset U, k, Some (mset D))
@@ -430,7 +431,7 @@ proof (induction S rule: do_resolve_step.induct)
   moreover have
     "(map convert (Propagated L C # M), mset `# mset N, mset `# mset U, k, Some (mset D))
      = toS (Propagated L C # M, N, U, k, Some D)"
-    by (auto simp: mset_map)
+    by auto
   moreover
     have "distinct_mset (mset C)" and "distinct_mset (mset D)"
       using \<open>cdcl\<^sub>W_all_struct_inv (toS (Propagated L C # M, N, U, k, Some D))\<close>
@@ -442,7 +443,7 @@ proof (induction S rule: do_resolve_step.induct)
     then have "(map convert M, mset `# mset N, mset `# mset U, k,
     Some ((mset D - {#- L#}) #\<union> (mset C - {#L#})))
     = toS (do_resolve_step (Propagated L C # M, N, U, k, Some D))"
-    using \<open>- L \<in> set D\<close> M by (auto simp:ac_simps mset_map)
+    using \<open>- L \<in> set D\<close> M by (auto simp: ac_simps)
   ultimately show ?case
     by simp
 qed auto
@@ -496,8 +497,8 @@ lemma do_backtrack_step:
       j: "get_maximum_level M (mset (remove1 L C)) = j" and
       levL: "get_level M L = k"
       using find_level_decomp_some[OF fd] by auto
-    obtain C' where C: "mset C = mset C' + {#L#}"
-      using \<open>L \<in> set C\<close> by (metis add.commute ex_mset in_multiset_in_set insert_DiffM)
+    obtain C' where C: "mset C = add_mset L (mset C')"
+      using \<open>L \<in> set C\<close> by (metis ex_mset in_multiset_in_set insert_DiffM)
     obtain M2 where M2: "bt_cut j M = Some M2"
       using db fd unfolding S E by (auto split: option.splits)
     have "no_dup M" and k: "k = count_decided (filter is_decided M)"

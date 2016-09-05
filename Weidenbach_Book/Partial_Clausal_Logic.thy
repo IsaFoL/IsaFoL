@@ -111,10 +111,6 @@ lemma atms_of_atms_of_ms_mono[simp]:
   "A \<in> \<psi> \<Longrightarrow> atms_of A \<subseteq> atms_of_ms \<psi>"
   unfolding atms_of_ms_def by fastforce
 
-lemma atms_of_ms_single_set_mset_atns_of[simp]:
-  "atms_of_ms (single ` set_mset B) = atms_of B"
-  unfolding atms_of_ms_def atms_of_def by auto
-
 lemma atms_of_ms_remove_incl:
   shows "atms_of_ms (Set.remove a \<psi>) \<subseteq> atms_of_ms \<psi>"
   unfolding atms_of_ms_def by auto
@@ -302,6 +298,9 @@ lemma true_cls_empty[iff]: "\<not> I \<Turnstile> {#}"
 
 lemma true_cls_singleton[iff]: "I \<Turnstile> {#L#} \<longleftrightarrow> I \<Turnstile>l L"
   unfolding true_cls_def by (auto split:if_split_asm)
+
+lemma true_cls_add_mset[iff]: "I \<Turnstile> add_mset a D \<longleftrightarrow> a \<in> I \<or> I \<Turnstile> D"
+  unfolding true_cls_def by auto
 
 lemma true_cls_union[iff]: "I \<Turnstile> C + D \<longleftrightarrow> I \<Turnstile> C \<or> I \<Turnstile> D"
   unfolding true_cls_def by auto
@@ -610,8 +609,8 @@ lemma tautology_decomp:
 lemma tautology_false[simp]: "\<not>tautology {#}"
   unfolding tautology_def by auto
 
-lemma tautology_add_single:
-  "tautology ({#a#} + L) \<longleftrightarrow> tautology L \<or> -a \<in># L"
+lemma tautology_add_mset:
+  "tautology (add_mset a L) \<longleftrightarrow> tautology L \<or> -a \<in># L"
   unfolding tautology_decomp by (cases a) auto
 
 lemma minus_interp_tautology:
@@ -707,6 +706,10 @@ lemma true_clss_cls_mono_r'[simp]:
   "A \<Turnstile>p CC' \<Longrightarrow> A \<Turnstile>p CC + CC'"
   unfolding true_clss_cls_def total_over_m_union total_over_m_sum by blast
 
+lemma true_clss_cls_mono_add_mset[simp]:
+  "A \<Turnstile>p CC \<Longrightarrow> A \<Turnstile>p add_mset L CC"
+   using true_clss_cls_mono_r[of A CC "add_mset L {#}"] by simp
+ 
 lemma true_clss_clss_union_l[simp]:
   "A \<Turnstile>ps CC \<Longrightarrow> A \<union> B \<Turnstile>ps CC"
   unfolding true_clss_clss_def total_over_m_union by fastforce
@@ -810,8 +813,8 @@ proof -
 qed
 
 lemma true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or:
-  assumes D: "N \<Turnstile>p D + {#- L#}"
-  and C: "N \<Turnstile>p C + {#L#}"
+  assumes D: "N \<Turnstile>p add_mset (-L) D"
+  and C: "N \<Turnstile>p add_mset L C"
   shows "N \<Turnstile>p D + C"
   unfolding true_clss_cls_def
 proof (intro allI impI)
@@ -837,11 +840,11 @@ proof (intro allI impI)
     assume L: "L \<notin> I \<and> -L \<notin> I"
     let ?I' = "I \<union> {L}"
     have "consistent_interp ?I'" using L \<open>consistent_interp I\<close> by auto
-    moreover have "total_over_m ?I' {D + {#- L#}}"
+    moreover have "total_over_m ?I' {add_mset (-L) D}"
       using tot unfolding total_over_m_def total_over_set_def by (auto simp add: atms_of_def)
     moreover have "total_over_m ?I' N" using tot using total_union by blast
     moreover have "?I' \<Turnstile>s N" using \<open>I \<Turnstile>s N\<close> using true_clss_union_increase by blast
-    ultimately have "?I' \<Turnstile> D + {#- L#}"
+    ultimately have "?I' \<Turnstile> add_mset (-L) D"
       using D unfolding true_clss_cls_def by blast
     then have "?I' \<Turnstile> D" using L by auto
     moreover
@@ -856,51 +859,16 @@ qed
 lemma true_cls_union_mset[iff]: "I \<Turnstile> C #\<union> D \<longleftrightarrow> I \<Turnstile> C \<or> I \<Turnstile> D"
   unfolding true_cls_def by force
 
+lemma true_clss_cls_sup_iff_add: "N \<Turnstile>p C #\<union> D \<longleftrightarrow> N \<Turnstile>p C + D"
+  by (auto simp: true_clss_cls_def)
+
 lemma true_clss_cls_union_mset_true_clss_cls_or_not_true_clss_cls_or:
   assumes
-    D: "N \<Turnstile>p D + {#- L#}" and
-    C: "N \<Turnstile>p C + {#L#}"
+    D: "N \<Turnstile>p add_mset (-L) D" and
+    C: "N \<Turnstile>p add_mset L C"
   shows "N \<Turnstile>p D #\<union> C"
-  unfolding true_clss_cls_def
-proof (intro allI impI)
-  fix I
-  assume
-    tot: "total_over_m I (N \<union> {D #\<union> C})" and
-    "consistent_interp I" and
-    "I \<Turnstile>s N"
-  {
-    assume L: "L \<in> I \<or> -L \<in> I"
-    then have "total_over_m I {D + {#- L#}}"
-      using tot by (cases L) auto
-    then have "I \<Turnstile> D + {#- L#}"
-      using D \<open>I \<Turnstile>s N\<close> tot \<open>consistent_interp I\<close> unfolding true_clss_cls_def by auto
-    moreover
-      have "total_over_m I {C + {#L#}}"
-        using L tot by (cases L) auto
-      then have "I \<Turnstile> C + {#L#}"
-        using C \<open>I \<Turnstile>s N\<close> tot \<open>consistent_interp I\<close> unfolding true_clss_cls_def by auto
-    ultimately have "I \<Turnstile> D #\<union> C" using \<open>consistent_interp I\<close> unfolding consistent_interp_def
-    by auto
-  }
-  moreover {
-    assume L: "L \<notin> I \<and> -L \<notin> I"
-    let ?I' = "I \<union> {L}"
-    have "consistent_interp ?I'" using L \<open>consistent_interp I\<close> by auto
-    moreover have "total_over_m ?I' {D + {#- L#}}"
-      using tot unfolding total_over_m_def total_over_set_def by (auto simp add: atms_of_def)
-    moreover have "total_over_m ?I' N" using tot using total_union by blast
-    moreover have "?I' \<Turnstile>s N" using \<open>I \<Turnstile>s N\<close> using true_clss_union_increase by blast
-    ultimately have "?I' \<Turnstile> D + {#- L#}"
-      using D unfolding true_clss_cls_def by blast
-    then have "?I' \<Turnstile> D" using L by auto
-    moreover
-      have "total_over_set I (atms_of (D + C))" using tot by auto
-      then have "L \<notin># D \<and> -L \<notin># D"
-        using L unfolding total_over_set_def atms_of_def by (cases L) force+
-    ultimately have "I \<Turnstile> D #\<union> C" unfolding true_cls_def by auto
-  }
-  ultimately show "I \<Turnstile> D #\<union> C" by blast
-qed
+  using true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[OF assms]
+  by (subst true_clss_cls_sup_iff_add)
 
 
 subsection \<open>Subsumptions\<close>
@@ -913,7 +881,7 @@ lemma subsumption_total_over_m:
 lemma atms_of_replicate_mset_replicate_mset_uminus[simp]:
   "atms_of (D - replicate_mset (count D L) L - replicate_mset (count D (-L)) (-L))
  = atms_of D - {atm_of L}"
-  by (fastforce simp: atm_of_eq_atm_of atms_of_def)
+  by (auto simp: atm_of_eq_atm_of atms_of_def in_diff_count dest: in_diffD)
 
 lemma subsumption_chained:
   assumes
@@ -937,7 +905,8 @@ next
     using card by (metis (no_types, lifting) Collect_empty_eq card_0_eq mem_Collect_eq
       nat.simps(3))
   let ?D' = "D - replicate_mset (count D L) L - replicate_mset (count D (-L)) (-L)"
-  have atms_of_D: "atms_of_ms {D} \<subseteq> atms_of_ms {?D'} \<union> {atm_of L}" by auto
+  have atms_of_D: "atms_of_ms {D} \<subseteq> atms_of_ms {?D'} \<union> {atm_of L}"
+    using atms_of_replicate_mset_replicate_mset_uminus by force
 
   {
     fix I
@@ -946,13 +915,13 @@ next
       unfolding total_over_m_def total_over_set_def using atms_of_D by auto
 
     assume IDL: "I \<Turnstile> ?D'"
-    then have "I \<union> {L} \<Turnstile> D" unfolding true_cls_def by force
-    then have "I \<union> {L} \<Turnstile> \<phi>" using H tot by auto
+    then have "insert L I \<Turnstile> D" unfolding true_cls_def by (fastforce dest: in_diffD)
+    then have "insert L I \<Turnstile> \<phi>" using H tot by auto
 
     moreover
       have tot': "total_over_m (I \<union> {-L}) {D}"
         using tot unfolding total_over_m_def total_over_set_def by auto
-      have "I \<union> {-L} \<Turnstile> D" using IDL unfolding true_cls_def by force
+      have "I \<union> {-L} \<Turnstile> D" using IDL unfolding true_cls_def by (force dest: in_diffD)
       then have "I \<union> {-L} \<Turnstile> \<phi>" using H tot' by auto
     ultimately have "I \<Turnstile> \<phi> \<or> tautology \<phi>"
       using L remove_literal_in_model_tautology by force
@@ -962,7 +931,8 @@ next
   then have C_in_D': "C \<subseteq># ?D'" using \<open>C \<subseteq># D\<close> by (auto simp: subseteq_mset_def not_in_iff)
   have "card {Pos v |v. v \<in> atms_of ?D' \<and> v \<notin> atms_of C} <
     card {Pos v |v. v \<in> atms_of D \<and> v \<notin> atms_of C}"
-    using L by (auto intro!: psubset_card_mono)
+    using L unfolding atms_of_replicate_mset_replicate_mset_uminus[of D L] 
+    by (auto intro!: psubset_card_mono)
   then show ?case
     using IH C_in_D' H' unfolding card[symmetric] by blast
 qed
@@ -1035,14 +1005,14 @@ proof (standard; standard)
         using f4 Add LCL LC H unfolding atms_of_def by (metis H in_diffD insertE
           literal.exhaust_sel uminus_Neg uminus_Pos)
       moreover have "\<not> tautology (C - {#L#})"
-        using taut by (metis Add(1) insert_DiffM tautology_add_single)
+        using taut  by (metis Add(1) insert_DiffM tautology_add_mset)
       moreover have "distinct_mset (C - {#L#})"
         using dist by auto
       ultimately have "(C - {#L#}) \<in> simple_clss atms"
         using Add unfolding simple_clss_def by auto
       moreover have "C = {#L#} + (C - {#L#})"
         using Add by (auto simp: multiset_eq_iff)
-      ultimately show ?thesis using Add by auto
+      ultimately show ?thesis using Add by blast
     next
       case No
       then have "C \<in> simple_clss atms"
@@ -1072,12 +1042,12 @@ next
       have "atms_of C \<subseteq> insert l atms"
         using atms C' L by auto
       moreover have "\<not> tautology C"
-        using taut C' L by (metis assms atm_of_lit_in_atms_of atms literal.sel(1,2) subset_eq
-          tautology_add_single uminus_Neg uminus_Pos)
+        using taut C' L assms atms by (metis union_mset_add_mset_left add.left_neutral 
+            neg_lit_in_atms_of pos_lit_in_atms_of subsetCE tautology_add_mset
+            uminus_Neg uminus_Pos) 
       moreover have "distinct_mset C"
-        using dist C' L
-        by (metis assms atm_of_lit_in_atms_of atms contra_subsetD distinct_mset_add_single
-          literal.sel(1,2))
+        using dist C' L by (metis union_mset_add_mset_left add.left_neutral assms atms 
+            distinct_mset_add_mset neg_lit_in_atms_of pos_lit_in_atms_of subsetCE)
       ultimately show ?thesis unfolding simple_clss_def by blast
     qed
 qed
@@ -1098,6 +1068,11 @@ lemma cls_in_simple_clss:
   shows "{#} \<in> simple_clss s"
   unfolding simple_clss_def by auto
 
+lemma add_mset_eq_add_mset_ne:
+  "a \<noteq> b \<Longrightarrow> add_mset a A = add_mset b B \<longleftrightarrow> a \<in># B \<and> b \<in># A \<and> A = add_mset b (B - {#a#})"
+  by (metis (no_types, lifting) diff_single_eq_union diff_union_swap multi_self_add_other_not_self 
+      remove_1_mset_id_iff_notin union_single_eq_diff)
+
 lemma simple_clss_card:
   fixes atms :: "'v set"
   assumes "finite atms"
@@ -1109,14 +1084,15 @@ proof (induct atms rule: finite_induct)
 next
   case (insert l C) note fin = this(1) and l = this(2) and IH = this(3)
   have notin:
-    "\<And>C'. {#Pos l#} + C' \<notin> simple_clss C"
-    "\<And>C'. {#Neg l#} + C' \<notin> simple_clss C"
+    "\<And>C'. add_mset (Pos l) C' \<notin> simple_clss C"
+    "\<And>C'. add_mset (Neg l) C' \<notin> simple_clss C"
     using l unfolding simple_clss_def by auto
   have H: "\<And>C' D. {#Pos l#} + C' = {#Neg l#} + D \<Longrightarrow> D \<in> simple_clss C \<Longrightarrow> False"
     proof -
       fix C' D
       assume C'D: "{#Pos l#} + C' = {#Neg l#} + D" and D: "D \<in> simple_clss C"
-      then have "Pos l \<in># D" by (metis insert_noteq_member literal.distinct(1) union_commute)
+      then have "Pos l \<in># D"
+        by (auto simp: add_mset_eq_add_mset_ne)
       then have "l \<in> atms_of D"
         by (simp add: atm_iff_pos_or_neg_lit)
       then show False using D l unfolding simple_clss_def by auto

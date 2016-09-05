@@ -87,7 +87,7 @@ definition backjump_l_cond :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> '
 lemma wf_skip_or_resolve:
   "wf {(T, S). skip_or_resolve S T}"
 proof -
-  have " skip_or_resolve x y \<Longrightarrow> length (trail y) < length (trail x)" for x y
+  have "skip_or_resolve x y \<Longrightarrow> length (trail y) < length (trail x)" for x y
     by (auto simp: skip_or_resolve.simps elim!: skipE resolveE)
   then show ?thesis
     using wfP_if_measure[of "\<lambda>_. True" skip_or_resolve "\<lambda>S. length (trail S)"]

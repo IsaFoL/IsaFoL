@@ -251,7 +251,8 @@ proof -
     unfolding df'_zz zz by auto
   have dd: "DD = {#D_of A. A \<in># AA#}"
     unfolding dd_zz zz d_of
-    by simp (rule image_mset_cong, metis Suc_pred m_nz not_gr0 replicate_mset_Suc)
+    by simp (rule image_mset_cong, 
+        metis Suc_pred m_nz neq0_conv replicate_mset_Suc union_mset_add_mset_right)
   have prod_d: "\<And>D. D \<in># DD \<Longrightarrow> productive N D"
     unfolding dd by (auto dest!: prod_d0)
   hence dd_subs_n: "set_mset DD \<subseteq> N"

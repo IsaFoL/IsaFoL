@@ -67,7 +67,7 @@ proof (rule ccontr)
         elim: propagateE conflictE decideE skipE resolveE)
   then show False
     using n_dist cdcl\<^sub>W_stgy_no_relearned_clause[of S T] dist
-    by (auto simp: inv smaller distinct_mset_add_single elim!: rulesE)
+    by (auto simp: inv smaller elim!: rulesE)
 qed
 
 lemma rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses:

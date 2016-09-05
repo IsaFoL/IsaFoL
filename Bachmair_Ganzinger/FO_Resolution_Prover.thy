@@ -130,7 +130,7 @@ using res_e proof (cases rule: ord_resolve_raw.cases)
   have "is_ground_subst (\<tau> \<odot> \<sigma>)"
     using ground_subst_\<sigma> by (rule is_ground_comp_subst)
   hence cc_true: "I \<Turnstile>m CC \<cdot>cc \<tau> \<cdot>cc \<sigma>" and d_true: "I \<Turnstile> D \<cdot> \<tau> \<cdot> \<sigma>"
-    using cc_d_true[of "\<tau> \<odot> \<sigma>"] by auto
+    using cc_d_true[of "\<tau> \<odot> \<sigma>"] unfolding subst_cls_mset_def by auto
 
   show ?thesis
   proof (cases "\<forall>A. A \<in># AA \<longrightarrow> A \<cdot>a \<tau> \<cdot>a \<sigma> \<in> I")

@@ -15,7 +15,7 @@ abbreviation clauses :: "'v dpll\<^sub>W_state \<Rightarrow> 'v clauses" where
 "clauses \<equiv> snd"
 
 inductive dpll\<^sub>W :: "'v dpll\<^sub>W_state \<Rightarrow> 'v dpll\<^sub>W_state \<Rightarrow> bool" where
-propagate: "C + {#L#} \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit (trail S) L
+propagate: "add_mset L C \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit (trail S) L
   \<Longrightarrow> dpll\<^sub>W S (Propagated L () # trail S, clauses S)" |
 decided: "undefined_lit (trail S) L \<Longrightarrow> atm_of L \<in> atms_of_mm (clauses S)
   \<Longrightarrow> dpll\<^sub>W S (Decided L # trail S, clauses S)" |
@@ -86,7 +86,7 @@ proof (induct rule: dpll\<^sub>W.induct)
   ultimately show ?case by (auto simp : lits_of_def)
 qed (auto simp: in_plus_implies_atm_of_on_atms_of_ms)
 
-lemma atms_of_ms_lit_of_atms_of: "atms_of_ms ((\<lambda>a. {#lit_of a#}) ` c) = atm_of ` lit_of ` c"
+lemma atms_of_ms_lit_of_atms_of: "atms_of_ms (unmark ` c) = atm_of ` lit_of ` c"
   unfolding atms_of_ms_def using image_iff by force
 
 text \<open>\cwref{dpll:sound:model}{theorem 2.8.2 page 73}\<close>
@@ -100,11 +100,11 @@ proof (induct rule: dpll\<^sub>W.induct)
   case (decided L S)
   then show ?case unfolding all_decomposition_implies_def by simp
 next
-  case (propagate C L S) note inS = this(1) and cnot = this(2) and IH = this(4) and undef = this(3) and atms_incl = this(5)
-  let ?I = "set (map (\<lambda>a. {#lit_of a#}) (trail S)) \<union> set_mset (clauses S) "
-  have "?I \<Turnstile>p C + {#L#}" by (auto simp add: inS)
+  case (propagate L C S) note inS = this(1) and cnot = this(2) and IH = this(4) and undef = this(3) and atms_incl = this(5)
+  let ?I = "set (map unmark (trail S)) \<union> set_mset (clauses S)"
+  have "?I \<Turnstile>p add_mset L C" by (auto simp add: inS)
   moreover have "?I \<Turnstile>ps CNot C" using true_annots_true_clss_cls cnot by fastforce
-  ultimately have "?I \<Turnstile>p {#L#}" using true_clss_cls_plus_CNot[of ?I C L] inS by blast
+  ultimately have "?I \<Turnstile>p {#L#}" using true_clss_cls_plus_CNot[of ?I L C] inS by blast
   {
     assume "get_all_ann_decomposition (trail S) = []"
     then have ?case by blast
@@ -124,23 +124,23 @@ next
         fix a c
         assume h: "hd (get_all_ann_decomposition (trail S)) = (a, c)"
         have h': "trail S = c @ a" using get_all_ann_decomposition_decomp h by blast
-        have I: "set (map (\<lambda>a. {#lit_of a#})  a) \<union> set_mset (clauses S)
+        have I: "set (map unmark  a) \<union> set_mset (clauses S)
           \<union> unmark_l c \<Turnstile>ps CNot C"
           using \<open>?I \<Turnstile>ps CNot C\<close> unfolding h' by (simp add: Un_commute Un_left_commute)
         have
-          "atms_of_ms (CNot C) \<subseteq> atms_of_ms (set (map (\<lambda>a. {#lit_of a#}) a) \<union> set_mset (clauses S))"
+          "atms_of_ms (CNot C) \<subseteq> atms_of_ms (set (map unmark a) \<union> set_mset (clauses S))"
             and
-          "atms_of_ms (unmark_l c) \<subseteq> atms_of_ms (set (map (\<lambda>a. {#lit_of a#}) a)
+          "atms_of_ms (unmark_l c) \<subseteq> atms_of_ms (set (map unmark a)
             \<union> set_mset (clauses S))"
-            apply (metis CNot_plus Un_subset_iff atms_of_atms_of_ms_mono atms_of_ms_CNot_atms_of
-             atms_of_ms_union inS sup.coboundedI2)
+           using atms_incl cnot 
+           apply (auto simp: atms_of_def dest!: true_annots_CNot_all_atms_defined; fail)[]
           using inS atms_of_atms_of_ms_mono atms_incl by (fastforce simp: h')
 
         then have "unmark_l a \<union> set_mset (clauses S) \<Turnstile>ps CNot C"
           using true_clss_clss_left_right[OF _ I] h "2" by auto
         then show "unmark_l a \<union> set_mset (clauses S) \<Turnstile>p {#L#}"
-          by (metis (no_types) Un_insert_right inS insertI1 mk_disjoint_insert inS
-            true_clss_cls_in true_clss_cls_plus_CNot)
+          using inS true_clss_cls_plus_CNot true_clss_clss_in_imp_true_clss_cls union_trus_clss_clss
+          by blast
       qed
     ultimately have ?case
       by (cases "hd (get_all_ann_decomposition (trail S))")
@@ -168,9 +168,9 @@ next
         \<Turnstile>ps CNot D"
       by (metis (no_types, lifting) Un_assoc Un_left_commute true_clss_clss_union_l_r)
   ultimately
-    have "set (map (\<lambda>a. {#lit_of a#}) (L # M)) \<union> set_mset (clauses S) \<Turnstile>ps CNot D"
+    have "set (map unmark (L # M)) \<union> set_mset (clauses S) \<Turnstile>ps CNot D"
       using true_clss_clss_left_right by fastforce
-    then have "set (map (\<lambda>a. {#lit_of a#}) (L # M)) \<union> set_mset (clauses S) \<Turnstile>p {#}"
+    then have "set (map unmark (L # M)) \<union> set_mset (clauses S) \<Turnstile>p {#}"
       by (metis (mono_tags, lifting) D Un_def mem_Collect_eq
         true_clss_clss_contradiction_true_clss_cls_false)
     then have IL: "unmark_l M \<union> set_mset (clauses S) \<Turnstile>p {#-lit_of L#}"
@@ -246,7 +246,7 @@ theorem dpll\<^sub>W_propagate_is_conclusion_of_decided:
   and "all_decomposition_implies_m (clauses S) (get_all_ann_decomposition (trail S))"
   and "atm_of ` lits_of_l (trail S) \<subseteq> atms_of_mm (clauses S)"
   shows "set_mset (clauses S') \<union> {{#lit_of L#} |L. is_decided L \<and> L \<in> set (trail S')}
-    \<Turnstile>ps (\<lambda>a. {#lit_of a#}) ` \<Union>(set ` snd ` set (get_all_ann_decomposition (trail S')))"
+    \<Turnstile>ps unmark ` \<Union>(set ` snd ` set (get_all_ann_decomposition (trail S')))"
   using all_decomposition_implies_trail_is_implied[OF dpll\<^sub>W_propagate_is_conclusion[OF assms]] .
 
 text \<open>\cwref{dpll:sound:propLits:unsat}{theorem 2.8.4 page 73}\<close>
@@ -270,9 +270,9 @@ proof (rule ccontr)
   have "atms_of_ms (N \<union> unmark_l M) = atms_of_ms N"
     using atm_incl unfolding atms_of_ms_def lits_of_def by auto
 
-  then have "total_over_m I (N \<union> (\<lambda>a. {#lit_of a#}) ` (set M))"
+  then have "total_over_m I (N \<union> unmark ` (set M))"
     using tot unfolding total_over_m_def by auto
-  then have "I \<Turnstile>s (\<lambda>a. {#lit_of a#}) ` (set M)"
+  then have "I \<Turnstile>s unmark ` (set M)"
     using all_decomposition_implies_propagated_lits_are_implied[OF inv] cons I
     unfolding true_clss_clss_def l0 by auto
   then have IM: "I \<Turnstile>s unmark_l M" by auto
@@ -438,7 +438,8 @@ next
             using n unfolding true_annots_def Ball_def by auto
           then have "(\<exists>L. undefined_lit M L \<and> atm_of L \<in> atms_of D) \<or> M \<Turnstile>as CNot D"
              unfolding true_annots_def Ball_def CNot_def true_annot_def
-             using atm_of_lit_in_atms_of true_annot_iff_decided_or_true_lit true_cls_def by blast
+             using atm_of_lit_in_atms_of true_annot_iff_decided_or_true_lit true_cls_def
+             by (smt mem_Collect_eq union_single_eq_member)
           then show ?thesis
             by (metis Bex_def D atms_of_atms_of_ms_mono rev_subsetD)
         qed

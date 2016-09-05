@@ -41,7 +41,7 @@ proof -
   using backtrackE[OF backtrack] by (metis backtrack fstI sndI)
   let ?K = "lit_of L"
   let ?C = "image_mset lit_of {#K\<in>#mset M. is_decided K \<and> K\<noteq>L#} :: 'v clause"
-  let ?C' = "set_mset (image_mset single (?C+{#?K#}))"
+  let ?C' = "set_mset (image_mset (\<lambda>C. add_mset C {#}) (?C+{#?K#}))"
   obtain K where L: "L = Decided K" using \<open>is_decided L\<close> by (cases L) auto
 
   have M: "M = F' @ Decided K # F"
@@ -152,12 +152,12 @@ lemma backtrack_is_backjump':
 
 sublocale dpll_state
   fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
-  "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
+  "\<lambda>C (M, N). (M, add_mset C N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
   by unfold_locales (auto simp: ac_simps)
 
 sublocale backjumping_ops
   fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
-  "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" "\<lambda>_ _ _ S T. backtrack S T"
+  "\<lambda>C (M, N). (M, add_mset C N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" "\<lambda>_ _ _ S T. backtrack S T"
   by unfold_locales
 thm   reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_clauses
 
@@ -221,7 +221,7 @@ end
 
 sublocale dpll_with_backtrack \<subseteq> decide_ops
   fst snd "\<lambda>L (M, N). (L # M, N)"
-  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
+  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, add_mset C N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
   "\<lambda>_ _. True"
   by unfold_locales
 
@@ -234,7 +234,7 @@ end
 
 sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops
     fst snd "\<lambda>L (M, N). (L # M, N)"
-  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
+  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, add_mset C N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
   "\<lambda>_ _. True"
   "\<lambda>_ _ _ S T. backtrack S T"
@@ -246,7 +246,7 @@ sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping_ops
 
 sublocale dpll_with_backtrack \<subseteq> dpll_with_backjumping
     fst snd "\<lambda>L (M, N). (L # M, N)"
-  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
+  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, add_mset C N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
   "\<lambda>_ _. True"
   "\<lambda>_ _ _ S T. backtrack S T"
@@ -287,7 +287,7 @@ qed
 
 interpretation conflict_driven_clause_learning_ops
     fst snd "\<lambda>L (M, N). (L # M, N)"
-  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
+  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, add_mset C N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
   "\<lambda>_ _. True"
   "\<lambda>_ _ _ S T. backtrack S T"
@@ -296,7 +296,7 @@ interpretation conflict_driven_clause_learning_ops
 
 interpretation conflict_driven_clause_learning
     fst snd "\<lambda>L (M, N). (L # M, N)"
-  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
+  "\<lambda>(M, N). (tl M, N)" "\<lambda>C (M, N). (M, add_mset C N)" "\<lambda>C (M, N). (M, removeAll_mset C N)"
   "\<lambda>(M, N). no_dup M \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
   "\<lambda>_ _. True"
   "\<lambda>_ _ _ S T. backtrack S T"
@@ -324,7 +324,7 @@ locale dpll_withbacktrack_and_restarts =
 begin
   sublocale cdcl\<^sub>N\<^sub>O\<^sub>T_increasing_restarts
   fst snd "\<lambda>L (M, N). (L # M, N)" "\<lambda>(M, N). (tl M, N)"
-    "\<lambda>C (M, N). (M, {#C#} + N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" f "\<lambda>(_, N) S. S = ([], N)"
+    "\<lambda>C (M, N). (M, add_mset C N)" "\<lambda>C (M, N). (M, removeAll_mset C N)" f "\<lambda>(_, N) S. S = ([], N)"
   "\<lambda>A (M, N). atms_of_mm N \<subseteq> atms_of_ms A \<and> atm_of ` lits_of_l M \<subseteq> atms_of_ms A \<and> finite A
     \<and> all_decomposition_implies_m N (get_all_ann_decomposition M)"
   "\<lambda>A T. (2+card (atms_of_ms A)) ^ (1+card (atms_of_ms A))

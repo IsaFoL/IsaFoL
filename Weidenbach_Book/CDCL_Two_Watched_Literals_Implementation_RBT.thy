@@ -389,8 +389,7 @@ proof -
     by (metis RBT.distinct_keys distinct_mset_add distinct_mset_distinct multiset_partition)
   then have [simp]: "struct_wf_twl_cls (lits_twl_clause_of_RBT (list_to_RBT C 0))"
     by (auto simp: lits_twl_clause_of_RBT_def get_watched_lits_def get_unwatched_lits_def
-        RBT_lookup_list_to_RBT  distinct_mset_add_single ac_simps
-         mset_RBT_keys_insert mset_filter
+        RBT_lookup_list_to_RBT ac_simps mset_RBT_keys_insert mset_filter
       dest!: C_size_1)
   show ?thesis
     unfolding cls_of_twl_list.simps wf_RBT_clause.rep_eq
@@ -457,7 +456,7 @@ lemma fst_filter_entries:
   by (auto simp: lookup_in_tree keys_entries image_iff)
 
 lemma single_remove1_mset_single_remove1_mset_eq:
-  "{#j#} + remove1_mset j ({#i#} + remove1_mset i M) = M \<longleftrightarrow> i \<in>#M \<and> j \<in># M"
+  "add_mset j (remove1_mset j (add_mset i (remove1_mset i M))) = M \<longleftrightarrow> i \<in>#M \<and> j \<in># M"
   by (auto simp: multiset_eq_iff ac_simps not_in_iff
     count_greater_zero_iff[symmetric]
     simp del: count_greater_zero_iff)
@@ -630,7 +629,7 @@ proof -
               image_mset_If image_mset_remove1_mset_if not_in_iff
               count_wf_watched_lits_if
             split: option.splits simp del: swap_lit_safe.simps)
-          moreover
+          moreover {
             have "2 \<le> count {#the (RBT.lookup (conc_RBT_cls C) x). x \<in># wf_unwatched_lits C#} j'"
               if ij: "j \<noteq> i"  and  "i' = j'"
               proof -
@@ -646,19 +645,28 @@ proof -
                 then show ?thesis
                   by (auto simp: \<open>i' = j'\<close>)
               qed
-            then have "{#the (if x = j then Some i' else (RBT.lookup (conc_RBT_cls C)(i \<mapsto> j')) x).
+            moreover {
+               assume a1: "RBT.lookup (conc_RBT_cls C) i = Some i'"
+               assume a2: "RBT.lookup (conc_RBT_cls C) j = Some j'"
+               assume a3: "j \<noteq> i"
+               have f4: "\<forall>n m. (n::nat) \<notin># m \<or> add_mset n (remove1_mset n m) = m"
+                 by simp (* 2 ms *)
+               then have f5: "remove1_mset i (remove1_mset j (wf_unwatched_lits C)) = wf_unwatched_lits C - {#j, i#}"
+                 by (metis (no_types) add_mset_diff_bothsides j_unwatched) (* 15 ms *)
+               have "remove1_mset i (wf_unwatched_lits C) = add_mset j (remove1_mset i (remove1_mset j (wf_unwatched_lits C)))"
+                 using f4 a3 by (metis (no_types) diff_union_swap j_unwatched) (* 15 ms *)
+               then have "add_mset i' (add_mset j' {#the (RBT.lookup (conc_RBT_cls C) n) . n \<in># wf_unwatched_lits C - {#j, i#}#}) = {#the (RBT.lookup (conc_RBT_cls C) n) . n \<in># add_mset i (remove1_mset i (wf_unwatched_lits C))#}"
+                 using f5 a2 a1 by simp (* 11 ms *)
+               then have "add_mset i' (add_mset j' {#the (RBT.lookup (conc_RBT_cls C) n) . n \<in># wf_unwatched_lits C - {#j, i#}#}) = {#the (RBT.lookup (conc_RBT_cls C) n). n \<in># wf_unwatched_lits C#}"
+                 using f4 i_unwatched by presburger
+              }
+            ultimately have "{#the (if x = j then Some i' else (RBT.lookup (conc_RBT_cls C)(i \<mapsto> j')) x).
                  x \<in># wf_unwatched_lits C#} =
                {#the (RBT.lookup (conc_RBT_cls C) L). L \<in># wf_unwatched_lits C#}"
-              using i' j' both_unwatched
+              using i' j' both_unwatched i_unwatched j_unwatched
               by (auto simp: if_distrib filter_eq_replicate_mset lit_lookup.rep_eq
-                  wf_unwatched_def filter_mset_neq
-                  image_mset_If image_mset_remove1_mset_if not_in_iff
-                  count_wf_unwatched_lits_if single_remove1_mset_eq
-                  lookup_in_tree[symmetric]
-                  count_greater_zero_iff[symmetric] ac_simps
-                  add_single_add_single_remove1_mset_remove1_mset_id
-                  simp del: count_greater_zero_iff
-                split: option.splits if_splits simp del: swap_lit_safe.simps)
+                  filter_mset_neq image_mset_If image_mset_remove1_mset_if
+                  count_wf_unwatched_lits_if) }
           ultimately show ?thesis
             using i' j' both_unwatched
             by (auto simp: lit_lookup.rep_eq swap_lit.rep_eq

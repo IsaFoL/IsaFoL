@@ -109,7 +109,7 @@ sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub
   propagate_conds = "\<lambda>_ _ _. True" and
   forget_conds =  "\<lambda>_ S. conflicting S = None" and
   backjump_l_cond = "\<lambda>C C' L' S T. backjump_l_cond C C' L' S T
-    \<and> distinct_mset (C' + {#L'#}) \<and> \<not>tautology (C' + {#L'#})"
+    \<and> distinct_mset C' \<and> L' \<notin># C' \<and> \<not>tautology (add_mset L' C')"
   by unfold_locales
 
 thm cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy.axioms
@@ -144,14 +144,13 @@ proof (unfold_locales, goal_cases)
   then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_no_dup_inv by (auto simp: comp_def)
 next
   case (1 C' S C F' K F L)
-  moreover
     let ?C' = "remdups_mset C'"
     have "L \<notin># C'"
       using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit F L\<close> Decided_Propagated_in_iff_in_lits_of_l
       in_CNot_implies_uminus(2) by fast
-    then have "distinct_mset (?C' + {#L#})"
-      by (simp add: distinct_mset_single_add)
-  moreover
+    then have dist: "distinct_mset ?C'" "L \<notin># C'"
+      by simp_all
+
     have "no_dup F"
       using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> \<open>convert_trail_from_W (trail S) = F' @ Decided K # F\<close>
       unfolding inv\<^sub>N\<^sub>O\<^sub>T_def
@@ -161,32 +160,31 @@ next
       using distinct_consistent_interp by blast
     then have "\<not> tautology C'"
       using \<open>F \<Turnstile>as CNot C'\<close> consistent_CNot_not_tautology true_annots_true_cls by blast
-    then have "\<not> tautology (?C' + {#L#})"
+    then have taut: "\<not> tautology (add_mset L ?C')"
       using \<open>F \<Turnstile>as CNot C'\<close> \<open>undefined_lit F L\<close> by (metis CNot_remdups_mset
-        Decided_Propagated_in_iff_in_lits_of_l add.commute in_CNot_uminus tautology_add_single
-        tautology_remdups_mset true_annot_singleton true_annots_def)
-  show ?case
-    proof -
-      have f2: "no_dup (convert_trail_from_W (trail S))"
-        using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> unfolding inv\<^sub>N\<^sub>O\<^sub>T_def by (simp add: o_def)
-      have f3: "atm_of L \<in> atms_of_mm (clauses S)
-        \<union> atm_of ` lits_of_l (convert_trail_from_W (trail S))"
-        using \<open>convert_trail_from_W (trail S) = F' @ Decided K # F\<close>
+          Decided_Propagated_in_iff_in_lits_of_l in_CNot_uminus tautology_add_mset
+          tautology_remdups_mset true_annot_singleton true_annots_def)
+
+    have f2: "no_dup (convert_trail_from_W (trail S))"
+      using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> unfolding inv\<^sub>N\<^sub>O\<^sub>T_def by (simp add: o_def)
+    have f3: "atm_of L \<in> atms_of_mm (clauses S)
+      \<union> atm_of ` lits_of_l (convert_trail_from_W (trail S))"
+      using \<open>convert_trail_from_W (trail S) = F' @ Decided K # F\<close>
         \<open>atm_of L \<in> atms_of_mm (clauses S) \<union> atm_of ` lits_of_l (F' @ Decided K # F)\<close> by auto
-      have f4: "clauses S \<Turnstile>pm remdups_mset C' + {#L#}"
-        by (metis (no_types) \<open>L \<notin># C'\<close> \<open>clauses S \<Turnstile>pm C' + {#L#}\<close> remdups_mset_singleton_sum(2)
-          true_clss_cls_remdups_mset union_commute)
-      have "F \<Turnstile>as CNot (remdups_mset C')"
-        by (simp add: \<open>F \<Turnstile>as CNot C'\<close>)
-      have "Ex (backjump_l S)"
-        apply standard
-        apply (rule backjump_l.intros)
-        using f4 f3 f2 \<open>\<not> tautology (remdups_mset C' + {#L#})\<close>
-        calculation \<open>F \<Turnstile>as CNot (remdups_mset C')\<close>
+    have f4: "clauses S \<Turnstile>pm add_mset L ?C'"
+      sledgehammer
+      by (metis "1"(7) add.commute add_mset_add_single dist(2) remdups_mset_singleton_sum
+          true_clss_cls_remdups_mset)
+    have "F \<Turnstile>as CNot ?C'"
+      by (simp add: \<open>F \<Turnstile>as CNot C'\<close>)
+    have "Ex (backjump_l S)"
+      apply standard
+      apply (rule backjump_l.intros[of _ _ _ _ _ L "add_mset L ?C'" _ ?C'])
+      using f4 f3 f2 \<open>\<not> tautology (add_mset L ?C')\<close>
+        1 taut dist \<open>F \<Turnstile>as CNot (remdups_mset C')\<close>
         state_eq\<^sub>N\<^sub>O\<^sub>T_ref unfolding backjump_l_cond_def by blast+
-      then show ?thesis
-        by blast
-    qed
+    then show ?case
+      by blast
 next
   case (3 L S)
   then show "\<exists>T. decide\<^sub>N\<^sub>O\<^sub>T S T \<or> propagate\<^sub>N\<^sub>O\<^sub>T S T \<or> backjump_l S T"
@@ -427,23 +425,22 @@ next
         by (auto simp: lits_of_def defined_lit_map)
       have "backjump_l S U"
         apply (rule backjump_l[of _ _ _ _ _ L D _ "remove1_mset L D"])
-                 using tr_T apply simp
-                using inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
-                apply (simp add: comp_def)
-               using U M1_M2 confl M1_M2 inv_T' inv unfolding cdcl\<^sub>W_all_struct_inv_def
-               cdcl\<^sub>W_M_level_inv_def apply (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def
-                 trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_add_learned_cls)[]
-              using C\<^sub>S apply auto[]
-             using tr_S_C\<^sub>S apply simp
+                 using tr_T apply (simp; fail)
+                using U M1_M2 confl M1_M2 inv_T' inv unfolding cdcl\<^sub>W_all_struct_inv_def
+                cdcl\<^sub>W_M_level_inv_def apply (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def
+                  trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_add_learned_cls; fail)[]
+              using C\<^sub>S apply (auto; fail)[]
+             using tr_S_C\<^sub>S apply (simp; fail)
 
-            using undef_L apply auto[]
-           using atm_L apply (simp add: trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_add_learned_cls)
+            using undef_L apply (auto; fail)[]
+           using atm_L apply (simp add: trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_add_learned_cls; fail)
           using \<open>init_clss T' + learned_clss S \<Turnstile>pm D\<close> LD unfolding clauses_def
-          apply simp
-         using LD apply simp
+          apply (simp; fail)
+         using LD apply (simp; fail)
         apply (metis U_D convert_trail_from_W_true_annots)
         using inv_T' inv_U U confl_T' undef_L M1_M2 LD unfolding cdcl\<^sub>W_all_struct_inv_def
-        distinct_cdcl\<^sub>W_state_def by (simp add: cdcl\<^sub>W_M_level_inv_decomp backjump_l_cond_def)
+        distinct_cdcl\<^sub>W_state_def by (auto simp: cdcl\<^sub>W_M_level_inv_decomp backjump_l_cond_def
+            dest: multi_member_split)
       then show ?thesis using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_backjump_l by fast
     qed
 qed
@@ -831,7 +828,7 @@ abbreviation (input) decide_conds where
 
 abbreviation backjump_l_conds_stgy :: "'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st \<Rightarrow> bool" where
 "backjump_l_conds_stgy C C' L S V \<equiv>
-  (\<exists>T U. conflict S T \<and> full skip_or_resolve T U \<and> conflicting U = Some (C' + {#L#}) \<and>
+  (\<exists>T U. conflict S T \<and> full skip_or_resolve T U \<and> conflicting U = Some (add_mset L C') \<and>
   backtrack U V)"
 
 definition propagated_clauses_clauses where
@@ -853,7 +850,7 @@ interpretation cdcl\<^sub>W_with_strategy: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj
   propagate_conds = propagate_conds and
   forget_conds =  "\<lambda>_ _. False" and
   backjump_l_cond = "\<lambda>C C' L' S T. backjump_l_conds_stgy C C' L' S T
-    \<and> distinct_mset (C' + {#L'#}) \<and> \<not>tautology (C' + {#L'#})"
+    \<and> distinct_mset C' \<and> L' \<notin># C' \<and> \<not>tautology (add_mset L' C')"
   by unfold_locales
 
 interpretation cdcl\<^sub>W_with_strategy: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy where
@@ -1049,8 +1046,7 @@ proof -
     rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant by blast+
   show ?thesis
     proof (cases C')
-      fix D L
-      assume "C' = D + {#L#}"
+      case (add L D)
       then obtain V where \<open>cdcl\<^sub>W_stgy U V\<close>
         using conflicting_no_false_can_do_step[of U C'] C' inv_U inv_stgy_U
         unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_stgy_invariant_def
@@ -1061,7 +1057,7 @@ proof -
       then show ?thesis
         using U confl_S_T by blast
     next
-      assume [simp]: \<open>C' = {#}\<close>
+      case [simp]: empty
       obtain f j where
         f_s_o_r: \<open>i<j \<Longrightarrow> skip_or_resolve (f i) (f (Suc i))\<close> and
         f_0: \<open>f 0 = ?T\<close> and
@@ -1253,11 +1249,15 @@ proof -
     unfolding DLL[symmetric] .
   have \<open>M1 \<Turnstile>as CNot (remove1_mset L D)\<close>
     using inv_V V decomp unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def by simp
-  have \<open>distinct_mset D\<close> and \<open>\<not> tautology D\<close>
+  have \<open>distinct_mset (remove1_mset L D)\<close> \<open>distinct_mset D\<close> and \<open>\<not> tautology D\<close>
      using inv_U confl_D decomp unfolding cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def
-     apply simp
+     apply simp_all
     using inv_V V unfolding cdcl\<^sub>W_all_struct_inv_def apply simp
     done
+  have \<open>L \<notin># remove1_mset L D\<close>
+    using \<open>distinct_mset (remove1_mset L D)\<close> \<open>distinct_mset D\<close> unfolding distinct_mset_count_less_1 
+    by (auto simp: not_in_iff)
+  
   show ?thesis
     apply (rule cdcl\<^sub>W_with_strategy.backjump_l.intros[of _ _ K "convert_trail_from_W M1"])
              apply (simp add: tr_T_S[symmetric] M' M; fail)
@@ -1267,10 +1267,11 @@ proof -
          using undef_L apply (simp; fail)
         using atm_L apply (simp; fail)
        using  \<open>clauses S \<Turnstile>pm (remove1_mset L D) + {#L#}\<close> apply (simp; fail)
-      using DLL apply simp
+      using DLL apply (simp; fail)
      using \<open>M1 \<Turnstile>as CNot (remove1_mset L D)\<close> apply (simp; fail)
-    using \<open>distinct_mset D\<close> \<open>\<not> tautology D\<close> conf full bt confl_D unfolding DLL[symmetric]
-    by blast
+    using \<open>distinct_mset (remove1_mset L D)\<close> \<open>\<not> tautology D\<close> conf full bt confl_D 
+      \<open>L \<notin># remove1_mset L D\<close> LD unfolding DLL[symmetric]
+    by (auto; fail)
 qed
 
 lemma is_decided_o_convert_ann_lit_from_W[simp]:
@@ -1297,7 +1298,7 @@ next
     T: \<open>T \<sim> cons_trail (Propagated L E) S\<close>
     by (auto elim!: propagateE)
   show ?NOT
-    apply (rule cdcl\<^sub>W_with_strategy.propagate\<^sub>N\<^sub>O\<^sub>T[of \<open>remove1_mset L E\<close> L])
+    apply (rule cdcl\<^sub>W_with_strategy.propagate\<^sub>N\<^sub>O\<^sub>T[of L \<open>remove1_mset L E\<close>])
         using LE E apply (simp; fail)
        using tr_E apply (simp; fail)
       using undef apply (simp; fail)
