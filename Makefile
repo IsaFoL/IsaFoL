@@ -14,15 +14,25 @@ ISABELLE_version= $(shell (cd $(ISABELLE) && hg id --id))
 AFP_version= $(shell (cd $(AFP) && hg id --id))
 ISAFOL_version= $(shell (git log --pretty=format:'%h' -n 1))
 
+
 test_vars:
 	echo "Isabelle: $(ISABELLE_version)"
 	echo "AFP: $(AFP_version)"
 	echo "IsaFoL: $(ISAFOL_version)"
 
-all:
+HOL:
+	$(RUN_ISABELLE) build -b HOL
+
+Weidenbach_Book: HOL
 	$(RUN_ISABELLE) build -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -D Weidenbach_Book
+
+Bachmair_Ganzinger: HOL
 	$(RUN_ISABELLE) build -o browser_info -v -D Bachmair_Ganzinger
+
+Unordered_Resolution:
 	$(RUN_ISABELLE2016) build -o browser_info -v -D Unordered_Resolution
+
+all: Weidenbach_Book Bachmair_Ganzinger Unordered_Resolution
 
 # build the documentation and the files
 current:
