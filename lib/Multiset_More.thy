@@ -77,10 +77,10 @@ proof -
   have *: "A + B = B + (A - B + (A - (A - B)))"
     by (simp add: subset_mset.add_diff_inverse union_commute)
   have "size B + size (A - B) = size A + size (B - A)"
-    unfolding size_union[symmetric] subset_mset.sup_commute sup_subset_mset_def[symmetric]
-    by blast
+    unfolding size_union[symmetric] sup_subset_mset_def[symmetric]
+    by (subst subset_mset.sup_commute) (rule refl)
   then show ?thesis unfolding multiset_inter_def size_union[symmetric] "*"
-    by (auto simp add: sup_subset_mset_def)
+    by (simp add: sup_subset_mset_def)
 qed
 
 lemma size_Un_disjoint:

@@ -294,8 +294,7 @@ next
   have "decide\<^sub>N\<^sub>O\<^sub>T S T"
     apply (rule decide\<^sub>N\<^sub>O\<^sub>T.decide\<^sub>N\<^sub>O\<^sub>T)
        using undef_L apply simp
-     using atm_L inv unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def clauses_def
-       apply auto[]
+     using atm_L inv apply (auto simp: cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def clauses_def; fail)
     using T undef_L unfolding state_eq\<^sub>N\<^sub>O\<^sub>T_def by (auto simp: clauses_def)
   then show ?case using cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_decide\<^sub>N\<^sub>O\<^sub>T by blast
 next
