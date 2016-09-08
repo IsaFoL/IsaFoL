@@ -71,8 +71,7 @@ proof -
       by (meson contra_subsetD in_diffD subsetI union_iff)
     moreover have "\<forall>I. I \<Turnstile>m DD + EE \<longrightarrow> I \<Turnstile> E"
       using cc'_imp_d cc_imp_c d_in_cc unfolding DD_def true_cls_mset_def 
-      apply (auto simp: in_remove1_mset_neq) 
-      by (metis in_remove1_mset_neq)
+      by (metis in_remove1_mset_neq union_iff)
     moreover have "\<forall>C'. C' \<in># DD \<longrightarrow> C' < C"
       using cc_lt_c cc'_lt_d d_in_cc unfolding DD_def
       by (metis insert_DiffM2 dual_order.strict_trans union_iff)
