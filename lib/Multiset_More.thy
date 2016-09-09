@@ -37,7 +37,7 @@ declare
 
 (*@{thm psubsetE} is the set counter part*)
 lemma subset_msetE [elim!]:
-  "[|A \<subset># B; [|A \<subseteq># B; ~ (B\<subseteq>#A)|] ==> R|] ==> R"
+  "\<lbrakk>A \<subset># B; \<lbrakk>A \<subseteq># B; ~ (B\<subseteq>#A)\<rbrakk> \<Longrightarrow> R\<rbrakk> \<Longrightarrow> R"
   unfolding subseteq_mset_def subset_mset_def by (meson mset_subset_eqI subset_mset.eq_iff)
 
 
@@ -472,8 +472,8 @@ lemma distinct_mset_rempdups_union_mset:
 lemma distinct_mset_add_mset[simp]: "distinct_mset (add_mset a L) \<longleftrightarrow> a \<notin># L \<and> distinct_mset L"
   unfolding distinct_mset_def
   apply (rule iffI)
-    prefer 2 apply (auto simp: not_in_iff; fail)[]
-  by (auto split: if_split_asm)
+   apply (auto split: if_split_asm; fail)[]
+  by (auto simp: not_in_iff; fail)
 
 lemma distinct_mset_size_eq_card: "distinct_mset C \<Longrightarrow> size C = card (set_mset C)"
   by (induction C) auto
@@ -572,13 +572,13 @@ text \<open>Link between the multiset and the set cartesian product:\<close>
 lemma Times_mset_Times: "set_mset (A \<times>mset B) = set_mset A \<times> set_mset B"
   unfolding Sigma_mset_def by auto
 
-lemma Sigma_msetI [intro!]: "[| a\<in>#A;  b\<in>#B(a) |] ==> (a,b) \<in># Sigma_mset A B"
+lemma Sigma_msetI [intro!]: "\<lbrakk> a\<in>#A;  b\<in>#B(a) \<rbrakk> \<Longrightarrow> (a,b) \<in># Sigma_mset A B"
   by (unfold Sigma_mset_def) auto
 
 lemma Sigma_msetE [elim!]:
-    "[| c\<in># Sigma_mset A B;
-        \<And>x y.[| x\<in>#A;  y\<in>#B(x);  c=(x,y) |] ==> P
-     |] ==> P"
+    "\<lbrakk> c\<in># Sigma_mset A B;
+        \<And>x y.\<lbrakk> x\<in>#A;  y\<in>#B(x);  c=(x,y) \<rbrakk> \<Longrightarrow> P
+     \<rbrakk> \<Longrightarrow> P"
   \<comment> \<open>The general elimination rule.\<close>
   by (unfold Sigma_mset_def) auto
 
@@ -587,16 +587,16 @@ text \<open>
   eigenvariables.
 \<close>
 
-lemma Sigma_msetD1: "(a, b) \<in># Sigma_mset A B ==> a \<in># A"
+lemma Sigma_msetD1: "(a, b) \<in># Sigma_mset A B \<Longrightarrow> a \<in># A"
   by blast
 
-lemma Sigma_msetD2: "(a, b) \<in># Sigma_mset A B ==> b \<in># B a"
+lemma Sigma_msetD2: "(a, b) \<in># Sigma_mset A B \<Longrightarrow> b \<in># B a"
   by blast
 
 lemma Sigma_msetE2:
-    "[| (a, b) \<in># Sigma_mset A B;
-        [| a\<in>#A;  b\<in>#B(a) |] ==> P
-     |] ==> P"
+    "\<lbrakk> (a, b) \<in># Sigma_mset A B;
+        \<lbrakk> a\<in>#A;  b\<in>#B(a) \<rbrakk> \<Longrightarrow> P
+     \<rbrakk> \<Longrightarrow> P"
   by blast
 
 lemma Sigma_mset_cong:
@@ -659,7 +659,7 @@ lemma Sigma_mset_empty_iff: "(SIGMAMSET i\<in>#I. X i) = {#} \<longleftrightarro
 lemma Times_mset_subset_mset_cancel2: "x \<in># C \<Longrightarrow> (A \<times>mset C \<subseteq># B \<times>mset C) = (A \<subseteq># B)"
   by (auto simp: subseteq_mset_def count_Sigma_mset)
 
-lemma Times_mset_eq_cancel2: "x\<in>#C ==> (A \<times>mset C = B \<times>mset C) = (A = B)"
+lemma Times_mset_eq_cancel2: "x\<in>#C \<Longrightarrow> (A \<times>mset C = B \<times>mset C) = (A = B)"
   by (auto simp: multiset_eq_iff count_Sigma_mset dest!: in_countE)
 
 lemma split_paired_Ball_mset_Sigma_mset [simp, no_atp]:
