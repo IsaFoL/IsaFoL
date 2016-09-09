@@ -1651,19 +1651,19 @@ qed
 
 
 definition sum_count_ge_2 :: "'a multiset set \<Rightarrow> nat" ("\<Xi>") where
-"sum_count_ge_2 \<equiv> folding.F (\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0"
+"sum_count_ge_2 \<equiv> folding.F (\<lambda>\<phi>. op +(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0"
 
 
 interpretation sum_count_ge_2:
-  folding "\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})" 0
+  folding "\<lambda>\<phi>. op +(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})" 0
 rewrites
-  "folding.F (\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0 = sum_count_ge_2"
+  "folding.F (\<lambda>\<phi>. op +(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0 = sum_count_ge_2"
 proof -
-  show "folding (\<lambda>\<phi>. op + (msetsum (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#})))"
+  show "folding (\<lambda>\<phi>. op + (sum_mset (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#})))"
     by standard auto
   then interpret sum_count_ge_2:
-    folding "\<lambda>\<phi>. op +(msetsum {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})" 0 .
-  show "folding.F (\<lambda>\<phi>. op + (msetsum (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#}))) 0
+    folding "\<lambda>\<phi>. op +(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})" 0 .
+  show "folding.F (\<lambda>\<phi>. op + (sum_mset (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#}))) 0
     = sum_count_ge_2" by (auto simp add: sum_count_ge_2_def)
 qed
 
@@ -1728,7 +1728,7 @@ next
       have *: "(\<Sum>x\<in>#B. if L = x then Suc (count A x) else count A x) \<le> 
         (\<Sum>x\<in>#B. if L = x then Suc (count (add_mset L A) x) else count (add_mset L A) x)"
         for B
-        by (auto intro!: msetsum_mono)
+        by (auto intro!: sum_mset_mono)
       show ?thesis
         using *[of "{#La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#}"]
         by (auto simp: mset_decomp mset_decomp2 filter_mset_eq)
