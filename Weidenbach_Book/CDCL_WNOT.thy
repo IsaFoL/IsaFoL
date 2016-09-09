@@ -172,9 +172,7 @@ next
       using \<open>convert_trail_from_W (trail S) = F' @ Decided K # F\<close>
         \<open>atm_of L \<in> atms_of_mm (clauses S) \<union> atm_of ` lits_of_l (F' @ Decided K # F)\<close> by auto
     have f4: "clauses S \<Turnstile>pm add_mset L ?C'"
-      sledgehammer
-      by (metis "1"(7) add.commute add_mset_add_single dist(2) remdups_mset_singleton_sum
-          true_clss_cls_remdups_mset)
+      by (metis "1"(7) dist(2) remdups_mset_singleton_sum true_clss_cls_remdups_mset)
     have "F \<Turnstile>as CNot ?C'"
       by (simp add: \<open>F \<Turnstile>as CNot C'\<close>)
     have "Ex (backjump_l S)"
