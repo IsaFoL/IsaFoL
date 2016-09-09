@@ -180,7 +180,7 @@ next
       apply (rule backjump_l.intros[of _ _ _ _ _ L "add_mset L ?C'" _ ?C'])
       using f4 f3 f2 \<open>\<not> tautology (add_mset L ?C')\<close>
         1 taut dist \<open>F \<Turnstile>as CNot (remdups_mset C')\<close>
-        state_eq\<^sub>N\<^sub>O\<^sub>T_ref unfolding backjump_l_cond_def by blast+
+        state_eq\<^sub>N\<^sub>O\<^sub>T_ref unfolding backjump_l_cond_def set_mset_remdups_mset by blast+
     then show ?case
       by blast
 next
