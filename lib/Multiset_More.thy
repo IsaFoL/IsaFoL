@@ -32,6 +32,8 @@ declare
   inter_add_left2[simp]
   inter_add_right1[simp]
   inter_add_right2[simp]
+(*   subset_mset.add_diff_assoc[simp]
+  subset_mset.add_diff_assoc2[simp] *)
 
 (*@{thm psubsetE} is the set counter part*)
 lemma subset_msetE [elim!]:
@@ -121,9 +123,6 @@ subsection \<open>Filter and Image\<close>
 lemma mset_filter_compl: "mset (filter p xs) + mset (filter (Not \<circ> p) xs) = mset xs"
   by (induction xs) (auto simp: mset_filter ac_simps)
 
-lemma image_mset_subseteq_mono: "A \<subseteq># B \<Longrightarrow> image_mset f A \<subseteq># image_mset f B"
-  by (metis image_mset_union subset_mset.le_iff_add)
-
 lemma comprehension_mset_False[simp]: "{# L \<in># A. False#} = {#}"
   by (auto simp: multiset_eq_iff)
 
@@ -160,6 +159,8 @@ lemma image_mset_cong2[cong]:
   "(\<And>x. x \<in># M \<Longrightarrow> f x = g x) \<Longrightarrow> M = N \<Longrightarrow> image_mset f M = image_mset g N"
   by (hypsubst, rule image_mset_cong)
 
+lemma image_mset_replicate_mset[simp]: "image_mset f (replicate_mset n a) = replicate_mset n (f a)"
+  by (induction n) auto
 
 subsection \<open>Sums\<close>
 
@@ -321,6 +322,24 @@ lemma remove1_mset_add_mset_If:
   "remove1_mset L (add_mset L' C) = (if L = L' then C else remove1_mset L C + {#L'#})"
   by (auto simp: multiset_eq_iff)
 
+lemma minus_remove1_mset_if:
+  "A - remove1_mset b B = (if b \<in># B \<and> b \<in># A \<and> count A b \<ge> count B b then {#b#} + (A - B) else A - B)"
+  by (auto simp: multiset_eq_iff count_greater_zero_iff[symmetric]
+  simp del: count_greater_zero_iff)
+
+lemma add_mset_eq_add_mset_ne:
+  "a \<noteq> b \<Longrightarrow> add_mset a A = add_mset b B \<longleftrightarrow> a \<in># B \<and> b \<in># A \<and> A = add_mset b (B - {#a#})"
+  by (metis (no_types, lifting) diff_single_eq_union diff_union_swap multi_self_add_other_not_self
+      remove_1_mset_id_iff_notin union_single_eq_diff)
+
+text \<open>This lemma allows to split equality like \<^term>\<open>{#K, K'#} = {#L, L'#}\<close> into
+  \<^term>\<open>(K = L \<and> L = L') \<or> (K \<noteq> L \<and> K = L' \<and> K' = L)\<close>. It can lead to a explosion of the
+  numbers of cases.\<close>
+lemma add_mset_eq_add_mset: \<open>add_mset a M = add_mset b M' \<longleftrightarrow>
+  (a = b \<and> M = M') \<or> (a \<noteq> b \<and> b \<in># M \<and> add_mset a (M - {#b#}) = M')\<close>
+  by (metis add_mset_eq_add_mset_ne add_mset_remove_trivial union_single_eq_member)
+
+
 subsection \<open>Replicate\<close>
 
 lemma replicate_mset_plus: "replicate_mset (a + b) C = replicate_mset a C + replicate_mset b C"
@@ -361,7 +380,7 @@ lemma mset_set_set_mset_empty_mempty[iff]:
   by (auto dest: arg_cong[of _ _ set_mset])
 
 lemma count_mset_set_le_one: "count (mset_set A) x \<le> 1"
-  by (metis count_mset_set(1) count_mset_set(2) count_mset_set(3) eq_iff le_numeral_extra(1))
+  by (simp add: count_mset_set_if)
 
 lemma mset_set_subseteq_mset_set[iff]:
   assumes "finite A" "finite B"
@@ -370,8 +389,7 @@ lemma mset_set_subseteq_mset_set[iff]:
     less_eq_nat.simps(1) mset_subset_eqI set_mset_mono)
 
 lemma mset_set_set_mset_subseteq[simp]: "mset_set (set_mset A) \<subseteq># A"
-  by (metis count_mset_set(1,3) finite_set_mset less_eq_nat.simps(1) less_one
-    mem_Collect_eq mset_subset_eqI not_less set_mset_def)
+  by (simp add: subseteq_mset_def count_mset_set_if)
 
 lemma mset_sorted_list_of_set[simp]:
   "mset (sorted_list_of_set A) = mset_set A"
@@ -388,7 +406,7 @@ subsection \<open>Removing duplicates\<close>
 definition remdups_mset :: "'v multiset \<Rightarrow> 'v multiset" where
   "remdups_mset S = mset_set (set_mset S)"
 
-lemma remdups_mset_in[iff]: "a \<in># remdups_mset A \<longleftrightarrow> a \<in># A"
+lemma set_mset_remdups_mset[simp]: \<open>set_mset (remdups_mset A) = set_mset A\<close>
   unfolding remdups_mset_def by auto
 
 lemma count_remdups_mset_eq_1: "a \<in># remdups_mset A \<longleftrightarrow> count (remdups_mset A) a = 1"
@@ -400,14 +418,11 @@ lemma remdups_mset_empty[simp]: "remdups_mset {#} = {#}"
 lemma remdups_mset_singleton[simp]: "remdups_mset {#a#} = {#a#}"
   unfolding remdups_mset_def by auto
 
-lemma set_mset_remdups[simp]: "set_mset (remdups_mset C) = set_mset C"
-  by auto
-
 lemma remdups_mset_eq_empty[iff]: "remdups_mset D = {#} \<longleftrightarrow> D = {#}"
   unfolding remdups_mset_def by blast
 
 lemma remdups_mset_singleton_sum[simp]:
-  "remdups_mset (add_mset a A) = (if a \<in># A then remdups_mset A else {#a#} + remdups_mset A)"
+  "remdups_mset (add_mset a A) = (if a \<in># A then remdups_mset A else add_mset a (remdups_mset A))"
   unfolding remdups_mset_def by (simp_all add: insert_absorb)
 
 lemma mset_remdups_remdups_mset[simp]: "mset (remdups D) = remdups_mset (mset D)"
@@ -454,26 +469,21 @@ lemma distinct_mset_rempdups_union_mset:
   using assms nat_le_linear unfolding remdups_mset_def
   by (force simp add: multiset_eq_iff max_def count_mset_set_if distinct_mset_def not_in_iff)
 
-lemma distinct_mset_add_mset[simp]: "distinct_mset (add_mset a L) \<longleftrightarrow> distinct_mset L \<and> a \<notin># L"
+lemma distinct_mset_add_mset[simp]: "distinct_mset (add_mset a L) \<longleftrightarrow> a \<notin># L \<and> distinct_mset L"
   unfolding distinct_mset_def
   apply (rule iffI)
-    prefer 2 apply (auto simp: not_in_iff)[]
-  apply standard
-    apply (intro allI)
-    apply (rename_tac aa, case_tac "a = aa")
-    by (auto split: if_split_asm)
-
+    prefer 2 apply (auto simp: not_in_iff; fail)[]
+  by (auto split: if_split_asm)
 
 lemma distinct_mset_size_eq_card: "distinct_mset C \<Longrightarrow> size C = card (set_mset C)"
-  by (induction C) (auto simp: distinct_mset_add_mset)
+  by (induction C) auto
 
 lemma distinct_mset_add:
   "distinct_mset (L + L') \<longleftrightarrow> distinct_mset L \<and> distinct_mset L' \<and> L #\<inter> L' = {#}" (is "?A \<longleftrightarrow> ?B")
-  by (induction L arbitrary: L')
-   (auto simp add: ac_simps distinct_mset_add_mset inter_mset_empty_distrib_right)
+  by (induction L arbitrary: L') auto
 
 lemma distinct_mset_set_mset_ident[simp]: "distinct_mset M \<Longrightarrow> mset_set (set_mset M) = M"
-  by (induction M) (auto simp: distinct_mset_add_mset ac_simps)
+  by (induction M) auto
 
 lemma distinct_finite_set_mset_subseteq_iff[iff]:
   assumes dist: "distinct_mset M" and fin: "finite N"
@@ -555,7 +565,7 @@ text \<open>Contrary to the set version @{term \<open>SIGMA x:A. B\<close>}, we 
 syntax
   "_Sigma_mset" :: "[pttrn, 'a multiset, 'b multiset] => ('a * 'b) multiset"  ("(3SIGMAMSET _\<in>#_./ _)" [0, 0, 10] 10)
 translations
-  "SIGMAMSET x\<in>#A. B" == "CONST Sigma_mset A (%x. B)"
+  "SIGMAMSET x\<in>#A. B" == "CONST Sigma_mset A (\<lambda>x. B)"
 
 text \<open>Link between the multiset and the set cartesian product:\<close>
 
@@ -659,14 +669,6 @@ lemma split_paired_Ball_mset_Sigma_mset [simp, no_atp]:
 lemma split_paired_Bex_mset_Sigma_mset [simp, no_atp]:
   "(\<exists>z\<in>#Sigma_mset A B. P z) \<longleftrightarrow> (\<exists>x\<in>#A. \<exists>y\<in>#B x. P (x, y))"
   by blast
-
-lemma minus_remove1_mset_if:
-  "A - remove1_mset b B = (if b \<in># B \<and> b \<in># A \<and> count A b \<ge> count B b then {#b#} + (A - B) else A - B)"
-  by (auto simp: multiset_eq_iff count_greater_zero_iff[symmetric]
-  simp del: count_greater_zero_iff)
-
-lemma image_mset_replicate_mset[simp]: "image_mset f (replicate_mset n a) = replicate_mset n (f a)"
-  by (induction n) auto
 
 lemma msetsum_if_eq_constant:
   "(\<Sum>x\<in>#M. if a = x then (f x) else 0) = ((op + (f a)) ^^ (count M a)) 0"
