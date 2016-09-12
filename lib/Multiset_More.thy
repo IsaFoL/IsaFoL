@@ -162,6 +162,7 @@ lemma image_mset_cong2[cong]:
 lemma image_mset_replicate_mset[simp]: "image_mset f (replicate_mset n a) = replicate_mset n (f a)"
   by (induction n) auto
 
+
 subsection \<open>Sums\<close>
 
 lemma sum_mset_distrib[simp]:
@@ -172,8 +173,7 @@ lemma sum_mset_distrib[simp]:
 lemma sum_mset_union_disjoint:
   assumes "A #\<inter> B = {#}"
   shows "(\<Sum>La\<in>#A #\<union> B. f La) = (\<Sum>La\<in>#A. f La) + (\<Sum>La\<in>#B. f La)"
-  by (metis assms diff_zero empty_sup image_mset_union sum_mset.union multiset_inter_commute
-    multiset_union_diff_commute sup_subset_mset_def zero_diff)
+  by (metis assms diff_zero image_mset_union sum_mset.union union_diff_inter_eq_sup)
 
 text \<open>Multiset equivalent of @{thm setsum_right_distrib} and @{thm setsum_left_distrib}\<close>
 lemma sum_mset_right_distrib:
@@ -339,6 +339,11 @@ lemma add_mset_eq_add_mset: \<open>add_mset a M = add_mset b M' \<longleftrighta
   (a = b \<and> M = M') \<or> (a \<noteq> b \<and> b \<in># M \<and> add_mset a (M - {#b#}) = M')\<close>
   by (metis add_mset_eq_add_mset_ne add_mset_remove_trivial union_single_eq_member)
 
+(* TODO move to Multiset_More; could replace add_mset_remove_trivial_eq? *)
+lemma add_mset_remove_trivial_iff: \<open>N = add_mset a (N - {#b#}) \<longleftrightarrow> a \<in># N \<and> a = b\<close>
+  by (metis add_left_cancel add_mset_remove_trivial insert_DiffM2 single_eq_single
+      size_mset_remove1_mset_le_iff union_single_eq_member)
+
 
 subsection \<open>Replicate\<close>
 
@@ -440,7 +445,7 @@ lemma distinct_mset_count_less_1: "distinct_mset S \<longleftrightarrow> (\<fora
 lemma distinct_mset_empty[simp]: "distinct_mset {#}"
   unfolding distinct_mset_def by auto
 
-lemma distinct_mset_singleton[simp]: "distinct_mset {#a#}"
+lemma distinct_mset_singleton: "distinct_mset {#a#}"
   unfolding distinct_mset_def by auto
 
 lemma distinct_mset_union:
