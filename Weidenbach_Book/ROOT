@@ -154,6 +154,7 @@ session "Full" (Weidenbach_Book) = "HOL"  +
     CDCL_Two_Watched_Literals
     CDCL_Two_Watched_Literals_Implementation
     CDCL_Two_Watched_Literals_Implementation_RBT
+    CDCL_Two_Watched_Literals_Simple_Implementation
     Weidenbach_Book
   document_files
     "root.tex"

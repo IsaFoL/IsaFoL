@@ -40,7 +40,7 @@ lemma defined_before_tl:
     L'_hd: "L' \<noteq> hd (map lit_of M)" and
     def_M: "defined_before M L L'"
   shows "defined_before (tl M) L L'"
-  using L_hd L'_hd def_M  unfolding defined_before_def by (cases M) auto
+  using L_hd L'_hd def_M unfolding defined_before_def by (cases M) auto
 
 text \<open>We need the following property about updates: if there is a literal @{term L} with
   @{term "-L"} in the trail, and @{term L} is not  watched, then it stays unwatched; i.e., while

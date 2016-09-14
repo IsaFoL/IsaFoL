@@ -709,7 +709,7 @@ lemma true_clss_cls_mono_r'[simp]:
 lemma true_clss_cls_mono_add_mset[simp]:
   "A \<Turnstile>p CC \<Longrightarrow> A \<Turnstile>p add_mset L CC"
    using true_clss_cls_mono_r[of A CC "add_mset L {#}"] by simp
- 
+
 lemma true_clss_clss_union_l[simp]:
   "A \<Turnstile>ps CC \<Longrightarrow> A \<union> B \<Turnstile>ps CC"
   unfolding true_clss_clss_def total_over_m_union by fastforce
@@ -931,7 +931,7 @@ next
   then have C_in_D': "C \<subseteq># ?D'" using \<open>C \<subseteq># D\<close> by (auto simp: subseteq_mset_def not_in_iff)
   have "card {Pos v |v. v \<in> atms_of ?D' \<and> v \<notin> atms_of C} <
     card {Pos v |v. v \<in> atms_of D \<and> v \<notin> atms_of C}"
-    using L unfolding atms_of_replicate_mset_replicate_mset_uminus[of D L] 
+    using L unfolding atms_of_replicate_mset_replicate_mset_uminus[of D L]
     by (auto intro!: psubset_card_mono)
   then show ?case
     using IH C_in_D' H' unfolding card[symmetric] by blast
@@ -1042,11 +1042,11 @@ next
       have "atms_of C \<subseteq> insert l atms"
         using atms C' L by auto
       moreover have "\<not> tautology C"
-        using taut C' L assms atms by (metis union_mset_add_mset_left add.left_neutral 
+        using taut C' L assms atms by (metis union_mset_add_mset_left add.left_neutral
             neg_lit_in_atms_of pos_lit_in_atms_of subsetCE tautology_add_mset
-            uminus_Neg uminus_Pos) 
+            uminus_Neg uminus_Pos)
       moreover have "distinct_mset C"
-        using dist C' L by (metis union_mset_add_mset_left add.left_neutral assms atms 
+        using dist C' L by (metis union_mset_add_mset_left add.left_neutral assms atms
             distinct_mset_add_mset neg_lit_in_atms_of pos_lit_in_atms_of subsetCE)
       ultimately show ?thesis unfolding simple_clss_def by blast
     qed
@@ -1067,11 +1067,6 @@ lemma simple_clssE:
 lemma cls_in_simple_clss:
   shows "{#} \<in> simple_clss s"
   unfolding simple_clss_def by auto
-
-lemma add_mset_eq_add_mset_ne:
-  "a \<noteq> b \<Longrightarrow> add_mset a A = add_mset b B \<longleftrightarrow> a \<in># B \<and> b \<in># A \<and> A = add_mset b (B - {#a#})"
-  by (metis (no_types, lifting) diff_single_eq_union diff_union_swap multi_self_add_other_not_self 
-      remove_1_mset_id_iff_notin union_single_eq_diff)
 
 lemma simple_clss_card:
   fixes atms :: "'v set"

@@ -3825,6 +3825,11 @@ lemma no_dup_append_in_atm_notin:
      shows \<open>atm_of L \<notin> atm_of ` lits_of_l M\<close>
   using assms by (auto simp add: atm_lit_of_set_lits_of_l)
 
+lemma no_dup_uminus_append_in_atm_notin:
+   assumes \<open>no_dup (M @ M')\<close> and \<open>-L \<in> lits_of_l M'\<close>
+     shows \<open>atm_of L \<notin> atm_of ` lits_of_l M\<close>
+  using assms by (metis atm_of_uminus no_dup_append_in_atm_notin)
+
 lemmas rulesE =
   skipE resolveE backtrackE propagateE conflictE decideE restartE forgetE
 

@@ -386,7 +386,7 @@ proof -
     mset [0 ..< length C]" if "length C \<ge> 2"
     using that by (subst mset_set_Union[symmetric]) (auto simp: mset_set_eq)
   have "distinct_mset (filter_mset (op \<le> 2) (RBT_keys_mset (list_to_RBT C 0)))"
-    by (metis RBT.distinct_keys distinct_mset_add distinct_mset_distinct multiset_partition)
+    by (metis RBT.distinct_keys distinct_mset_add distinct_mset_mset_distinct multiset_partition)
   then have [simp]: "struct_wf_twl_cls (lits_twl_clause_of_RBT (list_to_RBT C 0))"
     by (auto simp: lits_twl_clause_of_RBT_def get_watched_lits_def get_unwatched_lits_def
         RBT_lookup_list_to_RBT ac_simps mset_RBT_keys_insert mset_filter

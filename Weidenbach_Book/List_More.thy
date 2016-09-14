@@ -452,9 +452,6 @@ lemma in_distinct_mset_set_distinct_mset:
 lemma distinct_mset_remdups_mset[simp]: "distinct_mset (remdups_mset S)"
   using count_remdups_mset_eq_1 unfolding distinct_mset_def by metis
 
-lemma distinct_mset_distinct[simp]: "distinct_mset (mset x) = distinct x"
-  unfolding distinct_mset_def by (auto simp: distinct_count_atmost_1 not_in_iff[symmetric])
-
 lemma distinct_mset_mset_set: "distinct_mset (mset_set A)"
   unfolding distinct_mset_def count_mset_set_if by (auto simp: not_in_iff)
 
