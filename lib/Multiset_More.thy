@@ -120,6 +120,10 @@ lemma size_psubset: "(\<Sigma>:: _ multiset) \<subseteq># \<Sigma>' \<Longrighta
 
 subsection \<open>Filter and Image\<close>
 
+lemma count_image_mset_ge_count:
+  "count (image_mset f A) (f b) \<ge> count A b"
+  by (induction A) auto
+
 lemma mset_filter_compl: "mset (filter p xs) + mset (filter (Not \<circ> p) xs) = mset xs"
   by (induction xs) (auto simp: mset_filter ac_simps)
 
@@ -343,6 +347,12 @@ lemma add_mset_eq_add_mset: \<open>add_mset a M = add_mset b M' \<longleftrighta
 lemma add_mset_remove_trivial_iff: \<open>N = add_mset a (N - {#b#}) \<longleftrightarrow> a \<in># N \<and> a = b\<close>
   by (metis add_left_cancel add_mset_remove_trivial insert_DiffM2 single_eq_single
       size_mset_remove1_mset_le_iff union_single_eq_member)
+
+lemma trivial_add_mset_remove_iff: \<open>add_mset a (N - {#b#}) = N \<longleftrightarrow> a \<in># N \<and> a = b\<close>
+  by (subst eq_commute) (fact add_mset_remove_trivial_iff)
+
+lemma remove1_single_empty_iff[simp]: \<open>remove1_mset L {#L'#} = {#} \<longleftrightarrow> L = L'\<close>
+  using add_mset_remove_trivial_iff by fastforce
 
 
 subsection \<open>Replicate\<close>
