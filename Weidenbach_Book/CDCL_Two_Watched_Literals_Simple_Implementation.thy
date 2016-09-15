@@ -47,7 +47,7 @@ propagate:
 conflict:
   "cdcl_twl_cp (M, N, U, None, NP, UP, add_mset (L, D) WS, Q)
     (M, N, U, Some (clause D), NP, UP, add_mset (L, D) WS, Q)"
-  -- \<open>we keep \<open>add_mset (L, D) Q\<close> to ease the proofs (it will be thrown away later in the calculus).\<close>
+  -- \<open>we keep \<^term>\<open>add_mset (L, D) Q\<close> to ease the proofs (it will be thrown away later in the calculus).\<close>
   if "watched D = {#L, L'#}" and "-L' \<in> lits_of_l M" and "\<forall>L \<in># unwatched D. -L \<in> lits_of_l M" |
 delete_from_working:
   "cdcl_twl_cp (M, N, U, None, NP, UP, add_mset (L, D) WS, Q) (M, N, U, None, NP, UP,WS, Q)"
@@ -112,13 +112,6 @@ fun watched_literals_false_of_max_level :: "('a, 'b) ann_lits \<Rightarrow> 'a c
   (\<forall>L L'. W = {#L, L'#} \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L' \<notin> lits_of_l M \<longrightarrow>
     get_level M L = count_decided M)"
 
-fun twl_st_inv :: "'v twl_st \<Rightarrow> bool" where
-"twl_st_inv (M, N, U, C, NP, UP, WS, Q) \<longleftrightarrow>
-  (\<forall>C \<in># N + U. struct_wf_twl_cls C) \<and>
-  (\<forall>C \<in># N + U. \<not>twl_is_an_exception C Q WS \<longrightarrow> (twl_lazy_update M C \<and> twl_inv M C)) \<and>
-  (\<forall>C \<in># N + U. watched_literals_false_of_max_level M C) \<and>
-  (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (\<forall>C \<in># N + U. twl_lazy_update M1 C \<and> twl_inv M1 C))"
-
 text \<open>The last condition is needed when \<^term>\<open>WS\<close> is \<^term>\<open>{#}\<close>.\<close>
 fun no_duplicate_queued :: "'v twl_st \<Rightarrow> bool"  where
 \<open>no_duplicate_queued (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow>
@@ -131,7 +124,45 @@ fun distinct_queued :: "'v twl_st \<Rightarrow> bool"  where
   distinct_mset Q \<and>
   distinct_mset WS\<close>
 
+fun twl_exception_inv :: "'v twl_st \<Rightarrow>  'v clause twl_clause \<Rightarrow> bool"  where
+\<open>twl_exception_inv (M, N, U, D, NP, UP, WS, Q) C \<longleftrightarrow>
+  (\<forall>L L'. watched C = {#L, L'#} \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L' \<notin> lits_of_l M \<longrightarrow>
+  L \<notin># Q \<longrightarrow> (L, C) \<notin># WS \<longrightarrow>
+    (\<forall>K \<in># unwatched C. -K \<in> lits_of_l M))\<close>
+
+fun twl_st_exception_inv :: "'v twl_st \<Rightarrow> bool" where
+\<open>twl_st_exception_inv (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow>
+  (\<forall>C \<in># N + U. twl_exception_inv (M, N, U, D, NP, UP, WS, Q) C)\<close>
+
+fun twl_st_inv :: "'v twl_st \<Rightarrow> bool" where
+"twl_st_inv (M, N, U, C, NP, UP, WS, Q) \<longleftrightarrow>
+  (\<forall>C \<in># N + U. struct_wf_twl_cls C) \<and>
+  (\<forall>C \<in># N + U. \<not>twl_is_an_exception C Q WS \<longrightarrow> (twl_lazy_update M C \<and> twl_inv M C)) \<and>
+  (\<forall>C \<in># N + U. watched_literals_false_of_max_level M C) \<and>
+  (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (\<forall>C \<in># N + U. twl_lazy_update M1 C \<and> twl_inv M1 C))"
+
+
 paragraph \<open>Properties\<close>
+
+lemma twl_inv_empty_trail:
+  shows
+    \<open>watched_literals_false_of_max_level [] C\<close> and
+    \<open>twl_lazy_update [] C\<close> and
+    \<open>twl_inv [] C\<close>
+  by (cases C; auto)+
+
+lemma
+  assumes \<open>\<And>C. C \<in># N + U \<Longrightarrow> struct_wf_twl_cls C\<close>
+  shows
+    twl_st_inv_empty_trail: \<open>twl_st_inv ([], N, U, C, NP, UP, WS, Q)\<close>
+  by (auto simp: assms twl_inv_empty_trail)
+
+lemma
+  shows
+    no_duplicate_queued_no_queued: \<open>no_duplicate_queued (M, N, U, D, NP, UP, {#}, {#})\<close> and
+    no_distinct_queued_no_queued: \<open>distinct_queued (M, N, U, D, NP, UP, {#}, {#})\<close>
+  by auto
+
 lemma twl_st_inv_remove_conflicting:
   \<open>twl_st_inv (M, N, U, Some C, NP, UP, WS, Q) \<longleftrightarrow> twl_st_inv (M, N, U, None, NP, UP, WS, Q)\<close>
   unfolding twl_st_inv.simps by blast
@@ -465,6 +496,245 @@ qed
 lemma pair_in_image_Pair:
   \<open> (La, C) \<in> Pair L ` D \<longleftrightarrow> La = L \<and> C \<in> D\<close>
   by auto
+lemma twl_cp_twl_st_exception_inv:
+  assumes
+    cdcl: "cdcl_twl_cp S T" and
+    twl: "twl_st_inv S" and
+    twl_excep: \<open>twl_st_exception_inv S\<close> and
+    valid: "valid_annotation S" and
+    inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state S)" and
+    no_taut: "\<forall>D \<in># init_clss (convert_to_state S). \<not> tautology D" and
+    dist: \<open>distinct_mset (cdcl\<^sub>W_restart_mset.clauses (convert_to_state S))\<close> and
+    no_dup: \<open>no_duplicate_queued S\<close> and
+    dist_q: \<open>distinct_queued S\<close>
+  shows "twl_st_exception_inv T"
+  using cdcl twl twl_excep valid inv no_taut dist no_dup
+proof (induction rule: cdcl_twl_cp.induct)
+  case (pop M N U NP UP L Q) note inv = this(2)
+  then show ?case unfolding twl_st_inv.simps twl_is_an_exception_def
+    by (fastforce simp add: pair_in_image_Pair image_constant_conv uminus_lit_swap)
+next
+  case (propagate D L L' M N U NP UP WS Q) note watched = this(1) and twl = this(4) and
+    twl_excep = this(5) and valid = this(6) and inv = this(7) and no_taut = this(8) and
+    no_dup = this(10)
+  have [simp]: \<open>- L' \<notin> lits_of_l M\<close>
+    using Decided_Propagated_in_iff_in_lits_of_l propagate.hyps(2) by blast
+  have "D \<in># N + U"
+    using valid by auto
+  then have wf_D: \<open>struct_wf_twl_cls D\<close>
+    using twl by (simp add: twl_st_inv.simps)
+  have "\<forall>s\<in>#clause `# U. \<not> tautology s"
+    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def by (simp_all add: learned_clss_def init_clss_def)
+  moreover have "D \<in># N + U"
+    using valid by auto
+  ultimately have taut: "\<not>tautology (clause D)"
+    using watched no_taut by (auto simp: init_clss_def)
+  then have [simp]: \<open>L \<noteq> -L'\<close>
+    using watched by (cases D) (auto simp: tautology_add_mset)
+  have [simp]: \<open>L \<noteq> L'\<close>
+    using wf_D watched by (cases D) auto
+  have [simp]: \<open>- L \<in> lits_of_l M\<close>
+    using valid by auto
+  have [simp]: \<open>- La \<noteq> L'\<close> if \<open>La\<in>#unwatched D\<close> for La
+    using wf_D watched that taut by (cases D) (auto dest!: multi_member_split simp: tautology_add_mset)
+  show ?case
+    unfolding Ball_def twl_st_exception_inv.simps twl_exception_inv.simps
+  proof (intro allI conjI impI)
+    fix C J J' K
+    assume C: \<open>C \<in># N + U\<close> and
+      watched_C: \<open>watched C = {#J, J'#}\<close> and
+      J: \<open>- J \<in> lits_of_l (Propagated L' (clause D) # M)\<close> and
+      J': \<open>J' \<notin> lits_of_l (Propagated L' (clause D) # M)\<close> and
+      J_notin: \<open>J \<notin># add_mset (- L') Q\<close> and
+      C_WS: \<open>(J, C) \<notin># WS\<close> and
+      \<open>K \<in># unwatched C\<close>
+    then have \<open>- K \<in> lits_of_l (Propagated L' (clause D) # M)\<close> if \<open>C \<noteq> D\<close>
+      using twl_excep that by (simp add: uminus_lit_swap)
+
+    moreover have CD: False if \<open>C = D\<close>
+      using J J' watched_C watched that by (auto simp: add_mset_eq_add_mset)
+
+    ultimately show \<open>- K \<in> lits_of_l (Propagated L' (clause D) # M)\<close>
+      by blast
+  qed
+next
+  case (conflict D L L' M N U NP UP WS Q) note twl = this(5)
+  then show ?case
+    by (auto simp: twl_st_inv_remove_conflicting)
+next
+  case (delete_from_working D L L' M N U NP UP WS Q) note watched = this(1) and L' = this(2) and
+  twl = this(3) and twl_excep = this(4) and valid = this(4) and inv = this(6) and tauto = this(7)
+  show ?case
+    unfolding Ball_def twl_st_exception_inv.simps twl_exception_inv.simps
+  proof (intro allI conjI impI)
+    fix C J J' K
+    assume C: \<open>C \<in># N + U\<close> and
+      watched_C: \<open>watched C = {#J, J'#}\<close> and
+      J: \<open>- J \<in> lits_of_l M\<close> and
+      J': \<open>J' \<notin> lits_of_l M\<close> and
+      J_notin: \<open>J \<notin># Q\<close> and
+      C_WS: \<open>(J, C) \<notin># WS\<close> and
+      \<open>K \<in># unwatched C\<close>
+    then have \<open>- K \<in> lits_of_l M\<close> if \<open>C \<noteq> D\<close>
+      using twl_excep that by (simp add: uminus_lit_swap)
+
+    moreover {
+      have \<open>no_dup M\<close>
+        using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail_def)
+      then have False if \<open> - L' \<in> lits_of_l M\<close> \<open>L' \<in> lits_of_l M\<close>
+        using that consistent_interp_def distinct_consistent_interp by blast
+      then have CD: False if \<open>C = D\<close>
+        using J J' watched_C watched L' by (auto simp: add_mset_eq_add_mset that) }
+    ultimately show \<open>- K \<in> lits_of_l M\<close>
+      by blast
+  qed
+next
+  case (update_clause D L L' M K N' U' N U NP UP WS Q) note watched = this(1) and uL = this(2) and
+    L' = this(3) and K = this(4) and undef = this(5) and N'U' = this(6) and twl = this(7) and
+    twl_excep = this(8) and valid = this(9) and inv = this(10) and tauto = this(11) and
+    dist = this(12) and no_dup = this(13)
+  obtain WD UWD where D: \<open>D = TWL_Clause WD UWD\<close> by (cases D)
+  have L: \<open>L \<in># watched D\<close> and D_N_U: \<open>D \<in># N + U\<close> and lev_L: \<open>get_level M L = count_decided M\<close>
+    using valid by auto
+  then have struct_D: \<open>struct_wf_twl_cls D\<close>
+    using twl by (auto simp: twl_st_inv.simps)
+  have L'_UWD: \<open>L \<notin># remove1_mset L' UWD\<close> if \<open>L \<in># WD\<close> for L
+  proof (rule ccontr)
+    assume \<open>\<not> ?thesis\<close>
+    then have \<open>count UWD L \<ge> 1\<close>
+      by (auto simp del: count_greater_zero_iff simp: count_greater_zero_iff[symmetric]
+          split: if_splits)
+    then have \<open>count (clause D) L \<ge> 2\<close>
+      using D that by (auto simp del: count_greater_zero_iff simp: count_greater_zero_iff[symmetric]
+          split: if_splits)
+    moreover have \<open>distinct_mset (clause D)\<close>
+      using struct_D D by (auto simp: distinct_mset_union)
+    ultimately show False
+      unfolding distinct_mset_count_less_1 by (metis Suc_1 not_less_eq_eq)
+  qed
+  have L'_L'_UWD: \<open>K \<notin># remove1_mset K UWD\<close>
+  proof (rule ccontr)
+    assume \<open>\<not> ?thesis\<close>
+    then have \<open>count UWD K \<ge> 2\<close>
+      by (auto simp del: count_greater_zero_iff simp: count_greater_zero_iff[symmetric]
+          split: if_splits)
+    then have \<open>count (clause D) K \<ge> 2\<close>
+      using D L' by (auto simp del: count_greater_zero_iff simp: count_greater_zero_iff[symmetric]
+          split: if_splits)
+    moreover have \<open>distinct_mset (clause D)\<close>
+      using struct_D D by (auto simp: distinct_mset_union)
+    ultimately show False
+      unfolding distinct_mset_count_less_1 by (metis Suc_1 not_less_eq_eq)
+  qed
+  have \<open>watched_literals_false_of_max_level M D\<close>
+    using D_N_U twl by (auto simp: twl_st_inv.simps)
+  let ?D = \<open>update_clause D L K\<close>
+  have *: \<open>C \<in># N + U\<close> if \<open>C \<noteq> ?D\<close> and C: \<open>C \<in># N' + U'\<close> for C
+    using C N'U' that by (auto split: if_splits dest: in_diffD)
+  have n_d: \<open>no_dup M\<close>
+    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail_def)
+  then have uK_M: \<open>- K \<notin> lits_of_l M\<close>
+    using undef Decided_Propagated_in_iff_in_lits_of_l consistent_interp_def
+      distinct_consistent_interp by blast
+  have add_remove_WD: \<open>add_mset K (remove1_mset L WD) \<noteq> WD\<close>
+    using uK_M uL by (auto simp: add_mset_remove_trivial_iff trivial_add_mset_remove_iff)
+
+  have \<open>D \<notin># N' + U'\<close>
+  proof
+    assume \<open>D \<in># N' + U'\<close>
+    then have \<open>D \<in># N + U\<close>
+      using N'U' D uK_M uL D_N_U by (auto simp: add_mset_remove_trivial_iff split: if_splits)
+    have \<open>count (N + U) D \<ge> 2\<close>
+      using N'U' \<open>D \<in># N' + U'\<close> D
+      by (auto simp del: count_greater_zero_iff simp: count_greater_zero_iff[symmetric]
+          add_remove_WD split: if_splits)
+    then have \<open>count (clause `# (N + U)) (clause D) \<ge> 2\<close>
+      using count_image_mset_ge_count[of \<open>N + U\<close> D clause] by linarith
+    moreover have \<open>distinct_mset (clause `# (N + U))\<close>
+      using dist by (auto simp: clauses_def distinct_mset_add inter_mset_empty_distrib_left
+          inter_mset_empty_distrib_right)
+    ultimately show False
+      unfolding distinct_mset_count_less_1 by (metis Suc_1 not_less_eq_eq)
+  qed
+  then have CD: \<open>C \<noteq> D\<close> if C: \<open>C \<in># N'+U'\<close> for C
+    using C by auto
+
+  have L_M: \<open>L \<notin> lits_of_l M\<close>
+    using n_d uL by (fastforce dest!: distinct_consistent_interp
+        simp: consistent_interp_def lits_of_def uminus_lit_swap)
+  have w_max_D: \<open>watched_literals_false_of_max_level M D\<close>
+    using D_N_U twl by (auto simp: twl_st_inv.simps)
+  have lev_L': \<open>get_level M L' = count_decided M\<close> if \<open>- L' \<in> lits_of_l M \<close>
+    using L_M w_max_D D watched L' uL that by (auto simp: add_mset_eq_add_mset)
+
+  show ?case
+    unfolding Ball_def twl_st_exception_inv.simps twl_exception_inv.simps
+  proof (intro allI conjI impI)
+    fix C J J' K''
+    assume C: \<open>C \<in># N' + U'\<close> and
+      watched_C: \<open>watched C = {#J, J'#}\<close> and
+      J: \<open>- J \<in> lits_of_l M\<close> and
+      J': \<open>J' \<notin> lits_of_l M\<close> and
+      J_notin: \<open>J \<notin># Q\<close> and
+      C_WS: \<open>(J, C) \<notin># WS\<close> and
+      K'': \<open>K'' \<in># unwatched C\<close>
+    then have \<open>- K'' \<in> lits_of_l M\<close> if \<open>C \<noteq> ?D\<close>
+      using twl_excep that *[OF _ C] CD by (simp add: uminus_lit_swap)
+
+    moreover {
+      assume CD: \<open>C = ?D\<close>
+      have JL[simp]: \<open>J = L'\<close> and J'K[simp]: \<open>J' = K\<close>
+        using CD J J' watched_C watched L' D uK_M undef
+        by (auto simp: add_mset_eq_add_mset)
+      have \<open>K'' \<noteq> K\<close>
+        using K'' uK_M uL D L'_L'_UWD unfolding CD
+        by (cases D) auto
+      have K''_unwatched_L: \<open>K'' \<in>#  remove1_mset K (unwatched D) \<or> K'' = L\<close>
+        using K'' unfolding CD by (cases D) auto
+      have \<open>no_dup M\<close>
+        using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail_def)
+      then have False if \<open>- L' \<in> lits_of_l M\<close> \<open>L' \<in> lits_of_l M\<close>
+        using that consistent_interp_def distinct_consistent_interp by blast
+      have H: \<open>\<And>x La L'. x \<in># N + U \<Longrightarrow>
+            watched x = {#La, L'#} \<Longrightarrow> - La \<in> lits_of_l M \<Longrightarrow>
+            L' \<notin> lits_of_l M \<Longrightarrow> La \<notin># Q \<Longrightarrow> (La, x) \<notin># add_mset (L, D) WS \<Longrightarrow>
+            (\<forall>xa. xa \<in># unwatched x \<longrightarrow> - xa \<in> lits_of_l M)\<close>
+        using twl_excep[unfolded twl_st_exception_inv.simps Ball_def twl_exception_inv.simps]
+        by blast
+      have LL': \<open>L \<noteq> L'\<close>
+        using struct_D watched by (cases D) auto
+      have L'D_WS: \<open>(L', D) \<notin># WS\<close>
+        using no_dup LL' by (auto dest: multi_member_split)
+      have \<open>\<And>xa. xa \<in># unwatched D \<Longrightarrow> - xa \<in> lits_of_l M\<close> if \<open>- L' \<in> lits_of_l M\<close> and \<open>L' \<notin># Q\<close>
+        using H[of D L' L] D_N_U watched LL' that L'D_WS K'' that
+        by (auto simp: add_mset_eq_add_mset L_M)
+
+      consider
+        (unwatched_unqueued) \<open>K'' \<in># remove1_mset K (unwatched D)\<close> |
+        (KL) \<open>K'' = L\<close>
+        using K''_unwatched_L by blast
+      then have \<open>- K'' \<in> lits_of_l M\<close>
+      proof cases
+        case KL
+        then show ?thesis
+          using uL by simp
+      next
+        case unwatched_unqueued
+        moreover have \<open>L' \<notin># Q\<close>
+          using JL J_notin by blast
+        ultimately show ?thesis
+          using H[of D L' L] D_N_U watched LL' L'D_WS K'' J
+          by (auto simp: add_mset_eq_add_mset L_M dest: in_diffD)
+      qed
+      }
+    ultimately show \<open>- K'' \<in> lits_of_l M\<close>
+      by blast
+  qed
+qed
 
 lemma twl_cp_twl_inv:
   assumes
@@ -473,9 +743,11 @@ lemma twl_cp_twl_inv:
     valid: "valid_annotation S" and
     inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state S)" and
     no_taut: "\<forall>D \<in># init_clss (convert_to_state S). \<not> tautology D" and
-    dist: \<open>distinct_mset (cdcl\<^sub>W_restart_mset.clauses (convert_to_state S))\<close>
+    dist: \<open>distinct_mset (cdcl\<^sub>W_restart_mset.clauses (convert_to_state S))\<close> and
+    twl_excep: \<open>twl_st_exception_inv S\<close> and
+    no_dup: \<open>no_duplicate_queued S\<close>
   shows "twl_st_inv T"
-  using cdcl twl valid inv no_taut dist
+  using cdcl twl valid inv no_taut dist twl_excep no_dup
 proof (induction rule: cdcl_twl_cp.induct)
   case (pop M N U NP UP L Q) note inv = this(1)
   then show ?case unfolding twl_st_inv.simps twl_is_an_exception_def
@@ -614,7 +886,8 @@ next
 next
   case (update_clause D L L' M K N' U' N U NP UP WS Q) note watched = this(1) and uL = this(2) and
     L' = this(3) and K = this(4) and undef = this(5) and N'U' = this(6) and twl = this(7) and
-    valid = this(8) and inv = this(9) and tauto = this(10) and dist = this(11)
+    valid = this(8) and inv = this(9) and tauto = this(10) and dist = this(11) and
+    twl_excep = this(12) and no_dup = this(13)
   obtain WD UWD where D: \<open>D = TWL_Clause WD UWD\<close> by (cases D)
   have L: \<open>L \<in># watched D\<close> and D_N_U: \<open>D \<in># N + U\<close> and lev_L: \<open>get_level M L = count_decided M\<close>
     using valid by auto
@@ -738,18 +1011,29 @@ next
       using valid by auto
     have lev_L: \<open>get_level M L = count_decided M\<close>
       using valid by auto
-    
+
     have in_remove1_mset: \<open>K' \<in># remove1_mset K UWD \<longleftrightarrow> K' \<noteq> K \<and> K' \<in># UWD\<close> for K'
       using struct_D L'_L'_UWD by (auto simp: D in_remove1_mset_neq dest: in_diffD)
-    have twl_D: \<open>twl_inv M ?D\<close>
-      apply (use watched uK_M uL D in
+
+    have [simp]: \<open>(L', TWL_Clause {#L', L#} UWD) \<notin># WS\<close>
+      using no_dup \<open>L \<noteq> L'\<close> by auto
+    have \<open>twl_exception_inv (M, N, U, None, NP, UP, add_mset (L, D) WS, Q) D\<close>
+      using twl_excep D_N_U by simp
+    then have H: \<open>- K \<in> lits_of_l M\<close> if \<open>- L' \<in> lits_of_l M\<close> and \<open>L' \<notin># Q\<close> and \<open>K \<in># UWD\<close> for K
+      using D watched \<open>L \<noteq> L'\<close> uL that L_M by (simp add: add_mset_eq_add_mset)
+
+    then have twl_D: \<open>twl_inv M ?D\<close> if \<open>L' \<notin># Q\<close>
+      apply (use watched uK_M uL D that in
           \<open>auto simp: add_mset_eq_add_mset lev_L lev_L' count_decided_ge_get_level
-          in_remove1_mset\<close>)
-      sorry
-    
-    thm twl
+          in_remove1_mset H\<close>)
+      done
+
+    have twl_D': \<open>twl_inv M ?D\<close> if \<open>L' \<in># Q\<close> and \<open>C = ?D\<close>
+      using excep that watched
+      by (cases D) (auto simp: twl_is_an_exception_def)
+
     show \<open>twl_inv M C\<close>
-      using twl_C twl_D by blast
+      using twl_C twl_D twl_D' by blast
   next
     fix C
     assume C: \<open>C \<in># N' + U'\<close>
@@ -775,7 +1059,6 @@ next
     ultimately show \<open>twl_lazy_update M1 C\<close> and \<open>twl_inv M1 C\<close> by blast+
   qed
 qed
-
 
 lemma twl_cp_no_duplicate_queued:
   assumes
