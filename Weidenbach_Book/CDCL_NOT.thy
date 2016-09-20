@@ -1,5 +1,5 @@
 theory CDCL_NOT
-imports List_More Wellfounded_More CDCL_WNOT_Measure Partial_Annotated_Clausal_Logic
+imports WB_List_More Wellfounded_More CDCL_WNOT_Measure Partial_Annotated_Clausal_Logic
 begin
 
 section \<open>NOT's CDCL\<close>

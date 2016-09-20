@@ -12,7 +12,7 @@ session "Imports" (Weidenbach_Book) = "HOL" +
     Doc_Libraries
     "../lib/Multiset_More"
     Wellfounded_More
-    List_More
+    WB_List_More
     RBT_More
   document_files
     "root.tex"
@@ -110,7 +110,7 @@ session "Full" (Weidenbach_Book) = "HOL"  +
     Doc_Libraries
     "../lib/Multiset_More"
     Wellfounded_More
-    List_More
+    WB_List_More
 
     Doc_Entailment
     "../lib/Herbrand_Interpretation"
@@ -149,12 +149,12 @@ session "Full" (Weidenbach_Book) = "HOL"  +
     CDCL_W_Implementation
 
     CDCL_W_Abstract_State
+    CDCL_Two_Watched_Literals_Simple_Implementation
 
   theories [quick_and_dirty, document = true]
     CDCL_Two_Watched_Literals
     CDCL_Two_Watched_Literals_Implementation
     CDCL_Two_Watched_Literals_Implementation_RBT
-    CDCL_Two_Watched_Literals_Simple_Implementation
     Weidenbach_Book
   document_files
     "root.tex"

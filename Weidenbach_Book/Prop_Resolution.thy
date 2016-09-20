@@ -1,5 +1,5 @@
 theory Prop_Resolution
-imports Partial_Clausal_Logic List_More Wellfounded_More
+imports Partial_Clausal_Logic WB_List_More Wellfounded_More
 
 begin
 chapter \<open>Resolution-based techniques\<close>

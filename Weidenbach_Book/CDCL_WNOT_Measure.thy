@@ -1,7 +1,7 @@
 chapter \<open>NOT's CDCL and DPLL\<close>
 
 theory CDCL_WNOT_Measure
-imports Main List_More
+imports Main WB_List_More
 begin
 
 text \<open>The organisation of the development is the following:

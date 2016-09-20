@@ -1,4 +1,4 @@
-theory List_More
+theory WB_List_More
 imports Main "../lib/Multiset_More"
 begin
 

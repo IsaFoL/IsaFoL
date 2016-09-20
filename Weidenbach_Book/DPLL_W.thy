@@ -1,5 +1,5 @@
 theory DPLL_W
-imports Main Partial_Clausal_Logic Partial_Annotated_Clausal_Logic List_More Wellfounded_More
+imports Main Partial_Clausal_Logic Partial_Annotated_Clausal_Logic WB_List_More Wellfounded_More
   DPLL_NOT
 begin
 
