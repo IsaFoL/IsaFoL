@@ -35,10 +35,8 @@ Unordered_Resolution:
 all: Weidenbach_Book Bachmair_Ganzinger Unordered_Resolution
 
 # build the documentation and the files
-current:
+current: Bachmair_Ganzinger Unordered_Resolution
 	$(RUN_ISABELLE) build -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -d Weidenbach_Book Full
-	$(RUN_ISABELLE) build -o browser_info -v -D Bachmair_Ganzinger
-	$(RUN_ISABELLE2016) build -o browser_info -v -D Unordered_Resolution
 
 # need to be in the IJCAR branch
 conference:
