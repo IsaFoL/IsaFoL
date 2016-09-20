@@ -44,13 +44,13 @@ lemma subset_msetE [elim!]:
 subsection \<open>Lemmas about intersections and unions\<close>
 
 lemma mset_inter_single:
-  "x \<in># \<Sigma> \<Longrightarrow> \<Sigma> #\<inter> {#x#} = {#x#}"
+  "x \<in># \<Sigma> \<Longrightarrow> \<Sigma> \<inter># {#x#} = {#x#}"
   by (simp add: mset_subset_eq_single subset_mset.inf_absorb2)
 
-lemma inter_mset_empty_distrib_right: \<open>A #\<inter> (B + C) = {#} \<longleftrightarrow> A #\<inter> B = {#} \<and> A #\<inter> C = {#}\<close>
+lemma inter_mset_empty_distrib_right: \<open>A \<inter># (B + C) = {#} \<longleftrightarrow> A \<inter># B = {#} \<and> A \<inter># C = {#}\<close>
   by (meson disjunct_not_in union_iff)
 
-lemma inter_mset_empty_distrib_left: \<open>(A + B) #\<inter> C = {#} \<longleftrightarrow> A #\<inter> C = {#} \<and> B #\<inter> C = {#}\<close>
+lemma inter_mset_empty_distrib_left: \<open>(A + B) \<inter># C = {#} \<longleftrightarrow> A \<inter># C = {#} \<and> B \<inter># C = {#}\<close>
   by (meson disjunct_not_in union_iff)
 
 lemma minus_eq_empty_iff_include: "A - B = {#} \<longleftrightarrow> A \<subseteq># B"
@@ -74,7 +74,7 @@ lemma size_Diff_singleton: "x \<in># \<Sigma> \<Longrightarrow> size (\<Sigma> -
 lemma size_Diff_singleton_if: "size (A - {#x#}) = (if x \<in># A then size A - 1 else size A)"
   by (simp add: size_Diff_singleton)
 
-lemma size_Un_Int: "size A + size B = size (A #\<union> B) + size (A #\<inter> B)"
+lemma size_Un_Int: "size A + size B = size (A \<union># B) + size (A \<inter># B)"
 proof -
   have *: "A + B = B + (A - B + (A - (A - B)))"
     by (simp add: subset_mset.add_diff_inverse union_commute)
@@ -86,20 +86,20 @@ proof -
 qed
 
 lemma size_Un_disjoint:
-  assumes "A #\<inter> B = {#}"
-  shows "size (A #\<union> B) = size A + size B"
+  assumes "A \<inter># B = {#}"
+  shows "size (A \<union># B) = size A + size B"
   using assms size_Un_Int [of A B] by simp
 
 lemma size_Diff_subset_Int:
-  shows "size (\<Sigma> - \<Sigma>') = size \<Sigma> - size (\<Sigma> #\<inter> \<Sigma>')"
+  shows "size (\<Sigma> - \<Sigma>') = size \<Sigma> - size (\<Sigma> \<inter># \<Sigma>')"
 proof -
-  have *: "\<Sigma> - \<Sigma>' = \<Sigma> - \<Sigma> #\<inter> \<Sigma>'" by (auto simp add: multiset_eq_iff)
+  have *: "\<Sigma> - \<Sigma>' = \<Sigma> - \<Sigma> \<inter># \<Sigma>'" by (auto simp add: multiset_eq_iff)
   show ?thesis unfolding * using size_Diff_submset subset_mset.inf.cobounded1 by blast
 qed
 
 lemma diff_size_le_size_Diff: "size (\<Sigma>:: _ multiset) - size \<Sigma>' \<le> size (\<Sigma> - \<Sigma>')"
 proof-
-  have "size \<Sigma> - size \<Sigma>' \<le> size \<Sigma> - size (\<Sigma> #\<inter> \<Sigma>')"
+  have "size \<Sigma> - size \<Sigma>' \<le> size \<Sigma> - size (\<Sigma> \<inter># \<Sigma>')"
     using size_mset_mono diff_le_mono2 subset_mset.inf_le2 by blast
   also have "\<dots> = size(\<Sigma>-\<Sigma>')" by(simp add: size_Diff_subset_Int)
   finally show ?thesis .
@@ -135,7 +135,7 @@ text \<open>Near duplicate of @{thm [source] filter_eq_replicate_mset}: @{thm fi
 lemma filter_mset_eq: "filter_mset (op = L) A = replicate_mset (count A L) L"
   by (auto simp: multiset_eq_iff)
 
-lemma filter_mset_union_mset: "filter_mset P (A #\<union> B) = filter_mset P A #\<union> filter_mset P B"
+lemma filter_mset_union_mset: "filter_mset P (A \<union># B) = filter_mset P A \<union># filter_mset P B"
   by (auto simp: multiset_eq_iff)
 
 text \<open>See @{thm [source] filter_cong} for the set version. Mark as \<open>[fundef_cong]\<close> too?\<close>
@@ -175,17 +175,11 @@ lemma sum_mset_distrib[simp]:
   by (induction A) (auto simp: ac_simps)
 
 lemma sum_mset_union_disjoint:
-  assumes "A #\<inter> B = {#}"
-  shows "(\<Sum>La\<in>#A #\<union> B. f La) = (\<Sum>La\<in>#A. f La) + (\<Sum>La\<in>#B. f La)"
+  assumes "A \<inter># B = {#}"
+  shows "(\<Sum>La\<in>#A \<union># B. f La) = (\<Sum>La\<in>#A. f La) + (\<Sum>La\<in>#B. f La)"
   by (metis assms diff_zero image_mset_union sum_mset.union union_diff_inter_eq_sup)
 
-text \<open>Multiset equivalent of @{thm setsum_right_distrib} and @{thm setsum_left_distrib}\<close>
-lemma sum_mset_right_distrib:
-  fixes f :: "'a => ('b::semiring_0)"
-  shows "a * (\<Sum>b \<in># B. f b) = (\<Sum>b \<in># B. a * f b)"
-  by (induction B) (auto simp: distrib_left)
-
-lemma sum_mset_left_distrib:
+lemma sum_mset_distrib_right:
   fixes f :: "'a => ('b::semiring_0)"
   shows "(\<Sum>b \<in># B. f b) * a = (\<Sum>b \<in># B. f b * a)"
   by (induction B) (auto simp: distrib_right)
@@ -195,6 +189,7 @@ lemma sum_mset_constant [simp]:
   shows \<open>(\<Sum>x\<in>#A. y) = of_nat (size A) * y\<close>
   by (induction A) (auto simp: algebra_simps)
 
+thm setsum_mono
 lemma (in ordered_comm_monoid_add) sum_mset_mono:
   assumes "(\<And>i. i \<in># K \<Longrightarrow> f i \<le> g i)"
   shows "sum_mset (image_mset f K) \<le> sum_mset (image_mset g K)"
@@ -239,7 +234,7 @@ lemma sum_mset_commute:
 lemma sum_mset_product:
   fixes f :: "'a::{comm_monoid_add,times} => ('b::semiring_0)"
   shows "(\<Sum>i \<in># A. f i) * (\<Sum>i \<in># B. g i) = (\<Sum>i\<in>#A. \<Sum>j\<in>#B. f i * g j)"
-  by (simp add: sum_mset_right_distrib sum_mset_left_distrib sum_mset_commute)
+  by (simp add: sum_mset_distrib_left sum_mset_distrib_right sum_mset_commute)
 
 
 subsection \<open>Remove\<close>
@@ -480,7 +475,7 @@ lemma count_remdups_mset_If: \<open>count (remdups_mset A) a = (if a \<in># A th
 
 lemma distinct_mset_rempdups_union_mset:
   assumes "distinct_mset A" and "distinct_mset B"
-  shows "A #\<union> B = remdups_mset (A + B)"
+  shows "A \<union># B = remdups_mset (A + B)"
   using assms nat_le_linear unfolding remdups_mset_def
   by (force simp add: multiset_eq_iff max_def count_mset_set_if distinct_mset_def not_in_iff)
 
@@ -494,7 +489,7 @@ lemma distinct_mset_size_eq_card: "distinct_mset C \<Longrightarrow> size C = ca
   by (induction C) auto
 
 lemma distinct_mset_add:
-  "distinct_mset (L + L') \<longleftrightarrow> distinct_mset L \<and> distinct_mset L' \<and> L #\<inter> L' = {#}" (is "?A \<longleftrightarrow> ?B")
+  "distinct_mset (L + L') \<longleftrightarrow> distinct_mset L \<and> distinct_mset L' \<and> L \<inter># L' = {#}" (is "?A \<longleftrightarrow> ?B")
   by (induction L arbitrary: L') auto
 
 lemma distinct_mset_set_mset_ident[simp]: "distinct_mset M \<Longrightarrow> mset_set (set_mset M) = M"
@@ -538,14 +533,14 @@ proof -
 qed
 
 lemma distinct_mset_union_mset[simp]:
-  \<open>distinct_mset (D #\<union> C) \<longleftrightarrow> distinct_mset D \<and> distinct_mset C\<close>
+  \<open>distinct_mset (D \<union># C) \<longleftrightarrow> distinct_mset D \<and> distinct_mset C\<close>
   unfolding distinct_mset_count_less_1 by force
 
 lemma distinct_mset_inter_mset:
   assumes
     "distinct_mset D" and
     "distinct_mset C"
-  shows "distinct_mset (D #\<inter> C)"
+  shows "distinct_mset (D \<inter># C)"
   using assms unfolding distinct_mset_count_less_1
   by (meson dual_order.trans subset_mset.inf_le2 subseteq_mset_def)
 
@@ -716,18 +711,18 @@ lemma untion_image_mset_Pair_distribute:
   by (auto simp: multiset_eq_iff count_sum_mset count_image_mset_Pair sum_mset_if_eq_constant
     iterate_op_plus diff_mult_distrib2)
 
-lemma Sigma_mset_Un_distrib1: "Sigma_mset (I #\<union> J) C = Sigma_mset I C #\<union> Sigma_mset J C"
+lemma Sigma_mset_Un_distrib1: "Sigma_mset (I \<union># J) C = Sigma_mset I C \<union># Sigma_mset J C"
   by (auto simp: Sigma_mset_def sup_subset_mset_def untion_image_mset_Pair_distribute)
 
-lemma Sigma_mset_Un_distrib2: "(SIGMAMSET i\<in>#I. A i #\<union> B i) = Sigma_mset I A #\<union> Sigma_mset I B"
+lemma Sigma_mset_Un_distrib2: "(SIGMAMSET i\<in>#I. A i \<union># B i) = Sigma_mset I A \<union># Sigma_mset I B"
   by (auto simp: multiset_eq_iff count_sum_mset count_image_mset_Pair sum_mset_if_eq_constant
     Sigma_mset_def diff_mult_distrib2 iterate_op_plus max_def not_in_iff)
 
-lemma Sigma_mset_Int_distrib1: "Sigma_mset (I #\<inter> J) C = Sigma_mset I C #\<inter> Sigma_mset J C"
+lemma Sigma_mset_Int_distrib1: "Sigma_mset (I \<inter># J) C = Sigma_mset I C \<inter># Sigma_mset J C"
   by (auto simp: multiset_eq_iff count_sum_mset count_image_mset_Pair sum_mset_if_eq_constant
     Sigma_mset_def iterate_op_plus min_def not_in_iff)
 
-lemma Sigma_mset_Int_distrib2: "(SIGMAMSET i\<in>#I. A i #\<inter> B i) = Sigma_mset I A #\<inter> Sigma_mset I B"
+lemma Sigma_mset_Int_distrib2: "(SIGMAMSET i\<in>#I. A i \<inter># B i) = Sigma_mset I A \<inter># Sigma_mset I B"
   by (auto simp: multiset_eq_iff count_sum_mset count_image_mset_Pair sum_mset_if_eq_constant
     Sigma_mset_def iterate_op_plus min_def not_in_iff)
 
@@ -741,14 +736,14 @@ lemma Sigma_mset_Diff_distrib2: "(SIGMAMSET i\<in>#I. A i - B i) = Sigma_mset I 
 
 lemma Sigma_mset_Union: "Sigma_mset (\<Union>#X) B = (\<Union># (image_mset (\<lambda>A. Sigma_mset A B) X))"
   by (auto simp: multiset_eq_iff count_sum_mset count_image_mset_Pair sum_mset_if_eq_constant
-    Sigma_mset_def iterate_op_plus min_def not_in_iff sum_mset_right_distrib)
+    Sigma_mset_def iterate_op_plus min_def not_in_iff sum_mset_distrib_left)
 
 end
 
-lemma Times_mset_Un_distrib1: "(A #\<union> B) \<times>mset C = A \<times>mset C #\<union> B \<times>mset C "
+lemma Times_mset_Un_distrib1: "(A \<union># B) \<times>mset C = A \<times>mset C \<union># B \<times>mset C "
   by (fact Sigma_mset_Un_distrib1)
 
-lemma Times_mset_Int_distrib1: "(A #\<inter> B) \<times>mset C = A \<times>mset C #\<inter> B \<times>mset C "
+lemma Times_mset_Int_distrib1: "(A \<inter># B) \<times>mset C = A \<times>mset C \<inter># B \<times>mset C "
   by (fact Sigma_mset_Int_distrib1)
 
 lemma Times_mset_Diff_distrib1: "(A - B) \<times>mset C = A \<times>mset C - B \<times>mset C "

@@ -57,7 +57,7 @@ definition clauses :: "'st \<Rightarrow> 'v clauses" where
 "clauses S = init_clss S + learned_clss S"
 
 abbreviation resolve_cls where
-"resolve_cls L D' E \<equiv> remove1_mset (-L) D' #\<union> remove1_mset L E"
+"resolve_cls L D' E \<equiv> remove1_mset (-L) D' \<union># remove1_mset L E"
 
 abbreviation state_butlast :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses
   \<times> nat \<times> 'v clause option" where
@@ -1238,7 +1238,7 @@ proof -
     using D' SS' raw state_simp(5) by fastforce
   have T'T: "T' \<sim> T"
     using TT' state_eq_sym by auto
-  have T': \<open>T' \<sim> update_conflicting (Some (remove1_mset (- L) D' #\<union> remove1_mset L E))
+  have T': \<open>T' \<sim> update_conflicting (Some (remove1_mset (- L) D' \<union># remove1_mset L E))
     (tl_trail S')\<close>
   proof -
     have "tl_trail S \<sim> tl_trail S'"
@@ -2977,12 +2977,12 @@ proof (induct rule: cdcl\<^sub>W_o_induct)
   have "get_maximum_level M (remove1_mset L C) \<le> backtrack_lvl S"
     using count_decided_ge_get_maximum_level[of M] lev unfolding tr_S cdcl\<^sub>W_M_level_inv_def by auto
   then have
-    "get_maximum_level M (remove1_mset (- L) D #\<union> remove1_mset L C) =
+    "get_maximum_level M (remove1_mset (- L) D \<union># remove1_mset L C) =
       backtrack_lvl S"
     by (auto simp: get_maximum_level_union_mset get_maximum_level_plus max_def D)
   then show ?case
     using tr_S get_maximum_level_exists_lit_of_max_level[of
-      "remove1_mset (- L) D #\<union> remove1_mset L C" M] T
+      "remove1_mset (- L) D \<union># remove1_mset L C" M] T
     by auto
 next
   case (skip L C' M D T) note tr_S = this(1) and D = this(2) and T = this(5)

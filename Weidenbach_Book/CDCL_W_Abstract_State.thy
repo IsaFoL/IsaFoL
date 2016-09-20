@@ -941,7 +941,7 @@ lemma update_backtrack_lvl_state[simp]:
 
 lemma update_conflicting_resolve_state_mark_conflicting[simp]:
   "raw_conflicting S = Some D' \<Longrightarrow>  -L \<in># mset_ccls D' \<Longrightarrow> L \<in># mset_cls E' \<Longrightarrow>
-   update_conflicting (Some (remove1_mset (- L) (mset_ccls D') #\<union> remove1_mset L (mset_cls E')))
+   update_conflicting (Some (remove1_mset (- L) (mset_ccls D') \<union># remove1_mset L (mset_cls E')))
     (state (tl_conc_trail S)) =
    state (resolve_conflicting L E' (tl_conc_trail S))"
   by (auto simp: cdcl\<^sub>W_restart_mset_state state_def simp del:)

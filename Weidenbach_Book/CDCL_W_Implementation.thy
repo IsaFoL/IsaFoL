@@ -425,7 +425,7 @@ proof (induction S rule: do_resolve_step.induct)
     "resolve
        (map convert (Propagated L C # M), mset `# mset N, mset `# mset U, k, Some (mset D))
        (map convert M, mset `# mset N, mset `# mset U, k,
-         Some (((mset D - {#-L#}) #\<union> (mset C - {#L#}))))"
+         Some (((mset D - {#-L#}) \<union># (mset C - {#L#}))))"
     unfolding resolve.simps
       by (simp add: C D)
   moreover have
@@ -437,11 +437,11 @@ proof (induction S rule: do_resolve_step.induct)
       using \<open>cdcl\<^sub>W_all_struct_inv (toS (Propagated L C # M, N, U, k, Some D))\<close>
       unfolding cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def
       by auto
-    then have "(mset C - {#L#}) #\<union> (mset D - {#- L#}) =
+    then have "(mset C - {#L#}) \<union># (mset D - {#- L#}) =
       remdups_mset (mset C - {#L#} + (mset D - {#- L#}))"
       by (auto simp: distinct_mset_rempdups_union_mset)
     then have "(map convert M, mset `# mset N, mset `# mset U, k,
-    Some ((mset D - {#- L#}) #\<union> (mset C - {#L#})))
+    Some ((mset D - {#- L#}) \<union># (mset C - {#L#})))
     = toS (do_resolve_step (Propagated L C # M, N, U, k, Some D))"
     using \<open>- L \<in> set D\<close> M by (auto simp: ac_simps)
   ultimately show ?case

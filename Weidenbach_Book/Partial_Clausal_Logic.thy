@@ -856,17 +856,17 @@ proof (intro allI impI)
   ultimately show "I \<Turnstile> D + C" by blast
 qed
 
-lemma true_cls_union_mset[iff]: "I \<Turnstile> C #\<union> D \<longleftrightarrow> I \<Turnstile> C \<or> I \<Turnstile> D"
+lemma true_cls_union_mset[iff]: "I \<Turnstile> C \<union># D \<longleftrightarrow> I \<Turnstile> C \<or> I \<Turnstile> D"
   unfolding true_cls_def by force
 
-lemma true_clss_cls_sup_iff_add: "N \<Turnstile>p C #\<union> D \<longleftrightarrow> N \<Turnstile>p C + D"
+lemma true_clss_cls_sup_iff_add: "N \<Turnstile>p C \<union># D \<longleftrightarrow> N \<Turnstile>p C + D"
   by (auto simp: true_clss_cls_def)
 
 lemma true_clss_cls_union_mset_true_clss_cls_or_not_true_clss_cls_or:
   assumes
     D: "N \<Turnstile>p add_mset (-L) D" and
     C: "N \<Turnstile>p add_mset L C"
-  shows "N \<Turnstile>p D #\<union> C"
+  shows "N \<Turnstile>p D \<union># C"
   using true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[OF assms]
   by (subst true_clss_cls_sup_iff_add)
 

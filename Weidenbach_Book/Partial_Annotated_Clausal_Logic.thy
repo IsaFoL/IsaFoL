@@ -898,7 +898,7 @@ proof (clarify, rule ccontr)
 qed
 
 lemma CNot_union_mset[simp]:
-  "CNot (A #\<union> B) = CNot A \<union> CNot B"
+  "CNot (A \<union># B) = CNot A \<union> CNot B"
   unfolding CNot_def by auto
 
 subsection \<open>Other\<close>

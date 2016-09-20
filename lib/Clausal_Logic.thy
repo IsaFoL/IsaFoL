@@ -222,7 +222,7 @@ lemma atms_of_add_mset[simp]:
   unfolding atms_of_def by auto
 
 lemma atms_of_union_mset[simp]:
-  "atms_of (A #\<union> B) = atms_of A \<union> atms_of B"
+  "atms_of (A \<union># B) = atms_of A \<union> atms_of B"
   unfolding atms_of_def by (auto simp: max_def split: if_split_asm)
 
 lemma finite_atms_of[iff]: "finite (atms_of C)"

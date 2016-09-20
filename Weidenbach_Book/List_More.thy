@@ -365,10 +365,10 @@ abbreviation union_mset_list where
 "union_mset_list xs ys \<equiv> case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))"
 
 lemma union_mset_list:
-  "mset xs #\<union> mset ys = mset (union_mset_list xs ys)"
+  "mset xs \<union># mset ys = mset (union_mset_list xs ys)"
 proof -
   have "\<And>zs. mset (case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, zs))) =
-      (mset xs #\<union> mset ys) + mset zs"
+      (mset xs \<union># mset ys) + mset zs"
     by (induct xs arbitrary: ys) (simp_all add: multiset_eq_iff)
   then show ?thesis by simp
 qed

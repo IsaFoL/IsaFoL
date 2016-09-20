@@ -848,7 +848,7 @@ lemma resolve_conflicting:
     "- L' \<in># F" and
     "L' \<in># clause_of_cls D"
   shows "state (resolve_conflicting_abs L' D st) =
-    (M, N, U, k, Some (remove1_mset (- L') F #\<union> remove1_mset L' (clause_of_cls D)))"
+    (M, N, U, k, Some (remove1_mset (- L') F \<union># remove1_mset L' (clause_of_cls D)))"
   using resolve_conflicting_abs[of st _ _ N U k F L' D] assms
   unfolding full_trail_abs_def state_def prop_state_def by auto
 

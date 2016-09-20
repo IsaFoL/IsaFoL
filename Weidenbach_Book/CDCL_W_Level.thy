@@ -142,7 +142,7 @@ lemma get_maximum_level_skip_un_decided_not_present:
   using assms unfolding get_maximum_level_def by simp
 
 lemma get_maximum_level_union_mset:
-  "get_maximum_level M (A #\<union> B) = get_maximum_level M (A + B)"
+  "get_maximum_level M (A \<union># B) = get_maximum_level M (A + B)"
   unfolding get_maximum_level_def by (auto simp: image_Un)
 
 lemma count_decided_rev[simp]:

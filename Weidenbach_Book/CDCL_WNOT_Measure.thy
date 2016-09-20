@@ -133,7 +133,7 @@ proof -
           = (\<Sum>i=0..<length M. (b-1)* b^ i * b^(s - length M))"
           by (auto simp add: ac_simps)
       also have "\<dots> = (\<Sum>i=0..<length M. b^ i) * b^(s - length M) * (b-1)"
-         by (simp add: setsum_left_distrib setsum_right_distrib ac_simps)
+         by (simp add: setsum_distrib_right setsum_distrib_left ac_simps)
       finally have "\<mu>\<^sub>C s b M \<le> (\<Sum>i=0..<length M. b^ i) * (b-1) * b^(s - length M)"
         by (simp add: ac_simps)
 
