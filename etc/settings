@@ -1,0 +1,4 @@
+# -*- shell-script -*- :mode=shellscript:
+
+ISAFOL_BASE="$COMPONENT"
+ISAFOL="$ISAFOL_BASE"
