@@ -1,6 +1,6 @@
 theory CDCL_Two_Watched_Literals_Simple_Implementation
   imports CDCL_W_Abstract_State
-(*   "$AFP/Refine_Imperative_HOL/IICF/IICF" *)
+   "$AFP/Refine_Imperative_HOL/IICF/IICF"
 begin
 
 subsection \<open>Two-watched literals\<close>
@@ -36,6 +36,7 @@ fun update_clauses ::
 
 text \<open>We can ensure that there are always \<^emph>\<open>2\<close> watched literals and that there are different.
   (TODO: complete this sentence).\<close>
+
 inductive cdcl_twl_cp :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" where
 pop:
   "cdcl_twl_cp (M, N, U, None, NP, UP, {#}, add_mset L Q)
@@ -47,8 +48,7 @@ propagate:
     "watched D = {#L, L'#}" and  "undefined_lit M L'" and "\<forall>L \<in># unwatched D. -L \<in> lits_of_l M" |
 conflict:
   "cdcl_twl_cp (M, N, U, None, NP, UP, add_mset (L, D) WS, Q)
-    (M, N, U, Some (clause D), NP, UP, add_mset (L, D) WS, Q)"
-  -- \<open>we keep \<^term>\<open>add_mset (L, D) Q\<close> to ease the proofs (it will be thrown away later in the calculus).\<close>
+    (M, N, U, Some (clause D), NP, UP, {#}, {#})"
   if "watched D = {#L, L'#}" and "-L' \<in> lits_of_l M" and "\<forall>L \<in># unwatched D. -L \<in> lits_of_l M" |
 delete_from_working:
   "cdcl_twl_cp (M, N, U, None, NP, UP, add_mset (L, D) WS, Q) (M, N, U, None, NP, UP, WS, Q)"
@@ -59,6 +59,42 @@ update_clause:
   if "watched D = {#L, L'#}" and \<open>-L \<in> lits_of_l M\<close> and \<open>L' \<notin> lits_of_l M\<close> and
     \<open>K \<in># unwatched D\<close> and \<open>undefined_lit M K \<or> K \<in> lits_of_l M\<close> and
     \<open>(N', U') = update_clauses (N, U) D L K\<close>
+  (* TODO remove condition \<open>-L \<in> lits_of_l M\<close>, that is already implied by valid invariant *)
+
+text \<open>We do not care about the pending literals.\<close>
+inductive cdcl_twl_o :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" where
+  decide:
+  \<open>cdcl_twl_o (M, N, U, None, NP, UP, {#}, {#}) (Decided L # M, N, U, None, NP, UP, {#}, {#})\<close>
+  if \<open>undefined_lit M L\<close> and \<open>atm_of L \<in> atms_of_mm (clause `# N)\<close>
+| skip:
+  \<open>cdcl_twl_o (Propagated L C' # M, N, U, Some D, NP, UP, {#}, {#})
+  (M, N, U, Some D, NP, UP, {#}, {#})\<close>
+  if \<open>-L \<notin># D\<close> and \<open>D \<noteq> {#}\<close>
+| resolve:
+  \<open>cdcl_twl_o (Propagated L C # M, N, U, Some D, NP, UP, {#}, {#})
+  (M, N, U, Some (cdcl\<^sub>W_restart_mset.resolve_cls L D C), NP, UP, {#}, {#})\<close>
+  if \<open>-L \<in># D\<close> and
+    \<open>get_maximum_level (Propagated L C # M) (remove1_mset (-L) D) = count_decided M\<close>
+| backtrack_single_clause:
+  \<open>cdcl_twl_o (M, N, U, Some {#L#}, NP, UP, {#}, {#})
+  (Propagated L {#L#} # M1, N, U, None, NP, add_mset {#L#} UP, {#}, {#L#})\<close>
+  if
+    \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
+    \<open>get_level M L = count_decided M\<close> and
+    \<open>get_level M K = 1\<close>
+| backtrack:
+  \<open>cdcl_twl_o (M, N, U, Some D, NP, UP, {#}, {#})
+  (Propagated L D # M1, N, add_mset (TWL_Clause {#L, L'#} (D - {#L, L'#})) U, None, NP, UP, {#}, {#L#})\<close>
+  if
+    \<open>L \<in># D\<close> and
+    \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
+    \<open>get_level M L = count_decided M\<close> and
+    \<open>get_level M L = get_maximum_level M D\<close> and
+    \<open>get_maximum_level M (D - {#L#}) \<equiv> i\<close> and
+    \<open>get_level M K = i + 1\<close>
+    \<open>D \<noteq> {#L#}\<close> and
+    \<open>L' \<in># D\<close> and -- \<open>\<^term>\<open>L'\<close> is the new watched literal\<close>
+    \<open>L' \<noteq> L\<close>
 
 
 subsubsection \<open>Two-watched literals Invariants\<close>
@@ -128,19 +164,20 @@ fun distinct_queued :: "'v twl_st \<Rightarrow> bool"  where
   distinct_mset WS\<close>
 
 fun twl_exception_inv :: "'v twl_st \<Rightarrow>  'v clause twl_clause \<Rightarrow> bool"  where
-\<open>twl_exception_inv (M, N, U, D, NP, UP, WS, Q) C \<longleftrightarrow>
-  (\<forall>L L'. watched C = {#L, L'#} \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L' \<notin> lits_of_l M \<longrightarrow>
-  L \<notin># Q \<longrightarrow> (L, C) \<notin># WS \<longrightarrow>
-    (\<forall>K \<in># unwatched C. -K \<in> lits_of_l M))\<close>
+  \<open>twl_exception_inv (M, N, U, None, NP, UP, WS, Q) C \<longleftrightarrow>
+    (\<forall>L L'. watched C = {#L, L'#} \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L' \<notin> lits_of_l M \<longrightarrow>
+      L \<notin># Q \<longrightarrow> (L, C) \<notin># WS \<longrightarrow>
+      (\<forall>K \<in># unwatched C. -K \<in> lits_of_l M))\<close>
+| \<open>twl_exception_inv (M, N, U, D, NP, UP, WS, Q) C \<longleftrightarrow> True\<close>
 
 fun twl_st_exception_inv :: "'v twl_st \<Rightarrow> bool" where
 \<open>twl_st_exception_inv (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow>
   (\<forall>C \<in># N + U. twl_exception_inv (M, N, U, D, NP, UP, WS, Q) C)\<close>
 
 fun twl_st_inv :: "'v twl_st \<Rightarrow> bool" where
-"twl_st_inv (M, N, U, C, NP, UP, WS, Q) \<longleftrightarrow>
+"twl_st_inv (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow>
   (\<forall>C \<in># N + U. struct_wf_twl_cls C) \<and>
-  (\<forall>C \<in># N + U. \<not>twl_is_an_exception C Q WS \<longrightarrow> (twl_lazy_update M C \<and> twl_inv M C)) \<and>
+  (\<forall>C \<in># N + U. D = None \<longrightarrow> \<not>twl_is_an_exception C Q WS \<longrightarrow> (twl_lazy_update M C \<and> twl_inv M C)) \<and>
   (\<forall>C \<in># N + U. watched_literals_false_of_max_level M C) \<and>
   (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (\<forall>C \<in># N + U. twl_lazy_update M1 C \<and> twl_inv M1 C))"
 
@@ -166,10 +203,6 @@ lemma
     no_distinct_queued_no_queued: \<open>distinct_queued (M, N, U, D, NP, UP, {#}, {#})\<close>
   by auto
 
-lemma twl_st_inv_remove_conflicting:
-  \<open>twl_st_inv (M, N, U, Some C, NP, UP, WS, Q) \<longleftrightarrow> twl_st_inv (M, N, U, None, NP, UP, WS, Q)\<close>
-  unfolding twl_st_inv.simps by blast
-
 lemma twl_st_inv_add_mset_working_queue:
   assumes \<open>D \<in># N + U\<close>
   shows \<open>twl_st_inv (M, N, U, None, NP, UP, WS, Q)
@@ -181,10 +214,10 @@ lemma twl_st_inv_add_mset_working_queue:
 lemma twl_st_simps:
 "twl_st_inv (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow>
   (\<forall>C \<in># N + U. struct_wf_twl_cls C \<and>
-    (\<not>twl_is_an_exception C Q WS \<longrightarrow> (twl_lazy_update M C \<and> twl_inv M C)) \<and>
+    (D = None \<longrightarrow> \<not>twl_is_an_exception C Q WS \<longrightarrow> (twl_lazy_update M C \<and> twl_inv M C)) \<and>
     watched_literals_false_of_max_level M C \<and>
     (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (twl_lazy_update M1 C \<and> twl_inv M1 C)))"
-  unfolding twl_st_inv.simps by blast
+  unfolding twl_st_inv.simps by fast
 
 lemma last_in_set_dropWhile:
   assumes \<open>\<exists>L \<in> set (xs @ [x]). \<not>P L\<close>
@@ -364,7 +397,7 @@ fun valid_annotation :: "'v twl_st \<Rightarrow> bool" where
   (\<forall>L \<in># Q. -L \<in> lits_of_l M \<and> get_level M L = count_decided M)"
 
 lemma clauses_def: \<open>cdcl\<^sub>W_restart_mset.clauses (M, N, U, k, C) = N + U\<close>
-  by (subst cdcl\<^sub>W_restart_mset.clauses_def, subst init_clss_def, subst learned_clss_def) simp
+  by (subst cdcl\<^sub>W_restart_mset.clauses_def) (simp add: cdcl\<^sub>W_restart_mset_state)
 
 (* TODO subset_mset.add_diff_assoc should be [simp]\<dots> as Nat.add_diff_assoc*)
 
@@ -424,7 +457,7 @@ proof -
   obtain W UW where C: \<open>C = TWL_Clause W UW\<close> by (cases C)
   have n_d: \<open>no_dup M\<close>
     using struct_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail_def S)
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps S)
 
   show ?thesis
     unfolding C watched_literals_false_of_max_level.simps
@@ -477,11 +510,11 @@ proof -
       undefined_lit Ma L \<longrightarrow>
       \<not> Ma \<Turnstile>as CNot Da\<close>
       using propa unfolding S cdcl\<^sub>W_restart_mset.no_smaller_propa_def
-      by (auto simp add: clauses_def trail_def)
+      by (auto simp add: clauses_def trail.simps)
 
     have \<open>\<not>undefined_lit M1 L'\<close>
       using C' H[of M2 K M1 C' L'] \<open>M1 \<Turnstile>as CNot C'\<close>
-      by (simp add: C clauses_def trail_def M)
+      by (simp add: C clauses_def trail.simps M)
 
     then have \<open>-L' \<in> lits_of_l M1\<close>
       using Decided_Propagated_in_iff_in_lits_of_l M \<open>L' \<notin> lits_of_l M\<close> by auto
@@ -491,7 +524,7 @@ proof -
       (* TODO tune proof *)
       using stgy_inv C' unfolding  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def S
         cdcl\<^sub>W_restart_mset.no_smaller_confl_def
-      apply (simp add: clauses_def conflicting_def trail_def M)
+      apply (simp add: clauses_def trail.simps M)
       using \<open>M1 \<Turnstile>as CNot (add_mset L' C')\<close> by blast
   qed
 qed
@@ -528,11 +561,11 @@ next
     using twl by (simp add: twl_st_inv.simps)
   have "\<forall>s\<in>#clause `# U. \<not> tautology s"
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def by (simp_all add: learned_clss_def init_clss_def)
+      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def by (simp_all add: cdcl\<^sub>W_restart_mset_state)
   moreover have "D \<in># N + U"
     using valid by auto
   ultimately have taut: "\<not>tautology (clause D)"
-    using watched no_taut by (auto simp: init_clss_def)
+    using watched no_taut by (auto simp: cdcl\<^sub>W_restart_mset_state)
   then have [simp]: \<open>L \<noteq> -L'\<close>
     using watched by (cases D) (auto simp: tautology_add_mset)
   have [simp]: \<open>L \<noteq> L'\<close>
@@ -563,8 +596,8 @@ next
   qed
 next
   case (conflict D L L' M N U NP UP WS Q) note twl = this(5)
-  then show ?case
-    by (auto simp: twl_st_inv_remove_conflicting)
+  show ?case
+    by (auto simp: twl_st_inv.simps)
 next
   case (delete_from_working D L L' M N U NP UP WS Q) note watched = this(1) and L' = this(2) and
   twl = this(3) and twl_excep = this(4) and valid = this(4) and inv = this(6) and tauto = this(7)
@@ -585,7 +618,7 @@ next
     moreover {
       have \<open>no_dup M\<close>
         using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail_def)
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps)
       then have False if \<open> - L' \<in> lits_of_l M\<close> \<open>L' \<in> lits_of_l M\<close>
         using that consistent_interp_def distinct_consistent_interp by blast
       then have CD: False if \<open>C = D\<close>
@@ -638,7 +671,7 @@ next
     using C N'U' that by (auto split: if_splits dest: in_diffD)
   have n_d: \<open>no_dup M\<close>
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail_def)
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps)
   then have uK_M: \<open>- K \<notin> lits_of_l M\<close>
     using undef Decided_Propagated_in_iff_in_lits_of_l consistent_interp_def
       distinct_consistent_interp by blast
@@ -699,7 +732,7 @@ next
         using K'' unfolding CD by (cases D) auto
       have \<open>no_dup M\<close>
         using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail_def)
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps)
       then have False if \<open>- L' \<in> lits_of_l M\<close> \<open>L' \<in> lits_of_l M\<close>
         using that consistent_interp_def distinct_consistent_interp by blast
       have H: \<open>\<And>x La L'. x \<in># N + U \<Longrightarrow>
@@ -766,11 +799,11 @@ next
     using twl by (simp add: twl_st_inv.simps)
   have "\<forall>s\<in>#clause `# U. \<not> tautology s"
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def by (simp_all add: learned_clss_def init_clss_def)
+      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def by (simp_all add: cdcl\<^sub>W_restart_mset_state)
   moreover have "D \<in># N + U"
     using valid by auto
   ultimately have taut: "\<not>tautology (clause D)"
-    using watched no_taut by (auto simp: init_clss_def)
+    using watched no_taut by (auto simp: cdcl\<^sub>W_restart_mset_state)
   then have [simp]: \<open>-L \<noteq> L'\<close>
     using watched by (cases D) (auto simp: tautology_add_mset)
   have [simp]: \<open>L \<noteq> L'\<close>
@@ -832,7 +865,7 @@ next
 next
   case (conflict D L L' M N U NP UP WS Q) note twl = this(4)
   then show ?case
-    by (auto simp: twl_st_inv_remove_conflicting)
+    by (auto simp: twl_st_inv.simps)
 next
   case (delete_from_working D L L' M N U NP UP WS Q) note watched = this(1) and L' = this(2) and
   twl = this(3) and valid = this(4) and inv = this(5) and tauto = this(6)
@@ -852,7 +885,7 @@ next
       using twl D by (auto simp: twl_st_inv.simps)
     have \<open>no_dup M\<close>
       using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: trail_def)
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: trail.simps)
     then have [simp]: \<open> - L' \<notin> lits_of_l M\<close>
       using L' consistent_interp_def distinct_consistent_interp by blast
     have twl_D: \<open>twl_lazy_update M D\<close>
@@ -931,7 +964,7 @@ next
     using C N'U' that by (auto split: if_splits dest: in_diffD)
   have n_d: \<open>no_dup M\<close>
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail_def)
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps)
   then have uK_M: \<open>- K \<notin> lits_of_l M\<close>
     using undef Decided_Propagated_in_iff_in_lits_of_l consistent_interp_def
       distinct_consistent_interp by blast
@@ -1117,7 +1150,7 @@ next
 next
   case (conflict D L L' M N U NP UP WS Q) note dist = this(10)
   then show ?case
-    by (auto simp: twl_st_inv_remove_conflicting)
+    by auto
 next
   case (delete_from_working D L L' M N U NP UP WS Q) note dist = this(9)
   show ?case using dist by auto
@@ -1154,7 +1187,7 @@ next
 next
   case (conflict D L L' M N U NP UP WS Q) note valid = this(5)
   then show ?case
-    by (auto simp: twl_st_inv_remove_conflicting)
+    by auto
 next
   case (delete_from_working D L L' M N U NP UP WS Q) note watched = this(1) and L' = this(2) and
   twl = this(3) and valid = this(4) and inv = this(5) and tauto = this(6)
@@ -1187,107 +1220,14 @@ next
   qed
 qed
 
-
-subsubsection \<open>Properties of the Transition System\<close>
-
-lemma twl_cp_propagate_or_conflict:
-  assumes
-    cdcl: "cdcl_twl_cp S T" and
-    twl: "twl_st_inv S" and
-    valid: "valid_annotation S" and
-    inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state S)" and
-    no_taut: "\<forall>D \<in># init_clss (convert_to_state S). \<not> tautology D"
-  shows "cdcl\<^sub>W_restart_mset.propagate (convert_to_state S) (convert_to_state T) \<or>
-    cdcl\<^sub>W_restart_mset.conflict (convert_to_state S) (convert_to_state T) \<or>
-    convert_to_state S = convert_to_state T"
-  using cdcl twl valid inv no_taut
-proof (induction rule: cdcl_twl_cp.induct)
-  case (pop M N U L Q)
-  then show ?case by simp
-next
-  case (propagate D L L' M N U NP UP WS Q) note watched = this(1) and undef = this(2) and no_upd = this(3)
-    and twl = this(4) and valid = this(5) and inv = this(6) and no_taut = this(7)
-  let ?S = \<open>convert_to_state (M, N, U, None, NP, UP, add_mset (L, D) WS, Q)\<close>
-  let ?T = \<open>convert_to_state (Propagated L' (clause D) # M, N, U, None, NP, UP, WS, add_mset (- L') Q)\<close>
-  have "\<forall>s\<in>#clause `# U. \<not> tautology s"
-    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-    cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def by (simp_all add: learned_clss_def init_clss_def)
-  moreover have "D \<in># N + U"
-    using valid by auto
-  ultimately have "\<not>tautology (clause D)"
-    using watched no_taut by (auto simp: init_clss_def)
-  then have [simp]: \<open>-L \<noteq> L'\<close>
-    using watched by (cases D) (auto simp: tautology_add_mset)
-  have \<open>cdcl\<^sub>W_restart_mset.propagate ?S ?T\<close>
-    apply (rule cdcl\<^sub>W_restart_mset.propagate.intros[of _ \<open>clause D\<close> L'])
-        apply (simp add: conflicting_def; fail)
-       apply (metis \<open>D \<in># N + U\<close> clauses_def convert_to_state.simps image_eqI
-           in_image_mset union_iff)
-      using watched apply (cases D, simp add: clauses_def; fail)
-     using no_upd watched valid apply (cases D;
-         simp add: trail_def true_annots_true_cls_def_iff_negation_in_model; fail)
-     using undef apply (simp add: trail_def)
-    by (simp add: cdcl\<^sub>W_restart_mset_state del: cdcl\<^sub>W_restart_mset.state_simp)
-  then show ?case by blast
-next
-  case (conflict D L L' M N U NP UP WS Q) note watched = this(1) and defined = this(2)
-    and no_upd = this(3) and twl = this(3) and valid = this(5) and inv = this(6) and no_taut = this(7)
-  let ?S = "convert_to_state (M, N, U, None, NP, UP, add_mset (L, D) WS, Q)"
-  let ?T = "convert_to_state (M, N, U, Some (clause D), NP, UP, add_mset (L, D) WS, Q)"
-  have "D \<in># N + U"
-    using valid by auto
-  have "\<forall>s\<in>#clause `# U. \<not> tautology s"
-    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-    cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def by (simp_all add: learned_clss_def init_clss_def)
-  moreover have "D \<in># N + U"
-    using valid by auto
-  ultimately have "\<not>tautology (clause D)"
-    using watched no_taut by (auto simp: init_clss_def)
-  then have [simp]: \<open>-L \<noteq> L'\<close>
-    using watched by (cases D) (auto simp: tautology_add_mset)
-  have \<open>distinct_mset (clause D)\<close>
-    using inv valid \<open>D \<in># N + U\<close> unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-    cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def distinct_mset_set_def
-    by (auto simp: learned_clss_def init_clss_def)
-  then have \<open>L \<noteq> L'\<close>
-    using watched by (cases D) simp
-  have \<open>M \<Turnstile>as CNot (unwatched D)\<close>
-    using no_upd  by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
-  have \<open>cdcl\<^sub>W_restart_mset.conflict ?S ?T\<close>
-    apply (rule cdcl\<^sub>W_restart_mset.conflict.intros[of _ \<open>clause D\<close>])
-       apply (simp add: conflicting_def)
-      apply (metis \<open>D \<in># N + U\<close> clauses_def convert_to_state.simps image_eqI
-        in_image_mset union_iff)
-     using watched defined valid \<open>M \<Turnstile>as CNot (unwatched D)\<close> apply (cases D; auto simp add: clauses_def
-         trail_def twl_st_inv.simps; fail)
-    by (simp add: cdcl\<^sub>W_restart_mset_state del: cdcl\<^sub>W_restart_mset.state_simp)
-  then show ?case by fast
-next
-  case (delete_from_working D L L' M N U NP UP WS Q)
-  then show ?case by simp
-next
-  case (update_clause D L L' M K N' U' N U NP UP WS Q) note unwatched = this(4) and
-    valid = this(8)
-  have \<open>D \<in># N + U\<close>
-    using valid by auto
-  have [simp]: \<open>clause (update_clause D L K) = clause D\<close>
-    using valid unwatched by (cases D) (auto simp: subset_mset.add_diff_assoc2
-        diff_union_swap2[symmetric]
-        subset_mset.add_diff_assoc simp del: diff_union_swap2)
-  have \<open>convert_to_state (M, N, U, None, NP, UP, add_mset (L, D) WS, Q) =
-    convert_to_state (M, N', U', None, NP, UP, WS, Q)\<close>
-    using update_clause \<open>D \<in># N + U\<close> by (cases \<open> D \<in># N\<close>)
-      (auto simp: image_mset_remove1_mset_if add_mset_remove_trivial_iff)
-  then show ?case by fast
-qed
-
 text \<open>Candidats for propagation (i.e., the clause where only one literals is non
   assigned) are enqueued.\<close>
 fun propa_cands_enqueued :: "'v twl_st \<Rightarrow> bool" where
-  \<open>propa_cands_enqueued (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow>
+  \<open>propa_cands_enqueued (M, N, U, None, NP, UP, WS, Q) \<longleftrightarrow>
   (\<forall>L C. C \<in># N+U \<longrightarrow> L \<in># clause C \<longrightarrow> M \<Turnstile>as CNot (remove1_mset L (clause C)) \<longrightarrow>
     undefined_lit M L \<longrightarrow>
     (\<exists>L'. L' \<in># watched C \<and> L' \<in># Q) \<or> (\<exists>L. (L, C) \<in># WS))\<close>
+| \<open>propa_cands_enqueued (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow> True\<close>
 
 lemma twl_cp_propa_cands_enqueued:
   assumes
@@ -1330,11 +1270,11 @@ next
     using twl by (simp add: twl_st_inv.simps)
   have "\<forall>s\<in>#clause `# U. \<not> tautology s"
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def by (simp_all add: learned_clss_def init_clss_def)
+      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def by (simp_all add: cdcl\<^sub>W_restart_mset_state)
   moreover have "D \<in># N + U"
     using valid by auto
   ultimately have taut: "\<not>tautology (clause D)"
-    using watched no_taut by (auto simp: init_clss_def)
+    using watched no_taut by (auto simp: cdcl\<^sub>W_restart_mset_state)
   then have [simp]: \<open>-L \<noteq> L'\<close>
     using watched by (cases D) (auto simp: tautology_add_mset)
   have [simp]: \<open>L \<noteq> L'\<close>
@@ -1418,7 +1358,7 @@ next
 
         have \<open>no_dup M\<close>
           using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-            cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: trail_def)
+            cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: trail.simps)
         then have [dest]: False if \<open>a \<in> lits_of_l M\<close> and \<open>-a \<in> lits_of_l M\<close> for a
           using consistent_interp_def distinct_consistent_interp that(1) that(2) by blast
         have uab: \<open>a \<notin> lits_of_l M\<close> if \<open>-b \<in> lits_of_l M\<close>
@@ -1467,7 +1407,7 @@ next
   twl = this(3) and valid = this(4) and inv = this(5) and tauto = this(6) and cands = this(10)
   have n_d: \<open>no_dup M\<close>
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: trail_def)
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: trail.simps)
   show ?case unfolding propa_cands_enqueued.simps
   proof (intro allI conjI impI)
     fix C K
@@ -1529,7 +1469,7 @@ next
     using C N'U' that by (auto split: if_splits dest: in_diffD)
   have n_d: \<open>no_dup M\<close>
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail_def)
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps)
   then have uK_M: \<open>- K \<notin> lits_of_l M\<close>
     using undef Decided_Propagated_in_iff_in_lits_of_l consistent_interp_def
       distinct_consistent_interp by blast
@@ -1659,11 +1599,11 @@ next
     using twl by (simp add: twl_st_inv.simps)
   have "\<forall>s\<in>#clause `# U. \<not> tautology s"
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def by (simp_all add: learned_clss_def init_clss_def)
+      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def by (simp_all add: cdcl\<^sub>W_restart_mset_state)
   moreover have "D \<in># N + U"
     using valid by auto
   ultimately have taut: "\<not>tautology (clause D)"
-    using watched no_taut by (auto simp: init_clss_def)
+    using watched no_taut by (auto simp: cdcl\<^sub>W_restart_mset_state)
   then have [simp]: \<open>-L \<noteq> L'\<close>
     using watched by (cases D) (auto simp: tautology_add_mset)
   have [simp]: \<open>L \<noteq> L'\<close>
@@ -1733,7 +1673,7 @@ next
 
         have \<open>no_dup M\<close>
           using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-            cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: trail_def)
+            cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: trail.simps)
         then have [dest]: False if \<open>a \<in> lits_of_l M\<close> and \<open>-a \<in> lits_of_l M\<close> for a
           using consistent_interp_def distinct_consistent_interp that(1) that(2) by blast
         have uab: \<open>a \<notin> lits_of_l M\<close> if \<open>-b \<in> lits_of_l M\<close>
@@ -1781,7 +1721,7 @@ next
   twl = this(3) and valid = this(4) and inv = this(5) and tauto = this(6) and cands = this(10)
   have n_d: \<open>no_dup M\<close>
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: trail_def)
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: trail.simps)
   show ?case unfolding confl_cands_enqueued.simps Ball_def
   proof (intro allI conjI impI)
     fix C
@@ -1840,7 +1780,7 @@ next
     using C N'U' that by (auto split: if_splits dest: in_diffD)
   have n_d: \<open>no_dup M\<close>
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail_def)
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps)
   then have uK_M: \<open>- K \<notin> lits_of_l M\<close>
     using undef Decided_Propagated_in_iff_in_lits_of_l consistent_interp_def
       distinct_consistent_interp by blast
@@ -1889,6 +1829,234 @@ next
     ultimately show \<open>(\<exists>L'. L' \<in># watched C \<and> L' \<in># Q) \<or> (\<exists>L. (L, C) \<in># WS)\<close>
       by auto
   qed
+qed
+
+
+subsubsection \<open>Properties of the Transition System\<close>
+
+lemma twl_cp_propagate_or_conflict:
+  assumes
+    cdcl: "cdcl_twl_cp S T" and
+    twl: "twl_st_inv S" and
+    valid: "valid_annotation S" and
+    inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state S)" and
+    no_taut: "\<forall>D \<in># init_clss (convert_to_state S). \<not> tautology D"
+  shows "cdcl\<^sub>W_restart_mset.propagate (convert_to_state S) (convert_to_state T) \<or>
+    cdcl\<^sub>W_restart_mset.conflict (convert_to_state S) (convert_to_state T) \<or>
+    convert_to_state S = convert_to_state T"
+  using cdcl twl valid inv no_taut
+proof (induction rule: cdcl_twl_cp.induct)
+  case (pop M N U L Q)
+  then show ?case by simp
+next
+  case (propagate D L L' M N U NP UP WS Q) note watched = this(1) and undef = this(2) and no_upd = this(3)
+    and twl = this(4) and valid = this(5) and inv = this(6) and no_taut = this(7)
+  let ?S = \<open>convert_to_state (M, N, U, None, NP, UP, add_mset (L, D) WS, Q)\<close>
+  let ?T = \<open>convert_to_state (Propagated L' (clause D) # M, N, U, None, NP, UP, WS, add_mset (- L') Q)\<close>
+  have "\<forall>s\<in>#clause `# U. \<not> tautology s"
+    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def by (simp_all add: cdcl\<^sub>W_restart_mset_state)
+  moreover have "D \<in># N + U"
+    using valid by auto
+  ultimately have "\<not>tautology (clause D)"
+    using watched no_taut by (auto simp: cdcl\<^sub>W_restart_mset_state)
+  then have [simp]: \<open>-L \<noteq> L'\<close>
+    using watched by (cases D) (auto simp: tautology_add_mset)
+  have \<open>cdcl\<^sub>W_restart_mset.propagate ?S ?T\<close>
+    apply (rule cdcl\<^sub>W_restart_mset.propagate.intros[of _ \<open>clause D\<close> L'])
+        apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+       apply (metis \<open>D \<in># N + U\<close> clauses_def convert_to_state.simps image_eqI
+           in_image_mset union_iff)
+      using watched apply (cases D, simp add: clauses_def; fail)
+     using no_upd watched valid apply (cases D;
+         simp add: trail.simps true_annots_true_cls_def_iff_negation_in_model; fail)
+     using undef apply (simp add: trail.simps)
+    by (simp add: cdcl\<^sub>W_restart_mset_state del: cdcl\<^sub>W_restart_mset.state_simp)
+  then show ?case by blast
+next
+  case (conflict D L L' M N U NP UP WS Q) note watched = this(1) and defined = this(2)
+    and no_upd = this(3) and twl = this(3) and valid = this(5) and inv = this(6) and no_taut = this(7)
+  let ?S = "convert_to_state (M, N, U, None, NP, UP, add_mset (L, D) WS, Q)"
+  let ?T = "convert_to_state (M, N, U, Some (clause D), NP, UP, {#}, {#})"
+  have "D \<in># N + U"
+    using valid by auto
+  have "\<forall>s\<in>#clause `# U. \<not> tautology s"
+    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def by (simp_all add: cdcl\<^sub>W_restart_mset_state)
+  moreover have "D \<in># N + U"
+    using valid by auto
+  ultimately have "\<not>tautology (clause D)"
+    using watched no_taut by (auto simp: cdcl\<^sub>W_restart_mset_state)
+  then have [simp]: \<open>-L \<noteq> L'\<close>
+    using watched by (cases D) (auto simp: tautology_add_mset)
+  have \<open>distinct_mset (clause D)\<close>
+    using inv valid \<open>D \<in># N + U\<close> unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def distinct_mset_set_def
+    by (auto simp: cdcl\<^sub>W_restart_mset_state)
+  then have \<open>L \<noteq> L'\<close>
+    using watched by (cases D) simp
+  have \<open>M \<Turnstile>as CNot (unwatched D)\<close>
+    using no_upd  by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
+  have \<open>cdcl\<^sub>W_restart_mset.conflict ?S ?T\<close>
+    apply (rule cdcl\<^sub>W_restart_mset.conflict.intros[of _ \<open>clause D\<close>])
+       apply (simp add: cdcl\<^sub>W_restart_mset_state)
+      apply (metis \<open>D \<in># N + U\<close> clauses_def convert_to_state.simps image_eqI
+        in_image_mset union_iff)
+     using watched defined valid \<open>M \<Turnstile>as CNot (unwatched D)\<close> apply (cases D; auto simp add: clauses_def
+         trail.simps twl_st_inv.simps; fail)
+    by (simp add: cdcl\<^sub>W_restart_mset_state del: cdcl\<^sub>W_restart_mset.state_simp)
+  then show ?case by fast
+next
+  case (delete_from_working D L L' M N U NP UP WS Q)
+  then show ?case by simp
+next
+  case (update_clause D L L' M K N' U' N U NP UP WS Q) note unwatched = this(4) and
+    valid = this(8)
+  have \<open>D \<in># N + U\<close>
+    using valid by auto
+  have [simp]: \<open>clause (update_clause D L K) = clause D\<close>
+    using valid unwatched by (cases D) (auto simp: subset_mset.add_diff_assoc2
+        diff_union_swap2[symmetric]
+        subset_mset.add_diff_assoc simp del: diff_union_swap2)
+  have \<open>convert_to_state (M, N, U, None, NP, UP, add_mset (L, D) WS, Q) =
+    convert_to_state (M, N', U', None, NP, UP, WS, Q)\<close>
+    using update_clause \<open>D \<in># N + U\<close> by (cases \<open> D \<in># N\<close>)
+      (auto simp: image_mset_remove1_mset_if add_mset_remove_trivial_iff)
+  then show ?case by fast
+qed
+
+lemma twl_cp_o_cdcl\<^sub>W_o:
+  assumes
+    cdcl: "cdcl_twl_o S T" and
+    twl: "twl_st_inv S" and
+    valid: "valid_annotation S" and
+    inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state S)" and
+    no_taut: "\<forall>D \<in># init_clss (convert_to_state S). \<not> tautology D"
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o (convert_to_state S) (convert_to_state T)\<close>
+  using cdcl twl valid inv no_taut
+proof (induction rule: cdcl_twl_o.induct)
+  case (decide M L N U NP UP) note undef = this(1) and atm = this(2)
+  have \<open>cdcl\<^sub>W_restart_mset.decide (convert_to_state (M, N, U, None, NP, UP, {#}, {#}))
+    (convert_to_state (Decided L # M, N, U, None, NP, UP, {#}, {#}))\<close>
+    apply (rule cdcl\<^sub>W_restart_mset.decide_rule)
+       apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+      using undef apply (simp add: trail.simps; fail)
+     using atm apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+    by (simp add: state_eq_def cdcl\<^sub>W_restart_mset_state del: cdcl\<^sub>W_restart_mset.state_simp)
+  then show ?case
+    by (blast dest: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.intros)
+next
+  case (skip L D C' M N U NP UP) note LD = this(1) and D = this(2)
+  show ?case
+    apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.bj)
+    apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.skip)
+    apply (rule cdcl\<^sub>W_restart_mset.skip_rule)
+        apply (simp add: trail.simps; fail)
+       apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+      using LD apply (simp; fail)
+     using D apply (simp; fail)
+    by (simp add: state_eq_def cdcl\<^sub>W_restart_mset_state del: cdcl\<^sub>W_restart_mset.state_simp)
+next
+  case (resolve L D C M N U NP UP) note LD = this(1) and lev = this(2) and inv = this(5)
+  have \<open>\<forall>La mark a b. a @ Propagated La mark # b = Propagated L C # M \<longrightarrow> 
+      b \<Turnstile>as CNot (remove1_mset La mark) \<and> La \<in># mark\<close>
+    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+    by (auto simp: trail.simps)
+  then have LC: \<open>L \<in># C\<close>
+    by blast
+  show ?case
+    apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.bj)
+    apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.resolve)
+    apply (rule cdcl\<^sub>W_restart_mset.resolve_rule)
+          apply (simp add: trail.simps; fail)
+         apply (simp add: trail.simps; fail)
+        using LC apply (simp add: trail.simps; fail)
+       apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+      using LD apply (simp; fail)
+     using lev apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+    by (simp add: state_eq_def cdcl\<^sub>W_restart_mset_state del: cdcl\<^sub>W_restart_mset.state_simp)
+next
+  case (backtrack_single_clause K M1 M2 M L N U NP UP) note decomp = this(1) and lev_L = this(2) 
+  and lev_K = this(3) and inv = this(6)
+  let ?S = \<open>convert_to_state (M, N, U, Some {#L#}, NP, UP, {#}, {#})\<close>
+  let ?T = \<open>convert_to_state (Propagated L {#L#} # M1, N, U, None, NP, add_mset {#L#} UP, {#}, {#L#})\<close>
+  have n_d: "no_dup M"
+    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (simp add: cdcl\<^sub>W_restart_mset_state)
+   have "atm_of L \<notin> atm_of ` lits_of_l M1"
+    apply (rule cdcl\<^sub>W_restart_mset.backtrack_lit_skiped[of _ ?S])
+       using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+       apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+      using decomp apply (simp add: trail.simps; fail)
+     using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+       apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+    using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+       apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+   using lev_K apply (simp add: trail.simps; fail)
+   done
+  obtain M3 where M3: \<open>M = M3 @ M2 @ Decided K # M1\<close>
+    using decomp by (blast dest!: get_all_ann_decomposition_exists_prepend)
+      
+  have "atm_of K \<notin> atm_of ` lits_of_l (M3 @ M2)"
+    using n_d unfolding M3 by (auto simp: lits_of_def)
+  then have [simp]: \<open>filter is_decided M1 = []\<close>
+    using lev_K by (auto simp: M3 image_Un)
+  show ?case
+    apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.bj)
+    apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.backtrack)
+    apply (rule cdcl\<^sub>W_restart_mset.backtrack_rule)
+          apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+         apply simp
+        using decomp apply (simp add: trail.simps; fail)
+        using lev_L apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+       using lev_L apply (simp add: cdcl\<^sub>W_restart_mset_state get_maximum_level_add_mset; fail)
+      apply (simp; fail)
+     using lev_K apply (simp add: trail.simps; fail)
+    using decomp unfolding state_eq_def state_def prod.inject
+    by (simp_all add: cdcl\<^sub>W_restart_mset_state)
+next
+  case (backtrack L D K M1 M2 M i L' N U NP UP) note LD = this(1) and decomp = this(2) and 
+  lev_L = this(3) and max_lev = this(4) and i = this(5) and lev_K = this(6) and L' = this(8-9) and 
+  inv = this(12)
+  let ?S = \<open>convert_to_state (M, N, U, Some D, NP, UP, {#}, {#})\<close>
+  let ?T = \<open>convert_to_state (Propagated L D # M1, N, U, None, NP, add_mset {#L#} UP, {#}, {#L#})\<close>
+  have n_d: "no_dup M"
+    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (simp add: cdcl\<^sub>W_restart_mset_state)
+   have "atm_of L \<notin> atm_of ` lits_of_l M1"
+    apply (rule cdcl\<^sub>W_restart_mset.backtrack_lit_skiped[of _ ?S])
+       using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+       apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+      using decomp apply (simp add: trail.simps; fail)
+     using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+       apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+    using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+       apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+   using lev_K apply (simp add: trail.simps; fail)
+   done
+  obtain M3 where M3: \<open>M = M3 @ M2 @ Decided K # M1\<close>
+    using decomp by (blast dest!: get_all_ann_decomposition_exists_prepend)
+      
+  have "atm_of K \<notin> atm_of ` lits_of_l (M3 @ M2)"
+    using n_d unfolding M3 by (auto simp: lits_of_def)
+  then have count_M1: \<open>count_decided M1 = i\<close>
+    using lev_K unfolding M3 by (auto simp: image_Un)
+  have D: \<open>add_mset L (add_mset L' (D - {#L, L'#})) = D\<close>
+    using L' LD by (metis add_mset_diff_bothsides diff_single_eq_union insert_noteq_member mset_add)
+  show ?case
+    apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.bj)
+    apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.backtrack)
+    apply (rule cdcl\<^sub>W_restart_mset.backtrack_rule)
+          apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+         using LD apply simp
+        using decomp apply (simp add: trail.simps; fail)
+        using lev_L apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+       using max_lev apply (simp add: cdcl\<^sub>W_restart_mset_state get_maximum_level_add_mset; fail)
+      apply (simp; fail)
+     using lev_K i apply (simp add: trail.simps; fail)
+     using decomp unfolding state_eq_def state_def prod.inject
+     using i lev_K count_M1 by (simp_all add: cdcl\<^sub>W_restart_mset_state D)
 qed
 
 end

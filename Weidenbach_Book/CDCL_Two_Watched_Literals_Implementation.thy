@@ -1244,8 +1244,8 @@ qed
 lemma always_exists_state_eqI:
   \<open>(\<forall>a aa ab ac b. \<not> (a, aa, ab, ac, b) \<sim>m S) \<longleftrightarrow> False\<close>
   unfolding state_eq_def
-  by (cases S) (auto simp: backtrack_lvl_def learned_clss_def init_clss_def trail_def
-      conflicting_def CDCL_W_Abstract_State.state_def)
+  by (cases S) (auto simp: backtrack_lvl.simps learned_clss.simps init_clss.simps trail.simps
+      conflicting.simps CDCL_W_Abstract_State.state_def)
 
 lemma get_maximum_level_skip_un_decided_not_present:
   assumes

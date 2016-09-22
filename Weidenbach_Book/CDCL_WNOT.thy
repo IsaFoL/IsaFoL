@@ -959,7 +959,7 @@ proof (rule ccontr)
     tr: \<open>trail S = M' @ Decided K # M\<close> and
     nm: \<open>\<forall>m \<in> set M. \<not>is_decided m\<close>
     using split_list_last_prop[of "trail S" is_decided]
-    by (auto simp: filter_empty_conv is_decided_def dest!:  List.set_dropWhileD)
+    by (auto simp: filter_empty_conv is_decided_def dest!: List.set_dropWhileD)
   have \<open>-L \<notin> lits_of_l (trail S)\<close>
     by (metis (no_types) ann_lit.sel(2) imageE lits_of_def n_d
         no_dup_cannot_not_lit_and_uminus propa_tr)
