@@ -35,6 +35,12 @@ output
 *.eps
 *.pdf
 
+### Obsolete-Folders
+*/obsolete/*
+*_obsolete.*
+*_Obsolete.*
+
+
 ### Bibliography auxiliary files (bibtex/biblatex/biber):
 *.bbl
 *.bcf
