@@ -152,6 +152,7 @@ session "Full" (Weidenbach_Book) = "HOL"  +
     CDCL_Two_Watched_Literals_Simple_Implementation
 
   theories [quick_and_dirty, document = true]
+    CDCL_Two_Watched_Literals_Simple_Implementation_Algorithm
     CDCL_Two_Watched_Literals
     CDCL_Two_Watched_Literals_Implementation
     CDCL_Two_Watched_Literals_Implementation_RBT

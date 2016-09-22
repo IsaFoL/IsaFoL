@@ -45,7 +45,7 @@ subsection \<open>Lemmas about intersections and unions\<close>
 
 lemma mset_inter_single:
   "x \<in># \<Sigma> \<Longrightarrow> \<Sigma> \<inter># {#x#} = {#x#}"
-  by (simp add: mset_subset_eq_single subset_mset.inf_absorb2)
+  by simp
 
 lemma inter_mset_empty_distrib_right: \<open>A \<inter># (B + C) = {#} \<longleftrightarrow> A \<inter># B = {#} \<and> A \<inter># C = {#}\<close>
   by (meson disjunct_not_in union_iff)
@@ -135,9 +135,6 @@ text \<open>Near duplicate of @{thm [source] filter_eq_replicate_mset}: @{thm fi
 lemma filter_mset_eq: "filter_mset (op = L) A = replicate_mset (count A L) L"
   by (auto simp: multiset_eq_iff)
 
-lemma filter_mset_union_mset: "filter_mset P (A \<union># B) = filter_mset P A \<union># filter_mset P B"
-  by (auto simp: multiset_eq_iff)
-
 text \<open>See @{thm [source] filter_cong} for the set version. Mark as \<open>[fundef_cong]\<close> too?\<close>
 
 lemma filter_mset_cong:
@@ -162,9 +159,6 @@ lemma image_mset_filter_swap: "image_mset f {# x \<in># M. P (f x)#} = {# x \<in
 lemma image_mset_cong2[cong]:
   "(\<And>x. x \<in># M \<Longrightarrow> f x = g x) \<Longrightarrow> M = N \<Longrightarrow> image_mset f M = image_mset g N"
   by (hypsubst, rule image_mset_cong)
-
-lemma image_mset_replicate_mset[simp]: "image_mset f (replicate_mset n a) = replicate_mset n (f a)"
-  by (induction n) auto
 
 
 subsection \<open>Sums\<close>
@@ -225,12 +219,14 @@ lemma neutral_const [simp]:
 
 end
 
+thm comm_monoid_set.commute
 text \<open>See theorem @{thm setsum.commute}\<close>
 lemma sum_mset_commute:
   fixes f :: "'a::{comm_monoid_add,times} => ('b::semiring_0)"
   shows \<open>(\<Sum>x\<in>#B. \<Sum>b\<in>#A. f b * g x) = (\<Sum>i\<in>#A. \<Sum>j\<in>#B. f i * g j)\<close>
   by (induction A) auto
 
+thm setsum_product
 lemma sum_mset_product:
   fixes f :: "'a::{comm_monoid_add,times} => ('b::semiring_0)"
   shows "(\<Sum>i \<in># A. f i) * (\<Sum>i \<in># B. g i) = (\<Sum>i\<in>#A. \<Sum>j\<in>#B. f i * g j)"
