@@ -1,0 +1,18 @@
+*** Problem f1:
+
+The formula is clearly satisfiable, but both forward and backward mode manage to prove UNSAT!
+With f1s.drat, also SAT can be proved.
+
+Analysis attempt:
+  The literal 1 is set by unit propagation. Although already assigned, it is chosen as resolution
+  literal for the RAT check.
+
+
+
+
+*** Problem f2:
+Syntactically malformed dimacs-files may produce segfaults.
+This could probably be maliciously exploited, or unintentionally corrupt drat-trims
+memory and cause other issues (eg wrong proofs). Here: Header missing causes segfault.
+But also wrong number of clauses seems to cause memory crapping.
+

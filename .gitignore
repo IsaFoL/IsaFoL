@@ -40,6 +40,9 @@ output
 *_obsolete.*
 *_Obsolete.*
 
+### Binaries
+*/drat-trim
+
 
 ### Bibliography auxiliary files (bibtex/biblatex/biber):
 *.bbl
