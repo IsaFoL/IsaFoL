@@ -1,0 +1,7 @@
+c Exploits numeric overflow. If interpreted with 32bit signed integers, this problem is UNSAT.
+c If interpreted with higher precision, it is SAT.
+c drat-trim compiles without complaints on architectures that render this UNSAT!
+p cnf 4294967312 3
+ -15 2 0
+ -15 -2 0
+ 4294967311 0
