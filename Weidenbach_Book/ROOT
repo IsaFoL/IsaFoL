@@ -160,3 +160,20 @@ session "Full" (Weidenbach_Book) = "HOL"  +
   document_files
     "root.tex"
     "biblio.bib"
+
+session "Two_Watched_Literals" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
+  description \<open>This session contains all theories related to the two-watched literals.\<close>
+  options [document = pdf, document_output = "output"]
+  theories [quick_and_dirty = false, document = true]
+    CDCL_W_Abstract_State
+    CDCL_W_Full
+    CDCL_Two_Watched_Literals_Simple_Implementation
+
+  theories [quick_and_dirty, document = true]
+    CDCL_Two_Watched_Literals_Simple_Implementation_Algorithm
+    CDCL_Two_Watched_Literals
+    CDCL_Two_Watched_Literals_Implementation
+    CDCL_Two_Watched_Literals_Implementation_RBT
+  document_files
+    "root.tex"
+    "biblio.bib"
