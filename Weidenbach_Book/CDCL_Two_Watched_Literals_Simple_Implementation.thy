@@ -64,7 +64,7 @@ update_clause:
 text \<open>We do not care about the pending literals.\<close>
 inductive cdcl_twl_o :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" where
   decide:
-  \<open>cdcl_twl_o (M, N, U, None, NP, UP, {#}, {#}) (Decided L # M, N, U, None, NP, UP, {#}, {#})\<close>
+  \<open>cdcl_twl_o (M, N, U, None, NP, UP, {#}, {#}) (Decided L # M, N, U, None, NP, UP, {#}, {#L#})\<close>
   if \<open>undefined_lit M L\<close> and \<open>atm_of L \<in> atms_of_mm (clause `# N)\<close>
 | skip:
   \<open>cdcl_twl_o (Propagated L C' # M, N, U, Some D, NP, UP, {#}, {#})
@@ -1101,7 +1101,7 @@ lemma twl_cp_no_duplicate_queued:
     cdcl: "cdcl_twl_cp S T" and
     no_dup: \<open>no_duplicate_queued S\<close>
   shows "no_duplicate_queued T"
-  using cdcl  no_dup
+  using cdcl no_dup
 proof (induction rule: cdcl_twl_cp.induct)
   case (pop M N U NP UP L Q)
   then show ?case
@@ -1161,8 +1161,6 @@ next
   show ?case
     using dist by auto
 qed
-
-thm mset_subset_eq_insertD
 
 lemma twl_cp_valid:
   assumes
@@ -1937,7 +1935,7 @@ lemma twl_cp_o_cdcl\<^sub>W_o:
 proof (induction rule: cdcl_twl_o.induct)
   case (decide M L N U NP UP) note undef = this(1) and atm = this(2)
   have \<open>cdcl\<^sub>W_restart_mset.decide (convert_to_state (M, N, U, None, NP, UP, {#}, {#}))
-    (convert_to_state (Decided L # M, N, U, None, NP, UP, {#}, {#}))\<close>
+    (convert_to_state (Decided L # M, N, U, None, NP, UP, {#}, {#L#}))\<close>
     apply (rule cdcl\<^sub>W_restart_mset.decide_rule)
        apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
       using undef apply (simp add: trail.simps; fail)
@@ -2059,4 +2057,42 @@ next
      using i lev_K count_M1 by (simp_all add: cdcl\<^sub>W_restart_mset_state D)
 qed
 
+
+lemma lazy_update_decide:
+  assumes \<open>no_dup M\<close> and dist: \<open>distinct_mset (watched C + unwatched C)\<close>
+  shows
+    \<open>twl_lazy_update M C \<Longrightarrow>  twl_lazy_update (Decided L # M) C\<close>
+  apply (cases C)
+  apply (simp add: all_conj_distrib add_mset_eq_add_mset atm_of_uminus)
+  apply (intro allI impI conjI)
+  using count_decided_ge_get_level le_Suc_eq apply (blast+)[2]
+  using atm_of_uminus apply blast
+  using dist apply (simp add: all_conj_distrib add_mset_eq_add_mset)
+  oops
+
+lemma twl_cp_o_cdcl\<^sub>W_o:
+  assumes
+    cdcl: "cdcl_twl_o S T" and
+    twl: "twl_st_inv S"
+  shows
+    \<open>twl_st_inv T\<close>
+  using cdcl twl
+proof (induction rule: cdcl_twl_o.induct)
+  case (decide M L N U NP UP)
+  then show ?case 
+    apply (auto simp: twl_st_inv.simps)
+    sorry
+next
+  case (skip L D C' M N U NP UP)
+  then show ?case sorry
+next
+  case (resolve L D C M N U NP UP)
+  then show ?case sorry
+next
+  case (backtrack_single_clause K M1 M2 M L N U NP UP)
+  then show ?case sorry
+next
+  case (backtrack L D K M1 M2 M i L' N U NP UP)
+  then show ?case sorry
+qed
 end
