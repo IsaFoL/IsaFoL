@@ -431,7 +431,7 @@ lemma watched_literals_false_of_max_level_Propagated:
   using assms(2) by (simp add: W add_mset_eq_add_mset)
 
 (* TODO rename *)
-lemma K:\<open> - L' \<notin># watched C \<Longrightarrow> watched_literals_false_of_max_level M C\<Longrightarrow>
+lemma lazy_update_propagate: \<open>- L' \<notin># watched C \<Longrightarrow> watched_literals_false_of_max_level M C\<Longrightarrow>
   twl_lazy_update (Propagated L' (clause D) # M) C\<close>
   by (cases C) (auto simp: add_mset_eq_add_mset count_decided_ge_get_level)
 (* END TODO *)
@@ -825,7 +825,7 @@ next
 
     assume excep: \<open>\<not>twl_is_an_exception C (add_mset (- L') Q) WS\<close>
     show \<open>twl_lazy_update (Propagated L' (clause D) # M) C\<close>
-      apply (rule K)
+      apply (rule lazy_update_propagate)
       using excep apply (simp add: twl_is_an_exception_add_mset_to_queue; fail)
       using twl C by (auto simp add: twl_st_inv.simps)[]
     have \<open>\<not> twl_is_an_exception C Q (add_mset (L, D) WS)\<close> if \<open>C \<noteq> D\<close>
@@ -1178,7 +1178,7 @@ lemma twl_cp_valid:
 proof (induction rule: cdcl_twl_cp.induct)
   case (pop M N U NP UP L Q) note valid = this(2)
   then show ?case
-    by (auto simp: multiset_filter_subset simp del: filter_union_mset)
+    by (auto simp del: filter_union_mset)
 next
   case (propagate D L L' M N U NP UP WS Q) note watched = this(1) and twl = this(4) and valid = this(5)
     and inv = this(6) and no_taut = this(7)
@@ -1627,7 +1627,7 @@ next
     proof cases
       case no_L'
       then have \<open>(\<exists>L'. L' \<in># watched C \<and> L' \<in>#  Q) \<or> (\<exists>La. (La, C) \<in># add_mset (L, D) WS)\<close>
-        using cands C K by auto
+        using cands C lazy_update_propagate by auto
       moreover {
         have \<open>C \<noteq> D\<close>
           by (metis \<open>- L' \<notin> lits_of_l M\<close> add_mset_add_single clause.simps in_CNot_implies_uminus(2)
@@ -1958,7 +1958,7 @@ next
     by (simp add: state_eq_def cdcl\<^sub>W_restart_mset_state del: cdcl\<^sub>W_restart_mset.state_simp)
 next
   case (resolve L D C M N U NP UP) note LD = this(1) and lev = this(2) and inv = this(5)
-  have \<open>\<forall>La mark a b. a @ Propagated La mark # b = Propagated L C # M \<longrightarrow> 
+  have \<open>\<forall>La mark a b. a @ Propagated La mark # b = Propagated L C # M \<longrightarrow>
       b \<Turnstile>as CNot (remove1_mset La mark) \<and> La \<in># mark\<close>
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
@@ -1977,27 +1977,27 @@ next
      using lev apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
     by (simp add: state_eq_def cdcl\<^sub>W_restart_mset_state del: cdcl\<^sub>W_restart_mset.state_simp)
 next
-  case (backtrack_single_clause K M1 M2 M L N U NP UP) note decomp = this(1) and lev_L = this(2) 
+  case (backtrack_single_clause K M1 M2 M L N U NP UP) note decomp = this(1) and lev_L = this(2)
   and lev_K = this(3) and inv = this(6)
   let ?S = \<open>convert_to_state (M, N, U, Some {#L#}, NP, UP, {#}, {#})\<close>
   let ?T = \<open>convert_to_state (Propagated L {#L#} # M1, N, U, None, NP, add_mset {#L#} UP, {#}, {#L#})\<close>
   have n_d: "no_dup M"
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by (simp add: cdcl\<^sub>W_restart_mset_state)
-   have "atm_of L \<notin> atm_of ` lits_of_l M1"
+  have "atm_of L \<notin> atm_of ` lits_of_l M1"
     apply (rule cdcl\<^sub>W_restart_mset.backtrack_lit_skiped[of _ ?S])
-       using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-       apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
-      using decomp apply (simp add: trail.simps; fail)
+        using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+        apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+       using decomp apply (simp add: trail.simps; fail)
+      using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+        apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
      using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-       apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
-    using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-       apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
-   using lev_K apply (simp add: trail.simps; fail)
-   done
+     apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+    using lev_K apply (simp add: trail.simps; fail)
+    done
   obtain M3 where M3: \<open>M = M3 @ M2 @ Decided K # M1\<close>
     using decomp by (blast dest!: get_all_ann_decomposition_exists_prepend)
-      
+
   have "atm_of K \<notin> atm_of ` lits_of_l (M3 @ M2)"
     using n_d unfolding M3 by (auto simp: lits_of_def)
   then have [simp]: \<open>filter is_decided M1 = []\<close>
@@ -2016,8 +2016,8 @@ next
     using decomp unfolding state_eq_def state_def prod.inject
     by (simp_all add: cdcl\<^sub>W_restart_mset_state)
 next
-  case (backtrack L D K M1 M2 M i L' N U NP UP) note LD = this(1) and decomp = this(2) and 
-  lev_L = this(3) and max_lev = this(4) and i = this(5) and lev_K = this(6) and L' = this(8-9) and 
+  case (backtrack L D K M1 M2 M i L' N U NP UP) note LD = this(1) and decomp = this(2) and
+  lev_L = this(3) and max_lev = this(4) and i = this(5) and lev_K = this(6) and L' = this(8-9) and
   inv = this(12)
   let ?S = \<open>convert_to_state (M, N, U, Some D, NP, UP, {#}, {#})\<close>
   let ?T = \<open>convert_to_state (Propagated L D # M1, N, U, None, NP, add_mset {#L#} UP, {#}, {#L#})\<close>
@@ -2037,7 +2037,7 @@ next
    done
   obtain M3 where M3: \<open>M = M3 @ M2 @ Decided K # M1\<close>
     using decomp by (blast dest!: get_all_ann_decomposition_exists_prepend)
-      
+
   have "atm_of K \<notin> atm_of ` lits_of_l (M3 @ M2)"
     using n_d unfolding M3 by (auto simp: lits_of_def)
   then have count_M1: \<open>count_decided M1 = i\<close>
