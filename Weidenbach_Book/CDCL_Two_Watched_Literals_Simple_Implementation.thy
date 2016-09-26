@@ -64,7 +64,7 @@ update_clause:
 text \<open>We do not care about the pending literals.\<close>
 inductive cdcl_twl_o :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" where
   decide:
-  \<open>cdcl_twl_o (M, N, U, None, NP, UP, {#}, {#}) (Decided L # M, N, U, None, NP, UP, {#}, {#L#})\<close>
+  \<open>cdcl_twl_o (M, N, U, None, NP, UP, {#}, {#}) (Decided L # M, N, U, None, NP, UP, {#}, {#-L#})\<close>
   if \<open>undefined_lit M L\<close> and \<open>atm_of L \<in> atms_of_mm (clause `# N)\<close>
 | skip:
   \<open>cdcl_twl_o (Propagated L C' # M, N, U, Some D, NP, UP, {#}, {#})
@@ -77,14 +77,14 @@ inductive cdcl_twl_o :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" w
     \<open>get_maximum_level (Propagated L C # M) (remove1_mset (-L) D) = count_decided M\<close>
 | backtrack_single_clause:
   \<open>cdcl_twl_o (M, N, U, Some {#L#}, NP, UP, {#}, {#})
-  (Propagated L {#L#} # M1, N, U, None, NP, add_mset {#L#} UP, {#}, {#L#})\<close>
+  (Propagated L {#L#} # M1, N, U, None, NP, add_mset {#L#} UP, {#}, {#-L#})\<close>
   if
     \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
     \<open>get_level M L = count_decided M\<close> and
     \<open>get_level M K = 1\<close>
 | backtrack:
   \<open>cdcl_twl_o (M, N, U, Some D, NP, UP, {#}, {#})
-  (Propagated L D # M1, N, add_mset (TWL_Clause {#L, L'#} (D - {#L, L'#})) U, None, NP, UP, {#}, {#L#})\<close>
+  (Propagated L D # M1, N, add_mset (TWL_Clause {#L, L'#} (D - {#L, L'#})) U, None, NP, UP, {#}, {#-L#})\<close>
   if
     \<open>L \<in># D\<close> and
     \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
@@ -94,7 +94,7 @@ inductive cdcl_twl_o :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" w
     \<open>get_level M K = i + 1\<close>
     \<open>D \<noteq> {#L#}\<close> and
     \<open>L' \<in># D\<close> and -- \<open>\<^term>\<open>L'\<close> is the new watched literal\<close>
-    \<open>L' \<noteq> L\<close>
+    \<open>get_level M L' = i\<close>
 
 
 subsubsection \<open>Two-watched literals Invariants\<close>
@@ -130,6 +130,9 @@ lemma twl_is_an_exception_add_mset_to_queue: \<open>twl_is_an_exception C (add_m
 
 lemma twl_is_an_exception_add_mset_to_working_queue:
   \<open>twl_is_an_exception C Q (add_mset (L, D) WS) \<longleftrightarrow> (twl_is_an_exception C Q WS \<or> (C = D))\<close>
+  unfolding twl_is_an_exception_def by auto
+
+lemma twl_is_an_exception_empty[simp]: \<open>\<not>twl_is_an_exception C {#} {#}\<close>
   unfolding twl_is_an_exception_def by auto
 
 fun twl_inv :: "('a, 'b) ann_lits \<Rightarrow> 'a clause twl_clause \<Rightarrow> bool" where
@@ -178,8 +181,9 @@ fun twl_st_inv :: "'v twl_st \<Rightarrow> bool" where
 "twl_st_inv (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow>
   (\<forall>C \<in># N + U. struct_wf_twl_cls C) \<and>
   (\<forall>C \<in># N + U. D = None \<longrightarrow> \<not>twl_is_an_exception C Q WS \<longrightarrow> (twl_lazy_update M C \<and> twl_inv M C)) \<and>
-  (\<forall>C \<in># N + U. watched_literals_false_of_max_level M C) \<and>
-  (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (\<forall>C \<in># N + U. twl_lazy_update M1 C \<and> twl_inv M1 C))"
+  (\<forall>C \<in># N + U. D = None \<longrightarrow> watched_literals_false_of_max_level M C) \<and>
+  (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (\<forall>C \<in># N + U. twl_lazy_update M1 C \<and> twl_inv M1 C \<and>
+     watched_literals_false_of_max_level M1 C))"
 
 
 paragraph \<open>Properties\<close>
@@ -214,9 +218,10 @@ lemma twl_st_inv_add_mset_working_queue:
 lemma twl_st_simps:
 "twl_st_inv (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow>
   (\<forall>C \<in># N + U. struct_wf_twl_cls C \<and>
-    (D = None \<longrightarrow> \<not>twl_is_an_exception C Q WS \<longrightarrow> (twl_lazy_update M C \<and> twl_inv M C)) \<and>
-    watched_literals_false_of_max_level M C \<and>
-    (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (twl_lazy_update M1 C \<and> twl_inv M1 C)))"
+    (D = None \<longrightarrow> (\<not>twl_is_an_exception C Q WS \<longrightarrow> (twl_lazy_update M C \<and> twl_inv M C)) \<and>
+    watched_literals_false_of_max_level M C) \<and>
+    (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (twl_lazy_update M1 C \<and> twl_inv M1 C \<and>
+      watched_literals_false_of_max_level M1 C)))"
   unfolding twl_st_inv.simps by fast
 
 lemma last_in_set_dropWhile:
@@ -432,7 +437,7 @@ lemma watched_literals_false_of_max_level_Propagated:
 
 (* TODO rename *)
 lemma lazy_update_propagate: \<open>- L' \<notin># watched C \<Longrightarrow> watched_literals_false_of_max_level M C\<Longrightarrow>
-  twl_lazy_update (Propagated L' (clause D) # M) C\<close>
+  twl_lazy_update (Propagated L' D # M) C\<close>
   by (cases C) (auto simp: add_mset_eq_add_mset count_decided_ge_get_level)
 (* END TODO *)
 
@@ -859,7 +864,7 @@ next
     assume \<open>Propagated L' (clause D) # M = M2 @ Decided K # M1\<close>
     then have M: \<open>M = tl M2 @ Decided K # M1\<close>
       by (meson cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons)
-    then show \<open>twl_lazy_update M1 C\<close> and \<open>twl_inv M1 C\<close>
+    then show \<open>twl_lazy_update M1 C\<close> and \<open>twl_inv M1 C\<close> and  \<open>watched_literals_false_of_max_level M1 C\<close>
       using C twl by (auto simp add: twl_st_inv.simps)
   qed
 next
@@ -916,7 +921,7 @@ next
 
     fix M1 M2 :: \<open>('a, 'a clause) ann_lits\<close> and K
     assume \<open>M = M2 @ Decided K # M1\<close>
-    then show \<open>twl_lazy_update M1 C\<close> and \<open>twl_inv M1 C\<close>
+    then show \<open>twl_lazy_update M1 C\<close> and \<open>twl_inv M1 C\<close> \<open>watched_literals_false_of_max_level M1 C\<close>
       using C twl by (auto simp add: twl_st_inv.simps)
   qed
 next
@@ -1088,11 +1093,12 @@ next
         using lev_L'[OF uL_M] atm count_decided_ge_get_level[of L' M1]
         by (auto simp: M split: if_splits)
     qed
-    have \<open>twl_lazy_update M1 C\<close> and \<open>twl_inv M1 C\<close> if \<open>C \<noteq> ?D\<close>
+    have \<open>twl_lazy_update M1 C\<close> \<open>twl_inv M1 C\<close> \<open>watched_literals_false_of_max_level M1 C\<close> if \<open>C \<noteq> ?D\<close>
       using * C CD twl that M by (auto simp add: twl_st_inv.simps)
-    moreover have \<open>twl_lazy_update M1 ?D\<close> and \<open>twl_inv M1 ?D\<close>
+    moreover have \<open>twl_lazy_update M1 ?D\<close> \<open>twl_inv M1 ?D\<close> \<open>watched_literals_false_of_max_level M1 ?D\<close>
       using D watched uK_M by (auto simp: M add_mset_eq_add_mset dest!: H)
-    ultimately show \<open>twl_lazy_update M1 C\<close> and \<open>twl_inv M1 C\<close> by blast+
+    ultimately show \<open>twl_lazy_update M1 C\<close> \<open>twl_inv M1 C\<close> \<open>watched_literals_false_of_max_level M1 C\<close>
+      by blast+
   qed
 qed
 
@@ -1935,7 +1941,7 @@ lemma twl_cp_o_cdcl\<^sub>W_o:
 proof (induction rule: cdcl_twl_o.induct)
   case (decide M L N U NP UP) note undef = this(1) and atm = this(2)
   have \<open>cdcl\<^sub>W_restart_mset.decide (convert_to_state (M, N, U, None, NP, UP, {#}, {#}))
-    (convert_to_state (Decided L # M, N, U, None, NP, UP, {#}, {#L#}))\<close>
+    (convert_to_state (Decided L # M, N, U, None, NP, UP, {#}, {#-L#}))\<close>
     apply (rule cdcl\<^sub>W_restart_mset.decide_rule)
        apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
       using undef apply (simp add: trail.simps; fail)
@@ -2040,7 +2046,9 @@ next
     using n_d unfolding M3 by (auto simp: lits_of_def)
   then have count_M1: \<open>count_decided M1 = i\<close>
     using lev_K unfolding M3 by (auto simp: image_Un)
-  have D: \<open>add_mset L (add_mset L' (D - {#L, L'#})) = D\<close>
+  have \<open>L \<noteq> L'\<close>
+    using L' lev_L lev_K count_decided_ge_get_level[of K M] by auto
+  then have D: \<open>add_mset L (add_mset L' (D - {#L, L'#})) = D\<close>
     using L' LD by (metis add_mset_diff_bothsides diff_single_eq_union insert_noteq_member mset_add)
   show ?case
     apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.bj)
@@ -2058,41 +2066,628 @@ next
 qed
 
 
-lemma lazy_update_decide:
-  assumes \<open>no_dup M\<close> and dist: \<open>distinct_mset (watched C + unwatched C)\<close>
-  shows
-    \<open>twl_lazy_update M C \<Longrightarrow>  twl_lazy_update (Decided L # M) C\<close>
-  apply (cases C)
-  apply (simp add: all_conj_distrib add_mset_eq_add_mset atm_of_uminus)
-  apply (intro allI impI conjI)
-  using count_decided_ge_get_level le_Suc_eq apply (blast+)[2]
-  using atm_of_uminus apply blast
-  using dist apply (simp add: all_conj_distrib add_mset_eq_add_mset)
-  oops
+fun working_queue :: "'v twl_st \<Rightarrow> ('v literal \<times> 'v literal multiset twl_clause) multiset" where
+  \<open>working_queue (_, _, _, _, _, _, WS, _) = WS\<close>
 
-lemma twl_cp_o_cdcl\<^sub>W_o:
+fun set_working_queue :: "('v literal \<times> 'v clause twl_clause) multiset \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st" where
+  \<open>set_working_queue WS (M, N, U, D, NP, UP, _, Q) = (M, N, U, D, NP, UP, WS, Q)\<close>
+
+fun pending :: "'v twl_st \<Rightarrow> 'v literal multiset" where
+  \<open>pending (_, _, _, _, _, _, _, Q) = Q\<close>
+
+fun set_pending :: "'v literal multiset \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st" where
+  \<open>set_pending Q (M, N, U, D, NP, UP, WS, _) = (M, N, U, D, NP, UP, WS, Q)\<close>
+
+fun set_conflict :: "'v clause \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st" where
+  \<open>set_conflict D (M, N, U, _, NP, UP, WS, Q) = (M, N, U, Some D, NP, UP, WS, Q)\<close>
+
+fun get_conflict :: "'v twl_st \<Rightarrow> 'v literal multiset option" where
+  \<open>get_conflict (M, N, U, D, NP, UP, WS, Q) = D\<close>
+
+fun get_clauses :: "'v twl_st \<Rightarrow> 'v clause twl_clause multiset" where
+  \<open>get_clauses (M, N, U, D, NP, UP, WS, Q) = N + U\<close>
+
+definition twl_cp_invs where
+  \<open>twl_cp_invs S \<longleftrightarrow>
+    (twl_st_inv S \<and>
+    valid_annotation S \<and>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state S) \<and>
+    (\<forall>D \<in># init_clss (convert_to_state S). \<not> tautology D) \<and>
+    distinct_mset (cdcl\<^sub>W_restart_mset.clauses (convert_to_state S)) \<and>
+    cdcl\<^sub>W_restart_mset.no_smaller_propa (convert_to_state S) \<and>
+    twl_st_exception_inv S \<and>
+    no_duplicate_queued S \<and>
+    distinct_queued S \<and>
+    confl_cands_enqueued S \<and>
+    propa_cands_enqueued S \<and>
+    (get_conflict S \<noteq> None \<longrightarrow> working_queue S = {#} \<and> pending S = {#}))
+  \<close>
+
+lemma cdcl_twl_cp_cdcl\<^sub>W_stgy:
+  \<open>cdcl_twl_cp S T \<Longrightarrow> twl_cp_invs S \<Longrightarrow>
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state S) (convert_to_state T) \<or>
+  convert_to_state S = convert_to_state T\<close>
+  by (auto dest!: twl_cp_propagate_or_conflict
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.conflict'
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.propagate'
+      simp: twl_cp_invs_def)
+
+
+lemma cdcl_twl_cp_conflict:
+  \<open>cdcl_twl_cp S T \<Longrightarrow> get_conflict T \<noteq> None \<longrightarrow> working_queue T = {#} \<and> pending T = {#}\<close>
+  by (induction rule: cdcl_twl_cp.induct) auto
+
+lemma cdcl_twl_cp_init_clss:
+  \<open>cdcl_twl_cp S T \<Longrightarrow> twl_cp_invs S \<Longrightarrow> init_clss (convert_to_state T) = init_clss (convert_to_state S)\<close>
+  by (metis cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_no_more_init_clss cdcl_twl_cp_cdcl\<^sub>W_stgy)
+
+lemma cdcl_twl_cp_twl_cp_invs:
+  \<open>cdcl_twl_cp S T \<Longrightarrow> twl_cp_invs S \<Longrightarrow> twl_cp_invs T\<close>
+  apply (subst twl_cp_invs_def)
+  apply (intro conjI)
+             apply (simp add: twl_cp_invs_def twl_cp_twl_inv; fail)
+            apply (simp add: twl_cp_valid twl_cp_invs_def; fail)
+           apply (metis cdcl_twl_cp_cdcl\<^sub>W_stgy cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv
+      twl_cp_invs_def)
+          apply (simp add: cdcl_twl_cp_init_clss twl_cp_invs_def; fail)
+         apply (auto dest!: cdcl_twl_cp_cdcl\<^sub>W_stgy simp: twl_cp_invs_def
+      intro: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_distinct_mset)[]
+        apply (metis cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_no_smaller_propa cdcl_twl_cp_cdcl\<^sub>W_stgy twl_cp_invs_def)
+       apply (rule twl_cp_twl_st_exception_inv; auto simp add: twl_cp_invs_def; fail)
+      apply (use twl_cp_invs_def twl_cp_no_duplicate_queued in blast)
+     apply (rule twl_cp_distinct_queued; auto simp add: twl_cp_invs_def; fail)
+    apply (rule twl_cp_confl_cands_enqueued; auto simp add: twl_cp_invs_def; fail)
+   apply (rule twl_cp_propa_cands_enqueued; auto simp add: twl_cp_invs_def; fail)
+  apply (simp add: cdcl_twl_cp_conflict; fail)
+  done
+
+lemma cdcl_twl_o_twl_st_inv:
   assumes
     cdcl: "cdcl_twl_o S T" and
-    twl: "twl_st_inv S"
+    twl: "twl_cp_invs S"
   shows
     \<open>twl_st_inv T\<close>
   using cdcl twl
 proof (induction rule: cdcl_twl_o.induct)
-  case (decide M L N U NP UP)
-  then show ?case 
-    apply (auto simp: twl_st_inv.simps)
-    sorry
+  case (decide M K N U NP UP) note undef = this(1) and atm = this(2) and invs = this(3)
+  let ?S = \<open>(M, N, U, None, NP, UP, {#}, {#})\<close>
+  have inv: \<open>twl_st_inv ?S\<close>
+    using invs unfolding twl_cp_invs_def by blast
+  have n_d: \<open>no_dup M\<close>
+    using invs unfolding twl_cp_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: cdcl\<^sub>W_restart_mset_state)
+  have n_d': \<open>no_dup (Decided K # M)\<close>
+    using defined_lit_map n_d undef by auto
+  have propa_cands: \<open>propa_cands_enqueued ?S\<close> and
+    confl_cands: \<open>confl_cands_enqueued ?S\<close>
+    using invs unfolding twl_cp_invs_def by blast+
+
+  show ?case
+    unfolding twl_st_inv.simps Ball_def
+  proof (intro conjI allI impI)
+    fix C :: \<open>'a clause twl_clause\<close>
+    assume C: \<open>C \<in># N + U\<close>
+    show struct: \<open>struct_wf_twl_cls C\<close>
+      using inv C by (auto simp: twl_st_inv.simps)
+
+    have watched: \<open>watched_literals_false_of_max_level M C\<close>
+      using C inv by (auto simp: twl_st_inv.simps)
+
+    obtain W UW where C_W: \<open>C = TWL_Clause W UW\<close>
+      by (cases C)
+
+    have H: False if
+      W: \<open>W = {#L, L'#}\<close> and
+      uL: \<open>- L \<in> lits_of_l (Decided K # M)\<close> and
+      L': \<open>L' \<notin> lits_of_l (Decided K # M)\<close> and
+      False: \<open>-L \<noteq> K\<close> for L L'
+    proof -
+      have \<open>twl_inv M C\<close>
+        using inv C by (auto simp: twl_st_inv.simps)
+      then have \<open>\<forall>K \<in># UW. -K \<in> lits_of_l M\<close>
+        using uL L' False unfolding W C_W twl_inv.simps by auto
+      then have M_CNot_C: \<open>M \<Turnstile>as CNot (remove1_mset L' (clause C))\<close>
+        using uL False unfolding true_annots_true_cls_def_iff_negation_in_model
+        by (auto simp: C_W W)
+      moreover have L'_C: \<open>L' \<in># clause C\<close>
+        unfolding C_W W by auto
+      ultimately have \<open>defined_lit M L'\<close>
+        using propa_cands C by auto
+      then have \<open>-L' \<in> lits_of_l M\<close>
+        using L' by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+      then have \<open>M \<Turnstile>as CNot (clause C)\<close>
+        using M_CNot_C unfolding true_annots_true_cls_def_iff_negation_in_model
+        by (auto simp: C_W W)
+      then show False
+        using confl_cands C by auto
+    qed
+
+    show \<open>watched_literals_false_of_max_level (Decided K # M) C\<close>
+      unfolding C_W watched_literals_false_of_max_level.simps
+    proof (intro allI impI)
+      fix L L'
+      assume
+        W: \<open>W = {#L, L'#}\<close> and
+        uL: \<open>- L \<in> lits_of_l (Decided K # M)\<close> and
+        L': \<open>L' \<notin> lits_of_l (Decided K # M)\<close>
+      then have \<open>-L = K\<close>
+        using H[OF W uL L'] by fast
+      then show \<open>get_level (Decided K # M) L = count_decided (Decided K # M)\<close>
+        by auto
+    qed
+
+    {
+      assume excep: \<open>\<not> twl_is_an_exception C {#-K#} {#}\<close>
+      have \<open>twl_lazy_update M C\<close>
+        using C inv by (auto simp: twl_st_inv.simps)
+      have lev_le_Suc: \<open>get_level M Ka \<le> Suc (count_decided M)\<close> for Ka
+        using count_decided_ge_get_level le_Suc_eq by blast
+      show \<open>twl_lazy_update (Decided K # M) C\<close>
+        unfolding C_W twl_lazy_update.simps Ball_def
+      proof (intro allI impI)
+        fix L L' K' :: \<open>'a literal\<close>
+        assume
+          W: \<open>W = {#L, L'#}\<close> and
+          uL: \<open>- L \<in> lits_of_l (Decided K # M)\<close> and
+          L': \<open>L' \<notin> lits_of_l (Decided K # M)\<close> and
+          K': \<open>K' \<in># UW\<close>
+        then have \<open>-L = K\<close>
+          using H[OF W uL L'] by fast
+        then show \<open>get_level (Decided K # M) K' \<le> get_level (Decided K # M) L\<close>
+          using lev_le_Suc[of K'] by force
+      qed
+
+      have twl_inv_C: \<open>twl_inv M C\<close>
+        using inv C unfolding twl_st_inv.simps by simp
+      show \<open>twl_inv (Decided K # M) C\<close>
+        unfolding C_W twl_inv.simps
+      proof (intro allI impI conjI)
+        fix L L'
+        assume
+          W: \<open>W = {#L, L'#}\<close> and
+          uL: \<open>- L \<in> lits_of_l (Decided K # M)\<close> and
+          L': \<open>L' \<notin> lits_of_l (Decided K # M)\<close>
+        then have \<open>-L = K\<close>
+          using H[OF W uL L'] by fast
+        then have False
+          using excep W uL C_W by (auto simp: twl_is_an_exception_def)
+        then show \<open>\<forall>Ka\<in>#UW. - Ka \<in> lits_of_l (Decided K # M)\<close>
+          by fast
+      next
+        fix L L'
+        assume
+          W: \<open>W = {#L, L'#}\<close> and
+          uL: \<open>L \<in> lits_of_l (Decided K # M)\<close> and
+          L': \<open>-L' \<in> lits_of_l (Decided K # M)\<close>
+        moreover have \<open>L \<noteq> -K\<close> \<open>L' \<noteq> -K\<close>
+          using excep unfolding C_W W by (auto simp: twl_is_an_exception_def)
+        ultimately have uL': \<open>-L' \<in> lits_of_l M\<close>
+          by auto
+        show \<open>get_level (Decided K # M) L \<le> get_level (Decided K # M) L'\<close>
+        proof (cases \<open>L = K\<close>)
+          case True
+          have L_M: \<open>L \<notin> lits_of_l M\<close> and uL_M: \<open>-L \<notin> lits_of_l M\<close>
+            using n_d' Decided_Propagated_in_iff_in_lits_of_l True undef by blast+
+          have \<open>twl_inv M C\<close>
+            using inv C by (auto simp: twl_st_inv.simps)
+          then have \<open>\<forall>K \<in># UW. -K \<in> lits_of_l M\<close>
+            using uL' L' True L_M unfolding W C_W twl_inv.simps
+            by (auto simp: add_mset_eq_add_mset all_conj_distrib)
+          then have M_CNot_C: \<open>M \<Turnstile>as CNot (remove1_mset L (clause C))\<close>
+            using L_M uL' unfolding true_annots_true_cls_def_iff_negation_in_model
+            by (auto simp: C_W W)
+          moreover have L'_C: \<open>L \<in># clause C\<close>
+            unfolding C_W W by auto
+          ultimately have \<open>defined_lit M L\<close>
+            using propa_cands C by auto
+          then have False
+            using L_M uL_M by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+          then show ?thesis by blast
+        next
+          case False
+          then have L: \<open>L \<in> lits_of_l M\<close>
+            using uL by auto
+          then have \<open>atm_of L \<noteq> atm_of K\<close>
+            by (simp add: False \<open>L \<noteq> - K\<close> atm_of_eq_atm_of)
+          moreover have \<open>atm_of K \<noteq> atm_of L'\<close>
+            using n_d' uL' by (auto simp: defined_lit_map lits_of_def uminus_lit_swap)
+          moreover have \<open>get_level M L \<le> get_level M L'\<close>
+            using twl_inv_C L uL'  unfolding C_W W by auto
+          ultimately show ?thesis
+            by auto
+        qed
+      qed
+    }
+
+    fix M1 M2 K'
+    assume \<open>Decided K # M = M2 @ Decided K' # M1\<close>
+    then have M: \<open>M = tl M2 @ Decided K' # M1 \<or> M = M1\<close>
+      by (cases M2) auto
+    have IH: \<open>\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow>
+        twl_lazy_update M1 C \<and> twl_inv M1 C \<and> watched_literals_false_of_max_level M1 C\<close>
+      using inv C unfolding twl_st_inv.simps by blast
+
+    have \<open>twl_lazy_update M C\<close>
+      using inv C unfolding twl_st_inv.simps by auto
+    then show \<open>twl_lazy_update M1 C\<close>
+      using IH M by blast
+    have \<open>twl_inv M C\<close>
+      using inv C unfolding twl_st_inv.simps by auto
+    then show \<open>twl_inv M1 C\<close>
+      using IH M by blast
+    have \<open>watched_literals_false_of_max_level M C\<close>
+      using inv C unfolding twl_st_inv.simps by auto
+    then show \<open>watched_literals_false_of_max_level M1 C\<close>
+      using IH M by blast
+  qed
 next
   case (skip L D C' M N U NP UP)
-  then show ?case sorry
+  then show ?case
+    by (auto simp: twl_st_inv.simps twl_cp_invs_def)
 next
   case (resolve L D C M N U NP UP)
-  then show ?case sorry
+  then show ?case
+    by (auto simp: twl_st_inv.simps twl_cp_invs_def)
 next
-  case (backtrack_single_clause K M1 M2 M L N U NP UP)
-  then show ?case sorry
+  case (backtrack_single_clause K M1 M2 M K' N U NP UP) note decomp = this(1) and lev = this(2,3) and
+  invs = this(4)
+  let ?S = \<open>(M, N, U, Some {#K'#}, NP, UP, {#}, {#})\<close>
+  let ?T = \<open>(Propagated K' {#K'#} # M1, N, U, None, NP, add_mset {#K'#} UP, {#}, {#- K'#})\<close>
+  have bt_twl: \<open>cdcl_twl_o ?S ?T\<close>
+    using cdcl_twl_o.backtrack_single_clause[OF backtrack_single_clause.hyps] .
+  then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o (convert_to_state ?S)  (convert_to_state ?T)\<close>
+    by (rule twl_cp_o_cdcl\<^sub>W_o) (use invs in \<open>simp_all add: twl_cp_invs_def\<close>)
+  then have struct_inv_T: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state ?T)\<close>
+    using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_inv cdcl\<^sub>W_restart_mset.other invs twl_cp_invs_def by blast
+  have inv: \<open>twl_st_inv ?S\<close>
+    using invs unfolding twl_cp_invs_def by blast
+  have n_d: \<open>no_dup M\<close>
+    using invs unfolding twl_cp_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: cdcl\<^sub>W_restart_mset_state)
+  have n_d': \<open>no_dup (Propagated K' {#K'#} # M1)\<close>
+    using struct_inv_T unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: trail.simps)
+
+  have propa_cands: \<open>propa_cands_enqueued ?S\<close> and
+    confl_cands: \<open>confl_cands_enqueued ?S\<close>
+    using invs unfolding twl_cp_invs_def by blast+
+  obtain M3 where M: \<open>M = M3 @ M2 @ Decided K # M1\<close>
+    using decomp by blast
+  define M2' where \<open>M2' = M3 @ M2\<close>
+  have M': \<open>M = M2' @ Decided K # M1\<close>
+    unfolding M M2'_def by simp
+
+  have propa_cands_M1: \<open>propa_cands_enqueued (M1, N, U, None, NP, add_mset {#K'#} UP, {#}, {#- K'#})\<close>
+    unfolding propa_cands_enqueued.simps
+  proof (intro allI impI)
+    fix L C
+    assume
+      C: \<open>C \<in># N + U\<close> and
+      L: \<open>L \<in># clause C\<close> and
+      M1_CNot: \<open>M1 \<Turnstile>as CNot (remove1_mset L (clause C))\<close> and
+      undef: \<open>undefined_lit M1 L\<close>
+    define D where \<open>D = remove1_mset L (clause C)\<close>
+    have \<open>add_mset L D \<in># clause `# (N + U)\<close> and \<open>M1 \<Turnstile>as CNot D\<close>
+      using C L M1_CNot unfolding D_def by auto
+    moreover have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (convert_to_state ?S)\<close>
+      using invs unfolding twl_cp_invs_def by blast
+    ultimately have False
+      using undef M' by (fastforce simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def trail.simps clauses_def)
+    then show \<open>(\<exists>L'. L' \<in># watched C \<and> L' \<in># {#- K'#}) \<or> (\<exists>L. (L, C) \<in># {#})\<close>
+      by fast
+  qed
+
+  show ?case
+    unfolding twl_st_inv.simps Ball_def
+  proof (intro conjI allI impI)
+    fix C :: \<open>'a clause twl_clause\<close>
+    assume C: \<open>C \<in># N + U\<close>
+    show struct: \<open>struct_wf_twl_cls C\<close>
+      using inv C by (auto simp: twl_st_inv.simps)
+
+    obtain CW CUW where C_W: \<open>C = TWL_Clause CW CUW\<close>
+        by (cases C)
+
+    {
+      assume excep: \<open>\<not> twl_is_an_exception C {#-K'#} {#}\<close>
+      have
+        lazy: \<open>twl_lazy_update M1 C\<close> and
+        watched_max: \<open>watched_literals_false_of_max_level M1 C\<close> and
+        twl_inv_C: \<open>twl_inv M1 C\<close>
+        using C inv M by (auto simp: twl_st_inv.simps)
+      have lev_le_Suc: \<open>get_level M Ka \<le> Suc (count_decided M)\<close> for Ka
+        using count_decided_ge_get_level le_Suc_eq by blast
+      show \<open>twl_lazy_update (Propagated K' {#K'#} # M1) C\<close>
+        apply (rule lazy_update_propagate)
+        using excep apply (simp add: twl_is_an_exception_add_mset_to_queue; fail)
+        using watched_max by auto
+
+      show \<open>twl_inv (Propagated K' {#K'#} # M1) C\<close>
+        unfolding twl_inv.simps C_W
+      proof (intro allI impI conjI)
+        fix L L'
+        assume
+          W: \<open>CW = {#L, L'#}\<close> and
+          uL: \<open>- L \<in> lits_of_l (Propagated K' {#K'#} # M1)\<close> and
+          L': \<open>L' \<notin> lits_of_l (Propagated K' {#K'#} # M1)\<close>
+        moreover have \<open>L \<noteq> -K'\<close>
+          using uL W excep C_W by (auto simp: twl_is_an_exception_def)
+        ultimately show \<open>\<forall>K\<in>#CUW. - K \<in> lits_of_l (Propagated K' {#K'#} # M1)\<close>
+          using twl_inv_C C_W by auto
+      next
+        fix L L'
+        assume
+          W: \<open>CW = {#L, L'#}\<close> and
+          uL: \<open>L \<in> lits_of_l (Propagated K' {#K'#} # M1)\<close> and
+          L': \<open>-L' \<in> lits_of_l (Propagated K' {#K'#} # M1)\<close>
+        moreover have L_L'_K: \<open>L \<noteq> -K'\<close> \<open>L' \<noteq> -K'\<close>
+          using excep unfolding C_W W by (auto simp: twl_is_an_exception_def)
+        ultimately have uL': \<open>-L' \<in> lits_of_l M1\<close>
+          by auto
+        show \<open>get_level (Propagated K' {#K'#} # M1) L \<le> get_level (Propagated K' {#K'#} # M1) L'\<close>
+        proof (cases \<open>L = K'\<close>)
+          case True
+          have L_M: \<open>L \<notin> lits_of_l M1\<close> and uL_M: \<open>-L \<notin> lits_of_l M1\<close>
+            using n_d' True by (simp add: atm_lit_of_set_lits_of_l
+                atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)+
+          have \<open>\<forall>K \<in># CUW. -K \<in> lits_of_l M1\<close>
+          proof -
+            { fix ll :: "'a literal"
+              have "{#L', L#} = CW"
+                by (simp add: W)
+              then have "ll \<notin># CUW \<or> - ll \<in> lits_of_l M1"
+                using L_M twl_inv_C uL' unfolding C_W twl_inv.simps by blast }
+            then show ?thesis
+              by blast
+          qed
+          then have M_CNot_C: \<open>M1 \<Turnstile>as CNot (remove1_mset L (clause C))\<close>
+            using L_M uL' unfolding true_annots_true_cls_def_iff_negation_in_model
+            by (auto simp: C_W W)
+          moreover have L'_C: \<open>L \<in># clause C\<close>
+            unfolding C_W W by auto
+          moreover have \<open>- K' \<notin># watched C\<close>
+            using C_W W L_L'_K by auto
+          ultimately have \<open>defined_lit M1 L\<close>
+            using propa_cands_M1 C W by auto
+          then have False
+            using L_M uL_M by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+          then show ?thesis by blast
+        next
+          case False
+          then have L: \<open>L \<in> lits_of_l M1\<close>
+            using uL by auto
+          then have \<open>atm_of L \<noteq> atm_of K'\<close>
+            by (simp add: False \<open>L \<noteq> - K'\<close> atm_of_eq_atm_of)
+          moreover have \<open>atm_of K' \<noteq> atm_of L'\<close>
+            using n_d' uL' by (auto simp: defined_lit_map lits_of_def uminus_lit_swap)
+          moreover have \<open>get_level M1 L \<le> get_level M1 L'\<close>
+            using twl_inv_C L uL'  unfolding C_W W by auto
+          ultimately show ?thesis
+            by auto
+        qed
+      qed
+    }
+
+    have \<open>watched_literals_false_of_max_level M1 C\<close>
+      using inv C unfolding M' twl_st_simps by blast
+    then show \<open>watched_literals_false_of_max_level (Propagated K' {#K'#} # M1) C\<close>
+      by (auto simp: C_W)
+    fix M1'' M2'' K''
+    assume \<open>Propagated K' {#K'#} # M1 = M2'' @ Decided K'' # M1''\<close>
+    then have M1: \<open>M1 = tl M2'' @ Decided K'' # M1''\<close>
+      by (cases M2'') auto
+    then show \<open>twl_lazy_update M1'' C\<close>\<open>twl_inv M1'' C\<close>\<open>watched_literals_false_of_max_level M1'' C\<close>
+      using inv C unfolding twl_st_inv.simps M' by auto
+  qed
 next
-  case (backtrack L D K M1 M2 M i L' N U NP UP)
-  then show ?case sorry
+  case (backtrack K' D K M1 M2 M i K'' N U NP UP) note K'_D = this(1) and decomp = this(2) and
+    lev_K' = this(3) and i = this(5) and lev_K = this(6) and K'' = this(8) and lev_K'' = this(9) and
+    invs = this(10)
+  let ?S = \<open>(M, N, U, Some D, NP, UP, {#}, {#})\<close>
+  let ?M1 = \<open>Propagated K' D # M1\<close>
+  let ?T = \<open>(?M1, N, add_mset (TWL_Clause {#K', K''#} (D - {#K', K''#})) U, None, NP, UP, {#}, {#- K'#})\<close>
+
+  have bt_twl: \<open>cdcl_twl_o ?S ?T\<close>
+    using cdcl_twl_o.backtrack[OF backtrack.hyps] .
+  then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o (convert_to_state ?S)  (convert_to_state ?T)\<close>
+    by (rule twl_cp_o_cdcl\<^sub>W_o) (use invs in \<open>simp_all add: twl_cp_invs_def\<close>)
+  then have struct_inv_T: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state ?T)\<close>
+    using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_inv cdcl\<^sub>W_restart_mset.other invs twl_cp_invs_def by blast
+  have inv: \<open>twl_st_inv ?S\<close>
+    using invs unfolding twl_cp_invs_def by blast
+  have n_d: \<open>no_dup M\<close>
+    using invs unfolding twl_cp_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: cdcl\<^sub>W_restart_mset_state)
+  have n_d': \<open>no_dup (Propagated K' D # M1)\<close>
+    using struct_inv_T unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: trail.simps)
+
+  have propa_cands: \<open>propa_cands_enqueued ?S\<close> and
+    confl_cands: \<open>confl_cands_enqueued ?S\<close>
+    using invs unfolding twl_cp_invs_def by blast+
+  obtain M3 where M: \<open>M = M3 @ M2 @ Decided K # M1\<close>
+    using decomp by blast
+  define M2' where \<open>M2' = M3 @ M2\<close>
+  have M': \<open>M = M2' @ Decided K # M1\<close>
+    unfolding M M2'_def by simp
+  have struct_inv_S: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state ?S)\<close>
+    using invs unfolding twl_cp_invs_def by blast
+  then have \<open>distinct_mset D\<close>
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+    by (auto simp: conflicting.simps)
+
+  have "atm_of K \<notin> atm_of ` lits_of_l (M3 @ M2)"
+    using n_d unfolding M by (auto simp: lits_of_def)
+  then have count_M1: \<open>count_decided M1 = i\<close>
+    using lev_K unfolding M by (auto simp: image_Un)
+  then have K''_ne_K: \<open>K' \<noteq> K''\<close>
+    using lev_K lev_K' lev_K'' count_decided_ge_get_level[of K'' M] unfolding M by auto
+  then have D: \<open>add_mset K' (add_mset K'' (D - {#K', K''#})) = D\<close> \<open>add_mset K'' (add_mset K' (D - {#K', K''#})) = D\<close>
+    using K'' K'_D  multi_member_split by fastforce+
+  have propa_cands_M1: \<open>propa_cands_enqueued (M1, N, U, None, NP, UP, {#}, {#- K''#})\<close>
+    unfolding propa_cands_enqueued.simps
+  proof (intro allI impI)
+    fix L C
+    assume
+      C: \<open>C \<in># N + U\<close> and
+      L: \<open>L \<in># clause C\<close> and
+      M1_CNot: \<open>M1 \<Turnstile>as CNot (remove1_mset L (clause C))\<close> and
+      undef: \<open>undefined_lit M1 L\<close>
+    define D where \<open>D = remove1_mset L (clause C)\<close>
+    have \<open>add_mset L D \<in># clause `# (N + U)\<close> and \<open>M1 \<Turnstile>as CNot D\<close>
+      using C L M1_CNot unfolding D_def by auto
+    moreover have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (convert_to_state ?S)\<close>
+      using invs unfolding twl_cp_invs_def by blast
+    ultimately have False
+      using undef M' by (fastforce simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def trail.simps clauses_def)
+    then show \<open>(\<exists>L'. L' \<in># watched C \<and> L' \<in># {#- K''#}) \<or> (\<exists>L. (L, C) \<in># {#})\<close>
+      by fast
+  qed
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (convert_to_state ?T)\<close>
+    using struct_inv_T unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def twl_cp_invs_def
+    by (auto simp: conflicting.simps)
+  then have M1_CNot_D: \<open>M1 \<Turnstile>as CNot (remove1_mset K' D)\<close>
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+    by (auto simp: conflicting.simps trail.simps)
+  then have \<open>-K'' \<in> lits_of_l M1\<close>
+    using K'' K''_ne_K unfolding true_annots_true_cls_def_iff_negation_in_model
+    by (metis in_remove1_mset_neq)
+  then have \<open>atm_of K'' \<notin> atm_of ` lits_of_l (M3 @ M2 @ Decided K # [])\<close>
+    using n_d unfolding M
+    by (metis append.assoc append_Cons append_Nil cdcl\<^sub>W_restart_mset.no_dup_uminus_append_in_atm_notin)
+  then have lev_M1_K'': \<open>get_level M1 K'' = count_decided M1\<close>
+    using lev_K'' count_M1 unfolding M by (auto simp: image_Un)
+
+  show ?case
+    unfolding twl_st_inv.simps Ball_def
+  proof (intro conjI allI impI)
+    fix C :: \<open>'a clause twl_clause\<close>
+    assume C: \<open>C \<in># N + add_mset (TWL_Clause {#K', K''#} (D - {#K', K''#})) U\<close>
+    have \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (convert_to_state ?T)\<close>
+      using struct_inv_T unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by blast
+    then have \<open>distinct_mset D\<close>
+      unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+      by (auto simp: cdcl\<^sub>W_restart_mset_state)
+    then show struct: \<open>struct_wf_twl_cls C\<close>
+      using inv C by (auto simp: twl_st_inv.simps D)
+
+    obtain CW CUW where C_W: \<open>C = TWL_Clause CW CUW\<close>
+      by (cases C)
+    have
+      lazy: \<open>twl_lazy_update M1 C\<close> and
+      watched_max: \<open>watched_literals_false_of_max_level M1 C\<close> and
+      twl_inv_C: \<open>twl_inv M1 C\<close> if \<open>C \<noteq> TWL_Clause {#K', K''#} (D - {#K', K''#})\<close>
+      using C inv M' that by (auto simp: twl_st_inv.simps)
+    from M1_CNot_D have in_D_M1: \<open>L \<in># remove1_mset K' D \<Longrightarrow> - L \<in> lits_of_l M1\<close> for L
+      by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
+    then have in_K_D_M1: \<open>L \<in># D - {#K', K''#} \<Longrightarrow> - L \<in> lits_of_l M1\<close> for L
+      (* TODO think harder how to avoid this step and inline the previous one *)
+      by (metis K'_D add_mset_diff_bothsides add_mset_remove_trivial in_diffD mset_add)
+    have
+      lazy_D: \<open>twl_lazy_update ?M1 C\<close> and
+      watched_max_D: \<open>watched_literals_false_of_max_level ?M1 C\<close> and
+      twl_inv_D: \<open>twl_inv ?M1 C\<close> if \<open>C = TWL_Clause {#K', K''#} (D - {#K', K''#})\<close>
+      using that apply (auto simp: add_mset_eq_add_mset count_decided_ge_get_level)[]
+      using that apply (auto simp: add_mset_eq_add_mset count_decided_ge_get_level)[]
+      unfolding that twl_inv.simps
+      apply (intro allI conjI impI)
+      using that in_D_M1 apply (auto simp add: add_mset_eq_add_mset dest: in_K_D_M1)[ ]
+      by (auto simp add: add_mset_eq_add_mset lev_M1_K'')
+
+    {
+      assume excep: \<open>\<not> twl_is_an_exception C {#-K'#} {#}\<close>
+
+      have lev_le_Suc: \<open>get_level M Ka \<le> Suc (count_decided M)\<close> for Ka
+        using count_decided_ge_get_level le_Suc_eq by blast
+      have \<open>twl_lazy_update ?M1 C\<close> if \<open>C \<noteq> TWL_Clause {#K', K''#} (D - {#K', K''#})\<close>
+        apply (rule lazy_update_propagate)
+        using excep apply (simp add: twl_is_an_exception_add_mset_to_queue; fail)
+        using watched_max that by auto
+      then show \<open>twl_lazy_update ?M1 C\<close>
+        using lazy_D by blast
+
+      have \<open>twl_inv ?M1 C\<close> if \<open>C \<noteq> TWL_Clause {#K', K''#} (D - {#K', K''#})\<close>
+        unfolding twl_inv.simps C_W
+      proof (intro allI impI conjI)
+        fix L L'
+        assume
+          W: \<open>CW = {#L, L'#}\<close> and
+          uL: \<open>- L \<in> lits_of_l ?M1\<close> and
+          L': \<open>L' \<notin> lits_of_l ?M1\<close>
+        moreover have \<open>L \<noteq> -K'\<close>
+          using uL W excep C_W by (auto simp: twl_is_an_exception_def)
+        ultimately show \<open>\<forall>K\<in>#CUW. - K \<in> lits_of_l ?M1\<close>
+          using twl_inv_C C_W that by auto
+      next
+        fix L L'
+        assume
+          W: \<open>CW = {#L, L'#}\<close> and
+          uL: \<open>L \<in> lits_of_l ?M1\<close> and
+          L': \<open>-L' \<in> lits_of_l ?M1\<close>
+        moreover have L_L'_K: \<open>L \<noteq> -K'\<close> \<open>L' \<noteq> -K'\<close>
+          using excep unfolding C_W W by (auto simp: twl_is_an_exception_def)
+        ultimately have uL': \<open>-L' \<in> lits_of_l M1\<close>
+          by auto
+        show \<open>get_level ?M1 L \<le> get_level ?M1 L'\<close>
+        proof (cases \<open>L = K'\<close>)
+          case True
+          have L_M: \<open>L \<notin> lits_of_l M1\<close> and uL_M: \<open>-L \<notin> lits_of_l M1\<close>
+            using n_d' True by (simp add: atm_lit_of_set_lits_of_l
+                atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)+
+          have \<open>\<forall>K \<in># CUW. -K \<in> lits_of_l M1\<close>
+          proof -
+            { fix ll :: "'a literal"
+              have "{#L', L#} = CW"
+                by (simp add: W)
+              then have "ll \<notin># CUW \<or> - ll \<in> lits_of_l M1"
+                using L_M twl_inv_C uL' that unfolding C_W twl_inv.simps by blast }
+            then show ?thesis
+              by blast
+          qed
+          then have M_CNot_C: \<open>M1 \<Turnstile>as CNot (remove1_mset L (clause C))\<close>
+            using L_M uL' unfolding true_annots_true_cls_def_iff_negation_in_model
+            by (auto simp: C_W W)
+          moreover have L'_C: \<open>L \<in># clause C\<close>
+            unfolding C_W W by auto
+          moreover have \<open>- K'' \<notin># watched C\<close>
+            using C_W W L_L'_K L_M \<open>- K'' \<in> lits_of_l M1\<close> n_d' uL'
+            by (fastforce dest: distinct_consistent_interp mk_disjoint_insert)
+          ultimately have \<open>defined_lit M1 L\<close>
+            using propa_cands_M1 C W that by auto
+          then have False
+            using L_M uL_M by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+          then show ?thesis by blast
+        next
+          case False
+          then have L: \<open>L \<in> lits_of_l M1\<close>
+            using uL by auto
+          then have \<open>atm_of L \<noteq> atm_of K'\<close>
+            by (simp add: False \<open>L \<noteq> - K'\<close> atm_of_eq_atm_of)
+          moreover have \<open>atm_of K' \<noteq> atm_of L'\<close>
+            using n_d' uL' by (auto simp: defined_lit_map lits_of_def uminus_lit_swap)
+          moreover have \<open>get_level M1 L \<le> get_level M1 L'\<close>
+            using twl_inv_C L uL' that unfolding C_W W by auto
+          ultimately show ?thesis
+            by auto
+        qed
+      qed
+      then show \<open>twl_inv ?M1 C\<close>
+        using twl_inv_D by blast
+    }
+
+    have \<open>watched_literals_false_of_max_level M1 C\<close> if \<open>C \<noteq> TWL_Clause {#K', K''#} (D - {#K', K''#})\<close>
+      using inv C that unfolding M twl_st_simps by auto
+    then have \<open>watched_literals_false_of_max_level ?M1 C\<close> if \<open>C \<noteq> TWL_Clause {#K', K''#} (D - {#K', K''#})\<close>
+      (* by (auto simp: C_W add_mset_eq_add_mset) *)
+      sorry
+    then show \<open>watched_literals_false_of_max_level ?M1 C\<close>
+      using watched_max_D by blast
+    fix M1'' M2'' K''
+    assume \<open>?M1 = M2'' @ Decided K'' # M1''\<close>
+    then have M1: \<open>M1 = tl M2'' @ Decided K'' # M1''\<close>
+      by (cases M2'') auto
+    then show \<open>twl_lazy_update M1'' C\<close>\<open>twl_inv M1'' C\<close>\<open>watched_literals_false_of_max_level M1'' C\<close>
+      using inv C unfolding twl_st_inv.simps M (* by auto *)sorry
+  qed
 qed
 end
