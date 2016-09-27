@@ -2486,7 +2486,7 @@ next
   let ?S = \<open>(M, N, U, Some D, NP, UP, {#}, {#})\<close>
   let ?M1 = \<open>Propagated K' D # M1\<close>
   let ?T = \<open>(?M1, N, add_mset (TWL_Clause {#K', K''#} (D - {#K', K''#})) U, None, NP, UP, {#}, {#- K'#})\<close>
-
+  let ?D = \<open>TWL_Clause {#K', K''#} (D - {#K', K''#})\<close>
   have bt_twl: \<open>cdcl_twl_o ?S ?T\<close>
     using cdcl_twl_o.backtrack[OF backtrack.hyps] .
   then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o (convert_to_state ?S)  (convert_to_state ?T)\<close>
@@ -2549,7 +2549,7 @@ next
   then have M1_CNot_D: \<open>M1 \<Turnstile>as CNot (remove1_mset K' D)\<close>
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
     by (auto simp: conflicting.simps trail.simps)
-  then have \<open>-K'' \<in> lits_of_l M1\<close>
+  then have uK''_M1: \<open>-K'' \<in> lits_of_l M1\<close>
     using K'' K''_ne_K unfolding true_annots_true_cls_def_iff_negation_in_model
     by (metis in_remove1_mset_neq)
   then have \<open>atm_of K'' \<notin> atm_of ` lits_of_l (M3 @ M2 @ Decided K # [])\<close>
@@ -2562,7 +2562,7 @@ next
     unfolding twl_st_inv.simps Ball_def
   proof (intro conjI allI impI)
     fix C :: \<open>'a clause twl_clause\<close>
-    assume C: \<open>C \<in># N + add_mset (TWL_Clause {#K', K''#} (D - {#K', K''#})) U\<close>
+    assume C: \<open>C \<in># N + add_mset ?D U\<close>
     have \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (convert_to_state ?T)\<close>
       using struct_inv_T unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by blast
     then have \<open>distinct_mset D\<close>
@@ -2576,7 +2576,7 @@ next
     have
       lazy: \<open>twl_lazy_update M1 C\<close> and
       watched_max: \<open>watched_literals_false_of_max_level M1 C\<close> and
-      twl_inv_C: \<open>twl_inv M1 C\<close> if \<open>C \<noteq> TWL_Clause {#K', K''#} (D - {#K', K''#})\<close>
+      twl_inv_C: \<open>twl_inv M1 C\<close> if \<open>C \<noteq> ?D\<close>
       using C inv M' that by (auto simp: twl_st_inv.simps)
     from M1_CNot_D have in_D_M1: \<open>L \<in># remove1_mset K' D \<Longrightarrow> - L \<in> lits_of_l M1\<close> for L
       by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
@@ -2586,7 +2586,7 @@ next
     have
       lazy_D: \<open>twl_lazy_update ?M1 C\<close> and
       watched_max_D: \<open>watched_literals_false_of_max_level ?M1 C\<close> and
-      twl_inv_D: \<open>twl_inv ?M1 C\<close> if \<open>C = TWL_Clause {#K', K''#} (D - {#K', K''#})\<close>
+      twl_inv_D: \<open>twl_inv ?M1 C\<close> if \<open>C = ?D\<close>
       using that apply (auto simp: add_mset_eq_add_mset count_decided_ge_get_level)[]
       using that apply (auto simp: add_mset_eq_add_mset count_decided_ge_get_level)[]
       unfolding that twl_inv.simps
@@ -2599,14 +2599,14 @@ next
 
       have lev_le_Suc: \<open>get_level M Ka \<le> Suc (count_decided M)\<close> for Ka
         using count_decided_ge_get_level le_Suc_eq by blast
-      have \<open>twl_lazy_update ?M1 C\<close> if \<open>C \<noteq> TWL_Clause {#K', K''#} (D - {#K', K''#})\<close>
+      have \<open>twl_lazy_update ?M1 C\<close> if \<open>C \<noteq> ?D\<close>
         apply (rule lazy_update_propagate)
         using excep apply (simp add: twl_is_an_exception_add_mset_to_queue; fail)
         using watched_max that by auto
       then show \<open>twl_lazy_update ?M1 C\<close>
         using lazy_D by blast
 
-      have \<open>twl_inv ?M1 C\<close> if \<open>C \<noteq> TWL_Clause {#K', K''#} (D - {#K', K''#})\<close>
+      have \<open>twl_inv ?M1 C\<close> if \<open>C \<noteq> ?D\<close>
         unfolding twl_inv.simps C_W
       proof (intro allI impI conjI)
         fix L L'
@@ -2675,19 +2675,41 @@ next
         using twl_inv_D by blast
     }
 
-    have \<open>watched_literals_false_of_max_level M1 C\<close> if \<open>C \<noteq> TWL_Clause {#K', K''#} (D - {#K', K''#})\<close>
+    have \<open>watched_literals_false_of_max_level M1 C\<close> if \<open>C \<noteq> ?D\<close>
       using inv C that unfolding M twl_st_simps by auto
-    then have \<open>watched_literals_false_of_max_level ?M1 C\<close> if \<open>C \<noteq> TWL_Clause {#K', K''#} (D - {#K', K''#})\<close>
-      (* by (auto simp: C_W add_mset_eq_add_mset) *)
-      sorry
+    then have \<open>watched_literals_false_of_max_level ?M1 C\<close> if \<open>C \<noteq> ?D\<close>
+      using C_W that by auto
     then show \<open>watched_literals_false_of_max_level ?M1 C\<close>
       using watched_max_D by blast
-    fix M1'' M2'' K''
-    assume \<open>?M1 = M2'' @ Decided K'' # M1''\<close>
-    then have M1: \<open>M1 = tl M2'' @ Decided K'' # M1''\<close>
+    fix M1'' M2'' K'''
+    assume M1: \<open>?M1 = M2'' @ Decided K''' # M1''\<close>
+    then have M1: \<open>M1 = tl M2'' @ Decided K''' # M1''\<close>
       by (cases M2'') auto
-    then show \<open>twl_lazy_update M1'' C\<close>\<open>twl_inv M1'' C\<close>\<open>watched_literals_false_of_max_level M1'' C\<close>
-      using inv C unfolding twl_st_inv.simps M (* by auto *)sorry
+    then have \<open>twl_lazy_update M1'' C\<close>\<open>twl_inv M1'' C\<close>\<open>watched_literals_false_of_max_level M1'' C\<close>
+      if \<open>C \<noteq> ?D\<close>
+      using inv C that unfolding twl_st_inv.simps M by auto
+    moreover {
+      have n_d_M1: \<open>no_dup ?M1\<close>
+        using struct_inv_T unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: cdcl\<^sub>W_restart_mset_state)
+      then have \<open>- K' \<notin> lits_of_l M1''\<close>
+        unfolding M1 by (auto simp: lits_of_def uminus_lit_swap)
+      moreover {have \<open>- K'' \<notin> lits_of_l M1''\<close>
+        proof (rule ccontr)
+          assume \<open>\<not> - K'' \<notin> lits_of_l M1''\<close>
+          have \<open>atm_of (- K'') \<notin> atm_of ` lits_of_l (tl M2'' @ Decided K''' # [])\<close>
+            using n_d_M1 unfolding M1 by (metis (no_types) \<open>\<not> - K'' \<notin> lits_of_l M1''\<close> append.assoc
+                append_Cons append_Nil atm_of_uminus distinct.simps(2) list.simps(9)
+                cdcl\<^sub>W_restart_mset.no_dup_uminus_append_in_atm_notin)
+          then show False
+            using lev_M1_K''  count_decided_ge_get_level[of K'' M1''] unfolding M1
+            by (auto simp: image_Un Int_Un_distrib)
+        qed }
+      ultimately have \<open>twl_lazy_update M1'' ?D\<close> and \<open>twl_inv M1'' ?D\<close> and
+         \<open>watched_literals_false_of_max_level M1'' ?D\<close>
+        by (auto simp: add_mset_eq_add_mset) }
+    ultimately show \<open>twl_lazy_update M1'' C\<close>\<open>twl_inv M1'' C\<close>\<open>watched_literals_false_of_max_level M1'' C\<close>
+        by blast+
   qed
 qed
 end
