@@ -1822,22 +1822,22 @@ next
   case (forget C T) note C = this(2) and cls_C = this(6) and T = this(7)
   show ?case
     unfolding all_decomposition_implies_def Ball_def
-    proof (intro allI, clarify)
-      fix a b
-      assume "(a, b) \<in> set (get_all_ann_decomposition (trail T))"
-      then have "unmark_l a \<union> set_mset (clauses S) \<Turnstile>ps unmark_l b"
-        using decomp T by (auto simp add: all_decomposition_implies_def)
-      moreover
-        have a1:"C \<in> set_mset (clauses S)"
-          using C by (auto simp: clauses_def)
-        have "clauses T = clauses (remove_cls C S)"
-         using T by auto
-        then have "set_mset (clauses T) \<Turnstile>ps set_mset (clauses S)"
-          using a1 by (metis (no_types) clauses_remove_cls cls_C insert_Diff order_refl
-          set_mset_minus_replicate_mset(1) true_clss_clss_def true_clss_clss_insert)
-      ultimately show "unmark_l a \<union> set_mset (clauses T) \<Turnstile>ps unmark_l b"
-        using true_clss_clss_generalise_true_clss_clss by blast
-    qed
+  proof (intro allI, clarify)
+    fix a b
+    assume "(a, b) \<in> set (get_all_ann_decomposition (trail T))"
+    then have "unmark_l a \<union> set_mset (clauses S) \<Turnstile>ps unmark_l b"
+      using decomp T by (auto simp add: all_decomposition_implies_def)
+    moreover {
+      have a1:"C \<in># clauses S"
+        using C by (auto simp: clauses_def)
+      have "clauses T = clauses (remove_cls C S)"
+        using T by auto
+      then have "clauses T \<Turnstile>psm clauses S"
+        using a1 by (metis (no_types) clauses_remove_cls cls_C insert_Diff order_refl
+            set_mset_minus_replicate_mset(1) true_clss_clss_def true_clss_clss_insert) }
+    ultimately show "unmark_l a \<union> set_mset (clauses T) \<Turnstile>ps unmark_l b"
+      using true_clss_clss_generalise_true_clss_clss by blast
+  qed
 next
   case conflict
   then show ?case using decomp by auto

@@ -24,8 +24,8 @@ HOL:
 	$(RUN_ISABELLE) build -b HOL
 
 Weidenbach_Book: HOL
-	$(RUN_ISABELLE) build -d \$AFP -b Refine_Imperative_HOL
-	$(RUN_ISABELLE) build -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -d \$AFP -l Refine_Imperative_HOL -v -D Weidenbach_Book
+	$(RUN_ISABELLE) build -d '$$AFP' -b Refine_Imperative_HOL
+	$(RUN_ISABELLE) build -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -d '$$AFP' -v -D Weidenbach_Book
 
 Bachmair_Ganzinger: HOL
 	$(RUN_ISABELLE) build -o browser_info -v -D Bachmair_Ganzinger

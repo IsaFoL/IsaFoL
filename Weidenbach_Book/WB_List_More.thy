@@ -383,6 +383,10 @@ lemma size_2_iff: "size M = 2 \<longleftrightarrow> (\<exists>a b. M = {#a, b#})
 lemma subset_eq_mset_single_iff: "x2 \<subseteq># {#L#} \<longleftrightarrow> x2 = {#} \<or> x2 = {#L#}"
   by (metis single_is_union subset_mset.add_diff_inverse subset_mset.eq_refl subset_mset.zero_le)
 
+lemma mset_eq_size_2:
+  \<open>mset xs = {#a, b#} \<longleftrightarrow> xs = [a, b] \<or> xs = [b, a]\<close>
+  by (cases xs) (auto simp: add_mset_eq_add_mset minus_eq_empty_iff_include subset_eq_mset_single_iff)
+
 
 subsection \<open>Sorting\<close>
 

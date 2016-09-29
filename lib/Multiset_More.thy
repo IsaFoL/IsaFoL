@@ -290,6 +290,10 @@ lemma remove_1_mset_id_iff_notin:
   "remove1_mset a M = M \<longleftrightarrow> a \<notin># M"
   by (meson diff_single_trivial multi_drop_mem_not_eq)
 
+lemma id_remove_1_mset_iff_notin:
+  "M = remove1_mset a M \<longleftrightarrow> a \<notin># M"
+  using remove_1_mset_id_iff_notin by metis
+
 lemma remove1_mset_eqE:
   "remove1_mset L x1 = M \<Longrightarrow>
     (L \<in># x1 \<Longrightarrow> x1 = M + {#L#} \<Longrightarrow> P) \<Longrightarrow>
@@ -400,6 +404,10 @@ lemma mset_set_set_mset_subseteq[simp]: "mset_set (set_mset A) \<subseteq># A"
 lemma mset_sorted_list_of_set[simp]:
   "mset (sorted_list_of_set A) = mset_set A"
   by (metis mset_sorted_list_of_multiset sorted_list_of_mset_set)
+
+lemma mset_single[simp]:
+  \<open>mset xs = {#x#} \<longleftrightarrow> xs = [x]\<close>
+  by (cases xs) auto
 
 lemma mset_take_subseteq: "mset (take n xs) \<subseteq># mset xs"
   apply (induct xs arbitrary: n)
