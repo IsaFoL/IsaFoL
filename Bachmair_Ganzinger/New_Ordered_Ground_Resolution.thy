@@ -29,8 +29,9 @@ subsection {* Main and side clauses *} (* Should maybe be in Clausal_Logic *)
 type_synonym 'a side_clause = "'a clause * 'a multiset"
 type_synonym 'a main_clause = "'a clause * 'a list"
 
-abbreviation "main_clause \<equiv> (\<lambda>(D,A). D + {#Neg Atm. Atm \<in># mset A #})"
 abbreviation "side_clause \<equiv> (\<lambda>(C,A). C + {#Pos Atm. Atm \<in># A #})"
+abbreviation "main_clause \<equiv> (\<lambda>(D,A). D + {#Neg Atm. Atm \<in># mset A #})"
+
 
 context ground_resolution_with_selection
 begin
@@ -49,23 +50,23 @@ $S(C_i \lor A_i \lor \cdots \lor A_i)$. Apparently, the latter was meant.
 *}
 
 inductive
-  ord_resolve :: "'a clause multiset \<Rightarrow> 'a main_clause \<Rightarrow> 'a clause \<Rightarrow> bool"
+  ord_resolve :: "'a side_clause multiset \<Rightarrow> 'a main_clause \<Rightarrow> 'a clause \<Rightarrow> bool"
 where
   ord_resolve:
   "Cf' = \<Union># {#C'. (C', A, m) \<in># ZZ#} \<Longrightarrow>
    AA = {#A. (C', A, m) \<in># ZZ#} \<Longrightarrow>
    AA = mset As \<Longrightarrow>
-   CC = {#C' + replicate_mset (Suc m) (Pos A). (C', A, m) \<in># ZZ#} \<Longrightarrow>
+   image_mset side_clause CC = {#C' + replicate_mset (Suc m) (Pos A). (C', A, m) \<in># ZZ#} \<Longrightarrow>
    ZZ \<noteq> {#} \<Longrightarrow>
    S (main_clause (D,As)) = negs AA \<or> S (main_clause (D,As)) = {#} \<and> size AA = 1 \<and> Max (atms_of (main_clause (D,As))) \<in># AA \<Longrightarrow>
    (\<forall>(C', A, _) \<in> set_mset ZZ. \<forall>B \<in> atms_of C'. B < A) \<Longrightarrow>
-   (\<forall>C. C \<in># CC \<longrightarrow> S C = {#}) \<Longrightarrow>
+   (\<forall>C. C \<in># (image_mset side_clause CC) \<longrightarrow> S C = {#}) \<Longrightarrow>
    ord_resolve CC (D,As) (Cf' + D)"
 
 lemma ord_resolve_sound:
   assumes
     res_e: "ord_resolve CC (D,As) E" and
-    cc_true: "I \<Turnstile>m CC" and
+    cc_true: "I \<Turnstile>m image_mset side_clause CC" and
     d_true: "I \<Turnstile> main_clause (D,As)"
   shows "I \<Turnstile> E"
 using res_e proof (cases rule: ord_resolve.cases)
@@ -91,10 +92,10 @@ using res_e proof (cases rule: ord_resolve.cases)
       unfolding cf' by force
     obtain Am where
       aaa: "Am = replicate_mset (Suc m) (Pos A)" by simp
-    have c_in_cc: "C' + Am \<in># CC" using cam unfolding cc aaa by force
+    have c_in_cc: "C' + Am \<in># image_mset side_clause CC" using cam unfolding cc aaa by force
     have "\<not> I \<Turnstile> Am" using aaa a_false by force
     moreover have "I \<Turnstile> C' + Am"
-      using c_in_cc cc_true unfolding true_cls_mset_def by auto
+      using c_in_cc cc_true unfolding true_cls_mset_def by blast 
     ultimately have "I \<Turnstile> C'"
       by simp
     thus ?thesis
@@ -169,6 +170,17 @@ using res_e proof (cases rule: ord_resolve.cases)
   qed
 qed
 
+theorem range_image_mset:
+  assumes "\<forall>D. D \<in># Ds \<longrightarrow> D \<in> range side_clause" 
+  shows "Ds \<in> range (image_mset side_clause)"
+proof -
+  have "\<forall>D. D \<in># Ds \<longrightarrow> (\<exists>C. side_clause C = D)" using assms by blast
+  then obtain f where f_p: "\<forall>D. D \<in># Ds \<longrightarrow> (side_clause (f D) = D)" by metis
+  define Cs where "Cs \<equiv> image_mset f Ds"
+  from f_p Cs_def have "image_mset side_clause Cs = Ds" by auto
+  then show ?thesis by blast
+qed
+
 text {*
 This corresponds to Theorem 3.15:
 *}
@@ -181,9 +193,9 @@ theorem ord_resolve_counterex_reducing:
     c_min: "\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D"
   obtains DD E mC where
     "main_clause mC = C" (* This line was added to fit the new definition. It does not look so nice... *)
-    "set_mset DD \<subseteq> N"
-    "INTERP N \<Turnstile>m DD"
-    "\<And>D. D \<in># DD \<Longrightarrow> productive N D"
+    "set_mset (image_mset side_clause DD) \<subseteq> N"
+    "INTERP N \<Turnstile>m image_mset side_clause DD"
+    "\<And>D. D \<in># image_mset side_clause DD \<Longrightarrow> productive N D"
     "ord_resolve DD mC E"
     "\<not> INTERP N \<Turnstile> E"
     "E < C"
@@ -256,28 +268,48 @@ proof -
   define ZZ where "ZZ \<equiv> {#(D'_of A, A, M_of A - 1). A \<in># AA#}"
   define Df' where "Df' \<equiv> \<Union># {#D'. (D', A, m) \<in># ZZ#}"
   define Df where "Df \<equiv> Df' + negs AA"
-  define DD where "DD \<equiv> {#D' + replicate_mset (Suc m) (Pos A). (D', A, m) \<in># ZZ#}"
+  define DD where "DD \<equiv> inv (image_mset side_clause) {#D' + replicate_mset (Suc m) (Pos A). (D', A, m) \<in># ZZ#}"
+  have DD_def: "image_mset side_clause DD \<equiv> {#D' + replicate_mset (Suc m) (Pos A). (D', A, m) \<in># ZZ#}"
+  proof -
+    have "\<forall>C. C = side_clause (C,{#})" by auto
+    then have "range side_clause = UNIV" by blast
+    then have "\<forall>D. D \<in># ({#D' + replicate_mset (Suc m) (Pos A). (D', A, m) \<in># ZZ#}) \<longrightarrow> D \<in> range side_clause"
+      by auto
+    then have in_range: "{#D' + replicate_mset (Suc m) (Pos A). (D', A, m) \<in># ZZ#} \<in> range (image_mset side_clause)"
+      using range_image_mset by blast
+      
+    
+    have "DD = inv (image_mset side_clause) {#D' + replicate_mset (Suc m) (Pos A). (D', A, m) \<in># ZZ#}" using DD_def by auto
+    then have "image_mset side_clause DD = image_mset side_clause (inv (image_mset side_clause) {#D' + replicate_mset (Suc m) (Pos A). (D', A, m) \<in># ZZ#})" by auto
+    then show "image_mset side_clause DD \<equiv> {#D' + replicate_mset (Suc m) (Pos A). (D', A, m) \<in># ZZ#}"
+      using f_inv_into_f[of "{#D' + replicate_mset (Suc m) (Pos A). (D', A, m) \<in># ZZ#}" "image_mset side_clause" UNIV]
+      using in_range by auto
+  qed
 
   have df': "Df' = \<Union># {#D'_of A. A \<in># AA#}"
     unfolding Df'_def ZZ_def by auto
-  have dd: "DD = {#D_of A. A \<in># AA#}"
+  have dd: "image_mset side_clause DD = {#D_of A. A \<in># AA#}"
     unfolding DD_def ZZ_def d_of
-    by simp (rule image_mset_cong, metis Suc_pred m_nz neq0_conv replicate_mset_Suc
+    apply simp 
+    apply (rule image_mset_cong, metis Suc_pred m_nz neq0_conv replicate_mset_Suc
         union_mset_add_mset_right)
-  have prod_d: "\<And>D. D \<in># DD \<Longrightarrow> productive N D"
+    done
+  have prod_d: "\<And>D. D \<in># image_mset side_clause DD \<Longrightarrow> productive N D"
     unfolding dd by (auto dest!: prod_d0)
-  hence dd_subs_n: "set_mset DD \<subseteq> N"
+  hence dd_subs_n: "set_mset (image_mset side_clause DD) \<subseteq> N"
     using productive_in_N by auto
-  have dd_true: "INTERP N \<Turnstile>m DD"
+  have dd_true: "INTERP N \<Turnstile>m (image_mset side_clause DD)"
     unfolding true_cls_mset_def using prod_d productive_imp_true_in_INTERP by blast 
-  have s_dd_e: "\<And>D. D \<in># DD \<Longrightarrow> S D = {#}"
-    by (blast dest: prod_d in_production_imp_produces producesD)
+  have s_dd_e: "\<And>D. D \<in># (image_mset side_clause DD) \<Longrightarrow> S D = {#}"
+    using prod_d in_production_imp_produces producesD
+    by (meson productive_imp_produces_Max_literal) 
 
   have "Df' = \<Union># {#C'. (C', A, m) \<in># ZZ#}"
-    unfolding Df'_def DD_def ..
+    unfolding Df'_def DD_def
+    by simp 
   moreover have "AA = {#A. (C', A, m) \<in># ZZ#}"
     unfolding ZZ_def by simp
-  moreover have "DD = {#C' + replicate_mset (Suc m) (Pos A). (C', A, m) \<in># ZZ#}"
+  moreover have "image_mset side_clause DD = {#C' + replicate_mset (Suc m) (Pos A). (C', A, m) \<in># ZZ#}"
     unfolding DD_def ZZ_def Df'_def by simp
   moreover have "ZZ \<noteq> {#}"
     unfolding ZZ_def using aa_ne by simp
@@ -286,7 +318,7 @@ proof -
        (metis atm_of_lit_in_atms_of insert_not_empty le_imp_less_or_eq Pos_atm_of_iff
           Neg_atm_of_iff pos_neg_in_imp_true produces_imp_Pos_in_lits produces_imp_atms_leq
           productive_imp_false_interp)
-  moreover have "\<forall>C. C \<in># DD \<longrightarrow> S C = {#}" using s_dd_e by auto
+  moreover have "\<forall>C. C \<in># image_mset side_clause DD \<longrightarrow> S C = {#}" using s_dd_e by auto
   moreover have "\<not> interp N C \<Turnstile> C"
     by (metis c_cex c_in_n c_min true_interp_imp_INTERP)
   ultimately have res_e: "ord_resolve DD (C', As) (Df' + C')"
@@ -307,7 +339,7 @@ proof -
   ultimately have max_d'_lt_a: "\<And>A. A \<in># AA \<Longrightarrow> D'_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (D'_of A)) < A"
     by (metis order.strict_iff_order)
 
-  have "\<And>D. D \<in># DD \<Longrightarrow> \<not> interp N D \<Turnstile> D"
+  have "\<And>D. D \<in># image_mset side_clause DD \<Longrightarrow> \<not> interp N D \<Turnstile> D"
     using prod_d productive_imp_false_interp by blast
   hence "\<And>A. A \<in># AA \<Longrightarrow> \<not> interp N (D_of A) \<Turnstile> D_of A"
     unfolding dd by auto 
@@ -333,12 +365,12 @@ qed
 
 lemma ord_resolve_atms_of_concl_subset:
   assumes res_e: "ord_resolve CC (D,As) E"
-  shows "atms_of E \<subseteq> (\<Union>C \<in> set_mset CC. atms_of C) \<union> atms_of (main_clause (D,As))"
+  shows "atms_of E \<subseteq> (\<Union>C \<in> set_mset (image_mset side_clause CC). atms_of C) \<union> atms_of (main_clause (D,As))"
 using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve Cf' ZZ AA)
   note e = this(1) and cf' = this(2) and cc = this(5) and d = this(4)
   thm d
-  have "atms_of Cf' \<subseteq> (\<Union>C\<in>set_mset CC. atms_of C)"
+  have "atms_of Cf' \<subseteq> (\<Union>C\<in>set_mset (image_mset side_clause CC). atms_of C)"
     unfolding cf' cc by (auto simp: atms_of_def)
   moreover have "atms_of D \<subseteq> atms_of (main_clause (D,As))"
     unfolding d by simp
@@ -356,7 +388,7 @@ inference system.
 *}
 
 definition ord_\<Gamma> :: "'a inference set" where
-  "ord_\<Gamma> = {Infer CC (main_clause (D,As)) E | CC D As E. ord_resolve CC (D,As) E}"
+  "ord_\<Gamma> = {Infer (image_mset side_clause CC) (main_clause (D,As)) E | CC D As E. ord_resolve CC (D,As) E}"
 
 sublocale 
   sound_counterex_reducing_inference_system "ground_resolution_with_selection.ord_\<Gamma> S"
@@ -368,27 +400,27 @@ proof unfold_locales
   assume "{#} \<notin> N" and "C \<in> N" and "\<not> INTERP N \<Turnstile> C" and "\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D"
   then obtain DD E mC where
     mc: "main_clause mC = C" and
-    dd_sset_n: "set_mset DD \<subseteq> N" and
-    dd_true: "INTERP N \<Turnstile>m DD" and
+    dd_sset_n: "set_mset (image_mset side_clause DD) \<subseteq> N" and
+    dd_true: "INTERP N \<Turnstile>m image_mset side_clause DD" and
     res_e: "ord_resolve DD mC E" and
     e_cex: "\<not> INTERP N \<Turnstile> E" and
     e_lt_c: "E < C"
-    using ord_resolve_counterex_reducing by metis
+    using ord_resolve_counterex_reducing[of N C thesis] by auto
 
   have mc': "main_clause (fst mC, snd mC) = C" by (simp add: mc)
 
   have "ord_resolve DD mC E" by (simp add: res_e)
   then have "ord_resolve DD (fst mC, snd mC) E" by simp
-  then have "Infer DD C E \<in> ord_\<Gamma>"
+  then have "Infer (image_mset side_clause DD) C E \<in> ord_\<Gamma>"
     using mc mc' unfolding ord_\<Gamma>_def by (metis (mono_tags, lifting) mem_Collect_eq)
   thus "\<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> ord_\<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < C"
-    using dd_sset_n dd_true e_cex e_lt_c by auto
+    using dd_sset_n dd_true e_cex e_lt_c by blast
 next
   fix CC DAs E and I
   assume inf: "Infer CC DAs E \<in> ord_\<Gamma>" and icc: "I \<Turnstile>m CC" and id: "I \<Turnstile> DAs"
   thm ord_\<Gamma>_def
-  from inf obtain D As where "main_clause (D,As) = DAs" "ord_resolve CC (D, As) E" using ord_\<Gamma>_def by auto
-  thus "I \<Turnstile> E" using id icc ord_resolve_sound[of CC D As E I] by auto
+  from inf obtain D As mCC where "image_mset side_clause mCC = CC" "main_clause (D,As) = DAs" "ord_resolve mCC (D, As) E" using ord_\<Gamma>_def by auto
+  thus "I \<Turnstile> E" using id icc ord_resolve_sound[of mCC D As E I] by auto
 next
   fix \<gamma>
   assume "\<gamma> \<in> ord_\<Gamma>"
