@@ -1,6 +1,6 @@
 /************************************************************************************[drat-trim.c]
 Copyright (c) 2014-2016, Marijn Heule and Nathan Wetzler
-Last edit, April 7, 2016
+Last edit, September 28, 2016
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -171,7 +171,7 @@ int propagate (struct solver* S, int init) {        // Performs unit propagation
           S->wlist[lit][ S->used[lit] ] = END;
           goto next_clause; }                       // Goto the next watched clause
       clause[1] = lit; watch++;                     // Set lit at clause[1] and set next watch
-      if (!S->false[  clause[0] ]) {                // If the other watched literal is undecided,
+      if (!S->false[  clause[0] ]) {                // If the other watched literal is falsified,
         ASSIGN (clause[0]);                         // A unit clause is found, and the reason is set
         S->reason[abs(clause[0])] = ((long) ((clause)-S->DB)) + 1;
         if (!check) {
@@ -300,6 +300,9 @@ void printDependencies (struct solver *S, int* clause) {
 int redundancyCheck (struct solver *S, int *clause, int size, int uni) {
   int i, indegree;
   if (S->verb) { printf("c checking lemma (%i, %i) ", size, clause[PIVOT]); printClause (clause); }
+  if (S->false[ clause[PIVOT] ])
+    return FAILED;
+
   if (S->mode != FORWARD_UNSAT)
     if ((clause[ID] & ACTIVE) == 0) return SUCCEED;  // redundant?
   if (size < 0) {
