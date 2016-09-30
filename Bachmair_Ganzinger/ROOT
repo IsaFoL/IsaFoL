@@ -13,6 +13,7 @@ session Bachmair_Ganzinger = Bachmair_Ganzinger_Base +
     "../lib/Multiset_More"
     "../lib/Clausal_Logic"
     "../lib/Herbrand_Interpretation"
+    Multiset_Even_More
     Locale_Deps
     Inference_System
     Ground_Resolution_Model

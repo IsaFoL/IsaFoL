@@ -1,12 +1,12 @@
 theory Multiset_Even_More
-imports "../Lib/Multiset_More"
+imports "../lib/Multiset_More"
 begin
 
 section \<open>Even More about Multisets\<close>
 
 subsection \<open>Mutlisets and functions\<close>
 
-theorem range_image_mset: (* I added this to make proof work in new definitions *)
+theorem range_image_mset:
   assumes "\<forall>D. D \<in># Ds \<longrightarrow> D \<in> range f" 
   shows "Ds \<in> range (image_mset f)"
 proof -
