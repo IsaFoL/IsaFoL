@@ -7,7 +7,7 @@ Analysis attempt:
   The literal 1 is set by unit propagation. Although already assigned, it is chosen as resolution
   literal for the RAT check.
 
-
+This was fixed by Marijn Heule in Sep 2016, see drat-trim-fixed.c for the fixed version.
 
 
 *** Problem f2: Segfault and memory crapping on malformed DIMACs files
@@ -23,3 +23,4 @@ Minimized version of f1
 *** Problem f4: Numerical overflows not detected
 On a standard Ubuntu box with gcc, drat-trim uses 32 bit signed integers for literals, and does not check for overflow.
 The problem here is clearly satisfiable, unless one interprets the numbers modulo 32 bit signed, then it gets unsatisfiable.
+Thus, drat-trim reports it as UNSAT.
