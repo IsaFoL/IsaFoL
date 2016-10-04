@@ -39,7 +39,7 @@ definition unit_propagation_inner_loop_body :: "'v literal \<times> 'v literal m
         else do {RETURN (Propagated L' (clause C) # M, N, U, D, NP, UP, WS, add_mset (-L') Q)}
       else do {
         K \<leftarrow> SPEC (\<lambda>L. L \<in># unwatched C \<and> -L \<notin> lits_of_l M);
-        let (N', U') = update_clauses (N, U) C L K;
+        (N', U') \<leftarrow> SPEC (\<lambda>(N', U'). update_clauses (N, U) C L K (N', U'));
         RETURN (M, N', U', D, NP, UP, WS, Q)
       }
     }
@@ -170,14 +170,14 @@ proof -
 
         assume K: \<open>K \<in># unwatched C\<close> and
           uK: \<open>- K \<notin> lits_of_l M\<close> and
-          update: \<open>update_clauses (N, U) C L K = (N', U')\<close>
+          update: \<open>update_clauses (N, U) C L K (N', U')\<close>
         have uL: \<open>- L \<in> lits_of_l M\<close>
           using inv unfolding twl_cp_invs_def S WS_WS' by auto
         have undef_def_K: \<open>undefined_lit M K \<or> K \<in> lits_of_l M\<close>
           using Decided_Propagated_in_iff_in_lits_of_l uK by blast
         have cdcl: \<open>cdcl_twl_cp ?S' ?T'\<close>
           by (rule cdcl_twl_cp.update_clause)
-            (use uL L' K uK update[symmetric] watched undef_def_K in simp_all)
+            (use uL L' K uK update watched undef_def_K in simp_all)
         show \<open>twl_cp_invs ?T\<close>
           using cdcl inv D  unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_cp_invs)
 
@@ -445,7 +445,7 @@ proof -
       unfolding unit_propagation_inner_loop_body_list_def unit_propagation_inner_loop_body_def S
         S'_S[unfolded S]
       apply (rewrite at \<open>let _ = watched _ ! _ in _\<close> Let_def)
-      supply [[goals_limit = 1]]
+      supply [[goals_limit = 13]]
       apply (refine_rcg bind_refine_spec[where M' = \<open>find_unwatched _ _\<close>, OF _ find_unwatched]
           bind_refine_spec[where M' = \<open>valued _ _\<close>, OF _ valued_spec];
           remove_dummy_vars)
@@ -467,13 +467,13 @@ proof -
         apply (clarsimp)
         apply (auto simp add: consistent Decided_Propagated_in_iff_in_lits_of_l C_N_N C_N_U
             C_U_U
-            dest!: sym[of \<open>twl_clause_of C\<close>] distinct_cls_N
+            dest!: sym[of \<open>twl_clause_of C\<close>] (* distinct_cls_N *)
             split: if_splits)[]
-        done
+        sorry
               apply (vc_solve simp: mset_watched_C watched_C' in_set_unwatched_conv
           Decided_Propagated_in_iff_in_lits_of_l
           consistent split: option.splits bool.splits)
-      done
+      sorry
   }
 
   then show ?thesis
