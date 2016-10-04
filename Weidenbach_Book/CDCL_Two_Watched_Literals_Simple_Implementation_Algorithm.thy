@@ -418,12 +418,12 @@ proof -
     have update_clause[simp]: \<open>add_mset ?L (add_mset ?L' (mset (unwatched C))) = clause (twl_clause_of C)\<close>
       using watched_C' by (cases C) simp
 
-    have dist: \<open>distinct_mset (clause `# twl_clause_of `# (N + U) + NP + UP)\<close>
+(*     have dist: \<open>distinct_mset (clause `# twl_clause_of `# (N + U) + NP + UP)\<close>
       using invs unfolding twl_cp_invs_def S
       by (simp add: clauses_def ac_simps)
     then have dist: \<open>distinct_mset (clause `# twl_clause_of `# (N + U))\<close>
-      using distinct_mset_add by blast
-    have distinct_cls_N: \<open>C' = C \<and> C' \<in># N\<close> if \<open>twl_clause_of C' = twl_clause_of C\<close> and \<open>C' \<in># N\<close> for C'
+      using distinct_mset_add by blast *)
+(*     have distinct_cls_N: \<open>C' = C \<and> C' \<in># N\<close> if \<open>twl_clause_of C' = twl_clause_of C\<close> and \<open>C' \<in># N\<close> for C'
       by (metis (no_types, lifting) C_N_U S UnCI dist
           distinct_mset_add_mset distinct_mset_distinct_twl_clause_of that set_mset_union
           get_clauses_list.simps image_mset_add_mset in_remove1_mset_neq insert_DiffM)
@@ -431,7 +431,7 @@ proof -
     have distinct_cls_U: \<open>C' = C \<and> C' \<in># U\<close> if \<open>twl_clause_of C' = twl_clause_of C\<close> and \<open>C' \<in># U\<close> for C'
       by (metis (no_types, lifting) C_N_U S UnCI dist
           distinct_mset_add_mset distinct_mset_distinct_twl_clause_of that set_mset_union
-          get_clauses_list.simps image_mset_add_mset in_remove1_mset_neq insert_DiffM)
+          get_clauses_list.simps image_mset_add_mset in_remove1_mset_neq insert_DiffM) *)
     have C_N_N: \<open>twl_clause_of `# remove1_mset C N = remove1_mset (twl_clause_of C) (twl_clause_of `# N)\<close>
       if \<open>C \<in># N\<close>
       by (auto simp: that image_mset_remove1_mset_if)
