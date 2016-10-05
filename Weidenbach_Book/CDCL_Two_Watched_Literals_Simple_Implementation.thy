@@ -11,6 +11,7 @@ notation image_mset (infixr "`#" 90)
 
 subsubsection \<open>Types and Transitions System\<close>
 
+paragraph \<open>Types and accessing functions\<close>
 datatype 'v twl_clause =
   TWL_Clause (watched: 'v) (unwatched: 'v)
 
@@ -22,6 +23,30 @@ type_synonym 'v lit_queue = "'v literal multiset"
 type_synonym 'v twl_st =
   "('v, 'v clause) ann_lits \<times> 'v clause twl_clause multiset \<times> 'v clause twl_clause multiset \<times>
     'v clause option \<times> 'v clauses \<times> 'v clauses \<times>  'v working_queue \<times> 'v lit_queue"
+
+fun working_queue :: "'v twl_st \<Rightarrow> ('v literal \<times> 'v literal multiset twl_clause) multiset" where
+  \<open>working_queue (_, _, _, _, _, _, WS, _) = WS\<close>
+
+fun set_working_queue :: "('v literal \<times> 'v clause twl_clause) multiset \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st" where
+  \<open>set_working_queue WS (M, N, U, D, NP, UP, _, Q) = (M, N, U, D, NP, UP, WS, Q)\<close>
+
+fun pending :: "'v twl_st \<Rightarrow> 'v literal multiset" where
+  \<open>pending (_, _, _, _, _, _, _, Q) = Q\<close>
+
+fun set_pending :: "'v literal multiset \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st" where
+  \<open>set_pending Q (M, N, U, D, NP, UP, WS, _) = (M, N, U, D, NP, UP, WS, Q)\<close>
+
+fun set_conflict :: "'v clause \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st" where
+  \<open>set_conflict D (M, N, U, _, NP, UP, WS, Q) = (M, N, U, Some D, NP, UP, WS, Q)\<close>
+
+fun get_conflict :: "'v twl_st \<Rightarrow> 'v literal multiset option" where
+  \<open>get_conflict (M, N, U, D, NP, UP, WS, Q) = D\<close>
+
+fun get_clauses :: "'v twl_st \<Rightarrow> 'v clause twl_clause multiset" where
+  \<open>get_clauses (M, N, U, D, NP, UP, WS, Q) = N + U\<close>
+
+fun unit_clss :: "'v twl_st \<Rightarrow> 'v clause multiset" where
+  \<open>unit_clss (M, N, U, D, NP, UP, WS, Q) = NP + UP\<close>
 
 fun update_clause where
 "update_clause (TWL_Clause W UW) L L' =
@@ -37,8 +62,10 @@ inductive update_clauses ::
 inductive_cases update_clausesE: \<open>update_clauses (N, U) D L L' (N', U')\<close>
 
 
-text \<open>We can ensure that there are always \<^emph>\<open>2\<close> watched literals and that there are different.
-  (TODO: complete this sentence).\<close>
+paragraph \<open>The Transitions\<close>
+
+text \<open>We ensure that there are always \<^emph>\<open>2\<close> watched literals and that there are different. All
+  clauses containing a single literal are put in \<^term>\<open>NP\<close> or  \<^term>\<open>UP\<close>.\<close>
 
 inductive cdcl_twl_cp :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" where
 pop:
@@ -48,7 +75,7 @@ propagate:
   "cdcl_twl_cp (M, N, U, None, NP, UP, add_mset (L, D) WS, Q)
     (Propagated L' (clause D) # M, N, U, None, NP, UP, WS, add_mset (-L') Q)"
   if
-    "watched D = {#L, L'#}" and  "undefined_lit M L'" and "\<forall>L \<in># unwatched D. -L \<in> lits_of_l M" |
+    "watched D = {#L, L'#}" and "undefined_lit M L'" and "\<forall>L \<in># unwatched D. -L \<in> lits_of_l M" |
 conflict:
   "cdcl_twl_cp (M, N, U, None, NP, UP, add_mset (L, D) WS, Q)
     (M, N, U, Some (clause D), NP, UP, {#}, {#})"
@@ -98,6 +125,10 @@ inductive cdcl_twl_o :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" w
     \<open>D \<noteq> {#L#}\<close> and
     \<open>L' \<in># D\<close> and -- \<open>\<^term>\<open>L'\<close> is the new watched literal\<close>
     \<open>get_level M L' = i\<close>
+
+inductive cdcl_twl_stgy :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" for S :: \<open>'v twl_st\<close> where
+cp: "cdcl_twl_cp S S' \<Longrightarrow> cdcl_twl_stgy S S'" |
+other': "cdcl_twl_o S S' \<Longrightarrow> cdcl_twl_stgy S S'"
 
 
 subsubsection \<open>Two-watched literals Invariants\<close>
@@ -230,8 +261,14 @@ fun twl_st_inv :: "'v twl_st \<Rightarrow> bool" where
   (\<forall>C \<in># N + U. D = None \<longrightarrow> \<not>twl_is_an_exception C Q WS \<longrightarrow> (twl_lazy_update M C \<and> twl_inv M C)) \<and>
   (\<forall>C \<in># N + U. D = None \<longrightarrow> watched_literals_false_of_max_level M C)\<close>
 
+text \<open>All the unit clauses are all propagated initially except when we have found a conflict of level 0.\<close>
+fun unit_clss_inv :: "'v twl_st \<Rightarrow> bool"  where
+  \<open>unit_clss_inv (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow>
+    (\<forall>C \<in># NP + UP.
+      (\<exists>L. C = {#L#} \<and> (D = None \<or> count_decided M > 0 \<longrightarrow> get_level M L = 0 \<and> L \<in> lits_of_l M)))\<close>
 
-paragraph \<open>Properties\<close>
+
+paragraph \<open>Initial properties\<close>
 
 lemma twl_inv_empty_trail:
   shows
@@ -2266,6 +2303,8 @@ qed
 
 subsubsection \<open>Properties of the Transition System\<close>
 
+paragraph \<open>Conflict and propagate\<close>
+
 lemma twl_cp_propagate_or_conflict:
   assumes
     cdcl: "cdcl_twl_cp S T" and
@@ -2491,37 +2530,6 @@ next
      using i lev_K count_M1 by (simp_all add: cdcl\<^sub>W_restart_mset_state D)
 qed
 
-
-fun working_queue :: "'v twl_st \<Rightarrow> ('v literal \<times> 'v literal multiset twl_clause) multiset" where
-  \<open>working_queue (_, _, _, _, _, _, WS, _) = WS\<close>
-
-fun set_working_queue :: "('v literal \<times> 'v clause twl_clause) multiset \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st" where
-  \<open>set_working_queue WS (M, N, U, D, NP, UP, _, Q) = (M, N, U, D, NP, UP, WS, Q)\<close>
-
-fun pending :: "'v twl_st \<Rightarrow> 'v literal multiset" where
-  \<open>pending (_, _, _, _, _, _, _, Q) = Q\<close>
-
-fun set_pending :: "'v literal multiset \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st" where
-  \<open>set_pending Q (M, N, U, D, NP, UP, WS, _) = (M, N, U, D, NP, UP, WS, Q)\<close>
-
-fun set_conflict :: "'v clause \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st" where
-  \<open>set_conflict D (M, N, U, _, NP, UP, WS, Q) = (M, N, U, Some D, NP, UP, WS, Q)\<close>
-
-fun get_conflict :: "'v twl_st \<Rightarrow> 'v literal multiset option" where
-  \<open>get_conflict (M, N, U, D, NP, UP, WS, Q) = D\<close>
-
-fun get_clauses :: "'v twl_st \<Rightarrow> 'v clause twl_clause multiset" where
-  \<open>get_clauses (M, N, U, D, NP, UP, WS, Q) = N + U\<close>
-
-fun unit_clss :: "'v twl_st \<Rightarrow> 'v clause multiset" where
-  \<open>unit_clss (M, N, U, D, NP, UP, WS, Q) = NP + UP\<close>
-
-text \<open>All the unit clauses are all propagated initially except when we have found a conflict of level 0.\<close>
-fun unit_clss_inv :: "'v twl_st \<Rightarrow> bool"  where
-  \<open>unit_clss_inv (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow>
-    (\<forall>C \<in># NP + UP.
-      (\<exists>L. C = {#L#} \<and> (D = None \<or> count_decided M > 0 \<longrightarrow> get_level M L = 0 \<and> L \<in> lits_of_l M)))\<close>
-
 definition twl_cp_invs where
   \<open>twl_cp_invs S \<longleftrightarrow>
     (twl_st_inv S \<and>
@@ -2616,6 +2624,9 @@ lemma cdcl_twl_cp_twl_cp_invs:
    apply (simp add: twl_cp_invs_def twl_cp_working_queue; fail)
   apply (simp add: twl_cp_past_invs twl_cp_invs_def; fail)
   done
+
+
+paragraph \<open>The other rules\<close>
 
 lemma
   assumes
@@ -4146,9 +4157,7 @@ next
 qed
 
 
-inductive cdcl_twl_stgy :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" for S :: \<open>'v twl_st\<close> where
-cp: "cdcl_twl_cp S S' \<Longrightarrow> cdcl_twl_stgy S S'" |
-other': "cdcl_twl_o S S' \<Longrightarrow> cdcl_twl_stgy S S'"
+paragraph \<open>The Strategy\<close>
 
 lemma no_pending_no_cp:
   assumes
@@ -4235,7 +4244,9 @@ proof -
     by blast+
 qed
 
-
+text \<open>
+  When popping a literal from the pending queue to the working state, we do not do any
+  transition in the abstract transition system. Therefore, we use \<^term>\<open>rtranclp\<close>\<close>
 lemma cdcl_twl_stgy_cdcl\<^sub>W_stgy:
   assumes \<open>cdcl_twl_stgy S T\<close> and twl: \<open>twl_cp_invs S\<close>
   shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (convert_to_state S) (convert_to_state T)\<close>
@@ -4257,12 +4268,11 @@ next
     done
 qed
 
-lemma
+lemma cdcl_twl_o_twl_cp_invs:
   assumes
-    cdcl: "cdcl_twl_o S T" and
+    cdcl: \<open>cdcl_twl_o S T\<close> and
     twl: \<open>twl_cp_invs S\<close>
-  shows
-    \<open>twl_cp_invs T\<close>
+  shows \<open>twl_cp_invs T\<close>
 proof -
   have cdcl\<^sub>W: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart (convert_to_state S) (convert_to_state T)\<close>
     using twl unfolding twl_cp_invs_def by (meson cdcl cdcl\<^sub>W_restart_mset.other cdcl_twl_o_cdcl\<^sub>W_o)
@@ -4298,5 +4308,175 @@ proof -
     apply (use cdcl cdcl_twl_o_past_invs twl twl_cp_invs_def in blast)
     done
 qed
+
+lemma cdcl_twl_stgy_twl_cp_invs:
+  assumes
+    cdcl: \<open>cdcl_twl_stgy S T\<close> and
+    twl: \<open>twl_cp_invs S\<close>
+  shows \<open>twl_cp_invs T\<close>
+  using cdcl by (induction rule: cdcl_twl_stgy.induct)
+    (simp_all add: cdcl_twl_cp_twl_cp_invs cdcl_twl_o_twl_cp_invs twl)
+
+lemma rtranclp_cdcl_twl_stgy_twl_cp_invs:
+  assumes
+    cdcl: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close> and
+    twl: \<open>twl_cp_invs S\<close>
+  shows \<open>twl_cp_invs T\<close>
+  using cdcl by (induction rule: rtranclp_induct) (simp_all add: cdcl_twl_stgy_twl_cp_invs twl)
+
+lemma rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy:
+  assumes \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close> and twl: \<open>twl_cp_invs S\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (convert_to_state S) (convert_to_state T)\<close>
+  using assms by (induction rule: rtranclp_induct)
+    (auto dest!: cdcl_twl_stgy_cdcl\<^sub>W_stgy intro: rtranclp_cdcl_twl_stgy_twl_cp_invs)
+
+lemma no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp:
+  assumes ns_cp: \<open>no_step cdcl_twl_cp S\<close> and twl: \<open>twl_cp_invs S\<close>
+  shows \<open>pending S = {#} \<and> working_queue S = {#}\<close>
+proof (cases \<open>get_conflict S\<close>)
+  case (Some a)
+  then show ?thesis
+    using twl unfolding twl_cp_invs_def by simp
+next
+  case None note confl = this(1)
+  then obtain M N U UP NP WS Q where S: \<open>S = (M, N, U, None, NP, UP, WS, Q)\<close>
+    by (cases S) auto
+  have valid: \<open>valid_annotation S\<close> and twl: \<open>twl_st_inv S\<close>
+    using twl unfolding twl_cp_invs_def by fast+
+  have wq: \<open>working_queue S = {#}\<close>
+  proof (rule ccontr)
+    assume \<open>working_queue S \<noteq> {#}\<close>
+    then obtain L C WS' where LC: \<open>(L, C) \<in># working_queue S\<close> and
+      WS': \<open>WS = add_mset (L, C) WS'\<close>
+      by (cases WS) (auto simp: S)
+
+    have C_N_U: \<open>C \<in># N + U\<close> and L_C: \<open>L \<in># watched C\<close> and uL_M: \<open>- L \<in> lits_of_l M\<close>
+      using valid LC unfolding S by auto
+
+    have \<open>struct_wf_twl_cls C\<close>
+      using C_N_U twl unfolding S by (auto simp: twl_st_inv.simps)
+    then obtain L' where watched: \<open>watched C = {#L, L'#}\<close>
+      using L_C by (cases C) (auto simp: size_2_iff)
+    have L'_M: \<open>L' \<notin> lits_of_l M\<close>
+      using cdcl_twl_cp.delete_from_working[of C L L' M N U NP UP WS' Q] watched
+      ns_cp unfolding S WS' by fast
+    then have \<open>undefined_lit M L' \<or> -L' \<in> lits_of_l M\<close>
+      using Decided_Propagated_in_iff_in_lits_of_l by blast
+    then have \<open>\<not> (\<forall>L \<in># unwatched C. -L \<in> lits_of_l M)\<close>
+      using cdcl_twl_cp.conflict[of C L L' M N U NP UP WS' Q]
+        cdcl_twl_cp.propagate[of C L L' M N U NP UP WS' Q] watched
+      ns_cp unfolding S WS' by fast
+    then obtain K where K: \<open>K \<in># unwatched C\<close> and uK_M: \<open>-K \<notin> lits_of_l M\<close>
+      by auto
+    then have undef_K_K_M: \<open>undefined_lit M K \<or> K \<in> lits_of_l M\<close>
+      using Decided_Propagated_in_iff_in_lits_of_l by blast
+    define NU where \<open>NU = (if C \<in># N then (add_mset (update_clause C L K) (remove1_mset C N), U)
+      else (N, add_mset (update_clause C L K) (remove1_mset C U)))\<close>
+    have upd: \<open>update_clauses (N, U) C L K NU\<close>
+      using C_N_U unfolding NU_def by (auto simp: update_clauses.intros)
+    have NU: \<open>NU = (fst NU, snd NU)\<close>
+      by simp
+    show False
+      using cdcl_twl_cp.update_clause[of C L L' M K N U \<open>fst NU\<close> \<open>snd NU\<close> NP UP WS' Q]
+      watched uL_M L'_M K undef_K_K_M upd ns_cp unfolding S WS' by simp
+  qed
+  then have p: \<open>pending S = {#}\<close>
+    using cdcl_twl_cp.pop[of M N U NP UP] S ns_cp by (cases \<open>Q\<close>) fastforce+
+  show ?thesis using wq p by blast
+qed
+
+lemma no_step_cdcl_twl_o_no_step_cdcl\<^sub>W_o:
+  assumes ns_o: \<open>no_step cdcl_twl_o S\<close> and twl: \<open>twl_cp_invs S\<close> and p: \<open>pending S = {#}\<close> and
+    w_q: \<open>working_queue S = {#}\<close>
+  shows \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o (convert_to_state S)\<close>
+proof (rule ccontr)
+  assume \<open>\<not> ?thesis\<close>
+  then obtain T where T: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o (convert_to_state S) T\<close>
+    by blast
+  obtain M N U D NP UP where S: \<open>S = (M, N, U, D, NP, UP, {#}, {#})\<close>
+    using p w_q by (cases S) auto
+  have unit: \<open>unit_clss_inv S\<close>
+    using twl unfolding twl_cp_invs_def by fast+
+  show False
+    using T
+  proof (cases rule: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o_induct)
+    case (decide L T) note confl = this(1) and undef = this(2) and atm = this(3) and T = this(4)
+    have \<open>atm_of L \<notin> atms_of_mm NP\<close>
+    proof (rule ccontr)
+      assume \<open>\<not> ?thesis\<close>
+      then obtain C where C_NP: \<open>C \<in># NP\<close> and L_uL_C: \<open>L \<in># C \<or> -L \<in># C\<close>
+        by (auto simp: atms_of_ms_def atms_of_def atm_of_eq_atm_of)
+      obtain L' where \<open>C = {#L'#}\<close> and \<open>L' \<in> lits_of_l M\<close>
+        using unit S confl C_NP by (auto simp: cdcl\<^sub>W_restart_mset_state)
+      then show False
+        using L_uL_C undef unfolding S
+        by (auto simp: cdcl\<^sub>W_restart_mset_state Decided_Propagated_in_iff_in_lits_of_l)
+    qed
+    then show ?thesis
+      using cdcl_twl_o.decide[of M L N U NP UP] confl undef atm ns_o unfolding S
+      by (auto simp: cdcl\<^sub>W_restart_mset_state)
+  next
+    case (skip L C' M' E T) note M = this and confl = this(2) and uL_E = this(3) and E = this(4) and
+      T = this(5)
+    show ?thesis
+      using cdcl_twl_o.skip[of L E C' M' N U NP UP] M uL_E E ns_o unfolding S
+      by (auto simp: cdcl\<^sub>W_restart_mset_state)
+  next
+    case (resolve L E M' D T) note M = this(1) and L_E = this(2) and hd = this(3) and confl = this(4)
+    and uL_D = this(5) and max_lvl = this(6)
+    show ?thesis
+      using cdcl_twl_o.resolve[of L D E M' N U NP UP] M L_E ns_o max_lvl uL_D confl unfolding S
+      by (auto simp: cdcl\<^sub>W_restart_mset_state)
+  next
+    case (backtrack L C K i M1 M2 T) note confl = this(1) and L_C = this(2) and decomp = this(3) and
+    lev_L_bt = this(4) and lev_L = this(5) and i = this(6) and lev_K = this(7)
+    show ?thesis
+    proof (cases \<open>C = {#L#}\<close>)
+      case True
+      show ?thesis
+        using cdcl_twl_o.backtrack_single_clause[of K M1 M2 M L N U NP UP]
+        decomp True lev_L_bt lev_L i lev_K ns_o confl unfolding S
+        by (auto simp: cdcl\<^sub>W_restart_mset_state)
+    next
+      case False
+      then have \<open>remove1_mset L C \<noteq> {#}\<close>
+        by (simp add: L_C diff_single_eq_union)
+      then obtain L' where
+        L'_C: \<open>L' \<in># C\<close> and lev_L': \<open>get_level M L' = i\<close>
+        using i get_maximum_level_exists_lit_of_max_level[of \<open>remove1_mset L C\<close> M]
+        by (auto simp: cdcl\<^sub>W_restart_mset_state S dest: in_diffD)
+
+      show ?thesis
+        using cdcl_twl_o.backtrack[of L C K M1 M2 M i L' N U NP UP]
+        using L_C decomp lev_L_bt lev_L i lev_K False L'_C lev_L' ns_o confl
+        by (auto simp: cdcl\<^sub>W_restart_mset_state S dest: in_diffD)
+    qed
+  qed
+qed
+
+lemma no_step_cdcl_twl_stgy_no_step_cdcl\<^sub>W_stgy:
+  assumes ns: \<open>no_step cdcl_twl_stgy S\<close> and twl: \<open>twl_cp_invs S\<close>
+  shows \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state S)\<close>
+proof -
+  have ns_cp: \<open>no_step cdcl_twl_cp S\<close> and ns_o: \<open>no_step cdcl_twl_o S\<close>
+    using ns by (auto simp: cdcl_twl_stgy.simps)
+  then have w_q: \<open>working_queue S = {#}\<close> and p: \<open>pending S = {#}\<close>
+    using ns_cp no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp twl by blast+
+  then have
+    \<open>no_step cdcl\<^sub>W_restart_mset.propagate (convert_to_state S)\<close> and
+    \<open>no_step cdcl\<^sub>W_restart_mset.conflict (convert_to_state S)\<close>
+    using no_pending_no_cp twl by blast+
+  moreover have \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o (convert_to_state S)\<close>
+    using w_q p ns_o no_step_cdcl_twl_o_no_step_cdcl\<^sub>W_o twl by blast
+  ultimately show ?thesis
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.simps)
+qed
+
+
+lemma full_cdcl_twl_stgy_cdcl\<^sub>W_stgy:
+  assumes \<open>full cdcl_twl_stgy S T\<close> and twl: \<open>twl_cp_invs S\<close>
+  shows \<open>full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state S) (convert_to_state T)\<close>
+  by (metis (no_types, hide_lams) assms(1) full_def no_step_cdcl_twl_stgy_no_step_cdcl\<^sub>W_stgy
+      rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy rtranclp_cdcl_twl_stgy_twl_cp_invs twl)
 
 end
