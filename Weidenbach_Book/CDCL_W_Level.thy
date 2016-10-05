@@ -174,6 +174,11 @@ lemma atm_lit_of_set_lits_of_l:
   "(\<lambda>l. atm_of (lit_of l)) ` set xs = atm_of ` lits_of_l xs"
   unfolding lits_of_def by auto
 
+lemma get_level_append_cons_le_count_decided_notin:
+  \<open>get_level (M' @ Decided K # M) L \<le> count_decided M \<Longrightarrow>
+  atm_of L \<notin> atm_of ` lits_of_l (M' @ [Decided K])\<close>
+  by (auto simp add: dropWhile_append3)
+
 lemma le_count_decided_decomp:
   assumes "no_dup M"
   shows"i < count_decided M \<longleftrightarrow> (\<exists>c K c'. M = c @ Decided K # c' \<and> get_level M K = Suc i)"
