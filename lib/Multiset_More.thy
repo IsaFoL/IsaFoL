@@ -35,13 +35,8 @@ declare
 (*   subset_mset.add_diff_assoc[simp]
   subset_mset.add_diff_assoc2[simp] *)
 
-(*@{thm psubsetE} is the set counter part*)
-lemma subset_msetE [elim!]:
-  "\<lbrakk>A \<subset># B; \<lbrakk>A \<subseteq># B; ~ (B\<subseteq>#A)\<rbrakk> \<Longrightarrow> R\<rbrakk> \<Longrightarrow> R"
-  unfolding subseteq_mset_def subset_mset_def by (meson mset_subset_eqI subset_mset.eq_iff)
 
-
-subsection \<open>Lemmas about intersections and unions\<close>
+subsection \<open>Lemmas about intersections, unions and point-wise inclusion\<close>
 
 lemma mset_inter_single:
   "x \<in># \<Sigma> \<Longrightarrow> \<Sigma> \<inter># {#x#} = {#x#}"
@@ -55,6 +50,14 @@ lemma inter_mset_empty_distrib_left: \<open>(A + B) \<inter># C = {#} \<longleft
 
 lemma minus_eq_empty_iff_include: "A - B = {#} \<longleftrightarrow> A \<subseteq># B"
   by (auto simp: multiset_eq_iff subseteq_mset_def)
+
+lemma subset_add_mset_notin_subset_mset: \<open>A \<subseteq># add_mset b B \<Longrightarrow> b \<notin># A  \<Longrightarrow> A \<subseteq># B\<close>
+  by (simp add: subset_mset.sup.absorb_iff2)
+
+text \<open>@{thm [source] psubsetE} is the set counter part\<close>
+lemma subset_msetE [elim!]:
+  "\<lbrakk>A \<subset># B; \<lbrakk>A \<subseteq># B; ~ (B\<subseteq>#A)\<rbrakk> \<Longrightarrow> R\<rbrakk> \<Longrightarrow> R"
+  unfolding subseteq_mset_def subset_mset_def by (meson mset_subset_eqI subset_mset.eq_iff)
 
 
 subsection \<open>Lemmas about size\<close>
@@ -124,6 +127,11 @@ lemma count_image_mset_ge_count:
   "count (image_mset f A) (f b) \<ge> count A b"
   by (induction A) auto
 
+lemma count_image_mset_inj:
+  assumes \<open>inj f\<close>
+  shows  \<open>count (image_mset f M) (f x) = count M x\<close>
+  by (induction M) (use assms in \<open>auto simp: inj_on_def\<close>)
+
 lemma mset_filter_compl: "mset (filter p xs) + mset (filter (Not \<circ> p) xs) = mset xs"
   by (induction xs) (auto simp: mset_filter ac_simps)
 
@@ -160,8 +168,19 @@ lemma image_mset_cong2[cong]:
   "(\<And>x. x \<in># M \<Longrightarrow> f x = g x) \<Longrightarrow> M = N \<Longrightarrow> image_mset f M = image_mset g N"
   by (hypsubst, rule image_mset_cong)
 
+lemma filter_mset_empty_conv: \<open>(filter_mset P M = {#}) = (\<forall>L\<in>#M. \<not> P L)\<close>
+  by (induction M) auto
+
+lemma multiset_filter_mono2: \<open>filter_mset P A \<subseteq># filter_mset Q A \<longleftrightarrow>
+  (\<forall>a\<in>#A. P a \<longrightarrow> Q a)\<close>
+  by (induction A) (auto intro: subset_mset.order.trans)
+
 
 subsection \<open>Sums\<close>
+
+lemma count_sum_mset_if_1_0:
+  \<open>count M a = (\<Sum>x\<in>#M. if x = a then 1 else 0)\<close>
+  by (induction M) auto
 
 lemma sum_mset_distrib[simp]:
   fixes C D :: "'a \<Rightarrow> 'b::{comm_monoid_add}"
@@ -338,7 +357,7 @@ lemma add_mset_eq_add_mset: \<open>add_mset a M = add_mset b M' \<longleftrighta
   (a = b \<and> M = M') \<or> (a \<noteq> b \<and> b \<in># M \<and> add_mset a (M - {#b#}) = M')\<close>
   by (metis add_mset_eq_add_mset_ne add_mset_remove_trivial union_single_eq_member)
 
-(* TODO move to Multiset_More; could replace add_mset_remove_trivial_eq? *)
+(* TODO move to Multiset: could replace add_mset_remove_trivial_eq? *)
 lemma add_mset_remove_trivial_iff: \<open>N = add_mset a (N - {#b#}) \<longleftrightarrow> a \<in># N \<and> a = b\<close>
   by (metis add_left_cancel add_mset_remove_trivial insert_DiffM2 single_eq_single
       size_mset_remove1_mset_le_iff union_single_eq_member)
@@ -560,6 +579,10 @@ lemma distinct_mset_filter: "distinct_mset M \<Longrightarrow> distinct_mset {# 
 lemma distinct_mset_mset_distinct[simp]: \<open>distinct_mset (mset xs) = distinct xs\<close>
   by (induction xs) auto
 
+lemma distinct_image_mset_inj: 
+  \<open>inj_on f (set_mset M) \<Longrightarrow> distinct_mset (image_mset f M) \<longleftrightarrow> distinct_mset M\<close>
+  by (induction M) (auto simp: inj_on_def)
+
 
 section \<open>\<open>repeat_mset\<close>\<close>
 
@@ -656,7 +679,7 @@ context
 begin
 
 text \<open>Technical lemma, but not important enough to be part of the exported lemmas:\<close>
-private lemma count_image_mset_Pair:
+lemma count_image_mset_Pair:
   "count (image_mset (Pair a) B) (x, b) = (if x = a then count B b else 0)"
   by (induction B) auto
 

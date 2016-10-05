@@ -250,7 +250,14 @@ next
   then show ?case using H by (auto intro: finite_subset)
 qed
 
+lemma last_in_set_dropWhile:
+  assumes \<open>\<exists>L \<in> set (xs @ [x]). \<not>P L\<close>
+  shows \<open>x \<in> set (dropWhile P (xs @ [x]))\<close>
+  using assms by (induction xs) auto
+
+
 subsection \<open>Lexicographic Ordering\<close>
+
 lemma lexn_Suc:
   "(x # xs, y # ys) \<in> lexn r (Suc n) \<longleftrightarrow>
   (length xs = n \<and> length ys = n) \<and> ((x, y) \<in> r \<or> (x = y \<and> (xs, ys) \<in> lexn r n))"

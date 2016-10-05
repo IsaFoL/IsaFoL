@@ -276,13 +276,6 @@ lemma twl_st_simps:
     watched_literals_false_of_max_level M C))"
   unfolding twl_st_inv.simps by fast
 
-(* TODO Move to List_More *)
-lemma last_in_set_dropWhile:
-  assumes \<open>\<exists>L \<in> set (xs @ [x]). \<not>P L\<close>
-  shows \<open>x \<in> set (dropWhile P (xs @ [x]))\<close>
-  using assms by (induction xs) auto
-(* End Move *)
-
 lemma propa_cands_enqueued_unit_clause:
   \<open>propa_cands_enqueued (M, N, U, C, add_mset L NP, UP, WS, Q) \<longleftrightarrow>
     propa_cands_enqueued (M, N, U, C, {#}, {#}, WS, Q)\<close>
@@ -451,17 +444,9 @@ lemma watched_literals_false_of_max_level_Propagated:
     \<open>watched_literals_false_of_max_level (Propagated L D # M) (TWL_Clause W UW)\<close>
   using assms(2) by (simp add: W add_mset_eq_add_mset)
 
-(* TODO rename *)
-lemma lazy_update_propagate: \<open>- L' \<notin># watched C \<Longrightarrow> watched_literals_false_of_max_level M C\<Longrightarrow>
+lemma lazy_update_Propagated: \<open>- L' \<notin># watched C \<Longrightarrow> watched_literals_false_of_max_level M C\<Longrightarrow>
   twl_lazy_update (Propagated L' D # M) C\<close>
   by (cases C) (auto simp: add_mset_eq_add_mset count_decided_ge_get_level)
-(* END TODO *)
-
-(* TODO Move *)
-lemma get_level_append_cons_le_count_decided_notin:
-  \<open>get_level (M' @ Decided K # M) L \<le> count_decided M \<Longrightarrow>
-  atm_of L \<notin> atm_of ` lits_of_l (M' @ [Decided K])\<close>
-  by (auto simp add: dropWhile_append3)
 
 lemma pair_in_image_Pair:
   \<open>(La, C) \<in> Pair L ` D \<longleftrightarrow> La = L \<and> C \<in> D\<close>
@@ -480,38 +465,6 @@ proof -
   show ?thesis
     by (induction A arbitrary: B)  (auto simp: insert_subset_eq_iff)
 qed
-
-
-(* TODO Move to Multiset *)
-lemma filter_mset_empty_conv: \<open>(filter_mset P M = {#}) = (\<forall>L\<in>#M. \<not> P L)\<close>
-  by (induction M) auto
-(* END TODO*)
-
-(* TODO Move to Multiset_More *)
-lemma count_sum_mset_if_1_0:
-  \<open>count M a = (\<Sum>x\<in>#M. if x = a then 1 else 0)\<close>
-  by (induction M) auto
-
-lemma distinct_image_mset_inj: \<open>inj_on f (set_mset M) \<Longrightarrow> distinct_mset (f `# M) \<longleftrightarrow> distinct_mset M\<close>
-  by (induction M) (auto simp: inj_on_def)
-
-lemma multiset_filter_mono2: \<open>filter_mset P A \<subseteq># filter_mset Q A \<longleftrightarrow>
-  (\<forall>a\<in>#A. P a \<longrightarrow> Q a)\<close>
-  by (induction A) (auto intro: subset_mset.order.trans)
-
-lemma subset_add_mset_notin_subset_mset: \<open>A \<subseteq># add_mset b B \<Longrightarrow> b \<notin># A  \<Longrightarrow> A \<subseteq># B\<close>
-  by (simp add: subset_mset.sup.absorb_iff2)
-
-(* END TODO*)
-
-lemma count_image_mset_Pair:
-  \<open>count (Pair L `# M) (L', C) = (if L = L' then count M C else 0)\<close>
-  by (induction M) auto
-
-lemma count_image_mset_inj:
-  assumes \<open>inj f\<close>
-  shows  \<open>count (f `# M) (f x) = count M x\<close>
-  by (induction M) (use assms in \<open>auto simp: inj_on_def\<close>)
 
 lemma count_image_mset_Pair2:
   \<open>count {#(L, x). L \<in># M x#} (L, C) = (if x = C then count (M x) L else 0)\<close>
