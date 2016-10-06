@@ -208,6 +208,7 @@ qed
 
 end
 
+
 subsubsection \<open>Definition of the operation\<close>
 
 text \<open>Each possible is in its own locale.\<close>

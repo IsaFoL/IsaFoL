@@ -32,8 +32,6 @@ declare
   inter_add_left2[simp]
   inter_add_right1[simp]
   inter_add_right2[simp]
-(*   subset_mset.add_diff_assoc[simp]
-  subset_mset.add_diff_assoc2[simp] *)
 
 
 subsection \<open>Lemmas about intersections, unions and point-wise inclusion\<close>
@@ -85,7 +83,7 @@ proof -
     unfolding size_union[symmetric] sup_subset_mset_def[symmetric]
     by (subst subset_mset.sup_commute) (rule refl)
   then show ?thesis unfolding multiset_inter_def size_union[symmetric] "*"
-    by (simp add: sup_subset_mset_def)
+    by (simp add: sup_subset_mset_def del: subset_mset.add_diff_assoc)
 qed
 
 lemma size_Un_disjoint:

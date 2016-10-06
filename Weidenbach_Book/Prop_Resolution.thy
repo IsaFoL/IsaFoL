@@ -247,7 +247,7 @@ next
           then show ?thesis using p by auto
         next
           case \<chi> note H = this
-          show ?thesis using p A AB B  subsumes_subsumption[OF _ AB H(3)] H(1,2) by auto
+          show ?thesis using p A AB B  subsumes_subsumption[OF _ AB H(3)] H(1,2) by fastforce
         qed
     qed
 next

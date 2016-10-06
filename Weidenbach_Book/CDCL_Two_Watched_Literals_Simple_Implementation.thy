@@ -1434,7 +1434,7 @@ next
       have "D \<in># remove1_mset D (U + N)"
         using D_DN_U by (simp add: union_commute)
       then have "D \<in># N + remove1_mset D U"
-        using D_DN_U that(1) by (fastforce simp: diff_union_single_conv)
+        using D_DN_U that(1) by fastforce
       then show "D \<in># remove1_mset D U"
         using that(2) by (meson union_iff)
     qed
@@ -2305,6 +2305,9 @@ subsubsection \<open>Properties of the Transition System\<close>
 
 paragraph \<open>Conflict and propagate\<close>
 
+fun pending_measure :: \<open>'v twl_st \<Rightarrow> nat list\<close> where
+  \<open>pending_measure S = [size (pending S), size (working_queue S)]\<close>
+
 lemma twl_cp_propagate_or_conflict:
   assumes
     cdcl: "cdcl_twl_cp S T" and
@@ -2314,11 +2317,11 @@ lemma twl_cp_propagate_or_conflict:
     no_taut: "\<forall>D \<in># init_clss (convert_to_state S). \<not> tautology D"
   shows "cdcl\<^sub>W_restart_mset.propagate (convert_to_state S) (convert_to_state T) \<or>
     cdcl\<^sub>W_restart_mset.conflict (convert_to_state S) (convert_to_state T) \<or>
-    convert_to_state S = convert_to_state T"
+    (convert_to_state S = convert_to_state T \<and> (pending_measure T, pending_measure S) \<in> lexn less_than 2)"
   using cdcl twl valid inv no_taut
 proof (induction rule: cdcl_twl_cp.induct)
   case (pop M N U L Q)
-  then show ?case by simp
+  then show ?case by (simp add: lexn2_conv)
 next
   case (propagate D L L' M N U NP UP WS Q) note watched = this(1) and undef = this(2) and no_upd = this(3)
     and twl = this(4) and valid = this(5) and inv = this(6) and no_taut = this(7)
@@ -2377,7 +2380,7 @@ next
   then show ?case by fast
 next
   case (delete_from_working D L L' M N U NP UP WS Q)
-  then show ?case by simp
+  then show ?case by (simp add: lexn2_conv)
 next
   case (update_clause D L L' M K N U N' U' NP UP WS Q) note unwatched = this(4) and
     valid = this(8)
@@ -2389,8 +2392,10 @@ next
         subset_mset.add_diff_assoc simp del: diff_union_swap2)
   have \<open>convert_to_state (M, N, U, None, NP, UP, add_mset (L, D) WS, Q) =
     convert_to_state (M, N', U', None, NP, UP, WS, Q)\<close>
+    \<open>(pending_measure (M, N', U', None, NP, UP, WS, Q), pending_measure (M, N, U, None, NP, UP, add_mset (L, D) WS, Q)) \<in> lexn less_than 2\<close>
     using update_clause \<open>D \<in># N + U\<close> by (cases \<open>D \<in># N\<close>)
-      (fastforce simp: image_mset_remove1_mset_if elim!: update_clausesE)+
+      (fastforce simp: image_mset_remove1_mset_if elim!: update_clausesE
+        simp add: lexn2_conv)+
   then show ?case by fast
 qed
 
@@ -2530,7 +2535,7 @@ next
      using i lev_K count_M1 by (simp_all add: cdcl\<^sub>W_restart_mset_state D)
 qed
 
-definition twl_cp_invs where
+definition twl_cp_invs :: \<open>'v twl_st \<Rightarrow> bool\<close> where
   \<open>twl_cp_invs S \<longleftrightarrow>
     (twl_st_inv S \<and>
     valid_annotation S \<and>
@@ -2551,7 +2556,7 @@ definition twl_cp_invs where
 lemma cdcl_twl_cp_cdcl\<^sub>W_stgy:
   \<open>cdcl_twl_cp S T \<Longrightarrow> twl_cp_invs S \<Longrightarrow>
   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state S) (convert_to_state T) \<or>
-  convert_to_state S = convert_to_state T\<close>
+  (convert_to_state S = convert_to_state T \<and> (pending_measure T, pending_measure S) \<in> lexn less_than 2)\<close>
   by (auto dest!: twl_cp_propagate_or_conflict
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.conflict'
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.propagate'
