@@ -98,13 +98,116 @@ begin
 
 
 
-
-
+  (* TODO: Move *)  
+  lemma conc_fun_R_mono:
+    assumes "R \<subseteq> R'"
+    shows "\<Down>R M \<le> \<Down>R' M"
+    using assms
+    by (auto simp: pw_le_iff refine_pw_simps)
 
 
 
     (* TODO: Move *)
-    lemmas [refine] = param_nfoldli[param_fo, THEN nres_relD]
+    
+    lemma nfoldli_refine[refine]:
+      assumes "(li, l) \<in> \<langle>S\<rangle>list_rel"
+        and "(si, s) \<in> R"
+        and CR: "(ci, c) \<in> R \<rightarrow> bool_rel"
+        and [refine]: "\<And>xi x si s. \<lbrakk> (xi,x)\<in>S; (si,s)\<in>R; c s \<rbrakk> \<Longrightarrow> fi xi si \<le> \<Down>R (f x s)"
+      shows "nfoldli li ci fi si \<le> \<Down> R (nfoldli l c f s)"
+      using assms(1,2)
+    proof (induction arbitrary: si s rule: list_rel_induct)
+      case Nil thus ?case by simp
+    next
+      case (Cons xi x li l) 
+      note [refine] = Cons
+
+      show ?case
+        apply (simp split del: split_if)
+        apply refine_rcg
+        using CR Cons.prems by (auto dest: fun_relD)
+    qed    
+
+    (* Refine, establishing additional invariant *)
+    lemma nfoldli_invar_refine:
+      assumes "(li,l)\<in>\<langle>S\<rangle>list_rel"
+      assumes "(si,s)\<in>R"
+      assumes "I [] li si"
+      assumes COND: "\<And>l1i l2i l1 l2 si s. \<lbrakk>
+        li=l1i@l2i; l=l1@l2; (l1i,l1)\<in>\<langle>S\<rangle>list_rel; (l2i,l2)\<in>\<langle>S\<rangle>list_rel; 
+        I l1i l2i si; (si,s)\<in>R\<rbrakk> \<Longrightarrow> (ci si, c s)\<in>bool_rel"
+      assumes INV: "\<And>l1i xi l2i si. \<lbrakk>li=l1i@xi#l2i; I l1i (xi#l2i) si\<rbrakk> \<Longrightarrow> fi xi si \<le>\<^sub>n SPEC (I (l1i@[xi]) l2i)"
+      assumes STEP: "\<And>l1i xi l2i l1 x l2 si s. \<lbrakk>
+        li=l1i@xi#l2i; l=l1@x#l2; (l1i,l1)\<in>\<langle>S\<rangle>list_rel; (xi,x)\<in>S; (l2i,l2)\<in>\<langle>S\<rangle>list_rel; 
+        I l1i (xi#l2i) si; (si,s)\<in>R\<rbrakk> \<Longrightarrow> fi xi si \<le> \<Down>R (f x s)"
+      shows "nfoldli li ci fi si \<le> \<Down>R (nfoldli l c f s)"
+    proof -
+      {
+        have [refine_dref_RELATES]: "RELATES R" "RELATES S" by (auto simp: RELATES_def)
+
+        note [refine del] = nfoldli_refine
+
+        fix l1i l2i l1 l2 si s
+        assume "(l2i,l2) \<in> \<langle>S\<rangle>list_rel" "(l1i,l1) \<in> \<langle>S\<rangle>list_rel"
+        and "li=l1i@l2i" "l=l1@l2"
+        and "(si,s)\<in>R" "I l1i l2i si"
+        hence "nfoldli l2i ci fi si \<le> \<Down>R (nfoldli l2 c f s)"
+        proof (induction arbitrary: si s l1i l1 rule: list_rel_induct)
+          case Nil thus ?case by auto
+        next  
+          case (Cons xi x l2i l2)
+
+          show ?case
+            apply (simp split del: split_if)
+            apply (refine_rcg bind_refine')
+            apply (refine_dref_type)
+            subgoal using COND[of l1i "xi#l2i" l1 "x#l2" si s] Cons.prems Cons.hyps by auto
+            subgoal apply (rule STEP) using Cons.prems Cons.hyps by auto
+            subgoal for si' s'
+              thm Cons.IH
+              apply (rule Cons.IH[of "l1i@[xi]" "l1@[x]"])
+              using Cons.prems Cons.hyps
+              apply (auto simp: list_rel_append1) apply force
+              using INV[of l1i xi l2i si]
+              by (auto simp: pw_leof_iff)
+            subgoal using Cons.prems by simp
+            done
+        qed
+      }
+      from this[of li l "[]" "[]" si s] assms(1,2,3) show ?thesis by auto
+    qed
+
+    
+    lemma nfoldli_leof_rule:
+      assumes I0: "I [] l0 \<sigma>0"
+      assumes IS: "\<And>x l1 l2 \<sigma>. \<lbrakk> l0=l1@x#l2; I l1 (x#l2) \<sigma>; c \<sigma> \<rbrakk> \<Longrightarrow> f x \<sigma> \<le>\<^sub>n SPEC (I (l1@[x]) l2)"
+      assumes FNC: "\<And>l1 l2 \<sigma>. \<lbrakk> l0=l1@l2; I l1 l2 \<sigma>; \<not>c \<sigma> \<rbrakk> \<Longrightarrow> P \<sigma>"
+      assumes FC: "\<And>\<sigma>. \<lbrakk> I l0 [] \<sigma>; c \<sigma> \<rbrakk> \<Longrightarrow> P \<sigma>"
+      shows "nfoldli l0 c f \<sigma>0 \<le>\<^sub>n SPEC P"
+    proof -
+      {
+        fix l1 l2 \<sigma>
+        assume "l0=l1@l2" "I l1 l2 \<sigma>"
+        hence "nfoldli l2 c f \<sigma> \<le>\<^sub>n SPEC P"
+        proof (induction l2 arbitrary: l1 \<sigma>)
+          case Nil thus ?case
+            apply simp
+            apply (cases "c \<sigma>")
+            applyS (rule FC; auto)
+            applyS (rule FNC[of l1 "[]"]; auto) 
+            done
+        next
+          case (Cons x l2) 
+          note [refine_vcg] = Cons.IH[of "l1@[x]",THEN leof_trans] IS[of l1 x l2 \<sigma>,THEN leof_trans]
+
+          show ?case
+            apply (simp split del: split_if)
+            apply refine_vcg
+            using Cons.prems FNC by auto
+        qed
+      } from this[of "[]" l0 \<sigma>0] I0 show ?thesis by auto
+    qed  
+            
 
     (* TODO: Move! *)  
     lemma prod_case_refine:  
@@ -192,9 +295,9 @@ begin
         apply (rule_tac x="map \<alpha> x" in exI)
         apply (auto simp: map_in_list_rel_conv)
         done
+      subgoal using R0 by auto
       subgoal using C by auto  
       subgoal using F by auto
-      subgoal using R0 by auto
       done
   qed    
       
@@ -236,7 +339,8 @@ section \<open>Abstraction 1 (Partial Assignment)\<close>
 
   definition "has_rup_spec F A C \<equiv> do {
     ASSERT (up_no_conflict F A);
-    if \<exists>l\<in>C. sem_lit' l A = Some True then
+    ASSERT (finite C);
+    if \<exists>l\<in>C. sem_lit' l A = Some True \<or> neg_lit l\<in>C then
       RETURN True
     else do {
       let A = assign_all_negated A C;
@@ -245,13 +349,21 @@ section \<open>Abstraction 1 (Partial Assignment)\<close>
     }
   }"
 
+  (* TODO: Move *)
+  lemma tautology: "\<lbrakk>l\<in>C; neg_lit l \<in> C\<rbrakk> \<Longrightarrow> sem_clause C \<sigma>"
+    by (cases "sem_lit l \<sigma>"; cases l; force simp: sem_clause_def)
+
+  lemma implied_taut: "\<lbrakk>l\<in>C; neg_lit l \<in> C\<rbrakk> \<Longrightarrow> implied_clause F A C"
+    unfolding implied_clause_def models'_def using tautology[of l C]
+    by auto
+
+
   lemma has_rup_spec_correct[THEN order_trans, refine_vcg]: 
-    "up_no_conflict F A \<Longrightarrow> has_rup_spec F A C \<le> SPEC (\<lambda>r. r \<longrightarrow> implied_clause F A C)"
+    "\<lbrakk>up_no_conflict F A; finite C\<rbrakk> \<Longrightarrow> has_rup_spec F A C \<le> SPEC (\<lambda>r. r \<longrightarrow> implied_clause F A C)"
     unfolding has_rup_spec_def
     apply (refine_vcg)
-    subgoal by (auto intro!: true_clause_implied simp: sem_clause'_true_conv) []
-    subgoal
-      by (auto simp: abs_rup_criterion conflict_clause_imp_no_models implied_is_redundant equiv'_def)
+    subgoal by (auto 0 3 intro: true_clause_implied simp: sem_clause'_true_conv implied_taut) []
+    subgoal by (auto simp: abs_rup_criterion conflict_clause_imp_no_models implied_is_redundant equiv'_def)
     done  
 
   abbreviation "has_rat_fe_invar F A C reslit 
@@ -275,11 +387,12 @@ section \<open>Abstraction 1 (Partial Assignment)\<close>
   }"  
 
   lemma has_rat_spec_correct[THEN order_trans, refine_vcg]:
-    "\<lbrakk>finite F; up_no_conflict F A\<rbrakk> \<Longrightarrow> has_rat_spec F A C \<le> SPEC (\<lambda>r. r \<longrightarrow> redundant_clause F A C)"
+    "\<lbrakk>finite F; finite C; \<forall>C'\<in>F. finite C'; up_no_conflict F A\<rbrakk> \<Longrightarrow> has_rat_spec F A C \<le> SPEC (\<lambda>r. r \<longrightarrow> redundant_clause F A C)"
     unfolding has_rat_spec_def
     apply refine_vcg
     apply vc_solve
     subgoal by (auto)
+    subgoal by auto
     subgoal by (blast intro: abs_rat_criterion)
     done
 
@@ -295,7 +408,7 @@ section \<open>Abstraction 1 (Partial Assignment)\<close>
 
 
   lemma has_rup_or_rat_correct[THEN order_trans, refine_vcg]:
-    "\<lbrakk>finite F; up_no_conflict F A\<rbrakk> \<Longrightarrow> has_rup_or_rat_spec F A C \<le> SPEC (\<lambda>r. r \<longrightarrow> redundant_clause F A C)"
+    "\<lbrakk>finite F; finite C; \<forall>C'\<in>F. finite C'; up_no_conflict F A\<rbrakk> \<Longrightarrow> has_rup_or_rat_spec F A C \<le> SPEC (\<lambda>r. r \<longrightarrow> redundant_clause F A C)"
     unfolding has_rup_or_rat_spec_def
     by refine_vcg (auto simp: implied_is_redundant)
 
@@ -318,7 +431,9 @@ section \<open>Abstraction 1 (Partial Assignment)\<close>
       l \<leftarrow> OBTAIN (\<lambda>l. is_unit_lit A C l);
       let A = assign_lit A l;
       RETURN (False,F,A)
-    } else
+    } else if sem_clause' C A = Some True then
+      RETURN (False,F,A)
+    else
       RETURN (False,insert C F,A)
   }"
 
@@ -438,12 +553,15 @@ section \<open>Abstraction 1 (Partial Assignment)\<close>
     }
   qed  
 
-
+  lemma true_models_insert: 
+    assumes TRUE: "sem_clause' C A = Some True"
+    shows "models' (insert C F) A = models' F A"
+    using assms implied_clause_def true_clause_implied by blast
 
   lemma add_clause_correct[THEN order_trans, refine_vcg]: 
-    "finite F \<Longrightarrow> add_clause C F A \<le> SPEC (\<lambda>
-      (True,F',_) \<Rightarrow> finite F' \<and> models' (insert C F) A = {}
-    | (False,F',A') \<Rightarrow> finite F' \<and> models' F' A' = models' (insert C F) A
+    "\<lbrakk>finite F; \<forall>C'\<in>F. finite C'; finite C\<rbrakk> \<Longrightarrow> add_clause C F A \<le> SPEC (\<lambda>
+      (True,F',_) \<Rightarrow> finite F' \<and> (\<forall>C'\<in>F'. finite C') \<and> models' (insert C F) A = {}
+    | (False,F',A') \<Rightarrow> finite F' \<and> (\<forall>C'\<in>F'. finite C') \<and> models' F' A' = models' (insert C F) A
     )"
     unfolding add_clause_def
     apply (refine_vcg)
@@ -451,21 +569,24 @@ section \<open>Abstraction 1 (Partial Assignment)\<close>
     subgoal by (meson conflict_clause_imp_no_models insertI1)
     subgoal by (auto simp: is_unit_clause_def)
     subgoal by (auto simp: unit_models_assign)
+    subgoal by (auto simp: true_models_insert)
     done
     
 
   lemma load_clauses_correct[THEN order_trans, refine_vcg]: 
-    "load_clauses F\<^sub>0 \<le> SPEC (\<lambda>(conf,F,A). finite F \<and>
+    assumes "\<forall>C\<in>set F\<^sub>0. finite C"
+    shows "load_clauses F\<^sub>0 \<le> SPEC (\<lambda>(conf,F,A). finite F \<and> (\<forall>C\<in>F. finite C) \<and>
       (conf \<longrightarrow> \<not>sat (set F\<^sub>0)) \<and>
       (\<not>conf \<longrightarrow> sat' F A = sat (set F\<^sub>0) ))"
     unfolding load_clauses_def
+    using assms
     apply (refine_vcg
-      nfoldli_rule[where I="\<lambda>F\<^sub>r _ (conf,F,A). finite F \<and>
+      nfoldli_rule[where I="\<lambda>F\<^sub>r _ (conf,F,A). finite F \<and> (\<forall>C\<in>F. finite C) \<and>
         (conf \<longrightarrow> \<not>sat (set F\<^sub>0)) \<and>
         (\<not>conf \<longrightarrow> models' F A = {\<sigma>. sem_cnf (set F\<^sub>r) \<sigma>})"]
     )
     apply (vc_solve del: notI solve: asm_rl[of "finite _"] split: bool.splits)
-    subgoal by (auto simp: models'_def sat_def)
+    subgoal by (auto simp: models'_def sat_def image_Un)  
     subgoal by (auto simp: models'_def)
     subgoal by (auto simp: sat'_def sat_def)
     done    
@@ -477,7 +598,8 @@ section \<open>Abstraction 1 (Partial Assignment)\<close>
   }"
 
   lemma maybe_delete_correct[THEN order_trans, refine_vcg]: 
-    "\<lbrakk>up_no_conflict F A; finite F\<rbrakk> \<Longrightarrow> maybe_delete C F A \<le> SPEC (\<lambda>(F',A'). models' F A \<subseteq> models' F' A' \<and> finite F' \<and> up_no_conflict F' A')"
+    "\<lbrakk>up_no_conflict F A; finite F; \<forall>C\<in>F. finite C\<rbrakk> 
+    \<Longrightarrow> maybe_delete C F A \<le> SPEC (\<lambda>(F',A'). models' F A \<subseteq> models' F' A' \<and> finite F' \<and> (\<forall>C'\<in>F'. finite C') \<and> up_no_conflict F' A')"
     unfolding maybe_delete_def
     apply refine_vcg
     apply (auto simp: models'_def sem_cnf_def up_no_conflict_def)
@@ -531,9 +653,13 @@ section \<open>Abstraction 1 (Partial Assignment)\<close>
 
 
 
-  lemma verify_correct: "verify F prf \<le> SPEC (\<lambda>r. r=UNSAT \<longrightarrow> \<not>sat (set F))"
+  lemma verify_correct: 
+    assumes "\<forall>C\<in>set F. finite C"
+    assumes "\<forall>s\<in>set prf. case s of Add C \<Rightarrow> finite C | Del C \<Rightarrow> finite C"
+    shows "verify F prf \<le> SPEC (\<lambda>r. r=UNSAT \<longrightarrow> \<not>sat (set F))"
     unfolding verify_def has_conflict_spec_def
-    apply (refine_vcg nfoldli_rule[where I="\<lambda>_ _ (flag,F',A'). finite F' 
+    using assms
+    apply (refine_vcg nfoldli_rule[where I="\<lambda>_ _ (flag,F',A'). finite F' \<and> (\<forall>C\<in>F'. finite C) 
         \<and> (flag=0 \<longrightarrow> up_no_conflict F' A' \<and> (sat (set F) \<longrightarrow> sat' F' A'))
         \<and> (flag=1 \<longrightarrow> \<not>sat (set F))"
         ])
@@ -584,10 +710,14 @@ section \<open>Abstraction 2 (Clause DB)\<close>
 
   locale abs_clause_db = abs_clause_db_defs +
     assumes finite_DB[simp, intro!]: "finite (dom DB)"
+    assumes finite_clauses: "C\<in>ran DB \<Longrightarrow> finite C"
   begin  
+
+    lemma finite_clauses'[simp, intro]: "i\<in>dom DB \<Longrightarrow> finite (CL i)"
+      using finite_clauses by (force intro: ranI)
     
     definition "add_clause2 i F A \<equiv> do {
-      ASSERT (i\<in>dom DB);
+      ASSERT (i\<in>dom DB \<and> i\<notin>F);
       let C = CL i;
       if is_conflict_clause A C then
         RETURN (True,F,A)
@@ -595,11 +725,14 @@ section \<open>Abstraction 2 (Clause DB)\<close>
         l \<leftarrow> OBTAIN (\<lambda>l. is_unit_lit A C l);
         let A = assign_lit A l;
         RETURN (False,F,A)
-      } else
+      } else if sem_clause' C A = Some True then
+        RETURN (False,F,A)
+      else
         RETURN (False,insert i F,A)
     }"
 
-    lemma add_clause2_refine[refine]: "\<lbrakk> (i,C)\<in>ic_rel; (Fi,F)\<in>F_rel; (Ai,A)\<in>Id \<rbrakk> \<Longrightarrow>
+
+    lemma add_clause2_refine[refine]: "\<lbrakk> (i,C)\<in>ic_rel; (Fi,F)\<in>F_rel; (Ai,A)\<in>Id; i\<notin>Fi \<rbrakk> \<Longrightarrow>
       add_clause2 i Fi Ai \<le> \<Down>(bool_rel \<times>\<^sub>r F_rel \<times>\<^sub>r Id) (add_clause C F A)"
       unfolding add_clause2_def add_clause_def
       apply refine_rcg
@@ -617,12 +750,18 @@ section \<open>Abstraction 2 (Clause DB)\<close>
         
 
     lemma load_clauses2_refine[refine]: 
-      "\<lbrakk> (F0i,F0)\<in>\<langle>ic_rel\<rangle>list_rel \<rbrakk> \<Longrightarrow> load_clauses2 F0i \<le> \<Down>(bool_rel \<times>\<^sub>r F_rel \<times>\<^sub>r Id) (load_clauses F0)"
+      "\<lbrakk> (F0i,F0)\<in>\<langle>ic_rel\<rangle>list_rel; distinct F0i \<rbrakk> \<Longrightarrow> load_clauses2 F0i \<le> \<Down>(bool_rel \<times>\<^sub>r F_rel \<times>\<^sub>r Id) (load_clauses F0)"
       unfolding load_clauses2_def load_clauses_def
-      apply refine_rcg
+      apply (refine_rcg nfoldli_invar_refine[where I="\<lambda>l0 l1 (_,F,_). distinct (l0@l1) \<and> F\<subseteq>set l0"])
       apply assumption
       apply vc_solve
       apply (simp add: F_rel_def in_br_conv)
+      subgoal
+        unfolding add_clause2_def
+        apply refine_vcg
+        apply auto
+        done
+      subgoal by auto []
       done
       
     definition "delete_clause2 i F A \<equiv> do {
@@ -659,7 +798,8 @@ section \<open>Abstraction 2 (Clause DB)\<close>
       
     definition "has_rup2 F A C \<equiv> do {
       ASSERT (up_no_conflict (CL`F) A);
-      if \<exists>l\<in>C. sem_lit' l A = Some True then
+      ASSERT (finite C);
+      if \<exists>l\<in>C. sem_lit' l A = Some True \<or> neg_lit l \<in> C then
         RETURN True
       else do {
         let A = assign_all_negated A C;
@@ -729,10 +869,10 @@ section \<open>Abstraction 2 (Clause DB)\<close>
 
 
   
-    definition "verify2 F prf \<equiv> do {
-      (conf,F,A) \<leftarrow> load_clauses2 F;      (* Load clauses *)
+    definition "verify2 F\<^sub>0 prf \<equiv> do {
+      (conf,F,A) \<leftarrow> load_clauses2 F\<^sub>0;     (* Load clauses *)
   
-      if conf then RETURN UNSAT          (* This may already reveal conflict *) 
+      if conf then RETURN UNSAT           (* This may already reveal conflict *) 
       else do {
         A \<leftarrow> prop_unit_spec2 F A;         (* Propagate units *)
         conf \<leftarrow> has_conflict_spec2 F A;   (* Check for conflicts *)
@@ -782,10 +922,35 @@ section \<open>Abstraction 2 (Clause DB)\<close>
         \<le> \<Down>R (case s of Add C \<Rightarrow> fa C | Del C \<Rightarrow> fd C)"
       using assms by (auto split: proof_step.split)  
 
+    lemma add_clause2_set_aux[THEN leof_trans]: "add_clause2 i F A \<le>\<^sub>n SPEC (\<lambda>(conf,F',A'). F' \<subseteq> insert i F)"
+      unfolding add_clause2_def
+      by refine_vcg auto
+
+    lemma load_clauses2_set_aux: "load_clauses2 F\<^sub>0 \<le>\<^sub>n SPEC (\<lambda>(conf,F,A). F \<subseteq> set F\<^sub>0)"  
+      unfolding load_clauses2_def
+      apply (refine_vcg 
+        nfoldli_leof_rule[where I="\<lambda>_ _ (conf,F,A). F \<subseteq> set F\<^sub>0"]
+        add_clause2_set_aux
+      )
+      by auto
+
+    lemma case_bool_leof_rule[refine_vcg]:
+      assumes "b \<Longrightarrow> ft \<le>\<^sub>n SPEC \<Phi>"
+      assumes "\<not>b \<Longrightarrow> ff \<le>\<^sub>n SPEC \<Phi>"
+      shows "(case b of True \<Rightarrow> ft | False \<Rightarrow> ff) \<le>\<^sub>n SPEC \<Phi>"
+      using assms by (cases b) auto
+
+    lemma case_bool_refine[refine]:  
+      "\<lbrakk> (bi,b)\<in>bool_rel; \<lbrakk>bi;b\<rbrakk> \<Longrightarrow> fti\<le>\<Down>R ft; \<lbrakk>\<not>bi; \<not>b\<rbrakk> \<Longrightarrow> ffi \<le>\<Down>R ff \<rbrakk> 
+        \<Longrightarrow> (case bi of True \<Rightarrow> fti | False \<Rightarrow> ffi) \<le> \<Down>R (case b of True \<Rightarrow> ft | False \<Rightarrow> ff)"
+      by (cases b; auto)  
 
     lemma verify2_refine[refine]:
       assumes [refine]: "(F',F)\<in>\<langle>ic_rel\<rangle>list_rel"
       assumes [refine]: "(prf',prf)\<in>\<langle>ps_rel\<rangle>list_rel"
+      assumes [simp]: "distinct F'"
+      assumes [simp]: "distinct (filter (Not o fst) prf')" 
+      assumes PF_DJ: "set (map snd (filter (Not o fst) prf')) \<inter> set F' = {}"
       shows "verify2 F' prf' \<le> \<Down>Id (verify F prf)"
     proof -
       have [refine_dref_RELATES]:
@@ -794,12 +959,27 @@ section \<open>Abstraction 2 (Clause DB)\<close>
         "RELATES (Id :: (('a \<rightharpoonup> bool)\<times>_)set)"
         by (auto simp: RELATES_def)
 
+      let "?add_idxs prf'" = "set (map snd (filter (Not o fst) prf'))"
+
       show ?thesis
-        unfolding verify2_def verify_def
+        unfolding verify2_def verify_def 
         supply [[goals_limit = 1]]
-        apply (refine_rcg ps_cases2_refine prod_case_refine)
+        apply (refine_vcg 
+          bind_refine'
+          ps_cases2_refine prod_case_refine
+          nfoldli_invar_refine[where I="\<lambda>l1 l2 (_,Fx,A). 
+              distinct (filter (Not o fst) (l1@l2)) 
+              \<and> Fx \<subseteq> set F' \<union> ?add_idxs l1"]
+          leof_True_rule[where m="has_rup_or_rat2 _ _ _"]
+          leof_True_rule[where m="prop_unit_spec2 _ _"]
+          leof_True_rule[where m="has_conflict_spec2 _ _"]
+          add_clause2_set_aux
+        )
         apply refine_dref_type
-        apply vc_solve
+        apply (vc_solve split del: split_if solve: asm_rl[of "_\<in>set F'"])
+        subgoal using load_clauses2_set_aux[of F'] by (auto simp: pw_leof_iff)
+        subgoal unfolding delete_clause2_def apply refine_vcg by auto
+        subgoal using PF_DJ by auto 
         done
     qed    
 
@@ -935,6 +1115,11 @@ section \<open>Abstraction 3 (Two Watched Literals)\<close>
 
   end
 
+
+  (* TODO: Move *)
+  lemma is_covered_empty_iff[simp, intro]: "\<not>twl_invar_defs.is_covered W {} i"
+    unfolding twl_invar_defs.is_covered_def by auto
+
   locale twl_invar_ni = twl_invar DB W A P CN "{}" for DB :: "'idx \<rightharpoonup> 'a clause" and W A P CN
 
   locale twl_invar_conp = twl_invar_ni DB W A P CN for DB :: "'idx \<rightharpoonup> 'a clause" and W A P CN +
@@ -942,6 +1127,10 @@ section \<open>Abstraction 3 (Two Watched Literals)\<close>
   begin
     lemmas [l_asm_rules] = conflict_or_no_pending
     lemma no_conf_no_pending: "\<not>CN \<Longrightarrow> P={}" using conflict_or_no_pending by auto
+
+    lemma cn_precise: "CN \<longleftrightarrow> (\<exists>i\<in>F. is_conflict_clause A (CL i))"
+      using cn_imp_conflict no_conf_no_pending conflict_covered
+      by auto
 
   end  
 
@@ -1420,11 +1609,9 @@ section \<open>Abstraction 3 (Two Watched Literals)\<close>
   context abs_clause_db begin
     term twl_prop_unit
 
-    definition "twl_A_\<alpha> \<equiv> (\<lambda>(W, A, P, TR). A)"
-    definition "twlR_bt_invar F \<equiv> \<lambda>(W, A, P, TR). F=dom W \<and> (\<exists>W\<^sub>b A\<^sub>b. twl_bt_invar DB W\<^sub>b A\<^sub>b W A P False TR)"
-    definition "twlR_bt_invar_conp F \<equiv> \<lambda>(W, A, P, TR, CN). F=dom W \<and> (\<exists>W\<^sub>b A\<^sub>b. twl_bt_invar_conp DB W\<^sub>b A\<^sub>b W A P CN TR)"
-
-    thm rtrancl_induct[where a="(W,A,P)" for W A P, split_format (complete)]
+    definition "twl_A_\<alpha> \<equiv> (\<lambda>(W, A, P, _). A)"
+    definition "twlR_bt_invar A\<^sub>b F \<equiv> \<lambda>(W, A, P, TR). F=dom W \<and> (\<exists>W\<^sub>b. twl_bt_invar DB W\<^sub>b A\<^sub>b W A P False TR)"
+    definition "twlR_bt_invar_conp A\<^sub>b F \<equiv> \<lambda>(W, A, P, TR, CN). F=dom W \<and> (\<exists>W\<^sub>b. twl_bt_invar_conp DB W\<^sub>b A\<^sub>b W A P CN TR)"
 
     lemma prop_unit2_R_tranclD:
       assumes "((W,A,P),(W',A',P'))\<in> prop_unit2_R\<^sup>*"
@@ -1435,8 +1622,8 @@ section \<open>Abstraction 3 (Two Watched Literals)\<close>
       done
 
     lemma twl_prop_unit_refine[refine]:
-      assumes "((W,Ai,P,TR),A) \<in> br twl_A_\<alpha> (twlR_bt_invar F)"
-      shows "twl_prop_unit DB W Ai P TR \<le> \<Down>(br twl_A_\<alpha> (twlR_bt_invar_conp F)) (prop_unit_spec2 F A)"
+      assumes "((W,Ai,P,TR),A) \<in> br twl_A_\<alpha> (twlR_bt_invar A\<^sub>b F)"
+      shows "twl_prop_unit DB W Ai P TR \<le> \<Down>(br twl_A_\<alpha> (twlR_bt_invar_conp A\<^sub>b F)) (prop_unit_spec2 F A)"
       using assms unfolding in_br_conv twlR_bt_invar_def
       apply clarsimp
       unfolding prop_unit_spec2_def
@@ -1444,7 +1631,7 @@ section \<open>Abstraction 3 (Two Watched Literals)\<close>
       apply assumption
       apply (vc_solve simp: in_br_conv twlR_bt_invar_conp_def twl_A_\<alpha>_def dest!: prop_unit2_R_tranclD)
       apply (intro conjI; (auto;fail)?)
-      subgoal premises prems for W\<^sub>b A\<^sub>b W' A P TR CN proof -
+      subgoal premises prems for W\<^sub>b W' A P TR CN proof -
         from prems interpret twl_bt_invar_conp DB W\<^sub>b A\<^sub>b W' A P CN TR by simp
         from prems have [simp]: "dom W = dom W'" by simp
         show "(\<forall>x\<in>dom W. \<not> is_unit_clause A (CL x)) \<or> (\<exists>i\<in>dom W. sem_clause' (CL i) A = Some False)"
@@ -1454,6 +1641,158 @@ section \<open>Abstraction 3 (Two Watched Literals)\<close>
 
 
   end
+
+  text \<open>We project out the trail, such we also obtain a unit-propagation procedure without a trail.
+    The correctness of this procedure is proved from the original refinement lemma, and the fact that
+    we can always obtain some dummy backtrack point.\<close>
+
+  lemma (in twl_invar_ni) init_backtrack_dummy:
+    "twl_bt_invar DB W Map.empty W A P CN (dom A)"
+    apply (unfold_locales; try_lasms)
+    subgoal for i
+      using W_mem[of i]
+      by (auto simp: sem_clause'_false_conv)
+    subgoal for i  
+      using W_mem[of i]
+      apply (clarsimp simp: sem_clause'_false_conv is_unit_clause_def is_unit_lit_def)
+      using W_dist
+      apply force
+      done
+    done  
+
+
+  context abs_clause_db 
+  begin
+    definition "twl_prop_unit_step_ntr W\<^sub>0 A\<^sub>0 P\<^sub>0 \<equiv> do {
+
+      l_rem \<leftarrow> OBTAIN (\<lambda>l. l\<in>P\<^sub>0);
+      let P = P\<^sub>0 - {l_rem};
+      
+
+      let WS = { i\<in>dom W\<^sub>0. l_rem \<in> watched W\<^sub>0 i};
+
+      (W,A,P,CN) \<leftarrow> FOREACHc 
+        WS (\<lambda>(W,A,P,CN). \<not>CN) (\<lambda>i (W,A,P,_). do {
+        let (w1,w2) = the (W i);
+        if (sem_lit' w1 A = Some True \<or> sem_lit' w2 A = Some True) then
+          RETURN (W,A,P,False)
+        else do {  
+          let (w1,w2) = (if w1=l_rem then (w2,w1) else (w1,w2));
+          ASSERT (w2=l_rem);
+          ASSERT (w1\<noteq>w2);
+  
+          w' \<leftarrow> SELECT (\<lambda>w'. w'\<noteq>w1 \<and> w'\<in>CL i \<and> sem_lit' w' A \<noteq> Some False);
+          case w' of 
+            Some w' \<Rightarrow> do { let W = W(i\<mapsto>(w1,w')); RETURN (W,A,P,False) }
+          | None \<Rightarrow> do {
+              if sem_lit' w1 A = Some False then do {
+                ASSERT (is_conflict_clause A (CL i));
+                RETURN (W,A,P,True)
+              } else do {
+                ASSERT (is_unit_lit A (CL i) w1);
+                RETURN (W,assign_lit A w1,insert (neg_lit w1) P,False)
+              }
+            }
+        }
+      }) (W\<^sub>0,A\<^sub>0,P,False);
+
+      RETURN (W,A,P,CN)
+    }"
+
+    definition "notr_rel \<equiv> {((W,A,P,CN),(W,A,P,TR,CN)) | W A P TR CN. True}"
+
+    lemma twl_prop_unit_step_ntr_refine: 
+      assumes [simplified,simp]: "(Wi,W)\<in>Id" "(Ai,A)\<in>Id" "(Pi,P)\<in>Id"
+      shows "twl_prop_unit_step_ntr Wi Ai Pi \<le>\<Down>notr_rel (twl_prop_unit_step' DB W A P TR)"
+    proof -
+      have [refine_dref_RELATES]: "RELATES notr_rel" by (simp add: RELATES_def)
+
+      show ?thesis
+        unfolding twl_prop_unit_step_ntr_def twl_prop_unit_step'_def
+        supply [[goals_limit = 1]]
+        apply (refine_rcg inj_on_id)
+        apply refine_dref_type
+        apply (auto simp: notr_rel_def split: split_if_asm)
+        done
+    qed
+
+    definition "twl_prop_unit_ntr W A P \<equiv> 
+      WHILET (\<lambda>(W,A,P,CN). \<not>CN \<and> P\<noteq>{}) (\<lambda>(W,A,P,CN). do {
+        twl_prop_unit_step_ntr W A P
+      }) (W,A,P,False)"
+
+    lemma twl_prop_unit_ntr_refine_aux: 
+      assumes [simplified,simp]: "(Wi,W)\<in>Id" "(Ai,A)\<in>Id" "(Pi,P)\<in>Id"
+      shows "twl_prop_unit_ntr Wi Ai Pi \<le>\<Down>notr_rel (twl_prop_unit DB W A P TR)"
+        unfolding twl_prop_unit_ntr_def twl_prop_unit_def
+        apply (refine_rcg twl_prop_unit_step_ntr_refine)
+        apply (auto simp: notr_rel_def)
+        done
+      
+    definition "WAP_rel \<equiv> br 
+      (\<lambda>(W,A,P). (dom W,A)) 
+      (\<lambda>(W,A,P). twl_invar_ni DB W A P False)"
+
+    definition "WAPC_rel \<equiv> br 
+      (\<lambda>(W,A,P,CN). (dom W,A)) 
+      (\<lambda>(W,A,P,CN). twl_invar_ni DB W A P CN)"
+
+    definition "WAPC_relA F \<equiv> br 
+      (\<lambda>(W,A,P,CN). A) 
+      (\<lambda>(W,A,P,CN). F = dom W \<and> twl_invar_ni DB W A P CN)"
+
+    definition "WAPC_relA_conp F \<equiv> br 
+      (\<lambda>(W,A,P,CN). A) 
+      (\<lambda>(W,A,P,CN). F = dom W \<and> twl_invar_conp DB W A P CN)"
+
+    lemma twl_prop_unit_ntr_refine[refine]:
+      assumes "((W,Ai,P),(F,A)) \<in> WAP_rel"
+      shows "twl_prop_unit_ntr W Ai P \<le> \<Down>(WAPC_relA_conp F) (prop_unit_spec2 F A)"
+    proof -
+      from assms have [simp]: "F = dom W" "Ai=A" and
+        "twl_invar_ni DB W A P False"
+        by (auto simp: WAP_rel_def in_br_conv)
+      interpret twl_invar_ni DB W A P False by fact  
+
+      have 1: "((W, A, P, dom A), A) \<in> br twl_A_\<alpha> (twlR_bt_invar Map.empty (dom W))"
+        using init_backtrack_dummy
+        by (auto simp: br_def twl_A_\<alpha>_def twlR_bt_invar_def)
+
+      note twl_prop_unit_ntr_refine_aux[OF IdI IdI IdI, of W A P "dom A"]
+      also note twl_prop_unit_refine[of W A P "dom A" A Map.empty "dom W"]
+      finally have 
+        2: "twl_prop_unit_ntr W A P \<le> \<Down> (notr_rel O br twl_A_\<alpha> (twlR_bt_invar_conp Map.empty (dom W))) (prop_unit_spec2 (dom W) A)"
+        using 1 by (simp add: conc_fun_chain)
+
+      thm conc_fun_mono[THEN monoD]  
+
+      have 3: "notr_rel O br twl_A_\<alpha> (twlR_bt_invar_conp Map.empty (dom W)) \<subseteq> WAPC_relA_conp F"
+        apply (clarsimp simp: notr_rel_def WAPC_relA_conp_def br_def twl_A_\<alpha>_def twlR_bt_invar_conp_def)
+      proof -  
+        fix W A P TR CN W\<^sub>b
+        assume "twl_bt_invar_conp DB W\<^sub>b Map.empty W A P CN TR"
+        then interpret I: twl_bt_invar_conp DB W\<^sub>b Map.empty W A P CN TR .
+        show "twl_invar_conp DB W A P CN"
+          by unfold_locales
+      qed    
+
+      show ?thesis 
+        apply simp
+        apply (rule order_trans[OF 2 conc_fun_R_mono])
+        using 3 by simp
+
+    qed    
+
+
+  end  
+
+
+
+
+
+
+
+
 
   text \<open>Backtracking\<close>
 
@@ -1512,6 +1851,563 @@ section \<open>Abstraction 3 (Two Watched Literals)\<close>
 
 
   end
+
+
+  context twl_invar_no_conf begin
+    lemma init_backtrack: "twl_bt_invar DB W A W A {} False {}"
+      by (unfold_locales; try_lasms)
+
+  end
+
+  context abs_clause_db begin
+
+    definition "twl_assign_all_negated W A C \<equiv> do {
+      let UD = {l\<in>C. sem_lit' l A = None};
+      let A = assign_all_negated A C;
+      RETURN (W,A,UD,var_of_lit`UD)
+    }"
+
+    definition "twl_has_rup W A C \<equiv> do {
+      ASSERT (up_no_conflict (CL`dom W) A);
+      ASSERT (finite C);
+      if \<exists>l\<in>C. sem_lit' l A = Some True \<or> neg_lit l \<in> C then
+        RETURN (True,(W,A))
+      else do {
+        (W,A,P,TR) \<leftarrow> twl_assign_all_negated W A C;
+        (W,A,P,TR,CN) \<leftarrow> twl_prop_unit DB W A P TR;
+        let A = A |`(-TR);
+        RETURN (CN,(W,A))
+      }
+    }"
+
+    lemma sem_lit_assign_all_negated_cases[consumes 1, case_names None Neg Pos]:
+      assumes "sem_lit' l (assign_all_negated A C) = Some v"
+      obtains "sem_lit' l A = Some v" 
+            | "sem_lit' l A = None" "neg_lit l \<in> C" "v=True"
+            | "sem_lit' l A = None" "l \<in> C" "v=False"
+      using assms unfolding assign_all_negated_def
+      apply (cases l)
+      apply (auto simp: map_add_def split: split_if_asm)
+      done
+      
+    lemma sem_lit_assign_all_negated_none_iff:
+      "sem_lit' l (assign_all_negated A C) = None \<longleftrightarrow> (sem_lit' l A = None \<and> l\<notin>C \<and> neg_lit l \<notin> C)"  
+      using assms unfolding assign_all_negated_def
+      apply (cases l)
+      apply (auto simp: map_add_def split: split_if_asm)
+      done
+      
+    lemma sem_lit_assign_all_negated_pres_decided:
+      assumes "sem_lit' l A = Some v"
+      shows "sem_lit' l (assign_all_negated A C) = Some v"
+      using assms unfolding assign_all_negated_def
+      apply (cases l)
+      apply (fastforce simp: map_add_def split: split_if_asm)+
+      done
+
+    lemma sem_lit_assign_all_negated_assign: 
+      assumes "\<forall>l\<in>C. neg_lit l\<notin>C" "l \<in> C" "sem_lit' l A = None"
+      shows "sem_lit' l (assign_all_negated A C) = Some False"  
+      using assms unfolding assign_all_negated_def
+      apply (cases l)
+      apply (auto simp: map_add_def split: split_if_asm)
+      done
+      
+    lemma sem_lit_assign_all_negated_neqv: 
+      "sem_lit' l (assign_all_negated A C) \<noteq> Some v \<Longrightarrow> sem_lit' l A \<noteq> Some v"
+      by (auto simp: sem_lit_assign_all_negated_pres_decided)
+
+    lemma sem_lit'_none_conv: "sem_lit' l A = None \<longleftrightarrow> A (var_of_lit l) = None"
+      by (cases l) auto
+
+
+    lemma assign_all_negated_refine[refine]:
+      assumes [simp]: "Ai=A"
+      assumes [simp]: "Ci=C"
+      assumes [simp]: "F = dom W"
+      assumes [simp, intro]: "finite C"
+      assumes no_taut: "\<forall>l\<in>C. neg_lit l\<notin>C"
+      assumes "twl_invar_no_conf DB W Ai"
+      shows "twl_assign_all_negated W Ai Ci \<le>\<Down>(br twl_A_\<alpha> (twlR_bt_invar A F)) (RETURN (assign_all_negated A C))"
+    proof -
+      interpret twl_invar_no_conf DB W Ai by fact
+      from init_backtrack interpret twl_bt_invar DB W Ai W Ai "{}" False "{}" .
+      
+      let ?UD = "{l\<in>C. sem_lit' l A = None}"
+
+      have AUX1: "twl_bt_invar DB W A W (assign_all_negated A C) ?UD False (var_of_lit ` ?UD)"
+        apply (unfold_locales; try_lasms)
+        subgoal using watched_invar by auto
+        subgoal for i
+        proof simp
+          assume "i\<in>dom W" then obtain w1 w2 where Wi: "W i = Some (w1,w2)" by auto
+          assume "sem_clause' (CL i) (assign_all_negated A C) = Some False"
+          with W_mem[OF Wi] have "sem_lit' w1 (assign_all_negated A C) = Some False" 
+            and "sem_lit' w2 (assign_all_negated A C) = Some False"
+            by (auto simp: sem_clause'_false_conv)
+          hence 
+            " (sem_lit' w1 A = Some False \<and> sem_lit' w2 A = Some False)
+            \<or> (w1\<in>?UD \<or> w2\<in>?UD)" (is "?C1 \<or> ?C2")
+            by (auto elim!: sem_lit_assign_all_negated_cases)
+          thus "twl_invar_defs.is_covered W ?UD i"
+          proof
+            assume ?C2 thus ?thesis using Wi 
+              by (auto simp: twl_invar_defs.is_covered_def watched_def)
+          next
+            assume ?C1 
+            with watched_invar[OF _ Wi] have False by auto
+            thus ?thesis ..
+          qed
+        qed
+        subgoal for i
+        proof simp
+          assume "i\<in>dom W" then obtain w1 w2 where Wi: "W i = Some (w1,w2)" by auto
+
+          have [simp]: "twl_invar_defs.is_covered W P i \<longleftrightarrow> w1\<in>P \<or> w2\<in>P" for P
+            using Wi
+            by (auto simp: twl_invar_defs.is_covered_def watched_def)
+
+          assume UNIT: "is_unit_clause (assign_all_negated A C) (CL i)"
+          from unit_contains_no_true[OF this] W_mem[OF Wi] 
+          have [simp]: 
+            "sem_lit' w1 (assign_all_negated A C) \<noteq> Some True"
+            "sem_lit' w2 (assign_all_negated A C) \<noteq> Some True"
+            by auto
+          hence [simp]: "sem_lit' w1 A \<noteq> Some True" "sem_lit' w2 A \<noteq> Some True"
+            using sem_lit_assign_all_negated_pres_decided by blast+
+
+
+          have "twl_invar_defs.is_covered W ?UD i 
+            \<or>  (sem_lit' w1 (assign_all_negated A C) = sem_lit' w1 A 
+              \<and> sem_lit' w2 (assign_all_negated A C) = sem_lit' w2 A)" (is "_ \<or> ?C2")
+            apply (cases "sem_lit' w1 (assign_all_negated A C)"; cases "sem_lit' w2 (assign_all_negated A C)")
+            apply (auto elim!: sem_lit_assign_all_negated_cases simp: sem_lit_assign_all_negated_none_iff)
+            done
+          moreover {
+            assume ?C2
+            with watched_invar[OF _ Wi] have 
+              NF1: "sem_lit' w1 (assign_all_negated A C) \<noteq> Some False" and
+              NF2: "sem_lit' w2 (assign_all_negated A C) \<noteq> Some False"
+              by auto
+            with UNIT two_nfalse_not_unit[OF _ _ _ NF1 NF2] W_dist_mem[OF Wi] have False by auto
+          } ultimately show "twl_invar_defs.is_covered W ?UD i" by blast
+        qed  
+        subgoal by (auto simp: sem_lit_assign_all_negated_assign[OF no_taut])
+        subgoal for w1 w2 i 
+          using watched_invar
+          by (auto 
+            elim!: sem_lit_assign_all_negated_cases 
+            dest!: sem_lit_assign_all_negated_neqv)
+        subgoal
+          unfolding assign_all_negated_def
+          by (force 
+              simp: map_add_def restrict_map_def sem_lit'_none_conv 
+              split: split_if)
+        done
+      show ?thesis
+        unfolding twl_assign_all_negated_def
+        using init_backtrack AUX1
+        by (auto simp: br_def twl_A_\<alpha>_def twlR_bt_invar_def Let_def)
+    qed
+
+    lemma twl_has_rup_refine[refine]: 
+      assumes [simp]: "dom W = F"
+      assumes [simplified,simp]: "(Ai,A)\<in>Id"
+      assumes [simplified,simp]: "(Ci,C)\<in>Id"
+      assumes [simp]: "twl_invar_no_conf DB W A"
+      shows "twl_has_rup W Ai Ci 
+        \<le> \<Down>(br fst (\<lambda>(_,Wr,Ar). dom Wr = F \<and> Ar = A \<and> twl_invar_no_conf DB Wr Ar)) 
+        (has_rup2 F A C)"
+    proof -
+      interpret twl_invar_no_conf DB W A by fact
+
+      show ?thesis
+        unfolding twl_has_rup_def has_rup2_def
+        apply (refine_rcg refl)
+        apply (vc_solve solve: asm_rl simp: br_def twlR_bt_invar_def twlR_bt_invar_conp_def twl_A_\<alpha>_def)
+        subgoal premises prems for W P TR W' A' P' TR' CN' W\<^sub>b W\<^sub>b'
+        proof (intro conjI)
+          from prems interpret I': twl_bt_invar_conp DB W\<^sub>b' A W' A' P' CN' TR' by simp
+
+          show "(\<exists>i\<in>I'.F. sem_clause' (CL i) A' = Some False) = CN'"
+            by (simp add: I'.cn_precise)
+
+          show "A' |` (- TR') = A" by (simp add: I'.AB_EQ)
+
+          show "twl_invar_no_conf DB W' (A' |` (- TR'))"
+            by (rule I'.backtrack')
+        qed
+        done
+    qed
+          
+    definition "twl_has_rat W A Ci \<equiv> do {
+      ASSERT (up_no_conflict (CL`dom W) A);
+      let C = CL Ci;
+      if C={} then RETURN (False,W,A)
+      else do {
+        reslit \<leftarrow> OBTAIN (\<lambda>l. l\<in>C);
+        if sem_lit' reslit A \<noteq> Some False then do {
+          FOREACHc  
+            { j\<in>dom W. neg_lit reslit \<in> CL j } (\<lambda>(flag,_,_). flag) (\<lambda>j (_,W,A). do {
+              twl_has_rup W A (CL j-{neg_lit reslit} \<union> C)
+          }) (True,W,A)
+        } else RETURN (False,W,A)
+      }
+    }"  
+
+    lemma twl_has_rat_refine[refine]:
+      assumes [simp]: "dom W = F"
+      assumes [simplified,simp]: "(Ai,A)\<in>Id"
+      assumes [simplified,simp]: "(Ci,C)\<in>Id"
+      assumes [simp]: "twl_invar_no_conf DB W A"
+      shows "twl_has_rat W Ai Ci 
+        \<le> \<Down>(br fst (\<lambda>(_,Wr,Ar). dom Wr = F \<and> Ar = A \<and> twl_invar_no_conf DB Wr Ar)) 
+        (has_rat2 F A C)"
+      unfolding twl_has_rat_def has_rat2_def
+      apply (refine_rcg inj_on_id)
+      apply refine_dref_type
+      apply (auto simp: br_def)
+      done
+
+
+    definition "twl_has_rup_or_rat W A Ci \<equiv> do {
+      ASSERT (up_no_conflict (CL`dom W) A);
+      (rup,W,A) \<leftarrow> twl_has_rup W A (CL Ci);
+      if rup then RETURN (True,W,A)
+      else do {
+        (rat,W,A) \<leftarrow> twl_has_rat W A Ci;
+        RETURN (rat,W,A)
+      }
+    }"
+
+    lemma twl_has_rup_or_rat_refine[refine]:
+      assumes [simp]: "dom W = F"
+      assumes [simplified,simp]: "(Ai,A)\<in>Id"
+      assumes [simplified,simp]: "(Ci,C)\<in>Id"
+      assumes [simp]: "twl_invar_no_conf DB W A"
+      shows "twl_has_rup_or_rat W Ai Ci 
+        \<le> \<Down>(br fst (\<lambda>(_,Wr,Ar). dom Wr = F \<and> Ar = A \<and> twl_invar_no_conf DB Wr Ar)) 
+        (has_rup_or_rat2 F A C)"
+      unfolding twl_has_rup_or_rat_def has_rup_or_rat2_def
+      apply (refine_rcg inj_on_id)
+      apply (auto simp: br_def)
+      done
+    
+      
+    definition "twl_add_clause i W A P \<equiv> do {
+      ASSERT (i\<in>dom DB \<and> i\<notin>dom W);
+      let C = CL i;
+      if is_conflict_clause A C then
+        RETURN (True,W,A,P)
+      else if is_unit_clause A C then do {
+        l \<leftarrow> OBTAIN (\<lambda>l. is_unit_lit A C l);
+        let A = assign_lit A l;
+        RETURN (False,W,A,insert (neg_lit l) P)
+      } else if sem_clause' C A = Some True then
+        RETURN (False,W,A,P)
+      else do {
+        (w1,w2) \<leftarrow> OBTAIN (\<lambda>(w1,w2). w1\<in>C \<and> w2\<in>C \<and> w1\<noteq>w2 \<and> sem_lit' w1 A = None \<and> sem_lit' w2 A = None);
+        RETURN (False,W(i\<mapsto>(w1,w2)),A,P)
+      }
+    }"
+
+    definition "add_clause_rel' \<equiv> br 
+      (\<lambda>(flag,W,A,P). (flag,dom W,A)) 
+      (\<lambda>(flag,W,A,P). \<not>flag \<longrightarrow> twl_invar_ni DB W A P False)"
+
+    lemma twl_add_clause_refine[refine]:
+      assumes "((W,Ai,P),(F,A)) \<in> WAP_rel"
+      assumes [simplified,simp]: "(ii,i)\<in>Id"
+      shows "twl_add_clause ii W Ai P \<le>\<Down>add_clause_rel' (add_clause2 i F A)"
+    proof -
+      from assms(1) have 
+        DOMW_EQ[simp]: "dom W = F" 
+        and [simp]: "Ai=A" 
+        and [simp]: "twl_invar_ni DB W A P False"
+        by (auto simp: WAP_rel_def in_br_conv)
+
+      interpret twl_invar_ni DB W A P False by fact 
+
+      show ?thesis  
+        unfolding twl_add_clause_def add_clause2_def
+        apply (refine_vcg bind_refine')
+        apply refine_dref_type
+        apply (vc_solve simp: add_clause_rel'_def in_br_conv solve: asm_rl[of "Ex _"])
+      proof -  
+        fix C l
+        assume "inres (OBTAIN (is_unit_lit A C)) l" "nofail (OBTAIN (is_unit_lit A C))"
+        hence "is_unit_lit A C l"
+          by (auto simp: refine_pw_simps)
+  
+        hence UNDEC: "sem_lit' l A = None" by (auto simp: is_unit_lit_def)
+  
+        note [simp del] = DOMW_EQ
+  
+        show "twl_invar_ni DB W (assign_lit A l) (insert (neg_lit l) P) False"  
+          apply (unfold_locales; try_lasms)
+          subgoal for i 
+          proof simp
+            assume "i\<in>dom W" and FALSE: "sem_clause' (CL i) (assign_lit A l) = Some False"
+            then obtain w1 w2 where Wi: "W i = Some (w1,w2)" using DOMW_EQ[symmetric] by auto
+            
+            from FALSE W_mem[OF Wi] Wi have 
+              "neg_lit l \<in> watched W i 
+              \<or> (sem_lit' w1 A = Some False \<and> sem_lit' w2 A = Some False)"
+              by (auto 
+                simp: sem_clause'_false_conv sem_lit'_assign_conv watched_def 
+                split: split_if_asm)
+            moreover {
+              assume "neg_lit l \<in> watched W i"
+              hence "twl_invar_defs.is_covered W (insert (neg_lit l) P) i"
+                by (auto simp: twl_invar_defs.is_covered_def)
+            } moreover {
+              assume "sem_lit' w1 A = Some False \<and> sem_lit' w2 A = Some False"
+              with watched_invar[OF _ Wi] Wi have "twl_invar_defs.is_covered W (insert (neg_lit l) P) i"
+                by (auto simp: twl_invar_defs.is_covered_def watched_def)
+            } ultimately show "twl_invar_defs.is_covered W (insert (neg_lit l) P) i"
+              by blast
+          qed    
+          subgoal for i 
+          proof simp
+            assume "i\<in>dom W" and UNIT: "is_unit_clause (assign_lit A l) (CL i)"
+            then obtain w1 w2 where Wi: "W i = Some (w1,w2)" using DOMW_EQ[symmetric] by auto
+            
+            from UNIT W_mem[OF Wi] have [simp]:
+              "sem_lit' w1 A \<noteq> Some True"
+              "sem_lit' w2 A \<noteq> Some True"
+              using UNDEC assign_undec_pres_dec_lit unit_contains_no_true 
+              apply -
+              apply blast+
+              done
+  
+            from UNIT W_dist_mem[OF Wi] Wi have 
+              "neg_lit l \<in> watched W i 
+              \<or> (sem_lit' w1 A = Some False \<or> sem_lit' w2 A = Some False)"
+              using two_nfalse_not_unit[of w1 "CL i" w2 "assign_lit A l"]
+              by (fastforce 
+                simp: sem_lit'_assign_conv watched_def 
+                split: split_if_asm)
+            moreover {
+              assume "neg_lit l \<in> watched W i"
+              hence "twl_invar_defs.is_covered W (insert (neg_lit l) P) i"
+                by (auto simp: twl_invar_defs.is_covered_def)
+            } moreover {
+              assume "sem_lit' w1 A = Some False \<or> sem_lit' w2 A = Some False"
+              with watched_invar[OF _ Wi] Wi have "twl_invar_defs.is_covered W (insert (neg_lit l) P) i"
+                by (auto simp: twl_invar_defs.is_covered_def watched_def)
+            } ultimately show "twl_invar_defs.is_covered W (insert (neg_lit l) P) i"
+              by blast
+          qed    
+          subgoal for ll using pending_false[of ll] UNDEC by (auto simp: sem_lit'_assign_conv)
+          subgoal for w1 w2 i using watched_invar[of i w1 w2]
+            by (auto simp: sem_lit'_assign_conv UNDEC)
+          done
+      next
+        fix C
+        assume "sem_clause' C A \<noteq> Some False" and NTRUE: "sem_clause' C A \<noteq> Some True"
+        then obtain w1 where W1: "w1\<in>C" "sem_lit' w1 A = None"
+          by (force simp: sem_clause'_def split: split_if_asm)
+          
+        assume "\<not> is_unit_clause A C"   
+        then obtain w2 where W2: "w2\<in>C" "w1\<noteq>w2" "sem_lit' w2 A \<noteq> Some False"
+          using W1 by (force simp: is_unit_clause_def is_unit_lit_def sem_clause'_false_conv)
+        with NTRUE have W2': "sem_lit' w2 A = None" by (cases "sem_lit' w2 A") (auto simp: sem_clause'_true_conv)
+  
+        with W1 W2 W2' show 
+          "\<exists>w1. w1 \<in> C \<and> (\<exists>w2. w2 \<in> C \<and> w1 \<noteq> w2 \<and> sem_lit' w1 A = None \<and> sem_lit' w2 A = None)"
+          by blast
+      next
+        note [simp del] = DOMW_EQ
+        note [simp] = DOMW_EQ[symmetric]
+  
+        fix w1 w2 C    
+        assume W: "w1\<in>C" "w2\<in>C" "w1\<noteq>w2" "sem_lit' w1 A = None" "sem_lit' w2 A = None"
+        assume DBi: "DB i = Some C" and NIF: "i\<notin>F"
+        
+        assume [simp]: "sem_clause' C A \<noteq> Some False" "\<not> is_unit_clause A C"
+  
+        show "twl_invar_ni DB (W(i \<mapsto> (w1, w2))) A P False"
+          apply (unfold_locales; try_lasms)
+          subgoal using W_valid DBi by auto
+          subgoal for w1' w2' i' using W_dist_mem[of i' w1' w2'] NIF W DBi
+            by (auto split: split_if_asm)
+          subgoal for i' using conflict_covered[of i'] DBi NIF 
+            by (auto simp: twl_invar_defs.is_covered_def watched_def)
+          subgoal for i' using unit_covered[of i'] DBi NIF 
+            by (auto simp: twl_invar_defs.is_covered_def watched_def)
+          subgoal for w1' w2' i' using watched_invar[of i' w1' w2'] W 
+            by (auto split: split_if_asm)
+          done
+      qed    
+    qed  
+        
+    definition "twl_load_clauses F\<^sub>0 \<equiv> do {
+      let W = Map.empty;
+      let A = Map.empty;
+      let P = {};
+      nfoldli F\<^sub>0 (\<lambda>(conflict,_,_,_). \<not>conflict) (\<lambda>C (_,W,A,P). 
+        twl_add_clause C W A P
+      ) (False,W,A,P)
+    }"
+
+    lemma twl_invar_empty: "twl_invar_ni DB Map.empty Map.empty {} False"
+      by (unfold_locales; auto)
+
+
+    lemma twl_load_clauses_refine[refine]:
+      assumes [refine]: "(F\<^sub>0i,F\<^sub>0) \<in> \<langle>Id\<rangle>list_rel"
+      shows "twl_load_clauses F\<^sub>0i \<le> \<Down>add_clause_rel' (load_clauses2 F\<^sub>0)"
+      unfolding twl_load_clauses_def load_clauses2_def
+      apply refine_rcg
+      apply (auto simp: add_clause_rel'_def WAP_rel_def in_br_conv twl_invar_empty)
+      done
+
+    definition "twl_delete_clause i W A \<equiv> do {
+      RETURN (W|`(-{i}),A)
+    }"
+      
+    definition "nc_rel \<equiv> br (\<lambda>(W,A). (dom W,A)) (\<lambda>(W,A). twl_invar_no_conf DB W A)"
+
+    definition "nc_rel' \<equiv> br (\<lambda>(flag,W,A). (flag,dom W,A)) (\<lambda>(flag,W,A). flag=(0::int) \<longrightarrow> twl_invar_no_conf DB W A)"
+
+
+    lemma twl_delete_clause_refine[refine]:
+      assumes [simplified,simp]: "(ii,i)\<in>Id"
+      assumes "((W,Ai), (F,A))\<in>nc_rel"
+      shows "twl_delete_clause ii W Ai \<le> \<Down>nc_rel (delete_clause2 i F A)"
+    proof -
+      from assms(2) have 
+        [simp]: "F=dom W" "Ai=A" and "twl_invar_no_conf DB W A"
+        by (auto simp: nc_rel_def in_br_conv)
+        
+      interpret twl_invar_no_conf DB W A by fact
+
+      show ?thesis
+        unfolding twl_delete_clause_def delete_clause2_def
+        apply refine_rcg
+        apply (vc_solve simp: nc_rel_def in_br_conv)
+        subgoal
+          apply (unfold_locales; try_lasms)
+          subgoal using W_valid by auto
+          subgoal for w1 w2 i' using W_dist_mem[of i' w1 w2] by (auto simp: restrict_map_eq)
+          subgoal for i' using conflict_covered[of i'] 
+            by (auto simp: twl_invar_defs.is_covered_def)
+          subgoal for i' using unit_covered[of i'] 
+            by (auto simp: twl_invar_defs.is_covered_def)
+          subgoal for w1 w2 i' using watched_invar[of i' w1 w2] 
+            by (auto simp: restrict_map_eq)
+          done
+        done
+    qed    
+      
+
+    definition "twl_verify F\<^sub>0 prf \<equiv> do {
+      (conf,W,A,P) \<leftarrow> twl_load_clauses F\<^sub>0;   (* Load clauses *)
+  
+      if conf then RETURN UNSAT           (* This may already reveal conflict *) 
+      else do {
+        (W,A,_,conf) \<leftarrow> twl_prop_unit_ntr W A P;      (* Propagate units *)
+    
+        let conf=conf;
+        if conf then
+          RETURN UNSAT (* Conflict from initial clauses by unit propagation *)
+        else do {  
+          (* No conflicts initially. Iterate over proof *)
+          (flag,W,A) \<leftarrow> nfoldli prf (\<lambda>(flag,_,_). flag=0) (\<lambda>s (_,W,A). do {
+            case s of
+              (False,C) \<Rightarrow> do {
+                (* Check if add-clause has RUP or RAT *)
+                (ror,W,A) \<leftarrow> twl_has_rup_or_rat W A C;
+                if ror then do {
+                  (* Add the clause. This may find the clause to be a conflict clause. *)
+                  (conf,W,A,P) \<leftarrow> twl_add_clause C W A {};
+                  if conf then RETURN (1,W,A) (* Added conflict clause *)
+                  else do {
+                    (* If no immediate conflict, do unit propagation *)
+                    (W,A,_,conf) \<leftarrow> twl_prop_unit_ntr W A P;
+                    let conf=conf;
+                    if conf then 
+                      RETURN (1,W,A) (* Unit propagation found a conflict *)
+                    else
+                      RETURN (0,W,A) (* Unit propagation did not find a conflict *)
+                  }
+                } else
+                  RETURN (-1, W, A) (* Attempt to add clause without RUP or RAT *)
+              }
+            | (True,C) \<Rightarrow> do {
+                (W,A) \<leftarrow> twl_delete_clause C W A;
+                RETURN (0,W,A)
+              }  
+          }) (0::int,W,A);
+  
+          if flag = 1 then RETURN UNSAT
+          else RETURN ERROR
+        }
+      }  
+    }"
+
+    lemma twl_CN_refine[refine]:
+      assumes "((W,A,P,CN),A)\<in>WAPC_relA_conp F"
+      shows "RETURN CN \<le> \<Down>Id (has_conflict_spec2 F A)"
+      using assms unfolding WAPC_relA_conp_def in_br_conv
+    proof clarsimp
+      assume "twl_invar_conp DB W A P CN"
+      then interpret twl_invar_conp DB W A P CN .
+
+      show "RETURN CN \<le> has_conflict_spec2 (dom W) A"
+        by (auto simp: has_conflict_spec2_def cn_precise)
+    qed    
+      
+             
+    lemma twl_verify_refine[refine]:
+      assumes [refine]: "(F',F) \<in> \<langle>Id\<rangle>list_rel"
+      assumes [refine]: "(prf',prf) \<in> \<langle>Id\<rangle>list_rel"
+      shows "twl_verify F' prf' \<le> \<Down>Id (verify2 F prf)"
+    proof -
+      have [refine_dref_RELATES]: "RELATES nc_rel'" 
+        by (simp add: RELATES_def)
+
+      {
+        fix W A P
+        assume "twl_invar_conp DB W A P False"
+        then interpret twl_invar_conp DB W A P False .
+        from no_conf_no_pending have [simp]: "P={}" by simp
+
+        have "twl_invar_no_conf DB W A"
+          apply (unfold_locales; try_lasms)
+          subgoal using cn_precise by auto
+          subgoal using unit_covered by auto
+          subgoal using watched_invar by auto
+          done
+      } note aux1=this 
+
+      {
+        fix W A
+        assume "twl_invar_no_conf DB W A"
+        then interpret twl_invar_no_conf DB W A .
+        have "twl_invar_ni DB W A {} False"
+          by unfold_locales
+      } note aux2=this
+
+
+      show ?thesis
+        supply [[goals_limit = 1]]
+        unfolding twl_verify_def verify2_def
+        apply (refine_rcg bind_refine')
+        apply refine_dref_type
+        apply (auto 
+          simp: in_br_conv add_clause_rel'_def 
+          simp: WAP_rel_def WAPC_relA_conp_def
+          simp: nc_rel'_def nc_rel_def aux1 aux2
+        ) (* Takes its time. TODO: Could be optimized by not unfolding all 
+            the _rels, but showing lemmas about the rels *)
+        done
+    qed  
+
+
+
+  end
+
 
 oops
  using FB_EQ IB.conflict_covered IB.is_covered_def by blast
