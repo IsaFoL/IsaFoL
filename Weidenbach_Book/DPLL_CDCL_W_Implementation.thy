@@ -294,13 +294,13 @@ lemma bt_cut_in_get_all_ann_decomposition:
   using bt_cut_some_decomp[OF assms] by (auto simp add: get_all_ann_decomposition_ex)
 
 fun do_backtrack_step where
-"do_backtrack_step (M, N, U, k, Some D) =
-  (case find_level_decomp M D [] k of
-    None \<Rightarrow> (M, N, U, k, Some D)
+"do_backtrack_step (M, N, U, Some D) =
+  (case find_level_decomp M D [] (count_decided M) of
+    None \<Rightarrow> (M, N, U, Some D)
   | Some (L, j) \<Rightarrow>
     (case bt_cut j M of
-      Some (Decided _ # Ls) \<Rightarrow> (Propagated L D # Ls, N, D # U, j, None)
-    | _ \<Rightarrow> (M, N, U, k, Some D))
+      Some (Decided _ # Ls) \<Rightarrow> (Propagated L D # Ls, N, D # U, None)
+    | _ \<Rightarrow> (M, N, U, Some D))
   )" |
 "do_backtrack_step S = S"
 

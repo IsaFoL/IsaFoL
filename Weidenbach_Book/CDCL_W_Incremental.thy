@@ -9,28 +9,26 @@ locale state\<^sub>W_adding_init_clause_no_state =
     state
     \<comment> \<open>functions about the state: \<close>
       \<comment> \<open>getter:\<close>
-    trail init_clss learned_clss backtrack_lvl conflicting
+    trail init_clss learned_clss conflicting
       \<comment> \<open>setter:\<close>
-    cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
+    cons_trail tl_trail add_learned_cls remove_cls
     update_conflicting
 
       \<comment> \<open>Some specific states:\<close>
     init_state
   for
     state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
-    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> nat \<times> 'v clause option \<times>
+    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
       'b" and
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
-    backtrack_lvl :: "'st \<Rightarrow> nat" and
     conflicting :: "'st \<Rightarrow> 'v clause option" and
 
     cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     init_state :: "'v clauses \<Rightarrow> 'st" +
@@ -47,37 +45,33 @@ locale state\<^sub>W_adding_init_clause_ops =
     state
     \<comment> \<open>functions about the state: \<close>
       \<comment> \<open>getter:\<close>
-    trail init_clss learned_clss backtrack_lvl conflicting
+    trail init_clss learned_clss conflicting
       \<comment> \<open>setter:\<close>
-    cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
-    update_conflicting
+    cons_trail tl_trail add_learned_cls remove_cls update_conflicting
 
       \<comment> \<open>Some specific states:\<close>
     init_state
     add_init_cls
   for
     state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
-    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> nat \<times> 'v clause option \<times>
+    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
       'b" and
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
-    backtrack_lvl :: "'st \<Rightarrow> nat" and
     conflicting :: "'st \<Rightarrow> 'v clause option" and
 
     cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     init_state :: "'v clauses \<Rightarrow> 'st" and
     add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" +
   assumes
     state_prop[simp]:
-      \<open>state S = (trail S, init_clss S, learned_clss S, backtrack_lvl S,
-      conflicting S, additional_info S)\<close>
+      \<open>state S = (trail S, init_clss S, learned_clss S, conflicting S, additional_info S)\<close>
 
 locale state\<^sub>W_adding_init_clause =
   state\<^sub>W_adding_init_clause_ops
@@ -85,28 +79,25 @@ locale state\<^sub>W_adding_init_clause =
     state
     \<comment> \<open>functions about the state: \<close>
       \<comment> \<open>getter:\<close>
-    trail init_clss learned_clss backtrack_lvl conflicting
+    trail init_clss learned_clss conflicting
       \<comment> \<open>setter:\<close>
-    cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
-    update_conflicting
+    cons_trail tl_trail add_learned_cls remove_cls update_conflicting
 
       \<comment> \<open>Some specific states:\<close>
     init_state add_init_cls
   for
     state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
-    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> nat \<times> 'v clause option \<times>
+    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
       'b" and
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
-    backtrack_lvl :: "'st \<Rightarrow> nat" and
     conflicting :: "'st \<Rightarrow> 'v clause option" and
 
     cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     init_state :: "'v clauses \<Rightarrow> 'st" and
@@ -124,11 +115,9 @@ lemma
     and
   learned_clss_add_init_cls[simp]:
     "learned_clss (add_init_cls C st) = learned_clss st" and
-  backtrack_lvl_add_init_cls[simp]:
-    "backtrack_lvl (add_init_cls C st) = backtrack_lvl st" and
   conflicting_add_init_cls[simp]:
     "conflicting (add_init_cls C st) = conflicting st"
-  using add_init_cls[of st _ _ _ _ C] by (cases "state st"; auto)+
+  using add_init_cls[of st _ _ _ _ C] by (cases "state st"; auto; fail)+
 
 lemma clauses_add_init_cls[simp]:
    "clauses (add_init_cls N S) = {#N#} + init_clss S + learned_clss S"
@@ -149,10 +138,9 @@ locale conflict_driven_clause_learning_with_adding_init_clause\<^sub>W =
     state
     \<comment> \<open>functions for the state: \<close>
       \<comment> \<open>access functions:\<close>
-    trail init_clss learned_clss backtrack_lvl conflicting
+    trail init_clss learned_clss conflicting
       \<comment> \<open>changing state:\<close>
-    cons_trail tl_trail add_learned_cls remove_cls update_backtrack_lvl
-    update_conflicting
+    cons_trail tl_trail add_learned_cls remove_cls update_conflicting
 
       \<comment> \<open>get state:\<close>
     init_state
@@ -160,19 +148,17 @@ locale conflict_driven_clause_learning_with_adding_init_clause\<^sub>W =
     add_init_cls
   for
     state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
-    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> nat \<times> 'v clause option \<times>
+    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
       'b" and
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
-    backtrack_lvl :: "'st \<Rightarrow> nat" and
     conflicting :: "'st \<Rightarrow> 'v clause option" and
 
     cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail :: "'st \<Rightarrow> 'st" and
     add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_backtrack_lvl :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     init_state :: "'v clauses \<Rightarrow> 'st" and
@@ -185,16 +171,13 @@ sublocale conflict_driven_clause_learning\<^sub>W
 text \<open>This invariant holds all the invariant related to the strategy. See the structural invariant
     in @{term cdcl\<^sub>W_all_struct_inv}\<close>
 
-abbreviation decr_bt_lvl where
-"decr_bt_lvl S \<equiv> update_backtrack_lvl (backtrack_lvl S - 1) S"
-
 text \<open>When we add a new clause, we reduce the trail until we get to tho first literal included in C.
   Then we can mark the conflict.\<close>
 fun cut_trail_wrt_clause where
 "cut_trail_wrt_clause C [] S = S" |
 "cut_trail_wrt_clause C (Decided L # M) S =
   (if -L \<in># C then S
-    else cut_trail_wrt_clause C M (decr_bt_lvl (tl_trail S)))" |
+    else cut_trail_wrt_clause C M (tl_trail S))" |
 "cut_trail_wrt_clause C (Propagated L _ # M) S =
   (if -L \<in># C then S
     else cut_trail_wrt_clause C M (tl_trail S))"
@@ -224,7 +207,7 @@ proof (induction "trail S" arbitrary: S rule: ann_lit_list_induct)
   case Nil
   then show ?case by simp
 next
-  case (Decided L M) note IH = this(1)[of "decr_bt_lvl (tl_trail S)"] and M = this(2)[symmetric]
+  case (Decided L M) note IH = this(1)[of "tl_trail S"] and M = this(2)[symmetric]
   then show ?case using Cons_eq_appendI by fastforce+
 next
   case (Propagated L l M) note IH = this(1)[of "tl_trail S"] and M = this(2)[symmetric]
@@ -253,7 +236,7 @@ proof (induction "trail T" arbitrary:T rule: ann_lit_list_induct)
   case Nil
   then show ?case by simp
 next
-  case (Decided L M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
+  case (Decided L M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric]
     and bt = this(3)
   then show ?case by auto
 next
@@ -271,7 +254,7 @@ proof (induction "trail T" arbitrary:T rule: ann_lit_list_induct)
   case Nil
   then show ?case by simp
 next
-  case (Decided L M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
+  case (Decided L M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric]
     and bt = this(3)
   show ?case
     proof (cases "count C (-L) = 0")
@@ -319,7 +302,7 @@ proof (induction "trail T" arbitrary:T rule: ann_lit_list_induct)
   case Nil
   then show ?case by simp
 next
-  case (Decided L M) note IH = this(1)[of "decr_bt_lvl (tl_trail T)"] and M = this(2)[symmetric]
+  case (Decided L M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric]
   then show ?case by simp force
 next
   case (Propagated L l M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric]
@@ -384,8 +367,8 @@ proof -
     unfolding consistent_interp_def by auto
 
   have [simp]: "cdcl\<^sub>W_M_level_inv ?T"
-    using M_lev unfolding cdcl\<^sub>W_M_level_inv_def by (auto dest: H H'
-      simp: M_lev cdcl\<^sub>W_M_level_inv_def cut_trail_wrt_clause_backtrack_lvl_length_decided)
+    using M_lev unfolding cdcl\<^sub>W_M_level_inv_def 
+    by (auto simp: M_lev cdcl\<^sub>W_M_level_inv_def cut_trail_wrt_clause_backtrack_lvl_length_decided)
 
   have [simp]: "\<And>s. s \<in># learned_clss T \<Longrightarrow> \<not>tautology s"
     using inv_T unfolding cdcl\<^sub>W_all_struct_inv_def by auto

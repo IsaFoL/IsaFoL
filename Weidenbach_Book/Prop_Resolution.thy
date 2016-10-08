@@ -2197,7 +2197,7 @@ lemma simplified_falsity:
 proof (rule ccontr)
   assume H: "\<not> ?thesis"
   then obtain \<chi> where "\<chi> \<in> \<psi>" and "\<chi> \<noteq> {#}" using assms(2) by blast
-  then have "{#} \<subset># \<chi>" by (simp add: mset_subset_empty_nonempty)
+  then have "{#} \<subset># \<chi>" by (simp add: subset_mset.zero_less_iff_neq_zero)
   then have "simplify \<psi> (\<psi> - {\<chi>})"
     using simplify.subsumption[OF assms(2) \<open>{#} \<subset># \<chi>\<close> \<open>\<chi> \<in> \<psi>\<close>] by blast
   then show False using simp by blast

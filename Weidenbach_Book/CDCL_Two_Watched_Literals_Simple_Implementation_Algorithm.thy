@@ -112,10 +112,10 @@ proof -
 
       show \<open>twl_struct_invs ?T\<close>
         using cdcl inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_struct_invs)
-      
+
       show \<open>twl_stgy_invs ?T\<close>
         using cdcl inv_s inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_stgy_invs)
-      
+
       show \<open>cdcl_twl_cp\<^sup>*\<^sup>* ?S ?T\<close>
         using D WS_WS' cdcl by auto
 
@@ -204,8 +204,8 @@ proof -
 qed
 
 lemma unit_propagation_inner_loop[THEN order_trans, refine_vcg]:
-  assumes \<open>twl_struct_invs S\<close> and inv: \<open>twl_stgy_invs S\<close> 
-  shows \<open>unit_propagation_inner_loop S \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and> 
+  assumes \<open>twl_struct_invs S\<close> and inv: \<open>twl_stgy_invs S\<close>
+  shows \<open>unit_propagation_inner_loop S \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
     cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and> working_queue S' = {#})\<close>
   unfolding unit_propagation_inner_loop_def
   apply (refine_vcg WHILEIT_rule[where R = \<open>measure (size o working_queue)\<close>])
@@ -374,7 +374,7 @@ lemma unit_propagation_outer_loop:
       -- \<open>Show that the invariant still holds\<close>
     then show \<open>twl_struct_invs ?T'\<close>
       using cdcl_twl_cp_twl_struct_invs twl by blast
-    
+
   qed
   subgoal
   proof -
@@ -408,7 +408,7 @@ lemma unit_propagation_outer_loop:
 
     then show \<open>twl_stgy_invs ?T'\<close>
       using twl cdcl_twl_cp_twl_stgy_invs[OF cdcl] twl_s by blast
-    
+
   qed
   subgoal by (simp; fail)
   subgoal by auto
@@ -506,7 +506,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
       remove_dummy_vars)
   show \<open>wf (measure (\<lambda>(brk, S). Suc (length (get_trail S) - (if brk then 1 else 0))))\<close>
     by auto
-  
+
   have \<open>get_trail S \<Turnstile>as CNot (the (get_conflict S))\<close> if \<open>get_conflict S \<noteq> None\<close>
       using assms that unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def by (cases S, auto simp add: cdcl\<^sub>W_restart_mset_state)
@@ -714,7 +714,7 @@ proof -
                   then have "undefined_lit ?M (Pos l)"
                     using \<open>l \<notin> ?A\<close> unfolding lits_of_def by (auto simp add: defined_lit_map)
                   then have "\<exists>S'. cdcl\<^sub>W_o S S'"
-                    using cdcl\<^sub>W_o.decide[of S] decide_rule[of S \<open>Pos l\<close> \<open>cons_trail (Decided (Pos l)) (incr_lvl S)\<close>]
+                    using cdcl\<^sub>W_o.decide[of S] decide_rule[of S \<open>Pos l\<close> \<open>cons_trail (Decided (Pos l)) S\<close>]
                       \<open>l \<in> ?B\<close> None alien unfolding clauses_def no_strange_atm_def by fastforce
                   then show False
                     using termi by (blast intro: cdcl\<^sub>W_stgy.intros)
@@ -1070,7 +1070,7 @@ definition cdcl_twl_stgy_prog :: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_
         (brk \<longrightarrow> no_step cdcl_twl_stgy T) \<and> cdcl_twl_stgy\<^sup>*\<^sup>* S\<^sub>0 T \<and> working_queue T = {#} \<and>
         (\<not>brk \<longrightarrow> get_conflict T = None)\<^esup>
         (\<lambda>(brk, _). \<not>brk)
-        (\<lambda>(brk, S). 
+        (\<lambda>(brk, S).
         do {
           T \<leftarrow> unit_propagation_outer_loop S;
           cdcl_twl_o_prog T
@@ -1094,7 +1094,7 @@ lemma cdcl_twl_stgy_prog_spec[refine_vcg]:
   apply (refine_vcg WHILEIT_rule[where R = \<open>{((_, T), (_, S)). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T }\<close>];
       remove_dummy_vars)
          defer
-  using assms apply (simp_all)[5]             
+  using assms apply (simp_all)[5]
   apply (rule order_trans[OF unit_propagation_outer_loop[of ]])
   using assms apply simp_all[4]
   apply (auto)[]

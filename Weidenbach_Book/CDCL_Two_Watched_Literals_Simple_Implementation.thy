@@ -144,7 +144,7 @@ primrec struct_wf_twl_cls :: "'v multiset twl_clause \<Rightarrow> bool" where
 
 fun convert_to_state :: "'v twl_st \<Rightarrow> 'v cdcl\<^sub>W_restart_mset" where
 "convert_to_state (M, N, U, C, NP, UP, Q) =
-  (M, clause `# N + NP, clause `# U + UP, count_decided M, C)"
+  (M, clause `# N + NP, clause `# U + UP,  C)"
 
 text \<open>
   The invariant on the clauses is the following:
@@ -450,10 +450,8 @@ fun valid_annotation :: "'v twl_st \<Rightarrow> bool" where
      get_level M L = count_decided M) \<and>
   (\<forall>L \<in># Q. -L \<in> lits_of_l M \<and> get_level M L = count_decided M)"
 
-lemma clauses_def: \<open>cdcl\<^sub>W_restart_mset.clauses (M, N, U, k, C) = N + U\<close>
+lemma clauses_def: \<open>cdcl\<^sub>W_restart_mset.clauses (M, N, U, C) = N + U\<close>
   by (subst cdcl\<^sub>W_restart_mset.clauses_def) (simp add: cdcl\<^sub>W_restart_mset_state)
-
-(* TODO subset_mset.add_diff_assoc should be [simp]\<dots> as Nat.add_diff_assoc*)
 
 lemma twl_lazy_update_Propagated:
   assumes
@@ -2459,13 +2457,11 @@ next
     by (simp add: cdcl\<^sub>W_restart_mset_state)
   have "atm_of L \<notin> atm_of ` lits_of_l M1"
     apply (rule cdcl\<^sub>W_restart_mset.backtrack_lit_skiped[of _ ?S])
-        using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-        apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
-       using decomp apply (simp add: trail.simps; fail)
-      using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-        apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+       using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+       apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+      using decomp apply (simp add: trail.simps; fail)
      using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-     apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+       apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
     using lev_K apply (simp add: trail.simps; fail)
     done
   obtain M3 where M3: \<open>M = M3 @ M2 @ Decided K # M1\<close>
@@ -2497,15 +2493,13 @@ next
   have n_d: "no_dup M"
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by (simp add: cdcl\<^sub>W_restart_mset_state)
-   have "atm_of L \<notin> atm_of ` lits_of_l M1"
+  have "atm_of L \<notin> atm_of ` lits_of_l M1"
     apply (rule cdcl\<^sub>W_restart_mset.backtrack_lit_skiped[of _ ?S])
-       using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-       apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
-      using decomp apply (simp add: trail.simps; fail)
-     using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-       apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+      using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+     using decomp apply (simp add: trail.simps; fail)
     using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-       apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+      apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
    using lev_K apply (simp add: trail.simps; fail)
    done
   obtain M3 where M3: \<open>M = M3 @ M2 @ Decided K # M1\<close>
@@ -2634,7 +2628,7 @@ lemma cdcl_twl_cp_twl_struct_invs:
 
 lemma cdcl_twl_cp_twl_stgy_invs:
   \<open>cdcl_twl_cp S T \<Longrightarrow> twl_struct_invs S \<Longrightarrow> twl_stgy_invs S \<Longrightarrow> twl_stgy_invs T\<close>
-  unfolding twl_stgy_invs_def 
+  unfolding twl_stgy_invs_def
   by (metis cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant cdcl_twl_cp_cdcl\<^sub>W_stgy
       twl_struct_invs_def)
 
@@ -4494,7 +4488,7 @@ lemma full_cdcl_twl_stgy_cdcl\<^sub>W_stgy:
 
 lemma cdcl_twl_o_twl_stgy_invs:
   \<open>cdcl_twl_o S T \<Longrightarrow> twl_struct_invs S \<Longrightarrow> twl_stgy_invs S \<Longrightarrow> twl_stgy_invs T\<close>
-  using cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant cdcl_twl_stgy_cdcl\<^sub>W_stgy other' 
+  using cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant cdcl_twl_stgy_cdcl\<^sub>W_stgy other'
   unfolding twl_struct_invs_def twl_stgy_invs_def by blast
 
 end

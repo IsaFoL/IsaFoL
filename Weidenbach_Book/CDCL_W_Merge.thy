@@ -139,51 +139,43 @@ lemma backtrack_reduce_trail_to_state_eq:
   assumes
     V_T: \<open>V \<sim> tl_trail T\<close> and
     decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail V))\<close>
-  shows \<open>reduce_trail_to M1 (add_learned_cls E (update_backtrack_lvl i (update_conflicting None V)))
-    \<sim> reduce_trail_to M1 (add_learned_cls E (update_backtrack_lvl i (update_conflicting None T)))\<close>
+  shows \<open>reduce_trail_to M1 (add_learned_cls E (update_conflicting None V))
+    \<sim> reduce_trail_to M1 (add_learned_cls E (update_conflicting None T))\<close>
 proof -
-  let ?f = \<open>\<lambda>T. add_learned_cls E (update_backtrack_lvl i (update_conflicting None T))\<close>
+  let ?f = \<open>\<lambda>T. add_learned_cls E (update_conflicting None T)\<close>
   have [simp]: \<open>length (trail T) \<noteq> length M1\<close> \<open>trail T \<noteq> []\<close>
     using decomp V_T by (cases \<open>trail T\<close>; auto)+
   have \<open>reduce_trail_to M1 (?f V) \<sim> reduce_trail_to M1 (?f (tl_trail T))\<close>
     apply (rule reduce_trail_to_state_eq)
-    using V_T by (simp_all add: add_learned_cls_state_eq
-        update_backtrack_lvl_state_eq update_conflicting_state_eq)
+    using V_T by (simp_all add: add_learned_cls_state_eq update_conflicting_state_eq)
   moreover {
-    have \<open>add_learned_cls E (update_backtrack_lvl i (update_conflicting None (tl_trail T))) \<sim>
-      tl_trail (add_learned_cls E (update_backtrack_lvl i (update_conflicting None T)))\<close>
+    have \<open>add_learned_cls E (update_conflicting None (tl_trail T)) \<sim>
+      tl_trail (add_learned_cls E (update_conflicting None T))\<close>
       apply (rule state_eq_trans[OF state_eq_sym[THEN iffD1], of
-            \<open>add_learned_cls E (update_backtrack_lvl i (tl_trail (update_conflicting None T)))\<close>])
-       apply (auto simp: tl_trail_update_conflicting tl_trail_update_backtrack_lvl
-          tl_trail_add_learned_cls_commute update_conflicting_state_eq
-          update_backtrack_lvl_state_eq add_learned_cls_state_eq
-          tl_trail_state_eq; fail)[]
+            \<open>add_learned_cls E (tl_trail (update_conflicting None T))\<close>])
+       apply (auto simp: tl_trail_update_conflicting  tl_trail_add_learned_cls_commute
+          update_conflicting_state_eq add_learned_cls_state_eq tl_trail_state_eq; fail)[]
       apply (rule state_eq_trans[OF state_eq_sym[THEN iffD1], of
-            \<open>add_learned_cls E (tl_trail (update_backtrack_lvl i (update_conflicting None T)))\<close>])
-       apply (auto simp: tl_trail_update_conflicting tl_trail_update_backtrack_lvl
-          tl_trail_add_learned_cls_commute update_conflicting_state_eq
-          update_backtrack_lvl_state_eq add_learned_cls_state_eq
-          tl_trail_state_eq; fail)[]
+            \<open>add_learned_cls E (tl_trail (update_conflicting None T))\<close>])
+       apply (auto simp: tl_trail_update_conflicting tl_trail_add_learned_cls_commute 
+          update_conflicting_state_eq add_learned_cls_state_eq tl_trail_state_eq; fail)[]
       apply (rule state_eq_trans[OF state_eq_sym[THEN iffD1], of
-            \<open>tl_trail (add_learned_cls E (update_backtrack_lvl i (update_conflicting None T)))\<close>])
-       apply (auto simp: tl_trail_update_conflicting tl_trail_update_backtrack_lvl
-          tl_trail_add_learned_cls_commute update_conflicting_state_eq
-          update_backtrack_lvl_state_eq add_learned_cls_state_eq
-          tl_trail_state_eq)
+            \<open>tl_trail (add_learned_cls E (update_conflicting None T))\<close>])
+       apply (auto simp: tl_trail_update_conflicting tl_trail_add_learned_cls_commute
+          update_conflicting_state_eq add_learned_cls_state_eq tl_trail_state_eq)
       done
     note _ = reduce_trail_to_state_eq[OF this, of M1 M1]}
   ultimately show \<open>reduce_trail_to M1 (?f V) \<sim> reduce_trail_to M1 (?f T)\<close>
     by (subst (2) reduce_trail_to.simps)
-      (auto simp: tl_trail_update_conflicting tl_trail_update_backtrack_lvl
-        tl_trail_add_learned_cls_commute intro: state_eq_trans)
+      (auto simp: tl_trail_update_conflicting tl_trail_add_learned_cls_commute intro: state_eq_trans)
 qed
 
 lemma rtranclp_skip_backtrack_reduce_trail_to_state_eq:
   assumes
     V_T: \<open>skip\<^sup>*\<^sup>* T V\<close> and
     decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail V))\<close>
-  shows \<open>reduce_trail_to M1 (add_learned_cls E (update_backtrack_lvl i (update_conflicting None T)))
-    \<sim> reduce_trail_to M1 (add_learned_cls E (update_backtrack_lvl i (update_conflicting None V)))\<close>
+  shows \<open>reduce_trail_to M1 (add_learned_cls E (update_conflicting None T))
+    \<sim> reduce_trail_to M1 (add_learned_cls E (update_conflicting None V))\<close>
   using V_T decomp
 proof (induction arbitrary: M2 rule: rtranclp_induct)
   case base
@@ -198,7 +190,7 @@ next
         append_Cons[symmetric] append_assoc[symmetric]
         simp del: append_Cons append_assoc)
   show ?case
-    using backtrack_reduce_trail_to_state_eq[OF _ decomp, of U E i] skip IH[OF decomp']
+    using backtrack_reduce_trail_to_state_eq[OF _ decomp, of U E] skip IH[OF decomp']
     by (auto elim!: skipE simp del: get_all_ann_decomposition.simps intro: state_eq_trans')
 qed
 
@@ -234,9 +226,8 @@ next
     W: "W \<sim> cons_trail (Propagated L D)
                 (reduce_trail_to M1
                   (add_learned_cls D
-                    (update_backtrack_lvl i
-                      (update_conflicting None V))))"
-  using bt inv by (elim backtrackE) metis+
+                    (update_conflicting None V)))"
+    using bt inv by (elim backtrackE) metis+
   obtain L' C' M E where
     tr: "trail T = Propagated L' C' # M" and
     raw: "conflicting T = Some E" and
@@ -244,7 +235,7 @@ next
     E: "E \<noteq> {#}" and
     V: "V \<sim> tl_trail T"
     using skip by (elim skipE) metis
-  let ?M = "Propagated L' C' # trail V"
+  let ?M = "Propagated L' C' # M"
   have tr_M: "trail T = ?M"
     using tr V by auto
   have MT: "M = tl (trail T)" and MV: "M = trail V"
@@ -261,20 +252,19 @@ next
   let ?k = "backtrack_lvl T"
   have [simp]:
     "backtrack_lvl V = ?k"
-    using V by simp
+    using V tr_M by simp
   have "?k > 0"
     using decomp M_lev V tr unfolding cdcl\<^sub>W_M_level_inv_def by auto
   then have "atm_of L \<in> atm_of ` lits_of_l (trail V)"
     using lev_L get_level_ge_0_atm_of_in[of 0 L "trail V"] by auto
   then have L_L': "atm_of L \<noteq> atm_of L'"
-    using n_d' unfolding lits_of_def by auto
-  have L'_M: "atm_of L' \<notin> atm_of ` lits_of_l (trail V)"
+    using n_d' unfolding lits_of_def MV  by auto
+  have L'_M: "atm_of L' \<notin> atm_of ` lits_of_l M"
     using n_d' unfolding lits_of_def by auto
   have "?M \<Turnstile>as CNot D"
     using inv' raw unfolding cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_all_struct_inv_def tr_M by auto
   then have "L' \<notin># (remove1_mset L D)"
-    using L_L' L'_M \<open>Propagated L' C' # trail V \<Turnstile>as CNot D\<close>
-    unfolding true_annots_true_cls true_clss_def
+    using L_L' L'_M unfolding true_annots_true_cls true_clss_def
     by (auto simp: uminus_lit_swap atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set dest!: in_diffD)
   have [simp]: "trail (reduce_trail_to M1 T) = M1"
     using decomp tr W V by auto
@@ -288,7 +278,7 @@ next
     using skip by (auto elim: rulesE)
   have
     W_S: "W \<sim> cons_trail (Propagated L E) (reduce_trail_to M1
-     (add_learned_cls E (update_backtrack_lvl i (update_conflicting None T))))"
+     (add_learned_cls E (update_conflicting None T)))"
     apply (rule state_eq_trans[OF W])
     unfolding DE
     apply (rule cons_trail_state_eq)
@@ -297,24 +287,24 @@ next
 
   obtain M2' where
     decomp': "(Decided K # M1, M2') \<in> set (get_all_ann_decomposition (trail T))"
-    using decomp V unfolding tr_M by (cases "hd (get_all_ann_decomposition (trail V))",
+    using decomp V unfolding tr_M MV by (cases "hd (get_all_ann_decomposition (trail V))",
       cases "get_all_ann_decomposition (trail V)") auto
   moreover
     from L_L' have "get_level ?M L = ?k"
-      using lev_L V by (auto split: if_split_asm)
+      using lev_L V tr_M by (auto split: if_split_asm)
   moreover
     have "atm_of L' \<notin> atms_of D"
       by (metis DE LE L_L' \<open>L' \<notin># (remove1_mset L D)\<close> in_remove1_mset_neq
         atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set atms_of_def)
     then have "get_level ?M L = get_maximum_level ?M D"
-      using calculation(2) lev_L max by auto
+      using calculation(2) lev_L max MV by auto
   moreover
     have "atm_of L' \<notin> atms_of ((remove1_mset L D))"
       by (metis DE LE \<open>L' \<notin># (remove1_mset L D)\<close>
         atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set atms_of_def in_remove1_mset_neq
         in_atms_of_remove1_mset_in_atms_of)
     have "i = get_maximum_level ?M ((remove1_mset L D))"
-      using max_D \<open>atm_of L' \<notin> atms_of ((remove1_mset L D))\<close> by auto
+      using max_D \<open>atm_of L' \<notin> atms_of ((remove1_mset L D))\<close> MV by auto
   moreover have "atm_of L' \<noteq> atm_of K"
     using inv' get_all_ann_decomposition_exists_prepend[OF decomp]
     unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def tr MV by auto
@@ -322,13 +312,13 @@ next
     apply -
     apply (rule backtrack_rule[of T _ L K M1 M2' i W, OF raw])
     unfolding tr_M[symmetric]
-          using LD apply simp
-         apply simp
-        apply simp
-       apply simp
-      apply auto[]
-     using W_S lev_k tr MV apply auto[]
-    using W_S lev_k apply auto[]
+          using LD apply (simp; fail)
+         apply (simp; fail)
+        apply (simp; fail)
+       apply (simp; fail)
+      apply (simp; fail)[]
+     using lev_k tr unfolding MV[symmetric] apply (auto; fail)[]
+    using W_S lev_k apply (auto; fail)[]
     done
   then show ?thesis using IH inv by blast
 qed
@@ -356,8 +346,7 @@ proof -
     W: "W \<sim> cons_trail (Propagated L D)
                 (reduce_trail_to M1
                   (add_learned_cls D
-                    (update_backtrack_lvl i
-                      (update_conflicting None S))))"
+                    (update_conflicting None S)))"
     using bt by (elim backtrackE) (simp add: cdcl\<^sub>W_M_level_inv_decomp)
   let ?D = "remove1_mset L D"
 
@@ -371,7 +360,8 @@ proof -
   (* M\<^sub>T is a proxy to allow auto to unfold T*)
   obtain MS M\<^sub>T where M: "trail S = MS @ M\<^sub>T" and M\<^sub>T: "M\<^sub>T = trail T" and nm: "\<forall>m\<in>set MS. \<not>is_decided m"
     using rtranclp_skip_state_decomp(1)[OF skip] S by auto
-  have T: "state_butlast T = (M\<^sub>T, init_clss S, learned_clss S, backtrack_lvl S, Some D)"
+  have T: "state_butlast T = (M\<^sub>T, init_clss S, learned_clss S, Some D)" and
+    bt_S_T: "backtrack_lvl S = backtrack_lvl T"
     using M\<^sub>T rtranclp_skip_state_decomp[of S T] skip S by auto
 
   have "cdcl\<^sub>W_all_struct_inv T"
@@ -407,7 +397,7 @@ proof -
     c'': \<open>(Decided K # M1, c'') \<in> set (get_all_ann_decomposition (c @ Decided K # M1))\<close>
     using Decided_cons_in_get_all_ann_decomposition_append_Decided_cons[of K M1]  by blast
   have W: "W \<sim> cons_trail (Propagated L D) (reduce_trail_to M1
-    (add_learned_cls D (update_backtrack_lvl i (update_conflicting None T))))"
+    (add_learned_cls D (update_conflicting None T)))"
     apply (rule state_eq_trans[OF W])
     apply (rule cons_trail_state_eq)
     apply (rule rtranclp_skip_backtrack_reduce_trail_to_state_eq[of _ _ K M1])
@@ -424,7 +414,7 @@ proof -
     using Set.imageI[OF decomp, of fst] by auto
   then have "Decided K # M1 \<in> set (map fst (get_all_ann_decomposition M\<^sub>T))"
     using fst_get_all_ann_decomposition_prepend_not_decided[OF nm] unfolding M by auto
-  then obtain M2' where decomp':"(Decided K # M1, M2') \<in> set (get_all_ann_decomposition M\<^sub>T)"
+  then obtain M2' where decomp': "(Decided K # M1, M2') \<in> set (get_all_ann_decomposition M\<^sub>T)"
     by auto
   moreover
     have "atm_of K \<notin> atm_of ` lits_of_l MS"
@@ -435,7 +425,7 @@ proof -
   ultimately show "backtrack T W"
     apply -
     apply (rule backtrack.intros[of T D])
-      using T lev_l' lev_l_D' i' W LD lev_K i apply auto[7]
+      using T lev_l' lev_l_D' i' W LD lev_K i bt_S_T apply ((auto; fail)+)[7]
     using T W unfolding i'[symmetric] by auto
 qed
 
@@ -578,8 +568,7 @@ proof -
     T: "T \<sim> cons_trail (Propagated L D)
                 (reduce_trail_to M1
                   (add_learned_cls D
-                    (update_backtrack_lvl i
-                      (update_conflicting None S))))"
+                    (update_conflicting None S)))"
     using bt_T by (elim backtrackE) (force simp: cdcl\<^sub>W_M_level_inv_def)+
 
   obtain K' i' M1' M2' L' D' where
@@ -593,8 +582,7 @@ proof -
     U: "U \<sim> cons_trail (Propagated L' D')
                 (reduce_trail_to M1'
                   (add_learned_cls D'
-                    (update_backtrack_lvl i'
-                      (update_conflicting None S))))"
+                    (update_conflicting None S)))"
     using bt_U lev by (elim backtrackE) (force simp: cdcl\<^sub>W_M_level_inv_def)+
   obtain c where M: "trail S = c @ M2 @ Decided K # M1"
     using decomp by auto
@@ -658,13 +646,16 @@ proof (rule ccontr)
   have inv_V: "cdcl\<^sub>W_all_struct_inv V"
     using mono_rtranclp[of resolve cdcl\<^sub>W_restart] inv_U resolve cdcl\<^sub>W_restart.simps cdcl\<^sub>W_all_struct_inv_inv
     cdcl\<^sub>W_bj.resolve cdcl\<^sub>W_o.simps by blast
+  define MU where MU: \<open>MU = tl (trail U)\<close>
+  have tr_U: \<open>trail U = Propagated L E # MU\<close>
+    using U tr_U MU by (cases \<open>trail U\<close>) auto
   have
     S: "init_clss U = init_clss S"
        "learned_clss U = learned_clss S"
        "backtrack_lvl U = backtrack_lvl S"
        "backtrack_lvl V = backtrack_lvl S"
        "conflicting S = Some D"
-    using rtranclp_skip_state_decomp[OF skip] U confl_U V by auto
+    using rtranclp_skip_state_decomp[OF skip] U confl_U V tr_U by auto
   obtain M\<^sub>0 where
     tr_S: "trail S = M\<^sub>0 @ trail U" and
     nm: "\<forall>m\<in>set M\<^sub>0. \<not>is_decided m"
@@ -681,8 +672,7 @@ proof (rule ccontr)
     R: "T \<sim> cons_trail (Propagated L' D')
                 (reduce_trail_to M1'
                   (add_learned_cls D'
-                    (update_backtrack_lvl i'
-                      (update_conflicting None S))))"
+                    (update_conflicting None S)))"
     using bt by (elim backtrackE) metis
   obtain c where M: "trail S = c @ M2' @ Decided K' # M1'"
     using get_all_ann_decomposition_exists_prepend[OF decomp'] by auto
@@ -706,14 +696,14 @@ proof (rule ccontr)
         have "no_dup (trail S)"
            using inv U unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
         then have atm_L_notin_M: "atm_of L \<notin> atm_of ` (lits_of_l (trail V))"
-          using M' U S by (auto simp: lits_of_def)
+          using M' U by (auto simp: lits_of_def)
         have get_lev_L:
           "get_level(Propagated L E # trail V) L = backtrack_lvl V"
           using inv_V unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
-        have "atm_of L \<notin> atm_of ` (lits_of_l (rev M\<^sub>0))"
+        have "atm_of L \<notin> atm_of ` (lits_of_l M\<^sub>0)"
           using \<open>no_dup (trail S)\<close> M' by (auto simp: lits_of_def)
         then have "get_level (trail S) L = backtrack_lvl S"
-          using get_lev_L S unfolding M' by auto
+          using get_lev_L nm unfolding M' by auto
       ultimately
         have "get_maximum_level (trail S) (remove1_mset L' D') \<ge> backtrack_lvl S"
           by (metis get_maximum_level_ge_get_level get_level_uminus)
@@ -737,7 +727,7 @@ proof (rule ccontr)
      using get_maximum_level_skip_un_decided_not_present[of "remove1_mset L' D'"
          M\<^sub>0 "trail U"] tr_S nm U
       \<open>get_maximum_level (trail U) ((remove1_mset (- L) D)) = backtrack_lvl U\<close>
-     by (auto simp: S)
+     by auto
   then show False
     using i' \<open>i' < backtrack_lvl S\<close> by auto
 qed
