@@ -4252,10 +4252,13 @@ qed
 
 text \<open>
   When popping a literal from the pending queue to the working state, we do not do any
-  transition in the abstract transition system. Therefore, we use \<^term>\<open>rtranclp\<close>\<close>
-lemma cdcl_twl_stgy_cdcl\<^sub>W_stgy:
+  transition in the abstract transition system. Therefore, we use \<^term>\<open>rtranclp\<close> or a case distinction
+  \<close>
+
+lemma cdcl_twl_stgy_cdcl\<^sub>W_stgy2:
   assumes \<open>cdcl_twl_stgy S T\<close> and twl: \<open>twl_struct_invs S\<close>
-  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (convert_to_state S) (convert_to_state T)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state S) (convert_to_state T) \<or>
+    (convert_to_state S = convert_to_state T \<and> (pending_measure T, pending_measure S) \<in> lexn less_than 2)\<close>
   using assms(1)
 proof (induction rule: cdcl_twl_stgy.induct)
   case (cp S')
@@ -4266,13 +4269,18 @@ next
   have wq: \<open>working_queue S = {#}\<close> and p: \<open>pending S = {#}\<close>
     using o by (cases rule: cdcl_twl_o.cases; auto)+
   show ?case
-    apply (rule r_into_rtranclp)
+    apply (rule disjI1)
     apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.other')
     using no_pending_no_cp[OF wq p twl] apply (simp; fail)
     using no_pending_no_cp[OF wq p twl] apply (simp; fail)
     using cdcl_twl_o_cdcl\<^sub>W_o[of S S', OF o] twl apply (simp add: twl_struct_invs_def; fail)
     done
 qed
+
+lemma cdcl_twl_stgy_cdcl\<^sub>W_stgy:
+  assumes \<open>cdcl_twl_stgy S T\<close> and twl: \<open>twl_struct_invs S\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (convert_to_state S) (convert_to_state T)\<close>
+  using cdcl_twl_stgy_cdcl\<^sub>W_stgy2[OF assms] by auto
 
 lemma cdcl_twl_o_twl_struct_invs:
   assumes

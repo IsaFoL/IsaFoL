@@ -302,7 +302,73 @@ proof -
   show ?thesis using wf_trancl[OF wf_cdcl_twl_cp]  wf_subset[OF _ H] by blast
 qed
 
-lemma unit_propagation_outer_loop:
+
+lemma wf_cdcl_twl_stgy:
+  \<open>wf {(T, S). twl_struct_invs S \<and> cdcl_twl_stgy S T}\<close> (is \<open>wf ?TWL\<close>)
+proof -
+  let ?CDCL = \<open>{(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state S) \<and>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state S) (convert_to_state T)}\<close>
+  let ?P = \<open>{(T, S). convert_to_state S = convert_to_state T \<and>
+    (pending_measure T, pending_measure S) \<in> lexn less_than 2}\<close>
+
+  have wf_p_m: \<open>wf {(T, S). (pending_measure T, pending_measure S) \<in> lexn less_than 2}\<close>
+    using wf_if_measure_f[of \<open>lexn less_than 2\<close> pending_measure] by (auto simp: wf_lexn)
+  have \<open>wf ?CDCL\<close>
+    by (rule wf_subset[OF wf_cdcl\<^sub>W_stgy_convert_to_state])
+      (auto simp: twl_struct_invs_def)
+  moreover have \<open>wf ?P\<close>
+    by (rule wf_subset[OF wf_p_m]) auto
+  moreover have \<open>?CDCL O ?P \<subseteq> ?CDCL\<close> by auto
+  ultimately have \<open>wf (?CDCL \<union> ?P)\<close>
+    by (rule wf_union_compatible)
+
+  moreover have \<open>?TWL \<subseteq> ?CDCL \<union> ?P\<close>
+  proof
+    fix x
+    assume x_TWL: \<open>x \<in> ?TWL\<close>
+    then obtain S T where x: \<open>x = (T, S)\<close> by auto
+
+    have twl: \<open>twl_struct_invs S\<close> and cdcl: \<open>cdcl_twl_stgy S T\<close>
+      using x_TWL x by auto
+    have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state S)\<close>
+      using twl by (auto simp: twl_struct_invs_def)
+    moreover have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state S) (convert_to_state T) \<or>
+      (convert_to_state S = convert_to_state T \<and> (pending_measure T, pending_measure S) \<in> lexn less_than 2)\<close>
+      using cdcl cdcl_twl_stgy_cdcl\<^sub>W_stgy2 twl by blast
+    ultimately show \<open>x \<in> ?CDCL \<union> ?P\<close>
+      unfolding x by blast
+  qed
+  ultimately show ?thesis
+    using wf_subset[of \<open>?CDCL \<union> ?P\<close>] by blast
+qed
+
+lemma tranclp_wf_cdcl_twl_stgy:
+  \<open>wf {(T, S). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T}\<close>
+proof -
+  have H: \<open>{(T, S). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<subseteq> {(T, S). twl_struct_invs S \<and> cdcl_twl_stgy S T}\<^sup>+\<close>
+  proof -
+    { fix T S :: \<open>'v twl_st\<close>
+      assume \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ S T\<close> \<open>twl_struct_invs S\<close>
+      then have \<open>(T, S) \<in> {(T, S). twl_struct_invs S \<and> cdcl_twl_stgy S T}\<^sup>+\<close> (is \<open>_ \<in> ?S\<^sup>+\<close>)
+      proof (induction rule: tranclp_induct)
+        case (base y)
+        then show ?case by auto
+      next
+        case (step T U) note st = this(1) and stgy = this(2) and IH = this(3)[OF this(4)] and
+          twl = this(4)
+        have \<open>twl_struct_invs T\<close>
+          by (metis (no_types, lifting) IH Nitpick.tranclp_unfold cdcl_twl_stgy_twl_struct_invs converse_tranclpE)
+        then have \<open>(U, T) \<in> ?S\<^sup>+\<close>
+          using stgy by auto
+        then show ?case using IH by auto
+      qed
+    }
+    then show ?thesis by blast
+  qed
+  show ?thesis using wf_trancl[OF wf_cdcl_twl_stgy]  wf_subset[OF _ H] by blast
+qed
+
+lemma unit_propagation_outer_loop[THEN order_trans, refine_vcg]:
   assumes \<open>twl_struct_invs S\<close> and \<open>working_queue S = {#}\<close> and confl: \<open>get_conflict S = None\<close> and
     \<open>twl_stgy_invs S\<close>
   shows \<open>unit_propagation_outer_loop S \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and>
@@ -431,7 +497,7 @@ fun decide :: "'v twl_st \<Rightarrow> 'v twl_st nres"  where
   }
 \<close>
 
-lemma decide_spec[refine_vcg]:
+lemma decide_spec[THEN order_trans, refine_vcg]:
   assumes \<open>working_queue S = {#}\<close> and \<open>pending S = {#}\<close> and \<open>get_conflict S = None\<close> and
     twl: \<open>twl_struct_invs S\<close> and twl_s: \<open>twl_stgy_invs S\<close>
   shows \<open>decide S \<le> SPEC (\<lambda>T. cdcl_twl_o S T \<and> get_conflict T = None \<and> working_queue T = {#} \<and>
@@ -494,7 +560,7 @@ definition skip_and_resolve_loop :: "'v twl_st \<Rightarrow> 'v twl_st nres"  wh
     }
   \<close>
 
-lemma skip_and_resolve_loop_spec[refine_vcg]:
+lemma skip_and_resolve_loop_spec[THEN order_trans, refine_vcg]:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>working_queue S = {#}\<close> and \<open>pending S = {#}\<close> and
     \<open>get_conflict S \<noteq> None\<close>(*  and \<open>get_trail S \<noteq> []\<close> *)
   shows \<open>skip_and_resolve_loop S \<le> SPEC(\<lambda>T. cdcl_twl_o\<^sup>*\<^sup>* S T \<and> twl_struct_invs T \<and> twl_stgy_invs T \<and>
@@ -822,7 +888,7 @@ qed
 
 end
 
-lemma backtrack_spec[refine_vcg]:
+lemma backtrack_spec[THEN order_trans, refine_vcg]:
   assumes confl: \<open>get_conflict S \<noteq> None\<close> \<open>get_conflict S \<noteq> Some {#}\<close> and
     w_q: \<open>working_queue S = {#}\<close> and p: \<open>pending S = {#}\<close> and
     ns_s: \<open>no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state S)\<close> and
@@ -1032,9 +1098,9 @@ definition cdcl_twl_o_prog :: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_st)
   \<close>
 
 
-lemma cdcl_twl_o_prog_spec[refine_vcg]:
+lemma cdcl_twl_o_prog_spec[THEN order_trans, refine_vcg]:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>working_queue S = {#}\<close> and \<open>pending S = {#}\<close> and
-    (* \<open>get_trail S \<noteq> []\<close> and *) ns_cp: \<open>no_step cdcl_twl_cp S\<close>
+    ns_cp: \<open>no_step cdcl_twl_cp S\<close>
   shows
     \<open>cdcl_twl_o_prog S \<le> SPEC(\<lambda>(brk, T). cdcl_twl_o\<^sup>*\<^sup>* S T \<and> (get_conflict T \<noteq> None \<longrightarrow> get_conflict T = Some {#}) \<and>
       no_step cdcl_twl_o T \<and> (brk \<longrightarrow> no_step cdcl_twl_stgy T) \<and> twl_struct_invs T \<and>
@@ -1042,24 +1108,49 @@ lemma cdcl_twl_o_prog_spec[refine_vcg]:
       (\<not>brk \<longrightarrow> pending T \<noteq> {#}))\<close>
     (is \<open>_ \<le> ?S\<close>)
   unfolding cdcl_twl_o_prog_def
-  apply (refine_vcg)
-  apply (rule order_trans[OF decide_spec])
-  using assms apply ((auto simp del: decide.simps simp: cdcl_twl_o.simps; fail)+)[6]
-        apply (simp; fail)
-       apply (auto; fail)[]
-      apply (auto simp: cdcl_twl_o.simps; fail)[]
-     apply (use ns_cp in \<open>auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps; fail\<close>)[]
-    apply (use assms(1) in \<open>simp; fail\<close>)
-  apply (use assms(2) in \<open>simp; fail\<close>)
-  apply (use assms(3) in \<open>simp; fail\<close>)
-  apply (simp; fail)
-  apply (rule order_trans[OF skip_and_resolve_loop_spec[of S]])
-  using assms apply auto[6]
-  apply (auto simp: cdcl_twl_o.simps; fail)[]
-  using ns_cp apply (auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps cdcl_twl_cp.simps; fail)[]
-  apply (refine_vcg) -- \<open>how do I force intro! need another vcg call?\<close>
-  apply (auto intro!: order_trans[OF backtrack_spec[of _]]
-      intro: cdcl_twl_o_twl_struct_invs cdcl_twl_o_twl_stgy_invs)
+  apply (refine_vcg; remove_dummy_vars)
+  -- \<open>initial invariants\<close>
+  subgoal using assms by (auto simp del: decide.simps)
+  subgoal using assms by (auto simp del: decide.simps)
+  subgoal using assms by (auto simp del: decide.simps)
+  subgoal using assms by (auto simp del: decide.simps)
+  subgoal using assms by (auto simp del: decide.simps)
+  -- \<open>decision, if false\<close>
+  subgoal using assms by (auto simp del: decide.simps simp: cdcl_twl_o.simps)
+  subgoal using assms by (auto simp del: decide.simps)
+  subgoal using assms by (auto simp del: decide.simps simp: cdcl_twl_o.simps)
+  subgoal using assms by (auto simp del: decide.simps)
+  subgoal using assms by (auto simp del: decide.simps simp: cdcl_twl_o.simps)
+  subgoal for M N D NP UP WS Q brk T
+    by (cases T) (use ns_cp in \<open>auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps\<close>)
+  subgoal using assms by (auto simp del: decide.simps)
+  subgoal using assms by (auto simp del: decide.simps)
+  subgoal using assms by (auto simp del: decide.simps)
+  subgoal using assms by (auto simp del: decide.simps)
+
+  -- \<open>\<^term>\<open>skip_and_resolve_loop\<close> part, if true\<close>
+    -- \<open>initial conditions\<close>
+  subgoal using assms by (auto simp del: decide.simps)
+  subgoal using assms by (auto simp del: decide.simps)
+  subgoal using assms by (auto simp del: decide.simps simp: cdcl_twl_o.simps)
+  subgoal using assms by (auto simp del: decide.simps)
+
+    -- \<open>initial of backtrack part\<close>
+  subgoal by (auto simp del: decide.simps)
+  subgoal by (auto simp del: decide.simps)
+  subgoal by (auto simp del: decide.simps)
+
+    -- \<open>final properties\<close>
+  subgoal by (auto simp del: decide.simps simp: cdcl_twl_o.simps)
+  subgoal by (auto simp del: decide.simps)
+  subgoal by (auto simp del: decide.simps)
+  subgoal by (auto simp del: decide.simps simp: cdcl_twl_o.simps)
+
+  -- \<open>\<^term>\<open>skip_and_resolve_loop\<close>, if false: final properties\<close>
+  subgoal by (auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps cdcl_twl_cp.simps)
+  subgoal by (auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps)
+  subgoal by (auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps cdcl_twl_cp.simps)
+  subgoal by (auto simp: intro: cdcl_twl_o_twl_struct_invs cdcl_twl_o_twl_stgy_invs)
   done
 
 definition cdcl_twl_stgy_prog :: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres"  where
@@ -1084,7 +1175,7 @@ lemma rtranclp_cdcl_twl_o_stgyD: \<open>cdcl_twl_o\<^sup>*\<^sup>* S T \<Longrig
   using rtranclp_mono[of cdcl_twl_o cdcl_twl_stgy] cdcl_twl_stgy.intros(2)
   by blast
 
-lemma cdcl_twl_stgy_prog_spec[refine_vcg]:
+lemma cdcl_twl_stgy_prog_spec[THEN order_trans, refine_vcg]:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>working_queue S = {#}\<close> and \<open>pending S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
@@ -1093,23 +1184,43 @@ lemma cdcl_twl_stgy_prog_spec[refine_vcg]:
   unfolding cdcl_twl_stgy_prog_def
   apply (refine_vcg WHILEIT_rule[where R = \<open>{((_, T), (_, S)). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T }\<close>];
       remove_dummy_vars)
-         defer
-  using assms apply (simp_all)[5]
-  apply (rule order_trans[OF unit_propagation_outer_loop[of ]])
-  using assms apply simp_all[4]
-  apply (auto)[]
-  apply (rule order_trans[OF cdcl_twl_o_prog_spec[of ]])
-             apply ((auto; fail)+)[2]
-  using no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp apply fast
-  using no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp apply fast
-       apply (simp; fail)
-      defer
-  apply (simp; fail)
-    apply (blast)
-  defer
-   apply (auto dest!: cdcl_twl_stgy.intros rtranclp_cdcl_twl_o_stgyD intro: rtranclp_trans)[]
-   apply (smt cp mono_rtranclp other' rtranclp_trans)
-           defer
-  apply (metis (no_types, lifting) cp mono_rtranclp rtranclp_trans)
-  sorry
+  subgoal -- \<open>Well foundedness of the relation\<close> sorry
+  -- \<open>initial invariants:\<close>
+  subgoal using assms by simp
+  subgoal using assms by simp
+  subgoal using assms by simp
+  subgoal using assms by simp
+  subgoal using assms by simp
+  -- \<open>loop invariants:\<close>
+  subgoal using assms by simp
+  subgoal using assms by simp
+  subgoal using assms by simp
+  subgoal using assms by simp
+  subgoal by (simp add: no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp)
+  subgoal using assms by simp
+  subgoal using assms by simp
+  subgoal using assms by simp
+  subgoal by blast
+  subgoal for brk S' T brk' U
+  proof -
+    assume a1: "cdcl_twl_cp\<^sup>*\<^sup>* S' T"
+    assume a2: "case (brk', U) of (brk, S') \<Rightarrow> cdcl_twl_o\<^sup>*\<^sup>* T S' \<and> (get_conflict S' \<noteq> None \<longrightarrow> get_conflict S' = Some {#}) \<and> no_step cdcl_twl_o S' \<and> (brk \<longrightarrow> no_step cdcl_twl_stgy S') \<and> twl_struct_invs S' \<and> twl_stgy_invs S' \<and> working_queue S' = {#} \<and> (\<not> brk \<longrightarrow> pending S' \<noteq> {#})"
+    assume a3: "case (brk, S') of (brk, S') \<Rightarrow> twl_struct_invs S' \<and> twl_stgy_invs S' \<and> (brk \<longrightarrow> no_step cdcl_twl_stgy S') \<and> cdcl_twl_stgy\<^sup>*\<^sup>* S S' \<and> working_queue S' = {#} \<and> (\<not> brk \<longrightarrow> get_conflict S' = None)"
+    have f4: "cdcl_twl_o\<^sup>*\<^sup>* T U \<and> (get_conflict U \<noteq> None \<longrightarrow> get_conflict U = Some {#}) \<and> no_step cdcl_twl_o U \<and> (brk' \<longrightarrow> no_step cdcl_twl_stgy U) \<and> twl_struct_invs U \<and> twl_stgy_invs U \<and> working_queue U = {#} \<and> (\<not> brk' \<longrightarrow> pending U \<noteq> {#})"
+      using a2 by fastforce
+    have f5: "cdcl_twl_stgy\<^sup>*\<^sup>* S' T"
+      using a1 by (metis cp mono_rtranclp)
+    have "cdcl_twl_stgy\<^sup>*\<^sup>* T U"
+      using f4 rtranclp_cdcl_twl_o_stgyD by blast
+    then show ?thesis
+      using f5 a3 by force
+  qed
+  subgoal by simp
+  subgoal by (force simp: twl_struct_invs_def)
+  -- \<open>Final properties\<close>
+  subgoal -- \<open>termination\<close> sorry
+  subgoal by simp
+  subgoal by fast
+  done
+
 end
