@@ -84,13 +84,14 @@ lemma rtranclp_and_rtranclp_left: "(\<lambda> a b. P a b \<and> Q a b)\<^sup>*\<
 subsection \<open>Full Transitions\<close>
 
 text \<open>We define here predicates to define properties after all possible transitions.\<close>
-abbreviation "no_step step S \<equiv> (\<forall>S'. \<not>step S S')"
+abbreviation (input) no_step :: "('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> bool" where
+"no_step step S \<equiv> \<forall>S'. \<not>step S S'"
 
 definition full1 :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" (*"_\<^sup>+\<^sup>\<down>"*) where
-"full1 transf = (\<lambda>S S'. tranclp transf S S' \<and> (\<forall>S''. \<not> transf S' S''))"
+"full1 transf = (\<lambda>S S'. tranclp transf S S' \<and> no_step transf S')"
 
 definition full:: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" (*"_\<^sup>\<down>"*) where
-"full transf = (\<lambda>S S'. rtranclp transf S S' \<and> (\<forall>S''. \<not> transf S' S''))"
+"full transf = (\<lambda>S S'. rtranclp transf S S' \<and> no_step transf S')"
 
 text \<open>We define output notations only for printing:\<close>
 notation (output) full1 ("_\<^sup>+\<^sup>\<down>")
@@ -124,10 +125,10 @@ lemma full1_is_full[intro]: "full1 R S T \<Longrightarrow> full R S T"
   by (simp add: full_unfold)
 
 lemma not_full1_rtranclp_relation: "\<not>full1 R\<^sup>*\<^sup>* a b"
-  by (meson full1_def rtranclp.rtrancl_refl)
+  by (auto simp: full1_def)
 
 lemma not_full_rtranclp_relation: "\<not>full R\<^sup>*\<^sup>* a b"
-  by (meson full_fullI not_full1_rtranclp_relation rtranclp.rtrancl_refl)
+  by (auto simp: full_def)
 
 lemma full1_tranclp_relation_full:
   "full1 R\<^sup>+\<^sup>+ a b \<longleftrightarrow> full1 R a b"
@@ -160,7 +161,7 @@ qed
 
 lemma tranclp_full1_full1:
   "(full1 R)\<^sup>+\<^sup>+ a b \<longleftrightarrow> full1 R a b"
-  by (metis full1_def rtranclp_full1_eq_or_full1 tranclp_unfold_begin)
+  unfolding rtranclp_full1_eq_or_full1 tranclp_unfold_begin by (metis full1_def tranclp_full1I)
 
 
 subsection \<open>Well-Foundedness and Full Transitions\<close>
@@ -172,7 +173,7 @@ proof (rule ccontr)
   assume "\<not> ?thesis"
   then have H: "\<And>b. \<not> R\<^sup>*\<^sup>* a b \<or> \<not>no_step R b"
     by blast
-  def F \<equiv> "rec_nat a (\<lambda>i b. SOME c. R b c)"
+  define F where "F = rec_nat a (\<lambda>i b. SOME c. R b c)"
   have [simp]: "F 0 = a"
     unfolding F_def by auto
   have [simp]: "\<And>i. F (Suc i) = (SOME b. R (F i) b)"

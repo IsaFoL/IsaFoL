@@ -2723,7 +2723,7 @@ qed
 
 lemma cdcl\<^sub>W_stgy_final_state_conclusive2:
   assumes
-    termi: "\<forall>S'. \<not>cdcl\<^sub>W_stgy S S'" and
+    termi: "no_step cdcl\<^sub>W_stgy S" and
     decomp: "all_decomposition_implies_m (clauses S) (get_all_ann_decomposition (trail S))" and
     learned: "cdcl\<^sub>W_learned_clause S" and
     level_inv: "cdcl\<^sub>W_M_level_inv S" and
@@ -2797,7 +2797,7 @@ proof -
 
 lemma cdcl\<^sub>W_stgy_final_state_conclusive:
   assumes
-    termi: "\<forall>S'. \<not>cdcl\<^sub>W_stgy S S'" and
+    termi: "no_step cdcl\<^sub>W_stgy S" and
     decomp: "all_decomposition_implies_m (clauses S) (get_all_ann_decomposition (trail S))" and
     learned: "cdcl\<^sub>W_learned_clause S" and
     level_inv: "cdcl\<^sub>W_M_level_inv S" and

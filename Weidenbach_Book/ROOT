@@ -119,7 +119,6 @@ session "Two_Watched_Literals" (Weidenbach_Book) = "CDCL_Base"  +
   theories [quick_and_dirty, document = true]
     CDCL_Two_Watched_Literals_Simple_Implementation
     CDCL_Two_Watched_Literals_Simple_Implementation_Algorithm
-    CDCL_Two_Watched_Literals
   document_files
     "root.tex"
     "biblio.bib"
