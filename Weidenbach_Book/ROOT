@@ -179,7 +179,6 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
   theories [quick_and_dirty, document = true]
     CDCL_Two_Watched_Literals_Simple_Implementation
     CDCL_Two_Watched_Literals_Simple_Implementation_Algorithm
-    CDCL_Two_Watched_Literals
     Weidenbach_Book
   document_files
     "root.tex"

@@ -808,6 +808,10 @@ proof clarify
     using wf_tranclp_cdcl\<^sub>W_merge unfolding wf_iff_no_infinite_down_chain by fast
 qed
 
+lemma wf_cdcl\<^sub>W_stgy:
+  \<open>wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_stgy S T}\<close>
+  by (rule wf_subset[OF wf_cdcl\<^sub>W]) (auto dest: cdcl\<^sub>W_stgy_cdcl\<^sub>W)
+
 end
 
 

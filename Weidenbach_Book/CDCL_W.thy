@@ -2721,6 +2721,80 @@ proof -
     qed
 qed
 
+lemma cdcl\<^sub>W_stgy_final_state_conclusive2:
+  assumes
+    termi: "\<forall>S'. \<not>cdcl\<^sub>W_stgy S S'" and
+    decomp: "all_decomposition_implies_m (clauses S) (get_all_ann_decomposition (trail S))" and
+    learned: "cdcl\<^sub>W_learned_clause S" and
+    level_inv: "cdcl\<^sub>W_M_level_inv S" and
+    alien: "no_strange_atm S" and
+    no_dup: "distinct_cdcl\<^sub>W_state S" and
+    confl: "cdcl\<^sub>W_conflicting S" and
+    confl_k: "conflict_is_false_with_level S"
+  shows "(conflicting S = Some {#} \<and> unsatisfiable (set_mset (clauses S)))
+         \<or> (conflicting S = None \<and> trail S \<Turnstile>as set_mset (clauses S))"
+proof -
+  let ?M = "trail S"
+  let ?N = "clauses S"
+  let ?k = "backtrack_lvl S"
+  let ?U = "learned_clss S"
+  consider
+      (None) "conflicting S = None"
+    | (Some_Empty) E where "conflicting S = Some E" and "E = {#}"
+    using conflicting_no_false_can_do_step[of S, OF _ _ confl_k confl level_inv no_dup alien] termi
+    by (cases "conflicting S", simp) auto
+  then show ?thesis
+    proof cases
+      case (Some_Empty E)
+      then have "conflicting S = Some {#}" by auto
+      then have unsat_clss_S: "unsatisfiable (set_mset (clauses S))"
+        using learned unfolding cdcl\<^sub>W_learned_clause_def true_clss_cls_def
+        conflict_is_false_with_level_def
+        by (metis (no_types, lifting) Un_insert_right atms_of_empty satisfiable_def
+          sup_bot.right_neutral total_over_m_insert total_over_set_empty true_cls_empty)
+      then show ?thesis using Some_Empty by (auto simp: clauses_def)
+    next
+      case None
+      have "?M \<Turnstile>asm ?N"
+        proof (rule ccontr)
+          assume MN: "\<not> ?thesis"
+          have all_defined: "atm_of ` (lits_of_l ?M) = atms_of_mm ?N" (is "?A = ?B")
+            proof
+              show "?A \<subseteq> ?B" using alien unfolding no_strange_atm_def clauses_def by auto
+              show "?B \<subseteq> ?A"
+                proof (rule ccontr)
+                  assume "\<not>?B \<subseteq> ?A"
+                  then obtain l where "l \<in> ?B" and "l \<notin> ?A" by auto
+                  then have "undefined_lit ?M (Pos l)"
+                    using \<open>l \<notin> ?A\<close> unfolding lits_of_def by (auto simp add: defined_lit_map)
+                  then have "\<exists>S'. cdcl\<^sub>W_o S S'"
+                    using cdcl\<^sub>W_o.decide[of S] decide_rule[of S \<open>Pos l\<close> \<open>cons_trail (Decided (Pos l)) S\<close>]
+                      \<open>l \<in> ?B\<close> None alien unfolding clauses_def no_strange_atm_def by fastforce
+                  then show False
+                    using termi by (blast intro: cdcl\<^sub>W_stgy.intros)
+                qed
+            qed
+          obtain D where "\<not> ?M \<Turnstile>a D" and "D \<in># ?N"
+            using MN unfolding lits_of_def true_annots_def Ball_def by auto
+          have "atms_of D \<subseteq> atm_of ` (lits_of_l ?M)"
+            using \<open>D \<in># ?N\<close> unfolding all_defined atms_of_ms_def by auto
+          then have "total_over_m (lits_of_l ?M) {D}"
+            using atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+            by (fastforce simp: total_over_set_def)
+          then have "?M \<Turnstile>as CNot D"
+            using \<open>\<not> trail S \<Turnstile>a D\<close> unfolding true_annot_def true_annots_true_cls
+            by (fastforce simp: total_not_true_cls_true_clss_CNot)
+          then have "\<exists>S'. conflict S S'"
+            using \<open>trail S \<Turnstile>as CNot D\<close> \<open>D \<in># clauses S\<close>
+            None unfolding clauses_def by (auto simp: conflict.simps clauses_def)
+          then show False
+            using termi by (blast intro: cdcl\<^sub>W_stgy.intros)
+        qed
+      then show ?thesis
+        using None by auto
+    qed
+  qed
+
 lemma cdcl\<^sub>W_stgy_final_state_conclusive:
   assumes
     termi: "\<forall>S'. \<not>cdcl\<^sub>W_stgy S S'" and
@@ -3682,6 +3756,35 @@ proof -
   ultimately show ?thesis
     by (metis satisfiable_carac' true_annot_def true_annots_def true_clss_def)
 qed
+
+
+lemma full_cdcl\<^sub>W_stgy_inv_normal_form2:
+  assumes
+    full: "full cdcl\<^sub>W_stgy S T" and
+    inv_s: "cdcl\<^sub>W_stgy_invariant S" and
+    inv: "cdcl\<^sub>W_all_struct_inv S"
+  shows "conflicting T = Some {#} \<and> unsatisfiable (set_mset (clauses T))
+    \<or> conflicting T = None \<and> satisfiable (set_mset (clauses T))"
+proof -
+  have "no_step cdcl\<^sub>W_stgy T" and st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T"
+    using full unfolding full_def by blast+
+  moreover have "cdcl\<^sub>W_all_struct_inv T" and inv_s: "cdcl\<^sub>W_stgy_invariant T"
+    apply (metis rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart full full_def inv
+      rtranclp_cdcl\<^sub>W_all_struct_inv_inv)
+    by (metis full full_def inv inv_s rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant)
+  ultimately have "conflicting T = Some {#} \<and> unsatisfiable (set_mset (clauses T))
+    \<or> conflicting T = None \<and> trail T \<Turnstile>asm clauses T"
+    using cdcl\<^sub>W_stgy_final_state_conclusive2[of T] full
+    unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_stgy_invariant_def full_def by fast
+  moreover have "consistent_interp (lits_of_l (trail T))"
+    using \<open>cdcl\<^sub>W_all_struct_inv T\<close> unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
+    by auto
+  ultimately show ?thesis
+    by (metis satisfiable_carac' true_annot_def true_annots_def true_clss_def)
+qed
+
+
+subsection \<open>Additional Invariant: No Smaller Propagation\<close>
 
 definition "no_smaller_propa (S ::'st) \<equiv>
   (\<forall>M K M' D L. trail S = M' @ Decided K # M \<longrightarrow> D + {#L#} \<in># clauses S \<longrightarrow> undefined_lit M L

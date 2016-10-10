@@ -3,15 +3,17 @@ theory CDCL_Two_Watched_Literals_Simple_Implementation
    "$AFP/Refine_Imperative_HOL/IICF/IICF"
 begin
 
-
-subsection \<open>Two-watched literals\<close>
+chapter \<open>Two-watched literals\<close>
 
 notation image_mset (infixr "`#" 90)
 
 
-subsubsection \<open>Types and Transitions System\<close>
+section \<open>Rule-based system\<close>
 
-paragraph \<open>Types and accessing functions\<close>
+subsection \<open>Types and Transitions System\<close>
+
+subsubsection \<open>Types and accessing functions\<close>
+
 datatype 'v twl_clause =
   TWL_Clause (watched: 'v) (unwatched: 'v)
 
@@ -52,6 +54,9 @@ fun update_clause where
 "update_clause (TWL_Clause W UW) L L' =
   TWL_Clause (add_mset L' (remove1_mset L W)) (add_mset L (remove1_mset L' UW))"
 
+text \<open>
+  When updating clause, we do it non-deterministically: in case of duplicate clause in the two
+  sets, one of the two can be updated (and it does not matter), contrary to an if-condition. \<close>
 inductive update_clauses ::
   "'a multiset twl_clause multiset \<times> 'a multiset twl_clause multiset \<Rightarrow>
   'a multiset twl_clause \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow>
@@ -61,11 +66,14 @@ inductive update_clauses ::
 
 inductive_cases update_clausesE: \<open>update_clauses (N, U) D L L' (N', U')\<close>
 
+fun get_trail :: "'v twl_st \<Rightarrow> ('v, 'v literal multiset) ann_lit list" where
+  \<open>get_trail (M, _, _, _, _, _, _, _) = M\<close>
 
-paragraph \<open>The Transitions\<close>
+
+subsubsection \<open>The Transition System\<close>
 
 text \<open>We ensure that there are always \<^emph>\<open>2\<close> watched literals and that there are different. All
-  clauses containing a single literal are put in \<^term>\<open>NP\<close> or  \<^term>\<open>UP\<close>.\<close>
+  clauses containing a single literal are put in \<^term>\<open>NP\<close> or \<^term>\<open>UP\<close>.\<close>
 
 inductive cdcl_twl_cp :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" where
 pop:
@@ -131,9 +139,9 @@ cp: "cdcl_twl_cp S S' \<Longrightarrow> cdcl_twl_stgy S S'" |
 other': "cdcl_twl_o S S' \<Longrightarrow> cdcl_twl_stgy S S'"
 
 
-subsubsection \<open>Two-watched literals Invariants\<close>
+subsection \<open>Definition of the Two-watched literals Invariants\<close>
 
-paragraph \<open>Definitions\<close>
+subsubsection \<open>Definitions\<close>
 
 text \<open>The structural invariants states that there are at most two watched elements, that the watched
   literals are distinct, and that there are 2 watched literals if there are at least than two
@@ -158,36 +166,33 @@ where
 "twl_is_an_exception C Q WS \<longleftrightarrow>
    (\<exists>L. L \<in># Q \<and> L \<in># watched C) \<or> (\<exists>L. (L, C) \<in># WS)"
 
-lemma twl_is_an_exception_add_mset_to_queue: \<open>twl_is_an_exception C (add_mset L Q) WS \<longleftrightarrow>
-  (twl_is_an_exception C Q WS \<or> (L \<in># watched C))\<close>
-  unfolding twl_is_an_exception_def by auto
-
-lemma twl_is_an_exception_add_mset_to_working_queue:
-  \<open>twl_is_an_exception C Q (add_mset (L, D) WS) \<longleftrightarrow> (twl_is_an_exception C Q WS \<or> (C = D))\<close>
-  unfolding twl_is_an_exception_def by auto
-
-lemma twl_is_an_exception_empty[simp]: \<open>\<not>twl_is_an_exception C {#} {#}\<close>
-  unfolding twl_is_an_exception_def by auto
-
+text \<open>If one watched literal is true and the other false, then it has been decided earlier.\<close>
 fun twl_inv :: "('a, 'b) ann_lits \<Rightarrow> 'a clause twl_clause \<Rightarrow> bool" where
 "twl_inv M (TWL_Clause W UW) \<longleftrightarrow>
   (\<forall>L L'. W = {#L, L'#} \<longrightarrow> L \<in> lits_of_l M \<longrightarrow> -L' \<in> lits_of_l M \<longrightarrow>
     get_level M L \<le> get_level M L')"
 
+text \<open>This invariant state that watched literals are set at the end and are not swapped with an
+  unwatched literal later.\<close>
 fun twl_lazy_update :: "('a, 'b) ann_lits \<Rightarrow> 'a clause twl_clause \<Rightarrow> bool" where
 \<open>twl_lazy_update M (TWL_Clause W UW) \<longleftrightarrow>
   (\<forall>L L'. W = {#L, L'#} \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L' \<notin> lits_of_l M \<longrightarrow>
     (\<forall>K \<in># UW. get_level M L \<ge> get_level M K))\<close>
 
 text \<open>If one watched literals has been assigned to false (\<^term>\<open>-L \<in> lits_of_l M\<close>) and the clause
-  has not yet been updated (\<^term>\<open>L' \<notin> lits_of_l M\<close> should be removed either by updating \<open>L\<close>,
+  has not yet been updated (\<^term>\<open>L' \<notin> lits_of_l M\<close>: it should be removed either by updating \<open>L\<close>,
   propagating \<open>L'\<close>, or marking the conflict), then the literals \<^term>\<open>L\<close> is of maximal level.\<close>
 fun watched_literals_false_of_max_level :: "('a, 'b) ann_lits \<Rightarrow> 'a clause twl_clause \<Rightarrow> bool" where
 "watched_literals_false_of_max_level M (TWL_Clause W UW) \<longleftrightarrow>
   (\<forall>L L'. W = {#L, L'#} \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L' \<notin> lits_of_l M \<longrightarrow>
     get_level M L = count_decided M)"
 
-text \<open>The last condition is needed when \<^term>\<open>WS\<close> is \<^term>\<open>{#}\<close>.\<close>
+text \<open>
+  This invariants talks about the enqueued literals:
+  \<^item> the working stack contains a single literal;
+  \<^item> the working stack and the pending literals are false with respect to the trail and there are no
+  duplicates;
+  \<^item> and the latter condition holds even when \<^term>\<open>WS = {#}\<close>.\<close>
 fun no_duplicate_queued :: "'v twl_st \<Rightarrow> bool"  where
 \<open>no_duplicate_queued (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow>
   (\<forall>C C'. C \<in># WS \<longrightarrow> C' \<in># WS \<longrightarrow> fst C = fst C') \<and>
@@ -199,20 +204,20 @@ fun distinct_queued :: "'v twl_st \<Rightarrow> bool"  where
   distinct_mset Q \<and>
   (\<forall>L C. count WS (L, C) \<le> count (N + U) C)\<close>
 
-fun twl_exception_inv :: "'v twl_st \<Rightarrow>  'v clause twl_clause \<Rightarrow> bool"  where
-  \<open>twl_exception_inv (M, N, U, None, NP, UP, WS, Q) C \<longleftrightarrow>
-    (\<forall>L L'. watched C = {#L, L'#} \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L' \<notin> lits_of_l M \<longrightarrow>
-      L \<notin># Q \<longrightarrow> (L, C) \<notin># WS \<longrightarrow>
-      (\<forall>K \<in># unwatched C. -K \<in> lits_of_l M))\<close>
-| \<open>twl_exception_inv (M, N, U, D, NP, UP, WS, Q) C \<longleftrightarrow> True\<close>
-
-declare twl_exception_inv.simps[simp del]
-
+text \<open>These are the conditions to indicate that the 2-WL invariant does not hold and is not pending.\<close>
 fun working_queue_prop where
   \<open>working_queue_prop Q M (L, C) \<longleftrightarrow>
     (\<exists>L'. watched C = {#L, L'#} \<and>
     -L \<in> lits_of_l M \<and> L \<notin># Q \<and> L' \<notin> lits_of_l M)\<close>
 declare working_queue_prop.simps[simp del]
+
+text \<open>
+  This invariants talks about the enqueued literals:
+  \<^item> all clauses that should be updated are in \<^term>\<open>WS\<close> and are repeated often enough in it.
+  \<^item> if \<^term>\<open>WS = {#}\<close>, then there are no clauses to updated that is not enqueued;
+  \<^item> all clauses to updated are either in \<^term>\<open>WS\<close> or \<^term>\<open>Q\<close>.
+
+  The first two conditions are written that way to please Isabelle.\<close>
 
 fun working_queue_inv :: "'v twl_st \<Rightarrow> bool"  where
   \<open>working_queue_inv (M, N, U, None, NP, UP, WS, Q) \<longleftrightarrow>
@@ -221,6 +226,18 @@ fun working_queue_inv :: "'v twl_st \<Rightarrow> bool"  where
      (\<forall>L L' C. C \<in># N + U \<longrightarrow> watched C = {#L, L'#} \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L' \<notin> lits_of_l M \<longrightarrow>
        (L, C) \<notin># WS \<longrightarrow> L \<in># Q)\<close>
 | \<open>working_queue_inv (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow> True\<close>
+
+
+text \<open>This is the invariant of the 2WL structure: if one watched literal is false, then all unwatched
+  are false.\<close>
+fun twl_exception_inv :: "'v twl_st \<Rightarrow>  'v clause twl_clause \<Rightarrow> bool"  where
+  \<open>twl_exception_inv (M, N, U, None, NP, UP, WS, Q) C \<longleftrightarrow>
+    (\<forall>L L'. watched C = {#L, L'#} \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L' \<notin> lits_of_l M \<longrightarrow>
+      L \<notin># Q \<longrightarrow> (L, C) \<notin># WS \<longrightarrow>
+      (\<forall>K \<in># unwatched C. -K \<in> lits_of_l M))\<close>
+| \<open>twl_exception_inv (M, N, U, D, NP, UP, WS, Q) C \<longleftrightarrow> True\<close>
+
+declare twl_exception_inv.simps[simp del]
 
 fun twl_st_exception_inv :: "'v twl_st \<Rightarrow> bool" where
 \<open>twl_st_exception_inv (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow>
@@ -261,14 +278,55 @@ fun twl_st_inv :: "'v twl_st \<Rightarrow> bool" where
   (\<forall>C \<in># N + U. D = None \<longrightarrow> \<not>twl_is_an_exception C Q WS \<longrightarrow> (twl_lazy_update M C \<and> twl_inv M C)) \<and>
   (\<forall>C \<in># N + U. D = None \<longrightarrow> watched_literals_false_of_max_level M C)\<close>
 
-text \<open>All the unit clauses are all propagated initially except when we have found a conflict of level 0.\<close>
+text \<open>All the unit clauses are all propagated initially except when we have found a conflict of
+  level \<^term>\<open>0::nat\<close>.\<close>
 fun unit_clss_inv :: "'v twl_st \<Rightarrow> bool"  where
   \<open>unit_clss_inv (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow>
     (\<forall>C \<in># NP + UP.
       (\<exists>L. C = {#L#} \<and> (D = None \<or> count_decided M > 0 \<longrightarrow> get_level M L = 0 \<and> L \<in> lits_of_l M)))\<close>
 
+text \<open>Pending literals are of maximum level and their negation is in the trail.\<close>
+fun valid_annotation :: "'v twl_st \<Rightarrow> bool" where
+"valid_annotation (M, N, U, C, NP, UP, WS, Q) \<longleftrightarrow>
+  (\<forall>(L, C) \<in># WS. L \<in># watched C \<and> C \<in># N + U \<and> -L \<in> lits_of_l M \<and>
+     get_level M L = count_decided M) \<and>
+  (\<forall>L \<in># Q. -L \<in> lits_of_l M \<and> get_level M L = count_decided M)"
 
-paragraph \<open>Initial properties\<close>
+text \<open>Putting invariants together:\<close>
+definition twl_struct_invs :: \<open>'v twl_st \<Rightarrow> bool\<close> where
+  \<open>twl_struct_invs S \<longleftrightarrow>
+    (twl_st_inv S \<and>
+    valid_annotation S \<and>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state S) \<and>
+    (\<forall>D \<in># init_clss (convert_to_state S). \<not> tautology D) \<and>
+    cdcl\<^sub>W_restart_mset.no_smaller_propa (convert_to_state S) \<and>
+    twl_st_exception_inv S \<and>
+    no_duplicate_queued S \<and>
+    distinct_queued S \<and>
+    confl_cands_enqueued S \<and>
+    propa_cands_enqueued S \<and>
+    (get_conflict S \<noteq> None \<longrightarrow> working_queue S = {#} \<and> pending S = {#}) \<and>
+    unit_clss_inv S \<and>
+    working_queue_inv S \<and>
+    past_invs S)
+  \<close>
+
+definition twl_stgy_invs :: \<open>'v twl_st \<Rightarrow> bool\<close> where
+  \<open>twl_stgy_invs S \<longleftrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (convert_to_state S)\<close>
+
+
+subsubsection \<open>Initial properties\<close>
+
+lemma twl_is_an_exception_add_mset_to_queue: \<open>twl_is_an_exception C (add_mset L Q) WS \<longleftrightarrow>
+  (twl_is_an_exception C Q WS \<or> (L \<in># watched C))\<close>
+  unfolding twl_is_an_exception_def by auto
+
+lemma twl_is_an_exception_add_mset_to_working_queue:
+  \<open>twl_is_an_exception C Q (add_mset (L, D) WS) \<longleftrightarrow> (twl_is_an_exception C Q WS \<or> (C = D))\<close>
+  unfolding twl_is_an_exception_def by auto
+
+lemma twl_is_an_exception_empty[simp]: \<open>\<not>twl_is_an_exception C {#} {#}\<close>
+  unfolding twl_is_an_exception_def by auto
 
 lemma twl_inv_empty_trail:
   shows
@@ -443,12 +501,6 @@ proof -
 qed
 
 declare twl_st_inv.simps[simp del]
-
-fun valid_annotation :: "'v twl_st \<Rightarrow> bool" where
-"valid_annotation (M, N, U, C, NP, UP, WS, Q) \<longleftrightarrow>
-  (\<forall>(L, C) \<in># WS. L \<in># watched C \<and> C \<in># N + U \<and> -L \<in> lits_of_l M \<and>
-     get_level M L = count_decided M) \<and>
-  (\<forall>L \<in># Q. -L \<in> lits_of_l M \<and> get_level M L = count_decided M)"
 
 lemma clauses_def: \<open>cdcl\<^sub>W_restart_mset.clauses (M, N, U, C) = N + U\<close>
   by (subst cdcl\<^sub>W_restart_mset.clauses_def) (simp add: cdcl\<^sub>W_restart_mset_state)
@@ -810,7 +862,7 @@ next
   have D_ne_D: \<open>D \<noteq> update_clause D L K\<close>
     using D add_remove_WD by auto
   have N'U': \<open>N' + U' = add_mset ?D (remove1_mset D (N + U))\<close>
-    using N'U' D_N_U by (auto elim!: update_clausesE simp: subset_mset.add_diff_assoc subset_mset.add_diff_assoc2)
+    using N'U' D_N_U by (auto elim!: update_clausesE)
   define NU where \<open>NU = remove1_mset D (N + U)\<close>
   then have NU: \<open>N + U = add_mset D NU\<close>
     using D_N_U by auto
@@ -1743,7 +1795,7 @@ next
       obtain NU where NU: \<open>N + U = add_mset D NU\<close>
         by (metis D_N_U insert_DiffM)
       have N'U': \<open>N' + U' = add_mset ?D (remove1_mset D (N + U))\<close>
-        using N'U' D_N_U by (auto elim!: update_clausesE simp: subset_mset.add_diff_assoc subset_mset.add_diff_assoc2)
+        using N'U' D_N_U by (auto elim!: update_clausesE)
 
       have HH: \<open>\<not>working_queue_prop (add_mset (-L') Q) (Propagated L' (clause D) # M) (L, D)\<close>
         unfolding working_queue_prop.simps by (auto simp: watched)
@@ -2008,7 +2060,7 @@ next
       obtain NU where NU: \<open>N + U = add_mset D NU\<close>
         by (metis D_N_U insert_DiffM)
       have N'U': \<open>N' + U' = add_mset ?D (remove1_mset D (N + U))\<close>
-        using N'U' D_N_U by (auto elim!: update_clausesE simp: subset_mset.add_diff_assoc subset_mset.add_diff_assoc2)
+        using N'U' D_N_U by (auto elim!: update_clausesE)
 
       have HH: \<open>\<not>working_queue_prop (add_mset (-L') Q) (Propagated L' (clause D) # M) (L, D)\<close>
         unfolding working_queue_prop.simps by (auto simp: watched)
@@ -2250,7 +2302,7 @@ next
     then have NU_remove: \<open>NU = remove1_mset D (N + U)\<close>
       by auto
     have \<open>N' + U' = add_mset ?D (remove1_mset D (N + U))\<close>
-      using N'U' D_N_U by (auto elim!: update_clausesE simp: subset_mset.add_diff_assoc subset_mset.add_diff_assoc2)
+      using N'U' D_N_U by (auto elim!: update_clausesE)
     then have N'U': \<open>N'+U' = add_mset ?D NU\<close>
       unfolding NU_remove .
     have watched_D: \<open>watched ?D = {#K, L'#}\<close>
@@ -2299,9 +2351,9 @@ next
 qed
 
 
-subsubsection \<open>Properties of the Transition System\<close>
+subsection \<open>Invariants and the Transition System\<close>
 
-paragraph \<open>Conflict and propagate\<close>
+subsubsection \<open>Conflict and propagate\<close>
 
 fun pending_measure :: \<open>'v twl_st \<Rightarrow> nat list\<close> where
   \<open>pending_measure S = [size (pending S), size (working_queue S)]\<close>
@@ -2528,27 +2580,6 @@ next
      using i lev_K count_M1 by (simp_all add: cdcl\<^sub>W_restart_mset_state D)
 qed
 
-definition twl_struct_invs :: \<open>'v twl_st \<Rightarrow> bool\<close> where
-  \<open>twl_struct_invs S \<longleftrightarrow>
-    (twl_st_inv S \<and>
-    valid_annotation S \<and>
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state S) \<and>
-    (\<forall>D \<in># init_clss (convert_to_state S). \<not> tautology D) \<and>
-    cdcl\<^sub>W_restart_mset.no_smaller_propa (convert_to_state S) \<and>
-    twl_st_exception_inv S \<and>
-    no_duplicate_queued S \<and>
-    distinct_queued S \<and>
-    confl_cands_enqueued S \<and>
-    propa_cands_enqueued S \<and>
-    (get_conflict S \<noteq> None \<longrightarrow> working_queue S = {#} \<and> pending S = {#}) \<and>
-    unit_clss_inv S \<and>
-    working_queue_inv S \<and>
-    past_invs S)
-  \<close>
-
-definition twl_stgy_invs :: \<open>'v twl_st \<Rightarrow> bool\<close> where
-  \<open>twl_stgy_invs S \<longleftrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (convert_to_state S)\<close>
-
 lemma cdcl_twl_cp_cdcl\<^sub>W_stgy:
   \<open>cdcl_twl_cp S T \<Longrightarrow> twl_struct_invs S \<Longrightarrow>
   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state S) (convert_to_state T) \<or>
@@ -2632,7 +2663,7 @@ lemma cdcl_twl_cp_twl_stgy_invs:
   by (metis cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant cdcl_twl_cp_cdcl\<^sub>W_stgy
       twl_struct_invs_def)
 
-paragraph \<open>The other rules\<close>
+subsubsection \<open>The other rules\<close>
 
 lemma
   assumes
@@ -4163,7 +4194,7 @@ next
 qed
 
 
-paragraph \<open>The Strategy\<close>
+subsubsection \<open>The Strategy\<close>
 
 lemma no_pending_no_cp:
   assumes
@@ -4498,5 +4529,168 @@ lemma cdcl_twl_o_twl_stgy_invs:
   \<open>cdcl_twl_o S T \<Longrightarrow> twl_struct_invs S \<Longrightarrow> twl_stgy_invs S \<Longrightarrow> twl_stgy_invs T\<close>
   using cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant cdcl_twl_stgy_cdcl\<^sub>W_stgy other'
   unfolding twl_struct_invs_def twl_stgy_invs_def by blast
+
+
+paragraph \<open>Well-foundedness\<close>
+
+
+lemma wf_cdcl\<^sub>W_stgy_convert_to_state:
+  \<open>wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state S) \<and>
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state S) (convert_to_state T)}\<close>
+  using wf_if_measure_f[OF cdcl\<^sub>W_restart_mset.wf_cdcl\<^sub>W_stgy, of convert_to_state] by simp
+
+lemma wf_cdcl_twl_cp:
+  \<open>wf {(T, S). twl_struct_invs S \<and> cdcl_twl_cp S T}\<close> (is \<open>wf ?TWL\<close>)
+proof -
+  let ?CDCL = \<open>{(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state S) \<and>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state S) (convert_to_state T)}\<close>
+  let ?P = \<open>{(T, S). convert_to_state S = convert_to_state T \<and>
+    (pending_measure T, pending_measure S) \<in> lexn less_than 2}\<close>
+
+  have wf_p_m: \<open>wf {(T, S). (pending_measure T, pending_measure S) \<in> lexn less_than 2}\<close>
+    using wf_if_measure_f[of \<open>lexn less_than 2\<close> pending_measure] by (auto simp: wf_lexn)
+  have \<open>wf ?CDCL\<close>
+    by (rule wf_subset[OF wf_cdcl\<^sub>W_stgy_convert_to_state])
+      (auto simp: twl_struct_invs_def)
+  moreover have \<open>wf ?P\<close>
+    by (rule wf_subset[OF wf_p_m]) auto
+  moreover have \<open>?CDCL O ?P \<subseteq> ?CDCL\<close> by auto
+  ultimately have \<open>wf (?CDCL \<union> ?P)\<close>
+    by (rule wf_union_compatible)
+
+  moreover have \<open>?TWL \<subseteq> ?CDCL \<union> ?P\<close>
+  proof
+    fix x
+    assume x_TWL: \<open>x \<in> ?TWL\<close>
+    then obtain S T where x: \<open>x = (T, S)\<close> by auto
+
+    have twl: \<open>twl_struct_invs S\<close> and cdcl: \<open>cdcl_twl_cp S T\<close>
+      using x_TWL x by auto
+    have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state S)\<close>
+      using twl by (auto simp: twl_struct_invs_def)
+    moreover have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state S) (convert_to_state T) \<or>
+      (convert_to_state S = convert_to_state T \<and> (pending_measure T, pending_measure S) \<in> lexn less_than 2)\<close>
+      using cdcl cdcl_twl_cp_cdcl\<^sub>W_stgy twl by blast
+    ultimately show \<open>x \<in> ?CDCL \<union> ?P\<close>
+      unfolding x by blast
+  qed
+  ultimately show ?thesis
+    using wf_subset[of \<open>?CDCL \<union> ?P\<close>] by blast
+qed
+
+lemma tranclp_wf_cdcl_twl_cp:
+  \<open>wf {(T, S). twl_struct_invs S \<and> cdcl_twl_cp\<^sup>+\<^sup>+ S T}\<close>
+proof -
+  have H: \<open>{(T, S). twl_struct_invs S \<and> cdcl_twl_cp\<^sup>+\<^sup>+ S T} \<subseteq> {(T, S). twl_struct_invs S \<and> cdcl_twl_cp S T}\<^sup>+\<close>
+  proof -
+    { fix T S :: \<open>'v twl_st\<close>
+      assume \<open>cdcl_twl_cp\<^sup>+\<^sup>+ S T\<close> \<open>twl_struct_invs S\<close>
+      then have \<open>(T, S) \<in> {(T, S). twl_struct_invs S \<and> cdcl_twl_cp S T}\<^sup>+\<close> (is \<open>_ \<in> ?S\<^sup>+\<close>)
+      proof (induction rule: tranclp_induct)
+        case (base y)
+        then show ?case by auto
+      next
+        case (step T U) note st = this(1) and cp = this(2) and IH = this(3)[OF this(4)] and
+          twl = this(4)
+        have \<open>twl_struct_invs T\<close>
+          by (metis (no_types, lifting) IH Nitpick.tranclp_unfold cdcl_twl_cp_twl_struct_invs converse_tranclpE)
+        then have \<open>(U, T) \<in> ?S\<^sup>+\<close>
+          using cp by auto
+        then show ?case using IH by auto
+      qed
+    }
+    then show ?thesis by blast
+  qed
+  show ?thesis using wf_trancl[OF wf_cdcl_twl_cp]  wf_subset[OF _ H] by blast
+qed
+
+lemma wf_cdcl_twl_stgy:
+  \<open>wf {(T, S). twl_struct_invs S \<and> cdcl_twl_stgy S T}\<close> (is \<open>wf ?TWL\<close>)
+proof -
+  let ?CDCL = \<open>{(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state S) \<and>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state S) (convert_to_state T)}\<close>
+  let ?P = \<open>{(T, S). convert_to_state S = convert_to_state T \<and>
+    (pending_measure T, pending_measure S) \<in> lexn less_than 2}\<close>
+
+  have wf_p_m: \<open>wf {(T, S). (pending_measure T, pending_measure S) \<in> lexn less_than 2}\<close>
+    using wf_if_measure_f[of \<open>lexn less_than 2\<close> pending_measure] by (auto simp: wf_lexn)
+  have \<open>wf ?CDCL\<close>
+    by (rule wf_subset[OF wf_cdcl\<^sub>W_stgy_convert_to_state])
+      (auto simp: twl_struct_invs_def)
+  moreover have \<open>wf ?P\<close>
+    by (rule wf_subset[OF wf_p_m]) auto
+  moreover have \<open>?CDCL O ?P \<subseteq> ?CDCL\<close> by auto
+  ultimately have \<open>wf (?CDCL \<union> ?P)\<close>
+    by (rule wf_union_compatible)
+
+  moreover have \<open>?TWL \<subseteq> ?CDCL \<union> ?P\<close>
+  proof
+    fix x
+    assume x_TWL: \<open>x \<in> ?TWL\<close>
+    then obtain S T where x: \<open>x = (T, S)\<close> by auto
+
+    have twl: \<open>twl_struct_invs S\<close> and cdcl: \<open>cdcl_twl_stgy S T\<close>
+      using x_TWL x by auto
+    have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state S)\<close>
+      using twl by (auto simp: twl_struct_invs_def)
+    moreover have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state S) (convert_to_state T) \<or>
+      (convert_to_state S = convert_to_state T \<and> (pending_measure T, pending_measure S) \<in> lexn less_than 2)\<close>
+      using cdcl cdcl_twl_stgy_cdcl\<^sub>W_stgy2 twl by blast
+    ultimately show \<open>x \<in> ?CDCL \<union> ?P\<close>
+      unfolding x by blast
+  qed
+  ultimately show ?thesis
+    using wf_subset[of \<open>?CDCL \<union> ?P\<close>] by blast
+qed
+
+lemma tranclp_wf_cdcl_twl_stgy:
+  \<open>wf {(T, S). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T}\<close>
+proof -
+  have H: \<open>{(T, S). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<subseteq> {(T, S). twl_struct_invs S \<and> cdcl_twl_stgy S T}\<^sup>+\<close>
+  proof -
+    { fix T S :: \<open>'v twl_st\<close>
+      assume \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ S T\<close> \<open>twl_struct_invs S\<close>
+      then have \<open>(T, S) \<in> {(T, S). twl_struct_invs S \<and> cdcl_twl_stgy S T}\<^sup>+\<close> (is \<open>_ \<in> ?S\<^sup>+\<close>)
+      proof (induction rule: tranclp_induct)
+        case (base y)
+        then show ?case by auto
+      next
+        case (step T U) note st = this(1) and stgy = this(2) and IH = this(3)[OF this(4)] and
+          twl = this(4)
+        have \<open>twl_struct_invs T\<close>
+          by (metis (no_types, lifting) IH Nitpick.tranclp_unfold cdcl_twl_stgy_twl_struct_invs converse_tranclpE)
+        then have \<open>(U, T) \<in> ?S\<^sup>+\<close>
+          using stgy by auto
+        then show ?case using IH by auto
+      qed
+    }
+    then show ?thesis by blast
+  qed
+  show ?thesis using wf_trancl[OF wf_cdcl_twl_stgy]  wf_subset[OF _ H] by blast
+qed
+
+lemma rtranclp_cdcl_twl_o_stgyD: \<open>cdcl_twl_o\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close>
+  using rtranclp_mono[of cdcl_twl_o cdcl_twl_stgy] cdcl_twl_stgy.intros(2)
+  by blast
+
+lemma rtranclp_cdcl_twl_cp_stgyD: \<open>cdcl_twl_cp\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close>
+  using rtranclp_mono[of cdcl_twl_cp cdcl_twl_stgy] cdcl_twl_stgy.intros(1)
+  by blast
+
+lemma tranclp_cdcl_twl_o_stgyD: \<open>cdcl_twl_o\<^sup>+\<^sup>+ S T \<Longrightarrow> cdcl_twl_stgy\<^sup>+\<^sup>+ S T\<close>
+  using tranclp_mono[of cdcl_twl_o cdcl_twl_stgy] cdcl_twl_stgy.intros(2)
+  by blast
+
+lemma tranclp_cdcl_twl_cp_stgyD: \<open>cdcl_twl_cp\<^sup>+\<^sup>+ S T \<Longrightarrow> cdcl_twl_stgy\<^sup>+\<^sup>+ S T\<close>
+  using tranclp_mono[of cdcl_twl_cp cdcl_twl_stgy] cdcl_twl_stgy.intros(1)
+  by blast
+
+lemma wf_cdcl_twl_o:
+  \<open>wf {(T, S::'v twl_st). twl_struct_invs S \<and> cdcl_twl_o S T}\<close> (is \<open>wf ?TWL\<close>)
+  by (rule wf_subset[OF wf_cdcl_twl_stgy]) (auto intro: cdcl_twl_stgy.intros)
+
+lemma tranclp_wf_cdcl_twl_o:
+  \<open>wf {(T, S::'v twl_st). twl_struct_invs S \<and> cdcl_twl_o\<^sup>+\<^sup>+ S T}\<close> (is \<open>wf ?TWL\<close>)
+  by (rule wf_subset[OF tranclp_wf_cdcl_twl_stgy]) (auto dest: tranclp_cdcl_twl_o_stgyD)
 
 end
