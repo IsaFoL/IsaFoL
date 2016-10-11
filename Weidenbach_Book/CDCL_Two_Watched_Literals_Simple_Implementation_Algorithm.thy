@@ -64,7 +64,7 @@ definition unit_propagation_inner_loop :: "'v twl_st \<Rightarrow> 'v twl_st nre
       S\<^sub>0
 \<close>
 
-lemma unit_propagation_inner_loop_body[THEN order_trans, refine_vcg]:
+lemma unit_propagation_inner_loop_body:
   fixes S :: \<open>'v twl_st\<close>
   assumes
     \<open>working_queue S \<noteq> {#}\<close> and
@@ -203,6 +203,8 @@ proof -
     qed
 qed
 
+declare unit_propagation_inner_loop_body[THEN order_trans, refine_vcg]
+
 lemma unit_propagation_inner_loop[THEN order_trans, refine_vcg]:
   assumes \<open>twl_struct_invs S\<close> and inv: \<open>twl_stgy_invs S\<close>
   shows \<open>unit_propagation_inner_loop S \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
@@ -212,6 +214,7 @@ lemma unit_propagation_inner_loop[THEN order_trans, refine_vcg]:
           apply (auto simp: assms)
   apply (simp add: twl_struct_invs_def)
   done
+
 
 definition unit_propagation_outer_loop :: "'v twl_st \<Rightarrow> 'v twl_st nres"  where
   \<open>unit_propagation_outer_loop S\<^sub>0 =
@@ -597,10 +600,9 @@ definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres"  where
     }
   \<close>
 
+
 context conflict_driven_clause_learning\<^sub>W
 begin
-
-
 
 lemma no_step_skip_hd_in_conflicting:
   assumes
