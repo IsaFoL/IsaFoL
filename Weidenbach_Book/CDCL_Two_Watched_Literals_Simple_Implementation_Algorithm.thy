@@ -205,7 +205,7 @@ qed
 
 declare unit_propagation_inner_loop_body[THEN order_trans, refine_vcg]
 
-lemma unit_propagation_inner_loop[THEN order_trans, refine_vcg]:
+lemma unit_propagation_inner_loop:
   assumes \<open>twl_struct_invs S\<close> and inv: \<open>twl_stgy_invs S\<close>
   shows \<open>unit_propagation_inner_loop S \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
     cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and> working_queue S' = {#})\<close>
@@ -215,6 +215,7 @@ lemma unit_propagation_inner_loop[THEN order_trans, refine_vcg]:
   apply (simp add: twl_struct_invs_def)
   done
 
+declare unit_propagation_inner_loop[THEN order_trans, refine_vcg]
 
 definition unit_propagation_outer_loop :: "'v twl_st \<Rightarrow> 'v twl_st nres"  where
   \<open>unit_propagation_outer_loop S\<^sub>0 =
