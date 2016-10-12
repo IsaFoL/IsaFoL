@@ -365,7 +365,7 @@ subsection \<open>Multisets\<close>
 
 text \<open>The definition and the correctness theorem are from the multiset theory
   @{file \<open>~~/src/HOL/Library/Multiset.thy\<close>}, but a name is necessary to refer to them:\<close>
-abbreviation union_mset_list where
+definition union_mset_list where
 \<open>union_mset_list xs ys \<equiv> case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, []))\<close>
 
 lemma union_mset_list:
@@ -374,7 +374,7 @@ proof -
   have \<open>\<And>zs. mset (case_prod append (fold (\<lambda>x (ys, zs). (remove1 x ys, x # zs)) xs (ys, zs))) =
       (mset xs \<union># mset ys) + mset zs\<close>
     by (induct xs arbitrary: ys) (simp_all add: multiset_eq_iff)
-  then show ?thesis by simp
+  then show ?thesis by (simp add: union_mset_list_def)
 qed
 
 lemma size_le_Suc_0_iff: \<open>size M \<le> Suc 0 \<longleftrightarrow> ((\<exists>a b. M = {#a#}) \<or> M = {#})\<close>
