@@ -445,12 +445,26 @@ qed
 lemma refine_add_inv:
   fixes f :: \<open>'a \<Rightarrow> 'a nres\<close> and f' :: \<open>'b \<Rightarrow> 'b nres\<close> and h :: \<open>'b \<Rightarrow> 'a\<close>
   assumes
-    \<open>(f', f) \<in> {(S, S'). S' = h S \<and> R S} \<rightarrow> \<langle>{(S, S'). S' = h S \<and> P' S}\<rangle> nres_rel\<close> and
+    \<open>(f', f) \<in> {(S, S'). S' = h S \<and> R S} \<rightarrow> \<langle>{(S, S'). S' = h S \<and> P' S}\<rangle> nres_rel\<close>
+    (is \<open>_ \<in> ?R \<rightarrow> \<langle>{(S, S'). ?H S S' \<and> P' S}\<rangle> nres_rel\<close>)
+  assumes
     \<open>\<And>S. R S \<Longrightarrow> f (h S) \<le> SPEC (\<lambda>T. Q T)\<close>
   shows
-    \<open>(f', f) \<in> {(S, S'). S' = h S \<and> R S} \<rightarrow> \<langle>{(S, S'). S' = h S \<and> P' S \<and> Q (h S)}\<rangle> nres_rel\<close>
+    \<open>(f', f) \<in> ?R \<rightarrow> \<langle>{(S, S'). ?H S S' \<and> P' S \<and> Q (h S)}\<rangle> nres_rel\<close>
   using assms unfolding nres_rel_def fun_rel_def  pw_le_iff pw_conc_inres pw_conc_nofail
-  by auto
+  by fastforce
+
+lemma refine_add_inv_pair:
+  fixes f :: \<open>'a \<Rightarrow> ('c \<times> 'a) nres\<close> and f' :: \<open>'b \<Rightarrow> ('c \<times> 'b) nres\<close> and h :: \<open>'b \<Rightarrow> 'a\<close>
+  assumes
+    \<open>(f', f) \<in> {(S, S'). S' = h S \<and> R S} \<rightarrow> \<langle>{(S, S'). (fst S' = h' (fst S) \<and>
+    snd S' = h (snd S)) \<and> P' S}\<rangle> nres_rel\<close>  (is \<open>_ \<in> ?R \<rightarrow> \<langle>{(S, S'). ?H S S' \<and> P' S}\<rangle> nres_rel\<close>)
+  assumes
+    \<open>\<And>S. R S \<Longrightarrow> f (h S) \<le> SPEC (\<lambda>T. Q (snd T))\<close>
+  shows
+    \<open>(f', f) \<in> ?R \<rightarrow> \<langle>{(S, S'). ?H S S' \<and> P' S \<and> Q (h (snd S))}\<rangle> nres_rel\<close>
+  using assms unfolding nres_rel_def fun_rel_def  pw_le_iff pw_conc_inres pw_conc_nofail
+  by fastforce
 
 lemma unit_propagation_outer_loop_list:
   \<open>(unit_propagation_outer_loop_list, unit_propagation_inner_loop) \<in>
@@ -913,8 +927,8 @@ lemma refine_pair_to_SPEC:
   fixes f :: \<open>'s \<Rightarrow> 's nres\<close> and g :: \<open>'b \<Rightarrow> 'b nres\<close>
   assumes \<open>(f, g) \<in> {(S, S'). S' = h S \<and> R S} \<rightarrow> \<langle>{(S, S'). S' = h S \<and> P' S}\<rangle>nres_rel\<close>
     (is \<open>_ \<in> ?R \<rightarrow> ?I\<close>)
-  assumes  \<open>R S\<close>
-  shows \<open>f S \<le> \<Down> {(S, S'). S' = h S \<and> P' S} (g (h S))\<close>
+  assumes \<open>R S\<close> and [simp]: \<open>S' = h S\<close>
+  shows \<open>f S \<le> \<Down> {(S, S'). S' = h S \<and> P' S} (g S')\<close>
 proof -
   have \<open>(f S, g (h S)) \<in> ?I\<close>
     using assms unfolding fun_rel_def by auto
@@ -930,32 +944,87 @@ lemma cdcl_twl_o_prog_list_spec:
        working_queue_list S = {#} \<and> pending_list S = {#} \<and> no_step cdcl_twl_cp (twl_st_of S) \<and>
        twl_struct_invs (twl_st_of S) \<and> twl_stgy_invs (twl_st_of S)} \<rightarrow>
     \<langle>{((brk, T), (brk', T')). T' = twl_st_of T \<and> brk = brk' \<and>
-    get_conflict_list T = None \<and>
+    (get_conflict_list T \<noteq> None \<longrightarrow> get_conflict_list T = Some [])\<and>
        twl_struct_invs (twl_st_of T) \<and> twl_stgy_invs (twl_st_of T) \<and> working_queue_list T = {#} \<and>
-       pending_list T \<noteq> {#}}\<rangle> nres_rel\<close>
-  (is \<open> _ \<in> ?R \<rightarrow> ?I\<close>)
+       (\<not>brk \<longrightarrow> pending_list T \<noteq> {#})}\<rangle> nres_rel\<close>
+  (is \<open> _ \<in> ?R \<rightarrow> ?I\<close> is \<open> _ \<in> ?R \<rightarrow> \<langle>?J\<rangle>nres_rel\<close>)
 proof -
-  have
+  have twl_prog:
     \<open>(cdcl_twl_o_prog_list, cdcl_twl_o_prog) \<in> ?R \<rightarrow>
-      \<langle>{((brk, T), (brk', T')). T' = twl_st_of T \<and> brk = brk'}\<rangle> nres_rel\<close>
+      \<langle>{(S, S').
+         (fst S' = (fst S) \<and> snd S' = twl_st_of (snd S))}\<rangle> nres_rel\<close>
     apply clarify
     unfolding cdcl_twl_o_prog_list_def cdcl_twl_o_prog_def
-    apply (refine_vcg decide_list_spec[THEN refine_pair_to_SPEC]; remove_dummy_vars)
+    apply (refine_vcg decide_list_spec[THEN refine_pair_to_SPEC]
+        skip_and_resolve_loop_list_spec[THEN refine_pair_to_SPEC]
+        backtrack_list_spec[THEN refine_pair_to_SPEC]; remove_dummy_vars)
     subgoal by simp
     subgoal by simp
-    apply (rule decide_list_spec[THEN refine_pair_to_SPEC])
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
       by (simp add: additional_WS_invs_def)
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
       by simp
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
       by simp
-    apply (rule skip_and_resolve_loop_list_spec[THEN refine_pair_to_SPEC])
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
       by (simp add: additional_WS_invs_def)
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
+      by auto
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
+      by (simp add: additional_WS_invs_def)
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
+      by auto
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
-      by (cases T) auto
-    using backtrack_list_spec[THEN refine_pair_to_SPEC]
+      by (auto simp add: get_conflict_list_Some_nil_iff)
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
+      by (cases T) (auto)
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
+      by fast
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
+      by (cases T) (auto)
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T T'
+      by fast
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
+      by fast
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
+      by fast
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
+      by fast
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
+      by fast
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
+      by auto
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
+      by auto
+    done
+  have KK:
+    \<open>get_conflict_list T = None \<longleftrightarrow> get_conflict (twl_st_of T) = None\<close>
+    \<open>working_queue_list T = {#} \<longleftrightarrow> working_queue (twl_st_of T) = {#}\<close>
+    \<open>pending_list T = {#} \<longleftrightarrow> pending (twl_st_of T) = {#}\<close>
+    for T
+    by (cases T; auto)+
+  text \<open>Stupid placeholder to help the application of \<open>rule\<close> later:\<close>
+  define TT where [simp]: \<open>TT = (\<lambda>_::bool \<times> 'a twl_st_list. True)\<close>
+  let ?J' = \<open>{(U, U').
+       (fst U' = id (fst U) \<and> snd U' = twl_st_of (snd U)) \<and> TT U \<and>
+        ( get_conflict (twl_st_of (snd U)) \<noteq> None \<longrightarrow> get_conflict (twl_st_of (snd U)) = Some {#}) \<and>
+         twl_struct_invs (twl_st_of (snd U)) \<and>
+         twl_stgy_invs (twl_st_of (snd U)) \<and>
+         working_queue (twl_st_of (snd U)) = {#} (* \<and>
+         (\<not>fst U \<longrightarrow> pending (twl_st_of (snd U)) \<noteq> {#}) *)}\<close>
+
+  have \<open>(cdcl_twl_o_prog_list, cdcl_twl_o_prog) \<in> ?R \<rightarrow> \<langle>?J'\<rangle>nres_rel\<close>
+    apply (rule refine_add_inv_pair)
+    subgoal
+      using twl_prog by (auto simp:)
+    subgoal for S
+      apply (rule weaken_SPEC[OF cdcl_twl_o_prog_spec[of \<open>twl_st_of S\<close>]])
+      apply (auto simp: KK(3))[5]
+      apply auto
+      done
+    done
+
+  show bt': ?thesis
 oops
 
 
