@@ -231,7 +231,7 @@ definition unit_propagation_outer_loop :: "'v twl_st \<Rightarrow> 'v twl_st nre
       S\<^sub>0
 \<close>
 
-lemma unit_propagation_outer_loop[THEN order_trans, refine_vcg]:
+lemma unit_propagation_outer_loop:
   assumes \<open>twl_struct_invs S\<close> and \<open>working_queue S = {#}\<close> and confl: \<open>get_conflict S = None\<close> and
     \<open>twl_stgy_invs S\<close>
   shows \<open>unit_propagation_outer_loop S \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and>
@@ -352,6 +352,8 @@ lemma unit_propagation_outer_loop[THEN order_trans, refine_vcg]:
   subgoal by (auto simp: cdcl_twl_cp.simps)
   subgoal by simp
   done
+
+declare unit_propagation_outer_loop[THEN order_trans, refine_vcg]
 
 
 subsection \<open>Other Rules\<close>
@@ -1000,12 +1002,12 @@ proof (rule wf_union_compatible)
   qed
 qed
 
-lemma cdcl_twl_stgy_prog_spec[THEN order_trans, refine_vcg]:
+lemma cdcl_twl_stgy_prog_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>working_queue S = {#}\<close> and \<open>pending S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
-    \<open>cdcl_twl_stgy_prog S \<le> SPEC(\<lambda>T. cdcl_twl_stgy\<^sup>*\<^sup>* S T \<and> no_step cdcl_twl_stgy T)\<close>
-  unfolding cdcl_twl_stgy_prog_def
+    \<open>cdcl_twl_stgy_prog S \<le> SPEC(\<lambda>T. full cdcl_twl_stgy S T)\<close>
+  unfolding cdcl_twl_stgy_prog_def full_def
   apply (refine_vcg WHILEIT_rule[where R = \<open>{((brkT, T), (brkS, S)). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<union> {((brkT, T), (brkS, S)). S = T \<and> brkT \<and> \<not>brkS}\<close>];
       remove_dummy_vars)
   -- \<open>Well foundedness of the relation\<close>
