@@ -79,13 +79,6 @@ lemma get_level_skip_beginning_not_decided[simp]:
       dest: set_dropWhileD)
   done
 
-lemma get_level_skip_in_all_not_decided:
-  fixes M :: "('a, 'b) ann_lits" and L :: "'a literal"
-  assumes "\<forall>m\<in>set M. \<not> is_decided m" and "defined_lit M L"
-  shows "get_level M L = 0"
-  using assms by (induction M rule: ann_lit_list_induct) (auto simp: defined_lit_cons get_level_cons_if
-      count_decided_0_iff)
-
 lemma get_level_skip_all_not_decided[simp]:
   fixes M
   assumes "\<forall>m\<in>set M. \<not> is_decided m"
