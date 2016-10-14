@@ -246,7 +246,32 @@ lemma decided_empty[simp]:
   \<open>\<not>defined_lit [] L\<close>
   unfolding defined_lit_def by simp
 
+lemma undefined_lit_single[iff]:
+  \<open>defined_lit [L] K \<longleftrightarrow> atm_of (lit_of L) = atm_of K\<close>
+  by (auto simp: defined_lit_map)
+
+lemma undefined_lit_cons[iff]:
+  \<open>undefined_lit (L # M) K \<longleftrightarrow> atm_of (lit_of L) \<noteq> atm_of K \<and> undefined_lit M K\<close>
+  by (auto simp: defined_lit_map)
+
+lemma undefined_lit_append[iff]:
+  \<open>undefined_lit (M @ M') K \<longleftrightarrow> undefined_lit M K \<and> undefined_lit M' K\<close>
+  by (auto simp: defined_lit_map)
+
+lemma defined_lit_cons:
+  \<open>defined_lit (L # M) K \<longleftrightarrow> atm_of (lit_of L) = atm_of K \<or> defined_lit M K\<close>
+  by (auto simp: defined_lit_map)
+
+lemma defined_lit_append:
+  \<open>defined_lit (M @ M') K \<longleftrightarrow> defined_lit M K \<or> defined_lit M' K\<close>
+  by (auto simp: defined_lit_map)
+
+lemma in_lits_of_l_defined_litD: \<open>L_max \<in> lits_of_l M \<Longrightarrow> defined_lit M L_max\<close>
+  by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+
+
 subsection \<open>Backtracking\<close>
+
 fun backtrack_split :: \<open>('v, 'm) ann_lits
   \<Rightarrow> ('v, 'm) ann_lits \<times> ('v, 'm) ann_lits\<close> where
 \<open>backtrack_split [] = ([], [])\<close> |
@@ -789,6 +814,11 @@ lemma true_annots_true_cls_def_iff_negation_in_model:
   \<open>M \<Turnstile>as CNot C \<longleftrightarrow> (\<forall>L \<in># C. -L \<in> lits_of_l M)\<close>
   unfolding CNot_def true_annots_true_cls true_clss_def by auto
 
+lemma true_annots_CNot_definedD:
+  \<open>M \<Turnstile>as CNot C \<Longrightarrow> \<forall>L \<in># C. defined_lit M L\<close>
+  unfolding true_annots_true_cls_def_iff_negation_in_model
+  by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+
 (* TODO Mark as [simp]? *)
 lemma true_annot_CNot_diff:
   \<open>I \<Turnstile>as CNot C \<Longrightarrow> I \<Turnstile>as CNot (C - C')\<close>
@@ -909,16 +939,36 @@ lemma CNot_union_mset[simp]:
 
 subsection \<open>Other\<close>
 
-abbreviation \<open>no_dup L \<equiv> distinct (map (\<lambda>l. atm_of (lit_of l)) L)\<close>
+definition \<open>no_dup L \<equiv> distinct (map (\<lambda>l. atm_of (lit_of l)) L)\<close>
+
+lemma no_dup_nil[simp]:
+  \<open>no_dup []\<close>
+  by (auto simp: no_dup_def)
+
+lemma no_dup_cons[simp]:
+  \<open>no_dup (L # M) \<longleftrightarrow> undefined_lit M (lit_of L) \<and> no_dup M\<close>
+  by (auto simp: no_dup_def defined_lit_map)
+
+lemma no_dup_append_cons[iff]:
+  \<open>no_dup (M @ L # M') \<longleftrightarrow> undefined_lit (M @ M') (lit_of L) \<and> no_dup (M @ M')\<close>
+  by (auto simp: no_dup_def defined_lit_map)
+
+lemma no_dup_append_append_cons[iff]:
+  \<open>no_dup (M0 @ M @ L # M') \<longleftrightarrow> undefined_lit (M0 @ M @ M') (lit_of L) \<and> no_dup (M0 @ M @ M')\<close>
+  by (auto simp: no_dup_def defined_lit_map)
 
 lemma no_dup_rev[simp]:
   \<open>no_dup (rev M) \<longleftrightarrow> no_dup M\<close>
-  by (auto simp: rev_map[symmetric])
+  by (auto simp: rev_map[symmetric] no_dup_def)
+
+lemma no_dup_appendD:
+  \<open>no_dup (a @ b) \<Longrightarrow> no_dup b\<close>
+  by (auto simp: no_dup_def)
 
 lemma no_dup_length_eq_card_atm_of_lits_of_l:
   assumes \<open>no_dup M\<close>
   shows \<open>length M = card (atm_of ` lits_of_l M)\<close>
-  using assms unfolding lits_of_def by (induct M) (auto simp add: image_image)
+  using assms unfolding lits_of_def by (induct M) (auto simp add: image_image no_dup_def)
 
 lemma distinct_consistent_interp:
   \<open>no_dup M \<Longrightarrow> consistent_interp (lits_of_l M)\<close>
@@ -928,9 +978,8 @@ proof (induct M)
 next
   case (Cons L M)
   then have a1: \<open>consistent_interp (lits_of_l M)\<close> by auto
-  have a2: \<open>atm_of (lit_of L) \<notin> (\<lambda>l. atm_of (lit_of l)) ` set M\<close> using Cons.prems by auto
   have \<open>undefined_lit M (lit_of L)\<close>
-    using a2 unfolding defined_lit_map by fastforce
+      using Cons.prems by auto
   then show ?case
     using a1 by simp
 qed
@@ -939,7 +988,7 @@ lemma distinct_get_all_ann_decomposition_no_dup:
   assumes \<open>(a, b) \<in> set (get_all_ann_decomposition M)\<close>
   and \<open>no_dup M\<close>
   shows \<open>no_dup (a @ b)\<close>
-  using assms by force
+  using assms by (force simp: no_dup_def)
 
 lemma true_annots_lit_of_notin_skip:
   assumes \<open>L # M \<Turnstile>as CNot A\<close>
@@ -949,16 +998,25 @@ lemma true_annots_lit_of_notin_skip:
 proof -
   have \<open>\<forall>l \<in># A. -l \<in> lits_of_l (L # M)\<close>
     using assms(1) in_CNot_implies_uminus(2) by blast
-  moreover
-    have \<open>atm_of (lit_of L) \<notin> atm_of ` lits_of_l M\<close>
-      using assms(3) unfolding lits_of_def by force
-    then have \<open>- lit_of L \<notin> lits_of_l M\<close> unfolding lits_of_def
-      by (metis (no_types) atm_of_uminus imageI)
+  moreover {
+    have \<open>undefined_lit M (lit_of L)\<close>
+      using assms(3) by force
+    then have \<open>- lit_of L \<notin> lits_of_l M\<close>
+      by (simp add: Decided_Propagated_in_iff_in_lits_of_l) }
   ultimately have \<open>\<forall> l \<in># A. -l \<in> lits_of_l M\<close>
     using assms(2) by (metis insert_iff list.simps(15) lits_of_insert uminus_of_uminus_id)
   then show ?thesis by (auto simp add: true_annots_def)
 qed
 
+lemma defined_lit_no_dupD:
+  \<open>defined_lit M1 L \<Longrightarrow> no_dup (M2 @ M1) \<Longrightarrow> undefined_lit M2 L\<close>
+  \<open>defined_lit M1 L \<Longrightarrow> no_dup (M2' @ M2 @ M1) \<Longrightarrow> undefined_lit M2' L\<close>
+  \<open>defined_lit M1 L \<Longrightarrow> no_dup (M2' @ M2 @ M1) \<Longrightarrow> undefined_lit M2 L\<close>
+  by (auto simp: defined_lit_map no_dup_def)
+
+lemma no_dup_consistentD:
+  \<open>no_dup M \<Longrightarrow> L \<in> lits_of_l M \<Longrightarrow> -L \<notin> lits_of_l M\<close>
+  using consistent_interp_def distinct_consistent_interp by blast
 
 subsection \<open>Extending Entailments to multisets\<close>
 

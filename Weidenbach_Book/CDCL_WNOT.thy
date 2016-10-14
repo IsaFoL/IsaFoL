@@ -25,15 +25,23 @@ lemma lit_of_convert_trail_from_W[simp]:
 
 lemma no_dup_convert_from_W[simp]:
   "no_dup (convert_trail_from_W M) \<longleftrightarrow> no_dup M"
-  by (auto simp: comp_def)
+  by (auto simp: comp_def no_dup_def)
 
 lemma convert_trail_from_W_true_annots[simp]:
   "convert_trail_from_W M \<Turnstile>as C \<longleftrightarrow> M \<Turnstile>as C"
   by (auto simp: true_annots_true_cls image_image lits_of_def)
 
 lemma defined_lit_convert_trail_from_W[simp]:
-  "defined_lit (convert_trail_from_W S) L \<longleftrightarrow> defined_lit S L"
-  by (auto simp: defined_lit_map image_comp)
+  "defined_lit (convert_trail_from_W S) = defined_lit S"
+  by (auto simp: defined_lit_map image_comp intro!: ext)
+
+lemma is_decided_convert_trail_from_W[simp]:
+  \<open>is_decided (convert_ann_lit_from_W L) = is_decided L\<close>
+  by (cases L) auto
+
+lemma count_decided_conver_Trail_from_W[simp]:
+  \<open>count_decided (convert_trail_from_W M) = count_decided M\<close>
+  unfolding count_decided_def by (auto simp: comp_def)
 
 text \<open>The values @{term "0::nat"} and @{term "{#}"} are dummy values.\<close>
 consts dummy_cls :: 'cls
@@ -153,9 +161,7 @@ next
 
     have "no_dup F"
       using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> \<open>convert_trail_from_W (trail S) = F' @ Decided K # F\<close>
-      unfolding inv\<^sub>N\<^sub>O\<^sub>T_def
-      by (smt comp_apply distinct.simps(2) distinct_append list.simps(9) map_append
-        no_dup_convert_from_W)
+      unfolding inv\<^sub>N\<^sub>O\<^sub>T_def by (metis no_dup_appendD no_dup_cons no_dup_convert_from_W)
     then have "consistent_interp (lits_of_l F)"
       using distinct_consistent_interp by blast
     then have "\<not> tautology C'"
@@ -961,12 +967,12 @@ proof (rule ccontr)
     tr: \<open>trail S = M' @ Decided K # M\<close> and
     nm: \<open>\<forall>m \<in> set M. \<not>is_decided m\<close>
     using split_list_last_prop[of "trail S" is_decided]
-    by (auto simp: filter_empty_conv is_decided_def dest!: List.set_dropWhileD)
-  have \<open>-L \<notin> lits_of_l (trail S)\<close>
+    by (auto simp: filter_empty_conv is_decided_def get_level_def dest!: List.set_dropWhileD)
+  have uL: \<open>-L \<notin> lits_of_l (trail S)\<close>
     by (metis (no_types) ann_lit.sel(2) imageE lits_of_def n_d
         no_dup_cannot_not_lit_and_uminus propa_tr)
-  then have [iff]: \<open>atm_of L \<in> atm_of ` lits_of_l M' \<longleftrightarrow> L \<in> lits_of_l M'\<close>
-    by (auto simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set tr)
+  then have [iff]: \<open>defined_lit M' L \<longleftrightarrow> L \<in> lits_of_l M'\<close>
+    by (auto simp add: tr Decided_Propagated_in_iff_in_lits_of_l)
   have [simp]: \<open>get_level M L = 0\<close> for L
     using nm by auto
   have [simp]: \<open>L \<noteq> -K\<close>
@@ -975,13 +981,13 @@ proof (rule ccontr)
   have \<open>L \<in> lits_of_l (M' @ [Decided K])\<close>
     apply (rule ccontr)
     using H unfolding tr
-    apply (subst (asm) get_rev_level_skip)
-      apply (auto simp: atm_of_eq_atm_of uminus_lit_swap)[]
+    apply (subst (asm) get_level_skip)
+      using uL tr apply (auto simp: atm_of_eq_atm_of Decided_Propagated_in_iff_in_lits_of_l)[]
     apply (subst (asm) get_level_skip_beginning)
       apply (auto simp: atm_of_eq_atm_of uminus_lit_swap lits_of_def)[]
     using \<open>get_level M L = 0\<close> by blast
   then have \<open>undefined_lit M L\<close>
-    using n_d unfolding tr by (auto simp: defined_lit_map lits_of_def)
+    using n_d unfolding tr by (auto simp: defined_lit_map lits_of_def image_Un no_dup_def)
   moreover have "{#} + {#L#} \<in># clauses S"
     using propa propa_tr unfolding propagated_clauses_clauses_def by auto
   moreover have "M \<Turnstile>as CNot {#}"
@@ -1022,7 +1028,7 @@ proof -
     using inv C tr_C unfolding cdcl\<^sub>W_stgy_invariant_def no_smaller_confl_def
     by auto
   from this[OF _ C ] have C_ne: \<open>C \<noteq> {#}\<close>
-    using tr_C bt count by (fastforce simp: filter_empty_conv in_set_conv_decomp
+    using tr_C bt count by (fastforce simp: filter_empty_conv in_set_conv_decomp count_decided_def
         elim!: is_decided_ex_Decided)
 
   obtain U where
@@ -1359,7 +1365,7 @@ next
         then have \<open>count_decided (trail S) = 0\<close>
           using inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by simp
         then have \<open>get_all_ann_decomposition (trail S) = [([], trail S)]\<close>
-          by (auto simp: filter_empty_conv no_decision_get_all_ann_decomposition)
+          by (auto simp: filter_empty_conv no_decision_get_all_ann_decomposition count_decided_0_iff)
         then have \<open>set_mset (clauses S) \<Turnstile>ps unmark_l (trail S)\<close>
           using 3(3) unfolding cdcl\<^sub>W_all_struct_inv_def by auto
         obtain I where

@@ -409,9 +409,9 @@ proof -
   proof -
     have LM: \<open>L \<in> lits_of_l M\<close>
       using that unfolding M by auto
-    have \<open>atm_of L \<notin> atm_of ` lits_of_l M'\<close>
+    have \<open>undefined_lit M' L\<close>
       by (rule cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
-        (use that n_d in \<open>auto simp: M M'\<close>)
+        (use that n_d in \<open>auto simp: M M' defined_lit_map\<close>)
     then show lev_L_M1: \<open>get_level M L = get_level M1 L\<close>
       using that n_d by (auto simp: M image_Un M')
   qed
@@ -427,7 +427,7 @@ proof -
     then have \<open>get_level M L \<le> get_level M L'\<close>
       using twl unfolding MM' C by auto
     then show \<open>get_level M1 L \<le> get_level M1 L'\<close>
-      using lev_M_M1[of L] lev_M_M1[of \<open>-L'\<close>] L uL' by fastforce
+      using lev_M_M1[of L] lev_M_M1[of \<open>-L'\<close>] L uL' by (fastforce simp: get_level_def)
   qed
 
 
@@ -458,9 +458,9 @@ proof -
           unfolding M' append_assoc[symmetric] by (rule last_in_set_dropWhile)
             (use that in \<open>auto simp: lits_of_def M' MM'\<close>)
         ultimately have \<open>get_level M L' > count_decided M1\<close>
-          unfolding MM' by (force simp: filter_empty_conv) }
+          unfolding MM' by (force simp: filter_empty_conv get_level_def count_decided_def lits_of_def) }
       ultimately show False
-        using lev_M_M1[of "-L"] uL count_decided_ge_get_level[of "-L" M1] by auto
+        using lev_M_M1[of "-L"] uL count_decided_ge_get_level[of M1 "-L"] by auto
     qed
 
     show \<open>\<forall>K\<in>#UW. get_level M1 K \<le> get_level M1 L\<close>
@@ -470,7 +470,7 @@ proof -
       then have lev_K'_L: \<open>get_level M K'' \<le> get_level M L\<close>
         using lazy W uL L' L'M unfolding C MM' by auto
       have \<open>get_level M K'' = get_level M1 K''\<close>
-      proof (rule ccontr, cases \<open>atm_of K'' \<in> atm_of ` lits_of_l M'\<close>)
+      proof (rule ccontr, cases \<open>defined_lit M' K''\<close>)
         case False
         moreover assume \<open>get_level M K'' \<noteq> get_level M1 K''\<close>
         ultimately show False unfolding MM' by auto
@@ -480,7 +480,7 @@ proof -
         have \<open>get_level M' K'' = 0\<close>
         proof -
           have a1: "get_level M' K'' + count_decided M1 \<le> get_level M1 L"
-            using lev_K'_L unfolding lev_L_M1 unfolding MM' get_rev_level_skip_end[OF True] .
+            using lev_K'_L unfolding lev_L_M1 unfolding MM' get_level_skip_end[OF True] .
           then have "count_decided M1 \<le> get_level M1 L"
             by linarith
           then have "get_level M1 L = count_decided M1"
@@ -488,11 +488,11 @@ proof -
           then show ?thesis
             using a1 by linarith
         qed
-        moreover have \<open>Decided K \<in>set (dropWhile (\<lambda>S. atm_of (lit_of S) \<noteq> atm_of K'') M')\<close>
+        moreover have \<open>Decided K \<in> set (dropWhile (\<lambda>S. atm_of (lit_of S) \<noteq> atm_of K'') M')\<close>
           unfolding M' append_assoc[symmetric] by (rule last_in_set_dropWhile)
-            (use True in \<open>auto simp: lits_of_def M' MM'\<close>)
+            (use True in \<open>auto simp: lits_of_def M' MM' defined_lit_map\<close>)
         ultimately show False
-          by (auto simp: M' filter_empty_conv)
+          by (auto simp: M' filter_empty_conv get_level_def)
       qed
       then show \<open>get_level M1 K'' \<le> get_level M1 L\<close>
         using lev_M_M1[OF uL] lev_K'_L by auto
@@ -520,7 +520,7 @@ lemma twl_inv_Propagated:
   shows
     \<open>twl_inv (Propagated L D # M) (TWL_Clause W UW)\<close>
   unfolding twl_inv.simps apply (intro conjI allI impI)
-  using assms(2) by (auto simp add: W add_mset_eq_add_mset)
+  using assms(2) by (auto simp add: W add_mset_eq_add_mset get_level_def count_decided_def)
 
 lemma watched_literals_false_of_max_level_Propagated:
   assumes
@@ -532,7 +532,7 @@ lemma watched_literals_false_of_max_level_Propagated:
 
 lemma lazy_update_Propagated: \<open>- L' \<notin># watched C \<Longrightarrow> watched_literals_false_of_max_level M C\<Longrightarrow>
   twl_lazy_update (Propagated L' D # M) C\<close>
-  by (cases C) (auto simp: add_mset_eq_add_mset count_decided_ge_get_level)
+  by (cases C) (auto simp: count_decided_ge_get_level get_level_cons_if)
 
 lemma pair_in_image_Pair:
   \<open>(La, C) \<in> Pair L ` D \<longleftrightarrow> La = L \<and> C \<in> D\<close>
@@ -568,7 +568,7 @@ proof -
 qed
 
 lemma lit_of_inj_on_no_dup: \<open>no_dup M \<Longrightarrow> inj_on (\<lambda>x. - lit_of x) (set M)\<close>
-  by (induction M) auto
+  by (induction M) (auto simp: no_dup_def)
 
 (* useful for sledgehammer/proof reconstruction ?*)
 lemma member_add_mset: \<open>a \<in># add_mset x xs \<longleftrightarrow> a = x \<or> a \<in># xs\<close>
@@ -645,7 +645,7 @@ next
   have \<open>add_mset L Q \<subseteq># {#- lit_of x. x \<in># mset M#}\<close>
     using no_dup by (auto)
   moreover have \<open>distinct_mset {#- lit_of x. x \<in># mset M#}\<close>
-    by (subst distinct_image_mset_inj) (use n_d in \<open>auto simp: lit_of_inj_on_no_dup distinct_map\<close>)
+    by (subst distinct_image_mset_inj) (use n_d in \<open>auto simp: lit_of_inj_on_no_dup distinct_map no_dup_def\<close>)
   ultimately have [simp]: \<open>L \<notin># Q\<close>
     by (metis distinct_mset_add_mset distinct_mset_union subset_mset.le_iff_add)
   have w_q_p_D: \<open>working_queue_prop Q M (L, D)\<close>
@@ -877,7 +877,8 @@ next
   have \<open>add_mset L Q \<subseteq># {#- lit_of x. x \<in># mset M#}\<close>
     using no_dup by (auto)
   moreover have \<open>distinct_mset {#- lit_of x. x \<in># mset M#}\<close>
-    by (subst distinct_image_mset_inj) (use n_d in \<open>auto simp: lit_of_inj_on_no_dup distinct_map\<close>)
+    by (subst distinct_image_mset_inj)
+      (use n_d in \<open>auto simp: lit_of_inj_on_no_dup distinct_map no_dup_def\<close>)
   ultimately have LQ: \<open>L \<notin># Q\<close>
     by (metis distinct_mset_add_mset distinct_mset_union subset_mset.le_iff_add)
   have w_q_p_D: \<open>working_queue_prop Q M (L, D)\<close>
@@ -1105,7 +1106,7 @@ next
     have \<open>watched_literals_false_of_max_level M C\<close>
       using twl C by (auto simp: twl_st_inv.simps)
     then show \<open>watched_literals_false_of_max_level (Propagated L' (clause D) # M) C\<close>
-      by (cases C) auto
+      by (cases C) (auto simp: get_level_cons_if)
 
     assume excep: \<open>\<not>twl_is_an_exception C (add_mset (- L') Q) WS\<close>
     show \<open>twl_lazy_update (Propagated L' (clause D) # M) C\<close>
@@ -1122,16 +1123,19 @@ next
             undef)
     ultimately have twl_C: \<open>twl_inv (Propagated L' (clause D) # M) C\<close> if \<open>C \<noteq> D\<close>
       apply (cases C)
-      apply (simp only: twl_inv.simps)
-      using \<open>watched_literals_false_of_max_level M C\<close> propagate.hyps(2) uL'_M  that
-      by (force simp: count_decided_ge_get_level Decided_Propagated_in_iff_in_lits_of_l)
+      using \<open>watched_literals_false_of_max_level M C\<close> undef that
+      (* TODO Tune proof *)
+      apply (auto simp: count_decided_ge_get_level Decided_Propagated_in_iff_in_lits_of_l
+          get_level_cons_if)
+      by (metis image_eqI)
     have D: \<open>D \<in># N + U\<close> and \<open>L \<in># watched D\<close>
       using valid by auto
     have lev_L: \<open>get_level M L = count_decided M\<close>
       using valid by auto
 
     have twl_D: \<open>twl_inv (Propagated L' (clause D) # M) D\<close>
-      by (cases D) (use watched in \<open>auto simp: add_mset_eq_add_mset lev_L\<close>)
+      by (cases D, cases \<open>atm_of L = atm_of L'\<close>)
+        (use watched in \<open>auto simp: add_mset_eq_add_mset lev_L\<close>)
 
     show \<open>twl_inv (Propagated L' (clause D) # M) C\<close>
       using twl_C twl_D by blast
@@ -1160,7 +1164,7 @@ next
     have \<open>no_dup M\<close>
       using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: trail.simps)
-    then have [simp]: \<open> - L' \<notin> lits_of_l M\<close>
+    then have [simp]: \<open>- L' \<notin> lits_of_l M\<close>
       using L' consistent_interp_def distinct_consistent_interp by blast
     have twl_D: \<open>twl_lazy_update M D\<close>
       by (cases D) (use watched L' in \<open>auto simp: add_mset_eq_add_mset\<close>)
@@ -1430,7 +1434,7 @@ next
   case (propagate D L L' M N U NP UP WS Q) note watched = this(1) and twl = this(4) and valid = this(5)
     and inv = this(6) and no_taut = this(7)
   show ?case
-    using valid by (auto dest: mset_subset_eq_insertD)
+    using valid by (auto dest: mset_subset_eq_insertD simp: get_level_cons_if)
 next
   case (conflict D L L' M N U NP UP WS Q) note valid = this(5)
   then show ?case
@@ -1802,7 +1806,8 @@ next
       have \<open>add_mset L Q \<subseteq># {#- lit_of x. x \<in># mset M#}\<close>
         using no_dup by (auto)
       moreover have \<open>distinct_mset {#- lit_of x. x \<in># mset M#}\<close>
-        by (subst distinct_image_mset_inj) (use n_d in \<open>auto simp: lit_of_inj_on_no_dup distinct_map\<close>)
+        by (subst distinct_image_mset_inj)
+          (use n_d in \<open>auto simp: lit_of_inj_on_no_dup distinct_map no_dup_def\<close>)
       ultimately have [simp]: \<open>L \<notin># Q\<close>
         by (metis distinct_mset_add_mset distinct_mset_union subset_mset.le_iff_add)
       have w_q_p_D: \<open>working_queue_prop Q M (L, D)\<close>
@@ -2067,7 +2072,8 @@ next
       have \<open>add_mset L Q \<subseteq># {#- lit_of x. x \<in># mset M#}\<close>
         using no_dup by (auto simp: S)
       moreover have \<open>distinct_mset {#- lit_of x. x \<in># mset M#}\<close>
-        by (subst distinct_image_mset_inj) (use n_d in \<open>auto simp: lit_of_inj_on_no_dup distinct_map\<close>)
+        by (subst distinct_image_mset_inj)
+          (use n_d in \<open>auto simp: lit_of_inj_on_no_dup distinct_map no_dup_def\<close>)
       ultimately have [simp]: \<open>L \<notin># Q\<close>
         by (metis distinct_mset_add_mset distinct_mset_union subset_mset.le_iff_add)
       have w_q_p_D: \<open>working_queue_prop Q M (L, D)\<close>
@@ -2245,13 +2251,13 @@ next
 
     have H: False if \<open> - L' \<in> lits_of_l M1\<close>
     proof -
-      have atm: \<open>atm_of (-L') \<notin> atm_of ` lits_of_l (M2 @ [Decided K'])\<close>
+      have atm: \<open>undefined_lit (M2 @ [Decided K']) (-L')\<close>
         using that n_d by (metis M append.simps(1) append.simps(2) append_assoc
             cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
       have uL_M: \<open>-L' \<in> lits_of_l M\<close>
         using that M by auto
       show False
-        using lev_L'[OF uL_M] atm count_decided_ge_get_level[of L' M1]
+        using lev_L'[OF uL_M] atm count_decided_ge_get_level[of M1 L']
         by (auto simp: M split: if_splits)
     qed
     have \<open>twl_exception_inv (M1, N, U, None, NP, UP, {#}, {#}) C\<close> if \<open>C \<noteq> ?D\<close>
@@ -2285,11 +2291,11 @@ next
       have \<open>-L \<notin> lits_of_l M1\<close>
       proof (rule ccontr)
         assume \<open>\<not> ?thesis\<close>
-        then have \<open>atm_of L \<notin> atm_of ` lits_of_l (M2 @ [Decided K'])\<close>
+        then have \<open>undefined_lit (M2 @ [Decided K']) L\<close>
           using uL_M n_d unfolding M
-          by (auto simp: lits_of_def uminus_lit_swap dest: mk_disjoint_insert)
+          by (auto simp: lits_of_def uminus_lit_swap no_dup_def defined_lit_map dest: mk_disjoint_insert)
         then show False
-          using lev_L_M count_decided_ge_get_level[of L M1]
+          using lev_L_M count_decided_ge_get_level[of M1 L]
           by (auto simp: lits_of_def uminus_lit_swap M)
       qed
       then have \<open>\<not>M1 \<Turnstile>as CNot (remove1_mset K'' (clause ?D))\<close> for K''
@@ -2312,7 +2318,7 @@ next
       assume uL': \<open>\<not> ?thesis\<close>
       then have uL'_M: \<open>-L' \<in> lits_of_l M\<close>
         unfolding M by auto
-      have atm_L': \<open>atm_of L' \<notin> atm_of ` lits_of_l (M2 @ [Decided K'])\<close>
+      have atm_L': \<open>undefined_lit (M2 @ [Decided K']) L'\<close>
         by (rule cdcl\<^sub>W_restart_mset.no_dup_uminus_append_in_atm_notin[of _ M1])
           (use n_d[unfolded M] uL' in \<open>auto simp:\<close>)
       have \<open>get_level M L' = count_decided M\<close>
@@ -2322,7 +2328,7 @@ next
       moreover have \<open>count_decided M1 < count_decided M\<close>
         unfolding M by auto
       ultimately show False
-        using count_decided_ge_get_level[of L' M1] by simp
+        using count_decided_ge_get_level[of M1 L'] by simp
     qed
     show \<open>working_queue_inv (M1, N', U', None, NP, UP, {#}, {#})\<close>
     proof (induction rule: working_queue_inv_cases)
@@ -2507,8 +2513,8 @@ next
   have n_d: "no_dup M"
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by (simp add: cdcl\<^sub>W_restart_mset_state)
-  have "atm_of L \<notin> atm_of ` lits_of_l M1"
-    apply (rule cdcl\<^sub>W_restart_mset.backtrack_lit_skiped[of _ ?S])
+  have "undefined_lit M1 L"
+    apply (rule cdcl\<^sub>W_restart_mset.backtrack_lit_skiped[of ?S])
        using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
        apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
       using decomp apply (simp add: trail.simps; fail)
@@ -2519,9 +2525,9 @@ next
   obtain M3 where M3: \<open>M = M3 @ M2 @ Decided K # M1\<close>
     using decomp by (blast dest!: get_all_ann_decomposition_exists_prepend)
 
-  have "atm_of K \<notin> atm_of ` lits_of_l (M3 @ M2)"
-    using n_d unfolding M3 by (auto simp: lits_of_def)
-  then have [simp]: \<open>filter is_decided M1 = []\<close>
+  have "undefined_lit (M3 @ M2) K"
+    using n_d unfolding M3 by auto
+  then have [simp]: \<open>count_decided M1 = 0\<close>
     using lev_K by (auto simp: M3 image_Un)
   show ?case
     apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.bj)
@@ -2545,8 +2551,8 @@ next
   have n_d: "no_dup M"
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by (simp add: cdcl\<^sub>W_restart_mset_state)
-  have "atm_of L \<notin> atm_of ` lits_of_l M1"
-    apply (rule cdcl\<^sub>W_restart_mset.backtrack_lit_skiped[of _ ?S])
+  have "undefined_lit M1 L"
+    apply (rule cdcl\<^sub>W_restart_mset.backtrack_lit_skiped[of ?S])
       using lev_L inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
       apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
      using decomp apply (simp add: trail.simps; fail)
@@ -2557,12 +2563,12 @@ next
   obtain M3 where M3: \<open>M = M3 @ M2 @ Decided K # M1\<close>
     using decomp by (blast dest!: get_all_ann_decomposition_exists_prepend)
 
-  have "atm_of K \<notin> atm_of ` lits_of_l (M3 @ M2)"
+  have "undefined_lit (M3 @ M2) K"
     using n_d unfolding M3 by (auto simp: lits_of_def)
   then have count_M1: \<open>count_decided M1 = i\<close>
     using lev_K unfolding M3 by (auto simp: image_Un)
   have \<open>L \<noteq> L'\<close>
-    using L' lev_L lev_K count_decided_ge_get_level[of K M] by auto
+    using L' lev_L lev_K count_decided_ge_get_level[of M K] by auto
   then have D: \<open>add_mset L (add_mset L' (D - {#L, L'#})) = D\<close>
     using L' LD by (metis add_mset_diff_bothsides diff_single_eq_union insert_noteq_member mset_add)
   show ?case
@@ -2611,11 +2617,11 @@ next
     then obtain L where
       C: \<open>C ={#L#}\<close> and lev_L: \<open>get_level M L = 0\<close> and L_M: \<open>L \<in> lits_of_l M\<close>
       using unit by auto
-    have \<open>L' \<noteq> L\<close> \<open>L' \<noteq> - L\<close>
+    have \<open>atm_of L' \<noteq> atm_of L\<close>
       using undef L_M by (auto simp: defined_lit_map lits_of_def)
     then show \<open>\<exists>L. C = {#L#} \<and> (None = None \<or> 0 < count_decided (Propagated L' (clause D) # M) \<longrightarrow>
       get_level (Propagated L' (clause D) # M) L = 0 \<and> L \<in> lits_of_l (Propagated L' (clause D) # M))\<close>
-      using lev_L L_M unfolding C by (auto simp: atm_of_eq_atm_of)
+      using lev_L L_M unfolding C by auto
   qed
 next
   case (conflict D L L' M N U NP UP WS Q)
@@ -2760,7 +2766,7 @@ proof (induction rule: cdcl_twl_o.induct)
         then have \<open>-L = K\<close>
           using H[OF W uL L'] by fast
         then show \<open>get_level (Decided K # M) K' \<le> get_level (Decided K # M) L\<close>
-          using lev_le_Suc[of K'] by force
+          using lev_le_Suc[of K'] by (auto simp: get_level_cons_if)
       qed
 
       have twl_inv_C: \<open>twl_inv M C\<close>
@@ -2966,7 +2972,7 @@ next
         show \<open>get_level ?M1 L \<le> get_level ?M1 L'\<close>
         proof (cases \<open>L = K'\<close>)
           case True
-          have L_M: \<open>L \<notin> lits_of_l M1\<close> and uL_M: \<open>-L \<notin> lits_of_l M1\<close>
+          have L_M: \<open>undefined_lit M1 L\<close>
             using n_d' True by (simp add: atm_lit_of_set_lits_of_l
                 atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)+
           have \<open>\<forall>K \<in># CUW. -K \<in> lits_of_l M1\<close>
@@ -2978,7 +2984,7 @@ next
                 using C excep_M1 by auto
               ultimately have "ll \<notin># CUW \<or> - ll \<in> lits_of_l M1"
                 using L_M twl_inv_C uL' unfolding C_W twl_inv.simps twl_exception_inv.simps
-                by (auto simp: add_mset_eq_add_mset) }
+                by (auto simp: add_mset_eq_add_mset Decided_Propagated_in_iff_in_lits_of_l) }
             then show ?thesis
               by blast
           qed
@@ -2992,7 +2998,7 @@ next
           ultimately have \<open>defined_lit M1 L\<close>
             using propa_cands_M1 C W by auto
           then have False
-            using L_M uL_M by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+            using L_M L_M by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
           then show ?thesis by blast
         next
           case False
@@ -3013,7 +3019,7 @@ next
     have \<open>watched_literals_false_of_max_level M1 C\<close>
       using past C unfolding M' past_invs.simps by blast
     then show \<open>watched_literals_false_of_max_level ?M1 C\<close>
-      by (auto simp: C_W)
+      by (auto simp: C_W get_level_cons_if)
   qed
   case 2
   show ?case
@@ -3082,12 +3088,12 @@ next
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
     by (auto simp: conflicting.simps)
 
-  have "atm_of K \<notin> atm_of ` lits_of_l (M3 @ M2)"
-    using n_d unfolding M by (auto simp: lits_of_def)
+  have "undefined_lit (M3 @ M2) K"
+    using n_d unfolding M by auto
   then have count_M1: \<open>count_decided M1 = i\<close>
     using lev_K unfolding M by (auto simp: image_Un)
   then have K''_ne_K: \<open>K' \<noteq> K''\<close>
-    using lev_K lev_K' lev_K'' count_decided_ge_get_level[of K'' M] unfolding M by auto
+    using lev_K lev_K' lev_K'' count_decided_ge_get_level[of M K''] unfolding M by auto
   then have D: \<open>add_mset K' (add_mset K'' (D - {#K', K''#})) = D\<close> \<open>add_mset K'' (add_mset K' (D - {#K', K''#})) = D\<close>
     using K'' K'_D  multi_member_split by fastforce+
   have propa_cands_M1: \<open>propa_cands_enqueued (M1, N, U, None, NP, UP, {#}, {#- K''#})\<close>
@@ -3118,9 +3124,8 @@ next
   then have uK''_M1: \<open>-K'' \<in> lits_of_l M1\<close>
     using K'' K''_ne_K unfolding true_annots_true_cls_def_iff_negation_in_model
     by (metis in_remove1_mset_neq)
-  then have \<open>atm_of K'' \<notin> atm_of ` lits_of_l (M3 @ M2 @ Decided K # [])\<close>
-    using n_d unfolding M
-    by (metis append.assoc append_Cons append_Nil cdcl\<^sub>W_restart_mset.no_dup_uminus_append_in_atm_notin)
+  then have \<open>undefined_lit (M3 @ M2 @ Decided K # []) K''\<close>
+    using n_d M by (auto simp: atm_of_eq_atm_of dest: in_lits_of_l_defined_litD defined_lit_no_dupD)
   then have lev_M1_K'': \<open>get_level M1 K'' = count_decided M1\<close>
     using lev_K'' count_M1 unfolding M by (auto simp: image_Un)
 
@@ -3155,11 +3160,11 @@ next
       lazy_D: \<open>twl_lazy_update ?M1 C\<close> and
       watched_max_D: \<open>watched_literals_false_of_max_level ?M1 C\<close> and
       twl_inv_D: \<open>twl_inv ?M1 C\<close> if \<open>C = ?D\<close>
-      using that apply (auto simp: add_mset_eq_add_mset count_decided_ge_get_level; fail)[]
-      using that apply (auto simp: add_mset_eq_add_mset count_decided_ge_get_level; fail)[]
+      using that apply (auto simp: add_mset_eq_add_mset count_decided_ge_get_level get_level_cons_if; fail)[]
+      using that apply (auto simp: add_mset_eq_add_mset count_decided_ge_get_level get_level_cons_if; fail)[]
       unfolding that twl_inv.simps
       apply (intro allI conjI impI)
-      using that in_D_M1 by (auto simp add: add_mset_eq_add_mset lev_M1_K'' dest: in_K_D_M1)
+      using that in_D_M1 by (auto simp add: add_mset_eq_add_mset lev_M1_K'' get_level_cons_if dest: in_K_D_M1)
 
     {
       assume excep: \<open>\<not> twl_is_an_exception C {#-K'#} {#}\<close>
@@ -3187,9 +3192,8 @@ next
         show \<open>get_level ?M1 L \<le> get_level ?M1 L'\<close>
         proof (cases \<open>L = K'\<close>)
           case True
-          have L_M: \<open>L \<notin> lits_of_l M1\<close> and uL_M: \<open>-L \<notin> lits_of_l M1\<close>
-            using n_d' True by (simp add: atm_lit_of_set_lits_of_l
-                atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)+
+          have L_M: \<open>undefined_lit M1 L\<close>
+            using n_d' True by simp
           have \<open>\<forall>K \<in># CUW. -K \<in> lits_of_l M1\<close>
           proof -
             { fix ll :: "'a literal"
@@ -3199,7 +3203,7 @@ next
                 using that C excep_M1 by auto
               ultimately have "ll \<notin># CUW \<or> - ll \<in> lits_of_l M1"
                 using L_M twl_inv_C uL' unfolding C_W twl_inv.simps twl_exception_inv.simps
-                by (auto simp: add_mset_eq_add_mset) }
+                by (auto simp: add_mset_eq_add_mset Decided_Propagated_in_iff_in_lits_of_l) }
             then show ?thesis
               by blast
           qed
@@ -3210,11 +3214,12 @@ next
             unfolding C_W W by auto
           moreover have \<open>- K'' \<notin># watched C\<close>
             using C_W W L_L'_K L_M \<open>- K'' \<in> lits_of_l M1\<close> n_d' uL'
-            by (fastforce dest: distinct_consistent_interp mk_disjoint_insert)
+            by (fastforce dest: distinct_consistent_interp mk_disjoint_insert
+                simp: Decided_Propagated_in_iff_in_lits_of_l)
           ultimately have \<open>defined_lit M1 L\<close>
             using propa_cands_M1 C W that by auto
           then have False
-            using L_M uL_M by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+            using L_M by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
           then show ?thesis by blast
         next
           case False
@@ -3237,7 +3242,7 @@ next
     have \<open>watched_literals_false_of_max_level M1 C\<close> if \<open>C \<noteq> ?D\<close>
       using past C that unfolding M past_invs.simps by auto
     then have \<open>watched_literals_false_of_max_level ?M1 C\<close> if \<open>C \<noteq> ?D\<close>
-      using C_W that by auto
+      using C_W that by (auto simp: get_level_cons_if)
     then show \<open>watched_literals_false_of_max_level ?M1 C\<close>
       using watched_max_D by blast
   qed
@@ -3263,24 +3268,26 @@ next
       have n_d_M1: \<open>no_dup ?M1\<close>
         using struct_inv_T unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: cdcl\<^sub>W_restart_mset_state)
-      then have \<open>- K' \<notin> lits_of_l M1''\<close>
-        unfolding M1 by (auto simp: lits_of_def uminus_lit_swap)
+      then have \<open>undefined_lit M1'' K'\<close>
+        unfolding M1 by auto
       moreover {
         have \<open>- K'' \<notin> lits_of_l M1''\<close>
         proof (rule ccontr)
           assume \<open>\<not> - K'' \<notin> lits_of_l M1''\<close>
-          have \<open>atm_of (- K'') \<notin> atm_of ` lits_of_l (tl M2'' @ Decided K''' # [])\<close>
-            using n_d_M1 unfolding M1 by (metis (no_types) \<open>\<not> - K'' \<notin> lits_of_l M1''\<close> append.assoc
-                append_Cons append_Nil atm_of_uminus distinct.simps(2) list.simps(9)
-                cdcl\<^sub>W_restart_mset.no_dup_uminus_append_in_atm_notin)
+          then have \<open>undefined_lit (tl M2'' @ Decided K''' # []) K''\<close>
+            (* TODO tune proof *)
+            using n_d_M1 unfolding M1 apply (auto simp: dest: cdcl\<^sub>W_restart_mset.no_dup_uminus_append_in_atm_notin
+                cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
+            by (simp add: atm_lit_of_set_lits_of_l atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set defined_lit_map)
           then show False
-            using lev_M1_K''  count_decided_ge_get_level[of K'' M1''] unfolding M1
+            using lev_M1_K''  count_decided_ge_get_level[of M1'' K''] unfolding M1
             by (auto simp: image_Un Int_Un_distrib)
         qed }
       ultimately have \<open>twl_lazy_update M1'' ?D\<close> and \<open>twl_inv M1'' ?D\<close> and
          \<open>watched_literals_false_of_max_level M1'' ?D\<close> and
         \<open>twl_exception_inv (M1'', N, add_mset (TWL_Clause {#K', K''#} (D - {#K', K''#})) U, None, NP, UP, {#}, {#}) ?D\<close>
-        by (auto simp: add_mset_eq_add_mset twl_exception_inv.simps) }
+        by (auto simp: add_mset_eq_add_mset twl_exception_inv.simps get_level_cons_if
+            Decided_Propagated_in_iff_in_lits_of_l) }
     ultimately show \<open>twl_lazy_update M1'' C\<close>\<open>twl_inv M1'' C\<close>\<open>watched_literals_false_of_max_level M1'' C\<close>
       \<open>twl_exception_inv (M1'', N, add_mset (TWL_Clause {#K', K''#} (D - {#K', K''#})) U, None, NP, UP, {#}, {#}) C\<close>
       by blast+
@@ -3297,23 +3304,23 @@ next
     have uK''_M1'': \<open>- K'' \<notin> lits_of_l M1''\<close>
     proof (rule ccontr)
       assume K''_M1'': \<open>\<not> ?thesis\<close>
-      have \<open>atm_of (-K'') \<notin> atm_of ` lits_of_l (tl M2'' @ Decided K''' # [])\<close>
+      have \<open>undefined_lit (tl M2'' @ Decided K''' # []) (-K'')\<close>
         apply (rule CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
-         apply (use n_d' in \<open>auto simp: M M1; fail\<close>)[]
-        using K''_M1'' by (simp; fail)
+         prefer 2 using K''_M1'' apply (simp; fail)
+        by (use n_d in \<open>auto simp: M M1 no_dup_def; fail\<close>)[]
       then show False
-        using lev_M1_K'' count_decided_ge_get_level[of K'' M1''] unfolding M M1
+        using lev_M1_K'' count_decided_ge_get_level[of M1'' K''] unfolding M M1
         by (auto simp: image_Un)
     qed
     have uK'_M1'': \<open>- K' \<notin> lits_of_l M1''\<close>
     proof (rule ccontr)
       assume K'_M1'': \<open>\<not> ?thesis\<close>
-      have \<open>atm_of (-K') \<notin> atm_of ` lits_of_l (M3 @ M2 @ Decided K # tl M2'' @ Decided K''' # [])\<close>
+      have \<open>undefined_lit (M3 @ M2 @ Decided K # tl M2'' @ Decided K''' # []) (-K')\<close>
         apply (rule CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
          prefer 2 using K'_M1'' apply (simp; fail)
         by (use n_d in \<open>auto simp: M M1; fail\<close>)[]
       then show False
-        using lev_K' count_decided_ge_get_level[of K' M1''] unfolding M M1
+        using lev_K' count_decided_ge_get_level[of  M1'' K'] unfolding M M1
         by (auto simp: image_Un)
     qed
 
@@ -3394,13 +3401,12 @@ next
       unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       by (simp add: trail.simps)
     then have \<open>- L \<notin> lits_of_l M1\<close>
-      by (auto simp: lits_of_def uminus_lit_swap)
+      by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
     then have \<open>twl_exception_inv ?U ?D\<close>
       by (auto simp: twl_exception_inv.simps add_mset_eq_add_mset) }
   ultimately show ?case
     by auto
 qed
-
 
 (* TODO refactor: the two backtrack ?cases are copy-paste from each other.*)
 lemma
@@ -3456,11 +3462,13 @@ proof (induction rule: cdcl_twl_o.induct)
     have \<open>-L \<in># watched C\<close>
     proof (rule ccontr)
       assume uL_W: \<open>-L \<notin># watched C\<close>
+      then have uL_UW: \<open>-L \<in># UW\<close>
+        using uL_C unfolding C_W by auto
       have \<open>K \<noteq> -L \<or> K' \<noteq> -L\<close>
         using dist_C C_W W by auto
       moreover have \<open>K \<notin> lits_of_l M\<close> and \<open>K' \<notin> lits_of_l M\<close> and L_M: \<open>L \<notin> lits_of_l M\<close>
-        using neg_C uL_W n_d unfolding C_W W by (auto simp: lits_of_def uminus_lit_swap
-            no_dup_cannot_not_lit_and_uminus)
+        using neg_C uL_W n_d unfolding C_W W  by (auto simp: lits_of_def uminus_lit_swap
+            no_dup_cannot_not_lit_and_uminus Decided_Propagated_in_iff_in_lits_of_l)
       ultimately have \<open>(-K \<in> lits_of_l M \<and> K' \<notin> lits_of_l M) \<or> (-K' \<in> lits_of_l M \<and> K \<notin> lits_of_l M)\<close>
         using neg_C by (auto simp: C_W W)
       moreover have \<open>twl_exception_inv (M, N, U, None, NP, UP, {#}, {#}) C\<close>
@@ -3507,11 +3515,10 @@ proof (induction rule: cdcl_twl_o.induct)
           add_mset_commute split: if_splits)
       have FK_F: \<open>FK \<noteq> K\<close>
         using Decided_Propagated_in_iff_in_lits_of_l uK_M undef_M_K by blast
-      have L_M: \<open>L \<notin> lits_of_l M\<close> \<open>-L \<notin> lits_of_l M\<close>
-        using neg_C uL_W n_d unfolding C_W W by (auto simp: lits_of_def uminus_lit_swap
-            no_dup_cannot_not_lit_and_uminus)
+      have L_M: \<open>undefined_lit M L\<close>
+        using neg_C uL_W n_d unfolding C_W W by auto
       then have \<open>K \<noteq> -L\<close>
-        using uK_M by auto
+        using uK_M by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
       moreover have \<open>K \<notin> lits_of_l M\<close>
         using neg_C uL_W n_d uK_M by (auto simp: lits_of_def uminus_lit_swap
             no_dup_cannot_not_lit_and_uminus)
@@ -3526,7 +3533,7 @@ proof (induction rule: cdcl_twl_o.induct)
         using uK_M
         by (auto simp: twl_exception_inv.simps C_W W add_mset_eq_add_mset all_conj_distrib)
       then show False
-        using C_W L_M(1) \<open>- L \<in># clause C\<close> uL_W by auto
+        using C_W L_M(1) \<open>- L \<in># clause C\<close> uL_W by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
     qed
     then show \<open>(\<exists>L'. L' \<in># watched C \<and> L' \<in># {#- L#}) \<or> (\<exists>L. (L, C) \<in># {#})\<close>
       by auto
@@ -3587,7 +3594,7 @@ next
   then have n_d_L_M1: \<open>no_dup (Propagated L {#L#} # M1)\<close>
     using struct_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps)
-  then have uL_M1: \<open>- L \<notin> lits_of_l M1\<close> and L_M1:  \<open>L \<notin> lits_of_l M1\<close>
+  then have uL_M1: \<open>undefined_lit M1 L\<close>
     by (simp_all add: atm_lit_of_set_lits_of_l atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
 
 
@@ -3620,7 +3627,7 @@ next
        apply (metis C_W LM_C W add_diff_cancel_right' clause.simps consistent_interp_def
           distinct_consistent_interp in_CNot_implies_uminus(2) in_diffD n_d_L_M1 uL_C
           union_single_eq_member)
-      using C_W LM_C W uL_M1 by auto
+      using C_W LM_C W uL_M1 by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
     have \<open>-L \<in># watched C\<close>
     proof (rule ccontr)
       assume uL_W: \<open>-L \<notin># watched C\<close>
@@ -3630,21 +3637,18 @@ next
       proof -
         have f2: "consistent_interp (lits_of_l M1)"
           using distinct_consistent_interp n_d_L_M1 by auto
-        have "atm_of L \<notin> atm_of ` lits_of_l M1"
+        have undef_L: "undefined_lit M1 L"
           using atm_lit_of_set_lits_of_l n_d_L_M1 by force
         then show "K \<notin> lits_of_l M1"
           using f2 neg_C unfolding C_W W by (metis (no_types) C_W W add_diff_cancel_right'
-              atm_of_eq_atm_of atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set clause.simps
+              atm_of_eq_atm_of clause.simps
               consistent_interp_def in_diffD insertE list.simps(15) lits_of_insert uL_C
-              union_single_eq_member)
-      next
+              union_single_eq_member Decided_Propagated_in_iff_in_lits_of_l)
         show \<open>K' \<notin> lits_of_l M1\<close>
           using consistent_interp_def distinct_consistent_interp n_d_L_M1
           using neg_C uL_W n_d unfolding C_W W by auto
         show \<open>L \<notin> lits_of_l M1\<close>
-          by (metis (no_types) ann_lit.sel(2) atm_lit_of_set_lits_of_l
-              atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set distinct.simps(2) image_set
-              list.simps(9) n_d_L_M1)
+          using undef_L by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
       qed
       ultimately have \<open>(-K \<in> lits_of_l M1 \<and> K' \<notin> lits_of_l M1) \<or> (-K' \<in> lits_of_l M1 \<and> K \<notin> lits_of_l M1)\<close>
         using neg_C by (auto simp: C_W W)
@@ -3694,7 +3698,7 @@ next
       have FK_F: \<open>FK \<noteq> K\<close>
         using uK_M undef_M_K unfolding Decided_Propagated_in_iff_in_lits_of_l by auto
       have \<open>K \<noteq> -L\<close>
-        using uK_M uL_M1 L_M1 by auto
+        using uK_M uL_M1 by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
       moreover have \<open>K \<notin> lits_of_l M1\<close>
         using neg_C uL_W n_d uK_M n_d_L_M1 by (auto simp: lits_of_def uminus_lit_swap
             no_dup_cannot_not_lit_and_uminus dest: no_dup_cannot_not_lit_and_uminus)
@@ -3710,7 +3714,7 @@ next
         using uK_M
         by (auto simp: twl_exception_inv.simps C_W W add_mset_eq_add_mset all_conj_distrib)
       then show False
-        using C_W L_M1 \<open>- L \<in># clause C\<close> uL_W by auto
+        using C_W uL_M1 \<open>- L \<in># clause C\<close> uL_W by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
     qed
     then show \<open>(\<exists>L'. L' \<in># watched C \<and> L' \<in># {#- L#}) \<or> (\<exists>L. (L, C) \<in># {#})\<close>
       by auto
@@ -3766,9 +3770,9 @@ next
     using struct_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps)
 
-  have \<open>atm_of K \<notin> atm_of ` lits_of_l (M3 @ M2 @ M1)\<close>
+  have \<open>undefined_lit (M3 @ M2 @ M1) K\<close>
     by (rule cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin[of _ \<open>[Decided K]\<close>])
-      (use n_d M in auto)
+      (use n_d M in \<open>auto simp: no_dup_def\<close>)
   then have L_uL': \<open>L \<noteq> - L'\<close>
     using lev_L lev_L' lev_K unfolding M by (auto simp: image_Un)
 
@@ -3779,8 +3783,8 @@ next
   then have n_d_L_M1: \<open>no_dup (Propagated L D # M1)\<close>
     using struct_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps)
-  then have uL_M1: \<open>- L \<notin> lits_of_l M1\<close> and L_M1:  \<open>L \<notin> lits_of_l M1\<close>
-    by (simp_all add: atm_lit_of_set_lits_of_l atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
+  then have uL_M1: \<open>undefined_lit M1 L\<close>
+    by simp
 
   have M1_CNot_L_D: \<open>M1 \<Turnstile>as CNot (remove1_mset L D)\<close>
     using struct_inv_T unfolding  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -3805,7 +3809,8 @@ next
     proof (cases \<open>C = ?D\<close>)
       case True
       then have False
-        using LM_C by (auto simp: true_annots_true_cls_def_iff_negation_in_model L_uL' uL_M1)
+        using LM_C L_uL' uL_M1 by (auto simp: true_annots_true_cls_def_iff_negation_in_model
+            Decided_Propagated_in_iff_in_lits_of_l)
       then show ?thesis by fast
     next
       case False
@@ -3829,7 +3834,7 @@ next
          apply (metis C_W LM_C W add_diff_cancel_right' clause.simps consistent_interp_def
             distinct_consistent_interp in_CNot_implies_uminus(2) in_diffD n_d_L_M1 uL_C
             union_single_eq_member)
-        using C_W LM_C W uL_M1 by auto
+        using C_W LM_C W uL_M1 by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
       have \<open>-L \<in># watched C\<close>
       proof (rule ccontr)
         assume uL_W: \<open>-L \<notin># watched C\<close>
@@ -3839,21 +3844,17 @@ next
         proof -
           have f2: "consistent_interp (lits_of_l M1)"
             using distinct_consistent_interp n_d_L_M1 by auto
-          have "atm_of L \<notin> atm_of ` lits_of_l M1"
+          have undef_L: "undefined_lit M1 L"
             using atm_lit_of_set_lits_of_l n_d_L_M1 by force
           then show "K \<notin> lits_of_l M1"
             using f2 neg_C unfolding C_W W by (metis (no_types) C_W W add_diff_cancel_right'
-                atm_of_eq_atm_of atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set clause.simps
-                consistent_interp_def in_diffD insertE list.simps(15) lits_of_insert uL_C
-                union_single_eq_member)
-        next
+                atm_of_eq_atm_of clause.simps consistent_interp_def in_diffD insertE list.simps(15)
+                lits_of_insert uL_C union_single_eq_member Decided_Propagated_in_iff_in_lits_of_l)
           show \<open>K' \<notin> lits_of_l M1\<close>
             using consistent_interp_def distinct_consistent_interp n_d_L_M1
             using neg_C uL_W n_d unfolding C_W W by auto
           show \<open>L \<notin> lits_of_l M1\<close>
-            by (metis (no_types) ann_lit.sel(2) atm_lit_of_set_lits_of_l
-                atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set distinct.simps(2) image_set
-                list.simps(9) n_d_L_M1)
+            using undef_L by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
         qed
         ultimately have \<open>(-K \<in> lits_of_l M1 \<and> K' \<notin> lits_of_l M1) \<or> (-K' \<in> lits_of_l M1 \<and> K \<notin> lits_of_l M1)\<close>
           using neg_C by (auto simp: C_W W)
@@ -3910,7 +3911,7 @@ next
         have FK_F: \<open>FK \<noteq> K\<close>
           using uK_M undef_M_K unfolding Decided_Propagated_in_iff_in_lits_of_l by auto
         have \<open>K \<noteq> -L\<close>
-          using uK_M uL_M1 L_M1 by auto
+          using uK_M uL_M1 by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
         moreover have \<open>K \<notin> lits_of_l M1\<close>
           using neg_C uL_W n_d uK_M n_d_L_M1 by (auto simp: lits_of_def uminus_lit_swap
               no_dup_cannot_not_lit_and_uminus dest: no_dup_cannot_not_lit_and_uminus)
@@ -3926,7 +3927,7 @@ next
           using uK_M
           by (auto simp: twl_exception_inv.simps C_W W add_mset_eq_add_mset all_conj_distrib)
         then show False
-          using C_W L_M1 \<open>- L \<in># clause C\<close> uL_W by auto
+          using C_W uL_M1 \<open>- L \<in># clause C\<close> uL_W by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
       qed
       then show \<open>(\<exists>L'. L' \<in># watched C \<and> L' \<in># {#- L#}) \<or> (\<exists>L. (L, C) \<in># {#})\<close>
         by auto
@@ -3944,7 +3945,7 @@ next
         by (metis \<open>defined_lit (Propagated L D # M1) L\<close> add_mset_remove_trivial backtrack.hyps(8)
             clause.simps in_diffD in_remove1_mset_neq insert_DiffM2 union_iff)
       then have False
-        using K undef unfolding True by blast
+        using K undef  unfolding True by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
       then show ?thesis by fast
     qed
   qed
@@ -3964,12 +3965,13 @@ next
     case (WS_empty K')
     then show ?case
       using 2[of K'] uL_M1 apply (simp only: filter_mset_empty_conv Ball_def image_mset_is_empty_iff)
-      apply (auto simp add: working_queue_prop.simps add_mset_eq_add_mset)
+      apply (auto simp add: working_queue_prop.simps add_mset_eq_add_mset Decided_Propagated_in_iff_in_lits_of_l)
       done
   next
     case (Q K' K'' C)
     then show ?case
-      using 3[of C K' K''] uL_M1 by (auto simp add: working_queue_prop.simps add_mset_eq_add_mset)
+      using 3[of C K' K''] uL_M1 by (auto simp add: working_queue_prop.simps add_mset_eq_add_mset
+          Decided_Propagated_in_iff_in_lits_of_l)
   qed
 qed
 
@@ -3977,11 +3979,11 @@ lemma no_dup_append_decided_Cons_lev:
   assumes \<open>no_dup (M2 @ Decided K # M1)\<close>
   shows \<open>count_decided M1 = get_level (M2 @ Decided K # M1) K - 1\<close>
 proof -
-  have \<open>atm_of K \<notin> atm_of ` lits_of_l (M2 @ M1)\<close>
+  have \<open>undefined_lit (M2 @ M1) K\<close>
     by (rule CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin[of _ \<open>[Decided K]\<close>])
       (use assms in auto)
   then show ?thesis
-    by (auto simp: image_Un)
+    by (auto)
 qed
 
 lemma cdcl_twl_o_unit_clss_inv:
@@ -4106,11 +4108,13 @@ next
         assume \<open>\<not> ?thesis\<close>
         then have \<open>K'' \<in> lits_of_l M2'\<close>
           using K unfolding M2' by auto
-        then have \<open>\<exists>L\<in>set ((M3 @ M2) @ [Decided K]). \<not> atm_of (lit_of L) \<noteq> atm_of K''\<close>
+        then have ex_L: \<open>\<exists>L\<in>set ((M3 @ M2) @ [Decided K]). \<not> atm_of (lit_of L) \<noteq> atm_of K''\<close>
           by (metis M2'_def image_iff lits_of_def)
+        have \<open>get_level (M2' @ M1) K'' = get_level M2' K'' + count_decided M1\<close>
+          using \<open>K'' \<in> lits_of_l M2'\<close> Decided_Propagated_in_iff_in_lits_of_l get_level_skip_end by blast
 
-        from last_in_set_dropWhile[OF this, unfolded M2'_def[symmetric]] have \<open>\<not>get_level M K'' = 0\<close>
-          unfolding M2' using \<open>K'' \<in> lits_of_l M2'\<close> by (auto 5 5 simp: filter_empty_conv)
+        with last_in_set_dropWhile[OF ex_L, unfolded M2'_def[symmetric]] have \<open>\<not>get_level M K'' = 0\<close>
+          unfolding M2' using \<open>K'' \<in> lits_of_l M2'\<close> by (force simp: filter_empty_conv get_level_def)
         then show False
         using lev_K'' by arith
       qed
@@ -4118,9 +4122,9 @@ next
         unfolding M by auto
       moreover {
         have \<open>atm_of L \<noteq> atm_of K''\<close>
-          using backtrack_single_clause.hyps(2) lev_K'' lev_M by auto
+          using backtrack_single_clause.hyps(2) lev_K'' lev_M by (auto simp: atm_of_eq_atm_of)
         then have \<open>get_level ?M K'' = 0\<close>
-          using count_dec_M1 count_decided_ge_get_level[of K'' ?M] by auto }
+          using count_dec_M1 count_decided_ge_get_level[of ?M K''] by auto }
       ultimately show ?thesis
         using C_K by auto
     next
@@ -4169,22 +4173,26 @@ next
         using K unfolding M2' by auto
       then have \<open>\<exists>L\<in>set ((M3 @ M2) @ [Decided K]). \<not> atm_of (lit_of L) \<noteq> atm_of K''\<close>
         by (metis M2'_def image_iff lits_of_def)
+      then have ex_L: \<open>\<exists>L\<in>set ((M3 @ M2) @ [Decided K]). \<not> atm_of (lit_of L) \<noteq> atm_of K''\<close>
+        by (metis M2'_def image_iff lits_of_def)
+      have \<open>get_level (M2' @ M1) K'' = get_level M2' K'' + count_decided M1\<close>
+        using \<open>K'' \<in> lits_of_l M2'\<close> Decided_Propagated_in_iff_in_lits_of_l get_level_skip_end by blast
 
-      from last_in_set_dropWhile[OF this, unfolded M2'_def[symmetric]] have \<open>\<not>get_level M K'' = 0\<close>
-        unfolding M2' using \<open>K'' \<in> lits_of_l M2'\<close> by (auto 5 5 simp: filter_empty_conv)
+      with last_in_set_dropWhile[OF ex_L, unfolded M2'_def[symmetric]] have \<open>\<not>get_level M K'' = 0\<close>
+        unfolding M2' using \<open>K'' \<in> lits_of_l M2'\<close> by (force simp: filter_empty_conv get_level_def)
       then show False
         using lev_K'' by arith
     qed
     then have K: \<open>K'' \<in> lits_of_l ?M\<close>
       unfolding M by auto
     moreover {
-      have \<open>atm_of K'' \<notin> atm_of ` lits_of_l (M3 @ M2 @ [Decided K])\<close>
+      have \<open>undefined_lit (M3 @ M2 @ [Decided K]) K''\<close>
         by (rule CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin[of _ \<open>M1\<close>])
           (use n_d M K''_M1 in auto)
       then have \<open>get_level M1 K'' = 0\<close>
         using lev_K'' unfolding M by (auto simp: image_Un)
       moreover have \<open>atm_of L \<noteq> atm_of K''\<close>
-        using lev_K'' lev_M local.backtrack(3) by auto
+        using lev_K'' lev_M local.backtrack(3) by (metis atm_of_eq_atm_of get_level_uminus not_gr_zero)
       ultimately have \<open>get_level ?M K'' = 0\<close>
         by auto }
     ultimately show \<open>\<exists>La. C = {#La#} \<and> (None = None \<or> 0 < count_decided ?M \<longrightarrow> get_level ?M La = 0 \<and>

@@ -164,11 +164,23 @@ lemma is_decided_convert_is_decided[simp]: \<open>(is_decided \<circ> convert) =
 
 lemma get_level_map_convert[simp]:
   "get_level (map convert M) x = get_level M x"
-  by (induction M rule: ann_lit_list_induct) (auto simp: comp_def)
+  by (induction M rule: ann_lit_list_induct) (auto simp: comp_def get_level_def)
 
 lemma get_maximum_level_map_convert[simp]:
   "get_maximum_level (map convert M) D = get_maximum_level M D"
   by (induction D) (auto simp add: get_maximum_level_add_mset)
+
+lemma count_decided_convert[simp]:
+  \<open>count_decided (map convert M) = count_decided M\<close>
+  by (auto simp: count_decided_def)
+
+lemma atm_lit_of_convert[simp]:
+  "lit_of (convert x) =  lit_of x"
+  by (cases x) auto
+
+lemma no_dup_convert[simp]:
+  \<open>no_dup (map convert M) = no_dup M\<close>
+  by (auto simp: no_dup_def image_image comp_def)
 
 text \<open>Conversion function\<close>
 fun toS :: "'v cdcl\<^sub>W_restart_state_inv_st \<Rightarrow> 'v cdcl\<^sub>W_restart_state" where
@@ -194,9 +206,6 @@ end
 lemma lits_of_map_convert[simp]: "lits_of_l (map convert M) = lits_of_l M"
   by (induction M rule: ann_lit_list_induct) simp_all
 
-lemma atm_lit_of_convert[simp]:
-  "lit_of (convert x) =  lit_of x"
-  by (cases x) auto
 
 lemma undefined_lit_map_convert[iff]:
   "undefined_lit (map convert M) L \<longleftrightarrow> undefined_lit M L"
@@ -444,7 +453,7 @@ lemma do_resolve_step_no:
     elim!: resolveE  split: if_split_asm
     dest!: union_single_eq_member
     simp del: in_multiset_in_set get_maximum_level_map_convert
-    simp: get_maximum_level_map_convert[symmetric])
+    simp: get_maximum_level_map_convert[symmetric] count_decided_def)
 
 lemma  rough_state_of_state_of_resolve[simp]:
   "cdcl\<^sub>W_all_struct_inv (toS S) \<Longrightarrow> rough_state_of (state_of (do_resolve_step S)) = do_resolve_step S"
@@ -491,7 +500,8 @@ lemma do_backtrack_step:
     obtain M2 where M2: "bt_cut j M = Some M2"
       using db fd unfolding S E by (auto split: option.splits)
     have "no_dup M"
-      using inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def S by (auto simp: comp_def)
+      using inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def S
+      by (auto simp: comp_def)
     then obtain M1 K c where
       M1: "M2 = Decided K # M1" and lev_K: "get_level M K = j + 1" and
       c: "M = c @ M2"
@@ -571,7 +581,7 @@ next
     by (auto simp: comp_def)
   then have "count_decided (raw_trail (toS S)) > j"
     using j count_decided_ge_get_maximum_level[of "raw_trail S" "remove1_mset L (mset D)"]
-    count_decided_ge_get_level[of K "raw_trail S"] decomp lev_K
+    count_decided_ge_get_level[of "raw_trail S" K] decomp lev_K
     unfolding k S by (auto simp: get_all_ann_decomposition_map_convert)
   have [simp]: "L \<in> set D"
     using LD by auto
@@ -1147,10 +1157,12 @@ proof -
   then show ?thesis by auto
 qed
 
+
 paragraph \<open>The Code\<close>
 text \<open>The SML code is skipped in the documentation, but stays to ensure that some version of the
  exported code is working. The only difference between the generated code and the one used here is
  the export of the constructor ConI.\<close>
+
 (*<*)
 fun gene where
 "gene 0 = [[Pos 0], [Neg 0]]" |
@@ -1164,7 +1176,11 @@ definition do_all_cdcl\<^sub>W_stgy_nat :: "nat cdcl\<^sub>W_restart_state_inv_f
    \<Rightarrow> nat cdcl\<^sub>W_restart_state_inv_from_init_state" where
 "do_all_cdcl\<^sub>W_stgy_nat = do_all_cdcl\<^sub>W_stgy"
 
-export_code "do_all_cdcl\<^sub>W_stgy_nat" gene in SML
+code_identifier
+  code_module DPLL_CDCL_W_Implementation \<rightharpoonup> (OCaml) CDCL_W_Level
+
+export_code do_all_cdcl\<^sub>W_stgy_nat in OCaml
+
 ML \<open>
 structure HOL : sig
   type 'a equal

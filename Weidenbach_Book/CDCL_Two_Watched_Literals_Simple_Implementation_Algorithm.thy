@@ -657,8 +657,8 @@ proof -
   proof (cases L)
     case (Decided L') note L' = this(1)
     moreover have \<open>atm_of L' = atm_of L_k\<close>
-      using lev_L_k count_decided_ge_get_level[of L_k M] unfolding M dec L'
-      by (auto simp: split: if_splits)
+      using lev_L_k count_decided_ge_get_level[of M L_k] unfolding M dec L'
+      by (auto simp: get_level_cons_if split: if_splits)
     then have \<open>L' = -L_k\<close>
       using L_k L_D L' by (auto simp: atm_of_eq_atm_of)
     then show ?thesis using L_k unfolding D M L' by simp
@@ -730,7 +730,7 @@ proof -
       using S unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
       by (auto simp: cdcl\<^sub>W_restart_mset_state)
     then have uL''_M: \<open>-lit_of L'' \<notin> lits_of_l M\<close>
-      by (auto simp: M lits_of_def uminus_lit_swap)
+      by (auto simp: Decided_Propagated_in_iff_in_lits_of_l M)
     have \<open>get_maximum_level M (remove1_mset (-lit_of (hd M)) (the D)) < count_decided M\<close>
     proof (cases L'')
       case (Decided x1) note L'' = this(1)
@@ -740,7 +740,7 @@ proof -
         by (auto simp: cdcl\<^sub>W_restart_mset_state)
       then have \<open>- x1 \<notin># remove1_mset (- x1) D'\<close>
         using D' distinct_mem_diff_mset by force
-      then have H: \<open>\<forall>x\<in>atms_of (remove1_mset (- lit_of (hd M)) (the D)). x \<notin> atm_of ` lits_of_l [L'']\<close>
+      then have H: \<open>\<forall>x\<in>#remove1_mset (- lit_of (hd M)) (the D). undefined_lit [L''] x\<close>
         using L'' M_CNot_D' uL''_M
         by (fastforce simp: D' atms_of_def atm_of_eq_atm_of M true_annots_true_cls_def_iff_negation_in_model
             dest: in_diffD)

@@ -222,7 +222,7 @@ proof -
     M: "trail T = M @ trail (cut_trail_wrt_clause C (trail T) T)"
     using trail_cut_trail_wrt_clause[of T C] by auto
   show ?thesis
-    using n_d unfolding arg_cong[OF M, of no_dup] by auto
+    using n_d unfolding arg_cong[OF M, of no_dup] by (auto simp: no_dup_def)
 qed
 
 lemma cut_trail_wrt_clause_backtrack_lvl_length_decided:
@@ -358,7 +358,7 @@ proof -
   then have "no_dup (M @ trail (cut_trail_wrt_clause C (trail T) T))"
     unfolding cdcl\<^sub>W_M_level_inv_def unfolding M[symmetric] by auto
   then have [simp]: "no_dup (trail (cut_trail_wrt_clause C (trail T) T))"
-    by auto
+    by (auto simp: no_dup_def)
 
   have "consistent_interp (lits_of_l (M @ trail (cut_trail_wrt_clause C (trail T) T)))"
     using M_lev unfolding cdcl\<^sub>W_M_level_inv_def unfolding M[symmetric] by auto
@@ -505,12 +505,12 @@ proof -
               using \<open>cdcl\<^sub>W_all_struct_inv ?T'\<close> unfolding cdcl\<^sub>W_all_struct_inv_def
               cdcl\<^sub>W_M_level_inv_def by (auto simp: add_new_clause_and_update_def)
             ultimately show False
-              unfolding 1(1)[simplified] by (auto simp: lits_of_def)
+              unfolding 1(1)[simplified] by (auto simp: lits_of_def no_dup_def)
         qed
       qed
       show ?thesis using L L' C
         unfolding cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_all_struct_inv_def
-        by (auto simp: add_new_clause_and_update_def intro: rev_bexI)
+        by (auto simp: add_new_clause_and_update_def get_level_def count_decided_def intro: rev_bexI)
     qed
 qed
 

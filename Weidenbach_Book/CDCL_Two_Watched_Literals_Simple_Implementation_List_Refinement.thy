@@ -73,8 +73,8 @@ lemma is_decided_convert_lit[iff]: \<open>is_decided (convert_lit L) = is_decide
 lemma is_decided_o_convert_lit[iff]: \<open>is_decided \<circ> convert_lit = is_decided\<close>
   by auto
 
-lemma no_dup_convert_lits: \<open>no_dup (convert_lits M) \<longleftrightarrow> no_dup M\<close>
-  by (auto simp: defined_lit_map comp_def)
+lemma no_dup_convert_lits[iff]: \<open>no_dup (convert_lits M) \<longleftrightarrow> no_dup M\<close>
+  by (auto simp: defined_lit_map comp_def no_dup_def)
 
 lemma lits_of_convert_lit[iff]: \<open>lits_of (convert_lit ` set M) = lits_of_l M\<close>
   by (induction M) auto
@@ -84,7 +84,11 @@ lemma defined_lit_convert_lits[iff]: \<open>defined_lit (convert_lits M) = defin
 
 lemma get_level_convert_lits[simp]: \<open>get_level (convert_lits M) = get_level M\<close>
   apply (rule ext)
-  by (induction M) auto
+  by (induction M) (auto simp: get_level_def)
+
+lemma count_decided_convert_lits[simp]:
+  \<open>count_decided (convert_lits M) = count_decided M\<close>
+  by (auto simp: count_decided_def)
 
 lemma get_maximum_level_convert_lits[simp]: \<open>get_maximum_level (convert_lits M) = get_maximum_level M\<close>
   unfolding get_maximum_level_def by auto
@@ -291,7 +295,8 @@ proof -
 
   have n_d: \<open>no_dup M\<close>
     using cdcl_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def S by (auto simp: trail.simps comp_def)
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def S
+    by (auto simp: trail.simps comp_def)
   then have consistent: \<open>- L \<notin> lits_of_l M\<close> if \<open>L \<in> lits_of_l M\<close> for L
     using consistent_interp_def distinct_consistent_interp that by blast
 
@@ -926,7 +931,7 @@ lemma get_all_ann_decomposition_convert_lits:
 
 lemma get_level_convert_lits2[simp]:
   \<open>get_level (convert_lits M') K = get_level M' K\<close>
-  using get_level_convert_lits[of M'] by meson
+  using get_level_convert_lits[of M'] by simp
 
 lemma backtrack_list_spec:
   \<open>(backtrack_list, backtrack) \<in>

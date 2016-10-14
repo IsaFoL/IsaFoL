@@ -52,7 +52,7 @@ proof -
   moreover have CNot_D: \<open>F' @ Decided K # F \<Turnstile>as CNot D\<close>
     using \<open>M\<Turnstile>as CNot D\<close> unfolding M .
   moreover have undef: \<open>undefined_lit F (-?K)\<close>
-    using no_dup unfolding M L by (simp add: defined_lit_map)
+    using no_dup unfolding M L by (simp add: defined_lit_map image_Un)
   moreover have atm_K: \<open>atm_of (-K) \<in> atms_of_mm N \<union> atm_of ` lits_of_l (F' @ Decided K # F)\<close>
     by auto
   moreover {

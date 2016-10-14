@@ -847,24 +847,20 @@ lemma backtrack_lit_skiped:
     M1: "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))" and
     no_dup: "no_dup (trail S)" and
     lev_K: "get_level (trail S) K = i + 1"
-  shows "atm_of L \<notin> atm_of ` lits_of_l M1"
+  shows "undefined_lit M1 L"
 proof (rule ccontr)
   let ?M = "trail S"
-  assume L_in_M1: "\<not>atm_of L \<notin> atm_of ` lits_of_l M1"
+  assume L_in_M1: "\<not> ?thesis"
   obtain M2' where
     Mc: "trail S = M2' @ M2 @ Decided K # M1"
     using M1 by blast
-  have
-    "atm_of L \<notin> atm_of ` lits_of_l M2'" and
-    "atm_of L \<notin> atm_of ` lits_of_l M2" and
-    "atm_of L \<noteq> atm_of K" and
-    Kc: "atm_of K \<notin> atm_of ` lits_of_l M2'" and
-    KM2: "atm_of K \<notin> atm_of ` lits_of_l M2"
-    using L_in_M1 no_dup unfolding Mc lits_of_def by force+
+  have Kc: \<open>undefined_lit M2' K\<close> and KM2: \<open>undefined_lit M2 K\<close> \<open>atm_of L \<noteq> atm_of K\<close> and
+    \<open>undefined_lit M2' L\<close> \<open>undefined_lit M2 L\<close>
+    using L_in_M1 no_dup unfolding Mc by (auto simp: atm_of_eq_atm_of dest: defined_lit_no_dupD)
   then have g_M_eq_g_M1: "get_level ?M L = get_level M1 L"
     using L_in_M1 unfolding Mc by auto
   then have "get_level M1 L < Suc i"
-    using count_decided_ge_get_level[of L M1] KM2 lev_K Kc unfolding Mc by auto
+    using count_decided_ge_get_level[of M1 L] KM2 lev_K Kc unfolding Mc by auto
   moreover have "Suc i \<le> backtrack_lvl S" using KM2 lev_K Kc unfolding Mc by (simp add: Mc)
   ultimately show False using L g_M_eq_g_M1 by auto
 qed
@@ -881,13 +877,12 @@ proof (induct rule: cdcl\<^sub>W_restart_all_induct)
   obtain c where Mc: "trail S = c @ M2 @ Decided K # M1"
     using decomp by auto
   have "no_dup (M2 @ Decided K # M1)"
-    using Mc n_d by fastforce
-  moreover have L_M1: "atm_of L \<notin> atm_of ` lits_of_l M1"
-    using backtrack_lit_skiped[of L S K M1 M2 i] L decomp lev_K n_d by fast
-  moreover have "undefined_lit M1 L"
-     using L_M1 by (simp add: defined_lit_map lits_of_def image_image)
-  ultimately show ?case using decomp T n_d by (simp add: lits_of_def image_image)
-qed (auto simp: defined_lit_map)
+    using Mc n_d by (auto dest: no_dup_appendD simp: defined_lit_map image_Un)
+  moreover have L_M1: "undefined_lit M1 L"
+    using backtrack_lit_skiped[of S L K M1 M2 i] L decomp lev_K n_d
+      unfolding defined_lit_map lits_of_def by fast
+  ultimately show ?case using decomp T n_d by (auto dest: no_dup_appendD)
+qed auto
 
 text \<open>\cwref{prop:prop:cdclconsis}{Item 1 page 81}\<close>
 lemma cdcl\<^sub>W_restart_consistent_inv_2:
@@ -1619,7 +1614,7 @@ lemma backtrack_atms_of_D_in_M1:
                   (add_learned_cls D
                     (update_conflicting None S)))" and
     confl: "\<forall>T. conflicting S = Some T \<longrightarrow> trail S \<Turnstile>as CNot T"
-  shows "atms_of ((remove1_mset L D)) \<subseteq> atm_of ` lits_of_l (tl (trail T))"
+  shows "atms_of (remove1_mset L D) \<subseteq> atm_of ` lits_of_l (tl (trail T))"
 proof (rule ccontr)
   let ?k = "get_maximum_level (trail S) D"
   let ?D' = "remove1_mset L D"
@@ -1637,41 +1632,48 @@ proof (rule ccontr)
     L': "L' \<in> atms_of ?D'" and
     L'_notin_M1: "L' \<notin> atm_of ` lits_of_l M1"
     using T decomp inv by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
-  then have L'_in: "L' \<in> atm_of ` lits_of_l (M0 @ M2 @ Decided K # [])"
-    using vars_of_D unfolding M by (auto dest: in_atms_of_remove1_mset_in_atms_of)
-  then obtain L'' where
+
+  obtain L'' where
     "L'' \<in># ?D'" and
     L'': "L' = atm_of L''"
     using L' L'_notin_M1 unfolding atms_of_def by auto
-  have "atm_of K \<notin> atm_of ` lits_of_l (M0 @ M2)"
-    using inv by (auto simp: cdcl\<^sub>W_M_level_inv_def M lits_of_def)
+  then have L'_in: "defined_lit (M0 @ M2 @ Decided K # []) L''"
+    using vars_of_D L'_notin_M1 L' unfolding M
+    by (auto dest: in_atms_of_remove1_mset_in_atms_of
+        simp: defined_lit_append defined_lit_map lits_of_def image_Un)
+  have L''_M1: \<open>undefined_lit M1 L''\<close>
+    using L'_notin_M1 L'' by (auto simp: defined_lit_map lits_of_def)
+  have \<open>undefined_lit (M0 @ M2) K\<close>
+    using inv by (auto simp: cdcl\<^sub>W_M_level_inv_def M)
   then have "count_decided M1 = i"
     using lev_K unfolding M by (auto simp: image_Un)
   then have lev_L'':
     "get_level (trail S) L'' = get_level (M0 @ M2 @ Decided K # []) L'' + i"
-    using L'_notin_M1 L'' get_rev_level_skip_end[OF L'_in[unfolded L''], of M1] M by auto
+    using L'_notin_M1 L''_M1 L'' get_level_skip_end[OF L'_in[unfolded L''], of M1] M by auto
   moreover
     consider
-      (M0) "L' \<in> atm_of ` lits_of_l M0" |
-      (M2) "L' \<in> atm_of ` lits_of_l M2" |
+      (M0) "defined_lit M0 L''" |
+      (M2) "defined_lit M2 L''" |
       (K) "L' = atm_of K"
-      using inv L'_in unfolding L'' by (auto simp: cdcl\<^sub>W_M_level_inv_def)
+      using inv L'_in unfolding L''
+      by (auto simp: cdcl\<^sub>W_M_level_inv_def defined_lit_append)
     then have "get_level (M0 @ M2 @ Decided K # []) L'' \<ge> Suc 0"
       proof cases
         case M0
         then have "L' \<noteq> atm_of K"
-          using inv \<open>atm_of K \<notin> atm_of ` lits_of_l (M0 @ M2)\<close> unfolding L'' by auto
+          using \<open>undefined_lit (M0 @ M2) K\<close> unfolding L'' by (auto simp: atm_of_eq_atm_of)
         then show ?thesis using M0 unfolding L'' by auto
       next
         case M2
-        then have "L' \<notin> atm_of ` lits_of_l (M0 @ Decided K # [])"
-          using inv \<open>atm_of K \<notin> atm_of ` lits_of_l (M0 @ M2)\<close> unfolding L''
-          by (auto simp: M cdcl\<^sub>W_M_level_inv_def atm_lit_of_set_lits_of_l)
+        then have "undefined_lit (M0 @ Decided K # []) L''"
+          apply (rule defined_lit_no_dupD(1))
+          using inv unfolding L'' cdcl\<^sub>W_M_level_inv_def by (auto simp: M no_dup_def)
         then show ?thesis using M2 unfolding L'' by (auto simp: image_Un)
       next
         case K
-        then have "L' \<notin> atm_of ` lits_of_l (M0 @ M2)"
-          using inv unfolding L'' by (auto simp: cdcl\<^sub>W_M_level_inv_def atm_lit_of_set_lits_of_l M)
+        have "undefined_lit (M0 @ M2) L''"
+          apply (rule defined_lit_no_dupD(3)[of \<open>[Decided K]\<close>  _ M1])
+          using inv K unfolding L'' cdcl\<^sub>W_M_level_inv_def by (auto simp: M no_dup_def)
         then show ?thesis using K unfolding L'' by (auto simp: image_Un)
       qed
   ultimately have "get_level (trail S) L'' \<ge> i + 1"
@@ -1692,7 +1694,7 @@ proof -
     using a2 by (meson subsetCE)
   have ff3: "\<And>a. a \<notin> set (map (\<lambda>m. atm_of (lit_of m)) M')
     \<or> a \<notin> set (map (\<lambda>m. atm_of (lit_of m)) M)"
-    using a1 by (metis (lifting) IntI distinct_append empty_iff map_append)
+    using a1 unfolding no_dup_def by (metis (lifting) IntI distinct_append empty_iff map_append)
   have "\<forall>L a f. \<exists>l. ((a::'a) \<notin> f ` L \<or> (l ::'a literal) \<in> L) \<and> (a \<notin> f ` L \<or> f l = a)"
     by blast
   then show "x \<notin> atm_of ` lits_of_l M"
@@ -2547,11 +2549,11 @@ proof -
   have "?D \<noteq> {#}" by auto
   have "?M \<Turnstile>as CNot ?D" using confl conf unfolding cdcl\<^sub>W_conflicting_def by auto
   then have "?M \<noteq> []" unfolding true_annots_def Ball_def true_annot_def true_cls_def by force
-  have M: "?M = hd ?M # tl ?M" using \<open>?M \<noteq> []\<close> list.collapse by fastforce
+  define M' where M': \<open>M' = tl ?M\<close>
+  have M: "?M = hd ?M # M'" using \<open>?M \<noteq> []\<close> list.collapse M' by fastforce
 
   obtain k' where k': "k' + 1 = ?k"
     using level_inv tr_ne L' unfolding cdcl\<^sub>W_M_level_inv_def by (cases "trail S") auto
-  define M' where M': "M' = tl ?M"
 
   have n_s: "no_step conflict S" "no_step propagate S"
     using confl by (auto elim!: conflictE propagateE)
@@ -2562,18 +2564,22 @@ proof -
   have L'_L: "L' = -L"
   proof (rule ccontr)
     assume "\<not> ?thesis"
-    moreover have "-L \<in> lits_of_l ?M"
-      using confl conf unfolding cdcl\<^sub>W_conflicting_def by auto
+    moreover {
+      have "-L \<in> lits_of_l ?M"
+        using confl conf unfolding cdcl\<^sub>W_conflicting_def by auto
+      then have \<open>atm_of L \<noteq> atm_of L'\<close>
+        using cdcl\<^sub>W_M_level_inv_decomp(2)[OF level_inv] M calculation L'
+        by (auto simp: atm_of_eq_atm_of all_conj_distrib uminus_lit_swap lits_of_def no_dup_def) }
     ultimately have "get_level (hd (trail S) # M') L = get_level (tl ?M) L"
       using cdcl\<^sub>W_M_level_inv_decomp(1)[OF level_inv] M unfolding consistent_interp_def
-      by (auto simp add: atm_of_eq_atm_of L' M'[symmetric])
+      by (simp add: atm_of_eq_atm_of L' M'[symmetric])
     moreover
     have "count_decided (trail S) = ?k"
       using level_inv unfolding cdcl\<^sub>W_M_level_inv_def by auto
     then have count: "count_decided M' = ?k - 1"
       using level_inv M by (auto simp add: L' M'[symmetric])
     then have "get_level (tl ?M) L < ?k"
-      using count_decided_ge_get_level[of L M'] unfolding k'[symmetric] M' by auto
+      using count_decided_ge_get_level[of M' L] unfolding k'[symmetric] M' by auto
     finally show False using lev_L M unfolding M' by auto
   qed
   then have L: "hd ?M = Decided (-L)" using L' by auto
@@ -2585,25 +2591,22 @@ proof -
       using get_maximum_level_exists_lit[of ?k ?M D] unfolding k'[symmetric] by auto
     have "L \<noteq> L''" using no_dup \<open>L'' \<in># D\<close>
       unfolding distinct_cdcl\<^sub>W_state_def confl
-      by (metis E' add.right_neutral add_diff_cancel_right'
-          distinct_mem_diff_mset union_commute union_single_eq_member)
+      by (metis E' add_diff_cancel_right' distinct_mem_diff_mset union_commute union_single_eq_member)
     have "L'' = -L"
     proof (rule ccontr)
       assume "\<not> ?thesis"
       then have "get_level ?M L'' = get_level (tl ?M) L''"
         using M \<open>L \<noteq> L''\<close> get_level_skip_beginning[of L'' "hd ?M" "tl ?M"] unfolding L
         by (auto simp: atm_of_eq_atm_of)
-      moreover {
-        have d: "dropWhile (\<lambda>S. atm_of (lit_of S) \<noteq> atm_of L) (tl (trail S)) = []"
-          using level_inv unfolding cdcl\<^sub>W_M_level_inv_def apply (subst (asm)(2) M)
-          by (auto simp: image_iff L' L'_L)
+      moreover
         have "get_level (tl (trail S)) L = 0"
-          by (auto simp: filter_empty_conv d) }
+          using level_inv L' M unfolding cdcl\<^sub>W_M_level_inv_def
+          by (auto simp: image_iff L' L'_L)
       moreover {
         have \<open>backtrack_lvl S = count_decided (hd ?M # tl ?M)\<close>
-          unfolding M[symmetric] ..
+          unfolding M[symmetric] M'[symmetric] ..
         then have "get_level (tl (trail S)) L'' < backtrack_lvl S"
-          using count_decided_ge_get_level[of L'' \<open>tl (trail S)\<close>]
+          using count_decided_ge_get_level[of \<open>tl (trail S)\<close> L'']
           by (auto simp: image_iff L' L'_L) }
       ultimately show False
         using M[unfolded L' M'[symmetric]] L_k by (auto simp: L' L'_L)
@@ -2936,7 +2939,7 @@ proof (induct rule: cdcl\<^sub>W_o_induct)
       using get_maximum_level_skip_first[of L "remove1_mset (-L) D" C M]
       by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set atms_of_def)
   have lev_L[simp]: "get_level M L = 0"
-    apply (rule atm_of_notin_get_rev_level_eq_0)
+    apply (rule atm_of_notin_get_level_eq_0)
     using lev unfolding cdcl\<^sub>W_M_level_inv_def tr_S by (auto simp: lits_of_def)
 
   have D: "get_maximum_level M (remove1_mset (-L) D) = backtrack_lvl S"
@@ -3165,7 +3168,7 @@ next
         have lenM: "length M = card (set M)" using distM by (induction M) auto
         have "no_dup M'" using S M unfolding cdcl\<^sub>W_M_level_inv_def by auto
         then have "card (lits_of_l M') = length M'"
-          by (induction M') (auto simp add: lits_of_def card_insert_if)
+          by (induction M') (auto simp add: lits_of_def card_insert_if defined_lit_map)
         then have "lits_of_l M' \<subset> set M"
           using n M' n' lenM by auto
         then obtain L where L: "L \<in> set M" and undef_m: "L \<notin> lits_of_l M'" by auto
@@ -3229,21 +3232,21 @@ proof -
     st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) T"
     by auto
   have "card (set M) = length M" using distM by (simp add: distinct_card)
-  moreover
+  moreover {
     have "cdcl\<^sub>W_M_level_inv T"
       using rtranclp_cdcl\<^sub>W_stgy_consistent_inv[OF st] T by auto
     then have "card (set ((map (\<lambda>l. atm_of (lit_of l)) M'))) = length M'"
-      using distinct_card no_dup by fastforce
+      using distinct_card no_dup by (fastforce simp: lits_of_def image_image no_dup_def) }
   moreover have "card (lits_of_l M') = card (set ((map (\<lambda>l. atm_of (lit_of l)) M')))"
-    using no_dup unfolding lits_of_def apply (induction M') by (auto simp add: card_insert_if)
+    using no_dup by (induction M') (auto simp add: defined_lit_map card_insert_if lits_of_def)
   ultimately have "card (set M) \<le> card (lits_of_l M')" using l unfolding lits_of_def by auto
-  then have "set M = lits_of_l M'"
+  then have s: "set M = lits_of_l M'"
     using M'_M card_seteq by blast
-  moreover
-    then have "M' \<Turnstile>asm N"
-      using MN unfolding true_annots_def Ball_def true_annot_def true_clss_def by auto
+  moreover {
+    have "M' \<Turnstile>asm N"
+      using MN s unfolding true_annots_def Ball_def true_annot_def true_clss_def by auto
     then have "final_cdcl\<^sub>W_restart_state T"
-      using T no_dup unfolding final_cdcl\<^sub>W_restart_state_def by auto
+      using T no_dup unfolding final_cdcl\<^sub>W_restart_state_def by auto }
   ultimately show ?thesis using st T by blast
 qed
 
@@ -3338,7 +3341,8 @@ next
               then have "no_dup (Propagated L D # M1)"
                 using decomp lev unfolding cdcl\<^sub>W_M_level_inv_def by auto
             ultimately show False
-              using Decided_Propagated_in_iff_in_lits_of_l defined_lit_map by auto
+              using Decided_Propagated_in_iff_in_lits_of_l defined_lit_map
+              by (auto simp: no_dup_def)
           qed
       }
       ultimately show "\<not>M \<Turnstile>as CNot Da"
@@ -3418,35 +3422,37 @@ proof (cases rule: conflict.cases)
       assume
         empty: "D \<noteq> {#}" and
         lev: "\<forall>L\<in>#D. get_level (trail T) L \<noteq> backtrack_lvl T"
-      moreover
+      moreover {
         have "get_level (trail T) L \<le> backtrack_lvl T" if "L\<in>#D" for L
-          using that count_decided_ge_get_level[of L "trail T"] M_lev_T
+          using that count_decided_ge_get_level[of "trail T" L] M_lev_T
           unfolding cdcl\<^sub>W_M_level_inv_def by auto
-        then have lev': "get_level (trail T) L < backtrack_lvl T" if "L\<in>#D" for L
-          using lev that by fastforce
+        then have "get_level (trail T) L < backtrack_lvl T" if "L\<in>#D" for L
+          using lev that by fastforce } note lev' = this
       ultimately have "count_decided (trail T) > 0"
         using M_lev_T unfolding cdcl\<^sub>W_M_level_inv_def by (cases D) fastforce+
       then obtain M2 L M1 where
         tr_T: "trail T = M2 @ Decided L # M1" and nm: "\<forall>m \<in> set M2. \<not> is_decided m"
-        using split_list_first_propE[of "trail T" is_decided]
+        using split_list_first_propE[of "trail T" is_decided] unfolding no_dup_def count_decided_def
         by (metis filter_False is_decided_def length_0_conv zero_less_iff_neq_zero)
-      moreover
+      moreover {
         have "get_level (trail T) La = backtrack_lvl T" if "- La \<in> lits_of_l M2" for La
           unfolding tr_T bt
-          apply (subst get_rev_level_skip_end)
-            using that apply (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set; fail)
-          using nm bt tr_T by simp
+          apply (subst get_level_skip_end)
+            using that apply (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+                Decided_Propagated_in_iff_in_lits_of_l; fail)
+          using nm bt tr_T by (simp add: count_decided_0_iff) }
       moreover {
         have tr: "M2 @ Decided L # M1 = (M2 @ [Decided L]) @ M1"
           by auto
         have "get_level (trail T) L = backtrack_lvl T"
           using n_d nm unfolding tr_T tr bt
           by (auto simp: image_image atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
-            atm_lit_of_set_lits_of_l) }
+            atm_lit_of_set_lits_of_l count_decided_0_iff[symmetric]) }
       moreover have "trail S = trail T"
         using T by auto
       ultimately have "M1 \<Turnstile>as CNot D"
-        using lev' not_D unfolding true_annots_true_cls_def_iff_negation_in_model by force
+        using lev' not_D unfolding true_annots_true_cls_def_iff_negation_in_model
+        by (force simp: count_decided_0_iff[symmetric] get_level_def)
       then show False
         using smaller T tr_T D by (auto simp: no_smaller_confl_def)
     qed
@@ -3813,13 +3819,14 @@ lemma no_smaller_propa_tl:
 
 lemma no_dup_append_in_atm_notin:
    assumes \<open>no_dup (M @ M')\<close> and \<open>L \<in> lits_of_l M'\<close>
-     shows \<open>atm_of L \<notin> atm_of ` lits_of_l M\<close>
-  using assms by (auto simp add: atm_lit_of_set_lits_of_l)
+     shows \<open>undefined_lit M L\<close>
+  using assms by (auto simp add: atm_lit_of_set_lits_of_l no_dup_def
+      defined_lit_map)
 
 lemma no_dup_uminus_append_in_atm_notin:
    assumes \<open>no_dup (M @ M')\<close> and \<open>-L \<in> lits_of_l M'\<close>
-     shows \<open>atm_of L \<notin> atm_of ` lits_of_l M\<close>
-  using assms by (metis atm_of_uminus no_dup_append_in_atm_notin)
+     shows \<open>undefined_lit M L\<close>
+  using Decided_Propagated_in_iff_in_lits_of_l assms defined_lit_no_dupD(1) by blast
 
 lemmas rulesE =
   skipE resolveE backtrackE propagateE conflictE decideE restartE forgetE
@@ -3924,10 +3931,8 @@ next
             by auto
           then have "get_maximum_level M1 (remove1_mset L D) = i"
             using T i n_d unfolding M'' tr_T
-            apply (subst (asm) get_maximum_level_skip_beginning)
-            by (auto simp: get_maximum_level_skip_beginning true_annots_true_cls true_clss_def
-                atms_of_def atm_lit_of_set_lits_of_l
-                atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set) }
+            by (subst (asm) get_maximum_level_skip_beginning)
+               (auto simp: dest: defined_lit_no_dupD dest!: true_annots_CNot_definedD) }
         ultimately obtain L_max where
           L_max_in: "L_max \<in># remove1_mset L D" and
           lev_L_max: "get_level M1 L_max = i"
@@ -3938,32 +3943,30 @@ next
         have "- L_max \<notin> lits_of_l M"
         proof (rule ccontr)
           assume \<open>\<not> ?thesis\<close>
-          then have \<open>- L_max \<notin> lits_of_l (M' @ [Decided K'])\<close>
-            using n_d_T unfolding tr by (auto simp: lits_of_def)
-          have \<open>atm_of L_max \<notin> atm_of ` lits_of_l (M' @ [Decided K'])\<close>
-            apply (subst atm_of_uminus[symmetric], rule no_dup_append_in_atm_notin)
-            using n_d_T \<open>\<not> - L_max \<notin> lits_of_l M\<close> unfolding tr by auto
+          then have \<open>undefined_lit (M' @ [Decided K']) L_max\<close>
+            using n_d_T unfolding tr
+            by (auto dest: in_lits_of_l_defined_litD dest: defined_lit_no_dupD simp: atm_of_eq_atm_of)
           then have "get_level (tl M' @ Decided K' # M) L_max < i"
-            apply (subst get_rev_level_skip)
+            apply (subst get_level_skip)
              apply (cases M'; auto simp add: atm_of_eq_atm_of lits_of_def)
-            using count_dec_M count_decided_ge_get_level[of L_max M]
-            by (auto simp del: count_decided_ge_get_level)
+            using count_dec_M count_decided_ge_get_level[of M L_max]
+            by auto
           then show False
             using lev_L_max tr unfolding tr_T by (auto simp: propagated_cons_eq_append_decide_cons)
         qed
         moreover have "- L \<notin> lits_of_l M"
         proof (rule ccontr)
+          define MM where \<open>MM = tl M'\<close>
           assume \<open>\<not> ?thesis\<close>
           then have \<open>- L \<notin> lits_of_l (M' @ [Decided K'])\<close>
-            using n_d_T unfolding tr by (auto simp: lits_of_def)
-          have \<open>atm_of L \<notin> atm_of ` lits_of_l (M' @ [Decided K'])\<close>
-            apply (subst atm_of_uminus[symmetric], rule no_dup_append_in_atm_notin)
+            using n_d_T unfolding tr by (auto simp: lits_of_def no_dup_def)
+          have \<open>undefined_lit (M' @ [Decided K']) L\<close>
+            apply (rule no_dup_uminus_append_in_atm_notin)
             using n_d_T \<open>\<not> - L \<notin> lits_of_l M\<close> unfolding tr by auto
-          moreover have "M' = Propagated L D # tl M'"
-            using tr_T by (metis hd_Cons_tl propagated_cons_eq_append_decide_cons tr)
+          moreover have "M' = Propagated L D # MM"
+            using tr_T MM_def by (metis hd_Cons_tl propagated_cons_eq_append_decide_cons tr)
           ultimately show False
-            by (metis (no_types) ann_lit.sel(2) append.simps(2) atm_lit_of_set_lits_of_l
-                insert_iff list.map(2) list.set(2) set_map)
+            by simp
         qed
         moreover have "L_max \<in># D' \<or> L \<in># D'"
           using D L_max_in LD by (auto split: if_splits)

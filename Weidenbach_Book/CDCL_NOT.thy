@@ -10,7 +10,7 @@ text \<open>We define here some more simplification rules, or rules that have be
   for some tactic\<close>
 lemma no_dup_cannot_not_lit_and_uminus:
   \<open>no_dup M \<Longrightarrow> - lit_of xa = lit_of x \<Longrightarrow> x \<in> set M \<Longrightarrow> xa \<notin> set M\<close>
-  by (metis atm_of_uminus distinct_map inj_on_eq_iff uminus_not_id')
+  by (metis atm_of_uminus distinct_map inj_on_eq_iff uminus_not_id' no_dup_def)
 
 lemma atms_of_ms_single_atm_of[simp]:
   \<open>atms_of_ms {unmark L |L. P L} = atm_of ` {lit_of L |L. P L}\<close>
@@ -387,7 +387,7 @@ lemma dpll_bj_no_dup:
   and \<open>no_dup (trail S)\<close>
   shows \<open>no_dup (trail T)\<close>
   using assms by (induction rule: dpll_bj_all_induct)
-  (auto simp add: defined_lit_map reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_skip_beginning)
+  (auto simp add: defined_lit_map reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_skip_beginning dest: no_dup_appendD)
 
 paragraph \<open>Valuations\<close>
 lemma dpll_bj_sat_iff:
@@ -450,21 +450,21 @@ next
     using decomp ay unfolding all_decomposition_implies_def by (simp add: M)+
 
   moreover have \<open>unmark_l a \<union> set_mset ?N \<Turnstile>p {#L#}\<close> (is \<open>?I \<Turnstile>p _\<close>)
-    proof (rule true_clss_cls_plus_CNot)
-      show \<open>?I \<Turnstile>p add_mset L C\<close>
-        using propa propagate\<^sub>N\<^sub>O\<^sub>T.prems by (auto dest!: true_clss_clss_in_imp_true_clss_cls)
-    next
-      have \<open>unmark_l ?M' \<Turnstile>ps CNot C\<close>
-        using \<open>trail S \<Turnstile>as CNot C\<close> undef by (auto simp add: true_annots_true_clss_clss)
-      have a1: \<open>unmark_l a \<union> unmark_l (tl y) \<Turnstile>ps CNot C\<close>
-        using propagate\<^sub>N\<^sub>O\<^sub>T.hyps(2) tr_S true_annots_true_clss_clss
-        by (force simp add: image_Un sup_commute)
-      then have \<open>unmark_l a \<union> set_mset (clauses\<^sub>N\<^sub>O\<^sub>T S) \<Turnstile>ps unmark_l a \<union> unmark_l (tl y)\<close>
-        using a_Un_N_M true_clss_clss_def by blast
-      then show \<open>unmark_l a \<union> set_mset (clauses\<^sub>N\<^sub>O\<^sub>T S) \<Turnstile>ps CNot C\<close>
-        using a1 by (meson true_clss_clss_left_right true_clss_clss_union_and
+  proof (rule true_clss_cls_plus_CNot)
+    show \<open>?I \<Turnstile>p add_mset L C\<close>
+      using propa propagate\<^sub>N\<^sub>O\<^sub>T.prems by (auto dest!: true_clss_clss_in_imp_true_clss_cls)
+  next
+    have \<open>unmark_l ?M' \<Turnstile>ps CNot C\<close>
+      using \<open>trail S \<Turnstile>as CNot C\<close> undef by (auto simp add: true_annots_true_clss_clss)
+    have a1: \<open>unmark_l a \<union> unmark_l (tl y) \<Turnstile>ps CNot C\<close>
+      using propagate\<^sub>N\<^sub>O\<^sub>T.hyps(2) tr_S true_annots_true_clss_clss
+      by (force simp add: image_Un sup_commute)
+    then have \<open>unmark_l a \<union> set_mset (clauses\<^sub>N\<^sub>O\<^sub>T S) \<Turnstile>ps unmark_l a \<union> unmark_l (tl y)\<close>
+      using a_Un_N_M true_clss_clss_def by blast
+    then show \<open>unmark_l a \<union> set_mset (clauses\<^sub>N\<^sub>O\<^sub>T S) \<Turnstile>ps CNot C\<close>
+      using a1 by (meson true_clss_clss_left_right true_clss_clss_union_and
           true_clss_clss_union_l_r)
-    qed
+  qed
   ultimately have \<open>unmark_l a \<union> set_mset ?N \<Turnstile>ps unmark_l ?M'\<close>
     unfolding M' by (auto simp add: all_in_true_clss_clss image_Un)
   then show ?case
@@ -618,7 +618,7 @@ next
     using dpll_bj_atms_in_trail_in_set NA MA L by (auto simp: tr_S)
 
   have no_dup: \<open>no_dup (Propagated L () # F)\<close>
-    using defined_lit_map n_d undef_L tr_S by auto
+    using defined_lit_map n_d undef_L tr_S by (auto dest: no_dup_appendD)
   obtain a b l where M: \<open>get_all_ann_decomposition (trail S) = (a, b) # l\<close>
     by (cases \<open>get_all_ann_decomposition (trail S)\<close>) auto
   have b_le_M: \<open>length b \<le> length (trail S)\<close>
@@ -650,7 +650,7 @@ next
           \<le> Suc (card (atms_of_ms A))\<close>
     using arg_cong[OF rem, of length] tr_S_le_A
     length_get_all_ann_decomposition_length[of \<open>F' @ Decided K # F\<close>] tr_S by auto
-  moreover
+  moreover {
     { fix i :: nat and xs :: \<open>'a list\<close>
       have \<open>i < length xs \<Longrightarrow> length xs - Suc i < length xs\<close>
         by auto
@@ -659,7 +659,7 @@ next
     } note H = this
     have \<open>\<forall>i<length rem. rev rem ! i < card (atms_of_ms A) + 2\<close>
       using tr_S_le_A length_in_get_all_ann_decomposition_bounded[of _ S] unfolding tr_S
-      by (force simp add: o_def rem dest!: H intro: length_get_all_ann_decomposition_length)
+      by (force simp add: o_def rem dest!: H intro: length_get_all_ann_decomposition_length) }
   ultimately show ?case
     using \<mu>\<^sub>C_bounded[of \<open>rev rem\<close> \<open>card (atms_of_ms A)+2\<close> \<open>unassigned_lit A l\<close>] T undef_L
     by (simp add: rem \<mu>\<^sub>C_append \<mu>\<^sub>C_cons F tr_S)
@@ -831,19 +831,19 @@ proof -
         by (force simp: lits_of_def elim!: is_decided_ex_Decided)
 
       have atms_N_M: \<open>atms_of_ms ?N \<subseteq> atm_of ` lits_of_l ?M\<close>
-        proof (rule ccontr)
-          assume \<open>\<not> ?thesis\<close>
-          then obtain l :: 'v where
-            l_N: \<open>l \<in> atms_of_ms ?N\<close> and
-            l_M: \<open>l \<notin> atm_of ` lits_of_l ?M\<close>
-            by auto
-          have \<open>undefined_lit ?M (Pos l)\<close>
-            using l_M by (metis Decided_Propagated_in_iff_in_lits_of_l
+      proof (rule ccontr)
+        assume \<open>\<not> ?thesis\<close>
+        then obtain l :: 'v where
+          l_N: \<open>l \<in> atms_of_ms ?N\<close> and
+          l_M: \<open>l \<notin> atm_of ` lits_of_l ?M\<close>
+          by auto
+        have \<open>undefined_lit ?M (Pos l)\<close>
+          using l_M by (metis Decided_Propagated_in_iff_in_lits_of_l
               atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set literal.sel(1))
-          then show False
-            using l_N n_s can_propagate_or_decide_or_backjump[of \<open>Pos l\<close> S] inv n_d sat
-            by (auto dest: dpll_bj.intros)
-        qed
+        then show False
+          using l_N n_s can_propagate_or_decide_or_backjump[of \<open>Pos l\<close> S] inv n_d sat
+          by (auto dest: dpll_bj.intros)
+      qed
       have \<open>?M \<Turnstile>as CNot C\<close>
         apply (rule all_variables_defined_not_imply_cnot)
         using \<open>C \<in> set_mset (clauses\<^sub>N\<^sub>O\<^sub>T S)\<close> \<open>\<not> trail S \<Turnstile>a C\<close>
@@ -892,8 +892,8 @@ proof -
         true_annot_def by (metis consistent_CNot_not sup.orderE sup_commute true_clss_def
           true_clss_singleton_lit_of_implies_incl true_clss_union true_clss_union_increase)
 
-      have \<open>undefined_lit F K\<close> using \<open>no_dup ?M\<close> unfolding M_K by (simp add: defined_lit_map)
-      moreover
+      have \<open>undefined_lit F K\<close> using \<open>no_dup ?M\<close> unfolding M_K by (auto simp: defined_lit_map)
+      moreover {
         have \<open>?N \<union> ?C' \<Turnstile>ps {{#}}\<close>
           proof -
             have A: \<open>?N \<union> ?C' \<union> unmark_l ?M = ?N \<union> unmark_l ?M\<close>
@@ -939,7 +939,7 @@ proof -
             then show \<open>I \<Turnstile> image_mset uminus ?C + {#- K#}\<close>
               unfolding true_clss_def true_cls_def using \<open>(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)\<close>
               by (auto dest!: H)
-          qed
+          qed }
       moreover have \<open>F \<Turnstile>as CNot (image_mset uminus ?C)\<close>
         using nm unfolding true_annots_def CNot_def M_K by (auto simp add: lits_of_def)
       ultimately have False
@@ -2869,8 +2869,8 @@ lemma cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_no_dup_inv:
   apply (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn.induct)
       using defined_lit_map apply fastforce
     using defined_lit_map apply fastforce
-   apply (force simp: defined_lit_map elim!: backjump_lE)[]
-  using forget\<^sub>N\<^sub>O\<^sub>T.simps apply auto[1]
+   apply (force simp: defined_lit_map elim!: backjump_lE dest: no_dup_appendD)[]
+  using forget\<^sub>N\<^sub>O\<^sub>T.simps apply (auto; fail)
   done
 end
 
@@ -3505,8 +3505,8 @@ proof -
         true_annot_def by (metis consistent_CNot_not sup.orderE sup_commute true_clss_def
           true_clss_singleton_lit_of_implies_incl true_clss_union true_clss_union_increase)
 
-      have \<open>undefined_lit F K\<close> using \<open>no_dup ?M\<close> unfolding M_K by (simp add: defined_lit_map)
-      moreover
+      have \<open>undefined_lit F K\<close> using \<open>no_dup ?M\<close> unfolding M_K by (auto simp: defined_lit_map)
+      moreover {
         have \<open>?N \<union> ?C' \<Turnstile>ps {{#}}\<close>
           proof -
             have A: \<open>?N \<union> ?C' \<union> unmark_l ?M = ?N \<union> unmark_l ?M\<close>
@@ -3553,7 +3553,7 @@ proof -
               unfolding true_clss_def true_cls_def Bex_def
               using \<open>(K \<in> I \<and> -K \<notin> I) \<or> (-K \<in> I \<and> K \<notin> I)\<close>
               by (auto dest!: H)
-          qed
+          qed }
       moreover have \<open>F \<Turnstile>as CNot (image_mset uminus ?C)\<close>
         using nm unfolding true_annots_def CNot_def M_K by (auto simp add: lits_of_def)
       ultimately have False

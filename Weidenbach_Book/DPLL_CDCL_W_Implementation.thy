@@ -274,13 +274,13 @@ fun bt_cut where
 lemma bt_cut_some_decomp:
   assumes "no_dup M" and "bt_cut i M = Some M'"
   shows "\<exists>K M2 M1. M = M2 @ M' \<and> M' = Decided K # M1 \<and> get_level M K = (i+1)"
-  using assms by (induction i M rule: bt_cut.induct) (auto split: if_split_asm)
+  using assms by (induction i M rule: bt_cut.induct) (auto simp: no_dup_def split: if_split_asm)
 
 lemma bt_cut_not_none:
   assumes "no_dup M" and "M = M2 @ Decided K # M'" and "get_level M K = (i+1)"
   shows "bt_cut i M \<noteq> None"
   using assms by (induction M2 arbitrary: M rule: ann_lit_list_induct)
-  (auto simp: atm_lit_of_set_lits_of_l)
+  (auto simp: no_dup_def atm_lit_of_set_lits_of_l)
 
 lemma get_all_ann_decomposition_ex:
   "\<exists>N. (Decided K # M', N) \<in> set (get_all_ann_decomposition (M2@Decided K # M'))"
