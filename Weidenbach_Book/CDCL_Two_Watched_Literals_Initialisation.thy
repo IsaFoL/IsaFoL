@@ -6,26 +6,29 @@ subsection \<open>Initialise Data structure\<close>
 
 fun init_dt :: \<open>'v literal list list \<Rightarrow> 'v twl_st_list \<Rightarrow> 'v twl_st_list\<close> where
   \<open>init_dt [] S = S\<close>
-| \<open>init_dt (C # CS) (M, N, U, None, NP, UP, WS, Q) =
-  (if length C = 1
-  then
-    let L = hd C in
-    if undefined_lit M L
-    then (Propagated L C # M, N, U, None, add_mset {#L#} NP, UP, WS, add_mset (-L) Q)
-    else if L \<in> lits_of_l M
-    then (M, N, U, None, add_mset {#L#} NP, UP, WS, Q)
-    else (M, N, U, Some C, add_mset {#L#} NP, UP, {#}, {#})
-  else
-    let L = hd C; L' = hd (tl C); C' = tl (tl C) in
-    (M, add_mset (TWL_Clause [L, L'] C') N, U, None, NP, UP, WS, Q))\<close>
-| \<open>init_dt (C # CS) (M, N, U, Some D, NP, UP, WS, Q) =
-  (if length C = 1
-  then
-    let L = hd C in
-    (M, N, U, Some D, add_mset {#L#} NP, UP, {#}, {#})
-  else
-    let L = hd C; L' = hd (tl C); C' = tl (tl C) in
-    (M, add_mset (TWL_Clause [L, L'] C') N, U, Some D, NP, UP, {#}, {#}))\<close>
+| \<open>init_dt (C # CS) S =
+  (let (M, N, U, D, NP, UP, WS, Q) = init_dt CS S in
+  (case D of
+    None \<Rightarrow>
+    if length C = 1
+    then
+      let L = hd C in
+      if undefined_lit M L
+      then (Propagated L C # M, N, U, None, add_mset {#L#} NP, UP, WS, add_mset (-L) Q)
+      else if L \<in> lits_of_l M
+      then (M, N, U, None, add_mset {#L#} NP, UP, WS, Q)
+      else (M, N, U, Some C, add_mset {#L#} NP, UP, {#}, {#})
+    else
+      let L = hd C; L' = hd (tl C); C' = tl (tl C) in
+      (M, add_mset (TWL_Clause [L, L'] C') N, U, None, NP, UP, WS, Q)
+  | Some D \<Rightarrow>
+    if length C = 1
+    then
+      let L = hd C in
+      (M, N, U, Some D, add_mset {#L#} NP, UP, {#}, {#})
+    else
+      let L = hd C; L' = hd (tl C); C' = tl (tl C) in
+      (M, add_mset (TWL_Clause [L, L'] C') N, U, Some D, NP, UP, {#}, {#})))\<close>
 
 lemma twl_clause_of_def:
   \<open>twl_clause_of C = TWL_Clause (mset (watched C)) (mset (unwatched C))\<close>
@@ -36,12 +39,13 @@ lemma tautology_single[simp]: \<open>\<not>tautology {#L#}\<close>
   by (simp add: tautology_add_mset)
 (* END Move *)
 
-lemma
+lemma init_dt_full:
   fixes CS S
   defines \<open>S' \<equiv> init_dt CS S\<close>
   assumes
     \<open>\<forall>C \<in> set CS. distinct C\<close> and
     \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close> and
+    \<open>\<forall>C \<in> set CS. \<not>tautology (mset C)\<close> and
     \<open>twl_struct_invs (twl_st_of S)\<close> and
     \<open>working_queue_list S = {#}\<close> and
     \<open>\<forall>s\<in>set (get_trail_list S). \<not>is_decided s\<close> and
@@ -50,7 +54,10 @@ lemma
     \<open>twl_struct_invs (twl_st_of S')\<close> and
     \<open>working_queue_list S' = {#}\<close> and
     \<open>\<forall>s\<in>set (get_trail_list S'). \<not>is_decided s\<close> and
-    \<open>get_conflict_list S' = None \<longrightarrow> pending_list S' = uminus `# lit_of `# mset (get_trail_list S')\<close>
+    \<open>get_conflict_list S' = None \<longrightarrow> pending_list S' = uminus `# lit_of `# mset (get_trail_list S')\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of S')) = mset `# mset CS +
+      cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of S))\<close> and
+    \<open>learned_clss (convert_to_state (twl_st_of S')) = learned_clss (convert_to_state (twl_st_of S))\<close>
   using assms unfolding S'_def
 proof (induction CS)
   case Nil
@@ -58,37 +65,59 @@ proof (induction CS)
   case 2 then show ?case by simp
   case 3 then show ?case by simp
   case 4 then show ?case by simp
+  case 5 then show ?case by (auto simp add: clauses_def)
+  case 6 then show ?case by auto
 next
-  case (Cons a CS) note IH = this(1-4)
+  case (Cons a CS) note IH = this(1-6)
 
-  case 2 note dist = this(1) and length  = this(2) and inv = this(3) and
-    WS = this(4) and dec = this(5) and in_pending = this(6)
+  case 2 note dist = this(1) and length  = this(2) and no_taut_Cs = this(3) and inv = this(4) and
+    WS = this(5) and dec = this(6) and in_pending = this(7)
 
   have
     twl: \<open>twl_struct_invs (twl_st_of (init_dt CS S))\<close> and
     w_q: \<open>working_queue_list (init_dt CS S) = {#}\<close> and
     dec': \<open>\<forall>s\<in>set (get_trail_list (init_dt CS S)). \<not> is_decided s\<close> and
     pending': \<open>get_conflict_list (init_dt CS S) = None \<longrightarrow> pending_list (init_dt CS S) = uminus `# lit_of `# mset (get_trail_list (init_dt CS S))\<close>
-    using IH[OF _ _ inv WS dec in_pending] dist length by auto
+      and
+    clss': \<open>cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of (init_dt CS S))) = mset `# mset CS + cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of S))\<close>
+      and
+    learned': \<open>learned_clss (convert_to_state (twl_st_of (init_dt CS S))) = learned_clss (convert_to_state (twl_st_of S))\<close>
+    using IH[OF _ _ _inv WS dec in_pending] dist length no_taut_Cs by auto
 
   obtain M N U D NP UP Q where
-    S: \<open>S = (M, N, U, D, NP, UP, {#}, Q)\<close>
-    using WS by (cases S) auto
+    S: \<open>init_dt CS S = (M, N, U, D, NP, UP, {#}, Q)\<close>
+    using w_q by (cases \<open>init_dt CS S\<close>) auto
   obtain M' N' U' D' NP' WS' UP' Q' where
     S': \<open>twl_st_of (init_dt (a # CS) S) = (M', N', U', D', NP', UP', WS', Q')\<close>
     by (cases \<open>twl_st_of (init_dt (a # CS) S)\<close>) auto
   have dec_M: \<open>\<forall>s\<in>set M. \<not> is_decided s\<close>
-    using dec S by auto
+    using dec' S by auto
 
-  show ?case
+  show ?case using w_q
     by (cases D) (auto simp: S Let_def)
   case 3
   show ?case
     using dec_M by (cases D) (auto simp: S Let_def)
   case 4
   show ?case
-    using in_pending by (cases D) (auto simp: S Let_def)
-
+    using pending' by (cases D) (auto simp: S Let_def)
+  have a_D: \<open>\<exists>x y a'. a = x # y # a'\<close> if \<open>\<forall>L. a \<noteq> [L]\<close>
+    apply (case_tac a, (use length in simp; fail))
+    apply (rename_tac aa list, case_tac list; use that in simp)
+    done
+  case 5
+  show ?case
+    using clss' apply (cases D)
+     apply (simp add: S clauses_def)
+    apply (auto simp: S Let_def clauses_def length_list_Suc_0 cdcl\<^sub>W_restart_mset_state
+        dest!: a_D)
+    done
+  case 6
+  show ?case
+    using learned' apply (cases D)
+     apply (simp add: S clauses_def)
+    apply (auto simp: S Let_def clauses_def length_list_Suc_0 cdcl\<^sub>W_restart_mset_state)
+    done
   case 1
   have
     struct: \<open>Multiset.Ball (twl_clause_of `# N + twl_clause_of `# U) struct_wf_twl_cls\<close> and
@@ -134,7 +163,7 @@ next
      map_option mset D, NP, UP, {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q)\<close> and
    past_invs: \<open>past_invs (convert_lits M, twl_clause_of `# N, twl_clause_of `# U,
      map_option mset D, NP, UP, {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q)\<close>
-    using inv unfolding twl_st_inv.simps twl_struct_invs_def S twl_st_of.simps
+    using twl unfolding twl_st_inv.simps twl_struct_invs_def S twl_st_of.simps
     by (auto simp: twl_struct_invs_def S
         simp del: valid_annotation.simps
         twl_st_exception_inv.simps no_duplicate_queued.simps distinct_queued.simps
@@ -142,7 +171,7 @@ next
         working_queue_inv.simps past_invs.simps)
   have [simp]: \<open>get_level M L = 0\<close> and
     [simp]: \<open>count_decided M = 0\<close> for L
-    using dec S by (auto simp: count_decided_0_iff)
+    using dec' S by (auto simp: count_decided_0_iff)
   have convert_append_Decided_cons[iff]:
     \<open>convert_lits M = M'a @ Decided K # Ma \<longleftrightarrow> False\<close>
     \<open>Propagated L C # convert_lits M = M'a @ Decided K # Ma \<longleftrightarrow> False\<close>
@@ -189,6 +218,24 @@ next
         (a = [] \<and> Propagated La C = Propagated L D \<and> b = M') \<or>
         (a \<noteq> [] \<and> tl a @ Propagated La C # b = M' \<and> hd a = Propagated L D)\<close> for a b La L C D M'
     by (cases a) auto
+
+  have ex_two_watched_N: \<open>\<exists>L L'. watched x = [L, L']\<close> if \<open>x \<in># N\<close> for x
+  proof -
+    have \<open>struct_wf_twl_cls (twl_clause_of x)\<close>
+      using struct that by auto
+    then show ?thesis
+      by (cases x) (auto simp: length_list_2)
+  qed
+  have ex_two_watched_U: \<open>\<exists>L L'. watched x = [L, L']\<close> if \<open>x \<in># U\<close> for x
+  proof -
+    have \<open>struct_wf_twl_cls (twl_clause_of x)\<close>
+      using struct that by auto
+    then show ?thesis
+      by (cases x) (auto simp: length_list_2)
+  qed
+  have in_M_IN_QD: \<open>- La \<in> lits_of_l M \<Longrightarrow> La \<in># Q\<close> if \<open>D = None\<close> for La
+    using S pending' that by (auto simp: lits_of_def uminus_lit_swap)
+
   show ?case
   proof (cases \<open>length a = 1\<close>)
     case True
@@ -197,9 +244,7 @@ next
     show ?thesis
     proof (cases D)
       case [simp]: None
-      have in_M_IN_QD: \<open>- La \<in> lits_of_l M \<Longrightarrow> La \<in># Q\<close> for La
-        using S in_pending by (auto simp: lits_of_def uminus_lit_swap)
-
+      note in_M_IN_QD = in_M_IN_QD[OF this]
       have all_inv':
         \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state (M', N', U', D', NP', UP', WS', Q'))\<close>
         unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S'[symmetric]
@@ -241,14 +286,14 @@ next
         subgoal
           using struct S' by (auto simp: a S split: if_splits)[]
         subgoal
-          using H S' dec by (auto simp: twl_struct_invs_def a S twl_st_inv.simps
+          using H S' dec' by (auto simp: twl_struct_invs_def a S twl_st_inv.simps
             twl_lazy_update.simps twl_clause_of_def twl_st_exception_inv.simps
             watched_literals_false_of_max_level.simps
           propa_cands_enqueued.simps
           valid_annotation.simps
               split: if_splits)
         subgoal
-          using H S' dec by (auto simp: twl_struct_invs_def a S twl_st_inv.simps
+          using H S' dec' by (auto simp: twl_struct_invs_def a S twl_st_inv.simps
             twl_lazy_update.simps twl_clause_of_def twl_st_exception_inv.simps
             watched_literals_false_of_max_level.simps
           propa_cands_enqueued.simps
@@ -273,20 +318,21 @@ next
             twl_exception_inv.simps uminus_lit_swap
               cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
         subgoal
-          using S' dist_q in_pending by (auto simp add: a S cdcl\<^sub>W_restart_mset_state twl_clause_of_def
+          using S' dist_q pending' by (auto simp add: a S cdcl\<^sub>W_restart_mset_state twl_clause_of_def
             twl_exception_inv.simps Decided_Propagated_in_iff_in_lits_of_l lits_of_def
               cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
         subgoal
-          using S' confl_cand apply (auto simp: a S cdcl\<^sub>W_restart_mset_state twl_clause_of_def
+          using S' confl_cand by (auto simp: a S cdcl\<^sub>W_restart_mset_state twl_clause_of_def
             twl_exception_inv.simps uminus_lit_swap true_annots_true_cls_def_iff_negation_in_model
-            Ball_def
-              cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
-          sorry
+              cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def conj_disj_distribR ex_disj_distrib
+              dest: in_diffD dest!: in_M_IN_QD dest!: ex_two_watched_N ex_two_watched_U
+              split: if_splits)
         subgoal
-          using S' propa_cands apply (auto simp: a S cdcl\<^sub>W_restart_mset_state twl_clause_of_def
-            twl_exception_inv.simps uminus_lit_swap
-              cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
-          sorry
+          using S' propa_cands by (auto simp: a S cdcl\<^sub>W_restart_mset_state twl_clause_of_def
+            twl_exception_inv.simps uminus_lit_swap true_annots_true_cls_def_iff_negation_in_model
+              cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def conj_disj_distribR ex_disj_distrib
+              dest: in_diffD dest!: in_M_IN_QD dest!: ex_two_watched_N ex_two_watched_U
+              split: if_splits)
         subgoal
           using S' by (auto simp: a S cdcl\<^sub>W_restart_mset_state twl_clause_of_def
             twl_exception_inv.simps uminus_lit_swap
@@ -414,8 +460,178 @@ next
   next
     case False
     then have [simp]: \<open>length a \<noteq> Suc 0\<close> by auto
+    then obtain x y a' where a: \<open>a = x # y # a'\<close>
+      apply (case_tac a, (use length in simp; fail))
+      apply (rename_tac aa list, case_tac list; simp)
+      done
+      have all_inv':
+        \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state (M', N', U', D', NP', UP', WS', Q'))\<close>
+        unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S'[symmetric]
+        apply (intro conjI)
+        subgoal (* TODO proof *)
+          apply (cases D)
+          using alien by (auto simp: a S cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+              cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def Let_def dest: in_lits_of_l_defined_litD split: if_splits)
+           blast
+        subgoal
+          apply (cases D)
+          using all_struct by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset_state
+              cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S Let_def split: if_splits)
+        subgoal
+          apply (cases D)
+          using all_struct by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+              cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S Let_def split: if_splits)
+        subgoal
+          apply (cases D)
+          using all_struct dist by (auto simp: cdcl\<^sub>W_restart_mset_state
+              cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def a S Let_def cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+              split: if_splits)
+        subgoal
+          apply (cases D)
+          using confl by (auto simp: a cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_restart_mset_state
+              cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S Let_def propagated_trail_decomp_iff
+              Decided_Propagated_in_iff_in_lits_of_l
+              split: if_splits)
+        subgoal
+          apply (cases D)
+          apply (cases \<open>get_all_ann_decomposition (convert_lits M)\<close>)
+          using all_decomp by (auto simp: a cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+              cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S Let_def clauses_def
+              intro!: all_decomposition_implies_insert_single
+              split: if_splits)
+        subgoal
+          apply (cases D)
+          using learned by (auto simp: a cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+              cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S Let_def
+              cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def clauses_def
+              split: if_splits)
+        done
     show ?thesis
-      apply (cases D)
-      using S' apply (auto simp: S Let_def split: if_splits)
-  oops
+      unfolding twl_struct_invs_def S' twl_st_inv.simps
+      apply (intro conjI)
+      subgoal
+        apply (cases D)
+        using S' dist struct apply (auto simp: S Let_def a split: if_splits)
+        done
+      subgoal
+        apply (cases D)
+        using H S' dec apply (auto simp: twl_struct_invs_def a S twl_st_inv.simps
+            twl_lazy_update.simps twl_clause_of_def twl_st_exception_inv.simps
+            watched_literals_false_of_max_level.simps
+            propa_cands_enqueued.simps
+            valid_annotation.simps
+            split: if_splits)
+        done
+      subgoal
+        apply (cases D)
+        using H S' dec by (auto simp: twl_struct_invs_def a S twl_st_inv.simps
+            twl_lazy_update.simps twl_clause_of_def twl_st_exception_inv.simps
+            watched_literals_false_of_max_level.simps
+            propa_cands_enqueued.simps
+            valid_annotation.simps
+            split: if_splits)
+      subgoal
+        apply (cases D)
+        using H S' valid by (auto simp: twl_struct_invs_def a S twl_st_inv.simps
+            twl_clause_of_def get_level_cons_if
+            split: if_splits)
+      subgoal using all_inv' .
+      subgoal
+        apply (cases D)
+        using S' no_taut no_taut_Cs by (auto simp: a S cdcl\<^sub>W_restart_mset_state split: if_splits)
+      subgoal
+        apply (cases D)
+        using S' no_smaller by (auto simp: a S cdcl\<^sub>W_restart_mset_state
+            cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
+      subgoal
+        apply (cases D)
+        using S' excep in_M_IN_QD by (auto simp: a S cdcl\<^sub>W_restart_mset_state twl_clause_of_def
+            twl_exception_inv.simps uminus_lit_swap add_mset_eq_add_mset
+            cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def
+            split: if_splits)
+      subgoal
+        apply (cases D)
+        using S' no_dup by (auto simp: a S cdcl\<^sub>W_restart_mset_state twl_clause_of_def
+            twl_exception_inv.simps uminus_lit_swap
+            cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
+      subgoal
+        apply (cases D)
+        using S' dist_q in_pending by (auto simp add: a S cdcl\<^sub>W_restart_mset_state twl_clause_of_def
+            twl_exception_inv.simps Decided_Propagated_in_iff_in_lits_of_l lits_of_def
+            cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
+      subgoal
+        apply (cases D)
+        using S' confl_cand in_M_IN_QD by (auto simp: a S cdcl\<^sub>W_restart_mset_state twl_clause_of_def
+            twl_exception_inv.simps uminus_lit_swap ex_disj_distrib conj_disj_distribR
+            cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def
+            dest!: in_M_IN_QD dest!: ex_two_watched_N ex_two_watched_U
+            split: if_splits)
+      subgoal
+        apply (cases D)
+        using S' propa_cands in_M_IN_QD by (auto simp: a S cdcl\<^sub>W_restart_mset_state twl_clause_of_def
+            twl_exception_inv.simps uminus_lit_swap ex_disj_distrib conj_disj_distribR
+            all_conj_distrib cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def
+            dest!: ex_two_watched_N ex_two_watched_U split: if_splits)
+      subgoal
+        apply (cases D)
+        using S' by (auto simp: a S cdcl\<^sub>W_restart_mset_state twl_clause_of_def
+            twl_exception_inv.simps uminus_lit_swap
+            cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
+      subgoal (* TODO Proof *)
+        apply (cases D)
+        using S' unit_clss by (auto simp: a S cdcl\<^sub>W_restart_mset_state twl_clause_of_def
+            twl_exception_inv.simps uminus_lit_swap get_level_cons_if
+            cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
+      subgoal (* TODO Proof *)
+        apply (cases D)
+        using S' w_q in_M_IN_QD by (auto simp: a S cdcl\<^sub>W_restart_mset_state twl_clause_of_def
+            twl_exception_inv.simps uminus_lit_swap get_level_cons_if filter_mset_empty_conv
+            working_queue_prop.simps
+            cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def
+            split: if_splits)
+      subgoal
+        apply (cases D)
+        using S' past_invs by (auto simp: a S past_invs.simps
+            cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
+      done
+  qed
+qed
+
+theorem init_dt:
+  fixes CS S
+  defines S: \<open>S \<equiv> ([], {#}, {#}, None, {#}, {#}, {#}, {#})\<close>
+  assumes
+    \<open>\<forall>C \<in> set CS. distinct C\<close> and
+    \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close> and
+    \<open>\<forall>C \<in> set CS. \<not>tautology (mset C)\<close>
+  shows
+    \<open>twl_struct_invs (twl_st_of (init_dt CS S))\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of (init_dt CS S))) = mset `# mset CS\<close>
+proof -
+  have [simp]: \<open>twl_struct_invs (twl_st_of S)\<close>
+    unfolding S
+    by (auto simp: twl_struct_invs_def twl_st_inv.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        cdcl\<^sub>W_restart_mset.no_strange_atm_def  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
+        past_invs.simps
+        cdcl\<^sub>W_restart_mset_state)
+  have [simp]: \<open>working_queue_list S = {#}\<close>
+    \<open>\<forall>s\<in>set (get_trail_list S). \<not> is_decided s\<close>
+    \<open>get_conflict_list S = None \<longrightarrow> pending_list S = {#- lit_of x. x \<in># mset (get_trail_list S)#}\<close>
+    \<open>cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of S)) = {#}\<close>
+    unfolding S
+    by (auto simp: twl_struct_invs_def twl_st_inv.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        cdcl\<^sub>W_restart_mset.no_strange_atm_def  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
+        past_invs.simps clauses_def
+        cdcl\<^sub>W_restart_mset_state)
+
+  show
+    \<open>twl_struct_invs (twl_st_of (init_dt CS S))\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of (init_dt CS S))) = mset `# mset CS\<close>
+  using init_dt_full[of CS S, OF assms(2-4)] by simp_all
+qed
+
 end
