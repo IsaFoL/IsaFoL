@@ -39,12 +39,12 @@ fun convert_lit where
   \<open>convert_lit (Decided K) = Decided K\<close>
 | \<open>convert_lit (Propagated K C) = Propagated K (mset C)\<close>
 
-abbreviation convert_lits where
-  \<open>convert_lits \<equiv> map convert_lit\<close>
+abbreviation convert_lits_l where
+  \<open>convert_lits_l \<equiv> map convert_lit\<close>
 
 fun twl_st_of :: \<open>'v twl_st_list  \<Rightarrow> 'v twl_st\<close>where
 \<open>twl_st_of (M, N, U, C, NP, UP, WS, Q) =
-(convert_lits M, twl_clause_of `# N, twl_clause_of `# U, map_option mset C, NP, UP,
+(convert_lits_l M, twl_clause_of `# N, twl_clause_of `# U, map_option mset C, NP, UP,
   (\<lambda>(a, b). (watched b ! a, twl_clause_of b)) `# WS, Q)
 \<close>
 
@@ -73,24 +73,24 @@ lemma is_decided_convert_lit[iff]: \<open>is_decided (convert_lit L) = is_decide
 lemma is_decided_o_convert_lit[iff]: \<open>is_decided \<circ> convert_lit = is_decided\<close>
   by auto
 
-lemma no_dup_convert_lits[iff]: \<open>no_dup (convert_lits M) \<longleftrightarrow> no_dup M\<close>
+lemma no_dup_convert_lits_l[iff]: \<open>no_dup (convert_lits_l M) \<longleftrightarrow> no_dup M\<close>
   by (auto simp: defined_lit_map comp_def no_dup_def)
 
 lemma lits_of_convert_lit[iff]: \<open>lits_of (convert_lit ` set M) = lits_of_l M\<close>
   by (induction M) auto
 
-lemma defined_lit_convert_lits[iff]: \<open>defined_lit (convert_lits M) = defined_lit M\<close>
+lemma defined_lit_convert_lits_l[iff]: \<open>defined_lit (convert_lits_l M) = defined_lit M\<close>
   by (auto simp: defined_lit_map image_image)
 
-lemma get_level_convert_lits[simp]: \<open>get_level (convert_lits M) = get_level M\<close>
+lemma get_level_convert_lits_l[simp]: \<open>get_level (convert_lits_l M) = get_level M\<close>
   apply (rule ext)
   by (induction M) (auto simp: get_level_def)
 
-lemma count_decided_convert_lits[simp]:
-  \<open>count_decided (convert_lits M) = count_decided M\<close>
+lemma count_decided_convert_lits_l[simp]:
+  \<open>count_decided (convert_lits_l M) = count_decided M\<close>
   by (auto simp: count_decided_def)
 
-lemma get_maximum_level_convert_lits[simp]: \<open>get_maximum_level (convert_lits M) = get_maximum_level M\<close>
+lemma get_maximum_level_convert_lits_l[simp]: \<open>get_maximum_level (convert_lits_l M) = get_maximum_level M\<close>
   unfolding get_maximum_level_def by auto
 
 lemma pending_list_pending: \<open>pending (twl_st_of S) = pending_list S\<close>
@@ -272,7 +272,7 @@ proof -
   let ?S = \<open>(set_working_queue_list (working_queue_list S - {#(i, C)#}) S)\<close>
   obtain M N U D NP UP WS Q where S: \<open>S = (M, N, U, D, NP, UP, WS, Q)\<close>
     by (cases S) auto
-  have S'_S: \<open>twl_st_of S = (convert_lits M, twl_clause_of `# N, twl_clause_of `# U, map_option mset D,
+  have S'_S: \<open>twl_st_of S = (convert_lits_l M, twl_clause_of `# N, twl_clause_of `# U, map_option mset D,
     NP, UP, (\<lambda>(a, b). (watched b ! a, twl_clause_of b)) `# WS, Q)\<close>
     unfolding S by auto
   have WS': \<open>(watched C ! i, twl_clause_of C) \<in># working_queue (twl_st_of S)\<close>
@@ -284,7 +284,7 @@ proof -
   have st_of_S': \<open>twl_st_of
      (M, N, U, D, NP, UP, remove1_mset (i, C) WS,
       Q) =
-    (convert_lits M, twl_clause_of `# N, twl_clause_of `# U, map_option mset D, NP, UP,
+    (convert_lits_l M, twl_clause_of `# N, twl_clause_of `# U, map_option mset D, NP, UP,
       {#(watched b ! a, twl_clause_of b). (a, b) \<in># remove1_mset (i, C) WS#}, Q)\<close>
     by simp
   have inv: \<open>twl_st_inv (twl_st_of S)\<close> and valid: \<open>valid_annotation (twl_st_of S)\<close> and
@@ -408,7 +408,7 @@ proof -
         using add_inv S by (auto simp add: additional_WS_invs_def dest: in_diffD)
       then show
         \<open>((M, Nc, Uc, D, NP, UP, remove1_mset (i, C) WS, Q),
-          (convert_lits M, N', U', map_option mset D, NP, UP,
+          (convert_lits_l M, N', U', map_option mset D, NP, UP,
             {#(watched b ! a, twl_clause_of b). (a, b) \<in># remove1_mset (i, C) WS#}, Q))
          \<in> {(S, S'). S' = twl_st_of S \<and> additional_WS_invs S}\<close>
         using NcUc by simp
@@ -920,18 +920,18 @@ definition backtrack_list :: "'v twl_st_list \<Rightarrow> 'v twl_st_list nres" 
     }
   \<close>
 
-lemma get_all_ann_decomposition_convert_lits:
-  shows \<open>get_all_ann_decomposition (convert_lits M) =
-    map (\<lambda>(M, M'). (convert_lits M, convert_lits M')) (get_all_ann_decomposition M)\<close>
+lemma get_all_ann_decomposition_convert_lits_l:
+  shows \<open>get_all_ann_decomposition (convert_lits_l M) =
+    map (\<lambda>(M, M'). (convert_lits_l M, convert_lits_l M')) (get_all_ann_decomposition M)\<close>
   apply (induction M rule: ann_lit_list_induct)
   subgoal by auto
   subgoal by auto
   subgoal for L m M by (cases \<open>get_all_ann_decomposition M\<close>) auto
   done
 
-lemma get_level_convert_lits2[simp]:
-  \<open>get_level (convert_lits M') K = get_level M' K\<close>
-  using get_level_convert_lits[of M'] by simp
+lemma get_level_convert_lits_l2[simp]:
+  \<open>get_level (convert_lits_l M') K = get_level M' K\<close>
+  using get_level_convert_lits_l[of M'] by simp
 
 lemma backtrack_list_spec:
   \<open>(backtrack_list, backtrack) \<in>
@@ -946,23 +946,23 @@ lemma backtrack_list_spec:
   (is \<open> _ \<in> ?R \<rightarrow> ?I\<close>)
 proof -
   have obtain_decom: \<open>\<exists>K. \<exists>M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M') \<and>
-    get_level M' K = Suc (get_maximum_level M' (remove1_mset (- lit_of (hd (convert_lits M')))
+    get_level M' K = Suc (get_maximum_level M' (remove1_mset (- lit_of (hd (convert_lits_l M')))
     (mset E)))\<close> if
-    decomp: \<open>\<exists>K. \<exists>M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (convert_lits M')) \<and>
-    get_level M' K = Suc (get_maximum_level M' (remove1_mset (- lit_of (hd (convert_lits M')))
+    decomp: \<open>\<exists>K. \<exists>M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (convert_lits_l M')) \<and>
+    get_level M' K = Suc (get_maximum_level M' (remove1_mset (- lit_of (hd (convert_lits_l M')))
     (mset E)))\<close>
     (is \<open>\<exists>K. \<exists>M1 M2. ?P K M1 M2 \<and> ?Q K\<close>)
     for M' E
   proof -
     obtain K M1 M2 where
-      \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (convert_lits M'))\<close> and
+      \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (convert_lits_l M'))\<close> and
       Q: \<open>?Q K\<close>
       using decomp by auto
     then obtain K' M1' M2' where
       \<open>(K' # M1', M2') \<in> set (get_all_ann_decomposition M')\<close> and
-      \<open>Decided K # M1 = convert_lits (K' # M1')\<close> and
-      \<open>M2 = convert_lits M2'\<close>
-      by (auto simp: get_all_ann_decomposition_convert_lits)
+      \<open>Decided K # M1 = convert_lits_l (K' # M1')\<close> and
+      \<open>M2 = convert_lits_l M2'\<close>
+      by (auto simp: get_all_ann_decomposition_convert_lits_l)
     then show ?thesis
       apply -
       apply (rule exI[of _ K], rule exI[of _ M1'], rule exI[of _ M2'])
@@ -971,23 +971,23 @@ proof -
 
   have H: \<open>SPEC (\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M') \<and>
     get_level M' K = get_maximum_level M' (remove1_mset (- L) (mset (the D'))) + 1)
-    \<le> \<Down> {(M1', M1). M1 = convert_lits M1'}
+    \<le> \<Down> {(M1', M1). M1 = convert_lits_l M1'}
     (SPEC (\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
     get_level M K = get_maximum_level M (remove1_mset (- L') (the D)) + 1))\<close>
-    if H: \<open>L' = lit_of (hd (convert_lits M'))\<close> \<open>M = convert_lits M'\<close>
-    \<open>D \<noteq> None\<close> \<open>L = lit_of (hd (convert_lits M'))\<close> \<open>mset (the D') = the D\<close>
+    if H: \<open>L' = lit_of (hd (convert_lits_l M'))\<close> \<open>M = convert_lits_l M'\<close>
+    \<open>D \<noteq> None\<close> \<open>L = lit_of (hd (convert_lits_l M'))\<close> \<open>mset (the D') = the D\<close>
     for M M' L' L D D'
   proof (rule RES_refine, clarify)
     fix M1 K M2
     assume
       lev: \<open>get_level M' K = get_maximum_level M' (remove1_mset (- L) (mset (the D'))) + 1\<close> and
       \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M')\<close>
-    then have \<open>(Decided K # convert_lits M1, convert_lits M2) \<in> set (get_all_ann_decomposition M)\<close>
-      by (force simp: get_all_ann_decomposition_convert_lits H)
+    then have \<open>(Decided K # convert_lits_l M1, convert_lits_l M2) \<in> set (get_all_ann_decomposition M)\<close>
+      by (force simp: get_all_ann_decomposition_convert_lits_l H)
     then show \<open>\<exists>s'\<in>{M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
                      get_level M K =
                      get_maximum_level M (remove1_mset (- L') (the D)) + 1}.
-          (M1, s') \<in> {(M1', M1). M1 = convert_lits M1'}\<close>
+          (M1, s') \<in> {(M1', M1). M1 = convert_lits_l M1'}\<close>
       using lev by (auto simp: H)
   qed
   have bt:
