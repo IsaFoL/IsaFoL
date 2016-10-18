@@ -22,9 +22,9 @@ text \<open>
   appears in the assumptions.
   \<close>
 
-method remove_dummy_vars =
+method remove_dummy_vars uses simp =
   ((unfold prod.inject)?; (simp only: prod.inject)?; (elim conjE)?;
-    hypsubst?; (simp only: triv_forall_equality)?)
+    hypsubst?; (simp only: triv_forall_equality simps)?)
 
 
 subsection \<open>Unit Propagation Loops\<close>
