@@ -200,7 +200,6 @@ lemma sum_mset_constant [simp]:
   shows \<open>(\<Sum>x\<in>#A. y) = of_nat (size A) * y\<close>
   by (induction A) (auto simp: algebra_simps)
 
-thm setsum_mono
 lemma (in ordered_comm_monoid_add) sum_mset_mono:
   assumes "(\<And>i. i \<in># K \<Longrightarrow> f i \<le> g i)"
   shows "sum_mset (image_mset f K) \<le> sum_mset (image_mset g K)"
@@ -237,13 +236,12 @@ lemma neutral_const [simp]:
 end
 
 thm comm_monoid_set.commute
-text \<open>See theorem @{thm setsum.commute}\<close>
+text \<open>See theorem @{thm sum.commute}\<close>
 lemma sum_mset_commute:
   fixes f :: "'a::{comm_monoid_add,times} => ('b::semiring_0)"
   shows \<open>(\<Sum>x\<in>#B. \<Sum>b\<in>#A. f b * g x) = (\<Sum>i\<in>#A. \<Sum>j\<in>#B. f i * g j)\<close>
   by (induction A) auto
 
-thm setsum_product
 lemma sum_mset_product:
   fixes f :: "'a::{comm_monoid_add,times} => ('b::semiring_0)"
   shows "(\<Sum>i \<in># A. f i) * (\<Sum>i \<in># B. g i) = (\<Sum>i\<in>#A. \<Sum>j\<in>#B. f i * g j)"
