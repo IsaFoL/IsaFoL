@@ -304,7 +304,7 @@ proof -
     using WS unfolding WS'_def S by auto
   have N_j_in_NP: \<open>N ! j \<in> set (take NP N)\<close> if \<open>j < NP\<close>
     using that by (metis NP_U U_N in_set_conv_nth length_take linear min_less_iff_conj nat_less_le nth_take)
-  have j: \<open>(j < NP \<or> U \<le> j) \<and> j < length N\<close> and N_j_1: \<open>length (N!j) > 1\<close>
+  have j: \<open>(j < NP \<or> U \<le> j)\<close>\<open>j < length N\<close> and N_j_1: \<open>length (N!j) > 1\<close>
     using inv_ll WS unfolding S N'_def U'_def by auto
   then have \<open>twl_clause_of_ll (N!j) \<in># N' + U'\<close>
     using NP_U U_N unfolding S N'_def U'_def
@@ -344,19 +344,7 @@ proof -
     by (simp add: M'_def N'_def U'_def S NP'_def UP'_def WS'_def S')
   have LLUW_in_NP_N_D: \<open>TWL_Clause [L, L'] UW \<in> twl_clause_of_ll ` set (take NP N)\<close> if \<open>j < NP\<close>
     using N_j_in_NP[THEN imageI, of twl_clause_of_ll] N_j that by auto
-  (*         RETURN
-         (x1h
-          [x2n :=
-             update_clause_ll (x1h ! x2n) x1n (snd f)],
-          x1i)
-        \<le> \<Down> (?R'553 x1 x2 x1a x2a x1b x2b x1c
-               x2c x1d x2d x1e x2e x1f x2f x1g
-               x2g x1h x2h x1i x2i x1j x2j x1k
-               x2k x1l x2l x1m x2m x1n x2n
-               val_L' val_L'a f fa)
-            (SPEC
-              (update_clauses_list (x1a, x1b)
-                x2m x1m (snd fa))) *)
+
   have update_clause_ll_spec:
     \<open>RETURN (NN[jj := update_clause_ll (NN ! jj) ii k], UU)
     \<le> \<Down> {((N, U), (N', U')). N' = twl_clause_of_ll `# mset (take NP N) \<and>
@@ -422,14 +410,48 @@ proof -
           simp del: update_clause_list.simps
           intro!: update_clauses_list.intros)
   qed
-(*   have \<open>convert_lit_ll N x = convert_lit_ll (N[j := update_clause_ll (N ! j) i k])
-        x\<close>
-    if \<open>k \<ge> 2\<close>
-    for k x
-    apply (cases x)
-    apply (auto simp: update_clause_ll_def nth_list_update') *)
-
-
+  have in_trail_all_defined: False if 
+    \<open>Propagated K j \<in> set M\<close> and \<open>xb \<in> set UW\<close> and
+    \<open>- xb \<notin> lits_of_l M\<close>
+    for C xb K
+  proof -
+    have con: \<open>convert_lit_ll N (Propagated K j) \<in> convert_lit_ll N ` set M\<close>
+      using that by blast
+    then have \<open>K \<in> set (take 2 (N!j))\<close>
+      using add_inv S' S that M'_def  S'M
+      by (auto simp: additional_WS_invs_def)
+    
+    obtain M1 M2 where M12: \<open>convert_lits_ll_m N M = M2 @ Propagated K (N!j) # M1\<close>
+      using con by (metis (no_types, lifting) \<open>Propagated K j \<in> set M\<close> convert_lit_ll.simps(2) 
+          in_set_conv_decomp_first list.simps(9) map_append)
+    from arg_cong[OF this, of set] have M12': \<open>convert_lit_ll N ` set M = set M2 \<union> {Propagated K (N!j)} \<union> set M1\<close>
+      by auto
+    have \<open>\<And>L mark a b. a @ Propagated L mark # b = trail (convert_to_state (twl_st_of S')) \<longrightarrow> b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close>
+      using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def by fast
+    from this[of _ K \<open>mset (N!j)\<close>] have M1: \<open>convert_lits_l M1 \<Turnstile>as CNot (remove1_mset K (mset (N!j)))\<close> and \<open>K \<in> set (N!j)\<close>
+      using M12 unfolding S' by (auto simp: cdcl\<^sub>W_restart_mset_state S'M)
+    have \<open>K \<in> set (take 2 (N ! j))\<close>
+      using add_inv unfolding S' additional_WS_invs_def by (auto simp: cdcl\<^sub>W_restart_mset_state S'M M12')
+    then have \<open>-xb \<in> lits_of_l M1\<close>
+      using that M1 by (auto simp: true_annots_true_cls_def_iff_negation_in_model N_j)
+    then have \<open>-xb \<in> lits_of_l M\<close>
+      by (subst lits_of_convert_lit_ll[symmetric, of _ N], subst M12') auto
+    then show False
+      using that M12 by auto
+  qed
+  have \<open>U + (j - U) = j\<close> if \<open>j >= U\<close>
+    using U_N N_j j that by auto
+    
+  have length_drup_U_N:  \<open>length (drop U N ! (j - U)) \<noteq> Suc 0\<close> if \<open>j >= U\<close>
+    apply (subst nth_drop)
+    using U_N N_j j that by auto
+  have length_upd_cls: \<open>length (update_clause_ll (L # L' # UW) i k) \<noteq> Suc 0\<close> for k
+    using i  by (cases k; cases \<open>k-1\<close>) (auto simp: update_clause_ll_def)
+  have length_upd_N_j: \<open>length (update_clause_ll (L # L' # UW) i k) = length (N!j)\<close> for k
+    using i  by (cases k; cases \<open>k-1\<close>) (auto simp: update_clause_ll_def N_j)
+  obtain WSij where WSij: \<open>WS = add_mset (i, j) WSij\<close>
+    using WS unfolding S by (auto dest: multi_member_split)
   have \<open>?C \<in> \<langle>{(S, S'). (S, S') \<in> twl_st_of_ll \<and> twl_clause_of_ll_inv S}\<rangle>nres_rel\<close>
     using remove_S[unfolded S, unfolded S']
     unfolding unit_propagation_inner_loop_body_ll_def unit_propagation_inner_loop_body_list_def
@@ -462,14 +484,53 @@ proof -
     subgoal using N_j i by auto
     subgoal using N_j inv_ll[unfolded S] WS[unfolded S] S'M S' SS' S i apply clarify
       unfolding twl_st_of_ll_def Let_def twl_clause_of_ll_inv.simps prod.case
-      get_clauses_ll.simps
-      apply (simp add: Ball_def)
+        get_clauses_ll.simps
+      apply (simp (no_asm_simp) add: Ball_def)
       apply (intro conjI allI)
-      subgoal premises H for _ _ _ _ x
-        using H(20,21) H
+      subgoal for _ _ _ _ x
         apply (cases x)
-        using S'M i apply (auto simp: nth_list_update' update_clause_ll_def)
-using remove_S[unfolded S, unfolded S']
-oops
+        using S'M i apply (auto simp: nth_list_update' update_clause_ll_def)[]
+        using S'M i apply (auto simp: nth_list_update' update_clause_ll_def simp: 
+            dest!: in_trail_all_defined)[]
+        done
+      subgoal premises H for _ _ _ _ 
+        apply (cases \<open>j < NP\<close>)
+        using H S'M i apply (auto simp: nth_list_update' update_clause_ll_def)[]
+        using H S'M i j apply (auto simp: nth_list_update' update_clause_ll_def simp: drop_update_swap
+            dest: in_trail_all_defined)[]
+        done
+      subgoal
+        using S'M i j U_N NP_U by (cases \<open>j < NP\<close>) (auto 0 4 simp: nth_list_update' update_clause_ll_def mset_update drop_update_swap
+           mset_update simp: in_trail_all_defined) (* around 1 minute *)
+      subgoal
+        using S'M i j U_N NP_U 
+        apply (cases \<open>j < NP\<close>)
+        apply (simp (no_asm_simp) add: UP'_def; fail)
+        apply (simp (no_asm_simp) add: UP'_def)
+        
+        apply (subst drop_update_swap)
+         apply (simp;fail)
+         apply (simp (no_asm_simp)add: nth_list_update' mset_update)
+        apply (subst mset_update)
+        using j apply (auto; fail)[]
+        apply (simp add: length_drup_U_N length_upd_cls N_j)
+        done
+      subgoal
+        using S'M i j U_N NP_U 
+        (* apply (cases \<open>j < NP\<close>) *)
+        using WS unfolding S working_queue_ll.simps apply (simp add: WS'_def image_mset_remove1_mset_if
+            nth_list_update' mset_update)
+        apply (simp add: length_drup_U_N length_upd_cls N_j nth_list_update' WSij)
+        sorry 
+      subgoal
+        using S'M i j U_N NP_U 
+        using WS unfolding S working_queue_ll.simps apply (simp add: WS'_def image_mset_remove1_mset_if
+            nth_list_update' mset_update length_drup_U_N length_upd_cls N_j length_upd_N_j)
+        by (blast dest: in_diffD)
+      done
+    done
+  show ?thesis
+    sorry
+qed
 
 end

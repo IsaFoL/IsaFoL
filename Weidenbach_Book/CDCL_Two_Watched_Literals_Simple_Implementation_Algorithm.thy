@@ -593,6 +593,7 @@ definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres"  where
         ASSERT(M \<noteq> []);
         L \<leftarrow> SPEC(\<lambda>L. L = lit_of (hd M));
         ASSERT(get_level M L = count_decided M);
+        ASSERT(-L \<in># the D);
         ASSERT(\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (the D - {#-L#}) + 1);
         M1 \<leftarrow> SPEC(\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
@@ -601,6 +602,7 @@ definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres"  where
         if size (the D) > 1
         then do {
           L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># the D \<and> get_level M L' = get_maximum_level M (the D - {#-L#}));
+          ASSERT(L \<noteq> L');
           RETURN (Propagated (-L) (the D) #  M1, N, add_mset (TWL_Clause {#-L, L'#} (the D - {#-L, L'#})) U,
             None, NP, UP, WS, {#L#})
         }
@@ -772,6 +774,9 @@ proof -
       using cdcl\<^sub>W_restart_mset.backtrack_ex_decomp[OF lev_inv]
       by (auto simp: cdcl\<^sub>W_restart_mset_state S)
 
+    show \<open>-lit_of (hd M) \<in># the D\<close>
+      using L'_D unfolding M D' by simp
+
     assume
       decomp: \<open>\<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
       get_level M K = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D)) + 1\<close>
@@ -802,7 +807,6 @@ proof -
         apply (rename_tac L D'')
         apply (case_tac D'')
         by simp_all
-
       have \<open>cdcl_twl_o (M, N, U, D, NP, UP, WS, Q) ?T'\<close>
         unfolding Q WS D' option.sel list.sel
         apply (rule cdcl_twl_o.backtrack[of \<open>-lit_of (hd M)\<close> _ K M1 M2 _ i])
@@ -832,6 +836,10 @@ proof -
         by (auto simp: cdcl_twl_o.simps)
       show \<open>pending ?T \<noteq> {#}\<close>
         by auto
+      show \<open>lit_of (hd M) \<noteq> L'\<close>
+        using \<open>get_level M (lit_of (hd M)) = count_decided M\<close> 
+          \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D)) < count_decided M\<close> lev_L
+          by auto
     }
 
     { -- \<open>conflict clause < 1 literal\<close>
