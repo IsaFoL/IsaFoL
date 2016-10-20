@@ -69,7 +69,7 @@ text \<open>
   \<^item> The indices in the working queue are distinct. This does not say anything about
   the number of clauses.
   \<^item> The working queue points to clauses of size \<open>\<ge> 2\<close>.
-  \<^item> The clauses are in the order: first the init clauses of size \<open>\<ge> \<close>2, then those of size 1, after 
+  \<^item> The clauses are in the order: first the init clauses of size \<open>\<ge> \<close>2, then those of size 1, after
   that the learned clauses (without sorting).\<close>
 
 fun twl_clause_of_ll_inv where
@@ -251,20 +251,29 @@ proof -
     by auto
 qed
 
-lemma refine_add_inv_in_set_no_arg:
-  fixes f' :: \<open>'c nres\<close> and f :: \<open>'d nres\<close> and H' :: \<open>('c \<times> 'd) set\<close>
+lemma truc:
   assumes
-    \<open>(f', f) \<in> \<langle>{(T, T'). (T, T') \<in> H' \<and> P' T}\<rangle> nres_rel\<close>
+    \<open>(f', f) \<in> R \<rightarrow> \<langle>P\<rangle> nres_rel\<close>
   assumes
-    \<open>(f, fg) \<in> \<langle>{(T, T'). (T, T') \<in> H'' \<and> Q T}\<rangle> nres_rel\<close> and
-    \<open>nofail fg\<close>
+    \<open>(f, fg) \<in> R' \<rightarrow> \<langle>Q\<rangle> nres_rel\<close>
   shows
-    \<open>(f', f) \<in>  \<langle>{(T, T'). (T, T') \<in> H' \<and> P' T \<and> Q T'}\<rangle> nres_rel\<close>
-  using assms unfolding nres_rel_def fun_rel_def pw_le_iff pw_conc_inres pw_conc_nofail
-  by auto
+    \<open>(f', fg) \<in> R O R' \<rightarrow> \<langle>P O Q\<rangle> nres_rel\<close>
+  using relcomp.relcompI[OF assms(1,2)]
+  using fun_rel_comp_dist[of R \<open>\<langle>P\<rangle>nres_rel\<close>  R' \<open>\<langle>Q\<rangle>nres_rel\<close>] unfolding nres_rel_comp
+  by (meson subsetCE)
+
+lemma truc':
+  assumes
+    \<open>(f', f) \<in> \<langle>P\<rangle> nres_rel\<close>
+  assumes
+    \<open>(f, fg) \<in> \<langle>Q\<rangle> nres_rel\<close>
+  shows
+    \<open>(f', fg) \<in> \<langle>P O Q\<rangle> nres_rel\<close>
+  using relcomp.relcompI[OF assms(1,2)] unfolding nres_rel_comp
+  by (meson subsetCE)
 
 lemma refine_add_inv_in_set:
-  fixes f' :: \<open>'a \<Rightarrow> 'c nres\<close> and f :: \<open>'b \<Rightarrow> 'd nres\<close> and H :: \<open>('a \<times> 'b) set\<close>  and 
+  fixes f' :: \<open>'a \<Rightarrow> 'c nres\<close> and f :: \<open>'b \<Rightarrow> 'd nres\<close> and H :: \<open>('a \<times> 'b) set\<close>  and
     H' :: \<open>('c \<times> 'd) set\<close>
   assumes
     \<open>(f', f) \<in> {(S, S'). (S, S') \<in> H \<and> R S} \<rightarrow> \<langle>{(T, T'). (T, T') \<in> H' \<and> P' T}\<rangle> nres_rel\<close>
@@ -285,6 +294,19 @@ lemma refine_add_invariants_in_set:
 
 lemma Down_mono: \<open>P \<subseteq> P' \<Longrightarrow> \<Down> P f \<le> \<Down> P' f\<close>
   by (meson pw_conc_inres pw_conc_nofail pw_ref_I subsetCE)
+
+lemma refine_add_inv_in_set_no_arg:
+  fixes f' :: \<open>'c nres\<close> and f :: \<open>'d nres\<close> and H' :: \<open>('c \<times> 'd) set\<close>
+   assumes
+    \<open>(f', f) \<in> \<langle>{(T, T'). (T, T') \<in> H' \<and> P' T}\<rangle> nres_rel\<close>
+   assumes
+    \<open>(f, fg) \<in> \<langle>{(T, T'). (T, T') \<in> H'' \<and> Q T}\<rangle> nres_rel\<close> and
+    \<open>nofail fg\<close>
+   shows
+    \<open>(f', f) \<in>  \<langle>{(T, T'). (T, T') \<in> H' \<and> P' T \<and> Q T'}\<rangle> nres_rel\<close>
+  using assms unfolding nres_rel_def fun_rel_def pw_le_iff pw_conc_inres pw_conc_nofail
+  by auto
+
 
 lemma unit_propagation_inner_loop_body_list:
   assumes
@@ -336,7 +358,7 @@ proof -
     using inv_ll unfolding S by auto
   have dist_q: \<open>distinct_queued (twl_st_of S')\<close> and w_q_inv: \<open>working_queue_inv (twl_st_of S')\<close>
     using struct_invs unfolding twl_struct_invs_def by fast+
-  have \<open>(i, twl_clause_of_ll (N!j)) \<in># WS'\<close>
+  have i_N_j_WS': \<open>(i, twl_clause_of_ll (N!j)) \<in># WS'\<close>
     using WS unfolding WS'_def S by auto
   have N_j_in_NP: \<open>N ! j \<in> set (take NP N)\<close> if \<open>j < NP\<close>
     using that by (metis NP_U U_N in_set_conv_nth length_take linear min_less_iff_conj nat_less_le nth_take)
@@ -446,7 +468,7 @@ proof -
           simp del: update_clause_list.simps
           intro!: update_clauses_list.intros)
   qed
-  have in_trail_all_defined: False if 
+  have in_trail_all_defined: False if
     \<open>Propagated K j \<in> set M\<close> and \<open>xb \<in> set UW\<close> and
     \<open>- xb \<notin> lits_of_l M\<close>
     for C xb K
@@ -456,9 +478,9 @@ proof -
     then have \<open>K \<in> set (take 2 (N!j))\<close>
       using add_inv S' S that M'_def  S'M
       by (auto simp: additional_WS_invs_def)
-    
+
     obtain M1 M2 where M12: \<open>convert_lits_ll_m N M = M2 @ Propagated K (N!j) # M1\<close>
-      using con by (metis (no_types, lifting) \<open>Propagated K j \<in> set M\<close> convert_lit_ll.simps(2) 
+      using con by (metis (no_types, lifting) \<open>Propagated K j \<in> set M\<close> convert_lit_ll.simps(2)
           in_set_conv_decomp_first list.simps(9) map_append)
     from arg_cong[OF this, of set] have M12': \<open>convert_lit_ll N ` set M = set M2 \<union> {Propagated K (N!j)} \<union> set M1\<close>
       by auto
@@ -478,7 +500,7 @@ proof -
   qed
   have \<open>U + (j - U) = j\<close> if \<open>j \<ge> U\<close>
     using U_N N_j j that by auto
-    
+
   have length_drup_U_N:  \<open>length (drop U N ! (j - U)) \<noteq> Suc 0\<close> if \<open>j >= U\<close>
     apply (subst nth_drop)
     using U_N N_j j that by auto
@@ -492,7 +514,52 @@ proof -
     using dist by auto
   then have j_notin_WSij: \<open>(x, j) \<notin># WSij\<close> for x
     using WSij uniq_lit_WS by auto
-
+  have L_L'_UW_in_N'_U': \<open>TWL_Clause {#L, L'#} (mset UW) \<in> twl_clause_of ` set_mset (N' + U')\<close>
+    by (metis \<open>twl_clause_of_ll (N ! j) = TWL_Clause [L, L'] UW\<close> \<open>twl_clause_of_ll (N ! j) \<in># N' + U'\<close>
+        image_iff mset.simps(2) mset_zero_iff_right twl_clause_of.simps)
+  have H: \<open>unit_propagation_inner_loop_body_list
+     (i,
+      twl_clause_of_ll (get_clauses_ll S ! j))
+     (set_working_queue_list
+       (remove1_mset
+         (i,
+          twl_clause_of_ll
+           (get_clauses_ll S ! j))
+         (working_queue_list S'))
+       S')
+    \<le> \<Down> {(S, S').
+          S' = twl_st_of S \<and>
+          additional_WS_invs S \<and>
+          twl_stgy_invs S' \<and>
+          twl_struct_invs S'}
+        (unit_propagation_inner_loop_body
+          (watched
+            (twl_clause_of_ll
+              (get_clauses_ll S ! j)) !
+           i,
+           twl_clause_of
+            (twl_clause_of_ll
+              (get_clauses_ll S ! j)))
+          (set_working_queue
+            (remove1_mset
+              (watched
+                (twl_clause_of_ll
+                  (get_clauses_ll S ! j)) !
+               i,
+               twl_clause_of
+                (twl_clause_of_ll
+                  (get_clauses_ll S ! j)))
+              (working_queue (twl_st_of S')))
+            (twl_st_of S')))\<close>
+    apply (rule unit_propagation_inner_loop_body_list)
+    using WS S' S i_N_j_WS' i struct_invs stgy_inv  L_L'_UW_in_N'_U' add_inv by (auto simp:)
+  let ?CTRUC = \<open>twl_clause_of_ll (get_clauses_ll S ! j)\<close>
+  have H':
+    \<open>(unit_propagation_inner_loop_body_list (i, ?CTRUC) (set_working_queue_list (remove1_mset (i, ?CTRUC) (working_queue_list S')) S'),
+   unit_propagation_inner_loop_body (watched ?CTRUC ! i, twl_clause_of ?CTRUC) (set_working_queue (remove1_mset (watched ?CTRUC ! i, twl_clause_of ?CTRUC) (working_queue (twl_st_of S'))) (twl_st_of S')))
+  \<in> \<langle>{(S, S'). S' = twl_st_of S \<and> additional_WS_invs S \<and> twl_stgy_invs S' \<and> twl_struct_invs S'}\<rangle>nres_rel\<close>
+    apply (rule unit_propagation_inner_loop_body_list2)
+    using WS S' S i_N_j_WS' i struct_invs stgy_inv  L_L'_UW_in_N'_U' add_inv by (auto simp:)
   have R: \<open>?C \<in> \<langle>{(S, S'). (S, S') \<in> twl_st_of_ll \<and> twl_clause_of_ll_inv S}\<rangle>nres_rel\<close>
     using remove_S[unfolded S, unfolded S']
     unfolding unit_propagation_inner_loop_body_ll_def unit_propagation_inner_loop_body_list_def
@@ -532,7 +599,7 @@ proof -
       subgoal for _ _ _ _ x
         apply (cases x)
         using S'M i apply (auto simp: nth_list_update' update_clause_ll_def)[]
-        using S'M i apply (auto simp: nth_list_update' update_clause_ll_def simp: 
+        using S'M i apply (auto simp: nth_list_update' update_clause_ll_def simp:
             dest!: in_trail_all_defined)[]
         done
       subgoal
@@ -542,11 +609,11 @@ proof -
         using S'M i j U_N NP_U by (cases \<open>j < NP\<close>) (auto 0 4 simp: nth_list_update' update_clause_ll_def mset_update drop_update_swap
            mset_update simp: in_trail_all_defined) (* around 1 minute *)
       subgoal
-        using S'M i j U_N NP_U 
+        using S'M i j U_N NP_U
         apply (cases \<open>j < NP\<close>)
         apply (simp (no_asm_simp) add: UP'_def; fail)
         apply (simp (no_asm_simp) add: UP'_def)
-        
+
         apply (subst drop_update_swap)
          apply (simp;fail)
          apply (simp (no_asm_simp)add: nth_list_update' mset_update)
@@ -555,7 +622,7 @@ proof -
         apply (simp add: length_drup_U_N length_upd_cls N_j)
         done
       subgoal
-        using S'M i j U_N NP_U 
+        using S'M i j U_N NP_U
         (* apply (cases \<open>j < NP\<close>) *)
         using WS unfolding S working_queue_ll.simps apply (simp add: WS'_def image_mset_remove1_mset_if
             nth_list_update' mset_update)
@@ -564,7 +631,7 @@ proof -
       using j_notin_WSij apply (simp (no_asm_use))
       by metis
       subgoal
-        using S'M i j U_N NP_U 
+        using S'M i j U_N NP_U
         using WS unfolding S working_queue_ll.simps apply (simp add: WS'_def image_mset_remove1_mset_if
             nth_list_update' mset_update length_drup_U_N length_upd_cls N_j length_upd_N_j)
         by (blast dest: in_diffD)
@@ -572,41 +639,11 @@ proof -
         by (meson in_diffD)
       done
     done
-  have H: \<open>unit_propagation_inner_loop_body_list
-     (i,
-      twl_clause_of_ll (get_clauses_ll S ! j))
-     (set_working_queue_list
-       (remove1_mset
-         (i,
-          twl_clause_of_ll
-           (get_clauses_ll S ! j))
-         (working_queue_list S'))
-       S')
-    \<le> \<Down> {(S, S').
-          S' = twl_st_of S \<and>
-          additional_WS_invs S \<and>
-          twl_stgy_invs S' \<and>
-          twl_struct_invs S'}
-        (unit_propagation_inner_loop_body
-          (watched
-            (twl_clause_of_ll
-              (get_clauses_ll S ! j)) !
-           i,
-           twl_clause_of
-            (twl_clause_of_ll
-              (get_clauses_ll S ! j)))
-          (set_working_queue
-            (remove1_mset
-              (watched
-                (twl_clause_of_ll
-                  (get_clauses_ll S ! j)) !
-               i,
-               twl_clause_of
-                (twl_clause_of_ll
-                  (get_clauses_ll S ! j)))
-              (working_queue (twl_st_of S')))
-            (twl_st_of S')))\<close>
-    sorry
+  have nf: \<open>nofail (unit_propagation_inner_loop_body (watched (twl_clause_of_ll (get_clauses_ll S ! j)) ! i, twl_clause_of (twl_clause_of_ll (get_clauses_ll S ! j)))
+             (set_working_queue (remove1_mset (watched (twl_clause_of_ll (get_clauses_ll S ! j)) ! i, twl_clause_of (twl_clause_of_ll (get_clauses_ll S ! j))) (working_queue (twl_st_of S'))) (twl_st_of S')))\<close>
+    apply (rule unit_propagation_inner_loop_body(2))
+    using imageI[OF i_N_j_WS', of \<open>(\<lambda>(a, b). (watched b ! a, twl_clause_of b))\<close>]
+    using WS S' S i_N_j_WS' i struct_invs stgy_inv  L_L'_UW_in_N'_U' add_inv D S'D by (auto simp:)
   show ?thesis
     apply (rule refine_add_inv_in_set_no_arg[where H'' = \<open>{(S, S'). S' = twl_st_of S}\<close>
           and fg = \<open>(unit_propagation_inner_loop_body
@@ -629,13 +666,12 @@ proof -
               (working_queue (twl_st_of S')))
             (twl_st_of S')))\<close>])
       apply (rule R)
-    using H 
-     apply (auto intro!: nres_relI simp: weaken_SPEC)
+    using H apply (auto intro!: nres_relI simp: weaken_SPEC)[]
     apply (erule order_trans)
-    apply (rule Down_mono)
+     apply (rule Down_mono)
     apply auto[]
-    sorry
+     using nf apply auto[]
+    done
 qed
-
 
 end

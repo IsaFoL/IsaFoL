@@ -68,18 +68,25 @@ lemma unit_propagation_inner_loop_body:
   fixes S :: \<open>'v twl_st\<close>
   assumes
     \<open>working_queue S \<noteq> {#}\<close> and
-    \<open>x \<in># working_queue S\<close> and
+    WS: \<open>x \<in># working_queue S\<close> and
     inv: \<open>twl_struct_invs S\<close> and
     inv_s: \<open>twl_stgy_invs S\<close> and
     confl: \<open>get_conflict S = None\<close>
   shows \<open>unit_propagation_inner_loop_body x (set_working_queue (remove1_mset x (working_queue S)) S)
-    \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and> (S', S) \<in> measure (size \<circ> working_queue))\<close>
+    \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and> (S', S) \<in> measure (size \<circ> working_queue))\<close> (is ?spec) and
+    \<open>nofail (unit_propagation_inner_loop_body x (set_working_queue (remove1_mset x (working_queue S)) S))\<close> (is ?fail)
 proof -
   obtain M N U D NP UP WS Q where
     S: \<open>S = (M, N, U, D, NP, UP, WS, Q)\<close>
     by (cases S) auto
+  obtain L C where x: \<open>x = (L, C)\<close> by (cases x)
+  have \<open>C \<in># N + U\<close> and struct: \<open>struct_wf_twl_cls C\<close> and L_C: \<open>L \<in># watched C\<close>
+    using inv WS unfolding twl_struct_invs_def twl_st_inv.simps S x by auto
+  show ?fail
+    unfolding unit_propagation_inner_loop_body_def Let_def
+    by (cases C, use struct L_C in \<open>auto simp:refine_pw_simps S x size_2_iff\<close>)
   note [[goals_limit=3]]
-  show ?thesis
+  show ?spec
     using assms unfolding unit_propagation_inner_loop_body_def S
   proof (refine_vcg; (unfold prod.inject working_queue.simps set_working_queue.simps ball_simps)?;
       clarify?; unfold triv_forall_equality)
@@ -200,10 +207,11 @@ proof -
           by (simp add: WS'_def[symmetric] WS_WS')
       }
     }
-    qed
+  qed
+  
 qed
 
-declare unit_propagation_inner_loop_body[THEN order_trans, refine_vcg]
+declare unit_propagation_inner_loop_body(1)[THEN order_trans, refine_vcg]
 
 lemma unit_propagation_inner_loop:
   assumes \<open>twl_struct_invs S\<close> and inv: \<open>twl_stgy_invs S\<close>

@@ -456,7 +456,21 @@ proof -
   then show ?thesis unfolding upd_S_S' by simp
 qed
 
-
+lemma unit_propagation_inner_loop_body_list2:
+  assumes
+      WS: \<open>(i, C) \<in># working_queue_list S\<close> and
+      i: \<open>i = 0 \<or> i = 1\<close> and
+      struct_invs: \<open>twl_struct_invs (twl_st_of S)\<close> and
+      C_N_U: \<open>twl_clause_of C \<in># get_clauses (twl_st_of S)\<close> and
+      add_inv: \<open>additional_WS_invs S\<close> and
+      stgy_inv: \<open>twl_stgy_invs (twl_st_of S)\<close>
+  shows
+  \<open>(unit_propagation_inner_loop_body_list (i, C) (set_working_queue_list (working_queue_list S - {#(i, C)#}) S),
+  unit_propagation_inner_loop_body (watched C ! i, twl_clause_of C) (set_working_queue (working_queue (twl_st_of S) - {#(watched C ! i, twl_clause_of C)#}) (twl_st_of S))) 
+    \<in> \<langle>{(S, S'). S' = twl_st_of S \<and> additional_WS_invs S \<and> twl_stgy_invs S' \<and> twl_struct_invs S'}\<rangle>nres_rel\<close>
+  using unit_propagation_inner_loop_body_list[OF assms]
+  by (auto simp: nres_rel_def)
+    
 definition unit_propagation_inner_loop_list :: "'v twl_st_list \<Rightarrow> 'v twl_st_list nres"  where
   \<open>unit_propagation_inner_loop_list S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of S) \<and> twl_stgy_invs (twl_st_of S) \<and>
