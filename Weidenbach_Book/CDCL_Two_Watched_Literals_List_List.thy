@@ -1,5 +1,5 @@
-theory CDCL_Two_Watched_Literals_Simple_Implementation_List_List_Refinement
-  imports CDCL_Two_Watched_Literals_Simple_Implementation_List_Refinement
+theory CDCL_Two_Watched_Literals_List_List
+  imports CDCL_Two_Watched_Literals_List_Inner
 begin
 
 section \<open>Third Refinement: List of lists\<close>

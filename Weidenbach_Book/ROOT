@@ -117,10 +117,11 @@ session "Two_Watched_Literals" (Weidenbach_Book) = "CDCL_Base"  +
     CDCL_W_Optimal_Model
 
   theories [quick_and_dirty, document = true]
-    CDCL_Two_Watched_Literals_Simple_Implementation
-    CDCL_Two_Watched_Literals_Simple_Implementation_Algorithm
+    CDCL_Two_Watched_Literals
+    CDCL_Two_Watched_Literals_Algorithm
     CDCL_Two_Watched_Literals_Initialisation
-    CDCL_Two_Watched_Literals_Simple_Implementation_List_Refinement
+    CDCL_Two_Watched_Literals_List_Inner
+    CDCL_Two_Watched_Literals_List_List
   document_files
     "root.tex"
     "biblio.bib"
@@ -178,10 +179,11 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
     CDCL_W_Abstract_State
 
   theories [quick_and_dirty, document = true]
-    CDCL_Two_Watched_Literals_Simple_Implementation
-    CDCL_Two_Watched_Literals_Simple_Implementation_Algorithm
+    CDCL_Two_Watched_Literals
+    CDCL_Two_Watched_Literals_Algorithm
     CDCL_Two_Watched_Literals_Initialisation
-    CDCL_Two_Watched_Literals_Simple_Implementation_List_Refinement
+    CDCL_Two_Watched_Literals_List_Inner
+    CDCL_Two_Watched_Literals_List_List
     Weidenbach_Book
   document_files
     "root.tex"

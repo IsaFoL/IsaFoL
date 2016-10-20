@@ -1,5 +1,5 @@
 theory CDCL_Two_Watched_Literals_Initialisation
-  imports CDCL_Two_Watched_Literals_Simple_Implementation_List_Refinement
+  imports CDCL_Two_Watched_Literals_List_Inner
 begin
 
 subsection \<open>Initialise Data structure\<close>
@@ -124,44 +124,44 @@ next
     H:\<open>(\<forall>C\<in>#twl_clause_of `# N + twl_clause_of `# U.
       map_option mset D = None \<longrightarrow>
       \<not> twl_is_an_exception C Q {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#} \<longrightarrow>
-      twl_lazy_update (convert_lits M) C \<and>
-      twl_inv (convert_lits M) C)\<close> and
+      twl_lazy_update (convert_lits_l M) C \<and>
+      twl_inv (convert_lits_l M) C)\<close> and
     lev: \<open>\<forall>C\<in>#twl_clause_of `# N + twl_clause_of `# U.
       map_option mset D = None \<longrightarrow>
-      watched_literals_false_of_max_level (convert_lits M) C\<close> and
-    valid: \<open>valid_annotation (convert_lits M, twl_clause_of `# N, twl_clause_of `# U,
+      watched_literals_false_of_max_level (convert_lits_l M) C\<close> and
+    valid: \<open>valid_annotation (convert_lits_l M, twl_clause_of `# N, twl_clause_of `# U,
       map_option mset D, NP, UP, {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q)\<close> and
     all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state
-       (convert_lits M, twl_clause_of `# N, twl_clause_of `# U, map_option mset D, NP, UP,
+       (convert_lits_l M, twl_clause_of `# N, twl_clause_of `# U, map_option mset D, NP, UP,
         {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q))\<close> and
-    no_taut: \<open>(\<forall>D\<in>#init_clss (convert_to_state (convert_lits M, twl_clause_of `# N,
+    no_taut: \<open>(\<forall>D\<in>#init_clss (convert_to_state (convert_lits_l M, twl_clause_of `# N,
             twl_clause_of `# U, map_option mset D, NP, UP,
             {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q)).
       \<not> tautology D)\<close> and
     no_smaller: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa
-     (convert_to_state (convert_lits M, twl_clause_of `# N, twl_clause_of `# U, map_option mset D,
+     (convert_to_state (convert_lits_l M, twl_clause_of `# N, twl_clause_of `# U, map_option mset D,
        NP, UP, {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q))\<close> and
-    excep: \<open>twl_st_exception_inv (convert_lits M, twl_clause_of `# N, twl_clause_of `# U,
+    excep: \<open>twl_st_exception_inv (convert_lits_l M, twl_clause_of `# N, twl_clause_of `# U,
       map_option mset D, NP, UP, {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q)\<close> and
-    no_dup: \<open>no_duplicate_queued (convert_lits M, twl_clause_of `# N, twl_clause_of `# U,
+    no_dup: \<open>no_duplicate_queued (convert_lits_l M, twl_clause_of `# N, twl_clause_of `# U,
       map_option mset D, NP, UP, {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q)\<close> and
-    dist_q: \<open>distinct_queued (convert_lits M, twl_clause_of `# N, twl_clause_of `# U,
+    dist_q: \<open>distinct_queued (convert_lits_l M, twl_clause_of `# N, twl_clause_of `# U,
       map_option mset D, NP, UP, {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q)\<close> and
-    confl_cand: \<open>confl_cands_enqueued (convert_lits M, twl_clause_of `# N, twl_clause_of `# U,
+    confl_cand: \<open>confl_cands_enqueued (convert_lits_l M, twl_clause_of `# N, twl_clause_of `# U,
       map_option mset D, NP, UP, {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q)\<close> and
-    propa_cands: \<open>propa_cands_enqueued (convert_lits M, twl_clause_of `# N, twl_clause_of `# U,
+    propa_cands: \<open>propa_cands_enqueued (convert_lits_l M, twl_clause_of `# N, twl_clause_of `# U,
       map_option mset D, NP, UP, {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q)\<close> and
-    get_confl: \<open>get_conflict (convert_lits M, twl_clause_of `# N, twl_clause_of `# U,
+    get_confl: \<open>get_conflict (convert_lits_l M, twl_clause_of `# N, twl_clause_of `# U,
       map_option mset D, NP, UP, {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q) \<noteq> None \<longrightarrow>
-      working_queue (convert_lits M, twl_clause_of `# N, twl_clause_of `# U, map_option mset D, NP,
+      working_queue (convert_lits_l M, twl_clause_of `# N, twl_clause_of `# U, map_option mset D, NP,
       UP, {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q) = {#} \<and>
-      pending (convert_lits M, twl_clause_of `# N, twl_clause_of `# U, map_option mset D, NP, UP,
+      pending (convert_lits_l M, twl_clause_of `# N, twl_clause_of `# U, map_option mset D, NP, UP,
        {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q) = {#}\<close> and
-   unit_clss: \<open>unit_clss_inv (convert_lits M, twl_clause_of `# N, twl_clause_of `# U,
+   unit_clss: \<open>unit_clss_inv (convert_lits_l M, twl_clause_of `# N, twl_clause_of `# U,
      map_option mset D, NP, UP, {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q)\<close> and
-   w_q: \<open>working_queue_inv (convert_lits M, twl_clause_of `# N, twl_clause_of `# U,
+   w_q: \<open>working_queue_inv (convert_lits_l M, twl_clause_of `# N, twl_clause_of `# U,
      map_option mset D, NP, UP, {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q)\<close> and
-   past_invs: \<open>past_invs (convert_lits M, twl_clause_of `# N, twl_clause_of `# U,
+   past_invs: \<open>past_invs (convert_lits_l M, twl_clause_of `# N, twl_clause_of `# U,
      map_option mset D, NP, UP, {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q)\<close>
     using twl unfolding twl_st_inv.simps twl_struct_invs_def S twl_st_of.simps
     by (auto simp: twl_struct_invs_def S
@@ -173,43 +173,43 @@ next
     [simp]: \<open>count_decided M = 0\<close> for L
     using dec' S by (auto simp: count_decided_0_iff)
   have convert_append_Decided_cons[iff]:
-    \<open>convert_lits M = M'a @ Decided K # Ma \<longleftrightarrow> False\<close>
-    \<open>Propagated L C # convert_lits M = M'a @ Decided K # Ma \<longleftrightarrow> False\<close>
+    \<open>convert_lits_l M = M'a @ Decided K # Ma \<longleftrightarrow> False\<close>
+    \<open>Propagated L C # convert_lits_l M = M'a @ Decided K # Ma \<longleftrightarrow> False\<close>
     for M'a K Ma L C
   proof -
-    have \<open>\<forall>s\<in>set (convert_lits M). \<not> is_decided s\<close>
+    have \<open>\<forall>s\<in>set (convert_lits_l M). \<not> is_decided s\<close>
       using dec_M by auto
     then show
-      \<open>convert_lits M = M'a @ Decided K # Ma \<longleftrightarrow> False\<close>
-      \<open>Propagated L C # convert_lits M = M'a @ Decided K # Ma \<longleftrightarrow> False\<close>
+      \<open>convert_lits_l M = M'a @ Decided K # Ma \<longleftrightarrow> False\<close>
+      \<open>Propagated L C # convert_lits_l M = M'a @ Decided K # Ma \<longleftrightarrow> False\<close>
        apply fastforce
-      by (metis (no_types, lifting) \<open>\<forall>s\<in>set (convert_lits M). \<not> is_decided s\<close> ann_lit.disc(1)
+      by (metis (no_types, lifting) \<open>\<forall>s\<in>set (convert_lits_l M). \<not> is_decided s\<close> ann_lit.disc(1)
           ann_lit.distinct(1) append_eq_Cons_conv in_set_conv_decomp list_tail_coinc)
   qed
   have
-    alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (convert_lits M, twl_clause_of `# N,
+    alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (convert_lits_l M, twl_clause_of `# N,
         twl_clause_of `# U, map_option mset D, NP, UP,
         {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q))\<close> and
-    lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (convert_to_state (convert_lits M, twl_clause_of `# N,
+    lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (convert_to_state (convert_lits_l M, twl_clause_of `# N,
         twl_clause_of `# U, map_option mset D, NP, UP,
         {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q))\<close> and
-    learned_tauto: \<open>(\<forall>s\<in>#learned_clss (convert_to_state (convert_lits M, twl_clause_of `# N, twl_clause_of `# U,
+    learned_tauto: \<open>(\<forall>s\<in>#learned_clss (convert_to_state (convert_lits_l M, twl_clause_of `# N, twl_clause_of `# U,
         map_option mset D, NP, UP, {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q)).
         \<not> tautology s)\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (convert_to_state (convert_lits M, twl_clause_of `# N,
+    \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (convert_to_state (convert_lits_l M, twl_clause_of `# N,
         twl_clause_of `# U, map_option mset D, NP, UP,
         {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q))\<close> and
-    confl: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (convert_to_state (convert_lits M, twl_clause_of `# N,
+    confl: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (convert_to_state (convert_lits_l M, twl_clause_of `# N,
         twl_clause_of `# U, map_option mset D, NP, UP,
         {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q))\<close> and
     all_decomp: \<open>all_decomposition_implies_m (cdcl\<^sub>W_restart_mset.clauses (convert_to_state
-         (convert_lits M, twl_clause_of `# N,
+         (convert_lits_l M, twl_clause_of `# N,
           twl_clause_of `# U, map_option mset D, NP, UP,
           {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q)))
-     (get_all_ann_decomposition (trail (convert_to_state (convert_lits M, twl_clause_of `# N,
+     (get_all_ann_decomposition (trail (convert_to_state (convert_lits_l M, twl_clause_of `# N,
             twl_clause_of `# U, map_option mset D, NP, UP,
             {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q))))\<close> and
-    learned: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause (convert_to_state (convert_lits M, twl_clause_of `# N,
+    learned: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause (convert_to_state (convert_lits_l M, twl_clause_of `# N,
         twl_clause_of `# U, map_option mset D, NP, UP,
         {#(watched b ! a, twl_clause_of b). (a, b) \<in># {#}#}, Q))\<close>
     using all_struct unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S'[symmetric]
@@ -269,7 +269,7 @@ next
               Decided_Propagated_in_iff_in_lits_of_l
               split: if_splits)
         subgoal
-          apply (cases \<open>get_all_ann_decomposition (convert_lits M)\<close>)
+          apply (cases \<open>get_all_ann_decomposition (convert_lits_l M)\<close>)
           using all_decomp by (auto simp: a cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
               cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S Let_def clauses_def
               intro!: all_decomposition_implies_insert_single
@@ -379,7 +379,7 @@ next
               Decided_Propagated_in_iff_in_lits_of_l
               split: if_splits)
         subgoal
-          apply (cases \<open>get_all_ann_decomposition (convert_lits M)\<close>)
+          apply (cases \<open>get_all_ann_decomposition (convert_lits_l M)\<close>)
           using all_decomp by (auto simp: a cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
               cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S Let_def clauses_def
               intro!: all_decomposition_implies_insert_single
@@ -494,7 +494,7 @@ next
               split: if_splits)
         subgoal
           apply (cases D)
-          apply (cases \<open>get_all_ann_decomposition (convert_lits M)\<close>)
+          apply (cases \<open>get_all_ann_decomposition (convert_lits_l M)\<close>)
           using all_decomp by (auto simp: a cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
               cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S Let_def clauses_def
               intro!: all_decomposition_implies_insert_single

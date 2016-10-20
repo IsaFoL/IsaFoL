@@ -1,6 +1,6 @@
-theory CDCL_Two_Watched_Literals_Simple_Implementation_Algorithm
+theory CDCL_Two_Watched_Literals_Algorithm
   imports
-    CDCL_Two_Watched_Literals_Simple_Implementation
+    CDCL_Two_Watched_Literals_Transition_System
     "$AFP/Refine_Imperative_HOL/IICF/IICF"
 begin
 

@@ -1,5 +1,5 @@
-theory CDCL_Two_Watched_Literals_Simple_Implementation_List_Refinement
-  imports CDCL_Two_Watched_Literals_Simple_Implementation_Algorithm
+theory CDCL_Two_Watched_Literals_List_Inner
+  imports CDCL_Two_Watched_Literals_Algorithm
   Eisbach
 begin
 

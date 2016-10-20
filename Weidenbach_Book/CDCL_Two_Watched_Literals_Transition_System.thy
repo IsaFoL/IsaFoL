@@ -1,4 +1,4 @@
-theory CDCL_Two_Watched_Literals_Simple_Implementation
+theory CDCL_Two_Watched_Literals_Transition_System
   imports CDCL_W_Abstract_State
    "$AFP/Refine_Imperative_HOL/IICF/IICF"
 begin
