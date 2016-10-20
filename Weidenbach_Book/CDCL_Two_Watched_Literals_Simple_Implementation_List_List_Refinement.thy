@@ -313,7 +313,6 @@ lemma unit_propagation_inner_loop_body_list:
     WS: \<open>(i, j) \<in># working_queue_ll S\<close> and
     struct_invs: \<open>twl_struct_invs (twl_st_of S')\<close> and
     SS': \<open>(S, S') \<in> twl_st_of_ll\<close> and
-    C_N_U: \<open>twl_clause_of C \<in># get_clauses (twl_st_of S')\<close> and
     add_inv: \<open>additional_WS_invs S'\<close> and
     stgy_inv: \<open>twl_stgy_invs (twl_st_of S')\<close> and
     inv_ll: \<open>twl_clause_of_ll_inv S\<close>
@@ -322,9 +321,8 @@ lemma unit_propagation_inner_loop_body_list:
     unit_propagation_inner_loop_body_list (i, twl_clause_of_ll (get_clauses_ll S ! j))
       (set_working_queue_list (working_queue_list S' - {#(i, twl_clause_of_ll (get_clauses_ll S ! j))#}) S')
     ) \<in>
-    \<langle>{(S, S'). (S, S') \<in> twl_st_of_ll \<and> twl_clause_of_ll_inv S \<and> additional_WS_invs S' \<and>
-    twl_stgy_invs (twl_st_of S') \<and>
-      twl_struct_invs (twl_st_of S')}\<rangle> nres_rel\<close>
+    \<langle>{(S, S'). (S, S') \<in> twl_st_of_ll \<and> twl_clause_of_ll_inv S \<and> additional_WS_invs S'  \<and>
+      twl_struct_invs (twl_st_of S') \<and> twl_stgy_invs (twl_st_of S')}\<rangle> nres_rel\<close>
     (is \<open>?C \<in> _\<close>)
 proof -
 
@@ -671,6 +669,47 @@ proof -
      apply (rule Down_mono)
     apply auto[]
      using nf apply auto[]
+    done
+qed
+
+
+definition unit_propagation_outer_loop_ll :: "'v twl_st_ll \<Rightarrow> 'v twl_st_ll nres"  where
+  \<open>unit_propagation_outer_loop_ll S\<^sub>0 =
+    WHILE\<^sub>T\<^bsup>\<lambda>S. twl_clause_of_ll_inv S\<^esup>
+      (\<lambda>S. working_queue_ll S \<noteq> {#})
+      (\<lambda>S. do {
+        C \<leftarrow> SPEC (\<lambda>C. C \<in># working_queue_ll S);
+        let S' = set_working_queue_ll (working_queue_ll S - {#C#}) S;
+        unit_propagation_inner_loop_body_ll C S'
+      })
+      S\<^sub>0
+  \<close>
+
+lemma unit_propagation_outer_loop_ll_spec:
+  \<open>(unit_propagation_outer_loop_ll, unit_propagation_inner_loop_list) \<in>
+  {(S, S'). (S, S') \<in> twl_st_of_ll \<and> twl_clause_of_ll_inv S \<and> twl_struct_invs (twl_st_of S') \<and> twl_stgy_invs (twl_st_of S') \<and>
+  additional_WS_invs S'} \<rightarrow>
+  \<langle>{(T, T'). (T, T') \<in> twl_st_of_ll \<and> twl_clause_of_ll_inv T \<and>
+  additional_WS_invs T' \<and> twl_struct_invs (twl_st_of T') \<and> twl_stgy_invs (twl_st_of T')}\<rangle> nres_rel\<close>
+proof -
+  have C_spec: \<open>SPEC (\<lambda>C. C \<in># working_queue_ll S) \<le> \<Down> {((i, j), (i', C')). i = i' \<and> twl_clause_of_ll (get_clauses_ll S ! j) = C'} (SPEC (\<lambda>C. C \<in># working_queue_list S'))\<close>
+    if \<open>(S, S') \<in> twl_st_of_ll\<close>
+    for S S'
+    apply (rule RES_refine)
+    apply (cases S, cases S')
+    using that apply (force simp: twl_st_of_ll_def case_prod_beta)
+    done
+  show ?thesis
+    unfolding unit_propagation_outer_loop_ll_def unit_propagation_inner_loop_list_def
+    apply (refine_vcg C_spec)
+    subgoal by auto[]
+    subgoal by auto[]
+    subgoal for S S' by (cases S, cases S') (auto simp add: twl_st_of_ll_def)
+    subgoal by auto[]
+    subgoal for S S' T T' C C'
+      apply simp
+      using unit_propagation_inner_loop_body_list[of \<open>fst C\<close> \<open>snd C\<close> T T']
+      by (auto simp: nres_rel_def)
     done
 qed
 
