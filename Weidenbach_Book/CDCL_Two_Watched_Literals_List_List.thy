@@ -772,12 +772,48 @@ lemma get_maximum_level_convert_lits_ll_m[simp]:
   \<open>get_maximum_level (convert_lits_ll_m N' M') = get_maximum_level M'\<close>
   unfolding get_maximum_level_def by auto
 
+lemma refine_add_inv_in_set_with_arg:
+  fixes f' :: \<open>'a \<Rightarrow> 'c nres\<close> and f :: \<open>'b \<Rightarrow> 'd nres\<close> and H' :: \<open>('c \<times> 'd) set\<close>
+   assumes
+    \<open>(f', f) \<in> R \<rightarrow> \<langle>{(T, T'). (T, T') \<in> H' \<and> P' T}\<rangle> nres_rel\<close>
+   assumes
+    \<open>(f, fg) \<in> R' \<rightarrow> \<langle>{(T, T'). (T, T') \<in> H'' \<and> Q T}\<rangle> nres_rel\<close> and
+    \<open>\<And>x y. (x, y) \<in> R' \<Longrightarrow> nofail (fg y)\<close> and
+    \<open>\<And>x y. (x,y) \<in> R \<Longrightarrow> \<exists>z. (y, z) \<in> R'\<close>
+   shows
+    \<open>(f', f) \<in> R \<rightarrow> \<langle>{(T, T'). (T, T') \<in> H' \<and> P' T \<and> Q T'}\<rangle> nres_rel\<close>
+  using assms unfolding nres_rel_def fun_rel_def pw_le_iff pw_conc_inres pw_conc_nofail
+  by fastforce
+thm skip_and_resolve_loop_list_spec
+
+(* TODO MOve *)
+lemma nofail_skip_and_resolve_loop:
+  assumes \<open>S' = twl_st_of S\<close> and
+    \<open>twl_struct_invs (twl_st_of S)\<close> and
+    \<open>twl_stgy_invs (twl_st_of S)\<close> and
+    \<open>additional_WS_invs S\<close> and \<open>working_queue_list S = {#}\<close> and \<open>pending_list S = {#}\<close> and
+    \<open>get_conflict (twl_st_of S)\<noteq> None\<close>
+  shows \<open>nofail (skip_and_resolve_loop S')\<close>
+  apply (rule SPEC_nofail)
+  apply (rule skip_and_resolve_loop_spec)
+  using assms by (auto simp add: pending_list_pending)
+(* end move *)
+
 lemma skip_and_resolve_loop_ll_spec:
   \<open>(skip_and_resolve_loop_ll, skip_and_resolve_loop_list) \<in>
   {(S, S'). (S, S') \<in> twl_st_of_ll \<and> twl_clause_of_ll_inv S \<and> twl_struct_invs (twl_st_of S') \<and> twl_stgy_invs (twl_st_of S') \<and>
   additional_WS_invs S'\<and> working_queue_ll S = {#} \<and> get_conflict_ll S \<noteq> None} \<rightarrow>
   \<langle>{(T, T'). (T, T') \<in> twl_st_of_ll \<and> twl_clause_of_ll_inv T \<and>
-  additional_WS_invs T' \<and> twl_struct_invs (twl_st_of T') \<and> twl_stgy_invs (twl_st_of T')}\<rangle> nres_rel\<close>
+   additional_WS_invs T' \<and>
+     twl_struct_invs (twl_st_of T') \<and>
+     twl_stgy_invs (twl_st_of T') \<and>
+     (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.skip
+               (convert_to_state (twl_st_of T')) S') \<and>
+     (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.resolve
+               (convert_to_state (twl_st_of T')) S') \<and>
+     pending (twl_st_of T') = {#} \<and>
+     working_queue (twl_st_of T') = {#} \<and>
+     get_conflict (twl_st_of T') \<noteq> None}\<rangle> nres_rel\<close>
   (is \<open>?S \<in> ?R \<rightarrow>  _\<close>)
 proof -
   have get_conflict_ll_spec:
@@ -792,7 +828,8 @@ proof -
       using that by fast
     show False using H[of 0] H[of 1] by auto
   qed
-  have \<open>?S \<in> ?R \<rightarrow>  \<langle>{(T, T'). (T, T') \<in> twl_st_of_ll \<and> twl_clause_of_ll_inv T}\<rangle> nres_rel\<close>
+
+  have R: \<open>?S \<in> ?R \<rightarrow>  \<langle>{(T, T'). (T, T') \<in> twl_st_of_ll \<and> twl_clause_of_ll_inv T}\<rangle> nres_rel\<close>
     unfolding skip_and_resolve_loop_ll_def skip_and_resolve_loop_list_def
     apply (refine_vcg get_conflict_ll_spec; remove_dummy_vars)
     subgoal by auto
@@ -820,7 +857,22 @@ proof -
     subgoal for S S' brk T brk' T'
       by auto
     done
+
+  have help_auto: \<open>ba = {#}\<close> if \<open>twl_struct_invs (a, aa, ab, Some y, ad, t', t, ba)\<close>
+    for a ba aa ab y ad t t'
+    using that by (auto simp: twl_struct_invs_def)
   show ?thesis
-    sorry
+    apply (rule refine_add_inv_in_set_with_arg[where fg = \<open>skip_and_resolve_loop\<close> and
+          R' = \<open>{(S, S'). S' = twl_st_of S \<and> twl_struct_invs (twl_st_of S) \<and>
+          twl_stgy_invs (twl_st_of S) \<and> additional_WS_invs S \<and> working_queue_list S = {#} \<and>
+          pending_list S = {#} \<and> get_conflict (twl_st_of S) \<noteq> None}\<close> and
+          H'' = \<open>{(T, T'). T' = twl_st_of T}\<close>])
+    using R apply (simp; fail)
+    using skip_and_resolve_loop_list_spec apply (simp add: weaken_SPEC; fail)
+    apply (auto intro: nofail_skip_and_resolve_loop; fail)[]
+    apply (auto simp: twl_st_of_ll_def map_option_case help_auto
+        simp del: twl_clause_of_ll_inv.simps split: option.splits; fail)
+    done
 qed
+
 end
