@@ -721,11 +721,12 @@ definition skip_and_resolve_loop_ll :: "'v twl_st_ll \<Rightarrow> 'v twl_st_ll 
   \<open>skip_and_resolve_loop_ll S\<^sub>0 =
     do {
       (_, S) \<leftarrow>
-        WHILE\<^sub>T\<^bsup>\<lambda>(brk, S). True\<^esup>
+        WHILE\<^sub>T\<^bsup>\<lambda>(brk, S). twl_clause_of_ll_inv S\<^esup>
         (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_ll S)))
         (\<lambda>(_, S).
           let (M, N, U, D, NP, WS, Q) = S in
           do {
+            ASSERT(M \<noteq> []);
             let D' = the (get_conflict_ll S);
             (L, C) \<leftarrow> SPEC(\<lambda>(L, C). \<forall>i. Propagated L i = hd (get_trail_ll S) \<and>  C = N!i);
             if -L \<notin># mset D' then
@@ -750,43 +751,76 @@ lemma get_conflict_ll_iff:
   using assms apply (cases a, cases a', cases \<open>get_conflict_list a'\<close>)
   by (auto simp:twl_st_of_ll_def)
 
-lemma is_decided_convert_lit_ll: \<open>is_decided (convert_lit_ll b z) \<longleftrightarrow> is_decided z\<close>
+lemma is_decided_convert_lit_ll[iff]: \<open>is_decided (convert_lit_ll b z) \<longleftrightarrow> is_decided z\<close>
   by (cases z) auto
 
 lemma is_decided_hg_get_trail_ll_iff:
-  assumes \<open>(a, a') \<in> twl_st_of_ll\<close> and \<open>get_trail_ll a \<noteq> []\<close>
+  assumes \<open>(a, a') \<in> twl_st_of_ll\<close> and \<open>get_trail (twl_st_of a') \<noteq> []\<close>
   shows \<open>is_decided (hd (get_trail_ll a)) \<longleftrightarrow>  is_decided (hd (get_trail_list a'))\<close>
   using assms apply (cases a, cases a', cases \<open>get_trail_list a'\<close>)
-  by (auto simp:twl_st_of_ll_def is_decided_convert_lit_ll)
+  by (auto simp:twl_st_of_ll_def)
 
 
-lemma unit_propagation_outer_loop_ll_spec:
+lemma count_decided_convert_lits_ll_m[simp]:
+  \<open>count_decided (convert_lits_ll_m N' M') = count_decided M'\<close>
+  by (induction M') auto
+
+lemma get_level_convert_lits_ll_m[simp]: \<open>get_level (convert_lits_ll_m N' M') = get_level M'\<close>
+  by (induction M' rule: ann_lit_list_induct)  (auto simp: get_level_cons_if)
+
+lemma get_maximum_level_convert_lits_ll_m[simp]:
+  \<open>get_maximum_level (convert_lits_ll_m N' M') = get_maximum_level M'\<close>
+  unfolding get_maximum_level_def by auto
+
+lemma skip_and_resolve_loop_ll_spec:
   \<open>(skip_and_resolve_loop_ll, skip_and_resolve_loop_list) \<in>
   {(S, S'). (S, S') \<in> twl_st_of_ll \<and> twl_clause_of_ll_inv S \<and> twl_struct_invs (twl_st_of S') \<and> twl_stgy_invs (twl_st_of S') \<and>
-  additional_WS_invs S'\<and> working_queue_ll S = {#} \<and> get_conflict_ll S = None} \<rightarrow>
+  additional_WS_invs S'\<and> working_queue_ll S = {#} \<and> get_conflict_ll S \<noteq> None} \<rightarrow>
   \<langle>{(T, T'). (T, T') \<in> twl_st_of_ll \<and> twl_clause_of_ll_inv T \<and>
   additional_WS_invs T' \<and> twl_struct_invs (twl_st_of T') \<and> twl_stgy_invs (twl_st_of T')}\<rangle> nres_rel\<close>
+  (is \<open>?S \<in> ?R \<rightarrow>  _\<close>)
 proof -
   have get_conflict_ll_spec:
     \<open>((get_conflict_ll a = Some [], a), get_conflict_list a' = Some [], a') \<in>
-    {((brk, S), (brk', S')). brk = brk' \<and> (S, S') \<in> twl_st_of_ll}\<close>
-    if \<open>(a, a') \<in> twl_st_of_ll\<close>
+    {((brk, S), (brk', S')). brk = brk' \<and> (S, S') \<in> twl_st_of_ll \<and> twl_clause_of_ll_inv S}\<close>
+    if \<open>(a, a') \<in> twl_st_of_ll\<close> \<open>twl_clause_of_ll_inv a\<close>
     for a a'
     using that by (auto simp: get_conflict_ll_iff)
-
-  show ?thesis
+  have H: False if \<open>\<forall>i. Propagated L i = z \<and> D = N' ! i\<close> for L z D N'
+  proof -
+    have H: \<open>\<And>i. Propagated L i = z \<and> D = N' ! i\<close>
+      using that by fast
+    show False using H[of 0] H[of 1] by auto
+  qed
+  have \<open>?S \<in> ?R \<rightarrow>  \<langle>{(T, T'). (T, T') \<in> twl_st_of_ll \<and> twl_clause_of_ll_inv T}\<rangle> nres_rel\<close>
     unfolding skip_and_resolve_loop_ll_def skip_and_resolve_loop_list_def
-    apply (refine_vcg get_conflict_ll_spec)
-    subgoal by auto
-    subgoal by auto
-    subgoal for S S' T T'
-      apply (auto simp: is_decided_hg_get_trail_ll_iff)
-      sorry
+    apply (refine_vcg get_conflict_ll_spec; remove_dummy_vars)
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    oops
+    subgoal for S S' brk T brk' T'
+      by (auto simp: is_decided_hg_get_trail_ll_iff skip_and_resolve_loop_inv_def)
+    subgoal for S S' brk brk' M N U C NP UP WS Q M' N' U' C' NP' WS' Q'
+      by (auto simp: twl_st_of_ll_def)
+    subgoal for S S' brk brk' M N U C NP UP WS Q M' N' U' C' NP' WS' Q' L D
+      by (cases M'; cases \<open>hd M'\<close>) (auto simp: twl_st_of_ll_def)
+    subgoal for S S' brk brk' M N U C NP UP WS Q M' N' U' C' NP' WS' Q' L D L' D'
+      by (cases C'; cases C) (auto simp: twl_st_of_ll_def)
+    subgoal for S S' brk brk' M N U C NP UP WS Q M' N' U' C' NP' WS' Q' L D L' D'
+      by (cases M') (auto simp: twl_st_of_ll_def)
+    subgoal for S S' brk brk' M N U C NP UP WS Q M' N' U' C' NP' WS' Q' L D L' D'
+      by (cases C'; cases C) (auto simp: twl_st_of_ll_def skip_and_resolve_loop_inv_def
+          simp del: twl_clause_of_ll_inv.simps)
+    subgoal for S S' brk brk' M N U C NP UP WS Q M' N' U' C' NP' WS' Q' L D L' D'
+      by (cases M; cases C'; cases C) (auto simp: twl_st_of_ll_def skip_and_resolve_loop_inv_def map_tl
+          resolve_cls_list_nil_iff simp del: twl_clause_of_ll_inv.simps dest!: H)
+    subgoal for S S' brk brk' M N U C NP UP WS Q M' N' U' C' NP' WS' Q' L D L' D'
+      by (cases C'; cases C) (auto simp: twl_st_of_ll_def skip_and_resolve_loop_inv_def map_tl
+          resolve_cls_list_nil_iff simp del: twl_clause_of_ll_inv.simps)
+    subgoal for S S' brk T brk' T'
+      by auto
+    done
+  show ?thesis
+    sorry
+qed
 end

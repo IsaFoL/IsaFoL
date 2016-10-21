@@ -803,6 +803,7 @@ definition skip_and_resolve_loop_list :: "'v twl_st_list \<Rightarrow> 'v twl_st
         (\<lambda>(_, S).
           let (M, N, U, D, NP, UP, WS, Q) = S in
           do {
+            ASSERT(M \<noteq> []);
             let D' = the (get_conflict_list S);
             (L, C) \<leftarrow> SPEC(\<lambda>(L, C). Propagated L C = hd (get_trail_list S));
             if -L \<notin># mset D' then
@@ -858,36 +859,37 @@ proof -
     unfolding skip_and_resolve_loop_list_def skip_and_resolve_loop_def
     apply (refine_rcg get_conflict_list_get_conflict_state_spec H; remove_dummy_vars)
     subgoal by auto
-    subgoal by (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def)
+    subgoal by auto
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk T brk' T'
       apply (cases \<open>get_trail_list T\<close>; cases \<open>hd (get_trail_list T)\<close>)
       by (auto simp: skip_and_resolve_loop_inv_def get_trail_twl_st_of_nil_iff)
+    subgoal by (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def)
+    subgoal by (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def)
+    subgoal by (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def)
+    subgoal by (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def)
+
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
       M''' N''' U''' D''' NP''' UP''' WS''' Q'''
       M'' N'' U'' D'' NP'' UP'' WS'' Q''
-      apply (auto simp: skip_and_resolve_loop_inv_def) done
-    subgoal
-      apply (auto simp: skip_and_resolve_loop_inv_def) done
-    subgoal
-      apply (auto simp: skip_and_resolve_loop_inv_def) done
+      by (cases \<open>M''\<close>) (auto simp: skip_and_resolve_loop_inv_def get_trail_twl_st_of_nil_iff
+          additional_WS_invs_def)
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
       M''' N''' U''' D''' NP''' UP''' WS''' Q'''
       M'' N'' U'' D'' NP'' UP'' WS'' Q''
-      by (cases \<open>M''\<close>) (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def)
+      by (auto simp: skip_and_resolve_loop_inv_def)
+    subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
+      M''' N''' U''' D''' NP''' UP''' WS''' Q'''
+      M'' N'' U'' D'' NP'' UP'' WS'' Q''
+      by (cases \<open>M''\<close>) (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def
+          resolve_cls_list_nil_iff)
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
       M''' N''' U''' D''' NP''' UP''' WS''' Q'''
       M'' N'' U'' D'' NP'' UP'' WS'' Q''
       by (cases D'') (auto simp:  skip_and_resolve_loop_inv_def) 
 
-    subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
-      M''' N''' U''' D''' NP''' UP''' WS''' Q'''
-      M'' N'' U'' D'' NP'' UP'' WS'' Q''
-      apply (cases \<open>M''\<close>)
+    subgoal
       apply (auto simp: resolve_cls_list_nil_iff skip_and_resolve_loop_inv_def additional_WS_invs_def)
       done
-    subgoal by auto
-    subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk T brk' T'
-      by (cases T', cases M) (auto simp add: additional_WS_invs_def)
     done
   have H: \<open>(skip_and_resolve_loop_list, skip_and_resolve_loop)
     \<in> ?R \<rightarrow>

@@ -208,7 +208,7 @@ proof -
       }
     }
   qed
-  
+
 qed
 
 declare unit_propagation_inner_loop_body(1)[THEN order_trans, refine_vcg]
@@ -424,6 +424,7 @@ definition skip_and_resolve_loop :: "'v twl_st \<Rightarrow> 'v twl_st nres"  wh
         (\<lambda>(_, S).
           let (M, N, U, D, NP, UP, WS, Q) = S in
           do {
+            ASSERT(M \<noteq> []);
             let D' = the (get_conflict S);
             (L, C) \<leftarrow> SPEC(\<lambda>(L, C). Propagated L C = hd (get_trail S));
             if -L \<notin># D' then
@@ -443,7 +444,7 @@ definition skip_and_resolve_loop :: "'v twl_st \<Rightarrow> 'v twl_st nres"  wh
 
 lemma skip_and_resolve_loop_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>working_queue S = {#}\<close> and \<open>pending S = {#}\<close> and
-    \<open>get_conflict S \<noteq> None\<close>(*  and \<open>get_trail S \<noteq> []\<close> *)
+    \<open>get_conflict S \<noteq> None\<close>
   shows \<open>skip_and_resolve_loop S \<le> SPEC(\<lambda>T. cdcl_twl_o\<^sup>*\<^sup>* S T \<and> twl_struct_invs T \<and> twl_stgy_invs T \<and>
       no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state T) \<and>
       no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state T) \<and>
@@ -457,8 +458,8 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
   have \<open>get_trail S \<Turnstile>as CNot (the (get_conflict S))\<close> if \<open>get_conflict S \<noteq> None\<close>
       using assms that unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def by (cases S, auto simp add: cdcl\<^sub>W_restart_mset_state)
-  then have \<open>get_trail S \<noteq> []\<close> if \<open>get_conflict S \<noteq> Some {#}\<close> \<open>get_conflict S \<noteq> None\<close>
-    using that by auto
+  then have \<open>get_trail S \<noteq> []\<close> if \<open>get_conflict S \<noteq> Some {#}\<close>
+    using that assms by auto
   then show \<open>skip_and_resolve_loop_inv S (get_conflict S = Some {#}, S)\<close>
     using assms by (cases S) (auto simp: skip_and_resolve_loop_inv_def cdcl\<^sub>W_restart_mset.skip.simps
           cdcl\<^sub>W_restart_mset.resolve.simps cdcl\<^sub>W_restart_mset_state)
@@ -475,11 +476,14 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
   let ?S = \<open>(M, N, U, D, NP, UP, WS, Q)\<close>
   let ?T = \<open>(tl M, N, U, D, NP, UP, WS, Q)\<close>
 
+  show M_not_empty: \<open>M \<noteq> []\<close>
+    using brk inv unfolding skip_and_resolve_loop_inv_def by (cases M; cases \<open>hd M\<close>) auto
+
   assume
     LC: \<open>case (L, C) of (L, C) \<Rightarrow> Propagated L C = hd (get_trail (M, N, U, D, NP, UP, WS, Q))\<close>
 
   obtain M' D' where M: \<open>M = Propagated L C # M'\<close> and WS: \<open>WS = {#}\<close> and Q: \<open>Q = {#}\<close> and D: \<open>D = Some D'\<close> and
-    st: \<open>cdcl_twl_o\<^sup>*\<^sup>* S ?S\<close> and twl: \<open>twl_struct_invs ?S\<close> and D': \<open>D' \<noteq> {#}\<close> and M_not_empty: \<open>M \<noteq> []\<close> and
+    st: \<open>cdcl_twl_o\<^sup>*\<^sup>* S ?S\<close> and twl: \<open>twl_struct_invs ?S\<close> and D': \<open>D' \<noteq> {#}\<close> and
     twl_stgy_S: \<open>twl_stgy_invs ?S\<close>
     using brk inv LC unfolding skip_and_resolve_loop_inv_def by (cases M; cases \<open>hd M\<close>) auto
 
@@ -845,7 +849,7 @@ proof -
       show \<open>pending ?T \<noteq> {#}\<close>
         by auto
       show \<open>lit_of (hd M) \<noteq> L'\<close>
-        using \<open>get_level M (lit_of (hd M)) = count_decided M\<close> 
+        using \<open>get_level M (lit_of (hd M)) = count_decided M\<close>
           \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D)) < count_decided M\<close> lev_L
           by auto
     }
