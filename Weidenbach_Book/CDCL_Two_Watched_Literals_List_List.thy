@@ -713,4 +713,80 @@ proof -
     done
 qed
 
+fun get_trail_ll :: "'v twl_st_ll \<Rightarrow> ('v, nat) ann_lit list"  where
+  \<open>get_trail_ll (M, N, U, D, NP, WS, Q) = M\<close>
+
+
+definition skip_and_resolve_loop_ll :: "'v twl_st_ll \<Rightarrow> 'v twl_st_ll nres"  where
+  \<open>skip_and_resolve_loop_ll S\<^sub>0 =
+    do {
+      (_, S) \<leftarrow>
+        WHILE\<^sub>T\<^bsup>\<lambda>(brk, S). True\<^esup>
+        (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_ll S)))
+        (\<lambda>(_, S).
+          let (M, N, U, D, NP, WS, Q) = S in
+          do {
+            let D' = the (get_conflict_ll S);
+            (L, C) \<leftarrow> SPEC(\<lambda>(L, C). \<forall>i. Propagated L i = hd (get_trail_ll S) \<and>  C = N!i);
+            if -L \<notin># mset D' then
+              do {RETURN (False, (tl M, N, U, D, NP, WS, Q))}
+            else
+              if get_maximum_level M (remove1_mset (-L) (mset D')) = count_decided M
+              then
+                do {RETURN (resolve_cls_list L D' C = [],
+                   (tl M, N, U, Some (resolve_cls_list L D' C), NP, WS, Q))}
+              else
+                do {RETURN (True, S)}
+          }
+        )
+        (get_conflict_ll S\<^sub>0 = Some [], S\<^sub>0);
+      RETURN S
+    }
+  \<close>
+
+lemma get_conflict_ll_iff:
+  assumes \<open>(a, a') \<in> twl_st_of_ll\<close>
+  shows \<open>get_conflict_ll a = Some [] \<longleftrightarrow> get_conflict_list a' = Some []\<close>
+  using assms apply (cases a, cases a', cases \<open>get_conflict_list a'\<close>)
+  by (auto simp:twl_st_of_ll_def)
+
+lemma is_decided_convert_lit_ll: \<open>is_decided (convert_lit_ll b z) \<longleftrightarrow> is_decided z\<close>
+  by (cases z) auto
+
+lemma is_decided_hg_get_trail_ll_iff:
+  assumes \<open>(a, a') \<in> twl_st_of_ll\<close> and \<open>get_trail_ll a \<noteq> []\<close>
+  shows \<open>is_decided (hd (get_trail_ll a)) \<longleftrightarrow>  is_decided (hd (get_trail_list a'))\<close>
+  using assms apply (cases a, cases a', cases \<open>get_trail_list a'\<close>)
+  by (auto simp:twl_st_of_ll_def is_decided_convert_lit_ll)
+
+
+lemma unit_propagation_outer_loop_ll_spec:
+  \<open>(skip_and_resolve_loop_ll, skip_and_resolve_loop_list) \<in>
+  {(S, S'). (S, S') \<in> twl_st_of_ll \<and> twl_clause_of_ll_inv S \<and> twl_struct_invs (twl_st_of S') \<and> twl_stgy_invs (twl_st_of S') \<and>
+  additional_WS_invs S'\<and> working_queue_ll S = {#} \<and> get_conflict_ll S = None} \<rightarrow>
+  \<langle>{(T, T'). (T, T') \<in> twl_st_of_ll \<and> twl_clause_of_ll_inv T \<and>
+  additional_WS_invs T' \<and> twl_struct_invs (twl_st_of T') \<and> twl_stgy_invs (twl_st_of T')}\<rangle> nres_rel\<close>
+proof -
+  have get_conflict_ll_spec:
+    \<open>((get_conflict_ll a = Some [], a), get_conflict_list a' = Some [], a') \<in>
+    {((brk, S), (brk', S')). brk = brk' \<and> (S, S') \<in> twl_st_of_ll}\<close>
+    if \<open>(a, a') \<in> twl_st_of_ll\<close>
+    for a a'
+    using that by (auto simp: get_conflict_ll_iff)
+
+  show ?thesis
+    unfolding skip_and_resolve_loop_ll_def skip_and_resolve_loop_list_def
+    apply (refine_vcg get_conflict_ll_spec)
+    subgoal by auto
+    subgoal by auto
+    subgoal for S S' T T'
+      apply (auto simp: is_decided_hg_get_trail_ll_iff)
+      sorry
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    oops
 end
