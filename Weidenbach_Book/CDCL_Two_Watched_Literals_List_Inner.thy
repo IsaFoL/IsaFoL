@@ -916,9 +916,10 @@ definition backtrack_list :: "'v twl_st_list \<Rightarrow> 'v twl_st_list nres" 
     do {
       let (M, N, U, D, NP, UP, WS, Q) = S\<^sub>0 in
       do {
+        ASSERT(M \<noteq> []);
         L \<leftarrow> SPEC(\<lambda>L. L = lit_of (hd M));
-         ASSERT(get_level M L = count_decided M);
-         ASSERT(\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
+        ASSERT(get_level M L = count_decided M);
+        ASSERT(\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (mset (the D) - {#-L#}) + 1);
         M1 \<leftarrow> SPEC(\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (mset (the D) - {#-L#}) + 1);
@@ -1038,6 +1039,8 @@ proof -
     apply (refine_vcg H; remove_dummy_vars)
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q'
       by (cases M) auto
+    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q'
+      by (cases M) auto
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L L'
       by (cases M) auto
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L L'
@@ -1061,11 +1064,11 @@ proof -
     subgoal premises p for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L L' M1' M1 L'' L'''
     proof -
       have HD: \<open>Propagated La C \<in> set M1' \<Longrightarrow> Propagated La C \<in> set M'\<close> for La C
-        using p(17-21) by auto
+        using p(18-23) by auto
       have E: \<open>mset E = add_mset K (add_mset L''' (mset E - {#K, L'''#}))\<close>
         if \<open>K \<in> set E\<close> and \<open>K \<noteq> L'''\<close>
         for K
-        using p(2,3,25,26) that by (auto simp: multiset_eq_iff)
+        using p(1-4,25-27) that by (auto simp: multiset_eq_iff)
       have \<open>no_dup M\<close>
         using p(1,9) unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
            cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: cdcl\<^sub>W_restart_mset_state)
@@ -1081,7 +1084,7 @@ proof -
     subgoal premises p for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L L' M1' M1
     proof -
       have HD: \<open>Propagated La C \<in> set M1' \<Longrightarrow> Propagated La C \<in> set M'\<close> for La C
-        using p(17-21) by auto
+        using p(18-22) by auto
       show ?thesis
         using p cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of 
             \<open>convert_to_state (twl_st_of (M', N', U', D', NP', UP', WS', Q'))\<close>]
