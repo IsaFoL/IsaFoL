@@ -888,8 +888,7 @@ proof -
       by (cases D'') (auto simp:  skip_and_resolve_loop_inv_def) 
 
     subgoal
-      apply (auto simp: resolve_cls_list_nil_iff skip_and_resolve_loop_inv_def additional_WS_invs_def)
-      done
+      by (auto simp: resolve_cls_list_nil_iff skip_and_resolve_loop_inv_def additional_WS_invs_def)
     done
   have H: \<open>(skip_and_resolve_loop_list, skip_and_resolve_loop)
     \<in> ?R \<rightarrow>
