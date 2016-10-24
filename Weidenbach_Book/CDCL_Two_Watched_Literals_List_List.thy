@@ -34,15 +34,25 @@ fun get_conflict_ll :: "'v twl_st_ll \<Rightarrow> 'v literal list option" where
 fun twl_clause_of_ll :: \<open>'a list \<Rightarrow> 'a list twl_clause\<close> where
   \<open>twl_clause_of_ll (x # y # xs) = TWL_Clause [x, y] xs\<close>
 
+definition twl_clause_of_l where
+  \<open>twl_clause_of_l C = TWL_Clause (mset (watched_l C)) (mset (unwatched_l C))\<close>
+
 (* TODO: we do not need to convert to multiset: we cannot update a clause that has been put
   on the trail.
   And ensuring that the true literal is at position 0 might be useful\<dots>*)
-fun convert_lit_ll :: \<open>'v literal list list \<Rightarrow> ('v, nat) ann_lit \<Rightarrow> ('v, 'v clause_list) ann_lit\<close> where
+fun convert_lit_ll :: \<open>'v literal list list \<Rightarrow> ('v, nat) ann_lit \<Rightarrow> ('v, 'v clause twl_clause) ann_lit\<close> where
   \<open>convert_lit_ll _ (Decided K) = Decided K\<close>
-| \<open>convert_lit_ll N (Propagated K i) = Propagated K ((N!i))\<close>
+| \<open>convert_lit_ll N (Propagated K i) = Propagated K (twl_clause_of_l (N!i))\<close>
 
-abbreviation convert_lits_ll_m where
-  \<open>convert_lits_ll_m  N \<equiv> map (convert_lit_ll N)\<close>
+definition convert_lits_ll_m where
+  \<open>convert_lits_ll_m  N = map (convert_lit_ll N)\<close>
+
+fun convert_lit_l :: \<open>('v, 'v clause_list) ann_lit \<Rightarrow> ('v, 'v clause twl_clause) ann_lit\<close> where
+  \<open>convert_lit_l (Decided K) = Decided K\<close>
+| \<open>convert_lit_l (Propagated K C) = Propagated K (twl_clause_of_l C)\<close>
+
+definition convert_lits_l_m where
+  \<open>convert_lits_l_m M = map convert_lit_l M\<close>
 
 fun take_between :: "nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> 'a list" where
   \<open>take_between i j l = take (j - i) (drop i l)\<close>
@@ -53,6 +63,7 @@ definition twl_st_of_ll :: \<open>('v twl_st_ll \<times> 'v twl_st_list) set\<cl
   (let (M, N, U, C, NP, WS, Q) = S';
        (M', N', U', C', NP', UP', WS', Q') = S;
         SM' = convert_lits_ll_m  N M;
+        S'M' = convert_lits_l_m M';
         SN' = twl_clause_of_ll `# mset (take NP N);
         SU' = twl_clause_of_ll `# filter_mset (\<lambda>C. length C > 1) (mset (drop U N));
         SUP' = mset `# filter_mset (\<lambda>C. length C = 1) (mset (drop U N));
@@ -61,7 +72,7 @@ definition twl_st_of_ll :: \<open>('v twl_st_ll \<times> 'v twl_st_list) set\<cl
         SC = map_option mset C;
         S'C' = map_option mset C'
     in
-  (SM', SN', SU', SC, SNP', SUP', SWS', Q) = (M', N', U', S'C', NP', UP', WS', Q'))}
+  (SM', SN', SU', SC, SNP', SUP', SWS', Q) = (S'M', N', U', S'C', NP', UP', WS', Q'))}
 \<close>
 
 text \<open>
@@ -77,21 +88,36 @@ fun twl_clause_of_ll_inv where
     (\<forall>L i. Propagated L i \<in> set M \<longrightarrow> i < length N) \<and>
     (\<forall>(i, j) \<in># WS. (j < NP \<or> j \<ge> U) \<and> j < length N \<and> length (N!j) > 1) \<and>
     NP \<le> U \<and> U \<le> length N \<and> distinct_mset WS \<and>
-    (\<forall>i i' j j'. (i, j) \<in># WS \<longrightarrow> (i', j') \<in># WS \<longrightarrow> i = i')\<close>
+    (\<forall>i i' j j'. (i, j) \<in># WS \<longrightarrow> (i', j') \<in># WS \<longrightarrow> i = i')\<and>
+    (\<forall>i j. (i, j) \<in># WS \<longrightarrow> j < length N)\<close>
 
 declare twl_clause_of_ll_inv.simps[simp del]
 
 lemma lit_of_convert_lit_ll[simp]: \<open>lit_of (convert_lit_ll S C) = lit_of C\<close>
   by (cases C) auto
 
+fun twl_clause_of_ll_m where
+  \<open>twl_clause_of_ll_m (Decided K) = Decided K\<close>
+| \<open>twl_clause_of_ll_m (Propagated K C) = Propagated K (watched C + unwatched C)\<close>
+
+lemma convert_lit_convert_lit_l: \<open>convert_lit a = twl_clause_of_ll_m (convert_lit_l a)\<close>
+  by (cases a) (auto simp: watched_def unwatched_def twl_clause_of_l_def mset_append[symmetric]
+    simp del: mset_append split!: twl_clause.splits)
+
+lemma convert_lits_l_convert_lits_l_m: \<open>convert_lits_l M = map twl_clause_of_ll_m (convert_lits_l_m M)\<close>
+  by (induction M) (auto simp: convert_lit_convert_lit_l convert_lits_l_m_def)
+
 lemma lits_of_convert_lit_ll[simp]: \<open>lits_of (convert_lit_ll S ` M) = lits_of M\<close>
   unfolding lits_of_def by (auto simp: image_image)
 
+lemma lits_of_l_convert_lit_ll[simp]: \<open>lits_of_l (convert_lits_ll_m S M) = lits_of_l M\<close>
+  unfolding lits_of_def by (auto simp: image_image convert_lits_ll_m_def)
+
 lemma defined_lit_convert_lits_ll_m [iff]: \<open>defined_lit (convert_lits_ll_m  S M) L \<longleftrightarrow> defined_lit M L\<close>
-  by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+  by (auto simp: Decided_Propagated_in_iff_in_lits_of_l convert_lits_ll_m_def)
 
 lemma valued_convert_lits_ll_m [simp]: \<open>valued (convert_lits_ll_m  S M) L = valued M L\<close>
-  unfolding valued_def by auto
+  unfolding valued_def by (auto simp: )
 
 fun list_swap where
   \<open>list_swap C i j = C [j := C ! i, i := C ! j]\<close>
@@ -161,8 +187,25 @@ lemma list_length_ge_2_exists:
   \<open>length C \<ge> 2 \<longleftrightarrow> (\<exists>x y UW. C = x # y # UW)\<close>
   by (cases C; cases \<open>tl C\<close>)  auto
 
+lemma convert_lits_l_m_convert_lits_l_m_lits_of_eq:
+  assumes \<open>convert_lits_l_m M' = convert_lits_ll_m N M\<close>
+  shows \<open>lits_of_l M = lits_of_l M'\<close>
+  supply convert_lits_l_m_def[simp] convert_lits_ll_m_def[simp]
+  using assms
+  apply (induction M arbitrary: M' rule: ann_lit_list_induct)
+  subgoal by simp
+  subgoal for L M M' by (cases M'; cases \<open>hd M'\<close>) auto
+  subgoal for L M C M' by (cases M'; cases \<open>hd M'\<close>) auto
+  done
+
+lemma convert_lits_l_m_convert_lits_l_m_defined_lit_eq:
+  assumes \<open>convert_lits_l_m M' = convert_lits_ll_m N M\<close>
+  shows \<open>defined_lit M L = defined_lit M' L\<close>
+  using assms by (auto simp: convert_lits_l_m_convert_lits_l_m_lits_of_eq 
+      Decided_Propagated_in_iff_in_lits_of_l)
+
 lemma find_unwatched_ll_spec:
-  \<open>(find_unwatched_ll, find_unwatched) \<in> {(M', M). M = convert_lits_ll_m  N M'} \<rightarrow>
+  \<open>(find_unwatched_ll, find_unwatched) \<in> {(M', M). convert_lits_l_m M = convert_lits_ll_m N M'} \<rightarrow>
     {(C', C). C = unwatched_ll C' \<and> length C' \<ge> 2} \<rightarrow>
     \<langle>{((found', i'), (found, i)). i' = i + 2 \<and> found' = found}\<rangle>nres_rel\<close>
   (is \<open>_ \<in> ?R \<rightarrow> _ \<rightarrow> _\<close>)
@@ -170,7 +213,8 @@ proof -
   have val: \<open>valued M' L \<le> \<Down> Id (valued M L')\<close>
     if \<open>(M', M) \<in> ?R\<close> and \<open>L = L'\<close> for M :: \<open>('a, 'a literal list) ann_lits\<close> and
     M' :: \<open>('a, nat) ann_lits\<close> and L L'
-    using that by (auto simp: valued_def)
+    using that by (auto simp: valued_def convert_lits_l_m_convert_lits_l_m_lits_of_eq
+        Decided_Propagated_in_iff_in_lits_of_l)
   show ?thesis
     unfolding find_unwatched_ll_def find_unwatched_def
     apply (refine_rcg val)
@@ -178,11 +222,12 @@ proof -
     subgoal by auto
     subgoal for M M' C' C fi' fi
       by (auto simp: unwatched_ll_def list_length_ge_2_exists)
+    subgoal by (auto simp: unwatched_ll_def list_length_ge_2_exists convert_lits_l_m_convert_lits_l_m_lits_of_eq)
+    subgoal by (auto simp: unwatched_ll_def list_length_ge_2_exists convert_lits_l_m_convert_lits_l_m_lits_of_eq
+          Decided_Propagated_in_iff_in_lits_of_l)
     subgoal by (auto simp: unwatched_ll_def list_length_ge_2_exists)
     subgoal by (auto simp: unwatched_ll_def list_length_ge_2_exists)
-    subgoal by (auto simp: unwatched_ll_def list_length_ge_2_exists)
-    subgoal by (auto simp: unwatched_ll_def list_length_ge_2_exists)
-    subgoal by (auto simp: unwatched_ll_def list_length_ge_2_exists)
+    subgoal by (auto simp: unwatched_ll_def list_length_ge_2_exists convert_lits_l_m_convert_lits_l_m_lits_of_eq)
     subgoal by (auto simp: unwatched_ll_def list_length_ge_2_exists)
     subgoal by (auto simp: unwatched_ll_def list_length_ge_2_exists)
     subgoal by (auto simp: unwatched_ll_def list_length_ge_2_exists)
@@ -309,6 +354,32 @@ lemma refine_add_inv_in_set_no_arg:
   using assms unfolding nres_rel_def fun_rel_def pw_le_iff pw_conc_inres pw_conc_nofail
   by auto
 
+lemma no_dup_propagate_propagated_eq:
+  assumes 
+    \<open>no_dup M\<close> and 
+    \<open>Propagated K i \<in> set M\<close>
+  shows
+    \<open>Propagated K j \<in> set M \<longleftrightarrow> i = j\<close>
+proof
+  assume \<open>i = j\<close>
+  then show \<open>Propagated K j \<in> set M\<close>
+    using assms by auto
+next
+  assume \<open>Propagated K j \<in> set M\<close>
+  then show \<open>i = j\<close>
+    using distinct_map_eq[of \<open>\<lambda>l. atm_of (lit_of l)\<close> M \<open>Propagated K j\<close> \<open>Propagated K i\<close>]
+    using assms by (auto simp: no_dup_def)
+qed
+
+lemma lit_of_twl_clause_of_ll_m[simp]: \<open>lit_of (twl_clause_of_ll_m a) = lit_of a\<close>
+  by (cases a) auto
+
+lemma lits_of_twl_clause_of_ll_m[simp]: \<open>lits_of (twl_clause_of_ll_m ` set M1) = lits_of_l M1\<close>
+  by (induction M1) auto
+
+lemma Propagated_conver_lit_l_eq: 
+  \<open>Propagated K C = convert_lit_l x \<longleftrightarrow> (\<exists>C'. x = Propagated K C' \<and> C = twl_clause_of_l C')\<close>
+  by (cases x) auto
 
 lemma unit_propagation_inner_loop_body_list:
   assumes
@@ -346,7 +417,7 @@ proof -
   obtain S'M S'D where
     S': \<open>S' = (S'M, N', U', S'D, NP', UP', WS', Q)\<close> and
     S'D: \<open>map_option mset S'D = map_option mset D\<close> and
-    S'M: \<open>S'M = convert_lits_ll_m  N M\<close>
+    S'M: \<open>convert_lits_l_m S'M = convert_lits_ll_m N M\<close>
     using SS' by (auto simp: twl_st_of_ll_def S S' N'_def U'_def UP'_def NP'_def WS'_def)
   then have D: \<open>D = None\<close>
     using struct_invs WS S S' by (auto simp: twl_struct_invs_def WS'_def)
@@ -380,11 +451,12 @@ proof -
     by (auto simp: watched_ll_def N_j unwatched_ll_def)
   have valued_refinement:
     \<open>valued M1 (N' ! j' ! (1 - i')) \<le> \<Down> Id (valued M2 (watched C' ! (1 - i'')))\<close>
-    if \<open>M2 = convert_lits_ll_m  N M1\<close> and \<open>M1 = M\<close> and \<open>N' = N\<close> and \<open>j' = j\<close> and \<open>j'' = j\<close> and
+    if \<open>convert_lits_l_m M2 = convert_lits_ll_m  N M1\<close> and \<open>M1 = M\<close> and \<open>N' = N\<close> and \<open>j' = j\<close> and \<open>j'' = j\<close> and
     \<open>C' = twl_clause_of_ll (N' ! j'')\<close> and \<open>i' = i\<close> and \<open>i'' = i\<close>
     for M1 :: \<open>('a, nat) ann_lits\<close> and M2 :: \<open>('a, 'a literal list) ann_lit list\<close> and N' and
     j' j'' i' i'' :: nat and C'
-    using that i N_j S by (auto simp: valued_def)
+    using that i N_j S by (auto simp: valued_def Decided_Propagated_in_iff_in_lits_of_l 
+        convert_lits_l_m_convert_lits_l_m_lits_of_eq)
   have remove_S_ll: \<open>set_working_queue_ll (remove1_mset (i, j) (working_queue_ll (M, N, U, D, NP, WS, Q)))
             (M, N, U, D, NP, WS, Q) = (M, N, U, D, NP, remove1_mset (i, j) WS, Q)\<close>
     by simp
@@ -472,25 +544,34 @@ proof -
     \<open>Propagated K j \<in> set M\<close> and \<open>xb \<in> set UW\<close> and
     \<open>- xb \<notin> lits_of_l M\<close>
     for C xb K
-  proof -
+  proof -  
     have con: \<open>convert_lit_ll N (Propagated K j) \<in> convert_lit_ll N ` set M\<close>
       using that by blast
-    then have \<open>K \<in> set (take 2 (N!j))\<close>
-      using add_inv S' S that M'_def  S'M
-      by (auto simp: additional_WS_invs_def)
 
-    obtain M1 M2 where M12: \<open>convert_lits_ll_m N M = M2 @ Propagated K (N!j) # M1\<close>
-      using con by (metis (no_types, lifting) \<open>Propagated K j \<in> set M\<close> convert_lit_ll.simps(2)
-          in_set_conv_decomp_first list.simps(9) map_append)
-    from arg_cong[OF this, of set] have M12': \<open>convert_lit_ll N ` set M = set M2 \<union> {Propagated K (N!j)} \<union> set M1\<close>
-      by auto
+    then obtain M1 M2 where M12: \<open>convert_lits_ll_m N M = M2 @ convert_lit_ll N (Propagated K j) # M1\<close>
+       using in_set_conv_decomp_first[of \<open>convert_lit_ll N (Propagated K j)\<close> \<open>convert_lits_ll_m N M\<close>]
+       by (auto simp: convert_lits_ll_m_def)
+    from arg_cong[OF this, of set] 
+    have M12': \<open>convert_lit_ll N ` set M = set M2 \<union> convert_lit_l ` {Propagated K (N!j)} \<union> set M1\<close>
+      by (auto simp: convert_lits_ll_m_def)
+    have N_j_w_unw: \<open>mset (N!j) = watched (twl_clause_of_l (N ! j)) + unwatched (twl_clause_of_l (N ! j))\<close>
+      by (auto simp: twl_clause_of_l_def mset_append[symmetric] simp del: mset_append)
+
     have \<open>\<And>L mark a b. a @ Propagated L mark # b = trail (convert_to_state (twl_st_of S')) \<longrightarrow> b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close>
       using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def by fast
-    from this[of _ K \<open>mset (N!j)\<close>] have M1: \<open>convert_lits_l M1 \<Turnstile>as CNot (remove1_mset K (mset (N!j)))\<close> and \<open>K \<in> set (N!j)\<close>
-      using M12 unfolding S' by (auto simp: cdcl\<^sub>W_restart_mset_state S'M)
-    have \<open>K \<in> set (take 2 (N ! j))\<close>
-      using add_inv unfolding S' additional_WS_invs_def by (auto simp: cdcl\<^sub>W_restart_mset_state S'M M12')
+    from this[of _ K \<open>mset (N!j)\<close>] have M1: \<open>map twl_clause_of_ll_m M1 \<Turnstile>as CNot (remove1_mset K (mset (N!j)))\<close> and 
+      \<open>K \<in> set (N!j)\<close>
+      unfolding S'  by (auto simp: cdcl\<^sub>W_restart_mset_state convert_lits_l_convert_lits_l_m N_j_w_unw[symmetric]
+          S'M M12)
+    have \<open>\<exists>C'. Propagated K C' \<in> set S'M \<and> mset (watched_l C') = mset (watched_l (N!j))\<close>
+      using imageI[OF \<open>Propagated K j \<in> set M\<close>, of \<open>convert_lit_ll N\<close>]
+      arg_cong[OF S'M, of set, symmetric]
+      by (auto simp: convert_lits_l_m_def convert_lits_ll_m_def Propagated_conver_lit_l_eq 
+          twl_clause_of_l_def simp del: watched_l.simps unwatched_l.simps) blast (* TODO What is going on here? *)
+    then have \<open>K \<in> set (watched_l (N ! j))\<close>
+      using add_inv unfolding S' additional_WS_invs_def by (auto simp: cdcl\<^sub>W_restart_mset_state S'M M12'
+          simp del: watched_l.simps dest!: mset_eq_setD)
     then have \<open>-xb \<in> lits_of_l M1\<close>
       using that M1 by (auto simp: true_annots_true_cls_def_iff_negation_in_model N_j)
     then have \<open>-xb \<in> lits_of_l M\<close>
@@ -572,42 +653,49 @@ proof -
     subgoal using N_j i by auto
     subgoal using N_j i SS' S'M by auto
     subgoal using N_j i by auto
-    subgoal using N_j i S'M by auto
-    subgoal using N_j i S'M by auto
-    subgoal using N_j i S'M by auto
+    subgoal using N_j i S'M by (auto simp: convert_lits_l_m_convert_lits_l_m_lits_of_eq)
+    subgoal using N_j i S'M by (auto simp: convert_lits_l_m_convert_lits_l_m_lits_of_eq)
+    subgoal using N_j i S'M by (auto simp: convert_lits_l_m_convert_lits_l_m_lits_of_eq 
+          convert_lits_l_m_convert_lits_l_m_defined_lit_eq)
     subgoal by (auto simp:)
     subgoal using N_j inv_ll[unfolded S] WS[unfolded S] S'M S' SS' S
       by (auto simp: twl_st_of_ll_def image_mset_remove1_mset_if WSij twl_clause_of_ll_inv.simps)
     subgoal using N_j i by auto
     subgoal using N_j i by auto
     subgoal using N_j i S'M by simp
-    subgoal using S'M by auto
+    subgoal using S'M by (auto simp: convert_lits_l_m_convert_lits_l_m_lits_of_eq)
     subgoal using N_j i by auto
     subgoal using N_j i by auto
     subgoal using N_j inv_ll[unfolded S] WS[unfolded S] S'M S' SS' S
       by (auto simp: twl_st_of_ll_def image_mset_remove1_mset_if twl_clause_of_ll_inv.simps dest: in_diffD)
     subgoal using N_j inv_ll[unfolded S] WS[unfolded S] S'M S' SS' S i
-      by (auto simp: twl_st_of_ll_def image_mset_remove1_mset_if WSij twl_clause_of_ll_inv.simps)
+      (* by (auto simp: twl_st_of_ll_def image_mset_remove1_mset_if WSij twl_clause_of_ll_inv.simps) *)
       (* 1min *)
+      sorry
     subgoal using N_j i by auto
     subgoal using N_j i by auto
     subgoal using N_j inv_ll[unfolded S] WS[unfolded S] S'M S' SS' S i apply clarify
       unfolding twl_st_of_ll_def Let_def twl_clause_of_ll_inv.simps prod.case
         get_clauses_ll.simps
+      sorry (*
       apply (simp (no_asm_simp) add: Ball_def)
       apply (intro conjI allI)
-      subgoal for _ _ _ _ x
+      subgoal sorry
+      subgoal for _ _ _  x
         apply (cases x)
-        using S'M i apply (auto simp: nth_list_update' update_clause_ll_def)[]
-        using S'M i apply (auto simp: nth_list_update' update_clause_ll_def simp:
+        using S'M i apply (auto simp: nth_list_update' update_clause_ll_def; fail)[]
+        using S'M i by (auto simp: nth_list_update' update_clause_ll_def simp:
             dest!: in_trail_all_defined)[]
-        done
       subgoal
         using S'M i j S'D by (cases \<open>j < NP\<close>) (auto simp: nth_list_update' update_clause_ll_def simp: drop_update_swap
             dest: in_trail_all_defined)
       subgoal
         using S'M i j U_N NP_U by (cases \<open>j < NP\<close>) (auto 0 4 simp: nth_list_update' update_clause_ll_def mset_update drop_update_swap
            mset_update simp: in_trail_all_defined) (* around 1 minute *)
+      subgoal
+        sorry
+      subgoal
+        sorry
       subgoal
         using S'M i j U_N NP_U
         apply (cases \<open>j < NP\<close>)
@@ -618,9 +706,9 @@ proof -
          apply (simp;fail)
          apply (simp (no_asm_simp)add: nth_list_update' mset_update)
         apply (subst mset_update)
-        using j apply (auto; fail)[]
+        using j (* apply (auto; fail)[]
         apply (simp add: length_drup_U_N length_upd_cls N_j)
-        done
+        done *) sorry
       subgoal
         using S'M i j U_N NP_U
         (* apply (cases \<open>j < NP\<close>) *)
@@ -637,7 +725,9 @@ proof -
         by (blast dest: in_diffD)
       subgoal
         by (meson in_diffD)
-      done
+      subgoal
+        by (meson in_diffD)
+      done*)
     done
   have nf: \<open>nofail (unit_propagation_inner_loop_body (watched (twl_clause_of_ll (get_clauses_ll S ! j)) ! i, twl_clause_of (twl_clause_of_ll (get_clauses_ll S ! j)))
              (set_working_queue (remove1_mset (watched (twl_clause_of_ll (get_clauses_ll S ! j)) ! i, twl_clause_of (twl_clause_of_ll (get_clauses_ll S ! j))) (working_queue (twl_st_of S'))) (twl_st_of S')))\<close>
@@ -1017,13 +1107,30 @@ proof -
       by (rule SPEC_rule, cases D; cases D') (auto simp add: twl_st_of_ll_def)
     subgoal premises p for M' N' U' D' NP' UP' WS' Q' M N U D NP WS Q L L' M1 M1' K K'
     proof -
+      thm p
+      obtain M2 K'' where 
+        \<open>(Decided K'' # M1, M2) \<in> set (get_all_ann_decomposition M)\<close>
+        using p(12) by auto
+      then obtain c where M: \<open>M = c @ M2 @ Decided K'' # M1\<close>
+        by blast
+      have K''K: \<open>((M, N, U, D, NP, WS, Q), M', N', U', D', NP', UP', WS', Q') \<in> twl_st_of_ll\<close> and
+        ll_inv: \<open>twl_clause_of_ll_inv (M, N, U, D, NP, WS, Q)\<close>
+        using p(1) by blast+
+      have conv_N: \<open>convert_lit_ll (N @ xs) L = convert_lit_ll N L\<close> if \<open>L \<in> set M1\<close> for L xs
+        using ll_inv that apply (cases L) by (auto simp: nth_append M twl_clause_of_ll_inv.simps)
+      have conv_N: \<open>convert_lits_ll_m (N @ N') M1 = convert_lits_ll_m N M1\<close> for N'
+        by (auto simp: conv_N)
       have \<open>((Propagated (- L) (length N) # M1, N @ [- L # K # remove1 (- L) (remove1 K (the D))], U,
           None, NP, WS, {#L#}),
         Propagated (- L') (- L' # K' # remove1 (- L') (remove1 K' (the D'))) # M1',
         N', add_mset (TWL_Clause [- L', K'] (remove1 (- L') (remove1 K' (the D')))) U',
           None, NP', UP', WS', {#L'#})
         \<in> twl_st_of_ll\<close>
-        using p(1,2,3,4-6,16) (* apply (auto simp: twl_st_of_ll_def nth_append) *)
+        using p(2,3,4-6,16) K''K ll_inv unfolding M
+        apply (cases M; cases M'; cases D; cases D')
+          apply (auto simp add: twl_st_of_ll_def twl_clause_of_ll_inv.simps
+            conv_N)
+          (* apply (auto simp: twl_st_of_ll_def nth_append) *)
         sorry
       show ?thesis
         apply simp
@@ -1058,4 +1165,30 @@ proof -
     done
 qed
 
+fun decide_list :: "'v twl_st_ll \<Rightarrow> 'v twl_st_ll nres"  where
+  \<open>decide_ll (M, N, U, D, NP, UP, WS, Q) = do {
+     L \<leftarrow> SPEC (\<lambda>L. undefined_lit M L \<and> atm_of L \<in> atms_of_mm (clause `# twl_clause_of `# N));
+     RETURN (Decided L # M, N, U, D, NP, UP, WS, {#-L#})
+  }
+\<close>
+
+definition cdcl_twl_o_prog_ll :: "'v twl_st_ll \<Rightarrow> (bool \<times> 'v twl_st_ll) nres"  where
+  \<open>cdcl_twl_o_prog_ll S =
+    do {
+      let (M, N, U, D, NP, UP, WS, Q) = S in
+      do {
+        if D = None
+        then
+          if (\<exists>L. undefined_lit M L \<and> atm_of L \<in> atms_of_mm (clause `# twl_clause_of `# N))
+          then do {S \<leftarrow> decide_ll S; RETURN (False, S)}
+          else do {RETURN (True, S)}
+        else do {
+          T \<leftarrow> skip_and_resolve_loop_ll S;
+          if get_conflict_list T \<noteq> Some []
+          then do {U \<leftarrow> backtrack_ll T; RETURN (False, U)}
+          else do {RETURN (True, T)}
+        }
+      }
+    }
+  \<close>
 end

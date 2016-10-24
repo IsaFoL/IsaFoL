@@ -22,7 +22,7 @@ fun working_queue_list :: "'v twl_st_list \<Rightarrow> (nat \<times> 'v clause_
 
 fun get_trail_l :: "'v twl_st_list \<Rightarrow> ('v, 'v clause_list) ann_lit list" where
   \<open>get_trail_l (M, _, _, _, _, _, _, _) = M\<close>
-  
+
 fun set_working_queue_list :: "(nat \<times> 'v clause_list twl_clause) multiset \<Rightarrow> 'v twl_st_list \<Rightarrow>
   'v twl_st_list" where
   \<open>set_working_queue_list WS (M, N, U, D, NP, UP, _, Q) = (M, N, U, D, NP, UP, WS, Q)\<close>
@@ -43,8 +43,17 @@ fun convert_lit where
   \<open>convert_lit (Decided K) = Decided K\<close>
 | \<open>convert_lit (Propagated K C) = Propagated K (mset C)\<close>
 
-abbreviation convert_lits_l where
-  \<open>convert_lits_l \<equiv> map convert_lit\<close>
+definition convert_lits_l where
+  \<open>convert_lits_l M = map convert_lit M\<close>
+
+lemma convert_lits_l_nil[simp]: \<open>convert_lits_l [] = []\<close>
+  by (auto simp: convert_lits_l_def)
+
+lemma convert_lits_l_cons[simp]: \<open>convert_lits_l (L # M) = convert_lit L # convert_lits_l M\<close>
+  by (auto simp: convert_lits_l_def)
+
+lemma convert_lits_l_append[simp]: \<open>convert_lits_l (M @ M') = convert_lits_l M @ convert_lits_l M'\<close>
+  by (auto simp: convert_lits_l_def)
 
 fun twl_st_of :: \<open>'v twl_st_list  \<Rightarrow> 'v twl_st\<close>where
 \<open>twl_st_of (M, N, U, C, NP, UP, WS, Q) =
@@ -78,21 +87,24 @@ lemma is_decided_o_convert_lit[iff]: \<open>is_decided \<circ> convert_lit = is_
   by auto
 
 lemma no_dup_convert_lits_l[iff]: \<open>no_dup (convert_lits_l M) \<longleftrightarrow> no_dup M\<close>
-  by (auto simp: defined_lit_map comp_def no_dup_def)
+  by (auto simp: defined_lit_map comp_def no_dup_def convert_lits_l_def)
 
 lemma lits_of_convert_lit[iff]: \<open>lits_of (convert_lit ` set M) = lits_of_l M\<close>
   by (induction M) auto
 
+lemma lits_of_l_convert_lits_l[simp]: \<open>lits_of_l (convert_lits_l M) = lits_of_l M\<close>
+  by (induction M) auto
+
 lemma defined_lit_convert_lits_l[iff]: \<open>defined_lit (convert_lits_l M) = defined_lit M\<close>
-  by (auto simp: defined_lit_map image_image)
+  by (auto simp: defined_lit_map image_image convert_lits_l_def)
 
 lemma get_level_convert_lits_l[simp]: \<open>get_level (convert_lits_l M) = get_level M\<close>
   apply (rule ext)
-  by (induction M) (auto simp: get_level_def)
+  by (induction M) (auto simp: get_level_def convert_lits_l_def)
 
 lemma count_decided_convert_lits_l[simp]:
   \<open>count_decided (convert_lits_l M) = count_decided M\<close>
-  by (auto simp: count_decided_def)
+  by (auto simp: count_decided_def convert_lits_l_def)
 
 lemma get_maximum_level_convert_lits_l[simp]: \<open>get_maximum_level (convert_lits_l M) = get_maximum_level M\<close>
   unfolding get_maximum_level_def by auto
@@ -109,6 +121,7 @@ lemma twl_clause_of_def:
   \<open>twl_clause_of C = TWL_Clause (mset (watched C)) (mset (unwatched C))\<close>
   by (cases C) auto
 
+
 subsection \<open>Additional Invariants and Definitions\<close>
 
 fun watched_l where
@@ -116,10 +129,10 @@ fun watched_l where
 
 fun unwatched_l where
   \<open>unwatched_l l = drop 2 l\<close>
-  
+
 definition additional_WS_invs where
-  \<open>additional_WS_invs S \<longleftrightarrow> 
-    (\<forall>(i, C) \<in># working_queue_list S. (i = 0 \<or> i = 1)) \<and> 
+  \<open>additional_WS_invs S \<longleftrightarrow>
+    (\<forall>(i, C) \<in># working_queue_list S. (i = 0 \<or> i = 1)) \<and>
     (\<forall>L C. Propagated L C \<in> set (get_trail_l S) \<longrightarrow> L \<in> set (watched_l C))\<close>
 
 definition valued where
@@ -378,7 +391,7 @@ proof -
     using watched_C' i by (auto simp: mset_eq_size_2 twl_clause_of_def take_2_if)
   then have set_take_2_watched: \<open>set (take 2 (watched C)) = {?L, ?L'}\<close>
     using watched_C' i by (auto simp: mset_eq_size_2 twl_clause_of_def take_2_if)  (* apply (cases C) apply auto *)
-    
+
   have \<open>unit_propagation_inner_loop_body_list (i, C) ?S \<le>
     \<Down> {(S, S'). S' = twl_st_of S \<and> additional_WS_invs S} (unit_propagation_inner_loop_body
     (?L, twl_clause_of C) (twl_st_of ?S))\<close>
@@ -466,11 +479,11 @@ lemma unit_propagation_inner_loop_body_list2:
       stgy_inv: \<open>twl_stgy_invs (twl_st_of S)\<close>
   shows
   \<open>(unit_propagation_inner_loop_body_list (i, C) (set_working_queue_list (working_queue_list S - {#(i, C)#}) S),
-  unit_propagation_inner_loop_body (watched C ! i, twl_clause_of C) (set_working_queue (working_queue (twl_st_of S) - {#(watched C ! i, twl_clause_of C)#}) (twl_st_of S))) 
+  unit_propagation_inner_loop_body (watched C ! i, twl_clause_of C) (set_working_queue (working_queue (twl_st_of S) - {#(watched C ! i, twl_clause_of C)#}) (twl_st_of S)))
     \<in> \<langle>{(S, S'). S' = twl_st_of S \<and> additional_WS_invs S \<and> twl_stgy_invs S' \<and> twl_struct_invs S'}\<rangle>nres_rel\<close>
   using unit_propagation_inner_loop_body_list[OF assms]
   by (auto simp: nres_rel_def)
-    
+
 definition unit_propagation_inner_loop_list :: "'v twl_st_list \<Rightarrow> 'v twl_st_list nres"  where
   \<open>unit_propagation_inner_loop_list S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of S) \<and> twl_stgy_invs (twl_st_of S) \<and>
@@ -823,7 +836,7 @@ definition skip_and_resolve_loop_list :: "'v twl_st_list \<Rightarrow> 'v twl_st
   \<close>
 
 lemma get_trail_twl_st_of_nil_iff: \<open>get_trail (twl_st_of T) = [] \<longleftrightarrow> get_trail_list T = []\<close>
-  by (cases T) auto
+  by (cases T) (auto simp: convert_lits_l_def)
 
 lemma skip_and_resolve_loop_list_spec:
   \<open>(skip_and_resolve_loop_list, skip_and_resolve_loop) \<in>
@@ -885,7 +898,7 @@ proof -
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
       M''' N''' U''' D''' NP''' UP''' WS''' Q'''
       M'' N'' U'' D'' NP'' UP'' WS'' Q''
-      by (cases D'') (auto simp:  skip_and_resolve_loop_inv_def) 
+      by (cases D'') (auto simp:  skip_and_resolve_loop_inv_def)
 
     subgoal
       by (auto simp: resolve_cls_list_nil_iff skip_and_resolve_loop_inv_def additional_WS_invs_def)
@@ -1003,7 +1016,7 @@ proof -
       \<open>(K' # M1', M2') \<in> set (get_all_ann_decomposition M')\<close> and
       \<open>Decided K # M1 = convert_lits_l (K' # M1')\<close> and
       \<open>M2 = convert_lits_l M2'\<close>
-      by (auto simp: get_all_ann_decomposition_convert_lits_l)
+      unfolding get_all_ann_decomposition_convert_lits_l by (auto simp:  convert_lits_l_def)
     then show ?thesis
       apply -
       apply (rule exI[of _ K], rule exI[of _ M1'], rule exI[of _ M2'])
@@ -1040,7 +1053,7 @@ proof -
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q'
       by (cases M) auto
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q'
-      by (cases M) auto
+      by (cases M) (auto simp: convert_lits_l_def)
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L L'
       by (cases M) auto
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L L'
@@ -1075,7 +1088,7 @@ proof -
       then have \<open>L' \<noteq> -L'''\<close>
         using p by auto
       then show ?thesis
-        using p cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of 
+        using p cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of
             \<open>convert_to_state (twl_st_of (M', N', U', D', NP', UP', WS', Q'))\<close>]
         by (cases M') (auto simp: additional_WS_invs_def
             cdcl\<^sub>W_restart_mset_state twl_struct_invs_def twl_stgy_invs_def dest!: HD
@@ -1086,7 +1099,7 @@ proof -
       have HD: \<open>Propagated La C \<in> set M1' \<Longrightarrow> Propagated La C \<in> set M'\<close> for La C
         using p(18-22) by auto
       show ?thesis
-        using p cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of 
+        using p cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of
             \<open>convert_to_state (twl_st_of (M', N', U', D', NP', UP', WS', Q'))\<close>]
         by (cases M') (auto simp: additional_WS_invs_def
             cdcl\<^sub>W_restart_mset_state twl_struct_invs_def twl_stgy_invs_def dest!: HD)
@@ -1102,9 +1115,9 @@ proof -
                  get_conflict (twl_st_of S) \<noteq> None \<and>
                  (get_conflict_list S \<noteq> Some [] \<and> additional_WS_invs S) \<and>
                  working_queue (twl_st_of S) = {#} \<and>
-                 pending (twl_st_of S) = {#} \<and> 
-                 (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of S)) S') \<and> 
-                 (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of S)) S') \<and> 
+                 pending (twl_st_of S) = {#} \<and>
+                 (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of S)) S') \<and>
+                 (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of S)) S') \<and>
                  twl_struct_invs (twl_st_of S) \<and> twl_stgy_invs (twl_st_of S)}\<close>
     by auto
   have \<open> (backtrack_list, backtrack)
