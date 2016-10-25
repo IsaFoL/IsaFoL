@@ -202,7 +202,8 @@ fun no_duplicate_queued :: "'v twl_st \<Rightarrow> bool"  where
 fun distinct_queued :: "'v twl_st \<Rightarrow> bool"  where
 \<open>distinct_queued (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow>
   distinct_mset Q \<and>
-  (\<forall>L C. count WS (L, C) \<le> count (N + U) C)\<close>
+  (\<forall>L C. count WS (L, C) \<le> count (N + U) C) \<and>
+  (\<forall>L L' C C'. (L, C) \<in># WS \<longrightarrow> (L', C') \<in># WS \<longrightarrow> L = L')\<close>
 
 text \<open>These are the conditions to indicate that the 2-WL invariant does not hold and is not pending.\<close>
 fun working_queue_prop where
@@ -1374,14 +1375,14 @@ next
   then have \<open>-L' \<notin># Q\<close>
     using no_dup by (fastforce simp: lits_of_def dest!: mset_subset_eqD)
   then show ?case
-    using dist by (force simp: all_conj_distrib split: if_splits)
+    using dist by (auto simp: all_conj_distrib split: if_splits dest!: Suc_leD)
 next
   case (conflict D L L' M N U NP UP WS Q) note dist = this(9)
   then show ?case
     by auto
 next
   case (delete_from_working D L L' M N U NP UP WS Q) note dist = this(8)
-  show ?case using dist by (force split: if_splits)
+  show ?case using dist by (auto simp: all_conj_distrib split: if_splits dest!: Suc_leD)
 next
   case (update_clause D L L' M K N U N' U' NP UP WS Q) note watched = this(1) and uL = this(2) and
     L' = this(3) and K = this(4) and undef = this(5) and N'U' = this(6) and twl = this(7) and
@@ -1412,6 +1413,10 @@ next
         using LD N'U' apply (auto simp: all_conj_distrib elim!: update_clausesE  intro: le_SucI; fail)[]
         using LC[of L C] N'U' by (auto simp: all_conj_distrib elim!: update_clausesE intro: le_SucI)[]
     qed
+  next
+    fix L L' C C'
+    show \<open>(L, C) \<in># WS \<longrightarrow> (L', C') \<in># WS \<longrightarrow> L = L'\<close>
+      using dist by auto
   qed
 qed
 
