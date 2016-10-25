@@ -614,7 +614,7 @@ definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres"  where
         if size (the D) > 1
         then do {
           L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># the D \<and> get_level M L' = get_maximum_level M (the D - {#-L#}));
-          ASSERT(L \<noteq> L');
+          ASSERT(L \<noteq> -L');
           RETURN (Propagated (-L) (the D) #  M1, N, add_mset (TWL_Clause {#-L, L'#} (the D - {#-L, L'#})) U,
             None, NP, UP, WS, {#L#})
         }
@@ -848,7 +848,7 @@ proof -
         by (auto simp: cdcl_twl_o.simps)
       show \<open>pending ?T \<noteq> {#}\<close>
         by auto
-      show \<open>lit_of (hd M) \<noteq> L'\<close>
+      show \<open>lit_of (hd M) \<noteq> -L'\<close>
         using \<open>get_level M (lit_of (hd M)) = count_decided M\<close>
           \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D)) < count_decided M\<close> lev_L
           by auto
