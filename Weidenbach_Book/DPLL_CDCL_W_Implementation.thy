@@ -91,7 +91,9 @@ qed
 lemma is_unit_clause_Nil[simp]: "is_unit_clause [] M = None"
   unfolding is_unit_clause_def by auto
 
+
 subsubsection \<open>Unit propagation for all clauses\<close>
+
 text \<open>Finding the first clause to propagate\<close>
 fun find_first_unit_clause :: "'a literal list list \<Rightarrow> ('a, 'b) ann_lits
   \<Rightarrow> ('a literal \<times> 'a literal list) option"  where
@@ -188,8 +190,11 @@ lemma find_first_unused_var_undefined:
   using find_first_unused_var_Some[of l "lits_of_l Ms" a] Decided_Propagated_in_iff_in_lits_of_l
   by blast
 
+
 subsection \<open>CDCL specific functions\<close>
+
 subsubsection \<open>Level\<close>
+
 fun maximum_level_code:: "'a literal list \<Rightarrow> ('a, 'b) ann_lits \<Rightarrow> nat"
   where
 "maximum_level_code [] _ = 0" |
