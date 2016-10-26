@@ -1,9 +1,9 @@
-theory CDCL_Two_Watched_Literals_List_Inner
+theory CDCL_Two_Watched_Literals_List
   imports CDCL_Two_Watched_Literals_Algorithm
   Eisbach
 begin
 
-section \<open>Second Refinement: Indexed Lists as Clause\<close>
+section \<open>Second Refinement: Lists as Clause\<close>
 
 subsection \<open>Types\<close>
 type_synonym 'v working_queue_list = "(nat \<times> nat) multiset"
@@ -1600,7 +1600,7 @@ qed
 lemma cdcl_twl_stgy_prog_list_spec:
   \<open>(cdcl_twl_stgy_prog_list, cdcl_twl_stgy_prog) \<in>
     {(S, S'). S' = twl_st_of S \<and> additional_WS_invs S \<and>
-       working_queue_list S = {#} \<and> pending_list S = {#} \<and>
+       working_queue_list S = {#} \<and>
        twl_struct_invs (twl_st_of S) \<and> twl_stgy_invs (twl_st_of S)} \<rightarrow>
     \<langle>{(T, T'). T' = twl_st_of T \<and> True}\<rangle> nres_rel\<close>
   (is \<open> _ \<in> ?R \<rightarrow> ?I\<close> is \<open> _ \<in> ?R \<rightarrow> \<langle>?J\<rangle>nres_rel\<close>)
@@ -1644,7 +1644,7 @@ qed
 
 lemma cdcl_twl_stgy_prog_list_spec_final:
   assumes \<open>twl_struct_invs (twl_st_of S)\<close> and \<open>twl_stgy_invs (twl_st_of S)\<close> and
-    \<open>working_queue_list S = {#}\<close> and \<open>pending_list S = {#}\<close> and
+    \<open>working_queue_list S = {#}\<close> and
     \<open>get_conflict_list S = None\<close> and \<open>additional_WS_invs S\<close>
   shows
     \<open>cdcl_twl_stgy_prog_list S \<le> SPEC(\<lambda>T. full cdcl_twl_stgy (twl_st_of S) (twl_st_of T))\<close>

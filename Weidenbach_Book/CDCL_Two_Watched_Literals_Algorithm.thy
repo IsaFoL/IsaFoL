@@ -1023,7 +1023,7 @@ proof (rule wf_union_compatible)
 qed
 
 lemma cdcl_twl_stgy_prog_spec:
-  assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>working_queue S = {#}\<close> and \<open>pending S = {#}\<close> and
+  assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>working_queue S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
     \<open>cdcl_twl_stgy_prog S \<le> SPEC(\<lambda>T. full cdcl_twl_stgy S T)\<close>

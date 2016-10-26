@@ -119,8 +119,7 @@ session "Two_Watched_Literals" (Weidenbach_Book) = "CDCL_Base"  +
   theories [quick_and_dirty, document = true]
     CDCL_Two_Watched_Literals_Algorithm
     CDCL_Two_Watched_Literals_Initialisation
-    CDCL_Two_Watched_Literals_List_Inner
-    CDCL_Two_Watched_Literals_List_List
+    CDCL_Two_Watched_Literals_List
   document_files
     "root.tex"
     "biblio.bib"
@@ -180,8 +179,7 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
   theories [quick_and_dirty, document = true]
     CDCL_Two_Watched_Literals_Algorithm
     CDCL_Two_Watched_Literals_Initialisation
-    CDCL_Two_Watched_Literals_List_Inner
-    CDCL_Two_Watched_Literals_List_List
+    CDCL_Two_Watched_Literals_List
     Weidenbach_Book
   document_files
     "root.tex"
