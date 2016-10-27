@@ -36,7 +36,7 @@ lemma bt_cut_not_none2:
   assumes "no_dup M"  and "i < count_decided M"
   shows "bt_cut i M \<noteq> None"
 proof -
-  obtain K M1 M2 where 
+  obtain K M1 M2 where
     \<open>M = M2 @ Decided K # M1\<close> and \<open>get_level M K = Suc i\<close>
       using le_count_decided_decomp[OF assms(1)] assms(2) by auto
     then show ?thesis
@@ -56,7 +56,7 @@ lemma backtrack_list'_spec:
     stgy_invs: \<open>twl_stgy_invs (twl_st_of S)\<close> (* and
     SS: \<open>S' = S\<close> *)
   shows \<open>backtrack_list' S \<le> \<Down> Id (backtrack_list S)\<close>
-proof- 
+proof-
   show ?thesis
     unfolding backtrack_list_def backtrack_list'_def (* SS *)
     apply (rewrite at \<open>let _ = snd _ in _\<close> Let_def)
@@ -66,7 +66,7 @@ proof-
     subgoal by simp
     subgoal by simp
     subgoal premises p for M N U C NP UP WS Q L
-    proof -  
+    proof -
       note S = p(1) and L = p(4) and M_not_empty = p(2) and ex_decomp = p(8)
       have n_d: \<open>no_dup M\<close>
         using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
@@ -95,13 +95,13 @@ proof-
       then obtain K j where
         Kj: \<open>find_level_decomp M C' [] (count_decided M) = Some (K, j)\<close>
         by (cases \<open>find_level_decomp M (the C) [] (count_decided M)\<close>) auto
-      then have 
+      then have
         \<open>K \<in> set C'\<close> and
         j: \<open>get_maximum_level M (mset (remove1 K C')) = j\<close> and
         \<open>get_level M K = count_decided M\<close>
         using find_level_decomp_some[OF Kj] by simp_all
       have KL: \<open>K = -L\<close>
-        by (metis \<open>K \<in> set C'\<close> \<open>\<exists>A. mset C' = add_mset (- L) A\<close> \<open>get_level M K = count_decided M\<close> 
+        by (metis \<open>K \<in> set C'\<close> \<open>\<exists>A. mset C' = add_mset (- L) A\<close> \<open>get_level M K = count_decided M\<close>
             add_mset_remove_trivial get_maximum_level_ge_get_level leD lev_max member_add_mset
             mset_remove1 set_mset_mset)
       have j_le_M: \<open>j < count_decided M\<close>
@@ -122,14 +122,14 @@ proof-
       note S = p(1) and L_hd = p(4) and len_C = p(11)
       obtain C' where [simp]: \<open>C = Some C'\<close>
         using confl1 S by auto
-      
+
       have \<open>find (\<lambda>L'. get_level M L' = get_maximum_level M (remove1_mset (- L) (mset (the C)))) (the C) \<noteq> None\<close>
       proof (rule ccontr)
         assume H: \<open>\<not>?thesis\<close>
         have \<open>remove1_mset (- lit_of (hd M)) (mset (the C)) \<noteq> {#}\<close>
           using len_C by (cases C'; cases \<open>tl C'\<close>) (auto simp: Diff_eq_empty_iff_mset)
         then show False
-          using get_maximum_level_exists_lit_of_max_level[of 
+          using get_maximum_level_exists_lit_of_max_level[of
               \<open>remove1_mset (- lit_of (hd M)) (mset (the C))\<close> M]
           using L_hd H by (auto simp: find_None_iff dest: in_diffD)
       qed
@@ -162,10 +162,10 @@ definition cdcl_twl_o_prog_list' :: "'v twl_st_list \<Rightarrow> (bool \<times>
   \<close>
 
 lemma TT:
-  assumes \<open>(f, g) \<in> {(S, S'). S' = h S \<and> P S} \<rightarrow> \<langle>{(T, T'). T' = h' T \<and> Q T}\<rangle>nres_rel\<close> and 
+  assumes \<open>(f, g) \<in> {(S, S'). S' = h S \<and> P S} \<rightarrow> \<langle>{(T, T'). T' = h' T \<and> Q T}\<rangle>nres_rel\<close> and
     \<open>P S\<close> and \<open>\<And>S. P S \<Longrightarrow> nofail (g (h S))\<close>
   shows \<open>f S \<le> \<Down> {(T', T). T = T' \<and> Q T} (f S)\<close>
-  using assms unfolding fun_rel_def nres_rel_def 
+  using assms unfolding fun_rel_def nres_rel_def
   by (auto simp add: pw_conc_inres pw_conc_nofail pw_ords_iff(1))
 
 lemma TT':
@@ -357,5 +357,30 @@ lemma cdcl_twl_stgy_prog_list'_spec_final:
         of _ \<open>{(S, S'). S' = twl_st_of S \<and> True}\<close>])
   using assms by (auto simp: full_def pending_list_pending get_conflict_list_get_conflict
       pw_conc_inres pw_conc_nofail pw_ords_iff(1))
+
+
+schematic_goal valued_impl: "RETURN ?c \<le> valued M L"
+  unfolding unit_propagation_inner_loop_body_list_def valued_def Let_def
+  apply (refine_transfer find_unwatched_impl)
+  done
+
+concrete_definition valued_impl uses valued_impl
+
+prepare_code_thms valued_impl_def
+export_code valued_impl in SML
+
+declare  find_unwatched_impl[refine_transfer] valued_impl[refine_transfer]
+schematic_goal unit_propagation_inner_loop_body_list: "RETURN ?c \<le> unit_propagation_inner_loop_body_list C S"
+  unfolding unit_propagation_inner_loop_body_list_def
+  apply (refine_transfer)
+  done
+
+(*
+To generate code, remove assertions!
+concrete_definition backtrack_list''_impl uses
+  backtrack_list'_def
+prepare_code_thms backtrack_list''_impl_def
+thm backtrack_list''_impl_def
+export_code backtrack_list''_impl in Haskell *)
 
 end

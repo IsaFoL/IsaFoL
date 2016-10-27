@@ -266,29 +266,6 @@ definition unit_propagation_inner_loop_body_list :: "nat \<times> nat \<Rightarr
     }
    }
 \<close>
-(* 
-schematic_goal valued_impl: "RETURN ?c \<le> valued M L"
-  unfolding unit_propagation_inner_loop_body_list_def valued_def Let_def
-  apply (refine_transfer find_unwatched_impl)
-  done
-
-concrete_definition valued_impl uses valued_impl
-
-prepare_code_thms valued_impl_def
-export_code valued_impl in SML
-
-declare  find_unwatched_impl[refine_transfer] valued_impl[refine_transfer]
-schematic_goal unit_propagation_inner_loop_body_list: "RETURN ?c \<le> unit_propagation_inner_loop_body_list C S"
-  unfolding unit_propagation_inner_loop_body_list_def
-  apply (refine_transfer)
-  done
-
-concrete_definition unit_propagation_inner_loop_body_list_impl uses 
-  unit_propagation_inner_loop_body_list
-prepare_code_thms unit_propagation_inner_loop_body_list_impl_def
-export_code find_unwatched_impl in SML
-thm unit_propagation_inner_loop_body_list_impl_def
-export_code unit_propagation_inner_loop_body_list_impl in Haskell *)
 
 lemma take_2_if:
   \<open>take 2 C = (if C = [] then [] else if length C = 1 then [hd C] else [C!0, C!1])\<close>
