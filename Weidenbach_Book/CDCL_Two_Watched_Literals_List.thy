@@ -7,7 +7,6 @@ section \<open>Second Refinement: Lists as Clause\<close>
 
 subsection \<open>Types\<close>
 type_synonym 'v working_queue_list = "(nat \<times> nat) multiset"
-type_synonym 'v lit_queue_list = "'v literal list"
 
 type_synonym 'v clause_list = "'v literal list"
 type_synonym 'v clauses_list = "'v literal list"

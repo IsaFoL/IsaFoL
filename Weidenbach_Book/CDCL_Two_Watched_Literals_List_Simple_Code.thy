@@ -383,4 +383,14 @@ prepare_code_thms backtrack_list''_impl_def
 thm backtrack_list''_impl_def
 export_code backtrack_list''_impl in Haskell *)
 
+
+sepref_definition find_unwatched_impl is 
+  "uncurry (find_unwatched :: (nat, nat) ann_lits \<Rightarrow> nat clause_list \<Rightarrow> (bool option \<times> nat) nres)" :: 
+ (*  "(asmtx_assn N id_assn)\<^sup>d *\<^sub>a (prod_assn id_assn id_assn)\<^sup>k *\<^sub>a id_assn\<^sup>k \<rightarrow>\<^sub>a asmtx_assn N id_assn" *)
+ " (list_assn nat_ann_lit_assn)\<^sup>k *\<^sub>a (list_assn nat_lit_assn)\<^sup>k
+      \<rightarrow>\<^sub>a     
+   (prod_assn (option_assn bool_assn) nat_assn)"
+unfolding find_unwatched_def
+apply sepref
+oops
 end
