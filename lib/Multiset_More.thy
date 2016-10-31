@@ -300,41 +300,41 @@ lemma remove1_single_empty_iff[simp]: \<open>remove1_mset L {#L'#} = {#} \<longl
 
 subsection \<open>Replicate\<close>
 
+lemma lt_imp_replicate_mset_subset: "m < n \<Longrightarrow> replicate_mset m x \<subset># replicate_mset n x"
+  by (induct n m rule: diff_induct) (auto intro: subset_mset.gr_zeroI)
+
+lemma le_imp_replicate_mset_subseteq: "m \<le> n \<Longrightarrow> replicate_mset m x \<subseteq># replicate_mset n x"
+  by (induct n m rule: diff_induct) auto
+
 lemma replicate_mset_plus: "replicate_mset (a + b) C = replicate_mset a C + replicate_mset b C"
   by (induct a) (auto simp: ac_simps)
 
-lemma mset_replicate_replicate_mset:
-  "mset (replicate n L) = replicate_mset n L"
+lemma mset_replicate_replicate_mset: "mset (replicate n L) = replicate_mset n L"
   by (induction n) auto
 
 lemma set_mset_single_iff_replicate_mset:
   "set_mset U = {a} \<longleftrightarrow> (\<exists>n>0. U = replicate_mset n a)" (is "?S \<longleftrightarrow> ?R")
 proof
-  assume ?R
-  then show ?S by auto
-next
   assume ?S
   show ?R
-    proof (rule ccontr)
-      assume "\<not> ?R"
-      have "\<forall>n. U \<noteq> replicate_mset n a"
-        using \<open>?S\<close> \<open>\<not> ?R\<close> by (metis gr_zeroI insert_not_empty set_mset_replicate_mset_subset)
-      then obtain b where "b \<in># U" and "b \<noteq> a"
-        by (metis count_replicate_mset mem_Collect_eq multiset_eqI neq0_conv set_mset_def)
-      then show False
-        using \<open>?S\<close> by auto
-    qed
-qed
+  proof (rule ccontr)
+    assume "\<not> ?R"
+    have "\<forall>n. U \<noteq> replicate_mset n a"
+      using \<open>?S\<close> \<open>\<not> ?R\<close> by (metis gr_zeroI insert_not_empty set_mset_replicate_mset_subset)
+    then obtain b where "b \<in># U" and "b \<noteq> a"
+      by (metis count_replicate_mset mem_Collect_eq multiset_eqI neq0_conv set_mset_def)
+    then show False
+      using \<open>?S\<close> by auto
+  qed
+qed auto
 
 
 subsection \<open>Multiset and set conversion\<close>
 
-lemma count_mset_set_if:
-  "count (mset_set A) a = (if a \<in> A \<and> finite A then 1 else 0)"
+lemma count_mset_set_if: "count (mset_set A) a = (if a \<in> A \<and> finite A then 1 else 0)"
   by auto
 
-lemma mset_set_set_mset_empty_mempty[iff]:
-  "mset_set (set_mset D) = {#} \<longleftrightarrow> D = {#}"
+lemma mset_set_set_mset_empty_mempty[iff]: "mset_set (set_mset D) = {#} \<longleftrightarrow> D = {#}"
   by (auto dest: arg_cong[of _ _ set_mset])
 
 lemma count_mset_set_le_one: "count (mset_set A) x \<le> 1"
@@ -349,13 +349,8 @@ lemma mset_set_subseteq_mset_set[iff]:
 lemma mset_set_set_mset_subseteq[simp]: "mset_set (set_mset A) \<subseteq># A"
   by (simp add: subseteq_mset_def count_mset_set_if)
 
-lemma mset_sorted_list_of_set[simp]:
-  "mset (sorted_list_of_set A) = mset_set A"
+lemma mset_sorted_list_of_set[simp]: "mset (sorted_list_of_set A) = mset_set A"
   by (metis mset_sorted_list_of_multiset sorted_list_of_mset_set)
-
-lemma mset_single[simp]:
-  \<open>mset xs = {#x#} \<longleftrightarrow> xs = [x]\<close>
-  by (cases xs) auto
 
 lemma mset_take_subseteq: "mset (take n xs) \<subseteq># mset xs"
   apply (induct xs arbitrary: n)
@@ -518,17 +513,8 @@ section \<open>\<open>repeat_mset\<close>\<close>
 lemma repeat_mset_compower: "repeat_mset n A = ((op + A) ^^ n) {#}"
   by (induction n) auto
 
-lemma repeat_mset_distrib_nat: "repeat_mset (m + n) A = repeat_mset m A + repeat_mset n A"
-  by (induction m) (auto simp: ac_simps)
-
 lemma repeat_mset_prod: "repeat_mset (m * n) A = ((op + (repeat_mset n A)) ^^ m) {#}"
-  by (induction m) (auto simp: repeat_mset_distrib_nat)
-
-lemma repeat_mset_empty[simp]: "repeat_mset n {#} = {#}"
-  by (induction n) auto
-
-lemma repeat_mset_empty_iff: "repeat_mset n A = {#} \<longleftrightarrow> n = 0 \<or> A = {#}"
-  by (cases n) auto
+  by (induction m) (auto simp: repeat_mset_distrib)
 
 
 section \<open>Cartesian Product\<close>
@@ -547,7 +533,8 @@ hide_const (open) Times_mset
 
 text \<open>Contrary to the set version @{term \<open>SIGMA x:A. B\<close>}, we use the non-ascii symbol \<open>\<in>#\<close>.\<close>
 syntax
-  "_Sigma_mset" :: "[pttrn, 'a multiset, 'b multiset] => ('a * 'b) multiset"  ("(3SIGMAMSET _\<in>#_./ _)" [0, 0, 10] 10)
+  "_Sigma_mset" :: "[pttrn, 'a multiset, 'b multiset] => ('a * 'b) multiset"
+  ("(3SIGMAMSET _\<in>#_./ _)" [0, 0, 10] 10)
 translations
   "SIGMAMSET x\<in>#A. B" == "CONST Sigma_mset A (\<lambda>x. B)"
 
