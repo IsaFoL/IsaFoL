@@ -300,10 +300,10 @@ lemma remove1_single_empty_iff[simp]: \<open>remove1_mset L {#L'#} = {#} \<longl
 
 subsection \<open>Replicate\<close>
 
-lemma lt_imp_replicate_mset_subset: "m < n \<Longrightarrow> replicate_mset m x \<subset># replicate_mset n x"
+lemma lt_imp_replicate_mset_subset: "replicate_mset m x \<subset># replicate_mset n x \<longleftrightarrow> m < n"
   by (induct n m rule: diff_induct) (auto intro: subset_mset.gr_zeroI)
 
-lemma le_imp_replicate_mset_subseteq: "m \<le> n \<Longrightarrow> replicate_mset m x \<subseteq># replicate_mset n x"
+lemma le_imp_replicate_mset_subseteq: "replicate_mset m x \<subseteq># replicate_mset n x \<longleftrightarrow> m \<le> n"
   by (induct n m rule: diff_induct) auto
 
 lemma replicate_mset_plus: "replicate_mset (a + b) C = replicate_mset a C + replicate_mset b C"
