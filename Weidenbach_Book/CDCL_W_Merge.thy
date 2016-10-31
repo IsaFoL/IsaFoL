@@ -379,7 +379,7 @@ proof -
   then have H: "\<And>L. L\<in>#D \<Longrightarrow> get_level (trail S) L = get_level M\<^sub>T L"
     unfolding M by (fastforce simp: lits_of_def)
   have [simp]: "get_maximum_level (trail S) D = get_maximum_level M\<^sub>T D"
-    using \<open>M\<^sub>T \<Turnstile>as CNot D\<close> M nm undef_D by (auto simp: get_maximum_level_skip_un_decided_not_present)
+    using \<open>M\<^sub>T \<Turnstile>as CNot D\<close> M nm undef_D by (auto simp: get_maximum_level_skip_beginning)
 
   have lev_l': "get_level M\<^sub>T L = backtrack_lvl S"
     using lev_l LD by (auto simp: H)
@@ -714,7 +714,7 @@ proof (rule ccontr)
     using \<open>no_dup (trail S)\<close> unfolding tr_S U
     using defined_lit_no_dupD(1) by fastforce
   then have "get_maximum_level (trail S) (remove1_mset L' D') = backtrack_lvl S"
-     using get_maximum_level_skip_un_decided_not_present[of "remove1_mset L' D'"
+     using get_maximum_level_skip_beginning[of "remove1_mset L' D'"
          M\<^sub>0 "trail U"] tr_S nm U
       \<open>get_maximum_level (trail U) ((remove1_mset (- L) D)) = backtrack_lvl U\<close>
      by (auto simp: count_decided_0_iff)

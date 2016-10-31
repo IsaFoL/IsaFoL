@@ -822,19 +822,6 @@ proof -
     by auto
 qed
 
-lemma tl_drop_def: \<open>tl N = drop 1 N\<close>
-  by (cases N)  auto
-
-(* TODO MOVE to Multiset *)
-lemma image_filter_cong:
-  assumes \<open>\<And>C. C \<in># M \<Longrightarrow> P C \<Longrightarrow> f C = g C\<close>
-  shows
-    \<open>{#f C. C \<in># {#C \<in># M. P C#}#} = {#g C|C\<in># M. P C#}\<close>
-  using assms by (induction M) auto
-
-lemma image_mset_filter_swap2: \<open>{#C \<in># {#P x. x \<in># D#}. Q C #} = {#P x. x \<in># {#C| C \<in># D. Q (P C)#}#}\<close>
-  by (simp add: image_mset_filter_swap)
-
 lemma mset_dup_upto: \<open>mset (drop a N) = {#N!i. i \<in># mset_set {a..<length N}#}\<close>
 proof (induction N arbitrary: a)
   case Nil
@@ -859,8 +846,6 @@ next
     apply (cases a)
     using Cons[of 0] Cons by (auto simp: nth_Cons drop_Cons H mset_case_Suc *)
 qed
-
-(* END Move *)
 
 lemma watched_twl_clause_of_watched: \<open>watched (twl_clause_of x) = mset (watched_l x)\<close>
   by (cases x) auto

@@ -77,6 +77,10 @@ qed
 
 section \<open>More Lists\<close>
 
+lemma tl_drop_def: \<open>tl N = drop 1 N\<close>
+  by (cases N)  auto
+
+
 subsection \<open>@{term upt}\<close>
 
 text \<open>
@@ -389,7 +393,7 @@ lemma subset_eq_mset_single_iff: \<open>x2 \<subseteq># {#L#} \<longleftrightarr
 
 lemma mset_eq_size_2:
   \<open>mset xs = {#a, b#} \<longleftrightarrow> xs = [a, b] \<or> xs = [b, a]\<close>
-  by (cases xs) (auto simp: add_mset_eq_add_mset minus_eq_empty_iff_include subset_eq_mset_single_iff)
+  by (cases xs) (auto simp: add_mset_eq_add_mset Diff_eq_empty_iff_mset subset_eq_mset_single_iff)
 
 
 subsection \<open>Sorting\<close>

@@ -40,15 +40,6 @@ lemma mset_inter_single:
   "x \<in># \<Sigma> \<Longrightarrow> \<Sigma> \<inter># {#x#} = {#x#}"
   by simp
 
-lemma inter_mset_empty_distrib_right: \<open>A \<inter># (B + C) = {#} \<longleftrightarrow> A \<inter># B = {#} \<and> A \<inter># C = {#}\<close>
-  by (meson disjunct_not_in union_iff)
-
-lemma inter_mset_empty_distrib_left: \<open>(A + B) \<inter># C = {#} \<longleftrightarrow> A \<inter># C = {#} \<and> B \<inter># C = {#}\<close>
-  by (meson disjunct_not_in union_iff)
-
-lemma minus_eq_empty_iff_include: "A - B = {#} \<longleftrightarrow> A \<subseteq># B"
-  by (auto simp: multiset_eq_iff subseteq_mset_def)
-
 lemma subset_add_mset_notin_subset_mset: \<open>A \<subseteq># add_mset b B \<Longrightarrow> b \<notin># A  \<Longrightarrow> A \<subseteq># B\<close>
   by (simp add: subset_mset.sup.absorb_iff2)
 
@@ -173,79 +164,21 @@ lemma multiset_filter_mono2: \<open>filter_mset P A \<subseteq># filter_mset Q A
   (\<forall>a\<in>#A. P a \<longrightarrow> Q a)\<close>
   by (induction A) (auto intro: subset_mset.order.trans)
 
+lemma image_filter_cong:
+  assumes \<open>\<And>C. C \<in># M \<Longrightarrow> P C \<Longrightarrow> f C = g C\<close>
+  shows
+    \<open>{#f C. C \<in># {#C \<in># M. P C#}#} = {#g C|C\<in># M. P C#}\<close>
+  using assms by (induction M) auto
+
+lemma image_mset_filter_swap2: \<open>{#C \<in># {#P x. x \<in># D#}. Q C #} = {#P x. x \<in># {#C| C \<in># D. Q (P C)#}#}\<close>
+  by (simp add: image_mset_filter_swap)
+
 
 subsection \<open>Sums\<close>
 
 lemma count_sum_mset_if_1_0:
   \<open>count M a = (\<Sum>x\<in>#M. if x = a then 1 else 0)\<close>
   by (induction M) auto
-
-lemma sum_mset_distrib[simp]:
-  fixes C D :: "'a \<Rightarrow> 'b::{comm_monoid_add}"
-  shows "(\<Sum>x \<in># A. C x + D x) = (\<Sum>x \<in># A. C x) + (\<Sum>x \<in># A. D x)"
-  by (induction A) (auto simp: ac_simps)
-
-lemma sum_mset_union_disjoint:
-  assumes "A \<inter># B = {#}"
-  shows "(\<Sum>La\<in>#A \<union># B. f La) = (\<Sum>La\<in>#A. f La) + (\<Sum>La\<in>#B. f La)"
-  by (metis assms diff_zero image_mset_union sum_mset.union union_diff_inter_eq_sup)
-
-lemma sum_mset_distrib_right:
-  fixes f :: "'a => ('b::semiring_0)"
-  shows "(\<Sum>b \<in># B. f b) * a = (\<Sum>b \<in># B. f b * a)"
-  by (induction B) (auto simp: distrib_right)
-
-lemma sum_mset_constant [simp]:
-  fixes y :: "'b::semiring_1"
-  shows \<open>(\<Sum>x\<in>#A. y) = of_nat (size A) * y\<close>
-  by (induction A) (auto simp: algebra_simps)
-
-lemma (in ordered_comm_monoid_add) sum_mset_mono:
-  assumes "(\<And>i. i \<in># K \<Longrightarrow> f i \<le> g i)"
-  shows "sum_mset (image_mset f K) \<le> sum_mset (image_mset g K)"
-  using assms by (induction K) (simp_all add: local.add_mono)
-
-context comm_monoid_mset
-begin
-
-interpretation comp_fun_commute f
-  by standard (simp add: fun_eq_iff left_commute)
-
-interpretation comp?: comp_fun_commute "f \<circ> g"
-  by (fact comp_comp_fun_commute)
-
-lemma fold_mset_init_value:
-  fixes g :: \<open>'b \<Rightarrow> 'a\<close>
-  shows \<open>fold_mset op \<^bold>* (g x) A = g x \<^bold>* fold_mset op \<^bold>* \<^bold>1 A\<close>
-  by (induction A) (auto simp: ac_simps)
-
-lemma insert [simp]:
-  assumes \<open>x \<notin># A\<close>
-  shows "F (image_mset g ({#x#} + A)) = g x \<^bold>* F (image_mset g A)"
-  using assms by (simp add: eq_fold fold_mset_init_value)
-
-lemma neutral:
-  assumes "\<forall>x\<in>#A. x = \<^bold>1"
-  shows "F A = \<^bold>1"
-  using assms by (induct A) simp_all
-
-lemma neutral_const [simp]:
-  "F (image_mset (\<lambda>_. \<^bold>1) A) = \<^bold>1"
-  by (simp add: neutral)
-
-end
-
-thm comm_monoid_set.commute
-text \<open>See theorem @{thm sum.commute}\<close>
-lemma sum_mset_commute:
-  fixes f :: "'a::{comm_monoid_add,times} => ('b::semiring_0)"
-  shows \<open>(\<Sum>x\<in>#B. \<Sum>b\<in>#A. f b * g x) = (\<Sum>i\<in>#A. \<Sum>j\<in>#B. f i * g j)\<close>
-  by (induction A) auto
-
-lemma sum_mset_product:
-  fixes f :: "'a::{comm_monoid_add,times} => ('b::semiring_0)"
-  shows "(\<Sum>i \<in># A. f i) * (\<Sum>i \<in># B. g i) = (\<Sum>i\<in>#A. \<Sum>j\<in>#B. f i * g j)"
-  by (simp add: sum_mset_distrib_left sum_mset_distrib_right sum_mset_commute)
 
 
 subsection \<open>Remove\<close>
@@ -575,7 +508,7 @@ lemma distinct_mset_filter: "distinct_mset M \<Longrightarrow> distinct_mset {# 
 lemma distinct_mset_mset_distinct[simp]: \<open>distinct_mset (mset xs) = distinct xs\<close>
   by (induction xs) auto
 
-lemma distinct_image_mset_inj: 
+lemma distinct_image_mset_inj:
   \<open>inj_on f (set_mset M) \<Longrightarrow> distinct_mset (image_mset f M) \<longleftrightarrow> distinct_mset M\<close>
   by (induction M) (auto simp: inj_on_def)
 

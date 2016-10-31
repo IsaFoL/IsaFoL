@@ -1133,12 +1133,12 @@ proof -
         by (auto simp: skip_or_resolve.simps elim: rulesE)
       then have confl_T': \<open>size (the (conflicting (f l))) = 1\<close>
         using confl_Suc_l by (auto elim!: rulesE
-            simp: minus_eq_empty_iff_include subset_eq_mset_single_iff)
+            simp: Diff_eq_empty_iff_mset subset_eq_mset_single_iff)
 
       then have "size (mark_of (hd (trail ?T'))) = 1" and hd_t'_dec:"\<not>is_decided (hd (trail ?T'))"
         and tr_T'_ne: \<open>trail ?T' \<noteq> []\<close>
         using res C' confl_Suc_l
-        by (auto elim!: resolveE simp: minus_eq_empty_iff_include subset_eq_mset_single_iff)
+        by (auto elim!: resolveE simp: Diff_eq_empty_iff_mset subset_eq_mset_single_iff)
       then obtain L where L: "mark_of (hd (trail ?T')) = {#L#}"
         by (cases "hd (trail ?T')"; cases "mark_of (hd (trail ?T'))") auto
       have

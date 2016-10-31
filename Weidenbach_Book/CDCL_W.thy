@@ -3991,5 +3991,48 @@ lemma rtranclp_cdcl\<^sub>W_stgy_no_smaller_propa:
   using inv by (auto intro: rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv
       cdcl\<^sub>W_stgy_no_smaller_propa)
 
+lemma hd_trail_level_ge_1_length_gt_1:
+  fixes S :: 'st
+  defines M[symmetric, simp]: \<open>M \<equiv> trail S\<close>
+  defines L[symmetric, simp]: \<open>L \<equiv> hd M\<close>
+  assumes 
+    smaller: \<open>no_smaller_propa S\<close> and
+    struct: \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
+    dec: \<open>count_decided M \<ge> 1\<close> and
+    proped: \<open>is_proped L\<close>
+  shows \<open>size (mark_of L) > 1\<close>
+proof (rule ccontr)
+  assume size_C: \<open>\<not> ?thesis\<close>
+  have nd: \<open>no_dup M\<close>
+    using struct unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def M[symmetric]
+    by blast
+    
+  obtain M' where M': \<open>M = L # M'\<close>
+    using dec L by (cases M) (auto simp del: L)
+  obtain K C where K: \<open>L = Propagated K C\<close>
+    using proped by (cases L) auto
+
+  obtain K' M1 M2 where decomp: \<open>M = M2 @ Decided K' # M1\<close>
+    using dec le_count_decided_decomp[of M 0] nd by auto
+  then have decomp': \<open>M' = tl M2 @ Decided K' # M1\<close>
+    unfolding M' K by (cases M2) auto
+
+  have \<open>K \<in># C\<close>
+    using struct unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def
+    M M' K by blast
+  then have C: \<open>C = {#} + {#K#}\<close>
+    using size_C K by (cases C) auto
+  have \<open>undefined_lit M1 K\<close>
+    using nd unfolding M' K decomp' by simp
+  moreover have \<open>{#} + {#K#} \<in># clauses S\<close>
+    using struct unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def M M' K C
+    by auto
+  moreover have \<open>M1 \<Turnstile>as CNot {#}\<close>
+    by auto
+  ultimately show False
+    using smaller unfolding no_smaller_propa_def M decomp
+    by blast
+qed
+
 end
 end

@@ -153,13 +153,6 @@ lemma get_maximum_level_D_single_propagated:
   "get_maximum_level [Propagated x21 x22] D = 0"
   unfolding get_maximum_level_def by (simp add: image_constant_conv)
 
-(* TODO remove duplicate get_maximum_level_skip_beginning *)
-lemma get_maximum_level_skip_un_decided_not_present:
-  assumes
-    "\<forall>L\<in>#D. undefined_lit M L"
-  shows "get_maximum_level (M @ aa) D = get_maximum_level aa D"
-  using assms unfolding get_maximum_level_def by auto
-
 lemma get_maximum_level_union_mset:
   "get_maximum_level M (A \<union># B) = get_maximum_level M (A + B)"
   unfolding get_maximum_level_def by (auto simp: image_Un)
