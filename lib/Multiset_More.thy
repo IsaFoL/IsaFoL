@@ -300,11 +300,22 @@ lemma remove1_single_empty_iff[simp]: \<open>remove1_mset L {#L'#} = {#} \<longl
 
 subsection \<open>Replicate\<close>
 
-lemma lt_imp_replicate_mset_subset[simp]: "replicate_mset m x \<subset># replicate_mset n x \<longleftrightarrow> m < n"
+lemma replicate_mset_subset_iff_lt[simp]: "replicate_mset m x \<subset># replicate_mset n x \<longleftrightarrow> m < n"
   by (induct n m rule: diff_induct) (auto intro: subset_mset.gr_zeroI)
 
-lemma le_imp_replicate_mset_subseteq[simp]: "replicate_mset m x \<subseteq># replicate_mset n x \<longleftrightarrow> m \<le> n"
+lemma replicate_mset_subseteq_iff_le[simp]: "replicate_mset m x \<subseteq># replicate_mset n x \<longleftrightarrow> m \<le> n"
   by (induct n m rule: diff_induct) auto
+
+lemma replicate_mset_lt_iff_lt[simp]: "replicate_mset m x < replicate_mset n x \<longleftrightarrow> m < n"
+  by (induct n m rule: diff_induct) (auto intro: subset_mset.gr_zeroI gr_zeroI)
+
+lemma replicate_mset_le_iff_le[simp]: "replicate_mset m x \<le> replicate_mset n x \<longleftrightarrow> m \<le> n"
+  by (induct n m rule: diff_induct) auto
+
+lemma replicate_mset_eq_iff[simp]:
+  "replicate_mset m x = replicate_mset n y \<longleftrightarrow> m = n \<and> (m \<noteq> 0 \<longrightarrow> x = y)"
+  by (cases m; cases n; simp)
+    (metis in_replicate_mset insert_noteq_member size_replicate_mset union_single_eq_diff)
 
 lemma replicate_mset_plus: "replicate_mset (a + b) C = replicate_mset a C + replicate_mset b C"
   by (induct a) (auto simp: ac_simps)
