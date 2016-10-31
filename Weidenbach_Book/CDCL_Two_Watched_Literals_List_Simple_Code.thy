@@ -382,15 +382,102 @@ concrete_definition backtrack_list''_impl uses
 prepare_code_thms backtrack_list''_impl_def
 thm backtrack_list''_impl_def
 export_code backtrack_list''_impl in Haskell *)
+term nat_assn
+abbreviation \<open>nat_ann_lit_assn \<equiv> (id_assn :: (nat, nat) ann_lit \<Rightarrow> _)\<close>
+abbreviation \<open>nat_lit_assn \<equiv> (id_assn :: nat literal \<Rightarrow> _)\<close>
 
 
+instance literal :: (heap) heap
+proof standard
+  obtain f :: \<open>'a \<Rightarrow> nat\<close> where f: \<open>inj f\<close>
+    by blast
+  then have Hf: \<open>f x = f s \<longleftrightarrow> x = s\<close> for s x
+    unfolding inj_on_def Ball_def comp_def by blast
+  let ?f = \<open>\<lambda>L. (is_pos L, f (atm_of L))\<close>
+  have \<open>OFCLASS(bool \<times> nat, heap_class)\<close>
+   by standard
+  then obtain g :: \<open>bool \<times> nat \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
+    by blast
+  then have H: \<open>g (x, y) = g (s, t) \<longleftrightarrow> x = s \<and> y = t\<close> for s t x y
+    unfolding inj_on_def Ball_def comp_def by blast
+  have \<open>inj (g o ?f)\<close>
+    using f g unfolding inj_on_def Ball_def comp_def H Hf
+    apply (intro allI impI)
+    apply (rename_tac x y, case_tac x; case_tac y)
+    by auto
+  then show \<open>\<exists>to_nat:: 'a literal \<Rightarrow> nat. inj to_nat\<close>
+    by blast
+qed
+
+instance ann_lit :: (heap, heap) heap
+proof standard
+  let ?f = \<open>\<lambda>L:: ('a, 'b) ann_lit. (lit_of L, if is_decided L then None else Some (mark_of L))\<close>
+  have f: \<open>inj ?f\<close>
+    unfolding inj_on_def Ball_def
+    apply (intro allI impI)
+    apply (rename_tac x y, case_tac x; case_tac y)
+    by auto
+  then have Hf: \<open>?f x = ?f s \<longleftrightarrow> x = s\<close> for s x
+    unfolding inj_on_def Ball_def comp_def by blast
+  have \<open>OFCLASS('a literal \<times> 'b option, heap_class)\<close>
+   by standard
+  then obtain g :: \<open>'a literal \<times> 'b option \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
+    by blast
+  then have H: \<open>g (x, y) = g (s, t) \<longleftrightarrow> x = s \<and> y = t\<close> for s t x y
+    unfolding inj_on_def Ball_def comp_def by blast
+  have \<open>inj (g o ?f)\<close>
+    using f g unfolding inj_on_def Ball_def comp_def H Hf
+    apply (intro allI impI)
+    apply (rename_tac x y, case_tac x; case_tac y)
+    by auto
+  then show \<open>\<exists>to_nat:: ('a, 'b) ann_lit \<Rightarrow> nat. inj to_nat\<close>
+    by blast
+qed
+
+term valued
+term nfoldli
+
+definition valued'  :: "('a, 'b) ann_lit list \<Rightarrow> 'a literal \<Rightarrow> bool option nres" where
+  \<open>valued' M L = nfoldli [0..<length M] 
+  (\<lambda>v. is_None v)  
+  (\<lambda>i v.
+    do {
+      if True (* atm_of (lit_of (op_list_get M i)) = atm_of L *)
+      then 
+        if op_list_get M i = op_list_get M i
+        then do {RETURN (Some True)}
+        else do {RETURN (Some False)}
+      else do {RETURN (None)}
+    })
+  None\<close>
+
+sepref_definition valued_impl' is
+  \<open>uncurry valued'\<close> ::
+  "(array_assn nat_ann_lit_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>d \<rightarrow>\<^sub>a option_assn bool_assn"
+  unfolding valued'_def 
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+     apply sepref_dbg_trans_step_keep
+  apply auto
+  apply sepref_dbg_side_keep
+  apply sepref
+  sorry
+  
+sepref_definition valued_impl is 
+  "uncurry (valued :: (nat, nat) ann_lits \<Rightarrow> nat literal \<Rightarrow> (bool option) nres)" :: 
+ (*  "(asmtx_assn N id_assn)\<^sup>d *\<^sub>a (prod_assn id_assn id_assn)\<^sup>k *\<^sub>a id_assn\<^sup>k \<rightarrow>\<^sub>a asmtx_assn N id_assn" *)
+ " (list_assn nat_ann_lit_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k  \<rightarrow>\<^sub>a (option_assn bool_assn)"
+unfolding valued_def
+apply sepref
+  oops
+  
 sepref_definition find_unwatched_impl is 
   "uncurry (find_unwatched :: (nat, nat) ann_lits \<Rightarrow> nat clause_list \<Rightarrow> (bool option \<times> nat) nres)" :: 
  (*  "(asmtx_assn N id_assn)\<^sup>d *\<^sub>a (prod_assn id_assn id_assn)\<^sup>k *\<^sub>a id_assn\<^sup>k \<rightarrow>\<^sub>a asmtx_assn N id_assn" *)
  " (list_assn nat_ann_lit_assn)\<^sup>k *\<^sub>a (list_assn nat_lit_assn)\<^sup>k
       \<rightarrow>\<^sub>a     
    (prod_assn (option_assn bool_assn) nat_assn)"
-unfolding find_unwatched_def
+unfolding find_unwatched_def valued_def
 apply sepref
 oops
 end
