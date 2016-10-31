@@ -324,7 +324,7 @@ lemma mset_replicate_replicate_mset: "mset (replicate n L) = replicate_mset n L"
   by (induction n) auto
 
 lemma set_mset_single_iff_replicate_mset:
-  "set_mset U = {a} \<longleftrightarrow> (\<exists>n>0. U = replicate_mset n a)" (is "?S \<longleftrightarrow> ?R")
+  "set_mset U = {a} \<longleftrightarrow> (\<exists>n > 0. U = replicate_mset n a)" (is "?S \<longleftrightarrow> ?R")
 proof
   assume ?S
   show ?R
@@ -338,6 +338,11 @@ proof
       using \<open>?S\<close> by auto
   qed
 qed auto
+
+lemma ex_replicate_mset_if_all_elems_eq:
+  assumes "\<forall>x \<in># M. x = y"
+  shows "\<exists>n. M = replicate_mset n y"
+  using assms by (metis count_replicate_mset mem_Collect_eq multiset_eqI neq0_conv set_mset_def)
 
 
 subsection \<open>Multiset and set conversion\<close>
