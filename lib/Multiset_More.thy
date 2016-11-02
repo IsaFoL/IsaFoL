@@ -176,11 +176,54 @@ lemma image_filter_cong:
 lemma image_mset_filter_swap2: \<open>{#C \<in># {#P x. x \<in># D#}. Q C #} = {#P x. x \<in># {#C| C \<in># D. Q (P C)#}#}\<close>
   by (simp add: image_mset_filter_swap)
 
+lemma image_mset_mono:
+  assumes
+    mono_f: "\<forall>x \<in> set_mset M. \<forall>y \<in> set_mset N. x < y \<longrightarrow> f x < f y" and
+    less: "M < N"
+  shows "image_mset f M < image_mset f N"
+proof -
+  obtain Y X where
+    y_nemp: "Y \<noteq> {#}" and y_sub_N: "Y \<subseteq># N" and M_eq: "M = N - Y + X" and
+    ex_y: "\<forall>x. x \<in># X \<longrightarrow> (\<exists>y. y \<in># Y \<and> x < y)"
+    using less[unfolded less_multiset\<^sub>D\<^sub>M] by blast
+
+  have x_sub_M: "X \<subseteq># M"
+    using M_eq by simp
+
+  let ?fY = "image_mset f Y"
+  let ?fX = "image_mset f X"
+
+  show ?thesis
+    unfolding less_multiset\<^sub>D\<^sub>M
+  proof (intro exI conjI)
+    show "image_mset f M = image_mset f N - ?fY + ?fX"
+      using M_eq[THEN arg_cong, of "image_mset f"] y_sub_N
+      by (metis image_mset_Diff image_mset_union)
+  next
+    obtain y where y: "\<forall>x. x \<in># X \<longrightarrow> y x \<in># Y \<and> x < y x"
+      using ex_y by moura
+
+    show "\<forall>fx. fx \<in># ?fX \<longrightarrow> (\<exists>fy. fy \<in># ?fY \<and> fx < fy)"
+    proof (intro allI impI)
+      fix fx
+      assume "fx \<in># ?fX"
+      then obtain x where fx: "fx = f x" and x_in: "x \<in># X"
+        by auto
+      hence y_in: "y x \<in># Y" and y_gt: "x < y x"
+        using y[rule_format, OF x_in] by blast+
+      hence "f (y x) \<in># ?fY \<and> f x < f (y x)"
+        using mono_f y_sub_N x_sub_M x_in
+        by (metis image_eqI in_image_mset mset_subset_eqD)
+      thus "\<exists>fy. fy \<in># ?fY \<and> fx < fy"
+        unfolding fx by auto
+    qed
+  qed (auto simp: y_nemp y_sub_N image_mset_subseteq_mono)
+qed
+
 
 subsection \<open>Sums\<close>
 
-lemma count_sum_mset_if_1_0:
-  \<open>count M a = (\<Sum>x\<in>#M. if x = a then 1 else 0)\<close>
+lemma count_sum_mset_if_1_0: \<open>count M a = (\<Sum>x\<in>#M. if x = a then 1 else 0)\<close>
   by (induction M) auto
 
 
