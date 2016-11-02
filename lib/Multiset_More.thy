@@ -39,6 +39,21 @@ subsection \<open>Lemma about the multiset order\<close>
 lemma lt_imp_ex_count_lt: "M < N \<Longrightarrow> \<exists>y. count M y < count N y"
   by (meson less_eq_multiset\<^sub>H\<^sub>O less_le_not_le)
 
+lemma subset_imp_less_multiset:
+  fixes A
+  assumes a_sub_b: "A \<subset># B"
+  shows "A < B"
+proof -
+  have a_subeq_b: "A \<subseteq># B"
+    using a_sub_b by (rule subset_mset.less_imp_le)
+  hence "A \<le> B"
+    by (rule subset_eq_imp_le_multiset)
+  moreover have "A \<noteq> B"
+    using a_sub_b by simp
+  ultimately show "A < B"
+    by (rule order_neq_le_trans[rotated 1])
+qed
+
 lemma image_mset_mono:
   assumes
     mono_f: "\<forall>x \<in> set_mset M. \<forall>y \<in> set_mset N. x < y \<longrightarrow> f x < f y" and
