@@ -48,6 +48,9 @@ lemma subset_msetE [elim!]:
   "\<lbrakk>A \<subset># B; \<lbrakk>A \<subseteq># B; ~ (B\<subseteq>#A)\<rbrakk> \<Longrightarrow> R\<rbrakk> \<Longrightarrow> R"
   unfolding subseteq_mset_def subset_mset_def by (meson mset_subset_eqI subset_mset.eq_iff)
 
+lemma Diff_triv_mset: "M \<inter># N = {#} \<Longrightarrow> M - N = M"
+  by (metis diff_intersect_left_idem diff_zero)
+
 
 subsection \<open>Lemmas about size\<close>
 
@@ -547,7 +550,8 @@ abbreviation Times_mset :: "'a multiset \<Rightarrow> 'b multiset \<Rightarrow> 
 
 hide_const (open) Times_mset
 
-text \<open>Contrary to the set version @{term \<open>SIGMA x:A. B\<close>}, we use the non-ascii symbol \<open>\<in>#\<close>.\<close>
+text \<open>Contrary to the set version @{term \<open>SIGMA x:A. B\<close>}, we use the non-ASCII symbol \<open>\<in>#\<close>.\<close>
+
 syntax
   "_Sigma_mset" :: "[pttrn, 'a multiset, 'b multiset] => ('a * 'b) multiset"
   ("(3SIGMAMSET _\<in>#_./ _)" [0, 0, 10] 10)
@@ -559,7 +563,7 @@ text \<open>Link between the multiset and the set cartesian product:\<close>
 lemma Times_mset_Times: "set_mset (A \<times>mset B) = set_mset A \<times> set_mset B"
   unfolding Sigma_mset_def by auto
 
-lemma Sigma_msetI [intro!]: "\<lbrakk> a\<in>#A;  b\<in>#B(a) \<rbrakk> \<Longrightarrow> (a,b) \<in># Sigma_mset A B"
+lemma Sigma_msetI [intro!]: "\<lbrakk>a \<in># A; b \<in># B a\<rbrakk> \<Longrightarrow> (a, b) \<in># Sigma_mset A B"
   by (unfold Sigma_mset_def) auto
 
 lemma Sigma_msetE [elim!]:
@@ -569,10 +573,7 @@ lemma Sigma_msetE [elim!]:
   \<comment> \<open>The general elimination rule.\<close>
   by (unfold Sigma_mset_def) auto
 
-text \<open>
-  Elimination of @{term "(a, b) \<in># A \<times>mset B"} -- introduces no
-  eigenvariables.
-\<close>
+text \<open>Elimination of @{term "(a, b) \<in># A \<times>mset B"} -- introduces no eigenvariables.\<close>
 
 lemma Sigma_msetD1: "(a, b) \<in># Sigma_mset A B \<Longrightarrow> a \<in># A"
   by blast
