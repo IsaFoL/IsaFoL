@@ -36,8 +36,8 @@ declare
 
 subsection \<open>Lemma about the multiset order\<close>
 
-lemma lt_imp_ex_count_lt: "M < N \<Longrightarrow> \<exists>y \<in># N. count M y < count N y"
-  by (metis count_greater_zero_iff dual_order.strict_trans gr0I less_multiset\<^sub>H\<^sub>O)
+lemma lt_imp_ex_count_lt: "M < N \<Longrightarrow> \<exists>y. count M y < count N y"
+  by (meson less_eq_multiset\<^sub>H\<^sub>O less_le_not_le)
 
 lemma image_mset_mono:
   assumes
