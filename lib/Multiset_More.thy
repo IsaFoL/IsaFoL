@@ -203,7 +203,7 @@ lemma removeAll_mset_filter_mset:
   by (induction M) (auto simp: ac_simps multiset_eq_iff)
 
 abbreviation remove1_mset :: "'a \<Rightarrow> 'a multiset \<Rightarrow> 'a multiset" where
-"remove1_mset C M \<equiv> M - {#C#}"
+  "remove1_mset C M \<equiv> M - {#C#}"
 
 lemma in_remove1_mset_neq:
   assumes ab: "a \<noteq> b"
@@ -302,6 +302,20 @@ lemma remove1_single_empty_iff[simp]: \<open>remove1_mset L {#L'#} = {#} \<longl
 
 
 subsection \<open>Replicate\<close>
+
+lemma replicate_mset_minus_replicate_mset_same:
+  "replicate_mset m x - replicate_mset n x = replicate_mset (m - n) x"
+proof (induct m arbitrary: n, simp_all)
+  fix ma :: nat and na :: nat
+  assume a1: "\<And>n. replicate_mset ma x - replicate_mset n x = replicate_mset (ma - n) x"
+  have f2: "\<And>n a. 0 < n \<Longrightarrow> add_mset a (replicate_mset (n - Suc 0) a) = replicate_mset n a"
+    by (metis (full_types) Suc_pred replicate_mset_Suc)
+  have "replicate_mset (Suc ma) x = add_mset x (replicate_mset ma x)"
+    by auto
+  then show "add_mset x (replicate_mset ma x) - replicate_mset na x = replicate_mset (Suc ma - na) x"
+    using f2 a1 by (metis (no_types) Suc_pred add_mset_diff_bothsides
+      cancel_comm_monoid_add_class.diff_cancel diff_Suc_Suc diff_zero neq0_conv)
+qed
 
 lemma replicate_mset_subset_iff_lt[simp]: "replicate_mset m x \<subset># replicate_mset n x \<longleftrightarrow> m < n"
   by (induct n m rule: diff_induct) (auto intro: subset_mset.gr_zeroI)
