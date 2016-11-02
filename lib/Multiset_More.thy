@@ -303,7 +303,7 @@ lemma remove1_single_empty_iff[simp]: \<open>remove1_mset L {#L'#} = {#} \<longl
 
 subsection \<open>Replicate\<close>
 
-lemma replicate_mset_minus_replicate_mset_same:
+lemma replicate_mset_minus_replicate_mset_same[simp]:
   "replicate_mset m x - replicate_mset n x = replicate_mset (m - n) x"
 proof (induct m arbitrary: n, simp_all)
   fix ma :: nat and na :: nat
