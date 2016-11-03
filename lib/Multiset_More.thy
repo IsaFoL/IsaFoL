@@ -17,6 +17,7 @@ The present theory introduces some missing concepts and lemmas. Some of it is ex
 Isabelle's library.
 \<close>
 
+
 subsection \<open>Basic Setup\<close>
 
 declare
@@ -32,6 +33,8 @@ declare
   inter_add_left2[simp]
   inter_add_right1[simp]
   inter_add_right2[simp]
+
+  sum_mset_sum_list[simp]
 
 
 subsection \<open>Lemma about the multiset order\<close>
@@ -821,5 +824,69 @@ lemma member_product_mset: "x \<in># Multiset_More.product_mset A B \<longleftri
   by (simp add: Multiset_More.product_mset_def)
 
 end
+
+
+subsection \<open>Transfer rules\<close>
+
+lemma plus_multiset_transfer[transfer_rule]:
+  "(rel_fun (rel_mset R) (rel_fun (rel_mset R) (rel_mset R))) (op +) (op +)"
+  by (unfold rel_fun_def rel_mset_def)
+    (force dest: list_all2_appendI intro: exI[of _ "_ @ _"] conjI[rotated])
+
+lemma minus_multiset_transfer[transfer_rule]:
+  assumes [transfer_rule]: "bi_unique R"
+  shows "(rel_fun (rel_mset R) (rel_fun (rel_mset R) (rel_mset R))) (op -) (op -)"
+proof (unfold rel_fun_def rel_mset_def, safe)
+  fix xs ys xs' ys'
+  assume [transfer_rule]: "list_all2 R xs ys" "list_all2 R xs' ys'"
+  have "list_all2 R (fold remove1 xs' xs) (fold remove1 ys' ys)"
+    by transfer_prover
+  moreover
+  have "mset (fold remove1 xs' xs) = mset xs - mset xs'"
+    by (induct xs' arbitrary: xs) auto
+  moreover
+  have "mset (fold remove1 ys' ys) = mset ys - mset ys'"
+    by (induct ys' arbitrary: ys) auto
+  ultimately show "\<exists>xs'' ys''.
+    mset xs'' = mset xs - mset xs' \<and> mset ys'' = mset ys - mset ys' \<and> list_all2 R xs'' ys''"
+    by blast
+qed
+
+declare rel_mset_Zero[transfer_rule]
+
+lemma count_transfer[transfer_rule]:
+  assumes "bi_unique R"
+  shows "(rel_fun (rel_mset R) (rel_fun R op =)) count count"
+unfolding rel_fun_def rel_mset_def proof safe
+  fix x y xs ys
+  assume "list_all2 R xs ys" "R x y"
+  then show "count (mset xs) x = count (mset ys) y"
+  proof (induct xs ys rule: list.rel_induct)
+    case (Cons x' xs y' ys)
+    then show ?case using assms unfolding bi_unique_alt_def2
+      by (auto simp: rel_fun_def)
+  qed simp
+qed
+
+lemma subseteq_multiset_transfer[transfer_rule]:
+  assumes [transfer_rule]: "bi_unique R" "right_total R"
+  shows "(rel_fun (rel_mset R) (rel_fun (rel_mset R) (op =)))
+    (\<lambda>M N. filter_mset (Domainp R) M \<subseteq># filter_mset (Domainp R) N) (op \<subseteq>#)"
+proof -
+  have count_filter_mset_less:
+    "(\<forall>a. count (filter_mset (Domainp R) M) a \<le> count (filter_mset (Domainp R) N) a) \<longleftrightarrow>
+     (\<forall>a \<in> {x . Domainp R x}. count M a \<le> count N a)" for M and N by auto
+  show ?thesis unfolding subseteq_mset_def count_filter_mset_less
+    by transfer_prover
+qed
+
+lemma sum_mset_transfer[transfer_rule]: "R 0 0 \<Longrightarrow> rel_fun R (rel_fun R R) op + op + \<Longrightarrow>
+  (rel_fun (rel_mset R) R) sum_mset sum_mset"
+  using sum_list_transfer[of R] unfolding rel_fun_def rel_mset_def by auto
+
+lemma Sigma_mset_transfer[transfer_rule]:
+  "(rel_fun (rel_mset R) (rel_fun (rel_fun R (rel_mset S)) (rel_mset (rel_prod R S))))
+     Sigma_mset Sigma_mset"
+  by (unfold Sigma_mset_def) transfer_prover
 
 end
