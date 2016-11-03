@@ -842,6 +842,25 @@ lemma member_product_mset: "x \<in># Multiset_More.product_mset A B \<longleftri
 
 end
 
+lemma count_Sigma_mset_abs_def: "count (Sigma_mset A B) = (\<lambda>(a, b) \<Rightarrow> count A a * count (B a) b)"
+  by (auto simp: fun_eq_iff count_Sigma_mset)
+
+lemma Times_mset_image_mset1: "image_mset f A \<times>mset B = image_mset (\<lambda>(a, b). (f a, b)) (A \<times>mset B)"
+  by (induct B) (auto simp: Times_insert_left)
+
+lemma Times_mset_image_mset2: "A \<times>mset image_mset f B = image_mset (\<lambda>(a, b). (a, f b)) (A \<times>mset B)"
+  by (induct A) (auto simp: Times_insert_right)
+
+lemma sum_le_singleton: "A \<subseteq> {x} \<Longrightarrow> sum f A = (if x \<in> A then f x else 0)"
+  by (auto simp: subset_singleton_iff elim: finite_subset)
+
+lemma Times_mset_assoc:
+  "(A \<times>mset B) \<times>mset C = image_mset (\<lambda>(a, b, c). ((a, b), c)) (A \<times>mset B \<times>mset C)"
+  by (auto simp: multiset_eq_iff count_Sigma_mset count_image_mset vimage_def Times_mset_Times
+    Int_commute count_eq_zero_iff
+    intro!: trans[OF _ sym[OF sum_le_singleton[of _ "(_, _, _)"]]]
+    cong: sum.cong if_cong)
+
 
 subsection \<open>Transfer rules\<close>
 
