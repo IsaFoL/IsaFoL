@@ -703,6 +703,9 @@ lemma Times_mset_single_left: "{#a#} \<times>mset B = image_mset (Pair a) B"
 lemma Times_mset_single_right: "A \<times>mset {#b#} = image_mset (\<lambda>a. Pair a b) A"
   unfolding Sigma_mset_def by (induction A) auto
 
+lemma Times_mset_single_single[simp]: "{#a#} \<times>mset {#b#} = {#(a, b)#}"
+  unfolding Sigma_mset_def by simp
+
 context
 begin
 
