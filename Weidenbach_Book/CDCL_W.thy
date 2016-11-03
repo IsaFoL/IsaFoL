@@ -3995,7 +3995,7 @@ lemma hd_trail_level_ge_1_length_gt_1:
   fixes S :: 'st
   defines M[symmetric, simp]: \<open>M \<equiv> trail S\<close>
   defines L[symmetric, simp]: \<open>L \<equiv> hd M\<close>
-  assumes 
+  assumes
     smaller: \<open>no_smaller_propa S\<close> and
     struct: \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
     dec: \<open>count_decided M \<ge> 1\<close> and
@@ -4006,7 +4006,7 @@ proof (rule ccontr)
   have nd: \<open>no_dup M\<close>
     using struct unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def M[symmetric]
     by blast
-    
+
   obtain M' where M': \<open>M = L # M'\<close>
     using dec L by (cases M) (auto simp del: L)
   obtain K C where K: \<open>L = Propagated K C\<close>
@@ -4033,6 +4033,55 @@ proof (rule ccontr)
     using smaller unfolding no_smaller_propa_def M decomp
     by blast
 qed
+
+
+subsection \<open>More Invariants: Conflict is False if no decision\<close>
+
+text \<open>If the level is higher than 0, then the conflict is not empty.\<close>
+definition conflict_non_zero_unless_level_0 :: \<open>'st \<Rightarrow> bool\<close> where
+  \<open>conflict_non_zero_unless_level_0 S \<longleftrightarrow>
+    (conflicting S = Some {#} \<longrightarrow> count_decided (trail S) = 0)\<close>
+
+definition no_false_clause:: \<open>'st \<Rightarrow> bool\<close> where
+  \<open>no_false_clause S \<longleftrightarrow> (\<forall>C \<in># clauses S. C \<noteq> {#})\<close>
+
+
+lemma cdcl\<^sub>W_restart_no_false_clause:
+  assumes
+    \<open>cdcl\<^sub>W_restart S T\<close>
+    \<open>no_false_clause S\<close>
+  shows \<open>no_false_clause T\<close>
+  using assms unfolding no_false_clause_def
+  by (induction rule: cdcl\<^sub>W_restart_all_induct) (auto simp add: clauses_def state_prop)
+
+text \<open>
+  The proofs works smoothly thanks to the side-conditions about levels of the rule
+  \<^term>\<open>resolve\<close>.
+\<close>
+lemma cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0:
+  assumes
+    \<open>cdcl\<^sub>W_restart S T\<close>
+    \<open>no_false_clause S\<close> and
+    \<open>conflict_non_zero_unless_level_0 S\<close>
+  shows \<open>conflict_non_zero_unless_level_0 T\<close>
+  using assms by (induction rule: cdcl\<^sub>W_restart_all_induct)
+  (auto simp add: conflict_non_zero_unless_level_0_def no_false_clause_def)
+
+lemma rtranclp_cdcl\<^sub>W_restart_no_false_clause:
+  assumes
+    \<open>cdcl\<^sub>W_restart\<^sup>*\<^sup>* S T\<close>
+    \<open>no_false_clause S\<close>
+  shows \<open>no_false_clause T\<close>
+  using assms by (induction rule: rtranclp_induct) (auto intro: cdcl\<^sub>W_restart_no_false_clause)
+
+lemma rtranclp_cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0:
+  assumes
+    \<open>cdcl\<^sub>W_restart\<^sup>*\<^sup>* S T\<close>
+    \<open>no_false_clause S\<close> and
+    \<open>conflict_non_zero_unless_level_0 S\<close>
+  shows \<open>conflict_non_zero_unless_level_0 T\<close>
+  using assms by (induction rule: rtranclp_induct)
+  (auto intro: rtranclp_cdcl\<^sub>W_restart_no_false_clause cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0)
 
 end
 end
