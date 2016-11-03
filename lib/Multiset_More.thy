@@ -39,6 +39,9 @@ declare
 
 subsection \<open>Lemma about the multiset order\<close>
 
+lemma all_lt_Max_imp_lt_multiset: "N \<noteq> {#} \<Longrightarrow> (\<forall>a \<in># M. a < Max (set_mset N)) \<Longrightarrow> M < N"
+  by (meson Max_in[OF finite_set_mset] ex_gt_imp_less_multiset set_mset_eq_empty_iff)
+
 lemma lt_imp_ex_count_lt: "M < N \<Longrightarrow> \<exists>y. count M y < count N y"
   by (meson less_eq_multiset\<^sub>H\<^sub>O less_le_not_le)
 
