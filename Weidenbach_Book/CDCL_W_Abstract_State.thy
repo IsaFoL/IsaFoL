@@ -117,4 +117,8 @@ lemma cdcl\<^sub>W_restart_mset_state_eq_eq: "state_eq = (op =)"
    unfolding state_eq_def
    by (auto simp: cdcl\<^sub>W_restart_mset_state state_def)
 
+
+lemma clauses_def: \<open>cdcl\<^sub>W_restart_mset.clauses (M, N, U, C) = N + U\<close>
+  by (subst cdcl\<^sub>W_restart_mset.clauses_def) (simp add: cdcl\<^sub>W_restart_mset_state)
+
 end

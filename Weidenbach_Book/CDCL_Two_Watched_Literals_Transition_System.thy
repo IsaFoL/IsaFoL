@@ -503,9 +503,6 @@ qed
 
 declare twl_st_inv.simps[simp del]
 
-lemma clauses_def: \<open>cdcl\<^sub>W_restart_mset.clauses (M, N, U, C) = N + U\<close>
-  by (subst cdcl\<^sub>W_restart_mset.clauses_def) (simp add: cdcl\<^sub>W_restart_mset_state)
-
 lemma twl_lazy_update_Propagated:
   assumes
     W: \<open>W = {#L, L'#}\<close> and
