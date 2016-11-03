@@ -36,11 +36,11 @@ locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_s
     init_state :: "'v clauses \<Rightarrow> 'st" and
     add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" +
   fixes
-    add_additional_information :: "'st \<Rightarrow> 'st" and
+    add_additional_information :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     conflicting_clauses :: "'a \<Rightarrow> 'v clauses" and
     weight :: \<open>'st \<Rightarrow> 'a\<close>
   assumes
-    state_add_additional_information: \<open>state (add_additional_information S) = state S\<close> and
+    state_add_additional_information: \<open>state (add_additional_information C S) = state S\<close> and
   weight_state_eq:
     \<open>S \<sim> T \<Longrightarrow> weight S = weight T\<close>
 begin
@@ -81,7 +81,7 @@ locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops 
 
     init_state :: "'v clauses \<Rightarrow> 'st" and
     add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    add_additional_information :: "'st \<Rightarrow> 'st" and
+    add_additional_information :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     conflicting_clauses :: "'a \<Rightarrow> 'v clauses" and
     weight :: \<open>'st \<Rightarrow> 'a\<close> +
   assumes
@@ -100,13 +100,13 @@ lemma weight_cons_trail: \<open>weight (cons_trail L S) = weight S\<close>
   using cons_trail[of S _ _ L] by auto
 
 lemma add_additional_information_simp[simp]:
-  \<open>trail (add_additional_information S) = trail S\<close>
-  \<open>init_clss (add_additional_information S) = init_clss S\<close>
-  \<open>learned_clss (add_additional_information S) = learned_clss S\<close>
-  \<open>clauses (add_additional_information S) = clauses S\<close>
-  \<open>backtrack_lvl (add_additional_information S) = backtrack_lvl S\<close>
-  \<open>conflicting (add_additional_information S) = conflicting S\<close>
-  using state_add_additional_information[of S] by (auto simp: clauses_def)
+  \<open>trail (add_additional_information C S) = trail S\<close>
+  \<open>init_clss (add_additional_information C S) = init_clss S\<close>
+  \<open>learned_clss (add_additional_information C S) = learned_clss S\<close>
+  \<open>clauses (add_additional_information C S) = clauses S\<close>
+  \<open>backtrack_lvl (add_additional_information C S) = backtrack_lvl S\<close>
+  \<open>conflicting (add_additional_information C S) = conflicting S\<close>
+  using state_add_additional_information[of C S] by (auto simp: clauses_def)
 
 definition negate_trail :: "'st \<Rightarrow> 'v literal multiset" where
   \<open>negate_trail S = (\<lambda>L. - lit_of L) `# (mset (trail S))\<close>
@@ -130,11 +130,6 @@ proof -
   show False
     using dist unfolding M1 M2 by auto
 qed
-
-(* TODO Move *)
-lemma no_dup_imp_distinct: \<open>no_dup M \<Longrightarrow> distinct M\<close>
-  by (induction M) (auto simp: defined_lit_map)
-(* End Move *)
 
 lemma no_dup_distinct_mset[intro!]:
   assumes n_d: \<open>no_dup (trail S)\<close>
@@ -177,44 +172,47 @@ fun abs_state :: "'st
   \<open>abs_state S = (trail S, init_clss S + {#C. C \<in># conflicting_clauses (weight S)#}, learned_clss S, 
   conflicting S)\<close>
 
-inductive conflict_opt :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
-  "lit_of `# mset (trail S) \<in># conflicting_clauses (weight S) \<Longrightarrow> 
-  conflicting S = None \<Longrightarrow>
-  T \<sim> update_conflicting (Some (negate_trail S)) S \<Longrightarrow> 
-  conflict_opt S T"
+inductive conflict_opt :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S T :: 'st where
+conflict_opt_rule:
+  \<open>conflict_opt S T\<close>
+  if
+    \<open>negate_trail S \<in># conflicting_clauses (weight S)\<close>
+    \<open>conflicting S = None\<close>
+    \<open>T \<sim> update_conflicting (Some (negate_trail S)) S\<close>
 
- 
-inductive improve :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+text \<open>Do we also want to reduce the trail to M? to ensure minimum conflict?\<close>
+inductive improve :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
   "trail S = M' @ M \<Longrightarrow>
   M \<Turnstile>asm init_clss S \<Longrightarrow>
   conflicting S = None \<Longrightarrow>
   T \<sim> update_conflicting (Some (negate_trail S)) S \<Longrightarrow> 
-  improve S (add_additional_information S)"
+  improve S (add_additional_information (lit_of `# mset M) S)"
 
 lemma invs_add_additional_information[simp]:
-  \<open>no_strange_atm (add_additional_information S) = (no_strange_atm S)\<close>
-  \<open>cdcl\<^sub>W_M_level_inv (add_additional_information S) = cdcl\<^sub>W_M_level_inv S\<close>
-  \<open>distinct_cdcl\<^sub>W_state (add_additional_information S) = distinct_cdcl\<^sub>W_state S\<close>
-  \<open>cdcl\<^sub>W_conflicting (add_additional_information S) = cdcl\<^sub>W_conflicting S\<close>
-  \<open>cdcl\<^sub>W_learned_clause (add_additional_information S) = cdcl\<^sub>W_learned_clause S\<close>
+  \<open>no_strange_atm (add_additional_information C S) = (no_strange_atm S)\<close>
+  \<open>cdcl\<^sub>W_M_level_inv (add_additional_information C S) = cdcl\<^sub>W_M_level_inv S\<close>
+  \<open>distinct_cdcl\<^sub>W_state (add_additional_information C S) = distinct_cdcl\<^sub>W_state S\<close>
+  \<open>cdcl\<^sub>W_conflicting (add_additional_information C S) = cdcl\<^sub>W_conflicting S\<close>
+  \<open>cdcl\<^sub>W_learned_clause (add_additional_information C S) = cdcl\<^sub>W_learned_clause S\<close>
   unfolding no_strange_atm_def cdcl\<^sub>W_M_level_inv_def distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_conflicting_def
     cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_all_struct_inv_def by auto
 
-lemma 
+lemma \<open>negate_trail S \<in># conflicting_clauses (weight (add_additional_information C S))\<close>
+  oops
+
+lemma conflict_opt_cdcl\<^sub>W_all_struct_inv:
   assumes \<open>conflict_opt S T\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> 
-   shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> 
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
   using assms
-  apply (induction rule: conflict_opt.induct)
-  apply simp
-  apply (auto simp add: (* cdcl\<^sub>W_restart_mset.no_strange_atm_def *)
+  by (induction rule: conflict_opt.cases)
+    (auto simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def  weight_state_eq
       cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def 
-    true_annots_true_cls_def_iff_negation_in_model
-    in_negate_trial_iff cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def)
-  sorry
-
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def 
+      true_annots_true_cls_def_iff_negation_in_model
+      in_negate_trial_iff cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def
+      intro!: true_clss_cls_in)
 
 end
 end

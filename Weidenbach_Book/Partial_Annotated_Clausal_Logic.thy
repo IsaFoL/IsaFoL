@@ -1008,6 +1008,9 @@ proof -
   then show ?thesis by (auto simp add: true_annots_def)
 qed
 
+lemma no_dup_imp_distinct: \<open>no_dup M \<Longrightarrow> distinct M\<close>
+  by (induction M) (auto simp: defined_lit_map)
+
 lemma defined_lit_no_dupD:
   \<open>defined_lit M1 L \<Longrightarrow> no_dup (M2 @ M1) \<Longrightarrow> undefined_lit M2 L\<close>
   \<open>defined_lit M1 L \<Longrightarrow> no_dup (M2' @ M2 @ M1) \<Longrightarrow> undefined_lit M2' L\<close>
