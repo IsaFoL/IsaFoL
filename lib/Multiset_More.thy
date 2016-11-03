@@ -107,20 +107,31 @@ qed
 
 subsection \<open>Lemmas about intersections, unions and point-wise inclusion\<close>
 
-lemma mset_inter_single:
-  "x \<in># \<Sigma> \<Longrightarrow> \<Sigma> \<inter># {#x#} = {#x#}"
+lemma mset_inter_single: "x \<in># \<Sigma> \<Longrightarrow> \<Sigma> \<inter># {#x#} = {#x#}"
   by simp
 
 lemma subset_add_mset_notin_subset_mset: \<open>A \<subseteq># add_mset b B \<Longrightarrow> b \<notin># A  \<Longrightarrow> A \<subseteq># B\<close>
   by (simp add: subset_mset.sup.absorb_iff2)
 
-text \<open>@{thm [source] psubsetE} is the set counter part\<close>
+text \<open>@{thm [source] psubsetE} is the set counterpart\<close>
+
 lemma subset_msetE [elim!]:
   "\<lbrakk>A \<subset># B; \<lbrakk>A \<subseteq># B; ~ (B\<subseteq>#A)\<rbrakk> \<Longrightarrow> R\<rbrakk> \<Longrightarrow> R"
   unfolding subseteq_mset_def subset_mset_def by (meson mset_subset_eqI subset_mset.eq_iff)
 
 lemma Diff_triv_mset: "M \<inter># N = {#} \<Longrightarrow> M - N = M"
   by (metis diff_intersect_left_idem diff_zero)
+
+lemma diff_intersect_sym_diff: "(A - B) \<inter># (B - A) = {#}"
+  unfolding multiset_inter_def
+proof -
+  have "A - (B - (B - A)) = A - B"
+    by (metis (full_types) diff_intersect_right_idem multiset_inter_def)
+  then show "A - B - (A - B - (B - A)) = {#}"
+    by (metis add_diff_cancel_right' cancel_ab_semigroup_add_class.diff_right_commute
+      cancel_comm_monoid_add_class.diff_cancel diff_subset_eq_self diff_zero subset_mset.diff_add
+      subset_mset.diff_diff_right)
+qed
 
 
 subsection \<open>Lemmas about size\<close>
