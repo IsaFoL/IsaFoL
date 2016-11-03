@@ -213,8 +213,6 @@ lemma
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def 
     true_annots_true_cls_def_iff_negation_in_model
     in_negate_trial_iff cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def)
-  defer
-  sledgehammer
   sorry
 
 
