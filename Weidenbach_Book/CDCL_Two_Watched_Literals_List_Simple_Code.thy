@@ -438,12 +438,12 @@ term valued
 term nfoldli
 
 definition valued'  :: "('a, 'b) ann_lit list \<Rightarrow> 'a literal \<Rightarrow> bool option nres" where
-  \<open>valued' M L = nfoldli [0..<length M] 
-  (\<lambda>v. is_None v)  
+  \<open>valued' M L = nfoldli [0..<length M]
+  (\<lambda>v. is_None v)
   (\<lambda>i v.
     do {
       if True (* atm_of (lit_of (op_list_get M i)) = atm_of L *)
-      then 
+      then
         if op_list_get M i = op_list_get M i
         then do {RETURN (Some True)}
         else do {RETURN (Some False)}
@@ -451,33 +451,97 @@ definition valued'  :: "('a, 'b) ann_lit list \<Rightarrow> 'a literal \<Rightar
     })
   None\<close>
 
-sepref_definition valued_impl' is
-  \<open>uncurry valued'\<close> ::
-  "(array_assn nat_ann_lit_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>d \<rightarrow>\<^sub>a option_assn bool_assn"
-  unfolding valued'_def 
+definition test  :: "('a, 'b) ann_lit list \<Rightarrow> nat \<Rightarrow> bool nres" where
+  \<open>test M i = do {ASSERT(i < length M); RETURN (op_list_get M i = op_list_get M i)}\<close>
+
+sepref_register \<open>valued\<close>
+term set_rel term map2
+
+type_synonym lit_refined = \<open>int\<close>
+
+
+record lit_prop = lvl :: nat cause :: nat
+
+type_synonym trail_refined = \<open>lit_refined list \<times> nat option list \<times> int list\<close>
+
+fun lit_of_refined :: \<open>int \<Rightarrow> nat literal\<close> where
+  \<open>lit_of_refined n = (if n < 0 then Neg (nat (-n)) else Pos (nat n))\<close>
+
+context
+  fixes N :: nat
+begin
+
+fun trail_of_refined :: "(nat, nat) ann_lit list \<Rightarrow> trail_refined \<Rightarrow> bool"  where
+  \<open>trail_of_refined M (Ls, Ls', _) \<longleftrightarrow>
+    map2
+      (\<lambda>L n. if n = None then Decided (lit_of_refined L) else Propagated (lit_of_refined L) (the n))
+      (rev Ls) (rev Ls') = M\<close>
+
+  term trail_rel
+definition trail_ref_rel :: "((nat, nat) ann_lit list \<times> trail_refined) set" where trail_rel_def_internal:
+  \<open>trail_ref_rel = {(M, (lit_order, reasons, assignement)). trail_of_refined M (lit_order, reasons, assignement) \<and>
+     length reasons = length lit_order(*  \<and>
+     (\<forall>L. lit_of_refined L \<in> lits_of_l M \<longrightarrow> sgn (assignement!(nat (abs L))) = sgn L) *)}\<close>
+
+lemmas trail_ref_rel_def[refine_rel_defs] = trail_rel_def_internal
+
+fun assign_lit :: \<open>trail_refined \<Rightarrow> (nat, nat) ann_lit \<Rightarrow> trail_refined\<close> where
+  \<open>assign_lit (lit_order, reasons, assignement) (Propagated (Pos L) C) =
+     (lit_order @ [(int L)], reasons @ [Some C], list_update assignement L (abs (assignement ! L)))\<close>
+|  \<open>assign_lit (lit_order, reasons, assignement) (Propagated (Neg L) C) =
+     (lit_order @ [-(int L)], reasons @ [Some C], list_update assignement L (-abs (assignement ! L)))\<close>
+|  \<open>assign_lit (lit_order, reasons, assignement) (Decided (Pos L)) =
+     (lit_order @ [(int L)], reasons @ [None], list_update assignement L (-abs (assignement ! L)))\<close>
+|  \<open>assign_lit (lit_order, reasons, assignement) (Decided (Neg L)) =
+     (lit_order @ [-(int L)], reasons @ [None], list_update assignement L (-abs (assignement ! L)))\<close>
+
+definition ann_lit_rel where ann_lit_rel_def_internal:
+  "ann_lit_rel R \<equiv> {(l,l'). rel_ann_lit (\<lambda>x x'. (x,x')\<in>fst R) (\<lambda>x x'. (x,x')\<in>snd R) l l'}"
+
+abbreviation literal_rel :: "(nat literal \<times> nat literal) set" where
+"literal_rel \<equiv> Id::(nat literal \<times>_) set"
+
+sepref_decl_op Pos': "Pos :: nat \<Rightarrow> nat literal"  ::  "nat_rel \<rightarrow> literal_rel" .
+
+lemma [def_pat_rules]:
+  "Pos \<equiv> op_Pos'"
+  by auto
+
+term id_assn
+
+definition literal_assn where
+"literal_assn \<equiv> hr_comp nat_assn {(L', L). L = lit_of_refined L'}"
+
+lemmas [safe_constraint_rules] = CN_FALSEI[of is_pure "literal_assn"]
+
+lemma [sepref_import_param]: \<open>(RETURN \<circ> Pos, RETURN o Pos) \<in> Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  by (auto simp: nres_rel_def)
+
+end
+
+context
+  notes [fcomp_norm_unfold] = literal_assn_def[symmetric]
+  notes [intro!] = hfrefI hn_refineI[THEN hn_refine_preI] frefI
+  notes [simp] = pure_def hn_ctxt_def invalid_assn_def
+begin
+  lemma int_Pos_refine[sepref_fr_rules]: \<open>(return o int, RETURN o op_Pos') \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a pure {(L', L). L = lit_of_refined L'}\<close>
+    by sep_auto
+  sepref_decl_impl trscp: int_Pos_refine .
+end
+term test
+
+definition test2 :: \<open>nat \<Rightarrow> nat literal nres\<close> where
+  \<open>test2 n = do {ASSERT (n > 0);  RETURN (Pos n)}\<close>
+term arl_length
+
+sepref_decl_intf nat_lit is "nat literal"
+
+sepref_register Pos
+
+text \<open>@{locale list_custom_empty} @{term hs.assn} @{locale bind_set_empty}\<close>
+sepref_definition test' is test2 :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a pure {(L', L). L = lit_of_refined L'}\<close>
+  unfolding test2_def
   apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-     apply sepref_dbg_trans_step_keep
-  apply auto
-  apply sepref_dbg_side_keep
-  apply sepref
-  sorry
-  
-sepref_definition valued_impl is 
-  "uncurry (valued :: (nat, nat) ann_lits \<Rightarrow> nat literal \<Rightarrow> (bool option) nres)" :: 
- (*  "(asmtx_assn N id_assn)\<^sup>d *\<^sub>a (prod_assn id_assn id_assn)\<^sup>k *\<^sub>a id_assn\<^sup>k \<rightarrow>\<^sub>a asmtx_assn N id_assn" *)
- " (list_assn nat_ann_lit_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k  \<rightarrow>\<^sub>a (option_assn bool_assn)"
-unfolding valued_def
-apply sepref
-  oops
-  
-sepref_definition find_unwatched_impl is 
-  "uncurry (find_unwatched :: (nat, nat) ann_lits \<Rightarrow> nat clause_list \<Rightarrow> (bool option \<times> nat) nres)" :: 
- (*  "(asmtx_assn N id_assn)\<^sup>d *\<^sub>a (prod_assn id_assn id_assn)\<^sup>k *\<^sub>a id_assn\<^sup>k \<rightarrow>\<^sub>a asmtx_assn N id_assn" *)
- " (list_assn nat_ann_lit_assn)\<^sup>k *\<^sub>a (list_assn nat_lit_assn)\<^sup>k
-      \<rightarrow>\<^sub>a     
-   (prod_assn (option_assn bool_assn) nat_assn)"
-unfolding find_unwatched_def valued_def
-apply sepref
-oops
+  done
+
 end
