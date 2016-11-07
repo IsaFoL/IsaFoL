@@ -742,6 +742,9 @@ lemma mem_Times_mset_iff: "x \<in># A \<times>mset B \<longleftrightarrow> fst x
 lemma Sigma_mset_empty_iff: "(SIGMAMSET i\<in>#I. X i) = {#} \<longleftrightarrow> (\<forall>i\<in>#I. X i = {#})"
   by (auto simp: Sigma_mset_def)
 
+lemma Times_mset_subset_mset_cancel1: "x \<in># A \<Longrightarrow> (A \<times>mset B \<subseteq># A \<times>mset C) = (B \<subseteq># C)"
+  by (auto simp: subseteq_mset_def count_Sigma_mset)
+
 lemma Times_mset_subset_mset_cancel2: "x \<in># C \<Longrightarrow> (A \<times>mset C \<subseteq># B \<times>mset C) = (A \<subseteq># B)"
   by (auto simp: subseteq_mset_def count_Sigma_mset)
 

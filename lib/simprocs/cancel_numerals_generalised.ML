@@ -1,6 +1,7 @@
 (*  Title:      Provers/Arith/cancel_numerals.ML
     Author:     Lawrence C Paulson, Cambridge University Computer Laboratory
     Copyright   2000  University of Cambridge
+    Author:     Mathias Fleury, MPII
 
 Cancel common coefficients in balanced expressions:
 
@@ -68,12 +69,10 @@ fun find_common (terms1,terms2) =
 fun proc ctxt ct =
   let
     val prems = Simplifier.prems_of ctxt
-    val _ = @{print} "full_rewrite"
-    val ct' = Simplifier.full_rewrite (clear_simpset ctxt addsimps @{thms cancelation_simproc_before}
-      addsimprocs [@{simproc NO_MATCH}]) ct;
-    val t = Thm.term_of (Thm.rhs_of ct')
-    val _ = @{print} "full_rewrite finished"
-    val _ = @{print} ct'
+    val pre_simplified_ct = Simplifier.full_rewrite (clear_simpset ctxt addsimps
+      Named_Theorems.get ctxt @{named_theorems cancelation_simproc_before} addsimprocs
+      [@{simproc NO_MATCH}]) ct;
+    val t = Thm.term_of (Thm.rhs_of pre_simplified_ct)
 
     val ([t'], ctxt') = Variable.import_terms true [t] ctxt
     val export = singleton (Variable.export ctxt' ctxt)
@@ -95,18 +94,28 @@ fun proc ctxt ct =
           raise TERM("cancel_numerals", [])
         else Data.prove_conv [Data.norm_tac ctxt] ctxt prems
           (t', Data.mk_bal (newshape(n1,terms1'), newshape(n2,terms2')))
+    val canceled_thm =
+      Option.map (export o Data.simplify_meta_eq ctxt)
+        (if n2 <= n1 then
+           Data.prove_conv
+             [Data.trans_tac ctxt reshape, resolve_tac ctxt [Data.bal_add1] 1,
+              Data.numeral_simp_tac ctxt] ctxt prems
+             (t', Data.mk_bal (newshape(n1-n2,terms1'), Data.mk_sum T terms2'))
+         else
+           Data.prove_conv
+             [Data.trans_tac ctxt reshape, resolve_tac ctxt [Data.bal_add2] 1,
+              Data.numeral_simp_tac ctxt] ctxt prems
+             (t', Data.mk_bal (Data.mk_sum T terms1', newshape(n2-n1,terms2'))))
+    fun add_pre_simplification thm = @{thm Pure.transitive} OF [pre_simplified_ct, thm]
+    fun add_post_simplification thm =
+      (let val post_simplified_ct = Simplifier.full_rewrite (clear_simpset ctxt addsimps
+              Named_Theorems.get ctxt @{named_theorems cancelation_simproc_after} addsimprocs
+              [@{simproc NO_MATCH}]) 
+            (Thm.rhs_of thm)
+        in @{thm Pure.transitive} OF [thm, post_simplified_ct] end)
+
   in
-    Option.map (export o Data.simplify_meta_eq ctxt)
-      (if n2 <= n1 then
-         Data.prove_conv
-           [Data.trans_tac ctxt reshape, resolve_tac ctxt [Data.bal_add1] 1,
-            Data.numeral_simp_tac ctxt] ctxt prems
-           (t', Data.mk_bal (newshape(n1-n2,terms1'), Data.mk_sum T terms2'))
-       else
-         Data.prove_conv
-           [Data.trans_tac ctxt reshape, resolve_tac ctxt [Data.bal_add2] 1,
-            Data.numeral_simp_tac ctxt] ctxt prems
-           (t', Data.mk_bal (Data.mk_sum T terms1', newshape(n2-n1,terms2'))))
+    Option.map (add_post_simplification o add_pre_simplification) canceled_thm
   end
   (* FIXME avoid handling of generic exceptions *)
   handle TERM _ => NONE

@@ -119,7 +119,7 @@ fun dest_add_mset (t, ts) =
       dest_add_mset (t1, dest_add_mset (t2, ts)) end
     handle TERM _ => t :: ts;
 
-fun dest_add_mset_sum t = (@{print} (dest_add_mset (t, [])); dest_add_mset (t, []));
+fun dest_add_mset_sum t = dest_add_mset (t, []);
 
 val rename_numerals = simplify (put_simpset numeral_sym_ss @{context}) o Thm.transfer @{theory};
 
@@ -151,8 +151,7 @@ val trans_tac = Numeral_Simprocs.trans_tac;
 
 val norm_ss1 =
   simpset_of (put_simpset Numeral_Simprocs.num_ss @{context} addsimps
-    numeral_syms @ add_0s @ mult_1s @ @{thms add_mset_replicate_mset_safe ac_simps 
-    iterate_add_simps add_mset_replicate_mset_safe});
+    numeral_syms @ add_0s @ mult_1s @ @{thms ac_simps iterate_add_simps});
 
 val norm_ss2 =
   simpset_of (put_simpset Numeral_Simprocs.num_ss @{context} addsimps
