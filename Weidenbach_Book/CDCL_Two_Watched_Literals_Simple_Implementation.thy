@@ -104,4 +104,5 @@ definition skip_and_resolve_and_backtrack_ll :: "'v twl_st_list \<Rightarrow> (b
         }
     }
   \<close>
+
 end

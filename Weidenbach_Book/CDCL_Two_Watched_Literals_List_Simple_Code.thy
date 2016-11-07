@@ -455,6 +455,7 @@ definition test  :: "('a, 'b) ann_lit list \<Rightarrow> nat \<Rightarrow> bool 
   \<open>test M i = do {ASSERT(i < length M); RETURN (op_list_get M i = op_list_get M i)}\<close>
 
 sepref_register \<open>valued\<close>
+
 term set_rel term map2
 
 type_synonym lit_refined = \<open>int\<close>
@@ -536,14 +537,41 @@ definition test2 :: \<open>nat \<Rightarrow> nat literal nres\<close> where
   \<open>test2 n = do {ASSERT (n > 0);  RETURN (Pos n)}\<close>
 term arl_length
 
-sepref_decl_intf nat_lit is "nat literal"
-
-sepref_register Pos
-
-text \<open>@{locale list_custom_empty} @{term hs.assn} @{locale bind_set_empty}\<close>
-term \<open>pure {(L', L). L = lit_of_refined L'}\<close>
 sepref_definition test' is test2 :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_int_assn\<close>
   unfolding test2_def
+  apply sepref
+  done
+
+sepref_decl_intf nat_lit is "nat literal"
+
+lemma [sepref_import_param]: \<open>(RETURN \<circ> Pos, RETURN o Pos) \<in> Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  by (auto simp: nres_rel_def)
+
+
+definition nat_lits_trail_assn :: "trail_refined \<Rightarrow> (nat, nat) ann_lit list \<Rightarrow> assn" where
+  \<open>nat_lits_trail_assn = pure trail_ref_rel\<close>
+
+sepref_decl_op cons_lit': "Cons :: (nat, nat) ann_lit \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits"  ::
+   "(Id :: ((nat, nat) ann_lit \<times> _) set ) \<rightarrow> (Id :: ((nat, nat) ann_lits \<times> _) set) \<rightarrow> 
+   (Id :: ((nat, nat) ann_lits \<times> _) set)"
+    .
+
+lemma assign_lit[sepref_fr_rules]: \<open>(uncurry (\<lambda>L M. return (op_cons_lit' L M)), uncurry (\<lambda>L M. RETURN (assign_lit M L))) \<in>  
+  (pure {(L, L'). L = L' \<and>  atm_of (lit_of L) > 0})\<^sup>k *\<^sub>a nat_lits_trail_assn\<^sup>d \<rightarrow>\<^sub>a nat_lits_trail_assn\<close>
+  unfolding op_cons_lit'_def
+  apply auto
+  apply (rename_tac noise K M lit_order reasons assignement)
+  apply (case_tac K; case_tac \<open>lit_of K\<close>)
+     apply (auto simp: trail_ref_rel_def nres_rel_def)
+  sorry
+
+  
+definition test3 :: \<open>(nat, nat) ann_lit \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits  nres\<close> where
+  \<open>test3 L M = do {ASSERT (atm_of (lit_of L) > 0);  RETURN (L # M)}\<close>
+term arl_length
+
+sepref_definition test' is \<open>uncurry test3\<close> :: \<open>(pure {(L, L'). L = L' \<and>  atm_of (lit_of L) > 0})\<^sup>k *\<^sub>a (pure trail_ref_rel)\<^sup>d \<rightarrow>\<^sub>a pure trail_ref_rel\<close>
+  unfolding test3_def
   apply sepref
   done
 
