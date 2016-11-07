@@ -501,6 +501,8 @@ definition ann_lit_rel where ann_lit_rel_def_internal:
 abbreviation literal_rel :: "(nat literal \<times> nat literal) set" where
 "literal_rel \<equiv> Id::(nat literal \<times>_) set"
 
+definition nat_lit_int_assn :: "nat literal \<Rightarrow> int \<Rightarrow> assn" where
+  \<open>nat_lit_int_assn = pure {(L', L). L = lit_of_refined L'}\<close>
 sepref_decl_op Pos': "Pos :: nat \<Rightarrow> nat literal"  ::  "nat_rel \<rightarrow> literal_rel" .
 
 lemma [def_pat_rules]:
@@ -524,8 +526,8 @@ context
   notes [intro!] = hfrefI hn_refineI[THEN hn_refine_preI] frefI
   notes [simp] = pure_def hn_ctxt_def invalid_assn_def
 begin
-  lemma int_Pos_refine[sepref_fr_rules]: \<open>(return o int, RETURN o op_Pos') \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a pure {(L', L). L = lit_of_refined L'}\<close>
-    by sep_auto
+  lemma int_Pos_refine[sepref_fr_rules]: \<open>(return o int, RETURN o op_Pos') \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_int_assn\<close>
+    unfolding nat_lit_int_assn_def by sep_auto
   sepref_decl_impl trscp: int_Pos_refine .
 end
 term test
@@ -539,9 +541,10 @@ sepref_decl_intf nat_lit is "nat literal"
 sepref_register Pos
 
 text \<open>@{locale list_custom_empty} @{term hs.assn} @{locale bind_set_empty}\<close>
-sepref_definition test' is test2 :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a pure {(L', L). L = lit_of_refined L'}\<close>
+term \<open>pure {(L', L). L = lit_of_refined L'}\<close>
+sepref_definition test' is test2 :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_int_assn\<close>
   unfolding test2_def
-  apply sepref_dbg_keep
+  apply sepref
   done
 
 end
