@@ -597,12 +597,6 @@ lemma assign_lit[sepref_fr_rules]:
   unfolding nat_lits_trail_assn_def
   by sepref_to_hoare (sep_auto simp: nat_lit_int_assn_def assign_Decided_lit_cons_trail_ref_rel)
 
-term lseg
-term cs_list
-thm bind_list.assn_def
-thm bind_list_prepend.hnr_aux bind_list_prepend.hnr bind_list_prepend.hnr_mop
-thm op_list_prepend.fref
-
 thm HOL_list_prepend_hnr[sepref_fr_rules]
 
 lemmas [safe_constraint_rules] = CN_FALSEI[of is_pure "nat_lits_trail_assn"]
@@ -631,5 +625,43 @@ sepref_definition test_42 is \<open>uncurry test3\<close> :: \<open>nat_lit_int_
   unfolding test3_def
   apply sepref
   done
-term array_assn
+
+definition rand_nat :: \<open>nat \<Rightarrow> nat nres\<close> where
+  \<open>rand_nat n = SPEC (\<lambda>m. m \<le> n)\<close>
+sepref_register rand_nat
+(* sepref_decl_op rand_nat: rand_nat :: \<open>(Id :: (nat\<times>nat) set) \<rightarrow> (Id :: (nat \<times> nat) set)\<close>
+  apply (auto simp: rand_nat_def)
+  sorry
+ *)
+
+
+definition rand_nat_stgy1 :: \<open>nat \<Rightarrow> nat\<close> where
+  \<open>rand_nat_stgy1 _ = 0\<close>
+
+context
+  notes [fcomp_norm_unfold] = array_assn_def[symmetric]
+  notes [intro!] = hfrefI hn_refineI[THEN hn_refine_preI]
+  notes [simp] = pure_def hn_ctxt_def is_array_def invalid_assn_def
+begin
+term \<open> (\<lambda>a b. nat_lit_int_assn b a)\<close>
+
+definition \<open>nat_pair \<equiv> pure {(m, n). True}\<close>
+
+lemma rand_nat_stgy[sepref_fr_rules]:
+  \<open>(return o rand_nat_stgy1, rand_nat) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+    apply (clarsimp intro!: nres_relI)
+  unfolding rand_nat_def rand_nat_stgy1_def nat_pair_def
+  by (sep_auto simp: rand_nat_def rand_nat_stgy1_def)
+
+end
+
+
+definition rand_rand :: \<open>nat \<Rightarrow> nat nres\<close> where
+  \<open>rand_rand n = do {n' \<leftarrow> rand_nat n; RETURN n'}\<close>
+
+sepref_definition rand_nat_stgy_test is rand_rand :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  unfolding rand_rand_def
+  apply sepref
+  done
+
 end
