@@ -1,5 +1,5 @@
 theory CDCL_W_Optimal_Model
-imports CDCL_W_Incremental CDCL_W_Abstract_State
+imports CDCL_W_Abstract_State
 begin
 
 notation image_mset (infixr "`#" 90)
@@ -264,6 +264,16 @@ lemma
 lemma conflicting_clss_reduce_trail_to[simp]: \<open>conflicting_clss (reduce_trail_to M S) = conflicting_clss S\<close>
   unfolding conflicting_clss_def by auto
 
+lemma all_decomposition_implies_mono_right: 
+  \<open>all_decomposition_implies I (get_all_ann_decomposition (M' @ M)) \<Longrightarrow>
+    all_decomposition_implies I (get_all_ann_decomposition M)\<close>
+  apply (induction M' arbitrary: M rule: ann_lit_list_induct)
+  subgoal by auto
+  subgoal by auto
+  subgoal for L C M' M
+    by (cases \<open>get_all_ann_decomposition (M' @ M)\<close>) auto
+  done
+
 lemma improve_cdcl\<^sub>W_all_struct_inv:
   assumes \<open>improve S T\<close> and
     inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
@@ -274,30 +284,16 @@ proof (induction rule: improve.cases)
   moreover have [simp]: \<open>M' @ a @ Propagated L mark # b = (M' @ a) @ Propagated L mark # b\<close>
     for a L mark b by auto
   moreover
-    have \<open>all_decomposition_implies
-     (set_mset (init_clss S) \<union>
-      set_mset (conflicting_clss S) \<union>
-      set_mset (learned_clss S))
+  have \<open>all_decomposition_implies 
+     (set_mset (init_clss S) \<union> set_mset (conflicting_clss S) \<union> set_mset (learned_clss S))
      (get_all_ann_decomposition (M' @ M)) \<Longrightarrow>
     all_decomposition_implies
-     (set_mset (init_clss S) \<union>
-      set_mset
-       (conflicting_clss
-         (update_weight_information M S)) \<union>
+     (set_mset (init_clss S) \<union> set_mset (conflicting_clss (update_weight_information M S)) \<union>
       set_mset (learned_clss S))
      (get_all_ann_decomposition M)\<close>
-      using improve_rule(3)
-      apply (induction M' arbitrary: M rule: ann_lit_list_induct)
-      subgoal
-      using conflicting_clss_update_weight_information_mono[of _ S] improve_rule(3)
-        by (smt Un_commute all_decomposition_implies_mono le_iff_sup self_append_conv2 set_mset_mono sup_assoc sup_ge1)
-      subgoal
-        using conflicting_clss_update_weight_information_mono[of M S] improve_rule(3) by auto
-      subgoal
-        apply auto
-        using conflicting_clss_update_weight_information_mono[of M S] improve_rule(3)
-        by (smt all_decomposition_implies_cons_single get_all_ann_decomposition.elims list.sel(1) list.sel(3))
-      done
+      apply (rule all_decomposition_implies_mono_right[of _ M'])
+      apply (rule all_decomposition_implies_mono)
+      using improve_rule(3) conflicting_clss_update_weight_information_mono[of _ S] by auto
     ultimately show ?case
       using conflicting_clss_update_weight_information_mono[of M S]
       by (auto 6 2 simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def
