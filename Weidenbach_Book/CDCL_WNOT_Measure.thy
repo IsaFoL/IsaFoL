@@ -47,7 +47,7 @@ proof -
     unfolding \<mu>\<^sub>C_def by blast
   also have "\<dots> = (\<Sum>i=0..<1. (L#M)!i * b^ (s +i - length (L#M)))
                  + (\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
-     by (rule setsum_add_nat_ivl[symmetric]) simp_all
+     by (rule sum_add_nat_ivl[symmetric]) simp_all
   finally have "\<mu>\<^sub>C s b (L # M)= L * b ^ (s - 1 - length M)
                   + (\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
      by auto
@@ -71,7 +71,7 @@ proof -
     unfolding \<mu>\<^sub>C_def by blast
   moreover then have "\<dots> = (\<Sum>i=0..< length M. (M@M')!i * b^ (s +i - length (M@M')))
                  + (\<Sum>i=length M..<length (M@M'). (M@M')!i * b^ (s +i - length (M@M')))"
-    by (auto intro!: setsum_add_nat_ivl[symmetric])
+    by (auto intro!: sum_add_nat_ivl[symmetric])
   moreover
     have "\<forall>i\<in>{0..< length M}. (M@M')!i * b^ (s +i - length (M@M')) = M ! i * b ^ (s - length M'
       + i - length M)"
@@ -125,7 +125,7 @@ proof -
       have "\<forall> i \<in> {0..<length M}. M!i * b^ (s +i - length M) \<le> (b-1) * b^ (s +i - length M)"
         using M_le \<open>b > 1\<close> by auto
       then have "\<mu>\<^sub>C s b M \<le> (\<Sum>i=0..<length M. (b-1) * b^ (s +i - length M))"
-         using \<open>M\<noteq>[]\<close> \<open>b>0\<close> unfolding \<mu>\<^sub>C_def by (auto intro: setsum_mono)
+         using \<open>M\<noteq>[]\<close> \<open>b>0\<close> unfolding \<mu>\<^sub>C_def by (auto intro: sum_mono)
       also
         have "\<forall> i \<in> {0..<length M}. (b-1) * b^ (s +i - length M) = (b-1) * b^ i * b^(s - length M)"
           by (metis Nat.add_diff_assoc2 add.commute assms(4) mult.assoc power_add)
@@ -133,7 +133,7 @@ proof -
           = (\<Sum>i=0..<length M. (b-1)* b^ i * b^(s - length M))"
           by (auto simp add: ac_simps)
       also have "\<dots> = (\<Sum>i=0..<length M. b^ i) * b^(s - length M) * (b-1)"
-         by (simp add: setsum_distrib_right setsum_distrib_left ac_simps)
+         by (simp add: sum_distrib_right sum_distrib_left ac_simps)
       finally have "\<mu>\<^sub>C s b M \<le> (\<Sum>i=0..<length M. b^ i) * (b-1) * b^(s - length M)"
         by (simp add: ac_simps)
 

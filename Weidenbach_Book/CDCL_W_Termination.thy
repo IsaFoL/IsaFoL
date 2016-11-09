@@ -31,8 +31,7 @@ proof (rule ccontr)
     T: "T \<sim> cons_trail (Propagated L D)
         (reduce_trail_to M1
           (add_learned_cls D
-            (update_backtrack_lvl i
-              (update_conflicting None S))))"
+            (update_conflicting None S)))"
     using cdcl confl by (auto elim!: rulesE)
     
   obtain M2' where M2': \<open>trail S = (M2' @ M2) @ Decided K # M1\<close>  
@@ -183,21 +182,21 @@ proof (induct rule: cdcl\<^sub>W_restart_all_induct)
 next
   case (decide L) note conf = this(1) and undef = this(2) and T = this(4)
   moreover
-    have dec: "decide S (cons_trail (Decided L) (incr_lvl S))"
+    have dec: "decide S (cons_trail (Decided L) S)"
       using decide_rule decide.hyps by force
-    then have cdcl\<^sub>W_restart:"cdcl\<^sub>W_restart S (cons_trail (Decided L) (incr_lvl S))"
+    then have cdcl\<^sub>W_restart:"cdcl\<^sub>W_restart S (cons_trail (Decided L) S)"
       using cdcl\<^sub>W_restart.simps cdcl\<^sub>W_o.intros by blast
   moreover
-    have lev: "cdcl\<^sub>W_M_level_inv (cons_trail (Decided L) (incr_lvl S))"
+    have lev: "cdcl\<^sub>W_M_level_inv (cons_trail (Decided L) S)"
       using cdcl\<^sub>W_restart M_level cdcl\<^sub>W_restart_consistent_inv[OF cdcl\<^sub>W_restart] by auto
     then have no_dup: "no_dup (Decided L # trail S)"
       using undef unfolding cdcl\<^sub>W_M_level_inv_def by auto
-    have "no_strange_atm (cons_trail (Decided L) (incr_lvl S))"
+    have "no_strange_atm (cons_trail (Decided L) S)"
       using M_level alien calculation(4) cdcl\<^sub>W_restart_no_strange_atm_inv by blast
     then have "length (Decided L # (trail S))
       \<le> card (atms_of_mm (init_clss S))"
       using no_dup undef
-      length_model_le_vars[of "cons_trail (Decided L) (incr_lvl S)"]
+      length_model_le_vars[of "cons_trail (Decided L) S"]
       by fastforce
   ultimately show ?case using conf by (simp add: lexn3_conv)
 next

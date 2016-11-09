@@ -25,15 +25,23 @@ lemma lit_of_convert_trail_from_W[simp]:
 
 lemma no_dup_convert_from_W[simp]:
   "no_dup (convert_trail_from_W M) \<longleftrightarrow> no_dup M"
-  by (auto simp: comp_def)
+  by (auto simp: comp_def no_dup_def)
 
 lemma convert_trail_from_W_true_annots[simp]:
   "convert_trail_from_W M \<Turnstile>as C \<longleftrightarrow> M \<Turnstile>as C"
   by (auto simp: true_annots_true_cls image_image lits_of_def)
 
 lemma defined_lit_convert_trail_from_W[simp]:
-  "defined_lit (convert_trail_from_W S) L \<longleftrightarrow> defined_lit S L"
-  by (auto simp: defined_lit_map image_comp)
+  "defined_lit (convert_trail_from_W S) = defined_lit S"
+  by (auto simp: defined_lit_map image_comp intro!: ext)
+
+lemma is_decided_convert_trail_from_W[simp]:
+  \<open>is_decided (convert_ann_lit_from_W L) = is_decided L\<close>
+  by (cases L) auto
+
+lemma count_decided_conver_Trail_from_W[simp]:
+  \<open>count_decided (convert_trail_from_W M) = count_decided M\<close>
+  unfolding count_decided_def by (auto simp: comp_def)
 
 text \<open>The values @{term "0::nat"} and @{term "{#}"} are dummy values.\<close>
 consts dummy_cls :: 'cls
@@ -153,9 +161,7 @@ next
 
     have "no_dup F"
       using \<open>inv\<^sub>N\<^sub>O\<^sub>T S\<close> \<open>convert_trail_from_W (trail S) = F' @ Decided K # F\<close>
-      unfolding inv\<^sub>N\<^sub>O\<^sub>T_def
-      by (smt comp_apply distinct.simps(2) distinct_append list.simps(9) map_append
-        no_dup_convert_from_W)
+      unfolding inv\<^sub>N\<^sub>O\<^sub>T_def by (metis no_dup_appendD no_dup_cons no_dup_convert_from_W)
     then have "consistent_interp (lits_of_l F)"
       using distinct_consistent_interp by blast
     then have "\<not> tautology C'"
@@ -233,27 +239,27 @@ lemma skip_or_resolve_state_change:
     "\<exists>M. trail S = M @ trail T \<and> (\<forall>m \<in> set M. \<not>is_decided m)"
     "clauses S = clauses T"
     "backtrack_lvl S = backtrack_lvl T"
+    "init_clss S = init_clss T"
+    "learned_clss S = learned_clss T"
   using assms
 proof (induction rule: rtranclp_induct)
   case base
   case 1 show ?case by simp
   case 2 show ?case by simp
   case 3 show ?case by simp
+  case 4 show ?case by simp
+  case 5 show ?case by simp
 next
-  case (step T U) note st = this(1) and s_o_r = this(2) and IH = this(3) and IH' = this(3-5)
+  case (step T U) note st = this(1) and s_o_r = this(2) and IH = this(3) and IH' = this(3-)
 
   case 2 show ?case using IH' s_o_r by (auto elim!: rulesE simp: skip_or_resolve.simps)
-  case 3 show ?case using IH' s_o_r by (auto elim!: rulesE simp: skip_or_resolve.simps)
+  case 3 show ?case using IH' s_o_r by (cases \<open>trail T\<close>) (auto elim!: rulesE simp: skip_or_resolve.simps)
   case 1 show ?case
-    using s_o_r
-    proof cases
-      case s_or_r_skip
-      then show ?thesis using IH by (auto elim!: rulesE simp: skip_or_resolve.simps)
-    next
-      case s_or_r_resolve
-      then show ?thesis
-        using IH by (cases "trail T") (auto elim!: rulesE simp: skip_or_resolve.simps)
-    qed
+    using s_o_r IH by (cases "trail T") (auto elim!: rulesE simp: skip_or_resolve.simps)
+  case 4 show ?case
+    using s_o_r IH' by (cases "trail T") (auto elim!: rulesE simp: skip_or_resolve.simps)
+  case 5 show ?case
+    using s_o_r IH' by (cases "trail T") (auto elim!: rulesE simp: skip_or_resolve.simps)
 qed
 
 
@@ -270,12 +276,12 @@ lemma cdcl\<^sub>W_merge_is_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn:
   using cdcl\<^sub>W_restart inv
 proof induction
   case (fw_propagate S T) note propa = this(1)
-  then obtain M N U k L C where
-    H: "state_butlast S = (M, N, U, k, None)" and
+  then obtain M N U L C where
+    H: "state_butlast S = (M, N, U, None)" and
     CL: "C + {#L#} \<in># clauses S" and
     M_C: "M \<Turnstile>as CNot C" and
     undef: "undefined_lit (trail S) L" and
-    T: "state_butlast T = (Propagated L (C + {#L#}) # M, N, U, k, None)"
+    T: "state_butlast T = (Propagated L (C + {#L#}) # M, N, U, None)"
     by (auto elim: propagate_high_levelE)
   have "propagate\<^sub>N\<^sub>O\<^sub>T S T"
     using H CL T undef M_C by (auto simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def clauses_def simp del: state_simp)
@@ -286,8 +292,7 @@ next
   then obtain L where
     undef_L: "undefined_lit (trail S) L" and
     atm_L: "atm_of L \<in> atms_of_mm (init_clss S)" and
-    T: "T \<sim> cons_trail (Decided L)
-      (update_backtrack_lvl (Suc (backtrack_lvl S)) S)"
+    T: "T \<sim> cons_trail (Decided L) S"
     by (auto elim: decideE)
   have "decide\<^sub>N\<^sub>O\<^sub>T S T"
     apply (rule decide\<^sub>N\<^sub>O\<^sub>T.decide\<^sub>N\<^sub>O\<^sub>T)
@@ -357,8 +362,7 @@ next
         U: "U \<sim> cons_trail (Propagated L D)
                  (reduce_trail_to M1
                       (add_learned_cls D
-                         (update_backtrack_lvl i
-                            (update_conflicting None T'))))"
+                        (update_conflicting None T')))"
         using bt by (auto elim: backtrackE)
       have [simp]: "clauses S = clauses T"
         using confl by (auto elim: rulesE)
@@ -810,6 +814,10 @@ proof clarify
     using wf_tranclp_cdcl\<^sub>W_merge unfolding wf_iff_no_infinite_down_chain by fast
 qed
 
+lemma wf_cdcl\<^sub>W_stgy:
+  \<open>wf {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_stgy S T}\<close>
+  by (rule wf_subset[OF wf_cdcl\<^sub>W]) (auto dest: cdcl\<^sub>W_stgy_cdcl\<^sub>W)
+
 end
 
 
@@ -912,7 +920,7 @@ next
     using full mono_rtranclp[of skip_or_resolve cdcl\<^sub>W_bj] unfolding full_def
     by (blast elim: skip_or_resolve.cases)
   moreover have "cdcl\<^sub>W_bj U V" and "no_step cdcl\<^sub>W_bj V"
-    using bt by (auto intro: cdcl\<^sub>W_bj.intros dest: backtrack_no_cdcl\<^sub>W_bj)
+    using bt by (auto dest: backtrack_no_cdcl\<^sub>W_bj)
   ultimately have "full1 cdcl\<^sub>W_bj T V"
     unfolding full1_def by auto
   then have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* T V"
@@ -959,12 +967,12 @@ proof (rule ccontr)
     tr: \<open>trail S = M' @ Decided K # M\<close> and
     nm: \<open>\<forall>m \<in> set M. \<not>is_decided m\<close>
     using split_list_last_prop[of "trail S" is_decided]
-    by (auto simp: filter_empty_conv is_decided_def dest!: List.set_dropWhileD)
-  have \<open>-L \<notin> lits_of_l (trail S)\<close>
+    by (auto simp: filter_empty_conv is_decided_def get_level_def dest!: List.set_dropWhileD)
+  have uL: \<open>-L \<notin> lits_of_l (trail S)\<close>
     by (metis (no_types) ann_lit.sel(2) imageE lits_of_def n_d
         no_dup_cannot_not_lit_and_uminus propa_tr)
-  then have [iff]: \<open>atm_of L \<in> atm_of ` lits_of_l M' \<longleftrightarrow> L \<in> lits_of_l M'\<close>
-    by (auto simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set tr)
+  then have [iff]: \<open>defined_lit M' L \<longleftrightarrow> L \<in> lits_of_l M'\<close>
+    by (auto simp add: tr Decided_Propagated_in_iff_in_lits_of_l)
   have [simp]: \<open>get_level M L = 0\<close> for L
     using nm by auto
   have [simp]: \<open>L \<noteq> -K\<close>
@@ -973,13 +981,13 @@ proof (rule ccontr)
   have \<open>L \<in> lits_of_l (M' @ [Decided K])\<close>
     apply (rule ccontr)
     using H unfolding tr
-    apply (subst (asm) get_rev_level_skip)
-      apply (auto simp: atm_of_eq_atm_of uminus_lit_swap)[]
+    apply (subst (asm) get_level_skip)
+      using uL tr apply (auto simp: atm_of_eq_atm_of Decided_Propagated_in_iff_in_lits_of_l)[]
     apply (subst (asm) get_level_skip_beginning)
       apply (auto simp: atm_of_eq_atm_of uminus_lit_swap lits_of_def)[]
     using \<open>get_level M L = 0\<close> by blast
   then have \<open>undefined_lit M L\<close>
-    using n_d unfolding tr by (auto simp: defined_lit_map lits_of_def)
+    using n_d unfolding tr by (auto simp: defined_lit_map lits_of_def image_Un no_dup_def)
   moreover have "{#} + {#L#} \<in># clauses S"
     using propa propa_tr unfolding propagated_clauses_clauses_def by auto
   moreover have "M \<Turnstile>as CNot {#}"
@@ -1020,7 +1028,7 @@ proof -
     using inv C tr_C unfolding cdcl\<^sub>W_stgy_invariant_def no_smaller_confl_def
     by auto
   from this[OF _ C ] have C_ne: \<open>C \<noteq> {#}\<close>
-    using tr_C bt count by (fastforce simp: filter_empty_conv in_set_conv_decomp
+    using tr_C bt count by (fastforce simp: filter_empty_conv in_set_conv_decomp count_decided_def
         elim!: is_decided_ex_Decided)
 
   obtain U where
@@ -1070,11 +1078,12 @@ proof -
         then show ?case by (simp add: f_0)
       next
         case (Suc k)
-        then show ?case
-          apply (cases \<open>k < j\<close>)
-            using f_s_o_r[of k] apply (auto simp: skip_or_resolve.simps elim!: rulesE)[]
-          using f_s_o_r[of "j - 1"] j_0
+        then have \<open>backtrack_lvl (f (Suc k)) = backtrack_lvl (f k)\<close>
+          apply (cases \<open>k < j\<close>; cases \<open>trail (f k)\<close>)
+            using f_s_o_r[of k] apply (auto simp: skip_or_resolve.simps elim!: rulesE)[2]
           by (auto simp: skip_or_resolve.simps elim!: rulesE simp del: local.state_simp)
+        then show ?case
+          using f_s_o_r[of k] Suc by simp
       qed
 
       have st_f: \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ?T (f k)\<close> if \<open>k < j\<close> for k
@@ -1124,12 +1133,12 @@ proof -
         by (auto simp: skip_or_resolve.simps elim: rulesE)
       then have confl_T': \<open>size (the (conflicting (f l))) = 1\<close>
         using confl_Suc_l by (auto elim!: rulesE
-            simp: minus_eq_empty_iff_include subset_eq_mset_single_iff)
+            simp: Diff_eq_empty_iff_mset subset_eq_mset_single_iff)
 
       then have "size (mark_of (hd (trail ?T'))) = 1" and hd_t'_dec:"\<not>is_decided (hd (trail ?T'))"
         and tr_T'_ne: \<open>trail ?T' \<noteq> []\<close>
         using res C' confl_Suc_l
-        by (auto elim!: resolveE simp: minus_eq_empty_iff_include subset_eq_mset_single_iff)
+        by (auto elim!: resolveE simp: Diff_eq_empty_iff_mset subset_eq_mset_single_iff)
       then obtain L where L: "mark_of (hd (trail ?T')) = {#L#}"
         by (cases "hd (trail ?T')"; cases "mark_of (hd (trail ?T'))") auto
       have
@@ -1185,15 +1194,14 @@ proof -
     using conf by (auto elim: rulesE)
   have s_o_r: \<open>skip_or_resolve\<^sup>*\<^sup>* T U\<close>
     using full unfolding full_def by blast
-  moreover have \<open>\<exists>Ma. M @ trail y = Ma @ tl (trail y)\<close> for M y
-    by (cases \<open>trail y\<close>) auto
-  ultimately have
+  then have
     \<open>\<exists>M. trail T = M @ trail U\<close> and
     bt_T_U: \<open>backtrack_lvl T = backtrack_lvl U\<close> and
-    init_clss_T_U: \<open>init_clss T = init_clss U\<close> and
-    learned_clss_T_U: \<open>learned_clss T = learned_clss U\<close> and
-    clss_T_U: \<open>clauses T = clauses U\<close>
-    by (induction rule: rtranclp_induct) (auto simp: skip_or_resolve.simps elim!: rulesE)
+    bt_lvl_T_U: \<open>backtrack_lvl T = backtrack_lvl U\<close> and
+    clss_T_U: \<open>clauses T = clauses U\<close> and
+    init_T_U: \<open>init_clss T = init_clss U\<close> and
+    learned_T_U: \<open>learned_clss T = learned_clss U\<close>
+    using skip_or_resolve_state_change[of T U] by blast+
   then obtain M where M: \<open>trail T = M @ trail U\<close>
     by blast
   obtain D :: "'v literal multiset" and K L :: "'v literal"  and
@@ -1208,8 +1216,7 @@ proof -
     V: "V \<sim> cons_trail (Propagated L D)
         (reduce_trail_to M1
           (add_learned_cls D
-            (update_backtrack_lvl i
-              (update_conflicting None U))))"
+            (update_conflicting None U)))"
     using bt by (auto elim!: rulesE)
   obtain M' where M': \<open>trail U = M' @ M2 @ Decided K # M1\<close>
     using decomp by auto
@@ -1231,7 +1238,7 @@ proof -
   have \<open>atm_of L \<in> atms_of_mm (init_clss V)\<close>
     using inv_V V decomp unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def by auto
   moreover have init_clss_V_S: \<open>init_clss V = init_clss S\<close>
-    using T V init_clss_T_U by auto
+    using T V init_T_U by auto
   ultimately have atm_L: \<open>atm_of L \<in> atms_of_mm (clauses S)\<close>
     by (auto simp: clauses_def)
 
@@ -1282,8 +1289,7 @@ lemma cdcl\<^sub>W_with_strategy_propagate\<^sub>N\<^sub>O\<^sub>T_propagate_iff
   \<open>cdcl\<^sub>W_with_strategy.propagate\<^sub>N\<^sub>O\<^sub>T S T \<longleftrightarrow> propagate S T\<close> (is "?NOT \<longleftrightarrow> ?W")
 proof (rule iffI)
   assume ?NOT
-  then show ?W
-    by (auto elim!: cdcl\<^sub>W_with_strategy.propagate\<^sub>N\<^sub>O\<^sub>TE)[]
+  then show ?W by auto
 next
   assume ?W
   then obtain E L where
@@ -1359,7 +1365,7 @@ next
         then have \<open>count_decided (trail S) = 0\<close>
           using inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by simp
         then have \<open>get_all_ann_decomposition (trail S) = [([], trail S)]\<close>
-          by (auto simp: filter_empty_conv no_decision_get_all_ann_decomposition)
+          by (auto simp: filter_empty_conv no_decision_get_all_ann_decomposition count_decided_0_iff)
         then have \<open>set_mset (clauses S) \<Turnstile>ps unmark_l (trail S)\<close>
           using 3(3) unfolding cdcl\<^sub>W_all_struct_inv_def by auto
         obtain I where
@@ -1392,17 +1398,17 @@ next
     have atm: \<open>atms_of_mm (clauses S) = atms_of_mm (init_clss S)\<close>
       using 3(3) unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def
       by (auto simp: clauses_def)
-    have \<open>decide S (cons_trail (Decided L) (update_backtrack_lvl (Suc (backtrack_lvl S)) S))\<close>
+    have \<open>decide S (cons_trail (Decided L) S)\<close>
       apply (rule decide_rule)
       using 3 by (auto simp: atm)
-  moreover have \<open>cons_trail (Decided L) (update_backtrack_lvl (Suc (backtrack_lvl S)) S) \<sim>\<^sub>N\<^sub>O\<^sub>T
+  moreover have \<open>cons_trail (Decided L) S \<sim>\<^sub>N\<^sub>O\<^sub>T
     cons_trail (Decided L) S\<close>
     by (simp add: state_eq\<^sub>N\<^sub>O\<^sub>T_def del: state_simp)
   ultimately show "\<exists>T. cdcl\<^sub>W_with_strategy.decide\<^sub>N\<^sub>O\<^sub>T S T \<or>
     cdcl\<^sub>W_with_strategy.propagate\<^sub>N\<^sub>O\<^sub>T S T \<or>
     cdcl\<^sub>W_with_strategy.backjump_l S T"
     using cdcl\<^sub>W_with_strategy.decide\<^sub>N\<^sub>O\<^sub>T.intros[of S L
-        "cons_trail (Decided L) (update_backtrack_lvl (Suc (backtrack_lvl S)) S)"]
+        "cons_trail (Decided L) S"]
     apply auto
     done
 qed

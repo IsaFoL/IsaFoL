@@ -37,7 +37,8 @@ next
 next
   case (backtrack S M' L M D) note extracted = this(1) and no_dup = this(5)
   show ?case
-    using no_dup backtrack_split_list_eq[of "trail S", symmetric] unfolding extracted by auto
+    using no_dup backtrack_split_list_eq[of "trail S", symmetric] unfolding extracted 
+    by (auto dest: no_dup_appendD)
 qed
 
 lemma dpll\<^sub>W_consistent_interp_inv:
@@ -51,20 +52,17 @@ proof (induct rule: dpll\<^sub>W.induct)
     cons = this(5) and no_dup = this(6)
   have no_dup': "no_dup M"
     by (metis (no_types) backtrack_split_list_eq distinct.simps(2) distinct_append extracted
-      list.simps(9) map_append no_dup snd_conv)
+      list.simps(9) map_append no_dup snd_conv no_dup_def)
   then have "insert (lit_of L) (lits_of_l M) \<subseteq> lits_of_l (trail S)"
     using backtrack_split_list_eq[of "trail S", symmetric] unfolding extracted by auto
   then have cons: "consistent_interp (insert (lit_of L) (lits_of_l M))"
     using consistent_interp_subset cons by blast
   moreover
-    have "lit_of L \<notin> lits_of_l M"
-      using no_dup backtrack_split_list_eq[of "trail S", symmetric] extracted
-      unfolding lits_of_def by force
-  moreover
-    have "atm_of (-lit_of L) \<notin> (\<lambda>m. atm_of (lit_of m)) ` set M"
+    have undef: "undefined_lit M (lit_of L)"
       using no_dup backtrack_split_list_eq[of "trail S", symmetric] unfolding extracted by force
-    then have "-lit_of L \<notin> lits_of_l M"
-      unfolding lits_of_def by force
+  moreover
+    have "lit_of L \<notin> lits_of_l M"
+      using undef by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
   ultimately show ?case by simp
 qed (auto intro: consistent_add_undefined_lit_consistent)
 
@@ -484,7 +482,7 @@ lemma length_dpll\<^sub>W_mes:
 lemma distinctcard_atm_of_lit_of_eq_length:
   assumes "no_dup S"
   shows "card (atm_of ` lits_of_l S) = length S"
-  using assms by (induct S) (auto simp add: image_image lits_of_def)
+  using assms by (induct S) (auto simp add: image_image lits_of_def no_dup_def)
 
 lemma dpll\<^sub>W_card_decrease:
   assumes dpll: "dpll\<^sub>W S S'" and "length (trail S') \<le> card vars"

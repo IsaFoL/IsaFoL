@@ -14,6 +14,8 @@ begin
   lemma sem_neg_lit[simp]: "sem_lit' (neg_lit l) A = map_option Not (sem_lit' l A)"
     by (cases l) (auto simp: option.map_comp o_def option.map_ident)
 
+  lemma (in -) sem_lit'_empty[simp]: "sem_lit' l Map.empty = None" by (cases l) auto
+
   fun boolopt_cases_aux where
     "boolopt_cases_aux None = ()"
   | "boolopt_cases_aux (Some False) = ()"
@@ -371,8 +373,8 @@ begin
 
 subsection \<open>RUP and RAT Criteria\<close>
 
-  definition "assign_all_negated A C \<equiv> 
-    A ++ (\<lambda>l. if Pos l\<in>C then Some False else if Neg l \<in> C then Some True else None)"
+  definition "assign_all_negated A C \<equiv> let UD = {l\<in>C. sem_lit' l A = None} in
+    A ++ (\<lambda>l. if Pos l\<in>UD then Some False else if Neg l \<in> UD then Some True else None)"
 
   lemma abs_rup_criterion:
     assumes "models' F (assign_all_negated A C) = {}"

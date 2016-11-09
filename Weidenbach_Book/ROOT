@@ -34,8 +34,8 @@ session "Entailment_Definition" (Weidenbach_Book) = "Imports" +
     "root.tex"
     "biblio.bib"
 
-session "Normalisation" (Weidenbach_Book) = "Entailment_Definition"
-  +  description \<open>This session contains the normalisation from general formulas to CNF and DNF.\<close>
+session "Normalisation" (Weidenbach_Book) = "Entailment_Definition" +
+  description \<open>This session contains the normalisation from general formulas to CNF and DNF.\<close>
   options [document = pdf, document_output = "output"]
   theories [document = false]
     "../lib/Multiset_More"
@@ -53,6 +53,10 @@ session "Resolution_Superposition" (Weidenbach_Book) = "Entailment_Definition" +
   superposition.\<close>
   options [document = pdf, document_output = "output"]
   theories [document = true]
+    Prop_Logic
+    Prop_Abstract_Transformation
+    Prop_Normalisation
+    Prop_Logic_Multiset
     Prop_Resolution
   theories [quick_and_dirty, document = true]
     Prop_Superposition
@@ -60,8 +64,10 @@ session "Resolution_Superposition" (Weidenbach_Book) = "Entailment_Definition" +
     "root.tex"
     "biblio.bib"
 
-session "DPLL_CDCL" (Weidenbach_Book) = "Entailment_Definition" +
-  description \<open>This session contains CDCL and DPLL both NOT's and W's version.\<close>
+session "CDCL_Base" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
+  description \<open>This session the CDCL calculi (Weidenbach and Nieuwenhuis et al.) and the links between
+  both. It also contains a very simple implementation based on lists and two extensions (restart and
+  incremental).\<close>
   options [document = pdf, document_output = "output"]
   theories [document = false]
     "~~/src/HOL/Library/Code_Target_Numeral"
@@ -69,32 +75,55 @@ session "DPLL_CDCL" (Weidenbach_Book) = "Entailment_Definition" +
     "~~/src/HOL/Library/Multiset_Order"
     "~~/src/HOL/Library/RBT"
     RBT_More
-  theories [document = true]
+
+  theories [quick_and_dirty = false, document = true]
+    Doc_Libraries
+    "../lib/Multiset_More"
+    Wellfounded_More
+    WB_List_More
+
+    Doc_Entailment
+    "../lib/Herbrand_Interpretation"
+    "../lib/Clausal_Logic"
+    Partial_Clausal_Logic
+
     Partial_Annotated_Clausal_Logic
     DPLL_W
     CDCL_W_Level
     CDCL_W
     CDCL_W_Termination
-    CDCL_W_Implementation
     CDCL_W_Merge
     CDCL_NOT
     CDCL_WNOT
     CDCL_W_Full
-    CDCL_W_Incremental
     CDCL_W_Restart
-  theories [quick_and_dirty, document = true]
-    CDCL_W_Optimal_Model
-  theories [quick_and_dirty = false, document = true]
+    CDCL_W_Incremental
+
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
     CDCL_W_Implementation
     CDCL_W_Abstract_State
-  theories [quick_and_dirty, document = true]
-    CDCL_Two_Watched_Literals
-    CDCL_Two_Watched_Literals_Implementation
+
   document_files
     "root.tex"
     "biblio.bib"
+
+session "Two_Watched_Literals" (Weidenbach_Book) = "CDCL_Base"  +
+  description \<open>This session contains all theories related to the two-watched literals.\<close>
+  options [document = pdf, document_output = "output"]
+  theories [quick_and_dirty = false, document = true]
+    CDCL_W_Abstract_State
+    CDCL_W_Full
+
+  theories [quick_and_dirty, document = true]
+    CDCL_W_Optimal_Model
+    CDCL_Two_Watched_Literals_Algorithm
+    CDCL_Two_Watched_Literals_Initialisation
+    CDCL_Two_Watched_Literals_List
+  document_files
+    "root.tex"
+    "biblio.bib"
+
 
 session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
   description \<open>This session imports all theories and contains the complete documentation.\<close>
@@ -139,41 +168,19 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
     CDCL_W_Restart
     CDCL_W_Incremental
 
-  theories [quick_and_dirty, document = true]
-    CDCL_W_Optimal_Model
-
   theories [quick_and_dirty = false, document = true]
-    CDCL_W_Optimal_Model
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
     CDCL_W_Implementation
 
     CDCL_W_Abstract_State
-    CDCL_Two_Watched_Literals_Simple_Implementation
 
   theories [quick_and_dirty, document = true]
-    CDCL_Two_Watched_Literals_Simple_Implementation_Algorithm
-    CDCL_Two_Watched_Literals
-    CDCL_Two_Watched_Literals_Implementation
-    CDCL_Two_Watched_Literals_Implementation_RBT
+    CDCL_W_Optimal_Model
+    CDCL_Two_Watched_Literals_Algorithm
+    CDCL_Two_Watched_Literals_Initialisation
+    CDCL_Two_Watched_Literals_List
     Weidenbach_Book
-  document_files
-    "root.tex"
-    "biblio.bib"
-
-session "Two_Watched_Literals" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
-  description \<open>This session contains all theories related to the two-watched literals.\<close>
-  options [document = pdf, document_output = "output"]
-  theories [quick_and_dirty = false, document = true]
-    CDCL_W_Abstract_State
-    CDCL_W_Full
-    CDCL_Two_Watched_Literals_Simple_Implementation
-
-  theories [quick_and_dirty, document = true]
-    CDCL_Two_Watched_Literals_Simple_Implementation_Algorithm
-    CDCL_Two_Watched_Literals
-    CDCL_Two_Watched_Literals_Implementation
-    CDCL_Two_Watched_Literals_Implementation_RBT
   document_files
     "root.tex"
     "biblio.bib"

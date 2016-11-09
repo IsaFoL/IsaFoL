@@ -1,8 +1,9 @@
 theory DPLL_CDCL_W_Implementation
 imports Partial_Annotated_Clausal_Logic CDCL_W_Level
 begin
-chapter \<open>Implementation of DPLL and CDCL\<close>
-text \<open>We then reuse all the theorems to go towards an implementation using 2-watched literals:
+chapter \<open>List-based Implementation of DPLL and CDCL\<close>
+
+text \<open>We can now reuse all the theorems to go towards an implementation using 2-watched literals:
   \<^item> @{file CDCL_W_Abstract_State.thy} defines a better-suited state: the operation operating on it
   are more constrained, allowing simpler proofs and less edge cases later.\<close>
 
@@ -90,7 +91,9 @@ qed
 lemma is_unit_clause_Nil[simp]: "is_unit_clause [] M = None"
   unfolding is_unit_clause_def by auto
 
+
 subsubsection \<open>Unit propagation for all clauses\<close>
+
 text \<open>Finding the first clause to propagate\<close>
 fun find_first_unit_clause :: "'a literal list list \<Rightarrow> ('a, 'b) ann_lits
   \<Rightarrow> ('a literal \<times> 'a literal list) option"  where
@@ -187,8 +190,11 @@ lemma find_first_unused_var_undefined:
   using find_first_unused_var_Some[of l "lits_of_l Ms" a] Decided_Propagated_in_iff_in_lits_of_l
   by blast
 
+
 subsection \<open>CDCL specific functions\<close>
+
 subsubsection \<open>Level\<close>
+
 fun maximum_level_code:: "'a literal list \<Rightarrow> ('a, 'b) ann_lits \<Rightarrow> nat"
   where
 "maximum_level_code [] _ = 0" |
@@ -273,13 +279,13 @@ fun bt_cut where
 lemma bt_cut_some_decomp:
   assumes "no_dup M" and "bt_cut i M = Some M'"
   shows "\<exists>K M2 M1. M = M2 @ M' \<and> M' = Decided K # M1 \<and> get_level M K = (i+1)"
-  using assms by (induction i M rule: bt_cut.induct) (auto split: if_split_asm)
+  using assms by (induction i M rule: bt_cut.induct) (auto simp: no_dup_def split: if_split_asm)
 
 lemma bt_cut_not_none:
   assumes "no_dup M" and "M = M2 @ Decided K # M'" and "get_level M K = (i+1)"
   shows "bt_cut i M \<noteq> None"
   using assms by (induction M2 arbitrary: M rule: ann_lit_list_induct)
-  (auto simp: atm_lit_of_set_lits_of_l)
+  (auto simp: no_dup_def atm_lit_of_set_lits_of_l)
 
 lemma get_all_ann_decomposition_ex:
   "\<exists>N. (Decided K # M', N) \<in> set (get_all_ann_decomposition (M2@Decided K # M'))"
@@ -294,13 +300,13 @@ lemma bt_cut_in_get_all_ann_decomposition:
   using bt_cut_some_decomp[OF assms] by (auto simp add: get_all_ann_decomposition_ex)
 
 fun do_backtrack_step where
-"do_backtrack_step (M, N, U, k, Some D) =
-  (case find_level_decomp M D [] k of
-    None \<Rightarrow> (M, N, U, k, Some D)
+"do_backtrack_step (M, N, U, Some D) =
+  (case find_level_decomp M D [] (count_decided M) of
+    None \<Rightarrow> (M, N, U, Some D)
   | Some (L, j) \<Rightarrow>
     (case bt_cut j M of
-      Some (Decided _ # Ls) \<Rightarrow> (Propagated L D # Ls, N, D # U, j, None)
-    | _ \<Rightarrow> (M, N, U, k, Some D))
+      Some (Decided _ # Ls) \<Rightarrow> (Propagated L D # Ls, N, D # U, None)
+    | _ \<Rightarrow> (M, N, U, Some D))
   )" |
 "do_backtrack_step S = S"
 
