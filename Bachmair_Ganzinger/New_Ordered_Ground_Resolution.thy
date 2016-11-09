@@ -72,8 +72,14 @@ lemma ord_resolve_sound:
   shows "I \<Turnstile> E"
 using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve Cf' ZZ AA)
-  note e = this(1) and cf' = this(2) and aa = this(3) and aa' = this(4) and cc = this(5) and d = this(6)
 
+  have e: "E = Cf' + D" using ord_resolve(1) .
+  have cf': "Cf' = \<Union>#{#C'. (C', A, m) \<in># ZZ#}" using ord_resolve(2) .
+  have aa: "AA = {#A. (C', A, m) \<in># ZZ#}" using ord_resolve(3) .
+  have aa': "AA = mset As" using ord_resolve(4) .
+  have cc: "side_clauses CC = {#C' + replicate_mset (Suc m) (Pos A). (C', A, m) \<in># ZZ#}" using ord_resolve(5) .
+  have d: "ZZ \<noteq> {#}" using ord_resolve(6) .
+  
   show ?thesis
   proof (cases "\<forall>A. A \<in># AA \<longrightarrow> A \<in> I")
     case True
@@ -121,8 +127,13 @@ lemma ord_resolve_reductive:
   shows "E < main_clause (D,As)"
 using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve Cf' ZZ AA)
-  note e = this(1) and cf' = this(2) and aa = this(3) and aa' = this(4) and zz_ne = this(6) and
-    a_max = this(8)
+  
+  have e: "E = Cf' + D" using ord_resolve(1) .
+  have cf': "Cf' = \<Union>#{#C'. (C', A, m) \<in># ZZ#}" using ord_resolve(2) .
+  have aa: "AA = {#A. (C', A, m) \<in># ZZ#}" using ord_resolve(3) .
+  have aa': "AA = mset As" using ord_resolve(4) .
+  have zz_ne: "ZZ \<noteq> {#}" using ord_resolve(6) .
+  have a_max: "\<forall>(C', A, _)\<in>#ZZ. \<forall>B\<in>atms_of C'. B < A" using ord_resolve(8) .
 
   show ?thesis
   proof (cases "Cf' = {#}")
@@ -358,8 +369,12 @@ lemma ord_resolve_atms_of_concl_subset:
   shows "atms_of E \<subseteq> (\<Union>C \<in> set_mset (side_clauses CC). atms_of C) \<union> atms_of (main_clause (D,As))"
 using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve Cf' ZZ AA)
-  note e = this(1) and cf' = this(2) and cc = this(5) and d = this(4)
-  thm d
+  
+  have e: "E = Cf' + D" using ord_resolve(1) .
+  have cf': "Cf' = \<Union>#{#C'. (C', A, m) \<in># ZZ#}" using ord_resolve(2) .
+  have cc: "side_clauses CC = {#C' + replicate_mset (Suc m) (Pos A). (C', A, m) \<in># ZZ#}" using ord_resolve(5) .
+  have d: "AA = mset As" using ord_resolve(4) .
+  
   have "atms_of Cf' \<subseteq> (\<Union>C\<in>set_mset (side_clauses CC). atms_of C)"
     unfolding cf' cc by (auto simp: atms_of_def)
   moreover have "atms_of D \<subseteq> atms_of (main_clause (D,As))"
