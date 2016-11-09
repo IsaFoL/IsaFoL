@@ -476,24 +476,24 @@ fun trail_of_refined :: "(nat, nat) ann_lit list \<Rightarrow> trail_refined \<R
   \<open>trail_of_refined M (Ls, Ls', _) \<longleftrightarrow>
     map2
       (\<lambda>L n. if n = None then Decided (lit_of_refined L) else Propagated (lit_of_refined L) (the n))
-      (rev Ls) (rev Ls') = M\<close>
+      (rev Ls) (rev Ls') =  M\<close>
 
   term trail_rel
-definition trail_ref_rel :: "((nat, nat) ann_lit list \<times> trail_refined) set" where trail_rel_def_internal:
-  \<open>trail_ref_rel = {(M, (lit_order, reasons, assignement)). trail_of_refined M (lit_order, reasons, assignement) \<and>
+definition trail_ref_rel :: "(trail_refined \<times> (nat, nat) ann_lits) set" where trail_rel_def_internal:
+  \<open>trail_ref_rel = {((lit_order, reasons, assignement), M). trail_of_refined M (lit_order, reasons, assignement) \<and>
      length reasons = length lit_order(*  \<and>
      (\<forall>L. lit_of_refined L \<in> lits_of_l M \<longrightarrow> sgn (assignement!(nat (abs L))) = sgn L) *)}\<close>
 
 lemmas trail_ref_rel_def[refine_rel_defs] = trail_rel_def_internal
 
-fun assign_lit :: \<open>trail_refined \<Rightarrow> (nat, nat) ann_lit \<Rightarrow> trail_refined\<close> where
-  \<open>assign_lit (lit_order, reasons, assignement) (Propagated (Pos L) C) =
+fun assign_lit :: \<open>(nat, nat) ann_lit \<Rightarrow> trail_refined \<Rightarrow> trail_refined\<close> where
+  \<open>assign_lit (Propagated (Pos L) C) (lit_order, reasons, assignement) =
      (lit_order @ [(int L)], reasons @ [Some C], list_update assignement L (abs (assignement ! L)))\<close>
-|  \<open>assign_lit (lit_order, reasons, assignement) (Propagated (Neg L) C) =
+|  \<open>assign_lit (Propagated (Neg L) C) (lit_order, reasons, assignement) =
      (lit_order @ [-(int L)], reasons @ [Some C], list_update assignement L (-abs (assignement ! L)))\<close>
-|  \<open>assign_lit (lit_order, reasons, assignement) (Decided (Pos L)) =
+|  \<open>assign_lit (Decided (Pos L)) (lit_order, reasons, assignement) =
      (lit_order @ [(int L)], reasons @ [None], list_update assignement L (-abs (assignement ! L)))\<close>
-|  \<open>assign_lit (lit_order, reasons, assignement) (Decided (Neg L)) =
+|  \<open>assign_lit (Decided (Neg L)) (lit_order, reasons, assignement) =
      (lit_order @ [-(int L)], reasons @ [None], list_update assignement L (-abs (assignement ! L)))\<close>
 
 definition ann_lit_rel where ann_lit_rel_def_internal:
@@ -504,6 +504,7 @@ abbreviation literal_rel :: "(nat literal \<times> nat literal) set" where
 
 definition nat_lit_int_assn :: "nat literal \<Rightarrow> int \<Rightarrow> assn" where
   \<open>nat_lit_int_assn = pure {(L', L). L = lit_of_refined L'}\<close>
+
 sepref_decl_op Pos': "Pos :: nat \<Rightarrow> nat literal"  ::  "nat_rel \<rightarrow> literal_rel" .
 
 lemma [def_pat_rules]:
@@ -544,35 +545,78 @@ sepref_definition test' is test2 :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>
 
 sepref_decl_intf nat_lit is "nat literal"
 
-lemma [sepref_import_param]: \<open>(RETURN \<circ> Pos, RETURN o Pos) \<in> Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-  by (auto simp: nres_rel_def)
+(* lemma [sepref_import_param]: \<open>(RETURN \<circ> Pos, RETURN o Pos) \<in> Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  by (auto simp: nres_rel_def) *)
 
 
-definition nat_lits_trail_assn :: "trail_refined \<Rightarrow> (nat, nat) ann_lit list \<Rightarrow> assn" where
+definition nat_lits_trail_assn :: "(nat, nat) ann_lit list \<Rightarrow> trail_refined \<Rightarrow> assn" where
   \<open>nat_lits_trail_assn = pure trail_ref_rel\<close>
 
-sepref_decl_op cons_lit': "Cons :: (nat, nat) ann_lit \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits"  ::
-   "(Id :: ((nat, nat) ann_lit \<times> _) set ) \<rightarrow> (Id :: ((nat, nat) ann_lits \<times> _) set) \<rightarrow> 
+sepref_decl_op cons_lit': "op # :: (nat, nat) ann_lit \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits"  ::
+   "(Id :: ((nat, nat) ann_lit \<times> _) set ) \<rightarrow> (Id :: ((nat, nat) ann_lits \<times> _) set) \<rightarrow>
    (Id :: ((nat, nat) ann_lits \<times> _) set)"
     .
 
-lemma assign_lit[sepref_fr_rules]: \<open>(uncurry (\<lambda>L M. return (op_cons_lit' L M)), uncurry (\<lambda>L M. RETURN (assign_lit M L))) \<in>  
-  (pure {(L, L'). L = L' \<and>  atm_of (lit_of L) > 0})\<^sup>k *\<^sub>a nat_lits_trail_assn\<^sup>d \<rightarrow>\<^sub>a nat_lits_trail_assn\<close>
-  unfolding op_cons_lit'_def
+
+lemma assign_lit_cons_trail_ref_rel:
+  \<open>((aa, ab, b), ba) \<in> trail_ref_rel \<Longrightarrow> 0 < atm_of (lit_of a) \<Longrightarrow>
+  (assign_lit a (aa, ab, b), a # ba) \<in> trail_ref_rel\<close>
+  unfolding trail_ref_rel_def
+  apply (cases a; cases \<open>lit_of a\<close>)
+  by auto
+
+
+context
+  notes [fcomp_norm_unfold] = array_assn_def[symmetric]
+  notes [intro!] = hfrefI hn_refineI[THEN hn_refine_preI]
+  notes [simp] = pure_def hn_ctxt_def is_array_def invalid_assn_def
+begin
+
+lemma assign_lit[sepref_fr_rules] :
+  \<open>(uncurry (return oo assign_lit), uncurry (RETURN oo op_cons_lit')) \<in>
+    [\<lambda>(L :: (nat, nat) ann_lit, M). atm_of (lit_of L) > 0]\<^sub>a (id_assn :: (nat, nat) ann_lit \<Rightarrow> _)\<^sup>k *\<^sub>a nat_lits_trail_assn\<^sup>d \<rightarrow> nat_lits_trail_assn\<close>
+  unfolding nat_lits_trail_assn_def
+  by sepref_to_hoare (sep_auto simp: assign_lit_cons_trail_ref_rel)
+
+term lseg
+term cs_list
+thm bind_list.assn_def
+thm bind_list_prepend.hnr_aux bind_list_prepend.hnr bind_list_prepend.hnr_mop
+thm op_list_prepend.fref
+
+thm HOL_list_prepend_hnr[sepref_fr_rules]
+
+lemmas [safe_constraint_rules] = CN_FALSEI[of is_pure "nat_lits_trail_assn"]
+sepref_decl_impl trscp2: assign_lit
   apply auto
-  apply (rename_tac noise K M lit_order reasons assignement)
-  apply (case_tac K; case_tac \<open>lit_of K\<close>)
-     apply (auto simp: trail_ref_rel_def nres_rel_def)
-  sorry
+  .
 
-  
-definition test3 :: \<open>(nat, nat) ann_lit \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits  nres\<close> where
+end
+
+lemma [def_pat_rules]:
+  \<open>op # $ L $ M \<equiv> op_cons_lit' $ L $ M\<close>
+  by auto
+
+
+text \<open>We don't want to use the translation to \<^term>\<open>op_cons_lit'\<close> instead of  
+  \<^term>\<open>op_list_prepend\<close>:\<close>
+declare Sepref_Id_Op.def_pat_rules(47)[def_pat_rules del]
+
+definition test3 :: \<open>(nat, nat) ann_lit \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits nres\<close> where
   \<open>test3 L M = do {ASSERT (atm_of (lit_of L) > 0);  RETURN (L # M)}\<close>
-term arl_length
 
-sepref_definition test' is \<open>uncurry test3\<close> :: \<open>(pure {(L, L'). L = L' \<and>  atm_of (lit_of L) > 0})\<^sup>k *\<^sub>a (pure trail_ref_rel)\<^sup>d \<rightarrow>\<^sub>a pure trail_ref_rel\<close>
+definition positive_lit_id where
+  \<open>positive_lit_id = pure {(L', L). L = L' \<and>  atm_of (lit_of L) > 0}\<close>
+
+sepref_definition test' is \<open>uncurry test3\<close> :: \<open>positive_lit_id\<^sup>k *\<^sub>a nat_lits_trail_assn\<^sup>d \<rightarrow>\<^sub>a nat_lits_trail_assn\<close>
   unfolding test3_def
-  apply sepref
-  done
+
+  apply sepref_dbg_preproc
+  apply sepref_dbg_cons_init
+  apply sepref_dbg_id
+  apply sepref_dbg_monadify
+     apply sepref_dbg_opt_init
+(* missing here: tell how to refine op_cons_lit'. *)
+  oops
 
 end
