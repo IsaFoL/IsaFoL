@@ -62,8 +62,12 @@ lemma ord_resolve_sound:
   shows "I \<Turnstile> E"
 using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve Cf' ZZ AA D')
-  note e = this(1) and cf' = this(2) and aa = this(3) and cc = this(4) and d = this(5)
-
+  have e: "E = Cf' + D'" using ord_resolve(1) .
+  have cf': "Cf' = \<Union>#{#C'. (C', A, m) \<in># ZZ#}" using ord_resolve(2) .
+  have aa: "AA = {#A. (C', A, m) \<in># ZZ#}" using ord_resolve(3) .
+  have cc: "CC = {#C' + replicate_mset (Suc m) (Pos A). (C', A, m) \<in># ZZ#}" using ord_resolve(4) .
+  have d: "D = negs AA + D'" using ord_resolve(5) .
+  
   show ?thesis
   proof (cases "\<forall>A. A \<in># AA \<longrightarrow> A \<in> I")
     case True
@@ -112,9 +116,13 @@ lemma ord_resolve_reductive:
   shows "E < D"
 using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve Cf' ZZ AA D')
-  note e = this(1) and cf' = this(2) and aa = this(3) and d = this(5) and zz_ne = this(6) and
-    a_max = this(8)
-
+  have e: "E = Cf' + D'" using ord_resolve(1).
+  have cf': "Cf' = \<Union>#{#C'. (C', A, m) \<in># ZZ#}" using ord_resolve(2).
+  have aa: "AA = {#A. (C', A, m) \<in># ZZ#}" using ord_resolve(3).
+  have d: "D = negs AA + D'" using ord_resolve(5) .
+  have zz_ne: "ZZ \<noteq> {#}" using ord_resolve(6) .
+  have a_max: "\<forall>(C', A, _)\<in>#ZZ. \<forall>B\<in>atms_of C'. B < A" using ord_resolve (8) .
+  
   show ?thesis
   proof (cases "Cf' = {#}")
     case True
@@ -323,7 +331,10 @@ lemma ord_resolve_atms_of_concl_subset:
   shows "atms_of E \<subseteq> (\<Union>C \<in> set_mset CC. atms_of C) \<union> atms_of D"
 using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve Cf' ZZ AA D')
-  note e = this(1) and cf' = this(2) and cc = this(4) and d = this(5)
+  have e: "E = Cf' + D'" using ord_resolve(1) .
+  have cf': "Cf' = \<Union>#{#C'. (C', A, m) \<in># ZZ#}" using ord_resolve(2) .
+  have cc: "CC = {#C' + replicate_mset (Suc m) (Pos A). (C', A, m) \<in># ZZ#}" using ord_resolve(4) .
+  have d: "D = negs AA + D'" using ord_resolve(5) .
 
   have "atms_of Cf' \<subseteq> (\<Union>C\<in>set_mset CC. atms_of C)"
     unfolding cf' cc by (auto simp: atms_of_def)
