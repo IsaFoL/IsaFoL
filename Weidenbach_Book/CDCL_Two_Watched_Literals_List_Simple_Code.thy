@@ -496,6 +496,10 @@ fun assign_lit :: \<open>(nat, nat) ann_lit \<Rightarrow> trail_refined \<Righta
 |  \<open>assign_lit (Decided (Neg L)) (lit_order, reasons, assignement) =
      (lit_order @ [-(int L)], reasons @ [None], list_update assignement L (-abs (assignement ! L)))\<close>
 
+fun assign_Decided_lit :: \<open>int \<Rightarrow> trail_refined \<Rightarrow> trail_refined\<close> where
+   \<open>assign_Decided_lit L (lit_order, reasons, assignement) =
+     (lit_order @ [L], reasons @ [None], list_update assignement (nat (abs L)) (-abs (assignement ! nat (abs L))))\<close>
+
 definition ann_lit_rel where ann_lit_rel_def_internal:
   "ann_lit_rel R \<equiv> {(l,l'). rel_ann_lit (\<lambda>x x'. (x,x')\<in>fst R) (\<lambda>x x'. (x,x')\<in>snd R) l l'}"
 
@@ -552,8 +556,8 @@ sepref_decl_intf nat_lit is "nat literal"
 definition nat_lits_trail_assn :: "(nat, nat) ann_lit list \<Rightarrow> trail_refined \<Rightarrow> assn" where
   \<open>nat_lits_trail_assn = pure trail_ref_rel\<close>
 
-sepref_decl_op cons_lit': "op # :: (nat, nat) ann_lit \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits"  ::
-   "(Id :: ((nat, nat) ann_lit \<times> _) set ) \<rightarrow> (Id :: ((nat, nat) ann_lits \<times> _) set) \<rightarrow>
+sepref_decl_op cons_Decided_lit': "(\<lambda>L M. Decided L # M) :: nat literal \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits"  ::
+   "(Id :: (nat literal \<times> _) set ) \<rightarrow> (Id :: ((nat, nat) ann_lits \<times> _) set) \<rightarrow>
    (Id :: ((nat, nat) ann_lits \<times> _) set)"
     .
 
@@ -565,18 +569,33 @@ lemma assign_lit_cons_trail_ref_rel:
   apply (cases a; cases \<open>lit_of a\<close>)
   by auto
 
+lemma assign_Decided_lit_cons_trail_ref_rel:
+  \<open>ai < 0 \<Longrightarrow>
+       ((a, aa, ba), b) \<in> trail_ref_rel \<Longrightarrow>
+       (ab, bb) \<Turnstile> emp \<Longrightarrow>
+       ((a @ [ai], aa @ [None], ba[nat (- ai) := - \<bar>ba ! nat (- ai)\<bar>]),
+        Decided (Neg (nat (- ai))) # b)
+       \<in> trail_ref_rel\<close>
+  \<open>0 < ai \<Longrightarrow>
+       ((a, aa, ba), b) \<in> trail_ref_rel \<Longrightarrow>
+       (ab, bb) \<Turnstile> emp \<Longrightarrow>
+       ((a @ [ai], aa @ [None], ba[nat ai := - \<bar>ba ! nat ai\<bar>]),
+        Decided (Pos (nat ai)) # b)
+       \<in> trail_ref_rel\<close>
+  unfolding trail_ref_rel_def
+  by auto
 
 context
   notes [fcomp_norm_unfold] = array_assn_def[symmetric]
   notes [intro!] = hfrefI hn_refineI[THEN hn_refine_preI]
   notes [simp] = pure_def hn_ctxt_def is_array_def invalid_assn_def
 begin
-
-lemma assign_lit[sepref_fr_rules] :
-  \<open>(uncurry (return oo assign_lit), uncurry (RETURN oo op_cons_lit')) \<in>
-    [\<lambda>(L :: (nat, nat) ann_lit, M). atm_of (lit_of L) > 0]\<^sub>a (id_assn :: (nat, nat) ann_lit \<Rightarrow> _)\<^sup>k *\<^sub>a nat_lits_trail_assn\<^sup>d \<rightarrow> nat_lits_trail_assn\<close>
+term \<open> (\<lambda>a b. nat_lit_int_assn b a)\<close>
+lemma assign_lit[sepref_fr_rules]:
+  \<open>(uncurry (return oo assign_Decided_lit), uncurry (RETURN oo op_cons_Decided_lit')) \<in>
+    [\<lambda>(L :: nat literal, M). atm_of L \<noteq> 0]\<^sub>a (\<lambda>a b. nat_lit_int_assn a b)\<^sup>k *\<^sub>a nat_lits_trail_assn\<^sup>d \<rightarrow> nat_lits_trail_assn\<close>
   unfolding nat_lits_trail_assn_def
-  by sepref_to_hoare (sep_auto simp: assign_lit_cons_trail_ref_rel)
+  by sepref_to_hoare (sep_auto simp: nat_lit_int_assn_def assign_Decided_lit_cons_trail_ref_rel)
 
 term lseg
 term cs_list
@@ -594,29 +613,23 @@ sepref_decl_impl trscp2: assign_lit
 end
 
 lemma [def_pat_rules]:
-  \<open>op # $ L $ M \<equiv> op_cons_lit' $ L $ M\<close>
+  \<open>op # $ (Decided $ L) $ M \<equiv> op_cons_Decided_lit' $ L $ M\<close>
   by auto
+thm def_pat_rules
 
-
-text \<open>We don't want to use the translation to \<^term>\<open>op_cons_lit'\<close> instead of  
+text \<open>We don't want to use the translation to \<^term>\<open>op_cons_lit'\<close> instead of
   \<^term>\<open>op_list_prepend\<close>:\<close>
 declare Sepref_Id_Op.def_pat_rules(47)[def_pat_rules del]
 
-definition test3 :: \<open>(nat, nat) ann_lit \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits nres\<close> where
-  \<open>test3 L M = do {ASSERT (atm_of (lit_of L) > 0);  RETURN (L # M)}\<close>
+definition test3 :: \<open>nat literal \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits nres\<close> where
+  \<open>test3 L M = do {ASSERT (atm_of L > 0);  RETURN (Decided L # M)}\<close>
 
 definition positive_lit_id where
   \<open>positive_lit_id = pure {(L', L). L = L' \<and>  atm_of (lit_of L) > 0}\<close>
 
-sepref_definition test' is \<open>uncurry test3\<close> :: \<open>positive_lit_id\<^sup>k *\<^sub>a nat_lits_trail_assn\<^sup>d \<rightarrow>\<^sub>a nat_lits_trail_assn\<close>
+sepref_definition test_42 is \<open>uncurry test3\<close> :: \<open>nat_lit_int_assn\<^sup>k *\<^sub>a nat_lits_trail_assn\<^sup>d \<rightarrow>\<^sub>a nat_lits_trail_assn\<close>
   unfolding test3_def
-
-  apply sepref_dbg_preproc
-  apply sepref_dbg_cons_init
-  apply sepref_dbg_id
-  apply sepref_dbg_monadify
-     apply sepref_dbg_opt_init
-(* missing here: tell how to refine op_cons_lit'. *)
-  oops
-
+  apply sepref
+  done
+term array_assn
 end
