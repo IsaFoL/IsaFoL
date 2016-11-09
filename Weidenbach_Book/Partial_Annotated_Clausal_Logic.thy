@@ -728,7 +728,6 @@ lemma all_decomposition_implies_insert_single:
   \<open>all_decomposition_implies N M \<Longrightarrow> all_decomposition_implies (insert C N) M\<close>
   unfolding all_decomposition_implies_def by auto
 
-
 lemma all_decomposition_implies_union:
   \<open>all_decomposition_implies N M \<Longrightarrow> all_decomposition_implies (N \<union> N') M\<close>
   unfolding all_decomposition_implies_def sup.assoc[symmetric] by (auto intro: true_clss_clss_union_l)
@@ -736,6 +735,16 @@ lemma all_decomposition_implies_union:
 lemma all_decomposition_implies_mono:
   \<open>N \<subseteq> N' \<Longrightarrow> all_decomposition_implies N M \<Longrightarrow> all_decomposition_implies N' M\<close>
   by (metis all_decomposition_implies_union le_iff_sup)
+
+lemma all_decomposition_implies_mono_right:
+  \<open>all_decomposition_implies I (get_all_ann_decomposition (M' @ M)) \<Longrightarrow>
+    all_decomposition_implies I (get_all_ann_decomposition M)\<close>
+  apply (induction M' arbitrary: M rule: ann_lit_list_induct)
+  subgoal by auto
+  subgoal by auto
+  subgoal for L C M' M
+    by (cases \<open>get_all_ann_decomposition (M' @ M)\<close>) auto
+  done
 
 
 subsection \<open>Negation of a Clause\<close>

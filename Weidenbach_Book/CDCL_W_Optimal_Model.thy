@@ -264,16 +264,6 @@ lemma
 lemma conflicting_clss_reduce_trail_to[simp]: \<open>conflicting_clss (reduce_trail_to M S) = conflicting_clss S\<close>
   unfolding conflicting_clss_def by auto
 
-lemma all_decomposition_implies_mono_right: 
-  \<open>all_decomposition_implies I (get_all_ann_decomposition (M' @ M)) \<Longrightarrow>
-    all_decomposition_implies I (get_all_ann_decomposition M)\<close>
-  apply (induction M' arbitrary: M rule: ann_lit_list_induct)
-  subgoal by auto
-  subgoal by auto
-  subgoal for L C M' M
-    by (cases \<open>get_all_ann_decomposition (M' @ M)\<close>) auto
-  done
-
 lemma improve_cdcl\<^sub>W_all_struct_inv:
   assumes \<open>improve S T\<close> and
     inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
