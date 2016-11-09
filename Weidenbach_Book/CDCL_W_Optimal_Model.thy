@@ -197,11 +197,7 @@ qed
 lemma in_negate_trial_iff: \<open>L \<in># negate_ann_lits M \<longleftrightarrow> - L \<in> lits_of_l M\<close>
   unfolding negate_ann_lits_def lits_of_def by (auto simp: uminus_lit_swap)
 
-fun abs_state :: "'st
-     \<Rightarrow> ('v, 'v literal multiset) ann_lit list \<times>
-        'v literal multiset multiset \<times>
-        'v literal multiset multiset \<times>
-        'v literal multiset option" where
+fun abs_state :: "'st \<Rightarrow> ('v, 'v clause) ann_lit list \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option" where
   \<open>abs_state S = (trail S, init_clss S + {#C. C \<in># conflicting_clss S#}, learned_clss S,
   conflicting S)\<close>
 
@@ -215,11 +211,13 @@ conflict_opt_rule:
 
 text \<open>Do we also want to reduce the trail to M? to ensure minimum conflict?\<close>
 inductive improve :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
-  "trail S = M' @ M \<Longrightarrow>
-  is_improving M S \<Longrightarrow>
-  conflicting S = None \<Longrightarrow>
-  T \<sim> update_conflicting (Some (negate_ann_lits M)) (reduce_trail_to M (update_weight_information M S)) \<Longrightarrow>
-  improve S T"
+improve_rule:
+  \<open>improve S T\<close>
+  if
+    \<open>trail S = M' @ M\<close> and
+    \<open>is_improving M S\<close> and
+    \<open>conflicting S = None\<close> and
+    \<open>T \<sim> update_conflicting (Some (negate_ann_lits M)) (reduce_trail_to M (update_weight_information M S))\<close>
 
 lemma invs_update_weight_information[simp]:
   \<open>no_strange_atm (update_weight_information C S) = (no_strange_atm S)\<close>
@@ -266,16 +264,13 @@ lemma
 lemma conflicting_clss_reduce_trail_to[simp]: \<open>conflicting_clss (reduce_trail_to M S) = conflicting_clss S\<close>
   unfolding conflicting_clss_def by auto
 
-lemma consistent_interp_unionD: \<open>consistent_interp (I \<union> I') \<Longrightarrow> consistent_interp I'\<close>
-  unfolding consistent_interp_def by auto
-
 lemma improve_cdcl\<^sub>W_all_struct_inv:
   assumes \<open>improve S T\<close> and
     inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
   shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
   using assms atms_of_conflicting_clss[of T] atms_of_conflicting_clss[of S]
 proof (induction rule: improve.cases)
-  case (1 M' M T)
+  case (improve_rule M' M T)
   moreover have [simp]: \<open>M' @ a @ Propagated L mark # b = (M' @ a) @ Propagated L mark # b\<close>
     for a L mark b by auto
   moreover
@@ -291,15 +286,18 @@ proof (induction rule: improve.cases)
          (update_weight_information M S)) \<union>
       set_mset (learned_clss S))
      (get_all_ann_decomposition M)\<close>
-      using 1(3)
+      using improve_rule(3)
       apply (induction M' arbitrary: M rule: ann_lit_list_induct)
-      using conflicting_clss_update_weight_information_mono[of _ S] 1(3)
-        apply (smt Un_commute all_decomposition_implies_mono le_iff_sup self_append_conv2 set_mset_mono sup_assoc sup_ge1)
-      using conflicting_clss_update_weight_information_mono[of M S] 1(3) apply auto[]
-      apply auto
-      using conflicting_clss_update_weight_information_mono[of M S] 1(3)
-      by (smt all_decomposition_implies_cons_single get_all_ann_decomposition.elims list.sel(1) list.sel(3))
-
+      subgoal
+      using conflicting_clss_update_weight_information_mono[of _ S] improve_rule(3)
+        by (smt Un_commute all_decomposition_implies_mono le_iff_sup self_append_conv2 set_mset_mono sup_assoc sup_ge1)
+      subgoal
+        using conflicting_clss_update_weight_information_mono[of M S] improve_rule(3) by auto
+      subgoal
+        apply auto
+        using conflicting_clss_update_weight_information_mono[of M S] improve_rule(3)
+        by (smt all_decomposition_implies_cons_single get_all_ann_decomposition.elims list.sel(1) list.sel(3))
+      done
     ultimately show ?case
       using conflicting_clss_update_weight_information_mono[of M S]
       by (auto 6 2 simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def
