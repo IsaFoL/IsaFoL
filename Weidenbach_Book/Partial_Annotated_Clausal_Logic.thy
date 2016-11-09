@@ -116,6 +116,14 @@ lemma true_annots_insert[iff]:
   \<open>M \<Turnstile>as insert a A \<longleftrightarrow> (M \<Turnstile>a a \<and> M \<Turnstile>as A)\<close>
   unfolding true_annots_def by auto
 
+lemma true_annot_append_l:
+  \<open>M \<Turnstile>a A \<Longrightarrow> M' @ M \<Turnstile>a A\<close>
+  unfolding true_annot_def by auto
+
+lemma true_annots_append_l:
+  \<open>M \<Turnstile>as A \<Longrightarrow> M' @ M \<Turnstile>as A\<close>
+  unfolding true_annots_def by (auto simp: true_annot_append_l)
+
 text \<open>Link between \<open>\<Turnstile>as\<close> and \<open>\<Turnstile>s\<close>:\<close>
 lemma true_annots_true_cls:
   \<open>I \<Turnstile>as CC \<longleftrightarrow> lits_of_l I \<Turnstile>s CC\<close>
@@ -719,6 +727,16 @@ qed
 lemma all_decomposition_implies_insert_single:
   \<open>all_decomposition_implies N M \<Longrightarrow> all_decomposition_implies (insert C N) M\<close>
   unfolding all_decomposition_implies_def by auto
+
+
+lemma all_decomposition_implies_union:
+  \<open>all_decomposition_implies N M \<Longrightarrow> all_decomposition_implies (N \<union> N') M\<close>
+  unfolding all_decomposition_implies_def sup.assoc[symmetric] by (auto intro: true_clss_clss_union_l)
+
+lemma all_decomposition_implies_mono:
+  \<open>N \<subseteq> N' \<Longrightarrow> all_decomposition_implies N M \<Longrightarrow> all_decomposition_implies N' M\<close>
+  by (metis all_decomposition_implies_union le_iff_sup)
+
 
 subsection \<open>Negation of a Clause\<close>
 
