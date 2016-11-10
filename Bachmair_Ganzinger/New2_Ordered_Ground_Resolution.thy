@@ -63,7 +63,7 @@ inductive eligible :: "'a main_clause \<Rightarrow> bool" where
      \<and> As ! 1 = Max (atms_of (main_clause (D,As)))
    )
    \<Longrightarrow> eligible (D,As)"
-
+  
 inductive 
   ord_resolve :: "'a side_clause list \<Rightarrow> 'a main_clause \<Rightarrow> 'a clause \<Rightarrow> bool"
   where
@@ -76,7 +76,7 @@ inductive
     eligible (D,As) \<Longrightarrow>
     \<forall>i. i < length Cs \<longrightarrow> str_maximal_in (As ! i) (Cs ! i) \<Longrightarrow>
     \<forall>C \<in> set Cs. S (side_clause C) = {#} \<Longrightarrow>
-    ord_resolve Cs (D,As) ((\<Union># (mset (map fst Cs))) + D)"
+    ord_resolve Cs (D,As) (\<Union># {#fst C. C \<in># mset Cs#} + D)"
 
 lemma ord_resolve_sound:
   assumes
@@ -86,7 +86,65 @@ lemma ord_resolve_sound:
   shows "I \<Turnstile> E"
 using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve)
-  show ?thesis sorry
+  have e: "E = \<Union># {#fst C. C \<in># mset Cs#} + D" using ord_resolve(1) .
+  have cs_as_len: "length Cs = length As" using ord_resolve(2) .
+  have cs_ne: "\<forall>i<length Cs. snd (Cs ! i) \<noteq> {#}" using ord_resolve(5) .
+  have a_eq: "\<forall>i<length Cs. \<forall>Ai\<in>#snd (Cs ! i). Ai = As ! i" using ord_resolve(6) .
+
+  show ?thesis
+  proof (cases "\<forall>A \<in> set As. A\<in>I")
+    case True
+    hence "\<not> I \<Turnstile> negs (mset As)"
+      unfolding true_cls_def by fastforce
+    hence "I \<Turnstile> D"
+      using d_true by fast
+    then show ?thesis unfolding e by blast
+  next
+    case False
+    then obtain i where 
+      a_in_aa: "i < length As" and 
+      c_in_cs: "i < length Cs" and 
+      a_false: "As ! i \<notin> I"
+      using ord_resolve(2) by (metis in_set_conv_nth)
+    have c_cf': "set_mset (side_clause (Cs ! i)) \<subseteq> set_mset (\<Union># (side_clauses Cs))" (* Kind of ugly *)
+      using c_in_cs
+      by (metis (no_types, lifting) in_Union_mset_iff length_map nth_map nth_mem_mset subsetI)
+    let ?Ai = "poss (snd (Cs ! i))"
+    have "\<not> I \<Turnstile> ?Ai" 
+      using a_false a_eq cs_ne c_in_cs unfolding true_cls_def by auto
+    moreover have "I \<Turnstile> side_clause (Cs ! i)" 
+      using c_in_cs cc_true unfolding true_cls_mset_def by auto
+    ultimately have "I \<Turnstile> fst (Cs ! i)"
+      by (simp add: prod.case_eq_if) 
+    then show ?thesis using c_in_cs unfolding e true_cls_def
+      by fastforce 
+  qed
 qed
 
-end
+lemma filter_neg_atm_of_S: "{#Neg (atm_of L). L \<in># S C#} = S C" (*Do I use this? *)
+  by (rule trans[OF image_mset_cong[of "S C" "\<lambda>L. Neg (atm_of L)" id]])
+    (auto intro!: S_selects_neg_lits)
+
+
+text {*
+This corresponds to Lemma 3.13:
+*}
+
+lemma ord_resolve_reductive:
+  assumes res_e: "ord_resolve Cs (D,As) E"
+  shows "E < main_clause (D,As)"
+using res_e proof (cases rule: ord_resolve.cases)
+  case (ord_resolve)
+  
+  show ?thesis
+  proof (cases "Cs = []")
+    case True
+    have "negs (mset As) \<noteq> {#}"
+      sorry
+    then show ?thesis sorry
+  next
+    case False
+    then show ?thesis sorry
+  qed
+qed
+    
