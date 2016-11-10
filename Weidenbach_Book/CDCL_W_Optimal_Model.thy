@@ -299,5 +299,15 @@ proof (induction rule: improve.cases)
           dest: no_dup_appendD consistent_interp_unionD)
 qed
 
+text \<open>\<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant\<close> is too restrictive\<dots> 
+  \<open>cdcl\<^sub>W_restart_mset.no_smaller_conflict\<close> is needed for the conflict rule but harmful for conflictOpt.\<close>
+lemma improve_cdcl\<^sub>W_all_struct_inv:
+  assumes \<open>improve S T\<close> and
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (abs_state S)\<close> and
+    \<open>no_smaller_confl S\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (abs_state T)\<close>
+    using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+oops
 end
+
 end
