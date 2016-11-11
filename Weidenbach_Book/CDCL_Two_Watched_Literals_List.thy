@@ -244,9 +244,6 @@ definition unit_propagation_inner_loop_body_list :: "nat \<times> nat \<Rightarr
     ASSERT(L' \<in># mset (watched_l (N!C)) - {#L#});
     ASSERT (mset (watched_l (N!C)) = {#L, L'#});
     val_L' \<leftarrow> valued M L';
-    ASSERT(val_L' = Some True \<longleftrightarrow> L' \<in> lits_of_l M);
-    ASSERT(val_L' = Some False \<longleftrightarrow> -L' \<in> lits_of_l M);
-    ASSERT(val_L' = None \<longleftrightarrow> undefined_lit M L');
     if val_L' = Some True
     then RETURN S
     else do {
@@ -594,7 +591,7 @@ proof -
     subgoal by auto
     subgoal premises p for L' val_L f K N' U'
     proof -
-      note upd = p(16)
+      note upd = p(13)
       have \<open>Propagated K C \<notin> set M\<close> for K
       proof (rule ccontr)
         assume propa: \<open>\<not> ?thesis\<close>
@@ -621,17 +618,17 @@ proof -
               auto }
         ultimately have \<open>\<forall>L\<in>#unwatched (twl_clause_of C'). - L \<in> lits_of_l (convert_lits_l N M)\<close>
           unfolding true_annots_true_cls_def_iff_negation_in_model
-          by (metis N_C_C' in_remove1_mset_neq in_set_dropD lits_of_l_convert_lits_l p(12)
-              set_mset_mset unwatched_l.elims)
+          by (metis in_remove1_mset_neq in_set_dropD set_mset_mset unwatched_l.elims
+              unwatched_twl_clause_of)
         then show False
-          using p(14) by fast
+          using p by fast
       qed
       then have \<open>additional_WS_invs (M, N[C := swap (N ! C) i (snd f)], U, D, NP, UP, remove1_mset (i, C) WS, Q)\<close>
         using add_inv S by (auto simp add: additional_WS_invs_def N_C_C' nth_list_update'
              dest: in_diffD)
       moreover {
         have \<open>snd f < length C'\<close>
-          using p(11,13) by (auto simp: N_C_C')
+          using p(8,10) by (auto simp: N_C_C')
         then have \<open>convert_lit N x = convert_lit (N[C := swap (N ! C) i (snd f)]) x\<close> if \<open>x \<in> set M\<close>for x
           apply (cases x)
           using i two_le_length_C by (auto simp: nth_list_update' swap_def N_C_C' mset_update)
@@ -1397,7 +1394,7 @@ proof -
     \<open>get_conflict_list T = None \<longleftrightarrow> get_conflict (twl_st_of T) = None\<close>
     \<open>working_queue_list T = {#} \<longleftrightarrow> working_queue (twl_st_of T) = {#}\<close>
     \<open>pending_list T = {#} \<longleftrightarrow> pending (twl_st_of T) = {#}\<close>
-    for T
+    for T :: \<open>'v twl_st_list\<close>
     by (cases T; auto)+
   have R: \<open>?R = {(S, S'). S' = twl_st_of S \<and>
                  get_conflict (twl_st_of S) \<noteq> None \<and>
@@ -1518,7 +1515,7 @@ proof -
     \<open>get_conflict_list T = None \<longleftrightarrow> get_conflict (twl_st_of T) = None\<close>
     \<open>working_queue_list T = {#} \<longleftrightarrow> working_queue (twl_st_of T) = {#}\<close>
     \<open>pending_list T = {#} \<longleftrightarrow> pending (twl_st_of T) = {#}\<close>
-    for T
+    for T :: \<open>'v twl_st_list\<close>
     by (cases T; auto)+
   text \<open>Stupid placeholder to help the application of \<open>rule\<close> later:\<close>
   define TT where [simp]: \<open>TT = (\<lambda>_::bool \<times> 'a twl_st_list. True)\<close>
@@ -1538,10 +1535,7 @@ proof -
     subgoal
       using twl_prog by (auto simp:)
     subgoal for S
-      apply (rule weaken_SPEC[OF cdcl_twl_o_prog_spec[of \<open>twl_st_of S\<close>]])
-      apply (auto simp: KK(3))[5]
-      apply auto
-      done
+      by (rule weaken_SPEC[OF cdcl_twl_o_prog_spec[of \<open>twl_st_of S\<close>]]) (auto simp: KK(3))
     done
 qed
 
@@ -1595,7 +1589,7 @@ proof -
     \<open>get_conflict_list T = None \<longleftrightarrow> get_conflict (twl_st_of T) = None\<close>
     \<open>working_queue_list T = {#} \<longleftrightarrow> working_queue (twl_st_of T) = {#}\<close>
     \<open>pending_list T = {#} \<longleftrightarrow> pending (twl_st_of T) = {#}\<close>
-    for T
+    for T :: \<open>'v twl_st_list\<close>
     by (cases T; auto)+
   show ?thesis
     unfolding cdcl_twl_stgy_prog_list_def cdcl_twl_stgy_prog_def
