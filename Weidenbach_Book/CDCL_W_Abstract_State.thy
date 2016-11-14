@@ -47,7 +47,7 @@ fun update_conflicting where
 fun init_state where
 "init_state N = ([], N, {#}, None)"
 
-declare trail.simps[simp del] cons_trail.simps[simp del] tl_trail.simps[simp del] 
+declare trail.simps[simp del] cons_trail.simps[simp del] tl_trail.simps[simp del]
   add_learned_cls.simps[simp del] remove_cls.simps[simp del]
   update_conflicting.simps[simp del] init_clss.simps[simp del] learned_clss.simps[simp del]
   conflicting.simps[simp del] init_state.simps[simp del]

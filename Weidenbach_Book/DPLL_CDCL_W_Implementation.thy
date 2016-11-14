@@ -85,7 +85,7 @@ proof -
          | a # ab # xa \<Rightarrow> Map.empty xa) = Some a"
   then show "a \<in> set l"
     by (cases "[a\<leftarrow>l . atm_of a \<notin> atm_of ` lits_of_l M]")
-       (fastforce dest: filter_eq_ConsD split: if_split_asm  split: list.splits)+
+       (fastforce dest: filter_eq_ConsD split: if_split_asm split: list.splits)+
 qed
 
 lemma is_unit_clause_Nil[simp]: "is_unit_clause [] M = None"
@@ -96,7 +96,7 @@ subsubsection \<open>Unit propagation for all clauses\<close>
 
 text \<open>Finding the first clause to propagate\<close>
 fun find_first_unit_clause :: "'a literal list list \<Rightarrow> ('a, 'b) ann_lits
-  \<Rightarrow> ('a literal \<times> 'a literal list) option"  where
+  \<Rightarrow> ('a literal \<times> 'a literal list) option" where
 "find_first_unit_clause (a # l) M =
   (case is_unit_clause a M of
     None \<Rightarrow> find_first_unit_clause l M
@@ -150,7 +150,7 @@ lemma find_first_unit_clause_none:
      (auto split: option.split simp add: propagate_is_unit_clause_not_None)
 
 subsubsection \<open>Decide\<close>
-fun find_first_unused_var :: "'a literal list list \<Rightarrow> 'a literal set \<Rightarrow> 'a literal option"  where
+fun find_first_unused_var :: "'a literal list list \<Rightarrow> 'a literal set \<Rightarrow> 'a literal option" where
 "find_first_unused_var (a # l) M =
   (case List.find (\<lambda>lit. lit \<notin> M \<and> -lit \<notin> M) a of
     None \<Rightarrow> find_first_unused_var l M

@@ -29,8 +29,8 @@ method remove_dummy_vars uses simp =
 
 subsection \<open>Unit Propagation Loops\<close>
 
-definition unit_propagation_inner_loop_body :: "'v literal \<times> 'v literal multiset twl_clause \<Rightarrow>
-  'v twl_st \<Rightarrow> 'v twl_st nres"  where
+definition unit_propagation_inner_loop_body :: "'v literal \<times> 'v twl_cls \<Rightarrow>
+  'v twl_st \<Rightarrow> 'v twl_st nres" where
   \<open>unit_propagation_inner_loop_body C' S = do {
     let (M, N, U, D, NP, UP, WS, Q) = S;
     let (L, C) = C';
@@ -52,7 +52,7 @@ definition unit_propagation_inner_loop_body :: "'v literal \<times> 'v literal m
     }
 \<close>
 
-definition unit_propagation_inner_loop :: "'v twl_st \<Rightarrow> 'v twl_st nres"  where
+definition unit_propagation_inner_loop :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
   \<open>unit_propagation_inner_loop S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs S \<and> twl_stgy_invs S \<and> cdcl_twl_cp\<^sup>*\<^sup>* S\<^sub>0 S\<^esup>
       (\<lambda>S. working_queue S \<noteq> {#})
@@ -90,7 +90,7 @@ proof -
     using assms unfolding unit_propagation_inner_loop_body_def S
   proof (refine_vcg; (unfold prod.inject working_queue.simps set_working_queue.simps ball_simps)?;
       clarify?; unfold triv_forall_equality)
-    fix C :: \<open>'v clause twl_clause\<close> and L L' :: \<open>'v literal\<close>
+    fix C :: \<open>'v twl_cls\<close> and L L' :: \<open>'v literal\<close>
     assume
       \<open>WS \<noteq> {#}\<close> and
       WS: \<open>(L, C) \<in># WS\<close> and
@@ -169,7 +169,7 @@ proof -
             by (rule cdcl_twl_cp.propagate) (use uL' L' undef watched unwatched in simp_all)
 
           show \<open>twl_struct_invs ?T\<close>
-            using cdcl inv D  unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_struct_invs)
+            using cdcl inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_struct_invs)
 
           show \<open>cdcl_twl_cp\<^sup>*\<^sup>* ?S ?T\<close>
             using cdcl D WS_WS' by force
@@ -181,7 +181,7 @@ proof -
       }
 
       -- \<open>if \<^term>\<open>\<forall>L \<in># unwatched C. -L \<in> lits_of_l M\<close>, else\<close>
-      { fix K and N' U' :: \<open>'v literal multiset twl_clause multiset\<close>
+      { fix K and N' U' :: \<open>'v twl_clss\<close>
         let ?S = \<open>(M, N, U, D, NP, UP, WS, Q)\<close>
         let ?T = \<open>(M, N', U', D, NP, UP, remove1_mset (L, C) WS, Q)\<close>
         let ?S' = \<open>(M, N, U, None, NP, UP, add_mset (L, C) WS', Q)\<close>
@@ -198,7 +198,7 @@ proof -
           by (rule cdcl_twl_cp.update_clause)
             (use uL L' K uK update watched undef_def_K in simp_all)
         show \<open>twl_struct_invs ?T\<close>
-          using cdcl inv D  unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_struct_invs)
+          using cdcl inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_struct_invs)
         show \<open>twl_stgy_invs ?T\<close>
           using cdcl inv inv_s D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_stgy_invs)
         show \<open>cdcl_twl_cp\<^sup>*\<^sup>* ?S ?T\<close>
@@ -225,7 +225,7 @@ lemma unit_propagation_inner_loop:
 
 declare unit_propagation_inner_loop[THEN order_trans, refine_vcg]
 
-definition unit_propagation_outer_loop :: "'v twl_st \<Rightarrow> 'v twl_st nres"  where
+definition unit_propagation_outer_loop :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
   \<open>unit_propagation_outer_loop S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs S \<and> twl_stgy_invs S \<and> cdcl_twl_cp\<^sup>*\<^sup>* S\<^sub>0 S \<and> working_queue S = {#}\<^esup>
       (\<lambda>S. pending S \<noteq> {#})
@@ -249,7 +249,7 @@ lemma unit_propagation_outer_loop:
               apply ((simp_all add: assms tranclp_wf_cdcl_twl_cp; fail)+)[6]
   subgoal -- \<open>Assertion\<close>
   proof -
-    fix  L T
+    fix L T
     assume
       p: \<open>pending T \<noteq> {#}\<close> and
       L_T: \<open>L \<in># pending T\<close> and
@@ -281,7 +281,7 @@ lemma unit_propagation_outer_loop:
   qed
   subgoal -- \<open>WHILE-loop invariants\<close>
   proof -
-    fix  L T
+    fix L T
     assume
       p: \<open>pending T \<noteq> {#}\<close> and
       L_T: \<open>L \<in># pending T\<close> and
@@ -315,7 +315,7 @@ lemma unit_propagation_outer_loop:
   qed
   subgoal
   proof -
-    fix  L T
+    fix L T
     assume
       p: \<open>pending T \<noteq> {#}\<close> and
       L_T: \<open>L \<in># pending T\<close> and
@@ -368,7 +368,7 @@ subsection \<open>Other Rules\<close>
 
 subsubsection \<open>Decide\<close>
 
-fun decide :: "'v twl_st \<Rightarrow> 'v twl_st nres"  where
+fun decide :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
   \<open>decide (M, N, U, D, NP, UP, WS, Q) = do {
      L \<leftarrow> SPEC (\<lambda>L. undefined_lit M L \<and> atm_of L \<in> atms_of_mm (clause `# N));
      RETURN (Decided L # M, N, U, D, NP, UP, WS, {#-L#})
@@ -415,7 +415,7 @@ definition skip_and_resolve_loop_inv where
           (brk \<longrightarrow> no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state S) \<and>
             no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state S)))\<close>
 
-definition skip_and_resolve_loop :: "'v twl_st \<Rightarrow> 'v twl_st nres"  where
+definition skip_and_resolve_loop :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
   \<open>skip_and_resolve_loop S\<^sub>0 =
     do {
       (_, S) \<leftarrow>
@@ -464,10 +464,10 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
     using assms by (cases S) (auto simp: skip_and_resolve_loop_inv_def cdcl\<^sub>W_restart_mset.skip.simps
           cdcl\<^sub>W_restart_mset.resolve.simps cdcl\<^sub>W_restart_mset_state)
 
-  fix brk :: bool and M :: \<open>('a, 'a literal multiset) ann_lits\<close>
-    and N U :: \<open>'a literal multiset twl_clause multiset\<close> and D :: \<open>'a literal multiset option\<close> and
-    NP UP :: \<open>'a literal multiset multiset\<close> and
-    WS :: \<open>('a literal \<times> 'a literal multiset twl_clause) multiset\<close> and Q L C
+  fix brk :: bool and M :: \<open>('a, 'a clause) ann_lits\<close>
+    and N U :: \<open>'a twl_clss\<close> and D :: \<open>'a clause option\<close> and
+    NP UP :: \<open>'a clauses\<close> and
+    WS :: \<open>('a literal \<times> 'a twl_cls) multiset\<close> and Q L C
   assume
     inv: \<open>skip_and_resolve_loop_inv S (brk, (M, N, U, D, NP, UP, WS, Q))\<close> and
     brk: \<open>case (brk, M, N, U, D, NP, UP, WS, Q) of (brk, S) \<Rightarrow> \<not> brk \<and> \<not> is_decided (hd (get_trail S))\<close>
@@ -500,7 +500,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
     moreover have twl_T: \<open>twl_struct_invs ?T\<close>
       using st_T twl o_S_T cdcl_twl_o_twl_struct_invs by blast
     moreover have twl_stgy_T: \<open>twl_stgy_invs ?T\<close>
-      using twl o_S_T  twl_stgy_S cdcl_twl_o_twl_stgy_invs by blast
+      using twl o_S_T twl_stgy_S cdcl_twl_o_twl_stgy_invs by blast
     moreover have \<open>tl M \<noteq> []\<close>
       using twl_T D D' unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def by (auto simp add: cdcl\<^sub>W_restart_mset_state)
@@ -597,7 +597,7 @@ declare skip_and_resolve_loop_spec[THEN order_trans, refine_vcg]
 
 subsubsection \<open>Backtrack\<close>
 
-definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres"  where
+definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
   \<open>backtrack S\<^sub>0 =
     do {
       let (M, N, U, D, NP, UP, WS, Q) = S\<^sub>0 in
@@ -698,7 +698,7 @@ proof -
   let ?S = \<open>convert_to_state S\<close>
   have inv_s: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant ?S\<close> and
     inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv ?S\<close>
-    using twl_struct twl_stgy  unfolding twl_struct_invs_def twl_stgy_invs_def by fast+
+    using twl_struct twl_stgy unfolding twl_struct_invs_def twl_stgy_invs_def by fast+
   obtain D' where D': \<open>conflicting ?S = Some D'\<close>
     using confl by (cases S) (auto simp: conflicting.simps)
   have M_CNot_D': \<open>trail ?S \<Turnstile>as CNot D'\<close>
@@ -898,7 +898,7 @@ declare backtrack_spec[THEN order_trans, refine_vcg]
 
 
 subsubsection \<open>Full loop\<close>
-definition cdcl_twl_o_prog :: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres"  where
+definition cdcl_twl_o_prog :: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres" where
   \<open>cdcl_twl_o_prog S =
     do {
       let (M, N, U, D, NP, UP, WS, Q) = S in
@@ -982,7 +982,7 @@ declare cdcl_twl_o_prog_spec[THEN order_trans, refine_vcg]
 
 subsection \<open>Full Strategy\<close>
 
-definition cdcl_twl_stgy_prog :: "'v twl_st \<Rightarrow> 'v twl_st nres"  where
+definition cdcl_twl_stgy_prog :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
   \<open>cdcl_twl_stgy_prog S\<^sub>0 =
   do {
     do {

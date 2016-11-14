@@ -75,7 +75,7 @@ proof
     have "atms_of C \<subseteq> atms_of_mm (learned_clss S)"
       using C by auto
     then have "atms_of C \<subseteq> atms_of_mm (init_clss S)"
-    using inv  unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def by force
+    using inv unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def by force
   moreover have "finite (atms_of_mm (init_clss S))"
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def by auto
   ultimately show "C \<in> simple_clss (atms_of_mm (init_clss S))"
@@ -181,7 +181,7 @@ next
     using rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses[of S T] unfolding full1_def
     by (auto dest: relpowp_imp_rtranclp)
   then show ?case using \<open>restart T U\<close>  unfolding clauses_def
-    by (metis  distinct_mset_union fstI restartE subset_mset.le_iff_add union_assoc)
+    by (metis distinct_mset_union fstI restartE subset_mset.le_iff_add union_assoc)
 qed
 
 inductive cdcl\<^sub>W_restart_with_restart where
@@ -195,7 +195,7 @@ restart_full: "full1 cdcl\<^sub>W_stgy S T \<Longrightarrow> cdcl\<^sub>W_restar
 lemma cdcl\<^sub>W_restart_with_restart_rtranclp_cdcl\<^sub>W_restart:
   "cdcl\<^sub>W_restart_with_restart S T \<Longrightarrow> cdcl\<^sub>W_restart\<^sup>*\<^sup>* (fst S) (fst T)"
   apply (induction rule: cdcl\<^sub>W_restart_with_restart.induct)
-  by (auto dest!: relpowp_imp_rtranclp  tranclp_into_rtranclp cdcl\<^sub>W_restart.rf
+  by (auto dest!: relpowp_imp_rtranclp tranclp_into_rtranclp cdcl\<^sub>W_restart.rf
      cdcl\<^sub>W_rf.restart rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart
     simp: full1_def)
 
@@ -302,7 +302,7 @@ next
   then have "distinct_mset (clauses T)" using rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses[of S T]
     unfolding full1_def by (auto dest: relpowp_imp_rtranclp)
   then show ?case using \<open>restart T U\<close> unfolding clauses_def
-    by (metis  distinct_mset_union fstI restartE subset_mset.le_iff_add union_assoc)
+    by (metis distinct_mset_union fstI restartE subset_mset.le_iff_add union_assoc)
 qed
 end
 
@@ -323,7 +323,7 @@ next
   then obtain k where "2 ^ (k - 1) \<le> n \<and> n < 2 ^ k - 1 \<or> n = 2 ^ k - 1"
     by blast
   then consider
-      (st_interv) "2 ^ (k - 1) \<le> n" and  "n \<le> 2 ^ k - 2"
+      (st_interv) "2 ^ (k - 1) \<le> n" and "n \<le> 2 ^ k - 2"
     | (end_interv) "2 ^ (k - 1) \<le> n" and "n = 2 ^ k - 2"
     | (pow2) "n = 2 ^ k - 1"
     by linarith

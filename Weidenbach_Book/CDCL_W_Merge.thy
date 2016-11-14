@@ -153,11 +153,11 @@ proof -
       tl_trail (add_learned_cls E (update_conflicting None T))\<close>
       apply (rule state_eq_trans[OF state_eq_sym[THEN iffD1], of
             \<open>add_learned_cls E (tl_trail (update_conflicting None T))\<close>])
-       apply (auto simp: tl_trail_update_conflicting  tl_trail_add_learned_cls_commute
+       apply (auto simp: tl_trail_update_conflicting tl_trail_add_learned_cls_commute
           update_conflicting_state_eq add_learned_cls_state_eq tl_trail_state_eq; fail)[]
       apply (rule state_eq_trans[OF state_eq_sym[THEN iffD1], of
             \<open>add_learned_cls E (tl_trail (update_conflicting None T))\<close>])
-       apply (auto simp: tl_trail_update_conflicting tl_trail_add_learned_cls_commute 
+       apply (auto simp: tl_trail_update_conflicting tl_trail_add_learned_cls_commute
           update_conflicting_state_eq add_learned_cls_state_eq tl_trail_state_eq; fail)[]
       apply (rule state_eq_trans[OF state_eq_sym[THEN iffD1], of
             \<open>tl_trail (add_learned_cls E (update_conflicting None T))\<close>])
@@ -258,7 +258,7 @@ next
   then have "atm_of L \<in> atm_of ` lits_of_l (trail V)"
     using lev_L get_level_ge_0_atm_of_in[of 0 "trail V" L] by auto
   then have L_L': "atm_of L \<noteq> atm_of L'"
-    using n_d' unfolding lits_of_def MV  by (auto simp: defined_lit_map)
+    using n_d' unfolding lits_of_def MV by (auto simp: defined_lit_map)
   have L'_M: "undefined_lit M L'"
     using n_d' unfolding lits_of_def by auto
   have "?M \<Turnstile>as CNot D"
@@ -709,7 +709,7 @@ proof (rule ccontr)
   then have "Propagated L E # trail V \<Turnstile>as CNot D'"
     using U confl_U unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def by auto
   then have "\<forall>L'\<in># (remove1_mset L' D'). defined_lit (trail U) L'"
-    using U  by (fastforce dest!: true_annots_CNot_definedD dest: in_diffD)
+    using U by (fastforce dest!: true_annots_CNot_definedD dest: in_diffD)
   then have "\<forall>L'\<in># (remove1_mset L' D'). undefined_lit M\<^sub>0 L'"
     using \<open>no_dup (trail S)\<close> unfolding tr_S U
     using defined_lit_no_dupD(1) by fastforce
@@ -1509,7 +1509,7 @@ next
         using st(1) by auto
       moreover have "no_step cdcl\<^sub>W_s' T"
         using inv_T \<open>full cdcl\<^sub>W_stgy S T\<close> n_step_cdcl\<^sub>W_stgy_iff_no_step_cdcl\<^sub>W_restart_cl_cdcl\<^sub>W_o
-        unfolding full_def  by blast
+        unfolding full_def by blast
       ultimately show ?thesis
         unfolding full_def by blast
     qed

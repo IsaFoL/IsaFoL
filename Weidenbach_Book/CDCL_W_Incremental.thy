@@ -323,7 +323,7 @@ add_confl:
 add_no_confl:
   "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = None \<Longrightarrow>
    \<not>trail S \<Turnstile>as CNot C \<Longrightarrow>
-   full cdcl\<^sub>W_stgy (add_init_cls C S) T  \<Longrightarrow>
+   full cdcl\<^sub>W_stgy (add_init_cls C S) T \<Longrightarrow>
    incremental_cdcl\<^sub>W_restart S T"
 
 lemma cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_all_struct_inv:
@@ -378,7 +378,7 @@ proof -
   then have [simp]: "distinct_cdcl\<^sub>W_state ?T"
     unfolding distinct_cdcl\<^sub>W_state_def by auto
 
-  have  "cdcl\<^sub>W_conflicting T"
+  have "cdcl\<^sub>W_conflicting T"
     using inv_T unfolding cdcl\<^sub>W_all_struct_inv_def by auto
   have "trail ?T \<Turnstile>as CNot C"
      by (simp add: cut_trail_wrt_clause_CNot_trail)
@@ -389,7 +389,7 @@ proof -
   have
     decomp_T: "all_decomposition_implies_m (clauses T) (get_all_ann_decomposition (trail T))"
     using inv_T unfolding cdcl\<^sub>W_all_struct_inv_def by auto
-  have  "all_decomposition_implies_m (clauses ?T) (get_all_ann_decomposition (trail ?T))"
+  have "all_decomposition_implies_m (clauses ?T) (get_all_ann_decomposition (trail ?T))"
     unfolding all_decomposition_implies_def
     proof clarify
       fix a b
@@ -410,7 +410,7 @@ proof -
     using inv_T unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def
     by (auto dest!: H_proped simp: clauses_def)
   show ?thesis
-    using \<open>all_decomposition_implies_m  (clauses ?T) (get_all_ann_decomposition (trail ?T))\<close>
+    using \<open>all_decomposition_implies_m (clauses ?T) (get_all_ann_decomposition (trail ?T))\<close>
     unfolding cdcl\<^sub>W_all_struct_inv_def by (auto simp: add_new_clause_and_update_def)
 qed
 
@@ -562,7 +562,7 @@ next
 
   case 2
   have nc: "\<forall>M. (\<exists>K i M'. trail S = M' @ Decided K # M) \<longrightarrow> \<not> M \<Turnstile>as CNot C"
-    using  \<open>\<not> trail S \<Turnstile>as CNot C\<close>
+    using \<open>\<not> trail S \<Turnstile>as CNot C\<close>
     by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
 
   have "cdcl\<^sub>W_stgy_invariant (add_init_cls C S)"

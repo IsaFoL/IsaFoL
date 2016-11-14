@@ -31,7 +31,7 @@ lemma herbrand_interp_iff_partial_interp_clss:
   unfolding true_clss_def Ball_def herbrand_interp_iff_partial_interp_cls
   Partial_Clausal_Logic.true_clss_def by auto
 
-definition clss_lt :: "'a::wellorder clauses \<Rightarrow> 'a clause \<Rightarrow> 'a clauses"  where
+definition clss_lt :: "'a::wellorder clauses \<Rightarrow> 'a clause \<Rightarrow> 'a clauses" where
 "clss_lt N C = {D \<in> N. D < C}"
 
 notation (latex output)
@@ -523,7 +523,7 @@ proof (rule ccontr)
       then have "?N\<^sub>\<I> \<Turnstile>hs clss_lt N D"
         unfolding clss_lt_def true_clss_def Ball_def by blast
       then show False
-        using  red not_d_interp unfolding abstract_red_def redundant_iff_abstract
+        using red not_d_interp unfolding abstract_red_def redundant_iff_abstract
         using herbrand_true_clss_true_clss_cls_herbrand_true_clss by fast
     qed
 
@@ -600,7 +600,7 @@ proof (rule ccontr)
       then have "\<And>y. y \<in># (E + {#Pos P#})
         \<Longrightarrow> count (E + {#Pos P#}) (Neg P) < count (C + {#Neg P#}) (Neg P)"
         using count_greater_zero_iff by fastforce
-      moreover have  "\<And>y. y \<in># (E + {#Pos P#}) \<Longrightarrow> y < Neg P"
+      moreover have "\<And>y. y \<in># (E + {#Pos P#}) \<Longrightarrow> y < Neg P"
         using PMax by (metis DPN Max_less_iff empty finite_set_mset pos_less_neg
           set_mset_eq_empty_iff)
       moreover have "E + {#Pos P#} \<noteq> C + {#Neg P#}"
@@ -628,7 +628,7 @@ proof (rule ccontr)
         defer
         sorry
       ultimately have ce_lt_ep: "C + E < E + {#Pos P#}"
-        using ex_gt_imp_less_multiset prod produces_imp_Pos_in_lits by blast  *)
+        using ex_gt_imp_less_multiset prod produces_imp_Pos_in_lits by blast *)
       have "\<not>redundant (C + E) N"
         proof (rule ccontr)
           assume red'[simplified]: "\<not> ?thesis"
@@ -647,13 +647,13 @@ proof (rule ccontr)
                   moreover have "\<not> I \<Turnstile> C + {#Neg P#}"
                     using CP unfolding true_clss_cls_def (* TODO same here *)
                     sorry
-                  ultimately have  "I \<Turnstile> E + {#Pos P#}" by auto
+                  ultimately have "I \<Turnstile> E + {#Pos P#}" by auto
               }
               then show "clss_lt N (C + E) \<Turnstile>p E + {#Pos P#}"
                 unfolding true_clss_cls_def by auto
             qed
           moreover have "clss_lt N (C + E) \<subseteq> clss_lt N (C + {#Neg P#})"
-            using ce_lt_d order.strict_trans2 unfolding clss_lt_def D L  
+            using ce_lt_d order.strict_trans2 unfolding clss_lt_def D L 
             by (blast dest: less_imp_le)
           ultimately have "redundant (C + {#Neg P#}) N \<or> clss_lt N (C + E) \<Turnstile>p E + {#Pos P#} "
             unfolding redundant_iff_abstract abstract_red_def using true_clss_cls_subset by blast
@@ -698,7 +698,7 @@ subsumption: "A \<in> N \<Longrightarrow> A \<subset># B \<Longrightarrow> redun
 lemma redundant_is_redundancy_criterion:
   fixes A :: "'a :: wellorder clause" and N :: "'a :: wellorder clauses"
   assumes "redundant A N"
-  shows  "abstract_red A N"
+  shows "abstract_red A N"
   using assms
 proof (induction rule: redundant.induct)
   case (subsumption A B N)

@@ -145,11 +145,11 @@ type_synonym 'v cdcl\<^sub>W_restart_state_inv_st = "('v, 'v literal list) ann_l
 text \<open>We need some functions to convert between our abstract state @{typ "'v cdcl\<^sub>W_restart_state"}
   and the concrete state @{typ "'v cdcl\<^sub>W_restart_state_inv_st"}.\<close>
 
-fun convert :: "('a, 'c list) ann_lit \<Rightarrow> ('a, 'c multiset) ann_lit"  where
+fun convert :: "('a, 'c list) ann_lit \<Rightarrow> ('a, 'c multiset) ann_lit" where
 "convert (Propagated L C) = Propagated L (mset C)" |
 "convert (Decided K) = Decided K"
 
-abbreviation convertC :: "'a list option \<Rightarrow> 'a multiset option"  where
+abbreviation convertC :: "'a list option \<Rightarrow> 'a multiset option" where
 "convertC \<equiv> map_option mset"
 
 lemma convert_Propagated[elim!]:
@@ -450,12 +450,12 @@ lemma do_resolve_step_no:
   "do_resolve_step S = S \<Longrightarrow> no_step resolve (toS S)"
   apply (cases S; cases "hd (raw_trail S)";cases "raw_trail S"; cases "raw_conflicting S")
   by (auto
-    elim!: resolveE  split: if_split_asm
+    elim!: resolveE split: if_split_asm
     dest!: union_single_eq_member
     simp del: in_multiset_in_set get_maximum_level_map_convert
     simp: get_maximum_level_map_convert[symmetric] count_decided_def)
 
-lemma  rough_state_of_state_of_resolve[simp]:
+lemma rough_state_of_state_of_resolve[simp]:
   "cdcl\<^sub>W_all_struct_inv (toS S) \<Longrightarrow> rough_state_of (state_of (do_resolve_step S)) = do_resolve_step S"
   apply (rule state_of_inverse)
   apply (cases "do_resolve_step S = S")
@@ -488,7 +488,7 @@ lemma do_backtrack_step:
     have E: "E = Some C" using S confl by auto
 
     obtain L j where fd: "find_level_decomp M C [] (count_decided M) = Some (L, j)"
-      using db unfolding S E  by (cases C) (auto split: if_split_asm option.splits list.splits
+      using db unfolding S E by (cases C) (auto split: if_split_asm option.splits list.splits
         ann_lit.splits)
     have
       "L \<in> set C" and
@@ -565,7 +565,7 @@ next
     CE: "raw_conflicting S = Some D" and
     LD: "L \<in># mset D" and
     decomp: "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (raw_trail S))" and
-    levL: "get_level (raw_trail S) L =  count_decided (raw_trail (toS S))"  and
+    levL: "get_level (raw_trail S) L =  count_decided (raw_trail (toS S))" and
     k: "get_level (raw_trail S) L = get_maximum_level (raw_trail S) (mset D)" and
     j: "get_maximum_level (raw_trail S) (remove1_mset L (mset D)) \<equiv> j" and
     lev_K: "get_level (raw_trail S) K = Suc j"
@@ -624,7 +624,7 @@ next
     apply (rule bt_cut_not_none[of M ])
       using n_d cM S lev_K S apply blast+
     using lev_K S by auto
-  show ?case using db n_d fd_some L' j' btc_none unfolding S  E
+  show ?case using db n_d fd_some L' j' btc_none unfolding S E
     by (auto dest: bt_cut_some_decomp)
 qed
 
@@ -666,11 +666,11 @@ lemma do_decide_step:
           intro: atms_of_atms_of_ms_mono)[1]
 proof -
   fix a :: "('a, 'a literal list) ann_lit list" and
-        b :: "'a literal list list" and  c :: "'a literal list list" and
+        b :: "'a literal list list" and c :: "'a literal list list" and
         e :: "'a literal list option"
   {
     fix a :: "('a, 'a literal list) ann_lit list" and
-        b :: "'a literal list list" and  c :: "'a literal list list" and
+        b :: "'a literal list list" and c :: "'a literal list list" and
         x2 :: "'a literal" and m :: "'a literal list"
     assume a1: "m \<in> set b"
     assume "x2 \<in> set m"
@@ -692,7 +692,7 @@ proof -
       by (meson atm_of_in_atm_of_set_in_uminus contra_subsetD rev_image_eqI)
   } note H' = this
 
-  assume  "do_decide_step S \<noteq> S" and
+  assume "do_decide_step S \<noteq> S" and
      "S = (a, b, c, e)" and
      "raw_conflicting S = None"
   then show "decide (toS S) (toS (do_decide_step S))"
@@ -703,7 +703,7 @@ qed
 lemma do_decide_step_no:
   "do_decide_step S = S \<Longrightarrow> no_step decide (toS S)"
   apply (cases S, cases "raw_conflicting S")
-  apply (auto simp: atms_of_ms_mset_unfold  Decided_Propagated_in_iff_in_lits_of_l lits_of_def
+  apply (auto simp: atms_of_ms_mset_unfold Decided_Propagated_in_iff_in_lits_of_l lits_of_def
       dest!: atm_of_in_atm_of_set_in_uminus
       elim!: decideE
       split: option.splits)+
@@ -1027,7 +1027,7 @@ next
         =  rough_state_from_init_state_of (do_cdcl\<^sub>W_stgy_step' S)"
         by (simp add: id_of_I_to_def rough_state_from_init_state_of_do_cdcl\<^sub>W_stgy_step')
       then show ?thesis
-        using do_cdcl\<^sub>W_stgy_step  T  diff unfolding id_of_I_to_def  do_cdcl\<^sub>W_stgy_step by fastforce
+        using do_cdcl\<^sub>W_stgy_step T diff unfolding id_of_I_to_def do_cdcl\<^sub>W_stgy_step by fastforce
     qed
   moreover have "cdcl\<^sub>W_all_struct_inv (toS (rough_state_from_init_state_of S))"
       using rough_state_from_init_state_of[of S] by auto
@@ -1099,7 +1099,7 @@ proof (induction S rule: do_all_cdcl\<^sub>W_stgy_induct)
           (toS (rough_state_from_init_state_of (do_cdcl\<^sub>W_stgy_step' S)))
         = cdcl\<^sub>W_stgy (toS (rough_state_of (id_of_I_to S)))
           (toS (rough_state_of (do_cdcl\<^sub>W_stgy_step (id_of_I_to S))))"
-        using  rough_state_from_init_state_of_do_cdcl\<^sub>W_stgy_step'
+        using rough_state_from_init_state_of_do_cdcl\<^sub>W_stgy_step'
         toS_rough_state_of_state_of_rough_state_from_init_state_of
         by (simp add: id_of_I_to_def rough_state_from_init_state_of_do_cdcl\<^sub>W_stgy_step')
       then show ?thesis

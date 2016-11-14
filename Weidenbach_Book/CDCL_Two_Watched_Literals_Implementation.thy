@@ -8,6 +8,7 @@ theory CDCL_Two_Watched_Literals_Implementation
 imports CDCL_W_Abstract_State CDCL_Two_Watched_Literals
 begin
 
+
 sledgehammer_params[spy]
 
 text \<open>The difference between an implementation and the core described in the previous sections are
@@ -241,7 +242,7 @@ locale abstract_clauses_representation =
       and
     add_cls:
       "cls_lookup Cs i \<noteq> None \<Longrightarrow> add_cls Cs C = (Cs', i) \<Longrightarrow>
-        cls_lookup Cs' = (cls_lookup Cs) (i := Some C)"  and
+        cls_lookup Cs' = (cls_lookup Cs) (i := Some C)" and
     add_cls_new_keys:
       "cls_lookup Cs i \<noteq> None \<Longrightarrow> add_cls Cs C = (Cs', i) \<Longrightarrow> i \<notin># cls_keys Cs"
 begin
@@ -447,7 +448,7 @@ sublocale abs_state\<^sub>W_ops where
   mset_ccls = mset_ccls and
 
   conc_trail = full_trail_abs and
-  hd_raw_conc_trail = hd_raw_trail_abs  and
+  hd_raw_conc_trail = hd_raw_trail_abs and
   raw_clauses = raw_clauses_abs and
   raw_conflicting = raw_conflicting_abs and
   conc_learned_clss = learned_clss_abs and
@@ -507,18 +508,6 @@ definition wf_confl_state :: "'st \<Rightarrow> bool" where
 
 end
 
-(* TODO Move *)
-text \<open>TODO Move and see if useful at other places\<close>
-lemma Suc_count_decided_gt_get_level:
-  \<open>get_level M L < Suc (count_decided M)\<close>
-  by (induction M rule: ann_lit_list_induct) auto
-
-lemma get_level_Succ_count_decided_neq[simp]:
-  \<open>get_level M L \<noteq> Suc (count_decided M)\<close>
-  using Suc_count_decided_gt_get_level[of L M] by auto
-text \<open>End TODO Move\<close>
-
-(* End Move *)
 
 locale abs_state\<^sub>W_twl =
   abs_state\<^sub>W_twl_ops
@@ -848,7 +837,7 @@ sublocale abs_state\<^sub>W where
   mset_ccls = mset_ccls and
 
   conc_trail = full_trail_abs and
-  hd_raw_conc_trail = hd_raw_trail_abs  and
+  hd_raw_conc_trail = hd_raw_trail_abs and
   raw_clauses = raw_clauses_abs and
   conc_backtrack_lvl = backtrack_lvl_abs and
   raw_conflicting = raw_conflicting_abs and
@@ -1114,7 +1103,7 @@ sublocale abs_conflict_driven_clause_learning\<^sub>W where
   mset_ccls = mset_ccls and
 
   conc_trail = full_trail_abs and
-  hd_raw_conc_trail = hd_raw_trail_abs  and
+  hd_raw_conc_trail = hd_raw_trail_abs and
   raw_clauses = raw_clauses_abs and
   conc_backtrack_lvl = backtrack_lvl_abs and
   raw_conflicting = raw_conflicting_abs and
@@ -1175,7 +1164,7 @@ definition wf_resolve :: "'inv \<Rightarrow> 'inv \<Rightarrow> bool" where
 "wf_resolve S T \<equiv> resolve_abs (rough_state_of S) (rough_state_of T)"
 
 abbreviation mark_conflicting_abs_and_flush where
-"mark_conflicting_abs_and_flush  i S \<equiv> mark_conflicting_abs i (prop_queue_to_trail_abs S)"
+"mark_conflicting_abs_and_flush i S \<equiv> mark_conflicting_abs i (prop_queue_to_trail_abs S)"
 
 lemma true_annots_CNot_uminus_incl_iff:
   "M \<Turnstile>as CNot C \<longleftrightarrow> uminus ` set_mset C \<subseteq> lits_of_l M"
@@ -1188,7 +1177,7 @@ lemma get_maximum_level_skip_Decide_first:
     atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
   by (smt ann_lit.sel(1) assms(1) atms_of_def get_level_skip_beginning image_iff multiset.map_cong0)
 
-definition backtrack_implementation_lvl :: "nat \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st"  where
+definition backtrack_implementation_lvl :: "nat \<Rightarrow> 'v literal \<Rightarrow> 'st \<Rightarrow> 'st" where
 "backtrack_implementation_lvl k L S =
   (let S =
     add_confl_to_learned_cls_abs
@@ -1546,7 +1535,7 @@ proof -
   have \<open>get_level M' ` set_mset D = get_level M' ` set_mset D'\<close>
     apply (standard; standard)
      apply (auto simp: H dest!: in_D_D' simp del: atm_of_uminus; fail)[]
-    by (auto simp: H  dest!: in_D'_D simp del: atm_of_uminus)[]
+    by (auto simp: H dest!: in_D'_D simp del: atm_of_uminus)[]
   then show ?thesis
     using M_M' unfolding get_maximum_level_def by auto
 qed
@@ -1603,7 +1592,7 @@ text \<open>When we update a clause with respect to the literal L, there are sev
   \<^enum> otherwise, we have to check if we can find a literal to swap or propagate the variable.
 \<close>
 
-fun update_watched_clause :: "'st \<Rightarrow> 'v literal \<Rightarrow> 'cls_it \<Rightarrow> 'st"  where
+fun update_watched_clause :: "'st \<Rightarrow> 'v literal \<Rightarrow> 'cls_it \<Rightarrow> 'st" where
 "update_watched_clause S L i =
   (case it_of_watched_ordered (raw_clauses_abs S \<Down> i) L of
     [_] \<Rightarrow> mark_conflicting_abs i S
@@ -1669,7 +1658,7 @@ oops
 
 text \<open>Possible optimisation: @{term "Option.is_none (raw_conflicting_abs S')"} is the same as
   checking whether conflict has been marked by @{term update_watched_clause}.\<close>
-fun update_watched_clauses  :: "'st \<Rightarrow> 'v literal \<Rightarrow> 'cls_it list \<Rightarrow> 'st" where
+fun update_watched_clauses :: "'st \<Rightarrow> 'v literal \<Rightarrow> 'cls_it list \<Rightarrow> 'st" where
 "update_watched_clauses S L (i # Cs) =
   (let S' = update_watched_clause S L i in
     if Option.is_none (raw_conflicting_abs S')

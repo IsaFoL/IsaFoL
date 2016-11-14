@@ -2221,7 +2221,7 @@ proof (rule ccontr)
     proof -
       have "-K \<in> lits_of_l M"
         using D that unfolding true_annots_def by force
-      then show "-K \<in> I" using IM true_clss_singleton_lit_of_implies_incl  by fastforce
+      then show "-K \<in> I" using IM true_clss_singleton_lit_of_implies_incl by fastforce
     qed
   then have "\<not> I \<Turnstile> D" using cons unfolding true_cls_def true_lit_def consistent_interp_def by auto
   then show False using I_D by blast
@@ -2708,7 +2708,7 @@ proof -
         using M by auto
       then have "Ex (cdcl\<^sub>W_o S)"
         using resolve_rule[of S L' C , OF \<open>trail S \<noteq> []\<close> _ _ confl] conf
-          L'C L'D  D' C' by (auto dest: cdcl\<^sub>W_o.intros cdcl\<^sub>W_bj.intros)
+          L'C L'D D' C' by (auto dest: cdcl\<^sub>W_o.intros cdcl\<^sub>W_bj.intros)
       then show False
         using n_s termi by (auto dest: other' cdcl\<^sub>W_o.intros cdcl\<^sub>W_bj.intros)
     next
@@ -3876,8 +3876,8 @@ next
   case backtrack note n_s = this(1,2) and o = this(3)
   have inv_T: "cdcl\<^sub>W_all_struct_inv T"
     using cdcl cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv inv by blast
-  obtain D :: "'v literal multiset" and K L :: "'v literal"  and
-    M1 M2 :: "('v, 'v literal multiset) ann_lit list" and i :: nat where
+  obtain D :: "'v clause" and K L :: "'v literal" and
+    M1 M2 :: "('v, 'v clause) ann_lit list" and i :: nat where
     "conflicting S = Some D" and
     LD: "L \<in># D" and
     decomp: "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))" and

@@ -34,9 +34,11 @@ definition true_lit :: "'a interp \<Rightarrow> 'a literal \<Rightarrow> bool" (
 
 declare true_lit_def[simp]
 
+
 subsubsection \<open>Consistency\<close>
+
 definition consistent_interp :: "'a literal set \<Rightarrow> bool" where
-"consistent_interp I = (\<forall>L. \<not>(L \<in> I \<and> - L \<in> I))"
+"consistent_interp I \<longleftrightarrow> (\<forall>L. \<not>(L \<in> I \<and> - L \<in> I))"
 
 lemma consistent_interp_empty[simp]:
   "consistent_interp {}" unfolding consistent_interp_def by auto
@@ -68,9 +70,10 @@ lemma consistent_interp_unionD: \<open>consistent_interp (I \<union> I') \<Longr
 
 
 subsubsection \<open>Atoms\<close>
+
 text \<open>We define here various lifting of @{term atm_of} (applied to a single literal) to set and
   multisets of literals.\<close>
-definition atms_of_ms :: "'a literal multiset set \<Rightarrow> 'a set" where
+definition atms_of_ms :: "'a clause set \<Rightarrow> 'a set" where
 "atms_of_ms \<psi>s = \<Union>(atms_of ` \<psi>s)"
 
 lemma atms_of_mmltiset[simp]:
@@ -132,7 +135,7 @@ lemma atms_of_ms_empty_iff:
   apply (rule iffI)
    apply (metis (no_types, lifting) atms_empty_iff_empty atms_of_atms_of_ms_mono insert_absorb
     singleton_iff singleton_insert_inj_eq' subsetI subset_empty)
-  apply auto[]
+  apply (auto; fail)
   done
 
 lemma in_implies_atm_of_on_atms_of_ms:
@@ -146,7 +149,7 @@ lemma in_plus_implies_atm_of_on_atms_of_ms:
   using in_implies_atm_of_on_atms_of_ms[of _ "C +{#L#}"] assms by auto
 
 lemma in_m_in_literals:
-  assumes "{#A#} + D \<in> \<psi>s"
+  assumes "add_mset A D \<in> \<psi>s"
   shows "atm_of A \<in> atms_of_ms \<psi>s"
   using assms by (auto dest: atms_of_atms_of_ms_mono)
 
@@ -254,7 +257,7 @@ lemma total_over_set_atms_of_m[simp]:
   unfolding total_over_set_def atms_of_s_def by (metis image_iff literal.exhaust_sel)
 
 lemma total_over_set_literal_defined:
-  assumes "{#A#} + D \<in> \<psi>s"
+  assumes "add_mset A D \<in> \<psi>s"
   and "total_over_set I (atms_of_ms \<psi>s)"
   shows "A \<in> I \<or> -A \<in> I"
   using assms unfolding total_over_set_def by (metis (no_types) Neg_atm_of_iff in_m_in_literals
@@ -293,7 +296,9 @@ lemma total_union_2:
   shows "total_over_m (I \<union> I') (\<psi> \<union> \<psi>')"
   using assms unfolding total_over_m_def total_over_set_def by auto
 
+
 subsubsection \<open>Interpretations\<close>
+
 definition true_cls :: "'a interp \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>" 50) where
   "I \<Turnstile> C \<longleftrightarrow> (\<exists>L \<in># C. I \<Turnstile>l L)"
 
@@ -400,7 +405,9 @@ lemma notin_vars_union_true_clss_true_clss:
   using assms unfolding true_clss_def true_lit_def Ball_def
   by (meson atms_of_atms_of_ms_mono notin_vars_union_true_cls_true_cls subset_trans)
 
+
 subsubsection \<open>Satisfiability\<close>
+
 definition satisfiable :: "'a clause set \<Rightarrow> bool" where
   "satisfiable CC \<equiv> \<exists>I. (I \<Turnstile>s CC \<and> consistent_interp I \<and> total_over_m I CC)"
 
@@ -616,6 +623,9 @@ lemma tautology_false[simp]: "\<not>tautology {#}"
 lemma tautology_add_mset:
   "tautology (add_mset a L) \<longleftrightarrow> tautology L \<or> -a \<in># L"
   unfolding tautology_decomp by (cases a) auto
+
+lemma tautology_single[simp]: \<open>\<not>tautology {#L#}\<close>
+  by (simp add: tautology_add_mset)
 
 lemma minus_interp_tautology:
   assumes "{-L | L. L\<in># \<chi>} \<Turnstile> \<chi>"
@@ -957,7 +967,9 @@ lemma true_cls_remdups_mset[iff]: "I \<Turnstile> remdups_mset C \<longleftright
 lemma true_clss_cls_remdups_mset[iff]: "A \<Turnstile>p remdups_mset C \<longleftrightarrow> A \<Turnstile>p C"
   unfolding true_clss_cls_def total_over_m_def by auto
 
+
 subsection \<open>Set of all Simple Clauses\<close>
+
 text \<open>A simple clause with respect to a set of atoms is such that
   \<^enum> its atoms are included in the considered set of atoms;
   \<^enum> it is not a tautology;
@@ -1009,7 +1021,7 @@ proof (standard; standard)
         using f4 Add LCL LC H unfolding atms_of_def by (metis H in_diffD insertE
           literal.exhaust_sel uminus_Neg uminus_Pos)
       moreover have "\<not> tautology (C - {#L#})"
-        using taut  by (metis Add(1) insert_DiffM tautology_add_mset)
+        using taut by (metis Add(1) insert_DiffM tautology_add_mset)
       moreover have "distinct_mset (C - {#L#})"
         using dist by auto
       ultimately have "(C - {#L#}) \<in> simple_clss atms"
@@ -1158,18 +1170,18 @@ Shared by the second layer of type 'a \<Rightarrow> 'b set \<Rightarrow> bool:
 * A \<subseteq> B \<Longrightarrow> I \<Turnstile>s B \<Longrightarrow> I \<Turnstile>s A
 * I \<Turnstile>s {}
 
-*   true_lit      \<Turnstile>   'a interp \<Rightarrow> 'a literal \<Rightarrow> bool
-*   true_cls      \<Turnstile>l 'a interp \<Rightarrow> 'a clause \<Rightarrow> bool
-\<longrightarrow> true_clss     \<Turnstile>s 'a interp \<Rightarrow> 'a clauses \<Rightarrow> bool
+*   true_lit    \<Turnstile>   'a interp \<Rightarrow> 'a literal \<Rightarrow> bool
+*   true_cls    \<Turnstile>l 'a interp \<Rightarrow> 'a clause \<Rightarrow> bool
+\<longrightarrow> true_clss   \<Turnstile>s 'a interp \<Rightarrow> 'a clauses \<Rightarrow> bool
 
-*   true_annot    \<Turnstile>a   ann_lits \<Rightarrow> 'a clause \<Rightarrow> bool
-\<longrightarrow> true_annots   \<Turnstile>as ann_lits \<Rightarrow> 'a clauses \<Rightarrow> bool
+*   true_annot  \<Turnstile>a ann_lits \<Rightarrow> 'a clause \<Rightarrow> bool
+\<longrightarrow> true_annots \<Turnstile>as ann_lits \<Rightarrow> 'a clauses \<Rightarrow> bool
 
 Formula version :
-*   true_cls_cls   \<Turnstile>f 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool
+*   true_cls_cls  \<Turnstile>f 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool
 \<longrightarrow> true_cls_clss \<Turnstile>fs 'a clause \<Rightarrow> 'a clauses \<Rightarrow> bool
 
-*   true_clss_cls \<Turnstile>p 'a clauses \<Rightarrow> 'a clause \<Rightarrow> bool
+*   true_clss_cls  \<Turnstile>p 'a clauses \<Rightarrow> 'a clause \<Rightarrow> bool
 \<longrightarrow> true_clss_clss \<Turnstile>ps 'a clauses \<Rightarrow> 'a clauses \<Rightarrow> bool
 *)
 locale entail =
@@ -1231,7 +1243,7 @@ text \<open>In some cases we want a more general version of entailment to have f
   We can given a model @{term I} consider all the natural extensions: @{term C} is entailed
   by an extended @{term I}, if for all total extension of @{term I}, this model entails @{term C}.
   \<close>
-definition true_clss_ext :: "'a literal set \<Rightarrow> 'a literal multiset set \<Rightarrow> bool" (infix "\<Turnstile>sext" 49)
+definition true_clss_ext :: "'a literal set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>sext" 49)
 where
 "I \<Turnstile>sext N \<longleftrightarrow> (\<forall>J. I \<subseteq> J \<longrightarrow> consistent_interp J \<longrightarrow> total_over_m J N \<longrightarrow> J \<Turnstile>s N)"
 

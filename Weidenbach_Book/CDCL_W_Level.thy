@@ -10,7 +10,7 @@ definition count_decided :: "('v, 'm) ann_lits \<Rightarrow> nat" where
 "count_decided l = length (filter is_decided l)"
 
 definition get_level :: "('v, 'm) ann_lits \<Rightarrow> 'v literal \<Rightarrow> nat" where
-"get_level S L \<equiv> length (filter is_decided (dropWhile (\<lambda>S. atm_of (lit_of S) \<noteq> atm_of L) S))"
+"get_level S L = length (filter is_decided (dropWhile (\<lambda>S. atm_of (lit_of S) \<noteq> atm_of L) S))"
 
 lemma get_level_uminus[simp]: \<open>get_level M (-L) = get_level M L\<close>
   by (auto simp: get_level_def)
@@ -88,7 +88,7 @@ lemma get_level_skip_all_not_decided[simp]:
 abbreviation "MMax M \<equiv> Max (set_mset M)"
 
 text \<open>the @{term "{#0#}"} is there to ensures that the set is not empty.\<close>
-definition get_maximum_level :: "('a, 'b) ann_lits \<Rightarrow> 'a literal multiset \<Rightarrow> nat"
+definition get_maximum_level :: "('a, 'b) ann_lits \<Rightarrow> 'a clause \<Rightarrow> nat"
   where
 "get_maximum_level M D = MMax ({#0#} + image_mset (get_level M) D)"
 
@@ -238,5 +238,14 @@ next
           using lev_K n_d unfolding M by (auto simp: atm_lit_of_set_lits_of_l get_level_def defined_lit_map)
       qed
 qed
+
+
+lemma Suc_count_decided_gt_get_level:
+  \<open>get_level M L < Suc (count_decided M)\<close>
+  by (induction M rule: ann_lit_list_induct) (auto simp: get_level_cons_if)
+
+lemma get_level_Succ_count_decided_neq[simp]:
+  \<open>get_level M L \<noteq> Suc (count_decided M)\<close>
+  using Suc_count_decided_gt_get_level[of M L] by auto
 
 end

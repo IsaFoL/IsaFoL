@@ -51,7 +51,7 @@ proof -
     by (cases M; cases \<open>hd M\<close>) (auto simp add: S cdcl\<^sub>W_restart_mset_state split: if_splits)
 qed
 
-definition skip_and_resolve_loop_ll :: "'v twl_st_list \<Rightarrow> 'v twl_st_list nres"  where
+definition skip_and_resolve_loop_ll :: "'v twl_st_list \<Rightarrow> 'v twl_st_list nres" where
   \<open>skip_and_resolve_loop_ll S\<^sub>0 =
     do {
       (_, S) \<leftarrow>
@@ -90,7 +90,7 @@ definition skip_and_resolve_and_backtrack_list where
   }
   \<close>
 
-definition skip_and_resolve_and_backtrack_ll :: "'v twl_st_list \<Rightarrow> (bool \<times> 'v twl_st_list) nres"  where
+definition skip_and_resolve_and_backtrack_ll :: "'v twl_st_list \<Rightarrow> (bool \<times> 'v twl_st_list) nres" where
   \<open>skip_and_resolve_and_backtrack_ll S =
     do {
       let (M, N, U, D, NP, UP, WS, Q) = S in

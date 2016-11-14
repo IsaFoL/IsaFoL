@@ -552,11 +552,17 @@ lemma fst_get_all_ann_decomposition_prepend_not_decided:
   assumes \<open>\<forall>m\<in>set MS. \<not> is_decided m\<close>
   shows \<open>set (map fst (get_all_ann_decomposition M))
     = set (map fst (get_all_ann_decomposition (MS @ M)))\<close>
-    using assms apply (induction MS rule: ann_lit_list_induct)
-    apply auto[2]
-    by (rename_tac L m xs; case_tac \<open>get_all_ann_decomposition (xs @ M)\<close>) simp_all
+  using assms apply (induction MS rule: ann_lit_list_induct)
+  apply auto[2]
+  by (rename_tac L m xs; case_tac \<open>get_all_ann_decomposition (xs @ M)\<close>) simp_all
+
+lemma no_decision_get_all_ann_decomposition:
+  \<open>\<forall>l\<in>set M. \<not> is_decided l \<Longrightarrow>  get_all_ann_decomposition M = [([], M)]\<close>
+  by (induction M rule: ann_lit_list_induct) auto
+
 
 subsubsection \<open>Entailment of the Propagated by the Decided Literal\<close>
+  
 lemma get_all_ann_decomposition_snd_union:
   \<open>set M = \<Union>(set ` snd ` set (get_all_ann_decomposition M)) \<union> {L |L. is_decided L \<and> L \<in> set M}\<close>
   (is \<open>?M M = ?U M \<union> ?Ls M\<close>)
@@ -574,7 +580,9 @@ next
   then show ?case by (cases \<open>(get_all_ann_decomposition M)\<close>) auto
 qed
 
-definition all_decomposition_implies :: \<open>'a literal multiset set
+
+
+definition all_decomposition_implies :: \<open>'a clause set
   \<Rightarrow> (('a, 'm) ann_lits \<times> ('a, 'm) ann_lits) list \<Rightarrow> bool\<close> where
  \<open>all_decomposition_implies N S \<longleftrightarrow> (\<forall>(Ls, seen) \<in> set S. unmark_l Ls \<union> N \<Turnstile>ps unmark_l seen)\<close>
 
@@ -694,7 +702,7 @@ next
 
         moreover have \<open>unmark_l Ls0 \<union> N \<Turnstile>ps unmark_l seen0\<close>
           using decomp unfolding Ls0 by simp
-        moreover have \<open>\<And>M Ma. (M::'a literal multiset set) \<union> Ma \<Turnstile>ps M\<close>
+        moreover have \<open>\<And>M Ma. (M::'a clause set) \<union> Ma \<Turnstile>ps M\<close>
           by (simp add: all_in_true_clss_clss)
         ultimately have \<Psi>: \<open>N \<union> ?unM \<Turnstile>ps unmark_l seen0\<close>
           by (meson true_clss_clss_left_right true_clss_clss_union_and true_clss_clss_union_l_r)
@@ -1073,7 +1081,7 @@ abbreviation distinct_mset_mset :: \<open>'a multiset multiset \<Rightarrow> boo
 abbreviation all_decomposition_implies_m where
 \<open>all_decomposition_implies_m A B \<equiv> all_decomposition_implies (set_mset A) B\<close>
 
-abbreviation atms_of_mm :: \<open>'a literal multiset multiset \<Rightarrow> 'a set\<close> where
+abbreviation atms_of_mm :: \<open>'a clause multiset \<Rightarrow> 'a set\<close> where
 \<open>atms_of_mm U \<equiv> atms_of_ms (set_mset U)\<close>
 
 text \<open>Other definition using @{term \<open>Union_mset\<close>}\<close>

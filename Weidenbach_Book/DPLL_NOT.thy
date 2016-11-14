@@ -48,7 +48,7 @@ proof -
   obtain K where L: \<open>L = Decided K\<close> using \<open>is_decided L\<close> by (cases L) auto
 
   have M: \<open>M = F' @ Decided K # F\<close>
-    using b_sp  by (metis L backtrack_split_list_eq fst_conv snd_conv)
+    using b_sp by (metis L backtrack_split_list_eq fst_conv snd_conv)
   moreover have CNot_D: \<open>F' @ Decided K # F \<Turnstile>as CNot D\<close>
     using \<open>M\<Turnstile>as CNot D\<close> unfolding M .
   moreover have undef: \<open>undefined_lit F (-?K)\<close>

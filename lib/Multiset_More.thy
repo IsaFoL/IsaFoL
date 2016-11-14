@@ -110,7 +110,7 @@ subsection \<open>Lemmas about intersections, unions and point-wise inclusion\<c
 lemma mset_inter_single: "x \<in># \<Sigma> \<Longrightarrow> \<Sigma> \<inter># {#x#} = {#x#}"
   by simp
 
-lemma subset_add_mset_notin_subset_mset: \<open>A \<subseteq># add_mset b B \<Longrightarrow> b \<notin># A  \<Longrightarrow> A \<subseteq># B\<close>
+lemma subset_add_mset_notin_subset_mset: \<open>A \<subseteq># add_mset b B \<Longrightarrow> b \<notin># A \<Longrightarrow> A \<subseteq># B\<close>
   by (simp add: subset_mset.sup.absorb_iff2)
 
 text \<open>@{thm [source] psubsetE} is the set counterpart\<close>
@@ -203,7 +203,7 @@ lemma count_image_mset_ge_count:
 
 lemma count_image_mset_inj:
   assumes \<open>inj f\<close>
-  shows  \<open>count (image_mset f M) (f x) = count M x\<close>
+  shows \<open>count (image_mset f M) (f x) = count M x\<close>
   by (induction M) (use assms in \<open>auto simp: inj_on_def\<close>)
 
 lemma mset_filter_compl: "mset (filter p xs) + mset (filter (Not \<circ> p) xs) = mset xs"

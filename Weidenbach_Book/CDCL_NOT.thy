@@ -39,7 +39,7 @@ locale dpll_state_ops =
     add_cls\<^sub>N\<^sub>O\<^sub>T :: \<open>'v clause \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
     remove_cls\<^sub>N\<^sub>O\<^sub>T :: \<open>'v clause \<Rightarrow> 'st \<Rightarrow> 'st\<close>
 begin
-abbreviation state\<^sub>N\<^sub>O\<^sub>T  :: \<open>'st \<Rightarrow> ('v, unit) ann_lit list \<times> 'v clauses\<close> where
+abbreviation state\<^sub>N\<^sub>O\<^sub>T :: \<open>'st \<Rightarrow> ('v, unit) ann_lit list \<times> 'v clauses\<close> where
 \<open>state\<^sub>N\<^sub>O\<^sub>T S \<equiv> (trail S, clauses\<^sub>N\<^sub>O\<^sub>T S)\<close>
 end
 
@@ -562,8 +562,9 @@ text \<open>The bounds are the following:
   of elements, where adding one is necessary for the same reason as for the bound on the list, and
   one is needed to have a strict bound.
   \<close>
-abbreviation unassigned_lit :: \<open>'b literal multiset set \<Rightarrow> 'a list \<Rightarrow> nat\<close> where
+abbreviation unassigned_lit :: \<open>'b clause set \<Rightarrow> 'a list \<Rightarrow> nat\<close> where
   \<open>unassigned_lit N M \<equiv> card (atms_of_ms N) - length M\<close>
+
 lemma dpll_bj_trail_mes_increasing_prop:
   fixes M :: \<open>('v, unit) ann_lits \<close> and N :: \<open>'v clauses\<close>
   assumes
@@ -3581,7 +3582,7 @@ proof (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn.induct)
     T: \<open>T \<sim> add_cls\<^sub>N\<^sub>O\<^sub>T D S'\<close>
     using bj_l inv backjump_l_backjump_learn [of S] by blast
   have \<open>all_decomposition_implies_m (clauses\<^sub>N\<^sub>O\<^sub>T S') (get_all_ann_decomposition (trail S'))\<close>
-    using bj bj_backjump  dpll_bj_clauses inv(1) inv(2)
+    using bj bj_backjump dpll_bj_clauses inv(1) inv(2)
     by (fastforce simp: dpll_bj_all_decomposition_implies_inv)
   then show ?case
     using T by (auto simp: all_decomposition_implies_insert_single)
@@ -3921,7 +3922,7 @@ locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_with_backtrack_restarts =
     inv_restart:\<open>\<And>S T. inv S \<Longrightarrow> T \<sim> reduce_trail_to\<^sub>N\<^sub>O\<^sub>T [] S \<Longrightarrow> inv T\<close>
 begin
 
-definition not_simplified_cls :: \<open>'b literal multiset multiset \<Rightarrow> 'b literal multiset multiset\<close>
+definition not_simplified_cls :: \<open>'b clause multiset \<Rightarrow> 'b clauses\<close>
 where
 \<open>not_simplified_cls A \<equiv> {#C \<in># A. C \<notin> simple_clss (atms_of_mm A)#}\<close>
 

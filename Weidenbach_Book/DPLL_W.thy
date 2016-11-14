@@ -122,7 +122,7 @@ next
         fix a c
         assume h: "hd (get_all_ann_decomposition (trail S)) = (a, c)"
         have h': "trail S = c @ a" using get_all_ann_decomposition_decomp h by blast
-        have I: "set (map unmark  a) \<union> set_mset (clauses S)
+        have I: "set (map unmark a) \<union> set_mset (clauses S)
           \<union> unmark_l c \<Turnstile>ps CNot C"
           using \<open>?I \<Turnstile>ps CNot C\<close> unfolding h' by (simp add: Un_commute Un_left_commute)
         have
@@ -252,7 +252,7 @@ lemma only_propagated_vars_unsat:
   assumes decided: "\<forall>x \<in> set M. \<not> is_decided x"
   and DN: "D \<in> N" and D: "M \<Turnstile>as CNot D"
   and inv: "all_decomposition_implies N (get_all_ann_decomposition M)"
-  and atm_incl: "atm_of ` lits_of_l M  \<subseteq> atms_of_ms N"
+  and atm_incl: "atm_of ` lits_of_l M \<subseteq> atms_of_ms N"
   shows "unsatisfiable N"
 proof (rule ccontr)
   assume "\<not> unsatisfiable N"
@@ -404,7 +404,7 @@ lemma dpll\<^sub>W_strong_completeness:
   and "distinct M"
   and "atm_of ` (set M) \<subseteq> atms_of_mm N"
   shows "dpll\<^sub>W\<^sup>*\<^sup>* ([], N) (map Decided M, N)"
-  and "conclusive_dpll\<^sub>W_state (map Decided  M, N)"
+  and "conclusive_dpll\<^sub>W_state (map Decided M, N)"
 proof -
   show "rtranclp dpll\<^sub>W ([], N) (map Decided M, N)" using dpll\<^sub>W_can_do_step assms by auto
   have "map Decided M \<Turnstile>asm N" using assms(1) true_annots_decided_true_cls by auto
@@ -600,7 +600,7 @@ lemma dpll\<^sub>W_wf_tranclp: "wf {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\
   unfolding dpll\<^sub>W_tranclp_star_commute[symmetric] by (simp add: dpll\<^sub>W_wf wf_trancl)
 
 lemma dpll\<^sub>W_wf_plus:
-  "wf {(S', ([], N))| S'. dpll\<^sub>W\<^sup>+\<^sup>+ ([], N) S'}"  (is "wf ?P")
+  "wf {(S', ([], N))| S'. dpll\<^sub>W\<^sup>+\<^sup>+ ([], N) S'}" (is "wf ?P")
   apply (rule wf_subset[OF dpll\<^sub>W_wf_tranclp, of ?P])
   unfolding dpll\<^sub>W_all_inv_def by auto
 
@@ -611,7 +611,7 @@ lemma dpll\<^sub>W_no_more_step_is_a_conclusive_state:
   assumes "\<forall>S'. \<not>dpll\<^sub>W S S'"
   shows "conclusive_dpll\<^sub>W_state S"
 proof -
-  have vars: "\<forall>s \<in> atms_of_mm (clauses S). s \<in> atm_of ` lits_of_l  (trail S)"
+  have vars: "\<forall>s \<in> atms_of_mm (clauses S). s \<in> atm_of ` lits_of_l (trail S)"
     proof (rule ccontr)
       assume "\<not> (\<forall>s\<in>atms_of_mm (clauses S). s \<in> atm_of ` lits_of_l (trail S))"
       then obtain L where
@@ -673,7 +673,7 @@ next
   show ?A
     proof (rule ccontr)
       assume n: "\<not> ?A"
-      have no_mark: "\<forall>L\<in>set M. \<not> is_decided L"  "\<exists>C \<in># N. M \<Turnstile>as CNot C"
+      have no_mark: "\<forall>L\<in>set M. \<not> is_decided L" "\<exists>C \<in># N. M \<Turnstile>as CNot C"
         using n assms(2) unfolding conclusive_dpll\<^sub>W_state_def by auto
       moreover obtain D where DN: "D \<in># N" and MD: "M \<Turnstile>as CNot D" using no_mark by auto
       ultimately have "unsatisfiable (set_mset N)"

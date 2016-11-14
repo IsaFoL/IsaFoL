@@ -628,7 +628,7 @@ next
                 rtranclp_cdcl\<^sub>W_merge_tranclp_cdcl\<^sub>W_merge_restart)
             have "conflicting V \<noteq> None \<and> conflicting U \<noteq> None"
               using \<open>skip_or_resolve U V\<close>
-              by (auto simp: skip_or_resolve.simps  elim!: skipE resolveE)
+              by (auto simp: skip_or_resolve.simps elim!: skipE resolveE)
             then have ?thesis
               by (metis (full_types) IH f1 rtranclp_trans tranclp_into_rtranclp)
           }
@@ -677,7 +677,7 @@ proof clarify
     assume
       f: "(f (Suc i), f i) \<in> {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W S T}" and
       confl: "conflicting (f i) \<noteq> None" for i
-    have  "(f (Suc i), f i) \<in> {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_bj S T}" for i
+    have "(f (Suc i), f i) \<in> {(T, S). cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_bj S T}" for i
       using f[of i] confl[of i] by (auto simp:  cdcl\<^sub>W.simps cdcl\<^sub>W_o.simps cdcl\<^sub>W_rf.simps
         elim!: rulesE)
     then have False
@@ -709,7 +709,7 @@ proof clarify
     qed
   moreover have "{i\<^sub>0. \<forall>i < i\<^sub>0. conflicting (f i) \<noteq> None} \<noteq> {}"
     by auto
-  ultimately  have "i\<^sub>0 \<in> {i\<^sub>0. \<forall>i < i\<^sub>0. conflicting (f i) \<noteq> None}"
+  ultimately have "i\<^sub>0 \<in> {i\<^sub>0. \<forall>i < i\<^sub>0. conflicting (f i) \<noteq> None}"
     using Max_in[of "{i\<^sub>0. \<forall>i<i\<^sub>0. conflicting (f i) \<noteq> None}"] unfolding i\<^sub>0 by fast
   then have confl_i\<^sub>0: "conflicting (f i\<^sub>0) = None"
     proof -
@@ -802,7 +802,7 @@ proof clarify
         by auto
       moreover have "cdcl\<^sub>W_all_struct_inv (f ?i)"
         by auto
-      ultimately  have "cdcl\<^sub>W\<^sup>+\<^sup>+ (f ?i) (f ?j)"
+      ultimately have "cdcl\<^sub>W\<^sup>+\<^sup>+ (f ?i) (f ?j)"
         using g_increasing by (simp add: st)
       then have "cdcl\<^sub>W_merge\<^sup>+\<^sup>+ (f ?i) (f ?j)"
         by (auto dest!: trancl_cdcl\<^sub>W_conflicting_true_cdcl\<^sub>W_merge_restart)
@@ -1047,7 +1047,7 @@ proof -
     inv_U: \<open>cdcl\<^sub>W_all_struct_inv U\<close> and
     no_smaller_U: \<open>no_smaller_propa U\<close> and
     inv_stgy_U: \<open>cdcl\<^sub>W_stgy_invariant U\<close>
-    using inv rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv  rtranclp_cdcl\<^sub>W_stgy_no_smaller_propa
+    using inv rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv rtranclp_cdcl\<^sub>W_stgy_no_smaller_propa
     rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant by blast+
   show ?thesis
     proof (cases C')
@@ -1129,7 +1129,7 @@ proof -
       let ?T' = \<open>f l\<close>
       let ?T'' = \<open>f (Suc l)\<close>
       have res: \<open>resolve ?T' ?T''\<close>
-        using confl_Suc_l  \<open>0 < size (the (conflicting (f l)))\<close> f_s_o_r[of l] \<open>l < j\<close>
+        using confl_Suc_l \<open>0 < size (the (conflicting (f l)))\<close> f_s_o_r[of l] \<open>l < j\<close>
         by (auto simp: skip_or_resolve.simps elim: rulesE)
       then have confl_T': \<open>size (the (conflicting (f l))) = 1\<close>
         using confl_Suc_l by (auto elim!: rulesE
@@ -1204,8 +1204,8 @@ proof -
     using skip_or_resolve_state_change[of T U] by blast+
   then obtain M where M: \<open>trail T = M @ trail U\<close>
     by blast
-  obtain D :: "'v literal multiset" and K L :: "'v literal"  and
-    M1 M2 :: "('v, 'v literal multiset) ann_lit list" and i :: nat where
+  obtain D :: "'v clause" and K L :: "'v literal" and
+    M1 M2 :: "('v, 'v clause) ann_lit list" and i :: nat where
     confl_D: "conflicting U = Some D" and
     LD: "L \<in># D" and
     decomp: "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail U))" and
@@ -1259,9 +1259,9 @@ proof -
     using inv_V V unfolding cdcl\<^sub>W_all_struct_inv_def apply simp
     done
   have \<open>L \<notin># remove1_mset L D\<close>
-    using \<open>distinct_mset (remove1_mset L D)\<close> \<open>distinct_mset D\<close> unfolding distinct_mset_count_less_1 
+    using \<open>distinct_mset (remove1_mset L D)\<close> \<open>distinct_mset D\<close> unfolding distinct_mset_count_less_1
     by (auto simp: not_in_iff)
-  
+
   show ?thesis
     apply (rule cdcl\<^sub>W_with_strategy.backjump_l.intros[of _ _ K "convert_trail_from_W M1"])
              apply (simp add: tr_T_S[symmetric] M' M; fail)
@@ -1270,10 +1270,10 @@ proof -
           using S_Not_C apply (simp; fail)
          using undef_L apply (simp; fail)
         using atm_L apply (simp; fail)
-       using  \<open>clauses S \<Turnstile>pm (remove1_mset L D) + {#L#}\<close> apply (simp; fail)
+       using \<open>clauses S \<Turnstile>pm (remove1_mset L D) + {#L#}\<close> apply (simp; fail)
       using DLL apply (simp; fail)
      using \<open>M1 \<Turnstile>as CNot (remove1_mset L D)\<close> apply (simp; fail)
-    using \<open>distinct_mset (remove1_mset L D)\<close> \<open>\<not> tautology D\<close> conf full bt confl_D 
+    using \<open>distinct_mset (remove1_mset L D)\<close> \<open>\<not> tautology D\<close> conf full bt confl_D
       \<open>L \<notin># remove1_mset L D\<close> LD unfolding DLL[symmetric]
     by (auto; fail)
 qed
@@ -1309,10 +1309,6 @@ next
     using T by (simp add: state_eq\<^sub>N\<^sub>O\<^sub>T_def clauses_def)
 qed
 
-text \<open>TODO Move\<close>
-lemma no_decision_get_all_ann_decomposition:
-  \<open>\<forall>l\<in>set M. \<not> is_decided l \<Longrightarrow>  get_all_ann_decomposition M = [([], M)]\<close>
-  by (induction M rule: ann_lit_list_induct) auto
 
 interpretation cdcl\<^sub>W_with_strategy: cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn where
   trail = "\<lambda>S. convert_trail_from_W (trail S)" and
@@ -1341,7 +1337,7 @@ next
   then have \<open>count_decided (trail S) > 0\<close>
     by simp
   then have \<open>backtrack_lvl S > 0\<close>
-    using  \<open>inv\<^sub>N\<^sub>O\<^sub>T_stgy S\<close> unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
+    using \<open>inv\<^sub>N\<^sub>O\<^sub>T_stgy S\<close> unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
   have "\<exists>T U V. conflict S T \<and> full skip_or_resolve T U \<and> backtrack U V"
     apply (rule conflicting_clause_bt_lvl_gt_0_backjump)
        using \<open>inv\<^sub>N\<^sub>O\<^sub>T_stgy S\<close> apply (auto; fail)[]
