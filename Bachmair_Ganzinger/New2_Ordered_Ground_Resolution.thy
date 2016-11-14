@@ -63,12 +63,13 @@ abbreviation "str_maximal_in A CAis \<equiv> (\<forall>B \<in> atms_of (get_C CA
 
 (* Inspiration from supercalc *)
 inductive eligible :: "'a main_clause \<Rightarrow> bool" where
+  eligible:
   "S (main_clause (D,As)) = negs (mset As) 
    \<or> 
    (
      S (main_clause (D,As)) = {#} 
      \<and> length As = 1 
-     \<and> As ! 1 = Max (atms_of (main_clause (D,As)))
+     \<and> As ! 0 = Max (atms_of (main_clause (D,As)))
    )
    \<Longrightarrow> eligible (D,As)"
   
@@ -166,7 +167,7 @@ using res_e proof (cases rule: ord_resolve.cases)
       mc_max: "\<And>B. B \<in> atms_of UCAs \<Longrightarrow> B \<le> max_A_of_Cs"
       by auto
     
-    then have "\<exists>C_max \<in> set CAs. max_A_of_Cs \<in> atms_of (get_C C_max)"
+    hence "\<exists>C_max \<in> set CAs. max_A_of_Cs \<in> atms_of (get_C C_max)"
       unfolding UCAs_def by (induction CAs) auto
     then obtain max_i where
         cm_in_cas: "max_i < length CAs" and
@@ -197,4 +198,100 @@ using res_e proof (cases rule: ord_resolve.cases)
     then show ?thesis unfolding e by auto
   qed
 qed
+
+text {*
+This corresponds to Theorem 3.15:
+*}
+
+theorem ord_resolve_counterex_reducing:
+  assumes
+    ec_ni_n: "{#} \<notin> N" and
+    d_in_n: "DA \<in> N" and
+    d_cex: "\<not> INTERP N \<Turnstile> DA" and
+    d_min: "\<And>C. C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> DA \<le> C"
+  obtains CAs E D As where
+    "main_clause (D,As) = DA" (* This line was added to fit the new definition. It does not look so nice... *)
+    "set_mset (side_clauses CAs) \<subseteq> N"
+    "INTERP N \<Turnstile>m side_clauses CAs"
+    "\<And>CA. CA \<in># side_clauses CAs \<Longrightarrow> productive N CA"
+    "ord_resolve CAs (D,As) E"
+    "\<not> INTERP N \<Turnstile> E"
+    "E < C"
+proof -
+  have d_ne: "DA \<noteq> {#}"
+    using d_in_n ec_ni_n by blast
+  have "\<exists>D As. DA = main_clause (D,As) \<and> As \<noteq> [] \<and> negs (mset As) \<le># DA \<and> eligible (D,As)"
+  proof (cases "S DA = {#}")
+    assume s_d_e: "S DA = {#}"
+    define A where "A = Max (atms_of DA)"
+    define As where "As = [A]"
+    define D where "D = DA-{#Neg A #}"
+    
+    have na_in_d: "Neg A \<in># DA"
+      unfolding A_def using s_d_e d_ne d_in_n d_cex d_min
+      by (metis Max_in_lits Max_lit_eq_pos_or_neg_Max_atm max_pos_imp_true_in_Interp
+        true_Interp_imp_INTERP)
+    hence das: "DA = main_clause (D,As)" unfolding D_def As_def by auto
+    moreover
+    from na_in_d have "negs (mset As) \<subseteq># DA"
+      by (simp add: As_def) 
+    moreover
+    have "As ! 0 = Max (atms_of (main_clause (D, As)))"
+      using A_def As_def das by auto
+    hence "eligible (D, As)" using eligible s_d_e As_def das by auto
+    ultimately show ?thesis using As_def by blast
+  next
+    assume s_d_e: "S DA \<noteq> {#}"
+    define As where "As = list_of_mset {#atm_of L. L \<in># S DA#}"
+    define D where "D = DA - negs {#atm_of L. L \<in># S DA#}"
+    
+    have "As \<noteq> []" unfolding As_def using s_d_e
+      by (metis image_mset_is_empty_iff list_of_mset_empty)
+    moreover
+    have da_sub_as: "negs {#atm_of L. L \<in># S DA#} \<subseteq># DA" 
+      using S_selects_subseteq by (auto simp: filter_neg_atm_of_S)
+    hence "negs (mset As) \<subseteq># DA" unfolding As_def by auto
+    moreover
+    have das: "DA = main_clause (D, As)" using da_sub_as unfolding D_def As_def by auto
+    moreover
+    have "S DA = negs {#atm_of L. L \<in># S DA#}" 
+      by (auto simp: filter_neg_atm_of_S)
+    hence "S DA = negs (mset As)" unfolding As_def by auto
+    hence "eligible (D, As)" unfolding das using eligible by auto
+    ultimately show ?thesis by blast
+  qed
+  then obtain D As where
+    da_da: "DA = main_clause (D,As)" and
+    as_ne: "As \<noteq> []" and 
+    negs_as_le_d: "negs (mset As) \<le># DA" and
+    s_d: "eligible (D,As)"
+    by blast
+  have "set As \<subseteq> INTERP N"
+    using d_cex negs_as_le_d by force
+  hence prod_ex: "\<forall>A \<in> set As. \<exists>D. produces N D A"
+    unfolding INTERP_def  
+    by (metis (no_types, lifting) INTERP_def subsetCE UN_E not_produces_imp_notin_production) 
+  hence "\<And>A. \<exists>D. produces N D A \<longrightarrow> A \<in> set As"
+    using ec_ni_n by (auto intro: productive_in_N)
+  
+  thus ?thesis sorry
+qed
+
+end
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
     

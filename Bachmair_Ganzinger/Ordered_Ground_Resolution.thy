@@ -167,7 +167,6 @@ using res_e proof (cases rule: ord_resolve.cases)
           gr_implies_not_zero order.not_eq_order_implies_strict)
     thus ?thesis
       unfolding e d by simp
-    thm d
   qed
 qed
 
@@ -178,152 +177,153 @@ This corresponds to Theorem 3.15:
 theorem ord_resolve_counterex_reducing:
   assumes
     ec_ni_n: "{#} \<notin> N" and
-    c_in_n: "C \<in> N" and
-    c_cex: "\<not> INTERP N \<Turnstile> C" and
-    c_min: "\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D"
-  obtains DD E where
-    "set_mset DD \<subseteq> N"
-    "INTERP N \<Turnstile>m DD"
-    "\<And>D. D \<in># DD \<Longrightarrow> productive N D"
-    "ord_resolve DD C E"
+    d_in_n: "D \<in> N" and
+    d_cex: "\<not> INTERP N \<Turnstile> D" and
+    d_min: "\<And>C. C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> D \<le> C"
+  obtains CC E where
+    "set_mset CC \<subseteq> N"
+    "INTERP N \<Turnstile>m CC"
+    "\<And>C. C \<in># CC \<Longrightarrow> productive N C"
+    "ord_resolve CC D E"
     "\<not> INTERP N \<Turnstile> E"
-    "E < C"
+    "E < D"
 proof -
-  have c_ne: "C \<noteq> {#}"
-    using c_in_n ec_ni_n by blast
-  have "\<exists>AA. AA \<noteq> {#} \<and> negs AA \<le># C \<and>
-    (S C = negs AA \<or> S C = {#} \<and> size AA = 1 \<and> Max (atms_of C) \<in># AA)"
-  proof (cases "S C = {#}")
+  have d_ne: "D \<noteq> {#}"
+    using d_in_n ec_ni_n by blast
+  have "\<exists>AA. AA \<noteq> {#} \<and> negs AA \<le># D \<and>
+    (S D = negs AA \<or> S D = {#} \<and> size AA = 1 \<and> Max (atms_of D) \<in># AA)"
+  proof (cases "S D = {#}")
     case True
-    note s_c_e = this
-    hence "\<exists>A. A \<in> atms_of C \<and> A = Max (atms_of C)"
-      using c_ne by (blast intro: Max_in_lits atm_of_Max_lit atm_of_lit_in_atms_of)
-    hence "\<exists>A. Neg A \<in># C \<and> A = Max (atms_of C)"
-      using s_c_e c_ne c_in_n c_cex c_min
+    note s_d_e = this
+    hence "\<exists>A. A \<in> atms_of D \<and> A = Max (atms_of D)"
+      using d_ne by (blast intro: Max_in_lits atm_of_Max_lit atm_of_lit_in_atms_of)
+    hence "\<exists>A. Neg A \<in># D \<and> A = Max (atms_of D)"
+      using s_d_e d_ne d_in_n d_cex d_min
       by (metis Max_in_lits Max_lit_eq_pos_or_neg_Max_atm max_pos_imp_true_in_Interp
         true_Interp_imp_INTERP)
     then obtain A where
-      "{#A#} \<noteq> {#}" and "{#Neg A#} \<le># C" and "A = Max (atms_of C)"
+      "{#A#} \<noteq> {#}" and "{#Neg A#} \<le># D" and "A = Max (atms_of D)"
       by (auto intro: mset_subset_eq_single)
     thus ?thesis
-      using s_c_e unfolding One_nat_def
+      using s_d_e unfolding One_nat_def
       by (metis (no_types) One_nat_def image_mset_single multi_member_last size_single)
   next
     case False
-    then obtain AA where aa_ne: "AA \<noteq> {#}" and aa: "AA = {#atm_of L. L \<in># S C#}"
+    then obtain AA where aa_ne: "AA \<noteq> {#}" and aa: "AA = {#atm_of L. L \<in># S D#}"
       by auto
-    have "S C = negs AA"
+    have "S D = negs AA"
       unfolding aa by (auto simp: filter_neg_atm_of_S)
-    moreover have "negs AA \<le># C"
+    moreover have "negs AA \<le># D"
       unfolding aa using S_selects_subseteq by (auto simp: filter_neg_atm_of_S)
     ultimately show ?thesis
       using aa_ne by auto
   qed
   then obtain AA where
     aa_ne: "AA \<noteq> {#}" and
-    negs_aa_le_c: "negs AA \<le># C" and
-    s_c: "S C = negs AA \<or> S C = {#} \<and> size AA = 1 \<and> Max (atms_of C) \<in># AA"
+    negs_aa_le_d: "negs AA \<le># D" and
+    s_d: "S D = negs AA \<or> S D = {#} \<and> size AA = 1 \<and> Max (atms_of D) \<in># AA"
     by blast
-  obtain C' where c: "C = negs AA + C'"
-    using negs_aa_le_c mset_subset_eq_exists_conv by blast
-  from negs_aa_le_c have neg_a_in_c: "\<And>A. A \<in># AA \<Longrightarrow> Neg A \<in># C"
+  obtain C' where c: "D = negs AA + C'"
+    using negs_aa_le_d mset_subset_eq_exists_conv by blast
+  from negs_aa_le_d have neg_a_in_d: "\<And>A. A \<in># AA \<Longrightarrow> Neg A \<in># D"
     by fastforce
   have "\<And>A. A \<in># AA \<Longrightarrow> A \<in> INTERP N"
-    using c_cex neg_a_in_c by force
+    using d_cex neg_a_in_d by force
   hence prod_ex: "\<And>A. A \<in># AA \<Longrightarrow> \<exists>D. produces N D A"
     unfolding INTERP_def by (metis UN_E not_produces_imp_notin_production)
   hence "\<And>A. \<exists>D. produces N D A \<longrightarrow> A \<in># AA"
     using ec_ni_n by (auto intro: productive_in_N)
   hence "\<And>A. \<exists>D. produces N D A \<longleftrightarrow> A \<in># AA"
     using prod_ex by blast
-  then obtain D_of where d_of0: "\<And>A. produces N (D_of A) A \<longleftrightarrow> A \<in># AA"
+  (* D_of was renamed to C_of... I don't know if it was a good idea *)
+  then obtain C_of where c_of0: "\<And>A. produces N (C_of A) A \<longleftrightarrow> A \<in># AA"
     by metis
-  hence prod_d0: "\<And>A. A \<in># AA \<Longrightarrow> produces N (D_of A) A"
+  hence prod_c0: "\<And>A. A \<in># AA \<Longrightarrow> produces N (C_of A) A"
     by blast
 
-  def d'_of: D'_of \<equiv> "\<lambda>A. {#L \<in># D_of A. L \<noteq> Pos A#}"
-  def m_of: M_of \<equiv> "\<lambda>A. count (D_of A) (Pos A)"
+  def c'_of: C'_of \<equiv> "\<lambda>A. {#L \<in># C_of A. L \<noteq> Pos A#}"
+  def m_of: M_of \<equiv> "\<lambda>A. count (C_of A) (Pos A)"
 
-  have d_of: "D_of = (\<lambda>A. D'_of A + replicate_mset (M_of A) (Pos A))"
-    unfolding d'_of m_of
+  have d_of: "C_of = (\<lambda>A. C'_of A + replicate_mset (M_of A) (Pos A))"
+    unfolding c'_of m_of
     by (rule ext) (metis add.commute filter_eq_replicate_mset multiset_partition)
   have m_nz: "\<And>A. A \<in># AA \<Longrightarrow> M_of A \<noteq> 0"
-    using prod_d0 unfolding m_of by (auto intro: produces_imp_Pos_in_lits)
+    using prod_c0 unfolding m_of by (auto intro: produces_imp_Pos_in_lits)
 
-  def zz: ZZ \<equiv> "{#(D'_of A, A, M_of A - 1). A \<in># AA#}"
-  def df'_zz: Df' \<equiv> "\<Union># {#D'. (D', A, m) \<in># ZZ#}"
-  def df: Df \<equiv> "Df' + negs AA"
-  def dd_zz: DD \<equiv> "{#D' + replicate_mset (Suc m) (Pos A). (D', A, m) \<in># ZZ#}"
+  def zz: ZZ \<equiv> "{#(C'_of A, A, M_of A - 1). A \<in># AA#}"
+  def cf'_zz: Cf' \<equiv> "\<Union># {#C'. (C', A, m) \<in># ZZ#}"
+  def cf: Cf \<equiv> "Cf' + negs AA"
+  def cc_zz: CC \<equiv> "{#C' + replicate_mset (Suc m) (Pos A). (C', A, m) \<in># ZZ#}"
 
-  have df': "Df' = \<Union># {#D'_of A. A \<in># AA#}"
-    unfolding df'_zz zz by auto
-  have dd: "DD = {#D_of A. A \<in># AA#}"
-    unfolding dd_zz zz d_of
+  have cf': "Cf' = \<Union># {#C'_of A. A \<in># AA#}"
+    unfolding cf'_zz zz by auto
+  have cc: "CC = {#C_of A. A \<in># AA#}"
+    unfolding cc_zz zz d_of
     by simp (rule image_mset_cong, 
         metis Suc_pred m_nz neq0_conv replicate_mset_Suc union_mset_add_mset_right)
-  have prod_d: "\<And>D. D \<in># DD \<Longrightarrow> productive N D"
-    unfolding dd by (auto dest!: prod_d0)
-  hence dd_subs_n: "set_mset DD \<subseteq> N"
+  have prod_c: "\<And>C. C \<in># CC \<Longrightarrow> productive N C"
+    unfolding cc by (auto dest!: prod_c0)
+  hence cc_subs_n: "set_mset CC \<subseteq> N"
     using productive_in_N by auto
-  have dd_true: "INTERP N \<Turnstile>m DD"
-    unfolding true_cls_mset_def using prod_d productive_imp_true_in_INTERP by blast 
-  have s_dd_e: "\<And>D. D \<in># DD \<Longrightarrow> S D = {#}"
-    by (blast dest: prod_d in_production_imp_produces producesD)
+  have cc_true: "INTERP N \<Turnstile>m CC"
+    unfolding true_cls_mset_def using prod_c productive_imp_true_in_INTERP by blast 
+  have s_cc_e: "\<And>C. C \<in># CC \<Longrightarrow> S C = {#}"
+    by (blast dest: prod_c in_production_imp_produces producesD)
 
-  have "Df' = \<Union># {#C'. (C', A, m) \<in># ZZ#}"
-    unfolding df'_zz dd_zz ..
+  have "Cf' = \<Union># {#C'. (C', A, m) \<in># ZZ#}"
+    unfolding cf'_zz cc_zz ..
   moreover have "AA = {#A. (C', A, m) \<in># ZZ#}"
     unfolding zz by simp
-  moreover have "DD = {#C' + replicate_mset (Suc m) (Pos A). (C', A, m) \<in># ZZ#}"
-    unfolding dd_zz zz d'_of by simp
+  moreover have "CC = {#C' + replicate_mset (Suc m) (Pos A). (C', A, m) \<in># ZZ#}"
+    unfolding cc_zz zz c'_of by simp
   moreover have "ZZ \<noteq> {#}"
     unfolding zz using aa_ne by simp
   moreover have "\<forall>(C', A, m) \<in> set_mset ZZ. \<forall>B \<in> atms_of C'. B < A"
-     by (auto simp: zz d'_of atms_of_def intro: produces_imp_Max_atom dest!: prod_d0)
+     by (auto simp: zz c'_of atms_of_def intro: produces_imp_Max_atom dest!: prod_c0)
        (metis atm_of_lit_in_atms_of insert_not_empty le_imp_less_or_eq Pos_atm_of_iff
           Neg_atm_of_iff pos_neg_in_imp_true produces_imp_Pos_in_lits produces_imp_atms_leq
           productive_imp_false_interp)
-  moreover have "\<not> interp N C \<Turnstile> C"
-    by (metis c_cex c_in_n c_min true_interp_imp_INTERP)
-  ultimately have res_e: "ord_resolve DD C (Df' + C')"
-    using c s_c s_dd_e using ord_resolve.intros[of Df' ZZ AA DD C C'] by blast
+  moreover have "\<not> interp N D \<Turnstile> D"
+    by (metis d_cex d_in_n d_min true_interp_imp_INTERP)
+  ultimately have res_e: "ord_resolve CC D (Cf' + C')"
+    using c s_d s_cc_e using ord_resolve.intros[of Cf' ZZ AA CC D C'] by blast
 
-  have "\<And>A. A \<in># AA \<Longrightarrow> \<not> Neg A \<in># D_of A"
-    by (drule prod_d0) (auto dest: produces_imp_neg_notin_lits)
-  hence a_ni_d': "\<And>A. A \<in># AA \<Longrightarrow> A \<notin> atms_of (D'_of A)"
-    unfolding d'_of using atm_imp_pos_or_neg_lit by force
-  have d'_le_d: "\<And>A. D'_of A \<le> D_of A"
-    unfolding d'_of by (auto intro: subset_eq_imp_le_multiset)
-  have a_max_d: "\<And>A. A \<in># AA \<Longrightarrow> A = Max (atms_of (D_of A))"
-    using prod_d0 productive_imp_produces_Max_atom[of N] by auto
-  hence "\<And>A. A \<in># AA \<Longrightarrow> D'_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (D'_of A)) \<le> A"
-    using d'_le_d by (metis less_eq_Max_atms_of)
-  moreover have "\<And>A. A \<in># AA \<Longrightarrow> D'_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (D'_of A)) \<noteq> A"
-    using a_ni_d' Max_in by (metis (no_types) atms_empty_iff_empty finite_atms_of)
-  ultimately have max_d'_lt_a: "\<And>A. A \<in># AA \<Longrightarrow> D'_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (D'_of A)) < A"
+  have "\<And>A. A \<in># AA \<Longrightarrow> \<not> Neg A \<in># C_of A"
+    by (drule prod_c0) (auto dest: produces_imp_neg_notin_lits)
+  hence a_ni_c': "\<And>A. A \<in># AA \<Longrightarrow> A \<notin> atms_of (C'_of A)"
+    unfolding c'_of using atm_imp_pos_or_neg_lit by force
+  have c'_le_c: "\<And>A. C'_of A \<le> C_of A"
+    unfolding c'_of by (auto intro: subset_eq_imp_le_multiset)
+  have a_max_c: "\<And>A. A \<in># AA \<Longrightarrow> A = Max (atms_of (C_of A))"
+    using prod_c0 productive_imp_produces_Max_atom[of N] by auto
+  hence "\<And>A. A \<in># AA \<Longrightarrow> C'_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (C'_of A)) \<le> A"
+    using c'_le_c by (metis less_eq_Max_atms_of)
+  moreover have "\<And>A. A \<in># AA \<Longrightarrow> C'_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (C'_of A)) \<noteq> A"
+    using a_ni_c' Max_in by (metis (no_types) atms_empty_iff_empty finite_atms_of)
+  ultimately have max_c'_lt_a: "\<And>A. A \<in># AA \<Longrightarrow> C'_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (C'_of A)) < A"
     by (metis order.strict_iff_order)
 
-  have "\<And>D. D \<in># DD \<Longrightarrow> \<not> interp N D \<Turnstile> D"
-    using prod_d productive_imp_false_interp by blast
-  hence "\<And>A. A \<in># AA \<Longrightarrow> \<not> interp N (D_of A) \<Turnstile> D_of A"
-    unfolding dd by auto 
-  hence "\<And>A. A \<in># AA \<Longrightarrow> \<not> Interp N (D_of A) \<Turnstile> D'_of A"
-    unfolding prod_d0 d'_of Interp_def true_cls_def 
+  have "\<And>C. C \<in># CC \<Longrightarrow> \<not> interp N C \<Turnstile> C"
+    using prod_c productive_imp_false_interp by blast
+  hence "\<And>A. A \<in># AA \<Longrightarrow> \<not> interp N (C_of A) \<Turnstile> C_of A"
+    unfolding cc by auto 
+  hence "\<And>A. A \<in># AA \<Longrightarrow> \<not> Interp N (C_of A) \<Turnstile> C'_of A"
+    unfolding prod_c0 c'_of Interp_def true_cls_def 
     by (auto simp: true_lit_def simp del: not_gr_zero)
-  hence d'_at_n: "\<And>A. A \<in># AA \<Longrightarrow> \<not> INTERP N \<Turnstile> D'_of A"
-    using a_max_d d'_le_d max_d'_lt_a false_Interp_imp_INTERP unfolding true_cls_def
+  hence c'_at_n: "\<And>A. A \<in># AA \<Longrightarrow> \<not> INTERP N \<Turnstile> C'_of A"
+    using a_max_c c'_le_c max_c'_lt_a false_Interp_imp_INTERP unfolding true_cls_def
     by (metis true_cls_def true_cls_empty)
-  have "\<not> INTERP N \<Turnstile> Df'"
-    unfolding df' true_cls_def by (auto dest!: d'_at_n)
+  have "\<not> INTERP N \<Turnstile> Cf'"
+    unfolding cf' true_cls_def by (auto dest!: c'_at_n)
   moreover have "\<not> INTERP N \<Turnstile> C'"
-    using c_cex unfolding c by simp
-  ultimately have e_cex: "\<not> INTERP N \<Turnstile> Df' + C'"
+    using d_cex unfolding c by simp
+  ultimately have e_cex: "\<not> INTERP N \<Turnstile> Cf' + C'"
     by simp
 
-  have lt_cex: "Df' + C' < C"
+  have lt_cex: "Cf' + C' < D"
     using res_e ord_resolve_reductive by blast
 
-  from dd_subs_n dd_true prod_d res_e e_cex lt_cex show ?thesis ..
+  from cc_subs_n cc_true prod_c res_e e_cex lt_cex show ?thesis ..
 qed
 
 lemma ord_resolve_atms_of_concl_subset:
