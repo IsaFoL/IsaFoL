@@ -31,7 +31,7 @@ locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_s
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-    init_state :: "'v clauses \<Rightarrow> 'st"  +
+    init_state :: "'v clauses \<Rightarrow> 'st" +
   fixes
     update_weight_information :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
     is_improving :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> bool" and
@@ -258,7 +258,7 @@ lemma additional_info_weight_additional_info': \<open>additional_info S = (weigh
 lemma
   weight_reduce_trail_to[simp]: \<open>weight (reduce_trail_to M S) = weight S\<close> and
   additional_info'_reduce_trail_to[simp]: \<open>additional_info' (reduce_trail_to M S) = additional_info' S\<close>
-  using additional_info_reduce_trail_to[of M  S] unfolding additional_info_weight_additional_info'
+  using additional_info_reduce_trail_to[of M S] unfolding additional_info_weight_additional_info'
   by auto
 
 lemma conflicting_clss_reduce_trail_to[simp]: \<open>conflicting_clss (reduce_trail_to M S) = conflicting_clss S\<close>
@@ -304,7 +304,7 @@ lemma exists_lit_max_level_in_negate_ann_lits:
   by (cases \<open>M\<close>) (auto simp: negate_ann_lits_def)
 
 text \<open>\<^term>\<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant\<close> is too restrictive:
-  \<^term>\<open>cdcl\<^sub>W_restart_mset.no_smaller_confl\<close> is needed but does not hold(at least, if cannot 
+  \<^term>\<open>cdcl\<^sub>W_restart_mset.no_smaller_confl\<close> is needed but does not hold(at least, if cannot
   ensure that conflicts are found as soon as possible).\<close>
 lemma improve_no_smaller_conflict:
   assumes \<open>improve S T\<close> and
@@ -328,17 +328,19 @@ inductive cdcl_opt :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> fo
 cdcl_opt_cdcl:
   \<open>cdcl\<^sub>W_stgy S T \<Longrightarrow> cdcl_opt S T\<close> |
 cdcl_opt_improve:
-  \<open>improve S T \<Longrightarrow> cdcl_opt S T\<close> | 
+  \<open>improve S T \<Longrightarrow> cdcl_opt S T\<close> |
 cdcl_opt_conflict_opt:
   \<open>conflict_opt S T \<Longrightarrow> cdcl_opt S T\<close>
 
 lemma \<open>cdcl\<^sub>W_stgy S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) (abs_state T)\<close>
-  sledgehammer
+  oops
+
+
 lemma
   assumes \<open>cdcl_opt S T\<close> and \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
   shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
   using assms apply induction
-
+oops
 end
 
 end
