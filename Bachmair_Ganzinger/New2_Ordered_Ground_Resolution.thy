@@ -216,7 +216,7 @@ theorem ord_resolve_counterex_reducing:
     "\<And>CA. CA \<in># side_clauses CAs \<Longrightarrow> productive N CA"
     "ord_resolve CAs (D,As) E"
     "\<not> INTERP N \<Turnstile> E"
-    "E < C"
+    "E < DA"
 proof -
   have d_ne: "DA \<noteq> {#}"
     using d_in_n ec_ni_n by blast
@@ -273,9 +273,117 @@ proof -
     by (metis (no_types, lifting) INTERP_def subsetCE UN_E not_produces_imp_notin_production) 
   hence "\<And>A. \<exists>D. produces N D A \<longrightarrow> A \<in> set As"
     using ec_ni_n by (auto intro: productive_in_N)
+  hence "\<And>A. \<exists>D. produces N D A \<longleftrightarrow> A \<in> set As"
+    using prod_ex by blast
+  then obtain C_of where c_of0: "\<And>A. produces N (C_of A) A \<longleftrightarrow> A \<in> set As"
+    by metis
+  hence prod_c0: "\<forall>A \<in> set As. produces N (C_of A) A"
+    by blast
   
-  thus ?thesis sorry
+  define C'_of where "C'_of \<equiv> \<lambda>A. {#L \<in># C_of A. L \<noteq> Pos A#}"
+  define M_of where "M_of \<equiv> \<lambda>A. count (C_of A) (Pos A)"
+  
+  have d_of: "C_of = (\<lambda>A. C'_of A + replicate_mset (M_of A) (Pos A))"
+    unfolding C'_of_def M_of_def
+    by (rule ext) (metis add.commute filter_eq_replicate_mset multiset_partition)
+  have m_nz: "\<And>A. A \<in> set As \<Longrightarrow> M_of A \<noteq> 0"
+    using prod_c0 unfolding M_of_def by (auto intro: produces_imp_Pos_in_lits)
+  
+  define CAs where "CAs = map (\<lambda>A. (C'_of A, replicate_mset (M_of A) A)) As" 
+  {
+    fix CA
+    assume "CA \<in> set CAs"
+    then obtain i where i_p: "i < length CAs" "CAs ! i = CA"
+      by (meson in_set_conv_nth)
+    let ?A = "As ! i"
+    have "production N (C_of (As ! i)) = {As ! i}" using i_p CAs_def prod_c0 by auto 
+    then have "productive N (side_clause CA)" using i_p CAs_def
+      using d_of by auto 
+  }
+  then have prod_c': "\<And>CA. CA \<in> set CAs \<Longrightarrow> productive N (side_clause CA)" .
+  then have prod_c: "\<And>CA. CA \<in># side_clauses CAs \<Longrightarrow> productive N CA" by auto
+  hence cs_subs_n: "set_mset (side_clauses CAs) \<subseteq> N"
+    using productive_in_N by auto
+  have cs_true: "INTERP N \<Turnstile>m side_clauses CAs"
+    unfolding true_cls_mset_def using prod_c productive_imp_true_in_INTERP by auto
+    
+  have "\<And>A. A \<in> set As \<Longrightarrow> \<not> Neg A \<in># C_of A"
+    using prod_c0 produces_imp_neg_notin_lits by auto
+  hence a_ni_c': "\<And>A. A \<in> set As \<Longrightarrow> A \<notin> atms_of (C'_of A)"
+    unfolding C'_of_def using atm_imp_pos_or_neg_lit by force
+  have c'_le_c: "\<And>A. C'_of A \<le> C_of A"
+    unfolding C'_of_def by (auto intro: subset_eq_imp_le_multiset)
+  have a_max_c: "\<And>A. A \<in> set As \<Longrightarrow> A = Max (atms_of (C_of A))"
+    using prod_c0 productive_imp_produces_Max_atom[of N] by auto
+  hence "\<And>A. A \<in> set As \<Longrightarrow> C'_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (C'_of A)) \<le> A"
+    using c'_le_c by (metis less_eq_Max_atms_of)
+  moreover have "\<And>A. A \<in> set As \<Longrightarrow> C'_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (C'_of A)) \<noteq> A"
+    using a_ni_c' Max_in by (metis (no_types) atms_empty_iff_empty finite_atms_of)
+  ultimately have max_c'_lt_a: "\<And>A. A \<in> set As \<Longrightarrow> C'_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (C'_of A)) < A"
+    by (metis order.strict_iff_order)
+  
+  have le_cs_as: "length CAs = length As"  unfolding CAs_def by simp
+  moreover
+  have "CAs \<noteq> []" using as_ne le_cs_as by auto 
+  moreover
+  have "As \<noteq> []" using as_ne .
+  moreover
+  have "\<forall>i. i < length CAs \<longrightarrow> get_As (CAs ! i) \<noteq> {#}"
+    unfolding CAs_def
+    using m_nz by simp
+  moreover
+  have " \<forall>i. i < length CAs \<longrightarrow> (\<forall>Ai \<in># get_As (CAs ! i). Ai = As ! i)"
+    unfolding CAs_def by auto
+  moreover
+  have "eligible (D,As)" using s_d by blast 
+  moreover
+  have "\<And>x B. production N (C_of x) = {x} \<Longrightarrow> B \<in># C_of x \<Longrightarrow> B \<noteq> Pos x \<Longrightarrow> atm_of B < x" 
+    by (metis atm_of_lit_in_atms_of insert_not_empty le_imp_less_or_eq Pos_atm_of_iff
+          Neg_atm_of_iff pos_neg_in_imp_true produces_imp_Pos_in_lits produces_imp_atms_leq
+          productive_imp_false_interp)
+  then have "\<forall>i. i < length CAs \<longrightarrow> (\<forall>B\<in>atms_of (get_C (CAs ! i)). B < As ! i)"
+    using CAs_def prod_c0 by (auto simp: C'_of_def atms_of_def intro: produces_imp_Max_atom)
+  then have "\<And>i. i < length CAs \<Longrightarrow> str_maximal_in (As ! i) (CAs ! i)" by metis
+  moreover
+  have "\<forall>C \<in> set CAs. S (side_clause C) = {#}"
+    using prod_c' producesD productive_imp_produces_Max_literal by blast 
+  ultimately have res_e: "ord_resolve CAs (D,As) (Union_Cs CAs + D)" using ord_resolve by auto
+  
+  have "\<And>A. A \<in> set As \<Longrightarrow> \<not> interp N (C_of A) \<Turnstile> C_of A"
+    by (simp add: prod_c0 producesD)
+  hence "\<And>A. A \<in> set As \<Longrightarrow> \<not> Interp N (C_of A) \<Turnstile> C'_of A"
+    unfolding prod_c0 C'_of_def Interp_def true_cls_def 
+    using true_lit_def not_gr_zero
+    using prod_c0 by auto 
+  hence c'_at_n: "\<And>A. A \<in> set As \<Longrightarrow> \<not> INTERP N \<Turnstile> C'_of A"
+    using a_max_c c'_le_c max_c'_lt_a false_Interp_imp_INTERP unfolding true_cls_def
+    by (metis true_cls_def true_cls_empty)
+  have "\<not> INTERP N \<Turnstile> Union_Cs CAs"
+    unfolding CAs_def true_cls_def by (auto dest!: c'_at_n)
+  moreover have "\<not> INTERP N \<Turnstile> D"
+    using d_cex unfolding da_da by simp
+  ultimately have e_cex: "\<not> INTERP N \<Turnstile> Union_Cs CAs + D"
+    by simp
+    
+  have "main_clause (D,As) = DA" using da_da by simp
+  moreover
+  have "set_mset (side_clauses CAs) \<subseteq> N" using cs_subs_n by auto
+  moreover
+  have "INTERP N \<Turnstile>m side_clauses CAs" using cs_true by auto
+  moreover
+  have "\<And>CA. CA \<in># side_clauses CAs \<Longrightarrow> productive N CA" using prod_c by auto
+  moreover
+  have "ord_resolve CAs (D,As) (Union_Cs CAs + D)" using res_e .
+  moreover
+  have "\<not> INTERP N \<Turnstile> Union_Cs CAs + D" using e_cex by auto
+  moreover
+  have "Union_Cs CAs + D < DA"
+    using res_e ord_resolve_reductive da_da by metis
+  ultimately
+  show ?thesis ..
 qed
+
+end
 
 end
   

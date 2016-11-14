@@ -241,14 +241,14 @@ proof -
   hence prod_c0: "\<And>A. A \<in># AA \<Longrightarrow> produces N (C_of A) A"
     by blast
 
-  def c'_of: C'_of \<equiv> "\<lambda>A. {#L \<in># C_of A. L \<noteq> Pos A#}"
-  def m_of: M_of \<equiv> "\<lambda>A. count (C_of A) (Pos A)"
+  define C'_of where "C'_of \<equiv> \<lambda>A. {#L \<in># C_of A. L \<noteq> Pos A#}"
+  define M_of where "M_of \<equiv> \<lambda>A. count (C_of A) (Pos A)"
 
   have d_of: "C_of = (\<lambda>A. C'_of A + replicate_mset (M_of A) (Pos A))"
-    unfolding c'_of m_of
+    unfolding C'_of_def M_of_def
     by (rule ext) (metis add.commute filter_eq_replicate_mset multiset_partition)
   have m_nz: "\<And>A. A \<in># AA \<Longrightarrow> M_of A \<noteq> 0"
-    using prod_c0 unfolding m_of by (auto intro: produces_imp_Pos_in_lits)
+    using prod_c0 unfolding M_of_def by (auto intro: produces_imp_Pos_in_lits)
 
   def zz: ZZ \<equiv> "{#(C'_of A, A, M_of A - 1). A \<in># AA#}"
   def cf'_zz: Cf' \<equiv> "\<Union># {#C'. (C', A, m) \<in># ZZ#}"
@@ -275,11 +275,11 @@ proof -
   moreover have "AA = {#A. (C', A, m) \<in># ZZ#}"
     unfolding zz by simp
   moreover have "CC = {#C' + replicate_mset (Suc m) (Pos A). (C', A, m) \<in># ZZ#}"
-    unfolding cc_zz zz c'_of by simp
+    unfolding cc_zz zz C'_of_def by simp
   moreover have "ZZ \<noteq> {#}"
     unfolding zz using aa_ne by simp
   moreover have "\<forall>(C', A, m) \<in> set_mset ZZ. \<forall>B \<in> atms_of C'. B < A"
-     by (auto simp: zz c'_of atms_of_def intro: produces_imp_Max_atom dest!: prod_c0)
+     by (auto simp: zz C'_of_def atms_of_def intro: produces_imp_Max_atom dest!: prod_c0)
        (metis atm_of_lit_in_atms_of insert_not_empty le_imp_less_or_eq Pos_atm_of_iff
           Neg_atm_of_iff pos_neg_in_imp_true produces_imp_Pos_in_lits produces_imp_atms_leq
           productive_imp_false_interp)
@@ -291,9 +291,9 @@ proof -
   have "\<And>A. A \<in># AA \<Longrightarrow> \<not> Neg A \<in># C_of A"
     by (drule prod_c0) (auto dest: produces_imp_neg_notin_lits)
   hence a_ni_c': "\<And>A. A \<in># AA \<Longrightarrow> A \<notin> atms_of (C'_of A)"
-    unfolding c'_of using atm_imp_pos_or_neg_lit by force
+    unfolding C'_of_def using atm_imp_pos_or_neg_lit by force
   have c'_le_c: "\<And>A. C'_of A \<le> C_of A"
-    unfolding c'_of by (auto intro: subset_eq_imp_le_multiset)
+    unfolding C'_of_def by (auto intro: subset_eq_imp_le_multiset)
   have a_max_c: "\<And>A. A \<in># AA \<Longrightarrow> A = Max (atms_of (C_of A))"
     using prod_c0 productive_imp_produces_Max_atom[of N] by auto
   hence "\<And>A. A \<in># AA \<Longrightarrow> C'_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (C'_of A)) \<le> A"
@@ -308,7 +308,7 @@ proof -
   hence "\<And>A. A \<in># AA \<Longrightarrow> \<not> interp N (C_of A) \<Turnstile> C_of A"
     unfolding cc by auto 
   hence "\<And>A. A \<in># AA \<Longrightarrow> \<not> Interp N (C_of A) \<Turnstile> C'_of A"
-    unfolding prod_c0 c'_of Interp_def true_cls_def 
+    unfolding prod_c0 C'_of_def Interp_def true_cls_def 
     by (auto simp: true_lit_def simp del: not_gr_zero)
   hence c'_at_n: "\<And>A. A \<in># AA \<Longrightarrow> \<not> INTERP N \<Turnstile> C'_of A"
     using a_max_c c'_le_c max_c'_lt_a false_Interp_imp_INTERP unfolding true_cls_def
