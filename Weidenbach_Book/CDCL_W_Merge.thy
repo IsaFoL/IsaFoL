@@ -609,7 +609,7 @@ proof -
         "c' @ M2'" K' M1'])
     using lev_K lev_K' M M' n_d apply (auto)[4]
     done
-  show ?thesis using T U by (auto simp: intro: state_eq_trans')
+  show ?thesis using T U by (auto intro: state_eq_trans')
 qed
 
 lemma if_can_apply_backtrack_no_more_resolve:

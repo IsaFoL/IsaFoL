@@ -488,7 +488,7 @@ lemma simplify_preserve_partial_leaf:
   "simplify N N' \<Longrightarrow> partial_interps Leaf I N \<Longrightarrow> partial_interps Leaf I N'"
   apply (induct rule: simplify.induct)
     using union_lcomm apply auto[1]
-   apply (simp add: )
+   apply (simp)
    apply (metis atms_of_remdups_mset remdups_mset_singleton_sum true_cls_add_mset union_single_eq_member)
   apply auto
   by (metis atms_of_ms_emtpy_set subsumption_total_over_m total_over_m_def total_over_m_insert

@@ -1424,7 +1424,7 @@ proof -
       have uL''_E: \<open>- lit_of (hd (convert_lits_l N' M')) \<in># mset E\<close>
         using cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of
             \<open>convert_to_state (twl_st_of None (M', N', U', D', NP', UP', WS', Q'))\<close>] p
-        by (auto simp: )
+        by auto
       let ?fg = \<open>((Propagated (- L) 0 # M1', N', U', None, NP', add_mset (mset (the D')) UP', WS',
         {#L#}), Propagated (- L') (the D) # M1, N, U, None, NP, add_mset (the D) UP, WS, {#L'#})\<close>
       have 1: \<open>?fg \<in> {(T, T'). additional_WS_invs T}\<close>

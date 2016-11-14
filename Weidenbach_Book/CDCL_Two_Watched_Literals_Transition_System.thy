@@ -1024,8 +1024,7 @@ next
     have ?case if CD: \<open>C \<noteq> D\<close> \<open>C \<noteq> ?D\<close>
       using IH_Q[of C K' K''] (* IH_Q[of C K'' K'] *)  CD watched uK_M L'  L_ne_L' L_M uK'_M uK''_M
         Q unfolding N'U' NU
-      apply (auto simp:)
-      done
+      by auto
     moreover have ?case if CD: \<open>C = D\<close>
     proof -
       consider
@@ -2324,7 +2323,7 @@ next
         unfolding M by auto
       have atm_L': \<open>undefined_lit (M2 @ [Decided K']) L'\<close>
         by (rule cdcl\<^sub>W_restart_mset.no_dup_uminus_append_in_atm_notin[of _ M1])
-          (use n_d[unfolded M] uL' in \<open>auto simp:\<close>)
+          (use n_d[unfolded M] uL' in auto)
       have \<open>get_level M L' = count_decided M\<close>
         using lev_L' uL'_M by fast
       moreover have \<open>get_level M L' = get_level M1 L'\<close>
@@ -3280,7 +3279,7 @@ next
           assume \<open>\<not> - K'' \<notin> lits_of_l M1''\<close>
           then have \<open>undefined_lit (tl M2'' @ Decided K''' # []) K''\<close>
             (* TODO tune proof *)
-            using n_d_M1 unfolding M1 apply (auto simp: dest: cdcl\<^sub>W_restart_mset.no_dup_uminus_append_in_atm_notin
+            using n_d_M1 unfolding M1 apply (auto dest: cdcl\<^sub>W_restart_mset.no_dup_uminus_append_in_atm_notin
                 cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
             by (simp add: atm_lit_of_set_lits_of_l atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set defined_lit_map)
           then show False

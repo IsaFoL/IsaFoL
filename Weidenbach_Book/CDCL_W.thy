@@ -1099,7 +1099,7 @@ proof -
     by (meson SS' T TT' state_eq_sym state_eq_trans tl_trail_state_eq)
   show ?thesis
     apply (rule skip_rule)
-       using tr raw L E T SS' apply (auto simp: simp del: )[]
+       using tr raw L E T SS' apply auto[]
       using E' apply simp
      using E' SS' L raw E apply auto[2]
     using T' by auto
@@ -3930,7 +3930,7 @@ next
           then have "get_maximum_level M1 (remove1_mset L D) = i"
             using T i n_d unfolding M'' tr_T
             by (subst (asm) get_maximum_level_skip_beginning)
-               (auto simp: dest: defined_lit_no_dupD dest!: true_annots_CNot_definedD) }
+               (auto dest: defined_lit_no_dupD dest!: true_annots_CNot_definedD) }
         ultimately obtain L_max where
           L_max_in: "L_max \<in># remove1_mset L D" and
           lev_L_max: "get_level M1 L_max = i"

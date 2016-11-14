@@ -973,7 +973,7 @@ lemma cdcl_twl_o_prog_spec:
   subgoal by (auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps cdcl_twl_cp.simps)
   subgoal by (auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps)
   subgoal by (auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps cdcl_twl_cp.simps)
-  subgoal by (auto simp: intro: cdcl_twl_o_twl_struct_invs cdcl_twl_o_twl_stgy_invs)
+  subgoal by (auto intro: cdcl_twl_o_twl_struct_invs cdcl_twl_o_twl_stgy_invs)
   subgoal for M N U D NP UP WS Q T
     by (auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps rtranclp_unfold)
   done

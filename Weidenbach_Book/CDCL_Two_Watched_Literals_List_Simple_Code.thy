@@ -267,7 +267,7 @@ proof -
     unfolding J
     apply (rule refine_add_inv_pair)
     subgoal
-      using twl_prog by (auto simp:)
+      using twl_prog by auto
     subgoal for S
       apply (rule weaken_SPEC[OF cdcl_twl_o_prog_spec[of \<open>twl_st_of None S\<close>]])
       apply (auto simp: KK(2))[5]
