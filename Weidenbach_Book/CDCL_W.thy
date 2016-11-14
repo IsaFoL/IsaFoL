@@ -3256,8 +3256,7 @@ subsubsection \<open>No conflict with only variables of level less than backtrac
 text \<open>This invariant is stronger than the previous argument in the sense that it is a property about
   all possible conflicts.\<close>
 definition "no_smaller_confl (S ::'st) \<equiv>
-  (\<forall>M K M' D. trail S = M' @ Decided K # M \<longrightarrow> D \<in># clauses S
-    \<longrightarrow> \<not>M \<Turnstile>as CNot D)"
+  (\<forall>M K M' D. trail S = M' @ Decided K # M \<longrightarrow> D \<in># clauses S \<longrightarrow>\<not>M \<Turnstile>as CNot D)"
 
 lemma no_smaller_confl_init_sate[simp]:
   "no_smaller_confl (init_state N)" unfolding no_smaller_confl_def by auto
@@ -3279,8 +3278,7 @@ proof (induct rule: cdcl\<^sub>W_o_induct)
   show ?case
     proof (intro allI impI)
       fix M'' K M' Da
-      assume "trail T = M'' @ Decided K # M'"
-      and D: "Da \<in># local.clauses T"
+      assume "trail T = M'' @ Decided K # M'" and D: "Da \<in># local.clauses T"
       then have "trail S = tl M'' @ Decided K # M'
         \<or> (M'' = [] \<and> Decided K # M' = Decided L # trail S)"
         using T undef by (cases M'') auto

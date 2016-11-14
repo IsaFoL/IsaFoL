@@ -256,6 +256,31 @@ lemma last_in_set_dropWhile:
   shows \<open>x \<in> set (dropWhile P (xs @ [x]))\<close>
   using assms by (induction xs) auto
 
+lemma mset_drop_upto: \<open>mset (drop a N) = {#N!i. i \<in># mset_set {a..<length N}#}\<close>
+proof (induction N arbitrary: a)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons c N)
+  have upt: \<open>{0..<Suc (length N)} = insert 0 {1..<Suc (length N)}\<close>
+    by auto
+  then have H: \<open>mset_set {0..<Suc (length N)} = add_mset 0 (mset_set {1..<Suc (length N)})\<close>
+    unfolding upt by auto
+  have mset_case_Suc: \<open>{#case x of 0 \<Rightarrow> c | Suc x \<Rightarrow> N ! x . x \<in># mset_set {Suc a..<Suc b}#} =
+    {#N ! (x-1) . x \<in># mset_set {Suc a..<Suc b}#}\<close> for a b
+    by (rule image_mset_cong) (auto split: nat.splits)
+  have Suc_Suc: \<open>{Suc a..<Suc b} = Suc ` {a..<b}\<close> for a b
+    by auto
+  then have mset_set_Suc_Suc: \<open>mset_set {Suc a..<Suc b} = {#Suc n. n \<in># mset_set {a..<b}#}\<close> for a b
+    unfolding Suc_Suc by (subst image_mset_mset_set[symmetric]) auto
+  have *: \<open>{#N ! (x-Suc 0) . x \<in># mset_set {Suc a..<Suc b}#} = {#N ! x . x \<in># mset_set {a..<b}#}\<close>
+    for a b
+    by (auto simp add: mset_set_Suc_Suc)
+  show ?case
+    apply (cases a)
+    using Cons[of 0] Cons by (auto simp: nth_Cons drop_Cons H mset_case_Suc *)
+qed
+
 
 subsection \<open>Lexicographic Ordering\<close>
 
