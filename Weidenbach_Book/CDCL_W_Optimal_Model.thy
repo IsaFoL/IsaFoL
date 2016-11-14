@@ -274,7 +274,7 @@ proof (induction rule: improve.cases)
   moreover have [simp]: \<open>M' @ a @ Propagated L mark # b = (M' @ a) @ Propagated L mark # b\<close>
     for a L mark b by auto
   moreover
-  have \<open>all_decomposition_implies 
+  have \<open>all_decomposition_implies
      (set_mset (init_clss S) \<union> set_mset (conflicting_clss S) \<union> set_mset (learned_clss S))
      (get_all_ann_decomposition (M' @ M)) \<Longrightarrow>
     all_decomposition_implies
@@ -299,15 +299,46 @@ proof (induction rule: improve.cases)
           dest: no_dup_appendD consistent_interp_unionD)
 qed
 
-text \<open>\<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant\<close> is too restrictive\<dots> 
-  \<open>cdcl\<^sub>W_restart_mset.no_smaller_conflict\<close> is needed for the conflict rule but harmful for conflictOpt.\<close>
-lemma improve_cdcl\<^sub>W_all_struct_inv:
+lemma exists_lit_max_level_in_negate_ann_lits:
+  \<open>negate_ann_lits M \<noteq> {#} \<Longrightarrow> \<exists>L\<in>#negate_ann_lits M. get_level M L = count_decided M\<close>
+  by (cases \<open>M\<close>) (auto simp: negate_ann_lits_def)
+
+text \<open>\<^term>\<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant\<close> is too restrictive:
+  \<^term>\<open>cdcl\<^sub>W_restart_mset.no_smaller_confl\<close> is needed but does not hold(at least, if cannot 
+  ensure that conflicts are found as soon as possible).\<close>
+lemma improve_no_smaller_conflict:
   assumes \<open>improve S T\<close> and
-    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (abs_state S)\<close> and
     \<open>no_smaller_confl S\<close>
-  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (abs_state T)\<close>
-    using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
-oops
+  shows \<open>no_smaller_confl T\<close> and \<open>conflict_is_false_with_level T\<close>
+  using assms apply (induction rule: improve.induct)
+  unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+  by (auto simp: cdcl\<^sub>W_restart_mset_state no_smaller_confl_def cdcl\<^sub>W_restart_mset.clauses_def
+      reduce_trail_to_skip_beginning exists_lit_max_level_in_negate_ann_lits)
+
+lemma conflict_opt_no_smaller_conflict:
+  assumes \<open>conflict_opt S T\<close> and
+    \<open>no_smaller_confl S\<close>
+  shows \<open>no_smaller_confl T\<close> and \<open>conflict_is_false_with_level T\<close>
+  using assms by (induction rule: conflict_opt.induct)
+  (auto simp: cdcl\<^sub>W_restart_mset_state no_smaller_confl_def cdcl\<^sub>W_restart_mset.clauses_def
+      reduce_trail_to_skip_beginning exists_lit_max_level_in_negate_ann_lits
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def)
+
+inductive cdcl_opt :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
+cdcl_opt_cdcl:
+  \<open>cdcl\<^sub>W_stgy S T \<Longrightarrow> cdcl_opt S T\<close> |
+cdcl_opt_improve:
+  \<open>improve S T \<Longrightarrow> cdcl_opt S T\<close> | 
+cdcl_opt_conflict_opt:
+  \<open>conflict_opt S T \<Longrightarrow> cdcl_opt S T\<close>
+
+lemma \<open>cdcl\<^sub>W_stgy S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) (abs_state T)\<close>
+  sledgehammer
+lemma
+  assumes \<open>cdcl_opt S T\<close> and \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
+  using assms apply induction
+
 end
 
 end
