@@ -622,7 +622,7 @@ lemma distinct_image_mset_inj:
   by (induction M) (auto simp: inj_on_def)
 
 
-section \<open>Repeat\<close>
+subsection \<open>Repeat\<close>
 
 lemma repeat_mset_compower: "repeat_mset n A = ((op + A) ^^ n) {#}"
   by (induction n) auto
@@ -631,7 +631,7 @@ lemma repeat_mset_prod: "repeat_mset (m * n) A = ((op + (repeat_mset n A)) ^^ m)
   by (induction m) (auto simp: repeat_mset_distrib)
 
 
-section \<open>Cartesian Product\<close>
+subsection \<open>Cartesian Product\<close>
 
 text \<open>Definition of the cartesian products over multisets. The construction mimics of the cartesian
   product on sets and use the same theorem names (adding only the suffix @{text "_mset"} to Sigma

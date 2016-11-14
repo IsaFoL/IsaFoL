@@ -63,6 +63,10 @@ lemma consistent_interp_insert_not_in:
   "consistent_interp A \<Longrightarrow> a \<notin> A \<Longrightarrow> -a \<notin> A \<Longrightarrow> consistent_interp (insert a A)"
   unfolding consistent_interp_def by auto
 
+lemma consistent_interp_unionD: \<open>consistent_interp (I \<union> I') \<Longrightarrow> consistent_interp I'\<close>
+  unfolding consistent_interp_def by auto
+
+
 subsubsection \<open>Atoms\<close>
 text \<open>We define here various lifting of @{term atm_of} (applied to a single literal) to set and
   multisets of literals.\<close>
