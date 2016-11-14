@@ -4,7 +4,7 @@ begin
 
 subsection \<open>Initialise Data structure\<close>
 
-fun init_dt :: \<open>'v literal list list \<Rightarrow> 'v twl_st_list \<Rightarrow> 'v twl_st_list\<close> where
+fun init_dt :: \<open>'v clauses_l \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
   \<open>init_dt [] S = S\<close>
 | \<open>init_dt (C # CS) S =
   (let (M, N, U, D, NP, UP, WS, Q) = init_dt CS S in
@@ -30,36 +30,31 @@ fun init_dt :: \<open>'v literal list list \<Rightarrow> 'v twl_st_list \<Righta
       let L = hd C; L' = hd (tl C); C' = tl (tl C) in
       (M, N @ [[L, L'] @ C'], length N, Some D, NP, UP, {#}, {#})))\<close>
 
-(* TODO Move *)
-lemma tautology_single[simp]: \<open>\<not>tautology {#L#}\<close>
-  by (simp add: tautology_add_mset)
-(* END Move *)
-
 lemma init_dt_full:
-  fixes CS S
+  fixes CS :: \<open>'v literal list list\<close> and S :: \<open>'v twl_st_l\<close>
   defines \<open>S' \<equiv> init_dt CS S\<close>
   assumes
     \<open>\<forall>C \<in> set CS. distinct C\<close> and
     \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close> and
     \<open>\<forall>C \<in> set CS. \<not>tautology (mset C)\<close> and
-    \<open>twl_struct_invs (twl_st_of S)\<close> and
-    \<open>working_queue_list S = {#}\<close> and
-    \<open>\<forall>s\<in>set (get_trail_list S). \<not>is_decided s\<close> and
-    \<open>\<And>L. get_conflict_list S = None \<longrightarrow> pending_list S = uminus `# lit_of `# mset (get_trail_list S)\<close> and
+    \<open>twl_struct_invs (twl_st_of None S)\<close> and
+    \<open>working_queue_l S = {#}\<close> and
+    \<open>\<forall>s\<in>set (get_trail_l S). \<not>is_decided s\<close> and
+    \<open>\<And>L. get_conflict_l S = None \<longrightarrow> pending_l S = uminus `# lit_of `# mset (get_trail_l S)\<close> and
     \<open>additional_WS_invs S\<close> and
-    \<open>get_learned_list S = length (get_clauses_l S) - 1\<close>and
-    \<open>twl_stgy_invs (twl_st_of S)\<close>
+    \<open>get_learned_l S = length (get_clauses_l S) - 1\<close>and
+    \<open>twl_stgy_invs (twl_st_of None S)\<close>
   shows
-    \<open>twl_struct_invs (twl_st_of S')\<close> and
-    \<open>working_queue_list S' = {#}\<close> and
-    \<open>\<forall>s\<in>set (get_trail_list S'). \<not>is_decided s\<close> and
-    \<open>get_conflict_list S' = None \<longrightarrow> pending_list S' = uminus `# lit_of `# mset (get_trail_list S')\<close> and
-    \<open>mset `# mset CS + cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of S)) =
-      cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of S'))\<close> and
-    \<open>learned_clss (convert_to_state (twl_st_of S')) = learned_clss (convert_to_state (twl_st_of S))\<close> and
+    \<open>twl_struct_invs (twl_st_of None S')\<close> and
+    \<open>working_queue_l S' = {#}\<close> and
+    \<open>\<forall>s\<in>set (get_trail_l S'). \<not>is_decided s\<close> and
+    \<open>get_conflict_l S' = None \<longrightarrow> pending_l S' = uminus `# lit_of `# mset (get_trail_l S')\<close> and
+    \<open>mset `# mset CS + cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None S)) =
+      cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None S'))\<close> and
+    \<open>learned_clss (convert_to_state (twl_st_of None S')) = learned_clss (convert_to_state (twl_st_of None S))\<close> and
     \<open>additional_WS_invs S'\<close> and
-    \<open>get_learned_list S' = length (get_clauses_l S') - 1\<close> and
-    \<open>twl_stgy_invs (twl_st_of S')\<close>
+    \<open>get_learned_l S' = length (get_clauses_l S') - 1\<close> and
+    \<open>twl_stgy_invs (twl_st_of None S')\<close>
   using assms unfolding S'_def
 proof (induction CS)
   case Nil
@@ -75,31 +70,31 @@ proof (induction CS)
 next
   case (Cons a CS) note IH = this(1-)
 
-  case 2 note dist = this(1) and length  = this(2) and no_taut_Cs = this(3) and inv = this(4) and
+  case 2 note dist = this(1) and length = this(2) and no_taut_Cs = this(3) and inv = this(4) and
     WS = this(5) and dec = this(6) and in_pending = this(7) and add_inv = this(8) and len = this(9)
     and stgy_inv = this(10)
 
   have
-    twl: \<open>twl_struct_invs (twl_st_of (init_dt CS S))\<close> and
-    w_q: \<open>working_queue_list (init_dt CS S) = {#}\<close> and
-    dec': \<open>\<forall>s\<in>set (get_trail_list (init_dt CS S)). \<not> is_decided s\<close> and
-    pending': \<open>get_conflict_list (init_dt CS S) = None \<longrightarrow> pending_list (init_dt CS S) = uminus `# lit_of `# mset (get_trail_list (init_dt CS S))\<close>
+    twl: \<open>twl_struct_invs (twl_st_of None (init_dt CS S))\<close> and
+    w_q: \<open>working_queue_l (init_dt CS S) = {#}\<close> and
+    dec': \<open>\<forall>s\<in>set (get_trail_l (init_dt CS S)). \<not> is_decided s\<close> and
+    pending': \<open>get_conflict_l (init_dt CS S) = None \<longrightarrow> pending_l (init_dt CS S) = uminus `# lit_of `# mset (get_trail_l (init_dt CS S))\<close>
       and
-    clss': \<open>mset `# mset CS + cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of S)) =
-      cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of (init_dt CS S)))\<close>
+    clss': \<open>mset `# mset CS + cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None S)) =
+      cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None (init_dt CS S)))\<close>
       and
-    learned': \<open>learned_clss (convert_to_state (twl_st_of (init_dt CS S))) = learned_clss (convert_to_state (twl_st_of S))\<close>
+    learned': \<open>learned_clss (convert_to_state (twl_st_of None (init_dt CS S))) = learned_clss (convert_to_state (twl_st_of None S))\<close>
       and
     add_inv': \<open>additional_WS_invs (init_dt CS S)\<close> and
-    U': \<open>get_learned_list (init_dt CS S) = length (get_clauses_l (init_dt CS S)) - 1\<close>
+    U': \<open>get_learned_l (init_dt CS S) = length (get_clauses_l (init_dt CS S)) - 1\<close>
     using IH[OF _ _ _inv WS dec in_pending add_inv len stgy_inv] dist length no_taut_Cs by auto
 
   obtain M N U D NP UP Q where
     S: \<open>init_dt CS S = (M, N, U, D, NP, UP, {#}, Q)\<close>
     using w_q by (cases \<open>init_dt CS S\<close>) auto
   obtain M' N' U' D' NP' WS' UP' Q' where
-    S': \<open>twl_st_of (init_dt (a # CS) S) = (M', N', U', D', NP', UP', WS', Q')\<close>
-    by (cases \<open>twl_st_of (init_dt (a # CS) S)\<close>) auto
+    S': \<open>twl_st_of None (init_dt (a # CS) S) = (M', N', U', D', NP', UP', WS', Q')\<close>
+    by (cases \<open>twl_st_of None (init_dt (a # CS) S)\<close>) auto
   have dec_M: \<open>\<forall>s\<in>set M. \<not> is_decided s\<close>
     using dec' S by auto
   have N_not_empty: \<open>N \<noteq> []\<close>
@@ -145,49 +140,50 @@ next
     by (cases D) (auto simp add: U_len_N S clauses_def additional_WS_invs_def Let_def nth_append
         cdcl\<^sub>W_restart_mset_state)
 
-  let ?S' = \<open>(convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP,
-             {#(N ! j ! a, twl_clause_of (N ! j)). (a, j) \<in># {#}#}, Q)\<close>
+  let ?S' = \<open>(convert_lits_l N M, twl_clause_of `# mset (take U (tl N)),
+       twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP,
+             {#}, Q)\<close>
   case 1
   have
     struct: \<open>Multiset.Ball (twl_clause_of `# mset (tl N)) struct_wf_twl_cls\<close> and
-    H: \<open>\<forall>C\<in>#twl_clause_of `# mset (tl N).
-       map_option mset D = None \<longrightarrow>
-       \<not> twl_is_an_exception C Q {#(N ! j ! a, twl_clause_of (N ! j)). (a, j) \<in># {#}#} \<longrightarrow> twl_lazy_update (convert_lits_l N M) C \<and> twl_inv (convert_lits_l N M) C\<close> and
+    H: \<open>\<forall>C\<in>#twl_clause_of `# mset (tl N). map_option mset D = None \<longrightarrow>
+      \<not> twl_is_an_exception C Q ({#} :: ('v literal \<times> 'v twl_cls) multiset ) \<longrightarrow>
+      (twl_lazy_update (convert_lits_l N M) C \<and> twl_inv (convert_lits_l N M) C)\<close> and
     lev: \<open>\<forall>C\<in>#twl_clause_of `# mset (tl N). map_option mset D = None \<longrightarrow> watched_literals_false_of_max_level (convert_lits_l N M) C\<close> and
-    valid: \<open>valid_annotation (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#(N ! j ! a, twl_clause_of (N ! j)). (a, j) \<in># {#}#},
+    valid: \<open>valid_annotation (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
       Q) \<close> and
     all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state
-     (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#(N ! j ! a, twl_clause_of (N ! j)). (a, j) \<in># {#}#},
+     (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
       Q))\<close> and
     no_taut: \<open>\<forall>D\<in>#init_clss (convert_to_state
                     (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP,
-                     {#(N ! j ! a, twl_clause_of (N ! j)). (a, j) \<in># {#}#}, Q)).
+                     {#}, Q)).
       \<not> tautology D\<close> and
     no_smaller: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (convert_to_state
-     (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#(N ! j ! a, twl_clause_of (N ! j)). (a, j) \<in># {#}#},
+     (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
       Q))\<close> and
     excep: \<open>twl_st_exception_inv (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)),
-      twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#(N ! j ! a, twl_clause_of (N ! j)). (a, j) \<in># {#}#},
+      twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
     Q)\<close> and
-    no_dup: \<open>no_duplicate_queued (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#(N ! j ! a, twl_clause_of (N ! j)). (a, j) \<in># {#}#},
+    no_dup: \<open>no_duplicate_queued (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
     Q)\<close> and
-    dist_q: \<open>distinct_queued (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#(N ! j ! a, twl_clause_of (N ! j)). (a, j) \<in># {#}#},
+    dist_q: \<open>distinct_queued (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
     Q)\<close> and
-    confl_cands: \<open>confl_cands_enqueued (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#(N ! j ! a, twl_clause_of (N ! j)). (a, j) \<in># {#}#},
+    confl_cands: \<open>confl_cands_enqueued (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
     Q)\<close> and
-    propa_cands: \<open>propa_cands_enqueued (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#(N ! j ! a, twl_clause_of (N ! j)). (a, j) \<in># {#}#},
+    propa_cands: \<open>propa_cands_enqueued (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
     Q)\<close> and
-    get_confl: \<open>get_conflict (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#(N ! j ! a, twl_clause_of (N ! j)). (a, j) \<in># {#}#},
-     Q) \<noteq> None \<longrightarrow> working_queue (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#(N ! j ! a, twl_clause_of (N ! j)). (a, j) \<in># {#}#},
+    get_confl: \<open>get_conflict (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
+     Q) \<noteq> None \<longrightarrow> working_queue (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
      Q) = {#} \<and>
     pending (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP,
-            {#(N ! j ! a, twl_clause_of (N ! j)). (a, j) \<in># {#}#}, Q) = {#}\<close> and
-    unit_clss: \<open>unit_clss_inv (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#(N ! j ! a, twl_clause_of (N ! j)). (a, j) \<in># {#}#},
+            {#}, Q) = {#}\<close> and
+    unit_clss: \<open>unit_clss_inv (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
     Q)\<close> and
-    w_q: \<open>working_queue_inv (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#(N ! j ! a, twl_clause_of (N ! j)). (a, j) \<in># {#}#},
+    w_q: \<open>working_queue_inv (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
     Q)\<close> and
     past_invs: \<open>past_invs (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP,
-             {#(N ! j ! a, twl_clause_of (N ! j)). (a, j) \<in># {#}#}, Q)\<close>
+             {#}, Q)\<close>
     using twl unfolding twl_st_inv.simps twl_struct_invs_def S twl_st_of.simps
     image_mset_union[symmetric] mset_append[symmetric] append_take_drop_id drop_Suc S
     twl_struct_invs_def by fast+
@@ -617,43 +613,43 @@ theorem init_dt:
     \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close> and
     \<open>\<forall>C \<in> set CS. \<not>tautology (mset C)\<close>
   shows
-    \<open>twl_struct_invs (twl_st_of (init_dt CS S))\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of (init_dt CS S))) = mset `# mset CS\<close> and
-    \<open>twl_stgy_invs (twl_st_of (init_dt CS S))\<close> and
-    \<open>working_queue_list (init_dt CS S) = {#}\<close> and
+    \<open>twl_struct_invs (twl_st_of None (init_dt CS S))\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None (init_dt CS S))) = mset `# mset CS\<close> and
+    \<open>twl_stgy_invs (twl_st_of None (init_dt CS S))\<close> and
+    \<open>working_queue_l (init_dt CS S) = {#}\<close> and
     \<open>additional_WS_invs (init_dt CS S)\<close>
 proof -
-  have [simp]: \<open>twl_struct_invs (twl_st_of S)\<close>
+  have [simp]: \<open>twl_struct_invs (twl_st_of None S)\<close>
     unfolding S
     by (auto simp: twl_struct_invs_def twl_st_inv.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-        cdcl\<^sub>W_restart_mset.no_strange_atm_def  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+        cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
         cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
         past_invs.simps
         cdcl\<^sub>W_restart_mset_state)
-  have [simp]: \<open>working_queue_list S = {#}\<close>
-    \<open>\<forall>s\<in>set (get_trail_list S). \<not> is_decided s\<close>
-    \<open>get_conflict_list S = None \<longrightarrow> pending_list S = {#- lit_of x. x \<in># mset (get_trail_list S)#}\<close>
-    \<open>cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of S)) = {#}\<close>
+  have [simp]: \<open>working_queue_l S = {#}\<close>
+    \<open>\<forall>s\<in>set (get_trail_l S). \<not> is_decided s\<close>
+    \<open>get_conflict_l S = None \<longrightarrow> pending_l S = {#- lit_of x. x \<in># mset (get_trail_l S)#}\<close>
+    \<open>cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None S)) = {#}\<close>
     unfolding S
     by (auto simp: twl_struct_invs_def twl_st_inv.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-        cdcl\<^sub>W_restart_mset.no_strange_atm_def  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+        cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
         cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
         past_invs.simps clauses_def
         cdcl\<^sub>W_restart_mset_state)
   have [simp]: \<open>additional_WS_invs S\<close>
     unfolding S by (auto simp: additional_WS_invs_def)
-  have [simp]: \<open>get_learned_list S = length (get_clauses_l S) - 1\<close>
+  have [simp]: \<open>get_learned_l S = length (get_clauses_l S) - 1\<close>
     unfolding S by auto
-  have [simp]: \<open>twl_stgy_invs (twl_st_of S)\<close>
+  have [simp]: \<open>twl_stgy_invs (twl_st_of None S)\<close>
     unfolding S by (auto simp: twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
         cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.no_smaller_confl_def)
   show
-    \<open>twl_struct_invs (twl_st_of (init_dt CS S))\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of (init_dt CS S))) = mset `# mset CS\<close> and
-    \<open>twl_stgy_invs (twl_st_of (init_dt CS S))\<close> and
-    \<open>working_queue_list (init_dt CS S) = {#}\<close> and
+    \<open>twl_struct_invs (twl_st_of None (init_dt CS S))\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None (init_dt CS S))) = mset `# mset CS\<close> and
+    \<open>twl_stgy_invs (twl_st_of None (init_dt CS S))\<close> and
+    \<open>working_queue_l (init_dt CS S) = {#}\<close> and
     \<open>additional_WS_invs (init_dt CS S)\<close>
   using init_dt_full[of CS S, OF assms(2-4)] by simp_all
 qed
