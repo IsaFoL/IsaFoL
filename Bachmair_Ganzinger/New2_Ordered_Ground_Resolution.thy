@@ -381,6 +381,22 @@ proof -
     using res_e ord_resolve_reductive da_da by metis
   ultimately
   show ?thesis ..
+  
+  (* You can trim a lot in this proof *)
+qed
+
+lemma ord_resolve_atms_of_concl_subset:
+  assumes res_e: "ord_resolve CAs (D,As) E"
+  shows "atms_of E \<subseteq> (\<Union>C \<in> set_mset (side_clauses CAs). atms_of C) \<union> atms_of (main_clause (D,As))"
+using res_e proof (cases rule: ord_resolve.cases)
+  case (ord_resolve)
+  have e: "E = \<Union>#mset (map get_C CAs) + D" using ord_resolve(1) .
+  have "atms_of (Union_Cs CAs) \<subseteq> (\<Union>C\<in>set_mset (side_clauses CAs). atms_of C)"
+     by (auto simp: atms_of_def)
+  moreover have "atms_of D \<subseteq> atms_of (main_clause (D,As))"
+    by simp
+  ultimately show ?thesis
+    unfolding e by auto
 qed
 
 end
