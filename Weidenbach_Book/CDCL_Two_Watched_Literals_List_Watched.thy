@@ -73,7 +73,7 @@ definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat 
       else do {
         let K = (N!C) ! (snd f);
         let N' = list_update N C (swap (N!C) i (snd f));
-        RETURN (WL, (M, N', U, D, NP, UP, WS, Q, W))
+        RETURN (WL, (M, N', U, D, NP, UP, WS, Q, W(L := remove1_mset C (W L), K:= add_mset C (W K))))
       }
     }
    }
