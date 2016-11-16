@@ -100,6 +100,28 @@ definition unit_propagation_inner_loop_wl :: "'v literal \<Rightarrow> 'v twl_st
   }
   \<close>
 
+lemma working_queue_l_working_queue_wl: \<open>working_queue_l (st_l_of_wl S) = working_queue_wl S\<close>
+  by (cases S) auto
+
+lemma
+  assumes \<open>correct_watching S\<close>
+  shows \<open>(uncurry unit_propagation_inner_loop_wl, uncurry unit_propagation_inner_loop_l) \<in>
+    {((L', T'::'v twl_st_wl), (L, T::'v twl_st_l)). L = L' \<and> st_l_of_wl T' = T} \<rightarrow> \<langle>{(T', T). st_l_of_wl T' = T}\<rangle>nres_rel
+    \<close> (is \<open>?fg \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>)
+  unfolding unit_propagation_inner_loop_wl_def unit_propagation_inner_loop_l_def uncurry_def
+  apply (subst (10) nres_monad2[symmetric, of])
+  apply clarify
+  apply (refine_vcg WHILEIT_refine[where R = \<open>{((WT'::watched, T'::'v twl_st_wl), T). st_l_of_wl T' = T}\<close>] )
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by (auto simp add: working_queue_l_working_queue_wl)
+  subgoal by (auto simp add: working_queue_l_working_queue_wl)
+  subgoal by (auto simp add: working_queue_l_working_queue_wl)
+  subgoal by auto
+oops  
+  
 definition unit_propagation_outer_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres"  where
   \<open>unit_propagation_outer_loop_wl S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> twl_stgy_invs (twl_st_of_wl None S) \<and>

@@ -358,11 +358,132 @@ schematic_goal backtrack_l'_impl: "RETURN ?c \<le> backtrack_l' S"
   apply (refine_transfer find_unwatched_impl)
   done
 
+
+instance literal :: (heap) heap
+proof standard
+  obtain f :: \<open>'a \<Rightarrow> nat\<close> where f: \<open>inj f\<close>
+    by blast
+  then have Hf: \<open>f x = f s \<longleftrightarrow> x = s\<close> for s x
+    unfolding inj_on_def Ball_def comp_def by blast
+  let ?f = \<open>\<lambda>L. (is_pos L, f (atm_of L))\<close>
+  have \<open>OFCLASS(bool \<times> nat, heap_class)\<close>
+   by standard
+  then obtain g :: \<open>bool \<times> nat \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
+    by blast
+  then have H: \<open>g (x, y) = g (s, t) \<longleftrightarrow> x = s \<and> y = t\<close> for s t x y
+    unfolding inj_on_def Ball_def comp_def by blast
+  have \<open>inj (g o ?f)\<close>
+    using f g unfolding inj_on_def Ball_def comp_def H Hf
+    apply (intro allI impI)
+    apply (rename_tac x y, case_tac x; case_tac y)
+    by auto
+  then show \<open>\<exists>to_nat:: 'a literal \<Rightarrow> nat. inj to_nat\<close>
+    by blast
+qed
+
+instance ann_lit :: (heap, heap) heap
+proof standard
+  let ?f = \<open>\<lambda>L:: ('a, 'b) ann_lit. (lit_of L, if is_decided L then None else Some (mark_of L))\<close>
+  have f: \<open>inj ?f\<close>
+    unfolding inj_on_def Ball_def
+    apply (intro allI impI)
+    apply (rename_tac x y, case_tac x; case_tac y)
+    by auto
+  then have Hf: \<open>?f x = ?f s \<longleftrightarrow> x = s\<close> for s x
+    unfolding inj_on_def Ball_def comp_def by blast
+  have \<open>OFCLASS('a literal \<times> 'b option, heap_class)\<close>
+   by standard
+  then obtain g :: \<open>'a literal \<times> 'b option \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
+    by blast
+  then have H: \<open>g (x, y) = g (s, t) \<longleftrightarrow> x = s \<and> y = t\<close> for s t x y
+    unfolding inj_on_def Ball_def comp_def by blast
+  have \<open>inj (g o ?f)\<close>
+    using f g unfolding inj_on_def Ball_def comp_def H Hf
+    apply (intro allI impI)
+    apply (rename_tac x y, case_tac x; case_tac y)
+    by auto
+  then show \<open>\<exists>to_nat:: ('a, 'b) ann_lit \<Rightarrow> nat. inj to_nat\<close>
+    by blast
+qed
+
+
+abbreviation nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> (nat, nat) ann_lit \<Rightarrow> assn" where
+  \<open>nat_ann_lit_assn \<equiv> (id_assn :: (nat, nat) ann_lit \<Rightarrow> _)\<close>
+
+abbreviation nat_lit_assn :: "nat literal \<Rightarrow> nat literal \<Rightarrow> assn" where
+  \<open>nat_lit_assn \<equiv> (id_assn :: nat literal \<Rightarrow> _)\<close>
+
 concrete_definition backtrack_l'_impl uses backtrack_l'_impl
 
 code_identifier
   code_module DPLL_CDCL_W_Implementation \<rightharpoonup> (SML) CDCL_W_Level
-  
+
+prepare_code_thms backtrack_l'_impl_def
+export_code backtrack_l'_impl in SML
+
+
+type_synonym 'v working_queue_ll = "nat list"
+type_synonym 'v lit_queue_l = "'v literal list"
+
+type_synonym 'v twl_st_ll =
+  "('v, nat) ann_lits \<times> 'v clauses_l \<times> nat \<times>
+    'v clause_l option \<times> 'v clauses_l \<times> 'v clauses_l \<times> 'v working_queue_ll \<times> 'v lit_queue_l"
+
+abbreviation nat_lits_trail_assn :: "('v, nat) ann_lits \<Rightarrow> ('v, nat) ann_lits \<Rightarrow> assn" where
+  \<open>nat_lits_trail_assn \<equiv> (id_assn :: ('v, nat) ann_lits \<Rightarrow> _)\<close>
+
+abbreviation clauses_l_assn :: "'v clauses_l \<Rightarrow> 'v clauses_l \<Rightarrow> assn" where
+  \<open>clauses_l_assn \<equiv> (id_assn :: 'v clauses_l \<Rightarrow> _)\<close>
+
+abbreviation clause_l_assn :: "'v clause_l \<Rightarrow> 'v clause_l \<Rightarrow> assn" where
+  \<open>clause_l_assn \<equiv> (id_assn :: 'v clause_l \<Rightarrow> _)\<close>
+
+
+notation prod_assn (infixr "*assn" 90)
+abbreviation twl_st_ll_assn :: \<open>nat twl_st_ll \<Rightarrow> nat twl_st_ll \<Rightarrow> assn\<close> where
+\<open>twl_st_ll_assn \<equiv>
+ nat_lits_trail_assn *assn clauses_l_assn *assn nat_assn *assn
+ option_assn clause_l_assn *assn clauses_l_assn *assn clauses_l_assn *assn
+ list_assn nat_assn *assn
+ list_assn nat_lit_assn
+\<close>
+
+term \<open>uncurry2 (unit_propagation_inner_loop_body_l :: nat literal \<Rightarrow> nat \<Rightarrow>
+  nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close>
+term unit_propagation_inner_loop_body_l
+sepref_thm test_42 is \<open>uncurry2 (unit_propagation_inner_loop_body_l :: nat literal \<Rightarrow> nat \<Rightarrow>
+  nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close> ::
+  \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_ll_assn\<close>
+  unfolding test3_def
+  apply sepref
+  done
+
+schematic_goal unit_propagation_inner_loop_body_l_impl:
+  "RETURN ?c \<le> unit_propagation_inner_loop_body_l L C S"
+  unfolding unit_propagation_inner_loop_body_l_def valued_def Let_def
+  apply (refine_transfer find_unwatched_impl)
+  done
+
+schematic_goal unit_propagation_inner_loop_l_impl: "RETURN ?c \<le> unit_propagation_inner_loop_l L S"
+  unfolding unit_propagation_inner_loop_l_def valued_def Let_def
+  apply (refine_transfer unit_propagation_inner_loop_body_l_impl)
+  done
+
+schematic_goal unit_propagation_outer_loop_l_impl: "RETURN ?c \<le> unit_propagation_outer_loop_l S"
+  unfolding unit_propagation_outer_loop_l_def valued_def Let_def
+  apply (refine_transfer find_unwatched_impl)
+  done
+
+schematic_goal cdcl_twl_stgy_prog_l'_impl: "RETURN ?c \<le> cdcl_twl_stgy_prog_l' S"
+  unfolding cdcl_twl_stgy_prog_l'_def valued_def Let_def
+  apply (refine_transfer find_unwatched_impl)
+  done
+
+concrete_definition backtrack_l'_impl uses cdcl_twl_stgy_prog_l'
+
+code_identifier
+  code_module DPLL_CDCL_W_Implementation \<rightharpoonup> (SML) CDCL_W_Level
+
 prepare_code_thms backtrack_l'_impl_def
 export_code backtrack_l'_impl in SML
 end
