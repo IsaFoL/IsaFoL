@@ -399,23 +399,63 @@ using res_e proof (cases rule: ord_resolve.cases)
     unfolding e by auto
 qed
 
-end
+
+subsection {* Inference System *}
+
+text {*
+Theorem 3.16 is subsumed in the counterexample-reducing inference system framework, which is
+instantiated below. Unlike its unordered cousin, ordered resolution is additionally a reductive
+inference system.
+*}
+
+definition ord_\<Gamma> :: "'a inference set" where
+  "ord_\<Gamma> = {Infer (side_clauses CC) (main_clause (D,As)) E | CC D As E. ord_resolve CC (D,As) E}"
+
+sublocale 
+  sound_counterex_reducing_inference_system "ground_resolution_with_selection.ord_\<Gamma> S"
+    "ground_resolution_with_selection.INTERP S" +
+  reductive_inference_system "ground_resolution_with_selection.ord_\<Gamma> S"
+proof unfold_locales
+  fix C :: "'a clause" and N :: "'a clause set"
+  thm ord_resolve_counterex_reducing
+  assume "{#} \<notin> N" and "C \<in> N" and "\<not> INTERP N \<Turnstile> C" and "\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D"
+  then obtain DD E mC where
+    mc: "main_clause mC = C" and
+    dd_sset_n: "set_mset (side_clauses DD) \<subseteq> N" and
+    dd_true: "INTERP N \<Turnstile>m side_clauses DD" and
+    res_e: "ord_resolve DD mC E" and
+    e_cex: "\<not> INTERP N \<Turnstile> E" and
+    e_lt_c: "E < C"
+    using ord_resolve_counterex_reducing[of N C thesis] by auto
+
+  have mc': "main_clause (fst mC, snd mC) = C" by (simp add: mc)
+
+  have "ord_resolve DD mC E" by (simp add: res_e)
+  then have "ord_resolve DD (fst mC, snd mC) E" by simp
+  then have "Infer (side_clauses DD) C E \<in> ord_\<Gamma>"
+    using mc mc' unfolding ord_\<Gamma>_def by (metis (mono_tags, lifting) mem_Collect_eq)
+  thus "\<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> ord_\<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < C"
+    using dd_sset_n dd_true e_cex e_lt_c by blast
+next
+  fix CC DAs E and I
+  assume inf: "Infer CC DAs E \<in> ord_\<Gamma>" and icc: "I \<Turnstile>m CC" and id: "I \<Turnstile> DAs"
+  thm ord_\<Gamma>_def
+  from inf obtain D As mCC where "side_clauses mCC = CC" "main_clause (D,As) = DAs" "ord_resolve mCC (D, As) E" using ord_\<Gamma>_def by auto
+  thus "I \<Turnstile> E" using id icc ord_resolve_sound[of mCC D As E I] by auto
+next
+  fix \<gamma>
+  assume "\<gamma> \<in> ord_\<Gamma>"
+  thus "concl_of \<gamma> < main_prem_of \<gamma>"
+    unfolding ord_\<Gamma>_def using ord_resolve_reductive by auto
+qed
 
 end
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-    
+
+text {*
+A second proof of Theorem 3.12, compactness of clausal logic:
+*}
+
+lemmas (in ground_resolution_with_selection) clausal_logic_compact = clausal_logic_compact
+
+
+end
