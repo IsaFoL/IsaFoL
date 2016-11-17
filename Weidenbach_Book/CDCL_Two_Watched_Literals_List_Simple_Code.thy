@@ -2,6 +2,301 @@ theory CDCL_Two_Watched_Literals_List_Simple_Code
   imports CDCL_Two_Watched_Literals_List DPLL_CDCL_W_Implementation
 begin
 
+
+  
+
+instance literal :: (heap) heap
+proof standard
+  obtain f :: \<open>'a \<Rightarrow> nat\<close> where f: \<open>inj f\<close>
+    by blast
+  then have Hf: \<open>f x = f s \<longleftrightarrow> x = s\<close> for s x
+    unfolding inj_on_def Ball_def comp_def by blast
+  let ?f = \<open>\<lambda>L. (is_pos L, f (atm_of L))\<close>
+  have \<open>OFCLASS(bool \<times> nat, heap_class)\<close>
+   by standard
+  then obtain g :: \<open>bool \<times> nat \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
+    by blast
+  then have H: \<open>g (x, y) = g (s, t) \<longleftrightarrow> x = s \<and> y = t\<close> for s t x y
+    unfolding inj_on_def Ball_def comp_def by blast
+  have \<open>inj (g o ?f)\<close>
+    using f g unfolding inj_on_def Ball_def comp_def H Hf
+    apply (intro allI impI)
+    apply (rename_tac x y, case_tac x; case_tac y)
+    by auto
+  then show \<open>\<exists>to_nat:: 'a literal \<Rightarrow> nat. inj to_nat\<close>
+    by blast
+qed
+
+instance ann_lit :: (heap, heap) heap
+proof standard
+  let ?f = \<open>\<lambda>L:: ('a, 'b) ann_lit. (lit_of L, if is_decided L then None else Some (mark_of L))\<close>
+  have f: \<open>inj ?f\<close>
+    unfolding inj_on_def Ball_def
+    apply (intro allI impI)
+    apply (rename_tac x y, case_tac x; case_tac y)
+    by auto
+  then have Hf: \<open>?f x = ?f s \<longleftrightarrow> x = s\<close> for s x
+    unfolding inj_on_def Ball_def comp_def by blast
+  have \<open>OFCLASS('a literal \<times> 'b option, heap_class)\<close>
+   by standard
+  then obtain g :: \<open>'a literal \<times> 'b option \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
+    by blast
+  then have H: \<open>g (x, y) = g (s, t) \<longleftrightarrow> x = s \<and> y = t\<close> for s t x y
+    unfolding inj_on_def Ball_def comp_def by blast
+  have \<open>inj (g o ?f)\<close>
+    using f g unfolding inj_on_def Ball_def comp_def H Hf
+    apply (intro allI impI)
+    apply (rename_tac x y, case_tac x; case_tac y)
+    by auto
+  then show \<open>\<exists>to_nat:: ('a, 'b) ann_lit \<Rightarrow> nat. inj to_nat\<close>
+    by blast
+qed
+
+definition unit_propagation_inner_loop_body_l' :: "'v literal \<Rightarrow> nat \<Rightarrow>
+  'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
+  \<open>unit_propagation_inner_loop_body_l' L C S = do {
+    let (M, N, U, D, NP, UP, WS, Q) = S;
+    ASSERT(C < length N);
+    ASSERT(0 < length (N!C));
+    let i = (if (N!C)! 0 = L then 0 else 1);
+    ASSERT(i < length (N!C));
+    let L = N!C! i;
+    ASSERT(1-i < length (N!C));
+    let L' = (N!C) ! (1 - i);
+    val_L' \<leftarrow> valued M L';
+    if val_L' = Some True
+    then RETURN S
+    else do {
+      f \<leftarrow> find_unwatched M (N!C);
+      if fst f = None
+      then
+        if val_L' = Some False
+        then do {RETURN (M, N, U, Some (N!C), NP, UP, {#}, {#})}
+        else do {RETURN (Propagated L' C # M, N, U, D, NP, UP, WS, add_mset (-L') Q)}
+      else do {
+        ASSERT(snd f < length (N!C));
+        let K = (N!C) ! (snd f);
+        let N' = list_update N C (swap (N!C) i (snd f));
+        RETURN (M, N', U, D, NP, UP, WS, Q)
+      }
+    }
+   }
+\<close>
+
+abbreviation nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> (nat, nat) ann_lit \<Rightarrow> assn" where
+  \<open>nat_ann_lit_assn \<equiv> (id_assn :: (nat, nat) ann_lit \<Rightarrow> _)\<close>
+
+abbreviation nat_ann_lits_assn :: "(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> assn" where
+  \<open>nat_ann_lits_assn \<equiv> list_assn nat_ann_lit_assn\<close>
+
+abbreviation nat_lit_assn :: "nat literal \<Rightarrow> nat literal \<Rightarrow> assn" where
+  \<open>nat_lit_assn \<equiv> (id_assn :: nat literal \<Rightarrow> _)\<close>
+
+(* concrete_definition backtrack_l'_impl uses backtrack_l'_impl
+
+code_identifier
+  code_module DPLL_CDCL_W_Implementation \<rightharpoonup> (SML) CDCL_W_Level
+
+prepare_code_thms backtrack_l'_impl_def
+export_code backtrack_l'_impl in SML *)
+
+
+type_synonym 'v working_queue_ll = "nat list"
+type_synonym 'v lit_queue_l = "'v literal list"
+
+type_synonym 'v twl_st_ll =
+  "('v, nat) ann_lits \<times> 'v clauses_l \<times> nat \<times>
+    'v clause_l option \<times> 'v clauses_l \<times> 'v clauses_l \<times> 'v working_queue_ll \<times> 'v lit_queue_l"
+
+abbreviation nat_lits_trail_assn :: "('v, nat) ann_lits \<Rightarrow> ('v, nat) ann_lits \<Rightarrow> assn" where
+  \<open>nat_lits_trail_assn \<equiv> (id_assn :: ('v, nat) ann_lits \<Rightarrow> _)\<close>
+
+abbreviation clause_l_assn :: "nat clause_l \<Rightarrow> nat clause_l \<Rightarrow> assn" where
+  \<open>clause_l_assn \<equiv> list_assn nat_lit_assn\<close>
+
+abbreviation clauses_l_assn :: "nat clauses_l \<Rightarrow> nat clauses_l \<Rightarrow> assn" where
+  \<open>clauses_l_assn \<equiv> list_assn clause_l_assn\<close>
+
+
+notation prod_assn (infixr "*assn" 90)
+abbreviation twl_st_ll_assn :: \<open>nat twl_st_l \<Rightarrow> nat twl_st_ll \<Rightarrow> assn\<close> where
+\<open>twl_st_ll_assn \<equiv>
+ nat_lits_trail_assn *assn clauses_l_assn *assn nat_assn *assn
+ option_assn clause_l_assn *assn 
+ list_mset_assn (list_mset_assn nat_lit_assn) *assn 
+ list_mset_assn (list_mset_assn nat_lit_assn) *assn
+ list_mset_assn nat_assn *assn
+ list_mset_assn nat_lit_assn
+\<close>
+
+sepref_decl_op nat_lit_eq: "op = :: nat literal \<Rightarrow> nat literal \<Rightarrow> bool" ::  
+  "(Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (bool \<times> _) set)" .
+
+lemma [def_pat_rules]:
+  "op = $ a $ b \<equiv> op_nat_lit_eq $ a $ b"
+  by auto
+
+term id_assn
+(* 
+lemma [sepref_import_param]: \<open>(RETURN \<circ> Pos, RETURN o Pos) \<in> Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  by (auto simp: nres_rel_def) *)
+
+definition nat_ann_lit_eq_cases where
+  \<open>nat_ann_lit_eq_cases K L =
+    (case (K, L) of
+      (Decided K, Decided L) \<Rightarrow> K = L
+    | (Propagated K C, Propagated L C') \<Rightarrow> K = L \<and> C = C'
+    | (_, _) \<Rightarrow> False)\<close>
+  
+definition nat_lit_eq_cases where
+  \<open>nat_lit_eq_cases K L =
+    (case (K, L) of
+      (Pos K, Pos L) \<Rightarrow> K = L
+    | (Neg K, Neg L) \<Rightarrow> K = L
+    | (_, _) \<Rightarrow> False)\<close>
+
+
+sepref_decl_op atm_of: "atm_of :: nat literal \<Rightarrow> nat" ::  
+  "(Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (nat \<times> _) set)" .
+  
+lemma [def_pat_rules]:
+  "atm_of \<equiv> op_atm_of"
+  by auto
+
+definition atm_of_impl where
+  \<open>atm_of_impl L = do {
+    case L of
+      Pos K \<Rightarrow> K
+    | Neg K \<Rightarrow> K}\<close>
+
+
+sepref_decl_op lit_of: "lit_of :: (nat, nat) ann_lit \<Rightarrow> nat literal" ::  
+  "(Id :: ((nat, nat) ann_lit \<times> _) set) \<rightarrow> (Id :: (nat literal \<times> _) set)" .
+  
+lemma [def_pat_rules]:
+  "lit_of \<equiv> op_lit_of"
+  by auto
+
+definition lit_of_impl where
+  \<open>lit_of_impl L = do {
+    case L of
+      Propagated K _ \<Rightarrow> K
+    | Decided K \<Rightarrow> K}\<close>
+  
+context
+  notes [intro!] = hfrefI hn_refineI[THEN hn_refine_preI] frefI
+  notes [simp] = pure_def hn_ctxt_def invalid_assn_def
+begin
+lemma nat_lit_eq_cases_refine[sepref_fr_rules]: 
+  \<open>(uncurry (return oo nat_lit_eq_cases), uncurry (RETURN oo op_nat_lit_eq)) \<in> 
+    nat_lit_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding nat_lit_eq_cases_def 
+  apply (sep_auto split: literal.split)
+  apply (rename_tac aa ba a b)
+  apply (case_tac aa; case_tac ba; sep_auto)
+  done
+
+sepref_decl_impl nat_lit_eq_cases: nat_lit_eq_cases_refine .
+
+
+lemma atom_of_impl_refine[sepref_fr_rules]: 
+  \<open>(return o atm_of_impl, RETURN o op_atm_of) \<in>  nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  unfolding op_atm_of_def atm_of_impl_def 
+  by (sep_auto split: literal.split)
+
+sepref_decl_impl atom_of_impl: atom_of_impl_refine .
+
+
+lemma lit_of_impl_refine[sepref_fr_rules]: 
+  \<open>(return o lit_of_impl, RETURN o op_lit_of) \<in> nat_ann_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_assn\<close>
+  unfolding op_lit_of_def lit_of_impl_def 
+  by (sep_auto split: ann_lit.split)
+
+sepref_decl_impl lit_of_impl: atom_of_impl_refine .
+end
+
+sepref_decl_op defined_lit_imp: "defined_lit" ::  
+  "(Id :: (('a, 'b) ann_lit list \<times> _) set) \<rightarrow> (Id :: ('a literal \<times> _) set) \<rightarrow> bool_rel" .
+
+lemma [def_pat_rules]:
+  "defined_lit $ a $ b \<equiv> op_defined_lit_imp $ a $ b"
+  by auto
+
+definition defined_lit_set :: \<open>('a, 'm) ann_lit set \<Rightarrow> 'a literal \<Rightarrow> bool\<close>
+  where
+\<open>defined_lit_set I L \<longleftrightarrow> (Decided L \<in> I) \<or> (\<exists>P. Propagated L P \<in>  I)
+  \<or> (Decided (-L) \<in> I) \<or> (\<exists>P. Propagated (-L) P \<in>  I)\<close>
+
+lemma defined_lit_defined_lit_set: \<open>defined_lit M L \<longleftrightarrow> defined_lit_set (set M) L\<close>
+  unfolding defined_lit_set_def defined_lit_def
+  by auto
+
+lemma defined_lit_set_insert: \<open>defined_lit_set (insert L' M) L \<longleftrightarrow> atm_of (lit_of L') = atm_of L \<or> defined_lit_set M L\<close>
+  unfolding defined_lit_set_def
+  by (metis (no_types, lifting) ann_lit.sel(1) ann_lit.sel(2) atm_of_eq_atm_of insertE insertI1 
+      insertI2 literal_is_lit_of_decided) 
+
+lemma defined_lit_set_nil[simp]: \<open>\<not>defined_lit_set {} L\<close>
+   unfolding defined_lit_set_def by auto 
+
+lemma defined_lit_set_mono: \<open>M \<subseteq> M' \<Longrightarrow> defined_lit_set M L \<Longrightarrow> defined_lit_set M' L\<close>
+   unfolding defined_lit_set_def by auto 
+
+definition defined_lit_map_impl :: "('a, 'b) ann_lit list \<Rightarrow> 'a literal \<Rightarrow> bool nres" where
+  \<open>defined_lit_map_impl M L = 
+  nfoldli M (\<lambda>brk. brk = False) 
+     (\<lambda>L' _. do {
+       let L\<^sub>1 = atm_of L;
+       let L\<^sub>1'' = atm_of (lit_of L');
+       RETURN (L\<^sub>1 = L\<^sub>1'')})
+    False\<close>
+
+sepref_thm defined_lit_map_impl' is
+  \<open>uncurry (defined_lit_map_impl :: (nat, nat) ann_lit list \<Rightarrow> _)\<close> :: 
+  \<open>nat_ann_lits_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding defined_lit_map_impl_def
+  by sepref
+
+thm Sepref_Id_Op.def_pat_rules
+term \<open>uncurry2 (unit_propagation_inner_loop_body_l :: nat literal \<Rightarrow> nat \<Rightarrow>
+  nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close>
+term unit_propagation_inner_loop_body_l
+sepref_definition test_42 is \<open>uncurry2 (unit_propagation_inner_loop_body_l' :: nat literal \<Rightarrow> nat \<Rightarrow>
+  nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close> ::
+  \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_ll_assn\<close>
+  unfolding unit_propagation_inner_loop_body_l'_def 
+  apply (sepref )
+  apply sepref_dbg_keep
+  -- \<open>This prints a trace of the different phases of sepref, and stops when the first phase fails.
+    It then returns the internal proof state of the tool, which can be inspected further.
+    
+    Here, the translation phase fails. The translation phase translates the control structures and operations of
+    the abstract program to their concrete counterparts. To inspect the actual problem, we let translation run 
+    until the operation where it fails: \<close>
+  supply [[goals_limit=1]] -- \<open>There will be many subgoals during translation, and printing them takes very long with Isabelle :(\<close>
+      apply sepref_dbg_trans_keep
+  -- \<open>Things get stuck at a goal with predicate @{const hn_refine}. This is the internal refinement predicate,
+    @{term "hn_refine \<Gamma> c \<Gamma>' R a"} means, that, for operands whose refinement is described by @{term \<Gamma>},
+    the concrete program @{term c} refines the abstract program @{term a}, such that, afterwards, the operands
+    are described by @{term \<Gamma>'}, and the results are refined by @{term R}.
+    
+    Inspecting the first subgoal reveals that we got stuck on refining the abstract operation
+    @{term "RETURN $ (op_list_get $ b $ xf)"}. Note that the @{term "op $"} is just a constant for function 
+    application, which is used to tame Isabelle's higher-order unification algorithms. You may use 
+    \<open>unfolding APP_def\<close>, or even \<open>simp\<close> to get a clearer picture of the failed goal.
+
+    If a translation step fails, it may be helpful to execute as much of the translation step as possible:
+    \<close>
+  apply sepref_dbg_trans_step_keep
+  -- \<open>The translation step gets stuck at proving @{term "pre_list_get (b, xf)"}, which is the 
+    precondition for list indexing.\<close>
+  apply (sepref_dbg_side_keep) -- \<open>If you think the side-condition should be provable, this command 
+    returns the left-over subgoals after some preprocessing and applying auto\<close>
+  (* apply sepref_dbg_side_unfold (* Preprocessing only*) *)
+
+  done
+
+
 definition backtrack_l' :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
   \<open>backtrack_l' S\<^sub>0 =
     do {
@@ -358,105 +653,6 @@ schematic_goal backtrack_l'_impl: "RETURN ?c \<le> backtrack_l' S"
   apply (refine_transfer find_unwatched_impl)
   done
 
-
-instance literal :: (heap) heap
-proof standard
-  obtain f :: \<open>'a \<Rightarrow> nat\<close> where f: \<open>inj f\<close>
-    by blast
-  then have Hf: \<open>f x = f s \<longleftrightarrow> x = s\<close> for s x
-    unfolding inj_on_def Ball_def comp_def by blast
-  let ?f = \<open>\<lambda>L. (is_pos L, f (atm_of L))\<close>
-  have \<open>OFCLASS(bool \<times> nat, heap_class)\<close>
-   by standard
-  then obtain g :: \<open>bool \<times> nat \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
-    by blast
-  then have H: \<open>g (x, y) = g (s, t) \<longleftrightarrow> x = s \<and> y = t\<close> for s t x y
-    unfolding inj_on_def Ball_def comp_def by blast
-  have \<open>inj (g o ?f)\<close>
-    using f g unfolding inj_on_def Ball_def comp_def H Hf
-    apply (intro allI impI)
-    apply (rename_tac x y, case_tac x; case_tac y)
-    by auto
-  then show \<open>\<exists>to_nat:: 'a literal \<Rightarrow> nat. inj to_nat\<close>
-    by blast
-qed
-
-instance ann_lit :: (heap, heap) heap
-proof standard
-  let ?f = \<open>\<lambda>L:: ('a, 'b) ann_lit. (lit_of L, if is_decided L then None else Some (mark_of L))\<close>
-  have f: \<open>inj ?f\<close>
-    unfolding inj_on_def Ball_def
-    apply (intro allI impI)
-    apply (rename_tac x y, case_tac x; case_tac y)
-    by auto
-  then have Hf: \<open>?f x = ?f s \<longleftrightarrow> x = s\<close> for s x
-    unfolding inj_on_def Ball_def comp_def by blast
-  have \<open>OFCLASS('a literal \<times> 'b option, heap_class)\<close>
-   by standard
-  then obtain g :: \<open>'a literal \<times> 'b option \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
-    by blast
-  then have H: \<open>g (x, y) = g (s, t) \<longleftrightarrow> x = s \<and> y = t\<close> for s t x y
-    unfolding inj_on_def Ball_def comp_def by blast
-  have \<open>inj (g o ?f)\<close>
-    using f g unfolding inj_on_def Ball_def comp_def H Hf
-    apply (intro allI impI)
-    apply (rename_tac x y, case_tac x; case_tac y)
-    by auto
-  then show \<open>\<exists>to_nat:: ('a, 'b) ann_lit \<Rightarrow> nat. inj to_nat\<close>
-    by blast
-qed
-
-
-abbreviation nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> (nat, nat) ann_lit \<Rightarrow> assn" where
-  \<open>nat_ann_lit_assn \<equiv> (id_assn :: (nat, nat) ann_lit \<Rightarrow> _)\<close>
-
-abbreviation nat_lit_assn :: "nat literal \<Rightarrow> nat literal \<Rightarrow> assn" where
-  \<open>nat_lit_assn \<equiv> (id_assn :: nat literal \<Rightarrow> _)\<close>
-
-concrete_definition backtrack_l'_impl uses backtrack_l'_impl
-
-code_identifier
-  code_module DPLL_CDCL_W_Implementation \<rightharpoonup> (SML) CDCL_W_Level
-
-prepare_code_thms backtrack_l'_impl_def
-export_code backtrack_l'_impl in SML
-
-
-type_synonym 'v working_queue_ll = "nat list"
-type_synonym 'v lit_queue_l = "'v literal list"
-
-type_synonym 'v twl_st_ll =
-  "('v, nat) ann_lits \<times> 'v clauses_l \<times> nat \<times>
-    'v clause_l option \<times> 'v clauses_l \<times> 'v clauses_l \<times> 'v working_queue_ll \<times> 'v lit_queue_l"
-
-abbreviation nat_lits_trail_assn :: "('v, nat) ann_lits \<Rightarrow> ('v, nat) ann_lits \<Rightarrow> assn" where
-  \<open>nat_lits_trail_assn \<equiv> (id_assn :: ('v, nat) ann_lits \<Rightarrow> _)\<close>
-
-abbreviation clauses_l_assn :: "'v clauses_l \<Rightarrow> 'v clauses_l \<Rightarrow> assn" where
-  \<open>clauses_l_assn \<equiv> (id_assn :: 'v clauses_l \<Rightarrow> _)\<close>
-
-abbreviation clause_l_assn :: "'v clause_l \<Rightarrow> 'v clause_l \<Rightarrow> assn" where
-  \<open>clause_l_assn \<equiv> (id_assn :: 'v clause_l \<Rightarrow> _)\<close>
-
-
-notation prod_assn (infixr "*assn" 90)
-abbreviation twl_st_ll_assn :: \<open>nat twl_st_ll \<Rightarrow> nat twl_st_ll \<Rightarrow> assn\<close> where
-\<open>twl_st_ll_assn \<equiv>
- nat_lits_trail_assn *assn clauses_l_assn *assn nat_assn *assn
- option_assn clause_l_assn *assn clauses_l_assn *assn clauses_l_assn *assn
- list_assn nat_assn *assn
- list_assn nat_lit_assn
-\<close>
-
-term \<open>uncurry2 (unit_propagation_inner_loop_body_l :: nat literal \<Rightarrow> nat \<Rightarrow>
-  nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close>
-term unit_propagation_inner_loop_body_l
-sepref_thm test_42 is \<open>uncurry2 (unit_propagation_inner_loop_body_l :: nat literal \<Rightarrow> nat \<Rightarrow>
-  nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close> ::
-  \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_ll_assn\<close>
-  unfolding test3_def
-  apply sepref
-  done
 
 schematic_goal unit_propagation_inner_loop_body_l_impl:
   "RETURN ?c \<le> unit_propagation_inner_loop_body_l L C S"
