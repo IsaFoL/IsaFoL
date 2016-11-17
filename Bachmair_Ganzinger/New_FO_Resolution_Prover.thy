@@ -6,7 +6,7 @@
 
 section {* A Simple Resolution Prover for First-Order Clauses *}
 
-theory FO_Resolution_Prover
+theory New_FO_Resolution_Prover
 imports Ordered_Ground_Resolution Standard_Redundancy Substitution
 begin
 
