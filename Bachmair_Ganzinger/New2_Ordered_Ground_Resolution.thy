@@ -7,7 +7,7 @@
 section {* Ordered Ground Resolution with Selection *}
 
 theory New2_Ordered_Ground_Resolution
-imports Inference_System Ground_Resolution_Model Multiset_Even_More
+imports Inference_System Ground_Resolution_Model Multiset_Even_More Clauses
 begin
 
 
@@ -23,23 +23,6 @@ text {*
 Ordered ground resolution consists of a single rule, called @{text ord_resolve} below. Like
 @{text unord_resolve}, the rule is sound and counterexample-reducing. In addition, it is reductive.
 *}
-
-subsection {* Main and side clauses *} (* Should maybe be in Clausal_Logic *)
-
-type_synonym 'a side_clause = "'a clause * 'a multiset"
-type_synonym 'a main_clause = "'a clause * 'a list"
-
-abbreviation "side_clause \<equiv> (\<lambda>(C,As). C + poss As)"
-abbreviation "side_clauses Cs \<equiv> mset (map side_clause Cs)"
-abbreviation "main_clause \<equiv> (\<lambda>(D,As). D + negs (mset As))"
-
-
-(* "'b" abbreviates "'a multiset" and "'a list" *)
-abbreviation get_C :: "'a clause * 'b \<Rightarrow> 'a clause" where 
-  "get_C \<equiv> fst"
-
-abbreviation get_As :: "'a clause * 'b \<Rightarrow> 'b" where 
-  "get_As \<equiv> snd"
 
 
 context ground_resolution_with_selection

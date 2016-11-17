@@ -32,8 +32,8 @@ abbreviation "maximal_in A D \<equiv> (\<forall>B \<in> atms_of D. \<not> less_a
 abbreviation "str_maximal_in A D \<equiv> (\<forall>B \<in> atms_of D. \<not> less_eq_atm A B)"
 abbreviation "main_clause \<equiv> (\<lambda>(D,A). D + {#Neg Atm. Atm \<in># mset A #})"
 abbreviation "side_clause \<equiv> (\<lambda>(C,A). C + {#Pos Atm. Atm \<in># A #})"
-abbreviation "getAs \<equiv> snd"
-abbreviation "getC \<equiv> fst"
+abbreviation "get_As \<equiv> snd"
+abbreviation "get_C \<equiv> fst"
 
 lemma ground_less_atm_iff: "is_ground_atm A \<Longrightarrow> is_ground_atm B \<Longrightarrow> less_atm A B \<longleftrightarrow> A < B"
   unfolding is_ground_atm_def less_atm_iff by (auto intro: ex_ground_subst)
