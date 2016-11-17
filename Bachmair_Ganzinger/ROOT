@@ -23,10 +23,10 @@ session Bachmair_Ganzinger = Bachmair_Ganzinger_Base +
     Lazy_List_Limit
     Proving_Process
     Standard_Redundancy
-  theories [quick_and_dirty]
     Substitution
-    FO_Resolution_Prover
     New2_Ordered_Ground_Resolution
+  theories [quick_and_dirty]
+    FO_Resolution_Prover
   document_files
     "bib.bib"
     "root.tex"
