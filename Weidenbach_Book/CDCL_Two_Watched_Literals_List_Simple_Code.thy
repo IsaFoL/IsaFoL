@@ -3,7 +3,7 @@ theory CDCL_Two_Watched_Literals_List_Simple_Code
 begin
 
 
-  
+
 
 instance literal :: (heap) heap
 proof standard
@@ -122,14 +122,14 @@ notation prod_assn (infixr "*assn" 90)
 abbreviation twl_st_ll_assn :: \<open>nat twl_st_l \<Rightarrow> nat twl_st_ll \<Rightarrow> assn\<close> where
 \<open>twl_st_ll_assn \<equiv>
  nat_lits_trail_assn *assn clauses_l_assn *assn nat_assn *assn
- option_assn clause_l_assn *assn 
- list_mset_assn (list_mset_assn nat_lit_assn) *assn 
+ option_assn clause_l_assn *assn
+ list_mset_assn (list_mset_assn nat_lit_assn) *assn
  list_mset_assn (list_mset_assn nat_lit_assn) *assn
  list_mset_assn nat_assn *assn
  list_mset_assn nat_lit_assn
 \<close>
 
-sepref_decl_op nat_lit_eq: "op = :: nat literal \<Rightarrow> nat literal \<Rightarrow> bool" ::  
+sepref_decl_op nat_lit_eq: "op = :: nat literal \<Rightarrow> nat literal \<Rightarrow> bool" ::
   "(Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (bool \<times> _) set)" .
 
 lemma [def_pat_rules]:
@@ -137,7 +137,7 @@ lemma [def_pat_rules]:
   by auto
 
 term id_assn
-(* 
+(*
 lemma [sepref_import_param]: \<open>(RETURN \<circ> Pos, RETURN o Pos) \<in> Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
   by (auto simp: nres_rel_def) *)
 
@@ -147,7 +147,7 @@ definition nat_ann_lit_eq_cases where
       (Decided K, Decided L) \<Rightarrow> K = L
     | (Propagated K C, Propagated L C') \<Rightarrow> K = L \<and> C = C'
     | (_, _) \<Rightarrow> False)\<close>
-  
+
 definition nat_lit_eq_cases where
   \<open>nat_lit_eq_cases K L =
     (case (K, L) of
@@ -156,9 +156,9 @@ definition nat_lit_eq_cases where
     | (_, _) \<Rightarrow> False)\<close>
 
 
-sepref_decl_op atm_of: "atm_of :: nat literal \<Rightarrow> nat" ::  
+sepref_decl_op atm_of: "atm_of :: nat literal \<Rightarrow> nat" ::
   "(Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (nat \<times> _) set)" .
-  
+
 lemma [def_pat_rules]:
   "atm_of \<equiv> op_atm_of"
   by auto
@@ -170,9 +170,9 @@ definition atm_of_impl where
     | Neg K \<Rightarrow> K}\<close>
 
 
-sepref_decl_op lit_of: "lit_of :: (nat, nat) ann_lit \<Rightarrow> nat literal" ::  
+sepref_decl_op lit_of: "lit_of :: (nat, nat) ann_lit \<Rightarrow> nat literal" ::
   "(Id :: ((nat, nat) ann_lit \<times> _) set) \<rightarrow> (Id :: (nat literal \<times> _) set)" .
-  
+
 lemma [def_pat_rules]:
   "lit_of \<equiv> op_lit_of"
   by auto
@@ -182,15 +182,15 @@ definition lit_of_impl where
     case L of
       Propagated K _ \<Rightarrow> K
     | Decided K \<Rightarrow> K}\<close>
-  
+
 context
   notes [intro!] = hfrefI hn_refineI[THEN hn_refine_preI] frefI
   notes [simp] = pure_def hn_ctxt_def invalid_assn_def
 begin
-lemma nat_lit_eq_cases_refine[sepref_fr_rules]: 
-  \<open>(uncurry (return oo nat_lit_eq_cases), uncurry (RETURN oo op_nat_lit_eq)) \<in> 
+lemma nat_lit_eq_cases_refine[sepref_fr_rules]:
+  \<open>(uncurry (return oo nat_lit_eq_cases), uncurry (RETURN oo op_nat_lit_eq)) \<in>
     nat_lit_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding nat_lit_eq_cases_def 
+  unfolding nat_lit_eq_cases_def
   apply (sep_auto split: literal.split)
   apply (rename_tac aa ba a b)
   apply (case_tac aa; case_tac ba; sep_auto)
@@ -199,23 +199,23 @@ lemma nat_lit_eq_cases_refine[sepref_fr_rules]:
 sepref_decl_impl nat_lit_eq_cases: nat_lit_eq_cases_refine .
 
 
-lemma atom_of_impl_refine[sepref_fr_rules]: 
+lemma atom_of_impl_refine[sepref_fr_rules]:
   \<open>(return o atm_of_impl, RETURN o op_atm_of) \<in>  nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  unfolding op_atm_of_def atm_of_impl_def 
+  unfolding op_atm_of_def atm_of_impl_def
   by (sep_auto split: literal.split)
 
 sepref_decl_impl atom_of_impl: atom_of_impl_refine .
 
 
-lemma lit_of_impl_refine[sepref_fr_rules]: 
+lemma lit_of_impl_refine[sepref_fr_rules]:
   \<open>(return o lit_of_impl, RETURN o op_lit_of) \<in> nat_ann_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_assn\<close>
-  unfolding op_lit_of_def lit_of_impl_def 
+  unfolding op_lit_of_def lit_of_impl_def
   by (sep_auto split: ann_lit.split)
 
 sepref_decl_impl lit_of_impl: atom_of_impl_refine .
 end
 
-sepref_decl_op defined_lit_imp: "defined_lit" ::  
+sepref_decl_op defined_lit_imp: "defined_lit" ::
   "(Id :: (('a, 'b) ann_lit list \<times> _) set) \<rightarrow> (Id :: ('a literal \<times> _) set) \<rightarrow> bool_rel" .
 
 lemma [def_pat_rules]:
@@ -233,29 +233,53 @@ lemma defined_lit_defined_lit_set: \<open>defined_lit M L \<longleftrightarrow> 
 
 lemma defined_lit_set_insert: \<open>defined_lit_set (insert L' M) L \<longleftrightarrow> atm_of (lit_of L') = atm_of L \<or> defined_lit_set M L\<close>
   unfolding defined_lit_set_def
-  by (metis (no_types, lifting) ann_lit.sel(1) ann_lit.sel(2) atm_of_eq_atm_of insertE insertI1 
-      insertI2 literal_is_lit_of_decided) 
+  by (metis (no_types, lifting) ann_lit.sel(1) ann_lit.sel(2) atm_of_eq_atm_of insertE insertI1
+      insertI2 literal_is_lit_of_decided)
 
 lemma defined_lit_set_nil[simp]: \<open>\<not>defined_lit_set {} L\<close>
-   unfolding defined_lit_set_def by auto 
+   unfolding defined_lit_set_def by auto
 
 lemma defined_lit_set_mono: \<open>M \<subseteq> M' \<Longrightarrow> defined_lit_set M L \<Longrightarrow> defined_lit_set M' L\<close>
-   unfolding defined_lit_set_def by auto 
+   unfolding defined_lit_set_def by auto
 
 definition defined_lit_map_impl :: "('a, 'b) ann_lit list \<Rightarrow> 'a literal \<Rightarrow> bool nres" where
-  \<open>defined_lit_map_impl M L = 
-  nfoldli M (\<lambda>brk. brk = False) 
+  \<open>defined_lit_map_impl M L =
+  nfoldli M
+     (\<lambda>brk. brk = False)
      (\<lambda>L' _. do {
        let L\<^sub>1 = atm_of L;
        let L\<^sub>1'' = atm_of (lit_of L');
        RETURN (L\<^sub>1 = L\<^sub>1'')})
     False\<close>
 
-sepref_thm defined_lit_map_impl' is
-  \<open>uncurry (defined_lit_map_impl :: (nat, nat) ann_lit list \<Rightarrow> _)\<close> :: 
+sepref_definition defined_lit_map_impl' is
+  \<open>uncurry (defined_lit_map_impl :: (nat, nat) ann_lit list \<Rightarrow> _)\<close> ::
   \<open>nat_ann_lits_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding defined_lit_map_impl_def
   by sepref
+
+lemma defined_lit_map_impl_denifend_lit: \<open>defined_lit_map_impl M L \<le> SPEC (op = (defined_lit M L))\<close>
+  unfolding defined_lit_map_impl_def
+  apply (induction M)
+   apply (auto simp: defined_lit_cons)
+  by (smt RES_sng_eq_RETURN eq_iff nfoldli_no_ctd)
+
+lemma defined_lit_map_impl_spec: \<open>(uncurry defined_lit_map_impl, uncurry (RETURN oo op_defined_lit_imp)) \<in>
+    Id \<times>\<^sub>r Id \<rightarrow> \<langle>bool_rel\<rangle> nres_rel\<close>
+  apply clarify
+  apply refine_rcg
+  using defined_lit_map_impl_denifend_lit
+  by (auto simp add: RES_sng_eq_RETURN)
+
+lemma defined_lit_map_impl'_refine[sepref_fr_rules]:
+  \<open>(uncurry (defined_lit_map_impl'), uncurry (RETURN oo op_defined_lit_imp)) \<in>
+    nat_ann_lits_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  using defined_lit_map_impl'.refine_raw[unfolded defined_lit_map_impl'_def[symmetric],
+      FCOMP defined_lit_map_impl_spec] unfolding op_defined_lit_imp_def
+  .
+
+
+sepref_decl_impl defined_lit_impl: defined_lit_map_impl'_refine .
 
 thm Sepref_Id_Op.def_pat_rules
 term \<open>uncurry2 (unit_propagation_inner_loop_body_l :: nat literal \<Rightarrow> nat \<Rightarrow>
@@ -264,14 +288,14 @@ term unit_propagation_inner_loop_body_l
 sepref_definition test_42 is \<open>uncurry2 (unit_propagation_inner_loop_body_l' :: nat literal \<Rightarrow> nat \<Rightarrow>
   nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close> ::
   \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_ll_assn\<close>
-  unfolding unit_propagation_inner_loop_body_l'_def 
+  unfolding unit_propagation_inner_loop_body_l'_def
   apply (sepref )
   apply sepref_dbg_keep
   -- \<open>This prints a trace of the different phases of sepref, and stops when the first phase fails.
     It then returns the internal proof state of the tool, which can be inspected further.
-    
+
     Here, the translation phase fails. The translation phase translates the control structures and operations of
-    the abstract program to their concrete counterparts. To inspect the actual problem, we let translation run 
+    the abstract program to their concrete counterparts. To inspect the actual problem, we let translation run
     until the operation where it fails: \<close>
   supply [[goals_limit=1]] -- \<open>There will be many subgoals during translation, and printing them takes very long with Isabelle :(\<close>
       apply sepref_dbg_trans_keep
@@ -279,24 +303,31 @@ sepref_definition test_42 is \<open>uncurry2 (unit_propagation_inner_loop_body_l
     @{term "hn_refine \<Gamma> c \<Gamma>' R a"} means, that, for operands whose refinement is described by @{term \<Gamma>},
     the concrete program @{term c} refines the abstract program @{term a}, such that, afterwards, the operands
     are described by @{term \<Gamma>'}, and the results are refined by @{term R}.
-    
+
     Inspecting the first subgoal reveals that we got stuck on refining the abstract operation
-    @{term "RETURN $ (op_list_get $ b $ xf)"}. Note that the @{term "op $"} is just a constant for function 
-    application, which is used to tame Isabelle's higher-order unification algorithms. You may use 
+    @{term "RETURN $ (op_list_get $ b $ xf)"}. Note that the @{term "op $"} is just a constant for function
+    application, which is used to tame Isabelle's higher-order unification algorithms. You may use
     \<open>unfolding APP_def\<close>, or even \<open>simp\<close> to get a clearer picture of the failed goal.
 
     If a translation step fails, it may be helpful to execute as much of the translation step as possible:
     \<close>
-  apply sepref_dbg_trans_step_keep
-  -- \<open>The translation step gets stuck at proving @{term "pre_list_get (b, xf)"}, which is the 
+                      apply sepref_dbg_trans_step_keep
+  apply (simp add: list_assn_pure_conv)
+  -- \<open>The translation step gets stuck at proving @{term "pre_list_get (b, xf)"}, which is the
     precondition for list indexing.\<close>
-  apply (sepref_dbg_side_keep) -- \<open>If you think the side-condition should be provable, this command 
-    returns the left-over subgoals after some preprocessing and applying auto\<close>
+
+                      apply sepref_dbg_trans_step_keep
+                      apply sepref_dbg_trans_step_keep
+                      apply sepref_dbg_trans_step_keep
+  apply (sepref_dbg_side_keep)
+  apply (sepref_dbg_side_unfold)
+  apply (sepref_dbg_side_keep)
   (* apply sepref_dbg_side_unfold (* Preprocessing only*) *)
 
   done
 
-
+lemma \<open>hn_val Id a1' a1 \<Longrightarrow>\<^sub>t hn_ctxt nat_ann_lits_assn a1' a1\<close>
+  by (simp add: list_assn_pure_conv)
 definition backtrack_l' :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
   \<open>backtrack_l' S\<^sub>0 =
     do {
