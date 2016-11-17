@@ -4,7 +4,7 @@ ISABELLE=~/isabelle/isabelle
 RUN_ISABELLE="$(ISABELLE)/bin/isabelle"
 RUN_ISABELLE2016="$(ISABELLE2016)/bin/isabelle"
 
-ISABELLE_HOME=~/.isabelle/browser_info
+ISABELLE_HOME=~/.isabelle/Isabelle2016-1-RC2/browser_info
 ISABELLE2016_HOME=~/.isabelle/Isabelle2016/browser_info
 
 AFP=$(ISABELLE)/../afp-devel
@@ -24,8 +24,8 @@ HOL:
 	$(RUN_ISABELLE) build -b HOL
 
 Weidenbach_Book: HOL
-	$(RUN_ISABELLE) build -d '$$AFP' -b Refine_Imperative_HOL
-	$(RUN_ISABELLE) build -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -d '$$AFP' -v -D Weidenbach_Book
+	$(RUN_ISABELLE) build -b Refine_Imperative_HOL
+	$(RUN_ISABELLE) build -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -D Weidenbach_Book
 
 Bachmair_Ganzinger: HOL
 	$(RUN_ISABELLE) build -o browser_info -v -D Bachmair_Ganzinger
@@ -37,7 +37,7 @@ all: Weidenbach_Book Bachmair_Ganzinger Unordered_Resolution
 
 # build the documentation and the files
 current: Bachmair_Ganzinger Unordered_Resolution
-	$(RUN_ISABELLE) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -d Weidenbach_Book Full
+	$(RUN_ISABELLE) build -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -d Weidenbach_Book Full
 
 # need to be in the IJCAR branch
 conference:

@@ -2,9 +2,6 @@ theory CDCL_Two_Watched_Literals_List_Simple_Code
   imports CDCL_Two_Watched_Literals_List DPLL_CDCL_W_Implementation
 begin
 
-
-
-
 instance literal :: (heap) heap
 proof standard
   obtain f :: \<open>'a \<Rightarrow> nat\<close> where f: \<open>inj f\<close>
@@ -63,6 +60,7 @@ definition unit_propagation_inner_loop_body_l' :: "'v literal \<Rightarrow> nat 
     let L = N!C! i;
     ASSERT(1-i < length (N!C));
     let L' = (N!C) ! (1 - i);
+    ASSERT(no_dup M);
     val_L' \<leftarrow> valued M L';
     if val_L' = Some True
     then RETURN S
@@ -271,20 +269,91 @@ lemma defined_lit_map_impl_spec: \<open>(uncurry defined_lit_map_impl, uncurry (
   using defined_lit_map_impl_denifend_lit
   by (auto simp add: RES_sng_eq_RETURN)
 
-lemma defined_lit_map_impl'_refine[sepref_fr_rules]:
+lemma defined_lit_map_impl'_refine:
   \<open>(uncurry (defined_lit_map_impl'), uncurry (RETURN oo op_defined_lit_imp)) \<in>
     nat_ann_lits_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   using defined_lit_map_impl'.refine_raw[unfolded defined_lit_map_impl'_def[symmetric],
       FCOMP defined_lit_map_impl_spec] unfolding op_defined_lit_imp_def
   .
 
-
 sepref_decl_impl defined_lit_impl: defined_lit_map_impl'_refine .
+thm valued_def
+
+definition valued_impl :: "(nat, nat) ann_lit list \<Rightarrow> nat literal \<Rightarrow> bool option nres" where
+  \<open>valued_impl M L =
+    nfoldli M
+     (\<lambda>brk. brk = None)
+     (\<lambda>L' _. do {
+       let L\<^sub>1 = atm_of L;
+       let L\<^sub>2 = (lit_of L');
+       let L\<^sub>2' = atm_of (lit_of L');
+       if L = L\<^sub>2 then RETURN(Some True) 
+       else 
+         if L\<^sub>1 = L\<^sub>2' then RETURN (Some False) else RETURN None
+    })
+    None\<close>
+
+sepref_definition valued_impl' is \<open>uncurry valued_impl\<close> :: 
+  \<open>nat_ann_lits_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
+  unfolding valued_impl_def
+  by sepref
+
+lemma valued_impl_valued: 
+  assumes \<open>no_dup M\<close>
+  shows \<open>valued_impl M L = (valued M L)\<close>
+    using assms
+  apply (induction M)                              
+   apply (simp add: valued_def valued_impl_def Decided_Propagated_in_iff_in_lits_of_l atm_of_eq_atm_of)[]
+  by (auto simp add: valued_def valued_impl_def defined_lit_map dest: in_lits_of_l_defined_litD)
+
+lemma hrp_comp_Id2[simplified]: \<open>hrp_comp A Id = A\<close>
+  unfolding hrp_comp_def
+  by auto
+
+lemma valued_impl_spec: 
+  shows \<open>(uncurry valued_impl, uncurry valued) \<in> [\<lambda>(M, L). no_dup M]\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  unfolding fref_def nres_rel_def
+  by (auto simp: valued_impl_valued)
+
+lemma valued_impl'_refine[sepref_fr_rules]: 
+  \<open>(uncurry valued_impl', uncurry valued) \<in> [\<lambda>(M, _). no_dup M]\<^sub>a nat_ann_lits_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> option_assn bool_assn\<close>
+  using valued_impl'.refine_raw[unfolded valued_impl'_def[symmetric], FCOMP valued_impl_spec]
+  unfolding hrp_comp_Id2 .
+
+(* sepref_decl_op valued: "valued :: (nat, nat) ann_lit list \<Rightarrow> nat literal \<Rightarrow> bool option nres" ::
+  "(Id :: ((nat, nat) ann_lits \<times> _) set) \<rightarrow> (Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (bool option \<times> _) set)" 
+  unfolding valued_def uncurry_def fref_def 
+  by (auto simp: refine_rel_defs nres_rel_def)
+
+lemma [def_pat_rules]:
+  "valued $ a $ b \<equiv> op_valued $ a $ b"
+  by auto *)
+
+
+lemma [sepref_import_param]: 
+  \<open>(uncurry (RETURN oo valued), uncurry (RETURN oo valued)) \<in> Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  by (auto simp: nres_rel_def)
+
+sepref_register valued
+concrete_definition valued_impl_impl uses valued_impl'_refine
+
+(* sepref_thm valued_impl is "uncurry valued" :: "nat_ann_lits_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn"
+  uses valued_impl'_refine
+  unfolding valued_def Let_def
+  apply sepref_dbg_keep  
+      apply sepref_dbg_trans_keep
+  apply sepref
+  apply (refine_transfer find_unwatched_impl)
+  done
+
+concrete_definition valued_impl uses valued_impl
+ *)
 
 thm Sepref_Id_Op.def_pat_rules
 term \<open>uncurry2 (unit_propagation_inner_loop_body_l :: nat literal \<Rightarrow> nat \<Rightarrow>
   nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close>
 term unit_propagation_inner_loop_body_l
+
 sepref_definition test_42 is \<open>uncurry2 (unit_propagation_inner_loop_body_l' :: nat literal \<Rightarrow> nat \<Rightarrow>
   nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close> ::
   \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_ll_assn\<close>
@@ -298,7 +367,7 @@ sepref_definition test_42 is \<open>uncurry2 (unit_propagation_inner_loop_body_l
     the abstract program to their concrete counterparts. To inspect the actual problem, we let translation run
     until the operation where it fails: \<close>
   supply [[goals_limit=1]] -- \<open>There will be many subgoals during translation, and printing them takes very long with Isabelle :(\<close>
-      apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_keep
   -- \<open>Things get stuck at a goal with predicate @{const hn_refine}. This is the internal refinement predicate,
     @{term "hn_refine \<Gamma> c \<Gamma>' R a"} means, that, for operands whose refinement is described by @{term \<Gamma>},
     the concrete program @{term c} refines the abstract program @{term a}, such that, afterwards, the operands
@@ -311,20 +380,22 @@ sepref_definition test_42 is \<open>uncurry2 (unit_propagation_inner_loop_body_l
 
     If a translation step fails, it may be helpful to execute as much of the translation step as possible:
     \<close>
-                      apply sepref_dbg_trans_step_keep
-  apply (simp add: list_assn_pure_conv)
   -- \<open>The translation step gets stuck at proving @{term "pre_list_get (b, xf)"}, which is the
     precondition for list indexing.\<close>
-
+  apply sepref_dbg_trans_step_keep
                       apply sepref_dbg_trans_step_keep
+  apply (simp add: list_assn_pure_conv)
                       apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
+  apply (sepref_dbg_side_keep)
+oops
+                      apply (sepref_dbg_side_keep)
   apply (sepref_dbg_side_keep)
   apply (sepref_dbg_side_unfold)
   apply (sepref_dbg_side_keep)
+  apply (sepref_dbg_side_keep)
   (* apply sepref_dbg_side_unfold (* Preprocessing only*) *)
 
-  done
+  oops
 
 lemma \<open>hn_val Id a1' a1 \<Longrightarrow>\<^sub>t hn_ctxt nat_ann_lits_assn a1' a1\<close>
   by (simp add: list_assn_pure_conv)
