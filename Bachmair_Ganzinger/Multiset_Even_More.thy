@@ -1,5 +1,5 @@
 theory Multiset_Even_More
-imports "../lib/Multiset_More"
+imports "$AFP/Nested_Multisets_Ordinals/Multiset_More"
 begin
 
 section \<open>Even More about Multisets\<close>

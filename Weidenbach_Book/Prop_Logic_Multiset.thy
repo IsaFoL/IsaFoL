@@ -1,5 +1,5 @@
 theory Prop_Logic_Multiset
-imports "../lib/Multiset_More" Prop_Normalisation Partial_Clausal_Logic
+imports "$AFP/Nested_Multisets_Ordinals/Multiset_More" Prop_Normalisation Partial_Clausal_Logic
 begin
 
 section \<open>Link with Multiset Version\<close>

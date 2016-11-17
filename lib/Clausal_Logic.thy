@@ -8,7 +8,7 @@
 section \<open>Clausal Logic\<close>
 
 theory Clausal_Logic
-imports "../lib/Multiset_More"
+imports "$AFP/Nested_Multisets_Ordinals/Multiset_More"
 begin
 
 text \<open>

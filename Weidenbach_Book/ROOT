@@ -8,9 +8,9 @@ session "Imports" (Weidenbach_Book) = "HOL" +
     "~~/src/HOL/Library/Code_Target_Numeral"
     "~~/src/HOL/Library/Multiset"
     "~~/src/HOL/Library/Multiset_Order"
-  theories [document = true]
+    "$AFP/Nested_Multisets_Ordinals/Multiset_More"
+  theories
     Doc_Libraries
-    "../lib/Multiset_More"
     Wellfounded_More
     WB_List_More
     RBT_More
@@ -38,7 +38,7 @@ session "Normalisation" (Weidenbach_Book) = "Entailment_Definition" +
   description \<open>This session contains the normalisation from general formulas to CNF and DNF.\<close>
   options [document = pdf, document_output = "output"]
   theories [document = false]
-    "../lib/Multiset_More"
+    "$AFP/Nested_Multisets_Ordinals/Multiset_More"
     "../lib/Herbrand_Interpretation"
   theories [document = true]
     Prop_Abstract_Transformation
@@ -74,11 +74,11 @@ session "CDCL_Base" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
     "~~/src/HOL/Library/Multiset"
     "~~/src/HOL/Library/Multiset_Order"
     "~~/src/HOL/Library/RBT"
+    "$AFP/Nested_Multisets_Ordinals/Multiset_More"
     RBT_More
 
   theories [quick_and_dirty = false, document = true]
     Doc_Libraries
-    "../lib/Multiset_More"
     Wellfounded_More
     WB_List_More
 
@@ -133,11 +133,11 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
     "~~/src/HOL/Library/Multiset"
     "~~/src/HOL/Library/Multiset_Order"
     "~~/src/HOL/Library/RBT"
+    "$AFP/Nested_Multisets_Ordinals/Multiset_More"
     RBT_More
 
   theories [quick_and_dirty, document = true]
     Doc_Libraries
-    "../lib/Multiset_More"
     Wellfounded_More
     WB_List_More
 

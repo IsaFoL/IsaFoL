@@ -1,5 +1,5 @@
 theory WB_List_More
-imports Main "../lib/Multiset_More"
+imports "$AFP/Nested_Multisets_Ordinals/Multiset_More"
 begin
 
 text \<open>Sledgehammer parameters\<close>

@@ -9,8 +9,9 @@ session Bachmair_Ganzinger = Bachmair_Ganzinger_Base +
   options [document = pdf, document_output = "output",
     document_variants = "document:outline=/proof,/ML",
     timeout=200]
+  theories [document = false]
+    "$AFP/Nested_Multisets_Ordinals/Multiset_More"
   theories
-    "../lib/Multiset_More"
     "../lib/Clausal_Logic"
     "../lib/Herbrand_Interpretation"
     Multiset_Even_More
