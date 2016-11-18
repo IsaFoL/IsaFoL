@@ -121,4 +121,30 @@ lemma cdcl\<^sub>W_restart_mset_state_eq_eq: "state_eq = (op =)"
 lemma clauses_def: \<open>cdcl\<^sub>W_restart_mset.clauses (M, N, U, C) = N + U\<close>
   by (subst cdcl\<^sub>W_restart_mset.clauses_def) (simp add: cdcl\<^sub>W_restart_mset_state)
 
+lemma cdcl\<^sub>W_restart_mset_reduce_trail_to:
+  "cdcl\<^sub>W_restart_mset.reduce_trail_to F S =
+    ((if length (trail S) \<ge> length F
+    then drop (length (trail S) - length F) (trail S)
+    else []), init_clss S, learned_clss S, conflicting S)"
+    (is "?S = _")
+proof (induction F S rule: cdcl\<^sub>W_restart_mset.reduce_trail_to.induct)
+  case (1 F S) note IH = this
+  show ?case
+  proof (cases "trail S")
+    case Nil
+    then show ?thesis using IH by (cases S) (auto simp: cdcl\<^sub>W_restart_mset_state)
+  next
+    case (Cons L M)
+    then show ?thesis
+      apply (cases "Suc (length M) > length F")
+      subgoal
+        apply (subgoal_tac "Suc (length M) - length F = Suc (length M - length F)")
+        using cdcl\<^sub>W_restart_mset.reduce_trail_to_length_ne[of S F] IH by auto
+      subgoal
+        using IH cdcl\<^sub>W_restart_mset.reduce_trail_to_length_ne[of S F] 
+          apply (cases S)
+        by (simp add: cdcl\<^sub>W_restart_mset.trail_reduce_trail_to_drop cdcl\<^sub>W_restart_mset_state)
+      done
+  qed
+qed
 end

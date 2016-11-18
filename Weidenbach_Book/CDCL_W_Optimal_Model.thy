@@ -122,8 +122,12 @@ lemma
   weight_cons_trail[simp]:
     \<open>weight (cons_trail L S) = weight S\<close> and
   weight_update_conflicting[simp]:
-    \<open>weight (update_conflicting C S) = weight S\<close>
-  using cons_trail[of S _ _ L] update_conflicting[of S]
+    \<open>weight (update_conflicting C S) = weight S\<close> and
+  weight_tl_trail[simp]:
+    \<open>weight (tl_trail S) = weight S\<close> and
+  weight_add_learned_cls[simp]:
+    \<open>weight (add_learned_cls D S) = weight S\<close>
+  using cons_trail[of S _ _ L] update_conflicting[of S] tl_trail[of S] add_learned_cls[of S]
   by (auto simp: state_prop')
 
 lemma update_weight_information_simp[simp]:
@@ -136,12 +140,12 @@ lemma update_weight_information_simp[simp]:
   using update_weight_information[of S] unfolding clauses_def
   by (subst (asm) state_prop', subst (asm) state_prop'; metis; fail)+
 
-
-lemma
-  conflicting_clause_update_conflicting[simp]:
-    \<open>conflicting_clss (update_conflicting C S) = conflicting_clss S\<close>
+lemma 
+  conflicting_clss_cons_trail[simp]: \<open>conflicting_clss (cons_trail K S) = conflicting_clss S\<close> and
+  conflicting_clss_tl_trail[simp]: \<open>conflicting_clss (tl_trail S) = conflicting_clss S\<close> and
+  conflicting_clss_add_learned_cls[simp]: \<open>conflicting_clss (add_learned_cls D S) = conflicting_clss S\<close> and
+  conflicting_clss_update_conflicting[simp]: \<open>conflicting_clss (update_conflicting E S) = conflicting_clss S\<close>
   unfolding conflicting_clss_def by auto
-
 
 
 lemma atms_of_negate_ann_lits[simp]: \<open>atms_of (negate_ann_lits M) = atm_of ` (lits_of_l M)\<close>
@@ -228,7 +232,6 @@ lemma invs_update_weight_information[simp]:
   unfolding no_strange_atm_def cdcl\<^sub>W_M_level_inv_def distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_conflicting_def
     cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_all_struct_inv_def by auto
 
-thm state_simp state_eq_def
 lemma conflict_opt_cdcl\<^sub>W_all_struct_inv:
   assumes \<open>conflict_opt S T\<close> and
     inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
@@ -324,23 +327,129 @@ lemma conflict_opt_no_smaller_conflict:
       reduce_trail_to_skip_beginning exists_lit_max_level_in_negate_ann_lits
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def)
 
-inductive cdcl_opt :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
-cdcl_opt_cdcl:
-  \<open>cdcl\<^sub>W_stgy S T \<Longrightarrow> cdcl_opt S T\<close> |
-cdcl_opt_improve:
-  \<open>improve S T \<Longrightarrow> cdcl_opt S T\<close> |
-cdcl_opt_conflict_opt:
-  \<open>conflict_opt S T \<Longrightarrow> cdcl_opt S T\<close>
+fun no_confl_prop_impr where
+  \<open>no_confl_prop_impr S \<longleftrightarrow> 
+    no_step propagate S \<and> no_step conflict S \<and> no_step improve S \<and> no_step conflict S\<close>
+  
+inductive cdcl_opt_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
+cdcl_opt_conflict: "conflict S S' \<Longrightarrow> cdcl_opt_stgy S S'" |
+cdcl_opt_propagate: "propagate S S' \<Longrightarrow> cdcl_opt_stgy S S'" |
+cdcl_opt_improve: "improve S S' \<Longrightarrow> cdcl_opt_stgy S S'" |
+cdcl_opt_conflict_opt: "conflict_opt S S' \<Longrightarrow> cdcl_opt_stgy S S'" |
+cdcl_opt_other': "no_step conflict S \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> cdcl\<^sub>W_o S S' \<Longrightarrow> cdcl_opt_stgy S S'"
 
-lemma \<open>cdcl\<^sub>W_stgy S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) (abs_state T)\<close>
-  oops
+lemma conflict_opt_conflict:
+  \<open>conflict_opt S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.conflict (abs_state S) (abs_state T)\<close>
+  by (induction rule: conflict_opt.cases)
+    (auto intro!: cdcl\<^sub>W_restart_mset.conflict_rule[of _ \<open>negate_ann_lits (trail S)\<close>]
+      simp: cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset_state
+      true_annots_true_cls_def_iff_negation_in_model
+      in_negate_trial_iff)
 
+lemma conflict_conflict:
+  \<open>conflict S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.conflict (abs_state S) (abs_state T)\<close>
+  by (induction rule: conflict.cases)
+    (auto intro!: cdcl\<^sub>W_restart_mset.conflict_rule
+      simp: clauses_def cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset_state
+      true_annots_true_cls_def_iff_negation_in_model
+      in_negate_trial_iff)
+
+
+lemma propagate_propagate:
+  \<open>propagate S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.propagate (abs_state S) (abs_state T)\<close>
+  by (induction rule: propagate.cases)
+    (auto intro!: cdcl\<^sub>W_restart_mset.propagate_rule
+      simp: clauses_def cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset_state
+      true_annots_true_cls_def_iff_negation_in_model
+      in_negate_trial_iff)
+
+lemma decide_decide:
+  \<open>decide S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.decide (abs_state S) (abs_state T)\<close>
+  by (induction rule: decide.cases)
+    (auto intro!: cdcl\<^sub>W_restart_mset.decide_rule
+      simp: clauses_def cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset_state
+      true_annots_true_cls_def_iff_negation_in_model
+      in_negate_trial_iff)
+
+lemma skip_skip:
+  \<open>skip S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.skip (abs_state S) (abs_state T)\<close>
+  by (induction rule: skip.cases)
+    (auto intro!: cdcl\<^sub>W_restart_mset.skip_rule
+      simp: clauses_def cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset_state
+      true_annots_true_cls_def_iff_negation_in_model
+      in_negate_trial_iff)
+
+lemma resolve_resolve:
+  \<open>resolve S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.resolve (abs_state S) (abs_state T)\<close>
+  by (induction rule: resolve.cases)
+    (auto intro!: cdcl\<^sub>W_restart_mset.resolve_rule
+      simp: clauses_def cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset_state
+      true_annots_true_cls_def_iff_negation_in_model
+      in_negate_trial_iff)
+(* TODO Move *)
+lemma (in conflict_driven_clause_learning\<^sub>W) additional_info_tl_trailL[simp]:
+  \<open>additional_info (tl_trail S) = additional_info S\<close>
+  unfolding additional_info_def using tl_trail[of S] by (cases \<open>state S\<close>) auto
+
+lemma (in conflict_driven_clause_learning\<^sub>W)additional_info_reduce_trail_to[simp]: 
+  \<open>additional_info (reduce_trail_to F S) = additional_info S\<close>
+  apply (induction F S rule: reduce_trail_to.induct)
+  by (smt prod.inject reduce_trail_to_Nil reduce_trail_to_eq_length reduce_trail_to_length_ne state_prop tl_trail)
+
+lemma (in conflict_driven_clause_learning\<^sub>W)reduce_trail_to:
+  "state (reduce_trail_to F S) =
+    ((if length (trail S) \<ge> length F
+    then drop (length (trail S) - length F) (trail S)
+    else []), init_clss S, learned_clss S, conflicting S, additional_info S)"
+    (is "?S = _")
+proof (induction F S rule: reduce_trail_to.induct)
+  case (1 F S) note IH = this
+  show ?case
+  proof (cases "trail S")
+    case Nil
+    then show ?thesis using IH by (subst state_prop) auto
+  next
+    case (Cons L M)
+    then show ?thesis
+      apply (cases "Suc (length M) > length F")
+      subgoal
+        apply (subgoal_tac "Suc (length M) - length F = Suc (length M - length F)")
+        using reduce_trail_to_length_ne[of S F] IH by auto
+      subgoal
+        using IH reduce_trail_to_length_ne[of S F] apply (subst state_prop) 
+        by (simp add: trail_reduce_trail_to_drop)
+      done
+  qed
+qed
+(* End Move *)  
+
+lemma backtrack_backtrack:
+  \<open>backtrack S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.backtrack (abs_state S) (abs_state T)\<close>
+proof (induction rule: backtrack.cases)
+  case (backtrack_rule D L K M1 M2 i T)
+  moreover have 
+    \<open>cdcl\<^sub>W_restart_mset.reduce_trail_to M1
+       (trail S, init_clss S + conflicting_clss S, add_mset D (learned_clss S), None) = 
+    (M1, init_clss S + conflicting_clss S, add_mset D (learned_clss S), None)\<close>
+    using backtrack_rule by (auto simp add: cdcl\<^sub>W_restart_mset_reduce_trail_to cdcl\<^sub>W_restart_mset_state)
+  ultimately show ?case
+    by (auto intro!: cdcl\<^sub>W_restart_mset.backtrack.intros
+        simp: cdcl\<^sub>W_restart_mset_state)
+qed
 
 lemma
-  assumes \<open>cdcl_opt S T\<close> and \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+  assumes \<open>cdcl_opt_stgy S T\<close> and \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
   shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
   using assms apply induction
-oops
+      apply (blast dest: conflict_conflict cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros 
+      intro: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv)
+      apply (blast dest: propagate_propagate cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros 
+      intro: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv)
+    defer
+      apply (blast dest: conflict_opt_conflict cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros 
+      intro: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv)
+  oops
+
 end
 
 end
