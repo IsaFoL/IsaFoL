@@ -164,13 +164,12 @@ definition additional_WS_invs where
     get_learned_l S < length (get_clauses_l S)\<close>
 
 definition valued where
-  \<open>valued M L =
-     RETURN (if undefined_lit M L then None else if L \<in> lits_of_l M then Some True else Some False)\<close>
+  \<open>valued M L = (if undefined_lit M L then None else if L \<in> lits_of_l M then Some True else Some False)\<close>
 
 lemma valued_spec:
   assumes \<open>no_dup M\<close>
   shows
-  \<open>valued M L \<le> SPEC(\<lambda>v. (v = None \<longleftrightarrow> undefined_lit M L) \<and>
+  \<open>RETURN (valued M L) \<le> SPEC(\<lambda>v. (v = None \<longleftrightarrow> undefined_lit M L) \<and>
     (v = Some True \<longleftrightarrow> L \<in> lits_of_l M) \<and> (v = Some False \<longleftrightarrow> -L \<in> lits_of_l M))\<close>
   unfolding valued_def
   by (refine_vcg)
@@ -185,8 +184,7 @@ definition find_unwatched :: "('a, 'b) ann_lits \<Rightarrow> 'a clause_l \<Righ
     (found = Some True \<longrightarrow> (C!i \<in> lits_of_l M \<and> i < length C)) \<^esup>
     (\<lambda>(found, i). found = None \<and> i < length C)
     (\<lambda>(_, i). do {
-      v \<leftarrow> valued M (C!i);
-      case v of
+      case valued M (C!i) of
         None \<Rightarrow> do { RETURN (Some False, i)}
       | Some True \<Rightarrow> do { RETURN (Some True, i)}
       | Some False \<Rightarrow> do { RETURN (None, i+1)}
@@ -246,7 +244,7 @@ definition unit_propagation_inner_loop_body_l :: "'v literal \<Rightarrow> nat \
     let L' = (watched_l (N!C)) ! (1 - i);
     ASSERT(L' \<in># mset (watched_l (N!C)) - {#L#});
     ASSERT (mset (watched_l (N!C)) = {#L, L'#});
-    val_L' \<leftarrow> valued M L';
+    val_L' \<leftarrow> RETURN (valued M L');
     if val_L' = Some True
     then RETURN S
     else do {
@@ -548,7 +546,7 @@ proof -
     apply (rewrite at \<open>let _ = if watched_l _ ! _ = _then _ else _ in _\<close> Let_def)
     apply (rewrite at \<open>let _ =  (_ ! _, _) in _\<close> Let_def)
     apply (refine_rcg bind_refine_spec[where M' = \<open>find_unwatched _ _\<close>, OF _ find_unwatched]
-        bind_refine_spec[where M' = \<open>valued _ _\<close>, OF _ valued_spec[]]
+        bind_refine_spec[where M' = \<open>RETURN (valued _ _)\<close>, OF _ valued_spec[]]
         update_clause_ll_spec
         case_prod_bind[of _ \<open>If _ _\<close>]; remove_dummy_vars)
     unfolding i_def'
