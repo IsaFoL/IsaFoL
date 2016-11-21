@@ -455,6 +455,43 @@ lemma conflicting_add_learned_cls_conflicting[iff]:
   "conflicting (add_learned_cls C S) = None \<longleftrightarrow> conflicting S = None"
   by fastforce+
 
+lemma additional_info_tl_trailL[simp]:
+  \<open>additional_info (tl_trail S) = additional_info S\<close>
+  unfolding additional_info_def using tl_trail[of S] by (cases \<open>state S\<close>) auto
+
+lemma additional_info_reduce_trail_to[simp]:
+  \<open>additional_info (reduce_trail_to F S) = additional_info S\<close>
+  apply (induction F S rule: reduce_trail_to.induct)
+  by (smt prod.inject reduce_trail_to_Nil reduce_trail_to_eq_length reduce_trail_to_length_ne state_prop tl_trail)
+
+lemma reduce_trail_to:
+  "state (reduce_trail_to F S) =
+    ((if length (trail S) \<ge> length F
+    then drop (length (trail S) - length F) (trail S)
+    else []), init_clss S, learned_clss S, conflicting S, additional_info S)"
+proof (induction F S rule: reduce_trail_to.induct)
+  case (1 F S) note IH = this
+  show ?case
+  proof (cases "trail S")
+    case Nil
+    then show ?thesis using IH by (subst state_prop) auto
+  next
+    case (Cons L M)
+    show ?thesis
+    proof (cases "Suc (length M) > length F")
+      case True
+      then have "Suc (length M) - length F = Suc (length M - length F)"
+        by auto
+      then show ?thesis
+        using Cons True reduce_trail_to_length_ne[of S F] IH by (auto simp del: state_prop)
+    next
+      case False
+      then show ?thesis
+        using IH reduce_trail_to_length_ne[of S F] apply (subst state_prop)
+        by (simp add: trail_reduce_trail_to_drop)
+    qed
+  qed
+qed
 
 end \<comment> \<open>end of \<open>state\<^sub>W\<close> locale\<close>
 

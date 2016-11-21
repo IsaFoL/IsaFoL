@@ -384,43 +384,11 @@ lemma resolve_resolve:
   by (induction rule: resolve.cases)
     (auto intro!: cdcl\<^sub>W_restart_mset.resolve_rule
       simp: clauses_def cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset_state
-      true_annots_true_cls_def_iff_negation_in_model
+      true_annots_true_cls_def_iff_negation_in_model abs_state_def
       in_negate_trial_iff)
+
 (* TODO Move *)
-lemma (in conflict_driven_clause_learning\<^sub>W) additional_info_tl_trailL[simp]:
-  \<open>additional_info (tl_trail S) = additional_info S\<close>
-  unfolding additional_info_def using tl_trail[of S] by (cases \<open>state S\<close>) auto
 
-lemma (in conflict_driven_clause_learning\<^sub>W)additional_info_reduce_trail_to[simp]: 
-  \<open>additional_info (reduce_trail_to F S) = additional_info S\<close>
-  apply (induction F S rule: reduce_trail_to.induct)
-  by (smt prod.inject reduce_trail_to_Nil reduce_trail_to_eq_length reduce_trail_to_length_ne state_prop tl_trail)
-
-lemma (in conflict_driven_clause_learning\<^sub>W)reduce_trail_to:
-  "state (reduce_trail_to F S) =
-    ((if length (trail S) \<ge> length F
-    then drop (length (trail S) - length F) (trail S)
-    else []), init_clss S, learned_clss S, conflicting S, additional_info S)"
-    (is "?S = _")
-proof (induction F S rule: reduce_trail_to.induct)
-  case (1 F S) note IH = this
-  show ?case
-  proof (cases "trail S")
-    case Nil
-    then show ?thesis using IH by (subst state_prop) auto
-  next
-    case (Cons L M)
-    then show ?thesis
-      apply (cases "Suc (length M) > length F")
-      subgoal
-        apply (subgoal_tac "Suc (length M) - length F = Suc (length M - length F)")
-        using reduce_trail_to_length_ne[of S F] IH by auto
-      subgoal
-        using IH reduce_trail_to_length_ne[of S F] apply (subst state_prop) 
-        by (simp add: trail_reduce_trail_to_drop)
-      done
-  qed
-qed
 (* End Move *)  
 
 lemma backtrack_backtrack:
