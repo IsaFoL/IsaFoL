@@ -2955,7 +2955,8 @@ proof (induct rule: cdcl\<^sub>W_o_induct)
   have uL_not_D: "-L \<notin># remove1_mset (-L) D"
     using n_d confl unfolding distinct_cdcl\<^sub>W_state_def distinct_mset_def
     by (metis distinct_cdcl\<^sub>W_state_def distinct_mem_diff_mset multi_member_last n_d)
-  moreover have L_not_D: "L \<notin># remove1_mset (-L) D"
+  moreover {
+    have L_not_D: "L \<notin># remove1_mset (-L) D"
     proof (rule ccontr)
       assume "\<not> ?thesis"
       then have "L \<in># D"
@@ -2967,9 +2968,9 @@ proof (induct rule: cdcl\<^sub>W_o_induct)
       moreover have "no_dup (Propagated L C # M)"
         using lev tr_S unfolding cdcl\<^sub>W_M_level_inv_def by auto
       ultimately show False unfolding lits_of_def by (metis consistent_interp_def image_eqI
-        list.set_intros(1) lits_of_def ann_lit.sel(2) distinct_consistent_interp)
-    qed
-
+            list.set_intros(1) lits_of_def ann_lit.sel(2) distinct_consistent_interp)
+    qed 
+  }
   ultimately
     have g_D: "get_maximum_level (Propagated L C # M) (remove1_mset (-L) D)
       = get_maximum_level M (remove1_mset (-L) D)"
@@ -2997,20 +2998,21 @@ next
     "La \<in># D" and
     "get_level (Propagated L C' # M) La = backtrack_lvl S"
     using skip confl_inv by auto
-  moreover
+  moreover {
     have "atm_of La \<noteq> atm_of L"
-      proof (rule ccontr)
-        assume "\<not> ?thesis"
-        then have La: "La = L" using \<open>La \<in># D\<close> \<open>- L \<notin># D\<close>
-          by (auto simp add: atm_of_eq_atm_of)
-        have "Propagated L C' # M \<Turnstile>as CNot D"
-          using conflicting tr_S D unfolding cdcl\<^sub>W_conflicting_def by auto
-        then have "-L \<in> lits_of_l M"
-          using \<open>La \<in># D\<close> in_CNot_implies_uminus(2)[of L D "Propagated L C' # M"] unfolding La
-          by auto
-        then show False using lev tr_S unfolding cdcl\<^sub>W_M_level_inv_def consistent_interp_def by auto
-      qed
+    proof (rule ccontr)
+      assume "\<not> ?thesis"
+      then have La: "La = L" using \<open>La \<in># D\<close> \<open>- L \<notin># D\<close>
+        by (auto simp add: atm_of_eq_atm_of)
+      have "Propagated L C' # M \<Turnstile>as CNot D"
+        using conflicting tr_S D unfolding cdcl\<^sub>W_conflicting_def by auto
+      then have "-L \<in> lits_of_l M"
+        using \<open>La \<in># D\<close> in_CNot_implies_uminus(2)[of L D "Propagated L C' # M"] unfolding La
+        by auto
+      then show False using lev tr_S unfolding cdcl\<^sub>W_M_level_inv_def consistent_interp_def by auto
+    qed
     then have "get_level (Propagated L C' # M) La = get_level M La" by auto
+  }
   ultimately show ?case using D tr_S T by auto
 next
   case backtrack
@@ -3293,7 +3295,7 @@ subsubsection \<open>No conflict with only variables of level less than backtrac
 text \<open>This invariant is stronger than the previous argument in the sense that it is a property about
   all possible conflicts.\<close>
 definition "no_smaller_confl (S ::'st) \<equiv>
-  (\<forall>M K M' D. trail S = M' @ Decided K # M \<longrightarrow> D \<in># clauses S \<longrightarrow>\<not>M \<Turnstile>as CNot D)"
+  (\<forall>M K M' D. trail S = M' @ Decided K # M \<longrightarrow> D \<in># clauses S \<longrightarrow> \<not>M \<Turnstile>as CNot D)"
 
 lemma no_smaller_confl_init_sate[simp]:
   "no_smaller_confl (init_state N)" unfolding no_smaller_confl_def by auto
