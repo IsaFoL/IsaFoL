@@ -90,7 +90,7 @@ locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops 
     and
     update_weight_information:
        \<open>state S = (M, N, U, C, w, other) \<Longrightarrow>
-          state (update_weight_information T S) = (M, N, U, C, w', other)\<close> and
+          \<exists>w'. state (update_weight_information T S) = (M, N, U, C, w', other)\<close> and
     atms_of_conflicting_clss:
       \<open>atms_of_mm (conflicting_clss S) \<subseteq> atms_of_mm (init_clss S)\<close> and
     distinct_mset_mset_conflicting_clss:
@@ -750,6 +750,180 @@ lemma cdcl_opt_stgy_stgy_invariant:
   using assms unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
   by (auto intro: cdcl_opt_stgy_conflict_is_false_with_level cdcl_opt_stgy_no_smaller_confl)
 
+end
+
+end
+
+locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
+  conflict_driven_clause_learning\<^sub>W
+    state_eq
+    state
+    \<comment> \<open>functions for the state: \<close>
+      \<comment> \<open>access functions:\<close>
+    trail init_clss learned_clss conflicting
+      \<comment> \<open>changing state:\<close>
+    cons_trail tl_trail add_learned_cls remove_cls
+    update_conflicting
+
+      \<comment> \<open>get state:\<close>
+    init_state
+  for
+    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
+    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
+      nat \<times> 'b" and
+    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    init_clss :: "'st \<Rightarrow> 'v clauses" and
+    learned_clss :: "'st \<Rightarrow> 'v clauses" and
+    conflicting :: "'st \<Rightarrow> 'v clause option" and
+
+    cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_trail :: "'st \<Rightarrow> 'st" and
+    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
+
+    init_state :: "'v clauses \<Rightarrow> 'st" +
+  fixes
+    \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
+    update_additional_info :: \<open>nat \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close>
+  assumes
+    \<rho>_mono: \<open>\<rho> (add_mset L' M') > \<rho> M'\<close> and
+    update_additional_info:
+      \<open>state S = (M, N, U, C, K) \<Longrightarrow> state (update_additional_info K' S) = (M, N, U, C, K')\<close>
+begin
+
+definition update_weight_information :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st\<close> where
+  \<open>update_weight_information M S = update_additional_info (\<rho> (lit_of `# mset M), snd (additional_info S)) S\<close>
+
+lemma
+  trail_update_additional_info[simp]: \<open>trail (update_additional_info w S) = trail S\<close> and
+  init_clss_update_additional_info[simp]:
+    \<open>init_clss (update_additional_info w S) = init_clss S\<close> and
+  learned_clss_update_additional_info[simp]:
+    \<open>learned_clss (update_additional_info w S) = learned_clss S\<close> and
+  backtrack_lvl_update_additional_info[simp]:
+    \<open>backtrack_lvl (update_additional_info w S) = backtrack_lvl S\<close> and
+  conflicting_update_additional_info[simp]:
+    \<open>conflicting (update_additional_info w S) = conflicting S\<close> and
+  clauses_update_additional_info[simp]:
+    \<open>clauses (update_additional_info w S) = clauses S\<close>
+  using update_additional_info[of S] unfolding clauses_def
+  by (subst (asm) state_prop; subst (asm) state_prop; auto; fail)+
+
+lemma
+  trail_update_weight_information[simp]:
+    \<open>trail (update_weight_information w S) = trail S\<close> and
+  init_clss_update_weight_information[simp]:
+    \<open>init_clss (update_weight_information w S) = init_clss S\<close> and
+  learned_clss_update_weight_information[simp]:
+    \<open>learned_clss (update_weight_information w S) = learned_clss S\<close> and
+  backtrack_lvl_update_weight_information[simp]:
+    \<open>backtrack_lvl (update_weight_information w S) = backtrack_lvl S\<close> and
+  conflicting_update_weight_information[simp]:
+    \<open>conflicting (update_weight_information w S) = conflicting S\<close> and
+  clauses_update_weight_information[simp]:
+    \<open>clauses (update_weight_information w S) = clauses S\<close>
+  using update_additional_info[of S] unfolding update_weight_information_def by auto
+
+definition weight where
+  \<open>weight S = fst (additional_info S)\<close>
+
+lemma
+  additional_info_update_additional_info[simp]:
+  "additional_info (update_additional_info w S) = w"
+  unfolding additional_info_def using update_additional_info[of S]
+  by (cases \<open>state S\<close>; auto; fail)+
+
+lemma
+  \<open>weight (cons_trail L S) = weight S\<close> and
+    clss_tl_trail[simp]: "weight (tl_trail S) = weight S" and
+    weight_add_learned_cls_unfolded:
+      "weight (add_learned_cls U S) = weight S"
+      and
+    weight_update_conflicting[simp]: "weight (update_conflicting D S) = weight S" and
+    weight_remove_cls[simp]:
+      "weight (remove_cls C S) = weight S" and
+    weight_add_learned_cls[simp]:
+      "weight (add_learned_cls C S) = weight S" and
+    weight_update_weight_information[simp]:
+      "weight (update_weight_information M S) = \<rho> (lit_of `# mset M)"
+    by (auto simp: update_weight_information_def weight_def)
+
+definition is_improving :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> bool" where
+  \<open>is_improving M S \<longleftrightarrow> \<rho> (lit_of `# mset M) < weight S\<close>
+
+definition conflicting_clauses :: "'v clauses \<Rightarrow> nat \<Rightarrow> 'v clauses" where
+  \<open>conflicting_clauses M w = {#C \<in># mset_set (simple_clss (atms_of_mm M)). \<rho> C > w#}\<close>
+
+sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state
+  where
+    state = state and
+    trail = trail and
+    init_clss = init_clss and
+    learned_clss = learned_clss and
+    conflicting = conflicting and
+    cons_trail = cons_trail and
+    tl_trail = tl_trail and
+    add_learned_cls = add_learned_cls and
+    remove_cls = remove_cls and
+    update_conflicting = update_conflicting and
+    init_state = init_state and
+    weight = weight and
+    update_weight_information = update_weight_information and
+    is_improving = is_improving and
+    conflicting_clauses = conflicting_clauses
+  by unfold_locales
+
+lemma state_additional_info':
+  \<open>state S = (trail S, init_clss S, learned_clss S, conflicting S, weight S, additional_info' S)\<close>
+  unfolding additional_info'_def by (cases \<open>state S\<close>; auto simp: state_prop weight_def)
+
+lemma state_update_weight_information:
+  \<open>state S = (M, N, U, C, w, other) \<Longrightarrow>
+    \<exists>w'. state (update_weight_information T S) = (M, N, U, C, w', other)\<close>
+  unfolding update_weight_information_def by (cases \<open>state S\<close>; auto simp: state_prop weight_def)
+
+lemma conflicting_clss_incl_init_clss: \<open>atms_of_mm (conflicting_clss S) \<subseteq> atms_of_mm (init_clss S)\<close>
+  unfolding conflicting_clss_def conflicting_clauses_def
+  apply (auto simp: simple_clss_finite)
+  by (auto simp: simple_clss_def atms_of_ms_def)
+
+lemma distinct_mset_mset_conflicting_clss: \<open>distinct_mset_mset (conflicting_clss S)\<close>
+  unfolding conflicting_clss_def conflicting_clauses_def distinct_mset_set_def
+  apply (auto simp: simple_clss_finite)
+  by (auto simp: simple_clss_def)
+
+lemma is_improving_conflicting_clss_update_weight_information: \<open>is_improving M S \<Longrightarrow>
+       conflicting_clss S \<subseteq>#
+       conflicting_clss (update_weight_information M S)\<close>
+  by (auto simp: is_improving_def conflicting_clss_def conflicting_clauses_def
+      simp: multiset_filter_mono2)
+
+
+sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops
+  where
+    state = state and
+    trail = trail and
+    init_clss = init_clss and
+    learned_clss = learned_clss and
+    conflicting = conflicting and
+    cons_trail = cons_trail and
+    tl_trail = tl_trail and
+    add_learned_cls = add_learned_cls and
+    remove_cls = remove_cls and
+    update_conflicting = update_conflicting and
+    init_state = init_state and
+    weight = weight and
+    update_weight_information = update_weight_information and
+    is_improving = is_improving and
+    conflicting_clauses = conflicting_clauses
+  apply unfold_locales
+        apply (rule state_additional_info')
+       apply (simp add: state_update_weight_information; fail)
+      apply (simp add: conflicting_clss_incl_init_clss; fail)
+     apply (simp add: distinct_mset_mset_conflicting_clss; fail)
+  apply (simp add: is_improving_conflicting_clss_update_weight_information; fail)
+oops
 end
 
 end
