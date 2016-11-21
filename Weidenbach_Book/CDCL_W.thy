@@ -262,7 +262,7 @@ lemma
     clauses_remove_cls[simp]:
       "clauses (remove_cls C S) = removeAll_mset C (clauses S)" and
     clauses_add_learned_cls[simp]:
-      " clauses (add_learned_cls C S) = {#C#} + clauses S" and
+      "clauses (add_learned_cls C S) = {#C#} + clauses S" and
     clauses_init_state[simp]: "clauses (init_state N) = N"
     by (auto simp: ac_simps replicate_mset_plus clauses_def intro: multiset_eqI)
 
@@ -455,9 +455,23 @@ lemma conflicting_add_learned_cls_conflicting[iff]:
   "conflicting (add_learned_cls C S) = None \<longleftrightarrow> conflicting S = None"
   by fastforce+
 
-lemma additional_info_tl_trailL[simp]:
-  \<open>additional_info (tl_trail S) = additional_info S\<close>
-  unfolding additional_info_def using tl_trail[of S] by (cases \<open>state S\<close>) auto
+lemma
+  additional_info_cons_trail[simp]:
+    \<open>additional_info (cons_trail L S) = additional_info S\<close> and
+  additional_info_tl_trail[simp]:
+    "additional_info (tl_trail S) = additional_info S" and
+  additional_info_add_learned_cls_unfolded:
+    "additional_info (add_learned_cls U S) = additional_info S"  and
+  additional_info_update_conflicting[simp]:
+    "additional_info (update_conflicting D S) = additional_info S" and
+  additional_info_remove_cls[simp]:
+    "additional_info (remove_cls C S) = additional_info S" and
+  additional_info_add_learned_cls[simp]:
+    "additional_info (add_learned_cls C S) = additional_info S"
+  unfolding additional_info_def
+    using tl_trail[of S] cons_trail[of S] add_learned_cls[of S]
+    update_conflicting[of S] remove_cls[of S]
+  by (cases \<open>state S\<close>; auto; fail)+
 
 lemma additional_info_reduce_trail_to[simp]:
   \<open>additional_info (reduce_trail_to F S) = additional_info S\<close>
@@ -2969,7 +2983,7 @@ proof (induct rule: cdcl\<^sub>W_o_induct)
         using lev tr_S unfolding cdcl\<^sub>W_M_level_inv_def by auto
       ultimately show False unfolding lits_of_def by (metis consistent_interp_def image_eqI
             list.set_intros(1) lits_of_def ann_lit.sel(2) distinct_consistent_interp)
-    qed 
+    qed
   }
   ultimately
     have g_D: "get_maximum_level (Propagated L C # M) (remove1_mset (-L) D)
