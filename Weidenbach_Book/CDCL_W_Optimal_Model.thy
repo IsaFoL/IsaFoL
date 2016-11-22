@@ -47,7 +47,10 @@ definition conflicting_clss :: \<open>'st \<Rightarrow> 'v literal multiset mult
 
 definition negate_ann_lits :: "('v, 'v clause) ann_lits \<Rightarrow> 'v literal multiset" where
   \<open>negate_ann_lits M = (\<lambda>L. - lit_of L) `# (mset M)\<close>
-
+  
+definition abs_state :: "'st \<Rightarrow> ('v, 'v clause) ann_lit list \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option" where
+  \<open>abs_state S = (trail S, init_clss S + {#C. C \<in># conflicting_clss S#}, learned_clss S,
+  conflicting S)\<close>
 end
 
 locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops =
@@ -96,14 +99,17 @@ locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops 
     distinct_mset_mset_conflicting_clss:
       \<open>distinct_mset_mset (conflicting_clss S)\<close> and
     conflicting_clss_update_weight_information_mono:
-      \<open>is_improving M S \<Longrightarrow> conflicting_clss S \<subseteq># conflicting_clss (update_weight_information M S)\<close>
+      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow> is_improving M S \<Longrightarrow> 
+        conflicting_clss S \<subseteq># conflicting_clss (update_weight_information M S)\<close>
     and
     conflicting_clss_update_weight_information_mono_2:
-      \<open>D \<in># conflicting_clss S \<Longrightarrow> M \<Turnstile>as CNot D \<Longrightarrow>
-        negate_ann_lits M \<in># conflicting_clss S\<close>
+      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow>
+        D \<in># conflicting_clss S \<Longrightarrow> trail S \<Turnstile>as CNot D \<Longrightarrow>
+        negate_ann_lits (trail S) \<in># conflicting_clss S\<close>
     and
     conflicting_clss_update_weight_information_in:
-      \<open>is_improving M S \<Longrightarrow> negate_ann_lits M \<in># conflicting_clss (update_weight_information M S)\<close>
+      \<open>is_improving M S \<Longrightarrow> 
+        negate_ann_lits M \<in># conflicting_clss (update_weight_information M S)\<close>
 begin
 
 sublocale conflict_driven_clause_learning\<^sub>W
@@ -204,10 +210,6 @@ qed
 lemma in_negate_trial_iff: \<open>L \<in># negate_ann_lits M \<longleftrightarrow> - L \<in> lits_of_l M\<close>
   unfolding negate_ann_lits_def lits_of_def by (auto simp: uminus_lit_swap)
 
-definition abs_state :: "'st \<Rightarrow> ('v, 'v clause) ann_lit list \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option" where
-  \<open>abs_state S = (trail S, init_clss S + {#C. C \<in># conflicting_clss S#}, learned_clss S,
-  conflicting S)\<close>
-
 inductive conflict_opt :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S T :: 'st where
 conflict_opt_rule:
   \<open>conflict_opt S T\<close>
@@ -289,9 +291,9 @@ proof (induction rule: improve.cases)
      (get_all_ann_decomposition M)\<close>
       apply (rule all_decomposition_implies_mono_right[of _ M'])
       apply (rule all_decomposition_implies_mono)
-      using improve_rule(3) conflicting_clss_update_weight_information_mono[of _ S] by auto
+      using improve_rule(3) conflicting_clss_update_weight_information_mono[of S] inv by auto
     ultimately show ?case
-      using conflicting_clss_update_weight_information_mono[of M S]
+      using conflicting_clss_update_weight_information_mono[of S M]
       by (auto 6 2 simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
           cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
@@ -515,7 +517,8 @@ lemma cdcl\<^sub>W_o_conflict_is_false_with_level:
     by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
   done
 lemma no_confl_prop_impr_no_conflict:
-  assumes n_s_cpio: \<open>no_confl_prop_impr S\<close>
+  assumes n_s_cpio: \<open>no_confl_prop_impr S\<close> and
+    struct_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
   shows \<open>no_step cdcl\<^sub>W_restart_mset.conflict (abs_state S)\<close>
 proof (rule ccontr)
   assume \<open>\<not> ?thesis\<close>
@@ -530,7 +533,7 @@ proof (rule ccontr)
   consider
     (opt) \<open>D \<in># conflicting_clss S\<close> |
     (confl) \<open>D \<in># clauses S\<close>
-    using D by (auto simp: clauses_def  cdcl\<^sub>W_restart_mset.clauses_def abs_state_def
+    using D by (auto simp: clauses_def cdcl\<^sub>W_restart_mset.clauses_def abs_state_def
         cdcl\<^sub>W_restart_mset_state)
   then show False
   proof cases
@@ -540,8 +543,8 @@ proof (rule ccontr)
   next
     case opt
     then show ?thesis
-      using conflict_opt_rule[of S] conflicting_clss_update_weight_information_mono_2[of D S
-          \<open>trail S\<close>] conf tr n_s_cpio by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
+      using conflict_opt_rule[of S] conflicting_clss_update_weight_information_mono_2[of S D] 
+        conf tr n_s_cpio struct_inv by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
   qed
 qed
 
@@ -647,7 +650,7 @@ lemma cdcl\<^sub>W_o_no_smaller_confl:
   shows \<open>cdcl\<^sub>W_restart_mset.no_smaller_confl (abs_state T)\<close>
   apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o_no_smaller_confl_inv[of \<open>abs_state S\<close> \<open>abs_state T\<close>])
   subgoal using assms by (auto dest!:cdcl\<^sub>W_o_cdcl\<^sub>W_o)[]
-  subgoal using n_s no_confl_prop_impr_no_conflict by fast
+  subgoal using n_s no_confl_prop_impr_no_conflict struct_inv by fast
   subgoal using struct_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
@@ -850,10 +853,25 @@ lemma
     by (auto simp: update_weight_information_def weight_def)
 
 definition is_improving :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> bool" where
-  \<open>is_improving M S \<longleftrightarrow> \<rho> (lit_of `# mset M) < weight S\<close>
+  \<open>is_improving M S \<longleftrightarrow> \<rho> (lit_of `# mset M) < weight S \<and> M \<Turnstile>asm init_clss S\<close>
 
+text \<open>Pointwise negation of a clause:\<close>
+definition pNeg :: "'a clause \<Rightarrow> 'a clause" where
+  \<open>pNeg C = {#-D. D \<in># C#}\<close>
+  
+lemma finite_CNot[simp]: \<open>finite (CNot C)\<close>
+  by (auto simp: CNot_def)
+
+lemma atms_of_pNeg[simp]: \<open>atms_of (pNeg C) = atms_of C\<close>
+  by (auto simp: pNeg_def atms_of_def image_image)
+
+lemma distinct_mset_pNeg_iff[iff]: \<open>distinct_mset (pNeg x) \<longleftrightarrow>  distinct_mset x\<close>
+  unfolding pNeg_def
+  by (rule distinct_image_mset_inj) (auto simp: inj_on_def)
+
+  
 definition conflicting_clauses :: "'v clauses \<Rightarrow> nat \<Rightarrow> 'v clauses" where
-  \<open>conflicting_clauses M w = {#C \<in># mset_set (simple_clss (atms_of_mm M)). \<rho> C > w#}\<close>
+  \<open>conflicting_clauses M w = {#pNeg C | C \<in># mset_set (simple_clss (atms_of_mm M)). \<rho> C \<ge> w#}\<close>
 
 sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state
   where
@@ -873,6 +891,10 @@ sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_n
     is_improving = is_improving and
     conflicting_clauses = conflicting_clauses
   by unfold_locales
+
+(* TODO change as definition of \<open>negate_ann_lits\<close> *)
+lemma negate_ann_lits_pNeg_lit_of: \<open>negate_ann_lits = pNeg o image_mset lit_of o mset\<close>
+  by (intro ext) (auto simp: negate_ann_lits_def pNeg_def)
 
 lemma state_additional_info':
   \<open>state S = (trail S, init_clss S, learned_clss S, conflicting S, weight S, additional_info' S)\<close>
@@ -897,9 +919,52 @@ lemma is_improving_conflicting_clss_update_weight_information: \<open>is_improvi
        conflicting_clss S \<subseteq>#
        conflicting_clss (update_weight_information M S)\<close>
   by (auto simp: is_improving_def conflicting_clss_def conflicting_clauses_def
-      simp: multiset_filter_mono2)
+      simp: multiset_filter_mono2 intro!: image_mset_subseteq_mono)
 
+(* TODO Move *)
+lemma no_dup_not_tautology: \<open>no_dup M \<Longrightarrow> \<not>tautology (lit_of `# mset M)\<close>
+  by (induction M) (auto simp: tautology_add_mset uminus_lit_swap defined_lit_def
+      dest: atm_imp_decided_or_proped)
 
+lemma no_dup_distinct: \<open>no_dup M \<Longrightarrow> distinct_mset (lit_of `# mset M)\<close>
+  by (induction M) (auto simp: uminus_lit_swap defined_lit_def
+      dest: atm_imp_decided_or_proped)
+(* End Move *)
+  
+lemma conflicting_clss_update_weight_information_in:
+  assumes 
+    struct_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and 
+    \<open>is_improving (trail S) S\<close> 
+  shows  \<open>negate_ann_lits (trail S) \<in># conflicting_clss (update_weight_information (trail S) S)\<close>
+proof -
+  have n_d: \<open>no_dup (trail S)\<close> 
+    using struct_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def 
+    by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
+  have \<open>atms_of (lit_of `# mset (trail S)) \<subseteq> atms_of_mm (init_clss S)\<close>
+    using struct_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+       cdcl\<^sub>W_restart_mset.no_strange_atm_def 
+    apply (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
+    (* missing invariant atms (learned) \<subseteq> atms (init_clss) *)
+    sorry
+  moreover have \<open>\<not>tautology (lit_of `# mset (trail S))\<close> 
+    using n_d by (auto simp: no_dup_not_tautology)
+  moreover have \<open>distinct_mset (lit_of `# mset (trail S))\<close> 
+    using n_d by (auto simp: no_dup_distinct)
+  ultimately have \<open>lit_of `# mset (trail S)
+    \<in> {x. atms_of x \<subseteq> atms_of_mm (init_clss S) \<and>
+           \<not> tautology x \<and>
+           distinct_mset x \<and> \<rho> (lit_of `# mset (trail S)) \<le> \<rho> x}\<close>
+    by simp
+  then show ?thesis
+  apply (auto simp: simple_clss_finite (* negate_ann_lits_def *)
+    conflicting_clauses_def conflicting_clss_def)
+  apply (auto simp: is_improving_def conflicting_clss_def conflicting_clauses_def
+      simp: multiset_filter_mono2 (* negate_ann_lits_def *) simple_clss_def
+      negate_ann_lits_pNeg_lit_of)
+  done
+qed
+  
 sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops
   where
     state = state and
@@ -922,7 +987,22 @@ sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_o
        apply (simp add: state_update_weight_information; fail)
       apply (simp add: conflicting_clss_incl_init_clss; fail)
      apply (simp add: distinct_mset_mset_conflicting_clss; fail)
-  apply (simp add: is_improving_conflicting_clss_update_weight_information; fail)
+    apply (simp add: is_improving_conflicting_clss_update_weight_information; fail)
+   defer
+  thm conflicting_clss_update_weight_information_in
+  apply (simp add: conflicting_clss_update_weight_information_in)
+  sorry
+
+(* missing invariant here\<dots> *)
+lemma
+  \<open>improve S T \<Longrightarrow>
+      cdcl\<^sub>W_restart_mset.no_smaller_confl (abs_state S) \<Longrightarrow>
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow>
+      cdcl\<^sub>W_restart_mset.no_smaller_confl (abs_state T)\<close>
+  apply (induction rule: improve.induct)
+  apply (auto simp: cdcl\<^sub>W_restart_mset.no_smaller_confl_def is_improving_def
+      abs_state_def cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def
+      conflicting_clss_def conflicting_clauses_def)
 oops
 end
 
