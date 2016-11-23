@@ -1073,7 +1073,7 @@ lemma no_dup_distinct_uminus: \<open>no_dup M \<Longrightarrow> distinct_mset {#
       dest: atm_imp_decided_or_proped)
 
 
-subsection \<open>Extending Entailments to Multisets\<close>
+subsection \<open>Extending Entailments to multisets\<close>
 
 text \<open>We have defined previous entailment with respect to sets, but we also need a multiset version
   depending on the context. The conversion is simple using the function @{term set_mset} (in this
