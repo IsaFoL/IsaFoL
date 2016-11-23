@@ -921,24 +921,6 @@ lemma is_improving_conflicting_clss_update_weight_information: \<open>is_improvi
   by (auto simp: is_improving_int_def conflicting_clss_def conflicting_clauses_def
       simp: multiset_filter_mono2 intro!: image_mset_subseteq_mono)
 
-(* TODO Move *)
-lemma no_dup_not_tautology: \<open>no_dup M \<Longrightarrow> \<not>tautology (lit_of `# mset M)\<close>
-  by (induction M) (auto simp: tautology_add_mset uminus_lit_swap defined_lit_def
-      dest: atm_imp_decided_or_proped)
-
-lemma no_dup_distinct: \<open>no_dup M \<Longrightarrow> distinct_mset (lit_of `# mset M)\<close>
-  by (induction M) (auto simp: uminus_lit_swap defined_lit_def
-      dest: atm_imp_decided_or_proped)
-
-lemma no_dup_not_tautology_uminus: \<open>no_dup M \<Longrightarrow> \<not>tautology {#-lit_of L. L \<in># mset M#}\<close>
-  by (induction M) (auto simp: tautology_add_mset uminus_lit_swap defined_lit_def
-      dest: atm_imp_decided_or_proped)
-
-lemma no_dup_distinct_uminus: \<open>no_dup M \<Longrightarrow> distinct_mset {#-lit_of L. L \<in># mset M#}\<close>
-  by (induction M) (auto simp: uminus_lit_swap defined_lit_def
-      dest: atm_imp_decided_or_proped)
-(* End Move *)
-
  lemma conflicting_clss_update_weight_information_in:
   assumes \<open>is_improving M S\<close>
   shows \<open>negate_ann_lits M \<in># conflicting_clss (update_weight_information M S)\<close>
