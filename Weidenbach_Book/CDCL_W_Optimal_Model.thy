@@ -107,7 +107,10 @@ locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops 
     and
     conflicting_clss_update_weight_information_in:
       \<open>is_improving M S \<Longrightarrow>
-        negate_ann_lits M \<in># conflicting_clss (update_weight_information M S)\<close>
+        negate_ann_lits M \<in># conflicting_clss (update_weight_information M S)\<close> and
+    is_improving_mono:
+      \<open>\<not>is_improving M' S \<Longrightarrow> is_improving M S \<Longrightarrow>
+         \<not>is_improving M' (update_weight_information M S)\<close>
 begin
 
 sublocale conflict_driven_clause_learning\<^sub>W
@@ -222,7 +225,7 @@ text \<open>There are two properties related about the trail and the improvement
   \<^item> \<^term>\<open>no_smaller_improve\<close> is the corresponding invariant, that holds between two decisions.
 \<close>
 definition optimal_improve :: "('v, 'v literal multiset) ann_lit list \<Rightarrow> 'st \<Rightarrow> bool" where
-  \<open>optimal_improve tr S \<longleftrightarrow> (\<forall>M M'. tr = M' @ M \<longrightarrow> \<not>is_improving M S)\<close>
+  \<open>optimal_improve tr S \<longleftrightarrow> (\<forall>M M'. tr = M' @ M \<longrightarrow> M' \<noteq> [] \<longrightarrow> \<not>is_improving M S)\<close>
 
 definition no_smaller_improve :: "'st \<Rightarrow> bool" where
   \<open>no_smaller_improve  S \<longleftrightarrow> (\<forall>M M' K. trail S = M' @ Decided K # M \<longrightarrow> \<not>is_improving M S)\<close>
@@ -349,7 +352,7 @@ cdcl_opt_conflict: "conflict S S' \<Longrightarrow> cdcl_opt_stgy S S'" |
 cdcl_opt_propagate: "propagate S S' \<Longrightarrow> cdcl_opt_stgy S S'" |
 cdcl_opt_improve: "improve S S' \<Longrightarrow> cdcl_opt_stgy S S'" |
 cdcl_opt_conflict_opt: "conflict_opt S S' \<Longrightarrow> cdcl_opt_stgy S S'" |
-cdcl_opt_other': "no_step conflict S \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> cdcl\<^sub>W_o S S' \<Longrightarrow> cdcl_opt_stgy S S'"
+cdcl_opt_other': "cdcl\<^sub>W_o S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> cdcl_opt_stgy S S'"
 
 lemma conflict_opt_conflict:
   \<open>conflict_opt S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.conflict (abs_state S) (abs_state T)\<close>
@@ -656,6 +659,105 @@ next
     using cdcl_opt_other' by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
 qed
 
+lemma decided_cons_eq_append_decide_cons: \<open>Decided L # MM = M' @ Decided K # M \<longleftrightarrow>
+  (M' \<noteq> [] \<and> hd M' = Decided L \<and> MM = tl M' @ Decided K # M) \<or>
+  (M' = [] \<and> L = K \<and> MM = M)\<close>
+  by (cases M') auto
+
+lemma either_all_false_or_earliest_decomposition:
+  shows \<open>(\<forall>K K'. L = K' @ K \<longrightarrow> \<not>P K) \<or>
+      (\<exists>L' L''. L = L'' @ L' \<and> P L' \<and> (\<forall>K K'. L' = K' @ K \<longrightarrow> K' \<noteq> [] \<longrightarrow> \<not>P K))\<close>
+  apply (induction L)
+  subgoal by auto
+  subgoal for a
+    by (metis append_Cons append_Nil list.sel(3) tl_append2)
+  done
+
+lemma trail_is_improving_Ex_improve:
+  assumes confl: \<open>conflicting S = None\<close> and
+    imp: \<open>is_improving (trail S) S\<close>
+  shows \<open>Ex (improve S)\<close>
+proof -
+  let ?M = \<open>trail S\<close>
+  obtain M M' where \<open>?M = M' @ M\<close> and \<open>optimal_improve M S\<close> and \<open>is_improving M S\<close>
+    using either_all_false_or_earliest_decomposition[where P = \<open>\<lambda>M. is_improving M S\<close> and
+        L = \<open>trail S\<close>]
+    using imp by (auto simp: optimal_improve_def)
+  then show ?thesis
+    unfolding Ex_def
+    using confl by (auto simp: improve.simps)
+qed
+
+lemma cdcl_opt_stgy_no_smaller_improve:
+  assumes \<open>cdcl_opt_stgy S T\<close> and
+    \<open>no_smaller_improve S\<close> and
+    struct_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+  shows \<open>no_smaller_improve T\<close>
+  using assms
+proof induction
+  case (cdcl_opt_conflict S')
+  then show ?case
+    by (auto simp: no_smaller_improve_def elim!: conflictE)
+next
+  case (cdcl_opt_propagate S')
+  then show ?case
+    by (auto simp: no_smaller_improve_def propagated_cons_eq_append_decide_cons
+        elim!: propagateE)
+next
+  case (cdcl_opt_improve S')
+  then show ?case
+    using is_improving_mono[of _ S]
+    by (auto simp: no_smaller_improve_def improve.simps)
+next
+  case (cdcl_opt_conflict_opt S')
+  then show ?case
+    unfolding conflict_opt.simps no_smaller_improve_def by auto
+
+next
+  case (cdcl_opt_other' S') note o = this(1) and no_confl = this(2) and no_impr = this(3)
+  then have \<open>no_step improve S\<close>
+    by auto
+  then have H: \<open>\<not>is_improving (trail S) S\<close> if \<open>conflicting S = None\<close>
+    using that by (auto dest!: trail_is_improving_Ex_improve)
+
+  show ?case
+    using o
+  proof induction
+    case (decide S')
+    then show ?case
+      using no_impr
+      by (auto simp: improve.simps decided_cons_eq_append_decide_cons optimal_improve_def
+          H no_smaller_improve_def decide.simps)[]
+  next
+    case (bj S')
+    then show ?case
+      apply (induction rule: cdcl\<^sub>W_bj.cases)
+      subgoal
+        apply (cases \<open>trail S\<close>)
+        using no_impr
+        unfolding cdcl\<^sub>W_o.simps no_smaller_improve_def decide.simps
+         apply (auto simp: improve.simps decided_cons_eq_append_decide_cons optimal_improve_def
+            elim!: skipE resolveE backtrackE cdcl\<^sub>W_bjE)
+        done
+      subgoal
+        apply (cases \<open>trail S\<close>)
+        using no_impr
+        unfolding cdcl\<^sub>W_o.simps no_smaller_improve_def decide.simps
+         apply (auto simp: improve.simps decided_cons_eq_append_decide_cons optimal_improve_def
+            elim!: skipE resolveE backtrackE cdcl\<^sub>W_bjE)
+        done
+      subgoal
+        using no_impr
+        unfolding cdcl\<^sub>W_o.simps no_smaller_improve_def decide.simps
+        apply (auto simp: improve.simps decided_cons_eq_append_decide_cons optimal_improve_def
+            propagated_cons_eq_append_decide_cons
+            elim!: skipE resolveE backtrackE cdcl\<^sub>W_bjE
+            dest!: get_all_ann_decomposition_exists_prepend)
+        done
+      done
+  qed
+qed
+
 end
 
 locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
@@ -870,6 +972,12 @@ lemma pNeg_lit_of_trail_in_simple_clss: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^
   by (auto simp: simple_clss_def cdcl\<^sub>W_restart_mset_state atms_of_def pNeg_def lits_of_def
       dest: no_dup_not_tautology_uminus no_dup_distinct_uminus)
 
+lemma is_improving_mono:
+  \<open>\<not> is_improving M' S \<Longrightarrow>
+       is_improving M S \<Longrightarrow>
+       \<not> is_improving M' (update_weight_information M S)\<close>
+  by (auto simp: is_improving_int_def)
+
 sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops
   where
     state = state and
@@ -893,7 +1001,8 @@ sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_o
       apply (simp add: conflicting_clss_incl_init_clss; fail)
      apply (simp add: distinct_mset_mset_conflicting_clss; fail)
     apply (simp add: is_improving_conflicting_clss_update_weight_information; fail)
-  apply (simp add: conflicting_clss_update_weight_information_in; fail)
+   apply (simp add: conflicting_clss_update_weight_information_in; fail)
+  apply (rule is_improving_mono; assumption; fail)
   done
 
 end
