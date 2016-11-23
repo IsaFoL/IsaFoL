@@ -885,7 +885,7 @@ sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_o
     is_improving = is_improving and
     conflicting_clauses = conflicting_clauses
   apply unfold_locales
-        apply (rule state_additional_info')
+        apply (rule state_additional_info'; fail)
        apply (simp add: state_update_weight_information; fail)
       apply (simp add: conflicting_clss_incl_init_clss; fail)
      apply (simp add: distinct_mset_mset_conflicting_clss; fail)
