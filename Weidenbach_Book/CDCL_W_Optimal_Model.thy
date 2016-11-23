@@ -34,10 +34,13 @@ locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_s
     init_state :: "'v clauses \<Rightarrow> 'st" +
   fixes
     update_weight_information :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
-    is_improving :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> bool" and
+    is_improving_int :: "('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'a \<Rightarrow> bool" and
     conflicting_clauses :: "'v clauses \<Rightarrow> 'a \<Rightarrow> 'v clauses" and
     weight :: \<open>'st \<Rightarrow> 'a\<close>
 begin
+
+abbreviation is_improving where
+  \<open>is_improving M S \<equiv> is_improving_int M (init_clss S) (weight S)\<close>
 
 definition additional_info' :: "'st \<Rightarrow> 'b" where
 "additional_info' S = (\<lambda>(_, _, _, _, _, D). D) (state S)"
@@ -66,7 +69,7 @@ locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops 
       \<comment> \<open>get state:\<close>
     init_state
       \<comment> \<open>Adding a clause:\<close>
-    update_weight_information is_improving conflicting_clauses weight
+    update_weight_information is_improving_int conflicting_clauses weight
   for
     state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
     state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times>  'v clause option \<times>
@@ -84,7 +87,7 @@ locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops 
 
     init_state :: "'v clauses \<Rightarrow> 'st" and
     update_weight_information :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
-    is_improving :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> bool" and
+    is_improving_int :: "('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'a \<Rightarrow> bool" and
     conflicting_clauses :: "'v clauses \<Rightarrow> 'a \<Rightarrow> 'v clauses" and
     weight :: \<open>'st \<Rightarrow> 'a\<close> +
   assumes
@@ -750,9 +753,9 @@ lemma
       "weight (update_weight_information M S) = \<rho> (lit_of `# mset M)"
     by (auto simp: update_weight_information_def weight_def)
 
-definition is_improving :: "('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> bool" where
-  \<open>is_improving M S \<longleftrightarrow> \<rho> (lit_of `# mset M) < weight S \<and> M \<Turnstile>asm init_clss S \<and> no_dup M
-    \<and> lit_of `# mset M \<in> simple_clss (atms_of_mm (init_clss S))\<close>
+definition is_improving_int :: "('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> nat \<Rightarrow> bool" where
+  \<open>is_improving_int M N w \<longleftrightarrow> \<rho> (lit_of `# mset M) < w \<and> M \<Turnstile>asm N \<and> no_dup M
+    \<and> lit_of `# mset M \<in> simple_clss (atms_of_mm N)\<close>
 
 text \<open>Pointwise negation of a clause:\<close>
 definition pNeg :: "'a clause \<Rightarrow> 'a clause" where
@@ -786,7 +789,7 @@ sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_n
     init_state = init_state and
     weight = weight and
     update_weight_information = update_weight_information and
-    is_improving = is_improving and
+    is_improving_int = is_improving_int and
     conflicting_clauses = conflicting_clauses
   by unfold_locales
 
@@ -815,7 +818,7 @@ lemma distinct_mset_mset_conflicting_clss: \<open>distinct_mset_mset (conflictin
 
 lemma is_improving_conflicting_clss_update_weight_information: \<open>is_improving M S \<Longrightarrow>
        conflicting_clss S \<subseteq># conflicting_clss (update_weight_information M S)\<close>
-  by (auto simp: is_improving_def conflicting_clss_def conflicting_clauses_def
+  by (auto simp: is_improving_int_def conflicting_clss_def conflicting_clauses_def
       simp: multiset_filter_mono2 intro!: image_mset_subseteq_mono)
 
 (* TODO Move *)
@@ -839,10 +842,10 @@ lemma no_dup_distinct_uminus: \<open>no_dup M \<Longrightarrow> distinct_mset {#
  lemma conflicting_clss_update_weight_information_in:
   assumes \<open>is_improving M S\<close>
   shows \<open>negate_ann_lits M \<in># conflicting_clss (update_weight_information M S)\<close>
-   using assms apply (auto simp: simple_clss_finite (* negate_ann_lits_def *)
-    conflicting_clauses_def conflicting_clss_def is_improving_def )
-  by (auto simp: is_improving_def conflicting_clss_def conflicting_clauses_def
-      simp: multiset_filter_mono2 (* negate_ann_lits_def *) simple_clss_def
+   using assms apply (auto simp: simple_clss_finite
+    conflicting_clauses_def conflicting_clss_def is_improving_int_def)
+  by (auto simp: is_improving_int_def conflicting_clss_def conflicting_clauses_def
+      simp: multiset_filter_mono2 simple_clss_def
       negate_ann_lits_pNeg_lit_of)
 
 lemma atms_of_ms_pNeg[simp]: \<open>atms_of_ms (pNeg ` N) = atms_of_ms N\<close>
@@ -882,7 +885,7 @@ sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_o
     init_state = init_state and
     weight = weight and
     update_weight_information = update_weight_information and
-    is_improving = is_improving and
+    is_improving_int = is_improving_int and
     conflicting_clauses = conflicting_clauses
   apply unfold_locales
         apply (rule state_additional_info'; fail)
