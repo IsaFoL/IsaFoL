@@ -97,7 +97,7 @@ lemma reduce_trail_to_empty_trail[simp]:
   "reduce_trail_to F ([], aa, ab, b) = ([], aa, ab, b)"
   using reduce_trail_to.simps by auto
 
-lemma reduce_trail_to:
+lemma reduce_trail_to':
   "reduce_trail_to F S =
     ((if length (raw_trail S) \<ge> length F
     then drop (length (raw_trail S) - length F) (raw_trail S)
@@ -531,7 +531,7 @@ lemma do_backtrack_step:
         using M2 fd confl \<open>L \<in> set C\<close> j decomp levL \<open>get_maximum_level M (mset C) = count_decided M\<close>
         unfolding S E M1 apply (auto simp: mset_map)[6]
       using M2' M2 fd j lev_K unfolding S E M1
-      by (auto simp: comp_def ac_simps reduce_trail_to)[2]
+      by (auto simp: comp_def ac_simps reduce_trail_to')[2]
 qed
 
 lemma map_eq_list_length:

@@ -272,15 +272,18 @@ lemma state_eq_trans': \<open>S \<sim> S' \<Longrightarrow> T \<sim> S' \<Longri
 abbreviation backtrack_lvl :: "'st \<Rightarrow> nat" where
 \<open>backtrack_lvl S \<equiv> count_decided (trail S)\<close>
 
+named_theorems state_simp \<open>contains all theorems of the form @{term \<open>S \<sim> T \<Longrightarrow> P S = P T\<close>}. 
+  These theorems can cause a signefecant blow-up of the simp-space\<close>
+
 lemma
   shows
-    state_eq_trail: "S \<sim> T \<Longrightarrow> trail S = trail T" and
-    state_eq_init_clss: "S \<sim> T \<Longrightarrow> init_clss S = init_clss T" and
-    state_eq_learned_clss: "S \<sim> T \<Longrightarrow> learned_clss S = learned_clss T" and
-    state_eq_conflicting: "S \<sim> T \<Longrightarrow> conflicting S = conflicting T" and
-    state_eq_clauses: "S \<sim> T \<Longrightarrow> clauses S = clauses T" and
-    state_eq_undefined_lit: "S \<sim> T \<Longrightarrow> undefined_lit (trail S) L = undefined_lit (trail T) L" and
-    state_eq_backtrack_lvl: "S \<sim> T \<Longrightarrow> backtrack_lvl S = backtrack_lvl T"
+    state_eq_trail[state_simp]: "S \<sim> T \<Longrightarrow> trail S = trail T" and
+    state_eq_init_clss[state_simp]: "S \<sim> T \<Longrightarrow> init_clss S = init_clss T" and
+    state_eq_learned_clss[state_simp]: "S \<sim> T \<Longrightarrow> learned_clss S = learned_clss T" and
+    state_eq_conflicting[state_simp]: "S \<sim> T \<Longrightarrow> conflicting S = conflicting T" and
+    state_eq_clauses[state_simp]: "S \<sim> T \<Longrightarrow> clauses S = clauses T" and
+    state_eq_undefined_lit[state_simp]: "S \<sim> T \<Longrightarrow> undefined_lit (trail S) L = undefined_lit (trail T) L" and
+    state_eq_backtrack_lvl[state_simp]: "S \<sim> T \<Longrightarrow> backtrack_lvl S = backtrack_lvl T"
 
   using state_eq_state unfolding clauses_def by auto
 
@@ -291,9 +294,8 @@ lemma state_eq_conflicting_None:
 text \<open>We combine all simplification rules about @{term state_eq} in a single list of theorems. While
   they are handy as simplification rule as long as we are working on the state, they also cause a
   \<^emph>\<open>huge\<close> slow-down in all other cases.\<close>
-lemmas state_simp[simp] = state_eq_trail state_eq_init_clss state_eq_learned_clss
-  state_eq_conflicting state_eq_clauses state_eq_undefined_lit
-  state_eq_conflicting_None
+
+declare state_simp[simp]
 
 function reduce_trail_to :: "'a list \<Rightarrow> 'st \<Rightarrow> 'st" where
 "reduce_trail_to F S =

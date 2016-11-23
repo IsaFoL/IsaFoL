@@ -119,14 +119,15 @@ sublocale conflict_driven_clause_learning\<^sub>W
 
 declare reduce_trail_to_skip_beginning[simp]
 
-(* TODO create a named_theorem for state_simp *)
-lemma state_eq_weight[simp]: \<open>S \<sim> T \<Longrightarrow> weight S = weight T\<close>
+
+lemma state_eq_weight[state_simp, simp]: \<open>S \<sim> T \<Longrightarrow> weight S = weight T\<close>
   apply (drule state_eq_state)
   apply (subst (asm) state_prop')
   apply (subst (asm) state_prop')
   by simp
 
-lemma conflicting_clause_state_eq[simp]: \<open>S \<sim> T \<Longrightarrow> conflicting_clss S = conflicting_clss T\<close>
+
+lemma conflicting_clause_state_eq[state_simp, simp]: \<open>S \<sim> T \<Longrightarrow> conflicting_clss S = conflicting_clss T\<close>
   unfolding conflicting_clss_def by auto
 
 lemma
@@ -241,6 +242,8 @@ improve_rule:
     \<open>optimal_improve M S\<close> and
     \<open>conflicting S = None\<close> and
     \<open>T \<sim> update_weight_information M S\<close>
+
+inductive_cases improveE: \<open>improve S T\<close>
 
 lemma invs_update_weight_information[simp]:
   \<open>no_strange_atm (update_weight_information C S) = (no_strange_atm S)\<close>
@@ -597,7 +600,8 @@ lemma cdcl\<^sub>W_M_level_inv_cdcl\<^sub>W_M_level_inv[iff]:
       cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset_state)
 
 lemma cdcl_opt_stgy_no_smaller_confl:
-  assumes \<open>cdcl_opt_stgy S T\<close> and \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
+  assumes \<open>cdcl_opt_stgy S T\<close> and 
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
     \<open>no_smaller_confl S\<close> and
     \<open>conflict_is_false_with_level S\<close> and
     \<open>no_smaller_improve S\<close>
@@ -765,6 +769,57 @@ lemma cdcl_opt_stgy_stgy_inv:
   using cdcl_opt_stgy_conflict_is_false_with_level cdcl_opt_stgy_no_smaller_confl
     cdcl_opt_stgy_no_smaller_improve by blast
 
+lemma learned_clss_learned_clss[simp]:
+    \<open>CDCL_W_Abstract_State.learned_clss (abs_state S) = learned_clss S\<close>
+  by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
+
+lemma state_eq_init_clss_abs_state[state_simp, simp]:
+  \<open>S \<sim> T \<Longrightarrow> CDCL_W_Abstract_State.init_clss (abs_state S) = CDCL_W_Abstract_State.init_clss (abs_state T)\<close>
+  by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
+
+lemma 
+  init_clss_abs_state_update_conflicting[simp]:
+    \<open>CDCL_W_Abstract_State.init_clss (abs_state (update_conflicting (Some D) S)) = 
+       CDCL_W_Abstract_State.init_clss (abs_state S)\<close> and
+  init_clss_abs_state_cons_trail[simp]:
+    \<open>CDCL_W_Abstract_State.init_clss (abs_state (cons_trail K S)) = 
+      CDCL_W_Abstract_State.init_clss (abs_state S)\<close>
+  by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
+
+lemma
+  assumes 
+    \<open>cdcl_opt_stgy S T\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init (abs_state S)\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init (abs_state T)\<close>
+  using assms
+proof (induction rule: cdcl_opt_stgy.cases)
+  case (cdcl_opt_conflict S')
+  then show ?case
+    by (auto simp: cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init_def
+        elim!: conflictE)
+next
+  case (cdcl_opt_propagate S')
+  then show ?case
+    by (auto simp: cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init_def
+        elim!: propagateE)
+next
+  case (cdcl_opt_improve S')
+  moreover have \<open>CDCL_W_Abstract_State.init_clss (abs_state S) \<subseteq>#
+       CDCL_W_Abstract_State.init_clss (abs_state (update_weight_information M S))\<close> for M
+    apply (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
+    sorry
+  ultimately show ?case 
+    apply (auto simp: cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init_def
+        elim!: improveE
+        simp: true_clss_clss_subset) sorry
+next
+  case (cdcl_opt_conflict_opt S')
+  then show ?case sorry
+next
+  case (cdcl_opt_other' S')
+  then show ?case sorry
+qed
 end
 
 locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
@@ -985,13 +1040,13 @@ sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_o
     is_improving_int = is_improving_int and
     conflicting_clauses = conflicting_clauses
   apply unfold_locales
-        apply (rule state_additional_info'; fail)
-       apply (rule state_update_weight_information; assumption; fail)
-      apply (rule conflicting_clss_incl_init_clss; assumption; fail)
-     apply (rule distinct_mset_mset_conflicting_clss; assumption; fail)
-    apply (rule is_improving_conflicting_clss_update_weight_information; assumption; fail)
-   apply (rule conflicting_clss_update_weight_information_in; assumption; fail)
-  apply (rule is_improving_mono; assumption; fail)
+  subgoal by (rule state_additional_info'; assumption)
+  subgoal by (rule state_update_weight_information; assumption)
+  subgoal by (rule conflicting_clss_incl_init_clss; assumption)
+  subgoal by (rule distinct_mset_mset_conflicting_clss; assumption)
+  subgoal by (rule is_improving_conflicting_clss_update_weight_information; assumption)
+  subgoal by (rule conflicting_clss_update_weight_information_in; assumption)
+  subgoal by (rule is_improving_mono; assumption)
   done
 
 end
