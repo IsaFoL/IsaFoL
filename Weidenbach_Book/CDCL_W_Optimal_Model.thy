@@ -712,7 +712,6 @@ next
   case (cdcl_opt_conflict_opt S')
   then show ?case
     unfolding conflict_opt.simps no_smaller_improve_def by auto
-
 next
   case (cdcl_opt_other' S') note o = this(1) and no_confl = this(2) and no_impr = this(3)
   then have \<open>no_step improve S\<close>
@@ -755,6 +754,16 @@ next
       done
   qed
 qed
+
+definition cdcl_opt_stgy_inv :: "'st \<Rightarrow> bool" where
+  \<open>cdcl_opt_stgy_inv S \<longleftrightarrow> conflict_is_false_with_level S \<and> no_smaller_confl S \<and> no_smaller_improve S\<close>
+
+lemma cdcl_opt_stgy_stgy_inv:
+  \<open>cdcl_opt_stgy S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow>
+    cdcl_opt_stgy_inv S \<Longrightarrow> cdcl_opt_stgy_inv T\<close>
+  unfolding cdcl_opt_stgy_inv_def
+  using cdcl_opt_stgy_conflict_is_false_with_level cdcl_opt_stgy_no_smaller_confl
+    cdcl_opt_stgy_no_smaller_improve by blast
 
 end
 
