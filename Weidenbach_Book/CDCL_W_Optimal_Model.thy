@@ -750,9 +750,7 @@ next
         using no_impr
         unfolding cdcl\<^sub>W_o.simps no_smaller_improve_def decide.simps
         apply (auto simp: improve.simps decided_cons_eq_append_decide_cons optimal_improve_def
-            propagated_cons_eq_append_decide_cons
-            elim!: skipE resolveE backtrackE cdcl\<^sub>W_bjE
-            dest!: get_all_ann_decomposition_exists_prepend)
+            propagated_cons_eq_append_decide_cons elim!: skipE resolveE backtrackE cdcl\<^sub>W_bjE)
         done
       done
   qed
@@ -841,19 +839,19 @@ lemma
   by (cases \<open>state S\<close>; auto; fail)+
 
 lemma
-  \<open>weight (cons_trail L S) = weight S\<close> and
-    clss_tl_trail[simp]: "weight (tl_trail S) = weight S" and
-    weight_add_learned_cls_unfolded:
-      "weight (add_learned_cls U S) = weight S"
-      and
-    weight_update_conflicting[simp]: "weight (update_conflicting D S) = weight S" and
-    weight_remove_cls[simp]:
-      "weight (remove_cls C S) = weight S" and
-    weight_add_learned_cls[simp]:
-      "weight (add_learned_cls C S) = weight S" and
-    weight_update_weight_information[simp]:
-      "weight (update_weight_information M S) = \<rho> (lit_of `# mset M)"
-    by (auto simp: update_weight_information_def weight_def)
+  weight_cons_trail[simp]: \<open>weight (cons_trail L S) = weight S\<close> and
+  clss_tl_trail[simp]: "weight (tl_trail S) = weight S" and
+  weight_add_learned_cls_unfolded:
+    "weight (add_learned_cls U S) = weight S"
+    and
+  weight_update_conflicting[simp]: "weight (update_conflicting D S) = weight S" and
+  weight_remove_cls[simp]:
+    "weight (remove_cls C S) = weight S" and
+  weight_add_learned_cls[simp]:
+    "weight (add_learned_cls C S) = weight S" and
+  weight_update_weight_information[simp]:
+    "weight (update_weight_information M S) = \<rho> (lit_of `# mset M)"
+  by (auto simp: update_weight_information_def weight_def)
 
 definition is_improving_int :: "('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> nat \<Rightarrow> bool" where
   \<open>is_improving_int M N w \<longleftrightarrow> \<rho> (lit_of `# mset M) < w \<and> M \<Turnstile>asm N \<and> no_dup M
@@ -997,11 +995,11 @@ sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_o
     conflicting_clauses = conflicting_clauses
   apply unfold_locales
         apply (rule state_additional_info'; fail)
-       apply (simp add: state_update_weight_information; fail)
-      apply (simp add: conflicting_clss_incl_init_clss; fail)
-     apply (simp add: distinct_mset_mset_conflicting_clss; fail)
-    apply (simp add: is_improving_conflicting_clss_update_weight_information; fail)
-   apply (simp add: conflicting_clss_update_weight_information_in; fail)
+       apply (rule state_update_weight_information; assumption; fail)
+      apply (rule conflicting_clss_incl_init_clss; assumption; fail)
+     apply (rule distinct_mset_mset_conflicting_clss; assumption; fail)
+    apply (rule is_improving_conflicting_clss_update_weight_information; assumption; fail)
+   apply (rule conflicting_clss_update_weight_information_in; assumption; fail)
   apply (rule is_improving_mono; assumption; fail)
   done
 
