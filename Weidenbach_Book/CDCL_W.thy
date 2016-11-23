@@ -2800,56 +2800,56 @@ proof -
     using conflicting_no_false_can_do_step[of S, OF _ _ confl_k confl level_inv no_dup alien] termi
     by (cases "conflicting S", simp) auto
   then show ?thesis
-    proof cases
-      case (Some_Empty E)
-      then have "conflicting S = Some {#}" by auto
-      then have unsat_clss_S: "unsatisfiable (set_mset (clauses S))"
-        using learned unfolding cdcl\<^sub>W_learned_clause_def true_clss_cls_def
+  proof cases
+    case (Some_Empty E)
+    then have "conflicting S = Some {#}" by auto
+    then have unsat_clss_S: "unsatisfiable (set_mset (clauses S))"
+      using learned unfolding cdcl\<^sub>W_learned_clause_def true_clss_cls_def
         conflict_is_false_with_level_def
-        by (metis (no_types, lifting) Un_insert_right atms_of_empty satisfiable_def
+      by (metis (no_types, lifting) Un_insert_right atms_of_empty satisfiable_def
           sup_bot.right_neutral total_over_m_insert total_over_set_empty true_cls_empty)
-      then show ?thesis using Some_Empty by (auto simp: clauses_def)
-    next
-      case None
-      have "?M \<Turnstile>asm ?N"
+    then show ?thesis using Some_Empty by (auto simp: clauses_def)
+  next
+    case None
+    have "?M \<Turnstile>asm ?N"
+    proof (rule ccontr)
+      assume MN: "\<not> ?thesis"
+      have all_defined: "atm_of ` (lits_of_l ?M) = atms_of_mm ?N" (is "?A = ?B")
+      proof
+        show "?A \<subseteq> ?B" using alien unfolding no_strange_atm_def clauses_def by auto
+        show "?B \<subseteq> ?A"
         proof (rule ccontr)
-          assume MN: "\<not> ?thesis"
-          have all_defined: "atm_of ` (lits_of_l ?M) = atms_of_mm ?N" (is "?A = ?B")
-            proof
-              show "?A \<subseteq> ?B" using alien unfolding no_strange_atm_def clauses_def by auto
-              show "?B \<subseteq> ?A"
-                proof (rule ccontr)
-                  assume "\<not>?B \<subseteq> ?A"
-                  then obtain l where "l \<in> ?B" and "l \<notin> ?A" by auto
-                  then have "undefined_lit ?M (Pos l)"
-                    using \<open>l \<notin> ?A\<close> unfolding lits_of_def by (auto simp add: defined_lit_map)
-                  then have "\<exists>S'. cdcl\<^sub>W_o S S'"
-                    using cdcl\<^sub>W_o.decide[of S] decide_rule[of S \<open>Pos l\<close> \<open>cons_trail (Decided (Pos l)) S\<close>]
-                      \<open>l \<in> ?B\<close> None alien unfolding clauses_def no_strange_atm_def by fastforce
-                  then show False
-                    using termi by (blast intro: cdcl\<^sub>W_stgy.intros)
-                qed
-            qed
-          obtain D where "\<not> ?M \<Turnstile>a D" and "D \<in># ?N"
-            using MN unfolding lits_of_def true_annots_def Ball_def by auto
-          have "atms_of D \<subseteq> atm_of ` (lits_of_l ?M)"
-            using \<open>D \<in># ?N\<close> unfolding all_defined atms_of_ms_def by auto
-          then have "total_over_m (lits_of_l ?M) {D}"
-            using atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
-            by (fastforce simp: total_over_set_def)
-          then have "?M \<Turnstile>as CNot D"
-            using \<open>\<not> trail S \<Turnstile>a D\<close> unfolding true_annot_def true_annots_true_cls
-            by (fastforce simp: total_not_true_cls_true_clss_CNot)
-          then have "\<exists>S'. conflict S S'"
-            using \<open>trail S \<Turnstile>as CNot D\<close> \<open>D \<in># clauses S\<close>
-            None unfolding clauses_def by (auto simp: conflict.simps clauses_def)
+          assume "\<not>?B \<subseteq> ?A"
+          then obtain l where "l \<in> ?B" and "l \<notin> ?A" by auto
+          then have "undefined_lit ?M (Pos l)"
+            using \<open>l \<notin> ?A\<close> unfolding lits_of_def by (auto simp add: defined_lit_map)
+          then have "\<exists>S'. cdcl\<^sub>W_o S S'"
+            using cdcl\<^sub>W_o.decide[of S] decide_rule[of S \<open>Pos l\<close> \<open>cons_trail (Decided (Pos l)) S\<close>]
+              \<open>l \<in> ?B\<close> None alien unfolding clauses_def no_strange_atm_def by fastforce
           then show False
             using termi by (blast intro: cdcl\<^sub>W_stgy.intros)
         qed
-      then show ?thesis
-        using None by auto
+      qed
+      obtain D where "\<not> ?M \<Turnstile>a D" and "D \<in># ?N"
+        using MN unfolding lits_of_def true_annots_def Ball_def by auto
+      have "atms_of D \<subseteq> atm_of ` (lits_of_l ?M)"
+        using \<open>D \<in># ?N\<close> unfolding all_defined atms_of_ms_def by auto
+      then have "total_over_m (lits_of_l ?M) {D}"
+        using atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+        by (fastforce simp: total_over_set_def)
+      then have "?M \<Turnstile>as CNot D"
+        using \<open>\<not> trail S \<Turnstile>a D\<close> unfolding true_annot_def true_annots_true_cls
+        by (fastforce simp: total_not_true_cls_true_clss_CNot)
+      then have "\<exists>S'. conflict S S'"
+        using \<open>trail S \<Turnstile>as CNot D\<close> \<open>D \<in># clauses S\<close>
+          None unfolding clauses_def by (auto simp: conflict.simps clauses_def)
+      then show False
+        using termi by (blast intro: cdcl\<^sub>W_stgy.intros)
     qed
+    then show ?thesis
+      using None by auto
   qed
+qed
 
 lemma cdcl\<^sub>W_stgy_final_state_conclusive:
   assumes
