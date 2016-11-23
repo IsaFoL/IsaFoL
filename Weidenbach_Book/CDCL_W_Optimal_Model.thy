@@ -221,6 +221,8 @@ conflict_opt_rule:
     \<open>conflicting S = None\<close>
     \<open>T \<sim> update_conflicting (Some (negate_ann_lits (trail S))) S\<close>
 
+inductive_cases conflict_optE: \<open>conflict_opt S T\<close>
+
 text \<open>There are two properties related about the trail and the improvements:
   \<^item> \<^term>\<open>optimal_improve\<close> states that there is no smaller improvement at all.
   \<^item> \<^term>\<open>no_smaller_improve\<close> is the corresponding invariant, that holds between two decisions.
@@ -600,7 +602,7 @@ lemma cdcl\<^sub>W_M_level_inv_cdcl\<^sub>W_M_level_inv[iff]:
       cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset_state)
 
 lemma cdcl_opt_stgy_no_smaller_confl:
-  assumes \<open>cdcl_opt_stgy S T\<close> and 
+  assumes \<open>cdcl_opt_stgy S T\<close> and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
     \<open>no_smaller_confl S\<close> and
     \<open>conflict_is_false_with_level S\<close> and
@@ -777,49 +779,72 @@ lemma state_eq_init_clss_abs_state[state_simp, simp]:
   \<open>S \<sim> T \<Longrightarrow> CDCL_W_Abstract_State.init_clss (abs_state S) = CDCL_W_Abstract_State.init_clss (abs_state T)\<close>
   by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
 
-lemma 
+lemma
   init_clss_abs_state_update_conflicting[simp]:
-    \<open>CDCL_W_Abstract_State.init_clss (abs_state (update_conflicting (Some D) S)) = 
+    \<open>CDCL_W_Abstract_State.init_clss (abs_state (update_conflicting (Some D) S)) =
        CDCL_W_Abstract_State.init_clss (abs_state S)\<close> and
   init_clss_abs_state_cons_trail[simp]:
-    \<open>CDCL_W_Abstract_State.init_clss (abs_state (cons_trail K S)) = 
+    \<open>CDCL_W_Abstract_State.init_clss (abs_state (cons_trail K S)) =
       CDCL_W_Abstract_State.init_clss (abs_state S)\<close>
   by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
 
-lemma
-  assumes 
+lemma cdcl_opt_stgy_learned_clauses_entailed_by_init:
+  assumes
     \<open>cdcl_opt_stgy S T\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init (abs_state S)\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+    entailed: \<open>cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init (abs_state S)\<close> and
+    all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
   shows \<open>cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init (abs_state T)\<close>
-  using assms
+  using assms(1)
 proof (induction rule: cdcl_opt_stgy.cases)
   case (cdcl_opt_conflict S')
   then show ?case
+    using entailed
     by (auto simp: cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init_def
         elim!: conflictE)
 next
   case (cdcl_opt_propagate S')
   then show ?case
+    using entailed
     by (auto simp: cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init_def
         elim!: propagateE)
 next
   case (cdcl_opt_improve S')
-  moreover have \<open>CDCL_W_Abstract_State.init_clss (abs_state S) \<subseteq>#
-       CDCL_W_Abstract_State.init_clss (abs_state (update_weight_information M S))\<close> for M
-    apply (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
-    sorry
-  ultimately show ?case 
+  moreover have \<open>set_mset (CDCL_W_Abstract_State.init_clss (abs_state S)) \<subseteq>
+    set_mset (CDCL_W_Abstract_State.init_clss (abs_state (update_weight_information M S)))\<close>
+       if \<open>is_improving M S\<close> for M
+    using that conflicting_clss_update_weight_information_mono[OF all_struct]
+    by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
+  ultimately show ?case (* TODO proof. *)
+    using entailed
     apply (auto simp: cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init_def
-        elim!: improveE
-        simp: true_clss_clss_subset) sorry
+        elim!: improveE)
+    apply (rule true_clss_clss_subset; simp)
+    done
 next
   case (cdcl_opt_conflict_opt S')
-  then show ?case sorry
+  then show ?case
+    using entailed
+    by (auto simp: cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init_def
+        elim!: conflict_optE)
 next
-  case (cdcl_opt_other' S')
-  then show ?case sorry
+  case (cdcl_opt_other' S') note T = this(1) and o = this(2) and no_cpio = this(3)
+  show ?case
+    apply (rule cdcl\<^sub>W_restart_mset.learned_clauses_entailed[of \<open>abs_state S\<close>])
+    subgoal
+      using o unfolding T by (blast dest: cdcl\<^sub>W_o_cdcl\<^sub>W_o cdcl\<^sub>W_restart_mset.other)
+    subgoal using all_struct unfolding  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast
+    subgoal using entailed by fast
+    done
 qed
+
+lemma
+  assumes
+    \<open>no_step cdcl_opt_stgy S\<close> and
+    all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
+    \<open>cdcl_opt_stgy_inv S\<close>
+  shows \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (abs_state S)\<close>
+  oops
+thm cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_final_state_conclusive2
 end
 
 locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
