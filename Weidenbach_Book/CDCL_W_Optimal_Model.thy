@@ -234,7 +234,7 @@ improve_rule:
     \<open>is_improving M S\<close> and
     \<open>optimal_improve M S\<close> and
     \<open>conflicting S = None\<close> and
-    \<open>T \<sim> update_conflicting (Some (negate_ann_lits M)) (reduce_trail_to M (update_weight_information M S))\<close>
+    \<open>T \<sim> update_weight_information M S\<close>
 
 lemma invs_update_weight_information[simp]:
   \<open>no_strange_atm (update_weight_information C S) = (no_strange_atm S)\<close>
@@ -296,8 +296,7 @@ proof (induction rule: improve.cases)
     all_decomposition_implies
      (set_mset (init_clss S) \<union> set_mset (conflicting_clss (update_weight_information M S)) \<union>
       set_mset (learned_clss S))
-     (get_all_ann_decomposition M)\<close>
-      apply (rule all_decomposition_implies_mono_right[of _ M'])
+     (get_all_ann_decomposition (M' @ M))\<close>
       apply (rule all_decomposition_implies_mono)
       using improve_rule(3) conflicting_clss_update_weight_information_mono[of S] inv by auto
     ultimately show ?case
