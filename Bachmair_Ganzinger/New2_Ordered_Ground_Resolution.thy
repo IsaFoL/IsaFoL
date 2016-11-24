@@ -41,8 +41,8 @@ $S(C_i \lor A_i \lor \cdots \lor A_i)$. Apparently, the latter was meant.
 \end{nit}
 *}
 
-abbreviation "maximal_in A DAs \<equiv> (A = Max (atms_of (main_clause DAs)))"
-abbreviation "str_maximal_in A CAis \<equiv> (\<forall>B \<in> atms_of (get_C CAis). B < A)"
+abbreviation "maximal_in A DAs \<equiv> (A = Max (atms_of DAs))"
+abbreviation "str_maximal_in A CAis \<equiv> (\<forall>B \<in> atms_of CAis. B < A)"
 
 (* Inspiration from supercalc *)
 inductive eligible :: "'a main_clause \<Rightarrow> bool" where
@@ -52,7 +52,7 @@ inductive eligible :: "'a main_clause \<Rightarrow> bool" where
    (
      S (main_clause (D,As)) = {#} 
      \<and> length As = 1 
-     \<and> As ! 0 = Max (atms_of (main_clause (D,As)))
+     \<and> maximal_in (As ! 0) (main_clause (D,As))
    )
    \<Longrightarrow> eligible (D,As)"
   
@@ -68,7 +68,7 @@ inductive
     \<forall>i. i < length CAs \<longrightarrow> get_As (CAs ! i) \<noteq> {#} \<Longrightarrow>
     \<forall>i. i < length CAs \<longrightarrow> (\<forall>Ai \<in># get_As (CAs ! i). Ai = As ! i) \<Longrightarrow>
     eligible (D,As) \<Longrightarrow>
-    \<forall>i. i < length CAs \<longrightarrow> str_maximal_in (As ! i) (CAs ! i) \<Longrightarrow>
+    \<forall>i. i < length CAs \<longrightarrow> str_maximal_in (As ! i) (get_C (CAs ! i)) \<Longrightarrow>
     \<forall>C \<in> set CAs. S (side_clause C) = {#} \<Longrightarrow>
     ord_resolve CAs (D,As) (Union_Cs CAs + D)"
 
@@ -326,7 +326,7 @@ proof -
           productive_imp_false_interp)
   then have "\<forall>i. i < length CAs \<longrightarrow> (\<forall>B\<in>atms_of (get_C (CAs ! i)). B < As ! i)"
     using CAs_def prod_c0 by (auto simp: C'_of_def atms_of_def intro: produces_imp_Max_atom)
-  then have "\<And>i. i < length CAs \<Longrightarrow> str_maximal_in (As ! i) (CAs ! i)" by metis
+  then have "\<And>i. i < length CAs \<Longrightarrow> str_maximal_in (As ! i) (get_C (CAs ! i))" by metis
   moreover
   have "\<forall>C \<in> set CAs. S (side_clause C) = {#}"
     using prod_c' producesD productive_imp_produces_Max_literal by blast 
