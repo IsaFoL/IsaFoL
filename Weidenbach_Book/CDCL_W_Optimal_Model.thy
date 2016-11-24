@@ -1,5 +1,5 @@
 theory CDCL_W_Optimal_Model
-imports CDCL_W_Abstract_State
+imports CDCL_W_Abstract_State "~~/src/HOL/Library/Extended_Nat"
 begin
 
 notation image_mset (infixr "`#" 90)
@@ -863,7 +863,7 @@ locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
   for
     state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
     state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
-      nat \<times> 'b" and
+      enat \<times> 'b" and
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
@@ -877,8 +877,8 @@ locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
 
     init_state :: "'v clauses \<Rightarrow> 'st" +
   fixes
-    \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
-    update_additional_info :: \<open>nat \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close>
+    \<rho> :: \<open>'v clause \<Rightarrow> enat\<close> and
+    update_additional_info :: \<open>enat \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close>
   assumes
     \<rho>_mono: \<open>\<rho> (add_mset L' M') > \<rho> M'\<close> and
     update_additional_info:
@@ -942,7 +942,7 @@ lemma
     "weight (update_weight_information M S) = \<rho> (lit_of `# mset M)"
   by (auto simp: update_weight_information_def weight_def)
 
-definition is_improving_int :: "('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> nat \<Rightarrow> bool" where
+definition is_improving_int :: "('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> enat \<Rightarrow> bool" where
   \<open>is_improving_int M N w \<longleftrightarrow> \<rho> (lit_of `# mset M) < w \<and> M \<Turnstile>asm N \<and> no_dup M
     \<and> lit_of `# mset M \<in> simple_clss (atms_of_mm N)\<close>
 
@@ -960,7 +960,7 @@ lemma distinct_mset_pNeg_iff[iff]: \<open>distinct_mset (pNeg x) \<longleftright
   unfolding pNeg_def
   by (rule distinct_image_mset_inj) (auto simp: inj_on_def)
 
-definition conflicting_clauses :: "'v clauses \<Rightarrow> nat \<Rightarrow> 'v clauses" where
+definition conflicting_clauses :: "'v clauses \<Rightarrow> enat \<Rightarrow> 'v clauses" where
   \<open>conflicting_clauses M w = {#pNeg C | C \<in># mset_set (simple_clss (atms_of_mm M)). \<rho> C \<ge> w#}\<close>
 
 sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state
