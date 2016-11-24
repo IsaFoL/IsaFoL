@@ -10,6 +10,8 @@ theory New2_Ordered_Ground_Resolution
 imports Inference_System Ground_Resolution_Model Multiset_Even_More Clauses
 begin
 
+(* Perhaps this will improve automation? *)
+declare nth_equalityI[simp]
 
 text {*
 Ordered ground resolution with selection is the second inference system studied in Section 3
