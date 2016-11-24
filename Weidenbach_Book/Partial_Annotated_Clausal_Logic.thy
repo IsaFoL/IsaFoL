@@ -562,7 +562,7 @@ lemma no_decision_get_all_ann_decomposition:
 
 
 subsubsection \<open>Entailment of the Propagated by the Decided Literal\<close>
-  
+
 lemma get_all_ann_decomposition_snd_union:
   \<open>set M = \<Union>(set ` snd ` set (get_all_ann_decomposition M)) \<union> {L |L. is_decided L \<and> L \<in> set M}\<close>
   (is \<open>?M M = ?U M \<union> ?Ls M\<close>)
@@ -1055,6 +1055,23 @@ lemma defined_lit_no_dupD:
 lemma no_dup_consistentD:
   \<open>no_dup M \<Longrightarrow> L \<in> lits_of_l M \<Longrightarrow> -L \<notin> lits_of_l M\<close>
   using consistent_interp_def distinct_consistent_interp by blast
+
+lemma no_dup_not_tautology: \<open>no_dup M \<Longrightarrow> \<not>tautology (image_mset lit_of (mset M))\<close>
+  by (induction M) (auto simp: tautology_add_mset uminus_lit_swap defined_lit_def
+      dest: atm_imp_decided_or_proped)
+
+lemma no_dup_distinct: \<open>no_dup M \<Longrightarrow> distinct_mset (image_mset lit_of (mset M))\<close>
+  by (induction M) (auto simp: uminus_lit_swap defined_lit_def
+      dest: atm_imp_decided_or_proped)
+
+lemma no_dup_not_tautology_uminus: \<open>no_dup M \<Longrightarrow> \<not>tautology {#-lit_of L. L \<in># mset M#}\<close>
+  by (induction M) (auto simp: tautology_add_mset uminus_lit_swap defined_lit_def
+      dest: atm_imp_decided_or_proped)
+
+lemma no_dup_distinct_uminus: \<open>no_dup M \<Longrightarrow> distinct_mset {#-lit_of L. L \<in># mset M#}\<close>
+  by (induction M) (auto simp: uminus_lit_swap defined_lit_def
+      dest: atm_imp_decided_or_proped)
+
 
 subsection \<open>Extending Entailments to multisets\<close>
 
