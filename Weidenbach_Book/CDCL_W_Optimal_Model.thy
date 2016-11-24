@@ -863,7 +863,7 @@ locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
   for
     state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
     state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
-      enat \<times> 'b" and
+      'v clause option \<times> 'b" and
     trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
     init_clss :: "'st \<Rightarrow> 'v clauses" and
     learned_clss :: "'st \<Rightarrow> 'v clauses" and
@@ -877,8 +877,8 @@ locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
 
     init_state :: "'v clauses \<Rightarrow> 'st" +
   fixes
-    \<rho> :: \<open>'v clause \<Rightarrow> enat\<close> and
-    update_additional_info :: \<open>enat \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close>
+    \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
+    update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close>
   assumes
     \<rho>_mono: \<open>\<rho> (add_mset L' M') > \<rho> M'\<close> and
     update_additional_info:
@@ -886,7 +886,7 @@ locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
 begin
 
 definition update_weight_information :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st\<close> where
-  \<open>update_weight_information M S = update_additional_info (\<rho> (lit_of `# mset M), snd (additional_info S)) S\<close>
+  \<open>update_weight_information M S = update_additional_info (Some (lit_of `# mset M), snd (additional_info S)) S\<close>
 
 lemma
   trail_update_additional_info[simp]: \<open>trail (update_additional_info w S) = trail S\<close> and
@@ -939,11 +939,14 @@ lemma
   weight_add_learned_cls[simp]:
     "weight (add_learned_cls C S) = weight S" and
   weight_update_weight_information[simp]:
-    "weight (update_weight_information M S) = \<rho> (lit_of `# mset M)"
+    "weight (update_weight_information M S) = Some (lit_of `# mset M)"
   by (auto simp: update_weight_information_def weight_def)
 
-definition is_improving_int :: "('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> enat \<Rightarrow> bool" where
-  \<open>is_improving_int M N w \<longleftrightarrow> \<rho> (lit_of `# mset M) < w \<and> M \<Turnstile>asm N \<and> no_dup M
+abbreviation \<rho>' where
+  \<open>\<rho>' w \<equiv> (case w of None \<Rightarrow> \<infinity> | Some w \<Rightarrow> \<rho> w)\<close>
+
+definition is_improving_int :: "('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'v clause option \<Rightarrow> bool" where
+  \<open>is_improving_int M N w \<longleftrightarrow> \<rho> (lit_of `# mset M) < \<rho>' w \<and> M \<Turnstile>asm N \<and> no_dup M
     \<and> lit_of `# mset M \<in> simple_clss (atms_of_mm N)\<close>
 
 text \<open>Pointwise negation of a clause:\<close>
@@ -960,8 +963,8 @@ lemma distinct_mset_pNeg_iff[iff]: \<open>distinct_mset (pNeg x) \<longleftright
   unfolding pNeg_def
   by (rule distinct_image_mset_inj) (auto simp: inj_on_def)
 
-definition conflicting_clauses :: "'v clauses \<Rightarrow> enat \<Rightarrow> 'v clauses" where
-  \<open>conflicting_clauses M w = {#pNeg C | C \<in># mset_set (simple_clss (atms_of_mm M)). \<rho> C \<ge> w#}\<close>
+definition conflicting_clauses :: "'v clauses \<Rightarrow> 'v clause option \<Rightarrow> 'v clauses" where
+  \<open>conflicting_clauses M w = {#pNeg C | C \<in># mset_set (simple_clss (atms_of_mm M)). \<rho> C \<ge> \<rho>' w#}\<close>
 
 sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state
   where
@@ -1007,8 +1010,9 @@ lemma distinct_mset_mset_conflicting_clss: \<open>distinct_mset_mset (conflictin
 
 lemma is_improving_conflicting_clss_update_weight_information: \<open>is_improving M S \<Longrightarrow>
        conflicting_clss S \<subseteq># conflicting_clss (update_weight_information M S)\<close>
-  by (auto simp: is_improving_int_def conflicting_clss_def conflicting_clauses_def
-      simp: multiset_filter_mono2 intro!: image_mset_subseteq_mono)
+  by (cases \<open>weight S\<close>) (auto simp: is_improving_int_def conflicting_clss_def conflicting_clauses_def
+      simp: multiset_filter_mono2 le_less intro!: image_mset_subseteq_mono
+      split: enat.splits)
 
  lemma conflicting_clss_update_weight_information_in:
   assumes \<open>is_improving M S\<close>
@@ -1045,7 +1049,7 @@ lemma is_improving_mono:
   \<open>\<not> is_improving M' S \<Longrightarrow>
        is_improving M S \<Longrightarrow>
        \<not> is_improving M' (update_weight_information M S)\<close>
-  by (auto simp: is_improving_int_def)
+  by (cases \<open>weight S\<close>) (auto simp: is_improving_int_def)
 
 sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops
   where
