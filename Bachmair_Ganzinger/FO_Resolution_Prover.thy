@@ -96,8 +96,12 @@ lemma ground_prems_ord_resolve_imp_ord_resolve_raw:
   shows "ord_resolve_raw CC D E"
 using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve CCP P CC\<rho> \<rho>)
-  note cc = this(1) and \<rho> = this(2) and cc\<rho> = this(3) and res_e_raw = this(6)
-
+  have cc: "CC = {#C. (C, \<rho>) \<in># CCP#}" using ord_resolve(1) .
+  have \<rho>: "P = {#\<rho>. (C, \<rho>) \<in># CCP#}" using ord_resolve(2) .
+  have cc\<rho>: "CC\<rho> = {#x \<cdot> y. (x, y) \<in># CCP#}" using ord_resolve(3) .
+  have res_e_raw: "ord_resolve_raw CC\<rho> (D \<cdot> \<rho>) E" using ord_resolve(6) .
+  
+  
   have "CC\<rho> = CC"
     unfolding cc\<rho> cc is_ground_cls_mset_def
     apply (rule image_mset_cong_pair)
@@ -116,8 +120,13 @@ lemma ord_resolve_raw_sound:
   shows "I \<Turnstile> E \<cdot> \<sigma>"
 using res_e proof (cases rule: ord_resolve_raw.cases)
   case (ord_resolve_raw Cf' ZZ AA AAA D' \<tau>)
-  note e = this(1) and cf' = this(2) and aa = this(3) and aaa = this(4) and cc = this(5) and
-    d = this(6) and \<tau> = this(9)
+  have e: "E = (Cf' + D') \<cdot> \<tau>" using ord_resolve_raw(1) .
+  have cf': "Cf' = \<Union>#{#C'. (C', A, AA') \<in># ZZ#}" using ord_resolve_raw(2) .
+  have aa: "AA = {#A. (C', A, AA') \<in># ZZ#}" using ord_resolve_raw(3) .
+  have aaa: "AAA = {#insert A (set_mset AA'). (C', A, AA') \<in># ZZ#}" using ord_resolve_raw(4) .
+  have cc: "CC = {#C' + poss AA'. (C', A, AA') \<in># ZZ#}" using ord_resolve_raw(5) .
+  have d: "D = negs AA + D'" using ord_resolve_raw(6) .
+  have \<tau>: "Some \<tau> = mgu (set_mset AAA)" using ord_resolve_raw(9) .
 
   have "is_ground_subst (\<tau> \<odot> \<sigma>)"
     using ground_subst_\<sigma> by (rule is_ground_comp_subst)
@@ -170,9 +179,14 @@ lemma ord_resolve_sound:
     ground_subst_\<sigma>: "is_ground_subst \<sigma>"
   shows "I \<Turnstile> E \<cdot> \<sigma>"
 using res_e proof (cases rule: ord_resolve.cases)
-  case (ord_resolve CCP P CC\<rho> \<rho>)
-  note cc = this(1) and p = this(2) and cc\<rho> = this(3) and renaming = this(4) and \<rho> = this(5) and
-    resolve = this(6)
+  case (ord_resolve CCP P CC\<rho> \<rho>) 
+  have cc: "CC = {#C. (C, \<rho>) \<in># CCP#}" using ord_resolve(1) .
+  have p: "P = {#\<rho>. (C, \<rho>) \<in># CCP#}" using ord_resolve(2) .
+  have cc\<rho>: "CC\<rho> = {#x \<cdot> y. (x, y) \<in># CCP#}" using ord_resolve(3) .
+  have renaming: "\<forall>\<rho>. \<rho> \<in># P \<longrightarrow> is_renaming \<rho>" using ord_resolve(4) .
+  have \<rho>: "is_renaming \<rho>" using ord_resolve(5) .
+  have resolve :"ord_resolve_raw CC\<rho> (D \<cdot> \<rho>) E" using ord_resolve(6) .
+  
   { fix \<sigma>
     assume "is_ground_subst \<sigma>"
     hence "is_ground_subst (\<rho> \<odot> \<sigma>)" "\<forall>\<rho>. (\<exists>C. (C, \<rho>) \<in># CCP) \<longrightarrow> is_ground_subst (\<rho> \<odot> \<sigma>)"
@@ -284,9 +298,19 @@ lemma ord_resolve_lifting:
     "{D', E'} \<union> set_mset CC' \<subseteq> M"
 using resolve proof (atomize_elim, cases rule: ord_resolve_raw.cases)
   case (ord_resolve_raw Cf' ZZ AA AAA D' \<sigma>)
-  note e = this(1) and cf' = this(2) and aa = this(3) and aaa = this(4) and cc = this(5) and
-    d = this(6) and zz_e = this(7) and aa'_ne = this(8) and \<sigma>_mgu = this(9) and s_d = this(10) and
-    a_max = this(11) and s_cc_e = this(12)
+  have e: "E = (Cf' + D') \<cdot> \<sigma>" using ord_resolve_raw(1) .
+  have cf': "Cf' = \<Union>#{#C'. (C', A, AA') \<in># ZZ#}" using ord_resolve_raw(2) .
+  have aa: "AA = {#A. (C', A, AA') \<in># ZZ#}" using ord_resolve_raw(3) .
+  have aaa: "AAA = {#insert A (set_mset AA'). (C', A, AA') \<in># ZZ#}" using ord_resolve_raw(4) .
+  have cc: "CC = {#C' + poss AA'. (C', A, AA') \<in># ZZ#}" using ord_resolve_raw(5) .
+  have d: "D = negs AA + D'" using ord_resolve_raw(6) .
+  have zz_e: "ZZ \<noteq> {#}" using ord_resolve_raw(7) .
+  have aa'_ne: "\<forall>(_, _, AA')\<in>#ZZ. AA' \<noteq> {#}" using ord_resolve_raw(8) .
+  have \<sigma>_mgu: "Some \<sigma> = mgu (set_mset AAA)" using ord_resolve_raw(9) .
+  have s_d: "S_M S M D = negs AA \<or> S_M S M D = {#} \<and> size AA = 1 \<and> (\<forall>A. A \<in># AA \<longrightarrow> (\<forall>B\<in>atms_of (D' \<cdot> \<sigma>). \<not> less_atm (A \<cdot>a \<sigma>) B))" using ord_resolve_raw(10) .
+  have a_max: "\<forall>(C', A, _)\<in>#ZZ. \<forall>B\<in>atms_of (C' \<cdot> \<sigma>). \<not> less_eq_atm (A \<cdot>a \<sigma>) B" using ord_resolve_raw(11) .
+  have s_cc_e: "\<forall>C. C \<in># CC \<longrightarrow> S_M S M C = {#}" using ord_resolve_raw(12) .
+  
   interpret S: selection S by (rule select)
 
   obtain Dp \<sigma>D where pickD: "Dp \<in> M" "D = Dp \<cdot> \<sigma>D" "S_M S M D = S Dp \<cdot> \<sigma>D"
@@ -401,8 +425,16 @@ lemma ground_prems_ground_ord_resolve_imp_ord_resolve_raw:
   shows "ord_resolve_raw S CC D E"
 using res_e proof (cases rule: ground_resolution_with_S.ord_resolve.cases)
   case (ord_resolve Cf' ZZ AA D')
-  note e = this(1) and cf' = this(2) and aa = this(3) and cc = this(4) and d = this(5) and
-    zz_ne = this(6) and s_d = this(7) and a_max = this(8) and s_cc_e = this(9)
+  have e: "E = Cf' + D'" using ord_resolve(1) .
+  have cf': "Cf' = \<Union>#{#C'. (C', A, AA') \<in># ZZ#}" using ord_resolve(2) .
+  have aa: "AA = {#A. (C', A, AA') \<in># ZZ#}" using ord_resolve(3) .
+  have cc: "CC = {#C' + replicate_mset (Suc m) (Pos A). (C', A, m) \<in># ZZ#}" using ord_resolve(4) .
+  have d: "D = negs AA + D'" using ord_resolve(5) .
+  have zz_ne: "ZZ \<noteq> {#}" using ord_resolve(6) .
+  have s_d: " S D = negs AA \<or> S D = {#} \<and> size AA = 1 \<and> Max (atms_of D) \<in># AA" using ord_resolve(7) .
+  have a_max: "\<forall>(C', A, _)\<in>#ZZ. \<forall>B\<in>atms_of C'. B < A" using ord_resolve(8) .
+  have s_cc_e: "\<forall>C. C \<in># CC \<longrightarrow> S C = {#}" using ord_resolve(9) .
+  
   note case_prod_self_distrib[simp] = prod.case_distrib[of "case_prod f" for f]
 
   def ZZ_fo \<equiv> "{#(C', A, replicate_mset (Suc m) A). (C', A, m) \<in># ZZ#}"
@@ -497,9 +529,17 @@ lemma ground_prems_ord_resolve_raw_imp_ground_ord_resolve:
   shows "ground_resolution_with_S.ord_resolve CC D E"
 using res proof (cases rule: ord_resolve_raw.cases)
   case (ord_resolve_raw Cf' ZZ AA AAA D' \<sigma>)
-  note e = this(1) and cf' = this(2) and aa = this(3) and aaa = this(4) and cc = this(5) and
-    d = this(6) and zz_ne = this(7) and aa'_ne = this(8) and \<sigma>_mgu = this(9) and s_d = this(10) and
-    a_max = this(11) and s_cc_e = this(12)
+  have e: "E = (Cf' + D') \<cdot> \<sigma>" using ord_resolve_raw(1) .
+  have cf': "Cf' = \<Union>#{#C'. (C', A, AA') \<in># ZZ#}" using ord_resolve_raw(2) .
+  have aa: "AA = {#A. (C', A, AA') \<in># ZZ#}" using ord_resolve_raw(3) .
+  have aaa: "AAA = {#insert A (set_mset AA'). (C', A, AA') \<in># ZZ#}" using ord_resolve_raw(4) .
+  have cc: "CC = {#C' + poss AA'. (C', A, AA') \<in># ZZ#}" using ord_resolve_raw(5) .
+  have d: "D = negs AA + D'" using ord_resolve_raw(6) .
+  have zz_ne : "ZZ \<noteq> {#}" using ord_resolve_raw(7) .
+  have \<sigma>_mgu: "Some \<sigma> = mgu (set_mset AAA)" using ord_resolve_raw(9) .
+  have a_max: "\<forall>(C', A, _)\<in>#ZZ. \<forall>B\<in>atms_of (C' \<cdot> \<sigma>). \<not> less_eq_atm (A \<cdot>a \<sigma>) B" using ord_resolve_raw(11) .
+  have s_cc_e: "\<forall>C. C \<in># CC \<longrightarrow> S C = {#}" using ord_resolve_raw(12) .
+  
   note case_prod_self_distrib[simp] = prod.case_distrib[of "case_prod f" for f]
 
   have "\<forall>(_, _, AA') \<in> set_mset ZZ. \<forall>A. A \<in># AA' \<longrightarrow> is_ground_atm A"
