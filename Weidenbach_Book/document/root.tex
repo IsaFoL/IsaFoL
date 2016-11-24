@@ -16,6 +16,7 @@
 \usepackage{comment}
 
 
+\usepackage{mdframed}
 %% Saisie en UTF-8
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -54,20 +55,53 @@
 
 % for uniform font size
 %\renewcommand{\isastyle}{\isastyleminor}
-\newenvironment{nit}{\textbf{Nitpicking:}}{}
-
-
 \newcommand{\mailto}[1]{\href{mailto:#1}{#1}}
 
 \newtheorem{theorem}{Theorem}
 \newtheorem{definition}[theorem]{Definition}
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{proposition}[theorem]{Proposition}
+
 \newcommand{\cdcl}{\ensuremath{\Rightarrow_{\text{CDCL}}}}
 \newcommand{\dpll}{\ensuremath{\Rightarrow_{\text{DPLL}}}}
 \newcommand{\cwref}[2]{#2 of Weidenbach's book}
+
+%\newenvironment{nit}{\begin{mdframed}\textbf{Nitpicking:}}{\end{mdframed}}
+\newmdtheoremenv[%
+outerlinewidth = 2,%
+roundcorner = 10 pt,%
+leftmargin = 40,%
+rightmargin = 40,%
+backgroundcolor =  gray!40,%
+outerlinecolor = black,%
+innertopmargin = \topskip,%
+splittopskip = \topskip,%
+ntheorem = true,%
+] {nit}{Nitpicking}[theorem]
+
+\newmdtheoremenv[%
+outerlinewidth = 2,%
+roundcorner = 10 pt,%
+leftmargin = 40,%
+rightmargin = 40,%
+backgroundcolor =  gray!40,%
+outerlinecolor = black,%
+innertopmargin = \topskip,%
+splittopskip = \topskip,%
+ntheorem = true,%
+] {CWbook}{Christoph's book draft}[theorem]
+
+\newcommand{\nitpicking}[2]{%
+  \begin{nit}%
+    \begin{CWbook}%
+    #1%
+    \end{CWbook}%
+    #2%
+  \end{nit}%
+}
 \DeclareMathOperator{\atom}{atom}
 
+\newcommand{\shortrules}[3]{#2$\Rightarrow^{\text{#1}}$ #3}
 \newcommand{\isasymRes}{\ensuremath{\text{Res}}} 
 
 \begin{document}
