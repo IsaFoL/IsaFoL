@@ -73,9 +73,11 @@ text \<open>Weidenbach state is a five-tuple composed of:
   \<^enum> the trail is a list of decided literals;
   \<^enum> the initial set of clauses (that is not changed during the whole calculus);
   \<^enum> the learned clauses (clauses can be added or remove);
-  \<^enum> the maximum level of the trail;
   \<^enum> the conflicting clause (if any has been found so far).\<close>
 text \<open>
+  Contrary to the original version, we have removed the maximum level of the trail, since the
+  information is redundant and required an additional invariant.
+
   There are two different clause representation: one for the conflicting clause (@{typ "'v clause"},
   standing for conflicting clause) and one for the initial and learned clauses (@{typ "'v clause"},
   standing for clause). The representation of the clauses annotating literals in the trail
@@ -272,7 +274,7 @@ lemma state_eq_trans': \<open>S \<sim> S' \<Longrightarrow> T \<sim> S' \<Longri
 abbreviation backtrack_lvl :: "'st \<Rightarrow> nat" where
 \<open>backtrack_lvl S \<equiv> count_decided (trail S)\<close>
 
-named_theorems state_simp \<open>contains all theorems of the form @{term \<open>S \<sim> T \<Longrightarrow> P S = P T\<close>}. 
+named_theorems state_simp \<open>contains all theorems of the form @{term \<open>S \<sim> T \<Longrightarrow> P S = P T\<close>}.
   These theorems can cause a signefecant blow-up of the simp-space\<close>
 
 lemma
@@ -894,6 +896,13 @@ subsubsection \<open>Properties of the trail\<close>
 text \<open>We here establish that:
   \<^item> the consistency of the trail;
   \<^item> the fact that there is no duplicate in the trail.\<close>
+
+text \<open>
+\begin{nit}
+  As one can see in the following proof, the properties of the levels are \<^emph>\<open>required\<close> to prove
+  \cwref{prop:prop:cdclconsis}{Item 1 page 81}. However, this point is only mentioned \<^emph>\<open>later\<close>,
+  and only in the proof of \cwref{prop:prop:cdclbacktrack}{Item 5 page 81}.
+\end{nit}\<close>
 lemma backtrack_lit_skiped:
   assumes
     L: "get_level (trail S) L = backtrack_lvl S" and
@@ -1018,6 +1027,7 @@ lemma backtrack_lvl_backtrack_decrease:
 
 
 subsubsection \<open>Compatibility with @{term state_eq}\<close>
+
 declare state_eq_trans[trans]
 lemma propagate_state_eq_compatible:
   assumes

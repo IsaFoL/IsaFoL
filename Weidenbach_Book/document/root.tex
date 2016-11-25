@@ -69,7 +69,7 @@
 %\newenvironment{nit}{\begin{mdframed}\textbf{Nitpicking:}}{\end{mdframed}}
 \newmdtheoremenv[%
 outerlinewidth = 2,%
-roundcorner = 10 pt,%
+roundcorner = 30 pt,%
 leftmargin = 40,%
 rightmargin = 40,%
 backgroundcolor =  gray!40,%
@@ -81,21 +81,23 @@ ntheorem = true,%
 
 \newmdtheoremenv[%
 outerlinewidth = 2,%
-roundcorner = 10 pt,%
+roundcorner = 30pt,%
 leftmargin = 40,%
 rightmargin = 40,%
 backgroundcolor =  gray!40,%
-outerlinecolor = black,%
+outerlinecolor = gray,%
 innertopmargin = \topskip,%
 splittopskip = \topskip,%
 ntheorem = true,%
 ] {CWbook}{Christoph's book draft}[theorem]
 
 \newcommand{\nitpicking}[2]{%
-  \begin{nit}%
+  \begin{nit}~\\~\\%
+    \begin{minipage}{0.8\textwidth}%
     \begin{CWbook}%
     #1%
     \end{CWbook}%
+    \end{minipage}~\\~\\~\\%
     #2%
   \end{nit}%
 }

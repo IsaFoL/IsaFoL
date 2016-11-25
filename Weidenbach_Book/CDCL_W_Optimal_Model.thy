@@ -2,10 +2,15 @@ theory CDCL_W_Optimal_Model
 imports CDCL_W_Abstract_State "~~/src/HOL/Library/Extended_Nat"
 begin
 
+section \<open>CDCL Extensions\<close>
+
+subsection \<open>Optimisations\<close>
+
 notation image_mset (infixr "`#" 90)
 
 text \<open>
 \nitpicking{
+
 \shortrules{Propagate}{$(M;N;U;k;\top;O)$}{$(ML^{C\lor L};N;U;k;\top;O)$}
 
 provided $C\lor L\in (N\cup U)$, $M\models \neg C$, $L$ is undefined in $M$.
@@ -46,8 +51,7 @@ provided $L$ is of level $k$ and $D$ is of level $i$.
 
 provided $M\models N$ and $O=\epsilon$ or $\operatorname{cost}(M)<\operatorname{cost}(O)$.
 }
-{
-This calculus is false. Take for example the following cost function:
+{This calculus does not always find the model with minimum cost. Take for example the following cost function:
 \[\operatorname{cost}: \left\{
 \begin{array}{c@ {\rightarrow}c}
 P & 3\\
@@ -57,9 +61,11 @@ Q & 1\\
 \end{array}
  \right.\]
 and the clauses $N = \{P\lor Q\}$. We can then do the following transitions:
+
+
 $(\epsilon, N, \varnothing, \top, \infty)$
 
-$(P^1, N, \varnothing, \top, \infty)$
+\shortrules{Decide}{}{$(P^1, N, \varnothing, \top, \infty)$}
 
 \shortrules{Improve}{}{$(P^1, N, \varnothing, \top, (P, 3))$}
 
@@ -78,9 +84,8 @@ $(P^1, N, \varnothing, \top, \infty)$
 \shortrules{resolve}{}{$(\epsilon, N, \{\neg P\}, \bot, (\neg P\, Q, 3))$}
 
 
-However, the optimal model is $Q$.
+However, the optimal model (obviously) is $Q$.
 }
-
 \<close>
 locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state =
   state\<^sub>W_no_state
