@@ -52,23 +52,23 @@ context
 begin
 
 (* Move to substitution maybe:*)
-definition subst_atm_lst :: "'a list \<Rightarrow> 's \<Rightarrow> 'a list" (infixl "\<cdot>al" 67) where
+definition subst_atm_list :: "'a list \<Rightarrow> 's \<Rightarrow> 'a list" (infixl "\<cdot>al" 67) where
   "As \<cdot>al \<sigma> = map (\<lambda>A. A \<cdot>a \<sigma>) As"
   
 lemma subst_atm_lst_id_subst[simp]: "As \<cdot>al id_subst = As"
-  unfolding subst_atm_lst_def by auto
+  unfolding subst_atm_list_def by auto
 
-definition subst_mcl :: "'a main_clause \<Rightarrow> 's \<Rightarrow> 'a main_clause" (infixl "\<cdot>mc" 67) where
-  "DAs \<cdot>mc \<sigma> = (get_C DAs \<cdot> \<sigma>, get_As DAs \<cdot>al \<sigma>)"
+definition subst_mcls :: "'a main_clause \<Rightarrow> 's \<Rightarrow> 'a main_clause" (infixl "\<cdot>amc" 67) where
+  "DAs \<cdot>amc \<sigma> = (get_C DAs \<cdot> \<sigma>, get_As DAs \<cdot>al \<sigma>)"
   
-lemma subst_mcl_id_subst[simp]: "DAs \<cdot>mc id_subst = DAs"
-  unfolding subst_mcl_def by auto
+lemma subst_mcl_id_subst[simp]: "DAs \<cdot>amc id_subst = DAs"
+  unfolding subst_mcls_def by auto
 
-definition subst_scl :: "'a side_clause \<Rightarrow> 's \<Rightarrow> 'a side_clause" (infixl "\<cdot>sc" 67) where
-  "CAs \<cdot>sc \<sigma> = (get_C CAs \<cdot> \<sigma>, get_As CAs \<cdot>m \<sigma>)"
+definition subst_scls :: "'a side_clause \<Rightarrow> 's \<Rightarrow> 'a side_clause" (infixl "\<cdot>sc" 67) where
+  "CAs \<cdot>sc \<sigma> = (get_C CAs \<cdot> \<sigma>, get_As CAs \<cdot>am \<sigma>)"
   
 lemma subst_scl_id_subst[simp]: "CAs \<cdot>sc id_subst = CAs"
-  unfolding subst_scl_def by auto
+  unfolding subst_scls_def by auto
   
 abbreviation "maximal_in A DAs \<equiv> (\<forall>B \<in> atms_of DAs. \<not> less_atm A B)"
   (* This definition is a bit inconsistent compared to the ground case since 
@@ -108,7 +108,7 @@ inductive ord_resolve_rename :: "'a side_clause list \<Rightarrow> 'a main_claus
   "is_renaming \<rho> \<Longrightarrow>
    (\<forall>\<rho> \<in> set P. is_renaming \<rho>) \<Longrightarrow>
    length P = length CAs \<Longrightarrow>
-   ord_resolve (map (\<lambda>(C,\<rho>). C \<cdot>sc \<rho>) (zip CAs P)) (DAs \<cdot>mc \<rho>) E \<Longrightarrow>
+   ord_resolve (map (\<lambda>(C,\<rho>). C \<cdot>sc \<rho>) (zip CAs P)) (DAs \<cdot>amc \<rho>) E \<Longrightarrow>
    ord_resolve_rename CAs DAs E"
   (* In this definition, P, \<sigma> and \<rho>, are not part of the signature. 
      A bit different from ord_resolve... *)
@@ -142,9 +142,9 @@ lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
     apply auto
     using gr_cc 
     using is_ground_cls_mset_def[of "side_clauses CAs"]
-    sorry
+    using lol[of CAs "is_ground_cls "]
+    sorry (* I should make a is_ground for side_clause *)
     
-  
   then show ?thesis sorry
 qed
   
