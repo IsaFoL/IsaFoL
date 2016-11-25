@@ -136,6 +136,15 @@ lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
   shows "ord_resolve CAs DAs E"
   using res_e proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
+  have "(map (\<lambda>(x, y). x \<cdot>sc y) (zip CAs P)) = CAs"
+    apply (rule nth_equalityI)
+    using ord_resolve_rename(3) apply auto[]
+    apply auto
+    using gr_cc 
+    using is_ground_cls_mset_def[of "side_clauses CAs"]
+    sorry
+    
+  
   then show ?thesis sorry
 qed
   
