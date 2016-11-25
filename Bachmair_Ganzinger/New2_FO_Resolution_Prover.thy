@@ -56,19 +56,19 @@ definition subst_atm_lst :: "'a list \<Rightarrow> 's \<Rightarrow> 'a list" (in
   "As \<cdot>al \<sigma> = map (\<lambda>A. A \<cdot>a \<sigma>) As"
   
 lemma subst_atm_lst_id_subst[simp]: "As \<cdot>al id_subst = As"
-  sorry
+  unfolding subst_atm_lst_def by auto
 
 definition subst_mcl :: "'a main_clause \<Rightarrow> 's \<Rightarrow> 'a main_clause" (infixl "\<cdot>mc" 67) where
   "DAs \<cdot>mc \<sigma> = (get_C DAs \<cdot> \<sigma>, get_As DAs \<cdot>al \<sigma>)"
   
 lemma subst_mcl_id_subst[simp]: "DAs \<cdot>mc id_subst = DAs"
-  sorry
+  unfolding subst_mcl_def by auto
 
 definition subst_scl :: "'a side_clause \<Rightarrow> 's \<Rightarrow> 'a side_clause" (infixl "\<cdot>sc" 67) where
   "CAs \<cdot>sc \<sigma> = (get_C CAs \<cdot> \<sigma>, get_As CAs \<cdot>m \<sigma>)"
   
 lemma subst_scl_id_subst[simp]: "CAs \<cdot>sc id_subst = CAs"
-  sorry
+  unfolding subst_scl_def by auto
   
 abbreviation "maximal_in A DAs \<equiv> (\<forall>B \<in> atms_of DAs. \<not> less_atm A B)"
   (* This definition is a bit inconsistent compared to the ground case since 
