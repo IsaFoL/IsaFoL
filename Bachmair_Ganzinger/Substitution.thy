@@ -34,6 +34,9 @@ definition comp_substs(infixl "\<odot>s" 67) where
 
 definition subst_atms :: "'a set \<Rightarrow> 's \<Rightarrow> 'a set" (infixl "\<cdot>as" 67) where
   "AA \<cdot>as \<sigma> = (\<lambda>A. A \<cdot>a \<sigma>) ` AA"
+  
+definition subst_atm_list :: "'a list \<Rightarrow> 's \<Rightarrow> 'a list" (infixl "\<cdot>al" 67) where
+  "As \<cdot>al \<sigma> = map (\<lambda>A. A \<cdot>a \<sigma>) As"
 
 definition subst_atm_mset :: "'a multiset \<Rightarrow> 's \<Rightarrow> 'a multiset" (infixl "\<cdot>am" 67) where
   "AA \<cdot>am \<sigma> = image_mset (\<lambda>A. A \<cdot>a \<sigma>) AA"
@@ -43,6 +46,12 @@ definition subst_lit :: "'a literal \<Rightarrow> 's \<Rightarrow> 'a literal" (
 
 definition subst_cls :: "'a clause \<Rightarrow> 's \<Rightarrow> 'a clause" (infixl "\<cdot>" 67) where
   "AA \<cdot> \<sigma> = image_mset (\<lambda>A. A \<cdot>l \<sigma>) AA"
+  
+definition subst_mcls :: "'a main_clause \<Rightarrow> 's \<Rightarrow> 'a main_clause" (infixl "\<cdot>mc" 67) where
+  "DAs \<cdot>mc \<sigma> = (get_C DAs \<cdot> \<sigma>, get_As DAs \<cdot>al \<sigma>)"
+  
+definition subst_scls :: "'a side_clause \<Rightarrow> 's \<Rightarrow> 'a side_clause" (infixl "\<cdot>sc" 67) where
+  "CAs \<cdot>sc \<sigma> = (get_C CAs \<cdot> \<sigma>, get_As CAs \<cdot>am \<sigma>)"
 
 definition subst_clss :: "'a clause set \<Rightarrow> 's \<Rightarrow> 'a clause set" (infixl "\<cdot>cs" 67) where
   "AA \<cdot>cs \<sigma> = (\<lambda>A. A \<cdot> \<sigma>) ` AA"
@@ -76,8 +85,8 @@ definition is_ground_lit :: "'a literal \<Rightarrow> bool" where
   "is_ground_lit L \<longleftrightarrow> is_ground_atm (atm_of L)"
 
 definition is_ground_cls :: "'a clause \<Rightarrow> bool" where
-  "is_ground_cls C \<longleftrightarrow> (\<forall>L. L \<in># C \<longrightarrow> is_ground_lit L)"
-
+  "is_ground_cls C \<longleftrightarrow> (\<forall>L. L \<in># C \<longrightarrow> is_ground_lit L)"  
+  
 definition is_ground_clss :: "'a clause set \<Rightarrow> bool" where
   "is_ground_clss CC \<longleftrightarrow> (\<forall>C \<in> CC. is_ground_cls C)"
 
@@ -255,6 +264,9 @@ lemma subst_cls_mono_mset: "C \<le># D \<Longrightarrow> C \<cdot> \<sigma> \<le
 lemma subst_atms_id_subst[simp]: "AA \<cdot>as id_subst = AA"
   unfolding subst_atms_def by simp
 
+lemma subst_atm_list_id_subst[simp]: "As \<cdot>al id_subst = As"
+  unfolding subst_atm_list_def by auto
+
 lemma subst_atm_mset_id_subst[simp]: "AA \<cdot>am id_subst = AA"
   unfolding subst_atm_mset_def by simp
 
@@ -263,6 +275,12 @@ lemma subst_lit_id_subst[simp]: "L \<cdot>l id_subst = L"
 
 lemma subst_cls_id_subst[simp]: "C \<cdot> id_subst = C"
   unfolding subst_cls_def by simp
+
+lemma subst_mcls_id_subst[simp]: "DAs \<cdot>mc id_subst = DAs"
+  unfolding subst_mcls_def by auto
+
+lemma subst_scls_id_subst[simp]: "CAs \<cdot>sc id_subst = CAs"
+  unfolding subst_scls_def by auto
 
 lemma subst_clss_id_subst[simp]: "CC \<cdot>cs id_subst = CC"
   unfolding subst_clss_def by simp
