@@ -184,10 +184,12 @@ definition find_unwatched :: "('a, 'b) ann_lits \<Rightarrow> 'a clause_l \<Righ
     (found = Some True \<longrightarrow> (C!i \<in> lits_of_l M \<and> i < length C)) \<^esup>
     (\<lambda>(found, i). found = None \<and> i < length C)
     (\<lambda>(_, i). do {
+      ASSERT(i < length C);
       case valued M (C!i) of
         None \<Rightarrow> do { RETURN (Some False, i)}
-      | Some True \<Rightarrow> do { RETURN (Some True, i)}
-      | Some False \<Rightarrow> do { RETURN (None, i+1)}
+      | Some v \<Rightarrow>
+         (if v then do { RETURN (Some True, i)} else do { RETURN (None, i+1)})
+
       }
     )
     (None, 2::nat)
@@ -234,19 +236,23 @@ lemma find_unwatched:
     done
   done
 
-
 definition unit_propagation_inner_loop_body_l :: "'v literal \<Rightarrow> nat \<Rightarrow>
   'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
   \<open>unit_propagation_inner_loop_body_l L C S = do {
     let (M, N, U, D, NP, UP, WS, Q) = S;
-    let i = (if (watched_l (N!C)) ! 0 = L then 0 else 1);
-    let L = (watched_l (N!C)) ! i;
-    let L' = (watched_l (N!C)) ! (1 - i);
+    ASSERT(no_dup M);
+    ASSERT(C < length N);
+    ASSERT(0 < length (N!C));
+    let i = (if (N!C) ! 0 = L then 0 else 1);
+    ASSERT(i < length (N!C));
+    ASSERT(1-i < length (N!C));
+    let L = (N!C) ! i;
+    let L' = (N!C) ! (1 - i);
     ASSERT(L' \<in># mset (watched_l (N!C)) - {#L#});
     ASSERT (mset (watched_l (N!C)) = {#L, L'#});
     val_L' \<leftarrow> RETURN (valued M L');
     if val_L' = Some True
-    then RETURN S
+    then RETURN (M, N, U, D, NP, UP, WS, Q)
     else do {
       f \<leftarrow> find_unwatched M (N!C);
       ASSERT (fst f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (N!C)). - L \<in> lits_of_l M));
@@ -256,6 +262,7 @@ definition unit_propagation_inner_loop_body_l :: "'v literal \<Rightarrow> nat \
         then do {RETURN (M, N, U, Some (N!C), NP, UP, {#}, {#})}
         else do {RETURN (Propagated L' C # M, N, U, D, NP, UP, WS, add_mset (-L') Q)}
       else do {
+        ASSERT(snd f < length (N!C));
         let K = (N!C) ! (snd f);
         let N' = list_update N C (swap (N!C) i (snd f));
         RETURN (M, N', U, D, NP, UP, WS, Q)
@@ -535,21 +542,26 @@ proof -
 
   have jC_notin_WS: \<open>C \<notin># remove1_mset C WS\<close>
     by (meson dist_WS distinct_mem_diff_mset multi_member_last)
-  have i_def': \<open>(if watched_l (N ! C) ! 0 = L then 0 else 1) = i\<close>
+  have i_def': \<open>(if (N ! C) ! 0 = L then 0 else 1) = i\<close>
     unfolding i_def C' S by auto
-  have \<open>unit_propagation_inner_loop_body_l L C ?S \<le>
+  have H: \<open>unit_propagation_inner_loop_body_l L C ?S \<le>
     \<Down> {(S, S'). twl_st_of (Some L) S = S' \<and> additional_WS_invs S} (unit_propagation_inner_loop_body
     (?L, twl_clause_of C') (twl_st_of (Some L) ?S))\<close>
     unfolding unit_propagation_inner_loop_body_l_def unit_propagation_inner_loop_body_def
       S'_S[unfolded S] S' st_of_S' S
-    apply (rewrite at \<open>let _ = watched_l _ ! _ in _\<close> Let_def)
-    apply (rewrite at \<open>let _ = if watched_l _ ! _ = _then _ else _ in _\<close> Let_def)
-    apply (rewrite at \<open>let _ =  (_ ! _, _) in _\<close> Let_def)
+    apply (rewrite at \<open>let _ =  _ ! _ in _\<close> Let_def)
+    apply (rewrite at \<open>let _ = if _ ! _ = _then _ else _ in _\<close> Let_def)
+     apply (rewrite at \<open>let _ =  (_ ! _, _) in _\<close> Let_def)
     apply (refine_rcg bind_refine_spec[where M' = \<open>find_unwatched _ _\<close>, OF _ find_unwatched]
         bind_refine_spec[where M' = \<open>RETURN (valued _ _)\<close>, OF _ valued_spec[]]
         update_clause_ll_spec
         case_prod_bind[of _ \<open>If _ _\<close>]; remove_dummy_vars)
     unfolding i_def'
+    subgoal using n_d by simp
+    subgoal using C_le_N by fast
+    subgoal using i two_le_length_C unfolding N_C_C' by auto
+    subgoal using i two_le_length_C unfolding N_C_C' by auto
+    subgoal using i two_le_length_C unfolding N_C_C' by auto
     subgoal by (auto simp: mset_watched_C watched_C' in_set_unwatched_conv C'[symmetric] N_C_C'
           consistent split: option.splits bool.splits simp del: watched_l.simps unwatched_l.simps)
     subgoal by (vc_solve simp: mset_watched_C watched_C' in_set_unwatched_conv C'[symmetric] N_C_C'
@@ -572,6 +584,7 @@ proof -
     subgoal using init_invs S C_le_N add_mset_C'_i dist_WS by (vc_solve simp: mset_watched_C watched_C'
           in_set_unwatched_conv set_take_2_watched
           consistent additional_WS_invs_def N_C_C' split: option.splits bool.splits dest: in_diffD)
+    subgoal for L' f f' by force
     subgoal
       apply (rule RETURN_rule)
       apply (use consistent in \<open>vc_solve simp: Decided_Propagated_in_iff_in_lits_of_l C'[symmetric]
@@ -580,10 +593,12 @@ proof -
     subgoal using C'_N_U S by (auto simp add: C'[symmetric] N_C_C')
     subgoal by (simp; fail)
     subgoal by auto
-    subgoal by auto
-    subgoal premises p for L' val_L f K N' U'
+    subgoal premises q for L' val_L f K N' U'
     proof -
-      note upd = p(12)
+      note val_L'_not_True = q(10) and L'_notin_trail = q(11) and case_f_of = q(12) and
+        not_forall_unwatched_defined = q(13) and fst_F_not_None = q(14) and
+        not_forall_unwatched_in_trail = q(15) and snd_le_length = q(16) and N_C_K = q(17) and
+        upd_spec = q(18)
       have \<open>Propagated K C \<notin> set M\<close> for K
       proof (rule ccontr)
         assume propa: \<open>\<not> ?thesis\<close>
@@ -613,14 +628,14 @@ proof -
           by (metis in_remove1_mset_neq in_set_dropD set_mset_mset unwatched_l.elims
               unwatched_twl_clause_of)
         then show False
-          using p by fast
+          using not_forall_unwatched_in_trail by fast
       qed
       then have \<open>additional_WS_invs (M, N[C := swap (N ! C) i (snd f)], U, D, NP, UP, remove1_mset C WS, Q)\<close>
         using add_inv S by (auto simp add: additional_WS_invs_def N_C_C' nth_list_update'
              dest: in_diffD)
       moreover {
         have \<open>snd f < length C'\<close>
-          using p(7-9) by (auto simp: N_C_C')
+          using snd_le_length by (auto simp: N_C_C')
         then have \<open>convert_lit N x = convert_lit (N[C := swap (N ! C) i (snd f)]) x\<close> if \<open>x \<in> set M\<close>for x
           apply (cases x)
           using i two_le_length_C by (auto simp: nth_list_update' swap_def N_C_C' mset_update
@@ -636,13 +651,10 @@ proof -
           j \<in># remove1_mset C WS#}\<close>
         by (rule image_mset_cong) (use jC_notin_WS in \<open>auto simp: nth_list_update' swap_def\<close>)
       ultimately show ?thesis
-         using upd by simp
+         using upd_spec by simp
     qed
-    subgoal using n_d by simp
-    subgoal using two_le_length_C unfolding N_C_C' by simp
-    subgoal using n_d by simp
     done
-  note H = this
+
   have *: \<open>unit_propagation_inner_loop_body (C' ! i, twl_clause_of C')
    (set_working_queue (remove1_mset (C' ! i, twl_clause_of C') (working_queue S')) S')
    \<le> SPEC (\<lambda>S''. twl_struct_invs S'' \<and>
@@ -1451,7 +1463,7 @@ proof -
                  (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None S)) S') \<and>
                  (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of None S)) S') \<and>
                  twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S)}\<close>
-    by (auto simp: KK)
+    unfolding KK by fast
   have \<open> (backtrack_l, backtrack)
      \<in> {(S::'v twl_st_l, S'). S' = twl_st_of None S \<and>
          get_conflict_l S \<noteq> None \<and> get_conflict_l S \<noteq> Some [] \<and>
