@@ -64,9 +64,12 @@ definition subst_cls_lists :: "'a clause list \<Rightarrow> 's list \<Rightarrow
 
 definition subst_cls_mset :: "'a clause multiset \<Rightarrow> 's \<Rightarrow> 'a clause multiset" (infixl "\<cdot>cm" 67) where
   "CC \<cdot>cm \<sigma> = image_mset (\<lambda>A. A \<cdot> \<sigma>) CC"
+  
+definition subst_scls_lists :: "'a side_clause list \<Rightarrow> 's list \<Rightarrow> 'a side_clause list" (infixl "\<cdot>\<cdot>scl" 67) where
+  "CAs \<cdot>\<cdot>scl \<sigma>s = map (\<lambda>(CA, \<sigma>). CA \<cdot>sc \<sigma>) (zip CAs \<sigma>s)"
 
 lemma subst_cls_mset_add_mset[iff]:
-  \<open>add_mset C CC \<cdot>cm \<sigma> = add_mset (C \<cdot> \<sigma>) (CC \<cdot>cm \<sigma>)\<close>
+  "add_mset C CC \<cdot>cm \<sigma> = add_mset (C \<cdot> \<sigma>) (CC \<cdot>cm \<sigma>)"
   unfolding subst_cls_mset_def by auto
 
 definition is_renaming :: "'s \<Rightarrow> bool" where
@@ -77,6 +80,9 @@ definition is_ground_atm :: "'a \<Rightarrow> bool" where
 
 definition is_ground_atms :: "'a set \<Rightarrow> bool" where
   "is_ground_atms AA = (\<forall>A \<in> AA. is_ground_atm A)"
+  
+definition is_ground_atm_list :: "'a list \<Rightarrow> bool" where
+  "is_ground_atm_list As = (\<forall>A \<in> set As. is_ground_atm A)"
 
 definition is_ground_atm_mset :: "'a multiset \<Rightarrow> bool" where
   "is_ground_atm_mset AA = (\<forall>A. A \<in># AA \<longrightarrow> is_ground_atm A)"
@@ -85,10 +91,19 @@ definition is_ground_lit :: "'a literal \<Rightarrow> bool" where
   "is_ground_lit L \<longleftrightarrow> is_ground_atm (atm_of L)"
 
 definition is_ground_cls :: "'a clause \<Rightarrow> bool" where
-  "is_ground_cls C \<longleftrightarrow> (\<forall>L. L \<in># C \<longrightarrow> is_ground_lit L)"  
+  "is_ground_cls C \<longleftrightarrow> (\<forall>L. L \<in># C \<longrightarrow> is_ground_lit L)"
+  
+definition is_ground_mcls :: "'a main_clause \<Rightarrow> bool" where
+  "is_ground_mcls DAs \<longleftrightarrow> (is_ground_cls (get_C DAs)) \<and> (is_ground_atm_list (get_As DAs))"
+  
+definition is_ground_scls :: "'a side_clause \<Rightarrow> bool" where
+  "is_ground_scls CA \<longleftrightarrow> (is_ground_cls (get_C CA)) \<and> (is_ground_atm_mset (get_As CA))"
   
 definition is_ground_clss :: "'a clause set \<Rightarrow> bool" where
   "is_ground_clss CC \<longleftrightarrow> (\<forall>C \<in> CC. is_ground_cls C)"
+  
+definition is_ground_sclss :: "'a side_clause set \<Rightarrow> bool" where
+  "is_ground_sclss CC \<longleftrightarrow> (\<forall>C \<in> CC. is_ground_scls C)"
 
 definition is_ground_cls_list :: "'a clause list \<Rightarrow> bool" where
   "is_ground_cls_list CC \<longleftrightarrow> (\<forall>C \<in> set CC. is_ground_cls C)"
@@ -96,6 +111,9 @@ definition is_ground_cls_list :: "'a clause list \<Rightarrow> bool" where
 definition is_ground_cls_mset :: "'a clause multiset \<Rightarrow> bool" where
   "is_ground_cls_mset CC \<longleftrightarrow> (\<forall>C. C \<in># CC \<longrightarrow> is_ground_cls C)"
 
+definition is_ground_scls_list :: "'a side_clause list \<Rightarrow> bool" where
+  "is_ground_scls_list CC \<longleftrightarrow> (\<forall>C \<in> set CC. is_ground_scls C)"  
+  
 definition is_ground_subst :: "'s \<Rightarrow> bool" where
   "is_ground_subst \<sigma> \<longleftrightarrow> (\<forall>A. is_ground_atm (A \<cdot>a \<sigma>))"
 
@@ -183,6 +201,17 @@ lemma subst_cls_negs[simp]: "(negs AA) \<cdot> \<sigma> = negs (AA \<cdot>am \<s
 lemma subst_cls_poss[simp]: "(poss AA) \<cdot> \<sigma> = poss (AA \<cdot>am \<sigma>)"
   unfolding subst_cls_def subst_lit_def subst_atm_mset_def by auto
 
+(* Maybe this is a nice lemma :-P I'm not 100% sure *)
+lemma subst_mc_main_clause[simp]: "(main_clause DAs) \<cdot> \<sigma> = main_clause (DAs \<cdot>mc \<sigma>)"
+  unfolding subst_cls_def subst_mcls_def subst_atm_list_def subst_lit_def by (cases DAs) auto
+
+(* Another nice lemma maybe... *)
+lemma subst_cls_lists_nth[simp]: "length CC = length \<sigma>s \<Longrightarrow> i < length CC \<Longrightarrow> (CC \<cdot>\<cdot>cl \<sigma>s) ! i = (CC ! i) \<cdot> \<sigma>s ! i"
+  unfolding subst_cls_lists_def by auto
+
+lemma subst_scls_lists_nth[simp]: "length CC = length \<sigma>s \<Longrightarrow> i < length CC \<Longrightarrow> (CC \<cdot>\<cdot>scl \<sigma>s) ! i = (CC ! i) \<cdot>sc \<sigma>s ! i"
+  unfolding subst_scls_lists_def by auto
+
 lemma subst_atms_empty[simp]: "{} \<cdot>as \<sigma> = {}"
   unfolding subst_atms_def by auto
 
@@ -191,6 +220,15 @@ lemma subst_atms_union[simp]: "(A \<union> B) \<cdot>as \<sigma> = A \<cdot>as \
 
 lemma subst_atms_single[simp]: "{A} \<cdot>as \<sigma> = {A \<cdot>a \<sigma>}"
   unfolding subst_atms_def by auto
+
+lemma subst_atm_list_length[simp]: "length (As \<cdot>al \<sigma>) = length As"
+  unfolding subst_atm_list_def by auto
+
+lemma subst_atm_list_empty[simp]: "[] \<cdot>al \<sigma> = []"
+  unfolding subst_atm_list_def by auto
+
+lemma subst_atm_list_Cons[simp]: "(A # As) \<cdot>al \<sigma> = A \<cdot>a \<sigma> # As \<cdot>al \<sigma>"
+  unfolding subst_atm_list_def by auto
 
 lemma subst_atm_mset_empty[simp]: "{#} \<cdot>am \<sigma> = {#}"
   unfolding subst_atm_mset_def by auto
@@ -209,6 +247,12 @@ lemma subst_cls_union[simp]: "(C + D) \<cdot> \<sigma> = C \<cdot> \<sigma> + D 
 
 lemma subst_cls_single[simp]: "{#A#} \<cdot> \<sigma> = {#A \<cdot>l \<sigma>#}"
   unfolding subst_cls_def by auto
+
+lemma subst_mcls_empty[simp]: "({#},[]) \<cdot>mc \<sigma> = ({#},[])"
+  unfolding subst_mcls_def by auto
+  
+lemma subst_scls_empty[simp]: "({#},{#}) \<cdot>sc \<sigma> = ({#},{#})"
+  unfolding subst_scls_def by auto
 
 lemma subst_clss_empty[simp]: "{} \<cdot>cs \<sigma> = {}"
   unfolding subst_clss_def by auto
@@ -243,7 +287,16 @@ lemma subst_cls_lists_Nil[simp]: "[] \<cdot>\<cdot>cl \<sigma>s = []"
 lemma subst_cls_lists_Cons[simp]: "(C # CC) \<cdot>\<cdot>cl (\<sigma> # \<sigma>s) = C \<cdot> \<sigma> # CC \<cdot>\<cdot>cl \<sigma>s"
   unfolding subst_cls_lists_def by auto
 
-lemma subst_cls_mset_empty[simp]: "{#} \<cdot>cm \<sigma> = {#}"
+lemma subst_scls_lists_length[simp]: "length (CC \<cdot>\<cdot>scl \<sigma>s) = min (length CC) (length \<sigma>s)"
+  unfolding subst_scls_lists_def by auto
+
+lemma subst_scls_lists_Nil[simp]: "[] \<cdot>\<cdot>scl \<sigma>s = []"
+  unfolding subst_scls_lists_def by auto
+
+lemma subst_scls_lists_Cons[simp]: "(C # CC) \<cdot>\<cdot>scl (\<sigma> # \<sigma>s) = C \<cdot>sc \<sigma> # CC \<cdot>\<cdot>scl \<sigma>s"
+  unfolding subst_scls_lists_def by auto
+
+lemma subst_scls_mset_empty[simp]: "{#} \<cdot>cm \<sigma> = {#}"
   unfolding subst_cls_mset_def by auto
 
 lemma subst_cls_mset_union[simp]: "(CC + DD) \<cdot>cm \<sigma> = CC \<cdot>cm \<sigma> + DD \<cdot>cm \<sigma>"
@@ -279,7 +332,7 @@ lemma subst_cls_id_subst[simp]: "C \<cdot> id_subst = C"
 lemma subst_mcls_id_subst[simp]: "DAs \<cdot>mc id_subst = DAs"
   unfolding subst_mcls_def by auto
 
-lemma subst_scls_id_subst[simp]: "CAs \<cdot>sc id_subst = CAs"
+lemma subst_scls_id_subst[simp]: "CA \<cdot>sc id_subst = CA"
   unfolding subst_scls_def by auto
 
 lemma subst_clss_id_subst[simp]: "CC \<cdot>cs id_subst = CC"
@@ -290,6 +343,9 @@ lemma subst_cls_list_id_subst[simp]: "CC \<cdot>cl id_subst = CC"
 
 lemma subst_cls_lists_id_subst[simp]: "length CC = n \<Longrightarrow> CC \<cdot>\<cdot>cl replicate n id_subst = CC"
   unfolding subst_cls_lists_def by (induct CC arbitrary: n) auto
+
+lemma subst_scls_lists_id_subst[simp]: "length CC = n \<Longrightarrow> CC \<cdot>\<cdot>scl replicate n id_subst = CC"
+  unfolding subst_scls_lists_def by (induct CC arbitrary: n) auto
 
 lemma subst_cls_mset_id_subst[simp]: "CC \<cdot>cm id_subst = CC"
   unfolding subst_cls_mset_def by simp
@@ -310,7 +366,12 @@ lemma map_zip_assoc: "map f (zip (zip xs ys) zs) = map (\<lambda>(x,y,z). f ((x,
   by (induct zs arbitrary: xs ys) (auto simp add: zip.simps(2) split: list.splits)
 
 lemma subst_cls_lists_comp_substs[simp]: "Cs \<cdot>\<cdot>cl (\<tau>s \<odot>s \<sigma>s) = Cs \<cdot>\<cdot>cl \<tau>s \<cdot>\<cdot>cl \<sigma>s"
-  unfolding subst_cls_lists_def comp_substs_def map_zip_map map_zip_map2 map_zip_assoc by auto
+  unfolding subst_cls_lists_def comp_substs_def map_zip_map map_zip_map2 map_zip_assoc 
+  by (simp add: split_def)
+
+lemma subst_scls_lists_comp_substs[simp]: "Cs \<cdot>\<cdot>scl (\<tau>s \<odot>s \<sigma>s) = Cs \<cdot>\<cdot>scl \<tau>s \<cdot>\<cdot>scl \<sigma>s"
+  unfolding subst_scls_lists_def comp_substs_def map_zip_map map_zip_map2 map_zip_assoc
+  by (simp add: split_def subst_scls_def)
 
 lemma subst_clsscomp_subst[simp]: "CC \<cdot>cs (\<tau> \<odot> \<sigma>) = CC \<cdot>cs \<tau> \<cdot>cs \<sigma>"
   unfolding subst_clss_def by auto
@@ -321,7 +382,7 @@ lemma subst_cls_mset_comp_subst[simp]: "CC \<cdot>cm (\<tau> \<odot> \<sigma>) =
 lemma is_renaming_id_subst[simp]: "is_renaming id_subst"
   unfolding is_renaming_def by simp
 
-lemma is_ground_cls_as_atms: "is_ground_cls C \<longleftrightarrow> (\<forall>A. A \<in> atms_of C \<longrightarrow> is_ground_atm A)"
+lemma is_ground_cls_as_atms: "is_ground_cls C \<longleftrightarrow> (\<forall>A \<in> atms_of C. is_ground_atm A)"
   by (auto simp: atms_of_def is_ground_cls_def is_ground_lit_def)
 
 lemma is_ground_atms_union[simp]:
@@ -335,6 +396,14 @@ lemma is_ground_atm_mset_union[simp]:
 lemma is_ground_cls_union[simp]:
   "is_ground_cls (C + D) \<longleftrightarrow> is_ground_cls C \<and> is_ground_cls D"
   unfolding is_ground_cls_def by auto
+
+lemma is_ground_mcls_as_atms: "is_ground_mcls DAs \<longleftrightarrow> (\<forall>A \<in> atms_of_mcls DAs. is_ground_atm A)"
+  unfolding is_ground_mcls_def atms_of_mcls_def is_ground_atm_list_def using is_ground_cls_as_atms
+  by auto
+
+lemma is_ground_scls_as_atms: "is_ground_scls DAs \<longleftrightarrow> (\<forall>A \<in> atms_of_scls DAs. is_ground_atm A)"
+  unfolding is_ground_scls_def atms_of_scls_def is_ground_atm_mset_def using is_ground_cls_as_atms
+  by auto
 
 lemma is_ground_clss_union[simp]:
   "is_ground_clss (AA \<union> BB) \<longleftrightarrow> is_ground_clss AA \<and> is_ground_clss BB"
@@ -357,7 +426,13 @@ lemma is_ground_cls_imp_is_ground_lit: "L \<in># C \<Longrightarrow> is_ground_c
   unfolding is_ground_cls_def by auto
 
 lemma is_ground_cls_imp_is_ground_atm: "A \<in> atms_of C \<Longrightarrow> is_ground_cls C \<Longrightarrow> is_ground_atm A"
-  unfolding is_ground_cls_def is_ground_lit_def atms_of_def by auto
+  using is_ground_cls_as_atms by auto
+
+lemma is_ground_mcls_imp_is_ground_atm: "A \<in> atms_of_mcls DAs \<Longrightarrow> is_ground_mcls DAs \<Longrightarrow> is_ground_atm A"
+  using is_ground_mcls_as_atms by auto
+
+lemma is_ground_scls_imp_is_ground_atm: "A \<in> atms_of_scls C \<Longrightarrow> is_ground_scls C \<Longrightarrow> is_ground_atm A"
+  using is_ground_scls_as_atms by auto
 
 lemma is_ground_cls_Union_mset[iff]: "is_ground_cls (\<Union># CC) \<longleftrightarrow> is_ground_cls_mset CC"
   unfolding is_ground_cls_mset_def is_ground_cls_def by blast
@@ -371,17 +446,37 @@ lemma is_ground_subst_atms[simp]: "is_ground_atms AA \<Longrightarrow> AA \<cdot
 lemma is_ground_subst_atm_mset[simp]: "is_ground_atm_mset AA \<Longrightarrow> AA \<cdot>am \<sigma> = AA"
   unfolding is_ground_atm_mset_def subst_atm_mset_def by auto
 
+lemma is_ground_subst_atm_list[simp]: "is_ground_atm_list As \<Longrightarrow> As \<cdot>al \<sigma> = As"
+  apply (rule nth_equalityI)
+  unfolding is_ground_atm_list_def subst_atm_list_def by auto
+
 lemma is_ground_subst_lit[simp]: "is_ground_lit L \<Longrightarrow> L \<cdot>l \<sigma> = L"
   unfolding is_ground_lit_def subst_lit_def by (cases L) simp_all
   
 lemma is_ground_subst_cls[simp]: "is_ground_cls C \<Longrightarrow> C \<cdot> \<sigma> = C"
   unfolding is_ground_cls_def subst_cls_def by simp
+
+lemma is_ground_subst_mcls[simp]: "is_ground_mcls DAs \<Longrightarrow> DAs \<cdot>mc \<sigma> = DAs"
+  unfolding is_ground_mcls_def subst_mcls_def by auto
   
+lemma is_ground_subst_scls[simp]: "is_ground_scls CA \<Longrightarrow> CA \<cdot>sc \<sigma> = CA"
+  unfolding is_ground_scls_def subst_scls_def by auto
+
 lemma is_ground_subst_clss[simp]: "is_ground_clss CC \<Longrightarrow> CC \<cdot>cs \<sigma> = CC"
   unfolding is_ground_clss_def subst_clss_def image_def by auto
   
 lemma is_ground_subst_cls_mset[simp]: "is_ground_cls_mset CC \<Longrightarrow> CC \<cdot>cm \<sigma> = CC"
   unfolding is_ground_cls_mset_def subst_cls_mset_def by auto
+
+lemma is_ground_subst_cls_lists[simp]: "length CC = length \<sigma>s \<Longrightarrow>is_ground_cls_list CC \<Longrightarrow> CC \<cdot>\<cdot>cl \<sigma>s = CC"
+  apply (rule nth_equalityI)
+  unfolding is_ground_cls_list_def subst_cls_list_def using is_ground_subst_cls subst_scls_lists_length
+  by auto
+
+lemma is_ground_subst_scls_lists[simp]: "length CC = length \<sigma>s \<Longrightarrow> is_ground_scls_list CC \<Longrightarrow> CC \<cdot>\<cdot>scl \<sigma>s = CC"
+  apply (rule nth_equalityI)
+  unfolding is_ground_scls_list_def subst_scls_lists_def using is_ground_subst_scls subst_scls_lists_length
+  by auto
 
 lemma is_ground_comp_subst[simp]: "is_ground_subst \<sigma> \<Longrightarrow> is_ground_subst (\<tau> \<odot> \<sigma>)"
   unfolding is_ground_subst_def is_ground_atm_def by auto
@@ -395,6 +490,9 @@ lemma ground_subst_ground_lit[simp]: "is_ground_subst \<sigma> \<Longrightarrow>
 lemma ground_subst_ground_cls[simp]: "is_ground_subst \<sigma> \<Longrightarrow> is_ground_cls (C \<cdot> \<sigma>)"
   unfolding is_ground_cls_def by auto
 
+lemma ground_subst_ground_scls[simp]: "is_ground_subst \<sigma> \<Longrightarrow> is_ground_scls (C \<cdot>sc \<sigma>)"
+  unfolding is_ground_scls_def using is_ground_atm_mset_def subst_scls_def by auto 
+
 lemma ground_subst_ground_clss[simp]: "is_ground_subst \<sigma> \<Longrightarrow> is_ground_clss (CC \<cdot>cs \<sigma>)"
   unfolding is_ground_clss_def subst_clss_def by auto
 
@@ -404,6 +502,10 @@ lemma ground_subst_ground_cls_list[simp]: "is_ground_subst \<sigma> \<Longrighta
 lemma ground_subst_ground_cls_lists[simp]:
   "\<forall>\<sigma> \<in> set \<sigma>s. is_ground_subst \<sigma> \<Longrightarrow> is_ground_cls_list (CC \<cdot>\<cdot>cl \<sigma>s)"
   unfolding is_ground_cls_list_def subst_cls_lists_def by (auto simp: set_zip)
+
+lemma ground_subst_ground_scls_lists[simp]:
+  "\<forall>\<sigma> \<in> set \<sigma>s. is_ground_subst \<sigma> \<Longrightarrow> is_ground_scls_list (CC \<cdot>\<cdot>scl \<sigma>s)"
+  unfolding is_ground_scls_list_def subst_scls_lists_def by (auto simp add: set_zip)
 
 lemma ground_subst_ground_cls_mset[simp]: "is_ground_subst \<sigma> \<Longrightarrow> is_ground_cls_mset (CC \<cdot>cm \<sigma>)"
   unfolding is_ground_cls_mset_def subst_cls_mset_def by auto
@@ -488,6 +590,21 @@ next
   ultimately show ?case
     by blast
 qed
+
+
+(* similar to, but stronger than is_ground_subst_lit *)
+thm is_ground_subst_lit
+lemma is_ground_subst_lit_iff: "is_ground_lit L \<longleftrightarrow> (\<forall>\<sigma>. L = L \<cdot>l \<sigma>)"
+  using is_ground_atm_def is_ground_lit_def subst_lit_def by (cases L) auto
+
+(* similar to but stronger than is_ground_subst_cls *)
+thm is_ground_subst_cls
+lemma is_ground_subst_cls_iff: "is_ground_cls C \<longleftrightarrow> (\<forall>\<sigma>. C = C \<cdot> \<sigma>)"
+  apply (rule) 
+  using is_ground_subst_lit_iff apply (auto simp add: is_ground_cls_def subst_cls_def)[]
+  apply (metis ex_ground_subst ground_subst_ground_cls)
+  done
+  
 
 end
 

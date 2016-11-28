@@ -91,7 +91,7 @@ inductive ord_resolve_rename :: "'a side_clause list \<Rightarrow> 'a main_claus
   "is_renaming \<rho> \<Longrightarrow>
    (\<forall>\<rho> \<in> set P. is_renaming \<rho>) \<Longrightarrow>
    length P = length CAs \<Longrightarrow>
-   ord_resolve (map (\<lambda>(C,\<rho>). C \<cdot>sc \<rho>) (zip CAs P)) (DAs \<cdot>mc \<rho>) E \<Longrightarrow>
+   ord_resolve (CAs \<cdot>\<cdot>scl P) (DAs \<cdot>mc \<rho>) E \<Longrightarrow>
    ord_resolve_rename CAs DAs E"
   (* In this definition, P, \<sigma> and \<rho>, are not part of the signature. 
      A bit different from ord_resolve... *)
@@ -99,37 +99,35 @@ inductive ord_resolve_rename :: "'a side_clause list \<Rightarrow> 'a main_claus
 lemma ord_resolve_raw_imp_ord_resolve: "ord_resolve CAs D E \<Longrightarrow> ord_resolve_rename CAs D E"
   apply (rule ord_resolve_rename[of id_subst "replicate (length CAs) id_subst"])
   apply auto
-proof -
-  assume asm: "ord_resolve CAs D E"
-  moreover
-  have "CAs = (map (\<lambda>(x, y). x \<cdot>sc y) (zip CAs (replicate (length CAs) id_subst)))"
-    by auto
-  ultimately
-  show "ord_resolve (map (\<lambda>(x, y). x \<cdot>sc y) (zip CAs (replicate (length CAs) id_subst))) D E"
-    by metis
-qed
+  done
 
 
 
 lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
   assumes 
-    gr_cc: "is_ground_cls_mset (side_clauses CAs)" and
-    gr_d: "is_ground_cls (main_clause DAs)" and
-    res_e: "ord_resolve_rename CAs DAs E"
+    gr_cc: "is_ground_scls_list CAs" and
+    gr_d: "is_ground_mcls DAs" and
+    res_e_re: "ord_resolve_rename CAs DAs E"
   shows "ord_resolve CAs DAs E"
-  using res_e proof (cases rule: ord_resolve_rename.cases)
+  using res_e_re proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
-  have "(map (\<lambda>(x, y). x \<cdot>sc y) (zip CAs P)) = CAs"
-    apply (rule nth_equalityI)
-    using ord_resolve_rename(3) apply auto[]
-    apply auto
-    using gr_cc 
-    using is_ground_cls_mset_def[of "side_clauses CAs"]
-    using lol[of CAs "is_ground_cls "]
-    sorry (* I should make a is_ground for side_clause *)
-    
-  then show ?thesis sorry
+  have rename_P: "\<forall>\<rho> \<in> set P. is_renaming \<rho>" using ord_resolve_rename(2) .
+  have len: "length P = length CAs" using ord_resolve_rename(3) .
+  have res_e: "ord_resolve (CAs \<cdot>\<cdot>scl P) (DAs \<cdot>mc \<rho>) E" using ord_resolve_rename(4) .
+  
+  have "CAs \<cdot>\<cdot>scl P = CAs" using len gr_cc by auto
+  moreover
+  have "DAs \<cdot>mc \<rho> = DAs" using gr_d by auto
+  ultimately show ?thesis using res_e by auto
 qed
+
+lemma ord_resolve_sound:
+  assumes
+    res_e: "ord_resolve CAs DAs E" and
+    cc_d_true: "\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m (side_clauses CAs + {#D#}) \<cdot>cm \<sigma>" and
+    ground_subst_\<sigma>: "is_ground_subst \<sigma>"
+  shows "I \<Turnstile> E \<cdot> \<sigma>"
+    sorry
   
 
 (* lifting lemma:
