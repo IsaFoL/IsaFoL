@@ -96,6 +96,14 @@ abbreviation nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> (nat, nat) an
 abbreviation nat_ann_lits_assn :: "(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> assn" where
   \<open>nat_ann_lits_assn \<equiv> list_assn nat_ann_lit_assn\<close>
 
+abbreviation nat_lits_trail_assn :: "(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> assn" where
+  \<open>nat_lits_trail_assn \<equiv> list_assn (nat_ann_lit_assn :: (nat, nat) ann_lit \<Rightarrow> _)\<close>
+
+abbreviation clause_l_assn :: "nat clause_l \<Rightarrow> nat clause_l \<Rightarrow> assn" where
+  \<open>clause_l_assn \<equiv> list_assn nat_lit_assn\<close>
+
+abbreviation clauses_l_assn :: "nat clauses_l \<Rightarrow> nat clauses_l \<Rightarrow> assn" where
+  \<open>clauses_l_assn \<equiv> list_assn clause_l_assn\<close>
 
 (* concrete_definition backtrack_l'_impl uses backtrack_l'_impl
 
@@ -112,15 +120,6 @@ type_synonym lit_queue_l = "nat literal list"
 type_synonym twl_st_ll =
   "(nat, nat) ann_lits \<times> nat clauses_l \<times> nat \<times>
     nat clause_l option \<times> nat clauses_l \<times> nat clauses_l \<times> working_queue_ll \<times> lit_queue_l"
-
-abbreviation nat_lits_trail_assn :: "(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> assn" where
-  \<open>nat_lits_trail_assn \<equiv> (id_assn :: (nat, nat) ann_lits \<Rightarrow> _)\<close>
-
-abbreviation clause_l_assn :: "nat clause_l \<Rightarrow> nat clause_l \<Rightarrow> assn" where
-  \<open>clause_l_assn \<equiv> list_assn nat_lit_assn\<close>
-
-abbreviation clauses_l_assn :: "nat clauses_l \<Rightarrow> nat clauses_l \<Rightarrow> assn" where
-  \<open>clauses_l_assn \<equiv> list_assn clause_l_assn\<close>
 
 
 notation prod_assn (infixr "*assn" 90)
@@ -244,7 +243,6 @@ lemma lit_of_impl_refine[sepref_fr_rules]:
   by (sep_auto split: ann_lit.split)
 
 sepref_decl_impl lit_of_impl: atom_of_impl_refine .
-
 
 lemma option_bool_eq_impl_option_op_bool_eq_impl: \<open>option_bool_eq_impl = op_option_bool_eq\<close>
   unfolding option_bool_eq_impl_def op_option_bool_eq_def by (auto split: option.splits intro!: ext)
@@ -454,44 +452,6 @@ lemma [safe_constraint_rules]: \<open>is_pure R \<Longrightarrow> is_pure (nat_a
   }
 \<close> *)
 
-definition test42 :: "nat literal \<Rightarrow> nat \<Rightarrow> nat twl_st_l \<Rightarrow> nat twl_st_l nres" where
-  \<open>test42 L C S = do {
-    let (M, N, U, D, NP, UP, WS, Q) = S;
-    ASSERT(C < length N);
-    ASSERT(0 < length (N!C));
-    let (i::nat) = (if (N!C) ! 0 = L then 0 else 1);
-    ASSERT(i < length (N!C));
-    let L = (N!C) ! i;
-    ASSERT(1-i < length (N!C));
-    let L' = (N!C) ! (1 - i);
-    ASSERT(no_dup M);
-    let val_L' = valued M L';
-    if val_L' = Some True
-    then RETURN (M, N, U, D, NP, UP, WS, Q)
-    else do {
-      f \<leftarrow> find_unwatched M (N!C);
-      if fst f = None
-      then
-        if val_L' = Some False
-        then do {RETURN (M, N, U, Some (N!C), NP, UP, {#}, {#})}
-        else do {RETURN (Propagated L' C # M, N, U, D, NP, UP, WS, add_mset (-L') Q)}
-      else do {
-        ASSERT(snd f < length (N!C));
-        let K = (N!C) ! (snd f);
-        let N' = list_update N C (swap (N!C) i (snd f));
-        RETURN (M, N', U, D, NP, UP, WS, Q)
-      }
-   }
-   }
-\<close>
-
-lemma unification_is_stupid_in_isabelle: \<open>valued_impl' a (aa ! bia ! Suc 0) \<bind>
-       (\<lambda>x'g. return (a, aa, ab, ac, ad, ae, af, b)) =
-       (\<lambda>ai bia (a, aa, ab, ac, ad, ae, af, b). valued_impl' a (aa ! bia ! Suc 0) \<bind>
-       (\<lambda>x'g. return (a, aa, ab, ac, ad, ae, af, b))) ai bia (a, aa, ab, ac, ad, ae, af, b)\<close>
-  by auto
-
-
 term find_unwatched
 sepref_definition find_unwatched_impl is
    "uncurry (find_unwatched :: (nat, nat) ann_lits
@@ -562,16 +522,6 @@ lemma [sepref_fr_rules]:
       intro: Assertions.mod_emp_simp)
   done
 
-lemmas rel_id_simps =
-  fun_rel_id_simp
-  prod_rel_id_simp
-  option_rel_id_simp
-  sum_rel_id_simp
-  list_rel_id_simp
-  set_rel_id_simp
-
-lemmas [sepref_frame_normrel_eqs] = rel_id_simps[symmetric]
-
 sepref_definition unit_propagation_inner_loop_body_l_impl is \<open>uncurry2 (unit_propagation_inner_loop_body_l :: nat literal \<Rightarrow> nat \<Rightarrow>
   nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close> ::
   \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_ll_assn\<close>
@@ -612,9 +562,8 @@ qed
 
 lemma list_mset_assn_add_mset_cons_in:
   assumes
-    assn: \<open>(as, bk) \<Turnstile> list_mset_assn (\<lambda>a c. \<up> (c = a)) (add_mset x N) (ab # list)\<close> and
-    ab: \<open>ab \<notin># N\<close>
-  shows \<open>x = ab\<close>
+    assn: \<open>A \<Turnstile> list_mset_assn (\<lambda>a c. \<up> (c = a)) (add_mset x N) (ab # list)\<close>
+  shows \<open>ab \<in># add_mset x N\<close>
 proof -
   have H: \<open>(\<forall>x x'. (x' = x) = ((x', x) \<in> P')) \<longleftrightarrow> P' = Id\<close> for P'
     by (auto simp: the_pure_def)
