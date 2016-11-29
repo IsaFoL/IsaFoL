@@ -464,11 +464,9 @@ definition test42 :: "nat literal \<Rightarrow> nat \<Rightarrow> nat twl_st_l \
     let L = (N!C) ! i;
     ASSERT(1-i < length (N!C));
     let L' = (N!C) ! (1 - i);
-     ASSERT(no_dup M);
-   let val_L' = valued M L';
- (*    if valued M L' = Some True then RETURN (M, N, U, D, NP, UP, WS, Q)
-    else RETURN (M, N, U, D, NP, UP, WS, Q) *)
-     if val_L' = Some True
+    ASSERT(no_dup M);
+    let val_L' = valued M L';
+    if val_L' = Some True
     then RETURN (M, N, U, D, NP, UP, WS, Q)
     else do {
       f \<leftarrow> find_unwatched M (N!C);
@@ -574,20 +572,104 @@ lemmas rel_id_simps =
 
 lemmas [sepref_frame_normrel_eqs] = rel_id_simps[symmetric]
 
-sepref_definition test_42' is \<open>uncurry2 (unit_propagation_inner_loop_body_l :: nat literal \<Rightarrow> nat \<Rightarrow>
+sepref_definition unit_propagation_inner_loop_body_l_impl is \<open>uncurry2 (unit_propagation_inner_loop_body_l :: nat literal \<Rightarrow> nat \<Rightarrow>
   nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close> ::
   \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_ll_assn\<close>
   unfolding unit_propagation_inner_loop_body_l_def unfolding lms_fold_custom_empty
   supply [[goals_limit=1]]
   by sepref
 
-concrete_definition unit_propagation_inner_loop_body_l_impl uses test_42'.refine_raw
+concrete_definition unit_propagation_inner_loop_body_l_impl' uses unit_propagation_inner_loop_body_l_impl.refine_raw
 
 code_identifier
   code_module DPLL_CDCL_W_Implementation \<rightharpoonup> (SML) CDCL_W_Level
 
-prepare_code_thms unit_propagation_inner_loop_body_l_impl_def
-export_code unit_propagation_inner_loop_body_l_impl in SML
+prepare_code_thms unit_propagation_inner_loop_body_l_impl'_def
+export_code unit_propagation_inner_loop_body_l_impl' in SML
+
+sepref_register \<open>unit_propagation_inner_loop_body_l :: nat literal \<Rightarrow> nat \<Rightarrow>
+  nat twl_st_l \<Rightarrow> nat twl_st_l nres\<close>
+
+declare unit_propagation_inner_loop_body_l_impl.refine_raw[sepref_fr_rules]
+
+sepref_register \<open>select_from_working_queue :: nat twl_st_l \<Rightarrow> (nat twl_st_l \<times> nat) nres\<close>
+
+lemma H: \<open>(\<forall>x x'. (x' = x) = ((x', x) \<in> P')) \<longleftrightarrow> P' = Id\<close>
+  by (auto simp: the_pure_def)
+
+lemma list_mst_assn_add_mset_empty_false:
+  \<open>\<not>(as, bk) \<Turnstile> list_mset_assn (\<lambda>a c::nat. \<up> (c = a)) (add_mset x N) []\<close>
+proof -
+  have H: \<open>(\<forall>x x'. (x' = x) = ((x', x) \<in> P')) \<longleftrightarrow> P' = Id\<close> for P'
+    by (auto simp: the_pure_def)
+  have [simp]: \<open>the_pure (\<lambda>a c. \<up> (c = a)) = Id\<close>
+    by (auto simp: the_pure_def H)
+  have [iff]: \<open>([], y) \<in> list_mset_rel \<longleftrightarrow> y = {#}\<close> for y
+    by (auto simp: list_mset_rel_def br_def)
+  show ?thesis
+    by (auto simp: list_mset_assn_def)
+qed
+
+lemma list_mset_assn_add_mset_cons_in:
+  assumes
+    assn: \<open>(as, bk) \<Turnstile> list_mset_assn (\<lambda>a c. \<up> (c = a)) (add_mset x N) (ab # list)\<close> and
+    ab: \<open>ab \<notin># N\<close>
+  shows \<open>x = ab\<close>
+proof -
+  have H: \<open>(\<forall>x x'. (x' = x) = ((x', x) \<in> P')) \<longleftrightarrow> P' = Id\<close> for P'
+    by (auto simp: the_pure_def)
+  have [simp]: \<open>the_pure (\<lambda>a c. \<up> (c = a)) = Id\<close>
+    by (auto simp: the_pure_def H)
+  have [iff]: \<open>(ab # list, y) \<in> list_mset_rel \<longleftrightarrow> y = add_mset ab (mset list)\<close> for y ab list
+    by (auto simp: list_mset_rel_def br_def)
+  show ?thesis
+    using assn ab
+    by (auto simp: list_mset_assn_def mset_rel_def p2rel_def rel_mset_def
+        rel2p_def[abs_def]  add_mset_eq_add_mset list.rel_eq)
+qed
+
+lemma hd_select_from_working_queue_refine[sepref_fr_rules]: (* TODO tune proof *)
+  \<open>(return o (\<lambda>(M, N, U, D, NP, UP, WS, Q). ((M, N, U, D, NP, UP, tl WS, Q), hd WS)),
+      select_from_working_queue) \<in>
+    [\<lambda>S. working_queue_l S \<noteq> {#}]\<^sub>a twl_st_ll_assn\<^sup>k \<rightarrow> prod_assn twl_st_ll_assn nat_assn\<close>
+  unfolding select_from_working_queue_def
+
+  apply (sep_auto simp: )
+  apply (
+    sep_auto
+      simp: pure_def hn_ctxt_def invalid_assn_def
+      intro!: hn_refineI[THEN hn_refine_preI] hfrefI)
+  apply (case_tac am; case_tac af)
+   apply (auto simp: mod_pure_star_dist list_mst_assn_add_mset_empty_false
+    dest!: list_mset_assn_add_mset_cons_in
+      dest!: mod_starD; fail)[]
+   apply (auto simp: mod_pure_star_dist list_mst_assn_add_mset_empty_false
+    dest!: list_mset_assn_add_mset_cons_in
+      dest!: mod_starD; fail)[]
+   apply (auto simp: mod_pure_star_dist list_mst_assn_add_mset_empty_false
+    dest!: list_mset_assn_add_mset_cons_in
+      dest!: mod_starD; fail)[]
+  sorry
+
+
+ thm lms_is_empty_aref hm.fold_custom_empty HOL_list_empty_hnr_mop
+thm list_custom_empty_def
+thm lms_fold_custom_empty
+lemma working_queue_l_abs_def:\<open>working_queue_l = (fst o snd o snd o snd o snd o snd o snd)\<close>
+  by auto
+
+lemma working_queue_l_refine[sepref_fr_rules]:
+  \<open>(return o ((fst o snd o snd o snd o snd o snd o snd) ::  twl_st_ll \<Rightarrow> _),
+     RETURN o (working_queue_l :: nat twl_st_l \<Rightarrow> _)) \<in>
+   twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a list_mset_assn nat_assn\<close>
+  unfolding working_queue_l_abs_def
+  by sepref_to_hoare sep_auto
+
+sepref_definition unit_propagation_inner_loop_l_impl is
+  \<open>uncurry (unit_propagation_inner_loop_l :: nat literal \<Rightarrow> nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close>
+  :: \<open>nat_lit_assn\<^sup>k *\<^sub>a twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_ll_assn\<close>
+  unfolding unit_propagation_inner_loop_l_def
+  by sepref
 
 (* sepref_dbg_trans_step_keep
 apply (simp add: list_assn_pure_conv; fail)*)
