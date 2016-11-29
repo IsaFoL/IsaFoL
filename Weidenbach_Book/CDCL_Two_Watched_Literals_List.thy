@@ -95,7 +95,7 @@ lemma get_conflict_l_Some_nil_iff:
   \<open>get_conflict_l S = Some [] \<longleftrightarrow> get_conflict (twl_st_of None S) = Some {#}\<close>
   by (cases S) auto
 
-lemma working_queu_empty_iff[iff]:
+lemma working_queue_empty_iff[iff]:
   \<open>working_queue (twl_st_of (Some L) x) = {#} \<longleftrightarrow> working_queue_l x = {#}\<close>
   by (cases x) auto
 
@@ -693,14 +693,18 @@ lemma unit_propagation_inner_loop_body_l2:
   using unit_propagation_inner_loop_body_l[OF assms]
   by (auto simp: nres_rel_def)
 
+definition select_from_working_queue :: \<open>'v twl_st_l \<Rightarrow> ('v twl_st_l \<times> nat) nres\<close> where
+  \<open>select_from_working_queue S = SPEC (\<lambda>(S', C). C \<in># working_queue_l S \<and>
+     S' = set_working_queue_l (working_queue_l S - {#C#}) S)\<close>
+
 definition unit_propagation_inner_loop_l :: "'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
   \<open>unit_propagation_inner_loop_l L S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of (Some L) S) \<and> twl_stgy_invs (twl_st_of (Some L) S) \<and>
     cdcl_twl_cp\<^sup>*\<^sup>* (twl_st_of (Some L) S\<^sub>0) (twl_st_of (Some L) S)\<^esup>
       (\<lambda>S. working_queue_l S \<noteq> {#})
       (\<lambda>S. do {
-        C \<leftarrow> SPEC (\<lambda>C. C \<in># working_queue_l S);
-        let S' = set_working_queue_l (working_queue_l S - {#C#}) S;
+        ASSERT (working_queue_l S \<noteq> {#});
+        (S', C) \<leftarrow> select_from_working_queue S;
         unit_propagation_inner_loop_body_l L C S'
       })
       S\<^sub>0
@@ -795,28 +799,44 @@ lemma unit_propagation_inner_loop_l:
     additional_WS_invs T \<and> twl_struct_invs (twl_st_of None T) \<and> twl_stgy_invs (twl_st_of None T)}\<rangle> nres_rel\<close>
   (is \<open>?unit_prop_inner \<in> _\<close>)
 proof -
+  have SPEC_remove: \<open>select_from_working_queue S
+       \<le> \<Down> {((T', C), C').
+             set_working_queue (working_queue S'' - {#C'#}) S'' = twl_st_of (Some L) T' \<and>
+              T' = set_working_queue_l (working_queue_l S - {#C#}) S \<and>
+              C' \<in># working_queue S'' \<and>
+              C \<in># working_queue_l S \<and>
+              snd C' = twl_clause_of (get_clauses_l S ! C)}
+             (SPEC (\<lambda>C. C \<in># working_queue S''))\<close>
+    if \<open>(S, S'') \<in> {(T, T'). T' = twl_st_of (Some L) T \<and> additional_WS_invs T}\<close> for S S'' L
+    using that unfolding select_from_working_queue_def
+    by (cases S; cases S'') (auto simp: conc_fun_def image_mset_remove1_mset_if)
   have H: \<open>(uncurry unit_propagation_inner_loop_l, unit_propagation_inner_loop) \<in>
   {((L, S), S'). S' = twl_st_of (Some L) S \<and> twl_struct_invs (twl_st_of (Some L) S) \<and>
      twl_stgy_invs (twl_st_of (Some L) S) \<and> additional_WS_invs S} \<rightarrow>
     \<langle>{(T, T'). T' = twl_st_of None T \<and> working_queue_l T = {#} \<and> additional_WS_invs T}\<rangle> nres_rel\<close>
     (is \<open>_ \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>)
     unfolding unit_propagation_inner_loop_l_def unit_propagation_inner_loop_def uncurry_def
+      (* select_from_working_queue_def *)
     apply clarify
     subgoal for L M' N' U' C' NP' UP' WS' Q' M N U C NP UP WS Q
     apply (refine_vcg set_mset_working_queue_l_set_mset_working_queue_spec
-      WHILEIT_refine_genR[where R=\<open>?B\<close> and R' = \<open>{(T, T'). T' = twl_st_of (Some L) T \<and> additional_WS_invs T}\<close>];
+      WHILEIT_refine_genR[where R=\<open>?B\<close> and R' = \<open>{(T, T'). T' = twl_st_of (Some L) T \<and> additional_WS_invs T}\<close>]
+      SPEC_remove;
       remove_dummy_vars)
     subgoal by simp
     subgoal by simp
     subgoal by simp
     subgoal by simp
-    subgoal by (auto simp add: working_queu_empty_iff)
-    apply (auto intro: set_mset_working_queue_l_set_mset_working_queue_spec; fail)[]
-    subgoal for T T' iC LC
-      by (rule order_trans[OF ],
-          rule unit_propagation_inner_loop_body_l[of \<open>iC\<close> T, unfolded prod.collapse])
-      (auto simp: in_pair_collect_simp pw_conc_inres pw_conc_nofail pw_ords_iff(1))
-    subgoal by (auto simp add: working_queu_empty_iff)
+    subgoal by simp
+    subgoal for T T' LC S'' iC
+      apply (rule order_trans[OF ])
+       apply clarsimp
+       apply (rule unit_propagation_inner_loop_body_l[of \<open>iC\<close>, unfolded prod.collapse])
+          apply ((auto; fail)+)[4]
+      apply (cases T)
+      apply (auto simp: pw_conc_inres pw_conc_nofail pw_ords_iff(1))
+      done
+    subgoal by auto
     done
   done
   have H': \<open>?unit_prop_inner
