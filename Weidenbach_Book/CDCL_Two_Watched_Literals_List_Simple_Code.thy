@@ -121,6 +121,8 @@ type_synonym twl_st_ll =
   "(nat, nat) ann_lits \<times> nat clauses_l \<times> nat \<times>
     nat clause_l option \<times> nat clauses_l \<times> nat clauses_l \<times> working_queue_ll \<times> lit_queue_l"
 
+fun twl_st_of_ll :: \<open>twl_st_ll \<Rightarrow> nat twl_st_l\<close> where
+  \<open>twl_st_of_ll (M, N, U, D, NP, UP, WS, Q) = (M, N, U, D, mset `# mset NP, mset `# mset UP, mset WS, mset Q)\<close>
 
 notation prod_assn (infixr "*assn" 90)
 abbreviation twl_st_ll_assn :: \<open>nat twl_st_l \<Rightarrow> twl_st_ll \<Rightarrow> assn\<close> where
@@ -571,39 +573,210 @@ proof -
     by (auto simp: the_pure_def H)
   have [iff]: \<open>(ab # list, y) \<in> list_mset_rel \<longleftrightarrow> y = add_mset ab (mset list)\<close> for y ab list
     by (auto simp: list_mset_rel_def br_def)
-  show ?thesis
-    using assn ab
+  then have \<open>add_mset x N = mset (ab # list)\<close>
+    using assn
+    apply (cases A)
     by (auto simp: list_mset_assn_def mset_rel_def p2rel_def rel_mset_def
-        rel2p_def[abs_def]  add_mset_eq_add_mset list.rel_eq)
+        rel2p_def[abs_def] add_mset_eq_add_mset list.rel_eq)
+  show ?thesis
+    using assn
+    apply (cases A)
+    apply (auto simp: list_mset_assn_def mset_rel_def p2rel_def rel_mset_def
+        rel2p_def[abs_def] add_mset_eq_add_mset list.rel_eq)
+    done
+qed
+
+definition select_from_working_queue2 :: \<open>'v twl_st_l \<Rightarrow> (nat) nres\<close> where
+  \<open>select_from_working_queue2 S = SPEC (\<lambda>C. C \<in># working_queue_l S)\<close>
+
+lemma hd_select_from_working_queue2_refine[sepref_fr_rules]: (* TODO tune proof *)
+  \<open>(return o (\<lambda>(M, N, U, D, NP, UP, WS, Q). hd WS),
+      select_from_working_queue2) \<in>
+    [\<lambda>S. working_queue_l S \<noteq> {#}]\<^sub>a twl_st_ll_assn\<^sup>d \<rightarrow> nat_assn\<close>
+  unfolding select_from_working_queue2_def
+  apply sepref_to_hoare
+  apply sep_auto
+  apply (case_tac \<open>af\<close>; case_tac am)
+    apply sep_auto
+  apply (sep_auto)
+     apply (auto simp: mod_pure_star_dist list_mst_assn_add_mset_empty_false
+    dest!: list_mset_assn_add_mset_cons_in list_mset_assn_add_mset_cons_in
+      dest!: mod_starD; fail)+
+  done
+
+definition hd_of_working_queue_l :: \<open>twl_st_ll \<Rightarrow> nat\<close> where
+  \<open>hd_of_working_queue_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q). hd WS)\<close>
+
+definition tl_of_working_queue_l :: \<open>twl_st_ll \<Rightarrow> twl_st_ll\<close> where
+  \<open>tl_of_working_queue_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q). (M, N, U, D, NP, UP, tl WS, Q))\<close>
+
+lemma entails_list_mset_assn_eq_mset:
+  assumes \<open>(ay, bm) \<Turnstile> list_mset_assn (\<lambda>a c. \<up> (c = a)) af am\<close>
+  shows \<open>af = mset am\<close>
+proof -
+  have H: \<open>(\<forall>x x'. (x' = x) = ((x', x) \<in> P')) \<longleftrightarrow> P' = Id\<close> for P'
+    by (auto simp: the_pure_def)
+  have [simp]: \<open>the_pure (\<lambda>a c. \<up> (c = a)) = Id\<close>
+    by (auto simp: the_pure_def H)
+  show ?thesis
+    using assms
+    by (auto simp: list_mset_assn_def mset_rel_def p2rel_def rel_mset_def (* the_pure_def *)
+      list_mset_rel_def br_def rel2p_dflt list.rel_eq)
+qed
+
+lemma entails_list_mset_assn_list_mset_assn_eq_mset:
+  assumes \<open>(ay, bm) \<Turnstile> list_mset_assn (list_mset_assn (\<lambda>a c. \<up> (c = a))) af am\<close>
+  shows \<open>af = mset `# mset am\<close>
+proof -
+  have H: \<open>(\<forall>x x'. (x' = x) = ((x', x) \<in> P')) \<longleftrightarrow> P' = Id\<close> for P'
+    by (auto simp: the_pure_def)
+  have [simp]: \<open>the_pure (\<lambda>a c. \<up> (c = a)) = Id\<close>
+    by (auto simp: the_pure_def H)
+  have [simp]: \<open>{(c, a). a = mset c} O
+           {(x, y). \<exists>xs. mset xs = x \<and> mset xs = y} = {(c, a). a = mset c}\<close>
+    by auto
+  have [simp]: \<open>list_all2 (\<lambda>x y. y = mset x) xs ys \<Longrightarrow> mset ys = mset `# mset xs\<close> for xs ys
+    apply (subgoal_tac \<open>length xs = length ys\<close>)
+    apply (rotate_tac)
+    subgoal by (induction xs ys rule: list_induct2) auto
+    subgoal by (simp add: list_all2_iff)
+    done
+  show ?thesis
+    using assms
+    by (auto simp: list_mset_assn_def mset_rel_def p2rel_def
+      list_mset_rel_def br_def rel2p_dflt list.rel_eq rel2p_def[abs_def] rel_mset_def)
+qed
+
+lemma entails_list_assn_eqD:
+  assumes \<open>A \<Turnstile> list_assn (\<lambda>a c. \<up> (c = a)) a ag\<close>
+  shows \<open>a = ag\<close>
+  using assms
+  apply (induction a arbitrary: ag)
+  subgoal by simp
+  subgoal for a1 a2 ag by (cases ag) auto
+  done
+
+lemma entails_list_assn_list_assn_eqD:
+  assumes \<open>A \<Turnstile> list_assn (list_assn (\<lambda>a c. \<up> (c = a))) a ag\<close>
+  shows \<open>a = ag\<close>
+  using assms
+  apply (induction a arbitrary: ag A)
+  subgoal by simp
+  subgoal for a1 a2 ag by (cases ag) (auto dest!: mod_starD entails_list_assn_eqD)
+  done
+
+lemma entails_option_assn_assn_eqD:
+  assumes \<open>A \<Turnstile> option_assn (list_assn (\<lambda>a c. \<up> (c = a))) a ag\<close>
+  shows \<open>a = ag\<close>
+  using assms
+  apply (induction a arbitrary: ag A)
+  subgoal by simp
+  subgoal for a ag A by (cases ag) (auto dest!: mod_starD entails_list_assn_eqD)
+  done
+
+lemma mset_tl_remove1_mset_hd:
+  \<open>am \<noteq> [] \<Longrightarrow> mset (tl am) = remove1_mset (hd am) (mset am)\<close>
+  by (cases am) auto
+
+
+lemma list_assn_same_emp: \<open>(\<And>a. R a a = emp) \<Longrightarrow> list_assn R ag ag = emp\<close>
+  by (induction ag) auto
+
+lemma option_assn_same_emp: \<open>(\<And>a. R a a = emp) \<Longrightarrow> option_assn R ag ag = emp\<close>
+  by (induction ag) auto
+
+lemma list_assn_same_emp_id: \<open>list_assn (\<lambda>a c. \<up> (c = a)) ag ag = emp\<close>
+  by (auto simp: list_assn_same_emp)
+
+lemma list_assn_list_assn_same_emp_id: \<open>list_assn (list_assn (\<lambda>a c. \<up> (c = a))) ag ag = emp\<close>
+  by (auto simp: list_assn_same_emp)
+
+lemma list_mset_assn_id_mset_emp: \<open>list_mset_assn (\<lambda>a c. \<up> (c = a)) (mset am) am = emp\<close>
+proof -
+  have H: \<open>(\<forall>x x'. (x' = x) = ((x', x) \<in> P')) \<longleftrightarrow> P' = Id\<close> for P'
+    by (auto simp: the_pure_def)
+  have [simp]: \<open>the_pure (\<lambda>a c. \<up> (c = a)) = Id\<close>
+    by (auto simp: the_pure_def H)
+  have [simp]: \<open>{(c, a). a = mset c} O
+           {(x, y). \<exists>xs. mset xs = x \<and> mset xs = y} = {(c, a). a = mset c}\<close>
+    by auto
+  show ?thesis
+    by (auto simp: list_mset_assn_def mset_rel_def p2rel_def pure_def
+      list_mset_rel_def br_def rel2p_dflt list.rel_eq rel2p_def[abs_def] rel_mset_def)
+qed
+lemma recomp_set_eq_simp: \<open>{(c, a). a = f c} O {(x, y). P x y} = {(c, y). P (f c) y}\<close>
+  by auto
+
+lemma list_all2_eq_mset_iff:
+  \<open>list_all2 (\<lambda>x y. y = mset x) xs ys \<longleftrightarrow> map mset xs = ys\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
+proof
+  assume A: ?A
+  then have \<open>length xs = length ys\<close>
+    by (simp add: list_all2_iff)
+  then show ?B
+    using A by (induction xs ys rule: list_induct2) auto
+next
+  assume B: ?B
+  then have \<open>length xs = length ys\<close>
+    by auto
+  then show ?A
+    using B by (induction xs ys rule: list_induct2) auto
+qed
+
+lemma list_mset_assn_list_mset_assn_id_mset_mset_emp:
+  \<open>list_mset_assn (list_mset_assn (\<lambda>a c. \<up> (c = a))) (mset `# mset al) al = emp\<close>
+proof -
+  have H: \<open>(\<forall>x x'. (x = mset x') = ((x', x) \<in> P')) \<longleftrightarrow> P' = {(c, a). a = mset c}\<close> for P'
+    by (auto simp: the_pure_def)
+  have [simp]: \<open>the_pure (\<lambda>a c. \<up> (a = mset c)) =  {(c, a). a = mset c}\<close>
+    by (auto simp: the_pure_def H)
+  have H: \<open>(\<forall>x x'. (x' = x) = ((x', x) \<in> P')) \<longleftrightarrow> P' = Id\<close> for P'
+    by (auto simp: the_pure_def)
+  have [simp]: \<open>the_pure (\<lambda>a c. \<up> (c = a)) = Id\<close>
+    by (auto simp: the_pure_def H)
+  have [simp]: \<open>{(c, a). a = mset c} O
+           {(x, y). \<exists>xs. mset xs = x \<and> mset xs = y} = {(c, a). a = mset c}\<close>
+    by auto
+  have [simp]: \<open>{(c, a). a = mset c} O {(x, y). \<exists>xs. mset xs = x \<and> (\<exists>ys. mset ys = y \<and> list_all2 (\<lambda>x y. y = mset x) xs ys)} =
+    {(c, a). a = mset `# mset c}\<close>
+    by (auto simp add: recomp_set_eq_simp list_all2_eq_mset_iff)
+  show ?thesis
+    by (auto simp: list_mset_assn_def mset_rel_def p2rel_def pure_def
+      list_mset_rel_def br_def rel2p_dflt list.rel_eq rel2p_def[abs_def] rel_mset_def)
 qed
 
 lemma hd_select_from_working_queue_refine[sepref_fr_rules]: (* TODO tune proof *)
-  \<open>(return o (\<lambda>(M, N, U, D, NP, UP, WS, Q). ((M, N, U, D, NP, UP, tl WS, Q), hd WS)),
+  \<open>(return o (\<lambda>S. (tl_of_working_queue_l S, hd_of_working_queue_l S)),
       select_from_working_queue) \<in>
-    [\<lambda>S. working_queue_l S \<noteq> {#}]\<^sub>a twl_st_ll_assn\<^sup>k \<rightarrow> prod_assn twl_st_ll_assn nat_assn\<close>
-  unfolding select_from_working_queue_def
+    [\<lambda>S. working_queue_l S \<noteq> {#}]\<^sub>a twl_st_ll_assn\<^sup>d \<rightarrow> prod_assn twl_st_ll_assn nat_assn\<close>
+proof -
+  have H: \<open>RETURN x
+         \<le> SPEC (\<lambda>(S', C).
+                     C \<in># working_queue_l S \<and>
+                     S' = set_working_queue_l (remove1_mset C (working_queue_l S)) S)\<close>
+   if \<open>snd x \<in># working_queue_l S\<close> and
+   \<open>fst x = set_working_queue_l (remove1_mset (snd x) (working_queue_l S)) S\<close>
+   for x :: \<open>nat twl_st_l \<times> nat\<close> and S :: \<open>nat twl_st_l\<close> and xi xi' :: twl_st_ll
+     using that by auto
+  show ?thesis
+    unfolding select_from_working_queue_def tl_of_working_queue_l_def hd_of_working_queue_l_def
+    apply sepref_to_hoare
+    apply (sep_auto (plain))
+     apply (rule_tac psi = \<open>RETURN ((\<lambda>_ _ (S, C). (twl_st_of_ll S, C)) x xi xa) \<le> _\<close> in asm_rl)
+     apply (rule order_trans[OF _ H])
+       apply (rule order_refl)
+      apply (auto simp: list_mst_assn_add_mset_empty_false
+        dest!: list_mset_assn_add_mset_cons_in
+        dest!: mod_starD entails_list_mset_assn_eq_mset; fail)[]
+     apply (auto simp: mod_pure_star_dist mset_tl_remove1_mset_hd
+        dest!: list_mset_assn_add_mset_cons_in list_mset_assn_add_mset_cons_in
+        dest!: mod_starD entails_list_mset_assn_eq_mset
+        entails_list_assn_eqD entails_list_assn_list_assn_eqD entails_option_assn_assn_eqD
+        entails_list_mset_assn_list_mset_assn_eq_mset; fail)[]
+    by (sep_auto intro!: ent_star_mono simp: list_assn_same_emp option_assn_same_emp
+        list_mset_assn_id_mset_emp list_mset_assn_list_mset_assn_id_mset_mset_emp)
+qed
 
-  apply (sep_auto simp: )
-  apply (
-    sep_auto
-      simp: pure_def hn_ctxt_def invalid_assn_def
-      intro!: hn_refineI[THEN hn_refine_preI] hfrefI)
-  apply (case_tac am; case_tac af)
-   apply (auto simp: mod_pure_star_dist list_mst_assn_add_mset_empty_false
-    dest!: list_mset_assn_add_mset_cons_in
-      dest!: mod_starD; fail)[]
-   apply (auto simp: mod_pure_star_dist list_mst_assn_add_mset_empty_false
-    dest!: list_mset_assn_add_mset_cons_in
-      dest!: mod_starD; fail)[]
-   apply (auto simp: mod_pure_star_dist list_mst_assn_add_mset_empty_false
-    dest!: list_mset_assn_add_mset_cons_in
-      dest!: mod_starD; fail)[]
-  sorry
-
-
- thm lms_is_empty_aref hm.fold_custom_empty HOL_list_empty_hnr_mop
-thm list_custom_empty_def
-thm lms_fold_custom_empty
 lemma working_queue_l_abs_def:\<open>working_queue_l = (fst o snd o snd o snd o snd o snd o snd)\<close>
   by auto
 
@@ -618,6 +791,219 @@ sepref_definition unit_propagation_inner_loop_l_impl is
   \<open>uncurry (unit_propagation_inner_loop_l :: nat literal \<Rightarrow> nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close>
   :: \<open>nat_lit_assn\<^sup>k *\<^sub>a twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_ll_assn\<close>
   unfolding unit_propagation_inner_loop_l_def
+  by sepref
+
+
+sepref_register \<open>unit_propagation_inner_loop_l :: nat literal \<Rightarrow>  nat twl_st_l \<Rightarrow> nat twl_st_l nres\<close>
+
+declare unit_propagation_inner_loop_l_impl.refine_raw[sepref_fr_rules]
+
+sepref_register \<open>select_and_remove_from_pending :: nat twl_st_l \<Rightarrow> (nat twl_st_l \<times> nat literal) nres\<close>
+
+definition hd_of_pending_l :: \<open>twl_st_ll \<Rightarrow> nat literal\<close> where
+  \<open>hd_of_pending_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q). hd Q)\<close>
+
+(* TODO Move to top *)
+fun get_clauses_ll :: "twl_st_ll \<Rightarrow> nat clauses_l" where
+  \<open>get_clauses_ll (M, N, U, D, NP, UP, WS, Q) = N\<close>
+(* End move *)
+
+definition clause_to_update_l :: \<open>nat literal \<Rightarrow> twl_st_ll \<Rightarrow> working_queue_ll\<close> where
+  \<open>clause_to_update_l L S =
+    filter
+      (\<lambda>C::nat. get_clauses_ll S ! C ! 0 = L \<or> get_clauses_ll S ! C ! 1 = L)
+      ([1..<length (get_clauses_ll S)])\<close>
+
+definition tl_of_pending_l :: \<open>twl_st_ll \<Rightarrow> twl_st_ll\<close> where
+  \<open>tl_of_pending_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q). (M, N, U, D, NP, UP,
+     clause_to_update_l (hd Q) (M, N, U, D, NP, UP, WS, Q),
+     tl Q))\<close>
+
+
+lemma nth_mem_tl: \<open>0 < x \<Longrightarrow> x < length N \<Longrightarrow> N!x \<in> set (tl N)\<close>
+  using nth_mem[of \<open>x - 1\<close> \<open>tl N\<close>] by (cases N) (auto simp del: nth_mem)
+
+lemma clause_to_update_l_clause_to_update:
+  fixes M N av D NP UP WS Q
+  assumes \<open>twl_struct_invs (twl_st_of None (M, N, U, D, mset `# mset NP, mset `# mset UP, mset WS, mset Q))\<close>
+  shows \<open>mset (clause_to_update_l (hd Q) (M, N, U, D, NP, UP, WS, Q)) =
+   clause_to_update (hd Q) (M, N, U, D, mset `# mset NP, mset `# mset UP, mset WS, mset Q)\<close>
+proof -
+  have \<open>Multiset.Ball (twl_clause_of `# mset (tl N)) struct_wf_twl_cls\<close>
+    using assms
+    unfolding twl_struct_invs_def
+    apply (simp only: twl_st_inv.simps twl_st_of.simps mset_append[symmetric]
+         image_mset_union[symmetric] drop_Suc append_take_drop_id)
+    by fast
+  then have length_ge_2: \<open>length (N ! x) \<ge> 2\<close> if \<open>x > 0\<close> and \<open>x < length N\<close> for x
+    using that by (auto dest: nth_mem_tl)
+  have H: \<open>length (N ! x) \<noteq> Suc 0\<close> \<open>N!x \<noteq> []\<close>if \<open>Suc 0 \<le> x\<close>\<open> x < length N\<close> for x
+    using that length_ge_2[of x] by auto
+  have [simp]: \<open>(\<lambda>x. Suc 0 \<le> x \<and> x < length N \<and> (N ! x ! 0 = hd Q \<or> N ! x ! Suc 0 = hd Q)) =
+      (\<lambda>x. Suc 0 \<le> x \<and> x < length N \<and> hd Q \<in> set (take 2 (N ! x)))\<close>
+    by (intro ext) (auto simp: take_2_if simp: H)
+  show ?thesis
+    using assms by (auto simp: clause_to_update_l_def clause_to_update_def mset_filter)
+qed
+
+text \<open>More assumption needed here. Probably relies on full invariant.\<close>
+lemma hd_select_and_remove_from_pending_refine[sepref_fr_rules]: (* TODO tune proof *)
+  \<open>(return o (\<lambda>S. (tl_of_pending_l S, hd_of_pending_l S)),
+      select_and_remove_from_pending) \<in>
+    [\<lambda>S. pending_l S \<noteq> {#} \<and> twl_struct_invs (twl_st_of None S)]\<^sub>a twl_st_ll_assn\<^sup>d \<rightarrow> prod_assn twl_st_ll_assn nat_lit_assn\<close>
+proof -
+  have H: \<open>RETURN x \<le> select_and_remove_from_pending S\<close>
+   if \<open>snd x \<in># pending_l S\<close> and
+   \<open>fst x = set_working_queue_l (clause_to_update (snd x) S) (set_pending_l (pending_l S - {#snd x#}) S)\<close>
+   for x :: \<open>nat twl_st_l \<times> nat literal\<close> and S :: \<open>nat twl_st_l\<close> and xi xi' :: twl_st_ll
+     using that by (auto simp: select_and_remove_from_pending_def)
+  show ?thesis
+    unfolding tl_of_pending_l_def hd_of_pending_l_def
+    apply sepref_to_hoare
+    apply (sep_auto (plain))
+     apply (rule_tac psi = \<open>RETURN ((\<lambda>_ _ (S, C). (twl_st_of_ll S, C)) x xi xa) \<le> _\<close> in asm_rl)
+     apply (rule order_trans[OF _ H])
+       apply (rule order_refl)
+      apply (auto simp: list_mst_assn_add_mset_empty_false simp del: twl_st_of_ll.simps
+        dest!: list_mset_assn_add_mset_cons_in
+        dest!: mod_starD entails_list_mset_assn_eq_mset; fail)[]
+     apply (auto simp: mod_pure_star_dist mset_tl_remove1_mset_hd
+        dest!: list_mset_assn_add_mset_cons_in list_mset_assn_add_mset_cons_in
+        dest!: mod_starD entails_list_mset_assn_eq_mset
+        entails_list_assn_eqD entails_list_assn_list_assn_eqD entails_option_assn_assn_eqD
+        entails_list_mset_assn_list_mset_assn_eq_mset
+        intro!: clause_to_update_l_clause_to_update; fail)[]
+    apply (sep_auto intro!: ent_star_mono simp: list_assn_same_emp option_assn_same_emp
+        list_mset_assn_id_mset_emp list_mset_assn_list_mset_assn_id_mset_mset_emp)
+   done
+qed
+
+lemma pending_l_refine[sepref_fr_rules]:
+  \<open>(return o ((snd o snd o snd o snd o snd o snd o snd) ::  twl_st_ll \<Rightarrow> _),
+     RETURN o (pending_l :: nat twl_st_l \<Rightarrow> _)) \<in>
+   twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a list_mset_assn nat_lit_assn\<close>
+  by sepref_to_hoare sep_auto
+
+lemma get_trail_l_refine[sepref_fr_rules]:
+  \<open>(return o (fst ::  twl_st_ll \<Rightarrow> _),
+     RETURN o (get_trail_l :: nat twl_st_l \<Rightarrow> _)) \<in>
+   twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a nat_ann_lits_assn\<close>
+  by sepref_to_hoare sep_auto
+
+sepref_definition unit_propagation_outer_loop_l_impl is
+  \<open>(unit_propagation_outer_loop_l :: nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close>
+  :: \<open>twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_ll_assn\<close>
+  unfolding unit_propagation_outer_loop_l_def
+  by sepref
+
+sepref_register \<open>unit_propagation_outer_loop_l :: nat twl_st_l \<Rightarrow> nat twl_st_l nres\<close>
+
+declare unit_propagation_outer_loop_l_impl.refine_raw[sepref_fr_rules]
+
+
+lemma is_decided_hnr[sepref_fr_rules]:
+  \<open>(return o (is_decided :: (nat, nat) ann_lit \<Rightarrow> _),
+      RETURN o (is_decided :: (nat, nat) ann_lit \<Rightarrow> _)) \<in>
+      nat_ann_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare sep_auto
+
+
+fun get_conflict_ll :: "twl_st_ll \<Rightarrow> nat clause_l option" where
+  \<open>get_conflict_ll (_, _, _, D, _, _, _, _) = D\<close>
+
+lemma get_conflict_l_hnr[sepref_fr_rules]:
+  \<open>(return o (get_conflict_ll :: twl_st_ll\<Rightarrow> _),
+      RETURN o (get_conflict_l :: nat twl_st_l \<Rightarrow> _)) \<in>
+      twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a option_assn clause_l_assn\<close>
+  by sepref_to_hoare sep_auto
+
+lemma option_is_Nil:
+   \<open>a = Some [] \<longleftrightarrow> \<not>is_None a \<and> is_Nil (the a)\<close>
+  by (cases a) (auto split: list.splits)
+
+lemma lit_and_ann_of_propagated_hnr[sepref_fr_rules]:
+  \<open>(return o lit_and_ann_of_propagated, RETURN o lit_and_ann_of_propagated) \<in>
+     [\<lambda>L. is_proped L]\<^sub>a nat_ann_lit_assn\<^sup>k \<rightarrow> prod_assn nat_lit_assn nat_assn\<close>
+  apply sepref_to_hoare
+  apply (case_tac x)
+   apply sep_auto+
+  done
+
+(* TODO change order of the arguments of maximum_level_code *)
+lemma get_maximum_level_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo (\<lambda>M D. maximum_level_code D M)),
+      uncurry (RETURN oo (get_maximum_level :: (nat, nat) ann_lit list \<Rightarrow> _))) \<in>
+    nat_ann_lits_assn\<^sup>d *\<^sub>a (list_mset_assn nat_lit_assn)\<^sup>d \<rightarrow>\<^sub>a nat_assn\<close>
+  unfolding maximum_level_code_eq_get_maximum_level
+  apply sepref_to_hoare
+  by (sep_auto dest: entails_list_assn_eqD entails_list_mset_assn_eq_mset
+      simp: mod_star_conv)
+
+lemma maximum_level_code_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo maximum_level_code),
+      uncurry (RETURN oo (maximum_level_code :: _ \<Rightarrow> (nat, nat) ann_lit list \<Rightarrow> _))) \<in>
+    (list_assn nat_lit_assn)\<^sup>d *\<^sub>a nat_ann_lits_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn\<close>
+  unfolding maximum_level_code_eq_get_maximum_level
+  apply sepref_to_hoare
+  by (sep_auto dest: entails_list_assn_eqD entails_list_mset_assn_eq_mset
+      simp: mod_star_conv)
+
+lemma is_Nil_hnr[sepref_fr_rules]:
+  \<open>(return \<circ> is_Nil, RETURN o is_Nil) \<in> (list_assn A)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  apply sepref_to_hoare
+  apply sep_auto
+   apply (case_tac x; case_tac xi; auto)+
+  done
+
+lemma count_decided_hnr[sepref_fr_rules]:
+  \<open>(return \<circ> count_decided, RETURN o count_decided) \<in> nat_ann_lits_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare (sep_auto dest: entails_list_assn_eqD)
+
+lemma list_assn_union_mset_list:
+  assumes \<open>(aa, ba) \<Turnstile>
+       list_assn (\<lambda>a c. \<up> (c = a)) b bi * list_assn (\<lambda>a c. \<up> (c = a)) a ai\<close>
+  shows \<open> (aa, ba) \<Turnstile>
+       list_assn (\<lambda>a c. \<up> (c = a)) b bi * list_assn (\<lambda>a c. \<up> (c = a)) a ai *
+       list_assn (\<lambda>a c. \<up> (c = a)) (union_mset_list a b)
+        (union_mset_list ai bi) *
+       true\<close>
+  using assms models_in_range[OF assms]
+  by (sep_auto dest!: entails_list_assn_eqD simp: entails_def list_assn_same_emp
+      elim!: mod_starE)
+
+
+lemma union_mset_list_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo union_mset_list), uncurry (RETURN oo union_mset_list)) \<in>
+     clause_l_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k \<rightarrow>\<^sub>a clause_l_assn\<close>
+  by sepref_to_hoare (sep_auto simp: entails_def intro: list_assn_union_mset_list)
+
+lemma list_assn_remove1:
+  assumes \<open>(aa, ba) \<Turnstile> list_assn (\<lambda>a c. \<up> (c = a)) b bi * (\<lambda>a c. \<up> (c = a)) a ai\<close>
+  shows \<open>(aa, ba) \<Turnstile> list_assn (\<lambda>a c. \<up> (c = a)) (remove1 a b) (remove1 ai bi) * true\<close>
+proof -
+  have [simp]: \<open>b = bi\<close> and [simp]: \<open>a = ai\<close>
+    using assms
+    by (auto dest!: entails_list_assn_eqD simp: entails_def list_assn_same_emp
+      elim!: mod_starE)
+  show ?thesis
+    using models_in_range[OF assms] by (auto simp: list_assn_same_emp_id)
+qed
+
+lemma remove1_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo remove1), uncurry (RETURN oo remove1)) \<in>
+     id_assn\<^sup>d *\<^sub>a (list_assn id_assn)\<^sup>d \<rightarrow>\<^sub>a list_assn id_assn\<close>
+  by sepref_to_hoare (sep_auto simp: entails_def intro: list_assn_remove1)
+
+sepref_definition skip_and_resolve_loop_l_impl is
+  \<open>(skip_and_resolve_loop_l :: nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close>
+  :: \<open>twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_ll_assn\<close>
+  unfolding skip_and_resolve_loop_l_def option_is_Nil conv_to_is_Nil
+  unfolding HOL_list.fold_custom_empty
+  skip_and_resolve_loop_inv_def mset_remove1[symmetric]
+  maximum_level_code_eq_get_maximum_level[symmetric]
+  apply (rewrite at \<open>\<not>_ \<and> \<not> is_decided _\<close> short_circuit_conv)
+  apply (rewrite at \<open>\<not>_ \<and> is_Nil _\<close> short_circuit_conv)
+  supply [[goals_limit=1]]
   by sepref
 
 (* sepref_dbg_trans_step_keep
