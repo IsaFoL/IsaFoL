@@ -1097,6 +1097,9 @@ lemma get_conflict_l_get_conflict_state_spec:
     working_queue_l S = {#}}\<close>
   using assms by (auto simp: get_conflict_l_Some_nil_iff)
 
+fun lit_and_ann_of_propagated where
+  \<open>lit_and_ann_of_propagated (Propagated L C) = (L, C)\<close>
+
 text \<open>
   We here strictly follow \<^term>\<open>cdcl\<^sub>W_restart_mset.skip\<close> and \<^term>\<open>cdcl\<^sub>W_restart_mset.resolve\<close>:
   if the level is 0, we should directly return \<^term>\<open>{#}\<close>. This would also avoid the
@@ -1105,6 +1108,7 @@ text \<open>
 definition skip_and_resolve_loop_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
   \<open>skip_and_resolve_loop_l S\<^sub>0 =
     do {
+      ASSERT(get_conflict_l S\<^sub>0 \<noteq> None);
       (_, S) \<leftarrow>
         WHILE\<^sub>T\<^bsup>\<lambda>(brk, S). skip_and_resolve_loop_inv (twl_st_of None S\<^sub>0) (brk, twl_st_of None S) \<and>
          additional_WS_invs S \<and> working_queue_l S = {#}\<^esup>
@@ -1113,9 +1117,12 @@ definition skip_and_resolve_loop_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nre
           let (M, N, U, D, NP, UP, WS, Q) = S in
           do {
             ASSERT(M \<noteq> []);
-            let D' = the (get_conflict_l S);
-            (L, C) \<leftarrow> SPEC(\<lambda>(L, C). Propagated L C = hd (get_trail_l S));
-            if -L \<notin># mset D' then
+            ASSERT(get_conflict_l (M, N, U, D, NP, UP, WS, Q) \<noteq> None);
+            let D' = the (get_conflict_l (M, N, U, D, NP, UP, WS, Q));
+            ASSERT(is_proped (hd (get_trail_l (M, N, U, D, NP, UP, WS, Q))));
+            let (L, C) = lit_and_ann_of_propagated (hd (get_trail_l (M, N, U, D, NP, UP, WS, Q)));
+            ASSERT(C < length N);
+            if -L \<notin> set D' then
               do {RETURN (False, (tl M, N, U, D, NP, UP, WS, Q))}
             else
               if get_maximum_level M (remove1_mset (-L) (mset D')) = count_decided M
@@ -1124,7 +1131,7 @@ definition skip_and_resolve_loop_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nre
                    (tl M, N, U, Some (resolve_cls_l L D' (if C = 0 then [L] else N!C)),
                      NP, UP, WS, Q))}
               else
-                do {RETURN (True, S)}
+                do {RETURN (True, (M, N, U, D, NP, UP, WS, Q))}
           }
         )
         (get_conflict_l S\<^sub>0 = Some [], S\<^sub>0);
@@ -1134,6 +1141,11 @@ definition skip_and_resolve_loop_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nre
 
 lemma get_trail_twl_st_of_nil_iff: \<open>get_trail (twl_st_of L T) = [] \<longleftrightarrow> get_trail_l T = []\<close>
   by (cases T; cases L) (auto simp: convert_lits_l_def)
+
+(* TODO Move *)
+lemma is_decided_no_proped: \<open>is_decided L \<longleftrightarrow> \<not>is_proped L\<close>
+  by (cases L) auto
+(* End Move *)
 
 lemma skip_and_resolve_loop_l_spec:
   \<open>(skip_and_resolve_loop_l, skip_and_resolve_loop) \<in>
@@ -1155,53 +1167,74 @@ proof -
     if \<open>get_trail_l S \<noteq> []\<close> for S :: \<open>'v twl_st_l\<close>
     by (cases S, cases \<open>get_trail_l S\<close>; cases \<open>hd (get_trail_l S)\<close>)
       (use that in \<open>auto split: if_splits\<close>)
-  have H: \<open>SPEC (\<lambda>(L, C). Propagated L C = hd (get_trail_l S))
+  have H: \<open>RETURN (lit_and_ann_of_propagated (hd (get_trail_l S)))
     \<le> \<Down> {((L, C), (L', C')). L = L' \<and> C' = (if C = 0 then {#L#} else mset (get_clauses_l S! C))}
-    (SPEC (\<lambda>(L, C).
-    Propagated L C = hd (get_trail S')))\<close> if [simp]: \<open>S' = twl_st_of None S\<close> and \<open>get_trail_l S \<noteq> []\<close>
+    (SPEC (\<lambda>(L, C). Propagated L C = hd (get_trail S')))\<close>
+    if [simp]: \<open>S' = twl_st_of None S\<close> and \<open>get_trail_l S \<noteq> []\<close> and
+      p: \<open>is_proped (hd (get_trail_l S))\<close>
     for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st\<close>
     using that apply (cases S; cases S'; cases \<open>get_trail_l S\<close>; cases \<open>hd (get_trail_l S)\<close> ;
         cases \<open>get_trail S'\<close>; cases \<open>hd (get_trail S')\<close>)
-    apply (auto split: if_splits)[15]
+                   apply ((auto split: if_splits; fail)+)[15]
+    unfolding RETURN_def
     apply (rule RES_refine)
     by (auto split: if_splits)
   have H:
     \<open>(skip_and_resolve_loop_l, skip_and_resolve_loop) \<in>
     ?R \<rightarrow>
     \<langle>{(T, T'). T' = twl_st_of None T \<and> additional_WS_invs T \<and> working_queue_l T = {#}}\<rangle> nres_rel\<close>
+    supply [[goals_limit=1]]
     apply clarify
     unfolding skip_and_resolve_loop_l_def skip_and_resolve_loop_def
     apply (refine_rcg get_conflict_l_get_conflict_state_spec H; remove_dummy_vars)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
+    subgoal by auto -- \<open>conflict is not none\<close>
+    subgoal by auto -- \<open>loop invariant init: @{term skip_and_resolve_loop_inv}\<close>
+    subgoal by auto -- \<open>loop invariant init: @{term additional_WS_invs}\<close>
+    subgoal by auto -- \<open>loop invariant init: @{term \<open>working_queue S = {#}\<close>}\<close>
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk T brk' T'
       apply (cases \<open>get_trail_l T\<close>; cases \<open>hd (get_trail_l T)\<close>)
       by (auto simp: skip_and_resolve_loop_inv_def get_trail_twl_st_of_nil_iff)
+      -- \<open>align loop conditions\<close>
     subgoal by (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def)
+      -- \<open>trail not empty\<close>
     subgoal by (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def)
+      -- \<open>conflict not none\<close>
+    subgoal by (auto simp: is_decided_no_proped)
+      -- \<open>head of the trail is a propagation\<close>
     subgoal by (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def)
+      -- \<open>state equality\<close>
     subgoal by (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def)
-
+      -- \<open>trail not empty\<close>
+    subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
+      M''' N''' U''' D''' NP''' UP''' WS''' Q'''
+      M'' N'' U'' D'' NP'' UP'' WS'' Q'' L C L' C'
+      by (cases \<open>M''\<close>; cases \<open>hd M''\<close>) (clarsimp simp add: additional_WS_invs_def)+
+      -- \<open>annotation of the valid\<close>
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
       M''' N''' U''' D''' NP''' UP''' WS''' Q'''
       M'' N'' U'' D'' NP'' UP'' WS'' Q''
       by (cases \<open>M''\<close>) (auto simp: skip_and_resolve_loop_inv_def get_trail_twl_st_of_nil_iff
           additional_WS_invs_def)
-    subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
-      M''' N''' U''' D''' NP''' UP''' WS''' Q'''
-      M'' N'' U'' D'' NP'' UP'' WS'' Q''
-      by (auto simp: skip_and_resolve_loop_inv_def)
+        -- \<open>in conflict, needs ~1min\<close>
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
       M''' N''' U''' D''' NP''' UP''' WS''' Q'''
       M'' N'' U'' D'' NP'' UP'' WS'' Q''
       by (cases \<open>M''\<close>) (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def
-          resolve_cls_l_nil_iff) -- \<open>needs around 1 min\<close>
+          resolve_cls_l_nil_iff)
+        -- \<open>skip final invariants\<close>
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
       M''' N''' U''' D''' NP''' UP''' WS''' Q'''
       M'' N'' U'' D'' NP'' UP'' WS'' Q''
       by (cases D'') (auto simp:  skip_and_resolve_loop_inv_def)
+        -- \<open>maximum level\<close>
 
+    subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
+      M''' N''' U''' D''' NP''' UP''' WS''' Q'''
+      M'' N'' U'' D'' NP'' UP'' WS'' Q'' L C L' C'
+      by (cases \<open>M''\<close>) (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def
+          resolve_cls_l_nil_iff) -- \<open>needs around 1 min\<close>
+    subgoal
+      by (auto simp: resolve_cls_l_nil_iff skip_and_resolve_loop_inv_def additional_WS_invs_def)
     subgoal
       by (auto simp: resolve_cls_l_nil_iff skip_and_resolve_loop_inv_def additional_WS_invs_def)
     done
