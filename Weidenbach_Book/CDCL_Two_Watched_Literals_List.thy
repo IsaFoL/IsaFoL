@@ -872,15 +872,18 @@ lemma distinct_mset_clause_to_update: \<open>distinct_mset (clause_to_update L C
 lemma in_clause_to_updateD: \<open>b \<in># clause_to_update L' T \<Longrightarrow> b < length (get_clauses_l T) \<and> 0 < b\<close>
   by (auto simp: clause_to_update_def)
 
+definition select_and_remove_from_pending :: "'v twl_st_l \<Rightarrow> ('v twl_st_l \<times> 'v literal) nres" where
+  \<open>select_and_remove_from_pending S = SPEC(\<lambda>(S', L). L \<in># pending_l S \<and>
+    S' = set_working_queue_l (clause_to_update L S) (set_pending_l (pending_l S - {#L#}) S))\<close>
+
 definition unit_propagation_outer_loop_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
   \<open>unit_propagation_outer_loop_l S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and>
       working_queue_l S = {#}\<^esup>
       (\<lambda>S. pending_l S \<noteq> {#})
       (\<lambda>S. do {
-        L \<leftarrow> SPEC (\<lambda>L. L \<in># pending_l S);
-        let S' = set_working_queue_l (clause_to_update L S)
-           (set_pending_l (pending_l S - {#L#}) S);
+        ASSERT(pending_l S \<noteq> {#});
+        (S', L) \<leftarrow> select_and_remove_from_pending S;
         unit_propagation_inner_loop_l L S'
       })
       (S\<^sub>0 :: 'v twl_st_l)
@@ -995,6 +998,15 @@ lemma unit_propagation_outer_loop_l_spec:
     no_step cdcl_twl_cp (twl_st_of None T)}\<rangle> nres_rel\<close>
   (is \<open>_ \<in> ?R \<rightarrow> ?I\<close>)
 proof -
+  have H:
+   \<open>select_and_remove_from_pending x
+       \<le> \<Down> {((S', L'), L). L = L' \<and>  S' = set_working_queue_l (clause_to_update L x)
+              (set_pending_l (remove1_mset L (pending_l x)) x)}
+           (SPEC (\<lambda>L. L \<in># pending x'))\<close>
+     if \<open>x' = twl_st_of None x\<close> for x :: \<open>'v twl_st_l\<close> and x' :: \<open>'v twl_st\<close>
+    using that unfolding select_and_remove_from_pending_def
+    apply (cases x; cases x')
+    unfolding conc_fun_def by (clarsimp simp add: conc_fun_def)
   have
     \<open>(unit_propagation_outer_loop_l, unit_propagation_outer_loop) \<in>?R \<rightarrow>
       \<langle>{(S, S').
@@ -1004,8 +1016,7 @@ proof -
           twl_struct_invs (twl_st_of None S) \<and>
           twl_stgy_invs (twl_st_of None S)}\<rangle> nres_rel\<close>
     unfolding unit_propagation_outer_loop_l_def unit_propagation_outer_loop_def
-    thm unit_propagation_inner_loop_l[THEN refine_pair_to_SPEC_fst_pair]
-    apply (refine_vcg unit_propagation_inner_loop_l[THEN refine_pair_to_SPEC_fst_pair])
+    apply (refine_vcg unit_propagation_inner_loop_l[THEN refine_pair_to_SPEC_fst_pair] H)
     subgoal by simp
     subgoal by simp
     subgoal by simp
