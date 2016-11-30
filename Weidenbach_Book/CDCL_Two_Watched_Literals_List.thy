@@ -203,14 +203,14 @@ lemma (in transfer) transfer_bool[refine_transfer]:
   using assms by (auto split: bool.split)
 
 (* Example of code generation *)
-schematic_goal find_unwatched_impl: "RETURN ?c \<le> find_unwatched M C"
+(* schematic_goal find_unwatched_impl: "RETURN ?c \<le> find_unwatched M C"
   unfolding find_unwatched_def valued_def
   apply (refine_transfer)
   done
 
 concrete_definition find_unwatched_impl uses find_unwatched_impl
 prepare_code_thms find_unwatched_impl_def
-export_code find_unwatched_impl in SML
+export_code find_unwatched_impl in SML *)
 (* End of code generation *)
 
 
@@ -1261,22 +1261,30 @@ proof -
     by blast+
 qed
 
+definition find_decomp :: "'v twl_st_l \<Rightarrow> 'v literal \<Rightarrow> ('v, nat) ann_lits nres" where
+  \<open>find_decomp =  (\<lambda>(M, N, U, D, NP, UP, WS, Q) L.
+    SPEC(\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
+          get_level M K = get_maximum_level M (mset (the D) - {#-L#}) + 1))\<close>
+
+definition find_lit_of_max_level :: "'v twl_st_l \<Rightarrow> 'v literal \<Rightarrow> 'v literal nres" where
+  \<open>find_lit_of_max_level =  (\<lambda>(M, N, U, D, NP, UP, WS, Q) L.
+    SPEC(\<lambda>L'. L' \<in># mset (the D) \<and> get_level M L' = get_maximum_level M (mset (the D) - {#-L#})))\<close>
+
 definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
   \<open>backtrack_l S\<^sub>0 =
     do {
       let (M, N, U, D, NP, UP, WS, Q) = S\<^sub>0 in
       do {
         ASSERT(M \<noteq> []);
-        L \<leftarrow> SPEC(\<lambda>L. L = lit_of (hd M));
+        let L = lit_of (hd M);
         ASSERT(get_level M L = count_decided M);
         ASSERT(\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (mset (the D) - {#-L#}) + 1);
-        M1 \<leftarrow> SPEC(\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
-          get_level M K = get_maximum_level M (mset (the D) - {#-L#}) + 1);
+        M1 \<leftarrow> find_decomp (M, N, U, D, NP, UP, WS, Q) L;
 
         if length (the D) > 1
         then do {
-          L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># mset (the D) \<and> get_level M L' = get_maximum_level M (mset (the D) - {#-L#}));
+          L' \<leftarrow> find_lit_of_max_level (M, N, U, D, NP, UP, WS, Q) L;
           RETURN (Propagated (-L) (length N) # M1,
             N @ [[-L, L'] @ (remove1 (-L) (remove1 L' (the D)))], U,
             None, NP, UP, WS, {#L#})
@@ -1394,8 +1402,9 @@ proof -
   have bt:
     \<open>(backtrack_l, backtrack) \<in> ?R \<rightarrow>
     \<langle>{(T::'v twl_st_l, T'). T' = twl_st_of None T \<and> working_queue_l T = {#} \<and> additional_WS_invs T}\<rangle> nres_rel\<close>
+    supply [[goals_limit=1]]
     apply clarify
-    unfolding backtrack_l_def backtrack_def
+    unfolding backtrack_l_def backtrack_def find_lit_of_max_level_def find_decomp_def
     apply (refine_vcg H; remove_dummy_vars)
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q'
       by (cases M) auto
@@ -1403,113 +1412,132 @@ proof -
       by (cases M) (auto simp: convert_lits_l_def)
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L L'
       by (cases M) auto
-    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L L'
-      using obtain_decom[of _ M'] by simp
-    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L L'
+    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
+      apply (subgoal_tac \<open>lit_of (hd (convert_lits_l N' M')) = lit_of (hd M')\<close>)
+      using obtain_decom[of N' M' E] apply (simp; fail)
+      by (cases M') simp_all
+    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
+      by (cases M') simp_all
+    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
       by simp
-    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L L'
+    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
       by simp
-    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L L'
+    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
+      by (cases M') simp_all
+    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
       by simp
-    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L L'
+    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
       by simp
-    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L L'
+    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
       by simp
-    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L L'
+    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
       by simp
-    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L L'
-      by simp
-    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L L'
-      by simp
-    subgoal premises p for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L' L M1' M1 L'' L'''
+    subgoal premises p for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L M1' M1 L'' L'''
     proof -
+      note state = p(1) and confl = p(2) and wq = p(4) and add_invs = p(6) and M_ne_empty = p(11) and
+        M'_ne_empty = p(12) and L_hd = p(13) and uL_D = p(15) and M1'_M1 = p (19) and M1' = p (20) and
+        length_D'_ge_1 = p(22) and
+        L''_L''' = p(24) and L'''' = p(25) and L_uL''' = p (27)
+      have hd_convert_lits_M': \<open>lit_of (hd (convert_lits_l N' M')) = lit_of (hd M')\<close>
+        using state M'_ne_empty by (cases M') auto
       have \<open>D = Some (mset E)\<close> and \<open> L''' \<in># the D\<close>
-        using p(1-4, 28) by auto
+        using state confl L''_L''' L'''' by auto
       then have E: \<open>mset E = add_mset K (add_mset L''' (mset E - {#K, L'''#}))\<close>
         if \<open>K \<in> set E\<close> and\<open>K \<noteq> L'''\<close>
         for K
         using that by (auto simp: multiset_eq_iff)
-
+      let ?L' = \<open>lit_of (hd M')\<close>
       obtain c M2 K where
          M': \<open>M' = c @ M2 @ Decided K # M1'\<close>
-        using p(22) by (auto dest!: get_all_ann_decomposition_exists_prepend)
+        using M1' by (auto dest!: get_all_ann_decomposition_exists_prepend)
       define M'' where \<open>M'' = c @ M2 @ Decided K # []\<close>
       then have M'': \<open>additional_WS_invs (M'' @ M1',  N', U', D', NP', UP', WS', Q')\<close>
-        using M' p(6) by auto
+        using M' add_invs by auto
+      have hd_M'_hd_M: \<open>lit_of (hd M') = lit_of (hd M)\<close>
+        using state M'_ne_empty by (cases M'; cases M) auto
+
       have uL''_E: \<open>- lit_of (hd (convert_lits_l N' M')) \<in># mset E\<close>
         using cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of
-            \<open>convert_to_state (twl_st_of None (M', N', U', D', NP', UP', WS', Q'))\<close>] p
-        by auto
-        have \<open>x \<in> set M1' \<Longrightarrow>
+            \<open>convert_to_state (twl_st_of None (M', N', U', D', NP', UP', WS', Q'))\<close>, simplified]
+        using state confl L_hd uL_D by (auto simp: hd_M'_hd_M)
+      have \<open>x \<in> set M1' \<Longrightarrow>
           convert_lit N' x =
           convert_lit (N' @ [- lit_of (hd (map (convert_lit N') M')) # L''' # remove1 (- lit_of (hd (map (convert_lit N') M')))
           (remove1 L''' E)]) x\<close> for x
-          using p(6) by (cases x) (auto simp: nth_append additional_WS_invs_def M')
-        then have conv: \<open>convert_lits_l N' M1' =
+        using add_invs by (cases x) (auto simp: nth_append additional_WS_invs_def M')
+      then have conv: \<open>convert_lits_l N' M1' =
           convert_lits_l (N' @ [- lit_of (hd (convert_lits_l N' M')) # L''' #
           remove1 (- lit_of (hd (convert_lits_l N' M'))) (remove1 L''' E)]) M1'\<close>
-          unfolding convert_lits_l_def by auto
-      have L'''_L'': \<open>L''' = L''\<close>
-        using p(26) by simp
-      have L': \<open>L' = lit_of (hd M')\<close> and L: \<open>L = lit_of (hd M)\<close>
-        using p(14,15) by simp_all
-      have L''_not_hd: \<open>lit_of (hd (convert_lits_l N' M')) \<noteq> - L''\<close>
-        using p by (simp add: uminus_lit_swap)
-      have \<open>no_dup M\<close>
-        using p(1,9) unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: cdcl\<^sub>W_restart_mset_state)
-      then have \<open>L \<noteq> -L'''\<close>
-        using p(16, 23-29) by auto
-      moreover have E': \<open>mset E = add_mset (- lit_of (hd (convert_lits_l N' M')))
+        unfolding convert_lits_l_def by auto
+      have L''_L''': \<open>L''' = L''\<close>
+        using L''_L''' by simp
+      have L': \<open>L = lit_of (hd M')\<close> and L: \<open>lit_of (hd (convert_lits_l N' M')) = lit_of (hd M)\<close>
+        using p(13) state by (cases M'; cases \<open>hd M'\<close>; simp_all)+
+      have L_L': \<open>L = ?L'\<close>
+        using state M'_ne_empty L_hd by (cases M') auto
+      then have L''_not_hd: \<open>lit_of (hd (convert_lits_l N' M')) \<noteq> - L''\<close>
+        using p by (simp add: uminus_lit_swap hd_convert_lits_M')
+      have \<open>L \<noteq> -L'''\<close>
+        using L_uL''' by auto
+      moreover
+        have E': \<open>mset E = add_mset (- lit_of (hd (convert_lits_l N' M')))
         (add_mset L''' (mset E - {#- lit_of (hd (convert_lits_l N' M')), L'''#}))\<close>
-          by (rule E) (use L'''_L'' uL''_E L''_not_hd in \<open>auto intro!: simp: \<close>)
+          by (rule E) (use L_uL''' uL''_E L''_not_hd L L_L' hd_M'_hd_M in \<open>auto\<close>)
       moreover have N': \<open>N' \<noteq> []\<close> and U': \<open>U' < length N'\<close>
         using p(6) by (auto simp: additional_WS_invs_def)
-      ultimately have 1: \<open>((Propagated (- L') (length N') # M1',
-      N' @ [[- L', L''] @ remove1 (- L') (remove1 L'' (the D'))],
-      U', None, NP', UP', WS', {#L'#}),
+      ultimately have 1: \<open>((Propagated (- ?L') (length N') # M1',
+      N' @ [[- ?L', L''] @ remove1 (- ?L') (remove1 L'' (the D'))],
+      U', None, NP', UP', WS', {#?L'#}),
        Propagated (- L) (the D) # M1, N,
        add_mset (TWL_Clause {#- L, L'''#} (the D - {#- L, L'''#})) U,
         None, NP, UP, WS, {#L#})
       \<in> {(T, T'). additional_WS_invs T}\<close>
         using p M'' conv by (simp add: additional_WS_invs_backtrack_iff cdcl\<^sub>W_restart_mset_state)
 
-      have 2: \<open>((Propagated (- L') (length N') # M1',
-        N' @ [[- L', L''] @ remove1 (- L') (remove1 L'' (the D'))],
-        U', None, NP', UP', WS', {#L'#}),
+      have 2: \<open>((Propagated (- ?L') (length N') # M1',
+        N' @ [[- ?L', L''] @ remove1 (- ?L') (remove1 L'' (the D'))],
+        U', None, NP', UP', WS', {#?L'#}),
         Propagated (- L) (the D) # M1, N,
         add_mset (TWL_Clause {#- L, L'''#} (the D - {#- L, L'''#})) U,
         None, NP, UP, WS, {#L#})
         \<in> {(T, T'). T' = twl_st_of None T}\<close>
-        using p N' E'[symmetric] conv[symmetric] U' conv[symmetric] by simp
-      have 3: \<open>((Propagated (- L') (length N') # M1', N' @ [[- L', L''] @ remove1 (- L') (remove1 L'' (the D'))], U', None, NP', UP', WS', {#L'#}), Propagated (- L) (the D) # M1, N, add_mset (TWL_Clause {#- L, L'''#} (the D - {#- L, L'''#})) U, None, NP, UP, WS, {#L#})
+        using state confl M1'_M1 length_D'_ge_1 L''_L''' N' E'[symmetric] conv[symmetric] U' conv[symmetric]
+        by (simp add: L_L' hd_convert_lits_M')
+      have 3: \<open>((Propagated (- ?L') (length N') # M1', N' @ [[- ?L', L''] @ remove1 (- ?L') (remove1 L'' (the D'))], U', None, NP', UP', WS', {#?L'#}), Propagated (- L) (the D) # M1, N, add_mset (TWL_Clause {#- L, L'''#} (the D - {#- L, L'''#})) U, None, NP, UP, WS, {#L#})
       \<in> {(T, T'). working_queue_l T = {#}}\<close>
-        using p(4) by auto
+        using wq by auto
       show ?thesis using 1 2 3 by fast
     qed
-    subgoal premises p for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L L' M1' M1
+    subgoal premises p for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L M1' M1
     proof -
+      note state = p(1) and confl = p(2) and wq = p(4) and add_invs = p(6) and M_ne_empty = p(11) and
+        M'_ne_empty = p(12) and L_hd = p(13) and uL_D = p(15) and M1'_M1 = p (19) and M1' = p (20) and
+        length_D'_ge_1 = p(22) and size_D_ge_1 = p(23)
       obtain c M2 K where
          M': \<open>M' = c @ M2 @ Decided K # M1'\<close>
-        using p(22) by (auto dest!: get_all_ann_decomposition_exists_prepend)
+        using M1' by (auto dest!: get_all_ann_decomposition_exists_prepend)
+      let ?L' = \<open>lit_of (hd M')\<close>
+      have hd_M'_hd_M: \<open>lit_of (hd M') = lit_of (hd M)\<close>
+        using state M'_ne_empty by (cases M'; cases M) auto
       define M'' where \<open>M'' = c @ M2 @ Decided K # []\<close>
       then have M'': \<open>additional_WS_invs (M'' @ M1',  N', U', D', NP', UP', WS', Q')\<close>
-        using M' p(6) by auto
+        using M' add_invs by auto
       have uL''_E: \<open>- lit_of (hd (convert_lits_l N' M')) \<in># mset E\<close>
         using cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of
-            \<open>convert_to_state (twl_st_of None (M', N', U', D', NP', UP', WS', Q'))\<close>] p
-        by auto
-      let ?fg = \<open>((Propagated (- L) 0 # M1', N', U', None, NP', add_mset (mset (the D')) UP', WS',
-        {#L#}), Propagated (- L') (the D) # M1, N, U, None, NP, add_mset (the D) UP, WS, {#L'#})\<close>
+            \<open>convert_to_state (twl_st_of None (M', N', U', D', NP', UP', WS', Q'))\<close>]
+          state confl L_hd uL_D by (auto simp: hd_M'_hd_M)
+      let ?fg = \<open>((Propagated (- ?L') 0 # M1', N', U', None, NP', add_mset (mset (the D')) UP', WS',
+           unmark (hd M')),
+        Propagated (- L) (the D) # M1, N, U, None, NP, add_mset (the D) UP, WS, {#L#})\<close>
       have 1: \<open>?fg \<in> {(T, T'). additional_WS_invs T}\<close>
         using p M'' by (simp add: additional_WS_invs_def cdcl\<^sub>W_restart_mset_state)
 
       have \<open>E = [- lit_of (hd (convert_lits_l N' M'))]\<close>
-        using p by (cases E) simp_all
+        using state confl L_hd uL_D size_D_ge_1 by (cases E) (simp_all add: hd_M'_hd_M)
       then have 2: \<open>?fg \<in> {(T, T'). T' = twl_st_of None T}\<close>
         using p by simp
       have 3: \<open>?fg \<in> {(T, T'). working_queue_l T = {#}}\<close>
-        using p(4) by auto
+        using wq by auto
       show ?thesis using 1 2 3 by fast
     qed
     done
