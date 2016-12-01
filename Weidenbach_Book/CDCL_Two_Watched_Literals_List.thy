@@ -1279,7 +1279,7 @@ definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
         let L = lit_of (hd M);
         ASSERT(get_level M L = count_decided M);
         ASSERT(\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
-          get_level M K = get_maximum_level M (mset (the D) - {#-L#}) + 1);
+          get_level M K = get_maximum_level M (remove1_mset (-L) (mset (the D))) + 1);
         M1 \<leftarrow> find_decomp (M, N, U, D, NP, UP, WS, Q) L;
 
         if length (the D) > 1
