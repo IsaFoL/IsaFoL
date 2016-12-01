@@ -929,7 +929,7 @@ fun get_conflict_ll :: "twl_st_ll \<Rightarrow> nat clause_l option" where
 lemma get_conflict_l_hnr[sepref_fr_rules]:
   \<open>(return o (get_conflict_ll :: twl_st_ll\<Rightarrow> _),
       RETURN o (get_conflict_l :: nat twl_st_l \<Rightarrow> _)) \<in>
-      twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a option_assn clause_l_assn\<close>
+      twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a option_assn clause_ll_assn\<close>
   by sepref_to_hoare sep_auto
 
 lemma option_is_Nil:
@@ -1021,101 +1021,117 @@ sepref_definition skip_and_resolve_loop_l_impl is
   supply [[goals_limit=1]]
   by sepref
 
-(* sepref_dbg_trans_step_keep
-apply (simp add: list_assn_pure_conv; fail)*)
 
-thm Sepref_Id_Op.def_pat_rules
-term \<open>uncurry2 (unit_propagation_inner_loop_body_l :: nat literal \<Rightarrow> nat \<Rightarrow>
-  nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close>
-term unit_propagation_inner_loop_body_l
+definition find_decomp_l :: "twl_st_ll \<Rightarrow> nat literal \<Rightarrow> (nat, nat) ann_lits Heap" where
+  \<open>find_decomp_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q) L.
+    do {
+     let j = snd (the (find_level_decomp M (the D) [] (count_decided M)));
+     let M1 = tl (the (bt_cut j M));
+     return M1
+    })\<close>
 
-sepref_definition unit_propagation_inner_loop_body_l_impl is \<open>uncurry2 (unit_propagation_inner_loop_body_l' :: nat literal \<Rightarrow> nat \<Rightarrow>
-  nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close> ::
-  \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_ll_assn\<close>
-  unfolding unit_propagation_inner_loop_body_l'_def(* 
-  apply (sepref ) *)
-  apply sepref_dbg_keep
-  -- \<open>This prints a trace of the different phases of sepref, and stops when the first phase fails.
-    It then returns the internal proof state of the tool, which can be inspected further.
+lemma find_decomp_l_hnr[sepref_fr_rules]:
+  \<open>(uncurry find_decomp_l, uncurry find_decomp) \<in>
+    [\<lambda>((M, N, U, D, NP, UP, WS, Q), L::nat literal). True(*
+     (* D \<noteq> None \<and> D \<noteq> Some [] \<and> *)
+      (\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
+          get_level M K = maximum_level_code ((remove1 (-L) (the D))) M + 1) *)]\<^sub>a
+      twl_st_ll_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_ann_lits_assn\<close>
+  unfolding find_decomp_l_def find_decomp_def
+  apply sepref_to_hoare
+  apply (sep_auto)
+sorry
 
-    Here, the translation phase fails. The translation phase translates the control structures and operations of
-    the abstract program to their concrete counterparts. To inspect the actual problem, we let translation run
-    until the operation where it fails: \<close>
-  supply [[goals_limit=5]] -- \<open>There will be many subgoals during translation, and printing them takes very long with Isabelle :(\<close>
-  apply sepref_dbg_trans_keep
-  -- \<open>Things get stuck at a goal with predicate @{const hn_refine}. This is the internal refinement predicate,
-    @{term "hn_refine \<Gamma> c \<Gamma>' R a"} means, that, for operands whose refinement is described by @{term \<Gamma>},
-    the concrete program @{term c} refines the abstract program @{term a}, such that, afterwards, the operands
-    are described by @{term \<Gamma>'}, and the results are refined by @{term R}.
+definition find_lit_of_max_level_l:: "twl_st_ll \<Rightarrow> nat literal \<Rightarrow> nat literal Heap" where
+  \<open>find_lit_of_max_level_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q) L.
+    return (the (find (\<lambda>L'. get_level M L' = get_maximum_level M (remove1_mset (-L) (mset (the D)))) (the D))))\<close>
 
-    Inspecting the first subgoal reveals that we got stuck on refining the abstract operation
-    @{term "RETURN $ (op_list_get $ b $ xf)"}. Note that the @{term "op $"} is just a constant for function
-    application, which is used to tame Isabelle's higher-order unification algorithms. You may use
-    \<open>unfolding APP_def\<close>, or even \<open>simp\<close> to get a clearer picture of the failed goal.
+sepref_register "find_lit_of_max_level :: nat twl_st_l \<Rightarrow> nat literal \<Rightarrow> nat literal nres"
+sepref_register "find_decomp :: nat twl_st_l \<Rightarrow> nat literal \<Rightarrow> (nat, nat) ann_lits nres"
 
-    If a translation step fails, it may be helpful to execute as much of the translation step as possible:
-    \<close>
-  -- \<open>The translation step gets stuck at proving @{term "pre_list_get (b, xf)"}, which is the
-    precondition for list indexing.\<close>
-  apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
+lemma find_lit_of_max_level_l_hnr[sepref_fr_rules]:
+  \<open>(uncurry find_lit_of_max_level_l, uncurry find_lit_of_max_level) \<in>
+    [\<lambda>((M, N, U, D, NP, UP, WS, Q), L::nat literal).
+     (* D \<noteq> None \<and> D \<noteq> Some [] \<and> *)
+      (\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
+          get_level M K = get_maximum_level M (mset (the D) - {#-L#}) + 1)]\<^sub>a
+      twl_st_ll_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_lit_assn\<close>
+  sorry
 
-  apply (simp add: list_assn_pure_conv)
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-(*   
-  apply (sepref_dbg_side_keep) *)
-oops
+fun add_mset_list :: "'a list \<Rightarrow> 'a multiset multiset \<Rightarrow> 'a multiset multiset"  where
+  \<open>add_mset_list L UP = add_mset (mset L) UP\<close>
 
-lemma \<open>hn_val Id a1' a1 \<Longrightarrow>\<^sub>t hn_ctxt nat_ann_lits_assn a1' a1\<close>
-  by (simp add: list_assn_pure_conv)
+sepref_register \<open>add_mset_list :: nat literal list \<Rightarrow> nat clauses \<Rightarrow> nat clauses\<close>
+term clauses_ll_assn
+lemma add_mset_list_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo Cons), uncurry (RETURN oo add_mset_list)) \<in>
+    clause_ll_assn\<^sup>d *\<^sub>a clauses_l_assn\<^sup>d \<rightarrow>\<^sub>a clauses_l_assn\<close>
+  unfolding add_mset_list.simps
+  apply sepref_to_hoare
+  apply sep_auto
+  sorry
+
+definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
+  \<open>backtrack_l S\<^sub>0 =
+    do {
+      let (M, N, U, D, NP, UP, WS, Q) = S\<^sub>0 in
+      do {
+        ASSERT(M \<noteq> []);
+        let L = lit_of (hd M);
+        ASSERT(get_level M L = count_decided M);
+        ASSERT(D \<noteq> None);
+        ASSERT(\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
+          get_level M K = get_maximum_level M (remove1_mset (-L) (mset (the D))) + 1);
+        M1 \<leftarrow> find_decomp (M, N, U, D, NP, UP, WS, Q) L;
+
+        if length (the D) > 1
+        then do {
+          L' \<leftarrow> find_lit_of_max_level (M, N, U, D, NP, UP, WS, Q) L;
+          RETURN (Propagated (-L) (length N) # M1,
+            N @ [[-L, L'] @ (remove1 (-L) (remove1 L' (the D)))], U,
+            None, NP, UP, WS, add_mset L {#})
+        }
+        else do {
+          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset_list (the D) UP, WS, add_mset L {#})
+        }
+      }
+    }
+  \<close>
+
+sepref_definition backtrack_l_impl is
+  \<open>(backtrack_l :: nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close>
+  :: \<open>twl_st_ll_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_ll_assn\<close>
+  unfolding backtrack_l_def
+  unfolding HOL_list.fold_custom_empty lms_fold_custom_empty
+  skip_and_resolve_loop_inv_def mset_remove1[symmetric]
+  maximum_level_code_eq_get_maximum_level[symmetric]
+  supply [[goals_limit=2]]
+  by sepref
+
+
 definition backtrack_l' :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
   \<open>backtrack_l' S\<^sub>0 =
     do {
       let (M, N, U, D, NP, UP, WS, Q) = S\<^sub>0 in
       do {
         ASSERT(M \<noteq> []);
+        ASSERT(D \<noteq> None);
         let L = lit_of (hd M);
         let j = snd (the (find_level_decomp M (the D) [] (count_decided M)));
+        ASSERT(bt_cut j M \<noteq> None);
         let M1 = tl (the (bt_cut j M));
 
         if length (the D) > 1
         then do {
-          let L' = the (find (\<lambda>L'.  get_level M L' = get_maximum_level M (mset (the D) - {#-L#})) (the D));
+          let SL' = (find (\<lambda>L'. get_level M L' = get_maximum_level M (remove1_mset (-L) (mset (the D)))) (the D));
+          ASSERT(SL' \<noteq> None);
+          let L' = the SL';
           RETURN (Propagated (-L) (length N) # M1,
             N @ [[-L, L'] @ (remove1 (-L) (remove1 L' (the D)))], U,
-            None, NP, UP, WS, {#L#})
+            None, NP, UP, WS, mset [L])
         }
         else do {
-          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset (mset (the D)) UP, WS, {#L#})
+          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset (mset (the D)) UP, WS, mset [L])
         }
       }
     }
