@@ -99,11 +99,26 @@ abbreviation nat_ann_lits_assn :: "(nat, nat) ann_lits \<Rightarrow> (nat, nat) 
 abbreviation nat_lits_trail_assn :: "(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> assn" where
   \<open>nat_lits_trail_assn \<equiv> list_assn (nat_ann_lit_assn :: (nat, nat) ann_lit \<Rightarrow> _)\<close>
 
-abbreviation clause_l_assn :: "nat clause_l \<Rightarrow> nat clause_l \<Rightarrow> assn" where
-  \<open>clause_l_assn \<equiv> list_assn nat_lit_assn\<close>
+abbreviation clause_ll_assn :: "nat clause_l \<Rightarrow> nat clause_l \<Rightarrow> assn" where
+  \<open>clause_ll_assn \<equiv> list_assn nat_lit_assn\<close>
 
-abbreviation clauses_l_assn :: "nat clauses_l \<Rightarrow> nat clauses_l \<Rightarrow> assn" where
-  \<open>clauses_l_assn \<equiv> list_assn clause_l_assn\<close>
+abbreviation clauses_ll_assn :: "nat clauses_l \<Rightarrow> nat clauses_l \<Rightarrow> assn" where
+  \<open>clauses_ll_assn \<equiv> list_assn clause_ll_assn\<close>
+
+abbreviation clause_l_assn :: "nat clause \<Rightarrow> nat clause_l \<Rightarrow> assn" where
+  \<open>clause_l_assn \<equiv> list_mset_assn nat_lit_assn\<close>
+
+abbreviation clauses_l_assn :: "nat clauses \<Rightarrow> nat clauses_l \<Rightarrow> assn" where
+  \<open>clauses_l_assn \<equiv> list_mset_assn clause_l_assn\<close>
+
+(* abbreviation pending_l_assn :: "nat clause \<Rightarrow> nat clause_l \<Rightarrow> assn" where
+  \<open>pending_l_assn \<equiv> clause_l_assn\<close>
+
+abbreviation pending_ll_assn :: "nat clause_l \<Rightarrow> nat clause_l \<Rightarrow> assn" where
+  \<open>pending_ll_assn \<equiv> clause_ll_assn\<close> *)
+
+abbreviation working_queue_ll_assn :: "nat multiset \<Rightarrow> nat list \<Rightarrow> assn" where
+  \<open>working_queue_ll_assn \<equiv> list_mset_assn nat_assn\<close>
 
 (* concrete_definition backtrack_l'_impl uses backtrack_l'_impl
 
@@ -127,12 +142,12 @@ fun twl_st_of_ll :: \<open>twl_st_ll \<Rightarrow> nat twl_st_l\<close> where
 notation prod_assn (infixr "*assn" 90)
 abbreviation twl_st_ll_assn :: \<open>nat twl_st_l \<Rightarrow> twl_st_ll \<Rightarrow> assn\<close> where
 \<open>twl_st_ll_assn \<equiv>
- nat_lits_trail_assn *assn clauses_l_assn *assn nat_assn *assn
- option_assn clause_l_assn *assn
- list_mset_assn (list_mset_assn nat_lit_assn) *assn
- list_mset_assn (list_mset_assn nat_lit_assn) *assn
- list_mset_assn nat_assn *assn
- list_mset_assn nat_lit_assn
+ nat_lits_trail_assn *assn clauses_ll_assn *assn nat_assn *assn
+ option_assn clause_ll_assn *assn
+ clauses_l_assn *assn
+ clauses_l_assn *assn
+ working_queue_ll_assn *assn
+ clause_l_assn
 \<close>
 
 section \<open>Declaration of the operators.\<close>
@@ -974,7 +989,7 @@ lemma list_assn_union_mset_list:
 
 lemma union_mset_list_hnr[sepref_fr_rules]:
   \<open>(uncurry (return oo union_mset_list), uncurry (RETURN oo union_mset_list)) \<in>
-     clause_l_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k \<rightarrow>\<^sub>a clause_l_assn\<close>
+     clause_ll_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>k \<rightarrow>\<^sub>a clause_ll_assn\<close>
   by sepref_to_hoare (sep_auto simp: entails_def intro: list_assn_union_mset_list)
 
 lemma list_assn_remove1:
