@@ -1103,8 +1103,8 @@ lemma H0:
   assumes D: \<open>D \<noteq> None\<close> \<open>D \<noteq> Some []\<close> and
     ex_decomp: \<open>\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = maximum_level_code ((remove1 (-L) (the D))) M + 1\<close> and
-   stgy_invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (convert_to_state (twl_st_of None S'))\<close> and
-   struct_invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state (twl_st_of None S'))\<close> and
+   stgy_invs: \<open>twl_stgy_invs (twl_st_of None S')\<close> and
+   struct_invs: \<open>twl_struct_invs (twl_st_of None S')\<close> and
    ns_s: \<open>no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None S'))\<close> and
    M_not_empty: \<open>M \<noteq> []\<close>
   shows \<open>find_decomp_l_res (M, N, U, D, NP, UP, WS, Q) L \<le> find_decomp S' L\<close>
@@ -1133,7 +1133,8 @@ proof -
   then have uhd_D': \<open>- L \<in> set D'\<close>
     using cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of
         \<open>convert_to_state (twl_st_of None S')\<close>] D ns_s struct_invs stgy_invs
-    by (auto simp: cdcl\<^sub>W_restart_mset_state S' hd_converts_L)
+    by (auto simp: cdcl\<^sub>W_restart_mset_state S' hd_converts_L twl_struct_invs_def
+        twl_stgy_invs_def)
 
   have \<open>-L \<in># mset D'\<close>
     using uhd_D' L M_not_empty by (cases M) simp_all
@@ -1169,15 +1170,12 @@ proof -
     by (fastforce simp: find_decomp_l_res_def find_decomp_def S' KL j[symmetric])
 qed
 
-definition ex_decomp_of_max_lvl where
-  \<open>ex_decomp_of_max_lvl M D L = (\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
-          get_level M K = maximum_level_code ((remove1 (-L) (the D))) M + 1)\<close>
-lemma H1:
+lemma find_decomp_l_res_find_decomp:
   \<open>(uncurry find_decomp_l_res, uncurry find_decomp) \<in>
     [\<lambda>((M, N, U, D, NP, UP, WS, Q), L::nat literal). L = lit_of (hd M) \<and> D \<noteq> None \<and> D \<noteq> Some [] \<and>
        ex_decomp_of_max_lvl M D L \<and>
-       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
-       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
+       twl_stgy_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
+       twl_struct_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
        no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
       M \<noteq> []]\<^sub>f
     {((S'::twl_st_ll), (S::nat twl_st_l)). S = twl_st_of_ll S'} \<times>\<^sub>r Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
@@ -1204,7 +1202,7 @@ abbreviation twl_st_ll_assn :: \<open>twl_st_ll \<Rightarrow> twl_st_ll \<Righta
  clause_ll_assn
 \<close>
 
-lemma H2: \<open>(uncurry find_decomp_l, uncurry find_decomp_l_res) \<in>
+lemma find_decomp_l_find_decomp_l_res: \<open>(uncurry find_decomp_l, uncurry find_decomp_l_res) \<in>
    twl_st_ll_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_ann_lits_assn\<close>
 proof -
   {
@@ -1334,9 +1332,9 @@ lemma find_decomp_l_hnr[sepref_fr_rules]:
   \<open>(uncurry find_decomp_l, uncurry find_decomp) \<in>
     [\<lambda>((M, N, U, D, NP, UP, WS, Q), L::nat literal). L = lit_of (hd M) \<and> D \<noteq> None \<and> D \<noteq> Some [] \<and>
       ex_decomp_of_max_lvl M D L \<and>
-       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
-       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
-       no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
+      twl_stgy_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
+      twl_struct_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
+      no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
       M \<noteq> []]\<^sub>a
       twl_st_l_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_ann_lits_assn\<close>
   apply (rule subst[of \<open>comp_PRE ({(S', S). S = twl_st_of_ll S'} \<times>\<^sub>r Id)
@@ -1345,10 +1343,8 @@ lemma find_decomp_l_hnr[sepref_fr_rules]:
            D \<noteq> None \<and>
            D \<noteq> Some [] \<and>
            ex_decomp_of_max_lvl M D L \<and>
-           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant
-            (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
-           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv
-            (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
+           twl_stgy_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
+           twl_struct_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
            (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.skip
                      (convert_to_state
                        (twl_st_of None (M, N, U, D, NP, UP, WS, Q)))
@@ -1369,66 +1365,106 @@ lemma find_decomp_l_hnr[sepref_fr_rules]:
     by (auto simp: hrp_comp_twl_st_ll_assn_twl_st_of_ll; fail)[]
 
   supply [[unify_trace_failure]]
-  apply (rule hfref_compI_PRE_aux[OF H2 H1])
+  apply (rule hfref_compI_PRE_aux[OF find_decomp_l_find_decomp_l_res find_decomp_l_res_find_decomp])
   done
 
-definition find_lit_of_max_level_l:: "twl_st_ll \<Rightarrow> nat literal \<Rightarrow> nat literal Heap" where
+definition find_lit_of_max_level_l :: "twl_st_ll \<Rightarrow> nat literal \<Rightarrow> nat literal Heap" where
   \<open>find_lit_of_max_level_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q) L.
     return (the (find (\<lambda>L'. get_level M L' = get_maximum_level M (remove1_mset (-L) (mset (the D)))) (the D))))\<close>
+
+definition find_lit_of_max_level_l_res :: "twl_st_ll \<Rightarrow> nat literal \<Rightarrow> nat literal nres" where
+  \<open>find_lit_of_max_level_l_res = (\<lambda>(M, N, U, D, NP, UP, WS, Q) L.
+    RETURN (the (find (\<lambda>L'. get_level M L' = get_maximum_level M (remove1_mset (-L) (mset (the D)))) (the D))))\<close>
 
 sepref_register "find_lit_of_max_level :: nat twl_st_l \<Rightarrow> nat literal \<Rightarrow> nat literal nres"
 sepref_register "find_decomp :: nat twl_st_l \<Rightarrow> nat literal \<Rightarrow> (nat, nat) ann_lits nres"
 
+lemma find_lit_of_max_level_l_res_find_lit_of_max_level:
+  \<open>(uncurry find_lit_of_max_level_l_res, uncurry find_lit_of_max_level) \<in>
+    [\<lambda>((M, N, U, D, NP, UP, WS, Q), L). D \<noteq> None \<and> D \<noteq> Some [] \<and> length (the D) > 1]\<^sub>f
+    {(S', S). S = twl_st_of_ll S'} \<times>\<^sub>r Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+proof -
+  { fix C and M :: \<open>(nat, nat) ann_lits\<close> and L :: \<open>nat literal\<close> and D' :: \<open>nat literal list\<close>
+    assume \<open>length D' > Suc 0\<close>
+    then have \<open>remove1_mset (- L) (mset D') \<noteq> {#}\<close>
+      by (cases D'; cases \<open>tl D'\<close>) (auto simp: remove1_mset_add_mset_If)
+    then have \<open>\<exists>L' \<in> set D'. get_level M L' = get_maximum_level M (remove1_mset (- L) (mset D'))\<close>
+      using get_maximum_level_exists_lit_of_max_level[of \<open>remove1_mset (- L) (mset D')\<close> M]
+      by (auto dest!: in_diffD)
+    then have L: \<open>find (\<lambda>L'. get_level M L' = get_maximum_level M (remove1_mset (- L) (mset D'))) D' \<noteq> None\<close>
+      by (meson find_None_iff)
+    let ?L = \<open>(find (\<lambda>L'. get_level M L' = get_maximum_level M (remove1_mset (- L) (mset D'))) D')\<close>
+
+    have \<open>the ?L \<in> set D'\<close> and
+      \<open>get_level M (the ?L) = get_maximum_level M (remove1_mset (- L) (mset D'))\<close>
+      using L by (auto dest: find_SomeD)
+  }
+  note H_D = this
+
+  show ?thesis
+    unfolding find_lit_of_max_level_l_res_def find_lit_of_max_level_def
+    by (auto simp: fref_def nres_rel_def simp: H_D)
+qed
+
+lemma find_lit_of_max_level_l_find_lit_of_max_level:
+  \<open>(uncurry find_lit_of_max_level_l, uncurry find_lit_of_max_level_l_res) \<in>
+    twl_st_ll_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_assn\<close>
+  unfolding find_lit_of_max_level_l_def find_lit_of_max_level_l_res_def
+  by sepref_to_hoare
+   (sep_auto elim!: mod_starE dest!: entails_list_assn_eqD entails_option_assn_assn_eqD)
+
+
 lemma find_lit_of_max_level_l_hnr[sepref_fr_rules]:
   \<open>(uncurry find_lit_of_max_level_l, uncurry find_lit_of_max_level) \<in>
     [\<lambda>((M, N, U, D, NP, UP, WS, Q), L::nat literal).
-     (* D \<noteq> None \<and> D \<noteq> Some [] \<and> *)
-      ex_decomp_of_max_lvl M D L]\<^sub>a
+     D \<noteq> None \<and> D \<noteq> Some [] \<and> 1 < length (the D)]\<^sub>a
       twl_st_l_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_lit_assn\<close>
-  sorry
+proof -
+  have pre: \<open>comp_PRE ({(S', S). S = twl_st_of_ll S'} \<times>\<^sub>r Id)
+     (\<lambda>((M, N, U, D, NP, UP, WS, Q), L).
+         D \<noteq> None \<and> D \<noteq> Some [] \<and> 1 < length (the D))
+     (\<lambda>_ _. True)
+     (\<lambda>_. True) = (\<lambda>((M, N, U, D, NP, UP, WS, Q), L::nat literal).
+     D \<noteq> None \<and> D \<noteq> Some [] \<and> 1 < length (the D))\<close>
+    by (auto simp: comp_PRE_def)
 
-fun add_mset_list :: "'a list \<Rightarrow> 'a multiset multiset \<Rightarrow> 'a multiset multiset"  where
-  \<open>add_mset_list L UP = add_mset (mset L) UP\<close>
+  have args: \<open>hrp_comp (twl_st_ll_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k)
+                     ({(S', S). S = twl_st_of_ll S'} \<times>\<^sub>r
+                      Id) = twl_st_l_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k\<close>
+    unfolding prod_hrp_comp hrp_comp_twl_st_ll_assn_twl_st_of_ll
+    by simp
+  have out: \<open>hr_comp nat_lit_assn Id = nat_lit_assn\<close>
+    by simp
+  show ?thesis
+  using hfref_compI_PRE_aux [OF find_lit_of_max_level_l_find_lit_of_max_level
+      find_lit_of_max_level_l_res_find_lit_of_max_level]
+  unfolding pre args out by assumption
+qed
 
 sepref_register \<open>add_mset_list :: nat literal list \<Rightarrow> nat clauses \<Rightarrow> nat clauses\<close>
-term clauses_ll_assn
+
 lemma add_mset_list_hnr[sepref_fr_rules]:
   \<open>(uncurry (return oo Cons), uncurry (RETURN oo add_mset_list)) \<in>
     clause_ll_assn\<^sup>d *\<^sub>a clauses_l_assn\<^sup>d \<rightarrow>\<^sub>a clauses_l_assn\<close>
+proof -
+  {
+    fix aa :: Heap.heap and ba :: \<open>nat set\<close> and a :: \<open>nat clause_l\<close> and b :: \<open>nat clauses\<close> and
+      bi :: \<open>nat clauses_l\<close> and ai
+    assume \<open>(aa, ba) \<Turnstile>
+       list_mset_assn (list_mset_assn (\<lambda>a c. \<up> (c = a))) b bi *
+       list_assn (\<lambda>a c. \<up> (c = a)) a ai\<close>
+    then have \<open>
+       Assertions.models (aa, ba)
+       (list_mset_assn (list_mset_assn (\<lambda>a c. \<up> (c = a))) (add_mset (mset a) b)
+        (ai # bi) * true)\<close>
+      by (metis (no_types) entails_list_assn_eqD entails_list_mset_assn_list_mset_assn_eq_mset
+          image_mset_add_mset list_assn_same_emp_id list_mset_assn_list_mset_assn_id_mset_mset_emp
+          mod_star_conv mod_star_trueI mset.simps(2) mult.right_neutral)
+  }
+  then show ?thesis
   unfolding add_mset_list.simps
-  apply sepref_to_hoare
-  apply sep_auto
-  sorry
-
-definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
-  \<open>backtrack_l S\<^sub>0 =
-    do {
-      let (M, N, U, D, NP, UP, WS, Q) = S\<^sub>0 in
-      do {
-        ASSERT(M \<noteq> []);
-        let L = lit_of (hd M);
-        ASSERT(get_level M L = count_decided M);
-        ASSERT(D \<noteq> None);
-        ASSERT(D \<noteq> Some []);
-        ASSERT(ex_decomp_of_max_lvl M D L);
-        ASSERT(cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
-        ASSERT(cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
-        ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
-        M1 \<leftarrow> find_decomp (M, N, U, D, NP, UP, WS, Q) L;
-
-        if length (the D) > 1
-        then do {
-          L' \<leftarrow> find_lit_of_max_level (M, N, U, D, NP, UP, WS, Q) L;
-          RETURN (Propagated (-L) (length N) # M1,
-            N @ [[-L, L'] @ (remove1 (-L) (remove1 L' (the D)))], U,
-            None, NP, UP, WS, add_mset L {#})
-        }
-        else do {
-          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset_list (the D) UP, WS, add_mset L {#})
-        }
-      }
-    }
-  \<close>
+  by sepref_to_hoare (sep_auto simp: entails_def)
+qed
 
 sepref_definition backtrack_l_impl is
   \<open>(backtrack_l :: nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close>
@@ -1440,486 +1476,4 @@ sepref_definition backtrack_l_impl is
   supply [[goals_limit=1]]
   by sepref
 
-definition backtrack_l' :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
-  \<open>backtrack_l' S\<^sub>0 =
-    do {
-      let (M, N, U, D, NP, UP, WS, Q) = S\<^sub>0 in
-      do {
-        ASSERT(M \<noteq> []);
-        ASSERT(D \<noteq> None);
-        let L = lit_of (hd M);
-        let j = snd (the (find_level_decomp M (the D) [] (count_decided M)));
-        ASSERT(bt_cut j M \<noteq> None);
-        let M1 = tl (the (bt_cut j M));
-
-        if length (the D) > 1
-        then do {
-          let SL' = (find (\<lambda>L'. get_level M L' = get_maximum_level M (remove1_mset (-L) (mset (the D)))) (the D));
-          ASSERT(SL' \<noteq> None);
-          let L' = the SL';
-          RETURN (Propagated (-L) (length N) # M1,
-            N @ [[-L, L'] @ (remove1 (-L) (remove1 L' (the D)))], U,
-            None, NP, UP, WS, mset [L])
-        }
-        else do {
-          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset (mset (the D)) UP, WS, mset [L])
-        }
-      }
-    }
-  \<close>
-
-lemma Let_assignI: \<open>\<Phi> = {L'} \<Longrightarrow> P L' = Q L' \<Longrightarrow>  (do {let L = L'; P L}) = (do {L \<leftarrow> RES \<Phi>; Q L})\<close>
-  by (simp add: RES_sng_eq_RETURN)
-
-lemma bt_cut_not_none2:
-  assumes "no_dup M" and "i < count_decided M"
-  shows "bt_cut i M \<noteq> None"
-proof -
-  obtain K M1 M2 where
-    \<open>M = M2 @ Decided K # M1\<close> and \<open>get_level M K = Suc i\<close>
-      using le_count_decided_decomp[OF assms(1)] assms(2) by auto
-    then show ?thesis
-      using bt_cut_not_none[OF assms(1), of M2 K M1 i] by auto
-qed
-
-lemma backtrack_l'_spec:
-  assumes
-    confl1: \<open>get_conflict_l S \<noteq> None\<close> and
-    confl2: \<open>get_conflict_l S \<noteq> Some []\<close> and
-    \<open>working_queue_l S = {#}\<close> and
-    \<open>pending_l S = {#}\<close> and
-    \<open>additional_WS_invs S\<close> and
-    ns: \<open>no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None S))\<close> and
-    \<open>no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of None S))\<close> and
-    struct_invs: \<open>twl_struct_invs (twl_st_of None S)\<close> and
-    stgy_invs: \<open>twl_stgy_invs (twl_st_of None S)\<close>
-  shows \<open>backtrack_l' S \<le> \<Down> Id (backtrack_l S)\<close>
-proof-
-  show ?thesis
-    unfolding backtrack_l_def backtrack_l'_def (* SS *)
-    apply (rewrite at \<open>let _ = snd _ in _\<close> Let_def)
-    apply (refine_rcg; remove_dummy_vars)
-    subgoal by simp
-    subgoal using confl1 by simp
-    subgoal by simp
-    subgoal premises p for M N U C NP UP WS Q L
-    proof -
-      thm p
-      note S = p(1) and L = p(5) and M_not_empty = p(2) and ex_decomp = p(7)
-      have n_d: \<open>no_dup M\<close>
-        using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-        by (simp add: cdcl\<^sub>W_restart_mset_state S)
-      obtain C' where [simp]: \<open>C = Some C'\<close>
-        using confl1 S by auto
-      have lev_L: \<open>get_level M L = count_decided M\<close>
-        using M_not_empty L by (cases M) auto
-      have uhd_C: \<open>- lit_of (hd (convert_lits_l N M)) \<in> set C'\<close>
-        using cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of
-            \<open>convert_to_state (twl_st_of None (M, N, U, C, NP, UP, WS, Q))\<close>]
-        confl2 ns struct_invs stgy_invs unfolding S
-        by (auto simp: twl_struct_invs_def twl_stgy_invs_def cdcl\<^sub>W_restart_mset_state)
-      obtain M1'' M2'' K'' where
-        decomp_K'': \<open>(Decided K'' # M1'', M2'') \<in> set (get_all_ann_decomposition M)\<close>
-        \<open>get_level M K'' = Suc (get_maximum_level M (remove1_mset (- lit_of (hd M)) (mset C')))\<close>
-        using ex_decomp L by auto
-      then have lev_max: \<open>get_maximum_level M (mset (remove1 (-L) C')) < count_decided M\<close>
-        using count_decided_ge_get_level[of M K''] L by auto
-      have \<open>-L \<in># mset C'\<close>
-        using uhd_C L M_not_empty by (cases M) simp_all
-      with multi_member_split[OF this]
-      have False if \<open>find_level_decomp M (the C) [] (count_decided M) = None\<close>
-        using find_level_decomp_none[OF that, of \<open>-L\<close> \<open>remove1 (-L) C'\<close>] lev_max
-        unfolding S by (auto dest!: simp: lev_L)
-      then obtain K j where
-        Kj: \<open>find_level_decomp M C' [] (count_decided M) = Some (K, j)\<close>
-        by (cases \<open>find_level_decomp M (the C) [] (count_decided M)\<close>) auto
-      then have
-        \<open>K \<in> set C'\<close> and
-        j: \<open>get_maximum_level M (mset (remove1 K C')) = j\<close> and
-        \<open>get_level M K = count_decided M\<close>
-        using find_level_decomp_some[OF Kj] by simp_all
-      have KL: \<open>K = -L\<close>
-        by (metis \<open>K \<in> set C'\<close> \<open>\<exists>A. mset C' = add_mset (- L) A\<close> \<open>get_level M K = count_decided M\<close>
-            add_mset_remove_trivial get_maximum_level_ge_get_level leD lev_max member_add_mset
-            mset_remove1 set_mset_mset)
-      have j_le_M: \<open>j < count_decided M\<close>
-          unfolding j[symmetric] KL using lev_max by simp
-      have bt_cut: \<open>bt_cut j M \<noteq> None\<close>
-        apply (rule bt_cut_not_none2[of ])
-        using n_d apply (simp; fail)
-        using j_le_M by simp
-      show ?thesis
-        using bt_cut by (auto simp: Kj)
-    qed
-    subgoal premises p for M N U C NP UP WS Q L
-    proof -
-      note S = p(1) and L = p(5) and M_not_empty = p(2) and ex_decomp = p(7)
-      have n_d: \<open>no_dup M\<close>
-        using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-        by (simp add: cdcl\<^sub>W_restart_mset_state S)
-      obtain C' where [simp]: \<open>C = Some C'\<close>
-        using confl1 S by auto
-      have lev_L: \<open>get_level M L = count_decided M\<close>
-        using M_not_empty L by (cases M) auto
-      have uhd_C: \<open>- lit_of (hd (convert_lits_l N M)) \<in> set C'\<close>
-        using cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of
-            \<open>convert_to_state (twl_st_of None (M, N, U, C, NP, UP, WS, Q))\<close>]
-        confl2 ns struct_invs stgy_invs unfolding S
-        by (auto simp: twl_struct_invs_def twl_stgy_invs_def cdcl\<^sub>W_restart_mset_state)
-      obtain M1'' M2'' K'' where
-        decomp_K'': \<open>(Decided K'' # M1'', M2'') \<in> set (get_all_ann_decomposition M)\<close>
-        \<open>get_level M K'' = Suc (get_maximum_level M (remove1_mset (- lit_of (hd M)) (mset C')))\<close>
-        using ex_decomp L by auto
-      then have lev_max: \<open>get_maximum_level M (mset (remove1 (-L) C')) < count_decided M\<close>
-        using count_decided_ge_get_level[of M K''] L by auto
-      have \<open>-L \<in># mset C'\<close>
-        using uhd_C L M_not_empty by (cases M) simp_all
-      with multi_member_split[OF this]
-      have False if \<open>find_level_decomp M (the C) [] (count_decided M) = None\<close>
-        using find_level_decomp_none[OF that, of \<open>-L\<close> \<open>remove1 (-L) C'\<close>] lev_max
-        unfolding S by (auto dest!: simp: lev_L)
-      then obtain K j where
-        Kj: \<open>find_level_decomp M C' [] (count_decided M) = Some (K, j)\<close>
-        by (cases \<open>find_level_decomp M (the C) [] (count_decided M)\<close>) auto
-      then have
-        \<open>K \<in> set C'\<close> and
-        j: \<open>get_maximum_level M (mset (remove1 K C')) = j\<close> and
-        \<open>get_level M K = count_decided M\<close>
-        using find_level_decomp_some[OF Kj] by simp_all
-      have KL: \<open>K = -L\<close>
-        by (metis \<open>K \<in> set C'\<close> \<open>\<exists>A. mset C' = add_mset (- L) A\<close> \<open>get_level M K = count_decided M\<close>
-            add_mset_remove_trivial get_maximum_level_ge_get_level leD lev_max member_add_mset
-            mset_remove1 set_mset_mset)
-      have j_le_M: \<open>j < count_decided M\<close>
-          unfolding j[symmetric] KL using lev_max by simp
-      have \<open>bt_cut j M \<noteq> None\<close>
-        apply (rule bt_cut_not_none2[of ])
-        using n_d apply (simp; fail)
-        using j_le_M by simp
-      then obtain M2 M1 K''' M' where
-        \<open>M = M2 @ M'\<close> and M': \<open>M' = Decided K''' # M1\<close> and lev_K: \<open>get_level M K''' = j + 1\<close> and
-        bt_cut: \<open>bt_cut j M = Some M'\<close>
-        using bt_cut_some_decomp[of M j \<open>the (bt_cut j M)\<close>] n_d by auto
-      show ?thesis
-        using lev_K j bt_cut_in_get_all_ann_decomposition[OF n_d bt_cut] by (auto simp: Kj bt_cut M' KL)
-    qed
-    subgoal premises p for M N U C NP UP WS Q L M1
-    proof -
-      note S = p(1) and L_hd = p(5) and len_C = p(11)
-      obtain C' where [simp]: \<open>C = Some C'\<close>
-        using confl1 S by auto
-      have \<open>find (\<lambda>L'. get_level M L' = get_maximum_level M (remove1_mset (- L) (mset (the C)))) (the C) \<noteq> None\<close>
-      proof (rule ccontr)
-        assume H: \<open>\<not>?thesis\<close>
-        have \<open>remove1_mset (- lit_of (hd M)) (mset (the C)) \<noteq> {#}\<close>
-          using len_C by (cases C'; cases \<open>tl C'\<close>) (auto simp: Diff_eq_empty_iff_mset)
-        then show False
-          using get_maximum_level_exists_lit_of_max_level[of
-              \<open>remove1_mset (- lit_of (hd M)) (mset (the C))\<close> M]
-          using L_hd H by (auto simp: find_None_iff dest: in_diffD)
-      qed
-      then show ?thesis
-        by simp
-        sorry
-    subgoal premises p for M N U C NP UP WS Q L M1
-    proof -
-      note S = p(1) and L_hd = p(5) and len_C = p(11)
-      obtain C' where [simp]: \<open>C = Some C'\<close>
-        using confl1 S by auto
-
-      have \<open>find (\<lambda>L'. get_level M L' = get_maximum_level M (remove1_mset (- L) (mset (the C)))) (the C) \<noteq> None\<close>
-      proof (rule ccontr)
-        assume H: \<open>\<not>?thesis\<close>
-        have \<open>remove1_mset (- lit_of (hd M)) (mset (the C)) \<noteq> {#}\<close>
-          using len_C by (cases C'; cases \<open>tl C'\<close>) (auto simp: Diff_eq_empty_iff_mset)
-        then show False
-          using get_maximum_level_exists_lit_of_max_level[of
-              \<open>remove1_mset (- lit_of (hd M)) (mset (the C))\<close> M]
-          using L_hd H by (auto simp: find_None_iff dest: in_diffD)
-      qed
-      then show ?thesis
-        using p by (auto dest: find_SomeD)
-    qed
-    subgoal by simp
-    subgoal by simp
-    done
-qed
-
-sepref_definition backtgrack_l'_impl is
-  \<open>(backtrack_l' :: nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close>
-  :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
-  unfolding backtrack_l'_def option_is_Nil conv_to_is_Nil
-  unfolding HOL_list.fold_custom_empty
-  skip_and_resolve_loop_inv_def mset_remove1[symmetric]
-  maximum_level_code_eq_get_maximum_level[symmetric]
-  supply [[goals_limit=1]]
-  apply sepref_dbg_keep
-     apply sepref_dbg_trans_step_keep
-     apply sepref_dbg_trans_keep
-     apply sepref_dbg_trans_keep
-     apply sepref_dbg_trans_keep
-     apply sepref_dbg_trans_step_keep
-     apply sepref_dbg_trans_keep
-     apply sepref_dbg_trans_keep
-     apply sepref_dbg_trans_keep
-     apply sepref_dbg_trans_keep
-     apply sepref_dbg_trans_keep
-     apply sepref_dbg_trans_keep
-     apply sepref_dbg_trans_keep
-
-
-  oops
-  by sepref
-
-definition cdcl_twl_o_prog_l' :: "'v twl_st_l \<Rightarrow> (bool \<times> 'v twl_st_l) nres" where
-  \<open>cdcl_twl_o_prog_l' S =
-    do {
-      let (M, N, U, D, NP, UP, WS, Q) = S in
-      do {
-        if D = None
-        then
-          if (\<exists>L. undefined_lit M L \<and> atm_of L \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N))))
-          then do {S \<leftarrow> decide_l S; RETURN (False, S)}
-          else do {RETURN (True, S)}
-        else do {
-          T \<leftarrow> skip_and_resolve_loop_l S;
-          if get_conflict_l T \<noteq> Some []
-          then do {U \<leftarrow> backtrack_l' T; RETURN (False, U)}
-          else do {RETURN (True, T)}
-        }
-      }
-    }
-  \<close>
-
-lemma TT:
-  assumes \<open>(f, g) \<in> {(S, S'). S' = h S \<and> P S} \<rightarrow> \<langle>{(T, T'). T' = h' T \<and> Q T}\<rangle>nres_rel\<close> and
-    \<open>P S\<close> and \<open>\<And>S. P S \<Longrightarrow> nofail (g (h S))\<close>
-  shows \<open>f S \<le> \<Down> {(T', T). T = T' \<and> Q T} (f S)\<close>
-  using assms unfolding fun_rel_def nres_rel_def
-  by (auto simp add: pw_conc_inres pw_conc_nofail pw_ords_iff(1))
-
-lemma TT':
-  assumes \<open>f \<le> \<Down> R g\<close> and \<open>g \<le> \<Down> R' h\<close>
-  shows \<open>f \<le> \<Down> (R O R') h\<close>
-  by (metis (full_types) assms(1) assms(2) conc_fun_chain ref_two_step)
-
-thm TT'[OF backtrack_l'_spec backtrack_l_spec[THEN refine_pair_to_SPEC]]
-
-lemma cdcl_twl_o_prog_l_spec:
-  \<open>(cdcl_twl_o_prog_l', cdcl_twl_o_prog) \<in>
-    {(S, S'). S' = twl_st_of None S \<and>
-       working_queue_l S = {#} \<and> pending_l S = {#} \<and> no_step cdcl_twl_cp (twl_st_of None S) \<and>
-       twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and> additional_WS_invs S} \<rightarrow>
-    \<langle>{((brk, T), (brk', T')). T' = twl_st_of None T \<and> brk = brk' \<and> additional_WS_invs T \<and>
-    (get_conflict_l T \<noteq> None \<longrightarrow> get_conflict_l T = Some [])\<and>
-       twl_struct_invs (twl_st_of None T) \<and> twl_stgy_invs (twl_st_of None T) \<and>
-       working_queue_l T = {#} (* \<and>
-       (\<not>brk \<longrightarrow> pending_l T \<noteq> {#}) *)}\<rangle> nres_rel\<close>
-  (is \<open> _ \<in> ?R \<rightarrow> ?I\<close> is \<open> _ \<in> ?R \<rightarrow> \<langle>?J\<rangle>nres_rel\<close>)
-proof -
-  have twl_prog:
-    \<open>(cdcl_twl_o_prog_l', cdcl_twl_o_prog) \<in> ?R \<rightarrow>
-      \<langle>{(S, S').
-         (fst S' = (fst S) \<and> snd S' = twl_st_of None (snd S)) \<and> additional_WS_invs (snd S) \<and>
-           working_queue_l (snd S) = {#}}\<rangle> nres_rel\<close>
-    apply clarify
-    unfolding cdcl_twl_o_prog_l'_def cdcl_twl_o_prog_def
-    apply (refine_vcg decide_l_spec[THEN refine_pair_to_SPEC]
-        skip_and_resolve_loop_l_spec[THEN refine_pair_to_SPEC]
-        TT'[OF backtrack_l'_spec backtrack_l_spec[THEN refine_pair_to_SPEC]];
-        remove_dummy_vars)
-    subgoal by simp
-    subgoal by simp
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
-      by (simp add: additional_WS_invs_def)
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
-      by simp
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
-      by simp
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
-      by (simp add: additional_WS_invs_def)
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
-      by auto
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
-      by (cases T) (auto)
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
-      apply (cases M; cases T)
-      by (auto simp add: additional_WS_invs_def)
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
-      by auto
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
-      by (cases T) (auto)
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
-      by (auto simp add: get_conflict_l_Some_nil_iff)
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
-      by fast
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
-      by fast
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
-      by (cases T) (auto)
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T T'
-      by fast
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
-      by (simp add: get_conflict_l_get_conflict)
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
-      apply (cases M; cases T)
-      by (auto simp add: additional_WS_invs_def)
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
-      apply (cases M; cases T)
-      by (auto simp add: (* additional_WS_invs_def *))
-    subgoal by fast
-    subgoal by fast
-    subgoal by fast
-    subgoal by fast
-    subgoal by fast
-    subgoal by fast
-    subgoal by simp
-    subgoal by simp
-    done
-  have KK:
-    \<open>get_conflict_l T = None \<longleftrightarrow> get_conflict (twl_st_of None T) = None\<close>
-    \<open>pending_l T = {#} \<longleftrightarrow> pending (twl_st_of None T) = {#}\<close>
-    for T
-    by (cases T; auto)+
-  text \<open>Stupid placeholder to help the application of \<open>rule\<close> later:\<close>
-  define TT where [simp]: \<open>TT = (\<lambda>_::bool \<times> 'a twl_st_l. True)\<close>
-  let ?J' = \<open>{(U, U').
-       (fst U' = id (fst U) \<and> snd U' = twl_st_of None (snd U)) \<and> (additional_WS_invs (snd U) \<and>
-         working_queue_l (snd U) = {#}) \<and>
-        (get_conflict (twl_st_of None (snd U)) \<noteq> None \<longrightarrow> get_conflict (twl_st_of None (snd U)) = Some {#}) \<and>
-         twl_struct_invs (twl_st_of None (snd U)) \<and>
-         twl_stgy_invs (twl_st_of None (snd U)) (* \<and>
-         (\<not>fst U \<longrightarrow> pending (twl_st_of (snd U)) \<noteq> {#}) *)}\<close>
-
-  have J: \<open>?J = ?J'\<close>
-    by auto
-  show bt': ?thesis
-    unfolding J
-    apply (rule refine_add_inv_pair)
-    subgoal
-      using twl_prog by auto
-    subgoal for S
-      apply (rule weaken_SPEC[OF cdcl_twl_o_prog_spec[of \<open>twl_st_of None S\<close>]])
-      apply (auto simp: KK(2))[5]
-      apply auto
-      done
-    done
-qed
-
-
-definition cdcl_twl_stgy_prog_l' :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
-  \<open>cdcl_twl_stgy_prog_l' S\<^sub>0 =
-  do {
-    do {
-      (brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T). twl_struct_invs (twl_st_of None T) \<and> twl_stgy_invs (twl_st_of None T) \<and>
-        (brk \<longrightarrow> no_step cdcl_twl_stgy (twl_st_of None T)) \<and> cdcl_twl_stgy\<^sup>*\<^sup>* (twl_st_of None S\<^sub>0) (twl_st_of None T) \<and>
-        working_queue_l T = {#} \<and>
-        (\<not>brk \<longrightarrow> get_conflict_l T = None)\<^esup>
-        (\<lambda>(brk, _). \<not>brk)
-        (\<lambda>(brk, S).
-        do {
-          T \<leftarrow> unit_propagation_outer_loop_l S;
-          cdcl_twl_o_prog_l' T
-        })
-        (False, S\<^sub>0);
-      RETURN T
-    }
-  }
-  \<close>
-
-
-lemma cdcl_twl_stgy_prog_l'_spec:
-  \<open>(cdcl_twl_stgy_prog_l', cdcl_twl_stgy_prog) \<in>
-    {(S, S'). S' = twl_st_of None S \<and> additional_WS_invs S \<and>
-       working_queue_l S = {#} \<and>
-       twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S)} \<rightarrow>
-    \<langle>{(T, T'). T' = twl_st_of None T \<and> True}\<rangle> nres_rel\<close>
-  (is \<open> _ \<in> ?R \<rightarrow> ?I\<close> is \<open> _ \<in> ?R \<rightarrow> \<langle>?J\<rangle>nres_rel\<close>)
-proof -
-  have R: \<open>(a, b) \<in> ?R \<Longrightarrow> ((False, a), (False, b)) \<in> {((brk, S), (brk', S')). brk = brk' \<and> (S, S') \<in> ?R}\<close>
-    for a b by auto
-  have KK:
-    \<open>get_conflict_l T = None \<longleftrightarrow> get_conflict (twl_st_of None T) = None\<close>
-    \<open>pending_l T = {#} \<longleftrightarrow> pending (twl_st_of None T) = {#}\<close>
-    for T
-    by (cases T; auto)+
-  show ?thesis
-    unfolding cdcl_twl_stgy_prog_l'_def cdcl_twl_stgy_prog_def
-    apply (refine_rcg R cdcl_twl_o_prog_l_spec[THEN refine_pair_to_SPEC_fst_pair2]
-        unit_propagation_outer_loop_l_spec[THEN refine_pair_to_SPEC]; remove_dummy_vars)
-    subgoal unfolding KK by auto
-    subgoal by auto
-    subgoal by fastforce
-    subgoal unfolding KK by fastforce
-    subgoal by auto
-    subgoal unfolding KK by auto
-    subgoal unfolding KK by auto
-    subgoal unfolding KK by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by (auto simp: additional_WS_invs_def)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal unfolding KK by auto
-    subgoal by (auto simp: pending_l_pending)
-    subgoal by fast
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    done
-qed
-
-
-lemma cdcl_twl_stgy_prog_l'_spec_final:
-  assumes \<open>twl_struct_invs (twl_st_of None S)\<close> and \<open>twl_stgy_invs (twl_st_of None S)\<close> and
-    \<open>working_queue_l S = {#}\<close> and
-    \<open>get_conflict_l S = None\<close> and \<open>additional_WS_invs S\<close>
-  shows
-    \<open>cdcl_twl_stgy_prog_l' S \<le> SPEC(\<lambda>T. full cdcl_twl_stgy (twl_st_of None S) (twl_st_of None T))\<close>
-  apply (rule order_trans[OF cdcl_twl_stgy_prog_l'_spec[THEN refine_pair_to_SPEC,
-          of S \<open>twl_st_of None S\<close>]])
-  using assms apply auto[2]
-  apply (rule order_trans)
-   apply (rule ref_two_step[OF _ cdcl_twl_stgy_prog_spec[of \<open>twl_st_of None S\<close>],
-        of _ \<open>{(S, S'). S' = twl_st_of None S \<and> True}\<close>])
-  using assms by (auto simp: full_def pending_l_pending get_conflict_l_get_conflict
-      pw_conc_inres pw_conc_nofail pw_ords_iff(1))
-
-schematic_goal backtrack_l'_impl: "RETURN ?c \<le> backtrack_l' S"
-  unfolding backtrack_l'_def _def Let_def
-  apply (refine_transfer find_unwatched_impl)
-  done
-
-
-schematic_goal unit_propagation_inner_loop_body_l_impl:
-  "RETURN ?c \<le> unit_propagation_inner_loop_body_l L C S"
-  unfolding unit_propagation_inner_loop_body_l_def _def Let_def
-  apply (refine_transfer find_unwatched_impl)
-  done
-
-schematic_goal unit_propagation_inner_loop_l_impl: "RETURN ?c \<le> unit_propagation_inner_loop_l L S"
-  unfolding unit_propagation_inner_loop_l_def _def Let_def
-  apply (refine_transfer unit_propagation_inner_loop_body_l_impl)
-  done
-
-schematic_goal unit_propagation_outer_loop_l_impl: "RETURN ?c \<le> unit_propagation_outer_loop_l S"
-  unfolding unit_propagation_outer_loop_l_def _def Let_def
-  apply (refine_transfer find_unwatched_impl)
-  done
-
-schematic_goal cdcl_twl_stgy_prog_l'_impl: "RETURN ?c \<le> cdcl_twl_stgy_prog_l' S"
-  unfolding cdcl_twl_stgy_prog_l'_def _def Let_def
-  apply (refine_transfer find_unwatched_impl)
-  done
-
-concrete_definition backtrack_l'_impl uses cdcl_twl_stgy_prog_l'
-
-code_identifier
-  code_module DPLL_CDCL_W_Implementation \<rightharpoonup> (SML) CDCL_W_Level
-
-prepare_code_thms backtrack_l'_impl_def
-export_code backtrack_l'_impl in SML
 end
