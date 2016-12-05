@@ -353,9 +353,8 @@ lemma defined_lit_map_impl_spec: \<open>(uncurry defined_lit_map_impl, uncurry (
 lemma defined_lit_map_impl'_refine:
   \<open>(uncurry (defined_lit_map_impl'), uncurry (RETURN oo op_defined_lit_imp)) \<in>
     (nat_ann_lits_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  using defined_lit_map_impl'.refine_raw[unfolded defined_lit_map_impl'_def[symmetric],
-      FCOMP defined_lit_map_impl_spec] unfolding op_defined_lit_imp_def
-  .
+  using defined_lit_map_impl'.refine[FCOMP defined_lit_map_impl_spec]
+  unfolding op_defined_lit_imp_def .
 
 sepref_decl_impl defined_lit_impl: defined_lit_map_impl'_refine .
 
@@ -441,7 +440,7 @@ lemma case_bool_if: "case_bool a b v = (if v then a else b)"
 lemma valued_impl'_refine:
   shows \<open>(uncurry valued_impl', uncurry (RETURN oo op_valued)) \<in>
     [\<lambda>(M, _). no_dup M]\<^sub>a (nat_ann_lits_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> option_assn bool_assn\<close>
-  using valued_impl'.refine_raw[unfolded valued_impl'_def[symmetric], FCOMP valued_impl_spec]
+  using valued_impl'.refine[FCOMP valued_impl_spec]
   unfolding hrp_comp_Id2 valued'_def op_valued_def .
 
 sepref_decl_impl valued: valued_impl'_refine
@@ -483,7 +482,7 @@ sepref_definition find_unwatched_impl is
 
 sepref_register "find_unwatched :: (nat, nat) ann_lits
       \<Rightarrow> nat literal list \<Rightarrow> (bool option \<times> nat) nres"
-declare find_unwatched_impl.refine_raw[sepref_fr_rules]
+declare find_unwatched_impl.refine[sepref_fr_rules]
 thm HOL_list_prepend_hnr_mop
 term op_list_empty
 
@@ -549,7 +548,8 @@ sepref_definition unit_propagation_inner_loop_body_l_impl is \<open>uncurry2 (un
   supply [[goals_limit=1]]
   by sepref
 
-concrete_definition unit_propagation_inner_loop_body_l_impl' uses unit_propagation_inner_loop_body_l_impl.refine_raw
+concrete_definition unit_propagation_inner_loop_body_l_impl' uses
+  unit_propagation_inner_loop_body_l_impl.refine
 
 code_identifier
   code_module DPLL_CDCL_W_Implementation \<rightharpoonup> (SML) CDCL_W_Level
@@ -814,7 +814,7 @@ sepref_definition unit_propagation_inner_loop_l_impl is
 
 sepref_register \<open>unit_propagation_inner_loop_l :: nat literal \<Rightarrow>  nat twl_st_l \<Rightarrow> nat twl_st_l nres\<close>
 
-declare unit_propagation_inner_loop_l_impl.refine_raw[sepref_fr_rules]
+declare unit_propagation_inner_loop_l_impl.refine[sepref_fr_rules]
 
 sepref_register \<open>select_and_remove_from_pending :: nat twl_st_l \<Rightarrow> (nat twl_st_l \<times> nat literal) nres\<close>
 
@@ -916,7 +916,7 @@ sepref_definition unit_propagation_outer_loop_l_impl is
 
 sepref_register \<open>unit_propagation_outer_loop_l :: nat twl_st_l \<Rightarrow> nat twl_st_l nres\<close>
 
-declare unit_propagation_outer_loop_l_impl.refine_raw[sepref_fr_rules]
+declare unit_propagation_outer_loop_l_impl.refine[sepref_fr_rules]
 
 
 lemma is_decided_hnr[sepref_fr_rules]:
@@ -1024,6 +1024,8 @@ sepref_definition skip_and_resolve_loop_l_impl is
   supply [[goals_limit=1]]
   by sepref
 
+sepref_register \<open>skip_and_resolve_loop_l :: nat twl_st_l \<Rightarrow> nat twl_st_l nres\<close>
+declare skip_and_resolve_loop_l_impl.refine[sepref_fr_rules]
 
 definition find_decomp_l_res :: "twl_st_ll \<Rightarrow> nat literal \<Rightarrow> (nat, nat) ann_lits nres" where
   \<open>find_decomp_l_res = (\<lambda>(M, N, U, D, NP, UP, WS, Q) L.
@@ -1436,9 +1438,9 @@ proof -
   have out: \<open>hr_comp nat_lit_assn Id = nat_lit_assn\<close>
     by simp
   show ?thesis
-  using hfref_compI_PRE_aux [OF find_lit_of_max_level_l_find_lit_of_max_level
+    using hfref_compI_PRE_aux [OF find_lit_of_max_level_l_find_lit_of_max_level
       find_lit_of_max_level_l_res_find_lit_of_max_level]
-  unfolding pre args out by assumption
+    unfolding pre args out by assumption
 qed
 
 sepref_register \<open>add_mset_list :: nat literal list \<Rightarrow> nat clauses \<Rightarrow> nat clauses\<close>
@@ -1475,5 +1477,267 @@ sepref_definition backtrack_l_impl is
   maximum_level_code_eq_get_maximum_level[symmetric]
   supply [[goals_limit=1]]
   by sepref
+
+definition find_unassigned_lit_cls_l ::
+  "'a literal list \<Rightarrow> ('a, 'b) ann_lits \<Rightarrow> (nat \<times> 'a literal option) nres" where
+  \<open>find_unassigned_lit_cls_l C M =
+    WHILE\<^sub>T\<^bsup>\<lambda>(i, v). (\<forall>j<i. defined_lit M (C!j)) \<and> i \<le> length C \<and>
+      (v \<noteq> None \<longrightarrow> (undefined_lit M (the v) \<and> (\<forall>j<i. defined_lit M (C!j)) \<and>
+        atm_of (the v) \<in> atms_of (mset C)) \<and> the v = C!i)\<^esup>
+      (\<lambda>(i, v). v = None \<and> i < length C)
+      (\<lambda>(i, _). do {
+        ASSERT(no_dup M);
+        ASSERT(i < length C);
+        val_L' \<leftarrow> RETURN (valued M (C!i));
+        if val_L' = None then do {RETURN (i, Some (C!i))}
+        else do {RETURN (i+1, None)}
+      })
+     (0, None)\<close>
+
+lemma find_unassigned_lit_cls_l_spec:
+  assumes \<open>no_dup M\<close>
+  shows
+    \<open>find_unassigned_lit_cls_l C M \<le> SPEC(\<lambda>(i, v). (v = None \<longrightarrow> (\<forall>j < length C. defined_lit M (C!j))) \<and>
+      (v \<noteq> None \<longrightarrow> undefined_lit M (the v) \<and> the v = C!i \<and> atm_of (the v) \<in> atms_of (mset C)))\<close>
+  using assms unfolding find_unassigned_lit_cls_l_def
+  by (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, v). Suc (length C) - i - If (v \<noteq> None) 1 0)\<close>])
+     ((auto simp: valued_def Decided_Propagated_in_iff_in_lits_of_l split: if_splits
+        simp: less_Suc_eq; fail))+
+
+definition find_unassigned_lit_clss_l :: \<open>'v twl_st_l \<Rightarrow> (nat \<times> 'v literal option) nres\<close>  where
+  \<open>find_unassigned_lit_clss_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q).
+    WHILE\<^sub>T\<^bsup>\<lambda>(i, v). ((\<forall>j<i. j > 0 \<longrightarrow> (\<forall>k<length (N!j). defined_lit M (N!j!k)))) \<and>
+        (v \<noteq> None \<longrightarrow> undefined_lit M (the v) \<and> atm_of (the v) \<in> atms_of_mm (mset `# mset (tl N))) \<and> i \<le> length N \<and> i \<ge> 1\<^esup>
+      (\<lambda>(i, v). v = None \<and> i < length N)
+      (\<lambda>(i::nat, v::'v literal option). do {
+        ASSERT(i < length N);
+        ASSERT(i > 0);
+        ASSERT(no_dup M);
+        (k, v) \<leftarrow> find_unassigned_lit_cls_l (N!i) M;
+        if v = None then do {RETURN (i+1, None)}
+        else do {RETURN (i, v)}
+      })
+     (1, None))\<close>
+declare find_unassigned_lit_cls_l_spec[THEN order_trans, refine_vcg]
+
+lemma find_unassigned_lit_clss_l_spec:
+  assumes \<open>no_dup M\<close> and \<open>length N > 0\<close>
+  shows
+    \<open>find_unassigned_lit_clss_l (M, N, U, D, NP, UP, WS, Q) \<le>
+        SPEC(\<lambda>(i, v). (v = None \<longrightarrow> (\<forall>j<length N. j > 0 \<longrightarrow> (\<forall>k<length (N!j). defined_lit M (N!j!k)))) \<and>
+           (v \<noteq> None \<longrightarrow> undefined_lit M (the v) \<and>
+               atm_of (the v) \<in> atms_of_mm (mset `# mset (tl N))) \<and> i > 0)\<close>
+proof -
+  have [intro]: \<open>x1 < length N \<Longrightarrow> 0 < x1 \<Longrightarrow>
+     atm_of (N ! x1 ! aha) = atm_of x \<Longrightarrow> x \<in> set (N ! x1) \<Longrightarrow>
+     atm_of x \<in> atms_of_ms (mset ` set (tl N))\<close>
+    for x1 aha x
+    unfolding tl_drop_def One_nat_def atms_of_ms_def
+    by simp (meson Suc_leI atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set in_set_drop_conv_nth)
+  show ?thesis
+    using assms unfolding find_unassigned_lit_clss_l_def
+  by (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, v). Suc (length N) - i - If (v \<noteq> None) 1 0)\<close>])
+    (auto simp: less_Suc_eq)
+qed
+
+definition find_unassigned_lit_l :: \<open>'v twl_st_l \<Rightarrow> 'v literal option nres\<close>  where
+  \<open>find_unassigned_lit_l S =  do {
+    (i, v) \<leftarrow> find_unassigned_lit_clss_l S;
+    RETURN v
+  }\<close>
+declare find_unassigned_lit_cls_l_spec[THEN order_trans, refine_vcg]
+
+declare find_unassigned_lit_clss_l_spec[THEN order_trans, refine_vcg]
+
+lemma find_unassigned_lit_l_spec:
+  assumes
+    struct_inv: \<open>twl_struct_invs (twl_st_of None S)\<close>and
+    stgy_inv: \<open>twl_stgy_invs (twl_st_of None S)\<close> and
+    add_invs: \<open>additional_WS_invs S\<close> and
+    D: \<open>get_conflict_l S = None\<close>
+  shows \<open>find_unassigned_lit_l S \<le> find_unassigned_lit S\<close>
+proof -
+  obtain M N U D NP UP WS Q where
+    S: \<open>S = (M, N, U, None, NP, UP, WS, Q)\<close>
+    using D by (cases S) auto
+  have [simp]: \<open>(\<lambda>x. mset (take 2 x) + mset (drop 2 x)) = mset\<close>
+    unfolding mset_append[symmetric] append_take_drop_id ..
+  have learned_in_init: \<open>atms_of_mm
+     (learned_clss (convert_to_state (twl_st_of None S)))
+    \<subseteq> atms_of_mm
+        (init_clss (convert_to_state (twl_st_of None S)))\<close> and
+    unit_inv: \<open>unit_clss_inv (twl_st_of None S)\<close>
+    using struct_inv unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.no_strange_atm_def by fast+
+  have n_d: \<open>no_dup M\<close>
+    using struct_inv unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: S cdcl\<^sub>W_restart_mset_state)
+  have length_N_ge_0: \<open>length N > 0\<close>
+    using add_invs by (auto simp: additional_WS_invs_def S)
+  have \<open>atm_of y \<in> atms_of_ms (mset ` set (take U (tl N)))\<close>
+    if undef: \<open>undefined_lit M y\<close> and \<open>atm_of y \<in> atms_of_ms (mset ` set (tl N))\<close> for y
+  proof -
+    have \<open>atm_of y \<notin> atms_of_mm NP\<close>
+    proof (rule ccontr)
+      assume \<open>\<not> ?thesis\<close>
+      then obtain C where \<open>C \<in># NP\<close> and y_in_C: \<open>atm_of y \<in> atms_of C\<close>
+        by (auto simp: S atms_of_ms_def)
+      then obtain L where \<open>C = {#L#}\<close> and \<open>L \<in> lits_of_l M\<close>
+        using unit_inv undef by (auto simp: S atms_of_ms_def)
+      then show False
+        using y_in_C undef by (auto simp: atm_of_eq_atm_of Decided_Propagated_in_iff_in_lits_of_l)
+    qed
+    moreover have \<open>atms_of_ms (mset ` set (drop (Suc U) N)) \<subseteq> atms_of_ms
+        (mset ` set (take U (tl N))) \<union>
+       atms_of_mm NP\<close>
+      using that learned_in_init
+      apply (subst (asm) append_take_drop_id[of \<open>U\<close> \<open>tl N\<close>, symmetric])
+      apply (subst (asm) set_append)
+      by (auto simp: cdcl\<^sub>W_restart_mset_state S image_Un)
+    ultimately have \<open>atm_of y \<in> atms_of_ms (mset ` set (drop U (tl N))) \<Longrightarrow>
+      atm_of y \<in> atms_of_ms (mset ` set (take U (tl N)))\<close>
+      by (metis (no_types, lifting) UnE drop_Suc subsetCE)
+    then show ?thesis
+      using that learned_in_init
+      apply (subst (asm)(2) append_take_drop_id[of \<open>U\<close> \<open>tl N\<close>, symmetric])
+      apply (subst (asm) set_append)
+      by (auto simp: cdcl\<^sub>W_restart_mset_state S image_Un)
+  qed
+  moreover have \<open>\<not>(\<exists>L. undefined_lit M L \<and> atm_of L \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N))))\<close>
+    if \<open>\<forall>j<length N. 0 < j \<longrightarrow> (\<forall>k<length (N ! j). defined_lit M (N ! j ! k))\<close>
+  proof (rule ccontr)
+    assume \<open>\<not> ?thesis\<close>
+    then obtain L where
+      \<open>undefined_lit M L\<close> and
+      \<open>atm_of L \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)))\<close>
+      by blast
+    moreover have \<open>\<forall>C \<in> set (take U (tl N)). (\<forall>L \<in> set C. defined_lit M L)\<close>
+      using that unfolding tl_drop_def all_set_conv_nth
+      by auto
+    ultimately show False
+        by (auto simp: atms_of_ms_def atm_of_eq_atm_of)
+  qed
+  ultimately show ?thesis
+    using n_d length_N_ge_0 unfolding find_unassigned_lit_l_def find_unassigned_lit_def S
+    by refine_vcg auto
+qed
+
+sepref_definition find_unassigned_lit_l_impl is find_unassigned_lit_l
+  :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a option_assn nat_lit_assn\<close>
+  unfolding find_unassigned_lit_l_def find_unassigned_lit_clss_l_def
+    find_unassigned_lit_cls_l_def
+  by sepref
+
+sepref_register \<open>find_unassigned_lit_l :: nat twl_st_l \<Rightarrow> nat literal option nres\<close>
+
+lemma find_unassigned_lit_l_find_unassigned_lit:
+  \<open>(find_unassigned_lit_l, find_unassigned_lit) \<in>
+    [\<lambda>S. twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and>
+       additional_WS_invs S \<and> get_conflict_l S = None]\<^sub>f
+    Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>\<langle>Id\<rangle>option_rel\<rangle> nres_rel\<close>
+  using find_unassigned_lit_l_spec by (fastforce simp: fref_def nres_rel_def simp del: twl_st_of.simps)
+
+lemma find_unassigned_lit_l_impl_find_unassigned_lit_l[sepref_fr_rules]:
+  \<open>(find_unassigned_lit_l_impl, find_unassigned_lit) \<in>
+    [\<lambda>S.
+       twl_struct_invs (twl_st_of None S) \<and>
+       twl_stgy_invs (twl_st_of None S) \<and>
+       additional_WS_invs S \<and> get_conflict_l S = None]\<^sub>a
+    twl_st_l_assn\<^sup>d \<rightarrow> option_assn nat_lit_assn\<close>
+proof -
+  have pre: \<open>comp_PRE  (Id \<times>\<^sub>r
+        Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id)
+       (\<lambda>S. twl_struct_invs (twl_st_of None S) \<and>
+             twl_stgy_invs (twl_st_of None S) \<and>
+             additional_WS_invs S \<and> get_conflict_l S = None)
+       (\<lambda>_ _. True)
+       (\<lambda>_. True) = (\<lambda>S. twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and>
+          additional_WS_invs S \<and> get_conflict_l S = None)\<close>
+    by (auto simp: comp_PRE_def)
+
+  have args: \<open>hrp_comp (twl_st_l_assn\<^sup>d) (Id \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id)
+      = twl_st_l_assn\<^sup>d\<close>
+    unfolding prod_hrp_comp hrp_comp_twl_st_ll_assn_twl_st_of_ll
+    by simp
+  have out: \<open>hr_comp (option_assn nat_lit_assn) (\<langle>Id\<rangle>option_rel) = option_assn nat_lit_assn\<close>
+    by simp
+  show ?thesis
+    using hfref_compI_PRE_aux [OF find_unassigned_lit_l_impl.refine
+      find_unassigned_lit_l_find_unassigned_lit]
+    unfolding pre args out by assumption
+qed
+
+sepref_definition decide_l_or_skip_impl is
+  \<open>decide_l_or_skip :: nat twl_st_l \<Rightarrow> (bool \<times> nat twl_st_l) nres\<close>
+  :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *assn twl_st_l_assn\<close>
+  unfolding decide_l_or_skip_def
+  unfolding lms_fold_custom_empty
+  apply sepref
+  done
+
+sepref_register \<open>decide_l_or_skip :: nat twl_st_l \<Rightarrow> (bool \<times> nat twl_st_l) nres\<close>
+declare decide_l_or_skip_impl.refine[sepref_fr_rules]
+thm decide_l_or_skip_impl.refine[sepref_fr_rules]
+
+sepref_register \<open>(backtrack_l :: nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close>
+declare backtrack_l_impl.refine[sepref_fr_rules]
+
+sepref_definition cdcl_twl_o_prog_l_impl is cdcl_twl_o_prog_l
+  :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *assn twl_st_l_assn\<close>
+  unfolding cdcl_twl_o_prog_l_def option_is_Nil
+  unfolding HOL_list.fold_custom_empty
+  apply (rewrite at \<open>\<not>_ \<and> is_Nil _\<close> short_circuit_conv)
+  by sepref
+
+sepref_register \<open>(cdcl_twl_o_prog_l :: nat twl_st_l \<Rightarrow> (bool \<times> nat twl_st_l) nres)\<close>
+declare cdcl_twl_o_prog_l_impl.refine[sepref_fr_rules]
+
+sepref_definition cdcl_twl_stgy_prog_l_impl is cdcl_twl_stgy_prog_l
+  :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
+  unfolding cdcl_twl_stgy_prog_l_def
+  by sepref
+
+definition full_cdcl_twl_stgy where
+  \<open>full_cdcl_twl_stgy S = SPEC(\<lambda>T. full cdcl_twl_stgy (twl_st_of None S) (twl_st_of None T))\<close>
+
+lemma cdcl_twl_stgy_prog_l_spec_final:
+  shows
+    \<open>(cdcl_twl_stgy_prog_l, full_cdcl_twl_stgy) \<in>
+    [\<lambda>S. twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and>
+      working_queue_l S = {#} \<and> get_conflict_l S = None \<and> additional_WS_invs S]\<^sub>f
+    Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+  unfolding full_cdcl_twl_stgy_def
+  using cdcl_twl_stgy_prog_l_spec_final
+  by (fastforce simp: fref_def nres_rel_def simp del: twl_st_of.simps)
+
+lemma cdcl_twl_stgy_prog_l_impl_spec_final:
+  shows
+    \<open>(cdcl_twl_stgy_prog_l_impl, full_cdcl_twl_stgy) \<in>
+    [\<lambda>S. twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and>
+      working_queue_l S = {#} \<and> get_conflict_l S = None \<and> additional_WS_invs S]\<^sub>a
+   twl_st_l_assn\<^sup>d \<rightarrow> twl_st_l_assn\<close>
+proof -
+  have pre: \<open>comp_PRE (Id \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id)
+       (\<lambda>S. twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and> working_queue_l S = {#} \<and> get_conflict_l S = None \<and> additional_WS_invs S) (\<lambda>_ _. True)
+       (\<lambda>_. True)
+        = (\<lambda>S. twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and>
+          working_queue_l S = {#} \<and> get_conflict_l S = None \<and> additional_WS_invs S)\<close>
+    by (auto simp: comp_PRE_def)
+
+  have args: \<open> hrp_comp (twl_st_l_assn\<^sup>d) (Id \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) =
+      twl_st_l_assn\<^sup>d\<close>
+    unfolding prod_hrp_comp hrp_comp_twl_st_ll_assn_twl_st_of_ll
+    by simp
+  have out: \<open>hr_comp twl_st_l_assn Id = twl_st_l_assn\<close>
+    by simp
+  show ?thesis
+    using hfref_compI_PRE_aux [OF cdcl_twl_stgy_prog_l_impl.refine cdcl_twl_stgy_prog_l_spec_final]
+    unfolding pre args out by assumption
+qed
+
+text \<open>This is the least worst version:\<close>
+thm cdcl_twl_stgy_prog_l_impl_spec_final[unfolded full_cdcl_twl_stgy_def]
+
+export_code cdcl_twl_stgy_prog_l_impl in SML_imp
 
 end
