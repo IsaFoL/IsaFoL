@@ -29,7 +29,7 @@
 
 ## Publications ##
 
-* Formalization of the Resolution Calculus for First-Order Logic.
+* [Formalization of the Resolution Calculus for First-Order Logic](http://orbit.dtu.dk/files/126069253/typeinst.pdf).
   A. Schlichtkrull.
   In Blanchette, J. C., Merz, S. (eds.) 7th International Conference on Interactive Theorem Proving (ITP 2016), LNCS 9807, Springer, 2016.
 
