@@ -127,7 +127,17 @@ lemma ord_resolve_sound:
     cc_d_true: "\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m (side_clauses CAs + {#D#}) \<cdot>cm \<sigma>" and
     ground_subst_\<sigma>: "is_ground_subst \<sigma>"
   shows "I \<Turnstile> E \<cdot> \<sigma>"
-    sorry
+using res_e proof (cases rule: ord_resolve.cases)
+  case (ord_resolve As \<tau> D)
+  have "side_clauses CAs = p" apply auto
+  define CC where "CC \<equiv> side_clauses CAs"
+  have cc_d_true: "\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m (CC + {#D#}) \<cdot>cm \<sigma>" sorry
+  have asdf: "is_ground_subst (\<tau> \<odot> \<sigma>)"
+    using ground_subst_\<sigma> by (rule is_ground_comp_subst)
+  hence cc_true: "I \<Turnstile>m (side_clauses CAs) \<cdot>cm \<tau> \<cdot>cm \<sigma>" and d_true: "I \<Turnstile> D \<cdot> \<tau> \<cdot> \<sigma>"
+    using cc_d_true[of "\<tau> \<odot> \<sigma>"] apply auto
+  then show ?thesis sorry
+qed
   
 
 (* lifting lemma:
