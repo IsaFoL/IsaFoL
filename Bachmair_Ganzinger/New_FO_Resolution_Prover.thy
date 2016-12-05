@@ -30,10 +30,6 @@ definition less_eq_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
 
 abbreviation "maximal_in A D \<equiv> (\<forall>B \<in> atms_of D. \<not> less_atm A B)"
 abbreviation "str_maximal_in A D \<equiv> (\<forall>B \<in> atms_of D. \<not> less_eq_atm A B)"
-abbreviation "main_clause \<equiv> (\<lambda>(D,A). D + {#Neg Atm. Atm \<in># mset A #})"
-abbreviation "side_clause \<equiv> (\<lambda>(C,A). C + {#Pos Atm. Atm \<in># A #})"
-abbreviation "get_As \<equiv> snd"
-abbreviation "get_C \<equiv> fst"
 
 lemma ground_less_atm_iff: "is_ground_atm A \<Longrightarrow> is_ground_atm B \<Longrightarrow> less_atm A B \<longleftrightarrow> A < B"
   unfolding is_ground_atm_def less_atm_iff by (auto intro: ex_ground_subst)
@@ -119,7 +115,7 @@ qed
 lemma ord_resolve_raw_sound:
   assumes
     res_e: "ord_resolve_raw CC D E" and
-    cc_d_true: "\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m (CC + {#D#}) \<cdot>cc \<sigma>" and
+    cc_d_true: "\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m (CC + {#D#}) \<cdot>cm \<sigma>" and
     ground_subst_\<sigma>: "is_ground_subst \<sigma>"
   shows "I \<Turnstile> E \<cdot> \<sigma>"
 using res_e proof (cases rule: ord_resolve_raw.cases)
@@ -129,7 +125,7 @@ using res_e proof (cases rule: ord_resolve_raw.cases)
 
   have "is_ground_subst (\<tau> \<odot> \<sigma>)"
     using ground_subst_\<sigma> by (rule is_ground_comp_subst)
-  hence cc_true: "I \<Turnstile>m CC \<cdot>cc \<tau> \<cdot>cc \<sigma>" and d_true: "I \<Turnstile> D \<cdot> \<tau> \<cdot> \<sigma>"
+  hence cc_true: "I \<Turnstile>m CC \<cdot>cm \<tau> \<cdot>cm \<sigma>" and d_true: "I \<Turnstile> D \<cdot> \<tau> \<cdot> \<sigma>"
     using cc_d_true[of "\<tau> \<odot> \<sigma>"] unfolding subst_cls_mset_def by auto
 
   show ?thesis
@@ -155,10 +151,10 @@ using res_e proof (cases rule: ord_resolve_raw.cases)
       using aaa cabb by force
     { fix B
       assume "B \<in># BB"
-      moreover have "is_unifier_set \<tau> (set_mset AAA)"
-        using \<tau> by (auto simp: aaa intro: is_unifier_set_mgu)
+      moreover have "is_unifiers \<tau> (set_mset AAA)"
+        using \<tau> by (auto simp: aaa intro: is_unifiers_mgu)
       ultimately have "B \<cdot>a \<tau> = A \<cdot>a \<tau>"
-        using a_bb_in_aaa by (intro is_unifier_set_subst_atm_eqI[of "insert A (set_mset BB)"]) auto
+        using a_bb_in_aaa by (intro is_unifiers_subst_atm_eqI[of "insert A (set_mset BB)"]) auto
     }
     hence "\<not> I \<Turnstile> poss BB \<cdot> \<tau> \<cdot> \<sigma>"
       using a_false by (auto simp: true_cls_def)
@@ -174,7 +170,7 @@ qed
 lemma ord_resolve_sound:
   assumes
     res_e: "ord_resolve CC D E" and
-    cc_d_true: "\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m (CC + {#D#}) \<cdot>cc \<sigma>" and
+    cc_d_true: "\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m (CC + {#D#}) \<cdot>cm \<sigma>" and
     ground_subst_\<sigma>: "is_ground_subst \<sigma>"
   shows "I \<Turnstile> E \<cdot> \<sigma>"
 using res_e proof (cases rule: ord_resolve.cases)
@@ -185,7 +181,7 @@ using res_e proof (cases rule: ord_resolve.cases)
     assume "is_ground_subst \<sigma>"
     hence "is_ground_subst (\<rho> \<odot> \<sigma>)" "\<forall>\<rho>. (\<exists>C. (C, \<rho>) \<in># CCP) \<longrightarrow> is_ground_subst (\<rho> \<odot> \<sigma>)"
       unfolding p by simp_all
-    with cc_d_true have "I \<Turnstile>m (CC\<rho> + {#D \<cdot> \<rho>#}) \<cdot>cc \<sigma>"
+    with cc_d_true have "I \<Turnstile>m (CC\<rho> + {#D \<cdot> \<rho>#}) \<cdot>cm \<sigma>"
       unfolding cc\<rho> cc p
       by (auto simp: subst_cls_comp_subst[symmetric] simp del: subst_cls_comp_subst)
   }
@@ -287,10 +283,8 @@ lemma ord_resolve_lifting:
   obtains \<sigma> CC' D' E' where
     "is_ground_subst \<sigma>"
     "ord_resolve_raw S CC' D' E'"
-    "CC = CC' \<cdot>cc \<sigma>" "D = D' \<cdot> \<sigma>" "E = E' \<cdot> \<sigma>" 
-    (* Jeg har lidt på fornemmelsen at det er for meget forlangt at vi bruger den samme substitution 
-       Der kunne jo være to clauses som indeholder den samme variabel, men skal instantiere til to
-       forskellige ting.
+    "CC = CC' \<cdot>cm \<sigma>" "D = D' \<cdot> \<sigma>" "E = E' \<cdot> \<sigma>" 
+    (* 
        Kig på lifting lemma i bogen. Og kig på hvor det bliver brugt.
     *)
     "{D', E'} \<union> set_mset CC' \<subseteq> M"
@@ -329,7 +323,7 @@ using resolve proof (atomize_elim, cases rule: ord_resolve_raw.cases)
     using pick by auto
 
   obtain \<rho>D \<rho>s where \<rho>s: "length \<rho>s = length Cs" "is_renaming \<rho>D" "\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>"
-    "var_disjoint ((Dp \<cdot> \<rho>D) # (Cs \<cdot>cls \<rho>s))"
+    "var_disjoint ((Dp \<cdot> \<rho>D) # (Cs \<cdot>\<cdot>cl \<rho>s))"
     using make_var_disjoint[of "Dp # Cs"] by (auto simp: length_Suc_conv)
 
   from \<rho>s(2,3) obtain \<rho>D' \<rho>'s where "length \<rho>'s = length \<rho>s"
@@ -339,22 +333,22 @@ using resolve proof (atomize_elim, cases rule: ord_resolve_raw.cases)
 
   note lengths = \<open>length \<rho>'s = length \<rho>s\<close> \<rho>s(1) trans[OF \<open>length Cs = ?n\<close> sym[OF \<open>length \<sigma>s = ?n\<close>]]
 
-  then have "Cs \<cdot>cls \<rho>s \<cdot>cls \<rho>'s = Cs" "Dp \<cdot> \<rho>D \<cdot> \<rho>D' = Dp"
+  then have "Cs \<cdot>\<cdot>cl \<rho>s \<cdot>\<cdot>cl \<rho>'s = Cs" "Dp \<cdot> \<rho>D \<cdot> \<rho>D' = Dp"
     unfolding subst_cls_comp_subst[symmetric] subst_cls_lists_comp_substs[symmetric] inv by auto
 
   with lengths var_disjoint_ground[OF \<rho>s(4), of "(\<rho>D' \<odot> \<sigma>D) # (\<rho>'s \<odot>s \<sigma>s)"] ground_\<sigma>D ground_\<sigma>s
-    obtain \<tau> where \<tau>: "is_ground_subst \<tau>" "Dp \<cdot> \<sigma>D = Dp \<cdot> \<rho>D \<cdot> \<tau>" "Cs \<cdot>cls \<sigma>s = Cs \<cdot>cls \<rho>s \<cdot>cl \<tau>"
+    obtain \<tau> where \<tau>: "is_ground_subst \<tau>" "Dp \<cdot> \<sigma>D = Dp \<cdot> \<rho>D \<cdot> \<tau>" "Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<tau>"
     by auto
 
-  moreover from pick have "?Cs = Cs \<cdot>cls \<sigma>s"
+  moreover from pick have "?Cs = Cs \<cdot>\<cdot>cl \<sigma>s"
     unfolding subst_cls_lists_def Cs_def \<sigma>s_def
     by (auto simp only: set_map length_map length_zip nth_map nth_zip nth_mem list_eq_iff_nth_eq
       set_sorted_list_of_multiset[symmetric])
 
-  then have "mset ?Cs = mset (Cs \<cdot>cls \<sigma>s)"
+  then have "mset ?Cs = mset (Cs \<cdot>\<cdot>cl \<sigma>s)"
     by simp
 
-  ultimately have "D =  Dp \<cdot> \<rho>D \<cdot> \<tau>" "CC = mset (Cs \<cdot>cls \<rho>s) \<cdot>cc \<tau>"
+  ultimately have "D =  Dp \<cdot> \<rho>D \<cdot> \<tau>" "CC = mset (Cs \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<tau>"
     using pickD by (simp_all add: subst_cls_list_def subst_cls_mset_def mset_map)
 
   have "\<exists>SDp\<rho>D. SDp\<rho>D \<subseteq># Dp \<cdot> \<rho>D \<and> SDp\<rho>D \<cdot> \<tau> = S_M S M D" sorry
@@ -363,14 +357,14 @@ using resolve proof (atomize_elim, cases rule: ord_resolve_raw.cases)
   define CC' where "CC' \<equiv> mset Cs"
   define P where "P \<equiv> mset \<rho>s"
   define CC'P where "CC'P \<equiv> mset (zip Cs \<rho>s)"
-  define CC'\<rho> where "CC'\<rho> \<equiv> mset (Cs \<cdot>cls \<rho>s)"
+  define CC'\<rho> where "CC'\<rho> \<equiv> mset (Cs \<cdot>\<cdot>cl \<rho>s)"
   define ZZ\<rho> where "ZZ\<rho> = ZZ"
   define E' where "E' \<equiv> ((undefined + undefined) \<cdot> undefined) :: 'a literal multiset" (* should be made from Dp \<cdot> \<rho>D and Cs \<cdot> \<rho>s *)
 (* ((?Cf' + ?D') \<cdot> ?\<sigma>)  *)
   have \<tau>_ground: "is_ground_subst \<tau>" using \<tau> by auto
   have fo_resolve: "ord_resolve_raw S CC'\<rho> (Dp \<cdot> \<rho>D) E'" 
     using ord_resolve_raw.intros[of _ _ "image_mset atm_of SDp\<rho>D" _ CC'\<rho> "Dp \<cdot> \<rho>D" _ _ S] sorry
-  have instanceCC: "CC = CC'\<rho> \<cdot>cc \<tau>" using \<open>CC = mset (Cs \<cdot>cls \<rho>s) \<cdot>cc \<tau>\<close> unfolding CC'\<rho>_def by auto
+  have instanceCC: "CC = CC'\<rho> \<cdot>cm \<tau>" using \<open>CC = mset (Cs \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<tau>\<close> unfolding CC'\<rho>_def by auto
   have instanceD: "D = (Dp \<cdot> \<rho>D) \<cdot> \<tau>" using \<open>D = Dp \<cdot> \<rho>D \<cdot> \<tau>\<close> by auto
   have instanceE: "E = E' \<cdot> \<tau>" sorry
 
@@ -380,17 +374,17 @@ using resolve proof (atomize_elim, cases rule: ord_resolve_raw.cases)
   proof
     fix C'\<rho>
     assume "C'\<rho> \<in># CC'\<rho>"
-    then have "\<exists>i. i < length (Cs \<cdot>cls \<rho>s) \<and> (Cs \<cdot>cls \<rho>s) ! i = C'\<rho>" unfolding CC'\<rho>_def by (simp add: in_set_conv_nth)
-    then have "\<exists>i. i < length (Cs \<cdot>cls \<rho>s) \<and> (Cs ! i) \<cdot> (\<rho>s ! i) = C'\<rho>" unfolding subst_cls_lists_def by auto
+    then have "\<exists>i. i < length (Cs \<cdot>\<cdot>cl \<rho>s) \<and> (Cs \<cdot>\<cdot>cl \<rho>s) ! i = C'\<rho>" unfolding CC'\<rho>_def by (simp add: in_set_conv_nth)
+    then have "\<exists>i. i < length (Cs \<cdot>\<cdot>cl \<rho>s) \<and> (Cs ! i) \<cdot> (\<rho>s ! i) = C'\<rho>" unfolding subst_cls_lists_def by auto
     then show "C'\<rho> \<in> M" using M_renaming_invariant \<rho>s(3) Cs_M by auto
   qed  
 
   from \<tau>_ground fo_resolve instanceCC instanceD instanceE DinM E'inM C''inM 
     show "\<exists>\<sigma> CC' D' E'. is_ground_subst \<sigma> \<and> ord_resolve_raw S CC' D' E' \<and>
-      CC = CC' \<cdot>cc \<sigma> \<and> D = D' \<cdot> \<sigma> \<and> E = E' \<cdot> \<sigma> \<and> {D', E'} \<union> set_mset CC' \<subseteq> M" by auto
+      CC = CC' \<cdot>cm \<sigma> \<and> D = D' \<cdot> \<sigma> \<and> E = E' \<cdot> \<sigma> \<and> {D', E'} \<union> set_mset CC' \<subseteq> M" by auto
 (*
   show "\<exists>\<sigma> CC' D' E'. is_ground_subst \<sigma> \<and> ord_resolve_raw S CC' D' E' \<and>
-    CC = CC' \<cdot>cc \<sigma> \<and> D = D' \<cdot> \<sigma> \<and> E = E' \<cdot> \<sigma> \<and> {D', E'} \<union> set_mset CC' \<subseteq> M"
+    CC = CC' \<cdot>cm \<sigma> \<and> D = D' \<cdot> \<sigma> \<and> E = E' \<cdot> \<sigma> \<and> {D', E'} \<union> set_mset CC' \<subseteq> M"
   proof (intro exI conjI)
     show "is_ground_subst \<tau>" by (metis \<tau>(1))
     show "ord_resolve_raw S CC'\<rho> (Dp \<cdot> \<rho>D) ((cf + d) \<cdot> x)"
@@ -398,8 +392,8 @@ using resolve proof (atomize_elim, cases rule: ord_resolve_raw.cases)
       apply (simp_all add: selection_renaming_invariant[OF \<rho>s(2)])
       sorry
 
-    show "CC = CC'\<rho> \<cdot>cc \<tau>"
-      unfolding CC'_def CC'\<rho>_def \<open>CC = mset (Cs \<cdot>cls \<rho>s) \<cdot>cc \<tau>\<close> ..
+    show "CC = CC'\<rho> \<cdot>cm \<tau>"
+      unfolding CC'_def CC'\<rho>_def \<open>CC = mset (Cs \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<tau>\<close> ..
     show "D = Dp \<cdot> \<rho>D \<cdot> \<tau>"
       unfolding \<open>D =  Dp \<cdot> \<rho>D \<cdot> \<tau>\<close> ..
     show "E = (cf + d) \<cdot> x \<cdot> \<tau>"
