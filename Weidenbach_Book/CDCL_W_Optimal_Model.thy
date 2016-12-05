@@ -2,8 +2,91 @@ theory CDCL_W_Optimal_Model
 imports CDCL_W_Abstract_State "~~/src/HOL/Library/Extended_Nat"
 begin
 
+section \<open>CDCL Extensions\<close>
+
+subsection \<open>Optimisations\<close>
+
 notation image_mset (infixr "`#" 90)
 
+text \<open>
+\nitpicking{
+
+\shortrules{Propagate}{$(M;N;U;k;\top;O)$}{$(ML^{C\lor L};N;U;k;\top;O)$}
+
+provided $C\lor L\in (N\cup U)$, $M\models \neg C$, $L$ is undefined in $M$.
+
+\bigskip
+\shortrules{Decide}{$(M;N;U;k;\top;O)$}{$(ML^{k+1};N;U;k+1;\top;O)$}
+
+provided $L$ is undefined in $M$, contained in $N$.
+
+\bigskip
+\shortrules{ConflSat}{$(M;N;U;k;\top;O)$}{$(M;N;U;k;D;O)$}
+
+provided $D\in (N\cup U)$ and $M\models \neg D$.
+
+\bigskip
+\shortrules{ConflOpt}{$(M;N;U;k;\top;O)$}{$(M;N;U;k;\neg M;O)$}
+
+provided $O\neq\epsilon$ and $\operatorname{cost}(M) \geq \operatorname{cost}(O)$.
+
+\bigskip
+\shortrules{Skip}{$(ML^{C\lor L};N;U;k;D;O)$}{$(M;N;U;k;D;O)$}
+
+provided $D\not\in\{\top,\bot\}$ and $\neg L$ does not occur in $D$.
+
+
+\bigskip
+\shortrules{Resolve}{$(ML^{C\lor L};N;U;k;D\lor-(L);O)$}{$(M;N;U;k;D\lor C;O)$}
+
+provided $D$ is of level $k$.
+
+\bigskip
+\shortrules{Backtrack}{$(M_1K^{i+1}M_2;N;U;k;D\lor L;O)$}{$(M_1L^{D\vee L};N;U\cup\{D\lor L\};i;\top;O)$}
+
+provided $L$ is of level $k$ and $D$ is of level $i$.
+
+\bigskip
+\shortrules{Improve}{$(M;N;U;k;\top;O)$}{$(M;N;U;k;\top;M)$}
+
+provided $M\models N$ and $O=\epsilon$ or $\operatorname{cost}(M)<\operatorname{cost}(O)$.
+}
+{This calculus does not always find the model with minimum cost. Take for example the following cost function:
+\[\operatorname{cost}: \left\{
+\begin{array}{c@ {\rightarrow}c}
+P & 3\\
+\neg P & 1\\
+Q & 1\\
+\neg Q & 1\\
+\end{array}
+ \right.\]
+and the clauses $N = \{P\lor Q\}$. We can then do the following transitions:
+
+
+$(\epsilon, N, \varnothing, \top, \infty)$
+
+\shortrules{Decide}{}{$(P^1, N, \varnothing, \top, \infty)$}
+
+\shortrules{Improve}{}{$(P^1, N, \varnothing, \top, (P, 3))$}
+
+\shortrules{conflictOpt}{}{$(P^1, N, \varnothing, \neg P, (P, 3))$}
+
+\shortrules{backtrack}{}{$({\neg P}^{\neg P}, N, \{\neg P\}, \top, (P, 3))$}
+
+\shortrules{propagate}{}{$({\neg P}^{\neg P}Q^{P\lor Q}, N, \{\neg P\}, \top, (P, 3))$}
+
+\shortrules{improve}{}{$({\neg P}^{\neg P}Q^{P\lor Q}, N, \{\neg P\}, \top, (\neg P\, Q, 2))$}
+
+\shortrules{conflictOpt}{}{$({\neg P}^{\neg P}Q^{P\lor Q}, N, \{\neg P\}, P \lor \neg Q, (\neg P\, Q, 2))$}
+
+\shortrules{resolve}{}{$({\neg P}^{\neg P}, N, \{\neg P\}, P, (\neg P\, Q, 2))$}
+
+\shortrules{resolve}{}{$(\epsilon, N, \{\neg P\}, \bot, (\neg P\, Q, 3))$}
+
+
+However, the optimal model (obviously) is $Q$.
+}
+\<close>
 locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state =
   state\<^sub>W_no_state
     state_eq state
@@ -832,20 +915,63 @@ next
     apply (rule cdcl\<^sub>W_restart_mset.learned_clauses_entailed[of \<open>abs_state S\<close>])
     subgoal
       using o unfolding T by (blast dest: cdcl\<^sub>W_o_cdcl\<^sub>W_o cdcl\<^sub>W_restart_mset.other)
-    subgoal using all_struct unfolding  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast
+    subgoal using all_struct unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast
     subgoal using entailed by fast
     done
 qed
 
-lemma
+lemma atms_of_init_clss_conflicting_clss[simp]:
+  \<open>atms_of_mm (init_clss S) \<union> atms_of_mm (conflicting_clss S) = atms_of_mm (init_clss S)\<close>
+  using atms_of_conflicting_clss[of S] by blast
+
+lemma no_strange_atm_no_strange_atm[simp]:
+  \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (abs_state S) = no_strange_atm S\<close>
+  using atms_of_conflicting_clss[of S]
+  unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def no_strange_atm_def
+  by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
+
+lemma cdcl\<^sub>W_conflicting_cdcl\<^sub>W_conflicting[simp]:
+  \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (abs_state S) = cdcl\<^sub>W_conflicting S\<close>
+  unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_conflicting_def
+  by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
+
+lemma distinct_cdcl\<^sub>W_state_distinct_cdcl\<^sub>W_state:
+  \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (abs_state S) \<Longrightarrow> distinct_cdcl\<^sub>W_state S\<close>
+  unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def distinct_cdcl\<^sub>W_state_def
+  by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
+
+lemma no_step_cdcl_opt_stgy:
   assumes
-    \<open>no_step cdcl_opt_stgy S\<close> and
+    n_s: \<open>no_step cdcl_opt_stgy S\<close> and
     all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
-    \<open>cdcl_opt_stgy_inv S\<close>
-  shows \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (abs_state S)\<close>
-  oops
-thm cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_final_state_conclusive2
+    stgy_inv: \<open>cdcl_opt_stgy_inv S\<close>
+  shows \<open>conflicting S = None \<or> conflicting S = Some {#}\<close>
+proof (rule ccontr)
+  assume \<open>\<not> ?thesis\<close>
+  then obtain D where \<open>conflicting S = Some D\<close> and \<open>D \<noteq> {#}\<close>
+    by auto
+  moreover have \<open>no_step cdcl\<^sub>W_stgy S\<close>
+    using n_s by (auto simp: cdcl\<^sub>W_stgy.simps cdcl_opt_stgy.simps)
+  ultimately show False
+    using conflicting_no_false_can_do_step[of S] all_struct stgy_inv
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl_opt_stgy_inv_def
+    by (auto dest!: distinct_cdcl\<^sub>W_state_distinct_cdcl\<^sub>W_state)
+qed
+
+
 end
+
+
+
+
+
+
+
+
+
+
+
+
 
 locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
   conflict_driven_clause_learning\<^sub>W
@@ -1025,7 +1151,6 @@ lemma is_improving_conflicting_clss_update_weight_information: \<open>is_improvi
 
 lemma atms_of_ms_pNeg[simp]: \<open>atms_of_ms (pNeg ` N) = atms_of_ms N\<close>
   unfolding atms_of_ms_def pNeg_def by (auto simp: image_image atms_of_def)
-
 
 lemma atms_of_init_clss_conflicting_clss[simp]:
   \<open>atms_of_mm (init_clss S) \<union> atms_of_mm (conflicting_clss S) = atms_of_mm (init_clss S)\<close>
