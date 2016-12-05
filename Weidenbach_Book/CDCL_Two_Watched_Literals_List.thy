@@ -1048,14 +1048,12 @@ proof -
     done
 qed
 
-fun decide_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
-  \<open>decide_l (M, N, U, D, NP, UP, WS, Q) = do {
+definition decide_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
+  \<open>decide_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q). do {
      L \<leftarrow> SPEC (\<lambda>L. undefined_lit M L \<and> atm_of L \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N))));
      RETURN (Decided L # M, N, U, D, NP, UP, WS, {#-L#})
-  }
+  })
 \<close>
-
-declare decide_l.simps[simp del]
 
 lemma decide_l_spec:
   \<open>(decide_l, decide) \<in>
@@ -1071,8 +1069,8 @@ proof -
     \<open>(decide_l, decide) \<in> ?R \<rightarrow> \<langle>{(T, T'). T' = twl_st_of None T \<and> (additional_WS_invs T \<and>
     working_queue_l T = {#})}\<rangle> nres_rel\<close>
     apply clarify
-    unfolding decide_l.simps decide.simps
-    by (refine_vcg decide_l.simps decide.simps) (auto simp: additional_WS_invs_def)
+    unfolding decide_l_def decide_def
+    by refine_vcg (auto simp: additional_WS_invs_def)
   then have
     \<open>(decide_l, decide) \<in> ?R \<rightarrow>  \<langle>{(T, T'). T' = twl_st_of None T \<and>
     (additional_WS_invs T \<and> working_queue_l T = {#}) \<and>
@@ -1583,18 +1581,45 @@ proof -
     done
 qed
 
+definition find_unassigned_lit :: \<open>'v twl_st_l \<Rightarrow> 'v literal option nres\<close> where
+  \<open>find_unassigned_lit = (\<lambda>(M, N, U, D, NP, UP, WS, Q).
+     SPEC (\<lambda>L.
+         (L \<noteq> None  \<longrightarrow>
+            undefined_lit M (the L) \<and>
+            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)))) \<and>
+         (L = None \<longrightarrow> (\<nexists>L'. undefined_lit M L' \<and>
+            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N))))))
+     )\<close>
+
+definition decide_l_or_skip :: "'v twl_st_l \<Rightarrow> (bool \<times> 'v twl_st_l) nres" where
+  \<open>decide_l_or_skip S = (do {
+    ASSERT(twl_struct_invs (twl_st_of None S));
+    ASSERT(twl_stgy_invs (twl_st_of None S));
+    ASSERT(additional_WS_invs S);
+    ASSERT(get_conflict_l S = None);
+    L \<leftarrow> find_unassigned_lit S;
+    if L \<noteq> None
+    then do {
+      let (M, N, U, D, NP, UP, WS, Q) = S;
+      ASSERT(L \<noteq> None);
+      let K = the L;
+      RETURN (False, (Decided K # M, N, U, D, NP, UP, WS, {#-K#}))}
+    else do {RETURN (True, S)}
+  })
+\<close>
+
 definition cdcl_twl_o_prog_l :: "'v twl_st_l \<Rightarrow> (bool \<times> 'v twl_st_l) nres" where
   \<open>cdcl_twl_o_prog_l S =
     do {
-      let (M, N, U, D, NP, UP, WS, Q) = S in
+      ASSERT(twl_struct_invs (twl_st_of None S));
+      ASSERT(twl_stgy_invs (twl_st_of None S));
+      ASSERT(additional_WS_invs S);
       do {
-        if D = None
-        then
-          if (\<exists>L. undefined_lit M L \<and> atm_of L \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N))))
-          then do {S \<leftarrow> decide_l S; RETURN (False, S)}
-          else do {RETURN (True, S)}
+        if get_conflict_l S = None
+        then decide_l_or_skip S
         else do {
           T \<leftarrow> skip_and_resolve_loop_l S;
+          ASSERT(get_conflict_l T \<noteq> None);
           if get_conflict_l T \<noteq> Some []
           then do {U \<leftarrow> backtrack_l T; RETURN (False, U)}
           else do {RETURN (True, T)}
@@ -1619,35 +1644,59 @@ lemma cdcl_twl_o_prog_l_spec:
        (\<not>brk \<longrightarrow> pending_l T \<noteq> {#}) *)}\<rangle> nres_rel\<close>
   (is \<open> _ \<in> ?R \<rightarrow> ?I\<close> is \<open> _ \<in> ?R \<rightarrow> \<langle>?J\<rangle>nres_rel\<close>)
 proof -
+  have H:
+    \<open>RETURN S'
+       \<le> \<Down> {(S', S).
+              S = (Decided (the L) # M, N, E, None, NP, UP, WS, {#- (the L)#}) \<and>
+              (\<exists>Q. twl_st_of None S' = (M, N, E, None, NP, UP, WS, Q))}
+           (do {
+              L \<leftarrow> SPEC
+                    (\<lambda>L. undefined_lit M L \<and>
+                          atm_of L \<in> atms_of_mm (clause `# N));
+              RETURN
+               (Decided L # M, N, E, None, NP, UP, WS, {#- L#})})\<close>
+    if \<open>L \<noteq> None\<close> and \<open>undefined_lit M (the L)\<close> and
+      \<open>atm_of (the L) \<in> atms_of_mm (clause `# N)\<close> and
+      \<open>\<exists>Q. twl_st_of None S' = (M, N, E, None, NP, UP, WS, Q)\<close>
+    for M N E NP UP WS L and S'
+    using that by (cases \<open>the L\<close>) (auto intro!: rhs_step_bind_SPEC)
   have twl_prog:
     \<open>(cdcl_twl_o_prog_l, cdcl_twl_o_prog) \<in> ?R \<rightarrow>
       \<langle>{(S, S').
          (fst S' = (fst S) \<and> snd S' = twl_st_of None (snd S)) \<and> additional_WS_invs (snd S) \<and>
          working_queue_l (snd S) = {#}}\<rangle> nres_rel\<close>
+    supply [[goals_limit=1]]
     apply clarify
-    unfolding cdcl_twl_o_prog_l_def cdcl_twl_o_prog_def
+    unfolding cdcl_twl_o_prog_l_def cdcl_twl_o_prog_def decide_l_or_skip_def
+      find_unassigned_lit_def decide_def
     apply (refine_vcg decide_l_spec[THEN refine_pair_to_SPEC]
         skip_and_resolve_loop_l_spec[THEN refine_pair_to_SPEC]
         backtrack_l_spec[THEN refine_pair_to_SPEC]; remove_dummy_vars)
     subgoal by simp
-    subgoal by simp
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
-      by (simp add: additional_WS_invs_def)
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
-      by simp
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
-      by simp
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
-      by (simp add: additional_WS_invs_def)
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
       by auto
+        (* supply [[unify_trace_failure]] *)
+                   apply (rule H)
+      apply auto[]
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
+      by auto
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
+      by simp
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
+      by simp
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' T
+      by (auto simp add: additional_WS_invs_def)
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
+      by simp
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
+      by simp
+    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
+      by (cases T) (auto simp add: get_conflict_l_Some_nil_iff)
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
       by (cases T) (auto)
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
       apply (cases M; cases T)
       by (auto simp add: additional_WS_invs_def)
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
-      by auto
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
       by (cases T) (auto)
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T

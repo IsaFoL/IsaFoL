@@ -368,14 +368,13 @@ subsection \<open>Other Rules\<close>
 
 subsubsection \<open>Decide\<close>
 
-fun decide :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
-  \<open>decide (M, N, U, D, NP, UP, WS, Q) = do {
+definition decide :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
+  \<open>decide = (\<lambda>(M, N, U, D, NP, UP, WS, Q). do {
      L \<leftarrow> SPEC (\<lambda>L. undefined_lit M L \<and> atm_of L \<in> atms_of_mm (clause `# N));
      RETURN (Decided L # M, N, U, D, NP, UP, WS, {#-L#})
-  }
+  })
 \<close>
 
-declare decide.simps[simp del]
 
 lemma decide_spec:
   assumes \<open>working_queue S = {#}\<close> and \<open>pending S = {#}\<close> and \<open>get_conflict S = None\<close> and
@@ -398,8 +397,8 @@ proof -
     note o twl' twl_s'
   } note H = this
   show ?thesis
-    unfolding S decide.simps
-    by (refine_vcg H; simp)
+    unfolding S decide_def
+    by (refine_vcg; auto simp: H)
 qed
 
 declare decide_spec[THEN order_trans, refine_vcg]
@@ -932,42 +931,42 @@ lemma cdcl_twl_o_prog_spec:
   unfolding cdcl_twl_o_prog_def
   apply (refine_vcg; remove_dummy_vars)
   -- \<open>initial invariants\<close>
-  subgoal using assms by (auto simp del: decide.simps)
-  subgoal using assms by (auto simp del: decide.simps)
-  subgoal using assms by (auto simp del: decide.simps)
-  subgoal using assms by (auto simp del: decide.simps)
-  subgoal using assms by (auto simp del: decide.simps)
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
   -- \<open>decision, if false\<close>
-  subgoal using assms by (auto simp del: decide.simps simp: cdcl_twl_o.simps)
-  subgoal using assms by (auto simp del: decide.simps)
-  subgoal using assms by (auto simp del: decide.simps simp: cdcl_twl_o.simps)
-  subgoal using assms by (auto simp del: decide.simps)
-  subgoal using assms by (auto simp del: decide.simps simp: cdcl_twl_o.simps)
+  subgoal using assms by (auto simp: cdcl_twl_o.simps)
+  subgoal using assms by auto
+  subgoal using assms by (auto simp: cdcl_twl_o.simps)
+  subgoal using assms by auto
+  subgoal using assms by (auto simp: cdcl_twl_o.simps)
   subgoal for M N D NP UP WS Q brk T
     by (cases T) (use ns_cp in \<open>auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps\<close>)
-  subgoal using assms by (auto simp del: decide.simps)
-  subgoal using assms by (auto simp del: decide.simps)
-  subgoal using assms by (auto simp del: decide.simps)
-  subgoal using assms by (auto simp del: decide.simps)
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
   subgoal by (auto simp: cdcl_twl_o.simps)
 
   -- \<open>\<^term>\<open>skip_and_resolve_loop\<close> part, if true\<close>
     -- \<open>initial conditions\<close>
-  subgoal using assms by (auto simp del: decide.simps)
-  subgoal using assms by (auto simp del: decide.simps)
-  subgoal using assms by (auto simp del: decide.simps simp: cdcl_twl_o.simps)
-  subgoal using assms by (auto simp del: decide.simps)
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal using assms by (auto simp: cdcl_twl_o.simps)
+  subgoal using assms by auto
 
     -- \<open>initial of backtrack part\<close>
-  subgoal by (auto simp del: decide.simps)
-  subgoal by (auto simp del: decide.simps)
-  subgoal by (auto simp del: decide.simps)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
 
     -- \<open>final properties\<close>
-  subgoal by (auto simp del: decide.simps simp: cdcl_twl_o.simps)
-  subgoal by (auto simp del: decide.simps)
-  subgoal by (auto simp del: decide.simps)
-  subgoal by (auto simp del: decide.simps simp: cdcl_twl_o.simps)
+  subgoal by (auto simp: cdcl_twl_o.simps)
+  subgoal by auto
+  subgoal by auto
+  subgoal by (auto simp: cdcl_twl_o.simps)
 
   -- \<open>\<^term>\<open>skip_and_resolve_loop\<close>, if false: final properties\<close>
   subgoal by (auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps cdcl_twl_cp.simps)
