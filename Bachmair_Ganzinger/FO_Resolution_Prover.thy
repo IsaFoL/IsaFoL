@@ -150,7 +150,7 @@ using res_e proof (cases rule: ord_resolve_raw.cases)
       unfolding aa by auto
     hence c_cf': "set_mset C' \<subseteq> set_mset Cf'"
       unfolding cf' by force
-    hence c_in_cc: "C' + poss BB \<in># CC"
+    have c_in_cc: "C' + poss BB \<in># CC"
       using cabb unfolding cc by force
     have a_bb_in_aaa: "insert A (set_mset BB) \<in># AAA"
       using aaa cabb by force

@@ -69,8 +69,6 @@ inductive eligible :: "'s \<Rightarrow> 'a main_clause \<Rightarrow> bool" where
      \<and> maximal_in ((As ! 0) \<cdot>a \<sigma>) (main_clause (D,As) \<cdot> \<sigma>)
    )
    \<Longrightarrow> eligible \<sigma> (D,As)"
-  
-abbreviation(output) "Union_Cs CAs \<equiv> \<Union># (mset (map get_C CAs))"
 
 inductive ord_resolve :: "'a side_clause list \<Rightarrow> 'a main_clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve:
@@ -124,20 +122,54 @@ qed
 lemma ord_resolve_sound:
   assumes
     res_e: "ord_resolve CAs DAs E" and
-    cc_d_true: "\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m (side_clauses CAs + {#D#}) \<cdot>cm \<sigma>" and
+    cc_d_true: "\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m (side_clauses CAs + {#main_clause DAs#}) \<cdot>cm \<sigma>" and
     ground_subst_\<sigma>: "is_ground_subst \<sigma>"
   shows "I \<Turnstile> E \<cdot> \<sigma>"
 using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve As \<tau> D)
-  have "side_clauses CAs = p" apply auto
-  define CC where "CC \<equiv> side_clauses CAs"
-  have cc_d_true: "\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m (CC + {#D#}) \<cdot>cm \<sigma>" sorry
-  have asdf: "is_ground_subst (\<tau> \<odot> \<sigma>)"
+  have d: "DAs = (D, As)" using ord_resolve(1) .
+  have e: "E = ((Union_Cs CAs) + D) \<cdot> \<tau>" using ord_resolve(2) .
+  have len: "length CAs = length As" using ord_resolve(3) .
+  have unif: "\<forall>i<length CAs. \<forall>Ai\<in>#get_As (CAs ! i). Ai \<cdot>a \<tau> = As ! i \<cdot>a \<tau>" using ord_resolve(7) .
+  have "is_ground_subst (\<tau> \<odot> \<sigma>)"
     using ground_subst_\<sigma> by (rule is_ground_comp_subst)
-  hence cc_true: "I \<Turnstile>m (side_clauses CAs) \<cdot>cm \<tau> \<cdot>cm \<sigma>" and d_true: "I \<Turnstile> D \<cdot> \<tau> \<cdot> \<sigma>"
-    using cc_d_true[of "\<tau> \<odot> \<sigma>"] apply auto
-  then show ?thesis sorry
+  hence cc_true: "I \<Turnstile>m (side_clauses CAs) \<cdot>cm \<tau> \<cdot>cm \<sigma>" and d_true: "I \<Turnstile> (main_clause DAs) \<cdot> \<tau> \<cdot> \<sigma>"
+    using cc_d_true[of "\<tau> \<odot> \<sigma>"] by auto
+  
+  then show ?thesis
+  proof (cases "\<forall>A \<in> set As. A \<cdot>a \<tau> \<cdot>a \<sigma> \<in> I")
+    case True
+    hence "\<not> I \<Turnstile> negs (mset (get_As DAs)) \<cdot> \<tau> \<cdot> \<sigma>"
+      unfolding true_cls_def d by auto
+    hence "I \<Turnstile> D \<cdot> \<tau> \<cdot> \<sigma>"
+      using d_true unfolding d by simp
+    thus ?thesis
+      unfolding e by simp
+  next
+    case False
+    then obtain i where a_in_aa: "i < length CAs" and a_false: "(As ! i) \<cdot>a \<tau> \<cdot>a \<sigma> \<notin> I"
+      using d len by (metis in_set_conv_nth) 
+    define C' where "C' \<equiv> get_C (CAs ! i)"
+    define BB where "BB \<equiv> get_As (CAs ! i)"
+    have c_cf': "C' \<subseteq># Union_Cs CAs"
+      unfolding C'_def using a_in_aa by auto
+    have c_in_cc: "C' + poss BB \<in># side_clauses CAs"
+      using C'_def BB_def using a_in_aa by (simp add: get_C_get_As_side_clauses)
+    { fix B
+      assume "B \<in># BB"
+      then have "B \<cdot>a \<tau> = (As ! i) \<cdot>a \<tau>" using unif a_in_aa unfolding BB_def by auto
+    }
+    hence "\<not> I \<Turnstile> poss BB \<cdot> \<tau> \<cdot> \<sigma>"
+      using a_false by (auto simp: true_cls_def)
+    moreover have "I \<Turnstile> (C' + poss BB) \<cdot> \<tau> \<cdot> \<sigma>"
+      using c_in_cc cc_true unfolding true_cls_mset_def by force
+    ultimately have "I \<Turnstile> C' \<cdot> \<tau> \<cdot> \<sigma>"
+      by simp
+    thus ?thesis
+      unfolding e subst_cls_union using c_cf' by (blast intro: true_cls_mono intro!: subst_cls_mono)
+  qed
 qed
+
   
 
 (* lifting lemma:

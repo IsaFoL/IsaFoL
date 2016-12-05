@@ -58,8 +58,6 @@ inductive eligible :: "'a main_clause \<Rightarrow> bool" where
    )
    \<Longrightarrow> eligible (D,As)"
   
-abbreviation(output) "Union_Cs CAs \<equiv> \<Union># (mset (map get_C CAs))"
-  
 inductive 
   ord_resolve :: "'a side_clause list \<Rightarrow> 'a main_clause \<Rightarrow> 'a clause \<Rightarrow> bool"
   where
@@ -104,16 +102,17 @@ using res_e proof (cases rule: ord_resolve.cases)
       using ord_resolve(2) by (metis in_set_conv_nth)
     have c_cf': "set_mset (side_clause (CAs ! i)) \<subseteq> set_mset (\<Union># (side_clauses CAs))" (* Kind of ugly *)
       using c_in_cs
+      unfolding side_clauses_def
       by (metis (no_types, lifting) in_Union_mset_iff length_map nth_map nth_mem_mset subsetI)
     let ?Ai = "poss (get_As (CAs ! i))"
     have "\<not> I \<Turnstile> ?Ai" 
       using a_false a_eq cs_ne c_in_cs unfolding true_cls_def by auto
     moreover have "I \<Turnstile> side_clause (CAs ! i)" 
-      using c_in_cs cc_true unfolding true_cls_mset_def by auto
+      using c_in_cs cc_true unfolding true_cls_mset_def side_clauses_def by auto
     ultimately have "I \<Turnstile> get_C (CAs ! i)"
       by (simp add: prod.case_eq_if) 
     then show ?thesis using c_in_cs unfolding e true_cls_def
-      by fastforce 
+      unfolding Union_Cs_def by fastforce 
   qed
 qed
 
@@ -153,7 +152,7 @@ using res_e proof (cases rule: ord_resolve.cases)
       by auto
     
     hence "\<exists>C_max \<in> set CAs. max_A_of_Cs \<in> atms_of (get_C C_max)"
-      unfolding UCAs_def by (induction CAs) auto
+      unfolding UCAs_def Union_Cs_def by (induction CAs) auto
     then obtain max_i where
         cm_in_cas: "max_i < length CAs" and
         mc_in_cm: "max_A_of_Cs \<in> atms_of (get_C (CAs ! max_i))"
@@ -286,7 +285,8 @@ proof -
       using d_of by auto 
   }
   then have prod_c': "\<And>CA. CA \<in> set CAs \<Longrightarrow> productive N (side_clause CA)" .
-  then have prod_c: "\<And>CA. CA \<in># side_clauses CAs \<Longrightarrow> productive N CA" by auto
+  then have prod_c: "\<And>CA. CA \<in># side_clauses CAs \<Longrightarrow> productive N CA"
+    unfolding side_clauses_def by auto
   hence cs_subs_n: "set_mset (side_clauses CAs) \<subseteq> N"
     using productive_in_N by auto
   have cs_true: "INTERP N \<Turnstile>m side_clauses CAs"
@@ -344,7 +344,7 @@ proof -
     using a_max_c c'_le_c max_c'_lt_a false_Interp_imp_INTERP unfolding true_cls_def
     by (metis true_cls_def true_cls_empty)
   have "\<not> INTERP N \<Turnstile> Union_Cs CAs"
-    unfolding CAs_def true_cls_def by (auto dest!: c'_at_n)
+    unfolding CAs_def true_cls_def Union_Cs_def by (auto dest!: c'_at_n)
   moreover have "\<not> INTERP N \<Turnstile> D"
     using d_cex unfolding da_da by simp
   ultimately have e_cex: "\<not> INTERP N \<Turnstile> Union_Cs CAs + D"
@@ -375,13 +375,13 @@ lemma ord_resolve_atms_of_concl_subset:
   shows "atms_of E \<subseteq> (\<Union>C \<in> set_mset (side_clauses CAs). atms_of C) \<union> atms_of (main_clause (D,As))"
 using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve)
-  have e: "E = \<Union>#mset (map get_C CAs) + D" using ord_resolve(1) .
+  have e: "E = Union_Cs CAs + D" using ord_resolve(1) .
   have "atms_of (Union_Cs CAs) \<subseteq> (\<Union>C\<in>set_mset (side_clauses CAs). atms_of C)"
-     by (auto simp: atms_of_def)
+    unfolding side_clauses_def Union_Cs_def by (auto simp: atms_of_def)
   moreover have "atms_of D \<subseteq> atms_of (main_clause (D,As))"
     by simp
   ultimately show ?thesis
-    unfolding e by auto
+    unfolding e Union_Cs_def by auto
 qed
 
 

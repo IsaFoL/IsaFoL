@@ -54,4 +54,10 @@ theorem list_of_mset_empty[simp]:
   shows "m = {#}"
 by (metis (full_types) assms ex_mset list_of_mset_def mset_zero_iff_right someI_ex) 
   
+
+theorem in_mset_conv_nth: "(x \<in># mset xs) = (\<exists>i<length xs. xs ! i = x)"
+  apply auto
+  using in_set_conv_nth apply metis
+  done
+
 end
