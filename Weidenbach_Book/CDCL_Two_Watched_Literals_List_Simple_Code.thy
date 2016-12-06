@@ -1,7 +1,9 @@
 theory CDCL_Two_Watched_Literals_List_Simple_Code
-  imports CDCL_Two_Watched_Literals_List DPLL_CDCL_W_Implementation CDCL_Two_Watched_Literals_Initialisation
+  imports CDCL_Two_Watched_Literals_List DPLL_CDCL_W_Implementation
+    CDCL_Two_Watched_Literals_Initialisation
 begin
 
+section \<open>CDCL Code (without caching clause watched by a literal)\<close>
 text \<open>
   First we instantiate our types with sort heap, to show compatibility with code generation. The
   idea is simplify to create injections into the components of our datatypes. This wirks since we
@@ -54,38 +56,6 @@ proof standard
     by blast
 qed
 
-definition unit_propagation_inner_loop_body_l' :: "nat literal \<Rightarrow> nat \<Rightarrow>
-  nat twl_st_l \<Rightarrow> nat twl_st_l nres" where
-  \<open>unit_propagation_inner_loop_body_l' L C S = do {
-    let (M, N, U, D, NP, UP, WS, Q) = S;
-    ASSERT(C < length N);
-    ASSERT(0 < length (N!C));
-    let i = (if (N!C) ! 0 = L then 0 else 1);
-    ASSERT(i < length (N!C));
-    let L = (N!C) ! i;
-    ASSERT(1-i < length (N!C));
-    let L' = (N!C) ! (1 - i);
-    ASSERT(no_dup M);
-    val_L' \<leftarrow> RETURN (valued M L');
-    if val_L' = Some True
-    then RETURN S
-    else do {
-      f \<leftarrow> find_unwatched M (N!C);
-      if fst f = None
-      then
-        if val_L' = Some False
-        then do {RETURN (M, N, U, Some (N!C), NP, UP, {#}, {#})}
-        else do {RETURN (Propagated L' C # M, N, U, D, NP, UP, WS, add_mset (-L') Q)}
-      else do {
-        ASSERT(snd f < length (N!C));
-        let K = (N!C) ! (snd f);
-        let N' = list_update N C (swap (N!C) i (snd f));
-        RETURN (M, N', U, D, NP, UP, WS, Q)
-      }
-    }
-   }
-\<close>
-
 text \<open>Some functions and types:\<close>
 abbreviation nat_lit_assn :: "nat literal \<Rightarrow> nat literal \<Rightarrow> assn" where
   \<open>nat_lit_assn \<equiv> (id_assn :: nat literal \<Rightarrow> _)\<close>
@@ -111,26 +81,11 @@ abbreviation clause_l_assn :: "nat clause \<Rightarrow> nat clause_l \<Rightarro
 abbreviation clauses_l_assn :: "nat clauses \<Rightarrow> nat clauses_l \<Rightarrow> assn" where
   \<open>clauses_l_assn \<equiv> list_mset_assn clause_l_assn\<close>
 
-(* abbreviation pending_l_assn :: "nat clause \<Rightarrow> nat clause_l \<Rightarrow> assn" where
-  \<open>pending_l_assn \<equiv> clause_l_assn\<close>
-
-abbreviation pending_ll_assn :: "nat clause_l \<Rightarrow> nat clause_l \<Rightarrow> assn" where
-  \<open>pending_ll_assn \<equiv> clause_ll_assn\<close> *)
-
 abbreviation working_queue_l_assn :: "nat multiset \<Rightarrow> nat list \<Rightarrow> assn" where
   \<open>working_queue_l_assn \<equiv> list_mset_assn nat_assn\<close>
 
 abbreviation working_queue_ll_assn :: "nat list \<Rightarrow> nat list \<Rightarrow> assn" where
   \<open>working_queue_ll_assn \<equiv> list_assn nat_assn\<close>
-
-(* concrete_definition backtrack_l'_impl uses backtrack_l'_impl
-
-code_identifier
-  code_module DPLL_CDCL_W_Implementation \<rightharpoonup> (SML) CDCL_W_Level
-
-prepare_code_thms backtrack_l'_impl_def
-export_code backtrack_l'_impl in SML *)
-
 
 type_synonym working_queue_ll = "nat list"
 type_synonym lit_queue_l = "nat literal list"
@@ -143,6 +98,7 @@ fun twl_st_of_ll :: \<open>twl_st_ll \<Rightarrow> nat twl_st_l\<close> where
   \<open>twl_st_of_ll (M, N, U, D, NP, UP, WS, Q) = (M, N, U, D, mset `# mset NP, mset `# mset UP, mset WS, mset Q)\<close>
 
 notation prod_assn (infixr "*assn" 90)
+
 abbreviation twl_st_l_assn :: \<open>nat twl_st_l \<Rightarrow> twl_st_ll \<Rightarrow> assn\<close> where
 \<open>twl_st_l_assn \<equiv>
  nat_lits_trail_assn *assn clauses_ll_assn *assn nat_assn *assn
@@ -153,7 +109,8 @@ abbreviation twl_st_l_assn :: \<open>nat twl_st_l \<Rightarrow> twl_st_ll \<Righ
  clause_l_assn
 \<close>
 
-section \<open>Declaration of the operators.\<close>
+subsection \<open>Declaration of some Operators and Implementation\<close>
+
 sepref_decl_op nat_lit_eq: "op = :: nat literal \<Rightarrow> nat literal \<Rightarrow> bool" ::
   "(Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (bool \<times> _) set)" .
 
@@ -541,6 +498,9 @@ lemma [sepref_fr_rules]:
       intro: Assertions.mod_emp_simp)
   done
 
+subsection \<open>Code Generation\<close>
+
+subsubsection \<open>The Body of the Inner Propagation\<close>
 sepref_definition unit_propagation_inner_loop_body_l_impl is \<open>uncurry2 (unit_propagation_inner_loop_body_l :: nat literal \<Rightarrow> nat \<Rightarrow>
   nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close> ::
   \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
@@ -564,8 +524,8 @@ declare unit_propagation_inner_loop_body_l_impl.refine_raw[sepref_fr_rules]
 
 sepref_register \<open>select_from_working_queue :: nat twl_st_l \<Rightarrow> (nat twl_st_l \<times> nat) nres\<close>
 
-lemma H: \<open>(\<forall>x x'. (x' = x) = ((x', x) \<in> P')) \<longleftrightarrow> P' = Id\<close>
-  by (auto simp: the_pure_def)
+
+subsubsection \<open>The Inner Propagation Loop\<close>
 
 lemma list_mst_assn_add_mset_empty_false:
   \<open>\<not>(as, bk) \<Turnstile> list_mset_assn (\<lambda>a c::nat. \<up> (c = a)) (add_mset x N) []\<close>
@@ -816,6 +776,9 @@ sepref_register \<open>unit_propagation_inner_loop_l :: nat literal \<Rightarrow
 
 declare unit_propagation_inner_loop_l_impl.refine[sepref_fr_rules]
 
+
+subsubsection \<open>The Outer Propagation Loop\<close>
+
 sepref_register \<open>select_and_remove_from_pending :: nat twl_st_l \<Rightarrow> (nat twl_st_l \<times> nat literal) nres\<close>
 
 definition hd_of_pending_l :: \<open>twl_st_ll \<Rightarrow> nat literal\<close> where
@@ -918,6 +881,8 @@ sepref_register \<open>unit_propagation_outer_loop_l :: nat twl_st_l \<Rightarro
 
 declare unit_propagation_outer_loop_l_impl.refine[sepref_fr_rules]
 
+
+subsubsection \<open>Skip and Resolve\<close>
 
 lemma is_decided_hnr[sepref_fr_rules]:
   \<open>(return o (is_decided :: (nat, nat) ann_lit \<Rightarrow> _),
@@ -1027,6 +992,9 @@ sepref_definition skip_and_resolve_loop_l_impl is
 sepref_register \<open>skip_and_resolve_loop_l :: nat twl_st_l \<Rightarrow> nat twl_st_l nres\<close>
 declare skip_and_resolve_loop_l_impl.refine[sepref_fr_rules]
 
+
+subsubsection \<open>Backtrack\<close>
+
 definition find_decomp_l_res :: "twl_st_ll \<Rightarrow> nat literal \<Rightarrow> (nat, nat) ann_lits nres" where
   \<open>find_decomp_l_res = (\<lambda>(M, N, U, D, NP, UP, WS, Q) L.
     do {
@@ -1034,55 +1002,6 @@ definition find_decomp_l_res :: "twl_st_ll \<Rightarrow> nat literal \<Rightarro
      let M1 = tl (the (bt_cut j M));
      RETURN M1
     })\<close>
-
-(*     proof -
-      thm p
-      note S = p(1) and L = p(5) and M_not_empty = p(2) and ex_decomp = p(7)
-      have n_d: \<open>no_dup M\<close>
-        using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-        by (simp add: cdcl\<^sub>W_restart_mset_state S)
-      obtain C' where [simp]: \<open>C = Some C'\<close>
-        using confl1 S by auto
-      have lev_L: \<open>get_level M L = count_decided M\<close>
-        using M_not_empty L by (cases M) auto
-      have uhd_C: \<open>- lit_of (hd (convert_lits_l N M)) \<in> set C'\<close>
-        using cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of
-            \<open>convert_to_state (twl_st_of None (M, N, U, C, NP, UP, WS, Q))\<close>]
-        confl2 ns struct_invs stgy_invs unfolding S
-        by (auto simp: twl_struct_invs_def twl_stgy_invs_def cdcl\<^sub>W_restart_mset_state)
-      obtain M1'' M2'' K'' where
-        decomp_K'': \<open>(Decided K'' # M1'', M2'') \<in> set (get_all_ann_decomposition M)\<close>
-        \<open>get_level M K'' = Suc (get_maximum_level M (remove1_mset (- lit_of (hd M)) (mset C')))\<close>
-        using ex_decomp L by auto
-      then have lev_max: \<open>get_maximum_level M (mset (remove1 (-L) C')) < count_decided M\<close>
-        using count_decided_ge_get_level[of M K''] L by auto
-      have \<open>-L \<in># mset C'\<close>
-        using uhd_C L M_not_empty by (cases M) simp_all
-      with multi_member_split[OF this]
-      have False if \<open>find_level_decomp M (the C) [] (count_decided M) = None\<close>
-        using find_level_decomp_none[OF that, of \<open>-L\<close> \<open>remove1 (-L) C'\<close>] lev_max
-        unfolding S by (auto dest!: simp: lev_L)
-      then obtain K j where
-        Kj: \<open>find_level_decomp M C' [] (count_decided M) = Some (K, j)\<close>
-        by (cases \<open>find_level_decomp M (the C) [] (count_decided M)\<close>) auto
-      then have
-        \<open>K \<in> set C'\<close> and
-        j: \<open>get_maximum_level M (mset (remove1 K C')) = j\<close> and
-        \<open>get_level M K = count_decided M\<close>
-        using find_level_decomp_some[OF Kj] by simp_all
-      have KL: \<open>K = -L\<close>
-        by (metis \<open>K \<in> set C'\<close> \<open>\<exists>A. mset C' = add_mset (- L) A\<close> \<open>get_level M K = count_decided M\<close>
-            add_mset_remove_trivial get_maximum_level_ge_get_level leD lev_max member_add_mset
-            mset_remove1 set_mset_mset)
-      have j_le_M: \<open>j < count_decided M\<close>
-          unfolding j[symmetric] KL using lev_max by simp
-      have bt_cut: \<open>bt_cut j M \<noteq> None\<close>
-        apply (rule bt_cut_not_none2[of ])
-        using n_d apply (simp; fail)
-        using j_le_M by simp
-      show ?thesis
-        using bt_cut by (auto simp: Kj)
-    qed *)
 
 lemma bt_cut_not_none2:
   assumes "no_dup M" and "i < count_decided M"
@@ -1095,7 +1014,7 @@ proof -
       using bt_cut_not_none[OF assms(1), of M2 K M1 i] by auto
   qed
 
-lemma H0:
+lemma find_decomp_l_res_le_find_decomp:
   fixes S' :: \<open>nat twl_st_l\<close> and M :: \<open>(nat, nat) ann_lits\<close> and N :: \<open>nat clauses_l\<close> and
     U :: nat and D :: \<open>nat clause_l option\<close> and NP UP :: \<open>nat literal list list\<close> and
     WS :: \<open>nat list\<close> and Q :: \<open>nat literal list\<close>
@@ -1181,7 +1100,7 @@ lemma find_decomp_l_res_find_decomp:
        no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
       M \<noteq> []]\<^sub>f
     {((S'::twl_st_ll), (S::nat twl_st_l)). S = twl_st_of_ll S'} \<times>\<^sub>r Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
-  using H0 (* TODO proof *)
+  using find_decomp_l_res_le_find_decomp (* TODO proof *)
   unfolding find_decomp_l_res_def find_decomp_def unfolding fref_def nres_rel_def ex_decomp_of_max_lvl_def
   apply simp
   by blast
@@ -1329,7 +1248,6 @@ lemma hrp_comp_twl_st_ll_assn_twl_st_of_ll: \<open>hrp_comp (twl_st_ll_assn\<^su
   by (auto simp: hrp_comp_def hr_comp_def hr_comp_list_mst_rel_clause_l_assn hr_comp_invalid
       hr_comp_clauses_ll_assn_clauses_l_ass hr_comp_working_queue_ll_assn_working_queue_l_assn)
 
-
 lemma find_decomp_l_hnr[sepref_fr_rules]:
   \<open>(uncurry find_decomp_l, uncurry find_decomp) \<in>
     [\<lambda>((M, N, U, D, NP, UP, WS, Q), L::nat literal). L = lit_of (hd M) \<and> D \<noteq> None \<and> D \<noteq> Some [] \<and>
@@ -1476,7 +1394,14 @@ sepref_definition backtrack_l_impl is
   skip_and_resolve_loop_inv_def mset_remove1[symmetric]
   maximum_level_code_eq_get_maximum_level[symmetric]
   supply [[goals_limit=1]]
-  by sepref
+  by sepref (* slow *)
+
+
+sepref_register \<open>(backtrack_l :: nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close>
+declare backtrack_l_impl.refine[sepref_fr_rules]
+
+
+subsubsection \<open>Decide\<close>
 
 definition find_unassigned_lit_cls_l ::
   "'a literal list \<Rightarrow> ('a, 'b) ann_lits \<Rightarrow> (nat \<times> 'a literal option) nres" where
@@ -1677,10 +1602,9 @@ sepref_definition decide_l_or_skip_impl is
 
 sepref_register \<open>decide_l_or_skip :: nat twl_st_l \<Rightarrow> (bool \<times> nat twl_st_l) nres\<close>
 declare decide_l_or_skip_impl.refine[sepref_fr_rules]
-thm decide_l_or_skip_impl.refine[sepref_fr_rules]
 
-sepref_register \<open>(backtrack_l :: nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close>
-declare backtrack_l_impl.refine[sepref_fr_rules]
+
+subsubsection \<open>Combining Decide, Skip, Resolve and Backtrack\<close>
 
 sepref_definition cdcl_twl_o_prog_l_impl is cdcl_twl_o_prog_l
   :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *assn twl_st_l_assn\<close>
@@ -1691,6 +1615,9 @@ sepref_definition cdcl_twl_o_prog_l_impl is cdcl_twl_o_prog_l
 
 sepref_register \<open>(cdcl_twl_o_prog_l :: nat twl_st_l \<Rightarrow> (bool \<times> nat twl_st_l) nres)\<close>
 declare cdcl_twl_o_prog_l_impl.refine[sepref_fr_rules]
+
+
+subsubsection \<open>Combining All Together\<close>
 
 sepref_definition cdcl_twl_stgy_prog_l_impl is cdcl_twl_stgy_prog_l
   :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
@@ -1738,7 +1665,11 @@ qed
 text \<open>This is the least worst version:\<close>
 thm cdcl_twl_stgy_prog_l_impl_spec_final[unfolded full_cdcl_twl_stgy_def]
 
-export_code cdcl_twl_stgy_prog_l_impl in SML_imp
+export_code cdcl_twl_stgy_prog_l_impl in SML_imp module_name CDCL_Non_Cached_List
+  file "code/CDCL_Non_Cached_List.ML"
+
+
+section \<open>Code for the initialisation of the Data Structure\<close>
 
 definition init_dt_step_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l \<Rightarrow> ('v twl_st_l) nres\<close> where
   \<open>init_dt_step_l C S = do {
