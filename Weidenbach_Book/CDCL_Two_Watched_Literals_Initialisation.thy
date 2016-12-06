@@ -4,10 +4,9 @@ begin
 
 subsection \<open>Initialise Data structure\<close>
 
-fun init_dt :: \<open>'v clauses_l \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
-  \<open>init_dt [] S = S\<close>
-| \<open>init_dt (C # CS) S =
-  (let (M, N, U, D, NP, UP, WS, Q) = init_dt CS S in
+definition init_dt_step :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
+  \<open>init_dt_step C S =
+  (let (M, N, U, D, NP, UP, WS, Q) = S in
   (case D of
     None \<Rightarrow>
     if length C = 1
@@ -29,6 +28,10 @@ fun init_dt :: \<open>'v clauses_l \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v tw
     else
       let L = hd C; L' = hd (tl C); C' = tl (tl C) in
       (M, N @ [[L, L'] @ C'], length N, Some D, NP, UP, {#}, {#})))\<close>
+
+fun init_dt :: \<open>'v clauses_l \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
+  \<open>init_dt [] S = S\<close>
+| \<open>init_dt (C # CS) S = init_dt_step C (init_dt CS S)\<close>
 
 lemma init_dt_full:
   fixes CS :: \<open>'v literal list list\<close> and S :: \<open>'v twl_st_l\<close>
@@ -69,7 +72,7 @@ proof (induction CS)
   case 9 then show ?case by simp
 next
   case (Cons a CS) note IH = this(1-)
-
+  note init_dt_step_def[simp]
   case 2 note dist = this(1) and length = this(2) and no_taut_Cs = this(3) and inv = this(4) and
     WS = this(5) and dec = this(6) and in_pending = this(7) and add_inv = this(8) and len = this(9)
     and stgy_inv = this(10)
@@ -104,13 +107,13 @@ next
   then have [simp]: \<open>take U (tl N) = tl N\<close> \<open>drop (Suc U) N = []\<close> \<open>drop U (tl N) = []\<close>
     by auto
   show ?case using w_q
-    by (cases D) (auto simp: S Let_def)
+    by (cases D) (auto simp: S Let_def init_dt_step_def)
   case 3
   show ?case
-    using dec_M by (cases D) (auto simp: S Let_def)
+    using dec_M by (cases D) (auto simp: S Let_def init_dt_step_def)
   case 4
   show ?case
-    using pending' by (cases D) (auto simp: S Let_def)
+    using pending' by (cases D) (auto simp: S Let_def init_dt_step_def)
   have a_D: \<open>\<exists>x y a'. a = x # y # a'\<close> if \<open>\<forall>L. a \<noteq> [L]\<close>
     apply (case_tac a, (use length in simp; fail))
     apply (rename_tac aa list, case_tac list; use that in simp)
@@ -122,23 +125,24 @@ next
   show ?case
     using clss' U_len_N N_not_empty by (cases D)
       (auto simp: S Let_def clauses_def length_list_Suc_0 cdcl\<^sub>W_restart_mset_state mset_tl_N
+          init_dt_step_def
         dest!: a_D)
   case 6
   show ?case
     using learned' U_len_N apply (cases D)
      apply (simp add: S clauses_def)
-    apply (auto simp: S Let_def clauses_def length_list_Suc_0 cdcl\<^sub>W_restart_mset_state)
+    apply (auto simp: S Let_def clauses_def length_list_Suc_0 cdcl\<^sub>W_restart_mset_state init_dt_step_def)
     done
 
   case 7
   show ?case
     using add_inv' N_not_empty
     by (cases D) (fastforce simp add: U_len_N S clauses_def additional_WS_invs_def Let_def nth_append
-        cdcl\<^sub>W_restart_mset_state)+
+        cdcl\<^sub>W_restart_mset_state init_dt_step_def)+
   case 8
   show ?case
     by (cases D) (auto simp add: U_len_N S clauses_def additional_WS_invs_def Let_def nth_append
-        cdcl\<^sub>W_restart_mset_state)
+        cdcl\<^sub>W_restart_mset_state init_dt_step_def)
 
   let ?S' = \<open>(convert_lits_l N M, twl_clause_of `# mset (take U (tl N)),
        twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP,
@@ -197,14 +201,9 @@ next
     \<open>convert_lits_l N M = M'a @ Decided K # Ma \<longleftrightarrow> False\<close>
     \<open>Propagated L C # convert_lits_l N M = M'a @ Decided K # Ma \<longleftrightarrow> False\<close>
     for M'a K Ma L C
-  proof -
-    show
-      \<open>convert_lits_l N M = M'a @ Decided K # Ma \<longleftrightarrow> False\<close>
-      \<open>Propagated L C # convert_lits_l N M = M'a @ Decided K # Ma \<longleftrightarrow> False\<close>
-       using nm apply fastforce
-      by (metis (no_types, lifting) nm ann_lit.disc(1)
+    using nm apply fastforce
+    by (metis (no_types, lifting) nm ann_lit.disc(1)
           ann_lit.distinct(1) append_eq_Cons_conv in_set_conv_decomp list_tail_coinc)
-  qed
   have
     alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state ?S')\<close> and
     lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (convert_to_state ?S')\<close> and
