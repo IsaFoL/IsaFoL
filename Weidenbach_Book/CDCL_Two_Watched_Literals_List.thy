@@ -265,6 +265,7 @@ definition unit_propagation_inner_loop_body_l :: "'v literal \<Rightarrow> nat \
         ASSERT(snd f < length (N!C));
         let K = (N!C) ! (snd f);
         let N' = list_update N C (swap (N!C) i (snd f));
+        ASSERT (K \<in># mset (unwatched_l (N!C)) \<and> -K \<notin> lits_of_l M);
         RETURN (M, N', U, D, NP, UP, WS, Q)
       }
     }
@@ -593,6 +594,8 @@ proof -
     subgoal using C'_N_U S by (auto simp add: C'[symmetric] N_C_C')
     subgoal by (simp; fail)
     subgoal by auto
+    subgoal by (auto simp: in_set_drop_conv_nth)
+    subgoal by (auto simp: Decided_Propagated_in_iff_in_lits_of_l dest: consistent)
     subgoal premises q for L' val_L f K N' U'
     proof -
       note val_L'_not_True = q(10) and L'_notin_trail = q(11) and case_f_of = q(12) and
