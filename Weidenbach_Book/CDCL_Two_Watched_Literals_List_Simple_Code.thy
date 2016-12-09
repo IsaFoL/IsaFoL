@@ -63,10 +63,13 @@ abbreviation nat_lit_assn :: "nat literal \<Rightarrow> nat literal \<Rightarrow
 abbreviation nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> (nat, nat) ann_lit \<Rightarrow> assn" where
   \<open>nat_ann_lit_assn \<equiv> (id_assn :: (nat, nat) ann_lit \<Rightarrow> _)\<close>
 
-abbreviation nat_ann_lits_assn :: "(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> assn" where
+
+type_synonym ann_lits_l = \<open>(nat, nat) ann_lits\<close>
+ 
+abbreviation nat_ann_lits_assn :: "ann_lits_l \<Rightarrow> ann_lits_l \<Rightarrow> assn" where
   \<open>nat_ann_lits_assn \<equiv> list_assn nat_ann_lit_assn\<close>
 
-abbreviation nat_lits_trail_assn :: "(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> assn" where
+abbreviation nat_lits_trail_assn :: "ann_lits_l \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> assn" where
   \<open>nat_lits_trail_assn \<equiv> list_assn (nat_ann_lit_assn :: (nat, nat) ann_lit \<Rightarrow> _)\<close>
 
 abbreviation clause_ll_assn :: "nat clause_l \<Rightarrow> nat clause_l \<Rightarrow> assn" where
@@ -1668,7 +1671,7 @@ thm cdcl_twl_stgy_prog_l_impl_spec_final[unfolded full_cdcl_twl_stgy_def]
 export_code cdcl_twl_stgy_prog_l_impl in SML_imp module_name CDCL_Non_Cached_List
   file "code/CDCL_Non_Cached_List.ML"
 
-
+    
 section \<open>Code for the initialisation of the Data Structure\<close>
 
 definition init_dt_step_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l \<Rightarrow> ('v twl_st_l) nres\<close> where
