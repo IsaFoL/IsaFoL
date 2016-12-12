@@ -65,6 +65,9 @@ definition subst_cls_lists :: "'a clause list \<Rightarrow> 's list \<Rightarrow
 definition subst_cls_mset :: "'a clause multiset \<Rightarrow> 's \<Rightarrow> 'a clause multiset" (infixl "\<cdot>cm" 67) where
   "CC \<cdot>cm \<sigma> = image_mset (\<lambda>A. A \<cdot> \<sigma>) CC"
   
+definition subst_scls_list :: "'a side_clause list \<Rightarrow> 's \<Rightarrow> 'a side_clause list" (infixl "\<cdot>scl" 67) where
+  "CAs \<cdot>scl \<sigma> = map (\<lambda>CA. CA \<cdot>sc \<sigma>) CAs "
+  
 definition subst_scls_lists :: "'a side_clause list \<Rightarrow> 's list \<Rightarrow> 'a side_clause list" (infixl "\<cdot>\<cdot>scl" 67) where
   "CAs \<cdot>\<cdot>scl \<sigma>s = map (\<lambda>(CA, \<sigma>). CA \<cdot>sc \<sigma>) (zip CAs \<sigma>s)"
 

@@ -239,12 +239,115 @@ lemma ord_resolve_rename_sound:
     using ord_resolve_sound[of "CAs \<cdot>\<cdot>scl P" "(DA \<cdot>mc \<rho>)" "E" I, OF res]
     by simp
 qed
-  
+
+context
+  fixes M :: "'a clause set"
+  assumes select: "selection S"
+begin
+
+interpretation selection
+  by (rule select)
+
+definition S_M :: "'a literal multiset \<Rightarrow> 'a literal multiset" where
+  "S_M C = (if C \<in> grounding_of_clss M
+    then (SOME C'. \<exists>D \<sigma>. D \<in> M \<and> C = D \<cdot> \<sigma> \<and> C' = S D \<cdot> \<sigma> \<and> is_ground_subst \<sigma>) else S C)"
+
+lemma S_M_grounding_of_clss:
+  assumes "C \<in> grounding_of_clss M"
+  obtains D \<sigma> where "D \<in> M \<and> C = D \<cdot> \<sigma> \<and> S_M C = S D \<cdot> \<sigma> \<and> is_ground_subst \<sigma>"
+proof (atomize_elim, unfold S_M_def eqTrueI[OF assms] if_True, rule someI_ex)
+  from assms show "\<exists>C' D \<sigma>. D \<in> M \<and> C = D \<cdot> \<sigma> \<and> C' = S D \<cdot> \<sigma> \<and> is_ground_subst \<sigma>"
+    by (auto simp: grounding_of_clss_def grounding_of_cls_def)
+qed
+
+lemma S_M_not_grounding_of_clss:
+  assumes "C \<notin> grounding_of_clss M"
+  shows "S_M C = S C"
+  using assms unfolding S_M_def by simp
+
+lemma S_M_selects_subseteq: "S_M C \<le># C"
+proof cases
+  assume "C \<in> grounding_of_clss M"
+  then obtain D \<sigma> where "C = D \<cdot> \<sigma>" "S_M C = S D \<cdot> \<sigma>"
+    using S_M_grounding_of_clss by metis
+  then show ?thesis
+    using S_selects_subseteq by (auto intro: subst_cls_mono_mset)
+qed (simp add: S_M_not_grounding_of_clss S_selects_subseteq)
+
+lemma S_M_selects_neg_lits:
+  assumes "L \<in># S_M C"
+  shows "is_neg L"
+using assms proof cases
+  assume "C \<in> grounding_of_clss M"
+  then obtain D \<sigma> where "C = D \<cdot> \<sigma>" "S_M C = S D \<cdot> \<sigma>"
+    using S_M_grounding_of_clss by metis
+  then show ?thesis
+    using assms S_selects_neg_lits by auto
+qed (simp add: S_M_not_grounding_of_clss S_selects_neg_lits)
+
+
+interpretation gd: ground_resolution_with_selection S_M
+  by unfold_locales (auto simp: S_M_selects_subseteq S_M_selects_neg_lits)
+
+(*"grounding_of_clss N0"*)
+
+interpretation src: standard_redundancy_criterion gd.ord_\<Gamma>
+  "ground_resolution_with_selection.INTERP S_M"
+  by unfold_locales
+(*
+find_theorems name: src
+thm src.saturated_upto_refute_complete
+*)
+
+(*TODO change*)
+definition "gd_ord_\<Gamma>' = gd.ord_\<Gamma>"
+
+lemma gd_ord_\<Gamma>_ngd_ord_\<Gamma>: "gd.ord_\<Gamma> \<subseteq> gd_ord_\<Gamma>'"
+  unfolding gd_ord_\<Gamma>'_def by simp
+
+interpretation src_ext:
+  redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "(\<lambda>N. src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>))"
+  by (rule standard_redundancy_criterion_extension[OF gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion])
+(*find_theorems name: src_ext*)
+
+end
+
+end
+
+text {*
+The following corresponds to Lemma 4.12:
+*}
+
+lemma (in linorder) set_sorted_list_of_multiset[simp]:
+  "set (sorted_list_of_multiset M) = set_mset M"
+  by (induct M) (simp_all add: local.set_insort_key)
+
+lemma (in linorder) multiset_mset_sorted_list_of_multiset[simp]:
+  "mset (sorted_list_of_multiset M) = M"
+  by (induct M) (simp_all add: ac_simps)
+
+lemma ord_resolve_lifting:
+  assumes resolve: "ord_resolve_rename (S_M S M) CC D E"
+  and select: "selection S"
+  and selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
+  and M_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> C \<cdot> \<rho> \<in> M \<longleftrightarrow> C \<in> M"
+  and grounding: "{main_clause D, E} \<union> (set_mset (side_clauses CC)) \<subseteq> grounding_of_clss M"
+    (* try to get rid of set_mset *)
+  obtains \<sigma> CC' D' E' where
+    "is_ground_subst \<sigma>"
+    "ord_resolve_rename S CC' D' E'" (* maybe without rename *)
+    "CC = CC' \<cdot>scl \<sigma>" "D = D' \<cdot>mc \<sigma>" "E = E' \<cdot> \<sigma>"
+    "{main_clause D', E'} \<union> (set_mset (side_clauses CC')) \<subseteq> M"
+      (* try to get rid of set_mset *)
+  sorry
+
+end
 
 (* lifting lemma:
 I think a better tactic is to use ord_resolve in the conclusion
 and then I can probably remove the renaming assumption on M
 *)
+
   
 
 end
