@@ -156,7 +156,7 @@ lemma ord_resolve_sound:
     hence "\<not> I \<Turnstile> negs (mset (get_As DAs)) \<cdot> \<tau> \<cdot> \<sigma>"
       unfolding true_cls_def d by auto
     hence "I \<Turnstile> D \<cdot> \<tau> \<cdot> \<sigma>"
-      using d_true unfolding d sorry
+      using d_true unfolding d unfolding main_clause_def by auto
     thus ?thesis
       unfolding e by simp
   next
@@ -201,7 +201,7 @@ lemma ord_resolve_rename_sound:
   assume ground_subst_\<sigma>: "is_ground_subst \<sigma>"
   case (ord_resolve_rename \<rho> P)
   
-  then show "I \<Turnstile> E \<cdot> \<sigma> "
+  then show "I \<Turnstile> E \<cdot> \<sigma>"
     thm ord_resolve_sound
     sorry
 qed
