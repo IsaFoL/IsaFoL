@@ -703,7 +703,8 @@ definition select_from_working_queue :: \<open>'v twl_st_l \<Rightarrow> ('v twl
 definition unit_propagation_inner_loop_l :: "'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
   \<open>unit_propagation_inner_loop_l L S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of (Some L) S) \<and> twl_stgy_invs (twl_st_of (Some L) S) \<and>
-    cdcl_twl_cp\<^sup>*\<^sup>* (twl_st_of (Some L) S\<^sub>0) (twl_st_of (Some L) S)\<^esup>
+    cdcl_twl_cp\<^sup>*\<^sup>* (twl_st_of (Some L) S\<^sub>0) (twl_st_of (Some L) S) \<and>
+    additional_WS_invs S\<^esup>
       (\<lambda>S. working_queue_l S \<noteq> {#})
       (\<lambda>S. do {
         ASSERT (working_queue_l S \<noteq> {#});
@@ -826,6 +827,7 @@ proof -
       WHILEIT_refine_genR[where R=\<open>?B\<close> and R' = \<open>{(T, T'). T' = twl_st_of (Some L) T \<and> additional_WS_invs T}\<close>]
       SPEC_remove;
       remove_dummy_vars)
+    subgoal by simp
     subgoal by simp
     subgoal by simp
     subgoal by simp
