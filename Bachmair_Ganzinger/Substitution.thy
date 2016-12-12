@@ -203,11 +203,11 @@ lemma subst_cls_poss[simp]: "(poss AA) \<cdot> \<sigma> = poss (AA \<cdot>am \<s
 
 (* Maybe this is a nice lemma :-P I'm not 100% sure *)
 lemma subst_mc_main_clause[simp]: "(main_clause DAs) \<cdot> \<sigma> = main_clause (DAs \<cdot>mc \<sigma>)"
-  unfolding subst_cls_def subst_mcls_def subst_atm_list_def subst_lit_def by (cases DAs) auto
+  unfolding subst_cls_def subst_mcls_def subst_atm_list_def subst_lit_def main_clause_def by (cases DAs) auto
 
 (* Another nice lemma maybe... *)
 lemma subst_cls_lists_nth[simp]: "length CC = length \<sigma>s \<Longrightarrow> i < length CC \<Longrightarrow> (CC \<cdot>\<cdot>cl \<sigma>s) ! i = (CC ! i) \<cdot> \<sigma>s ! i"
-  unfolding subst_cls_lists_def by auto
+  unfolding subst_cls_lists_def by auto                                                              
 
 lemma subst_scls_lists_nth[simp]: "length CC = length \<sigma>s \<Longrightarrow> i < length CC \<Longrightarrow> (CC \<cdot>\<cdot>scl \<sigma>s) ! i = (CC ! i) \<cdot>sc \<sigma>s ! i"
   unfolding subst_scls_lists_def by auto
@@ -356,11 +356,20 @@ lemma subst_atms_comp_subst[simp]: "AA \<cdot>as (\<tau> \<odot> \<sigma>) = AA 
 lemma subst_atm_mset_comp_subst[simp]: "AA \<cdot>am (\<tau> \<odot> \<sigma>) = AA \<cdot>am \<tau> \<cdot>am \<sigma>"
   unfolding subst_atm_mset_def by auto
 
+lemma subst_atm_list_comp_subst[simp]: "AA \<cdot>al (\<tau> \<odot> \<sigma>) = AA \<cdot>al \<tau> \<cdot>al \<sigma>"
+  unfolding subst_atm_list_def 
+  apply (rule nth_equalityI) 
+   apply auto
+  done
+
 lemma subst_lit_comp_subst[simp]: "L \<cdot>l (\<tau> \<odot> \<sigma>) = L \<cdot>l \<tau> \<cdot>l \<sigma>"
   unfolding subst_lit_def by (auto simp: literal.map_comp o_def)
 
 lemma subst_cls_comp_subst[simp]: "C \<cdot> (\<tau> \<odot> \<sigma>) = C \<cdot> \<tau> \<cdot> \<sigma>"
   unfolding subst_cls_def by auto
+
+lemma subst_mcls_comp_subst[simp]: "C \<cdot>mc (\<tau> \<odot> \<sigma>) = C \<cdot>mc \<tau> \<cdot>mc \<sigma>"
+  unfolding subst_mcls_def by auto
 
 lemma map_zip_assoc: "map f (zip (zip xs ys) zs) = map (\<lambda>(x,y,z). f ((x,y),z)) (zip xs (zip ys zs))"
   by (induct zs arbitrary: xs ys) (auto simp add: zip.simps(2) split: list.splits)

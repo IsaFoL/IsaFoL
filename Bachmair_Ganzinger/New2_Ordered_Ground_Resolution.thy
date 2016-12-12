@@ -91,7 +91,7 @@ using res_e proof (cases rule: ord_resolve.cases)
     hence "\<not> I \<Turnstile> negs (mset As)"
       unfolding true_cls_def by fastforce
     hence "I \<Turnstile> D"
-      using d_true by fast
+      using d_true unfolding main_clause_def by fast
     then show ?thesis unfolding e by blast
   next
     case False
@@ -141,7 +141,7 @@ using res_e proof (cases rule: ord_resolve.cases)
     have "negs (mset As) \<noteq> {#}"
        using as_ne by auto
     thus ?thesis
-       unfolding True e by auto
+       unfolding True e unfolding main_clause_def by auto
   next
     case False
     moreover
@@ -179,7 +179,7 @@ using res_e proof (cases rule: ord_resolve.cases)
       (* TODO tune proof *)
       using atms_less_eq_imp_lit_less_eq_neg count_inI dual_order.strict_implies_order 
           gr_implies_not_zero order.not_eq_order_implies_strict by metis
-    then show ?thesis unfolding e by auto
+    then show ?thesis unfolding e main_clause_def by auto
   qed
 qed
 
@@ -215,7 +215,7 @@ proof -
       unfolding A_def using s_d_e d_ne d_in_n d_cex d_min
       by (metis Max_in_lits Max_lit_eq_pos_or_neg_Max_atm max_pos_imp_true_in_Interp
         true_Interp_imp_INTERP)
-    hence das: "DA = main_clause (D,As)" unfolding D_def As_def by auto
+    hence das: "DA = main_clause (D,As)" unfolding D_def As_def main_clause_def by auto
     moreover
     from na_in_d have "negs (mset As) \<subseteq># DA"
       by (simp add: As_def) 
@@ -236,7 +236,7 @@ proof -
       using S_selects_subseteq by (auto simp: filter_neg_atm_of_S)
     hence "negs (mset As) \<subseteq># DA" unfolding As_def by auto
     moreover
-    have das: "DA = main_clause (D, As)" using da_sub_as unfolding D_def As_def by auto
+    have das: "DA = main_clause (D, As)" using da_sub_as unfolding D_def As_def main_clause_def by auto
     moreover
     have "S DA = negs {#atm_of L. L \<in># S DA#}" 
       by (auto simp: filter_neg_atm_of_S)
@@ -346,7 +346,7 @@ proof -
   have "\<not> INTERP N \<Turnstile> Union_Cs CAs"
     unfolding CAs_def true_cls_def Union_Cs_def by (auto dest!: c'_at_n)
   moreover have "\<not> INTERP N \<Turnstile> D"
-    using d_cex unfolding da_da by simp
+    using d_cex unfolding da_da main_clause_def by simp
   ultimately have e_cex: "\<not> INTERP N \<Turnstile> Union_Cs CAs + D"
     by simp
     
@@ -379,7 +379,7 @@ using res_e proof (cases rule: ord_resolve.cases)
   have "atms_of (Union_Cs CAs) \<subseteq> (\<Union>C\<in>set_mset (side_clauses CAs). atms_of C)"
     unfolding side_clauses_def Union_Cs_def by (auto simp: atms_of_def)
   moreover have "atms_of D \<subseteq> atms_of (main_clause (D,As))"
-    by simp
+    unfolding main_clause_def by simp
   ultimately show ?thesis
     unfolding e Union_Cs_def by auto
 qed

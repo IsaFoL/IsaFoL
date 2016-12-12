@@ -4,7 +4,7 @@ begin
 
 section \<open>Even More about Multisets\<close>
 
-subsection \<open>Mutlisets and functions\<close>
+subsection \<open>Multisets and functions\<close>
 
 theorem range_image_mset:
   assumes "\<forall>D. D \<in># Ds \<longrightarrow> D \<in> range f" 

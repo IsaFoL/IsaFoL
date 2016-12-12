@@ -142,7 +142,7 @@ using res_e proof (cases rule: ord_resolve.cases)
     hence "\<not> I \<Turnstile> negs (mset (get_As DAs)) \<cdot> \<tau> \<cdot> \<sigma>"
       unfolding true_cls_def d by auto
     hence "I \<Turnstile> D \<cdot> \<tau> \<cdot> \<sigma>"
-      using d_true unfolding d by simp
+      using d_true unfolding d sorry
     thus ?thesis
       unfolding e by simp
   next
@@ -170,6 +170,64 @@ using res_e proof (cases rule: ord_resolve.cases)
   qed
 qed
 
+
+lemma ord_resolve_rename_sound:
+  assumes
+    res_e: "ord_resolve_rename CC D E" and
+    cc_d_true: "\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m ((side_clauses CC) + {#main_clause D#}) \<cdot>cm \<sigma>" and
+    ground_subst_\<sigma>: "is_ground_subst \<sigma>"
+  shows "I \<Turnstile> E \<cdot> \<sigma>"
+using res_e proof (cases rule: ord_resolve_rename.cases)
+  case (ord_resolve_rename \<rho> P)
+  have ren\<rho>: "is_renaming \<rho>" using ord_resolve_rename(1) .
+  have renP: "\<forall>\<rho> \<in> set P. is_renaming \<rho>" using ord_resolve_rename(2) .
+  have len: "length P = length CC" using ord_resolve_rename(3) .
+  have resolve: "ord_resolve (CC \<cdot>\<cdot>scl P) (D \<cdot>mc \<rho>) E" using ord_resolve_rename(4) .
+  { fix \<sigma>
+    assume gr\<sigma>: "is_ground_subst \<sigma>"
+    hence "is_ground_subst (\<rho> \<odot> \<sigma>)" "\<forall>\<rho> \<in> set P. is_ground_subst (\<rho> \<odot> \<sigma>)"
+      by simp_all
+    with cc_d_true
+    have "I \<Turnstile>m ({#main_clause (D \<cdot>mc \<rho>)#}) \<cdot>cm \<sigma>"
+      apply auto
+      apply (auto simp: subst_mc_main_clause[symmetric] 
+                        subst_cls_comp_subst[symmetric] 
+                  simp del: subst_mc_main_clause 
+                            subst_cls_comp_subst)
+      done
+    moreover
+    {
+      fix i
+      assume a_in: "i < length CC"
+      have "I \<Turnstile> side_clause (CC ! i) \<cdot> \<sigma>"
+        using cc_d_true a_in gr\<sigma> apply auto unfolding side_clauses_def apply auto
+        sorry
+      have "I \<Turnstile> side_clause (CC ! i \<cdot>sc P ! i) \<cdot> \<sigma>"
+        using cc_d_true a_in gr\<sigma>
+        apply auto
+        unfolding true_cls_mset_def
+        apply auto
+        
+        sorry
+    }
+    then have ccc: "I \<Turnstile>m side_clauses (CC \<cdot>\<cdot>scl P) \<cdot>cm \<sigma>"
+      unfolding true_cls_mset_def side_clauses_def subst_scls_lists_def using len
+      apply auto
+      apply (simp add: in_set_conv_nth[of _ "zip CC P"])
+      apply (drule exE)
+      apply auto
+      using nth_zip[of _ CC P]
+      apply force
+      done
+    ultimately
+    have "I \<Turnstile>m (side_clauses (CC \<cdot>\<cdot>scl P) + {#main_clause (D \<cdot>mc \<rho>)#}) \<cdot>cm \<sigma>" 
+      by auto
+  }
+  then show ?thesis
+    apply (rule ord_resolve_sound[OF resolve _ ground_subst_\<sigma>])
+    apply auto
+    done
+qed
   
 
 (* lifting lemma:
