@@ -99,8 +99,6 @@ lemma ord_resolve_raw_imp_ord_resolve: "ord_resolve CAs D E \<Longrightarrow> or
   apply auto
   done
 
-
-
 lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
   assumes 
     gr_cc: "is_ground_scls_list CAs" and
@@ -132,6 +130,10 @@ inductive true_fo_cls_mset :: "'a interp \<Rightarrow> 'a clause multiset \<Righ
   
 lemma true_fo_cls_mset_inst: "I \<Turnstile>fom C \<Longrightarrow> is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m (C \<cdot>cm \<sigma>)"
   using true_fo_cls_mset.induct .
+
+lemma true_fo_cls_mset_def2: "I \<Turnstile>fom CC \<longleftrightarrow> (\<forall>C \<in># CC. I \<Turnstile>fo C)"
+  by (metis Melem_subst_cls_mset true_cls_mset_def true_fo_cls true_fo_cls_inst true_fo_cls_mset true_fo_cls_mset.cases)
+  
   
 lemma ord_resolve_sound:
   assumes
@@ -189,21 +191,53 @@ lemma rename_sound:
   assumes "I \<Turnstile>fo C"
   shows "I \<Turnstile>fo (C \<cdot> \<rho>)"
 using assms
-  by (metis is_ground_comp_subst subst_cls_comp_subst true_fo_cls true_fo_cls_inst) 
+  by (metis is_ground_comp_subst subst_cls_comp_subst true_fo_cls true_fo_cls_inst)
+
+lemma rename_sound_scl:
+  assumes len: "length P = length CAs"
+  assumes ren: "\<forall>\<rho> \<in> set P. is_renaming \<rho>"
+  assumes true_cas: "I \<Turnstile>fom side_clauses CAs"
+  shows "I \<Turnstile>fom side_clauses (CAs \<cdot>\<cdot>scl P)"
+proof -
+  from true_cas have "\<forall>C. C\<in>#(side_clauses CAs) \<longrightarrow> (I \<Turnstile>fo C)" 
+    using true_fo_cls_mset_def2 by auto
+  then have "\<forall>C. C \<in> set CAs \<longrightarrow> (I \<Turnstile>fo side_clause C)" unfolding side_clauses_def by auto
+  then have "\<forall>i. i < length CAs \<longrightarrow> (I \<Turnstile>fo side_clause (CAs ! i))"
+    using in_set_conv_nth[of _ CAs] by blast
+  then have "\<forall>i. i < length CAs \<longrightarrow> (I \<Turnstile>fo side_clause (CAs ! i) \<cdot> P ! i)"
+    using ren rename_sound len by (auto simp del: subst_mc_side_clause)
+  then have true_cp: "\<forall>i. i < length CAs \<longrightarrow> (I \<Turnstile>fo side_clause (CAs ! i \<cdot>sc P ! i))" 
+    by auto
+  show ?thesis unfolding true_fo_cls_mset_def2
+  proof
+    fix x
+    assume "x \<in># side_clauses (CAs \<cdot>\<cdot>scl P)"
+    then have "x \<in> set_mset (mset (map side_clause (CAs \<cdot>\<cdot>scl P)))" unfolding side_clauses_def .
+    then have "x \<in> set (map side_clause (CAs \<cdot>\<cdot>scl P))" by auto
+    then obtain i where i_x: "i < length (map side_clause (CAs \<cdot>\<cdot>scl P)) \<and> x = map side_clause (CAs \<cdot>\<cdot>scl P) ! i"
+      using in_set_conv_nth by metis
+    then show "I \<Turnstile>fo x" using i_x subst_scls_lists_def true_cp by auto
+  qed
+qed
+  
 
 lemma ord_resolve_rename_sound:
   assumes
-    res_e: "ord_resolve_rename CC D E" and
-    cc_d_true: "I \<Turnstile>fom ((side_clauses CC) + {#main_clause D#})"
+    res_e: "ord_resolve_rename CAs DA E" and
+    cc_d_true: "I \<Turnstile>fom ((side_clauses CAs) + {#main_clause DA#})"
   shows "I \<Turnstile>fo E"
-  apply (rule true_fo_cls) using res_e proof (cases rule: ord_resolve_rename.cases)
-  fix \<sigma>
-  assume ground_subst_\<sigma>: "is_ground_subst \<sigma>"
+  using res_e proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
-  
-  then show "I \<Turnstile> E \<cdot> \<sigma>"
-    thm ord_resolve_sound
-    sorry
+  have ren: "is_renaming \<rho>" using ord_resolve_rename(1) .
+  have rens: "Ball (set P) is_renaming" using ord_resolve_rename(2) .
+  have len: "length P = length CAs" using ord_resolve_rename(3) .
+  have res: "ord_resolve (CAs \<cdot>\<cdot>scl P) (DA \<cdot>mc \<rho>) E" using ord_resolve_rename(4) .
+  have "I \<Turnstile>fom side_clauses (CAs \<cdot>\<cdot>scl P) + {#main_clause (DA \<cdot>mc \<rho>)#}"
+    using rename_sound_scl[OF len rens , of I] rename_sound[OF ren, of I "main_clause DA"]
+    cc_d_true by (simp add: true_fo_cls_mset_def2)
+  then show "I \<Turnstile>fo E"
+    using ord_resolve_sound[of "CAs \<cdot>\<cdot>scl P" "(DA \<cdot>mc \<rho>)" "E" I, OF res]
+    by simp
 qed
   
 

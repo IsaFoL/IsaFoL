@@ -205,6 +205,9 @@ lemma subst_cls_poss[simp]: "(poss AA) \<cdot> \<sigma> = poss (AA \<cdot>am \<s
 lemma subst_mc_main_clause[simp]: "(main_clause DAs) \<cdot> \<sigma> = main_clause (DAs \<cdot>mc \<sigma>)"
   unfolding subst_cls_def subst_mcls_def subst_atm_list_def subst_lit_def main_clause_def by (cases DAs) auto
 
+lemma subst_mc_side_clause[simp]: "(side_clause CA) \<cdot> \<sigma> = side_clause (CA \<cdot>sc \<sigma>)"
+  unfolding subst_cls_def subst_scls_def subst_atm_mset_def subst_lit_def by (cases CA) auto
+
 (* Another nice lemma maybe... *)
 lemma subst_cls_lists_nth[simp]: "length CC = length \<sigma>s \<Longrightarrow> i < length CC \<Longrightarrow> (CC \<cdot>\<cdot>cl \<sigma>s) ! i = (CC ! i) \<cdot> \<sigma>s ! i"
   unfolding subst_cls_lists_def by auto                                                              
