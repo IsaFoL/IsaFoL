@@ -119,13 +119,28 @@ lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
   ultimately show ?thesis using res_e by auto
 qed
 
+inductive true_fo_cls :: "'a interp \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>fo" 50) where
+  true_fo_cls:
+  "(\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile> (C \<cdot> \<sigma>)) \<Longrightarrow> I \<Turnstile>fo C"
+  
+lemma true_fo_cls_inst: "I \<Turnstile>fo C \<Longrightarrow> is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile> (C \<cdot> \<sigma>)"
+  using true_fo_cls.induct .
+
+inductive true_fo_cls_mset :: "'a interp \<Rightarrow> 'a clause multiset \<Rightarrow> bool" (infix "\<Turnstile>fom" 50) where
+  true_fo_cls_mset:
+  "(\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m (CC \<cdot>cm \<sigma>)) \<Longrightarrow> I \<Turnstile>fom CC"
+  
+lemma true_fo_cls_mset_inst: "I \<Turnstile>fom C \<Longrightarrow> is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m (C \<cdot>cm \<sigma>)"
+  using true_fo_cls_mset.induct .
+  
 lemma ord_resolve_sound:
   assumes
     res_e: "ord_resolve CAs DAs E" and
-    cc_d_true: "\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m (side_clauses CAs + {#main_clause DAs#}) \<cdot>cm \<sigma>" and
-    ground_subst_\<sigma>: "is_ground_subst \<sigma>"
-  shows "I \<Turnstile> E \<cdot> \<sigma>"
-using res_e proof (cases rule: ord_resolve.cases)
+    cc_d_true: "I \<Turnstile>fom (side_clauses CAs + {#main_clause DAs#})"
+  shows "I \<Turnstile>fo E"
+  apply (rule true_fo_cls) using assms proof (cases rule: ord_resolve.cases)
+  fix \<sigma>
+  assume ground_subst_\<sigma>: "is_ground_subst \<sigma>"
   case (ord_resolve As \<tau> D)
   have d: "DAs = (D, As)" using ord_resolve(1) .
   have e: "E = ((Union_Cs CAs) + D) \<cdot> \<tau>" using ord_resolve(2) .
@@ -134,9 +149,8 @@ using res_e proof (cases rule: ord_resolve.cases)
   have "is_ground_subst (\<tau> \<odot> \<sigma>)"
     using ground_subst_\<sigma> by (rule is_ground_comp_subst)
   hence cc_true: "I \<Turnstile>m (side_clauses CAs) \<cdot>cm \<tau> \<cdot>cm \<sigma>" and d_true: "I \<Turnstile> (main_clause DAs) \<cdot> \<tau> \<cdot> \<sigma>"
-    using cc_d_true[of "\<tau> \<odot> \<sigma>"] by auto
-  
-  then show ?thesis
+    using true_fo_cls_mset_inst[OF cc_d_true, of "\<tau> \<odot> \<sigma>"] by auto 
+  then show "\<forall>C\<in>set CAs. S (side_clause C) = {#} \<Longrightarrow> I \<Turnstile> E \<cdot> \<sigma>"
   proof (cases "\<forall>A \<in> set As. A \<cdot>a \<tau> \<cdot>a \<sigma> \<in> I")
     case True
     hence "\<not> I \<Turnstile> negs (mset (get_As DAs)) \<cdot> \<tau> \<cdot> \<sigma>"
@@ -170,63 +184,26 @@ using res_e proof (cases rule: ord_resolve.cases)
   qed
 qed
 
+lemma rename_sound:
+  assumes "is_renaming \<rho>"
+  assumes "I \<Turnstile>fo C"
+  shows "I \<Turnstile>fo (C \<cdot> \<rho>)"
+using assms
+  by (metis is_ground_comp_subst subst_cls_comp_subst true_fo_cls true_fo_cls_inst) 
 
 lemma ord_resolve_rename_sound:
   assumes
     res_e: "ord_resolve_rename CC D E" and
-    cc_d_true: "\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m ((side_clauses CC) + {#main_clause D#}) \<cdot>cm \<sigma>" and
-    ground_subst_\<sigma>: "is_ground_subst \<sigma>"
-  shows "I \<Turnstile> E \<cdot> \<sigma>"
-using res_e proof (cases rule: ord_resolve_rename.cases)
+    cc_d_true: "I \<Turnstile>fom ((side_clauses CC) + {#main_clause D#})"
+  shows "I \<Turnstile>fo E"
+  apply (rule true_fo_cls) using res_e proof (cases rule: ord_resolve_rename.cases)
+  fix \<sigma>
+  assume ground_subst_\<sigma>: "is_ground_subst \<sigma>"
   case (ord_resolve_rename \<rho> P)
-  have ren\<rho>: "is_renaming \<rho>" using ord_resolve_rename(1) .
-  have renP: "\<forall>\<rho> \<in> set P. is_renaming \<rho>" using ord_resolve_rename(2) .
-  have len: "length P = length CC" using ord_resolve_rename(3) .
-  have resolve: "ord_resolve (CC \<cdot>\<cdot>scl P) (D \<cdot>mc \<rho>) E" using ord_resolve_rename(4) .
-  { fix \<sigma>
-    assume gr\<sigma>: "is_ground_subst \<sigma>"
-    hence "is_ground_subst (\<rho> \<odot> \<sigma>)" "\<forall>\<rho> \<in> set P. is_ground_subst (\<rho> \<odot> \<sigma>)"
-      by simp_all
-    with cc_d_true
-    have "I \<Turnstile>m ({#main_clause (D \<cdot>mc \<rho>)#}) \<cdot>cm \<sigma>"
-      apply auto
-      apply (auto simp: subst_mc_main_clause[symmetric] 
-                        subst_cls_comp_subst[symmetric] 
-                  simp del: subst_mc_main_clause 
-                            subst_cls_comp_subst)
-      done
-    moreover
-    {
-      fix i
-      assume a_in: "i < length CC"
-      have "I \<Turnstile> side_clause (CC ! i) \<cdot> \<sigma>"
-        using cc_d_true a_in gr\<sigma> apply auto unfolding side_clauses_def apply auto
-        sorry
-      have "I \<Turnstile> side_clause (CC ! i \<cdot>sc P ! i) \<cdot> \<sigma>"
-        using cc_d_true a_in gr\<sigma>
-        apply auto
-        unfolding true_cls_mset_def
-        apply auto
-        
-        sorry
-    }
-    then have ccc: "I \<Turnstile>m side_clauses (CC \<cdot>\<cdot>scl P) \<cdot>cm \<sigma>"
-      unfolding true_cls_mset_def side_clauses_def subst_scls_lists_def using len
-      apply auto
-      apply (simp add: in_set_conv_nth[of _ "zip CC P"])
-      apply (drule exE)
-      apply auto
-      using nth_zip[of _ CC P]
-      apply force
-      done
-    ultimately
-    have "I \<Turnstile>m (side_clauses (CC \<cdot>\<cdot>scl P) + {#main_clause (D \<cdot>mc \<rho>)#}) \<cdot>cm \<sigma>" 
-      by auto
-  }
-  then show ?thesis
-    apply (rule ord_resolve_sound[OF resolve _ ground_subst_\<sigma>])
-    apply auto
-    done
+  
+  then show "I \<Turnstile> E \<cdot> \<sigma> "
+    thm ord_resolve_sound
+    sorry
 qed
   
 
