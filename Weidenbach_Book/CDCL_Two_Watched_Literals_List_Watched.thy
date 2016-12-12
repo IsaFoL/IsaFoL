@@ -106,6 +106,10 @@ fun twl_st_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl
 fun remove_one_lit_from_wq :: "nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l" where
   \<open>remove_one_lit_from_wq L (M, N, C, D, NP, UP, WS, Q) = (M, N, C, D, NP, UP, remove1_mset L WS, Q)\<close>
 
+lemma remove_one_lit_from_wq_def:
+  \<open>remove_one_lit_from_wq L S = set_working_queue_l (working_queue_l S - {#L#}) S\<close>
+  by (cases S) auto
+
 lemma butlast_list_update:
   \<open>w < length xs \<Longrightarrow> butlast (xs[w := last xs]) = take w xs @ butlast (last xs # drop (Suc w) xs)\<close>
   by (induction xs arbitrary: w) (auto split: nat.splits if_splits simp: upd_conv_take_nth_drop)
@@ -158,6 +162,14 @@ lemma refine_add_invariants':
   shows \<open>y \<le> \<Down> {((i, S), S'). P i S S' \<and> Q S'} (f S)\<close>
   using assms unfolding pw_le_iff pw_conc_inres pw_conc_nofail
   by force
+
+lemma "weaken_\<Down>": \<open>R' \<subseteq> R \<Longrightarrow> f \<le> \<Down> R' g \<Longrightarrow> f \<le> \<Down> R g\<close>
+  by (meson pw_ref_iff subset_eq)
+
+method match_Down =
+  (match conclusion in \<open>f \<le> \<Down> R g\<close> for f g R \<Rightarrow>
+    \<open>print_term f; match premises in I: \<open>f \<le> \<Down> R' g\<close> for R'
+       \<Rightarrow> \<open>rule "weaken_\<Down>"[OF _ I]\<close>\<close>)
 
 lemma unit_propagation_inner_loop_body_wl_unit_propagation_inner_loop_body_l:
   fixes S :: \<open>'v twl_st_wl\<close> and L :: \<open>'v literal\<close> and w :: nat
@@ -382,43 +394,41 @@ proof -
     qed
     done
   note 1 = this
-  thm refine_add_invariants
+
   have \<open>unit_propagation_inner_loop_body_wl L w S \<le>
      \<Down> {((i, T'), T). (T = st_l_of_wl (Some (L, i)) T' \<and> correct_watching T' \<and>
               i \<le> length (watched_by T' L)) \<and>
-         (twl_struct_invs (twl_st_of (Some L) T) \<and>
-          twl_stgy_invs (twl_st_of (Some L) T) \<and> additional_WS_invs T)}
+         (additional_WS_invs T \<and> twl_stgy_invs (twl_st_of (Some L) T) \<and>
+          twl_struct_invs (twl_st_of (Some L) T) )}
         (unit_propagation_inner_loop_body_l L C' T)\<close>
     unfolding T_def
     apply (rule refine_add_invariants'[where Q' = \<open>\<lambda>S S''. twl_st_of (Some L) S = S''\<close> and
           gS = \<open>(unit_propagation_inner_loop_body
-      (L, twl_clause_of (get_clauses_l T ! C'))
+      (L, twl_clause_of (get_clauses_l S' ! C'))
       (set_working_queue
         (remove1_mset
-          (L, twl_clause_of (get_clauses_l T ! C'))
-          (working_queue (twl_st_of (Some L) T)))
-        (twl_st_of (Some L) T)))\<close>])
+          (L, twl_clause_of (get_clauses_l S' ! C'))
+          (working_queue (twl_st_of (Some L) S')))
+        (twl_st_of (Some L) S')))\<close>])
     subgoal
-      using unit_propagation_inner_loop_body_l[of C' T L]
-        thm weaken_SPEC[OF ]
-        apply (auto simp: weaken_SPEC)
-      apply (rule unit_propagation_inner_loop_body_l[of C' T L])sorry
+    proof -
+      have H: \<open>{(T', T). twl_st_of (Some L) T' = T \<and> additional_WS_invs T' \<and> twl_stgy_invs (twl_st_of (Some L) T') \<and> twl_struct_invs (twl_st_of (Some L) T')} =
+        {(S, S''). twl_st_of (Some L) S = S'' \<and> additional_WS_invs S \<and> twl_stgy_invs S'' \<and> twl_struct_invs S''}\<close>
+        by auto
+      show ?thesis
+      unfolding remove_one_lit_from_wq_def C'_def[symmetric] S'_def[symmetric] H
+      apply (rule unit_propagation_inner_loop_body_l[of C' S' L])
+       using struct_invs stgy_inv add_inv WL_w_in_drop by (auto simp: S)
+    qed
     subgoal using 1 by auto
     subgoal
       apply (rule unit_propagation_inner_loop_body(2))
-      subgoal using confl w_le struct_invs
-        apply (auto simp: S) sorry
-      subgoal sorry
-      subgoal using struct_invs
-        apply (auto simp: ) sorry
-      subgoal sorry
-      subgoal using confl by (auto simp: S)
-        using confl w_le struct_invs
-        apply (auto simp: S)
-
-  show ?thesis
-    apply auto
-    sorry
+       using struct_invs stgy_inv add_inv WL_w_in_drop by (auto simp: S)
+     done
+   then show ?thesis
+     apply -
+     apply match_Down
+     by blast
 qed
 
 
@@ -510,9 +520,8 @@ proof -
       unfolding unit_propagation_body_wl_loop_fantom_def (* select_from_working_queue_def *)
       apply (refine_rcg watched_by_select_from_working_queue)
       using that
-apply (auto intro!: unit_propagation_inner_loop_body_wl_unit_propagation_inner_loop_body_l)
-      thm unit_propagation_inner_loop_body_wl_unit_propagation_inner_loop_body_l
-        sorry
+        apply (auto intro!: unit_propagation_inner_loop_body_wl_unit_propagation_inner_loop_body_l)
+      done
 
       term \<open>?P\<close>
     have \<open>unit_propagation_inner_loop_wl_loop L S \<le>
