@@ -552,7 +552,7 @@ proof -
       S'_S[unfolded S] S' st_of_S' S
     apply (rewrite at \<open>let _ =  _ ! _ in _\<close> Let_def)
     apply (rewrite at \<open>let _ = if _ ! _ = _then _ else _ in _\<close> Let_def)
-     apply (rewrite at \<open>let _ =  (_ ! _, _) in _\<close> Let_def)
+    apply (rewrite at \<open>let _ =  (_ ! _, _) in _\<close> Let_def)
     apply (refine_rcg bind_refine_spec[where M' = \<open>find_unwatched _ _\<close>, OF _ find_unwatched]
         bind_refine_spec[where M' = \<open>RETURN (valued _ _)\<close>, OF _ valued_spec[]]
         update_clause_ll_spec
