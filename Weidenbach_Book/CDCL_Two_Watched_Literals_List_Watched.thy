@@ -42,7 +42,7 @@ text \<open>
 \<close>
 fun correct_watching :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>correct_watching (M, N, U, D, NP, UP, Q, W) \<longleftrightarrow>
-    (\<forall>L \<in># lits_of_atms_of_mm (mset `# mset (tl N)). mset (W L) = clause_to_update L (M, N, U, D, NP, UP, {#}, {#}))\<close>
+    (\<forall>L \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP). mset (W L) = clause_to_update L (M, N, U, D, NP, UP, {#}, {#}))\<close>
 
 fun watched_by :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> watched\<close> where
   \<open>watched_by (M, N, U, D, NP, UP, Q, W) L = W L\<close>
@@ -102,6 +102,9 @@ fun st_l_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_s
 
 fun twl_st_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_st_wl  \<Rightarrow> 'v twl_st\<close> where
   \<open>twl_st_of_wl L S = twl_st_of (map_option fst L) (st_l_of_wl L S)\<close>
+
+fun twl_st_of_wl2 :: \<open>('v literal) option \<Rightarrow> 'v twl_st_wl  \<Rightarrow> 'v twl_st\<close> where
+  \<open>twl_st_of_wl2 L S = twl_st_of L (st_l_of_wl None S)\<close>
 
 fun remove_one_lit_from_wq :: "nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l" where
   \<open>remove_one_lit_from_wq L (M, N, C, D, NP, UP, WS, Q) = (M, N, C, D, NP, UP, remove1_mset L WS, Q)\<close>
@@ -171,7 +174,7 @@ method match_Down =
     \<open>print_term f; match premises in I: \<open>f \<le> \<Down> R' g\<close> for R'
        \<Rightarrow> \<open>rule "weaken_\<Down>"[OF _ I]\<close>\<close>)
 
-lemma unit_propagation_inner_loop_body_wl_unit_propagation_inner_loop_body_l:
+lemma unit_propagation_inner_loop_body_wl:
   fixes S :: \<open>'v twl_st_wl\<close> and L :: \<open>'v literal\<close> and w :: nat
   defines
     [simp]: \<open>T \<equiv> remove_one_lit_from_wq (watched_by S L ! w) (st_l_of_wl (Some (L, w)) S)\<close> and
@@ -231,7 +234,7 @@ proof -
     w_q_inv: \<open>working_queue_inv S''\<close> and
     dist: \<open>distinct_queued S''\<close> and
     no_dup: \<open>no_duplicate_queued S''\<close> and
-    no_dup_queued:\<open>no_duplicate_queued S''\<close>
+    no_dup_queued: \<open>no_duplicate_queued S''\<close>
     using struct_invs unfolding twl_struct_invs_def by fast+
   have n_d: \<open>no_dup M\<close>
     using cdcl_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -453,11 +456,11 @@ definition unit_propagation_inner_loop_wl :: "'v literal \<Rightarrow> 'v twl_st
   }\<close>
 
 declare correct_watching.simps[simp del]
-lemma unit_propagation_inner_loop_wl_unit_propagation_inner_loop_:
+lemma unit_propagation_inner_loop_wl:
   shows \<open>(uncurry unit_propagation_inner_loop_wl, uncurry unit_propagation_inner_loop_l) \<in>
     {((L', T'::'v twl_st_wl), (L, T::'v twl_st_l)). L = L' \<and> st_l_of_wl (Some (L, 0)) T' = T \<and>
-      correct_watching T' \<and> twl_struct_invs (twl_st_of_wl (Some (L, 0)) T') \<and>
-      twl_stgy_invs (twl_st_of_wl (Some (L, 0)) T') \<and> get_conflict_wl T' = None \<and>
+      correct_watching T' \<and> twl_struct_invs (twl_st_of_wl2 (Some L) T') \<and>
+      twl_stgy_invs (twl_st_of_wl2 (Some L) T') \<and> get_conflict_wl T' = None \<and>
        additional_WS_invs (st_l_of_wl (Some (L, 0)) T')} \<rightarrow>
     \<langle>{(T', T). st_l_of_wl None T' = T \<and>
         twl_struct_invs (twl_st_of_wl None T') \<and>
@@ -469,8 +472,8 @@ proof -
   {
     fix L :: \<open>'v literal\<close> and S :: \<open>'v twl_st_wl\<close>
     assume corr_w: \<open>correct_watching S\<close> and
-      struct_invs: \<open>twl_struct_invs (twl_st_of_wl (Some (L, 0)) S)\<close> and
-      stgy_invs: \<open>twl_stgy_invs (twl_st_of_wl (Some (L, 0)) S)\<close> and
+      struct_invs: \<open>twl_struct_invs (twl_st_of_wl2 (Some L) S)\<close> and
+      stgy_invs: \<open>twl_stgy_invs (twl_st_of_wl2 (Some L) S)\<close> and
       add_invs: \<open>additional_WS_invs (st_l_of_wl (Some (L, 0)) S)\<close>
     text \<open>To ease the finding the correspondence between the body of the loops, we introduce
       following function:\<close>
@@ -497,12 +500,8 @@ proof -
     have H: \<open>unit_propagation_body_wl_loop_fantom L i T'
     \<le> \<Down> {((i, T'), T).
           T = st_l_of_wl (Some (L, i)) T' \<and>
-          twl_struct_invs
-           (twl_st_of (Some L)
-             (st_l_of_wl (Some (L, i)) T')) \<and>
-          twl_stgy_invs
-           (twl_st_of (Some L)
-             (st_l_of_wl (Some (L, i)) T')) \<and>
+          twl_struct_invs (twl_st_of (Some L) (st_l_of_wl (Some (L, i)) T')) \<and>
+          twl_stgy_invs (twl_st_of (Some L) (st_l_of_wl (Some (L, i)) T')) \<and>
           additional_WS_invs T \<and>
           correct_watching T' \<and> i \<le> length (watched_by T' L)}
         (do {
@@ -520,10 +519,9 @@ proof -
       unfolding unit_propagation_body_wl_loop_fantom_def (* select_from_working_queue_def *)
       apply (refine_rcg watched_by_select_from_working_queue)
       using that
-        apply (auto intro!: unit_propagation_inner_loop_body_wl_unit_propagation_inner_loop_body_l)
+        apply (auto intro!: unit_propagation_inner_loop_body_wl)
       done
 
-      term \<open>?P\<close>
     have \<open>unit_propagation_inner_loop_wl_loop L S \<le>
             \<Down> {((i, T'), T). T = st_l_of_wl None T' \<and> ?P T T'}
               (unit_propagation_inner_loop_l L (st_l_of_wl (Some (L, 0)) S))\<close>
@@ -542,13 +540,12 @@ proof -
       subgoal for i'T' T i' T' by auto
       subgoal for i'T' T i' T' by auto
       subgoal for i'T' T i' T'
-        by (cases T') (auto simp del:  unit_clss_inv.simps valid_annotation.simps split: if_splits;
+        by (cases T') (auto simp del: unit_clss_inv.simps valid_annotation.simps split: if_splits;
             fail)
       subgoal for i'T' T i' T'
         apply (rule order_trans)
-           apply (rule unit_propagation_body_wl_loop_fantom; simp; fail)
-        by (auto intro!: H)
-      subgoal by auto
+        by (rule unit_propagation_body_wl_loop_fantom; simp; fail) (auto intro!: H)
+      subgoal by force
       done
     then have \<open>unit_propagation_inner_loop_wl_loop L S \<le> \<Down> {((i, T'), T).  T = st_l_of_wl None T' \<and>
       ?P T T'}
@@ -571,7 +568,7 @@ proof -
     apply (refine_rcg H)
     subgoal by auto
     subgoal by auto
-    subgoal by auto
+    subgoal by force
     done
   moreover have \<open>unit_propagation_inner_loop_l_fantom = unit_propagation_inner_loop_l\<close>
     by (intro ext) (auto simp: unit_propagation_inner_loop_l_fantom_def)
@@ -608,4 +605,140 @@ val _ = Theory.setup
       Thm.rule_attribute ths down_converse))
       "convert rule to predicate notation")
 \<close>
+
+definition select_and_remove_from_pending_wl :: "'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> 'v literal) nres" where
+  \<open>select_and_remove_from_pending_wl S = SPEC(\<lambda>(S', L). L \<in># pending_wl S \<and>
+     S' = set_pending_wl (pending_wl S - {#L#}) S)\<close>
+
+thm select_and_remove_from_pending_wl_def[to_pred]
+  unit_propagation_inner_loop_l["to_\<Down>"]
+definition unit_propagation_outer_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
+  \<open>unit_propagation_outer_loop_wl S\<^sub>0 =
+    WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> twl_stgy_invs (twl_st_of_wl None S) \<and>
+      correct_watching S \<and> additional_WS_invs (st_l_of_wl None S)\<^esup>
+      (\<lambda>S. pending_wl S \<noteq> {#})
+      (\<lambda>S. do {
+        ASSERT(pending_wl S \<noteq> {#});
+        (S', L) \<leftarrow> select_and_remove_from_pending_wl S;
+        unit_propagation_inner_loop_wl L S'
+      })
+      (S\<^sub>0 :: 'v twl_st_wl)
+\<close>
+
+lemma in_lits_of_atms_of_mm_ain_atms_of_iff: \<open>L \<in># lits_of_atms_of_mm N \<longleftrightarrow> atm_of L \<in> atms_of_mm N\<close>
+  by (cases L) (auto simp: lits_of_atms_of_mm_def atms_of_ms_def atms_of_def)
+
+lemma pending_wl_pending_l_iff: \<open>pending_l (st_l_of_wl L S) = pending_wl S\<close>
+  by (cases S; cases L) auto
+
+lemma correct_watching_set_pending: \<open>correct_watching (set_pending_wl WS T') = correct_watching T'\<close>
+  by (cases T') (auto simp: correct_watching.simps)
+
+lemma \<open>
+ (unit_propagation_outer_loop_wl, unit_propagation_outer_loop_l)
+ \<in> {(T', T).
+       st_l_of_wl None T' = T \<and>
+       correct_watching T' \<and>
+       twl_struct_invs (twl_st_of_wl None T') \<and>
+       twl_stgy_invs (twl_st_of_wl None T') \<and>
+       get_conflict_wl T' = None \<and>
+       additional_WS_invs (st_l_of_wl None T')} \<rightarrow>
+    \<langle>{(T', T).
+       st_l_of_wl None T' = T \<and>
+       twl_struct_invs (twl_st_of_wl None T') \<and>
+       twl_stgy_invs (twl_st_of_wl None T') \<and>
+       additional_WS_invs T \<and>
+       correct_watching T'}\<rangle>nres_rel\<close>
+proof -
+  have select_and_remove_from_pending_wl: \<open>select_and_remove_from_pending_wl S' \<le>
+     \<Down> {((T', L'), (T, L)). L = L' \<and> T = st_l_of_wl (Some (L, 0)) T' \<and>
+       T' = set_pending_wl (pending_wl S' - {#L#}) S' \<and> L \<in># pending_wl S'
+(*  \<and>       twl_struct_invs (twl_st_of_wl (Some (L, 0)) T') \<and>
+       twl_stgy_invs (twl_st_of_wl (Some (L, 0)) T') *)
+     }
+       (select_and_remove_from_pending S)\<close>
+    if S: \<open>S = st_l_of_wl None S'\<close> and \<open>get_conflict_wl S' = None\<close> and
+      corr_w: \<open>correct_watching S'\<close> and
+      struct_invs: \<open>twl_struct_invs (twl_st_of_wl None S')\<close>
+    for S S'
+  proof -
+    obtain M N U D NP UP W Q where
+      S': \<open>S' = (M, N, U, D, NP, UP, Q, W)\<close>
+      by (cases S') auto
+    have
+      no_dup_q: \<open>no_duplicate_queued (twl_st_of None (st_l_of_wl None S'))\<close> and
+      alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of None (st_l_of_wl None S')))\<close>
+      using struct_invs that by (auto simp: twl_struct_invs_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+    then have H: \<open>L \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP)\<close> if LQ: \<open>L \<in># Q\<close> for L
+    proof -
+      obtain K where \<open>L = - lit_of K\<close> and \<open>K \<in># mset (convert_lits_l N M)\<close>
+        using that no_dup_q LQ
+        by (auto simp: S' cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+          lits_of_atms_of_mm_def atms_of_ms_def)
+      then have \<open>atm_of L \<in> atm_of ` lits_of_l M\<close>
+        by (auto simp: convert_lits_l_def lits_of_def)
+      moreover {
+        have \<open>atm_of ` lits_of_l M \<subseteq> (\<Union>x\<in>set (take U (tl N)). atm_of ` set (take 2 x) \<union>
+           atm_of ` set (drop 2 x)) \<union> (\<Union>x\<in>set_mset NP. atms_of x)\<close>
+          using that alien unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+          by (auto simp: S' cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+              lits_of_atms_of_mm_def atms_of_ms_def)
+        then have \<open>atm_of ` lits_of_l M \<subseteq> (\<Union>x\<in>set (take U (tl N)). atm_of ` set x) \<union>
+           (\<Union>x\<in>set_mset NP. atms_of x)\<close>
+          unfolding image_Un[symmetric]
+            set_append[symmetric]
+            append_take_drop_id
+            .
+          then have \<open>atm_of ` lits_of_l M \<subseteq> atms_of_mm (mset `# mset (tl N) + NP)\<close>
+            by (smt UN_Un Un_iff append_take_drop_id atms_of_ms_def atms_of_ms_mset_unfold set_append
+                set_image_mset set_mset_mset set_mset_union subset_eq)
+          }
+      ultimately have \<open>atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP)\<close>
+        using that by blast
+      then show ?thesis
+        using that by (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff)
+    qed
+    then have H: \<open>clause_to_update L S = mset (W L)\<close> if \<open>L \<in># Q\<close> for L
+      using corr_w that S by (auto simp: correct_watching.simps S' clause_to_update_def)
+    show ?thesis
+      unfolding select_and_remove_from_pending_wl_def select_and_remove_from_pending_def
+      apply (rule RES_refine)
+      using that S' by (auto simp: pending_wl_pending_l_iff correct_watching.simps dest: H)
+  qed
+  show ?thesis
+    unfolding unit_propagation_outer_loop_wl_def unit_propagation_outer_loop_l_def
+    apply (refine_vcg select_and_remove_from_pending_wl)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for T' T by (auto simp: pending_wl_pending_l_iff)
+    subgoal by auto
+    subgoal for S' S T' T
+      apply (subgoal_tac \<open>get_conflict (twl_st_of None (st_l_of_wl None T')) \<noteq> None \<longrightarrow>
+    pending (twl_st_of None (st_l_of_wl None T')) = {#}\<close>)
+      subgoal by (cases T'; cases S') auto
+      subgoal by (simp add: twl_struct_invs_def del: correct_watching.simps
+            propa_cands_enqueued.simps confl_cands_enqueued.simps
+            valid_annotation.simps no_duplicate_queued.simps
+            twl_st_exception_inv.simps unit_clss_inv.simps
+            working_queue_inv.simps past_invs.simps)
+      done
+    subgoal by auto
+    subgoal by auto
+    subgoal for S' S T' T U'L' UL U' L' U L
+      apply (subst do_uncurry[of unit_propagation_inner_loop_wl])
+      apply (subst do_uncurry[of unit_propagation_inner_loop_l])
+      apply (rule unit_propagation_inner_loop_wl["to_\<Down>"])
+      apply (auto simp: correct_watching_set_pending)
+        -- \<open>2 solutions here: change @{thm unit_propagation_inner_loop_wl} to have invariants on
+  the correct version. Or do more work to prove that it holds.\<close>
+        thm  unit_propagation_inner_loop_wl["to_\<Down>"]
+      sorry
+    done
+qed
+
+
 end
