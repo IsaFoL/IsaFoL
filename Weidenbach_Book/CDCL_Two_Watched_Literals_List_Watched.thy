@@ -459,9 +459,11 @@ declare correct_watching.simps[simp del]
 lemma unit_propagation_inner_loop_wl:
   shows \<open>(uncurry unit_propagation_inner_loop_wl, uncurry unit_propagation_inner_loop_l) \<in>
     {((L', T'::'v twl_st_wl), (L, T::'v twl_st_l)). L = L' \<and> st_l_of_wl (Some (L, 0)) T' = T \<and>
-      correct_watching T' \<and> twl_struct_invs (twl_st_of_wl2 (Some L) T') \<and>
-      twl_stgy_invs (twl_st_of_wl2 (Some L) T') \<and> get_conflict_wl T' = None \<and>
-       additional_WS_invs (st_l_of_wl (Some (L, 0)) T')} \<rightarrow>
+      correct_watching T' \<and>
+      twl_struct_invs (twl_st_of_wl2 (Some L) (set_pending_wl (add_mset L (pending_wl T')) T')) \<and>
+      twl_stgy_invs (twl_st_of_wl2 None (set_pending_wl (add_mset L (pending_wl T')) T')) \<and>
+      get_conflict_wl T' = None \<and>
+      additional_WS_invs (st_l_of_wl None (set_pending_wl (add_mset L (pending_wl T')) T'))} \<rightarrow>
     \<langle>{(T', T). st_l_of_wl None T' = T \<and>
         twl_struct_invs (twl_st_of_wl None T') \<and>
         twl_stgy_invs (twl_st_of_wl None T') \<and>
@@ -471,10 +473,11 @@ lemma unit_propagation_inner_loop_wl:
 proof -
   {
     fix L :: \<open>'v literal\<close> and S :: \<open>'v twl_st_wl\<close>
+    let ?S = \<open>twl_st_of_wl2 (Some L) (set_pending_wl (add_mset L (pending_wl S)) S)\<close>
     assume corr_w: \<open>correct_watching S\<close> and
-      struct_invs: \<open>twl_struct_invs (twl_st_of_wl2 (Some L) S)\<close> and
-      stgy_invs: \<open>twl_stgy_invs (twl_st_of_wl2 (Some L) S)\<close> and
-      add_invs: \<open>additional_WS_invs (st_l_of_wl (Some (L, 0)) S)\<close>
+      struct_invs: \<open>twl_struct_invs ?S\<close> and
+      stgy_invs: \<open>twl_stgy_invs ?S\<close> and
+      add_invs: \<open>additional_WS_invs (st_l_of_wl None (set_pending_wl (add_mset L (pending_wl S)) S))\<close>
     text \<open>To ease the finding the correspondence between the body of the loops, we introduce
       following function:\<close>
     define unit_propagation_body_wl_loop_fantom where
@@ -566,8 +569,9 @@ proof -
     unfolding unit_propagation_inner_loop_wl_def unit_propagation_inner_loop_l_fantom_def uncurry_def
     apply clarify
     apply (refine_rcg H)
+    subgoal by force
     subgoal by auto
-    subgoal by auto
+    subgoal by force
     subgoal by force
     done
   moreover have \<open>unit_propagation_inner_loop_l_fantom = unit_propagation_inner_loop_l\<close>
@@ -634,8 +638,18 @@ lemma pending_wl_pending_l_iff: \<open>pending_l (st_l_of_wl L S) = pending_wl S
 lemma correct_watching_set_pending: \<open>correct_watching (set_pending_wl WS T') = correct_watching T'\<close>
   by (cases T') (auto simp: correct_watching.simps)
 
-lemma \<open>
- (unit_propagation_outer_loop_wl, unit_propagation_outer_loop_l)
+lemma get_conflict_wl_set_pending_wl:\<open>get_conflict_wl (set_pending_wl P S) = get_conflict_wl S\<close>
+  by (cases S) auto
+
+lemma get_conflict_twl_st_of_st_l_of_wl:
+  \<open>get_conflict (twl_st_of L (st_l_of_wl L' T')) = map_option mset (get_conflict_wl T')\<close>
+  by (cases T'; cases L; cases L') auto
+
+lemma pending_twl_st_of_st_l_of_wl: \<open>pending (twl_st_of L (st_l_of_wl L' T')) = pending_wl T'\<close>
+  by (cases T'; cases L; cases L') auto
+
+lemma unit_propagation_outer_loop_wl:
+  \<open>(unit_propagation_outer_loop_wl, unit_propagation_outer_loop_l)
  \<in> {(T', T).
        st_l_of_wl None T' = T \<and>
        correct_watching T' \<and>
@@ -706,6 +720,9 @@ proof -
       apply (rule RES_refine)
       using that S' by (auto simp: pending_wl_pending_l_iff correct_watching.simps dest: H)
   qed
+  have set_pending_add_remove: \<open>(set_pending_wl (add_mset L (pending_wl (set_pending_wl (remove1_mset L (pending_wl T')) T'))) (set_pending_wl (remove1_mset L (pending_wl T')) T')) = T'\<close>
+    if \<open>L \<in># pending_wl T' \<close>for T' :: \<open>'v twl_st_wl\<close> and L
+    using that by (cases T') auto
   show ?thesis
     unfolding unit_propagation_outer_loop_wl_def unit_propagation_outer_loop_l_def
     apply (refine_vcg select_and_remove_from_pending_wl)
@@ -732,13 +749,14 @@ proof -
       apply (subst do_uncurry[of unit_propagation_inner_loop_wl])
       apply (subst do_uncurry[of unit_propagation_inner_loop_l])
       apply (rule unit_propagation_inner_loop_wl["to_\<Down>"])
-      apply (auto simp: correct_watching_set_pending)
-        -- \<open>2 solutions here: change @{thm unit_propagation_inner_loop_wl} to have invariants on
-  the correct version. Or do more work to prove that it holds.\<close>
-        thm  unit_propagation_inner_loop_wl["to_\<Down>"]
-      sorry
+      apply (subgoal_tac \<open>(get_conflict (twl_st_of None (st_l_of_wl None T')) \<noteq> None \<longrightarrow>
+         working_queue (twl_st_of None (st_l_of_wl None T')) = {#} \<and> pending (twl_st_of None (st_l_of_wl None T')) = {#})\<close>)
+          -- \<open>this goal is extracted from the invariant\<close>
+       apply (auto simp: correct_watching_set_pending set_pending_add_remove get_conflict_wl_set_pending_wl
+          get_conflict_twl_st_of_st_l_of_wl pending_twl_st_of_st_l_of_wl; fail)
+      apply (simp add: twl_struct_invs_def)
+      done
     done
 qed
-
 
 end
