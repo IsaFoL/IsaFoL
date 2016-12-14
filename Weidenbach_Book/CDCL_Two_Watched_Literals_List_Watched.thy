@@ -596,25 +596,40 @@ lemma H: \<open>\<forall>x. P x (fst x) (snd x) \<equiv> \<forall>x y. P (x,y) x
   by auto
 
 ML \<open>
-val unfold_refine = (fn context => Local_Defs.unfold (Context.proof_of context)
-  @{thms refine_rel_defs nres_rel_def in_pair_collect_simp})
-val unfold_Ball = (fn context => Local_Defs.unfold (Context.proof_of context)
-  @{thms Ball2_split_def all_to_meta})
-val replace_ALL_by_meta = (fn context => fn thm => the (snd (curry Object_Logic.rule_format context thm)))
-val down_converse = (fn context =>
-  replace_ALL_by_meta context o (unfold_Ball context) o (unfold_refine context))
+signature MORE_REFINEMENT = sig
+  val down_converse: Context.generic -> thm -> thm
+end
 
-val _ = Theory.setup
-    (Attrib.setup @{binding "to_\<Down>"} (Attrib.thms >> (fn ths =>
-      Thm.rule_attribute ths down_converse))
-      "convert rule to predicate notation")
+structure More_Refinement: MORE_REFINEMENT = struct
+  val unfold_refine = (fn context => Local_Defs.unfold (Context.proof_of context)
+    @{thms refine_rel_defs nres_rel_def in_pair_collect_simp})
+  val unfold_Ball = (fn context => Local_Defs.unfold (Context.proof_of context)
+    @{thms Ball2_split_def all_to_meta})
+  val replace_ALL_by_meta = (fn context => fn thm => the (snd (curry Object_Logic.rule_format context thm)))
+  val down_converse = (fn context =>
+    replace_ALL_by_meta context o (unfold_Ball context) o (unfold_refine context))
+end
 \<close>
+
+attribute_setup "to_\<Down>" = \<open>
+    Scan.succeed (Thm.rule_attribute [] More_Refinement.down_converse)
+  \<close> "convert theorem from @{text \<rightarrow>}-form to @{text \<Down>}-form."
+
+(* TODO move proof and definition of to_\<Down> *)
+lemma refine_pair_to_SPEC_fst_pair2:
+  fixes f :: \<open>'s \<Rightarrow> ('c \<times> 's) nres\<close> and g :: \<open>'b \<Rightarrow> ('c \<times> 'b) nres\<close>
+  assumes H: \<open>(f, g) \<in> {(S, S'). S' = h S \<and> R S} \<rightarrow> \<langle>{((brk, S), (brk', S')). S' = h S \<and> brk = brk' \<and> P' S}\<rangle>nres_rel\<close>
+    (is \<open>_ \<in> ?R \<rightarrow> ?I\<close>)
+  assumes \<open>R S\<close> and [simp]: \<open>S' = h S\<close>
+  shows \<open>f S \<le> \<Down> {((brk, S), (brk', S')). S' = h S \<and> brk = brk' \<and> P' S} (g S')\<close>
+   by (rule H["to_\<Down>"]) (use assms in auto)
+
 
 definition select_and_remove_from_pending_wl :: "'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> 'v literal) nres" where
   \<open>select_and_remove_from_pending_wl S = SPEC(\<lambda>(S', L). L \<in># pending_wl S \<and>
      S' = set_pending_wl (pending_wl S - {#L#}) S)\<close>
 
-thm select_and_remove_from_pending_wl_def[to_pred]
+thm select_and_remove_from_pending_wl_def["to_\<Down>"]
   unit_propagation_inner_loop_l["to_\<Down>"]
 definition unit_propagation_outer_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
   \<open>unit_propagation_outer_loop_wl S\<^sub>0 =
