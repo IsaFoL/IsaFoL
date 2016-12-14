@@ -957,9 +957,11 @@ definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
         if length (the D) > 1
         then do {
           L' \<leftarrow> find_lit_of_max_level_wl (M, N, U, D, NP, UP, Q, W) L;
+          ASSERT(atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP));
+          ASSERT(atm_of L' \<in> atms_of_mm (mset `# mset (tl N) + NP));
           RETURN (Propagated (-L) (length N) # M1,
             N @ [[-L, L'] @ (remove1 (-L) (remove1 L' (the D)))], U,
-            None, NP, UP, add_mset L {#}, W(L:= W L @ [length N], L':= W L' @ [length N]))
+            None, NP, UP, add_mset L {#}, W(-L:= W (-L) @ [length N], L':= W L' @ [length N]))
         }
         else do {
           RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset_list (the D) UP, add_mset L {#}, W)
