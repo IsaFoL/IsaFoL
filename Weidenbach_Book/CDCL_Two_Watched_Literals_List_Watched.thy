@@ -774,4 +774,290 @@ proof -
     done
 qed
 
+definition find_unassigned_lit_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v literal option nres\<close> where
+  \<open>find_unassigned_lit_wl = (\<lambda>(M, N, U, D, NP, UP, WS, Q).
+     SPEC (\<lambda>L.
+         (L \<noteq> None  \<longrightarrow>
+            undefined_lit M (the L) \<and>
+            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)))) \<and>
+         (L = None \<longrightarrow> (\<nexists>L'. undefined_lit M L' \<and>
+            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N))))))
+     )\<close>
+
+definition decide_wl_or_skip :: "'v twl_st_wl \<Rightarrow> (bool \<times> 'v twl_st_wl) nres" where
+  \<open>decide_wl_or_skip S = (do {
+    ASSERT(twl_struct_invs (twl_st_of_wl None S));
+    ASSERT(twl_stgy_invs (twl_st_of_wl None S));
+    ASSERT(additional_WS_invs (st_l_of_wl None S));
+    ASSERT(get_conflict_wl S = None);
+    L \<leftarrow> find_unassigned_lit_wl S;
+    if L \<noteq> None
+    then do {
+      let (M, N, U, D, NP, UP, Q, W) = S;
+      ASSERT(L \<noteq> None);
+      let K = the L;
+      RETURN (False, (Decided K # M, N, U, D, NP, UP, {#-K#}, W))}
+    else do {RETURN (True, S)}
+  })
+\<close>
+
+lemma decide_wl_or_skip:
+  \<open>(decide_wl_or_skip, decide_l_or_skip)
+ \<in> {(T', T).
+       st_l_of_wl None T' = T \<and>
+       correct_watching T' \<and>
+       twl_struct_invs (twl_st_of_wl None T') \<and>
+       twl_stgy_invs (twl_st_of_wl None T') \<and>
+       get_conflict_wl T' = None \<and>
+       additional_WS_invs (st_l_of_wl None T')} \<rightarrow>
+    \<langle>{((b', T'), (b, T)). b' = b \<and>
+       st_l_of_wl None T' = T \<and>
+(*       twl_struct_invs (twl_st_of_wl None T') \<and>
+       twl_stgy_invs (twl_st_of_wl None T') \<and>
+       additional_WS_invs T \<and> *)
+       correct_watching T'}\<rangle>nres_rel\<close>
+proof -
+  have find_unassigned_lit_wl: \<open>find_unassigned_lit_wl S'
+    \<le> \<Down> Id
+        (find_unassigned_lit S)\<close>
+    if \<open>S = st_l_of_wl None S'\<close>
+    for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st_wl\<close>
+    using that
+    by (cases S') (auto simp: find_unassigned_lit_wl_def find_unassigned_lit_def)
+
+  have \<open>(decide_wl_or_skip, decide_l_or_skip)
+    \<in> {(T', T).
+        st_l_of_wl None T' = T \<and>
+        correct_watching T' \<and>
+        twl_struct_invs (twl_st_of_wl None T') \<and>
+        twl_stgy_invs (twl_st_of_wl None T') \<and>
+        get_conflict_wl T' = None \<and> additional_WS_invs (st_l_of_wl None T')} \<rightarrow>
+       \<langle>{((b', T'), b, T).
+         b' = b \<and>
+         st_l_of_wl None T' = T \<and> correct_watching T'}\<rangle>nres_rel\<close>
+    unfolding decide_wl_or_skip_def decide_l_or_skip_def
+    apply (refine_vcg find_unassigned_lit_wl)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: correct_watching.simps clause_to_update_def)
+    subgoal by auto
+    done
+  then show ?thesis .
+qed
+
+definition skip_and_resolve_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
+  \<open>skip_and_resolve_loop_wl S\<^sub>0 =
+    do {
+      ASSERT(get_conflict_wl S\<^sub>0 \<noteq> None);
+      (_, S) \<leftarrow>
+        WHILE\<^sub>T\<^bsup>\<lambda>(brk, S). skip_and_resolve_loop_inv (twl_st_of_wl None S\<^sub>0) (brk, twl_st_of_wl None S) \<and>
+         additional_WS_invs (st_l_of_wl None S)\<^esup>
+        (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)))
+        (\<lambda>(_, S).
+          let (M, N, U, D, NP, UP, Q, W) = S in
+          do {
+            ASSERT(M \<noteq> []);
+            ASSERT(get_conflict_wl (M, N, U, D, NP, UP, Q, W) \<noteq> None);
+            let D' = the (get_conflict_wl (M, N, U, D, NP, UP, Q, W));
+            ASSERT(is_proped (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W))));
+            let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W)));
+            ASSERT(C < length N);
+            if -L \<notin> set D' then
+              do {RETURN (False, (tl M, N, U, D, NP, UP, Q, W))}
+            else
+              if get_maximum_level M (remove1_mset (-L) (mset D')) = count_decided M
+              then
+                do {RETURN (resolve_cls_l L D' (if C = 0 then [L] else N!C) = [],
+                   (tl M, N, U, Some (resolve_cls_l L D' (if C = 0 then [L] else N!C)),
+                     NP, UP, Q, W))}
+              else
+                do {RETURN (True, (M, N, U, D, NP, UP, Q, W))}
+          }
+        )
+        (get_conflict_wl S\<^sub>0 = Some [], S\<^sub>0);
+      RETURN S
+    }
+  \<close>
+
+lemma get_conflict_l_st_l_of_wl:
+  \<open>get_conflict_l (st_l_of_wl L S) = get_conflict_wl S\<close>
+  by (cases S; cases L) auto
+
+lemma skip_and_resolve_loop_wl:
+  \<open>(skip_and_resolve_loop_wl, skip_and_resolve_loop_l)
+ \<in> {(T', T).
+       st_l_of_wl None T' = T \<and>
+       correct_watching T' \<and>
+       twl_struct_invs (twl_st_of_wl None T') \<and>
+       twl_stgy_invs (twl_st_of_wl None T') \<and>
+       get_conflict_wl T' = None \<and>
+       additional_WS_invs (st_l_of_wl None T')} \<rightarrow>
+    \<langle>{(T', T).
+       st_l_of_wl None T' = T \<and>
+(*       twl_struct_invs (twl_st_of_wl None T') \<and>
+       twl_stgy_invs (twl_st_of_wl None T') \<and>
+       additional_WS_invs T \<and> *)
+       correct_watching T'}\<rangle>nres_rel\<close>
+proof -
+  have get_conflict_wl: \<open>((get_conflict_wl S' = Some [], S'), get_conflict_l S = Some [], S)
+    \<in> Id \<times>\<^sub>r {(T', T). st_l_of_wl None T' = T}\<close>
+    if \<open>S = st_l_of_wl None S'\<close>
+    for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st_wl\<close>
+    using that by (cases S') auto
+  show ?thesis
+    unfolding skip_and_resolve_loop_wl_def skip_and_resolve_loop_l_def
+    apply (refine_vcg)
+    subgoal by (auto simp add: get_conflict_l_st_l_of_wl)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+definition find_decomp_wl :: "'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> ('v, nat) ann_lits nres" where
+  \<open>find_decomp_wl =  (\<lambda>(M, N, U, D, NP, UP, Q, Q) L.
+    SPEC(\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
+          get_level M K = get_maximum_level M (mset (the D) - {#-L#}) + 1))\<close>
+
+definition find_lit_of_max_level_wl :: "'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> 'v literal nres" where
+  \<open>find_lit_of_max_level_wl =  (\<lambda>(M, N, U, D, NP, UP, Q, W) L.
+    SPEC(\<lambda>L'. L' \<in># mset (the D) \<and> get_level M L' = get_maximum_level M (mset (the D) - {#-L#})))\<close>
+
+definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
+  \<open>backtrack_wl S\<^sub>0 =
+    do {
+      let (M, N, U, D, NP, UP, Q, W) = S\<^sub>0 in
+      do {
+        ASSERT(M \<noteq> []);
+        let L = lit_of (hd M);
+        ASSERT(get_level M L = count_decided M);
+        ASSERT(D \<noteq> None);
+        ASSERT(D \<noteq> Some []);
+        ASSERT(ex_decomp_of_max_lvl M D L);
+        ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
+        ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
+        ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
+        M1 \<leftarrow> find_decomp_wl (M, N, U, D, NP, UP, Q, W) L;
+
+        if length (the D) > 1
+        then do {
+          L' \<leftarrow> find_lit_of_max_level_wl (M, N, U, D, NP, UP, Q, W) L;
+          RETURN (Propagated (-L) (length N) # M1,
+            N @ [[-L, L'] @ (remove1 (-L) (remove1 L' (the D)))], U,
+            None, NP, UP, add_mset L {#}, W(L:= W L @ [length N], L':= W L' @ [length N]))
+        }
+        else do {
+          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset_list (the D) UP, add_mset L {#}, W)
+        }
+      }
+    }
+  \<close>
+
+lemma backtrack_wl:
+  \<open>(backtrack_wl, backtrack_l)
+ \<in> {(T', T).
+       st_l_of_wl None T' = T \<and>
+       correct_watching T' \<and>
+       twl_struct_invs (twl_st_of_wl None T') \<and>
+       twl_stgy_invs (twl_st_of_wl None T') \<and>
+       get_conflict_wl T' \<noteq> None \<and>
+       additional_WS_invs (st_l_of_wl None T')} \<rightarrow>
+    \<langle>{(T', T).
+       st_l_of_wl None T' = T \<and>
+(*       twl_struct_invs (twl_st_of_wl None T') \<and>
+       twl_stgy_invs (twl_st_of_wl None T') \<and>
+       additional_WS_invs T \<and> *)
+       correct_watching T'}\<rangle>nres_rel\<close>
+proof -
+  have find_decomp_wl: \<open>find_decomp_wl S' L' \<le> \<Down> Id (find_decomp S L)\<close>
+    if \<open>L = L'\<close> and \<open>st_l_of_wl None S' = S\<close>
+    for S and S' :: \<open>'v twl_st_wl\<close> and L L' :: \<open>'v literal\<close>
+    using that by (cases S') (auto simp: find_decomp_wl_def find_decomp_def)
+  have find_lit_of_max_level_wl: \<open>find_lit_of_max_level_wl S' L' \<le> \<Down> Id (find_lit_of_max_level S L)\<close>
+    if \<open>L = L'\<close> and \<open>st_l_of_wl None S' = S\<close>
+    for S and S' :: \<open>'v twl_st_wl\<close> and L L' :: \<open>'v literal\<close>
+    using that by (cases S') (auto simp: find_lit_of_max_level_wl_def find_lit_of_max_level_def)
+
+
+  show ?thesis
+    unfolding backtrack_wl_def backtrack_l_def
+    apply (refine_vcg find_decomp_wl find_lit_of_max_level_wl; remove_dummy_vars)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal  by auto
+    subgoal for M N U E NP UP WS Q M' N' U' E' NP' UP' Q' W T
+      by (cases T) simp -- \<open>simp does not unify \<^term>\<open>T\<close> with the pair in the assumption
+         otherwise\<close>
+    subgoal by simp
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: correct_watching.simps clause_to_update_def)
+    done
+qed
+
+definition cdcl_twl_o_prog_wl :: "'v twl_st_wl \<Rightarrow> (bool \<times> 'v twl_st_wl) nres" where
+  \<open>cdcl_twl_o_prog_wl S =
+    do {
+      ASSERT(twl_struct_invs (twl_st_of_wl None S));
+      ASSERT(twl_stgy_invs (twl_st_of_wl None S));
+      ASSERT(additional_WS_invs (st_l_of_wl None S));
+      do {
+        if get_conflict_wl S = None
+        then decide_wl_or_skip S
+        else do {
+          T \<leftarrow> skip_and_resolve_loop_wl S;
+          ASSERT(get_conflict_wl T \<noteq> None);
+          if get_conflict_wl T \<noteq> Some []
+          then do {U \<leftarrow> backtrack_wl T; RETURN (False, U)}
+          else do {RETURN (True, T)}
+        }
+      }
+    }
+  \<close>
+
+subsection \<open>Full Strategy\<close>
+
+definition cdcl_twl_stgy_prog_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
+  \<open>cdcl_twl_stgy_prog_wl S\<^sub>0 =
+  do {
+    do {
+      (brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T). twl_struct_invs (twl_st_of_wl None T) \<and>
+          twl_stgy_invs (twl_st_of_wl None T) \<and>
+          (brk \<longrightarrow> no_step cdcl_twl_stgy (twl_st_of_wl None T)) \<and>
+          cdcl_twl_stgy\<^sup>*\<^sup>* (twl_st_of_wl None S\<^sub>0) (twl_st_of_wl None T) \<and>
+          (\<not>brk \<longrightarrow> get_conflict_wl T = None)\<^esup>
+        (\<lambda>(brk, _). \<not>brk)
+        (\<lambda>(brk, S).
+        do {
+          T \<leftarrow> unit_propagation_outer_loop_wl S;
+          cdcl_twl_o_prog_wl T
+        })
+        (False, S\<^sub>0);
+      RETURN T
+    }
+  }
+  \<close>
+
 end
