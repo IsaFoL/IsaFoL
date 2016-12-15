@@ -1069,6 +1069,8 @@ lemma in_atms_of_mset_takeD:
 
 lemma in_set_image_subsetD: \<open> f ` A \<subseteq> B \<Longrightarrow> x \<in> A \<Longrightarrow>f x \<in> B\<close>
   by blast
+lemma nofail_Down_nofail: \<open>nofail gS \<Longrightarrow> fS \<le> \<Down> R gS \<Longrightarrow> nofail fS\<close>
+  using pw_ref_iff by blast
 
 lemma backtrack_wl:
   \<open>(backtrack_wl, backtrack_l)
@@ -1078,13 +1080,20 @@ lemma backtrack_wl:
        twl_struct_invs (twl_st_of_wl None T') \<and>
        twl_stgy_invs (twl_st_of_wl None T') \<and>
        get_conflict_wl T' \<noteq> None \<and>
+       get_conflict_wl T' \<noteq> Some [] \<and>
+       pending_wl T' = {#} \<and>
+       no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None T')) \<and>
+       no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of_wl None T')) \<and>
        additional_WS_invs (st_l_of_wl None T')} \<rightarrow>
     \<langle>{(T', T).
        st_l_of_wl None T' = T \<and>
-(*       twl_struct_invs (twl_st_of_wl None T') \<and>
+       twl_struct_invs (twl_st_of_wl None T') \<and>
        twl_stgy_invs (twl_st_of_wl None T') \<and>
-       additional_WS_invs T \<and> *)
+       additional_WS_invs T \<and>
+       get_conflict_wl T' = None \<and>
+       pending_wl T' \<noteq> {#} \<and>
        correct_watching T'}\<rangle>nres_rel\<close>
+  (is \<open>?bt \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>)
 proof -
   have find_decomp_wl: \<open>find_decomp_wl S' L' \<le> \<Down> Id (find_decomp S L)\<close>
     if \<open>L = L'\<close> and \<open>st_l_of_wl None S' = S\<close>
@@ -1101,7 +1110,7 @@ proof -
     by (auto dest: in_atms_of_mset_takeD)
   have atms_of_diffD: \<open>La \<in> atms_of (A - B) \<Longrightarrow> La \<in> atms_of A\<close> for La A B
     by (auto simp: atms_of_def dest: in_diffD)
-  show ?thesis
+  have H: \<open>?bt \<in> ?A \<rightarrow> \<langle>{(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}\<rangle>nres_rel\<close>
     unfolding backtrack_wl_def backtrack_l_def
     apply (refine_vcg find_decomp_wl find_lit_of_max_level_wl; remove_dummy_vars)
     subgoal by auto
@@ -1146,13 +1155,13 @@ proof -
       subgoal for G H by auto
       subgoal for G H by auto
       subgoal for G H
-         apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm
+        apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm
       (convert_to_state (twl_st_of None (M, N, U, E, NP, UP, WS, Q)))\<close>)
         subgoal (* TODO proof... *)
           apply (clarsimp simp add: simp del: Un_iff dest!: atms_of_diffD)
           apply (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
               mset_take_mset_drop_mset simp del: Un_iff
-            dest!: H[of _ U N] atms_of_diffD)
+              dest!: H[of _ U N] atms_of_diffD)
           done
         subgoal
           unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast
@@ -1161,28 +1170,43 @@ proof -
       done
     subgoal by (auto simp: correct_watching.simps clause_to_update_def)
     done
+
+  have bt: \<open>backtrack_wl S \<le> \<Down> ?B (backtrack_l T)\<close>
+    if A: \<open>(S, T) \<in> ?A\<close>
+    for S T
+  proof -
+    have A':
+      \<open>(T, twl_st_of None T) \<in> {(S, S'). S' = twl_st_of None S \<and>
+                 get_conflict_l S \<noteq> None \<and>
+                 get_conflict_l S \<noteq> Some [] \<and>
+                 working_queue_l S = {#} \<and>
+                 pending_l S = {#} \<and>
+                 additional_WS_invs S \<and>
+                 (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None S)) S') \<and>
+                 (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of None S)) S') \<and>
+                 twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S)}\<close>
+      using A by (cases S) auto
+    have nf: \<open>nofail (backtrack (twl_st_of None T))\<close>
+      apply (rule SPEC_nofail)
+      apply (rule backtrack_spec["to_\<Down>"])
+      using A' by (solves \<open>cases T; auto\<close>)+
+    show ?thesis
+      using backtrack_l_spec["to_\<Down>", of \<open>T\<close> \<open>twl_st_of None T\<close>, OF A']
+      using H["to_\<Down>", of S T, OF A]
+      apply -
+      apply unify_Down_invs2+
+      apply (rule "weaken_\<Down>")
+       prefer 2 using nf apply fast
+      apply auto
+      done
+  qed
+  show ?thesis
+    apply "to_\<Down>"
+    apply (rule bt)
+    apply assumption
+    done
 qed
 
-lemma
-  assumes asms: \<open>\<And>x. A x\<and>B x\<close>\<open>\<And>y. A y\<and>C y\<close>\<open>\<And>z. B z\<and>C z\<close> shows \<open>A x \<and>C x\<close>
-by (match asms in I:  \<open>\<And>x. P x \<and> ?Q x\<close> (multi) for P \<Rightarrow>
-     \<open>match (P) in A \<Rightarrow> \<open>fail\<close>
-       \<bar>  _ \<Rightarrow> \<open>match I in  \<open>\<And>x. A x \<and> B x\<close> \<Rightarrow> \<open>fail\<close> \<bar> _ \<Rightarrow> \<open>rule I\<close>\<close>\<close>)
-lemma
-  assumes asms: "\<And>x y. A x \<and> B y \<and> C x"
-  shows "A x \<and> C x"
-  apply (match asms in I: "\<And>x y. P x y" for P \<Rightarrow>
-      \<open>match (P) in "\<lambda>x y. H y \<and> H' x" for H H' \<Rightarrow> \<open>print_term H; print_term H'\<close>\<close>)
-    lemma
-      assumes asms: "\<And>x. A x \<and> B x"  "\<And>y. A y \<and> C y"  "\<And>z. B z \<and> C z"
-      shows "A x \<and> C x"
-      by (match asms in I: "\<And>x. P x" (multi) for P \<Rightarrow>
-         \<open>match (P) in "A" \<Rightarrow> \<open>fail\<close>
-                       \<bar> _ \<Rightarrow> \<open>print_term P; match I in "\<And>x. A x \<and> B x" \<Rightarrow> \<open>fail\<close>
-                                                      \<bar> _ \<Rightarrow> \<open>rule I\<close>\<close>\<close>)
-lemma \<open>A = {(i, j). P i \<and> Q j}\<close>
-  apply (match conclusion in \<open>_ = {i. P}\<close> for P \<Rightarrow> \<open>print_term (P);
-     match (P) in \<open>H\<close> for H \<Rightarrow> \<open>print_term P\<close>\<close>)
 definition cdcl_twl_o_prog_wl :: "'v twl_st_wl \<Rightarrow> (bool \<times> 'v twl_st_wl) nres" where
   \<open>cdcl_twl_o_prog_wl S =
     do {
@@ -1202,6 +1226,91 @@ definition cdcl_twl_o_prog_wl :: "'v twl_st_wl \<Rightarrow> (bool \<times> 'v t
       }
     }
   \<close>
+thm cdcl_twl_o_prog_l_spec backtrack_wl decide_l_or_skip_def
+
+lemma set_Collect_Pair_to_fst_snd: \<open>{((a, b), (a', b')). P a b a' b'} = {(e, f). P (fst e) (snd e) (fst f) (snd f)}\<close>
+  by auto
+
+lemma cdcl_twl_o_prog_wl:
+  \<open>(cdcl_twl_o_prog_wl, cdcl_twl_o_prog_l) \<in> {(S::'v twl_st_wl, S'::'v twl_st_l).
+     S' = st_l_of_wl None S \<and>
+     pending_wl S = {#} \<and>
+     (\<forall>S'. \<not> cdcl_twl_cp (twl_st_of_wl None S) S') \<and>
+     twl_struct_invs (twl_st_of_wl None S) \<and>
+     twl_stgy_invs (twl_st_of_wl None S) \<and>
+     additional_WS_invs (st_l_of_wl None S) \<and>
+     correct_watching S} \<rightarrow>
+   \<langle>{((brk::bool, T::'v twl_st_wl), brk'::bool, T'::'v twl_st_l).
+     T' = st_l_of_wl None T \<and>
+     brk = brk' \<and>
+     additional_WS_invs (st_l_of_wl None T) \<and>
+     (get_conflict_wl T \<noteq> None \<longrightarrow>
+      get_conflict_wl T = Some []) \<and>
+     twl_struct_invs (twl_st_of_wl None T) \<and>
+     twl_stgy_invs (twl_st_of_wl None T) \<and>
+     correct_watching T}\<rangle>nres_rel\<close>
+   (is \<open>?o \<in> ?A \<rightarrow> \<langle>?B\<rangle> nres_rel\<close>)
+proof -
+  have find_unassigned_lit_wl: \<open>find_unassigned_lit_wl S \<le> \<Down> Id (find_unassigned_lit S')\<close>
+    if \<open>S' = st_l_of_wl None S\<close>
+    for S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close>
+    unfolding find_unassigned_lit_wl_def find_unassigned_lit_def that
+    by (cases S) auto
+  have cdcl_o: \<open>?o \<in> ?A \<rightarrow>
+   \<langle>{((brk::bool, T::'v twl_st_wl), brk'::bool, T'::'v twl_st_l).
+     T' = st_l_of_wl None T \<and>
+     brk = brk' \<and>
+     correct_watching T}\<rangle>nres_rel\<close>
+    unfolding cdcl_twl_o_prog_wl_def cdcl_twl_o_prog_l_def decide_wl_or_skip_def
+      decide_l_or_skip_def
+    apply (refine_vcg skip_and_resolve_loop_wl["to_\<Down>"] backtrack_wl["to_\<Down>"] find_unassigned_lit_wl)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: get_conflict_l_st_l_of_wl)
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: correct_watching.simps clause_to_update_def)
+    subgoal by auto
+    subgoal by auto
+    subgoal for S S' T T' by (cases T) auto
+    subgoal for S S' T T' by (cases T) auto
+    subgoal for S S' T T' by auto
+    subgoal by auto
+    subgoal by auto
+    done
+  have cdcl_twl_o_prog_wl: \<open>cdcl_twl_o_prog_wl S \<le> \<Down> ?B (cdcl_twl_o_prog_l S')\<close>
+    if A: \<open>(S, S') \<in> ?A\<close> for S S'
+  proof -
+    have A': \<open>(S', twl_st_of None S') \<in> {(S, S').
+      S' = twl_st_of None S \<and>
+      working_queue_l S = {#} \<and>
+      pending_l S = {#} \<and>
+      (\<forall>S'. \<not> cdcl_twl_cp (twl_st_of None S) S') \<and>
+      twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and> additional_WS_invs S}\<close>
+      using A by (cases S) auto
+    have SS': \<open>st_l_of_wl None S = S'\<close>
+      using A by fast
+    have nf: \<open>nofail (cdcl_twl_o_prog (twl_st_of None S'))\<close>
+      apply (rule SPEC_nofail)
+      apply (rule cdcl_twl_o_prog_spec["to_\<Down>"])
+      using A' by (solves \<open>cases S'; auto\<close>)+
+    show ?thesis
+      using cdcl_twl_o_prog_l_spec["to_\<Down>", of S' \<open>twl_st_of None S'\<close>, OF A']
+      using cdcl_o["to_\<Down>", of S S', OF A]
+      unfolding SS'
+      apply -
+      unfolding set_Collect_Pair_to_fst_snd
+      apply unify_Down_invs2+
+      apply (rule "weaken_\<Down>")
+       prefer 2 using nf apply fast
+      by force
+  qed
+  show ?thesis
+    apply "to_\<Down>"
+    by (rule cdcl_twl_o_prog_wl) assumption
+qed
+
 
 subsection \<open>Full Strategy\<close>
 
