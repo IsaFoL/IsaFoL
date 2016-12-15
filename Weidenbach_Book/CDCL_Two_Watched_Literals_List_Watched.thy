@@ -1432,4 +1432,19 @@ lemma cdcl_twl_stgy_prog_wl_spec_final:
   subgoal by auto
   done
 
+theorem cdcl_twl_stgy_prog_wl_spec_final2:
+  assumes \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
+    \<open>get_conflict_wl S = None\<close> and \<open>additional_WS_invs (st_l_of_wl None S)\<close> and
+    \<open>correct_watching S\<close>
+  shows
+    \<open>cdcl_twl_stgy_prog_wl S \<le>
+      \<Down> {(S, S'). S' = st_l_of_wl None S}
+        (SPEC(\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state (twl_st_of_wl None S))
+          (convert_to_state (twl_st_of None T))))\<close>
+  apply (rule ref_two_step)
+   apply (rule cdcl_twl_stgy_prog_wl_spec_final[OF assms])
+  apply (rule weaken_SPEC)
+   apply (rule order.refl)
+  using full_cdcl_twl_stgy_cdcl\<^sub>W_stgy[OF _ assms(1)] by blast
+
 end
