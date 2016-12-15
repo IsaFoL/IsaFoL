@@ -580,41 +580,6 @@ proof -
     by fast
 qed
 
-lemma Ball2_split_def: \<open>(\<forall>(x, y) \<in> A. P x y) \<longleftrightarrow> (\<forall>x y. (x, y) \<in> A \<longrightarrow> P x y)\<close>
-  by blast
-
-method find_cases_and_split =
-  (match conclusion in \<open>?P (case x of (_, _) \<Rightarrow> _)\<close> for x \<Rightarrow> \<open>cases x\<close>)
-lemma \<open>f x y = uncurry f (x, y)\<close>
-  by (auto simp: uncurry_def)
-method curry_goal =
-  (match conclusion in \<open>f x y\<close> for f x y \<Rightarrow> \<open>unfold do_uncurry\<close>)
-lemma uncurry_fst_snd: \<open>uncurry f x = f (fst x) (snd x)\<close>
-  by (cases x) (auto simp: uncurry_def)
-
-lemma H: \<open>\<forall>x. P x (fst x) (snd x) \<equiv> \<forall>x y. P (x,y) x y\<close>
-  by auto
-
-ML \<open>
-signature MORE_REFINEMENT = sig
-  val down_converse: Context.generic -> thm -> thm
-end
-
-structure More_Refinement: MORE_REFINEMENT = struct
-  val unfold_refine = (fn context => Local_Defs.unfold (Context.proof_of context)
-    @{thms refine_rel_defs nres_rel_def in_pair_collect_simp})
-  val unfold_Ball = (fn context => Local_Defs.unfold (Context.proof_of context)
-    @{thms Ball2_split_def all_to_meta})
-  val replace_ALL_by_meta = (fn context => fn thm => the (snd (curry Object_Logic.rule_format context thm)))
-  val down_converse = (fn context =>
-    replace_ALL_by_meta context o (unfold_Ball context) o (unfold_refine context))
-end
-\<close>
-
-attribute_setup "to_\<Down>" = \<open>
-    Scan.succeed (Thm.rule_attribute [] More_Refinement.down_converse)
-  \<close> "convert theorem from @{text \<rightarrow>}-form to @{text \<Down>}-form."
-
 (* TODO move proof and definition of to_\<Down> *)
 lemma refine_pair_to_SPEC_fst_pair2:
   fixes f :: \<open>'s \<Rightarrow> ('c \<times> 's) nres\<close> and g :: \<open>'b \<Rightarrow> ('c \<times> 'b) nres\<close>

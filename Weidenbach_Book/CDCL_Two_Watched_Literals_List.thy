@@ -1,6 +1,5 @@
 theory CDCL_Two_Watched_Literals_List
   imports CDCL_Two_Watched_Literals_Algorithm DPLL_CDCL_W_Implementation
-  Eisbach "~~/src/HOL/Eisbach/Eisbach_Tools"
 begin
 
 section \<open>Second Refinement: Lists as Clause\<close>
@@ -195,12 +194,6 @@ definition find_unwatched :: "('a, 'b) ann_lits \<Rightarrow> 'a clause_l \<Righ
     (None, 2::nat)
   }
 \<close>
-
-lemma (in transfer) transfer_bool[refine_transfer]:
-  assumes "\<alpha> fa \<le> Fa"
-  assumes "\<alpha> fb \<le> Fb"
-  shows "\<alpha> (case_bool fa fb x) \<le> case_bool Fa Fb x"
-  using assms by (auto split: bool.split)
 
 (* Example of code generation *)
 (* schematic_goal find_unwatched_impl: "RETURN ?c \<le> find_unwatched M C"
@@ -764,36 +757,6 @@ lemma refine_add_inv_pair:
 lemma working_queue_l_empty_tw_st_of_Some_None[simp]:
   \<open>working_queue_l S = {#} \<Longrightarrow> twl_st_of (Some L) S = twl_st_of None S\<close>
   by (cases S) auto
-
-
-lemma mem_set_trans:
-  \<open>A \<subseteq> B \<Longrightarrow> a \<in> A \<Longrightarrow> a \<in> B\<close>
-  by auto
-
-lemma fun_rel_syn_invert:
-  \<open>a = a' \<Longrightarrow> b \<subseteq> b' \<Longrightarrow> a \<rightarrow> b \<subseteq> a' \<rightarrow> b'\<close>
-  by (auto simp: refine_rel_defs)
-
-lemma nres_rel_mono:
-  \<open>a \<subseteq> a'  \<Longrightarrow> \<langle>a\<rangle> nres_rel \<subseteq> \<langle>a'\<rangle> nres_rel\<close>
-  by (fastforce simp: refine_rel_defs nres_rel_def pw_ref_iff)
-
-method match_spec =
-  (match conclusion in \<open>(f, g) \<in> R\<close> for f g R \<Rightarrow>
-    \<open>print_term f; match premises in I: \<open>(f, g) \<in> R'\<close> for R'
-       \<Rightarrow> \<open>print_term R'; rule mem_set_trans[OF _ I]\<close>\<close>)
-
-method match_fun_rel =
-  ((match conclusion in \<open>_ \<rightarrow> _ \<subseteq> _ \<rightarrow> _\<close> \<Rightarrow> \<open>rule fun_rel_syn_invert\<close> |
-   match conclusion in \<open>\<langle>_\<rangle>nres_rel \<subseteq> \<langle>_\<rangle>nres_rel\<close> \<Rightarrow> \<open>rule nres_rel_mono\<close>)+)
-
-lemma weaken_SPEC2: \<open>m' \<le> SPEC \<Phi> \<Longrightarrow> m = m' \<Longrightarrow> (\<And>x. \<Phi> x \<Longrightarrow> \<Psi> x) \<Longrightarrow> m \<le> SPEC \<Psi>\<close>
-  using weaken_SPEC by auto
-
-method match_spec_trans =
-  (match conclusion in \<open>f \<le> SPEC R\<close> for f :: \<open>'a nres\<close> and R :: \<open>'a \<Rightarrow> bool\<close> \<Rightarrow>
-    \<open>print_term f; match premises in I: \<open>_ \<Longrightarrow> _ \<Longrightarrow> f' \<le> SPEC R'\<close> for f' :: \<open>'a nres\<close> and R' :: \<open>'a \<Rightarrow> bool\<close>
-       \<Rightarrow> \<open>print_term f'; rule weaken_SPEC2[of f' R' f R]\<close>\<close>)
 
 lemma unit_propagation_inner_loop_l:
   \<open>(uncurry unit_propagation_inner_loop_l,  unit_propagation_inner_loop) \<in>
