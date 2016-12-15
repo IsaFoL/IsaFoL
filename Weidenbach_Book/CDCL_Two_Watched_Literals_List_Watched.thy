@@ -820,7 +820,7 @@ definition skip_and_resolve_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl 
       ASSERT(get_conflict_wl S\<^sub>0 \<noteq> None);
       (_, S) \<leftarrow>
         WHILE\<^sub>T\<^bsup>\<lambda>(brk, S). skip_and_resolve_loop_inv (twl_st_of_wl None S\<^sub>0) (brk, twl_st_of_wl None S) \<and>
-         additional_WS_invs (st_l_of_wl None S)\<^esup>
+         additional_WS_invs (st_l_of_wl None S) \<and> correct_watching S\<^esup>
         (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)))
         (\<lambda>(_, S).
           let (M, N, U, D, NP, UP, Q, W) = S in
@@ -854,45 +854,85 @@ lemma get_conflict_l_st_l_of_wl:
 
 lemma skip_and_resolve_loop_wl:
   \<open>(skip_and_resolve_loop_wl, skip_and_resolve_loop_l)
- \<in> {(T', T).
+ \<in> {(T'::'v twl_st_wl, T).
        st_l_of_wl None T' = T \<and>
        correct_watching T' \<and>
        twl_struct_invs (twl_st_of_wl None T') \<and>
        twl_stgy_invs (twl_st_of_wl None T') \<and>
-       get_conflict_wl T' = None \<and>
+       get_conflict_wl T' \<noteq> None \<and>
+       pending_wl T' = {#} \<and>
        additional_WS_invs (st_l_of_wl None T')} \<rightarrow>
     \<langle>{(T', T).
        st_l_of_wl None T' = T \<and>
-(*       twl_struct_invs (twl_st_of_wl None T') \<and>
+       twl_struct_invs (twl_st_of_wl None T') \<and>
        twl_stgy_invs (twl_st_of_wl None T') \<and>
-       additional_WS_invs T \<and> *)
+       additional_WS_invs T \<and>
        correct_watching T'}\<rangle>nres_rel\<close>
+  (is \<open>?s \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>)
 proof -
   have get_conflict_wl: \<open>((get_conflict_wl S' = Some [], S'), get_conflict_l S = Some [], S)
-    \<in> Id \<times>\<^sub>r {(T', T). st_l_of_wl None T' = T}\<close>
-    if \<open>S = st_l_of_wl None S'\<close>
+    \<in> Id \<times>\<^sub>r {(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}\<close>
+    if \<open>S = st_l_of_wl None S'\<close> and \<open>correct_watching S'\<close>
     for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st_wl\<close>
     using that by (cases S') auto
-  show ?thesis
+  have \<open>?s \<in> ?A \<rightarrow> \<langle>{(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}\<rangle>nres_rel\<close>
     unfolding skip_and_resolve_loop_wl_def skip_and_resolve_loop_l_def
-    apply (refine_vcg)
+    apply (refine_vcg get_conflict_wl)
     subgoal by (auto simp add: get_conflict_l_st_l_of_wl)
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal for S' S b'T' bT b' T' by (cases T') (auto simp: correct_watching.simps)
+    subgoal for S' S b'T' bT b' T' by (cases T') (auto simp: correct_watching.simps)
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal by (auto simp: correct_watching.simps clause_to_update_def)
     subgoal by auto
-    subgoal by auto
-    subgoal by auto
+    subgoal by (auto simp: correct_watching.simps clause_to_update_def)
     subgoal by auto
     subgoal by auto
     done
+  note H = this
+
+  have skip_and_resolve_loop_wl: \<open>skip_and_resolve_loop_wl x
+    \<le> \<Down> {(T', T).
+        st_l_of_wl None T' = T \<and>
+        twl_struct_invs (twl_st_of_wl None T') \<and>
+        twl_stgy_invs (twl_st_of_wl None T') \<and>
+        additional_WS_invs T \<and> correct_watching T'}
+     (skip_and_resolve_loop_l y)\<close>
+    if A: \<open>(x, y) \<in> ?A\<close> for x :: \<open>'v twl_st_wl\<close> and y :: \<open>'v twl_st_l\<close>
+  proof -
+    have A': \<open>(y, twl_st_of None y)
+    \<in> {(S, S'). S' = twl_st_of None S \<and>
+                 twl_struct_invs (twl_st_of None S) \<and>
+                 twl_stgy_invs (twl_st_of None S) \<and> additional_WS_invs S \<and>
+                 working_queue_l S = {#} \<and>
+                 pending_l S = {#} \<and> get_conflict (twl_st_of None S) \<noteq> None}\<close>
+      using A by (cases x, cases y) auto
+    have nf: \<open>nofail (skip_and_resolve_loop (twl_st_of None y))\<close>
+      apply (rule SPEC_nofail)
+      apply (rule skip_and_resolve_loop_spec)
+      using A' by (solves \<open>cases y; auto\<close>)+
+    show ?thesis
+      using H["to_\<Down>", of x y, OF A]
+      using skip_and_resolve_loop_l_spec["to_\<Down>", of y \<open>twl_st_of None y\<close>, OF A'] apply -
+      apply unify_Down_invs2+
+      apply (rule "weaken_\<Down>")
+       prefer 2 using nf apply blast
+      by force
+  qed
+  show ?thesis
+    apply ("to_\<Down>")
+    apply (rule skip_and_resolve_loop_wl)
+    apply assumption
+    done
 qed
+
 
 definition find_decomp_wl :: "'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> ('v, nat) ann_lits nres" where
   \<open>find_decomp_wl =  (\<lambda>(M, N, U, D, NP, UP, Q, Q) L.
