@@ -1405,4 +1405,31 @@ proof -
     subgoal by auto
     done
 qed
+
+thm ref_two_step
+term twl_st_of_wl
+thm cdcl_twl_stgy_prog_l_spec cdcl_twl_stgy_prog_l_spec_final
+lemma cdcl_twl_stgy_prog_wl_spec_final:
+  assumes \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
+    \<open>get_conflict_wl S = None\<close> and \<open>additional_WS_invs (st_l_of_wl None S)\<close> and
+    \<open>correct_watching S\<close>
+  shows
+    \<open>cdcl_twl_stgy_prog_wl S \<le>
+      \<Down> {(S, S'). S' = st_l_of_wl None S}
+        (SPEC(\<lambda>T. full cdcl_twl_stgy (twl_st_of_wl None S) (twl_st_of None T)))\<close>
+  apply (rule order_trans)
+   apply (rule cdcl_twl_stgy_prog_wl["to_\<Down>", of _ \<open>st_l_of_wl None S\<close>])
+  subgoal using assms by auto
+  apply (rule order_trans)
+   apply (rule ref_two_step)
+    apply auto[]
+   apply (rule cdcl_twl_stgy_prog_l_spec_final)
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal using assms by (cases S) auto
+  subgoal using assms by (cases S) auto
+  subgoal using assms by auto
+  subgoal by auto
+  done
+
 end
