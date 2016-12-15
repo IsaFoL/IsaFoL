@@ -628,6 +628,10 @@ lemma get_conflict_twl_st_of_st_l_of_wl:
 lemma pending_twl_st_of_st_l_of_wl: \<open>pending (twl_st_of L (st_l_of_wl L' T')) = pending_wl T'\<close>
   by (cases T'; cases L; cases L') auto
 
+lemma get_conflict_l_st_l_of_wl:
+  \<open>get_conflict_l (st_l_of_wl L S) = get_conflict_wl S\<close>
+  by (cases S; cases L) auto
+
 lemma unit_propagation_outer_loop_wl:
   \<open>(unit_propagation_outer_loop_wl, unit_propagation_outer_loop_l)
  \<in> {(T', T).
@@ -642,7 +646,10 @@ lemma unit_propagation_outer_loop_wl:
        twl_struct_invs (twl_st_of_wl None T') \<and>
        twl_stgy_invs (twl_st_of_wl None T') \<and>
        additional_WS_invs T \<and>
+       pending_wl T' = {#} \<and>
+       no_step cdcl_twl_cp (twl_st_of None T) \<and>
        correct_watching T'}\<rangle>nres_rel\<close>
+  (is \<open>?u \<in> ?A \<rightarrow> \<langle>?B\<rangle> nres_rel\<close>)
 proof -
   have select_and_remove_from_pending_wl: \<open>select_and_remove_from_pending_wl S' \<le>
      \<Down> {((T', L'), (T, L)). L = L' \<and> T = st_l_of_wl (Some (L, 0)) T' \<and>
@@ -703,7 +710,13 @@ proof -
   have set_pending_add_remove: \<open>(set_pending_wl (add_mset L (pending_wl (set_pending_wl (remove1_mset L (pending_wl T')) T'))) (set_pending_wl (remove1_mset L (pending_wl T')) T')) = T'\<close>
     if \<open>L \<in># pending_wl T' \<close>for T' :: \<open>'v twl_st_wl\<close> and L
     using that by (cases T') auto
-  show ?thesis
+  have \<open>?u \<in> ?A \<rightarrow>
+    \<langle>{(T', T).
+       st_l_of_wl None T' = T \<and>
+       twl_struct_invs (twl_st_of_wl None T') \<and>
+       twl_stgy_invs (twl_st_of_wl None T') \<and>
+       additional_WS_invs T \<and>
+       correct_watching T'}\<rangle>nres_rel\<close>
     unfolding unit_propagation_outer_loop_wl_def unit_propagation_outer_loop_l_def
     apply (refine_vcg select_and_remove_from_pending_wl)
     subgoal by auto
@@ -737,7 +750,40 @@ proof -
       apply (simp add: twl_struct_invs_def)
       done
     done
+  note unit_propagation_outer_loop_wl = this
+
+  have H: \<open>unit_propagation_outer_loop_wl S' \<le> \<Down> ?B (unit_propagation_outer_loop_l S)\<close>
+    if A: \<open>(S', S) \<in> ?A\<close>
+    for L and S S'
+  proof -
+    have A': \<open>(S, twl_st_of None S) \<in> {(S, S'). S' = twl_st_of None S \<and>
+     twl_struct_invs (twl_st_of None S) \<and>  twl_stgy_invs (twl_st_of None S) \<and>
+      additional_WS_invs S \<and> working_queue_l S = {#} \<and> get_conflict_l S = None}\<close>
+      using A by (cases S') auto
+    have SS': \<open>st_l_of_wl None S' = S\<close>
+      using A by auto
+    have nf: \<open>nofail (unit_propagation_outer_loop (twl_st_of None (st_l_of_wl None S')))\<close>
+      apply (rule SPEC_nofail)
+      apply (rule unit_propagation_outer_loop)
+      using A' SS' by (solves \<open>cases S';auto simp: get_conflict_l_st_l_of_wl\<close>)+
+    show ?thesis
+      using unit_propagation_outer_loop_l_spec["to_\<Down>", of S \<open>twl_st_of None S\<close>, OF A']
+      using unit_propagation_outer_loop_wl["to_\<Down>", of S' S, OF A]
+      unfolding SS'[symmetric]
+      apply -
+      apply unify_Down_invs2+
+      apply (rule "weaken_\<Down>")
+       prefer 2 using nf apply fast
+      apply auto done
+  qed
+
+  show ?thesis
+    apply "to_\<Down>"
+    apply (rule H)
+    apply assumption
+    done
 qed
+
 
 definition find_unassigned_lit_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v literal option nres\<close> where
   \<open>find_unassigned_lit_wl = (\<lambda>(M, N, U, D, NP, UP, WS, Q).
@@ -847,11 +893,6 @@ definition skip_and_resolve_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl 
       RETURN S
     }
   \<close>
-
-lemma get_conflict_l_st_l_of_wl:
-  \<open>get_conflict_l (st_l_of_wl L S) = get_conflict_wl S\<close>
-  by (cases S; cases L) auto
-
 lemma skip_and_resolve_loop_wl:
   \<open>(skip_and_resolve_loop_wl, skip_and_resolve_loop_l)
  \<in> {(T'::'v twl_st_wl, T).
@@ -1335,4 +1376,33 @@ definition cdcl_twl_stgy_prog_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nre
   }
   \<close>
 
+theorem cdcl_twl_stgy_prog_wl:
+  \<open>(cdcl_twl_stgy_prog_wl, cdcl_twl_stgy_prog_l) \<in> {(S::'v twl_st_wl, S').
+       S' = st_l_of_wl None S \<and>
+       twl_struct_invs (twl_st_of_wl None S) \<and>
+       twl_stgy_invs (twl_st_of_wl None S) \<and>
+       additional_WS_invs (st_l_of_wl None S) \<and>
+       correct_watching S} \<rightarrow>
+    \<langle>{(S, S'). S' = st_l_of_wl None S }\<rangle>nres_rel\<close>
+   (is \<open>?o \<in> ?A \<rightarrow> \<langle>?B\<rangle> nres_rel\<close>)
+proof -
+  have H: \<open>((False, S'), False, S) \<in> {((brk', T'), (brk, T)). brk = brk' \<and> T = st_l_of_wl None T'}\<close>
+    if \<open>S = st_l_of_wl None S'\<close>
+    for S' :: \<open>'v twl_st_wl\<close> and S :: \<open>'v twl_st_l\<close>
+    using that by auto
+  show ?thesis
+    unfolding cdcl_twl_stgy_prog_wl_def cdcl_twl_stgy_prog_l_def
+    apply (refine_rcg H unit_propagation_outer_loop_wl["to_\<Down>"] cdcl_twl_o_prog_wl["to_\<Down>"])
+    subgoal for S' S by (cases S') auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for S' S brk'T' brkT brk' T' SS' by (cases SS') auto
+    subgoal by auto
+    subgoal by (auto simp: get_conflict_l_st_l_of_wl)
+    subgoal by auto
+    subgoal by auto
+    subgoal for S' S brk'T' brkT brk' T' brk T U' U by (cases U') auto
+    subgoal by auto
+    done
+qed
 end
