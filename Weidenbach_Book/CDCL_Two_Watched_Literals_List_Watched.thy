@@ -867,6 +867,10 @@ lemma skip_and_resolve_loop_wl:
        twl_struct_invs (twl_st_of_wl None T') \<and>
        twl_stgy_invs (twl_st_of_wl None T') \<and>
        additional_WS_invs T \<and>
+       no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None T')) \<and>
+       no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of_wl None T')) \<and>
+       pending_wl T' = {#} \<and>
+       get_conflict_wl T' \<noteq> None \<and>
        correct_watching T'}\<rangle>nres_rel\<close>
   (is \<open>?s \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>)
 proof -
@@ -899,11 +903,7 @@ proof -
   note H = this
 
   have skip_and_resolve_loop_wl: \<open>skip_and_resolve_loop_wl x
-    \<le> \<Down> {(T', T).
-        st_l_of_wl None T' = T \<and>
-        twl_struct_invs (twl_st_of_wl None T') \<and>
-        twl_stgy_invs (twl_st_of_wl None T') \<and>
-        additional_WS_invs T \<and> correct_watching T'}
+    \<le> \<Down> ?B
      (skip_and_resolve_loop_l y)\<close>
     if A: \<open>(x, y) \<in> ?A\<close> for x :: \<open>'v twl_st_wl\<close> and y :: \<open>'v twl_st_l\<close>
   proof -
