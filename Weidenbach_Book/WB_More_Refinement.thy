@@ -43,7 +43,7 @@ signature MORE_REFINEMENT = sig
 end
 
 structure More_Refinement: MORE_REFINEMENT = struct
-  val unfold_refine = (fn context => Local_Defs.unfold (context) 
+  val unfold_refine = (fn context => Local_Defs.unfold (context)
    @{thms refine_rel_defs nres_rel_def in_pair_collect_simp})
   val unfold_Ball = (fn context => Local_Defs.unfold (context)
     @{thms Ball2_split_def all_to_meta})
@@ -57,9 +57,9 @@ attribute_setup "to_\<Down>" = \<open>
     Scan.succeed (Thm.rule_attribute [] (More_Refinement.down_converse o Context.proof_of))
   \<close> "convert theorem from @{text \<rightarrow>}-form to @{text \<Down>}-form."
 
-method "to_\<Down>" = 
-   (unfold refine_rel_defs nres_rel_def in_pair_collect_simp; 
-   unfold Ball2_split_def all_to_meta; 
+method "to_\<Down>" =
+   (unfold refine_rel_defs nres_rel_def in_pair_collect_simp;
+   unfold Ball2_split_def all_to_meta;
    intro allI impI)
 
 
@@ -112,7 +112,8 @@ method unify_Down_invs2_normalisation_post =
 
 method unify_Down_invs2 =
   (match premises in
-      -- \<open>if the relation 2-1 has not assumption, we add True. Then we call out method again\<close>
+      -- \<open>if the relation 2-1 has not assumption, we add True. Then we call out method again and
+           this time it will match since it has an assumption.\<close>
       I: \<open>S1 \<le> \<Down> R10 S0\<close> and
       J[thin]: \<open>S2 \<le> \<Down> R21 S1\<close>
        for S1:: \<open>'b nres\<close> and S0 :: \<open>'a nres\<close> and S2 :: \<open>'c nres\<close> and R10 R21 \<Rightarrow>
@@ -141,7 +142,7 @@ method unify_Down_invs2 =
      J: _ for S1:: \<open>'b nres\<close> and S0 :: \<open>'a nres\<close> and  Q Q' \<Rightarrow>
        \<open>match J[uncurry] in
          J[curry]: \<open>_ \<Longrightarrow> S2 \<le> \<Down> {(T2, T1). R T2 T1} S1\<close> for S2 :: \<open>'c nres\<close> and R \<Rightarrow>
-          \<open>print_term Q; insert Down_del_assumption_beginning[where Q = \<open>\<lambda> x y. Q y x\<close> and Q' = Q', OF I];
+          \<open>insert Down_del_assumption_beginning[where Q = \<open>\<lambda> x y. Q y x\<close> and Q' = Q', OF I];
            unify_Down_invs2_normalisation_post\<close>
        \<bar> _ \<Rightarrow> \<open>fail\<close>\<close>
   )
@@ -210,5 +211,5 @@ lemma (in transfer) transfer_bool[refine_transfer]:
   assumes "\<alpha> fb \<le> Fb"
   shows "\<alpha> (case_bool fa fb x) \<le> case_bool Fa Fb x"
   using assms by (auto split: bool.split)
- 
+
 end
