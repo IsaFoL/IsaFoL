@@ -1,6 +1,21 @@
 theory CDCL_Two_Watched_Literals_List_Watched_Initialisation
-  imports CDCL_Two_Watched_Literals_Initialisation CDCL_Two_Watched_Literals_List_Watched
+  imports CDCL_Two_Watched_Literals_Initialisation (* CDCL_Two_Watched_Literals_List_Watched *)
 begin
+
+section \<open>Third Refinement: Remembering watched\<close>
+
+subsection \<open>Types\<close>
+
+type_synonym working_queue_wl = "nat multiset"
+type_synonym watched = "nat list"
+type_synonym 'v lit_queue_wl = "'v literal multiset"
+
+type_synonym 'v twl_st_wl =
+  "('v, nat) ann_lits \<times> 'v clause_l list \<times> nat \<times>
+    'v clause_l option \<times> 'v clauses \<times> 'v clauses \<times> 'v lit_queue_wl \<times>
+    ('v literal \<Rightarrow> watched)"
+
+subsection \<open>Initialisation\<close>
 
 fun calculate_correct_watching
   :: \<open>'v clauses_l \<Rightarrow> ('v literal \<Rightarrow> watched) \<Rightarrow> nat \<Rightarrow> ('v literal \<Rightarrow> watched)\<close> where

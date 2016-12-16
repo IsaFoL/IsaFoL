@@ -1,20 +1,9 @@
 theory CDCL_Two_Watched_Literals_List_Watched
-  imports CDCL_Two_Watched_Literals_List
+  imports CDCL_Two_Watched_Literals_List CDCL_Two_Watched_Literals_List_Watched_Initialisation
 begin
 
-section \<open>Third Refinement: Remembering watched\<close>
 
-subsection \<open>Types\<close>
-
-type_synonym working_queue_wl = "nat multiset"
-type_synonym watched = "nat list"
-type_synonym 'v lit_queue_wl = "'v literal multiset"
-
-type_synonym 'v twl_st_wl =
-  "('v, nat) ann_lits \<times> 'v clause_l list \<times> nat \<times>
-    'v clause_l option \<times> 'v clauses \<times> 'v clauses \<times> 'v lit_queue_wl \<times>
-    ('v literal \<Rightarrow> watched)"
-
+subsection \<open>Access Functions\<close>
 
 fun working_queue_wl :: "'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> working_queue_wl" where
   \<open>working_queue_wl (_, _, _, _, _, _, _, W) L i = mset (drop i (W L))\<close>
