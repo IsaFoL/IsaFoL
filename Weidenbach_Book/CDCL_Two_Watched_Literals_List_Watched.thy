@@ -1436,4 +1436,65 @@ theorem cdcl_twl_stgy_prog_wl_spec_final2:
    apply (rule order.refl)
   using full_cdcl_twl_stgy_cdcl\<^sub>W_stgy[OF _ assms(1)] by blast
 
+fun init_wl_of :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_wl\<close> where
+  \<open>init_wl_of (M, N, U, D, NP, UP, _, Q) =
+       (M, N, U, D, NP, UP, Q, calculate_correct_watching (tl N) (\<lambda>_. []) 1)\<close>
+
+lemma clauses_init_dt_not_Nil: \<open>fst (snd (init_dt CS ([], [[]], 0, None, {#}, {#}, {#}, {#}))) \<noteq> []\<close>
+  apply (induction CS)
+  subgoal by (auto simp: init_dt_step_def)
+  subgoal for C CS
+    by (cases \<open>init_dt CS ([], [[]], 0, None, {#}, {#}, {#}, {#})\<close>)
+     (auto simp: init_dt_step_def Let_def split: option.splits if_splits)
+  done
+
+theorem init_dt_wl:
+  fixes CS S
+  defines S\<^sub>0: \<open>S\<^sub>0 \<equiv> ([], [[]], 0, None, {#}, {#}, {#}, {#})\<close>
+  defines S: \<open>S \<equiv> init_wl_of (init_dt CS S\<^sub>0)\<close>
+  assumes
+    dist: \<open>\<forall>C \<in> set CS. distinct C\<close> and
+    le: \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close> and
+    taut: \<open>\<forall>C \<in> set CS. \<not>tautology (mset C)\<close> and
+    no_confl: \<open>get_conflict_wl S = None\<close>
+  shows
+    \<open>cdcl_twl_stgy_prog_wl S \<le>
+      \<Down> {(S, S'). S' = st_l_of_wl None S}
+        (SPEC(\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state (twl_st_of_wl None S))
+          (convert_to_state (twl_st_of None T))))\<close>
+proof -
+  obtain M N U D NP UP WS Q where
+    init: \<open>init_dt CS S\<^sub>0 = (M, N, U, D, NP, UP, WS, Q)\<close>
+    by (cases \<open>init_dt CS S\<^sub>0\<close>) auto
+  have \<open>N \<noteq> []\<close>
+    using clauses_init_dt_not_Nil[of CS] init unfolding S\<^sub>0[symmetric] by auto
+  then have corr_w: \<open>correct_watching S\<close>
+    unfolding S init
+    by (auto simp: correct_watching.simps
+        calculate_correct_watching[of _ _ _ M \<open>hd N\<close> U D NP UP])
+  have
+    \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S)) = mset `# mset CS\<close> and
+    \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
+    \<open>additional_WS_invs (st_l_of_wl None S)\<close>
+    unfolding S S\<^sub>0
+    subgoal
+      using init_dt(1)[OF dist le taut]
+        by (cases \<open>(init_dt CS ([], [[]], 0, None, {#}, {#}, {#}, {#}))\<close>) auto
+    subgoal
+      using init_dt(2)[OF dist le taut]
+        by (cases \<open>(init_dt CS ([], [[]], 0, None, {#}, {#}, {#}, {#}))\<close>) auto
+    subgoal
+      using init_dt(3)[OF dist le taut]
+        by (cases \<open>(init_dt CS ([], [[]], 0, None, {#}, {#}, {#}, {#}))\<close>) auto
+    subgoal
+      using init_dt(5)[OF dist le taut]
+      by (cases \<open>(init_dt CS ([], [[]], 0, None, {#}, {#}, {#}, {#}))\<close>)
+        (auto simp: additional_WS_invs_def)
+    done
+  from cdcl_twl_stgy_prog_wl_spec_final2[OF this(1,3) no_confl this(4) corr_w]
+  show ?thesis
+    .
+qed
+
 end
