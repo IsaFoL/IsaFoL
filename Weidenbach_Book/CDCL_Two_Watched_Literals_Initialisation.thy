@@ -604,6 +604,14 @@ next
         Let_def)
 qed
 
+lemma clauses_init_dt_not_Nil: \<open>fst (snd (init_dt CS ([], [[]], 0, None, {#}, {#}, {#}, {#}))) \<noteq> []\<close>
+  apply (induction CS)
+  subgoal by (auto simp: init_dt_step_def)
+  subgoal for C CS
+    by (cases \<open>init_dt CS ([], [[]], 0, None, {#}, {#}, {#}, {#})\<close>)
+     (auto simp: init_dt_step_def Let_def split: option.splits if_splits)
+  done
+
 theorem init_dt:
   fixes CS S
   defines S: \<open>S \<equiv> ([], [[]], 0, None, {#}, {#}, {#}, {#})\<close>

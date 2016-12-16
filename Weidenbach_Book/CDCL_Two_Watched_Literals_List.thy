@@ -1739,17 +1739,11 @@ definition cdcl_twl_stgy_prog_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" 
 
 lemma refine_pair_to_SPEC_fst_pair2:
   fixes f :: \<open>'s \<Rightarrow> ('c \<times> 's) nres\<close> and g :: \<open>'b \<Rightarrow> ('c \<times> 'b) nres\<close>
-  assumes \<open>(f, g) \<in> {(S, S'). S' = h S \<and> R S} \<rightarrow> \<langle>{((brk, S), (brk', S')). S' = h S \<and> brk = brk' \<and> P' S}\<rangle>nres_rel\<close>
+  assumes H: \<open>(f, g) \<in> {(S, S'). S' = h S \<and> R S} \<rightarrow> \<langle>{((brk, S), (brk', S')). S' = h S \<and> brk = brk' \<and> P' S}\<rangle>nres_rel\<close>
     (is \<open>_ \<in> ?R \<rightarrow> ?I\<close>)
   assumes \<open>R S\<close> and [simp]: \<open>S' = h S\<close>
   shows \<open>f S \<le> \<Down> {((brk, S), (brk', S')). S' = h S \<and> brk = brk' \<and> P' S} (g S')\<close>
-proof -
-  have \<open>(f S, g (h S)) \<in> ?I\<close>
-    using assms unfolding fun_rel_def by auto
-  then show ?thesis
-    unfolding nres_rel_def fun_rel_def pw_le_iff pw_conc_inres pw_conc_nofail
-    by auto
-qed
+  by (rule H["to_\<Down>"]) (use assms in auto)
 
 lemma cdcl_twl_stgy_prog_l_spec:
   \<open>(cdcl_twl_stgy_prog_l, cdcl_twl_stgy_prog) \<in>
