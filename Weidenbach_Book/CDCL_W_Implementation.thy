@@ -303,11 +303,11 @@ fun find_conflict where
 lemma find_conflict_Some:
   "find_conflict M Ns = Some N \<Longrightarrow> N \<in> set Ns \<and> M \<Turnstile>as CNot (mset N)"
   by (induction Ns rule: find_conflict.induct)
-     (auto split: if_split_asm)
+     (auto split: if_split_asm simp: lits_of_l_unfold)
 
 lemma find_conflict_None:
   "find_conflict M Ns = None \<longleftrightarrow> (\<forall>N \<in> set Ns. \<not>M \<Turnstile>as CNot (mset N))"
-  by (induction Ns) auto
+  by (induction Ns) (auto simp: lits_of_l_unfold)
 
 lemma find_conflict_None_no_confl:
   "find_conflict M (N@U) = None \<longleftrightarrow> no_step conflict (toS (M, N, U, None))"
@@ -417,7 +417,7 @@ proof (induction S rule: do_resolve_step.induct)
   have CL: "mset C - {#L#} + {#L#} = mset C" using \<open>L \<in> set C\<close> by (auto simp add: multiset_eq_iff)
   have "get_maximum_level (Propagated L (C' + {#L#}) # map convert M) D' = count_decided M"
     using M[simplified] unfolding maximum_level_code_eq_get_maximum_level C[symmetric] CL
-    by (metis D D'L \<open>add_mset L C' = mset C\<close> add_mset_add_single convert.simps(1) 
+    by (metis D D'L \<open>add_mset L C' = mset C\<close> add_mset_add_single convert.simps(1)
         get_maximum_level_map_convert list.simps(9))
   then have
     "resolve
@@ -529,9 +529,9 @@ lemma do_backtrack_step:
     show ?case
       apply (rule backtrack_rule)
         using M2 fd confl \<open>L \<in> set C\<close> j decomp levL \<open>get_maximum_level M (mset C) = count_decided M\<close>
-        unfolding S E M1 apply (auto simp: mset_map)[6]
+        unfolding S E M1 apply ((auto; fail)+)[6]
       using M2' M2 fd j lev_K unfolding S E M1
-      by (auto simp: comp_def ac_simps reduce_trail_to')[2]
+      by ((auto simp: comp_def ac_simps reduce_trail_to'; fail)+)[2]
 qed
 
 lemma map_eq_list_length:

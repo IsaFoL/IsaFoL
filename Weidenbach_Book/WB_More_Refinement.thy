@@ -5,7 +5,7 @@ theory WB_More_Refinement
      "~~/src/HOL/Eisbach/Eisbach_Tools"
 begin
 
-subsection \<open>Some Tooling\<close>
+subsection \<open>Some Tooling for Refinement\<close>
 
 subsubsection \<open>Remove Duplicate Variables\<close>
 text \<open>
@@ -64,6 +64,7 @@ method "to_\<Down>" =
 
 
 subsubsection \<open>Merge Post-Conditions\<close>
+
 lemma Down_add_assumption_middle:
   assumes
     \<open>nofail U\<close> and
@@ -72,7 +73,6 @@ lemma Down_add_assumption_middle:
   shows \<open>W \<le> \<Down> {(T2, T1). R T2 T1 \<and> P T1} V\<close>
   using assms unfolding nres_rel_def fun_rel_def pw_le_iff pw_conc_inres pw_conc_nofail
   by blast
-thm Down_add_assumption_middle
 
 lemma Down_del_assumption_middle:
   assumes
@@ -195,7 +195,7 @@ method match_spec_trans =
        \<Rightarrow> \<open>print_term f'; rule weaken_SPEC2[of f' R' f R]\<close>\<close>)
 
 
-subsection \<open>More Theorems\<close>
+subsection \<open>More Theorems for Refinement\<close>
 
 lemma bind_refine_spec: \<open>(\<And>x. \<Phi> x \<Longrightarrow> f x \<le> \<Down> R M) \<Longrightarrow> M' \<le> SPEC \<Phi> \<Longrightarrow> M' \<bind> f \<le> \<Down> R M\<close>
   by (auto simp add: pw_le_iff refine_pw_simps)

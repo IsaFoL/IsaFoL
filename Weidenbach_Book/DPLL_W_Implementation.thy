@@ -59,14 +59,14 @@ proof -
     then obtain C where C: "C \<in> set N" and Ms: "Ms \<Turnstile>as CNot (mset C)" by auto
     then obtain L M M' where bt: "backtrack_split Ms = (M', L # M)"
       using step exC neq unfolding DPLL_step_def prod.case unit
-      by (cases "backtrack_split Ms", rename_tac b, case_tac b) auto
+      by (cases "backtrack_split Ms", rename_tac b, case_tac b) (auto simp: lits_of_l_unfold)
     then have "is_decided L" using backtrack_split_snd_hd_decided[of Ms] by auto
     have 1: "dpll\<^sub>W (Ms, mset (map mset N))
                   (Propagated (- lit_of L) () # M, snd (Ms, mset (map mset N)))"
       apply (rule dpll\<^sub>W.backtrack[OF _ \<open>is_decided L\<close>, of ])
       using C Ms bt by auto
     moreover have "(Ms', N') = (Propagated (- (lit_of L)) () # M, N)"
-      using step exC unfolding DPLL_step_def bt prod.case unit by auto
+      using step exC unfolding DPLL_step_def bt prod.case unit by (auto simp: lits_of_l_unfold)
     ultimately have ?thesis by auto
   }
   moreover
@@ -74,14 +74,14 @@ proof -
     assume exC: "\<not> (\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C))"
     obtain L where unused: "find_first_unused_var N (lits_of_l Ms) = Some L"
       using step exC neq unfolding DPLL_step_def prod.case unit
-      by (cases "find_first_unused_var N (lits_of_l Ms)") auto
+      by (cases "find_first_unused_var N (lits_of_l Ms)") (auto simp: lits_of_l_unfold)
     have "dpll\<^sub>W (Ms, mset (map mset N))
                (Decided L # fst (Ms, mset (map mset N)), snd (Ms, mset (map mset N)))"
       apply (rule dpll\<^sub>W.decided[of ?S L])
       using find_first_unused_var_Some[OF unused]
       by (auto simp add: Decided_Propagated_in_iff_in_lits_of_l atms_of_ms_def)
     moreover have "(Ms', N') = (Decided L # Ms, N)"
-      using step exC unfolding DPLL_step_def unused prod.case unit by auto
+      using step exC unfolding DPLL_step_def unused prod.case unit by (auto simp: lits_of_l_unfold)
     ultimately have ?thesis by auto
   }
   ultimately show ?thesis by (cases "find_first_unit_clause N Ms") auto
@@ -97,7 +97,7 @@ proof -
   { assume n: "\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C)"
     then have Ms: "(Ms, N) = (case backtrack_split Ms of (x, []) \<Rightarrow> (Ms, N)
                          | (x, L # M) \<Rightarrow> (Propagated (- lit_of L) () # M, N))"
-      using step unfolding DPLL_step_def by (simp add:unit)
+      using step unfolding DPLL_step_def by (simp add: unit lits_of_l_unfold)
 
   have "snd (backtrack_split Ms) = []"
     proof (cases "backtrack_split Ms", cases "snd (backtrack_split Ms)")
@@ -124,7 +124,7 @@ proof -
   moreover {
     assume n: "\<not> (\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C))"
     then have "find_first_unused_var N (lits_of_l Ms) = None"
-      using step unfolding DPLL_step_def by (simp add: unit split: option.splits)
+      using step unfolding DPLL_step_def by (simp add: unit lits_of_l_unfold split: option.splits)
     then have a: "\<forall>a \<in> set N. atm_of ` set a \<subseteq> atm_of ` (lits_of_l Ms)" by auto
     have "fst (toS Ms N) \<Turnstile>asm snd (toS Ms N)" unfolding true_annots_def CNot_def Ball_def
       proof clarify

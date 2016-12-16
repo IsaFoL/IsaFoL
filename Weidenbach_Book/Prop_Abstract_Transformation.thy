@@ -7,8 +7,9 @@ text \<open>This file is devoted to abstract properties of the transformations, 
   preservation and lifting from terms to proposition. \<close>
 
 
-section \<open>Rewrite systems and properties\<close>
-subsection \<open>Lifting of rewrite rules\<close>
+section \<open>Rewrite Systems and Properties\<close>
+
+subsection \<open>Lifting of Rewrite Rules\<close>
 
 text \<open>We can lift a rewrite relation r over a full1 formula: the relation \<open>r\<close> works on terms,
   while \<open>propo_rew_step\<close> works on formulas.\<close>
@@ -156,7 +157,7 @@ qed
 
 
 
-subsection \<open>Consistency preservation\<close>
+subsection \<open>Consistency Preservation\<close>
 
 text \<open>We define \<open>preserves_un_sat\<close>: it means that a relation preserves consistency.\<close>
 definition preserves_un_sat where
@@ -222,7 +223,7 @@ lemma full_propo_rew_step_subformula:
 
 section \<open>Transformation testing\<close>
 
-subsection \<open>Definition and first properties\<close>
+subsection \<open>Definition and first Properties\<close>
 text \<open>To prove correctness of our transformation, we create a @{term all_subformula_st} predicate.
   It tests recursively all subformulas. At each step, the actual formula is tested. The aim of this
   @{term test_symb} function is to test locally some properties of the formulas (i.e. at the level
@@ -402,7 +403,8 @@ text \<open>The previous assumption is not enough to go from @{term r} to @{term
   \<longrightarrow> test_symb (conn c (\<xi> @ \<phi>' # \<xi>'))"}\<close>
 
 
-subsubsection \<open>Invariant while lifting of the rewriting relation\<close>
+subsubsection \<open>Invariant while lifting of the Rewriting Relation\<close>
+
 text \<open>The condition @{term "\<phi> \<preceq> \<Phi>"} (that will by used with @{term "\<Phi> = \<phi>"} most of the time) is
   here to ensure that the recursive conditions on @{term "\<Phi>"} will moreover hold for the subterm
   we are rewriting. For example if there is no equivalence symbol in @{term "\<Phi>"}, we do not have to
@@ -463,7 +465,7 @@ lemma propo_rew_step_inv_stay:
 text \<open>The lemmas can be lifted to @{term "full (propo_rew_step r)"} instead of
   @{term propo_rew_step}\<close>
 
-subsubsection \<open>Invariant after all rewriting\<close>
+subsubsection \<open>Invariant after all Rewriting\<close>
 
 lemma full_propo_rew_step_inv_stay_with_inc:
   fixes r:: "'v propo \<Rightarrow> 'v propo \<Rightarrow> bool" and test_symb:: "'v propo \<Rightarrow> bool" and x :: "'v"

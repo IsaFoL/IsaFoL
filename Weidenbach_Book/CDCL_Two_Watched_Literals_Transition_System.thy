@@ -3,7 +3,7 @@ theory CDCL_Two_Watched_Literals_Transition_System
    "$AFP/Refine_Imperative_HOL/IICF/IICF"
 begin
 
-chapter \<open>Two-watched literals\<close>
+chapter \<open>Two-Watched Literals\<close>
 
 notation image_mset (infixr "`#" 90)
 

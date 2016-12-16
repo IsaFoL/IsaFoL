@@ -8,9 +8,12 @@ text \<open>We define here the normalisation from formula towards conjunctive an
   including normalisation towards multiset of multisets to represent CNF.\<close>
 
 section \<open>Logics\<close>
+
 text \<open>In this section we define the syntax of the formula and an abstraction over it to have simpler
   proofs. After that we define some properties like subformula and rewriting.\<close>
-subsection \<open>Definition and abstraction\<close>
+
+subsection \<open>Definition and Abstraction\<close>
+
 text \<open>The propositional logic is defined inductively. The type parameter is the type of the
   variables. \<close>
 datatype 'v propo =
@@ -93,7 +96,8 @@ lemma wf_conn_induct[consumes 1, case_names CT CF CVar CNot COr CAnd CImp CEq]:
   shows "P x"
   using assms by induction (auto simp: binary_connectives_def)
 
-subsection \<open>properties of the abstraction\<close>
+
+subsection \<open>Properties of the Abstraction\<close>
 
 text \<open>First we can define simplification rules.\<close>
 lemma wf_conn_conn[simp]:
@@ -231,7 +235,7 @@ qed
 
 
 
-subsection \<open>Subformulas and properties\<close>
+subsection \<open>Subformulas and Properties\<close>
 
 text \<open>A characterization using sub-formulas is interesting for rewriting: we will define our
   relation on the sub-term level, and then lift the rewriting on the term-level. So the rewriting
@@ -564,7 +568,7 @@ fun replace_at :: "sign list \<Rightarrow> 'v propo \<Rightarrow> 'v propo \<Rig
 "replace_at (L # l) (FNot \<phi>) \<psi> = FNot (replace_at l \<phi> \<psi>)"
 
 
-section \<open>Semantics over the syntax\<close>
+section \<open>Semantics over the Syntax\<close>
 
 text \<open>Given the syntax defined above, we define a semantics, by defining an evaluation function
   @{term eval}. This function is the bridge between the logic as we define it here and the built-in

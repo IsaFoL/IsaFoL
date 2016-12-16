@@ -206,7 +206,6 @@ prepare_code_thms find_unwatched_impl_def
 export_code find_unwatched_impl in SML *)
 (* End of code generation *)
 
-declare lits_of_l_unfold[iff del] (* TODO remove from DPLL_CDCL_Implementation *)
 lemma find_unwatched:
   assumes \<open>no_dup M\<close> and \<open>length C \<ge> 2\<close>
   shows \<open>find_unwatched M C \<le> SPEC (\<lambda>(found, i). i \<ge> 2 \<and>

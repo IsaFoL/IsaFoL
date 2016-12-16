@@ -21,7 +21,7 @@ text \<open>Before showing that Weidenbach's CDCL is included in NOT's CDCL, we 
   starts in a state such that the invariant holds and no conflict has been found yet. The latter
   condition holds for initial states.\<close>
 
-subsection \<open>Inclusion of the states\<close>
+subsection \<open>Inclusion of the States\<close>
 
 context conflict_driven_clause_learning\<^sub>W
 begin
@@ -103,7 +103,7 @@ end
 context conflict_driven_clause_learning\<^sub>W
 begin
 
-subsection \<open>More lemmas conflict--propagate and backjumping\<close>
+subsection \<open>More lemmas about Conflict--Propagate and Backjumping\<close>
 subsubsection \<open>Termination\<close>
 
 lemma cdcl\<^sub>W_bj_measure:

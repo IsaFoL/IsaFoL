@@ -338,12 +338,10 @@ next
           using S' by (auto simp: a S cdcl\<^sub>W_restart_mset_state
             twl_exception_inv.simps uminus_lit_swap
               cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
-        subgoal (* TODO Proof *)
-          using S' unit_clss apply (auto simp: a S cdcl\<^sub>W_restart_mset_state
+        subgoal
+          using S' unit_clss by (auto 3 3 simp: a S cdcl\<^sub>W_restart_mset_state
               twl_exception_inv.simps uminus_lit_swap get_level_cons_if
               cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
-             apply blast+
-          done
         subgoal
           using S' w_q by (auto simp: a S cdcl\<^sub>W_restart_mset_state
               twl_exception_inv.simps uminus_lit_swap get_level_cons_if filter_mset_empty_conv
@@ -360,10 +358,9 @@ next
         \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state (M', N', U', D', NP', UP', WS', Q'))\<close>
         unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S'[symmetric]
         apply (intro conjI)
-        subgoal (* TODO proof *)
-          using alien by (auto simp: a S cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+        subgoal
+          using alien by (auto 3 3 simp: a S cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
               cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def Let_def dest: in_lits_of_l_defined_litD split: if_splits)
-           blast
         subgoal
           using all_struct by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset_state
               cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S Let_def split: if_splits)
@@ -469,12 +466,11 @@ next
         \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state (M', N', U', D', NP', UP', WS', Q'))\<close>
         unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S'[symmetric]
         apply (intro conjI)
-        subgoal (* TODO proof *)
-          apply (cases D)
+        subgoal
           using alien N_not_empty
-            by (auto simp: a S cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
-              cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def Let_def dest: in_lits_of_l_defined_litD split: if_splits)
-           blast
+            by (cases D) (auto 3 3 simp: a S cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+              cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def Let_def dest: in_lits_of_l_defined_litD
+              split: if_splits)
         subgoal
           apply (cases D)
           using all_struct by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset_state
@@ -579,14 +575,12 @@ next
         using S' by (auto simp: a S cdcl\<^sub>W_restart_mset_state
             twl_exception_inv.simps uminus_lit_swap
             cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
-      subgoal (* TODO Proof *)
-        apply (cases D)
-        using S' unit_clss by (auto simp: a S cdcl\<^sub>W_restart_mset_state
+      subgoal
+        using S' unit_clss by (cases D) (auto simp: a S cdcl\<^sub>W_restart_mset_state
             twl_exception_inv.simps uminus_lit_swap get_level_cons_if
             cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
-      subgoal (* TODO Proof *)
-        apply (cases D)
-        using S' w_q in_M_IN_QD by (auto simp: a S cdcl\<^sub>W_restart_mset_state
+      subgoal
+        using S' w_q in_M_IN_QD by (cases D) (auto simp: a S cdcl\<^sub>W_restart_mset_state
             twl_exception_inv.simps uminus_lit_swap get_level_cons_if filter_mset_empty_conv
             working_queue_prop.simps
             cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def

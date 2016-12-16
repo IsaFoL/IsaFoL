@@ -1,6 +1,6 @@
 chapter Weidenbach_Book
 
-session "Imports" (Weidenbach_Book) = "HOL" +
+session "Imports" (Weidenbach_Book) = "Refine_Imperative_HOL" +
   description \<open>This session imports HOL, some additional useful theories from HOL, and our own
   extensions above these lemmas.\<close>
   options [document = pdf, document_output = "output"]
@@ -8,7 +8,11 @@ session "Imports" (Weidenbach_Book) = "HOL" +
     "~~/src/HOL/Library/Code_Target_Numeral"
     "~~/src/HOL/Library/Multiset"
     "~~/src/HOL/Library/Multiset_Order"
+    "~~/src/HOL/Library/RBT"
+    "~~/src/HOL/Library/Extended_Nat"
     "$AFP/Nested_Multisets_Ordinals/Multiset_More"
+    Eisbach
+    "~~/src/HOL/Eisbach/Eisbach_Tools"
   theories
     Doc_Libraries
     Wellfounded_More
@@ -115,17 +119,20 @@ session "Two_Watched_Literals" (Weidenbach_Book) = "CDCL_Base"  +
     CDCL_W_Abstract_State
     CDCL_W_Full
 
-  theories [quick_and_dirty, document = true]
+  theories [quick_and_dirty = false, document = true]
     CDCL_W_Optimal_Model
     CDCL_Two_Watched_Literals_Algorithm
     CDCL_Two_Watched_Literals_Initialisation
     CDCL_Two_Watched_Literals_List
+    CDCL_Two_Watched_Literals_Initialisation
+    CDCL_Two_Watched_Literals_List_Watched_Initialisation
+    CDCL_Two_Watched_Literals_List_Watched
   document_files
     "root.tex"
     "biblio.bib"
 
 
-session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
+session "Full" (Weidenbach_Book) = "Imports"  +
   description \<open>This session imports all theories and contains the complete documentation.\<close>
   options [document = pdf, document_output = "output"]
   theories [document = false]
@@ -135,11 +142,13 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
     "~~/src/HOL/Library/RBT"
     "$AFP/Nested_Multisets_Ordinals/Multiset_More"
     RBT_More
+    Eisbach
 
-  theories [quick_and_dirty, document = true]
+  theories [quick_and_dirty = false, document = true]
     Doc_Libraries
     Wellfounded_More
     WB_List_More
+    WB_More_Refinement
 
     Doc_Entailment
     "../lib/Herbrand_Interpretation"
@@ -155,7 +164,7 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
   theories [quick_and_dirty, document = true]
     Prop_Superposition
 
-  theories [document = true]
+  theories [quick_and_dirty = false, document = true]
     Partial_Annotated_Clausal_Logic
     DPLL_W
     CDCL_W_Level
@@ -175,11 +184,14 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
 
     CDCL_W_Abstract_State
 
-  theories [quick_and_dirty, document = true]
+  theories [quick_and_dirty = false, document = true]
     CDCL_W_Optimal_Model
     CDCL_Two_Watched_Literals_Algorithm
     CDCL_Two_Watched_Literals_Initialisation
     CDCL_Two_Watched_Literals_List
+    CDCL_Two_Watched_Literals_List_Watched_Initialisation
+    CDCL_Two_Watched_Literals_List_Watched
+
     Weidenbach_Book
   document_files
     "root.tex"

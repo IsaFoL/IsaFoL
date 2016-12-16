@@ -308,7 +308,7 @@ lemma \<open>wf {(T, S). dpll_bj S T \<and> cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all
 end
 
 
-subsection \<open>Adding restarts\<close>
+subsection \<open>Adding Restarts\<close>
 
 text \<open>This was mainly a test whether it was possible to instantiate the assumption of the locale.\<close>
 locale dpll_withbacktrack_and_restarts =

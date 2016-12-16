@@ -30,7 +30,7 @@ proof (induct rule: simplify.induct)
   then show ?case by (metis Un_Diff_cancel2 true_clss_singleton true_clss_union)
 next
   case (condensation A P)
-  then show ?case 
+  then show ?case
     by (fastforce dest: mk_disjoint_insert)
 next
   case (subsumption A B)
@@ -267,7 +267,7 @@ next
     moreover have "tautology (add_mset (Pos P) (add_mset (Neg P) C))" by auto
     ultimately show
       "\<exists>p. Pos p \<in># a \<and> Neg p \<in># b \<and>
-      ((\<exists>\<chi>\<in>fst (N - {add_mset (Pos P) (add_mset (Neg P) C)}, already_used). 
+      ((\<exists>\<chi>\<in>fst (N - {add_mset (Pos P) (add_mset (Neg P) C)}, already_used).
         subsumes \<chi> (remove1_mset (Pos p) a + remove1_mset (Neg p) b)) \<or>
         tautology (remove1_mset (Pos p) a + remove1_mset (Neg p) b))"
       by (metis (no_types) Diff_iff Un_insert_right empty_iff fst_conv insertE subsumes_tautology
@@ -651,7 +651,7 @@ next
      let ?\<psi>' = "(fst \<psi> \<union> {?\<chi>'}, snd \<psi>)"
      have \<phi>: "\<forall>\<phi> \<in> fst \<psi>. (\<phi> \<in> fst \<psi> \<or> \<phi> \<noteq> ?\<chi>') \<longleftrightarrow> \<phi> \<in> fst ?\<psi>'" unfolding C by auto
      have inf: "inference \<psi> ?\<psi>'"
-       using C factoring \<chi> prod.collapse union_commute inference_step 
+       using C factoring \<chi> prod.collapse union_commute inference_step
        by (metis add_mset_add_single)
      moreover have count': "count ?\<chi>' L = n" using C count by auto
      moreover have L\<chi>': "L \<in># ?\<chi>'" by auto
@@ -756,7 +756,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
         using can_decrease_count[of \<chi>' "Pos v" " count \<chi>' (Pos v)" \<psi>' I] by auto
 
         define C where C: "C = \<chi>2 - {#Neg v#}"
-          
+
         then have \<chi>2: "\<chi>2 = C + {#Neg v#}" and negC: "Neg v \<notin># C" and posC: "Pos v \<notin># C"
             using \<chi>\<chi>2_incl neg apply auto[]
            using C \<chi>\<chi>2_incl neg count\<chi>2 count_eq_zero_iff apply fastforce
@@ -977,7 +977,7 @@ and "snd \<psi> = {}"
 shows "(\<exists>\<psi>'. (inference\<^sup>*\<^sup>* \<psi> \<psi>' \<and> {#} \<in> fst \<psi>')) \<longleftrightarrow> unsatisfiable (fst \<psi>)"
   using assms inference_completeness inference_soundness by metis
 
-subsection \<open>Lemma about the simplified state\<close>
+subsection \<open>Lemma about the Simplified State\<close>
 
 abbreviation "simplified \<psi> \<equiv> (no_step simplify \<psi>)"
 
@@ -1457,8 +1457,8 @@ proof -
     using assms(1,2,4) tranclp_resolution_card_simple_decreasing[of \<psi> \<psi>'] by presburger
 qed
 
-subsubsection \<open>well-foundness if the relation\<close>
 
+subsubsection \<open>Well-Foundness of the Relation\<close>
 
 lemma wf_simplified_resolution:
   assumes f_vars: "finite vars"
@@ -1725,7 +1725,7 @@ next
       have mset_decomp2: "{# La \<in># A. L \<noteq> La \<longrightarrow> 2 \<le> count A La#} =
         {# La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#} + replicate_mset (count A L) L"
         by (auto simp: multiset_eq_iff)
-      have *: "(\<Sum>x\<in>#B. if L = x then Suc (count A x) else count A x) \<le> 
+      have *: "(\<Sum>x\<in>#B. if L = x then Suc (count A x) else count A x) \<le>
         (\<Sum>x\<in>#B. if L = x then Suc (count (add_mset L A) x) else count (add_mset L A) x)"
         for B
         by (auto intro!: sum_mset_mono)
@@ -1906,8 +1906,8 @@ proof (induct arbitrary: I rule: sem_tree_size)
             by (simp add: dual_order.antisym)
 
           obtain C where \<chi>C: "\<chi> = add_mset (Neg v) C" and negC: "Neg v \<notin># C" and posC: "Pos v \<notin># C"
-            by (metis (no_types, lifting) One_nat_def Posv \<open>count \<chi> (Neg v) = 1\<close> 
-                \<open>count \<chi>' (Pos v) = 1\<close> count_add_mset count_greater_eq_Suc_zero_iff insert_DiffM 
+            by (metis (no_types, lifting) One_nat_def Posv \<open>count \<chi> (Neg v) = 1\<close>
+                \<open>count \<chi>' (Pos v) = 1\<close> count_add_mset count_greater_eq_Suc_zero_iff insert_DiffM
                 le_numeral_extra(2) nat.inject pos)
 
           obtain C' where
@@ -1930,7 +1930,7 @@ proof (induct arbitrary: I rule: sem_tree_size)
           {
             assume "(add_mset (Pos v) C', add_mset (Neg v) C) \<notin> snd \<psi>"
             then have inf'': "inference \<psi> (fst \<psi> \<union> {C + C'}, snd \<psi> \<union> {(\<chi>', \<chi>)})"
-              by (metis \<chi>'\<psi> \<chi>C \<chi>C' \<chi>\<psi> add_mset_add_single inference_clause.resolution 
+              by (metis \<chi>'\<psi> \<chi>C \<chi>C' \<chi>\<psi> add_mset_add_single inference_clause.resolution
                   inference_step prod.collapse union_commute)
             obtain N' where full: "full simplify (fst \<psi> \<union> {C + C'}) N'"
               by (metis finite_simplified_full_simp fst_conv inf'' inference_preserves_finite
@@ -2245,7 +2245,7 @@ next
   ultimately show ?B by blast
 qed
 
-lemma resolution_soundness_and_completeness':
+theorem resolution_soundness_and_completeness':
   fixes \<psi> :: "'v ::linorder state"
   assumes
     finite: "finite (fst \<psi>)"and

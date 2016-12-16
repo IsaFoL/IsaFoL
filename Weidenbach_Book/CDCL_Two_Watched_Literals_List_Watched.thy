@@ -278,9 +278,8 @@ proof -
   have \<open>add_mset L Q \<subseteq># {#- lit_of x. x \<in># mset (convert_lits_l N M)#}\<close>
     using WS'_def no_dup_queued by (simp add: S all_conj_distrib)
   from mset_le_add_mset_decr_left2[OF this] have uL_M: \<open>-L \<in> lits_of_l M\<close>
-    (* TODO tune proof *)
-    apply (auto dest!: simp: (* lits_of_def *) lits_of_l_convert_lits_l)
-    by (metis imageI lits_of_def lits_of_l_convert_lits_l)
+    using imageI[of _ \<open>set M\<close> lit_of] lits_of_l_convert_lits_l[of N M]
+    by (auto simp: lits_of_def)
   have \<open>unit_propagation_inner_loop_body_wl L w S
     \<le> \<Down> {((i, T'), T).
           T = st_l_of_wl (Some (L, i)) T' \<and> correct_watching T' \<and>
@@ -290,7 +289,7 @@ proof -
     unfolding T_def
     unfolding unit_propagation_inner_loop_body_wl_def unit_propagation_inner_loop_body_l_def S T'
       C'_def
-    supply [[goals_limit=10]]
+    supply [[goals_limit=1]]
     apply (rewrite at \<open>let _ = watched_by _ _ ! _ in _\<close> Let_def)
     apply (refine_vcg val f; remove_dummy_vars)
     unfolding i_def[symmetric]
@@ -1185,12 +1184,9 @@ proof -
       subgoal for G H
         apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm
       (convert_to_state (twl_st_of None (M, N, U, E, NP, UP, WS, Q)))\<close>)
-        subgoal (* TODO proof... *)
-          apply (clarsimp simp add: simp del: Un_iff dest!: atms_of_diffD)
-          apply (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
-              mset_take_mset_drop_mset simp del: Un_iff
+        subgoal by (auto 0 3 simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state 
+              mset_take_mset_drop_mset 
               dest!: H[of _ U N] atms_of_diffD)
-          done
         subgoal
           unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast
         done

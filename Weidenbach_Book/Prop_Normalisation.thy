@@ -11,7 +11,7 @@ text \<open>The idea of Christoph Weidenbach's book is to remove gradually the o
   or/and.  We will prove each transformation seperately.\<close>
 
 
-subsection \<open>Elimination of the equivalences\<close>
+subsection \<open>Elimination of the Equivalences\<close>
 
 text \<open>The first transformation consists in removing every equivalence symbol.\<close>
 inductive elim_equiv :: "'v propo \<Rightarrow> 'v propo \<Rightarrow> bool" where
@@ -780,7 +780,7 @@ lemma pushNeg_full_propo_rew_step:
   using assms full_propo_rew_step_subformula pushNeg_inv(1,2) simple_not_rew by blast
 
 
-subsection \<open>Push inside\<close>
+subsection \<open>Push Inside\<close>
 
 inductive push_conn_inside :: "'v connective \<Rightarrow> 'v connective \<Rightarrow> 'v propo \<Rightarrow> 'v propo \<Rightarrow> bool"
   for c c':: "'v connective" where
@@ -1566,11 +1566,11 @@ lemma pushDisj_full_propo_rew_step:
   unfolding pushDisj_def or_in_and_only_def c_in_c'_only_def by (metis (no_types))
 
 
-section \<open>The full transformations\<close>
+section \<open>The Full Transformations\<close>
 
-subsection \<open>Abstract Property characterizing that only some connective are inside the others\<close>
-subsubsection \<open>Definition\<close>
-text \<open>The normal is a super group of groups\<close>
+subsection \<open>Abstract Definition\<close>
+
+text \<open>The normal form is a super group of groups\<close>
 
 inductive grouped_by :: "'a connective \<Rightarrow> 'a propo \<Rightarrow> bool" for c where
 simple_is_grouped[simp]: "simple \<phi> \<Longrightarrow> grouped_by c \<phi>" |
@@ -1702,6 +1702,9 @@ qed
 
 
 subsection \<open>Conjunctive Normal Form\<close>
+
+subsubsection \<open>Definition\<close>
+
 definition is_conj_with_TF where "is_conj_with_TF == super_grouped_by COr CAnd"
 
 lemma or_in_and_only_conjunction_in_disj:
@@ -1765,6 +1768,9 @@ proof -
 qed
 
 subsection \<open>Disjunctive Normal Form\<close>
+
+subsubsection \<open>Definition\<close>
+
 definition is_disj_with_TF where "is_disj_with_TF \<equiv> super_grouped_by CAnd COr"
 
 lemma and_in_or_only_conjunction_in_disj:

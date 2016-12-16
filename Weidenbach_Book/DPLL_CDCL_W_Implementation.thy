@@ -19,7 +19,7 @@ subsubsection \<open>Propagation\<close>
 
 text \<open>The following theorem holds:\<close>
 
-lemma lits_of_l_unfold[iff]:
+lemma lits_of_l_unfold:
   "(\<forall>c \<in> set C. -c \<in> lits_of_l Ms) \<longleftrightarrow> Ms \<Turnstile>as CNot (mset C)"
   unfolding true_annots_def Ball_def true_annot_def CNot_def by auto
 text \<open>The right-hand version is written at a high-level, but only the left-hand side is executable.\<close>
