@@ -75,12 +75,15 @@ session "CDCL_Base" (Weidenbach_Book) = "Imports"  +
   incremental).\<close>
   options [document = pdf, document_output = "output"]
   theories [document = false]
+  theories [document = false]
     "~~/src/HOL/Library/Code_Target_Numeral"
     "~~/src/HOL/Library/Multiset"
     "~~/src/HOL/Library/Multiset_Order"
     "~~/src/HOL/Library/RBT"
+    "~~/src/HOL/Library/Extended_Nat"
     "$AFP/Nested_Multisets_Ordinals/Multiset_More"
-    RBT_More
+    "~~/src/HOL/Eisbach/Eisbach"
+    "~~/src/HOL/Eisbach/Eisbach_Tools"
 
   theories [quick_and_dirty = false, document = true]
     Doc_Libraries
@@ -107,6 +110,7 @@ session "CDCL_Base" (Weidenbach_Book) = "Imports"  +
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
     CDCL_W_Implementation
+    CDCL_Abstract_Clause_Representation
     CDCL_W_Abstract_State
 
   document_files
@@ -126,6 +130,7 @@ session "Two_Watched_Literals" (Weidenbach_Book) = "CDCL_Base"  +
     CDCL_Two_Watched_Literals_Initialisation
     CDCL_Two_Watched_Literals_List
     CDCL_Two_Watched_Literals_Initialisation
+    CDCL_Two_Watched_Literals_List_Simple_Code
     CDCL_Two_Watched_Literals_List_Watched_Initialisation
     CDCL_Two_Watched_Literals_List_Watched
   document_files
@@ -133,7 +138,7 @@ session "Two_Watched_Literals" (Weidenbach_Book) = "CDCL_Base"  +
     "biblio.bib"
 
 
-session "Full" (Weidenbach_Book) = "Imports"  +
+session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
   description \<open>This session imports all theories and contains the complete documentation.\<close>
   options [document = pdf, document_output = "output"]
   theories [document = false]
@@ -167,29 +172,33 @@ session "Full" (Weidenbach_Book) = "Imports"  +
 
   theories [quick_and_dirty = false, document = true]
     Partial_Annotated_Clausal_Logic
+    DPLL_NOT
     DPLL_W
     CDCL_W_Level
     CDCL_W
     CDCL_W_Termination
     CDCL_W_Merge
+    CDCL_WNOT_Measure
     CDCL_NOT
     CDCL_WNOT
     CDCL_W_Full
     CDCL_W_Restart
     CDCL_W_Incremental
 
-  theories [quick_and_dirty = false, document = true]
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
     CDCL_W_Implementation
-
+    CDCL_Abstract_Clause_Representation
     CDCL_W_Abstract_State
-
+    
   theories [quick_and_dirty = false, document = true]
     CDCL_W_Optimal_Model
+
+    CDCL_Two_Watched_Literals_Transition_System
     CDCL_Two_Watched_Literals_Algorithm
     CDCL_Two_Watched_Literals_Initialisation
     CDCL_Two_Watched_Literals_List
+    CDCL_Two_Watched_Literals_List_Simple_Code
     CDCL_Two_Watched_Literals_List_Watched_Initialisation
     CDCL_Two_Watched_Literals_List_Watched
 
