@@ -11,8 +11,9 @@ session "Imports" (Weidenbach_Book) = "Refine_Imperative_HOL" +
     "~~/src/HOL/Library/RBT"
     "~~/src/HOL/Library/Extended_Nat"
     "$AFP/Nested_Multisets_Ordinals/Multiset_More"
-    Eisbach
+    "~~/src/HOL/Eisbach/Eisbach"
     "~~/src/HOL/Eisbach/Eisbach_Tools"
+    (*"$AFP/Refine_Imperative_HOL/IICF/IICF"*)
   theories
     Doc_Libraries
     Wellfounded_More
@@ -68,7 +69,7 @@ session "Resolution_Superposition" (Weidenbach_Book) = "Entailment_Definition" +
     "root.tex"
     "biblio.bib"
 
-session "CDCL_Base" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
+session "CDCL_Base" (Weidenbach_Book) = "Imports"  +
   description \<open>This session the CDCL calculi (Weidenbach and Nieuwenhuis et al.) and the links between
   both. It also contains a very simple implementation based on lists and two extensions (restart and
   incremental).\<close>
