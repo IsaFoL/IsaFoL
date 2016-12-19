@@ -2,6 +2,9 @@ theory CDCL_Two_Watched_Literals_List_Watched
   imports CDCL_Two_Watched_Literals_List CDCL_Two_Watched_Literals_List_Watched_Initialisation
 begin
 
+text \<open>Less ambiguities:\<close>
+no_notation Ref.update ("_ := _" 62)
+
 
 subsection \<open>Access Functions\<close>
 
