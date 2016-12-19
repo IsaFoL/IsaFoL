@@ -151,6 +151,9 @@ lemma get_conflict_l_get_conflict:
   \<open>get_conflict (twl_st_of L S) = Some {#} \<longleftrightarrow> get_conflict_l S = Some []\<close>
   by (cases S; cases L, auto)+
 
+lemma get_trail_twl_st_of_nil_iff: \<open>get_trail (twl_st_of L T) = [] \<longleftrightarrow> get_trail_l T = []\<close>
+  by (cases T; cases L) (auto simp: convert_lits_l_def)
+
 
 subsection \<open>Additional Invariants and Definitions\<close>
 
@@ -218,14 +221,12 @@ lemma find_unwatched:
      apply (simp_all add: assms)[2]
 
   subgoal for s unfolding valued_def
-    by refine_vcg
-      (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq dest: less_SucE
-        split: bool.split if_splits)
+    by refine_vcg (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq
+        split: if_splits)
   subgoal for s using distinct_consistent_interp[OF assms(1)]
-    apply (cases s, cases \<open>fst s\<close>) (* TODO tune proof *)
-     apply (auto simp: Decided_Propagated_in_iff_in_lits_of_l consistent_interp_def all_set_conv_nth)
-    apply (metis One_nat_def Suc_diff_Suc Suc_le_D Suc_le_lessD diff_Suc_1 diff_less_mono numeral_2_eq_2)+
-    done
+    by (cases s, cases \<open>fst s\<close>)
+      (auto simp: Decided_Propagated_in_iff_in_lits_of_l consistent_interp_def all_set_conv_nth
+        intro!: exI[of _ \<open>snd s - 2\<close>])
   done
 
 definition unit_propagation_inner_loop_body_l :: "'v literal \<Rightarrow> nat \<Rightarrow>
@@ -1104,14 +1105,6 @@ definition skip_and_resolve_loop_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nre
     }
   \<close>
 
-lemma get_trail_twl_st_of_nil_iff: \<open>get_trail (twl_st_of L T) = [] \<longleftrightarrow> get_trail_l T = []\<close>
-  by (cases T; cases L) (auto simp: convert_lits_l_def)
-
-(* TODO Move *)
-lemma is_decided_no_proped: \<open>is_decided L \<longleftrightarrow> \<not>is_proped L\<close>
-  by (cases L) auto
-(* End Move *)
-
 lemma skip_and_resolve_loop_l_spec:
   \<open>(skip_and_resolve_loop_l, skip_and_resolve_loop) \<in>
     {(S::'v twl_st_l, S'). S' = twl_st_of None S \<and> twl_struct_invs (twl_st_of None S) \<and>
@@ -1152,52 +1145,52 @@ proof -
     apply clarify
     unfolding skip_and_resolve_loop_l_def skip_and_resolve_loop_def
     apply (refine_rcg get_conflict_l_get_conflict_state_spec H; remove_dummy_vars)
-    subgoal by auto -- \<open>conflict is not none\<close>
-    subgoal by auto -- \<open>loop invariant init: @{term skip_and_resolve_loop_inv}\<close>
-    subgoal by auto -- \<open>loop invariant init: @{term additional_WS_invs}\<close>
-    subgoal by auto -- \<open>loop invariant init: @{term \<open>working_queue S = {#}\<close>}\<close>
+    subgoal by auto \<comment> \<open>conflict is not none\<close>
+    subgoal by auto \<comment> \<open>loop invariant init: @{term skip_and_resolve_loop_inv}\<close>
+    subgoal by auto \<comment> \<open>loop invariant init: @{term additional_WS_invs}\<close>
+    subgoal by auto \<comment> \<open>loop invariant init: @{term \<open>working_queue S = {#}\<close>}\<close>
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk T brk' T'
       apply (cases \<open>get_trail_l T\<close>; cases \<open>hd (get_trail_l T)\<close>)
       by (auto simp: skip_and_resolve_loop_inv_def get_trail_twl_st_of_nil_iff)
-      -- \<open>align loop conditions\<close>
+      \<comment> \<open>align loop conditions\<close>
     subgoal by (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def)
-      -- \<open>trail not empty\<close>
+      \<comment> \<open>trail not empty\<close>
     subgoal by (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def)
-      -- \<open>conflict not none\<close>
-    subgoal by (auto simp: is_decided_no_proped)
-      -- \<open>head of the trail is a propagation\<close>
+      \<comment> \<open>conflict not none\<close>
+    subgoal by (auto simp: is_decided_no_proped_iff)
+      \<comment> \<open>head of the trail is a propagation\<close>
     subgoal by (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def)
-      -- \<open>state equality\<close>
+      \<comment> \<open>state equality\<close>
     subgoal by (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def)
-      -- \<open>trail not empty\<close>
+      \<comment> \<open>trail not empty\<close>
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
       M''' N''' U''' D''' NP''' UP''' WS''' Q'''
       M'' N'' U'' D'' NP'' UP'' WS'' Q'' L C L' C'
       by (cases \<open>M''\<close>; cases \<open>hd M''\<close>) (clarsimp simp add: additional_WS_invs_def)+
-      -- \<open>annotation of the valid\<close>
+      \<comment> \<open>annotation of the valid\<close>
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
       M''' N''' U''' D''' NP''' UP''' WS''' Q'''
       M'' N'' U'' D'' NP'' UP'' WS'' Q''
       by (cases \<open>M''\<close>) (auto simp: skip_and_resolve_loop_inv_def get_trail_twl_st_of_nil_iff
           additional_WS_invs_def)
-        -- \<open>in conflict, needs ~1min\<close>
+        \<comment> \<open>in conflict, needs ~1min\<close>
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
       M''' N''' U''' D''' NP''' UP''' WS''' Q'''
       M'' N'' U'' D'' NP'' UP'' WS'' Q''
       by (cases \<open>M''\<close>) (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def
           resolve_cls_l_nil_iff)
-        -- \<open>skip final invariants\<close>
+        \<comment> \<open>skip final invariants\<close>
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
       M''' N''' U''' D''' NP''' UP''' WS''' Q'''
       M'' N'' U'' D'' NP'' UP'' WS'' Q''
       by (cases D'') (auto simp:  skip_and_resolve_loop_inv_def)
-        -- \<open>maximum level\<close>
+        \<comment> \<open>maximum level\<close>
 
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
       M''' N''' U''' D''' NP''' UP''' WS''' Q'''
       M'' N'' U'' D'' NP'' UP'' WS'' Q'' L C L' C'
       by (cases \<open>M''\<close>) (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def
-          resolve_cls_l_nil_iff) -- \<open>needs around 1 min\<close>
+          resolve_cls_l_nil_iff) \<comment> \<open>needs around 1 min\<close>
     subgoal
       by (auto simp: resolve_cls_l_nil_iff skip_and_resolve_loop_inv_def additional_WS_invs_def)
     subgoal

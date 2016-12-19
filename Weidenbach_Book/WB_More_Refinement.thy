@@ -112,7 +112,7 @@ method unify_Down_invs2_normalisation_post =
 
 method unify_Down_invs2 =
   (match premises in
-      -- \<open>if the relation 2-1 has not assumption, we add True. Then we call out method again and
+      \<comment> \<open>if the relation 2-1 has not assumption, we add True. Then we call out method again and
            this time it will match since it has an assumption.\<close>
       I: \<open>S1 \<le> \<Down> R10 S0\<close> and
       J[thin]: \<open>S2 \<le> \<Down> R21 S1\<close>

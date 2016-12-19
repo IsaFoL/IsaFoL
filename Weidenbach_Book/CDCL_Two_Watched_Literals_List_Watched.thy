@@ -728,7 +728,7 @@ proof -
       apply (rule unit_propagation_inner_loop_wl_spec["to_\<Down>"])
       apply (subgoal_tac \<open>(get_conflict (twl_st_of None (st_l_of_wl None T')) \<noteq> None \<longrightarrow>
          working_queue (twl_st_of None (st_l_of_wl None T')) = {#} \<and> pending (twl_st_of None (st_l_of_wl None T')) = {#})\<close>)
-          -- \<open>this goal is extracted from the invariant\<close>
+          \<comment> \<open>this goal is extracted from the invariant\<close>
        apply (auto simp: correct_watching_set_pending set_pending_add_remove get_conflict_wl_set_pending_wl
           get_conflict_twl_st_of_st_l_of_wl pending_twl_st_of_st_l_of_wl; fail)
       apply (simp add: twl_struct_invs_def)
@@ -1056,7 +1056,7 @@ proof (rule iffI)
     using that H[of x]
     by (auto split: if_splits simp: clause_to_update_def nth_append
         lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset
-        intro!: arg_cong[of _ _ mset_set]) -- \<open>slow but auto magic\<close>
+        intro!: arg_cong[of _ _ mset_set]) \<comment> \<open>slow but auto magic\<close>
   show ?c
     unfolding correct_watching.simps Ball_def
     by (auto simp add: lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset
@@ -1153,7 +1153,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal for M N U E NP UP WS Q M' N' U' E' NP' UP' Q' W T
-      by (cases T) simp -- \<open>simp does not unify \<^term>\<open>T\<close> with the pair in the assumption
+      by (cases T) simp \<comment> \<open>simp does not unify \<^term>\<open>T\<close> with the pair in the assumption
          otherwise\<close>
     subgoal by simp
     subgoal by auto

@@ -103,7 +103,8 @@ end
 context conflict_driven_clause_learning\<^sub>W
 begin
 
-subsection \<open>More lemmas about Conflict--Propagate and Backjumping\<close>
+subsection \<open>More lemmas about Conflict, Propagate and Backjumping\<close>
+
 subsubsection \<open>Termination\<close>
 
 lemma cdcl\<^sub>W_bj_measure:

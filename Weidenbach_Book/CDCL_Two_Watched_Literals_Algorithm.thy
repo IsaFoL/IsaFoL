@@ -86,7 +86,7 @@ proof -
       using WS unfolding WS'_def by auto
     have D: \<open>D = None\<close>
       using confl S by auto
-    { -- \<open>if \<^term>\<open>L' \<in> lits_of_l M\<close>, then:\<close>
+    { \<comment> \<open>if \<^term>\<open>L' \<in> lits_of_l M\<close>, then:\<close>
       assume L': \<open>L' \<in> lits_of_l M\<close>
       let ?S = \<open>(M, N, U, D, NP, UP, WS, Q)\<close>
       let ?S' = \<open>(M, N, U, None, NP, UP, add_mset (L, C) WS', Q)\<close>
@@ -108,13 +108,13 @@ proof -
       show \<open>(?T, ?S) \<in> measure (size \<circ> working_queue)\<close>
         by (simp add: WS'_def[symmetric] WS_WS')
     }
-    -- \<open>if \<^term>\<open>L' \<in> lits_of_l M\<close>, else:\<close>
+    \<comment> \<open>if \<^term>\<open>L' \<in> lits_of_l M\<close>, else:\<close>
     assume L': \<open>L' \<notin> lits_of_l M\<close>
     {
-      { -- \<open>if \<^term>\<open>\<forall>L \<in># unwatched C. -L \<in> lits_of_l M\<close>, then\<close>
+      { \<comment> \<open>if \<^term>\<open>\<forall>L \<in># unwatched C. -L \<in> lits_of_l M\<close>, then\<close>
         assume unwatched: \<open>\<forall>L\<in>#unwatched C. - L \<in> lits_of_l M\<close>
 
-        { -- \<open>if \<^term>\<open>-L' \<in> lits_of_l M \<close> then\<close>
+        { \<comment> \<open>if \<^term>\<open>-L' \<in> lits_of_l M \<close> then\<close>
           let ?S = \<open>(M, N, U, D, NP, UP, WS, Q)\<close>
           let ?S' = \<open>(M, N, U, None, NP, UP, add_mset (L, C) WS', Q)\<close>
           let ?T = \<open> (M, N, U, D, NP, UP, {#}, {#})\<close>
@@ -134,7 +134,7 @@ proof -
         }
 
 
-        { -- \<open>if \<^term>\<open>-L' \<in> lits_of_l M \<close> else\<close>
+        { \<comment> \<open>if \<^term>\<open>-L' \<in> lits_of_l M \<close> else\<close>
           let ?S = \<open>(M, N, U, D, NP, UP, WS, Q)\<close>
           let ?T = \<open>(Propagated L' (clause C) # M, N, U, D, NP, UP, remove1_mset (L, C) WS, add_mset (- L') Q)\<close>
           let ?S' = \<open>(M, N, U, None, NP, UP, add_mset (L, C) WS', Q)\<close>
@@ -159,7 +159,7 @@ proof -
         }
       }
 
-      -- \<open>if \<^term>\<open>\<forall>L \<in># unwatched C. -L \<in> lits_of_l M\<close>, else\<close>
+      \<comment> \<open>if \<^term>\<open>\<forall>L \<in># unwatched C. -L \<in> lits_of_l M\<close>, else\<close>
       { fix K and N' U' :: \<open>'v twl_clss\<close>
         let ?S = \<open>(M, N, U, D, NP, UP, WS, Q)\<close>
         let ?T = \<open>(M, N', U', D, NP, UP, remove1_mset (L, C) WS, Q)\<close>
@@ -226,7 +226,7 @@ lemma unit_propagation_outer_loop:
   unfolding unit_propagation_outer_loop_def
   apply (refine_vcg WHILEIT_rule[where R = \<open>{(T, S). twl_struct_invs S \<and> cdcl_twl_cp\<^sup>+\<^sup>+ S T}\<close>])
               apply ((simp_all add: assms tranclp_wf_cdcl_twl_cp; fail)+)[6]
-  subgoal -- \<open>Assertion\<close>
+  subgoal \<comment> \<open>Assertion\<close>
   proof -
     fix L T
     assume
@@ -251,14 +251,14 @@ lemma unit_propagation_outer_loop:
 
     let ?T' = \<open>set_working_queue (Pair L `# {#Ca \<in># get_clauses T. L \<in># watched Ca#})
       (set_pending (remove1_mset L (pending T)) T)\<close>
-      -- \<open>Show assertion that one step has been done\<close>
+      \<comment> \<open>Show assertion that one step has been done\<close>
     show
       \<open>cdcl_twl_cp T ?T'\<close>
       unfolding T set_working_queue.simps set_pending.simps pending.simps Q'_def[symmetric]
       unfolding Q get_clauses.simps
       by (rule cdcl_twl_cp.pop)
   qed
-  subgoal -- \<open>WHILE-loop invariants\<close>
+  subgoal \<comment> \<open>WHILE-loop invariants\<close>
   proof -
     fix L T
     assume
@@ -283,11 +283,11 @@ lemma unit_propagation_outer_loop:
 
     let ?T' = \<open>set_working_queue (Pair L `# {#Ca \<in># get_clauses T. L \<in># watched Ca#})
       (set_pending (remove1_mset L (pending T)) T)\<close>
-      -- \<open>Show assertion that one step has been done\<close>
+      \<comment> \<open>Show assertion that one step has been done\<close>
     assume
       \<open>cdcl_twl_cp T ?T'\<close>
 
-      -- \<open>Show that the invariant still holds\<close>
+      \<comment> \<open>Show that the invariant still holds\<close>
     then show \<open>twl_struct_invs ?T'\<close>
       using cdcl_twl_cp_twl_struct_invs twl by blast
 
@@ -318,7 +318,7 @@ lemma unit_propagation_outer_loop:
 
     let ?T' = \<open>set_working_queue (Pair L `# {#Ca \<in># get_clauses T. L \<in># watched Ca#})
       (set_pending (remove1_mset L (pending T)) T)\<close>
-      -- \<open>Show assertion that one step has been done\<close>
+      \<comment> \<open>Show assertion that one step has been done\<close>
     assume
       cdcl: \<open>cdcl_twl_cp T ?T'\<close>
 
@@ -330,9 +330,9 @@ lemma unit_propagation_outer_loop:
   subgoal by auto
   subgoal by auto
   subgoal by simp
-  subgoal for T L U -- \<open>Termination\<close>
+  subgoal for T L U \<comment> \<open>Termination\<close>
     by auto
-  subgoal -- \<open>Final invariants\<close>
+  subgoal \<comment> \<open>Final invariants\<close>
     by simp
   subgoal by simp
   subgoal by auto
@@ -465,7 +465,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
     twl_stgy_S: \<open>twl_stgy_invs ?S\<close>
     using brk inv LC unfolding skip_and_resolve_loop_inv_def by (cases M; cases \<open>hd M\<close>) auto
 
-  { -- \<open>skip\<close>
+  { \<comment> \<open>skip\<close>
     assume
       LD: \<open>- L \<notin># the (get_conflict (M, N, U, D, NP, UP, WS, Q))\<close>
 
@@ -490,7 +490,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
       using M_not_empty by simp
 
   }
-  { -- \<open>resolve\<close>
+  { \<comment> \<open>resolve\<close>
     assume
       LD: \<open>\<not>- L \<notin># the (get_conflict (M, N, U, D, NP, UP, WS, Q))\<close> and
       max: \<open>get_maximum_level M (remove1_mset (- L) (the (get_conflict ?S))) = count_decided M\<close>
@@ -519,7 +519,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
     show \<open>((?D = {#}, ?T), (brk, ?S)) \<in> measure (\<lambda>(brk, S). Suc (length (get_trail S) - (if brk then 1 else 0)))\<close>
       using M_not_empty by simp
   }
-  { -- \<open>No step\<close>
+  { \<comment> \<open>No step\<close>
     assume
       LD: \<open>\<not>- L \<notin># the (get_conflict (M, N, U, D, NP, UP, WS, Q))\<close> and
       max: \<open>get_maximum_level M (remove1_mset (- L) (the (get_conflict ?S))) \<noteq> count_decided M\<close>
@@ -531,7 +531,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
     show \<open>((True, ?S), (brk, ?S)) \<in> measure (\<lambda>(brk, S). Suc (length (get_trail S) - (if brk then 1 else 0)))\<close>
       using M_not_empty by simp
   }
-next -- \<open>Final properties\<close>
+next \<comment> \<open>Final properties\<close>
   fix brk T U
   assume
     inv: \<open>skip_and_resolve_loop_inv S (brk, T)\<close> and
@@ -788,7 +788,7 @@ proof -
       using count_decided_ge_get_maximum_level[of M D'] L'_D
         get_maximum_level_ge_get_level[of \<open>-lit_of L''\<close> D' M] unfolding M
       by (auto split: if_splits)
-    { -- \<open>conflict clause > 1 literal\<close>
+    { \<comment> \<open>conflict clause > 1 literal\<close>
       assume size_D: \<open>1 < size (the D)\<close> and L_D: \<open>L' \<in># the D\<close> and
         lev_L: \<open>get_level M L' = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))\<close>
 
@@ -832,7 +832,7 @@ proof -
           by auto
     }
 
-    { -- \<open>conflict clause < 1 literal\<close>
+    { \<comment> \<open>conflict clause < 1 literal\<close>
       assume \<open>\<not> 1 < size (the D)\<close>
       then have D': \<open>D = Some {#-lit_of (hd M)#}\<close>
         using D' L'_D confl S by (cases D') (auto simp: M)
@@ -909,13 +909,13 @@ lemma cdcl_twl_o_prog_spec:
     (is \<open>_ \<le> ?S\<close>)
   unfolding cdcl_twl_o_prog_def
   apply (refine_vcg; remove_dummy_vars)
-  -- \<open>initial invariants\<close>
+  \<comment> \<open>initial invariants\<close>
   subgoal using assms by auto
   subgoal using assms by auto
   subgoal using assms by auto
   subgoal using assms by auto
   subgoal using assms by auto
-  -- \<open>decision, if false\<close>
+  \<comment> \<open>decision, if false\<close>
   subgoal using assms by (auto simp: cdcl_twl_o.simps)
   subgoal using assms by auto
   subgoal using assms by (auto simp: cdcl_twl_o.simps)
@@ -929,25 +929,25 @@ lemma cdcl_twl_o_prog_spec:
   subgoal using assms by auto
   subgoal by (auto simp: cdcl_twl_o.simps)
 
-  -- \<open>\<^term>\<open>skip_and_resolve_loop\<close> part, if true\<close>
-    -- \<open>initial conditions\<close>
+  \<comment> \<open>\<^term>\<open>skip_and_resolve_loop\<close> part, if true\<close>
+    \<comment> \<open>initial conditions\<close>
   subgoal using assms by auto
   subgoal using assms by auto
   subgoal using assms by (auto simp: cdcl_twl_o.simps)
   subgoal using assms by auto
 
-    -- \<open>initial of backtrack part\<close>
+    \<comment> \<open>initial of backtrack part\<close>
   subgoal by auto
   subgoal by auto
   subgoal by auto
 
-    -- \<open>final properties\<close>
+    \<comment> \<open>final properties\<close>
   subgoal by (auto simp: cdcl_twl_o.simps)
   subgoal by auto
   subgoal by auto
   subgoal by (auto simp: cdcl_twl_o.simps)
 
-  -- \<open>\<^term>\<open>skip_and_resolve_loop\<close>, if false: final properties\<close>
+  \<comment> \<open>\<^term>\<open>skip_and_resolve_loop\<close>, if false: final properties\<close>
   subgoal by (auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps cdcl_twl_cp.simps)
   subgoal by (auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps)
   subgoal by (auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps cdcl_twl_cp.simps)
@@ -1008,17 +1008,17 @@ lemma cdcl_twl_stgy_prog_spec:
   unfolding cdcl_twl_stgy_prog_def full_def
   apply (refine_vcg WHILEIT_rule[where R = \<open>{((brkT, T), (brkS, S)). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<union> {((brkT, T), (brkS, S)). S = T \<and> brkT \<and> \<not>brkS}\<close>];
       remove_dummy_vars)
-  -- \<open>Well foundedness of the relation\<close>
+  \<comment> \<open>Well foundedness of the relation\<close>
   subgoal using wf_cdcl_twl_stgy_measure .
 
-  -- \<open>initial invariants:\<close>
+  \<comment> \<open>initial invariants:\<close>
   subgoal using assms by simp
   subgoal using assms by simp
   subgoal using assms by simp
   subgoal using assms by simp
   subgoal using assms by simp
 
--- \<open>loop invariants:\<close>
+\<comment> \<open>loop invariants:\<close>
   subgoal by simp
   subgoal by simp
   subgoal by simp
@@ -1052,8 +1052,8 @@ lemma cdcl_twl_stgy_prog_spec:
   qed
   subgoal by simp
   subgoal by (force simp: twl_struct_invs_def)
-  -- \<open>Final properties\<close>
-  subgoal for brkT T U V'  -- \<open>termination\<close>
+  \<comment> \<open>Final properties\<close>
+  subgoal for brkT T U V'  \<comment> \<open>termination\<close>
   proof -
     assume
       T: \<open>case (brkT, T) of (brk, T) \<Rightarrow> twl_struct_invs T \<and> twl_stgy_invs T \<and>

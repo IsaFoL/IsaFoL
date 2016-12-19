@@ -30,6 +30,9 @@ lemma is_decided_ex_Decided:
   \<open>is_decided L \<Longrightarrow> (\<And>K. L = Decided K \<Longrightarrow> P) \<Longrightarrow> P\<close>
   by (cases L) auto
 
+lemma is_decided_no_proped_iff: \<open>is_decided L \<longleftrightarrow> \<not>is_proped L\<close>
+  by (cases L) auto
+
 type_synonym ('v, 'm) ann_lits = \<open>('v, 'm) ann_lit list\<close>
 
 definition lits_of :: \<open>('a, 'b) ann_lit set \<Rightarrow> 'a literal set\<close> where

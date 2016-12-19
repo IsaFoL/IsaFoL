@@ -96,10 +96,10 @@ delete_from_working:
 update_clause:
   "cdcl_twl_cp (M, N, U, None, NP, UP, add_mset (L, D) WS, Q)
     (M, N', U', None, NP, UP, WS, Q)"
-  if "watched D = {#L, L'#}" and \<open>-L \<in> lits_of_l M\<close> and \<open>L' \<notin> lits_of_l M\<close> and
+  if \<open>watched D = {#L, L'#}\<close> and \<open>-L \<in> lits_of_l M\<close> and \<open>L' \<notin> lits_of_l M\<close> and
     \<open>K \<in># unwatched D\<close> and \<open>undefined_lit M K \<or> K \<in> lits_of_l M\<close> and
     \<open>update_clauses (N, U) D L K (N', U')\<close>
-  (* TODO remove condition \<open>-L \<in> lits_of_l M\<close>, that is already implied by valid invariant *)
+    \<comment> \<open>The condition \<^term>\<open>-L \<in> lits_of_l M\<close> is already implied by \<^term>\<open>valid\<close> invariant.\<close>
 
 text \<open>We do not care about the pending literals.\<close>
 inductive cdcl_twl_o :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" where
@@ -133,7 +133,7 @@ inductive cdcl_twl_o :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" w
     \<open>get_maximum_level M (D - {#L#}) \<equiv> i\<close> and
     \<open>get_level M K = i + 1\<close>
     \<open>D \<noteq> {#L#}\<close> and
-    \<open>L' \<in># D\<close> and -- \<open>\<^term>\<open>L'\<close> is the new watched literal\<close>
+    \<open>L' \<in># D\<close> and \<comment> \<open>\<^term>\<open>L'\<close> is the new watched literal\<close>
     \<open>get_level M L' = i\<close>
 
 inductive cdcl_twl_stgy :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" for S :: \<open>'v twl_st\<close> where
@@ -1102,7 +1102,7 @@ next
     assume C: \<open>C \<in># N + U\<close>
     show \<open>struct_wf_twl_cls C\<close>
       using twl C by (auto simp: twl_st_inv.simps)[]
-    have \<open>watched_literals_false_of_max_level M C\<close>
+    have watched_max: \<open>watched_literals_false_of_max_level M C\<close>
       using twl C by (auto simp: twl_st_inv.simps)
     then show \<open>watched_literals_false_of_max_level (Propagated L' (clause D) # M) C\<close>
       by (cases C) (auto simp: get_level_cons_if)
@@ -1121,12 +1121,8 @@ next
         using uL'_M by (meson Decided_Propagated_in_iff_in_lits_of_l atm_of_in_atm_of_set_in_uminus
             undef)
     ultimately have twl_C: \<open>twl_inv (Propagated L' (clause D) # M) C\<close> if \<open>C \<noteq> D\<close>
-      apply (cases C)
-      using \<open>watched_literals_false_of_max_level M C\<close> undef that
-      (* TODO Tune proof *)
-      apply (auto simp: count_decided_ge_get_level Decided_Propagated_in_iff_in_lits_of_l
-          get_level_cons_if)
-      by (metis image_eqI)
+      using watched_max undef that by (cases C) (auto simp: count_decided_ge_get_level
+          Decided_Propagated_in_iff_in_lits_of_l get_level_cons_if rev_image_eqI)
     have D: \<open>D \<in># N + U\<close> and \<open>L \<in># watched D\<close>
       using valid by auto
     have lev_L: \<open>get_level M L = count_decided M\<close>
@@ -3279,9 +3275,10 @@ next
           assume \<open>\<not> - K'' \<notin> lits_of_l M1''\<close>
           then have \<open>undefined_lit (tl M2'' @ Decided K''' # []) K''\<close>
             (* TODO tune proof *)
-            using n_d_M1 unfolding M1 apply (auto dest: cdcl\<^sub>W_restart_mset.no_dup_uminus_append_in_atm_notin
-                cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
-            by (simp add: atm_lit_of_set_lits_of_l atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set defined_lit_map)
+            using n_d_M1 unfolding M1 by (auto simp: atm_lit_of_set_lits_of_l 
+                atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set 
+                defined_lit_map atm_of_eq_atm_of image_Un
+                dest: cdcl\<^sub>W_restart_mset.no_dup_uminus_append_in_atm_notin)
           then show False
             using lev_M1_K''  count_decided_ge_get_level[of M1'' K''] unfolding M1
             by (auto simp: image_Un Int_Un_distrib)

@@ -210,7 +210,7 @@ proof -
   ultimately show ?thesis by (auto simp del: state_simp\<^sub>N\<^sub>O\<^sub>T simp: state_eq\<^sub>N\<^sub>O\<^sub>T_def)
 qed
 
-end -- \<open>End on locale @{locale dpll_state}.\<close>
+end \<comment> \<open>End on locale @{locale dpll_state}.\<close>
 
 
 subsubsection \<open>Definition of the Transitions\<close>
@@ -4460,6 +4460,6 @@ corollary full_cdcl\<^sub>N\<^sub>O\<^sub>T_restart_normal_form_init_state:
     \<or> lits_of_l (trail (fst T)) \<Turnstile>sextm N \<and> satisfiable (set_mset N)\<close>
   using full_cdcl\<^sub>N\<^sub>O\<^sub>T_restart_normal_form[of \<open>(S, 0)\<close> T] assms by auto
 
-end -- \<open>End of locale @{locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_with_backtrack_restarts}.\<close>
+end \<comment> \<open>End of locale @{locale cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_with_backtrack_restarts}.\<close>
 
 end
