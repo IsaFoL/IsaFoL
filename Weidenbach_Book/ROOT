@@ -148,8 +148,9 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
     "~~/src/HOL/Library/RBT"
     "$AFP/Nested_Multisets_Ordinals/Multiset_More"
     "~~/src/HOL/Library/Extended_Nat"
-    RBT_More
     Eisbach
+    "~~/src/HOL/Eisbach/Eisbach_Tools"
+    RBT_More
 
   theories [quick_and_dirty = false, document = true]
     Doc_Libraries
