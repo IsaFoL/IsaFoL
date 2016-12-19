@@ -1184,8 +1184,8 @@ proof -
       subgoal for G H
         apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm
       (convert_to_state (twl_st_of None (M, N, U, E, NP, UP, WS, Q)))\<close>)
-        subgoal by (auto 0 3 simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state 
-              mset_take_mset_drop_mset 
+        subgoal by (auto 0 3 simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+              mset_take_mset_drop_mset
               dest!: H[of _ U N] atms_of_diffD)
         subgoal
           unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast
