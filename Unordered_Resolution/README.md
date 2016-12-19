@@ -6,19 +6,17 @@
 
 * [Anders Schlichtkrull](mailto:andschl shtrudel dtu.dk)
 
-## Inspired by [Work](http://afp.sourceforge.net/entries/FOL-Fitting.shtml) of ##
+## Inspired by [work](http://afp.sourceforge.net/entries/FOL-Fitting.shtml) of ##
 
 * [Stefan Berghofer](mailto:berghofe shtrudel in.tum.de)
 
 ## Installation ##
-* [Download and install Isabelle2016](https://isabelle.in.tum.de)
-* [Download AFP version afp-2016-07-01](https://sourceforge.net/projects/afp/files/afp-Isabelle2016/)
-* [Install it](https://www.isa-afp.org/using.shtml)
-* [Download IsaFoR/CeTA version 2.27](http://cl-informatik.uibk.ac.at/software/ceta/versions.php)
-* Extract it.
-* Create a folder called "etc" in your "CeTA-2.27" folder.
-* Create a file called "settings" in "CeTA-2.27/etc" with [this content](https://people.compute.dtu.dk/andschl/isafor/settings).
-* Install IsaFoR by adding "/full/path/to/CeTA-2.27" to "~/.isabelle/Isabelle2016/etc/components".
+* [Download and install Isabelle2016-1](https://isabelle.in.tum.de)
+* [Download AFP version afp-2016-12-17](https://sourceforge.net/projects/afp/files/afp-Isabelle2016-1/)
+* [Install it in Isabelle](https://www.isa-afp.org/using.shtml)
+* [Download IsaFoR/CeTA - the development version with changeset d836ee46a5ed](http://cl2-informatik.uibk.ac.at/rewriting/mercurial.cgi/IsaFoR/archive/d836ee46a5ed.tar.bz2)
+* Extract it to get a folder called "-CeTA-657d09abd9ab".
+* Install IsaFoR in Isabelle by adding "/full/path/to/-CeTA-657d09abd9ab" to "~/.isabelle/Isabelle2016/etc/components".
 * Download and open the theories in this project.
 
 ## In Archive of Formal Proofs ##
