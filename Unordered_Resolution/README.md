@@ -15,8 +15,8 @@
 * [Download AFP version afp-2016-12-17](https://sourceforge.net/projects/afp/files/afp-Isabelle2016-1/)
 * [Install it in Isabelle](https://www.isa-afp.org/using.shtml)
 * [Download IsaFoR/CeTA - the development version with changeset d836ee46a5ed](http://cl2-informatik.uibk.ac.at/rewriting/mercurial.cgi/IsaFoR/archive/d836ee46a5ed.tar.bz2)
-* Extract it to get a folder called "-CeTA-657d09abd9ab".
-* Install IsaFoR in Isabelle by adding "/full/path/to/-CeTA-657d09abd9ab" to "~/.isabelle/Isabelle2016/etc/components".
+* Extract it to get a folder called `-CeTA-657d09abd9ab`.
+* Install IsaFoR in Isabelle by adding `/full/path/to/-CeTA-657d09abd9ab` to `~/.isabelle/Isabelle2016/etc/components`.
 * Download and open the theories in this project.
 
 ## In Archive of Formal Proofs ##
