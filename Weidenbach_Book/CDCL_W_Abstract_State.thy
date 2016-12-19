@@ -3,11 +3,9 @@ imports CDCL_Abstract_Clause_Representation CDCL_W_Full
 
 begin
 
-section \<open>Instantiation of Weidenbach's CDCL\<close>
+section \<open>Instantiation of Weidenbach's CDCL by Multisets\<close>
 
-text \<open>We first instantiate the locale of Weidenbach's locale. Then we refine it to a 2-WL program..\<close>
-
-subsection \<open>Instantiation of the Multiset Version\<close>
+text \<open>We first instantiate the locale of Weidenbach's locale. Then we refine it to a 2-WL program.\<close>
 
 type_synonym 'v cdcl\<^sub>W_restart_mset = "('v, 'v clause) ann_lit list \<times>
   'v clauses \<times>
@@ -24,7 +22,6 @@ fun init_clss :: "'v cdcl\<^sub>W_restart_mset \<Rightarrow> 'v clauses" where
 
 fun learned_clss :: "'v cdcl\<^sub>W_restart_mset \<Rightarrow> 'v clauses" where
 "learned_clss (_, _, U, _) = U"
-
 
 fun conflicting :: "'v cdcl\<^sub>W_restart_mset \<Rightarrow> 'v clause option" where
 "conflicting (_, _, _, C) = C"

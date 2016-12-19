@@ -6,6 +6,11 @@ section \<open>CDCL Extensions\<close>
 
 subsection \<open>Optimisations\<close>
 
+text \<open>
+  A counter-example for the original version from the book has been found (see below). There is no 
+  simple fix, except taking complete models. In this case, it is better to build on top of the 
+  incremental version of CDCL, and not to create a new variant of the calculus.\<close>
+
 notation image_mset (infixr "`#" 90)
 
 text \<open>

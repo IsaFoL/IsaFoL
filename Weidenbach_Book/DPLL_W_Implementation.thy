@@ -3,7 +3,9 @@ imports DPLL_CDCL_W_Implementation DPLL_W "~~/src/HOL/Library/Code_Target_Numera
 begin
 
 subsection \<open>Simple Implementation of DPLL\<close>
+
 subsubsection \<open>Combining the propagate and decide: a DPLL step\<close>
+
 definition DPLL_step :: "int dpll\<^sub>W_ann_lits \<times> int literal list list
   \<Rightarrow> int dpll\<^sub>W_ann_lits \<times> int literal list list" where
 "DPLL_step = (\<lambda>(Ms, N).

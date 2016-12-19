@@ -2,11 +2,20 @@ theory DPLL_NOT
 imports CDCL_NOT
 begin
 
+chapter \<open>DPLL\<close>
+
+text \<open>
+  We have developed two variants of DPLL: the first one is based on NOT's CDCL, instantiated 
+  with specific conditions. Then we have also formalised Weidenbach's chapter about DPLL. We 
+  have also showed the equivalence between both.
+  \<close>
+
+
 section \<open>DPLL as an Instance of NOT\<close>
 
 subsection \<open>DPLL with Backtracking\<close>
 
-text \<open>We are using a concrete couple instead of an abstract state.\<close>
+text \<open>We are using a concrete pair instead of an abstract state.\<close>
 
 locale dpll_with_backtrack
 begin

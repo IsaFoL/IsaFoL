@@ -147,6 +147,7 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
     "~~/src/HOL/Library/Multiset_Order"
     "~~/src/HOL/Library/RBT"
     "$AFP/Nested_Multisets_Ordinals/Multiset_More"
+    "~~/src/HOL/Library/Extended_Nat"
     RBT_More
     Eisbach
 
@@ -172,27 +173,31 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
 
   theories [quick_and_dirty = false, document = true]
     Partial_Annotated_Clausal_Logic
+
+    CDCL_WNOT_Measure
+    CDCL_NOT
+
     DPLL_NOT
     DPLL_W
+    DPLL_WNOT
+
     CDCL_W_Level
     CDCL_W
     CDCL_W_Termination
     CDCL_W_Merge
-    CDCL_WNOT_Measure
-    CDCL_NOT
+
     CDCL_WNOT
     CDCL_W_Full
+
     CDCL_W_Restart
     CDCL_W_Incremental
+    CDCL_W_Optimal_Model
 
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
     CDCL_W_Implementation
     CDCL_Abstract_Clause_Representation
     CDCL_W_Abstract_State
-    
-  theories [quick_and_dirty = false, document = true]
-    CDCL_W_Optimal_Model
 
     CDCL_Two_Watched_Literals_Transition_System
     CDCL_Two_Watched_Literals_Algorithm

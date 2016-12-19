@@ -2,7 +2,12 @@ theory CDCL_W_Restart
 imports CDCL_W_Full
 begin
 
-subsection \<open>Adding Restarts\<close>
+chapter \<open>Extensions on Weidenbach's CDCL\<close>
+
+text \<open>We here extend our calculus.\<close>
+
+section \<open>Restarts\<close>
+
 locale cdcl\<^sub>W_restart_restart =
   conflict_driven_clause_learning\<^sub>W
     state_eq
@@ -37,9 +42,11 @@ locale cdcl\<^sub>W_restart_restart =
   assumes
     f: "unbounded f"
 begin
+
 text \<open>The condition of the differences of cardinality has to be strict.
   Otherwise, you could be in a strange state, where nothing remains to do, but a restart is done.
   See the proof of well-foundedness.\<close>
+
 inductive cdcl\<^sub>W_merge_with_restart where
 restart_step:
   "(cdcl\<^sub>W_stgy^^(card (set_mset (learned_clss T)) - card (set_mset (learned_clss S)))) S T

@@ -120,8 +120,6 @@ proof (induction F S rule: reduce_trail_to.induct)
 qed
 
 
-subsection \<open>CDCL Implementation\<close>
-
 subsubsection \<open>Definition of the rules\<close>
 
 paragraph \<open>Types\<close>
@@ -1706,7 +1704,9 @@ fun do_all_cdcl_W_stgy_nat x = do_all_cdcl_W_stgy Arith.equal_nat x;
 
 end; (*struct CDCL_W_Implementation*)
 \<close>
+
 declare[[ML_print_depth=100]]
+
 ML \<open>
 open Clausal_Logic;
 open CDCL_W_Implementation;

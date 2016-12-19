@@ -232,7 +232,7 @@ proof -
   ultimately show ?thesis using wf_subset by simp
 qed
 
-lemma wf_lex_less: \<open>wf (lex {(a, b). (a::nat) < b})\<close>
+lemma wf_lex_less: \<open>wf (lex less_than)\<close>
   by (auto simp: wf_less)
 
 lemma wfP_if_measure2: fixes f :: \<open>'a \<Rightarrow> nat\<close>

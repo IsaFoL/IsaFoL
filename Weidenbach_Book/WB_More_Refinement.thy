@@ -201,7 +201,7 @@ lemma bind_refine_spec: \<open>(\<And>x. \<Phi> x \<Longrightarrow> f x \<le> \<
   by (auto simp add: pw_le_iff refine_pw_simps)
 
 lemma case_prod_bind:
-  assumes \<open>\<And>x1 x2. x= (x1, x2) \<Longrightarrow> f x1 x2 \<le> \<Down> R I\<close>
+  assumes \<open>\<And>x1 x2. x = (x1, x2) \<Longrightarrow> f x1 x2 \<le> \<Down> R I\<close>
   shows \<open>(case x of (x1, x2) \<Rightarrow> f x1 x2) \<le> \<Down> R I\<close>
   using assms by (cases x) auto
 
