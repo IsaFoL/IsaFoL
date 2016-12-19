@@ -197,10 +197,11 @@ lemma unit_propagation_inner_loop_body_wl_spec:
      (unit_propagation_inner_loop_body_l L C' T)\<close>
 proof -
   have val: \<open>(valued a b, valued a' b') \<in> Id\<close>
-    if \<open>a = a'\<close> and \<open>b = b'\<close> for a a' b b'
+    if \<open>a = a'\<close> and \<open>b = b'\<close> for a a' :: \<open>('a, 'b) ann_lits\<close> and b b' :: \<open>'a literal\<close>
     by (auto simp: that)
   have f: \<open>find_unwatched a (b ! c) \<le> \<Down> Id (find_unwatched a' (b' ! c'))\<close>
-    if \<open>a = a'\<close> and \<open>b = b'\<close> and \<open>c = c'\<close> for a a' b b' c c'
+    if \<open>a = a'\<close> and \<open>b = b'\<close> and \<open>c = c'\<close> for a a' :: \<open>('a, 'b) ann_lits\<close> and
+      b b' :: \<open>'a clauses_l\<close>and c c' :: nat
     by (auto simp: that)
   obtain M N U NP UP Q W where
     S: \<open>S = (M, N, U, None, NP, UP, Q, W)\<close>
@@ -215,10 +216,10 @@ proof -
     using w_le by (cases \<open>drop w (W L)\<close>) (auto simp: drop_Cons' drop_Suc drop_tl remove1_mset_add_mset_If
         trivial_add_mset_remove_iff nth_via_drop)
   have \<open>\<not> length xs \<le> Suc w  \<Longrightarrow> last xs \<in> set (drop (Suc w) xs)\<close>
-    if \<open>w < length xs\<close> for xs w
+    if \<open>w < length xs\<close> for xs :: \<open>'a list\<close> and w :: nat
     using that by (metis List.last_in_set drop_eq_Nil last_drop not_le)
   then have mset_drop_butlast[simp]: \<open>mset (drop w (butlast (xs[w := last xs]))) = mset (drop (Suc w) xs)\<close>
-    if \<open>w < length xs\<close> for xs w
+    if \<open>w < length xs\<close> for xs :: \<open>'a list\<close> and w :: nat
     using that by (auto simp: butlast_list_update S mset_butlast_remove1_mset
         single_remove1_mset_eq)
 
@@ -283,7 +284,7 @@ proof -
   from mset_le_add_mset_decr_left2[OF this] have uL_M: \<open>-L \<in> lits_of_l M\<close>
     using imageI[of _ \<open>set M\<close> lit_of] lits_of_l_convert_lits_l[of N M]
     by (auto simp: lits_of_def)
-  have \<open>unit_propagation_inner_loop_body_wl L w S
+  have 1: \<open>unit_propagation_inner_loop_body_wl L w S
     \<le> \<Down> {((i, T'), T).
           T = st_l_of_wl (Some (L, i)) T' \<and> correct_watching T' \<and>
           i \<le> length (watched_by T' L)}
@@ -342,7 +343,7 @@ proof -
         using add_inv WL_w_in_drop by (auto simp: S additional_WS_invs_def)
       have C'_N_indirect: \<open>x < length N\<close> \<open>0 < length N\<close> if \<open>W L ! w = x\<close> for x
         using that add_inv WL_w_in_drop by (auto simp: S additional_WS_invs_def)
-      have [simp]: \<open>{x. a \<noteq> x \<and> P x} = {x. P x} - {a}\<close> for P a
+      have [simp]: \<open>{x. a \<noteq> x \<and> P x} = {x. P x} - {a}\<close> for P :: \<open>'a \<Rightarrow> bool\<close> and a :: 'a
         by auto
       have KK: \<open>Suc 0 \<le> W L ! w\<close>
         using add_inv WL_w_in_drop by (auto simp: S additional_WS_invs_def)
@@ -391,7 +392,6 @@ proof -
         done
     qed
     done
-  note 1 = this
 
   have \<open>unit_propagation_inner_loop_body_wl L w S \<le>
      \<Down> {((i, T'), T). (T = st_l_of_wl (Some (L, i)) T' \<and> correct_watching T' \<and>
@@ -843,6 +843,7 @@ proof -
   then show ?thesis .
 qed
 
+
 subsubsection \<open>Skip or Resolve\<close>
 
 definition skip_and_resolve_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
@@ -1099,6 +1100,7 @@ lemma in_atms_of_mset_takeD:
 
 lemma in_set_image_subsetD: \<open> f ` A \<subseteq> B \<Longrightarrow> x \<in> A \<Longrightarrow>f x \<in> B\<close>
   by blast
+
 lemma nofail_Down_nofail: \<open>nofail gS \<Longrightarrow> fS \<le> \<Down> R gS \<Longrightarrow> nofail fS\<close>
   using pw_ref_iff by blast
 
@@ -1417,7 +1419,7 @@ lemma cdcl_twl_stgy_prog_wl_spec_final:
   subgoal by auto
   done
 
-theorem cdcl_twl_stgy_prog_wl_spec_final2:
+lemma cdcl_twl_stgy_prog_wl_spec_final2_Down:
   assumes \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
     \<open>get_conflict_wl S = None\<close> and \<open>additional_WS_invs (st_l_of_wl None S)\<close> and
     \<open>correct_watching S\<close>
@@ -1431,6 +1433,18 @@ theorem cdcl_twl_stgy_prog_wl_spec_final2:
   apply (rule weaken_SPEC)
    apply (rule order.refl)
   using full_cdcl_twl_stgy_cdcl\<^sub>W_stgy[OF _ assms(1)] by blast
+
+
+theorem cdcl_twl_stgy_prog_wl_spec_final2:
+  assumes \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
+    \<open>get_conflict_wl S = None\<close> and \<open>additional_WS_invs (st_l_of_wl None S)\<close> and
+    \<open>correct_watching S\<close>
+  shows
+    \<open>cdcl_twl_stgy_prog_wl S \<le>
+       SPEC(\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state (twl_st_of_wl None S))
+          (convert_to_state (twl_st_of_wl None T)))\<close>
+  using cdcl_twl_stgy_prog_wl_spec_final2_Down[OF assms] unfolding conc_fun_SPEC
+  by auto
 
 
 subsection \<open>Final Theorem with Initialisation\<close>
@@ -1449,10 +1463,9 @@ theorem init_dt_wl:
     taut: \<open>\<forall>C \<in> set CS. \<not>tautology (mset C)\<close> and
     no_confl: \<open>get_conflict_wl S = None\<close>
   shows
-    \<open>cdcl_twl_stgy_prog_wl S \<le>
-      \<Down> {(S, S'). S' = st_l_of_wl None S}
-        (SPEC(\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state (twl_st_of_wl None S))
-          (convert_to_state (twl_st_of None T))))\<close>
+    \<open>cdcl_twl_stgy_prog_wl S \<le> SPEC (\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy
+             (convert_to_state (twl_st_of_wl None S))
+             (convert_to_state (twl_st_of_wl None T)))\<close>
 proof -
   obtain M N U D NP UP WS Q where
     init: \<open>init_dt CS S\<^sub>0 = (M, N, U, D, NP, UP, WS, Q)\<close>
