@@ -25,6 +25,7 @@ session Bachmair_Ganzinger = Bachmair_Ganzinger_Base +
     Standard_Redundancy
     Substitution
     New2_Ordered_Ground_Resolution
+    New3_Ordered_Ground_Resolution
     Clauses
   theories [quick_and_dirty]
     FO_Resolution_Prover

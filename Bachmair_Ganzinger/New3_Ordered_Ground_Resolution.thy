@@ -6,7 +6,7 @@
 
 section {* Ordered Ground Resolution with Selection *}
 
-theory New2_Ordered_Ground_Resolution
+theory New3_Ordered_Ground_Resolution
 imports Inference_System Ground_Resolution_Model Multiset_Even_More Clauses
 begin
 
@@ -62,7 +62,8 @@ inductive
   ord_resolve :: "'a side_clause list \<Rightarrow> 'a main_clause \<Rightarrow> 'a clause \<Rightarrow> bool"
   where
    ord_resolve:
-   "length CAs = length As \<Longrightarrow> 
+   "length (CAi :: 'a clause list) = n \<Longrightarrow>
+    length CAs = length As \<Longrightarrow> 
     CAs \<noteq> [] \<Longrightarrow> 
     As \<noteq> [] \<Longrightarrow>
     \<forall>i. i < length CAs \<longrightarrow> get_As (CAs ! i) \<noteq> {#} \<Longrightarrow>
@@ -79,11 +80,11 @@ lemma ord_resolve_sound:
     d_true: "I \<Turnstile> main_clause (D,As)"
   shows "I \<Turnstile> E"
 using res_e proof (cases rule: ord_resolve.cases)
-  case (ord_resolve)
+  case (ord_resolve CAi n)
   have e: "E = Union_Cs CAs + D" using ord_resolve(1) .
-  have cs_as_len: "length CAs = length As" using ord_resolve(2) .
-  have cs_ne: "\<forall>i<length CAs. get_As (CAs ! i) \<noteq> {#}" using ord_resolve(5) .
-  have a_eq: "\<forall>i<length CAs. \<forall>Ai\<in>#get_As (CAs ! i). Ai = As ! i" using ord_resolve(6) .
+  have cs_as_len: "length CAs = length As" using ord_resolve(3) .
+  have cs_ne: "\<forall>i<length CAs. get_As (CAs ! i) \<noteq> {#}" using ord_resolve(6) .
+  have a_eq: "\<forall>i<length CAs. \<forall>Ai\<in>#get_As (CAs ! i). Ai = As ! i" using ord_resolve(7) .
 
   show ?thesis
   proof (cases "\<forall>A \<in> set As. A\<in>I")
@@ -99,7 +100,7 @@ using res_e proof (cases rule: ord_resolve.cases)
       a_in_aa: "i < length As" and 
       c_in_cs: "i < length CAs" and 
       a_false: "As ! i \<notin> I"
-      using ord_resolve(2) by (metis in_set_conv_nth)
+      using ord_resolve(3) by (metis in_set_conv_nth)
     have c_cf': "set_mset (side_clause (CAs ! i)) \<subseteq> set_mset (\<Union># (side_clauses CAs))" (* Kind of ugly *)
       using c_in_cs
       unfolding side_clauses_def
@@ -132,9 +133,9 @@ using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve)
   define UCAs where "UCAs = Union_Cs CAs"
   have e: "E = UCAs + D" unfolding UCAs_def using ord_resolve(1) .
-  have cs_as_len: "length CAs = length As" using ord_resolve(2) .
-  have as_ne: "As \<noteq> []" using ord_resolve(4) .
-  have maxim: "\<forall>i<length CAs. \<forall>B\<in>atms_of (get_C (CAs ! i)). B < As ! i" using ord_resolve(8) .
+  have cs_as_len: "length CAs = length As" using ord_resolve(3) .
+  have as_ne: "As \<noteq> []" using ord_resolve(5) .
+  have maxim: "\<forall>i<length CAs. \<forall>B\<in>atms_of (get_C (CAs ! i)). B < As ! i" using ord_resolve(9) .
   
   show ?thesis
   proof (cases "UCAs = {#}")
