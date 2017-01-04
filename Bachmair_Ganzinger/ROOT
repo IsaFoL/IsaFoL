@@ -28,7 +28,7 @@ session Bachmair_Ganzinger = Bachmair_Ganzinger_Base +
     Clauses
   theories [quick_and_dirty]
     FO_Resolution_Prover
-    New_FO_Resolution_Prover
+    New2_FO_Resolution_Prover
   document_files
     "bib.bib"
     "root.tex"
