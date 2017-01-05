@@ -99,7 +99,7 @@ using res_e proof (cases rule: ord_resolve.cases)
       a_in_aa: "i < length As" and 
       c_in_cs: "i < length CAs" and 
       a_false: "As ! i \<notin> I"
-      using ord_resolve(2) by (metis in_set_conv_nth)
+      using cs_as_len by (metis in_set_conv_nth)
     have c_cf': "set_mset (side_clause (CAs ! i)) \<subseteq> set_mset (\<Union># (side_clauses CAs))" (* Kind of ugly *)
       using c_in_cs
       unfolding side_clauses_def
