@@ -420,6 +420,23 @@ lemma mset_eq_size_2:
   \<open>mset xs = {#a, b#} \<longleftrightarrow> xs = [a, b] \<or> xs = [b, a]\<close>
   by (cases xs) (auto simp: add_mset_eq_add_mset Diff_eq_empty_iff_mset subset_eq_mset_single_iff)
 
+lemma mset_set_eq_mset_set_iff:
+  \<open>finite A \<Longrightarrow> finite B \<Longrightarrow> mset_set A = mset_set B \<longleftrightarrow> A = B\<close>
+  using finite_set_mset_mset_set by fastforce
+
+lemma butlast_list_update:
+  \<open>w < length xs \<Longrightarrow> butlast (xs[w := last xs]) = take w xs @ butlast (last xs # drop (Suc w) xs)\<close>
+  by (induction xs arbitrary: w) (auto split: nat.splits if_splits simp: upd_conv_take_nth_drop)
+
+lemma mset_butlast_remove1_mset: \<open>xs \<noteq> [] \<Longrightarrow> mset (butlast xs) = remove1_mset (last xs) (mset xs)\<close>
+  apply (subst(2) append_butlast_last_id[of xs, symmetric])
+   apply assumption
+  apply (simp only: mset_append)
+  by auto
+
+lemma last_list_update_to_last:
+  \<open>last (xs[x := last xs]) = last xs\<close>
+  by (metis last_list_update list_update.simps(1))
 
 subsection \<open>Sorting\<close>
 
