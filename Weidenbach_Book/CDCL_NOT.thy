@@ -3487,7 +3487,7 @@ proof -
         F F' :: \<open>('v, unit) ann_lits\<close> where
         M_K: \<open>?M = F' @ Decided K # F\<close> and
         nm: \<open>\<forall>f\<in>set F'. \<not>is_decided f\<close>
-        unfolding is_decided_def by (metis (full_types) old.unit.exhaust)
+        unfolding is_decided_def by (metis (full_types))
       let ?K = \<open>Decided K::('v, unit) ann_lit\<close>
       have \<open>?K \<in> set ?M\<close>
         unfolding M_K by auto
@@ -3586,8 +3586,7 @@ proof (induction rule: cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn.induct)
     by (fastforce simp: dpll_bj_all_decomposition_implies_inv)
   then show ?case
     using T by (auto simp: all_decomposition_implies_insert_single)
-qed (auto simp: dpll_bj_all_decomposition_implies_inv dpll_bj_all_decomposition_implies_inv
-    cdcl\<^sub>N\<^sub>O\<^sub>T_all_decomposition_implies
+qed (auto simp: dpll_bj_all_decomposition_implies_inv cdcl\<^sub>N\<^sub>O\<^sub>T_all_decomposition_implies
     dest!: dpll_bj.intros cdcl\<^sub>N\<^sub>O\<^sub>T.intros)
 
 lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_merged_bj_learn_all_decomposition_implies:
