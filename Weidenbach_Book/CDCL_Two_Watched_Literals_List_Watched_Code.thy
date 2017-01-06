@@ -49,6 +49,7 @@ proof standard
     by blast
 qed
 
+
 section \<open>Code Generation\<close>
 
 subsection \<open>Literals as Natural Numbers\<close>
@@ -300,8 +301,62 @@ lemma [def_pat_rules]:
   \<open>watched_app $ M $ L \<equiv> op_watched_app $ M $ L\<close>
   by (auto simp: watched_app_def)
 
-lemma \<open>(uncurry Array.nth, uncurry (RETURN oo watched_app)) \<in>
+lemma list_nth_watched_app: 
+  \<open>(uncurry (RETURN oo op_list_get), uncurry (RETURN oo watched_app)) \<in>
+     [\<lambda>(W, L). L \<in> snd ` D]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D)) \<times>\<^sub>r (p2rel lit_of_natP) \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+  by (fastforce simp: fref_def p2rel_def watched_app_def map_fun_rel_def[abs_def] relAPP_def
+      prod_rel_def_internal lit_of_natP_def nres_rel_def_internal)
+
+thm arl_get_hnr_aux hfref_compI_PRE_aux[OF arl_get_hnr_aux list_nth_watched_app]
+  
+lemma \<open>(uncurry (Array.nth) , uncurry (RETURN oo watched_app)) \<in>
    [\<lambda>(W, L). L \<in> snd ` D]\<^sub>a array_watched_assn\<^sup>k *\<^sub>a nat_nat_lit_assn\<^sup>k \<rightarrow> arl_assn id_assn\<close>
+  (is \<open>?u \<in> ?B\<close>)
+proof -
+  thm hfref_compI_PRE_aux[of \<open>fst ?u\<close> _ _ _ _ \<open>snd ?u\<close>, unfolded fst_conv snd_conv , 
+      OF array_get_hnr_aux, of 
+      \<open>\<lambda>(W, L). L \<in> snd ` D\<close>]
+  have 0: \<open>?u
+  \<in> [comp_PRE (\<langle>Id\<rangle>map_fun_rel D \<times>\<^sub>r p2rel lit_of_natP)
+       (\<lambda>(W, L). L \<in> snd ` D) (\<lambda>_ (l, i). i < length l)
+       (\<lambda>_. True)]\<^sub>a hrp_comp (is_array\<^sup>k *\<^sub>a nat_assn\<^sup>k)
+                       (\<langle>Id\<rangle>map_fun_rel D \<times>\<^sub>r
+                        p2rel lit_of_natP) \<rightarrow> hr_comp id_assn Id\<close>
+    using hfref_compI_PRE_aux[OF array_get_hnr_aux list_nth_watched_app] .
+  have 1: \<open>comp_PRE (\<langle>Id\<rangle>map_fun_rel D \<times>\<^sub>r p2rel lit_of_natP)
+          (\<lambda>(W, L). L \<in> snd ` D) (\<lambda>_ (l, i). i < length l)
+            (\<lambda>_. True) = (\<lambda>(W, L). L \<in> snd ` D)\<close>
+    by (force simp: comp_PRE_def map_fun_rel_def[abs_def] relAPP_def lit_of_natP_def p2rel_def
+        prod_rel_def_internal
+        intro!: ext)
+  have 2: \<open>hrp_comp (nat_assn\<^sup>k) (p2rel lit_of_natP) = nat_nat_lit_assn\<^sup>k\<close>
+    unfolding nat_nat_lit_assn_def by (simp add: hrp_comp_def)
+  have 3: \<open>(hrp_comp (is_array\<^sup>k) (\<langle>Id\<rangle>map_fun_rel D) *\<^sub>a
+                   nat_nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a hr_comp id_assn Id) = 
+           ((hr_comp (array_assn (arl_assn nat_assn))
+                       (\<langle>Id\<rangle>map_fun_rel D))\<^sup>k *\<^sub>a
+                     nat_nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a arl_assn nat_assn)\<close>
+    sorry
+  have eq_mem_trans2:
+    \<open>a \<in> A \<Longrightarrow> A = B \<Longrightarrow> a \<in> B\<close> for a A B
+    by auto
+  thm eq_mem_trans2[OF 0, of ?B]
+  show ?thesis
+    supply [[show_types]]
+    using 0 unfolding 1 2 prod_hrp_comp apply -
+    supply [[unify_trace_failure]]
+    apply (rule eq_mem_trans2[OF 0 ])
+      prefer 2 apply assumption
+      
+   
+      
+      (*)
+      
+      
+      
+      
+  
+  
   apply sepref_to_hoare  
   apply (sep_auto simp: map_fun_rel_def[abs_def] nat_nat_lit_assn_def lit_of_natP_def relAPP_def)
   apply (rule cons_rule[OF _ _ nth_rule])
