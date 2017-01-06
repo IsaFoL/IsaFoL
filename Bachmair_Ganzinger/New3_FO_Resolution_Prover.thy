@@ -147,11 +147,11 @@ lemma ord_resolve_sound:
   apply (rule true_fo_cls) using assms proof (cases rule: ord_resolve.cases)
   fix \<sigma>
   assume ground_subst_\<sigma>: "is_ground_subst \<sigma>"
-  case (ord_resolve CAi n As \<tau> D)
+  case (ord_resolve CAi n Ci Aij Ai As \<tau> D)
   have d: "DAs = (D, As)" using ord_resolve(1) .
   have e: "E = ((Union_Cs CAs) + D) \<cdot> \<tau>" using ord_resolve(2) .
-  have len: "length CAs = length As" using ord_resolve(4) .
-  have unif: "\<forall>i<length CAs. \<forall>Ai\<in>#get_As (CAs ! i). Ai \<cdot>a \<tau> = As ! i \<cdot>a \<tau>" using ord_resolve(8) .
+  have len: "length CAs = length As" using ord_resolve(7) .
+  have unif: "\<forall>i<length CAs. \<forall>Ai\<in>#get_As (CAs ! i). Ai \<cdot>a \<tau> = As ! i \<cdot>a \<tau>" using ord_resolve(11) .
   have "is_ground_subst (\<tau> \<odot> \<sigma>)"
     using ground_subst_\<sigma> by (rule is_ground_comp_subst)
   hence cc_true: "I \<Turnstile>m (side_clauses CAs) \<cdot>cm \<tau> \<cdot>cm \<sigma>" and d_true: "I \<Turnstile> (main_clause DAs) \<cdot> \<tau> \<cdot> \<sigma>"
