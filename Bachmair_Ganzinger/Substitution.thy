@@ -213,7 +213,11 @@ lemma subst_mc_side_clause[simp]: "(side_clause CA) \<cdot> \<sigma> = side_clau
 
 (* Another nice lemma maybe... *)
 lemma subst_cls_lists_nth[simp]: "length CC = length \<sigma>s \<Longrightarrow> i < length CC \<Longrightarrow> (CC \<cdot>\<cdot>cl \<sigma>s) ! i = (CC ! i) \<cdot> \<sigma>s ! i"
-  unfolding subst_cls_lists_def by auto                                                              
+  unfolding subst_cls_lists_def by auto  
+    
+(* Another nice lemma *)
+lemma subst_cls_len[simp]: "length CC = length \<sigma>s \<Longrightarrow> length (CC \<cdot>\<cdot>cl \<sigma>s) = length CC"
+  unfolding subst_cls_lists_def by auto
 
 lemma subst_scls_lists_nth[simp]: "length CC = length \<sigma>s \<Longrightarrow> i < length CC \<Longrightarrow> (CC \<cdot>\<cdot>scl \<sigma>s) ! i = (CC ! i) \<cdot>sc \<sigma>s ! i"
   unfolding subst_scls_lists_def by auto

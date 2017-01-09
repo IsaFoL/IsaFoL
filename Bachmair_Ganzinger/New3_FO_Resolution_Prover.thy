@@ -59,44 +59,39 @@ abbreviation "maximal_in A DAs \<equiv> (\<forall>B \<in> atms_of DAs. \<not> le
 abbreviation "str_maximal_in A CAis \<equiv> (\<forall>B \<in> atms_of CAis. \<not> less_eq_atm A B)"
 
 (* Inspiration from supercalc *)
-inductive eligible :: "'s \<Rightarrow> 'a main_clause \<Rightarrow> bool" where
+inductive eligible :: "'s \<Rightarrow> 'a list \<Rightarrow> 'a clause \<Rightarrow> bool" where
   eligible:
-  "S (main_clause (D,As)) = negs (mset As) 
+  "S DAi = negs (mset Ai) 
    \<or> 
    (
-     S (main_clause (D,As)) = {#} 
-     \<and> length As = 1 
-     \<and> maximal_in ((As ! 0) \<cdot>a \<sigma>) (main_clause (D,As) \<cdot> \<sigma>)
+     S DAi = {#} 
+     \<and> length Ai = 1 
+     \<and> maximal_in ((Ai ! 0) \<cdot>a \<sigma>) (DAi \<cdot> \<sigma>)
    )
-   \<Longrightarrow> eligible \<sigma> (D,As)"
+   \<Longrightarrow> eligible \<sigma> Ai DAi"
 
-inductive ord_resolve :: "'a side_clause list \<Rightarrow> 'a main_clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve:
   "length (CAi :: 'a clause list) = n \<Longrightarrow>
    length (Ci  :: 'a clause list) = n \<Longrightarrow>
-   length (Aij :: 'a multiset list) = n \<Longrightarrow>
+   length (Aij :: 'a multiset list) = n \<Longrightarrow> (* Skal det vaere en clause istedet?*)
    length (Ai  :: 'a list) = n \<Longrightarrow>
-   length CAs = length As \<Longrightarrow> 
-   CAs \<noteq> [] \<Longrightarrow> 
-   As \<noteq> [] \<Longrightarrow>
-   \<forall>i. i < length CAs \<longrightarrow> get_As (CAs ! i) \<noteq> {#} \<Longrightarrow>
-   \<forall>i. i < length CAs \<longrightarrow> (\<forall>Ai \<in># get_As (CAs ! i). Ai \<cdot>a \<sigma> = As ! i \<cdot>a \<sigma>) \<Longrightarrow>
-   eligible \<sigma> (D,As) \<Longrightarrow>
-   \<forall>i. i < length CAs \<longrightarrow> str_maximal_in (As ! i \<cdot>a \<sigma>) (get_C (CAs ! i) \<cdot> \<sigma>) \<Longrightarrow>
-     (* Alternative to \<^sup> is to quantify over the As in each CAs ! i, but they will
-        unify to (As ! i) \<cdot> \<sigma> anyways... *)
-   \<forall>C \<in> set CAs. S (side_clause C) = {#} \<Longrightarrow>
-   ord_resolve CAs (D,As) ((Union_Cs CAs + D) \<cdot> \<sigma>)"
+   n \<noteq> 0 \<Longrightarrow>
+   \<forall>i < n. (CAi ! i) = (Ci ! i + (poss (Aij ! i))) \<Longrightarrow>
+   \<forall>i < n. Aij ! i \<noteq> {#} \<Longrightarrow>
+   \<forall>i < n. (\<forall>A \<in># Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>) \<Longrightarrow>
+   eligible \<sigma> Ai (main_clause (D,Ai)) \<Longrightarrow>
+   \<forall>i. i < n \<longrightarrow> str_maximal_in (Ai ! i \<cdot>a \<sigma>) ((Ci ! i) \<cdot> \<sigma>) \<Longrightarrow>
+   \<forall>C \<in> set CAi. S C = {#} \<Longrightarrow> (* Use the ! style instead maybe, or maybe us the \<forall>\<in>. style above *)
+   ord_resolve CAi (D + negs (mset Ai)) (((\<Union># (mset Ci)) + D) \<cdot> \<sigma>)"
 
-inductive ord_resolve_rename :: "'a side_clause list \<Rightarrow> 'a main_clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve_rename:
   "is_renaming \<rho> \<Longrightarrow>
    (\<forall>\<rho> \<in> set P. is_renaming \<rho>) \<Longrightarrow>
-   length P = length CAs \<Longrightarrow>
-   ord_resolve (CAs \<cdot>\<cdot>scl P) (DAs \<cdot>mc \<rho>) E \<Longrightarrow>
-   ord_resolve_rename CAs DAs E"
-  (* In this definition, P, \<sigma> and \<rho>, are not part of the signature. 
-     A bit different from ord_resolve... *)
+   length P = length CAi \<Longrightarrow>
+   ord_resolve (CAi \<cdot>\<cdot>cl P) (DAi \<cdot> \<rho>) E \<Longrightarrow>
+   ord_resolve_rename CAi DAi E"
   
 lemma ord_resolve_raw_imp_ord_resolve: "ord_resolve CAs D E \<Longrightarrow> ord_resolve_rename CAs D E"
   apply (rule ord_resolve_rename[of id_subst "replicate (length CAs) id_subst"])
@@ -105,19 +100,19 @@ lemma ord_resolve_raw_imp_ord_resolve: "ord_resolve CAs D E \<Longrightarrow> or
 
 lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
   assumes 
-    gr_cc: "is_ground_scls_list CAs" and
-    gr_d: "is_ground_mcls DAs" and
-    res_e_re: "ord_resolve_rename CAs DAs E"
-  shows "ord_resolve CAs DAs E"
+    gr_cc: "is_ground_cls_list CAi" and
+    gr_d: "is_ground_cls DAi" and
+    res_e_re: "ord_resolve_rename CAi DAi E"
+  shows "ord_resolve CAi DAi E"
   using res_e_re proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
   have rename_P: "\<forall>\<rho> \<in> set P. is_renaming \<rho>" using ord_resolve_rename(2) .
-  have len: "length P = length CAs" using ord_resolve_rename(3) .
-  have res_e: "ord_resolve (CAs \<cdot>\<cdot>scl P) (DAs \<cdot>mc \<rho>) E" using ord_resolve_rename(4) .
+  have len: "length P = length CAi" using ord_resolve_rename(3) .
+  have res_e: "ord_resolve (CAi \<cdot>\<cdot>cl P) (DAi \<cdot> \<rho>) E" using ord_resolve_rename(4) .
   
-  have "CAs \<cdot>\<cdot>scl P = CAs" using len gr_cc by auto
+  have "CAi \<cdot>\<cdot>cl P = CAi" using len gr_cc by auto
   moreover
-  have "DAs \<cdot>mc \<rho> = DAs" using gr_d by auto
+  have "DAi \<cdot> \<rho> = DAi" using gr_d by auto
   ultimately show ?thesis using res_e by auto
 qed
 
@@ -141,43 +136,47 @@ lemma true_fo_cls_mset_def2: "I \<Turnstile>fom CC \<longleftrightarrow> (\<fora
   
 lemma ord_resolve_sound:
   assumes
-    res_e: "ord_resolve CAs DAs E" and
-    cc_d_true: "I \<Turnstile>fom (side_clauses CAs + {#main_clause DAs#})"
+    res_e: "ord_resolve CAi DAi E" and
+    cc_d_true: "I \<Turnstile>fom mset CAi + {#DAi#}"
   shows "I \<Turnstile>fo E"
   apply (rule true_fo_cls) using assms proof (cases rule: ord_resolve.cases)
   fix \<sigma>
   assume ground_subst_\<sigma>: "is_ground_subst \<sigma>"
-  case (ord_resolve CAi n Ci Aij Ai As \<tau> D)
-  have d: "DAs = (D, As)" using ord_resolve(1) .
-  have e: "E = ((Union_Cs CAs) + D) \<cdot> \<tau>" using ord_resolve(2) .
-  have len: "length CAs = length As" using ord_resolve(7) .
-  have unif: "\<forall>i<length CAs. \<forall>Ai\<in>#get_As (CAs ! i). Ai \<cdot>a \<tau> = As ! i \<cdot>a \<tau>" using ord_resolve(11) .
+  case (ord_resolve n Ci Aij Ai \<tau> D)
+  have dai: "DAi = D + negs (mset Ai)" using ord_resolve by -
+  have e: "E = (\<Union>#mset Ci + D) \<cdot> \<tau>" using ord_resolve by -
+  have cai_len: "length CAi = n" using ord_resolve by -
+  have ai_len: "length Ai = n" using ord_resolve by -
+  have unif: "\<forall>i<n. \<forall>A\<in>#Aij ! i. A \<cdot>a \<tau> = Ai ! i \<cdot>a \<tau>" using ord_resolve by -
+  have len: "length CAi = length Ai" using ai_len cai_len by auto
   have "is_ground_subst (\<tau> \<odot> \<sigma>)"
     using ground_subst_\<sigma> by (rule is_ground_comp_subst)
-  hence cc_true: "I \<Turnstile>m (side_clauses CAs) \<cdot>cm \<tau> \<cdot>cm \<sigma>" and d_true: "I \<Turnstile> (main_clause DAs) \<cdot> \<tau> \<cdot> \<sigma>"
+  hence cc_true: "I \<Turnstile>m (mset CAi) \<cdot>cm \<tau> \<cdot>cm \<sigma>" and d_true: "I \<Turnstile> DAi \<cdot> \<tau> \<cdot> \<sigma>"
     using true_fo_cls_mset_inst[OF cc_d_true, of "\<tau> \<odot> \<sigma>"] by auto 
-  then show "\<forall>C\<in>set CAs. S (side_clause C) = {#} \<Longrightarrow> I \<Turnstile> E \<cdot> \<sigma>"
-  proof (cases "\<forall>A \<in> set As. A \<cdot>a \<tau> \<cdot>a \<sigma> \<in> I")
+  then show "\<forall>C\<in>set CAi. S C = {#} \<Longrightarrow> I \<Turnstile> E \<cdot> \<sigma>"
+  proof (cases "\<forall>A \<in> set Ai. A \<cdot>a \<tau> \<cdot>a \<sigma> \<in> I")
     case True
-    hence "\<not> I \<Turnstile> negs (mset (get_As DAs)) \<cdot> \<tau> \<cdot> \<sigma>"
-      unfolding true_cls_def d by auto
+    hence "\<not> I \<Turnstile> negs (mset Ai) \<cdot> \<tau> \<cdot> \<sigma>"
+      unfolding true_cls_def by auto
     hence "I \<Turnstile> D \<cdot> \<tau> \<cdot> \<sigma>"
-      using d_true unfolding d unfolding main_clause_def by auto
+      using d_true dai unfolding main_clause_def by auto
     thus ?thesis
       unfolding e by simp
   next
     case False
-    then obtain i where a_in_aa: "i < length CAs" and a_false: "(As ! i) \<cdot>a \<tau> \<cdot>a \<sigma> \<notin> I"
-      using d len by (metis in_set_conv_nth) 
-    define C' where "C' \<equiv> get_C (CAs ! i)"
-    define BB where "BB \<equiv> get_As (CAs ! i)"
-    have c_cf': "C' \<subseteq># Union_Cs CAs"
-      unfolding C'_def using a_in_aa by auto
-    have c_in_cc: "C' + poss BB \<in># side_clauses CAs"
-      using C'_def BB_def using a_in_aa by (simp add: get_C_get_As_side_clauses)
+    then obtain i where a_in_aa: "i < length CAi" and a_false: "(Ai ! i) \<cdot>a \<tau> \<cdot>a \<sigma> \<notin> I"
+      using dai len by (metis in_set_conv_nth) 
+    define C' where "C' \<equiv> Ci ! i"
+    define BB where "BB \<equiv> Aij ! i"
+    have c_cf': "C' \<subseteq># \<Union># mset CAi"
+      unfolding C'_def using a_in_aa
+      by (metis cai_len local.ord_resolve(8) nth_mem set_mset_mset subset_mset.bot.extremum subset_mset.le_add_same_cancel1 subset_mset.order.trans sum_mset.remove) 
+    have c_in_cc: "C' + poss BB \<in># mset CAi"
+      using C'_def BB_def using a_in_aa
+      using cai_len in_set_conv_nth local.ord_resolve(8) by fastforce
     { fix B
       assume "B \<in># BB"
-      then have "B \<cdot>a \<tau> = (As ! i) \<cdot>a \<tau>" using unif a_in_aa unfolding BB_def by auto
+      then have "B \<cdot>a \<tau> = (Ai ! i) \<cdot>a \<tau>" using unif a_in_aa cai_len unfolding BB_def by auto
     }
     hence "\<not> I \<Turnstile> poss BB \<cdot> \<tau> \<cdot> \<sigma>"
       using a_false by (auto simp: true_cls_def)
@@ -186,7 +185,9 @@ lemma ord_resolve_sound:
     ultimately have "I \<Turnstile> C' \<cdot> \<tau> \<cdot> \<sigma>"
       by simp
     thus ?thesis
-      unfolding e subst_cls_union using c_cf' by (blast intro: true_cls_mono intro!: subst_cls_mono)
+      unfolding e subst_cls_union using c_cf'
+      using true_cls_mono subst_cls_mono
+      by (metis (no_types, lifting) C'_def a_in_aa cai_len local.ord_resolve(4) mset_subset_eq_add_left nth_mem_mset set_mset_mono sum_mset.remove)
   qed
 qed
 
@@ -198,49 +199,50 @@ using assms
   by (metis is_ground_comp_subst subst_cls_comp_subst true_fo_cls true_fo_cls_inst)
 
 lemma rename_sound_scl:
-  assumes len: "length P = length CAs"
+  assumes len: "length P = length CAi"
   assumes ren: "\<forall>\<rho> \<in> set P. is_renaming \<rho>"
-  assumes true_cas: "I \<Turnstile>fom side_clauses CAs"
-  shows "I \<Turnstile>fom side_clauses (CAs \<cdot>\<cdot>scl P)"
+  assumes true_cas: "I \<Turnstile>fom mset CAi"
+  shows "I \<Turnstile>fom mset (CAi \<cdot>\<cdot>cl P)"
 proof -
-  from true_cas have "\<forall>C. C\<in>#(side_clauses CAs) \<longrightarrow> (I \<Turnstile>fo C)" 
+  from true_cas have "\<forall>C. C\<in># mset CAi \<longrightarrow> (I \<Turnstile>fo C)" 
     using true_fo_cls_mset_def2 by auto
-  then have "\<forall>C. C \<in> set CAs \<longrightarrow> (I \<Turnstile>fo side_clause C)" unfolding side_clauses_def by auto
-  then have "\<forall>i. i < length CAs \<longrightarrow> (I \<Turnstile>fo side_clause (CAs ! i))"
-    using in_set_conv_nth[of _ CAs] by blast
-  then have "\<forall>i. i < length CAs \<longrightarrow> (I \<Turnstile>fo side_clause (CAs ! i) \<cdot> P ! i)"
+  then have "\<forall>C. C \<in> set CAi \<longrightarrow> (I \<Turnstile>fo C)" unfolding side_clauses_def by auto
+  then have "\<forall>i. i < length CAi \<longrightarrow> (I \<Turnstile>fo  (CAi ! i))"
+    using in_set_conv_nth[of _ CAi] by blast
+  then have "\<forall>i. i < length CAi \<longrightarrow> (I \<Turnstile>fo  (CAi ! i) \<cdot> P ! i)"
     using ren rename_sound len by (auto simp del: subst_mc_side_clause)
-  then have true_cp: "\<forall>i. i < length CAs \<longrightarrow> (I \<Turnstile>fo side_clause (CAs ! i \<cdot>sc P ! i))" 
+  then have true_cp: "\<forall>i. i < length CAi \<longrightarrow> (I \<Turnstile>fo (CAi ! i \<cdot> P ! i))" 
     by auto
   show ?thesis unfolding true_fo_cls_mset_def2
   proof
     fix x
-    assume "x \<in># side_clauses (CAs \<cdot>\<cdot>scl P)"
-    then have "x \<in> set_mset (mset (map side_clause (CAs \<cdot>\<cdot>scl P)))" unfolding side_clauses_def .
-    then have "x \<in> set (map side_clause (CAs \<cdot>\<cdot>scl P))" by auto
-    then obtain i where i_x: "i < length (map side_clause (CAs \<cdot>\<cdot>scl P)) \<and> x = map side_clause (CAs \<cdot>\<cdot>scl P) ! i"
+    assume "x \<in># mset (CAi \<cdot>\<cdot>cl P)"
+    then have "x \<in> set_mset (mset ((CAi \<cdot>\<cdot>cl P)))" by -
+    then have "x \<in> set (CAi \<cdot>\<cdot>cl P)" by auto
+    then obtain i where i_x: "i < length (CAi \<cdot>\<cdot>cl P) \<and> x = (CAi \<cdot>\<cdot>cl P) ! i"
       using in_set_conv_nth by metis
-    then show "I \<Turnstile>fo x" using i_x subst_scls_lists_def true_cp by auto
+    then show "I \<Turnstile>fo x" using true_cp unfolding subst_cls_lists_def by auto
   qed
 qed
   
 
 lemma ord_resolve_rename_sound:
   assumes
-    res_e: "ord_resolve_rename CAs DA E" and
-    cc_d_true: "I \<Turnstile>fom ((side_clauses CAs) + {#main_clause DA#})"
+    res_e: "ord_resolve_rename CAi DAi E" and
+    cc_d_true: "I \<Turnstile>fom (mset CAi) + {#DAi#}"
   shows "I \<Turnstile>fo E"
   using res_e proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
-  have ren: "is_renaming \<rho>" using ord_resolve_rename(1) .
-  have rens: "Ball (set P) is_renaming" using ord_resolve_rename(2) .
-  have len: "length P = length CAs" using ord_resolve_rename(3) .
-  have res: "ord_resolve (CAs \<cdot>\<cdot>scl P) (DA \<cdot>mc \<rho>) E" using ord_resolve_rename(4) .
-  have "I \<Turnstile>fom side_clauses (CAs \<cdot>\<cdot>scl P) + {#main_clause (DA \<cdot>mc \<rho>)#}"
-    using rename_sound_scl[OF len rens , of I] rename_sound[OF ren, of I "main_clause DA"]
+  have ren: "is_renaming \<rho>" using ord_resolve_rename by -
+  have rens: "Ball (set P) is_renaming" using ord_resolve_rename by -
+  have len: "length P = length CAi" using ord_resolve_rename by -
+  have res: "ord_resolve (CAi \<cdot>\<cdot>cl P) (DAi \<cdot> \<rho>) E" using ord_resolve_rename by -
+  have "I \<Turnstile>fom (mset (CAi \<cdot>\<cdot>cl P)) + {#DAi \<cdot> \<rho>#}"
+    using rename_sound_scl[OF len rens , of I] rename_sound[OF ren, of I DAi]
     cc_d_true by (simp add: true_fo_cls_mset_def2)
+    
   then show "I \<Turnstile>fo E"
-    using ord_resolve_sound[of "CAs \<cdot>\<cdot>scl P" "(DA \<cdot>mc \<rho>)" "E" I, OF res]
+    using ord_resolve_sound[of "CAi \<cdot>\<cdot>cl P" "DAi \<cdot> \<rho>" E I, OF res]
     by simp
 qed
 
@@ -335,13 +337,13 @@ lemma ord_resolve_lifting:
   and select: "selection S"
   and selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
   and M_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> C \<cdot> \<rho> \<in> M \<longleftrightarrow> C \<in> M"
-  and grounding: "{main_clause D, E} \<union> (set_mset (side_clauses CC)) \<subseteq> grounding_of_clss M"
+  and grounding: "{D, E} \<union> (set CC) \<subseteq> grounding_of_clss M"
     (* try to get rid of set_mset *)
   obtains \<sigma> CC' D' E' where
     "is_ground_subst \<sigma>"
     "ord_resolve_rename S CC' D' E'" (* maybe without rename *)
-    "CC = CC' \<cdot>scl \<sigma>" "D = D' \<cdot>mc \<sigma>" "E = E' \<cdot> \<sigma>"
-    "{main_clause D', E'} \<union> (set_mset (side_clauses CC')) \<subseteq> M"
+    "CC = CC' \<cdot>cl \<sigma>" "D = D' \<cdot> \<sigma>" "E = E' \<cdot> \<sigma>"
+    "{D', E'} \<union> (set (CC')) \<subseteq> M"
       (* try to get rid of set_mset *)
   sorry
 

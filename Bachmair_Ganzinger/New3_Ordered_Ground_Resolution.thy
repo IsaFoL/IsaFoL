@@ -72,7 +72,6 @@ inductive
     \<forall>i < n. (\<forall>A \<in># Aij ! i. A = Ai ! i) \<Longrightarrow>
     eligible Ai (main_clause (D,Ai)) \<Longrightarrow>
     \<forall>i < n. str_maximal_in (Ai ! i) (Ci ! i) \<Longrightarrow>
-    \<forall>C \<in> set CAi. S C = {#} \<Longrightarrow> (* Use the ! style instead maybe *)
     ord_resolve CAi (D + negs (mset Ai)) ((\<Union># (mset Ci)) + D)" 
            (* (D + negs (mset Ai)) er faktisk "main_clause"-funktionen. Som desuden burde være curried. *)
 
@@ -424,11 +423,14 @@ lemma ord_resolve_atms_of_concl_subset:
   shows "atms_of E \<subseteq> (\<Union>C \<in> set CAi. atms_of C) \<union> atms_of DAi"
 using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Ci Aij Ai D)
-  have ASDF: "DAi = D + negs (mset Ai)" using ord_resolve by -
+  have dai: "DAi = D + negs (mset Ai)" using ord_resolve by -
   have e: "E = \<Union>#mset Ci + D" using ord_resolve by -
-  have ASDFDF: "\<forall>i<n. CAi ! i = Ci ! i + poss (Aij ! i)" using ord_resolve by -
+  have cai: "\<forall>i<n. CAi ! i = Ci ! i + poss (Aij ! i)" using ord_resolve by -
   
-  have "(\<Union>#mset Ci) \<subseteq># (\<Union>#mset CAi)" sorry
+  from cai have "\<forall>i<n.  Ci ! i \<subseteq># CAi ! i" by auto
+  hence "set_mset (\<Union>#(mset Ci)) \<subseteq> set_mset (\<Union>#(mset CAi))"
+    using ord_resolve(4) ord_resolve(6)
+    by (smt in_Union_mset_iff in_mset_conv_nth local.ord_resolve(3) mset_subset_eqD subsetI) 
   hence "atms_of (\<Union>#mset Ci) \<subseteq> atms_of (\<Union>#mset CAi)" 
     by (meson lits_subseteq_imp_atms_subseteq mset_subset_eqD subsetI)
   moreover    
@@ -437,7 +439,7 @@ using res_e proof (cases rule: ord_resolve.cases)
   ultimately
   have "atms_of (\<Union>#mset Ci) \<subseteq> (\<Union>C\<in>set CAi. atms_of C)" by auto
   moreover
-  have "atms_of D \<subseteq> atms_of DAi" using ASDF by auto
+  have "atms_of D \<subseteq> atms_of DAi" using dai by auto
   ultimately
   show ?thesis unfolding e by auto
 qed
@@ -477,13 +479,13 @@ proof unfold_locales
     using dd_sset_n dd_true e_cex e_lt_c
     by (metis set_mset_mset)
 next
-  fix CC DAs E and I
-  assume inf: "Infer CC DAs E \<in> ord_\<Gamma>" and icc: "I \<Turnstile>m CC" and id: "I \<Turnstile> DAs"
+  fix CC DAi E and I
+  assume inf: "Infer CC DAi E \<in> ord_\<Gamma>" and icc: "I \<Turnstile>m CC" and id: "I \<Turnstile> DAi"
   thm ord_\<Gamma>_def
   from inf obtain mCC where 
     "mset mCC = CC"
-    "ord_resolve mCC DAs E" using ord_\<Gamma>_def by auto
-  thus "I \<Turnstile> E" using id icc ord_resolve_sound[of mCC DAs E I] by auto
+    "ord_resolve mCC DAi E" using ord_\<Gamma>_def by auto
+  thus "I \<Turnstile> E" using id icc ord_resolve_sound[of mCC DAi E I] by auto
 next
   fix \<gamma>
   assume "\<gamma> \<in> ord_\<Gamma>"
