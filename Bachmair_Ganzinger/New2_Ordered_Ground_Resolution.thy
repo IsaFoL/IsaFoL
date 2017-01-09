@@ -328,7 +328,7 @@ proof -
           Neg_atm_of_iff pos_neg_in_imp_true produces_imp_Pos_in_lits produces_imp_atms_leq
           productive_imp_false_interp)
   then have "\<forall>i. i < length CAs \<longrightarrow> (\<forall>B\<in>atms_of (get_C (CAs ! i)). B < As ! i)"
-    using CAs_def prod_c0 by (auto simp: C'_of_def atms_of_def intro: produces_imp_Max_atom)
+    using CAs_def prod_c0 C'_of_def unfolding atms_of_def by auto
   then have "\<And>i. i < length CAs \<Longrightarrow> str_maximal_in (As ! i) (get_C (CAs ! i))" by metis
   moreover
   have "\<forall>C \<in> set CAs. S (side_clause C) = {#}"

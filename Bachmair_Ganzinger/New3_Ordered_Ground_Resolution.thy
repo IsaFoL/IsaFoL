@@ -266,6 +266,7 @@ proof -
     negs_as_le_d: "negs (mset Ai) \<le># DAi" and
     s_d: "eligible Ai DAi"
     by blast
+  define D where "D = DAi - negs (mset Ai)"
   have "set Ai \<subseteq> INTERP N"
     using d_cex negs_as_le_d by force
   hence prod_ex: "\<forall>A \<in> set Ai. \<exists>D. produces N D A"
@@ -281,15 +282,22 @@ proof -
     by blast
   
   define C'_of where "C'_of \<equiv> \<lambda>A. {#L \<in># CA_of A. L \<noteq> Pos A#}" (* Remove the prime *)
-  define Aj_of where "Aj_of \<equiv> \<lambda>A. {#L \<in># CA_of A. L = Pos A#}"
+  define Aj_of where "Aj_of \<equiv> \<lambda>A. image_mset atm_of {#L \<in># CA_of A. L = Pos A#}"
   
+  have pospos: "\<And>LL A. {#Pos (atm_of x). x \<in># {#L \<in># LL. L = Pos A#}#} = {#L \<in># LL. L = Pos A#}"
+    by (metis (mono_tags, lifting) image_filter_cong literal.sel(1) multiset.map_ident)
+  have ca_of_c_of_aj_of: "\<And>A. CA_of A = C'_of A + poss (Aj_of A)"
+    unfolding C'_of_def Aj_of_def apply auto
+    using pospos[of _ "CA_of _"] apply simp
+    by (simp add: add.commute multiset_partition)
+      
+  define n where "n \<equiv> length Ai"
   define Ci where "Ci \<equiv> map C'_of Ai"  
   define Aij where "Aij \<equiv> map Aj_of Ai"
   define CAi where "CAi \<equiv> map CA_of Ai"
     
   have m_nz: "\<And>A. A \<in> set Ai \<Longrightarrow> Aj_of A \<noteq> {#}"
-    using prod_c0 unfolding Aj_of_def using produces_imp_Pos_in_lits
-    by (metis (full_types) filter_mset_empty_conv)
+    using prod_c0 unfolding Aj_of_def using produces_imp_Pos_in_lits by (metis (full_types) filter_mset_empty_conv image_mset_is_empty_iff) 
       
   {
     fix CA
@@ -321,81 +329,90 @@ proof -
   ultimately have max_c'_lt_a: "\<And>A. A \<in> set Ai \<Longrightarrow> C'_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (C'_of A)) < A"
     by (metis order.strict_iff_order)
   
-  have le_cs_as: "length CAi = length Ai"  unfolding CAi_def by simp
+  have le_cs_as: "length CAi = length Ai"  unfolding CAi_def by simp     
+      
+  have "length CAi = n" by (simp add: le_cs_as n_def) 
   moreover
-  have "CAi \<noteq> []" using as_ne le_cs_as by auto 
+  have "length Ci = n" by (simp add: Ci_def n_def) 
   moreover
-  have "Ai \<noteq> []" using as_ne .
+  have "length Aij = n" by (simp add: Aij_def n_def) 
   moreover
-  have "\<forall>i. i < length Aij \<longrightarrow> Aij ! i \<noteq> {#}"
-    unfolding Aij_def
-    using m_nz by simp
+  have "length Ai = n" using n_def by auto
   moreover
-  have " \<forall>i. i < length Aij \<longrightarrow> (\<forall>A \<in># Aij ! i. atm_of A = Ai ! i)"
+  have "n \<noteq> 0" by (simp add: as_ne n_def) 
+  moreover
+  have " \<forall>i. i < length Aij \<longrightarrow> (\<forall>A \<in># Aij ! i. A = Ai ! i)"
     using Aij_def Aj_of_def by auto
-  moreover
-  have "eligible Ai DAi" using s_d by blast 
-  moreover
-  have "\<And>x B. production N (C_of x) = {x} \<Longrightarrow> B \<in># C_of x \<Longrightarrow> B \<noteq> Pos x \<Longrightarrow> atm_of B < x" 
+  have "\<And>x B. production N (CA_of x) = {x} \<Longrightarrow> B \<in># CA_of x \<Longrightarrow> B \<noteq> Pos x \<Longrightarrow> atm_of B < x" 
     by (metis atm_of_lit_in_atms_of insert_not_empty le_imp_less_or_eq Pos_atm_of_iff
           Neg_atm_of_iff pos_neg_in_imp_true produces_imp_Pos_in_lits produces_imp_atms_leq
           productive_imp_false_interp)
-  then have "\<forall>i. i < length CAs \<longrightarrow> (\<forall>B\<in>atms_of (get_C (CAs ! i)). B < As ! i)"
-    using CAs_def prod_c0 by (auto simp: C'_of_def atms_of_def intro: produces_imp_Max_atom)
-  then have "\<And>i. i < length CAs \<Longrightarrow> str_maximal_in (As ! i) (get_C (CAs ! i))" by metis
+  hence "\<And>B A. A\<in>set Ai \<Longrightarrow> B \<in># CA_of A \<Longrightarrow> B \<noteq> Pos A \<Longrightarrow> atm_of B < A" using prod_c0 by auto
+  have "\<forall>i. i < length Aij \<longrightarrow> Aij ! i \<noteq> {#}"
+    unfolding Aij_def
+    using m_nz by simp
+  have "\<forall>i<n. CAi ! i = Ci ! i + poss (Aij ! i)"
+    unfolding CAi_def Ci_def Aij_def
+      using ca_of_c_of_aj_of
+      by (simp add: n_def)
+  moreover
+  have "\<forall>i<n. Aij ! i \<noteq> {#}"
+    using \<open>\<forall>i<length Aij. Aij ! i \<noteq> {#}\<close>
+    using calculation(3) by blast
+  moreover
+  have "\<forall>i<n. \<forall>A\<in>#Aij ! i. A = Ai ! i"
+    by (simp add: \<open>\<forall>i<length Aij. \<forall>A\<in>#Aij ! i. A = Ai ! i\<close> calculation(3))
+  moreover
+  have "eligible Ai DAi" using s_d by auto
+  hence "eligible Ai (main_clause (D, Ai))" using D_def negs_as_le_d unfolding main_clause_def by auto 
+  moreover
+  have "\<And>i. i < length Aij \<Longrightarrow> str_maximal_in (Ai ! i) ((Ci ! i))"
+    by (simp add: C'_of_def Ci_def \<open>\<And>x B. \<lbrakk>production N (CA_of x) = {x}; B \<in># CA_of x; B \<noteq> Pos x\<rbrakk> \<Longrightarrow> atm_of B < x\<close> atms_of_def calculation(3) n_def prod_c0 str_maximal_in_def) 
+  have "\<forall>i<n. str_maximal_in (Ai ! i) (Ci ! i)"
+    by (simp add: \<open>\<And>i. i < length Aij \<Longrightarrow> str_maximal_in (Ai ! i) (Ci ! i)\<close> calculation(3))
   moreover
   have "\<forall>C \<in> set CAi. S C = {#}"
     using prod_c producesD productive_imp_produces_Max_literal by blast 
-  ultimately have res_e: "ord_resolve CAi DAi ((\<Union># (mset Ci)) + D)" using ord_resolve 
-    sorry
-      
-      
-  (* Repeating the above in the new style *)
-  have "length CAi = n" sorry
-  have "length Ci = n" sorry
-  have "length Aij = n" sorry
-  have "length Ai = n" sorry
-  have "n \<noteq> 0" sorry
-  have "\<forall>i<?n. CAi ! i = ?Ci ! i + poss (Aij ! i)" sorry
-    \<forall>i<?n. ?Aij ! i \<noteq> {#} \<Longrightarrow>
-    \<forall>i<?n. \<forall>A\<in>#?Aij ! i. A = ?Ai ! i \<Longrightarrow>
-    eligible ?Ai (main_clause (?D, ?Ai)) \<Longrightarrow> \<forall>i<?n. str_maximal_in (?Ai ! i) (?Ci ! i) \<Longrightarrow> \<forall>C\<in>set ?CAi. S C = {#}
-      
-      
-      
-      
-      
+  have "\<forall>C\<in>set CAi. S C = {#}"
+    using \<open>\<forall>C\<in>set CAi. S C = {#}\<close> by simp
+  ultimately
+  have res_e: "ord_resolve CAi (D + negs (mset Ai)) (\<Union>#mset Ci + D)" using ord_resolve[of CAi n Ci Aij Ai D] by auto
+          
   
-  have "\<And>A. A \<in> set As \<Longrightarrow> \<not> interp N (C_of A) \<Turnstile> C_of A"
+  have "\<And>A. A \<in> set Ai \<Longrightarrow> \<not> interp N (CA_of A) \<Turnstile> CA_of A"
     by (simp add: prod_c0 producesD)
-  hence "\<And>A. A \<in> set As \<Longrightarrow> \<not> Interp N (C_of A) \<Turnstile> C'_of A"
+  hence "\<And>A. A \<in> set Ai \<Longrightarrow> \<not> Interp N (CA_of A) \<Turnstile> C'_of A"
     unfolding prod_c0 C'_of_def Interp_def true_cls_def 
     using true_lit_def not_gr_zero
     using prod_c0 by auto 
-  hence c'_at_n: "\<And>A. A \<in> set As \<Longrightarrow> \<not> INTERP N \<Turnstile> C'_of A"
+  hence c'_at_n: "\<And>A. A \<in> set Ai \<Longrightarrow> \<not> INTERP N \<Turnstile> C'_of A"
     using a_max_c c'_le_c max_c'_lt_a false_Interp_imp_INTERP unfolding true_cls_def
     by (metis true_cls_def true_cls_empty)
-  have "\<not> INTERP N \<Turnstile> Union_Cs CAs"
-    unfolding CAs_def true_cls_def Union_Cs_def by (auto dest!: c'_at_n)
+  have "\<not> INTERP N \<Turnstile> \<Union>#mset Ci"
+    unfolding Ci_def true_cls_def by (auto dest!: c'_at_n)
   moreover have "\<not> INTERP N \<Turnstile> D"
-    using d_cex unfolding da_da main_clause_def by simp
-  ultimately have e_cex: "\<not> INTERP N \<Turnstile> Union_Cs CAs + D"
+    using d_cex unfolding main_clause_def
+    by (metis D_def add_diff_cancel_right' negs_as_le_d subset_mset.add_diff_assoc2 true_cls_def union_iff) 
+  ultimately have e_cex: "\<not> INTERP N \<Turnstile> \<Union>#mset Ci + D"
     by simp
     
-  have "main_clause (D,As) = DA" using da_da by simp
+  have "set CAi \<subseteq> N"
+    by (simp add: cs_subs_n) 
   moreover
-  have "set_mset (side_clauses CAs) \<subseteq> N" using cs_subs_n by auto
+  have "INTERP N \<Turnstile>m mset CAi"
+    by (simp add: cs_true)
   moreover
-  have "INTERP N \<Turnstile>m side_clauses CAs" using cs_true by auto
+  have "\<And>CA. CA \<in> set CAi \<Longrightarrow> productive N CA"
+    by (simp add: prod_c) 
   moreover
-  have "\<And>CA. CA \<in># side_clauses CAs \<Longrightarrow> productive N CA" using prod_c by auto
+  have "ord_resolve CAi DAi (\<Union>#mset Ci + D)"
+    using D_def negs_as_le_d res_e by auto
   moreover
-  have "ord_resolve CAs (D,As) (Union_Cs CAs + D)" using res_e .
+  have "\<not> INTERP N \<Turnstile> \<Union>#mset Ci + D"
+    using e_cex by simp
   moreover
-  have "\<not> INTERP N \<Turnstile> Union_Cs CAs + D" using e_cex by auto
-  moreover
-  have "Union_Cs CAs + D < DA"
-    using res_e ord_resolve_reductive da_da by metis
+  have "(\<Union>#mset Ci + D) < DAi"
+    using calculation(4) ord_resolve_reductive by auto
   ultimately
   show ?thesis ..
   
