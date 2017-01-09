@@ -1,3 +1,8 @@
+(*  Title:       Locale Deps
+    Author:      Anders Schlichtkrull, 2017
+    Maintainer:  Anders Schlichtkrull
+*)
+
 theory Locale_Deps imports Main 
 keywords "locale_deps2" :: diag
 begin

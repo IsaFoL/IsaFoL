@@ -1,7 +1,7 @@
 (*  Title:       Ordered Ground Resolution with Selection
     Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
-    Maintainer:  Jasmin Blanchette <jasmin.blanchette at inria.fr>
+    Maintainer:  Anders Schlichtkrull
 *)
 
 section {* Ordered Ground Resolution with Selection *}

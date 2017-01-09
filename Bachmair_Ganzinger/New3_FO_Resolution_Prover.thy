@@ -1,3 +1,10 @@
+(*  Title:       A Simple Resolution Prover for First-Order Clauses
+    Author:      Anders Schlichtkrull, 2017
+    Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
+    Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
+    Maintainer:  Anders Schlichtkrull
+*)
+
 theory New3_FO_Resolution_Prover 
 imports New3_Ordered_Ground_Resolution Standard_Redundancy Substitution Clauses 
 begin

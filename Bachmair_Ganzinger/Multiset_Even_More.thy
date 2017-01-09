@@ -1,3 +1,8 @@
+(*  Title:       Multiset Even More
+    Author:      Anders Schlichtkrull, 2017
+    Maintainer:  Anders Schlichtkrull
+*)
+
 theory Multiset_Even_More
 imports "$AFP/Nested_Multisets_Ordinals/Multiset_More"
 begin

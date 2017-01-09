@@ -1,3 +1,8 @@
+(*  Title:       Main and Side Clauses
+    Author:      Anders Schlichtkrull, 2017
+    Maintainer:  Anders Schlichtkrull
+*)
+
 theory Clauses imports "../lib/Clausal_Logic" begin
 
 section {* Main and Side Clauses *}

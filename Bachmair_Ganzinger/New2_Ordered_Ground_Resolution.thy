@@ -1,7 +1,8 @@
 (*  Title:       Ordered Ground Resolution with Selection
+    Author:      Anders Schlichtkrull, 2017
     Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
-    Maintainer:  Jasmin Blanchette <jasmin.blanchette at inria.fr>
+    Maintainer:  Anders Schlichtkrull
 *)
 
 section {* Ordered Ground Resolution with Selection *}
@@ -378,7 +379,7 @@ using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve)
   have e: "E = Union_Cs CAs + D" using ord_resolve(1) .
   have "atms_of (Union_Cs CAs) \<subseteq> (\<Union>C\<in>set_mset (side_clauses CAs). atms_of C)"
-    unfolding side_clauses_def Union_Cs_def by (auto simp: atms_of_def)
+    unfolding side_clauses_def Union_Cs_def atms_of_def by auto
   moreover have "atms_of D \<subseteq> atms_of (main_clause (D,As))"
     unfolding main_clause_def by simp
   ultimately show ?thesis

@@ -6,5 +6,6 @@ The repository version of Isabelle is necessary to process the theory files. For
 
 ## Authors ##
 
+* [Anders Schlichtkrull](mailto:anders shtrudel dtu.dk)
 * [Jasmin Christian Blanchette](mailto:jasmin.blanchette shtrudel inria.fr)
 * [Dmitriy Traytel](mailto:traytel shtrudel inf.ethz.ch)
