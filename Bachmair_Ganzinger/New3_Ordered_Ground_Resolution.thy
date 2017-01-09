@@ -420,17 +420,26 @@ proof -
 qed
 
 lemma ord_resolve_atms_of_concl_subset:
-  assumes res_e: "ord_resolve CAs (D,As) E"
-  shows "atms_of E \<subseteq> (\<Union>C \<in> set_mset (side_clauses CAs). atms_of C) \<union> atms_of (main_clause (D,As))"
+  assumes res_e: "ord_resolve CAi DAi E"
+  shows "atms_of E \<subseteq> (\<Union>C \<in> set CAi. atms_of C) \<union> atms_of DAi"
 using res_e proof (cases rule: ord_resolve.cases)
-  case (ord_resolve)
-  have e: "E = Union_Cs CAs + D" using ord_resolve(1) .
-  have "atms_of (Union_Cs CAs) \<subseteq> (\<Union>C\<in>set_mset (side_clauses CAs). atms_of C)"
-    unfolding side_clauses_def Union_Cs_def by (auto simp: atms_of_def)
-  moreover have "atms_of D \<subseteq> atms_of (main_clause (D,As))"
-    unfolding main_clause_def by simp
-  ultimately show ?thesis
-    unfolding e Union_Cs_def by auto
+  case (ord_resolve n Ci Aij Ai D)
+  have ASDF: "DAi = D + negs (mset Ai)" using ord_resolve by -
+  have e: "E = \<Union>#mset Ci + D" using ord_resolve by -
+  have ASDFDF: "\<forall>i<n. CAi ! i = Ci ! i + poss (Aij ! i)" using ord_resolve by -
+  
+  have "(\<Union>#mset Ci) \<subseteq># (\<Union>#mset CAi)" sorry
+  hence "atms_of (\<Union>#mset Ci) \<subseteq> atms_of (\<Union>#mset CAi)" 
+    by (meson lits_subseteq_imp_atms_subseteq mset_subset_eqD subsetI)
+  moreover    
+  have "atms_of (\<Union>#mset CAi) = (\<Union>C\<in>set CAi. atms_of C)"
+    by auto (smt atms_of_def image_iff in_Union_mset_iff set_mset_mset sum_mset_sum_list)+
+  ultimately
+  have "atms_of (\<Union>#mset Ci) \<subseteq> (\<Union>C\<in>set CAi. atms_of C)" by auto
+  moreover
+  have "atms_of D \<subseteq> atms_of DAi" using ASDF by auto
+  ultimately
+  show ?thesis unfolding e by auto
 qed
 
 
@@ -443,39 +452,38 @@ inference system.
 *}
 
 definition ord_\<Gamma> :: "'a inference set" where
-  "ord_\<Gamma> = {Infer (side_clauses CC) (main_clause (D,As)) E | CC D As E. ord_resolve CC (D,As) E}"
+  "ord_\<Gamma> = {Infer (mset CAi) DAi E | CAi DAi E. ord_resolve CAi DAi E}"
 
 sublocale 
   sound_counterex_reducing_inference_system "ground_resolution_with_selection.ord_\<Gamma> S"
     "ground_resolution_with_selection.INTERP S" +
   reductive_inference_system "ground_resolution_with_selection.ord_\<Gamma> S"
 proof unfold_locales
-  fix C :: "'a clause" and N :: "'a clause set"
+  fix DAi :: "'a clause" and N :: "'a clause set"
   thm ord_resolve_counterex_reducing
-  assume "{#} \<notin> N" and "C \<in> N" and "\<not> INTERP N \<Turnstile> C" and "\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D"
-  then obtain DD E mC where
-    mc: "main_clause mC = C" and
-    dd_sset_n: "set_mset (side_clauses DD) \<subseteq> N" and
-    dd_true: "INTERP N \<Turnstile>m side_clauses DD" and
-    res_e: "ord_resolve DD mC E" and
+  assume "{#} \<notin> N" and "DAi \<in> N" and "\<not> INTERP N \<Turnstile> DAi" and "\<And>C. C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> DAi \<le> C"
+  then obtain CAi E where
+    dd_sset_n: "set CAi \<subseteq> N" and
+    dd_true: "INTERP N \<Turnstile>m mset CAi" and
+    res_e: "ord_resolve CAi DAi E" and
     e_cex: "\<not> INTERP N \<Turnstile> E" and
-    e_lt_c: "E < C"
-    using ord_resolve_counterex_reducing[of N C thesis] by auto
+    e_lt_c: "E < DAi"
+    using ord_resolve_counterex_reducing[of N DAi thesis] by auto
 
-  have mc': "main_clause (fst mC, snd mC) = C" by (simp add: mc)
-
-  have "ord_resolve DD mC E" by (simp add: res_e)
-  then have "ord_resolve DD (fst mC, snd mC) E" by simp
-  then have "Infer (side_clauses DD) C E \<in> ord_\<Gamma>"
-    using mc mc' unfolding ord_\<Gamma>_def by (metis (mono_tags, lifting) mem_Collect_eq)
-  thus "\<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> ord_\<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < C"
-    using dd_sset_n dd_true e_cex e_lt_c by blast
+  have "ord_resolve CAi DAi E" by (simp add: res_e)
+  then have "Infer (mset CAi) DAi E \<in> ord_\<Gamma>"
+    unfolding ord_\<Gamma>_def by (metis (mono_tags, lifting) mem_Collect_eq)
+  thus "\<exists>CC E. set_mset CC \<subseteq> N \<and> INTERP N \<Turnstile>m CC \<and> Infer CC DAi E \<in> ord_\<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < DAi"
+    using dd_sset_n dd_true e_cex e_lt_c
+    by (metis set_mset_mset)
 next
   fix CC DAs E and I
   assume inf: "Infer CC DAs E \<in> ord_\<Gamma>" and icc: "I \<Turnstile>m CC" and id: "I \<Turnstile> DAs"
   thm ord_\<Gamma>_def
-  from inf obtain D As mCC where "side_clauses mCC = CC" "main_clause (D,As) = DAs" "ord_resolve mCC (D, As) E" using ord_\<Gamma>_def by auto
-  thus "I \<Turnstile> E" using id icc ord_resolve_sound[of mCC D As E I] by auto
+  from inf obtain mCC where 
+    "mset mCC = CC"
+    "ord_resolve mCC DAs E" using ord_\<Gamma>_def by auto
+  thus "I \<Turnstile> E" using id icc ord_resolve_sound[of mCC DAs E I] by auto
 next
   fix \<gamma>
   assume "\<gamma> \<in> ord_\<Gamma>"
