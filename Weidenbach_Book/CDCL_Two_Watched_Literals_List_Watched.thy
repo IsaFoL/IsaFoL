@@ -2,7 +2,7 @@ theory CDCL_Two_Watched_Literals_List_Watched
   imports CDCL_Two_Watched_Literals_List CDCL_Two_Watched_Literals_List_Watched_Initialisation
 begin
 
-text \<open>Less ambiguities:\<close>
+text \<open>Less ambiguities in the notations (TODO: using a bundle would probably be better):\<close>
 no_notation Ref.update ("_ := _" 62)
 
 
@@ -71,20 +71,6 @@ lemma remove_one_lit_from_wq_def:
   \<open>remove_one_lit_from_wq L S = set_working_queue_l (working_queue_l S - {#L#}) S\<close>
   by (cases S) auto
 
-lemma butlast_list_update:
-  \<open>w < length xs \<Longrightarrow> butlast (xs[w := last xs]) = take w xs @ butlast (last xs # drop (Suc w) xs)\<close>
-  by (induction xs arbitrary: w) (auto split: nat.splits if_splits simp: upd_conv_take_nth_drop)
-
-lemma mset_butlast_remove1_mset: \<open>xs \<noteq> [] \<Longrightarrow> mset (butlast xs) = remove1_mset (last xs) (mset xs)\<close>
-  apply (subst(2) append_butlast_last_id[of xs, symmetric])
-   apply assumption
-  apply (simp only: mset_append)
-  by auto
-
-lemma last_list_update_to_last:
-  \<open>last (xs[x := last xs]) = last xs\<close>
-  by (metis last_list_update list_update.simps(1))
-
 lemma Collect_minus_single_Collect: \<open>{x. P x} - {a} = {x . P x \<and> x \<noteq> a}\<close>
   by auto
 
@@ -97,10 +83,6 @@ proof -
   then show ?thesis
     by blast
 qed
-
-lemma mset_set_eq_mset_set_iff:
-  \<open>finite A \<Longrightarrow> finite B \<Longrightarrow> mset_set A = mset_set B \<longleftrightarrow> A = B\<close>
-  using finite_set_mset_mset_set by fastforce
 
 lemma mset_set_eq_mset_set_more_conds:
   \<open>finite {x. P x} \<Longrightarrow> mset_set {x. P x} = mset_set {x. Q x \<and> P x} \<longleftrightarrow> (\<forall>x. P x \<longrightarrow> Q x)\<close>
@@ -564,8 +546,7 @@ proof -
       subgoal for i'T' T i' T' by auto
       subgoal for i'T' T i' T' by auto
       subgoal for i'T' T i' T'
-        by (cases T') (auto simp del: unit_clss_inv.simps valid_annotation.simps split: if_splits;
-            fail)
+        by (cases T') (solves \<open>auto simp del: unit_clss_inv.simps valid_annotation.simps split: if_splits\<close>)+
       subgoal for i'T' T i' T'
         apply (rule order_trans)
         by (rule unit_propagation_body_wl_loop_fantom; simp; fail) (auto intro!: H)
@@ -899,7 +880,7 @@ proof -
     if \<open>S = st_l_of_wl None S'\<close> and \<open>correct_watching S'\<close>
     for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st_wl\<close>
     using that by (cases S') auto
-  have \<open>?s \<in> ?A \<rightarrow> \<langle>{(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}\<rangle>nres_rel\<close>
+  have H: \<open>?s \<in> ?A \<rightarrow> \<langle>{(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}\<rangle>nres_rel\<close>
     unfolding skip_and_resolve_loop_wl_def skip_and_resolve_loop_l_def
     apply (refine_vcg get_conflict_wl)
     subgoal by (auto simp add: get_conflict_l_st_l_of_wl)
@@ -920,7 +901,6 @@ proof -
     subgoal by auto
     subgoal by auto
     done
-  note H = this
 
   have skip_and_resolve_loop_wl:
     \<open>skip_and_resolve_loop_wl x \<le> \<Down> ?B (skip_and_resolve_loop_l y)\<close>
@@ -1174,7 +1154,7 @@ proof -
     subgoal for M N U E NP UP WS Q M' N' U' E' NP' UP' Q' W M''' M'''' L L'
       apply clarify
       apply (subst(asm) correct_watching_learn)
-      subgoal by (auto simp: additional_WS_invs_def; fail)[]
+      subgoal by (auto simp: additional_WS_invs_def)
       subgoal for G H by auto
       subgoal for G H by auto
       subgoal for G H
@@ -1250,7 +1230,8 @@ definition cdcl_twl_o_prog_wl :: "'v twl_st_wl \<Rightarrow> (bool \<times> 'v t
     }
   \<close>
 
-lemma set_Collect_Pair_to_fst_snd: \<open>{((a, b), (a', b')). P a b a' b'} = {(e, f). P (fst e) (snd e) (fst f) (snd f)}\<close>
+lemma set_Collect_Pair_to_fst_snd:
+  \<open>{((a, b), (a', b')). P a b a' b'} = {(e, f). P (fst e) (snd e) (fst f) (snd f)}\<close>
   by auto
 
 lemma cdcl_twl_o_prog_wl_spec:
