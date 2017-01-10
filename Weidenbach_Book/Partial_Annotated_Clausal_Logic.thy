@@ -293,11 +293,11 @@ lemma in_lits_of_l_defined_litD: \<open>L_max \<in> lits_of_l M \<Longrightarrow
 
 subsection \<open>Backtracking\<close>
 
-fun backtrack_split :: \<open>('v, 'm) ann_lits
-  \<Rightarrow> ('v, 'm) ann_lits \<times> ('v, 'm) ann_lits\<close> where
+fun backtrack_split :: \<open>('a, 'ann, 'v, 'm) annotated_lits
+  \<Rightarrow> ('a, 'ann, 'v, 'm) annotated_lits \<times> ('a, 'ann, 'v, 'm) annotated_lits\<close> where
 \<open>backtrack_split [] = ([], [])\<close> |
 \<open>backtrack_split (Propagated L P # mlits) = apfst ((op #) (Propagated L P)) (backtrack_split mlits)\<close> |
-\<open>backtrack_split (Decided L # mlits) = ([], Decided L # mlits)\<close>
+\<open>backtrack_split (Decision L ann # mlits) = ([], Decision L ann # mlits)\<close>
 
 lemma backtrack_split_fst_not_decided: \<open>a \<in> set (fst (backtrack_split l)) \<Longrightarrow> \<not>is_decided a\<close>
   by (induct l rule: ann_lit_list_induct) auto
