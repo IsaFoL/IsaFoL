@@ -876,7 +876,7 @@ proof -
         F F' :: \<open>('v, unit) ann_lits\<close> where
         M_K: \<open>?M = F' @ Decided K # F\<close> and
         nm: \<open>\<forall>f\<in>set F'. \<not>is_decided f\<close>
-        unfolding is_decided_def by metis
+        by (metis (full_types) is_decided_ex_Decided old.unit.exhaust)
       let ?K = \<open>Decided K :: ('v, unit) ann_lit\<close>
       have \<open>?K \<in> set ?M\<close>
         unfolding M_K by auto
@@ -889,10 +889,23 @@ proof -
       ultimately have N_C_M: \<open>?N \<union> ?C' \<Turnstile>ps unmark_l ?M\<close>
         by auto
       have N_M_False: \<open>?N \<union> (\<lambda>L. unmark L) ` (set ?M) \<Turnstile>ps {{#}}\<close>
-        using M \<open>?M \<Turnstile>as CNot C\<close> \<open>C\<in>?N\<close> unfolding true_clss_clss_def true_annots_def Ball_def
-        true_annot_def by (metis consistent_CNot_not sup.orderE sup_commute true_clss_def
-          true_clss_singleton_lit_of_implies_incl true_clss_union true_clss_union_increase)
-
+        unfolding true_clss_clss_def true_annots_def Ball_def true_annot_def
+      proof (intro allI impI)
+        fix LL :: "'v literal set"
+        assume
+          tot: \<open>total_over_m LL (set_mset (clauses\<^sub>N\<^sub>O\<^sub>T S) \<union> unmark_l (trail S) \<union> {{#}})\<close> and
+          cons: \<open>consistent_interp LL\<close> and
+          LL: \<open>LL \<Turnstile>s set_mset (clauses\<^sub>N\<^sub>O\<^sub>T S) \<union> unmark_l (trail S)\<close>
+        have \<open>total_over_m LL (CNot C)\<close>
+          by (metis \<open>C \<in># clauses\<^sub>N\<^sub>O\<^sub>T S\<close> insert_absorb tot total_over_m_CNot_toal_over_m
+              total_over_m_insert total_over_m_union)
+        then have "total_over_m LL (unmark_l (trail S) \<union> CNot C)"
+            using tot by force
+          then show "LL \<Turnstile>s {{#}}"
+            using tot cons LL
+            by (metis (no_types) \<open>C \<in># clauses\<^sub>N\<^sub>O\<^sub>T S\<close> \<open>trail S \<Turnstile>as CNot C\<close> consistent_CNot_not
+                true_annots_true_clss_clss true_clss_clss_def true_clss_def true_clss_union)
+      qed
       have \<open>undefined_lit F K\<close> using \<open>no_dup ?M\<close> unfolding M_K by (auto simp: defined_lit_map)
       moreover {
         have \<open>?N \<union> ?C' \<Turnstile>ps {{#}}\<close>
@@ -3487,7 +3500,7 @@ proof -
         F F' :: \<open>('v, unit) ann_lits\<close> where
         M_K: \<open>?M = F' @ Decided K # F\<close> and
         nm: \<open>\<forall>f\<in>set F'. \<not>is_decided f\<close>
-        unfolding is_decided_def by (metis (full_types))
+        by (metis (full_types) is_decided_ex_Decided old.unit.exhaust)
       let ?K = \<open>Decided K::('v, unit) ann_lit\<close>
       have \<open>?K \<in> set ?M\<close>
         unfolding M_K by auto
@@ -3502,9 +3515,23 @@ proof -
       ultimately have N_C_M: \<open>?N \<union> ?C' \<Turnstile>ps unmark_l ?M\<close>
         by auto
       have N_M_False: \<open>?N \<union> (\<lambda>L. unmark L) ` (set ?M) \<Turnstile>ps {{#}}\<close>
-        using M \<open>?M \<Turnstile>as CNot C\<close> \<open>C\<in>?N\<close> unfolding true_clss_clss_def true_annots_def Ball_def
-        true_annot_def by (metis consistent_CNot_not sup.orderE sup_commute true_clss_def
-          true_clss_singleton_lit_of_implies_incl true_clss_union true_clss_union_increase)
+        unfolding true_clss_clss_def true_annots_def Ball_def true_annot_def
+      proof (intro allI impI)
+        fix LL :: "'v literal set"
+        assume
+          tot: \<open>total_over_m LL (set_mset (clauses\<^sub>N\<^sub>O\<^sub>T S) \<union> unmark_l (trail S) \<union> {{#}})\<close> and
+          cons: \<open>consistent_interp LL\<close> and
+          LL: \<open>LL \<Turnstile>s set_mset (clauses\<^sub>N\<^sub>O\<^sub>T S) \<union> unmark_l (trail S)\<close>
+        have \<open>total_over_m LL (CNot C)\<close>
+          by (metis \<open>C \<in># clauses\<^sub>N\<^sub>O\<^sub>T S\<close> insert_absorb tot total_over_m_CNot_toal_over_m
+              total_over_m_insert total_over_m_union)
+        then have "total_over_m LL (unmark_l (trail S) \<union> CNot C)"
+          using tot by force
+        then show "LL \<Turnstile>s {{#}}"
+          using tot cons LL
+          by (metis (no_types) \<open>C \<in># clauses\<^sub>N\<^sub>O\<^sub>T S\<close> \<open>trail S \<Turnstile>as CNot C\<close> consistent_CNot_not
+              true_annots_true_clss_clss true_clss_clss_def true_clss_def true_clss_union)
+      qed
 
       have \<open>undefined_lit F K\<close> using \<open>no_dup ?M\<close> unfolding M_K by (auto simp: defined_lit_map)
       moreover {

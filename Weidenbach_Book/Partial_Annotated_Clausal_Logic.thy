@@ -13,27 +13,33 @@ begin
 
 subsection \<open>Decided Literals\<close>
 subsubsection \<open>Definition\<close>
-datatype ('v, 'mark) ann_lit =
-  is_decided: Decided (lit_of: \<open>'v literal\<close>) |
-  is_proped: Propagated (lit_of: \<open>'v literal\<close>) (mark_of: 'mark)
+datatype ('v, 'ann, 'w, 'mark) annotated_lit =
+  is_decided: Decision (lit_dec: 'v) (ann_of: 'ann) |
+  is_proped: Propagated (lit_prop: 'w) (mark_of: 'mark)
 
+type_synonym ('v, 'mark) ann_lit = \<open>('v literal, unit, 'v literal, 'mark) annotated_lit\<close>
+  
 lemma ann_lit_list_induct[case_names Nil Decided Propagated]:
   assumes
     \<open>P []\<close> and
-    \<open>\<And>L xs. P xs \<Longrightarrow> P (Decided L # xs)\<close> and
+    \<open>\<And>L ann xs. P xs \<Longrightarrow> P (Decision L ann # xs)\<close> and
     \<open>\<And>L m xs. P xs \<Longrightarrow> P (Propagated L m # xs)\<close>
   shows \<open>P xs\<close>
   using assms apply (induction xs, simp)
   by (rename_tac a xs, case_tac a) auto
 
 lemma is_decided_ex_Decided:
-  \<open>is_decided L \<Longrightarrow> (\<And>K. L = Decided K \<Longrightarrow> P) \<Longrightarrow> P\<close>
+  \<open>is_decided L \<Longrightarrow> (\<And>K ann. L = Decision K ann \<Longrightarrow> P) \<Longrightarrow> P\<close>
   by (cases L) auto
 
 lemma is_decided_no_proped_iff: \<open>is_decided L \<longleftrightarrow> \<not>is_proped L\<close>
   by (cases L) auto
 
 type_synonym ('v, 'm) ann_lits = \<open>('v, 'm) ann_lit list\<close>
+
+fun lit_of :: \<open>('a, 'b) ann_lit \<Rightarrow> 'a literal\<close> where
+  \<open>lit_of (Decision L _) = L\<close> |
+  \<open>lit_of (Propagated L _) = L\<close>
 
 definition lits_of :: \<open>('a, 'b) ann_lit set \<Rightarrow> 'a literal set\<close> where
 \<open>lits_of Ls = lit_of ` Ls\<close>
@@ -156,6 +162,9 @@ lemma true_annots_true_clss_cls:
     simp add: true_clss_def true_annots_def true_annot_def lits_of_def true_cls_def
     true_clss_clss_def)
 
+abbreviation Decided ::  "'a literal \<Rightarrow> ('a, 'b) ann_lit" where
+  \<open>Decided L \<equiv> Decision L ()\<close>
+
 lemma true_annots_decided_true_cls[iff]:
   \<open>map Decided M \<Turnstile>as N \<longleftrightarrow> set M \<Turnstile>s N\<close>
 proof -
@@ -216,7 +225,7 @@ lemma atm_imp_decided_or_proped:
     \<or> (Decided (lit_of x) \<in> set I)
     \<or> (\<exists>l. Propagated (- lit_of x) l \<in> set I)
     \<or> (\<exists>l. Propagated (lit_of x) l \<in> set I)\<close>
-  using assms ann_lit.exhaust_sel by metis
+  using assms by (metis (full_types) lit_of.elims old.unit.exhaust)+
 
 lemma literal_is_lit_of_decided:
   assumes \<open>L = lit_of x\<close>
@@ -573,9 +582,9 @@ proof (induct M rule: ann_lit_list_induct)
   case Nil
   then show ?case by simp
 next
-  case (Decided L M) note IH = this(1)
-  then have \<open>Decided L \<in> ?Ls (Decided L #M)\<close> by auto
-  moreover have \<open>?U (Decided L #M) = ?U M\<close> by auto
+  case (Decided L ann M) note IH = this(1)
+  then have \<open>Decided L \<in> ?Ls (Decided L # M)\<close> by auto
+  moreover have \<open>?U (Decided L # M) = ?U M\<close> by auto
   moreover have \<open>?M M = ?U M \<union> ?Ls M\<close> using IH by auto
   ultimately show ?case by auto
 next

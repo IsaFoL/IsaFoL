@@ -135,8 +135,8 @@ lemma get_maximum_level_skip_first[simp]:
   shows "get_maximum_level (Propagated L C # M) D = get_maximum_level M D"
   using assms unfolding get_maximum_level_def atms_of_def
     atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
-  by (smt atm_of_in_atm_of_set_in_uminus get_level_skip_beginning image_iff ann_lit.sel(2)
-    multiset.map_cong0)
+  by (smt atm_of_in_atm_of_set_in_uminus get_level_skip_beginning image_iff lit_of.simps(2)
+      multiset.map_cong0)
 
 lemma get_maximum_level_skip_beginning:
   assumes DH: "\<forall>x \<in># D. undefined_lit c x"
@@ -205,7 +205,7 @@ next
       case Nil
       then show ?case by simp
     next
-      case (Decided L M) note IH = this(1) and i = this(2) and n_d = this(3)
+      case (Decided L ann M) note IH = this(1) and i = this(2) and n_d = this(3)
       then have n_d_M: "no_dup M" by simp
       show ?case
         proof (cases "i < count_decided M")
