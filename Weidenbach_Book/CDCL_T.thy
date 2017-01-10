@@ -517,7 +517,8 @@ lemma
 lemma additional_info_reduce_trail\<^sub>T_to[simp]:
   \<open>additional_info\<^sub>T (reduce_trail\<^sub>T_to F S) = additional_info\<^sub>T S\<close>
   apply (induction F S rule: reduce_trail\<^sub>T_to.induct)
-  by (smt prod.inject reduce_trail\<^sub>T_to_Nil reduce_trail\<^sub>T_to_eq_length reduce_trail\<^sub>T_to_length_ne state_prop tl_trail\<^sub>T)
+  by (smt prod.inject reduce_trail\<^sub>T_to_Nil reduce_trail\<^sub>T_to_eq_length reduce_trail\<^sub>T_to_length_ne
+      state_prop tl_trail\<^sub>T)
 
 lemma reduce_trail\<^sub>T_to:
   "state (reduce_trail\<^sub>T_to F S) =
@@ -588,22 +589,25 @@ locale conflict_driven_clause_learning\<^sub>T =
     init_state :: "'v clauses \<Rightarrow> 'st"
 begin
 
+declare state_prop[simp del]
+
 inductive propagate\<^sub>T :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 propagate_rule: "conflicting S = None \<Longrightarrow>
   E \<in># clauses S \<Longrightarrow>
   L \<in># E \<Longrightarrow>
-  trail S \<Turnstile>as CNot (E - {#L#}) \<Longrightarrow>
-  undefined_lit (trail S) L \<Longrightarrow>
+  trail\<^sub>W S \<Turnstile>as CNot (E - {#L#}) \<Longrightarrow>
+  undefined_lit (trail\<^sub>W S) L \<Longrightarrow>
   T \<sim> cons_trail\<^sub>T (Propagated L E) S \<Longrightarrow>
   propagate\<^sub>T S T"
 
-inductive_cases propagateE: "propagate\<^sub>T S T"
+inductive_cases propagate\<^sub>TE: "propagate\<^sub>T S T"
+thm propagate\<^sub>TE
 
-definition valid_bats :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow>  'v literal list multiset \<Rightarrow> bool\<close> where
-  \<open>valid_bats M _ B \<longleftrightarrow>
+definition valid_bats :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'v bat \<Rightarrow> bool\<close> where
+  \<open>valid_bats M N B \<longleftrightarrow>
     (\<forall>Ls \<in># B. consistent_interp (set Ls)) \<and>
-    (\<forall>Ls \<in># B. \<forall>L \<in> set Ls. -L \<notin> lits_of_l M)\<close>
-   -- \<open>missing here: Bs should be large enough\<close>
+    (\<forall>Ls \<in># B. \<forall>L \<in> set Ls. -L \<notin> lits_of_l M) \<and>
+    (\<forall>I. I \<Turnstile>sm N \<longrightarrow> lits_of_l M \<subseteq> I \<longrightarrow> (\<exists>Ls \<in># B. set Ls \<subseteq> I))\<close>
 
 inductive decide\<^sub>T :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
 decide\<^sub>T_rule:
@@ -611,7 +615,8 @@ decide\<^sub>T_rule:
   if
     \<open>T \<sim> cons_trail\<^sub>T (Decision B ()) (cons_bat (remove1_mset B Bs) S)\<close> and
     \<open>B \<in># Bs\<close> and
-    \<open>valid_bats (trail S) (clauses S) Bs\<close>
+    \<open>valid_bats (trail\<^sub>W S) (clauses S) Bs\<close>
 
+end
 
 end

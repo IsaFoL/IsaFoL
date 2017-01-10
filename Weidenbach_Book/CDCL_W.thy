@@ -942,7 +942,7 @@ proof (induct rule: cdcl\<^sub>W_restart_all_induct)
     using Mc n_d by (auto dest: no_dup_appendD simp: defined_lit_map image_Un)
   moreover have L_M1: "undefined_lit M1 L"
     using backtrack_lit_skiped[of S L K M1 M2 i] L decomp lev_K n_d
-      unfolding defined_lit_map lits_of_def by fast
+    unfolding defined_lit_map lits_of_def by fast
   ultimately show ?case using decomp T n_d by (auto dest: no_dup_appendD)
 qed auto
 
@@ -953,12 +953,6 @@ lemma cdcl\<^sub>W_restart_consistent_inv_2:
     "no_dup (trail S)"
   shows "consistent_interp (lits_of_l (trail S'))"
   using cdcl\<^sub>W_restart_distinctinv_1[OF assms] distinct_consistent_interp by fast
-
-lemma cdcl\<^sub>W_rf_bt:
-  assumes
-    "cdcl\<^sub>W_rf S S'"
-  shows "backtrack_lvl S' = count_decided (trail S')"
-  using assms by (induct rule: cdcl\<^sub>W_rf.induct) (auto elim: restartE forgetE)
 
 definition cdcl\<^sub>W_M_level_inv :: "'st \<Rightarrow> bool" where
 "cdcl\<^sub>W_M_level_inv S \<longleftrightarrow>
