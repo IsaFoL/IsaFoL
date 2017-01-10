@@ -202,8 +202,8 @@ next
     \<open>Propagated L C # convert_lits_l N M = M'a @ Decided K # Ma \<longleftrightarrow> False\<close>
     for M'a K Ma L C
     using nm apply fastforce
-    by (metis (no_types, lifting) nm ann_lit.disc(1)
-          ann_lit.distinct(1) append_eq_Cons_conv in_set_conv_decomp list_tail_coinc)
+    by (metis (no_types, lifting) nm annotated_lit.disc(1)
+          annotated_lit.distinct(1) append_eq_Cons_conv in_set_conv_decomp list_tail_coinc)
   have
     alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state ?S')\<close> and
     lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (convert_to_state ?S')\<close> and
@@ -216,7 +216,7 @@ next
     learned: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause (convert_to_state ?S')\<close>
     using all_struct unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S'[symmetric]
     by fast+
-  have propagated_trail_decomp_iff: \<open>a @ Propagated La C # b = Propagated L D # M' \<longleftrightarrow>
+  have propagated_trail_decomp_iff[iff]: \<open>a @ Propagated La C # b = Propagated L D # M' \<longleftrightarrow>
         (a = [] \<and> Propagated La C = Propagated L D \<and> b = M') \<or>
         (a \<noteq> [] \<and> tl a @ Propagated La C # b = M' \<and> hd a = Propagated L D)\<close> for a b La L C D M'
     by (cases a) auto
@@ -266,8 +266,7 @@ next
               split: if_splits)
         subgoal
           using confl by (auto simp: a cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_restart_mset_state
-              cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S Let_def propagated_trail_decomp_iff
-              Decided_Propagated_in_iff_in_lits_of_l
+              cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S Let_def Decided_Propagated_in_iff_in_lits_of_l
               split: if_splits)
         subgoal
           apply (cases \<open>get_all_ann_decomposition (convert_lits_l N M)\<close>)

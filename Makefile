@@ -1,11 +1,11 @@
-ISABELLE2016-1=~/isabelle/Isabelle2016-1
-ISABELLE=~/isabelle/isabelle
+ISABELLE2016-1=/home/zmaths/isabelle/Isabelle2016-1
+ISABELLE=/home/zmaths/isabelle/isabelle
 
 RUN_ISABELLE="$(ISABELLE)/bin/isabelle"
 RUN_ISABELLE2016-1="$(ISABELLE2016-1)/bin/isabelle"
 
-ISABELLE_HOME=~/.isabelle/browser_info
-ISABELLE2016-1_HOME=~/.isabelle/Isabelle2016-1/browser_info
+ISABELLE_HOME=/home/zmaths/.isabelle/browser_info
+ISABELLE2016-1_HOME=/home/zmaths/.isabelle/Isabelle2016-1/browser_info
 
 AFP=$(ISABELLE)/../afp-devel
 DESTINATION="$(shell pwd)/html"

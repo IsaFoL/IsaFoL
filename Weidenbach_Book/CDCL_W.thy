@@ -2050,7 +2050,7 @@ next
         qed
     qed
 qed
-
+thm annotated_lit.sel
 lemma cdcl\<^sub>W_conflicting_is_false:
   assumes
     "cdcl\<^sub>W_restart S S'" and
@@ -2072,8 +2072,8 @@ proof (induct rule: cdcl\<^sub>W_restart_all_induct)
           using in_CNot_implies_uminus(2)[of L D "Propagated L C' # M"]
           \<open>Propagated L C' # M \<Turnstile>as CNot D\<close> by simp
         then show False
-          by (metis (no_types, hide_lams) M_lev cdcl\<^sub>W_M_level_inv_decomp(1) consistent_interp_def
-            image_insert insert_iff list.set(2) lits_of_def ann_lit.sel(2) tr_S)
+          using M_lev tr_S by (fastforce dest: cdcl\<^sub>W_M_level_inv_decomp(2)
+              simp: Decided_Propagated_in_iff_in_lits_of_l)
       qed
   ultimately show ?case
     using tr_S confl L_D T unfolding cdcl\<^sub>W_M_level_inv_def
@@ -2993,8 +2993,8 @@ proof (induct rule: cdcl\<^sub>W_o_induct)
         using in_CNot_implies_uminus(2) by blast
       moreover have "no_dup (Propagated L C # M)"
         using lev tr_S unfolding cdcl\<^sub>W_M_level_inv_def by auto
-      ultimately show False unfolding lits_of_def by (metis consistent_interp_def image_eqI
-            list.set_intros(1) lits_of_def ann_lit.sel(2) distinct_consistent_interp)
+      ultimately show False unfolding lits_of_def
+        by (metis imageI insertCI list.simps(15) lit_of.simps(2) lits_of_def no_dup_consistentD)
     qed
   }
   ultimately
@@ -3436,7 +3436,7 @@ proof (intro allI impI)
     "undefined_lit M L"
     using propagate by (auto elim: propagate_high_levelE)
   have "tl M'' @ Decided K # M' = trail S" using M' S S'
-    by (metis Pair_inject list.inject list.sel(3) ann_lit.distinct(1) self_append_conv2
+    by (metis Pair_inject list.inject list.sel(3) annotated_lit.distinct(1) self_append_conv2
       tl_append2)
   then have "\<not>M' \<Turnstile>as CNot D "
     using \<open>D \<in># clauses S'\<close> n_l S S' clauses_def unfolding no_smaller_confl_def by auto
@@ -3493,10 +3493,14 @@ proof (cases rule: conflict.cases)
           using lev that by fastforce } note lev' = this
       ultimately have "count_decided (trail T) > 0"
         using M_lev_T unfolding cdcl\<^sub>W_M_level_inv_def by (cases D) fastforce+
+      then have ex: \<open>\<exists>x\<in>set (trail T). is_decided x\<close>
+        unfolding no_dup_def count_decided_def by cases auto
+      have \<open>\<exists>M2 L M1. trail T = M2 @ Decided L # M1 \<and> (\<forall>m\<in>set M2. \<not> is_decided m)\<close>
+        by (rule split_list_first_propE[of "trail T" is_decided, OF ex])
+          (force elim!: is_decided_ex_Decided)
       then obtain M2 L M1 where
         tr_T: "trail T = M2 @ Decided L # M1" and nm: "\<forall>m \<in> set M2. \<not> is_decided m"
-        using split_list_first_propE[of "trail T" is_decided] unfolding no_dup_def count_decided_def
-        by (metis filter_False is_decided_def length_0_conv zero_less_iff_neq_zero)
+        by blast
       moreover {
         have "get_level (trail T) La = backtrack_lvl T" if "- La \<in> lits_of_l M2" for La
           unfolding tr_T bt
@@ -3756,7 +3760,7 @@ proof -
   have "A = drop (length M) (M' @ Decided K # H)"
     using arg_cong[OF A, of "drop (length M)"] by auto
   moreover have "drop (length M) (M' @ Decided K # H) = drop (length M) M' @ Decided K # H"
-    using nm by (metis (no_types, lifting) A drop_Cons' drop_append ann_lit.disc(1) not_gr0
+    using nm by (metis (no_types, lifting) A drop_Cons' drop_append annotated_lit.disc(1) not_gr0
       nth_append nth_append_length nth_mem zero_less_diff)
   finally show ?thesis by fast
 qed
@@ -3862,7 +3866,7 @@ definition "no_smaller_propa (S ::'st) \<equiv>
 lemma propagated_cons_eq_append_decide_cons:
   "Propagated L E # Ms = M' @ Decided K # M \<longleftrightarrow>
     M' \<noteq> [] \<and> Ms = tl M' @ Decided K # M \<and> hd M' = Propagated L E"
-  by (metis (no_types, lifting) ann_lit.disc(1) ann_lit.disc(2) append_is_Nil_conv hd_append
+  by (metis (no_types, lifting) annotated_lit.disc(1) annotated_lit.disc(2) append_is_Nil_conv hd_append
     list.exhaust_sel list.sel(1) list.sel(3) tl_append2)
 
 lemma in_get_all_mark_of_propagated_in_trail:

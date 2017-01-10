@@ -647,7 +647,7 @@ proof -
         uminus_lit_swap)
   show ?thesis
   proof (cases L)
-    case (Decided L') note L' = this(1)
+    case (Decision L') note L' = this(1)
     moreover have \<open>atm_of L' = atm_of L_k\<close>
       using lev_L_k count_decided_ge_get_level[of M L_k] unfolding M dec L'
       by (auto simp: get_level_cons_if split: if_splits)
@@ -725,7 +725,7 @@ proof -
       by (auto simp: Decided_Propagated_in_iff_in_lits_of_l M)
     have \<open>get_maximum_level M (remove1_mset (-lit_of (hd M)) (the D)) < count_decided M\<close>
     proof (cases L'')
-      case (Decided x1) note L'' = this(1)
+      case (Decision x1) note L'' = this(1)
       have \<open>distinct_mset (the D)\<close>
         using inv D' S unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
           cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
