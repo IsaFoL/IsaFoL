@@ -141,7 +141,6 @@ using res_e proof (cases rule: ord_resolve.cases)
   have ai_len: "length Ai = n" using ord_resolve by -
   have nz: "n \<noteq> 0" using ord_resolve by -
   have cai: "\<forall>i<n. CAi ! i = Ci ! i + poss (Aij ! i) " using ord_resolve by -
-  
   have maxim: " \<forall>i<n. str_maximal_in (Ai ! i) (Ci ! i)" using ord_resolve by -
   
   have as_ne: "Ai \<noteq> []" using nz ai_len by auto
@@ -192,7 +191,7 @@ using res_e proof (cases rule: ord_resolve.cases)
       (* TODO tune proof *)
       using atms_less_eq_imp_lit_less_eq_neg count_inI dual_order.strict_implies_order 
           gr_implies_not_zero order.not_eq_order_implies_strict by metis
-    then show ?thesis unfolding e main_clause_def dai by auto
+    then show ?thesis unfolding e dai by auto
   qed
 qed
 
@@ -227,12 +226,12 @@ proof -
       unfolding A_def using s_d_e d_ne d_in_n d_cex d_min
       by (metis Max_in_lits Max_lit_eq_pos_or_neg_Max_atm max_pos_imp_true_in_Interp
         true_Interp_imp_INTERP)
-    hence das: "DAi = main_clause (D,Ai)" unfolding D_def Ai_def main_clause_def by auto
+    hence das: "DAi = D + negs (mset Ai)" unfolding D_def Ai_def by auto
     moreover
     from na_in_d have "negs (mset Ai) \<subseteq># DAi"
       by (simp add: Ai_def) 
     moreover
-    have "Ai ! 0 = Max (atms_of (main_clause (D, Ai)))"
+    have "Ai ! 0 = Max (atms_of (D + negs (mset Ai)))"
       using A_def Ai_def das by auto
     hence "eligible Ai DAi" using eligible s_d_e Ai_def das by auto
     ultimately show ?thesis using Ai_def by blast
@@ -248,7 +247,7 @@ proof -
       using S_selects_subseteq by (auto simp: filter_neg_atm_of_S)
     hence "negs (mset Ai) \<subseteq># DAi" unfolding Ai_def by auto
     moreover
-    have das: "DAi = main_clause (D, Ai)" using da_sub_as unfolding D_def Ai_def main_clause_def by auto
+    have das: "DAi = D + negs (mset Ai)" using da_sub_as unfolding D_def Ai_def by auto
     moreover
     have "S DAi = negs {#atm_of L. L \<in># S DAi#}" 
       by (auto simp: filter_neg_atm_of_S)
@@ -276,18 +275,18 @@ proof -
   hence prod_c0: "\<forall>A \<in> set Ai. produces N (CA_of A) A"
     by blast
   
-  define C'_of where "C'_of \<equiv> \<lambda>A. {#L \<in># CA_of A. L \<noteq> Pos A#}" (* Remove the prime *)
+  define C_of where "C_of \<equiv> \<lambda>A. {#L \<in># CA_of A. L \<noteq> Pos A#}"
   define Aj_of where "Aj_of \<equiv> \<lambda>A. image_mset atm_of {#L \<in># CA_of A. L = Pos A#}"
   
   have pospos: "\<And>LL A. {#Pos (atm_of x). x \<in># {#L \<in># LL. L = Pos A#}#} = {#L \<in># LL. L = Pos A#}"
     by (metis (mono_tags, lifting) image_filter_cong literal.sel(1) multiset.map_ident)
-  have ca_of_c_of_aj_of: "\<And>A. CA_of A = C'_of A + poss (Aj_of A)"
-    unfolding C'_of_def Aj_of_def apply auto
+  have ca_of_c_of_aj_of: "\<And>A. CA_of A = C_of A + poss (Aj_of A)"
+    unfolding C_of_def Aj_of_def apply auto
     using pospos[of _ "CA_of _"] apply simp
     by (simp add: add.commute multiset_partition)
       
   define n where "n \<equiv> length Ai"
-  define Ci where "Ci \<equiv> map C'_of Ai"  
+  define Ci where "Ci \<equiv> map C_of Ai"  
   define Aij where "Aij \<equiv> map Aj_of Ai"
   define CAi where "CAi \<equiv> map CA_of Ai"
     
@@ -311,17 +310,17 @@ proof -
     
   have "\<And>A. A \<in> set Ai \<Longrightarrow> \<not> Neg A \<in># CA_of A"
     using prod_c0 produces_imp_neg_notin_lits by auto
-  hence a_ni_c': "\<And>A. A \<in> set Ai \<Longrightarrow> A \<notin> atms_of (C'_of A)"
-    unfolding C'_of_def using atm_imp_pos_or_neg_lit by force
-  have c'_le_c: "\<And>A. C'_of A \<le> CA_of A"
-    unfolding C'_of_def by (auto intro: subset_eq_imp_le_multiset)
+  hence a_ni_c': "\<And>A. A \<in> set Ai \<Longrightarrow> A \<notin> atms_of (C_of A)"
+    unfolding C_of_def using atm_imp_pos_or_neg_lit by force
+  have c'_le_c: "\<And>A. C_of A \<le> CA_of A"
+    unfolding C_of_def by (auto intro: subset_eq_imp_le_multiset)
   have a_max_c: "\<And>A. A \<in> set Ai \<Longrightarrow> A = Max (atms_of (CA_of A))"
     using prod_c0 productive_imp_produces_Max_atom[of N] by auto
-  hence "\<And>A. A \<in> set Ai \<Longrightarrow> C'_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (C'_of A)) \<le> A"
+  hence "\<And>A. A \<in> set Ai \<Longrightarrow> C_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (C_of A)) \<le> A"
     using c'_le_c by (metis less_eq_Max_atms_of)
-  moreover have "\<And>A. A \<in> set Ai \<Longrightarrow> C'_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (C'_of A)) \<noteq> A"
+  moreover have "\<And>A. A \<in> set Ai \<Longrightarrow> C_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (C_of A)) \<noteq> A"
     using a_ni_c' Max_in by (metis (no_types) atms_empty_iff_empty finite_atms_of)
-  ultimately have max_c'_lt_a: "\<And>A. A \<in> set Ai \<Longrightarrow> C'_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (C'_of A)) < A"
+  ultimately have max_c'_lt_a: "\<And>A. A \<in> set Ai \<Longrightarrow> C_of A \<noteq> {#} \<Longrightarrow> Max (atms_of (C_of A)) < A"
     by (metis order.strict_iff_order)
   
   have le_cs_as: "length CAi = length Ai"  unfolding CAi_def by simp     
@@ -362,7 +361,7 @@ proof -
   hence "eligible Ai (D + negs (mset Ai))" using D_def negs_as_le_d by auto 
   moreover
   have "\<And>i. i < length Aij \<Longrightarrow> str_maximal_in (Ai ! i) ((Ci ! i))"
-    by (simp add: C'_of_def Ci_def \<open>\<And>x B. \<lbrakk>production N (CA_of x) = {x}; B \<in># CA_of x; B \<noteq> Pos x\<rbrakk> \<Longrightarrow> atm_of B < x\<close> atms_of_def calculation(3) n_def prod_c0 str_maximal_in_def) 
+    by (simp add: C_of_def Ci_def \<open>\<And>x B. \<lbrakk>production N (CA_of x) = {x}; B \<in># CA_of x; B \<noteq> Pos x\<rbrakk> \<Longrightarrow> atm_of B < x\<close> atms_of_def calculation(3) n_def prod_c0 str_maximal_in_def) 
   have "\<forall>i<n. str_maximal_in (Ai ! i) (Ci ! i)"
     by (simp add: \<open>\<And>i. i < length Aij \<Longrightarrow> str_maximal_in (Ai ! i) (Ci ! i)\<close> calculation(3))
   moreover
@@ -376,17 +375,17 @@ proof -
   
   have "\<And>A. A \<in> set Ai \<Longrightarrow> \<not> interp N (CA_of A) \<Turnstile> CA_of A"
     by (simp add: prod_c0 producesD)
-  hence "\<And>A. A \<in> set Ai \<Longrightarrow> \<not> Interp N (CA_of A) \<Turnstile> C'_of A"
-    unfolding prod_c0 C'_of_def Interp_def true_cls_def 
+  hence "\<And>A. A \<in> set Ai \<Longrightarrow> \<not> Interp N (CA_of A) \<Turnstile> C_of A"
+    unfolding prod_c0 C_of_def Interp_def true_cls_def 
     using true_lit_def not_gr_zero
     using prod_c0 by auto 
-  hence c'_at_n: "\<And>A. A \<in> set Ai \<Longrightarrow> \<not> INTERP N \<Turnstile> C'_of A"
+  hence c'_at_n: "\<And>A. A \<in> set Ai \<Longrightarrow> \<not> INTERP N \<Turnstile> C_of A"
     using a_max_c c'_le_c max_c'_lt_a false_Interp_imp_INTERP unfolding true_cls_def
     by (metis true_cls_def true_cls_empty)
   have "\<not> INTERP N \<Turnstile> \<Union>#mset Ci"
     unfolding Ci_def true_cls_def by (auto dest!: c'_at_n)
   moreover have "\<not> INTERP N \<Turnstile> D"
-    using d_cex unfolding main_clause_def
+    using d_cex
     by (metis D_def add_diff_cancel_right' negs_as_le_d subset_mset.add_diff_assoc2 true_cls_def union_iff) 
   ultimately have e_cex: "\<not> INTERP N \<Turnstile> \<Union>#mset Ci + D"
     by simp
@@ -421,12 +420,14 @@ using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Ci Aij Ai D)
   have dai: "DAi = D + negs (mset Ai)" using ord_resolve by -
   have e: "E = \<Union>#mset Ci + D" using ord_resolve by -
+  have cai_len: "length CAi = n" using ord_resolve by -
+  have ci_len: "length Ci = n" using ord_resolve by -
   have cai: "\<forall>i<n. CAi ! i = Ci ! i + poss (Aij ! i)" using ord_resolve by -
   
   from cai have "\<forall>i<n. set_mset (Ci ! i) \<subseteq> set_mset (CAi ! i)" by auto
   hence "\<forall>i<n. (Ci ! i) \<subseteq># \<Union>#(mset CAi)"
-    by (metis cai local.ord_resolve(3) mset_subset_eq_add_left nth_mem_mset sum_mset.remove union_assoc)  
-  hence "\<forall>C \<in> set Ci. C \<subseteq># \<Union>#(mset CAi)" using ord_resolve(4) in_set_conv_nth[of _ Ci] by auto
+    by (metis cai cai_len mset_subset_eq_add_left nth_mem_mset sum_mset.remove union_assoc)  
+  hence "\<forall>C \<in> set Ci. C \<subseteq># \<Union>#(mset CAi)" using ci_len in_set_conv_nth[of _ Ci] by auto
   hence "set_mset (\<Union>#(mset Ci)) \<subseteq> set_mset (\<Union>#(mset CAi))"
     by auto (meson in_mset_sum_list2 mset_subset_eqD) 
   hence "atms_of (\<Union>#mset Ci) \<subseteq> atms_of (\<Union>#mset CAi)" 

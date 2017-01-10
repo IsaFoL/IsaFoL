@@ -152,8 +152,10 @@ lemma ord_resolve_sound:
   case (ord_resolve n Ci Aij Ai \<tau> D)
   have dai: "DAi = D + negs (mset Ai)" using ord_resolve by -
   have e: "E = (\<Union>#mset Ci + D) \<cdot> \<tau>" using ord_resolve by -
+  have ci_len: "length Ci = n" using ord_resolve by -
   have cai_len: "length CAi = n" using ord_resolve by -
   have ai_len: "length Ai = n" using ord_resolve by -
+  have cai: "\<forall>i<n. CAi ! i = Ci ! i + poss (Aij ! i)" using ord_resolve by -
   have unif: "\<forall>i<n. \<forall>A\<in>#Aij ! i. A \<cdot>a \<tau> = Ai ! i \<cdot>a \<tau>" using ord_resolve by -
   have len: "length CAi = length Ai" using ai_len cai_len by auto
   have "is_ground_subst (\<tau> \<odot> \<sigma>)"
@@ -166,7 +168,7 @@ lemma ord_resolve_sound:
     hence "\<not> I \<Turnstile> negs (mset Ai) \<cdot> \<tau> \<cdot> \<sigma>"
       unfolding true_cls_def by auto
     hence "I \<Turnstile> D \<cdot> \<tau> \<cdot> \<sigma>"
-      using d_true dai unfolding main_clause_def by auto
+      using d_true dai by auto
     thus ?thesis
       unfolding e by simp
   next
@@ -177,10 +179,10 @@ lemma ord_resolve_sound:
     define BB where "BB \<equiv> Aij ! i"
     have c_cf': "C' \<subseteq># \<Union># mset CAi"
       unfolding C'_def using a_in_aa
-      by (metis cai_len local.ord_resolve(8) nth_mem set_mset_mset subset_mset.bot.extremum subset_mset.le_add_same_cancel1 subset_mset.order.trans sum_mset.remove) 
+      by (metis cai_len cai nth_mem set_mset_mset subset_mset.bot.extremum subset_mset.le_add_same_cancel1 subset_mset.order.trans sum_mset.remove) 
     have c_in_cc: "C' + poss BB \<in># mset CAi"
       using C'_def BB_def using a_in_aa
-      using cai_len in_set_conv_nth local.ord_resolve(8) by fastforce
+      using cai_len in_set_conv_nth cai by fastforce
     { fix B
       assume "B \<in># BB"
       then have "B \<cdot>a \<tau> = (Ai ! i) \<cdot>a \<tau>" using unif a_in_aa cai_len unfolding BB_def by auto
@@ -194,7 +196,7 @@ lemma ord_resolve_sound:
     thus ?thesis
       unfolding e subst_cls_union using c_cf'
       using true_cls_mono subst_cls_mono
-      by (metis (no_types, lifting) C'_def a_in_aa cai_len local.ord_resolve(4) mset_subset_eq_add_left nth_mem_mset set_mset_mono sum_mset.remove)
+      by (metis (no_types, lifting) C'_def a_in_aa cai_len ci_len mset_subset_eq_add_left nth_mem_mset set_mset_mono sum_mset.remove)
   qed
 qed
 
