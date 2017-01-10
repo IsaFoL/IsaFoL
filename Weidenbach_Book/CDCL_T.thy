@@ -1,9 +1,12 @@
 theory CDCL_T
 imports CDCL_W
 begin
-type_synonym ('v, 'mark) ann_bat = \<open>('v literal list, nat \<times> nat, 'v literal, 'mark) annotated_lit\<close>
+
+section \<open>A CDCL variant\<close>
+
+type_synonym ('v, 'mark) ann_bat = \<open>('v literal list, unit, 'v literal, 'mark) annotated_lit\<close>
 type_synonym ('v, 'mark) ann_bats = \<open>('v, 'mark) ann_bat list\<close>
-type_synonym 'v bat = \<open>'v literal set\<close>
+type_synonym 'v bat = \<open>'v literal list multiset\<close>
 type_synonym 'v bats = \<open>'v bat list\<close>
 
 locale state\<^sub>T_ops =
@@ -26,38 +29,53 @@ locale state\<^sub>T_ops =
 
     init_state :: "'v clauses \<Rightarrow> 'st"
 begin
-abbreviation hd_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_bat" where
-"hd_trail S \<equiv> hd (trail\<^sub>T S)"
+abbreviation hd_trail\<^sub>T :: "'st \<Rightarrow> ('v, 'v clause) ann_bat" where
+"hd_trail\<^sub>T S \<equiv> hd (trail\<^sub>T S)"
 
-definition clauses :: "'st \<Rightarrow> 'v clauses" where
-"clauses S = init_clss S + learned_clss S"
-
-abbreviation resolve_cls where
-"resolve_cls L D' E \<equiv> remove1_mset (-L) D' \<union># remove1_mset L E"
-
-abbreviation state_butlast :: "'st \<Rightarrow> ('v, 'v clause) ann_bats \<times> 'v clauses \<times> 'v clauses
-  \<times> 'v clause option \<times> 'v bats" where
-"state_butlast S \<equiv> (trail\<^sub>T S, init_clss S, learned_clss S, conflicting S, bats S)"
-
-definition additional_info :: "'st \<Rightarrow> 'b" where
-"additional_info S = (\<lambda>(_, _, _, _, _, D). D) (state S)"
+definition additional_info\<^sub>T :: "'st \<Rightarrow> 'b" where
+"additional_info\<^sub>T S = (\<lambda>(_, _, _, _, _, D). D) (state S)"
 
 fun lits_of_bats :: \<open>('v, 'v clause) ann_bats \<Rightarrow> ('v, 'v clause) ann_lits\<close> where
   \<open>lits_of_bats [] = []\<close>
 | \<open>lits_of_bats (Propagated L C # M) = Propagated L C # lits_of_bats M\<close>
 | \<open>lits_of_bats (Decision Ls _ # M) = map Decided Ls @ lits_of_bats M\<close>
 
+fun trail\<^sub>W :: \<open>'st \<Rightarrow> ('v, 'v clause) ann_lits\<close> where
+  \<open>trail\<^sub>W S = lits_of_bats (trail\<^sub>T S)\<close>
+  
+definition state\<^sub>W :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times>
+  'v clause option \<times> 'v bats \<times> 'b" where
+"state\<^sub>W S \<equiv> (trail\<^sub>W S, init_clss S, learned_clss S, conflicting S, bats S, additional_info\<^sub>T S)"
+
+fun cons_trail\<^sub>W where
+  \<open>cons_trail\<^sub>W (Decided L) S = cons_trail\<^sub>T (Decision [L] ()) S\<close>
+| \<open>cons_trail\<^sub>W (Propagated L C) S = cons_trail\<^sub>T (Propagated L C) S\<close>
+
+sublocale state\<^sub>W_ops where
+  state = state\<^sub>W and
+  trail = trail and
+  init_clss = init_clss and
+  learned_clss = learned_clss and
+  conflicting = conflicting and
+  cons_trail = cons_trail\<^sub>W and
+  tl_trail = tl_trail\<^sub>T and
+  add_learned_cls = add_learned_cls and
+  remove_cls = remove_cls and
+  update_conflicting = update_conflicting and
+  init_state = init_state
+  .
+
+abbreviation state_butlast\<^sub>T :: "'st \<Rightarrow> ('v, 'v clause) ann_bats \<times> 'v clauses \<times> 'v clauses \<times>
+  'v clause option \<times> 'v bats" where
+"state_butlast\<^sub>T S \<equiv> (trail\<^sub>T S, init_clss S, learned_clss S, conflicting S, bats S)"
+
 lemma lits_of_bats_append[simp]:
   \<open>lits_of_bats (xs @ ys) = lits_of_bats xs @ lits_of_bats ys\<close>
   by (induction xs rule: ann_lit_list_induct) auto
 
-fun trail :: \<open>'st \<Rightarrow> ('v, 'v clause) ann_lits\<close> where
-  \<open>trail S = lits_of_bats (trail\<^sub>T S)\<close>
-
-
 abbreviation backtrack_lvl\<^sub>T :: "'st \<Rightarrow> nat" where
 \<open>backtrack_lvl\<^sub>T S \<equiv> count_decided (trail\<^sub>T S)\<close>
-
+  
 end
 
 locale state\<^sub>T_no_state =
@@ -67,7 +85,7 @@ locale state\<^sub>T_no_state =
       \<comment> \<open>getter:\<close>
     trail\<^sub>T init_clss learned_clss conflicting bats
       \<comment> \<open>setter:\<close>
-    cons_trail tl_trail\<^sub>T add_learned_cls remove_cls
+    cons_trail\<^sub>T tl_trail\<^sub>T add_learned_cls remove_cls
     update_conflicting cons_bat tl_bats
 
       \<comment> \<open>Some specific states:\<close>
@@ -82,7 +100,7 @@ locale state\<^sub>T_no_state =
     conflicting :: "'st \<Rightarrow> 'v clause option" and
     bats :: \<open>'st \<Rightarrow> 'v bats\<close> and
 
-    cons_trail :: "('v, 'v clause) ann_bat \<Rightarrow> 'st \<Rightarrow> 'st" and
+    cons_trail\<^sub>T :: "('v, 'v clause) ann_bat \<Rightarrow> 'st \<Rightarrow> 'st" and
     tl_trail\<^sub>T :: "'st \<Rightarrow> 'st" and
     add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
     remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -118,7 +136,7 @@ locale state\<^sub>T_no_state =
         state (update_conflicting E st) = (M, N, U, E, S')" and
 
     init_state:
-      "state_butlast (init_state N) = ([], N, {#}, None, [])" and
+      "state_butlast\<^sub>T (init_state N) = ([], N, {#}, None, [])" and
 
     cons_trail\<^sub>T_state_eq:
       \<open>S \<sim> S' \<Longrightarrow> cons_trail\<^sub>T L S \<sim> cons_trail\<^sub>T L S'\<close> and
@@ -180,7 +198,7 @@ locale state\<^sub>T =
     init_state :: "'v clauses \<Rightarrow> 'st" +
   assumes
     state_prop[simp]:
-      \<open>state S = (trail\<^sub>T S, init_clss S, learned_clss S, conflicting S, bats S, additional_info S)\<close>
+      \<open>state S = (trail\<^sub>T S, init_clss S, learned_clss S, conflicting S, bats S, additional_info\<^sub>T S)\<close>
 begin
 
 lemma
@@ -301,9 +319,9 @@ lemma
     state_eq_learned_clss[state_simp\<^sub>T]: "S \<sim> T \<Longrightarrow> learned_clss S = learned_clss T" and
     state_eq_conflicting[state_simp\<^sub>T]: "S \<sim> T \<Longrightarrow> conflicting S = conflicting T" and
     state_eq_clauses[state_simp\<^sub>T]: "S \<sim> T \<Longrightarrow> clauses S = clauses T" and
-    state_eq_undefined_lit[state_simp\<^sub>T]: "S \<sim> T \<Longrightarrow> undefined_lit (trail S) L = undefined_lit (trail T) L" and
+    state_eq_undefined_lit[state_simp\<^sub>T]: "S \<sim> T \<Longrightarrow> undefined_lit (trail\<^sub>W S) L = undefined_lit (trail\<^sub>W T) L" and
     state_eq_backtrack_lvl[state_simp\<^sub>T]: "S \<sim> T \<Longrightarrow> backtrack_lvl\<^sub>T S = backtrack_lvl\<^sub>T T"
-  using state_eq_state unfolding clauses_def by auto
+  using state_eq_state[of S T] unfolding clauses_def by auto
 
 
 lemma state_eq_conflicting_None:
@@ -479,25 +497,25 @@ lemma conflicting_add_learned_cls_conflicting[iff]:
   by fastforce+
 
 lemma
-  additional_info_cons_trail\<^sub>T[simp]:
-    \<open>additional_info (cons_trail\<^sub>T L S) = additional_info S\<close> and
-  additional_info_tl_trail\<^sub>T[simp]:
-    "additional_info (tl_trail\<^sub>T S) = additional_info S" and
-  additional_info_add_learned_cls_unfolded:
-    "additional_info (add_learned_cls U S) = additional_info S"  and
-  additional_info_update_conflicting[simp]:
-    "additional_info (update_conflicting D S) = additional_info S" and
-  additional_info_remove_cls[simp]:
-    "additional_info (remove_cls C S) = additional_info S" and
-  additional_info_add_learned_cls[simp]:
-    "additional_info (add_learned_cls C S) = additional_info S"
-  unfolding additional_info_def
+  additional_info\<^sub>T_cons_trail\<^sub>T[simp]:
+    \<open>additional_info\<^sub>T (cons_trail\<^sub>T L S) = additional_info\<^sub>T S\<close> and
+  additional_info\<^sub>T_tl_trail\<^sub>T[simp]:
+    "additional_info\<^sub>T (tl_trail\<^sub>T S) = additional_info\<^sub>T S" and
+  additional_info\<^sub>T_add_learned_cls_unfolded:
+    "additional_info\<^sub>T (add_learned_cls U S) = additional_info\<^sub>T S"  and
+  additional_info\<^sub>T_update_conflicting[simp]:
+    "additional_info\<^sub>T (update_conflicting D S) = additional_info\<^sub>T S" and
+  additional_info\<^sub>T_remove_cls[simp]:
+    "additional_info\<^sub>T (remove_cls C S) = additional_info\<^sub>T S" and
+  additional_info\<^sub>T_add_learned_cls[simp]:
+    "additional_info\<^sub>T (add_learned_cls C S) = additional_info\<^sub>T S"
+  unfolding additional_info\<^sub>T_def
     using tl_trail\<^sub>T[of S] cons_trail\<^sub>T[of S] add_learned_cls[of S]
     update_conflicting[of S] remove_cls[of S]
   by (cases \<open>state S\<close>; auto; fail)+
 
 lemma additional_info_reduce_trail\<^sub>T_to[simp]:
-  \<open>additional_info (reduce_trail\<^sub>T_to F S) = additional_info S\<close>
+  \<open>additional_info\<^sub>T (reduce_trail\<^sub>T_to F S) = additional_info\<^sub>T S\<close>
   apply (induction F S rule: reduce_trail\<^sub>T_to.induct)
   by (smt prod.inject reduce_trail\<^sub>T_to_Nil reduce_trail\<^sub>T_to_eq_length reduce_trail\<^sub>T_to_length_ne state_prop tl_trail\<^sub>T)
 
@@ -505,7 +523,7 @@ lemma reduce_trail\<^sub>T_to:
   "state (reduce_trail\<^sub>T_to F S) =
     ((if length (trail\<^sub>T S) \<ge> length F
     then drop (length (trail\<^sub>T S) - length F) (trail\<^sub>T S)
-    else []), init_clss S, learned_clss S, conflicting S, bats S, additional_info S)"
+    else []), init_clss S, learned_clss S, conflicting S, bats S, additional_info\<^sub>T S)"
 proof (induction F S rule: reduce_trail\<^sub>T_to.induct)
   case (1 F S) note IH = this
   show ?case
@@ -580,5 +598,20 @@ propagate_rule: "conflicting S = None \<Longrightarrow>
   propagate\<^sub>T S T"
 
 inductive_cases propagateE: "propagate\<^sub>T S T"
+
+definition valid_bats :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow>  'v literal list multiset \<Rightarrow> bool\<close> where
+  \<open>valid_bats M _ B \<longleftrightarrow>
+    (\<forall>Ls \<in># B. consistent_interp (set Ls)) \<and>
+    (\<forall>Ls \<in># B. \<forall>L \<in> set Ls. -L \<notin> lits_of_l M)\<close>
+   -- \<open>missing here: Bs should be large enough\<close>
+
+inductive decide\<^sub>T :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
+decide\<^sub>T_rule:
+  \<open>decide\<^sub>T S T\<close>
+  if
+    \<open>T \<sim> cons_trail\<^sub>T (Decision B ()) (cons_bat (remove1_mset B Bs) S)\<close> and
+    \<open>B \<in># Bs\<close> and
+    \<open>valid_bats (trail S) (clauses S) Bs\<close>
+
 
 end
