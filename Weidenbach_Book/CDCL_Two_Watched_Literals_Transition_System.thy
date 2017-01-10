@@ -1566,9 +1566,9 @@ next
     consider
       (no_L') \<open>M \<Turnstile>as CNot (remove1_mset K (clause C))\<close>
       | (L') \<open>-L' \<in># remove1_mset K (clause C)\<close>
-      using L'_M_C
-      by (metis \<open>- L' \<notin> lits_of_l M\<close> ann_lit.sel(2) in_CNot_implies_uminus(2) insertE list.simps(15)
-          lits_of_insert true_annots_CNot_lit_of_notin_skip)
+      using L'_M_C \<open>- L' \<notin> lits_of_l M\<close>
+      by (metis insertE list.simps(15) lit_of.simps(2) lits_of_insert
+          true_annots_CNot_lit_of_notin_skip true_annots_true_cls_def_iff_negation_in_model)
     then show \<open>(\<exists>L'a. L'a \<in># watched C \<and> L'a \<in># add_mset (- L') Q) \<or> (\<exists>L. (L, C) \<in># WS)\<close>
     proof cases
       case no_L'
@@ -1588,10 +1588,10 @@ next
       have ?thesis if \<open>L' \<in># watched C\<close>
       proof -
         have "K = L'"
-          by (metis that L'_M_C \<open>- L' \<notin> lits_of_l M\<close> ann_lit.sel(2) clause.simps
-              in_remove1_mset_neq insert_iff list.simps(15) lits_of_insert
-              true_annots_true_cls_def_iff_negation_in_model twl_clause.exhaust_sel uminus_not_id'
-              union_iff)
+          using that L'_M_C \<open>- L' \<notin> lits_of_l M\<close> L' (* TODO Tune metis call *)
+          by (metis clause.simps in_CNot_implies_uminus(2) in_lits_of_l_defined_litD
+              in_remove1_mset_neq insert_iff list.simps(15) lits_of_insert propagate.hyps(2)
+              twl_clause.exhaust_sel uminus_not_id' uminus_of_uminus_id union_iff)
         then have False
           using Decided_Propagated_in_iff_in_lits_of_l undef_K by force
         then show ?thesis
@@ -1886,9 +1886,9 @@ next
     consider
         (no_L') \<open>M \<Turnstile>as CNot (clause C)\<close>
       | (L') \<open>-L' \<in># clause C\<close>
-      using L'_M_C
-      by (metis \<open>- L' \<notin> lits_of_l M\<close> ann_lit.sel(2) in_CNot_implies_uminus(2) insertE list.simps(15)
-          lits_of_insert true_annots_CNot_lit_of_notin_skip)
+      using L'_M_C \<open>- L' \<notin> lits_of_l M\<close>
+      by (metis insertE list.simps(15) lit_of.simps(2) lits_of_insert
+          true_annots_CNot_lit_of_notin_skip true_annots_true_cls_def_iff_negation_in_model)
     then show \<open>(\<exists>L'a. L'a \<in># watched C \<and> L'a \<in># add_mset (- L') Q) \<or> (\<exists>L. (L, C) \<in># WS)\<close>
     proof cases
       case no_L'
@@ -1904,10 +1904,10 @@ next
     next
       case L'
       have L'_C: \<open>L' \<notin># watched C\<close>
-        by (metis L'_M_C \<open>- L' \<notin> lits_of_l M\<close> ann_lit.sel(2) clause.simps in_CNot_implies_uminus(2)
-            insertE list.simps(15) lits_of_insert twl_clause.exhaust_sel uminus_not_id'
-            union_iff)
-
+        using  L'_M_C \<open>- L' \<notin> lits_of_l M\<close>
+        by (metis (no_types, hide_lams) Decided_Propagated_in_iff_in_lits_of_l L' clause.simps
+            in_CNot_implies_uminus(2) insertE list.simps(15) lits_of_insert twl_clause.exhaust_sel
+            uminus_not_id' uminus_of_uminus_id undef union_iff)
       moreover have ?thesis
       proof (rule ccontr, clarsimp)
         assume
@@ -3275,8 +3275,8 @@ next
           assume \<open>\<not> - K'' \<notin> lits_of_l M1''\<close>
           then have \<open>undefined_lit (tl M2'' @ Decided K''' # []) K''\<close>
             (* TODO tune proof *)
-            using n_d_M1 unfolding M1 by (auto simp: atm_lit_of_set_lits_of_l 
-                atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set 
+            using n_d_M1 unfolding M1 by (auto simp: atm_lit_of_set_lits_of_l
+                atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
                 defined_lit_map atm_of_eq_atm_of image_Un
                 dest: cdcl\<^sub>W_restart_mset.no_dup_uminus_append_in_atm_notin)
           then show False

@@ -6,7 +6,7 @@ subsubsection \<open>Level of literals and clauses\<close>
 text \<open>Getting the level of a variable, implies that the list has to be reversed. Here is the
   function after reversing.\<close>
 
-definition count_decided :: "('v, 'm) ann_lits \<Rightarrow> nat" where
+definition count_decided :: "('v, 'b, 'm) annotated_lit list \<Rightarrow> nat" where
 "count_decided l = length (filter is_decided l)"
 
 definition get_level :: "('v, 'm) ann_lits \<Rightarrow> 'v literal \<Rightarrow> nat" where
@@ -135,8 +135,8 @@ lemma get_maximum_level_skip_first[simp]:
   shows "get_maximum_level (Propagated L C # M) D = get_maximum_level M D"
   using assms unfolding get_maximum_level_def atms_of_def
     atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
-  by (smt atm_of_in_atm_of_set_in_uminus get_level_skip_beginning image_iff ann_lit.sel(2)
-    multiset.map_cong0)
+  by (smt atm_of_in_atm_of_set_in_uminus get_level_skip_beginning image_iff lit_of.simps(2)
+      multiset.map_cong0)
 
 lemma get_maximum_level_skip_beginning:
   assumes DH: "\<forall>x \<in># D. undefined_lit c x"

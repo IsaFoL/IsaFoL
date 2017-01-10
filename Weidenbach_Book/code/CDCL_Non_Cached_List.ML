@@ -74,16 +74,16 @@ end; (*struct Bits_Integer*)
 structure CDCL_Non_Cached_List : sig
   type nat
   type 'a literal
-  type ('a, 'b) ann_lit
+  type ('a, 'b, 'c) annotated_lit
   val cdcl_twl_stgy_prog_l_impl :
-    (nat, nat) ann_lit list *
+    (nat literal, nat literal, nat) annotated_lit list *
       ((nat literal list) list *
         (nat *
           ((nat literal list) option *
             ((nat literal list) list *
               ((nat literal list) list * (nat list * nat literal list)))))) ->
       (unit ->
-        ((nat, nat) ann_lit list *
+        ((nat literal, nat literal, nat) annotated_lit list *
           ((nat literal list) list *
             (nat *
               ((nat literal list) option *
@@ -133,8 +133,7 @@ datatype num = One | Bit0 of num | Bit1 of num;
 
 datatype 'a multiset = Mset of 'a list;
 
-datatype ('a, 'b) ann_lit = Decided of 'a literal |
-  Propagated of 'a literal * 'b;
+datatype ('a, 'b, 'c) annotated_lit = Decided of 'a | Propagated of 'b * 'c;
 
 fun id x = (fn xa => xa) x;
 
@@ -216,8 +215,8 @@ fun snd (x1, x2) = x2;
 fun is_decided (Decided x1) = true
   | is_decided (Propagated (x21, x22)) = false;
 
-fun lit_of (Decided x1) = x1
-  | lit_of (Propagated (x21, x22)) = x21;
+fun lit_of (Decided l) = l
+  | lit_of (Propagated (l, uu)) = l;
 
 fun size_list x = gen_length zero_nat x;
 

@@ -31,9 +31,12 @@ proof standard
     by blast
 qed
 
-instance ann_lit :: (heap, heap) heap
+instance annotated_lit :: (heap, heap, heap) heap
 proof standard
-  let ?f = \<open>\<lambda>L:: ('a, 'b) ann_lit. (lit_of L, if is_decided L then None else Some (mark_of L))\<close>
+  let ?f = \<open>\<lambda>L:: ('a, 'b, 'c) annotated_lit.
+      (if is_decided L then Some (lit_dec L) else None,
+       if is_decided L then None else Some (lit_prop L), if is_decided L then None else Some (mark_of L))\<close>
+    term ?f
   have f: \<open>inj ?f\<close>
     unfolding inj_on_def Ball_def
     apply (intro allI impI)
@@ -41,9 +44,9 @@ proof standard
     by auto
   then have Hf: \<open>?f x = ?f s \<longleftrightarrow> x = s\<close> for s x
     unfolding inj_on_def Ball_def comp_def by blast
-  have \<open>OFCLASS('a literal \<times> 'b option, heap_class)\<close>
+  have \<open>OFCLASS('a option \<times> 'b option \<times> 'c option, heap_class)\<close>
    by standard
-  then obtain g :: \<open>'a literal \<times> 'b option \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
+  then obtain g :: \<open>'a option \<times> 'b option \<times> 'c option \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
     by blast
   then have H: \<open>g (x, y) = g (s, t) \<longleftrightarrow> x = s \<and> y = t\<close> for s t x y
     unfolding inj_on_def Ball_def comp_def by blast
@@ -52,9 +55,10 @@ proof standard
     apply (intro allI impI)
     apply (rename_tac x y, case_tac x; case_tac y)
     by auto
-  then show \<open>\<exists>to_nat:: ('a, 'b) ann_lit \<Rightarrow> nat. inj to_nat\<close>
+  then show \<open>\<exists>to_nat:: ('a, 'b, 'c) annotated_lit \<Rightarrow> nat. inj to_nat\<close>
     by blast
 qed
+
 
 text \<open>Some functions and types:\<close>
 abbreviation nat_lit_assn :: "nat literal \<Rightarrow> nat literal \<Rightarrow> assn" where
@@ -216,11 +220,10 @@ lemma atom_of_impl_refine[sepref_fr_rules]:
 
 sepref_decl_impl atom_of_impl: atom_of_impl_refine .
 
-
 lemma lit_of_impl_refine[sepref_fr_rules]:
   \<open>(return o lit_of_impl, RETURN o op_lit_of) \<in> nat_ann_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_assn\<close>
   unfolding op_lit_of_def lit_of_impl_def
-  by (sep_auto split: ann_lit.split)
+  by (sep_auto split: annotated_lit.splits)
 
 sepref_decl_impl lit_of_impl: atom_of_impl_refine .
 
@@ -272,8 +275,7 @@ lemma defined_lit_defined_lit_set: \<open>defined_lit M L \<longleftrightarrow> 
 
 lemma defined_lit_set_insert: \<open>defined_lit_set (insert L' M) L \<longleftrightarrow> atm_of (lit_of L') = atm_of L \<or> defined_lit_set M L\<close>
   unfolding defined_lit_set_def
-  by (metis (no_types, lifting) ann_lit.sel(1) ann_lit.sel(2) atm_of_eq_atm_of insertE insertI1
-      insertI2 literal_is_lit_of_decided)
+  by (cases L') (auto dest!: literal_is_lit_of_decided simp: atm_of_eq_atm_of)
 
 lemma defined_lit_set_nil[simp]: \<open>\<not>defined_lit_set {} L\<close>
    unfolding defined_lit_set_def by auto
@@ -1600,8 +1602,7 @@ sepref_definition decide_l_or_skip_impl is
   :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *assn twl_st_l_assn\<close>
   unfolding decide_l_or_skip_def
   unfolding lms_fold_custom_empty
-  apply sepref
-  done
+  by sepref
 
 sepref_register \<open>decide_l_or_skip :: nat twl_st_l \<Rightarrow> (bool \<times> nat twl_st_l) nres\<close>
 declare decide_l_or_skip_impl.refine[sepref_fr_rules]
