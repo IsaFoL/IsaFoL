@@ -64,5 +64,25 @@ theorem in_mset_conv_nth: "(x \<in># mset xs) = (\<exists>i<length xs. xs ! i = 
   apply auto
   using in_set_conv_nth apply metis
   done
-
+    
+theorem in_mset_sum_list:
+  assumes "L \<in># LL"
+  assumes "LL \<in> set Ci"
+  shows "L \<in># sum_list Ci"
+  using assms by (induction Ci) auto
+    
+theorem in_mset_sum_list2:
+  assumes "L \<in># sum_list Ci"
+  obtains LL where
+    "LL \<in> set Ci"
+    "L \<in># LL"
+  using assms by (induction Ci) auto
+    
+(* Not actually about multisets... *)    
+theorem "\<forall>i < length xs. P (xs ! i) \<Longrightarrow> \<forall>x \<in> set xs. P x"
+  using in_mset_conv_nth[of _ xs] by auto
+    
+    
+    
+    
 end

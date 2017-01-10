@@ -65,17 +65,16 @@ inductive
    ord_resolve:
    "length (CAi :: 'a clause list) = n \<Longrightarrow>
     length (Ci  :: 'a clause list) = n \<Longrightarrow>
-    length (Aij :: 'a multiset list) = n \<Longrightarrow> (* Skal det vaere en clause istedet?*)
+    length (Aij :: 'a multiset list) = n \<Longrightarrow> (* Maybe a clause list, would be better?*)
     length (Ai  :: 'a list) = n \<Longrightarrow>
     n \<noteq> 0 \<Longrightarrow>
     \<forall>i < n. (CAi ! i) = (Ci ! i + (poss (Aij ! i))) \<Longrightarrow>
     \<forall>i < n. Aij ! i \<noteq> {#} \<Longrightarrow>
     \<forall>i < n. (\<forall>A \<in># Aij ! i. A = Ai ! i) \<Longrightarrow>
-    eligible Ai (main_clause (D,Ai)) \<Longrightarrow>
+    eligible Ai (D + negs (mset Ai)) \<Longrightarrow>
     \<forall>i < n. str_maximal_in (Ai ! i) (Ci ! i) \<Longrightarrow>
     ord_resolve CAi (D + negs (mset Ai)) ((\<Union># (mset Ci)) + D)" 
-           (* (D + negs (mset Ai)) er faktisk "main_clause"-funktionen. Som desuden burde være curried. *)
-
+          
 lemma ord_resolve_sound:
   assumes
     res_e: "ord_resolve CAi DAi E" and
@@ -101,7 +100,7 @@ using res_e proof (cases rule: ord_resolve.cases)
     hence "\<not> I \<Turnstile> negs (mset Ai)"
       unfolding true_cls_def by fastforce
     hence "I \<Turnstile> D"
-      using d_true dai unfolding main_clause_def by fast
+      using d_true dai by fast
     then show ?thesis unfolding e by blast
   next
     case False
@@ -109,9 +108,6 @@ using res_e proof (cases rule: ord_resolve.cases)
       a_in_aa: "i < n" and
       a_false: "Ai ! i \<notin> I"
       using cs_as_len cai_len by (metis in_set_conv_nth)
-    have c_cf': "CAi ! i \<subseteq># (\<Union># (mset CAi))" (* Kind of ugly *)
-      using a_in_aa cai_len
-      by (metis nth_mem_mset subset_mset.le_iff_add sum_mset.remove)
     let ?Ai = "poss (Aij ! i)"
     have "\<not> I \<Turnstile> ?Ai" 
       using a_false a_eq cs_ne a_in_aa unfolding true_cls_def by auto
@@ -167,14 +163,13 @@ using res_e proof (cases rule: ord_resolve.cases)
       mc_max: "\<And>B. B \<in> atms_of (\<Union>#mset Ci) \<Longrightarrow> B \<le> max_A_of_Cs"
       by auto
     
-    hence "\<exists>C_max \<in> set CAi. max_A_of_Cs \<in> atms_of (C_max)"
-      using cai cai_len ci_len ai_len nz
-      by (smt atms_of_def image_iff in_Union_mset_iff in_set_conv_nth mset_subset_eqD set_mset_mset subset_mset.bot.extremum subset_mset.le_add_same_cancel1) 
+    hence "\<exists>C_max \<in> set Ci. max_A_of_Cs \<in> atms_of (C_max)"
+      by (metis atm_imp_pos_or_neg_lit in_Union_mset_iff neg_lit_in_atms_of pos_lit_in_atms_of set_mset_mset)
     then obtain max_i where
         cm_in_cas: "max_i < length CAi" and
         mc_in_cm: "max_A_of_Cs \<in> atms_of (Ci ! max_i)"
       using in_set_conv_nth[of _ CAi]
-      by (smt atms_of_def cai_len ci_len image_iff in_Union_mset_iff in_set_conv_nth mc_in set_mset_mset) 
+      by (metis cai_len ci_len in_set_conv_nth) 
     define CA_max where "CA_max = CAi ! max_i"
     define A_max where "A_max = Ai ! max_i"
     define C_max where "C_max = Ci ! max_i"
@@ -364,7 +359,7 @@ proof -
     by (simp add: \<open>\<forall>i<length Aij. \<forall>A\<in>#Aij ! i. A = Ai ! i\<close> calculation(3))
   moreover
   have "eligible Ai DAi" using s_d by auto
-  hence "eligible Ai (main_clause (D, Ai))" using D_def negs_as_le_d unfolding main_clause_def by auto 
+  hence "eligible Ai (D + negs (mset Ai))" using D_def negs_as_le_d by auto 
   moreover
   have "\<And>i. i < length Aij \<Longrightarrow> str_maximal_in (Ai ! i) ((Ci ! i))"
     by (simp add: C'_of_def Ci_def \<open>\<And>x B. \<lbrakk>production N (CA_of x) = {x}; B \<in># CA_of x; B \<noteq> Pos x\<rbrakk> \<Longrightarrow> atm_of B < x\<close> atms_of_def calculation(3) n_def prod_c0 str_maximal_in_def) 
@@ -428,15 +423,19 @@ using res_e proof (cases rule: ord_resolve.cases)
   have e: "E = \<Union>#mset Ci + D" using ord_resolve by -
   have cai: "\<forall>i<n. CAi ! i = Ci ! i + poss (Aij ! i)" using ord_resolve by -
   
-  from cai have "\<forall>i<n.  Ci ! i \<subseteq># CAi ! i" by auto
+  from cai have "\<forall>i<n. set_mset (Ci ! i) \<subseteq> set_mset (CAi ! i)" by auto
+  hence "\<forall>i<n. (Ci ! i) \<subseteq># \<Union>#(mset CAi)"
+    by (metis cai local.ord_resolve(3) mset_subset_eq_add_left nth_mem_mset sum_mset.remove union_assoc)  
+  hence "\<forall>C \<in> set Ci. C \<subseteq># \<Union>#(mset CAi)" using ord_resolve(4) in_set_conv_nth[of _ Ci] by auto
   hence "set_mset (\<Union>#(mset Ci)) \<subseteq> set_mset (\<Union>#(mset CAi))"
-    using ord_resolve(4) ord_resolve(6)
-    by (smt in_Union_mset_iff in_mset_conv_nth local.ord_resolve(3) mset_subset_eqD subsetI) 
+    by auto (meson in_mset_sum_list2 mset_subset_eqD) 
   hence "atms_of (\<Union>#mset Ci) \<subseteq> atms_of (\<Union>#mset CAi)" 
     by (meson lits_subseteq_imp_atms_subseteq mset_subset_eqD subsetI)
   moreover    
   have "atms_of (\<Union>#mset CAi) = (\<Union>C\<in>set CAi. atms_of C)"
-    by auto (smt atms_of_def image_iff in_Union_mset_iff set_mset_mset sum_mset_sum_list)+
+    apply auto
+    apply (metis (no_types, lifting) in_mset_sum_list in_mset_sum_list2 atm_imp_pos_or_neg_lit neg_lit_in_atms_of pos_lit_in_atms_of)+
+    done
   ultimately
   have "atms_of (\<Union>#mset Ci) \<subseteq> (\<Union>C\<in>set CAi. atms_of C)" by auto
   moreover

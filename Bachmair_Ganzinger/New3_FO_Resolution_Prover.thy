@@ -87,7 +87,7 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
    \<forall>i < n. (CAi ! i) = (Ci ! i + (poss (Aij ! i))) \<Longrightarrow>
    \<forall>i < n. Aij ! i \<noteq> {#} \<Longrightarrow>
    \<forall>i < n. (\<forall>A \<in># Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>) \<Longrightarrow>
-   eligible \<sigma> Ai (main_clause (D,Ai)) \<Longrightarrow>
+   eligible \<sigma> Ai (D + negs (mset Ai)) \<Longrightarrow>
    \<forall>i. i < n \<longrightarrow> str_maximal_in (Ai ! i \<cdot>a \<sigma>) ((Ci ! i) \<cdot> \<sigma>) \<Longrightarrow>
    \<forall>C \<in> set CAi. S C = {#} \<Longrightarrow> (* Use the ! style instead maybe, or maybe us the \<forall>\<in>. style above *)
    ord_resolve CAi (D + negs (mset Ai)) (((\<Union># (mset Ci)) + D) \<cdot> \<sigma>)"
@@ -345,13 +345,11 @@ lemma ord_resolve_lifting:
   and selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
   and M_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> C \<cdot> \<rho> \<in> M \<longleftrightarrow> C \<in> M"
   and grounding: "{D, E} \<union> (set CC) \<subseteq> grounding_of_clss M"
-    (* try to get rid of set_mset *)
   obtains \<sigma> CC' D' E' where
     "is_ground_subst \<sigma>"
     "ord_resolve_rename S CC' D' E'" (* maybe without rename *)
     "CC = CC' \<cdot>cl \<sigma>" "D = D' \<cdot> \<sigma>" "E = E' \<cdot> \<sigma>"
     "{D', E'} \<union> (set (CC')) \<subseteq> M"
-      (* try to get rid of set_mset *)
   sorry
 
 end
