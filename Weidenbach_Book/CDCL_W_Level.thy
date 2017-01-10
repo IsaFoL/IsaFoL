@@ -6,7 +6,7 @@ subsubsection \<open>Level of literals and clauses\<close>
 text \<open>Getting the level of a variable, implies that the list has to be reversed. Here is the
   function after reversing.\<close>
 
-definition count_decided :: "('v, 'm) ann_lits \<Rightarrow> nat" where
+definition count_decided :: "('v, 'ann, 'b, 'm) annotated_lit list \<Rightarrow> nat" where
 "count_decided l = length (filter is_decided l)"
 
 definition get_level :: "('v, 'm) ann_lits \<Rightarrow> 'v literal \<Rightarrow> nat" where
