@@ -254,7 +254,7 @@ proof (induction "trail T" arbitrary: T rule: ann_lit_list_induct)
   case Nil
   then show ?case by simp
 next
-  case (Decided L ann M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric]
+  case (Decided L M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric]
     and bt = this(3)
   show ?case
     proof (cases "count C (-L) = 0")

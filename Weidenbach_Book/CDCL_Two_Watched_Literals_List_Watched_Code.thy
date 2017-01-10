@@ -24,10 +24,10 @@ proof standard
     by blast
 qed
 
-instance annotated_lit :: (heap, heap, heap, heap) heap
+instance annotated_lit :: (heap, heap, heap) heap
 proof standard
-  let ?f = \<open>\<lambda>L:: ('a, 'b, 'c, 'd) annotated_lit.
-      (if is_decided L then Some (lit_dec L) else None, if is_decided L then Some (ann_of L) else None,
+  let ?f = \<open>\<lambda>L:: ('a, 'b, 'c) annotated_lit.
+      (if is_decided L then Some (lit_dec L) else None,
        if is_decided L then None else Some (lit_prop L), if is_decided L then None else Some (mark_of L))\<close>
     term ?f
   have f: \<open>inj ?f\<close>
@@ -37,9 +37,9 @@ proof standard
     by auto
   then have Hf: \<open>?f x = ?f s \<longleftrightarrow> x = s\<close> for s x
     unfolding inj_on_def Ball_def comp_def by blast
-  have \<open>OFCLASS('a option \<times> 'b option \<times> 'c option \<times> 'd option, heap_class)\<close>
+  have \<open>OFCLASS('a option \<times> 'b option \<times> 'c option, heap_class)\<close>
    by standard
-  then obtain g :: \<open>'a option \<times> 'b option \<times> 'c option \<times> 'd option \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
+  then obtain g :: \<open>'a option \<times> 'b option \<times> 'c option \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
     by blast
   then have H: \<open>g (x, y) = g (s, t) \<longleftrightarrow> x = s \<and> y = t\<close> for s t x y
     unfolding inj_on_def Ball_def comp_def by blast
@@ -48,7 +48,7 @@ proof standard
     apply (intro allI impI)
     apply (rename_tac x y, case_tac x; case_tac y)
     by auto
-  then show \<open>\<exists>to_nat:: ('a, 'b, 'c, 'd) annotated_lit \<Rightarrow> nat. inj to_nat\<close>
+  then show \<open>\<exists>to_nat:: ('a, 'b, 'c) annotated_lit \<Rightarrow> nat. inj to_nat\<close>
     by blast
 qed
 

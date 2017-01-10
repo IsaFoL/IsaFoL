@@ -4,7 +4,7 @@ begin
 
 section \<open>A CDCL variant\<close>
 
-type_synonym ('v, 'mark) ann_bat = \<open>('v literal list, unit, 'v literal, 'mark) annotated_lit\<close>
+type_synonym ('v, 'mark) ann_bat = \<open>('v literal list, 'v literal, 'mark) annotated_lit\<close>
 type_synonym ('v, 'mark) ann_bats = \<open>('v, 'mark) ann_bat list\<close>
 type_synonym 'v bat = \<open>'v literal list multiset\<close>
 type_synonym 'v bats = \<open>'v bat list\<close>
@@ -38,7 +38,7 @@ definition additional_info\<^sub>T :: "'st \<Rightarrow> 'b" where
 fun lits_of_bats :: \<open>('v, 'v clause) ann_bats \<Rightarrow> ('v, 'v clause) ann_lits\<close> where
   \<open>lits_of_bats [] = []\<close>
 | \<open>lits_of_bats (Propagated L C # M) = Propagated L C # lits_of_bats M\<close>
-| \<open>lits_of_bats (Decision Ls _ # M) = map Decided Ls @ lits_of_bats M\<close>
+| \<open>lits_of_bats (Decided Ls # M) = map Decided Ls @ lits_of_bats M\<close>
 
 fun trail\<^sub>W :: \<open>'st \<Rightarrow> ('v, 'v clause) ann_lits\<close> where
   \<open>trail\<^sub>W S = lits_of_bats (trail\<^sub>T S)\<close>
@@ -48,7 +48,7 @@ definition state\<^sub>W :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times>
 "state\<^sub>W S \<equiv> (trail\<^sub>W S, init_clss S, learned_clss S, conflicting S, bats S, additional_info\<^sub>T S)"
 
 fun cons_trail\<^sub>W where
-  \<open>cons_trail\<^sub>W (Decided L) S = cons_trail\<^sub>T (Decision [L] ()) S\<close>
+  \<open>cons_trail\<^sub>W (Decided L) S = cons_trail\<^sub>T (Decided [L]) S\<close>
 | \<open>cons_trail\<^sub>W (Propagated L C) S = cons_trail\<^sub>T (Propagated L C) S\<close>
 
 sublocale state\<^sub>W_ops where
@@ -472,14 +472,14 @@ lemma in_get_all_ann_decomposition_trail\<^sub>T_update_trail\<^sub>T[simp]:
   assumes H: "(L # M1, M2) \<in> set (get_all_ann_decomposition (trail\<^sub>T S))"
   shows "trail\<^sub>T (reduce_trail\<^sub>T_to M1 S) = M1"
 proof -
-  obtain K ann where
-    L: "L = Decision K ann"
+  obtain K where
+    L: "L = Decided K"
     using H by (cases L) (auto dest!: in_get_all_ann_decomposition_decided_or_empty)
   obtain c where
     tr_S: "trail\<^sub>T S = c @ M2 @ L # M1"
     using H by auto
   show ?thesis
-    by (rule reduce_trail\<^sub>T_to_trail\<^sub>T_tl_trail\<^sub>T_decomp[of _ "c @ M2" K]) (auto simp: tr_S L)
+    by (rule reduce_trail\<^sub>T_to_trail\<^sub>T_tl_trail\<^sub>T_decomp[of _ "c @ M2" _ K]) (auto simp: tr_S L)
 qed
 
 lemma reduce_trail\<^sub>T_to_state_eq:

@@ -13,24 +13,24 @@ begin
 
 subsection \<open>Decided Literals\<close>
 subsubsection \<open>Definition\<close>
-datatype ('v, 'ann, 'w, 'mark) annotated_lit =
-  is_decided: Decision (lit_dec: 'v) (ann_of: 'ann) |
+datatype ('v, 'w, 'mark) annotated_lit =
+  is_decided: Decided (lit_dec: 'v) |
   is_proped: Propagated (lit_prop: 'w) (mark_of: 'mark)
 
-type_synonym ('v, 'ann, 'w, 'mark) annotated_lits = \<open>('v, 'ann, 'w, 'mark) annotated_lit list\<close>
-type_synonym ('v, 'mark) ann_lit = \<open>('v literal, unit, 'v literal, 'mark) annotated_lit\<close>
+type_synonym ('v, 'w, 'mark) annotated_lits = \<open>('v, 'w, 'mark) annotated_lit list\<close>
+type_synonym ('v, 'mark) ann_lit = \<open>('v literal, 'v literal, 'mark) annotated_lit\<close>
 
 lemma ann_lit_list_induct[case_names Nil Decided Propagated]:
   assumes
     \<open>P []\<close> and
-    \<open>\<And>L ann xs. P xs \<Longrightarrow> P (Decision L ann # xs)\<close> and
+    \<open>\<And>L xs. P xs \<Longrightarrow> P (Decided L # xs)\<close> and
     \<open>\<And>L m xs. P xs \<Longrightarrow> P (Propagated L m # xs)\<close>
   shows \<open>P xs\<close>
   using assms apply (induction xs, simp)
   by (rename_tac a xs, case_tac a) auto
 
 lemma is_decided_ex_Decided:
-  \<open>is_decided L \<Longrightarrow> (\<And>K ann. L = Decision K ann \<Longrightarrow> P) \<Longrightarrow> P\<close>
+  \<open>is_decided L \<Longrightarrow> (\<And>K. L = Decided K \<Longrightarrow> P) \<Longrightarrow> P\<close>
   by (cases L) auto
 
 lemma is_decided_no_proped_iff: \<open>is_decided L \<longleftrightarrow> \<not>is_proped L\<close>
@@ -38,8 +38,8 @@ lemma is_decided_no_proped_iff: \<open>is_decided L \<longleftrightarrow> \<not>
 
 type_synonym ('v, 'm) ann_lits = \<open>('v, 'm) ann_lit list\<close>
 
-fun lit_of :: \<open>('a, 'ann, 'a, 'mark) annotated_lit \<Rightarrow> 'a\<close> where
-  \<open>lit_of (Decision L _) = L\<close> |
+fun lit_of :: \<open>('a, 'a, 'mark) annotated_lit \<Rightarrow> 'a\<close> where
+  \<open>lit_of (Decided L) = L\<close> |
   \<open>lit_of (Propagated L _) = L\<close>
 
 definition lits_of :: \<open>('a, 'b) ann_lit set \<Rightarrow> 'a literal set\<close> where
@@ -163,9 +163,6 @@ lemma true_annots_true_clss_cls:
     simp add: true_clss_def true_annots_def true_annot_def lits_of_def true_cls_def
     true_clss_clss_def)
 
-abbreviation Decided ::  "'a literal \<Rightarrow> ('a, 'b) ann_lit" where
-  \<open>Decided L \<equiv> Decision L ()\<close>
-
 lemma true_annots_decided_true_cls[iff]:
   \<open>map Decided M \<Turnstile>as N \<longleftrightarrow> set M \<Turnstile>s N\<close>
 proof -
@@ -207,12 +204,12 @@ text \<open>We introduce the functions @{term defined_lit} and @{term undefined_
 
   Remark that @{term undefined} already exists and is a completely different Isabelle function.
   \<close>
-definition defined_lit :: \<open>('a literal, 'ann, 'a literal, 'm) annotated_lits \<Rightarrow> 'a literal \<Rightarrow> bool\<close>
+definition defined_lit :: \<open>('a literal, 'a literal, 'm) annotated_lits \<Rightarrow> 'a literal \<Rightarrow> bool\<close>
   where
-\<open>defined_lit I L \<longleftrightarrow> (\<exists>P. Decision L P \<in> set I) \<or> (\<exists>P. Propagated L P \<in> set I)
-  \<or> (\<exists>P. Decision (-L) P \<in> set I) \<or> (\<exists>P. Propagated (-L) P \<in> set I)\<close>
+\<open>defined_lit I L \<longleftrightarrow> (Decided L \<in> set I) \<or> (\<exists>P. Propagated L P \<in> set I)
+  \<or> (Decided (-L) \<in> set I) \<or> (\<exists>P. Propagated (-L) P \<in> set I)\<close>
 
-abbreviation undefined_lit :: \<open>('a literal, 'ann, 'a literal, 'm) annotated_lits \<Rightarrow> 'a literal \<Rightarrow> bool\<close>
+abbreviation undefined_lit :: \<open>('a literal, 'a literal, 'm) annotated_lits \<Rightarrow> 'a literal \<Rightarrow> bool\<close>
 where \<open>undefined_lit I L \<equiv> \<not>defined_lit I L\<close>
 
 lemma defined_lit_rev[simp]:
@@ -222,8 +219,8 @@ lemma defined_lit_rev[simp]:
 lemma atm_imp_decided_or_proped:
   assumes \<open>x \<in> set I\<close>
   shows
-    \<open>(\<exists>l. Decision (- lit_of x) l \<in> set I)
-    \<or> (\<exists>l. Decision (lit_of x) l \<in> set I)
+    \<open>(Decided (- lit_of x) \<in> set I)
+    \<or> (Decided (lit_of x) \<in> set I)
     \<or> (\<exists>l. Propagated (- lit_of x) l \<in> set I)
     \<or> (\<exists>l. Propagated (lit_of x) l \<in> set I)\<close>
   using assms by (metis (full_types) lit_of.elims)
@@ -293,11 +290,11 @@ lemma in_lits_of_l_defined_litD: \<open>L_max \<in> lits_of_l M \<Longrightarrow
 
 subsection \<open>Backtracking\<close>
 
-fun backtrack_split :: \<open>('a, 'ann, 'v, 'm) annotated_lits
-  \<Rightarrow> ('a, 'ann, 'v, 'm) annotated_lits \<times> ('a, 'ann, 'v, 'm) annotated_lits\<close> where
+fun backtrack_split :: \<open>('a, 'v, 'm) annotated_lits
+  \<Rightarrow> ('a, 'v, 'm) annotated_lits \<times> ('a, 'v, 'm) annotated_lits\<close> where
 \<open>backtrack_split [] = ([], [])\<close> |
 \<open>backtrack_split (Propagated L P # mlits) = apfst ((op #) (Propagated L P)) (backtrack_split mlits)\<close> |
-\<open>backtrack_split (Decision L ann # mlits) = ([], Decision L ann # mlits)\<close>
+\<open>backtrack_split (Decided L # mlits) = ([], Decided L # mlits)\<close>
 
 lemma backtrack_split_fst_not_decided: \<open>a \<in> set (fst (backtrack_split l)) \<Longrightarrow> \<not>is_decided a\<close>
   by (induct l rule: ann_lit_list_induct) auto
@@ -337,10 +334,10 @@ Split function in 2 + list.product
 *)
 text \<open>The pattern @{term \<open>get_all_ann_decomposition [] = [([], [])]\<close>} is necessary otherwise, we
   can call the @{term hd} function in the other pattern. \<close>
-fun get_all_ann_decomposition :: \<open>('a, 'ann, 'b, 'm) annotated_lits
-  \<Rightarrow> (('a, 'ann, 'b, 'm) annotated_lits \<times> ('a, 'ann, 'b, 'm) annotated_lits) list\<close> where
-\<open>get_all_ann_decomposition (Decision L ann # Ls) =
-  (Decision L ann # Ls, []) # get_all_ann_decomposition Ls\<close> |
+fun get_all_ann_decomposition :: \<open>('a, 'b, 'm) annotated_lits
+  \<Rightarrow> (('a, 'b, 'm) annotated_lits \<times> ('a, 'b, 'm) annotated_lits) list\<close> where
+\<open>get_all_ann_decomposition (Decided L # Ls) =
+  (Decided L # Ls, []) # get_all_ann_decomposition Ls\<close> |
 \<open>get_all_ann_decomposition (Propagated L P# Ls) =
   (apsnd ((op #) (Propagated L P)) (hd (get_all_ann_decomposition Ls)))
     # tl (get_all_ann_decomposition Ls)\<close> |
@@ -520,7 +517,7 @@ proof (induct Ls arbitrary: M C M0 M0' l)
 next
   case (Cons a Ls M C M0 M0' l) note IH = this(1) and g = this(2)
   { fix L ann level
-    assume a: \<open>a = Decision L ann\<close>
+    assume a: \<open>a = Decided L\<close>
     have \<open>Ls = M0' @ M0\<close>
       using g a by (force intro: get_all_ann_decomposition_decomp)
     then have \<open>tl M = M0' @ M0 \<and> is_decided (hd M)\<close> using g a by auto
@@ -592,9 +589,9 @@ proof (induct M rule: ann_lit_list_induct)
   case Nil
   then show ?case by simp
 next
-  case (Decided L ann M) note IH = this(1)
-  then have \<open>Decision L ann \<in> ?Ls (Decision L ann # M)\<close> by auto
-  moreover have \<open>?U (Decision L ann # M) = ?U M\<close> by auto
+  case (Decided L M) note IH = this(1)
+  then have \<open>Decided L \<in> ?Ls (Decided L # M)\<close> by auto
+  moreover have \<open>?U (Decided L # M) = ?U M\<close> by auto
   moreover have \<open>?M M = ?U M \<union> ?Ls M\<close> using IH by auto
   ultimately show ?case by auto
 next

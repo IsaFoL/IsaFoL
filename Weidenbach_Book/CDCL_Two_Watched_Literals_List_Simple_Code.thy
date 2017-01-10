@@ -31,10 +31,10 @@ proof standard
     by blast
 qed
 
-instance annotated_lit :: (heap, heap, heap, heap) heap
+instance annotated_lit :: (heap, heap, heap) heap
 proof standard
-  let ?f = \<open>\<lambda>L:: ('a, 'b, 'c, 'd) annotated_lit.
-      (if is_decided L then Some (lit_dec L) else None, if is_decided L then Some (ann_of L) else None,
+  let ?f = \<open>\<lambda>L:: ('a, 'b, 'c) annotated_lit.
+      (if is_decided L then Some (lit_dec L) else None,
        if is_decided L then None else Some (lit_prop L), if is_decided L then None else Some (mark_of L))\<close>
     term ?f
   have f: \<open>inj ?f\<close>
@@ -44,9 +44,9 @@ proof standard
     by auto
   then have Hf: \<open>?f x = ?f s \<longleftrightarrow> x = s\<close> for s x
     unfolding inj_on_def Ball_def comp_def by blast
-  have \<open>OFCLASS('a option \<times> 'b option \<times> 'c option \<times> 'd option, heap_class)\<close>
+  have \<open>OFCLASS('a option \<times> 'b option \<times> 'c option, heap_class)\<close>
    by standard
-  then obtain g :: \<open>'a option \<times> 'b option \<times> 'c option \<times> 'd option \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
+  then obtain g :: \<open>'a option \<times> 'b option \<times> 'c option \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
     by blast
   then have H: \<open>g (x, y) = g (s, t) \<longleftrightarrow> x = s \<and> y = t\<close> for s t x y
     unfolding inj_on_def Ball_def comp_def by blast
@@ -55,12 +55,10 @@ proof standard
     apply (intro allI impI)
     apply (rename_tac x y, case_tac x; case_tac y)
     by auto
-  then show \<open>\<exists>to_nat:: ('a, 'b, 'c, 'd) annotated_lit \<Rightarrow> nat. inj to_nat\<close>
+  then show \<open>\<exists>to_nat:: ('a, 'b, 'c) annotated_lit \<Rightarrow> nat. inj to_nat\<close>
     by blast
 qed
 
-definition Decided2 where
-  \<open>Decided2 L = Decision L ()\<close>
 
 text \<open>Some functions and types:\<close>
 abbreviation nat_lit_assn :: "nat literal \<Rightarrow> nat literal \<Rightarrow> assn" where
@@ -222,23 +220,10 @@ lemma atom_of_impl_refine[sepref_fr_rules]:
 
 sepref_decl_impl atom_of_impl: atom_of_impl_refine .
 
-lemma ann_lit_cases: \<open>(\<And>x. a = Decided x \<Longrightarrow> P) \<Longrightarrow> (\<And>x m. a = Propagated x m \<Longrightarrow> P) \<Longrightarrow> P\<close>
-  by(cases a) auto
-
-lemma case_unit: \<open>() \<equiv> M' \<Longrightarrow> case () of () \<Rightarrow> x \<equiv> case M' of () \<Rightarrow> x \<close>
-  by auto
-
-lemma case_annotated_lit: \<open>
-    annotated_lit \<equiv> annotated_lit' \<Longrightarrow>
-    case annotated_lit of Decision x xa \<Rightarrow> f10 x xa | Propagated x xa \<Rightarrow> f20 x xa \<equiv>
-    case annotated_lit' of Decision x xa \<Rightarrow> f10 x xa | Propagated x xa \<Rightarrow> f20 x xa\<close>
-  by auto
 lemma lit_of_impl_refine[sepref_fr_rules]:
   \<open>(return o lit_of_impl, RETURN o op_lit_of) \<in> nat_ann_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_assn\<close>
   unfolding op_lit_of_def lit_of_impl_def
-  apply (sep_auto split: (* annotated_lit.splits *)) -- \<open>TODO tune\<close>
-  apply (case_tac a rule: ann_lit_cases)
-  by (auto cong del: case_annotated_lit case_unit)
+  by (sep_auto split: annotated_lit.splits)
 
 sepref_decl_impl lit_of_impl: atom_of_impl_refine .
 
@@ -1617,13 +1602,7 @@ sepref_definition decide_l_or_skip_impl is
   :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *assn twl_st_l_assn\<close>
   unfolding decide_l_or_skip_def
   unfolding lms_fold_custom_empty
-  apply sepref
-  apply sepref_dbg_keep
-      supply [[goals_limit=1]] -- \<open>There will be many subgoals during translation, and printing them takes very long with Isabelle :(\<close>
-  apply sepref_dbg_trans_keep
-                      apply sepref_dbg_trans_step_keep
-      apply (sepref_dbg_side_keep)
-  done
+  by sepref
 
 sepref_register \<open>decide_l_or_skip :: nat twl_st_l \<Rightarrow> (bool \<times> nat twl_st_l) nres\<close>
 declare decide_l_or_skip_impl.refine[sepref_fr_rules]

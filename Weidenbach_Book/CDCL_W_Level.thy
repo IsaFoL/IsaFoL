@@ -6,7 +6,7 @@ subsubsection \<open>Level of literals and clauses\<close>
 text \<open>Getting the level of a variable, implies that the list has to be reversed. Here is the
   function after reversing.\<close>
 
-definition count_decided :: "('v, 'ann, 'b, 'm) annotated_lit list \<Rightarrow> nat" where
+definition count_decided :: "('v, 'b, 'm) annotated_lit list \<Rightarrow> nat" where
 "count_decided l = length (filter is_decided l)"
 
 definition get_level :: "('v, 'm) ann_lits \<Rightarrow> 'v literal \<Rightarrow> nat" where
@@ -205,7 +205,7 @@ next
       case Nil
       then show ?case by simp
     next
-      case (Decided L ann M) note IH = this(1) and i = this(2) and n_d = this(3)
+      case (Decided L M) note IH = this(1) and i = this(2) and n_d = this(3)
       then have n_d_M: "no_dup M" by simp
       show ?case
         proof (cases "i < count_decided M")
