@@ -76,6 +76,16 @@ inductive eligible :: "'s \<Rightarrow> 'a list \<Rightarrow> 'a clause \<Righta
      \<and> maximal_in ((Ai ! 0) \<cdot>a \<sigma>) (DAi \<cdot> \<sigma>)
    )
    \<Longrightarrow> eligible \<sigma> Ai DAi"
+  
+lemma eligible_simp:
+  " eligible \<sigma> Ai DAi \<longleftrightarrow> (S DAi = negs (mset Ai) 
+   \<or> 
+   (
+     S DAi = {#} 
+     \<and> length Ai = 1 
+     \<and> maximal_in ((Ai ! 0) \<cdot>a \<sigma>) (DAi \<cdot> \<sigma>)
+   ))"
+  using eligible.simps by blast
 
 inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve:
@@ -91,6 +101,7 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
    \<forall>i. i < n \<longrightarrow> str_maximal_in (Ai ! i \<cdot>a \<sigma>) ((Ci ! i) \<cdot> \<sigma>) \<Longrightarrow>
    \<forall>C \<in> set CAi. S C = {#} \<Longrightarrow> (* Use the ! style instead maybe, or maybe us the \<forall>\<in>. style above *)
    ord_resolve CAi (D + negs (mset Ai)) (((\<Union># (mset Ci)) + D) \<cdot> \<sigma>)"
+  (* Du har glemt at det skal være en MGU!1111111 *)
 
 inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve_rename:
@@ -341,18 +352,114 @@ lemma (in linorder) multiset_mset_sorted_list_of_multiset[simp]:
   "mset (sorted_list_of_multiset M) = M"
   by (induct M) (simp_all add: ac_simps)
 
-lemma ord_resolve_lifting:
-  assumes resolve: "ord_resolve_rename (S_M S M) CC D E"
-  and select: "selection S"
-  and selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
-  and M_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> C \<cdot> \<rho> \<in> M \<longleftrightarrow> C \<in> M"
-  and grounding: "{D, E} \<union> (set CC) \<subseteq> grounding_of_clss M"
+lemma ord_resolve_lifting: (* The CC should be CAi probably *)
+  assumes resolve: "ord_resolve (S_M S M) CC DAi E"
+    and select: "selection S"
+    and selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
+    and M_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> C \<cdot> \<rho> \<in> M \<longleftrightarrow> C \<in> M"
+    and grounding: "{DAi, E} \<union> (set CC) \<subseteq> grounding_of_clss M"
   obtains \<sigma> CC' D' E' where
     "is_ground_subst \<sigma>"
-    "ord_resolve_rename S CC' D' E'" (* maybe without rename *)
-    "CC = CC' \<cdot>cl \<sigma>" "D = D' \<cdot> \<sigma>" "E = E' \<cdot> \<sigma>"
+    "ord_resolve_rename S CC' D' E'" 
+    "CC = CC' \<cdot>cl \<sigma>" "DAi = D' \<cdot> \<sigma>" "E = E' \<cdot> \<sigma>"
     "{D', E'} \<union> (set (CC')) \<subseteq> M"
-  sorry
+  using resolve proof ((*atomize_elim, *)cases rule: ord_resolve.cases)
+  case (ord_resolve n Ci Aij Ai \<tau> D)
+    
+  interpret S: selection S by (rule select)
+      
+      (* 2. Choose the D' and the C' *)
+  obtain DAi' \<sigma>D where pickD: "DAi' \<in> M" "DAi = DAi' \<cdot> \<sigma>D" "S_M S M DAi = S DAi' \<cdot> \<sigma>D"
+    and ground_\<sigma>D: "is_ground_subst \<sigma>D"
+    using S_M_grounding_of_clss[OF select, of D M thesis] grounding sorry
+      
+  obtain CC' \<sigma>CC where "length CC' = n" "length \<sigma>CC = n"
+    "\<forall>i < n. CC' ! i \<in> M" 
+    "\<forall>i < n. CC ! i = CC' ! i \<cdot> \<sigma>CC ! i"
+    "\<forall>i < n. S_M S M (CC ! i) = S (CC' ! i) \<cdot> (\<sigma>CC ! i)"
+    "\<forall>i < n. is_ground_subst (\<sigma>CC ! i)"
+    sorry
+      
+      (* 3. Standardize all D' and all C' apart *)  
+  obtain DAi'' \<rho>D CC'' \<rho>CC where std_apart:
+    "is_renaming \<rho>D"
+    "DAi'' \<cdot> \<rho>D = DAi'"
+    "length \<rho>CC = n"
+    "\<forall>i < n. is_renaming (\<rho>CC ! i)"
+    "CC'' \<cdot>\<cdot>cl \<rho>CC = CC'"
+    "var_disjoint (DAi''#CC'')"
+    sorry
+      
+      (* 4. Show instance of and choose a substitution *)
+  have "DAi'' \<cdot> (\<rho>D \<odot> \<sigma>D) = DAi"
+    sorry
+  moreover
+  have "CC'' \<cdot>\<cdot>cl (\<rho>CC \<odot>s \<sigma>CC) = CC"
+    sorry
+  ultimately
+  obtain \<mu> where "DAi'' \<cdot> \<mu> = DAi" "CC'' \<cdot>cl \<mu> = CC" using std_apart sorry
+  
+      
+      (* 5. Do the actual lifting *)
+  define Ci'' where "Ci'' = Ci \<cdot>cl \<mu>"
+  define D'' where "(D'' :: 'a clause) = undefined"
+  define s\<mu> where "(s\<mu> :: 'a multiset list \<Rightarrow> 'a multiset list) = undefined"
+  define Aij'' where "(Aij'' :: 'a multiset list) = s\<mu> Aij" (* Aij \<cdot> \<mu> *)
+  define Ai'' where "Ai'' = Ai \<cdot>al \<mu>"
+  define \<tau>'' where "\<tau>'' = \<mu> \<odot> \<tau>"
+  
+  define E'' where "E'' = (\<Union>#mset Ci'' + D'') \<cdot> \<tau>''"
+  
+  have dai'': "DAi'' = D'' + negs (mset Ai'')" sorry
+      
+  have "length CC'' = n"
+    using \<open>CC'' \<cdot>cl \<mu> = CC\<close> local.ord_resolve(3) by auto
+  moreover
+  have "length Ci'' = n"
+    by (simp add: Ci''_def local.ord_resolve(4)) 
+  moreover
+  have "length Aij'' = n" sorry (* OK *)
+  moreover
+  have "length Ai'' = n"
+    by (simp add: Ai''_def local.ord_resolve(6)) 
+  moreover
+  have "n \<noteq> 0"
+    by (simp add: local.ord_resolve(7)) 
+  moreover
+  have "\<forall>i<n. CC'' ! i = Ci'' ! i + poss (Aij'' ! i)" sorry (* OK *)
+  moreover
+  have "\<forall>i<n. Aij'' ! i \<noteq> {#}" sorry (* OK *)
+  moreover
+  have "\<forall>i<n. \<forall>A\<in>#Aij ! i. A \<cdot>a \<tau> = Ai ! i \<cdot>a \<tau>"
+    using ord_resolve by -
+  have "\<forall>i<n. \<forall>A\<in>#Aij'' ! i. A \<cdot>a \<tau>'' = Ai'' ! i \<cdot>a \<tau>''" unfolding Aij''_def Ai''_def \<tau>''_def sorry
+  have "\<forall>i<n. \<forall>A\<in>#Aij'' ! i. A \<cdot>a \<tau>'' = Ai'' ! i \<cdot>a \<tau>''" sorry
+  moreover
+  have "(S DAi'') \<cdot> \<rho>D = S DAi" sorry (* Or maybe (probably not) \<mu> which gives same effect *)
+  have "eligible (S_M S M) \<tau> Ai (D + negs (mset Ai))" using ord_resolve by -
+  then have "eligible S \<tau>'' Ai'' (D'' + negs (mset Ai''))" unfolding eligible_simp sorry
+      (* The same is selected in DAi' by choice of DAi' and thus also in DAi'' by invariant *)
+      (* Det med maximal ser ogsaa ud til at passe -- se papir*)
+  moreover
+  have "\<forall>i<n. str_maximal_in (Ai'' ! i \<cdot>a \<tau>'') (Ci'' ! i \<cdot> \<tau>'')" sorry
+      (* Holder sandsynligvis også med et argument of maximal*)
+  moreover
+  have "\<forall>C\<in>set CC''. S C = {#}" sorry
+      (* The same is selected in CC' by choise of CC' and thus also in CC'' by invariant *)
+  ultimately
+  have "ord_resolve S CC'' DAi'' E''" 
+    unfolding E''_def dai''
+    using ord_resolve.intros[of CC'' n Ci'' Aij'' Ai'' \<tau>'' S D''] by auto
+      
+  show ?thesis sorry
+qed
+  
+  
+  
+  
+  
+qed
+  
 
 end
 
