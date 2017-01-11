@@ -6,6 +6,7 @@ text \<open>Sledgehammer parameters\<close>
 sledgehammer_params[debug]
 
 section \<open>Various Lemmas\<close>
+
 text \<open>Close to the theorem @{thm [source] nat_less_induct} (@{thm nat_less_induct}), but with a
   separation between the zero and non-zero case.\<close>
 thm nat_less_induct
@@ -512,4 +513,50 @@ lemma distinct_mset_mset_set: \<open>distinct_mset (mset_set A)\<close>
 lemma distinct_mset_set_distinct: \<open>distinct_mset_set (mset ` set Cs) \<longleftrightarrow> (\<forall>c\<in> set Cs. distinct c)\<close>
   unfolding distinct_mset_set_def by auto
 
+
+subsection \<open>Product Case\<close>
+
+text \<open>The splitting of tuples is done for sizes strictly less than 8. As we want to manipulate 
+  tuples for size 8, here is some more setup for sizes up to 12.\<close>
+
+lemma prod_cases8 [cases type]:
+  obtains (fields) a b c d e f g h where "y = (a, b, c, d, e, f, g, h)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct8 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h. P (a, b, c, d, e, f, g, h)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases9 [cases type]:
+  obtains (fields) a b c d e f g h i where "y = (a, b, c, d, e, f, g, h, i)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct9 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i. P (a, b, c, d, e, f, g, h, i)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases10 [cases type]:
+  obtains (fields) a b c d e f g h i j where "y = (a, b, c, d, e, f, g, h, i, j)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct10 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j. P (a, b, c, d, e, f, g, h, i, j)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases11 [cases type]:
+  obtains (fields) a b c d e f g h i j k where "y = (a, b, c, d, e, f, g, h, i, j, k)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct11 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k. P (a, b, c, d, e, f, g, h, i, j, k)) \<Longrightarrow> P x"
+  by (cases x) blast
+
+lemma prod_cases12 [cases type]:
+  obtains (fields) a b c d e f g h i j k l where "y = (a, b, c, d, e, f, g, h, i, j, k, l)"
+  by (cases y, cases \<open>snd y\<close>) auto
+
+lemma prod_induct12 [case_names fields, induct type]:
+  "(\<And>a b c d e f g h i j k l. P (a, b, c, d, e, f, g, h, i, j, k, l)) \<Longrightarrow> P x"
+  by (cases x) blast
+    
 end

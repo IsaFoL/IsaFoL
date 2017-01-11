@@ -487,7 +487,7 @@ lemma do_backtrack_step:
 
     obtain L j where fd: "find_level_decomp M C [] (count_decided M) = Some (L, j)"
       using db unfolding S E by (cases C) (auto split: if_split_asm option.splits list.splits
-        ann_lit.splits)
+        annotated_lit.splits)
     have
       "L \<in> set C" and
       j: "get_maximum_level M (mset (remove1 L C)) = j" and
@@ -508,7 +508,7 @@ lemma do_backtrack_step:
       by (metis (mono_tags, lifting) count_decided_ge_get_maximum_level)
     have max_l_j: "maximum_level_code C' M = j"
       using db fd M2 C unfolding S E by (auto
-          split: option.splits list.splits ann_lit.splits
+          split: option.splits list.splits annotated_lit.splits
           dest!: find_level_decomp_some)[1]
     have "get_maximum_level M (mset C) \<ge> count_decided M"
       using \<open>L \<in> set C\<close> levL get_maximum_level_ge_get_level by (metis set_mset_mset)
@@ -920,8 +920,11 @@ lemma raw_conflicting_do_decide_step_iff[iff]:
 
 lemma raw_conflicting_do_backtrack_step_imp[simp]:
   "do_backtrack_step S \<noteq> S \<Longrightarrow> raw_conflicting (do_backtrack_step S) = None"
-  by (cases S rule: do_backtrack_step.cases)
-     (auto simp add: Let_def split: list.splits option.splits ann_lit.splits)
+  apply (cases S rule: do_backtrack_step.cases)
+   apply (auto simp add: Let_def split: option.splits list.splits
+      (*   annotated_lit.split *)) -- \<open>TODO splitting should solve the goal\<close>
+  apply (rename_tac dec tr)
+  by (case_tac dec) auto
 
 lemma do_skip_step_eq_iff_raw_trail_eq:
   "do_skip_step S = S \<longleftrightarrow> raw_trail (do_skip_step S) = raw_trail S"
@@ -935,9 +938,12 @@ lemma do_backtrack_step_eq_iff_raw_trail_eq:
   assumes "no_dup (raw_trail S)"
   shows "do_backtrack_step S = S \<longleftrightarrow> raw_trail (do_backtrack_step S) = raw_trail S"
   using assms apply (cases S rule: do_backtrack_step.cases)
-  by (auto split: option.split list.splits ann_lit.splits
+  apply (auto split: option.split list.splits (* annotated_lit.splits *)
      simp: comp_def
-     dest!: bt_cut_in_get_all_ann_decomposition)
+     dest!: bt_cut_in_get_all_ann_decomposition) -- \<open>TODO splitting should solve the goal\<close>
+  apply (rename_tac dec tr tra)
+  by (case_tac dec) auto
+
 
 lemma do_resolve_step_eq_iff_raw_trail_eq:
   "do_resolve_step S = S \<longleftrightarrow> raw_trail (do_resolve_step S) = raw_trail S"

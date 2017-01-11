@@ -199,22 +199,22 @@ next
       moreover {
         assume x': "x = ?hd"
         have tl: "tl (get_all_ann_decomposition (M' @ L # M)) \<noteq> []"
-          proof -
-            have f1: "\<And>ms. length (get_all_ann_decomposition (M' @ ms))
+        proof -
+          have f1: "\<And>ms. length (get_all_ann_decomposition (M' @ ms))
               = length (get_all_ann_decomposition ms)"
-              by (simp add: M' get_all_ann_decomposition_remove_undecided_length)
-            have "Suc (length (get_all_ann_decomposition M)) \<noteq> Suc 0"
-              by blast
-            then show ?thesis
-              using f1 decided by (metis (no_types) get_all_ann_decomposition.simps(1) length_tl
-                list.sel(3) list.size(3) ann_lit.collapse(1))
-          qed
+            by (simp add: M' get_all_ann_decomposition_remove_undecided_length)
+          have "Suc (length (get_all_ann_decomposition M)) \<noteq> Suc 0"
+            by blast
+          then show ?thesis
+            using f1[of \<open>L # M\<close>] decided by (cases \<open>get_all_ann_decomposition
+               (M' @ L # M)\<close>; cases L) auto
+        qed
         obtain M0' M0 where
           L0: "hd (tl (get_all_ann_decomposition (M' @ L # M))) = (M0, M0')"
           by (cases "hd (tl (get_all_ann_decomposition (M' @ L # M)))")
         have x'': "x = (M0, Propagated (-lit_of L) P # M0')"
           unfolding x' using get_all_ann_decomposition_last_choice tl M' L0
-          by (metis decided ann_lit.collapse(1))
+          by (smt is_decided_ex_Decided lit_of.simps(1) local.decided old.unit.exhaust)
         obtain l_get_all_ann_decomposition where
           "get_all_ann_decomposition (trail S) = (L # M, M') # (M0, M0') #
             l_get_all_ann_decomposition"

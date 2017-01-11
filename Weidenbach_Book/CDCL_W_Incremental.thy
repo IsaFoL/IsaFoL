@@ -250,7 +250,7 @@ lemma cut_trail_wrt_clause_CNot_trail:
   shows
     "(trail ((cut_trail_wrt_clause C (trail T) T))) \<Turnstile>as CNot C"
   using assms
-proof (induction "trail T" arbitrary:T rule: ann_lit_list_induct)
+proof (induction "trail T" arbitrary: T rule: ann_lit_list_induct)
   case Nil
   then show ?case by simp
 next
