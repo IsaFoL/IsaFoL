@@ -112,6 +112,111 @@ lemma pair_of_ann_lit_ann_lit_of_pair: \<open>pair_of_ann_lit (ann_lit_of_pair L
 definition pair_nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> (nat \<times> nat option) \<Rightarrow> assn" where
   \<open>pair_nat_ann_lit_assn = pure ({(a, b). b = ann_lit_of_pair ((\<lambda>(a,b). (literal_of_nat a, b)) a)})\<close>
 
+fun heap_list_all :: "('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> assn" where
+  \<open>heap_list_all R [] [] = emp\<close>
+| \<open>heap_list_all R (x # xs) (y # ys) = R x y * heap_list_all R xs ys\<close>
+| \<open>heap_list_all R _ _ = false\<close>
+
+definition arrayO:: \<open>('a \<Rightarrow> 'b::heap \<Rightarrow> assn) \<Rightarrow> 'a list \<Rightarrow> 'b array \<Rightarrow> assn\<close> where
+  \<open>arrayO R' xs axs \<equiv> \<exists>\<^sub>A p. array_assn id_assn p axs * heap_list_all R' xs p\<close>
+
+lemma heap_list_add_same_length:
+  \<open>h \<Turnstile> heap_list_all R' xs p \<Longrightarrow> length p = length xs\<close>
+  by (induction R' xs p arbitrary: h rule: heap_list_all.induct) (auto elim!: mod_starE)
+
+ term \<open>arrays h TYPEREP('b::heap) (addr_of_array a)\<close>
+lemma array_assn_same_length: 
+  assumes \<open>is_pure R\<close> and \<open>(h, b) \<Turnstile> array_assn R p a\<close>
+  shows \<open>Array.length h a = length p\<close>
+proof -
+  obtain R' where
+    R[simp]: \<open>the_pure R = R'\<close>
+    sorry
+  show ?thesis
+    using assms
+      apply (cases a)
+  apply (auto simp: (* array_assn_def *) Let_def (* new_addrs_def *) (* Array.get_def *) Array.set_def Array.alloc_def
+      relH_def in_range.simps Array.length_def (* is_array_def *) array_assn_def snga_assn_def
+      is_array_def[abs_def])
+
+    apply (auto simp: Abs_assn_inverse Array.get_def length_map mem_Collect_eq snga_assn_proper 
+        snga_assn_raw.simps the_pure_def is_pure_def)
+    oops
+    -- \<open>TODO tune proof\<close>
+    by (metis Abs_assn_inverse Array.get_def length_map mem_Collect_eq snga_assn_proper 
+        snga_assn_raw.simps)
+    
+lemma arrayO_same_length:
+  \<open>(h, as) \<Turnstile> arrayO R' xs a \<Longrightarrow> Array.length h a = length xs\<close>
+  unfolding arrayO_def
+  by (auto simp: mod_star_conv simp: heap_list_add_same_length[symmetric] array_assn_same_length)
+
+    (* should not work. Ownership: only base elements can be extracted! *)
+
+definition nth_aa :: "'a::heap array_list array \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a Heap" where
+  [code del]: "nth_aa a i j = Heap_Monad.guard (\<lambda>h. i < Array.length h a \<and> j < snd (Array.get h a ! i))
+    (\<lambda>h. (Array.get h (fst (Array.get h a ! i)) ! j, h))"
+
+lemma run_nth_aa[run_elims]:
+  assumes "run (nth_aa a i j) \<sigma> \<sigma>' r"
+          "\<not>is_exn \<sigma>"
+  obtains "\<not>is_exn \<sigma>" 
+    "i < Array.length (the_state \<sigma>) a"
+    "r = (Array.get (the_state \<sigma>) (fst ((Array.get (the_state \<sigma>) a)! i))) ! j" 
+    "j < snd ((Array.get (the_state \<sigma>) a)! i)"
+    "\<sigma>' = \<sigma>" 
+  | 
+    "\<not> i < Array.length (the_state \<sigma>) a" 
+    "\<sigma>' = None"
+  | 
+    "\<not>j < snd ((Array.get (the_state \<sigma>) a)! i)"
+    "\<sigma>' = None"
+  using assms
+  apply (cases \<sigma>)
+   apply (solves \<open>simp\<close>)
+  apply (cases "\<not>i < Array.length (the_state \<sigma>) a")
+   apply (solves \<open>simp add: run.simps nth_aa_def execute_guard(1)\<close>)
+  apply (cases "\<not>j < snd ((Array.get (the_state \<sigma>) a)! i)")
+   apply (solves \<open>simp add: run.simps nth_aa_def execute_guard(1)\<close>)
+  by (auto simp add: run.simps nth_aa_def execute_guard)
+
+term \<open>Partial_Clausal_Logic.true_cls\<close>
+no_notation Partial_Clausal_Logic.true_cls (infix "\<Turnstile>" 50)
+
+lemma models_heap_list_all_models_nth:
+  \<open>(h, as) \<Turnstile> heap_list_all R a b \<Longrightarrow> i < length a \<Longrightarrow> \<exists>as'. (h, as') \<Turnstile> R (a!i) (b!i)\<close>
+  by (induction R a b arbitrary: as i rule: heap_list_all.induct)
+    (auto simp: mod_star_conv nth_Cons elim!: less_SucE split: nat.splits)
+  
+lemma 
+  assumes
+    \<open>i < length xs\<close> and \<open>j < length (xs ! i)\<close> and \<open>is_pure R'\<close> 
+  shows \<open>
+    <arrayO (arl_assn R') xs a> nth_aa a i j <\<lambda>r. arrayO (arl_assn R') xs a * R' r (xs ! i ! j)>\<close>
+proof -
+  have [simp]: \<open>Array.length h a = length xs\<close> if \<open>(h, as) \<Turnstile> arrayO (arl_assn R') xs a\<close> for h as
+    using that arrayO_same_length by blast
+  show ?thesis
+    using assms
+  unfolding hoare_triple_def snga_assn_def (* arrayO_def *) array_assn_def is_array_def (* nth_aa_def *)
+  apply (simp add: Let_def Abs_assn_inverse)
+  apply (auto
+    elim!: run_elims
+    simp: (* Array.length_def Array.get_def Array.set_def  *)
+     arrayO_same_length
+     Let_def (* new_addrs_def *) (* Array.get_def *) (* Array.set_def Array.alloc_def *)
+(*       relH_def in_range.simps *)
+  )
+
+        apply (auto simp add: arrayO_def (* arl_assn_def *) (* is_array_list_def *) mod_star_conv
+      dest!:models_heap_list_all_models_nth[of _ _ _ _ _ i])[]
+  oops
+  apply (auto simp: mod_star_conv arrayO_def)
+  done
+
+definition array_of_arl_assn :: \<open>('a \<Rightarrow> 'b::heap \<Rightarrow> assn) \<Rightarrow> 'a list list \<Rightarrow> 
+  ('b array_list) array \<Rightarrow> assn\<close> where
+  \<open>array_of_arl_assn R' xs axs \<equiv> \<exists>\<^sub>A p. array_assn id_assn p axs * heap_list_all (arl_assn R') xs p\<close>
 
 subsection \<open>State Conversion\<close>
 
