@@ -549,7 +549,7 @@ proof (induction F S rule: reduce_trail\<^sub>T_to.induct)
   qed
 qed
 
-end \<comment> \<open>end of \<open>state\<^sub>W\<close> locale\<close>
+end \<comment> \<open>end of locale @{locale state\<^sub>T}\<close>
 
 
 subsection \<open>CDCL Rules\<close>
