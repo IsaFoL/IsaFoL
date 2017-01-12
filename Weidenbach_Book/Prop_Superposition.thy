@@ -192,7 +192,7 @@ proof -
   from d have "Max (set_mset D) = Pos A"
     using production_unfold by blast
   then have "D < {#Neg A#}"
-    by (auto intro: Max_pos_neg_less_multiset)
+    by (meson Max_pos_neg_less_multiset multi_member_last)
   moreover have "{#Neg A#} \<le> C"
     by (rule subset_eq_imp_le_multiset) (rule mset_subset_eq_single[OF a_in_c])
   ultimately show ?thesis
