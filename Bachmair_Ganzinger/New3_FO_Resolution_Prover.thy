@@ -10,7 +10,7 @@ imports New3_Ordered_Ground_Resolution Standard_Redundancy Substitution Clauses
 begin
 
 type_synonym 'a state = "'a clause set \<times> 'a clause set \<times> 'a clause set"
-
+              
 locale FO_resolution =
   unification subst_atm id_subst comp_subst mgu
   for
@@ -96,13 +96,35 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
    n \<noteq> 0 \<Longrightarrow>
    \<forall>i < n. (CAi ! i) = (Ci ! i + (poss (Aij ! i))) \<Longrightarrow>
    \<forall>i < n. Aij ! i \<noteq> {#} \<Longrightarrow>
-   \<forall>i < n. (\<forall>A \<in># Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>) \<Longrightarrow>
+   Some \<sigma> = mgu (set_mset ` (set (map2 add_mset Ai Aij))) \<Longrightarrow> (* This states \<sigma> is a unifier, but! it should be an mgu! *)
    eligible \<sigma> Ai (D + negs (mset Ai)) \<Longrightarrow>
    \<forall>i. i < n \<longrightarrow> str_maximal_in (Ai ! i \<cdot>a \<sigma>) ((Ci ! i) \<cdot> \<sigma>) \<Longrightarrow>
    \<forall>C \<in> set CAi. S C = {#} \<Longrightarrow> (* Use the ! style instead maybe, or maybe us the \<forall>\<in>. style above *)
-   ord_resolve CAi (D + negs (mset Ai)) (((\<Union># (mset Ci)) + D) \<cdot> \<sigma>)"
-  (* Du har glemt at det skal være en MGU!1111111 *)
-
+   ord_resolve CAi (D + negs (mset Ai)) (((\<Union># (mset Ci)) + D) \<cdot> \<sigma>)"    
+  
+lemma mgu_unifier:
+  assumes n: "n \<noteq> 0"
+  assumes ailen: "length Ai = n"
+  assumes aijlen: "length Aij = n"
+  assumes mgu: "Some \<sigma> = mgu (set_mset ` (set (map2 add_mset Ai Aij)))"
+  shows "\<forall>i < n. (\<forall>A \<in># Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>)"
+proof -
+  from mgu have "is_mgu \<sigma> (set_mset ` (set (map2 add_mset Ai Aij)))" using mgu_sound by auto
+  then have uni: "is_unifiers \<sigma> (set_mset ` (set (map2 add_mset Ai Aij)))" unfolding is_mgu_def by auto
+  
+  show "\<forall>i < n. (\<forall>A \<in># Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>)" 
+  proof (rule allI; rule impI)
+    fix i
+    assume i: "i < n"
+    then have "is_unifier \<sigma> (set_mset (add_mset (Ai ! i) (Aij ! i)))"
+      using ailen aijlen uni  unfolding is_unifiers_def
+      by (auto simp add: map2_nth[symmetric]) 
+    then show "\<forall>A\<in>#Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>" using n ailen aijlen i
+      by (metis finite_set_mset insertCI is_unifier_subst_atm_eqI set_mset_add_mset_insert)
+  qed
+qed
+    
+   
 inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve_rename:
   "is_renaming \<rho> \<Longrightarrow>
@@ -165,15 +187,20 @@ lemma ord_resolve_sound:
   have e: "E = (\<Union>#mset Ci + D) \<cdot> \<tau>" using ord_resolve by -
   have ci_len: "length Ci = n" using ord_resolve by -
   have cai_len: "length CAi = n" using ord_resolve by -
+  have aij_len: "length Aij = n" using ord_resolve by -
   have ai_len: "length Ai = n" using ord_resolve by -
   have cai: "\<forall>i<n. CAi ! i = Ci ! i + poss (Aij ! i)" using ord_resolve by -
-  have unif: "\<forall>i<n. \<forall>A\<in>#Aij ! i. A \<cdot>a \<tau> = Ai ! i \<cdot>a \<tau>" using ord_resolve by -
+  have mgu: "Some \<tau> = mgu (set_mset ` set (map2 add_mset Ai Aij))" using ord_resolve by -
   have len: "length CAi = length Ai" using ai_len cai_len by auto
   have "is_ground_subst (\<tau> \<odot> \<sigma>)"
     using ground_subst_\<sigma> by (rule is_ground_comp_subst)
   hence cc_true: "I \<Turnstile>m (mset CAi) \<cdot>cm \<tau> \<cdot>cm \<sigma>" and d_true: "I \<Turnstile> DAi \<cdot> \<tau> \<cdot> \<sigma>"
     using true_fo_cls_mset_inst[OF cc_d_true, of "\<tau> \<odot> \<sigma>"] by auto 
-  then show "\<forall>C\<in>set CAi. S C = {#} \<Longrightarrow> I \<Turnstile> E \<cdot> \<sigma>"
+      
+  from mgu have unif: "\<forall>i<n. \<forall>A\<in>#Aij ! i. A \<cdot>a \<tau> = Ai ! i \<cdot>a \<tau>" 
+    using mgu_unifier using ai_len aij_len by force
+      
+  show "\<forall>C\<in>set CAi. S C = {#} \<Longrightarrow> I \<Turnstile> E \<cdot> \<sigma>"
   proof (cases "\<forall>A \<in> set Ai. A \<cdot>a \<tau> \<cdot>a \<sigma> \<in> I")
     case True
     hence "\<not> I \<Turnstile> negs (mset Ai) \<cdot> \<tau> \<cdot> \<sigma>"
@@ -452,12 +479,6 @@ lemma ord_resolve_lifting: (* The CC should be CAi probably *)
     using ord_resolve.intros[of CC'' n Ci'' Aij'' Ai'' \<tau>'' S D''] by auto
       
   show ?thesis sorry
-qed
-  
-  
-  
-  
-  
 qed
   
 
