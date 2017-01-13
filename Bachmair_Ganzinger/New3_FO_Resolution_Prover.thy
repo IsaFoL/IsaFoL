@@ -103,7 +103,6 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
    ord_resolve CAi (D + negs (mset Ai)) (((\<Union># (mset Ci)) + D) \<cdot> \<sigma>)"    
   
 lemma mgu_unifier:
-  assumes n: "n \<noteq> 0"
   assumes ailen: "length Ai = n"
   assumes aijlen: "length Aij = n"
   assumes mgu: "Some \<sigma> = mgu (set_mset ` (set (map2 add_mset Ai Aij)))"
@@ -119,7 +118,7 @@ proof -
     then have "is_unifier \<sigma> (set_mset (add_mset (Ai ! i) (Aij ! i)))"
       using ailen aijlen uni  unfolding is_unifiers_def
       by (auto simp add: map2_nth[symmetric]) 
-    then show "\<forall>A\<in>#Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>" using n ailen aijlen i
+    then show "\<forall>A\<in>#Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>" using ailen aijlen i
       by (metis finite_set_mset insertCI is_unifier_subst_atm_eqI set_mset_add_mset_insert)
   qed
 qed
@@ -198,7 +197,7 @@ lemma ord_resolve_sound:
     using true_fo_cls_mset_inst[OF cc_d_true, of "\<tau> \<odot> \<sigma>"] by auto 
       
   from mgu have unif: "\<forall>i<n. \<forall>A\<in>#Aij ! i. A \<cdot>a \<tau> = Ai ! i \<cdot>a \<tau>" 
-    using mgu_unifier using ai_len aij_len by force
+    using mgu_unifier using ai_len aij_len by blast
       
   show "\<forall>C\<in>set CAi. S C = {#} \<Longrightarrow> I \<Turnstile> E \<cdot> \<sigma>"
   proof (cases "\<forall>A \<in> set Ai. A \<cdot>a \<tau> \<cdot>a \<sigma> \<in> I")
