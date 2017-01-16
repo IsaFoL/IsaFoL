@@ -379,6 +379,7 @@ lemma (in linorder) multiset_mset_sorted_list_of_multiset[simp]:
   by (induct M) (simp_all add: ac_simps)
 
 lemma ord_resolve_lifting: (* The CC should be CAi probably *)
+  fixes CC
   assumes resolve: "ord_resolve (S_M S M) CC DAi E"
     and select: "selection S"
     and selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
@@ -386,7 +387,7 @@ lemma ord_resolve_lifting: (* The CC should be CAi probably *)
     and grounding: "{DAi, E} \<union> (set CC) \<subseteq> grounding_of_clss M"
   obtains \<sigma> CC' D' E' where
     "is_ground_subst \<sigma>"
-    "ord_resolve_rename S CC' D' E'" 
+    "ord_resolve S CC' D' E'" 
     "CC = CC' \<cdot>cl \<sigma>" "DAi = D' \<cdot> \<sigma>" "E = E' \<cdot> \<sigma>"
     "{D', E'} \<union> (set (CC')) \<subseteq> M"
   using resolve proof ((*atomize_elim, *)cases rule: ord_resolve.cases)
@@ -395,47 +396,34 @@ lemma ord_resolve_lifting: (* The CC should be CAi probably *)
   interpret S: selection S by (rule select)
       
       (* 2. Choose the D' and the C' *)
-  obtain DAi' \<sigma>D where pickD: "DAi' \<in> M" "DAi = DAi' \<cdot> \<sigma>D" "S_M S M DAi = S DAi' \<cdot> \<sigma>D"
-    and ground_\<sigma>D: "is_ground_subst \<sigma>D"
-    using S_M_grounding_of_clss[OF select, of D M thesis] grounding sorry
       
-  obtain CC' \<sigma>CC where "length CC' = n" "length \<sigma>CC = n"
+  obtain CC' DAi' \<mu> where  (* I need some lemma telling that these standardized apart clauses exist *) 
+    "length CC' = n" 
     "\<forall>i < n. CC' ! i \<in> M" 
-    "\<forall>i < n. CC ! i = CC' ! i \<cdot> \<sigma>CC ! i"
-    "\<forall>i < n. S_M S M (CC ! i) = S (CC' ! i) \<cdot> (\<sigma>CC ! i)"
-    "\<forall>i < n. is_ground_subst (\<sigma>CC ! i)"
+    "CC' \<cdot>cl \<mu> = CC"
+    "\<forall>i < n. S_M S M (CC ! i) = S (CC' ! i) \<cdot> \<mu>"
+    
+    
+    "DAi' \<in> M" 
+    "DAi = DAi' \<cdot> \<mu>" 
+    "S_M S M DAi = S DAi' \<cdot> \<mu>"
+    "is_ground_subst \<mu>"
+    
+    "var_disjoint (DAi'#CC')"
     sorry
       
-      (* 3. Standardize all D' and all C' apart *)  
-  obtain DAi'' \<rho>D CC'' \<rho>CC where std_apart:
-    "is_renaming \<rho>D"
-    "DAi'' \<cdot> \<rho>D = DAi'"
-    "length \<rho>CC = n"
-    "\<forall>i < n. is_renaming (\<rho>CC ! i)"
-    "CC'' \<cdot>\<cdot>cl \<rho>CC = CC'"
-    "var_disjoint (DAi''#CC'')"
-    sorry
-      
-      (* 4. Show instance of and choose a substitution *)
-  have "DAi'' \<cdot> (\<rho>D \<odot> \<sigma>D) = DAi"
-    sorry
-  moreover
-  have "CC'' \<cdot>\<cdot>cl (\<rho>CC \<odot>s \<sigma>CC) = CC"
-    sorry
-  ultimately
-  obtain \<mu> where "DAi'' \<cdot> \<mu> = DAi" "CC'' \<cdot>cl \<mu> = CC" using std_apart sorry
+      (* 6. Do the actual lifting *)
+  define Ci' where "Ci' = Ci \<cdot>cl \<mu>"
+  define D' where "(D' :: 'a clause) = undefined"
+  define s\<mu> where "(s\<mu> :: 'a multiset list \<Rightarrow> 'a multiset list) = undefined" (* dummy *)
+  define Aij' where "(Aij' :: 'a multiset list) = s\<mu> Aij" (* Aij \<cdot> \<mu> *)
+  define Ai' where "Ai' = Ai \<cdot>al \<mu>"
   
-      
-      (* 5. Do the actual lifting *)
-  define Ci'' where "Ci'' = Ci \<cdot>cl \<mu>"
-  define D'' where "(D'' :: 'a clause) = undefined"
-  define s\<mu> where "(s\<mu> :: 'a multiset list \<Rightarrow> 'a multiset list) = undefined"
-  define Aij'' where "(Aij'' :: 'a multiset list) = s\<mu> Aij" (* Aij \<cdot> \<mu> *)
-  define Ai'' where "Ai'' = Ai \<cdot>al \<mu>"
-  define \<tau>'' where "\<tau>'' = \<mu> \<odot> \<tau>"
-  
+  (* Prove that \<mu> is a unifier for the first-order stuff.  *)
+  (* Obtain an mgu for them *)
+    
   define E'' where "E'' = (\<Union>#mset Ci'' + D'') \<cdot> \<tau>''"
-  
+    
   have dai'': "DAi'' = D'' + negs (mset Ai'')" sorry
       
   have "length CC'' = n"
@@ -456,10 +444,7 @@ lemma ord_resolve_lifting: (* The CC should be CAi probably *)
   moreover
   have "\<forall>i<n. Aij'' ! i \<noteq> {#}" sorry (* OK *)
   moreover
-  have "\<forall>i<n. \<forall>A\<in>#Aij ! i. A \<cdot>a \<tau> = Ai ! i \<cdot>a \<tau>"
-    using ord_resolve by -
-  have "\<forall>i<n. \<forall>A\<in>#Aij'' ! i. A \<cdot>a \<tau>'' = Ai'' ! i \<cdot>a \<tau>''" unfolding Aij''_def Ai''_def \<tau>''_def sorry
-  have "\<forall>i<n. \<forall>A\<in>#Aij'' ! i. A \<cdot>a \<tau>'' = Ai'' ! i \<cdot>a \<tau>''" sorry
+  have "Some \<tau>'' = mgu (set_mset ` set (map2 add_mset Ai'' Aij''))" sorry
   moreover
   have "(S DAi'') \<cdot> \<rho>D = S DAi" sorry (* Or maybe (probably not) \<mu> which gives same effect *)
   have "eligible (S_M S M) \<tau> Ai (D + negs (mset Ai))" using ord_resolve by -
@@ -480,7 +465,7 @@ lemma ord_resolve_lifting: (* The CC should be CAi probably *)
   show ?thesis sorry
 qed
   
-
+  
 end
 
 (* lifting lemma:
