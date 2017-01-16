@@ -40,6 +40,9 @@ definition subst_atm_list :: "'a list \<Rightarrow> 's \<Rightarrow> 'a list" (i
 
 definition subst_atm_mset :: "'a multiset \<Rightarrow> 's \<Rightarrow> 'a multiset" (infixl "\<cdot>am" 67) where
   "AA \<cdot>am \<sigma> = image_mset (\<lambda>A. A \<cdot>a \<sigma>) AA"
+  
+definition subst_atm_mset_list :: "'a multiset list \<Rightarrow> 's \<Rightarrow> 'a multiset list" (infix "\<cdot>aml" 67) where
+  "AAA \<cdot>aml \<sigma> = map (\<lambda>AA. AA \<cdot>am \<sigma>) AAA"
 
 definition subst_lit :: "'a literal \<Rightarrow> 's \<Rightarrow> 'a literal" (infixl "\<cdot>l" 67) where
   "L \<cdot>l \<sigma> = map_literal (\<lambda>A. A \<cdot>a \<sigma>) L"
