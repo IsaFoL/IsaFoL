@@ -377,6 +377,14 @@ lemma (in linorder) set_sorted_list_of_multiset[simp]:
 lemma (in linorder) multiset_mset_sorted_list_of_multiset[simp]:
   "mset (sorted_list_of_multiset M) = M"
   by (induct M) (simp_all add: ac_simps)
+    
+term eligible
+    
+(* Lemma takes inspiration from supercalc *)
+lemma eligible_lifting:
+  assumes "eligible S (s1 \<odot> s2) Ai DAi"
+  shows "eligible S s1 Ai DAi"
+sorry
 
 lemma ord_resolve_lifting: 
   fixes CAi
@@ -401,7 +409,7 @@ lemma ord_resolve_lifting:
     "length CAi' = n" 
     "\<forall>i < n. CAi' ! i \<in> M" 
     "CAi' \<cdot>cl \<eta> = CAi"
-    "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>"
+    "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>" (* should this even be here? Probably, but I'm not sure. *)
     
     "DAi' \<in> M" 
     "DAi = DAi' \<cdot> \<eta>" 
@@ -426,16 +434,6 @@ lemma ord_resolve_lifting:
   then obtain \<tau> where \<tau>_p: "Some \<tau> = mgu (set_mset ` set (map2 add_mset Ai' Aij'))" sorry
   then obtain \<phi> where \<phi>_p: "\<tau> \<odot> \<phi> = \<eta> \<odot> \<sigma>" sorry
       
-      
-  
-  have instsC: "CAi' \<cdot>cl \<phi> = CAi" sorry
-      
-  
-  have "DAi' \<cdot> \<eta>  = DAi' \<cdot> \<phi>" sorry
-  have "DAi' \<cdot> \<eta> \<cdot> \<sigma> = DAi' \<cdot> \<phi>" sorry
-  then have "DAi' \<cdot> (\<eta>  \<odot> \<sigma>) = DAi' \<cdot> \<phi>" by auto
-  have instsD: "DAi = DAi' \<cdot> \<phi>" sorry
-      
   define E' where "E' = ((\<Union># (mset Ci')) + D') \<cdot> \<tau>"
     
   have "E' \<cdot> \<phi> = ((\<Union># (mset Ci')) + D') \<cdot> (\<tau> \<odot> \<phi>)" unfolding E'_def by auto
@@ -446,26 +444,32 @@ lemma ord_resolve_lifting:
   finally have e'\<phi>e: "E' \<cdot> \<phi> = E" .
       
   
-  have a: "(D' + negs (mset Ai')) = DAi'" sorry
+  have a: "(D' + negs (mset Ai')) = DAi'" sorry (* Believable *)
   moreover
-  have b: "\<forall>i<n. CAi' ! i = Ci' ! i + poss (Aij' ! i)" sorry
+  have b: "\<forall>i<n. CAi' ! i = Ci' ! i + poss (Aij' ! i)" sorry (* Believable *)
   moreover
-  have c: "\<forall>i<n. Aij' ! i \<noteq> {#}" sorry
+  have c: "\<forall>i<n. Aij' ! i \<noteq> {#}" sorry (* Believable *)
   moreover
-  have True using ord_resolve(11) sorry
-  have True using ord_resolve(11) unfolding eligible_simp sorry
-    
-  have d: "eligible S \<tau> Ai' (D' + negs (mset Ai'))" sorry
+  (* Lifting  *)
+  have "eligible (S_M S M) \<sigma> Ai (D + negs (mset Ai))" using ord_resolve unfolding eligible_simp by -
+  hence "eligible (S_M S M) \<sigma> Ai DAi" sorry
+  hence "eligible (S_M S M) \<sigma> (Ai' \<cdot>al \<eta>) (DAi' \<cdot> \<eta>)" unfolding eligible_simp sorry
+  
+  have "eligible S \<tau> Ai' (D' + negs (mset Ai'))" using ord_resolve(11) unfolding eligible_simp sorry
   moreover
   have e: "\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)" sorry
   moreover
-  have f: "\<forall>C\<in>set CAi'. S C = {#}" sorry
+  have f: "\<forall>C\<in>set CAi'. S C = {#}" sorry (* Believable *)
   ultimately
   have res_e': "ord_resolve S CAi' DAi' E'" 
-    using ord_resolve.intros[of CAi' n Ci' Aij' Ai' \<tau> S D', OF prime_clauses(1) prime_clauses2(1) prime_clauses2(2) prime_clauses2(3) ord_resolve(7) b c \<tau>_p d] prime_clauses \<tau>_p 
+    using ord_resolve.intros[of CAi' n Ci' Aij' Ai' \<tau> S D', OF prime_clauses(1) prime_clauses2(1) prime_clauses2(2) prime_clauses2(3) ord_resolve(7) b c \<tau>_p] prime_clauses \<tau>_p 
     unfolding E'_def by auto
   
-  have gro: "is_ground_subst \<phi>" sorry
+  
+  have instsC: "CAi = CAi' \<cdot>cl \<phi>" sorry (* Is this even true? *)
+  have instsD: "DAi = DAi' \<cdot> \<phi>" sorry (* Is this even true? *)
+      
+  have gro: "is_ground_subst \<phi>" sorry (* Not true, but easy to fix *)
   have inM: "{DAi', E'} \<union> set CAi' \<subseteq> M" sorry
       
   from res_e' gro instsC instsD inM e'\<phi>e show ?thesis
