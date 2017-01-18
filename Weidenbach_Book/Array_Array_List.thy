@@ -2,11 +2,18 @@ theory Array_Array_List
 imports IICF
 begin
 
+subsection \<open>Array of Array Lists\<close>
+
+text \<open>
+  We define here array of array lists. We need arrays owning there elements. Therefore most of the 
+  rules introduced by \<open>sep_auto\<close> cannot lead to proofs.\<close>
+
 fun heap_list_all :: "('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> assn" where
   \<open>heap_list_all R [] [] = emp\<close>
 | \<open>heap_list_all R (x # xs) (y # ys) = R x y * heap_list_all R xs ys\<close>
 | \<open>heap_list_all R _ _ = false\<close>
 
+text \<open>It is often useful to speak about arrays except at one index (e.g., because it is updated).\<close>
 definition heap_list_all_nth:: "('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> nat list \<Rightarrow>  'a list \<Rightarrow> 'b list \<Rightarrow> assn" where
   \<open>heap_list_all_nth R is xs ys = foldr (op *) (map (\<lambda>i. R (xs ! i) (ys ! i)) is) emp\<close>
 
@@ -114,7 +121,7 @@ proof -
   proof (rule iffI)
     assume ?a
     then show ?b
-      by (auto simp: (* heap_list_add_same_length *) heap_list_all_heap_list_all_nth)
+      by (auto simp: heap_list_all_heap_list_all_nth)
   next
     assume ?b
     then have \<open>length xs = length p\<close>
@@ -127,7 +134,8 @@ proof -
     unfolding arrayO_except_def arrayO_def by (auto simp: ex_assn_def)
 qed
 
-lemma arrayO_except_array0_index: \<open>i < length xs \<Longrightarrow> arrayO_except R [i] xs asx (\<lambda>p. R (xs ! i) (p ! i)) = arrayO R xs asx\<close>
+lemma arrayO_except_array0_index:
+  \<open>i < length xs \<Longrightarrow> arrayO_except R [i] xs asx (\<lambda>p. R (xs ! i) (p ! i)) = arrayO R xs asx\<close>
   unfolding arrayO_except_array0[symmetric] arrayO_except_def
   using heap_list_all_nth_remove1[of i \<open>[0..<length xs]\<close> R xs] by (auto simp: star_aci(2,3))
 
@@ -199,12 +207,6 @@ qed
 definition update_aa where
   \<open>update_aa a i x = Array.upd a i x\<close>
 
-term \<open> Array.upd h a\<close>
-term Array.update
-term \<open>Array.set a (list_update (Array.get h a) i x) h\<close>
-term arl_assn
-term arl_append
-
 definition append_el_aa :: "('a::{default,heap} array_list) array \<Rightarrow>
   nat \<Rightarrow> 'a \<Rightarrow> ('a array_list) array Heap"where
 "append_el_aa \<equiv> \<lambda>a i x. do {
@@ -214,16 +216,35 @@ definition append_el_aa :: "('a::{default,heap} array_list) array \<Rightarrow>
   }"
 definition append_ll :: "'a list list \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list" where
   \<open>append_ll xs i x = list_update xs i (xs ! i @ [x])\<close>
-(* src si dst di (Suc l) *)
-lemma
-  \<open>i < Array.length h aa \<Longrightarrow> execute (blit aa i dst i l) h \<noteq> None\<close>
-  apply (induction l)
-   apply (auto simp: execute_simps execute_bind_case Array.nth_def
-      Array.upd_def
-      split: option.splits)
-  oops
+
+lemma sep_auto_is_stupid:
+  fixes R :: \<open>'a \<Rightarrow> 'b::{heap,default} \<Rightarrow> assn\<close>
+  assumes p: \<open>is_pure R\<close>
+  shows
+    \<open><\<exists>\<^sub>Ap. R1 p * R2 p * arl_assn R l' aa * R x x' * R4 p>
+       arl_append aa x' <\<lambda>r. (\<exists>\<^sub>Ap. arl_assn R (l' @ [x]) r * R1 p * R2 p * R x x' * R4 p * true) >\<close>
+proof -
+  obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
+    using p by fastforce
+  have bbi: \<open>(x', x) \<in> the_pure R\<close> if
+    \<open>(aa, bb) \<Turnstile> is_array_list (ba @ [x']) (a, baa) * R1 p * R2 p * pure R' x x' * R4 p * true\<close>
+    for aa bb a ba baa p
+    using that by (auto simp: mod_star_conv R R')
+  show ?thesis
+    unfolding arl_assn_def hr_comp_def
+    by (sep_auto simp: list_rel_def R R' intro!: list_all2_appendI  dest!: bbi)
+qed
+
 declare arrayO_nth_rule[sep_heap_rules]
-lemma nth_aa_hnr[sepref_fr_rules]:
+
+lemma heap_list_all_nth_cong:
+  assumes
+    \<open>\<forall>i \<in> set is. xs ! i = xs' ! i\<close> and
+    \<open>\<forall>i \<in> set is. ys ! i = ys' ! i\<close>
+  shows \<open>heap_list_all_nth R is xs ys = heap_list_all_nth R is xs' ys'\<close>
+  using assms by (induction \<open>is\<close>) (auto simp: heap_list_all_nth_Cons)
+
+lemma append_aa_hnr[sepref_fr_rules]:
   fixes R ::  \<open>'a \<Rightarrow> 'b :: {heap, default}\<Rightarrow> assn\<close>
   assumes p: \<open>is_pure R\<close>
   shows
@@ -235,74 +256,22 @@ proof -
   have [simp]: \<open>(\<exists>\<^sub>Ax. arrayO (arl_assn R) a ai * R x r * true * \<up> (x = a ! ba ! b)) =
      (arrayO (arl_assn R) a ai * R (a ! ba ! b) r * true)\<close> for a ai ba b r
     by (auto simp: ex_assn_def)
-  have ?thesis
+  show ?thesis -- \<open>TODO tune proof\<close>
     apply sepref_to_hoare
     apply (sep_auto simp: append_el_aa_def)
-     apply (sep_auto simp:  arrayO_except_def arl_append_def arl_assn_def (* is_array_list_def *)
-        (* arrayO_def *) (* arl_assn_def *) (* is_array_def *)
-        hr_comp_def eq_commute[of \<open>(_, _)\<close>])
-      
-     apply (sep_auto simp: arrayO_except_def arrayO_def arl_assn_def (* is_array_def *)
-        hr_comp_def eq_commute[of \<open>(_, _)\<close>])
-      thm upd_rule
-      thm arl_append_rule
-    apply (rule bind_rule)
-      -- \<open>some work on ArrayO missing\<close>
-      sorry
-    show ?thesis
-  proof (sepref_to_hoare, clarsimp simp only: hoare_triple_def Let_def, intro allI impI conjI)
-    fix a :: \<open>'a list list\<close> and ai :: \<open>('b array_list) array\<close> and
-      h :: Heap.heap and as:: \<open>nat set\<close> and \<sigma> :: \<open>Heap.heap option\<close> and r :: \<open>('b array_list) array\<close> and
-      i i' :: nat and x' :: 'a and x :: 'b
-    assume
-      i: \<open>i < length a\<close> and
-      h: \<open>(h, as) \<Turnstile> R x' x * \<up> ((i', i) \<in> nat_rel) * arrayO (arl_assn R) a ai\<close> and
-      run: \<open>run (append_el_aa ai i' x) (Some h) \<sigma> r\<close>
-    have i'_i[simp]: \<open>i' = i\<close>
-      using h by auto
-    have i_le: \<open>i < Array.length h ai\<close>
-      using h i unfolding arrayO_def array_assn_def is_array_def
-      by (auto simp: run.simps tap_def arrayO_def
-          mod_star_conv array_assn_def is_array_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def)
-    have xs_i: \<open>\<exists>as'. (h, as') \<Turnstile> (arl_assn R) (a ! i) (Array.get h ai ! i)\<close>
-      using h i unfolding arrayO_def array_assn_def is_array_def
-      using models_heap_list_all_models_nth[of _ _ _ _ _ i]
-      by (auto simp: run.simps tap_def arrayO_def
-          mod_star_conv array_assn_def is_array_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def)
-    have ex_arl: \<open>execute (arl_append (Array.get h ai ! i) x) h \<noteq> None\<close>
-      using run h assms i_le i xs_i
-      using arl_append_rule[of _ \<open>Array.get h ai ! i\<close> x, unfolded hoare_triple_def]
-      unfolding arl_assn_def hr_comp_def
-(*       apply (cases \<open>Array.get h ai ! i\<close>)
-      apply (auto simp: run.simps tap_def arrayO_def execute_simps arl_append_def
-          mod_star_conv array_assn_def is_array_def append_el_aa_def Array.nth_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def
-          array_grow_def Let_def split_beta
-          execute_bind_case split: option.splits if_splits) *)
-
-
-
-
-
-    have ex: \<open>execute (append_el_aa ai i x) h = Some x'''\<close>
-      using run h assms i_le
-      apply (auto simp: run.simps tap_def arrayO_def execute_simps
-          mod_star_conv array_assn_def is_array_def append_el_aa_def Array.nth_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def
-          execute_bind_case split: option.splits)
-        oops
-    show \<open>\<not> is_exn \<sigma>\<close>
-      using run h assms
-      by (auto simp: run.simps tap_def arrayO_def execute_simps
-          mod_star_conv array_assn_def is_array_def Array.nth_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def)
-
-
-
-definition append_aa :: "'a::heap array_list array \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a Heap" where
-  [code del]: "append_aa a i x = Heap_Monad.guard (\<lambda>h::Heap.heap. i < Array.length h a \<and> j < snd (Array.get h a ! i))
-    (\<lambda>h. (arl_append (Array.get h a ! i) x))"
+     apply (simp add: arrayO_except_def)
+     apply (rule sep_auto_is_stupid)
+    using assms apply (simp add: array_assn_def is_array_def append_ll_def)
+    apply (sep_auto simp: array_assn_def is_array_def append_ll_def)
+    apply (simp add: arrayO_except_array0[symmetric] arrayO_except_def)
+    apply (subst_tac (2) i = ba in heap_list_all_nth_remove1)
+     apply (solves \<open>simp\<close>)
+    apply (simp add: array_assn_def is_array_def)
+    apply (rule_tac x=\<open>p[ba := (ab, bc)]\<close> in ent_ex_postI)
+    apply (subst_tac (2)xs'=a and ys'=p in heap_list_all_nth_cong)
+      apply (solves \<open>auto\<close>)[2]
+    apply (auto simp: star_aci)
+    done
+qed
 
 end
