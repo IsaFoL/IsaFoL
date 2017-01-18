@@ -5,7 +5,7 @@ begin
 subsection \<open>Array of Array Lists\<close>
 
 text \<open>
-  We define here array of array lists. We need arrays owning there elements. Therefore most of the 
+  We define here array of array lists. We need arrays owning there elements. Therefore most of the
   rules introduced by \<open>sep_auto\<close> cannot lead to proofs.\<close>
 
 fun heap_list_all :: "('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> assn" where
@@ -204,9 +204,6 @@ proof -
     done
 qed
 
-definition update_aa where
-  \<open>update_aa a i x = Array.upd a i x\<close>
-
 definition append_el_aa :: "('a::{default,heap} array_list) array \<Rightarrow>
   nat \<Rightarrow> 'a \<Rightarrow> ('a array_list) array Heap"where
 "append_el_aa \<equiv> \<lambda>a i x. do {
@@ -245,7 +242,7 @@ lemma heap_list_all_nth_cong:
   using assms by (induction \<open>is\<close>) (auto simp: heap_list_all_nth_Cons)
 
 lemma append_aa_hnr[sepref_fr_rules]:
-  fixes R ::  \<open>'a \<Rightarrow> 'b :: {heap, default}\<Rightarrow> assn\<close>
+  fixes R ::  \<open>'a \<Rightarrow> 'b :: {heap, default} \<Rightarrow> assn\<close>
   assumes p: \<open>is_pure R\<close>
   shows
     \<open>(uncurry2 append_el_aa, uncurry2 (RETURN \<circ>\<circ>\<circ> append_ll)) \<in>
@@ -273,5 +270,197 @@ proof -
     apply (auto simp: star_aci)
     done
 qed
+term arl_set
+definition update_aa :: "('a::{heap} array_list) array \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> ('a array_list) array Heap" where
+  \<open>update_aa a i j y = do {
+      x \<leftarrow> Array.nth a i;
+      a' \<leftarrow> arl_set x j y;
+      Array.upd i a' a
+    }\<close> -- \<open>is the Array.upd really needed?\<close>
+
+definition update_ll :: "'a list list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list"  where
+  \<open>update_ll xs i j y = xs[i:= (xs ! i)[j := y]]\<close>
+abbreviation comp4 (infixl "oooo" 55) where "f oooo g \<equiv> \<lambda>x. f ooo (g x)"
+
+notation
+  comp4  (infixl "\<circ>\<circ>\<circ>\<circ>" 55)
+
+declare nth_rule[sep_heap_rules del]
+declare arrayO_nth_rule[sep_heap_rules]
+thm arrayO_nth_rule
+thm arl_set_rule
+thm list_induct2
+
+lemma list_rel_update:
+  fixes R :: \<open>'a \<Rightarrow> 'b :: {heap}\<Rightarrow> assn\<close>
+  assumes rel: \<open>(xs, ys) \<in> \<langle>the_pure R\<rangle>list_rel\<close> and
+   h: \<open>h \<Turnstile> A * R b bi\<close> and
+   p: \<open>is_pure R\<close>
+  shows \<open>(list_update xs ba bi, list_update ys ba b) \<in> \<langle>the_pure R\<rangle>list_rel\<close>
+proof -
+  obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
+    using p by fastforce
+  have [simp]: \<open>(bi, b) \<in> the_pure R\<close>
+    using h p by (auto simp: mod_star_conv R R')
+  have \<open>length xs = length ys\<close>
+    using assms list_rel_imp_same_length by blast
+
+  then show ?thesis
+    using rel
+    by (induction xs ys arbitrary: ba rule: list_induct2) (auto split: nat.splits)
+qed
+
+text \<open>TODO: is it possible to be more precise and not drop the \<^term>\<open>\<up> ((aa, bc) = r' ! bb)\<close>\<close>
+lemma arrayO_except_arl_set:
+  fixes R :: \<open>'a \<Rightarrow> 'b :: {heap}\<Rightarrow> assn\<close>
+  assumes p: \<open>is_pure R\<close> and \<open>bb < length a\<close> and
+    \<open>ba < length (a ! bb)\<close>
+  shows \<open>
+       <arrayO_except (arl_assn R) [bb] a ai (\<lambda>r'. arl_assn R (a ! bb) (aa, bc) *
+         \<up> ((aa, bc) = r' ! bb)) * R b bi>
+       arl_set (aa, bc) ba bi
+      <\<lambda>(aa, bc). arrayO_except (arl_assn R) [bb] a ai
+        (\<lambda>r'. arl_assn R ((a ! bb)[ba := b]) (aa, bc)) * R b bi * true>\<close>
+proof -
+  obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
+    using p by fastforce
+  show ?thesis
+    using assms
+    apply (sep_auto simp: arrayO_except_def arl_assn_def hr_comp_def list_rel_imp_same_length
+        list_rel_update)
+    done
+qed
+
+lemma update_aa_hnr[sepref_fr_rules]:
+  assumes \<open>is_pure R\<close>
+  shows \<open>(uncurry3 update_aa, uncurry3 (RETURN oooo update_ll)) \<in>
+     [\<lambda>(((l,i), j), x). i < length l \<and> j < length (l ! i)]\<^sub>a (arrayO (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO (arl_assn R))\<close>
+proof -
+  note arrayO_except_arl_set[sep_heap_rules]
+  show ?thesis
+    apply sepref_to_hoare
+    apply (sep_auto simp add: update_aa_def update_ll_def assms)
+    apply (sep_auto simp add: update_aa_def arrayO_except_def array_assn_def is_array_def hr_comp_def)
+    apply (subst_tac i=bb in arrayO_except_array0_index[symmetric])
+     apply (solves \<open>simp\<close>)
+    apply (subst arrayO_except_def)
+    apply (auto simp add: update_aa_def arrayO_except_def array_assn_def is_array_def hr_comp_def)
+
+    apply (rule_tac x=\<open>p[bb := (aa, bc)]\<close> in ent_ex_postI)
+    apply (subst_tac (2)xs'=a and ys'=p in heap_list_all_nth_cong)
+      apply (solves \<open>auto\<close>)
+     apply (solves \<open>auto\<close>)
+    apply (auto simp: star_aci)
+    done
+qed
+
+definition set_butlast_aa :: "('a::{heap} array_list) array \<Rightarrow> nat \<Rightarrow> ('a array_list) array Heap" where
+  \<open>set_butlast_aa a i = do {
+      x \<leftarrow> Array.nth a i;
+      a' \<leftarrow> arl_butlast x;
+      Array.upd i a' a
+    }\<close> -- \<open>\<close>
+
+definition set_butlast_ll where
+  \<open>set_butlast_ll xs i = xs[i := butlast (xs ! i)]\<close>
+
+lemma list_rel_butlast:
+  assumes rel: \<open>(xs, ys) \<in> \<langle>the_pure R\<rangle>list_rel\<close>
+  shows \<open>(butlast xs, butlast ys) \<in> \<langle>the_pure R\<rangle>list_rel\<close>
+proof -
+  have \<open>length xs = length ys\<close>
+    using assms list_rel_imp_same_length by blast
+  then show ?thesis
+    using rel
+    by (induction xs ys rule: list_induct2) (auto split: nat.splits)
+qed
+
+lemma arrayO_except_arl_butlast:
+  assumes \<open>b < length a\<close> and
+    \<open>a ! b \<noteq> []\<close>
+  shows
+    \<open><arrayO_except (arl_assn R) [b] a ai (\<lambda>r'. arl_assn R (a ! b) (aa, ba) *
+         \<up> ((aa, ba) = r' ! b))>
+       arl_butlast (aa, ba)
+     <\<lambda>(aa, ba). arrayO_except (arl_assn R) [b] a ai (\<lambda>r'. arl_assn R (butlast (a ! b)) (aa, ba)* true)>\<close>
+proof -
+  show ?thesis
+    using assms
+    apply (subst (1) arrayO_except_def)
+    apply (sep_auto simp: arl_assn_def hr_comp_def list_rel_imp_same_length
+        list_rel_update
+        intro: list_rel_butlast)
+    apply (subst (1) arrayO_except_def)
+    apply (rule_tac x=\<open>p\<close> in ent_ex_postI)
+    apply (sep_auto intro: list_rel_butlast)
+    done
+qed
+
+lemma set_butlast_aa_hnr[sepref_fr_rules]:
+  assumes \<open>is_pure R\<close>
+  shows \<open>(uncurry set_butlast_aa, uncurry (RETURN oo set_butlast_ll)) \<in>
+     [\<lambda>(l,i). i < length l \<and> l ! i \<noteq> []]\<^sub>a (arrayO (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow> (arrayO (arl_assn R))\<close>
+proof -
+  note arrayO_except_arl_butlast[sep_heap_rules]
+  note arl_butlast_rule[sep_heap_rules del]
+  show ?thesis
+    apply sepref_to_hoare
+    apply (sep_auto simp add: set_butlast_aa_def set_butlast_ll_def assms)
+
+    apply (sep_auto simp add: set_butlast_aa_def arrayO_except_def array_assn_def is_array_def
+        hr_comp_def)
+    apply (subst_tac i=b in arrayO_except_array0_index[symmetric])
+     apply (solves \<open>simp\<close>)
+    apply (subst arrayO_except_def)
+    apply (auto simp add: set_butlast_aa_def arrayO_except_def array_assn_def is_array_def hr_comp_def)
+
+    apply (rule_tac x=\<open>p[b := (aa, ba)]\<close> in ent_ex_postI)
+    apply (subst_tac (2)xs'=a and ys'=p in heap_list_all_nth_cong)
+      apply (solves \<open>auto\<close>)
+     apply (solves \<open>auto\<close>)
+    apply (solves \<open>auto\<close>)
+    done
+qed
+
+definition last_aa :: "('a::heap array_list) array \<Rightarrow> nat \<Rightarrow> 'a Heap" where
+  \<open>last_aa xs i = do {
+     x \<leftarrow> Array.nth xs i;
+     arl_last x
+  }\<close>
+
+definition last_ll :: "'a list list \<Rightarrow> nat \<Rightarrow> 'a" where
+  \<open>last_ll xs i = last (xs ! i)\<close>
+
+lemma last_aa_hnr[sepref_fr_rules]:
+  assumes p: \<open>is_pure R\<close>
+  shows \<open>(uncurry last_aa, uncurry (RETURN oo last_ll)) \<in>
+     [\<lambda>(l,i). i < length l \<and> l ! i \<noteq> []]\<^sub>a (arrayO (arl_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
+proof -
+  obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
+    using p by fastforce
+  note arrayO_except_arl_butlast[sep_heap_rules]
+  note arl_butlast_rule[sep_heap_rules del]
+  show ?thesis
+    apply sepref_to_hoare
+    apply (sep_auto simp add: last_aa_def last_ll_def assms)
+
+    apply (sep_auto simp add: last_aa_def arrayO_except_def array_assn_def is_array_def
+        hr_comp_def arl_assn_def)
+    apply (subst_tac i=b in arrayO_except_array0_index[symmetric])
+     apply (solves \<open>simp\<close>)
+    apply (subst arrayO_except_def)
+    apply (auto simp add: last_aa_def arrayO_except_def array_assn_def is_array_def hr_comp_def)
+
+    apply (rule_tac x=\<open>p\<close> in ent_ex_postI)
+    apply (subst_tac (2)xs'=a and ys'=p in heap_list_all_nth_cong)
+      apply (solves \<open>auto\<close>)
+     apply (solves \<open>auto\<close>)
+
+    apply (rule_tac x=\<open>bb\<close> in ent_ex_postI)
+    unfolding R unfolding R'
+    apply (sep_auto simp: pure_def param_last)
+    done
+qed
+
 
 end
