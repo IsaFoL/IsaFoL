@@ -139,7 +139,7 @@ lemma arrayO_except_array0_index:
   unfolding arrayO_except_array0[symmetric] arrayO_except_def
   using heap_list_all_nth_remove1[of i \<open>[0..<length xs]\<close> R xs] by (auto simp: star_aci(2,3))
 
-lemma arrayO_nth_rule:
+lemma arrayO_nth_rule[sep_heap_rules]:
   assumes i: \<open>i < length a\<close>
   shows \<open> <arrayO (arl_assn R) a ai> Array.nth ai i <\<lambda>r. arrayO_except (arl_assn R) [i] a ai
    (\<lambda>r'. arl_assn R (a ! i) r * \<up>(r = r' ! i))>\<close>
@@ -187,19 +187,22 @@ lemma nth_aa_hnr[sepref_fr_rules]:
   assumes p: \<open>is_pure R\<close>
   shows
     \<open>(uncurry2 nth_aa, uncurry2 (RETURN \<circ>\<circ>\<circ> nth_ll)) \<in>
-     [\<lambda>((l,i),j). i < length l \<and> j < length (l ! i)]\<^sub>a (arrayO (arl_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
+       [\<lambda>((l,i),j). i < length l \<and> j < length (l ! i)]\<^sub>a
+       (arrayO (arl_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
 proof -
   obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
     using p by fastforce
-  have H: \<open>list_all2 (\<lambda>x x'. (x, x') \<in> the_pure (\<lambda>a c. \<up> ((c, a) \<in> R'))) bc (a ! ba) \<Longrightarrow> b < length (a ! ba) \<Longrightarrow>
+  have H: \<open>list_all2 (\<lambda>x x'. (x, x') \<in> the_pure (\<lambda>a c. \<up> ((c, a) \<in> R'))) bc (a ! ba) \<Longrightarrow>
+       b < length (a ! ba) \<Longrightarrow>
        (bc ! b, a ! ba ! b) \<in> R'\<close> for bc a ba b
     by (auto simp add: ent_refl_true list_all2_conv_all_nth is_pure_alt_def pure_app_eq[symmetric])
   show ?thesis
   apply sepref_to_hoare
   apply (subst (2) arrayO_except_array0_index[symmetric])
     apply (solves \<open>auto\<close>)[]
-  apply (sep_auto simp: nth_aa_def nth_ll_def intro!: arrayO_nth_rule)
-  apply (sep_auto simp: arrayO_except_def arrayO_def arl_assn_def hr_comp_def list_rel_def list_all2_lengthD
+  apply (sep_auto simp: nth_aa_def nth_ll_def)
+    apply (sep_auto simp: arrayO_except_def arrayO_def arl_assn_def hr_comp_def list_rel_def
+        list_all2_lengthD
       star_aci(3) R R' pure_def H)
     done
 qed
@@ -257,8 +260,7 @@ proof -
     apply sepref_to_hoare
     apply (sep_auto simp: append_el_aa_def)
      apply (simp add: arrayO_except_def)
-     apply (rule sep_auto_is_stupid)
-    using assms apply (simp add: array_assn_def is_array_def append_ll_def)
+     apply (rule sep_auto_is_stupid[OF p])
     apply (sep_auto simp: array_assn_def is_array_def append_ll_def)
     apply (simp add: arrayO_except_array0[symmetric] arrayO_except_def)
     apply (subst_tac (2) i = ba in heap_list_all_nth_remove1)
@@ -270,7 +272,7 @@ proof -
     apply (auto simp: star_aci)
     done
 qed
-term arl_set
+
 definition update_aa :: "('a::{heap} array_list) array \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> ('a array_list) array Heap" where
   \<open>update_aa a i j y = do {
       x \<leftarrow> Array.nth a i;
@@ -280,6 +282,7 @@ definition update_aa :: "('a::{heap} array_list) array \<Rightarrow> nat \<Right
 
 definition update_ll :: "'a list list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list"  where
   \<open>update_ll xs i j y = xs[i:= (xs ! i)[j := y]]\<close>
+
 abbreviation comp4 (infixl "oooo" 55) where "f oooo g \<equiv> \<lambda>x. f ooo (g x)"
 
 notation
@@ -287,9 +290,6 @@ notation
 
 declare nth_rule[sep_heap_rules del]
 declare arrayO_nth_rule[sep_heap_rules]
-thm arrayO_nth_rule
-thm arl_set_rule
-thm list_induct2
 
 lemma list_rel_update:
   fixes R :: \<open>'a \<Rightarrow> 'b :: {heap}\<Rightarrow> assn\<close>
