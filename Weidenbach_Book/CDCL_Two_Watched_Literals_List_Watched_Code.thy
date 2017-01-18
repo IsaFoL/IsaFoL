@@ -270,6 +270,10 @@ lemma nth_ll_watched_app:
 lemma literal_of_neq_eq_nat_of_lit_eq_iff: \<open>literal_of_nat b = L \<longleftrightarrow> b = nat_of_lit L\<close>
   by (auto simp del: literal_of_nat.simps)
 
+lemma nat_of_lit_eq_iff[iff]: \<open>nat_of_lit xa = nat_of_lit x \<longleftrightarrow> x = xa\<close>
+  apply (cases x; cases xa) by auto presburger+
+
+
 lemma \<open>(uncurry2 nth_aa, uncurry2 (RETURN ooo watched_app)) \<in>
    [\<lambda>((W, L), i). L \<in> snd ` D \<and> i < length (W L)]\<^sub>a array_watched_assn\<^sup>k *\<^sub>a nat_nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
@@ -307,17 +311,36 @@ proof -
         apply (subst (asm)(3) lit_of_nat_nat_of_lit[symmetric])
       apply (clarsimp simp only: comp_def intro!: list_update_swap)
       done
-    define aa where \<open>aa \<equiv> fold_mset ?f (replicate (nat_of_lit (Max (snd ` D'))) [])
+    define aa where \<open>aa \<equiv> fold_mset ?f (replicate (1+Max (nat_of_lit ` snd ` D')) [])
      (mset_set (snd ` D'))\<close>
-    have [simp]: \<open>length aa = nat_of_lit (Max (snd ` D'))\<close>
-      unfolding aa_def D''_def[symmetric]
-        by (induction \<open>D''\<close>) auto
-
+    have length_fold:  \<open>length (fold_mset (\<lambda>L a. a[nat_of_lit L := W L]) l M) = length l\<close>
+      for l M
+      by (induction M) auto
+    have length_aa: \<open>length aa = Suc (Max (nat_of_lit ` snd ` D'))\<close>
+      unfolding aa_def D''_def[symmetric] by (simp add: length_fold)
+    define Ls where \<open>Ls = lits_of_atms_of_mm (mset `# mset N)\<close>
+    have H: \<open>x \<in># Ls \<Longrightarrow>
+      length l \<ge> Suc  (Max (nat_of_lit ` set_mset Ls)) \<Longrightarrow>
+      fold_mset (\<lambda>L a. a[nat_of_lit L := W L]) l (remdups_mset Ls) ! nat_of_lit x = W x\<close>
+      for x l
+      apply (induction Ls arbitrary: l)
+      subgoal by simp
+      subgoal for xa Ls l
+         apply (case_tac \<open>(nat_of_lit ` set_mset Ls) = {}\<close>)
+         apply (solves simp)
+        apply (auto simp: nth_list_update_neq less_Suc_eq_le length_fold)
+       apply (subst nth_list_update_neq)
+        apply (auto simp: less_Suc_eq_le Max.insert)[]
+        apply (auto simp: less_Suc_eq_le)[]
+        done
+      done
+    have H': \<open>x \<in># lits_of_atms_of_mm (mset `# mset N) \<Longrightarrow> aa ! nat_of_lit x = W x\<close> for x
+      unfolding aa_def D'_def
+      by (auto simp: D'_def image_image remdups_mset_def[symmetric]
+          less_Suc_eq_le Ls_def[symmetric] intro!: H)
     have \<open>\<not>?P aa\<close>
-      apply (auto simp: D'_def image_image remdups_mset_def[symmetric])
-
-        -- \<open>needs some kind of induction\<close>
-      sorry
+      by (auto simp: D'_def image_image remdups_mset_def[symmetric]
+          less_Suc_eq_le length_aa H')
     then show ?thesis
       by blast
   qed
