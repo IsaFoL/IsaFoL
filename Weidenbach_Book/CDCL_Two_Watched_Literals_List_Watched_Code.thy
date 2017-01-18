@@ -1,5 +1,5 @@
 theory CDCL_Two_Watched_Literals_List_Watched_Code
-  imports CDCL_Two_Watched_Literals_List_Watched
+  imports CDCL_Two_Watched_Literals_List_Watched Array_Array_List
 begin
 
 instance literal :: (heap) heap
@@ -112,161 +112,6 @@ lemma pair_of_ann_lit_ann_lit_of_pair: \<open>pair_of_ann_lit (ann_lit_of_pair L
 definition pair_nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> (nat \<times> nat option) \<Rightarrow> assn" where
   \<open>pair_nat_ann_lit_assn = pure ({(a, b). b = ann_lit_of_pair ((\<lambda>(a,b). (literal_of_nat a, b)) a)})\<close>
 
-fun heap_list_all :: "('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> assn" where
-  \<open>heap_list_all R [] [] = emp\<close>
-| \<open>heap_list_all R (x # xs) (y # ys) = R x y * heap_list_all R xs ys\<close>
-| \<open>heap_list_all R _ _ = false\<close>
-
-definition arrayO:: \<open>('a \<Rightarrow> 'b::heap \<Rightarrow> assn) \<Rightarrow> 'a list \<Rightarrow> 'b array \<Rightarrow> assn\<close> where
-  \<open>arrayO R' xs axs \<equiv> \<exists>\<^sub>A p. array_assn id_assn p axs * heap_list_all R' xs p\<close>
-
-lemma heap_list_add_same_length:
-  \<open>h \<Turnstile> heap_list_all R' xs p \<Longrightarrow> length p = length xs\<close>
-  by (induction R' xs p arbitrary: h rule: heap_list_all.induct) (auto elim!: mod_starE)
-
-term \<open>arrays h TYPEREP('b::heap) (addr_of_array a)\<close>
-
-(* lemma array_assn_same_length:
-  assumes \<open>is_pure R\<close> and \<open>(h, b) \<Turnstile> array_assn R p a\<close>
-  shows \<open>Array.length h a = length p\<close>
-proof -
-  obtain R' where
-    R[simp]: \<open>the_pure R = R'\<close>
-    sorry
-  show ?thesis
-    using assms
-      apply (cases a)
-  apply (auto simp: (* array_assn_def *) Let_def (* new_addrs_def *) (* Array.get_def *) Array.set_def Array.alloc_def
-      relH_def in_range.simps Array.length_def (* is_array_def *) array_assn_def snga_assn_def
-      is_array_def[abs_def])
-
-    apply (auto simp: Abs_assn_inverse Array.get_def length_map mem_Collect_eq snga_assn_proper
-        snga_assn_raw.simps the_pure_def is_pure_def)
-    oops
-    -- \<open>TODO tune proof\<close>
-    by (metis Abs_assn_inverse Array.get_def length_map mem_Collect_eq snga_assn_proper
-        snga_assn_raw.simps) *)
-
-(* lemma arrayO_same_length:
-  \<open>(h, as) \<Turnstile> arrayO R' xs a \<Longrightarrow> Array.length h a = length xs\<close>
-  unfolding arrayO_def
-  by (auto simp: mod_star_conv simp: heap_list_add_same_length[symmetric] array_assn_same_length)
- *)
-definition nth_aa :: "'a::heap array_list array \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a Heap" where
-  [code del]: "nth_aa a i j = Heap_Monad.guard (\<lambda>h. i < Array.length h a \<and> j < snd (Array.get h a ! i))
-    (\<lambda>h. (Array.get h (fst (Array.get h a ! i)) ! j, h))"
-
-lemma run_nth_aa[run_elims]:
-  assumes "run (nth_aa a i j) \<sigma> \<sigma>' r"
-          "\<not>is_exn \<sigma>"
-  obtains "\<not>is_exn \<sigma>"
-    "i < Array.length (the_state \<sigma>) a"
-    "r = (Array.get (the_state \<sigma>) (fst ((Array.get (the_state \<sigma>) a)! i))) ! j"
-    "j < snd ((Array.get (the_state \<sigma>) a)! i)"
-    "\<sigma>' = \<sigma>"
-  |
-    "\<not> i < Array.length (the_state \<sigma>) a"
-    "\<sigma>' = None"
-  |
-    "\<not>j < snd ((Array.get (the_state \<sigma>) a)! i)"
-    "\<sigma>' = None"
-  using assms
-  apply (cases \<sigma>)
-   apply (solves \<open>simp\<close>)
-  apply (cases "\<not>i < Array.length (the_state \<sigma>) a")
-   apply (solves \<open>simp add: run.simps nth_aa_def execute_guard(1)\<close>)
-  apply (cases "\<not>j < snd ((Array.get (the_state \<sigma>) a)! i)")
-   apply (solves \<open>simp add: run.simps nth_aa_def execute_guard(1)\<close>)
-  by (auto simp add: run.simps nth_aa_def execute_guard)
-
-term \<open>Partial_Clausal_Logic.true_cls\<close>
-no_notation Partial_Clausal_Logic.true_cls (infix "\<Turnstile>" 50)
-
-lemma models_heap_list_all_models_nth:
-  \<open>(h, as) \<Turnstile> heap_list_all R a b \<Longrightarrow> i < length a \<Longrightarrow> \<exists>as'. (h, as') \<Turnstile> R (a!i) (b!i)\<close>
-  by (induction R a b arbitrary: as i rule: heap_list_all.induct)
-    (auto simp: mod_star_conv nth_Cons elim!: less_SucE split: nat.splits)
-thm option.splits
-
-lemma nth_aa:
-  assumes
-    i: \<open>i < length xs\<close> and j: \<open>j < length (xs ! i)\<close>
-  shows
-    \<open><arrayO (arl_assn R') xs a> nth_aa a i j <\<lambda>r. arrayO (arl_assn R') xs a * \<up> ((r, xs ! i ! j) \<in> the_pure R')>\<close>
-proof -
-  (*   have [simp]: \<open>Array.length h a = length xs\<close> if \<open>(h, as) \<Turnstile> arrayO (arl_assn R') xs a\<close> for h as
-    using that arrayO_same_length by blast *)
-  show ?thesis(*
-    using assms *)
-    unfolding nth_aa_def
-    unfolding hoare_triple_def snga_assn_def (* arrayO_def *) array_assn_def is_array_def nth_aa_def
-  proof (clarsimp simp only: Let_def Abs_assn_inverse, intro allI impI conjI)
-    fix h :: Heap.heap and as :: \<open>nat set\<close> and \<sigma> :: \<open>Heap.heap option\<close> and
-      r :: 'b
-    assume
-      h: \<open>(h, as) \<Turnstile> arrayO (arl_assn R') xs a\<close> and
-      run: \<open>run (Heap_Monad.guard (\<lambda>h. i < Array.length h a \<and> j < snd (Array.get h a ! i))
-               (\<lambda>h. (Array.get h (fst (Array.get h a ! i)) ! j, h)))
-          (Some h) \<sigma> r\<close>
-    have [simp]: \<open>i < Array.length h a\<close>
-      using h i unfolding arrayO_def array_assn_def is_array_def
-      by (auto simp: run.simps tap_def arrayO_def
-          mod_star_conv array_assn_def is_array_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def)
-    have xs_i: \<open>\<exists>as'. (h, as') \<Turnstile> (arl_assn R') (xs ! i) ((Array.get h a ! i))\<close>
-      using h i unfolding arrayO_def array_assn_def is_array_def
-      using models_heap_list_all_models_nth[of _ _ _ _ _ i]
-      by (auto simp: run.simps tap_def arrayO_def
-          mod_star_conv array_assn_def is_array_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def)
-    then have j_le_get[simp]: \<open>j < snd (Array.get h a ! i)\<close>
-      using j unfolding arrayO_def arl_assn_def is_array_list_def
-      by (cases \<open>Array.get h a ! i\<close>) (auto simp: run.simps tap_def arrayO_def hr_comp_def
-          mod_star_conv array_assn_def is_array_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def
-          dest: list_rel_pres_length)
-
-    show \<open>\<not> is_exn \<sigma>\<close>
-      using run h assms
-      by (auto simp: run.simps tap_def arrayO_def execute_simps
-          mod_star_conv array_assn_def is_array_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def)
-    have ex: \<open>execute
-        (Heap_Monad.guard
-          (\<lambda>h. i < length (Array.get h a) \<and>
-               j < snd (Array.get h a ! i))
-          (\<lambda>h. (Array.get h (fst (Array.get h a ! i)) ! j, h)))
-        h = Some (Array.get h (fst (Array.get h a ! i)) ! j, h)\<close>
-      using run h assms
-      by (auto simp: run.simps tap_def arrayO_def execute_simps
-          mod_star_conv array_assn_def is_array_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def)
-    show \<open>(the_state \<sigma>, new_addrs h as (the_state \<sigma>)) \<Turnstile>
-       arrayO (arl_assn R') xs a *
-       \<up> ((r, xs ! i ! j) \<in> the_pure R')\<close>
-      using run h assms xs_i j_le_get
-      by  (cases \<open>Array.get h a ! i\<close>) (auto simp: run.simps tap_def arrayO_def
-          mod_star_conv arl_assn_def is_array_list_def hr_comp_def ex list_rel_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def
-          dest!: list_all2_nthD[of _ _ _ j] simp del: j_le_get)
-    show \<open>relH {a. a < lim h \<and> a \<notin> as} h (the_state \<sigma>)\<close>
-      using run h assms xs_i
-      by (auto simp: run.simps tap_def arrayO_def
-          mod_star_conv arl_assn_def is_array_list_def hr_comp_def ex list_rel_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def relH_def
-          in_range.simps)
-    show \<open>lim h \<le> lim (the_state \<sigma>)\<close>
-      using run h assms xs_i
-      by (auto simp: run.simps tap_def arrayO_def
-          mod_star_conv arl_assn_def is_array_list_def hr_comp_def ex list_rel_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def relH_def
-          in_range.simps)
-  qed
-qed
-
-definition array_of_arl_assn :: \<open>('a \<Rightarrow> 'b::heap \<Rightarrow> assn) \<Rightarrow> 'a list list \<Rightarrow>
-  ('b array_list) array \<Rightarrow> assn\<close> where
-  \<open>array_of_arl_assn R' xs axs \<equiv> \<exists>\<^sub>A p. array_assn id_assn p axs * heap_list_all (arl_assn R') xs p\<close>
 
 subsection \<open>State Conversion\<close>
 
@@ -365,7 +210,7 @@ abbreviation D where
   \<open>D \<equiv> (\<lambda>L. (nat_of_lit L, L)) ` set_mset (lits_of_atms_of_mm (mset `# mset N))\<close>
 
 abbreviation array_watched_assn :: "(nat literal \<Rightarrow> nat list) \<Rightarrow> (nat array \<times> nat) array  \<Rightarrow> assn" where
-  \<open>array_watched_assn \<equiv> hr_comp (array_assn (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D)\<close>
+  \<open>array_watched_assn \<equiv> hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D)\<close>
 term hr_comp
   term \<open>Array.nth\<close>
 term \<open>(hrp_comp (is_array_list, list_assn id_assn) (\<langle>Id\<rangle>map_fun_rel D))\<close>
@@ -397,95 +242,103 @@ sepref_register \<open>watched_by :: nat twl_st_wl \<Rightarrow> nat literal \<R
 definition watched_by_nth :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>watched_by_nth = (\<lambda>(M, N, U, D, NP, UP, Q, W) L i. W L ! i)\<close>
 
-definition watched_by_nth_wll :: \<open>twl_st_wll \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> _\<close> where
-  \<open>watched_by_nth_wll = (\<lambda>(M, N, U, D, NP, UP, Q, W) L i.
-      do {
-        WL \<leftarrow> Array.nth W L;
-        j \<leftarrow> arl_get WL i;
-        return j
-      })\<close>
-
-lemma CONSTRAINT_is_pureE:
-  assumes "CONSTRAINT is_pure A"
-  obtains R where "A=pure R"
-  using assms by (auto simp: is_pure_conv)
-term fun_rel
-term mset_rel
-term list_rel
-term list_mset_assn
-
-(*
-lemma
-  assumes \<open>A \<Turnstile> arl_assn (arl_assn nat_assn) (map (W \<circ> lit_of_nat) [0..<max_index]) (x1, x2)\<close>
-  shows \<open>Array.length h x1 = max_index\<close>
-proof -
-  have [iff]: \<open>(\<forall>x x'. nat_assn x x' = \<up> ((x', x) \<in> P')) \<longleftrightarrow> P' = Id\<close>
-    for P'
-    by (auto simp: pure_def)
-  have [simp]: \<open>min a b = b\<close> if \<open>b \<le> a\<close> for a b :: nat
-    using that by (auto simp: min_def)
-  show ?thesis
-    using assms
-    apply (simp add: arl_assn_def hr_comp_def (* is_array_list_def *) (* list_rel_def *)
-      Array.length_def (* snga_assn_def *) (* list_all2_iff *) comp_def (* the_pure_def *))
-    apply (auto simp add: list_rel_def list_all2_iff)
-    apply (auto simp add: arl_assn_def hr_comp_def is_array_list_def list_rel_def
-      Array.length_def (* snga_assn_def *) list_all2_iff comp_def the_pure_def)
-    apply (auto simp: snga_assn_def min_def split: if_splits)
-
-    thm arl_get_hnr_mop arl_get_hnr_aux
-    sorry
-  oops
-
-lemma
-  fixes N'
-  assumes \<open>bc < max_index\<close>
-  shows
-   \<open><twl_st_l_assn (M, N', U, D, NP, UP, Q, W)
-         ((a, b), (aa, ba), ab, ac, ad, ae, af, W') *
-        nat_nat_lit_assn bf bc>
-       Array.get W' bc
-       <\<lambda>r. arl_assn id_assn (W (lit_of_nat bc)) r>\<close>
-   using assms
-  apply (sep_auto simp: arl_get_def is_array_list_def twl_st_l_assn_def
-      split: prod.split)
-  unfolding hoare_triple_def
-   apply (auto simp: Let_def elim!: run_elims mod_starE)
-             apply (simp add: arl_assn_def)
-  oops
-    thm runE
-*)
 term p2rel
 sepref_decl_intf i_my_watched is "nat literal \<Rightarrow> nat list"
 thm map_type_eqI[of "TYPE(nat literal literal \<Rightarrow> nat list)" "TYPE(i_my_watched)"]
 
-definition watched_app :: \<open>(nat literal \<Rightarrow> nat list) \<Rightarrow> nat literal \<Rightarrow> nat list\<close> where
-  \<open>watched_app M L \<equiv> M L\<close>
+definition watched_app :: \<open>(nat literal \<Rightarrow> nat list) \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>watched_app M L i \<equiv> M L ! i\<close>
 
-sepref_decl_op watched_app: \<open>watched_app ::(nat literal \<Rightarrow> nat list) \<Rightarrow> nat literal \<Rightarrow> nat list\<close> ::
-  \<open>(Id :: ((nat literal \<Rightarrow> nat list) \<times> _) set) \<rightarrow> (Id :: (nat literal \<times> _) set) \<rightarrow>
-     (Id :: (nat list \<times> _) set)\<close>
+sepref_decl_op watched_app: \<open>watched_app ::(nat literal \<Rightarrow> nat list) \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat\<close> ::
+  \<open>(Id :: ((nat literal \<Rightarrow> nat list) \<times> _) set) \<rightarrow> (Id :: (nat literal \<times> _) set) \<rightarrow> nat_rel \<rightarrow>
+     nat_rel\<close>
   .
 
+thm nth_aa_hnr[unfolded hoare_triple_def, simplified]
 lemma [def_pat_rules]:
-  \<open>watched_app $ M $ L \<equiv> op_watched_app $ M $ L\<close>
+  \<open>watched_app $ M $ L $ i \<equiv> op_watched_app $ M $ L $ i\<close>
   by (auto simp: watched_app_def)
-thm arl_assn_comp'
-context (* 
-  notes [fcomp_norm_unfold] = array_assn_def[symmetric]*)
-  notes [intro!] = hfrefI hn_refineI[THEN hn_refine_preI] 
-  notes [simp] =  pure_def (* hn_ctxt_def *) (* invalid_assn_def *) 
-begin  
 
-lemma \<open>(uncurry Array.nth, uncurry (RETURN oo watched_app)) \<in>
-   [\<lambda>(W, L). L \<in> snd ` D]\<^sub>a array_watched_assn\<^sup>k *\<^sub>a nat_nat_lit_assn\<^sup>k \<rightarrow> arl_assn id_assn\<close>
-  apply sep_auto
-  apply (sep_auto simp: lit_of_natP_def nat_nat_lit_assn_def lit_of_natP_def[abs_def] p2rel_def
-      Array.nth_def map_fun_rel_def[abs_def] array_assn_def relAPP_def is_array_def[abs_def]
-       arl_assn_def is_array_list_def hr_comp_def
-      elim!: runE
-      split: if_splits prod.split)
-    oops
+lemma nth_ll_watched_app:
+  \<open>(uncurry2 (RETURN ooo nth_ll), uncurry2 (RETURN ooo watched_app)) \<in>
+     [\<lambda>((W, L), i). L \<in> snd ` D]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D) \<times>\<^sub>r p2rel lit_of_natP) \<times>\<^sub>r nat_rel \<rightarrow> \<langle>nat_rel\<rangle> nres_rel\<close>
+  unfolding watched_app_def nth_ll_def
+  by (fastforce simp: fref_def map_fun_rel_def[abs_def] relAPP_def prod_rel_def_internal
+      nres_rel_def_internal p2rel_def lit_of_natP_def
+      simp del: (* literal_of_nat.simps *))
+
+lemma literal_of_neq_eq_nat_of_lit_eq_iff: \<open>literal_of_nat b = L \<longleftrightarrow> b = nat_of_lit L\<close>
+  by (auto simp del: literal_of_nat.simps)
+
+lemma \<open>(uncurry2 nth_aa, uncurry2 (RETURN ooo watched_app)) \<in>
+   [\<lambda>((W, L), i). L \<in> snd ` D \<and> i < length (W L)]\<^sub>a array_watched_assn\<^sup>k *\<^sub>a nat_nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have P: \<open>is_pure nat_assn\<close>
+    by auto
+  have \<open>(uncurry2 nth_aa, uncurry2 (RETURN \<circ>\<circ>\<circ> watched_app))
+  \<in> [comp_PRE ((\<langle>Id\<rangle>map_fun_rel D \<times>\<^sub>r lit_of_nat_rel) \<times>\<^sub>r nat_rel)
+       (\<lambda>((W, L), i). L \<in> snd ` D)
+       (\<lambda>_ ((l, i), j). i < length l \<and> j < length (l ! i))
+       (\<lambda>_. True)]\<^sub>a hrp_comp
+                       ((arrayO (arl_assn nat_assn))\<^sup>k *\<^sub>a
+                        nat_assn\<^sup>k *\<^sub>a
+                        nat_assn\<^sup>k)
+                       ((\<langle>Id\<rangle>map_fun_rel D \<times>\<^sub>r lit_of_nat_rel) \<times>\<^sub>r
+                        nat_rel) \<rightarrow> hr_comp nat_assn nat_rel\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF nth_aa_hnr nth_ll_watched_app, OF P] .
+  note H = hfref_compI_PRE_aux[OF nth_aa_hnr nth_ll_watched_app, OF P]
+  have \<open>(\<forall>aa. \<exists>x\<in>#lits_of_atms_of_mm (mset `# mset N).
+               nat_of_lit x < length aa \<longrightarrow>
+               aa ! nat_of_lit x \<noteq> W x) = False\<close>
+    (is \<open>(\<forall>aa. ?P aa) = False\<close>)
+    for W :: \<open>nat literal \<Rightarrow> nat list\<close>
+  proof -
+    define D' where \<open>D' = D\<close>
+    define D'' where \<open>D'' = mset_set (snd ` D')\<close>
+    let ?f = \<open>(\<lambda>L a. a[nat_of_lit L:= W L])\<close>
+    interpret comp_fun_commute ?f
+      apply standard
+      apply (case_tac \<open>y = x\<close>)
+       apply (solves simp)
+      apply (intro ext)
+        apply (subst (asm) lit_of_nat_nat_of_lit[symmetric])
+        apply (subst (asm)(3) lit_of_nat_nat_of_lit[symmetric])
+      apply (clarsimp simp only: comp_def intro!: list_update_swap)
+      done
+    define aa where \<open>aa \<equiv> fold_mset ?f (replicate (nat_of_lit (Max (snd ` D'))) [])
+     (mset_set (snd ` D'))\<close>
+    have [simp]: \<open>length aa = nat_of_lit (Max (snd ` D'))\<close>
+      unfolding aa_def D''_def[symmetric]
+        by (induction \<open>D''\<close>) auto
+
+    have \<open>\<not>?P aa\<close>
+      apply (auto simp: D'_def image_image remdups_mset_def[symmetric])
+
+        -- \<open>needs some kind of induction\<close>
+      sorry
+    then show ?thesis
+      by blast
+  qed
+
+  then have 1: \<open>?pre' = ?pre\<close>
+    apply (auto simp: comp_PRE_def intro!: ext simp: prod_rel_def_internal
+        relAPP_def map_fun_rel_def[abs_def] p2rel_def lit_of_natP_def
+        literal_of_neq_eq_nat_of_lit_eq_iff
+        simp del: literal_of_nat.simps)
+      done
+
+  have 2: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp
+    by (auto simp: hrp_comp_def hr_comp_def nat_nat_lit_assn_def)
+  have 3: \<open>?f' = ?f\<close>
+    by (auto simp: hrp_comp_def hr_comp_def nat_nat_lit_assn_def)
+
+  show ?thesis
+    using H unfolding 1 2 3 .
+qed
+
 sepref_thm set_of_arrays_ex is "uncurry0 (RETURN (op_list_append [] op_array_empty))" :: "unit_assn\<^sup>k \<rightarrow>\<^sub>a list_assn (array_assn nat_assn)"
   unfolding "HOL_list.fold_custom_empty"
   by sepref
@@ -540,7 +393,7 @@ proof -
     \<open>a \<in> A \<Longrightarrow> A = B \<Longrightarrow> a \<in> B\<close> for a A B
     by auto
   thm eq_mem_trans2[OF 0, of ?B]
-  show ?thesis(* 
+  show ?thesis(*
     supply [[show_types]]
     using 0 unfolding 1 2 prod_hrp_comp apply -
     supply [[unify_trace_failure]] *)
@@ -564,9 +417,9 @@ proof -
 =======
 lemma arl_get_hnr_aux: "(uncurry arl_get,uncurry (RETURN oo op_list_get)) \<in> [\<lambda>(l,i). i<length l]\<^sub>a (is_array_list\<^sup>k *\<^sub>a nat_assn\<^sup>k) \<rightarrow> id_assn"
 <<<<<<< HEAD
-  
+
   by sep_auto
-inductive_cases runE: \<open>run a b c d\<close>    
+inductive_cases runE: \<open>run a b c d\<close>
 =======
 
   by sep_auto
