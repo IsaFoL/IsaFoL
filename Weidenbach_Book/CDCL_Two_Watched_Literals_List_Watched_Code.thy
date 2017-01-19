@@ -415,7 +415,7 @@ definition unit_propagation_inner_loop_body_wl :: "nat literal \<Rightarrow> nat
 lemma lit_of_natP_same_rightD: \<open>lit_of_natP bi b \<Longrightarrow> lit_of_natP bi a \<Longrightarrow> a = b\<close>
   by (auto simp: p2rel_def lit_of_natP_def)
 
-lemma lit_of_natP_same_leftD: \<open> lit_of_natP bi b \<Longrightarrow> lit_of_natP ai b \<Longrightarrow> ai = bi\<close>
+lemma lit_of_natP_same_leftD: \<open>lit_of_natP bi b \<Longrightarrow> lit_of_natP ai b \<Longrightarrow> ai = bi\<close>
   apply (auto simp: p2rel_def lit_of_natP_def split: if_splits)
   apply presburger
   apply presburger
