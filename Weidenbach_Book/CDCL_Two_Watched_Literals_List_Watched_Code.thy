@@ -42,8 +42,11 @@ definition lit_of_natP where
 abbreviation lit_of_nat_rel where
   \<open>lit_of_nat_rel \<equiv> p2rel lit_of_natP\<close>
 
-definition nat_nat_lit_assn :: "nat literal \<Rightarrow> nat \<Rightarrow> assn" where
-  \<open>nat_nat_lit_assn = pure (p2rel lit_of_natP)\<close>
+definition nat_nat_lit_rel :: "(nat \<times> nat literal) set" where
+  \<open>nat_nat_lit_rel \<equiv> (p2rel lit_of_natP)\<close>
+
+abbreviation nat_nat_lit_assn :: "nat literal \<Rightarrow> nat \<Rightarrow> assn" where
+  \<open>nat_nat_lit_assn \<equiv> pure nat_nat_lit_rel\<close>
 
 fun pair_of_ann_lit :: "('a, 'b) ann_lit \<Rightarrow> 'a literal \<times> 'b option" where
   \<open>pair_of_ann_lit (Propagated L D) = (L, Some D)\<close>
@@ -59,8 +62,20 @@ lemma ann_lit_of_pair_pair_of_ann_lit: \<open>ann_lit_of_pair (pair_of_ann_lit L
 lemma pair_of_ann_lit_ann_lit_of_pair: \<open>pair_of_ann_lit (ann_lit_of_pair L) = L\<close>
   by (cases L; cases \<open>snd L\<close>) auto
 
-definition pair_nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> (nat \<times> nat option) \<Rightarrow> assn" where
-  \<open>pair_nat_ann_lit_assn = pure ({(a, b). b = ann_lit_of_pair ((\<lambda>(a,b). (literal_of_nat a, b)) a)})\<close>
+type_synonym ann_lit_wl = \<open>nat \<times> nat option\<close>
+type_synonym ann_lits_wl = \<open>ann_lit_wl list\<close>
+
+definition nat_ann_lit_rel :: "(ann_lit_wl \<times> (nat, nat) ann_lit) set" where
+  \<open>nat_ann_lit_rel = ({(a, b). b = ann_lit_of_pair ((\<lambda>(a,b). (literal_of_nat a, b)) a)})\<close>
+
+definition nat_ann_lits_rel :: "(ann_lits_wl \<times> (nat, nat) ann_lits) set" where
+  \<open>nat_ann_lits_rel = \<langle>nat_ann_lit_rel\<rangle>list_rel\<close>
+
+abbreviation pair_nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> nat \<times> nat option \<Rightarrow> assn" where
+  \<open>pair_nat_ann_lit_assn \<equiv> pure nat_ann_lit_rel\<close>
+
+abbreviation pair_nat_ann_lits_assn :: "(nat, nat) ann_lits \<Rightarrow> (nat \<times> nat option) list \<Rightarrow> assn" where
+  \<open>pair_nat_ann_lits_assn \<equiv> pure nat_ann_lits_rel\<close>
 
 
 subsection \<open>State Conversion\<close>
@@ -71,8 +86,6 @@ definition watched_rel :: "('a \<Rightarrow> 'b) \<Rightarrow> nat clauses_l \<R
   \<open>watched_rel R N =
     (br (\<lambda>W. (\<lambda>L. R (W!(nat_of_lit L))))
         (\<lambda>W. \<forall>L \<in># lits_of_atms_of_mm (mset `# mset N). nat_of_lit L < length W))\<close>
-
-term \<open>br (\<lambda>W. (\<lambda>L. R (W!(nat_of_lit L))))\<close>
 
 text \<open>Some functions and types:\<close>
 
@@ -87,11 +100,17 @@ type_synonym working_queue_ll = "nat list"
 type_synonym lit_queue_l = "nat literal list"
 type_synonym nat_trail = \<open>(nat \<times> nat option) array_list\<close>
 type_synonym clause_wl = \<open>nat array_list\<close>
-type_synonym clauses_wl = \<open>nat array_list array_list\<close>
+type_synonym clauses_wl = \<open>nat array_list array\<close>
 type_synonym watched_wl = \<open>nat array_list array\<close>
 
-abbreviation nat_ann_lits_assn :: "ann_lits_l \<Rightarrow> ann_lits_l \<Rightarrow> assn" where
-  \<open>nat_ann_lits_assn \<equiv> list_assn nat_ann_lit_assn\<close>
+abbreviation ann_lit_wl_assn :: \<open>ann_lit_wl \<Rightarrow> ann_lit_wl \<Rightarrow> assn\<close> where
+\<open>ann_lit_wl_assn \<equiv> prod_assn nat_assn (option_assn nat_assn)\<close>
+
+abbreviation ann_lits_wl_assn :: \<open>ann_lits_wl \<Rightarrow> ann_lits_wl \<Rightarrow> assn\<close> where
+\<open>ann_lits_wl_assn \<equiv> list_assn ann_lit_wl_assn\<close>
+
+abbreviation nat_ann_lits_assn :: "ann_lits_l \<Rightarrow> ann_lits_wl \<Rightarrow> assn" where
+  \<open>nat_ann_lits_assn \<equiv> list_assn pair_nat_ann_lit_assn\<close>
 
 abbreviation nat_lits_trail_assn :: "ann_lits_l \<Rightarrow> (nat \<times> nat option) array_list \<Rightarrow> assn" where
   \<open>nat_lits_trail_assn \<equiv> arl_assn (pair_nat_ann_lit_assn :: (nat, nat) ann_lit \<Rightarrow> _)\<close>
@@ -100,7 +119,7 @@ abbreviation clause_ll_assn :: "nat clause_l \<Rightarrow> clause_wl \<Rightarro
   \<open>clause_ll_assn \<equiv> arl_assn nat_nat_lit_assn\<close>
 
 abbreviation clauses_ll_assn :: "nat clauses_l \<Rightarrow> clauses_wl \<Rightarrow> assn" where
-  \<open>clauses_ll_assn \<equiv> arl_assn clause_ll_assn\<close>
+  \<open>clauses_ll_assn \<equiv> arrayO (arl_assn nat_nat_lit_assn)\<close>
 
 abbreviation clause_l_assn :: "nat clause \<Rightarrow> nat clause_l \<Rightarrow> assn" where
   \<open>clause_l_assn \<equiv> list_mset_assn nat_lit_assn\<close>
@@ -224,13 +243,14 @@ lemma nat_of_lit_eq_iff[iff]: \<open>nat_of_lit xa = nat_of_lit x \<longleftrigh
   apply (cases x; cases xa) by auto presburger+
 
 
-lemma \<open>(uncurry2 nth_aa, uncurry2 (RETURN ooo watched_app)) \<in>
+lemma nth_aa_watched_app[sepref_fr_rules]:
+  \<open>(uncurry2 nth_aa, uncurry2 (RETURN ooo op_watched_app)) \<in>
    [\<lambda>((W, L), i). L \<in> snd ` D \<and> i < length (W L)]\<^sub>a array_watched_assn\<^sup>k *\<^sub>a nat_nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have P: \<open>is_pure nat_assn\<close>
     by auto
-  have \<open>(uncurry2 nth_aa, uncurry2 (RETURN \<circ>\<circ>\<circ> watched_app))
+  have H: \<open>(uncurry2 nth_aa, uncurry2 (RETURN \<circ>\<circ>\<circ> op_watched_app))
   \<in> [comp_PRE ((\<langle>Id\<rangle>map_fun_rel D \<times>\<^sub>r lit_of_nat_rel) \<times>\<^sub>r nat_rel)
        (\<lambda>((W, L), i). L \<in> snd ` D)
        (\<lambda>_ ((l, i), j). i < length l \<and> j < length (l ! i))
@@ -241,8 +261,8 @@ proof -
                        ((\<langle>Id\<rangle>map_fun_rel D \<times>\<^sub>r lit_of_nat_rel) \<times>\<^sub>r
                         nat_rel) \<rightarrow> hr_comp nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF nth_aa_hnr nth_ll_watched_app, OF P] .
-  note H = hfref_compI_PRE_aux[OF nth_aa_hnr nth_ll_watched_app, OF P]
+    using hfref_compI_PRE_aux[OF nth_aa_hnr nth_ll_watched_app, OF P]
+    unfolding op_watched_app_def .
   have \<open>(\<forall>aa. \<exists>x\<in>#lits_of_atms_of_mm (mset `# mset N).
                nat_of_lit x < length aa \<longrightarrow>
                aa ! nat_of_lit x \<noteq> W x) = False\<close>
@@ -304,217 +324,122 @@ proof -
 
   have 2: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp
-    by (auto simp: hrp_comp_def hr_comp_def nat_nat_lit_assn_def)
+    by (auto simp: hrp_comp_def hr_comp_def nat_nat_lit_rel_def)
   have 3: \<open>?f' = ?f\<close>
-    by (auto simp: hrp_comp_def hr_comp_def nat_nat_lit_assn_def)
+    by (auto simp: hrp_comp_def hr_comp_def)
 
   show ?thesis
-    using H unfolding 1 2 3 .
+    using H unfolding 1 2 3  .
 qed
 
-sepref_thm set_of_arrays_ex is "uncurry0 (RETURN (op_list_append [] op_array_empty))" :: "unit_assn\<^sup>k \<rightarrow>\<^sub>a list_assn (array_assn nat_assn)"
-  unfolding "HOL_list.fold_custom_empty"
+lemma watched_by_nth_watched_app:
+  \<open>watched_by S K ! w = watched_app ((snd o snd o snd o snd o snd o snd o snd) S) K w\<close>
+  by (cases S) (auto simp: watched_app_def)
+
+definition valued_impl :: "ann_lits_wl \<Rightarrow> nat \<Rightarrow> bool option nres" where
+  \<open>valued_impl M L =
+    nfoldli M
+     (\<lambda>brk. brk = None)
+     (\<lambda>L' _. do {
+       let L\<^sub>1 = L mod 2;
+       let L\<^sub>2' = (fst L') mod 2;
+       if L = L\<^sub>2' then RETURN (Some True)
+       else
+         if L\<^sub>1 = L\<^sub>2' then RETURN (Some False) else RETURN None
+    })
+    None\<close>
+
+term \<open>(f, g) \<in> (ann_lits_wl_assn)\<^sup>k *\<^sub>a pair_nat_ann_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
+sepref_definition valued_impl' is \<open>uncurry valued_impl\<close> ::
+  \<open>(ann_lits_wl_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
+  unfolding valued_impl_def
   by sepref
 
-lemma list_nth_watched_app:
-  \<open>(uncurry (RETURN oo op_list_get), uncurry (RETURN oo watched_app)) \<in>
-     [\<lambda>(W, L). L \<in> snd ` D]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D)) \<times>\<^sub>r lit_of_nat_rel \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
-  by (fastforce simp: fref_def p2rel_def watched_app_def map_fun_rel_def[abs_def] relAPP_def
-      prod_rel_def_internal lit_of_natP_def nres_rel_def_internal)
-term \<open>\<langle>the_pure (is_array_list)\<rangle>map_fun_rel D\<close>
-term \<open>\<langle>Id\<rangle>map_fun_rel D\<close>
-term \<open>\<langle>the_pure (is_array_list)\<rangle>map_fun_rel D\<close>
-term \<open>\<langle>Id\<rangle>map_fun_rel D\<close>
-term "\<langle>the_pure (is_array)\<rangle> U"
-term \<open>R O \<langle>Id\<rangle>map_fun_rel D\<close>
-lemma list_nth_watched_app':
-  \<open>(uncurry (RETURN oo op_list_get), uncurry (RETURN oo watched_app)) \<in>
-     [\<lambda>(W, L). L \<in> snd ` D]\<^sub>f (\<langle>R\<rangle>map_fun_rel D \<times>\<^sub>r lit_of_nat_rel) \<rightarrow> \<langle>R\<rangle> nres_rel\<close>
-  by (force simp: fref_def p2rel_def watched_app_def map_fun_rel_def[abs_def] relAPP_def
-      prod_rel_def_internal lit_of_natP_def nres_rel_def_internal lit_of_natP_def[abs_def])
-(* (((nat array \<times> nat) list \<times> nat) \<times>
-    (nat literal \<Rightarrow> nat list) \<times> nat literal) set *)
-thm arl_get_hnr_aux hfref_compI_PRE_aux[OF arl_get_hnr_aux list_nth_watched_app]
-term is_array_list
-lemma \<open>(uncurry (Array.nth) , uncurry (RETURN oo watched_app)) \<in>
-   [\<lambda>(W, L). L \<in> snd ` D]\<^sub>a array_watched_assn\<^sup>k *\<^sub>a nat_nat_lit_assn\<^sup>k \<rightarrow> arl_assn id_assn\<close>
-  (is \<open>?u \<in> ?B\<close> is \<open>_ \<in> [?PRE]\<^sub>a ?init \<rightarrow> ?post\<close>)
-proof -
-  term \<open>addr_of_array\<close>
-  term \<open>p\<mapsto>\<^sub>al\<close>
-  term is_array
+term nat_nat_lit_assn
+lemma valued_impl_spec:
+  shows \<open>(uncurry valued_impl, uncurry (RETURN oo valued)) \<in> [\<lambda>(M, L). no_dup M]\<^sub>f
+     nat_ann_lits_rel \<times>\<^sub>r nat_nat_lit_rel \<rightarrow> \<langle>option_rel bool_rel\<rangle>nres_rel\<close>
+  unfolding fref_def nres_rel_def
+  apply (auto simp: IS_ID_def option_rel_def nat_ann_lits_rel_def list_rel_def nat_ann_lit_rel_def
+      p2rel_def)
+  sorry
 
-  thm hfref_compI_PRE_aux[of \<open>fst ?u\<close> _ _ _ _ \<open>snd ?u\<close>, unfolded fst_conv snd_conv ,
-      OF array_get_hnr_aux list_nth_watched_app']
-    term \<open> \<langle>Id\<rangle>map_fun_rel D\<close>
-    thm array_get_hnr_aux list_nth_watched_app
-  thm hfref_compI_PRE_aux[of \<open>fst ?u\<close> _ _ _ _ \<open>snd ?u\<close>, unfolded fst_conv snd_conv ,
-      OF (* array_get_hnr_aux *)_ list_nth_watched_app
-      (* list_nth_watched_app *)(* , of \<open>arl_assn id_assn\<close> *)]
-  have 0: \<open>?u \<in> [comp_PRE (\<langle>Id\<rangle>map_fun_rel D \<times>\<^sub>r lit_of_nat_rel)
-       (\<lambda>(W, L). L \<in> snd ` D) (\<lambda>_ (l, i). i < length l)
-       (\<lambda>_. True)]\<^sub>a hrp_comp (is_array\<^sup>k *\<^sub>a nat_assn\<^sup>k)
-                       (\<langle>Id\<rangle>map_fun_rel D \<times>\<^sub>r
-                        lit_of_nat_rel) \<rightarrow> hr_comp id_assn Id\<close>
-    (is " _ \<in> [?PRE']\<^sub>a ?init' \<rightarrow> ?post'")
-    using hfref_compI_PRE_aux[OF array_get_hnr_aux list_nth_watched_app'] .
-  have 1: \<open>?PRE' = ?PRE\<close>
-    by (force simp: comp_PRE_def map_fun_rel_def[abs_def] relAPP_def lit_of_natP_def p2rel_def
-        prod_rel_def_internal
-        intro!: ext)
-  have eq_mem_trans2:
-    \<open>a \<in> A \<Longrightarrow> A = B \<Longrightarrow> a \<in> B\<close> for a A B
-    by auto
-  thm eq_mem_trans2[OF 0, of ?B]
-  show ?thesis(*
-    supply [[show_types]]
-    using 0 unfolding 1 2 prod_hrp_comp apply -
-    supply [[unify_trace_failure]] *)
-    apply (rule eq_mem_trans2[OF 0])
-      unfolding 1 prod_hrp_comp
-      prefer 2 apply assumption
+lemmas valued_impl'_hnr[sepref_fr_rules] = valued_impl'.refine[FCOMP valued_impl_spec]
 
-      (*hrp_comp (is_array\<^sup>k)
-                   (\<langle>the_pure is_array_list\<rangle>map_fun_rel D) =
-   (hr_comp (array_assn (arl_assn nat_assn))
-                    (\<langle>Id\<rangle>map_fun_rel D))\<^sup>k *)
-      (*)
+lemma hrp_comp_Id2[simp]: \<open>hrp_comp A Id = A\<close>
+  unfolding hrp_comp_def
+  by auto
 
 
+definition unit_propagation_inner_loop_body_wl :: "nat literal \<Rightarrow> nat \<Rightarrow>
+  nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres"  where
+  \<open>unit_propagation_inner_loop_body_wl K w S = do {
+    let (M, N, U, D', NP, UP, Q, W) = S;
+    ASSERT(w < length (watched_by S K));
+    ASSERT(K \<in> snd ` D);
+    let C = (W K) ! w;
+    ASSERT(no_dup M);
+    ASSERT(C < length N);
+    let zero = 0;
+    ASSERT(zero < length (N!C));
+    let i = (if (N!C) ! zero = K then 0 else 1);
+    ASSERT(i < length (N!C));
+    ASSERT(1-i < length (N!C));
+    let L = ((N!C)) ! i;
+    ASSERT(L = K);
+    let L' = ((N!C)) ! (1 - i);
+    ASSERT(L' \<in># mset (watched_l (N!C)) - {#L#});
+    ASSERT (mset (watched_l (N!C)) = {#L, L'#});
+    val_L' \<leftarrow> RETURN (valued M L');
+    if val_L' = Some True
+    then RETURN (w+1, S)
+    else do {
+      f \<leftarrow> find_unwatched M (N!C);
+      ASSERT (fst f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (N!C)). - L \<in> lits_of_l M));
+      if fst f = None
+      then
+        if val_L' = Some False
+        then do {RETURN (w+1, (M, N, U, Some (N!C), NP, UP, {#}, W))}
+        else do {RETURN (w+1, (Propagated L' C # M, N, U, D', NP, UP, add_mset (-L') Q, W))}
+      else do {
+        ASSERT(snd f < length (N!C));
+        let K' = (N!C) ! (snd f);
+        let N' = list_update N C (swap (N!C) i (snd f));
+        ASSERT(K \<noteq> K');
+        RETURN (w, (M, N', U, D', NP, UP, Q, W(K := delete_index_and_swap (watched_by S L) w, K':= W K' @ [C])))
+      }
+    }
+   }
+\<close>
 
+lemma lit_of_natP_same_rightD: \<open>lit_of_natP bi b \<Longrightarrow> lit_of_natP bi a \<Longrightarrow> a = b\<close>
+  by (auto simp: p2rel_def lit_of_natP_def)
 
+lemma lit_of_natP_same_leftD: \<open> lit_of_natP bi b \<Longrightarrow> lit_of_natP ai b \<Longrightarrow> ai = bi\<close>
+  apply (auto simp: p2rel_def lit_of_natP_def split: if_splits)
+  apply presburger
+  apply presburger
+  done
 
+lemma op_eq_op_nat_lit_eq[sepref_fr_rules]:
+  \<open>(uncurry (return oo (op =)), uncurry (RETURN oo op_nat_lit_eq)) \<in>
+      nat_nat_lit_assn\<^sup>k *\<^sub>a nat_nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: p2rel_def nat_nat_lit_rel_def
+      dest: lit_of_natP_same_rightD lit_of_natP_same_leftD)
 
-  apply sepref_to_hoare
-  apply (sep_auto simp: map_fun_rel_def[abs_def] nat_nat_lit_assn_def lit_of_natP_def relAPP_def)
-=======
-lemma arl_get_hnr_aux: "(uncurry arl_get,uncurry (RETURN oo op_list_get)) \<in> [\<lambda>(l,i). i<length l]\<^sub>a (is_array_list\<^sup>k *\<^sub>a nat_assn\<^sup>k) \<rightarrow> id_assn"
-<<<<<<< HEAD
-
-  by sep_auto
-inductive_cases runE: \<open>run a b c d\<close>
-=======
-
-  by sep_auto
-inductive_cases runE: \<open>run a b c d\<close>
->>>>>>> generalise_trail_for_CDCL_T
-lemma \<open>(uncurry Array.nth, uncurry (RETURN oo watched_app)) \<in>
-   [\<lambda>(W, L). L \<in> snd ` D]\<^sub>a array_watched_assn\<^sup>k *\<^sub>a nat_nat_lit_assn\<^sup>k \<rightarrow> arl_assn id_assn\<close>
-  apply sep_auto
-  apply (sep_auto simp: lit_of_natP_def nat_nat_lit_assn_def lit_of_natP_def[abs_def] p2rel_def
-      hoare_triple_def Let_def Array.nth_def Heap_Monad.guard_def
-      elim!: runE
-      split: if_splits)
-    apply auto[]
-  apply (sep_auto simp: map_fun_rel_def[abs_def] (* nat_nat_lit_assn_def *) lit_of_natP_def
-      relAPP_def nat_nat_lit_assn_def)
-  apply (rule cons_rule[OF _ _ nth_rule])
-    apply (auto simp: hr_comp_def entails_def (* snga_assndef *) array_assn_def relAPP_def
-      arl_assn_def)
-    apply (auto simp: hr_comp_def[abs_def])
-    apply (subgoal_tac \<open>(aa, b) \<Turnstile> ai \<mapsto>\<^sub>a (Array.get aa ai)\<close>)
-     defer
-     apply sep_auto
+sepref_definition unit_propagation_inner_loop_body_wl_code
+  is \<open>uncurry2 (unit_propagation_inner_loop_body_wl :: nat literal \<Rightarrow> nat \<Rightarrow>
+           nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
+  :: \<open>nat_nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a prod_assn nat_assn twl_st_l_assn\<close>
+  unfolding unit_propagation_inner_loop_body_wl_def
+  unfolding watched_by_nth_watched_app watched_app_def[symmetric]
+  unfolding nth_ll_def[symmetric]
+  unfolding lms_fold_custom_empty twl_st_l_assn_def
+    supply [[goals_limit=1]]
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+                      apply sepref_dbg_trans_step_keep
+    -- \<open>missing: implementation of valued\<close>
   oops
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-lemma
-  \<open>(uncurry2 watched_by_nth_wll, uncurry2 (RETURN ooo watched_by_nth)) \<in>
-     [\<lambda>(((M, N, U, D, NP, UP, Q, W), L), i). i < length (W L)]\<^sub>a
-      twl_st_l_assn\<^sup>d *\<^sub>a nat_nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
-  unfolding watched_by_nth_wll_def watched_by_nth_def
-  unfolding watched_by_nth_def twl_st_l_assn_def
-  apply (subst watched_app_def[symmetric])
-  apply sepref_dbg_keep
-  supply [[goals_limit=1]] -- \<open>There will be many subgoals during translation, and printing them takes very long with Isabelle :(\<close>
-   apply sepref_dbg_trans_keep
-               apply sepref_dbg_trans_step_keep
-    oops
-    apply (simp only: prod.case)
-   apply sepref_dbg_trans_step_keep
-      apply (sepref_dbg_side_keep)
-    apply  ( ( elim CONSTRAINT_is_pureE;  (simp only: list_assn_pure_conv the_pure_pure)?)?;
-    sep_auto
-      simp: pure_def hn_ctxt_def invalid_assn_def list_assn_aux_eqlen_simp
-      intro!: hn_refineI[THEN hn_refine_preI] hfrefI
-      elim!: mod_starE
-      intro: (* list_set_entails_aux list_set_hd_tl_aux list_set_last_butlast_aux
-             list_swap_aux list_rotate1_aux list_rev_aux *)
-    ;
-    ((rule entails_preI; sep_auto simp: list_assn_aux_eqlen_simp | (parametricity; simp; fail))?)
-  )
-  apply sepref_dbg_keep
-  supply [[goals_limit=1]] -- \<open>There will be many subgoals during translation, and printing them takes very long with Isabelle :(\<close>
-   apply sepref_dbg_trans_keep
-               apply sepref_dbg_trans_step_keep
-    apply (simp only: prod.case)
-   apply sepref_dbg_trans_step_keep
-      apply (sepref_dbg_side_keep)
-
-
-  thm HOL_list_prepend_hnr
-
-
-
-
- *)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-sepref_definition watched_by_nth_impl is \<open>uncurry2 (RETURN ooo watched_by_nth)\<close>
-  :: \<open>[\<lambda>(((M, N, U, D, NP, UP, Q, W), L), i). i < length (W L)]\<^sub>a
-      twl_st_l_assn\<^sup>k *\<^sub>a nat_nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
-  unfolding watched_by_nth_def twl_st_l_assn_def
-  apply sepref_dbg_keep
-  supply [[goals_limit=1]] -- \<open>There will be many subgoals during translation, and printing them takes very long with Isabelle :(\<close>
-   apply sepref_dbg_trans_keep
-    apply auto[]
-   apply sepref_dbg_trans_step_keep
-      apply (sepref_dbg_side_keep)
-
-definition watched_by_impl :: \<open>twl_st_wll \<Rightarrow> nat \<Rightarrow> _\<close> where
-  \<open>watched_by_impl S L =
-     do {
-        let (M, N, U, D, NP, UP, Q, W) = S;
-        RETURN (Array.nth W L)
-     }\<close>
-
-sepref_definition truc_muche is truc_muche ::
-    \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
-  unfolding truc_muche_def
-  apply sepref_dbg_keep
-  supply [[goals_limit=1]] -- \<open>There will be many subgoals during translation, and printing them takes very long with Isabelle :(\<close>
-   apply sepref_dbg_trans_keep
-    apply auto
-   apply sepref_dbg_trans_step_keep
-      apply (sepref_dbg_side_keep)
 
 end
