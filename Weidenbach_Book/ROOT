@@ -130,6 +130,7 @@ session "Two_Watched_Literals" (Weidenbach_Book) = "CDCL_Base"  +
     CDCL_Two_Watched_Literals_Initialisation
     CDCL_Two_Watched_Literals_List
     CDCL_Two_Watched_Literals_Initialisation
+    CDCL_Two_Watched_Literals_Code_Common
     CDCL_Two_Watched_Literals_List_Simple_Code
     CDCL_Two_Watched_Literals_List_Watched_Initialisation
     CDCL_Two_Watched_Literals_List_Watched
@@ -204,6 +205,7 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
     CDCL_Two_Watched_Literals_Algorithm
     CDCL_Two_Watched_Literals_Initialisation
     CDCL_Two_Watched_Literals_List
+    CDCL_Two_Watched_Literals_Code_Common
     CDCL_Two_Watched_Literals_List_Simple_Code
     CDCL_Two_Watched_Literals_List_Watched_Initialisation
     CDCL_Two_Watched_Literals_List_Watched
