@@ -50,6 +50,14 @@ abbreviation twl_st_l_assn :: \<open>nat twl_st_l \<Rightarrow> twl_st_ll \<Righ
  working_queue_l_assn *assn
  clause_l_assn
 \<close>
+abbreviation nat_ann_lits_assn :: "ann_lits_l \<Rightarrow> ann_lits_l \<Rightarrow> assn" where
+  \<open>nat_ann_lits_assn \<equiv> list_assn nat_ann_lit_assn\<close>
+
+sepref_definition defined_lit_map_impl' is
+  \<open>uncurry (defined_lit_map_impl :: (nat, nat) ann_lit list \<Rightarrow> _)\<close> ::
+  \<open>(nat_ann_lits_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding defined_lit_map_impl_def
+  by sepref
 
 lemma defined_lit_map_impl_denifend_lit: \<open>defined_lit_map_impl M L \<le> SPEC (op = (defined_lit M L))\<close>
   unfolding defined_lit_map_impl_def

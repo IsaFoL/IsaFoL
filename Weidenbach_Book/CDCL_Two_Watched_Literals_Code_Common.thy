@@ -147,8 +147,6 @@ abbreviation nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> (nat, nat) an
 
 type_synonym ann_lits_l = \<open>(nat, nat) ann_lits\<close>
 
-abbreviation nat_ann_lits_assn :: "ann_lits_l \<Rightarrow> ann_lits_l \<Rightarrow> assn" where
-  \<open>nat_ann_lits_assn \<equiv> list_assn nat_ann_lit_assn\<close>
 
 context
   notes [intro!] = hfrefI hn_refineI[THEN hn_refine_preI] frefI
@@ -246,11 +244,5 @@ definition defined_lit_map_impl :: "(nat, nat) ann_lit list \<Rightarrow> nat li
        let L\<^sub>1'' = atm_of (lit_of L');
        RETURN (L\<^sub>1 = L\<^sub>1'')})
     False\<close>
-
-sepref_definition defined_lit_map_impl' is
-  \<open>uncurry (defined_lit_map_impl :: (nat, nat) ann_lit list \<Rightarrow> _)\<close> ::
-  \<open>(nat_ann_lits_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding defined_lit_map_impl_def
-  by sepref
 
 end
