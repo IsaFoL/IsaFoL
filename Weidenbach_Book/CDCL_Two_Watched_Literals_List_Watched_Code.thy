@@ -30,7 +30,7 @@ lemma nat_of_lit_lit_of_nat[simp]: \<open>nat_of_lit (literal_of_nat n) = n\<clo
 lemma atm_of_lit_of_nat: \<open>atm_of (literal_of_nat n) = n div 2\<close>
   by auto
 
-text \<open>There is probably a more-``closed'' form from the following theorem, but it is unclear if
+text \<open>There is probably a more ``closed'' form from the following theorem, but it is unclear if
   that is useful or not.\<close>
 lemma uminus_lit_of_nat:
   \<open>- (literal_of_nat n) = (if even n then literal_of_nat (n+1) else literal_of_nat (n-1))\<close>
@@ -319,7 +319,8 @@ lemma hrp_comp_Id2[simp]: \<open>hrp_comp A Id = A\<close>
   by auto
 
 lemma valued_impl_spec:
-  shows \<open>(uncurry valued_impl, uncurry (RETURN oo valued)) \<in> [\<lambda>(M, L). no_dup M]\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  shows \<open>(uncurry valued_impl, uncurry (RETURN oo valued)) \<in>
+     [\<lambda>(M, L). no_dup M]\<^sub>f Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
   unfolding fref_def nres_rel_def
   by (auto simp: valued_impl_valued IS_ID_def)
 
@@ -364,22 +365,26 @@ lemma nh_ctxt_option_assn_bool_assn: \<open>hn_ctxt (option_assn bool_assn) aa c
   by (auto simp: hn_ctxt_def pure_def)
 
 sepref_definition valued_impl' is \<open>uncurry valued_impl\<close>
-  :: \<open>nat_ann_lits_assn\<^sup>k *\<^sub>a nat_ann_lit_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
+  :: \<open>nat_ann_lits_assn\<^sup>k *\<^sub>a nat_ann_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
   unfolding valued_impl_def Let_def
-  apply sepref_dbg_keep
-   apply sepref_dbg_trans_keep
-  unfolding nh_ctxt_option_assn_bool_assn
-   apply sepref_dbg_trans_step_keep
-  by (simp add: CONSTRAINT_SLOT_def)
-
+  by sepref
 
 lemma valued_impl'[sepref_fr_rules]: \<open>(uncurry valued_impl', uncurry (RETURN oo valued)) \<in>
-   [\<lambda>(a, b). no_dup a]\<^sub>a nat_ann_lits_assn\<^sup>k *\<^sub>a (pure lit_of_nat_rel)\<^sup>k \<rightarrow> id_assn\<close>
+   [\<lambda>(a, b). no_dup a]\<^sub>a nat_ann_lits_assn\<^sup>k *\<^sub>a (pure lit_of_nat_rel)\<^sup>k \<rightarrow> option_assn bool_assn\<close>
   using valued_impl'.refine[FCOMP valued_impl_spec] by auto
 
 lemma nat_ann_lits_rel_Cons[iff]:
   \<open>(x # xs, y # ys) \<in> nat_ann_lits_rel \<longleftrightarrow> (x, y) \<in> nat_ann_lit_rel \<and> (xs, ys) \<in> nat_ann_lits_rel\<close>
   by (auto simp: nat_ann_lits_rel_def)
+
+lemma lit_of_natP_same_rightD: \<open>lit_of_natP bi b \<Longrightarrow> lit_of_natP bi a \<Longrightarrow> a = b\<close>
+  by (auto simp: p2rel_def lit_of_natP_def)
+
+lemma lit_of_natP_same_leftD: \<open>lit_of_natP bi b \<Longrightarrow> lit_of_natP ai b \<Longrightarrow> ai = bi\<close>
+  apply (auto simp: p2rel_def lit_of_natP_def split: if_splits)
+  apply presburger
+  apply presburger
+  done
 
 definition unit_propagation_inner_loop_body_wl :: "nat literal \<Rightarrow> nat \<Rightarrow>
   nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres"  where
@@ -416,36 +421,26 @@ definition unit_propagation_inner_loop_body_wl :: "nat literal \<Rightarrow> nat
         let K' = (N!C) ! (snd f);
         let N' = list_update N C (swap (N!C) i (snd f));
         ASSERT(K \<noteq> K');
-        RETURN (w, (M, N', U, D', NP, UP, Q, W(K := delete_index_and_swap (watched_by S L) w, K':= W K' @ [C])))
+        RETURN (w, (M, N', U, D', NP, UP, Q, W(* (K := delete_index_and_swap (watched_by S L) w , K':= W K' @ [C])*)))
       }
     }
    }
 \<close>
 
-lemma lit_of_natP_same_rightD: \<open>lit_of_natP bi b \<Longrightarrow> lit_of_natP bi a \<Longrightarrow> a = b\<close>
-  by (auto simp: p2rel_def lit_of_natP_def)
-
-lemma lit_of_natP_same_leftD: \<open>lit_of_natP bi b \<Longrightarrow> lit_of_natP ai b \<Longrightarrow> ai = bi\<close>
-  apply (auto simp: p2rel_def lit_of_natP_def split: if_splits)
-  apply presburger
-  apply presburger
-  done
-
 sepref_definition unit_propagation_inner_loop_body_wl_code
   is \<open>uncurry2 (unit_propagation_inner_loop_body_wl :: nat literal \<Rightarrow> nat \<Rightarrow>
            nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
-  :: \<open>nat_ann_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a  nat_assn *assn twl_st_l_assn\<close>
+  :: \<open>nat_ann_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_assn\<close>
   unfolding unit_propagation_inner_loop_body_wl_def
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
   unfolding nth_ll_def[symmetric]
   unfolding lms_fold_custom_empty twl_st_l_assn_def
     supply [[goals_limit=1]]
   apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  unfolding nh_ctxt_option_assn_bool_assn[symmetric]
-   apply sepref_dbg_trans_keep
-   apply sepref_dbg_trans_keep
-   apply sepref_dbg_trans_keep
+      apply sepref_dbg_trans_keep
+                      apply sepref_dbg_trans_step_keep
+    apply simp
+
   oops
 
 end
