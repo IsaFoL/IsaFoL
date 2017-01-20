@@ -407,7 +407,7 @@ definition unit_propagation_inner_loop_body_wl :: "nat literal \<Rightarrow> nat
     ASSERT (mset (watched_l (N!C)) = {#L, L'#});
     val_L' \<leftarrow> RETURN (valued M L');
     if val_L' = Some True
-    then RETURN (w+1, S)
+    then RETURN (w+1, (M, N, U, D', NP, UP, Q, W))
     else do {
       f \<leftarrow> find_unwatched M (N!C);
       ASSERT (fst f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (N!C)). - L \<in> lits_of_l M));
