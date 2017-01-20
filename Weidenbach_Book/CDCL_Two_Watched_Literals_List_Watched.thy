@@ -120,9 +120,9 @@ text \<open>We here also update the list of watched clauses \<^term>\<open>WL\<c
 definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat \<Rightarrow>
   'v twl_st_wl \<Rightarrow> (nat \<times> 'v twl_st_wl) nres"  where
   \<open>unit_propagation_inner_loop_body_wl K w S = do {
+    let (M, N, U, D, NP, UP, Q, W) = S;
     ASSERT(w < length (watched_by S K));
     let C = (watched_by S K) ! w;
-    let (M, N, U, D, NP, UP, Q, W) = S;
     ASSERT(no_dup M);
     ASSERT(C < length N);
     ASSERT(0 < length (N!C));
