@@ -95,6 +95,8 @@ type_synonym lit_queue_l = "nat literal list"
 type_synonym nat_trail = \<open>(nat \<times> nat option) list\<close>
 type_synonym clause_wl = \<open>nat array_list\<close>
 type_synonym clauses_wl = \<open>nat array_list array\<close>
+type_synonym unit_lits_wl = \<open>nat list list\<close>
+
 type_synonym watched_wl = \<open>nat array_list array\<close>
 
 abbreviation ann_lit_wl_assn :: \<open>ann_lit_wl \<Rightarrow> ann_lit_wl \<Rightarrow> assn\<close> where
@@ -124,11 +126,14 @@ abbreviation working_queue_l_assn :: "nat multiset \<Rightarrow> nat list \<Righ
 abbreviation working_queue_ll_assn :: "nat list \<Rightarrow> nat list \<Rightarrow> assn" where
   \<open>working_queue_ll_assn \<equiv> list_assn nat_assn\<close>
 
+abbreviation unit_lits_assn :: "nat clauses \<Rightarrow> unit_lits_wl \<Rightarrow> assn" where
+  \<open>unit_lits_assn \<equiv> list_mset_assn (list_mset_assn nat_ann_lit_assn)\<close>
+
 type_synonym nat_clauses_l = \<open>nat list list\<close>
 
 type_synonym twl_st_wll =
-  "nat_trail \<times> clauses_wl \<times> nat \<times>
-      clause_wl option \<times> nat clauses_l \<times> nat clauses_l \<times> lit_queue_l \<times> watched_wl"
+  "nat_trail \<times> clauses_wl \<times> nat \<times> clause_wl option \<times>
+     unit_lits_wl \<times> unit_lits_wl \<times> lit_queue_l \<times> watched_wl"
 
 notation prod_assn (infixr "*assn" 90)
 
@@ -158,15 +163,11 @@ definition twl_st_l_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll \<Righ
 \<open>twl_st_l_assn \<equiv>
   (nat_ann_lits_assn *assn clauses_ll_assn *assn nat_assn *assn
   option_assn clause_ll_assn *assn
-  clauses_l_assn *assn
-  clauses_l_assn *assn
+  unit_lits_assn *assn
+  unit_lits_assn *assn
   clause_l_assn *assn
   array_watched_assn
   )\<close>
-
-
-definition truc_muche :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
-  \<open>truc_muche S = do {RETURN S}\<close>
 
 sepref_register \<open>watched_by :: nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> watched\<close>
    :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> watched\<close>
@@ -209,7 +210,7 @@ proof -
   have H: \<open>(uncurry2 nth_aa, uncurry2 (RETURN \<circ>\<circ>\<circ> op_watched_app))
   \<in> [comp_PRE ((\<langle>Id\<rangle>map_fun_rel D \<times>\<^sub>r lit_of_nat_rel) \<times>\<^sub>r nat_rel)
        (\<lambda>((W, L), i). L \<in> snd ` D)
-       (\<lambda>_ ((l, i), j). i < length l \<and> j < length (l ! i))
+       (\<lambda>_ ((l, i), j). i < length l \<and> j < length_ll l i)
        (\<lambda>_. True)]\<^sub>a hrp_comp
                        ((arrayO (arl_assn nat_assn))\<^sup>k *\<^sub>a
                         nat_assn\<^sup>k *\<^sub>a
@@ -274,7 +275,7 @@ proof -
   then have 1: \<open>?pre' = ?pre\<close>
     apply (auto simp: comp_PRE_def intro!: ext simp: prod_rel_def_internal
         relAPP_def map_fun_rel_def[abs_def] p2rel_def lit_of_natP_def
-        literal_of_neq_eq_nat_of_lit_eq_iff
+        literal_of_neq_eq_nat_of_lit_eq_iff length_ll_def
         simp del: literal_of_nat.simps)
       done
 
@@ -427,13 +428,66 @@ definition unit_propagation_inner_loop_body_wl :: "nat literal \<Rightarrow> nat
    }
 \<close>
 
+definition find_unwatched' :: "(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> (bool option \<times> nat) nres" where
+\<open>find_unwatched' M N' C = do {
+  WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length (N'!C) \<and> (\<forall>j\<in>{2..<i}. -((N'!C)!j) \<in> lits_of_l M) \<and>
+    (found = Some False \<longrightarrow> (undefined_lit M ((N'!C)!i) \<and> i < length (N'!C))) \<and>
+    (found = Some True \<longrightarrow> ((N'!C)!i \<in> lits_of_l M \<and> i < length (N'!C)))\<^esup>
+    (\<lambda>(found, i). found = None \<and> i < length (N'!C))
+    (\<lambda>(_, i). do {
+      ASSERT(i < length (N'!C));
+      case valued M ((N'!C)!i) of
+        None \<Rightarrow> do { RETURN (Some False, i)}
+      | Some v \<Rightarrow>
+         (if v then do { RETURN (Some True, i)} else do { RETURN (None, i+1)})
+      }
+    )
+    (None, 2::nat)
+  }
+\<close>
+
+lemma find_unwatched'_find_unwatched: \<open>find_unwatched' M N' C = find_unwatched M (N'!C)\<close>
+  unfolding find_unwatched'_def find_unwatched_def
+  by auto
+
+sepref_definition find_unwatched'_impl
+  is \<open>uncurry2 find_unwatched'\<close>
+  :: \<open>[\<lambda>((M, N'), C). no_dup M \<and> C < length N']\<^sub>a nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> option_assn bool_assn *assn nat_assn\<close>
+  unfolding find_unwatched'_def nth_ll_def[symmetric] length_ll_def[symmetric]
+    supply [[goals_limit=1]]
+  by sepref
+
+declare find_unwatched'_impl.refine[sepref_fr_rules]
+
+definition propagated where
+  \<open>propagated L C = (L, Some C)\<close>
+
+lemma propagated_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo propagated), uncurry (RETURN oo Propagated)) \<in>
+     nat_ann_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a pair_nat_ann_lit_assn\<close>
+  by sepref_to_hoare (sep_auto simp: nat_ann_lit_rel_def propagated_def case_prod_beta p2rel_def
+      lit_of_natP_def simp del: literal_of_nat.simps
+      split: option.splits)
+
+definition uminus_lit_imp :: \<open>nat \<Rightarrow> nat\<close> where
+  \<open>uminus_lit_imp L = (if L mod 2 = 0 then L + 1 else L - 1)\<close>
+
+lemma uminus_lit_imp_hnr[sepref_fr_rules]:
+  \<open>(return o uminus_lit_imp, RETURN o uminus) \<in>
+     nat_ann_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_ann_lit_assn\<close>
+  apply sepref_to_hoare
+  apply (sep_auto simp: nat_ann_lit_rel_def uminus_lit_imp_def case_prod_beta p2rel_def
+      lit_of_natP_def
+      split: option.splits)
+  by presburger
+
 sepref_definition unit_propagation_inner_loop_body_wl_code
   is \<open>uncurry2 (unit_propagation_inner_loop_body_wl :: nat literal \<Rightarrow> nat \<Rightarrow>
            nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
   :: \<open>nat_ann_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_assn\<close>
-  unfolding unit_propagation_inner_loop_body_wl_def
+  unfolding unit_propagation_inner_loop_body_wl_def length_ll_def[symmetric]
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
-  unfolding nth_ll_def[symmetric]
+  unfolding nth_ll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
   unfolding lms_fold_custom_empty twl_st_l_assn_def
     supply [[goals_limit=1]]
   apply sepref_dbg_keep
