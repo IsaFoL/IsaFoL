@@ -169,6 +169,41 @@ proof -
     done
 qed
 
+definition length_a :: \<open>'a::heap array \<Rightarrow> nat Heap\<close> where
+  \<open>length_a xs = Array.len xs\<close>
+
+lemma length_a_hnr[sepref_fr_rules]: \<open>(length_a, RETURN o length) \<in> (arrayO R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: arrayO_def length_a_def array_assn_def
+      is_array_def mod_star_conv dest: heap_list_add_same_length)
+
+definition length_ll :: \<open>'a list list \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>length_ll l i = length (l!i)\<close>
+
+definition length_aa :: \<open>('a::heap array_list) array \<Rightarrow> nat \<Rightarrow> nat Heap\<close> where
+  \<open>length_aa xs i = do {
+     x \<leftarrow> Array.nth xs i;
+    arl_length x}\<close>
+
+lemma length_aa_hnr[sepref_fr_rules]: \<open>(uncurry length_aa, uncurry (RETURN \<circ>\<circ> length_ll)) \<in>
+     [\<lambda>(xs, i). i < length xs]\<^sub>a (arrayO (arl_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  apply sepref_to_hoare
+  subgoal for b b' xs a -- \<open>TODO proof\<close>
+    unfolding length_aa_def
+    apply (sep_auto)
+    apply (sep_auto simp: arrayO_except_def arl_length_def arl_assn_def(*  *)
+        eq_commute[of \<open>(_, _)\<close>] (* is_array_list_def *) hr_comp_def length_ll_def)
+    apply (sep_auto simp: arrayO_except_def arl_length_def arl_assn_def(*  *)
+        eq_commute[of \<open>(_, _)\<close>] is_array_list_def hr_comp_def length_ll_def list_rel_def
+        (* mod_star_conv *)
+        dest: list_all2_lengthD)[]
+    unfolding arrayO_def[symmetric] arl_assn_def[symmetric]
+    apply (subst arrayO_except_array0_index[symmetric, of b])
+     apply simp
+    unfolding arrayO_except_def arl_assn_def hr_comp_def
+    apply sep_auto
+    done
+  done
+
 definition nth_aa where
   \<open>nth_aa xs i j = do {
       x \<leftarrow> Array.nth xs i;
@@ -187,7 +222,7 @@ lemma nth_aa_hnr[sepref_fr_rules]:
   assumes p: \<open>is_pure R\<close>
   shows
     \<open>(uncurry2 nth_aa, uncurry2 (RETURN \<circ>\<circ>\<circ> nth_ll)) \<in>
-       [\<lambda>((l,i),j). i < length l \<and> j < length (l ! i)]\<^sub>a
+       [\<lambda>((l,i),j). i < length l \<and> j < length_ll l i]\<^sub>a
        (arrayO (arl_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
 proof -
   obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
@@ -200,7 +235,7 @@ proof -
   apply sepref_to_hoare
   apply (subst (2) arrayO_except_array0_index[symmetric])
     apply (solves \<open>auto\<close>)[]
-  apply (sep_auto simp: nth_aa_def nth_ll_def)
+  apply (sep_auto simp: nth_aa_def nth_ll_def length_ll_def)
     apply (sep_auto simp: arrayO_except_def arrayO_def arl_assn_def hr_comp_def list_rel_def
         list_all2_lengthD
       star_aci(3) R R' pure_def H)
@@ -214,6 +249,7 @@ definition append_el_aa :: "('a::{default,heap} array_list) array \<Rightarrow>
   a' \<leftarrow> arl_append j x;
   Array.upd i a' a
   }"
+
 definition append_ll :: "'a list list \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list" where
   \<open>append_ll xs i x = list_update xs i (xs ! i @ [x])\<close>
 
@@ -314,7 +350,7 @@ text \<open>TODO: is it possible to be more precise and not drop the \<^term>\<o
 lemma arrayO_except_arl_set:
   fixes R :: \<open>'a \<Rightarrow> 'b :: {heap}\<Rightarrow> assn\<close>
   assumes p: \<open>is_pure R\<close> and \<open>bb < length a\<close> and
-    \<open>ba < length (a ! bb)\<close>
+    \<open>ba < length_ll a bb\<close>
   shows \<open>
        <arrayO_except (arl_assn R) [bb] a ai (\<lambda>r'. arl_assn R (a ! bb) (aa, bc) *
          \<up> ((aa, bc) = r' ! bb)) * R b bi>
@@ -327,14 +363,14 @@ proof -
   show ?thesis
     using assms
     apply (sep_auto simp: arrayO_except_def arl_assn_def hr_comp_def list_rel_imp_same_length
-        list_rel_update)
+        list_rel_update length_ll_def)
     done
 qed
 
 lemma update_aa_hnr[sepref_fr_rules]:
   assumes \<open>is_pure R\<close>
   shows \<open>(uncurry3 update_aa, uncurry3 (RETURN oooo update_ll)) \<in>
-     [\<lambda>(((l,i), j), x). i < length l \<and> j < length (l ! i)]\<^sub>a (arrayO (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO (arl_assn R))\<close>
+     [\<lambda>(((l,i), j), x). i < length l \<and> j < length_ll l i]\<^sub>a (arrayO (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO (arl_assn R))\<close>
 proof -
   note arrayO_except_arl_set[sep_heap_rules]
   show ?thesis
@@ -462,5 +498,23 @@ proof -
     done
 qed
 
+definition nth_a :: \<open>('a::heap array_list) array \<Rightarrow> nat \<Rightarrow> ('a array_list) Heap\<close> where
+ \<open>nth_a xs i = do {
+     x \<leftarrow> Array.nth xs i;
+     arl_copy x}\<close>
+
+lemma nth_a_hnr[sepref_fr_rules]:
+  \<open>(uncurry nth_a, uncurry (RETURN oo op_list_get)) \<in>
+     [\<lambda>(xs, i). i < length xs]\<^sub>a (arrayO (arl_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> arl_assn R\<close>
+  unfolding nth_a_def
+  apply sepref_to_hoare
+  subgoal for b b' xs a -- \<open>TODO proof\<close>
+    apply (sep_auto)
+    apply (subst arrayO_except_array0_index[symmetric, of b])
+     apply simp
+    apply (sep_auto simp: arrayO_except_def arl_length_def arl_assn_def(*  *)
+        eq_commute[of \<open>(_, _)\<close>] (* is_array_list_def *) hr_comp_def length_ll_def)
+    done
+  done
 
 end
