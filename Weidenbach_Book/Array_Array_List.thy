@@ -517,4 +517,96 @@ lemma nth_a_hnr[sepref_fr_rules]:
     done
   done
 
+ definition swap_aa :: "('a::heap array_list) array \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> ('a array_list) array Heap" where
+  \<open>swap_aa xs k i j = do {
+    xi \<leftarrow> nth_aa xs k i;
+    xj \<leftarrow> nth_aa xs k j;
+    xs \<leftarrow> update_aa xs k i xj;
+    xs \<leftarrow> update_aa xs k j xi;
+    return xs
+  }\<close>
+
+definition swap_ll where
+  \<open>swap_ll xs k i j = list_update xs k (swap (xs!k) i j)\<close>
+
+lemma nth_aa_heap[sep_heap_rules]:
+  assumes p: \<open>is_pure R\<close> and \<open>b < length aa\<close> and \<open>ba < length_ll aa b\<close>
+  shows \<open>
+   <arrayO (arl_assn R) aa a>
+   nth_aa a b ba
+   <\<lambda>r. \<exists>\<^sub>Ax. arrayO (arl_assn R) aa a *
+               (R x r *
+                \<up> (x = nth_ll aa b ba)) *
+               true>\<close>
+proof -
+  have \<open><arrayO (arl_assn R) aa a *
+        nat_assn b b *
+        nat_assn ba ba>
+       nth_aa a b ba
+       <\<lambda>r. \<exists>\<^sub>Ax. arrayO (arl_assn R) aa a *
+                   nat_assn b b *
+                   nat_assn ba ba *
+                   R x r *
+                   true *
+                   \<up> (x = nth_ll aa b ba)>\<close>
+    using p assms nth_aa_hnr[of R] unfolding hfref_def hn_refine_def
+    by auto
+  then show ?thesis
+    unfolding hoare_triple_def
+    by (auto simp: Let_def pure_def)
+qed
+
+lemma update_aa_heap[sep_heap_rules]:
+  assumes p: \<open>is_pure R\<close> and \<open>b < length aa\<close> and \<open>ba < length_ll aa b\<close> and
+    b: \<open>(bb, be) \<in> the_pure R\<close>
+  shows \<open>
+   <arrayO (arl_assn R) aa a>
+           update_aa a b ba bb
+           <\<lambda>r. \<exists>\<^sub>Ax. invalid_assn (arrayO (arl_assn R)) aa a * arrayO (arl_assn R) x r *
+                       true *
+                       \<up> (x = update_ll aa b ba be)>\<close>
+proof -
+  obtain R' where R': \<open>R' = the_pure R\<close> and RR': \<open>R = pure R'\<close>
+    using p by fastforce
+  have bb: \<open>pure R' be bb = \<up>((bb, be) \<in> R')\<close>
+    by (auto simp: pure_def)
+  have \<open> <arrayO (arl_assn R) aa a * nat_assn b b * nat_assn ba ba * R be bb>
+           update_aa a b ba bb
+           <\<lambda>r. \<exists>\<^sub>Ax. invalid_assn (arrayO (arl_assn R)) aa a * nat_assn b b * nat_assn ba ba *
+                       R be bb *
+                       arrayO (arl_assn R) x r *
+                       true *
+                       \<up> (x = update_ll aa b ba be)>\<close>
+    using p assms update_aa_hnr[of R] unfolding hfref_def hn_refine_def
+    by auto
+  then show ?thesis
+    using b unfolding R'[symmetric] unfolding hoare_triple_def RR' bb
+    by (auto simp: Let_def pure_def)
+qed
+
+lemma length_update_ll[simp]: \<open>length (update_ll a bb b c) = length a\<close>
+  unfolding update_ll_def by auto
+
+lemma length_ll_update_ll:
+  \<open>bb < length a \<Longrightarrow> length_ll (update_ll a bb b c) bb = length_ll a bb\<close>
+  unfolding length_ll_def update_ll_def by auto
+
+lemma swap_aa_hnr[sepref_fr_rules]:
+  assumes \<open>is_pure R\<close>
+  shows \<open>(uncurry3 swap_aa, uncurry3 (RETURN oooo swap_ll)) \<in>
+   [\<lambda>(((xs, k), i), j). k < length xs \<and> i < length_ll xs k \<and> j < length_ll xs k]\<^sub>a
+  (arrayO (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> (arrayO (arl_assn R))\<close>
+proof -
+  obtain R' where R': \<open>R' = the_pure R\<close> and RR': \<open>R = pure R'\<close>
+    using assms by fastforce
+  have [simp]: \<open>the_pure (\<lambda>a b. \<up> ((b, a) \<in> R')) = R'\<close>
+    unfolding pure_def[symmetric] by auto
+  show ?thesis
+    using assms unfolding R'[symmetric] unfolding RR'
+    apply sepref_to_hoare
+    apply (sep_auto simp: swap_aa_def swap_ll_def (* arl_get_def *) arrayO_except_def
+        length_ll_update_ll)
+    by (sep_auto simp: update_ll_def swap_def nth_ll_def list_update_swap)
+qed
+
 end
