@@ -91,13 +91,13 @@ abbreviation nat_lit_assn :: "nat literal \<Rightarrow> nat literal \<Rightarrow
 
 type_synonym ann_lits_l = \<open>(nat, nat) ann_lits\<close>
 type_synonym working_queue_ll = "nat list"
-type_synonym lit_queue_l = "nat literal list"
+type_synonym lit_queue_l = "nat list"
 type_synonym nat_trail = \<open>(nat \<times> nat option) list\<close>
 type_synonym clause_wl = \<open>nat array_list\<close>
 type_synonym clauses_wl = \<open>nat array_list array\<close>
 type_synonym unit_lits_wl = \<open>nat list list\<close>
 
-type_synonym watched_wl = \<open>nat array_list array\<close>
+type_synonym watched_wl = \<open>(nat array_list) array\<close>
 
 abbreviation ann_lit_wl_assn :: \<open>ann_lit_wl \<Rightarrow> ann_lit_wl \<Rightarrow> assn\<close> where
   \<open>ann_lit_wl_assn \<equiv> prod_assn nat_assn (option_assn nat_assn)\<close>
@@ -114,10 +114,10 @@ abbreviation clause_ll_assn :: "nat clause_l \<Rightarrow> clause_wl \<Rightarro
 abbreviation clauses_ll_assn :: "nat clauses_l \<Rightarrow> clauses_wl \<Rightarrow> assn" where
   \<open>clauses_ll_assn \<equiv> arrayO (arl_assn nat_ann_lit_assn)\<close>
 
-abbreviation clause_l_assn :: "nat clause \<Rightarrow> nat clause_l \<Rightarrow> assn" where
-  \<open>clause_l_assn \<equiv> list_mset_assn nat_lit_assn\<close>
+abbreviation clause_l_assn :: "nat clause \<Rightarrow> nat list \<Rightarrow> assn" where
+  \<open>clause_l_assn \<equiv> list_mset_assn nat_ann_lit_assn\<close>
 
-abbreviation clauses_l_assn :: "nat clauses \<Rightarrow> nat clauses_l \<Rightarrow> assn" where
+abbreviation clauses_l_assn :: "nat clauses \<Rightarrow> nat list list \<Rightarrow> assn" where
   \<open>clauses_l_assn \<equiv> list_mset_assn clause_l_assn\<close>
 
 abbreviation working_queue_l_assn :: "nat multiset \<Rightarrow> nat list \<Rightarrow> assn" where
@@ -132,8 +132,8 @@ abbreviation unit_lits_assn :: "nat clauses \<Rightarrow> unit_lits_wl \<Rightar
 type_synonym nat_clauses_l = \<open>nat list list\<close>
 
 type_synonym twl_st_wll =
-  "nat_trail \<times> clauses_wl \<times> nat \<times> clause_wl option \<times>
-     unit_lits_wl \<times> unit_lits_wl \<times> lit_queue_l \<times> watched_wl"
+  "nat_trail \<times> clauses_wl \<times> nat \<times> clause_wl option \<times>  unit_lits_wl \<times> unit_lits_wl \<times>
+    lit_queue_l \<times> watched_wl"
 
 notation prod_assn (infixr "*assn" 90)
 
@@ -488,13 +488,8 @@ sepref_definition unit_propagation_inner_loop_body_wl_code
   unfolding unit_propagation_inner_loop_body_wl_def length_ll_def[symmetric]
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
   unfolding nth_ll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
-  unfolding lms_fold_custom_empty twl_st_l_assn_def
-    supply [[goals_limit=1]]
-  apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-                      apply sepref_dbg_trans_step_keep
-    apply simp
-
-  oops
+  unfolding lms_fold_custom_empty twl_st_l_assn_def swap_ll_def[symmetric]
+  supply [[goals_limit=1]]
+  by sepref
 
 end
