@@ -142,7 +142,11 @@ locale test =
 begin
 
 definition map_fun_rel :: "(nat \<times> nat literal) set \<Rightarrow> ('b \<times> 'a) set \<Rightarrow> ('b list \<times> (nat literal \<Rightarrow> 'a)) set" where
-  \<open>map_fun_rel D R = {(m, f). \<forall>(i, j)\<in>D. i < length m \<and> (m ! i, f j) \<in> R}\<close>
+  map_fun_rel_def_internal: \<open>map_fun_rel D R = {(m, f). \<forall>(i, j)\<in>D. i < length m \<and> (m ! i, f j) \<in> R}\<close>
+
+lemma map_fun_rel_def:
+  \<open>\<langle>R\<rangle>map_fun_rel D = {(m, f). \<forall>(i, j)\<in>D. i < length m \<and> (m ! i, f j) \<in> R}\<close>
+  unfolding relAPP_def map_fun_rel_def_internal by auto
 
 definition map_fun_rel_assn :: "(nat \<times> nat literal) set \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> (nat literal \<Rightarrow> 'a) \<Rightarrow> 'b list \<Rightarrow> assn" where
   \<open>map_fun_rel_assn D R = pure (\<langle>the_pure R\<rangle>map_fun_rel D)\<close>
@@ -422,11 +426,79 @@ definition unit_propagation_inner_loop_body_wl :: "nat literal \<Rightarrow> nat
         let K' = (N!C) ! (snd f);
         let N' = list_update N C (swap (N!C) i (snd f));
         ASSERT(K \<noteq> K');
-        RETURN (w, (M, N', U, D', NP, UP, Q, W(* (K := delete_index_and_swap (watched_by S L) w , K':= W K' @ [C])*)))
+        RETURN (w, (M, N', U, D', NP, UP, Q,
+               W(* (L := delete_index_and_swap (watched_by S L) w , K':= W K' @ [C]) *)))
       }
     }
    }
 \<close>
+
+definition delete_index_and_swap_ll where
+  \<open>delete_index_and_swap_ll xs i j =
+     xs[i:= delete_index_and_swap (xs!i) j]\<close>
+
+definition delete_index_and_swap_aa where
+  \<open>delete_index_and_swap_aa xs i j = do {
+     x \<leftarrow> last_aa xs i;
+     xs \<leftarrow> update_aa xs i j x;
+     set_butlast_aa xs i
+  }\<close>
+
+lemma le_length_ll_nemptyD: \<open>b < length_ll a ba \<Longrightarrow> a ! ba \<noteq> []\<close>
+  by (auto simp: length_ll_def)
+
+lemma delete_index_and_swap_aa_hnr[sepref_fr_rules]:
+  assumes \<open>is_pure R\<close>
+  shows \<open>(uncurry2 delete_index_and_swap_aa, uncurry2 (RETURN ooo delete_index_and_swap_ll))
+     \<in> [\<lambda>((l,i), j). i < length l \<and> j < length_ll l i]\<^sub>a (arrayO (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k
+         \<rightarrow> (arrayO (arl_assn R))\<close>
+  using assms unfolding delete_index_and_swap_aa_def
+  by sepref_to_hoare (sep_auto dest: le_length_ll_nemptyD
+      simp: delete_index_and_swap_ll_def update_ll_def last_ll_def set_butlast_ll_def
+      length_ll_def[symmetric])
+no_notation Ref.update ("_ := _" 62)
+
+definition delete_index_and_swap_update :: "('a \<Rightarrow> 'b list) \<Rightarrow> 'a \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'b list" where
+  \<open>delete_index_and_swap_update W K w = W(K := delete_index_and_swap (W K) w)\<close>
+
+text \<open>The precondition is not necessary.\<close>
+lemma delete_index_and_swap_ll_delete_index_and_swap_update:
+  \<open>(uncurry2 (RETURN ooo delete_index_and_swap_ll), uncurry2 (RETURN ooo delete_index_and_swap_update))
+  \<in>[\<lambda>((W, L), i). L \<in> snd ` D]\<^sub>f (\<langle>Id\<rangle>map_fun_rel D \<times>\<^sub>r lit_of_nat_rel) \<times>\<^sub>r nat_rel \<rightarrow> \<langle>\<langle>Id\<rangle>map_fun_rel D\<rangle>nres_rel\<close>
+  by (auto simp: delete_index_and_swap_ll_def uncurry_def fref_def nres_rel_def
+      delete_index_and_swap_update_def map_fun_rel_def p2rel_def lit_of_natP_def
+      nth_list_update'
+      simp del: literal_of_nat.simps)
+
+lemma Pos_div2_iff: \<open>Pos (bb div 2) = b \<longleftrightarrow> is_pos b \<and> (bb = 2 * atm_of b \<or> bb = 2 * atm_of b + 1)\<close> for bb :: nat
+  by (cases b) auto
+lemma Neg_div2_iff: \<open>Neg (bb div 2) = b \<longleftrightarrow> is_neg b \<and> (bb = 2 * atm_of b \<or> bb = 2 * atm_of b + 1)\<close> for bb :: nat
+  by (cases b) auto
+
+lemma delete_index_and_swap_aa_hnr[sepref_fr_rules]:
+  shows \<open>(uncurry2 delete_index_and_swap_aa, uncurry2 (RETURN ooo delete_index_and_swap_update))
+     \<in> [\<lambda>((W,L), j). L \<in> snd ` D \<and> j < length (W L)]\<^sub>a
+        array_watched_assn\<^sup>d *\<^sub>a nat_ann_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> array_watched_assn\<close>
+    (is \<open>?a \<in> [?pre]\<^sub>a ?init \<rightarrow> ?post\<close>)
+proof -
+  have \<open> (uncurry2 delete_index_and_swap_aa, uncurry2 (RETURN \<circ>\<circ>\<circ> delete_index_and_swap_update))
+  \<in> [comp_PRE ((\<langle>Id\<rangle>map_fun_rel D \<times>\<^sub>r lit_of_nat_rel) \<times>\<^sub>r nat_rel) (\<lambda>((W, L), i). L \<in> snd ` D)
+       (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (l, i) \<Rightarrow> \<lambda>j. i < length l \<and> j < length_ll l i) xa)
+       (\<lambda>x. nofail (uncurry2 (RETURN \<circ>\<circ>\<circ> delete_index_and_swap_update)
+                      x))]\<^sub>a hrp_comp ((arrayO (arl_assn nat_assn))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
+                              ((\<langle>Id\<rangle>map_fun_rel D \<times>\<^sub>r lit_of_nat_rel) \<times>\<^sub>r
+                               nat_rel) \<rightarrow> hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D)
+\<close>
+    (is \<open>?a \<in> [?pre']\<^sub>a ?init' \<rightarrow> ?post'\<close>)
+    using hfref_compI_PRE[OF delete_index_and_swap_aa_hnr
+        delete_index_and_swap_ll_delete_index_and_swap_update, of nat_assn] by simp
+  have \<open>?pre' = ?pre\<close>
+    apply (auto simp: comp_PRE_def map_fun_rel_def (* p2rel_def *) lit_of_natP_def image_image
+        Pos_div2_iff Neg_div2_iff all_conj_distrib length_ll_def
+        intro!: ext split: if_splits)
+        apply (case_tac b)
+       apply auto[2]
+    oops
 
 definition find_unwatched' :: "(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> (bool option \<times> nat) nres" where
 \<open>find_unwatched' M N' C = do {
