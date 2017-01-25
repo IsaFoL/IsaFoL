@@ -402,9 +402,8 @@ definition unit_propagation_inner_loop_body_wl :: "nat literal \<Rightarrow> nat
     let C = (W K) ! w;
     ASSERT(no_dup M);
     ASSERT(C < length N);
-    let zero = 0;
-    ASSERT(zero < length (N!C));
-    let i = (if (N!C) ! zero = K then 0 else 1);
+    ASSERT(0 < length (N!C));
+    let i = (if (N!C) ! 0 = K then 0 else 1);
     ASSERT(i < length (N!C));
     ASSERT(1-i < length (N!C));
     let L = ((N!C)) ! i;
