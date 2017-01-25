@@ -5,6 +5,19 @@ begin
 text \<open>Less ambiguities in the notations (TODO: using a bundle would probably be better):\<close>
 no_notation Ref.update ("_ := _" 62)
 
+(* TODO Move somewhere *)
+lemma nth_in_set_tl: \<open>i > 0 \<Longrightarrow> i < length xs \<Longrightarrow> xs ! i \<in> set (tl xs)\<close>
+  by (cases xs) auto
+
+lemma mset_take_mset_drop_mset: \<open>(\<lambda>x. mset (take 2 x) + mset (drop 2 x)) = mset\<close>
+  unfolding mset_append[symmetric] append_take_drop_id ..
+lemma mset_take_mset_drop_mset': \<open>mset (take 2 x) + mset (drop 2 x) = mset x\<close>
+  unfolding mset_append[symmetric] append_take_drop_id ..
+
+lemma in_atms_of_mset_takeD:
+  \<open>x \<in> atms_of_ms (mset ` set (take U (tl N))) \<Longrightarrow> x \<in> atms_of_ms (mset ` set ((tl N)))\<close>
+  by (auto dest: in_set_takeD simp:atms_of_ms_def)
+
 
 subsection \<open>Access Functions\<close>
 
@@ -121,6 +134,7 @@ definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat 
   'v twl_st_wl \<Rightarrow> (nat \<times> 'v twl_st_wl) nres"  where
   \<open>unit_propagation_inner_loop_body_wl K w S = do {
     let (M, N, U, D, NP, UP, Q, W) = S;
+    ASSERT(K \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP));
     ASSERT(w < length (watched_by S K));
     let C = (watched_by S K) ! w;
     ASSERT(no_dup M);
@@ -148,6 +162,7 @@ definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat 
       else do {
         ASSERT(snd f < length (N!C));
         let K' = (N!C) ! (snd f);
+        ASSERT(K' \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP));
         let N' = list_update N C (swap (N!C) i (snd f));
         ASSERT(K \<noteq> K');
         RETURN (w, (M, N', U, D, NP, UP, Q, W(K := delete_index_and_swap (watched_by S L) w, K':= W K' @ [C])))
@@ -241,7 +256,7 @@ proof -
     no_dup: \<open>no_duplicate_queued S''\<close> and
     no_dup_queued: \<open>no_duplicate_queued S''\<close>
     using struct_invs unfolding twl_struct_invs_def by fast+
-  have n_d: \<open>no_dup M\<close>
+  have n_d: \<open>no_dup M\<close> and alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state S'')\<close>
     using cdcl_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by (auto simp: trail.simps comp_def S)
@@ -266,7 +281,7 @@ proof -
     using inv by (auto simp: twl_st_inv.simps S simp del: twl_clause_of.simps)
   have C'_N_U: \<open>?C' \<in># twl_clause_of `# mset (tl N)\<close>
     using C'_N_U_or apply (subst N_take_drop)
-    unfolding union_iff[symmetric] image_mset_union[symmetric]  mset_append[symmetric] take_tl .
+    unfolding union_iff[symmetric] image_mset_union[symmetric] mset_append[symmetric] take_tl .
   have watched_C': \<open>mset (watched_l C'') = {#?L, ?L'#}\<close>
     using struct i_def by (auto simp: length_list_2 take_2_if S)+
   have dist_C'': \<open>distinct C''\<close>
@@ -285,13 +300,27 @@ proof -
     using valid S WL_w_in_drop by (auto simp: WS'_def)
   have C'_i[simp]: \<open>C''!i = L\<close>
     using L two_le_length_C S by (auto simp: take_2_if i_def split: if_splits)
-  then have [simp]: \<open>N! (W L ! w)!i = L\<close>
+  then have N_W_w_i_L[simp]: \<open>N! (W L ! w)!i = L\<close>
     by (auto simp: S)
   have \<open>add_mset L Q \<subseteq># {#- lit_of x. x \<in># mset (convert_lits_l N M)#}\<close>
     using WS'_def no_dup_queued by (simp add: S all_conj_distrib)
   from mset_le_add_mset_decr_left2[OF this] have uL_M: \<open>-L \<in> lits_of_l M\<close>
     using imageI[of _ \<open>set M\<close> lit_of] lits_of_l_convert_lits_l[of N M]
     by (auto simp: lits_of_def)
+  have \<open>L \<in># lits_of_atms_of_mm (mset `# mset (take U (tl N))+NP)\<close>
+    using alien uL_M
+    by (auto simp: S cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+        mset_take_mset_drop_mset in_lits_of_atms_of_mm_ain_atms_of_iff)
+  then have L_in_N_NP: \<open>L \<in># lits_of_atms_of_mm (mset `# mset (tl N)+NP)\<close>
+    by (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff atms_of_ms_def
+        dest: in_set_takeD)
+  then have \<open>mset (W L) = mset_set {x. Suc 0 \<le> x \<and> x < length N \<and> L \<in> set (take 2 (N ! x))}\<close>
+    using corr_w by (auto simp: S correct_watching.simps clause_to_update_def)
+  moreover have \<open>W L ! w \<in># mset (W L)\<close>
+    using WL_w_in_drop by (auto dest: in_set_dropD)
+  ultimately have zero_le_W_L_w: \<open>0 < W L ! w\<close>
+    by (auto simp: S correct_watching.simps clause_to_update_def)
+
   have 1: \<open>unit_propagation_inner_loop_body_wl L w S
     \<le> \<Down> {((i, T'), T).
           T = st_l_of_wl (Some (L, i)) T' \<and> correct_watching T' \<and>
@@ -305,6 +334,7 @@ proof -
     apply (rewrite at \<open>let _ = watched_by _ _ ! _ in _\<close> Let_def)
     apply (refine_vcg val f; remove_dummy_vars)
     unfolding i_def[symmetric]
+    subgoal using L_in_N_NP .
     subgoal by simp
     subgoal by simp
     subgoal by simp
@@ -313,17 +343,22 @@ proof -
     subgoal by (simp add: clause_to_update_def correct_watching.simps)
     subgoal by (simp add: clause_to_update_def correct_watching.simps)
     subgoal by simp
+    subgoal for val_L' val_L'a f fa
+      using zero_le_W_L_w
+      by (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff atms_of_ms_def correct_watching.simps
+          intro!: nth_in_set_tl
+          intro!: bexI[of _ \<open>N ! (W L ! w)\<close>])
     subgoal using uL_M by auto
     subgoal premises p for val_L' val_L f' f
     proof -
       let ?K = \<open>N ! (W L ! w) ! snd f'\<close>
       thm p[unfolded S[symmetric], unfolded C'_def[symmetric], unfolded C''_def[symmetric]]
-      note C'_le_length = p(6) and le_length_C'' = p(7) and i_le_C'' = p(11) and
-        one_minus_i_le_C'' = p(12) and C''_i_eq_L = p(15) and mset_watched_C' = p(17) and
-        val_L'_val_L = p(19) and val_L'_not_Some_True = p(20) and val_L_not_Some_True = p(21) and
-        f'_f = p(22) and fst_f'_not_None = p(24) and fst_f'_not_None = p(25) and
-        snd_f_le_C'' = p(26) and snd_f'_le_C'' = p(27) and L_ne_C''_snd_f = p(28) and
-        C''_snd_f_unwatched = p(29) and uC''_snd_f_notin_M = p(30)
+      note C'_le_length = p(7) and le_length_C'' = p(8) and i_le_C'' = p(12) and
+        one_minus_i_le_C'' = p(13) and C''_i_eq_L = p(16) and mset_watched_C' = p(18) and
+        val_L'_val_L = p(20) and val_L'_not_Some_True = p(21) and val_L_not_Some_True = p(22) and
+        f'_f = p(23) and fst_f'_not_None = p(25) and fst_f'_not_None = p(26) and
+        snd_f_le_C'' = p(27) and snd_f'_le_C'' = p(28) and L_ne_C''_snd_f = p(30) and
+        C''_snd_f_unwatched = p(31) and uC''_snd_f_notin_M = p(32)
       have K_notin_watched[iff]: \<open>?K \<notin> set (watched_l (N ! (W L ! w)))\<close>
         using dist_C''
         apply (subst (asm) append_take_drop_id[of 2 \<open>C''\<close>, symmetric])
@@ -1061,13 +1096,6 @@ next
     by (auto simp add: lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset
         all_conj_distrib lits_of_atms_of_mm_union)
 qed
-
-lemma mset_take_mset_drop_mset: \<open>(\<lambda>x. mset (take 2 x) + mset (drop 2 x)) = mset\<close>
-  unfolding mset_append[symmetric] append_take_drop_id ..
-
-lemma in_atms_of_mset_takeD:
-  \<open>x \<in> atms_of_ms (mset ` set (take U (tl N))) \<Longrightarrow> x \<in> atms_of_ms (mset ` set ((tl N)))\<close>
-  by (auto dest: in_set_takeD simp:atms_of_ms_def)
 
 lemma in_set_image_subsetD: \<open> f ` A \<subseteq> B \<Longrightarrow> x \<in> A \<Longrightarrow>f x \<in> B\<close>
   by blast
