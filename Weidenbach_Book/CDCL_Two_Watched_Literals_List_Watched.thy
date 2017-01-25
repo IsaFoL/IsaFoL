@@ -137,6 +137,7 @@ definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat 
     ASSERT(K \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP));
     ASSERT(w < length (watched_by S K));
     let C = (watched_by S K) ! w;
+    ASSERT(C > 0);
     ASSERT(no_dup M);
     ASSERT(C < length N);
     ASSERT(0 < length (N!C));
@@ -335,6 +336,7 @@ proof -
     apply (refine_vcg val f; remove_dummy_vars)
     unfolding i_def[symmetric]
     subgoal using L_in_N_NP .
+    subgoal using zero_le_W_L_w by simp
     subgoal by simp
     subgoal by simp
     subgoal by simp
@@ -353,12 +355,12 @@ proof -
     proof -
       let ?K = \<open>N ! (W L ! w) ! snd f'\<close>
       thm p[unfolded S[symmetric], unfolded C'_def[symmetric], unfolded C''_def[symmetric]]
-      note C'_le_length = p(7) and le_length_C'' = p(8) and i_le_C'' = p(12) and
-        one_minus_i_le_C'' = p(13) and C''_i_eq_L = p(16) and mset_watched_C' = p(18) and
-        val_L'_val_L = p(20) and val_L'_not_Some_True = p(21) and val_L_not_Some_True = p(22) and
-        f'_f = p(23) and fst_f'_not_None = p(25) and fst_f'_not_None = p(26) and
-        snd_f_le_C'' = p(27) and snd_f'_le_C'' = p(28) and L_ne_C''_snd_f = p(30) and
-        C''_snd_f_unwatched = p(31) and uC''_snd_f_notin_M = p(32)
+      note C'_le_length = p(8) and le_length_C'' = p(9) and i_le_C'' = p(13) and
+        one_minus_i_le_C'' = p(14) and C''_i_eq_L = p(17) and mset_watched_C' = p(19) and
+        val_L'_val_L = p(21) and val_L'_not_Some_True = p(22) and val_L_not_Some_True = p(23) and
+        f'_f = p(24) and fst_f'_not_None = p(26) and fst_f'_not_None = p(27) and
+        snd_f_le_C'' = p(28) and snd_f'_le_C'' = p(29) and L_ne_C''_snd_f = p(31) and
+        C''_snd_f_unwatched = p(32) and uC''_snd_f_notin_M = p(33)
       have K_notin_watched[iff]: \<open>?K \<notin> set (watched_l (N ! (W L ! w)))\<close>
         using dist_C''
         apply (subst (asm) append_take_drop_id[of 2 \<open>C''\<close>, symmetric])
