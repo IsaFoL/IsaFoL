@@ -352,11 +352,11 @@ subsection \<open>Refinement\<close>
 
 text \<open>We start in a context where we have an initial set of literals.\<close>
 context
-  fixes N\<^sub>0 :: \<open>nat literal list list\<close>
+  fixes N\<^sub>0 :: \<open>nat literal multiset\<close>
 begin
 
-abbreviation D\<^sub>0 where
-  \<open>D\<^sub>0 \<equiv> (\<lambda>L. (nat_of_lit L, L)) ` set_mset (lits_of_atms_of_mm (mset `# mset N\<^sub>0))\<close>
+abbreviation D\<^sub>0 :: \<open>(nat \<times> nat literal) set\<close> where
+  \<open>D\<^sub>0 \<equiv> (\<lambda>L. (nat_of_lit L, L)) ` set_mset N\<^sub>0\<close>
 
 lemma nth_ll_watched_app:
   \<open>(uncurry2 (RETURN ooo nth_ll), uncurry2 (RETURN ooo watched_app)) \<in>
@@ -380,8 +380,7 @@ definition twl_st_l_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll \<Righ
 
 lemma ex_list_watched:
   fixes W :: \<open>nat literal \<Rightarrow> nat list\<close>
-  shows \<open>(\<exists>aa. \<forall>x\<in>#lits_of_atms_of_mm (mset `# mset N\<^sub>0). nat_of_lit x < length aa \<and>
-     aa ! nat_of_lit x = W x)\<close>
+  shows \<open>\<exists>aa. \<forall>x\<in>#N\<^sub>0. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = W x\<close>
   (is \<open>\<exists>aa. ?P aa\<close>)
 proof -
   define D' where \<open>D' = D\<^sub>0\<close>
@@ -402,12 +401,11 @@ proof -
     by (induction M) auto
   have length_aa: \<open>length aa = Suc (Max (nat_of_lit ` snd ` D'))\<close>
     unfolding aa_def D''_def[symmetric] by (simp add: length_fold)
-  define Ls where \<open>Ls = lits_of_atms_of_mm (mset `# mset N\<^sub>0)\<close>
-  have H: \<open>x \<in># Ls \<Longrightarrow>
-      length l \<ge> Suc  (Max (nat_of_lit ` set_mset Ls)) \<Longrightarrow>
-      fold_mset (\<lambda>L a. a[nat_of_lit L := W L]) l (remdups_mset Ls) ! nat_of_lit x = W x\<close>
+  have H: \<open>x \<in># N\<^sub>0 \<Longrightarrow>
+      length l \<ge> Suc (Max (nat_of_lit ` set_mset N\<^sub>0)) \<Longrightarrow>
+      fold_mset (\<lambda>L a. a[nat_of_lit L := W L]) l (remdups_mset N\<^sub>0) ! nat_of_lit x = W x\<close>
     for x l
-    apply (induction Ls arbitrary: l)
+    apply (induction N\<^sub>0 arbitrary: l)
     subgoal by simp
     subgoal for xa Ls l
       apply (case_tac \<open>(nat_of_lit ` set_mset Ls) = {}\<close>)
@@ -418,10 +416,10 @@ proof -
       apply (auto simp: less_Suc_eq_le)[]
       done
     done
-  have H': \<open>x \<in># lits_of_atms_of_mm (mset `# mset N\<^sub>0) \<Longrightarrow> aa ! nat_of_lit x = W x\<close> for x
-    unfolding aa_def D'_def
+  have H': \<open>aa ! nat_of_lit x = W x\<close> if \<open>x \<in># N\<^sub>0\<close> for x
+    using that unfolding aa_def D'_def
     by (auto simp: D'_def image_image remdups_mset_def[symmetric]
-        less_Suc_eq_le Ls_def[symmetric] intro!: H)
+        less_Suc_eq_le intro!: H)
   have \<open>?P aa\<close>
     by (auto simp: D'_def image_image remdups_mset_def[symmetric]
         less_Suc_eq_le length_aa H')
@@ -468,10 +466,11 @@ proof -
 qed
 
 text \<open>TODO: use \<open>let L = K\<close> instead of \<open>let L = ((N!C)) ! i\<close>.\<close>
-definition unit_propagation_inner_loop_body_wl :: "nat literal \<Rightarrow> nat \<Rightarrow>
+definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> nat \<Rightarrow>
   nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres"  where
-  \<open>unit_propagation_inner_loop_body_wl K w S = do {
+  \<open>unit_propagation_inner_loop_body_wl_D K w S = do {
     let (M, N, U, D', NP, UP, Q, W) = S;
+    ASSERT(K \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP));
     ASSERT(w < length (watched_by S K));
     ASSERT(K \<in> snd ` D\<^sub>0);
     let C = (W K) ! w;
@@ -500,6 +499,7 @@ definition unit_propagation_inner_loop_body_wl :: "nat literal \<Rightarrow> nat
       else do {
         ASSERT(snd f < length (N!C));
         let K' = (N!C) ! (snd f);
+        ASSERT(K' \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP));
         ASSERT(K' \<in> snd ` D\<^sub>0);
         let N' = list_update N C (swap (N!C) i (snd f));
         let W = W(L := delete_index_and_swap (W L) w);
@@ -545,17 +545,15 @@ proof -
     apply (auto simp: p2rel_def lit_of_natP_def Pos_div2_iff Neg_div2_iff )
     using even_Suc by blast
   have ba_length_a_b: \<open>ba < length (a b)\<close>
-    if bN: \<open>b \<in># lits_of_atms_of_mm (mset `# mset N\<^sub>0)\<close> and
-      H: \<open>\<And>aa bb. (\<forall>x\<in>#lits_of_atms_of_mm (mset `# mset N\<^sub>0).
-              nat_of_lit x < length aa \<and> aa ! nat_of_lit x = a x) \<and>
+    if bN: \<open>b \<in># N\<^sub>0\<close> and
+      H: \<open>\<And>aa bb. (\<forall>x\<in>#N\<^sub>0. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = a x) \<and>
           (bb, b) \<in> lit_of_nat_rel \<longrightarrow>
           bb < length aa \<and>
           ba < length (aa ! bb)\<close>
     for a :: \<open>nat literal \<Rightarrow> nat list\<close> and b :: \<open>nat literal\<close> and ba :: nat
   proof -
     obtain aa where
-      aa: \<open>\<forall>x\<in>#lits_of_atms_of_mm (mset `# mset N\<^sub>0).
-          nat_of_lit x < length aa \<and> aa ! nat_of_lit x = a x\<close>
+      aa: \<open>\<forall>x\<in>#N\<^sub>0. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = a x\<close>
       using ex_list_watched[of a] by blast
     then have \<open>nat_of_lit b < length aa\<close> and aa_b_a_b: \<open>aa ! nat_of_lit b = a b\<close>
       using bN by blast+
@@ -643,11 +641,81 @@ proof -
     .
 qed
 
-sepref_definition unit_propagation_inner_loop_body_wl_code
-  is \<open>uncurry2 (unit_propagation_inner_loop_body_wl :: nat literal \<Rightarrow> nat \<Rightarrow>
+lemma
+  assumes
+    K: \<open>K \<in> snd ` D\<^sub>0\<close> and
+    N\<^sub>0: \<open>lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S))) = N\<^sub>0\<close>
+  shows \<open>unit_propagation_inner_loop_body_wl_D K w S \<le> \<Down> Id (unit_propagation_inner_loop_body_wl K w S)\<close>
+proof -
+  obtain M N U D NP UP Q W where
+    S: \<open>S = (M, N, U, D, NP, UP, Q, W)\<close>
+    by (cases S)
+  have valued: \<open>(valued M (N ! (W K ! w) ! (1 - (if N ! (W K ! w) ! 0 = K then 0 else 1))),
+     valued M' (N' ! (W' K ! w) ! (1 - (if N' ! (W' K ! w) ! 0 = K then 0 else 1)))) \<in> Id\<close>
+    if \<open>N=N'\<close> and \<open>M = M'\<close> and \<open>W = W'\<close>
+    for N N' :: \<open>nat literal list list\<close> and
+    M M' :: \<open>(nat literal, nat literal, nat) annotated_lit list\<close> and W W'
+    using that by auto
+  have find_unwatched: \<open>find_unwatched M (N ! (W K ! w))
+    \<le> \<Down> Id
+        (find_unwatched M' (N' ! (W' K ! w)))\<close>
+    if \<open>N=N'\<close> and \<open>M = M'\<close> and \<open>W = W'\<close>
+    for N N' :: \<open>nat literal list list\<close> and
+    M M' :: \<open>(nat literal, nat literal, nat) annotated_lit list\<close> and W W'
+    by (auto simp: that)
+  have \<open>mset `# mset (take n (tl xs)) +
+    mset `# mset (drop (Suc n) xs) =
+    mset `# mset (tl xs)\<close> for n :: nat and xs
+    unfolding image_mset_union[symmetric] mset_append[symmetric] drop_Suc
+      append_take_drop_id ..
+  then have m: \<open>(mset `# mset (take n (tl xs)) + a + (mset `# mset (drop (Suc n) xs) + b)) =
+         (mset `# mset (tl xs)) + a + b\<close>
+    for a b xs and n :: nat
+    by auto
+  show ?thesis
+    unfolding unit_propagation_inner_loop_body_wl_D_def unit_propagation_inner_loop_body_wl_def S
+      watched_by.simps
+    supply [[goals_limit=1]]
+    apply (refine_vcg valued find_unwatched(* remove_dummy_vars *))
+    subgoal by simp
+    subgoal using K .
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal
+      using N\<^sub>0[symmetric] unfolding S
+      by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
+          clauses_def image_image m lits_of_atms_of_mm_union )
+    subgoal by simp
+    subgoal by simp
+    done
+qed
+
+sepref_definition unit_propagation_inner_loop_body_wl_D_code
+  is \<open>uncurry2 (unit_propagation_inner_loop_body_wl_D :: nat literal \<Rightarrow> nat \<Rightarrow>
            nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
   :: \<open>nat_ann_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_assn\<close>
-  unfolding unit_propagation_inner_loop_body_wl_def length_ll_def[symmetric]
+  unfolding unit_propagation_inner_loop_body_wl_D_def length_ll_def[symmetric]
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
   unfolding nth_ll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
   unfolding lms_fold_custom_empty twl_st_l_assn_def swap_ll_def[symmetric]
@@ -655,9 +723,8 @@ sepref_definition unit_propagation_inner_loop_body_wl_code
   supply [[goals_limit=1]]
   by sepref -- \<open>Takes around 1min\<close>
 
-
 end -- \<open>end of context\<close>
 
-export_code "unit_propagation_inner_loop_body_wl_code" in Haskell
+export_code "unit_propagation_inner_loop_body_wl_D_code" in Haskell
 
 end
