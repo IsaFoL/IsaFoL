@@ -474,6 +474,7 @@ definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> n
     ASSERT(w < length (watched_by S K));
     ASSERT(K \<in> snd ` D\<^sub>0);
     let C = (W K) ! w;
+    ASSERT(C > 0);
     ASSERT(no_dup M);
     ASSERT(C < length N);
     ASSERT(0 < length (N!C));
@@ -640,12 +641,29 @@ proof -
     using H unfolding pre init
     .
 qed
+abbreviation literals_are_N\<^sub>0 where
+  \<open>literals_are_N\<^sub>0 S \<equiv> lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S))) = N\<^sub>0\<close>
 
-lemma
+lemma mset_tl_update_swap:
+  \<open>i < length xs \<Longrightarrow> j < length (xs ! i) \<Longrightarrow> k < length (xs ! i) \<Longrightarrow>
+  mset `# mset (tl (xs [i := swap (xs ! i) j k])) = mset `# mset (tl xs)\<close>
+  apply (cases i)
+  subgoal by (cases xs) auto
+  subgoal for i'
+    apply (subgoal_tac \<open>(xs ! Suc i') \<in># (mset (tl xs))\<close>)
+     defer
+     apply (solves \<open>auto simp: nth_in_set_tl\<close>)
+    apply (auto simp: tl_update_swap mset_update nth_tl)[]
+    by (metis image_mset_add_mset insert_DiffM set_mset_mset)
+  done
+
+lemma unit_propagation_inner_loop_body_wl_D_spec:
   assumes
     K: \<open>K \<in> snd ` D\<^sub>0\<close> and
-    N\<^sub>0: \<open>lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S))) = N\<^sub>0\<close>
-  shows \<open>unit_propagation_inner_loop_body_wl_D K w S \<le> \<Down> Id (unit_propagation_inner_loop_body_wl K w S)\<close>
+    N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close>
+  shows \<open>unit_propagation_inner_loop_body_wl_D K w S \<le>
+      \<Down> {((n', T'), (n, T)). n = n' \<and> T = T' \<and> literals_are_N\<^sub>0 T}
+        (unit_propagation_inner_loop_body_wl K w S)\<close>
 proof -
   obtain M N U D NP UP Q W where
     S: \<open>S = (M, N, U, D, NP, UP, Q, W)\<close>
@@ -692,10 +710,9 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
+    subgoal
+      using N\<^sub>0[symmetric] by (simp add: S clauses_def mset_take_mset_drop_mset
+          mset_take_mset_drop_mset' m)
     subgoal by simp
     subgoal by simp
     subgoal by simp
@@ -703,11 +720,21 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal
+      using N\<^sub>0[symmetric] by (simp add: S clauses_def mset_take_mset_drop_mset
+          mset_take_mset_drop_mset' m)
+    subgoal
+      using N\<^sub>0[symmetric] by (simp add: S clauses_def mset_take_mset_drop_mset
+          mset_take_mset_drop_mset' m)
+    subgoal by simp
+    subgoal by simp
+    subgoal
       using N\<^sub>0[symmetric] unfolding S
       by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
           clauses_def image_image m lits_of_atms_of_mm_union )
     subgoal by simp
-    subgoal by simp
+    subgoal
+      using N\<^sub>0[symmetric] by (simp add: S clauses_def mset_take_mset_drop_mset
+          mset_take_mset_drop_mset' m mset_tl_update_swap)
     done
 qed
 
