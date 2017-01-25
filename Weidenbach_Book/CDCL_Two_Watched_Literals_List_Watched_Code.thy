@@ -393,6 +393,7 @@ lemma lit_of_natP_same_leftD: \<open>lit_of_natP bi b \<Longrightarrow> lit_of_n
   apply presburger
   done
 
+text \<open>TODO: use \<open>let L = K\<close> instead of \<open>let L = ((N!C)) ! i\<close>.\<close>
 definition unit_propagation_inner_loop_body_wl :: "nat literal \<Rightarrow> nat \<Rightarrow>
   nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres"  where
   \<open>unit_propagation_inner_loop_body_wl K w S = do {
