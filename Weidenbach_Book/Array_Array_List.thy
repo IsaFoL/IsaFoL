@@ -183,6 +183,9 @@ lemma length_a_hnr[sepref_fr_rules]: \<open>(length_a, RETURN o length) \<in> (a
 definition length_ll :: \<open>'a list list \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>length_ll l i = length (l!i)\<close>
 
+lemma le_length_ll_nemptyD: \<open>b < length_ll a ba \<Longrightarrow> a ! ba \<noteq> []\<close>
+  by (auto simp: length_ll_def)
+
 definition length_aa :: \<open>('a::heap array_list) array \<Rightarrow> nat \<Rightarrow> nat Heap\<close> where
   \<open>length_aa xs i = do {
      x \<leftarrow> Array.nth xs i;
