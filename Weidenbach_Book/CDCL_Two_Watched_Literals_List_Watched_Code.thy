@@ -675,11 +675,10 @@ proof -
     M M' :: \<open>(nat literal, nat literal, nat) annotated_lit list\<close> and W W'
     using that by auto
   have find_unwatched: \<open>find_unwatched M (N ! (W K ! w))
-    \<le> \<Down> Id
-        (find_unwatched M' (N' ! (W' K ! w)))\<close>
+    \<le> \<Down> Id (find_unwatched M' (N' ! (W' K ! w)))\<close>
     if \<open>N=N'\<close> and \<open>M = M'\<close> and \<open>W = W'\<close>
     for N N' :: \<open>nat literal list list\<close> and
-    M M' :: \<open>(nat literal, nat literal, nat) annotated_lit list\<close> and W W'
+      M M' :: \<open>(nat literal, nat literal, nat) annotated_lit list\<close> and W W'
     by (auto simp: that)
   have \<open>mset `# mset (take n (tl xs)) +
     mset `# mset (drop (Suc n) xs) =
