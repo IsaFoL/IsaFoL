@@ -749,6 +749,66 @@ sepref_definition unit_propagation_inner_loop_body_wl_D_code
   supply [[goals_limit=1]]
   by sepref -- \<open>Takes around 1min\<close>
 
+definition unit_propagation_inner_loop_wl_loop_D :: "nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres" where
+  \<open>unit_propagation_inner_loop_wl_loop_D L S\<^sub>0 = do {
+    WHILE\<^sub>T\<^bsup>\<lambda>(w, S). twl_struct_invs (twl_st_of_wl (Some (L, w)) S) \<and>
+        twl_stgy_invs (twl_st_of_wl (Some (L, w)) S) \<and>
+         additional_WS_invs (st_l_of_wl (Some (L, w)) S) \<and>
+        correct_watching S \<and> w \<le> length (watched_by S L) \<and>
+        literals_are_N\<^sub>0 S\<^esup>
+      (\<lambda>(w, S). w < length (watched_by S L) \<and> get_conflict_wl S = None)
+      (\<lambda>(w, S). do {
+        unit_propagation_inner_loop_body_wl_D L w S
+      })
+      (0, S\<^sub>0)
+  }
+  \<close>
+
+lemma unit_propagation_inner_loop_wl_spec:
+  assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close>
+  shows \<open>unit_propagation_inner_loop_wl_loop_D K S \<le>
+     \<Down> {((n', T'), n, T). n = n' \<and> T = T' \<and> literals_are_N\<^sub>0 T}
+       (unit_propagation_inner_loop_wl_loop K S)\<close>
+proof -
+  have u: \<open>unit_propagation_inner_loop_body_wl_D K w S \<le>
+         \<Down> {((n', T'), n, T). n = n' \<and> T = T' \<and> literals_are_N\<^sub>0 T}
+           (unit_propagation_inner_loop_body_wl K' w' S')\<close>
+  if \<open>K \<in> snd ` local.D\<^sub>0\<close> and \<open>literals_are_N\<^sub>0 S\<close> and
+    \<open>K = K'\<close> and \<open>w = w'\<close> and \<open>S = S'\<close> for S S' and w w' and K K'
+    using unit_propagation_inner_loop_body_wl_D_spec[of K S w] that by auto
+  have \<open>mset `# mset (take n (tl xs)) +
+    mset `# mset (drop (Suc n) xs) =
+    mset `# mset (tl xs)\<close> for n :: nat and xs
+    unfolding image_mset_union[symmetric] mset_append[symmetric] drop_Suc
+      append_take_drop_id ..
+  then have m: \<open>(mset `# mset (take n (tl xs)) + a + (mset `# mset (drop (Suc n) xs) + b)) =
+         (mset `# mset (tl xs)) + a + b\<close>
+    for a b xs and n :: nat
+    by auto
+
+  show ?thesis
+    unfolding unit_propagation_inner_loop_wl_loop_D_def unit_propagation_inner_loop_wl_loop_def
+    apply (refine_vcg u)
+    subgoal using N\<^sub>0 by simp
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for n'T' nT n T n' T' using N\<^sub>0 apply auto
+      apply (cases S)
+      apply (cases T')
+      apply (auto simp: mset_take_mset_drop_mset' clauses_def m)
+      sorry
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
 end -- \<open>end of context\<close>
 
 export_code "unit_propagation_inner_loop_body_wl_D_code" in Haskell
