@@ -351,7 +351,7 @@ declare find_unwatched'_impl.refine[sepref_fr_rules]
 subsection \<open>Refinement\<close>
 
 text \<open>We start in a context where we have an initial set of literals.\<close>
-context
+context -- \<open>TODO Should be a set\<close>
   fixes N\<^sub>0 :: \<open>nat literal multiset\<close>
 begin
 
@@ -765,7 +765,7 @@ definition unit_propagation_inner_loop_wl_loop_D :: "nat literal \<Rightarrow> n
   \<close>
 
 lemma unit_propagation_inner_loop_wl_spec:
-  assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close>
+  assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close> and K: \<open>K \<in> snd ` local.D\<^sub>0\<close>
   shows \<open>unit_propagation_inner_loop_wl_loop_D K S \<le>
      \<Down> {((n', T'), n, T). n = n' \<and> T = T' \<and> literals_are_N\<^sub>0 T}
        (unit_propagation_inner_loop_wl_loop K S)\<close>
@@ -776,9 +776,8 @@ proof -
   if \<open>K \<in> snd ` local.D\<^sub>0\<close> and \<open>literals_are_N\<^sub>0 S\<close> and
     \<open>K = K'\<close> and \<open>w = w'\<close> and \<open>S = S'\<close> for S S' and w w' and K K'
     using unit_propagation_inner_loop_body_wl_D_spec[of K S w] that by auto
-  have \<open>mset `# mset (take n (tl xs)) +
-    mset `# mset (drop (Suc n) xs) =
-    mset `# mset (tl xs)\<close> for n :: nat and xs
+  have \<open>mset `# mset (take n (tl xs)) + mset `# mset (drop (Suc n) xs) = mset `# mset (tl xs)\<close>
+    for n :: nat and xs
     unfolding image_mset_union[symmetric] mset_append[symmetric] drop_Suc
       append_take_drop_id ..
   then have m: \<open>(mset `# mset (take n (tl xs)) + a + (mset `# mset (drop (Suc n) xs) + b)) =
@@ -797,15 +796,172 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal for n'T' nT n T n' T' using N\<^sub>0 apply auto
-      apply (cases S)
-      apply (cases T')
-      apply (auto simp: mset_take_mset_drop_mset' clauses_def m)
+    subgoal using K by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+definition unit_propagation_inner_loop_wl_D :: "nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+  \<open>unit_propagation_inner_loop_wl_D L S\<^sub>0 = do {
+     wS \<leftarrow> unit_propagation_inner_loop_wl_loop_D L S\<^sub>0;
+     RETURN (snd wS)
+  }\<close>
+
+lemma unit_propagation_inner_loop_wl_D_spec:
+  assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close> and K: \<open>K \<in> snd ` local.D\<^sub>0\<close>
+  shows \<open>unit_propagation_inner_loop_wl_D K S \<le>
+     \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}
+       (unit_propagation_inner_loop_wl K S)\<close>
+proof -
+  show ?thesis
+    unfolding unit_propagation_inner_loop_wl_D_def unit_propagation_inner_loop_wl_def
+    apply (refine_vcg unit_propagation_inner_loop_wl_spec)
+    subgoal using N\<^sub>0 .
+    subgoal using K .
+    subgoal by auto
+    done
+qed
+
+
+definition unit_propagation_outer_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+  \<open>unit_propagation_outer_loop_wl_D S\<^sub>0 =
+    WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> twl_stgy_invs (twl_st_of_wl None S) \<and>
+      correct_watching S \<and> additional_WS_invs (st_l_of_wl None S)\<^esup>
+      (\<lambda>S. pending_wl S \<noteq> {#})
+      (\<lambda>S. do {
+        ASSERT(pending_wl S \<noteq> {#});
+        (S', L) \<leftarrow> select_and_remove_from_pending_wl S;
+        ASSERT(L \<in># lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S))));
+        unit_propagation_inner_loop_wl_D L S'
+      })
+      (S\<^sub>0 :: nat twl_st_wl)\<close>
+
+
+lemma unit_propagation_outer_loop_wl_D_spec:
+  assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close>
+  shows \<open>unit_propagation_outer_loop_wl_D S \<le>
+     \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}
+       (unit_propagation_outer_loop_wl S)\<close>
+proof -
+  have select: \<open>select_and_remove_from_pending_wl S \<le>
+    \<Down> {((T', L'), (T, L)). T = T' \<and> L = L' \<and>  T = set_pending_wl (pending_wl S - {#L#}) S}
+       (select_and_remove_from_pending_wl S')\<close>
+    if \<open>S = S'\<close> for S S' :: \<open>nat twl_st_wl\<close>
+    unfolding select_and_remove_from_pending_wl_def select_and_remove_from_pending_def
+    apply (rule RES_refine)
+    using that unfolding select_and_remove_from_pending_wl_def by blast
+  have unit_prop: \<open>literals_are_N\<^sub>0 S \<Longrightarrow>
+          K \<in> snd ` D\<^sub>0 \<Longrightarrow>
+          unit_propagation_inner_loop_wl_D K S
+          \<le> \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T} (unit_propagation_inner_loop_wl K' S')\<close>
+    if \<open>K = K'\<close> and \<open>S = S'\<close> for K K' and S S' :: \<open>nat twl_st_wl\<close>
+    unfolding that by (rule unit_propagation_inner_loop_wl_D_spec)
+  show ?thesis
+    unfolding unit_propagation_outer_loop_wl_D_def unit_propagation_outer_loop_wl_def
+    apply (refine_vcg select unit_prop)
+    subgoal using N\<^sub>0 by simp
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for S' S T'L' TL T' L' T L by (cases S') auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for S' S T'L' TL T' L' T L using N\<^sub>0[symmetric] by (cases S') auto
+    subgoal by auto
+    done
+qed
+
+
+definition skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+  \<open>skip_and_resolve_loop_wl_D S\<^sub>0 =
+    do {
+      ASSERT(get_conflict_wl S\<^sub>0 \<noteq> None);
+      (_, S) \<leftarrow>
+        WHILE\<^sub>T\<^bsup>\<lambda>(brk, S).
+           skip_and_resolve_loop_inv (twl_st_of_wl None S\<^sub>0) (brk, twl_st_of_wl None S) \<and>
+           additional_WS_invs (st_l_of_wl None S) \<and> correct_watching S \<and> literals_are_N\<^sub>0 S\<^esup>
+        (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)))
+        (\<lambda>(_, S).
+          let (M, N, U, D, NP, UP, Q, W) = S in
+          do {
+            ASSERT(M \<noteq> []);
+            ASSERT(get_conflict_wl (M, N, U, D, NP, UP, Q, W) \<noteq> None);
+            let D' = the (get_conflict_wl (M, N, U, D, NP, UP, Q, W));
+            ASSERT(is_proped (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W))));
+            let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W)));
+            ASSERT(C < length N);
+            if -L \<notin> set D' then
+              do {RETURN (False, (tl M, N, U, D, NP, UP, Q, W))}
+            else
+              if get_maximum_level M (remove1_mset (-L) (mset D')) = count_decided M
+              then
+                do {RETURN (resolve_cls_l L D' (if C = 0 then [L] else N!C) = [],
+                   (tl M, N, U, Some (resolve_cls_l L D' (if C = 0 then [L] else N!C)),
+                     NP, UP, Q, W))}
+              else
+                do {RETURN (True, (M, N, U, D, NP, UP, Q, W))}
+          }
+        )
+        (get_conflict_wl S\<^sub>0 = Some [], S\<^sub>0);
+      RETURN S
+    }
+  \<close>
+lemma skip_and_resolve_loop_wl_D_spec:
+  assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close>
+  shows \<open>skip_and_resolve_loop_wl_D S \<le>
+     \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}
+       (skip_and_resolve_loop_wl S)\<close>
+proof -
+  have 1: \<open>((get_conflict_wl S = Some [], S), get_conflict_wl S = Some [], S) \<in> Id\<close>
+    by auto
+  show ?thesis(* slpit the function in WHILE + RETURN, and prove invariants on WHILE first *)
+    unfolding skip_and_resolve_loop_wl_D_def skip_and_resolve_loop_wl_def
+    apply (refine_vcg 1)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal sorry
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for b'T' bT b' T' b T
       sorry
+    done
+qed
+
+
+lemma backtrack_wl_D_spec:
+  assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close>
+  shows \<open>backtrack_wl S \<le>
+     \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}
+       (backtrack_wl S)\<close>
+proof -
+  have 1: \<open>((get_conflict_wl S = Some [], S), get_conflict_wl S = Some [], S) \<in> Id\<close>
+    by auto
+  show ?thesis(* slpit the function in WHILE + RETURN, and prove invariants on WHILE first *)
+    unfolding backtrack_wl_def skip_and_resolve_loop_wl_def
+    apply (refine_vcg 1)
+    subgoal by fast
     subgoal by auto
     subgoal by auto
-    subgoal by auto
-    subgoal by auto
+    subgoal using N\<^sub>0 apply (auto simp: clauses_def mset_take_mset_drop_mset'
+          lits_of_atms_of_mm_union lits_of_atms_of_mm_add_mset) sorry
+    subgoal using N\<^sub>0 apply (auto simp: clauses_def mset_take_mset_drop_mset'
+          lits_of_atms_of_mm_union lits_of_atms_of_mm_add_mset)
+        sorry
     done
 qed
 
