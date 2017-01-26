@@ -6,7 +6,8 @@ subsection \<open>Array of Array Lists\<close>
 
 text \<open>
   We define here array of array lists. We need arrays owning there elements. Therefore most of the
-  rules introduced by \<open>sep_auto\<close> cannot lead to proofs.\<close>
+  rules introduced by \<open>sep_auto\<close> cannot lead to proofs.
+\<close>
 
 fun heap_list_all :: "('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> assn" where
   \<open>heap_list_all R [] [] = emp\<close>
@@ -400,15 +401,16 @@ lemma update_aa_hnr[sepref_fr_rules]:
      [\<lambda>(((l,i), j), x). i < length l \<and> j < length_ll l i]\<^sub>a (arrayO (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO (arl_assn R))\<close>
   by sepref_to_hoare (sep_auto simp: assms)
 
+definition set_butlast_ll where
+  \<open>set_butlast_ll xs i = xs[i := butlast (xs ! i)]\<close>
+
 definition set_butlast_aa :: "('a::{heap} array_list) array \<Rightarrow> nat \<Rightarrow> ('a array_list) array Heap" where
   \<open>set_butlast_aa a i = do {
       x \<leftarrow> Array.nth a i;
       a' \<leftarrow> arl_butlast x;
       Array.upd i a' a
-    }\<close> -- \<open>\<close>
+    }\<close> -- \<open>Replace the \<^term>\<open>i\<close>-th element by the itself execpt the last element.\<close>
 
-definition set_butlast_ll where
-  \<open>set_butlast_ll xs i = xs[i := butlast (xs ! i)]\<close>
 
 lemma list_rel_butlast:
   assumes rel: \<open>(xs, ys) \<in> \<langle>the_pure R\<rangle>list_rel\<close>
