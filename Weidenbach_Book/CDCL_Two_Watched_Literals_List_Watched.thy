@@ -655,7 +655,7 @@ definition unit_propagation_outer_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_
       (\<lambda>S. do {
         ASSERT(pending_wl S \<noteq> {#});
         (S', L) \<leftarrow> select_and_remove_from_pending_wl S;
-        ASSERT(L \<in># lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S))));
+        ASSERT(L \<in># lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S'))));
         unit_propagation_inner_loop_wl L S'
       })
       (S\<^sub>0 :: 'v twl_st_wl)
