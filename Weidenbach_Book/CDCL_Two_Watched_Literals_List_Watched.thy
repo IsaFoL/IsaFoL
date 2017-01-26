@@ -64,6 +64,27 @@ fun delete_index_and_swap where
 lemma in_lits_of_atms_of_mm_ain_atms_of_iff: \<open>L \<in># lits_of_atms_of_mm N \<longleftrightarrow> atm_of L \<in> atms_of_mm N\<close>
   by (cases L) (auto simp: lits_of_atms_of_mm_def atms_of_ms_def atms_of_def)
 
+lemma lits_of_atms_of_mm_union:
+  \<open>lits_of_atms_of_mm (M + N) = lits_of_atms_of_mm M + lits_of_atms_of_mm N\<close>
+  unfolding lits_of_atms_of_mm_def by auto
+
+definition lits_of_atms_of_m :: \<open>'a clause \<Rightarrow> 'a literal multiset\<close> where
+\<open>lits_of_atms_of_m Ls = Pos `# (atm_of `# Ls) + Neg `# (atm_of `# Ls)\<close>
+
+lemma in_lits_of_atms_of_m_ain_atms_of_iff: \<open>L \<in># lits_of_atms_of_m N \<longleftrightarrow> atm_of L \<in> atms_of N\<close>
+  by (cases L) (auto simp: lits_of_atms_of_m_def atms_of_ms_def atms_of_def)
+
+lemma lits_of_atms_of_mm_add_mset:
+  \<open>lits_of_atms_of_mm (add_mset C N) = (lits_of_atms_of_m C) + (lits_of_atms_of_mm N)\<close>
+  by (auto simp: lits_of_atms_of_mm_def lits_of_atms_of_m_def)
+
+lemma lits_of_atms_of_m_add_mset:
+  \<open>lits_of_atms_of_m (add_mset L C) = add_mset L (add_mset (-L) (lits_of_atms_of_m C))\<close>
+  by (cases L) (auto simp: lits_of_atms_of_m_def)
+
+lemma lits_of_atms_of_m_union:
+  \<open>lits_of_atms_of_m (A + B) = lits_of_atms_of_m A + lits_of_atms_of_m B\<close>
+  by (auto simp: lits_of_atms_of_m_def)
 
 fun st_l_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_st_wl  \<Rightarrow> 'v twl_st_l\<close> where
   \<open>st_l_of_wl None (M, N, C, D, NP, UP, Q, W) = (M, N, C, D, NP, UP, {#}, Q)\<close>
@@ -625,7 +646,7 @@ subsubsection \<open>Outer loop\<close>
 definition select_and_remove_from_pending_wl :: "'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> 'v literal) nres" where
   \<open>select_and_remove_from_pending_wl S = SPEC(\<lambda>(S', L). L \<in># pending_wl S \<and>
      S' = set_pending_wl (pending_wl S - {#L#}) S)\<close>
-
+term init_clss
 definition unit_propagation_outer_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
   \<open>unit_propagation_outer_loop_wl S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> twl_stgy_invs (twl_st_of_wl None S) \<and>
@@ -634,6 +655,7 @@ definition unit_propagation_outer_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_
       (\<lambda>S. do {
         ASSERT(pending_wl S \<noteq> {#});
         (S', L) \<leftarrow> select_and_remove_from_pending_wl S;
+        ASSERT(L \<in># lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S))));
         unit_propagation_inner_loop_wl L S'
       })
       (S\<^sub>0 :: 'v twl_st_wl)
@@ -660,7 +682,8 @@ lemma unit_propagation_outer_loop_wl_spec:
 proof -
   have select_and_remove_from_pending_wl: \<open>select_and_remove_from_pending_wl S' \<le>
      \<Down> {((T', L'), (T, L)). L = L' \<and> T = st_l_of_wl (Some (L, 0)) T' \<and>
-         T' = set_pending_wl (pending_wl S' - {#L#}) S' \<and> L \<in># pending_wl S'
+         T' = set_pending_wl (pending_wl S' - {#L#}) S' \<and> L \<in># pending_wl S' \<and>
+         L \<in># lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S')))
        }
        (select_and_remove_from_pending S)\<close>
     if S: \<open>S = st_l_of_wl None S'\<close> and \<open>get_conflict_wl S' = None\<close> and
@@ -676,7 +699,7 @@ proof -
       alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of None (st_l_of_wl None S')))\<close>
       using struct_invs that by (auto simp: twl_struct_invs_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
-    then have H: \<open>L \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP)\<close> if LQ: \<open>L \<in># Q\<close> for L
+    then have H1: \<open>L \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP)\<close> if LQ: \<open>L \<in># Q\<close> for L
     proof -
       obtain K where \<open>L = - lit_of K\<close> and \<open>K \<in># mset (convert_lits_l N M)\<close>
         using that no_dup_q LQ
@@ -707,15 +730,21 @@ proof -
     qed
     then have H: \<open>clause_to_update L S = mset (W L)\<close> if \<open>L \<in># Q\<close> for L
       using corr_w that S by (auto simp: correct_watching.simps S' clause_to_update_def)
+    have m: \<open>mset `# mset (take U (tl N)) + NP + (mset `# mset (drop (Suc U) N) + UP) =
+              mset `# mset (tl N) + NP + UP\<close>
+      apply (subst (2) append_take_drop_id[symmetric, of \<open>tl N\<close> U])
+      unfolding mset_append by (auto simp: drop_Suc)
     show ?thesis
       unfolding select_and_remove_from_pending_wl_def select_and_remove_from_pending_def
       apply (rule RES_refine)
-      using that S' by (auto simp: pending_wl_pending_l_iff correct_watching.simps dest: H)
+      using that S' by (auto 5 5 simp: pending_wl_pending_l_iff correct_watching.simps clauses_def
+          mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset_state m lits_of_atms_of_mm_union
+          dest: H H1)
   qed
   have set_pending_add_remove: \<open>(set_pending_wl (add_mset L (pending_wl (set_pending_wl (remove1_mset L (pending_wl T')) T'))) (set_pending_wl (remove1_mset L (pending_wl T')) T')) = T'\<close>
     if \<open>L \<in># pending_wl T' \<close>for T' :: \<open>'v twl_st_wl\<close> and L
     using that by (cases T') auto
-  have \<open>?u \<in> ?A \<rightarrow>
+  have unit_propagation_outer_loop_wl: \<open>?u \<in> ?A \<rightarrow>
     \<langle>{(T', T).
        st_l_of_wl None T' = T \<and>
        twl_struct_invs (twl_st_of_wl None T') \<and>
@@ -743,6 +772,8 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal for S' S T' T U'L' UL U' L' U L
+      by (cases T') auto
+    subgoal for S' S T' T U'L' UL U' L' U L
       apply (subst do_uncurry[of unit_propagation_inner_loop_wl])
       apply (subst do_uncurry[of unit_propagation_inner_loop_l])
       apply (rule unit_propagation_inner_loop_wl_spec["to_\<Down>"])
@@ -754,7 +785,6 @@ proof -
       apply (simp add: twl_struct_invs_def)
       done
     done
-  note unit_propagation_outer_loop_wl = this
 
   have H: \<open>unit_propagation_outer_loop_wl S' \<le> \<Down> ?B (unit_propagation_outer_loop_l S)\<close>
     if A: \<open>(S', S) \<in> ?A\<close>
@@ -1013,22 +1043,6 @@ definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
     }
   \<close>
 
-definition lits_of_atms_of_m :: \<open>'a clause \<Rightarrow> 'a literal multiset\<close> where
-\<open>lits_of_atms_of_m Ls = Pos `# (atm_of `# Ls) + Neg `# (atm_of `# Ls)\<close>
-
-lemma in_lits_of_atms_of_m_ain_atms_of_iff: \<open>L \<in># lits_of_atms_of_m N \<longleftrightarrow> atm_of L \<in> atms_of N\<close>
-  by (cases L) (auto simp: lits_of_atms_of_m_def atms_of_ms_def atms_of_def)
-
-lemma lits_of_atms_of_mm_add_mset:
-  \<open>lits_of_atms_of_mm (add_mset C N) = (lits_of_atms_of_m C) + (lits_of_atms_of_mm N)\<close>
-  by (auto simp: lits_of_atms_of_mm_def lits_of_atms_of_m_def)
-
-lemma lits_of_atms_of_m_add_mset:
-  \<open>lits_of_atms_of_m (add_mset L C) = add_mset L (add_mset (-L) (lits_of_atms_of_m C))\<close>
-  by (cases L) (auto simp: lits_of_atms_of_m_def)
-lemma lits_of_atms_of_mm_union:
-  \<open>lits_of_atms_of_mm (A + B) = lits_of_atms_of_mm A + lits_of_atms_of_mm B\<close>
-  by (auto simp: lits_of_atms_of_mm_def)
 
 lemma correct_watching_learn:
   assumes N_ne_Nil: \<open>N \<noteq> []\<close> and
