@@ -360,13 +360,6 @@ begin
 abbreviation nat_lit_rel :: "(nat literal \<times> nat literal) set" where
   \<open>nat_lit_rel \<equiv> (Id :: (nat literal \<times> _)set)\<close>
 
-
-(* sepref_register N\<^sub>0
-lemma N_hnr[sepref_import_param]: "(N\<^sub>0,N\<^sub>0)\<in>\<langle>nat_lit_rel\<rangle>mset_rel"
-  using mset_sorted_list_of_multiset[of N\<^sub>0]
-  by (auto simp: mset_rel_def[abs_def] rel2p_dflt list_all2_eq[symmetric]
-      p2rel_def rel_mset_def simp del: mset_sorted_list_of_multiset) *)
-
 text \<open>This is the \<^emph>\<open>completion\<close> of \<^term>\<open>N\<^sub>0\<close>, containing the positive and the negation of every
   literal of \<^term>\<open>N\<^sub>0\<close>:\<close>
 definition N\<^sub>1 where \<open>N\<^sub>1 = N\<^sub>0 + uminus `# N\<^sub>0\<close>
@@ -1255,6 +1248,9 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
     }
   \<close>
 
+lemma in_N\<^sub>1_iff: \<open>L \<in># N\<^sub>1 \<longleftrightarrow> atm_of L \<in> atms_of N\<^sub>1\<close>
+  by (auto simp: N\<^sub>1_def atms_of_def atm_of_eq_atm_of)
+
 lemma backtrack_wl_D_spec:
   assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close>
   shows \<open>backtrack_wl_D S \<le>
@@ -1271,6 +1267,16 @@ proof -
     if \<open>S = S'\<close> and \<open>M = M'\<close>
     for S S' :: \<open>nat twl_st_wl\<close> and M M'
     using that by auto
+  have H: \<open>mset `# mset (take n (tl xs)) + a + (mset `# mset (drop (Suc n) xs) + b) =
+   mset `# mset (tl xs) + a + b\<close> for n xs a b
+    apply (subst (2) append_take_drop_id[of n \<open>tl xs\<close>, symmetric])
+    apply (subst mset_append)
+    by (auto simp: drop_Suc)
+  have N\<^sub>1: \<open>set_mset (lits_of_atms_of_mm N) = set_mset N\<^sub>1 \<longleftrightarrow> atms_of_mm N = atms_of N\<^sub>1\<close> for N M
+    apply (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff atms_of_ms_def atms_of_def
+        atm_of_eq_atm_of N\<^sub>1_def in_implies_atm_of_on_atms_of_ms
+        image_Un)
+      using in_implies_atm_of_on_atms_of_ms in_lits_of_atms_of_mm_ain_atms_of_iff by fastforce
   show ?thesis(* slpit the function in WHILE + RETURN, and prove invariants on WHILE first *)
     unfolding backtrack_wl_D_def backtrack_wl_def
     supply [[goals_limit=1]]
@@ -1290,32 +1296,87 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal using N\<^sub>0 sorry
-    subgoal sorry
-    subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
+    subgoal for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
+      subgoal
+        using N\<^sub>0
+        apply (cases M)
+         apply simp
+        apply (simp add: twl_struct_invs_is_N\<^sub>1_clauses_init_clss mset_take_mset_drop_mset'
+            image_image cdcl\<^sub>W_restart_mset_state clauses_def H in_N\<^sub>1_iff)
+        by (auto simp: (* is_N\<^sub>1_def *) in_lits_of_atms_of_mm_ain_atms_of_iff mset_take_mset_drop_mset'
+            clauses_def H (* N\<^sub>1 *) image_image cdcl\<^sub>W_restart_mset.no_strange_atm_def
+            cdcl\<^sub>W_restart_mset_state eq_commute[of _ \<open>atms_of N\<^sub>1\<close>] in_N\<^sub>1_iff is_N\<^sub>1_def)
+      subgoal
+       apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+       apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+       by fast
+      done
+    subgoal for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
+      subgoal
+        using N\<^sub>0
+        apply (simp add: twl_struct_invs_is_N\<^sub>1_clauses_init_clss mset_take_mset_drop_mset'
+            image_image cdcl\<^sub>W_restart_mset_state clauses_def H in_N\<^sub>1_iff)
+        by (auto simp: (* is_N\<^sub>1_def *) in_lits_of_atms_of_mm_ain_atms_of_iff mset_take_mset_drop_mset'
+            clauses_def H (* N\<^sub>1 *) image_image cdcl\<^sub>W_restart_mset.no_strange_atm_def
+            cdcl\<^sub>W_restart_mset_state eq_commute[of _ \<open>atms_of N\<^sub>1\<close>] in_N\<^sub>1_iff is_N\<^sub>1_def)
+      subgoal
+        apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        by fast
+      done
+    subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M' SN' N'
+      SU' U' SD' D' SNP' NP' SUP' UP' SWS' WS' W' K K' L L'
     proof -
       thm p
       note SWS = p(1) and SUP = p(2) and SNP = p(3) and SD = p(4) and SU = p(5) and SN = p(6) and
-        S = p(7) and M_not_Nil = p(8) and lvl_count_decided = p(10) and D_not_None = p(11) and
-        D_not_Some_Nil = p(12) and ex_decomp = p(13) and stgy_invs = p(21) and struct_invs = p(22)
-        and no_skip = p(30) and M1_M1a = p(31) and L'_La = p(34) and
-        S_expand = p(1-7)
-      have N_not_empty: \<open>N \<noteq> []\<close>
-        sorry
-          thm p(21)
+        S = p(7) and M_not_Nil = p(15) and lvl_count_decided = p(10) and D_not_None = p(18) and
+        D_not_Some_Nil = p(19) and ex_decomp = p(20) and stgy_invs = p(21) and struct_invs = p(22)
+        and no_skip = p(30) and M1_M1a = p(31) and L'_La = p(34) and atm_hd = p(35) and atm_L = p(36) and
+        S_expand = p(1-14)
+      have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
+        using struct_invs
+        apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        by fast
+
+      text \<open>TODO: should be a separate lemma\<close>
+      have in_atms_of_minusD: \<open>x \<in> atms_of (A - B) \<Longrightarrow> x \<in> atms_of A\<close> for x A B
+        by (auto simp: atms_of_def dest: in_diffD)
+
+
       show ?thesis (is \<open>(?T', ?T) \<in> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}\<close>)
       proof -
-        have \<open>?T = ?T'\<close>
-          using M1_M1a L'_La by auto
-        moreover have \<open>literals_are_N\<^sub>0 ?T\<close>
-          (*  using N\<^sub>0 *)using N_not_empty N\<^sub>0
-            apply (cases \<open>Suc U - length N\<close>)
-          apply (auto simp: clauses_def mset_take_mset_drop_mset' S_expand
+        have T: \<open>?T = ?T'\<close>
+          using M1_M1a L'_La S_expand by auto
+
+        have is_N\<^sub>1_add: \<open>is_N\<^sub>1 (A + B) \<longleftrightarrow> set_mset A \<subseteq> set_mset N\<^sub>1\<close> if \<open>is_N\<^sub>1 B\<close> for A B
+          using that unfolding is_N\<^sub>1_def by auto
+
+
+        have \<open>atms_of_ms (mset ` set (take U (tl N))) \<subseteq> atms_of_ms (mset ` set (tl N))\<close>
+          by (auto simp: atms_of_ms_def dest: in_set_takeD)
+
+        then have \<open>set_mset
+             (lits_of_atms_of_m (add_mset (- lit_of (hd M)) (add_mset L' (mset (the D) - {#- lit_of (hd M), L'#})))) \<subseteq> set_mset N\<^sub>1\<close>
+          using M_not_Nil alien N\<^sub>0[unfolded is_N\<^sub>1_def, symmetric] atm_hd atm_L D_not_None
+          unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+          apply (cases M)
+          by (auto 5 5 simp: in_lits_of_atms_of_mm_ain_atms_of_iff atm_of_eq_atm_of
+              cdcl\<^sub>W_restart_mset_state clauses_def in_N\<^sub>1_iff S_expand
+              in_lits_of_atms_of_m_ain_atms_of_iff
+              mset_take_mset_drop_mset' H image_image
+              dest!: in_atms_of_minusD)
+
+        then have \<open>literals_are_N\<^sub>0 ?T\<close>
+          using  N\<^sub>0
+          by (cases \<open>Suc U - length N\<close>; cases N)
+            (simp_all add: clauses_def mset_take_mset_drop_mset' S_expand
               lits_of_atms_of_mm_union lits_of_atms_of_mm_add_mset (* is_N\<^sub>1_def *)
-              in_lits_of_atms_of_mm_ain_atms_of_iff)
-          sorry
-        ultimately show ?thesis
-          by blast
+              in_lits_of_atms_of_mm_ain_atms_of_iff is_N\<^sub>1_add)
+        then show ?thesis
+          using T by blast
       qed
     qed
     subgoal using N\<^sub>0 apply (auto simp: clauses_def mset_take_mset_drop_mset'
