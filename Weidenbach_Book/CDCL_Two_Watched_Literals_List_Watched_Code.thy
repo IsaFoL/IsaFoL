@@ -350,10 +350,22 @@ declare find_unwatched'_impl.refine[sepref_fr_rules]
 
 subsection \<open>Refinement\<close>
 
-text \<open>We start in a context where we have an initial set of literals.\<close>
-context
+text \<open>We start in a context where we have an initial set of literals. It should be
+  a context, but this is not compatible with the refinement framework. It does only appear in
+  the specifications.\<close>
+locale twl_array_code =
   fixes N\<^sub>0 :: \<open>nat literal multiset\<close>
 begin
+
+abbreviation nat_lit_rel :: "(nat literal \<times> nat literal) set" where
+  \<open>nat_lit_rel \<equiv> (Id :: (nat literal \<times> _)set)\<close>
+
+
+(* sepref_register N\<^sub>0
+lemma N_hnr[sepref_import_param]: "(N\<^sub>0,N\<^sub>0)\<in>\<langle>nat_lit_rel\<rangle>mset_rel"
+  using mset_sorted_list_of_multiset[of N\<^sub>0]
+  by (auto simp: mset_rel_def[abs_def] rel2p_dflt list_all2_eq[symmetric]
+      p2rel_def rel_mset_def simp del: mset_sorted_list_of_multiset) *)
 
 text \<open>This is the \<^emph>\<open>completion\<close> of \<^term>\<open>N\<^sub>0\<close>, containing the positive and the negation of every
   literal of \<^term>\<open>N\<^sub>0\<close>:\<close>
@@ -367,6 +379,16 @@ lemma nth_ll_watched_app:
      [\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0) \<times>\<^sub>r p2rel lit_of_natP) \<times>\<^sub>r nat_rel \<rightarrow>
        \<langle>nat_rel\<rangle> nres_rel\<close>
   unfolding watched_app_def nth_ll_def
+  by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def lit_of_natP_def)
+
+definition length_ll_f where
+  \<open>length_ll_f W L = length (W L)\<close>
+
+lemma length_ll_length_ll_f:
+  \<open>(uncurry (RETURN oo length_ll), uncurry (RETURN oo length_ll_f)) \<in>
+     [\<lambda>(W, L). L \<in> snd ` D\<^sub>0]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0) \<times>\<^sub>r p2rel lit_of_natP) \<rightarrow>
+       \<langle>nat_rel\<rangle> nres_rel\<close>
+  unfolding length_ll_def length_ll_f_def
   by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def lit_of_natP_def)
 
 abbreviation array_watched_assn :: "(nat literal \<Rightarrow> nat list) \<Rightarrow> (nat array_list) array \<Rightarrow> assn" where
@@ -471,7 +493,46 @@ proof -
     using H unfolding 1 2 3  .
 qed
 
-text \<open>TODO: use \<open>let L = K\<close> instead of \<open>let L = ((N!C)) ! i\<close>.\<close>
+lemma length_aa_length_ll_f[sepref_fr_rules]:
+  \<open>(uncurry length_aa, uncurry (RETURN oo length_ll_f)) \<in>
+   [\<lambda>(W, L). L \<in> snd ` D\<^sub>0]\<^sub>a
+     array_watched_assn\<^sup>k *\<^sub>a nat_ann_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have P: \<open>is_pure nat_assn\<close>
+    by auto
+  have H: \<open>(uncurry length_aa, uncurry (RETURN \<circ>\<circ> length_ll_f))
+       \<in> [comp_PRE
+            (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r lit_of_nat_rel)
+            (\<lambda>(W, L). L \<in> snd ` D\<^sub>0)
+            (\<lambda>_ (xs, i). i < length xs)
+            (\<lambda>_. True)]\<^sub>a hrp_comp
+                            ((arrayO (arl_assn nat_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k)
+                            (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r lit_of_nat_rel) \<rightarrow>
+          hr_comp nat_assn nat_rel\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF length_aa_hnr length_ll_length_ll_f]
+    unfolding op_watched_app_def .
+
+  have 1: \<open>?pre' = ?pre\<close>
+    using ex_list_watched
+    by (auto simp: comp_PRE_def intro!: ext simp: prod_rel_def_internal
+        relAPP_def map_fun_rel_def[abs_def] p2rel_def lit_of_natP_def
+        literal_of_neq_eq_nat_of_lit_eq_iff length_ll_def
+        simp del: literal_of_nat.simps)
+
+  have 2: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have 3: \<open>?f' = ?f\<close>
+    by (auto simp: hrp_comp_def hr_comp_def)
+
+  show ?thesis
+    using H unfolding 1 2 3  .
+qed
+
+text \<open>
+  \<^item> TODO: use \<open>let L = K\<close> instead of \<open>let L = ((N!C)) ! i\<close>.\<close>
 definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> nat \<Rightarrow>
   nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres"  where
   \<open>unit_propagation_inner_loop_body_wl_D K w S = do {
@@ -673,7 +734,7 @@ lemma unit_propagation_inner_loop_body_wl_D_spec:
     K: \<open>K \<in> snd ` D\<^sub>0\<close> and
     N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close>
   shows \<open>unit_propagation_inner_loop_body_wl_D K w S \<le>
-      \<Down> {((n', T'), (n, T)). n = n' \<and> T = T' \<and> literals_are_N\<^sub>0 T}
+      \<Down> {((n', T'), (n, T)). n' = n \<and> T = T' \<and> literals_are_N\<^sub>0 T'}
         (unit_propagation_inner_loop_body_wl K w S)\<close>
 proof -
   obtain M N U D NP UP Q W where
@@ -748,11 +809,44 @@ proof -
     done
 qed
 
-sepref_definition unit_propagation_inner_loop_body_wl_D_code
-  is \<open>uncurry2 (unit_propagation_inner_loop_body_wl_D :: nat literal \<Rightarrow> nat \<Rightarrow>
+lemma
+  shows unit_propagation_inner_loop_body_wl_D_unit_propagation_inner_loop_body_wl_D:
+  \<open>(uncurry2 unit_propagation_inner_loop_body_wl_D, uncurry2 unit_propagation_inner_loop_body_wl) \<in>
+    [\<lambda>((K, w), S). literals_are_N\<^sub>0 S \<and> K \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r {(T', T).
+       T = T' \<and> literals_are_N\<^sub>0 T}\<rangle> nres_rel\<close> (is \<open>?G1\<close>) and
+  unit_propagation_inner_loop_body_wl_D_unit_propagation_inner_loop_body_wl_D_weak:
+   \<open>(uncurry2 unit_propagation_inner_loop_body_wl_D, uncurry2 unit_propagation_inner_loop_body_wl) \<in>
+    [\<lambda>((K, w), S). literals_are_N\<^sub>0 S \<and> K \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r Id\<rangle> nres_rel\<close>
+   (is \<open>?G2\<close>)
+proof -
+  have 1: \<open>nat_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_N\<^sub>0 T} =
+     {((n', T'), n, T). n' = n \<and> T = T' \<and> literals_are_N\<^sub>0 T'}\<close>
+    by auto
+  show ?G1
+    unfolding fref_def 1
+    by (auto simp add: nres_rel_def uncurry_def snd_conv simp del: twl_st_of_wl.simps
+        intro!: unit_propagation_inner_loop_body_wl_D_spec)
+  moreover have \<open> \<langle>nat_rel \<times>\<^sub>r
+              {(T', T).
+               T = T' \<and>
+               is_N\<^sub>1
+                (lits_of_atms_of_mm
+                  (cdcl\<^sub>W_restart_mset.clauses
+                    (convert_to_state
+                      (twl_st_of None (st_l_of_wl None T)))))}\<rangle>nres_rel \<subseteq> \<langle>Id\<rangle> nres_rel\<close>
+    (is \<open>\<langle>?R\<rangle> nres_rel \<subseteq> _\<close>)
+    using "weaken_\<Down>"[of ?R Id]
+    by (auto simp: nres_rel_def prod_rel_def)
+  ultimately show ?G2
+    unfolding fref_def by (auto 11 0)
+qed
+
+sepref_register "unit_propagation_inner_loop_body_wl_D"
+sepref_thm unit_propagation_inner_loop_body_wl_D
+  is \<open>uncurry2 ((PR_CONST unit_propagation_inner_loop_body_wl_D) :: nat literal \<Rightarrow> nat \<Rightarrow>
            nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
   :: \<open>nat_ann_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_assn\<close>
-  unfolding unit_propagation_inner_loop_body_wl_D_def length_ll_def[symmetric]
+  unfolding unit_propagation_inner_loop_body_wl_D_def length_ll_def[symmetric] PR_CONST_def
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
   unfolding nth_ll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
   unfolding lms_fold_custom_empty twl_st_l_assn_def swap_ll_def[symmetric]
@@ -760,29 +854,78 @@ sepref_definition unit_propagation_inner_loop_body_wl_D_code
   supply [[goals_limit=1]]
   by sepref -- \<open>Takes around 1min\<close>
 
+concrete_definition (in -) unit_propagation_inner_loop_body_wl_D_code
+   uses twl_array_code.unit_propagation_inner_loop_body_wl_D.refine_raw
+   is "(uncurry2 ?f,_)\<in>_"
+prepare_code_thms (in -) unit_propagation_inner_loop_body_wl_D_code_def
+lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
+   unit_propagation_inner_loop_body_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+
 definition unit_propagation_inner_loop_wl_loop_D :: "nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres" where
   \<open>unit_propagation_inner_loop_wl_loop_D L S\<^sub>0 = do {
     WHILE\<^sub>T\<^bsup>\<lambda>(w, S). twl_struct_invs (twl_st_of_wl (Some (L, w)) S) \<and>
         twl_stgy_invs (twl_st_of_wl (Some (L, w)) S) \<and>
          additional_WS_invs (st_l_of_wl (Some (L, w)) S) \<and>
         correct_watching S \<and> w \<le> length (watched_by S L) \<and>
-        literals_are_N\<^sub>0 S\<^esup>
-      (\<lambda>(w, S). w < length (watched_by S L) \<and> get_conflict_wl S = None)
+        literals_are_N\<^sub>0 S \<and> L \<in> snd ` D\<^sub>0\<^esup>
+      (\<lambda>(w, (M, N, U, D, NP, UP, Q, W)). w < length (W L) \<and> D = None)
       (\<lambda>(w, S). do {
         unit_propagation_inner_loop_body_wl_D L w S
       })
       (0, S\<^sub>0)
   }
   \<close>
+term get_conflict_wl
+definition get_conflict_wl_is_None_code :: \<open>twl_st_wll \<Rightarrow> bool\<close> where
+  \<open>get_conflict_wl_is_None_code = (\<lambda>(M, N, U, D, NP, UP, Q, W). is_None D)\<close>
+
+definition get_conflict_wl_is_None :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>get_conflict_wl_is_None = (\<lambda>(M, N, U, D, NP, UP, Q, W). is_None D)\<close>
+
+lemma get_conflict_wl_is_None_code_hnr[unfolded twl_st_l_assn_def, sepref_fr_rules]:
+  \<open>(return o get_conflict_wl_is_None_code, RETURN o get_conflict_wl_is_None) \<in>
+     twl_st_l_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding get_conflict_wl_is_None_code_def get_conflict_wl_is_None_def
+    twl_st_l_assn_def
+  by sepref_to_hoare (sep_auto split: option.splits)
+
+lemma get_conflict_wl_is_None: \<open>get_conflict_wl S = None \<longleftrightarrow> get_conflict_wl_is_None S\<close>
+  by (cases S) (auto simp: get_conflict_wl_is_None_def split: option.splits)
+lemma watched_by_nth_watched_app:
+  \<open>watched_by S K = ((snd o snd o snd o snd o snd o snd o snd) S) K\<close>
+  by (cases S) (auto simp: watched_app_def)
+
+sepref_register unit_propagation_inner_loop_wl_loop_D
+sepref_thm unit_propagation_inner_loop_wl_loop_D
+  is \<open>uncurry ((PR_CONST unit_propagation_inner_loop_wl_loop_D) :: nat literal \<Rightarrow>
+           nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
+  :: \<open>nat_ann_lit_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_assn\<close>
+  unfolding unit_propagation_inner_loop_wl_loop_D_def length_ll_def[symmetric] PR_CONST_def
+  unfolding watched_by_nth_watched_app watched_app_def[symmetric]
+    length_ll_f_def[symmetric]
+  unfolding nth_ll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
+  unfolding lms_fold_custom_empty twl_st_l_assn_def swap_ll_def[symmetric]
+  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
+    is_None_def[symmetric] get_conflict_wl_is_None
+  supply [[goals_limit=1]]
+  by sepref
+
+
+concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_code
+   uses twl_array_code.unit_propagation_inner_loop_wl_loop_D.refine_raw
+   is "(uncurry ?f,_)\<in>_"
+prepare_code_thms (in -) unit_propagation_inner_loop_wl_loop_D_code_def
+lemmas unit_propagation_inner_loop_wl_loop_D_code_refine[sepref_fr_rules] =
+   unit_propagation_inner_loop_wl_loop_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
 
 lemma unit_propagation_inner_loop_wl_spec:
   assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close> and K: \<open>K \<in> snd ` local.D\<^sub>0\<close>
   shows \<open>unit_propagation_inner_loop_wl_loop_D K S \<le>
-     \<Down> {((n', T'), n, T). n = n' \<and> T = T' \<and> literals_are_N\<^sub>0 T}
+     \<Down> {((n', T'), n, T). n' = n \<and> T = T' \<and> literals_are_N\<^sub>0 T'}
        (unit_propagation_inner_loop_wl_loop K S)\<close>
 proof -
   have u: \<open>unit_propagation_inner_loop_body_wl_D K w S \<le>
-         \<Down> {((n', T'), n, T). n = n' \<and> T = T' \<and> literals_are_N\<^sub>0 T}
+         \<Down> {((n', T'), n, T). n' = n \<and> T = T' \<and> literals_are_N\<^sub>0 T'}
            (unit_propagation_inner_loop_body_wl K' w' S')\<close>
   if \<open>K \<in> snd ` local.D\<^sub>0\<close> and \<open>literals_are_N\<^sub>0 S\<close> and
     \<open>K = K'\<close> and \<open>w = w'\<close> and \<open>S = S'\<close> for S S' and w w' and K K'
@@ -806,8 +949,9 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by auto
     subgoal using K by auto
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -836,7 +980,6 @@ proof -
     done
 qed
 
-
 definition unit_propagation_outer_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
   \<open>unit_propagation_outer_loop_wl_D S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> twl_stgy_invs (twl_st_of_wl None S) \<and>
@@ -850,6 +993,8 @@ definition unit_propagation_outer_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat 
       })
       (S\<^sub>0 :: nat twl_st_wl)\<close>
 
+
+sepref_register unit_propagation_outer_loop_wl_D
 
 lemma unit_propagation_outer_loop_wl_D_spec:
   assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close>
@@ -924,6 +1069,8 @@ definition skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st
     }
   \<close>
 
+context
+begin
 text \<open>Auxiliary definition: it helps to prove refinements. Once the \<^term>\<open>RETURN\<close> is removed,
   the invariants form the \<^term>\<open>WHILE\<close>--loop are not dropped.\<close>
 private definition skip_and_resolve_loop_wl_D' :: "nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres" where
@@ -1072,6 +1219,8 @@ proof -
     using conc_trans[OF D'\<^sub>4 D'\<^sub>3] unfolding conc_fun_chain S .
 qed
 
+end
+
 lemma backtrack_wl_D_spec:
   assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close>
   shows \<open>backtrack_wl S \<le>
@@ -1094,7 +1243,7 @@ proof -
     done
 qed
 
-end -- \<open>end of context\<close>
+end -- \<open>end of locale @{locale twl_array_code}\<close>
 
 export_code "unit_propagation_inner_loop_body_wl_D_code" in Haskell
 
