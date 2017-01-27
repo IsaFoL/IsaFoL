@@ -351,12 +351,16 @@ declare find_unwatched'_impl.refine[sepref_fr_rules]
 subsection \<open>Refinement\<close>
 
 text \<open>We start in a context where we have an initial set of literals.\<close>
-context -- \<open>TODO Should be a set\<close>
+context
   fixes N\<^sub>0 :: \<open>nat literal multiset\<close>
 begin
 
+text \<open>This is the \<^emph>\<open>completion\<close> of \<^term>\<open>N\<^sub>0\<close>, containing the positive and the negation of every
+  literal of \<^term>\<open>N\<^sub>0\<close>:\<close>
+definition N\<^sub>1 where \<open>N\<^sub>1 = N\<^sub>0 + uminus `# N\<^sub>0\<close>
+
 abbreviation D\<^sub>0 :: \<open>(nat \<times> nat literal) set\<close> where
-  \<open>D\<^sub>0 \<equiv> (\<lambda>L. (nat_of_lit L, L)) ` set_mset N\<^sub>0\<close>
+  \<open>D\<^sub>0 \<equiv> (\<lambda>L. (nat_of_lit L, L)) ` set_mset N\<^sub>1\<close>
 
 lemma nth_ll_watched_app:
   \<open>(uncurry2 (RETURN ooo nth_ll), uncurry2 (RETURN ooo watched_app)) \<in>
@@ -380,10 +384,11 @@ definition twl_st_l_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll \<Righ
 
 lemma ex_list_watched:
   fixes W :: \<open>nat literal \<Rightarrow> nat list\<close>
-  shows \<open>\<exists>aa. \<forall>x\<in>#N\<^sub>0. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = W x\<close>
+  shows \<open>\<exists>aa. \<forall>x\<in>#N\<^sub>1. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = W x\<close>
   (is \<open>\<exists>aa. ?P aa\<close>)
 proof -
   define D' where \<open>D' = D\<^sub>0\<close>
+  define N\<^sub>1' where \<open>N\<^sub>1' = N\<^sub>1\<close>
   define D'' where \<open>D'' = mset_set (snd ` D')\<close>
   let ?f = \<open>(\<lambda>L a. a[nat_of_lit L:= W L])\<close>
   interpret comp_fun_commute ?f
@@ -401,11 +406,12 @@ proof -
     by (induction M) auto
   have length_aa: \<open>length aa = Suc (Max (nat_of_lit ` snd ` D'))\<close>
     unfolding aa_def D''_def[symmetric] by (simp add: length_fold)
-  have H: \<open>x \<in># N\<^sub>0 \<Longrightarrow>
-      length l \<ge> Suc (Max (nat_of_lit ` set_mset N\<^sub>0)) \<Longrightarrow>
-      fold_mset (\<lambda>L a. a[nat_of_lit L := W L]) l (remdups_mset N\<^sub>0) ! nat_of_lit x = W x\<close>
+  have H: \<open>x \<in># N\<^sub>1 \<Longrightarrow>
+      length l \<ge> Suc (Max (nat_of_lit ` set_mset N\<^sub>1)) \<Longrightarrow>
+      fold_mset (\<lambda>L a. a[nat_of_lit L := W L]) l (remdups_mset N\<^sub>1) ! nat_of_lit x = W x\<close>
     for x l
-    apply (induction N\<^sub>0 arbitrary: l)
+    unfolding N\<^sub>1'_def[symmetric]
+    apply (induction N\<^sub>1' arbitrary: l)
     subgoal by simp
     subgoal for xa Ls l
       apply (case_tac \<open>(nat_of_lit ` set_mset Ls) = {}\<close>)
@@ -416,7 +422,7 @@ proof -
       apply (auto simp: less_Suc_eq_le)[]
       done
     done
-  have H': \<open>aa ! nat_of_lit x = W x\<close> if \<open>x \<in># N\<^sub>0\<close> for x
+  have H': \<open>aa ! nat_of_lit x = W x\<close> if \<open>x \<in># N\<^sub>1\<close> for x
     using that unfolding aa_def D'_def
     by (auto simp: D'_def image_image remdups_mset_def[symmetric]
         less_Suc_eq_le intro!: H)
@@ -546,15 +552,15 @@ proof -
     apply (auto simp: p2rel_def lit_of_natP_def Pos_div2_iff Neg_div2_iff )
     using even_Suc by blast
   have ba_length_a_b: \<open>ba < length (a b)\<close>
-    if bN: \<open>b \<in># N\<^sub>0\<close> and
-      H: \<open>\<And>aa bb. (\<forall>x\<in>#N\<^sub>0. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = a x) \<and>
+    if bN: \<open>b \<in># N\<^sub>1\<close> and
+      H: \<open>\<And>aa bb. (\<forall>x\<in>#N\<^sub>1. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = a x) \<and>
           (bb, b) \<in> lit_of_nat_rel \<longrightarrow>
           bb < length aa \<and>
           ba < length (aa ! bb)\<close>
     for a :: \<open>nat literal \<Rightarrow> nat list\<close> and b :: \<open>nat literal\<close> and ba :: nat
   proof -
     obtain aa where
-      aa: \<open>\<forall>x\<in>#N\<^sub>0. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = a x\<close>
+      aa: \<open>\<forall>x\<in>#N\<^sub>1. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = a x\<close>
       using ex_list_watched[of a] by blast
     then have \<open>nat_of_lit b < length aa\<close> and aa_b_a_b: \<open>aa ! nat_of_lit b = a b\<close>
       using bN by blast+
@@ -641,8 +647,13 @@ proof -
     using H unfolding pre init
     .
 qed
+
+definition is_N\<^sub>1 :: "nat literal multiset \<Rightarrow> bool" where
+  \<open>is_N\<^sub>1 S \<longleftrightarrow> set_mset S = set_mset N\<^sub>1\<close>
+
 abbreviation literals_are_N\<^sub>0 where
-  \<open>literals_are_N\<^sub>0 S \<equiv> lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S))) = N\<^sub>0\<close>
+  \<open>literals_are_N\<^sub>0 S \<equiv>
+     is_N\<^sub>1 (lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S))))\<close>
 
 lemma mset_tl_update_swap:
   \<open>i < length xs \<Longrightarrow> j < length (xs ! i) \<Longrightarrow> k < length (xs ! i) \<Longrightarrow>
@@ -710,7 +721,7 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal
-      using N\<^sub>0[symmetric] by (simp add: S clauses_def mset_take_mset_drop_mset
+      using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
           mset_take_mset_drop_mset' m)
     subgoal by simp
     subgoal by simp
@@ -719,20 +730,20 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal
-      using N\<^sub>0[symmetric] by (simp add: S clauses_def mset_take_mset_drop_mset
+      using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
           mset_take_mset_drop_mset' m)
     subgoal
-      using N\<^sub>0[symmetric] by (simp add: S clauses_def mset_take_mset_drop_mset
+      using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
           mset_take_mset_drop_mset' m)
     subgoal by simp
     subgoal by simp
     subgoal
-      using N\<^sub>0[symmetric] unfolding S
+      using N\<^sub>0 unfolding S
       by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
-          clauses_def image_image m lits_of_atms_of_mm_union )
+          clauses_def image_image m lits_of_atms_of_mm_union is_N\<^sub>1_def)
     subgoal by simp
     subgoal
-      using N\<^sub>0[symmetric] by (simp add: S clauses_def mset_take_mset_drop_mset
+      using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
           mset_take_mset_drop_mset' m mset_tl_update_swap)
     done
 qed
@@ -872,8 +883,8 @@ proof -
     subgoal for S' S T'L' TL T' L' T L by (cases S') auto
     subgoal by auto
     subgoal by auto
-    subgoal for S' S T'L' TL T' L' T L using N\<^sub>0[symmetric] by (cases S') auto
-    subgoal by auto
+    subgoal for S' S T'L' TL T' L' T L using N\<^sub>0 by (cases S') auto
+    subgoal by (auto simp: is_N\<^sub>1_def)
     done
 qed
 
@@ -882,7 +893,7 @@ definition skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st
   \<open>skip_and_resolve_loop_wl_D S\<^sub>0 =
     do {
       ASSERT(get_conflict_wl S\<^sub>0 \<noteq> None);
-      (_, S) \<leftarrow>
+      (H, S) \<leftarrow>
         WHILE\<^sub>T\<^bsup>\<lambda>(brk, S).
            skip_and_resolve_loop_inv (twl_st_of_wl None S\<^sub>0) (brk, twl_st_of_wl None S) \<and>
            additional_WS_invs (st_l_of_wl None S) \<and> correct_watching S \<and> literals_are_N\<^sub>0 S\<^esup>
@@ -912,21 +923,106 @@ definition skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st
       RETURN S
     }
   \<close>
+
+text \<open>Auxiliary definition: it helps to prove refinements. Once the \<^term>\<open>RETURN\<close> is removed,
+  the invariants form the \<^term>\<open>WHILE\<close>--loop are not dropped.\<close>
+private definition skip_and_resolve_loop_wl_D' :: "nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres" where
+  \<open>skip_and_resolve_loop_wl_D' S\<^sub>0 =
+    do {
+      ASSERT(get_conflict_wl S\<^sub>0 \<noteq> None);
+      S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, S).
+           skip_and_resolve_loop_inv (twl_st_of_wl None S\<^sub>0) (brk, twl_st_of_wl None S) \<and>
+           additional_WS_invs (st_l_of_wl None S) \<and> correct_watching S \<and> literals_are_N\<^sub>0 S\<^esup>
+        (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)))
+        (\<lambda>(_, S).
+          let (M, N, U, D, NP, UP, Q, W) = S in
+          do {
+            ASSERT(M \<noteq> []);
+            ASSERT(get_conflict_wl (M, N, U, D, NP, UP, Q, W) \<noteq> None);
+            let D' = the (get_conflict_wl (M, N, U, D, NP, UP, Q, W));
+            ASSERT(is_proped (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W))));
+            let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W)));
+            ASSERT(C < length N);
+            if -L \<notin> set D' then
+              do {RETURN (False, (tl M, N, U, D, NP, UP, Q, W))}
+            else
+              if get_maximum_level M (remove1_mset (-L) (mset D')) = count_decided M
+              then
+                do {RETURN (resolve_cls_l L D' (if C = 0 then [L] else N!C) = [],
+                   (tl M, N, U, Some (resolve_cls_l L D' (if C = 0 then [L] else N!C)),
+                     NP, UP, Q, W))}
+              else
+                do {RETURN (True, (M, N, U, D, NP, UP, Q, W))}
+          }
+        )
+        (get_conflict_wl S\<^sub>0 = Some [], S\<^sub>0);
+     RETURN S
+    }
+  \<close>
+
+lemma twl_struct_invs_is_N\<^sub>1_clauses_init_clss:
+  fixes S\<^sub>0 :: \<open>nat twl_st_wl\<close>
+  defines \<open>S \<equiv> twl_st_of_wl None S\<^sub>0\<close>
+  defines \<open>clss \<equiv> (lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state S)))\<close>
+  defines \<open>init \<equiv> (lits_of_atms_of_mm (init_clss (convert_to_state S)))\<close>
+  assumes invs: \<open>twl_struct_invs (twl_st_of_wl None S\<^sub>0)\<close>
+  shows \<open>is_N\<^sub>1 clss \<longleftrightarrow> is_N\<^sub>1 init\<close>
+proof -
+
+  have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state S)\<close>
+    using invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S_def
+    by fast
+  then have
+    \<open>set_mset clss =
+     set_mset init\<close>
+    unfolding clss_def init_def S_def
+    by (cases S\<^sub>0) (auto simp: clauses_def mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset_state
+        cdcl\<^sub>W_restart_mset.no_strange_atm_def in_lits_of_atms_of_mm_ain_atms_of_iff)
+  then show \<open>is_N\<^sub>1 clss \<longleftrightarrow> is_N\<^sub>1 init\<close>
+    unfolding is_N\<^sub>1_def by blast
+qed
+
+lemma cdcl_twl_o_literals_are_N\<^sub>0_invs:
+  fixes S :: \<open>nat twl_st_wl\<close>
+  assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<^sub>0\<close> and
+    cdcl: \<open>cdcl_twl_o\<^sup>*\<^sup>* (twl_st_of_wl None S\<^sub>0) (twl_st_of_wl None T)\<close> and
+    invs: \<open>twl_struct_invs (twl_st_of_wl None S\<^sub>0)\<close>
+  shows \<open>literals_are_N\<^sub>0 T\<close>
+proof -
+  let ?S = \<open>twl_st_of_wl None S\<^sub>0\<close> and ?T = \<open>twl_st_of_wl None T\<close>
+  have cdcl_stgy: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (convert_to_state ?S) (convert_to_state ?T)\<close>
+    apply (rule rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy)
+    subgoal using rtranclp_cdcl_twl_o_stgyD[OF cdcl] .
+    subgoal using invs .
+    done
+  have init: \<open>init_clss (convert_to_state ?S) = init_clss (convert_to_state ?T)\<close>
+    apply (rule cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_restart_init_clss)
+    using cdcl_stgy by (blast dest: cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart)
+  have invs_T: \<open>twl_struct_invs (twl_st_of_wl None T)\<close>
+    using cdcl invs rtranclp_cdcl_twl_o_stgyD rtranclp_cdcl_twl_stgy_twl_struct_invs by blast
+  show ?thesis
+    using N\<^sub>0
+    unfolding twl_struct_invs_is_N\<^sub>1_clauses_init_clss[of S\<^sub>0, OF invs]
+      twl_struct_invs_is_N\<^sub>1_clauses_init_clss[of T, OF invs_T] init[symmetric]
+    .
+qed
+
 lemma skip_and_resolve_loop_wl_D_spec:
-  assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close>
+  assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close> \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None S))\<close>
   shows \<open>skip_and_resolve_loop_wl_D S \<le>
-     \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}
-       (skip_and_resolve_loop_wl S)\<close>
+     \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T} (skip_and_resolve_loop_wl S)\<close>
 proof -
   have 1: \<open>((get_conflict_wl S = Some [], S), get_conflict_wl S = Some [], S) \<in> Id\<close>
     by auto
-  show ?thesis(* slpit the function in WHILE + RETURN, and prove invariants on WHILE first *)
-    unfolding skip_and_resolve_loop_wl_D_def skip_and_resolve_loop_wl_def
+  have D'\<^sub>1: \<open>skip_and_resolve_loop_wl_D' S \<le> \<Down> {((b, T'), T). T' = T} (skip_and_resolve_loop_wl S)\<close>
+    unfolding skip_and_resolve_loop_wl_D'_def skip_and_resolve_loop_wl_def
     apply (refine_vcg 1)
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal sorry
+    subgoal for brk'S' brkS brk' S'
+      by (rule cdcl_twl_o_literals_are_N\<^sub>0_invs[of S])
+        (use N\<^sub>0 in \<open>auto simp: skip_and_resolve_loop_inv_def\<close>)
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -937,11 +1033,44 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal for b'T' bT b' T' b T
-      sorry
+    subgoal by auto
     done
+  have H: \<open>do {S \<leftarrow> H; RETURN S} = H\<close> for H :: \<open>'a nres\<close>
+    by simp
+  have D'\<^sub>2: \<open>skip_and_resolve_loop_wl_D' S \<le>
+     \<Down> {((b', T'), (b, T)). b = b' \<and> T' = T \<and> literals_are_N\<^sub>0 T} (skip_and_resolve_loop_wl_D' S)\<close>
+    unfolding H skip_and_resolve_loop_wl_D'_def
+    apply (refine_vcg 1)
+    subgoal by auto
+    subgoal for b'T' bT b' T' by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: mset_take_mset_drop_mset' clauses_def)
+    subgoal by auto
+    subgoal by (auto simp: clauses_def)
+    subgoal by auto
+    done
+  have S: \<open>({((b', T'), b, T). b = b' \<and> T' = T \<and> local.literals_are_N\<^sub>0 T} O Collect (case_prod (\<lambda>(b, y). op = y)))
+   = {((b', T'), T). T' = T \<and> local.literals_are_N\<^sub>0 T}\<close>
+    by auto
+  have D'\<^sub>3: \<open>local.skip_and_resolve_loop_wl_D' S \<le> \<Down> {((b', T'), T). T' = T \<and> local.literals_are_N\<^sub>0 T} (skip_and_resolve_loop_wl S)\<close>
+    using conc_trans[OF D'\<^sub>2 D'\<^sub>1] unfolding conc_fun_chain S .
+  have D'\<^sub>4: \<open>skip_and_resolve_loop_wl_D S \<le> \<Down> {(T, (b, T')). T' = T} (skip_and_resolve_loop_wl_D' S)\<close>
+    unfolding skip_and_resolve_loop_wl_D_def skip_and_resolve_loop_wl_D'_def
+    by refine_vcg auto
+  have S: \<open> {(T, b, T'). T' = T} O {((b', T'), T). T' = T \<and> local.literals_are_N\<^sub>0 T} =
+     {(T', T). T = T' \<and> local.literals_are_N\<^sub>0 T}\<close>
+    by auto
+  show ?thesis
+    using conc_trans[OF D'\<^sub>4 D'\<^sub>3] unfolding conc_fun_chain S .
 qed
-
 
 lemma backtrack_wl_D_spec:
   assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close>
