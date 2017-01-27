@@ -1379,9 +1379,58 @@ proof -
           using T by blast
       qed
     qed
-    subgoal using N\<^sub>0 apply (auto simp: clauses_def mset_take_mset_drop_mset'
-          lits_of_atms_of_mm_union lits_of_atms_of_mm_add_mset)
-      sorry
+    subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M' SN' N'
+      SU' U' SD' D' SNP' NP' SUP' UP' SWS' WS' W' K K'
+    proof -
+      thm p
+      note SWS = p(1) and SUP = p(2) and SNP = p(3) and SD = p(4) and SU = p(5) and SN = p(6) and
+        S = p(7) and M_not_Nil = p(15) and lvl_count_decided = p(10) and D_not_None = p(18) and
+        D_not_Some_Nil = p(19) and ex_decomp = p(20) and stgy_invs = p(21) and struct_invs = p(22)
+        and no_skip = p(30) and M1_M1a = p(31) and K_K' = p(32) and
+        S_expand = p(1-14)
+      have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
+        using struct_invs
+        apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        by fast
+
+      text \<open>TODO: should be a separate lemma\<close>
+      have in_atms_of_minusD: \<open>x \<in> atms_of (A - B) \<Longrightarrow> x \<in> atms_of A\<close> for x A B
+        by (auto simp: atms_of_def dest: in_diffD)
+
+
+      show ?thesis (is \<open>(?T', ?T) \<in> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}\<close>)
+      proof -
+        have T: \<open>?T = ?T'\<close>
+          using M1_M1a S_expand by auto
+
+        have is_N\<^sub>1_add: \<open>is_N\<^sub>1 (A + B) \<longleftrightarrow> set_mset A \<subseteq> set_mset N\<^sub>1\<close> if \<open>is_N\<^sub>1 B\<close> for A B
+          using that unfolding is_N\<^sub>1_def by auto
+
+
+        have \<open>atms_of_ms (mset ` set (take U (tl N))) \<subseteq> atms_of_ms (mset ` set (tl N))\<close>
+          by (auto simp: atms_of_ms_def dest: in_set_takeD)
+
+        then have \<open>set_mset (lits_of_atms_of_m (mset (the D))) \<subseteq> set_mset N\<^sub>1\<close>
+          using M_not_Nil alien N\<^sub>0[unfolded is_N\<^sub>1_def, symmetric] D_not_None
+          unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+          apply (cases M)
+          by (auto 5 5 simp: in_lits_of_atms_of_mm_ain_atms_of_iff atm_of_eq_atm_of
+              cdcl\<^sub>W_restart_mset_state clauses_def in_N\<^sub>1_iff S_expand
+              in_lits_of_atms_of_m_ain_atms_of_iff
+              mset_take_mset_drop_mset' H image_image
+              dest!: in_atms_of_minusD)
+
+        then have \<open>literals_are_N\<^sub>0 ?T\<close>
+          using  N\<^sub>0
+          by (cases \<open>Suc U - length N\<close>; cases N)
+            (simp_all add: clauses_def mset_take_mset_drop_mset' S_expand
+              lits_of_atms_of_mm_union lits_of_atms_of_mm_add_mset (* is_N\<^sub>1_def *)
+              in_lits_of_atms_of_mm_ain_atms_of_iff is_N\<^sub>1_add)
+        then show ?thesis
+          using T by blast
+      qed
+    qed
     done
 qed
 
