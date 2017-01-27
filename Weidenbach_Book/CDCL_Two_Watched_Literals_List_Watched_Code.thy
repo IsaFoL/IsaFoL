@@ -1221,25 +1221,106 @@ qed
 
 end
 
+definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+  \<open>backtrack_wl_D S\<^sub>0 =
+    do {
+      let (M, N, U, D, NP, UP, Q, W) = S\<^sub>0 in
+      do {
+        ASSERT(M \<noteq> []);
+        let L = lit_of (hd M);
+        ASSERT(get_level M L = count_decided M);
+        ASSERT(D \<noteq> None);
+        ASSERT(D \<noteq> Some []);
+        ASSERT(ex_decomp_of_max_lvl M D L);
+        ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
+        ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
+        ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
+        M1 \<leftarrow> find_decomp_wl (M, N, U, D, NP, UP, Q, W) L;
+
+        if length (the D) > 1
+        then do {
+          L' \<leftarrow> find_lit_of_max_level_wl (M, N, U, D, NP, UP, Q, W) L;
+          ASSERT(atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP));
+          ASSERT(atm_of L' \<in> atms_of_mm (mset `# mset (tl N) + NP));
+          ASSERT(L \<in> snd ` D\<^sub>0);
+          ASSERT(L' \<in> snd ` D\<^sub>0);
+          RETURN (Propagated (-L) (length N) # M1,
+            N @ [[-L, L'] @ (remove1 (-L) (remove1 L' (the D)))], U,
+            None, NP, UP, add_mset L {#}, W(-L:= W (-L) @ [length N], L':= W L' @ [length N]))
+        }
+        else do {
+          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset_list (the D) UP, add_mset L {#}, W)
+        }
+      }
+    }
+  \<close>
+
 lemma backtrack_wl_D_spec:
   assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close>
-  shows \<open>backtrack_wl S \<le>
+  shows \<open>backtrack_wl_D S \<le>
      \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}
        (backtrack_wl S)\<close>
 proof -
   have 1: \<open>((get_conflict_wl S = Some [], S), get_conflict_wl S = Some [], S) \<in> Id\<close>
     by auto
+  have 2: \<open>find_decomp_wl S M \<le> \<Down> Id (find_decomp_wl S' M')\<close>
+    if \<open>S = S'\<close> and \<open>M = M'\<close>
+    for S S' :: \<open>nat twl_st_wl\<close> and M M'
+    using that by auto
+  have 3: \<open>find_lit_of_max_level_wl S M \<le> \<Down> Id (find_lit_of_max_level_wl S' M')\<close>
+    if \<open>S = S'\<close> and \<open>M = M'\<close>
+    for S S' :: \<open>nat twl_st_wl\<close> and M M'
+    using that by auto
   show ?thesis(* slpit the function in WHILE + RETURN, and prove invariants on WHILE first *)
-    unfolding backtrack_wl_def skip_and_resolve_loop_wl_def
-    apply (refine_vcg 1)
+    unfolding backtrack_wl_D_def backtrack_wl_def
+    supply [[goals_limit=1]]
+    apply (refine_vcg 1 2 3)
     subgoal by fast
     subgoal by auto
     subgoal by auto
-    subgoal using N\<^sub>0 apply (auto simp: clauses_def mset_take_mset_drop_mset'
-          lits_of_atms_of_mm_union lits_of_atms_of_mm_add_mset) sorry
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by fast
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using N\<^sub>0 sorry
+    subgoal sorry
+    subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
+    proof -
+      thm p
+      note SWS = p(1) and SUP = p(2) and SNP = p(3) and SD = p(4) and SU = p(5) and SN = p(6) and
+        S = p(7) and M_not_Nil = p(8) and lvl_count_decided = p(10) and D_not_None = p(11) and
+        D_not_Some_Nil = p(12) and ex_decomp = p(13) and stgy_invs = p(21) and struct_invs = p(22)
+        and no_skip = p(30) and M1_M1a = p(31) and L'_La = p(34) and
+        S_expand = p(1-7)
+      have N_not_empty: \<open>N \<noteq> []\<close>
+        sorry
+          thm p(21)
+      show ?thesis (is \<open>(?T', ?T) \<in> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}\<close>)
+      proof -
+        have \<open>?T = ?T'\<close>
+          using M1_M1a L'_La by auto
+        moreover have \<open>literals_are_N\<^sub>0 ?T\<close>
+          (*  using N\<^sub>0 *)using N_not_empty N\<^sub>0
+            apply (cases \<open>Suc U - length N\<close>)
+          apply (auto simp: clauses_def mset_take_mset_drop_mset' S_expand
+              lits_of_atms_of_mm_union lits_of_atms_of_mm_add_mset (* is_N\<^sub>1_def *)
+              in_lits_of_atms_of_mm_ain_atms_of_iff)
+          sorry
+        ultimately show ?thesis
+          by blast
+      qed
+    qed
     subgoal using N\<^sub>0 apply (auto simp: clauses_def mset_take_mset_drop_mset'
           lits_of_atms_of_mm_union lits_of_atms_of_mm_add_mset)
-        sorry
+      sorry
     done
 qed
 
