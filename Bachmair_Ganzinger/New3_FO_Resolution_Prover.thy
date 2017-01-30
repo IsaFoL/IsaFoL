@@ -452,10 +452,16 @@ lemma ord_resolve_lifting:
   moreover
   (* Lifting  *)
   have "eligible (S_M S M) \<sigma> Ai (D + negs (mset Ai))" using ord_resolve unfolding eligible_simp by -
-  hence "eligible (S_M S M) \<sigma> Ai DAi" sorry
-  hence "eligible (S_M S M) \<sigma> (Ai' \<cdot>al \<eta>) (DAi' \<cdot> \<eta>)" unfolding eligible_simp sorry
+  hence "eligible (S_M S M) \<sigma> Ai DAi" unfolding eligible_simp sorry
+  hence "S_M S M DAi = negs (mset Ai) \<or> S_M S M DAi = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) (DAi \<cdot> \<sigma>)" unfolding eligible_simp by auto
+  hence "S DAi' \<cdot> \<eta> = negs (mset Ai) \<or> S DAi' \<cdot> \<eta> = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) (DAi \<cdot> \<sigma>)" using prime_clauses by metis
+  hence "S DAi' \<cdot> \<eta> = negs (mset Ai) \<or> S DAi' \<cdot> \<eta> = {#} \<and> length (Ai' \<cdot>al \<eta>) = 1 \<and> maximal_in ((Ai' \<cdot>al \<eta>) ! 0 \<cdot>a \<sigma>) ((DAi' \<cdot> \<eta>) \<cdot> \<sigma>)" sorry
+  hence "S DAi' \<cdot> \<eta> = negs (mset Ai) \<or> S DAi' \<cdot> \<eta> = {#} \<and> length (Ai' \<cdot>al \<eta>) = 1 \<and> maximal_in (Ai' ! 0 \<cdot>a (\<eta> \<odot> \<sigma>)) (DAi' \<cdot> (\<eta> \<odot> \<sigma>))" sorry   
+  hence "S DAi' \<cdot> \<eta> = negs (mset Ai) \<or> S DAi' \<cdot> \<eta> = {#} \<and> length (Ai' \<cdot>al \<eta>) = 1 \<and> maximal_in (Ai' ! 0 \<cdot>a (\<tau> \<odot> \<phi>)) (DAi' \<cdot> (\<tau> \<odot> \<phi>))" sorry
+      (* Det går jo meget godt, jeg kan også få \<tau> \<odot> \<phi> ind de andre stedet. Men! 
+         Hvordan slipper jeg af med "\<eta>" i "S DAi' \<cdot> \<eta> = negs (mset Ai)" *)
   
-  have "eligible S \<tau> Ai' (D' + negs (mset Ai'))" using ord_resolve(11) unfolding eligible_simp sorry
+  hence "eligible S \<tau> Ai' (D' + negs (mset Ai'))" using ord_resolve(11) unfolding eligible_simp sorry
   moreover
   have e: "\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)" sorry
   moreover
