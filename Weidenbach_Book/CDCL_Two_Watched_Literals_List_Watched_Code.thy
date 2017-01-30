@@ -1434,6 +1434,148 @@ proof -
     done
 qed
 
+
+subsubsection \<open>Decide or Skip\<close>
+
+definition decide_wl_or_skip_D :: "'v twl_st_wl \<Rightarrow> (bool \<times> 'v twl_st_wl) nres" where
+  \<open>decide_wl_or_skip_D S = (do {
+    ASSERT(twl_struct_invs (twl_st_of_wl None S));
+    ASSERT(twl_stgy_invs (twl_st_of_wl None S));
+    ASSERT(additional_WS_invs (st_l_of_wl None S));
+    ASSERT(get_conflict_wl S = None);
+    L \<leftarrow> find_unassigned_lit_wl S;
+    if L \<noteq> None
+    then do {
+      let (M, N, U, D, NP, UP, Q, W) = S;
+      ASSERT(L \<noteq> None);
+      let K = the L;
+      RETURN (False, (Decided K # M, N, U, D, NP, UP, {#-K#}, W))}
+    else do {RETURN (True, S)}
+  })
+\<close>
+
+theorem decide_wl_or_skip_D_spec:
+ \<open>literals_are_N\<^sub>0 S \<Longrightarrow>
+    decide_wl_or_skip_D S \<le> \<Down> {((b', T'), (b, T)). b = b' \<and> T = T' \<and> literals_are_N\<^sub>0 T} (decide_wl_or_skip S)\<close>
+  unfolding decide_wl_or_skip_D_def decide_wl_or_skip_def
+  apply refine_vcg
+  subgoal by simp
+  subgoal by (simp add: clauses_def)
+  subgoal by simp
+  done
+
+
+subsubsection \<open>Backtrack, Skip, Resolve or Decide\<close>
+
+definition cdcl_twl_o_prog_wl_D :: "nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres" where
+  \<open>cdcl_twl_o_prog_wl_D S =
+    do {
+      ASSERT(twl_struct_invs (twl_st_of_wl None S));
+      ASSERT(twl_stgy_invs (twl_st_of_wl None S));
+      ASSERT(additional_WS_invs (st_l_of_wl None S));
+      do {
+        if get_conflict_wl S = None
+        then decide_wl_or_skip_D S
+        else do {
+          T \<leftarrow> skip_and_resolve_loop_wl_D S;
+          ASSERT(get_conflict_wl T \<noteq> None);
+          if get_conflict_wl T \<noteq> Some []
+          then do {U \<leftarrow> backtrack_wl_D T; RETURN (False, U)}
+          else do {RETURN (True, T)}
+        }
+      }
+    }
+  \<close>
+
+theorem cdcl_twl_o_prog_wl_D_spec:
+  assumes \<open>literals_are_N\<^sub>0 S\<close>
+  shows \<open>cdcl_twl_o_prog_wl_D S \<le> \<Down> {((b', T'), (b, T)). b = b' \<and> T = T' \<and> literals_are_N\<^sub>0 T}
+     (cdcl_twl_o_prog_wl S)\<close>
+proof -
+  have 1: \<open>backtrack_wl_D S \<le>
+     \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}
+       (backtrack_wl T)\<close> if \<open>literals_are_N\<^sub>0 S\<close> and \<open>S = T\<close> for S T
+    using backtrack_wl_D_spec[of S] that by fast
+  have 2: \<open>skip_and_resolve_loop_wl_D S \<le>
+     \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T} (skip_and_resolve_loop_wl T)\<close>
+    if N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close> \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None S))\<close> \<open>S = T\<close>
+    for S T
+    using skip_and_resolve_loop_wl_D_spec[of S] that by fast
+  show ?thesis
+    using assms
+    unfolding cdcl_twl_o_prog_wl_D_def cdcl_twl_o_prog_wl_def
+    apply (refine_vcg decide_wl_or_skip_D_spec 1 2)
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by auto
+    subgoal by simp
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+
+
+subsubsection \<open>Full Strategy\<close>
+
+definition cdcl_twl_stgy_prog_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+  \<open>cdcl_twl_stgy_prog_wl_D S\<^sub>0 =
+  do {
+    do {
+      (brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T). twl_struct_invs (twl_st_of_wl None T) \<and>
+          twl_stgy_invs (twl_st_of_wl None T) \<and>
+          (brk \<longrightarrow> no_step cdcl_twl_stgy (twl_st_of_wl None T)) \<and>
+          cdcl_twl_stgy\<^sup>*\<^sup>* (twl_st_of_wl None S\<^sub>0) (twl_st_of_wl None T) \<and>
+          (\<not>brk \<longrightarrow> get_conflict_wl T = None) \<and>
+          literals_are_N\<^sub>0 T\<^esup>
+        (\<lambda>(brk, _). \<not>brk)
+        (\<lambda>(brk, S).
+        do {
+          T \<leftarrow> unit_propagation_outer_loop_wl_D S;
+          cdcl_twl_o_prog_wl_D T
+        })
+        (False, S\<^sub>0);
+      RETURN T
+    }
+  }
+  \<close>
+
+theorem cdcl_twl_stgy_prog_wl_D_spec:
+  assumes \<open>literals_are_N\<^sub>0 S\<close>
+  shows \<open>cdcl_twl_stgy_prog_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}
+     (cdcl_twl_stgy_prog_wl S)\<close>
+proof -
+  have 1: \<open>((False, S), False, S) \<in> Id\<close> by fast
+  have 2: \<open>unit_propagation_outer_loop_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}
+       (unit_propagation_outer_loop_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_N\<^sub>0 S\<close> for S T
+    using unit_propagation_outer_loop_wl_D_spec[of S] that by fast
+  have 3: \<open>cdcl_twl_o_prog_wl_D S \<le> \<Down> {((b', T'), b, T). b = b' \<and> T = T' \<and> literals_are_N\<^sub>0 T}
+    (cdcl_twl_o_prog_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_N\<^sub>0 S\<close> for S T
+    using cdcl_twl_o_prog_wl_D_spec[of S] that by fast
+  show ?thesis
+    using assms
+    unfolding cdcl_twl_stgy_prog_wl_D_def cdcl_twl_stgy_prog_wl_def
+    apply (refine_vcg 1 2 3)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for x x' x1 x2 S'
+      by (cases x') fast
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
 end -- \<open>end of locale @{locale twl_array_code}\<close>
 
 export_code "unit_propagation_inner_loop_body_wl_D_code" in Haskell
