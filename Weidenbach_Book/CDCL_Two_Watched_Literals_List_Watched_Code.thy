@@ -1,66 +1,20 @@
 theory CDCL_Two_Watched_Literals_List_Watched_Code
-  imports CDCL_Two_Watched_Literals_List_Watched
+  imports CDCL_Two_Watched_Literals_List_Watched Array_Array_List
+    CDCL_Two_Watched_Literals_Code_Common
 begin
-
-instance literal :: (heap) heap
-proof standard
-  obtain f :: \<open>'a \<Rightarrow> nat\<close> where f: \<open>inj f\<close>
-    by blast
-  then have Hf: \<open>f x = f s \<longleftrightarrow> x = s\<close> for s x
-    unfolding inj_on_def Ball_def comp_def by blast
-  let ?f = \<open>\<lambda>L. (is_pos L, f (atm_of L))\<close>
-  have \<open>OFCLASS(bool \<times> nat, heap_class)\<close>
-   by standard
-  then obtain g :: \<open>bool \<times> nat \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
-    by blast
-  then have H: \<open>g (x, y) = g (s, t) \<longleftrightarrow> x = s \<and> y = t\<close> for s t x y
-    unfolding inj_on_def Ball_def comp_def by blast
-  have \<open>inj (g o ?f)\<close>
-    using f g unfolding inj_on_def Ball_def comp_def H Hf
-    apply (intro allI impI)
-    apply (rename_tac x y, case_tac x; case_tac y)
-    by auto
-  then show \<open>\<exists>to_nat:: 'a literal \<Rightarrow> nat. inj to_nat\<close>
-    by blast
-qed
-
-instance annotated_lit :: (heap, heap, heap) heap
-proof standard
-  let ?f = \<open>\<lambda>L:: ('a, 'b, 'c) annotated_lit.
-      (if is_decided L then Some (lit_dec L) else None,
-       if is_decided L then None else Some (lit_prop L), if is_decided L then None else Some (mark_of L))\<close>
-    term ?f
-  have f: \<open>inj ?f\<close>
-    unfolding inj_on_def Ball_def
-    apply (intro allI impI)
-    apply (rename_tac x y, case_tac x; case_tac y)
-    by auto
-  then have Hf: \<open>?f x = ?f s \<longleftrightarrow> x = s\<close> for s x
-    unfolding inj_on_def Ball_def comp_def by blast
-  have \<open>OFCLASS('a option \<times> 'b option \<times> 'c option, heap_class)\<close>
-   by standard
-  then obtain g :: \<open>'a option \<times> 'b option \<times> 'c option \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
-    by blast
-  then have H: \<open>g (x, y) = g (s, t) \<longleftrightarrow> x = s \<and> y = t\<close> for s t x y
-    unfolding inj_on_def Ball_def comp_def by blast
-  have \<open>inj (g o ?f)\<close>
-    using f g unfolding inj_on_def Ball_def comp_def H Hf
-    apply (intro allI impI)
-    apply (rename_tac x y, case_tac x; case_tac y)
-    by auto
-  then show \<open>\<exists>to_nat:: ('a, 'b, 'c) annotated_lit \<Rightarrow> nat. inj to_nat\<close>
-    by blast
-qed
-
 
 section \<open>Code Generation\<close>
 
 subsection \<open>Literals as Natural Numbers\<close>
 
+lemma Pos_div2_iff: \<open>Pos (bb div 2) = b \<longleftrightarrow> is_pos b \<and> (bb = 2 * atm_of b \<or> bb = 2 * atm_of b + 1)\<close> for bb :: nat
+  by (cases b) auto
+lemma Neg_div2_iff: \<open>Neg (bb div 2) = b \<longleftrightarrow> is_neg b \<and> (bb = 2 * atm_of b \<or> bb = 2 * atm_of b + 1)\<close> for bb :: nat
+  by (cases b) auto
+
 text \<open>
   Modeling \<^typ>\<open>nat literal\<close> via the transformation associating \<^term>\<open>2*n\<close> or \<^term>\<open>2*n+1\<close>
   has some advantages over the transformation to positive or negative integers: 0 is not an issue.\<close>
-
 fun nat_of_lit :: \<open>nat literal \<Rightarrow> nat\<close> where
   \<open>nat_of_lit (Pos L) = 2*L\<close>
 | \<open>nat_of_lit (Neg L) = 2*L + 1\<close>
@@ -80,7 +34,7 @@ lemma nat_of_lit_lit_of_nat[simp]: \<open>nat_of_lit (literal_of_nat n) = n\<clo
 lemma atm_of_lit_of_nat: \<open>atm_of (literal_of_nat n) = n div 2\<close>
   by auto
 
-text \<open>There is probably a more-``closed'' form from the following theorem, but it is unclear if
+text \<open>There is probably a more ``closed'' form from the following theorem, but it is unclear if
   that is useful or not.\<close>
 lemma uminus_lit_of_nat:
   \<open>- (literal_of_nat n) = (if even n then literal_of_nat (n+1) else literal_of_nat (n-1))\<close>
@@ -92,8 +46,8 @@ definition lit_of_natP where
 abbreviation lit_of_nat_rel where
   \<open>lit_of_nat_rel \<equiv> p2rel lit_of_natP\<close>
 
-definition nat_nat_lit_assn :: "nat literal \<Rightarrow> nat \<Rightarrow> assn" where
-  \<open>nat_nat_lit_assn = pure (p2rel lit_of_natP)\<close>
+abbreviation nat_ann_lit_assn :: "nat literal \<Rightarrow> nat \<Rightarrow> assn" where
+  \<open>nat_ann_lit_assn \<equiv> pure lit_of_nat_rel\<close>
 
 fun pair_of_ann_lit :: "('a, 'b) ann_lit \<Rightarrow> 'a literal \<times> 'b option" where
   \<open>pair_of_ann_lit (Propagated L D) = (L, Some D)\<close>
@@ -109,208 +63,99 @@ lemma ann_lit_of_pair_pair_of_ann_lit: \<open>ann_lit_of_pair (pair_of_ann_lit L
 lemma pair_of_ann_lit_ann_lit_of_pair: \<open>pair_of_ann_lit (ann_lit_of_pair L) = L\<close>
   by (cases L; cases \<open>snd L\<close>) auto
 
-definition pair_nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> (nat \<times> nat option) \<Rightarrow> assn" where
-  \<open>pair_nat_ann_lit_assn = pure ({(a, b). b = ann_lit_of_pair ((\<lambda>(a,b). (literal_of_nat a, b)) a)})\<close>
+type_synonym ann_lit_wl = \<open>nat \<times> nat option\<close>
+type_synonym ann_lits_wl = \<open>ann_lit_wl list\<close>
 
-fun heap_list_all :: "('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> assn" where
-  \<open>heap_list_all R [] [] = emp\<close>
-| \<open>heap_list_all R (x # xs) (y # ys) = R x y * heap_list_all R xs ys\<close>
-| \<open>heap_list_all R _ _ = false\<close>
+definition nat_ann_lit_rel :: "(ann_lit_wl \<times> (nat, nat) ann_lit) set" where
+  \<open>nat_ann_lit_rel = ({(a, b). b = ann_lit_of_pair ((\<lambda>(a,b). (literal_of_nat a, b)) a)})\<close>
 
-definition arrayO:: \<open>('a \<Rightarrow> 'b::heap \<Rightarrow> assn) \<Rightarrow> 'a list \<Rightarrow> 'b array \<Rightarrow> assn\<close> where
-  \<open>arrayO R' xs axs \<equiv> \<exists>\<^sub>A p. array_assn id_assn p axs * heap_list_all R' xs p\<close>
+definition nat_ann_lits_rel :: "(ann_lits_wl \<times> (nat, nat) ann_lits) set" where
+  \<open>nat_ann_lits_rel = \<langle>(Id \<times>\<^sub>r \<langle>Id\<rangle>option_rel) O nat_ann_lit_rel\<rangle>list_rel\<close>
 
-lemma heap_list_add_same_length:
-  \<open>h \<Turnstile> heap_list_all R' xs p \<Longrightarrow> length p = length xs\<close>
-  by (induction R' xs p arbitrary: h rule: heap_list_all.induct) (auto elim!: mod_starE)
+abbreviation pair_nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> ann_lit_wl \<Rightarrow> assn" where
+  \<open>pair_nat_ann_lit_assn \<equiv> pure (nat_ann_lit_rel)\<close>
 
-term \<open>arrays h TYPEREP('b::heap) (addr_of_array a)\<close>
+abbreviation pair_nat_ann_lits_assn :: "(nat, nat) ann_lits \<Rightarrow> ann_lits_wl \<Rightarrow> assn" where
+  \<open>pair_nat_ann_lits_assn \<equiv> list_assn (pair_nat_ann_lit_assn)\<close>
 
-(* lemma array_assn_same_length:
-  assumes \<open>is_pure R\<close> and \<open>(h, b) \<Turnstile> array_assn R p a\<close>
-  shows \<open>Array.length h a = length p\<close>
-proof -
-  obtain R' where
-    R[simp]: \<open>the_pure R = R'\<close>
-    sorry
-  show ?thesis
-    using assms
-      apply (cases a)
-  apply (auto simp: (* array_assn_def *) Let_def (* new_addrs_def *) (* Array.get_def *) Array.set_def Array.alloc_def
-      relH_def in_range.simps Array.length_def (* is_array_def *) array_assn_def snga_assn_def
-      is_array_def[abs_def])
+definition propagated where
+  \<open>propagated L C = (L, Some C)\<close>
 
-    apply (auto simp: Abs_assn_inverse Array.get_def length_map mem_Collect_eq snga_assn_proper
-        snga_assn_raw.simps the_pure_def is_pure_def)
-    oops
-    -- \<open>TODO tune proof\<close>
-    by (metis Abs_assn_inverse Array.get_def length_map mem_Collect_eq snga_assn_proper
-        snga_assn_raw.simps) *)
+lemma propagated_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo propagated), uncurry (RETURN oo Propagated)) \<in>
+     nat_ann_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a pair_nat_ann_lit_assn\<close>
+  by sepref_to_hoare (sep_auto simp: nat_ann_lit_rel_def propagated_def case_prod_beta p2rel_def
+      lit_of_natP_def simp del: literal_of_nat.simps
+      split: option.splits)
 
-(* lemma arrayO_same_length:
-  \<open>(h, as) \<Turnstile> arrayO R' xs a \<Longrightarrow> Array.length h a = length xs\<close>
-  unfolding arrayO_def
-  by (auto simp: mod_star_conv simp: heap_list_add_same_length[symmetric] array_assn_same_length)
- *)
-definition nth_aa :: "'a::heap array_list array \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a Heap" where
-  [code del]: "nth_aa a i j = Heap_Monad.guard (\<lambda>h. i < Array.length h a \<and> j < snd (Array.get h a ! i))
-    (\<lambda>h. (Array.get h (fst (Array.get h a ! i)) ! j, h))"
+definition uminus_lit_imp :: \<open>nat \<Rightarrow> nat\<close> where
+  \<open>uminus_lit_imp L = (if L mod 2 = 0 then L + 1 else L - 1)\<close>
 
-lemma run_nth_aa[run_elims]:
-  assumes "run (nth_aa a i j) \<sigma> \<sigma>' r"
-          "\<not>is_exn \<sigma>"
-  obtains "\<not>is_exn \<sigma>"
-    "i < Array.length (the_state \<sigma>) a"
-    "r = (Array.get (the_state \<sigma>) (fst ((Array.get (the_state \<sigma>) a)! i))) ! j"
-    "j < snd ((Array.get (the_state \<sigma>) a)! i)"
-    "\<sigma>' = \<sigma>"
-  |
-    "\<not> i < Array.length (the_state \<sigma>) a"
-    "\<sigma>' = None"
-  |
-    "\<not>j < snd ((Array.get (the_state \<sigma>) a)! i)"
-    "\<sigma>' = None"
-  using assms
-  apply (cases \<sigma>)
-   apply (solves \<open>simp\<close>)
-  apply (cases "\<not>i < Array.length (the_state \<sigma>) a")
-   apply (solves \<open>simp add: run.simps nth_aa_def execute_guard(1)\<close>)
-  apply (cases "\<not>j < snd ((Array.get (the_state \<sigma>) a)! i)")
-   apply (solves \<open>simp add: run.simps nth_aa_def execute_guard(1)\<close>)
-  by (auto simp add: run.simps nth_aa_def execute_guard)
+lemma uminus_lit_imp_hnr[sepref_fr_rules]:
+  \<open>(return o uminus_lit_imp, RETURN o uminus) \<in>
+     nat_ann_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_ann_lit_assn\<close>
+  apply sepref_to_hoare
+  apply (sep_auto simp: nat_ann_lit_rel_def uminus_lit_imp_def case_prod_beta p2rel_def
+      lit_of_natP_def
+      split: option.splits)
+  by presburger
 
-term \<open>Partial_Clausal_Logic.true_cls\<close>
-no_notation Partial_Clausal_Logic.true_cls (infix "\<Turnstile>" 50)
+lemma literal_of_neq_eq_nat_of_lit_eq_iff: \<open>literal_of_nat b = L \<longleftrightarrow> b = nat_of_lit L\<close>
+  by (auto simp del: literal_of_nat.simps)
 
-lemma models_heap_list_all_models_nth:
-  \<open>(h, as) \<Turnstile> heap_list_all R a b \<Longrightarrow> i < length a \<Longrightarrow> \<exists>as'. (h, as') \<Turnstile> R (a!i) (b!i)\<close>
-  by (induction R a b arbitrary: as i rule: heap_list_all.induct)
-    (auto simp: mod_star_conv nth_Cons elim!: less_SucE split: nat.splits)
-thm option.splits
+lemma nat_of_lit_eq_iff[iff]: \<open>nat_of_lit xa = nat_of_lit x \<longleftrightarrow> x = xa\<close>
+  apply (cases x; cases xa) by auto presburger+
 
-lemma nth_aa:
-  assumes
-    i: \<open>i < length xs\<close> and j: \<open>j < length (xs ! i)\<close>
-  shows
-    \<open><arrayO (arl_assn R') xs a> nth_aa a i j <\<lambda>r. arrayO (arl_assn R') xs a * \<up> ((r, xs ! i ! j) \<in> the_pure R')>\<close>
-proof -
-  (*   have [simp]: \<open>Array.length h a = length xs\<close> if \<open>(h, as) \<Turnstile> arrayO (arl_assn R') xs a\<close> for h as
-    using that arrayO_same_length by blast *)
-  show ?thesis(*
-    using assms *)
-    unfolding nth_aa_def
-    unfolding hoare_triple_def snga_assn_def (* arrayO_def *) array_assn_def is_array_def nth_aa_def
-  proof (clarsimp simp only: Let_def Abs_assn_inverse, intro allI impI conjI)
-    fix h :: Heap.heap and as :: \<open>nat set\<close> and \<sigma> :: \<open>Heap.heap option\<close> and
-      r :: 'b
-    assume
-      h: \<open>(h, as) \<Turnstile> arrayO (arl_assn R') xs a\<close> and
-      run: \<open>run (Heap_Monad.guard (\<lambda>h. i < Array.length h a \<and> j < snd (Array.get h a ! i))
-               (\<lambda>h. (Array.get h (fst (Array.get h a ! i)) ! j, h)))
-          (Some h) \<sigma> r\<close>
-    have [simp]: \<open>i < Array.length h a\<close>
-      using h i unfolding arrayO_def array_assn_def is_array_def
-      by (auto simp: run.simps tap_def arrayO_def
-          mod_star_conv array_assn_def is_array_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def)
-    have xs_i: \<open>\<exists>as'. (h, as') \<Turnstile> (arl_assn R') (xs ! i) ((Array.get h a ! i))\<close>
-      using h i unfolding arrayO_def array_assn_def is_array_def
-      using models_heap_list_all_models_nth[of _ _ _ _ _ i]
-      by (auto simp: run.simps tap_def arrayO_def
-          mod_star_conv array_assn_def is_array_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def)
-    then have j_le_get[simp]: \<open>j < snd (Array.get h a ! i)\<close>
-      using j unfolding arrayO_def arl_assn_def is_array_list_def
-      by (cases \<open>Array.get h a ! i\<close>) (auto simp: run.simps tap_def arrayO_def hr_comp_def
-          mod_star_conv array_assn_def is_array_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def
-          dest: list_rel_pres_length)
+lemma nat_ann_lits_rel_Cons[iff]:
+  \<open>(x # xs, y # ys) \<in> nat_ann_lits_rel \<longleftrightarrow> (x, y) \<in> nat_ann_lit_rel \<and> (xs, ys) \<in> nat_ann_lits_rel\<close>
+  by (auto simp: nat_ann_lits_rel_def)
 
-    show \<open>\<not> is_exn \<sigma>\<close>
-      using run h assms
-      by (auto simp: run.simps tap_def arrayO_def execute_simps
-          mod_star_conv array_assn_def is_array_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def)
-    have ex: \<open>execute
-        (Heap_Monad.guard
-          (\<lambda>h. i < length (Array.get h a) \<and>
-               j < snd (Array.get h a ! i))
-          (\<lambda>h. (Array.get h (fst (Array.get h a ! i)) ! j, h)))
-        h = Some (Array.get h (fst (Array.get h a ! i)) ! j, h)\<close>
-      using run h assms
-      by (auto simp: run.simps tap_def arrayO_def execute_simps
-          mod_star_conv array_assn_def is_array_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def)
-    show \<open>(the_state \<sigma>, new_addrs h as (the_state \<sigma>)) \<Turnstile>
-       arrayO (arl_assn R') xs a *
-       \<up> ((r, xs ! i ! j) \<in> the_pure R')\<close>
-      using run h assms xs_i j_le_get
-      by  (cases \<open>Array.get h a ! i\<close>) (auto simp: run.simps tap_def arrayO_def
-          mod_star_conv arl_assn_def is_array_list_def hr_comp_def ex list_rel_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def
-          dest!: list_all2_nthD[of _ _ _ j] simp del: j_le_get)
-    show \<open>relH {a. a < lim h \<and> a \<notin> as} h (the_state \<sigma>)\<close>
-      using run h assms xs_i
-      by (auto simp: run.simps tap_def arrayO_def
-          mod_star_conv arl_assn_def is_array_list_def hr_comp_def ex list_rel_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def relH_def
-          in_range.simps)
-    show \<open>lim h \<le> lim (the_state \<sigma>)\<close>
-      using run h assms xs_i
-      by (auto simp: run.simps tap_def arrayO_def
-          mod_star_conv arl_assn_def is_array_list_def hr_comp_def ex list_rel_def
-          Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def relH_def
-          in_range.simps)
-  qed
-qed
+lemma lit_of_natP_same_rightD: \<open>lit_of_natP bi b \<Longrightarrow> lit_of_natP bi a \<Longrightarrow> a = b\<close>
+  by (auto simp: p2rel_def lit_of_natP_def)
 
-definition array_of_arl_assn :: \<open>('a \<Rightarrow> 'b::heap \<Rightarrow> assn) \<Rightarrow> 'a list list \<Rightarrow>
-  ('b array_list) array \<Rightarrow> assn\<close> where
-  \<open>array_of_arl_assn R' xs axs \<equiv> \<exists>\<^sub>A p. array_assn id_assn p axs * heap_list_all (arl_assn R') xs p\<close>
+lemma lit_of_natP_same_leftD: \<open>lit_of_natP bi b \<Longrightarrow> lit_of_natP ai b \<Longrightarrow> ai = bi\<close>
+  apply (auto simp: p2rel_def lit_of_natP_def split: if_splits)
+  apply presburger
+  apply presburger
+  done
+
 
 subsection \<open>State Conversion\<close>
 
-subsubsection \<open>Refinement of the Watched Function\<close>
-
-definition watched_rel :: "('a \<Rightarrow> 'b) \<Rightarrow> nat clauses_l \<Rightarrow> ('a list \<times> (nat literal \<Rightarrow> 'b)) set" where
-  \<open>watched_rel R N =
-    (br (\<lambda>W. (\<lambda>L. R (W!(nat_of_lit L))))
-        (\<lambda>W. \<forall>L \<in># lits_of_atms_of_mm (mset `# mset N). nat_of_lit L < length W))\<close>
-
-term \<open>br (\<lambda>W. (\<lambda>L. R (W!(nat_of_lit L))))\<close>
-
-text \<open>Some functions and types:\<close>
+subsubsection \<open>Functions and Types:\<close>
 
 abbreviation nat_lit_assn :: "nat literal \<Rightarrow> nat literal \<Rightarrow> assn" where
   \<open>nat_lit_assn \<equiv> (id_assn :: nat literal \<Rightarrow> _)\<close>
 
-abbreviation nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> (nat, nat) ann_lit \<Rightarrow> assn" where
-  \<open>nat_ann_lit_assn \<equiv> (id_assn :: (nat, nat) ann_lit \<Rightarrow> _)\<close>
-
 type_synonym ann_lits_l = \<open>(nat, nat) ann_lits\<close>
 type_synonym working_queue_ll = "nat list"
-type_synonym lit_queue_l = "nat literal list"
-type_synonym nat_trail = \<open>(nat \<times> nat option) array_list\<close>
+type_synonym lit_queue_l = "nat list"
+type_synonym nat_trail = \<open>(nat \<times> nat option) list\<close>
 type_synonym clause_wl = \<open>nat array_list\<close>
-type_synonym clauses_wl = \<open>nat array_list array_list\<close>
-type_synonym watched_wl = \<open>nat array_list array\<close>
+type_synonym clauses_wl = \<open>nat array_list array\<close>
+type_synonym unit_lits_wl = \<open>nat list list\<close>
 
-abbreviation nat_ann_lits_assn :: "ann_lits_l \<Rightarrow> ann_lits_l \<Rightarrow> assn" where
-  \<open>nat_ann_lits_assn \<equiv> list_assn nat_ann_lit_assn\<close>
+type_synonym watched_wl = \<open>(nat array_list) array\<close>
 
-abbreviation nat_lits_trail_assn :: "ann_lits_l \<Rightarrow> (nat \<times> nat option) array_list \<Rightarrow> assn" where
-  \<open>nat_lits_trail_assn \<equiv> arl_assn (pair_nat_ann_lit_assn :: (nat, nat) ann_lit \<Rightarrow> _)\<close>
+abbreviation ann_lit_wl_assn :: \<open>ann_lit_wl \<Rightarrow> ann_lit_wl \<Rightarrow> assn\<close> where
+  \<open>ann_lit_wl_assn \<equiv> prod_assn nat_assn (option_assn nat_assn)\<close>
+
+abbreviation ann_lits_wl_assn :: \<open>ann_lits_wl \<Rightarrow> ann_lits_wl \<Rightarrow> assn\<close> where
+  \<open>ann_lits_wl_assn \<equiv> list_assn ann_lit_wl_assn\<close>
+
+abbreviation nat_ann_lits_assn :: "ann_lits_l \<Rightarrow> ann_lits_wl \<Rightarrow> assn" where
+  \<open>nat_ann_lits_assn \<equiv> list_assn pair_nat_ann_lit_assn\<close>
 
 abbreviation clause_ll_assn :: "nat clause_l \<Rightarrow> clause_wl \<Rightarrow> assn" where
-  \<open>clause_ll_assn \<equiv> arl_assn nat_nat_lit_assn\<close>
+  \<open>clause_ll_assn \<equiv> arl_assn nat_ann_lit_assn\<close>
 
 abbreviation clauses_ll_assn :: "nat clauses_l \<Rightarrow> clauses_wl \<Rightarrow> assn" where
-  \<open>clauses_ll_assn \<equiv> arl_assn clause_ll_assn\<close>
+  \<open>clauses_ll_assn \<equiv> arrayO (arl_assn nat_ann_lit_assn)\<close>
 
-abbreviation clause_l_assn :: "nat clause \<Rightarrow> nat clause_l \<Rightarrow> assn" where
-  \<open>clause_l_assn \<equiv> list_mset_assn nat_lit_assn\<close>
+abbreviation clause_l_assn :: "nat clause \<Rightarrow> nat list \<Rightarrow> assn" where
+  \<open>clause_l_assn \<equiv> list_mset_assn nat_ann_lit_assn\<close>
 
-abbreviation clauses_l_assn :: "nat clauses \<Rightarrow> nat clauses_l \<Rightarrow> assn" where
+abbreviation clauses_l_assn :: "nat clauses \<Rightarrow> nat list list \<Rightarrow> assn" where
   \<open>clauses_l_assn \<equiv> list_mset_assn clause_l_assn\<close>
 
 abbreviation working_queue_l_assn :: "nat multiset \<Rightarrow> nat list \<Rightarrow> assn" where
@@ -319,21 +164,26 @@ abbreviation working_queue_l_assn :: "nat multiset \<Rightarrow> nat list \<Righ
 abbreviation working_queue_ll_assn :: "nat list \<Rightarrow> nat list \<Rightarrow> assn" where
   \<open>working_queue_ll_assn \<equiv> list_assn nat_assn\<close>
 
+abbreviation unit_lits_assn :: "nat clauses \<Rightarrow> unit_lits_wl \<Rightarrow> assn" where
+  \<open>unit_lits_assn \<equiv> list_mset_assn (list_mset_assn nat_ann_lit_assn)\<close>
+
 type_synonym nat_clauses_l = \<open>nat list list\<close>
 
 type_synonym twl_st_wll =
-  "nat_trail \<times> clauses_wl \<times> nat \<times>
-      clause_wl option \<times> nat clauses_l \<times> nat clauses_l \<times> lit_queue_l \<times> watched_wl"
+  "nat_trail \<times> clauses_wl \<times> nat \<times> clause_wl option \<times>  unit_lits_wl \<times> unit_lits_wl \<times>
+    lit_queue_l \<times> watched_wl"
 
 notation prod_assn (infixr "*assn" 90)
-term \<open>array_watched_assn N\<close>
 
-locale test =
-  fixes N :: \<open>nat literal list list\<close>
-begin
+
+subsubsection \<open>Refinement of the Watched Function\<close>
 
 definition map_fun_rel :: "(nat \<times> nat literal) set \<Rightarrow> ('b \<times> 'a) set \<Rightarrow> ('b list \<times> (nat literal \<Rightarrow> 'a)) set" where
-  \<open>map_fun_rel D R = {(m, f). \<forall>(i, j)\<in>D. i < length m \<and> (m ! i, f j) \<in> R}\<close>
+  map_fun_rel_def_internal: \<open>map_fun_rel D R = {(m, f). \<forall>(i, j)\<in>D. i < length m \<and> (m ! i, f j) \<in> R}\<close>
+
+lemma map_fun_rel_def:
+  \<open>\<langle>R\<rangle>map_fun_rel D = {(m, f). \<forall>(i, j)\<in>D. i < length m \<and> (m ! i, f j) \<in> R}\<close>
+  unfolding relAPP_def map_fun_rel_def_internal by auto
 
 definition map_fun_rel_assn :: "(nat \<times> nat literal) set \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> (nat literal \<Rightarrow> 'a) \<Rightarrow> 'b list \<Rightarrow> assn" where
   \<open>map_fun_rel_assn D R = pure (\<langle>the_pure R\<rangle>map_fun_rel D)\<close>
@@ -341,354 +191,1393 @@ definition map_fun_rel_assn :: "(nat \<times> nat literal) set \<Rightarrow> ('a
 lemma [safe_constraint_rules]: \<open>is_pure (map_fun_rel_assn D R)\<close>
   unfolding map_fun_rel_assn_def by auto
 
-term array_assn
-term \<open>hr_comp is_array_list (\<langle>the_pure A\<rangle>list_rel)\<close>
-term \<open>\<lambda>Q. hr_comp Q (the_pure (map_fun_rel_assn D (arl_assn R)))\<close>
-term \<open>\<lambda>Q. hr_comp (map_fun_rel_assn D (arl_assn R)) Q\<close>
-
-term \<open>hr_comp (array_assn (arl_assn id_assn)) (\<langle>Id\<rangle>map_fun_rel D)\<close>
-  term \<open>array_assn\<close>
-term \<open>the_pure (list_assn (arl_assn R))\<close>
-term \<open>hr_comp (list_assn (hr_comp is_array_list (\<langle>the_pure A\<rangle>list_rel)))\<close>
-term \<open>\<lambda>Q. hr_comp ((hr_comp is_array (\<langle>the_pure (hr_comp is_array_list (\<langle>the_pure A\<rangle>list_rel))\<rangle>list_rel)))
-  (the_pure Q) a b\<close>
-term \<open>map_fun_rel D (the_pure (arl_assn R))\<close>
-term \<open>the_pure (array_assn G)\<close>
-definition max_index where
-\<open>max_index = MMax (nat_of_lit `# lits_of_atms_of_mm (mset `# mset N))\<close>
-
-(* abbreviation array_watched_assn :: "(nat literal \<Rightarrow> nat list) \<Rightarrow>
-    nat array_list array \<Rightarrow> assn" where
-  \<open>array_watched_assn W \<equiv>
-      array_assn (arl_assn nat_assn) (map (W o lit_of_nat) [0..<max_index])\<close> *)
-abbreviation D where
-  \<open>D \<equiv> (\<lambda>L. (nat_of_lit L, L)) ` set_mset (lits_of_atms_of_mm (mset `# mset N))\<close>
-
-abbreviation array_watched_assn :: "(nat literal \<Rightarrow> nat list) \<Rightarrow> (nat array \<times> nat) array  \<Rightarrow> assn" where
-  \<open>array_watched_assn \<equiv> hr_comp (array_assn (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D)\<close>
-term hr_comp
-  term \<open>Array.nth\<close>
-term \<open>(hrp_comp (is_array_list, list_assn id_assn) (\<langle>Id\<rangle>map_fun_rel D))\<close>
-term \<open>hr_comp (array_assn (list_assn id_assn)) (\<langle>Id\<rangle>map_fun_rel D)\<close>
-term \<open>(\<langle>\<langle>R\<rangle>list_rel\<rangle>map_fun_rel D)\<close>
-term \<open>(hr_comp (array_assn (list_assn (arl_assn (list_assn id_assn)))) (\<langle>R\<rangle>map_fun_rel D))\<close>
-term \<open>hr_comp (array_assn (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D)\<close>
-term \<open>hrp_comp (is_array, list_assn (fst (hrp_comp (is_array_list, list_assn
-nat_assn) S))) T\<close>
-term list_assn
-term \<open>array_assn\<close>
-definition twl_st_l_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll \<Rightarrow> assn\<close> where
-\<open>twl_st_l_assn \<equiv>
-  (nat_lits_trail_assn *assn clauses_ll_assn *assn nat_assn *assn
-  option_assn clause_ll_assn *assn
-  clauses_l_assn *assn
-  clauses_l_assn *assn
-  clause_l_assn *assn
-  array_watched_assn
-  )\<close>
-
-
-definition truc_muche :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
-  \<open>truc_muche S = do {RETURN S}\<close>
-
 sepref_register \<open>watched_by :: nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> watched\<close>
    :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> watched\<close>
 
 definition watched_by_nth :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>watched_by_nth = (\<lambda>(M, N, U, D, NP, UP, Q, W) L i. W L ! i)\<close>
 
-definition watched_by_nth_wll :: \<open>twl_st_wll \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> _\<close> where
-  \<open>watched_by_nth_wll = (\<lambda>(M, N, U, D, NP, UP, Q, W) L i.
-      do {
-        WL \<leftarrow> Array.nth W L;
-        j \<leftarrow> arl_get WL i;
-        return j
-      })\<close>
+definition watched_app :: \<open>(nat literal \<Rightarrow> nat list) \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>watched_app M L i \<equiv> M L ! i\<close>
 
-lemma CONSTRAINT_is_pureE:
-  assumes "CONSTRAINT is_pure A"
-  obtains R where "A=pure R"
-  using assms by (auto simp: is_pure_conv)
-term fun_rel
-term mset_rel
-term list_rel
-term list_mset_assn
-
-(*
-lemma
-  assumes \<open>A \<Turnstile> arl_assn (arl_assn nat_assn) (map (W \<circ> lit_of_nat) [0..<max_index]) (x1, x2)\<close>
-  shows \<open>Array.length h x1 = max_index\<close>
-proof -
-  have [iff]: \<open>(\<forall>x x'. nat_assn x x' = \<up> ((x', x) \<in> P')) \<longleftrightarrow> P' = Id\<close>
-    for P'
-    by (auto simp: pure_def)
-  have [simp]: \<open>min a b = b\<close> if \<open>b \<le> a\<close> for a b :: nat
-    using that by (auto simp: min_def)
-  show ?thesis
-    using assms
-    apply (simp add: arl_assn_def hr_comp_def (* is_array_list_def *) (* list_rel_def *)
-      Array.length_def (* snga_assn_def *) (* list_all2_iff *) comp_def (* the_pure_def *))
-    apply (auto simp add: list_rel_def list_all2_iff)
-    apply (auto simp add: arl_assn_def hr_comp_def is_array_list_def list_rel_def
-      Array.length_def (* snga_assn_def *) list_all2_iff comp_def the_pure_def)
-    apply (auto simp: snga_assn_def min_def split: if_splits)
-
-    thm arl_get_hnr_mop arl_get_hnr_aux
-    sorry
-  oops
-
-lemma
-  fixes N'
-  assumes \<open>bc < max_index\<close>
-  shows
-   \<open><twl_st_l_assn (M, N', U, D, NP, UP, Q, W)
-         ((a, b), (aa, ba), ab, ac, ad, ae, af, W') *
-        nat_nat_lit_assn bf bc>
-       Array.get W' bc
-       <\<lambda>r. arl_assn id_assn (W (lit_of_nat bc)) r>\<close>
-   using assms
-  apply (sep_auto simp: arl_get_def is_array_list_def twl_st_l_assn_def
-      split: prod.split)
-  unfolding hoare_triple_def
-   apply (auto simp: Let_def elim!: run_elims mod_starE)
-             apply (simp add: arl_assn_def)
-  oops
-    thm runE
-*)
-term p2rel
-sepref_decl_intf i_my_watched is "nat literal \<Rightarrow> nat list"
-thm map_type_eqI[of "TYPE(nat literal literal \<Rightarrow> nat list)" "TYPE(i_my_watched)"]
-
-definition watched_app :: \<open>(nat literal \<Rightarrow> nat list) \<Rightarrow> nat literal \<Rightarrow> nat list\<close> where
-  \<open>watched_app M L \<equiv> M L\<close>
-
-sepref_decl_op watched_app: \<open>watched_app ::(nat literal \<Rightarrow> nat list) \<Rightarrow> nat literal \<Rightarrow> nat list\<close> ::
-  \<open>(Id :: ((nat literal \<Rightarrow> nat list) \<times> _) set) \<rightarrow> (Id :: (nat literal \<times> _) set) \<rightarrow>
-     (Id :: (nat list \<times> _) set)\<close>
+sepref_decl_op watched_app: \<open>watched_app ::(nat literal \<Rightarrow> nat list) \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat\<close> ::
+  \<open>(Id :: ((nat literal \<Rightarrow> nat list) \<times> _) set) \<rightarrow> (Id :: (nat literal \<times> _) set) \<rightarrow> nat_rel \<rightarrow>
+     nat_rel\<close>
   .
 
 lemma [def_pat_rules]:
-  \<open>watched_app $ M $ L \<equiv> op_watched_app $ M $ L\<close>
+  \<open>watched_app $ M $ L $ i \<equiv> op_watched_app $ M $ L $ i\<close>
   by (auto simp: watched_app_def)
-thm arl_assn_comp'
-context (* 
-  notes [fcomp_norm_unfold] = array_assn_def[symmetric]*)
-  notes [intro!] = hfrefI hn_refineI[THEN hn_refine_preI] 
-  notes [simp] =  pure_def (* hn_ctxt_def *) (* invalid_assn_def *) 
-begin  
 
-lemma \<open>(uncurry Array.nth, uncurry (RETURN oo watched_app)) \<in>
-   [\<lambda>(W, L). L \<in> snd ` D]\<^sub>a array_watched_assn\<^sup>k *\<^sub>a nat_nat_lit_assn\<^sup>k \<rightarrow> arl_assn id_assn\<close>
-  apply sep_auto
-  apply (sep_auto simp: lit_of_natP_def nat_nat_lit_assn_def lit_of_natP_def[abs_def] p2rel_def
-      Array.nth_def map_fun_rel_def[abs_def] array_assn_def relAPP_def is_array_def[abs_def]
-       arl_assn_def is_array_list_def hr_comp_def
-      elim!: runE
-      split: if_splits prod.split)
-    oops
-sepref_thm set_of_arrays_ex is "uncurry0 (RETURN (op_list_append [] op_array_empty))" :: "unit_assn\<^sup>k \<rightarrow>\<^sub>a list_assn (array_assn nat_assn)"
-  unfolding "HOL_list.fold_custom_empty"
+lemma watched_by_nth_watched_app:
+  \<open>watched_by S K ! w = watched_app ((snd o snd o snd o snd o snd o snd o snd) S) K w\<close>
+  by (cases S) (auto simp: watched_app_def)
+
+
+subsubsection \<open>More Operations\<close>
+
+definition valued_impl :: "(nat, nat) ann_lits \<Rightarrow> nat literal \<Rightarrow> bool option nres" where
+  \<open>valued_impl M L =
+    nfoldli M
+     (\<lambda>brk. brk = None)
+     (\<lambda>L' _. do {
+       let L\<^sub>1 = atm_of L;
+       let L\<^sub>2 = (lit_of L');
+       let L\<^sub>2' = atm_of (lit_of L');
+       if L = L\<^sub>2 then RETURN (Some True)
+       else
+         if L\<^sub>1 = L\<^sub>2' then RETURN (Some False) else RETURN None
+    })
+    None\<close>
+
+lemma valued_impl_valued:
+  assumes \<open>no_dup M\<close>
+  shows \<open>valued_impl M L = RETURN (valued M L)\<close>
+    using assms
+  apply (induction M)
+   apply (simp add: valued_def valued_impl_def Decided_Propagated_in_iff_in_lits_of_l atm_of_eq_atm_of)[]
+  by (auto simp add: valued_def valued_impl_def defined_lit_map dest: in_lits_of_l_defined_litD)
+
+lemma hrp_comp_Id2[simp]: \<open>hrp_comp A Id = A\<close>
+  unfolding hrp_comp_def
+  by auto
+
+lemma valued_impl_spec:
+  shows \<open>(uncurry valued_impl, uncurry (RETURN oo valued)) \<in>
+     [\<lambda>(M, L). no_dup M]\<^sub>f Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
+  unfolding fref_def nres_rel_def
+  by (auto simp: valued_impl_valued IS_ID_def)
+
+lemma atm_of_hnr[sepref_fr_rules]:
+  \<open>(return o (\<lambda>n. n div 2), RETURN o op_atm_of) \<in> (pure lit_of_nat_rel)\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
+  by sepref_to_hoare (sep_auto simp: p2rel_def lit_of_natP_def)
+thm Abs_assn_inverse nth_rule
+
+lemma lit_of_hnr[sepref_fr_rules]:
+  \<open>(return o fst, RETURN o op_lit_of) \<in> (pure nat_ann_lit_rel)\<^sup>k \<rightarrow>\<^sub>a (pure lit_of_nat_rel)\<close>
+  apply sepref_to_hoare
+  apply (sep_auto simp: p2rel_def nat_ann_lit_rel_def lit_of_natP_def
+      split: if_splits)
+   apply (case_tac b)
+    apply auto[2]
+  apply (case_tac b)
+   apply (auto
+      elim!: run_elims
+      simp: hoare_triple_def snga_assn_def
+      Let_def Let_def new_addrs_def relH_def in_range.simps  mod_emp
+      )
+  done
+
+lemma op_eq_op_nat_lit_eq[sepref_fr_rules]:
+  \<open>(uncurry (return oo (op =)), uncurry (RETURN oo op_nat_lit_eq)) \<in>
+    (pure lit_of_nat_rel)\<^sup>k *\<^sub>a (pure lit_of_nat_rel)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  apply sepref_to_hoare
+  apply (sep_auto simp: p2rel_def nat_ann_lit_rel_def lit_of_natP_def
+      split: if_splits)
+   apply (auto
+      elim!: run_elims
+      simp: hoare_triple_def snga_assn_def
+      Let_def Let_def new_addrs_def relH_def in_range.simps  mod_emp
+      )
+    apply presburger
+  apply presburger
+  done
+
+sepref_definition valued_impl' is \<open>uncurry valued_impl\<close>
+  :: \<open>nat_ann_lits_assn\<^sup>k *\<^sub>a nat_ann_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
+  unfolding valued_impl_def Let_def
   by sepref
 
-lemma list_nth_watched_app:
-  \<open>(uncurry (RETURN oo op_list_get), uncurry (RETURN oo watched_app)) \<in>
-     [\<lambda>(W, L). L \<in> snd ` D]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D)) \<times>\<^sub>r lit_of_nat_rel \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
-  by (fastforce simp: fref_def p2rel_def watched_app_def map_fun_rel_def[abs_def] relAPP_def
-      prod_rel_def_internal lit_of_natP_def nres_rel_def_internal)
-term \<open>\<langle>the_pure (is_array_list)\<rangle>map_fun_rel D\<close>
-term \<open>\<langle>Id\<rangle>map_fun_rel D\<close>
-term \<open>\<langle>the_pure (is_array_list)\<rangle>map_fun_rel D\<close>
-term \<open>\<langle>Id\<rangle>map_fun_rel D\<close>
-term "\<langle>the_pure (is_array)\<rangle> U"
-term \<open>R O \<langle>Id\<rangle>map_fun_rel D\<close>
-lemma list_nth_watched_app':
-  \<open>(uncurry (RETURN oo op_list_get), uncurry (RETURN oo watched_app)) \<in>
-     [\<lambda>(W, L). L \<in> snd ` D]\<^sub>f (\<langle>R\<rangle>map_fun_rel D \<times>\<^sub>r lit_of_nat_rel) \<rightarrow> \<langle>R\<rangle> nres_rel\<close>
-  by (force simp: fref_def p2rel_def watched_app_def map_fun_rel_def[abs_def] relAPP_def
-      prod_rel_def_internal lit_of_natP_def nres_rel_def_internal lit_of_natP_def[abs_def])
-(* (((nat array \<times> nat) list \<times> nat) \<times>
-    (nat literal \<Rightarrow> nat list) \<times> nat literal) set *)
-thm arl_get_hnr_aux hfref_compI_PRE_aux[OF arl_get_hnr_aux list_nth_watched_app]
-term is_array_list
-lemma \<open>(uncurry (Array.nth) , uncurry (RETURN oo watched_app)) \<in>
-   [\<lambda>(W, L). L \<in> snd ` D]\<^sub>a array_watched_assn\<^sup>k *\<^sub>a nat_nat_lit_assn\<^sup>k \<rightarrow> arl_assn id_assn\<close>
-  (is \<open>?u \<in> ?B\<close> is \<open>_ \<in> [?PRE]\<^sub>a ?init \<rightarrow> ?post\<close>)
+lemma valued_impl'[sepref_fr_rules]: \<open>(uncurry valued_impl', uncurry (RETURN oo valued)) \<in>
+   [\<lambda>(a, b). no_dup a]\<^sub>a nat_ann_lits_assn\<^sup>k *\<^sub>a (pure lit_of_nat_rel)\<^sup>k \<rightarrow> option_assn bool_assn\<close>
+  using valued_impl'.refine[FCOMP valued_impl_spec] by auto
+
+definition delete_index_and_swap_ll where
+  \<open>delete_index_and_swap_ll xs i j =
+     xs[i:= delete_index_and_swap (xs!i) j]\<close>
+
+definition delete_index_and_swap_aa where
+  \<open>delete_index_and_swap_aa xs i j = do {
+     x \<leftarrow> last_aa xs i;
+     xs \<leftarrow> update_aa xs i j x;
+     set_butlast_aa xs i
+  }\<close>
+
+
+lemma delete_index_and_swap_aa_ll_hnr[sepref_fr_rules]:
+  assumes \<open>is_pure R\<close>
+  shows \<open>(uncurry2 delete_index_and_swap_aa, uncurry2 (RETURN ooo delete_index_and_swap_ll))
+     \<in> [\<lambda>((l,i), j). i < length l \<and> j < length_ll l i]\<^sub>a (arrayO (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k
+         \<rightarrow> (arrayO (arl_assn R))\<close>
+  using assms unfolding delete_index_and_swap_aa_def
+  by sepref_to_hoare (sep_auto dest: le_length_ll_nemptyD
+      simp: delete_index_and_swap_ll_def update_ll_def last_ll_def set_butlast_ll_def
+      length_ll_def[symmetric])
+no_notation Ref.update ("_ := _" 62)
+
+
+definition find_unwatched' :: "(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> (bool option \<times> nat) nres" where
+\<open>find_unwatched' M N' C = do {
+  WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length (N'!C) \<and> (\<forall>j\<in>{2..<i}. -((N'!C)!j) \<in> lits_of_l M) \<and>
+    (found = Some False \<longrightarrow> (undefined_lit M ((N'!C)!i) \<and> i < length (N'!C))) \<and>
+    (found = Some True \<longrightarrow> ((N'!C)!i \<in> lits_of_l M \<and> i < length (N'!C)))\<^esup>
+    (\<lambda>(found, i). found = None \<and> i < length (N'!C))
+    (\<lambda>(_, i). do {
+      ASSERT(i < length (N'!C));
+      case valued M ((N'!C)!i) of
+        None \<Rightarrow> do { RETURN (Some False, i)}
+      | Some v \<Rightarrow>
+         (if v then do { RETURN (Some True, i)} else do { RETURN (None, i+1)})
+      }
+    )
+    (None, 2::nat)
+  }
+\<close>
+
+lemma find_unwatched'_find_unwatched: \<open>find_unwatched' M N' C = find_unwatched M (N'!C)\<close>
+  unfolding find_unwatched'_def find_unwatched_def
+  by auto
+
+sepref_definition find_unwatched'_impl
+  is \<open>uncurry2 find_unwatched'\<close>
+  :: \<open>[\<lambda>((M, N'), C). no_dup M \<and> C < length N']\<^sub>a nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> option_assn bool_assn *assn nat_assn\<close>
+  unfolding find_unwatched'_def nth_ll_def[symmetric] length_ll_def[symmetric]
+    supply [[goals_limit=1]]
+  by sepref
+
+declare find_unwatched'_impl.refine[sepref_fr_rules]
+
+
+subsection \<open>Refinement\<close>
+
+text \<open>We start in a context where we have an initial set of literals. It should be
+  a context, but this is not compatible with the refinement framework. It does only appear in
+  the specifications.\<close>
+locale twl_array_code =
+  fixes N\<^sub>0 :: \<open>nat literal multiset\<close>
+begin
+
+abbreviation nat_lit_rel :: "(nat literal \<times> nat literal) set" where
+  \<open>nat_lit_rel \<equiv> (Id :: (nat literal \<times> _)set)\<close>
+
+text \<open>This is the \<^emph>\<open>completion\<close> of \<^term>\<open>N\<^sub>0\<close>, containing the positive and the negation of every
+  literal of \<^term>\<open>N\<^sub>0\<close>:\<close>
+definition N\<^sub>1 where \<open>N\<^sub>1 = N\<^sub>0 + uminus `# N\<^sub>0\<close>
+
+abbreviation D\<^sub>0 :: \<open>(nat \<times> nat literal) set\<close> where
+  \<open>D\<^sub>0 \<equiv> (\<lambda>L. (nat_of_lit L, L)) ` set_mset N\<^sub>1\<close>
+
+lemma nth_ll_watched_app:
+  \<open>(uncurry2 (RETURN ooo nth_ll), uncurry2 (RETURN ooo watched_app)) \<in>
+     [\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0) \<times>\<^sub>r p2rel lit_of_natP) \<times>\<^sub>r nat_rel \<rightarrow>
+       \<langle>nat_rel\<rangle> nres_rel\<close>
+  unfolding watched_app_def nth_ll_def
+  by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def lit_of_natP_def)
+
+definition length_ll_f where
+  \<open>length_ll_f W L = length (W L)\<close>
+
+lemma length_ll_length_ll_f:
+  \<open>(uncurry (RETURN oo length_ll), uncurry (RETURN oo length_ll_f)) \<in>
+     [\<lambda>(W, L). L \<in> snd ` D\<^sub>0]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0) \<times>\<^sub>r p2rel lit_of_natP) \<rightarrow>
+       \<langle>nat_rel\<rangle> nres_rel\<close>
+  unfolding length_ll_def length_ll_f_def
+  by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def lit_of_natP_def)
+
+abbreviation array_watched_assn :: "(nat literal \<Rightarrow> nat list) \<Rightarrow> (nat array_list) array \<Rightarrow> assn" where
+  \<open>array_watched_assn \<equiv> hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)\<close>
+
+definition twl_st_l_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll \<Rightarrow> assn\<close> where
+\<open>twl_st_l_assn \<equiv>
+  (nat_ann_lits_assn *assn clauses_ll_assn *assn nat_assn *assn
+  option_assn clause_ll_assn *assn
+  unit_lits_assn *assn
+  unit_lits_assn *assn
+  clause_l_assn *assn
+  array_watched_assn
+  )\<close>
+
+lemma ex_list_watched:
+  fixes W :: \<open>nat literal \<Rightarrow> nat list\<close>
+  shows \<open>\<exists>aa. \<forall>x\<in>#N\<^sub>1. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = W x\<close>
+  (is \<open>\<exists>aa. ?P aa\<close>)
 proof -
-  term \<open>addr_of_array\<close>
-  term \<open>p\<mapsto>\<^sub>al\<close>
-  term is_array
+  define D' where \<open>D' = D\<^sub>0\<close>
+  define N\<^sub>1' where \<open>N\<^sub>1' = N\<^sub>1\<close>
+  define D'' where \<open>D'' = mset_set (snd ` D')\<close>
+  let ?f = \<open>(\<lambda>L a. a[nat_of_lit L:= W L])\<close>
+  interpret comp_fun_commute ?f
+    apply standard
+    apply (case_tac \<open>y = x\<close>)
+     apply (solves simp)
+    apply (intro ext)
+    apply (subst (asm) lit_of_nat_nat_of_lit[symmetric])
+    apply (subst (asm)(3) lit_of_nat_nat_of_lit[symmetric])
+    apply (clarsimp simp only: comp_def intro!: list_update_swap)
+    done
+  define aa where
+    \<open>aa \<equiv> fold_mset ?f (replicate (1+Max (nat_of_lit ` snd ` D')) []) (mset_set (snd ` D'))\<close>
+  have length_fold: \<open>length (fold_mset (\<lambda>L a. a[nat_of_lit L := W L]) l M) = length l\<close> for l M
+    by (induction M) auto
+  have length_aa: \<open>length aa = Suc (Max (nat_of_lit ` snd ` D'))\<close>
+    unfolding aa_def D''_def[symmetric] by (simp add: length_fold)
+  have H: \<open>x \<in># N\<^sub>1 \<Longrightarrow>
+      length l \<ge> Suc (Max (nat_of_lit ` set_mset N\<^sub>1)) \<Longrightarrow>
+      fold_mset (\<lambda>L a. a[nat_of_lit L := W L]) l (remdups_mset N\<^sub>1) ! nat_of_lit x = W x\<close>
+    for x l
+    unfolding N\<^sub>1'_def[symmetric]
+    apply (induction N\<^sub>1' arbitrary: l)
+    subgoal by simp
+    subgoal for xa Ls l
+      apply (case_tac \<open>(nat_of_lit ` set_mset Ls) = {}\<close>)
+       apply (solves simp)
+      apply (auto simp: nth_list_update_neq less_Suc_eq_le length_fold)
+      apply (subst nth_list_update_neq)
+       apply (auto simp: less_Suc_eq_le Max.insert)[]
+      apply (auto simp: less_Suc_eq_le)[]
+      done
+    done
+  have H': \<open>aa ! nat_of_lit x = W x\<close> if \<open>x \<in># N\<^sub>1\<close> for x
+    using that unfolding aa_def D'_def
+    by (auto simp: D'_def image_image remdups_mset_def[symmetric]
+        less_Suc_eq_le intro!: H)
+  have \<open>?P aa\<close>
+    by (auto simp: D'_def image_image remdups_mset_def[symmetric]
+        less_Suc_eq_le length_aa H')
+  then show ?thesis
+    by blast
+qed
 
-  thm hfref_compI_PRE_aux[of \<open>fst ?u\<close> _ _ _ _ \<open>snd ?u\<close>, unfolded fst_conv snd_conv ,
-      OF array_get_hnr_aux list_nth_watched_app']
-    term \<open> \<langle>Id\<rangle>map_fun_rel D\<close>
-    thm array_get_hnr_aux list_nth_watched_app
-  thm hfref_compI_PRE_aux[of \<open>fst ?u\<close> _ _ _ _ \<open>snd ?u\<close>, unfolded fst_conv snd_conv ,
-      OF (* array_get_hnr_aux *)_ list_nth_watched_app
-      (* list_nth_watched_app *)(* , of \<open>arl_assn id_assn\<close> *)]
-  have 0: \<open>?u \<in> [comp_PRE (\<langle>Id\<rangle>map_fun_rel D \<times>\<^sub>r lit_of_nat_rel)
-       (\<lambda>(W, L). L \<in> snd ` D) (\<lambda>_ (l, i). i < length l)
-       (\<lambda>_. True)]\<^sub>a hrp_comp (is_array\<^sup>k *\<^sub>a nat_assn\<^sup>k)
-                       (\<langle>Id\<rangle>map_fun_rel D \<times>\<^sub>r
-                        lit_of_nat_rel) \<rightarrow> hr_comp id_assn Id\<close>
-    (is " _ \<in> [?PRE']\<^sub>a ?init' \<rightarrow> ?post'")
-    using hfref_compI_PRE_aux[OF array_get_hnr_aux list_nth_watched_app'] .
-  have 1: \<open>?PRE' = ?PRE\<close>
-    by (force simp: comp_PRE_def map_fun_rel_def[abs_def] relAPP_def lit_of_natP_def p2rel_def
-        prod_rel_def_internal
-        intro!: ext)
-  have eq_mem_trans2:
-    \<open>a \<in> A \<Longrightarrow> A = B \<Longrightarrow> a \<in> B\<close> for a A B
+lemma nth_aa_watched_app[sepref_fr_rules]:
+  \<open>(uncurry2 nth_aa, uncurry2 (RETURN ooo op_watched_app)) \<in>
+   [\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0 \<and> i < length (W L)]\<^sub>a
+     array_watched_assn\<^sup>k *\<^sub>a nat_ann_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have P: \<open>is_pure nat_assn\<close>
     by auto
-  thm eq_mem_trans2[OF 0, of ?B]
-  show ?thesis(* 
-    supply [[show_types]]
-    using 0 unfolding 1 2 prod_hrp_comp apply -
-    supply [[unify_trace_failure]] *)
-    apply (rule eq_mem_trans2[OF 0])
-      unfolding 1 prod_hrp_comp
-      prefer 2 apply assumption
+  have H: \<open>(uncurry2 nth_aa, uncurry2 (RETURN \<circ>\<circ>\<circ> op_watched_app))
+  \<in> [comp_PRE ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r lit_of_nat_rel) \<times>\<^sub>r nat_rel)
+       (\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0)
+       (\<lambda>_ ((l, i), j). i < length l \<and> j < length_ll l i)
+       (\<lambda>_. True)]\<^sub>a hrp_comp
+                       ((arrayO (arl_assn nat_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
+                       ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r lit_of_nat_rel) \<times>\<^sub>r nat_rel) \<rightarrow>
+                    hr_comp nat_assn nat_rel\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF nth_aa_hnr nth_ll_watched_app, OF P]
+    unfolding op_watched_app_def .
 
-      (*hrp_comp (is_array\<^sup>k)
-                   (\<langle>the_pure is_array_list\<rangle>map_fun_rel D) =
-   (hr_comp (array_assn (arl_assn nat_assn))
-                    (\<langle>Id\<rangle>map_fun_rel D))\<^sup>k *)
-      (*)
+  have 1: \<open>?pre' = ?pre\<close>
+    using ex_list_watched
+    apply (auto simp: comp_PRE_def intro!: ext simp: prod_rel_def_internal
+        relAPP_def map_fun_rel_def[abs_def] p2rel_def lit_of_natP_def
+        literal_of_neq_eq_nat_of_lit_eq_iff length_ll_def
+        simp del: literal_of_nat.simps)
+      done
 
+  have 2: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have 3: \<open>?f' = ?f\<close>
+    by (auto simp: hrp_comp_def hr_comp_def)
 
+  show ?thesis
+    using H unfolding 1 2 3  .
+qed
 
+lemma length_aa_length_ll_f[sepref_fr_rules]:
+  \<open>(uncurry length_aa, uncurry (RETURN oo length_ll_f)) \<in>
+   [\<lambda>(W, L). L \<in> snd ` D\<^sub>0]\<^sub>a
+     array_watched_assn\<^sup>k *\<^sub>a nat_ann_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have P: \<open>is_pure nat_assn\<close>
+    by auto
+  have H: \<open>(uncurry length_aa, uncurry (RETURN \<circ>\<circ> length_ll_f))
+       \<in> [comp_PRE
+            (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r lit_of_nat_rel)
+            (\<lambda>(W, L). L \<in> snd ` D\<^sub>0)
+            (\<lambda>_ (xs, i). i < length xs)
+            (\<lambda>_. True)]\<^sub>a hrp_comp
+                            ((arrayO (arl_assn nat_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k)
+                            (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r lit_of_nat_rel) \<rightarrow>
+          hr_comp nat_assn nat_rel\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF length_aa_hnr length_ll_length_ll_f]
+    unfolding op_watched_app_def .
 
+  have 1: \<open>?pre' = ?pre\<close>
+    using ex_list_watched
+    by (auto simp: comp_PRE_def intro!: ext simp: prod_rel_def_internal
+        relAPP_def map_fun_rel_def[abs_def] p2rel_def lit_of_natP_def
+        literal_of_neq_eq_nat_of_lit_eq_iff length_ll_def
+        simp del: literal_of_nat.simps)
 
+  have 2: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have 3: \<open>?f' = ?f\<close>
+    by (auto simp: hrp_comp_def hr_comp_def)
 
-  apply sepref_to_hoare
-  apply (sep_auto simp: map_fun_rel_def[abs_def] nat_nat_lit_assn_def lit_of_natP_def relAPP_def)
-=======
-lemma arl_get_hnr_aux: "(uncurry arl_get,uncurry (RETURN oo op_list_get)) \<in> [\<lambda>(l,i). i<length l]\<^sub>a (is_array_list\<^sup>k *\<^sub>a nat_assn\<^sup>k) \<rightarrow> id_assn"
-<<<<<<< HEAD
-  
-  by sep_auto
-inductive_cases runE: \<open>run a b c d\<close>    
-=======
+  show ?thesis
+    using H unfolding 1 2 3  .
+qed
 
-  by sep_auto
-inductive_cases runE: \<open>run a b c d\<close>
->>>>>>> generalise_trail_for_CDCL_T
-lemma \<open>(uncurry Array.nth, uncurry (RETURN oo watched_app)) \<in>
-   [\<lambda>(W, L). L \<in> snd ` D]\<^sub>a array_watched_assn\<^sup>k *\<^sub>a nat_nat_lit_assn\<^sup>k \<rightarrow> arl_assn id_assn\<close>
-  apply sep_auto
-  apply (sep_auto simp: lit_of_natP_def nat_nat_lit_assn_def lit_of_natP_def[abs_def] p2rel_def
-      hoare_triple_def Let_def Array.nth_def Heap_Monad.guard_def
-      elim!: runE
-      split: if_splits)
-    apply auto[]
-  apply (sep_auto simp: map_fun_rel_def[abs_def] (* nat_nat_lit_assn_def *) lit_of_natP_def
-      relAPP_def nat_nat_lit_assn_def)
-  apply (rule cons_rule[OF _ _ nth_rule])
-    apply (auto simp: hr_comp_def entails_def (* snga_assndef *) array_assn_def relAPP_def
-      arl_assn_def)
-    apply (auto simp: hr_comp_def[abs_def])
-    apply (subgoal_tac \<open>(aa, b) \<Turnstile> ai \<mapsto>\<^sub>a (Array.get aa ai)\<close>)
+text \<open>
+  \<^item> TODO: use \<open>let L = K\<close> instead of \<open>let L = ((N!C)) ! i\<close>.\<close>
+definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> nat \<Rightarrow>
+  nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres"  where
+  \<open>unit_propagation_inner_loop_body_wl_D K w S = do {
+    let (M, N, U, D', NP, UP, Q, W) = S;
+    ASSERT(K \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP));
+    ASSERT(w < length (watched_by S K));
+    ASSERT(K \<in> snd ` D\<^sub>0);
+    let C = (W K) ! w;
+    ASSERT(C > 0);
+    ASSERT(no_dup M);
+    ASSERT(C < length N);
+    ASSERT(0 < length (N!C));
+    let i = (if (N!C) ! 0 = K then 0 else 1);
+    ASSERT(i < length (N!C));
+    ASSERT(1-i < length (N!C));
+    let L = ((N!C)) ! i;
+    ASSERT(L = K);
+    let L' = ((N!C)) ! (1 - i);
+    ASSERT(L' \<in># mset (watched_l (N!C)) - {#L#});
+    ASSERT (mset (watched_l (N!C)) = {#L, L'#});
+    val_L' \<leftarrow> RETURN (valued M L');
+    if val_L' = Some True
+    then RETURN (w+1, (M, N, U, D', NP, UP, Q, W))
+    else do {
+      f \<leftarrow> find_unwatched M (N!C);
+      ASSERT (fst f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (N!C)). - L \<in> lits_of_l M));
+      if fst f = None
+      then
+        if val_L' = Some False
+        then do {RETURN (w+1, (M, N, U, Some (N!C), NP, UP, {#}, W))}
+        else do {RETURN (w+1, (Propagated L' C # M, N, U, D', NP, UP, add_mset (-L') Q, W))}
+      else do {
+        ASSERT(snd f < length (N!C));
+        let K' = (N!C) ! (snd f);
+        ASSERT(K' \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP));
+        ASSERT(K' \<in> snd ` D\<^sub>0);
+        let N' = list_update N C (swap (N!C) i (snd f));
+        let W = W(L := delete_index_and_swap (W L) w);
+        let W = W(K':= W K' @ [C]);
+        ASSERT(K \<noteq> K');
+        RETURN (w, (M, N', U, D', NP, UP, Q, W))
+      }
+    }
+   }
+\<close>
+
+definition delete_index_and_swap_update :: "('a \<Rightarrow> 'b list) \<Rightarrow> 'a \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'b list" where
+  \<open>delete_index_and_swap_update W K w = W(K := delete_index_and_swap (W K) w)\<close>
+
+text \<open>The precondition is not necessary.\<close>
+lemma delete_index_and_swap_ll_delete_index_and_swap_update:
+  \<open>(uncurry2 (RETURN ooo delete_index_and_swap_ll), uncurry2 (RETURN ooo delete_index_and_swap_update))
+  \<in>[\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0]\<^sub>f (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r lit_of_nat_rel) \<times>\<^sub>r nat_rel \<rightarrow>
+      \<langle>\<langle>Id\<rangle>map_fun_rel D\<^sub>0\<rangle>nres_rel\<close>
+  by (auto simp: delete_index_and_swap_ll_def uncurry_def fref_def nres_rel_def
+      delete_index_and_swap_update_def map_fun_rel_def p2rel_def lit_of_natP_def
+      nth_list_update'
+      simp del: literal_of_nat.simps)
+
+lemma delete_index_and_swap_aa_hnr[sepref_fr_rules]:
+  shows \<open>(uncurry2 delete_index_and_swap_aa, uncurry2 (RETURN ooo delete_index_and_swap_update))
+     \<in> [\<lambda>((W,L), j). L \<in> snd ` D\<^sub>0 \<and> j < length (W L)]\<^sub>a
+        array_watched_assn\<^sup>d *\<^sub>a nat_ann_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> array_watched_assn\<close>
+    (is \<open>?a \<in> [?pre]\<^sub>a ?init \<rightarrow> ?post\<close>)
+proof -
+  have H: \<open>(uncurry2 delete_index_and_swap_aa, uncurry2 (RETURN \<circ>\<circ>\<circ> delete_index_and_swap_update))
+  \<in> [comp_PRE ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r lit_of_nat_rel) \<times>\<^sub>r nat_rel) (\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0)
+       (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (l, i) \<Rightarrow> \<lambda>j. i < length l \<and> j < length_ll l i) xa)
+       (\<lambda>x. nofail (uncurry2 (RETURN \<circ>\<circ>\<circ> delete_index_and_swap_update)
+                      x))]\<^sub>a hrp_comp ((arrayO (arl_assn nat_assn))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
+                              ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r lit_of_nat_rel) \<times>\<^sub>r
+                               nat_rel) \<rightarrow> hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)
+\<close>
+    (is \<open>?a \<in> [?pre']\<^sub>a ?init' \<rightarrow> ?post'\<close>)
+    using hfref_compI_PRE[OF delete_index_and_swap_aa_ll_hnr
+        delete_index_and_swap_ll_delete_index_and_swap_update, of nat_assn] by simp
+  have b: \<open>\<exists>bb. (bb, b) \<in> lit_of_nat_rel\<close> for b
+    apply (auto simp: p2rel_def lit_of_natP_def Pos_div2_iff Neg_div2_iff )
+    using even_Suc by blast
+  have ba_length_a_b: \<open>ba < length (a b)\<close>
+    if bN: \<open>b \<in># N\<^sub>1\<close> and
+      H: \<open>\<And>aa bb. (\<forall>x\<in>#N\<^sub>1. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = a x) \<and>
+          (bb, b) \<in> lit_of_nat_rel \<longrightarrow>
+          bb < length aa \<and>
+          ba < length (aa ! bb)\<close>
+    for a :: \<open>nat literal \<Rightarrow> nat list\<close> and b :: \<open>nat literal\<close> and ba :: nat
+  proof -
+    obtain aa where
+      aa: \<open>\<forall>x\<in>#N\<^sub>1. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = a x\<close>
+      using ex_list_watched[of a] by blast
+    then have \<open>nat_of_lit b < length aa\<close> and aa_b_a_b: \<open>aa ! nat_of_lit b = a b\<close>
+      using bN by blast+
+
+    obtain bb where bb: \<open>(bb, b) \<in> lit_of_nat_rel\<close>
+      using b[of b] by blast
+    show ?thesis
+      using H[of aa bb] aa bb aa_b_a_b by (auto simp: p2rel_def lit_of_natP_def)
+  qed
+
+  have pre: \<open>?pre' = ?pre\<close>
+    apply (auto simp: comp_PRE_def map_fun_rel_def lit_of_natP_def
+        image_image ba_length_a_b
+        Pos_div2_iff Neg_div2_iff all_conj_distrib length_ll_def
+        intro!: ext split: if_splits)
+    by (auto simp: p2rel_def lit_of_natP_def split: if_splits)
+
+  have
+    1: \<open>hrp_comp (nat_assn\<^sup>k) nat_rel = nat_assn\<^sup>k\<close> and
+    2: \<open>hrp_comp (nat_assn\<^sup>k) lit_of_nat_rel = nat_ann_lit_assn\<^sup>k\<close>
+     by (auto simp: hrp_comp_def)
+  have init: \<open>?init' = ?init\<close>
+    unfolding prod_hrp_comp 1 2 hrp_comp_dest by blast
+
+  have post: \<open>?post' = ?post\<close>
+    by simp
+  show ?thesis
+    using H unfolding pre init
+    .
+qed
+
+definition append_update :: "('a \<Rightarrow> 'b list) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> 'a \<Rightarrow> 'b list" where
+  \<open>append_update W L a = W(L:= W L @ [a])\<close>
+
+lemma append_ll_append_update:
+  \<open>(uncurry2 (RETURN ooo append_ll), uncurry2 (RETURN ooo append_update))
+  \<in>  [\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0]\<^sub>f
+     (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r lit_of_nat_rel) \<times>\<^sub>r nat_rel \<rightarrow> \<langle>\<langle>Id\<rangle>map_fun_rel D\<^sub>0\<rangle>nres_rel\<close>
+  by (auto simp: append_ll_def uncurry_def fref_def nres_rel_def
+      delete_index_and_swap_update_def map_fun_rel_def p2rel_def lit_of_natP_def
+      nth_list_update' append_update_def
+      simp del: literal_of_nat.simps)
+
+lemma append_el_aa_hnr[sepref_fr_rules]:
+  shows \<open>(uncurry2 append_el_aa, uncurry2 (RETURN ooo append_update))
+     \<in> [\<lambda>((W,L), j). L \<in> snd ` D\<^sub>0]\<^sub>a
+        array_watched_assn\<^sup>d *\<^sub>a nat_ann_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> array_watched_assn\<close>
+    (is \<open>?a \<in> [?pre]\<^sub>a ?init \<rightarrow> ?post\<close>)
+proof -
+  have H: \<open>(uncurry2 append_el_aa,
+   uncurry2 (RETURN \<circ>\<circ>\<circ> append_update))
+  \<in> [comp_PRE ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r lit_of_nat_rel) \<times>\<^sub>r nat_rel)
+       (\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0)
+       (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (l, i) \<Rightarrow> \<lambda>x. i < length l) xa)
+       (\<lambda>x. nofail (uncurry2 (RETURN \<circ>\<circ>\<circ> append_update) x))]\<^sub>a
+    hrp_comp ((arrayO (arl_assn nat_assn))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
+      ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r lit_of_nat_rel) \<times>\<^sub>r nat_rel) \<rightarrow>
+    hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)
+\<close>
+    (is \<open>?a \<in> [?pre']\<^sub>a ?init' \<rightarrow> ?post'\<close>)
+    using hfref_compI_PRE[OF append_aa_hnr
+        append_ll_append_update, of nat_assn] by simp
+  have b: \<open>\<exists>bb. (bb, b) \<in> lit_of_nat_rel\<close> for b
+    apply (auto simp: p2rel_def lit_of_natP_def Pos_div2_iff Neg_div2_iff )
+    using even_Suc by blast
+
+  have pre: \<open>?pre' = ?pre\<close>
+    apply (auto simp: comp_PRE_def map_fun_rel_def (* p2rel_def *) lit_of_natP_def
+        image_image
+        Pos_div2_iff Neg_div2_iff all_conj_distrib length_ll_def
+        intro!: ext split: if_splits)
+    by (auto simp: p2rel_def lit_of_natP_def split: if_splits)
+
+  have
+    1: \<open>hrp_comp (nat_assn\<^sup>k) nat_rel = nat_assn\<^sup>k\<close> and
+    2: \<open>hrp_comp (nat_assn\<^sup>k) lit_of_nat_rel = nat_ann_lit_assn\<^sup>k\<close>
+     by (auto simp: hrp_comp_def)
+  have init: \<open>?init' = ?init\<close>
+    unfolding prod_hrp_comp 1 2 hrp_comp_dest by blast
+
+  have post: \<open>?post' = ?post\<close>
+    by simp
+  show ?thesis
+    using H unfolding pre init
+    .
+qed
+
+definition is_N\<^sub>1 :: "nat literal multiset \<Rightarrow> bool" where
+  \<open>is_N\<^sub>1 S \<longleftrightarrow> set_mset S = set_mset N\<^sub>1\<close>
+
+abbreviation literals_are_N\<^sub>0 where
+  \<open>literals_are_N\<^sub>0 S \<equiv>
+     is_N\<^sub>1 (lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S))))\<close>
+
+lemma mset_tl_update_swap:
+  \<open>i < length xs \<Longrightarrow> j < length (xs ! i) \<Longrightarrow> k < length (xs ! i) \<Longrightarrow>
+  mset `# mset (tl (xs [i := swap (xs ! i) j k])) = mset `# mset (tl xs)\<close>
+  apply (cases i)
+  subgoal by (cases xs) auto
+  subgoal for i'
+    apply (subgoal_tac \<open>(xs ! Suc i') \<in># (mset (tl xs))\<close>)
      defer
-     apply sep_auto
-  oops
+     apply (solves \<open>auto simp: nth_in_set_tl\<close>)
+    apply (auto simp: tl_update_swap mset_update nth_tl)[]
+    by (metis image_mset_add_mset insert_DiffM set_mset_mset)
+  done
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+lemma unit_propagation_inner_loop_body_wl_D_spec:
+  assumes
+    K: \<open>K \<in> snd ` D\<^sub>0\<close> and
+    N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close>
+  shows \<open>unit_propagation_inner_loop_body_wl_D K w S \<le>
+      \<Down> {((n', T'), (n, T)). n' = n \<and> T = T' \<and> literals_are_N\<^sub>0 T'}
+        (unit_propagation_inner_loop_body_wl K w S)\<close>
+proof -
+  obtain M N U D NP UP Q W where
+    S: \<open>S = (M, N, U, D, NP, UP, Q, W)\<close>
+    by (cases S)
+  have valued: \<open>(valued M (N ! (W K ! w) ! (1 - (if N ! (W K ! w) ! 0 = K then 0 else 1))),
+     valued M' (N' ! (W' K ! w) ! (1 - (if N' ! (W' K ! w) ! 0 = K then 0 else 1)))) \<in> Id\<close>
+    if \<open>N=N'\<close> and \<open>M = M'\<close> and \<open>W = W'\<close>
+    for N N' :: \<open>nat literal list list\<close> and
+    M M' :: \<open>(nat literal, nat literal, nat) annotated_lit list\<close> and W W'
+    using that by auto
+  have find_unwatched: \<open>find_unwatched M (N ! (W K ! w))
+    \<le> \<Down> Id (find_unwatched M' (N' ! (W' K ! w)))\<close>
+    if \<open>N=N'\<close> and \<open>M = M'\<close> and \<open>W = W'\<close>
+    for N N' :: \<open>nat literal list list\<close> and
+      M M' :: \<open>(nat literal, nat literal, nat) annotated_lit list\<close> and W W'
+    by (auto simp: that)
+  have \<open>mset `# mset (take n (tl xs)) +
+    mset `# mset (drop (Suc n) xs) =
+    mset `# mset (tl xs)\<close> for n :: nat and xs
+    unfolding image_mset_union[symmetric] mset_append[symmetric] drop_Suc
+      append_take_drop_id ..
+  then have m: \<open>(mset `# mset (take n (tl xs)) + a + (mset `# mset (drop (Suc n) xs) + b)) =
+         (mset `# mset (tl xs)) + a + b\<close>
+    for a b xs and n :: nat
+    by auto
+  show ?thesis
+    unfolding unit_propagation_inner_loop_body_wl_D_def unit_propagation_inner_loop_body_wl_def S
+      watched_by.simps
+    supply [[goals_limit=1]]
+    apply (refine_vcg valued find_unwatched(* remove_dummy_vars *))
+    subgoal by simp
+    subgoal using K .
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal
+      using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
+          mset_take_mset_drop_mset' m)
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal
+      using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
+          mset_take_mset_drop_mset' m)
+    subgoal
+      using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
+          mset_take_mset_drop_mset' m)
+    subgoal by simp
+    subgoal by simp
+    subgoal
+      using N\<^sub>0 unfolding S
+      by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
+          clauses_def image_image m lits_of_atms_of_mm_union is_N\<^sub>1_def)
+    subgoal by simp
+    subgoal
+      using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
+          mset_take_mset_drop_mset' m mset_tl_update_swap)
+    done
+qed
 
 lemma
-  \<open>(uncurry2 watched_by_nth_wll, uncurry2 (RETURN ooo watched_by_nth)) \<in>
-     [\<lambda>(((M, N, U, D, NP, UP, Q, W), L), i). i < length (W L)]\<^sub>a
-      twl_st_l_assn\<^sup>d *\<^sub>a nat_nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
-  unfolding watched_by_nth_wll_def watched_by_nth_def
-  unfolding watched_by_nth_def twl_st_l_assn_def
-  apply (subst watched_app_def[symmetric])
-  apply sepref_dbg_keep
-  supply [[goals_limit=1]] -- \<open>There will be many subgoals during translation, and printing them takes very long with Isabelle :(\<close>
-   apply sepref_dbg_trans_keep
-               apply sepref_dbg_trans_step_keep
-    oops
-    apply (simp only: prod.case)
-   apply sepref_dbg_trans_step_keep
-      apply (sepref_dbg_side_keep)
-    apply  ( ( elim CONSTRAINT_is_pureE;  (simp only: list_assn_pure_conv the_pure_pure)?)?;
-    sep_auto
-      simp: pure_def hn_ctxt_def invalid_assn_def list_assn_aux_eqlen_simp
-      intro!: hn_refineI[THEN hn_refine_preI] hfrefI
-      elim!: mod_starE
-      intro: (* list_set_entails_aux list_set_hd_tl_aux list_set_last_butlast_aux
-             list_swap_aux list_rotate1_aux list_rev_aux *)
-    ;
-    ((rule entails_preI; sep_auto simp: list_assn_aux_eqlen_simp | (parametricity; simp; fail))?)
-  )
-  apply sepref_dbg_keep
-  supply [[goals_limit=1]] -- \<open>There will be many subgoals during translation, and printing them takes very long with Isabelle :(\<close>
-   apply sepref_dbg_trans_keep
-               apply sepref_dbg_trans_step_keep
-    apply (simp only: prod.case)
-   apply sepref_dbg_trans_step_keep
-      apply (sepref_dbg_side_keep)
+  shows unit_propagation_inner_loop_body_wl_D_unit_propagation_inner_loop_body_wl_D:
+  \<open>(uncurry2 unit_propagation_inner_loop_body_wl_D, uncurry2 unit_propagation_inner_loop_body_wl) \<in>
+    [\<lambda>((K, w), S). literals_are_N\<^sub>0 S \<and> K \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r {(T', T).
+       T = T' \<and> literals_are_N\<^sub>0 T}\<rangle> nres_rel\<close> (is \<open>?G1\<close>) and
+  unit_propagation_inner_loop_body_wl_D_unit_propagation_inner_loop_body_wl_D_weak:
+   \<open>(uncurry2 unit_propagation_inner_loop_body_wl_D, uncurry2 unit_propagation_inner_loop_body_wl) \<in>
+    [\<lambda>((K, w), S). literals_are_N\<^sub>0 S \<and> K \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r Id\<rangle> nres_rel\<close>
+   (is \<open>?G2\<close>)
+proof -
+  have 1: \<open>nat_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_N\<^sub>0 T} =
+     {((n', T'), n, T). n' = n \<and> T = T' \<and> literals_are_N\<^sub>0 T'}\<close>
+    by auto
+  show ?G1
+    unfolding fref_def 1
+    by (auto simp add: nres_rel_def uncurry_def snd_conv simp del: twl_st_of_wl.simps
+        intro!: unit_propagation_inner_loop_body_wl_D_spec)
+  moreover have \<open> \<langle>nat_rel \<times>\<^sub>r
+              {(T', T).
+               T = T' \<and>
+               is_N\<^sub>1
+                (lits_of_atms_of_mm
+                  (cdcl\<^sub>W_restart_mset.clauses
+                    (convert_to_state
+                      (twl_st_of None (st_l_of_wl None T)))))}\<rangle>nres_rel \<subseteq> \<langle>Id\<rangle> nres_rel\<close>
+    (is \<open>\<langle>?R\<rangle> nres_rel \<subseteq> _\<close>)
+    using "weaken_\<Down>"[of ?R Id]
+    by (auto simp: nres_rel_def prod_rel_def)
+  ultimately show ?G2
+    unfolding fref_def by (auto 11 0)
+qed
+
+sepref_register "unit_propagation_inner_loop_body_wl_D"
+sepref_thm unit_propagation_inner_loop_body_wl_D
+  is \<open>uncurry2 ((PR_CONST unit_propagation_inner_loop_body_wl_D) :: nat literal \<Rightarrow> nat \<Rightarrow>
+           nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
+  :: \<open>nat_ann_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_assn\<close>
+  unfolding unit_propagation_inner_loop_body_wl_D_def length_ll_def[symmetric] PR_CONST_def
+  unfolding watched_by_nth_watched_app watched_app_def[symmetric]
+  unfolding nth_ll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
+  unfolding lms_fold_custom_empty twl_st_l_assn_def swap_ll_def[symmetric]
+  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
+  supply [[goals_limit=1]]
+  by sepref -- \<open>Takes around 1min\<close>
+
+concrete_definition (in -) unit_propagation_inner_loop_body_wl_D_code
+   uses twl_array_code.unit_propagation_inner_loop_body_wl_D.refine_raw
+   is "(uncurry2 ?f,_)\<in>_"
+prepare_code_thms (in -) unit_propagation_inner_loop_body_wl_D_code_def
+lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
+   unit_propagation_inner_loop_body_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+
+definition unit_propagation_inner_loop_wl_loop_D :: "nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres" where
+  \<open>unit_propagation_inner_loop_wl_loop_D L S\<^sub>0 = do {
+    WHILE\<^sub>T\<^bsup>\<lambda>(w, S). twl_struct_invs (twl_st_of_wl (Some (L, w)) S) \<and>
+        twl_stgy_invs (twl_st_of_wl (Some (L, w)) S) \<and>
+         additional_WS_invs (st_l_of_wl (Some (L, w)) S) \<and>
+        correct_watching S \<and> w \<le> length (watched_by S L) \<and>
+        literals_are_N\<^sub>0 S \<and> L \<in> snd ` D\<^sub>0\<^esup>
+      (\<lambda>(w, (M, N, U, D, NP, UP, Q, W)). w < length (W L) \<and> D = None)
+      (\<lambda>(w, S). do {
+        unit_propagation_inner_loop_body_wl_D L w S
+      })
+      (0, S\<^sub>0)
+  }
+  \<close>
+term get_conflict_wl
+definition get_conflict_wl_is_None_code :: \<open>twl_st_wll \<Rightarrow> bool\<close> where
+  \<open>get_conflict_wl_is_None_code = (\<lambda>(M, N, U, D, NP, UP, Q, W). is_None D)\<close>
+
+definition get_conflict_wl_is_None :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>get_conflict_wl_is_None = (\<lambda>(M, N, U, D, NP, UP, Q, W). is_None D)\<close>
+
+lemma get_conflict_wl_is_None_code_hnr[unfolded twl_st_l_assn_def, sepref_fr_rules]:
+  \<open>(return o get_conflict_wl_is_None_code, RETURN o get_conflict_wl_is_None) \<in>
+     twl_st_l_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding get_conflict_wl_is_None_code_def get_conflict_wl_is_None_def
+    twl_st_l_assn_def
+  by sepref_to_hoare (sep_auto split: option.splits)
+
+lemma get_conflict_wl_is_None: \<open>get_conflict_wl S = None \<longleftrightarrow> get_conflict_wl_is_None S\<close>
+  by (cases S) (auto simp: get_conflict_wl_is_None_def split: option.splits)
+lemma watched_by_nth_watched_app:
+  \<open>watched_by S K = ((snd o snd o snd o snd o snd o snd o snd) S) K\<close>
+  by (cases S) (auto simp: watched_app_def)
+
+sepref_register unit_propagation_inner_loop_wl_loop_D
+sepref_thm unit_propagation_inner_loop_wl_loop_D
+  is \<open>uncurry ((PR_CONST unit_propagation_inner_loop_wl_loop_D) :: nat literal \<Rightarrow>
+           nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
+  :: \<open>nat_ann_lit_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_assn\<close>
+  unfolding unit_propagation_inner_loop_wl_loop_D_def length_ll_def[symmetric] PR_CONST_def
+  unfolding watched_by_nth_watched_app watched_app_def[symmetric]
+    length_ll_f_def[symmetric]
+  unfolding nth_ll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
+  unfolding lms_fold_custom_empty twl_st_l_assn_def swap_ll_def[symmetric]
+  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
+    is_None_def[symmetric] get_conflict_wl_is_None
+  supply [[goals_limit=1]]
+  by sepref
 
 
-  thm HOL_list_prepend_hnr
+concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_code
+   uses twl_array_code.unit_propagation_inner_loop_wl_loop_D.refine_raw
+   is "(uncurry ?f,_)\<in>_"
+prepare_code_thms (in -) unit_propagation_inner_loop_wl_loop_D_code_def
+lemmas unit_propagation_inner_loop_wl_loop_D_code_refine[sepref_fr_rules] =
+   unit_propagation_inner_loop_wl_loop_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+
+lemma unit_propagation_inner_loop_wl_spec:
+  assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close> and K: \<open>K \<in> snd ` local.D\<^sub>0\<close>
+  shows \<open>unit_propagation_inner_loop_wl_loop_D K S \<le>
+     \<Down> {((n', T'), n, T). n' = n \<and> T = T' \<and> literals_are_N\<^sub>0 T'}
+       (unit_propagation_inner_loop_wl_loop K S)\<close>
+proof -
+  have u: \<open>unit_propagation_inner_loop_body_wl_D K w S \<le>
+         \<Down> {((n', T'), n, T). n' = n \<and> T = T' \<and> literals_are_N\<^sub>0 T'}
+           (unit_propagation_inner_loop_body_wl K' w' S')\<close>
+  if \<open>K \<in> snd ` local.D\<^sub>0\<close> and \<open>literals_are_N\<^sub>0 S\<close> and
+    \<open>K = K'\<close> and \<open>w = w'\<close> and \<open>S = S'\<close> for S S' and w w' and K K'
+    using unit_propagation_inner_loop_body_wl_D_spec[of K S w] that by auto
+  have \<open>mset `# mset (take n (tl xs)) + mset `# mset (drop (Suc n) xs) = mset `# mset (tl xs)\<close>
+    for n :: nat and xs
+    unfolding image_mset_union[symmetric] mset_append[symmetric] drop_Suc
+      append_take_drop_id ..
+  then have m: \<open>(mset `# mset (take n (tl xs)) + a + (mset `# mset (drop (Suc n) xs) + b)) =
+         (mset `# mset (tl xs)) + a + b\<close>
+    for a b xs and n :: nat
+    by auto
+
+  show ?thesis
+    unfolding unit_propagation_inner_loop_wl_loop_D_def unit_propagation_inner_loop_wl_loop_def
+    apply (refine_vcg u)
+    subgoal using N\<^sub>0 by simp
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using K by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+definition unit_propagation_inner_loop_wl_D :: "nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+  \<open>unit_propagation_inner_loop_wl_D L S\<^sub>0 = do {
+     wS \<leftarrow> unit_propagation_inner_loop_wl_loop_D L S\<^sub>0;
+     RETURN (snd wS)
+  }\<close>
+
+lemma unit_propagation_inner_loop_wl_D_spec:
+  assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close> and K: \<open>K \<in> snd ` local.D\<^sub>0\<close>
+  shows \<open>unit_propagation_inner_loop_wl_D K S \<le>
+     \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}
+       (unit_propagation_inner_loop_wl K S)\<close>
+proof -
+  show ?thesis
+    unfolding unit_propagation_inner_loop_wl_D_def unit_propagation_inner_loop_wl_def
+    apply (refine_vcg unit_propagation_inner_loop_wl_spec)
+    subgoal using N\<^sub>0 .
+    subgoal using K .
+    subgoal by auto
+    done
+qed
+
+definition unit_propagation_outer_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+  \<open>unit_propagation_outer_loop_wl_D S\<^sub>0 =
+    WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> twl_stgy_invs (twl_st_of_wl None S) \<and>
+      correct_watching S \<and> additional_WS_invs (st_l_of_wl None S)\<^esup>
+      (\<lambda>S. pending_wl S \<noteq> {#})
+      (\<lambda>S. do {
+        ASSERT(pending_wl S \<noteq> {#});
+        (S', L) \<leftarrow> select_and_remove_from_pending_wl S;
+        ASSERT(L \<in># lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S))));
+        unit_propagation_inner_loop_wl_D L S'
+      })
+      (S\<^sub>0 :: nat twl_st_wl)\<close>
+
+
+sepref_register unit_propagation_outer_loop_wl_D
+
+lemma unit_propagation_outer_loop_wl_D_spec:
+  assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close>
+  shows \<open>unit_propagation_outer_loop_wl_D S \<le>
+     \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}
+       (unit_propagation_outer_loop_wl S)\<close>
+proof -
+  have select: \<open>select_and_remove_from_pending_wl S \<le>
+    \<Down> {((T', L'), (T, L)). T = T' \<and> L = L' \<and>  T = set_pending_wl (pending_wl S - {#L#}) S}
+       (select_and_remove_from_pending_wl S')\<close>
+    if \<open>S = S'\<close> for S S' :: \<open>nat twl_st_wl\<close>
+    unfolding select_and_remove_from_pending_wl_def select_and_remove_from_pending_def
+    apply (rule RES_refine)
+    using that unfolding select_and_remove_from_pending_wl_def by blast
+  have unit_prop: \<open>literals_are_N\<^sub>0 S \<Longrightarrow>
+          K \<in> snd ` D\<^sub>0 \<Longrightarrow>
+          unit_propagation_inner_loop_wl_D K S
+          \<le> \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T} (unit_propagation_inner_loop_wl K' S')\<close>
+    if \<open>K = K'\<close> and \<open>S = S'\<close> for K K' and S S' :: \<open>nat twl_st_wl\<close>
+    unfolding that by (rule unit_propagation_inner_loop_wl_D_spec)
+  show ?thesis
+    unfolding unit_propagation_outer_loop_wl_D_def unit_propagation_outer_loop_wl_def
+    apply (refine_vcg select unit_prop)
+    subgoal using N\<^sub>0 by simp
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for S' S T'L' TL T' L' T L by (cases S') auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for S' S T'L' TL T' L' T L using N\<^sub>0 by (cases S') auto
+    subgoal by (auto simp: is_N\<^sub>1_def)
+    done
+qed
+
+
+definition skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+  \<open>skip_and_resolve_loop_wl_D S\<^sub>0 =
+    do {
+      ASSERT(get_conflict_wl S\<^sub>0 \<noteq> None);
+      (H, S) \<leftarrow>
+        WHILE\<^sub>T\<^bsup>\<lambda>(brk, S).
+           skip_and_resolve_loop_inv (twl_st_of_wl None S\<^sub>0) (brk, twl_st_of_wl None S) \<and>
+           additional_WS_invs (st_l_of_wl None S) \<and> correct_watching S \<and> literals_are_N\<^sub>0 S\<^esup>
+        (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)))
+        (\<lambda>(_, S).
+          let (M, N, U, D, NP, UP, Q, W) = S in
+          do {
+            ASSERT(M \<noteq> []);
+            ASSERT(get_conflict_wl (M, N, U, D, NP, UP, Q, W) \<noteq> None);
+            let D' = the (get_conflict_wl (M, N, U, D, NP, UP, Q, W));
+            ASSERT(is_proped (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W))));
+            let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W)));
+            ASSERT(C < length N);
+            if -L \<notin> set D' then
+              do {RETURN (False, (tl M, N, U, D, NP, UP, Q, W))}
+            else
+              if get_maximum_level M (remove1_mset (-L) (mset D')) = count_decided M
+              then
+                do {RETURN (resolve_cls_l L D' (if C = 0 then [L] else N!C) = [],
+                   (tl M, N, U, Some (resolve_cls_l L D' (if C = 0 then [L] else N!C)),
+                     NP, UP, Q, W))}
+              else
+                do {RETURN (True, (M, N, U, D, NP, UP, Q, W))}
+          }
+        )
+        (get_conflict_wl S\<^sub>0 = Some [], S\<^sub>0);
+      RETURN S
+    }
+  \<close>
+
+context
+begin
+text \<open>Auxiliary definition: it helps to prove refinements. Once the \<^term>\<open>RETURN\<close> is removed,
+  the invariants form the \<^term>\<open>WHILE\<close>--loop are not dropped.\<close>
+private definition skip_and_resolve_loop_wl_D' :: "nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres" where
+  \<open>skip_and_resolve_loop_wl_D' S\<^sub>0 =
+    do {
+      ASSERT(get_conflict_wl S\<^sub>0 \<noteq> None);
+      S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, S).
+           skip_and_resolve_loop_inv (twl_st_of_wl None S\<^sub>0) (brk, twl_st_of_wl None S) \<and>
+           additional_WS_invs (st_l_of_wl None S) \<and> correct_watching S \<and> literals_are_N\<^sub>0 S\<^esup>
+        (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)))
+        (\<lambda>(_, S).
+          let (M, N, U, D, NP, UP, Q, W) = S in
+          do {
+            ASSERT(M \<noteq> []);
+            ASSERT(get_conflict_wl (M, N, U, D, NP, UP, Q, W) \<noteq> None);
+            let D' = the (get_conflict_wl (M, N, U, D, NP, UP, Q, W));
+            ASSERT(is_proped (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W))));
+            let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W)));
+            ASSERT(C < length N);
+            if -L \<notin> set D' then
+              do {RETURN (False, (tl M, N, U, D, NP, UP, Q, W))}
+            else
+              if get_maximum_level M (remove1_mset (-L) (mset D')) = count_decided M
+              then
+                do {RETURN (resolve_cls_l L D' (if C = 0 then [L] else N!C) = [],
+                   (tl M, N, U, Some (resolve_cls_l L D' (if C = 0 then [L] else N!C)),
+                     NP, UP, Q, W))}
+              else
+                do {RETURN (True, (M, N, U, D, NP, UP, Q, W))}
+          }
+        )
+        (get_conflict_wl S\<^sub>0 = Some [], S\<^sub>0);
+     RETURN S
+    }
+  \<close>
+
+lemma twl_struct_invs_is_N\<^sub>1_clauses_init_clss:
+  fixes S\<^sub>0 :: \<open>nat twl_st_wl\<close>
+  defines \<open>S \<equiv> twl_st_of_wl None S\<^sub>0\<close>
+  defines \<open>clss \<equiv> (lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state S)))\<close>
+  defines \<open>init \<equiv> (lits_of_atms_of_mm (init_clss (convert_to_state S)))\<close>
+  assumes invs: \<open>twl_struct_invs (twl_st_of_wl None S\<^sub>0)\<close>
+  shows \<open>is_N\<^sub>1 clss \<longleftrightarrow> is_N\<^sub>1 init\<close>
+proof -
+
+  have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state S)\<close>
+    using invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S_def
+    by fast
+  then have
+    \<open>set_mset clss =
+     set_mset init\<close>
+    unfolding clss_def init_def S_def
+    by (cases S\<^sub>0) (auto simp: clauses_def mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset_state
+        cdcl\<^sub>W_restart_mset.no_strange_atm_def in_lits_of_atms_of_mm_ain_atms_of_iff)
+  then show \<open>is_N\<^sub>1 clss \<longleftrightarrow> is_N\<^sub>1 init\<close>
+    unfolding is_N\<^sub>1_def by blast
+qed
+
+lemma cdcl_twl_o_literals_are_N\<^sub>0_invs:
+  fixes S :: \<open>nat twl_st_wl\<close>
+  assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<^sub>0\<close> and
+    cdcl: \<open>cdcl_twl_o\<^sup>*\<^sup>* (twl_st_of_wl None S\<^sub>0) (twl_st_of_wl None T)\<close> and
+    invs: \<open>twl_struct_invs (twl_st_of_wl None S\<^sub>0)\<close>
+  shows \<open>literals_are_N\<^sub>0 T\<close>
+proof -
+  let ?S = \<open>twl_st_of_wl None S\<^sub>0\<close> and ?T = \<open>twl_st_of_wl None T\<close>
+  have cdcl_stgy: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (convert_to_state ?S) (convert_to_state ?T)\<close>
+    apply (rule rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy)
+    subgoal using rtranclp_cdcl_twl_o_stgyD[OF cdcl] .
+    subgoal using invs .
+    done
+  have init: \<open>init_clss (convert_to_state ?S) = init_clss (convert_to_state ?T)\<close>
+    apply (rule cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_restart_init_clss)
+    using cdcl_stgy by (blast dest: cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart)
+  have invs_T: \<open>twl_struct_invs (twl_st_of_wl None T)\<close>
+    using cdcl invs rtranclp_cdcl_twl_o_stgyD rtranclp_cdcl_twl_stgy_twl_struct_invs by blast
+  show ?thesis
+    using N\<^sub>0
+    unfolding twl_struct_invs_is_N\<^sub>1_clauses_init_clss[of S\<^sub>0, OF invs]
+      twl_struct_invs_is_N\<^sub>1_clauses_init_clss[of T, OF invs_T] init[symmetric]
+    .
+qed
+
+lemma skip_and_resolve_loop_wl_D_spec:
+  assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close> \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None S))\<close>
+  shows \<open>skip_and_resolve_loop_wl_D S \<le>
+     \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T} (skip_and_resolve_loop_wl S)\<close>
+proof -
+  have 1: \<open>((get_conflict_wl S = Some [], S), get_conflict_wl S = Some [], S) \<in> Id\<close>
+    by auto
+  have D'\<^sub>1: \<open>skip_and_resolve_loop_wl_D' S \<le> \<Down> {((b, T'), T). T' = T} (skip_and_resolve_loop_wl S)\<close>
+    unfolding skip_and_resolve_loop_wl_D'_def skip_and_resolve_loop_wl_def
+    apply (refine_vcg 1)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for brk'S' brkS brk' S'
+      by (rule cdcl_twl_o_literals_are_N\<^sub>0_invs[of S])
+        (use N\<^sub>0 in \<open>auto simp: skip_and_resolve_loop_inv_def\<close>)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+  have H: \<open>do {S \<leftarrow> H; RETURN S} = H\<close> for H :: \<open>'a nres\<close>
+    by simp
+  have D'\<^sub>2: \<open>skip_and_resolve_loop_wl_D' S \<le>
+     \<Down> {((b', T'), (b, T)). b = b' \<and> T' = T \<and> literals_are_N\<^sub>0 T} (skip_and_resolve_loop_wl_D' S)\<close>
+    unfolding H skip_and_resolve_loop_wl_D'_def
+    apply (refine_vcg 1)
+    subgoal by auto
+    subgoal for b'T' bT b' T' by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: mset_take_mset_drop_mset' clauses_def)
+    subgoal by auto
+    subgoal by (auto simp: clauses_def)
+    subgoal by auto
+    done
+  have S: \<open>({((b', T'), b, T). b = b' \<and> T' = T \<and> local.literals_are_N\<^sub>0 T} O Collect (case_prod (\<lambda>(b, y). op = y)))
+   = {((b', T'), T). T' = T \<and> local.literals_are_N\<^sub>0 T}\<close>
+    by auto
+  have D'\<^sub>3: \<open>local.skip_and_resolve_loop_wl_D' S \<le> \<Down> {((b', T'), T). T' = T \<and> local.literals_are_N\<^sub>0 T} (skip_and_resolve_loop_wl S)\<close>
+    using conc_trans[OF D'\<^sub>2 D'\<^sub>1] unfolding conc_fun_chain S .
+  have D'\<^sub>4: \<open>skip_and_resolve_loop_wl_D S \<le> \<Down> {(T, (b, T')). T' = T} (skip_and_resolve_loop_wl_D' S)\<close>
+    unfolding skip_and_resolve_loop_wl_D_def skip_and_resolve_loop_wl_D'_def
+    by refine_vcg auto
+  have S: \<open> {(T, b, T'). T' = T} O {((b', T'), T). T' = T \<and> local.literals_are_N\<^sub>0 T} =
+     {(T', T). T = T' \<and> local.literals_are_N\<^sub>0 T}\<close>
+    by auto
+  show ?thesis
+    using conc_trans[OF D'\<^sub>4 D'\<^sub>3] unfolding conc_fun_chain S .
+qed
+
+end
+
+definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+  \<open>backtrack_wl_D S\<^sub>0 =
+    do {
+      let (M, N, U, D, NP, UP, Q, W) = S\<^sub>0 in
+      do {
+        ASSERT(M \<noteq> []);
+        let L = lit_of (hd M);
+        ASSERT(get_level M L = count_decided M);
+        ASSERT(D \<noteq> None);
+        ASSERT(D \<noteq> Some []);
+        ASSERT(ex_decomp_of_max_lvl M D L);
+        ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
+        ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
+        ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
+        M1 \<leftarrow> find_decomp_wl (M, N, U, D, NP, UP, Q, W) L;
+
+        if length (the D) > 1
+        then do {
+          L' \<leftarrow> find_lit_of_max_level_wl (M, N, U, D, NP, UP, Q, W) L;
+          ASSERT(atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP));
+          ASSERT(atm_of L' \<in> atms_of_mm (mset `# mset (tl N) + NP));
+          ASSERT(L \<in> snd ` D\<^sub>0);
+          ASSERT(L' \<in> snd ` D\<^sub>0);
+          RETURN (Propagated (-L) (length N) # M1,
+            N @ [[-L, L'] @ (remove1 (-L) (remove1 L' (the D)))], U,
+            None, NP, UP, add_mset L {#}, W(-L:= W (-L) @ [length N], L':= W L' @ [length N]))
+        }
+        else do {
+          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset_list (the D) UP, add_mset L {#}, W)
+        }
+      }
+    }
+  \<close>
+
+lemma in_N\<^sub>1_iff: \<open>L \<in># N\<^sub>1 \<longleftrightarrow> atm_of L \<in> atms_of N\<^sub>1\<close>
+  by (auto simp: N\<^sub>1_def atms_of_def atm_of_eq_atm_of)
+
+lemma backtrack_wl_D_spec:
+  assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close>
+  shows \<open>backtrack_wl_D S \<le>
+     \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}
+       (backtrack_wl S)\<close>
+proof -
+  have 1: \<open>((get_conflict_wl S = Some [], S), get_conflict_wl S = Some [], S) \<in> Id\<close>
+    by auto
+  have 2: \<open>find_decomp_wl S M \<le> \<Down> Id (find_decomp_wl S' M')\<close>
+    if \<open>S = S'\<close> and \<open>M = M'\<close>
+    for S S' :: \<open>nat twl_st_wl\<close> and M M'
+    using that by auto
+  have 3: \<open>find_lit_of_max_level_wl S M \<le> \<Down> Id (find_lit_of_max_level_wl S' M')\<close>
+    if \<open>S = S'\<close> and \<open>M = M'\<close>
+    for S S' :: \<open>nat twl_st_wl\<close> and M M'
+    using that by auto
+  have H: \<open>mset `# mset (take n (tl xs)) + a + (mset `# mset (drop (Suc n) xs) + b) =
+   mset `# mset (tl xs) + a + b\<close> for n xs a b
+    apply (subst (2) append_take_drop_id[of n \<open>tl xs\<close>, symmetric])
+    apply (subst mset_append)
+    by (auto simp: drop_Suc)
+  have N\<^sub>1: \<open>set_mset (lits_of_atms_of_mm N) = set_mset N\<^sub>1 \<longleftrightarrow> atms_of_mm N = atms_of N\<^sub>1\<close> for N M
+    apply (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff atms_of_ms_def atms_of_def
+        atm_of_eq_atm_of N\<^sub>1_def in_implies_atm_of_on_atms_of_ms
+        image_Un)
+      using in_implies_atm_of_on_atms_of_ms in_lits_of_atms_of_mm_ain_atms_of_iff by fastforce
+  show ?thesis(* slpit the function in WHILE + RETURN, and prove invariants on WHILE first *)
+    unfolding backtrack_wl_D_def backtrack_wl_def
+    supply [[goals_limit=1]]
+    apply (refine_vcg 1 2 3)
+    subgoal by fast
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by fast
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
+      subgoal
+        using N\<^sub>0
+        apply (cases M)
+         apply simp
+        apply (simp add: twl_struct_invs_is_N\<^sub>1_clauses_init_clss mset_take_mset_drop_mset'
+            image_image cdcl\<^sub>W_restart_mset_state clauses_def H in_N\<^sub>1_iff)
+        by (auto simp: (* is_N\<^sub>1_def *) in_lits_of_atms_of_mm_ain_atms_of_iff mset_take_mset_drop_mset'
+            clauses_def H (* N\<^sub>1 *) image_image cdcl\<^sub>W_restart_mset.no_strange_atm_def
+            cdcl\<^sub>W_restart_mset_state eq_commute[of _ \<open>atms_of N\<^sub>1\<close>] in_N\<^sub>1_iff is_N\<^sub>1_def)
+      subgoal
+       apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+       apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+       by fast
+      done
+    subgoal for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
+      subgoal
+        using N\<^sub>0
+        apply (simp add: twl_struct_invs_is_N\<^sub>1_clauses_init_clss mset_take_mset_drop_mset'
+            image_image cdcl\<^sub>W_restart_mset_state clauses_def H in_N\<^sub>1_iff)
+        by (auto simp: (* is_N\<^sub>1_def *) in_lits_of_atms_of_mm_ain_atms_of_iff mset_take_mset_drop_mset'
+            clauses_def H (* N\<^sub>1 *) image_image cdcl\<^sub>W_restart_mset.no_strange_atm_def
+            cdcl\<^sub>W_restart_mset_state eq_commute[of _ \<open>atms_of N\<^sub>1\<close>] in_N\<^sub>1_iff is_N\<^sub>1_def)
+      subgoal
+        apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        by fast
+      done
+    subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M' SN' N'
+      SU' U' SD' D' SNP' NP' SUP' UP' SWS' WS' W' K K' L L'
+    proof -
+      thm p
+      note SWS = p(1) and SUP = p(2) and SNP = p(3) and SD = p(4) and SU = p(5) and SN = p(6) and
+        S = p(7) and M_not_Nil = p(15) and lvl_count_decided = p(10) and D_not_None = p(18) and
+        D_not_Some_Nil = p(19) and ex_decomp = p(20) and stgy_invs = p(21) and struct_invs = p(22)
+        and no_skip = p(30) and M1_M1a = p(31) and L'_La = p(34) and atm_hd = p(35) and atm_L = p(36) and
+        S_expand = p(1-14)
+      have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
+        using struct_invs
+        apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        by fast
+
+      text \<open>TODO: should be a separate lemma\<close>
+      have in_atms_of_minusD: \<open>x \<in> atms_of (A - B) \<Longrightarrow> x \<in> atms_of A\<close> for x A B
+        by (auto simp: atms_of_def dest: in_diffD)
+
+
+      show ?thesis (is \<open>(?T', ?T) \<in> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}\<close>)
+      proof -
+        have T: \<open>?T = ?T'\<close>
+          using M1_M1a L'_La S_expand by auto
+
+        have is_N\<^sub>1_add: \<open>is_N\<^sub>1 (A + B) \<longleftrightarrow> set_mset A \<subseteq> set_mset N\<^sub>1\<close> if \<open>is_N\<^sub>1 B\<close> for A B
+          using that unfolding is_N\<^sub>1_def by auto
+
+
+        have \<open>atms_of_ms (mset ` set (take U (tl N))) \<subseteq> atms_of_ms (mset ` set (tl N))\<close>
+          by (auto simp: atms_of_ms_def dest: in_set_takeD)
+
+        then have \<open>set_mset
+             (lits_of_atms_of_m (add_mset (- lit_of (hd M)) (add_mset L' (mset (the D) - {#- lit_of (hd M), L'#})))) \<subseteq> set_mset N\<^sub>1\<close>
+          using M_not_Nil alien N\<^sub>0[unfolded is_N\<^sub>1_def, symmetric] atm_hd atm_L D_not_None
+          unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+          apply (cases M)
+          by (auto 5 5 simp: in_lits_of_atms_of_mm_ain_atms_of_iff atm_of_eq_atm_of
+              cdcl\<^sub>W_restart_mset_state clauses_def in_N\<^sub>1_iff S_expand
+              in_lits_of_atms_of_m_ain_atms_of_iff
+              mset_take_mset_drop_mset' H image_image
+              dest!: in_atms_of_minusD)
+
+        then have \<open>literals_are_N\<^sub>0 ?T\<close>
+          using  N\<^sub>0
+          by (cases \<open>Suc U - length N\<close>; cases N)
+            (simp_all add: clauses_def mset_take_mset_drop_mset' S_expand
+              lits_of_atms_of_mm_union lits_of_atms_of_mm_add_mset (* is_N\<^sub>1_def *)
+              in_lits_of_atms_of_mm_ain_atms_of_iff is_N\<^sub>1_add)
+        then show ?thesis
+          using T by blast
+      qed
+    qed
+    subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M' SN' N'
+      SU' U' SD' D' SNP' NP' SUP' UP' SWS' WS' W' K K'
+    proof -
+      thm p
+      note SWS = p(1) and SUP = p(2) and SNP = p(3) and SD = p(4) and SU = p(5) and SN = p(6) and
+        S = p(7) and M_not_Nil = p(15) and lvl_count_decided = p(10) and D_not_None = p(18) and
+        D_not_Some_Nil = p(19) and ex_decomp = p(20) and stgy_invs = p(21) and struct_invs = p(22)
+        and no_skip = p(30) and M1_M1a = p(31) and K_K' = p(32) and
+        S_expand = p(1-14)
+      have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
+        using struct_invs
+        apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        by fast
+
+      text \<open>TODO: should be a separate lemma\<close>
+      have in_atms_of_minusD: \<open>x \<in> atms_of (A - B) \<Longrightarrow> x \<in> atms_of A\<close> for x A B
+        by (auto simp: atms_of_def dest: in_diffD)
+
+
+      show ?thesis (is \<open>(?T', ?T) \<in> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}\<close>)
+      proof -
+        have T: \<open>?T = ?T'\<close>
+          using M1_M1a S_expand by auto
+
+        have is_N\<^sub>1_add: \<open>is_N\<^sub>1 (A + B) \<longleftrightarrow> set_mset A \<subseteq> set_mset N\<^sub>1\<close> if \<open>is_N\<^sub>1 B\<close> for A B
+          using that unfolding is_N\<^sub>1_def by auto
+
+
+        have \<open>atms_of_ms (mset ` set (take U (tl N))) \<subseteq> atms_of_ms (mset ` set (tl N))\<close>
+          by (auto simp: atms_of_ms_def dest: in_set_takeD)
+
+        then have \<open>set_mset (lits_of_atms_of_m (mset (the D))) \<subseteq> set_mset N\<^sub>1\<close>
+          using M_not_Nil alien N\<^sub>0[unfolded is_N\<^sub>1_def, symmetric] D_not_None
+          unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+          apply (cases M)
+          by (auto 5 5 simp: in_lits_of_atms_of_mm_ain_atms_of_iff atm_of_eq_atm_of
+              cdcl\<^sub>W_restart_mset_state clauses_def in_N\<^sub>1_iff S_expand
+              in_lits_of_atms_of_m_ain_atms_of_iff
+              mset_take_mset_drop_mset' H image_image
+              dest!: in_atms_of_minusD)
+
+        then have \<open>literals_are_N\<^sub>0 ?T\<close>
+          using  N\<^sub>0
+          by (cases \<open>Suc U - length N\<close>; cases N)
+            (simp_all add: clauses_def mset_take_mset_drop_mset' S_expand
+              lits_of_atms_of_mm_union lits_of_atms_of_mm_add_mset (* is_N\<^sub>1_def *)
+              in_lits_of_atms_of_mm_ain_atms_of_iff is_N\<^sub>1_add)
+        then show ?thesis
+          using T by blast
+      qed
+    qed
+    done
+qed
+
+
+subsubsection \<open>Decide or Skip\<close>
+
+definition decide_wl_or_skip_D :: "'v twl_st_wl \<Rightarrow> (bool \<times> 'v twl_st_wl) nres" where
+  \<open>decide_wl_or_skip_D S = (do {
+    ASSERT(twl_struct_invs (twl_st_of_wl None S));
+    ASSERT(twl_stgy_invs (twl_st_of_wl None S));
+    ASSERT(additional_WS_invs (st_l_of_wl None S));
+    ASSERT(get_conflict_wl S = None);
+    L \<leftarrow> find_unassigned_lit_wl S;
+    if L \<noteq> None
+    then do {
+      let (M, N, U, D, NP, UP, Q, W) = S;
+      ASSERT(L \<noteq> None);
+      let K = the L;
+      RETURN (False, (Decided K # M, N, U, D, NP, UP, {#-K#}, W))}
+    else do {RETURN (True, S)}
+  })
+\<close>
+
+theorem decide_wl_or_skip_D_spec:
+ \<open>literals_are_N\<^sub>0 S \<Longrightarrow>
+    decide_wl_or_skip_D S \<le> \<Down> {((b', T'), (b, T)). b = b' \<and> T = T' \<and> literals_are_N\<^sub>0 T} (decide_wl_or_skip S)\<close>
+  unfolding decide_wl_or_skip_D_def decide_wl_or_skip_def
+  apply refine_vcg
+  subgoal by simp
+  subgoal by (simp add: clauses_def)
+  subgoal by simp
+  done
+
+
+subsubsection \<open>Backtrack, Skip, Resolve or Decide\<close>
+
+definition cdcl_twl_o_prog_wl_D :: "nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres" where
+  \<open>cdcl_twl_o_prog_wl_D S =
+    do {
+      ASSERT(twl_struct_invs (twl_st_of_wl None S));
+      ASSERT(twl_stgy_invs (twl_st_of_wl None S));
+      ASSERT(additional_WS_invs (st_l_of_wl None S));
+      do {
+        if get_conflict_wl S = None
+        then decide_wl_or_skip_D S
+        else do {
+          T \<leftarrow> skip_and_resolve_loop_wl_D S;
+          ASSERT(get_conflict_wl T \<noteq> None);
+          if get_conflict_wl T \<noteq> Some []
+          then do {U \<leftarrow> backtrack_wl_D T; RETURN (False, U)}
+          else do {RETURN (True, T)}
+        }
+      }
+    }
+  \<close>
+
+theorem cdcl_twl_o_prog_wl_D_spec:
+  assumes \<open>literals_are_N\<^sub>0 S\<close>
+  shows \<open>cdcl_twl_o_prog_wl_D S \<le> \<Down> {((b', T'), (b, T)). b = b' \<and> T = T' \<and> literals_are_N\<^sub>0 T}
+     (cdcl_twl_o_prog_wl S)\<close>
+proof -
+  have 1: \<open>backtrack_wl_D S \<le>
+     \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}
+       (backtrack_wl T)\<close> if \<open>literals_are_N\<^sub>0 S\<close> and \<open>S = T\<close> for S T
+    using backtrack_wl_D_spec[of S] that by fast
+  have 2: \<open>skip_and_resolve_loop_wl_D S \<le>
+     \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T} (skip_and_resolve_loop_wl T)\<close>
+    if N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close> \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None S))\<close> \<open>S = T\<close>
+    for S T
+    using skip_and_resolve_loop_wl_D_spec[of S] that by fast
+  show ?thesis
+    using assms
+    unfolding cdcl_twl_o_prog_wl_D_def cdcl_twl_o_prog_wl_def
+    apply (refine_vcg decide_wl_or_skip_D_spec 1 2)
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by auto
+    subgoal by simp
+    subgoal by auto
+    subgoal by auto
+    done
+qed
 
 
 
+subsubsection \<open>Full Strategy\<close>
 
- *)
+definition cdcl_twl_stgy_prog_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+  \<open>cdcl_twl_stgy_prog_wl_D S\<^sub>0 =
+  do {
+    do {
+      (brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T). twl_struct_invs (twl_st_of_wl None T) \<and>
+          twl_stgy_invs (twl_st_of_wl None T) \<and>
+          (brk \<longrightarrow> no_step cdcl_twl_stgy (twl_st_of_wl None T)) \<and>
+          cdcl_twl_stgy\<^sup>*\<^sup>* (twl_st_of_wl None S\<^sub>0) (twl_st_of_wl None T) \<and>
+          (\<not>brk \<longrightarrow> get_conflict_wl T = None) \<and>
+          literals_are_N\<^sub>0 T\<^esup>
+        (\<lambda>(brk, _). \<not>brk)
+        (\<lambda>(brk, S).
+        do {
+          T \<leftarrow> unit_propagation_outer_loop_wl_D S;
+          cdcl_twl_o_prog_wl_D T
+        })
+        (False, S\<^sub>0);
+      RETURN T
+    }
+  }
+  \<close>
 
+theorem cdcl_twl_stgy_prog_wl_D_spec:
+  assumes \<open>literals_are_N\<^sub>0 S\<close>
+  shows \<open>cdcl_twl_stgy_prog_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}
+     (cdcl_twl_stgy_prog_wl S)\<close>
+proof -
+  have 1: \<open>((False, S), False, S) \<in> Id\<close> by fast
+  have 2: \<open>unit_propagation_outer_loop_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}
+       (unit_propagation_outer_loop_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_N\<^sub>0 S\<close> for S T
+    using unit_propagation_outer_loop_wl_D_spec[of S] that by fast
+  have 3: \<open>cdcl_twl_o_prog_wl_D S \<le> \<Down> {((b', T'), b, T). b = b' \<and> T = T' \<and> literals_are_N\<^sub>0 T}
+    (cdcl_twl_o_prog_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_N\<^sub>0 S\<close> for S T
+    using cdcl_twl_o_prog_wl_D_spec[of S] that by fast
+  show ?thesis
+    using assms
+    unfolding cdcl_twl_stgy_prog_wl_D_def cdcl_twl_stgy_prog_wl_def
+    apply (refine_vcg 1 2 3)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for x x' x1 x2 S'
+      by (cases x') fast
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
 
+end -- \<open>end of locale @{locale twl_array_code}\<close>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-sepref_definition watched_by_nth_impl is \<open>uncurry2 (RETURN ooo watched_by_nth)\<close>
-  :: \<open>[\<lambda>(((M, N, U, D, NP, UP, Q, W), L), i). i < length (W L)]\<^sub>a
-      twl_st_l_assn\<^sup>k *\<^sub>a nat_nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
-  unfolding watched_by_nth_def twl_st_l_assn_def
-  apply sepref_dbg_keep
-  supply [[goals_limit=1]] -- \<open>There will be many subgoals during translation, and printing them takes very long with Isabelle :(\<close>
-   apply sepref_dbg_trans_keep
-    apply auto[]
-   apply sepref_dbg_trans_step_keep
-      apply (sepref_dbg_side_keep)
-
-definition watched_by_impl :: \<open>twl_st_wll \<Rightarrow> nat \<Rightarrow> _\<close> where
-  \<open>watched_by_impl S L =
-     do {
-        let (M, N, U, D, NP, UP, Q, W) = S;
-        RETURN (Array.nth W L)
-     }\<close>
-
-sepref_definition truc_muche is truc_muche ::
-    \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
-  unfolding truc_muche_def
-  apply sepref_dbg_keep
-  supply [[goals_limit=1]] -- \<open>There will be many subgoals during translation, and printing them takes very long with Isabelle :(\<close>
-   apply sepref_dbg_trans_keep
-    apply auto
-   apply sepref_dbg_trans_step_keep
-      apply (sepref_dbg_side_keep)
+export_code "unit_propagation_inner_loop_body_wl_D_code" in Haskell
 
 end

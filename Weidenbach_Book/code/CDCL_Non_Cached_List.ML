@@ -315,19 +315,19 @@ fun find_level_decomp A_ m [] d k = NONE
 
 fun uminus_literal l = (if is_pos l then Neg else Pos) (atm_of l);
 
-fun op_Decided x = Decided x;
-
 fun atm_of_impl l = (case l of Pos k => k | Neg k => k);
 
 fun lit_of_impl l = (case l of Decided k => k | Propagated (k, _) => k);
 
-fun option_bool_eq_impl la l =
-  (if is_None la then (if is_None l then true else false)
-    else (if is_None l then false else equal_bool (the la) (the l)));
+fun op_Decided x = Decided x;
 
 fun nat_lit_eq_cases k l =
   (case (k, l) of (Pos ka, Pos a) => equal_nata ka a | (Pos _, Neg _) => false
     | (Neg _, Pos _) => false | (Neg ka, Neg a) => equal_nata ka a);
+
+fun option_bool_eq_impl la l =
+  (if is_None la then (if is_None l then true else false)
+    else (if is_None l then false else equal_bool (the la) (the l)));
 
 fun valued_impl x =
   (fn ai => fn bi =>
