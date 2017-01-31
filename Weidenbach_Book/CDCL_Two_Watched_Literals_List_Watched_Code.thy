@@ -1552,7 +1552,6 @@ lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
    unit_propagation_inner_loop_body_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
 
 
-sepref_register unit_propagation_inner_loop_wl_loop_D
 sepref_thm unit_propagation_inner_loop_wl_loop_D
   is \<open>uncurry ((PR_CONST unit_propagation_inner_loop_wl_loop_D) :: nat literal \<Rightarrow>
            nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
@@ -1561,7 +1560,7 @@ sepref_thm unit_propagation_inner_loop_wl_loop_D
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
     length_ll_f_def[symmetric]
   unfolding nth_ll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
-  unfolding lms_fold_custom_empty twl_st_l_assn_def swap_ll_def[symmetric]
+  unfolding twl_st_l_assn_def swap_ll_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     is_None_def[symmetric] get_conflict_wl_is_None
   supply [[goals_limit=1]]
@@ -1571,8 +1570,8 @@ concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_code
    uses twl_array_code.unit_propagation_inner_loop_wl_loop_D.refine_raw
    is "(uncurry ?f,_)\<in>_"
 prepare_code_thms (in -) unit_propagation_inner_loop_wl_loop_D_code_def
-lemmas unit_propagation_inner_loop_wl_loop_D_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_wl_loop_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+(* lemmas unit_propagation_inner_loop_wl_loop_D_code_refine[sepref_fr_rules] =
+   unit_propagation_inner_loop_wl_loop_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def] *)
 
 
 definition select_and_remove_from_pending_wl' :: \<open>twl_st_wll \<Rightarrow> twl_st_wll \<times> nat\<close> where
@@ -1649,6 +1648,27 @@ lemma
 fun pending_wll :: \<open>twl_st_wll \<Rightarrow> nat list\<close> where
   \<open>pending_wll (M, N, U, D, NP, UP, Q, W) = Q\<close>
 
+definition pending_wll_empty :: \<open>twl_st_wll \<Rightarrow> bool\<close> where
+  \<open>pending_wll_empty = (\<lambda>(M, N, U, D, NP, UP, Q, W). is_Nil Q)\<close>
+
+definition pending_wl_empty :: \<open>nat twl_st_wl \<Rightarrow> bool\<close>  where
+  \<open>pending_wl_empty = (\<lambda>(M, N, U, D, NP, UP, Q, W). Q = {#})\<close>
+
+lemma pending_wll_empty_hnr[unfolded twl_st_l_assn_def, sepref_fr_rules]:
+  \<open>(return o pending_wll_empty, RETURN o pending_wl_empty) \<in> twl_st_l_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  apply sepref_to_hoare
+  apply (rename_tac S' S)
+  apply (case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). Q) S\<close>;
+      case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). Q) S'\<close>)
+  by (sep_auto simp: twl_st_l_assn_def pending_wll_empty_def pending_wl_empty_def
+      list_mset_assn_empty_Cons list_mset_assn_add_mset_Nil
+      split: list.splits)+
+
+
+lemma pending_wl_pending_wl_empty:
+  \<open>pending_wl S = {#} \<longleftrightarrow> pending_wl_empty S\<close>
+  by (cases S) (auto simp: pending_wl_empty_def)
+
 lemma list_assn_list_mset_rel_eq_list_mset_assn:
   assumes p: \<open>is_pure R\<close>
   shows \<open>hr_comp (list_assn R) list_mset_rel = list_mset_assn R\<close>
@@ -1664,10 +1684,10 @@ proof -
       using list_all2_reorder_left_invariance by fastforce
 qed
 
-lemma hd_select_and_remove_from_pending_refine[sepref_fr_rules]:
+lemma hd_select_and_remove_from_pending_refine:
   \<open>(return o select_and_remove_from_pending_wl',
        select_and_remove_from_pending_wl :: nat twl_st_wl \<Rightarrow> (nat twl_st_wl \<times> nat literal) nres) \<in>
-    [\<lambda>S. pending_wl S \<noteq> {#}]\<^sub>a
+    [\<lambda>S. \<not>pending_wl_empty S]\<^sub>a
     twl_st_l_assn\<^sup>d \<rightarrow> twl_st_l_assn *assn nat_ann_lit_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -1718,6 +1738,7 @@ proof -
     using hfref_compI_PRE_aux[OF 2 1] .
   have pre: \<open>?pre' = ?pre\<close>
     by (auto simp: comp_PRE_def twl_st_l_interm_rel_1_def in_br_conv list_mset_rel_def
+        pending_wl_empty_def
         intro!: ext)
 
   have im: \<open>?im' = ?im\<close>
@@ -1732,16 +1753,42 @@ proof -
   show ?thesis using H unfolding pre post im .
 qed
 
-sepref_register unit_propagation_outer_loop_wl_D
-sepref_thm unit_propagation_outer_loop_wl_D
-  is \<open>((PR_CONST unit_propagation_outer_loop_wl_D) :: nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres)\<close>
+
+lemmas [safe_constraint_rules] = CN_FALSEI[of is_pure "hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)"]
+  CN_FALSEI[of is_pure "twl_st_l_assn"]
+
+lemmas hd_select_and_remove_from_pending_refine'[sepref_fr_rules] =
+    hd_select_and_remove_from_pending_refine[unfolded twl_st_l_assn_def]
+
+definition unit_propagation_outer_loop_wl_D' :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+  \<open>unit_propagation_outer_loop_wl_D' = do {
+    WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> twl_stgy_invs (twl_st_of_wl None S) \<and>
+      correct_watching S \<and> additional_WS_invs (st_l_of_wl None S)\<^esup>
+      (\<lambda>S. pending_wl S \<noteq> {#})
+      (\<lambda>S. do {
+        ASSERT(pending_wl S \<noteq> {#});
+        (S', L) \<leftarrow> select_and_remove_from_pending_wl S;
+        ASSERT(L \<in># lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S))));
+        T \<leftarrow> unit_propagation_inner_loop_wl_D L S';
+        RETURN S'
+      })
+   }
+  \<close>
+term pending_wll
+
+thm unit_propagation_inner_loop_wl_loop_D.refine_raw[sepref_fr_rules]
+sepref_register unit_propagation_outer_loop_wl_D'
+sepref_thm unit_propagation_outer_loop_wl_D'
+  is \<open>((PR_CONST unit_propagation_outer_loop_wl_D') :: nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres)\<close>
   :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
-  unfolding unit_propagation_outer_loop_wl_D_def PR_CONST_def twl_st_l_assn_def
-    Multiset.is_empty_def[symmetric]
+  apply (subst PR_CONST_def)
+  unfolding twl_array_code.unit_propagation_outer_loop_wl_D'_def twl_st_l_assn_def
+    pending_wl_pending_wl_empty
   apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
   apply sepref_dbg_trans_step_keep
-oops
+  apply sepref_dbg_trans_step_keep
+  oops
 
 end
 
