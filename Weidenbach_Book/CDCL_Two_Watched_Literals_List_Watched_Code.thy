@@ -1570,8 +1570,8 @@ concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_code
    uses twl_array_code.unit_propagation_inner_loop_wl_loop_D.refine_raw
    is "(uncurry ?f,_)\<in>_"
 prepare_code_thms (in -) unit_propagation_inner_loop_wl_loop_D_code_def
-(* lemmas unit_propagation_inner_loop_wl_loop_D_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_wl_loop_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def] *)
+lemmas unit_propagation_inner_loop_wl_loop_D_code_refine[sepref_fr_rules] =
+   unit_propagation_inner_loop_wl_loop_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
 
 
 definition select_and_remove_from_pending_wl' :: \<open>twl_st_wll \<Rightarrow> twl_st_wll \<times> nat\<close> where
@@ -1760,33 +1760,19 @@ lemmas [safe_constraint_rules] = CN_FALSEI[of is_pure "hr_comp (arrayO (arl_assn
 lemmas hd_select_and_remove_from_pending_refine'[sepref_fr_rules] =
     hd_select_and_remove_from_pending_refine[unfolded twl_st_l_assn_def]
 
-definition unit_propagation_outer_loop_wl_D' :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
-  \<open>unit_propagation_outer_loop_wl_D' = do {
-    WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> twl_stgy_invs (twl_st_of_wl None S) \<and>
-      correct_watching S \<and> additional_WS_invs (st_l_of_wl None S)\<^esup>
-      (\<lambda>S. pending_wl S \<noteq> {#})
-      (\<lambda>S. do {
-        ASSERT(pending_wl S \<noteq> {#});
-        (S', L) \<leftarrow> select_and_remove_from_pending_wl S;
-        ASSERT(L \<in># lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S))));
-        T \<leftarrow> unit_propagation_inner_loop_wl_D L S';
-        RETURN S'
-      })
-   }
-  \<close>
-term pending_wll
-
-thm unit_propagation_inner_loop_wl_loop_D.refine_raw[sepref_fr_rules]
-sepref_register unit_propagation_outer_loop_wl_D'
-sepref_thm unit_propagation_outer_loop_wl_D'
-  is \<open>((PR_CONST unit_propagation_outer_loop_wl_D') :: nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres)\<close>
+definition test where
+  \<open>test L S = unit_propagation_inner_loop_wl_D L S\<close>
+sepref_register unit_propagation_inner_loop_wl_D
+thm unit_propagation_inner_loop_wl_loop_D_code_refine[to_hnr]
+sepref_thm unit_propagation_outer_loop_wl_D
+  is \<open>((PR_CONST unit_propagation_outer_loop_wl_D) :: nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres)\<close>
   :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
+  supply [[goals_limit=1]]
   apply (subst PR_CONST_def)
-  unfolding twl_array_code.unit_propagation_outer_loop_wl_D'_def twl_st_l_assn_def
+  unfolding twl_array_code.unit_propagation_outer_loop_wl_D_def twl_st_l_assn_def
     pending_wl_pending_wl_empty
   apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
   apply sepref_dbg_trans_step_keep
   oops
 
