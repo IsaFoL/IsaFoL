@@ -414,6 +414,28 @@ proof -
   hence "\<forall>B\<in>atms_of C. \<not> (less_atm A B \<or> A = B)" unfolding less_atm_iff by -
   then show ?thesis unfolding less_eq_atm_def by auto
 qed
+  
+lemma mk_ground_subst:
+  assumes "is_ground_cls C"
+  assumes "C' \<cdot> \<sigma> = C"
+  obtains \<tau> where
+    "is_ground_subst \<tau>"
+    "C' \<cdot> \<tau> = C"
+  sorry
+    
+lemma ground_resolvent_subset:
+  assumes "is_ground_cls_list CAi"
+  assumes "is_ground_cls DAi"
+  assumes "ord_resolve SSS CAi DAi E"
+  shows "E \<subseteq># (\<Union>#(mset CAi)) + DAi"
+  sorry
+    
+lemma ground_resolvent_ground:
+  assumes "is_ground_cls_list CAi"
+  assumes "is_ground_cls DAi"
+  assumes "ord_resolve SSS CAi DAi E"
+  shows "is_ground_cls E"
+    sorry
 
 lemma ord_resolve_lifting: 
   fixes CAi
@@ -421,12 +443,15 @@ lemma ord_resolve_lifting:
     and select: "selection S"
     and selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
     and M_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> C \<cdot> \<rho> \<in> M \<longleftrightarrow> C \<in> M"
-    and grounding: "{DAi, E} \<union> (set CAi) \<subseteq> grounding_of_clss M"
-  obtains \<phi> CAi' DAi' E' where
-    "is_ground_subst \<phi>"
+    and grounding: "{DAi} \<union> (set CAi) \<subseteq> grounding_of_clss M" (* I'm not sure E should be here. I think not. *)
+  obtains \<eta> \<eta>2 CAi' DAi' E' where
+    "is_ground_subst \<eta>"
+    "is_ground_subst \<eta>2"
     "ord_resolve S CAi' DAi' E'" 
-    "CAi = CAi' \<cdot>cl \<phi>" "DAi = DAi' \<cdot> \<phi>" "E = E' \<cdot> \<phi>"
-    "{DAi', E'} \<union> set CAi' \<subseteq> M"
+    "CAi = CAi' \<cdot>cl \<eta>" "DAi = DAi' \<cdot> \<eta>" "E = E' \<cdot> \<eta>2" 
+      (* In the chapter, \<eta> and \<eta>2 are the same since they can ensure E' automatically variable disjoint from CAi' DAi', 
+         our calculus differs in this respect. *)
+    "{DAi'} \<union> set CAi' \<subseteq> M" (* I'm not sure E' should be here. I think not *)
   using resolve proof ((*atomize_elim, *)cases rule: ord_resolve.cases)
   case (ord_resolve n Ci Aij Ai \<sigma> D)
     
@@ -438,13 +463,16 @@ lemma ord_resolve_lifting:
     "length CAi' = n" 
     "\<forall>i < n. CAi' ! i \<in> M" 
     "CAi' \<cdot>cl \<eta> = CAi"
-    "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>" (* should this even be here? Probably, but I'm not sure. *)
+    "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>" (* should this even be here? Probably not, but I'm not sure. *)
     
     "DAi' \<in> M" 
     "DAi = DAi' \<cdot> \<eta>" 
     "S_M S M DAi = S DAi' \<cdot> \<eta>"
     
     "var_disjoint (DAi'#CAi')"
+    "{DAi'} \<union> set CAi' \<subseteq> M"
+    
+    "is_ground_subst \<eta>"
     sorry
 
   obtain Ci' Aij' D' Ai' where prime_clauses2:
@@ -510,15 +538,19 @@ lemma ord_resolve_lifting:
     using ord_resolve.intros[of CAi' n Ci' Aij' Ai' \<tau> S D', OF prime_clauses(1) prime_clauses2(1) prime_clauses2(2) prime_clauses2(3) ord_resolve(7) b c \<tau>_p] prime_clauses \<tau>_p 
     unfolding E'_def by auto
   
+  have True (* these two are ground: "{DAi} \<union> (set CAi)" *) sorry
+  hence "is_ground_cls E" using resolve sorry
+  then obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E" using e'\<phi>e mk_ground_subst by blast
   
-  have instsC: "CAi = CAi' \<cdot>cl \<phi>" sorry (* Is this even true? *)
-  have instsD: "DAi = DAi' \<cdot> \<phi>" sorry (* Is this even true? *)
+  have instsC: "CAi = CAi' \<cdot>cl \<eta>" using prime_clauses by auto
+  have instsD: "DAi = DAi' \<cdot> \<eta>"  using prime_clauses by auto
+  have instsE: "E = E' \<cdot> \<eta>2" using ground_\<eta>2 by auto
       
-  have gro: "is_ground_subst \<phi>" sorry (* Not true, but easy to fix *)
-  have inM: "{DAi', E'} \<union> set CAi' \<subseteq> M" sorry
+  
+  hence inM: "{DAi'} \<union> set CAi' \<subseteq> M" using prime_clauses(9) by auto
       
-  from res_e' gro instsC instsD inM e'\<phi>e show ?thesis
-    using that[of _ CAi' DAi' E'] by blast 
+  from res_e' instsC instsD instsE inM e'\<phi>e prime_clauses(10) ground_\<eta>2 show ?thesis
+    using that[of \<eta> \<eta>2 CAi' DAi' E'] by blast
 qed
   
   
