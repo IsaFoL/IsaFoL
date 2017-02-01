@@ -157,7 +157,7 @@ qed
 
 inductive true_fo_cls :: "'a interp \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>fo" 50) where
   true_fo_cls:
-  "(\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile> (C \<cdot> \<sigma>)) \<Longrightarrow> I \<Turnstile>fo C"
+  "(\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile> C \<cdot> \<sigma>) \<Longrightarrow> I \<Turnstile>fo C"
   
 lemma true_fo_cls_inst: "I \<Turnstile>fo C \<Longrightarrow> is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile> (C \<cdot> \<sigma>)"
   using true_fo_cls.induct .
@@ -384,7 +384,36 @@ term eligible
 lemma eligible_lifting:
   assumes "eligible S (s1 \<odot> s2) Ai DAi"
   shows "eligible S s1 Ai DAi"
-sorry
+  sorry
+
+lemma maximal_in_gen:
+  assumes "maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)"
+  shows "maximal_in A C"
+proof -
+  from assms have "maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)" by -
+  hence "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> less_atm (A \<cdot>a \<sigma>) B" by -
+  hence "\<forall>B\<in>atms_of (C \<cdot> \<sigma>). \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma>'))" unfolding less_atm_iff by -
+  hence "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma> \<cdot>a \<sigma>'))" sorry
+  hence "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma>' < B \<cdot>a \<sigma>'))"
+    using is_ground_comp_subst by fastforce
+  hence "\<forall>B\<in>atms_of C. \<not> (less_atm A B)" unfolding less_atm_iff by -
+  then show ?thesis unfolding less_eq_atm_def by auto
+qed
+    
+lemma str_maximal_in_gen: (* a better proof might reuse the lemma maximal_in_gen *)
+  assumes "str_maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)"
+  shows "str_maximal_in A C"
+proof -
+  from assms have "str_maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)" by -
+  hence "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> less_eq_atm (A \<cdot>a \<sigma>) B" by -
+  hence "\<forall>B\<in>atms_of (C \<cdot> \<sigma>). \<not> (less_atm (A \<cdot>a \<sigma>) B \<or> A \<cdot>a \<sigma> = B)" unfolding less_eq_atm_def by -
+  hence "\<forall>B\<in>atms_of (C \<cdot> \<sigma>). \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma>') \<or> A \<cdot>a \<sigma> = B)" unfolding less_atm_iff by -
+  hence "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma> \<cdot>a \<sigma>') \<or> A \<cdot>a \<sigma> = B \<cdot>a \<sigma>)" sorry
+  hence "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma>' < B \<cdot>a \<sigma>') \<or> A = B)"
+    using is_ground_comp_subst by fastforce
+  hence "\<forall>B\<in>atms_of C. \<not> (less_atm A B \<or> A = B)" unfolding less_atm_iff by -
+  then show ?thesis unfolding less_eq_atm_def by auto
+qed
 
 lemma ord_resolve_lifting: 
   fixes CAi
@@ -442,7 +471,6 @@ lemma ord_resolve_lifting:
   also have "... = ((\<Union># (mset Ci)) + D) \<cdot> \<sigma>" using prime_clauses2 by auto
   also have "... = E" using ord_resolve by auto
   finally have e'\<phi>e: "E' \<cdot> \<phi> = E" .
-      
   
   have a: "(D' + negs (mset Ai')) = DAi'" sorry (* Believable *)
   moreover
@@ -452,18 +480,29 @@ lemma ord_resolve_lifting:
   moreover
   (* Lifting  *)
   have "eligible (S_M S M) \<sigma> Ai (D + negs (mset Ai))" using ord_resolve unfolding eligible_simp by -
-  hence "eligible (S_M S M) \<sigma> Ai DAi" unfolding eligible_simp sorry
-  hence "S_M S M DAi = negs (mset Ai) \<or> S_M S M DAi = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) (DAi \<cdot> \<sigma>)" unfolding eligible_simp by auto
-  hence "S DAi' \<cdot> \<eta> = negs (mset Ai) \<or> S DAi' \<cdot> \<eta> = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) (DAi \<cdot> \<sigma>)" using prime_clauses by metis
-  hence "S DAi' \<cdot> \<eta> = negs (mset Ai) \<or> S DAi' \<cdot> \<eta> = {#} \<and> length (Ai' \<cdot>al \<eta>) = 1 \<and> maximal_in ((Ai' \<cdot>al \<eta>) ! 0 \<cdot>a \<sigma>) ((DAi' \<cdot> \<eta>) \<cdot> \<sigma>)" sorry
-  hence "S DAi' \<cdot> \<eta> = negs (mset Ai) \<or> S DAi' \<cdot> \<eta> = {#} \<and> length (Ai' \<cdot>al \<eta>) = 1 \<and> maximal_in (Ai' ! 0 \<cdot>a (\<eta> \<odot> \<sigma>)) (DAi' \<cdot> (\<eta> \<odot> \<sigma>))" sorry   
-  hence "S DAi' \<cdot> \<eta> = negs (mset Ai) \<or> S DAi' \<cdot> \<eta> = {#} \<and> length (Ai' \<cdot>al \<eta>) = 1 \<and> maximal_in (Ai' ! 0 \<cdot>a (\<tau> \<odot> \<phi>)) (DAi' \<cdot> (\<tau> \<odot> \<phi>))" sorry
-      (* Det går jo meget godt, jeg kan også få \<tau> \<odot> \<phi> ind de andre stedet. Men! 
-         Hvordan slipper jeg af med "\<eta>" i "S DAi' \<cdot> \<eta> = negs (mset Ai)" *)
-  
-  hence "eligible S \<tau> Ai' (D' + negs (mset Ai'))" using ord_resolve(11) unfolding eligible_simp sorry
+  hence "S_M S M (D + negs (mset Ai)) = negs (mset Ai) \<or>
+    S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)" 
+      unfolding eligible_simp by -
+  hence "eligible S \<tau> Ai' (D' + negs (mset Ai'))"
+  proof
+    assume "S_M S M (D + negs (mset Ai)) = negs (mset Ai)"
+    have "S (D' + negs (mset Ai')) = negs (mset Ai')" sorry
+    then show "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp by auto
+  next
+    assume "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
+    let ?A = "Ai ! 0"
+    have "?A \<cdot>a (\<eta> \<odot> \<sigma>) = ?A \<cdot>a (\<tau> \<odot> \<phi>)" sorry
+    have "maximal_in (Ai' ! 0 \<cdot>a \<tau>) ((D' + negs (mset Ai')) \<cdot> \<tau>)" sorry
+    hence "maximal_in (Ai' ! 0) ((D' + negs (mset Ai')))" using maximal_in_gen by blast
+    then show "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp sorry (* bevlievable *)
+  qed
   moreover
-  have e: "\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)" sorry
+  from ord_resolve have "\<forall>i<n. str_maximal_in (Ai ! i \<cdot>a \<sigma>) (Ci ! i \<cdot> \<sigma>)" by -
+  hence "\<forall>i<n. str_maximal_in ((Ai' \<cdot>al \<eta>) ! i \<cdot>a \<sigma>) ((Ci' \<cdot>cl \<eta>) ! i \<cdot> \<sigma>)" sorry
+  hence "\<forall>i<n. str_maximal_in ((Ai' ! i) \<cdot>a (\<eta> \<odot> \<sigma>)) ((Ci' ! i) \<cdot> (\<eta> \<odot> \<sigma>))" sorry
+  hence "\<forall>i<n. str_maximal_in ((Ai' ! i) \<cdot>a (\<tau> \<odot> \<phi>)) ((Ci' ! i) \<cdot> (\<tau> \<odot> \<phi>))" sorry
+  hence "\<forall>i<n. str_maximal_in ((Ai' ! i \<cdot>a \<tau>) \<cdot>a \<phi>) ((Ci' ! i \<cdot> \<tau>) \<cdot> \<phi>)" sorry
+  hence e: "\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)" using str_maximal_in_gen \<phi>_p by blast
   moreover
   have f: "\<forall>C\<in>set CAi'. S C = {#}" sorry (* Believable *)
   ultimately
