@@ -377,14 +377,6 @@ lemma (in linorder) set_sorted_list_of_multiset[simp]:
 lemma (in linorder) multiset_mset_sorted_list_of_multiset[simp]:
   "mset (sorted_list_of_multiset M) = M"
   by (induct M) (simp_all add: ac_simps)
-    
-term eligible
-    
-(* Lemma takes inspiration from supercalc *)
-lemma eligible_lifting:
-  assumes "eligible S (s1 \<odot> s2) Ai DAi"
-  shows "eligible S s1 Ai DAi"
-  sorry
 
 lemma maximal_in_gen:
   assumes "maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)"
@@ -441,7 +433,8 @@ lemma ord_resolve_lifting:
   fixes CAi
   assumes resolve: "ord_resolve (S_M S M) CAi DAi E"
     and select: "selection S"
-    and selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
+    and selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" 
+      (* Here I could use a weaker invariant, namely that if nothing is selected then still nothing is selected. That is how it is done in supercalc. *)
     and M_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> C \<cdot> \<rho> \<in> M \<longleftrightarrow> C \<in> M"
     and grounding: "{DAi} \<union> (set CAi) \<subseteq> grounding_of_clss M" (* I'm not sure E should be here. I think not. *)
   obtains \<eta> \<eta>2 CAi' DAi' E' where
@@ -463,7 +456,8 @@ lemma ord_resolve_lifting:
     "length CAi' = n" 
     "\<forall>i < n. CAi' ! i \<in> M" 
     "CAi' \<cdot>cl \<eta> = CAi"
-    "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>" (* should this even be here? Probably not, but I'm not sure. *)
+    "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>" 
+      (* should this even be here? Probably not, but I'm not sure. I think it could instead look more like the weaker invariant hinted at in the assumptions of this lemma *)
     
     "DAi' \<in> M" 
     "DAi = DAi' \<cdot> \<eta>" 
@@ -522,7 +516,7 @@ lemma ord_resolve_lifting:
     have "?A \<cdot>a (\<eta> \<odot> \<sigma>) = ?A \<cdot>a (\<tau> \<odot> \<phi>)" sorry
     have "maximal_in (Ai' ! 0 \<cdot>a \<tau>) ((D' + negs (mset Ai')) \<cdot> \<tau>)" sorry
     hence "maximal_in (Ai' ! 0) ((D' + negs (mset Ai')))" using maximal_in_gen by blast
-    then show "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp sorry (* bevlievable *)
+    then show "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp sorry (* believable *)
   qed
   moreover
   from ord_resolve have "\<forall>i<n. str_maximal_in (Ai ! i \<cdot>a \<sigma>) (Ci ! i \<cdot> \<sigma>)" by -
@@ -532,14 +526,16 @@ lemma ord_resolve_lifting:
   hence "\<forall>i<n. str_maximal_in ((Ai' ! i \<cdot>a \<tau>) \<cdot>a \<phi>) ((Ci' ! i \<cdot> \<tau>) \<cdot> \<phi>)" sorry
   hence e: "\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)" using str_maximal_in_gen \<phi>_p by blast
   moreover
-  have f: "\<forall>C\<in>set CAi'. S C = {#}" sorry (* Believable *)
+  from ord_resolve have "\<forall>C\<in>set CAi. (S_M S M) C = {#}" by -
+  hence f: "\<forall>C\<in>set CAi'. S C = {#}" using prime_clauses(3) prime_clauses(4) sorry
   ultimately
   have res_e': "ord_resolve S CAi' DAi' E'" 
     using ord_resolve.intros[of CAi' n Ci' Aij' Ai' \<tau> S D', OF prime_clauses(1) prime_clauses2(1) prime_clauses2(2) prime_clauses2(3) ord_resolve(7) b c \<tau>_p] prime_clauses \<tau>_p 
     unfolding E'_def by auto
   
-  have True (* these two are ground: "{DAi} \<union> (set CAi)" *) sorry
-  hence "is_ground_cls E" using resolve sorry
+  have "is_ground_cls_list CAi" "is_ground_cls DAi"
+    using prime_clauses prime_clauses by auto 
+  hence "is_ground_cls E" using resolve ground_resolvent_ground by auto
   then obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E" using e'\<phi>e mk_ground_subst by blast
   
   have instsC: "CAi = CAi' \<cdot>cl \<eta>" using prime_clauses by auto
