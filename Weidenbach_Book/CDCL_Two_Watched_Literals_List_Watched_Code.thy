@@ -1508,76 +1508,20 @@ end -- \<open>end of locale @{locale twl_array_code}\<close>
 
 subsection \<open>Code Generation\<close>
 
-context twl_array_code
-begin
 
-definition get_conflict_wl_is_None_code :: \<open>twl_st_wll \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_is_None_code = (\<lambda>(M, N, U, D, NP, UP, Q, W). is_None D)\<close>
+fun pending_wll :: \<open>twl_st_wll \<Rightarrow> nat list\<close> where
+  \<open>pending_wll (M, N, U, D, NP, UP, Q, W) = Q\<close>
 
-definition get_conflict_wl_is_None :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_is_None = (\<lambda>(M, N, U, D, NP, UP, Q, W). is_None D)\<close>
+definition pending_wll_empty :: \<open>twl_st_wll \<Rightarrow> bool\<close> where
+  \<open>pending_wll_empty = (\<lambda>(M, N, U, D, NP, UP, Q, W). is_Nil Q)\<close>
 
-lemma get_conflict_wl_is_None_code_hnr[unfolded twl_st_l_assn_def, sepref_fr_rules]:
-  \<open>(return o get_conflict_wl_is_None_code, RETURN o get_conflict_wl_is_None) \<in>
-     twl_st_l_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding get_conflict_wl_is_None_code_def get_conflict_wl_is_None_def
-    twl_st_l_assn_def
-  by sepref_to_hoare (sep_auto split: option.splits)
-
-lemma get_conflict_wl_is_None: \<open>get_conflict_wl S = None \<longleftrightarrow> get_conflict_wl_is_None S\<close>
-  by (cases S) (auto simp: get_conflict_wl_is_None_def split: option.splits)
-
-lemma watched_by_nth_watched_app':
-  \<open>watched_by S K = ((snd o snd o snd o snd o snd o snd o snd) S) K\<close>
-  by (cases S) (auto simp: watched_app_def)
-
-sepref_register "unit_propagation_inner_loop_body_wl_D"
-sepref_thm unit_propagation_inner_loop_body_wl_D
-  is \<open>uncurry2 ((PR_CONST unit_propagation_inner_loop_body_wl_D) :: nat literal \<Rightarrow> nat \<Rightarrow>
-           nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
-  :: \<open>nat_ann_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_assn\<close>
-  unfolding unit_propagation_inner_loop_body_wl_D_def length_ll_def[symmetric] PR_CONST_def
-  unfolding watched_by_nth_watched_app' watched_app_def[symmetric]
-  unfolding nth_ll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
-  unfolding lms_fold_custom_empty twl_st_l_assn_def swap_ll_def[symmetric]
-  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
-  supply [[goals_limit=1]]
-  by sepref -- \<open>Takes around 1min\<close>
-
-concrete_definition (in -) unit_propagation_inner_loop_body_wl_D_code
-   uses twl_array_code.unit_propagation_inner_loop_body_wl_D.refine_raw
-   is "(uncurry2 ?f,_)\<in>_"
-prepare_code_thms (in -) unit_propagation_inner_loop_body_wl_D_code_def
-lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_body_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
-
-
-sepref_thm unit_propagation_inner_loop_wl_loop_D
-  is \<open>uncurry ((PR_CONST unit_propagation_inner_loop_wl_loop_D) :: nat literal \<Rightarrow>
-           nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
-  :: \<open>nat_ann_lit_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_assn\<close>
-  unfolding unit_propagation_inner_loop_wl_loop_D_def length_ll_def[symmetric] PR_CONST_def
-  unfolding watched_by_nth_watched_app watched_app_def[symmetric]
-    length_ll_f_def[symmetric]
-  unfolding nth_ll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
-  unfolding twl_st_l_assn_def swap_ll_def[symmetric]
-  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
-    is_None_def[symmetric] get_conflict_wl_is_None
-  supply [[goals_limit=1]]
-  by sepref
-
-concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_code
-   uses twl_array_code.unit_propagation_inner_loop_wl_loop_D.refine_raw
-   is "(uncurry ?f,_)\<in>_"
-prepare_code_thms (in -) unit_propagation_inner_loop_wl_loop_D_code_def
-lemmas unit_propagation_inner_loop_wl_loop_D_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_wl_loop_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+definition pending_wl_empty :: \<open>nat twl_st_wl \<Rightarrow> bool\<close>  where
+  \<open>pending_wl_empty = (\<lambda>(M, N, U, D, NP, UP, Q, W). Q = {#})\<close>
 
 
 definition select_and_remove_from_pending_wl' :: \<open>twl_st_wll \<Rightarrow> twl_st_wll \<times> nat\<close> where
   \<open>select_and_remove_from_pending_wl' =
     (\<lambda>(M, N, U, D, NP, UP, Q, W).  ((M, N, U, D, NP, UP, tl Q, W), hd Q))\<close>
-
 lemma Collect_eq_comp: \<open>{(c, a). a = f c} O {(x, y). P x y} = {(c, y). P (f c) y}\<close>
   by auto
 
@@ -1644,15 +1588,70 @@ lemma
     rel2p_def rel_mset_def br_def
   by (sep_auto simp: Collect_eq_comp)+
 
+context twl_array_code
+begin
 
-fun pending_wll :: \<open>twl_st_wll \<Rightarrow> nat list\<close> where
-  \<open>pending_wll (M, N, U, D, NP, UP, Q, W) = Q\<close>
+definition get_conflict_wl_is_None_code :: \<open>twl_st_wll \<Rightarrow> bool\<close> where
+  \<open>get_conflict_wl_is_None_code = (\<lambda>(M, N, U, D, NP, UP, Q, W). is_None D)\<close>
 
-definition pending_wll_empty :: \<open>twl_st_wll \<Rightarrow> bool\<close> where
-  \<open>pending_wll_empty = (\<lambda>(M, N, U, D, NP, UP, Q, W). is_Nil Q)\<close>
+definition get_conflict_wl_is_None :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>get_conflict_wl_is_None = (\<lambda>(M, N, U, D, NP, UP, Q, W). is_None D)\<close>
 
-definition pending_wl_empty :: \<open>nat twl_st_wl \<Rightarrow> bool\<close>  where
-  \<open>pending_wl_empty = (\<lambda>(M, N, U, D, NP, UP, Q, W). Q = {#})\<close>
+lemma get_conflict_wl_is_None_code_hnr[unfolded twl_st_l_assn_def, sepref_fr_rules]:
+  \<open>(return o get_conflict_wl_is_None_code, RETURN o get_conflict_wl_is_None) \<in>
+     twl_st_l_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding get_conflict_wl_is_None_code_def get_conflict_wl_is_None_def
+    twl_st_l_assn_def
+  by sepref_to_hoare (sep_auto split: option.splits)
+
+lemma get_conflict_wl_is_None: \<open>get_conflict_wl S = None \<longleftrightarrow> get_conflict_wl_is_None S\<close>
+  by (cases S) (auto simp: get_conflict_wl_is_None_def split: option.splits)
+
+lemma watched_by_nth_watched_app':
+  \<open>watched_by S K = ((snd o snd o snd o snd o snd o snd o snd) S) K\<close>
+  by (cases S) (auto simp: watched_app_def)
+
+sepref_register "unit_propagation_inner_loop_body_wl_D"
+sepref_thm unit_propagation_inner_loop_body_wl_D
+  is \<open>uncurry2 ((PR_CONST unit_propagation_inner_loop_body_wl_D) :: nat literal \<Rightarrow> nat \<Rightarrow>
+           nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
+  :: \<open>nat_ann_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_assn\<close>
+  unfolding unit_propagation_inner_loop_body_wl_D_def length_ll_def[symmetric] PR_CONST_def
+  unfolding watched_by_nth_watched_app' watched_app_def[symmetric]
+  unfolding nth_ll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
+  unfolding lms_fold_custom_empty twl_st_l_assn_def swap_ll_def[symmetric]
+  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
+  supply [[goals_limit=1]]
+  by sepref -- \<open>Takes around 1min\<close>
+
+concrete_definition (in -) unit_propagation_inner_loop_body_wl_D_code
+   uses twl_array_code.unit_propagation_inner_loop_body_wl_D.refine_raw
+   is "(uncurry2 ?f,_)\<in>_"
+prepare_code_thms (in -) unit_propagation_inner_loop_body_wl_D_code_def
+lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
+   unit_propagation_inner_loop_body_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+
+
+sepref_thm unit_propagation_inner_loop_wl_loop_D
+  is \<open>uncurry ((PR_CONST unit_propagation_inner_loop_wl_loop_D) :: nat literal \<Rightarrow>
+           nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
+  :: \<open>nat_ann_lit_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_assn\<close>
+  unfolding unit_propagation_inner_loop_wl_loop_D_def length_ll_def[symmetric] PR_CONST_def
+  unfolding watched_by_nth_watched_app watched_app_def[symmetric]
+    length_ll_f_def[symmetric]
+  unfolding nth_ll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
+  unfolding twl_st_l_assn_def swap_ll_def[symmetric]
+  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
+    is_None_def[symmetric] get_conflict_wl_is_None
+  supply [[goals_limit=1]]
+  by sepref
+
+concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_code
+   uses twl_array_code.unit_propagation_inner_loop_wl_loop_D.refine_raw
+   is "(uncurry ?f,_)\<in>_"
+prepare_code_thms (in -) unit_propagation_inner_loop_wl_loop_D_code_def
+lemmas unit_propagation_inner_loop_wl_loop_D_code_refine[sepref_fr_rules] =
+   unit_propagation_inner_loop_wl_loop_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
 
 lemma pending_wll_empty_hnr[unfolded twl_st_l_assn_def, sepref_fr_rules]:
   \<open>(return o pending_wll_empty, RETURN o pending_wl_empty) \<in> twl_st_l_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
@@ -1760,10 +1759,28 @@ lemmas [safe_constraint_rules] = CN_FALSEI[of is_pure "hr_comp (arrayO (arl_assn
 lemmas hd_select_and_remove_from_pending_refine'[sepref_fr_rules] =
     hd_select_and_remove_from_pending_refine[unfolded twl_st_l_assn_def]
 
-definition test where
-  \<open>test L S = unit_propagation_inner_loop_wl_D L S\<close>
-sepref_register unit_propagation_inner_loop_wl_D
 thm unit_propagation_inner_loop_wl_loop_D_code_refine[to_hnr]
+
+sepref_register unit_propagation_inner_loop_wl_D
+sepref_register unit_propagation_inner_loop_wl_loop_D
+sepref_thm unit_propagation_inner_loop_wl_D
+  is \<open>uncurry (PR_CONST unit_propagation_inner_loop_wl_D)\<close>
+  :: \<open>nat_ann_lit_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
+  supply [[goals_limit=1]]
+  apply (subst PR_CONST_def)
+  unfolding twl_array_code.unit_propagation_inner_loop_wl_D_def twl_st_l_assn_def
+    pending_wl_pending_wl_empty
+  by sepref
+
+concrete_definition (in -) unit_propagation_inner_loop_wl_D_code
+   uses twl_array_code.unit_propagation_inner_loop_wl_D.refine_raw
+   is "(uncurry ?f,_)\<in>_"
+
+prepare_code_thms (in -) unit_propagation_inner_loop_wl_D_code_def
+
+lemmas unit_propagation_inner_loop_wl_D_code_refine[sepref_fr_rules] =
+   unit_propagation_inner_loop_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+
 sepref_thm unit_propagation_outer_loop_wl_D
   is \<open>((PR_CONST unit_propagation_outer_loop_wl_D) :: nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres)\<close>
   :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
@@ -1771,13 +1788,22 @@ sepref_thm unit_propagation_outer_loop_wl_D
   apply (subst PR_CONST_def)
   unfolding twl_array_code.unit_propagation_outer_loop_wl_D_def twl_st_l_assn_def
     pending_wl_pending_wl_empty
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  oops
+  by sepref
+
+concrete_definition (in -) unit_propagation_outer_loop_wl_D_code
+   uses twl_array_code.unit_propagation_outer_loop_wl_D.refine_raw
+   is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) unit_propagation_outer_loop_wl_D_code_def
+
+lemmas unit_propagation_outer_loop_wl_D_code_refine[sepref_fr_rules] =
+   unit_propagation_outer_loop_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
 
 end
 
-export_code "unit_propagation_inner_loop_body_wl_D_code" in Haskell
+export_code "unit_propagation_inner_loop_wl_D_code" in Haskell
+export_code "pending_wll_empty" in Haskell
+
+export_code "unit_propagation_outer_loop_wl_D_code" in Haskell
 
 end

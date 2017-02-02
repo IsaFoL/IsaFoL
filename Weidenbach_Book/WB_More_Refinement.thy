@@ -212,4 +212,185 @@ lemma (in transfer) transfer_bool[refine_transfer]:
   shows "\<alpha> (case_bool fa fb x) \<le> case_bool Fa Fb x"
   using assms by (auto split: bool.split)
 
+
+lemma sublist_shift_lemma':
+  \<open>map fst [p<-zip xs [i..<i + n]. snd p + b : A] = map fst [p<-zip xs [0..<n]. snd p + b + i : A]\<close>
+proof (induct xs arbitrary: i n b)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a xs)
+  have 1: \<open>map fst [p\<leftarrow>zip (a # xs) (i # [Suc i..<i + n]). snd p + b \<in> A] =
+     (if i + b \<in> A then a#map fst [p\<leftarrow>zip xs [Suc i..<i + n]. snd p + b \<in> A]
+     else map fst [p\<leftarrow>zip xs [Suc i..<i + n]. snd p + b \<in>A])\<close>
+    by simp
+  have 2: \<open>map fst [p\<leftarrow>zip (a # xs) [0..<n] . snd p + b + i \<in> A] =
+     (if i + b \<in> A then a # map fst [p\<leftarrow>zip xs [1..<n]. snd p + b + i \<in> A]
+      else map fst [p\<leftarrow>zip (xs) [1..<n] . snd p + b + i \<in> A])\<close>
+    if \<open>n > 0\<close>
+    by (subst upt_conv_Cons) (use that in \<open>auto simp: ac_simps\<close>)
+  show ?case
+  proof (cases n)
+    case 0
+    then show ?thesis by simp
+  next
+    case n: (Suc m)
+    then have i_n_m: \<open>i + n = Suc i + m\<close>
+      by auto
+    have 3: \<open>map fst [p\<leftarrow>zip xs [Suc i..<i+n] . snd p + b \<in> A] =
+             map fst [p\<leftarrow>zip xs [0..<m] . snd p + b + Suc i \<in> A]\<close>
+      using Cons[of b \<open>Suc i\<close> m] unfolding i_n_m .
+    have 4: \<open>map fst [p\<leftarrow>zip xs [1..<n] . snd p + b + i \<in> A] =
+                 map fst [p\<leftarrow>zip xs [0..<m] . Suc (snd p + b + i) \<in> A]\<close>
+      using Cons[of \<open>b+i\<close> 1 m] unfolding n Suc_eq_plus1_left add.commute[of 1]
+      by (simp_all del: upt_Suc add: ac_simps)
+    show ?thesis
+      apply (subst upt_conv_Cons)
+      using n apply (solves simp)
+      apply (subst 1)
+      apply (subst 2)
+      using n apply (solves simp)
+      apply (subst 3)
+      apply (subst 3)
+
+      apply (subst 4)
+      apply (subst 4)
+      by force
+  qed
+qed
+
+lemma sublist_Cons_upt_Suc: \<open>sublist (a # xs) {0..<Suc n} = a # sublist xs {0..<n}\<close>
+  unfolding sublist_def
+  apply (subst upt_conv_Cons)
+   apply simp
+  using sublist_shift_lemma'[of 0 \<open>{0..<Suc n}\<close> \<open>xs\<close> 1 \<open>length xs\<close>]
+  by (simp_all del: upt_Suc add: ac_simps)
+
+
+lemma sublist_empty_iff: \<open>sublist xs A = [] \<longleftrightarrow> {..<length xs} \<inter> A = {}\<close>
+proof (induction xs arbitrary: A)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons a xs) note IH = this(1)
+  moreover have \<open>{..<length xs} \<inter> {j. Suc j \<in> A} = {} \<Longrightarrow> (\<forall>x<length xs. x \<noteq> 0 \<longrightarrow> x \<notin> A)\<close>
+    apply auto
+     apply (metis IntI empty_iff gr0_implies_Suc lessI lessThan_iff less_trans mem_Collect_eq)
+    done
+  show ?case
+  proof (cases \<open>0 \<in> A\<close>)
+    case True
+    then show ?thesis by (subst sublist_Cons) auto
+  next
+    case False
+    then show ?thesis
+      by (subst sublist_Cons) (use less_Suc_eq_0_disj IH in auto)
+  qed
+qed
+
+lemma sublist_upt_Suc:
+  assumes \<open>i < length xs\<close>
+  shows \<open>sublist xs {i..<length xs} = xs!i # sublist xs {Suc i..<length xs}\<close>
+proof -
+  have upt: \<open>{i..<k} = {j. i \<le> j \<and> j < k}\<close> for i k :: nat
+    by auto
+  show ?thesis
+    using assms
+  proof (induction xs arbitrary: i)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a xs i) note IH = this(1) and i_le = this(2)
+    have [simp]: \<open>i - Suc 0 \<le> j \<longleftrightarrow> i \<le> Suc j\<close> if \<open>i > 0\<close> for j
+      using that by auto
+    show ?case
+      using IH[of \<open>i-1\<close>] i_le
+      by (auto simp add: sublist_Cons upt)
+  qed
+qed
+
+text \<open>
+  This theorems links two forms:
+  \<^item> the form where access is done via \<^term>\<open>nth\<close>. This form is useful for refinement towards
+  arrays.
+  \<^item> the form where access is done via recursion over lists. This form is useful to prove properties
+  via induction: this is the target of a first refinement.
+\<close>
+lemma WHILE\<^sub>T_nth_WHILE\<^sub>T_list:
+  \<open>WHILE\<^sub>T\<^bsup>\<lambda>(brk, i). P (sublist xs {i..<length xs}) \<and> i \<le> length xs\<^esup>
+     (\<lambda>(brk, i). \<not>brk \<and> i < length xs)
+     (\<lambda>(brk, i).
+        do {
+          ASSERT (i < length xs);
+          RETURN (f (xs!i), i+1)
+        })
+     (False, 0)
+   \<le> \<Down> {((b', i), (b, ys)). b' = b \<and> ys = sublist xs {i..<length xs} \<and> i \<le> length xs}
+    (WHILE\<^sub>T\<^bsup>\<lambda>(brk, ys). P ys\<^esup>
+      (\<lambda>(brk, ys). \<not>brk \<and> ys \<noteq> [])
+      (\<lambda>(brk, ys). RETURN (f (hd ys), tl ys))
+      (False, xs))
+     \<close>
+  apply (refine_vcg)
+  subgoal by (simp add: atLeast0LessThan)
+  subgoal by auto
+  subgoal by auto
+  subgoal by (auto simp: sublist_empty_iff)
+  subgoal by (auto simp: sublist_upt_Suc)
+  subgoal by (auto simp: sublist_upt_Suc)
+  done
+
+lemma op_list_contains:
+  \<open>(WHILE\<^sub>T\<^bsup>\<lambda>(brk, ys). True\<^esup>
+      (\<lambda>(brk, ys). \<not>brk \<and> ys \<noteq> [])
+      (\<lambda>(brk, ys). RETURN (l = hd ys, tl ys))
+      (False, xs))
+   \<le> \<Down> (Collect (case_prod (\<lambda>(b', ys). op = b'))) (RETURN (l \<in> set xs))\<close>
+  (is \<open>WHILE\<^sub>T\<^bsup>?pre\<^esup> ?stop ?body ?init \<le> \<Down> ?inv _\<close>)
+proof -
+  define inv pre where \<open>inv \<equiv> ?inv\<close> and \<open>pre = ?pre\<close>
+
+  have [simp]: \<open>pre (False, a # xs)\<close> for a xs
+    unfolding pre_def by auto
+  show ?thesis
+    unfolding inv_def[symmetric] pre_def[symmetric]
+    apply (induction xs)
+    subgoal by (subst WHILEIT_unfold) (simp add: inv_def pre_def)
+    subgoal premises IH for a xs
+      apply (cases \<open>l = a\<close>)
+      subgoal by (solves \<open>simp add: WHILEIT_unfold inv_def pre_def\<close>)
+      subgoal apply (subst WHILEIT_unfold)
+        using IH[unfolded pre_def[symmetric] inv_def[symmetric]]
+        apply simp
+        done
+      done
+    done
+qed
+
+definition list_contains_WHILE where
+  \<open>list_contains_WHILE l xs =
+     WHILE\<^sub>T\<^bsup>\<lambda>(brk, i). True \<and> i \<le> length xs\<^esup>
+       (\<lambda>(brk, i). \<not> brk \<and> i < length xs)
+       (\<lambda>(brk, i).
+         ASSERT (i < length xs) \<bind>
+         (\<lambda>_. RETURN (l = xs ! i, i + 1)))
+       (False, 0)\<close>
+
+lemma \<open>list_contains_WHILE l xs \<le>
+      \<Down> ({((b', i), b, ys). b' = b \<and>  ys = sublist xs {i..<length xs} \<and> i \<le> length xs} O
+          Collect (case_prod (\<lambda>(b', ys). op = b')))
+        (RETURN (l \<in> set xs))\<close>
+  (is \<open>_ \<le> \<Down> ?A _\<close>)
+proof -
+  show \<open>list_contains_WHILE l xs \<le>
+      \<Down> ({((b', i), b, ys). b' = b \<and>  ys = sublist xs {i..<length xs} \<and> i \<le> length xs} O
+          Collect (case_prod (\<lambda>(b', ys). op = b')))
+        (RETURN (l \<in> set xs))\<close>
+    (is \<open>_ \<le> \<Down> ?B _\<close>)
+    unfolding list_contains_WHILE_def op_list_contains_def
+    using ref_two_step[OF WHILE\<^sub>T_nth_WHILE\<^sub>T_list[of \<open>\<lambda>_. True\<close> xs \<open>op = l\<close>]
+        op_list_contains, unfolded conc_fun_chain]
+    by simp
+qed
+
 end
