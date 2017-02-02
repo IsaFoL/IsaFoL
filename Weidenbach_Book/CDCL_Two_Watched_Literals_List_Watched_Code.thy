@@ -1585,6 +1585,261 @@ lemma
     rel2p_def rel_mset_def br_def
   by (sep_auto simp: Collect_eq_comp)+
 
+
+sepref_thm list_contains_WHILE_arl
+  is \<open>uncurry (\<lambda>(l::nat) xs. do{ b \<leftarrow> list_contains_WHILE l xs; RETURN (fst b)})\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a (arl_assn id_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding list_contains_WHILE_def
+  by sepref
+
+concrete_definition  list_contains_WHILE_arl_code
+   uses list_contains_WHILE_arl.refine_raw
+   is "(uncurry ?f,_)\<in>_"
+term list_contains_WHILE_arl_code
+
+lemma list_contains_WHILE_in_set: \<open>list_contains_WHILE l xs \<le>
+      \<Down> ({((b', i), b, ys). b' = b \<and>  ys = sublist xs {i..<length xs} \<and> i \<le> length xs} O
+          Collect (case_prod (\<lambda>(b', ys). op = b')))
+        (RETURN (l \<in> set xs))\<close>
+  (is \<open>_ \<le> \<Down> ?A _\<close>)
+proof -
+  show \<open>list_contains_WHILE l xs \<le>
+      \<Down> ({((b', i), b, ys). b' = b \<and>  ys = sublist xs {i..<length xs} \<and> i \<le> length xs} O
+          Collect (case_prod (\<lambda>(b', ys). op = b')))
+        (RETURN (l \<in> set xs))\<close>
+    (is \<open>_ \<le> \<Down> ?B _\<close>)
+    unfolding list_contains_WHILE_def op_list_contains_def
+    using ref_two_step[OF WHILE\<^sub>T_nth_WHILE\<^sub>T_list[of \<open>\<lambda>_. True\<close> xs \<open>op = l\<close>]
+        op_list_contains, unfolded conc_fun_chain]
+    by simp
+qed
+
+
+definition list_contains_WHILE_f where
+  \<open>list_contains_WHILE_f l xs = do{ b \<leftarrow> list_contains_WHILE l xs; RETURN (fst b)}\<close>
+
+lemma list_contains_WHILE_f_op_list_contains:
+  \<open>(uncurry list_contains_WHILE_f, uncurry (RETURN oo op_list_contains)) \<in>
+   Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel
+\<close>
+proof -
+  have 1: \<open>RETURN oo op_list_contains = (\<lambda>l xs. do {b \<leftarrow> RETURN (op_list_contains l xs); RETURN b})\<close>
+    by (auto intro!: ext)
+   note bind_refine' = bind_refine[where R=Id, simplified]
+
+  show ?thesis
+    unfolding list_contains_WHILE_f_def 1
+    by (intro frefI nres_relI)
+      (auto simp add: fref_def nres_rel_def uncurry_def
+        simp del: nres_monad1 nres_monad2
+        intro!: bind_refine'  intro!: list_contains_WHILE_in_set)
+qed
+
+lemma in_nat_list_rel_list_all2_in_set_iff:
+    \<open>(a, aa) \<in> nat_lit_rel \<Longrightarrow>
+       list_all2 (\<lambda>x x'. (x, x') \<in> nat_lit_rel) b ba \<Longrightarrow>
+       a \<in> set b \<longleftrightarrow> aa \<in> set ba\<close>
+  apply (subgoal_tac \<open>length b = length ba\<close>)
+  subgoal
+    apply (rotate_tac 2)
+    apply (induction b ba rule: list_induct2)
+     apply (solves simp)
+    apply (auto simp: p2rel_def lit_of_natP_same_leftD lit_of_natP_same_rightD)[]
+    done
+  subgoal using list_all2_lengthD by auto
+  done
+
+lemma list_contains_WHILE_code_op_list_contains[sepref_fr_rules]:
+  \<open>(uncurry list_contains_WHILE_arl_code,
+    uncurry (RETURN oo op_list_contains)) \<in>
+    nat_lit_assn\<^sup>k *\<^sub>a (clause_ll_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+proof -
+  have 1: \<open>(uncurry (RETURN oo op_list_contains), uncurry (RETURN oo op_list_contains)) \<in>
+         nat_lit_rel \<times>\<^sub>r \<langle>nat_lit_rel\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+    by (intro frefI nres_relI) (auto simp: list_rel_def in_nat_list_rel_list_all2_in_set_iff)
+  term nat_lit_rel
+  have 2: \<open>hr_comp (hr_comp (arl_assn nat_assn) (\<langle>nat_rel\<rangle>list_rel))
+       (\<langle>nat_lit_rel\<rangle>list_rel) = arl_assn nat_lit_assn\<close>
+    by (simp add: arl_assn_def)
+
+  show ?thesis
+    using list_contains_WHILE_arl_code.refine[unfolded list_contains_WHILE_f_def[symmetric],
+        FCOMP list_contains_WHILE_f_op_list_contains, FCOMP 1]
+    unfolding 2 .
+qed
+
+(* TODO Move out of the locale *)
+definition  get_level_wl where
+  \<open>get_level_wl M L =
+     snd (fold (\<lambda>i (found, l::nat). if atm_of (lit_of (M!i)) = atm_of L \<or> found
+                   then if is_decided (M!i)
+                     then (True, l+1)
+                     else (True, l)
+                   else
+                     (found, l)
+               )
+          [0..<length M]
+          (False, 0))\<close>
+
+lemma  get_level_wl_get_level:
+  \<open>get_level_wl M L = get_level M L\<close>
+proof -
+  define f where
+    \<open>f x = (\<lambda>(found, l::nat). if atm_of (lit_of x) = atm_of L \<or> found
+                   then  if is_decided x
+                     then (True, l+1)
+                     else (True, l)
+                   else (found, l)
+               )\<close> for x :: \<open>('a literal, 'a literal, 'b) annotated_lit\<close>
+  have [simp]: \<open>f a (False, i) = (True, i + (if is_decided a then 1 else 0))\<close>  if \<open>atm_of (lit_of a) = atm_of L\<close>  for i a
+    using that unfolding f_def by auto
+  have [simp]: \<open>f a (True, k) = (True, k + (if is_decided a then 1 else 0))\<close> for a k
+    unfolding f_def by auto
+  have [simp]: \<open>f a (False, k) = (False, k)\<close> if \<open>atm_of (lit_of a) \<noteq> atm_of L\<close> for a k
+    using that unfolding f_def by auto
+  have [simp]: \<open>snd (fold f M (True, k)) = k + count_decided M\<close> for M and k :: nat
+    by (induction M arbitrary: k) (auto simp: get_maximum_level_add_mset)
+  have [simp]: \<open>snd (fold f M (False, k)) = k + get_level M L\<close>
+      for M and k :: nat
+    apply (induction M arbitrary: k)
+    subgoal by simp
+    subgoal for a D k
+      by (cases \<open>atm_of (lit_of a) = atm_of L\<close>) (auto simp: get_maximum_level_add_mset)
+    done
+
+  show ?thesis
+    unfolding get_level_wl_def f_def[symmetric]
+      fold_idx_conv[symmetric]
+    by simp
+qed
+
+(* TODO Move out *)
+definition  is_decided_wl where
+  \<open>is_decided_wl L \<longleftrightarrow> snd L = None\<close>
+
+lemma  is_decided_wl_is_decided:
+  \<open>(RETURN o is_decided_wl, RETURN o is_decided) \<in> nat_ann_lit_rel \<rightarrow> \<langle>bool_rel\<rangle> nres_rel\<close>
+  by (auto simp: nat_ann_lit_rel_def is_decided_wl_def is_decided_def intro!: frefI nres_relI
+      elim: ann_lit_of_pair.elims)
+sepref_definition   is_decided_wl_code
+  is \<open>(RETURN o is_decided_wl)\<close>
+  :: \<open>ann_lit_wl_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding is_decided_wl_def[abs_def]
+  by sepref
+
+lemma  ann_lit_of_pair_if:
+  \<open>ann_lit_of_pair (L, D) = (if D = None then Decided L else Propagated L (the D))\<close>
+  by (cases D) auto
+(* TODO rename pair_nat_lit_assn into pair_nat_ann_lit_assn *)
+lemma   is_decided_wl_code[sepref_fr_rules]:
+  \<open>(is_decided_wl_code, RETURN o is_decided) \<in> pair_nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+proof -
+  have 1: \<open>hr_comp ann_lit_wl_assn nat_ann_lit_rel = pair_nat_lit_assn\<close>
+    by (auto simp: case_prod_beta hr_comp_def[abs_def] pure_def nat_ann_lit_rel_def
+        prod_assn_def ann_lit_of_pair_if ex_assn_def imp_ex Abs_assn_eqI(1) ex_simps(1)[symmetric]
+        simp del: pair_of_ann_lit.simps literal_of_nat.simps ex_simps(1)
+        split: if_splits
+        intro!: ext)
+  show ?thesis
+    using is_decided_wl_code.refine[FCOMP is_decided_wl_is_decided]
+    unfolding 1 .
+qed
+
+sepref_definition  get_level_wl_code
+  is \<open>uncurry (RETURN oo get_level_wl)\<close>
+  :: \<open>pair_nat_ann_lits_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  unfolding get_level_wl_def[abs_def]
+  by sepref
+
+declare  get_level_wl_code.refine[sepref_fr_rules]
+
+definition  maximum_level_remove where
+  \<open>maximum_level_remove M D L =
+     snd (fold (\<lambda>i (found, l). if D!i = L \<and> \<not>found then (True, l) else (found, max (get_level M (D!i)) l))
+          [0..<length D]
+          (False, 0))\<close>
+
+lemma  get_level_wl_code_get_level[sepref_fr_rules]:
+  \<open>(uncurry get_level_wl_code, uncurry (RETURN oo (get_level :: (nat, nat) ann_lits \<Rightarrow> nat literal \<Rightarrow> nat))) \<in>
+    pair_nat_ann_lits_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  using get_level_wl_code.refine unfolding get_level_wl_get_level[abs_def] .
+
+sepref_definition  maximum_level_remove_code
+  is \<open>uncurry2 (RETURN ooo maximum_level_remove)\<close>
+  :: \<open>pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  unfolding maximum_level_remove_def[abs_def]
+  by sepref
+
+declare  maximum_level_remove_code.refine[sepref_fr_rules]
+thm maximum_level_remove_code.refine
+
+lemma  maximum_level_remove:
+  \<open>maximum_level_remove M D L = get_maximum_level M (remove1_mset L (mset D))\<close>
+proof -
+  define f where
+    \<open>f x = (\<lambda>(found, l).
+              if x = L \<and> \<not> found then (True, l)
+              else (found, max (get_level M x) l))\<close> for x
+  have [simp]: \<open>f L (False, i) = (True, i)\<close> for i
+    unfolding f_def by auto
+  have [simp]: \<open>f a (True, k) = (True, max (get_level M a) k)\<close> for a k
+    unfolding f_def by auto
+  have [simp]: \<open>f a (False, k) = (False, max (get_level M a) k)\<close> if \<open>a \<noteq> L\<close> for a k
+    using that unfolding f_def by auto
+  have [simp]: \<open>snd (fold f D (True, k)) = max k (get_maximum_level M (mset D))\<close> for D and k :: nat
+    by (induction D arbitrary: k) (auto simp: get_maximum_level_add_mset)
+  have [simp]: \<open>snd (fold f D (False, k)) = max k (get_maximum_level M (remove1_mset L (mset D)))\<close>
+      for D and k :: nat
+    apply (induction D arbitrary: k)
+    subgoal by simp
+    subgoal for a D k
+      by (cases \<open>a = L\<close>) (auto simp: get_maximum_level_add_mset)
+    done
+
+  show ?thesis
+    unfolding maximum_level_remove_def f_def[symmetric]
+      fold_idx_conv[symmetric]
+    by simp
+qed
+
+
+definition count_decided_wl :: "('a, 'b, 'c) annotated_lit list \<Rightarrow> nat" where
+  \<open>count_decided_wl M =
+    fold (\<lambda>i j. if is_decided (M!i) then j+1 else j)
+      [0..<length M]
+       0\<close>
+lemma count_decided_wl_count_decided:
+  \<open>count_decided_wl M = count_decided M\<close>
+proof -
+  define f where
+    \<open>f x = (\<lambda>j::nat. if is_decided x then j+1 else j)\<close> for x :: \<open>('a, 'b, 'c) annotated_lit\<close>
+  have [simp]: \<open>f a 0 = (if is_decided a then 1 else 0)\<close> for a
+    unfolding f_def by auto
+  have [simp]: \<open>f a k = k + 1\<close> if \<open>is_decided a\<close> for a k
+    using that unfolding f_def by auto
+  have [simp]: \<open>f a k = k\<close> if \<open>\<not>is_decided a\<close> for a k
+    using that unfolding f_def by auto
+  have [simp]: \<open>fold f M k = k + count_decided M\<close>
+      for D and k :: nat
+    apply (induction M arbitrary: k)
+    subgoal by simp
+    subgoal for a D
+      by (auto simp: get_maximum_level_add_mset)
+    done
+
+  show ?thesis
+    unfolding count_decided_wl_def f_def[symmetric]
+      fold_idx_conv[symmetric]
+    by simp
+qed
+
+sepref_definition count_decided_wl_code
+  is \<open>RETURN o count_decided_wl\<close>
+  :: \<open>pair_nat_ann_lits_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  unfolding count_decided_wl_def
+  by sepref
+lemmas count_decided_wl_code[sepref_fr_rules] = count_decided_wl_code.refine[unfolded count_decided_wl_count_decided]
+
 context twl_array_code
 begin
 
@@ -1863,222 +2118,6 @@ lemma lit_and_ann_of_propagated_hnr[sepref_fr_rules]:
       simp del: literal_of_nat.simps)+
 
 
-sepref_thm (in -)list_contains_WHILE_arl
-  is \<open>uncurry (\<lambda>(l::nat) xs. do{ b \<leftarrow> list_contains_WHILE l xs; RETURN (fst b)})\<close>
-  :: \<open>nat_assn\<^sup>k *\<^sub>a (arl_assn id_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding list_contains_WHILE_def
-  by sepref
-    
-concrete_definition (in -) list_contains_WHILE_arl_code
-   uses list_contains_WHILE_arl.refine_raw
-   is "(uncurry ?f,_)\<in>_"
-term list_contains_WHILE_arl_code
-
-lemma list_contains_WHILE_in_set: \<open>list_contains_WHILE l xs \<le>
-      \<Down> ({((b', i), b, ys). b' = b \<and>  ys = sublist xs {i..<length xs} \<and> i \<le> length xs} O
-          Collect (case_prod (\<lambda>(b', ys). op = b')))
-        (RETURN (l \<in> set xs))\<close>
-  (is \<open>_ \<le> \<Down> ?A _\<close>)
-proof -
-  show \<open>list_contains_WHILE l xs \<le>
-      \<Down> ({((b', i), b, ys). b' = b \<and>  ys = sublist xs {i..<length xs} \<and> i \<le> length xs} O
-          Collect (case_prod (\<lambda>(b', ys). op = b')))
-        (RETURN (l \<in> set xs))\<close>
-    (is \<open>_ \<le> \<Down> ?B _\<close>)
-    unfolding list_contains_WHILE_def op_list_contains_def
-    using ref_two_step[OF WHILE\<^sub>T_nth_WHILE\<^sub>T_list[of \<open>\<lambda>_. True\<close> xs \<open>op = l\<close>]
-        op_list_contains, unfolded conc_fun_chain]
-    by simp
-qed
-
-
-definition list_contains_WHILE_f where
-  \<open>list_contains_WHILE_f l xs = do{ b \<leftarrow> list_contains_WHILE l xs; RETURN (fst b)}\<close>
-
-lemma list_contains_WHILE_f_op_list_contains:
-  \<open>(uncurry list_contains_WHILE_f, uncurry (RETURN oo op_list_contains)) \<in>
-   Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel
-\<close>
-proof -
-  have 1: \<open>RETURN oo op_list_contains = (\<lambda>l xs. do {b \<leftarrow> RETURN (op_list_contains l xs); RETURN b})\<close>
-    by (auto intro!: ext)
-   note bind_refine' = bind_refine[where R=Id, simplified]
-
-  show ?thesis
-    unfolding list_contains_WHILE_f_def 1
-    by (intro frefI nres_relI)
-      (auto simp add: fref_def nres_rel_def uncurry_def
-        simp del: nres_monad1 nres_monad2
-        intro!: bind_refine'  intro!: list_contains_WHILE_in_set)
-qed
-
-lemma in_nat_list_rel_list_all2_in_set_iff:
-    \<open>(a, aa) \<in> nat_lit_rel \<Longrightarrow>
-       list_all2 (\<lambda>x x'. (x, x') \<in> nat_lit_rel) b ba \<Longrightarrow>
-       a \<in> set b \<longleftrightarrow> aa \<in> set ba\<close>
-  apply (subgoal_tac \<open>length b = length ba\<close>)
-  subgoal
-    apply (rotate_tac 2)
-    apply (induction b ba rule: list_induct2)
-     apply (solves simp)
-    apply (auto simp: p2rel_def lit_of_natP_same_leftD lit_of_natP_same_rightD)[]
-    done
-  subgoal using list_all2_lengthD by auto
-  done
-    
-lemma list_contains_WHILE_code_op_list_contains[sepref_fr_rules]:
-  \<open>(uncurry list_contains_WHILE_arl_code,
-    uncurry (RETURN oo op_list_contains)) \<in>
-    nat_lit_assn\<^sup>k *\<^sub>a (clause_ll_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-proof -
-  have 1: \<open>(uncurry (RETURN oo op_list_contains), uncurry (RETURN oo op_list_contains)) \<in>
-         nat_lit_rel \<times>\<^sub>r \<langle>nat_lit_rel\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
-    by (intro frefI nres_relI) (auto simp: list_rel_def in_nat_list_rel_list_all2_in_set_iff)
-  term nat_lit_rel
-  have 2: \<open>hr_comp (hr_comp (arl_assn nat_assn) (\<langle>nat_rel\<rangle>list_rel))
-       (\<langle>nat_lit_rel\<rangle>list_rel) = arl_assn nat_lit_assn\<close>
-    by (simp add: arl_assn_def)
-    
-  show ?thesis
-    using list_contains_WHILE_arl_code.refine[unfolded list_contains_WHILE_f_def[symmetric],
-        FCOMP list_contains_WHILE_f_op_list_contains, FCOMP 1]
-    unfolding 2 .
-qed
-
-(* TODO Move out of the locale *)
-definition (in -) get_level_wl where
-  \<open>get_level_wl M L =
-     snd (fold (\<lambda>i (found, l::nat). if atm_of (lit_of (M!i)) = atm_of L \<or> found 
-                   then if is_decided (M!i) 
-                     then (True, l+1)
-                     else (True, l)
-                   else 
-                     (found, l)
-               )
-          [0..<length M]
-          (False, 0))\<close>
-
-lemma (in -) get_level_wl_get_level:
-  \<open>get_level_wl M L = get_level M L\<close>
-proof -
-  define f where
-    \<open>f x = (\<lambda>(found, l::nat). if atm_of (lit_of x) = atm_of L \<or> found 
-                   then  if is_decided x
-                     then (True, l+1)
-                     else (True, l)
-                   else (found, l)
-               )\<close> for x :: \<open>('a literal, 'a literal, 'b) annotated_lit\<close>
-  have [simp]: \<open>f a (False, i) = (True, i + (if is_decided a then 1 else 0))\<close>  if \<open>atm_of (lit_of a) = atm_of L\<close>  for i a
-    using that unfolding f_def by auto
-  have [simp]: \<open>f a (True, k) = (True, k + (if is_decided a then 1 else 0))\<close> for a k
-    unfolding f_def by auto
-  have [simp]: \<open>f a (False, k) = (False, k)\<close> if \<open>atm_of (lit_of a) \<noteq> atm_of L\<close> for a k
-    using that unfolding f_def by auto
-  have [simp]: \<open>snd (fold f M (True, k)) = k + count_decided M\<close> for M and k :: nat
-    by (induction M arbitrary: k) (auto simp: get_maximum_level_add_mset)
-  have [simp]: \<open>snd (fold f M (False, k)) = k + get_level M L\<close> 
-      for M and k :: nat
-    apply (induction M arbitrary: k)
-    subgoal by simp
-    subgoal for a D k
-      by (cases \<open>atm_of (lit_of a) = atm_of L\<close>) (auto simp: get_maximum_level_add_mset)
-    done
-      
-  show ?thesis
-    unfolding get_level_wl_def f_def[symmetric]
-      fold_idx_conv[symmetric]
-    by simp
-qed
-  
-(* TODO Move out *)
-definition (in -) is_decided_wl where
-  \<open>is_decided_wl L \<longleftrightarrow> snd L = None\<close>
-  
-lemma (in -) is_decided_wl_is_decided:
-  \<open>(RETURN o is_decided_wl, RETURN o is_decided) \<in> nat_ann_lit_rel \<rightarrow> \<langle>bool_rel\<rangle> nres_rel\<close>
-  by (auto simp: nat_ann_lit_rel_def is_decided_wl_def is_decided_def intro!: frefI nres_relI
-      elim: ann_lit_of_pair.elims)
-sepref_definition (in -)  is_decided_wl_code
-  is \<open>(RETURN o is_decided_wl)\<close>
-  :: \<open>ann_lit_wl_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding is_decided_wl_def[abs_def] 
-  by sepref
-
-lemma (in -) ann_lit_of_pair_if:
-  \<open>ann_lit_of_pair (L, D) = (if D = None then Decided L else Propagated L (the D))\<close>
-  by (cases D) auto
-(* TODO rename pair_nat_lit_assn into pair_nat_ann_lit_assn *)
-lemma (in -)  is_decided_wl_code[sepref_fr_rules]:
-  \<open>(is_decided_wl_code, RETURN o is_decided) \<in> pair_nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-proof -
-  have 1: \<open>hr_comp ann_lit_wl_assn nat_ann_lit_rel = pair_nat_lit_assn\<close>
-    by (auto simp: case_prod_beta hr_comp_def[abs_def] pure_def nat_ann_lit_rel_def
-        prod_assn_def ann_lit_of_pair_if ex_assn_def imp_ex Abs_assn_eqI(1) ex_simps(1)[symmetric]
-        simp del: pair_of_ann_lit.simps literal_of_nat.simps ex_simps(1)
-        split: if_splits
-        intro!: ext)
-  show ?thesis
-    using is_decided_wl_code.refine[FCOMP is_decided_wl_is_decided]
-    unfolding 1 .
-qed
-
-sepref_definition (in -) get_level_wl_code
-  is \<open>uncurry (RETURN oo get_level_wl)\<close>
-  :: \<open>pair_nat_ann_lits_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  unfolding get_level_wl_def[abs_def] 
-  by sepref
-
-declare (in -) get_level_wl_code.refine[sepref_fr_rules]  
-    
-definition (in -) maximum_level_remove where
-  \<open>maximum_level_remove M D L =
-     snd (fold (\<lambda>i (found, l). if D!i = L \<and> \<not>found then (True, l) else (found, max (get_level M (D!i)) l))
-          [0..<length D]
-          (False, 0))\<close>
-
-lemma (in -) get_level_wl_code_get_level[sepref_fr_rules]:
-  \<open>(uncurry get_level_wl_code, uncurry (RETURN oo (get_level :: (nat, nat) ann_lits \<Rightarrow> nat literal \<Rightarrow> nat))) \<in> 
-    pair_nat_ann_lits_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  using get_level_wl_code.refine unfolding get_level_wl_get_level[abs_def] .
-
-sepref_definition (in -) maximum_level_remove_code
-  is \<open>uncurry2 (RETURN ooo maximum_level_remove)\<close>
-  :: \<open>(pair_nat_ann_lits_assn\<^sup>k *\<^sub>a (array_assn nat_lit_assn)\<^sup>k) *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  unfolding maximum_level_remove_def[abs_def] 
-  by sepref
-
-declare (in -) maximum_level_remove_code.refine[sepref_fr_rules]
-thm maximum_level_remove_code.refine
-  
-lemma (in -) maximum_level_remove:
-  \<open>maximum_level_remove M D L = get_maximum_level M (remove1_mset L (mset D))\<close>
-proof -
-  define f where
-    \<open>f x = (\<lambda>(found, l).
-              if x = L \<and> \<not> found then (True, l)
-              else (found, max (get_level M x) l))\<close> for x
-  have [simp]: \<open>f L (False, i) = (True, i)\<close> for i
-    unfolding f_def by auto
-  have [simp]: \<open>f a (True, k) = (True, max (get_level M a) k)\<close> for a k
-    unfolding f_def by auto
-  have [simp]: \<open>f a (False, k) = (False, max (get_level M a) k)\<close> if \<open>a \<noteq> L\<close> for a k
-    using that unfolding f_def by auto
-  have [simp]: \<open>snd (fold f D (True, k)) = max k (get_maximum_level M (mset D))\<close> for D and k :: nat
-    by (induction D arbitrary: k) (auto simp: get_maximum_level_add_mset)
-  have [simp]: \<open>snd (fold f D (False, k)) = max k (get_maximum_level M (remove1_mset L (mset D)))\<close> 
-      for D and k :: nat
-    apply (induction D arbitrary: k)
-    subgoal by simp
-    subgoal for a D k
-      by (cases \<open>a = L\<close>) (auto simp: get_maximum_level_add_mset)
-    done
-      
-  show ?thesis
-    unfolding maximum_level_remove_def f_def[symmetric]
-      fold_idx_conv[symmetric]
-    by simp
-qed
-
 term skip_and_resolve_loop_wl_D''
 definition skip_and_resolve_loop_wl_D'' :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
   \<open>skip_and_resolve_loop_wl_D'' S\<^sub>0 =
@@ -2132,7 +2171,73 @@ sepref_thm skip_and_resolve_loop_wl_D''
   apply sepref_dbg_trans_keep
   apply sepref_dbg_trans_step_keep
   oops
+thm maximum_level_remove_code.refine[to_hnr]
 end
+
+lemma sublist_single_if: \<open>sublist l {n} = (if n < length l then [l!n] else [])\<close>
+proof -
+  have [simp]: \<open>0 < n \<Longrightarrow> {j. Suc j = n} = {n-1}\<close> for n
+    by auto
+  show ?thesis
+  apply (induction l arbitrary: n)
+  subgoal by (auto simp: sublist_def)
+  subgoal by (auto simp: sublist_Cons)
+  done
+qed
+
+definition find_first_eq where
+  \<open>find_first_eq x xs = WHILE\<^sub>T\<^bsup>\<lambda>i. i \<le> length xs\<^esup>
+       (\<lambda>i. i < length xs \<and> xs!i \<noteq> x)
+       (\<lambda>i. RETURN (i+1))
+       0\<close>
+term \<open>REC\<^sub>T\<close>
+lemma
+  assumes \<open>k < length xs\<close>
+  shows \<open>WHILE\<^sub>T\<^bsup>\<lambda>i. i \<le> length xs\<^esup>
+       (\<lambda>i. i < length xs \<and> xs!i \<noteq> x)
+       (\<lambda>i. RETURN (i+1))
+       k
+   \<le> \<Down> {(i, j). i = j}
+     (RETURN (k + index (sublist xs {k..<length xs}) x))\<close>
+proof (cases xs)
+  case Nil
+  then show ?thesis using assms by simp
+next
+  case xs: (Cons a xs')
+  then have \<open>k < Suc (length xs')\<close>
+    using assms by auto
+  then show ?thesis
+    unfolding find_first_eq_def less_eq_Suc_le Suc_le_mono xs
+    apply (induction rule: inc_induct)
+    subgoal
+      apply (subst WHILEIT_unfold)
+      apply (auto simp: sublist_single_if)[]
+      apply (subst WHILEIT_unfold)
+      apply (auto simp: sublist_single_if)[]
+      done
+    subgoal for n
+      apply (subst WHILEIT_unfold)(*
+      apply (subst sublist_Cons) *)
+      apply (auto simp: sublist_single_if)[]
+       defer
+      apply (smt Suc_eq_plus1 add.assoc index_Cons length_Cons less_SucI sublist_upt_Suc)
+      by (metis index_Cons length_Cons less_SucI sublist_upt_Suc)
+    done
+qed
+
+definition remove1_wl where
+  \<open>remove1_wl x xs = do {
+     i \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>i. i \<le> length xs\<^esup>
+       (\<lambda>i. i < length xs \<and> xs!i \<noteq> x)
+       (\<lambda>i. RETURN (i+1))
+       0;
+    if i = length xs
+    then RETURN xs
+    else if i + 1 = length xs
+    then RETURN (butlast xs)
+    else RETURN (butlast (swap xs i (length xs - 1)))
+   }
+\<close>
 
 export_code "unit_propagation_inner_loop_wl_D_code" in Haskell
 export_code "pending_wll_empty" in Haskell
