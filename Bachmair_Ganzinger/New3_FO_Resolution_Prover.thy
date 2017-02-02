@@ -413,22 +413,43 @@ lemma mk_ground_subst:
   obtains \<tau> where
     "is_ground_subst \<tau>"
     "C' \<cdot> \<tau> = C"
-  sorry
+using assms
+  by (metis ex_ground_subst is_ground_comp_subst is_ground_subst_cls subst_cls_comp_subst) (* I'm very impressed sledgehammer managed to do this... *)
     
 lemma ground_resolvent_subset:
-  assumes "is_ground_cls_list CAi"
-  assumes "is_ground_cls DAi"
-  assumes "ord_resolve SSS CAi DAi E"
+  assumes gr_c: "is_ground_cls_list CAi"
+  assumes gr_d: "is_ground_cls DAi"
+  assumes resolve: "ord_resolve SSS CAi DAi E"
   shows "E \<subseteq># (\<Union>#(mset CAi)) + DAi"
-  sorry
+  using resolve proof (cases rule: ord_resolve.cases)
+  case (ord_resolve n Ci Aij Ai \<sigma> D)
     
-lemma ground_resolvent_ground:
+  have cisucai: "\<Union>#mset Ci \<subseteq># \<Union>#(mset CAi)" sorry
+  hence gr_ci: "is_ground_cls_list Ci" sorry
+  have dsudai :"D \<subseteq># DAi" by (simp add: local.ord_resolve(1)) 
+  then have gr_di: "is_ground_cls D" sorry    
+      
+  from ord_resolve have "E = (\<Union>#mset Ci + D) \<cdot> \<sigma>" by -
+  hence "E = (\<Union>#mset Ci + D)" using gr_ci gr_di sorry
+  then show ?thesis using cisucai dsudai by (auto simp add: subset_mset.add_mono)
+qed
+  
+
+    
+lemma ground_resolvent_ground: (* This proof should be more automatic I think... *)
   assumes "is_ground_cls_list CAi"
   assumes "is_ground_cls DAi"
   assumes "ord_resolve SSS CAi DAi E"
   shows "is_ground_cls E"
-    sorry
-
+proof -
+  from assms have "E \<subseteq># (\<Union>#(mset CAi)) + DAi" using ground_resolvent_subset by auto
+  then have "\<forall>e \<in># E. e \<in># \<Union>#(mset CAi) \<or> e \<in># DAi" by auto
+  then show "is_ground_cls E" unfolding is_ground_cls_def
+    apply auto
+    using assms(1) unfolding is_ground_cls_list_def is_ground_cls_def
+    by (metis assms(2) in_mset_sum_list2 is_ground_cls_def)    
+qed
+      
 lemma ord_resolve_lifting: 
   fixes CAi
   assumes resolve: "ord_resolve (S_M S M) CAi DAi E"
@@ -511,10 +532,10 @@ lemma ord_resolve_lifting:
     have "S (D' + negs (mset Ai')) = negs (mset Ai')" sorry
     then show "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp by auto
   next
-    assume "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
+    assume asm: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
     let ?A = "Ai ! 0"
-    have "?A \<cdot>a (\<eta> \<odot> \<sigma>) = ?A \<cdot>a (\<tau> \<odot> \<phi>)" sorry
-    have "maximal_in (Ai' ! 0 \<cdot>a \<tau>) ((D' + negs (mset Ai')) \<cdot> \<tau>)" sorry
+    have "?A \<cdot>a (\<eta> \<odot> \<sigma>) = ?A \<cdot>a (\<tau> \<odot> \<phi>)" using \<phi>_p by auto
+    have "maximal_in (Ai' ! 0 \<cdot>a \<tau>) ((D' + negs (mset Ai')) \<cdot> \<tau>)" using prime_clauses2(6) prime_clauses2(7) sorry
     hence "maximal_in (Ai' ! 0) ((D' + negs (mset Ai')))" using maximal_in_gen by blast
     then show "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp sorry (* believable *)
   qed
@@ -522,12 +543,12 @@ lemma ord_resolve_lifting:
   from ord_resolve have "\<forall>i<n. str_maximal_in (Ai ! i \<cdot>a \<sigma>) (Ci ! i \<cdot> \<sigma>)" by -
   hence "\<forall>i<n. str_maximal_in ((Ai' \<cdot>al \<eta>) ! i \<cdot>a \<sigma>) ((Ci' \<cdot>cl \<eta>) ! i \<cdot> \<sigma>)" sorry
   hence "\<forall>i<n. str_maximal_in ((Ai' ! i) \<cdot>a (\<eta> \<odot> \<sigma>)) ((Ci' ! i) \<cdot> (\<eta> \<odot> \<sigma>))" sorry
-  hence "\<forall>i<n. str_maximal_in ((Ai' ! i) \<cdot>a (\<tau> \<odot> \<phi>)) ((Ci' ! i) \<cdot> (\<tau> \<odot> \<phi>))" sorry
-  hence "\<forall>i<n. str_maximal_in ((Ai' ! i \<cdot>a \<tau>) \<cdot>a \<phi>) ((Ci' ! i \<cdot> \<tau>) \<cdot> \<phi>)" sorry
+  hence "\<forall>i<n. str_maximal_in ((Ai' ! i) \<cdot>a (\<tau> \<odot> \<phi>)) ((Ci' ! i) \<cdot> (\<tau> \<odot> \<phi>))" using \<phi>_p by auto
+  hence "\<forall>i<n. str_maximal_in ((Ai' ! i \<cdot>a \<tau>) \<cdot>a \<phi>) ((Ci' ! i \<cdot> \<tau>) \<cdot> \<phi>)" by auto
   hence e: "\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)" using str_maximal_in_gen \<phi>_p by blast
   moreover
   from ord_resolve have "\<forall>C\<in>set CAi. (S_M S M) C = {#}" by -
-  hence f: "\<forall>C\<in>set CAi'. S C = {#}" using prime_clauses(3) prime_clauses(4) sorry
+  hence f: "\<forall>C\<in>set CAi'. S C = {#}" using prime_clauses(3) prime_clauses(4) ord_resolve(3) sorry
   ultimately
   have res_e': "ord_resolve S CAi' DAi' E'" 
     using ord_resolve.intros[of CAi' n Ci' Aij' Ai' \<tau> S D', OF prime_clauses(1) prime_clauses2(1) prime_clauses2(2) prime_clauses2(3) ord_resolve(7) b c \<tau>_p] prime_clauses \<tau>_p 
