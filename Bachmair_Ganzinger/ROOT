@@ -21,6 +21,7 @@ session Bachmair_Ganzinger = Bachmair_Ganzinger_Base +
     Unordered_Ground_Resolution
     Ordered_Ground_Resolution
     Lazy_List_Limit
+    Substitution
     Proving_Process
     Standard_Redundancy
     New3_Ordered_Ground_Resolution

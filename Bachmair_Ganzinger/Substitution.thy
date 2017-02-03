@@ -485,10 +485,11 @@ lemma[simp]: "i < length Ai \<Longrightarrow> ((Ai \<cdot>al \<tau>) ! i) = (Ai 
 lemma[simp]: "i < length Ci \<Longrightarrow> ((Ci \<cdot>cl \<tau>) ! i) = (Ci ! i) \<cdot> \<tau>"
   unfolding subst_cls_list_def using less_Suc_eq_0_disj nth_map by (induction Ci) auto
     
-lemma[simp]: "mset (Ai' \<cdot>al \<sigma>) = mset (Ai') \<cdot>am \<sigma>" sorry
+lemma[simp]: "mset (Ai \<cdot>al \<sigma>) = mset (Ai) \<cdot>am \<sigma>"
+  unfolding subst_atm_list_def subst_atm_mset_def by auto
     
-lemma[simp]: "sum_list (Ci' \<cdot>cl \<eta>) = sum_list Ci' \<cdot> \<eta>" sorry
-    
+lemma[simp]: "sum_list (Ci' \<cdot>cl \<eta>) = sum_list Ci' \<cdot> \<eta>" 
+    unfolding subst_cls_list_def by (induction Ci') auto
 end
 
 locale unification = substitution subst_atm id_subst comp_subst
