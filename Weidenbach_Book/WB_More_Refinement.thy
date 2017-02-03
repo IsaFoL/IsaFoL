@@ -393,4 +393,10 @@ proof -
     by simp
 qed
 
+sepref_thm list_contains_WHILE
+  is \<open>uncurry (\<lambda>(l::nat) xs. do{ b \<leftarrow> list_contains_WHILE l xs; RETURN (fst b)})\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a (array_assn id_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding list_contains_WHILE_def
+  by sepref
+
 end
