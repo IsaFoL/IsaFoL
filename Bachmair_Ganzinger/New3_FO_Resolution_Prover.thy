@@ -509,8 +509,10 @@ lemma ord_resolve_lifting:
   have "Some \<sigma> = mgu (set_mset ` set (map2 add_mset Ai Aij))" using ord_resolve by -
   hence "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)))" using mgu_sound is_mgu_def unfolding prime_clauses2 by auto
   hence \<eta>\<sigma>uni: "is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset Ai' Aij'))" sorry
-  then obtain \<tau> where \<tau>_p: "Some \<tau> = mgu (set_mset ` set (map2 add_mset Ai' Aij'))" sorry
-  then obtain \<phi> where \<phi>_p: "\<tau> \<odot> \<phi> = \<eta> \<odot> \<sigma>" sorry
+  then obtain \<tau> where \<tau>_p: "Some \<tau> = mgu (set_mset ` set (map2 add_mset Ai' Aij'))" using mgu_complete
+    by (metis (mono_tags, hide_lams) finite_imageI finite_set_mset image_iff set_mset_mset) (* should be simpler? *) 
+  then obtain \<phi> where \<phi>_p: "\<tau> \<odot> \<phi> = \<eta> \<odot> \<sigma>"
+    by (metis (mono_tags, hide_lams) List.finite_set \<eta>\<sigma>uni finite_imageI finite_set_mset image_iff mgu_sound set_mset_mset substitution_ops.is_mgu_def that) (* should be simpler *)
       
   define E' where "E' = ((\<Union># (mset Ci')) + D') \<cdot> \<tau>"
     
@@ -535,7 +537,9 @@ lemma ord_resolve_lifting:
   hence "eligible S \<tau> Ai' (D' + negs (mset Ai'))"
   proof
     assume "S_M S M (D + negs (mset Ai)) = negs (mset Ai)"
-    have "S (D' + negs (mset Ai')) = negs (mset Ai')" sorry
+    hence "S (D' + negs (mset Ai')) = negs (mset Ai')" 
+      using prime_clauses(7) unfolding a[symmetric] ord_resolve(1) prime_clauses2(6)[symmetric] prime_clauses2(7)[symmetric]
+      (* this looks kind of BAD ... *) sorry
     then show "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp by auto
   next
     assume asm: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
