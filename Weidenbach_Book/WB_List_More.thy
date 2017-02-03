@@ -514,6 +514,50 @@ lemma distinct_mset_set_distinct: \<open>distinct_mset_set (mset ` set Cs) \<lon
   unfolding distinct_mset_set_def by auto
 
 
+subsection \<open>Sublists\<close>
+
+lemma sublist_single_if: \<open>sublist l {n} = (if n < length l then [l!n] else [])\<close>
+proof -
+  have [simp]: \<open>0 < n \<Longrightarrow> {j. Suc j = n} = {n-1}\<close> for n
+    by auto
+  show ?thesis
+  apply (induction l arbitrary: n)
+  subgoal by (auto simp: sublist_def)
+  subgoal by (auto simp: sublist_Cons)
+  done
+qed
+
+lemma atLeastLessThan_Collect: \<open>{a..<b} = {j. j \<ge> a \<and> j < b}\<close>
+  by auto
+
+lemma mset_sublist_subset_mset: \<open>mset (sublist xs A) \<subseteq># mset xs\<close>
+  apply (induction xs arbitrary: A)
+  subgoal by auto
+  subgoal for a xs A
+    using subset_mset.add_increasing2[of \<open>add_mset _ {#}\<close> \<open>mset (sublist xs {j. Suc j \<in> A})\<close>  \<open>mset xs\<close>]
+    by (auto simp: sublist_Cons)
+  done
+
+lemma sublist_id_iff:
+  \<open>sublist xs A = xs \<longleftrightarrow> {0..<length xs} \<subseteq> A \<close>
+proof -
+  have \<open>{j. Suc j \<in> A} =  (\<lambda>j. j-1) ` (A - {0})\<close> for A
+    using DiffI by (fastforce simp: image_iff)
+  have 1: \<open>{0..<b} \<subseteq> {j. Suc j \<in> A} \<longleftrightarrow> (\<forall>x. x-1 < b \<longrightarrow> x \<noteq> 0 \<longrightarrow> x \<in> A)\<close>
+    for A xs b
+    by auto
+  have [simp]: \<open>{0..<b} \<subseteq> {j. Suc j \<in> A} \<longleftrightarrow> (\<forall>x. x-1 < b \<longrightarrow> x \<in> A)\<close>
+    if \<open>0\<in> A\<close>for A b
+    using that unfolding 1 by auto
+  have [simp]: \<open>sublist xs {j. Suc j \<in> A} = a # xs \<longleftrightarrow> False\<close> for a xs A
+    using mset_sublist_subset_mset[of xs \<open>{j. Suc j \<in> A}\<close>] by auto
+  show ?thesis -- \<open>TODO tune proof\<close>
+    apply (induction xs arbitrary: A)
+     apply (auto simp: sublist_Cons less_Suc_eq)
+    by (fastforce simp:  less_Suc_eq)+
+qed
+
+
 subsection \<open>Product Case\<close>
 
 text \<open>The splitting of tuples is done for sizes strictly less than 8. As we want to manipulate 
