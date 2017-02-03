@@ -457,6 +457,38 @@ lemma is_unifiers_subst_atm_eqI:
 lemma subst_ext_iff: "\<sigma> = \<tau> \<longleftrightarrow> (\<forall>A. A \<cdot>a \<sigma> = A \<cdot>a \<tau>)"
   by (auto intro: subst_ext)
 
+(* Put these in the appropriate place above: *)
+  
+(* similar to, but stronger than is_ground_subst_lit *)
+lemma is_ground_subst_lit_iff: "is_ground_lit L \<longleftrightarrow> (\<forall>\<sigma>. L = L \<cdot>l \<sigma>)"
+  using is_ground_atm_def is_ground_lit_def subst_lit_def by (cases L) auto
+
+(* similar to but stronger than is_ground_subst_cls *)
+thm is_ground_subst_cls
+lemma is_ground_subst_cls_iff: "is_ground_cls C \<longleftrightarrow> (\<forall>\<sigma>. C = C \<cdot> \<sigma>)"
+  apply rule
+  using is_ground_subst_lit_iff apply (auto simp add: is_ground_cls_def subst_cls_def)[]
+  apply (metis ex_ground_subst ground_subst_ground_cls)
+  done
+lemma is_ground_subst_cls_list[simp]: "length P = length CAi \<Longrightarrow> is_ground_cls_list CAi \<Longrightarrow> CAi \<cdot>\<cdot>cl P = CAi"
+  unfolding is_ground_cls_list_def subst_cls_lists_def using is_ground_subst_cls nth_equalityI[of "map _ _" CAi]
+  by (metis in_set_conv_nth subst_cls_len subst_cls_lists_def subst_cls_lists_nth)
+    
+(* similar to but stronger than is_ground_subst_cls_list *)
+  
+lemma "is_ground_cls_list CAi \<longleftrightarrow> (\<forall>P. length P = length CAi \<longrightarrow> CAi \<cdot>\<cdot>cl P = CAi)"
+  oops (* This should be proved *)
+
+lemma[simp]: "i < length Ai \<Longrightarrow> ((Ai \<cdot>al \<tau>) ! i) = (Ai ! i) \<cdot>a \<tau>"
+  unfolding subst_atm_list_def using less_Suc_eq_0_disj nth_map by (induction Ai) auto
+    
+lemma[simp]: "i < length Ci \<Longrightarrow> ((Ci \<cdot>cl \<tau>) ! i) = (Ci ! i) \<cdot> \<tau>"
+  unfolding subst_cls_list_def using less_Suc_eq_0_disj nth_map by (induction Ci) auto
+    
+lemma[simp]: "mset (Ai' \<cdot>al \<sigma>) = mset (Ai') \<cdot>am \<sigma>" sorry
+    
+lemma[simp]: "sum_list (Ci' \<cdot>cl \<eta>) = sum_list Ci' \<cdot> \<eta>" sorry
+    
 end
 
 locale unification = substitution subst_atm id_subst comp_subst
@@ -511,29 +543,7 @@ next
     by blast
 qed
 
-
-(* similar to, but stronger than is_ground_subst_lit *)
-lemma is_ground_subst_lit_iff: "is_ground_lit L \<longleftrightarrow> (\<forall>\<sigma>. L = L \<cdot>l \<sigma>)"
-  using is_ground_atm_def is_ground_lit_def subst_lit_def by (cases L) auto
-
-(* similar to but stronger than is_ground_subst_cls *)
-thm is_ground_subst_cls
-lemma is_ground_subst_cls_iff: "is_ground_cls C \<longleftrightarrow> (\<forall>\<sigma>. C = C \<cdot> \<sigma>)"
-  apply rule
-  using is_ground_subst_lit_iff apply (auto simp add: is_ground_cls_def subst_cls_def)[]
-  apply (metis ex_ground_subst ground_subst_ground_cls)
-  done
   
-(* Put this in the appropriate place *)
-lemma is_ground_subst_cls_list[simp]: "length P = length CAi \<Longrightarrow> is_ground_cls_list CAi \<Longrightarrow> CAi \<cdot>\<cdot>cl P = CAi"
-  unfolding is_ground_cls_list_def subst_cls_lists_def using is_ground_subst_cls nth_equalityI[of "map _ _" CAi]
-  by (metis in_set_conv_nth subst_cls_len subst_cls_lists_def subst_cls_lists_nth)
-    
-(* similar to but stronger than is_ground_subst_cls_list *)
-  
-lemma "is_ground_cls_list CAi \<longleftrightarrow> (\<forall>P. length P = length CAi \<longrightarrow> CAi \<cdot>\<cdot>cl P = CAi)"
-  oops (* This should be proved *)
-
 end
-
+  
 end

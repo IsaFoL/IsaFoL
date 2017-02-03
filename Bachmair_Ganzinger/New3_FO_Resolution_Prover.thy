@@ -60,7 +60,7 @@ begin
 
 (* Move to substitution maybe:*)
   
-abbreviation "maximal_in A DAs \<equiv> (\<forall>B \<in> atms_of DAs. \<not> less_atm A B)"
+definition "maximal_in A DAs \<equiv> (\<forall>B \<in> atms_of DAs. \<not> less_atm A B)"
   (* This definition is a bit inconsistent compared to the ground case since 
      there it was defined as THE maximum instead of SOME upper bound. *)
 abbreviation "str_maximal_in A CAis \<equiv> (\<forall>B \<in> atms_of CAis. \<not> less_eq_atm A B)"
@@ -99,7 +99,7 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
    Some \<sigma> = mgu (set_mset ` (set (map2 add_mset Ai Aij))) \<Longrightarrow> (* This states \<sigma> is a unifier, but! it should be an mgu! *)
    eligible \<sigma> Ai (D + negs (mset Ai)) \<Longrightarrow>
    \<forall>i. i < n \<longrightarrow> str_maximal_in (Ai ! i \<cdot>a \<sigma>) ((Ci ! i) \<cdot> \<sigma>) \<Longrightarrow>
-   \<forall>C \<in> set CAi. S C = {#} \<Longrightarrow> (* Use the ! style instead maybe, or maybe us the \<forall>\<in>. style above *)
+   \<forall>i < n. S (CAi ! i) = {#} \<Longrightarrow> (* Use the ! style instead maybe, or maybe us the \<forall>\<in>. style above *)
    ord_resolve CAi (D + negs (mset Ai)) (((\<Union># (mset Ci)) + D) \<cdot> \<sigma>)"    
   
 lemma mgu_unifier:
@@ -199,7 +199,7 @@ lemma ord_resolve_sound:
   from mgu have unif: "\<forall>i<n. \<forall>A\<in>#Aij ! i. A \<cdot>a \<tau> = Ai ! i \<cdot>a \<tau>" 
     using mgu_unifier using ai_len aij_len by blast
       
-  show "\<forall>C\<in>set CAi. S C = {#} \<Longrightarrow> I \<Turnstile> E \<cdot> \<sigma>"
+  show "\<forall>i<n. S (CAi ! i) = {#} \<Longrightarrow> I \<Turnstile> E \<cdot> \<sigma>"
   proof (cases "\<forall>A \<in> set Ai. A \<cdot>a \<tau> \<cdot>a \<sigma> \<in> I")
     case True
     hence "\<not> I \<Turnstile> negs (mset Ai) \<cdot> \<tau> \<cdot> \<sigma>"
@@ -383,13 +383,13 @@ lemma maximal_in_gen:
   shows "maximal_in A C"
 proof -
   from assms have "maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)" by -
-  hence "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> less_atm (A \<cdot>a \<sigma>) B" by -
+  hence "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> less_atm (A \<cdot>a \<sigma>) B" unfolding maximal_in_def by -
   hence "\<forall>B\<in>atms_of (C \<cdot> \<sigma>). \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma>'))" unfolding less_atm_iff by -
   hence "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma> \<cdot>a \<sigma>'))" sorry
   hence "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma>' < B \<cdot>a \<sigma>'))"
     using is_ground_comp_subst by fastforce
   hence "\<forall>B\<in>atms_of C. \<not> (less_atm A B)" unfolding less_atm_iff by -
-  then show ?thesis unfolding less_eq_atm_def by auto
+  then show ?thesis unfolding less_eq_atm_def maximal_in_def by auto
 qed
     
 lemma str_maximal_in_gen: (* a better proof might reuse the lemma maximal_in_gen *)
@@ -449,10 +449,16 @@ proof -
     using assms(1) unfolding is_ground_cls_list_def is_ground_cls_def
     by (metis assms(2) in_mset_sum_list2 is_ground_cls_def)    
 qed
+  
+lemma empty_subst: "C \<cdot> \<eta> = {#} \<Longrightarrow> C = {#}"
+unfolding subst_cls_def by auto
+  
       
 lemma ord_resolve_lifting: 
   fixes CAi
-  assumes resolve: "ord_resolve (S_M S M) CAi DAi E"
+  assumes resolve: "ord_resolve (S_M S M) CAi DAi E" 
+    (* Isn't the definition of S_M kind of weird? It seems odd that we let hilbert make choices about our selection function. This is probably not how a prover works. He probably make the choice
+       him self, clever or not. *)
     and select: "selection S"
     and selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" 
       (* Here I could use a weaker invariant, namely that if nothing is selected then still nothing is selected. That is how it is done in supercalc. *)
@@ -510,7 +516,7 @@ lemma ord_resolve_lifting:
     
   have "E' \<cdot> \<phi> = ((\<Union># (mset Ci')) + D') \<cdot> (\<tau> \<odot> \<phi>)" unfolding E'_def by auto
   also have "... = ((\<Union># (mset Ci')) + D') \<cdot> (\<eta> \<odot> \<sigma>)" using \<phi>_p by auto
-  also have "... = ((\<Union># (mset (Ci' \<cdot>cl \<eta>))) + (D' \<cdot> \<eta>)) \<cdot> \<sigma>" sorry
+  also have "... = ((\<Union># (mset (Ci' \<cdot>cl \<eta>))) + (D' \<cdot> \<eta>)) \<cdot> \<sigma>" by simp
   also have "... = ((\<Union># (mset Ci)) + D) \<cdot> \<sigma>" using prime_clauses2 by auto
   also have "... = E" using ord_resolve by auto
   finally have e'\<phi>e: "E' \<cdot> \<phi> = E" .
@@ -534,21 +540,28 @@ lemma ord_resolve_lifting:
   next
     assume asm: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
     let ?A = "Ai ! 0"
-    have "?A \<cdot>a (\<eta> \<odot> \<sigma>) = ?A \<cdot>a (\<tau> \<odot> \<phi>)" using \<phi>_p by auto
-    have "maximal_in (Ai' ! 0 \<cdot>a \<tau>) ((D' + negs (mset Ai')) \<cdot> \<tau>)" using prime_clauses2(6) prime_clauses2(7) sorry
-    hence "maximal_in (Ai' ! 0) ((D' + negs (mset Ai')))" using maximal_in_gen by blast
-    then show "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp sorry (* believable *)
+    from asm have "S_M S M (D + negs (mset Ai)) = {#}" by auto
+    hence "S (D' + negs (mset Ai')) = {#}" using prime_clauses2(6)[symmetric] prime_clauses2(7)[symmetric] apply simp sorry
+    moreover
+    from asm have l: "length Ai = 1" by auto
+    hence "length Ai' = 1" using prime_clauses2(7)[symmetric] by auto
+    moreover
+    from asm have "maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)" by auto
+    hence "maximal_in (Ai' ! 0 \<cdot>a \<tau> \<cdot>a \<phi>) ((D' + negs (mset Ai')) \<cdot> \<tau> \<cdot> \<phi>)" using prime_clauses2(6)[symmetric] prime_clauses2(7)[symmetric] prime_clauses2(3) l \<phi>_p sorry
+    hence "maximal_in (Ai' ! 0 \<cdot>a \<tau>) ((D' + negs (mset Ai')) \<cdot> \<tau>)" using maximal_in_gen by blast
+    ultimately show "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp by auto (* believable *)
   qed
   moreover
   from ord_resolve have "\<forall>i<n. str_maximal_in (Ai ! i \<cdot>a \<sigma>) (Ci ! i \<cdot> \<sigma>)" by -
-  hence "\<forall>i<n. str_maximal_in ((Ai' \<cdot>al \<eta>) ! i \<cdot>a \<sigma>) ((Ci' \<cdot>cl \<eta>) ! i \<cdot> \<sigma>)" sorry
-  hence "\<forall>i<n. str_maximal_in ((Ai' ! i) \<cdot>a (\<eta> \<odot> \<sigma>)) ((Ci' ! i) \<cdot> (\<eta> \<odot> \<sigma>))" sorry
+  hence "\<forall>i<n. str_maximal_in ((Ai' \<cdot>al \<eta>) ! i \<cdot>a \<sigma>) ((Ci' \<cdot>cl \<eta>) ! i \<cdot> \<sigma>)" using prime_clauses2 by simp
+  hence "\<forall>i<n. str_maximal_in ((Ai' ! i) \<cdot>a (\<eta> \<odot> \<sigma>)) ((Ci' ! i) \<cdot> (\<eta> \<odot> \<sigma>))" using prime_clauses2 by auto
   hence "\<forall>i<n. str_maximal_in ((Ai' ! i) \<cdot>a (\<tau> \<odot> \<phi>)) ((Ci' ! i) \<cdot> (\<tau> \<odot> \<phi>))" using \<phi>_p by auto
   hence "\<forall>i<n. str_maximal_in ((Ai' ! i \<cdot>a \<tau>) \<cdot>a \<phi>) ((Ci' ! i \<cdot> \<tau>) \<cdot> \<phi>)" by auto
   hence e: "\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)" using str_maximal_in_gen \<phi>_p by blast
   moreover
-  from ord_resolve have "\<forall>C\<in>set CAi. (S_M S M) C = {#}" by -
-  hence f: "\<forall>C\<in>set CAi'. S C = {#}" using prime_clauses(3) prime_clauses(4) ord_resolve(3) sorry
+  from ord_resolve have "\<forall>i < n. (S_M S M) (CAi ! i) = {#}" by -
+  hence "\<forall>i < n. S (CAi' ! i)  \<cdot> \<eta> = {#}" using prime_clauses(3) prime_clauses(4) ord_resolve(3) by auto 
+  hence f: "\<forall>i < n. S (CAi' ! i) = {#}" using empty_subst by blast
   ultimately
   have res_e': "ord_resolve S CAi' DAi' E'" 
     using ord_resolve.intros[of CAi' n Ci' Aij' Ai' \<tau> S D', OF prime_clauses(1) prime_clauses2(1) prime_clauses2(2) prime_clauses2(3) ord_resolve(7) b c \<tau>_p] prime_clauses \<tau>_p 
