@@ -500,7 +500,7 @@ locale unification = substitution subst_atm id_subst comp_subst
     mgu :: "'a set set \<Rightarrow> 's option"
   assumes
     mgu_sound: "finite AAA \<Longrightarrow> (\<forall>AA \<in> AAA. finite AA) \<Longrightarrow> mgu AAA = Some \<sigma> \<Longrightarrow> is_mgu \<sigma> AAA" and
-    mgu_complete: "finite AAA \<Longrightarrow> (\<forall>AA \<in> AAA. finite AA) \<Longrightarrow> is_mgu \<sigma> AAA \<Longrightarrow> \<exists>\<tau>. mgu AAA = Some \<tau>"
+    mgu_complete: "finite AAA \<Longrightarrow> (\<forall>AA \<in> AAA. finite AA) \<Longrightarrow> is_unifiers \<sigma> AAA \<Longrightarrow> \<exists>\<tau>. mgu AAA = Some \<tau>"
 begin
 
 lemmas is_unifiers_mgu = mgu_sound[unfolded is_mgu_def, THEN conjunct1]
@@ -519,8 +519,8 @@ lemma mgu_eq_id_subst:
   "finite AAA \<Longrightarrow> (\<forall>AA \<in> AAA. finite AA \<and> card AA \<le> 1) \<Longrightarrow> \<exists>\<rho>. mgu AAA = Some \<rho> \<and> is_renaming \<rho>"
 proof (induct AAA rule: finite_induct)
   case empty
-  have "is_mgu id_subst {}"
-    unfolding is_mgu_def is_unifiers_def by simp
+  have "is_unifiers id_subst {}"
+    unfolding is_unifiers_def by simp
   then show ?case
     using mgu_complete mgu_empty by blast
 next
@@ -534,14 +534,14 @@ next
   ultimately have "is_mgu \<rho> (insert AA AAA)"
     unfolding is_mgu_def is_unifiers_def by simp
   then obtain \<rho>' where "mgu (insert AA AAA) = Some \<rho>'"
-    using mgu_complete insert(1,4) by force
+    using mgu_complete insert(1,4) is_mgu_def by force
   moreover then have "is_mgu \<rho>' (insert AA AAA)"
     using mgu_sound insert(1,4) by force
   with \<open>is_mgu \<rho> (insert AA AAA)\<close> \<open>is_renaming \<rho>\<close>  have "is_renaming \<rho>'"
     unfolding is_mgu_def is_renaming_def by (metis comp_subst_assoc)
   ultimately show ?case
     by blast
-qed
+qed                                                                  
 
   
 end
