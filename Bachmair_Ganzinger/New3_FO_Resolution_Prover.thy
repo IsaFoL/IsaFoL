@@ -256,7 +256,7 @@ proof -
   then have "\<forall>i. i < length CAi \<longrightarrow> (I \<Turnstile>fo  (CAi ! i))"
     using in_set_conv_nth[of _ CAi] by blast
   then have "\<forall>i. i < length CAi \<longrightarrow> (I \<Turnstile>fo  (CAi ! i) \<cdot> P ! i)"
-    using ren rename_sound len by (auto simp del: subst_mc_side_clause)
+    using ren rename_sound len by auto
   then have true_cp: "\<forall>i. i < length CAi \<longrightarrow> (I \<Turnstile>fo (CAi ! i \<cdot> P ! i))" 
     by auto
   show ?thesis unfolding true_fo_cls_mset_def2

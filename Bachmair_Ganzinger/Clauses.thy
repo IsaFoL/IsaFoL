@@ -9,9 +9,6 @@ section {* Main and Side Clauses *}
 
 subsection {* Main and side clauses *} (* Should maybe be in Clausal_Logic *)
 
-type_synonym 'a main_clause = "'a clause * 'a list"
-type_synonym 'a side_clause = "'a clause * 'a multiset"
-
 definition "main_clause \<equiv> (\<lambda>(D,As). D + negs (mset As))"
 abbreviation "side_clause \<equiv> (\<lambda>(C,As). C + poss As)"
 definition "side_clauses Cs \<equiv> mset (map side_clause Cs)"
@@ -22,13 +19,6 @@ abbreviation get_C :: "'a clause * 'b \<Rightarrow> 'a clause" where
 
 abbreviation get_As :: "'a clause * 'b \<Rightarrow> 'b" where 
   "get_As \<equiv> snd"
-
-definition atms_of_mcls :: "'a main_clause \<Rightarrow> 'a set" where
-  "atms_of_mcls DAs = atms_of (get_C DAs) \<union> set (get_As DAs)"
-  
-definition atms_of_scls :: "'a side_clause \<Rightarrow> 'a set" where
-  "atms_of_scls CA = atms_of (get_C CA) \<union> set_mset (get_As CA)"
-  
   
 definition "Union_Cs CAs \<equiv> \<Union># (mset (map get_C CAs))"
 
