@@ -16,7 +16,7 @@ definition init_dt_step :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l \<Righta
       then (Propagated L 0 # M, N, U, None, add_mset {#L#} NP, UP, WS, add_mset (-L) Q)
       else if L \<in> lits_of_l M
       then (M, N, U, None, add_mset {#L#} NP, UP, WS, Q)
-      else (M, N, U, Some C, add_mset {#L#} NP, UP, {#}, {#})
+      else (M, N, U, Some (mset C), add_mset {#L#} NP, UP, {#}, {#})
     else
       let L = hd C; L' = hd (tl C); C' = tl (tl C) in
       (M, N @ [[L, L'] @ C'], length N, None, NP, UP, WS, Q)
@@ -145,48 +145,47 @@ next
         cdcl\<^sub>W_restart_mset_state init_dt_step_def)
 
   let ?S' = \<open>(convert_lits_l N M, twl_clause_of `# mset (take U (tl N)),
-       twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP,
-             {#}, Q)\<close>
+       twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#}, Q)\<close>
   case 1
   have
     struct: \<open>Multiset.Ball (twl_clause_of `# mset (tl N)) struct_wf_twl_cls\<close> and
-    H: \<open>\<forall>C\<in>#twl_clause_of `# mset (tl N). map_option mset D = None \<longrightarrow>
+    H: \<open>\<forall>C\<in>#twl_clause_of `# mset (tl N). D = None \<longrightarrow>
       \<not> twl_is_an_exception C Q ({#} :: ('v literal \<times> 'v twl_cls) multiset ) \<longrightarrow>
       (twl_lazy_update (convert_lits_l N M) C \<and> twl_inv (convert_lits_l N M) C)\<close> and
-    lev: \<open>\<forall>C\<in>#twl_clause_of `# mset (tl N). map_option mset D = None \<longrightarrow> watched_literals_false_of_max_level (convert_lits_l N M) C\<close> and
-    valid: \<open>valid_annotation (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
+    lev: \<open>\<forall>C\<in>#twl_clause_of `# mset (tl N). D = None \<longrightarrow> watched_literals_false_of_max_level (convert_lits_l N M) C\<close> and
+    valid: \<open>valid_annotation (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
       Q) \<close> and
     all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state
-     (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
+     (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
       Q))\<close> and
     no_taut: \<open>\<forall>D\<in>#init_clss (convert_to_state
-                    (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP,
+                    (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP,
                      {#}, Q)).
       \<not> tautology D\<close> and
     no_smaller: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (convert_to_state
-     (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
+     (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
       Q))\<close> and
     excep: \<open>twl_st_exception_inv (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)),
-      twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
+      twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
     Q)\<close> and
-    no_dup: \<open>no_duplicate_queued (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
+    no_dup: \<open>no_duplicate_queued (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
     Q)\<close> and
-    dist_q: \<open>distinct_queued (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
+    dist_q: \<open>distinct_queued (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
     Q)\<close> and
-    confl_cands: \<open>confl_cands_enqueued (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
+    confl_cands: \<open>confl_cands_enqueued (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
     Q)\<close> and
-    propa_cands: \<open>propa_cands_enqueued (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
+    propa_cands: \<open>propa_cands_enqueued (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
     Q)\<close> and
-    get_confl: \<open>get_conflict (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
-     Q) \<noteq> None \<longrightarrow> working_queue (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
+    get_confl: \<open>get_conflict (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
+     Q) \<noteq> None \<longrightarrow> working_queue (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
      Q) = {#} \<and>
-    pending (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP,
+    pending (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP,
             {#}, Q) = {#}\<close> and
-    unit_clss: \<open>unit_clss_inv (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
+    unit_clss: \<open>unit_clss_inv (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
     Q)\<close> and
-    w_q: \<open>working_queue_inv (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP, {#},
+    w_q: \<open>working_queue_inv (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
     Q)\<close> and
-    past_invs: \<open>past_invs (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), map_option mset D, NP, UP,
+    past_invs: \<open>past_invs (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP,
              {#}, Q)\<close>
     using twl unfolding twl_st_inv.simps twl_struct_invs_def S twl_st_of.simps
     image_mset_union[symmetric] mset_append[symmetric] append_take_drop_id drop_Suc S

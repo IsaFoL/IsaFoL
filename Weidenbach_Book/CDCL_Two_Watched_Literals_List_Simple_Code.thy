@@ -34,17 +34,20 @@ type_synonym lit_queue_l = "nat literal list"
 
 type_synonym twl_st_ll =
   "(nat, nat) ann_lits \<times> nat clauses_l \<times> nat \<times>
-    nat clause_l option \<times> nat clauses_l \<times> nat clauses_l \<times> working_queue_ll \<times> lit_queue_l"
+    nat cconflict_l \<times> nat clauses_l \<times> nat clauses_l \<times> working_queue_ll \<times> lit_queue_l"
 
 fun twl_st_of_ll :: \<open>twl_st_ll \<Rightarrow> nat twl_st_l\<close> where
-  \<open>twl_st_of_ll (M, N, U, D, NP, UP, WS, Q) = (M, N, U, D, mset `# mset NP, mset `# mset UP, mset WS, mset Q)\<close>
+  \<open>twl_st_of_ll (M, N, U, D, NP, UP, WS, Q) = (M, N, U, map_option mset D, mset `# mset NP, mset `# mset UP, mset WS, mset Q)\<close>
+
+abbreviation cconflict_assn :: \<open>nat cconflict \<Rightarrow> nat cconflict_l \<Rightarrow> assn\<close> where
+  \<open>cconflict_assn \<equiv> option_assn (list_mset_assn nat_lit_assn)\<close>
 
 notation prod_assn (infixr "*assn" 90)
 
 abbreviation twl_st_l_assn :: \<open>nat twl_st_l \<Rightarrow> twl_st_ll \<Rightarrow> assn\<close> where
 \<open>twl_st_l_assn \<equiv>
  nat_lits_trail_assn *assn clauses_ll_assn *assn nat_assn *assn
- option_assn clause_ll_assn *assn
+ cconflict_assn *assn
  clauses_l_assn *assn
  clauses_l_assn *assn
  working_queue_l_assn *assn
@@ -222,7 +225,15 @@ lemma [sepref_fr_rules]:
 subsection \<open>Code Generation\<close>
 
 subsubsection \<open>The Body of the Inner Propagation\<close>
+lemma Collect_eq_comp: \<open>{(c, a). a = f c} O {(x, y). P x y} = {(c, y). P (f c) y}\<close>
+  by auto
 
+lemma id_mset_hnr[sepref_fr_rules]:
+ \<open>((return o id), (RETURN o mset)) \<in> (list_assn (pure R))\<^sup>d \<rightarrow>\<^sub>a list_mset_assn (pure R)\<close>
+  unfolding list_assn_pure_conv list_mset_assn_def the_pure_pure
+  by sepref_to_hoare (sep_auto simp: list_mset_assn_def  mset_rel_def rel_mset_def
+      rel2p_def[abs_def] p2rel_def list_mset_rel_def br_def Collect_eq_comp pure_def list_rel_def)
+  
 sepref_definition unit_propagation_inner_loop_body_l_impl is \<open>uncurry2 (unit_propagation_inner_loop_body_l :: nat literal \<Rightarrow> nat \<Rightarrow>
   nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close> ::
   \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
@@ -468,13 +479,16 @@ proof -
       apply (auto simp: list_mst_assn_add_mset_empty_false
         dest!: list_mset_assn_add_mset_cons_in
         dest!: mod_starD entails_list_mset_assn_eq_mset; fail)[]
-     apply (auto simp: mod_pure_star_dist mset_tl_remove1_mset_hd
+     apply (auto simp: mod_pure_star_dist mset_tl_remove1_mset_hd option_assn_alt_def
         dest!: list_mset_assn_add_mset_cons_in list_mset_assn_add_mset_cons_in
         dest!: mod_starD entails_list_mset_assn_eq_mset
         entails_list_assn_eqD entails_list_assn_list_assn_eqD entails_option_assn_assn_eqD
-        entails_list_mset_assn_list_mset_assn_eq_mset; fail)[]
+        entails_list_mset_assn_list_mset_assn_eq_mset
+        split: option.splits; fail)[]
     by (sep_auto intro!: ent_star_mono simp: list_assn_same_emp option_assn_same_emp
-        list_mset_assn_id_mset_emp list_mset_assn_list_mset_assn_id_mset_mset_emp)
+        list_mset_assn_id_mset_emp list_mset_assn_list_mset_assn_id_mset_mset_emp 
+        option_assn_alt_def
+        split: option.splits)
 qed
 
 lemma working_queue_l_abs_def:\<open>working_queue_l = (fst o snd o snd o snd o snd o snd o snd)\<close>
@@ -528,9 +542,9 @@ lemma nth_mem_tl: \<open>0 < x \<Longrightarrow> x < length N \<Longrightarrow> 
 
 lemma clause_to_update_l_clause_to_update:
   fixes M N av D NP UP WS Q
-  assumes \<open>twl_struct_invs (twl_st_of None (M, N, U, D, mset `# mset NP, mset `# mset UP, mset WS, mset Q))\<close>
+  assumes \<open>twl_struct_invs (twl_st_of None (M, N, U, map_option mset D, mset `# mset NP, mset `# mset UP, mset WS, mset Q))\<close>
   shows \<open>mset (clause_to_update_l (hd Q) (M, N, U, D, NP, UP, WS, Q)) =
-   clause_to_update (hd Q) (M, N, U, D, mset `# mset NP, mset `# mset UP, mset WS, mset Q)\<close>
+   clause_to_update (hd Q) (M, N, U, map_option mset D, mset `# mset NP, mset `# mset UP, mset WS, mset Q)\<close>
 proof -
   have \<open>Multiset.Ball (twl_clause_of `# mset (tl N)) struct_wf_twl_cls\<close>
     using assms
@@ -570,14 +584,16 @@ proof -
       apply (auto simp: list_mst_assn_add_mset_empty_false simp del: twl_st_of_ll.simps
         dest!: list_mset_assn_add_mset_cons_in
         dest!: mod_starD entails_list_mset_assn_eq_mset; fail)[]
-     apply (auto simp: mod_pure_star_dist mset_tl_remove1_mset_hd
+     apply (auto simp: mod_pure_star_dist mset_tl_remove1_mset_hd option_assn_alt_def 
+        clause_to_update_l_clause_to_update
         dest!: list_mset_assn_add_mset_cons_in list_mset_assn_add_mset_cons_in
         dest!: mod_starD entails_list_mset_assn_eq_mset
         entails_list_assn_eqD entails_list_assn_list_assn_eqD entails_option_assn_assn_eqD
         entails_list_mset_assn_list_mset_assn_eq_mset
-        intro!: clause_to_update_l_clause_to_update; fail)[]
+        intro!: clause_to_update_l_clause_to_update split: option.splits)[]
     apply (sep_auto intro!: ent_star_mono simp: list_assn_same_emp option_assn_same_emp
-        list_mset_assn_id_mset_emp list_mset_assn_list_mset_assn_id_mset_mset_emp)
+        list_mset_assn_id_mset_emp list_mset_assn_list_mset_assn_id_mset_mset_emp option_assn_alt_def
+        split: option.splits)
    done
 qed
 
@@ -619,12 +635,12 @@ fun get_conflict_ll :: "twl_st_ll \<Rightarrow> nat clause_l option" where
 lemma get_conflict_l_hnr[sepref_fr_rules]:
   \<open>(return o (get_conflict_ll :: twl_st_ll\<Rightarrow> _),
       RETURN o (get_conflict_l :: nat twl_st_l \<Rightarrow> _)) \<in>
-      twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a option_assn clause_ll_assn\<close>
+      twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a cconflict_assn\<close>
   by sepref_to_hoare sep_auto
 
-lemma option_is_Nil:
-   \<open>a = Some [] \<longleftrightarrow> \<not>is_None a \<and> is_Nil (the a)\<close>
-  by (cases a) (auto split: list.splits)
+lemma option_is_empty:
+   \<open>a = Some {#} \<longleftrightarrow> \<not>is_None a \<and> Multiset.is_empty (the a)\<close>
+  by (cases a) (auto simp: Multiset.is_empty_def)
 
 lemma lit_and_ann_of_propagated_hnr[sepref_fr_rules]:
   \<open>(return o lit_and_ann_of_propagated, RETURN o lit_and_ann_of_propagated) \<in>
@@ -699,15 +715,77 @@ lemma remove1_hnr[sepref_fr_rules]:
      id_assn\<^sup>d *\<^sub>a (list_assn id_assn)\<^sup>d \<rightarrow>\<^sub>a list_assn id_assn\<close>
   by sepref_to_hoare (sep_auto simp: entails_def intro: list_assn_remove1)
 
+(* TODO Move WB_More_Refinement *)
+lemma is_Nil_is_empty[sepref_fr_rules]:
+  \<open>(return o is_Nil, RETURN o Multiset.is_empty) \<in> (list_mset_assn R)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  apply sepref_to_hoare
+  apply (rename_tac x xi)
+    apply (case_tac x)
+   by (sep_auto simp: Multiset.is_empty_def list_mset_assn_empty_Cons list_mset_assn_add_mset_Nil
+      split: list.splits)+
+
+lemma union_mset_list_Nil[simp]: \<open>union_mset_list [] bi = bi\<close>
+  by (auto simp: union_mset_list_def)
+term list_mset_rel term mset_rel
+
+lemma \<open>(uncurry (RETURN oo union_mset_list), uncurry (RETURN oo op \<union>#)) \<in>
+  (list_mset_rel O \<langle>A\<rangle>mset_rel) \<times>\<^sub>r (list_mset_rel O \<langle>A\<rangle>mset_rel) \<rightarrow>\<^sub>f 
+    \<langle>list_mset_rel O \<langle>A\<rangle>mset_rel\<rangle>nres_rel\<close>
+proof -
+  have \<open>mset xs = mset a \<Longrightarrow>
+       mset xsa = mset b \<Longrightarrow>
+  list_all2 (\<lambda>x y. (x, y) \<in> A) xs ys \<Longrightarrow>
+    list_all2 (\<lambda>x y. (x, y) \<in> A) xsa ysa \<Longrightarrow>
+    \<exists>xs. mset xs = mset (union_mset_list a b) \<and>
+         (\<exists>ysb.
+             mset ysb = mset (union_mset_list ys ysa) \<and>
+             list_all2 (\<lambda>x y. (x, y) \<in> A) xs ysb)\<close> for a b xs xsa ys ysa
+    apply (induction xs arbitrary: ys a b)
+    subgoal by auto[]
+    subgoal premises p for a xs ys aa b
+      apply (case_tac ys)
+      using p apply auto[]
+      using p(1)[of \<open>remove1 a aa\<close> b] p(2-)
+      apply (auto dest!: union_single_eq_diff simp: )
+        
+      sorry
+    sorry
+  show ?thesis
+    apply (auto simp:  list.in_rel list_mset_rel_def fref_def
+        br_def mset_rel_def Collect_eq_comp rel_mset_def p2rel_def nres_rel_def)
+  apply (auto simp: fref_def mset_rel_def rel2p_def[abs_def] p2rel_def
+      list_mset_rel_def br_def Collect_eq_comp nres_rel_def union_mset_list[symmetric]
+      rel_mset_def list.in_rel)
+    
+    
+  apply sepref_to_hoare
+  subgoal for b bi a ai
+    apply (induction a)
+      apply (cases ai)
+      apply (sep_auto simp: list_mset_assn_def pure_app_eq)
+      apply (sep_auto simp: list_mset_assn_def pure_app_eq in_br_conv list_mset_rel_def)
+    apply (simp add: pure_app_eq)
+      
+    apply (sep_auto)
+      sledgehammer
+    apply (sep_auto simp:list_mset_rel_def list_mset_assn_def pure_def)
+  apply (sep_auto simp: list_mset_assn_def list_mset_rel_def br_def
+      Collect_eq_comp mset_rel_def p2rel_def rel2p_def[abs_def]
+      rel_mset_def pure_def )
+  
 sepref_definition skip_and_resolve_loop_l_impl is
   \<open>(skip_and_resolve_loop_l :: nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close>
   :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
-  unfolding skip_and_resolve_loop_l_def option_is_Nil conv_to_is_Nil
-  unfolding HOL_list.fold_custom_empty
+  unfolding skip_and_resolve_loop_l_def option_is_empty conv_to_is_Nil
+  unfolding HOL_list.fold_custom_empty lms_fold_custom_empty
   skip_and_resolve_loop_inv_def mset_remove1[symmetric]
   maximum_level_code_eq_get_maximum_level[symmetric]
   apply (rewrite at \<open>\<not>_ \<and> \<not> is_decided _\<close> short_circuit_conv)
-  apply (rewrite at \<open>\<not>_ \<and> is_Nil _\<close> short_circuit_conv)
+  apply (rewrite at \<open>\<not>_ \<and> Multiset.is_empty _\<close> short_circuit_conv)
+  apply sepref_dbg_keep
+      supply [[goals_limit=1]] -- \<open>There will be many subgoals during translation, and printing them takes very long with Isabelle :(\<close>
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
   supply [[goals_limit=1]]
   by sepref
 

@@ -12,7 +12,7 @@ type_synonym 'v lit_queue_wl = "'v literal multiset"
 
 type_synonym 'v twl_st_wl =
   "('v, nat) ann_lits \<times> 'v clause_l list \<times> nat \<times>
-    'v clause_l option \<times> 'v clauses \<times> 'v clauses \<times> 'v lit_queue_wl \<times>
+    'v cconflict \<times> 'v clauses \<times> 'v clauses \<times> 'v lit_queue_wl \<times>
     ('v literal \<Rightarrow> watched)"
 
 subsection \<open>Initialisation\<close>

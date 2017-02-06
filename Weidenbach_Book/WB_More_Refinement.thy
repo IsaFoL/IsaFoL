@@ -2,7 +2,8 @@ theory WB_More_Refinement
   imports
     "$AFP/Refine_Imperative_HOL/IICF/IICF"
     Eisbach
-     "~~/src/HOL/Eisbach/Eisbach_Tools"
+    "~~/src/HOL/Eisbach/Eisbach_Tools"
+    WB_List_More
 begin
 
 subsection \<open>Some Tooling for Refinement\<close>
@@ -212,6 +213,72 @@ lemma (in transfer) transfer_bool[refine_transfer]:
   shows "\<alpha> (case_bool fa fb x) \<le> case_bool Fa Fb x"
   using assms by (auto split: bool.split)
 
+lemma Collect_eq_comp: \<open>{(c, a). a = f c} O {(x, y). P x y} = {(c, y). P (f c) y}\<close>
+  by auto
+
+lemma
+  shows list_mset_assn_add_mset_Nil:
+     \<open>list_mset_assn R (add_mset q Q) [] = false\<close> and
+   list_mset_assn_empty_Cons:
+    \<open>list_mset_assn R {#} (x # xs) = false\<close>
+  unfolding list_mset_assn_def list_mset_rel_def mset_rel_def pure_def p2rel_def
+    rel2p_def rel_mset_def br_def
+  by (sep_auto simp: Collect_eq_comp)+
+
+
+lemma list_mset_assn_add_mset_cons_in:
+  assumes
+    assn: \<open>A \<Turnstile> list_mset_assn R N (ab # list)\<close>
+  shows \<open>\<exists>ab'. (ab, ab') \<in> the_pure R \<and> ab' \<in># N \<and> A \<Turnstile> list_mset_assn R (remove1_mset ab' N) (list)\<close>
+proof -
+  have H: \<open>(\<forall>x x'. (x' = x) = ((x', x) \<in> P')) \<longleftrightarrow> P' = Id\<close> for P'
+    by (auto simp: the_pure_def)
+  have [simp]: \<open>the_pure (\<lambda>a c. \<up> (c = a)) = Id\<close>
+    by (auto simp: the_pure_def H)
+  have [iff]: \<open>(ab # list, y) \<in> list_mset_rel \<longleftrightarrow> y = add_mset ab (mset list)\<close> for y ab list
+    by (auto simp: list_mset_rel_def br_def)
+  obtain N' xs where
+    N_N': \<open>N = mset N'\<close> and
+    \<open>mset xs = add_mset ab (mset list)\<close> and
+    \<open>list_all2 (rel2p (the_pure R)) xs N'\<close>
+    using assn by (cases A) (auto simp: list_mset_assn_def mset_rel_def p2rel_def rel_mset_def
+        rel2p_def)
+  then obtain N'' where
+    \<open>list_all2 (rel2p (the_pure R)) (ab # list) N''\<close> and
+    \<open>mset N'' = mset N'\<close>
+    using list_all2_reorder_left_invariance[of \<open>rel2p (the_pure R)\<close> xs N'
+          \<open>ab # list\<close>, unfolded eq_commute[of \<open>mset (ab # list)\<close>]] by auto
+  then obtain n N''' where
+    n: \<open>add_mset n (mset N''') = mset N''\<close> and
+    \<open>(ab, n) \<in> the_pure R\<close> and
+    \<open>list_all2 (rel2p (the_pure R)) list N'''\<close>
+    by (auto simp: list_all2_Cons1 rel2p_def)
+  moreover have \<open>n \<in> set N''\<close>
+    using n unfolding mset.simps[symmetric] eq_commute[of \<open>add_mset _ _\<close>] apply -
+    by (drule mset_eq_setD) auto
+  ultimately have \<open>(ab, n) \<in> the_pure R\<close> and
+    \<open>n \<in> set N''\<close> and
+    \<open>mset list = mset list\<close> and
+    \<open>mset N''' = remove1_mset n (mset N'')\<close> and
+    \<open>list_all2 (rel2p (the_pure R)) list N'''\<close>
+    by (auto dest: mset_eq_setD simp: eq_commute[of \<open>add_mset _ _\<close>])
+  show ?thesis -- \<open>TODO tune proof\<close>
+    unfolding list_mset_assn_def mset_rel_def p2rel_def rel_mset_def
+      list.rel_eq list_mset_rel_def
+      br_def
+    apply (simp add: Collect_eq_comp n[symmetric] N_N')
+    using assn
+    apply (cases A)
+    apply (auto simp: list_mset_assn_def mset_rel_def p2rel_def rel_mset_def
+        add_mset_eq_add_mset list.rel_eq)
+    apply (drule list_all2_reorder_left_invariance[of \<open>rel2p (the_pure R)\<close> _ _
+          \<open>ab # list\<close>, unfolded eq_commute[of \<open>mset (ab # list)\<close>]])
+     apply simp
+    apply (auto simp: list_all2_Cons1 list_mset_rel_def br_def Collect_eq_comp
+        dest: mset_eq_setD)
+    by (metis \<open>(ab, n) \<in> the_pure R\<close> \<open>list_all2 (rel2p (the_pure R)) list N'''\<close>
+        \<open>mset N'' = mset N'\<close> \<open>mset N''' = remove1_mset n (mset N'')\<close> \<open>n \<in> set N''\<close> set_mset_mset)
+qed
 
 lemma sublist_shift_lemma':
   \<open>map fst [p<-zip xs [i..<i + n]. snd p + b : A] = map fst [p<-zip xs [0..<n]. snd p + b + i : A]\<close>
@@ -398,5 +465,17 @@ sepref_thm list_contains_WHILE
   :: \<open>nat_assn\<^sup>k *\<^sub>a (array_assn id_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding list_contains_WHILE_def
   by sepref
+
+lemma union_mset_list_Nil[simp]: \<open>union_mset_list [] bi = bi\<close>
+  by (auto simp: union_mset_list_def)
+declare union_mset_list_def[code]
+
+text \<open>A more general theorem is \<^emph>\<open>very\<close> hard to write (if it is possible at all).\<close>
+lemma union_mset_list_op_union: \<open>(uncurry (RETURN oo union_mset_list), uncurry (RETURN oo op \<union>#)) \<in>
+  (list_mset_rel O \<langle>Id\<rangle>mset_rel) \<times>\<^sub>r (list_mset_rel O \<langle>Id\<rangle>mset_rel) \<rightarrow>\<^sub>f 
+    \<langle>list_mset_rel O \<langle>Id\<rangle>mset_rel\<rangle>nres_rel\<close>
+  by (auto simp: list_mset_rel_def fref_def
+      br_def mset_rel_def Collect_eq_comp rel_mset_def p2rel_def nres_rel_def 
+      rel2p_def[abs_def] union_mset_list[symmetric] list.rel_eq ex_mset)
 
 end
