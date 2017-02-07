@@ -472,13 +472,13 @@ declare union_mset_list_def[code]
 
 text \<open>A more general theorem is \<^emph>\<open>very\<close> hard to write (if it is possible at all).\<close>
 lemma union_mset_list_op_union: \<open>(uncurry (RETURN oo union_mset_list), uncurry (RETURN oo op \<union>#)) \<in>
-  (list_mset_rel O \<langle>Id\<rangle>mset_rel) \<times>\<^sub>r (list_mset_rel O \<langle>Id\<rangle>mset_rel) \<rightarrow>\<^sub>f 
+  (list_mset_rel O \<langle>Id\<rangle>mset_rel) \<times>\<^sub>r (list_mset_rel O \<langle>Id\<rangle>mset_rel) \<rightarrow>\<^sub>f
     \<langle>list_mset_rel O \<langle>Id\<rangle>mset_rel\<rangle>nres_rel\<close>
   by (auto simp: list_mset_rel_def fref_def
-      br_def mset_rel_def Collect_eq_comp rel_mset_def p2rel_def nres_rel_def 
+      br_def mset_rel_def Collect_eq_comp rel_mset_def p2rel_def nres_rel_def
       rel2p_def[abs_def] union_mset_list[symmetric] list.rel_eq ex_mset)
 
-lemma union_mset_list_union_mset_list: \<open>(uncurry (return oo union_mset_list), uncurry (RETURN oo union_mset_list)) \<in> 
+lemma union_mset_list_union_mset_list: \<open>(uncurry (return oo union_mset_list), uncurry (RETURN oo union_mset_list)) \<in>
    id_assn\<^sup>k *\<^sub>a id_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
   by sepref_to_hoare sep_auto
 
