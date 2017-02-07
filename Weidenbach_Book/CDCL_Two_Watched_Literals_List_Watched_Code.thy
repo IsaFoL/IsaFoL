@@ -1727,7 +1727,7 @@ sepref_definition  get_level_wl_code
 
 declare  get_level_wl_code.refine[sepref_fr_rules]
 
-definition  maximum_level_remove where
+definition maximum_level_remove where
   \<open>maximum_level_remove M D L =
      snd (fold (\<lambda>i (found, l). if D!i = L \<and> \<not>found then (True, l) else (found, max (get_level M (D!i)) l))
           [0..<length D]
@@ -1744,7 +1744,7 @@ sepref_definition  maximum_level_remove_code
   unfolding maximum_level_remove_def[abs_def]
   by sepref
 
-declare  maximum_level_remove_code.refine[sepref_fr_rules]
+declare maximum_level_remove_code.refine[sepref_fr_rules]
 thm maximum_level_remove_code.refine
 
 lemma  maximum_level_remove:
