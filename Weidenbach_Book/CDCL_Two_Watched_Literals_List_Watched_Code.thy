@@ -1943,6 +1943,119 @@ proof -
     by (auto simp: 1 3)
 qed
 
+
+text \<open>The order is \<^emph>\<open>not\<close> preserved. However, the function moves only one element (and therefore,
+  is compatible with a reasonable refinement to arrays).\<close>
+definition remove1_wl where
+  \<open>remove1_wl x xs = do {
+     i \<leftarrow> find_first_eq x xs;
+    let l = length xs;
+    if i = l
+    then RETURN xs
+    else do {
+      ASSERT(pre_list_swap((xs, i), l-1));
+      RETURN (butlast (swap xs i (l - 1)))}
+   }
+\<close>
+term arl_butlast
+sepref_definition find_first_eq_code
+  is \<open>uncurry find_first_eq\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  unfolding find_first_eq_def short_circuit_conv
+  supply arl_butlast_hnr[sepref_fr_rules]
+  by sepref
+
+declare find_first_eq_code.refine[sepref_fr_rules]
+
+sepref_definition remove1_wl_code
+  is \<open>uncurry remove1_wl\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a arl_assn nat_assn\<close>
+  unfolding remove1_wl_def short_circuit_conv
+  by sepref
+
+lemma remove1_wl_remove1: \<open>(uncurry remove1_wl, uncurry (RETURN oo remove1)) \<in> Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f
+    \<langle>{(l, l'). mset l = mset l'}\<rangle> nres_rel\<close>
+proof -
+  have 1: \<open>RETURN (remove1 x xs) = RES {index xs x} \<bind>  (\<lambda>_. RETURN (remove1 x xs))\<close> for x xs
+    unfolding RETURN_def[symmetric] by auto
+  have [simp]: \<open>aa \<in> set ba \<Longrightarrow> ba \<noteq> []\<close> for aa ba
+    by (cases ba) auto
+  have [simp]: \<open>last ba = aa\<close> if \<open>Suc (index ba aa) = length ba\<close> and \<open>ba \<noteq> []\<close> for ba aa
+    using that by (metis One_nat_def Suc_to_right index_conv_size_if_notin last_conv_nth
+        n_not_Suc_n nth_index)
+  have [simp]: \<open>do {
+               i \<leftarrow> find_first_eq aa ba;
+               let l = length ba;
+               if i = l then RETURN ba
+               else do {
+                 _ \<leftarrow> ASSERT (pre_list_swap ((ba, i), l - 1));
+                 RETURN (butlast (swap ba i (l - 1)))
+               }
+             }
+       \<le> \<Down> {(l, l'). mset l = mset l'}
+           (RETURN (remove1 aa ba))\<close> for aa ba
+    apply (subst 1)
+    apply (rule bind_refine_RES(2))
+    unfolding RETURN_def[symmetric] Let_def
+     apply (rule find_first_eq_index)
+    apply (auto simp: mset_butlast_remove1_mset last_list_update swap_def
+        mset_update nth_list_update')
+    done
+  show ?thesis
+    by (intro frefI nres_relI) (clarsimp simp: remove1_wl_def)
+qed
+
+(* TODO Move *)
+lemma diff_add_mset_remove1: \<open>NO_MATCH {#} N \<Longrightarrow> M - add_mset a N = remove1_mset a (M - N)\<close>
+  by auto
+
+lemma list_all2_remove: \<open>lit_of_natP a aa \<Longrightarrow>
+       list_all2 lit_of_natP xs ys \<Longrightarrow>
+       \<exists>xs'. mset xs' = remove1_mset a (mset xs) \<and>
+            (\<exists>ys'. mset ys' = remove1_mset aa (mset ys) \<and> list_all2 lit_of_natP xs' ys')\<close>
+  apply (rotate_tac 1)
+proof (induction xs ys arbitrary: b rule: list_all2_induct)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons x y xs ys) note IH = this(3) and p = this(1, 2, 4)
+
+  have ax: \<open>{#a, x#} = {#x, a#}\<close>
+    by auto
+  have rem1: \<open>remove1_mset a (remove1_mset x M) = remove1_mset x (remove1_mset a M)\<close> for M
+    by (auto simp: ax)
+  have H: \<open>x = a \<longleftrightarrow> y = aa\<close>
+    using lit_of_natP_same_leftD lit_of_natP_same_rightD p(1) p(3) by blast
+   obtain xs' ys' where
+    \<open>mset xs' = remove1_mset a (mset xs)\<close> and
+    \<open>mset ys' = remove1_mset aa (mset ys)\<close> and
+    \<open>list_all2 lit_of_natP xs' ys'\<close>
+    using IH p  by auto
+   then show ?case
+    apply (cases \<open>x \<noteq> a\<close>)
+    subgoal
+      using p
+      by (auto intro!: exI[of _ \<open>x#xs'\<close>] exI[of _ \<open>y#ys'\<close>]
+          simp: diff_add_mset_remove1 rem1 add_mset_remove_trivial_If in_remove1_mset_neq H
+          simp del: diff_diff_add_mset)
+    subgoal
+      using p
+      apply simp
+      apply (auto
+          simp: diff_add_mset_remove1 rem1 add_mset_remove_trivial_If in_remove1_mset_neq
+          remove_1_mset_id_iff_notin H
+          simp del: diff_diff_add_mset)
+      done
+    done
+qed
+
+lemma remove1_remove1_mset: \<open>(uncurry (RETURN oo remove1), uncurry (RETURN oo remove1_mset)) \<in>
+    nat_lit_rel \<times>\<^sub>r (list_mset_rel O \<langle>nat_lit_rel\<rangle> mset_rel) \<rightarrow>\<^sub>f
+    \<langle>list_mset_rel O \<langle>nat_lit_rel\<rangle> mset_rel\<rangle> nres_rel\<close>
+  apply (intro frefI nres_relI)
+  using list_all2_remove
+  by (fastforce simp: remove1_wl_def list_mset_rel_def br_def mset_rel_def p2rel_def rel2p_def[abs_def]
+      rel_mset_def Collect_eq_comp)
 context twl_array_code
 begin
 
@@ -2255,119 +2368,6 @@ sepref_thm skip_and_resolve_loop_wl_D
   oops
 end
 
-text \<open>The order is \<^emph>\<open>not\<close> preserved. However, the function moves only one element (and therefore,
-  is compatible with a reasonable refinement to arrays).\<close>
-definition remove1_wl where
-  \<open>remove1_wl x xs = do {
-     i \<leftarrow> find_first_eq x xs;
-    let l = length xs;
-    if i = l
-    then RETURN xs
-    else do {
-      ASSERT(pre_list_swap((xs, i), l-1));
-      RETURN (butlast (swap xs i (l - 1)))}
-   }
-\<close>
-term arl_butlast
-sepref_definition find_first_eq_code
-  is \<open>uncurry find_first_eq\<close>
-  :: \<open>nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  unfolding find_first_eq_def short_circuit_conv
-  supply arl_butlast_hnr[sepref_fr_rules]
-  by sepref
-
-declare find_first_eq_code.refine[sepref_fr_rules]
-
-sepref_definition remove1_wl_code
-  is \<open>uncurry remove1_wl\<close>
-  :: \<open>nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a arl_assn nat_assn\<close>
-  unfolding remove1_wl_def short_circuit_conv
-  by sepref
-
-lemma remove1_wl_remove1: \<open>(uncurry remove1_wl, uncurry (RETURN oo remove1)) \<in> Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f
-    \<langle>{(l, l'). mset l = mset l'}\<rangle> nres_rel\<close>
-proof -
-  have 1: \<open>RETURN (remove1 x xs) = RES {index xs x} \<bind>  (\<lambda>_. RETURN (remove1 x xs))\<close> for x xs
-    unfolding RETURN_def[symmetric] by auto
-  have [simp]: \<open>aa \<in> set ba \<Longrightarrow> ba \<noteq> []\<close> for aa ba
-    by (cases ba) auto
-  have [simp]: \<open>last ba = aa\<close> if \<open>Suc (index ba aa) = length ba\<close> and \<open>ba \<noteq> []\<close> for ba aa
-    using that by (metis One_nat_def Suc_to_right index_conv_size_if_notin last_conv_nth
-        n_not_Suc_n nth_index)
-  have [simp]: \<open>do {
-               i \<leftarrow> find_first_eq aa ba;
-               let l = length ba;
-               if i = l then RETURN ba
-               else do {
-                 _ \<leftarrow> ASSERT (pre_list_swap ((ba, i), l - 1));
-                 RETURN (butlast (swap ba i (l - 1)))
-               }
-             }
-       \<le> \<Down> {(l, l'). mset l = mset l'}
-           (RETURN (remove1 aa ba))\<close> for aa ba
-    apply (subst 1)
-    apply (rule bind_refine_RES(2))
-    unfolding RETURN_def[symmetric] Let_def
-     apply (rule find_first_eq_index)
-    apply (auto simp: mset_butlast_remove1_mset last_list_update swap_def
-        mset_update nth_list_update')
-    done
-  show ?thesis
-    by (intro frefI nres_relI) (clarsimp simp: remove1_wl_def)
-qed
-(* TODO Move *)
-lemma diff_add_mset: \<open>NO_MATCH {#} N \<Longrightarrow> M - add_mset a N = remove1_mset a (M - N)\<close>
-  by auto
-
-lemma list_all2_remove: \<open>lit_of_natP a aa \<Longrightarrow>
-       list_all2 lit_of_natP xs ys \<Longrightarrow>
-       \<exists>xs'. mset xs' = remove1_mset a (mset xs) \<and>
-            (\<exists>ys'. mset ys' = remove1_mset aa (mset ys) \<and> list_all2 lit_of_natP xs' ys')\<close>
-  apply (rotate_tac 1)
-proof (induction xs ys arbitrary: b rule: list_all2_induct)
-  case Nil
-  then show ?case by auto
-next
-  case (Cons x y xs ys) note IH = this(3) and p = this(1, 2, 4)
-    
-  have ax: \<open>{#a, x#} = {#x, a#}\<close>
-    by auto
-  have rem1: \<open>remove1_mset a (remove1_mset x M) = remove1_mset x (remove1_mset a M)\<close> for M
-    by (auto simp: ax)
-  have H: \<open>x = a \<longleftrightarrow> y = aa\<close>
-    using lit_of_natP_same_leftD lit_of_natP_same_rightD p(1) p(3) by blast
-   obtain xs' ys' where
-    \<open>mset xs' = remove1_mset a (mset xs)\<close> and
-    \<open>mset ys' = remove1_mset aa (mset ys)\<close> and
-    \<open>list_all2 lit_of_natP xs' ys'\<close>
-    using IH p  by auto
-   then show ?case
-    apply (cases \<open>x \<noteq> a\<close>)
-    subgoal
-      using p 
-      by (auto intro!: exI[of _ \<open>x#xs'\<close>] exI[of _ \<open>y#ys'\<close>]
-          simp: diff_add_mset rem1 add_mset_remove_trivial_If in_remove1_mset_neq H
-          simp del: diff_diff_add_mset)
-    subgoal
-      using p
-      apply simp
-      apply (auto (* intro!: exI[of _ \<open>xs'\<close>] exI[of _ \<open>ys'\<close>] *)
-          simp: diff_add_mset rem1 add_mset_remove_trivial_If in_remove1_mset_neq
-          remove_1_mset_id_iff_notin H
-          simp del: diff_diff_add_mset)
-      done
-    done
-qed
-
-lemma remove1_remove1_mset: \<open>(uncurry (RETURN oo remove1), uncurry (RETURN oo remove1_mset)) \<in>
-    nat_lit_rel \<times>\<^sub>r (list_mset_rel O \<langle>nat_lit_rel\<rangle> mset_rel) \<rightarrow>\<^sub>f
-    \<langle>list_mset_rel O \<langle>nat_lit_rel\<rangle> mset_rel\<rangle> nres_rel\<close>
-  apply (intro frefI nres_relI)
-  using list_all2_remove
-  by (fastforce simp: remove1_wl_def list_mset_rel_def br_def mset_rel_def p2rel_def rel2p_def[abs_def]
-      rel_mset_def Collect_eq_comp)
-
-thm remove1_wl_code.refine[FCOMP remove1_wl_remove1, FCOMP remove1_remove1_mset]
 
 export_code "unit_propagation_inner_loop_wl_D_code" in Haskell
 export_code "pending_wll_empty" in Haskell
