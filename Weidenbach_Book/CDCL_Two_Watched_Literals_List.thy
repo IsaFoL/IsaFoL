@@ -1253,9 +1253,10 @@ definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
       ASSERT(twl_struct_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)));
       ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
       M1 \<leftarrow> find_decomp (M, N, U, D, NP, UP, WS, Q) L;
-      D' \<leftarrow> list_of_mset (the D);
+      let E = the D;
+      D' \<leftarrow> list_of_mset E;
 
-      if size (the D) > 1
+      if size E > 1
       then do {
         L' \<leftarrow> find_lit_of_max_level (M, N, U, D, NP, UP, WS, Q) L;
         RETURN (Propagated (-L) (length N) # M1,
@@ -1362,6 +1363,7 @@ proof -
 
     unfolding backtrack_l_def backtrack_def
     apply (subst_tac (2) D3=D in do_If)
+    apply (rewrite at \<open>let _ = the _ in _\<close> Let_def)
     unfolding find_lit_of_max_level_def find_decomp_def ex_decomp_of_max_lvl_def
     apply (refine_vcg H list_of_mset; remove_dummy_vars)
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q'

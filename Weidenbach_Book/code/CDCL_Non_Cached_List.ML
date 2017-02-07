@@ -168,13 +168,13 @@ fun funpow n f =
 fun filter p [] = []
   | filter p (x :: xs) = (if p x then x :: filter p xs else filter p xs);
 
-fun member A_ [] y = false
-  | member A_ (x :: xs) y = eq A_ x y orelse member A_ xs y;
-
 fun hd (x21 :: x22) = x21;
 
 fun tl [] = []
   | tl (x21 :: x22) = x22;
+
+fun list_ex p [] = false
+  | list_ex p (x :: xs) = p x orelse list_ex p xs;
 
 fun remove1 A_ x [] = []
   | remove1 A_ x (y :: xs) = (if eq A_ x y then xs else y :: remove1 A_ x xs);
@@ -245,8 +245,6 @@ fun op_list_prepend x = (fn a => x :: a);
 
 fun count_decided l = size_list (filter is_decided l);
 
-fun op_list_contains A_ = (fn x => fn l => member A_ l x);
-
 fun imp_nfoldli (x :: ls) c f s =
   (fn () =>
     let
@@ -262,10 +260,16 @@ fun is_Nil a = (case a of [] => true | _ :: _ => false);
 
 fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
 
+fun list_remove1 A_ x [] = []
+  | list_remove1 A_ x (y :: ys) =
+    (if eq A_ x y then ys else y :: list_remove1 A_ x ys);
+
 fun is_None a = (case a of NONE => true | SOME _ => false);
 
 fun is_pos (Pos x1) = true
   | is_pos (Neg x2) = false;
+
+fun list_contains A_ x l = list_ex (eq A_ x) l;
 
 fun heap_WHILET b f s =
   (fn () =>
@@ -410,33 +414,37 @@ fun backtrack_l_impl x =
             find_decomp_l (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, a2f)))))))
               x_a ();
         in
-          (if less_nat one_nat (op_list_length (the a1c))
-            then (fn f_ => fn () => f_
-                   ((find_lit_of_max_level_l
-                      (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, a2f))))))) x_a)
-                   ()) ())
-                   (fn x_e =>
-                     (fn () =>
-                       (op_list_prepend
-                          (op_Propagated (op_uminus_lit x_a)
-                            (op_list_length a1a))
-                          x_c,
-                         (op_list_concat a1a
-                            (op_list_prepend
-                              (op_list_concat
-                                (op_list_prepend (op_uminus_lit x_a)
-                                  (op_list_prepend x_e []))
-                                (remove1 (equal_literal equal_nat)
-                                  (op_uminus_lit x_a)
-                                  (remove1 (equal_literal equal_nat) x_e
-                                    (the a1c))))
-                              []),
-                           (a1b, (NONE, (a1d, (a1e, (a1f, [x_a])))))))))
-            else (fn () =>
-                   (op_list_prepend (op_Propagated (op_uminus_lit x_a) zero_nat)
-                      x_c,
-                     (a1a, (a1b, (NONE,
-                                   (a1d, (the a1c :: a1e, (a1f, [x_a])))))))))
+          let
+            val x_d = the a1c;
+          in
+            (if less_nat one_nat (size_list x_d)
+              then (fn f_ => fn () => f_
+                     ((find_lit_of_max_level_l
+                        (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, a2f))))))) x_a)
+                     ()) ())
+                     (fn x_h =>
+                       (fn () =>
+                         (op_list_prepend
+                            (op_Propagated (op_uminus_lit x_a)
+                              (op_list_length a1a))
+                            x_c,
+                           (op_list_concat a1a
+                              (op_list_prepend
+                                (op_list_concat
+                                  (op_list_prepend (op_uminus_lit x_a)
+                                    (op_list_prepend x_h []))
+                                  (remove1 (equal_literal equal_nat)
+                                    (op_uminus_lit x_a)
+                                    (remove1 (equal_literal equal_nat) x_h
+                                      x_d)))
+                                []),
+                             (a1b, (NONE, (a1d, (a1e, (a1f, [x_a])))))))))
+              else (fn () =>
+                     (op_list_prepend
+                        (op_Propagated (op_uminus_lit x_a) zero_nat) x_c,
+                       (a1a, (a1b, (NONE,
+                                     (a1d, (x_d :: a1e, (a1f, [x_a])))))))))
+          end
             ()
         end)
     end)
@@ -558,39 +566,39 @@ fun skip_and_resolve_loop_l_impl x =
                         (fst (a1a, (a1b, (a1c,
    (a1d, (a1e, (a1f, (a1g, a2g)))))))));
                 in
-                  (if not (op_list_contains (equal_literal equal_nat)
+                  (if not (list_contains (equal_literal equal_nat)
                             (op_uminus_lit a1h) x_b)
                     then (false,
                            (op_list_tl a1a,
                              (a1b, (a1c, (a1d, (a1e, (a1f, (a1g, a2g))))))))
                     else (if equal_nata
                                (maximum_level_code equal_nat
-                                 (remove1 (equal_literal equal_nat)
+                                 (list_remove1 (equal_literal equal_nat)
                                    (op_uminus_lit a1h) x_b)
                                  a1a)
                                (count_decided a1a)
                            then (is_Nil
                                    (union_mset_list (equal_literal equal_nat)
-                                     (remove1 (equal_literal equal_nat)
+                                     (list_remove1 (equal_literal equal_nat)
                                        (op_uminus_lit a1h) x_b)
-                                     (remove1 (equal_literal equal_nat) a1h
-                                       (if equal_nata a2h zero_nat
- then op_list_prepend a1h [] else op_list_get a1b a2h))),
+                                     (if equal_nata a2h zero_nat then []
+                                       else remove1 (equal_literal equal_nat)
+      a1h (op_list_get a1b a2h))),
                                   (op_list_tl a1a,
                                     (a1b, (a1c,
     (SOME (union_mset_list (equal_literal equal_nat)
-            (remove1 (equal_literal equal_nat) (op_uminus_lit a1h) x_b)
-            (remove1 (equal_literal equal_nat) a1h
-              (if equal_nata a2h zero_nat then op_list_prepend a1h []
-                else op_list_get a1b a2h))),
+            (list_remove1 (equal_literal equal_nat) (op_uminus_lit a1h) x_b)
+            (if equal_nata a2h zero_nat then []
+              else remove1 (equal_literal equal_nat) a1h
+                     (op_list_get a1b a2h))),
       (a1e, (a1f, (a1g, a2g))))))))
                            else (true,
                                   (a1a, (a1b,
   (a1c, (a1d, (a1e, (a1f, (a1g, a2g))))))))))
                 end)
             end)
-          ((if not (is_None (get_conflict_ll xi))
-             then is_Nil (the (get_conflict_ll xi)) else false),
+          (not (is_None (get_conflict_ll xi)) andalso
+             is_Nil (the (get_conflict_ll xi)),
             xi)
           ();
     in

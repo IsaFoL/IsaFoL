@@ -478,4 +478,19 @@ lemma union_mset_list_op_union: \<open>(uncurry (RETURN oo union_mset_list), unc
       br_def mset_rel_def Collect_eq_comp rel_mset_def p2rel_def nres_rel_def 
       rel2p_def[abs_def] union_mset_list[symmetric] list.rel_eq ex_mset)
 
+lemma union_mset_list_union_mset_list: \<open>(uncurry (return oo union_mset_list), uncurry (RETURN oo union_mset_list)) \<in> 
+   id_assn\<^sup>k *\<^sub>a id_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
+  by sepref_to_hoare sep_auto
+
+lemma union_mset_list_op_union_hnr:
+  \<open>(uncurry (return \<circ>\<circ> union_mset_list), uncurry (RETURN \<circ>\<circ> op \<union>#))
+  \<in> (list_mset_assn id_assn)\<^sup>k *\<^sub>a (list_mset_assn id_assn)\<^sup>k \<rightarrow>\<^sub>a list_mset_assn id_assn\<close>
+proof -
+  have I: \<open>\<langle>Id\<rangle>mset_rel = \<langle>the_pure id_assn\<rangle>mset_rel\<close>
+    by auto
+  show ?thesis
+    using union_mset_list_union_mset_list[FCOMP union_mset_list_op_union,
+        unfolded list_mset_assn_def[symmetric] I] .
+qed
+
 end
