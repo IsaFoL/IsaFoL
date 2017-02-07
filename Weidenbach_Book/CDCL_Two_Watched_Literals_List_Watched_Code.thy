@@ -161,8 +161,11 @@ abbreviation working_queue_ll_assn :: "nat list \<Rightarrow> nat list \<Rightar
 abbreviation unit_lits_assn :: "nat clauses \<Rightarrow> unit_lits_wl \<Rightarrow> assn" where
   \<open>unit_lits_assn \<equiv> list_mset_assn (list_mset_assn nat_lit_assn)\<close>
 
-abbreviation conflict_assn :: "nat clause_l option \<Rightarrow> nat array_list option \<Rightarrow> assn" where
-  \<open>conflict_assn \<equiv> option_assn (arl_assn (nat_lit_assn))\<close>
+abbreviation conflict_assn :: "nat clause \<Rightarrow> nat array_list \<Rightarrow> assn" where
+  \<open>conflict_assn \<equiv> hr_comp clause_ll_assn list_mset_rel\<close>
+
+abbreviation conflict_option_assn :: "nat clause option \<Rightarrow> nat array_list option \<Rightarrow> assn" where
+  \<open>conflict_option_assn \<equiv> option_assn conflict_assn\<close>
 
 type_synonym nat_clauses_l = \<open>nat list list\<close>
 
@@ -384,7 +387,7 @@ abbreviation array_watched_assn :: "(nat literal \<Rightarrow> nat list) \<Right
 definition twl_st_l_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll \<Rightarrow> assn\<close> where
 \<open>twl_st_l_assn \<equiv>
   (pair_nat_ann_lits_assn *assn clauses_ll_assn *assn nat_assn *assn
-  conflict_assn *assn
+  conflict_option_assn *assn
   unit_lits_assn *assn
   unit_lits_assn *assn
   clause_l_assn *assn
@@ -549,7 +552,7 @@ definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> n
       if fst f = None
       then
         if val_L' = Some False
-        then do {RETURN (w+1, (M, N, U, Some (N!C), NP, UP, {#}, W))}
+        then do {RETURN (w+1, (M, N, U, Some (mset (N!C)), NP, UP, {#}, W))}
         else do {RETURN (w+1, (Propagated L' C # M, N, U, D', NP, UP, add_mset (-L') Q, W))}
       else do {
         ASSERT(snd f < length (N!C));
@@ -974,19 +977,19 @@ definition skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st
             ASSERT(is_proped (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W))));
             let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W)));
             ASSERT(C < length N);
-            if -L \<notin> set D' then
-              do {RETURN (False, (tl M, N, U, D, NP, UP, Q, W))}
+            if -L \<notin># D' then
+              do {RETURN (False, (tl M, N, U, Some D', NP, UP, Q, W))}
             else
-              if get_maximum_level M (remove1_mset (-L) (mset D')) = count_decided M
+              if get_maximum_level M (remove1_mset (-L) D') = count_decided M
               then
-                do {RETURN (resolve_cls_l L D' (if C = 0 then [L] else N!C) = [],
-                   (tl M, N, U, Some (resolve_cls_l L D' (if C = 0 then [L] else N!C)),
+                do {RETURN (remove1_mset (-L) D' \<union># (if C = 0 then {#} else mset (remove1 L (N!C))) = {#},
+                   (tl M, N, U, Some (remove1_mset (-L) D' \<union># (if C = 0 then {#} else mset (remove1 L (N!C)))),
                      NP, UP, Q, W))}
               else
-                do {RETURN (True, (M, N, U, D, NP, UP, Q, W))}
+                do {RETURN (True, (M, N, U, Some D', NP, UP, Q, W))}
           }
         )
-        (get_conflict_wl S\<^sub>0 = Some [], S\<^sub>0);
+        (get_conflict_wl S\<^sub>0 = Some {#}, S\<^sub>0);
       RETURN S
     }
   \<close>
@@ -1012,19 +1015,19 @@ private definition skip_and_resolve_loop_wl_D' :: "nat twl_st_wl \<Rightarrow> (
             ASSERT(is_proped (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W))));
             let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W)));
             ASSERT(C < length N);
-            if -L \<notin> set D' then
-              do {RETURN (False, (tl M, N, U, D, NP, UP, Q, W))}
+            if -L \<notin># D' then
+              do {RETURN (False, (tl M, N, U, Some D', NP, UP, Q, W))}
             else
-              if get_maximum_level M (remove1_mset (-L) (mset D')) = count_decided M
+              if get_maximum_level M (remove1_mset (-L) D') = count_decided M
               then
-                do {RETURN (resolve_cls_l L D' (if C = 0 then [L] else N!C) = [],
-                   (tl M, N, U, Some (resolve_cls_l L D' (if C = 0 then [L] else N!C)),
+                do {RETURN (remove1_mset (-L) D' \<union># (if C = 0 then {#} else mset (remove1 L (N!C))) = {#},
+                   (tl M, N, U, Some (remove1_mset (-L) D' \<union># (if C = 0 then {#} else mset (remove1 L (N!C)))),
                      NP, UP, Q, W))}
               else
-                do {RETURN (True, (M, N, U, D, NP, UP, Q, W))}
+                do {RETURN (True, (M, N, U, Some D', NP, UP, Q, W))}
           }
         )
-        (get_conflict_wl S\<^sub>0 = Some [], S\<^sub>0);
+        (get_conflict_wl S\<^sub>0 = Some {#}, S\<^sub>0);
      RETURN S
     }
   \<close>
@@ -1081,7 +1084,7 @@ lemma skip_and_resolve_loop_wl_D_spec:
   shows \<open>skip_and_resolve_loop_wl_D S \<le>
      \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T} (skip_and_resolve_loop_wl S)\<close>
 proof -
-  have 1: \<open>((get_conflict_wl S = Some [], S), get_conflict_wl S = Some [], S) \<in> Id\<close>
+  have 1: \<open>((get_conflict_wl S = Some {#}, S), get_conflict_wl S = Some {#}, S) \<in> Id\<close>
     by auto
   have D'\<^sub>1: \<open>skip_and_resolve_loop_wl_D' S \<le> \<Down> {((b, T'), T). T' = T} (skip_and_resolve_loop_wl S)\<close>
     unfolding skip_and_resolve_loop_wl_D'_def skip_and_resolve_loop_wl_def
@@ -1134,7 +1137,7 @@ proof -
   have D'\<^sub>4: \<open>skip_and_resolve_loop_wl_D S \<le> \<Down> {(T, (b, T')). T' = T} (skip_and_resolve_loop_wl_D' S)\<close>
     unfolding skip_and_resolve_loop_wl_D_def skip_and_resolve_loop_wl_D'_def
     by refine_vcg auto
-  have S: \<open> {(T, b, T'). T' = T} O {((b', T'), T). T' = T \<and> local.literals_are_N\<^sub>0 T} =
+  have S: \<open>{(T, b, T'). T' = T} O {((b', T'), T). T' = T \<and> local.literals_are_N\<^sub>0 T} =
      {(T', T). T = T' \<and> local.literals_are_N\<^sub>0 T}\<close>
     by auto
   show ?thesis
@@ -1152,14 +1155,16 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
         let L = lit_of (hd M);
         ASSERT(get_level M L = count_decided M);
         ASSERT(D \<noteq> None);
-        ASSERT(D \<noteq> Some []);
+        ASSERT(D \<noteq> Some {#});
         ASSERT(ex_decomp_of_max_lvl M D L);
         ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
         ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
         ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         M1 \<leftarrow> find_decomp_wl (M, N, U, D, NP, UP, Q, W) L;
+        let E = the D;
+        D' \<leftarrow> list_of_mset E;
 
-        if length (the D) > 1
+        if size E > 1
         then do {
           L' \<leftarrow> find_lit_of_max_level_wl (M, N, U, D, NP, UP, Q, W) L;
           ASSERT(atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP));
@@ -1167,11 +1172,11 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
           ASSERT(L \<in> snd ` D\<^sub>0);
           ASSERT(L' \<in> snd ` D\<^sub>0);
           RETURN (Propagated (-L) (length N) # M1,
-            N @ [[-L, L'] @ (remove1 (-L) (remove1 L' (the D)))], U,
+            N @ [[-L, L'] @ (remove1 (-L) (remove1 L' D'))], U,
             None, NP, UP, add_mset L {#}, W(-L:= W (-L) @ [length N], L':= W L' @ [length N]))
         }
         else do {
-          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset_list (the D) UP, add_mset L {#}, W)
+          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset_list D' UP, add_mset L {#}, W)
         }
       }
     }
@@ -1186,7 +1191,7 @@ lemma backtrack_wl_D_spec:
      \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}
        (backtrack_wl S)\<close>
 proof -
-  have 1: \<open>((get_conflict_wl S = Some [], S), get_conflict_wl S = Some [], S) \<in> Id\<close>
+  have 1: \<open>((get_conflict_wl S = Some {#}, S), get_conflict_wl S = Some {#}, S) \<in> Id\<close>
     by auto
   have 2: \<open>find_decomp_wl S M \<le> \<Down> Id (find_decomp_wl S' M')\<close>
     if \<open>S = S'\<close> and \<open>M = M'\<close>
@@ -1206,10 +1211,13 @@ proof -
         atm_of_eq_atm_of N\<^sub>1_def in_implies_atm_of_on_atms_of_ms
         image_Un)
       using in_implies_atm_of_on_atms_of_ms in_lits_of_atms_of_mm_ain_atms_of_iff by fastforce
+  have list_of_mset: \<open>list_of_mset D \<le> \<Down> {(E, F). E = F \<and> D = mset E} (list_of_mset D')\<close>
+    if \<open>D = D'\<close> for D D'
+    using that by (auto simp: list_of_mset_def intro!: RES_refine)
   show ?thesis
     unfolding backtrack_wl_D_def backtrack_wl_def
     supply [[goals_limit=1]]
-    apply (refine_vcg 1 2 3)
+    apply (refine_vcg 1 2 3 list_of_mset)
     subgoal by fast
     subgoal by auto
     subgoal by auto
@@ -1218,6 +1226,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by fast
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1256,14 +1265,14 @@ proof -
         by fast
       done
     subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M' SN' N'
-      SU' U' SD' D' SNP' NP' SUP' UP' SWS' WS' W' K K' L L'
+      SU' U' SD' D' SNP' NP' SUP' UP' SWS' WS' W' M''' M'' E E' L L'
     proof -
       thm p
       note SWS = p(1) and SUP = p(2) and SNP = p(3) and SD = p(4) and SU = p(5) and SN = p(6) and
         S = p(7) and M_not_Nil = p(15) and lvl_count_decided = p(10) and D_not_None = p(18) and
         D_not_Some_Nil = p(19) and ex_decomp = p(20) and stgy_invs = p(21) and struct_invs = p(22)
-        and no_skip = p(30) and M1_M1a = p(31) and L'_La = p(34) and atm_hd = p(35) and atm_L = p(36) and
-        S_expand = p(1-14)
+        and no_skip = p(30) and M1_M1a = p(31) and EE' = p(32) and L'_La = p(35) and
+        atm_hd = p(36) and atm_L = p(37) and S_expand = p(1-14)
       have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
         using struct_invs
         apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
@@ -1272,45 +1281,81 @@ proof -
 
       show ?thesis (is \<open>(?T', ?T) \<in> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}\<close>)
       proof -
-        have T: \<open>?T = ?T'\<close>
-          using M1_M1a L'_La S_expand by auto
+        have T: \<open>?T = ?T'\<close> and DD': \<open>D = D'\<close>
+          using M1_M1a L'_La S_expand EE' by auto
 
         have is_N\<^sub>1_add: \<open>is_N\<^sub>1 (A + B) \<longleftrightarrow> set_mset A \<subseteq> set_mset N\<^sub>1\<close> if \<open>is_N\<^sub>1 B\<close> for A B
           using that unfolding is_N\<^sub>1_def by auto
 
-
-        have \<open>atms_of_ms (mset ` set (take U (tl N))) \<subseteq> atms_of_ms (mset ` set (tl N))\<close>
+        have LL: \<open>xa \<in> set E' \<longleftrightarrow> xa \<in># (the D)\<close> for xa
+          using EE' D_not_None S_expand by auto
+        have atms_take_U_N: \<open>atms_of_ms (mset ` set (take U (tl N))) \<subseteq> atms_of_ms (mset ` set (tl N))\<close>
           by (auto simp: atms_of_ms_def dest: in_set_takeD)
 
-        then have \<open>set_mset
-             (lits_of_atms_of_m (add_mset (- lit_of (hd M)) (add_mset L' (mset (the D) - {#- lit_of (hd M), L'#})))) \<subseteq> set_mset N\<^sub>1\<close>
-          using M_not_Nil alien N\<^sub>0[unfolded is_N\<^sub>1_def, symmetric] atm_hd atm_L D_not_None
-          unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
-          apply (cases M)
-          by (auto 5 5 simp: in_lits_of_atms_of_mm_ain_atms_of_iff atm_of_eq_atm_of
-              cdcl\<^sub>W_restart_mset_state clauses_def in_N\<^sub>1_iff S_expand
-              in_lits_of_atms_of_m_ain_atms_of_iff
-              mset_take_mset_drop_mset' H image_image
-              dest!: in_atms_of_minusD)
-
+        have \<open>set_mset
+             (lits_of_atms_of_m (add_mset (- lit_of (hd M)) (add_mset L' (mset E - {#- lit_of (hd M), L'#})))) \<subseteq> set_mset N\<^sub>1\<close>
+        proof (cases M)
+          case Nil
+          then show ?thesis using M_not_Nil by fast
+        next
+          case (Cons L''' M')
+          have
+            alien_confl:\<open>atms_of (the D) \<subseteq> atms_of_ms (mset ` set (take U (tl N))) \<union> atms_of_mm NP\<close> and
+            \<open>\<forall>L mark. Propagated L mark \<in> set (convert_lits_l N M) \<longrightarrow>
+                atms_of mark \<subseteq> atms_of_ms (mset ` set (take U (tl N))) \<union> atms_of_mm NP\<close> and
+            \<open>atms_of_ms (mset ` set (drop (Suc U) N)) \<subseteq>
+                 atms_of_ms (mset ` set (take U (tl N))) \<union> atms_of_mm NP\<close> and
+            \<open>atms_of_mm UP \<subseteq> atms_of_ms (mset ` set (take U (tl N))) \<union> atms_of_mm NP\<close>
+            \<open>atm_of ` lits_of_l M \<subseteq> atms_of_ms (mset ` set (take U (tl N))) \<union> atms_of_mm NP\<close>
+            using M_not_Nil alien N\<^sub>0[unfolded is_N\<^sub>1_def, symmetric] atm_hd atm_L D_not_None EE'
+            unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+            by (auto simp add: cdcl\<^sub>W_restart_mset_state clauses_def mset_take_mset_drop_mset'
+                image_image
+                dest!: in_atms_of_minusD)
+          have K_N: \<open>atm_of L' \<in> atms_of N\<^sub>1\<close>
+            if \<open>atm_of L' \<in> atms_of_ms (mset ` set (tl N))\<close>
+            for L' :: \<open>nat literal\<close>
+            using M_not_Nil N\<^sub>0[unfolded is_N\<^sub>1_def, symmetric] atm_hd atm_L D_not_None EE' that
+            unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+            by (auto simp add: in_lits_of_atms_of_mm_ain_atms_of_iff atm_of_eq_atm_of
+                cdcl\<^sub>W_restart_mset_state clauses_def in_N\<^sub>1_iff S_expand
+                in_lits_of_atms_of_m_ain_atms_of_iff LL
+                mset_take_mset_drop_mset' H image_image
+                dest!: in_atms_of_minusD)
+          moreover have K_NP: \<open>atm_of L' \<in> atms_of N\<^sub>1\<close> if \<open>atm_of L' \<in> atms_of_mm NP\<close>
+            for L' :: \<open>nat literal\<close>
+            using M_not_Nil N\<^sub>0[unfolded is_N\<^sub>1_def, symmetric] atm_hd atm_L D_not_None EE' that
+            unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+            by (auto simp add: in_lits_of_atms_of_mm_ain_atms_of_iff atm_of_eq_atm_of
+                cdcl\<^sub>W_restart_mset_state clauses_def in_N\<^sub>1_iff S_expand
+                in_lits_of_atms_of_m_ain_atms_of_iff LL
+                mset_take_mset_drop_mset' H image_image
+                dest!: in_atms_of_minusD)
+          moreover have \<open>xa \<in> set E \<Longrightarrow> atm_of xa \<in> atms_of N\<^sub>1\<close> for xa
+            using alien_confl EE' atms_take_U_N DD' by (auto intro: K_N K_NP)
+          ultimately show ?thesis
+            using atm_hd atm_L
+            by (auto simp add: in_N\<^sub>1_iff in_lits_of_atms_of_m_ain_atms_of_iff mset_take_mset_drop_mset'
+                dest!: in_atms_of_minusD)
+        qed
         then have \<open>literals_are_N\<^sub>0 ?T\<close>
-          using  N\<^sub>0
+          using N\<^sub>0 EE'
           by (cases \<open>Suc U - length N\<close>; cases N)
             (simp_all add: clauses_def mset_take_mset_drop_mset' S_expand
               lits_of_atms_of_mm_union lits_of_atms_of_mm_add_mset (* is_N\<^sub>1_def *)
               in_lits_of_atms_of_mm_ain_atms_of_iff is_N\<^sub>1_add)
         then show ?thesis
-          using T by blast
+          unfolding T by blast
       qed
     qed
     subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M' SN' N'
-      SU' U' SD' D' SNP' NP' SUP' UP' SWS' WS' W' K K'
+      SU' U' SD' D' SNP' NP' SUP' UP' SWS' WS' W' M''' M'' E E'
     proof -
       thm p
       note SWS = p(1) and SUP = p(2) and SNP = p(3) and SD = p(4) and SU = p(5) and SN = p(6) and
         S = p(7) and M_not_Nil = p(15) and lvl_count_decided = p(10) and D_not_None = p(18) and
         D_not_Some_Nil = p(19) and ex_decomp = p(20) and stgy_invs = p(21) and struct_invs = p(22)
-        and no_skip = p(30) and M1_M1a = p(31) and K_K' = p(32) and
+        and no_skip = p(30) and M1_M1a = p(31) and E_E' = p(32) and
         S_expand = p(1-14)
       have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
         using struct_invs
@@ -1321,7 +1366,7 @@ proof -
       show ?thesis (is \<open>(?T', ?T) \<in> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}\<close>)
       proof -
         have T: \<open>?T = ?T'\<close>
-          using M1_M1a S_expand by auto
+          using M1_M1a S_expand E_E' by auto
 
         have is_N\<^sub>1_add: \<open>is_N\<^sub>1 (A + B) \<longleftrightarrow> set_mset A \<subseteq> set_mset N\<^sub>1\<close> if \<open>is_N\<^sub>1 B\<close> for A B
           using that unfolding is_N\<^sub>1_def by auto
@@ -1330,7 +1375,7 @@ proof -
         have \<open>atms_of_ms (mset ` set (take U (tl N))) \<subseteq> atms_of_ms (mset ` set (tl N))\<close>
           by (auto simp: atms_of_ms_def dest: in_set_takeD)
 
-        then have \<open>set_mset (lits_of_atms_of_m (mset (the D))) \<subseteq> set_mset N\<^sub>1\<close>
+        then have \<open>set_mset (lits_of_atms_of_m (the D)) \<subseteq> set_mset N\<^sub>1\<close>
           using M_not_Nil alien N\<^sub>0[unfolded is_N\<^sub>1_def, symmetric] D_not_None
           unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
           apply (cases M)
@@ -1398,7 +1443,7 @@ definition cdcl_twl_o_prog_wl_D :: "nat twl_st_wl \<Rightarrow> (bool \<times> n
         else do {
           T \<leftarrow> skip_and_resolve_loop_wl_D S;
           ASSERT(get_conflict_wl T \<noteq> None);
-          if get_conflict_wl T \<noteq> Some []
+          if get_conflict_wl T \<noteq> Some {#}
           then do {U \<leftarrow> backtrack_wl_D T; RETURN (False, U)}
           else do {RETURN (True, T)}
         }

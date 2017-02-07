@@ -1026,9 +1026,10 @@ definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
         ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
         ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         M1 \<leftarrow> find_decomp_wl (M, N, U, D, NP, UP, Q, W) L;
-        D' \<leftarrow> list_of_mset (the D);
+        let E = the D;
+        D' \<leftarrow> list_of_mset E;
 
-        if size (the D) > 1
+        if size E > 1
         then do {
           L' \<leftarrow> find_lit_of_max_level_wl (M, N, U, D, NP, UP, Q, W) L;
           ASSERT(atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP));
@@ -1158,7 +1159,7 @@ proof -
     by (auto dest: in_atms_of_mset_takeD)
   have atms_of_diffD: \<open>La \<in> atms_of (A - B) \<Longrightarrow> La \<in> atms_of A\<close> for La and A B :: \<open>'a clause\<close>
     by (auto simp: atms_of_def dest: in_diffD)
-  have list_of_mset: \<open>list_of_mset (the D) \<le> \<Down> {(E, F). E = F \<and> (the D) = mset E} (list_of_mset (the D'))\<close>
+  have list_of_mset: \<open>list_of_mset D \<le> \<Down> {(E, F). E = F \<and> D = mset E} (list_of_mset D')\<close>
     if \<open>D = D'\<close> for D D'
     using that by (auto simp: list_of_mset_def intro!: RES_refine)
   have H: \<open>?bt \<in> ?A \<rightarrow> \<langle>{(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}\<rangle>nres_rel\<close>
