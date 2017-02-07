@@ -2235,49 +2235,13 @@ lemma lit_and_ann_of_propagated_hnr[sepref_fr_rules]:
       Propagated_eq_ann_lit_of_pair_iff
       simp del: literal_of_nat.simps)+
 
-
-term skip_and_resolve_loop_wl_D''
-definition skip_and_resolve_loop_wl_D'' :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
-  \<open>skip_and_resolve_loop_wl_D'' S\<^sub>0 =
-    do {
-      ASSERT(get_conflict_wl S\<^sub>0 \<noteq> None);
-      (H, S) \<leftarrow>
-        WHILE\<^sub>T\<^bsup>\<lambda>(brk, S).
-           skip_and_resolve_loop_inv (twl_st_of_wl None S\<^sub>0) (brk, twl_st_of_wl None S) \<and>
-           additional_WS_invs (st_l_of_wl None S) \<and> correct_watching S \<and> literals_are_N\<^sub>0 S\<^esup>
-        (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)))
-        (\<lambda>(_, S).
-          let (M, N, U, D, NP, UP, Q, W) = S in
-          do {
-            ASSERT(M \<noteq> []);
-            ASSERT(get_conflict_wl (M, N, U, D, NP, UP, Q, W) \<noteq> None);
-            let D' = the (get_conflict_wl (M, N, U, D, NP, UP, Q, W));
-            ASSERT(is_proped (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W))));
-            let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W)));
-            ASSERT(C < length N);
-            if -L \<notin> set D' then
-              do {RETURN (False, (tl M, N, U, Some D', NP, UP, Q, W))}
-            else
-              if get_maximum_level M (remove1_mset (-L) (mset D')) = count_decided M
-              then
-                do {RETURN (resolve_cls_l L D' (if C = 0 then [L] else N!C) = [],
-                   (tl M, N, U, Some (resolve_cls_l L D' (if C = 0 then [L] else N!C)),
-                     NP, UP, Q, W))}
-              else
-                do {RETURN (True, (M, N, U, Some D', NP, UP, Q, W))}
-          }
-        )
-        (get_conflict_wl S\<^sub>0 = Some [], S\<^sub>0);
-      RETURN S
-    }
-  \<close>
-sepref_register skip_and_resolve_loop_wl_D''
-sepref_thm skip_and_resolve_loop_wl_D''
-  is \<open>PR_CONST skip_and_resolve_loop_wl_D''\<close>
+sepref_register skip_and_resolve_loop_wl_D
+sepref_thm skip_and_resolve_loop_wl_D
+  is \<open>PR_CONST skip_and_resolve_loop_wl_D\<close>
   :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
   supply [[goals_limit=1]]
   apply (subst PR_CONST_def)
-  unfolding skip_and_resolve_loop_wl_D''_def
+  unfolding skip_and_resolve_loop_wl_D_def
   apply (rewrite at \<open>\<not>_ \<and> \<not> _\<close> short_circuit_conv)
   unfolding twl_st_l_assn_def
     pending_wl_pending_wl_empty
