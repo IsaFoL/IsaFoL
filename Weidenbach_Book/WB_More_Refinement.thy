@@ -216,6 +216,12 @@ lemma (in transfer) transfer_bool[refine_transfer]:
 lemma Collect_eq_comp: \<open>{(c, a). a = f c} O {(x, y). P x y} = {(c, y). P (f c) y}\<close>
   by auto
 
+lemma ex_assn_swap: \<open>(\<exists>\<^sub>Aa b. P a b) = (\<exists>\<^sub>Ab a. P a b)\<close>
+  by (meson ent_ex_postI ent_ex_preI ent_iffI ent_refl)
+
+lemma ent_ex_up_swap: \<open>(\<exists>\<^sub>Aaa. \<up> (P aa)) = (\<up>(\<exists>aa. P aa))\<close>
+  by (smt ent_ex_postI ent_ex_preI ent_iffI ent_pure_pre_iff ent_refl mult.left_neutral)
+
 lemma
   shows list_mset_assn_add_mset_Nil:
      \<open>list_mset_assn R (add_mset q Q) [] = false\<close> and

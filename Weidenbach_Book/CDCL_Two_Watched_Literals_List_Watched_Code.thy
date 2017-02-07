@@ -2056,6 +2056,83 @@ lemma remove1_remove1_mset: \<open>(uncurry (RETURN oo remove1), uncurry (RETURN
   using list_all2_remove
   by (fastforce simp: remove1_wl_def list_mset_rel_def br_def mset_rel_def p2rel_def rel2p_def[abs_def]
       rel_mset_def Collect_eq_comp)
+
+
+lemma remove1_wl_code_op_mset_delete[sepref_fr_rules]:
+  \<open>(uncurry (remove1_wl_code), uncurry (RETURN oo op_mset_delete)) \<in>
+     nat_lit_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>d \<rightarrow>\<^sub>a conflict_assn\<close>
+  (is \<open>_ \<in> _ *\<^sub>a ?c\<^sup>d \<rightarrow>\<^sub>a ?o\<close>)
+proof -
+  have H: \<open>(uncurry remove1_wl_code, uncurry (RETURN \<circ>\<circ> remove1_mset))
+  \<in> CDCL_Two_Watched_Literals_List_Watched_Code.nat_lit_assn\<^sup>k *\<^sub>a
+     (hr_comp (hr_comp (arl_assn nat_assn) (\<langle>nat_rel\<rangle>list_rel))
+       (list_mset_rel O
+        \<langle>nat_lit_rel\<rangle>mset_rel))\<^sup>d \<rightarrow>\<^sub>a hr_comp
+       (hr_comp (arl_assn nat_assn) {(l, l'). mset l = mset l'})
+       (list_mset_rel O \<langle>nat_lit_rel\<rangle>mset_rel)\<close>
+  (is \<open>_ \<in> _ *\<^sub>a ?c'\<^sup>d \<rightarrow>\<^sub>a ?o'\<close>)
+    using remove1_wl_code.refine[FCOMP remove1_wl_remove1, FCOMP remove1_remove1_mset] .
+  have 1:
+    \<open>(\<exists>\<^sub>Aba bb. f bb * \<up> (bb = ba) * P ba) = (\<exists>\<^sub>Aba. f ba * P ba)\<close> for P f
+    by (sep_auto simp: ex_assn_def)
+  have [simp]:
+    \<open>(\<exists>\<^sub>Aba bb. f bb * \<up> (bb = ba \<and> P ba)) = (\<exists>\<^sub>Aba. f ba * \<up> (P ba))\<close> for P f
+    unfolding import_param_3 mult.assoc[symmetric] 1 ..
+  have 2: \<open>(\<exists>\<^sub>Aba bb.
+           is_array_list bb (aa, b) *
+           \<up> (list_all2 lit_of_natP bb ba \<and> a = mset ba))
+    = (\<exists>\<^sub>A bb.
+           is_array_list bb (aa, b) *
+           \<up> (\<exists>ba. list_all2 lit_of_natP bb ba \<and> a = mset ba))\<close>
+    for a aa b
+    apply (subst ex_assn_swap)
+    unfolding ex_assn_move_out[symmetric] ent_ex_up_swap ..
+  have 3: \<open>(\<exists>xs. mset xs = mset ba \<and>
+                   (\<exists>ys. mset ys = a \<and>
+                         list_all2 lit_of_natP xs ys)) \<longleftrightarrow>
+     (\<exists>b. list_all2 lit_of_natP ba b \<and> a = mset b)\<close> for a ba
+    using list_all2_reorder_left_invariance by fastforce
+  have "4a": \<open>(\<exists>\<^sub>Aba bb.
+           is_array_list bb (aa, b) *
+           \<up> (mset bb = mset ba \<and>
+              (\<exists>b. list_all2 lit_of_natP ba b \<and> a = mset b))) =
+      (\<exists>\<^sub>Abb.
+           is_array_list bb (aa, b) *
+           \<up> (\<exists>ba. (mset bb = mset ba \<and>
+              (\<exists>b. list_all2 lit_of_natP ba b \<and> a = mset b))))\<close> for a aa b
+    apply (subst ex_assn_swap)
+    apply(subst ex_assn_move_out[symmetric])+
+    apply (subst ent_ex_up_swap)
+    ..
+  have "4b": \<open>(\<exists>\<^sub>Aba bb.
+           is_array_list bb (aa, b) *
+           \<up> (list_all2 lit_of_natP bb ba \<and> a = mset ba)) =
+     (\<exists>\<^sub>Abb.
+           is_array_list bb (aa, b) *
+           \<up> (\<exists>ba. list_all2 lit_of_natP bb ba \<and> a = mset ba)) \<close>  for a aa b
+    apply (subst ex_assn_swap)
+    apply(subst ex_assn_move_out[symmetric])+
+    apply (subst ent_ex_up_swap)
+    ..
+  have 4: \<open>(\<exists>b. mset ba = mset b \<and>
+                  (\<exists>ba. list_all2 lit_of_natP b ba \<and>
+                        a = mset ba)) =
+           (\<exists>b. list_all2 lit_of_natP ba b \<and> a = mset b)\<close> for bb ba a
+    using list_all2_reorder_left_invariance by fastforce
+  have c: \<open>?c' = ?c\<close>
+    by (auto simp: hr_comp_def[abs_def] list_mset_rel_def mset_rel_def arl_assn_def
+        p2rel_def rel2p_def[abs_def] br_def Collect_eq_comp rel_mset_def list_rel_def
+        list.rel_eq 2 3
+        intro!: ext)
+  have o': \<open>?o' = ?o\<close>
+    by (auto simp: hr_comp_def[abs_def] list_mset_rel_def mset_rel_def arl_assn_def
+        list_rel_def list.rel_eq 3 "4a" "4b" 4
+        p2rel_def rel2p_def[abs_def] br_def Collect_eq_comp rel_mset_def intro!: ext)
+
+  show ?thesis
+    using H unfolding c o' op_mset_delete_def .
+qed
+
 context twl_array_code
 begin
 
