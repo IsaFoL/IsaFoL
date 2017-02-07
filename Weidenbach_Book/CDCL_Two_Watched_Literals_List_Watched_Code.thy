@@ -979,15 +979,16 @@ definition skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st
             ASSERT(C < length N);
             if -L \<notin># D' then
               do {RETURN (False, (tl M, N, U, Some D', NP, UP, Q, W))}
-            else
-              if get_maximum_level M (remove1_mset (-L) D') = count_decided M
-              then
-                do {RETURN (remove1_mset (-L) D' \<union># (if C = 0 then {#} else mset (remove1 L (N!C))) = {#},
-                   (tl M, N, U, Some (remove1_mset (-L) D' \<union># (if C = 0 then {#} else mset (remove1 L (N!C)))),
-                     NP, UP, Q, W))}
+            else do{
+              let E = remove1_mset (-L) D';
+              let NC = op_list_copy (N!C);
+              let F = (if C = 0 then {#} else (remove1_mset L (mset NC)));
+              if get_maximum_level M E = count_decided M
+              then do {
+                RETURN (E \<union># F = {#}, (tl M, N, U, Some (E \<union># F), NP, UP, Q, W))}
               else
                 do {RETURN (True, (M, N, U, Some D', NP, UP, Q, W))}
-          }
+          }}
         )
         (get_conflict_wl S\<^sub>0 = Some {#}, S\<^sub>0);
       RETURN S
@@ -1135,7 +1136,12 @@ proof -
   have D'\<^sub>3: \<open>local.skip_and_resolve_loop_wl_D' S \<le> \<Down> {((b', T'), T). T' = T \<and> local.literals_are_N\<^sub>0 T} (skip_and_resolve_loop_wl S)\<close>
     using conc_trans[OF D'\<^sub>2 D'\<^sub>1] unfolding conc_fun_chain S .
   have D'\<^sub>4: \<open>skip_and_resolve_loop_wl_D S \<le> \<Down> {(T, (b, T')). T' = T} (skip_and_resolve_loop_wl_D' S)\<close>
-    unfolding skip_and_resolve_loop_wl_D_def skip_and_resolve_loop_wl_D'_def
+    unfolding skip_and_resolve_loop_wl_D_def skip_and_resolve_loop_wl_D'_def COPY_def
+    op_list_copy_def
+    apply (rewrite at \<open>let _ = remove1_mset _ _ in _\<close> Let_def)
+    apply (rewrite at \<open>let _ = If _ _ _ in _\<close> Let_def)
+    apply (rewrite at \<open>let _ = _ ! _ in _\<close> Let_def)
+    apply (rewrite mset_remove1[symmetric])+
     by refine_vcg auto
   have S: \<open>{(T, b, T'). T' = T} O {((b', T'), T). T' = T \<and> local.literals_are_N\<^sub>0 T} =
      {(T', T). T = T' \<and> local.literals_are_N\<^sub>0 T}\<close>
@@ -1929,8 +1935,6 @@ lemma is_in_arl_op_mset_contains_nat_lit_rel[sepref_fr_rules]:
   shows \<open>(uncurry is_in_arl_code, uncurry (RETURN oo op_mset_contains)) \<in>
    (pure nat_lit_rel)\<^sup>k *\<^sub>a conflict_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
 proof -
-  thm is_in_arl_op_mset_contains[of \<open>nat_ann_lit_rel\<close>]
-  term nat_ann_lit_rel
   have 1: \<open>IS_LEFT_UNIQUE Id\<close>
     using IS_LEFT_UNIQUE_def single_valued_def by auto
   have 2: \<open>list_mset_rel O \<langle>Id\<rangle>mset_rel = list_mset_rel\<close>
@@ -2132,6 +2136,37 @@ proof -
   show ?thesis
     using H unfolding c o' op_mset_delete_def .
 qed
+
+definition maximum_level :: \<open>(nat, nat) ann_lits \<Rightarrow> nat literal list \<Rightarrow> nat\<close> where
+  \<open>maximum_level M D = fold (\<lambda>i l. max (get_level M (D!i)) l) [0..<length D] 0\<close>
+
+sepref_definition maximum_level_code
+  is \<open>uncurry (RETURN oo (maximum_level :: (nat, nat) ann_lits \<Rightarrow> nat literal list \<Rightarrow> nat))\<close>
+  :: \<open>pair_nat_ann_lits_assn\<^sup>k *\<^sub>a (arl_assn nat_lit_assn)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  unfolding maximum_level_def
+  by sepref
+
+lemma maximum_level_get_maximum_level:
+  \<open>(uncurry (RETURN oo maximum_level), uncurry (RETURN oo get_maximum_level)) \<in>
+    Id \<times>\<^sub>r list_mset_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+proof -
+  define f where \<open>f M x \<equiv> max (get_level M x)\<close>
+    for M :: \<open>(nat, nat) ann_lits\<close> and x
+
+  have [simp]: \<open>fold (f M) D k = max k (get_maximum_level M (mset D))\<close> for M D k
+    by (induction D arbitrary: k) (auto simp: get_maximum_level_add_mset f_def)
+  show ?thesis
+    unfolding maximum_level_def
+    apply (intro frefI nres_relI)
+    unfolding f_def[symmetric]
+      fold_idx_conv[symmetric]
+    by (auto simp: list_mset_rel_def br_def)
+qed
+
+lemma maximum_level_code_get_maximum_level[sepref_fr_rules]:
+  \<open>(uncurry maximum_level_code, uncurry (RETURN oo get_maximum_level))
+    \<in> pair_nat_ann_lits_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  using maximum_level_code.refine[FCOMP maximum_level_get_maximum_level] .
 
 context twl_array_code
 begin
@@ -2424,6 +2459,15 @@ lemma lit_and_ann_of_propagated_hnr[sepref_fr_rules]:
   by (sep_auto simp: nat_ann_lit_rel_def p2rel_def lit_of_natP_def
       Propagated_eq_ann_lit_of_pair_iff
       simp del: literal_of_nat.simps)+
+
+definition op_mset_arl_empty :: "'a multiset" where
+  \<open>op_mset_arl_empty = {#}\<close>
+
+lemma arl_empty_op_mset_arl_empy[sepref_fr_rules]:
+  \<open>(uncurry0 arl_empty, uncurry0 (RETURN op_mset_arl_empty)) \<in>
+  unit_assn\<^sup>k \<rightarrow>\<^sub>a conflict_assn\<close>
+  by sepref_to_hoare
+    (use lms_empty_aref in \<open>sep_auto simp: op_mset_arl_empty_def hr_comp_def arl_assn_def\<close>)
 
 sepref_register skip_and_resolve_loop_wl_D
 sepref_thm skip_and_resolve_loop_wl_D
