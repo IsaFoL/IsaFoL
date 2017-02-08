@@ -1003,7 +1003,7 @@ qed
 subsubsection \<open>Backtrack\<close>
 
 definition find_decomp_wl :: "'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> ('v, nat) ann_lits nres" where
-  \<open>find_decomp_wl =  (\<lambda>(M, N, U, D, NP, UP, Q, Q) L.
+  \<open>find_decomp_wl = (\<lambda>(M, N, U, D, NP, UP, Q, WS) L.
     SPEC(\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (the D - {#-L#}) + 1))\<close>
 
