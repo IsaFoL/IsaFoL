@@ -979,12 +979,12 @@ definition skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st
             ASSERT(C < length N);
             if -L \<notin># D' then
               do {RETURN (False, (tl M, N, U, Some D', NP, UP, Q, W))}
-            else do{
-              let E = remove1_mset (-L) D';
-              let NC = op_list_copy (N!C);
-              let F = (if C = 0 then {#} else (remove1_mset L (mset NC)));
-              if get_maximum_level M E = count_decided M
+            else do {
+              if get_maximum_level M (remove1_mset (-L) D') = count_decided M
               then do {
+                let E = remove1_mset (-L) D';
+                let NC = op_list_copy (N!C);
+                let F = (if C = 0 then {#} else (remove1_mset L (mset NC)));
                 ASSERT(distinct_mset F);
                 ASSERT(distinct_mset E);
                 let G = E \<union># F;
@@ -1760,7 +1760,7 @@ sepref_definition  maximum_level_remove_code
   unfolding maximum_level_remove_def[abs_def]
   by sepref
 
-declare maximum_level_remove_code.refine[sepref_fr_rules]
+declare maximum_level_remove_code.refine
 thm maximum_level_remove_code.refine
 
 lemma  maximum_level_remove:
@@ -1790,6 +1790,24 @@ proof -
     unfolding maximum_level_remove_def f_def[symmetric]
       fold_idx_conv[symmetric]
     by simp
+qed
+
+definition get_maximum_level_remove where
+  \<open>get_maximum_level_remove M D L =  get_maximum_level M (remove1_mset L D)\<close>
+
+lemma maximum_level_remove_code_get_maximum_level_remove[sepref_fr_rules]:
+  \<open>(uncurry2 (maximum_level_remove_code),
+     uncurry2 (RETURN ooo get_maximum_level_remove)) \<in>
+    pair_nat_ann_lits_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+proof -
+  have 1:
+  \<open>(uncurry2 (RETURN ooo maximum_level_remove),
+     uncurry2 (RETURN ooo get_maximum_level_remove)) \<in>
+    ((Id \<times>\<^sub>r list_mset_rel) \<times>\<^sub>r Id) \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+    by (auto intro!: nres_relI frefI simp: list_mset_rel_def br_def maximum_level_remove
+        get_maximum_level_remove_def)
+  show ?thesis
+    using maximum_level_remove_code.refine[FCOMP 1] .
 qed
 
 
@@ -2586,6 +2604,19 @@ sepref_thm skip_and_resolve_loop_wl_D
     skip_and_resolve_loop_inv_def
     maximum_level_remove[symmetric]
     Multiset.is_empty_def[symmetric]
+    get_maximum_level_remove_def[symmetric]
+  by sepref
+
+
+
+concrete_definition (in -) skip_and_resolve_loop_wl_D_code
+   uses twl_array_code.skip_and_resolve_loop_wl_D.refine_raw
+   is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) skip_and_resolve_loop_wl_D_code_def
+
+lemmas skip_and_resolve_loop_wl_D_code_refine[sepref_fr_rules] =
+   skip_and_resolve_loop_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
   apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
   apply sepref_dbg_trans_step_keep
