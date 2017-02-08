@@ -1022,6 +1022,7 @@ definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
         ASSERT(D \<noteq> None);
         ASSERT(D \<noteq> Some {#});
         ASSERT(ex_decomp_of_max_lvl M D L);
+        ASSERT(-L \<in># the D);
         ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
         ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
         ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
@@ -1165,6 +1166,7 @@ proof -
   have H: \<open>?bt \<in> ?A \<rightarrow> \<langle>{(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}\<rangle>nres_rel\<close>
     unfolding backtrack_wl_def backtrack_l_def
     apply (refine_vcg find_decomp_wl find_lit_of_max_level_wl list_of_mset; remove_dummy_vars)
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto

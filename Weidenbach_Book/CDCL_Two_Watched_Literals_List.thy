@@ -1249,6 +1249,7 @@ definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
       ASSERT(D \<noteq> None);
       ASSERT(D \<noteq> Some {#});
       ASSERT(ex_decomp_of_max_lvl M D L);
+      ASSERT(-L \<in># the D);
       ASSERT(twl_stgy_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)));
       ASSERT(twl_struct_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)));
       ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
@@ -1378,6 +1379,7 @@ proof -
       using obtain_decom[of N' M' E] apply (simp; fail)
       by (cases M') simp_all
     subgoal by simp
+    subgoal by simp
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
       by (cases M') simp_all
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
@@ -1398,13 +1400,13 @@ proof -
     proof -
       thm p
       note state = p(1) and confl = p(2) and wq = p(4) and add_invs = p(6) and M_ne_empty = p(11) and
-        M'_ne_empty = p(12) and L_hd = p(13) and uL_D = p(15) and M1'_M1 = p (24) and M1' = p(25) and
-        D'_E' = p(27) and length_D'_ge_1 = p(29) and
-        L''_L''' = p(31) and L'''' = p(33) and L_uL''' = p(34)
+        M'_ne_empty = p(12) and L_hd = p(13) and uL_D = p(15) and M1'_M1 = p (25) and M1' = p(26) and
+        D'_E' = p(28) and length_D'_ge_1 = p(30) and
+        L''_L''' = p(32) and L'''' = p(34) and L_uL''' = p(35)
       have hd_convert_lits_M': \<open>lit_of (hd (convert_lits_l N' M')) = lit_of (hd M')\<close>
         using state M'_ne_empty by (cases M') auto
       have \<open>D = Some E\<close> and \<open> L''' \<in># the D\<close>
-        using state confl L''_L''' L'''' by auto
+        using state confl L''_L''' L''''  by auto
       then have E: \<open>E = add_mset K (add_mset L''' (E - {#K, L'''#}))\<close>
         if \<open>K \<in># E\<close> and \<open>K \<noteq> L'''\<close>
         for K
@@ -1474,8 +1476,8 @@ proof -
     subgoal premises p for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L M1' M1
     proof -
       note state = p(1) and confl = p(2) and wq = p(4) and add_invs = p(6) and M_ne_empty = p(11) and
-        M'_ne_empty = p(12) and L_hd = p(13) and uL_D = p(15) and M1'_M1 = p(24) and M1' = p (25) and
-        length_D'_ge_1 = p(27) and size_D_ge_1 = p(30)
+        M'_ne_empty = p(12) and L_hd = p(13) and uL_D = p(15) and M1'_M1 = p(25) and M1' = p (26) and
+        length_D'_ge_1 = p(28) and size_D_ge_1 = p(31)
       obtain c M2 K where
          M': \<open>M' = c @ M2 @ Decided K # M1'\<close>
         using M1' by (auto dest!: get_all_ann_decomposition_exists_prepend)

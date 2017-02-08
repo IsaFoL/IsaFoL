@@ -1173,6 +1173,7 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
         ASSERT(D \<noteq> None);
         ASSERT(D \<noteq> Some {#});
         ASSERT(ex_decomp_of_max_lvl M D L);
+        ASSERT(-L \<in># the D);
         ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
         ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
         ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
@@ -1242,6 +1243,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by fast
+    subgoal by fast
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1286,9 +1288,9 @@ proof -
       thm p
       note SWS = p(1) and SUP = p(2) and SNP = p(3) and SD = p(4) and SU = p(5) and SN = p(6) and
         S = p(7) and M_not_Nil = p(15) and lvl_count_decided = p(10) and D_not_None = p(18) and
-        D_not_Some_Nil = p(19) and ex_decomp = p(20) and stgy_invs = p(21) and struct_invs = p(22)
-        and no_skip = p(30) and M1_M1a = p(31) and EE' = p(32) and L'_La = p(35) and
-        atm_hd = p(36) and atm_L = p(37) and S_expand = p(1-14)
+        D_not_Some_Nil = p(19) and ex_decomp = p(20) and stgy_invs = p(21) and struct_invs = p(23)
+        and no_skip = p(32) and M1_M1a = p(33) and EE' = p(34) and L'_La = p(37) and
+        atm_hd = p(38) and atm_L = p(39) and S_expand = p(1-14)
       have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
         using struct_invs
         apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
@@ -1370,8 +1372,8 @@ proof -
       thm p
       note SWS = p(1) and SUP = p(2) and SNP = p(3) and SD = p(4) and SU = p(5) and SN = p(6) and
         S = p(7) and M_not_Nil = p(15) and lvl_count_decided = p(10) and D_not_None = p(18) and
-        D_not_Some_Nil = p(19) and ex_decomp = p(20) and stgy_invs = p(21) and struct_invs = p(22)
-        and no_skip = p(30) and M1_M1a = p(31) and E_E' = p(32) and
+        D_not_Some_Nil = p(19) and ex_decomp = p(20) and stgy_invs = p(21) and struct_invs = p(23)
+        and no_skip = p(32) and M1_M1a = p(33) and E_E' = p(34) and
         S_expand = p(1-14)
       have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
         using struct_invs
