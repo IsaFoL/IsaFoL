@@ -985,7 +985,10 @@ definition skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st
               let F = (if C = 0 then {#} else (remove1_mset L (mset NC)));
               if get_maximum_level M E = count_decided M
               then do {
-                RETURN (E \<union># F = {#}, (tl M, N, U, Some (E \<union># F), NP, UP, Q, W))}
+                ASSERT(distinct_mset F);
+                ASSERT(distinct_mset E);
+                let G = E \<union># F;
+                RETURN (G = {#}, (tl M, N, U, Some G, NP, UP, Q, W))}
               else
                 do {RETURN (True, (M, N, U, Some D', NP, UP, Q, W))}
           }}
@@ -1020,8 +1023,10 @@ private definition skip_and_resolve_loop_wl_D' :: "nat twl_st_wl \<Rightarrow> (
               do {RETURN (False, (tl M, N, U, Some D', NP, UP, Q, W))}
             else
               if get_maximum_level M (remove1_mset (-L) D') = count_decided M
-              then
-                do {RETURN (remove1_mset (-L) D' \<union># (if C = 0 then {#} else mset (remove1 L (N!C))) = {#},
+              then do {
+                ASSERT(distinct_mset (if C = 0 then {#} else mset (remove1 L (N!C))));
+                ASSERT(distinct_mset (remove1_mset (-L) D'));
+                RETURN (remove1_mset (-L) D' \<union># (if C = 0 then {#} else mset (remove1 L (N!C))) = {#},
                    (tl M, N, U, Some (remove1_mset (-L) D' \<union># (if C = 0 then {#} else mset (remove1 L (N!C)))),
                      NP, UP, Q, W))}
               else
@@ -1104,6 +1109,8 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal sorry
+    subgoal sorry
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1129,6 +1136,8 @@ proof -
     subgoal by auto
     subgoal by (auto simp: clauses_def)
     subgoal by auto
+    subgoal by (auto simp: mset_take_mset_drop_mset' clauses_def)
+    subgoal by auto
     done
   have S: \<open>({((b', T'), b, T). b = b' \<and> T' = T \<and> local.literals_are_N\<^sub>0 T} O Collect (case_prod (\<lambda>(b, y). op = y)))
    = {((b', T'), T). T' = T \<and> local.literals_are_N\<^sub>0 T}\<close>
@@ -1141,6 +1150,7 @@ proof -
     apply (rewrite at \<open>let _ = remove1_mset _ _ in _\<close> Let_def)
     apply (rewrite at \<open>let _ = If _ _ _ in _\<close> Let_def)
     apply (rewrite at \<open>let _ = _ ! _ in _\<close> Let_def)
+    apply (rewrite at \<open>let _ = _ \<union># _ in _\<close> Let_def)
     apply (rewrite mset_remove1[symmetric])+
     by refine_vcg auto
   have S: \<open>{(T, b, T'). T' = T} O {((b', T'), T). T' = T \<and> local.literals_are_N\<^sub>0 T} =
@@ -2168,6 +2178,97 @@ lemma maximum_level_code_get_maximum_level[sepref_fr_rules]:
     \<in> pair_nat_ann_lits_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   using maximum_level_code.refine[FCOMP maximum_level_get_maximum_level] .
 
+definition union_mset_list_fold where
+  \<open>union_mset_list_fold xs ys =
+    (let xs' = op_list_copy xs in
+    fold (\<lambda>i zs. if ys!i \<in> set xs' then zs else zs @ [ys!i])
+      [0..<length ys]
+      xs)\<close>
+
+lemma union_mset_list_fold_union_mset:
+  fixes xs ys :: \<open>'a list\<close>
+  assumes \<open>distinct xs\<close> and \<open>distinct ys\<close>
+  shows \<open>mset (union_mset_list_fold xs ys) = mset xs \<union># mset ys\<close>
+proof -
+  define f where
+    \<open>f xs x zs = (if x \<in> set xs then zs else zs @ [x])\<close>
+    for xs and x :: \<open>'a\<close> and zs :: \<open>'a list\<close>
+  have 1: \<open>a \<notin> set ys \<Longrightarrow>
+       a \<in> set xs \<Longrightarrow>
+       mset ys - mset xs = add_mset a (mset ys) - mset xs\<close> for a and xs ys :: \<open>'a list\<close>
+    by (metis add_mset_diff_bothsides diff_intersect_left_idem in_multiset_in_set insert_DiffM
+        inter_add_right1)
+  have [simp]: \<open>mset (fold (f xs) ys xs') = mset xs' + (mset ys - mset xs)\<close> for xs'
+    using assms
+    by (induction ys arbitrary: xs xs') (auto simp: f_def 1)
+  show ?thesis
+    unfolding union_mset_list_fold_def
+      f_def[symmetric]
+      fold_idx_conv[symmetric]
+    by (simp add: sup_subset_mset_def)
+qed
+
+lemma is_in_arl_op_list_contains:
+  assumes \<open>IS_RIGHT_UNIQUE R\<close> and \<open>IS_LEFT_UNIQUE R\<close>
+  shows \<open>(uncurry is_in_arl, uncurry (RETURN oo op_list_contains)) \<in>
+   R \<times>\<^sub>r (\<langle>R\<rangle>list_rel) \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle> nres_rel\<close>
+proof -
+  let ?f = \<open>\<lambda>(x::'a) xs. do {let i = index xs x; RETURN (i < length xs)}\<close>
+  have 1: \<open>(uncurry ?f, uncurry (RETURN oo op_list_contains)) \<in>
+   R \<times>\<^sub>r (\<langle>R\<rangle>list_rel) \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle> nres_rel\<close>
+    apply (intro frefI nres_relI)
+    using assms
+    apply (auto simp: set_rel_def p2rel_def[abs_def] rel_set_def br_def
+        index_less_size_conv list_rel_def
+        dest: in_list_all2_ex_in)
+     apply (metis (no_types, lifting) IS_RIGHT_UNIQUED in_list_all2_ex_in)
+    by (smt IS_LEFT_UNIQUED list_all2_conv_all_nth mem_Collect_eq set_conv_nth)
+
+  have \<open>is_in_arl x xs\<le> \<Down> bool_rel (?f x xs)\<close> for x xs
+    unfolding is_in_arl_def
+    by (refine_vcg find_first_eq_index) auto
+  then have 2: \<open>(uncurry is_in_arl, uncurry ?f) \<in> Id \<times>\<^sub>r \<langle>Id\<rangle> list_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+    by (intro frefI nres_relI) (force simp: uncurry_def)
+  have 3: \<open>\<langle>Id\<rangle>list_rel O \<langle>R\<rangle>list_rel = \<langle>R\<rangle>list_rel\<close>
+    by simp
+  show ?thesis
+    using 2[FCOMP 1, unfolded 3] .
+qed
+
+lemma is_in_arl_code_op_list_contains[sepref_fr_rules]:
+  \<open>(uncurry is_in_arl_code, uncurry (RETURN oo op_list_contains)) \<in>
+    nat_lit_assn\<^sup>k *\<^sub>a (arl_assn nat_lit_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+proof -
+  have 1: \<open>(uncurry is_in_arl, uncurry (RETURN oo op_list_contains)) \<in>
+   Id \<times>\<^sub>r (\<langle>Id\<rangle>list_rel) \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle> nres_rel\<close>
+    by (rule is_in_arl_op_list_contains) (auto simp: IS_LEFT_UNIQUE_def)
+  have 2: \<open>hr_comp clause_ll_assn (\<langle>Id\<rangle>list_rel) = arl_assn nat_lit_assn\<close>
+    by (auto)
+  show ?thesis
+    using is_in_arl_code.refine[FCOMP 1] unfolding 2 .
+qed
+
+sepref_definition union_mset_list_fold_code
+  is \<open>uncurry (RETURN oo union_mset_list_fold)\<close>
+  :: \<open>(arl_assn nat_lit_assn)\<^sup>d *\<^sub>a (arl_assn nat_lit_assn)\<^sup>k \<rightarrow>\<^sub>a arl_assn nat_lit_assn\<close>
+  unfolding union_mset_list_fold_def
+  by sepref
+
+
+lemma union_mset_list_fold_op_union_mset:
+  \<open>(uncurry (RETURN oo union_mset_list_fold), uncurry (RETURN oo op \<union>#)) \<in>
+   [\<lambda>(a, b). distinct_mset a \<and> distinct_mset b]\<^sub>flist_mset_rel \<times>\<^sub>r list_mset_rel \<rightarrow> \<langle>list_mset_rel\<rangle> nres_rel\<close>
+  by (auto simp: list_mset_rel_def br_def intro!: union_mset_list_fold_union_mset[symmetric]
+      intro!: frefI nres_relI)
+
+lemma union_mset_list_fold_code_op_union_mset[sepref_fr_rules]:
+  \<open>(uncurry union_mset_list_fold_code, uncurry (RETURN oo op \<union>#)) \<in>
+   [\<lambda>(a, b). distinct_mset a \<and> distinct_mset b]\<^sub>a conflict_assn\<^sup>d *\<^sub>a conflict_assn\<^sup>k \<rightarrow> conflict_assn\<close>
+  using union_mset_list_fold_code.refine[FCOMP union_mset_list_fold_op_union_mset] .
+
+lemma arl_is_empty_is_empty[sepref_fr_rules]: \<open>(arl_is_empty, RETURN o Multiset.is_empty) \<in> conflict_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by (sepref_to_hoare) (sep_auto simp: Multiset.is_empty_def hr_comp_def list_mset_rel_def br_def arl_assn_def)
+
 context twl_array_code
 begin
 
@@ -2477,16 +2578,19 @@ sepref_thm skip_and_resolve_loop_wl_D
   apply (subst PR_CONST_def)
   unfolding skip_and_resolve_loop_wl_D_def
   apply (rewrite at \<open>\<not>_ \<and> \<not> _\<close> short_circuit_conv)
+  apply (rewrite at \<open>If _ \<hole> _\<close> op_mset_arl_empty_def[symmetric])
   unfolding twl_st_l_assn_def
     pending_wl_pending_wl_empty
     get_conflict_wl.simps get_trail_wl.simps get_conflict_wl_get_conflict_wl_is_Nil
     is_decided_hd_trail_wl_def[symmetric]
     skip_and_resolve_loop_inv_def
     maximum_level_remove[symmetric]
+    Multiset.is_empty_def[symmetric]
   apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
   apply sepref_dbg_trans_step_keep
   oops
+
 end
 
 
