@@ -2825,6 +2825,25 @@ sepref_definition remove1_and_add_first_code
   unfolding remove1_and_add_first_def
   by sepref
 
+lemma \<open>(uncurry2 (RETURN ooo remove1_and_add_first), uncurry2 (RETURN ooo remove1_and_add_first_abs))
+  \<in> [\<lambda>((L, L'), D). L \<in> set D \<and> L' \<in> set D \<and> L \<noteq> L' \<and> distinct D]\<^sub>f
+    (Id \<times>\<^sub>r Id) \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<rightarrow> \<langle>{(l, l'). mset l = mset l'}\<rangle>nres_rel\<close>
+(*   apply (auto intro!: nres_relI frefI simp: remove1_and_add_first_def remove1_and_add_first_abs_def
+      Let_def swap_def nth_list_update' nth_append list_update_append mset_update) *)
+  sorry
+
+
+lemma \<open>(uncurry2 remove1_and_add_first_code, uncurry2 (RETURN ooo remove1_and_add_first_abs))
+  \<in> [\<lambda>((L, L'), D). L \<in># D \<and> L' \<in># D \<and> L \<noteq> L' \<and> distinct_mset D]\<^sub>a
+    nat_lit_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>d \<rightarrow> conflict_assn\<close>
+
+
+
+
+
+
+
+
 
 export_code "unit_propagation_inner_loop_wl_D_code" in Haskell
 export_code "pending_wll_empty" in Haskell
