@@ -1226,7 +1226,7 @@ definition find_decomp :: "'v twl_st_l \<Rightarrow> 'v literal \<Rightarrow> ('
 
 definition find_lit_of_max_level :: "'v twl_st_l \<Rightarrow> 'v literal \<Rightarrow> 'v literal nres" where
   \<open>find_lit_of_max_level =  (\<lambda>(M, N, U, D, NP, UP, WS, Q) L.
-    SPEC(\<lambda>L'. L' \<in># the D \<and> get_level M L' = get_maximum_level M (the D - {#-L#})))\<close>
+    SPEC(\<lambda>L'. L' \<in># the D - {#-L#} \<and> get_level M L' = get_maximum_level M (the D - {#-L#})))\<close>
 
 definition ex_decomp_of_max_lvl :: "('v, nat) ann_lits  \<Rightarrow> 'v cconflict \<Rightarrow> 'v literal \<Rightarrow> bool" where
   \<open>ex_decomp_of_max_lvl M D L \<longleftrightarrow> (\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
@@ -1260,6 +1260,7 @@ definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
 
       if size E > 1
       then do {
+        ASSERT(\<forall>L' \<in># E - {#-L#}. get_level M L' = get_level M1 L');
         L' \<leftarrow> find_lit_of_max_level (M, N, U, D, NP, UP, WS, Q) L;
         RETURN (Propagated (-L) (length N) # M1,
           N @ [[-L, L'] @ (remove1 (-L) (remove1 L' D'))], U,
@@ -1396,6 +1397,7 @@ proof -
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
       by simp
     subgoal by simp
+    subgoal by (auto dest!: in_diffD)
     subgoal by simp
     subgoal premises p for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L M1' M1 E' L'' L'''
     proof -
@@ -1403,7 +1405,7 @@ proof -
       note state = p(1) and confl = p(2) and wq = p(4) and add_invs = p(6) and M_ne_empty = p(11) and
         M'_ne_empty = p(12) and L_hd = p(13) and uL_D = p(15) and M1'_M1 = p(26) and M1' = p(27) and
         D'_E' = p(29) and length_D'_ge_1 = p(31) and
-        L''_L''' = p(33) and L'''' = p(35) and L_uL''' = p(36)
+        L''_L''' = p(35) and L'''' = p(37) and L_uL''' = p(38)
       have hd_convert_lits_M': \<open>lit_of (hd (convert_lits_l N' M')) = lit_of (hd M')\<close>
         using state M'_ne_empty by (cases M') auto
       have \<open>D = Some E\<close> and \<open> L''' \<in># the D\<close>

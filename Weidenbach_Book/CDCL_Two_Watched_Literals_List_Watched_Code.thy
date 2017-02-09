@@ -1213,7 +1213,8 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
 
         if length D' > 1
         then do {
-          L' \<leftarrow> find_lit_of_max_level_wl' M N U E NP UP Q W L;
+          ASSERT(\<forall>L' \<in># the D - {#-L#}. get_level M L' = get_level M1 L');
+          L' \<leftarrow> find_lit_of_max_level_wl' M1 N U E NP UP Q W L;
           ASSERT(atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP));
           ASSERT(atm_of L' \<in> atms_of_mm (mset `# mset (tl N) + NP));
           ASSERT(L \<in> snd ` D\<^sub>0);
@@ -1284,6 +1285,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal by auto
     subgoal for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
       apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
       subgoal
@@ -1321,8 +1323,8 @@ proof -
       note SWS = p(1) and SUP = p(2) and SNP = p(3) and SD = p(4) and SU = p(5) and SN = p(6) and
         S = p(7) and M_not_Nil = p(15) and lvl_count_decided = p(10) and D_not_None = p(18) and
         D_not_Some_Nil = p(19) and ex_decomp = p(20) and stgy_invs = p(21) and struct_invs = p(23)
-        and no_skip = p(32) and M1_M1a = p(35) and EE' = p(36) and L'_La = p(39) and
-        atm_hd = p(40) and atm_L = p(41) and S_expand = p(1-14)
+        and no_skip = p(32) and M1_M1a = p(35) and EE' = p(36) and L'_La = p(41) and
+        atm_hd = p(42) and atm_L = p(43) and S_expand = p(1-14)
       have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
         using struct_invs
         apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
@@ -2988,19 +2990,22 @@ thm find_lit_of_max_level_wl_imp_code.refine
 
 lemma find_lit_of_max_level_wl_imp_code_find_lit_of_max_level_wl'[sepref_fr_rules]:
   \<open>(uncurry8 find_lit_of_max_level_wl_imp_code, uncurry8 find_lit_of_max_level_wl') \<in>
-   [\<lambda>((((((((M, N), U), D), NP), UP), WS), Q), L).
-     \<exists>K\<in>#D. get_level M K = get_maximum_level M (remove1_mset (- L) D)]\<^sub>a
+   [\<lambda>((((((((M, N), U), D), NP), UP), WS), Q), L). L = lit_of (hd M) \<and>
+     (\<exists>K\<in>#remove1_mset (-L) D. get_level M K = get_maximum_level M (remove1_mset (- L) D)) \<and>
+     get_level M L \<noteq> get_maximum_level M (remove1_mset (- L) D)]\<^sub>a
    (pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
        unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
     nat_lit_assn\<^sup>k
     \<rightarrow> nat_lit_assn\<close>
+  (is \<open>_ \<in> [?P]\<^sub>a _ \<rightarrow> _\<close>)
 proof -
-  have \<open>K \<in># D' \<Longrightarrow>
+  have \<open>K \<in># remove1_mset (-L) D' \<Longrightarrow>
     get_level M K = get_maximum_level M (remove1_mset (- L) D') \<Longrightarrow>
     (D, D') \<in> list_mset_rel \<Longrightarrow>
+    get_level M L \<noteq> get_maximum_level M (remove1_mset (- L) (mset D)) \<Longrightarrow>
     (let k = get_maximum_level M (remove1_mset (- L) (mset D))
      in WHILE\<^sub>T\<^bsup>\<lambda>i. i < length D \<and> (\<forall>j<i. get_level M (D ! j) \<noteq> k)\<^esup> (\<lambda>i. get_level M (D ! i) \<noteq> k) (\<lambda>i. RETURN (Suc i)) 0 \<bind> (\<lambda>j. ASSERT (j < length D) \<bind> (\<lambda>_. RETURN (D ! j))))
-    \<le> SPEC (\<lambda>L'. L' \<in># D' \<and> get_level M L' = get_maximum_level M (remove1_mset (- L) D'))\<close>
+    \<le> SPEC (\<lambda>L'. L' \<in># remove1_mset (- L) D' \<and> get_level M L' = get_maximum_level M (remove1_mset (- L) D'))\<close>
     for D' :: \<open>nat clause\<close> and K :: \<open>nat literal\<close> and M :: \<open>(nat, nat) ann_lits\<close> and L and
     D :: \<open>nat clause_l\<close>
     apply (refine_vcg WHILEIT_rule[where R =\<open>measure (\<lambda>i. Suc (length D) - i)\<close>])
@@ -3008,23 +3013,22 @@ proof -
     subgoal by (auto simp: list_mset_rel_def br_def)
     subgoal by auto
     subgoal apply (auto simp add: list_mset_rel_def br_def
-          in_set_conv_nth)
+          in_set_conv_nth dest!: in_diffD)
       by (metis less_antisym not_less_eq)
     subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def less_Suc_eq)
     subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def)
     subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def)
-    subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def)
+    subgoal apply (auto simp add: not_less_eq list_mset_rel_def br_def)
+        by (metis get_level_uminus in_remove1_mset_neq nth_mem_mset)
     subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def)
     done
   then have 1: \<open>(uncurry8 (\<lambda>M N U D NP UP WS Q. find_lit_of_max_level_wl_imp M D),
     uncurry8 find_lit_of_max_level_wl') \<in>
-     [\<lambda>((((((((M, N), U), D), NP), UP), WS), Q), L).
-         \<exists>K\<in>#D. get_level M K = get_maximum_level M (remove1_mset (- L) D)]\<^sub>f
+     [?P]\<^sub>f
      Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
     unfolding find_lit_of_max_level_wl_imp_def find_lit_of_max_level_wl'_def
       find_lit_of_max_level_wl_def maximum_level_remove
-    apply (intro frefI nres_relI)
-    by (auto simp add: uncurry_def)
+    by (intro frefI nres_relI) (auto simp add: uncurry_def list_mset_rel_def br_def)
   show ?thesis
     using find_lit_of_max_level_wl_imp_code.refine[FCOMP 1] .
 qed

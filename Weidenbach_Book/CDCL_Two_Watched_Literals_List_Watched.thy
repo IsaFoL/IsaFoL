@@ -1009,7 +1009,7 @@ definition find_decomp_wl :: "'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow
 
 definition find_lit_of_max_level_wl :: "'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> 'v literal nres" where
   \<open>find_lit_of_max_level_wl =  (\<lambda>(M, N, U, D, NP, UP, Q, W) L.
-    SPEC(\<lambda>L'. L' \<in># the D \<and> get_level M L' = get_maximum_level M (the D - {#-L#})))\<close>
+    SPEC(\<lambda>L'. L' \<in># remove1_mset (-L) (the D) \<and> get_level M L' = get_maximum_level M (the D - {#-L#})))\<close>
 
 definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
   \<open>backtrack_wl S\<^sub>0 =
@@ -1033,7 +1033,8 @@ definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
 
         if size E > 1
         then do {
-          L' \<leftarrow> find_lit_of_max_level_wl (M, N, U, D, NP, UP, Q, W) L;
+          ASSERT(\<forall>L' \<in># E - {#-L#}. get_level M L' = get_level M1 L');
+          L' \<leftarrow> find_lit_of_max_level_wl (M1, N, U, D, NP, UP, Q, W) L;
           ASSERT(atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP));
           ASSERT(atm_of L' \<in> atms_of_mm (mset `# mset (tl N) + NP));
           RETURN (Propagated (-L) (length N) # M1,
@@ -1151,11 +1152,22 @@ proof -
     for S and S' :: \<open>'v twl_st_wl\<close> and L L' :: \<open>'v literal\<close>
     using that by (cases S') (auto simp: find_decomp_wl_def find_decomp_def)
   have find_lit_of_max_level_wl:
-    \<open>find_lit_of_max_level_wl S' L' \<le> \<Down> {(L, L'). L = L' \<and> L \<in># (the (get_conflict_wl S'))} (find_lit_of_max_level S L)\<close>
-    if \<open>L = L'\<close> and \<open>st_l_of_wl None S' = S\<close> and \<open>get_conflict_wl S' \<noteq> None\<close>
-    for S and S' :: \<open>'v twl_st_wl\<close> and L L' :: \<open>'v literal\<close>
-    using that by (cases S') (auto simp: find_lit_of_max_level_wl_def find_lit_of_max_level_def
-        intro!: RES_refine)
+    \<open>find_lit_of_max_level_wl (M1', N', U', D', NP', UP', W', Q') L' \<le>
+       \<Down> {(L, L'). L = L' \<and> L \<in># (the D')}
+         (find_lit_of_max_level (M, N, U, D, NP, UP, W, Q) L)\<close>
+    if LL': \<open>L = L'\<close> and D: \<open>\<forall>L'\<in>#remove1_mset (-L) (the D). get_level M L' = get_level M1 L'\<close> and
+    \<open>D = D'\<close> and [simp]: \<open>M1 = M1'\<close>
+    for M M1 M1' and N N' and U U' and D D' NP NP' UP UP' W W' Q Q' and L L' :: \<open>'v literal\<close>
+  proof -
+    have \<open>get_level M `# remove1_mset (-L') (the D) = get_level M1 `# remove1_mset (-L') (the D)\<close>
+      by (rule image_mset_cong) (use D LL' in auto)
+    then have \<open> get_maximum_level M (remove1_mset (-L') (the D)) =
+        get_maximum_level M1 (remove1_mset (-L') (the D))\<close>
+      unfolding get_maximum_level_def by auto
+    then show ?thesis
+      using that by (auto simp: find_lit_of_max_level_wl_def find_lit_of_max_level_def
+          intro!: RES_refine dest: in_diffD)
+  qed
   have H: \<open>A \<subseteq> atms_of_ms (mset ` set (take U (tl N))) \<union> B \<Longrightarrow>
             A \<subseteq> atms_of_ms (mset ` set (tl N)) \<union> B\<close> for U A B and N :: \<open>'v clauses_l\<close>
     by (auto dest: in_atms_of_mset_takeD)
@@ -1182,6 +1194,7 @@ proof -
       by (cases T) simp \<comment> \<open>simp does not unify \<^term>\<open>T\<close> with the pair in the assumption
          otherwise\<close>
     subgoal by simp
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
