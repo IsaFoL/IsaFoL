@@ -2669,6 +2669,12 @@ lemma get_maximum_level_skip_first[simp]:
   by (smt atm_of_in_atm_of_set_in_uminus get_level_skip_beginning image_iff lit_of.simps(2)
       multiset.map_cong0)
 
+lemma convert_lits_l_true_annot: \<open>convert_lits_l N M \<Turnstile>a A \<longleftrightarrow> M \<Turnstile>a A\<close>
+  unfolding true_annot_def by auto
+
+lemma convert_lits_l_true_annots: \<open>convert_lits_l N M \<Turnstile>as A \<longleftrightarrow> M \<Turnstile>as A\<close>
+  unfolding true_annots_def by (auto simp: convert_lits_l_true_annot)
+
 lemma count_decided_butlast:
   \<open>count_decided (butlast xs) = (if is_decided (last xs) then count_decided xs - 1 else count_decided xs)\<close>
   by (cases xs rule: rev_cases) (auto simp: count_decided_def)
