@@ -2965,15 +2965,13 @@ lemma (in -) id_list_of_mset[sepref_fr_rules]:
 definition (in -) find_lit_of_max_level_wl_imp where
   \<open>find_lit_of_max_level_wl_imp M D L = do {
       let k = maximum_level_remove M D (-L);
-      j \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>i. i < length D \<and> (\<exists>j>i. (j < length D \<and>
-           get_level M (D!j) \<noteq> k))\<^esup>
+      j \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>i. i < length D \<and> (\<forall>j<i. get_level M (D!j) \<noteq> k)\<^esup>
         (\<lambda>i. get_level M (D!i) \<noteq> k)
         (\<lambda>i. RETURN (i+1))
         0;
       ASSERT(j < length D);
       RETURN (D!j)
   }\<close>
-
 
 declare maximum_level_remove_code.refine[sepref_fr_rules]
 sepref_definition find_lit_of_max_level_wl_imp_code
@@ -2990,12 +2988,47 @@ thm find_lit_of_max_level_wl_imp_code.refine
 
 lemma find_lit_of_max_level_wl_imp_code_find_lit_of_max_level_wl'[sepref_fr_rules]:
   \<open>(uncurry8 find_lit_of_max_level_wl_imp_code, uncurry8 find_lit_of_max_level_wl') \<in>
-      (pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
+   [\<lambda>((((((((M, N), U), D), NP), UP), WS), Q), L).
+     \<exists>K\<in>#D. get_level M K = get_maximum_level M (remove1_mset (- L) D)]\<^sub>a
+   (pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
        unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
     nat_lit_assn\<^sup>k
-    \<rightarrow>\<^sub>a nat_lit_assn\<close>
-  --\<open>TODO : is wrong, because of missing assumptions\<close>
-  sorry
+    \<rightarrow> nat_lit_assn\<close>
+proof -
+  have \<open>K \<in># D' \<Longrightarrow>
+    get_level M K = get_maximum_level M (remove1_mset (- L) D') \<Longrightarrow>
+    (D, D') \<in> list_mset_rel \<Longrightarrow>
+    (let k = get_maximum_level M (remove1_mset (- L) (mset D))
+     in WHILE\<^sub>T\<^bsup>\<lambda>i. i < length D \<and> (\<forall>j<i. get_level M (D ! j) \<noteq> k)\<^esup> (\<lambda>i. get_level M (D ! i) \<noteq> k) (\<lambda>i. RETURN (Suc i)) 0 \<bind> (\<lambda>j. ASSERT (j < length D) \<bind> (\<lambda>_. RETURN (D ! j))))
+    \<le> SPEC (\<lambda>L'. L' \<in># D' \<and> get_level M L' = get_maximum_level M (remove1_mset (- L) D'))\<close>
+    for D' :: \<open>nat clause\<close> and K :: \<open>nat literal\<close> and M :: \<open>(nat, nat) ann_lits\<close> and L and
+    D :: \<open>nat clause_l\<close>
+    apply (refine_vcg WHILEIT_rule[where R =\<open>measure (\<lambda>i. Suc (length D) - i)\<close>])
+    subgoal by auto
+    subgoal by (auto simp: list_mset_rel_def br_def)
+    subgoal by auto
+    subgoal apply (auto simp add: list_mset_rel_def br_def
+          in_set_conv_nth)
+      by (metis less_antisym not_less_eq)
+    subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def less_Suc_eq)
+    subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def)
+    subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def)
+    subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def)
+    subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def)
+    done
+  then have 1: \<open>(uncurry8 (\<lambda>M N U D NP UP WS Q. find_lit_of_max_level_wl_imp M D),
+    uncurry8 find_lit_of_max_level_wl') \<in>
+     [\<lambda>((((((((M, N), U), D), NP), UP), WS), Q), L).
+         \<exists>K\<in>#D. get_level M K = get_maximum_level M (remove1_mset (- L) D)]\<^sub>f
+     Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+    unfolding find_lit_of_max_level_wl_imp_def find_lit_of_max_level_wl'_def
+      find_lit_of_max_level_wl_def maximum_level_remove
+    apply (intro frefI nres_relI)
+    by (auto simp add: uncurry_def)
+  show ?thesis
+    using find_lit_of_max_level_wl_imp_code.refine[FCOMP 1] .
+qed
+
 definition backtrack_wl_D' :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
   \<open>backtrack_wl_D' S\<^sub>0 =
     do {
