@@ -1253,6 +1253,7 @@ definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
       ASSERT(twl_stgy_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)));
       ASSERT(twl_struct_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)));
       ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
+      ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
       M1 \<leftarrow> find_decomp (M, N, U, D, NP, UP, WS, Q) L;
       let E = the D;
       D' \<leftarrow> list_of_mset E;
@@ -1380,10 +1381,9 @@ proof -
       by (cases M') simp_all
     subgoal by simp
     subgoal by simp
+    subgoal by simp
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
       by (cases M') simp_all
-    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
-      by simp
     subgoal by simp
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
       by (cases M') simp_all
@@ -1395,14 +1395,15 @@ proof -
       by simp
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
       by simp
+    subgoal by simp
     subgoal by simp
     subgoal premises p for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L M1' M1 E' L'' L'''
     proof -
       thm p
       note state = p(1) and confl = p(2) and wq = p(4) and add_invs = p(6) and M_ne_empty = p(11) and
-        M'_ne_empty = p(12) and L_hd = p(13) and uL_D = p(15) and M1'_M1 = p (25) and M1' = p(26) and
-        D'_E' = p(28) and length_D'_ge_1 = p(30) and
-        L''_L''' = p(32) and L'''' = p(34) and L_uL''' = p(35)
+        M'_ne_empty = p(12) and L_hd = p(13) and uL_D = p(15) and M1'_M1 = p(26) and M1' = p(27) and
+        D'_E' = p(29) and length_D'_ge_1 = p(31) and
+        L''_L''' = p(33) and L'''' = p(35) and L_uL''' = p(36)
       have hd_convert_lits_M': \<open>lit_of (hd (convert_lits_l N' M')) = lit_of (hd M')\<close>
         using state M'_ne_empty by (cases M') auto
       have \<open>D = Some E\<close> and \<open> L''' \<in># the D\<close>
@@ -1476,8 +1477,8 @@ proof -
     subgoal premises p for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L M1' M1
     proof -
       note state = p(1) and confl = p(2) and wq = p(4) and add_invs = p(6) and M_ne_empty = p(11) and
-        M'_ne_empty = p(12) and L_hd = p(13) and uL_D = p(15) and M1'_M1 = p(25) and M1' = p (26) and
-        length_D'_ge_1 = p(28) and size_D_ge_1 = p(31)
+        M'_ne_empty = p(12) and L_hd = p(13) and uL_D = p(15) and M1'_M1 = p(26) and M1' = p (27) and
+        length_D'_ge_1 = p(29) and size_D_ge_1 = p(32)
       obtain c M2 K where
          M': \<open>M' = c @ M2 @ Decided K # M1'\<close>
         using M1' by (auto dest!: get_all_ann_decomposition_exists_prepend)

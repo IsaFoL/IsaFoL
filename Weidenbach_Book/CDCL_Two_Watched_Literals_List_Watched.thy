@@ -1026,6 +1026,7 @@ definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
         ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
         ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
         ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
+        ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         M1 \<leftarrow> find_decomp_wl (M, N, U, D, NP, UP, Q, W) L;
         let E = the D;
         D' \<leftarrow> list_of_mset E;
@@ -1174,6 +1175,9 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal for M N U E NP UP WS Q M' N' U' E' NP' UP' Q' W T
+      by (cases T) simp \<comment> \<open>simp does not unify \<^term>\<open>T\<close> with the pair in the assumption
+         otherwise\<close>
     subgoal for M N U E NP UP WS Q M' N' U' E' NP' UP' Q' W T
       by (cases T) simp \<comment> \<open>simp does not unify \<^term>\<open>T\<close> with the pair in the assumption
          otherwise\<close>
