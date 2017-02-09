@@ -1186,6 +1186,11 @@ qed
 
 end
 
+definition find_lit_of_max_level_wl' :: "_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _  \<Rightarrow> _  \<Rightarrow> _  \<Rightarrow> _  \<Rightarrow> _  \<Rightarrow>
+   nat literal nres" where
+  \<open>find_lit_of_max_level_wl' M N U D NP UP Q W L =
+     find_lit_of_max_level_wl (M, N, U, Some D, NP, UP, Q, W) L\<close>
+
 definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
   \<open>backtrack_wl_D S\<^sub>0 =
     do {
@@ -1208,7 +1213,7 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
 
         if length D' > 1
         then do {
-          L' \<leftarrow> find_lit_of_max_level_wl (M, N, U, D, NP, UP, Q, W) L;
+          L' \<leftarrow> find_lit_of_max_level_wl' M N U E NP UP Q W L;
           ASSERT(atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP));
           ASSERT(atm_of L' \<in> atms_of_mm (mset `# mset (tl N) + NP));
           ASSERT(L \<in> snd ` D\<^sub>0);
@@ -1257,7 +1262,7 @@ proof -
     if \<open>D = D'\<close> for D D'
     using that by (auto simp: list_of_mset_def intro!: RES_refine)
   show ?thesis
-    unfolding backtrack_wl_D_def backtrack_wl_def
+    unfolding backtrack_wl_D_def backtrack_wl_def find_lit_of_max_level_wl'_def
     apply (rewrite at \<open>let _ = the _ in _\<close> Let_def)+
     supply [[goals_limit=1]]
     apply (refine_vcg 1 2 3 list_of_mset)
@@ -1611,7 +1616,7 @@ sepref_thm list_contains_WHILE_arl
   unfolding list_contains_WHILE_def
   by sepref
 
-concrete_definition  list_contains_WHILE_arl_code
+concrete_definition list_contains_WHILE_arl_code
    uses list_contains_WHILE_arl.refine_raw
    is "(uncurry ?f,_)\<in>_"
 term list_contains_WHILE_arl_code
@@ -1792,7 +1797,7 @@ sepref_definition  maximum_level_remove_code
 declare maximum_level_remove_code.refine
 thm maximum_level_remove_code.refine
 
-lemma  maximum_level_remove:
+lemma maximum_level_remove:
   \<open>maximum_level_remove M D L = get_maximum_level M (remove1_mset L (mset D))\<close>
 proof -
   define f where
@@ -2957,23 +2962,101 @@ lemma (in -) id_list_of_mset[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: hr_comp_def list_of_mset_def arl_assn_def list_mset_rel_def
       br_def)
 
+definition (in -) find_lit_of_max_level_wl_imp where
+  \<open>find_lit_of_max_level_wl_imp M D L = do {
+      let k = maximum_level_remove M D (-L);
+      j \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>i. i < length D \<and> (\<exists>j>i. (j < length D \<and>
+           get_level M (D!j) \<noteq> k))\<^esup>
+        (\<lambda>i. get_level M (D!i) \<noteq> k)
+        (\<lambda>i. RETURN (i+1))
+        0;
+      ASSERT(j < length D);
+      RETURN (D!j)
+  }\<close>
+
+
+declare maximum_level_remove_code.refine[sepref_fr_rules]
+sepref_definition find_lit_of_max_level_wl_imp_code
+  is \<open>uncurry8 (\<lambda>M N U D NP UP WS Q L. find_lit_of_max_level_wl_imp M D L)\<close>
+  :: \<open>(pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (clause_ll_assn)\<^sup>k *\<^sub>a
+       unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
+    nat_lit_assn\<^sup>k
+    \<rightarrow>\<^sub>a nat_lit_assn\<close>
+  unfolding find_lit_of_max_level_wl_imp_def get_maximum_level_remove_def[symmetric]
+    thm maximum_level_remove_code.refine
+  supply [[goals_limit=1]]
+  by sepref
+thm find_lit_of_max_level_wl_imp_code.refine
+
+lemma find_lit_of_max_level_wl_imp_code_find_lit_of_max_level_wl'[sepref_fr_rules]:
+  \<open>(uncurry8 find_lit_of_max_level_wl_imp_code, uncurry8 find_lit_of_max_level_wl') \<in>
+      (pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
+       unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
+    nat_lit_assn\<^sup>k
+    \<rightarrow>\<^sub>a nat_lit_assn\<close>
+  --\<open>TODO : is wrong, because of missing assumptions\<close>
+  sorry
+definition backtrack_wl_D' :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+  \<open>backtrack_wl_D' S\<^sub>0 =
+    do {
+      let (M, N, U, D, NP, UP, Q, W) = S\<^sub>0 in
+      do {
+        ASSERT(M \<noteq> []);
+        let L = lit_of (hd M);
+        ASSERT(get_level M L = count_decided M);
+        ASSERT(D \<noteq> None);
+        ASSERT(D \<noteq> Some {#});
+        ASSERT(ex_decomp_of_max_lvl M D L);
+        ASSERT(-L \<in># the D);
+        ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
+        ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
+        ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
+        ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
+        let E = the D;
+        M1 \<leftarrow> find_decomp_wl (M, N, U, Some E, NP, UP, Q, W) L;
+
+        if size E > 1
+        then do {
+          L' \<leftarrow> find_lit_of_max_level_wl' M1 N U E NP UP Q W L;
+          D' \<leftarrow> list_of_mset E;
+          ASSERT(atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP));
+          ASSERT(atm_of L' \<in> atms_of_mm (mset `# mset (tl N) + NP));
+          ASSERT(L \<in> snd ` D\<^sub>0);
+          ASSERT(L' \<in> snd ` D\<^sub>0);
+          RETURN (Propagated (-L) (length N) # M1,
+            N @ [[-L, L'] @ (remove1 (-L) (remove1 L' D'))], U,
+            None, NP, UP, add_mset L {#}, W(-L:= W (-L) @ [length N], L':= W L' @ [length N]))
+        }
+        else do {
+          D' \<leftarrow> list_of_mset E;
+          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset_list D' UP, add_mset L {#}, W)
+        }
+      }
+    }
+  \<close>
+lemma [sepref_fr_rules]: \<open>(arl_length, RETURN o size) \<in> conflict_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare
+   (sep_auto simp: hr_comp_def arl_assn_def list_mset_rel_def br_def list_rel_def
+      dest: list_all2_lengthD)
+lemma length_a_hnr[sepref_fr_rules]: \<open>(length_a, RETURN o op_list_length) \<in> (arrayO R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare sep_auto
+
 sepref_register backtrack_wl_D
 sepref_thm backtrack_wl_D
-  is \<open>PR_CONST backtrack_wl_D\<close>
+  is \<open>PR_CONST backtrack_wl_D'\<close>
   :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
-  unfolding backtrack_wl_D_def PR_CONST_def
+  unfolding backtrack_wl_D'_def PR_CONST_def
   unfolding twl_st_l_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
+    append_ll_def[symmetric] lms_fold_custom_empty
   unfolding no_skip_def[symmetric] no_resolve_def[symmetric]
     find_decomp_wl'_find_decomp_wl[symmetric] option.sel
   supply [[goals_limit=1]]
   apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
-                  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_step_keep
   oops
-
 end
-
 
 definition remove1_and_add_first_abs where
   \<open>remove1_and_add_first_abs L L' D = [L, L'] @ remove1 L (remove1 L' D)\<close>
