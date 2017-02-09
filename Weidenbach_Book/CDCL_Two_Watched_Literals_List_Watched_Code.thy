@@ -1186,6 +1186,14 @@ qed
 
 end
 
+definition find_decomp_wl_core where
+  \<open>find_decomp_wl_core = (\<lambda>M D L. SPEC(\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
+          get_level M K = get_maximum_level M (D - {#-L#}) + 1))\<close>
+
+lemma find_decomp_wl_find_decomp_wl_core:
+  \<open>find_decomp_wl (M, N, U, D, NP, UP, Q, WS) L = find_decomp_wl_core M (the D) L\<close>
+  by (auto simp: find_decomp_wl_def find_decomp_wl_core_def)
+
 definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
   \<open>backtrack_wl_D S\<^sub>0 =
     do {
@@ -1203,7 +1211,7 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
         ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         let E = the D;
-        M1 \<leftarrow> find_decomp_wl (M, N, U, D, NP, UP, Q, W) L;
+        M1 \<leftarrow> find_decomp_wl_core M E L;
         D' \<leftarrow> list_of_mset E;
 
         if size E > 1
@@ -1235,9 +1243,9 @@ lemma backtrack_wl_D_spec:
 proof -
   have 1: \<open>((get_conflict_wl S = Some {#}, S), get_conflict_wl S = Some {#}, S) \<in> Id\<close>
     by auto
-  have 2: \<open>find_decomp_wl S M \<le> \<Down> Id (find_decomp_wl S' M')\<close>
-    if \<open>S = S'\<close> and \<open>M = M'\<close>
-    for S S' :: \<open>nat twl_st_wl\<close> and M M'
+  have 2: \<open>find_decomp_wl_core M D L \<le> \<Down> Id (find_decomp_wl_core M' D' L')\<close>
+    if \<open>D = D'\<close> and \<open>M = M'\<close> and \<open>L = L'\<close>
+    for M M' :: \<open>(nat, nat) ann_lits\<close> and L L' and D D'
     using that by auto
   have 3: \<open>find_lit_of_max_level_wl S M \<le> \<Down> Id (find_lit_of_max_level_wl S' M')\<close>
     if \<open>S = S'\<close> and \<open>M = M'\<close>
@@ -1257,7 +1265,7 @@ proof -
     if \<open>D = D'\<close> for D D'
     using that by (auto simp: list_of_mset_def intro!: RES_refine)
   show ?thesis
-    unfolding backtrack_wl_D_def backtrack_wl_def
+    unfolding backtrack_wl_D_def backtrack_wl_def find_decomp_wl_find_decomp_wl_core
     apply (rewrite at \<open>let _ = the _ in _\<close> Let_def)+
     supply [[goals_limit=1]]
     apply (refine_vcg 1 2 3 list_of_mset)
@@ -1271,6 +1279,7 @@ proof -
     subgoal by fast
     subgoal by fast
     subgoal by fast
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -2551,6 +2560,29 @@ lemma watched_by_nth_watched_app':
   \<open>watched_by S K = ((snd o snd o snd o snd o snd o snd o snd) S) K\<close>
   by (cases S) (auto simp: watched_app_def)
 
+sepref_definition find_decomp_wl_code
+  is \<open>uncurry2 find_decomp_wl_code\<close>
+  :: \<open>[\<lambda>((M, D), L). M \<noteq> []]\<^sub>a
+         pair_nat_ann_lits_assn\<^sup>d *\<^sub>a conflict_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> pair_nat_ann_lits_assn\<close>
+  unfolding find_decomp_wl_code_def get_maximum_level_remove_def[symmetric]
+  supply [[goals_limit=1]]
+  by sepref
+
+lemma find_decomp_wl_code[sepref_fr_rules]:
+  \<open>(uncurry2 find_decomp_wl_code, uncurry2 find_decomp_wl_core)
+  \<in> [\<lambda>((M, D), L). \<exists>N U NP UP W Q. D \<noteq> {#} \<and> M \<noteq> [] \<and> ex_decomp_of_max_lvl M (Some D) L \<and>
+     L = lit_of (hd M) \<and>  (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.resolve
+          (convert_to_state
+            (twl_st_of_wl None
+              (M, N, U, Some D, NP, UP, Q, W)))
+          S') \<and> (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.skip
+          (convert_to_state
+            (twl_st_of_wl None
+              (M, N, U, Some D, NP, UP, Q, W))) S')]\<^sub>a
+    (pair_nat_ann_lits_assn\<^sup>d *\<^sub>a conflict_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k) \<rightarrow> pair_nat_ann_lits_assn\<close>
+  using find_decomp_wl_code.refine
+  sorry
+
 sepref_register "unit_propagation_inner_loop_body_wl_D"
 lemma (in -) id_mset_hnr[sepref_fr_rules]:
  \<open>((return o id), (RETURN o mset)) \<in> (clause_ll_assn)\<^sup>d \<rightarrow>\<^sub>a conflict_assn\<close>
@@ -2866,6 +2898,7 @@ sepref_thm backtrack_wl_D
   unfolding backtrack_wl_D_def PR_CONST_def
   unfolding twl_st_l_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
+  unfolding find_decomp_wl_find_decomp_wl_core
   supply [[goals_limit=1]]
   apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
