@@ -1109,8 +1109,32 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal sorry
-    subgoal sorry
+    subgoal for brk'S' brkS brk S brk' S' M x2b N x2c U x2d D x2e NP x2f UP x2g WS
+       Q M' x2i N' x2j U' x2k D' x2l NP' x2m UP' x2n WS' Q' L C L' C'
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (convert_to_state (twl_st_of_wl None S))\<close>)
+      subgoal
+        by (cases M; cases \<open>hd M\<close>) (auto simp add: clauses_def
+            cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+            cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset')
+      subgoal
+        apply (subst (asm) skip_and_resolve_loop_inv_def)
+        apply (subst (asm) twl_struct_invs_def)
+        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        by force
+      done
+    subgoal for brk'S' brkS brk S brk' S' M x2b N x2c U x2d D x2e NP x2f UP x2g WS
+       Q M' x2i N' x2j U' x2k D' x2l NP' x2m UP' x2n WS' Q' L C L' C'
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (convert_to_state (twl_st_of_wl None S))\<close>)
+      subgoal
+        by (cases M; cases \<open>hd M\<close>) (auto simp add: clauses_def
+            cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+            cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset')
+      subgoal
+        apply (subst (asm) skip_and_resolve_loop_inv_def)
+        apply (subst (asm) twl_struct_invs_def)
+        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        by force
+      done
     subgoal by auto
     subgoal by auto
     subgoal by auto
