@@ -2619,9 +2619,18 @@ prepare_code_thms (in -) skip_and_resolve_loop_wl_D_code_def
 
 lemmas skip_and_resolve_loop_wl_D_code_refine[sepref_fr_rules] =
    skip_and_resolve_loop_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+
+sepref_register backtrack_wl_D
+sepref_thm backtrack_wl_D
+  is \<open>PR_CONST backtrack_wl_D\<close>
+  :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
+  unfolding backtrack_wl_D_def PR_CONST_def
+  unfolding twl_st_l_assn_def
+  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
+  supply [[goals_limit=1]]
   apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
+                  apply sepref_dbg_trans_step_keep
   oops
 
 end
