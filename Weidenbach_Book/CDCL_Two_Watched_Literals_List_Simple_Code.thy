@@ -1083,9 +1083,13 @@ definition find_lit_of_max_level_l_res :: "twl_st_ll \<Rightarrow> nat literal \
 sepref_register "find_lit_of_max_level :: nat twl_st_l \<Rightarrow> nat literal \<Rightarrow> nat literal nres"
 sepref_register "find_decomp :: nat twl_st_l \<Rightarrow> nat literal \<Rightarrow> (nat, nat) ann_lits nres"
 
+lemma in_remove1_msetI: \<open>x \<noteq> a \<Longrightarrow> x \<in># M \<Longrightarrow> x \<in># remove1_mset a M\<close>
+  by (simp add: in_remove1_mset_neq)
+
 lemma find_lit_of_max_level_l_res_find_lit_of_max_level:
   \<open>(uncurry find_lit_of_max_level_l_res, uncurry find_lit_of_max_level) \<in>
-    [\<lambda>((M, N, U, D, NP, UP, WS, Q), L). D \<noteq> None \<and> D \<noteq> Some {#} \<and> size (the D) > 1]\<^sub>f
+    [\<lambda>((M, N, U, D, NP, UP, WS, Q), L). D \<noteq> None \<and> D \<noteq> Some {#} \<and> size (the D) > 1 \<and>
+      get_level M L > get_maximum_level M (remove1_mset (-L) (the D))]\<^sub>f
     {(S', S). S = twl_st_of_ll S'} \<times>\<^sub>r Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
 proof -
   { fix C and M :: \<open>(nat, nat) ann_lits\<close> and L :: \<open>nat literal\<close> and D' :: \<open>nat literal list\<close>
@@ -1107,7 +1111,8 @@ proof -
 
   show ?thesis
     unfolding find_lit_of_max_level_l_res_def find_lit_of_max_level_def
-    by (auto simp: fref_def nres_rel_def simp: H_D)
+    apply (auto simp: fref_def nres_rel_def simp: H_D intro!: in_remove1_msetI)
+    by (metis H_D(2) get_level_uminus  less_irrefl)
 qed
 
 lemma find_lit_of_max_level_l_find_lit_of_max_level:
@@ -1121,15 +1126,18 @@ lemma find_lit_of_max_level_l_find_lit_of_max_level:
 lemma find_lit_of_max_level_l_hnr[sepref_fr_rules]:
   \<open>(uncurry find_lit_of_max_level_l, uncurry find_lit_of_max_level) \<in>
     [\<lambda>((M, N, U, D, NP, UP, WS, Q), L::nat literal).
-     D \<noteq> None \<and> D \<noteq> Some {#} \<and> 1 < size (the D)]\<^sub>a
-      twl_st_l_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_lit_assn\<close>
+     D \<noteq> None \<and> D \<noteq> Some {#} \<and> 1 < size (the D) \<and>
+     get_level M L > get_maximum_level M (remove1_mset (-L) (the D))]\<^sub>a
+    twl_st_l_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_lit_assn\<close>
 proof -
   have pre: \<open>comp_PRE ({(S', S). S = twl_st_of_ll S'} \<times>\<^sub>r Id)
      (\<lambda>((M, N, U, D, NP, UP, WS, Q), L).
-         D \<noteq> None \<and> D \<noteq> Some {#} \<and> 1 < size (the D))
+         D \<noteq> None \<and> D \<noteq> Some {#} \<and> 1 < size (the D) \<and>
+        get_level M L > get_maximum_level M (remove1_mset (-L) (the D)))
      (\<lambda>_ _. True)
      (\<lambda>_. True) = (\<lambda>((M, N, U, D, NP, UP, WS, Q), L::nat literal).
-     D \<noteq> None \<and> D \<noteq> Some {#} \<and> 1 < size (the D))\<close>
+     D \<noteq> None \<and> D \<noteq> Some {#} \<and> 1 < size (the D) \<and>
+     get_level M L > get_maximum_level M (remove1_mset (-L) (the D)))\<close>
     by (auto simp: comp_PRE_def)
 
   have args: \<open>hrp_comp (twl_st_ll_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k)

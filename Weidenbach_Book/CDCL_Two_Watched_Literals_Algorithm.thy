@@ -592,6 +592,8 @@ definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
         if size (the D) > 1
         then do {
           ASSERT(\<forall>L' \<in># the D - {#-L#}. get_level M L' = get_level M1 L');
+          ASSERT(\<exists>L' \<in># the D - {#-L#}. get_level M L' = get_maximum_level M (the D - {#-L#}));
+          ASSERT(get_level M L > get_maximum_level M (the D - {#-L#}));
           L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># the D - {#-L#} \<and> get_level M L' = get_maximum_level M (the D - {#-L#}));
           ASSERT(L \<noteq> -L');
           RETURN (Propagated (-L) (the D) #  M1, N, add_mset (TWL_Clause {#-L, L'#} (the D - {#-L, L'#})) U,
@@ -668,6 +670,10 @@ lemma get_level_last_decided_ge:
    \<open>defined_lit (c @ [Decided K]) L' \<Longrightarrow> 0 < get_level (c @ [Decided K]) L'\<close>
   by (induction c) (auto simp: defined_lit_cons get_level_cons_if)
 
+(* TODO Move *)
+lemma remove1_mset_empty_iff: \<open>remove1_mset L N = {#} \<longleftrightarrow> N = {#L#} \<or> N = {#}\<close>
+  by (cases \<open>L \<in># N\<close>; cases N) auto
+
 lemma backtrack_spec:
   assumes confl: \<open>get_conflict S \<noteq> None\<close> \<open>get_conflict S \<noteq> Some {#}\<close> and
     w_q: \<open>working_queue S = {#}\<close> and p: \<open>pending S = {#}\<close> and
@@ -728,7 +734,7 @@ proof -
       by (auto simp: cdcl\<^sub>W_restart_mset_state)
     then have uL''_M: \<open>-lit_of L'' \<notin> lits_of_l M\<close>
       by (auto simp: Decided_Propagated_in_iff_in_lits_of_l M)
-    have \<open>get_maximum_level M (remove1_mset (-lit_of (hd M)) (the D)) < count_decided M\<close>
+    show \<open>get_maximum_level M (remove1_mset (-lit_of (hd M)) (the D)) < count_decided M\<close>
     proof (cases L'')
       case (Decided x1) note L'' = this(1)
       have \<open>distinct_mset (the D)\<close>
@@ -818,9 +824,14 @@ proof -
         ultimately show \<open>get_level M L' = get_level M1 L'\<close>
           using n_d c L' i by (cases \<open>defined_lit (c @ M2 @ Decided K # []) L'\<close>) auto
       qed
-      assume L_D: \<open>L' \<in># remove1_mset (-lit_of (hd M)) (the D)\<close> and
-        lev_L: \<open>get_level M1 L' = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))\<close> and
+      assume
         lev_M_M1: \<open>\<forall>L'\<in>#remove1_mset (- lit_of (hd M)) (the D). get_level M L' = get_level M1 L'\<close>
+      show \<open>\<exists>L' \<in># remove1_mset (-lit_of (hd M)) (the D).
+           get_level M L' = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))\<close>
+        by (rule get_maximum_level_exists_lit_of_max_level)
+          (use size_D in \<open>auto simp: remove1_mset_empty_iff\<close>)
+      assume L_D: \<open>L' \<in># remove1_mset (-lit_of (hd M)) (the D)\<close> and
+        lev_L: \<open>get_level M1 L' = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))\<close>
       have D'_ne_single: \<open>D' \<noteq> {#- lit_of (hd M)#}\<close>
         using size_D D' apply (cases D', simp)
         apply (rename_tac L D'')

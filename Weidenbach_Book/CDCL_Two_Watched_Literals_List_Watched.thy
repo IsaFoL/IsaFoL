@@ -1033,6 +1033,8 @@ definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
         if size E > 1
         then do {
           ASSERT(\<forall>L' \<in># E - {#-L#}. get_level M L' = get_level M1 L');
+          ASSERT(\<exists>L' \<in># E - {#-L#}. get_level M L' = get_maximum_level M (E - {#-L#}));
+          ASSERT(get_level M L > get_maximum_level M (E - {#-L#}));
           L' \<leftarrow> find_lit_of_max_level_wl (M1, N, U, D, NP, UP, Q, W) L;
           ASSERT(L \<noteq> -L');
           D' \<leftarrow> list_of_mset E;
@@ -1204,6 +1206,8 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal by auto
+    subgoal by auto
     subgoal for M N U E NP UP WS Q M' N' U' E' NP' UP' Q' W M''' M'''' L L'
       apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm
       (convert_to_state (twl_st_of None (M, N, U, E, NP, UP, WS, Q)))\<close>)
@@ -1240,7 +1244,7 @@ proof -
         done
       subgoal by (auto simp add: correct_watching.simps clause_to_update_def)[]
       done
-    subgoal by (auto simp: correct_watching.simps clause_to_update_def)
+    subgoal by auto
     subgoal by (auto simp: correct_watching.simps clause_to_update_def)
     done
 

@@ -422,7 +422,7 @@ fun backtrack_l_impl x =
                      ((find_lit_of_max_level_l
                         (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, a2f))))))) x_a)
                      ()) ())
-                     (fn x_h =>
+                     (fn x_g =>
                        (fn () =>
                          (op_list_prepend
                             (op_Propagated (op_uminus_lit x_a)
@@ -432,10 +432,10 @@ fun backtrack_l_impl x =
                               (op_list_prepend
                                 (op_list_concat
                                   (op_list_prepend (op_uminus_lit x_a)
-                                    (op_list_prepend x_h []))
+                                    (op_list_prepend x_g []))
                                   (remove1 (equal_literal equal_nat)
                                     (op_uminus_lit x_a)
-                                    (remove1 (equal_literal equal_nat) x_h
+                                    (remove1 (equal_literal equal_nat) x_g
                                       x_d)))
                                 []),
                              (a1b, (NONE, (a1d, (a1e, (a1f, [x_a])))))))))

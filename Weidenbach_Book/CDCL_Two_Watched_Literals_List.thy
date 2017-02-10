@@ -1260,6 +1260,8 @@ definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
       if size E > 1
       then do {
         ASSERT(\<forall>L' \<in># E - {#-L#}. get_level M L' = get_level M1 L');
+        ASSERT(\<exists>L' \<in># the D - {#-L#}. get_level M L' = get_maximum_level M (the D - {#-L#}));
+        ASSERT(get_level M L > get_maximum_level M (the D - {#-L#}));
         L' \<leftarrow> find_lit_of_max_level (M, N, U, D, NP, UP, WS, Q) L;
         ASSERT(L \<noteq> -L');
         D' \<leftarrow> list_of_mset E;
@@ -1399,6 +1401,8 @@ proof -
       by simp
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
       by simp
+    subgoal by simp
+    subgoal by simp
     subgoal by (simp add: find_lit_of_max_level_def)
     subgoal by (auto dest!: in_diffD)
     subgoal by simp
@@ -1407,8 +1411,8 @@ proof -
       thm p
       note state = p(1) and confl = p(2) and wq = p(4) and add_invs = p(6) and M_ne_empty = p(11) and
         M'_ne_empty = p(12) and L_hd = p(13) and uL_D = p(15) and M1'_M1 = p(26) and M1' = p(27) and
-        length_D'_ge_1 = p(31) and L''_L''' = p(33) and L''' = p(34) and L_uL''' = p(35) and
-        D'_E' = p(37)
+        length_D'_ge_1 = p(31) and L''_L''' = p(37) and L''' = p(38) and L_uL''' = p(39) and
+        D'_E' = p(41)
       have hd_convert_lits_M': \<open>lit_of (hd (convert_lits_l N' M')) = lit_of (hd M')\<close>
         using state M'_ne_empty by (cases M') auto
       have \<open>D = Some E\<close> and \<open> L''' \<in># the D\<close>
