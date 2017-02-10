@@ -2976,8 +2976,8 @@ lemma (in -) id_list_of_mset[sepref_fr_rules]:
 definition (in -) find_lit_of_max_level_wl_imp where
   \<open>find_lit_of_max_level_wl_imp M D L = do {
       let k = maximum_level_remove M D (-L);
-      j \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>i. i < length D \<and> (\<forall>j<i. get_level M (D!j) \<noteq> k)\<^esup>
-        (\<lambda>i. get_level M (D!i) \<noteq> k)
+      j \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>i. i < length D \<and> (\<forall>j<i. D!j \<noteq> -L \<longrightarrow> get_level M (D!j) \<noteq> k)\<^esup>
+        (\<lambda>i. D!i \<noteq> -L \<longrightarrow> get_level M (D!i) \<noteq> k)
         (\<lambda>i. RETURN (i+1))
         0;
       ASSERT(j < length D);
@@ -2996,55 +2996,134 @@ sepref_definition find_lit_of_max_level_wl_imp_code
   supply [[goals_limit=1]]
   by sepref
 thm find_lit_of_max_level_wl_imp_code.refine
+text \<open>TODO: share with simpel impelemtation\<close>
+lemma in_remove1_msetI: \<open>x \<noteq> a \<Longrightarrow> x \<in># M \<Longrightarrow> x \<in># remove1_mset a M\<close>
+  by (simp add: in_remove1_mset_neq)
 
 lemma find_lit_of_max_level_wl_imp_code_find_lit_of_max_level_wl'[sepref_fr_rules]:
   \<open>(uncurry8 find_lit_of_max_level_wl_imp_code, uncurry8 find_lit_of_max_level_wl') \<in>
-   [\<lambda>((((((((M, N), U), D), NP), UP), WS), Q), L).
-     (\<exists>K\<in>#remove1_mset (-L) D. get_level M K = get_maximum_level M (remove1_mset (- L) D)) \<and>
-     get_level M L \<noteq> get_maximum_level M (remove1_mset (- L) D)]\<^sub>a
+   [\<lambda>((((((((M, N), U), D), NP), UP), WS), Q), L). distinct_mset D \<and>
+     (\<exists>K\<in>#remove1_mset (-L) D. get_level M K = get_maximum_level M (remove1_mset (- L) D))]\<^sub>a
    (pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
        unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
     nat_lit_assn\<^sup>k
     \<rightarrow> nat_lit_assn\<close>
   (is \<open>_ \<in> [?P]\<^sub>a _ \<rightarrow> _\<close>)
 proof -
-  have \<open>K \<in># remove1_mset (-L) D' \<Longrightarrow>
-    get_level M K = get_maximum_level M (remove1_mset (- L) D') \<Longrightarrow>
-    (D, D') \<in> list_mset_rel \<Longrightarrow>
-    get_level M L \<noteq> get_maximum_level M (remove1_mset (- L) (mset D)) \<Longrightarrow>
-    (let k = get_maximum_level M (remove1_mset (- L) (mset D))
-     in WHILE\<^sub>T\<^bsup>\<lambda>i. i < length D \<and> (\<forall>j<i. get_level M (D ! j) \<noteq> k)\<^esup> (\<lambda>i. get_level M (D ! i) \<noteq> k) (\<lambda>i. RETURN (Suc i)) 0 \<bind> (\<lambda>j. ASSERT (j < length D) \<bind> (\<lambda>_. RETURN (D ! j))))
-    \<le> SPEC (\<lambda>L'. L' \<in># remove1_mset (- L) D' \<and> get_level M L' = get_maximum_level M (remove1_mset (- L) D'))\<close>
+  have \<open>K \<in># remove1_mset (-L) (mset D) \<Longrightarrow> distinct D \<Longrightarrow>
+    get_level M K = get_maximum_level M (remove1_mset (- L) (mset D)) \<Longrightarrow>
+    find_lit_of_max_level_wl_imp M D L
+    \<le> find_lit_of_max_level_wl' M N U (mset D) NP UP Q W L\<close>
     for D' :: \<open>nat clause\<close> and K :: \<open>nat literal\<close> and M :: \<open>(nat, nat) ann_lits\<close> and L and
-    D :: \<open>nat clause_l\<close>
+    D :: \<open>nat clause_l\<close> and N and U :: nat and NP UP and Q and W
+    unfolding find_lit_of_max_level_wl_imp_def maximum_level_remove find_lit_of_max_level_wl'_def
+        find_lit_of_max_level_wl_def
     apply (refine_vcg WHILEIT_rule[where R =\<open>measure (\<lambda>i. Suc (length D) - i)\<close>])
     subgoal by auto
     subgoal by (auto simp: list_mset_rel_def br_def)
     subgoal by auto
-    subgoal apply (auto simp add: list_mset_rel_def br_def
-          in_set_conv_nth dest!: in_diffD)
-      by (metis less_antisym not_less_eq)
+    subgoal apply (auto simp add: list_mset_rel_def br_def in_set_conv_nth distinct_mset_remove1_All
+          dest!: in_diffD)
+      by (metis Suc_lessI less_SucE)+
     subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def less_Suc_eq)
     subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def)
     subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def)
-    subgoal apply (auto simp add: not_less_eq list_mset_rel_def br_def)
-        by (metis get_level_uminus in_remove1_mset_neq nth_mem_mset)
-    subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def)
+    subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def distinct_mset_remove1_All
+intro!: in_remove1_msetI)
+    subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def distinct_mset_remove1_All)
     done
   then have 1: \<open>(uncurry8 (\<lambda>M N U D NP UP WS Q. find_lit_of_max_level_wl_imp M D),
     uncurry8 find_lit_of_max_level_wl') \<in>
      [?P]\<^sub>f
      Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-    unfolding find_lit_of_max_level_wl_imp_def find_lit_of_max_level_wl'_def
-      find_lit_of_max_level_wl_def maximum_level_remove
     by (intro frefI nres_relI) (auto simp add: uncurry_def list_mset_rel_def br_def)
   show ?thesis
     using find_lit_of_max_level_wl_imp_code.refine[FCOMP 1] .
 qed
+definition (in -)single_of_mset where
+  \<open>single_of_mset D = SPEC(\<lambda>L. D = mset [L])\<close>
+
+definition (in -)list_of_mset2 :: "nat literal \<Rightarrow> nat literal \<Rightarrow> nat clause \<Rightarrow> nat clause_l nres" where
+  \<open>list_of_mset2 L L' D =
+    SPEC (\<lambda>E. mset E = D \<and> E!0 = L \<and> E!1 = L')\<close>
+
+lemma (in -)find_first_eq_code_index[sepref_fr_rules]:
+  \<open>(uncurry (\<lambda>xs a. find_first_eq_code a xs), uncurry (RETURN oo op_list_index)) \<in>
+      clause_ll_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+proof -
+  have 0: \<open>(uncurry (\<lambda>xs a. find_first_eq_code a xs), uncurry (\<lambda>xs a. find_first_eq a xs))
+  \<in> (arl_assn nat_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+    using find_first_eq_code.refine by (sep_auto simp: hfref_def ac_simps)
+  have 1: \<open>(uncurry (\<lambda>xs a. find_first_eq a xs), uncurry (RETURN oo index)) \<in>
+        \<langle>nat_rel\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+    by (intro frefI nres_relI) (auto simp: find_first_eq_index[simplified])
+  have \<open>list_all2 (\<lambda>x x'. (x, x') \<in> nat_lit_rel) a aa \<Longrightarrow>
+       (b, ba) \<in> nat_lit_rel \<Longrightarrow> find_index (\<lambda>x. x = b) a = find_index (\<lambda>x. x = ba) aa\<close> for a aa b ba
+    by (induction a aa rule: list_all2_induct)
+      (auto dest: lit_of_natP_same_rightD lit_of_natP_same_leftD p2relD)
+  then have 2: \<open>(uncurry (RETURN oo index), uncurry (RETURN oo index)) \<in>
+        \<langle>nat_lit_rel\<rangle> list_rel \<times>\<^sub>r nat_lit_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+    by (intro frefI nres_relI) (auto simp: index_def list_rel_def)
+  have 3: \<open>(hr_comp (hr_comp (arl_assn nat_assn) (\<langle>nat_rel\<rangle>list_rel)) (\<langle>nat_lit_rel\<rangle>list_rel)) =
+   clause_ll_assn\<close>
+    by (auto simp: arl_assn_def)
+  show ?thesis
+    using 0[FCOMP 1, FCOMP 2] unfolding 3 by simp
+qed
+
+definition (in -) remove1_and_add_first :: "nat literal \<Rightarrow> nat literal \<Rightarrow> nat literal list \<Rightarrow> nat literal list nres" where
+  \<open>remove1_and_add_first L L' D = do {
+      let i = index D L;
+      let j = index D L';
+      ASSERT(pre_list_swap ((D, 0), i));
+      let D = swap D 0 i;
+      let j = (if j = 0 then i else j);
+      ASSERT(pre_list_swap ((D, 1), j));
+      RETURN (swap D 1 j)
+   }
+   \<close>
+
+sepref_definition (in -)remove1_and_add_first_code
+  is \<open>uncurry2 (remove1_and_add_first)\<close>
+  :: \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d \<rightarrow>\<^sub>a clause_ll_assn\<close>
+  unfolding remove1_and_add_first_def
+  by sepref
+
+lemma (in -)remove1_and_add_first_code_list_of_mset2[sepref_fr_rules]:
+  \<open>(uncurry2 remove1_and_add_first_code, uncurry2 (list_of_mset2))
+  \<in> [\<lambda>((L, L'), D). L \<in># D \<and> L' \<in># D \<and> L \<noteq> L' \<and> distinct_mset D]\<^sub>a
+     nat_lit_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>d \<rightarrow> clause_ll_assn\<close>
+  (is \<open>_ \<in> [?P]\<^sub>a _ \<rightarrow> _\<close>)
+proof -
+  have H: \<open>xs ! n = a\<close> if \<open>index xs a = n\<close> and \<open>n < length xs\<close> for n xs a
+    using nth_index[of a xs] that that(1) by (auto simp del: nth_index simp add: index_less_size_conv)
+
+  have \<open>aa \<in> set ba \<Longrightarrow>
+       bb \<in> set ba \<Longrightarrow>
+       aa \<noteq> bb \<Longrightarrow> distinct ba \<Longrightarrow> remove1_and_add_first aa bb ba \<le> list_of_mset2 aa bb (mset ba)\<close>
+    for aa ba bb
+    unfolding remove1_and_add_first_def list_of_mset2_def
+    apply refine_vcg
+    subgoal by auto
+    subgoal by (cases ba) auto
+    subgoal
+      by auto
+    subgoal
+      by (cases ba) auto
+    subgoal
+      by (cases ba) auto
+    done
+  then have 1: \<open>(uncurry2 (remove1_and_add_first), uncurry2 (list_of_mset2)) \<in> [?P]\<^sub>f
+       (Id \<times>\<^sub>r Id) \<times>\<^sub>r list_mset_rel \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+    by (intro nres_relI frefI) (auto simp: list_mset_rel_def br_def)
+
+  show ?thesis
+    using remove1_and_add_first_code.refine[FCOMP 1] .
+qed
 
 definition backtrack_wl_D' :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
   \<open>backtrack_wl_D' S\<^sub>0 =
-    do {
+   do {
       let (M, N, U, D, NP, UP, Q, W) = S\<^sub>0 in
       do {
         ASSERT(M \<noteq> []);
@@ -3063,19 +3142,30 @@ definition backtrack_wl_D' :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" w
 
         if size E > 1
         then do {
+          ASSERT(distinct_mset E);
+          ASSERT(\<forall>L' \<in># the D - {#-L#}. get_level M L' = get_level M1 L');
+          ASSERT(\<exists>L' \<in># the D - {#-L#}. get_level M L' = get_maximum_level M (the D - {#-L#}));
+          ASSERT(\<exists>L' \<in># the D - {#-L#}. get_level M1 L' = get_maximum_level M1 (the D - {#-L#}));
+          ASSERT(get_level M L > get_maximum_level M (the D - {#-L#}));
           L' \<leftarrow> find_lit_of_max_level_wl' M1 N U E NP UP Q W L;
-          D' \<leftarrow> list_of_mset E;
+          ASSERT(L \<noteq> -L');
+          ASSERT(-L \<in># E);
+          ASSERT(L' \<in># E);
+          let K = -L;
+          D' \<leftarrow> list_of_mset2 K L' E;
           ASSERT(atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP));
           ASSERT(atm_of L' \<in> atms_of_mm (mset `# mset (tl N) + NP));
-          ASSERT(L \<in> snd ` D\<^sub>0);
+          ASSERT(-L \<in> snd ` D\<^sub>0);
           ASSERT(L' \<in> snd ` D\<^sub>0);
+          let W = W(L':= W L' @ [length N]);
+          let W = W(-L:= W (-L) @ [length N]);
           RETURN (Propagated (-L) (length N) # M1,
-            N @ [[-L, L'] @ (remove1 (-L) (remove1 L' D'))], U,
-            None, NP, UP, add_mset L {#}, W(-L:= W (-L) @ [length N], L':= W L' @ [length N]))
+            N @ [D'], U,
+            None, NP, UP, {#L#}, W)
         }
         else do {
-          D' \<leftarrow> list_of_mset E;
-          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset_list D' UP, add_mset L {#}, W)
+          D' \<leftarrow> single_of_mset E;
+          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset {#D'#} UP, add_mset L {#}, W)
         }
       }
     }
@@ -3084,51 +3174,67 @@ lemma [sepref_fr_rules]: \<open>(arl_length, RETURN o size) \<in> conflict_assn\
   by sepref_to_hoare
    (sep_auto simp: hr_comp_def arl_assn_def list_mset_rel_def br_def list_rel_def
       dest: list_all2_lengthD)
+
 lemma length_a_hnr[sepref_fr_rules]: \<open>(length_a, RETURN o op_list_length) \<in> (arrayO R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare sep_auto
 
-sepref_register backtrack_wl_D
-sepref_thm backtrack_wl_D
+definition (in -) single_of_mset_imp :: \<open>'a list \<Rightarrow> 'a nres\<close> where
+  \<open>single_of_mset_imp D = do{ASSERT (D \<noteq> []); RETURN (D!0)}\<close>
+
+sepref_definition(in -) single_of_mset_imp_code
+  is \<open>single_of_mset_imp\<close>
+  :: \<open>clause_ll_assn\<^sup>d \<rightarrow>\<^sub>a nat_lit_assn\<close>
+  unfolding single_of_mset_imp_def
+  by sepref
+    term single_of_mset
+lemma (in -)single_of_mset_imp_code_single_of_mset[sepref_fr_rules]:
+  \<open>(single_of_mset_imp_code, single_of_mset) \<in> [\<lambda>D. D \<noteq> {#} \<and> size D \<le> 1]\<^sub>a conflict_assn\<^sup>d \<rightarrow> nat_lit_assn\<close>
+proof -
+  have 1: \<open>(single_of_mset_imp, single_of_mset) \<in> [\<lambda>D. D \<noteq> {#} \<and> size D \<le> 1]\<^sub>f list_mset_rel \<rightarrow>
+      \<langle>Id\<rangle> nres_rel\<close>
+    apply (intro frefI nres_relI)
+    by (rename_tac x, case_tac x)
+      (auto simp: single_of_mset_def single_of_mset_imp_def list_mset_rel_def br_def
+        intro!: frefI nres_relI)
+  show ?thesis
+    using single_of_mset_imp_code.refine[FCOMP 1] by simp
+qed
+end
+instance array :: (default) default
+  by standard
+
+definition append_a :: \<open>('a::{default,heap} array_list) array_list \<Rightarrow>
+   'a array_list \<Rightarrow> ('a array_list) array_list Heap\<close> where
+  \<open>append_a xs x = do {
+     arl_append xs x
+   }\<close>
+
+lemma
+  fixes R ::  \<open>'a \<Rightarrow> 'b :: {heap, default} \<Rightarrow> assn\<close>
+  shows \<open>(uncurry append_a, uncurry (RETURN oo op_list_append)) \<in>
+       (arrayO (arl_assn R))\<^sup>d *\<^sub>a (arl_assn R)\<^sup>d \<rightarrow>\<^sub>a (arrayO (arl_assn R))\<close>
+sepref_register backtrack_wl_D'
+sepref_thm backtrack_wl_D'
   is \<open>PR_CONST backtrack_wl_D'\<close>
   :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
   unfolding backtrack_wl_D'_def PR_CONST_def
   unfolding twl_st_l_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
-    append_ll_def[symmetric] lms_fold_custom_empty
+    append_ll_def[symmetric] (* lms_fold_custom_empty *)
+  apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
+  apply (rewrite at \<open>(_, add_mset (add_mset _ \<hole>) _, _)\<close> lms_fold_custom_empty)
   unfolding no_skip_def[symmetric] no_resolve_def[symmetric]
-    find_decomp_wl'_find_decomp_wl[symmetric] option.sel
+    find_decomp_wl'_find_decomp_wl[symmetric] option.sel add_mset_list.simps
   supply [[goals_limit=1]]
   apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
+                      apply sepref_dbg_trans_step_keep
+    thm uminus_lit_imp_hnr
+    using [[unify_trace_failure]]
+    thm remove1_and_add_first_code_list_of_mset2[to_hnr]
   oops
 end
 
-definition remove1_and_add_first_abs where
-  \<open>remove1_and_add_first_abs L L' D = [L, L'] @ remove1 L (remove1 L' D)\<close>
-
-definition remove1_and_add_first :: "'a \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
-  \<open>remove1_and_add_first L L' D =
-     (let xs = length D in
-      let D = D @ [L] in
-      let D = D @ [L'] in
-      let D = swap D 0 xs in
-      swap D 1 (xs+1))
-   \<close>
-
-
-sepref_definition remove1_and_add_first_code
-  is \<open>uncurry2 (RETURN ooo remove1_and_add_first)\<close>
-  :: \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d \<rightarrow>\<^sub>a clause_ll_assn\<close>
-  unfolding remove1_and_add_first_def
-  by sepref
-
-lemma \<open>(uncurry2 (RETURN ooo remove1_and_add_first), uncurry2 (RETURN ooo remove1_and_add_first_abs))
-  \<in> [\<lambda>((L, L'), D). L \<in> set D \<and> L' \<in> set D \<and> L \<noteq> L' \<and> distinct D]\<^sub>f
-    (Id \<times>\<^sub>r Id) \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<rightarrow> \<langle>{(l, l'). mset l = mset l'}\<rangle>nres_rel\<close>
-(*   apply (auto intro!: nres_relI frefI simp: remove1_and_add_first_def remove1_and_add_first_abs_def
-      Let_def swap_def nth_list_update' nth_append list_update_append mset_update) *)
-  sorry
 
 
 lemma \<open>(uncurry2 remove1_and_add_first_code, uncurry2 (RETURN ooo remove1_and_add_first_abs))
