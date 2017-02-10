@@ -1256,17 +1256,19 @@ definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
       ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
       M1 \<leftarrow> find_decomp (M, N, U, D, NP, UP, WS, Q) L;
       let E = the D;
-      D' \<leftarrow> list_of_mset E;
 
       if size E > 1
       then do {
         ASSERT(\<forall>L' \<in># E - {#-L#}. get_level M L' = get_level M1 L');
         L' \<leftarrow> find_lit_of_max_level (M, N, U, D, NP, UP, WS, Q) L;
+        ASSERT(L \<noteq> -L');
+        D' \<leftarrow> list_of_mset E;
         RETURN (Propagated (-L) (length N) # M1,
           N @ [[-L, L'] @ (remove1 (-L) (remove1 L' D'))], U,
           None, NP, UP, WS, {#L#})
       }
       else do {
+        D' \<leftarrow> list_of_mset E;
         RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset (the D) UP, WS, {#L#})
      }
   }\<close>
@@ -1352,7 +1354,7 @@ proof -
           (M1, s') \<in> {(M1', M1). M1 = convert_lits_l N M1'}\<close>
       using lev by (auto simp: H)
   qed
-  have do_If: \<open>do {If b B Q} = do {let _ = D; If b B Q}\<close> for D b B Q
+  have do_let: \<open>do {P} = do {let _ = D; P}\<close> for D P
     by auto
   have list_of_mset: \<open>list_of_mset D' \<le> SPEC (\<lambda>c. (c, D'') \<in> {(c, D). D \<noteq> None \<and> the D = mset c})\<close>
     if \<open>D' = the D''\<close> and \<open>D'' \<noteq> None\<close> for D' D''
@@ -1365,9 +1367,10 @@ proof -
     apply (rename_tac M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E)
 
     unfolding backtrack_l_def backtrack_def
-    apply (subst_tac (2) D3=D in do_If)
     apply (rewrite at \<open>let _ = the _ in _\<close> Let_def)
-    unfolding find_lit_of_max_level_def find_decomp_def ex_decomp_of_max_lvl_def
+    apply (subst_tac (3) D3=D and P3=\<open>RETURN _\<close>in do_let)
+    apply (subst_tac (4) D3=D and P3=\<open>RETURN _\<close>in do_let)
+    unfolding ex_decomp_of_max_lvl_def find_decomp_def
     apply (refine_vcg H list_of_mset; remove_dummy_vars)
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q'
       by (cases M) auto
@@ -1396,20 +1399,20 @@ proof -
       by simp
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
       by simp
-    subgoal by simp
+    subgoal by (simp add: find_lit_of_max_level_def)
     subgoal by (auto dest!: in_diffD)
     subgoal by simp
-    subgoal premises p for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L M1' M1 E' L'' L'''
+    subgoal premises p for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L M1' M1 L'' L''' E'
     proof -
       thm p
       note state = p(1) and confl = p(2) and wq = p(4) and add_invs = p(6) and M_ne_empty = p(11) and
         M'_ne_empty = p(12) and L_hd = p(13) and uL_D = p(15) and M1'_M1 = p(26) and M1' = p(27) and
-        D'_E' = p(29) and length_D'_ge_1 = p(31) and
-        L''_L''' = p(35) and L'''' = p(37) and L_uL''' = p(38)
+        length_D'_ge_1 = p(31) and L''_L''' = p(33) and L''' = p(34) and L_uL''' = p(35) and
+        D'_E' = p(37)
       have hd_convert_lits_M': \<open>lit_of (hd (convert_lits_l N' M')) = lit_of (hd M')\<close>
         using state M'_ne_empty by (cases M') auto
       have \<open>D = Some E\<close> and \<open> L''' \<in># the D\<close>
-        using state confl L''_L''' L''''  by auto
+        using state confl L''_L''' L'''  by (auto dest: in_diffD)
       then have E: \<open>E = add_mset K (add_mset L''' (E - {#K, L'''#}))\<close>
         if \<open>K \<in># E\<close> and \<open>K \<noteq> L'''\<close>
         for K
@@ -1476,11 +1479,12 @@ proof -
         using wq by auto
       show ?thesis using 1 2 3 by fast
     qed
+    subgoal by fast
     subgoal premises p for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L M1' M1
     proof -
       note state = p(1) and confl = p(2) and wq = p(4) and add_invs = p(6) and M_ne_empty = p(11) and
         M'_ne_empty = p(12) and L_hd = p(13) and uL_D = p(15) and M1'_M1 = p(26) and M1' = p (27) and
-        length_D'_ge_1 = p(29) and size_D_ge_1 = p(32)
+        length_D'_ge_1 = p(29) and size_D_ge_1 = p(30)
       obtain c M2 K where
          M': \<open>M' = c @ M2 @ Decided K # M1'\<close>
         using M1' by (auto dest!: get_all_ann_decomposition_exists_prepend)

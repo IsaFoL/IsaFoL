@@ -592,7 +592,7 @@ definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
         if size (the D) > 1
         then do {
           ASSERT(\<forall>L' \<in># the D - {#-L#}. get_level M L' = get_level M1 L');
-          L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># the D \<and> get_level M L' = get_maximum_level M (the D - {#-L#}));
+          L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># the D - {#-L#} \<and> get_level M L' = get_maximum_level M (the D - {#-L#}));
           ASSERT(L \<noteq> -L');
           RETURN (Propagated (-L) (the D) #  M1, N, add_mset (TWL_Clause {#-L, L'#} (the D - {#-L, L'#})) U,
             None, NP, UP, WS, {#L#})
@@ -697,7 +697,7 @@ proof -
     subgoal for M using trail by auto
     subgoal for M by (cases M) auto
   proof -
-    fix M N U D NP UP WS Q M1 L'
+    fix M N U D NP UP WS Q M1
     assume
       S: \<open>S = (M, N, U, D, NP, UP, WS, Q)\<close> and
       \<open>get_level M (lit_of (hd M)) = count_decided M\<close>
@@ -782,6 +782,7 @@ proof -
       lev_K: \<open>get_level M K = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D)) + 1\<close>
       using decomp by auto
 
+    fix L'
     let ?T =  \<open>(Propagated (-lit_of (hd M)) (the D) # M1, N,
       add_mset (TWL_Clause {#-lit_of (hd M), L'#} (the D - {#-lit_of (hd M), L'#})) U,
       None, NP, UP, WS, {#lit_of (hd M)#})\<close>
@@ -817,9 +818,9 @@ proof -
         ultimately show \<open>get_level M L' = get_level M1 L'\<close>
           using n_d c L' i by (cases \<open>defined_lit (c @ M2 @ Decided K # []) L'\<close>) auto
       qed
-      assume L_D: \<open>L' \<in># the D\<close> and
-        lev_L: \<open>get_level M L' = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))\<close>
-
+      assume L_D: \<open>L' \<in># remove1_mset (-lit_of (hd M)) (the D)\<close> and
+        lev_L: \<open>get_level M1 L' = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))\<close> and
+        lev_M_M1: \<open>\<forall>L'\<in>#remove1_mset (- lit_of (hd M)) (the D). get_level M L' = get_level M1 L'\<close>
       have D'_ne_single: \<open>D' \<noteq> {#- lit_of (hd M)#}\<close>
         using size_D D' apply (cases D', simp)
         apply (rename_tac L D'')
@@ -835,8 +836,8 @@ proof -
         using i_def D' apply (simp; fail)
         using lev_K unfolding i_def D' apply (simp; fail)
         using D'_ne_single apply (simp; fail)
-        using L_D D' apply (simp; fail)
-        using D' lev_L apply (simp; fail)
+        using L_D D' apply (auto dest: in_diffD; fail)
+        using D' lev_L lev_M_M1 L_D apply (simp; fail)
         done
       then show cdcl: \<open>cdcl_twl_o (M, N, U, D, NP, UP, WS, Q) ?T\<close>
         by simp
@@ -857,7 +858,7 @@ proof -
       show \<open>lit_of (hd M) \<noteq> -L'\<close>
         using \<open>get_level M (lit_of (hd M)) = count_decided M\<close>
           \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D)) < count_decided M\<close> lev_L
-        by auto
+        lev_M_M1 L_D by auto
     }
 
     { \<comment> \<open>conflict clause < 1 literal\<close>

@@ -1029,12 +1029,13 @@ definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
         ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         M1 \<leftarrow> find_decomp_wl (M, N, U, D, NP, UP, Q, W) L;
         let E = the D;
-        D' \<leftarrow> list_of_mset E;
 
         if size E > 1
         then do {
           ASSERT(\<forall>L' \<in># E - {#-L#}. get_level M L' = get_level M1 L');
           L' \<leftarrow> find_lit_of_max_level_wl (M1, N, U, D, NP, UP, Q, W) L;
+          ASSERT(L \<noteq> -L');
+          D' \<leftarrow> list_of_mset E;
           ASSERT(atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP));
           ASSERT(atm_of L' \<in> atms_of_mm (mset `# mset (tl N) + NP));
           RETURN (Propagated (-L) (length N) # M1,
@@ -1042,6 +1043,7 @@ definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
             None, NP, UP, add_mset L {#}, W(-L:= W (-L) @ [length N], L':= W L' @ [length N]))
         }
         else do {
+          D' \<leftarrow> list_of_mset E;
           RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset (the D) UP, add_mset L {#}, W)
         }
       }
@@ -1201,6 +1203,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal by auto
     subgoal for M N U E NP UP WS Q M' N' U' E' NP' UP' Q' W M''' M'''' L L'
       apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm
       (convert_to_state (twl_st_of None (M, N, U, E, NP, UP, WS, Q)))\<close>)
@@ -1210,7 +1213,7 @@ proof -
       subgoal
         unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast
       done
-    subgoal for M N U E NP UP WS Q M' N' U' E' NP' UP' Q' W M''' M'''' L _ L'
+    subgoal for M N U E NP UP WS Q M' N' U' E' NP' UP' Q' W M''' M'''' L L'
       apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm
       (convert_to_state (twl_st_of None (M, N, U, E, NP, UP, WS, Q)))\<close>)
       subgoal
@@ -1237,6 +1240,7 @@ proof -
         done
       subgoal by (auto simp add: correct_watching.simps clause_to_update_def)[]
       done
+    subgoal by (auto simp: correct_watching.simps clause_to_update_def)
     subgoal by (auto simp: correct_watching.simps clause_to_update_def)
     done
 
