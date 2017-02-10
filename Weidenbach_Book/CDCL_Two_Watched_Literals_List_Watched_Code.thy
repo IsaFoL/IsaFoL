@@ -1213,6 +1213,8 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
         if size E > 1
         then do {
           ASSERT(\<forall>L' \<in># the D - {#-L#}. get_level M L' = get_level M1 L');
+          ASSERT(\<exists>L' \<in># the D - {#-L#}. get_level M L' = get_maximum_level M (the D - {#-L#}));
+          ASSERT(get_level M L > get_maximum_level M (the D - {#-L#}));
           L' \<leftarrow> find_lit_of_max_level_wl' M1 N U E NP UP Q W L;
           ASSERT(L \<noteq> -L');
           D' \<leftarrow> list_of_mset E;
@@ -1289,6 +1291,8 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal by auto
+    subgoal by auto
     subgoal for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
       apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
       subgoal
@@ -1326,8 +1330,8 @@ proof -
       note SWS = p(1) and SUP = p(2) and SNP = p(3) and SD = p(4) and SU = p(5) and SN = p(6) and
         S = p(7) and M_not_Nil = p(15) and lvl_count_decided = p(10) and D_not_None = p(18) and
         D_not_Some_Nil = p(19) and ex_decomp = p(20) and stgy_invs = p(21) and struct_invs = p(23)
-        and no_skip = p(32) and M1_M1a = p(35) and L'_La = p(40) and EE' = p(43) and
-        atm_hd = p(44) and atm_L = p(45) and S_expand = p(1-14)
+        and no_skip = p(32) and M1_M1a = p(35) and L'_La = p(44) and EE' = p(47) and
+        atm_hd = p(48) and atm_L = p(49) and S_expand = p(1-14)
         thm p(35-40)
       have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
         using struct_invs
@@ -2995,7 +2999,7 @@ thm find_lit_of_max_level_wl_imp_code.refine
 
 lemma find_lit_of_max_level_wl_imp_code_find_lit_of_max_level_wl'[sepref_fr_rules]:
   \<open>(uncurry8 find_lit_of_max_level_wl_imp_code, uncurry8 find_lit_of_max_level_wl') \<in>
-   [\<lambda>((((((((M, N), U), D), NP), UP), WS), Q), L). L = lit_of (hd M) \<and>
+   [\<lambda>((((((((M, N), U), D), NP), UP), WS), Q), L).
      (\<exists>K\<in>#remove1_mset (-L) D. get_level M K = get_maximum_level M (remove1_mset (- L) D)) \<and>
      get_level M L \<noteq> get_maximum_level M (remove1_mset (- L) D)]\<^sub>a
    (pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
