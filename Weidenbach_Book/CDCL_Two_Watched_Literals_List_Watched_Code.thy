@@ -1,5 +1,5 @@
 theory CDCL_Two_Watched_Literals_List_Watched_Code
-  imports CDCL_Two_Watched_Literals_List_Watched Array_Array_List
+  imports CDCL_Two_Watched_Literals_List_Watched Array_Array_List Array_List_Array
     CDCL_Two_Watched_Literals_Code_Common
 begin
 
@@ -128,8 +128,8 @@ type_synonym ann_lits_l = \<open>(nat, nat) ann_lits\<close>
 type_synonym working_queue_ll = "nat list"
 type_synonym lit_queue_l = "nat list"
 type_synonym nat_trail = \<open>(nat \<times> nat option) list\<close>
-type_synonym clause_wl = \<open>nat array_list\<close>
-type_synonym clauses_wl = \<open>nat array_list array\<close>
+type_synonym clause_wl = \<open>nat array\<close>
+type_synonym clauses_wl = \<open>nat arrayO_raa\<close>
 type_synonym unit_lits_wl = \<open>nat list list\<close>
 
 type_synonym watched_wl = \<open>(nat array_list) array\<close>
@@ -141,10 +141,10 @@ abbreviation ann_lits_wl_assn :: \<open>ann_lits_wl \<Rightarrow> ann_lits_wl \<
   \<open>ann_lits_wl_assn \<equiv> list_assn ann_lit_wl_assn\<close>
 
 abbreviation clause_ll_assn :: "nat clause_l \<Rightarrow> clause_wl \<Rightarrow> assn" where
-  \<open>clause_ll_assn \<equiv> arl_assn nat_lit_assn\<close>
+  \<open>clause_ll_assn \<equiv> array_assn nat_lit_assn\<close>
 
 abbreviation clauses_ll_assn :: "nat clauses_l \<Rightarrow> clauses_wl \<Rightarrow> assn" where
-  \<open>clauses_ll_assn \<equiv> arrayO (arl_assn nat_lit_assn)\<close>
+  \<open>clauses_ll_assn \<equiv> arrayO_raa (array_assn nat_lit_assn)\<close>
 
 abbreviation clause_l_assn :: "nat clause \<Rightarrow> nat list \<Rightarrow> assn" where
   \<open>clause_l_assn \<equiv> list_mset_assn nat_lit_assn\<close>
@@ -162,7 +162,7 @@ abbreviation unit_lits_assn :: "nat clauses \<Rightarrow> unit_lits_wl \<Rightar
   \<open>unit_lits_assn \<equiv> list_mset_assn (list_mset_assn nat_lit_assn)\<close>
 
 abbreviation conflict_assn :: "nat clause \<Rightarrow> nat array_list \<Rightarrow> assn" where
-  \<open>conflict_assn \<equiv> hr_comp clause_ll_assn list_mset_rel\<close>
+  \<open>conflict_assn \<equiv> hr_comp (arl_assn nat_lit_assn) list_mset_rel\<close>
 
 abbreviation conflict_option_assn :: "nat clause option \<Rightarrow> nat array_list option \<Rightarrow> assn" where
   \<open>conflict_option_assn \<equiv> option_assn conflict_assn\<close>
@@ -340,9 +340,11 @@ lemma find_unwatched'_find_unwatched: \<open>find_unwatched' M N' C = find_unwat
 
 sepref_definition find_unwatched'_impl
   is \<open>uncurry2 find_unwatched'\<close>
-  :: \<open>[\<lambda>((M, N'), C). no_dup M \<and> C < length N']\<^sub>a pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> option_assn bool_assn *assn nat_assn\<close>
-  unfolding find_unwatched'_def nth_ll_def[symmetric] length_ll_def[symmetric]
-    supply [[goals_limit=1]]
+  :: \<open>[\<lambda>((M, N'), C). no_dup M \<and> C < length N']\<^sub>a
+        pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> 
+        option_assn bool_assn *assn nat_assn\<close>
+  unfolding find_unwatched'_def nth_rll_def[symmetric] length_rll_def[symmetric]
+  supply [[goals_limit=1]]
   by sepref
 
 declare find_unwatched'_impl.refine[sepref_fr_rules]
@@ -983,8 +985,8 @@ definition skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st
               if get_maximum_level M (remove1_mset (-L) D') = count_decided M
               then do {
                 let E = remove1_mset (-L) D';
-                let NC = op_list_copy (N!C);
-                let F = (if C = 0 then {#} else (remove1_mset L (mset NC)));
+                ASSERT(C > 0 \<longrightarrow> N!C \<noteq> []);
+                let F = (if C = 0 then {#} else (remove1_mset L (mset (N!C))));
                 ASSERT(distinct_mset F);
                 ASSERT(distinct_mset E);
                 let G = E \<union># F;
@@ -1024,6 +1026,7 @@ private definition skip_and_resolve_loop_wl_D' :: "nat twl_st_wl \<Rightarrow> (
             else
               if get_maximum_level M (remove1_mset (-L) D') = count_decided M
               then do {
+                ASSERT(C > 0 \<longrightarrow> N!C \<noteq> []);
                 ASSERT(distinct_mset (if C = 0 then {#} else mset (remove1 L (N!C))));
                 ASSERT(distinct_mset (remove1_mset (-L) D'));
                 RETURN (remove1_mset (-L) D' \<union># (if C = 0 then {#} else mset (remove1 L (N!C))) = {#},
@@ -1109,6 +1112,32 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g
+       x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p
+       x2p x1q x2q
+       apply (subgoal_tac \<open>Multiset.Ball
+         {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x))
+         . x \<in># mset (tl x1c)#}
+         struct_wf_twl_cls\<close>)
+      subgoal
+        apply (subgoal_tac \<open>x1j ! x2q \<in> set (tl x1c)\<close>)
+         apply (solves \<open>auto\<close>)
+        apply (cases x1b; cases \<open>hd x1b\<close>)
+        by (auto intro!: nth_in_set_tl simp: additional_WS_invs_def all_conj_distrib)
+      subgoal
+        apply (simp del: struct_wf_twl_cls.simps)
+        apply (subst (asm)(1) skip_and_resolve_loop_inv_def)
+        apply (subst (asm) twl_struct_invs_def)
+        apply (simp del: struct_wf_twl_cls.simps)
+        apply (subst (asm) twl_st_inv.simps)
+        apply (subst (asm) image_mset_union[symmetric])
+        apply (subst (asm) mset_take_mset_drop_mset')
+        apply (subst (asm) mset_append[symmetric])
+        apply (subst (asm)(2) drop_Suc)
+        apply (subst (asm) append_take_drop_id)
+        apply (simp del: struct_wf_twl_cls.simps)
+        done
+      done
     subgoal for brk'S' brkS brk S brk' S' M x2b N x2c U x2d D x2e NP x2f UP x2g WS
        Q M' x2i N' x2j U' x2k D' x2l NP' x2m UP' x2n WS' Q' L C L' C'
       apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (convert_to_state (twl_st_of_wl None S))\<close>)
@@ -1160,6 +1189,7 @@ proof -
     subgoal by auto
     subgoal by (auto simp: clauses_def)
     subgoal by auto
+    subgoal by auto
     subgoal by (auto simp: mset_take_mset_drop_mset' clauses_def)
     subgoal by auto
     done
@@ -1173,7 +1203,6 @@ proof -
     op_list_copy_def
     apply (rewrite at \<open>let _ = remove1_mset _ _ in _\<close> Let_def)
     apply (rewrite at \<open>let _ = If _ _ _ in _\<close> Let_def)
-    apply (rewrite at \<open>let _ = _ ! _ in _\<close> Let_def)
     apply (rewrite at \<open>let _ = _ \<union># _ in _\<close> Let_def)
     apply (rewrite mset_remove1[symmetric])+
     by refine_vcg auto
@@ -1621,16 +1650,15 @@ definition select_and_remove_from_pending_wl' :: \<open>twl_st_wll \<Rightarrow>
   \<open>select_and_remove_from_pending_wl' =
     (\<lambda>(M, N, U, D, NP, UP, Q, W).  ((M, N, U, D, NP, UP, tl Q, W), hd Q))\<close>
 
-sepref_thm list_contains_WHILE_arl
+sepref_thm list_contains_WHILE_array
   is \<open>uncurry (\<lambda>(l::nat) xs. do{ b \<leftarrow> list_contains_WHILE l xs; RETURN (fst b)})\<close>
-  :: \<open>nat_assn\<^sup>k *\<^sub>a (arl_assn id_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a (array_assn id_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding list_contains_WHILE_def
   by sepref
 
-concrete_definition list_contains_WHILE_arl_code
-   uses list_contains_WHILE_arl.refine_raw
+concrete_definition list_contains_WHILE_array_code
+   uses list_contains_WHILE_array.refine_raw
    is "(uncurry ?f,_)\<in>_"
-term list_contains_WHILE_arl_code
 
 lemma list_contains_WHILE_in_set: \<open>list_contains_WHILE l xs \<le>
       \<Down> ({((b', i), b, ys). b' = b \<and>  ys = sublist xs {i..<length xs} \<and> i \<le> length xs} O
@@ -1685,7 +1713,7 @@ lemma in_nat_list_rel_list_all2_in_set_iff:
   done
 
 lemma list_contains_WHILE_code_op_list_contains[sepref_fr_rules]:
-  \<open>(uncurry list_contains_WHILE_arl_code,
+  \<open>(uncurry list_contains_WHILE_array_code,
     uncurry (RETURN oo op_list_contains)) \<in>
     nat_lit_assn\<^sup>k *\<^sub>a (clause_ll_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
 proof -
@@ -1693,12 +1721,12 @@ proof -
          nat_lit_rel \<times>\<^sub>r \<langle>nat_lit_rel\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
     by (intro frefI nres_relI) (auto simp: list_rel_def in_nat_list_rel_list_all2_in_set_iff)
   term nat_lit_rel
-  have 2: \<open>hr_comp (hr_comp (arl_assn nat_assn) (\<langle>nat_rel\<rangle>list_rel))
-       (\<langle>nat_lit_rel\<rangle>list_rel) = arl_assn nat_lit_assn\<close>
-    by (simp add: arl_assn_def)
+  have 2: \<open>hr_comp (hr_comp (array_assn nat_assn) (\<langle>nat_rel\<rangle>list_rel))
+       (\<langle>nat_lit_rel\<rangle>list_rel) = array_assn nat_lit_assn\<close>
+    by (simp add: array_assn_def)
 
   show ?thesis
-    using list_contains_WHILE_arl_code.refine[unfolded list_contains_WHILE_f_def[symmetric],
+    using list_contains_WHILE_array_code.refine[unfolded list_contains_WHILE_f_def[symmetric],
         FCOMP list_contains_WHILE_f_op_list_contains, FCOMP 1]
     unfolding 2 .
 qed
@@ -1801,7 +1829,7 @@ lemma  get_level_wl_code_get_level[sepref_fr_rules]:
 
 sepref_definition  maximum_level_remove_code
   is \<open>uncurry2 (RETURN ooo maximum_level_remove)\<close>
-  :: \<open>pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  :: \<open>pair_nat_ann_lits_assn\<^sup>k *\<^sub>a (arl_assn nat_lit_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   unfolding maximum_level_remove_def[abs_def]
   by sepref
 
@@ -2013,7 +2041,7 @@ proof -
   have 2: \<open>list_mset_rel O \<langle>Id\<rangle>mset_rel = list_mset_rel\<close>
     by (auto simp add: list_mset_rel_def mset_rel_def br_def Collect_eq_comp rel2p_def[abs_def]
         p2rel_def rel_mset_def list.rel_eq)
-  have 3: \<open>(hr_comp clause_ll_assn (list_mset_rel O \<langle>Id\<rangle>mset_rel)) = conflict_assn\<close>
+  have 3: \<open>(hr_comp (arl_assn nat_lit_assn) (list_mset_rel O \<langle>Id\<rangle>mset_rel)) = conflict_assn\<close>
     by (auto simp: hr_comp_def[abs_def] 2 intro!: ext)
   show ?thesis
     using is_in_arl_code.refine[FCOMP is_in_arl_op_mset_contains, of Id]
@@ -2305,7 +2333,7 @@ proof -
   have 1: \<open>(uncurry is_in_arl, uncurry (RETURN oo op_list_contains)) \<in>
    Id \<times>\<^sub>r (\<langle>Id\<rangle>list_rel) \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle> nres_rel\<close>
     by (rule is_in_arl_op_list_contains) (auto simp: IS_LEFT_UNIQUE_def)
-  have 2: \<open>hr_comp clause_ll_assn (\<langle>Id\<rangle>list_rel) = arl_assn nat_lit_assn\<close>
+  have 2: \<open>hr_comp (arl_assn nat_lit_assn) (\<langle>Id\<rangle>list_rel) = arl_assn nat_lit_assn\<close>
     by (auto)
   show ?thesis
     using is_in_arl_code.refine[FCOMP 1] unfolding 2 .
@@ -2635,21 +2663,19 @@ lemma find_decomp_wl_code[sepref_fr_rules]:
     \<rightarrow> pair_nat_ann_lits_assn\<close>
   (is \<open> _ \<in> [?P]\<^sub>a  _ \<rightarrow> _\<close>)
 proof -
-  have H: \<open>(uncurry2 (uncurry2 (uncurry2 (uncurry2 find_decomp_wl_imp_code))), uncurry2 (uncurry2 (uncurry2 (uncurry2 find_decomp_wl'))))
-  \<in> [\<lambda>((((((((a, b), ba), bb), bc), bd), be), bf), bg).
-         bb \<noteq> {#} \<and>
-         a \<noteq> [] \<and>
-         ex_decomp_of_max_lvl a (Some bb) bg \<and>
-         bg = lit_of (hd a) \<and>
-         no_resolve (a, b, ba, Some bb, bc, bd, be, bf) \<and>
-         no_skip (a, b, ba, Some bb, bc, bd, be, bf) \<and>
-         twl_struct_invs
-          (convert_lits_l b a, {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (take ba (tl b))#},
-           {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (drop (Suc ba) b)#}, Some bb, bc, bd, {#},
-           be)]\<^sub>a pair_nat_ann_lits_assn\<^sup>d *\<^sub>a (arrayO clause_ll_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a
-                  clause_l_assn\<^sup>k *\<^sub>a
-                  (hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0))\<^sup>k *\<^sub>a
-                  CDCL_Two_Watched_Literals_List_Watched_Code.nat_lit_assn\<^sup>k \<rightarrow> pair_nat_ann_lits_assn\<close>
+  have H: \<open>(uncurry8 find_decomp_wl_imp_code, uncurry8 find_decomp_wl')
+    \<in> [\<lambda>((((((((a, b), ba), bb), bc), bd), be), bf), bg).
+       bb \<noteq> {#} \<and> a \<noteq> [] \<and> ex_decomp_of_max_lvl a (Some bb) bg \<and> bg = lit_of (hd a) \<and>
+       no_resolve (a, b, ba, Some bb, bc, bd, be, bf) \<and>
+       no_skip (a, b, ba, Some bb, bc, bd, be, bf) \<and>
+       twl_struct_invs (convert_lits_l b a, 
+         {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (take ba (tl b))#},
+         {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (drop (Suc ba) b)#},
+         Some bb, bc, bd, {#}, be)]\<^sub>a 
+    pair_nat_ann_lits_assn\<^sup>d *\<^sub>a (arrayO_raa clause_ll_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
+      conflict_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a
+      (hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0))\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> 
+   pair_nat_ann_lits_assn\<close>
     (is \<open> _ \<in> [?Q]\<^sub>a  _ \<rightarrow> _\<close>)
     using find_decomp_wl_imp_code.refine[FCOMP find_decomp_wl_imp_find_decomp_wl'] .
   have QP: \<open>?Q = ?P\<close>
@@ -2661,18 +2687,19 @@ qed
 
 sepref_register "unit_propagation_inner_loop_body_wl_D"
 lemma (in -) id_mset_hnr[sepref_fr_rules]:
- \<open>((return o id), (RETURN o mset)) \<in> (clause_ll_assn)\<^sup>d \<rightarrow>\<^sub>a conflict_assn\<close>
+ \<open>(arl_of_array_raa, (RETURN o mset)) \<in> [\<lambda>xs. xs \<noteq> []]\<^sub>a clause_ll_assn\<^sup>d \<rightarrow> conflict_assn\<close>
   unfolding list_assn_pure_conv list_mset_assn_def the_pure_pure
   by sepref_to_hoare (sep_auto simp: list_mset_assn_def  mset_rel_def rel_mset_def hr_comp_def
-      rel2p_def[abs_def] p2rel_def list_mset_rel_def br_def Collect_eq_comp pure_def list_rel_def)
+      rel2p_def[abs_def] p2rel_def list_mset_rel_def br_def Collect_eq_comp pure_def list_rel_def
+      arl_of_array_raa_def array_assn_def is_array_def arl_assn_def is_array_list_def)
 
 sepref_thm unit_propagation_inner_loop_body_wl_D
   is \<open>uncurry2 ((PR_CONST unit_propagation_inner_loop_body_wl_D) :: nat literal \<Rightarrow> nat \<Rightarrow>
            nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
   :: \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_assn\<close>
-  unfolding unit_propagation_inner_loop_body_wl_D_def length_ll_def[symmetric] PR_CONST_def
+  unfolding unit_propagation_inner_loop_body_wl_D_def length_rll_def[symmetric] PR_CONST_def
   unfolding watched_by_nth_watched_app' watched_app_def[symmetric]
-  unfolding nth_ll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
+  unfolding nth_rll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
   unfolding lms_fold_custom_empty twl_st_l_assn_def swap_ll_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
   supply [[goals_limit=1]]
@@ -2954,7 +2981,10 @@ sepref_thm skip_and_resolve_loop_wl_D
     maximum_level_remove[symmetric]
     Multiset.is_empty_def[symmetric]
     get_maximum_level_remove_def[symmetric]
-  by sepref
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply (sepref_dbg_side_keep)  by sepref
 
 
 
@@ -3199,20 +3229,7 @@ proof -
   show ?thesis
     using single_of_mset_imp_code.refine[FCOMP 1] by simp
 qed
-end
-instance array :: (default) default
-  by standard
 
-definition append_a :: \<open>('a::{default,heap} array_list) array_list \<Rightarrow>
-   'a array_list \<Rightarrow> ('a array_list) array_list Heap\<close> where
-  \<open>append_a xs x = do {
-     arl_append xs x
-   }\<close>
-
-lemma
-  fixes R ::  \<open>'a \<Rightarrow> 'b :: {heap, default} \<Rightarrow> assn\<close>
-  shows \<open>(uncurry append_a, uncurry (RETURN oo op_list_append)) \<in>
-       (arrayO (arl_assn R))\<^sup>d *\<^sub>a (arl_assn R)\<^sup>d \<rightarrow>\<^sub>a (arrayO (arl_assn R))\<close>
 sepref_register backtrack_wl_D'
 sepref_thm backtrack_wl_D'
   is \<open>PR_CONST backtrack_wl_D'\<close>
