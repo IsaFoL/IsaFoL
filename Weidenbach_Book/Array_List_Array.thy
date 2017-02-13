@@ -374,10 +374,10 @@ qed
 lemma ex_assn_up_eq: \<open>(\<exists>\<^sub>Ax. P x * \<up>(x = a) * Q) = (P a * Q)\<close>
   by (smt ex_one_point_gen mod_pure_star_dist mod_starE mult.right_neutral pure_true)
 lemma update_ra_list_update[sepref_fr_rules]:
-  \<open>(uncurry2 update_ra, uncurry2 (RETURN ooo list_update)) \<in> 
+  \<open>(uncurry2 update_ra, uncurry2 (RETURN ooo list_update)) \<in>
    [\<lambda>((xs, n), _). n < length xs]\<^sub>a (arrayO_raa R)\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a R\<^sup>d \<rightarrow> (arrayO_raa R)\<close>
 proof -
-  have [simp]: \<open>(\<exists>\<^sub>Ax. arrayO_raa R x r * true * \<up> (x = list_update a ba b)) = 
+  have [simp]: \<open>(\<exists>\<^sub>Ax. arrayO_raa R x r * true * \<up> (x = list_update a ba b)) =
         arrayO_raa R (a[ba := b]) r * true\<close>
     for a ba b r
     apply (subst assn_aci(10))
@@ -386,10 +386,10 @@ proof -
   show ?thesis
     by sepref_to_hoare sep_auto
 qed
-
+term arl_append
 definition arrayO_raa_append where
 "arrayO_raa_append \<equiv> \<lambda>(a,n) x. do {
-    len \<leftarrow> length_ra (a, n);
+    len \<leftarrow>  Array.len a;
     if n<len then do {
       a \<leftarrow> Array.upd n x a;
       return (a,n+1)
@@ -401,30 +401,69 @@ definition arrayO_raa_append where
       return (a,n+1)
     }
   }"
-  
-lemma \<open>x2 \<le> a \<Longrightarrow> a > 0 \<Longrightarrow> x2 > 0 \<Longrightarrow> (a::nat) \<le> 2 * x2\<close>
-oops
-    
+
+lemma heap_list_all_append_Nil:
+  \<open>y \<noteq> [] \<Longrightarrow> heap_list_all R (va @ y) [] = false\<close>
+  by (cases va; cases y) auto
+
+lemma heap_list_all_Nil_append:
+  \<open>y \<noteq> [] \<Longrightarrow> heap_list_all R [] (va @ y) = false\<close>
+  by (cases va; cases y) auto
+
+lemma heap_list_all_append: \<open>heap_list_all R (l @ [y]) (l' @ [x])
+  = heap_list_all R (l) (l') * R y x\<close>
+  by (induction R l l' rule: heap_list_all.induct)
+    (auto simp: ac_simps heap_list_all_Nil_append heap_list_all_append_Nil)
+term arrayO_raa
 lemma arrayO_raa_append_rule[sep_heap_rules]:
-  \<open><arrayO_raa R l a>  arrayO_raa_append a x  <\<lambda>a. arrayO_raa R (l@[x]) a >\<close>
-  apply (sep_auto
-      simp: arrayO_raa_append_def (* is_array_list_def *) take_update_last neq_Nil_conv
-      (* arrayO_raa_def *) arrayO_raa_def length_ra_def hr_comp_def is_array_list_def
-      arl_length_def list_rel_def 
-(*         arl_assn_def min_def *)
-      split: prod.splits nat.split if_splits
-      dest: list_all2_lengthD)
-   supply array_grow_rule[sep_heap_rules]
-    apply (subst mult.commute)
-   apply (sep_auto simp: arl_assn_def hr_comp_def is_array_list_def)
-    
-    apply (sep_auto simp: arl_assn_def hr_comp_def is_array_list_def)
-   apply (sep_auto simp: (* is_array_list_def *) arrayO_raa_def arl_assn_def)
-  apply (sep_auto
-      simp: arrayO_raa_append_def (* is_array_list_def *) take_update_last neq_Nil_conv arrayO_raa_def
-        arl_assn_def
-      split: prod.splits nat.split)
-  sorry
+  \<open><arrayO_raa R l a * R y x>  arrayO_raa_append a x  <\<lambda>a. arrayO_raa R (l@[y]) a >\<^sub>t\<close>
+proof -
+  have 1: \<open>arl_assn id_assn p a * heap_list_all R l p =
+       arl_assn id_assn p a *  heap_list_all R l p * \<up> (length l = length p)\<close> for p
+    by (smt ent_iffI ent_pure_post_iff entailsI heap_list_add_same_length mult.right_neutral
+        pure_false pure_true star_false_right)
+
+  show ?thesis
+    unfolding arrayO_raa_append_def arrayO_raa_append_def arrayO_raa_def
+      length_ra_def arl_length_def hr_comp_def
+    apply (subst 1)
+    unfolding arl_assn_def is_array_list_def hr_comp_def
+    apply (cases a)
+    apply (sep_auto)
+       apply (rule_tac psi=\<open>Suc (length l) \<le> length (l'[length l := x])\<close> in asm_rl)
+       apply simp
+      apply simp
+     apply (sep_auto simp: take_update_last heap_list_all_append)
+    apply (sep_auto (plain))
+     apply sep_auto
+    apply (sep_auto (plain))
+     apply sep_auto
+    apply (sep_auto (plain))
+      apply sep_auto
+      apply (rule_tac psi = \<open>Suc (length p) \<le> length ((p @ replicate (length p) xa)[length p := x])\<close>
+        in asm_rl)
+      apply sep_auto
+     apply sep_auto
+    apply (sep_auto simp: heap_list_all_append)
+    done
+qed
+
+lemma arrayO_raa_append_op_list_append[sepref_fr_rules]:
+  \<open>(uncurry arrayO_raa_append, uncurry (RETURN oo op_list_append)) \<in>
+   (arrayO_raa ( R))\<^sup>d *\<^sub>a ( R)\<^sup>d \<rightarrow>\<^sub>a arrayO_raa ( R)\<close>
+  apply sepref_to_hoare
+  apply (subst mult.commute)
+  apply (subst mult.assoc)
+  by (sep_auto simp: ex_assn_up_eq)
+
+
+definition array_of_arl :: "'a::heap array_list \<Rightarrow> 'a array Heap" where
+  \<open>array_of_arl = (\<lambda>(a, n). array_shrink a n)\<close>
+
+lemma array_of_arl: \<open>(array_of_arl, RETURN o id) \<in> (arl_assn R)\<^sup>d \<rightarrow>\<^sub>a (array_assn R)\<close>
+  by sepref_to_hoare
+   (sep_auto simp: array_of_arl_def arl_assn_def is_array_list_def hr_comp_def
+      array_assn_def is_array_def)
 
 definition "arrayO_raa_empty \<equiv> do {
     a \<leftarrow> Array.new initial_capacity default;
