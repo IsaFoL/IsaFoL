@@ -4,7 +4,10 @@ begin
 
 subsection \<open>Array of Array Lists\<close>
 
-type_synonym 'a array0_raa = \<open>'a array array_list\<close>
+text \<open>There is a major difference compared to @{typ \<open>'a array_list array\<close>}: @{typ \<open>'a array_list\<close>}
+  is not of sort default. This means that function like @{term arl_append} cannot be used here.\<close>
+
+type_synonym 'a arrayO_raa = \<open>'a array array_list\<close>
 type_synonym 'a list_rll = \<open>'a list list\<close>
 
 definition arrayO_raa:: \<open>('a \<Rightarrow> 'b::heap \<Rightarrow> assn) \<Rightarrow> 'a list \<Rightarrow> 'b array_list \<Rightarrow> assn\<close> where
@@ -100,7 +103,7 @@ proof -
         intro!: norm_pre_ex_rule\<close>\<close>)+)[3]
 qed
 
-definition length_ra :: \<open>'a::heap array0_raa \<Rightarrow> nat Heap\<close> where
+definition length_ra :: \<open>'a::heap arrayO_raa \<Rightarrow> nat Heap\<close> where
   \<open>length_ra xs = arl_length xs\<close>
 
 lemma length_ra_rule[sep_heap_rules]:
@@ -117,7 +120,7 @@ definition length_rll :: \<open>'a list_rll \<Rightarrow> nat \<Rightarrow> nat\
 lemma le_length_rll_nemptyD: \<open>b < length_rll a ba \<Longrightarrow> a ! ba \<noteq> []\<close>
   by (auto simp: length_rll_def)
 
-definition length_raa :: \<open>'a::heap array0_raa \<Rightarrow> nat \<Rightarrow> nat Heap\<close> where
+definition length_raa :: \<open>'a::heap arrayO_raa \<Rightarrow> nat \<Rightarrow> nat Heap\<close> where
   \<open>length_raa xs i = do {
      x \<leftarrow> arl_get xs i;
     Array.len x}\<close>
@@ -145,7 +148,7 @@ lemma length_raa_hnr[sepref_fr_rules]: \<open>(uncurry length_raa, uncurry (RETU
      [\<lambda>(xs, i). i < length xs]\<^sub>a (arrayO_raa (array_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   by sepref_to_hoare sep_auto
 
-definition nth_raa :: \<open>'a::heap array0_raa \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a Heap\<close> where
+definition nth_raa :: \<open>'a::heap arrayO_raa \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a Heap\<close> where
   \<open>nth_raa xs i j = do {
       x \<leftarrow> arl_get xs i;
       y \<leftarrow> Array.nth x j;
@@ -168,17 +171,18 @@ proof -
        (bc ! b, a ! ba ! b) \<in> R'\<close> for bc a ba b
     by (auto simp add: ent_refl_true list_all2_conv_all_nth is_pure_alt_def pure_app_eq[symmetric])
   show ?thesis
-  apply sepref_to_hoare
-  apply (subst (2) arrayO_raa_except_array0_index[symmetric])
-    apply (solves \<open>auto\<close>)[]
-  apply (sep_auto simp: nth_raa_def nth_rll_def length_rll_def)
+    supply nth_rule[sep_heap_rules]
+    apply sepref_to_hoare
+    apply (subst (2) arrayO_raa_except_array0_index[symmetric])
+     apply (solves \<open>auto\<close>)[]
+    apply (sep_auto simp: nth_raa_def nth_rll_def length_rll_def)
     apply (sep_auto simp: arrayO_raa_except_def arrayO_raa_def arl_assn_def hr_comp_def list_rel_def
-        list_all2_lengthD
-      star_aci(3) R R' pure_def H)
-    sorry
+        list_all2_lengthD array_assn_def is_array_def hr_comp_def[abs_def]
+        star_aci(3) R R' pure_def H)
+    done
 qed
 
-definition update_raa :: "('a::{heap,default}) array0_raa \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a array0_raa Heap" where
+definition update_raa :: "('a::{heap,default}) arrayO_raa \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a arrayO_raa Heap" where
   \<open>update_raa a i j y = do {
       x \<leftarrow> arl_get a i;
       a' \<leftarrow> Array.upd j y x;
@@ -207,30 +211,30 @@ proof -
     using p by fastforce
   show ?thesis
     using assms
-    apply (cases ai)
-    apply (sep_auto simp: arrayO_raa_except_def arl_assn_def hr_comp_def list_rel_imp_same_length
-        list_rel_update length_rll_def (* is_array_list_def *))
-    sorry
+    by (cases ai)
+      (sep_auto simp: arrayO_raa_except_def arl_assn_def hr_comp_def list_rel_imp_same_length
+        list_rel_update length_rll_def array_assn_def is_array_def)
 qed
 
 lemma update_raa_rule[sep_heap_rules]:
   assumes p: \<open>is_pure R\<close> and \<open>bb < length a\<close> and \<open>ba < length_rll a bb\<close>
   shows \<open><R b bi * arrayO_raa (array_assn R) a ai> update_raa ai bb ba bi
       <\<lambda>r. R b bi * (\<exists>\<^sub>Ax. arrayO_raa (array_assn R) x r * \<up> (x = update_rll a bb ba b))>\<^sub>t\<close>
-    using assms
+  using assms
   apply (sep_auto simp add: update_raa_def update_rll_def p)
-  apply (sep_auto simp add: update_raa_def arrayO_raa_except_def array_assn_def is_array_def hr_comp_def)
+  apply (sep_auto simp add: update_raa_def arrayO_raa_except_def array_assn_def is_array_def hr_comp_def
+      arl_assn_def)
   apply (subst_tac i=bb in arrayO_raa_except_array0_index[symmetric])
    apply (solves \<open>simp\<close>)
   apply (subst arrayO_raa_except_def)
   apply (auto simp add: update_raa_def arrayO_raa_except_def array_assn_def is_array_def hr_comp_def)
 
-  apply (rule_tac x=\<open>p[bb := (aa, bc)]\<close> in ent_ex_postI)
+  apply (rule_tac x=\<open>p[bb := xa]\<close> in ent_ex_postI)
+  apply (rule_tac x=\<open>bc\<close> in ent_ex_postI)
   apply (subst_tac (2)xs'=a and ys'=p in heap_list_all_nth_cong)
     apply (solves \<open>auto\<close>)
    apply (solves \<open>auto\<close>)
-(*   apply (auto simp: star_aci) *)
-  sorry
+  by (sep_auto simp: arl_assn_def)
 
 lemma update_raa_hnr[sepref_fr_rules]:
   assumes \<open>is_pure R\<close>
@@ -238,7 +242,7 @@ lemma update_raa_hnr[sepref_fr_rules]:
      [\<lambda>(((l,i), j), x). i < length l \<and> j < length_rll l i]\<^sub>a (arrayO_raa (array_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO_raa (array_assn R))\<close>
   by sepref_to_hoare (sep_auto simp: assms)
 
- definition swap_aa :: "('a::{heap,default}) array0_raa \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a array0_raa Heap" where
+ definition swap_aa :: "('a::{heap,default}) arrayO_raa \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a arrayO_raa Heap" where
   \<open>swap_aa xs k i j = do {
     xi \<leftarrow> nth_raa xs k i;
     xj \<leftarrow> nth_raa xs k j;
@@ -271,7 +275,7 @@ proof -
                    true *
                    \<up> (x = nth_rll aa b ba)>\<close>
     using p assms nth_raa_hnr[of R] unfolding hfref_def hn_refine_def
-    by auto
+    by (cases a) auto
   then show ?thesis
     unfolding hoare_triple_def
     by (auto simp: Let_def pure_def)
@@ -299,7 +303,7 @@ proof -
                        true *
                        \<up> (x = update_rll aa b ba be)>\<close>
     using p assms update_raa_hnr[of R] unfolding hfref_def hn_refine_def
-    by auto
+    by (cases a) auto
   then show ?thesis
     using b unfolding R'[symmetric] unfolding hoare_triple_def RR' bb
     by (auto simp: Let_def pure_def)
@@ -331,22 +335,61 @@ proof -
     by (sep_auto simp: update_rll_def swap_def nth_rll_def list_update_swap)
 qed
 
-instantiation array :: (heap) default
-begin
-definition default_array :: \<open>'a array\<close> where
-  \<open>default_array = Array (0::nat)\<close> -- \<open>This should be used nowhere in the generated code\<close>
-instance
-  by standard
-end
+definition update_ra :: \<open>'a arrayO_raa \<Rightarrow> nat \<Rightarrow> 'a array \<Rightarrow> 'a arrayO_raa Heap\<close> where
+  \<open>update_ra xs n x = arl_set xs n x\<close>
 
-definition append_raa :: \<open>'a::{heap} array0_raa \<Rightarrow> 'a array \<Rightarrow> 'a array0_raa Heap\<close> where
-  \<open>append_raa xs x = arl_append xs x\<close>
-export_code append_raa in SML file "tmp_test"
 
-definition arl_append where
-"arl_append \<equiv> \<lambda>(a,n) x. do {
-    len \<leftarrow> Array.len a;
+lemma update_ra_list_update_rules[sep_heap_rules]:
+  assumes \<open>n < length l\<close>
+  shows \<open><R y x * arrayO_raa R l xs> update_ra xs n x <arrayO_raa R (l[n:=y])>\<^sub>t\<close>
+proof -
+  have H: \<open>heap_list_all R l p = heap_list_all R l p * \<up> (n < length p)\<close> for p
+    using assms by (simp add: ent_iffI heap_list_add_same_length)
+  have [simp]: \<open>heap_list_all_nth R (remove1 n [0..<length p]) (l[n := y]) (p[n := x]) =
+    heap_list_all_nth R (remove1 n [0..<length p]) (l) (p)\<close> for p
+    by (rule heap_list_all_nth_cong) auto
+  show ?thesis
+    using assms
+    apply (cases xs)
+    supply arl_set_rule[sep_heap_rules del]
+    apply (sep_auto simp: arrayO_raa_def update_ra_def (* arl_set_def *)
+        (* hoare_triple_def *) Let_def arl_assn_def (* mod_star_conv *) (* is_array_list_def *)
+        dest!: heap_list_add_same_length
+        elim!: run_elims)
+    apply (subst H)
+    apply (subst heap_list_all_heap_list_all_nth_eq)
+    apply (subst heap_list_all_nth_remove1[where i = n])
+      apply (solves \<open>simp\<close>)
+    apply (subst heap_list_all_heap_list_all_nth_eq)
+    apply (subst (2) heap_list_all_nth_remove1[where i = n])
+      apply (solves \<open>simp\<close>)
+    supply arl_set_rule[sep_heap_rules]
+    apply (sep_auto (plain))
+     apply (subgoal_tac \<open>length (l[n := y]) = length (p[n := x])\<close>)
+      apply assumption
+     apply auto[]
+    apply sep_auto
+    done
+qed
+lemma ex_assn_up_eq: \<open>(\<exists>\<^sub>Ax. P x * \<up>(x = a) * Q) = (P a * Q)\<close>
+  by (smt ex_one_point_gen mod_pure_star_dist mod_starE mult.right_neutral pure_true)
+lemma update_ra_list_update[sepref_fr_rules]:
+  \<open>(uncurry2 update_ra, uncurry2 (RETURN ooo list_update)) \<in> 
+   [\<lambda>((xs, n), _). n < length xs]\<^sub>a (arrayO_raa R)\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a R\<^sup>d \<rightarrow> (arrayO_raa R)\<close>
+proof -
+  have [simp]: \<open>(\<exists>\<^sub>Ax. arrayO_raa R x r * true * \<up> (x = list_update a ba b)) = 
+        arrayO_raa R (a[ba := b]) r * true\<close>
+    for a ba b r
+    apply (subst assn_aci(10))
+    apply (subst ex_assn_up_eq)
+    ..
+  show ?thesis
+    by sepref_to_hoare sep_auto
+qed
 
+definition arrayO_raa_append where
+"arrayO_raa_append \<equiv> \<lambda>(a,n) x. do {
+    len \<leftarrow> length_ra (a, n);
     if n<len then do {
       a \<leftarrow> Array.upd n x a;
       return (a,n+1)
@@ -358,31 +401,55 @@ definition arl_append where
       return (a,n+1)
     }
   }"
-definition arl_empty_sz where
-"arl_empty_sz init_cap \<equiv> do {
+  
+lemma \<open>x2 \<le> a \<Longrightarrow> a > 0 \<Longrightarrow> x2 > 0 \<Longrightarrow> (a::nat) \<le> 2 * x2\<close>
+oops
+    
+lemma arrayO_raa_append_rule[sep_heap_rules]:
+  \<open><arrayO_raa R l a>  arrayO_raa_append a x  <\<lambda>a. arrayO_raa R (l@[x]) a >\<close>
+  apply (sep_auto
+      simp: arrayO_raa_append_def (* is_array_list_def *) take_update_last neq_Nil_conv
+      (* arrayO_raa_def *) arrayO_raa_def length_ra_def hr_comp_def is_array_list_def
+      arl_length_def list_rel_def 
+(*         arl_assn_def min_def *)
+      split: prod.splits nat.split if_splits
+      dest: list_all2_lengthD)
+   supply array_grow_rule[sep_heap_rules]
+    apply (subst mult.commute)
+   apply (sep_auto simp: arl_assn_def hr_comp_def is_array_list_def)
+    
+    apply (sep_auto simp: arl_assn_def hr_comp_def is_array_list_def)
+   apply (sep_auto simp: (* is_array_list_def *) arrayO_raa_def arl_assn_def)
+  apply (sep_auto
+      simp: arrayO_raa_append_def (* is_array_list_def *) take_update_last neq_Nil_conv arrayO_raa_def
+        arl_assn_def
+      split: prod.splits nat.split)
+  sorry
+
+definition "arrayO_raa_empty \<equiv> do {
+    a \<leftarrow> Array.new initial_capacity default;
+    return (a,0)
+  }"
+
+lemma arrayO_raa_empty_rule[sep_heap_rules]: "< emp > arrayO_raa_empty <\<lambda>r. arrayO_raa R [] r>"
+  by (sep_auto simp: arrayO_raa_empty_def is_array_list_def initial_capacity_def
+      arrayO_raa_def arl_assn_def)
+
+definition arrayO_raa_empty_sz where
+"arrayO_raa_empty_sz init_cap \<equiv> do {
     default \<leftarrow> Array.make 0 (\<lambda>_. default);
     a \<leftarrow> Array.new (max init_cap minimum_capacity) default;
     return (a,0)
   }"
-definition \<open>test = do {
-   xs \<leftarrow> (arl_empty_sz (1::nat) :: nat array0_raa Heap);
-   a \<leftarrow> (Array.new 5 0 :: nat array Heap);
-   xs \<leftarrow> arl_append xs a;
-   a \<leftarrow> (Array.new 5 1 :: nat array Heap);
-   xs \<leftarrow> arl_append xs a;
-   a \<leftarrow> (Array.new 5 2 :: nat array Heap);
-   xs \<leftarrow> arl_append xs a;
-   a \<leftarrow> (Array.new 5 3 :: nat array Heap);
-   xs \<leftarrow> arl_append xs a;
-   a \<leftarrow> (Array.new 5 4 :: nat array Heap);
-   xs \<leftarrow> arl_append xs a;
-   a \<leftarrow> (Array.new 5 5 :: nat array Heap);
-   xs \<leftarrow> arl_append xs a;
-   a \<leftarrow> (Array.new 5 6 :: nat array Heap);
-   xs \<leftarrow> arl_append xs a;
-   nth_raa xs 6 1
-}\<close>
 
-export_code test in SML module_name Test
+lemma arl_empty_sz_array_rule[sep_heap_rules]: "< emp > arrayO_raa_empty_sz N <\<lambda>r. arrayO_raa R [] r>\<^sub>t"
+proof -
+  have [simp]: \<open>(xa \<mapsto>\<^sub>a replicate (max N 16) x) * x \<mapsto>\<^sub>a [] = (xa \<mapsto>\<^sub>a (x # replicate (max N 16 - 1) x)) * x \<mapsto>\<^sub>a []\<close>
+    for xa x
+    by (cases N) (sep_auto simp: arrayO_raa_empty_sz_def is_array_list_def minimum_capacity_def max_def)+
+  show ?thesis
+    by (sep_auto simp: arrayO_raa_empty_sz_def is_array_list_def minimum_capacity_def
+        arrayO_raa_def arl_assn_def)
+qed
 
 end
