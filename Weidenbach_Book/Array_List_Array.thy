@@ -456,14 +456,16 @@ lemma arrayO_raa_append_op_list_append[sepref_fr_rules]:
   apply (subst mult.assoc)
   by (sep_auto simp: ex_assn_up_eq)
 
+definition array_of_arl :: \<open>'a list \<Rightarrow> 'a list\<close> where
+  \<open>array_of_arl xs = xs\<close>
 
-definition array_of_arl :: "'a::heap array_list \<Rightarrow> 'a array Heap" where
-  \<open>array_of_arl = (\<lambda>(a, n). array_shrink a n)\<close>
+definition array_of_arl_raa :: "'a::heap array_list \<Rightarrow> 'a array Heap" where
+  \<open>array_of_arl_raa = (\<lambda>(a, n). array_shrink a n)\<close>
 
-lemma array_of_arl: \<open>(array_of_arl, RETURN o id) \<in> (arl_assn R)\<^sup>d \<rightarrow>\<^sub>a (array_assn R)\<close>
+lemma array_of_arl: \<open>(array_of_arl_raa, RETURN o array_of_arl) \<in> (arl_assn R)\<^sup>d \<rightarrow>\<^sub>a (array_assn R)\<close>
   by sepref_to_hoare
-   (sep_auto simp: array_of_arl_def arl_assn_def is_array_list_def hr_comp_def
-      array_assn_def is_array_def)
+   (sep_auto simp: array_of_arl_raa_def arl_assn_def is_array_list_def hr_comp_def
+      array_assn_def is_array_def array_of_arl_def)
 
 definition "arrayO_raa_empty \<equiv> do {
     a \<leftarrow> Array.new initial_capacity default;
@@ -490,5 +492,34 @@ proof -
     by (sep_auto simp: arrayO_raa_empty_sz_def is_array_list_def minimum_capacity_def
         arrayO_raa_def arl_assn_def)
 qed
+
+definition nth_rl :: \<open>'a::heap arrayO_raa \<Rightarrow> nat \<Rightarrow> 'a array Heap\<close> where
+  \<open>nth_rl xs n = do {x \<leftarrow> arl_get xs n; array_copy x}\<close>
+
+lemma nth_rl_op_list_get[sepref_fr_rules]:
+  \<open>(uncurry nth_rl, uncurry (RETURN oo op_list_get)) \<in> 
+    [\<lambda>(xs, n). n < length xs]\<^sub>a (arrayO_raa (array_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> array_assn R\<close>
+  apply sepref_to_hoare
+  unfolding  arrayO_raa_def heap_list_all_heap_list_all_nth_eq
+  apply (subst_tac i=b in heap_list_all_nth_remove1)
+   apply (solves \<open>simp\<close>)
+  apply (subst_tac (2) i=b in heap_list_all_nth_remove1)
+   apply (solves \<open>simp\<close>)
+  by (sep_auto simp: nth_rl_def arrayO_raa_def heap_list_all_heap_list_all_nth_eq array_assn_def
+      hr_comp_def[abs_def] is_array_def arl_assn_def)
+
+definition arl_of_array :: "'a list list \<Rightarrow> 'a list list" where
+  \<open>arl_of_array xs = xs\<close>
+
+definition arl_of_array_raa :: "'a::heap array \<Rightarrow> ('a array_list) Heap" where
+  \<open>arl_of_array_raa xs = do {
+     n \<leftarrow> Array.len xs;
+     return (xs, n)
+  }\<close>
+
+lemma arl_of_array_raa[sepref_fr_rules]: \<open>(arl_of_array_raa, RETURN o arl_of_array) \<in> 
+       [\<lambda>xs. xs \<noteq> []]\<^sub>a (array_assn R)\<^sup>d \<rightarrow> (arl_assn R)\<close>
+  by sepref_to_hoare (sep_auto simp: arl_of_array_raa_def arl_assn_def is_array_list_def hr_comp_def
+      array_assn_def is_array_def arl_of_array_def)
 
 end
