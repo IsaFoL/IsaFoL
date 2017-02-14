@@ -1,0 +1,289 @@
+subsection\<open>Resolution\<close>
+theory Resolution
+imports CNF "~~/src/HOL/Library/While_Combinator"
+begin
+
+text\<open>Resolution is different from the other proof systems:
+  its derivations do not represent proofs in the way the other systems do.
+  Rather, they represent invariant additions to set of clauses.\<close>
+inductive Resolution :: "literal set set \<Rightarrow> literal set \<Rightarrow> bool" ("_ \<turnstile> _" [30] 28) where
+Ass: "C \<in> S \<Longrightarrow> S \<turnstile> C" |
+R: "S \<turnstile> C \<Longrightarrow> S \<turnstile> D \<Longrightarrow> k\<^sup>+ \<in> C \<Longrightarrow> k\<inverse> \<in> D \<Longrightarrow> S \<turnstile> (C - {k\<^sup>+}) \<union> (D - {k\<inverse>})"
+text\<open>The problematic part of this formulation is that we can't talk about a "Resolution Refutation" in an inductive manner. 
+  In the places where Gallier's proofs~\cite{gallier2015logic} do that, we have to work around that.\<close>
+
+lemma Resolution_weaken: "S \<turnstile> D \<Longrightarrow> T \<union> S \<turnstile> D"
+  by(induction rule: Resolution.induct; auto intro: Resolution.intros)
+
+lemma Resolution_unnecessary:
+  assumes sd: "\<forall>C \<in> T. S \<turnstile> C"
+  shows "T \<union> S \<turnstile> D \<longleftrightarrow> S \<turnstile> D" (is "?l \<longleftrightarrow> ?r")
+proof
+  assume ?l
+  from \<open>?l\<close> sd show  ?r
+  proof(induction "T \<union> S" D rule: Resolution.induct)
+    case (Ass D)
+    show ?case proof cases
+      assume "D \<in> S" with Resolution.Ass show ?thesis .
+    next
+      assume "D \<notin> S"
+      with Ass.hyps have "D \<in> T" by simp
+      with Ass.prems show ?thesis by blast
+    qed
+  next
+    case (R D H k) thus ?case using Resolution.R by blast
+  qed
+next
+  assume ?r with Resolution_weaken show ?l by simp
+qed
+
+lemma Resolution_taint_assumptions: "S \<union> T \<turnstile> C \<Longrightarrow> \<exists>R \<subseteq> D. (op \<union> D ` S) \<union> T \<turnstile> R \<union> C"
+(* No, we don't need to show this for an arbitrary set T, but the proof doesn't get any more readable if you only allow a single atom. *)
+proof(induction "S \<union> T" "C" rule: Resolution.induct)
+ case (Ass C)
+  show ?case proof(cases "C \<in> S")
+    case True
+    hence "D \<union> C \<in> op \<union> D ` S \<union> T" by simp
+    with Resolution.Ass have "(op \<union> D ` S) \<union> T \<turnstile> D \<union> C" .
+    thus ?thesis by blast
+  next
+    case False
+    with Ass have "C \<in> T" by simp
+    hence "(op \<union> D ` S) \<union> T \<turnstile> C" using Resolution.Ass by simp
+    thus ?thesis by(intro exI[where x="{}"]) simp
+  qed
+next
+  case (R C1 C2 k)
+  let ?m = "(op \<union> D ` S) \<union> T"
+  from R obtain R1 where IH1: "R1 \<subseteq> D" "?m \<turnstile> R1 \<union> C1" by blast
+  from R obtain R2 where IH2: "R2 \<subseteq> D" "?m \<turnstile> R2 \<union> C2" by blast
+  from R have "k\<^sup>+ \<in> R1 \<union> C1" "k\<inverse> \<in> R2 \<union> C2" by simp_all
+  note Resolution.R[OF IH1(2) IH2(2) this]
+  hence "?m \<turnstile> (R1 - {k\<^sup>+}) \<union> (R2 - {k\<inverse>}) \<union> (C1 - {k\<^sup>+} \<union> (C2 - {k\<inverse>}))"
+    by (simp add: Un_Diff Un_left_commute sup.assoc)
+  moreover have "(R1 - {k\<^sup>+}) \<union> (R2 - {k\<inverse>}) \<subseteq> D" (* hah\<cdot> gotcha. This is the reason that I should be doing this on sets\<cdot> not multisets. - neh, actually, there are others. how is the rule even supposed to look? *)
+    using IH1(1) IH2(1) by blast
+  ultimately show ?case by blast
+qed
+
+text\<open>Resolution is ``strange'':
+Given a set of clauses that is presumed to be satisfiable,
+it derives new clauses that can be added while preserving the satisfiability of the set of clauses.
+However, not every clause that could be added while keeping satisfiability can actually be added by resolution.
+Especially, the above lemma \<open>Resolution_taint_assumptions\<close> gives us the derivability of a clause
+@{term "R \<union> H"}, where @{term "R \<subseteq> T"}. What we might actually want is the derivability of 
+@{term "T \<union> H"}. Any model that satisfies @{term "R \<union> H"} obviously satisfies @{term "T \<union> H"} 
+(since they are disjunctions), but Resolution only allows to derive the former.
+\<close>
+text\<open>Nevertheless, \<open>Resolution_taint_assumptions\<close>, can still be a quite useful lemma:
+picking @{term T} to be a singleton set only leaves two possibilities for @{term R}.\<close>
+
+lemma Resolution_useless_infinite:
+assumes R: "S \<turnstile> R"
+assumes "finite R"
+shows "\<exists>S' \<subseteq> S. Ball S' finite \<and> finite S' \<and> (S' \<turnstile> R)"
+using assms proof(induction rule: Resolution.induct)
+  case (Ass C S) thus ?case using Resolution.Ass by(intro exI[where x="{C}"]) simp
+next
+  case (R S C D k)
+  from R.prems have "finite C" "finite D" by simp_all
+  with R.IH obtain SC SD where IH:
+    "SC\<subseteq>S" "(\<forall>C\<in>SC. finite C)" "finite SC" "SC \<turnstile> C"
+    "SD\<subseteq>S" "(\<forall>D\<in>SD. finite D)" "finite SD" "SD \<turnstile> D"
+    by blast
+  hence IHw: "SC \<union> SD \<turnstile> C" "SC \<union> SD \<turnstile> D" using Resolution_weaken 
+    by(simp_all add: sup_commute Resolution_weaken (* yes, using and simp set. whatever. *))
+  with IH(1-3,5-7) show ?case
+    by(blast intro!: exI[where x="SC \<union> SD"] Resolution.R[OF _ _ \<open>k\<^sup>+ \<in> C\<close> \<open>k\<inverse> \<in> D\<close>])
+qed
+(* situation would be different if we allowed to resolve an infinite amount of literals in one step instead of just one.
+   And I think that's exactly the reason why one doesn't do that.
+ *)
+
+text\<open>Now we define and verify a toy resolution prover.
+Function \<open>res\<close> computes the set of resolvents of a clause set:\<close>
+context begin
+  
+definition res :: "clause set \<Rightarrow> clause set" where
+"res S =
+ (\<Union>C1 \<in> S. \<Union>C2 \<in> S. \<Union>L1 \<in> C1. \<Union>L2 \<in> C2.
+ (case (L1,L2) of (Pos i,Neg j) \<Rightarrow> if i=j then {(C1 - {Pos i}) \<union> (C2 - {Neg j})} else {}
+  | _ \<Rightarrow> {}))"
+
+private definition "ex1 \<equiv> {{Neg 0}, {Pos 0, Pos 1, Neg 2}, {Pos 0, Pos 1, Pos 2}, {Pos 0, Neg 1}}"
+value "res ex1"
+
+definition Rwhile ::"clause set \<Rightarrow> clause set option" where
+"Rwhile = while_option (\<lambda>S. {} \<notin> S \<and> \<not> res S \<subseteq> S) (\<lambda>S. res S \<union> S)"
+
+value [code] "Rwhile ex1"
+lemma "\<box> \<in> the (Rwhile ex1)" by eval
+
+lemma Rwhile_sound: assumes "Rwhile S = Some S'"
+  shows "\<forall>C \<in> S'. Resolution S C"
+apply(rule while_option_rule[OF _ assms[unfolded Rwhile_def]])
+apply (auto simp: Ass R res_def split: if_splits literal.splits)
+done
+
+definition "all_clauses S = {s. s \<subseteq> {Pos x|x. x \<in> atoms_of_cnf S} \<union> {Neg x|x. x \<in> atoms_of_cnf S}}"
+lemma s_sub_all_clauses: "S \<subseteq> all_clauses S"
+  unfolding all_clauses_def
+  apply(rule)
+  apply(simp)
+  apply(rule)
+  apply(simp add: atoms_of_cnf_alt lit_atoms_cases[abs_def])
+  by (metis imageI literal.exhaust literal.simps(5) literal.simps(6))
+lemma atoms_res: "atoms_of_cnf (res S) \<subseteq>  atoms_of_cnf S"
+  unfolding res_def atoms_of_cnf_alt
+  by(clarsimp simp: lit_atoms_cases[abs_def] image_def split: literal.splits if_splits)
+    blast
+lemma exlitE: "(\<And>x. xe = Pos x \<Longrightarrow> P x) \<Longrightarrow> (\<And>x. xe = Neg x \<Longrightarrow> False) \<Longrightarrow> \<exists>x. xe = Pos x \<and> P x"
+  by(cases xe) auto
+lemma res_in_all_clauses: "res S \<subseteq> all_clauses S"
+  (*apply(clarsimp simp: res_def all_clauses_def atoms_of_cnf_alt image_def lit_atoms_cases)
+    apply(clarsimp split: literal.splits)*)
+  apply(clarsimp simp: res_def all_clauses_def atoms_of_cnf_alt image_def lit_atoms_cases
+                 split: literal.splits if_splits)
+  apply(rule exlitE)
+  apply (blast+)
+done
+
+lemma Res_in_all_clauses: "res S \<union> S \<subseteq> all_clauses S"
+  by (simp add: res_in_all_clauses s_sub_all_clauses)  
+lemma all_clauses_Res_inv: "all_clauses (res S \<union> S) = all_clauses S"
+  unfolding all_clauses_def atoms_of_cnf_Un
+  using atoms_res by blast
+lemma all_clauses_finite: "finite S \<and> (\<forall>C \<in> S. finite C) \<Longrightarrow> finite (all_clauses S)"
+  unfolding all_clauses_def atoms_of_cnf_def by simp
+lemma finite_res: "\<forall>C \<in> S. finite C \<Longrightarrow> \<forall>C \<in> res S. finite C"
+  unfolding res_def by(clarsimp split: literal.splits)
+
+lemma "finite T \<Longrightarrow> S \<subseteq> T \<Longrightarrow> card S < Suc (card T)"
+  by (simp add: card_mono le_imp_less_Suc)
+    
+lemma "finite S \<and> (\<forall>C \<in> S. finite C) \<Longrightarrow> \<exists>T. Rwhile S = Some T"
+  apply(unfold Rwhile_def)
+  apply(rule measure_while_option_Some[rotated, where f="\<lambda>T. Suc (card (all_clauses S)) - card T"
+        and P="\<lambda>T. finite T \<and> (\<forall>C \<in> T. finite C) \<and> all_clauses T = all_clauses S"])
+   apply(simp;fail)
+  apply(intro conjI)
+  subgoal by (meson all_clauses_finite finite_UnI finite_subset res_in_all_clauses)
+  subgoal using finite_res by blast
+  subgoal using all_clauses_Res_inv by (simp add: sup_commute)
+  subgoal 
+    apply(rule diff_less_mono2)
+    subgoal by (metis Res_in_all_clauses all_clauses_finite card_seteq finite_subset not_le sup_commute sup_ge2)
+    subgoal apply(intro card_mono le_imp_less_Suc)
+      subgoal using all_clauses_finite by blast
+      subgoal using s_sub_all_clauses by blast
+    done
+  done
+done
+
+function Res_tot where
+"Res_tot S = (let R = res S \<union> S in if R = S then S else Res_tot R)"
+  by auto
+    
+termination Res_tot
+  apply(relation "measure (\<lambda>T. Suc (card (all_clauses T)) - card T)")
+   apply(fact wf_measure)
+  apply(simp add: all_clauses_Res_inv)
+  apply(rule diff_less_mono2)
+  oops
+    (* oh, yeah, this is not a total function\<dots> :/ *)
+    
+partial_function(option) Res where
+"Res S = (let R = res S \<union> S in if R = S then Some S else Res R)"
+(* the only thing that using monads would get us here is the return function, so\<dots> no. *)
+
+lemma res: "C \<in> res S \<Longrightarrow> S \<turnstile> C"
+  unfolding res_def by(auto split: literal.splits if_splits) (metis Resolution.simps literal.exhaust)    
+lemma "\<forall>S S'. Res S = Some S' \<longrightarrow> (\<forall>C \<in> S'. S \<turnstile> C)"
+proof (rule Res.fixp_induct; (intro allI impI)?)
+  fix X S S'
+  assume IH: "\<forall>S S'. X S = Some S' \<longrightarrow> (\<forall>C\<in>S'. S \<turnstile> C)"
+  assume prem: "(let R = res S \<union> S in if R = S then Some S else X R) = Some S'"
+  thus "(\<forall>C\<in>S'. S \<turnstile> C)"
+  proof cases
+    assume "res S \<union> S = S"
+    with prem show ?thesis using Resolution.Ass by simp
+  next
+    assume 1: "res S \<union> S \<noteq> S"
+    with prem have "X (res S \<union> S) = Some S'" by simp
+    with IH have "\<forall>C\<in>S'. res S \<union> S \<turnstile> C" by blast
+    thus ?thesis using Resolution_unnecessary res by simp (* this needs the generalized Resolution_unnecessary lemma. And I don't get why the option-variant didn't. *)
+  qed
+qed (fast intro!: option_admissible)+
+
+lemma "finite S \<Longrightarrow> \<forall>C \<in> S. finite C \<Longrightarrow> \<exists>T. Res S = Some T"
+proof(induction "Suc (card (all_clauses S)) - card S" arbitrary: S rule: less_induct)
+  case less
+  let ?r = "res S \<union> S"
+  show ?case proof(cases "?r = S")
+    case False
+    have b: "finite (res S \<union> S)" by (meson less Res_in_all_clauses all_clauses_finite infinite_super)
+    have c: "Ball (res S \<union> S) finite" using less.prems(2) finite_res by auto
+    have "card S < card ?r" by (metis False b psubsetI psubset_card_mono sup_ge2)
+    moreover have "card ?r < Suc (card (all_clauses S))" by (meson less Res_in_all_clauses all_clauses_finite card_mono le_imp_less_Suc)
+    ultimately have a: "Suc (card (all_clauses (res S \<union> S))) - card (res S \<union> S) < Suc (card (all_clauses S)) - card S" using all_clauses_Res_inv by auto
+    from less(1)[OF a b c] show ?thesis by (subst Res.simps) (simp add: Let_def)
+  qed (simp add: Res.simps)
+qed
+
+lemma atoms_of_all_clauses: "atoms_of_cnf (all_clauses S) = atoms_of_cnf S"
+  unfolding all_clauses_def atoms_of_cnf_def image_def
+  apply(rule)
+  apply(rule)
+   apply(clarsimp)
+   apply fastforce
+    apply(rule)
+  apply clarsimp    
+  by (metis (mono_tags, lifting) lit_atoms_cases literal.simps(5) mem_Collect_eq sup.cobounded1)
+    (*
+    apply(unfold mem_Collect_eq Bex_def)
+  apply(erule ex_forward)
+  apply(clarsimp simp: lit_atoms_cases split: literal.splits)*)
+
+lemma all_clauses_idem: "all_clauses (all_clauses S) = all_clauses S"
+  using all_clauses_def atoms_of_all_clauses by auto
+
+(* TODO: show and remove *)
+find_theorems Res
+thm finite_psubset_induct[where P="\<lambda>S. finite S \<and> (\<forall>C \<in> S. finite C) \<longrightarrow> (\<exists>T. Res S = Some T)"]
+lemma 
+  assumes "finite S" "(\<forall>C \<in> S. finite C)"
+  assumes lolinduct: "\<And>P T (S::literal set set). finite T \<Longrightarrow> P T \<Longrightarrow> (\<And>W. W \<subseteq> T \<Longrightarrow> (\<And>S. W \<subset> S \<Longrightarrow> S \<subseteq> T \<Longrightarrow> P S) \<Longrightarrow> P W) \<Longrightarrow> S \<subseteq> T \<Longrightarrow> P S"
+  shows "\<exists>T. Res S = Some T"
+proof -
+  have fm: "finite (all_clauses S - S)" by (simp add: all_clauses_finite assms)
+  have "finite S \<and> (\<forall>C \<in> S. finite C) \<longrightarrow> (\<exists>T. Res S = Some T)"
+  proof(rule lolinduct[of "all_clauses S" "\<lambda>S. finite S \<and> (\<forall>C \<in> S. finite C) \<longrightarrow> (\<exists>T. Res S = Some T)" S], goal_cases)
+    case 2
+    then show ?case using Res_in_all_clauses[of "all_clauses _", unfolded all_clauses_idem] by (simp add: Res.simps) (fastforce simp: Let_def)
+  next
+    case 1
+    then show ?case using assms(1) finite_Diff2 fm by blast
+  next
+    case (3 W)
+    have "(\<exists>T. Res W = Some T)" if "finite W" "(\<forall>C\<in>W. finite C)"
+    proof(cases "res W \<union> W = W")
+      case False
+      hence a: "W \<subset> res W \<union> W" by blast
+      have "atoms_of_cnf W \<subseteq> atoms_of_cnf (all_clauses S)" by (metis "3"(1) atoms_of_cnf_Un subset_Un_eq)
+      hence "atoms_of_cnf W \<subseteq> atoms_of_cnf S" by (simp add: atoms_of_all_clauses)
+      hence "all_clauses W \<subseteq> all_clauses S" unfolding all_clauses_def by blast
+      hence b: "res W \<union> W \<subseteq> all_clauses S" using Res_in_all_clauses by blast
+      hence c: "finite (res W \<union> W) \<and> (\<forall>C\<in>res W \<union> W. finite C)" by (meson Diff_infinite_finite UnE assms(1) finite_res finite_subset fm that(2))
+      from 3(2)[OF a b] c have "(\<exists>T. Res (res W \<union> W) = Some T)" ..
+      thus ?thesis by(subst Res.simps) (simp add: Let_def)
+    qed (simp add: Res.simps)
+    thus ?case by blast
+  next
+    case 4
+    then show ?case by (simp add: s_sub_all_clauses)
+  qed
+  with assms show ?thesis by blast
+qed
+
+end
+end

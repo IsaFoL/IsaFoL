@@ -1,0 +1,55 @@
+
+chapter "Concrete Proof Theory"
+session Propositional_Proof_Systems = HOL +
+	options [timeout = 120, document = pdf, document_output = "output"]
+	theories [document=false]
+		"~~/src/HOL/Library/Multiset"
+		"~~/src/HOL/Library/Countable"
+		"~~/src/HOL/Library/Simps_Case_Conv"
+	theories
+		(* beware of stupid placement of section titles when reordering. *)
+		Formulas
+		Sema
+		Substitution
+		Substitution_Sema
+		CNF
+		CNF_Sema
+		MiniFormulas
+		MiniFormulas_Sema
+		Consistency
+		Compactness
+		Compactness_Consistency
+		Sema_Craig
+		SC
+		SC_Cut
+		SC_Gentzen
+		SC_Sema
+		SC_Compl_Consistent (* TODO: naming *)
+		ND
+		ND_Sound
+		ND_Compl_Truthtable
+		ND_Compl_Truthtable_Compact
+		HC
+		HC_Compl_Consistency (* TODO: naming *)
+		Resolution
+		Resolution_Sound
+		Resolution_Compl
+		HCSC
+		SCND
+		NDHC
+		HCSCND
+		LSC
+		LSC_Resolution
+		ND_FiniteAssms
+		ND_Compl_SC
+		Resolution_Compl_SC_Small
+		Resolution_Compl_SC_Full
+		MiniSC
+		MiniSC_Cut
+		MiniSC_HC
+		MiniSC_Craig
+	document_files
+		"root.tex"
+		"root.bib"
+		"fig_tran.tex"
+		"fig_sema.tex"
