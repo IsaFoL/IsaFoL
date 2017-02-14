@@ -1236,7 +1236,7 @@ definition ex_decomp_of_max_lvl :: "('v, nat) ann_lits  \<Rightarrow> 'v cconfli
 fun add_mset_list :: "'a list \<Rightarrow> 'a multiset multiset \<Rightarrow> 'a multiset multiset"  where
   \<open>add_mset_list L UP = add_mset (mset L) UP\<close>
 
-definition list_of_mset :: \<open>'v clause \<Rightarrow> 'v clause_l nres\<close> where
+definition (in -)list_of_mset :: \<open>'v clause \<Rightarrow> 'v clause_l nres\<close> where
   \<open>list_of_mset D = SPEC(\<lambda>D'. D = mset D')\<close>
 
 definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where

@@ -341,7 +341,7 @@ lemma find_unwatched'_find_unwatched: \<open>find_unwatched' M N' C = find_unwat
 sepref_definition find_unwatched'_impl
   is \<open>uncurry2 find_unwatched'\<close>
   :: \<open>[\<lambda>((M, N'), C). no_dup M \<and> C < length N']\<^sub>a
-        pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> 
+        pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>
         option_assn bool_assn *assn nat_assn\<close>
   unfolding find_unwatched'_def nth_rll_def[symmetric] length_rll_def[symmetric]
   supply [[goals_limit=1]]
@@ -1220,9 +1220,16 @@ definition find_lit_of_max_level_wl' :: "_ \<Rightarrow> _ \<Rightarrow> _ \<Rig
   \<open>find_lit_of_max_level_wl' M N U D NP UP Q W L =
      find_lit_of_max_level_wl (M, N, U, Some D, NP, UP, Q, W) L\<close>
 
+definition (in -) list_of_mset2 :: "nat literal \<Rightarrow> nat literal \<Rightarrow> nat clause \<Rightarrow> nat clause_l nres" where
+  \<open>list_of_mset2 L L' D =
+    SPEC (\<lambda>E. mset E = D \<and> E!0 = L \<and> E!1 = L')\<close>
+
+definition (in -) single_of_mset where
+  \<open>single_of_mset D = SPEC(\<lambda>L. D = mset [L])\<close>
+
 definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
   \<open>backtrack_wl_D S\<^sub>0 =
-    do {
+   do {
       let (M, N, U, D, NP, UP, Q, W) = S\<^sub>0 in
       do {
         ASSERT(M \<noteq> []);
@@ -1243,21 +1250,27 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
         then do {
           ASSERT(\<forall>L' \<in># the D - {#-L#}. get_level M L' = get_level M1 L');
           ASSERT(\<exists>L' \<in># the D - {#-L#}. get_level M L' = get_maximum_level M (the D - {#-L#}));
+          ASSERT(\<exists>L' \<in># the D - {#-L#}. get_level M1 L' = get_maximum_level M1 (the D - {#-L#}));
           ASSERT(get_level M L > get_maximum_level M (the D - {#-L#}));
+          ASSERT(distinct_mset E);
           L' \<leftarrow> find_lit_of_max_level_wl' M1 N U E NP UP Q W L;
           ASSERT(L \<noteq> -L');
-          D' \<leftarrow> list_of_mset E;
+          ASSERT(-L \<in># E);
+          ASSERT(L' \<in># E);
+          let K = -L;
+          D' \<leftarrow> list_of_mset2 K L' E;
           ASSERT(atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP));
           ASSERT(atm_of L' \<in> atms_of_mm (mset `# mset (tl N) + NP));
-          ASSERT(L \<in> snd ` D\<^sub>0);
+          ASSERT(-L \<in> snd ` D\<^sub>0);
           ASSERT(L' \<in> snd ` D\<^sub>0);
-          RETURN (Propagated (-L) (length N) # M1,
-            N @ [[-L, L'] @ (remove1 (-L) (remove1 L' D'))], U,
-            None, NP, UP, add_mset L {#}, W(-L:= W (-L) @ [length N], L':= W L' @ [length N]))
+          let W = W(L':= W L' @ [length N]);
+          let W = W(-L:= W (-L) @ [length N]);
+          RETURN (Propagated (-L) (length N) # M1, N @ [array_of_arl D'], U,
+            None, NP, UP, {#L#}, W)
         }
         else do {
-          D' \<leftarrow> list_of_mset E;
-          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset_list D' UP, add_mset L {#}, W)
+          D' \<leftarrow> single_of_mset E;
+          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset {#D'#} UP, add_mset L {#}, W)
         }
       }
     }
@@ -1278,10 +1291,12 @@ proof -
     if \<open>S = S'\<close> and \<open>L = L'\<close>
     for S S' :: \<open>nat twl_st_wl\<close> and L L'
     using that by auto
-  have 3: \<open>find_lit_of_max_level_wl S M \<le> \<Down> Id (find_lit_of_max_level_wl S' M')\<close>
+  have 3: \<open>find_lit_of_max_level_wl S M \<le>
+   \<Down> {(L', L). L' \<in># remove1_mset (-M) (the (get_conflict_wl S)) \<and> L' = L} (find_lit_of_max_level_wl S' M')\<close>
     if \<open>S = S'\<close> and \<open>M = M'\<close>
     for S S' :: \<open>nat twl_st_wl\<close> and M M'
-    using that by auto
+    using that by (cases S; cases S')
+      (auto simp: find_lit_of_max_level_wl_def find_lit_of_max_level_wl_def intro!: RES_refine)
   have H: \<open>mset `# mset (take n (tl xs)) + a + (mset `# mset (drop (Suc n) xs) + b) =
    mset `# mset (tl xs) + a + b\<close> for n xs a b
     apply (subst (2) append_take_drop_id[of n \<open>tl xs\<close>, symmetric])
@@ -1291,15 +1306,33 @@ proof -
     apply (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff atms_of_ms_def atms_of_def
         atm_of_eq_atm_of N\<^sub>1_def in_implies_atm_of_on_atms_of_ms
         image_Un)
-      using in_implies_atm_of_on_atms_of_ms in_lits_of_atms_of_mm_ain_atms_of_iff by fastforce
-  have list_of_mset: \<open>list_of_mset D \<le> \<Down> {(E, F). E = F \<and> D = mset E} (list_of_mset D')\<close>
+    using in_implies_atm_of_on_atms_of_ms in_lits_of_atms_of_mm_ain_atms_of_iff by fastforce
+  have list_of_mset: \<open>list_of_mset2 L L' D \<le>
+      \<Down> {(E, F). F = [L, L'] @ remove1 L (remove1 L' E) \<and> D = mset E \<and> E!0 = L \<and> E!1 = L' \<and> E=F}
+        (list_of_mset D')\<close>
+    if \<open>D = D'\<close> and uL_D: \<open>L \<in># D\<close> and L'_D: \<open>L' \<in># D\<close> and L_uL': \<open>L \<noteq> L'\<close> for D D' L L'
+    unfolding list_of_mset_def list_of_mset2_def
+  proof (rule RES_refine)
+    fix s
+    assume s: \<open>s \<in> {E. mset E = D \<and> E ! 0 = L \<and> E ! 1 = L'}\<close>
+    then show \<open>\<exists>s'\<in>{D'a. D' = mset D'a}.
+            (s, s')
+            \<in> {(E, F).
+                F = [L, L'] @ remove1 L (remove1 L' E) \<and> D = mset E \<and> E ! 0 = L \<and> E ! 1 = L'\<and> E=F}\<close>
+      apply (cases s; cases \<open>tl s\<close>)
+      using that by (auto simp: diff_single_eq_union diff_diff_add_mset[symmetric]
+          simp del: diff_diff_add_mset)
+  qed
+  have single_of_mset: \<open>single_of_mset D \<le> \<Down> {(L, E). E = [L] \<and> D = mset E} (list_of_mset D')\<close>
     if \<open>D = D'\<close> for D D'
-    using that by (auto simp: list_of_mset_def intro!: RES_refine)
+    using that by (auto simp: single_of_mset_def list_of_mset_def intro!: RES_refine)
   show ?thesis
     unfolding backtrack_wl_D_def backtrack_wl_def find_lit_of_max_level_wl'_def
+      array_of_arl_def
     apply (rewrite at \<open>let _ = the _ in _\<close> Let_def)+
+    apply (rewrite at \<open>let _ = - _ in _\<close> Let_def)+
     supply [[goals_limit=1]]
-    apply (refine_vcg 1 2 3 list_of_mset)
+    apply (refine_vcg 1 2 3 list_of_mset single_of_mset)
     subgoal by fast
     subgoal by auto
     subgoal by auto
@@ -1315,39 +1348,107 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal premises p for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f M x2g x1h x2h x1i x2i x1j x2j x1k x2k
+       x1l x2l x1m x2m M1 M1a
+    proof -
+      have \<open>get_level M `# remove1_mset (- lit_of (hd M)) (the x1j) =
+         get_level M1 `# remove1_mset (- lit_of (hd M)) (the x1j)\<close>
+        by (rule image_mset_cong) (use p(41) in auto)
+      then have \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the x1j))=
+          get_maximum_level M1 (remove1_mset (- lit_of (hd M)) (the x1j))\<close>
+        unfolding get_maximum_level_def by simp
+      then show ?thesis
+        using p(39) p(1-14) p(38) p(35) by auto
+    qed
     subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
-      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
+    subgoal premises p for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
+       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m M1 M1a
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (convert_to_state (twl_st_of_wl None (x1, x1a, x1b, x1c, x1d, x1e, x1f, x2f)))\<close>)
       subgoal
-        using N\<^sub>0
-        apply (cases M)
-         apply simp
-        apply (simp add: twl_struct_invs_is_N\<^sub>1_clauses_init_clss mset_take_mset_drop_mset'
+        using N\<^sub>0 p(1-18)
+        by (auto simp: cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset_state)
+      subgoal
+        using p
+        apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        by fast
+      done
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto dest: in_diffD)
+    subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k
+      x1l x2l x1m x2m M1 M1a L' L'a
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state
+         (convert_to_state (twl_st_of_wl None (x1, x1a, x1b, x1c, x1d, x1e, x1f, x2f)))\<close>)
+      subgoal premises p
+        using p(48-) p(1-19)
+        by (auto simp: cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset_state
+            dest: in_diffD)
+      subgoal
+        apply (subst (asm) twl_struct_invs_def)
+        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        by fast
+      done
+    subgoal by auto
+    subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M1, N, U, D, NP, UP, WS, W)))\<close>)
+      subgoal
+        using N\<^sub>0 p(52) p(32) p(1-16)
+        apply (cases M1; cases \<open>hd M1\<close>)
+         apply fast
+         apply fast
+        by (simp_all add: twl_struct_invs_is_N\<^sub>1_clauses_init_clss mset_take_mset_drop_mset'
             image_image cdcl\<^sub>W_restart_mset_state clauses_def H in_N\<^sub>1_iff)
-        by (auto simp: (* is_N\<^sub>1_def *) in_lits_of_atms_of_mm_ain_atms_of_iff mset_take_mset_drop_mset'
-            clauses_def H (* N\<^sub>1 *) image_image cdcl\<^sub>W_restart_mset.no_strange_atm_def
-            cdcl\<^sub>W_restart_mset_state eq_commute[of _ \<open>atms_of N\<^sub>1\<close>] in_N\<^sub>1_iff is_N\<^sub>1_def)
       subgoal
+        using p
        apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
        by fast
       done
-    subgoal for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
+    subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
       apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
       subgoal
-        using N\<^sub>0
-        apply (simp add: twl_struct_invs_is_N\<^sub>1_clauses_init_clss mset_take_mset_drop_mset'
-            image_image cdcl\<^sub>W_restart_mset_state clauses_def H in_N\<^sub>1_iff)
+        using N\<^sub>0 p(52) p(32) p(1-18) p(46)
+        apply (auto simp: (* is_N\<^sub>1_def *) in_lits_of_atms_of_mm_ain_atms_of_iff mset_take_mset_drop_mset'
+            clauses_def H (* N\<^sub>1 *) image_image cdcl\<^sub>W_restart_mset.no_strange_atm_def
+            cdcl\<^sub>W_restart_mset_state eq_commute[of _ \<open>atms_of N\<^sub>1\<close>] in_N\<^sub>1_iff is_N\<^sub>1_def
+            dest!: in_diffD)
+         apply (metis (no_types, lifting) Un_iff in_lits_of_atms_of_mm_ain_atms_of_iff
+            lits_of_atms_of_mm_union p(53) set_image_mset set_mset_mset set_mset_union)+
+        done
+      subgoal
+        using p
+        apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        by fast
+      done
+    subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
+      subgoal
+        using N\<^sub>0 p(52) p(32) p(1-18) p(46)
         by (auto simp: (* is_N\<^sub>1_def *) in_lits_of_atms_of_mm_ain_atms_of_iff mset_take_mset_drop_mset'
             clauses_def H (* N\<^sub>1 *) image_image cdcl\<^sub>W_restart_mset.no_strange_atm_def
-            cdcl\<^sub>W_restart_mset_state eq_commute[of _ \<open>atms_of N\<^sub>1\<close>] in_N\<^sub>1_iff is_N\<^sub>1_def)
+            cdcl\<^sub>W_restart_mset_state eq_commute[of _ \<open>atms_of N\<^sub>1\<close>] in_N\<^sub>1_iff is_N\<^sub>1_def
+            dest!: in_diffD)
       subgoal
+        using p
+        apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        by fast
+      done
+    subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
+      subgoal
+        using N\<^sub>0 p(32) p(1-18) p(46)
+        apply (auto simp: (* is_N\<^sub>1_def *) in_lits_of_atms_of_mm_ain_atms_of_iff mset_take_mset_drop_mset'
+            clauses_def H (* N\<^sub>1 *) image_image cdcl\<^sub>W_restart_mset.no_strange_atm_def
+            cdcl\<^sub>W_restart_mset_state eq_commute[of _ \<open>atms_of N\<^sub>1\<close>] in_N\<^sub>1_iff is_N\<^sub>1_def
+            dest!: in_diffD) -- \<open>TODO proof\<close>
+        by (metis (no_types, lifting) Un_iff in_N\<^sub>1_iff in_lits_of_atms_of_mm_ain_atms_of_iff
+            lits_of_atms_of_mm_union p(53) set_mset_union)+
+      subgoal
+        using p
         apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
         apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
         by fast
@@ -1359,25 +1460,41 @@ proof -
       note SWS = p(1) and SUP = p(2) and SNP = p(3) and SD = p(4) and SU = p(5) and SN = p(6) and
         S = p(7) and M_not_Nil = p(15) and lvl_count_decided = p(10) and D_not_None = p(18) and
         D_not_Some_Nil = p(19) and ex_decomp = p(20) and stgy_invs = p(21) and struct_invs = p(23)
-        and no_skip = p(32) and M1_M1a = p(35) and L'_La = p(44) and EE' = p(47) and
-        atm_hd = p(48) and atm_L = p(49) and S_expand = p(1-14)
+        and no_skip = p(32) and M1_M1a = p(35) and L'_La = p(46) and hd_uL' = p(47) and uhd_D' = p(49)
+        and L'_D' = p(50) and EE' = p(51) and atm_hd = p(52) and atm_L = p(53) and S_expand = p(1-14)
         thm p(35-40)
       have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
         using struct_invs
         apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
         apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
         by fast
-
+      have EE'': \<open>(E, E') \<in> {(E, F).
+        F = [- lit_of (hd M'), L] @ remove1 (- lit_of (hd M')) (remove1 L E) \<and>
+        the D' = mset E \<and> E ! 0 = - lit_of (hd M') \<and> E ! 1 = L}\<close> and E_E': \<open>E = E'\<close> and
+        E_add_remove: \<open>E = [- lit_of (hd M'), L] @ remove1 (- lit_of (hd M')) (remove1 L E)\<close>
+        using EE' by blast+
+      have \<open>- lit_of (hd M') \<in># mset E\<close> \<open>L \<in># mset E\<close>
+        by (subst E_add_remove; use EE'' in auto)+
+      then have mset_E_D': \<open>mset E = the D'\<close>
+        apply (subst E_add_remove)
+        using L'_D' uhd_D' hd_uL' EE'' L'_D' apply auto -- \<open>TODO proof\<close>
+        by (smt Clausal_Logic.uminus_lit_swap L'_D' add_mset_diff_bothsides add_mset_eq_add_mset_ne
+              insert_DiffM p(48) uhd_D')
+      have \<open>length E' \<ge> 2\<close>
+        using EE'' L'_D' uhd_D' hd_uL' by (cases E'; cases \<open>tl E'\<close>) simp_all
+      then have E': \<open>E!0 # E!1 # remove1 (E ! 0) (remove1 (E ! 1) E) = E\<close>
+        using EE'' unfolding E_E'[symmetric]
+        by (cases E'; cases \<open>tl E'\<close>) auto
       show ?thesis (is \<open>(?T', ?T) \<in> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}\<close>)
       proof -
         have T: \<open>?T = ?T'\<close> and DD': \<open>D = D'\<close>
-          using M1_M1a L'_La S_expand EE' by auto
+          using M1_M1a L'_La S_expand EE'' E' hd_uL' by (auto simp: uminus_lit_swap)
 
         have is_N\<^sub>1_add: \<open>is_N\<^sub>1 (A + B) \<longleftrightarrow> set_mset A \<subseteq> set_mset N\<^sub>1\<close> if \<open>is_N\<^sub>1 B\<close> for A B
           using that unfolding is_N\<^sub>1_def by auto
 
         have LL: \<open>xa \<in> set E' \<longleftrightarrow> xa \<in># (the D)\<close> for xa
-          using EE' D_not_None S_expand by auto
+          using D_not_None S_expand mset_E_D' E_E' by auto
         have atms_take_U_N: \<open>atms_of_ms (mset ` set (take U (tl N))) \<subseteq> atms_of_ms (mset ` set (tl N))\<close>
           by (auto simp: atms_of_ms_def dest: in_set_takeD)
 
@@ -1421,16 +1538,16 @@ proof -
                 mset_take_mset_drop_mset' H image_image
                 dest!: in_atms_of_minusD)
           moreover have \<open>xa \<in> set E \<Longrightarrow> atm_of xa \<in> atms_of N\<^sub>1\<close> for xa
-            using alien_confl EE' atms_take_U_N DD' by (auto intro: K_N K_NP)
+            using alien_confl EE'' atms_take_U_N DD' by (auto intro: K_N K_NP)
           ultimately show ?thesis
             using atm_hd atm_L
             by (auto simp add: in_N\<^sub>1_iff in_lits_of_atms_of_m_ain_atms_of_iff mset_take_mset_drop_mset'
                 dest!: in_atms_of_minusD)
         qed
         then have \<open>literals_are_N\<^sub>0 ?T\<close>
-          using N\<^sub>0 EE'
+          using N\<^sub>0 EE'' L'_D' uhd_D' hd_uL' L'_La S_expand
           by (cases \<open>Suc U - length N\<close>; cases N)
-            (simp_all add: clauses_def mset_take_mset_drop_mset' S_expand
+            (auto simp add: clauses_def mset_take_mset_drop_mset' uminus_lit_swap
               lits_of_atms_of_mm_union lits_of_atms_of_mm_add_mset (* is_N\<^sub>1_def *)
               in_lits_of_atms_of_mm_ain_atms_of_iff is_N\<^sub>1_add)
         then show ?thesis
@@ -2668,13 +2785,13 @@ proof -
        bb \<noteq> {#} \<and> a \<noteq> [] \<and> ex_decomp_of_max_lvl a (Some bb) bg \<and> bg = lit_of (hd a) \<and>
        no_resolve (a, b, ba, Some bb, bc, bd, be, bf) \<and>
        no_skip (a, b, ba, Some bb, bc, bd, be, bf) \<and>
-       twl_struct_invs (convert_lits_l b a, 
+       twl_struct_invs (convert_lits_l b a,
          {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (take ba (tl b))#},
          {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (drop (Suc ba) b)#},
-         Some bb, bc, bd, {#}, be)]\<^sub>a 
+         Some bb, bc, bd, {#}, be)]\<^sub>a
     pair_nat_ann_lits_assn\<^sup>d *\<^sub>a (arrayO_raa clause_ll_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
       conflict_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a
-      (hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0))\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> 
+      (hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0))\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>
    pair_nat_ann_lits_assn\<close>
     (is \<open> _ \<in> [?Q]\<^sub>a  _ \<rightarrow> _\<close>)
     using find_decomp_wl_imp_code.refine[FCOMP find_decomp_wl_imp_find_decomp_wl'] .
@@ -2981,10 +3098,7 @@ sepref_thm skip_and_resolve_loop_wl_D
     maximum_level_remove[symmetric]
     Multiset.is_empty_def[symmetric]
     get_maximum_level_remove_def[symmetric]
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply (sepref_dbg_side_keep)  by sepref
+  by sepref
 
 
 
@@ -2999,7 +3113,7 @@ lemmas skip_and_resolve_loop_wl_D_code_refine[sepref_fr_rules] =
 
 text \<open>TODO move upper\<close>
 lemma (in -) id_list_of_mset[sepref_fr_rules]:
-  \<open>(return o id, list_of_mset) \<in> conflict_assn\<^sup>d \<rightarrow>\<^sub>a clause_ll_assn\<close>
+  \<open>(return o id, list_of_mset) \<in> conflict_assn\<^sup>d \<rightarrow>\<^sub>a arl_assn nat_lit_assn\<close>
   by sepref_to_hoare (sep_auto simp: hr_comp_def list_of_mset_def arl_assn_def list_mset_rel_def
       br_def)
 
@@ -3013,18 +3127,26 @@ definition (in -) find_lit_of_max_level_wl_imp where
       ASSERT(j < length D);
       RETURN (D!j)
   }\<close>
+term maximum_level_remove_code
+sepref_definition (in -) maximum_level_remove_code_array
+  is \<open>uncurry2 (RETURN ooo maximum_level_remove)\<close>
+  :: \<open>pair_nat_ann_lits_assn\<^sup>k *\<^sub>a (array_assn nat_lit_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  unfolding maximum_level_remove_def[abs_def]
+  by sepref
 
-declare maximum_level_remove_code.refine[sepref_fr_rules]
+declare (in -) maximum_level_remove_code_array.refine[sepref_fr_rules]
+declare (in -) maximum_level_remove_code.refine[sepref_fr_rules]
+
 sepref_definition find_lit_of_max_level_wl_imp_code
   is \<open>uncurry8 (\<lambda>M N U D NP UP WS Q L. find_lit_of_max_level_wl_imp M D L)\<close>
-  :: \<open>(pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (clause_ll_assn)\<^sup>k *\<^sub>a
+  :: \<open>(pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_lit_assn)\<^sup>k *\<^sub>a
        unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
     nat_lit_assn\<^sup>k
     \<rightarrow>\<^sub>a nat_lit_assn\<close>
   unfolding find_lit_of_max_level_wl_imp_def get_maximum_level_remove_def[symmetric]
-    thm maximum_level_remove_code.refine
   supply [[goals_limit=1]]
   by sepref
+
 thm find_lit_of_max_level_wl_imp_code.refine
 text \<open>TODO: share with simpel impelemtation\<close>
 lemma in_remove1_msetI: \<open>x \<noteq> a \<Longrightarrow> x \<in># M \<Longrightarrow> x \<in># remove1_mset a M\<close>
@@ -3070,16 +3192,10 @@ intro!: in_remove1_msetI)
   show ?thesis
     using find_lit_of_max_level_wl_imp_code.refine[FCOMP 1] .
 qed
-definition (in -)single_of_mset where
-  \<open>single_of_mset D = SPEC(\<lambda>L. D = mset [L])\<close>
-
-definition (in -)list_of_mset2 :: "nat literal \<Rightarrow> nat literal \<Rightarrow> nat clause \<Rightarrow> nat clause_l nres" where
-  \<open>list_of_mset2 L L' D =
-    SPEC (\<lambda>E. mset E = D \<and> E!0 = L \<and> E!1 = L')\<close>
 
 lemma (in -)find_first_eq_code_index[sepref_fr_rules]:
   \<open>(uncurry (\<lambda>xs a. find_first_eq_code a xs), uncurry (RETURN oo op_list_index)) \<in>
-      clause_ll_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+      (arl_assn nat_lit_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
 proof -
   have 0: \<open>(uncurry (\<lambda>xs a. find_first_eq_code a xs), uncurry (\<lambda>xs a. find_first_eq a xs))
   \<in> (arl_assn nat_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
@@ -3095,7 +3211,7 @@ proof -
         \<langle>nat_lit_rel\<rangle> list_rel \<times>\<^sub>r nat_lit_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
     by (intro frefI nres_relI) (auto simp: index_def list_rel_def)
   have 3: \<open>(hr_comp (hr_comp (arl_assn nat_assn) (\<langle>nat_rel\<rangle>list_rel)) (\<langle>nat_lit_rel\<rangle>list_rel)) =
-   clause_ll_assn\<close>
+   arl_assn nat_lit_assn\<close>
     by (auto simp: arl_assn_def)
   show ?thesis
     using 0[FCOMP 1, FCOMP 2] unfolding 3 by simp
@@ -3108,21 +3224,23 @@ definition (in -) remove1_and_add_first :: "nat literal \<Rightarrow> nat litera
       ASSERT(pre_list_swap ((D, 0), i));
       let D = swap D 0 i;
       let j = (if j = 0 then i else j);
-      ASSERT(pre_list_swap ((D, 1), j));
-      RETURN (swap D 1 j)
+      let one = 1;
+      ASSERT(pre_list_swap ((D, one), j));
+      RETURN (swap D one j)
    }
    \<close>
 
 sepref_definition (in -)remove1_and_add_first_code
   is \<open>uncurry2 (remove1_and_add_first)\<close>
-  :: \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d \<rightarrow>\<^sub>a clause_ll_assn\<close>
+  :: \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k *\<^sub>a (arl_assn nat_lit_assn)\<^sup>d \<rightarrow>\<^sub>a (arl_assn nat_lit_assn)\<close>
   unfolding remove1_and_add_first_def
+  supply [[goals_limit=1]]
   by sepref
 
 lemma (in -)remove1_and_add_first_code_list_of_mset2[sepref_fr_rules]:
   \<open>(uncurry2 remove1_and_add_first_code, uncurry2 (list_of_mset2))
   \<in> [\<lambda>((L, L'), D). L \<in># D \<and> L' \<in># D \<and> L \<noteq> L' \<and> distinct_mset D]\<^sub>a
-     nat_lit_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>d \<rightarrow> clause_ll_assn\<close>
+     nat_lit_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>d \<rightarrow> arl_assn nat_lit_assn\<close>
   (is \<open>_ \<in> [?P]\<^sub>a _ \<rightarrow> _\<close>)
 proof -
   have H: \<open>xs ! n = a\<close> if \<open>index xs a = n\<close> and \<open>n < length xs\<close> for n xs a
@@ -3151,55 +3269,6 @@ proof -
     using remove1_and_add_first_code.refine[FCOMP 1] .
 qed
 
-definition backtrack_wl_D' :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
-  \<open>backtrack_wl_D' S\<^sub>0 =
-   do {
-      let (M, N, U, D, NP, UP, Q, W) = S\<^sub>0 in
-      do {
-        ASSERT(M \<noteq> []);
-        let L = lit_of (hd M);
-        ASSERT(get_level M L = count_decided M);
-        ASSERT(D \<noteq> None);
-        ASSERT(D \<noteq> Some {#});
-        ASSERT(ex_decomp_of_max_lvl M D L);
-        ASSERT(-L \<in># the D);
-        ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
-        ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
-        ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
-        ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
-        let E = the D;
-        M1 \<leftarrow> find_decomp_wl (M, N, U, Some E, NP, UP, Q, W) L;
-
-        if size E > 1
-        then do {
-          ASSERT(distinct_mset E);
-          ASSERT(\<forall>L' \<in># the D - {#-L#}. get_level M L' = get_level M1 L');
-          ASSERT(\<exists>L' \<in># the D - {#-L#}. get_level M L' = get_maximum_level M (the D - {#-L#}));
-          ASSERT(\<exists>L' \<in># the D - {#-L#}. get_level M1 L' = get_maximum_level M1 (the D - {#-L#}));
-          ASSERT(get_level M L > get_maximum_level M (the D - {#-L#}));
-          L' \<leftarrow> find_lit_of_max_level_wl' M1 N U E NP UP Q W L;
-          ASSERT(L \<noteq> -L');
-          ASSERT(-L \<in># E);
-          ASSERT(L' \<in># E);
-          let K = -L;
-          D' \<leftarrow> list_of_mset2 K L' E;
-          ASSERT(atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP));
-          ASSERT(atm_of L' \<in> atms_of_mm (mset `# mset (tl N) + NP));
-          ASSERT(-L \<in> snd ` D\<^sub>0);
-          ASSERT(L' \<in> snd ` D\<^sub>0);
-          let W = W(L':= W L' @ [length N]);
-          let W = W(-L:= W (-L) @ [length N]);
-          RETURN (Propagated (-L) (length N) # M1,
-            N @ [D'], U,
-            None, NP, UP, {#L#}, W)
-        }
-        else do {
-          D' \<leftarrow> single_of_mset E;
-          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset {#D'#} UP, add_mset L {#}, W)
-        }
-      }
-    }
-  \<close>
 lemma [sepref_fr_rules]: \<open>(arl_length, RETURN o size) \<in> conflict_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare
    (sep_auto simp: hr_comp_def arl_assn_def list_mset_rel_def br_def list_rel_def
@@ -3213,12 +3282,13 @@ definition (in -) single_of_mset_imp :: \<open>'a list \<Rightarrow> 'a nres\<cl
 
 sepref_definition(in -) single_of_mset_imp_code
   is \<open>single_of_mset_imp\<close>
-  :: \<open>clause_ll_assn\<^sup>d \<rightarrow>\<^sub>a nat_lit_assn\<close>
+  :: \<open>(arl_assn nat_lit_assn)\<^sup>d \<rightarrow>\<^sub>a nat_lit_assn\<close>
   unfolding single_of_mset_imp_def
   by sepref
-    term single_of_mset
+
 lemma (in -)single_of_mset_imp_code_single_of_mset[sepref_fr_rules]:
-  \<open>(single_of_mset_imp_code, single_of_mset) \<in> [\<lambda>D. D \<noteq> {#} \<and> size D \<le> 1]\<^sub>a conflict_assn\<^sup>d \<rightarrow> nat_lit_assn\<close>
+  \<open>(single_of_mset_imp_code, single_of_mset) \<in> [\<lambda>D. D \<noteq> {#} \<and> size D \<le> 1]\<^sub>a
+     conflict_assn\<^sup>d \<rightarrow> nat_lit_assn\<close>
 proof -
   have 1: \<open>(single_of_mset_imp, single_of_mset) \<in> [\<lambda>D. D \<noteq> {#} \<and> size D \<le> 1]\<^sub>f list_mset_rel \<rightarrow>
       \<langle>Id\<rangle> nres_rel\<close>
@@ -3230,11 +3300,17 @@ proof -
     using single_of_mset_imp_code.refine[FCOMP 1] by simp
 qed
 
-sepref_register backtrack_wl_D'
-sepref_thm backtrack_wl_D'
-  is \<open>PR_CONST backtrack_wl_D'\<close>
+lemma length_ra_op_list_length[sepref_fr_rules]: -- \<open>TODO: should already exist\<close>
+   \<open>(length_ra, RETURN o op_list_length) \<in> (arrayO_raa R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare sep_auto
+
+declare array_of_arl[sepref_fr_rules] -- \<open>TODO declare source\<close>
+
+sepref_register backtrack_wl_D
+sepref_thm backtrack_wl_D
+  is \<open>PR_CONST backtrack_wl_D\<close>
   :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
-  unfolding backtrack_wl_D'_def PR_CONST_def
+  unfolding backtrack_wl_D_def PR_CONST_def
   unfolding twl_st_l_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] (* lms_fold_custom_empty *)
@@ -3243,13 +3319,7 @@ sepref_thm backtrack_wl_D'
   unfolding no_skip_def[symmetric] no_resolve_def[symmetric]
     find_decomp_wl'_find_decomp_wl[symmetric] option.sel add_mset_list.simps
   supply [[goals_limit=1]]
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-                      apply sepref_dbg_trans_step_keep
-    thm uminus_lit_imp_hnr
-    using [[unify_trace_failure]]
-    thm remove1_and_add_first_code_list_of_mset2[to_hnr]
-  oops
+  by sepref
 end
 
 
