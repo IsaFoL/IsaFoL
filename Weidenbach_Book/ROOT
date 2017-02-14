@@ -210,6 +210,8 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
     CDCL_Two_Watched_Literals_List_Watched_Initialisation
     CDCL_Two_Watched_Literals_List_Watched
     Array_Array_List
+    Array_List_Array
+    CDCL_Two_Watched_Literals_List_Watched_Code
 
     Weidenbach_Book
   document_files

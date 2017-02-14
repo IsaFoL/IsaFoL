@@ -3331,23 +3331,9 @@ lemmas backtrack_wl_D_code_refine[sepref_fr_rules] =
    backtrack_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
 end
 
+export_code "unit_propagation_inner_loop_wl_D_code" in SML module_name Test
+export_code "pending_wll_empty" in SML module_name Test
 
-
-lemma \<open>(uncurry2 remove1_and_add_first_code, uncurry2 (RETURN ooo remove1_and_add_first_abs))
-  \<in> [\<lambda>((L, L'), D). L \<in># D \<and> L' \<in># D \<and> L \<noteq> L' \<and> distinct_mset D]\<^sub>a
-    nat_lit_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>d \<rightarrow> conflict_assn\<close>
-
-
-
-
-
-
-
-
-
-export_code "unit_propagation_inner_loop_wl_D_code" in Haskell
-export_code "pending_wll_empty" in Haskell
-
-export_code "unit_propagation_inner_loop_wl_loop_D_code" in Haskell
+export_code "unit_propagation_inner_loop_wl_loop_D_code" in SML module_name Test
 
 end
