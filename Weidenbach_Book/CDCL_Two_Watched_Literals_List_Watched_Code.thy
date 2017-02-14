@@ -3320,6 +3320,15 @@ sepref_thm backtrack_wl_D
     find_decomp_wl'_find_decomp_wl[symmetric] option.sel add_mset_list.simps
   supply [[goals_limit=1]]
   by sepref
+
+concrete_definition (in -) backtrack_wl_D_code
+   uses twl_array_code.backtrack_wl_D.refine_raw
+   is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) backtrack_wl_D_code_def
+
+lemmas backtrack_wl_D_code_refine[sepref_fr_rules] =
+   backtrack_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
 end
 
 
