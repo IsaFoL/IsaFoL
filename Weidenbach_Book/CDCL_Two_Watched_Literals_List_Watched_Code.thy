@@ -356,12 +356,23 @@ text \<open>We start in a context where we have an initial set of literals. It s
   a context, but this is not compatible with the refinement framework. It does only appear in
   the specifications.\<close>
 locale twl_array_code =
-  fixes N\<^sub>0 :: \<open>nat literal multiset\<close>
+  fixes N\<^sub>0 :: \<open>nat list\<close>
 begin
 
 text \<open>This is the \<^emph>\<open>completion\<close> of \<^term>\<open>N\<^sub>0\<close>, containing the positive and the negation of every
   literal of \<^term>\<open>N\<^sub>0\<close>:\<close>
-definition N\<^sub>1 where \<open>N\<^sub>1 = N\<^sub>0 + uminus `# N\<^sub>0\<close>
+definition N\<^sub>0' where \<open>N\<^sub>0' = map literal_of_nat N\<^sub>0\<close>
+definition N\<^sub>0'' where \<open>N\<^sub>0'' = mset N\<^sub>0'\<close>
+
+definition N\<^sub>1 where \<open>N\<^sub>1 = N\<^sub>0'' + uminus `# N\<^sub>0''\<close>
+sepref_register N\<^sub>1
+lemma list_assn_N\<^sub>0: \<open>list_assn (\<lambda>a c. \<up> ((c, a) \<in> nat_lit_rel)) N\<^sub>0' N\<^sub>0 = emp\<close>
+  unfolding N\<^sub>0'_def
+  by (induction N\<^sub>0)  (auto simp del: literal_of_nat.simps simp: p2rel_def lit_of_natP_def)
+
+lemma N_hnr'[sepref_import_param]:
+  "(uncurry0 (return N\<^sub>0), uncurry0 (RETURN N\<^sub>0'))\<in>unit_assn\<^sup>k \<rightarrow>\<^sub>a list_assn nat_lit_assn"
+  by sepref_to_hoare (sep_auto simp: list_assn_N\<^sub>0)
 
 abbreviation D\<^sub>0 :: \<open>(nat \<times> nat literal) set\<close> where
   \<open>D\<^sub>0 \<equiv> (\<lambda>L. (nat_of_lit L, L)) ` set_mset N\<^sub>1\<close>
@@ -3329,6 +3340,35 @@ prepare_code_thms (in -) backtrack_wl_D_code_def
 
 lemmas backtrack_wl_D_code_refine[sepref_fr_rules] =
    backtrack_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+
+definition find_unassigned_lit_wl_D :: \<open>_\<close> where
+  \<open>find_unassigned_lit_wl_D = (\<lambda>(M, N, U, D, NP, UP, WS, Q). do {
+    S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, xs). set xs \<subseteq> set N\<^sub>0'\<^esup>
+      (\<lambda>(brk, xs). is_None brk \<and> xs \<noteq> [])
+      (\<lambda>(_, xs). do {
+         ASSERT(\<not>is_Nil xs);
+         ASSERT(no_dup M);
+         RETURN (if \<not> is_None(valued M (hd xs)) then Some (hd xs) else None, tl xs)
+        })
+      (None, N\<^sub>0');
+    RETURN (fst S)
+   }
+   )\<close>
+sepref_register N\<^sub>0'
+declare N_hnr'[sepref_fr_rules]
+
+lemma N_hnr[sepref_import_param]: "(N\<^sub>0,N\<^sub>0')\<in>\<langle>nat_lit_rel\<rangle>list_rel"
+  unfolding N\<^sub>0'_def
+  by (induction N\<^sub>0) (auto simp del: literal_of_nat.simps simp: p2rel_def lit_of_natP_def)
+
+sepref_thm find_unassigned_lit_wl_D
+  is \<open> (PR_CONST find_unassigned_lit_wl_D)\<close>
+  :: \<open>twl_st_l_assn\<^sup>k \<rightarrow>\<^sub>a option_assn nat_lit_assn\<close>
+  unfolding find_unassigned_lit_wl_D_def PR_CONST_def twl_st_l_assn_def
+    is_None_def[symmetric]
+  supply [[goals_limit = 1]]
+  by sepref
+
 end
 
 export_code "unit_propagation_inner_loop_wl_D_code" in SML module_name Test
