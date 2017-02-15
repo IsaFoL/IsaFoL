@@ -1625,6 +1625,7 @@ definition decide_wl_or_skip_D :: "'v twl_st_wl \<Rightarrow> (bool \<times> 'v 
     ASSERT(twl_stgy_invs (twl_st_of_wl None S));
     ASSERT(additional_WS_invs (st_l_of_wl None S));
     ASSERT(get_conflict_wl S = None);
+    ASSERT(literals_are_N\<^sub>0 S);
     L \<leftarrow> find_unassigned_lit_wl S;
     if L \<noteq> None
     then do {
@@ -3343,12 +3344,14 @@ lemmas backtrack_wl_D_code_refine[sepref_fr_rules] =
 
 definition find_unassigned_lit_wl_D :: \<open>_\<close> where
   \<open>find_unassigned_lit_wl_D = (\<lambda>(M, N, U, D, NP, UP, WS, Q). do {
-    S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, xs). set xs \<subseteq> set N\<^sub>0'\<^esup>
+    S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, xs). (\<exists>ys. N\<^sub>0' = ys @ xs \<and> 
+            (brk = None \<longrightarrow> (\<forall>L \<in> set ys. defined_lit M L)) \<and> 
+            (brk \<noteq> None \<longrightarrow> undefined_lit M (the brk) \<and> the brk = last ys \<and> ys \<noteq> []))\<^esup>
       (\<lambda>(brk, xs). is_None brk \<and> xs \<noteq> [])
       (\<lambda>(_, xs). do {
-         ASSERT(\<not>is_Nil xs);
+         ASSERT(xs \<noteq> []);
          ASSERT(no_dup M);
-         RETURN (if \<not> is_None(valued M (hd xs)) then Some (hd xs) else None, tl xs)
+         RETURN (if is_None(valued M (hd xs)) then Some (hd xs) else None, tl xs)
         })
       (None, N\<^sub>0');
     RETURN (fst S)
@@ -3361,19 +3364,266 @@ lemma N_hnr[sepref_import_param]: "(N\<^sub>0,N\<^sub>0')\<in>\<langle>nat_lit_r
   unfolding N\<^sub>0'_def
   by (induction N\<^sub>0) (auto simp del: literal_of_nat.simps simp: p2rel_def lit_of_natP_def)
 
-sepref_thm find_unassigned_lit_wl_D
-  is \<open> (PR_CONST find_unassigned_lit_wl_D)\<close>
+sepref_definition find_unassigned_lit_wl_D_code
+  is \<open>PR_CONST find_unassigned_lit_wl_D\<close>
   :: \<open>twl_st_l_assn\<^sup>k \<rightarrow>\<^sub>a option_assn nat_lit_assn\<close>
   unfolding find_unassigned_lit_wl_D_def PR_CONST_def twl_st_l_assn_def
     is_None_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
+ 
+lemma set_mset_lits_of_atms_of_mm_atms_of_ms_iff:
+  \<open>set_mset (lits_of_atms_of_mm A) = set_mset N\<^sub>1 \<longleftrightarrow> atms_of_ms (set_mset A) = atms_of N\<^sub>1\<close>
+  apply (auto simp: atms_of_s_def in_lits_of_atms_of_mm_ain_atms_of_iff atms_of_ms_def
+      atms_of_def atm_of_eq_atm_of in_N\<^sub>1_iff)
+  apply (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff in_implies_atm_of_on_atms_of_ms)
+  done -- \<open>TODO tune proof\<close>
 
+lemma Ball_mset_add: \<open>Multiset.Ball (M + N) P \<longleftrightarrow> Multiset.Ball M P \<and> Multiset.Ball N P\<close>
+  by auto
+
+lemma find_unassigned_lit_wl_D_find_unassigned_lit_wl:
+  \<open>(find_unassigned_lit_wl_D, find_unassigned_lit_wl) \<in> 
+  [\<lambda>S. literals_are_N\<^sub>0 S \<and> twl_struct_invs (twl_st_of_wl None S) \<and> 
+    get_conflict_wl S = None]\<^sub>f 
+  Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>\<langle>Id\<rangle>option_rel\<rangle>nres_rel\<close>
+proof -
+  have le_minus_iff: \<open>(a::nat) \<le> a - Suc b \<longleftrightarrow> a = 0\<close> for a b
+    by auto
+  have le_Down_option_rel[iff]: \<open>S \<le> \<Down> (\<langle>Id\<rangle>option_rel) T \<longleftrightarrow> S\<le>T\<close> for S T
+    by auto
+  have [simp]: \<open>valued M L = None \<longleftrightarrow> undefined_lit M L\<close> for M L
+    by (auto simp: valued_def)
+  have H: \<open>defined_lit M L\<close> if \<open>valued M L = Some x\<close> for M L x
+    using that
+    by (auto simp: valued_def Decided_Propagated_in_iff_in_lits_of_l 
+        split: option.splits if_splits)
+  show ?thesis
+    apply (intro nres_relI frefI)
+  apply clarify
+  unfolding find_unassigned_lit_wl_D_def  find_unassigned_lit_wl_def
+  apply (refine_vcg WHILEIT_rule[where R=\<open>measure (size o snd)\<close>])
+  subgoal by auto
+  subgoal by auto
+  subgoal by (auto split: list.splits)
+  subgoal for a aa ab ac ad ae af b ag ah ai aj ak al am ba x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m s an bb
+    apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv
+      (convert_to_state (twl_st_of_wl None (ag, ah, ai, aj, ak, al, am, ba)))\<close>)
+    subgoal by (simp add: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset_state)
+    subgoal by (subst (asm)twl_struct_invs_def, 
+       subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def) fast
+    done
+  subgoal premises p for a aa ab ac ad ae af b M N U D NP UP WS Q x1 x2 x1a x2a x1b x2b x1c
+       x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k x1l
+       x2l x1m x2m s brk xs brk' xs'
+  proof -
+    thm p
+    note lit_N\<^sub>0 = p(2) and struct_invs = p(3) and inv = p(19) and cont = p(20) and s = p(21) and
+      out = p(24)
+    obtain ys where
+      ys: \<open>N\<^sub>0' = ys @ xs\<close> and
+      brk_None: \<open>(brk = None \<longrightarrow> Ball (set ys) (defined_lit x1))\<close> and
+      brk_Some: \<open>(brk \<noteq> None \<longrightarrow> undefined_lit x1 (the brk))\<close>
+      using inv s by blast
+    show ?thesis
+      apply (rule exI[of _ \<open>ys @ [hd xs]\<close>])
+      using ys cont s out brk_None by (auto split: option.splits simp: H)
+  qed
+  subgoal by (auto split:)
+  subgoal premises p using p(1,5-) by auto
+  subgoal premises p for M'' N'' U'' D'' NP'' UP'' WS'' Q'' M N U D NP UP WS Q x1 x2 x1a x2a x1b x2b x1c
+    x2c x1d x2d x1e x2e x1f x2f M' x2g N' x2h U' x2i D' x2j NP' x2k UP' _ WS' Q'  s 
+  proof -
+    thm p
+    note lit_N\<^sub>0 = p(2) and struct_invs = p(3) and confl = p(4) and st = p(1,5-18) and inv = p(19) and
+      cont = p(20) and s = p(21)
+    have [simp]: \<open>M' = M\<close> \<open>N' = N\<close> \<open>U' = U\<close> \<open>D' = D\<close> \<open>NP' = NP\<close> \<open>UP' = UP\<close> \<open>WS' = WS\<close> \<open>Q' = Q\<close> 
+      \<open>x1 = M\<close> \<open>M'' = M\<close> \<open>N'' = N\<close> \<open>U'' = U\<close> \<open>D'' = D\<close> \<open>NP'' = NP\<close> \<open>UP'' = UP\<close> \<open>WS'' = WS\<close> \<open>Q'' = Q\<close> 
+      using st by auto
+    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q)))\<close> and
+      unit: \<open>unit_clss_inv (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q))\<close>
+      using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      by fast+
+    moreover have \<open>atms_of_ms (mset ` set (tl N)) = atms_of_ms (mset ` set (take U (tl N))) \<union>
+              atms_of_ms (mset ` set (drop U (tl N)))\<close>
+      by (subst append_take_drop_id[of U, symmetric], subst set_append) (simp add: image_Un)
+    ultimately have 0: \<open>atms_of_ms ((mset ` set (take U (tl N))) \<union> set_mset NP) = 
+       atms_of_ms (mset ` set (tl N) \<union> set_mset NP)\<close> and 
+      UP_NP: \<open>atms_of_ms (set_mset UP) \<subseteq> 
+       atms_of_ms (mset ` set (tl N) \<union> set_mset NP)\<close>
+      by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def mset_take_mset_drop_mset'
+          cdcl\<^sub>W_restart_mset_state drop_Suc)
+    have 1: \<open>mset `# mset (take U (tl N)) + NP +
+             (mset `# mset (drop (Suc U) N) + UP) = mset `# mset (tl N) + NP + UP\<close>
+      by (subst (2) append_take_drop_id[symmetric, of \<open>tl N\<close> U], subst mset_append)
+        (simp add: drop_Suc)
+    have in_N\<^sub>1: \<open>Neg x \<in># N\<^sub>1 \<longleftrightarrow> x \<in> atms_of N\<^sub>1\<close>\<open>Pos x \<in># N\<^sub>1 \<longleftrightarrow> x \<in> atms_of N\<^sub>1\<close> for x
+      using in_N\<^sub>1_iff[of \<open>Neg x\<close>] in_N\<^sub>1_iff[of \<open>Pos x\<close>] by simp_all
+    have tl_N_NP_N\<^sub>1: \<open>atms_of_ms (mset ` set (tl N) \<union> set_mset NP) = atms_of_s (set_mset N\<^sub>1)\<close>
+      using lit_N\<^sub>0 0 UP_NP unfolding is_N\<^sub>1_def
+      by (subst (asm) set_mset_lits_of_atms_of_mm_atms_of_ms_iff)
+        (auto simp add: clauses_def mset_take_mset_drop_mset' in_lits_of_atms_of_mm_ain_atms_of_iff
+          cdcl\<^sub>W_restart_mset_state 1 lits_of_atms_of_mm_union in_N\<^sub>1)
+    let ?L = \<open>the (fst s)\<close>
+    obtain brk xs where s': \<open>s = (brk, xs)\<close> by (cases s)
+    obtain ys where
+      ys: \<open>N\<^sub>0' = ys @ xs\<close> and
+      brk_None: \<open>(brk = None \<longrightarrow> Ball (set ys) (defined_lit x1))\<close> and
+      brk_Some: \<open>(brk \<noteq> None \<longrightarrow> undefined_lit x1 (the brk) \<and> the brk = last ys \<and> ys \<noteq> [])\<close>
+      using inv s s' by blast
+    have H: \<open>Neg (atm_of y) \<notin> ys \<Longrightarrow> Pos (atm_of y) \<notin> ys \<Longrightarrow> y \<notin> ys\<close> for y ys
+      by (cases y) auto
+        
+    have \<open>undefined_lit M ?L\<close>
+      using inv s cont by auto
+    moreover have [dest!]:  \<open>\<And>C. C\<in># NP \<Longrightarrow>  \<exists>L. C = {#L#} \<and>
+                (D = None \<longrightarrow> get_level M L = 0 \<and> L \<in> lits_of_l M) \<and>
+                (0 < count_decided M \<longrightarrow>
+                 get_level M L = 0 \<and> L \<in> lits_of_l M)\<close>
+      using unit by (auto simp del: set_mset_union simp: Ball_mset_add)
+    ultimately have L_not_NP: \<open>atm_of ?L \<notin> atms_of_ms (set_mset NP)\<close>
+      using unit confl s' s by (auto simp: Decided_Propagated_in_iff_in_lits_of_l
+          atms_of_ms_def atms_of_def atm_of_eq_atm_of)
+    moreover have L_N\<^sub>0': \<open>atm_of ?L \<in> atms_of_s (set N\<^sub>0')\<close>
+      using inv cont cont H[of \<open>last ys\<close> \<open>set ys\<close>] s' ys brk_Some s
+      by auto
+    have N\<^sub>0_N\<^sub>1: \<open>atms_of_s (set N\<^sub>0') = atms_of_s (set_mset N\<^sub>1)\<close>
+      by (auto simp: N\<^sub>1_def N\<^sub>0''_def uminus_lit_swap[symmetric])
+    show ?thesis
+      using L_N\<^sub>0' L_not_NP unfolding N\<^sub>0_N\<^sub>1 tl_N_NP_N\<^sub>1[symmetric] 0[symmetric]
+      by (simp add: mset_take_mset_drop_mset')
+  qed
+ subgoal premises p for M'' N'' U'' D'' NP'' UP'' WS'' Q'' M N U D NP UP WS Q x1 x2 x1a x2a x1b x2b x1c
+    x2c x1d x2d x1e x2e x1f x2f M' x2g N' x2h U' x2i D' x2j NP' x2k UP' _ WS' Q'  s 
+  proof -
+    thm p
+    note lit_N\<^sub>0 = p(2) and struct_invs = p(3) and confl = p(4) and st = p(1,5-18) and inv = p(19) and
+      cont = p(20) and s = p(21)
+    have S[simp]: \<open>M' = M\<close> \<open>N' = N\<close> \<open>U' = U\<close> \<open>D' = D\<close> \<open>NP' = NP\<close> \<open>UP' = UP\<close> \<open>WS' = WS\<close> \<open>Q' = Q\<close> 
+      \<open>x1 = M\<close> \<open>M'' = M\<close> \<open>N'' = N\<close> \<open>U'' = U\<close> \<open>D'' = D\<close> \<open>NP'' = NP\<close> \<open>UP'' = UP\<close> \<open>WS'' = WS\<close> \<open>Q'' = Q\<close> 
+      using st by auto
+    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q)))\<close> and
+      unit: \<open>unit_clss_inv (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q))\<close>
+      using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      by fast+
+    moreover have \<open>atms_of_ms (mset ` set (tl N)) = atms_of_ms (mset ` set (take U (tl N))) \<union>
+              atms_of_ms (mset ` set (drop U (tl N)))\<close>
+      by (subst append_take_drop_id[of U, symmetric], subst set_append) (simp add: image_Un)
+    ultimately have 0: \<open>atms_of_ms ((mset ` set (take U (tl N))) \<union> set_mset NP) = 
+       atms_of_ms (mset ` set (tl N) \<union> set_mset NP)\<close> and 
+      UP_NP: \<open>atms_of_ms (set_mset UP) \<subseteq> 
+       atms_of_ms (mset ` set (tl N) \<union> set_mset NP)\<close>
+      by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def mset_take_mset_drop_mset'
+          cdcl\<^sub>W_restart_mset_state drop_Suc)
+    have 1: \<open>mset `# mset (take U (tl N)) + NP +
+             (mset `# mset (drop (Suc U) N) + UP) = mset `# mset (tl N) + NP + UP\<close>
+      by (subst (2) append_take_drop_id[symmetric, of \<open>tl N\<close> U], subst mset_append)
+        (simp add: drop_Suc)
+    have in_N\<^sub>1: \<open>Neg x \<in># N\<^sub>1 \<longleftrightarrow> x \<in> atms_of N\<^sub>1\<close>\<open>Pos x \<in># N\<^sub>1 \<longleftrightarrow> x \<in> atms_of N\<^sub>1\<close> for x
+      using in_N\<^sub>1_iff[of \<open>Neg x\<close>] in_N\<^sub>1_iff[of \<open>Pos x\<close>] by simp_all
+    have tl_N_NP_N\<^sub>1: \<open>atms_of_ms (mset ` set (tl N) \<union> set_mset NP) = atms_of_s (set_mset N\<^sub>1)\<close>
+      using lit_N\<^sub>0 0 UP_NP unfolding is_N\<^sub>1_def
+      by (subst (asm) set_mset_lits_of_atms_of_mm_atms_of_ms_iff)
+        (auto simp add: clauses_def mset_take_mset_drop_mset' in_lits_of_atms_of_mm_ain_atms_of_iff
+          cdcl\<^sub>W_restart_mset_state 1 lits_of_atms_of_mm_union in_N\<^sub>1)
+    let ?L = \<open>the (fst s)\<close>
+    obtain brk xs where s': \<open>s = (brk, xs)\<close> by (cases s)
+    obtain ys where
+      ys: \<open>N\<^sub>0' = ys @ xs\<close> and
+      brk_None: \<open>(brk = None \<longrightarrow> Ball (set ys) (defined_lit x1))\<close> and
+      brk_Some: \<open>(brk \<noteq> None \<longrightarrow> undefined_lit x1 (the brk) \<and> the brk = last ys \<and> ys \<noteq> [])\<close>
+      using inv s s' by blast
+    have H: \<open>Neg (atm_of y) \<notin> ys \<Longrightarrow> Pos (atm_of y) \<notin> ys \<Longrightarrow> y \<notin> ys\<close> for y ys
+      by (cases y) auto
+        
+
+    have [dest!]:  \<open>\<And>C. C\<in># NP \<Longrightarrow>  \<exists>L. C = {#L#} \<and>
+                (D = None \<longrightarrow> get_level M L = 0 \<and> L \<in> lits_of_l M) \<and>
+                (0 < count_decided M \<longrightarrow>
+                 get_level M L = 0 \<and> L \<in> lits_of_l M)\<close>
+      using unit by (auto simp del: set_mset_union simp: Ball_mset_add)
+    then have L_not_NP: \<open>atm_of L \<notin> atms_of_ms (set_mset NP)\<close> if \<open>undefined_lit M L\<close> for L
+      using unit confl s' s that by (auto simp: Decided_Propagated_in_iff_in_lits_of_l
+          atms_of_ms_def atms_of_def atm_of_eq_atm_of)
+    then have H: \<open>(atm_of L \<in> atms_of_ms (mset ` set (take U (tl N)))) =
+           (atm_of L \<in> atms_of_ms (mset ` set (take U (tl N)) \<union> set_mset NP))\<close> if \<open>undefined_lit M L\<close> for L
+      using that by auto
+
+    have N\<^sub>0_N\<^sub>1: \<open>atms_of_s (set N\<^sub>0') = atms_of_s (set_mset N\<^sub>1)\<close>
+      by (auto simp: N\<^sub>1_def N\<^sub>0''_def uminus_lit_swap[symmetric])
+    have [simp]: \<open>defined_lit M (Pos (atm_of L)) \<longleftrightarrow> defined_lit M L\<close>
+         \<open>defined_lit M (Neg (atm_of L)) \<longleftrightarrow> defined_lit M L\<close> for L
+      by (cases L; solves\<open>auto simp: Decided_Propagated_in_iff_in_lits_of_l\<close>)+
+    have atm: \<open>atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N))) = 
+      atms_of_ms (mset ` set (take U (tl N)))\<close> by (simp add: mset_take_mset_drop_mset')
+    show ?thesis
+      unfolding S atm
+      apply clarify
+      apply (subst (asm)H)
+       apply (solves simp)
+      unfolding N\<^sub>0_N\<^sub>1[symmetric] tl_N_NP_N\<^sub>1 0
+      using brk_None s' s ys cont
+      by auto
+  qed
+  done
+qed
+
+lemma find_unassigned_lit_wl_D_code_find_unassigned_lit_wl[sepref_fr_rules]:
+  \<open>(find_unassigned_lit_wl_D_code, find_unassigned_lit_wl)
+  \<in> [\<lambda>S. literals_are_N\<^sub>0 S \<and> twl_struct_invs (twl_st_of_wl None S) \<and> get_conflict_wl S = None]\<^sub>a 
+     twl_st_l_assn\<^sup>k \<rightarrow> option_assn nat_lit_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have P: \<open>is_pure nat_assn\<close>
+    by auto
+  have H: \<open>(find_unassigned_lit_wl_D_code, find_unassigned_lit_wl)
+  \<in> [comp_PRE (Id \<times>\<^sub>f (Id \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id)))))))
+      (\<lambda>S. literals_are_N\<^sub>0 S \<and> twl_struct_invs (twl_st_of_wl None S) \<and> get_conflict_wl S = None)
+       (\<lambda>_ _. True)
+       (\<lambda>_. True)]\<^sub>a 
+     hrp_comp (twl_st_l_assn\<^sup>k) (Id \<times>\<^sub>f (Id \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id))))))) \<rightarrow>
+     hr_comp (option_assn nat_lit_assn) (\<langle>Id\<rangle>option_rel)\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF find_unassigned_lit_wl_D_code.refine[unfolded PR_CONST_def]
+       find_unassigned_lit_wl_D_find_unassigned_lit_wl]
+       
+    unfolding op_watched_app_def .
+
+  have 1: \<open>?pre' = ?pre\<close>
+    using ex_list_watched
+    apply (auto simp: comp_PRE_def intro!: ext simp: prod_rel_def_internal
+        relAPP_def map_fun_rel_def[abs_def] p2rel_def lit_of_natP_def
+        literal_of_neq_eq_nat_of_lit_eq_iff length_ll_def
+        simp del: literal_of_nat.simps)
+      done
+
+  have 2: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have 3: \<open>?f' = ?f\<close>
+    by (auto simp: hrp_comp_def hr_comp_def)
+
+  show ?thesis
+    using H unfolding 1 2 3  .
+qed
+
+sepref_definition decide_wl_or_skip_D_code
+  is \<open>PR_CONST decide_wl_or_skip_D\<close>
+  :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *assn twl_st_l_assn\<close>
+  unfolding decide_wl_or_skip_D_def PR_CONST_def
+  apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
+
+  apply sepref_dbg_keep
+  supply [[goals_limit = 1]]
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
 end
 
+  
 export_code "unit_propagation_inner_loop_wl_D_code" in SML module_name Test
 export_code "pending_wll_empty" in SML module_name Test
 
 export_code "unit_propagation_inner_loop_wl_loop_D_code" in SML module_name Test
 
 end
+`
