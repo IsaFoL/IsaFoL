@@ -229,19 +229,19 @@ instantiation hterm :: countable begin
 instance by countable_datatype
 end
 
-lemma infinite_hatoms: "infinite (UNIV :: (pred_sym * 't list) set)"
+lemma infinite_hatoms: "infinite (UNIV :: ('t atom) set)"
 proof -
   let ?diago = "\<lambda>n. (string_from_nat n,[])"
   let ?undiago = "\<lambda>a. nat_from_string (fst a)"
   have "\<forall>n. ?undiago (?diago n) = n" using nat_from_string_string_from_nat by auto
   moreover
   have "\<forall>n. ?diago n \<in> UNIV" by auto
-  ultimately show "infinite (UNIV :: (pred_sym * 't list) set)" using infinity[of ?undiago ?diago UNIV] by simp
+  ultimately show "infinite (UNIV :: ('t atom) set)" using infinity[of ?undiago ?diago UNIV] by simp
 qed
 
 lemma nat_from_hatom_bij: "bij nat_from_hatom"
 proof -
-  let ?S = "UNIV :: (pred_sym * ('t::countable) list) set"
+  let ?S = "UNIV :: (('t::countable) atom) set"
   have "countable ?S" by auto
   moreover
   have "infinite ?S" using infinite_hatoms by auto
