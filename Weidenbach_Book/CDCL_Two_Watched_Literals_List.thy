@@ -128,6 +128,12 @@ lemma lits_of_convert_lit[iff]: \<open>lits_of (convert_lit N ` set M) = lits_of
 lemma lits_of_l_convert_lits_l[simp]: \<open>lits_of_l (convert_lits_l N M) = lits_of_l M\<close>
   by (induction M) auto
 
+lemma convert_lits_l_true_annot[simp]: \<open>convert_lits_l N M \<Turnstile>a A \<longleftrightarrow> M \<Turnstile>a A\<close>
+  unfolding true_annot_def by auto
+
+lemma convert_lits_l_true_annots[simp]: \<open>convert_lits_l N M \<Turnstile>as A \<longleftrightarrow> M \<Turnstile>as A\<close>
+  unfolding true_annots_def by auto
+
 lemma defined_lit_convert_lits_l[iff]: \<open>defined_lit (convert_lits_l N M) = defined_lit M\<close>
   by (auto simp: defined_lit_map image_image convert_lits_l_def)
 
