@@ -1,0 +1,15 @@
+chapter AFP
+
+session "Resolution_FOL" (AFP) = HOL +
+  options [timeout = 300]
+  theories [document = false]
+     "~~/src/HOL/Library/Countable_Set" 
+  theories
+    TermsAndLiterals
+    Tree
+    Resolution
+    Completeness
+    Examples
+  document_files
+    "root.bib"
+    "root.tex"

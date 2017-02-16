@@ -1,7 +1,8 @@
 section {* The Unification Theorem *}
 
 theory Unify imports
-  "$ISAFOR/Rewriting/Unification" "$AFP/Resolution_FOL/Resolution"
+  "$ISAFOR/Rewriting/Unification" "Resolution_FOL/Resolution"
+  (* TODO: Put the updated folder Resolution_FOL in AFP and import to that. *)
 begin
 
 definition set_to_list :: "'a set \<Rightarrow> 'a list" where
