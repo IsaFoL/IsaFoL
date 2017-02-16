@@ -372,6 +372,106 @@ proof -
   then obtain T where "closed_tree T Cs" using herbrand assms by blast
   then show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" using completeness' assms by auto
 qed 
+  
+definition E_conv :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a var_denot \<Rightarrow> 'b var_denot" where
+  "E_conv b_of_a E \<equiv> \<lambda>x. (b_of_a (E x))"
+  
+definition F_conv :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a fun_denot \<Rightarrow> 'b fun_denot" where
+  "F_conv b_of_a F \<equiv> \<lambda>f bs. b_of_a (F f (map (inv b_of_a) bs))"
+  
+definition G_conv :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a pred_denot \<Rightarrow> 'b pred_denot" where
+  "G_conv b_of_a G \<equiv> \<lambda>p bs. (G p (map (inv b_of_a) bs))"
+  
+  
+lemma asdffff:
+  assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
+  shows"eval\<^sub>t (E_conv b_of_a E) (F_conv b_of_a F) t = b_of_a (eval\<^sub>t E F t)"
+  using assms apply (induction t)
+   defer
+   apply auto[]
+  unfolding E_conv_def
+   apply auto[]
+  unfolding F_conv_def
+    apply auto
+  by (smt bij_def comp_apply inj_imp_surj_inv map_eq_conv surj_f_inv_f) (* There are also Isar proofs*)
+    
+lemma asdfff:
+  assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
+  shows "G_conv b_of_a G x11 (eval\<^sub>t\<^sub>s (E_conv b_of_a E) (F_conv b_of_a F) x12) = G x11 (eval\<^sub>t\<^sub>s E F x12)" 
+  using assms using asdffff
+   by (smt G_conv_def UNIV_I bij_betw_inv_into_left map_eq_conv map_map o_def) 
+  
+lemma asdff:
+  assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
+  shows "eval\<^sub>l (E_conv b_of_a E) (F_conv b_of_a F) (G_conv b_of_a G) x = eval\<^sub>l E F G x"
+  using assms apply (cases x)
+    apply auto
+  using asdfff
+     apply blast
+    using asdfff
+      apply blast
+      using asdfff
+       apply blast
+        using asdfff
+        apply blast
+          done
+    
+lemma asdf:
+  assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
+  shows "eval\<^sub>c (F_conv b_of_a F) (G_conv b_of_a G) C = eval\<^sub>c F G C"
+  using assms unfolding eval\<^sub>c_def
+    apply auto
+  using asdff
+   apply blast
+proof -
+  fix E :: "char list \<Rightarrow> 'b"
+  assume bb: "bij b_of_a"
+  assume aa: "\<forall>E :: char list \<Rightarrow> 'a. \<exists>x\<in>C. eval\<^sub>l E F G x"
+    term "E_conv b_of_a (E_conv (inv b_of_a) E)"
+    have eee: "E = E_conv b_of_a (E_conv (inv b_of_a) E)" 
+      unfolding E_conv_def using bb
+      using bij_betw_inv_into_right by fastforce 
+    have "\<exists>x\<in>C. eval\<^sub>l (E_conv b_of_a (E_conv (inv b_of_a) E)) (F_conv b_of_a F) (G_conv b_of_a G) x"
+      using asdff bb aa by blast
+  then show "\<exists>x\<in>C. eval\<^sub>l E (F_conv b_of_a F) (G_conv b_of_a G) x" using eee by auto 
+qed
+      
+lemma asd:
+  assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
+  shows "eval\<^sub>c\<^sub>s (F_conv b_of_a F) (G_conv b_of_a G) Cs \<longleftrightarrow> eval\<^sub>c\<^sub>s F G Cs"
+  using assms
+  unfolding eval\<^sub>c\<^sub>s_def
+  apply auto
+  using asdf
+   apply blast
+     using asdf
+     apply blast
+       done
+    
+  
+theorem completeness_countable:
+  assumes "infinite (UNIV :: ('u ::countable) set)"
+  assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
+  assumes unsat: "\<forall>(F::'u fun_denot) (G::'u pred_denot) . \<not>eval\<^sub>c\<^sub>s F G Cs"
+  shows "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
+proof -
+  have "\<forall>(F::hterm fun_denot) (G::hterm pred_denot) . \<not>eval\<^sub>c\<^sub>s F G Cs"
+  proof (rule; rule)
+    fix F :: "hterm fun_denot"
+    fix G :: "hterm pred_denot"
+      
+    obtain u_of_hterm :: "hterm \<Rightarrow> 'u" where bb: "bij u_of_hterm"
+      sorry
+        
+    let ?F = "F_conv u_of_hterm F"
+    term "?F :: 'u fun_denot"
+    let ?G = "G_conv u_of_hterm G"
+    
+    have "\<not> eval\<^sub>c\<^sub>s ?F ?G Cs" using unsat by auto
+    then show "\<not> eval\<^sub>c\<^sub>s F G Cs" using asd using bb by auto
+  qed
+  then show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" using finite_cs completeness by auto
+qed
 
 end -- {* unification locale *}
 
