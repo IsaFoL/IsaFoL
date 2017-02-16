@@ -450,7 +450,7 @@ qed
 
 lemma arrayO_raa_append_op_list_append[sepref_fr_rules]:
   \<open>(uncurry arrayO_raa_append, uncurry (RETURN oo op_list_append)) \<in>
-   (arrayO_raa ( R))\<^sup>d *\<^sub>a ( R)\<^sup>d \<rightarrow>\<^sub>a arrayO_raa ( R)\<close>
+   (arrayO_raa R)\<^sup>d *\<^sub>a R\<^sup>d \<rightarrow>\<^sub>a arrayO_raa R\<close>
   apply sepref_to_hoare
   apply (subst mult.commute)
   apply (subst mult.assoc)

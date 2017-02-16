@@ -45,11 +45,8 @@ proof -
     unfolding mset_map[symmetric]
     using map_add_upt[of 1 \<open>length N\<close>] by force
   show ?thesis
-    unfolding clause_to_update_def image_mset_Suc 1
-    apply (simp only: get_clauses_l.simps length_Cons)
-    apply (rule filter_mset_cong)
-     apply simp
-    by (auto split: if_splits)
+    unfolding clause_to_update_def image_mset_Suc 1 get_clauses_l.simps length_Cons
+    by (rule filter_mset_cong) (auto split: if_splits)
 qed
 
 lemma filter_mset_cong2:
@@ -69,8 +66,7 @@ proof -
   have \<open>filter_mset g NM = {#}\<close>
     using notin unfolding NM_def[symmetric] by (auto simp: filter_mset_empty_conv)
   moreover have \<open>filter_mset f M = filter_mset g M\<close>
-    apply (rule filter_mset_cong)
-    using M_eq by auto
+    by (rule filter_mset_cong) (use M_eq in auto)
   ultimately show ?thesis
     unfolding N by simp
 qed
