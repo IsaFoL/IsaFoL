@@ -591,7 +591,10 @@ definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
 
         if size (the D) > 1
         then do {
-          L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># the D \<and> get_level M L' = get_maximum_level M (the D - {#-L#}));
+          ASSERT(\<forall>L' \<in># the D - {#-L#}. get_level M L' = get_level M1 L');
+          ASSERT(\<exists>L' \<in># the D - {#-L#}. get_level M L' = get_maximum_level M (the D - {#-L#}));
+          ASSERT(get_level M L > get_maximum_level M (the D - {#-L#}));
+          L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># the D - {#-L#} \<and> get_level M L' = get_maximum_level M (the D - {#-L#}));
           ASSERT(L \<noteq> -L');
           RETURN (Propagated (-L) (the D) #  M1, N, add_mset (TWL_Clause {#-L, L'#} (the D - {#-L, L'#})) U,
             None, NP, UP, WS, {#L#})
@@ -663,6 +666,14 @@ qed
 
 end
 
+lemma get_level_last_decided_ge:
+   \<open>defined_lit (c @ [Decided K]) L' \<Longrightarrow> 0 < get_level (c @ [Decided K]) L'\<close>
+  by (induction c) (auto simp: defined_lit_cons get_level_cons_if)
+
+(* TODO Move *)
+lemma remove1_mset_empty_iff: \<open>remove1_mset L N = {#} \<longleftrightarrow> N = {#L#} \<or> N = {#}\<close>
+  by (cases \<open>L \<in># N\<close>; cases N) auto
+
 lemma backtrack_spec:
   assumes confl: \<open>get_conflict S \<noteq> None\<close> \<open>get_conflict S \<noteq> Some {#}\<close> and
     w_q: \<open>working_queue S = {#}\<close> and p: \<open>pending S = {#}\<close> and
@@ -692,7 +703,7 @@ proof -
     subgoal for M using trail by auto
     subgoal for M by (cases M) auto
   proof -
-    fix M N U D NP UP WS Q M1 L'
+    fix M N U D NP UP WS Q M1
     assume
       S: \<open>S = (M, N, U, D, NP, UP, WS, Q)\<close> and
       \<open>get_level M (lit_of (hd M)) = count_decided M\<close>
@@ -723,7 +734,7 @@ proof -
       by (auto simp: cdcl\<^sub>W_restart_mset_state)
     then have uL''_M: \<open>-lit_of L'' \<notin> lits_of_l M\<close>
       by (auto simp: Decided_Propagated_in_iff_in_lits_of_l M)
-    have \<open>get_maximum_level M (remove1_mset (-lit_of (hd M)) (the D)) < count_decided M\<close>
+    show \<open>get_maximum_level M (remove1_mset (-lit_of (hd M)) (the D)) < count_decided M\<close>
     proof (cases L'')
       case (Decided x1) note L'' = this(1)
       have \<open>distinct_mset (the D)\<close>
@@ -777,6 +788,7 @@ proof -
       lev_K: \<open>get_level M K = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D)) + 1\<close>
       using decomp by auto
 
+    fix L'
     let ?T =  \<open>(Propagated (-lit_of (hd M)) (the D) # M1, N,
       add_mset (TWL_Clause {#-lit_of (hd M), L'#} (the D - {#-lit_of (hd M), L'#})) U,
       None, NP, UP, WS, {#lit_of (hd M)#})\<close>
@@ -789,9 +801,37 @@ proof -
         get_maximum_level_ge_get_level[of \<open>-lit_of L''\<close> D' M] unfolding M
       by (auto split: if_splits)
     { \<comment> \<open>conflict clause > 1 literal\<close>
-      assume size_D: \<open>1 < size (the D)\<close> and L_D: \<open>L' \<in># the D\<close> and
-        lev_L: \<open>get_level M L' = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))\<close>
-
+      assume size_D: \<open>1 < size (the D)\<close>
+      have \<open>\<forall>L' \<in># the D. -L' \<in> lits_of_l M\<close>
+        using M_CNot_D' uL''_M
+        by (fastforce simp: D' atms_of_def atm_of_eq_atm_of M true_annots_true_cls_def_iff_negation_in_model
+            dest: in_diffD)
+      obtain c where c: \<open>M = c @ M2 @ Decided K # M1\<close>
+        using get_all_ann_decomposition_exists_prepend[OF decomp] by blast
+      have \<open>get_level M K = Suc (count_decided M1)\<close>
+        using n_d unfolding c by auto
+      then have i: \<open>i = count_decided M1\<close>
+        using lev_K unfolding i_def[symmetric] by auto
+      show \<open>\<forall>L' \<in># the D - {#-lit_of (hd M)#}. get_level M L' = get_level M1 L'\<close>
+      proof
+        fix L'
+        assume L': \<open>L' \<in># the D - {#-lit_of (hd M)#}\<close>
+        have \<open>get_level M L' > count_decided M1\<close> if \<open>defined_lit (c @ M2 @ Decided K # []) L'\<close>
+          using get_level_skip_end[OF that, of M1] n_d that get_level_last_decided_ge[of \<open>c @ M2\<close>]
+          by (auto simp: c)
+        moreover have \<open>get_level M L' \<le> i\<close>
+          using get_maximum_level_ge_get_level[OF L', of M] unfolding i_def by auto
+        ultimately show \<open>get_level M L' = get_level M1 L'\<close>
+          using n_d c L' i by (cases \<open>defined_lit (c @ M2 @ Decided K # []) L'\<close>) auto
+      qed
+      assume
+        lev_M_M1: \<open>\<forall>L'\<in>#remove1_mset (- lit_of (hd M)) (the D). get_level M L' = get_level M1 L'\<close>
+      show \<open>\<exists>L' \<in># remove1_mset (-lit_of (hd M)) (the D).
+           get_level M L' = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))\<close>
+        by (rule get_maximum_level_exists_lit_of_max_level)
+          (use size_D in \<open>auto simp: remove1_mset_empty_iff\<close>)
+      assume L_D: \<open>L' \<in># remove1_mset (-lit_of (hd M)) (the D)\<close> and
+        lev_L: \<open>get_level M1 L' = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))\<close>
       have D'_ne_single: \<open>D' \<noteq> {#- lit_of (hd M)#}\<close>
         using size_D D' apply (cases D', simp)
         apply (rename_tac L D'')
@@ -807,8 +847,8 @@ proof -
         using i_def D' apply (simp; fail)
         using lev_K unfolding i_def D' apply (simp; fail)
         using D'_ne_single apply (simp; fail)
-        using L_D D' apply (simp; fail)
-        using D' lev_L apply (simp; fail)
+        using L_D D' apply (auto dest: in_diffD; fail)
+        using D' lev_L lev_M_M1 L_D apply (simp; fail)
         done
       then show cdcl: \<open>cdcl_twl_o (M, N, U, D, NP, UP, WS, Q) ?T\<close>
         by simp
@@ -829,7 +869,7 @@ proof -
       show \<open>lit_of (hd M) \<noteq> -L'\<close>
         using \<open>get_level M (lit_of (hd M)) = count_decided M\<close>
           \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D)) < count_decided M\<close> lev_L
-          by auto
+        lev_M_M1 L_D by auto
     }
 
     { \<comment> \<open>conflict clause < 1 literal\<close>

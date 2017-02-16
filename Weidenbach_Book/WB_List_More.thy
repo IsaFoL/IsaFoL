@@ -557,6 +557,101 @@ proof -
     by (fastforce simp:  less_Suc_eq)+
 qed
 
+lemma sublist_shift_lemma':
+  \<open>map fst [p<-zip xs [i..<i + n]. snd p + b : A] = map fst [p<-zip xs [0..<n]. snd p + b + i : A]\<close>
+proof (induct xs arbitrary: i n b)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a xs)
+  have 1: \<open>map fst [p\<leftarrow>zip (a # xs) (i # [Suc i..<i + n]). snd p + b \<in> A] =
+     (if i + b \<in> A then a#map fst [p\<leftarrow>zip xs [Suc i..<i + n]. snd p + b \<in> A]
+     else map fst [p\<leftarrow>zip xs [Suc i..<i + n]. snd p + b \<in>A])\<close>
+    by simp
+  have 2: \<open>map fst [p\<leftarrow>zip (a # xs) [0..<n] . snd p + b + i \<in> A] =
+     (if i + b \<in> A then a # map fst [p\<leftarrow>zip xs [1..<n]. snd p + b + i \<in> A]
+      else map fst [p\<leftarrow>zip (xs) [1..<n] . snd p + b + i \<in> A])\<close>
+    if \<open>n > 0\<close>
+    by (subst upt_conv_Cons) (use that in \<open>auto simp: ac_simps\<close>)
+  show ?case
+  proof (cases n)
+    case 0
+    then show ?thesis by simp
+  next
+    case n: (Suc m)
+    then have i_n_m: \<open>i + n = Suc i + m\<close>
+      by auto
+    have 3: \<open>map fst [p\<leftarrow>zip xs [Suc i..<i+n] . snd p + b \<in> A] =
+             map fst [p\<leftarrow>zip xs [0..<m] . snd p + b + Suc i \<in> A]\<close>
+      using Cons[of b \<open>Suc i\<close> m] unfolding i_n_m .
+    have 4: \<open>map fst [p\<leftarrow>zip xs [1..<n] . snd p + b + i \<in> A] =
+                 map fst [p\<leftarrow>zip xs [0..<m] . Suc (snd p + b + i) \<in> A]\<close>
+      using Cons[of \<open>b+i\<close> 1 m] unfolding n Suc_eq_plus1_left add.commute[of 1]
+      by (simp_all del: upt_Suc add: ac_simps)
+    show ?thesis
+      apply (subst upt_conv_Cons)
+      using n apply (simp; fail)
+      apply (subst 1)
+      apply (subst 2)
+      using n apply (simp; fail)
+      apply (subst 3)
+      apply (subst 3)
+
+      apply (subst 4)
+      apply (subst 4)
+      by force
+  qed
+qed
+
+lemma sublist_Cons_upt_Suc: \<open>sublist (a # xs) {0..<Suc n} = a # sublist xs {0..<n}\<close>
+  unfolding sublist_def
+  apply (subst upt_conv_Cons)
+   apply simp
+  using sublist_shift_lemma'[of 0 \<open>{0..<Suc n}\<close> \<open>xs\<close> 1 \<open>length xs\<close>]
+  by (simp_all del: upt_Suc add: ac_simps)
+
+
+lemma sublist_empty_iff: \<open>sublist xs A = [] \<longleftrightarrow> {..<length xs} \<inter> A = {}\<close>
+proof (induction xs arbitrary: A)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons a xs) note IH = this(1)
+  moreover have \<open>{..<length xs} \<inter> {j. Suc j \<in> A} = {} \<Longrightarrow> (\<forall>x<length xs. x \<noteq> 0 \<longrightarrow> x \<notin> A)\<close>
+    apply auto
+     apply (metis IntI empty_iff gr0_implies_Suc lessI lessThan_iff less_trans mem_Collect_eq)
+    done
+  show ?case
+  proof (cases \<open>0 \<in> A\<close>)
+    case True
+    then show ?thesis by (subst sublist_Cons) auto
+  next
+    case False
+    then show ?thesis
+      by (subst sublist_Cons) (use less_Suc_eq_0_disj IH in auto)
+  qed
+qed
+
+lemma sublist_upt_Suc:
+  assumes \<open>i < length xs\<close>
+  shows \<open>sublist xs {i..<length xs} = xs!i # sublist xs {Suc i..<length xs}\<close>
+proof -
+  have upt: \<open>{i..<k} = {j. i \<le> j \<and> j < k}\<close> for i k :: nat
+    by auto
+  show ?thesis
+    using assms
+  proof (induction xs arbitrary: i)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a xs i) note IH = this(1) and i_le = this(2)
+    have [simp]: \<open>i - Suc 0 \<le> j \<longleftrightarrow> i \<le> Suc j\<close> if \<open>i > 0\<close> for j
+      using that by auto
+    show ?case
+      using IH[of \<open>i-1\<close>] i_le
+      by (auto simp add: sublist_Cons upt)
+  qed
+qed
 
 subsection \<open>Product Case\<close>
 

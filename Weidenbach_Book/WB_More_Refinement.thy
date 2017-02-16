@@ -2,7 +2,8 @@ theory WB_More_Refinement
   imports
     "$AFP/Refine_Imperative_HOL/IICF/IICF"
     Eisbach
-     "~~/src/HOL/Eisbach/Eisbach_Tools"
+    "~~/src/HOL/Eisbach/Eisbach_Tools"
+    WB_List_More
 begin
 
 subsection \<open>Some Tooling for Refinement\<close>
@@ -194,6 +195,13 @@ method match_spec_trans =
     \<open>print_term f; match premises in I: \<open>_ \<Longrightarrow> _ \<Longrightarrow> f' \<le> SPEC R'\<close> for f' :: \<open>'a nres\<close> and R' :: \<open>'a \<Rightarrow> bool\<close>
        \<Rightarrow> \<open>print_term f'; rule weaken_SPEC2[of f' R' f R]\<close>\<close>)
 
+subsection \<open>More Theorems\<close>
+
+abbreviation "uncurry6 f \<equiv> uncurry (uncurry5 f)"
+abbreviation "uncurry7 f \<equiv> uncurry (uncurry6 f)"
+abbreviation "uncurry8 f \<equiv> uncurry (uncurry7 f)"
+abbreviation "uncurry9 f \<equiv> uncurry (uncurry8 f)"
+
 
 subsection \<open>More Theorems for Refinement\<close>
 
@@ -213,101 +221,81 @@ lemma (in transfer) transfer_bool[refine_transfer]:
   using assms by (auto split: bool.split)
 
 
-lemma sublist_shift_lemma':
-  \<open>map fst [p<-zip xs [i..<i + n]. snd p + b : A] = map fst [p<-zip xs [0..<n]. snd p + b + i : A]\<close>
-proof (induct xs arbitrary: i n b)
-  case Nil
-  then show ?case by simp
-next
-  case (Cons a xs)
-  have 1: \<open>map fst [p\<leftarrow>zip (a # xs) (i # [Suc i..<i + n]). snd p + b \<in> A] =
-     (if i + b \<in> A then a#map fst [p\<leftarrow>zip xs [Suc i..<i + n]. snd p + b \<in> A]
-     else map fst [p\<leftarrow>zip xs [Suc i..<i + n]. snd p + b \<in>A])\<close>
-    by simp
-  have 2: \<open>map fst [p\<leftarrow>zip (a # xs) [0..<n] . snd p + b + i \<in> A] =
-     (if i + b \<in> A then a # map fst [p\<leftarrow>zip xs [1..<n]. snd p + b + i \<in> A]
-      else map fst [p\<leftarrow>zip (xs) [1..<n] . snd p + b + i \<in> A])\<close>
-    if \<open>n > 0\<close>
-    by (subst upt_conv_Cons) (use that in \<open>auto simp: ac_simps\<close>)
-  show ?case
-  proof (cases n)
-    case 0
-    then show ?thesis by simp
-  next
-    case n: (Suc m)
-    then have i_n_m: \<open>i + n = Suc i + m\<close>
-      by auto
-    have 3: \<open>map fst [p\<leftarrow>zip xs [Suc i..<i+n] . snd p + b \<in> A] =
-             map fst [p\<leftarrow>zip xs [0..<m] . snd p + b + Suc i \<in> A]\<close>
-      using Cons[of b \<open>Suc i\<close> m] unfolding i_n_m .
-    have 4: \<open>map fst [p\<leftarrow>zip xs [1..<n] . snd p + b + i \<in> A] =
-                 map fst [p\<leftarrow>zip xs [0..<m] . Suc (snd p + b + i) \<in> A]\<close>
-      using Cons[of \<open>b+i\<close> 1 m] unfolding n Suc_eq_plus1_left add.commute[of 1]
-      by (simp_all del: upt_Suc add: ac_simps)
-    show ?thesis
-      apply (subst upt_conv_Cons)
-      using n apply (solves simp)
-      apply (subst 1)
-      apply (subst 2)
-      using n apply (solves simp)
-      apply (subst 3)
-      apply (subst 3)
+subsection \<open>Some Refinement\<close>
 
-      apply (subst 4)
-      apply (subst 4)
-      by force
-  qed
-qed
+lemma Collect_eq_comp: \<open>{(c, a). a = f c} O {(x, y). P x y} = {(c, y). P (f c) y}\<close>
+  by auto
 
-lemma sublist_Cons_upt_Suc: \<open>sublist (a # xs) {0..<Suc n} = a # sublist xs {0..<n}\<close>
-  unfolding sublist_def
-  apply (subst upt_conv_Cons)
-   apply simp
-  using sublist_shift_lemma'[of 0 \<open>{0..<Suc n}\<close> \<open>xs\<close> 1 \<open>length xs\<close>]
-  by (simp_all del: upt_Suc add: ac_simps)
+lemma ex_assn_swap: \<open>(\<exists>\<^sub>Aa b. P a b) = (\<exists>\<^sub>Ab a. P a b)\<close>
+  by (meson ent_ex_postI ent_ex_preI ent_iffI ent_refl)
+
+lemma ent_ex_up_swap: \<open>(\<exists>\<^sub>Aaa. \<up> (P aa)) = (\<up>(\<exists>aa. P aa))\<close>
+  by (smt ent_ex_postI ent_ex_preI ent_iffI ent_pure_pre_iff ent_refl mult.left_neutral)
+
+lemma
+  shows list_mset_assn_add_mset_Nil:
+     \<open>list_mset_assn R (add_mset q Q) [] = false\<close> and
+   list_mset_assn_empty_Cons:
+    \<open>list_mset_assn R {#} (x # xs) = false\<close>
+  unfolding list_mset_assn_def list_mset_rel_def mset_rel_def pure_def p2rel_def
+    rel2p_def rel_mset_def br_def
+  by (sep_auto simp: Collect_eq_comp)+
 
 
-lemma sublist_empty_iff: \<open>sublist xs A = [] \<longleftrightarrow> {..<length xs} \<inter> A = {}\<close>
-proof (induction xs arbitrary: A)
-  case Nil
-  then show ?case by auto
-next
-  case (Cons a xs) note IH = this(1)
-  moreover have \<open>{..<length xs} \<inter> {j. Suc j \<in> A} = {} \<Longrightarrow> (\<forall>x<length xs. x \<noteq> 0 \<longrightarrow> x \<notin> A)\<close>
-    apply auto
-     apply (metis IntI empty_iff gr0_implies_Suc lessI lessThan_iff less_trans mem_Collect_eq)
-    done
-  show ?case
-  proof (cases \<open>0 \<in> A\<close>)
-    case True
-    then show ?thesis by (subst sublist_Cons) auto
-  next
-    case False
-    then show ?thesis
-      by (subst sublist_Cons) (use less_Suc_eq_0_disj IH in auto)
-  qed
-qed
-
-lemma sublist_upt_Suc:
-  assumes \<open>i < length xs\<close>
-  shows \<open>sublist xs {i..<length xs} = xs!i # sublist xs {Suc i..<length xs}\<close>
+lemma list_mset_assn_add_mset_cons_in:
+  assumes
+    assn: \<open>A \<Turnstile> list_mset_assn R N (ab # list)\<close>
+  shows \<open>\<exists>ab'. (ab, ab') \<in> the_pure R \<and> ab' \<in># N \<and> A \<Turnstile> list_mset_assn R (remove1_mset ab' N) (list)\<close>
 proof -
-  have upt: \<open>{i..<k} = {j. i \<le> j \<and> j < k}\<close> for i k :: nat
-    by auto
-  show ?thesis
-    using assms
-  proof (induction xs arbitrary: i)
-    case Nil
-    then show ?case by simp
-  next
-    case (Cons a xs i) note IH = this(1) and i_le = this(2)
-    have [simp]: \<open>i - Suc 0 \<le> j \<longleftrightarrow> i \<le> Suc j\<close> if \<open>i > 0\<close> for j
-      using that by auto
-    show ?case
-      using IH[of \<open>i-1\<close>] i_le
-      by (auto simp add: sublist_Cons upt)
-  qed
+  have H: \<open>(\<forall>x x'. (x' = x) = ((x', x) \<in> P')) \<longleftrightarrow> P' = Id\<close> for P'
+    by (auto simp: the_pure_def)
+  have [simp]: \<open>the_pure (\<lambda>a c. \<up> (c = a)) = Id\<close>
+    by (auto simp: the_pure_def H)
+  have [iff]: \<open>(ab # list, y) \<in> list_mset_rel \<longleftrightarrow> y = add_mset ab (mset list)\<close> for y ab list
+    by (auto simp: list_mset_rel_def br_def)
+  obtain N' xs where
+    N_N': \<open>N = mset N'\<close> and
+    \<open>mset xs = add_mset ab (mset list)\<close> and
+    \<open>list_all2 (rel2p (the_pure R)) xs N'\<close>
+    using assn by (cases A) (auto simp: list_mset_assn_def mset_rel_def p2rel_def rel_mset_def
+        rel2p_def)
+  then obtain N'' where
+    \<open>list_all2 (rel2p (the_pure R)) (ab # list) N''\<close> and
+    \<open>mset N'' = mset N'\<close>
+    using list_all2_reorder_left_invariance[of \<open>rel2p (the_pure R)\<close> xs N'
+          \<open>ab # list\<close>, unfolded eq_commute[of \<open>mset (ab # list)\<close>]] by auto
+  then obtain n N''' where
+    n: \<open>add_mset n (mset N''') = mset N''\<close> and
+    \<open>(ab, n) \<in> the_pure R\<close> and
+    \<open>list_all2 (rel2p (the_pure R)) list N'''\<close>
+    by (auto simp: list_all2_Cons1 rel2p_def)
+  moreover have \<open>n \<in> set N''\<close>
+    using n unfolding mset.simps[symmetric] eq_commute[of \<open>add_mset _ _\<close>] apply -
+    by (drule mset_eq_setD) auto
+  ultimately have \<open>(ab, n) \<in> the_pure R\<close> and
+    \<open>n \<in> set N''\<close> and
+    \<open>mset list = mset list\<close> and
+    \<open>mset N''' = remove1_mset n (mset N'')\<close> and
+    \<open>list_all2 (rel2p (the_pure R)) list N'''\<close>
+    by (auto dest: mset_eq_setD simp: eq_commute[of \<open>add_mset _ _\<close>])
+  show ?thesis -- \<open>TODO tune proof\<close>
+    unfolding list_mset_assn_def mset_rel_def p2rel_def rel_mset_def
+      list.rel_eq list_mset_rel_def
+      br_def
+    apply (simp add: Collect_eq_comp n[symmetric] N_N')
+    using assn
+    apply (cases A)
+    apply (auto simp: list_mset_assn_def mset_rel_def p2rel_def rel_mset_def
+        add_mset_eq_add_mset list.rel_eq)
+    apply (drule list_all2_reorder_left_invariance[of \<open>rel2p (the_pure R)\<close> _ _
+          \<open>ab # list\<close>, unfolded eq_commute[of \<open>mset (ab # list)\<close>]])
+     apply simp
+    apply (auto simp: list_all2_Cons1 list_mset_rel_def br_def Collect_eq_comp
+        dest: mset_eq_setD)
+    by (metis \<open>(ab, n) \<in> the_pure R\<close> \<open>list_all2 (rel2p (the_pure R)) list N'''\<close>
+        \<open>mset N'' = mset N'\<close> \<open>mset N''' = remove1_mset n (mset N'')\<close> \<open>n \<in> set N''\<close> set_mset_mset)
 qed
+
 
 text \<open>
   This theorems links two forms:
@@ -361,8 +349,7 @@ proof -
       subgoal by (solves \<open>simp add: WHILEIT_unfold inv_def pre_def\<close>)
       subgoal apply (subst WHILEIT_unfold)
         using IH[unfolded pre_def[symmetric] inv_def[symmetric]]
-        apply simp
-        done
+        by simp
       done
     done
 qed
@@ -398,5 +385,32 @@ sepref_thm list_contains_WHILE
   :: \<open>nat_assn\<^sup>k *\<^sub>a (array_assn id_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding list_contains_WHILE_def
   by sepref
+
+lemma union_mset_list_Nil[simp]: \<open>union_mset_list [] bi = bi\<close>
+  by (auto simp: union_mset_list_def)
+declare union_mset_list_def[code]
+
+text \<open>A more general theorem is \<^emph>\<open>very\<close> hard to write (if it is possible at all).\<close>
+lemma union_mset_list_op_union: \<open>(uncurry (RETURN oo union_mset_list), uncurry (RETURN oo op \<union>#)) \<in>
+  (list_mset_rel O \<langle>Id\<rangle>mset_rel) \<times>\<^sub>r (list_mset_rel O \<langle>Id\<rangle>mset_rel) \<rightarrow>\<^sub>f
+    \<langle>list_mset_rel O \<langle>Id\<rangle>mset_rel\<rangle>nres_rel\<close>
+  by (auto simp: list_mset_rel_def fref_def
+      br_def mset_rel_def Collect_eq_comp rel_mset_def p2rel_def nres_rel_def
+      rel2p_def[abs_def] union_mset_list[symmetric] list.rel_eq ex_mset)
+
+lemma union_mset_list_union_mset_list: \<open>(uncurry (return oo union_mset_list), uncurry (RETURN oo union_mset_list)) \<in>
+   id_assn\<^sup>k *\<^sub>a id_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
+  by sepref_to_hoare sep_auto
+
+lemma union_mset_list_op_union_hnr:
+  \<open>(uncurry (return \<circ>\<circ> union_mset_list), uncurry (RETURN \<circ>\<circ> op \<union>#))
+  \<in> (list_mset_assn id_assn)\<^sup>k *\<^sub>a (list_mset_assn id_assn)\<^sup>k \<rightarrow>\<^sub>a list_mset_assn id_assn\<close>
+proof -
+  have I: \<open>\<langle>Id\<rangle>mset_rel = \<langle>the_pure id_assn\<rangle>mset_rel\<close>
+    by auto
+  show ?thesis
+    using union_mset_list_union_mset_list[FCOMP union_mset_list_op_union,
+        unfolded list_mset_assn_def[symmetric] I] .
+qed
 
 end

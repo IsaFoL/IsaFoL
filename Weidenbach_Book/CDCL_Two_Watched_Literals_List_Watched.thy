@@ -33,7 +33,7 @@ fun pending_wl :: "'v twl_st_wl \<Rightarrow> 'v lit_queue_wl" where
 fun set_pending_wl :: "'v lit_queue_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl" where
   \<open>set_pending_wl Q (M, N, U, D, NP, UP, _, W) = (M, N, U, D, NP, UP, Q, W)\<close>
 
-fun get_conflict_wl :: "'v twl_st_wl \<Rightarrow> 'v clause_l option" where
+fun get_conflict_wl :: "'v twl_st_wl \<Rightarrow> 'v cconflict" where
   \<open>get_conflict_wl (_, _, _, D, _, _, _, _) = D\<close>
 
 
@@ -140,7 +140,7 @@ lemma get_conflict_wl_set_pending_wl: \<open>get_conflict_wl (set_pending_wl P S
   by (cases S) auto
 
 lemma get_conflict_twl_st_of_st_l_of_wl:
-  \<open>get_conflict (twl_st_of L (st_l_of_wl L' T')) = map_option mset (get_conflict_wl T')\<close>
+  \<open>get_conflict (twl_st_of L (st_l_of_wl L' T')) = get_conflict_wl T'\<close>
   by (cases T'; cases L; cases L') auto
 
 lemma pending_twl_st_of_st_l_of_wl: \<open>pending (twl_st_of L (st_l_of_wl L' T')) = pending_wl T'\<close>
@@ -152,9 +152,9 @@ lemma get_conflict_l_st_l_of_wl:
 
 text \<open>We here also update the list of watched clauses \<^term>\<open>WL\<close>.\<close>
 definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat \<Rightarrow>
-  'v twl_st_wl \<Rightarrow> (nat \<times> 'v twl_st_wl) nres"  where
+  'v twl_st_wl \<Rightarrow> (nat \<times> 'v twl_st_wl) nres" where
   \<open>unit_propagation_inner_loop_body_wl K w S = do {
-    let (M, N, U, D, NP, UP, Q, W) = S;
+    let (M, N, U, D, NP, UP, Q, W) = (S::'v twl_st_wl);
     ASSERT(K \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP));
     ASSERT(w < length (watched_by S K));
     let C = (watched_by S K) ! w;
@@ -179,7 +179,7 @@ definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat 
       if fst f = None
       then
         if val_L' = Some False
-        then do {RETURN (w+1, (M, N, U, Some (N!C), NP, UP, {#}, W))}
+        then do {RETURN (w+1, (M, N, U, Some (mset (N!C)), NP, UP, {#}, W))}
         else do {RETURN (w+1, (Propagated L' C # M, N, U, D, NP, UP, add_mset (-L') Q, W))}
       else do {
         ASSERT(snd f < length (N!C));
@@ -903,19 +903,19 @@ definition skip_and_resolve_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl 
             ASSERT(is_proped (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W))));
             let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W)));
             ASSERT(C < length N);
-            if -L \<notin> set D' then
+            if -L \<notin># D' then
               do {RETURN (False, (tl M, N, U, D, NP, UP, Q, W))}
             else
-              if get_maximum_level M (remove1_mset (-L) (mset D')) = count_decided M
+              if get_maximum_level M (remove1_mset (-L) D') = count_decided M
               then
-                do {RETURN (resolve_cls_l L D' (if C = 0 then [L] else N!C) = [],
-                   (tl M, N, U, Some (resolve_cls_l L D' (if C = 0 then [L] else N!C)),
+                do {RETURN (remove1_mset (-L) D' \<union># (if C = 0 then {#} else remove1_mset L (mset (N!C))) = {#},
+                   (tl M, N, U, Some (remove1_mset (-L) D' \<union># (if C = 0 then {#} else remove1_mset L (mset (N!C)))),
                      NP, UP, Q, W))}
               else
                 do {RETURN (True, (M, N, U, D, NP, UP, Q, W))}
           }
         )
-        (get_conflict_wl S\<^sub>0 = Some [], S\<^sub>0);
+        (get_conflict_wl S\<^sub>0 = Some {#}, S\<^sub>0);
       RETURN S
     }
   \<close>
@@ -942,7 +942,7 @@ lemma skip_and_resolve_loop_wl_spec:
        correct_watching T'}\<rangle>nres_rel\<close>
   (is \<open>?s \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>)
 proof -
-  have get_conflict_wl: \<open>((get_conflict_wl S' = Some [], S'), get_conflict_l S = Some [], S)
+  have get_conflict_wl: \<open>((get_conflict_wl S' = Some {#}, S'), get_conflict_l S = Some {#}, S)
     \<in> Id \<times>\<^sub>r {(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}\<close>
     if \<open>S = st_l_of_wl None S'\<close> and \<open>correct_watching S'\<close>
     for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st_wl\<close>
@@ -1003,13 +1003,13 @@ qed
 subsubsection \<open>Backtrack\<close>
 
 definition find_decomp_wl :: "'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> ('v, nat) ann_lits nres" where
-  \<open>find_decomp_wl =  (\<lambda>(M, N, U, D, NP, UP, Q, Q) L.
+  \<open>find_decomp_wl = (\<lambda>(M, N, U, D, NP, UP, Q, WS) L.
     SPEC(\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
-          get_level M K = get_maximum_level M (mset (the D) - {#-L#}) + 1))\<close>
+          get_level M K = get_maximum_level M (the D - {#-L#}) + 1))\<close>
 
 definition find_lit_of_max_level_wl :: "'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> 'v literal nres" where
   \<open>find_lit_of_max_level_wl =  (\<lambda>(M, N, U, D, NP, UP, Q, W) L.
-    SPEC(\<lambda>L'. L' \<in># mset (the D) \<and> get_level M L' = get_maximum_level M (mset (the D) - {#-L#})))\<close>
+    SPEC(\<lambda>L'. L' \<in># remove1_mset (-L) (the D) \<and> get_level M L' = get_maximum_level M (the D - {#-L#})))\<close>
 
 definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
   \<open>backtrack_wl S\<^sub>0 =
@@ -1020,24 +1020,33 @@ definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
         let L = lit_of (hd M);
         ASSERT(get_level M L = count_decided M);
         ASSERT(D \<noteq> None);
-        ASSERT(D \<noteq> Some []);
+        ASSERT(D \<noteq> Some {#});
         ASSERT(ex_decomp_of_max_lvl M D L);
+        ASSERT(-L \<in># the D);
         ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
         ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
         ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
+        ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         M1 \<leftarrow> find_decomp_wl (M, N, U, D, NP, UP, Q, W) L;
+        let E = the D;
 
-        if length (the D) > 1
+        if size E > 1
         then do {
-          L' \<leftarrow> find_lit_of_max_level_wl (M, N, U, D, NP, UP, Q, W) L;
+          ASSERT(\<forall>L' \<in># E - {#-L#}. get_level M L' = get_level M1 L');
+          ASSERT(\<exists>L' \<in># E - {#-L#}. get_level M L' = get_maximum_level M (E - {#-L#}));
+          ASSERT(get_level M L > get_maximum_level M (E - {#-L#}));
+          L' \<leftarrow> find_lit_of_max_level_wl (M1, N, U, D, NP, UP, Q, W) L;
+          ASSERT(L \<noteq> -L');
+          D' \<leftarrow> list_of_mset E;
           ASSERT(atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP));
           ASSERT(atm_of L' \<in> atms_of_mm (mset `# mset (tl N) + NP));
           RETURN (Propagated (-L) (length N) # M1,
-            N @ [[-L, L'] @ (remove1 (-L) (remove1 L' (the D)))], U,
+            N @ [[-L, L'] @ (remove1 (-L) (remove1 L'  D'))], U,
             None, NP, UP, add_mset L {#}, W(-L:= W (-L) @ [length N], L':= W L' @ [length N]))
         }
         else do {
-          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset_list (the D) UP, add_mset L {#}, W)
+          D' \<leftarrow> list_of_mset E;
+          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset (the D) UP, add_mset L {#}, W)
         }
       }
     }
@@ -1127,7 +1136,7 @@ lemma backtrack_wl_spec:
        twl_struct_invs (twl_st_of_wl None T') \<and>
        twl_stgy_invs (twl_st_of_wl None T') \<and>
        get_conflict_wl T' \<noteq> None \<and>
-       get_conflict_wl T' \<noteq> Some [] \<and>
+       get_conflict_wl T' \<noteq> Some {#} \<and>
        pending_wl T' = {#} \<and>
        no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None T')) \<and>
        no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of_wl None T')) \<and>
@@ -1147,19 +1156,34 @@ proof -
     for S and S' :: \<open>'v twl_st_wl\<close> and L L' :: \<open>'v literal\<close>
     using that by (cases S') (auto simp: find_decomp_wl_def find_decomp_def)
   have find_lit_of_max_level_wl:
-    \<open>find_lit_of_max_level_wl S' L' \<le> \<Down> {(L, L'). L = L' \<and> L \<in> set (the (get_conflict_wl S'))} (find_lit_of_max_level S L)\<close>
-    if \<open>L = L'\<close> and \<open>st_l_of_wl None S' = S\<close> and \<open>get_conflict_wl S' \<noteq> None\<close>
-    for S and S' :: \<open>'v twl_st_wl\<close> and L L' :: \<open>'v literal\<close>
-    using that by (cases S') (auto simp: find_lit_of_max_level_wl_def find_lit_of_max_level_def
-        intro!: RES_refine)
+    \<open>find_lit_of_max_level_wl (M1', N', U', D', NP', UP', W', Q') L' \<le>
+       \<Down> {(L, L'). L = L' \<and> L \<in># (the D')}
+         (find_lit_of_max_level (M, N, U, D, NP, UP, W, Q) L)\<close>
+    if LL': \<open>L = L'\<close> and D: \<open>\<forall>L'\<in>#remove1_mset (-L) (the D). get_level M L' = get_level M1 L'\<close> and
+    \<open>D = D'\<close> and [simp]: \<open>M1 = M1'\<close>
+    for M M1 M1' and N N' and U U' and D D' NP NP' UP UP' W W' Q Q' and L L' :: \<open>'v literal\<close>
+  proof -
+    have \<open>get_level M `# remove1_mset (-L') (the D) = get_level M1 `# remove1_mset (-L') (the D)\<close>
+      by (rule image_mset_cong) (use D LL' in auto)
+    then have \<open> get_maximum_level M (remove1_mset (-L') (the D)) =
+        get_maximum_level M1 (remove1_mset (-L') (the D))\<close>
+      unfolding get_maximum_level_def by auto
+    then show ?thesis
+      using that by (auto simp: find_lit_of_max_level_wl_def find_lit_of_max_level_def
+          intro!: RES_refine dest: in_diffD)
+  qed
   have H: \<open>A \<subseteq> atms_of_ms (mset ` set (take U (tl N))) \<union> B \<Longrightarrow>
             A \<subseteq> atms_of_ms (mset ` set (tl N)) \<union> B\<close> for U A B and N :: \<open>'v clauses_l\<close>
     by (auto dest: in_atms_of_mset_takeD)
   have atms_of_diffD: \<open>La \<in> atms_of (A - B) \<Longrightarrow> La \<in> atms_of A\<close> for La and A B :: \<open>'a clause\<close>
     by (auto simp: atms_of_def dest: in_diffD)
+  have list_of_mset: \<open>list_of_mset D \<le> \<Down> {(E, F). E = F \<and> D = mset E} (list_of_mset D')\<close>
+    if \<open>D = D'\<close> for D D'
+    using that by (auto simp: list_of_mset_def intro!: RES_refine)
   have H: \<open>?bt \<in> ?A \<rightarrow> \<langle>{(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}\<rangle>nres_rel\<close>
     unfolding backtrack_wl_def backtrack_l_def
-    apply (refine_vcg find_decomp_wl find_lit_of_max_level_wl; remove_dummy_vars)
+    apply (refine_vcg find_decomp_wl find_lit_of_max_level_wl list_of_mset; remove_dummy_vars)
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1170,7 +1194,15 @@ proof -
     subgoal for M N U E NP UP WS Q M' N' U' E' NP' UP' Q' W T
       by (cases T) simp \<comment> \<open>simp does not unify \<^term>\<open>T\<close> with the pair in the assumption
          otherwise\<close>
+    subgoal for M N U E NP UP WS Q M' N' U' E' NP' UP' Q' W T
+      by (cases T) simp \<comment> \<open>simp does not unify \<^term>\<open>T\<close> with the pair in the assumption
+         otherwise\<close>
     subgoal by simp
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1189,13 +1221,13 @@ proof -
       apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm
       (convert_to_state (twl_st_of None (M, N, U, E, NP, UP, WS, Q)))\<close>)
       subgoal
-        using in_set_image_subsetD[of atm_of \<open>set (the E')\<close> \<open>atms_of_ms (mset ` set (tl N)) \<union> atms_of_mm NP\<close> L']
+        using in_set_image_subsetD[of atm_of \<open>set_mset (the E')\<close> \<open>atms_of_ms (mset ` set (tl N)) \<union> atms_of_mm NP\<close> L']
         by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset
             dest!: H[of _ U N])
       subgoal
         unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast
       done
-    subgoal for M N U E NP UP WS Q M' N' U' E' NP' UP' Q' W M''' M'''' L L'
+    subgoal for M N U E NP UP WS Q M' N' U' E' NP' UP' Q' W M''' M'''' L _ L'
       apply clarify
       apply (subst(asm) correct_watching_learn)
       subgoal by (auto simp: additional_WS_invs_def)
@@ -1212,6 +1244,7 @@ proof -
         done
       subgoal by (auto simp add: correct_watching.simps clause_to_update_def)[]
       done
+    subgoal by auto
     subgoal by (auto simp: correct_watching.simps clause_to_update_def)
     done
 
@@ -1222,7 +1255,7 @@ proof -
     have A':
       \<open>(T, twl_st_of None T) \<in> {(S, S'). S' = twl_st_of None S \<and>
                  get_conflict_l S \<noteq> None \<and>
-                 get_conflict_l S \<noteq> Some [] \<and>
+                 get_conflict_l S \<noteq> Some {#} \<and>
                  working_queue_l S = {#} \<and>
                  pending_l S = {#} \<and>
                  additional_WS_invs S \<and>
@@ -1266,7 +1299,7 @@ definition cdcl_twl_o_prog_wl :: "'v twl_st_wl \<Rightarrow> (bool \<times> 'v t
         else do {
           T \<leftarrow> skip_and_resolve_loop_wl S;
           ASSERT(get_conflict_wl T \<noteq> None);
-          if get_conflict_wl T \<noteq> Some []
+          if get_conflict_wl T \<noteq> Some {#}
           then do {U \<leftarrow> backtrack_wl T; RETURN (False, U)}
           else do {RETURN (True, T)}
         }
@@ -1292,7 +1325,7 @@ lemma cdcl_twl_o_prog_wl_spec:
      brk = brk' \<and>
      additional_WS_invs (st_l_of_wl None T) \<and>
      (get_conflict_wl T \<noteq> None \<longrightarrow>
-      get_conflict_wl T = Some []) \<and>
+      get_conflict_wl T = Some {#}) \<and>
      twl_struct_invs (twl_st_of_wl None T) \<and>
      twl_stgy_invs (twl_st_of_wl None T) \<and>
      correct_watching T}\<rangle>nres_rel\<close>

@@ -4,11 +4,11 @@
 
 ## Organisation of the Development ##
 * The branch [master](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Weidenbach_Book/) contains the latest development and is based on Isabelle's repository version.
-* The branch [IJCAR2016](https://bitbucket.org/jasmin_blanchette/isafol/src/IJCAR2016/Weidenbach_Book/) contains the version of the development related to the paper. Please refer to [this page](https://bitbucket.org/jasmin_blanchette/isafol/src/IJCAR2016/Weidenbach_Book/Readme.md)
+* The branch [IJCAR2016](https://bitbucket.org/jasmin_blanchette/isafol/src/IJCAR2016/Weidenbach_Book/) contains the version of the development related to the paper. Please refer to [this page](https://bitbucket.org/jasmin_blanchette/isafol/src/IJCAR2016/Weidenbach_Book/Readme.md).
 
 ## Documentation ##
 
-A recent version of the documentation the theory files is also available as [here](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/current/Weidenbach_Book).
+A recent version of the documentation the theory files is also available [here](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/current/Weidenbach_Book).
 
 ## Authors ##
 
@@ -29,4 +29,3 @@ A recent version of the documentation the theory files is also available as [her
 * [Formalisation of Ground Inference Systems in a Proof Assistant](http://www.mpi-inf.mpg.de/fileadmin/inf/rg1/Documents/fleury_master_thesis.pdf).
   M. Fleury.
   M.Sc. thesis, École normale supérieure Rennes, 2015.
-

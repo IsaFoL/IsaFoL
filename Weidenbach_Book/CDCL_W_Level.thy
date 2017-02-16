@@ -131,8 +131,8 @@ proof -
 qed
 
 lemma get_maximum_level_skip_first[simp]:
-  assumes "atm_of L \<notin> atms_of D"
-  shows "get_maximum_level (Propagated L C # M) D = get_maximum_level M D"
+  assumes "atm_of (lit_of K) \<notin> atms_of D"
+  shows "get_maximum_level (K # M) D = get_maximum_level M D"
   using assms unfolding get_maximum_level_def atms_of_def
     atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
   by (smt atm_of_in_atm_of_set_in_uminus get_level_skip_beginning image_iff lit_of.simps(2)

@@ -2991,11 +2991,9 @@ proof (induct rule: cdcl\<^sub>W_o_induct)
         by (metis imageI insertCI list.simps(15) lit_of.simps(2) lits_of_def no_dup_consistentD)
     qed
   }
-  ultimately
-    have g_D: "get_maximum_level (Propagated L C # M) (remove1_mset (-L) D)
+  ultimately have g_D: "get_maximum_level (Propagated L C # M) (remove1_mset (-L) D)
       = get_maximum_level M (remove1_mset (-L) D)"
-      using get_maximum_level_skip_first[of L "remove1_mset (-L) D" C M]
-      by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set atms_of_def)
+    by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set atms_of_def)
   have lev_L[simp]: "get_level M L = 0"
     apply (rule atm_of_notin_get_level_eq_0)
     using lev unfolding cdcl\<^sub>W_M_level_inv_def tr_S by (auto simp: lits_of_def)
