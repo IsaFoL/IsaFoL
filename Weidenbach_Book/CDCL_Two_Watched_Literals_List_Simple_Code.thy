@@ -1489,111 +1489,16 @@ export_code cdcl_twl_stgy_prog_l_impl in SML_imp module_name CDCL_Non_Cached_Lis
 
 section \<open>Code for the initialisation of the Data Structure\<close>
 
-definition init_dt_step_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l \<Rightarrow> ('v twl_st_l) nres\<close> where
-  \<open>init_dt_step_l C S = do {
-   (let (M, N, U, D, NP, UP, WS, Q) = S in
-   (case D of
-    None \<Rightarrow>
-    if length C = 1
-    then do {
-      ASSERT (no_dup M);
-      ASSERT (C \<noteq> []);
-      let L = hd C;
-      let val_L = valued M L;
-      if val_L = None
-      then do {RETURN (Propagated L 0 # M, N, U, None, add_mset {#L#} NP, UP, WS, add_mset (-L) Q)}
-      else
-        if val_L = Some True
-        then do {RETURN (M, N, U, None, add_mset {#L#} NP, UP, WS, Q)}
-        else do {RETURN (M, N, U, Some (mset C), add_mset {#L#} NP, UP, {#}, {#})}
-      }
-    else do {
-      ASSERT(C \<noteq> []);
-      ASSERT(tl C \<noteq> []);
-      let L = hd C; L' = hd (tl C); C' = tl (tl C) in
-      RETURN (M, N @ [[L, L'] @ C'], length N, None, NP, UP, WS, Q)}
-  | Some D \<Rightarrow>
-    if length C = 1
-    then do {
-      ASSERT (C \<noteq> []);
-      let L = hd C;
-      RETURN (M, N, U, Some D, add_mset {#L#} NP, UP, {#}, {#})}
-    else do {
-      ASSERT(C \<noteq> []);
-      ASSERT(tl C \<noteq> []);
-      let L = hd C; L' = hd (tl C); C' = tl (tl C) in
-      RETURN (M, N @ [[L, L'] @ C'], length N, Some D, NP, UP, {#}, {#})}))
-  }\<close>
-
-lemma length_ge_Suc_0_tl_not_nil: \<open>length C > Suc 0 \<Longrightarrow> tl C \<noteq> []\<close>
-  by (cases C) auto
-
-lemma init_dt_step_init_dt_step_l:
-  assumes
-    le_C: \<open>length C \<ge> 1\<close> and
-    struct_invs: \<open>twl_struct_invs (twl_st_of None S)\<close>
-  shows \<open>RETURN (init_dt_step C S) = init_dt_step_l C S\<close>
-proof -
-  have \<open>no_dup (trail (convert_to_state (twl_st_of None S)))\<close>
-    using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by fast
-  then have n_d: \<open>no_dup (get_trail_l S)\<close>
-    by (cases S) (auto simp add: cdcl\<^sub>W_restart_mset_state)
-
-  have tl_C_nempty: \<open>tl C \<noteq> []\<close> if \<open>length C \<noteq> Suc 0\<close>
-    using le_C that by (cases C) auto
-  show ?thesis
-    using n_d le_C unfolding init_dt_step_def init_dt_step_l_def Let_def
-    by (cases S) (auto simp: valued_def length_ge_Suc_0_tl_not_nil split: option.splits cong: bind_cong
-        dest!: tl_C_nempty)
-qed
-
+sepref_register \<open>init_dt_step_l :: nat clause_l \<Rightarrow> nat twl_st_l \<Rightarrow> nat twl_st_l nres\<close>
 sepref_definition init_dt_step_impl is
-  \<open>uncurry ((init_dt_step_l :: nat clause_l \<Rightarrow> nat twl_st_l \<Rightarrow> nat twl_st_l nres))\<close>
+  \<open>uncurry (init_dt_step_l :: nat clause_l \<Rightarrow> nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close>
   :: \<open>clause_ll_assn\<^sup>d *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
   supply [[goals_limit=1]]
   unfolding init_dt_step_l_def
   unfolding HOL_list.fold_custom_empty lms_fold_custom_empty
   by sepref (* slow *)
 
-sepref_register \<open>init_dt_step_l :: nat clause_l \<Rightarrow> nat twl_st_l \<Rightarrow> nat twl_st_l nres\<close>
 declare init_dt_step_impl.refine[sepref_fr_rules]
-
-definition init_dt_l where
-  \<open>init_dt_l CS S =  nfoldli CS (\<lambda>_. True) init_dt_step_l S\<close>
-
-lemma init_dt_init_dt_l:
-  assumes
-    \<open>\<forall>C \<in> set CS. distinct C\<close> and
-    \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close> and
-    \<open>\<forall>C \<in> set CS. \<not>tautology (mset C)\<close> and
-    \<open>twl_struct_invs (twl_st_of None S)\<close> and
-    \<open>working_queue_l S = {#}\<close> and
-    \<open>\<forall>s\<in>set (get_trail_l S). \<not>is_decided s\<close> and
-    \<open>\<And>L. get_conflict_l S = None \<longrightarrow> pending_l S = uminus `# lit_of `# mset (get_trail_l S)\<close> and
-    \<open>additional_WS_invs S\<close> and
-    \<open>get_learned_l S = length (get_clauses_l S) - 1\<close>and
-    \<open>twl_stgy_invs (twl_st_of None S)\<close>
-  shows \<open>RETURN (init_dt CS S) = init_dt_l (rev CS) S\<close>
-  using assms unfolding init_dt_l_def
-proof (induction CS)
-  case Nil
-  then show ?case by simp
-next
-  case (Cons a CS)
-  then have IH: \<open>RETURN (init_dt CS S) = nfoldli (rev CS) (\<lambda>_. True) init_dt_step_l S\<close>
-    by auto
-  have [simp]: \<open>nfoldli [] (\<lambda>_. True) init_dt_step_l = (\<lambda>S. RETURN S)\<close>
-    by (auto intro!: ext)
-  have step:
-    \<open>RETURN (init_dt_step a (init_dt CS S)) = init_dt_step_l a (init_dt CS S)\<close>
-    apply (rule init_dt_step_init_dt_step_l)
-    subgoal using Cons(3) by auto
-    subgoal using init_dt_full[of CS S] Cons(2-) by simp
-    done
-  show ?case
-    by (auto simp: IH[symmetric] step)
-qed
 
 sepref_definition init_dt_l_impl is
   \<open>uncurry ((init_dt_l :: nat clauses_l \<Rightarrow> nat twl_st_l \<Rightarrow> nat twl_st_l nres))\<close>

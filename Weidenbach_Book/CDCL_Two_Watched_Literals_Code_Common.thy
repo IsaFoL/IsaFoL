@@ -1,5 +1,5 @@
 theory CDCL_Two_Watched_Literals_Code_Common
-  imports "Partial_Annotated_Clausal_Logic" IICF
+  imports "Partial_Annotated_Clausal_Logic" IICF CDCL_Two_Watched_Literals_Initialisation
 begin
 text \<open>
   First we instantiate our types with sort heap, to show compatibility with code generation. The
@@ -244,5 +244,101 @@ definition defined_lit_map_impl :: "(nat, nat) ann_lit list \<Rightarrow> nat li
        let L\<^sub>1'' = atm_of (lit_of L');
        RETURN (L\<^sub>1 = L\<^sub>1'')})
     False\<close>
+
+
+section \<open>Code for the initialisation of the Data Structure\<close>
+
+definition init_dt_step_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l \<Rightarrow> ('v twl_st_l) nres\<close> where
+  \<open>init_dt_step_l C S = do {
+   (let (M, N, U, D, NP, UP, WS, Q) = S in
+   (case D of
+    None \<Rightarrow>
+    if length C = 1
+    then do {
+      ASSERT (no_dup M);
+      ASSERT (C \<noteq> []);
+      let L = hd C;
+      let val_L = valued M L;
+      if val_L = None
+      then do {RETURN (Propagated L 0 # M, N, U, None, add_mset {#L#} NP, UP, WS, add_mset (-L) Q)}
+      else
+        if val_L = Some True
+        then do {RETURN (M, N, U, None, add_mset {#L#} NP, UP, WS, Q)}
+        else do {RETURN (M, N, U, Some (mset C), add_mset {#L#} NP, UP, {#}, {#})}
+      }
+    else do {
+      ASSERT(C \<noteq> []);
+      ASSERT(tl C \<noteq> []);
+      RETURN (M, N @ [C], length N, None, NP, UP, WS, Q)}
+  | Some D \<Rightarrow>
+    if length C = 1
+    then do {
+      ASSERT (C \<noteq> []);
+      let L = hd C;
+      RETURN (M, N, U, Some D, add_mset {#L#} NP, UP, {#}, {#})}
+    else do {
+      ASSERT(C \<noteq> []);
+      ASSERT(tl C \<noteq> []);
+      RETURN (M, N @ [C], length N, Some D, NP, UP, {#}, {#})}))
+  }\<close>
+
+lemma length_ge_Suc_0_tl_not_nil: \<open>length C > Suc 0 \<Longrightarrow> tl C \<noteq> []\<close>
+  by (cases C) auto
+
+lemma init_dt_step_init_dt_step_l:
+  assumes
+    le_C: \<open>length C \<ge> 1\<close> and
+    struct_invs: \<open>twl_struct_invs (twl_st_of None S)\<close>
+  shows \<open>RETURN (init_dt_step C S) = init_dt_step_l C S\<close>
+proof -
+  have \<open>no_dup (trail (convert_to_state (twl_st_of None S)))\<close>
+    using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by fast
+  then have n_d: \<open>no_dup (get_trail_l S)\<close>
+    by (cases S) (auto simp add: cdcl\<^sub>W_restart_mset_state)
+
+  have tl_C_nempty: \<open>tl C \<noteq> []\<close> if \<open>length C \<noteq> Suc 0\<close>
+    using le_C that by (cases C) auto
+  show ?thesis
+    using n_d le_C unfolding init_dt_step_def init_dt_step_l_def Let_def
+    by (cases S) (auto simp: valued_def length_ge_Suc_0_tl_not_nil split: option.splits cong: bind_cong
+        dest!: tl_C_nempty)
+qed
+
+definition init_dt_l where
+  \<open>init_dt_l CS S =  nfoldli CS (\<lambda>_. True) init_dt_step_l S\<close>
+
+lemma init_dt_init_dt_l:
+  assumes
+    \<open>\<forall>C \<in> set CS. distinct C\<close> and
+    \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close> and
+    \<open>\<forall>C \<in> set CS. \<not>tautology (mset C)\<close> and
+    \<open>twl_struct_invs (twl_st_of None S)\<close> and
+    \<open>working_queue_l S = {#}\<close> and
+    \<open>\<forall>s\<in>set (get_trail_l S). \<not>is_decided s\<close> and
+    \<open>\<And>L. get_conflict_l S = None \<longrightarrow> pending_l S = uminus `# lit_of `# mset (get_trail_l S)\<close> and
+    \<open>additional_WS_invs S\<close> and
+    \<open>get_learned_l S = length (get_clauses_l S) - 1\<close>and
+    \<open>twl_stgy_invs (twl_st_of None S)\<close>
+  shows \<open>RETURN (init_dt CS S) = init_dt_l (rev CS) S\<close>
+  using assms unfolding init_dt_l_def
+proof (induction CS)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a CS)
+  then have IH: \<open>RETURN (init_dt CS S) = nfoldli (rev CS) (\<lambda>_. True) init_dt_step_l S\<close>
+    by auto
+  have [simp]: \<open>nfoldli [] (\<lambda>_. True) init_dt_step_l = (\<lambda>S. RETURN S)\<close>
+    by (auto intro!: ext)
+  have step:
+    \<open>RETURN (init_dt_step a (init_dt CS S)) = init_dt_step_l a (init_dt CS S)\<close>
+    apply (rule init_dt_step_init_dt_step_l)
+    subgoal using Cons(3) by auto
+    subgoal using init_dt_full[of CS S] Cons(2-) by simp
+    done
+  show ?case
+    by (auto simp: IH[symmetric] step)
+qed
 
 end
