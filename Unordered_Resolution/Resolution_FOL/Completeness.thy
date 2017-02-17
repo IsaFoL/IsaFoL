@@ -448,9 +448,46 @@ lemma asd:
      apply blast
        done
     
+lemma bijbijbij:
+  assumes aaa: "infinite (UNIV :: ('a ::countable) set)"
+  assumes bbb: "infinite (UNIV :: ('b ::countable) set)"
+  shows "\<exists>b_of_a :: 'a \<Rightarrow> 'b. bij b_of_a"
+proof -
+  let ?S = "UNIV :: (('a::countable)) set"
+  have "countable ?S" by auto
+  moreover
+  have "infinite ?S" using aaa by auto
+  ultimately
+  obtain nat_of_a where QWER: "bij (nat_of_a :: 'a \<Rightarrow> nat)" using countableE_infinite[of ?S] by blast
+      
+  let ?T = "UNIV :: (('b::countable)) set"
+  have "countable ?T" by auto
+  moreover
+  have "infinite ?T" using bbb by auto
+  ultimately
+  obtain nat_of_b where TYUI: "bij (nat_of_b :: 'b \<Rightarrow> nat)" using countableE_infinite[of ?T] by blast
+      
+  let ?b_of_a = "\<lambda>a. (inv nat_of_b) (nat_of_a a)"
+  have "bij ?b_of_a" using QWER TYUI
+    unfolding bij_def
+    apply auto
+     apply (smt inj_on_def surj_f_inv_f)
+    by (metis UNIV_I image_image image_inv_f_f)
+  then show ?thesis by auto
+qed
+  
+lemma infinite_hterms: "infinite (UNIV :: hterm set)"
+proof -
+  let ?diago = "\<lambda>n. HFun (string_from_nat n) []"
+  let ?undiago = "\<lambda>a. nat_from_string (case a of HFun f ts \<Rightarrow> f)"
+  have "\<forall>n. ?undiago (?diago n) = n" using nat_from_string_string_from_nat by auto
+  moreover
+  have "\<forall>n. ?diago n \<in> UNIV" by auto
+  ultimately show "infinite (UNIV :: hterm set)" using infinity[of ?undiago ?diago UNIV] by simp
+qed
   
 theorem completeness_countable:
-  assumes "infinite (UNIV :: ('u ::countable) set)"
+  assumes iii: "infinite (UNIV :: ('u ::countable) set)"
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
   assumes unsat: "\<forall>(F::'u fun_denot) (G::'u pred_denot) . \<not>eval\<^sub>c\<^sub>s F G Cs"
   shows "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
@@ -461,10 +498,9 @@ proof -
     fix G :: "hterm pred_denot"
       
     obtain u_of_hterm :: "hterm \<Rightarrow> 'u" where bb: "bij u_of_hterm"
-      sorry
+      using bijbijbij iii infinite_hterms by auto
         
     let ?F = "F_conv u_of_hterm F"
-    term "?F :: 'u fun_denot"
     let ?G = "G_conv u_of_hterm G"
     
     have "\<not> eval\<^sub>c\<^sub>s ?F ?G Cs" using unsat by auto
@@ -472,6 +508,7 @@ proof -
   qed
   then show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" using finite_cs completeness by auto
 qed
+  
 
 end -- {* unification locale *}
 
