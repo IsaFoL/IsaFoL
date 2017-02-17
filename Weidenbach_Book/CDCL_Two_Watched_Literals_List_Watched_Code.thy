@@ -3431,12 +3431,6 @@ proof -
     using single_of_mset_imp_code.refine[FCOMP 1] by simp
 qed
 
-lemma length_ra_op_list_length[sepref_fr_rules]: -- \<open>TODO: should already exist\<close>
-   \<open>(length_ra, RETURN o op_list_length) \<in> (arrayO_raa R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare sep_auto
-
-declare array_of_arl[sepref_fr_rules] -- \<open>TODO declare source\<close>
-
 sepref_register backtrack_wl_D
 sepref_thm backtrack_wl_D
   is \<open>PR_CONST backtrack_wl_D\<close>

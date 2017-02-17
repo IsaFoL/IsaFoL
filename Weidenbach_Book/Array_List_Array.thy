@@ -111,7 +111,8 @@ lemma length_ra_rule[sep_heap_rules]:
   by (sep_auto simp: arrayO_raa_def length_ra_def mod_star_conv arl_assn_def
       dest: heap_list_add_same_length)
 
-lemma length_ra_hnr[sepref_fr_rules]: \<open>(length_ra, RETURN o length) \<in> (arrayO_raa R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+lemma length_ra_hnr[sepref_fr_rules]:
+  \<open>(length_ra, RETURN o op_list_length) \<in> (arrayO_raa R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare sep_auto
 
 definition length_rll :: \<open>'a list_rll \<Rightarrow> nat \<Rightarrow> nat\<close> where
@@ -462,7 +463,8 @@ definition array_of_arl :: \<open>'a list \<Rightarrow> 'a list\<close> where
 definition array_of_arl_raa :: "'a::heap array_list \<Rightarrow> 'a array Heap" where
   \<open>array_of_arl_raa = (\<lambda>(a, n). array_shrink a n)\<close>
 
-lemma array_of_arl: \<open>(array_of_arl_raa, RETURN o array_of_arl) \<in> (arl_assn R)\<^sup>d \<rightarrow>\<^sub>a (array_assn R)\<close>
+lemma array_of_arl[sepref_fr_rules]:
+   \<open>(array_of_arl_raa, RETURN o array_of_arl) \<in> (arl_assn R)\<^sup>d \<rightarrow>\<^sub>a (array_assn R)\<close>
   by sepref_to_hoare
    (sep_auto simp: array_of_arl_raa_def arl_assn_def is_array_list_def hr_comp_def
       array_assn_def is_array_def array_of_arl_def)
