@@ -157,9 +157,15 @@ sympy-plots-for-*.tex/
 
 ## Compressed
 *.zip
+*.tgz
+*.tar.gz
 
 ##Mac
 .DS_Store
 
 ##cloc
 *.nc
+
+## logfiles from unsat certificate experiments (>100MB, so I won't add them)
+GRAT/drat_logs
+
