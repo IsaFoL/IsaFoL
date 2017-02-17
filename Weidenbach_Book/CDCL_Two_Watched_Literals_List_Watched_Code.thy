@@ -551,7 +551,7 @@ definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> n
     ASSERT(i < length (N!C));
     ASSERT(1-i < length (N!C));
     let L = K;
-    let L' = ((N!C)) ! (1 - i);
+    let L' = (N!C) ! (1 - i);
     ASSERT(L' \<in># mset (watched_l (N!C)) - {#L#});
     ASSERT (mset (watched_l (N!C)) = {#L, L'#});
     val_L' \<leftarrow> RETURN (valued M L');
@@ -564,7 +564,10 @@ definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> n
       then
         if val_L' = Some False
         then do {RETURN (w+1, (M, N, U, Some (mset (N!C)), NP, UP, {#}, W))}
-        else do {RETURN (w+1, (Propagated L' C # M, N, U, D', NP, UP, add_mset (-L') Q, W))}
+        else do {
+          ASSERT(undefined_lit M L');
+          ASSERT(L' \<in> snd ` D\<^sub>0);
+          RETURN (w+1, (Propagated L' C # M, N, U, D', NP, UP, add_mset (-L') Q, W))}
       else do {
         ASSERT(snd f < length (N!C));
         let K' = (N!C) ! (snd f);
@@ -740,12 +743,14 @@ proof -
   obtain M N U D NP UP Q W where
     S: \<open>S = (M, N, U, D, NP, UP, Q, W)\<close>
     by (cases S)
-  have valued: \<open>(valued M (N ! (W K ! w) ! (1 - (if N ! (W K ! w) ! 0 = K then 0 else 1))),
-     valued M' (N' ! (W' K ! w) ! (1 - (if N' ! (W' K ! w) ! 0 = K then 0 else 1)))) \<in> Id\<close>
-    if \<open>N=N'\<close> and \<open>M = M'\<close> and \<open>W = W'\<close>
-    for N N' :: \<open>nat literal list list\<close> and
-    M M' :: \<open>(nat literal, nat literal, nat) annotated_lit list\<close> and W W'
-    using that by auto
+
+  have valued: \<open>(valued M L,
+     valued M' L') \<in>
+    {(val, val'). val = val' \<and>
+       val = (if undefined_lit M L then None else if L \<in> lits_of_l M then Some True else Some False)}\<close>
+    if \<open>M = M'\<close> and \<open>L = L'\<close>
+    for M M' :: \<open>(nat literal, nat literal, nat) annotated_lit list\<close> and L L'
+    using that by (auto simp: valued_def)
   have find_unwatched: \<open>find_unwatched M (N ! (W K ! w))
     \<le> \<Down> Id (find_unwatched M' (N' ! (W' K ! w)))\<close>
     if \<open>N=N'\<close> and \<open>M = M'\<close> and \<open>W = W'\<close>
@@ -761,11 +766,25 @@ proof -
          (mset `# mset (tl xs)) + a + b\<close>
     for a b and xs :: \<open>'a list list\<close> and n :: nat
     by auto
+  have in_lits_of_atms_S: \<open>N' ! a ! b
+    \<in># lits_of_atms_of_mm
+         (cdcl\<^sub>W_restart_mset.clauses
+           (convert_to_state (twl_st_of_wl None S)))\<close>
+    if \<open>a > 0\<close> and \<open>a < length N\<close> and \<open>b < length (N ! a)\<close> and \<open>N' = N\<close>
+    for a b :: nat and N'
+  proof -
+    have \<open>atm_of (N ! a ! b) \<in> atms_of_ms (mset ` set (tl N))\<close>
+    using that by (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff clauses_def S mset_take_mset_drop_mset
+        atms_of_ms_def drop_Suc atms_of_def nth_in_set_tl intro!: bexI[of _ \<open>N!a\<close>] )
+    then show ?thesis
+      using that
+      by (simp add: S clauses_def mset_take_mset_drop_mset' m  in_lits_of_atms_of_mm_ain_atms_of_iff)
+  qed
   show ?thesis
     unfolding unit_propagation_inner_loop_body_wl_D_def unit_propagation_inner_loop_body_wl_def S
       watched_by.simps
     supply [[goals_limit=1]]
-    apply (refine_vcg valued find_unwatched(* remove_dummy_vars *))
+    apply (refine_vcg valued find_unwatched)
     subgoal by simp
     subgoal using K .
     subgoal by simp
@@ -779,7 +798,6 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal by simp
-    subgoal by simp
     subgoal
       using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
           mset_take_mset_drop_mset' m)
@@ -792,6 +810,17 @@ proof -
     subgoal
       using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
           mset_take_mset_drop_mset' m)
+    subgoal by (auto split: if_splits)
+    subgoal for M'' x2 N'' x2a U'' x2b D'' x2c NP'' x2d UP'' x2e WS'' Q'' M' x2g
+      N' x2h U' x2i D' x2j NP' x2k UP' x2l WS' Q' val_L'
+      apply (subgoal_tac \<open>N' ! (Q' K ! w) ! (1 - (if N' ! (Q' K ! w) ! 0 = K then 0 else 1)) \<in>#
+        lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S)))\<close>)
+      subgoal using eq_commute[THEN iffD1, OF N\<^sub>0[unfolded is_N\<^sub>1_def]]
+        by (auto simp: image_image S clauses_def mset_take_mset_drop_mset' m is_N\<^sub>1_def
+            lits_of_atms_of_mm_union)[]
+      subgoal
+        by (rule in_lits_of_atms_S) auto
+      done
     subgoal
       using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
           mset_take_mset_drop_mset' m)
@@ -2206,7 +2235,7 @@ proof -
     unfolding RETURN_def[symmetric] by auto
   have [simp]: \<open>aa \<in> set ba \<Longrightarrow> ba \<noteq> []\<close> for aa and ba :: \<open>'a list\<close>
     by (cases ba) auto
-  have [simp]: \<open>last ba = aa\<close> if \<open>Suc (index ba aa) = length ba\<close> and \<open>ba \<noteq> []\<close> for ba :: \<open>'a list\<close> 
+  have [simp]: \<open>last ba = aa\<close> if \<open>Suc (index ba aa) = length ba\<close> and \<open>ba \<noteq> []\<close> for ba :: \<open>'a list\<close>
     and aa
     using that by (metis One_nat_def Suc_to_right index_conv_size_if_notin last_conv_nth
         n_not_Suc_n nth_index)
