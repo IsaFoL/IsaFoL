@@ -3,6 +3,9 @@ theory CDCL_Two_Watched_Literals_List_Watched_Code
     CDCL_Two_Watched_Literals_Code_Common
 begin
 
+no_notation Ref.update ("_ := _" 62)
+
+
 section \<open>Code Generation\<close>
 
 subsection \<open>Literals as Natural Numbers\<close>
@@ -135,8 +138,8 @@ subsection \<open>State Conversion\<close>
 subsubsection \<open>Functions and Types:\<close>
 
 type_synonym ann_lits_l = \<open>(nat, nat) ann_lits\<close>
-type_synonym working_queue_ll = "nat list"
-type_synonym lit_queue_l = "nat list"
+type_synonym working_queue_ll = \<open>nat list\<close>
+type_synonym lit_queue_l = \<open>nat list\<close>
 type_synonym nat_trail = \<open>(nat \<times> nat option) list\<close>
 type_synonym clause_wl = \<open>nat array\<close>
 type_synonym clauses_wl = \<open>nat arrayO_raa\<close>
@@ -243,14 +246,11 @@ definition valued_impl :: "(nat, nat) ann_lits \<Rightarrow> nat literal \<Right
 lemma valued_impl_valued:
   assumes \<open>no_dup M\<close>
   shows \<open>valued_impl M L = RETURN (valued M L)\<close>
-    using assms
+  using assms
   apply (induction M)
-   apply (simp add: valued_def valued_impl_def Decided_Propagated_in_iff_in_lits_of_l atm_of_eq_atm_of)[]
+   apply (simp add: valued_def valued_impl_def Decided_Propagated_in_iff_in_lits_of_l
+      atm_of_eq_atm_of)[]
   by (auto simp add: valued_def valued_impl_def defined_lit_map dest: in_lits_of_l_defined_litD)
-
-lemma hrp_comp_Id2[simp]: \<open>hrp_comp A Id = A\<close>
-  unfolding hrp_comp_def
-  by auto
 
 lemma valued_impl_spec:
   shows \<open>(uncurry valued_impl, uncurry (RETURN oo valued)) \<in>
@@ -261,7 +261,6 @@ lemma valued_impl_spec:
 lemma atm_of_hnr[sepref_fr_rules]:
   \<open>(return o (\<lambda>n. n div 2), RETURN o op_atm_of) \<in> (pure nat_lit_rel)\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
   by sepref_to_hoare (sep_auto simp: p2rel_def lit_of_natP_def)
-thm Abs_assn_inverse nth_rule
 
 lemma lit_of_hnr[sepref_fr_rules]:
   \<open>(return o fst, RETURN o op_lit_of) \<in> (pure nat_ann_lit_rel)\<^sup>k \<rightarrow>\<^sub>a (pure nat_lit_rel)\<close>
@@ -273,25 +272,21 @@ lemma lit_of_hnr[sepref_fr_rules]:
   apply (case_tac b)
    apply (auto
       elim!: run_elims
-      simp: hoare_triple_def snga_assn_def
-      Let_def Let_def new_addrs_def relH_def in_range.simps  mod_emp
-      )
+      simp: hoare_triple_def snga_assn_def Let_def new_addrs_def relH_def in_range.simps mod_emp)
   done
 
 lemma op_eq_op_nat_lit_eq[sepref_fr_rules]:
   \<open>(uncurry (return oo (op =)), uncurry (RETURN oo op_nat_lit_eq)) \<in>
     (pure nat_lit_rel)\<^sup>k *\<^sub>a (pure nat_lit_rel)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  apply sepref_to_hoare
-  apply (sep_auto simp: p2rel_def nat_ann_lit_rel_def lit_of_natP_def
+proof -
+  have [simp]: \<open>even bi \<Longrightarrow> even ai \<Longrightarrow> ai div 2 = bi div 2 \<Longrightarrow> ai = bi\<close> for ai bi :: nat
+    by presburger
+  have [simp]: \<open>odd bi \<Longrightarrow> odd ai \<Longrightarrow> ai div 2 = bi div 2 \<Longrightarrow> ai = bi\<close> for ai bi :: nat
+    by presburger
+  show ?thesis
+    by sepref_to_hoare (sep_auto simp: p2rel_def nat_ann_lit_rel_def lit_of_natP_def
       split: if_splits)
-   apply (auto
-      elim!: run_elims
-      simp: hoare_triple_def snga_assn_def
-      Let_def Let_def new_addrs_def relH_def in_range.simps  mod_emp
-      )
-    apply presburger
-  apply presburger
-  done
+qed
 
 sepref_definition valued_impl' is \<open>uncurry valued_impl\<close>
   :: \<open>pair_nat_ann_lits_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
@@ -323,8 +318,6 @@ lemma delete_index_and_swap_aa_ll_hnr[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto dest: le_length_ll_nemptyD
       simp: delete_index_and_swap_ll_def update_ll_def last_ll_def set_butlast_ll_def
       length_ll_def[symmetric])
-no_notation Ref.update ("_ := _" 62)
-
 
 definition find_unwatched' :: "(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> (bool option \<times> nat) nres" where
 \<open>find_unwatched' M N' C = do {
@@ -375,6 +368,7 @@ definition N\<^sub>0' where \<open>N\<^sub>0' = map literal_of_nat N\<^sub>0\<cl
 definition N\<^sub>0'' where \<open>N\<^sub>0'' = mset N\<^sub>0'\<close>
 
 definition N\<^sub>1 where \<open>N\<^sub>1 = N\<^sub>0'' + uminus `# N\<^sub>0''\<close>
+
 sepref_register N\<^sub>1
 lemma list_assn_N\<^sub>0: \<open>list_assn (\<lambda>a c. \<up> ((c, a) \<in> nat_lit_rel)) N\<^sub>0' N\<^sub>0 = emp\<close>
   unfolding N\<^sub>0'_def
@@ -451,9 +445,9 @@ proof -
     subgoal for xa Ls l
       apply (case_tac \<open>(nat_of_lit ` set_mset Ls) = {}\<close>)
        apply (solves simp)
-      apply (auto simp: nth_list_update_neq less_Suc_eq_le length_fold)
+      apply (auto simp: less_Suc_eq_le length_fold)
       apply (subst nth_list_update_neq)
-       apply (auto simp: less_Suc_eq_le Max.insert)[]
+       apply (auto simp: less_Suc_eq_le)[]
       apply (auto simp: less_Suc_eq_le)[]
       done
     done
@@ -490,15 +484,12 @@ proof -
 
   have 1: \<open>?pre' = ?pre\<close>
     using ex_list_watched
-    apply (auto simp: comp_PRE_def intro!: ext simp: prod_rel_def_internal
-        relAPP_def map_fun_rel_def[abs_def] p2rel_def lit_of_natP_def
-        literal_of_neq_eq_nat_of_lit_eq_iff length_ll_def
+    by (fastforce simp: comp_PRE_def prod_rel_def_internal relAPP_def map_fun_rel_def[abs_def]
+        p2rel_def lit_of_natP_def literal_of_neq_eq_nat_of_lit_eq_iff length_ll_def
         simp del: literal_of_nat.simps)
-      done
 
   have 2: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp
-    by (auto simp: hrp_comp_def hr_comp_def)
+    unfolding prod_hrp_comp by (auto simp: hrp_comp_def hr_comp_def)
   have 3: \<open>?f' = ?f\<close>
     by (auto simp: hrp_comp_def hr_comp_def)
 
@@ -529,14 +520,12 @@ proof -
 
   have 1: \<open>?pre' = ?pre\<close>
     using ex_list_watched
-    by (auto simp: comp_PRE_def intro!: ext simp: prod_rel_def_internal
-        relAPP_def map_fun_rel_def[abs_def] p2rel_def lit_of_natP_def
-        literal_of_neq_eq_nat_of_lit_eq_iff length_ll_def
+    by (fastforce simp: comp_PRE_def prod_rel_def_internal relAPP_def map_fun_rel_def[abs_def]
+        p2rel_def lit_of_natP_def literal_of_neq_eq_nat_of_lit_eq_iff length_ll_def
         simp del: literal_of_nat.simps)
 
   have 2: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp
-    by (auto simp: hrp_comp_def hr_comp_def)
+    unfolding prod_hrp_comp by (auto simp: hrp_comp_def hr_comp_def)
   have 3: \<open>?f' = ?f\<close>
     by (auto simp: hrp_comp_def hr_comp_def)
 
@@ -561,8 +550,7 @@ definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> n
     let i = (if (N!C) ! 0 = K then 0 else 1);
     ASSERT(i < length (N!C));
     ASSERT(1-i < length (N!C));
-    let L = ((N!C)) ! i;
-    ASSERT(L = K);
+    let L = K;
     let L' = ((N!C)) ! (1 - i);
     ASSERT(L' \<in># mset (watched_l (N!C)) - {#L#});
     ASSERT (mset (watched_l (N!C)) = {#L, L'#});
@@ -702,8 +690,7 @@ proof -
     using even_Suc by blast
 
   have pre: \<open>?pre' = ?pre\<close>
-    apply (auto simp: comp_PRE_def map_fun_rel_def (* p2rel_def *) lit_of_natP_def
-        image_image
+    apply (auto simp: comp_PRE_def map_fun_rel_def lit_of_natP_def image_image
         Pos_div2_iff Neg_div2_iff all_conj_distrib length_ll_def
         intro!: ext split: if_splits)
     by (auto simp: p2rel_def lit_of_natP_def split: if_splits)
@@ -767,12 +754,12 @@ proof -
     by (auto simp: that)
   have \<open>mset `# mset (take n (tl xs)) +
     mset `# mset (drop (Suc n) xs) =
-    mset `# mset (tl xs)\<close> for n :: nat and xs
+    mset `# mset (tl xs)\<close> for n :: nat and xs :: \<open>'a list list\<close>
     unfolding image_mset_union[symmetric] mset_append[symmetric] drop_Suc
       append_take_drop_id ..
   then have m: \<open>(mset `# mset (take n (tl xs)) + a + (mset `# mset (drop (Suc n) xs) + b)) =
          (mset `# mset (tl xs)) + a + b\<close>
-    for a b xs and n :: nat
+    for a b and xs :: \<open>'a list list\<close> and n :: nat
     by auto
   show ?thesis
     unfolding unit_propagation_inner_loop_body_wl_D_def unit_propagation_inner_loop_body_wl_def S
@@ -781,7 +768,6 @@ proof -
     apply (refine_vcg valued find_unwatched(* remove_dummy_vars *))
     subgoal by simp
     subgoal using K .
-    subgoal by simp
     subgoal by simp
     subgoal by simp
     subgoal by simp
@@ -836,8 +822,7 @@ proof -
      {((n', T'), n, T). n' = n \<and> T = T' \<and> literals_are_N\<^sub>0 T'}\<close>
     by auto
   show ?G1
-    unfolding fref_def 1
-    by (auto simp add: nres_rel_def uncurry_def snd_conv simp del: twl_st_of_wl.simps
+    unfolding fref_def 1 by (auto simp add: nres_rel_def uncurry_def simp del: twl_st_of_wl.simps
         intro!: unit_propagation_inner_loop_body_wl_D_spec)
   moreover have \<open> \<langle>nat_rel \<times>\<^sub>r
               {(T', T).
@@ -882,12 +867,12 @@ proof -
     \<open>K = K'\<close> and \<open>w = w'\<close> and \<open>S = S'\<close> for S S' and w w' and K K'
     using unit_propagation_inner_loop_body_wl_D_spec[of K S w] that by auto
   have \<open>mset `# mset (take n (tl xs)) + mset `# mset (drop (Suc n) xs) = mset `# mset (tl xs)\<close>
-    for n :: nat and xs
+    for n :: nat and xs :: \<open>'a list list\<close>
     unfolding image_mset_union[symmetric] mset_append[symmetric] drop_Suc
       append_take_drop_id ..
   then have m: \<open>(mset `# mset (take n (tl xs)) + a + (mset `# mset (drop (Suc n) xs) + b)) =
          (mset `# mset (tl xs)) + a + b\<close>
-    for a b xs and n :: nat
+    for a b and xs :: \<open>'a list list\<close> and n :: nat
     by auto
 
   show ?thesis
@@ -1316,14 +1301,13 @@ proof -
    \<Down> {(L', L). L' \<in># remove1_mset (-M) (the (get_conflict_wl S)) \<and> L' = L} (find_lit_of_max_level_wl S' M')\<close>
     if \<open>S = S'\<close> and \<open>M = M'\<close>
     for S S' :: \<open>nat twl_st_wl\<close> and M M'
-    using that by (cases S; cases S')
-      (auto simp: find_lit_of_max_level_wl_def find_lit_of_max_level_wl_def intro!: RES_refine)
+    using that by (cases S; cases S') (auto simp: find_lit_of_max_level_wl_def intro!: RES_refine)
   have H: \<open>mset `# mset (take n (tl xs)) + a + (mset `# mset (drop (Suc n) xs) + b) =
-   mset `# mset (tl xs) + a + b\<close> for n xs a b
+   mset `# mset (tl xs) + a + b\<close> for n and xs :: \<open>'a list list\<close> and a b
     apply (subst (2) append_take_drop_id[of n \<open>tl xs\<close>, symmetric])
     apply (subst mset_append)
     by (auto simp: drop_Suc)
-  have N\<^sub>1: \<open>set_mset (lits_of_atms_of_mm N) = set_mset N\<^sub>1 \<longleftrightarrow> atms_of_mm N = atms_of N\<^sub>1\<close> for N M
+  have N\<^sub>1: \<open>set_mset (lits_of_atms_of_mm N) = set_mset N\<^sub>1 \<longleftrightarrow> atms_of_mm N = atms_of N\<^sub>1\<close> for N
     apply (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff atms_of_ms_def atms_of_def
         atm_of_eq_atm_of N\<^sub>1_def in_implies_atm_of_on_atms_of_ms
         image_Un)
@@ -1345,7 +1329,7 @@ proof -
           simp del: diff_diff_add_mset)
   qed
   have single_of_mset: \<open>single_of_mset D \<le> \<Down> {(L, E). E = [L] \<and> D = mset E} (list_of_mset D')\<close>
-    if \<open>D = D'\<close> for D D'
+    if \<open>D = D'\<close> for D D' :: \<open>'a clause\<close>
     using that by (auto simp: single_of_mset_def list_of_mset_def intro!: RES_refine)
   show ?thesis
     unfolding backtrack_wl_D_def backtrack_wl_def find_lit_of_max_level_wl'_def
@@ -1826,8 +1810,8 @@ lemma list_contains_WHILE_f_op_list_contains:
 \<close>
 proof -
   have 1: \<open>RETURN oo op_list_contains = (\<lambda>l xs. do {b \<leftarrow> RETURN (op_list_contains l xs); RETURN b})\<close>
-    by (auto intro!: ext)
-   note bind_refine' = bind_refine[where R=Id, simplified]
+    by fastforce
+  note bind_refine' = bind_refine[where R=Id, simplified]
 
   show ?thesis
     unfolding list_contains_WHILE_f_def 1
@@ -1938,11 +1922,10 @@ lemma is_decided_wl_code[sepref_fr_rules]:
   \<open>(is_decided_wl_code, RETURN o is_decided) \<in> pair_nat_ann_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
 proof -
   have 1: \<open>hr_comp ann_lit_wl_assn nat_ann_lit_rel = pair_nat_ann_lit_assn\<close>
-    by (auto simp: case_prod_beta hr_comp_def[abs_def] pure_def nat_ann_lit_rel_def
+    by (fastforce simp: case_prod_beta hr_comp_def[abs_def] pure_def nat_ann_lit_rel_def
         prod_assn_def ann_lit_of_pair_if ex_assn_def imp_ex Abs_assn_eqI(1) ex_simps(1)[symmetric]
         simp del: pair_of_ann_lit.simps literal_of_nat.simps ex_simps(1)
-        split: if_splits
-        intro!: ext)
+        split: if_splits)
   show ?thesis
     using is_decided_wl_code.refine[FCOMP is_decided_wl_is_decided]
     unfolding 1 .
@@ -2039,8 +2022,7 @@ proof -
     using that unfolding f_def by auto
   have [simp]: \<open>f a k = k\<close> if \<open>\<not>is_decided a\<close> for a k
     using that unfolding f_def by auto
-  have [simp]: \<open>fold f M k = k + count_decided M\<close>
-      for D and k :: nat
+  have [simp]: \<open>fold f M k = k + count_decided M\<close> for k :: nat
     apply (induction M arbitrary: k)
     subgoal by simp
     subgoal by (auto simp: get_maximum_level_add_mset)
@@ -2181,7 +2163,7 @@ proof -
     by (auto simp add: list_mset_rel_def mset_rel_def br_def Collect_eq_comp rel2p_def[abs_def]
         p2rel_def rel_mset_def list.rel_eq)
   have 3: \<open>(hr_comp (arl_assn nat_lit_assn) (list_mset_rel O \<langle>Id\<rangle>mset_rel)) = conflict_assn\<close>
-    by (auto simp: hr_comp_def[abs_def] 2 intro!: ext)
+    by (auto simp: hr_comp_def[abs_def] 2)
   show ?thesis
     using is_in_arl_code.refine[FCOMP is_in_arl_op_mset_contains, of Id]
     by (auto simp: 1 3)
@@ -2219,11 +2201,13 @@ sepref_definition remove1_wl_code
 lemma remove1_wl_remove1: \<open>(uncurry remove1_wl, uncurry (RETURN oo remove1)) \<in> Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f
     \<langle>{(l, l'). mset l = mset l'}\<rangle> nres_rel\<close>
 proof -
-  have 1: \<open>RETURN (remove1 x xs) = RES {index xs x} \<bind>  (\<lambda>_. RETURN (remove1 x xs))\<close> for x xs
+  have 1: \<open>RETURN (remove1 x xs) = RES {index xs x} \<bind>  (\<lambda>_. RETURN (remove1 x xs))\<close> for x and
+    xs :: \<open>'a list\<close>
     unfolding RETURN_def[symmetric] by auto
-  have [simp]: \<open>aa \<in> set ba \<Longrightarrow> ba \<noteq> []\<close> for aa ba
+  have [simp]: \<open>aa \<in> set ba \<Longrightarrow> ba \<noteq> []\<close> for aa and ba :: \<open>'a list\<close>
     by (cases ba) auto
-  have [simp]: \<open>last ba = aa\<close> if \<open>Suc (index ba aa) = length ba\<close> and \<open>ba \<noteq> []\<close> for ba aa
+  have [simp]: \<open>last ba = aa\<close> if \<open>Suc (index ba aa) = length ba\<close> and \<open>ba \<noteq> []\<close> for ba :: \<open>'a list\<close> 
+    and aa
     using that by (metis One_nat_def Suc_to_right index_conv_size_if_notin last_conv_nth
         n_not_Suc_n nth_index)
   have [simp]: \<open>do {
@@ -2236,7 +2220,7 @@ proof -
                }
              }
        \<le> \<Down> {(l, l'). mset l = mset l'}
-           (RETURN (remove1 aa ba))\<close> for aa ba
+           (RETURN (remove1 aa ba))\<close> for aa and ba :: \<open>'a list\<close>
     apply (subst 1)
     apply (rule bind_refine_RES(2))
     unfolding RETURN_def[symmetric] Let_def
@@ -2316,10 +2300,10 @@ proof -
   (is \<open>_ \<in> _ *\<^sub>a ?c'\<^sup>d \<rightarrow>\<^sub>a ?o'\<close>)
     using remove1_wl_code.refine[FCOMP remove1_wl_remove1, FCOMP remove1_remove1_mset] .
   have 1:
-    \<open>(\<exists>\<^sub>Aba bb. f bb * \<up> (bb = ba) * P ba) = (\<exists>\<^sub>Aba. f ba * P ba)\<close> for P f
+    \<open>(\<exists>\<^sub>Aba bb. f bb * \<up> (bb = ba) * P ba) = (\<exists>\<^sub>Aba. f ba * P ba)\<close> for P :: \<open>'a \<Rightarrow> assn\<close> and f
     by (sep_auto simp: ex_assn_def)
   have [simp]:
-    \<open>(\<exists>\<^sub>Aba bb. f bb * \<up> (bb = ba \<and> P ba)) = (\<exists>\<^sub>Aba. f ba * \<up> (P ba))\<close> for P f
+    \<open>(\<exists>\<^sub>Aba bb. f bb * \<up> (bb = ba \<and> P ba)) = (\<exists>\<^sub>Aba. f ba * \<up> (P ba))\<close> for P :: \<open>'a \<Rightarrow> bool\<close> and f
     unfolding import_param_3 mult.assoc[symmetric] 1 ..
   have 2: \<open>(\<exists>\<^sub>Aba bb.
            is_array_list bb (aa, b) *
@@ -2344,7 +2328,7 @@ proof -
            \<up> (\<exists>ba. (mset bb = mset ba \<and>
               (\<exists>b. list_all2 lit_of_natP ba b \<and> a = mset b))))\<close> for a aa b
     apply (subst ex_assn_swap)
-    apply(subst ex_assn_move_out[symmetric])+
+    apply (subst ex_assn_move_out[symmetric])+
     apply (subst ent_ex_up_swap)
     ..
   have "4b": \<open>(\<exists>\<^sub>Aba bb.
@@ -2354,23 +2338,22 @@ proof -
            is_array_list bb (aa, b) *
            \<up> (\<exists>ba. list_all2 lit_of_natP bb ba \<and> a = mset ba)) \<close>  for a aa b
     apply (subst ex_assn_swap)
-    apply(subst ex_assn_move_out[symmetric])+
+    apply (subst ex_assn_move_out[symmetric])+
     apply (subst ent_ex_up_swap)
     ..
   have 4: \<open>(\<exists>b. mset ba = mset b \<and>
                   (\<exists>ba. list_all2 lit_of_natP b ba \<and>
                         a = mset ba)) =
-           (\<exists>b. list_all2 lit_of_natP ba b \<and> a = mset b)\<close> for bb ba a
+           (\<exists>b. list_all2 lit_of_natP ba b \<and> a = mset b)\<close> for ba a
     using list_all2_reorder_left_invariance by fastforce
   have c: \<open>?c' = ?c\<close>
-    by (auto simp: hr_comp_def[abs_def] list_mset_rel_def mset_rel_def arl_assn_def
+    by (fastforce simp: hr_comp_def[abs_def] list_mset_rel_def mset_rel_def arl_assn_def
         p2rel_def rel2p_def[abs_def] br_def Collect_eq_comp rel_mset_def list_rel_def
-        list.rel_eq 2 3
-        intro!: ext)
+        list.rel_eq 2 3)
   have o': \<open>?o' = ?o\<close>
-    by (auto simp: hr_comp_def[abs_def] list_mset_rel_def mset_rel_def arl_assn_def
-        list_rel_def list.rel_eq 3 "4a" "4b" 4
-        p2rel_def rel2p_def[abs_def] br_def Collect_eq_comp rel_mset_def intro!: ext)
+    by (fastforce simp: hr_comp_def[abs_def] list_mset_rel_def mset_rel_def arl_assn_def
+        list_rel_def list.rel_eq 3 "4a" "4b" 4 p2rel_def rel2p_def[abs_def] br_def Collect_eq_comp
+        rel_mset_def)
 
   show ?thesis
     using H unfolding c o' op_mset_delete_def .
@@ -2522,6 +2505,7 @@ lemma ex_decomp_get_ann_decomposition_iff:
   \<open>(\<exists>M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)) \<longleftrightarrow>
     (\<exists>M2. M = M2 @ Decided K # M1)\<close>
   using get_all_ann_decomposition_ex by fastforce
+
 lemma count_decided_tl_if:
   \<open>M \<noteq> [] \<Longrightarrow> count_decided (tl M) = (if is_decided (hd M) then count_decided M - 1 else count_decided M)\<close>
   by (cases M) auto
@@ -2538,7 +2522,7 @@ lemma find_decomp_wl_code_find_decomp_wl:
     struct: \<open>twl_struct_invs (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W))\<close> and
     E: \<open>E = the D\<close>
   shows
-   \<open>find_decomp_wl_imp M\<^sub>0 E L \<le>(find_decomp_wl (M\<^sub>0, N, U, D, NP, UP, Q, WS) L)\<close>
+   \<open>find_decomp_wl_imp M\<^sub>0 E L \<le> find_decomp_wl (M\<^sub>0, N, U, D, NP, UP, Q, WS) L\<close>
 proof -
   define f where
     \<open>f M\<^sub>0 D L \<equiv> (\<lambda>M\<^sub>0 D L. do {
@@ -2558,12 +2542,12 @@ proof -
   have 1: \<open>((count_decided x1g, x1g), count_decided x1, x1) \<in> Id\<close>
     if \<open>x1g = x1\<close> for x1g x1 :: \<open>(nat, nat) ann_lits\<close>
     using that by auto
-  have [simp]: \<open>\<exists>M'a. M' @ x2g = M'a @ tl x2g\<close> for M' x2g
+  have [simp]: \<open>\<exists>M'a. M' @ x2g = M'a @ tl x2g\<close> for M' x2g :: \<open>'a list\<close>
     by (metis append.assoc append_Cons append_Nil list.exhaust list.sel(3) tl_Nil)
   have butlast_nil_iff: \<open>butlast xs = [] \<longleftrightarrow> xs = [] \<or> (\<exists>a. xs = [a])\<close> for xs :: \<open>(nat, nat) ann_lits\<close>
     by (cases xs) auto
   have butlast1: \<open>tl x2g = drop (Suc (length x1) - length x2g) x1\<close> (is \<open>?G1\<close>)
-    if \<open>x2g = drop (length x1 - length x2g) x1\<close> for x2g x1
+    if \<open>x2g = drop (length x1 - length x2g) x1\<close> for x2g x1 :: \<open>'a list\<close>
   proof -
     have [simp]: \<open>Suc (length x1 - length x2g) = Suc (length x1) - length x2g\<close>
       by (metis Suc_diff_le diff_le_mono2 diff_zero length_drop that zero_le)
@@ -2571,19 +2555,16 @@ proof -
       by (subst that) (auto simp: butlast_conv_take tl_drop_def)[]
   qed
   have butlast2: \<open>tl x2g = drop (length x1 - (length x2g - Suc 0)) x1\<close> (is \<open>?G2\<close>)
-    if \<open>x2g = drop (length x1 - length x2g) x1\<close> and x2g: \<open>x2g \<noteq> []\<close> for x2g x1
+    if \<open>x2g = drop (length x1 - length x2g) x1\<close> and x2g: \<open>x2g \<noteq> []\<close> for x2g x1 :: \<open>'a list\<close>
   proof -
     have [simp]: \<open>Suc (length x1 - length x2g) = Suc (length x1) - length x2g\<close>
-      by (metis Suc_diff_le diff_le_mono2 diff_zero length_drop that zero_le)
+      by (metis Suc_diff_le diff_le_mono2 diff_zero length_drop that(1) zero_le)
     have [simp]: \<open>Suc (length x1) - length x2g = length x1 - (length x2g - Suc 0)\<close>
       using x2g by auto
     show ?G2
       by (subst that) (auto simp: butlast_conv_take tl_drop_def)[]
   qed
   note butlast = butlast1 butlast2
-  have H: \<open>x2g ! n = x1 ! n\<close> if \<open>x2g = take (length x2g) x1\<close> and \<open>n < length x2g\<close>
-    for x2g x1 n
-    by (subst that(1)) (use that(2) in \<open>auto simp: nth_take\<close>)
   have [iff]: \<open>convert_lits_l N M = [] \<longleftrightarrow> M = []\<close> for M
     by (cases M) auto
   have
@@ -2628,8 +2609,8 @@ proof -
   then have count_max: \<open>count_decided M\<^sub>0 > get_maximum_level M\<^sub>0 (remove1_mset (- L) (the D))\<close>
     using count_decided_ge_get_maximum_level[of M\<^sub>0 \<open>remove1_mset (- L) (the D)\<close>]
     by linarith
-  have count_decided_not_Nil[simp]:  \<open>0 < count_decided M \<Longrightarrow> M \<noteq> []\<close> for M
-    by (auto)
+  have count_decided_not_Nil[simp]:  \<open>0 < count_decided M \<Longrightarrow> M \<noteq> []\<close> for M :: \<open>(nat, nat) ann_lits\<close>
+    by auto
   have get_lev_last: \<open>get_level (M' @ M) (lit_of (last M')) = Suc (count_decided M)\<close>
     if \<open>M\<^sub>0 = M' @ M\<close> and \<open>M' \<noteq> []\<close> and \<open>is_decided (last M')\<close> for M' M
     apply (cases M' rule: rev_cases)
@@ -2659,16 +2640,15 @@ proof -
       subgoal
         apply (cases M')
           by (auto intro: butlast count_decided_tl_if)
-      subgoal by (auto simp: count_decided_butlast count_decided_tl_if count_decided_not_Nil)[]
+      subgoal by (auto simp: count_decided_butlast count_decided_tl_if)[]
       subgoal by (cases M') (auto simp: count_decided_ge_get_maximum_level)
       subgoal by (cases M') (auto simp: butlast_nil_iff count_decided_butlast
           eq_commute[of \<open>[_]\<close>] intro: butlast
           cong: if_cong split: if_splits)
       subgoal by (cases M') (auto simp: butlast_nil_iff count_decided_butlast
-          eq_commute[of \<open>[_]\<close>] last_conv_nth count_decided_not_Nil H
-          intro: butlast
+          eq_commute[of \<open>[_]\<close>] last_conv_nth H intro: butlast
           cong: if_cong split: if_splits)
-      subgoal by (cases M') (auto simp: count_decided_not_Nil)
+      subgoal by (cases M') auto
       done
     subgoal for s D M
       using count_max
@@ -2982,8 +2962,7 @@ proof -
     using hfref_compI_PRE_aux[OF 2 1] .
   have pre: \<open>?pre' = ?pre\<close>
     by (auto simp: comp_PRE_def twl_st_l_interm_rel_1_def in_br_conv list_mset_rel_def
-        pending_wl_empty_def
-        intro!: ext)
+        pending_wl_empty_def)
 
   have im: \<open>?im' = ?im\<close>
     unfolding twl_st_l_interm_assn_2_def twl_st_l_interm_rel_1_def prod_hrp_comp
@@ -3374,9 +3353,6 @@ lemma (in -)remove1_and_add_first_code_list_of_mset2[sepref_fr_rules]:
      nat_lit_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>d \<rightarrow> arl_assn nat_lit_assn\<close>
   (is \<open>_ \<in> [?P]\<^sub>a _ \<rightarrow> _\<close>)
 proof -
-  have H: \<open>xs ! n = a\<close> if \<open>index xs a = n\<close> and \<open>n < length xs\<close> for n xs a
-    using nth_index[of a xs] that that(1) by (auto simp del: nth_index simp add: index_less_size_conv)
-
   have \<open>aa \<in> set ba \<Longrightarrow>
        bb \<in> set ba \<Longrightarrow>
        aa \<noteq> bb \<Longrightarrow> distinct ba \<Longrightarrow> remove1_and_add_first aa bb ba \<le> list_of_mset2 aa bb (mset ba)\<close>
@@ -3516,11 +3492,13 @@ lemma find_unassigned_lit_wl_D_find_unassigned_lit_wl:
 proof -
   have le_minus_iff: \<open>(a::nat) \<le> a - Suc b \<longleftrightarrow> a = 0\<close> for a b
     by auto
-  have le_Down_option_rel[iff]: \<open>S \<le> \<Down> (\<langle>Id\<rangle>option_rel) T \<longleftrightarrow> S\<le>T\<close> for S T
+  have le_Down_option_rel[iff]: \<open>S \<le> \<Down> (\<langle>Id\<rangle>option_rel) T \<longleftrightarrow> S\<le>T\<close> for S T :: \<open>'a option nres\<close>
     by auto
-  have [simp]: \<open>valued M L = None \<longleftrightarrow> undefined_lit M L\<close> for M L
+  have [simp]: \<open>valued M L = None \<longleftrightarrow> undefined_lit M L\<close> for M :: \<open>(nat, nat) ann_lits\<close>
+    and L :: \<open>nat literal\<close>
     by (auto simp: valued_def)
-  have H: \<open>defined_lit M L\<close> if \<open>valued M L = Some x\<close> for M L x
+  have H: \<open>defined_lit M L\<close> if \<open>valued M L = Some x\<close> for M :: \<open>(nat, nat) ann_lits\<close>
+    and L :: \<open>nat literal\<close> and x
     using that
     by (auto simp: valued_def Decided_Propagated_in_iff_in_lits_of_l
         split: option.splits if_splits)
@@ -3597,7 +3575,8 @@ proof -
       brk_None: \<open>(brk = None \<longrightarrow> Ball (set ys) (defined_lit x1))\<close> and
       brk_Some: \<open>(brk \<noteq> None \<longrightarrow> undefined_lit x1 (the brk) \<and> the brk = last ys \<and> ys \<noteq> [])\<close>
       using inv s s' by blast
-    have H: \<open>Neg (atm_of y) \<notin> ys \<Longrightarrow> Pos (atm_of y) \<notin> ys \<Longrightarrow> y \<notin> ys\<close> for y ys
+    have H: \<open>Neg (atm_of y) \<notin> ys \<Longrightarrow> Pos (atm_of y) \<notin> ys \<Longrightarrow> y \<notin> ys\<close>
+      for y and ys :: \<open>nat literal set\<close>
       by (cases y) auto
 
     have \<open>undefined_lit M ?L\<close>
@@ -3659,7 +3638,8 @@ proof -
       brk_None: \<open>(brk = None \<longrightarrow> Ball (set ys) (defined_lit x1))\<close> and
       brk_Some: \<open>(brk \<noteq> None \<longrightarrow> undefined_lit x1 (the brk) \<and> the brk = last ys \<and> ys \<noteq> [])\<close>
       using inv s s' by blast
-    have H: \<open>Neg (atm_of y) \<notin> ys \<Longrightarrow> Pos (atm_of y) \<notin> ys \<Longrightarrow> y \<notin> ys\<close> for y ys
+    have H: \<open>Neg (atm_of y) \<notin> ys \<Longrightarrow> Pos (atm_of y) \<notin> ys \<Longrightarrow> y \<notin> ys\<close>
+      for y and ys :: \<open>nat literal set\<close>
       by (cases y) auto
 
 
@@ -3717,11 +3697,10 @@ proof -
 
   have 1: \<open>?pre' = ?pre\<close>
     using ex_list_watched
-    apply (auto simp: comp_PRE_def intro!: ext simp: prod_rel_def_internal
+    by (auto simp: comp_PRE_def simp: prod_rel_def_internal
         relAPP_def map_fun_rel_def[abs_def] p2rel_def lit_of_natP_def
         literal_of_neq_eq_nat_of_lit_eq_iff length_ll_def
         simp del: literal_of_nat.simps)
-      done
 
   have 2: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp
@@ -3794,7 +3773,7 @@ lemmas cdcl_twl_stgy_prog_wl_D_code[sepref_fr_rules] =
 
 end
 
-export_code "cdcl_twl_stgy_prog_wl_D_code" in SML_imp module_name SAT_Solver
+export_code cdcl_twl_stgy_prog_wl_D_code in SML_imp module_name SAT_Solver
   file "code/CDCL_Cached_Array.ML"
 
 end

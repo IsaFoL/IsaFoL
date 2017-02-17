@@ -5,7 +5,7 @@ context twl_array_code
 begin
 
 definition valued_atm_on_trail where
-  \<open>valued_atm_on_trail M L = 
+  \<open>valued_atm_on_trail M L =
     (if Pos L \<in> lits_of_l M then Some True
     else if Neg L \<in> lits_of_l M then Some False
     else None)\<close>
@@ -13,8 +13,8 @@ definition valued_atm_on_trail where
 type_synonym trail_int = \<open>(nat, nat) ann_lits \<times> bool option list \<times> nat\<close>
 
 definition trail_ref :: \<open>(trail_int \<times> (nat, nat) ann_lits) set\<close> where
-  \<open>trail_ref = {((M', xs, k), M). no_dup M \<and> M = M' \<and> 
-    (\<forall>L \<in># N\<^sub>1. atm_of L < length xs \<and>  xs ! (atm_of L) = valued_atm_on_trail M (atm_of L)) \<and> 
+  \<open>trail_ref = {((M', xs, k), M). M = M' \<and>
+    (\<forall>L \<in># N\<^sub>1. atm_of L < length xs \<and>  xs ! (atm_of L) = valued_atm_on_trail M (atm_of L)) \<and>
     k = count_decided M}\<close>
 
 fun cons_trail_Propagated :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
@@ -26,9 +26,8 @@ fun cons_trail_Propagated_tr :: \<open>nat literal \<Rightarrow> nat \<Rightarro
 
 lemma \<open>(uncurry2 (RETURN ooo cons_trail_Propagated_tr), uncurry2 (RETURN ooo cons_trail_Propagated)) \<in>
   [\<lambda>((L, C), M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f trail_ref  \<rightarrow> \<langle>trail_ref\<rangle>nres_rel\<close>
-  apply (intro frefI nres_relI)
-  apply (case_tac \<open>fst (fst x)\<close>)
-  by (auto simp: trail_ref_def valued_atm_on_trail_def
+  by (intro frefI nres_relI, rename_tac x y, case_tac \<open>fst (fst x)\<close>)
+    (auto simp: trail_ref_def valued_atm_on_trail_def
       Decided_Propagated_in_iff_in_lits_of_l nth_list_update')
 
 fun cons_trail_Decided :: \<open>nat literal \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
@@ -40,9 +39,8 @@ fun cons_trail_Decided_tr :: \<open>nat literal \<Rightarrow> trail_int \<Righta
 
 lemma \<open>(uncurry (RETURN oo cons_trail_Decided_tr), uncurry (RETURN oo cons_trail_Decided)) \<in>
   [\<lambda>(L, M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>f trail_ref  \<rightarrow> \<langle>trail_ref\<rangle>nres_rel\<close>
-  apply (intro frefI nres_relI)
-  apply (case_tac \<open>fst x\<close>)
-  by (auto simp: trail_ref_def valued_atm_on_trail_def
+  by (intro frefI nres_relI, rename_tac x y, case_tac \<open>fst x\<close>)
+    (auto simp: trail_ref_def valued_atm_on_trail_def
       Decided_Propagated_in_iff_in_lits_of_l nth_list_update')
 
 end

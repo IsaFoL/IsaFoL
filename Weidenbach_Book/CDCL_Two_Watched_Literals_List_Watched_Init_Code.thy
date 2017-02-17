@@ -9,7 +9,7 @@ type_synonym 'v twl_st_wl' =
 type_synonym twl_st_wll' =
   "nat_trail \<times> clauses_wl \<times> nat \<times> nat array_list option \<times>  unit_lits_wl \<times> unit_lits_wl \<times>
     lit_queue_l"
- 
+
 definition init_dt_step_wl :: \<open>nat clause_l \<Rightarrow> nat twl_st_wl' \<Rightarrow> (nat twl_st_wl') nres\<close> where
   \<open>init_dt_step_wl C S = do {
    (let (M, N, U, D, NP, UP, Q) = S in
@@ -62,8 +62,8 @@ definition array_of_list :: "'a::heap list \<Rightarrow> 'a array_list Heap" whe
 definition [simp]: "op_arl_of_list \<equiv> op_list_copy"
 
 lemma array_of_list_op_arl_list:
-  assumes p: \<open>CONSTRAINT is_pure R\<close> 
-  shows \<open>(array_of_list, RETURN \<circ> op_arl_of_list) \<in> 
+  assumes p: \<open>CONSTRAINT is_pure R\<close>
+  shows \<open>(array_of_list, RETURN \<circ> op_arl_of_list) \<in>
     [\<lambda>xs. xs \<noteq> []]\<^sub>a (list_assn R)\<^sup>d \<rightarrow> arl_assn R\<close>
 proof -
   obtain R' where R: \<open>R = pure R'\<close> and \<open>R' = the_pure R\<close>
@@ -80,7 +80,7 @@ proof -
 qed
 
 lemma array_of_list_mset[sepref_fr_rules]:
-  shows \<open>(array_of_list, RETURN \<circ> mset) \<in> 
+  shows \<open>(array_of_list, RETURN \<circ> mset) \<in>
     [\<lambda>xs. xs \<noteq> []]\<^sub>a (list_assn nat_lit_assn)\<^sup>d \<rightarrow> conflict_assn\<close>
 proof -
   have 1: \<open>(RETURN \<circ> op_arl_of_list, RETURN o mset) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>list_mset_rel\<rangle>nres_rel\<close>

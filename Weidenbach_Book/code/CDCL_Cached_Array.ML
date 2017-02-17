@@ -1050,50 +1050,46 @@ fun unit_propagation_inner_loop_body_wl_D_code x =
       let
         val x_c = (if equal_nat xa ai then zero_nata else one_nat);
       in
-        (fn f_ => fn () => f_ ((nth_raa heap_nat a1a x_a x_c) ()) ())
-          (fn x_e =>
-            (fn f_ => fn () => f_
-              ((nth_raa heap_nat a1a x_a (minus_nat one_nat x_c)) ()) ())
-              (fn x_g =>
-                (fn f_ => fn () => f_ ((valued_impl a1 x_g) ()) ())
-                  (fn x_i =>
-                    (if option_bool_eq_impl x_i (SOME true)
-                      then (fn () =>
-                             (plus_nat bia one_nat,
-                               (a1, (a1a, (a1b,
-    (a1c, (a1d, (a1e, (a1f, a2f)))))))))
-                      else (fn f_ => fn () => f_
-                             ((find_unwatched_impl a1 a1a x_a) ()) ())
-                             (fn x_k =>
-                               (if option_bool_eq_impl (fst x_k) NONE
-                                 then (if option_bool_eq_impl x_i (SOME false)
-then (fn f_ => fn () => f_ ((nth_rl heap_nat a1a x_a) ()) ())
-       (fn xb =>
-         (fn f_ => fn () => f_ ((arl_of_array_raa heap_nat xb) ()) ())
-           (fn xc =>
-             (fn () =>
-               (plus_nat bia one_nat,
-                 (a1, (a1a, (a1b, (SOME xc, (a1d, (a1e, ([], a2f)))))))))))
-else (fn () =>
-       (plus_nat bia one_nat,
-         (op_list_prepend (propagated x_g x_a) a1,
-           (a1a, (a1b, (a1c, (a1d, (a1e, (uminus_lit_imp x_g :: a1f,
-   a2f))))))))))
-                                 else (fn f_ => fn () => f_
-((nth_raa heap_nat a1a x_a (snd x_k)) ()) ())
-(fn x_m =>
-  (fn f_ => fn () => f_ ((swap_aa (default_nat, heap_nat) a1a x_a x_c (snd x_k))
-    ()) ())
-    (fn x_o =>
-      (fn f_ => fn () => f_ ((delete_index_and_swap_aa heap_nat a2f x_e bia) ())
-        ())
-        (fn x_q =>
-          (fn f_ => fn () => f_
-            ((append_el_aa (default_nat, heap_nat) x_q x_m x_a) ()) ())
-            (fn x_s =>
-              (fn () =>
-                (bia, (a1, (x_o, (a1b, (a1c,
- (a1d, (a1e, (a1f, x_s)))))))))))))))))))
+        (fn f_ => fn () => f_
+          ((nth_raa heap_nat a1a x_a (minus_nat one_nat x_c)) ()) ())
+          (fn x_f =>
+            (fn f_ => fn () => f_ ((valued_impl a1 x_f) ()) ())
+              (fn x_h =>
+                (if option_bool_eq_impl x_h (SOME true)
+                  then (fn () =>
+                         (plus_nat bia one_nat,
+                           (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, a2f)))))))))
+                  else (fn f_ => fn () => f_ ((find_unwatched_impl a1 a1a x_a)
+                         ()) ())
+                         (fn x_j =>
+                           (if option_bool_eq_impl (fst x_j) NONE
+                             then (if option_bool_eq_impl x_h (SOME false)
+                                    then (fn f_ => fn () => f_
+   ((nth_rl heap_nat a1a x_a) ()) ())
+   (fn xb =>
+     (fn f_ => fn () => f_ ((arl_of_array_raa heap_nat xb) ()) ())
+       (fn xc =>
+         (fn () =>
+           (plus_nat bia one_nat,
+             (a1, (a1a, (a1b, (SOME xc, (a1d, (a1e, ([], a2f)))))))))))
+                                    else (fn () =>
+   (plus_nat bia one_nat,
+     (op_list_prepend (propagated x_f x_a) a1,
+       (a1a, (a1b, (a1c, (a1d, (a1e, (uminus_lit_imp x_f :: a1f, a2f))))))))))
+                             else (fn f_ => fn () => f_
+                                    ((nth_raa heap_nat a1a x_a (snd x_j)) ())
+                                    ())
+                                    (fn x_l =>
+                                      (fn f_ => fn () => f_
+((swap_aa (default_nat, heap_nat) a1a x_a x_c (snd x_j)) ()) ())
+(fn x_n =>
+  (fn f_ => fn () => f_ ((delete_index_and_swap_aa heap_nat a2f ai bia) ()) ())
+    (fn x_p =>
+      (fn f_ => fn () => f_ ((append_el_aa (default_nat, heap_nat) x_p x_l x_a)
+        ()) ())
+        (fn x_r =>
+          (fn () =>
+            (bia, (a1, (x_n, (a1b, (a1c, (a1d, (a1e, (a1f, x_r))))))))))))))))))
       end
         ()
     end)
