@@ -1,0 +1,6 @@
+c Exploits numeric overflow. The drat-trim parser silently overflows on variables >= 2^31, thus identifying different variables.
+c The following formula is clearly satisfiable, however, drat-trim identifies variables 15 and 4294967311, and claims the formula to be UNSAT.
+p cnf 4294967312 3
+ -15 2 0
+ -15 -2 0
+ 4294967311 0

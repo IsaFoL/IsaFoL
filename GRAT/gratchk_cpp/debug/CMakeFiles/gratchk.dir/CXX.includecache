@@ -1,0 +1,28 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/lammich/devel/isabelle/isafol/DRAT/gratchk/main.cpp
+iostream
+-
+cstdlib
+-
+fstream
+-
+vector
+-
+algorithm
+-
+cassert
+-
+limits
+-
+unordered_map
+-
+cstdint
+-
+

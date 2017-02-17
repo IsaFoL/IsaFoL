@@ -1,0 +1,1 @@
+/usr/bin/c++   -Wall -Wextra -Weffc++ -Wpedantic -Wzero-as-null-pointer-constant -std=c++11 -m32 -I/home/lammich/include -ggdb3 -DDEBUG -O0   CMakeFiles/gratgen2.dir/main.cpp.o  -o gratgen2  -L/home/lammich/lib -rdynamic -lpthread -Wl,-rpath,/home/lammich/lib: 

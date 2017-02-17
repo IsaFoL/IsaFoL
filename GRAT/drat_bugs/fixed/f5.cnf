@@ -1,0 +1,10 @@
+c This is an example that the fix of 2016-09-28 (drat-trim-fixed) actually made the proof checker
+c weaker. The proof is actually valid, and accepted by 2016-04-07 (drat-trim), but not by 2016-09-28.
+c This issue has been fixed with 2016-10-18 (drat-trim-16-10-18).
+p cnf 3 6
+1 2 0
+1 -2 0
+3 2 0
+3 -2 0
+-3 2 0
+-3 -2 0

@@ -1,0 +1,49 @@
+[Buildset]
+BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x01\x00\x00\x00\x0e\x00g\x00r\x00a\x00t\x00g\x00e\x00n)
+
+[CMake]
+Build Directory Count=1
+Current Build Directory Index=0
+ProjectRootRelative=./
+
+[CMake][CMake Build Directory 0]
+Build Directory Path=file:///home/lammich/devel/isabelle/isafol/DRAT/gratgen/build
+Build Type=Release
+CMake Binary=file:///usr/bin/cmake
+Environment Profile=
+Extra Arguments=
+Install Directory=file:///usr/local
+
+[CustomDefinesAndIncludes][ProjectPath0]
+Defines=\x00\x00\x00\x00
+Includes=\x00\x00\x00\x01\x00\x00\x00,\x00/\x00h\x00o\x00m\x00e\x00/\x00l\x00a\x00m\x00m\x00i\x00c\x00h\x00/\x00i\x00n\x00c\x00l\x00u\x00d\x00e\x00/
+Path=.
+
+[Defines And Includes][Compiler]
+Name=GCC
+Path=gcc
+Type=GCC
+
+[Launch]
+Launch Configurations=Launch Configuration 0
+
+[Launch][Launch Configuration 0]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=gratgen
+Type=Native Application
+
+[Launch][Launch Configuration 0][Data]
+Arguments=q_query_3_l48_lambda.cnf q_query_3_l48_lambda.drat -u -o q_query_3_l48_lambda-2.grat
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x02\x00\x00\x00\x0e\x00g\x00r\x00a\x00t\x00g\x00e\x00n\x00\x00\x00\x0e\x00g\x00r\x00a\x00t\x00g\x00e\x00n)
+Dependency Action=Build
+EnvironmentGroup=
+Executable=file:///home/lammich/devel/isabelle/isafol/DRAT/gratgen/
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Project Target=gratgen,gratgen
+Use External Terminal=false
+Working Directory=file:///home/lammich/opt/src/sat_solvers/out/cmsat5_main2/default
+isExecutable=false
+
+[Project]
+VersionControlSupport=kdevgit

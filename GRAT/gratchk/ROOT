@@ -1,0 +1,27 @@
+session Grat_Check_Base = Sepref_IICF +
+  options [document = false]
+  theories
+    "$AFP/Refine_Imperative_HOL/Sepref_ICF_Bindings" 
+    DRAT_Misc 
+    Exc_Nres_Monad
+    Synth_Definition 
+    Dynamic_Array 
+    Array_Map_Default 
+    Parser_Iterator_New
+    
+session Grat_Check = Grat_Check_Base +
+  options [document = pdf, document_output = "output",
+    document_variants = "document:outline=/proof,/ML"]
+  theories
+    SAT_Basic
+    Unit_Propagation 
+    Grat_Basic
+    Unsat_Check
+    Sat_Check
+    Grat_Check_Code_Exporter
+    
+  theories [document = false]
+    Cert_Sat
+    
+  document_files
+    "root.tex"

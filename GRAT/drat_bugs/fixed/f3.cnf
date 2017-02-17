@@ -1,0 +1,7 @@
+c Minimized version of f1 -- flawed RAT check. Fixed in Sep 2016.
+p cnf 5 4
+ 1 0
+ 2 0
+ 1 2 3 0
+ 4 5 0
+ 

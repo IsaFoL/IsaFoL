@@ -1,0 +1,57 @@
+[Buildset]
+BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x01\x00\x00\x00\x0e\x00g\x00r\x00a\x00t\x00c\x00h\x00k)
+
+[CMake]
+Build Directory Count=2
+Current Build Directory Index=0
+ProjectRootRelative=./
+
+[CMake][CMake Build Directory 0]
+Build Directory Path=file:///home/lammich/devel/isabelle/isafol/DRAT/gratchk/release
+Build Type=Release
+CMake Binary=file:///usr/bin/cmake
+Environment Profile=
+Extra Arguments=
+Install Directory=file:///usr/local
+
+[CMake][CMake Build Directory 1]
+Build Directory Path=file:///home/lammich/devel/isabelle/isafol/DRAT/gratchk/debug
+Build Type=Debug
+CMake Binary=file:///usr/bin/cmake
+Environment Profile=
+Extra Arguments=
+Install Directory=file:///usr/local
+
+[CustomDefinesAndIncludes][ProjectPath0]
+Defines=\x00\x00\x00\x00
+Includes=\x00\x00\x00\x00
+Path=.
+
+[Defines And Includes][Compiler]
+Name=GCC
+Path=gcc
+Type=GCC
+
+[Launch]
+Launch Configurations=Launch Configuration 0
+
+[Launch][Launch Configuration 0]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=gratchk
+Type=Native Application
+
+[Launch][Launch Configuration 0][Data]
+Arguments=q_query_3_l48_lambda.cnf q_query_3_l48_lambda-2.grat
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x02\x00\x00\x00\x0e\x00g\x00r\x00a\x00t\x00c\x00h\x00k\x00\x00\x00\x0e\x00g\x00r\x00a\x00t\x00c\x00h\x00k)
+Dependency Action=Build
+EnvironmentGroup=
+Executable=file:///home/lammich/devel/isabelle/isafol/DRAT/gratchk/
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Project Target=gratchk,gratchk
+Use External Terminal=false
+Working Directory=file:///home/lammich/opt/src/sat_solvers/out/cmsat5_main2/default
+isExecutable=false
+
+[Project]
+VersionControlSupport=kdevgit

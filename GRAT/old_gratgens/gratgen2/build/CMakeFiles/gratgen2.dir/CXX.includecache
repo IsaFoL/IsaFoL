@@ -1,0 +1,40 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/lammich/devel/isabelle/isafol/DRAT/gratgen2/main.cpp
+cstdlib
+-
+iostream
+-
+fstream
+-
+sstream
+-
+vector
+-
+algorithm
+-
+cassert
+-
+functional
+-
+limits
+-
+unordered_map
+-
+cstdint
+-
+thread
+-
+boost/progress.hpp
+-
+gperftools/profiler.h
+-
+atomic
+-
+

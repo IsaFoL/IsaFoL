@@ -1,0 +1,11 @@
+c The formula is clearly satisfiable, but both forward and backward mode manage to prove UNSAT!
+c With f1s.drat, also SAT can be proved.
+c 
+c Analysis attempt:
+c   The literal 1 is set by unit propagation. Although already assigned, it is chosen as resolution
+c   literal for the RAT check.
+c 
+c This was fixed by Marijn Heule in Sep 2016, see drat-trim-fixed.c for the fixed version.
+c 
+p cnf 3 1
+ 1 0

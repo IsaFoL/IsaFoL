@@ -1,0 +1,18 @@
+GRAT formally verified (UN)SAT certificate checker
+
+Download: Bundle containing gratgen and Grat_Check, with Makefile
+Download: Full package with formalization
+
+Formalization, in AFP-style: proof document, browse theories
+
+GRAT format description
+
+Benchmarks as csv files
+
+
+(hide?):
+  drat-trim torture suite: Examples for bugs in drat-trim
+
+
+
+

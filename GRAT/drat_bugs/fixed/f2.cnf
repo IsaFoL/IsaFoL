@@ -1,0 +1,8 @@
+c Syntactically malformed dimacs-files may produce segfaults.
+c This could probably be maliciously exploited, or unintentionally corrupt drat-trims
+c memory and cause other issues (eg wrong proofs). Here: Header missing causes segfault.
+c But also wrong number of clauses seems to cause memory crapping.
+c Note: Header missing!
+ 1 0
+ 2 0
+ 3 0

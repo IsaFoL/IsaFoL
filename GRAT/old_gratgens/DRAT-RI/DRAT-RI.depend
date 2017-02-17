@@ -1,0 +1,45 @@
+# depslib dependency file v1.0
+1478115217 source:/home/lammich/devel/isabelle/isafol/DRAT/DRAT-RI/main.cpp
+	<cstdlib>
+	<iostream>
+	<fstream>
+	<vector>
+	<algorithm>
+	<cassert>
+	<limits>
+
+1478532428 source:/home/lammich/devel/isabelle/isafol/DRAT/DRAT-RI/simple.cpp
+	<cstdlib>
+	<iostream>
+	<fstream>
+	<vector>
+	<algorithm>
+	<cassert>
+	<limits>
+	<unordered_map>
+	<cstdint>
+
+1478719897 source:/home/lammich/devel/isabelle/isafol/DRAT/DRAT-RI/simple2.cpp
+	<cstdlib>
+	<iostream>
+	<fstream>
+	<sstream>
+	<vector>
+	<algorithm>
+	<cassert>
+	<limits>
+	<unordered_map>
+	<cstdint>
+
+1479215458 source:/home/lammich/devel/isabelle/isafol/DRAT/DRAT-RI/backwards.cpp
+	<cstdlib>
+	<iostream>
+	<fstream>
+	<sstream>
+	<vector>
+	<algorithm>
+	<cassert>
+	<limits>
+	<unordered_map>
+	<cstdint>
+

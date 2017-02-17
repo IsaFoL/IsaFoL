@@ -1,0 +1,6 @@
+c Formula that shows bug in drat-trim duplicate literal fixing code. Segfaults on 64bit linux box.
+p cnf 3 4
+ -1 -1 -1 -1 -1 -1 -1 -1 -1 0
+ 1 0
+ 2 0
+ 3 0
