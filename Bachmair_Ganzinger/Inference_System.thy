@@ -1,7 +1,7 @@
 (*  Title:       Refutational Inference Systems
     Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
-    Maintainer:  Jasmin Blanchette <jasmin.blanchette at inria.fr>
+    Maintainer:  Anders Schlichtkrull
 *)
 
 section {* Refutational Inference Systems *}
@@ -120,6 +120,7 @@ locale counterex_reducing_inference_system =
   assumes \<Gamma>_counterex_reducing:
     "\<And>N. {#} \<notin> N \<Longrightarrow> C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> (\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D) \<Longrightarrow>
        \<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> \<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < C"
+    (* Here the side-clauses are D's and the main clauses are C's. This is backwards... *)
 begin
 
 lemma ex_min_counterex:

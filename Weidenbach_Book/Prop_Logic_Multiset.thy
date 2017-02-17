@@ -1,5 +1,5 @@
 theory Prop_Logic_Multiset
-imports "../lib/Multiset_More" Prop_Normalisation Partial_Clausal_Logic
+imports "$AFP/Nested_Multisets_Ordinals/Multiset_More" Prop_Normalisation Partial_Clausal_Logic
 begin
 
 section \<open>Link with Multiset Version\<close>
@@ -20,7 +20,7 @@ fun mset_of_formula :: "'a propo \<Rightarrow> 'a literal multiset set" where
 "mset_of_formula FF = {{#}}" |
 "mset_of_formula FT = {}"
 
-subsection \<open>Equisatisfiability of the two Version\<close>
+subsection \<open>Equisatisfiability of the two Versions\<close>
 
 lemma is_conj_with_TF_FNot: 
   "is_conj_with_TF (FNot \<phi>) \<longleftrightarrow> (\<exists>v. \<phi> = FVar v \<or> \<phi> = FF \<or> \<phi> = FT)"

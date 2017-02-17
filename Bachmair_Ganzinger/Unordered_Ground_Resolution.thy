@@ -1,7 +1,7 @@
 (*  Title:       Unordered Ground Resolution
     Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
-    Maintainer:  Jasmin Blanchette <jasmin.blanchette at inria.fr>
+    Maintainer:  Anders Schlichtkrull
 *)
 
 section {* Unordered Ground Resolution *}
@@ -95,7 +95,6 @@ proof -
   have "\<exists>n. AAA = replicate_mset (Suc n) (Pos A)"
     using aa d0 not0_implies_Suc produces_imp_Pos_in_lits[of N]
     by (simp add: filter_eq_replicate_mset del: replicate_mset_Suc)
-    (metis in_countE)
   hence res_e: "unord_resolve D C (D' + C')"
     unfolding c d by (fastforce intro: unord_resolve.intros)
 

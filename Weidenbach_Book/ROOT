@@ -1,6 +1,6 @@
 chapter Weidenbach_Book
 
-session "Imports" (Weidenbach_Book) = "HOL" +
+session "Imports" (Weidenbach_Book) = "Refine_Imperative_HOL" +
   description \<open>This session imports HOL, some additional useful theories from HOL, and our own
   extensions above these lemmas.\<close>
   options [document = pdf, document_output = "output"]
@@ -8,9 +8,14 @@ session "Imports" (Weidenbach_Book) = "HOL" +
     "~~/src/HOL/Library/Code_Target_Numeral"
     "~~/src/HOL/Library/Multiset"
     "~~/src/HOL/Library/Multiset_Order"
-  theories [document = true]
+    "~~/src/HOL/Library/RBT"
+    "~~/src/HOL/Library/Extended_Nat"
+    "$AFP/Nested_Multisets_Ordinals/Multiset_More"
+    "~~/src/HOL/Eisbach/Eisbach"
+    "~~/src/HOL/Eisbach/Eisbach_Tools"
+    (*"$AFP/Refine_Imperative_HOL/IICF/IICF"*)
+  theories
     Doc_Libraries
-    "../lib/Multiset_More"
     Wellfounded_More
     WB_List_More
     RBT_More
@@ -38,7 +43,7 @@ session "Normalisation" (Weidenbach_Book) = "Entailment_Definition" +
   description \<open>This session contains the normalisation from general formulas to CNF and DNF.\<close>
   options [document = pdf, document_output = "output"]
   theories [document = false]
-    "../lib/Multiset_More"
+    "$AFP/Nested_Multisets_Ordinals/Multiset_More"
     "../lib/Herbrand_Interpretation"
   theories [document = true]
     Prop_Abstract_Transformation
@@ -64,21 +69,24 @@ session "Resolution_Superposition" (Weidenbach_Book) = "Entailment_Definition" +
     "root.tex"
     "biblio.bib"
 
-session "CDCL_Base" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
+session "CDCL_Base" (Weidenbach_Book) = "Imports"  +
   description \<open>This session the CDCL calculi (Weidenbach and Nieuwenhuis et al.) and the links between
   both. It also contains a very simple implementation based on lists and two extensions (restart and
   incremental).\<close>
   options [document = pdf, document_output = "output"]
   theories [document = false]
+  theories [document = false]
     "~~/src/HOL/Library/Code_Target_Numeral"
     "~~/src/HOL/Library/Multiset"
     "~~/src/HOL/Library/Multiset_Order"
     "~~/src/HOL/Library/RBT"
-    RBT_More
+    "~~/src/HOL/Library/Extended_Nat"
+    "$AFP/Nested_Multisets_Ordinals/Multiset_More"
+    "~~/src/HOL/Eisbach/Eisbach"
+    "~~/src/HOL/Eisbach/Eisbach_Tools"
 
   theories [quick_and_dirty = false, document = true]
     Doc_Libraries
-    "../lib/Multiset_More"
     Wellfounded_More
     WB_List_More
 
@@ -102,6 +110,7 @@ session "CDCL_Base" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
     CDCL_W_Implementation
+    CDCL_Abstract_Clause_Representation
     CDCL_W_Abstract_State
 
   document_files
@@ -114,14 +123,17 @@ session "Two_Watched_Literals" (Weidenbach_Book) = "CDCL_Base"  +
   theories [quick_and_dirty = false, document = true]
     CDCL_W_Abstract_State
     CDCL_W_Full
-    CDCL_W_Optimal_Model
 
-  theories [quick_and_dirty, document = true]
-    CDCL_Two_Watched_Literals_Simple_Implementation
-    CDCL_Two_Watched_Literals_Simple_Implementation_Algorithm
-    CDCL_Two_Watched_Literals
-    CDCL_Two_Watched_Literals_Implementation
-    CDCL_Two_Watched_Literals_Implementation_RBT
+  theories [quick_and_dirty = false, document = true]
+    CDCL_W_Optimal_Model
+    CDCL_Two_Watched_Literals_Algorithm
+    CDCL_Two_Watched_Literals_Initialisation
+    CDCL_Two_Watched_Literals_List
+    CDCL_Two_Watched_Literals_Initialisation
+    CDCL_Two_Watched_Literals_Code_Common
+    CDCL_Two_Watched_Literals_List_Simple_Code
+    CDCL_Two_Watched_Literals_List_Watched_Initialisation
+    CDCL_Two_Watched_Literals_List_Watched
   document_files
     "root.tex"
     "biblio.bib"
@@ -135,13 +147,17 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
     "~~/src/HOL/Library/Multiset"
     "~~/src/HOL/Library/Multiset_Order"
     "~~/src/HOL/Library/RBT"
+    "$AFP/Nested_Multisets_Ordinals/Multiset_More"
+    "~~/src/HOL/Library/Extended_Nat"
+    Eisbach
+    "~~/src/HOL/Eisbach/Eisbach_Tools"
     RBT_More
 
-  theories [quick_and_dirty, document = true]
+  theories [quick_and_dirty = false, document = true]
     Doc_Libraries
-    "../lib/Multiset_More"
     Wellfounded_More
     WB_List_More
+    WB_More_Refinement
 
     Doc_Entailment
     "../lib/Herbrand_Interpretation"
@@ -157,33 +173,46 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
   theories [quick_and_dirty, document = true]
     Prop_Superposition
 
-  theories [document = true]
+  theories [quick_and_dirty = false, document = true]
     Partial_Annotated_Clausal_Logic
+
+    CDCL_WNOT_Measure
+    CDCL_NOT
+
+    DPLL_NOT
     DPLL_W
+    DPLL_WNOT
+
     CDCL_W_Level
     CDCL_W
     CDCL_W_Termination
     CDCL_W_Merge
-    CDCL_NOT
+
     CDCL_WNOT
     CDCL_W_Full
+
     CDCL_W_Restart
     CDCL_W_Incremental
-
-  theories [quick_and_dirty = false, document = true]
     CDCL_W_Optimal_Model
+
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
     CDCL_W_Implementation
-
+    CDCL_Abstract_Clause_Representation
     CDCL_W_Abstract_State
 
-  theories [quick_and_dirty, document = true]
-    CDCL_Two_Watched_Literals_Simple_Implementation
-    CDCL_Two_Watched_Literals_Simple_Implementation_Algorithm
-    CDCL_Two_Watched_Literals
-    CDCL_Two_Watched_Literals_Implementation
-    CDCL_Two_Watched_Literals_Implementation_RBT
+    CDCL_Two_Watched_Literals_Transition_System
+    CDCL_Two_Watched_Literals_Algorithm
+    CDCL_Two_Watched_Literals_Initialisation
+    CDCL_Two_Watched_Literals_List
+    CDCL_Two_Watched_Literals_Code_Common
+    CDCL_Two_Watched_Literals_List_Simple_Code
+    CDCL_Two_Watched_Literals_List_Watched_Initialisation
+    CDCL_Two_Watched_Literals_List_Watched
+    Array_Array_List
+    Array_List_Array
+    CDCL_Two_Watched_Literals_List_Watched_Code
+
     Weidenbach_Book
   document_files
     "root.tex"

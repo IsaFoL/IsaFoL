@@ -76,7 +76,7 @@ experiment
 begin
   fun safe_nth where
   "safe_nth (x # _) 0 = Some x" |
-  "safe_nth (_ # xs) (Suc n) = safe_nth xs n"  |
+  "safe_nth (_ # xs) (Suc n) = safe_nth xs n" |
   "safe_nth [] _ = None"
 
   lemma safe_nth_nth: "n < length l \<Longrightarrow> safe_nth l n = Some (nth l n)"

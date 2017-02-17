@@ -1,6 +1,7 @@
 theory RBT_More
-imports Main "~~/src/HOL/Library/RBT" "../lib/Multiset_More"
+imports Main "~~/src/HOL/Library/RBT" "$AFP/Nested_Multisets_Ordinals/Multiset_More"
 begin
+
 section \<open>More red-black trees\<close>
 
 text \<open>The file @{file "~~/src/HOL/Library/RBT.thy"} contains the lifting from a red-black tree to
@@ -201,6 +202,5 @@ next
     apply (rule indep_of_imp[of "RBT.insert k (the (RBT.lookup C k)) ?C"])
     using \<open>RBT.lookup C k \<noteq> None\<close> by auto
 qed
-
 
 end

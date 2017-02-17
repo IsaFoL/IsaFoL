@@ -3,9 +3,11 @@ imports DPLL_CDCL_W_Implementation DPLL_W "~~/src/HOL/Library/Code_Target_Numera
 begin
 
 subsection \<open>Simple Implementation of DPLL\<close>
+
 subsubsection \<open>Combining the propagate and decide: a DPLL step\<close>
+
 definition DPLL_step :: "int dpll\<^sub>W_ann_lits \<times> int literal list list
-  \<Rightarrow> int dpll\<^sub>W_ann_lits \<times> int literal list list"  where
+  \<Rightarrow> int dpll\<^sub>W_ann_lits \<times> int literal list list" where
 "DPLL_step = (\<lambda>(Ms, N).
   (case find_first_unit_clause N Ms of
     Some (L, _) \<Rightarrow> (Propagated L () # Ms, N)
@@ -59,14 +61,14 @@ proof -
     then obtain C where C: "C \<in> set N" and Ms: "Ms \<Turnstile>as CNot (mset C)" by auto
     then obtain L M M' where bt: "backtrack_split Ms = (M', L # M)"
       using step exC neq unfolding DPLL_step_def prod.case unit
-      by (cases "backtrack_split Ms", rename_tac b, case_tac b) auto
+      by (cases "backtrack_split Ms", rename_tac b, case_tac b) (auto simp: lits_of_l_unfold)
     then have "is_decided L" using backtrack_split_snd_hd_decided[of Ms] by auto
     have 1: "dpll\<^sub>W (Ms, mset (map mset N))
                   (Propagated (- lit_of L) () # M, snd (Ms, mset (map mset N)))"
       apply (rule dpll\<^sub>W.backtrack[OF _ \<open>is_decided L\<close>, of ])
       using C Ms bt by auto
     moreover have "(Ms', N') = (Propagated (- (lit_of L)) () # M, N)"
-      using step exC unfolding DPLL_step_def bt prod.case unit by auto
+      using step exC unfolding DPLL_step_def bt prod.case unit by (auto simp: lits_of_l_unfold)
     ultimately have ?thesis by auto
   }
   moreover
@@ -74,14 +76,14 @@ proof -
     assume exC: "\<not> (\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C))"
     obtain L where unused: "find_first_unused_var N (lits_of_l Ms) = Some L"
       using step exC neq unfolding DPLL_step_def prod.case unit
-      by (cases "find_first_unused_var N (lits_of_l Ms)") auto
+      by (cases "find_first_unused_var N (lits_of_l Ms)") (auto simp: lits_of_l_unfold)
     have "dpll\<^sub>W (Ms, mset (map mset N))
                (Decided L # fst (Ms, mset (map mset N)), snd (Ms, mset (map mset N)))"
       apply (rule dpll\<^sub>W.decided[of ?S L])
       using find_first_unused_var_Some[OF unused]
       by (auto simp add: Decided_Propagated_in_iff_in_lits_of_l atms_of_ms_def)
     moreover have "(Ms', N') = (Decided L # Ms, N)"
-      using step exC unfolding DPLL_step_def unused prod.case unit by auto
+      using step exC unfolding DPLL_step_def unused prod.case unit by (auto simp: lits_of_l_unfold)
     ultimately have ?thesis by auto
   }
   ultimately show ?thesis by (cases "find_first_unit_clause N Ms") auto
@@ -97,7 +99,7 @@ proof -
   { assume n: "\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C)"
     then have Ms: "(Ms, N) = (case backtrack_split Ms of (x, []) \<Rightarrow> (Ms, N)
                          | (x, L # M) \<Rightarrow> (Propagated (- lit_of L) () # M, N))"
-      using step unfolding DPLL_step_def by (simp add:unit)
+      using step unfolding DPLL_step_def by (simp add: unit lits_of_l_unfold)
 
   have "snd (backtrack_split Ms) = []"
     proof (cases "backtrack_split Ms", cases "snd (backtrack_split Ms)")
@@ -124,13 +126,13 @@ proof -
   moreover {
     assume n: "\<not> (\<exists>C \<in> set N. Ms \<Turnstile>as CNot (mset C))"
     then have "find_first_unused_var N (lits_of_l Ms) = None"
-      using step unfolding DPLL_step_def by (simp add: unit split: option.splits)
+      using step unfolding DPLL_step_def by (simp add: unit lits_of_l_unfold split: option.splits)
     then have a: "\<forall>a \<in> set N. atm_of ` set a \<subseteq> atm_of ` (lits_of_l Ms)" by auto
     have "fst (toS Ms N) \<Turnstile>asm snd (toS Ms N)" unfolding true_annots_def CNot_def Ball_def
       proof clarify
         fix x
         assume x: "x \<in> set_mset (clauses (toS Ms N))"
-        then have "\<not>Ms \<Turnstile>as CNot  x" using n unfolding true_annots_def CNot_def Ball_def by auto
+        then have "\<not>Ms \<Turnstile>as CNot x" using n unfolding true_annots_def CNot_def Ball_def by auto
         moreover have "total_over_m (lits_of_l Ms) {x}"
           using a x image_iff in_mono atms_of_s_def
           unfolding total_over_m_def total_over_set_def lits_of_def by fastforce
@@ -155,8 +157,8 @@ function DPLL_ci :: "int dpll\<^sub>W_ann_lits \<Rightarrow> int literal list li
   by fast+
 termination
 proof (relation "{(S', S).  (toS' S', toS' S) \<in> {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W S S'}}")
-  show  "wf {(S', S).(toS' S', toS' S) \<in> {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W S S'}}"
-    using  wf_if_measure_f[OF dpll\<^sub>W_wf, of "toS'"] by auto
+  show "wf {(S', S).(toS' S', toS' S) \<in> {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W S S'}}"
+    using wf_if_measure_f[OF dpll\<^sub>W_wf, of "toS'"] by auto
 next
   fix Ms :: "int dpll\<^sub>W_ann_lits" and N x xa y
   assume"\<not> \<not> dpll\<^sub>W_all_inv (toS Ms N)"
@@ -185,7 +187,7 @@ lemma dpll\<^sub>W_all_inv_implieS_2_eq3_and_dom:
   using assms
 proof (induct rule: DPLL_ci.induct)
   case (1 Ms N)
-  have "snd (DPLL_step (Ms, N)) = N"  by auto
+  have "snd (DPLL_step (Ms, N)) = N" by auto
   then obtain Ms' where Ms': "DPLL_step (Ms, N) = (Ms', N)" by (cases "DPLL_step (Ms, N)") auto
   have inv': "dpll\<^sub>W_all_inv (toS Ms' N)" by (metis (mono_tags) "1.prems" DPLL_step_is_a_dpll\<^sub>W_step
     Ms' dpll\<^sub>W_all_inv old.prod.inject)
@@ -260,7 +262,7 @@ lemma DPLL_ci_final_state:
   assumes step: "DPLL_ci Ms N = (Ms, N)"
   and inv: "dpll\<^sub>W_all_inv (toS Ms N)"
   shows "conclusive_dpll\<^sub>W_state (toS Ms N)"
-proof  -
+proof -
   have st: "dpll\<^sub>W\<^sup>*\<^sup>* (toS Ms N) (toS Ms N)" using DPLL_ci_dpll\<^sub>W_rtranclp[OF step] .
   have "DPLL_step (Ms, N) = (Ms, N)"
     proof (rule ccontr)
@@ -406,7 +408,7 @@ proof (relation "{(T', T).
           (rough_state_of b, rough_state_of a)
             \<in> {(b, a). (toS' b, toS' a)
               \<in> {(b, a). dpll\<^sub>W_all_inv a \<and> dpll\<^sub>W a b}}}"
-    using  wf_if_measure_f[OF wf_if_measure_f[OF dpll\<^sub>W_wf, of "toS'"], of rough_state_of] .
+    using wf_if_measure_f[OF wf_if_measure_f[OF dpll\<^sub>W_wf, of "toS'"], of rough_state_of] .
 next
   fix S x
   assume x: "x = DPLL_step' S"
@@ -445,7 +447,7 @@ lemma DPLL_tot_DPLL_step_DPLL_tot[simp]: "DPLL_tot (DPLL_step' S) = DPLL_tot S"
 
 lemma DOPLL_step'_DPLL_tot[simp]:
   "DPLL_step' (DPLL_tot S) = DPLL_tot S"
-  by (rule  DPLL_tot.induct[of "\<lambda>S. DPLL_step' (DPLL_tot S) = DPLL_tot S" S])
+  by (rule DPLL_tot.induct[of "\<lambda>S. DPLL_step' (DPLL_tot S) = DPLL_tot S" S])
      (metis (full_types) DPLL_tot.simps)
 (*
 why does this not work?

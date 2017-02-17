@@ -22,8 +22,16 @@ imports
   DPLL_CDCL_W_Implementation
   DPLL_W_Implementation
   CDCL_W_Implementation
+  CDCL_W_Optimal_Model
+  CDCL_Two_Watched_Literals_Algorithm
+  CDCL_Two_Watched_Literals_Initialisation
+  CDCL_Two_Watched_Literals_List
+  CDCL_Two_Watched_Literals_Initialisation
+  CDCL_Two_Watched_Literals_List_Watched_Initialisation
+  CDCL_Two_Watched_Literals_List_Watched
 
 begin
 text \<open>This theory imports all the other theories (and is not needed in the documentation).\<close>
+
 end
 (*>*)

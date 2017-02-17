@@ -9,21 +9,27 @@ session Bachmair_Ganzinger = Bachmair_Ganzinger_Base +
   options [document = pdf, document_output = "output",
     document_variants = "document:outline=/proof,/ML",
     timeout=200]
+  theories [document = false]
+    "$AFP/Nested_Multisets_Ordinals/Multiset_More"
   theories
-    "../lib/Multiset_More"
     "../lib/Clausal_Logic"
     "../lib/Herbrand_Interpretation"
+    Multiset_Even_More
     Locale_Deps
     Inference_System
     Ground_Resolution_Model
     Unordered_Ground_Resolution
     Ordered_Ground_Resolution
     Lazy_List_Limit
+    Substitution
     Proving_Process
     Standard_Redundancy
+    New3_Ordered_Ground_Resolution
+    Clauses
+    Map2
   theories [quick_and_dirty]
-    Substitution
     FO_Resolution_Prover
+    New3_FO_Resolution_Prover
   document_files
     "bib.bib"
     "root.tex"

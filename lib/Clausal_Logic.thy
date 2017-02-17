@@ -8,7 +8,7 @@
 section \<open>Clausal Logic\<close>
 
 theory Clausal_Logic
-imports "../lib/Multiset_More"
+imports "$AFP/Nested_Multisets_Ordinals/Multiset_More"
 begin
 
 text \<open>
@@ -233,6 +233,9 @@ lemma atm_of_lit_in_atms_of: "L \<in># C \<Longrightarrow> atm_of L \<in> atms_o
 
 lemma atms_of_plus[simp]: "atms_of (C + D) = atms_of C \<union> atms_of D"
   unfolding atms_of_def image_def by auto
+
+lemma in_atms_of_minusD: \<open>x \<in> atms_of (A - B) \<Longrightarrow> x \<in> atms_of A\<close>
+  by (auto simp: atms_of_def dest: in_diffD)
 
 lemma pos_lit_in_atms_of: "Pos A \<in># C \<Longrightarrow> A \<in> atms_of C"
   unfolding atms_of_def by (metis image_iff literal.sel(1))

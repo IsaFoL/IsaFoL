@@ -1,10 +1,11 @@
 theory DPLL_W
-imports Main Partial_Clausal_Logic Partial_Annotated_Clausal_Logic WB_List_More Wellfounded_More
-  DPLL_NOT
+imports Partial_Clausal_Logic Partial_Annotated_Clausal_Logic WB_List_More Wellfounded_More
 begin
 
 section \<open>Weidenbach's DPLL\<close>
+
 subsection \<open>Rules\<close>
+
 type_synonym 'a dpll\<^sub>W_ann_lit = "('a, unit) ann_lit"
 type_synonym 'a dpll\<^sub>W_ann_lits = "('a, unit) ann_lits"
 type_synonym 'v dpll\<^sub>W_state = "'v dpll\<^sub>W_ann_lits \<times> 'v clauses"
@@ -22,7 +23,9 @@ decided: "undefined_lit (trail S) L \<Longrightarrow> atm_of L \<in> atms_of_mm 
 backtrack: "backtrack_split (trail S) = (M', L # M) \<Longrightarrow> is_decided L \<Longrightarrow> D \<in># clauses S
   \<Longrightarrow> trail S \<Turnstile>as CNot D \<Longrightarrow> dpll\<^sub>W S (Propagated (- (lit_of L)) () # M, clauses S)"
 
+
 subsection \<open>Invariants\<close>
+
 lemma dpll\<^sub>W_distinct_inv:
   assumes "dpll\<^sub>W S S'"
   and "no_dup (trail S)"
@@ -37,7 +40,8 @@ next
 next
   case (backtrack S M' L M D) note extracted = this(1) and no_dup = this(5)
   show ?case
-    using no_dup backtrack_split_list_eq[of "trail S", symmetric] unfolding extracted by auto
+    using no_dup backtrack_split_list_eq[of "trail S", symmetric] unfolding extracted 
+    by (auto dest: no_dup_appendD)
 qed
 
 lemma dpll\<^sub>W_consistent_interp_inv:
@@ -51,20 +55,15 @@ proof (induct rule: dpll\<^sub>W.induct)
     cons = this(5) and no_dup = this(6)
   have no_dup': "no_dup M"
     by (metis (no_types) backtrack_split_list_eq distinct.simps(2) distinct_append extracted
-      list.simps(9) map_append no_dup snd_conv)
+      list.simps(9) map_append no_dup snd_conv no_dup_def)
   then have "insert (lit_of L) (lits_of_l M) \<subseteq> lits_of_l (trail S)"
     using backtrack_split_list_eq[of "trail S", symmetric] unfolding extracted by auto
   then have cons: "consistent_interp (insert (lit_of L) (lits_of_l M))"
     using consistent_interp_subset cons by blast
-  moreover
-    have "lit_of L \<notin> lits_of_l M"
-      using no_dup backtrack_split_list_eq[of "trail S", symmetric] extracted
-      unfolding lits_of_def by force
-  moreover
-    have "atm_of (-lit_of L) \<notin> (\<lambda>m. atm_of (lit_of m)) ` set M"
+  moreover have undef: "undefined_lit M (lit_of L)"
       using no_dup backtrack_split_list_eq[of "trail S", symmetric] unfolding extracted by force
-    then have "-lit_of L \<notin> lits_of_l M"
-      unfolding lits_of_def by force
+  moreover have "lit_of L \<notin> lits_of_l M"
+      using undef by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
   ultimately show ?case by simp
 qed (auto intro: consistent_add_undefined_lit_consistent)
 
@@ -124,7 +123,7 @@ next
         fix a c
         assume h: "hd (get_all_ann_decomposition (trail S)) = (a, c)"
         have h': "trail S = c @ a" using get_all_ann_decomposition_decomp h by blast
-        have I: "set (map unmark  a) \<union> set_mset (clauses S)
+        have I: "set (map unmark a) \<union> set_mset (clauses S)
           \<union> unmark_l c \<Turnstile>ps CNot C"
           using \<open>?I \<Turnstile>ps CNot C\<close> unfolding h' by (simp add: Un_commute Un_left_commute)
         have
@@ -200,22 +199,22 @@ next
       moreover {
         assume x': "x = ?hd"
         have tl: "tl (get_all_ann_decomposition (M' @ L # M)) \<noteq> []"
-          proof -
-            have f1: "\<And>ms. length (get_all_ann_decomposition (M' @ ms))
+        proof -
+          have f1: "\<And>ms. length (get_all_ann_decomposition (M' @ ms))
               = length (get_all_ann_decomposition ms)"
-              by (simp add: M' get_all_ann_decomposition_remove_undecided_length)
-            have "Suc (length (get_all_ann_decomposition M)) \<noteq> Suc 0"
-              by blast
-            then show ?thesis
-              using f1 decided by (metis (no_types) get_all_ann_decomposition.simps(1) length_tl
-                list.sel(3) list.size(3) ann_lit.collapse(1))
-          qed
+            by (simp add: M' get_all_ann_decomposition_remove_undecided_length)
+          have "Suc (length (get_all_ann_decomposition M)) \<noteq> Suc 0"
+            by blast
+          then show ?thesis
+            using f1[of \<open>L # M\<close>] decided by (cases \<open>get_all_ann_decomposition
+               (M' @ L # M)\<close>; cases L) auto
+        qed
         obtain M0' M0 where
           L0: "hd (tl (get_all_ann_decomposition (M' @ L # M))) = (M0, M0')"
           by (cases "hd (tl (get_all_ann_decomposition (M' @ L # M)))")
         have x'': "x = (M0, Propagated (-lit_of L) P # M0')"
           unfolding x' using get_all_ann_decomposition_last_choice tl M' L0
-          by (metis decided ann_lit.collapse(1))
+          by (smt is_decided_ex_Decided lit_of.simps(1) local.decided old.unit.exhaust)
         obtain l_get_all_ann_decomposition where
           "get_all_ann_decomposition (trail S) = (L # M, M') # (M0, M0') #
             l_get_all_ann_decomposition"
@@ -254,7 +253,7 @@ lemma only_propagated_vars_unsat:
   assumes decided: "\<forall>x \<in> set M. \<not> is_decided x"
   and DN: "D \<in> N" and D: "M \<Turnstile>as CNot D"
   and inv: "all_decomposition_implies N (get_all_ann_decomposition M)"
-  and atm_incl: "atm_of ` lits_of_l M  \<subseteq> atms_of_ms N"
+  and atm_incl: "atm_of ` lits_of_l M \<subseteq> atms_of_ms N"
   shows "unsatisfiable N"
 proof (rule ccontr)
   assume "\<not> unsatisfiable N"
@@ -406,7 +405,7 @@ lemma dpll\<^sub>W_strong_completeness:
   and "distinct M"
   and "atm_of ` (set M) \<subseteq> atms_of_mm N"
   shows "dpll\<^sub>W\<^sup>*\<^sup>* ([], N) (map Decided M, N)"
-  and "conclusive_dpll\<^sub>W_state (map Decided  M, N)"
+  and "conclusive_dpll\<^sub>W_state (map Decided M, N)"
 proof -
   show "rtranclp dpll\<^sub>W ([], N) (map Decided M, N)" using dpll\<^sub>W_can_do_step assms by auto
   have "map Decided M \<Turnstile>asm N" using assms(1) true_annots_decided_true_cls by auto
@@ -472,7 +471,9 @@ next
      qed
 qed
 
+
 subsection \<open>Termination\<close>
+
 definition "dpll\<^sub>W_mes M n =
   map (\<lambda>l. if is_decided l then 2 else (1::nat)) (rev M) @ replicate (n - length M) 3"
 
@@ -484,13 +485,13 @@ lemma length_dpll\<^sub>W_mes:
 lemma distinctcard_atm_of_lit_of_eq_length:
   assumes "no_dup S"
   shows "card (atm_of ` lits_of_l S) = length S"
-  using assms by (induct S) (auto simp add: image_image lits_of_def)
+  using assms by (induct S) (auto simp add: image_image lits_of_def no_dup_def)
 
 lemma dpll\<^sub>W_card_decrease:
   assumes dpll: "dpll\<^sub>W S S'" and "length (trail S') \<le> card vars"
   and "length (trail S) \<le> card vars"
   shows "(dpll\<^sub>W_mes (trail S') (card vars), dpll\<^sub>W_mes (trail S) (card vars))
-    \<in> lexn {(a, b). a < b} (card vars)"
+    \<in> lexn less_than (card vars)"
   using assms
 proof (induct rule: dpll\<^sub>W.induct)
   case (propagate C L S)
@@ -525,13 +526,13 @@ lemma dpll\<^sub>W_card_decrease':
   and atm_incl: "atm_of ` lits_of_l (trail S) \<subseteq> atms_of_mm (clauses S)"
   and no_dup: "no_dup (trail S)"
   shows "(dpll\<^sub>W_mes (trail S') (card (atms_of_mm (clauses S'))),
-          dpll\<^sub>W_mes (trail S) (card (atms_of_mm (clauses S)))) \<in> lex {(a, b). a < b}"
+          dpll\<^sub>W_mes (trail S) (card (atms_of_mm (clauses S)))) \<in> lex less_than"
 proof -
   have "finite (atms_of_mm (clauses S))" unfolding atms_of_ms_def by auto
   then have 1: "length (trail S) \<le> card (atms_of_mm (clauses S))"
     using distinctcard_atm_of_lit_of_eq_length[OF no_dup] atm_incl card_mono by metis
 
-  moreover
+  moreover {
     have no_dup': "no_dup (trail S')" using dpll dpll\<^sub>W_distinct_inv no_dup by blast
     have SS': "clauses S' = clauses S" using dpll by (auto dest!: dpll\<^sub>W_same_clauses)
     have atm_incl': "atm_of ` lits_of_l (trail S') \<subseteq> atms_of_mm (clauses S')"
@@ -539,17 +540,17 @@ proof -
     have "finite (atms_of_mm (clauses S'))"
       unfolding atms_of_ms_def by auto
     then have 2: "length (trail S') \<le> card (atms_of_mm (clauses S))"
-      using distinctcard_atm_of_lit_of_eq_length[OF no_dup'] atm_incl' card_mono SS' by metis
+      using distinctcard_atm_of_lit_of_eq_length[OF no_dup'] atm_incl' card_mono SS' by metis }
 
   ultimately have "(dpll\<^sub>W_mes (trail S') (card (atms_of_mm (clauses S))),
       dpll\<^sub>W_mes (trail S) (card (atms_of_mm (clauses S))))
-    \<in> lexn {(a, b). a < b} (card (atms_of_mm (clauses S)))"
+    \<in> lexn less_than (card (atms_of_mm (clauses S)))"
     using dpll\<^sub>W_card_decrease[OF assms(1), of "atms_of_mm (clauses S)"] by blast
   then have "(dpll\<^sub>W_mes (trail S') (card (atms_of_mm (clauses S))),
-          dpll\<^sub>W_mes (trail S) (card (atms_of_mm (clauses S)))) \<in> lex {(a, b). a < b}"
+          dpll\<^sub>W_mes (trail S) (card (atms_of_mm (clauses S)))) \<in> lex less_than"
     unfolding lex_def by auto
   then show "(dpll\<^sub>W_mes (trail S') (card (atms_of_mm (clauses S'))),
-         dpll\<^sub>W_mes (trail S) (card (atms_of_mm (clauses S)))) \<in> lex {(a, b). a < b}"
+         dpll\<^sub>W_mes (trail S) (card (atms_of_mm (clauses S)))) \<in> lex less_than"
     using dpll\<^sub>W_same_clauses[OF assms(1)]  by auto
 qed
 
@@ -568,7 +569,7 @@ lemma dpll\<^sub>W_wf:
 
 lemma dpll\<^sub>W_tranclp_star_commute:
   "{(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W S S'}\<^sup>+ = {(S', S). dpll\<^sub>W_all_inv S \<and> tranclp dpll\<^sub>W S S'}"
-    (is "?A = ?B")
+  (is "?A = ?B")
 proof
   { fix S S'
     assume "(S, S') \<in> ?A"
@@ -580,20 +581,20 @@ proof
     assume "(S, S') \<in> ?B"
     then have "dpll\<^sub>W\<^sup>+\<^sup>+ S' S" and "dpll\<^sub>W_all_inv S'" by auto
     then have "(S, S') \<in> ?A"
-      proof (induct rule: tranclp.induct)
-        case r_into_trancl
-        then show ?case by (simp_all add: r_into_trancl')
-      next
-        case (trancl_into_trancl S S' S'')
-        then have "(S', S) \<in> {a. case a of (S', S) \<Rightarrow> dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W S S'}\<^sup>+" by blast
-        moreover have "dpll\<^sub>W_all_inv S'"
-          using rtranclp_dpll\<^sub>W_all_inv[OF tranclp_into_rtranclp[OF trancl_into_trancl.hyps(1)]]
+    proof (induct rule: tranclp.induct)
+      case r_into_trancl
+      then show ?case by (simp_all add: r_into_trancl')
+    next
+      case (trancl_into_trancl S S' S'')
+      then have "(S', S) \<in> {a. case a of (S', S) \<Rightarrow> dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W S S'}\<^sup>+" by blast
+      moreover have "dpll\<^sub>W_all_inv S'"
+        using rtranclp_dpll\<^sub>W_all_inv[OF tranclp_into_rtranclp[OF trancl_into_trancl.hyps(1)]]
           trancl_into_trancl.prems by auto
-        ultimately have "(S'', S') \<in> {(pa, p). dpll\<^sub>W_all_inv p \<and> dpll\<^sub>W p pa}\<^sup>+"
-          using \<open>dpll\<^sub>W_all_inv S'\<close> trancl_into_trancl.hyps(3) by blast
-        then show ?case
-          using \<open>(S', S) \<in> {a. case a of (S', S) \<Rightarrow> dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W S S'}\<^sup>+\<close> by auto
-      qed
+      ultimately have "(S'', S') \<in> {(pa, p). dpll\<^sub>W_all_inv p \<and> dpll\<^sub>W p pa}\<^sup>+"
+        using \<open>dpll\<^sub>W_all_inv S'\<close> trancl_into_trancl.hyps(3) by blast
+      then show ?case
+        using \<open>(S', S) \<in> {a. case a of (S', S) \<Rightarrow> dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W S S'}\<^sup>+\<close> by auto
+    qed
   }
   then show "?B \<subseteq> ?A" by blast
 qed
@@ -602,18 +603,19 @@ lemma dpll\<^sub>W_wf_tranclp: "wf {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\
   unfolding dpll\<^sub>W_tranclp_star_commute[symmetric] by (simp add: dpll\<^sub>W_wf wf_trancl)
 
 lemma dpll\<^sub>W_wf_plus:
-  "wf {(S', ([], N))| S'. dpll\<^sub>W\<^sup>+\<^sup>+ ([], N) S'}"  (is "wf ?P")
+  "wf {(S', ([], N))| S'. dpll\<^sub>W\<^sup>+\<^sup>+ ([], N) S'}" (is "wf ?P")
   apply (rule wf_subset[OF dpll\<^sub>W_wf_tranclp, of ?P])
   unfolding dpll\<^sub>W_all_inv_def by auto
 
 
 subsection \<open>Final States\<close>
+
 text \<open>Proposition 2.8.1: final states are the normal forms of @{term dpll\<^sub>W}\<close>
 lemma dpll\<^sub>W_no_more_step_is_a_conclusive_state:
   assumes "\<forall>S'. \<not>dpll\<^sub>W S S'"
   shows "conclusive_dpll\<^sub>W_state S"
 proof -
-  have vars: "\<forall>s \<in> atms_of_mm (clauses S). s \<in> atm_of ` lits_of_l  (trail S)"
+  have vars: "\<forall>s \<in> atms_of_mm (clauses S). s \<in> atm_of ` lits_of_l (trail S)"
     proof (rule ccontr)
       assume "\<not> (\<forall>s\<in>atms_of_mm (clauses S). s \<in> atm_of ` lits_of_l (trail S))"
       then obtain L where
@@ -673,79 +675,16 @@ proof
 next
   assume ?B
   show ?A
-    proof (rule ccontr)
-      assume n: "\<not> ?A"
-      have no_mark: "\<forall>L\<in>set M. \<not> is_decided L"  "\<exists>C \<in># N. M \<Turnstile>as CNot C"
-        using n assms(2) unfolding conclusive_dpll\<^sub>W_state_def by auto
-      moreover obtain D where DN: "D \<in># N" and MD: "M \<Turnstile>as CNot D" using no_mark by auto
-      ultimately have "unsatisfiable (set_mset N)"
-        using only_propagated_vars_unsat rtranclp_dpll\<^sub>W_all_inv[OF assms(1)]
-        unfolding dpll\<^sub>W_all_inv_def by force
-      then show False using \<open>?B\<close> by blast
-    qed
-qed
-
-subsection \<open>Link with NOT's DPLL\<close>
-interpretation dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T: dpll_with_backtrack .
-
-declare dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.state_simp\<^sub>N\<^sub>O\<^sub>T[simp del]
-lemma state_eq\<^sub>N\<^sub>O\<^sub>T_iff_eq[iff, simp]: "dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.state_eq\<^sub>N\<^sub>O\<^sub>T S T \<longleftrightarrow> S = T"
-  unfolding dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.state_eq\<^sub>N\<^sub>O\<^sub>T_def by (cases S, cases T) auto
-
-lemma dpll\<^sub>W_dpll\<^sub>W_bj:
-  assumes inv: "dpll\<^sub>W_all_inv S" and dpll: "dpll\<^sub>W S T"
-  shows "dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj S T "
-  using dpll inv
-  apply (induction rule: dpll\<^sub>W.induct)
-    apply (rule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.bj_propagate\<^sub>N\<^sub>O\<^sub>T)
-    apply (rule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.propagate\<^sub>N\<^sub>O\<^sub>T.propagate\<^sub>N\<^sub>O\<^sub>T; simp?)
-    apply fastforce
-   apply (rule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.bj_decide\<^sub>N\<^sub>O\<^sub>T)
-   apply (rule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.decide\<^sub>N\<^sub>O\<^sub>T.decide\<^sub>N\<^sub>O\<^sub>T; simp?)
-   apply fastforce
-  apply (frule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backtrack.intros[of _ _  _ _ _], simp_all)
-  apply (rule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.bj_backjump)
-  apply (rule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backtrack_is_backjump'',
-    simp_all add: dpll\<^sub>W_all_inv_def)
-  done
-
-lemma dpll\<^sub>W_bj_dpll:
-  assumes inv: "dpll\<^sub>W_all_inv S" and dpll: "dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj S T"
-  shows "dpll\<^sub>W S T"
-  using dpll
-  apply (induction rule: dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.induct)
-    apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.decide\<^sub>N\<^sub>O\<^sub>TE, cases S)
-    apply (frule decided; simp)
-
-   apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.propagate\<^sub>N\<^sub>O\<^sub>TE, cases S)
-   apply (auto intro!: propagate[of _ _ "(_, _)", simplified])[]
-  apply (elim dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backjumpE, cases S)
-  by (simp add: dpll\<^sub>W.simps dpll_with_backtrack.backtrack.simps)
-
-lemma rtranclp_dpll\<^sub>W_rtranclp_dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T:
-  assumes "dpll\<^sub>W\<^sup>*\<^sup>* S T " and "dpll\<^sub>W_all_inv S"
-  shows "dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj\<^sup>*\<^sup>* S T"
-  using assms apply (induction)
-   apply simp
-  by (auto intro:  rtranclp_dpll\<^sub>W_all_inv dpll\<^sub>W_dpll\<^sub>W_bj rtranclp.rtrancl_into_rtrancl)
-
-lemma rtranclp_dpll_rtranclp_dpll\<^sub>W:
-  assumes "dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj\<^sup>*\<^sup>* S T " and "dpll\<^sub>W_all_inv S"
-  shows "dpll\<^sub>W\<^sup>*\<^sup>* S T"
-  using assms apply (induction)
-   apply simp
-  by (auto intro: dpll\<^sub>W_bj_dpll rtranclp.rtrancl_into_rtrancl rtranclp_dpll\<^sub>W_all_inv)
-
-lemma dpll_conclusive_state_correctness:
-  assumes "dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj\<^sup>*\<^sup>* ([], N) (M, N)" and "conclusive_dpll\<^sub>W_state (M, N)"
-  shows "M \<Turnstile>asm N \<longleftrightarrow> satisfiable (set_mset N)"
-proof -
-  have "dpll\<^sub>W_all_inv ([], N)"
-    unfolding dpll\<^sub>W_all_inv_def by auto
-  show ?thesis
-    apply (rule dpll\<^sub>W_conclusive_state_correct)
-      apply (simp add: \<open>dpll\<^sub>W_all_inv ([], N)\<close> assms(1) rtranclp_dpll_rtranclp_dpll\<^sub>W)
-    using assms(2) by simp
+  proof (rule ccontr)
+    assume n: "\<not> ?A"
+    have no_mark: "\<forall>L\<in>set M. \<not> is_decided L" "\<exists>C \<in># N. M \<Turnstile>as CNot C"
+      using n assms(2) unfolding conclusive_dpll\<^sub>W_state_def by auto
+    moreover obtain D where DN: "D \<in># N" and MD: "M \<Turnstile>as CNot D" using no_mark by auto
+    ultimately have "unsatisfiable (set_mset N)"
+      using only_propagated_vars_unsat rtranclp_dpll\<^sub>W_all_inv[OF assms(1)]
+      unfolding dpll\<^sub>W_all_inv_def by force
+    then show False using \<open>?B\<close> by blast
+  qed
 qed
 
 end

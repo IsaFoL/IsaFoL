@@ -7,8 +7,9 @@ text \<open>This file is devoted to abstract properties of the transformations, 
   preservation and lifting from terms to proposition. \<close>
 
 
-section \<open>Rewrite systems and properties\<close>
-subsection \<open>Lifting of rewrite rules\<close>
+section \<open>Rewrite Systems and Properties\<close>
+
+subsection \<open>Lifting of Rewrite Rules\<close>
 
 text \<open>We can lift a rewrite relation r over a full1 formula: the relation \<open>r\<close> works on terms,
   while \<open>propo_rew_step\<close> works on formulas.\<close>
@@ -22,7 +23,7 @@ propo_rew_one_step_lift: "propo_rew_step r \<phi> \<phi>' \<Longrightarrow> wf_c
 
 text \<open>Here is a more precise link between the lifting and the subformulas: if a rewriting takes
   place between @{term \<phi>} and @{term \<phi>'}, then there are two subformulas @{term \<psi>} in @{term \<phi>} and
-  @{term \<psi>'} in @{term \<phi>'}, @{term \<psi>'} is the result of the rewriting of @{term r} on  @{term \<psi>}. \<close>
+  @{term \<psi>'} in @{term \<phi>'}, @{term \<psi>'} is the result of the rewriting of @{term r} on @{term \<psi>}. \<close>
 
 text \<open>This lemma is only a health condition:\<close>
 lemma propo_rew_step_subformula_imp:
@@ -74,7 +75,7 @@ next
   then obtain a where l: "l = [a]" using wf_conn_Not_decomp wf by metis
   obtain a' where l': "l' = [a']" using wf_conn_Not_decomp wf' c by metis
   have "A \<Turnstile> a \<longleftrightarrow> A \<Turnstile> a'" using l l' by (metis nth_Cons_0 same)
-  then show "A \<Turnstile> conn c l \<longleftrightarrow> A \<Turnstile> conn c l'" using  l l' c by auto
+  then show "A \<Turnstile> conn c l \<longleftrightarrow> A \<Turnstile> conn c l'" using l l' c by auto
 next
   case binary note c = this
   then obtain a b where l: "l = [a, b]"
@@ -134,7 +135,7 @@ next
      {
         assume \<phi>: "\<xi>=[] \<and> \<xi>'=[b]"
         have "path_to (L#p) (conn c (\<xi>@ (\<phi> # \<xi>'))) \<psi>"
-          using \<phi> c IH ab  corr  by (simp add: path_to_l)
+          using \<phi> c IH ab corr by (simp add: path_to_l)
         moreover have "replace_at (L#p) (conn c (\<xi>@ (\<phi> # \<xi>'))) \<psi>' = conn c (\<xi>@ (\<phi>' # \<xi>'))"
           using c IH ab \<phi> unfolding binary_connectives_def by auto
         ultimately have "\<exists>\<psi> \<psi>' p. r \<psi> \<psi>' \<and> path_to p (conn c (\<xi>@ (\<phi> # \<xi>'))) \<psi>
@@ -156,7 +157,7 @@ qed
 
 
 
-subsection \<open>Consistency preservation\<close>
+subsection \<open>Consistency Preservation\<close>
 
 text \<open>We define \<open>preserves_un_sat\<close>: it means that a relation preserves consistency.\<close>
 definition preserves_un_sat where
@@ -222,7 +223,7 @@ lemma full_propo_rew_step_subformula:
 
 section \<open>Transformation testing\<close>
 
-subsection \<open>Definition and first properties\<close>
+subsection \<open>Definition and first Properties\<close>
 text \<open>To prove correctness of our transformation, we create a @{term all_subformula_st} predicate.
   It tests recursively all subformulas. At each step, the actual formula is tested. The aim of this
   @{term test_symb} function is to test locally some properties of the formulas (i.e. at the level
@@ -230,15 +231,15 @@ text \<open>To prove correctness of our transformation, we create a @{term all_s
   relation and the @{term test_symb}\<close>
 
 
-definition all_subformula_st :: "('a propo \<Rightarrow> bool) \<Rightarrow> 'a propo \<Rightarrow> bool"   where
+definition all_subformula_st :: "('a propo \<Rightarrow> bool) \<Rightarrow> 'a propo \<Rightarrow> bool"  where
 "all_subformula_st test_symb \<phi> \<equiv> \<forall>\<psi>. \<psi> \<preceq> \<phi> \<longrightarrow> test_symb \<psi>"
 
 
 lemma test_symb_imp_all_subformula_st[simp]:
   "test_symb FT \<Longrightarrow> all_subformula_st test_symb FT"
   "test_symb FF \<Longrightarrow> all_subformula_st test_symb FF"
-  "test_symb (FVar  x) \<Longrightarrow> all_subformula_st test_symb (FVar x)"
-  unfolding all_subformula_st_def using  subformula_leaf by metis+
+  "test_symb (FVar x) \<Longrightarrow> all_subformula_st test_symb (FVar x)"
+  unfolding all_subformula_st_def using subformula_leaf by metis+
 
 
 lemma all_subformula_st_test_symb_true_phi:
@@ -253,12 +254,12 @@ lemma all_subformula_st_decomp_imp:
 
 text \<open>To ease the finding of proofs, we give some explicit theorem about the decomposition.\<close>
 lemma all_subformula_st_decomp_rec:
-  "all_subformula_st test_symb  (conn c l) \<Longrightarrow> wf_conn c l
+  "all_subformula_st test_symb (conn c l) \<Longrightarrow> wf_conn c l
     \<Longrightarrow> (test_symb (conn c l) \<and> (\<forall>\<phi>\<in> set l. all_subformula_st test_symb \<phi>))"
   unfolding all_subformula_st_def by auto
 
 lemma all_subformula_st_decomp:
-  fixes c  :: "'v connective" and l :: "'v propo list"
+  fixes c :: "'v connective" and l :: "'v propo list"
   assumes "wf_conn c l"
   shows "all_subformula_st test_symb (conn c l)
     \<longleftrightarrow> (test_symb (conn c l) \<and> (\<forall>\<phi>\<in> set l. all_subformula_st test_symb \<phi>))"
@@ -397,12 +398,13 @@ text \<open>The assumption @{term "\<forall>\<phi>' \<psi>. \<phi>' \<preceq> \<
 
 text \<open>The previous assumption is not enough to go from @{term r} to @{term "propo_rew_step r"}: we
   have to add the assumption that rewriting inside does not mess up the term:
-  @{term  "\<forall>(c:: 'v connective) \<xi> \<phi> \<xi>' \<phi>'. \<phi> \<preceq> \<Phi> \<longrightarrow> propo_rew_step r \<phi> \<phi>'
+  @{term "\<forall>(c:: 'v connective) \<xi> \<phi> \<xi>' \<phi>'. \<phi> \<preceq> \<Phi> \<longrightarrow> propo_rew_step r \<phi> \<phi>'
   \<longrightarrow> wf_conn c (\<xi> @ \<phi> # \<xi>') \<longrightarrow> test_symb (conn c (\<xi> @ \<phi> # \<xi>')) \<longrightarrow> test_symb \<phi>'
   \<longrightarrow> test_symb (conn c (\<xi> @ \<phi>' # \<xi>'))"}\<close>
 
 
-subsubsection \<open>Invariant while lifting of the rewriting relation\<close>
+subsubsection \<open>Invariant while lifting of the Rewriting Relation\<close>
+
 text \<open>The condition @{term "\<phi> \<preceq> \<Phi>"} (that will by used with @{term "\<Phi> = \<phi>"} most of the time) is
   here to ensure that the recursive conditions on @{term "\<Phi>"} will moreover hold for the subterm
   we are rewriting. For example if there is no equivalence symbol in @{term "\<Phi>"}, we do not have to
@@ -463,7 +465,7 @@ lemma propo_rew_step_inv_stay:
 text \<open>The lemmas can be lifted to @{term "full (propo_rew_step r)"} instead of
   @{term propo_rew_step}\<close>
 
-subsubsection \<open>Invariant after all rewriting\<close>
+subsubsection \<open>Invariant after all Rewriting\<close>
 
 lemma full_propo_rew_step_inv_stay_with_inc:
   fixes r:: "'v propo \<Rightarrow> 'v propo \<Rightarrow> bool" and test_symb:: "'v propo \<Rightarrow> bool" and x :: "'v"
@@ -551,7 +553,7 @@ proof -
     \<Longrightarrow> test_symb (conn c (\<xi> @ \<phi> # \<xi>')) \<Longrightarrow> test_symb \<phi>' \<Longrightarrow> test_symb (conn c (\<xi> @ \<phi>' # \<xi>'))"
     using H'  by (metis wf_conn_no_arity_change_helper wf_conn_no_arity_change)
   then show "all_subformula_st test_symb \<psi>"
-    using H  full init full_propo_rew_step_inv_stay by blast
+    using H full init full_propo_rew_step_inv_stay by blast
 qed
 
 end

@@ -1,7 +1,7 @@
 (*  Title:       Candidate Models for Ground Resolution
     Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
-    Maintainer:  Jasmin Blanchette <jasmin.blanchette at inria.fr>
+    Maintainer:  Anders Schlichtkrull
 *)
 
 section {* Candidate Models for Ground Resolution *}
@@ -158,7 +158,7 @@ proof -
   from d have "Max (set_mset D) = Pos A"
     using production_unfold by blast
   hence "D < {#Neg A#}"
-    by (auto intro: Max_pos_neg_less_multiset)
+    by (meson Max_pos_neg_less_multiset union_single_eq_member)
   moreover have "{#Neg A#} \<le> C"
     by (rule  subset_eq_imp_le_multiset) (rule mset_subset_eq_single[OF a_in_c])
   ultimately show ?thesis

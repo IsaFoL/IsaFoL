@@ -1,3 +1,8 @@
+(*  Title:       Locale Deps
+    Author:      Anders Schlichtkrull, 2017
+    Maintainer:  Anders Schlichtkrull
+*)
+
 theory Locale_Deps imports Main 
 keywords "locale_deps2" :: diag
 begin
@@ -28,7 +33,7 @@ val _ =
         |> map (fn {name, parents, body} =>
           ((name, Graph_Display.content_node (Locale.extern thy name) [body]), parents)) (* Locale.extern thy (name) *)
         |> filter (fn x => (case x of ((name,_),_) => exists (fn theory => String.isPrefix theory name) myTheories))
-        |> Graph_Display.display_graph))));
+        |> Graph_Display.display_graph)))); (* Alternatively: Graph_Display.display_graph_old *)
 \<close>
 
 end
