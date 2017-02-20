@@ -28,7 +28,7 @@ begin
     isl projl projr Inr Inl
   in SML_imp module_name Grat_Check file "code/gratchk_export.sml"
 
-  subsection \<open>Summary of Correctness Theorems\<close>
+  subsection \<open>Summary of Correctness Theorems\<close> text_raw \<open>\label{sec:correctness_summary}\<close>
   text \<open>In this section, we re-prove the correctness theorems that are 
     proved elsewhere, slightly adapting them for optimal presentation.
 
