@@ -1,0 +1,6 @@
+c Refers to https://github.com/marijnheule/drat-trim/commit/d7c2d7abd80ef68caf1379711ead84f2f2966879
+c Still off by one in parser buffer! 
+c This example writes the ending 0 of the clause one past the end of the buffer, which is allocated with 8 ints.
+c However, on my machine, I could not produce any observable symptoms.
+p cnf 8 1
+1 2 3 4 5 6 7 8 0
