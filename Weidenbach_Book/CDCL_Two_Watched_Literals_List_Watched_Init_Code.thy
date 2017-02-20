@@ -10,9 +10,9 @@ type_synonym twl_st_wll' =
   "nat_trail \<times> clauses_wl \<times> nat \<times> nat array_list option \<times>  unit_lits_wl \<times> unit_lits_wl \<times>
     lit_queue_l"
 
-definition init_dt_step_wl :: \<open>nat clause_l \<Rightarrow> nat twl_st_wl' \<Rightarrow> (nat twl_st_wl') nres\<close> where
-  \<open>init_dt_step_wl C S = do {
-   (let (M, N, U, D, NP, UP, Q) = S in
+definition init_dt_step_wl :: \<open>_ \<Rightarrow> nat clause_l \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close> where
+  \<open>init_dt_step_wl N\<^sub>1 C S = do {
+   (let (M, N, U, D, NP, UP, Q, WS) = S in
    (case D of
     None \<Rightarrow>
     if length C = 1
@@ -22,38 +22,38 @@ definition init_dt_step_wl :: \<open>nat clause_l \<Rightarrow> nat twl_st_wl' \
       let L = hd C;
       let val_L = valued M L;
       if val_L = None
-      then do {RETURN (Propagated L 0 # M, N, U, None, add_mset {#L#} NP, UP, add_mset (-L) Q)}
+      then do {RETURN (Propagated L 0 # M, N, U, None, add_mset {#L#} NP, UP, add_mset (-L) Q, WS)}
       else
         if val_L = Some True
-        then do {RETURN (M, N, U, None, add_mset {#L#} NP, UP, Q)}
-        else do {RETURN (M, N, U, Some (mset C), add_mset {#L#} NP, UP, {#})}
+        then do {RETURN (M, N, U, None, add_mset {#L#} NP, UP, Q, WS)}
+        else do {RETURN (M, N, U, Some (mset C), add_mset {#L#} NP, UP, {#}, WS)}
       }
     else do {
       ASSERT(C \<noteq> []);
       ASSERT(tl C \<noteq> []);
+      ASSERT(hd C \<in> snd ` twl_array_code.D\<^sub>0 N\<^sub>1);
+      ASSERT(hd (tl C) \<in> snd ` twl_array_code.D\<^sub>0 N\<^sub>1);
       let U = length N;
-      RETURN (M, N @ [op_array_of_list C], U, None, NP, UP, Q)}
+      let WS = WS((hd C) := WS (hd C) @ [U]);
+      let WS = WS((hd (tl C)) := WS (hd (tl C)) @ [U]);
+      RETURN (M, N @ [op_array_of_list C], U, None, NP, UP, Q, WS)}
   | Some D \<Rightarrow>
     if length C = 1
     then do {
       ASSERT (C \<noteq> []);
       let L = hd C;
-      RETURN (M, N, U, Some D, add_mset {#L#} NP, UP, {#})}
+      RETURN (M, N, U, Some D, add_mset {#L#} NP, UP, {#}, WS)}
     else do {
       ASSERT(C \<noteq> []);
       ASSERT(tl C \<noteq> []);
+      ASSERT(hd C \<in> snd ` twl_array_code.D\<^sub>0 N\<^sub>1);
+      ASSERT(hd (tl C) \<in> snd ` twl_array_code.D\<^sub>0 N\<^sub>1);
       let U = length N;
-      RETURN (M, N @ [op_array_of_list C], U, Some D, NP, UP, {#})}))
+      let WS = WS((hd C) := WS (hd C) @ [U]);
+      let WS = WS((hd (tl C)) := WS (hd (tl C)) @ [U]);
+      RETURN (M, N @ [op_array_of_list C], U, Some D, NP, UP, {#}, WS)}))
   }\<close>
 
-definition twl_st_l_assn' :: \<open>nat twl_st_wl' \<Rightarrow> twl_st_wll' \<Rightarrow> assn\<close> where
-\<open>twl_st_l_assn' \<equiv>
-  (pair_nat_ann_lits_assn *assn clauses_ll_assn *assn nat_assn *assn
-  conflict_option_assn *assn
-  unit_lits_assn *assn
-  unit_lits_assn *assn
-  clause_l_assn
-  )\<close>
 definition array_of_list :: "'a::heap list \<Rightarrow> 'a array_list Heap" where
   \<open>array_of_list l = do {
      e \<leftarrow> Array.of_list l;
@@ -88,19 +88,6 @@ proof -
   show ?thesis
     by (rule array_of_list_op_arl_list[of nat_lit_assn, FCOMP 1]) simp
 qed
-
-sepref_thm init_dt_step_l
-  is \<open>uncurry init_dt_step_wl\<close>
-  :: \<open>(list_assn nat_lit_assn)\<^sup>d *\<^sub>a twl_st_l_assn'\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn'\<close>
-  unfolding init_dt_step_wl_def twl_st_l_assn'_def
-  unfolding  length_rll_def[symmetric] PR_CONST_def
-  unfolding watched_app_def[symmetric]
-  unfolding nth_rll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
-  unfolding swap_ll_def[symmetric]
-  apply (rewrite at \<open>(add_mset _ \<hole>)\<close> lms_fold_custom_empty)+
-  apply (rewrite at \<open>(_, \<hole>)\<close> lms_fold_custom_empty)+
-  supply [[goals_limit = 1]]
-  by sepref
 
 definition extract_lits_cls :: \<open>'a clause_l \<Rightarrow> 'a literal list \<Rightarrow> 'a literal list\<close> where
   \<open>extract_lits_cls C N\<^sub>0 = fold (\<lambda>L N\<^sub>0. if atm_of L \<in> atms_of (mset N\<^sub>0) then N\<^sub>0 else L # N\<^sub>0) C N\<^sub>0\<close>
