@@ -533,11 +533,41 @@ proof -
     using H unfolding 1 2 3  .
 qed
 
-text \<open>
-  \<^item> TODO: use \<open>let L = K\<close> instead of \<open>let L = ((N!C)) ! i\<close>.\<close>
+
+definition is_N\<^sub>1 :: "nat literal multiset \<Rightarrow> bool" where
+  \<open>is_N\<^sub>1 S \<longleftrightarrow> set_mset S = set_mset N\<^sub>1\<close>
+
+abbreviation literals_are_N\<^sub>0 where
+  \<open>literals_are_N\<^sub>0 S \<equiv>
+     is_N\<^sub>1 (lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S))))\<close>
+
+definition literals_are_in_N\<^sub>0 :: \<open>nat clause \<Rightarrow> bool\<close> where
+  \<open>literals_are_in_N\<^sub>0 C \<longleftrightarrow> set_mset (lits_of_atms_of_m C) \<subseteq> set_mset N\<^sub>1\<close>
+
+lemma lits_of_atms_of_m_subset_lits_of_atms_of_mmD:
+  \<open>a \<in># b \<Longrightarrow> set_mset (lits_of_atms_of_m a) \<subseteq> set_mset (lits_of_atms_of_mm b)\<close>
+  by (auto simp: lits_of_atms_of_m_def lits_of_atms_of_mm_def)
+
+lemma literals_are_in_N\<^sub>0_nth:
+  fixes C :: nat
+  assumes \<open>C < length N\<close> and \<open>C > 0\<close> and \<open>literals_are_N\<^sub>0 (M, N, U, D', NP, UP, Q, W)\<close>
+  shows \<open>literals_are_in_N\<^sub>0 (mset (N!C))\<close>
+proof -
+  have \<open>(N!C) \<in> set (tl N)\<close>
+    using assms(1,2) by (auto intro!: nth_in_set_tl)
+  then have \<open>mset (N!C) \<in># cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None (M, N, U, D', NP, UP, Q, W)))\<close>
+    using assms(1,2)
+    by (subst (asm) append_take_drop_id[symmetric, of \<open>tl N\<close> U], subst (asm) set_append,
+        subst (asm) Un_iff, subst (asm) drop_Suc[symmetric])
+      (auto simp: clauses_def mset_take_mset_drop_mset')
+  from lits_of_atms_of_m_subset_lits_of_atms_of_mmD[OF this] show ?thesis
+    using assms(3) unfolding is_N\<^sub>1_def literals_are_in_N\<^sub>0_def by blast
+qed
+
 definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> nat \<Rightarrow>
   nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres"  where
   \<open>unit_propagation_inner_loop_body_wl_D K w S = do {
+    ASSERT(literals_are_N\<^sub>0 S);
     let (M, N, U, D', NP, UP, Q, W) = S;
     ASSERT(K \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP));
     ASSERT(w < length (watched_by S K));
@@ -554,10 +584,12 @@ definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> n
     let L' = (N!C) ! (1 - i);
     ASSERT(L' \<in># mset (watched_l (N!C)) - {#L#});
     ASSERT (mset (watched_l (N!C)) = {#L, L'#});
+    ASSERT(L' \<in> snd ` D\<^sub>0);
     val_L' \<leftarrow> RETURN (valued M L');
     if val_L' = Some True
     then RETURN (w+1, (M, N, U, D', NP, UP, Q, W))
     else do {
+      ASSERT(literals_are_in_N\<^sub>0 (mset (N!C)));
       f \<leftarrow> find_unwatched M (N!C);
       ASSERT (fst f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (N!C)). - L \<in> lits_of_l M));
       if fst f = None
@@ -566,7 +598,6 @@ definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> n
         then do {RETURN (w+1, (M, N, U, Some (mset (N!C)), NP, UP, {#}, W))}
         else do {
           ASSERT(undefined_lit M L');
-          ASSERT(L' \<in> snd ` D\<^sub>0);
           RETURN (w+1, (Propagated L' C # M, N, U, D', NP, UP, add_mset (-L') Q, W))}
       else do {
         ASSERT(snd f < length (N!C));
@@ -712,13 +743,6 @@ proof -
     .
 qed
 
-definition is_N\<^sub>1 :: "nat literal multiset \<Rightarrow> bool" where
-  \<open>is_N\<^sub>1 S \<longleftrightarrow> set_mset S = set_mset N\<^sub>1\<close>
-
-abbreviation literals_are_N\<^sub>0 where
-  \<open>literals_are_N\<^sub>0 S \<equiv>
-     is_N\<^sub>1 (lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S))))\<close>
-
 lemma mset_tl_update_swap:
   \<open>i < length xs \<Longrightarrow> j < length (xs ! i) \<Longrightarrow> k < length (xs ! i) \<Longrightarrow>
   mset `# mset (tl (xs [i := swap (xs ! i) j k])) = mset `# mset (tl xs)\<close>
@@ -785,6 +809,7 @@ proof -
       watched_by.simps
     supply [[goals_limit=1]]
     apply (refine_vcg valued find_unwatched)
+    subgoal using assms unfolding S by fast
     subgoal by simp
     subgoal using K .
     subgoal by simp
@@ -795,12 +820,23 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal by simp
+    subgoal for M'' x2 N'' x2a U'' x2b D'' x2c NP'' x2d UP'' x2e WS'' Q'' M' x2g
+      N' x2h U' x2i D' x2j NP' x2k UP' x2l WS' Q'
+      apply (subgoal_tac \<open>N' ! (Q' K ! w) ! (1 - (if N' ! (Q' K ! w) ! 0 = K then 0 else 1)) \<in>#
+        lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S)))\<close>)
+      subgoal using eq_commute[THEN iffD1, OF N\<^sub>0[unfolded is_N\<^sub>1_def]]
+        by (auto simp: image_image S clauses_def mset_take_mset_drop_mset' m is_N\<^sub>1_def
+            lits_of_atms_of_mm_union)[]
+      subgoal
+        by (rule in_lits_of_atms_S) auto
+      done
     subgoal by simp
     subgoal by simp
     subgoal by simp
     subgoal
       using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
           mset_take_mset_drop_mset' m)
+    subgoal by (rule literals_are_in_N\<^sub>0_nth) fast+
     subgoal by simp
     subgoal by simp
     subgoal by simp
@@ -811,16 +847,6 @@ proof -
       using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
           mset_take_mset_drop_mset' m)
     subgoal by (auto split: if_splits)
-    subgoal for M'' x2 N'' x2a U'' x2b D'' x2c NP'' x2d UP'' x2e WS'' Q'' M' x2g
-      N' x2h U' x2i D' x2j NP' x2k UP' x2l WS' Q' val_L'
-      apply (subgoal_tac \<open>N' ! (Q' K ! w) ! (1 - (if N' ! (Q' K ! w) ! 0 = K then 0 else 1)) \<in>#
-        lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S)))\<close>)
-      subgoal using eq_commute[THEN iffD1, OF N\<^sub>0[unfolded is_N\<^sub>1_def]]
-        by (auto simp: image_image S clauses_def mset_take_mset_drop_mset' m is_N\<^sub>1_def
-            lits_of_atms_of_mm_union)[]
-      subgoal
-        by (rule in_lits_of_atms_S) auto
-      done
     subgoal
       using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
           mset_take_mset_drop_mset' m)
@@ -1474,13 +1500,11 @@ proof -
     subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
       apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
       subgoal
-        using N\<^sub>0 p(32) p(1-18) p(46)
-        apply (auto simp: (* is_N\<^sub>1_def *) in_lits_of_atms_of_mm_ain_atms_of_iff mset_take_mset_drop_mset'
-            clauses_def H (* N\<^sub>1 *) image_image cdcl\<^sub>W_restart_mset.no_strange_atm_def
+        using N\<^sub>0 p(32) p(1-18) p(46) p(53)
+        by (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff mset_take_mset_drop_mset'
+            clauses_def H image_image cdcl\<^sub>W_restart_mset.no_strange_atm_def
             cdcl\<^sub>W_restart_mset_state eq_commute[of _ \<open>atms_of N\<^sub>1\<close>] in_N\<^sub>1_iff is_N\<^sub>1_def
-            dest!: in_diffD) -- \<open>TODO proof\<close>
-        by (metis (no_types, lifting) Un_iff in_N\<^sub>1_iff in_lits_of_atms_of_mm_ain_atms_of_iff
-            lits_of_atms_of_mm_union p(53) set_mset_union)+
+            dest!: in_diffD)
       subgoal
         using p
         apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
