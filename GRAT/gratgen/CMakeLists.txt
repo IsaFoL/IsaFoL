@@ -17,6 +17,8 @@ set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3 -DDEBUG -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-ggdb3 -O3 -DNDEBUG")
 
+set(CMAKE_INSTALL_PREFIX "$ENV{HOME}")
+
 # link_directories(/home/lammich/lib)
 link_libraries(pthread)
 

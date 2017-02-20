@@ -54,6 +54,30 @@ by the GRATgen tool.
 \end{figure}
 \clearpage
 
+\section{Introduction}
+We present an efficient verified checker for satisfiability and unsatisfiability
+certificates obtained from SAT solvers. 
+
+Our sat certificates are lists of non-contradictory literals, 
+as produced by virtually any SAT solver.
+
+The de facto standard for unsat certificates is DRAT. 
+Here, our checker uses a two step approach: 
+The unverified GRATgen tool converts the DRAT certificates into GRAT certificates, 
+which are then checked against the original formula by the verified GRATchk, 
+presented in this formalization.
+
+The GRAT certificates are engineered to admit a simple and efficient checker
+algorithm, which is well suited for formal verification. 
+We use the Isabelle Refinement Framework to verify an efficient imperative
+implementation of the checker algorithm.
+
+Our verification covers the semantics of a formula down to the integer sequence
+that represents it. This way, only a simple untrusted parser is required to 
+read the formula from a file to an integer array. 
+In Section~\ref{sec:correctness_summary}, we give a complete and self-contained
+summary of what we actually proved.
+
 % generated text of all theories
 \input{session}
 

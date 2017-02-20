@@ -167,7 +167,7 @@ sympy-plots-for-*.tex/
 *.nc
 
 ## logfiles from unsat certificate experiments (>100MB, so I won't add them)
-GRAT/evaluation/logs/*.log
+GRAT/evaluation/logs
 
 ## Generated html pages for GRAT
 GRAT/html
