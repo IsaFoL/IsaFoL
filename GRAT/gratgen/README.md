@@ -5,8 +5,9 @@ Check DRAT certificate and emit GRAT certificate.
 Run 
     cmake .
     make
+    make install
 
-this should generate a build system and build the executable gratgen in the current folder.
+this should generate a build system, build the executable gratgen, and install it in $HOME/bin by default.
 
 If you do not like heavy make scripts, just run:
     g++ -O3 -DNDEBUG -std=c++11 -pthread -o gratgen gratgen.cpp
