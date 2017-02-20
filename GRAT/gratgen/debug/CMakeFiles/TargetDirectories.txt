@@ -1,7 +1,0 @@
-/home/lammich/devel/isabelle/isafol/DRAT/gratgen/debug/CMakeFiles/install.dir
-/home/lammich/devel/isabelle/isafol/DRAT/gratgen/debug/CMakeFiles/list_install_components.dir
-/home/lammich/devel/isabelle/isafol/DRAT/gratgen/debug/CMakeFiles/rebuild_cache.dir
-/home/lammich/devel/isabelle/isafol/DRAT/gratgen/debug/CMakeFiles/install/strip.dir
-/home/lammich/devel/isabelle/isafol/DRAT/gratgen/debug/CMakeFiles/install/local.dir
-/home/lammich/devel/isabelle/isafol/DRAT/gratgen/debug/CMakeFiles/gratgen.dir
-/home/lammich/devel/isabelle/isafol/DRAT/gratgen/debug/CMakeFiles/edit_cache.dir
