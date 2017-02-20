@@ -148,7 +148,8 @@ definition HH :: \<open>nat literal multiset \<Rightarrow> (nat twl_st_wl \<time
   \<open>HH N\<^sub>1 = {((M', N', U', D', NP', UP', Q', WS'), (M, N, U, D, NP, UP, WS, Q)).
                M = M' \<and> N = N' \<and> U = U' \<and> D = D' \<and> NP = NP' \<and> UP = UP' \<and> Q = Q' \<and> WS = {#} \<and>
                U = length N - 1 \<and> UP = {#} \<and> N \<noteq> [] \<and>
-        correct_watching_init N\<^sub>1 (M', N', U', D', NP', UP', Q', WS')}\<close>
+               correct_watching_init N\<^sub>1 (M', N', U', D', NP', UP', Q', WS') \<and>
+               set_mset (lits_of_atms_of_mm (mset `# mset N)) \<subseteq> set_mset N\<^sub>1}\<close>
 
 lemma clause_to_update_append: \<open>N \<noteq> [] \<Longrightarrow> clause_to_update La (M, N @ [C], U, D, NP, UP, WS, Q) =
      clause_to_update La (M, N, U, D, NP, UP, WS, Q) +
@@ -157,60 +158,113 @@ lemma clause_to_update_append: \<open>N \<noteq> [] \<Longrightarrow> clause_to_
   apply (auto simp: clause_to_update_def nth_append)
   by meson
 
-lemma
+lemma literal_of_nat_literal_of_nat_eq[iff]: \<open>literal_of_nat x = literal_of_nat xa \<longleftrightarrow> x = xa\<close>
+  by auto presburger+
+thm twl_array_code.literals_are_in_N\<^sub>0_def
+
+lemma literals_are_in_N\<^sub>0_add_mset:
+  \<open>twl_array_code.literals_are_in_N\<^sub>0 N\<^sub>0 (add_mset L M) \<longleftrightarrow>
+   twl_array_code.literals_are_in_N\<^sub>0 N\<^sub>0 M \<and> (L \<in> literal_of_nat ` set N\<^sub>0 \<or> -L \<in> literal_of_nat ` set N\<^sub>0)\<close>
+  by (auto simp: twl_array_code.N\<^sub>1_def twl_array_code.N\<^sub>0''_def twl_array_code.N\<^sub>0'_def
+      twl_array_code.literals_are_in_N\<^sub>0_def image_image lits_of_atms_of_m_add_mset uminus_lit_swap
+        simp del: literal_of_nat.simps)
+
+lemma init_dt_step_wl_init_dt_step_l:
   fixes N\<^sub>0 :: \<open>nat list\<close>
-  defines \<open>N\<^sub>1 \<equiv> mset (map literal_of_nat N\<^sub>0)\<close>
-  assumes \<open>(S', S) \<in> HH N\<^sub>1\<close> and \<open>twl_array_code.literals_are_in_N\<^sub>0 N\<^sub>0 (mset C)\<close> and
-    \<open>set_mset (lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S')))) \<subseteq>
-     set_mset N\<^sub>1\<close> and \<open>distinct C\<close>
+  defines \<open>N\<^sub>1 \<equiv> mset (map literal_of_nat N\<^sub>0) + mset (map (uminus o literal_of_nat) N\<^sub>0)\<close>
+  assumes
+    \<open>(S', S) \<in> HH N\<^sub>1\<close> and
+    \<open>twl_array_code.literals_are_in_N\<^sub>0 N\<^sub>0 (mset C)\<close> and
+    \<open>distinct C\<close>
   shows \<open>init_dt_step_wl N\<^sub>0 C S' \<le> \<Down> (HH N\<^sub>1) (init_dt_step_l C S)\<close>
 proof -
+  have [simp]: \<open>N\<^sub>1 = twl_array_code.N\<^sub>1 N\<^sub>0\<close>
+    by (auto simp: twl_array_code.N\<^sub>1_def N\<^sub>1_def twl_array_code.N\<^sub>0''_def twl_array_code.N\<^sub>0'_def
+        simp del: literal_of_nat.simps)
+  have [iff]: \<open>- L \<in># twl_array_code.N\<^sub>1 N\<^sub>0 \<longleftrightarrow> L \<in># twl_array_code.N\<^sub>1 N\<^sub>0\<close> for L
+    by (auto simp: twl_array_code.N\<^sub>1_def N\<^sub>1_def twl_array_code.N\<^sub>0''_def twl_array_code.N\<^sub>0'_def
+        uminus_lit_swap simp del: literal_of_nat.simps)
   have [simp]: \<open>clause_to_update L (M, N, U, D, NP, UP, WS, Q) =
        clause_to_update L (M', N', U', D', NP', UP', WS', Q')\<close>
     if \<open>N = N'\<close>
-    for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
+    for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' and L :: \<open>nat literal\<close>
     by (auto simp: clause_to_update_def that)
   show ?thesis
-  supply literal_of_nat.simps[simp del]
-  using assms
-  unfolding init_dt_step_wl_def init_dt_step_l_def
-  apply refine_rcg
-  subgoal by (auto simp: HH_def)
-  subgoal by fast
-  subgoal by (auto simp: HH_def)
-  subgoal by (auto simp: HH_def)
-  subgoal
-    by (cases C) (auto simp: HH_def correct_watching.simps clause_to_update_def
-        lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset
-        twl_array_code.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
-  subgoal by (auto simp: HH_def)
-
-  subgoal by (clarsimp simp: HH_def correct_watching.simps clause_to_update_def
-        lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset
-        twl_array_code.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
-  subgoal by (clarsimp simp: HH_def correct_watching.simps clause_to_update_def
-        lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset
-        twl_array_code.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
-  subgoal by (cases C) (clarsimp_all simp: HH_def
-        lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset image_image
-        twl_array_code.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
-
-  subgoal by (cases C; cases \<open>tl C\<close>) (clarsimp_all simp: HH_def
-        lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset image_image
-        twl_array_code.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
-  subgoal by (cases C; cases \<open>tl C\<close>) (auto simp: HH_def Let_def clause_to_update_append
-        clauses_def mset_take_mset_drop_mset')
-  subgoal by fast
-  subgoal by (auto simp: HH_def)
-  subgoal by (cases C; cases \<open>tl C\<close>) (clarsimp_all simp: HH_def
-        lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset image_image
-        twl_array_code.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
-  subgoal by (cases C; cases \<open>tl C\<close>) (auto simp: HH_def Let_def clause_to_update_append
-        clauses_def mset_take_mset_drop_mset' image_image lits_of_atms_of_m_add_mset
-        twl_array_code.literals_are_in_N\<^sub>0_def)
-  subgoal by (cases C; cases \<open>tl C\<close>) (auto simp: HH_def Let_def clause_to_update_append
-        clauses_def mset_take_mset_drop_mset')
-  done
+    supply literal_of_nat.simps[simp del]
+    using assms(2-)
+    unfolding init_dt_step_wl_def init_dt_step_l_def
+    apply refine_rcg
+    subgoal by (auto simp: HH_def)
+    subgoal by fast
+    subgoal by (auto simp: HH_def)
+    subgoal by (auto simp: HH_def)
+    subgoal by (cases C) (auto simp: HH_def correct_watching.simps clause_to_update_def
+          lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset twl_array_code.N\<^sub>1_def
+          twl_array_code.N\<^sub>0''_def twl_array_code.N\<^sub>0'_def
+          twl_array_code.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
+    subgoal by (auto simp: HH_def)
+    subgoal by (cases C) (clarsimp_all simp: HH_def correct_watching.simps clause_to_update_def
+          lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset twl_array_code.N\<^sub>1_def
+          twl_array_code.N\<^sub>0''_def twl_array_code.N\<^sub>0'_def
+          twl_array_code.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
+    subgoal by (clarsimp simp: HH_def correct_watching.simps clause_to_update_def
+          lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset
+          twl_array_code.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
+    subgoal by (cases C) (clarsimp_all simp: HH_def
+          lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset image_image
+          twl_array_code.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
+    subgoal by (cases C; cases \<open>tl C\<close>) (clarsimp_all simp: HH_def
+          lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset image_image
+          twl_array_code.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
+    subgoal by (cases C; cases \<open>tl C\<close>) (auto simp: HH_def Let_def clause_to_update_append
+          clauses_def mset_take_mset_drop_mset' lits_of_atms_of_m_add_mset
+          lits_of_atms_of_mm_add_mset literals_are_in_N\<^sub>0_add_mset
+          twl_array_code.literals_are_in_N\<^sub>0_def)
+    subgoal by fast
+    subgoal by (auto simp: HH_def)
+    subgoal by (cases C; cases \<open>tl C\<close>) (clarsimp_all simp: HH_def
+          lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset image_image
+          twl_array_code.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
+    subgoal by (cases C; cases \<open>tl C\<close>) (auto simp: HH_def Let_def clause_to_update_append
+          clauses_def mset_take_mset_drop_mset' image_image lits_of_atms_of_m_add_mset
+          twl_array_code.literals_are_in_N\<^sub>0_def)
+    subgoal by (cases C; cases \<open>tl C\<close>) (auto simp: HH_def Let_def clause_to_update_append
+          clauses_def mset_take_mset_drop_mset' lits_of_atms_of_m_add_mset
+          lits_of_atms_of_mm_add_mset literals_are_in_N\<^sub>0_add_mset
+          twl_array_code.literals_are_in_N\<^sub>0_def)
+    done
 qed
+
+definition init_dt_wl where
+  \<open>init_dt_wl N\<^sub>1 CS S = nfoldli CS (\<lambda>_. True) (init_dt_step_wl N\<^sub>1) S\<close>
+
+lemma init_dt_wl_init_dt_l:
+  fixes N\<^sub>0 :: \<open>nat list\<close>
+  defines \<open>N\<^sub>1 \<equiv> mset (map literal_of_nat N\<^sub>0) + mset (map (uminus o literal_of_nat) N\<^sub>0)\<close>
+  assumes
+    S'S: \<open>(S', S) \<in> HH N\<^sub>1\<close> and
+    \<open>\<forall>C\<in>set CS. twl_array_code.literals_are_in_N\<^sub>0 N\<^sub>0 (mset C)\<close> and
+    \<open>\<forall>C\<in>set CS. distinct C\<close>
+  shows \<open>init_dt_wl N\<^sub>0 CS S' \<le> \<Down> (HH N\<^sub>1) (init_dt_l CS S)\<close>
+  using assms(2-)
+  supply literal_of_nat.simps[simp del]
+  apply (induction CS arbitrary: S S')
+  subgoal using S'S by (simp add: init_dt_wl_def init_dt_l_def)
+  subgoal premises p for a CS S S'
+    using p(2-)
+    unfolding init_dt_wl_def init_dt_l_def nfoldli_simps(2) if_True apply -
+    apply (rule bind_refine)
+     apply (rule init_dt_step_wl_init_dt_step_l)
+    unfolding N\<^sub>1_def[symmetric]
+       apply (solves \<open>simp add: N\<^sub>1_def\<close>)
+      apply (solves \<open>simp\<close>)
+     apply (solves \<open>simp\<close>)
+    apply (rule p(1)[unfolded init_dt_wl_def init_dt_l_def])
+      apply (solves \<open>simp\<close>)
+     apply (solves \<open>simp\<close>)
+    apply (solves \<open>simp\<close>)
+    done
+  done
+
 
 end
