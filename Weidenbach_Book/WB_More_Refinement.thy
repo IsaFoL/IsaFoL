@@ -220,6 +220,9 @@ lemma (in transfer) transfer_bool[refine_transfer]:
   shows "\<alpha> (case_bool fa fb x) \<le> case_bool Fa Fb x"
   using assms by (auto split: bool.split)
 
+lemma hrp_comp_Id2[simp]: \<open>hrp_comp A Id = A\<close>
+  unfolding hrp_comp_def by auto
+
 
 subsection \<open>Some Refinement\<close>
 
