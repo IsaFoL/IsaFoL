@@ -335,7 +335,7 @@ next
     \<open>RETURN (init_dt_step a (init_dt CS S)) = init_dt_step_l a (init_dt CS S)\<close>
     apply (rule init_dt_step_init_dt_step_l)
     subgoal using Cons(3) by auto
-    subgoal using init_dt_full[of CS S] Cons(2-) by simp
+    subgoal by (rule init_dt_full[of CS S]) (use Cons(2-) in \<open>solves simp\<close>)+
     done
   show ?case
     by (auto simp: IH[symmetric] step)
