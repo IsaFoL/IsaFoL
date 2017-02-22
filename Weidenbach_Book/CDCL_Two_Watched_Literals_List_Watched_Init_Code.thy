@@ -301,7 +301,8 @@ lemma init_dt_init_dt_l_full:
     clss: \<open>get_clauses_wl S \<noteq> []\<close> and
     S_N\<^sub>1: \<open>set_mset (lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses
       (convert_to_state (twl_st_of None (st_l_of_wl None S))))) \<subseteq> set_mset N\<^sub>1\<close> and
-    no_learned: \<open>get_unit_learned S = {#}\<close>
+    no_learned: \<open>get_unit_learned S = {#}\<close> and
+    confl_in_clss: \<open>get_conflict_wl S \<noteq> None \<longrightarrow> the (get_conflict_wl S) \<in># mset `# mset CS\<close>
   shows
     \<open>init_dt_wl N\<^sub>0 CS S \<le> SPEC(\<lambda>T.
        twl_array_code.is_N\<^sub>1 N\<^sub>0 (lits_of_atms_of_mm (mset `# mset CS +
@@ -312,7 +313,10 @@ lemma init_dt_init_dt_l_full:
        cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None (st_l_of_wl None T))) =
          mset `# mset CS +
          cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None (st_l_of_wl None S))) \<and>
-      get_unit_learned T = {#})\<close>
+      get_unit_learned T = {#} \<and>
+      get_learned_wl T = length (get_clauses_wl T) - 1 \<and>
+      count_decided (get_trail_wl T) = 0 \<and>
+      (get_conflict_wl T \<noteq> None \<longrightarrow> the (get_conflict_wl T) \<in># mset `# mset CS))\<close>
 proof -
   define T where \<open>T = st_l_of_wl None S\<close>
   have N\<^sub>0_N\<^sub>1: \<open>twl_array_code.N\<^sub>1 N\<^sub>0 = N\<^sub>1\<close>
@@ -335,18 +339,22 @@ proof -
     tr_T: \<open>\<forall>s\<in>set (get_trail_l T). \<not> is_decided s\<close> and
     c_T: \<open>get_conflict_l T = None \<longrightarrow> pending_l T = uminus `# lit_of `# mset (get_trail_l T)\<close> and
     add_invs_T: \<open>additional_WS_invs T\<close> and
-    le_T: \<open>get_learned_l T = length (get_clauses_l T) - 1\<close>
+    le_T: \<open>get_learned_l T = length (get_clauses_l T) - 1\<close> and
+    confl_in_clss_T: \<open>get_conflict_l T \<noteq> None \<longrightarrow> the (get_conflict_l T) \<in># mset `# mset (rev CS)\<close>
     by (use assms(3-) in \<open>simp add: T_def[symmetric]  w_q tr_T_S p_T_S c_T_S l_T_S cl_T_S\<close>)+
-  note init = init_dt_full[of \<open>rev CS\<close> T, OF dist_T length_T taut_T struct_T w_q_T tr_T c_T add_invs_T le_T stgy_T]
+  note init = init_dt_full[of \<open>rev CS\<close> T, OF dist_T length_T taut_T struct_T w_q_T tr_T c_T
+      add_invs_T le_T stgy_T ] init_dt_confl_in_clauses[OF confl_in_clss_T]
   have i: \<open>init_dt_l CS T \<le> \<Down> Id (SPEC(\<lambda>T. twl_struct_invs (twl_st_of None T) \<and> twl_stgy_invs (twl_st_of None T) \<and>
       cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None T)) =
         mset `# mset CS + cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S)) \<and>
-      get_learned_l T = length (get_clauses_l T) - 1 \<and> additional_WS_invs T))
+      get_learned_l T = length (get_clauses_l T) - 1 \<and> additional_WS_invs T \<and>
+      count_decided (get_trail_l T) = 0 \<and>
+      (get_conflict_l T \<noteq> None \<longrightarrow> the (get_conflict_l T) \<in># mset `# mset CS)))
       \<close>
     apply (subst init_dt_init_dt_l[of \<open>rev CS\<close>, unfolded rev_rev_ident, symmetric];
         use assms(3-) in \<open>simp add: T_def[symmetric]  w_q tr_T_S p_T_S c_T_S l_T_S cl_T_S\<close>)
     apply (intro conjI)
-    using init apply simp_all
+    using init apply (simp_all add: count_decided_def)
     done
    have CS_N\<^sub>1: \<open>\<forall>C\<in>set CS. twl_array_code.literals_are_in_N\<^sub>0 N\<^sub>0 (mset C)\<close>
     using is_N\<^sub>1_extract_lits_clss[of CS \<open>[]\<close>] unfolding N\<^sub>1_def N\<^sub>0_def
@@ -421,7 +429,8 @@ proof -
     S_N\<^sub>1: \<open>set_mset (lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses
       (convert_to_state (twl_st_of None (st_l_of_wl None S))))) \<subseteq> set_mset N\<^sub>1\<close> and
     no_learned: \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). UP) S = {#}\<close> and
-    learned_nil: \<open>get_unit_learned S = {#}\<close>
+    learned_nil: \<open>get_unit_learned S = {#}\<close> and
+    confl_nil: \<open>get_conflict_wl S = None\<close>
     unfolding S_def by (auto simp:
         twl_struct_invs_def twl_st_inv.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
@@ -454,7 +463,7 @@ proof -
     apply (rule order.trans)
      apply (rule HH)
     by (clarsimp_all simp: correct_watching.simps twl_array_code.is_N\<^sub>1_def clauses_def
-        mset_take_mset_drop_mset' get_unit_learned_def)
+        mset_take_mset_drop_mset' get_unit_learned_def confl_nil)
 qed
 
 definition SAT :: \<open>nat clauses_l \<Rightarrow> nat twl_st_wl nres\<close> where
