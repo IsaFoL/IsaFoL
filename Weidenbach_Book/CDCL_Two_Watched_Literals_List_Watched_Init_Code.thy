@@ -413,7 +413,12 @@ lemma init_dt_init_dt_l:
        twl_struct_invs (twl_st_of_wl None S) \<and> twl_stgy_invs (twl_st_of_wl None S) \<and>
        correct_watching S \<and>
        additional_WS_invs (st_l_of_wl None S) \<and>
-      get_unit_learned S = {#})\<close>
+       get_unit_learned S = {#} \<and>
+       count_decided (get_trail_wl S) = 0 \<and>
+       get_learned_wl S = length (get_clauses_wl S) - 1 \<and>
+       cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None (st_l_of_wl None S))) =
+         mset `# mset CS \<and>
+       (get_conflict_wl S \<noteq> None \<longrightarrow> the (get_conflict_wl S) \<in># mset `# mset CS))\<close>
 proof -
   have clss_empty: \<open>cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None (st_l_of_wl None S))) = {#}\<close>
     by (auto simp: S_def  cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset_state)
@@ -465,13 +470,109 @@ proof -
     by (clarsimp_all simp: correct_watching.simps twl_array_code.is_N\<^sub>1_def clauses_def
         mset_take_mset_drop_mset' get_unit_learned_def confl_nil)
 qed
+term cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy
 
-definition SAT :: \<open>nat clauses_l \<Rightarrow> nat twl_st_wl nres\<close> where
+definition init_state :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset\<close> where
+  \<open>init_state N = (([]:: (nat, nat clause) ann_lits), (N :: nat clauses), ({#}::nat clauses),
+      (None :: nat clause option))\<close>
+
+definition init_state_wl :: \<open>nat twl_st_wl\<close> where
+  \<open>init_state_wl = ([], [[]], 0, None, {#}, {#}, {#}, \<lambda>_. [])\<close>
+
+definition SAT :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset nres\<close> where
   \<open>SAT CS = do{
-    let N\<^sub>0 = map nat_of_lit (extract_lits_clss CS []);
-    let S = ([], [[]], 0, None, {#}, {#}, {#}, \<lambda>_. []);
-    T \<leftarrow> init_dt_wl N\<^sub>0 CS S;
-    if get_conflict_wl T = None then twl_array_code.cdcl_twl_stgy_prog_wl_D N\<^sub>0 T else RETURN T
+    let T = init_state CS;
+    SPEC (full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy T)
   }\<close>
 
+definition trivial_skip_and_resolve :: \<open> nat twl_st_wl \<Rightarrow> nat twl_st_wl\<close> where
+  \<open>trivial_skip_and_resolve = (\<lambda>(M, N, U, D', NP, UP, Q, W). ([], N, U, Some {#}, NP, UP, Q, W))\<close>
+
+definition SAT_wl :: \<open>nat clauses_l \<Rightarrow> nat twl_st_wl nres\<close> where
+  \<open>SAT_wl CS = do{
+    let N\<^sub>0 = map nat_of_lit (extract_lits_clss CS []);
+    let S = init_state_wl;
+    T \<leftarrow> init_dt_wl N\<^sub>0 CS S;
+    if get_conflict_wl T = None
+    then twl_array_code.cdcl_twl_stgy_prog_wl_D N\<^sub>0 T
+    else RETURN (trivial_skip_and_resolve T)
+  }\<close>
+
+definition f_conv :: \<open>(nat twl_st_wl \<times> nat cdcl\<^sub>W_restart_mset)set\<close> where
+  \<open>f_conv = {(S', S). S = convert_to_state (twl_st_of_wl None S')}\<close>
+
+lemma list_all2_eq_map_iff: \<open>list_all2 (\<lambda>x y. y = f x) xs ys \<longleftrightarrow> ys = map f xs\<close>
+  apply (induction xs arbitrary: ys)
+  subgoal by auto
+  subgoal for a xs ys
+    by (cases ys) auto
+  done
+
+theorem cdcl_twl_stgy_prog_wl_spec_final2:
+  shows
+    \<open>(SAT_wl, SAT) \<in> [\<lambda>CS. (\<forall>C \<in># CS. distinct_mset C) \<and> (\<forall>C \<in># CS. size C \<ge> 1) \<and>
+        (\<forall>C \<in># CS. \<not>tautology C)]\<^sub>f
+     (list_mset_rel O \<langle>list_mset_rel\<rangle> mset_rel) \<rightarrow> \<langle>f_conv\<rangle>nres_rel\<close>
+proof -
+  have in_list_mset_rel: \<open>(CS', y) \<in> list_mset_rel \<longleftrightarrow> y = mset CS'\<close> for CS' y
+    by (auto simp: list_mset_rel_def br_def)
+  have in_list_mset_rel_mset_rel:
+    \<open>(mset CS', CS) \<in> \<langle>list_mset_rel\<rangle>mset_rel \<longleftrightarrow> CS = mset `# mset CS'\<close> for CS CS'
+    by (auto simp: list_mset_rel_def br_def mset_rel_def p2rel_def rel_mset_def
+        rel2p_def[abs_def] list_all2_eq_map_iff)
+  have [simp]: \<open>mset `# mset (take ag (tl af)) + ai + (mset `# mset (drop (Suc ag) af)) =
+     mset `# mset (tl af) + ai\<close> for ag af aj ai
+    by (subst (2) append_take_drop_id[symmetric, of \<open>tl af\<close> ag], subst mset_append)
+      (auto simp: drop_Suc)
+  show ?thesis
+    unfolding SAT_wl_def SAT_def init_state_wl_def
+  apply (intro frefI nres_relI)
+    apply (refine_vcg bind_refine_spec init_dt_init_dt_l)
+       defer
+    subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
+    subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
+    subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
+    subgoal premises p for CS' CS S\<^sub>0
+    proof (cases \<open>get_conflict_wl S\<^sub>0 = None\<close>)
+      case False
+      then have confl: \<open>get_conflict_wl S\<^sub>0 = None \<longleftrightarrow> False\<close>
+        by auto
+      have CS: \<open>CS = mset `# mset CS'\<close>
+        using p by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
+      obtain M N D NP Q W where
+        S\<^sub>0: \<open>S\<^sub>0 = (M, N, length N - 1, Some D, NP, {#}, Q, W)\<close>
+        using p False by (cases S\<^sub>0) (auto simp: clauses_def mset_take_mset_drop_mset' get_unit_learned_def)
+      have N_NP: \<open>mset `# mset (tl N) + NP = mset `# mset CS'\<close>
+        using p by (auto simp: clauses_def mset_take_mset_drop_mset' S\<^sub>0)
+      have 1: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ([], CS, {#}, None)
+         (convert_to_state (twl_st_of None (st_l_of_wl None S\<^sub>0)))\<close>
+        apply (simp add: mset_take_mset_drop_mset' S\<^sub>0 N_NP CS)
+          -- \<open>induction on the (growing) trail + conflict\<close>
+        sorry
+      have 2: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (convert_to_state (twl_st_of None (st_l_of_wl None S\<^sub>0)))
+        ([], CS, {#}, Some {#})\<close>
+          -- \<open>induction on the (shrinking) trail\<close>
+        sorry
+
+
+      have 3: \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy ([], CS, {#}, Some {#})\<close>
+        by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.simps cdcl\<^sub>W_restart_mset_state
+            cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.simps
+            elim!: cdcl\<^sub>W_restart_mset.rulesE)
+      show ?thesis
+        unfolding confl if_False
+        apply (rule RETURN_SPEC_refine)
+        apply (rule exI[of _ \<open>([]::(nat, nat clause) ann_lits, CS, {#}::nat clauses, Some {#}::nat clause option)\<close>])
+        apply (intro conjI)
+        subgoal using p confl by (cases S\<^sub>0, clarsimp_all simp: f_conv_def trivial_skip_and_resolve_def mset_take_mset_drop_mset'
+            clauses_def get_unit_learned_def in_list_mset_rel in_list_mset_rel_mset_rel)
+        subgoal
+          using rtranclp_trans[OF 1 2] 3 by (auto simp: init_state_def full_def)
+        done
+    next
+      case True
+      then show ?thesis sorry
+    next
+    qed
+    oops
 end
