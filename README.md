@@ -1,1 +1,1 @@
-See the [wiki](https://bitbucket.org/jasmin_blanchette/isafol/wiki/Home).
+See the [wiki](https://bitbucket.org/isafol/isafol/wiki/Home).
