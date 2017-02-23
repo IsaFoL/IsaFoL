@@ -76,7 +76,7 @@ qed
 
 declare twl_array_code.append_el_aa_hnr[sepref_fr_rules]
 
-sepref_definition init_dt_step_wl_code
+(* sepref_definition init_dt_step_wl_code
   is \<open>uncurry (init_dt_step_wl N\<^sub>1)\<close>
   :: \<open>(list_assn nat_lit_assn)\<^sup>d *\<^sub>a (twl_array_code.twl_st_l_assn N\<^sub>1)\<^sup>d \<rightarrow>\<^sub>a
        (twl_array_code.twl_st_l_assn N\<^sub>1)\<close>
@@ -85,6 +85,38 @@ sepref_definition init_dt_step_wl_code
   unfolding nth_rll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
   unfolding lms_fold_custom_empty  swap_ll_def[symmetric]
   unfolding twl_array_code.append_update_def[of, symmetric]
+  supply [[goals_limit = 1]]
+  by sepref
+ *)
+
+sepref_definition init_dt_step_wl_code
+  is \<open>uncurry2 (init_dt_step_wl)\<close>
+  :: \<open>[\<lambda>((N, _), _). N = N\<^sub>1]\<^sub>a
+       (list_assn nat_assn)\<^sup>k *\<^sub>a (list_assn nat_lit_assn)\<^sup>d *\<^sub>a (twl_array_code.twl_st_l_assn N\<^sub>1)\<^sup>d \<rightarrow>
+       (twl_array_code.twl_st_l_assn N\<^sub>1)\<close>
+  unfolding init_dt_step_wl_def twl_array_code.twl_st_l_assn_def lms_fold_custom_empty
+      unfolding watched_app_def[symmetric]
+  unfolding nth_rll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
+  unfolding lms_fold_custom_empty  swap_ll_def[symmetric]
+  unfolding twl_array_code.append_update_def[of, symmetric]
+  supply [[goals_limit = 1]]
+  by sepref
+
+declare init_dt_step_wl_code.refine[sepref_fr_rules]
+  term init_dt_step_wl_code
+(* lemma \<open>(uncurry init_dt_step_wl_code, uncurry (init_dt_step_wl))
+\<in> (list_assn nat_assn)\<^sup>k *\<^sub>a (list_assn nat_lit_assn)\<^sup>d *\<^sub>a
+   (twl_array_code.twl_st_l_assn
+     N\<^sub>1)\<^sup>d \<rightarrow>\<^sub>a twl_array_code.twl_st_l_assn N\<^sub>1\<close> *)
+definition init_dt_wl where
+  \<open>init_dt_wl N CS S = nfoldli CS (\<lambda>_. True) (init_dt_step_wl N) S\<close>
+
+sepref_definition init_dt_wl_code
+  is \<open>uncurry2 init_dt_wl\<close>
+  :: \<open>[\<lambda>((N, _), _). N = N\<^sub>1]\<^sub>a
+       (list_assn nat_assn)\<^sup>k *\<^sub>a (list_assn (list_assn nat_lit_assn))\<^sup>d *\<^sub>a (twl_array_code.twl_st_l_assn N\<^sub>1)\<^sup>d \<rightarrow>
+       (twl_array_code.twl_st_l_assn N\<^sub>1)\<close>
+  unfolding init_dt_wl_def
   supply [[goals_limit = 1]]
   by sepref
 
@@ -358,9 +390,6 @@ proof -
           twl_array_code.literals_are_in_N\<^sub>0_def)
     done
 qed
-
-definition init_dt_wl :: \<open>nat list \<Rightarrow> nat clauses_l \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close> where
-  \<open>init_dt_wl N\<^sub>1 CS S = nfoldli CS (\<lambda>_. True) (init_dt_step_wl N\<^sub>1) S\<close>
 
 lemma init_dt_wl_init_dt_l:
   fixes N\<^sub>0 :: \<open>nat list\<close>
@@ -802,22 +831,96 @@ proof -
   show ?thesis
     by sepref_to_hoare sep_auto
 qed
+lemma no_fail_spec_le_RETURN_itself: \<open>nofail f \<Longrightarrow> f \<le> SPEC(\<lambda>x. RETURN x \<le> f)\<close>
+  by (metis RES_rule nres_order_simps(21) the_RES_inv)
+
+declare init_dt_wl_code.refine[unfolded twl_array_code.twl_st_l_assn_def, sepref_fr_rules]
+lemma XX[unfolded twl_array_code.twl_st_l_assn_def, sepref_fr_rules]:
+  \<open>(uncurry cdcl_twl_stgy_prog_wl_D_code, uncurry twl_array_code.cdcl_twl_stgy_prog_wl_D)
+    \<in> [\<lambda>(N', _). N' = N]\<^sub>a
+   (list_assn nat_assn)\<^sup>k *\<^sub>a (twl_array_code.twl_st_l_assn N)\<^sup>d \<rightarrow>
+   twl_array_code.twl_st_l_assn N\<close>
+proof -
+  have H: \<open> <R x1 xi1> f xi1
+    <\<lambda>r. \<exists>\<^sub>Ara. invalid_assn R x1 xi1 *
+                          twl_array_code.twl_st_l_assn N ra r *
+                          \<up> (\<Phi> ra)> \<Longrightarrow>
+    <R x1 xi1> f xi1 <\<lambda>r. \<exists>\<^sub>Ara.
+                          twl_array_code.twl_st_l_assn N ra r * true *
+                          \<up> (\<Phi> ra)>\<close>
+    for R x1 xi1 f \<Phi>
+    apply (sep_auto simp: hoare_triple_def Let_def invalid_assn_def)
+    by fast
+  have e: \<open>RETURN $ (locale_nat_list.init_state_wl N $ x) \<le> SPEC (op = (locale_nat_list.init_state_wl N x))\<close>
+    for x
+    by auto
+  have [simp]: \<open>hn_val nat_rel x1 x1 = emp\<close> for x1
+    by (simp add: hn_ctxt_def pure_def)
+  have 1: \<open>(\<lambda>a c. \<up> (c = a)) = id_assn\<close>
+    by (auto simp: pure_def)
+  have [simp]: \<open>list_assn (\<lambda>a c. \<up> (c = a)) a ai = \<up> (a = ai)\<close> for a ai
+    unfolding list_assn_pure_conv 1 by (auto simp: pure_def)
+  have XX: \<open>twl_array_code.cdcl_twl_stgy_prog_wl_D N x1 \<le> SPEC \<Phi> \<Longrightarrow>
+<twl_array_code.twl_st_l_assn N x1 xi1>
+cdcl_twl_stgy_prog_wl_D_code N xi1
+<\<lambda>r. \<exists>\<^sub>Ara.
+             twl_array_code.twl_st_l_assn N ra r *
+             true *
+             \<up> (\<Phi> ra)>\<close> for x1 xi1 \<Phi>
+    apply (rule H)
+    using imp_correctI[OF cdcl_twl_stgy_prog_wl_D_code.refine[to_hnr, of N],
+        sep_heap_rules, unfolded hn_ctxt_def, of x1 \<Phi> xi1]
+    apply (sep_auto simp: hoare_triple_def invalid_assn_def Let_def)
+    done
+  show ?thesis
+    apply sepref_to_hoare
+      apply simp
+    apply sep_auto
+      apply (rule XX)
+      apply (sep_auto simp: no_fail_spec_le_RETURN_itself)
+        done
+qed
 
 sepref_definition SAT_wl_code
   is \<open>SAT_wl'\<close>
   :: \<open>(list_assn (list_assn nat_lit_assn))\<^sup>d \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding SAT_wl'_def HOL_list.fold_custom_empty extract_lits_cls'_extract_lits_cls[symmetric]
-    PR_CONST_def
-  supply [[goals_limit = 1]]
+    PR_CONST_def twl_array_code.get_conflict_wl_is_None
+  supply [[goals_limit = 5]]
   apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  -- \<open>Translation stops at the \<open>set\<close> operation\<close>
+      apply sepref_dbg_trans_keep
+    -- \<open>Translation stops at the \<open>set\<close> operation\<close>
             apply sepref_dbg_trans_step_keep
             apply (rule_tac psi=\<open>xd = xd\<close> in asm_rl, rule refl)
-  apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_keep
+               apply sepref_dbg_trans_keep
+               apply sepref_dbg_trans_step_keep
+               apply (rule twl_array_code.get_conflict_wl_is_None_code_refine[to_hnr])
               apply sepref_dbg_trans_keep
-    --\<open>code for init_dt_wl\<close>
-  oops
+                 apply sepref_dbg_trans_step_keep
+                 apply (rule twl_array_code.get_conflict_wl_is_None_code_refine[to_hnr])
+                apply sepref_dbg_trans_keep
+               apply sepref_dbg_trans_step_keep
+              apply sepref_dbg_trans_keep
+             apply sepref_dbg_trans_step_keep
+            apply sepref_dbg_trans_step_keep
+           apply sepref_dbg_trans_step_keep
+          apply sepref_dbg_trans_step_keep
+         apply sepref_dbg_trans_step_keep
+        apply sepref_dbg_trans_step_keep
+       apply sepref_dbg_trans_step_keep
+      apply sepref_dbg_trans_step_keep
+     apply sepref_dbg_trans_step_keep
+     apply fast
+    apply sepref_dbg_trans_step_keep
+   apply sepref_dbg_trans_step_keep
+  apply (solves \<open>simp add: CONSTRAINT_SLOT_def\<close>)
+  done
+
+declare locale_nat_list.init_state_wl_D_def[code]
+
+export_code SAT_wl_code in SML_imp module_name Test
+thm SAT_wl_code.refine
 
 definition f_conv :: \<open>(nat twl_st_wl \<times> nat cdcl\<^sub>W_restart_mset)set\<close> where
   \<open>f_conv = {(S', S). S = convert_to_state (twl_st_of_wl None S')}\<close>
