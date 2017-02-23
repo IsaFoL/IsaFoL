@@ -1161,11 +1161,84 @@ proof -
     done
 qed
 
+text \<open>TODO Move\<close>
+lemma list_all2_op_eq_map_right_iff: \<open>list_all2 (\<lambda>L. op = (f L)) a aa \<longleftrightarrow> aa = map f a \<close>
+  apply (induction a arbitrary: aa)
+   apply auto[]
+  by (case_tac aa) (auto)
+
+lemma list_all2_op_eq_map_left_iff: \<open>list_all2 (\<lambda>L' L. L'  = (f L)) a aa \<longleftrightarrow> a = map f aa\<close>
+  apply (induction a arbitrary: aa)
+   apply auto[]
+  by (case_tac aa) (auto)
+
+lemma list_all2_op_eq_map_map_right_iff:
+  \<open>list_all2 (list_all2 (\<lambda>L. op = (f L))) xs' x \<longleftrightarrow> x = map (map f) xs'\<close> for x
+    apply (induction xs' arbitrary: x)
+     apply auto[]
+    apply (case_tac x)
+  by (auto simp: lit_of_natP_def[abs_def] list_all2_op_eq_map_right_iff)
+
+lemma list_all2_op_eq_map_map_left_iff:
+  \<open>list_all2 (list_all2 (\<lambda>L' L. L' = f L)) xs' x \<longleftrightarrow> xs' = map (map f) x\<close>
+    apply (induction xs' arbitrary: x)
+     apply auto[]
+    apply (case_tac x)
+  by (auto simp: lit_of_natP_def[abs_def] list_all2_op_eq_map_left_iff)
+
+lemma list_assn_list_mset_rel_clauses_l_assn:
+  \<open>(hr_comp (list_assn (list_assn CDCL_Two_Watched_Literals_List_Watched_Code.nat_lit_assn))
+                            (list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel)) xs xs'
+     = clauses_l_assn xs xs'\<close>
+proof -
+  have H: \<open>(\<lambda>a c. \<up> ((c, a) \<in> nat_lit_rel)) = pure nat_lit_rel\<close>
+    by (auto simp: pure_def)
+
+  have [simp]: \<open>the_pure (\<lambda>a c. \<up> ((c, a) \<in> nat_lit_rel)) = nat_lit_rel\<close>
+    unfolding H by simp
+
+  have l_swap:  \<open>(\<lambda>x y. y = mset x) = (\<lambda>x. op = (mset x))\<close>
+    by auto
+  have [simp]: \<open>list_all2 (list_all2 lit_of_natP) xs' x \<longleftrightarrow> x = map (map literal_of_nat) xs'\<close> for x
+    unfolding list_all2_op_eq_map_map_right_iff lit_of_natP_def ..
+  have [iff]: \<open>rel_mset (rel2p {(c, a). a = mset c}) X Y \<longleftrightarrow> mset `# X = Y\<close> for X Y
+    using ex_mset[of X]
+    by (auto simp: rel_mset_def rel2p_def[abs_def] list_all2_op_eq_map_left_iff
+        list_all2_op_eq_map_right_iff l_swap)
+  have rel_mset_eq: \<open>rel_mset (\<lambda>x. op = (f x)) X Y \<longleftrightarrow> Y = f `# X\<close> for X Y f
+    using ex_mset[of X]
+    by (auto simp: rel_mset_def[abs_def] p2rel_def list_all2_op_eq_map_right_iff)
+  have [simp]: \<open>(x, y) \<in> p2rel (\<lambda>c. rel_mset (\<lambda>x. op = (f x)) (mset c)) \<longleftrightarrow>
+     y = f `# mset x\<close> for f x y
+    unfolding rel_mset_eq by (auto simp: p2rel_def)
+  have H: \<open>(\<lambda>a c. \<up> (rel_mset (rel2p {(x, y). literal_of_nat x = y}) (mset c) a)) =
+          pure (p2rel (\<lambda>c a. rel_mset (rel2p {(x, y). literal_of_nat x = y}) (mset c) a))\<close>
+    by (auto simp: pure_def rel2p_def rel_mset_def p2rel_def simp del: literal_of_nat.simps intro!: ext )
+  have [simp]: \<open>rel2p (the_pure (\<lambda>a c. \<up> (rel_mset (rel2p {(x, y). literal_of_nat x = y}) (mset c) a))) =
+      (\<lambda>c a. (rel_mset (rel2p {(x, y). literal_of_nat x = y}) (mset c) a))\<close>
+    unfolding H
+    by (auto simp: rel2p_def[abs_def] rel_mset_def list_all2_op_eq_map_map_left_iff
+        list_all2_op_eq_map_map_right_iff list_all2_op_eq_map_right_iff
+        simp del: literal_of_nat.simps intro!: ext)
+  have H: \<open>(\<lambda>c Y. Y = f `# mset c) = (% c. op= (f `# mset c))\<close> for f
+    by auto
+  have [simp]: \<open>rel_mset (\<lambda>c. rel_mset (rel2p {(x, y). f x = y}) (mset c)) (mset xs')
+     xs \<longleftrightarrow> xs = (mset `# mset (map (map f) xs'))\<close> for f
+    by (auto simp: rel_mset_def rel2p_def[abs_def]  list_all2_op_eq_map_map_left_iff
+        list_all2_op_eq_map_map_right_iff list_all2_op_eq_map_right_iff
+        rel_mset_eq[abs_def] list_all2_op_eq_map_left_iff H)
+
+  show ?thesis
+    apply (auto simp: hr_comp_def list_assn_pure_conv)
+    apply (auto simp: ent_ex_up_swap list_mset_assn_def pure_def list_rel_def)
+    by (clarsimp_all simp add: list_mset_rel_def br_def mset_rel_def
+        p2rel_def Collect_eq_comp rel2p_def lit_of_natP_def[abs_def] list_all2_op_eq_map_map_left_iff
+        list_all2_op_eq_map_map_right_iff simp del: literal_of_nat.simps)
+qed
+
 lemma \<open>(SAT_wl_code, SAT')
     \<in> [\<lambda>x. Multiset.Ball x distinct_mset \<and> (\<forall>C\<in>#x. Suc 0 \<le> size C) \<and> (\<forall>C\<in>#x. \<not> tautology C)]\<^sub>a
-      (hr_comp (list_assn (list_assn CDCL_Two_Watched_Literals_List_Watched_Code.nat_lit_assn))
-                            (list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel))\<^sup>d \<rightarrow>
-      bool_assn\<close>
+      clauses_l_assn\<^sup>d \<rightarrow> bool_assn\<close>
 proof -
   have 1: \<open>(H \<bind>
     (\<lambda>T. if get_conflict_wl T = None
@@ -1198,7 +1271,7 @@ proof -
      apply (rule 2; simp)
     by (auto simp: f_conv_def cdcl\<^sub>W_restart_mset_state)
   show ?thesis
-    using SAT_wl_code.refine[FCOMP SAT_wl'_SAT] .
+    using SAT_wl_code.refine[FCOMP SAT_wl'_SAT] unfolding list_assn_list_mset_rel_clauses_l_assn .
 qed
 
 end
