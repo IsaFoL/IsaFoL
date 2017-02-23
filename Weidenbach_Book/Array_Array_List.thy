@@ -672,7 +672,7 @@ text \<open>It is not possible to do a direct initialisation: there is no elemen
   everywhere.\<close>
 definition arrayO_ara_empty_sz where
   \<open>arrayO_ara_empty_sz n =
-   (let xs = fold (\<lambda>_ xs. [] # xs) [1..<n] [] in
+   (let xs = fold (\<lambda>_ xs. [] # xs) [0..<n] [] in
     op_list_copy xs)
    \<close>
 

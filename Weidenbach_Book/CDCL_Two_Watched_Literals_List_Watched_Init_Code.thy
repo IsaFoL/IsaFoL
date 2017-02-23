@@ -606,8 +606,14 @@ definition init_state :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_resta
   \<open>init_state N = (([]:: (nat, nat clause) ann_lits), (N :: nat clauses), ({#}::nat clauses),
       (None :: nat clause option))\<close>
 
-definition init_state_wl :: \<open>nat list \<Rightarrow> nat twl_st_wl\<close> where
-  \<open>init_state_wl _ = ([], [[]], 0, None, {#}, {#}, {#}, \<lambda>_. [])\<close>
+definition empty_watched :: \<open>nat list \<Rightarrow> nat literal \<Rightarrow> nat list\<close> where
+  \<open>empty_watched _ = (\<lambda>_. [])\<close>
+
+locale locale_nat_list =
+  fixes N :: \<open>nat list\<close>
+
+definition (in locale_nat_list) init_state_wl :: \<open>nat \<Rightarrow> nat twl_st_wl\<close> where
+  \<open>init_state_wl _ = ([], [[]], 0, None, {#}, {#}, {#}, empty_watched N)\<close>
 
 text \<open>to get a full SAT:
   \<^item> either we fully apply \<^term>\<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<close>
@@ -622,8 +628,9 @@ definition SAT :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset
 
 definition SAT_wl :: \<open>nat clauses_l \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>SAT_wl CS = do{
+    let n = length CS;
     let N\<^sub>0 = map nat_of_lit (extract_lits_clss CS []);
-    let S = init_state_wl N\<^sub>0;
+    let S = locale_nat_list.init_state_wl N\<^sub>0 n;
     T \<leftarrow> init_dt_wl N\<^sub>0 CS S;
     if get_conflict_wl T = None
     then twl_array_code.cdcl_twl_stgy_prog_wl_D N\<^sub>0 T
@@ -635,8 +642,9 @@ definition map_nat_of_lit where
 
 definition SAT_wl' :: \<open>nat clauses_l \<Rightarrow> bool nres\<close> where
   \<open>SAT_wl' CS = do{
+    let n = length CS;
     let N\<^sub>0 = map_nat_of_lit (extract_lits_clss CS []);
-    let S = init_state_wl N\<^sub>0;
+    let S = locale_nat_list.init_state_wl N\<^sub>0 n;
     T \<leftarrow> init_dt_wl N\<^sub>0 CS S;
     if get_conflict_wl T = None
     then do {
@@ -660,80 +668,156 @@ lemma id_map_nat_of_lit[sepref_fr_rules]:
   \<open>(return o id, RETURN o map_nat_of_lit) \<in> (list_assn nat_lit_assn)\<^sup>d \<rightarrow>\<^sub>a (list_assn nat_assn)\<close>
   by sepref_to_hoare (sep_auto simp: map_nat_of_lit_def list_assn_map_list_assn p2rel_def lit_of_natP_nat_of_lit_iff)
 
+definition (in locale_nat_list) init_state_wl_D :: \<open>nat \<Rightarrow> twl_st_wll Heap\<close> where
+  \<open>init_state_wl_D l_Ns = do {
+     let n = Suc (Suc (fold max N 0));
+     N \<leftarrow> arrayO_raa_empty_sz l_Ns;
+     e \<leftarrow> Array.new 0 0;
+     N \<leftarrow> arrayO_raa_append N e;
+     (WS) \<leftarrow> arrayO_ara_empty_sz_code n;
+     return ([], N, 0, None, [], [], [], WS)
+  }\<close>
 
-definition arrayO_ara_empty_sz where
-  "arrayO_ara_empty_sz N \<equiv> do {
-     let n = 2+fold max N 0;
-    default \<leftarrow> arl_empty;
-    a \<leftarrow> Array.new n default;
-    return a
-  }"
+lemma fold_cons_replicate: \<open>fold (\<lambda>_ xs. a # xs) [0..<n] xs = replicate n a @ xs\<close>
+  by (induction n) auto
 
-lemma heap_list_all_replicate: \<open>R a b = emp \<Longrightarrow> heap_list_all R (replicate m a) (replicate m b) = emp\<close>
-  by (induction m) auto
-lemma ex_assn_up_eq2: \<open>(\<exists>\<^sub>Aba. f ba * \<up> (ba = c)) = (f c)\<close>
-  by (simp add: ex_assn_def)
+lemma arrayO_ara_empty_sz_code_rule:
+   \<open><emp> arrayO_ara_empty_sz_code m
+   <\<lambda>r. arrayO (arl_assn R) (replicate m []) r * true>\<close>
+proof -
+  have H: \<open>(\<exists>\<^sub>Ara. hn_val nat_rel n m * true * arrayO (arl_assn R) ra r * \<up> (ra = replicate n [])) =
+     (hn_val nat_rel n m * true * arrayO (arl_assn R) (replicate n []) r)\<close> for r n m
+    by (simp add: ex_assn_up_eq2)
+  have \<open><hn_val nat_rel n m> arrayO_ara_empty_sz_code m
+     <\<lambda>r. \<exists>\<^sub>Ara. hn_val nat_rel n m * arrayO (arl_assn R) ra r * true * \<up> (ra = replicate n [])>\<close>
+    for n m :: nat
+    by (rule imp_correctI[OF arrayO_ara_empty_sz_code.refine[to_hnr], simplified])
+    (auto simp: arrayO_ara_empty_sz_def fold_cons_replicate)
+  then show ?thesis
+    by (simp add: ex_assn_up_eq2 hn_ctxt_def pure_def)
+qed
 
-lemma \<open>(uncurry0 (arrayO_ara_empty_sz N), uncurry0 (RETURN (\<lambda>(_::nat literal). []))) \<in>
+lemma arrayO_ara_empty_sz_code_empty_watched:
+  \<open>(uncurry0 (arrayO_ara_empty_sz_code (Suc (Suc (fold max N (0::nat))))),
+     uncurry0 (RETURN (empty_watched N))) \<in>
    unit_assn\<^sup>k \<rightarrow>\<^sub>a twl_array_code.array_watched_assn N\<close>
 proof -
-  let ?N = \<open>Suc(Suc(Max (insert 0 (set N))))\<close>
-  note replicate.simps[simp del]
-  define m where \<open>m = ?N\<close>
-  have fold_m:  \<open>Suc (Suc (fold max N 0)) = m\<close>
-    unfolding m_def by (metis Max.set_eq_fold list.simps(15))
+  define n where \<open>n = Suc (Suc (fold max N 0))\<close>
+  have n_def_alt: \<open>n = Max (set N) + 2\<close> if \<open>xa \<in> set N\<close> for xa
+    unfolding n_def
+    using that by (cases N, auto simp: Max.set_eq_fold list.set(2)[symmetric] simp del: list.set(2))
 
-  have \<open>n \<le> 2+n\<close> for n :: nat
-    by auto
-  then have H: \<open>xb \<in> set N \<Longrightarrow> xb < ?N\<close> for xb
-    unfolding less_Suc_eq_le using Max_ge[of \<open>set N\<close> xb]
-    by (simp add: le_simps(2) less_imp_le)
-  have H': \<open>xb \<in> set N \<Longrightarrow> nat_of_lit (- literal_of_nat xb) < ?N\<close> for xb
-    unfolding less_Suc_eq_le using Max_ge[of \<open>set N\<close> xb] le_trans
-    apply (simp add: le_simps(2) less_imp_le)
-    by (metis One_nat_def Suc_eq_plus1 le_diff_conv less_imp_le local.H n2s_ths(1))
-  have H3: \<open>x \<in># twl_array_code.N\<^sub>1 N \<Longrightarrow> replicate ?N [] ! nat_of_lit x = []\<close> for x
-    by (rule nth_replicate)
-      (auto simp: arrayO_def hr_comp_def  map_fun_rel_def twl_array_code.N\<^sub>1_def
-      twl_array_code.N\<^sub>0'_def twl_array_code.N\<^sub>0''_def H H'
-      simp del: nat_of_lit.simps literal_of_nat.simps)
+  have [simp]:
+    \<open>xa \<in> set N \<Longrightarrow> xa < n\<close>
+    \<open>xa \<in> set N \<Longrightarrow> Suc xa < n\<close>
+    \<open>xa \<in> set N \<Longrightarrow> xa - Suc 0 < n\<close>
+    for xa
+    unfolding n_def_alt using Max_ge[of \<open>set N\<close> xa]
+    by (simp_all del: Max_ge)
+
+  have 1: \<open>(uncurry0 (RETURN (arrayO_ara_empty_sz n)),
+     uncurry0  (RETURN (empty_watched N)))\<in>
+   unit_rel \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>map_fun_rel (twl_array_code.D\<^sub>0 N)\<rangle> nres_rel\<close>
+    by (intro nres_relI frefI)
+       (auto simp: map_fun_rel_def arrayO_ara_empty_sz_def fold_cons_replicate
+        twl_array_code.N\<^sub>1_def twl_array_code.N\<^sub>0'_def twl_array_code.N\<^sub>0''_def empty_watched_def
+        simp del: replicate.simps)
+  have 0: \<open>(uncurry0 (arrayO_ara_empty_sz_code n), uncurry0 (RETURN (arrayO_ara_empty_sz n))) \<in>
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a arrayO (arl_assn R)\<close> for R
+    supply arrayO_ara_empty_sz_code_rule[sep_heap_rules]
+    by sepref_to_hoare (sep_auto simp: arrayO_ara_empty_sz_def fold_cons_replicate)
+
   show ?thesis
-  unfolding arrayO_ara_empty_sz_def
-  apply sepref_to_hoare
-  apply (sep_auto simp: arrayO_def hr_comp_def image_image map_fun_rel_def)
-    apply (rule_tac psi =\<open> nat_of_lit x < length (replicate ?N [])\<close> in asm_rl)
-    apply (sep_auto simp: arrayO_def hr_comp_def image_image map_fun_rel_def twl_array_code.N\<^sub>1_def
-      twl_array_code.N\<^sub>0'_def twl_array_code.N\<^sub>0''_def H H' H3
-      simp del: nat_of_lit.simps literal_of_nat.simps)
-   apply (rule H3; assumption)
-    apply(rule_tac psi=\<open>xa \<mapsto>\<^sub>a replicate (Suc (Suc (fold max N 0))) (a, b) *
-       is_array_list [] (a, b) \<Longrightarrow>\<^sub>A array_assn id_assn (replicate ?N (a,b)) xa *
-       heap_list_all (arl_assn (\<lambda>a c. \<up> (c = a)))
-        (replicate ?N []) (replicate ?N (a,b)) *
-       true\<close> in asm_rl)
-  unfolding m_def[symmetric] fold_m
-  apply (sep_auto simp: heap_list_all_replicate entails_def arl_assn_def hr_comp_def
-      array_assn_def is_array_def)
+    using 0[FCOMP 1] unfolding n_def[symmetric] PR_CONST_def .
+qed
 
-  sorry
-  oops
+context locale_nat_list
+begin
+sepref_register init_state_wl
+lemma init_state_wl_D_init_state_wl:
+  \<open>(init_state_wl_D, RETURN o (PR_CONST init_state_wl)) \<in>
+     nat_assn\<^sup>k \<rightarrow>\<^sub>a twl_array_code.twl_st_l_assn N\<close>
+proof -
+  have [simp]: \<open>clauses_l_assn {#} [] = emp\<close>
+    by (auto simp: list_mset_assn_def list_mset_rel_def mset_rel_def
+        br_def p2rel_def rel2p_def Collect_eq_comp rel_mset_def
+        pure_def)
+  have [simp]: \<open>clause_l_assn {#} [] = emp\<close>
+    by (auto simp: list_mset_assn_def list_mset_rel_def mset_rel_def
+        br_def p2rel_def rel2p_def Collect_eq_comp rel_mset_def
+        pure_def)
+  have [simp]: \<open>nat_assn n n = emp\<close> for n
+    by (simp add: pure_app_eq)
+  have e: \<open>RETURN $ empty_watched N \<le> SPEC (op = (empty_watched N))\<close>
+    by auto
+  note imp_correctI[OF arrayO_ara_empty_sz_code_empty_watched[to_hnr] e, sep_heap_rules]
 
-definition init_state_wl_D where
-  \<open>init_state_wl_D N l_Ns = do {
-     let n = fold max N 0;
-     N \<leftarrow> arrayO_raa_empty_sz l_Ns;
+  have [sep_heap_rules]:
+      \<open><arrayO_raa clause_ll_assn l a * x \<mapsto>\<^sub>a []> arrayO_raa_append a x <arrayO_raa clause_ll_assn (l @ [[]])>\<^sub>t\<close>
+    for l a x
+    using arrayO_raa_append_rule[of clause_ll_assn l a \<open>[]\<close> x, unfolded]
+      apply (subst (asm)(2) array_assn_def)
+    by (auto simp: hr_comp_def ex_assn_def is_array_def)
 
-     return ([], N, 0, None, {#}, {#})
-  }\<close>
+  show ?thesis
+    supply arl_empty_sz_array_rule[sep_heap_rules del]
+    supply arl_empty_sz_array_rule[of _ clause_ll_assn, sep_heap_rules]
+    apply sepref_to_hoare
+    by (sep_auto simp: init_state_wl_D_def init_state_wl_def twl_array_code.twl_st_l_assn_def)
+qed
+
+concrete_definition (in -) init_state_wl_D_code
+  uses "locale_nat_list.init_state_wl_D_init_state_wl"
+  is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) init_state_wl_D_code_def
+
+lemmas init_state_wl_D_code_refine[sepref_fr_rules] = init_state_wl_D_code.refine
+end
+
+sepref_register locale_nat_list.init_state_wl
+lemmas init_state_wl_D_code_refine = locale_nat_list.init_state_wl_D_code_refine
+term init_state_wl_D_code
+
+lemma init_state_wl_D_code[unfolded twl_array_code.twl_st_l_assn_def, sepref_fr_rules]:
+  \<open>(uncurry init_state_wl_D_code, uncurry (RETURN oo (locale_nat_list.init_state_wl)))
+  \<in> [\<lambda>(N', _). N = N']\<^sub>a(list_assn nat_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> twl_array_code.twl_st_l_assn N\<close>
+proof -
+  have e: \<open>RETURN $ (locale_nat_list.init_state_wl N $ x) \<le> SPEC (op = (locale_nat_list.init_state_wl N x))\<close>
+    for x
+    by auto
+  have [simp]: \<open>hn_val nat_rel x1 x1 = emp\<close> for x1
+    by (simp add: hn_ctxt_def pure_def)
+  have 1: \<open>(\<lambda>a c. \<up> (c = a)) = id_assn\<close>
+    by (auto simp: pure_def)
+  have [simp]: \<open>list_assn (\<lambda>a c. \<up> (c = a)) a ai = \<up> (a = ai)\<close> for a ai
+    unfolding list_assn_pure_conv 1 by (auto simp: pure_def)
+  have [sep_heap_rules]: \<open><emp> init_state_wl_D_code N x1
+  <\<lambda>r. \<exists>\<^sub>Ara. twl_array_code.twl_st_l_assn N ra r *
+               true *
+               \<up> (locale_nat_list.init_state_wl N x1 = ra)>\<close> for x1 :: nat
+    using imp_correctI[OF init_state_wl_D_code_refine[to_hnr, of x1 x1 N, unfolded PR_CONST_def] e,
+        sep_heap_rules, simplified]
+    by simp
+  show ?thesis
+    by sepref_to_hoare sep_auto
+qed
+
 sepref_definition SAT_wl_code
   is \<open>SAT_wl'\<close>
   :: \<open>(list_assn (list_assn nat_lit_assn))\<^sup>d \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding SAT_wl'_def HOL_list.fold_custom_empty extract_lits_cls'_extract_lits_cls[symmetric]
+    PR_CONST_def
   supply [[goals_limit = 1]]
   apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
   -- \<open>Translation stops at the \<open>set\<close> operation\<close>
             apply sepref_dbg_trans_step_keep
+            apply (rule_tac psi=\<open>xd = xd\<close> in asm_rl, rule refl)
+  apply sepref_dbg_trans_keep
+              apply sepref_dbg_trans_keep
+    --\<open>code for init_dt_wl\<close>
+  oops
 
 definition f_conv :: \<open>(nat twl_st_wl \<times> nat cdcl\<^sub>W_restart_mset)set\<close> where
   \<open>f_conv = {(S', S). S = convert_to_state (twl_st_of_wl None S')}\<close>
@@ -765,7 +849,7 @@ proof -
     by (subst (2) append_take_drop_id[symmetric, of \<open>tl af\<close> ag], subst mset_append)
       (auto simp: drop_Suc)
   show ?thesis
-    unfolding SAT_wl_def SAT_def init_state_wl_def
+    unfolding SAT_wl_def SAT_def locale_nat_list.init_state_wl_def empty_watched_def
   apply (intro frefI nres_relI)
     apply (refine_vcg bind_refine_spec init_dt_init_dt_l)
        defer
