@@ -5,4 +5,4 @@ A modular formalization of classical sequent calculus, natural deduction, Hilber
 See also: 
 
 * [documentation](https://liftm.de/permanent/propositional_proof_systems/)
-* [IsaFoL wiki](https://bitbucket.org/jasmin_blanchette/isafol/wiki/Home).
+* [IsaFoL wiki](https://bitbucket.org/isafol/isafol/wiki/Home).
