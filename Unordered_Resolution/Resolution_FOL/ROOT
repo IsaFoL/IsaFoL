@@ -1,7 +1,7 @@
 chapter AFP
 
 session "Resolution_FOL" (AFP) = HOL +
-  options [timeout = 300]
+  options [document = pdf, document_output = "output"]
   theories [document = false]
      "~~/src/HOL/Library/Countable_Set" 
   theories
@@ -10,6 +10,7 @@ session "Resolution_FOL" (AFP) = HOL +
     Resolution
     Completeness
     Examples
+    LatexSetup
   document_files
     "root.bib"
     "root.tex"

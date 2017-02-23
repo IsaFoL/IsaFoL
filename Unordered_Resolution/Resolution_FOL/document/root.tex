@@ -2,12 +2,47 @@
 \usepackage[utf8]{inputenc}
 \usepackage{isabelle,isabellesym}
 
+\usepackage{amssymb}
+\usepackage{amstext}
+
 % this should be the last package used!
 \usepackage{pdfsetup}
 
 % urls in roman style, theory text in math-similar italics
 \urlstyle{rm}
 \isabellestyle{it}
+
+\newcommand{\dash}{\ensuremath{\text{-}}}
+\newcommand{\colo}{\text{:}}
+\newcommand{\metaq}{{\textstyle\bigwedge}}
+\newcommand{\mapstox}{\text{$\,\mapsto$}}
+
+\newcommand{\subls}{\,\, \raisebox{-0.1ex}{\scalebox{1.35}{$\cdot$}}{\raisebox{-0.3ex}{$_{\hspace{-0.4ex}\mathrm{ls}}\,$}}}
+\newcommand{\subl}{\,\, \raisebox{-0.1ex}{\scalebox{1.35}{$\cdot$}}{\raisebox{-0.3ex}{$_{\hspace{-0.4ex}\mathrm{l}}\,$}}}
+\newcommand{\varsls}{vars_{\mathrm{ls}}}
+\newcommand{\unifierls}{unifier_{\hspace{0.15ex}\mathrm{ls}}}
+\newcommand{\mguls}{mgu_{\mathrm{ls}}}
+\newcommand{\groundl}{ground_{\mathrm{l}}}
+\newcommand{\groundls}{ground_{\mathrm{ls}}}
+\newcommand{\instanceofls}{instance\dash of_{\mathrm{ls}}}
+\newcommand{\evalt}{eval_{\hspace{0.15ex}\mathrm{t}}}
+\newcommand{\evalts}{eval_{\mathrm{ts}}}
+\newcommand{\evall}{eval_{\mathrm{l}}}
+\newcommand{\evalc}{eval_{\mathrm{c}}}
+\newcommand{\evalcs}{eval_{\mathrm{cs}}}
+\newcommand{\falsifiesl}{falsifies_{\mathrm{l}}}
+\newcommand{\falsifiesg}{falsifies_{\mathrm{g}}}
+\newcommand{\falsifiesc}{falsifies_{\mathrm{c}}}
+\newcommand{\compl}{{\mathrm{c}}}
+\newcommand{\compls}{{\mathrm{C}}}
+\newcommand{\Cone}{C_\mathrm{1}}
+\newcommand{\Ctwo}{C_\mathrm{2}}
+\newcommand{\Bone}{B_\mathrm{1}}
+\newcommand{\Btwo}{B_\mathrm{2}}
+\newcommand{\Lone}{L_\mathrm{1}}
+\newcommand{\Ltwo}{L_\mathrm{2}}
+\newcommand{\stdone}{std_\mathrm{1}}
+\newcommand{\stdtwo}{std_\mathrm{2}}
 
 \begin{document}
 

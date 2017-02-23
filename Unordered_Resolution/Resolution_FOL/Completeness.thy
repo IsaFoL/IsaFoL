@@ -382,18 +382,34 @@ definition F_conv :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a fun_denot \<Rightar
 definition G_conv :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a pred_denot \<Rightarrow> 'b pred_denot" where
   "G_conv b_of_a G \<equiv> \<lambda>p bs. (G p (map (inv b_of_a) bs))"
   
-  
 lemma asdffff:
   assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
   shows"eval\<^sub>t (E_conv b_of_a E) (F_conv b_of_a F) t = b_of_a (eval\<^sub>t E F t)"
-  using assms apply (induction t)
-   defer
-   apply auto[]
-  unfolding E_conv_def
-   apply auto[]
-  unfolding F_conv_def
+proof (induction t)
+  case (Fun x1 x2a)
+  then show ?case using assms unfolding E_conv_def F_conv_def 
     apply auto
-  by (smt bij_def comp_apply inj_imp_surj_inv map_eq_conv surj_f_inv_f) (* There are also Isar proofs*)
+  proof -
+    assume "(\<And>x2aa. x2aa \<in> set x2a \<Longrightarrow>
+             eval\<^sub>t (\<lambda>a. b_of_a (E a)) (\<lambda>a b. b_of_a (F a (map (inv b_of_a) b))) x2aa =
+             b_of_a (eval\<^sub>t E F x2aa))"
+    assume "bij b_of_a"
+    
+    have "map (inv b_of_a \<circ> eval\<^sub>t (\<lambda>a. b_of_a (E a)) (\<lambda>a b. b_of_a (F a (map (inv b_of_a) b)))) x2a
+           = (eval\<^sub>t\<^sub>s E F x2a)"
+      by (simp add: \<open>\<And>x2aa. x2aa \<in> set x2a \<Longrightarrow> eval\<^sub>t (\<lambda>a. b_of_a (E a)) (\<lambda>a b. b_of_a (F a (map (inv b_of_a) b))) x2aa = b_of_a (eval\<^sub>t E F x2aa)\<close> assms bij_is_inj) 
+    then have "F x1 (map (inv b_of_a \<circ> eval\<^sub>t (\<lambda>a. b_of_a (E a)) (\<lambda>a b. b_of_a (F a (map (inv b_of_a) b)))) x2a)
+           = F x1 (eval\<^sub>t\<^sub>s E F x2a)" 
+      by metis
+    then show "b_of_a
+     (F x1 (map (inv b_of_a \<circ> eval\<^sub>t (\<lambda>a. b_of_a (E a)) (\<lambda>a b. b_of_a (F a (map (inv b_of_a) b)))) x2a)) =
+    b_of_a (F x1 (eval\<^sub>t\<^sub>s E F x2a))"
+      by auto
+  qed
+next
+  case (Var x)
+  then show ?case using assms unfolding E_conv_def by auto
+qed
     
 lemma asdfff:
   assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
@@ -404,49 +420,31 @@ lemma asdfff:
 lemma asdff:
   assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
   shows "eval\<^sub>l (E_conv b_of_a E) (F_conv b_of_a F) (G_conv b_of_a G) x = eval\<^sub>l E F G x"
-  using assms apply (cases x)
-    apply auto
-  using asdfff
-     apply blast
-    using asdfff
-      apply blast
-      using asdfff
-       apply blast
-        using asdfff
-        apply blast
-          done
-    
+  using assms asdfff by (cases x;auto) blast+ (* meh... *)
+            
 lemma asdf:
   assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
   shows "eval\<^sub>c (F_conv b_of_a F) (G_conv b_of_a G) C = eval\<^sub>c F G C"
-  using assms unfolding eval\<^sub>c_def
-    apply auto
-  using asdff
-   apply blast
 proof -
-  fix E :: "char list \<Rightarrow> 'b"
-  assume bb: "bij b_of_a"
-  assume aa: "\<forall>E :: char list \<Rightarrow> 'a. \<exists>x\<in>C. eval\<^sub>l E F G x"
-    term "E_conv b_of_a (E_conv (inv b_of_a) E)"
+  {
+    fix E :: "char list \<Rightarrow> 'b"
+    assume bb: "bij b_of_a"
+    assume aa: "\<forall>E :: char list \<Rightarrow> 'a. \<exists>x\<in>C. eval\<^sub>l E F G x" 
     have eee: "E = E_conv b_of_a (E_conv (inv b_of_a) E)" 
       unfolding E_conv_def using bb
       using bij_betw_inv_into_right by fastforce 
     have "\<exists>x\<in>C. eval\<^sub>l (E_conv b_of_a (E_conv (inv b_of_a) E)) (F_conv b_of_a F) (G_conv b_of_a G) x"
       using asdff bb aa by blast
-  then show "\<exists>x\<in>C. eval\<^sub>l E (F_conv b_of_a F) (G_conv b_of_a G) x" using eee by auto 
+    then have "\<exists>x\<in>C. eval\<^sub>l E (F_conv b_of_a F) (G_conv b_of_a G) x" using eee by auto 
+  }
+  then show ?thesis
+    by (meson asdff assms eval\<^sub>c_def) 
 qed
-      
-lemma asd:
+
+lemma
   assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
   shows "eval\<^sub>c\<^sub>s (F_conv b_of_a F) (G_conv b_of_a G) Cs \<longleftrightarrow> eval\<^sub>c\<^sub>s F G Cs"
-  using assms
-  unfolding eval\<^sub>c\<^sub>s_def
-  apply auto
-  using asdf
-   apply blast
-     using asdf
-     apply blast
-       done
+    by (meson asdf assms eval\<^sub>c\<^sub>s_def)
     
 lemma bijbijbij:
   assumes aaa: "infinite (UNIV :: ('a ::countable) set)"
@@ -509,6 +507,31 @@ proof -
   then show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" using finite_cs completeness by auto
 qed
   
+theorem completeness_nat:
+  assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
+  assumes unsat: "\<forall>(F::nat fun_denot) (G::nat pred_denot) . \<not>eval\<^sub>c\<^sub>s F G Cs"
+  shows "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
+  using assms completeness_countable by blast
+
+theorem refut_sound:
+  assumes "resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
+  shows "\<not>eval\<^sub>c\<^sub>s F\<^sub>2 G\<^sub>2 Cs"
+proof -
+  from assms have "\<forall>F G. \<not>eval\<^sub>c\<^sub>s F\<^sub>2 G\<^sub>2 Cs'"
+    by (meson empty_iff eval\<^sub>c\<^sub>s_def eval\<^sub>c_def) 
+  then show ?thesis using lsound_derivation using assms by auto
+qed
+  
+theorem cooltheorem:
+  assumes iii: "infinite (UNIV :: ('u ::countable) set)"
+  assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
+  assumes unsat: "\<forall>(F\<^sub>1::'u fun_denot) (G\<^sub>1::'u pred_denot) . \<not>eval\<^sub>c\<^sub>s F\<^sub>1 G\<^sub>1 Cs"
+  shows "\<not>eval\<^sub>c\<^sub>s F\<^sub>2 G\<^sub>2 Cs"
+proof -
+  from assms have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" 
+    using completeness_countable by blast
+  then show ?thesis using refut_sound by auto
+qed
 
 end -- {* unification locale *}
 
