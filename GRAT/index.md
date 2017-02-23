@@ -19,14 +19,19 @@ Download the [GRATgen](gratgen.tgz) and [GRATchk](gratchk.tgz) ([ML source only]
 The standard GRATchk package contains all Isabelle theories. However, to run the tools you only need the [ML source only](gratchk-sml.tgz) package.
 
 To check a satisfiability certificate, run
+
     gratchk sat formula.cnf certificate.sat
+    
 Here, the formula is a formula in standard DIMACS CNF format, and the certificate is a list of non-contradictory literals that satisfy the formula if assigned to true.
 The certificate can, for example, be obtained by processing the output of the SAT solver with
+
     sed -re '/^v/!d;s/^v//'
 
 To check an unsatisfiability certificate, run
+
     gratgen formula.cnf drat-cert.drat -o grat-cert.grat [-j N]
     gratchk unsat formula.cnf grat-cert.grat
+    
 Here, drat-cert is a certificate in the standard DRAT format, which is supported by many SAT solvers. Note that the DRAT format is downward compatible with DRUP, such that also DRUP certificates can be used. Moreover, if you specify the -j N option, gratgen will run in multi-threaded mode with N threads. 
 For most certificates, this will result in a significant speedup. Good values for N are between 2 and 16, depending on the available hardware.
 

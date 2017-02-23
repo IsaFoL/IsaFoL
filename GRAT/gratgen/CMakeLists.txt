@@ -9,7 +9,9 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "MinSizeRel" "RelWithDebInfo")
 endif()
 
+find_package(Boost REQUIRED COMPONENTS timer)
 
+include_directories(${Boost_INCLUDE_DIRS})
 
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -Weffc++ -Wpedantic -Wzero-as-null-pointer-constant -std=c++11")
 
