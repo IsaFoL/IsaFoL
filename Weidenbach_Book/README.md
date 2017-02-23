@@ -1,10 +1,10 @@
 # Formalization of Weidenbach's _Automated Reasoning―The Art of Generic Problem Solving_ #
 
-[This directory](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Weidenbach_Book/) contains an ongoing Isabelle formalization of Christoph Weidenbach's forthcoming book _Automated Reasoning―The Art of Generic Problem Solving_.
+[This directory](https://bitbucket.org/isafol/isafol/src/master/Weidenbach_Book/) contains an ongoing Isabelle formalization of Christoph Weidenbach's forthcoming book _Automated Reasoning―The Art of Generic Problem Solving_.
 
 ## Organisation of the Development ##
-* The branch [master](https://bitbucket.org/jasmin_blanchette/isafol/src/master/Weidenbach_Book/) contains the latest development and is based on Isabelle's repository version.
-* The branch [IJCAR2016](https://bitbucket.org/jasmin_blanchette/isafol/src/IJCAR2016/Weidenbach_Book/) contains the version of the development related to the paper. Please refer to [this page](https://bitbucket.org/jasmin_blanchette/isafol/src/IJCAR2016/Weidenbach_Book/Readme.md).
+* The branch [master](https://bitbucket.org/isafol/isafol/src/master/Weidenbach_Book/) contains the latest development and is based on Isabelle's repository version.
+* The branch [IJCAR2016](https://bitbucket.org/isafol/isafol/src/IJCAR2016/Weidenbach_Book/) contains the version of the development related to the paper. Please refer to [this page](https://bitbucket.org/isafol/isafol/src/IJCAR2016/Weidenbach_Book/Readme.md).
 
 ## Documentation ##
 

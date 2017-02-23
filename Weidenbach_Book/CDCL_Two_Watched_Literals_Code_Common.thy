@@ -316,9 +316,9 @@ lemma init_dt_init_dt_l:
     \<open>twl_struct_invs (twl_st_of None S)\<close> and
     \<open>working_queue_l S = {#}\<close> and
     \<open>\<forall>s\<in>set (get_trail_l S). \<not>is_decided s\<close> and
-    \<open>\<And>L. get_conflict_l S = None \<longrightarrow> pending_l S = uminus `# lit_of `# mset (get_trail_l S)\<close> and
+    \<open>get_conflict_l S = None \<longrightarrow> pending_l S = uminus `# lit_of `# mset (get_trail_l S)\<close> and
     \<open>additional_WS_invs S\<close> and
-    \<open>get_learned_l S = length (get_clauses_l S) - 1\<close>and
+    \<open>get_learned_l S = length (get_clauses_l S) - 1\<close> and
     \<open>twl_stgy_invs (twl_st_of None S)\<close>
   shows \<open>RETURN (init_dt CS S) = init_dt_l (rev CS) S\<close>
   using assms unfolding init_dt_l_def
@@ -335,7 +335,7 @@ next
     \<open>RETURN (init_dt_step a (init_dt CS S)) = init_dt_step_l a (init_dt CS S)\<close>
     apply (rule init_dt_step_init_dt_step_l)
     subgoal using Cons(3) by auto
-    subgoal using init_dt_full[of CS S] Cons(2-) by simp
+    subgoal by (rule init_dt_full[of CS S]) (use Cons(2-) in \<open>solves simp\<close>)+
     done
   show ?case
     by (auto simp: IH[symmetric] step)

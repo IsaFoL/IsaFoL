@@ -43,9 +43,9 @@ lemma init_dt_full:
     \<open>twl_struct_invs (twl_st_of None S)\<close> and
     \<open>working_queue_l S = {#}\<close> and
     \<open>\<forall>s\<in>set (get_trail_l S). \<not>is_decided s\<close> and
-    \<open>\<And>L. get_conflict_l S = None \<longrightarrow> pending_l S = uminus `# lit_of `# mset (get_trail_l S)\<close> and
+    \<open>get_conflict_l S = None \<longrightarrow> pending_l S = uminus `# lit_of `# mset (get_trail_l S)\<close> and
     \<open>additional_WS_invs S\<close> and
-    \<open>get_learned_l S = length (get_clauses_l S) - 1\<close>and
+    \<open>get_learned_l S = length (get_clauses_l S) - 1\<close> and
     \<open>twl_stgy_invs (twl_st_of None S)\<close>
   shows
     \<open>twl_struct_invs (twl_st_of None S')\<close> and
@@ -604,6 +604,32 @@ lemma clauses_init_dt_not_Nil: \<open>fst (snd (init_dt CS ([], [[]], 0, None, {
      (auto simp: init_dt_step_def Let_def split: option.splits if_splits)
   done
 
+lemma init_dt_conflict_remains:
+  fixes CS :: \<open>'v literal list list\<close> and S :: \<open>'v twl_st_l\<close>
+  defines \<open>S' \<equiv> init_dt CS S\<close>
+  shows \<open>get_conflict_l S \<noteq> None \<longrightarrow> get_conflict_l S  = get_conflict_l S'\<close>
+  unfolding S'_def apply (induction CS)
+  subgoal by simp
+  subgoal for a CS
+    by (cases \<open>init_dt CS S\<close>; cases \<open>get_conflict_l S\<close>)
+      (auto simp: init_dt_step_def Let_def split: option.splits if_splits)
+  done
+
+lemma init_dt_confl_in_clauses:
+  fixes CS :: \<open>'v literal list list\<close> and S :: \<open>'v twl_st_l\<close>
+  defines \<open>S' \<equiv> init_dt CS S\<close>
+  assumes
+    \<open>get_conflict_l S \<noteq> None \<longrightarrow> the (get_conflict_l S) \<in># mset `# mset CS\<close>
+  shows
+    \<open>get_conflict_l S' \<noteq> None \<longrightarrow> the (get_conflict_l S') \<in># mset `# mset CS\<close>
+  using assms(2-) unfolding S'_def apply (induction CS)
+  subgoal by simp
+  subgoal for a CS
+    using init_dt_conflict_remains[of S CS]
+    by (cases \<open>init_dt CS S\<close>; cases \<open>get_conflict_l S\<close>)
+      (auto simp: init_dt_step_def Let_def split: option.splits if_splits)
+  done
+
 theorem init_dt:
   fixes CS S
   defines S: \<open>S \<equiv> ([], [[]], 0, None, {#}, {#}, {#}, {#})\<close>
@@ -616,7 +642,8 @@ theorem init_dt:
     \<open>cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None (init_dt CS S))) = mset `# mset CS\<close> and
     \<open>twl_stgy_invs (twl_st_of None (init_dt CS S))\<close> and
     \<open>working_queue_l (init_dt CS S) = {#}\<close> and
-    \<open>additional_WS_invs (init_dt CS S)\<close>
+    \<open>additional_WS_invs (init_dt CS S)\<close> and
+    \<open>get_conflict_l (init_dt CS S) \<noteq> None \<longrightarrow> the (get_conflict_l (init_dt CS S)) \<in># mset `# mset CS\<close>
 proof -
   have [simp]: \<open>twl_struct_invs (twl_st_of None S)\<close>
     unfolding S
@@ -644,13 +671,17 @@ proof -
   have [simp]: \<open>twl_stgy_invs (twl_st_of None S)\<close>
     unfolding S by (auto simp: twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
         cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.no_smaller_confl_def)
+  have [simp]: \<open>get_conflict_l S = None\<close>
+    unfolding S by auto
   show
     \<open>twl_struct_invs (twl_st_of None (init_dt CS S))\<close> and
     \<open>cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None (init_dt CS S))) = mset `# mset CS\<close> and
     \<open>twl_stgy_invs (twl_st_of None (init_dt CS S))\<close> and
     \<open>working_queue_l (init_dt CS S) = {#}\<close> and
-    \<open>additional_WS_invs (init_dt CS S)\<close>
-  using init_dt_full[of CS S, OF assms(2-4)] by simp_all
+    \<open>additional_WS_invs (init_dt CS S)\<close> and
+    \<open>get_conflict_l (init_dt CS S) \<noteq> None \<longrightarrow> the (get_conflict_l (init_dt CS S)) \<in># mset `# mset CS\<close>
+    using init_dt_full[of CS S, OF assms(2-4)]
+    init_dt_confl_in_clauses[of S CS] by simp_all
 qed
 
 end

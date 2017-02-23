@@ -668,4 +668,36 @@ proof -
     by (sep_auto simp: update_ll_def swap_def nth_ll_def list_update_swap)
 qed
 
+text \<open>It is not possible to do a direct initialisation: there is no element that can be put
+  everywhere.\<close>
+definition arrayO_ara_empty_sz where
+  \<open>arrayO_ara_empty_sz n =
+   (let xs = fold (\<lambda>_ xs. [] # xs) [1..<n] [] in
+    op_list_copy xs)
+   \<close>
+
+lemma heap_list_all_list_assn: \<open>heap_list_all R x y = list_assn R x y\<close>
+  by (induction R x y rule: heap_list_all.induct) auto
+
+lemma of_list_op_list_copy_arrayO[sepref_fr_rules]:
+   \<open>(Array.of_list, RETURN \<circ> op_list_copy) \<in> (list_assn (arl_assn R))\<^sup>d \<rightarrow>\<^sub>a arrayO (arl_assn R)\<close>
+  apply (sepref_to_hoare)
+  apply (sep_auto simp: arrayO_def array_assn_def)
+  apply (rule_tac ?psi=\<open>xa \<mapsto>\<^sub>a xi * list_assn (arl_assn R) x xi \<Longrightarrow>\<^sub>A
+       is_array xi xa * heap_list_all (arl_assn R) x xi * true\<close> in asm_rl)
+  by (sep_auto simp: heap_list_all_list_assn is_array_def)
+
+sepref_definition
+  arrayO_ara_empty_sz_code
+  is "RETURN o arrayO_ara_empty_sz"
+  :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a arrayO (arl_assn (R::'a \<Rightarrow> 'b::{heap, default} \<Rightarrow> assn))\<close>
+  unfolding arrayO_ara_empty_sz_def op_list_empty_def[symmetric]
+  apply (rewrite at \<open>op # \<hole>\<close> op_arl_empty_def[symmetric])
+  apply (rewrite at \<open>fold _ _ \<hole>\<close> op_HOL_list_empty_def[symmetric])
+  supply [[goals_limit = 1]]
+  by sepref
+
+lemma ex_assn_up_eq2: \<open>(\<exists>\<^sub>Aba. f ba * \<up> (ba = c)) = (f c)\<close>
+  by (simp add: ex_assn_def)
+
 end
