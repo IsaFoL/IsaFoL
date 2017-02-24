@@ -1040,6 +1040,7 @@ definition skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st
             ASSERT(is_proped (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W))));
             let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W)));
             ASSERT(C < length N);
+            ASSERT(literals_are_in_N\<^sub>0 D');
             if -L \<notin># D' then
               do {RETURN (False, (tl M, N, U, Some D', NP, UP, Q, W))}
             else do {
@@ -1082,6 +1083,7 @@ private definition skip_and_resolve_loop_wl_D' :: "nat twl_st_wl \<Rightarrow> (
             ASSERT(is_proped (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W))));
             let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W)));
             ASSERT(C < length N);
+            ASSERT(literals_are_in_N\<^sub>0 D');
             if -L \<notin># D' then
               do {RETURN (False, (tl M, N, U, Some D', NP, UP, Q, W))}
             else
@@ -1149,6 +1151,17 @@ proof -
     .
 qed
 
+lemma in_N\<^sub>1_atm_of_in_atms_of_iff: \<open>x \<in># N\<^sub>1 \<longleftrightarrow> atm_of x \<in> atms_of N\<^sub>1\<close>
+  by (auto simp: N\<^sub>1_def atms_of_def atm_of_eq_atm_of)
+
+lemma set_mset_set_mset_eq_iff: \<open>set_mset A = set_mset B \<longleftrightarrow> (\<forall>a\<in>#A. a \<in># B) \<and> (\<forall>a\<in>#B. a \<in># A)\<close>
+  by blast
+
+lemma is_N\<^sub>1_alt_def: \<open>is_N\<^sub>1 (lits_of_atms_of_mm A) \<longleftrightarrow> atms_of_mm A = atms_of N\<^sub>1\<close>
+  unfolding set_mset_set_mset_eq_iff is_N\<^sub>1_def Ball_def in_N\<^sub>1_atm_of_in_atms_of_iff
+    in_lits_of_atms_of_mm_ain_atms_of_iff
+    by auto (metis literal.sel(2))+
+
 lemma skip_and_resolve_loop_wl_D_spec:
   assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close> \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None S))\<close>
   shows \<open>skip_and_resolve_loop_wl_D S \<le>
@@ -1170,6 +1183,23 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal for brk'S' brkS brk S brk' S' M x2b N x2c U x2d D x2e NP x2f UP x2g WS
+       Q M' x2i N' x2j U' x2k D' x2l NP' x2m UP' x2n WS' Q' L C L' C'
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None S))\<close>)
+      subgoal
+        apply clarify
+        apply (subst (asm) twl_struct_invs_is_N\<^sub>1_clauses_init_clss)
+         apply (solves \<open>simp add: skip_and_resolve_loop_inv_def\<close>)
+        by (fastforce simp add: literals_are_in_N\<^sub>0_def  is_N\<^sub>1_alt_def
+            cdcl\<^sub>W_restart_mset.no_strange_atm_def in_N\<^sub>1_atm_of_in_atms_of_iff
+            cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset' atms_of_def
+            in_lits_of_atms_of_m_ain_atms_of_iff atm_of_eq_atm_of)
+      subgoal
+        apply (subst (asm) skip_and_resolve_loop_inv_def)
+        apply (subst (asm) twl_struct_invs_def)
+        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        by force
+      done
     subgoal by auto
     subgoal by auto
     subgoal by auto
