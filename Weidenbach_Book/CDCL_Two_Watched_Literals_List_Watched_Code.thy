@@ -1276,6 +1276,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal by auto
     subgoal by (auto simp: mset_take_mset_drop_mset' clauses_def)
     subgoal by auto
     subgoal by (auto simp: clauses_def)
@@ -1335,6 +1336,7 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
         ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         let E = the D;
+        ASSERT(literals_are_in_N\<^sub>0 E);
         M1 \<leftarrow> find_decomp_wl (M, N, U, Some E, NP, UP, Q, W) L;
 
         if size E > 1
@@ -1354,6 +1356,7 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
           ASSERT(atm_of L' \<in> atms_of_mm (mset `# mset (tl N) + NP));
           ASSERT(-L \<in> snd ` D\<^sub>0);
           ASSERT(L' \<in> snd ` D\<^sub>0);
+          ASSERT(undefined_lit M1 (-L));
           let W = W(L':= W L' @ [length N]);
           let W = W(-L:= W (-L) @ [length N]);
           RETURN (Propagated (-L) (length N) # M1, N @ [array_of_arl D'], U,
@@ -1361,6 +1364,8 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
         }
         else do {
           D' \<leftarrow> single_of_mset E;
+          ASSERT(undefined_lit M1 (-L));
+          ASSERT(-L \<in> snd ` D\<^sub>0);
           RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset {#D'#} UP, add_mset L {#}, W)
         }
       }
@@ -1378,10 +1383,11 @@ lemma backtrack_wl_D_spec:
 proof -
   have 1: \<open>((get_conflict_wl S = Some {#}, S), get_conflict_wl S = Some {#}, S) \<in> Id\<close>
     by auto
-  have 2: \<open>find_decomp_wl S L \<le> \<Down> Id (find_decomp_wl S' L')\<close>
+  have 2: \<open>find_decomp_wl S L \<le> \<Down> {(M1, M1'). M1 = M1' \<and>
+        (\<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (get_trail_wl S)))} (find_decomp_wl S' L')\<close>
     if \<open>S = S'\<close> and \<open>L = L'\<close>
     for S S' :: \<open>nat twl_st_wl\<close> and L L'
-    using that by auto
+    using that by (cases S) (fastforce simp: find_decomp_wl_def intro!: SPEC_refine)
   have 3: \<open>find_lit_of_max_level_wl S M \<le>
    \<Down> {(L', L). L' \<in># remove1_mset (-M) (the (get_conflict_wl S)) \<and> L' = L} (find_lit_of_max_level_wl S' M')\<close>
     if \<open>S = S'\<close> and \<open>M = M'\<close>
@@ -1433,6 +1439,23 @@ proof -
     subgoal by fast
     subgoal by fast
     subgoal by fast
+    subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
+       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None
+        (x1, x1a, x1b, x1c, x1d, x1e, x1f, x2f)))\<close>)
+      subgoal using N\<^sub>0
+        apply clarify
+        apply (subst (asm) twl_struct_invs_is_N\<^sub>1_clauses_init_clss)
+         apply (solves \<open>simp\<close>)
+        by (fastforce simp add: literals_are_in_N\<^sub>0_def is_N\<^sub>1_alt_def
+            cdcl\<^sub>W_restart_mset.no_strange_atm_def in_N\<^sub>1_atm_of_in_atms_of_iff
+            cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset' atms_of_def
+            in_lits_of_atms_of_m_ain_atms_of_iff atm_of_eq_atm_of)
+      subgoal
+        apply (subst (asm) twl_struct_invs_def)
+        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+        by force
+      done
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1443,12 +1466,12 @@ proof -
     proof -
       have \<open>get_level M `# remove1_mset (- lit_of (hd M)) (the x1j) =
          get_level M1 `# remove1_mset (- lit_of (hd M)) (the x1j)\<close>
-        by (rule image_mset_cong) (use p(41) in auto)
+        by (rule image_mset_cong) (use p(42) in auto)
       then have \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the x1j))=
           get_maximum_level M1 (remove1_mset (- lit_of (hd M)) (the x1j))\<close>
         unfolding get_maximum_level_def by simp
       then show ?thesis
-        using p(39) p(1-14) p(38) p(35) by auto
+        using p(36, 39-41) p(1-14) by auto
     qed
     subgoal by auto
     subgoal premises p for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
@@ -1463,6 +1486,7 @@ proof -
         apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
         by fast
       done
+
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1484,7 +1508,7 @@ proof -
     subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
       apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M1, N, U, D, NP, UP, WS, W)))\<close>)
       subgoal
-        using N\<^sub>0 p(52) p(32) p(1-16)
+        using N\<^sub>0 p(53) p(33) p(1-16)
         apply (cases M1; cases \<open>hd M1\<close>)
          apply fast
          apply fast
@@ -1499,13 +1523,13 @@ proof -
     subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
       apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
       subgoal
-        using N\<^sub>0 p(52) p(32) p(1-18) p(46)
+        using N\<^sub>0 p(53) p(33) p(1-18) p(47)
         apply (auto simp: (* is_N\<^sub>1_def *) in_lits_of_atms_of_mm_ain_atms_of_iff mset_take_mset_drop_mset'
             clauses_def H (* N\<^sub>1 *) image_image cdcl\<^sub>W_restart_mset.no_strange_atm_def
             cdcl\<^sub>W_restart_mset_state eq_commute[of _ \<open>atms_of N\<^sub>1\<close>] in_N\<^sub>1_iff is_N\<^sub>1_def
             dest!: in_diffD)
          apply (metis (no_types, lifting) Un_iff in_lits_of_atms_of_mm_ain_atms_of_iff
-            lits_of_atms_of_mm_union p(53) set_image_mset set_mset_mset set_mset_union)+
+            lits_of_atms_of_mm_union p(54) set_image_mset set_mset_mset set_mset_union)+
         done
       subgoal
         using p
@@ -1516,7 +1540,7 @@ proof -
     subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
       apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
       subgoal
-        using N\<^sub>0 p(52) p(32) p(1-18) p(46)
+        using N\<^sub>0 p(53) p(33) p(1-18) p(47)
         by (auto simp: (* is_N\<^sub>1_def *) in_lits_of_atms_of_mm_ain_atms_of_iff mset_take_mset_drop_mset'
             clauses_def H (* N\<^sub>1 *) image_image cdcl\<^sub>W_restart_mset.no_strange_atm_def
             cdcl\<^sub>W_restart_mset_state eq_commute[of _ \<open>atms_of N\<^sub>1\<close>] in_N\<^sub>1_iff is_N\<^sub>1_def
@@ -1530,7 +1554,7 @@ proof -
     subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
       apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
       subgoal
-        using N\<^sub>0 p(32) p(1-18) p(46) p(53)
+        using N\<^sub>0 p(33) p(1-18) p(47) p(54)
         by (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff mset_take_mset_drop_mset'
             clauses_def H image_image cdcl\<^sub>W_restart_mset.no_strange_atm_def
             cdcl\<^sub>W_restart_mset_state eq_commute[of _ \<open>atms_of N\<^sub>1\<close>] in_N\<^sub>1_iff is_N\<^sub>1_def
@@ -1544,12 +1568,27 @@ proof -
     subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M' SN' N'
       SU' U' SD' D' SNP' NP' SUP' UP' SWS' WS' W' M''' M'' L L' E E'
     proof -
+      note M'''_M'' = p(36)
+      then obtain K c M2 where M': \<open>M' = c @ M2 @ Decided K # M'''\<close>
+        by (clarsimp_all dest!: get_all_ann_decomposition_exists_prepend)
+      define F where \<open>F = c @ M2\<close>
+      have \<open>M' = F @ Decided K # M'''\<close>
+        using M' F_def by auto
+      moreover have \<open>no_dup (trail (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W))))\<close>
+        using p(23) unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by fast
+      ultimately show ?thesis
+        using p(1-16) by (cases M'; cases F) (clarsimp_all simp: cdcl\<^sub>W_restart_mset_state)
+    qed
+    subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M' SN' N'
+      SU' U' SD' D' SNP' NP' SUP' UP' SWS' WS' W' M''' M'' L L' E E'
+    proof -
       thm p
       note SWS = p(1) and SUP = p(2) and SNP = p(3) and SD = p(4) and SU = p(5) and SN = p(6) and
         S = p(7) and M_not_Nil = p(15) and lvl_count_decided = p(10) and D_not_None = p(18) and
         D_not_Some_Nil = p(19) and ex_decomp = p(20) and stgy_invs = p(21) and struct_invs = p(23)
-        and no_skip = p(32) and M1_M1a = p(35) and L'_La = p(46) and hd_uL' = p(47) and uhd_D' = p(49)
-        and L'_D' = p(50) and EE' = p(51) and atm_hd = p(52) and atm_L = p(53) and S_expand = p(1-14)
+        and no_skip = p(32) and M1_M1a = p(36) and L'_La = p(47) and hd_uL' = p(49) and uhd_D' = p(50)
+        and L'_D' = p(51) and EE' = p(52) and atm_hd = p(53) and atm_L = p(54) and S_expand = p(1-14)
         thm p(35-40)
       have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
         using struct_invs
@@ -1644,13 +1683,42 @@ proof -
     qed
     subgoal by simp
     subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M' SN' N'
+      SU' U' SD' D' SNP' NP' SUP' UP' SWS' WS' W' M''' M'' L L'
+    proof -
+      note M'''_M'' = p(36)
+      then obtain K c M2 where M': \<open>M' = c @ M2 @ Decided K # M'''\<close>
+        by (clarsimp_all dest!: get_all_ann_decomposition_exists_prepend)
+      define F where \<open>F = c @ M2\<close>
+      have \<open>M' = F @ Decided K # M'''\<close>
+        using M' F_def by auto
+      moreover have \<open>no_dup (trail (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W))))\<close>
+        using p(23) unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by fast
+      ultimately show ?thesis
+        using p(1-16) by (cases M'; cases F) (clarsimp_all simp: cdcl\<^sub>W_restart_mset_state)
+    qed
+    subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M' SN' N'
+      SU' U' SD' D' SNP' NP' SUP' UP' SWS' WS' W' M''' M'' L L'
+    proof -
+      have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
+        using p(23) unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        by fast
+      then show ?thesis
+        using N\<^sub>0 unfolding p(1-16)
+        apply (subst (asm) twl_struct_invs_is_N\<^sub>1_clauses_init_clss)
+        using p(23) apply simp
+        using p(1-16)
+        by (cases M) (auto simp: image_image in_N\<^sub>1_iff cdcl\<^sub>W_restart_mset_state is_N\<^sub>1_alt_def
+            cdcl\<^sub>W_restart_mset.no_strange_atm_def mset_take_mset_drop_mset')
+    qed
+    subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M' SN' N'
       SU' U' SD' D' SNP' NP' SUP' UP' SWS' WS' W' M''' M'' E E'
     proof -
       thm p
       note SWS = p(1) and SUP = p(2) and SNP = p(3) and SD = p(4) and SU = p(5) and SN = p(6) and
         S = p(7) and M_not_Nil = p(15) and lvl_count_decided = p(10) and D_not_None = p(18) and
         D_not_Some_Nil = p(19) and ex_decomp = p(20) and stgy_invs = p(22) and struct_invs = p(23)
-        and no_skip = p(33) and M1_M1a = p(35) and E_E' = p(38) and
+        and no_skip = p(33) and M1_M1a = p(36) and E_E' = p(39) and
         S_expand = p(1-14)
       have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
         using struct_invs
