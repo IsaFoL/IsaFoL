@@ -1776,22 +1776,54 @@ definition decide_wl_or_skip_D :: "nat twl_st_wl \<Rightarrow> (bool \<times> na
     then do {
       let (M, N, U, D, NP, UP, Q, W) = S;
       ASSERT(L \<noteq> None);
+      ASSERT(the L \<in> snd ` D\<^sub>0);
       let K = the L;
+      ASSERT(undefined_lit M K);
       RETURN (False, (Decided K # M, N, U, D, NP, UP, {#-K#}, W))}
     else do {RETURN (True, S)}
   })
 \<close>
 
 theorem decide_wl_or_skip_D_spec:
- \<open>literals_are_N\<^sub>0 S \<Longrightarrow>
-    decide_wl_or_skip_D S \<le> \<Down> {((b', T'), (b, T)). b = b' \<and> T = T' \<and> literals_are_N\<^sub>0 T} (decide_wl_or_skip S)\<close>
-  unfolding decide_wl_or_skip_D_def decide_wl_or_skip_def
-  apply refine_vcg
-  subgoal by simp
-  subgoal by (simp add: clauses_def)
-  subgoal by simp
-  done
+  assumes \<open>literals_are_N\<^sub>0 S\<close>
+  shows \<open>decide_wl_or_skip_D S
+    \<le> \<Down> {((b', T'), b, T). b = b' \<and> T = T' \<and> literals_are_N\<^sub>0 T} (decide_wl_or_skip S)\<close>
+proof -
+  let ?clss = \<open>(\<lambda>(_, N, _). N)\<close>
+  let ?learned = \<open>(\<lambda>(_, _, U, _). U)\<close>
+  have H: \<open>find_unassigned_lit_wl S  \<le> \<Down> {(L', L). L = L' \<and>
+         (L \<noteq> None  \<longrightarrow>
+            undefined_lit (get_trail_wl S) (the L) \<and>
+            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# mset (take (?learned S) (tl (?clss S))))) \<and>
+         (L = None \<longrightarrow> (\<nexists>L'. undefined_lit (get_trail_wl S) L' \<and>
+            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# mset (take (?learned S) (tl (?clss S))))))}
+     (find_unassigned_lit_wl S')\<close>
+    if \<open>S = S'\<close>
+    for S S'
+    by (cases S') (auto simp: find_unassigned_lit_wl_def that intro!: RES_refine)
 
+  have \<open>(decide_wl_or_skip_D, decide_wl_or_skip) \<in> {((T'), (T)).  T = T' \<and> literals_are_N\<^sub>0 T} \<rightarrow>\<^sub>f
+     \<langle>{((b', T'), (b, T)). b = b' \<and> T = T' \<and> literals_are_N\<^sub>0 T}\<rangle> nres_rel\<close>
+    unfolding decide_wl_or_skip_D_def decide_wl_or_skip_def
+    apply (intro frefI)
+    apply (refine_vcg H)
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by auto
+    subgoal by simp
+    subgoal by (simp add: mset_take_mset_drop_mset' clauses_def)
+    subgoal by (auto simp add: mset_take_mset_drop_mset' clauses_def image_image
+          is_N\<^sub>1_alt_def in_N\<^sub>1_iff)
+    subgoal by (auto simp add: mset_take_mset_drop_mset' clauses_def image_image
+          is_N\<^sub>1_alt_def in_N\<^sub>1_iff)
+    subgoal by (simp add: mset_take_mset_drop_mset' clauses_def)
+    subgoal by (simp add: mset_take_mset_drop_mset' clauses_def)
+    done
+  then show ?thesis
+    using assms by (cases S) (auto simp: fref_def nres_rel_def)
+qed
 
 subsubsection \<open>Backtrack, Skip, Resolve or Decide\<close>
 
