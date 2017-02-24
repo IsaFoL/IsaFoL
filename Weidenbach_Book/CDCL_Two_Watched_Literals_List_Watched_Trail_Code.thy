@@ -921,5 +921,149 @@ sepref_thm backtrack_wl_D
   supply [[goals_limit=1]]
   by sepref
 
+
+concrete_definition (in -) backtrack_wl_D_code
+   uses twl_array_code.backtrack_wl_D.refine_raw
+   is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) backtrack_wl_D_code_def
+
+lemmas backtrack_wl_D_code_refine[sepref_fr_rules] =
+   backtrack_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+lemma N\<^sub>0'_eq_append_in_D\<^sub>0: \<open>N\<^sub>0' = ys @ a2'g \<Longrightarrow>a2'g \<noteq> [] \<Longrightarrow> hd a2'g \<in> snd ` D\<^sub>0\<close>
+  by (auto simp: image_image N\<^sub>1_def N\<^sub>0''_def)
+
+sepref_thm find_unassigned_lit_wl_D_code
+  is \<open>PR_CONST find_unassigned_lit_wl_D\<close>
+  :: \<open>twl_st_l_trail_assn\<^sup>k \<rightarrow>\<^sub>a option_assn nat_lit_assn\<close>
+  unfolding find_unassigned_lit_wl_D_def PR_CONST_def twl_st_l_trail_assn_def
+    is_None_def[symmetric]
+  supply [[goals_limit = 1]]
+  supply N\<^sub>0'_eq_append_in_D\<^sub>0[intro]
+  by sepref
+
+concrete_definition (in -) find_unassigned_lit_wl_D_code
+  uses twl_array_code.find_unassigned_lit_wl_D_code.refine_raw
+  is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) find_unassigned_lit_wl_D_code_def
+
+lemmas find_unassigned_lit_wl_D_code[sepref_fr_rules] =
+   find_unassigned_lit_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+
+lemma find_unassigned_lit_wl_D_code_find_unassigned_lit_wl[unfolded twl_st_l_trail_assn_def, sepref_fr_rules]:
+  \<open>(find_unassigned_lit_wl_D_code N\<^sub>0, find_unassigned_lit_wl)
+  \<in> [\<lambda>S. literals_are_N\<^sub>0 S \<and> twl_struct_invs (twl_st_of_wl None S) \<and> get_conflict_wl S = None]\<^sub>a
+     twl_st_l_trail_assn\<^sup>k \<rightarrow> option_assn nat_lit_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have P: \<open>is_pure nat_assn\<close>
+    by auto
+  have H: \<open>(find_unassigned_lit_wl_D_code N\<^sub>0, find_unassigned_lit_wl)
+  \<in> [comp_PRE (Id \<times>\<^sub>f (Id \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id)))))))
+      (\<lambda>S. literals_are_N\<^sub>0 S \<and> twl_struct_invs (twl_st_of_wl None S) \<and> get_conflict_wl S = None)
+       (\<lambda>_ _. True)
+       (\<lambda>_. True)]\<^sub>a
+     hrp_comp (twl_st_l_trail_assn\<^sup>k) (Id \<times>\<^sub>f (Id \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id))))))) \<rightarrow>
+     hr_comp (option_assn nat_lit_assn) (\<langle>Id\<rangle>option_rel)\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF find_unassigned_lit_wl_D_code.refine[unfolded PR_CONST_def]
+       find_unassigned_lit_wl_D_find_unassigned_lit_wl]
+
+    unfolding op_watched_app_def .
+
+  have 1: \<open>?pre' = ?pre\<close>
+    using ex_list_watched
+    by (auto simp: comp_PRE_def simp: prod_rel_def_internal
+        relAPP_def map_fun_rel_def[abs_def] p2rel_def lit_of_natP_def
+        literal_of_neq_eq_nat_of_lit_eq_iff length_ll_def
+        simp del: literal_of_nat.simps)
+
+  have 2: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have 3: \<open>?f' = ?f\<close>
+    by (auto simp: hrp_comp_def hr_comp_def)
+
+  show ?thesis
+    using H unfolding 1 2 3  .
+qed
+
+sepref_thm decide_wl_or_skip_D_code
+  is \<open>PR_CONST decide_wl_or_skip_D\<close>
+  :: \<open>twl_st_l_trail_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *assn twl_st_l_trail_assn\<close>
+  unfolding decide_wl_or_skip_D_def PR_CONST_def twl_st_l_trail_assn_def
+    cons_trail_Decided.simps[symmetric]
+  apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) decide_wl_or_skip_D_code
+   uses twl_array_code.decide_wl_or_skip_D_code.refine_raw
+   is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) decide_wl_or_skip_D_code_def
+
+lemmas decide_wl_or_skip_D_code_def_refine[sepref_fr_rules] =
+   decide_wl_or_skip_D_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+
+
+subsubsection \<open>Combining Together: the Other Rules\<close>
+sepref_thm get_conflict_wl_is_None_code
+  is \<open>RETURN o get_conflict_wl_is_None\<close>
+  :: \<open>twl_st_l_trail_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding get_conflict_wl_is_None_def twl_st_l_trail_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) get_conflict_wl_is_None_code
+   uses twl_array_code.get_conflict_wl_is_None_code.refine_raw
+   is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) get_conflict_wl_is_None_code_def
+
+lemmas get_conflict_wl_is_None_code_refine[sepref_fr_rules] =
+   get_conflict_wl_is_None_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+
+sepref_register cdcl_twl_o_prog_wl_D
+sepref_thm cdcl_twl_o_prog_wl_D_code
+  is \<open>PR_CONST cdcl_twl_o_prog_wl_D\<close>
+  :: \<open>twl_st_l_trail_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *assn twl_st_l_trail_assn\<close>
+  unfolding cdcl_twl_o_prog_wl_D_def PR_CONST_def twl_st_l_trail_assn_def
+  unfolding get_conflict_wl_is_None get_conflict_wl_get_conflict_wl_is_Nil
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) cdcl_twl_o_prog_wl_D_code
+   uses twl_array_code.cdcl_twl_o_prog_wl_D_code.refine_raw
+   is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) cdcl_twl_o_prog_wl_D_code_def
+
+lemmas cdcl_twl_o_prog_wl_D_code[sepref_fr_rules] =
+   cdcl_twl_o_prog_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+
+
+subsubsection \<open>Combining Together: Full Strategy\<close>
+
+sepref_thm cdcl_twl_stgy_prog_wl_D_code
+  is \<open>PR_CONST cdcl_twl_stgy_prog_wl_D\<close>
+  :: \<open>twl_st_l_trail_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_trail_assn\<close>
+  unfolding cdcl_twl_stgy_prog_wl_D_def PR_CONST_def twl_st_l_trail_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) cdcl_twl_stgy_prog_wl_D_code
+   uses twl_array_code.cdcl_twl_stgy_prog_wl_D_code.refine_raw
+   is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) cdcl_twl_stgy_prog_wl_D_code_def
+
+lemmas cdcl_twl_stgy_prog_wl_D_code[sepref_fr_rules] =
+   cdcl_twl_stgy_prog_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+
+
 end
+  
+
 end
