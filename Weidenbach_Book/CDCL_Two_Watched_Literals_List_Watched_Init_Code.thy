@@ -916,11 +916,10 @@ sepref_definition SAT_wl_code
 
 declare locale_nat_list.init_state_wl_D_def[code]
 
-export_code SAT_wl_code in SML_imp module_name Test
-thm SAT_wl_code.refine
+export_code SAT_wl_code in SML_imp module_name SAT_Solver file "code/full_SAT_Cached.ML"
 
-definition f_conv :: \<open>(nat twl_st_wl \<times> nat cdcl\<^sub>W_restart_mset)set\<close> where
-  \<open>f_conv = {(S', S). S = convert_to_state (twl_st_of_wl None S')}\<close>
+definition TWL_to_clauses_state_conv :: \<open>(nat twl_st_wl \<times> nat cdcl\<^sub>W_restart_mset) set\<close> where
+  \<open>TWL_to_clauses_state_conv = {(S', S). S = convert_to_state (twl_st_of_wl None S')}\<close>
 
 lemma list_all2_eq_map_iff: \<open>list_all2 (\<lambda>x y. y = f x) xs ys \<longleftrightarrow> ys = map f xs\<close>
   apply (induction xs arbitrary: ys)
@@ -936,7 +935,7 @@ lemma cdcl_twl_stgy_prog_wl_spec_final2:
   shows
     \<open>(SAT_wl, SAT) \<in> [\<lambda>CS. (\<forall>C \<in># CS. distinct_mset C) \<and> (\<forall>C \<in># CS. size C \<ge> 1) \<and>
         (\<forall>C \<in># CS. \<not>tautology C)]\<^sub>f
-     (list_mset_rel O \<langle>list_mset_rel\<rangle> mset_rel) \<rightarrow> \<langle>f_conv\<rangle>nres_rel\<close>
+     (list_mset_rel O \<langle>list_mset_rel\<rangle> mset_rel) \<rightarrow> \<langle>TWL_to_clauses_state_conv\<rangle>nres_rel\<close>
 proof -
   have in_list_mset_rel: \<open>(CS', y) \<in> list_mset_rel \<longleftrightarrow> y = mset CS'\<close> for CS' y
     by (auto simp: list_mset_rel_def br_def)
@@ -968,7 +967,7 @@ proof -
         apply (rule RETURN_SPEC_refine)
         apply (rule exI[of _ \<open>convert_to_state (twl_st_of None (st_l_of_wl None S\<^sub>0))\<close>])
         apply (intro conjI)
-       subgoal using p confl by (cases S\<^sub>0, clarsimp_all simp: f_conv_def mset_take_mset_drop_mset'
+       subgoal using p confl by (cases S\<^sub>0, clarsimp_all simp: TWL_to_clauses_state_conv_def mset_take_mset_drop_mset'
             clauses_def get_unit_learned_def in_list_mset_rel in_list_mset_rel_mset_rel)
        subgoal
          apply (rule disjI2)
@@ -1021,9 +1020,9 @@ proof -
         using p 1 True by auto
 
       have \<open>twl_array_code.cdcl_twl_stgy_prog_wl_D (map nat_of_lit (extract_lits_clss CS' [])) S\<^sub>0
-        \<le> \<Down> f_conv
+        \<le> \<Down> TWL_to_clauses_state_conv
         (SPEC (full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (CDCL_Two_Watched_Literals_List_Watched_Init_Code.init_state CS)))\<close>
-        by (auto simp: f_conv_def conc_fun_RES rtranclp_fullI
+        by (auto simp: TWL_to_clauses_state_conv_def conc_fun_RES rtranclp_fullI
             intro!: weaken_SPEC[OF SPEC_add_information[OF 1 2]])
       then show ?thesis
         unfolding confl if_True by (rule ref_two_step) auto
@@ -1260,7 +1259,7 @@ proof -
   have 2: \<open>Multiset.Ball y distinct_mset \<and>
        (\<forall>C\<in>#y. 1 \<le> size C) \<and> (\<forall>C\<in>#y. \<not> tautology C) \<Longrightarrow>
        (x, y) \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel \<Longrightarrow>
-       SAT_wl x \<le> \<Down> f_conv (SAT y)\<close> for x y
+       SAT_wl x \<le> \<Down> TWL_to_clauses_state_conv (SAT y)\<close> for x y
     using cdcl_twl_stgy_prog_wl_spec_final2[unfolded fref_def nres_rel_def] by simp
 
   have SAT_wl'_SAT: \<open>(SAT_wl', SAT')\<in>
@@ -1269,7 +1268,7 @@ proof -
     unfolding SAT'_def SAT_wl'
     apply (intro frefI nres_relI bind_refine)
      apply (rule 2; simp)
-    by (auto simp: f_conv_def cdcl\<^sub>W_restart_mset_state)
+    by (auto simp: TWL_to_clauses_state_conv_def cdcl\<^sub>W_restart_mset_state)
   show ?thesis
     using SAT_wl_code.refine[FCOMP SAT_wl'_SAT] unfolding list_assn_list_mset_rel_clauses_l_assn .
 qed
