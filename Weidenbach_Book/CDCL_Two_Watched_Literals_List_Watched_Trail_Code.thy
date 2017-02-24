@@ -10,24 +10,26 @@ definition valued_atm_on_trail where
     else if Neg L \<in> lits_of_l M then Some False
     else None)\<close>
 
-type_synonym trail_int = \<open>(nat, nat) ann_lits \<times> bool option list \<times> nat\<close>
-type_synonym trail_assn = \<open>(nat \<times> nat option) list \<times> bool option array \<times> nat\<close>
+type_synonym trail_int = \<open>(nat, nat) ann_lits \<times> (bool option \<times> nat) list \<times> nat\<close>
+type_synonym trail_assn = \<open>(nat \<times> nat option) list \<times> (bool option \<times> nat) array \<times> nat\<close>
 
 definition trail_ref :: \<open>(trail_int \<times> (nat, nat) ann_lits) set\<close> where
   \<open>trail_ref = {((M', xs, k), M). M = M' \<and> no_dup M \<and>
-    (\<forall>L \<in># N\<^sub>1. atm_of L < length xs \<and> xs ! (atm_of L) = valued_atm_on_trail M (atm_of L)) \<and>
+    (\<forall>L \<in># N\<^sub>1. atm_of L < length xs \<and> fst (xs ! (atm_of L)) = valued_atm_on_trail M (atm_of L) \<and>
+       snd (xs ! (atm_of L)) = get_level M L) \<and>
     k = count_decided M \<and>
     (\<forall>L\<in>set M. lit_of L \<in># N\<^sub>1)}\<close>
 
 abbreviation trail_conc :: \<open>trail_int \<Rightarrow> trail_assn \<Rightarrow> assn\<close> where
-  \<open>trail_conc \<equiv> pair_nat_ann_lits_assn *assn array_assn (option_assn bool_assn) *assn nat_assn\<close>
+  \<open>trail_conc \<equiv> pair_nat_ann_lits_assn *assn array_assn (option_assn bool_assn *assn nat_assn) *assn
+     nat_assn\<close>
 
 definition cons_trail_Propagated :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
   \<open>cons_trail_Propagated L C M' = Propagated L C # M'\<close>
 
 definition cons_trail_Propagated_tr :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> trail_int \<Rightarrow> trail_int\<close> where
   \<open>cons_trail_Propagated_tr = (\<lambda>L C (M', xs, k).
-     (Propagated L C # M', xs[atm_of L := Some (is_pos L)], k))\<close>
+     (Propagated L C # M', xs[atm_of L := (Some (is_pos L), k)], k))\<close>
 
 definition trail_assn :: "(nat, nat) ann_lits \<Rightarrow> trail_assn \<Rightarrow> assn" where
   \<open>trail_assn = hr_comp trail_conc trail_ref\<close>
@@ -64,10 +66,8 @@ proof -
          (\<lambda>((L, C), M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0)
          (\<lambda>_ ((L, C), M, xs, k). atm_of L < length xs)
          (\<lambda>_. True)]\<^sub>a
-       hrp_comp (nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
-              (pair_nat_ann_lits_assn *assn array_assn (option_assn bool_assn) *assn nat_assn)\<^sup>d)
-            (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f trail_ref) \<rightarrow>
-       hr_comp (pair_nat_ann_lits_assn *assn array_assn (option_assn bool_assn) *assn nat_assn) trail_ref\<close>
+       hrp_comp (nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a trail_conc\<^sup>d) (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f trail_ref) \<rightarrow>
+       hr_comp trail_conc trail_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF cons_trail_Propagated_tr_code.refine cons_trail_Propagated_tr] .
   have pre: \<open>?pre' = ?pre\<close>
@@ -87,7 +87,7 @@ fun cons_trail_Decided :: \<open>nat literal \<Rightarrow> (nat, nat) ann_lits \
 
 definition cons_trail_Decided_tr :: \<open>nat literal \<Rightarrow> trail_int \<Rightarrow> trail_int\<close> where
   \<open>cons_trail_Decided_tr = (\<lambda>L (M', xs, k).
-     (Decided L # M', xs[atm_of L := Some (is_pos L)], k+1))\<close>
+     (Decided L # M', xs[atm_of L := (Some (is_pos L), k+1)], k+1))\<close>
 
 lemma cons_trail_Decided_tr:
   \<open>(uncurry (RETURN oo cons_trail_Decided_tr), uncurry (RETURN oo cons_trail_Decided)) \<in>
@@ -113,10 +113,8 @@ proof -
 \<in> [comp_PRE (Id \<times>\<^sub>f trail_ref) (\<lambda>(L, M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0)
      (\<lambda>_ (L, M, xs, k). atm_of L < length xs)
      (\<lambda>_. True)]\<^sub>a
-   hrp_comp (nat_lit_assn\<^sup>k *\<^sub>a
-        (pair_nat_ann_lits_assn *assn array_assn (option_assn bool_assn) *assn nat_assn)\<^sup>d)
-     (Id \<times>\<^sub>f trail_ref) \<rightarrow>
-    hr_comp (pair_nat_ann_lits_assn *assn array_assn (option_assn bool_assn) *assn nat_assn) trail_ref\<close>
+   hrp_comp (nat_lit_assn\<^sup>k *\<^sub>a trail_conc\<^sup>d) (Id \<times>\<^sub>f trail_ref) \<rightarrow>
+    hr_comp trail_conc trail_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF cons_trail_Decided_tr_code.refine cons_trail_Decided_tr] .
   have pre: \<open>?pre' = ?pre\<close>
@@ -132,7 +130,7 @@ proof -
 qed
 
 definition tl_trail_tr :: \<open>trail_int \<Rightarrow> trail_int\<close> where
-  \<open>tl_trail_tr = (\<lambda>(M', xs, k). (tl M', xs[atm_of (lit_of (hd M')) := None],
+  \<open>tl_trail_tr = (\<lambda>(M', xs, k). (tl M', xs[atm_of (lit_of (hd M')) := (None, 0)],
     if is_decided (hd M') then k-1 else k))\<close>
 
 lemma tl_trail_tr:
@@ -141,14 +139,15 @@ lemma tl_trail_tr:
 proof -
   have [iff]: \<open>is_proped L \<longleftrightarrow> \<not>is_decided L\<close> for L
     by (cases L) auto
+  have [simp]: \<open>is_pos L \<longleftrightarrow> (\<exists>K. L = Pos K)\<close> for L
+    by (cases L) auto
   show ?thesis -- \<open>TODO tune proof\<close>
     apply (intro frefI nres_relI, rename_tac x y, case_tac \<open>y\<close>)
      apply  (auto simp: trail_ref_def valued_atm_on_trail_def tl_trail_tr_def
         Decided_Propagated_in_iff_in_lits_of_l nth_list_update'
-        eq_commute[of _ \<open>lit_of _\<close>]
+        eq_commute[of _ \<open>lit_of _\<close>] atm_of_eq_atm_of get_level_cons_if
         dest: no_dup_consistentD)
-     apply (metis literal.exhaust_sel uminus_Pos)
-    apply (metis literal.exhaust_sel uminus_Neg)
+    apply (metis literal.exhaust_sel uminus_Pos uminus_Neg)+
     done
 qed
 
@@ -166,14 +165,8 @@ lemma tl_trail_tr_code_op_list_tl[sepref_fr_rules]:
 proof -
   have H: \<open>(tl_trail_tr_code, RETURN \<circ> tl)  \<in> [comp_PRE trail_ref (\<lambda>M. M \<noteq> [])
        (\<lambda>_ (M, xs, k). M \<noteq> [] \<and> atm_of (lit_of (hd M)) < length xs)
-       (\<lambda>_. True)]\<^sub>a hrp_comp
-                       ((pair_nat_ann_lits_assn *assn
-                         array_assn (option_assn bool_assn) *assn
-                         nat_assn)\<^sup>d)
-                       trail_ref \<rightarrow> hr_comp
-                                     (pair_nat_ann_lits_assn *assn
-array_assn (option_assn bool_assn) *assn nat_assn)
-                                     trail_ref\<close>
+       (\<lambda>_. True)]\<^sub>a hrp_comp (trail_conc\<^sup>d) trail_ref \<rightarrow> 
+      hr_comp trail_conc trail_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF tl_trail_tr_code.refine tl_trail_tr] .
   have pre: \<open>?pre' = ?pre\<close>
@@ -205,7 +198,7 @@ definition twl_st_l_trail_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_
 definition valued_trail:: \<open>trail_int \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
   \<open>valued_trail = (\<lambda>(M, xs, k) L. do {
      ASSERT(atm_of L < length xs);
-     (case xs ! (atm_of L) of
+     (case fst (xs ! (atm_of L)) of
        None \<Rightarrow> RETURN None
      | Some v \<Rightarrow> if is_pos L then RETURN (Some v)
        else RETURN (Some (\<not>v)))
@@ -551,9 +544,7 @@ lemma
 proof -
   have [simp]: \<open>(case b of (a, b, c) \<Rightarrow> P a b c) = P (fst b) (fst (snd b)) (snd (snd b))\<close> for P b
     by (cases b) auto
-  have [simp]: \<open>(pair_nat_ann_lits_assn *assn
-            array_assn (option_assn bool_assn) *assn nat_assn) b (a, ah, ba) = (pair_nat_ann_lits_assn *assn
-            array_assn (option_assn bool_assn) *assn nat_assn) (fst b, fst (snd b), snd (snd b)) (a, ah, ba)\<close>
+  have [simp]: \<open>trail_conc b (a, ah, ba) = trail_conc (fst b, fst (snd b), snd (snd b)) (a, ah, ba)\<close>
     for f b a
     by (cases b) auto
   have [simp]: \<open>(fst b = [] \<and> fst b = a # list \<and> P) \<longleftrightarrow> False\<close> for b P
@@ -603,7 +594,97 @@ lemma is_decided_hd_trail_wll_hnr[unfolded twl_st_l_trail_assn_def, sepref_fr_ru
       pair_nat_ann_lit_assn_Decided_Some pair_nat_ann_lit_assn_Propagated_None trail_assn_Cons_Nil
       trail_assn_Cons_Propagated_None
       split: option.splits)+
+term get_level
+definition get_level_trail :: \<open>trail_int \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>get_level_trail = (\<lambda>(M, xs, k) L. snd (xs! (L div 2)))\<close>
 
+sepref_definition get_level_code 
+  is \<open>uncurry (RETURN oo get_level_trail)\<close>
+  :: \<open>[\<lambda>((M, xs, k), L). L div 2 < length xs]\<^sub>a trail_conc\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  unfolding get_level_trail_def
+  by sepref
+  
+lemma get_level_code_get_level[sepref_fr_rules]: 
+  \<open>(uncurry get_level_code, uncurry (RETURN oo get_level)) \<in>
+   [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>  
+    (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have [simp]: \<open>(ba, bb) \<in> nat_lit_rel \<Longrightarrow> ba div 2 = atm_of bb\<close> for ba bb
+    by (auto simp: p2rel_def lit_of_natP_def atm_of_lit_of_nat simp del: literal_of_nat.simps)
+
+  have 1: \<open>(uncurry (RETURN oo get_level_trail), uncurry (RETURN oo get_level)) \<in>
+     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trail_ref \<times>\<^sub>f nat_lit_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>  
+    by (intro nres_relI frefI) (auto simp: image_image trail_ref_def get_level_trail_def)
+  
+  have H: \<open>(uncurry get_level_code, uncurry (RETURN \<circ>\<circ> get_level))
+  \<in> [comp_PRE (trail_ref \<times>\<^sub>f nat_lit_rel) (\<lambda>(M, L). L \<in> snd ` D\<^sub>0)
+       (\<lambda>_ ((M, xs, k), L). L div 2 < length xs)
+       (\<lambda>_. True)]\<^sub>a hrp_comp (trail_conc\<^sup>k *\<^sub>a nat_assn\<^sup>k) (trail_ref \<times>\<^sub>f nat_lit_rel) \<rightarrow> 
+       hr_comp nat_assn nat_rel\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF get_level_code.refine 1] .
+  have pre: \<open>?pre' = ?pre\<close>
+    by (auto simp: comp_PRE_def trail_ref_def intro!: ext)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: trail_assn_def hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: trail_assn_def hrp_comp_def hr_comp_def)
+  show ?thesis
+    using H unfolding im pre f by simp
+qed
+  
+ 
+sepref_definition  maximum_level_remove_code
+  is \<open>uncurry2 (RETURN ooo maximum_level_remove)\<close>
+  :: \<open>[\<lambda>((M, D), L). literals_are_in_N\<^sub>0 (mset D)]\<^sub>a trail_assn\<^sup>k *\<^sub>a (arl_assn nat_lit_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  unfolding maximum_level_remove_def[abs_def]
+    apply sepref_dbg_keep
+    apply sepref_dbg_trans_keep
+                    apply sepref_dbg_trans_step_keep
+    defer
+                    apply sepref_dbg_trans_keep
+    defer
+                   apply sepref_dbg_trans_keep
+  defer
+    apply sepref_dbg_trans_keep
+    defer
+                   apply sepref_dbg_trans_keep
+    defer
+                   apply sepref_dbg_trans_keep
+    defer
+                   apply sepref_dbg_trans_keep
+    defer
+                   apply sepref_dbg_trans_keep
+    defer
+                   apply sepref_dbg_trans_keep
+    defer
+                   apply sepref_dbg_trans_keep
+    defer
+                   apply sepref_dbg_trans_keep
+    defer
+                   apply sepref_dbg_trans_keep
+    defer
+                   apply sepref_dbg_trans_keep
+    defer
+                   apply sepref_dbg_trans_keep
+    defer
+                   apply sepref_dbg_trans_keep
+    defer
+                   apply sepref_dbg_trans_keep
+    defer
+                   apply sepref_dbg_trans_keep
+    defer
+                   apply sepref_dbg_trans_keep
+    defer
+                   apply sepref_dbg_trans_keep
+    defer
+                   apply sepref_dbg_trans_keep
+                   apply sepref_dbg_trans_keep
+  unfolding CNV_def apply fast
+   apply (auto simp: bind_ref_tag_def image_image literals_are_in_N\<^sub>0_def)
+ oops
 sepref_thm skip_and_resolve_loop_wl_D
   is \<open>PR_CONST skip_and_resolve_loop_wl_D\<close>
   :: \<open>twl_st_l_trail_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_trail_assn\<close>
