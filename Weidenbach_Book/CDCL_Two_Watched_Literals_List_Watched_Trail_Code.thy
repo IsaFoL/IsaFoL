@@ -165,7 +165,7 @@ lemma tl_trail_tr_code_op_list_tl[sepref_fr_rules]:
 proof -
   have H: \<open>(tl_trail_tr_code, RETURN \<circ> tl)  \<in> [comp_PRE trail_ref (\<lambda>M. M \<noteq> [])
        (\<lambda>_ (M, xs, k). M \<noteq> [] \<and> atm_of (lit_of (hd M)) < length xs)
-       (\<lambda>_. True)]\<^sub>a hrp_comp (trail_conc\<^sup>d) trail_ref \<rightarrow> 
+       (\<lambda>_. True)]\<^sub>a hrp_comp (trail_conc\<^sup>d) trail_ref \<rightarrow>
       hr_comp trail_conc trail_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF tl_trail_tr_code.refine tl_trail_tr] .
@@ -598,28 +598,28 @@ lemma is_decided_hd_trail_wll_hnr[unfolded twl_st_l_trail_assn_def, sepref_fr_ru
 definition get_level_trail :: \<open>trail_int \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>get_level_trail = (\<lambda>(M, xs, k) L. snd (xs! (L div 2)))\<close>
 
-sepref_definition get_level_code 
+sepref_definition get_level_code
   is \<open>uncurry (RETURN oo get_level_trail)\<close>
   :: \<open>[\<lambda>((M, xs, k), L). L div 2 < length xs]\<^sub>a trail_conc\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   unfolding get_level_trail_def
   by sepref
-  
-lemma get_level_code_get_level[sepref_fr_rules]: 
+
+lemma get_level_code_get_level[sepref_fr_rules]:
   \<open>(uncurry get_level_code, uncurry (RETURN oo get_level)) \<in>
-   [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>  
+   [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
     (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have [simp]: \<open>(ba, bb) \<in> nat_lit_rel \<Longrightarrow> ba div 2 = atm_of bb\<close> for ba bb
     by (auto simp: p2rel_def lit_of_natP_def atm_of_lit_of_nat simp del: literal_of_nat.simps)
 
   have 1: \<open>(uncurry (RETURN oo get_level_trail), uncurry (RETURN oo get_level)) \<in>
-     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trail_ref \<times>\<^sub>f nat_lit_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>  
+     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trail_ref \<times>\<^sub>f nat_lit_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
     by (intro nres_relI frefI) (auto simp: image_image trail_ref_def get_level_trail_def)
-  
+
   have H: \<open>(uncurry get_level_code, uncurry (RETURN \<circ>\<circ> get_level))
   \<in> [comp_PRE (trail_ref \<times>\<^sub>f nat_lit_rel) (\<lambda>(M, L). L \<in> snd ` D\<^sub>0)
        (\<lambda>_ ((M, xs, k), L). L div 2 < length xs)
-       (\<lambda>_. True)]\<^sub>a hrp_comp (trail_conc\<^sup>k *\<^sub>a nat_assn\<^sup>k) (trail_ref \<times>\<^sub>f nat_lit_rel) \<rightarrow> 
+       (\<lambda>_. True)]\<^sub>a hrp_comp (trail_conc\<^sup>k *\<^sub>a nat_assn\<^sup>k) (trail_ref \<times>\<^sub>f nat_lit_rel) \<rightarrow>
        hr_comp nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF get_level_code.refine 1] .
@@ -639,7 +639,7 @@ lemma in_literals_are_in_N\<^sub>0_in_D\<^sub>0:
   assumes \<open>literals_are_in_N\<^sub>0 D\<close> and \<open>L \<in># D\<close>
   shows \<open>L \<in> snd ` D\<^sub>0\<close>
   using assms
-  by (cases L) (auto simp: image_image literals_are_in_N\<^sub>0_def lits_of_atms_of_m_def) 
+  by (cases L) (auto simp: image_image literals_are_in_N\<^sub>0_def lits_of_atms_of_m_def)
 
 sepref_definition  maximum_level_remove_code
   is \<open>uncurry2 (RETURN ooo maximum_level_remove)\<close>
@@ -648,10 +648,12 @@ sepref_definition  maximum_level_remove_code
   supply in_literals_are_in_N\<^sub>0_in_D\<^sub>0[intro]
   by sepref
 
+declare maximum_level_remove_code.refine[sepref_fr_rules]
+
 lemma maximum_level_remove_code_get_maximum_level_remove[sepref_fr_rules]:
   \<open>(uncurry2 (maximum_level_remove_code),
      uncurry2 (RETURN ooo get_maximum_level_remove)) \<in>
-    [\<lambda>((M, D), L). literals_are_in_N\<^sub>0 D]\<^sub>a 
+    [\<lambda>((M, D), L). literals_are_in_N\<^sub>0 D]\<^sub>a
       trail_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -675,7 +677,7 @@ proof -
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux [OF maximum_level_remove_code.refine 1] .
   have 1: \<open>?pre' = ?pre\<close> -- \<open>TODO tune proof\<close>
-    apply (auto simp: comp_PRE_def 
+    apply (auto simp: comp_PRE_def
         list_mset_rel_def br_def
         simp del: literal_of_nat.simps intro!: ext)
     by (metis mset_sorted_list_of_multiset)
@@ -700,7 +702,7 @@ lemma count_decided_trail:
 
 lemmas count_decided_trail_code[sepref_fr_rules] =
    count_decided_trail[FCOMP count_decided_trail_ref, unfolded trail_assn_def[symmetric]]
- 
+
 sepref_thm skip_and_resolve_loop_wl_D
   is \<open>PR_CONST skip_and_resolve_loop_wl_D\<close>
   :: \<open>twl_st_l_trail_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_trail_assn\<close>
@@ -717,6 +719,206 @@ sepref_thm skip_and_resolve_loop_wl_D
     maximum_level_remove[symmetric]
     Multiset.is_empty_def[symmetric]
     get_maximum_level_remove_def[symmetric]
+  by sepref
+
+concrete_definition (in -) skip_and_resolve_loop_wl_D_code
+   uses twl_array_code.skip_and_resolve_loop_wl_D.refine_raw
+   is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) skip_and_resolve_loop_wl_D_code_def
+
+lemmas skip_and_resolve_loop_wl_D_code_refine[sepref_fr_rules] =
+   skip_and_resolve_loop_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+
+
+sepref_thm find_lit_of_max_level_wl_imp_code
+  is \<open>uncurry8 find_lit_of_max_level_wl_imp'\<close>
+  :: \<open>[\<lambda>((((((((M, N), U), D), NP), UP), WS), Q), L). literals_are_in_N\<^sub>0 (mset D)]\<^sub>a
+       (trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_lit_assn)\<^sup>k *\<^sub>a
+          unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
+    nat_lit_assn\<^sup>k \<rightarrow> nat_lit_assn\<close>
+  unfolding find_lit_of_max_level_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
+    find_lit_of_max_level_wl_imp'_def
+  supply in_literals_are_in_N\<^sub>0_in_D\<^sub>0[intro]
+  supply [[goals_limit=1]]
+  by sepref
+
+concrete_definition (in -) find_lit_of_max_level_wl_imp_code
+   uses twl_array_code.find_lit_of_max_level_wl_imp_code.refine_raw
+   is "(uncurry8 ?f,_)\<in>_"
+
+prepare_code_thms (in -) find_lit_of_max_level_wl_imp_code_def
+
+lemmas find_lit_of_max_level_wl_imp_code[sepref_fr_rules] =
+   find_lit_of_max_level_wl_imp_code.refine[of N\<^sub>0]
+
+
+lemma find_lit_of_max_level_wl_imp_code_find_lit_of_max_level_wl'[sepref_fr_rules]:
+  \<open>(uncurry8 find_lit_of_max_level_wl_imp_code, uncurry8 find_lit_of_max_level_wl') \<in>
+   [\<lambda>((((((((M, N), U), D), NP), UP), WS), Q), L). distinct_mset D \<and>
+     (\<exists>K\<in>#remove1_mset (-L) D. get_level M K = get_maximum_level M (remove1_mset (- L) D)) \<and>
+     literals_are_in_N\<^sub>0 D]\<^sub>a
+   (trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
+       unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
+    nat_lit_assn\<^sup>k
+    \<rightarrow> nat_lit_assn\<close>
+    (is \<open>_ \<in> [?P]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have \<open>K \<in># remove1_mset (-L) (mset D) \<Longrightarrow> distinct D \<Longrightarrow>
+    get_level M K = get_maximum_level M (remove1_mset (- L) (mset D)) \<Longrightarrow>
+    find_lit_of_max_level_wl_imp M D L
+    \<le> find_lit_of_max_level_wl' M N U (mset D) NP UP Q W L\<close>
+    for D' :: \<open>nat clause\<close> and K :: \<open>nat literal\<close> and M :: \<open>(nat, nat) ann_lits\<close> and L and
+    D :: \<open>nat clause_l\<close> and N and U :: nat and NP UP and Q and W
+    unfolding find_lit_of_max_level_wl_imp_def maximum_level_remove find_lit_of_max_level_wl'_def
+        find_lit_of_max_level_wl_def
+    apply (refine_vcg WHILEIT_rule[where R =\<open>measure (\<lambda>i. Suc (length D) - i)\<close>])
+    subgoal by auto
+    subgoal by (auto simp: list_mset_rel_def br_def)
+    subgoal by auto
+    subgoal apply (auto simp add: list_mset_rel_def br_def in_set_conv_nth distinct_mset_remove1_All
+          dest!: in_diffD)
+      by (metis Suc_lessI less_SucE)+
+    subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def less_Suc_eq)
+    subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def)
+    subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def)
+    subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def distinct_mset_remove1_All
+intro!: in_remove1_msetI)
+    subgoal by (auto simp add: not_less_eq list_mset_rel_def br_def distinct_mset_remove1_All)
+    done
+  then have 1: \<open>(uncurry8 find_lit_of_max_level_wl_imp',
+    uncurry8 find_lit_of_max_level_wl') \<in>
+     [?P]\<^sub>f
+     Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+    unfolding find_lit_of_max_level_wl_imp'_def
+    by (intro frefI nres_relI) (auto simp add: uncurry_def list_mset_rel_def br_def)
+  have H: \<open>(uncurry8 find_lit_of_max_level_wl_imp_code, uncurry8 find_lit_of_max_level_wl')
+    \<in> [comp_PRE (Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id)
+         (\<lambda>((((((((M, N), U), D), NP), UP), WS), Q), L). distinct_mset D \<and>
+            (\<exists>K\<in>#remove1_mset (- L) D. get_level M K = get_maximum_level M (remove1_mset (- L) D)) \<and>
+             literals_are_in_N\<^sub>0 D)
+       (\<lambda>_ ((((((((M, N), U), D), NP), UP), WS), Q), L). literals_are_in_N\<^sub>0 (mset D)) (\<lambda>_. True)]\<^sub>a
+    hrp_comp (trail_assn\<^sup>k *\<^sub>a (arrayO_raa clause_ll_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
+          (arl_assn nat_lit_assn)\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a
+          (hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0))\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k)
+       (Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id) \<rightarrow>
+   hr_comp nat_lit_assn Id\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux [OF find_lit_of_max_level_wl_imp_code.refine 1] .
+  have 1: \<open>?pre' = ?P\<close>
+    by (auto simp: comp_PRE_def list_mset_rel_def br_def simp del: literal_of_nat.simps intro!: ext)
+  have 2: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp by (auto simp: hrp_comp_def hr_comp_def)
+  have 3: \<open>?f' = ?f\<close>
+    by (auto simp: hrp_comp_def hr_comp_def)
+
+  show ?thesis
+    using H unfolding 1 2 3  .
+qed
+
+sepref_thm find_decomp_wl_imp_code
+  is \<open>uncurry2 (find_decomp_wl_imp)\<close>
+  :: \<open>[\<lambda>((M, D), L). M \<noteq> [] \<and> literals_are_in_N\<^sub>0 D]\<^sub>a
+         trail_assn\<^sup>d *\<^sub>a conflict_assn\<^sup>k *\<^sub>a  nat_lit_assn\<^sup>k
+    \<rightarrow> trail_assn\<close>
+  unfolding find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
+  supply [[goals_limit=1]]
+  by sepref
+
+concrete_definition (in -) find_decomp_wl_imp_code
+   uses twl_array_code.find_decomp_wl_imp_code.refine_raw
+   is "(uncurry2 ?f,_)\<in>_"
+
+prepare_code_thms (in -) find_decomp_wl_imp_code_def
+
+lemmas find_decomp_wl_imp_code[sepref_fr_rules] =
+   find_decomp_wl_imp_code.refine[of N\<^sub>0]
+
+sepref_thm find_decomp_wl_imp'_code
+  is \<open>uncurry8 (PR_CONST find_decomp_wl_imp')\<close>
+  :: \<open>[\<lambda>((((((((M::(nat, nat) ann_lits, N), U::nat), D::nat clause), NP::nat clauses), UP:: nat clauses),
+        Q), W), L). D \<noteq> {#} \<and> M \<noteq> [] \<and>  literals_are_in_N\<^sub>0 D]\<^sub>a
+      (trail_assn\<^sup>d *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
+         unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
+      nat_lit_assn\<^sup>k \<rightarrow> trail_assn\<close>
+  unfolding find_decomp_wl_imp'_def PR_CONST_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) find_decomp_wl_imp'_code
+   uses twl_array_code.find_decomp_wl_imp'_code.refine_raw
+   is "(uncurry8 ?f,_)\<in>_"
+
+prepare_code_thms (in -) find_decomp_wl_imp'_code_def
+thm find_decomp_wl_imp'_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+
+
+lemma find_decomp_wl_code[sepref_fr_rules]:
+  \<open>(uncurry8 find_decomp_wl_imp'_code,
+      uncurry8 find_decomp_wl')
+  \<in> [\<lambda>((((((((M::(nat, nat) ann_lits, N), U::nat), D::nat clause), NP::nat clauses), UP:: nat clauses),
+        Q), W), L). D \<noteq> {#} \<and> M \<noteq> [] \<and> ex_decomp_of_max_lvl M (Some D) L \<and> L = lit_of (hd M) \<and>
+       (no_skip (M, N, U, Some D, NP, UP, Q, W))  \<and>
+       no_resolve (M, N, U, Some D, NP, UP, Q, W) \<and>
+       twl_struct_invs (twl_st_of_wl None (M, N, U, Some D, NP, UP, Q, W)) \<and>
+       literals_are_in_N\<^sub>0 D]\<^sub>a
+    (trail_assn\<^sup>d *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
+       unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
+    nat_lit_assn\<^sup>k
+    \<rightarrow> trail_assn\<close>
+  (is \<open> _ \<in> [?P]\<^sub>a  _ \<rightarrow> _\<close>)
+proof -
+  have H: \<open>(uncurry8 find_decomp_wl_imp'_code, uncurry8 find_decomp_wl')
+    \<in> [\<lambda>((((((((a, b), ba), bb), bc), bd), be), bf), bg).
+         bb \<noteq> {#} \<and>
+         a \<noteq> [] \<and>
+         ex_decomp_of_max_lvl a (Some bb) bg \<and>
+         bg = lit_of (hd a) \<and>
+         no_resolve (a, b, ba, Some bb, bc, bd, be, bf) \<and>
+         no_skip (a, b, ba, Some bb, bc, bd, be, bf) \<and>
+         twl_struct_invs
+          (convert_lits_l b a,
+           {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x))
+           . x \<in># mset (take ba (tl b))#},
+           {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x))
+           . x \<in># mset (drop (Suc ba) b)#},
+           Some bb, bc, bd, {#}, be) \<and>
+         literals_are_in_N\<^sub>0
+          bb]\<^sub>a (trail_assn)\<^sup>d *\<^sub>a
+                (arrayO_raa clause_ll_assn)\<^sup>k *\<^sub>a
+                nat_assn\<^sup>k *\<^sub>a
+                conflict_assn\<^sup>k *\<^sub>a
+                clauses_l_assn\<^sup>k *\<^sub>a
+                clauses_l_assn\<^sup>k *\<^sub>a
+                clause_l_assn\<^sup>k *\<^sub>a
+                (hr_comp (arrayO (arl_assn nat_assn))
+                  (\<langle>Id\<rangle>map_fun_rel
+                        ((\<lambda>L. (nat_of_lit L, L)) `
+                         set_mset N\<^sub>1)))\<^sup>k *\<^sub>a
+                CDCL_Two_Watched_Literals_List_Watched_Code.nat_lit_assn\<^sup>k \<rightarrow> trail_assn\<close>
+    (is \<open> _ \<in> [?Q]\<^sub>a  _ \<rightarrow> _\<close>)
+    using find_decomp_wl_imp'_code.refine[unfolded find_decomp_wl_imp'_def PR_CONST_def, FCOMP
+        find_decomp_wl_imp_find_decomp_wl'[unfolded find_decomp_wl_imp'_def]] .
+
+  have QP: \<open>?Q = ?P\<close>
+    by (auto intro!: ext)
+  show ?thesis
+    using H unfolding QP .
+qed
+
+sepref_thm backtrack_wl_D
+  is \<open>PR_CONST backtrack_wl_D\<close>
+  :: \<open>twl_st_l_trail_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_trail_assn\<close>
+  unfolding backtrack_wl_D_def PR_CONST_def
+  unfolding twl_st_l_trail_assn_def
+  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
+    append_ll_def[symmetric] (* lms_fold_custom_empty *)
+    cons_trail_Propagated_def[symmetric]
+  apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
+  apply (rewrite at \<open>(_, add_mset (add_mset _ \<hole>) _, _)\<close> lms_fold_custom_empty)
+  unfolding no_skip_def[symmetric] no_resolve_def[symmetric]
+    find_decomp_wl'_find_decomp_wl[symmetric] option.sel add_mset_list.simps
+  supply [[goals_limit=1]]
   by sepref
 
 end
