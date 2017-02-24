@@ -594,7 +594,7 @@ lemma is_decided_hd_trail_wll_hnr[unfolded twl_st_l_trail_assn_def, sepref_fr_ru
       pair_nat_ann_lit_assn_Decided_Some pair_nat_ann_lit_assn_Propagated_None trail_assn_Cons_Nil
       trail_assn_Cons_Propagated_None
       split: option.splits)+
-term get_level
+
 definition get_level_trail :: \<open>trail_int \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>get_level_trail = (\<lambda>(M, xs, k) L. snd (xs! (L div 2)))\<close>
 
@@ -634,57 +634,73 @@ proof -
   show ?thesis
     using H unfolding im pre f by simp
 qed
-  
- 
+
+lemma in_literals_are_in_N\<^sub>0_in_D\<^sub>0:
+  assumes \<open>literals_are_in_N\<^sub>0 D\<close> and \<open>L \<in># D\<close>
+  shows \<open>L \<in> snd ` D\<^sub>0\<close>
+  using assms
+  by (cases L) (auto simp: image_image literals_are_in_N\<^sub>0_def lits_of_atms_of_m_def) 
+
 sepref_definition  maximum_level_remove_code
   is \<open>uncurry2 (RETURN ooo maximum_level_remove)\<close>
   :: \<open>[\<lambda>((M, D), L). literals_are_in_N\<^sub>0 (mset D)]\<^sub>a trail_assn\<^sup>k *\<^sub>a (arl_assn nat_lit_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
   unfolding maximum_level_remove_def[abs_def]
-    apply sepref_dbg_keep
-    apply sepref_dbg_trans_keep
-                    apply sepref_dbg_trans_step_keep
-    defer
-                    apply sepref_dbg_trans_keep
-    defer
-                   apply sepref_dbg_trans_keep
-  defer
-    apply sepref_dbg_trans_keep
-    defer
-                   apply sepref_dbg_trans_keep
-    defer
-                   apply sepref_dbg_trans_keep
-    defer
-                   apply sepref_dbg_trans_keep
-    defer
-                   apply sepref_dbg_trans_keep
-    defer
-                   apply sepref_dbg_trans_keep
-    defer
-                   apply sepref_dbg_trans_keep
-    defer
-                   apply sepref_dbg_trans_keep
-    defer
-                   apply sepref_dbg_trans_keep
-    defer
-                   apply sepref_dbg_trans_keep
-    defer
-                   apply sepref_dbg_trans_keep
-    defer
-                   apply sepref_dbg_trans_keep
-    defer
-                   apply sepref_dbg_trans_keep
-    defer
-                   apply sepref_dbg_trans_keep
-    defer
-                   apply sepref_dbg_trans_keep
-    defer
-                   apply sepref_dbg_trans_keep
-    defer
-                   apply sepref_dbg_trans_keep
-                   apply sepref_dbg_trans_keep
-  unfolding CNV_def apply fast
-   apply (auto simp: bind_ref_tag_def image_image literals_are_in_N\<^sub>0_def)
- oops
+  supply in_literals_are_in_N\<^sub>0_in_D\<^sub>0[intro]
+  by sepref
+
+lemma maximum_level_remove_code_get_maximum_level_remove[sepref_fr_rules]:
+  \<open>(uncurry2 (maximum_level_remove_code),
+     uncurry2 (RETURN ooo get_maximum_level_remove)) \<in>
+    [\<lambda>((M, D), L). literals_are_in_N\<^sub>0 D]\<^sub>a 
+      trail_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have 1:
+  \<open>(uncurry2 (RETURN ooo maximum_level_remove),
+     uncurry2 (RETURN ooo get_maximum_level_remove)) \<in>
+    ((Id \<times>\<^sub>r list_mset_rel) \<times>\<^sub>r Id) \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+    by (auto intro!: nres_relI frefI simp: list_mset_rel_def br_def maximum_level_remove
+        get_maximum_level_remove_def)
+  have H: \<open>(uncurry2 local.maximum_level_remove_code,
+   uncurry2 (RETURN \<circ>\<circ>\<circ> get_maximum_level_remove))
+  \<in> [comp_PRE (Id \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id) (\<lambda>_. True)
+       (\<lambda>_ ((M, D), L). literals_are_in_N\<^sub>0 (mset D))
+       (\<lambda>_. True)]\<^sub>a hrp_comp
+                       (trail_assn\<^sup>k *\<^sub>a
+                        (arl_assn
+                          CDCL_Two_Watched_Literals_List_Watched_Code.nat_lit_assn)\<^sup>k *\<^sub>a
+                        CDCL_Two_Watched_Literals_List_Watched_Code.nat_lit_assn\<^sup>k)
+                       (Id \<times>\<^sub>f list_mset_rel \<times>\<^sub>f
+                        Id) \<rightarrow> hr_comp nat_assn nat_rel\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux [OF maximum_level_remove_code.refine 1] .
+  have 1: \<open>?pre' = ?pre\<close> -- \<open>TODO tune proof\<close>
+    apply (auto simp: comp_PRE_def 
+        list_mset_rel_def br_def
+        simp del: literal_of_nat.simps intro!: ext)
+    by (metis mset_sorted_list_of_multiset)
+
+  have 2: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp by (auto simp: hrp_comp_def hr_comp_def)
+  have 3: \<open>?f' = ?f\<close>
+    by (auto simp: hrp_comp_def hr_comp_def)
+
+  show ?thesis
+    using H unfolding 1 2 3  .
+qed
+
+lemma count_decided_trail_ref:
+  \<open>(RETURN o (\<lambda>(_, _, k). k), RETURN o count_decided) \<in> trail_ref \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) (auto simp: trail_ref_def)
+
+lemma count_decided_trail:
+   \<open>(return o (\<lambda>(_, _, k). k), RETURN o (\<lambda>(_, _, k). k)) \<in> trail_conc\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  supply [[goals_limit = 1]]
+  by sepref_to_hoare  sep_auto
+
+lemmas count_decided_trail_code[sepref_fr_rules] =
+   count_decided_trail[FCOMP count_decided_trail_ref, unfolded trail_assn_def[symmetric]]
+ 
 sepref_thm skip_and_resolve_loop_wl_D
   is \<open>PR_CONST skip_and_resolve_loop_wl_D\<close>
   :: \<open>twl_st_l_trail_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_trail_assn\<close>
@@ -701,11 +717,7 @@ sepref_thm skip_and_resolve_loop_wl_D
     maximum_level_remove[symmetric]
     Multiset.is_empty_def[symmetric]
     get_maximum_level_remove_def[symmetric]
-    supply [[goals_limit = 1]]
-    apply sepref_dbg_keep
-    apply sepref_dbg_trans_keep
-    apply sepref_dbg_trans_step_keep
-  oops
+  by sepref
 
 end
 end
