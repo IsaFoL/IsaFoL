@@ -1,1 +1,1 @@
-FOL_Berghofer
+First-Order Logic According to Berghofer
