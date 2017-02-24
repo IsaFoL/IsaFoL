@@ -2116,38 +2116,38 @@ lemma cdcl\<^sub>W_conflicting_S0_cdcl\<^sub>W_restart[simp]:
   "cdcl\<^sub>W_conflicting (init_state N)"
   unfolding cdcl\<^sub>W_conflicting_def by auto
 
-definition learned_clauses_entailed_by_init where
-  \<open>learned_clauses_entailed_by_init S \<longleftrightarrow> init_clss S \<Turnstile>psm learned_clss S\<close>
+definition cdcl\<^sub>W_learned_clauses_entailed_by_init where
+  \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S \<longleftrightarrow> init_clss S \<Turnstile>psm learned_clss S\<close>
 
-lemma learned_clauses_entailed_init[simp]:
-  \<open>learned_clauses_entailed_by_init (init_state N)\<close>
-  by (auto simp: learned_clauses_entailed_by_init_def)
+lemma cdcl\<^sub>W_learned_clauses_entailed_init[simp]:
+  \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init (init_state N)\<close>
+  by (auto simp: cdcl\<^sub>W_learned_clauses_entailed_by_init_def)
 
-lemma learned_clauses_entailed:
+lemma cdcl\<^sub>W_learned_clauses_entailed:
   assumes
     cdcl\<^sub>W_restart: "cdcl\<^sub>W_restart S S'" and
     2: "cdcl\<^sub>W_learned_clause S" and
-    9: \<open>learned_clauses_entailed_by_init S\<close>
-  shows \<open>learned_clauses_entailed_by_init S'\<close>
+    9: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
+  shows \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S'\<close>
     using cdcl\<^sub>W_restart 9
 proof (induction rule: cdcl\<^sub>W_restart_all_induct)
   case backtrack
   then show ?case
-    using assms unfolding cdcl\<^sub>W_learned_clause_def learned_clauses_entailed_by_init_def
+    using assms unfolding cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_learned_clauses_entailed_by_init_def
     by (auto dest!: get_all_ann_decomposition_exists_prepend
       simp: clauses_def cdcl\<^sub>W_M_level_inv_decomp dest: true_clss_clss_left_right)
-qed (auto simp: learned_clauses_entailed_by_init_def elim: true_clss_clssm_subsetE)
+qed (auto simp: cdcl\<^sub>W_learned_clauses_entailed_by_init_def elim: true_clss_clssm_subsetE)
 
-lemma rtranclp_learned_clauses_entailed:
+lemma rtranclp_cdcl\<^sub>W_learned_clauses_entailed:
   assumes
     cdcl\<^sub>W_restart: "cdcl\<^sub>W_restart\<^sup>*\<^sup>* S S'" and
     2: "cdcl\<^sub>W_learned_clause S" and
     4: "cdcl\<^sub>W_M_level_inv S" and
-    9: \<open>learned_clauses_entailed_by_init S\<close>
-  shows \<open>learned_clauses_entailed_by_init S'\<close>
+    9: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
+  shows \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S'\<close>
   using assms apply (induction rule: rtranclp_induct)
    apply simp
-  using learned_clauses_entailed rtranclp_cdcl\<^sub>W_restart_learned_clss by blast
+  using cdcl\<^sub>W_learned_clauses_entailed rtranclp_cdcl\<^sub>W_restart_learned_clss by blast
 
 
 subsubsection \<open>Putting all the Invariants Together\<close>
@@ -2305,20 +2305,20 @@ lemma conflict_with_false_implies_unsat:
     lev: "cdcl\<^sub>W_M_level_inv S" and
     [simp]: "conflicting S' = Some {#}" and
     learned: "cdcl\<^sub>W_learned_clause S" and
-    learned_entailed: \<open>learned_clauses_entailed_by_init S\<close>
+    learned_entailed: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
   shows "unsatisfiable (set_mset (clauses S))"
   using assms
 proof -
   have "cdcl\<^sub>W_learned_clause S'" using cdcl\<^sub>W_restart_learned_clss cdcl\<^sub>W_restart learned lev by auto
   then have "clauses S' \<Turnstile>pm {#}" using assms(3) unfolding cdcl\<^sub>W_learned_clause_def by auto
-  moreover have \<open>learned_clauses_entailed_by_init S'\<close>
-    using learned_clauses_entailed[OF cdcl\<^sub>W_restart learned learned_entailed] .
+  moreover have \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S'\<close>
+    using cdcl\<^sub>W_learned_clauses_entailed[OF cdcl\<^sub>W_restart learned learned_entailed] .
   then have "clauses S \<Turnstile>pm {#}"
   proof -
     have "set_mset (init_clss S') \<union> set_mset (learned_clss S') \<Turnstile>ps {{#}}"
       by (metis (no_types) calculation clauses_def set_mset_union true_clss_clss_true_clss_cls) (* 30 ms *)
     then have "set_mset (init_clss S') \<Turnstile>ps {{#}}"
-      using \<open>learned_clauses_entailed_by_init S'\<close> learned_clauses_entailed_by_init_def true_clss_clss_left_right by blast (* 3 ms *)
+      using \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S'\<close> cdcl\<^sub>W_learned_clauses_entailed_by_init_def true_clss_clss_left_right by blast (* 3 ms *)
     then show ?thesis
       by (simp add: cdcl\<^sub>W_restart_init_clss[OF assms(1)] clauses_def) (* 8 ms *)
   qed
@@ -2865,7 +2865,7 @@ lemma cdcl\<^sub>W_stgy_final_state_conclusive:
     no_dup: "distinct_cdcl\<^sub>W_state S" and
     confl: "cdcl\<^sub>W_conflicting S" and
     confl_k: "conflict_is_false_with_level S" and
-    learned_entailed: \<open>learned_clauses_entailed_by_init S\<close>
+    learned_entailed: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
   shows "(conflicting S = Some {#} \<and> unsatisfiable (set_mset (init_clss S)))
          \<or> (conflicting S = None \<and> trail S \<Turnstile>as set_mset (init_clss S))"
 proof -
@@ -2897,7 +2897,7 @@ proof -
           by auto
         have "init_clss S \<Turnstile>psm learned_clss S"
           using learned_entailed
-          unfolding cdcl\<^sub>W_learned_clause_def learned_clauses_entailed_by_init_def by blast
+          unfolding cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_learned_clauses_entailed_by_init_def by blast
         then show ?thesis
           using f3 unsat_clss_S
           unfolding true_clss_clss_def total_over_m_def clauses_def satisfiable_def
@@ -3604,8 +3604,8 @@ proof -
     unfolding rtranclp_unfold by auto
   have confl_k: "conflict_is_false_with_level S'"
     using rtranclp_cdcl\<^sub>W_stgy_no_smaller_confl_inv[OF step] no_d by auto
-  have learned_entailed: \<open>learned_clauses_entailed_by_init S'\<close>
-    using rtranclp_learned_clauses_entailed[of \<open>?S\<close> \<open>S'\<close>] step
+  have learned_entailed: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S'\<close>
+    using rtranclp_cdcl\<^sub>W_learned_clauses_entailed[of \<open>?S\<close> \<open>S'\<close>] step
     by (simp add: rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart)
 
   show ?thesis
@@ -3794,7 +3794,7 @@ lemma full_cdcl\<^sub>W_stgy_inv_normal_form:
     full: "full cdcl\<^sub>W_stgy S T" and
     inv_s: "cdcl\<^sub>W_stgy_invariant S" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
-    learned_entailed: \<open>learned_clauses_entailed_by_init S\<close>
+    learned_entailed: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
   shows "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss S))
     \<or> conflicting T = None \<and> trail T \<Turnstile>asm init_clss S \<and> satisfiable (set_mset (init_clss S))"
 proof -
@@ -3804,9 +3804,9 @@ proof -
     apply (metis rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart full full_def inv
       rtranclp_cdcl\<^sub>W_all_struct_inv_inv)
     by (metis full full_def inv inv_s rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant)
-  moreover have \<open>learned_clauses_entailed_by_init T\<close>
+  moreover have \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init T\<close>
     using inv learned_entailed unfolding cdcl\<^sub>W_all_struct_inv_def
-    using rtranclp_learned_clauses_entailed rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart[OF st]
+    using rtranclp_cdcl\<^sub>W_learned_clauses_entailed rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart[OF st]
     by blast
   ultimately have "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss T))
     \<or> conflicting T = None \<and> trail T \<Turnstile>asm init_clss T"

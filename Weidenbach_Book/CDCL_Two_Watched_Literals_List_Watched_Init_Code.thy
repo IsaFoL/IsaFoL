@@ -1063,13 +1063,13 @@ lemma true_clss_clss_CNot_true_clss_cls_unsatisfiable:
 
 context conflict_driven_clause_learning\<^sub>W
 begin
-text \<open>TODO rename @{thm learned_clauses_entailed} (add @{text cdcl\<^sub>W} in name)\<close>
-lemma rtranclp_cdcl\<^sub>W_learned_clauses_entailed:
+text \<open>TODO rename @{thm cdcl\<^sub>W_learned_clauses_entailed} (add @{text cdcl\<^sub>W} in name)\<close>
+lemma rtranclp_cdcl\<^sub>W_restart_learned_clauses_entailed:
   assumes
     \<open>cdcl\<^sub>W_restart\<^sup>*\<^sup>* S T\<close> and
     \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
-    \<open>learned_clauses_entailed_by_init S\<close>
-  shows \<open>learned_clauses_entailed_by_init T\<close>
+    \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
+  shows \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init T\<close>
   using assms(1)
 proof (induction)
   case base
@@ -1081,16 +1081,16 @@ next
   then have l: \<open>cdcl\<^sub>W_learned_clause T\<close>
     by (auto simp: cdcl\<^sub>W_all_struct_inv_def)
   from TU l learned show ?case
-    by (rule learned_clauses_entailed[OF ])
+    by (rule cdcl\<^sub>W_learned_clauses_entailed)
 qed
 
 lemma rtranclp_cdcl\<^sub>W_stgy_learned_clauses_entailed:
   assumes
     \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T\<close> and
     \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
-    \<open>learned_clauses_entailed_by_init S\<close>
-  shows \<open>learned_clauses_entailed_by_init T\<close>
-  using assms rtranclp_cdcl\<^sub>W_learned_clauses_entailed rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart
+    \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
+  shows \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init T\<close>
+  using assms rtranclp_cdcl\<^sub>W_restart_learned_clauses_entailed rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart
   by blast
 end
 
@@ -1099,7 +1099,7 @@ lemma conflict_of_level_unsatisfiable:
     struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv S\<close> and
     dec: \<open>count_decided (trail S) = 0\<close> and
     confl: \<open>conflicting S \<noteq> None\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init S\<close>
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
   shows \<open>unsatisfiable (set_mset (cdcl\<^sub>W_restart_mset.clauses S))\<close>
 proof -
 
@@ -1118,7 +1118,7 @@ proof -
     using assms
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def all_decomposition_implies_def
         cdcl\<^sub>W_restart_mset_state S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-        cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
   have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close>
     by (rule true_clss_clss_true_clss_cls_true_clss_clss[OF N_U_M M_D])
@@ -1156,7 +1156,7 @@ proof -
         cdcl\<^sub>W_restart_mset.full_cdcl\<^sub>W_stgy_inv_normal_form[of \<open>init_state CS\<close>]
       by (auto intro!: le_SPEC_bindI simp: SPEC_RETURN_RES clauses_def
           cdcl\<^sub>W_restart_mset_state init_state_def
-          cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
           dest: conflict_of_level_unsatisfiable) blast
     done
 qed

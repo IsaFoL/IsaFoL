@@ -876,24 +876,24 @@ lemma
       CDCL_W_Abstract_State.init_clss (abs_state S)\<close>
   by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
 
-lemma cdcl_opt_stgy_learned_clauses_entailed_by_init:
+lemma cdcl_opt_stgy_cdcl\<^sub>W_learned_clauses_entailed_by_init:
   assumes
     \<open>cdcl_opt_stgy S T\<close> and
-    entailed: \<open>cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init (abs_state S)\<close> and
+    entailed: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (abs_state S)\<close> and
     all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
-  shows \<open>cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init (abs_state T)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (abs_state T)\<close>
   using assms(1)
 proof (induction rule: cdcl_opt_stgy.cases)
   case (cdcl_opt_conflict S')
   then show ?case
     using entailed
-    by (auto simp: cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init_def
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
         elim!: conflictE)
 next
   case (cdcl_opt_propagate S')
   then show ?case
     using entailed
-    by (auto simp: cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init_def
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
         elim!: propagateE)
 next
   case (cdcl_opt_improve S')
@@ -904,7 +904,7 @@ next
     by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
   ultimately show ?case (* TODO proof. *)
     using entailed
-    apply (auto simp: cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init_def
+    apply (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
         elim!: improveE)
     apply (rule true_clss_clss_subset; simp)
     done
@@ -912,12 +912,12 @@ next
   case (cdcl_opt_conflict_opt S')
   then show ?case
     using entailed
-    by (auto simp: cdcl\<^sub>W_restart_mset.learned_clauses_entailed_by_init_def
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
         elim!: conflict_optE)
 next
   case (cdcl_opt_other' S') note T = this(1) and o = this(2) and no_cpio = this(3)
   show ?case
-    apply (rule cdcl\<^sub>W_restart_mset.learned_clauses_entailed[of \<open>abs_state S\<close>])
+    apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed[of \<open>abs_state S\<close>])
     subgoal
       using o unfolding T by (blast dest: cdcl\<^sub>W_o_cdcl\<^sub>W_o cdcl\<^sub>W_restart_mset.other)
     subgoal using all_struct unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast

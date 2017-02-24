@@ -519,11 +519,11 @@ lemma incremental_cdcl\<^sub>W_restart_inv:
     inc: "incremental_cdcl\<^sub>W_restart S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
     s_inv: "cdcl\<^sub>W_stgy_invariant S" and
-    learned_entailed: \<open>learned_clauses_entailed_by_init S\<close>
+    learned_entailed: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
   shows
     "cdcl\<^sub>W_all_struct_inv T" and
     "cdcl\<^sub>W_stgy_invariant T" and
-    learned_entailed: \<open>learned_clauses_entailed_by_init T\<close>
+    learned_entailed: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init T\<close>
   using inc
 proof (induction)
   case (add_confl C T)
@@ -545,9 +545,9 @@ proof (induction)
       rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant)
 
   case 3 show ?case
-    using learned_entailed rtranclp_learned_clauses_entailed[of ?T T]  add_confl inv'
+    using learned_entailed rtranclp_cdcl\<^sub>W_learned_clauses_entailed[of ?T T]  add_confl inv'
     unfolding cdcl\<^sub>W_all_struct_inv_def full_def
-    by (auto simp: learned_clauses_entailed_by_init_def
+    by (auto simp: cdcl\<^sub>W_learned_clauses_entailed_by_init_def
         dest!: rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart)
 next
   case (add_no_confl C T)
@@ -574,12 +574,12 @@ next
       rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant)
 
   case 3
-  have \<open>learned_clauses_entailed_by_init (add_init_cls C S)\<close>
-    using learned_entailed by (auto simp: learned_clauses_entailed_by_init_def)
+  have \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init (add_init_cls C S)\<close>
+    using learned_entailed by (auto simp: cdcl\<^sub>W_learned_clauses_entailed_by_init_def)
   then show ?case
-    using add_no_confl(5) learned_entailed rtranclp_learned_clauses_entailed[of _ T]  add_confl inv'
+    using add_no_confl(5) learned_entailed rtranclp_cdcl\<^sub>W_learned_clauses_entailed[of _ T]  add_confl inv'
     unfolding cdcl\<^sub>W_all_struct_inv_def full_def
-    by (auto simp: learned_clauses_entailed_by_init_def
+    by (auto simp: cdcl\<^sub>W_learned_clauses_entailed_by_init_def
         dest!: rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart)
 qed
 
@@ -588,11 +588,11 @@ lemma rtranclp_incremental_cdcl\<^sub>W_restart_inv:
     inc: "incremental_cdcl\<^sub>W_restart\<^sup>*\<^sup>* S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
     s_inv: "cdcl\<^sub>W_stgy_invariant S" and
-    learned_entailed: \<open>learned_clauses_entailed_by_init S\<close>
+    learned_entailed: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
   shows
     "cdcl\<^sub>W_all_struct_inv T" and
     "cdcl\<^sub>W_stgy_invariant T" and
-    \<open>learned_clauses_entailed_by_init T\<close>
+    \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init T\<close>
      using inc apply induction
     using inv apply simp
    using s_inv apply simp
@@ -604,7 +604,7 @@ lemma incremental_conclusive_state:
     inc: "incremental_cdcl\<^sub>W_restart S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
     s_inv: "cdcl\<^sub>W_stgy_invariant S" and
-    learned_entailed: \<open>learned_clauses_entailed_by_init S\<close>
+    learned_entailed: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
   shows "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss T))
     \<or> conflicting T = None \<and> trail T \<Turnstile>asm init_clss T \<and> satisfiable (set_mset (init_clss T))"
   using inc
@@ -636,7 +636,7 @@ lemma tranclp_incremental_correct:
     inc: "incremental_cdcl\<^sub>W_restart\<^sup>+\<^sup>+ S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
     s_inv: "cdcl\<^sub>W_stgy_invariant S" and
-    learned_entailed: \<open>learned_clauses_entailed_by_init S\<close>
+    learned_entailed: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
   shows "conflicting T = Some {#} \<and> unsatisfiable (set_mset (init_clss T))
     \<or> conflicting T = None \<and> trail T \<Turnstile>asm init_clss T \<and> satisfiable (set_mset (init_clss T))"
   using inc apply induction
