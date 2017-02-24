@@ -16,7 +16,8 @@ type_synonym trail_assn = \<open>(nat \<times> nat option) list \<times> bool op
 definition trail_ref :: \<open>(trail_int \<times> (nat, nat) ann_lits) set\<close> where
   \<open>trail_ref = {((M', xs, k), M). M = M' \<and> no_dup M \<and>
     (\<forall>L \<in># N\<^sub>1. atm_of L < length xs \<and> xs ! (atm_of L) = valued_atm_on_trail M (atm_of L)) \<and>
-    k = count_decided M}\<close>
+    k = count_decided M \<and>
+    (\<forall>L\<in>set M. lit_of L \<in># N\<^sub>1)}\<close>
 
 abbreviation trail_conc :: \<open>trail_int \<Rightarrow> trail_assn \<Rightarrow> assn\<close> where
   \<open>trail_conc \<equiv> pair_nat_ann_lits_assn *assn array_assn (option_assn bool_assn) *assn nat_assn\<close>
@@ -128,6 +129,63 @@ proof -
     by (auto simp: trail_assn_def hrp_comp_def hr_comp_def)
   show ?thesis
     using H unfolding im pre f .
+qed
+
+definition tl_trail_tr :: \<open>trail_int \<Rightarrow> trail_int\<close> where
+  \<open>tl_trail_tr = (\<lambda>(M', xs, k). (tl M', xs[atm_of (lit_of (hd M')) := None],
+    if is_decided (hd M') then k-1 else k))\<close>
+
+lemma tl_trail_tr:
+  \<open>((RETURN o tl_trail_tr), (RETURN o tl)) \<in>
+    [\<lambda>M. M \<noteq> []]\<^sub>f trail_ref \<rightarrow> \<langle>trail_ref\<rangle>nres_rel\<close>
+proof -
+  have [iff]: \<open>is_proped L \<longleftrightarrow> \<not>is_decided L\<close> for L
+    by (cases L) auto
+  show ?thesis -- \<open>TODO tune proof\<close>
+    apply (intro frefI nres_relI, rename_tac x y, case_tac \<open>y\<close>)
+     apply  (auto simp: trail_ref_def valued_atm_on_trail_def tl_trail_tr_def
+        Decided_Propagated_in_iff_in_lits_of_l nth_list_update'
+        eq_commute[of _ \<open>lit_of _\<close>]
+        dest: no_dup_consistentD)
+     apply (metis literal.exhaust_sel uminus_Pos)
+    apply (metis literal.exhaust_sel uminus_Neg)
+    done
+qed
+
+sepref_definition tl_trail_tr_code
+  is \<open>RETURN o tl_trail_tr\<close>
+  :: \<open>[\<lambda>(M, xs, k). M \<noteq> [] \<and> atm_of (lit_of (hd M)) < length xs]\<^sub>a trail_conc\<^sup>d \<rightarrow> trail_conc\<close>
+  unfolding tl_trail_tr_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+lemma tl_trail_tr_code_op_list_tl[sepref_fr_rules]:
+  \<open>(tl_trail_tr_code, (RETURN o op_list_tl)) \<in>
+    [\<lambda>M. M \<noteq> []]\<^sub>a trail_assn\<^sup>d \<rightarrow> trail_assn\<close>
+    (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>(tl_trail_tr_code, RETURN \<circ> tl)  \<in> [comp_PRE trail_ref (\<lambda>M. M \<noteq> [])
+       (\<lambda>_ (M, xs, k). M \<noteq> [] \<and> atm_of (lit_of (hd M)) < length xs)
+       (\<lambda>_. True)]\<^sub>a hrp_comp
+                       ((pair_nat_ann_lits_assn *assn
+                         array_assn (option_assn bool_assn) *assn
+                         nat_assn)\<^sup>d)
+                       trail_ref \<rightarrow> hr_comp
+                                     (pair_nat_ann_lits_assn *assn
+array_assn (option_assn bool_assn) *assn nat_assn)
+                                     trail_ref\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF tl_trail_tr_code.refine tl_trail_tr] .
+  have pre: \<open>?pre' = ?pre\<close>
+    by (auto simp: comp_PRE_def trail_ref_def intro!: ext)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: trail_assn_def hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: trail_assn_def hrp_comp_def hr_comp_def)
+  show ?thesis
+    using H unfolding im pre f by simp
 qed
 
 type_synonym twl_st_wll_trail =
@@ -424,6 +482,149 @@ prepare_code_thms (in -) unit_propagation_outer_loop_wl_D_code_def
 
 lemmas unit_propagation_outer_loop_wl_D_code_refine[sepref_fr_rules] =
    unit_propagation_outer_loop_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+
+sepref_thm get_conflict_wll_is_Nil_code
+  is \<open>(PR_CONST get_conflict_wll_is_Nil)\<close>
+  :: \<open>twl_st_l_trail_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  supply [[goals_limit=1]]
+  apply (subst PR_CONST_def)
+  unfolding get_conflict_wll_is_Nil_def twl_st_l_trail_assn_def
+    pending_wl_pending_wl_empty
+    short_circuit_conv the_is_empty_def[symmetric]
+  by sepref
+
+concrete_definition (in -) get_conflict_wll_is_Nil_code
+   uses twl_array_code.get_conflict_wll_is_Nil_code.refine_raw
+   is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) get_conflict_wll_is_Nil_code_def
+
+lemmas get_conflict_wll_is_Nil_code[sepref_fr_rules] =
+  get_conflict_wll_is_Nil_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def,
+    FCOMP get_conflict_wll_is_Nil_get_conflict_wl_is_Nil]
+
+
+lemma get_conflict_wll_is_Nil_hnr[unfolded twl_st_l_assn_def, sepref_fr_rules]:
+  \<open>(get_conflict_wll_is_Nil_code, RETURN o get_conflict_wl_is_Nil) \<in>
+     twl_st_l_trail_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  apply sepref_to_hoare
+  apply (rename_tac S' S)
+  apply (case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). D) S\<close>;
+      case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). D) S'\<close>)
+  by (sep_auto simp: twl_st_l_trail_assn_def get_conflict_wl_is_Nil_def get_conflict_wll_is_Nil_def
+      Multiset.is_empty_def Nil_list_mset_rel_iff empty_list_mset_rel_iff
+      get_conflict_wll_is_Nil_code_def
+      list_mset_assn_empty_Cons list_mset_assn_add_mset_Nil arl_assn_def hr_comp_def null_def)+
+
+lemma hd_trail[sepref_fr_rules]:
+  \<open>(return o hd o fst, RETURN o op_list_hd) \<in> [\<lambda>M. M \<noteq> []]\<^sub>a trail_assn\<^sup>k \<rightarrow> pair_nat_ann_lit_assn\<close>
+  apply sepref_to_hoare
+  apply (case_tac x)
+   apply auto
+  apply (case_tac a)
+   apply (sep_auto simp: trail_assn_def hr_comp_def trail_ref_def eq_commute[of _ \<open>hd _\<close>]
+      mod_star_conv pure_app_eq)+
+  done
+
+sepref_thm is_decided_hd_trail_wll_code
+  is \<open>is_decided_hd_trail_wll\<close>
+  :: \<open>[\<lambda>S. get_trail_wl S \<noteq> []]\<^sub>a twl_st_l_trail_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  unfolding is_decided_hd_trail_wll_def twl_st_l_trail_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) is_decided_hd_trail_wll_code
+   uses twl_array_code.is_decided_hd_trail_wll_code.refine_raw
+   is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) is_decided_hd_trail_wll_code_def
+
+lemmas is_decided_hd_trail_wll_code_refine[sepref_fr_rules] =
+   is_decided_hd_trail_wll_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+
+text \<open>Splitting in \<open>\<exists>\<^sub>A\<close> does not seem to work, leading to splitting by hand:\<close>
+lemma
+  trail_assn_Cons_Nil: \<open>trail_assn (a # list) ([], ah, ba) = false\<close> and
+  trail_assn_Cons_Decided_Some: \<open>trail_assn (Decided x1 # list) ((aba, Some x2) # list', ah, ba) = false\<close> and
+  trail_assn_Cons_Propagated_None:
+    \<open>trail_assn (Propagated x21 x22 # list) ((aba, None) # list', ah, ba) = false\<close>
+proof -
+  have [simp]: \<open>(case b of (a, b, c) \<Rightarrow> P a b c) = P (fst b) (fst (snd b)) (snd (snd b))\<close> for P b
+    by (cases b) auto
+  have [simp]: \<open>(pair_nat_ann_lits_assn *assn
+            array_assn (option_assn bool_assn) *assn nat_assn) b (a, ah, ba) = (pair_nat_ann_lits_assn *assn
+            array_assn (option_assn bool_assn) *assn nat_assn) (fst b, fst (snd b), snd (snd b)) (a, ah, ba)\<close>
+    for f b a
+    by (cases b) auto
+  have [simp]: \<open>(fst b = [] \<and> fst b = a # list \<and> P) \<longleftrightarrow> False\<close> for b P
+    by auto
+  show \<open>trail_assn (a # list) ([], ah, ba) = false\<close>
+    by (sep_auto simp: trail_assn_def hr_comp_def trail_ref_def eq_commute[of _ \<open>fst _\<close>]
+        simp del: prod.collapse)
+  have H: \<open>(\<exists>\<^sub>A b. f (fst b) * P b * \<up>(fst b = a \<and> Q b)) = (\<exists>\<^sub>A b. f a * P b * \<up>(fst b = a \<and> Q b))\<close> for f P Q a
+  proof -
+    { fix pp
+      have "fst pp = a \<longrightarrow> f (fst pp) * P pp * \<up> (fst pp = a \<and> Q pp) = f a * P pp * \<up> (fst pp = a \<and> Q pp)"
+        by meson
+      then have "f (fst pp) * P pp * \<up> (fst pp = a \<and> Q pp) = f a * P pp * \<up> (fst pp = a \<and> Q pp)"
+        by force }
+    then show ?thesis
+      by auto
+  qed
+  have [simp]: \<open>pair_nat_ann_lit_assn (Decided x1) (aba, Some x2) = false\<close> and
+    [simp]: \<open>pair_nat_ann_lit_assn (Propagated x21 x22) (aba, None) = false\<close>
+    by (auto simp: nat_ann_lit_rel_def pure_def)
+
+  show \<open>trail_assn (Decided x1 # list) ((aba, Some x2) # list', ah, ba) = false\<close>
+    apply (sep_auto simp: trail_assn_def hr_comp_def trail_ref_def eq_commute[of _ \<open>fst _\<close>]
+        simp del: prod.collapse)
+    apply (subst H)
+    by (sep_auto simp: trail_assn_def hr_comp_def trail_ref_def eq_commute[of _ \<open>fst _\<close>]
+        simp del: prod.collapse)
+  show \<open>trail_assn (Propagated x21 x22 # list) ((aba, None) # list', ah, ba) = false\<close>
+    apply (sep_auto simp: trail_assn_def hr_comp_def trail_ref_def eq_commute[of _ \<open>fst _\<close>]
+        simp del: prod.collapse)
+    apply (subst H)
+    by (sep_auto simp: trail_assn_def hr_comp_def trail_ref_def eq_commute[of _ \<open>fst _\<close>]
+        simp del: prod.collapse)
+qed
+
+lemma is_decided_hd_trail_wll_hnr[unfolded twl_st_l_trail_assn_def, sepref_fr_rules]:
+  \<open>(is_decided_hd_trail_wll_code, RETURN o is_decided_hd_trail_wl) \<in> [\<lambda>(M, _). M \<noteq> []]\<^sub>atwl_st_l_trail_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  apply sepref_to_hoare
+  unfolding is_decided_hd_trail_wl_def is_decided_wl_code_def is_decided_hd_trail_wll_code_def
+  apply (rename_tac S' S)
+  apply (case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). fst M) S\<close>;
+      case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). M) S'\<close>;
+     case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). hd (fst M)) S\<close>;
+     case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). hd M) S'\<close>)
+  by (sep_auto simp: twl_st_l_trail_assn_def is_decided_hd_trail_wll_code_def is_decided_hd_trail_wl_def
+      list_mset_assn_empty_Cons list_mset_assn_add_mset_Nil hr_comp_def null_def trail_assn_Cons_Decided_Some
+      pair_nat_ann_lit_assn_Decided_Some pair_nat_ann_lit_assn_Propagated_None trail_assn_Cons_Nil
+      trail_assn_Cons_Propagated_None
+      split: option.splits)+
+
+sepref_thm skip_and_resolve_loop_wl_D
+  is \<open>PR_CONST skip_and_resolve_loop_wl_D\<close>
+  :: \<open>twl_st_l_trail_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_trail_assn\<close>
+  supply [[goals_limit=1]]
+  apply (subst PR_CONST_def)
+  unfolding skip_and_resolve_loop_wl_D_def
+  apply (rewrite at \<open>\<not>_ \<and> \<not> _\<close> short_circuit_conv)
+  apply (rewrite at \<open>If _ \<hole> _\<close> op_mset_arl_empty_def[symmetric])
+  unfolding twl_st_l_trail_assn_def
+    pending_wl_pending_wl_empty
+    get_conflict_wl.simps get_trail_wl.simps get_conflict_wl_get_conflict_wl_is_Nil
+    is_decided_hd_trail_wl_def[symmetric]
+    skip_and_resolve_loop_inv_def
+    maximum_level_remove[symmetric]
+    Multiset.is_empty_def[symmetric]
+    get_maximum_level_remove_def[symmetric]
+    supply [[goals_limit = 1]]
+    apply sepref_dbg_keep
+    apply sepref_dbg_trans_keep
+    apply sepref_dbg_trans_step_keep
+  oops
 
 end
 end
