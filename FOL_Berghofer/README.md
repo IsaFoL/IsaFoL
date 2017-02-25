@@ -1,8 +1,8 @@
-# First-Order Logic According to Monk #
+# First-Order Logic According to Berghofer #
 
-[This directory](https://bitbucket.org/isafol/isafol/src/master/FOL_Berghofer/) contains an ongoing Isabelle formalization
-of first-order logic based on Stefan Berghoferâ€™s [AFP entry](https://www.isa-afp.org/entries/FOL_Fitting.shtml).
+[This directory](https://bitbucket.org/isafol/isafol/src/master/FOL_Berghofer/) contains an ongoing Isabelle formalization of
+first-order logic based on Stefan Berghofer’s [AFP entry](https://www.isa-afp.org/entries/FOL-Fitting.shtml).
 
 ## Author ##
 
-* [Andreas HalkjÃ¦r From](mailto:s144442 shtrudel student.dtu.dk)
+* [Andreas Halkjær From](mailto:s144442 shtrudel student.dtu.dk)
