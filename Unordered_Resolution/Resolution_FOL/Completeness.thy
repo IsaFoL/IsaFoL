@@ -32,10 +32,8 @@ proof -
     using appl project_sub unfolding applicable_def by metis
   let ?C\<^sub>1 = "C - L"
 
-  from \<eta>_p have "\<exists>M \<subseteq> D. M \<cdot>\<^sub>l\<^sub>s \<eta> = M' \<and> (D - M) \<cdot>\<^sub>l\<^sub>s \<eta> = ?D'\<^sub>1" 
-    using appl project_sub unfolding applicable_def by auto
-  then obtain M where M_p: "M \<subseteq> D \<and> M \<cdot>\<^sub>l\<^sub>s \<eta> = M' \<and> (D - M) \<cdot>\<^sub>l\<^sub>s \<eta> = ?D'\<^sub>1" 
-    by auto
+  from \<eta>_p obtain M where M_p: "M \<subseteq> D \<and> M \<cdot>\<^sub>l\<^sub>s \<eta> = M' \<and> (D - M) \<cdot>\<^sub>l\<^sub>s \<eta> = ?D'\<^sub>1" 
+    using appl project_sub unfolding applicable_def by metis
   let ?D\<^sub>1 = "D - M"
 
   from appl have "mgu\<^sub>l\<^sub>s \<sigma> (L' \<union> M'\<^sup>C)" 
@@ -68,7 +66,6 @@ proof -
     unfolding resolution_def instance_of\<^sub>l\<^sub>s_def by blast
 
   -- {* Showing that the rule resolution is applicable: *}
-  
   have "C' \<noteq> {} \<and> D' \<noteq> {} \<and> L' \<noteq> {} \<and> M' \<noteq> {}" 
     using appl  unfolding applicable_def by auto
   then have "C \<noteq> {} \<and> D \<noteq> {} \<and> L \<noteq> {} \<and> M \<noteq> {}"
