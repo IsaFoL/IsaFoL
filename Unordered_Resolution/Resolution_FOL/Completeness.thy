@@ -68,28 +68,12 @@ proof -
     unfolding resolution_def instance_of\<^sub>l\<^sub>s_def by blast
 
   -- {* Showing that the rule resolution is applicable: *}
-  {
-    have "C' \<noteq> {}" 
-      using appl unfolding applicable_def by auto
-    then have "C \<noteq> {}" 
-      using \<eta>_p by auto
-  } moreover {
-    have "D' \<noteq> {}" 
-      using appl unfolding applicable_def by auto
-    then have "D \<noteq> {}" 
-      using \<eta>_p by auto
-  } moreover {
-    have "L' \<noteq> {}" 
-      using appl unfolding applicable_def by auto
-    then have "L \<noteq> {}" 
-      using L_p by auto
-  } moreover {
-    have "M' \<noteq> {}" 
-      using appl unfolding applicable_def by auto
-    then have "M \<noteq> {}" 
-      using M_p by auto
-  }
-  ultimately have appll: "applicable C D L M \<tau>" 
+  
+  have "C' \<noteq> {} \<and> D' \<noteq> {} \<and> L' \<noteq> {} \<and> M' \<noteq> {}" 
+    using appl  unfolding applicable_def by auto
+  then have "C \<noteq> {} \<and> D \<noteq> {} \<and> L \<noteq> {} \<and> M \<noteq> {}"
+    using \<eta>_p L_p M_p by auto
+  then have appll: "applicable C D L M \<tau>" 
     using apart L_p M_p \<tau>_p unfolding applicable_def by auto
 
   from inst appll show ?thesis by auto
