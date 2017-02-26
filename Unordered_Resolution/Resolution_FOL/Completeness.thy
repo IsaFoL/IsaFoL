@@ -35,14 +35,10 @@ proof -
     using appl project_sub unfolding applicable_def by metis
   let ?D\<^sub>1 = "D - M"
 
-  from appl have "mgu\<^sub>l\<^sub>s \<sigma> (L' \<union> M'\<^sup>C)" 
-    unfolding applicable_def by auto
-  then have "mgu\<^sub>l\<^sub>s \<sigma> ((L \<cdot>\<^sub>l\<^sub>s \<eta>) \<union> (M \<cdot>\<^sub>l\<^sub>s \<eta>)\<^sup>C)" 
-    using L_p M_p by auto
-  then have "mgu\<^sub>l\<^sub>s \<sigma> ((L  \<union> M\<^sup>C) \<cdot>\<^sub>l\<^sub>s \<eta>)" 
-    using compls_subls subls_union by auto
-  then have "unifier\<^sub>l\<^sub>s \<sigma> ((L  \<union> M\<^sup>C) \<cdot>\<^sub>l\<^sub>s \<eta>)" 
-    unfolding mgu\<^sub>l\<^sub>s_def by auto
+  from appl have "mgu\<^sub>l\<^sub>s \<sigma> (L' \<union> M'\<^sup>C)" unfolding applicable_def by auto
+  then have "mgu\<^sub>l\<^sub>s \<sigma> ((L \<cdot>\<^sub>l\<^sub>s \<eta>) \<union> (M \<cdot>\<^sub>l\<^sub>s \<eta>)\<^sup>C)" using L_p M_p by auto
+  then have "mgu\<^sub>l\<^sub>s \<sigma> ((L  \<union> M\<^sup>C) \<cdot>\<^sub>l\<^sub>s \<eta>)" using compls_subls subls_union by auto
+  then have "unifier\<^sub>l\<^sub>s \<sigma> ((L  \<union> M\<^sup>C) \<cdot>\<^sub>l\<^sub>s \<eta>)" unfolding mgu\<^sub>l\<^sub>s_def by auto
   then have \<eta>\<sigma>uni: "unifier\<^sub>l\<^sub>s (\<eta> \<cdot> \<sigma>) (L  \<union> M\<^sup>C)" 
     unfolding unifier\<^sub>l\<^sub>s_def using composition_conseq2l by auto
   then obtain \<tau> where \<tau>_p: "mgu\<^sub>l\<^sub>s \<tau> (L  \<union> M\<^sup>C)" 
@@ -54,27 +50,22 @@ proof -
   let ?E = "((C - L)  \<union> (D - M)) \<cdot>\<^sub>l\<^sub>s \<tau>"
   have "?E \<cdot>\<^sub>l\<^sub>s \<phi>  = (?C\<^sub>1 \<union> ?D\<^sub>1 ) \<cdot>\<^sub>l\<^sub>s (\<tau> \<cdot> \<phi>)" 
     using subls_union composition_conseq2ls by auto
-  also have "... = (?C\<^sub>1 \<union> ?D\<^sub>1 ) \<cdot>\<^sub>l\<^sub>s (\<eta> \<cdot> \<sigma>)" 
-    using \<phi>_p by auto
+  also have "... = (?C\<^sub>1 \<union> ?D\<^sub>1 ) \<cdot>\<^sub>l\<^sub>s (\<eta> \<cdot> \<sigma>)" using \<phi>_p by auto
   also have "... = ((?C\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<eta>) \<union> (?D\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<eta>)) \<cdot>\<^sub>l\<^sub>s \<sigma>" 
     using subls_union composition_conseq2ls by auto
-  also have "... = (?C'\<^sub>1 \<union> ?D'\<^sub>1) \<cdot>\<^sub>l\<^sub>s \<sigma>" 
-    using \<eta>_p L_p M_p by auto
-  finally have "?E \<cdot>\<^sub>l\<^sub>s \<phi> = ((C' - L') \<union> (D' - M')) \<cdot>\<^sub>l\<^sub>s \<sigma>" 
-    by auto
+  also have "... = (?C'\<^sub>1 \<union> ?D'\<^sub>1) \<cdot>\<^sub>l\<^sub>s \<sigma>" using \<eta>_p L_p M_p by auto
+  finally have "?E \<cdot>\<^sub>l\<^sub>s \<phi> = ((C' - L') \<union> (D' - M')) \<cdot>\<^sub>l\<^sub>s \<sigma>" by auto
   then have inst: "instance_of\<^sub>l\<^sub>s (resolution C' D' L' M' \<sigma>) (resolution C D L M \<tau>) "
     unfolding resolution_def instance_of\<^sub>l\<^sub>s_def by blast
 
   -- {* Showing that the rule resolution is applicable: *}
   have "C' \<noteq> {} \<and> D' \<noteq> {} \<and> L' \<noteq> {} \<and> M' \<noteq> {}" 
     using appl  unfolding applicable_def by auto
-  then have "C \<noteq> {} \<and> D \<noteq> {} \<and> L \<noteq> {} \<and> M \<noteq> {}"
-    using \<eta>_p L_p M_p by auto
-  then have appll: "applicable C D L M \<tau>" 
+  then have "C \<noteq> {} \<and> D \<noteq> {} \<and> L \<noteq> {} \<and> M \<noteq> {}" using \<eta>_p L_p M_p by auto
+  then have appll: "applicable C D L M \<tau>"
     using apart L_p M_p \<tau>_p unfolding applicable_def by auto
 
-  from inst appll show ?thesis 
-    by auto
+  from inst appll show ?thesis by auto
 qed
 text_raw {*}%EndSnippet*}
 
