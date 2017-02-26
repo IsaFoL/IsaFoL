@@ -26,11 +26,10 @@ proof -
     unfolding instance_of\<^sub>l\<^sub>s_def by auto
   then obtain \<eta> where \<eta>_p: "C \<cdot>\<^sub>l\<^sub>s \<eta> = C' \<and> D \<cdot>\<^sub>l\<^sub>s \<eta> = D'" 
     using apart merge_sub by force
-    
+
   from \<eta>_p obtain L where L_p: "L \<subseteq> C \<and> L \<cdot>\<^sub>l\<^sub>s \<eta> = L' \<and> (C - L) \<cdot>\<^sub>l\<^sub>s \<eta> = ?C'\<^sub>1" 
     using appl project_sub unfolding applicable_def by metis
   let ?C\<^sub>1 = "C - L"
-
   from \<eta>_p obtain M where M_p: "M \<subseteq> D \<and> M \<cdot>\<^sub>l\<^sub>s \<eta> = M' \<and> (D - M) \<cdot>\<^sub>l\<^sub>s \<eta> = ?D'\<^sub>1"
     using appl project_sub unfolding applicable_def by metis
   let ?D\<^sub>1 = "D - M"
@@ -45,7 +44,7 @@ proof -
     using unification fin L_p M_p by (meson finite_UnI finite_imageI rev_finite_subset) 
   then obtain \<phi> where \<phi>_p: "\<tau> \<cdot> \<phi> = \<eta> \<cdot> \<sigma>" 
     using \<eta>\<sigma>uni unfolding mgu\<^sub>l\<^sub>s_def by auto
-  
+
   -- {* Showing that we have the desired resolvent: *}
   let ?E = "((C - L)  \<union> (D - M)) \<cdot>\<^sub>l\<^sub>s \<tau>"
   have "?E \<cdot>\<^sub>l\<^sub>s \<phi>  = (?C\<^sub>1 \<union> ?D\<^sub>1 ) \<cdot>\<^sub>l\<^sub>s (\<tau> \<cdot> \<phi>)" 
