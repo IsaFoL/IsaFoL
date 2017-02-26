@@ -20,7 +20,7 @@ lemma lifting:
                    instance_of\<^sub>l\<^sub>s (resolution C' D' L' M' \<sigma>) (resolution C D L M \<tau>)"
 proof -
   let ?C'\<^sub>1 = "C' - L'" and ?D'\<^sub>1 = "D' - M'"
-    
+
   from inst obtain \<gamma> \<mu> where "C \<cdot>\<^sub>l\<^sub>s \<gamma> = C' \<and> D \<cdot>\<^sub>l\<^sub>s \<mu> = D'" 
     unfolding instance_of\<^sub>l\<^sub>s_def by auto
   then obtain \<eta> where \<eta>_p: "C \<cdot>\<^sub>l\<^sub>s \<eta> = C' \<and> D \<cdot>\<^sub>l\<^sub>s \<eta> = D'" 
