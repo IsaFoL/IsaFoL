@@ -27,7 +27,7 @@ theorem [simp]: "- A \<inter> B = B - A" by blast
 theorem Compl_UNIV_eq: "- A = UNIV - A" by fast
 
 theorem infinite_nonempty: "\<not> finite A \<Longrightarrow> \<exists>x. x \<in> A"
-  by (subgoal_tac "A \<noteq> {}") fast+
+  using infinite_imp_nonempty by fastforce
 
 declare Diff_infinite_finite [simp]
 
@@ -162,15 +162,12 @@ theorem lift_closed [simp]:
   "closedts 0 (ts::'a term list) \<Longrightarrow> closedts 0 (liftts ts)"
   by (induct t and ts rule: closedt.induct closedts.induct) simp_all
 
-theorem subst_closedt [simp]: assumes u: "closedt 0 u"
+theorem subst_closedt [simp]:
+  assumes u: "closedt 0 u"
   shows "closedt (Suc i) t \<Longrightarrow> closedt i (t[u/i])"
-  and "closedts (Suc i) ts \<Longrightarrow> closedts i (ts[u/i])" using u
-  apply (induct t and ts rule: closedt.induct closedts.induct)
-  apply simp_all
-  apply (rule impI)
-  apply (rule closedt_mono(1) [of 0])
-  apply simp+
-  done
+  and "closedts (Suc i) ts \<Longrightarrow> closedts i (ts[u/i])"
+  using u closedt_mono(1)
+  by (induct t and ts rule: closedt.induct closedts.induct) auto
 
 theorem subst_closed [simp]:
   "closedt 0 t \<Longrightarrow> closed (Suc i) p \<Longrightarrow> closed i (p[t/i])"
@@ -272,15 +269,17 @@ theorem psubstt_upd [simp]:
 theorem psubst_upd [simp]: "x \<notin> params P \<Longrightarrow> psubst (f(x:=y)) P = psubst f P"
   by (induct P) (simp_all del: fun_upd_apply)
 
-theorem psubstt_id [simp]: "psubstt (%x. x) (t::'a term) = t"
-  "psubstts (%x. x) (ts::'a term list) = ts"
+theorem psubstt_id [simp]: "psubstt (\<lambda>x. x) (t::'a term) = t"
+  "psubstts (\<lambda>x. x) (ts::'a term list) = ts"
   by (induct t and ts rule: psubstt.induct psubstts.induct) simp_all
 
-theorem psubst_id [simp]: "psubst (%x. x) = (%p. p)"
-  apply (rule ext)
-  apply (induct_tac p)
-  apply simp_all
-  done
+theorem psubst_id [simp]: "psubst (\<lambda>x. x) = (\<lambda>p. p)"
+proof -
+  { fix x :: "('a, 'b) form"
+    have "psubst (\<lambda>x. x) x = (\<lambda>p. p) x"
+      by (induct x) simp_all }
+  then show ?thesis by (rule ext)
+qed
 
 theorem psubstt_image [simp]:
   "paramst (psubstt f t) = f ` paramst t"
@@ -318,13 +317,13 @@ lemma shift_lt [simp]: "i < j \<Longrightarrow> (e\<langle>i:T\<rangle>) j = e (
   by (simp add: shift_def)
 
 lemma shift_commute [simp]: "e\<langle>i:U\<rangle>\<langle>0:T\<rangle> = e\<langle>0:T\<rangle>\<langle>Suc i:U\<rangle>"
-  apply (rule ext)
-  apply (case_tac x)
-   apply simp
-  apply (case_tac nat)
-   apply (simp_all add: shift_def)
-  done
-
+proof -
+  { fix x
+    have "(e\<langle>i:U\<rangle>\<langle>0:T\<rangle>) x = (e\<langle>0:T\<rangle>\<langle>Suc i:U\<rangle>) x"
+      by (cases x) (simp_all add: shift_def) }
+  then show ?thesis by (rule ext)
+qed
+  
 primrec
   evalt :: "(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow> 'a term \<Rightarrow> 'c"
   and evalts :: "(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow> 'a term list \<Rightarrow> 'c list"
@@ -350,14 +349,14 @@ where
 
 text {*
 We write @{text "e,f,g,ps \<Turnstile> p"} to mean that the formula @{text p} is a
-semantic consequence of the list of formulae @{text p} with respect to an
+semantic consequence of the list of formulae @{text ps} with respect to an
 environment @{text e} and interpretations @{text f} and @{text g} for
 function and predicate symbols, respectively.
 *}
 
 definition
   model :: "(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow> ('b \<Rightarrow> 'c list \<Rightarrow> bool) \<Rightarrow>
-    ('a, 'b) form list \<Rightarrow> ('a, 'b) form \<Rightarrow> bool"  ("_,_,_,_ \<Turnstile> _" [50,50] 50)  where
+    ('a, 'b) form list \<Rightarrow> ('a, 'b) form \<Rightarrow> bool"  ("_,_,_,_ \<Turnstile> _" [50,50] 50) where
   "(e,f,g,ps \<Turnstile> p) = (list_all (eval e f g) ps \<longrightarrow> eval e f g p)"
 
 text {*
@@ -375,8 +374,8 @@ theorem lift_lemma [simp]:
   by (induct t and ts rule: evalt.induct evalts.induct) simp_all
 
 theorem subst_lemma [simp]:
-  "\<And>e i t. eval e f g (subst a t i) = eval (e\<langle>i:evalt e f t\<rangle>) f g a"
-  by (induct a) simp_all
+  "eval e f g (subst a t i) = eval (e\<langle>i:evalt e f t\<rangle>) f g a"
+  by (induct a arbitrary: e i t) simp_all
 
 theorem upd_lemma' [simp]:
   "n \<notin> paramst t \<Longrightarrow> evalt e (f(n:=x)) t = evalt e f t"
@@ -452,15 +451,22 @@ theorem cut': "A # G \<turnstile> B \<Longrightarrow> G \<turnstile> A \<Longrig
   by (rule ImplE) (rule ImplI)
 
 theorem Class': "Neg A # G \<turnstile> A \<Longrightarrow> G \<turnstile> A"
-  apply (rule Class)
-  apply (rule_tac A="A" in cut')
-  apply (rule_tac a=A in NegE)
-  apply (rule Assum)
-  apply simp
-  apply (rule Assum)
-  apply simp
-  apply assumption
-  done
+proof (rule Class)
+  assume "Neg A # G \<turnstile> A"
+  show "Neg A # G \<turnstile> FF"
+  proof (rule cut')
+    from \<open>Neg A # G \<turnstile> A\<close> show "Neg A # G \<turnstile> A" .
+  next
+    show "A # Neg A # G \<turnstile> FF"
+    proof (rule NegE)
+      show "A # Neg A # G \<turnstile> Neg A"
+        by (rule Assum) simp
+    next
+      show "A # Neg A # G \<turnstile> A"
+        by (rule Assum) simp
+    qed
+  qed
+qed
 
 theorem ForallE': "G \<turnstile> Forall a \<Longrightarrow> subst a t 0 # G \<turnstile> B \<Longrightarrow> G \<turnstile> B"
   by (rule cut) (rule ForallE)
@@ -471,41 +477,42 @@ for existential and universal quantifiers, the drinker principle, as well
 as Peirce's law are derivable in the calculus given above.
 *}
 
-theorem tnd: "[] \<turnstile> Or (Pred p []) (Neg (Pred p []))"
-  apply (rule Class)
-  apply (rule NegE)
-  apply (rule Assum, simp)
-  apply (rule OrI2)
-  apply (rule NegI)
-  apply (rule NegE)
-  apply (rule Assum, simp)
-  apply (rule OrI1)
-  apply (rule Assum, simp)
-  done
-
+theorem tnd: "[] \<turnstile> Or (Pred p []) (Neg (Pred p []))" (is "_ \<turnstile> ?or")
+proof (rule Class)
+  show "[Neg ?or] \<turnstile> FF"
+  proof (rule NegE)
+    show "[Neg ?or] \<turnstile> Neg ?or" by (rule Assum) simp
+  next
+    have "[Pred p [], Neg ?or] \<turnstile> Neg ?or"
+      by (rule Assum) simp
+    moreover have "[Pred p [], Neg ?or] \<turnstile> ?or"
+      by (simp add: Assum OrI1)
+    ultimately show "[Neg ?or] \<turnstile> ?or"
+      by (simp add: OrI2 NegI NegE)
+  qed
+qed
+  
 theorem ex_all_commute:
   "([]::(nat, 'b) form list) \<turnstile> Impl (Exists (Forall (Pred p [Var 1, Var 0])))
      (Forall (Exists (Pred p [Var 0, Var 1])))"
   apply (rule ImplI)
   apply (rule_tac n=0 in ForallI)
-  prefer 2
-  apply simp
-  prefer 2
-  apply simp
+    prefer 2
+    apply simp
+   prefer 2
+   apply simp
   apply simp
   apply (rule_tac n=1 and a="Forall (Pred p [Var 1, Var 0])" in ExistsE)
-  apply (rule Assum, simp)
-  prefer 2
-  apply simp
-  prefer 2
-  apply simp
-  prefer 2
-  apply simp
-  apply simp
+      apply (rule Assum, simp)
+     prefer 2
+     apply simp
+    prefer 2
+    apply simp
+   prefer 2
+   apply simp
   apply (rule_tac t="App 1 []" in ExistsI)
-  apply simp
   apply (rule_tac t="App 0 []" and a="Pred p [App (Suc 0) [], Var 0]" in ForallE')
-  apply (rule Assum, simp)
+   apply (rule Assum, simp)
   apply (rule Assum, simp)
   done
 
@@ -557,28 +564,47 @@ The correctness of the proof calculus introduced in \secref{sec:proof-calculus}
 can now be proved by induction on the derivation of @{term "G \<turnstile> p"}, using the
 substitution rules proved in \secref{sec:semantics}.
 *}
-
+  
 theorem correctness: "G \<turnstile> p \<Longrightarrow> \<forall>e f g. e,f,g,G \<Turnstile> p"
-  apply (unfold model_def)
-  apply (erule deriv.induct)
-  apply (rule allI impI)+
-  apply (simp add: list_all_iff)
-  apply simp_all
-  apply blast+
-  apply (rule allI impI)+
-  apply (erule_tac x=e in allE)
-  apply (erule_tac x="f(n:=\<lambda>x. z)" in allE)
-  apply (simp del: fun_upd_apply add: fun_upd_same)
-  apply iprover
-  apply (rule allI impI)+
-  apply (erule allE, erule allE, erule allE, erule impE, assumption)
-  apply (erule exE)
-  apply (erule_tac x=e in allE)
-  apply (erule_tac x="f(n:=\<lambda>x. z)" in allE)
-  apply (simp del: fun_upd_apply add: fun_upd_same)
-  done
+  unfolding model_def
+proof (induct p rule: deriv.induct)
+ case (Assum a G)
+  then show ?case by (simp add: list_all_iff)
+next
+  case (ForallI G a n)
+  show ?case proof (intro allI impI)
+    fix f g and e :: "nat \<Rightarrow> 'c"
+    assume prems: "list_all (eval e f g) G"
+      
+    { fix z
+      from ForallI(2)
+      have "e, (f(n := \<lambda>x. z)), g, G \<Turnstile> (a[App n []/0])"
+        unfolding model_def by (simp del: fun_upd_apply)
+      from this and ForallI prems
+      have "eval (e\<langle>0:z\<rangle>) f g a"
+        unfolding model_def by simp }
 
-
+    then show "eval e f g (Forall a)" by simp
+  qed
+next
+  case (ExistsE G a n b)
+  show ?case proof (intro allI impI)
+    fix f g and e :: "nat \<Rightarrow> 'c"
+    assume prems: "list_all (eval e f g) G"
+      
+    have "(\<exists>z. eval (e\<langle>0:z\<rangle>) f g a)"
+      using ExistsE prems by simp
+    then obtain z where "eval (e\<langle>0:z\<rangle>) f g a"
+      by blast
+    moreover have
+      "eval (e\<langle>0:(f(n := \<lambda>x. z)) n []\<rangle>) (f(n := \<lambda>x. z)) g a \<and>
+        e, (f(n := \<lambda>x. z)), g, G \<Turnstile> b"
+      using calculation ExistsE by (simp add: model_def)
+    ultimately show "eval e f g b"
+      using ExistsE prems by (simp add: model_def)
+  qed
+qed (simp_all, blast+)
+  
 section {* Completeness *}
 
 text {*
