@@ -41,8 +41,7 @@ proof -
     unfolding unifier\<^sub>l\<^sub>s_def using composition_conseq2l by auto
   then obtain \<tau> where \<tau>_p: "mgu\<^sub>l\<^sub>s \<tau> (L  \<union> M\<^sup>C)" 
     using unification fin L_p M_p by (meson finite_UnI finite_imageI rev_finite_subset)
-  then obtain \<phi> where \<phi>_p: "\<tau> \<cdot> \<phi> = \<eta> \<cdot> \<sigma>" 
-    using \<eta>\<sigma>uni unfolding mgu\<^sub>l\<^sub>s_def by auto
+  then obtain \<phi> where \<phi>_p: "\<tau> \<cdot> \<phi> = \<eta> \<cdot> \<sigma>" using \<eta>\<sigma>uni unfolding mgu\<^sub>l\<^sub>s_def by auto
 
   -- {* Showing that we have the desired resolvent: *}
   let ?E = "((C - L)  \<union> (D - M)) \<cdot>\<^sub>l\<^sub>s \<tau>"
