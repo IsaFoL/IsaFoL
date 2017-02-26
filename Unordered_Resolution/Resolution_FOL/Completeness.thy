@@ -23,7 +23,7 @@ proof -
   let ?C'\<^sub>1 = "C' - L'"
   let ?D'\<^sub>1 = "D' - M'"
 
-  from inst\<^sub>1 obtain lmbd where lmbd_p: "C \<cdot>\<^sub>l\<^sub>s lmbd = C'" 
+  from inst\<^sub>1 obtain \<gamma> where lmbd_p: "C \<cdot>\<^sub>l\<^sub>s \<gamma> = C'" 
     unfolding instance_of\<^sub>l\<^sub>s_def by auto
   from inst\<^sub>2 obtain \<mu> where \<mu>_p: "D \<cdot>\<^sub>l\<^sub>s \<mu> = D'" 
     unfolding instance_of\<^sub>l\<^sub>s_def by auto
