@@ -15,8 +15,8 @@ lemma restrict_cnf_remove: "atoms_of_cnf (restrict_cnf_atom a v c) \<subseteq>
   unfolding  restrict_cnf_atom_def atoms_of_cnf_alt lit_atoms_cases make_lit_def
   by (force split: literal.splits bool.splits)
 
-lemma cnf_substitution_lemma': 
-  "cnf_semantics A (restrict_cnf_atom a v C) = cnf_semantics (A(a := v)) C"
+lemma cnf_substitution_lemma:
+  "cnf_semantics A (restrict_cnf_atom a v S) = cnf_semantics (A(a := v)) S"
   unfolding restrict_cnf_atom_def cnf_semantics_def clause_semantics_def lit_semantics_cases make_lit_def
   apply (clarsimp split: bool.splits literal.splits)
   apply safe
@@ -96,7 +96,7 @@ proof(induction "atoms_of_cnf S" arbitrary: S rule: finite_psubset_induct)
     thus ?case using Resolution.Ass by blast
   next
     have unsat_restrict: "\<forall>\<A>. \<not> cnf_semantics \<A> (restrict_cnf_atom a v S)" for a v
-      using \<open>\<forall>\<A>. \<not> cnf_semantics \<A> S\<close> by(simp add: cnf_substitution_lemma')
+      using \<open>\<forall>\<A>. \<not> cnf_semantics \<A> S\<close> by(simp add: cnf_substitution_lemma)
     assume ne: "atoms_of_cnf S \<noteq> {}"
     then obtain a where "a \<in> atoms_of_cnf S" by blast
     hence "atoms_of_cnf (restrict_cnf_atom a v S) \<subset> atoms_of_cnf S" for v

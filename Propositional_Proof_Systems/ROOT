@@ -6,6 +6,7 @@ session Propositional_Proof_Systems = HOL +
 		"~~/src/HOL/Library/Multiset"
 		"~~/src/HOL/Library/Countable"
 		"~~/src/HOL/Library/Simps_Case_Conv"
+		"~~/src/HOL/Library/While_Combinator"
 	theories
 		(* beware of stupid placement of section titles when reordering. *)
 		Formulas

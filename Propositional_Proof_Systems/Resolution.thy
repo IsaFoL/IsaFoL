@@ -103,7 +103,7 @@ qed
 text\<open>Now we define and verify a toy resolution prover.
 Function \<open>res\<close> computes the set of resolvents of a clause set:\<close>
 context begin
-  
+
 definition res :: "clause set \<Rightarrow> clause set" where
 "res S =
  (\<Union>C1 \<in> S. \<Union>C2 \<in> S. \<Union>L1 \<in> C1. \<Union>L2 \<in> C2.
@@ -180,28 +180,22 @@ lemma "finite S \<and> (\<forall>C \<in> S. finite C) \<Longrightarrow> \<exists
   done
 done
 
-function Res_tot where
-"Res_tot S = (let R = res S \<union> S in if R = S then S else Res_tot R)"
-  by auto
-    
-termination Res_tot
-  apply(relation "measure (\<lambda>T. Suc (card (all_clauses T)) - card T)")
-   apply(fact wf_measure)
-  apply(simp add: all_clauses_Res_inv)
-  apply(rule diff_less_mono2)
-  oops
-    (* oh, yeah, this is not a total function\<dots> :/ *)
-    
 partial_function(option) Res where
 "Res S = (let R = res S \<union> S in if R = S then Some S else Res R)"
 (* the only thing that using monads would get us here is the return function, so\<dots> no. *)
 
+declare Res.simps[code]
+
+value [code] "Res ex1"
+lemma "\<box> \<in> the (Res ex1)" by eval
+
 lemma res: "C \<in> res S \<Longrightarrow> S \<turnstile> C"
   unfolding res_def by(auto split: literal.splits if_splits) (metis Resolution.simps literal.exhaust)    
-lemma "\<forall>S S'. Res S = Some S' \<longrightarrow> (\<forall>C \<in> S'. S \<turnstile> C)"
-proof (rule Res.fixp_induct; (intro allI impI)?)
+
+lemma Res_sound: "Res S = Some S' \<Longrightarrow> (\<forall>C \<in> S'. S \<turnstile> C)"
+proof (induction arbitrary: S S' rule: Res.fixp_induct)
   fix X S S'
-  assume IH: "\<forall>S S'. X S = Some S' \<longrightarrow> (\<forall>C\<in>S'. S \<turnstile> C)"
+  assume IH: "\<And>S S'. X S = Some S' \<Longrightarrow> (\<forall>C\<in>S'. S \<turnstile> C)"
   assume prem: "(let R = res S \<union> S in if R = S then Some S else X R) = Some S'"
   thus "(\<forall>C\<in>S'. S \<turnstile> C)"
   proof cases
@@ -215,7 +209,7 @@ proof (rule Res.fixp_induct; (intro allI impI)?)
   qed
 qed (fast intro!: option_admissible)+
 
-lemma "finite S \<Longrightarrow> \<forall>C \<in> S. finite C \<Longrightarrow> \<exists>T. Res S = Some T"
+lemma Res_terminates: "finite S \<Longrightarrow> \<forall>C \<in> S. finite C \<Longrightarrow> \<exists>T. Res S = Some T"
 proof(induction "Suc (card (all_clauses S)) - card S" arbitrary: S rule: less_induct)
   case less
   let ?r = "res S \<union> S"
@@ -228,61 +222,6 @@ proof(induction "Suc (card (all_clauses S)) - card S" arbitrary: S rule: less_in
     ultimately have a: "Suc (card (all_clauses (res S \<union> S))) - card (res S \<union> S) < Suc (card (all_clauses S)) - card S" using all_clauses_Res_inv by auto
     from less(1)[OF a b c] show ?thesis by (subst Res.simps) (simp add: Let_def)
   qed (simp add: Res.simps)
-qed
-
-lemma atoms_of_all_clauses: "atoms_of_cnf (all_clauses S) = atoms_of_cnf S"
-  unfolding all_clauses_def atoms_of_cnf_def image_def
-  apply(rule)
-  apply(rule)
-   apply(clarsimp)
-   apply fastforce
-    apply(rule)
-  apply clarsimp    
-  by (metis (mono_tags, lifting) lit_atoms_cases literal.simps(5) mem_Collect_eq sup.cobounded1)
-    (*
-    apply(unfold mem_Collect_eq Bex_def)
-  apply(erule ex_forward)
-  apply(clarsimp simp: lit_atoms_cases split: literal.splits)*)
-
-lemma all_clauses_idem: "all_clauses (all_clauses S) = all_clauses S"
-  using all_clauses_def atoms_of_all_clauses by auto
-
-(* TODO: show and remove *)
-find_theorems Res
-thm finite_psubset_induct[where P="\<lambda>S. finite S \<and> (\<forall>C \<in> S. finite C) \<longrightarrow> (\<exists>T. Res S = Some T)"]
-lemma 
-  assumes "finite S" "(\<forall>C \<in> S. finite C)"
-  assumes lolinduct: "\<And>P T (S::literal set set). finite T \<Longrightarrow> P T \<Longrightarrow> (\<And>W. W \<subseteq> T \<Longrightarrow> (\<And>S. W \<subset> S \<Longrightarrow> S \<subseteq> T \<Longrightarrow> P S) \<Longrightarrow> P W) \<Longrightarrow> S \<subseteq> T \<Longrightarrow> P S"
-  shows "\<exists>T. Res S = Some T"
-proof -
-  have fm: "finite (all_clauses S - S)" by (simp add: all_clauses_finite assms)
-  have "finite S \<and> (\<forall>C \<in> S. finite C) \<longrightarrow> (\<exists>T. Res S = Some T)"
-  proof(rule lolinduct[of "all_clauses S" "\<lambda>S. finite S \<and> (\<forall>C \<in> S. finite C) \<longrightarrow> (\<exists>T. Res S = Some T)" S], goal_cases)
-    case 2
-    then show ?case using Res_in_all_clauses[of "all_clauses _", unfolded all_clauses_idem] by (simp add: Res.simps) (fastforce simp: Let_def)
-  next
-    case 1
-    then show ?case using assms(1) finite_Diff2 fm by blast
-  next
-    case (3 W)
-    have "(\<exists>T. Res W = Some T)" if "finite W" "(\<forall>C\<in>W. finite C)"
-    proof(cases "res W \<union> W = W")
-      case False
-      hence a: "W \<subset> res W \<union> W" by blast
-      have "atoms_of_cnf W \<subseteq> atoms_of_cnf (all_clauses S)" by (metis "3"(1) atoms_of_cnf_Un subset_Un_eq)
-      hence "atoms_of_cnf W \<subseteq> atoms_of_cnf S" by (simp add: atoms_of_all_clauses)
-      hence "all_clauses W \<subseteq> all_clauses S" unfolding all_clauses_def by blast
-      hence b: "res W \<union> W \<subseteq> all_clauses S" using Res_in_all_clauses by blast
-      hence c: "finite (res W \<union> W) \<and> (\<forall>C\<in>res W \<union> W. finite C)" by (meson Diff_infinite_finite UnE assms(1) finite_res finite_subset fm that(2))
-      from 3(2)[OF a b] c have "(\<exists>T. Res (res W \<union> W) = Some T)" ..
-      thus ?thesis by(subst Res.simps) (simp add: Let_def)
-    qed (simp add: Res.simps)
-    thus ?case by blast
-  next
-    case 4
-    then show ?case by (simp add: s_sub_all_clauses)
-  qed
-  with assms show ?thesis by blast
 qed
 
 end
