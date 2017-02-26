@@ -14,8 +14,7 @@ text_raw {*\DefineSnippet{lifting}{*}
 lemma lifting:
   assumes fin: "finite C \<and> finite D "
   assumes apart: "vars\<^sub>l\<^sub>s C \<inter> vars\<^sub>l\<^sub>s D = {}"
-  assumes inst\<^sub>1: "instance_of\<^sub>l\<^sub>s C' C"
-  assumes inst\<^sub>2: "instance_of\<^sub>l\<^sub>s D' D"
+  assumes inst: "instance_of\<^sub>l\<^sub>s C' C \<and> instance_of\<^sub>l\<^sub>s D' D"
   assumes appl: "applicable C' D' L' M' \<sigma>"
   shows "\<exists>L M \<tau>. applicable C D L M \<tau> \<and>
                    instance_of\<^sub>l\<^sub>s (resolution C' D' L' M' \<sigma>) (resolution C D L M \<tau>)"
@@ -23,16 +22,16 @@ proof -
   let ?C'\<^sub>1 = "C' - L'"
   let ?D'\<^sub>1 = "D' - M'"
 
-  from inst\<^sub>1 inst\<^sub>2 obtain \<gamma>  \<mu> where "C \<cdot>\<^sub>l\<^sub>s \<gamma> = C' \<and> D \<cdot>\<^sub>l\<^sub>s \<mu> = D'" 
+  from inst obtain \<gamma> \<mu> where "C \<cdot>\<^sub>l\<^sub>s \<gamma> = C' \<and> D \<cdot>\<^sub>l\<^sub>s \<mu> = D'" 
     unfolding instance_of\<^sub>l\<^sub>s_def by auto
   then obtain \<eta> where \<eta>_p: "C \<cdot>\<^sub>l\<^sub>s \<eta> = C' \<and> D \<cdot>\<^sub>l\<^sub>s \<eta> = D'" 
     using apart merge_sub by force
     
-  then obtain L where L_p: "L \<subseteq> C \<and> L \<cdot>\<^sub>l\<^sub>s \<eta> = L' \<and> (C - L) \<cdot>\<^sub>l\<^sub>s \<eta> = ?C'\<^sub>1" 
+  from \<eta>_p obtain L where L_p: "L \<subseteq> C \<and> L \<cdot>\<^sub>l\<^sub>s \<eta> = L' \<and> (C - L) \<cdot>\<^sub>l\<^sub>s \<eta> = ?C'\<^sub>1" 
     using appl project_sub unfolding applicable_def by metis
   let ?C\<^sub>1 = "C - L"
 
-  from \<eta>_p obtain M where M_p: "M \<subseteq> D \<and> M \<cdot>\<^sub>l\<^sub>s \<eta> = M' \<and> (D - M) \<cdot>\<^sub>l\<^sub>s \<eta> = ?D'\<^sub>1" 
+  from \<eta>_p obtain M where M_p: "M \<subseteq> D \<and> M \<cdot>\<^sub>l\<^sub>s \<eta> = M' \<and> (D - M) \<cdot>\<^sub>l\<^sub>s \<eta> = ?D'\<^sub>1"
     using appl project_sub unfolding applicable_def by metis
   let ?D\<^sub>1 = "D - M"
 
@@ -61,7 +60,8 @@ proof -
     using subls_union composition_conseq2ls by auto
   also have "... = (?C'\<^sub>1 \<union> ?D'\<^sub>1) \<cdot>\<^sub>l\<^sub>s \<sigma>" 
     using \<eta>_p L_p M_p by auto
-  finally have "?E \<cdot>\<^sub>l\<^sub>s \<phi> = ((C' - L') \<union> (D' - M')) \<cdot>\<^sub>l\<^sub>s \<sigma>" by auto
+  finally have "?E \<cdot>\<^sub>l\<^sub>s \<phi> = ((C' - L') \<union> (D' - M')) \<cdot>\<^sub>l\<^sub>s \<sigma>" 
+    by auto
   then have inst: "instance_of\<^sub>l\<^sub>s (resolution C' D' L' M' \<sigma>) (resolution C D L M \<tau>) "
     unfolding resolution_def instance_of\<^sub>l\<^sub>s_def by blast
 
@@ -73,7 +73,8 @@ proof -
   then have appll: "applicable C D L M \<tau>" 
     using apart L_p M_p \<tau>_p unfolding applicable_def by auto
 
-  from inst appll show ?thesis by auto
+  from inst appll show ?thesis 
+    by auto
 qed
 text_raw {*}%EndSnippet*}
 
