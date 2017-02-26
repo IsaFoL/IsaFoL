@@ -10,7 +10,7 @@ text {*
   It uses a similar theorem from the IsaFoR \cite{isafor} project.
 *}
 
-
+text_raw {*\DefineSnippet{lifting}{*}
 lemma lifting:
   assumes fin: "finite C \<and> finite D "
   assumes apart: "vars\<^sub>l\<^sub>s C \<inter> vars\<^sub>l\<^sub>s D = {}"
@@ -55,7 +55,7 @@ proof -
   then have inst: "instance_of\<^sub>l\<^sub>s (resolution C' D' L' M' \<sigma>) (resolution C D L M \<tau>) "
     unfolding resolution_def instance_of\<^sub>l\<^sub>s_def by blast
 
-  -- {* Showing that the resolution is applicable: *}
+  -- {* Showing that the rule resolution is applicable: *}
   {
     have "C' \<noteq> {}" using appl unfolding applicable_def by auto
     then have "C \<noteq> {}" using \<eta>_p by auto
@@ -74,7 +74,7 @@ proof -
 
   from inst appll show ?thesis by auto
 qed
-
+text_raw {*}%EndSnippet*}
 
 section {* Completeness *}
 
@@ -441,7 +441,7 @@ proof -
     by (meson asdff assms eval\<^sub>c_def) 
 qed
 
-lemma
+lemma asd:
   assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
   shows "eval\<^sub>c\<^sub>s (F_conv b_of_a F) (G_conv b_of_a G) Cs \<longleftrightarrow> eval\<^sub>c\<^sub>s F G Cs"
     by (meson asdf assms eval\<^sub>c\<^sub>s_def)

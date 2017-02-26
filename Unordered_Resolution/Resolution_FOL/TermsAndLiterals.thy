@@ -34,10 +34,13 @@ abbreviation ground\<^sub>t\<^sub>s :: "fterm list \<Rightarrow> bool" where
 
 abbreviation ground\<^sub>l :: "fterm literal \<Rightarrow> bool" where
   "ground\<^sub>l l \<equiv> ground\<^sub>t\<^sub>s (get_terms l)"
+  
+notation (latex) "ground\<^sub>l" ("_\<^latex>\<open>$\\mathit{\\groundl}$\<close>")
 
 abbreviation ground\<^sub>l\<^sub>s :: "fterm literal set \<Rightarrow> bool" where
   "ground\<^sub>l\<^sub>s C \<equiv> (\<forall>l \<in> C. ground\<^sub>l l)"
-
+  
+notation (latex) "ground\<^sub>l\<^sub>s" ("_\<^latex>\<open>$\\mathit{\\groundls}$\<close>")
 
 definition ground_fatoms :: "fterm atom set" where
   "ground_fatoms \<equiv> {a. ground\<^sub>t\<^sub>s (snd a)}"

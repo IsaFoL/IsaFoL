@@ -12,5 +12,4 @@ session "Resolution_FOL" (AFP) = HOL +
     Examples
     LatexSetup
   document_files
-    "root.bib"
-    "root.tex"
+    build

@@ -97,19 +97,34 @@ type_synonym 'u var_denot  = "var_sym  \<Rightarrow> 'u"
 fun eval\<^sub>t  :: "'u var_denot \<Rightarrow> 'u fun_denot \<Rightarrow> fterm \<Rightarrow> 'u" where
   "eval\<^sub>t E F (Var x) = E x"
 | "eval\<^sub>t E F (Fun f ts) = F f (map (eval\<^sub>t E F) ts)"
+  
+(* \newcommand{\evalt}{eval_{\hspace{0.15ex}\mathrm{t}}} *)
+notation (latex) "eval\<^sub>t" ("_\<^latex>\<open>$\\mathit{\\evalt}$\<close>")
 
 abbreviation eval\<^sub>t\<^sub>s :: "'u var_denot \<Rightarrow> 'u fun_denot \<Rightarrow> fterm list \<Rightarrow> 'u list" where
   "eval\<^sub>t\<^sub>s E F ts \<equiv> map (eval\<^sub>t E F) ts"
+  
+(* \newcommand{\evalts}{eval_{\mathrm{ts}}} *)
+notation (latex) "eval\<^sub>t\<^sub>s" ("_\<^latex>\<open>$\\mathit{\\evalts}$\<close>")
 
 fun eval\<^sub>l :: "'u var_denot \<Rightarrow> 'u fun_denot \<Rightarrow> 'u pred_denot \<Rightarrow> fterm literal \<Rightarrow> bool" where
   "eval\<^sub>l E F G (Pos p ts) \<longleftrightarrow>  G p (eval\<^sub>t\<^sub>s E F ts)"
 | "eval\<^sub>l E F G (Neg p ts) \<longleftrightarrow> \<not>G p (eval\<^sub>t\<^sub>s E F ts)"
+  
+(* \newcommand{\evall}{eval_{\mathrm{l}}} *)
+notation (latex) "eval\<^sub>l" ("_\<^latex>\<open>$\\mathit{\\evall}$\<close>")
 
 definition eval\<^sub>c :: "'u fun_denot \<Rightarrow> 'u pred_denot \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "eval\<^sub>c F G C \<longleftrightarrow> (\<forall>E. \<exists>l \<in> C. eval\<^sub>l E F G l)"
+  
+(* \newcommand{\evalc}{eval_{\mathrm{c}}} *)
+notation (latex) "eval\<^sub>c" ("_\<^latex>\<open>$\\mathit{\\evalc}$\<close>")
 
 definition eval\<^sub>c\<^sub>s :: "'u fun_denot \<Rightarrow> 'u pred_denot \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "eval\<^sub>c\<^sub>s F G Cs \<longleftrightarrow> (\<forall>C \<in> Cs. eval\<^sub>c F G C)"
+  
+(* \newcommand{\evalcs}{eval_{\mathrm{cs}}} *)
+notation (latex) "eval\<^sub>c\<^sub>s" ("_\<^latex>\<open>$\\mathit{\\evalcs}$\<close>")
 
 subsection {* Semantics of Ground Terms *}
 
@@ -170,6 +185,8 @@ definition instance_of\<^sub>l :: "fterm literal \<Rightarrow> fterm literal \<R
 
 definition instance_of\<^sub>l\<^sub>s :: "fterm clause \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "instance_of\<^sub>l\<^sub>s C\<^sub>1 C\<^sub>2 \<longleftrightarrow> (\<exists>\<sigma>. C\<^sub>1 = C\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<sigma>)"
+
+notation (latex) "instance_of\<^sub>l\<^sub>s" ("_\<^latex>\<open>$\\mathit{\\instanceofls}$\<close>")
 
 lemma comp_sub: "(l\<^sup>c) \<cdot>\<^sub>l \<sigma>=(l \<cdot>\<^sub>l \<sigma>)\<^sup>c" 
 by (cases l) auto
@@ -478,9 +495,13 @@ subsection {* Standardizing apart *}
 
 abbreviation std\<^sub>1 :: "fterm clause \<Rightarrow> fterm clause" where
   "std\<^sub>1 C \<equiv> C \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (''1'' @ x))"
+  
+notation (latex) "std\<^sub>1" ("_\<^latex>\<open>$\\mathit{\\stdone}$\<close>")
 
 abbreviation std\<^sub>2 :: "fterm clause \<Rightarrow> fterm clause" where
   "std\<^sub>2 C \<equiv> C \<cdot>\<^sub>l\<^sub>s (\<lambda>x. Var (''2'' @ x))"
+  
+notation (latex) "std\<^sub>2" ("_\<^latex>\<open>$\\mathit{\\stdtwo}$\<close>")
 
 lemma std_apart_apart'': 
   "x \<in> vars\<^sub>t  (t \<cdot>\<^sub>t (\<lambda>x::char list. Var (y @ x))) \<Longrightarrow> \<exists>x'. x = y@x'"
@@ -642,6 +663,8 @@ definition mgu\<^sub>t\<^sub>s :: "substitution \<Rightarrow> fterm set \<Righta
 
 definition mgu\<^sub>l\<^sub>s :: "substitution \<Rightarrow> fterm literal set \<Rightarrow> bool" where
   "mgu\<^sub>l\<^sub>s \<sigma> L \<longleftrightarrow> unifier\<^sub>l\<^sub>s \<sigma> L \<and> (\<forall>u. unifier\<^sub>l\<^sub>s u L \<longrightarrow> (\<exists>i. u = \<sigma> \<cdot> i))"
+  
+notation (latex) "mgu\<^sub>l\<^sub>s" ("_\<^latex>\<open>$\\mathit{\\mguls}$\<close>")
 
 section {* Resolution *}
 
@@ -892,13 +915,19 @@ definition falsifies\<^sub>l :: "partial_pred_denot \<Rightarrow> fterm literal 
      \<and> (let i = nat_from_fatom (get_atom l) in
           i < length G \<and> G ! i = (\<not>sign l)
         )"
+  
+notation (latex) "falsifies\<^sub>l" ("_\<^latex>\<open>$\\mathit{\\falsifiesl}$\<close>")
 
 text {* A ground clause is falsified if it is actually ground and all its literals are falsified. *}
 abbreviation falsifies\<^sub>g :: "partial_pred_denot \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "falsifies\<^sub>g G C \<equiv> ground\<^sub>l\<^sub>s C \<and> (\<forall>l \<in> C. falsifies\<^sub>l G l)"
+  
+notation (latex) "falsifies\<^sub>g" ("_\<^latex>\<open>$\\mathit{\\falsifiesg}$\<close>")
 
 abbreviation falsifies\<^sub>c :: "partial_pred_denot \<Rightarrow> fterm clause \<Rightarrow> bool" where
   "falsifies\<^sub>c G C \<equiv> (\<exists>C'. instance_of\<^sub>l\<^sub>s C' C \<and> falsifies\<^sub>g G C')"
+  
+notation (latex) "falsifies\<^sub>c" ("_\<^latex>\<open>$\\mathit{\\falsifiesc}$\<close>")
 
 abbreviation falsifies\<^sub>c\<^sub>s :: "partial_pred_denot \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "falsifies\<^sub>c\<^sub>s G Cs \<equiv> (\<exists>C \<in> Cs. falsifies\<^sub>c G C)"  
