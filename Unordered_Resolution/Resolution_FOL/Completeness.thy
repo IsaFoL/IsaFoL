@@ -30,11 +30,9 @@ proof -
   
   from \<mu>_p lmbd_p apart obtain \<eta> where \<eta>_p: "C \<cdot>\<^sub>l\<^sub>s \<eta> = C' \<and> D \<cdot>\<^sub>l\<^sub>s \<eta> = D'" 
     using merge_sub by force
-
-  from \<eta>_p have "\<exists>L \<subseteq> C. L \<cdot>\<^sub>l\<^sub>s \<eta> = L' \<and> (C - L) \<cdot>\<^sub>l\<^sub>s \<eta> = ?C'\<^sub>1" 
-    using appl project_sub unfolding applicable_def by auto
+    
   then obtain L where L_p: "L \<subseteq> C \<and> L \<cdot>\<^sub>l\<^sub>s \<eta> = L' \<and> (C - L) \<cdot>\<^sub>l\<^sub>s \<eta> = ?C'\<^sub>1" 
-    by auto
+    using appl project_sub unfolding applicable_def by metis
   let ?C\<^sub>1 = "C - L"
 
   from \<eta>_p have "\<exists>M \<subseteq> D. M \<cdot>\<^sub>l\<^sub>s \<eta> = M' \<and> (D - M) \<cdot>\<^sub>l\<^sub>s \<eta> = ?D'\<^sub>1" 
