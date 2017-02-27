@@ -44,14 +44,14 @@ proof -
   then obtain \<phi> where \<phi>_p: "\<tau> \<cdot> \<phi> = \<eta> \<cdot> \<sigma>" using \<eta>\<sigma>uni mgu\<^sub>l\<^sub>s_def by auto
 
   -- {* Showing that we have the desired resolvent: *}
-  let ?E = "((C\<^sub>1 - L\<^sub>1)  \<union> (C\<^sub>2 - L\<^sub>2)) \<cdot>\<^sub>l\<^sub>s \<tau>"
-  have "?E \<cdot>\<^sub>l\<^sub>s \<phi>  = (?R\<^sub>1 \<union> ?R\<^sub>2 ) \<cdot>\<^sub>l\<^sub>s (\<tau> \<cdot> \<phi>)" 
+  let ?C = "((C\<^sub>1 - L\<^sub>1)  \<union> (C\<^sub>2 - L\<^sub>2)) \<cdot>\<^sub>l\<^sub>s \<tau>"
+  have "?C \<cdot>\<^sub>l\<^sub>s \<phi>  = (?R\<^sub>1 \<union> ?R\<^sub>2 ) \<cdot>\<^sub>l\<^sub>s (\<tau> \<cdot> \<phi>)" 
     using subls_union composition_conseq2ls by auto
   also have "... = (?R\<^sub>1 \<union> ?R\<^sub>2 ) \<cdot>\<^sub>l\<^sub>s (\<eta> \<cdot> \<sigma>)" using \<phi>_p by auto
   also have "... = ((?R\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<eta>) \<union> (?R\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<eta>)) \<cdot>\<^sub>l\<^sub>s \<sigma>" 
     using subls_union composition_conseq2ls by auto
   also have "... = (?R\<^sub>1' \<union> ?R\<^sub>2') \<cdot>\<^sub>l\<^sub>s \<sigma>" using \<eta>_p L\<^sub>1_p L\<^sub>2_p by auto
-  finally have "?E \<cdot>\<^sub>l\<^sub>s \<phi> = ((C\<^sub>1' - L\<^sub>1') \<union> (C\<^sub>2' - L\<^sub>2')) \<cdot>\<^sub>l\<^sub>s \<sigma>" by auto
+  finally have "?C \<cdot>\<^sub>l\<^sub>s \<phi> = ((C\<^sub>1' - L\<^sub>1') \<union> (C\<^sub>2' - L\<^sub>2')) \<cdot>\<^sub>l\<^sub>s \<sigma>" by auto
   then have inst: "instance_of\<^sub>l\<^sub>s (resolution C\<^sub>1' C\<^sub>2' L\<^sub>1' L\<^sub>2' \<sigma>) (resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<tau>) "
     using resolution_def instance_of\<^sub>l\<^sub>s_def by metis
 
