@@ -57,7 +57,7 @@ proof -
   then have inst: "instance_of\<^sub>l\<^sub>s (resolution C\<^sub>1' C\<^sub>2' L\<^sub>1' L\<^sub>2' \<sigma>) (resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<tau>) "
     using resolution_def instance_of\<^sub>l\<^sub>s_def by metis
 
-  -- {* Showing that the rule resolution is applicable: *}
+  -- {* Showing that the resolution rule is applicable: *}
   have "C\<^sub>1' \<noteq> {} \<and> C\<^sub>2' \<noteq> {} \<and> L\<^sub>1' \<noteq> {} \<and> L\<^sub>2' \<noteq> {}" 
     using appl applicable_def by auto
   then have "C\<^sub>1 \<noteq> {} \<and> C\<^sub>2 \<noteq> {} \<and> L\<^sub>1 \<noteq> {} \<and> L\<^sub>2 \<noteq> {}" using \<eta>_p L\<^sub>1_p L\<^sub>2_p by auto
