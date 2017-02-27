@@ -19,6 +19,7 @@ lemma lifting:
   shows "\<exists>L\<^sub>1 L\<^sub>2 \<tau>. applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<tau> \<and>
                 instance_of\<^sub>l\<^sub>s (resolution C\<^sub>1' C\<^sub>2' L\<^sub>1' L\<^sub>2' \<sigma>) (resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<tau>)"
 proof -
+  -- {* Obtaining the subsets we resolve upon: *}
   let ?R\<^sub>1' = "C\<^sub>1' - L\<^sub>1'" and ?R\<^sub>2' = "C\<^sub>2' - L\<^sub>2'"
 
   from inst obtain \<gamma> \<mu> where "C\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<gamma> = C\<^sub>1' \<and> C\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<mu> = C\<^sub>2'" 
@@ -33,6 +34,7 @@ proof -
     using appl project_sub using applicable_def by metis
   let ?R\<^sub>2 = "C\<^sub>2 - L\<^sub>2"
 
+  -- {* Obtaining substitutions: *}
   from appl have "mgu\<^sub>l\<^sub>s \<sigma> (L\<^sub>1' \<union> L\<^sub>2'\<^sup>C)" using applicable_def by auto
   then have "mgu\<^sub>l\<^sub>s \<sigma> ((L\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<eta>) \<union> (L\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<eta>)\<^sup>C)" using L\<^sub>1_p L\<^sub>2_p by auto
   then have "mgu\<^sub>l\<^sub>s \<sigma> ((L\<^sub>1  \<union> L\<^sub>2\<^sup>C) \<cdot>\<^sub>l\<^sub>s \<eta>)" using compls_subls subls_union by auto
