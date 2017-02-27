@@ -1,6 +1,9 @@
 theory CDCL_Two_Watched_Literals_List_Watched_Trail_Code
-imports CDCL_Two_Watched_Literals_List_Watched_Code
+  imports CDCL_Two_Watched_Literals_List_Watched_Code
 begin
+
+notation prod_rel_syn (infixl "\<times>\<^sub>f" 70)
+
 context twl_array_code
 begin
 
@@ -47,13 +50,23 @@ lemma is_pos_hnr[sepref_fr_rules]:
    apply (sep_auto simp: p2rel_def lit_of_natP_def)+
   by presburger
 
-sepref_definition cons_trail_Propagated_tr_code
+sepref_thm cons_trail_Propagated_tr_code
   is \<open>uncurry2 (RETURN ooo cons_trail_Propagated_tr)\<close>
   :: \<open>[\<lambda>((L, C), (M, xs, k)). atm_of L < length xs]\<^sub>a nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a trail_conc\<^sup>d\<rightarrow>
     trail_conc\<close>
   unfolding cons_trail_Propagated_tr_def
   supply [[goals_limit = 1]]
   by sepref
+
+
+concrete_definition (in -) cons_trail_Propagated_tr_code
+  uses "twl_array_code.cons_trail_Propagated_tr_code.refine_raw"
+  is "(uncurry2 ?f,_)\<in>_"
+
+prepare_code_thms (in -) cons_trail_Propagated_tr_code_def
+
+lemmas cons_trail_Propagated_tr_code[sepref_fr_rules] = cons_trail_Propagated_tr_code.refine
+
 
 lemma cons_trail_Propagated_tr_code_cons_trail_Propagated_tr[sepref_fr_rules]:
   \<open>(uncurry2 cons_trail_Propagated_tr_code, uncurry2 (RETURN ooo cons_trail_Propagated)) \<in>
@@ -383,13 +396,8 @@ lemma pending_wll_empty_hnr[unfolded twl_st_l_trail_assn_def, sepref_fr_rules]:
       list_mset_assn_empty_Cons list_mset_assn_add_mset_Nil pending_wll_empty'_def
       split: list.splits)+
 
-definition select_and_remove_from_pending_wl'' :: \<open>twl_st_wll_trail \<Rightarrow> twl_st_wll_trail \<times> nat\<close> where
-  \<open>select_and_remove_from_pending_wl'' =
-    (\<lambda>(M, N, U, D, NP, UP, Q, W).  ((M, N, U, D, NP, UP, tl Q, W), hd Q))\<close>
-
-
-lemma hd_select_and_remove_from_pending_wl''_refine[unfolded twl_st_l_trail_assn_def, sepref_fr_rules]:
-  \<open>(return o select_and_remove_from_pending_wl'',
+lemma hd_select_and_remove_from_pending_wl''_refine:
+  \<open>(return o (\<lambda>(M, N, U, D, NP, UP, Q, W).  ((M, N, U, D, NP, UP, tl Q, W), hd Q)),
        select_and_remove_from_pending_wl :: nat twl_st_wl \<Rightarrow> (nat twl_st_wl \<times> nat literal) nres) \<in>
     [\<lambda>S. \<not>pending_wl_empty S]\<^sub>a
     twl_st_l_trail_assn\<^sup>d \<rightarrow> twl_st_l_trail_assn *assn nat_lit_assn\<close>
@@ -421,14 +429,14 @@ proof -
        array_watched_assn
       )\<close>
   have 2:
-    \<open>(return o select_and_remove_from_pending_wl'', RETURN o ?int) \<in>
+    \<open>(return o (\<lambda>(M, N, U, D, NP, UP, Q, W). ((M, N, U, D, NP, UP, tl Q, W), hd Q)), RETURN o ?int) \<in>
     [\<lambda>(_, _, _, _, _, _, Q, _). Q \<noteq> []]\<^sub>a
     twl_st_l_interm_assn_2\<^sup>d \<rightarrow> twl_st_l_interm_assn_2 *assn nat_lit_assn\<close>
-    unfolding select_and_remove_from_pending_wl''_def twl_st_l_interm_assn_2_def
+    unfolding twl_st_l_interm_assn_2_def
     apply sepref_to_hoare
     by (case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). Q) x\<close>;
         case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). Q) xi\<close>) sep_auto+
-  have H: \<open>(return \<circ> select_and_remove_from_pending_wl'',
+  have H: \<open>(return \<circ> (\<lambda>(M, N, U, D, NP, UP, Q, W). ((M, N, U, D, NP, UP, tl Q, W), hd Q)),
              select_and_remove_from_pending_wl)
             \<in> [comp_PRE twl_st_l_interm_rel_1
                  (\<lambda>(_, _, _, _, _, _, Q, _). Q \<noteq> {#})
@@ -456,6 +464,15 @@ proof -
   show ?thesis using H unfolding pre post im .
 qed
 
+concrete_definition (in -) hd_select_and_remove_from_pending_wl''
+   uses twl_array_code.hd_select_and_remove_from_pending_wl''_refine
+   is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) hd_select_and_remove_from_pending_wl''_def
+
+lemmas hd_select_and_remove_from_pending_wl''_code[sepref_fr_rules] =
+   hd_select_and_remove_from_pending_wl''.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+
 sepref_register unit_propagation_outer_loop_wl_D
 sepref_thm unit_propagation_outer_loop_wl_D
   is \<open>((PR_CONST unit_propagation_outer_loop_wl_D) :: nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres)\<close>
@@ -464,8 +481,8 @@ sepref_thm unit_propagation_outer_loop_wl_D
   apply (subst PR_CONST_def)
   unfolding unit_propagation_outer_loop_wl_D_def twl_st_l_trail_assn_def
     pending_wl_pending_wl_empty
+  supply [[goals_limit = 1]]
   by sepref
-
 
 concrete_definition (in -) unit_propagation_outer_loop_wl_D_code
    uses twl_array_code.unit_propagation_outer_loop_wl_D.refine_raw
@@ -1062,8 +1079,18 @@ prepare_code_thms (in -) cdcl_twl_stgy_prog_wl_D_code_def
 lemmas cdcl_twl_stgy_prog_wl_D_code[sepref_fr_rules] =
    cdcl_twl_stgy_prog_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
 
+concrete_definition (in -) select_and_remove_from_pending_wl''_code
+   uses twl_array_code.hd_select_and_remove_from_pending_wl''_refine
+   is "(?f,_)\<in>_"
+
+prepare_code_thms select_and_remove_from_pending_wl''_code_def
+
+lemmas select_and_remove_from_pending_wl''_code_[sepref_fr_rules] =
+   select_and_remove_from_pending_wl''_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
 
 end
   
+export_code cdcl_twl_stgy_prog_wl_D_code in SML_imp module_name SAT_Solver
+  file "code/CDCL_Cached_Array.ML"
 
 end
