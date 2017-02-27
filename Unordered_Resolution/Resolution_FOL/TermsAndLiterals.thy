@@ -254,7 +254,7 @@ proof -
   then show "?thesis" unfolding bij_betw_def inj_on_def unfolding nat_from_hatom_def by simp
 qed
 
-lemma hatom_from_nat_bij: "bij hatom_from_nat " unfolding hatom_from_nat_def using nat_from_hatom_bij bij_betw_inv_into by auto
+lemma hatom_from_nat_bij: "bij hatom_from_nat" unfolding hatom_from_nat_def using nat_from_hatom_bij bij_betw_inv_into by auto
 
 lemma nat_from_hatom_hatom_from_nat[simp]: "nat_from_hatom (hatom_from_nat n) = n" 
   unfolding hatom_from_nat_def 

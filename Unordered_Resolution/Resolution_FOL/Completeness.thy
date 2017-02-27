@@ -17,7 +17,7 @@ lemma lifting:
   assumes inst: "instance_of\<^sub>l\<^sub>s C\<^sub>1' C\<^sub>1 \<and> instance_of\<^sub>l\<^sub>s C\<^sub>2' C\<^sub>2"
   assumes appl: "applicable C\<^sub>1' C\<^sub>2' L\<^sub>1' L\<^sub>2' \<sigma>"
   shows "\<exists>L\<^sub>1 L\<^sub>2 \<tau>. applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<tau> \<and>
-                   instance_of\<^sub>l\<^sub>s (resolution C\<^sub>1' C\<^sub>2' L\<^sub>1' L\<^sub>2' \<sigma>) (resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<tau>)"
+                instance_of\<^sub>l\<^sub>s (resolution C\<^sub>1' C\<^sub>2' L\<^sub>1' L\<^sub>2' \<sigma>) (resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<tau>)"
 proof -
   let ?R\<^sub>1' = "C\<^sub>1' - L\<^sub>1'" and ?R\<^sub>2' = "C\<^sub>2' - L\<^sub>2'"
 
