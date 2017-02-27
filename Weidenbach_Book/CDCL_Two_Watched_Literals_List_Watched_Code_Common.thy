@@ -1219,7 +1219,7 @@ lemmas find_decomp_wl_imp_code_refine[sepref_fr_rules] = find_decomp_wl_imp_code
 definition (in -) find_decomp_wl_imp' :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clause_l list \<Rightarrow> nat \<Rightarrow>
     nat clause \<Rightarrow> nat clauses \<Rightarrow> nat clauses \<Rightarrow> nat lit_queue_wl \<Rightarrow>
     (nat literal \<Rightarrow> watched) \<Rightarrow> _ \<Rightarrow> (nat, nat) ann_lits nres\<close> where
-  \<open>find_decomp_wl_imp'  = (\<lambda>M N U D NP UP W Q L. find_decomp_wl_imp M D L)\<close>
+  \<open>find_decomp_wl_imp' = (\<lambda>M N U D NP UP W Q L. find_decomp_wl_imp M D L)\<close>
 
 lemma (in -) id_mset_hnr[sepref_fr_rules]:
  \<open>(arl_of_array_raa, (RETURN o mset)) \<in> [\<lambda>xs. xs \<noteq> []]\<^sub>a clause_ll_assn\<^sup>d \<rightarrow> conflict_assn\<close>

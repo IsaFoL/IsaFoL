@@ -6,100 +6,6 @@ begin
 
 section \<open>Code Generation\<close>
 
-subsection \<open>Literals as Natural Numbers\<close>
-
-abbreviation nat_lit_rel where
-  \<open>nat_lit_rel \<equiv> p2rel lit_of_natP\<close>
-
-abbreviation nat_lit_assn :: "nat literal \<Rightarrow> nat \<Rightarrow> assn" where
-  \<open>nat_lit_assn \<equiv> pure nat_lit_rel\<close>
-
-definition propagated where
-  \<open>propagated L C = (L, Some C)\<close>
-
-lemma propagated_hnr[sepref_fr_rules]:
-  \<open>(uncurry (return oo propagated), uncurry (RETURN oo Propagated)) \<in>
-     nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a pair_nat_ann_lit_assn\<close>
-  by sepref_to_hoare (sep_auto simp: nat_ann_lit_rel_def propagated_def case_prod_beta p2rel_def
-      lit_of_natP_def simp del: literal_of_nat.simps
-      split: option.splits)
-
-definition decided where
-  \<open>decided L = (L, None)\<close>
-
-lemma decided_hnr[sepref_fr_rules]:
-  \<open>(return o decided, RETURN o Decided) \<in>
-     nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a pair_nat_ann_lit_assn\<close>
-  by sepref_to_hoare (sep_auto simp: nat_ann_lit_rel_def decided_def case_prod_beta p2rel_def
-      lit_of_natP_def simp del: literal_of_nat.simps
-      split: option.splits)
-
-definition uminus_lit_imp :: \<open>nat \<Rightarrow> nat\<close> where
-  \<open>uminus_lit_imp L = (if L mod 2 = 0 then L + 1 else L - 1)\<close>
-
-lemma uminus_lit_imp_hnr[sepref_fr_rules]:
-  \<open>(return o uminus_lit_imp, RETURN o uminus) \<in>
-     nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_assn\<close>
-  apply sepref_to_hoare
-  apply (sep_auto simp: nat_ann_lit_rel_def uminus_lit_imp_def case_prod_beta p2rel_def
-      lit_of_natP_def
-      split: option.splits)
-  by presburger
-
-
-subsection \<open>State Conversion\<close>
-
-subsubsection \<open>Functions and Types:\<close>
-
-type_synonym ann_lits_l = \<open>(nat, nat) ann_lits\<close>
-type_synonym working_queue_ll = \<open>nat list\<close>
-type_synonym lit_queue_l = \<open>nat list\<close>
-type_synonym nat_trail = \<open>(nat \<times> nat option) list\<close>
-type_synonym clause_wl = \<open>nat array\<close>
-type_synonym clauses_wl = \<open>nat arrayO_raa\<close>
-type_synonym unit_lits_wl = \<open>nat list list\<close>
-
-type_synonym watched_wl = \<open>(nat array_list) array\<close>
-
-abbreviation ann_lit_wl_assn :: \<open>ann_lit_wl \<Rightarrow> ann_lit_wl \<Rightarrow> assn\<close> where
-  \<open>ann_lit_wl_assn \<equiv> prod_assn nat_assn (option_assn nat_assn)\<close>
-
-abbreviation ann_lits_wl_assn :: \<open>ann_lits_wl \<Rightarrow> ann_lits_wl \<Rightarrow> assn\<close> where
-  \<open>ann_lits_wl_assn \<equiv> list_assn ann_lit_wl_assn\<close>
-
-abbreviation clause_ll_assn :: "nat clause_l \<Rightarrow> clause_wl \<Rightarrow> assn" where
-  \<open>clause_ll_assn \<equiv> array_assn nat_lit_assn\<close>
-
-abbreviation clauses_ll_assn :: "nat clauses_l \<Rightarrow> clauses_wl \<Rightarrow> assn" where
-  \<open>clauses_ll_assn \<equiv> arrayO_raa (array_assn nat_lit_assn)\<close>
-
-abbreviation clause_l_assn :: "nat clause \<Rightarrow> nat list \<Rightarrow> assn" where
-  \<open>clause_l_assn \<equiv> list_mset_assn nat_lit_assn\<close>
-
-abbreviation clauses_l_assn :: "nat clauses \<Rightarrow> nat list list \<Rightarrow> assn" where
-  \<open>clauses_l_assn \<equiv> list_mset_assn clause_l_assn\<close>
-
-abbreviation working_queue_l_assn :: "nat multiset \<Rightarrow> nat list \<Rightarrow> assn" where
-  \<open>working_queue_l_assn \<equiv> list_mset_assn nat_assn\<close>
-
-abbreviation working_queue_ll_assn :: "nat list \<Rightarrow> nat list \<Rightarrow> assn" where
-  \<open>working_queue_ll_assn \<equiv> list_assn nat_assn\<close>
-
-abbreviation unit_lits_assn :: "nat clauses \<Rightarrow> unit_lits_wl \<Rightarrow> assn" where
-  \<open>unit_lits_assn \<equiv> list_mset_assn (list_mset_assn nat_lit_assn)\<close>
-
-abbreviation conflict_assn :: "nat clause \<Rightarrow> nat array_list \<Rightarrow> assn" where
-  \<open>conflict_assn \<equiv> hr_comp (arl_assn nat_lit_assn) list_mset_rel\<close>
-
-abbreviation conflict_option_assn :: "nat clause option \<Rightarrow> nat array_list option \<Rightarrow> assn" where
-  \<open>conflict_option_assn \<equiv> option_assn conflict_assn\<close>
-
-type_synonym nat_clauses_l = \<open>nat list list\<close>
-
-type_synonym twl_st_wll =
-  "nat_trail \<times> clauses_wl \<times> nat \<times> nat array_list option \<times>  unit_lits_wl \<times> unit_lits_wl \<times>
-    lit_queue_l \<times> watched_wl"
-
 subsection \<open>Code Generation\<close>
 
 subsubsection \<open>More Operations\<close>
@@ -393,11 +299,9 @@ proof -
             \<in> [comp_PRE twl_st_l_interm_rel_1
                  (\<lambda>(_, _, _, _, _, _, Q, _). Q \<noteq> {#})
                  (\<lambda>_ (_, _, _, _, _, _, Q, _). Q \<noteq> [])
-                 (\<lambda>_. True)]\<^sub>a hrp_comp (twl_st_l_interm_assn_2\<^sup>d)
-                                 twl_st_l_interm_rel_1 \<rightarrow> hr_comp
-                          (twl_st_l_interm_assn_2 *assn
-                           CDCL_Two_Watched_Literals_List_Watched_Code.nat_lit_assn)
-                          (twl_st_l_interm_rel_1 \<times>\<^sub>r Id)\<close>
+                 (\<lambda>_. True)]\<^sub>a 
+               hrp_comp (twl_st_l_interm_assn_2\<^sup>d) twl_st_l_interm_rel_1 \<rightarrow> 
+             hr_comp (twl_st_l_interm_assn_2 *assn nat_lit_assn) (twl_st_l_interm_rel_1 \<times>\<^sub>r Id)\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF 2 1] .
   have pre: \<open>?pre' = ?pre\<close>
