@@ -2,6 +2,8 @@ section {* More Terms and Literals *}
 
 theory ExtraSnippets imports Main begin
 
+(* Adapted from Nipkow and Klein's Concrete semantics *)  
+  
 text_raw {*\DefineSnippet{cantor}{*}
 lemma "\<not> surj(f :: 'a \<Rightarrow> 'a set)"
 proof
