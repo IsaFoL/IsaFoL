@@ -848,6 +848,55 @@ proof -
     by sepref_to_hoare (sep_auto intro!: XX simp: no_fail_spec_le_RETURN_itself)
 qed
 
+
+(* Taken from Lammich's GRAT:
+  TODO: Move, patch Imperative/HOL!
+  This patch makes Imperative/HOL array translation also work for index types other than IntInf.
+  Note that the toInt-operations are required to raise an Overflow exception on overflow, such that
+  creating an array of too big size is safe, and also indexing an array out of bounds will be
+  correctly caught.
+*)
+code_printing constant Array.new' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.array/ (IntInf.toInt _,/ (_)))"
+code_printing constant Array.make' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.tabulate/ (IntInf.toInt _,/ _ o IntInf.fromInt))"
+code_printing constant Array.len' \<rightharpoonup> (SML) "(fn/ ()/ =>/ IntInf.fromInt (Array.length/ _))"
+code_printing constant Array.nth' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ IntInf.toInt _))"
+code_printing constant Array.upd' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ IntInf.toInt _,/ (_)))"
+
+
+(*
+  TODO: Patch that belongs to array_blit.thy.
+  Already in Lammich's local AFP copy!
+*)
+code_printing code_module "array_blit" \<rightharpoonup> (SML)
+  {*
+  (* Locally patched version  *)
+  fun array_blit src si dst di len = (
+    src=dst andalso raise Fail ("array_blit: Same arrays");
+    ArraySlice.copy {
+      di = IntInf.toInt di,
+      src = ArraySlice.slice (src,IntInf.toInt si,SOME (IntInf.toInt len)),
+      dst = dst})
+
+  fun array_nth_oo v a i () = Array.sub(a,IntInf.toInt i) handle Subscript => v | Overflow => v
+  fun array_upd_oo f i x a () =
+    (Array.update(a,IntInf.toInt i,x); a) handle Subscript => f () | Overflow => f ()
+
+  *}
+
+  (* TODO: Export to other languages: OCaml, Haskell, Scala *)
+code_printing constant blit' \<rightharpoonup>
+  (SML) "(fn/ ()/ => /array'_blit _ _ _ _ _)"
+  and (Scala) "{ ('_: Unit)/=>/
+    def safecopy(src: Array['_], srci: Int, dst: Array['_], dsti: Int, len: Int) = {
+      if (src eq dst)
+        sys.error(\"array'_blit: Same arrays\")
+      else
+        System.arraycopy(src, srci, dst, dsti, len)
+    }
+    safecopy(_.array,_.toInt,_.array,_.toInt,_.toInt)
+  }"
+
+
 sepref_definition SAT_wl_code
   is \<open>SAT_wl'\<close>
   :: \<open>(list_assn (list_assn nat_lit_assn))\<^sup>d \<rightarrow>\<^sub>a bool_assn\<close>
