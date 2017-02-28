@@ -697,5 +697,32 @@ lemma prod_cases12 [cases type]:
 lemma prod_induct12 [case_names fields, induct type]:
   "(\<And>a b c d e f g h i j k l. P (a, b, c, d, e, f, g, h, i, j, k, l)) \<Longrightarrow> P x"
   by (cases x) blast
-    
+
+
+subsection \<open>More about @{term list_all2}\<close>
+
+lemma list_all2_op_eq_map_right_iff: \<open>list_all2 (\<lambda>L. op = (f L)) a aa \<longleftrightarrow> aa = map f a \<close>
+  apply (induction a arbitrary: aa)
+   apply auto[]
+  by (case_tac aa) (auto)
+
+lemma list_all2_op_eq_map_left_iff: \<open>list_all2 (\<lambda>L' L. L'  = (f L)) a aa \<longleftrightarrow> a = map f aa\<close>
+  apply (induction a arbitrary: aa)
+   apply auto[]
+  by (case_tac aa) (auto)
+
+lemma list_all2_op_eq_map_map_right_iff:
+  \<open>list_all2 (list_all2 (\<lambda>L. op = (f L))) xs' x \<longleftrightarrow> x = map (map f) xs'\<close> for x
+    apply (induction xs' arbitrary: x)
+     apply auto[]
+    apply (case_tac x)
+  by (auto simp: list_all2_op_eq_map_right_iff)
+
+lemma list_all2_op_eq_map_map_left_iff:
+  \<open>list_all2 (list_all2 (\<lambda>L' L. L' = f L)) xs' x \<longleftrightarrow> xs' = map (map f) x\<close>
+    apply (induction xs' arbitrary: x)
+     apply auto[]
+    apply (case_tac x)
+  by (auto simp: list_all2_op_eq_map_left_iff)
+
 end

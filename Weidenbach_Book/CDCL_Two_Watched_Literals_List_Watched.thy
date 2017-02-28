@@ -86,16 +86,16 @@ lemma lits_of_atms_of_m_union:
   \<open>lits_of_atms_of_m (A + B) = lits_of_atms_of_m A + lits_of_atms_of_m B\<close>
   by (auto simp: lits_of_atms_of_m_def)
 
-fun st_l_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_st_wl  \<Rightarrow> 'v twl_st_l\<close> where
+fun st_l_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_l\<close> where
   \<open>st_l_of_wl None (M, N, C, D, NP, UP, Q, W) = (M, N, C, D, NP, UP, {#}, Q)\<close>
 | \<open>st_l_of_wl (Some (L, j)) (M, N, C, D, NP, UP, Q, W) =
     (M, N, C, D, NP, UP, (if D \<noteq> None then {#} else working_queue_wl (M, N, C, D, NP, UP, Q, W) L j,
       Q))\<close>
 
-fun twl_st_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_st_wl  \<Rightarrow> 'v twl_st\<close> where
+fun twl_st_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st\<close> where
   \<open>twl_st_of_wl L S = twl_st_of (map_option fst L) (st_l_of_wl L S)\<close>
 
-fun twl_st_of_wl2 :: \<open>('v literal) option \<Rightarrow> 'v twl_st_wl  \<Rightarrow> 'v twl_st\<close> where
+fun twl_st_of_wl2 :: \<open>('v literal) option \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st\<close> where
   \<open>twl_st_of_wl2 L S = twl_st_of L (st_l_of_wl None S)\<close>
 
 fun remove_one_lit_from_wq :: "nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l" where
@@ -260,7 +260,7 @@ proof -
   have [simp]: \<open>remove1_mset (W L ! w) (mset (drop w (W L))) = mset (drop (Suc w) (W L))\<close>
     using w_le by (cases \<open>drop w (W L)\<close>) (auto simp: drop_Cons' drop_Suc drop_tl remove1_mset_add_mset_If
         trivial_add_mset_remove_iff nth_via_drop)
-  have \<open>\<not> length xs \<le> Suc w  \<Longrightarrow> last xs \<in> set (drop (Suc w) xs)\<close>
+  have \<open>\<not> length xs \<le> Suc w \<Longrightarrow> last xs \<in> set (drop (Suc w) xs)\<close>
     if \<open>w < length xs\<close> for xs :: \<open>'a list\<close> and w :: nat
     using that by (metis List.last_in_set drop_eq_Nil last_drop not_le)
   then have mset_drop_butlast[simp]: \<open>mset (drop w (butlast (xs[w := last xs]))) = mset (drop (Suc w) xs)\<close>
@@ -591,7 +591,7 @@ proof -
               (unit_propagation_inner_loop_l L (st_l_of_wl (Some (L, 0)) S))\<close>
       (is \<open>_ \<le> \<Down> ?R _\<close>)
       unfolding unit_propagation_inner_loop_wl_loop_def unit_propagation_inner_loop_l_def uncurry_def
-      apply (refine_rcg  WHILEIT_refine_genR[where
+      apply (refine_rcg WHILEIT_refine_genR[where
             R = \<open>?R\<close> and
             R' = \<open>{((i, T'), T). T = st_l_of_wl (Some (L, i)) T' \<and>
                       twl_struct_invs (twl_st_of_wl (Some (L, i)) T') \<and>
@@ -625,7 +625,7 @@ proof -
         RETURN S'}
       \<close> for L :: \<open>'v literal\<close> and S :: \<open>'v twl_st_l\<close>
   have \<open>(uncurry unit_propagation_inner_loop_wl, uncurry unit_propagation_inner_loop_l_fantom)
-    \<in> ?A  \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>
+    \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>
     unfolding unit_propagation_inner_loop_wl_def unit_propagation_inner_loop_l_fantom_def uncurry_def
     apply clarify
     apply (refine_rcg H)
@@ -824,7 +824,7 @@ subsubsection \<open>Decide or Skip\<close>
 definition find_unassigned_lit_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v literal option nres\<close> where
   \<open>find_unassigned_lit_wl = (\<lambda>(M, N, U, D, NP, UP, WS, Q).
      SPEC (\<lambda>L.
-         (L \<noteq> None  \<longrightarrow>
+         (L \<noteq> None \<longrightarrow>
             undefined_lit M (the L) \<and>
             atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)))) \<and>
          (L = None \<longrightarrow> (\<nexists>L'. undefined_lit M L' \<and>

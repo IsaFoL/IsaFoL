@@ -79,7 +79,7 @@ lemma find_decomp_wl_code[sepref_fr_rules]:
        unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
     nat_lit_assn\<^sup>k
     \<rightarrow> pair_nat_ann_lits_assn\<close>
-  (is \<open> _ \<in> [?P]\<^sub>a  _ \<rightarrow> _\<close>)
+  (is \<open> _ \<in> [?P]\<^sub>a _ \<rightarrow> _\<close>)
 proof -
   have H: \<open>(uncurry8 find_decomp_wl_imp'_code, uncurry8 find_decomp_wl')
     \<in> [\<lambda>((((((((a, b), ba), bb), bc), bd), be), bf), bg).
@@ -94,7 +94,7 @@ proof -
       conflict_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a
       (hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0))\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>
    pair_nat_ann_lits_assn\<close>
-    (is \<open> _ \<in> [?Q]\<^sub>a  _ \<rightarrow> _\<close>)
+    (is \<open> _ \<in> [?Q]\<^sub>a _ \<rightarrow> _\<close>)
     using find_decomp_wl_imp'_code.refine[unfolded find_decomp_wl_imp'_def PR_CONST_def, FCOMP
         find_decomp_wl_imp_find_decomp_wl'[unfolded find_decomp_wl_imp'_def]] .
 
@@ -107,7 +107,7 @@ qed
 lemma (in -) id_mset_hnr[sepref_fr_rules]:
  \<open>(arl_of_array_raa, (RETURN o mset)) \<in> [\<lambda>xs. xs \<noteq> []]\<^sub>a clause_ll_assn\<^sup>d \<rightarrow> conflict_assn\<close>
   unfolding list_assn_pure_conv list_mset_assn_def the_pure_pure
-  by sepref_to_hoare (sep_auto simp: list_mset_assn_def  mset_rel_def rel_mset_def hr_comp_def
+  by sepref_to_hoare (sep_auto simp: list_mset_assn_def mset_rel_def rel_mset_def hr_comp_def
       rel2p_def[abs_def] p2rel_def list_mset_rel_def br_def Collect_eq_comp pure_def list_rel_def
       arl_of_array_raa_def array_assn_def is_array_def arl_assn_def is_array_list_def)
 

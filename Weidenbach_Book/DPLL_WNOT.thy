@@ -20,7 +20,7 @@ lemma dpll\<^sub>W_dpll\<^sub>W_bj:
     apply (rule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.propagate\<^sub>N\<^sub>O\<^sub>T.propagate\<^sub>N\<^sub>O\<^sub>T; fastforce)
    apply (rule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.bj_decide\<^sub>N\<^sub>O\<^sub>T)
    apply (rule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.decide\<^sub>N\<^sub>O\<^sub>T.decide\<^sub>N\<^sub>O\<^sub>T; fastforce)
-  apply (frule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backtrack.intros[of _ _  _ _ _], simp_all)
+  apply (frule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backtrack.intros[of _ _ _ _ _], simp_all)
   apply (rule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.dpll_bj.bj_backjump)
   apply (rule dpll\<^sub>W_\<^sub>N\<^sub>O\<^sub>T.backtrack_is_backjump'',
     simp_all add: dpll\<^sub>W_all_inv_def)

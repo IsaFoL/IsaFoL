@@ -129,7 +129,7 @@ method unify_Down_invs2 =
            unify_Down_invs2_normalisation_post\<close>
        \<bar> _ \<Rightarrow> \<open>fail\<close>\<close>
    \<bar> I[thin]: \<open>S1 \<le> \<Down> {(T1, T0). P T1 \<and> Q' T1 T0} S0\<close> (multi) and
-     J[thin]: _ for S1:: \<open>'b nres\<close> and S0 :: \<open>'a nres\<close> and  Q' and P :: \<open>'b \<Rightarrow> bool\<close> \<Rightarrow>
+     J[thin]: _ for S1:: \<open>'b nres\<close> and S0 :: \<open>'a nres\<close> and Q' and P :: \<open>'b \<Rightarrow> bool\<close> \<Rightarrow>
        \<open>match J[uncurry] in
          J[curry]: \<open>_ \<Longrightarrow> S2 \<le> \<Down> {(T2, T1). R T2 T1} S1\<close> for S2 :: \<open>'c nres\<close> and R \<Rightarrow>
           \<open>insert Down_add_assumption_beginning[where Q' = Q' and P = P and R = R and
@@ -139,8 +139,8 @@ method unify_Down_invs2 =
              U = S0, OF I];
           unify_Down_invs2_normalisation_post\<close>
        \<bar> _ \<Rightarrow> \<open>fail\<close>\<close>
-   \<bar> I[thin]: \<open>S1 \<le> \<Down> {(T1, T0). Q  T0 T1\<and> Q' T1 T0} S0\<close> (multi) and
-     J: _ for S1:: \<open>'b nres\<close> and S0 :: \<open>'a nres\<close> and  Q Q' \<Rightarrow>
+   \<bar> I[thin]: \<open>S1 \<le> \<Down> {(T1, T0). Q T0 T1\<and> Q' T1 T0} S0\<close> (multi) and
+     J: _ for S1:: \<open>'b nres\<close> and S0 :: \<open>'a nres\<close> and Q Q' \<Rightarrow>
        \<open>match J[uncurry] in
          J[curry]: \<open>_ \<Longrightarrow> S2 \<le> \<Down> {(T2, T1). R T2 T1} S1\<close> for S2 :: \<open>'c nres\<close> and R \<Rightarrow>
           \<open>insert Down_del_assumption_beginning[where Q = \<open>\<lambda> x y. Q y x\<close> and Q' = Q', OF I];
@@ -299,6 +299,13 @@ proof -
         \<open>mset N'' = mset N'\<close> \<open>mset N''' = remove1_mset n (mset N'')\<close> \<open>n \<in> set N''\<close> set_mset_mset)
 qed
 
+lemma list_mset_assn_empty_nil: \<open>list_mset_assn R {#} [] = emp\<close>
+  by (auto simp: list_mset_assn_def list_mset_rel_def mset_rel_def
+      br_def p2rel_def rel2p_def Collect_eq_comp rel_mset_def
+      pure_def)
+
+lemma no_fail_spec_le_RETURN_itself: \<open>nofail f \<Longrightarrow> f \<le> SPEC(\<lambda>x. RETURN x \<le> f)\<close>
+  by (metis RES_rule nres_order_simps(21) the_RES_inv)
 
 text \<open>
   This theorems links two forms:

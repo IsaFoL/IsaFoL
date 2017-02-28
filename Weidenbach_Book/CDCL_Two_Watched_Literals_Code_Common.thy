@@ -90,7 +90,7 @@ lemma [def_pat_rules]:
   "atm_of \<equiv> op_atm_of"
   by auto
 
-definition atm_of_impl  :: "nat literal \<Rightarrow> nat" where
+definition atm_of_impl :: "nat literal \<Rightarrow> nat" where
   \<open>atm_of_impl L = do {
     case L of
       Pos K \<Rightarrow> K

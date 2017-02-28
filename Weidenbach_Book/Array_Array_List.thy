@@ -62,7 +62,7 @@ next
     by (fastforce dest: mset_eq_setD)
   then obtain ixs iys where
     "is": \<open>is = ixs @ a # iys\<close>
-    using eq_is  by (meson split_list)
+    using eq_is by (meson split_list)
   then have H: \<open>heap_list_all_nth R (ixs @ iys) xs ys = heap_list_all_nth R is' xs ys\<close>
     using IH[of \<open>ixs @ iys\<close>] eq_is by auto
   have H': \<open>heap_list_all_nth R (ixs @ a # iys) xs ys = heap_list_all_nth R (a # ixs @ iys) xs ys\<close>
@@ -146,7 +146,7 @@ lemma arrayO_nth_rule[sep_heap_rules]:
    (\<lambda>r'. arl_assn R (a ! i) r * \<up>(r = r' ! i))>\<close>
 proof -
   have i_le: \<open>i < Array.length h ai\<close> if \<open>(h, as) \<Turnstile> arrayO (arl_assn R) a ai\<close> for h as
-    using  that i unfolding arrayO_def array_assn_def is_array_def
+    using that i unfolding arrayO_def array_assn_def is_array_def
     by (auto simp: run.simps tap_def arrayO_def
         mod_star_conv array_assn_def is_array_def
         Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def)
@@ -277,7 +277,7 @@ proof -
     using that by (auto simp: mod_star_conv R R')
   show ?thesis
     unfolding arl_assn_def hr_comp_def
-    by (sep_auto simp: list_rel_def R R' intro!: list_all2_appendI  dest!: bbi)
+    by (sep_auto simp: list_rel_def R R' intro!: list_all2_appendI dest!: bbi)
 qed
 
 declare arrayO_nth_rule[sep_heap_rules]

@@ -607,7 +607,7 @@ lemma clauses_init_dt_not_Nil: \<open>fst (snd (init_dt CS ([], [[]], 0, None, {
 lemma init_dt_conflict_remains:
   fixes CS :: \<open>'v literal list list\<close> and S :: \<open>'v twl_st_l\<close>
   defines \<open>S' \<equiv> init_dt CS S\<close>
-  shows \<open>get_conflict_l S \<noteq> None \<longrightarrow> get_conflict_l S  = get_conflict_l S'\<close>
+  shows \<open>get_conflict_l S \<noteq> None \<longrightarrow> get_conflict_l S = get_conflict_l S'\<close>
   unfolding S'_def apply (induction CS)
   subgoal by simp
   subgoal for a CS

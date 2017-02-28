@@ -1234,7 +1234,7 @@ definition find_lit_of_max_level :: "'v twl_st_l \<Rightarrow> 'v literal \<Righ
   \<open>find_lit_of_max_level =  (\<lambda>(M, N, U, D, NP, UP, WS, Q) L.
     SPEC(\<lambda>L'. L' \<in># the D - {#-L#} \<and> get_level M L' = get_maximum_level M (the D - {#-L#})))\<close>
 
-definition ex_decomp_of_max_lvl :: "('v, nat) ann_lits  \<Rightarrow> 'v cconflict \<Rightarrow> 'v literal \<Rightarrow> bool" where
+definition ex_decomp_of_max_lvl :: "('v, nat) ann_lits \<Rightarrow> 'v cconflict \<Rightarrow> 'v literal \<Rightarrow> bool" where
   \<open>ex_decomp_of_max_lvl M D L \<longleftrightarrow> (\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (remove1_mset (-L) (the D)) + 1)\<close>
 
@@ -1568,7 +1568,7 @@ qed
 definition find_unassigned_lit :: \<open>'v twl_st_l \<Rightarrow> 'v literal option nres\<close> where
   \<open>find_unassigned_lit = (\<lambda>(M, N, U, D, NP, UP, WS, Q).
      SPEC (\<lambda>L.
-         (L \<noteq> None  \<longrightarrow>
+         (L \<noteq> None \<longrightarrow>
             undefined_lit M (the L) \<and>
             atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)))) \<and>
          (L = None \<longrightarrow> (\<nexists>L'. undefined_lit M L' \<and>

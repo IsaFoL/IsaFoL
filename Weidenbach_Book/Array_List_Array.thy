@@ -71,28 +71,27 @@ proof -
             heap_list_all_nth (array_assn R) (remove1 i [0..<length p]) a p *
             array_assn R (a ! i) (p ! i)\<close>
       using assms a ai
-      by (auto simp: hoare_triple_def Let_def  execute_simps relH_def in_range.simps
+      by (auto simp: hoare_triple_def Let_def execute_simps relH_def in_range.simps
           arrayO_raa_except_array0_index[of i, symmetric] arl_get_def
           arrayO_raa_except_array0_index arrayO_raa_except_def
           elim!: run_elims
           intro!: norm_pre_ex_rule)
     then have \<open>(Array.get h t ! i) = p ! i\<close>
       using ai i i_le unfolding arrayO_raa_except_array0_index
-      apply (auto simp: mod_star_conv array_assn_def is_array_def (* Array.get_def *) snga_assn_def
-          Abs_assn_inverse arl_assn_def (* is_array_list_def *))
+      apply (auto simp: mod_star_conv array_assn_def is_array_def snga_assn_def
+          Abs_assn_inverse arl_assn_def)
       unfolding is_array_list_def is_array_def hr_comp_def list_rel_def
-      apply (auto simp: mod_star_conv array_assn_def is_array_def (* Array.get_def *) snga_assn_def
-          Abs_assn_inverse arl_assn_def (* is_array_list_def *) from_nat_def
+      apply (auto simp: mod_star_conv array_assn_def is_array_def snga_assn_def
+          Abs_assn_inverse arl_assn_def from_nat_def
           intro!: nth_take[symmetric])
       done
     moreover have \<open>length p = n\<close>
-      using p ai
-      by (auto simp: arl_assn_def is_array_list_def)
+      using p ai by (auto simp: arl_assn_def is_array_list_def)
 
     ultimately show \<open>(the_state \<sigma>, new_addrs h as (the_state \<sigma>)) \<Turnstile>
         arrayO_raa_except (array_assn R) [i] a ai (\<lambda>r'. array_assn R (a ! i) r * \<up> (r = r' ! i))\<close>
-      using assms (* A *) ai i_le r p
-      by (fastforce simp: hoare_triple_def Let_def  execute_simps relH_def in_range.simps
+      using assms ai i_le r p
+      by (fastforce simp: hoare_triple_def Let_def execute_simps relH_def in_range.simps
           arrayO_raa_except_array0_index[of i, symmetric] arl_get_def
           arrayO_raa_except_array0_index arrayO_raa_except_def
           elim!: run_elims
@@ -417,7 +416,7 @@ lemma heap_list_all_append: \<open>heap_list_all R (l @ [y]) (l' @ [x])
     (auto simp: ac_simps heap_list_all_Nil_append heap_list_all_append_Nil)
 term arrayO_raa
 lemma arrayO_raa_append_rule[sep_heap_rules]:
-  \<open><arrayO_raa R l a * R y x>  arrayO_raa_append a x  <\<lambda>a. arrayO_raa R (l@[y]) a >\<^sub>t\<close>
+  \<open><arrayO_raa R l a * R y x>  arrayO_raa_append a x <\<lambda>a. arrayO_raa R (l@[y]) a >\<^sub>t\<close>
 proof -
   have 1: \<open>arl_assn id_assn p a * heap_list_all R l p =
        arl_assn id_assn p a *  heap_list_all R l p * \<up> (length l = length p)\<close> for p
@@ -502,7 +501,7 @@ lemma nth_rl_op_list_get[sepref_fr_rules]:
   \<open>(uncurry nth_rl, uncurry (RETURN oo op_list_get)) \<in> 
     [\<lambda>(xs, n). n < length xs]\<^sub>a (arrayO_raa (array_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> array_assn R\<close>
   apply sepref_to_hoare
-  unfolding  arrayO_raa_def heap_list_all_heap_list_all_nth_eq
+  unfolding arrayO_raa_def heap_list_all_heap_list_all_nth_eq
   apply (subst_tac i=b in heap_list_all_nth_remove1)
    apply (solves \<open>simp\<close>)
   apply (subst_tac (2) i=b in heap_list_all_nth_remove1)

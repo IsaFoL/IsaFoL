@@ -335,25 +335,21 @@ proof -
     unfolding 2 .
 qed
 
-(* TODO Move out of the locale *)
 definition get_level_wl where
   \<open>get_level_wl M L =
      snd (fold (\<lambda>i (found, l::nat). if atm_of (lit_of (M!i)) = atm_of L \<or> found
-                   then if is_decided (M!i)
-                     then (True, l+1)
-                     else (True, l)
-                   else
-                     (found, l)
+                   then if is_decided (M!i) then (True, l+1) else (True, l)
+                   else (found, l)
                )
           [0..<length M]
           (False, 0))\<close>
 
-lemma  get_level_wl_get_level:
+lemma get_level_wl_get_level:
   \<open>get_level_wl M L = get_level M L\<close>
 proof -
   define f where
     \<open>f x = (\<lambda>(found, l::nat). if atm_of (lit_of x) = atm_of L \<or> found
-                   then  if is_decided x
+                   then if is_decided x
                      then (True, l+1)
                      else (True, l)
                    else (found, l)
@@ -380,11 +376,10 @@ proof -
     by simp
 qed
 
-(* TODO Move out *)
 definition is_decided_wl where
   \<open>is_decided_wl L \<longleftrightarrow> snd L = None\<close>
 
-lemma  is_decided_wl_is_decided:
+lemma is_decided_wl_is_decided:
   \<open>(RETURN o is_decided_wl, RETURN o is_decided) \<in> nat_ann_lit_rel \<rightarrow> \<langle>bool_rel\<rangle> nres_rel\<close>
   by (auto simp: nat_ann_lit_rel_def is_decided_wl_def is_decided_def intro!: frefI nres_relI
       elim: ann_lit_of_pair.elims)
@@ -395,7 +390,7 @@ sepref_definition is_decided_wl_code
   unfolding is_decided_wl_def[abs_def]
   by sepref
 
-lemma  ann_lit_of_pair_if:
+lemma ann_lit_of_pair_if:
   \<open>ann_lit_of_pair (L, D) = (if D = None then Decided L else Propagated L (the D))\<close>
   by (cases D) auto
 
@@ -412,13 +407,13 @@ proof -
     unfolding 1 .
 qed
 
-sepref_definition  get_level_wl_code
+sepref_definition get_level_wl_code
   is \<open>uncurry (RETURN oo get_level_wl)\<close>
   :: \<open>pair_nat_ann_lits_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   unfolding get_level_wl_def[abs_def]
   by sepref
 
-declare  get_level_wl_code.refine[sepref_fr_rules]
+declare get_level_wl_code.refine[sepref_fr_rules]
 
 definition maximum_level_remove where
   \<open>maximum_level_remove M D L =
@@ -426,12 +421,12 @@ definition maximum_level_remove where
           [0..<length D]
           (False, 0))\<close>
 
-lemma  get_level_wl_code_get_level[sepref_fr_rules]:
+lemma get_level_wl_code_get_level[sepref_fr_rules]:
   \<open>(uncurry get_level_wl_code, uncurry (RETURN oo (get_level :: (nat, nat) ann_lits \<Rightarrow> nat literal \<Rightarrow> nat))) \<in>
     pair_nat_ann_lits_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   using get_level_wl_code.refine unfolding get_level_wl_get_level[abs_def] .
 
-sepref_definition  maximum_level_remove_code
+sepref_definition maximum_level_remove_code
   is \<open>uncurry2 (RETURN ooo maximum_level_remove)\<close>
   :: \<open>pair_nat_ann_lits_assn\<^sup>k *\<^sub>a (arl_assn nat_lit_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   unfolding maximum_level_remove_def[abs_def]
@@ -738,7 +733,7 @@ next
     \<open>mset xs' = remove1_mset a (mset xs)\<close> and
     \<open>mset ys' = remove1_mset aa (mset ys)\<close> and
     \<open>list_all2 lit_of_natP xs' ys'\<close>
-    using IH p  by auto
+    using IH p by auto
    then show ?case
     apply (cases \<open>x \<noteq> a\<close>)
     subgoal
@@ -1208,7 +1203,7 @@ lemma watched_by_nth_watched_app':
 sepref_definition (in -) find_decomp_wl_imp_code
   is \<open>uncurry2 (find_decomp_wl_imp)\<close>
   :: \<open>[\<lambda>((M, D), L). M \<noteq> []]\<^sub>a
-         pair_nat_ann_lits_assn\<^sup>d *\<^sub>a conflict_assn\<^sup>k *\<^sub>a  nat_lit_assn\<^sup>k
+         pair_nat_ann_lits_assn\<^sup>d *\<^sub>a conflict_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k
     \<rightarrow> pair_nat_ann_lits_assn\<close>
   unfolding find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
   supply [[goals_limit=1]]
@@ -1224,7 +1219,7 @@ definition (in -) find_decomp_wl_imp' :: \<open>(nat, nat) ann_lits \<Rightarrow
 lemma (in -) id_mset_hnr[sepref_fr_rules]:
  \<open>(arl_of_array_raa, (RETURN o mset)) \<in> [\<lambda>xs. xs \<noteq> []]\<^sub>a clause_ll_assn\<^sup>d \<rightarrow> conflict_assn\<close>
   unfolding list_assn_pure_conv list_mset_assn_def the_pure_pure
-  by sepref_to_hoare (sep_auto simp: list_mset_assn_def  mset_rel_def rel_mset_def hr_comp_def
+  by sepref_to_hoare (sep_auto simp: list_mset_assn_def mset_rel_def rel_mset_def hr_comp_def
       rel2p_def[abs_def] p2rel_def list_mset_rel_def br_def Collect_eq_comp pure_def list_rel_def
       arl_of_array_raa_def array_assn_def is_array_def arl_assn_def is_array_list_def)
 
@@ -1734,7 +1729,7 @@ proof -
   show ?thesis
     apply (intro nres_relI frefI)
   apply clarify
-  unfolding find_unassigned_lit_wl_D_def  find_unassigned_lit_wl_def
+  unfolding find_unassigned_lit_wl_D_def find_unassigned_lit_wl_def
   apply (refine_vcg WHILEIT_rule[where R=\<open>measure (size o snd)\<close>])
   subgoal by auto
   subgoal by auto

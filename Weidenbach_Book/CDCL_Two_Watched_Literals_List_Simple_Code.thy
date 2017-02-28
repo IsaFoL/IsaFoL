@@ -231,7 +231,7 @@ lemma Collect_eq_comp: \<open>{(c, a). a = f c} O {(x, y). P x y} = {(c, y). P (
 lemma id_mset_hnr[sepref_fr_rules]:
  \<open>((return o id), (RETURN o mset)) \<in> (list_assn (pure R))\<^sup>d \<rightarrow>\<^sub>a list_mset_assn (pure R)\<close>
   unfolding list_assn_pure_conv list_mset_assn_def the_pure_pure
-  by sepref_to_hoare (sep_auto simp: list_mset_assn_def  mset_rel_def rel_mset_def
+  by sepref_to_hoare (sep_auto simp: list_mset_assn_def mset_rel_def rel_mset_def
       rel2p_def[abs_def] p2rel_def list_mset_rel_def br_def Collect_eq_comp pure_def list_rel_def)
 
 sepref_definition unit_propagation_inner_loop_body_l_impl is \<open>uncurry2 (unit_propagation_inner_loop_body_l :: nat literal \<Rightarrow> nat \<Rightarrow>
@@ -740,7 +740,7 @@ sepref_definition skip_and_resolve_loop_l_impl is
   skip_and_resolve_loop_inv_def mset_remove1[symmetric]
   maximum_level_code_eq_get_maximum_level[symmetric]
   apply (rewrite at \<open>If _ \<hole> _\<close> lms_fold_custom_empty)+
-  apply (rewrite at \<open>_  = {#}\<close> Multiset.is_empty_def[symmetric])+
+  apply (rewrite at \<open>_ = {#}\<close> Multiset.is_empty_def[symmetric])+
   apply (rewrite at \<open>\<not>_ \<and> \<not> is_decided _\<close> short_circuit_conv)
   apply (rewrite at \<open>\<not>_ \<and> Multiset.is_empty _\<close> short_circuit_conv)
   by sepref
@@ -779,7 +779,7 @@ lemma find_decomp_l_res_le_find_decomp:
     L: \<open>L \<equiv> lit_of (hd M)\<close> and
     S'_def: \<open>S' \<equiv> twl_st_of_ll (M, N, U, D, NP, UP, WS, Q)\<close>
   assumes
-    T_def: \<open>T  = ((M, N, U, D, NP, UP, WS, Q), L)\<close> and
+    T_def: \<open>T = ((M, N, U, D, NP, UP, WS, Q), L)\<close> and
     T'_def: \<open>T' = (S', L)\<close>
   assumes D: \<open>D \<noteq> None\<close> \<open>D \<noteq> Some []\<close> and
     ex_decomp: \<open>ex_decomp_of_max_lvl M (map_option mset D) L\<close> and
@@ -1112,7 +1112,7 @@ proof -
   show ?thesis
     unfolding find_lit_of_max_level_l_res_def find_lit_of_max_level_def
     apply (auto simp: fref_def nres_rel_def simp: H_D intro!: in_remove1_msetI)
-    by (metis H_D(2) get_level_uminus  less_irrefl)
+    by (metis H_D(2) get_level_uminus less_irrefl)
 qed
 
 lemma find_lit_of_max_level_l_find_lit_of_max_level:
@@ -1389,7 +1389,7 @@ lemma find_unassigned_lit_l_impl_find_unassigned_lit_l[sepref_fr_rules]:
        additional_WS_invs S \<and> get_conflict_l S = None]\<^sub>a
     twl_st_l_assn\<^sup>d \<rightarrow> option_assn nat_lit_assn\<close>
 proof -
-  have pre: \<open>comp_PRE  (Id \<times>\<^sub>r
+  have pre: \<open>comp_PRE (Id \<times>\<^sub>r
         Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id)
        (\<lambda>S. twl_struct_invs (twl_st_of None S) \<and>
              twl_stgy_invs (twl_st_of None S) \<and>

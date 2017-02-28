@@ -103,6 +103,9 @@ lemma literal_of_neq_eq_nat_of_lit_eq_iff: \<open>literal_of_nat b = L \<longlef
 lemma nat_of_lit_eq_iff[iff]: \<open>nat_of_lit xa = nat_of_lit x \<longleftrightarrow> x = xa\<close>
   apply (cases x; cases xa) by auto presburger+
 
+lemma lit_of_natP_nat_of_lit_iff: \<open>lit_of_natP c a \<longleftrightarrow> c = nat_of_lit a\<close>
+  by (cases a) (auto simp: lit_of_natP_def)
+
 type_synonym ann_lit_wl = \<open>nat \<times> nat option\<close>
 type_synonym ann_lits_wl = \<open>ann_lit_wl list\<close>
 
@@ -399,7 +402,7 @@ proof -
         atms_of_ms_def drop_Suc atms_of_def nth_in_set_tl intro!: bexI[of _ \<open>N!a\<close>] )
     then show ?thesis
       using that
-      by (simp add: S clauses_def mset_take_mset_drop_mset' m  in_lits_of_atms_of_mm_ain_atms_of_iff)
+      by (simp add: S clauses_def mset_take_mset_drop_mset' m in_lits_of_atms_of_mm_ain_atms_of_iff)
   qed
   show ?thesis
     unfolding unit_propagation_inner_loop_body_wl_D_def unit_propagation_inner_loop_body_wl_def S
@@ -787,7 +790,7 @@ proof -
         apply clarify
         apply (subst (asm) twl_struct_invs_is_N\<^sub>1_clauses_init_clss)
          apply (solves \<open>simp add: skip_and_resolve_loop_inv_def\<close>)
-        by (fastforce simp add: literals_are_in_N\<^sub>0_def  is_N\<^sub>1_alt_def
+        by (fastforce simp add: literals_are_in_N\<^sub>0_def is_N\<^sub>1_alt_def
             cdcl\<^sub>W_restart_mset.no_strange_atm_def in_N\<^sub>1_atm_of_in_atms_of_iff
             cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset' atms_of_def
             in_lits_of_atms_of_m_ain_atms_of_iff atm_of_eq_atm_of)
@@ -904,7 +907,7 @@ qed
 
 end
 
-definition find_lit_of_max_level_wl' :: "_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _  \<Rightarrow> _  \<Rightarrow> _  \<Rightarrow> _  \<Rightarrow> _  \<Rightarrow>
+definition find_lit_of_max_level_wl' :: "_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow>
    nat literal nres" where
   \<open>find_lit_of_max_level_wl' M N U D NP UP Q W L =
      find_lit_of_max_level_wl (M, N, U, Some D, NP, UP, Q, W) L\<close>
@@ -1346,7 +1349,7 @@ proof -
               dest!: in_atms_of_minusD)
 
         then have \<open>literals_are_N\<^sub>0 ?T\<close>
-          using  N\<^sub>0
+          using N\<^sub>0
           by (cases \<open>Suc U - length N\<close>; cases N)
             (simp_all add: clauses_def mset_take_mset_drop_mset' S_expand
               lits_of_atms_of_mm_union lits_of_atms_of_mm_add_mset (* is_N\<^sub>1_def *)
@@ -1388,8 +1391,8 @@ theorem decide_wl_or_skip_D_spec:
 proof -
   let ?clss = \<open>(\<lambda>(_, N, _). N)\<close>
   let ?learned = \<open>(\<lambda>(_, _, U, _). U)\<close>
-  have H: \<open>find_unassigned_lit_wl S  \<le> \<Down> {(L', L). L = L' \<and>
-         (L \<noteq> None  \<longrightarrow>
+  have H: \<open>find_unassigned_lit_wl S \<le> \<Down> {(L', L). L = L' \<and>
+         (L \<noteq> None \<longrightarrow>
             undefined_lit (get_trail_wl S) (the L) \<and>
             atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# mset (take (?learned S) (tl (?clss S))))) \<and>
          (L = None \<longrightarrow> (\<nexists>L'. undefined_lit (get_trail_wl S) L' \<and>

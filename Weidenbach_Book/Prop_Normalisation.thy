@@ -1509,7 +1509,7 @@ definition and_in_or_only where
 lemma pushConj_inv:
   fixes \<phi> \<psi> :: "'v propo"
   assumes "full (propo_rew_step pushConj) \<phi> \<psi>"
-  and  "no_equiv \<phi>" and "no_imp \<phi>" and "no_T_F_except_top_level \<phi>" and "simple_not \<phi>"
+  and "no_equiv \<phi>" and "no_imp \<phi>" and "no_T_F_except_top_level \<phi>" and "simple_not \<phi>"
   shows "no_equiv \<psi>" and "no_imp \<psi>" and "no_T_F_except_top_level \<psi>" and "simple_not \<psi>"
   using push_conn_inside_inv assms unfolding pushConj_def by metis+
 

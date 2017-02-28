@@ -319,7 +319,7 @@ definition optimal_improve :: "('v, 'v literal multiset) ann_lit list \<Rightarr
   \<open>optimal_improve tr S \<longleftrightarrow> (\<forall>M M'. tr = M' @ M \<longrightarrow> M' \<noteq> [] \<longrightarrow> \<not>is_improving M S)\<close>
 
 definition no_smaller_improve :: "'st \<Rightarrow> bool" where
-  \<open>no_smaller_improve  S \<longleftrightarrow> (\<forall>M M' K. trail S = M' @ Decided K # M \<longrightarrow> \<not>is_improving M S)\<close>
+  \<open>no_smaller_improve S \<longleftrightarrow> (\<forall>M M' K. trail S = M' @ Decided K # M \<longrightarrow> \<not>is_improving M S)\<close>
 
 text \<open>We are \<^emph>\<open>not\<close> requiring that improve is done as early as possible, only that we reduce the
   trail to the minimum model.\<close>
@@ -624,7 +624,7 @@ lemma cdcl\<^sub>W_o_no_smaller_confl:
     lev: \<open>conflict_is_false_with_level S\<close> and
     n_s: \<open>no_confl_prop_impr S\<close>
   shows \<open>no_smaller_confl ( T)\<close>
-  apply (rule cdcl\<^sub>W_o_no_smaller_confl_inv[of  S T])
+  apply (rule cdcl\<^sub>W_o_no_smaller_confl_inv[of S T])
   subgoal using assms by (auto dest!:cdcl\<^sub>W_o_cdcl\<^sub>W_o)[]
   subgoal using n_s by auto
   subgoal using struct_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
