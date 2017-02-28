@@ -838,6 +838,9 @@ lemma no_fail_spec_le_RETURN_itself: \<open>nofail f \<Longrightarrow> f \<le> S
   by (metis RES_rule nres_order_simps(21) the_RES_inv)
 
 declare init_dt_wl_code.refine[unfolded twl_array_code.twl_st_l_assn_def, sepref_fr_rules]
+text \<open>It is not possible to discharge assumption of the rule directly, but here, it works. This avoids
+  guessing form the \<open>sepref\<close> tools:\<close>
+declare init_state_wl_D_code[to_hnr, OF refl, sepref_fr_rules]
 lemma XX[unfolded twl_array_code.twl_st_l_assn_def, sepref_fr_rules]:
   \<open>(uncurry cdcl_twl_stgy_prog_wl_D_code, uncurry twl_array_code.cdcl_twl_stgy_prog_wl_D)
     \<in> [\<lambda>(N', _). N' = N]\<^sub>a
@@ -881,36 +884,10 @@ sepref_definition SAT_wl_code
   :: \<open>(list_assn (list_assn nat_lit_assn))\<^sup>d \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding SAT_wl'_def HOL_list.fold_custom_empty extract_lits_cls'_extract_lits_cls[symmetric]
     PR_CONST_def twl_array_code.get_conflict_wl_is_None
-  supply [[goals_limit = 5]]
-  apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-    -- \<open>Translation stops at the \<open>set\<close> operation\<close>
-            apply sepref_dbg_trans_step_keep
-            apply (rule_tac psi=\<open>xd = xd\<close> in asm_rl, rule refl)
-           apply sepref_dbg_trans_keep
-               apply sepref_dbg_trans_keep
-               apply sepref_dbg_trans_step_keep
-               apply (rule twl_array_code.get_conflict_wl_is_None_code_refine[to_hnr])
-              apply sepref_dbg_trans_keep
-                 apply sepref_dbg_trans_step_keep
-                 apply (rule twl_array_code.get_conflict_wl_is_None_code_refine[to_hnr])
-                apply sepref_dbg_trans_keep
-               apply sepref_dbg_trans_step_keep
-              apply sepref_dbg_trans_keep
-             apply sepref_dbg_trans_step_keep
-            apply sepref_dbg_trans_step_keep
-           apply sepref_dbg_trans_step_keep
-          apply sepref_dbg_trans_step_keep
-         apply sepref_dbg_trans_step_keep
-        apply sepref_dbg_trans_step_keep
-       apply sepref_dbg_trans_step_keep
-      apply sepref_dbg_trans_step_keep
-     apply sepref_dbg_trans_step_keep
-     apply fast
-    apply sepref_dbg_trans_step_keep
-   apply sepref_dbg_trans_step_keep
-  apply (solves \<open>simp add: CONSTRAINT_SLOT_def\<close>)
-  done
+  supply twl_array_code.get_conflict_wl_is_None_code_refine[sepref_fr_rules]
+  supply [[goals_limit = 1]]
+  by sepref
+
 
 declare locale_nat_list.init_state_wl_D_def[code]
 
