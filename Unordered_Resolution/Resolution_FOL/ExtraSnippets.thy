@@ -2,7 +2,7 @@ section {* More Terms and Literals *}
 
 theory ExtraSnippets imports Main begin
 
-text_raw {*\DefineSnippet{snippetname}{*}
+text_raw {*\DefineSnippet{cantor}{*}
 lemma "\<not> surj(f :: 'a \<Rightarrow> 'a set)"
 proof
   assume "surj f"
