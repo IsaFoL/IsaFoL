@@ -11,5 +11,6 @@ session "Resolution_FOL" (AFP) = HOL +
     Completeness
     Examples
     LatexSetup
+    ExtraSnippets
   document_files
     build
