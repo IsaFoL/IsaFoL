@@ -4,6 +4,13 @@ begin
 
 notation prod_rel_syn (infixl "\<times>\<^sub>f" 70)
 
+type_synonym trail_int = \<open>(nat, nat) ann_lits \<times> (bool option \<times> nat) list \<times> nat\<close>
+type_synonym trail_assn = \<open>(nat \<times> nat option) list \<times> (bool option \<times> nat) array \<times> nat\<close>
+
+type_synonym twl_st_wll_trail =
+  "trail_assn \<times> clauses_wl \<times> nat \<times> nat array_list option \<times>  unit_lits_wl \<times> unit_lits_wl \<times>
+    lit_queue_l \<times> watched_wl"
+
 context twl_array_code
 begin
 
@@ -12,9 +19,6 @@ definition valued_atm_on_trail where
     (if Pos L \<in> lits_of_l M then Some True
     else if Neg L \<in> lits_of_l M then Some False
     else None)\<close>
-
-type_synonym trail_int = \<open>(nat, nat) ann_lits \<times> (bool option \<times> nat) list \<times> nat\<close>
-type_synonym trail_assn = \<open>(nat \<times> nat option) list \<times> (bool option \<times> nat) array \<times> nat\<close>
 
 definition trail_ref :: \<open>(trail_int \<times> (nat, nat) ann_lits) set\<close> where
   \<open>trail_ref = {((M', xs, k), M). M = M' \<and> no_dup M \<and>
@@ -209,10 +213,6 @@ prepare_code_thms (in -) tl_trail_tr_code'_def
 
 lemmas tl_trail_tr_code'_refine[sepref_fr_rules] =
    tl_trail_tr_code'.refine[of N\<^sub>0]
-
-type_synonym twl_st_wll_trail =
-  "trail_assn \<times> clauses_wl \<times> nat \<times> nat array_list option \<times>  unit_lits_wl \<times> unit_lits_wl \<times>
-    lit_queue_l \<times> watched_wl"
 
 definition twl_st_l_trail_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_l_trail_assn \<equiv>
