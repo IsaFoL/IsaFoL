@@ -1,0 +1,15 @@
+$(SML_LIB)/basis/basis.mlb
+$(SML_LIB)/basis/mlton.mlb 
+$(SML_LIB)/smlnj-lib/Util/smlnj-lib.mlb
+
+local
+    Unsynchronized.sml
+    ann "nonexhaustiveMatch ignore" in
+      full_SAT_Cached.sml
+    end
+in
+    structure SAT_Solver
+end
+
+dimacs_parser.sml
+full_SAT_solver_with_init.sml

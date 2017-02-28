@@ -909,7 +909,13 @@ sepref_definition SAT_wl_code
 
 declare locale_nat_list.init_state_wl_D_def[code]
 
-export_code SAT_wl_code in SML_imp module_name SAT_Solver file "code/full_SAT_Cached.ML"
+export_code SAT_wl_code checking SML_imp
+export_code SAT_wl_code
+    int_of_integer
+    integer_of_int
+    integer_of_nat
+    nat_of_integer
+  in SML_imp module_name SAT_Solver file "code/full_SAT_Cached.sml"
 
 definition TWL_to_clauses_state_conv :: \<open>(nat twl_st_wl \<times> nat cdcl\<^sub>W_restart_mset) set\<close> where
   \<open>TWL_to_clauses_state_conv = {(S', S). S = convert_to_state (twl_st_of_wl None S')}\<close>
