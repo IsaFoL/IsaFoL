@@ -200,10 +200,8 @@ lemma find_first_eq_map_atm_of_code_index_atm_of[sepref_fr_rules]:
 proof -
   have 1: \<open>(uncurry (find_first_eq_map atm_of), uncurry (RETURN oo index_atm_of)) \<in>
     Id \<times>\<^sub>f \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
-    unfolding uncurry_def
-    apply (intro nres_relI frefI, rename_tac x y)
-    apply (case_tac x, case_tac y, simp)
-    by (smt find_first_eq_map_index index_atm_of_def refine_IdD)
+    unfolding uncurry_def index_atm_of_def using find_first_eq_map_index
+    by (intro nres_relI frefI, rename_tac x y) (case_tac x, case_tac y, fastforce)
   show ?thesis
     using find_first_eq_map_atm_of_code.refine[FCOMP 1] .
 qed
@@ -762,21 +760,24 @@ proof -
     using 0[FCOMP 1] unfolding n_def[symmetric] PR_CONST_def .
 qed
 
+text \<open>Move\<close>
+lemma list_mset_assn_empty_nil: \<open>list_mset_assn R {#} [] = emp\<close>
+  by (auto simp: list_mset_assn_def list_mset_rel_def mset_rel_def
+      br_def p2rel_def rel2p_def Collect_eq_comp rel_mset_def
+      pure_def)
+
 context locale_nat_list
 begin
+
 sepref_register init_state_wl
 lemma init_state_wl_D_init_state_wl:
   \<open>(init_state_wl_D, RETURN o (PR_CONST init_state_wl)) \<in>
      nat_assn\<^sup>k \<rightarrow>\<^sub>a twl_array_code.twl_st_l_assn N\<close>
 proof -
   have [simp]: \<open>clauses_l_assn {#} [] = emp\<close>
-    by (auto simp: list_mset_assn_def list_mset_rel_def mset_rel_def
-        br_def p2rel_def rel2p_def Collect_eq_comp rel_mset_def
-        pure_def)
+    by (rule list_mset_assn_empty_nil)
   have [simp]: \<open>clause_l_assn {#} [] = emp\<close>
-    by (auto simp: list_mset_assn_def list_mset_rel_def mset_rel_def
-        br_def p2rel_def rel2p_def Collect_eq_comp rel_mset_def
-        pure_def)
+    by (rule list_mset_assn_empty_nil)
   have [simp]: \<open>nat_assn n n = emp\<close> for n
     by (simp add: pure_app_eq)
   have e: \<open>RETURN $ empty_watched N \<le> SPEC (op = (empty_watched N))\<close>
@@ -863,12 +864,9 @@ proof -
   have [simp]: \<open>list_assn (\<lambda>a c. \<up> (c = a)) a ai = \<up> (a = ai)\<close> for a ai
     unfolding list_assn_pure_conv 1 by (auto simp: pure_def)
   have XX: \<open>twl_array_code.cdcl_twl_stgy_prog_wl_D N x1 \<le> SPEC \<Phi> \<Longrightarrow>
-<twl_array_code.twl_st_l_assn N x1 xi1>
-cdcl_twl_stgy_prog_wl_D_code N xi1
-<\<lambda>r. \<exists>\<^sub>Ara.
-             twl_array_code.twl_st_l_assn N ra r *
-             true *
-             \<up> (\<Phi> ra)>\<close> for x1 xi1 \<Phi>
+    <twl_array_code.twl_st_l_assn N x1 xi1>
+      cdcl_twl_stgy_prog_wl_D_code N xi1
+    <\<lambda>r. \<exists>\<^sub>Ara. twl_array_code.twl_st_l_assn N ra r * true * \<up> (\<Phi> ra)>\<close> for x1 xi1 \<Phi>
     apply (rule H)
     using imp_correctI[OF cdcl_twl_stgy_prog_wl_D_code.refine[to_hnr, of N],
         sep_heap_rules, unfolded hn_ctxt_def, of x1 \<Phi> xi1]
@@ -1186,8 +1184,7 @@ lemma list_all2_op_eq_map_map_left_iff:
   by (auto simp: lit_of_natP_def[abs_def] list_all2_op_eq_map_left_iff)
 
 lemma list_assn_list_mset_rel_clauses_l_assn:
-  \<open>(hr_comp (list_assn (list_assn CDCL_Two_Watched_Literals_List_Watched_Code.nat_lit_assn))
-                            (list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel)) xs xs'
+  \<open>(hr_comp (list_assn (list_assn nat_lit_assn)) (list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel)) xs xs'
      = clauses_l_assn xs xs'\<close>
 proof -
   have H: \<open>(\<lambda>a c. \<up> ((c, a) \<in> nat_lit_rel)) = pure nat_lit_rel\<close>

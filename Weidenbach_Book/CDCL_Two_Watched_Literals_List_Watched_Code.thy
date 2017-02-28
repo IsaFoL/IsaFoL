@@ -23,9 +23,6 @@ definition twl_st_l_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll \<Righ
   array_watched_assn
   )\<close>
 
-definition get_conflict_wl_is_None :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_is_None = (\<lambda>(M, N, U, D, NP, UP, Q, W). is_None D)\<close>
-
 sepref_register get_conflict_wl_is_None
 sepref_thm get_conflict_wl_is_None_code
   is \<open>RETURN o get_conflict_wl_is_None\<close>
