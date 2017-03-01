@@ -54,7 +54,7 @@ proof -
     using subls_union composition_conseq2ls by auto
   also have "... = (?R\<^sub>1' \<union> ?R\<^sub>2') \<cdot>\<^sub>l\<^sub>s \<sigma>" using \<eta>_p L\<^sub>1_p L\<^sub>2_p by auto
   finally have "?C \<cdot>\<^sub>l\<^sub>s \<phi> = ((C\<^sub>1' - L\<^sub>1') \<union> (C\<^sub>2' - L\<^sub>2')) \<cdot>\<^sub>l\<^sub>s \<sigma>" by auto
-  then have res: "instance_of\<^sub>l\<^sub>s (resolution C\<^sub>1' C\<^sub>2' L\<^sub>1' L\<^sub>2' \<sigma>) (resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<tau>) "
+  then have ins: "instance_of\<^sub>l\<^sub>s (resolution C\<^sub>1' C\<^sub>2' L\<^sub>1' L\<^sub>2' \<sigma>) (resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<tau>)"
     using resolution_def instance_of\<^sub>l\<^sub>s_def by metis
 
   -- {* Showing that the resolution rule is applicable: *}
@@ -64,7 +64,7 @@ proof -
   then have appll: "applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<tau>"
     using apart L\<^sub>1_p L\<^sub>2_p \<tau>_p applicable_def by auto
 
-  from res appll show ?thesis by auto
+  from ins appll show ?thesis by auto
 qed
 text_raw {*}%EndSnippet*}
 
