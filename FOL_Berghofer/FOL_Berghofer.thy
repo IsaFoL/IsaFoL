@@ -943,81 +943,143 @@ definition
 
 theorem close_consistency: "consistency C \<Longrightarrow> consistency (close C)"
   unfolding close_def consistency_def
-  apply (simp)
-  apply (rule allI)
-  apply (rule impI)
-  apply (erule bexE)
-  apply (erule allE impE)+
-   apply assumption
-  apply (erule conjE', blast)
-  apply (erule conjE', blast)
-  apply (erule conjE', blast)
-  apply (erule conjE', blast)
-  apply (erule conjE', blast)
-  apply (erule conjE', blast)
-  apply (erule conjE')
-   apply (rule allI impI)+
-   apply (erule allE impE)+
-    apply (erule subsetD)
-    apply assumption
-   apply (erule disjE)
-    apply (rule disjI1)
-    apply (rule_tac x="insert A x" in bexI)
-     apply blast
-    apply assumption
-   apply (rule disjI2)
-   apply (rule_tac x="insert B x" in bexI)
-    apply blast
-   apply assumption
-  apply (erule conjE')
-   apply (rule allI impI)+
-   apply (erule allE impE)+
-    apply (erule subsetD)
-    apply assumption
-   apply (erule disjE)
-    apply (rule disjI1)
-    apply (rule_tac x="insert (Neg A) x" in bexI)
-     apply blast
-    apply assumption
-   apply (rule disjI2)
-   apply (rule_tac x="insert (Neg B) x" in bexI)
-    apply blast
-   apply assumption
-  apply (erule conjE')
-   apply (rule allI impI)+
-   apply (erule allE impE)+
-    apply (erule subsetD)
-    apply assumption
-   apply (erule disjE)
-    apply (rule disjI1)
-    apply (rule_tac x="insert (Neg A) x" in bexI)
-     apply blast
-    apply assumption
-   apply (rule disjI2)
-   apply (rule_tac x="insert B x" in bexI)
-    apply blast
-   apply assumption
-  apply (erule conjE', blast)
-  apply (erule conjE', blast)
-  apply (erule conjE', blast)
-  apply (erule conjE')
-   apply (rule allI impI)+
-   apply (erule allE impE)+
-    apply (erule subsetD)
-    apply assumption
-   apply blast
-  apply (rule allI impI)+
-  apply (erule allE impE)+
-   apply (erule subsetD)
-   apply assumption
-  apply blast
-  done
+proof (intro allI impI, simp only: mem_Collect_eq,
+       elim allE impE bexE, assumption, elim conj_forward)
+  fix S x
+  assume "x \<in> C" and "S \<subseteq> x"
+    
+  { assume "\<forall>p ts. \<not> (Pred p ts \<in> x \<and> Neg (Pred p ts) \<in> x)"
+    then show "\<forall>p ts. \<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)"
+      using \<open>S \<subseteq> x\<close> by blast }
+  
+  { assume "FF \<notin> x" then show "FF \<notin> S"
+      using \<open>S \<subseteq> x\<close> by blast }
+    
+  { assume "Neg TT \<notin> x" then show "Neg TT \<notin> S"
+      using \<open>S \<subseteq> x\<close> by blast }
+    
+  { assume "\<forall>Z. Neg (Neg Z) \<in> x \<longrightarrow> x \<union> {Z} \<in> C"
+    then show "\<forall>Z. Neg (Neg Z) \<in> S \<longrightarrow> Bex C (op \<subseteq> (S \<union> {Z}))"
+      using \<open>S \<subseteq> x\<close> by simp blast }
+    
+  { assume "\<forall>A B. And A B \<in> x \<longrightarrow> x \<union> {A, B} \<in> C"
+    then show "\<forall>A B. And A B \<in> S \<longrightarrow> Bex C (op \<subseteq> (S \<union> {A, B}))"
+      using \<open>S \<subseteq> x\<close> by simp blast }
+    
+  { assume "\<forall>A B. Neg (Or A B) \<in> x \<longrightarrow> x \<union> {Neg A, Neg B} \<in> C"
+    then show "\<forall>A B. Neg (Or A B) \<in> S \<longrightarrow> Bex C (op \<subseteq> (S \<union> {Neg A, Neg B}))"
+      using \<open>S \<subseteq> x\<close> by simp blast }
+    
+  { assume *: "\<forall>A B. Or A B \<in> x \<longrightarrow> x \<union> {A} \<in> C \<or> x \<union> {B} \<in> C"
+    show "\<forall>A B. Or A B \<in> S \<longrightarrow> Bex C (op \<subseteq> (S \<union> {A})) \<or> Bex C (op \<subseteq> (S \<union> {B}))"
+    proof (intro allI impI)
+      fix A B
+      assume "Or A B \<in> S"
+      then have "x \<union> {A} \<in> C \<or> x \<union> {B} \<in> C"
+        using * \<open>S \<subseteq> x\<close> by blast
+      then show "Bex C (op \<subseteq> (S \<union> {A})) \<or> Bex C (op \<subseteq> (S \<union> {B}))"
+      proof
+        assume "x \<union> {A} \<in> C"
+        then have "(x \<union> {A}) \<in> C \<and> (S \<union> {A}) \<subseteq> (x \<union> {A})"
+          using \<open>S \<subseteq> x\<close> \<open>x \<in> C\<close> by blast
+        then show ?thesis by blast
+      next
+        assume "x \<union> {B} \<in> C"
+        then have "(x \<union> {B}) \<in> C \<and> (S \<union> {B}) \<subseteq> (x \<union> {B})"
+          using \<open>S \<subseteq> x\<close> \<open>x \<in> C\<close> by blast
+        then show ?thesis by blast
+      qed
+    qed }
+    
+  { assume *: "\<forall>A B. Neg (And A B) \<in> x \<longrightarrow> x \<union> {Neg A} \<in> C \<or> x \<union> {Neg B} \<in> C"
+    show "\<forall>A B. Neg (And A B) \<in> S \<longrightarrow> Bex C (op \<subseteq> (S \<union> {Neg A})) \<or> Bex C (op \<subseteq> (S \<union> {Neg B}))"
+    proof (intro allI impI)
+      fix A B
+      assume "Neg (And A B) \<in> S"
+      then have "x \<union> {Neg A} \<in> C \<or> x \<union> {Neg B} \<in> C"
+        using * \<open>S \<subseteq> x\<close> by blast
+      then show "Bex C (op \<subseteq> (S \<union> {Neg A})) \<or> Bex C (op \<subseteq> (S \<union> {Neg B}))"
+      proof
+        assume "x \<union> {Neg A} \<in> C"
+        then have "(x \<union> {Neg A}) \<in> C \<and> (S \<union> {Neg A}) \<subseteq> (x \<union> {Neg A})"
+          using \<open>S \<subseteq> x\<close> \<open>x \<in> C\<close> by blast
+        then show ?thesis by blast
+      next
+        assume "x \<union> {Neg B} \<in> C"
+        then have "(x \<union> {Neg B}) \<in> C \<and> (S \<union> {Neg B}) \<subseteq> (x \<union> {Neg B})"
+          using \<open>S \<subseteq> x\<close> \<open>x \<in> C\<close> by blast
+        then show ?thesis by blast
+      qed
+    qed }
+    
+  { assume *: "\<forall>A B. Impl A B \<in> x \<longrightarrow> x \<union> {Neg A} \<in> C \<or> x \<union> {B} \<in> C"
+    show "\<forall>A B. Impl A B \<in> S \<longrightarrow> Bex C (op \<subseteq> (S \<union> {Neg A})) \<or> Bex C (op \<subseteq> (S \<union> {B}))"
+    proof (intro allI impI)
+      fix A B
+      assume "Impl A B \<in> S"
+      then have "x \<union> {Neg A} \<in> C \<or> x \<union> {B} \<in> C"
+        using * \<open>S \<subseteq> x\<close> by blast
+      then show "Bex C (op \<subseteq> (S \<union> {Neg A})) \<or> Bex C (op \<subseteq> (S \<union> {B}))"
+      proof
+        assume "x \<union> {Neg A} \<in> C"
+        then have "(x \<union> {Neg A}) \<in> C \<and> (S \<union> {Neg A}) \<subseteq> (x \<union> {Neg A})"
+          using \<open>S \<subseteq> x\<close> \<open>x \<in> C\<close> by blast
+        then show ?thesis by blast
+      next
+        assume "x \<union> {B} \<in> C"
+        then have "(x \<union> {B}) \<in> C \<and> (S \<union> {B}) \<subseteq> (x \<union> {B})"
+          using \<open>S \<subseteq> x\<close> \<open>x \<in> C\<close> by blast
+        then show ?thesis by blast
+      qed
+    qed }
+    
+  { assume "\<forall>A B. Neg (Impl A B) \<in> x \<longrightarrow> x \<union> {A, Neg B} \<in> C"
+    then show "\<forall>A B. Neg (Impl A B) \<in> S \<longrightarrow> Bex C (op \<subseteq> (S \<union> {A, Neg B}))"
+      using \<open>S \<subseteq> x\<close> by simp blast }
+    
+  (* TODO: closedt 0 t is not needed for Forall and Neg Exists *)
+  { assume " \<forall>P t. closedt 0 t \<longrightarrow> Forall P \<in> x \<longrightarrow> x \<union> {P[t/0]} \<in> C"
+    then show "\<forall>P t. closedt 0 t \<longrightarrow> Forall P \<in> S \<longrightarrow> Bex C (op \<subseteq> (S \<union> {P[t/0]}))"
+      using \<open>S \<subseteq> x\<close> by simp blast }
+    
+  { assume " \<forall>P t. closedt 0 t \<longrightarrow> Neg (Exists P) \<in> x \<longrightarrow> x \<union> {Neg (P[t/0])} \<in> C"
+    then show "\<forall>P t. closedt 0 t \<longrightarrow> Neg (Exists P) \<in> S \<longrightarrow> Bex C (op \<subseteq> (S \<union> {Neg (P[t/0])}))"
+      using \<open>S \<subseteq> x\<close> by simp blast }
+    
+  { assume *: "\<forall>P. Exists P \<in> x \<longrightarrow> (\<exists>y. x \<union> {P[App y []/0]} \<in> C)"
+    then show "\<forall>P. Exists P \<in> S \<longrightarrow> (\<exists>y. Bex C (op \<subseteq> (S \<union> {P[App y []/0]})))"
+    proof (intro allI impI)
+      fix P
+      assume "Exists P \<in> S"
+      then have "Exists P \<in> x" using \<open>S \<subseteq> x\<close> by blast
+      then obtain y where "x \<union> {P[App y []/0]} \<in> C"
+        using * by blast
+      then have "Bex C (op \<subseteq> (S \<union> {P[App y []/0]}))"
+        using \<open>S \<subseteq> x\<close> by auto
+      then show "\<exists>y. Bex C (op \<subseteq> (S \<union> {P[App y []/0]}))"
+        by blast
+    qed }
+    
+  { assume *: "\<forall>P. Neg (Forall P) \<in> x \<longrightarrow> (\<exists>y. x \<union> {Neg (P[App y []/0])} \<in> C)"
+    then show "\<forall>P. Neg (Forall P) \<in> S \<longrightarrow> (\<exists>y. Bex C (op \<subseteq> (S \<union> {Neg (P[App y []/0])})))"
+    proof (intro allI impI)
+      fix P
+      assume "Neg (Forall P) \<in> S"
+      then have "Neg (Forall P) \<in> x" using \<open>S \<subseteq> x\<close> by blast
+      then obtain y where "x \<union> {Neg (P[App y []/0])} \<in> C"
+        using * by blast
+      then have "Bex C (op \<subseteq> (S \<union> {Neg (P[App y []/0])}))"
+        using \<open>S \<subseteq> x\<close> by auto
+      then show "\<exists>y. Bex C (op \<subseteq> (S \<union> {Neg (P[App y []/0])}))"
+        by blast
+    qed } 
+qed
 
 theorem close_closed: "subset_closed (close C)"
-  by (unfold close_def subset_closed_def) blast
+  unfolding close_def subset_closed_def by blast
 
 theorem close_subset: "C \<subseteq> close C"
-  by (unfold close_def) blast
+  unfolding close_def by blast
 
 text {*
 If a consistency property @{text C} is closed under subsets, so is the
@@ -1026,15 +1088,21 @@ corresponding alternative consistency property:
 
 theorem mk_alt_consistency_closed:
   "subset_closed C \<Longrightarrow> subset_closed (mk_alt_consistency C)"
-  apply (unfold mk_alt_consistency_def subset_closed_def)
-  apply (rule ballI allI impI)+
-  apply (rule CollectI)
-  apply (erule CollectE)
-  apply (erule exE)
-  apply (subgoal_tac "psubst f ` S \<subseteq> psubst f ` S'")
-  apply blast+
-  done
-
+  unfolding mk_alt_consistency_def subset_closed_def
+  proof (intro ballI allI impI)
+    fix S S' :: "('a, 'b) form set"
+    assume "\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C"
+      and "S' \<in> {S. \<exists>f. psubst f ` S \<in> C}"
+      and "S \<subseteq> S'"
+    then obtain f :: "'a \<Rightarrow> 'a" where
+      *: "psubst f ` S' \<in> C" by blast
+    
+    have "psubst f ` S \<subseteq> psubst f ` S'" using \<open>S \<subseteq> S'\<close> by blast
+    also have "psubst f ` S' \<in> C" using * by blast
+    moreover note \<open>\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C\<close> and \<open>S \<subseteq> S'\<close>
+    ultimately have "psubst f ` S \<in> C" by blast
+    then show "S \<in> {S. \<exists>f. psubst f ` S \<in> C}" by blast
+  qed
 
 subsection {* Finite character *}
 
