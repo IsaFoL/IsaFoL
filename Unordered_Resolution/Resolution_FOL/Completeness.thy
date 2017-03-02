@@ -22,12 +22,12 @@ proof -
   -- {* Obtaining the subsets we resolve upon: *}
   let ?R\<^sub>1' = "C\<^sub>1' - L\<^sub>1'" and ?R\<^sub>2' = "C\<^sub>2' - L\<^sub>2'"
 
-  from inst obtain \<gamma> \<mu> where "C\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<gamma> = C\<^sub>1' \<and> C\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<mu> = C\<^sub>2'" 
+  from inst obtain \<gamma> \<mu> where "C\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<gamma> = C\<^sub>1' \<and> C\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<mu> = C\<^sub>2'"
     unfolding instance_of\<^sub>l\<^sub>s_def by auto
-  then obtain \<eta> where \<eta>_p: "C\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<eta> = C\<^sub>1' \<and> C\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<eta> = C\<^sub>2'" 
+  then obtain \<eta> where \<eta>_p: "C\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<eta> = C\<^sub>1' \<and> C\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<eta> = C\<^sub>2'"
     using apart merge_sub by force
 
-  from \<eta>_p obtain L\<^sub>1 where L\<^sub>1_p: "L\<^sub>1 \<subseteq> C\<^sub>1 \<and> L\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<eta> = L\<^sub>1' \<and> (C\<^sub>1 - L\<^sub>1) \<cdot>\<^sub>l\<^sub>s \<eta> = ?R\<^sub>1'" 
+  from \<eta>_p obtain L\<^sub>1 where L\<^sub>1_p: "L\<^sub>1 \<subseteq> C\<^sub>1 \<and> L\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<eta> = L\<^sub>1' \<and> (C\<^sub>1 - L\<^sub>1) \<cdot>\<^sub>l\<^sub>s \<eta> = ?R\<^sub>1'"
     using appl project_sub using applicable_def by metis
   let ?R\<^sub>1 = "C\<^sub>1 - L\<^sub>1"
   from \<eta>_p obtain L\<^sub>2 where L\<^sub>2_p: "L\<^sub>2 \<subseteq> C\<^sub>2 \<and> L\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<eta> = L\<^sub>2' \<and> (C\<^sub>2 - L\<^sub>2) \<cdot>\<^sub>l\<^sub>s \<eta> = ?R\<^sub>2'"
@@ -39,18 +39,18 @@ proof -
   then have "mgu\<^sub>l\<^sub>s \<sigma> ((L\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<eta>) \<union> (L\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<eta>)\<^sup>C)" using L\<^sub>1_p L\<^sub>2_p by auto
   then have "mgu\<^sub>l\<^sub>s \<sigma> ((L\<^sub>1  \<union> L\<^sub>2\<^sup>C) \<cdot>\<^sub>l\<^sub>s \<eta>)" using compls_subls subls_union by auto
   then have "unifier\<^sub>l\<^sub>s \<sigma> ((L\<^sub>1  \<union> L\<^sub>2\<^sup>C) \<cdot>\<^sub>l\<^sub>s \<eta>)" using mgu\<^sub>l\<^sub>s_def by auto
-  then have \<eta>\<sigma>uni: "unifier\<^sub>l\<^sub>s (\<eta> \<cdot> \<sigma>) (L\<^sub>1  \<union> L\<^sub>2\<^sup>C)" 
+  then have \<eta>\<sigma>uni: "unifier\<^sub>l\<^sub>s (\<eta> \<cdot> \<sigma>) (L\<^sub>1  \<union> L\<^sub>2\<^sup>C)"
     using unifier\<^sub>l\<^sub>s_def composition_conseq2l by auto
-  then obtain \<tau> where \<tau>_p: "mgu\<^sub>l\<^sub>s \<tau> (L\<^sub>1  \<union> L\<^sub>2\<^sup>C)" 
+  then obtain \<tau> where \<tau>_p: "mgu\<^sub>l\<^sub>s \<tau> (L\<^sub>1  \<union> L\<^sub>2\<^sup>C)"
     using unification fin L\<^sub>1_p L\<^sub>2_p by (meson finite_UnI finite_imageI rev_finite_subset)
   then obtain \<phi> where \<phi>_p: "\<tau> \<cdot> \<phi> = \<eta> \<cdot> \<sigma>" using \<eta>\<sigma>uni mgu\<^sub>l\<^sub>s_def by auto
 
   -- {* Showing that we have the desired resolvent: *}
   let ?C = "((C\<^sub>1 - L\<^sub>1)  \<union> (C\<^sub>2 - L\<^sub>2)) \<cdot>\<^sub>l\<^sub>s \<tau>"
-  have "?C \<cdot>\<^sub>l\<^sub>s \<phi>  = (?R\<^sub>1 \<union> ?R\<^sub>2 ) \<cdot>\<^sub>l\<^sub>s (\<tau> \<cdot> \<phi>)" 
+  have "?C \<cdot>\<^sub>l\<^sub>s \<phi>  = (?R\<^sub>1 \<union> ?R\<^sub>2 ) \<cdot>\<^sub>l\<^sub>s (\<tau> \<cdot> \<phi>)"
     using subls_union composition_conseq2ls by auto
   also have "... = (?R\<^sub>1 \<union> ?R\<^sub>2 ) \<cdot>\<^sub>l\<^sub>s (\<eta> \<cdot> \<sigma>)" using \<phi>_p by auto
-  also have "... = ((?R\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<eta>) \<union> (?R\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<eta>)) \<cdot>\<^sub>l\<^sub>s \<sigma>" 
+  also have "... = ((?R\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<eta>) \<union> (?R\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<eta>)) \<cdot>\<^sub>l\<^sub>s \<sigma>"
     using subls_union composition_conseq2ls by auto
   also have "... = (?R\<^sub>1' \<union> ?R\<^sub>2') \<cdot>\<^sub>l\<^sub>s \<sigma>" using \<eta>_p L\<^sub>1_p L\<^sub>2_p by auto
   finally have "?C \<cdot>\<^sub>l\<^sub>s \<phi> = ((C\<^sub>1' - L\<^sub>1') \<union> (C\<^sub>2' - L\<^sub>2')) \<cdot>\<^sub>l\<^sub>s \<sigma>" by auto
@@ -58,13 +58,13 @@ proof -
     using resolution_def instance_of\<^sub>l\<^sub>s_def by metis
 
   -- {* Showing that the resolution rule is applicable: *}
-  have "C\<^sub>1' \<noteq> {} \<and> C\<^sub>2' \<noteq> {} \<and> L\<^sub>1' \<noteq> {} \<and> L\<^sub>2' \<noteq> {}" 
+  have "C\<^sub>1' \<noteq> {} \<and> C\<^sub>2' \<noteq> {} \<and> L\<^sub>1' \<noteq> {} \<and> L\<^sub>2' \<noteq> {}"
     using appl applicable_def by auto
   then have "C\<^sub>1 \<noteq> {} \<and> C\<^sub>2 \<noteq> {} \<and> L\<^sub>1 \<noteq> {} \<and> L\<^sub>2 \<noteq> {}" using \<eta>_p L\<^sub>1_p L\<^sub>2_p by auto
-  then have appll: "applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<tau>"
+  then have appli: "applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<tau>"
     using apart L\<^sub>1_p L\<^sub>2_p \<tau>_p applicable_def by auto
 
-  from ins appll show ?thesis by auto
+  from ins appli show ?thesis by auto
 qed
 text_raw {*}%EndSnippet*}
 
