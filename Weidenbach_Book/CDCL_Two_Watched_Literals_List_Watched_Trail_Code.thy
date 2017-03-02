@@ -49,7 +49,8 @@ lemma cons_trail_Propagated_tr:
       cons_trail_Propagated_tr_def Decided_Propagated_in_iff_in_lits_of_l nth_list_update')
 
 lemma is_pos_hnr[sepref_fr_rules]:
-  \<open>(return o (\<lambda>L. L mod 2 = 0), RETURN o is_pos) \<in> nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding bitAND_1_mod_2
   apply (sepref_to_hoare, rename_tac x xi, case_tac x)
    apply (sep_auto simp: p2rel_def lit_of_natP_def)+
   by presburger
@@ -650,12 +651,19 @@ lemma is_decided_hd_trail_wll_hnr[unfolded twl_st_l_trail_assn_def, sepref_fr_ru
       split: option.splits)+
 
 definition get_level_trail :: \<open>trail_int \<Rightarrow> nat \<Rightarrow> nat\<close> where
-  \<open>get_level_trail = (\<lambda>(M, xs, k) L. snd (xs! (L div 2)))\<close>
+  \<open>get_level_trail = (\<lambda>(M, xs, k) L. snd (xs! (shiftr1 L)))\<close>
+
+text \<open>TODO MOve\<close>
+lemma shiftr1[sepref_fr_rules]: \<open>(return o shiftr1, RETURN o shiftr1) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare (sep_auto)
+
+lemma shiftl1[sepref_fr_rules]: \<open>(return o shiftl1, RETURN o shiftl1) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare (sep_auto)
 
 sepref_definition get_level_code
   is \<open>uncurry (RETURN oo get_level_trail)\<close>
   :: \<open>[\<lambda>((M, xs, k), L). L div 2 < length xs]\<^sub>a trail_conc\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
-  unfolding get_level_trail_def
+  unfolding get_level_trail_def shiftr1_def[symmetric] nat_shiftr_div2[symmetric]
   by sepref
 
 lemma get_level_code_get_level:
@@ -668,7 +676,8 @@ proof -
 
   have 1: \<open>(uncurry (RETURN oo get_level_trail), uncurry (RETURN oo get_level)) \<in>
      [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trail_ref \<times>\<^sub>f nat_lit_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
-    by (intro nres_relI frefI) (auto simp: image_image trail_ref_def get_level_trail_def)
+    by (intro nres_relI frefI) (auto simp: image_image trail_ref_def get_level_trail_def
+        nat_shiftr_div2 shiftr1_def)
 
   have H: \<open>(uncurry get_level_code, uncurry (RETURN \<circ>\<circ> get_level))
   \<in> [comp_PRE (trail_ref \<times>\<^sub>f nat_lit_rel) (\<lambda>(M, L). L \<in> snd ` D\<^sub>0)

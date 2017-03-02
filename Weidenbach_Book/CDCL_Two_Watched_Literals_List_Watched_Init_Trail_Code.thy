@@ -700,7 +700,7 @@ definition (in locale_nat_list) init_state_wl_D :: \<open>nat \<Rightarrow> twl_
      e \<leftarrow> Array.new 0 0;
      N \<leftarrow> arrayO_raa_append N e;
      (WS) \<leftarrow> arrayO_ara_empty_sz_code n;
-     M \<leftarrow> Array.new (n div 2) (None, 0::nat);
+     M \<leftarrow> Array.new (shiftr1 n) (None, 0::nat);
      return (([], M, 0), N, 0, None, [], [], [], WS)
   }\<close>
 
@@ -818,7 +818,7 @@ proof -
     supply arl_empty_sz_array_rule[of _ clause_ll_assn, sep_heap_rules]
     apply sepref_to_hoare
     apply (sep_auto simp: init_state_wl_D_def init_state_wl_def twl_array_code.twl_st_l_trail_assn_def
-        twl_array_code.trail_assn_def hr_comp_def n_def)
+        twl_array_code.trail_assn_def hr_comp_def n_def shiftr1_def nat_shiftr_div2)
     apply (auto simp: array_assn_def is_array_def hr_comp_def ac_simps)
     done
 qed
@@ -963,6 +963,12 @@ sepref_definition SAT_wl_code
 
 
 declare locale_nat_list.init_state_wl_D_def[code]
+
+code_printing constant "shiftl :: nat \<Rightarrow> nat \<Rightarrow> nat" \<rightharpoonup>
+  (SML) "(nat'_of'_integer(IntInf.<</ (integer'_of'_nat((_)),/ Word.fromInt (integer'_of'_nat((_))))))"
+
+code_printing constant "shiftr :: nat \<Rightarrow> nat \<Rightarrow> nat" \<rightharpoonup>
+  (SML) "(nat'_of'_integer(IntInf.~>>/ (integer'_of'_nat((_)),/ Word.fromInt (integer'_of'_nat((_))))))"
 
 export_code SAT_wl_code checking SML_imp
 export_code SAT_wl_code

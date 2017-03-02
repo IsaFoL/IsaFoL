@@ -1,5 +1,6 @@
 theory CDCL_Two_Watched_Literals_List_Watched_Code_Common
   imports CDCL_Two_Watched_Literals_Code_Common CDCL_Two_Watched_Literals_List_Watched_Domain
+    Bits_Natural
 begin
 
 
@@ -28,15 +29,15 @@ lemma decided_hnr[sepref_fr_rules]:
       split: option.splits)
 
 definition uminus_lit_imp :: \<open>nat \<Rightarrow> nat\<close> where
-  \<open>uminus_lit_imp L = (if L mod 2 = 0 then L + 1 else L - 1)\<close>
+  \<open>uminus_lit_imp L = bitXOR L 1\<close>
 
 lemma uminus_lit_imp_hnr[sepref_fr_rules]:
   \<open>(return o uminus_lit_imp, RETURN o uminus) \<in>
      nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_assn\<close>
+  unfolding bitXOR_1_if_mod_2 uminus_lit_imp_def
   apply sepref_to_hoare
   apply (sep_auto simp: nat_ann_lit_rel_def uminus_lit_imp_def case_prod_beta p2rel_def
-      lit_of_natP_def
-      split: option.splits)
+      lit_of_natP_def split: option.splits)
   by presburger
 
 
@@ -143,8 +144,8 @@ lemma valued_impl_spec:
   by (auto simp: valued_impl_valued IS_ID_def)
 
 lemma atm_of_hnr[sepref_fr_rules]:
-  \<open>(return o (\<lambda>n. n div 2), RETURN o op_atm_of) \<in> (pure nat_lit_rel)\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
-  by sepref_to_hoare (sep_auto simp: p2rel_def lit_of_natP_def)
+  \<open>(return o shiftr1, RETURN o op_atm_of) \<in> (pure nat_lit_rel)\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
+  by sepref_to_hoare (sep_auto simp: p2rel_def lit_of_natP_def shiftr1_def)
 
 lemma lit_of_hnr[sepref_fr_rules]:
   \<open>(return o fst, RETURN o op_lit_of) \<in> (pure nat_ann_lit_rel)\<^sup>k \<rightarrow>\<^sub>a (pure nat_lit_rel)\<close>
