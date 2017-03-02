@@ -364,15 +364,21 @@ proof -
   then obtain T where "closed_tree T Cs" using herbrand assms by blast
   then show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" using completeness' assms by auto
 qed 
-  
+
+text_raw {*\DefineSnippet{Econv}{*}
 definition E_conv :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a var_denot \<Rightarrow> 'b var_denot" where
   "E_conv b_of_a E \<equiv> \<lambda>x. (b_of_a (E x))"
+text_raw {*}%EndSnippet*}
   
+text_raw {*\DefineSnippet{Fconv}{*}
 definition F_conv :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a fun_denot \<Rightarrow> 'b fun_denot" where
   "F_conv b_of_a F \<equiv> \<lambda>f bs. b_of_a (F f (map (inv b_of_a) bs))"
+text_raw {*}%EndSnippet*}
   
+text_raw {*\DefineSnippet{Gconv}{*}
 definition G_conv :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a pred_denot \<Rightarrow> 'b pred_denot" where
   "G_conv b_of_a G \<equiv> \<lambda>p bs. (G p (map (inv b_of_a) bs))"
+text_raw {*}%EndSnippet*}
   
 lemma asdffff:
   assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
@@ -475,11 +481,11 @@ proof -
   have "\<forall>n. ?diago n \<in> UNIV" by auto
   ultimately show "infinite (UNIV :: hterm set)" using infinity[of ?undiago ?diago UNIV] by simp
 qed
-  
+
 theorem completeness_countable:
-  assumes iii: "infinite (UNIV :: ('u ::countable) set)"
+  assumes iii: "infinite (UNIV :: ('u :: countable) set)"
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
-  assumes unsat: "\<forall>(F::'u fun_denot) (G::'u pred_denot) . \<not>eval\<^sub>c\<^sub>s F G Cs"
+  assumes unsat: "\<forall>(F::'u fun_denot) (G::'u pred_denot). \<not>eval\<^sub>c\<^sub>s F G Cs"
   shows "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
 proof -
   have "\<forall>(F::hterm fun_denot) (G::hterm pred_denot) . \<not>eval\<^sub>c\<^sub>s F G Cs"
