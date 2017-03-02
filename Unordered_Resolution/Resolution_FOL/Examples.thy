@@ -250,7 +250,7 @@ lemma ref_sound:
   assumes deriv: "resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
   shows "\<not>eval\<^sub>c\<^sub>s F G Cs"
 proof -
-  from deriv have "eval\<^sub>c\<^sub>s F G Cs \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs'" using lsound_derivation by auto
+  from deriv have "eval\<^sub>c\<^sub>s F G Cs \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs'" using sound_derivation by auto
   moreover
   from deriv have "eval\<^sub>c\<^sub>s F G Cs' \<Longrightarrow> eval\<^sub>c F G {}" unfolding eval\<^sub>c\<^sub>s_def by auto
   moreover

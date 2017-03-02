@@ -511,7 +511,7 @@ theorem refut_sound:
 proof -
   from assms have "\<forall>F G. \<not>eval\<^sub>c\<^sub>s F\<^sub>2 G\<^sub>2 Cs'"
     by (meson empty_iff eval\<^sub>c\<^sub>s_def eval\<^sub>c_def) 
-  then show ?thesis using lsound_derivation using assms by auto
+  then show ?thesis using sound_derivation using assms by auto
 qed
   
 theorem cooltheorem:

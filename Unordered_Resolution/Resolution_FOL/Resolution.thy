@@ -838,7 +838,7 @@ proof -
   then show ?thesis using superset_sound resolution_superset by metis
 qed
 
-lemma sound_step: "mresolution_step Cs Cs' \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs'"
+lemma msound_step: "mresolution_step Cs Cs' \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs'"
 proof (induction rule: mresolution_step.induct)
   case (mresolution_rule C\<^sub>1 Cs C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)
   then have "eval\<^sub>c F G C\<^sub>1 \<and> eval\<^sub>c F G C\<^sub>2" unfolding eval\<^sub>c\<^sub>s_def by auto
@@ -852,7 +852,7 @@ next
   then show ?case using standardize_apart unfolding eval\<^sub>c\<^sub>s_def by auto
 qed
 
-lemma lsound_step: "resolution_step Cs Cs' \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs'"
+lemma sound_step: "resolution_step Cs Cs' \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs'"
 proof (induction rule: resolution_step.induct)
   case (resolution_rule C\<^sub>1 Cs C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)
   then have "eval\<^sub>c F G C\<^sub>1 \<and> eval\<^sub>c F G C\<^sub>2" unfolding eval\<^sub>c\<^sub>s_def by auto
@@ -866,22 +866,22 @@ next
   then show ?case using standardize_apart unfolding eval\<^sub>c\<^sub>s_def by auto
 qed
 
-lemma sound_derivation: 
+lemma msound_derivation: 
   "mresolution_deriv Cs Cs' \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs'" 
 unfolding mresolution_deriv_def
 proof (induction rule: rtranclp.induct)
   case rtrancl_refl then show ?case by auto
 next
-  case (rtrancl_into_rtrancl Cs\<^sub>1 Cs\<^sub>2 Cs\<^sub>3) then show ?case using sound_step by auto
+  case (rtrancl_into_rtrancl Cs\<^sub>1 Cs\<^sub>2 Cs\<^sub>3) then show ?case using msound_step by auto
 qed
 
-lemma lsound_derivation: 
+lemma sound_derivation: 
   "resolution_deriv Cs Cs' \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs'" 
 unfolding resolution_deriv_def
 proof (induction rule: rtranclp.induct)
   case rtrancl_refl then show ?case by auto
 next
-  case (rtrancl_into_rtrancl Cs\<^sub>1 Cs\<^sub>2 Cs\<^sub>3) then show ?case using lsound_step by auto
+  case (rtrancl_into_rtrancl Cs\<^sub>1 Cs\<^sub>2 Cs\<^sub>3) then show ?case using sound_step by auto
 qed
 
 section {* Herbrand Interpretations *}
