@@ -389,13 +389,13 @@ qed
 term arl_append
 definition arrayO_raa_append where
 "arrayO_raa_append \<equiv> \<lambda>(a,n) x. do {
-    len \<leftarrow>  Array.len a;
+    len \<leftarrow> Array.len a;
     if n<len then do {
       a \<leftarrow> Array.upd n x a;
       return (a,n+1)
     } else do {
       let newcap = 2 * len;
-      default \<leftarrow> Array.make 0 (\<lambda>_. default);
+      default \<leftarrow> Array.new 0 default;
       a \<leftarrow> array_grow a newcap default;
       a \<leftarrow> Array.upd n x a;
       return (a,n+1)
@@ -479,7 +479,7 @@ lemma arrayO_raa_empty_rule[sep_heap_rules]: "< emp > arrayO_raa_empty <\<lambda
 
 definition arrayO_raa_empty_sz where
 "arrayO_raa_empty_sz init_cap \<equiv> do {
-    default \<leftarrow> Array.make 0 (\<lambda>_. default);
+    default \<leftarrow> Array.new 0 default;
     a \<leftarrow> Array.new (max init_cap minimum_capacity) default;
     return (a,0)
   }"
