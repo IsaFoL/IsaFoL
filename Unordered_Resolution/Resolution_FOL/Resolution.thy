@@ -852,8 +852,11 @@ next
   then show ?case using standardize_apart unfolding eval\<^sub>c\<^sub>s_def by auto
 qed
 
-lemma sound_step: "resolution_step Cs Cs' \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs'"
-proof (induction rule: resolution_step.induct)
+lemma step_sound: 
+  assumes "resolution_step Cs Cs'"
+  assumes "eval\<^sub>c\<^sub>s F G Cs"
+  shows "eval\<^sub>c\<^sub>s F G Cs'"
+using assms proof (induction rule: resolution_step.induct)
   case (resolution_rule C\<^sub>1 Cs C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)
   then have "eval\<^sub>c F G C\<^sub>1 \<and> eval\<^sub>c F G C\<^sub>2" unfolding eval\<^sub>c\<^sub>s_def by auto
   then have "eval\<^sub>c F G (resolution C\<^sub>1 C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)" 
@@ -866,22 +869,38 @@ next
   then show ?case using standardize_apart unfolding eval\<^sub>c\<^sub>s_def by auto
 qed
 
-lemma msound_derivation: 
-  "mresolution_deriv Cs Cs' \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs'" 
-unfolding mresolution_deriv_def
+lemma mderivation_sound: 
+  assumes "mresolution_deriv Cs Cs'"
+  assumes "eval\<^sub>c\<^sub>s F G Cs"
+  shows "eval\<^sub>c\<^sub>s F G Cs'" 
+using assms unfolding mresolution_deriv_def
 proof (induction rule: rtranclp.induct)
   case rtrancl_refl then show ?case by auto
 next
   case (rtrancl_into_rtrancl Cs\<^sub>1 Cs\<^sub>2 Cs\<^sub>3) then show ?case using msound_step by auto
 qed
 
-lemma sound_derivation: 
-  "resolution_deriv Cs Cs' \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs'" 
-unfolding resolution_deriv_def
+lemma derivation_sound: 
+  assumes "resolution_deriv Cs Cs'"
+  assumes "eval\<^sub>c\<^sub>s F G Cs"
+  shows"eval\<^sub>c\<^sub>s F G Cs'" 
+using assms unfolding resolution_deriv_def
 proof (induction rule: rtranclp.induct)
   case rtrancl_refl then show ?case by auto
 next
-  case (rtrancl_into_rtrancl Cs\<^sub>1 Cs\<^sub>2 Cs\<^sub>3) then show ?case using sound_step by auto
+  case (rtrancl_into_rtrancl Cs\<^sub>1 Cs\<^sub>2 Cs\<^sub>3) then show ?case using step_sound by auto
+qed
+  
+lemma derivation_sound_refute: 
+  assumes deriv: "resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
+  shows "\<not>eval\<^sub>c\<^sub>s F G Cs"
+proof -
+  from deriv have "eval\<^sub>c\<^sub>s F G Cs \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs'" using derivation_sound by auto
+  moreover
+  from deriv have "eval\<^sub>c\<^sub>s F G Cs' \<Longrightarrow> eval\<^sub>c F G {}" unfolding eval\<^sub>c\<^sub>s_def by auto
+  moreover
+  then have "eval\<^sub>c F G {} \<Longrightarrow> False" unfolding eval\<^sub>c_def by auto
+  ultimately show ?thesis by auto
 qed
 
 section {* Herbrand Interpretations *}

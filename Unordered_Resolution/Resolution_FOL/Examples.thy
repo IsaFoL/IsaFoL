@@ -254,22 +254,10 @@ proof -
   then show ?thesis by auto
 qed
 
-lemma ref_sound: 
-  assumes deriv: "resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
-  shows "\<not>eval\<^sub>c\<^sub>s F G Cs"
-proof -
-  from deriv have "eval\<^sub>c\<^sub>s F G Cs \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs'" using sound_derivation by auto
-  moreover
-  from deriv have "eval\<^sub>c\<^sub>s F G Cs' \<Longrightarrow> eval\<^sub>c F G {}" unfolding eval\<^sub>c\<^sub>s_def by auto
-  moreover
-  then have "eval\<^sub>c F G {} \<Longrightarrow> False" unfolding eval\<^sub>c_def by auto
-  ultimately show ?thesis by auto
-qed
-
 lemma resolution_example1_sem: "\<not>eval\<^sub>c\<^sub>s F G {{NP, PQ}, {NQ}, {PP, PQ}}"
-  using resolution_example1 ref_sound by auto
+  using resolution_example1 derivation_sound_refute by auto
 
 lemma resolution_example2_sem: "\<not>eval\<^sub>c\<^sub>s F G {{Nb,Na},{Pax},{Pa},{Na,Pb,Naa}}"
-  using resolution_example2 ref_sound by auto
+  using resolution_example2 derivation_sound_refute by auto
 
 end
