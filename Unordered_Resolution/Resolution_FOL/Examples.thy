@@ -13,26 +13,32 @@ value "Pos ''less'' [Var ''x'', Var ''y'']"
 value "Pos ''equals''
         [Fun ''add''[Fun ''mul''[Var ''y'',Var ''y''], Fun ''one''[]],Var ''x'']"
 
+text_raw {*\DefineSnippet{Fnat}{*}
 fun F\<^sub>n\<^sub>a\<^sub>t :: "nat fun_denot" where
-  " F\<^sub>n\<^sub>a\<^sub>t f [n,m] = 
+  "F\<^sub>n\<^sub>a\<^sub>t f [n,m] = 
      (if f = ''add'' then n + m else 
       if f = ''mul'' then n * m else 0)"
-| " F\<^sub>n\<^sub>a\<^sub>t f [] = 
+| "F\<^sub>n\<^sub>a\<^sub>t f [] = 
      (if f = ''one''  then 1 else
       if f = ''zero'' then 0 else 0)"
-| " F\<^sub>n\<^sub>a\<^sub>t f us = 0"
+| "F\<^sub>n\<^sub>a\<^sub>t f us = 0"
+text_raw {*}%EndSnippet*}
 
+text_raw {*\DefineSnippet{Gnat}{*}
 fun G\<^sub>n\<^sub>a\<^sub>t :: "nat pred_denot" where
   "G\<^sub>n\<^sub>a\<^sub>t p [x,y] =
      (if p = ''less'' \<and> x < y then True else
       if p = ''greater'' \<and> x > y then True else 
       if p = ''equals'' \<and> x = y then True else False)"
 | "G\<^sub>n\<^sub>a\<^sub>t p us = False"
+text_raw {*}%EndSnippet*}
 
+text_raw {*\DefineSnippet{Enat}{*}
 fun E\<^sub>n\<^sub>a\<^sub>t :: "nat var_denot" where
   "E\<^sub>n\<^sub>a\<^sub>t x =
      (if x = ''x'' then 26 else
       if x = ''y'' then 5 else 0)"
+text_raw {*}%EndSnippet*}
 
 lemma "eval\<^sub>t E\<^sub>n\<^sub>a\<^sub>t F\<^sub>n\<^sub>a\<^sub>t (Var ''x'') = 26" 
   by auto
@@ -50,12 +56,14 @@ lemma "eval\<^sub>l E\<^sub>n\<^sub>a\<^sub>t F\<^sub>n\<^sub>a\<^sub>t G\<^sub>
   by auto
 lemma "eval\<^sub>l E\<^sub>n\<^sub>a\<^sub>t F\<^sub>n\<^sub>a\<^sub>t G\<^sub>n\<^sub>a\<^sub>t (Pos ''less'' [Var ''x'', Var ''y'']) = False" 
   by auto
+text_raw {*\DefineSnippet{evallex}{*}
 lemma "eval\<^sub>l E\<^sub>n\<^sub>a\<^sub>t F\<^sub>n\<^sub>a\<^sub>t G\<^sub>n\<^sub>a\<^sub>t 
        (Pos ''equals'' 
          [Fun ''add'' [Fun ''mul'' [Var ''y'',Var ''y''],Fun ''one'' []]
          ,Var ''x'']
        ) = True" 
   by auto
+text_raw {*}%EndSnippet*}
 
 definition PP :: "fterm literal" where
   "PP = Pos ''P'' [Fun ''c'' []]"
