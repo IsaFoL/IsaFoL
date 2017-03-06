@@ -1731,7 +1731,7 @@ lemma cnf_rew_consistent: "preserves_un_sat cnf_rew"
   by (simp add: cnf_rew_def elimEquv_lifted_consistant elim_imp_lifted_consistant elimTB_consistent
     preserves_un_sat_OO pushDisj_consistent pushNeg_lifted_consistant)
 
-(*Redo proof*)
+(*TODO Redo proof*)
 lemma cnf_rew_is_cnf: "cnf_rew \<phi> \<phi>' \<Longrightarrow> is_cnf \<phi>'"
   apply (unfold cnf_rew_def OO_def)
   apply auto

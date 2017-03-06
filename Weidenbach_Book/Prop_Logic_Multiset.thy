@@ -79,16 +79,12 @@ lemma [simp]: "\<not> is_conj_with_TF (FImp \<phi> \<psi>)"
   unfolding is_conj_with_TF_def apply clarify
   by (induction "FImp \<phi> \<psi>" rule: super_grouped_by.induct) simp_all
 
-lemma [simp]: "\<not>grouped_by COr (FEq \<phi> \<psi>)"
-  apply clarify
-  by (induction "FEq \<phi> \<psi>" rule: grouped_by.induct) simp_all
-
 lemma [simp]: "\<not> is_conj_with_TF (FEq \<phi> \<psi>)"
   unfolding is_conj_with_TF_def apply clarify
   by (induction "FEq \<phi> \<psi>" rule: super_grouped_by.induct) simp_all
 
 lemma is_conj_with_TF_Fand:
-  "is_conj_with_TF (FAnd \<phi>1 \<phi>2) \<Longrightarrow>  is_conj_with_TF \<phi>1 \<and>  is_conj_with_TF \<phi>2"
+  "is_conj_with_TF (FAnd \<phi>1 \<phi>2) \<Longrightarrow> is_conj_with_TF \<phi>1 \<and>  is_conj_with_TF \<phi>2"
   unfolding is_conj_with_TF_def
   apply (induction "FAnd \<phi>1 \<phi>2" rule: super_grouped_by.induct)
    apply (auto simp: grouped_by_CAnd_FAnd intro: grouped_is_super_grouped)[]
@@ -131,8 +127,8 @@ next
 next
   case (FAnd \<phi> \<psi>)
   then show ?case
-  unfolding is_cnf_def by (auto simp: is_conj_with_TF_FNot dest: is_conj_with_TF_Fand
-    dest!:is_conj_with_TF_FOr)
+    unfolding is_cnf_def by (auto simp: is_conj_with_TF_FNot dest: is_conj_with_TF_Fand
+    dest!: is_conj_with_TF_FOr)
 next
   case (FOr \<phi> \<psi>)
   then have [simp]: "mset_of_formula \<phi> = {mset_of_conj \<phi>}" "mset_of_formula \<psi> = {mset_of_conj \<psi>}"

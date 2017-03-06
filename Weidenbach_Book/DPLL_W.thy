@@ -560,7 +560,7 @@ proof -
   show ?thesis apply (rule wf_lexn) unfolding m by auto
 qed
 
-lemma dpll\<^sub>W_wf:
+lemma wf_dpll\<^sub>W:
   "wf {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W S S'}"
   apply (rule wf_wf_if_measure'[OF wf_lex_less, of _ _
           "\<lambda>S. dpll\<^sub>W_mes (trail S) (card (atms_of_mm (clauses S)))"])
@@ -599,12 +599,12 @@ proof
   then show "?B \<subseteq> ?A" by blast
 qed
 
-lemma dpll\<^sub>W_wf_tranclp: "wf {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W\<^sup>+\<^sup>+ S S'}"
-  unfolding dpll\<^sub>W_tranclp_star_commute[symmetric] by (simp add: dpll\<^sub>W_wf wf_trancl)
+lemma wf_dpll\<^sub>W_tranclp: "wf {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W\<^sup>+\<^sup>+ S S'}"
+  unfolding dpll\<^sub>W_tranclp_star_commute[symmetric] by (simp add: wf_dpll\<^sub>W wf_trancl)
 
-lemma dpll\<^sub>W_wf_plus:
+lemma wf_dpll\<^sub>W_plus:
   "wf {(S', ([], N))| S'. dpll\<^sub>W\<^sup>+\<^sup>+ ([], N) S'}" (is "wf ?P")
-  apply (rule wf_subset[OF dpll\<^sub>W_wf_tranclp, of ?P])
+  apply (rule wf_subset[OF wf_dpll\<^sub>W_tranclp, of ?P])
   unfolding dpll\<^sub>W_all_inv_def by auto
 
 
