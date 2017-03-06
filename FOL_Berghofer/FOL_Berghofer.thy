@@ -1122,257 +1122,329 @@ definition
   mk_finite_char :: "'a set set \<Rightarrow> 'a set set" where
   "mk_finite_char C = {S. \<forall>S'. S' \<subseteq> S \<longrightarrow> finite S' \<longrightarrow> S' \<in> C}"
 
+(* TODO: lots of the cases are very similar *)
 theorem finite_alt_consistency:
   "alt_consistency C \<Longrightarrow> subset_closed C \<Longrightarrow> alt_consistency (mk_finite_char C)"
-  apply (unfold alt_consistency_def subset_closed_def mk_finite_char_def)
-  apply (rule allI impI)+
-  apply (erule CollectE)
-  apply (erule conjE'')
-  apply (rule allI notI)+
-  apply (rotate_tac 1)
-  apply (erule_tac x="{Pred p ts, Neg (Pred p ts)}" in allE)
-  apply blast
-  apply (erule conjE'')
-  apply (rotate_tac 1)
-  apply (erule_tac x="{FF}" in allE)
-  apply blast
-  apply (erule conjE'')
-  apply (rotate_tac 1)
-  apply (erule_tac x="{Neg TT}" in allE)
-  apply blast
-  apply (erule conjE'')
-  apply (rule allI impI CollectI)+
-  apply (rotate_tac 1)
-  apply (erule_tac x="S' - {Z} \<union> {Neg (Neg Z)}" in allE)
-  apply (erule impE)
-  apply blast
-  apply (erule impE)
-  apply (simp (no_asm))
-  apply (erule allE)
-  apply (erule impE)
-  apply assumption
-  apply (erule_tac x=Z in allE)
-  apply (erule impE)
-  apply (simp (no_asm))
-  apply (drule_tac x="S' - {Z} \<union> {Neg (Neg Z)} \<union> {Z}" in bspec)
-  apply assumption
-  apply blast
-  apply (erule conjE'')
-  apply (rule allI impI CollectI)+
-  apply (rotate_tac 1)
-  apply (erule_tac x="S' - {A, B} \<union> {And A B}" in allE)
-  apply (erule impE)
-  apply blast
-  apply (erule impE)
-  apply (simp (no_asm))
-  apply (erule allE)
-  apply (erule impE)
-  apply assumption
-  apply (erule_tac x=A in allE)
-  apply (erule_tac x=B in allE)
-  apply (erule impE)
-  apply (simp (no_asm))
-  apply (drule_tac x="S' - {A, B} \<union> {And A B} \<union> {A, B}" in bspec)
-  apply assumption
-  apply blast
-  apply (erule conjE'')
-  apply (rule allI impI CollectI)+
-  apply (rotate_tac 1)
-  apply (erule_tac x="S' - {Neg A, Neg B} \<union> {Neg (Or A B)}" in allE)
-  apply (erule impE)
-  apply blast
-  apply (erule impE)
-  apply (simp (no_asm))
-  apply (erule allE)
-  apply (erule impE)
-  apply assumption
-  apply (erule_tac x=A in allE)
-  apply (erule_tac x=B in allE)
-  apply (erule impE)
-  apply (simp (no_asm))
-  apply (drule_tac x="S' - {Neg A, Neg B} \<union> {Neg (Or A B)} \<union> {Neg A, Neg B}" in bspec)
-  apply assumption
-  apply blast
-  apply (erule conjE'')
-  apply (rule allI impI)+
-  apply (rule ccontr)
-  apply (simp (no_asm_use))
-  apply (erule conjE exE)+
-  apply (rotate_tac 1)
-  apply (erule_tac x="(S' - {A}) \<union> (S'a - {B}) \<union> {Or A B}" in allE)
-  apply (erule impE)
-  apply blast
-  apply (erule impE)
-  apply (simp (no_asm_simp))
-  apply (erule allE)
-  apply (erule impE)
-  apply assumption
-  apply (erule_tac x=A in allE)
-  apply (erule_tac x=B in allE)
-  apply (erule impE)
-  apply (simp (no_asm))
-  apply (erule disjE)
-  apply (drule_tac x="insert A (S' - {A} \<union> (S'a - {B}) \<union> {Or A B})" in bspec)
-  apply assumption
-  apply blast
-  apply (drule_tac x="insert B (S' - {A} \<union> (S'a - {B}) \<union> {Or A B})" in bspec)
-  apply assumption
-  apply blast
-  apply (erule conjE'')
-  apply (rule allI impI)+
-  apply (rule ccontr)
-  apply (simp (no_asm_use))
-  apply (erule conjE exE)+
-  apply (rotate_tac 1)
-  apply (erule_tac x="(S' - {Neg A}) \<union> (S'a - {Neg B}) \<union> {Neg (And A B)}" in allE)
-  apply (erule impE)
-  apply blast
-  apply (erule impE)
-  apply (simp (no_asm_simp))
-  apply (erule allE)
-  apply (erule impE)
-  apply assumption
-  apply (erule_tac x=A in allE)
-  apply (erule_tac x=B in allE)
-  apply (erule impE)
-  apply (simp (no_asm))
-  apply (erule disjE)
-  apply (drule_tac x="insert (Neg A) (S' - {Neg A} \<union> (S'a - {Neg B}) \<union> {Neg (And A B)})" in bspec)
-  apply assumption
-  apply blast
-  apply (drule_tac x="insert (Neg B) (S' - {Neg A} \<union> (S'a - {Neg B}) \<union> {Neg (And A B)})" in bspec)
-  apply assumption
-  apply blast
-  apply (erule conjE'')
-  apply (rule allI impI)+
-  apply (rule ccontr)
-  apply (simp (no_asm_use))
-  apply (erule conjE exE)+
-  apply (rotate_tac 1)
-  apply (erule_tac x="(S' - {Neg A}) \<union> (S'a - {B}) \<union> {Impl A B}" in allE)
-  apply (erule impE)
-  apply blast
-  apply (erule impE)
-  apply (simp (no_asm_simp))
-  apply (erule allE)
-  apply (erule impE)
-  apply assumption
-  apply (erule_tac x=A in allE)
-  apply (erule_tac x=B in allE)
-  apply (erule impE)
-  apply (simp (no_asm))
-  apply (erule disjE)
-  apply (drule_tac x="insert (Neg A) (S' - {Neg A} \<union> (S'a - {B}) \<union> {Impl A B})" in bspec)
-  apply assumption
-  apply blast
-  apply (drule_tac x="insert B (S' - {Neg A} \<union> (S'a - {B}) \<union> {Impl A B})" in bspec)
-  apply assumption
-  apply blast
-  apply (erule conjE'')
-  apply (rule allI impI CollectI)+
-  apply (rotate_tac 1)
-  apply (erule_tac x="S' - {A, Neg B} \<union> {Neg (Impl A B)}" in allE)
-  apply (erule impE)
-  apply blast
-  apply (erule impE)
-  apply (simp (no_asm))
-  apply (erule allE)
-  apply (erule impE)
-  apply assumption
-  apply (erule_tac x=A in allE)
-  apply (erule_tac x=B in allE)
-  apply (erule impE)
-  apply (simp (no_asm))
-  apply (drule_tac x="S' - {A, Neg B} \<union> {Neg (Impl A B)} \<union> {A, Neg B}" in bspec)
-  apply assumption
-  apply blast
-  apply (erule conjE'')
-  apply (rule allI impI CollectI)+
-  apply (rotate_tac 1)
-  apply (erule_tac x="S' - {subst P t 0} \<union> {Forall P}" in allE)
-  apply (erule impE)
-  apply blast
-  apply (erule impE)
-  apply (simp (no_asm))
-  apply (erule allE)
-  apply (erule impE)
-  apply assumption
-  apply (erule_tac x=P in allE)
-  apply (erule_tac x=t in allE)
-  apply (erule impE)
-  apply assumption
-  apply (drule_tac x="S' - {subst P t 0} \<union> {Forall P} \<union> {subst P t 0}" in bspec)
-  apply blast
-  apply blast
-  apply (erule conjE'')
-  apply (rule allI impI CollectI)+
-  apply (rotate_tac 1)
-  apply (erule_tac x="S' - {Neg (subst P t 0)} \<union> {Neg (Exists P)}" in allE)
-  apply (erule impE)
-  apply blast
-  apply (erule impE)
-  apply (simp (no_asm))
-  apply (erule allE)
-  apply (erule impE)
-  apply assumption
-  apply (erule_tac x=P in allE)
-  apply (erule_tac x=t in allE)
-  apply (erule impE)
-  apply assumption
-  apply (drule_tac x="S' - {Neg (subst P t 0)} \<union> {Neg (Exists P)} \<union> {Neg (subst P t 0)}" in bspec)
-  apply blast
-  apply blast
-  apply (erule conjE'')
-  apply (rule allI impI CollectI)+
-  apply (rotate_tac 1)
-  apply (erule_tac x="S' - {subst P (App x []) 0} \<union> {Exists P}" in allE)
-  apply (erule impE)
-  apply blast
-  apply (erule impE)
-  apply (simp (no_asm))
-  apply (erule allE)
-  apply (erule impE)
-  apply assumption
-  apply (erule_tac x=P in allE)
-  apply (erule_tac x=x in allE)
-  apply (erule impE)
-  apply blast
-  apply (drule_tac x="S' - {subst P (App x []) 0} \<union> {Exists P} \<union> {subst P (App x []) 0}" in bspec)
-  apply blast
-  apply blast
-  apply (rule allI impI CollectI)+
-  apply (rotate_tac 1)
-  apply (erule_tac x="S' - {Neg (subst P (App x []) 0)} \<union> {Neg (Forall P)}" in allE)
-  apply (erule impE)
-  apply blast
-  apply (erule impE)
-  apply (simp (no_asm))
-  apply (erule allE)
-  apply (erule impE)
-  apply assumption
-  apply (erule_tac x=P in allE)
-  apply (erule_tac x=x in allE)
-  apply (erule impE)
-  apply blast
-  apply (drule_tac x="S' - {Neg (subst P (App x []) 0)} \<union> {Neg (Forall P)} \<union> {Neg (subst P (App x []) 0)}" in bspec)
-  apply blast
-  apply blast
-  done
+  unfolding alt_consistency_def subset_closed_def mk_finite_char_def
+proof (intro allI impI, erule CollectE, elim conjE'')
+  fix S
+  assume sc: "\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C"
+    and sc': "\<forall>S'\<subseteq>S. finite S' \<longrightarrow> S' \<in> C"
+    
+  { assume *: "\<forall>S. S \<in> C \<longrightarrow> (\<forall>p ts. \<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S))"
+    show "\<forall>p ts. \<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)"
+    proof (intro allI impI notI)
+      fix p ts
+      assume assm: "Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S"
+      then have "\<dots> = ({Pred p ts, Neg (Pred p ts)} \<subseteq> S)"
+        by blast
+      moreover have "finite {Pred p ts, Neg (Pred p ts)}"
+        by blast
+      moreover have "{Pred p ts, Neg (Pred p ts)} \<in> C"
+        using assm sc' by simp
+      ultimately show False using * by blast
+    qed }
+    
+  { assume *: "\<forall>S. S \<in> C \<longrightarrow> FF \<notin> S"
+    show "FF \<notin> S"
+    proof
+      assume "FF \<in> S"
+      also have "FF \<in> S \<longrightarrow> finite {FF} \<longrightarrow> {FF} \<in> C"
+        using sc' by simp
+      finally show False using * by blast
+    qed }
+    
+  { assume *: "\<forall>S. S \<in> C \<longrightarrow> Neg TT \<notin> S"
+    show "Neg TT \<notin> S"
+    proof
+      assume "Neg TT \<in> S"
+      also have "Neg TT \<in> S \<longrightarrow> finite {Neg TT} \<longrightarrow> {Neg TT} \<in> C"
+        using sc' by simp
+      finally show False using * by blast
+    qed }
+    
+  { assume *: "\<forall>S. S \<in> C \<longrightarrow> (\<forall>Z. Neg (Neg Z) \<in> S \<longrightarrow> S \<union> {Z} \<in> C)"
+    show "\<forall>Z. Neg (Neg Z) \<in> S \<longrightarrow> S \<union> {Z} \<in> {S. \<forall>S'\<subseteq>S. finite S' \<longrightarrow> S' \<in> C}"
+    proof (intro allI impI CollectI)
+      fix Z S'
+      assume "Neg (Neg Z) \<in> S" and "S' \<subseteq> S \<union> {Z}" and "finite S'"
+      then have "S' - {Z} \<union> {Neg (Neg Z)} \<subseteq> S"
+        by blast
+      also have "finite (S' - {Z} \<union> {Neg (Neg Z)})"
+        using \<open>finite S'\<close> by blast
+      moreover have "S' - {Z} \<union> {Neg (Neg Z)} \<in> C"
+        using calculation sc' by blast
+      moreover have "S' - {Z} \<union> {Neg (Neg Z)} \<union> {Z} \<in> C"
+        using calculation * by blast
+      then have "\<forall>S \<subseteq> (S' - {Z} \<union> {Neg (Neg Z)} \<union> {Z}). S \<in> C"
+        using sc by blast
+      then show "S' \<in> C" by blast
+    qed }
+      
+  { assume *: "\<forall>S. S \<in> C \<longrightarrow> (\<forall>A B. And A B \<in> S \<longrightarrow> S \<union> {A, B} \<in> C)"
+    show "\<forall>A B. And A B \<in> S \<longrightarrow> S \<union> {A, B} \<in> {S. \<forall>S'\<subseteq>S. finite S' \<longrightarrow> S' \<in> C}"
+    proof (intro allI impI CollectI)
+      fix A B S'
+      assume "And A B \<in> S" and "S' \<subseteq> S \<union> {A, B}" and "finite S'"
+      then have "S' - {A, B} \<union> {And A B} \<subseteq> S"
+        by blast
+      also have "finite (S' - {A, B} \<union> {And A B})"
+        using \<open>finite S'\<close> by blast
+      moreover have "S' - {A, B} \<union> {And A B} \<in> C"
+        using calculation sc' by blast
+      moreover have "S' - {A, B} \<union> {And A B} \<union> {A, B} \<in> C"
+        using calculation * by blast
+      then have "\<forall>S \<subseteq> (S' - {A, B} \<union> {And A B} \<union> {A, B}). S \<in> C"
+        using sc by blast
+      then show "S' \<in> C" by blast
+    qed }
+    
+  { assume *: "\<forall>S. S \<in> C \<longrightarrow> (\<forall>A B. Neg (Or A B) \<in> S \<longrightarrow> S \<union> {Neg A, Neg B} \<in> C)"
+    show "\<forall>A B. Neg (Or A B) \<in> S \<longrightarrow> S \<union> {Neg A, Neg B} \<in> {S. \<forall>S'\<subseteq>S. finite S' \<longrightarrow> S' \<in> C}"
+    proof (intro allI impI CollectI)
+      fix A B S'
+      assume "Neg (Or A B) \<in> S" and "S' \<subseteq> S \<union> {Neg A, Neg B}" and "finite S'"
+      then have "S' - {Neg A, Neg B} \<union> {Neg (Or A B)} \<subseteq> S"
+        by blast
+      also have "finite (S' - {Neg A, Neg B} \<union> {Neg (Or A B)})"
+        using \<open>finite S'\<close> by blast
+      moreover have "S' - {Neg A, Neg B} \<union> {Neg (Or A B)} \<in> C"
+        using calculation sc' by blast
+      moreover have "S' - {Neg A, Neg B} \<union> {Neg (Or A B)} \<union> {Neg A, Neg B} \<in> C"
+        using calculation * by blast
+      then have "\<forall>S \<subseteq> (S' - {Neg A, Neg B} \<union> {Neg (Or A B)} \<union> {Neg A, Neg B}). S \<in> C"
+        using sc by blast
+      then show "S' \<in> C" by blast
+    qed }
+    
+  { assume *: "\<forall>S. S \<in> C \<longrightarrow> (\<forall>A B. Or A B \<in> S \<longrightarrow> S \<union> {A} \<in> C \<or> S \<union> {B} \<in> C)"
+    show " \<forall>A B. Or A B \<in> S \<longrightarrow>
+            S \<union> {A} \<in> {S. \<forall>S'\<subseteq>S. finite S' \<longrightarrow> S' \<in> C} \<or>
+            S \<union> {B} \<in> {S. \<forall>S'\<subseteq>S. finite S' \<longrightarrow> S' \<in> C}"
+    proof (intro allI impI, rule ccontr, simp, elim conjE exE)
+      fix A B S' S''
+      assume "Or A B \<in> S"
+        and " S' \<subseteq> insert A S" "finite S'"  "S' \<notin> C"
+        and "S'' \<subseteq> insert B S" "finite S''" "S'' \<notin> C"
+      
+      then have "(S' - {A}) \<union> (S'' - {B}) \<union> {Or A B} \<subseteq> S"
+        by blast
+      also have "finite (S' - {A} \<union> (S'' - {B}) \<union> {Or A B})"
+        using \<open>finite S'\<close> \<open>finite S''\<close> by blast
+      moreover have **: "(S' - {A}) \<union> (S'' - {B}) \<union> {Or A B} \<in> C"
+        using calculation sc' by blast
+      then have
+        "((S' - {A}) \<union> (S'' - {B}) \<union> {Or A B}) \<union> {A} \<in> C \<or>
+         ((S' - {A}) \<union> (S'' - {B}) \<union> {Or A B}) \<union> {B} \<in> C"
+        using * by blast
+      then show False proof
+        assume "S' - {A} \<union> (S'' - {B}) \<union> {Or A B} \<union> {A} \<in> C"
+        then have "\<forall>S \<subseteq> (S' - {A} \<union> (S'' - {B}) \<union> {Or A B}) \<union> {A}. S \<in> C"
+          using sc by blast
+        then have "S' \<in> C" by blast
+        then show False using \<open>S' \<notin> C\<close> by blast
+      next
+        assume "S' - {A} \<union> (S'' - {B}) \<union> {Or A B} \<union> {B} \<in> C"
+        then have "\<forall>S \<subseteq> (S' - {A} \<union> (S'' - {B}) \<union> {Or A B}) \<union> {B}. S \<in> C"
+          using sc by blast
+        then have "S'' \<in> C" by blast
+        then show False using \<open>S'' \<notin> C\<close> by blast
+      qed
+    qed }
+    
+  { assume *: "\<forall>S. S \<in> C \<longrightarrow> (\<forall>A B. Neg (And A B) \<in> S \<longrightarrow> S \<union> {Neg A} \<in> C \<or> S \<union> {Neg B} \<in> C)"
+    show " \<forall>A B. Neg (And A B) \<in> S \<longrightarrow>
+            S \<union> {Neg A} \<in> {S. \<forall>S'\<subseteq>S. finite S' \<longrightarrow> S' \<in> C} \<or>
+            S \<union> {Neg B} \<in> {S. \<forall>S'\<subseteq>S. finite S' \<longrightarrow> S' \<in> C}"
+    proof (intro allI impI, rule ccontr, simp, elim conjE exE)
+      fix A B S' S''
+      assume "Neg (And A B) \<in> S"
+        and " S' \<subseteq> insert (Neg A) S" "finite S'"  "S' \<notin> C"
+        and "S'' \<subseteq> insert (Neg B) S" "finite S''" "S'' \<notin> C"
+      
+      then have "(S' - {Neg A}) \<union> (S'' - {Neg B}) \<union> {Neg (And A B)} \<subseteq> S"
+        by blast
+      also have "finite (S' - {Neg A} \<union> (S'' - {Neg B}) \<union> {Neg (And A B)})"
+        using \<open>finite S'\<close> \<open>finite S''\<close> by blast
+      moreover have **: "(S' - {Neg A}) \<union> (S'' - {Neg B}) \<union> {Neg (And A B)} \<in> C"
+        using calculation sc' by blast
+      then have
+        "((S' - {Neg A}) \<union> (S'' - {Neg B}) \<union> {Neg (And A B)}) \<union> {Neg A} \<in> C \<or>
+         ((S' - {Neg A}) \<union> (S'' - {Neg B}) \<union> {Neg (And A B)}) \<union> {Neg B} \<in> C"
+        using * by blast
+      then show False proof
+        assume "S' - {Neg A} \<union> (S'' - {Neg B}) \<union> {Neg (And A B)} \<union> {Neg A} \<in> C"
+        then have "\<forall>S \<subseteq> (S' - {Neg A} \<union> (S'' - {Neg B}) \<union> {Neg (And A B)}) \<union> {Neg A}. S \<in> C"
+          using sc by blast
+        then have "S' \<in> C" by blast
+        then show False using \<open>S' \<notin> C\<close> by blast
+      next
+        assume "S' - {Neg A} \<union> (S'' - {Neg B}) \<union> {Neg (And A B)} \<union> {Neg B} \<in> C"
+        then have "\<forall>S \<subseteq> (S' - {Neg A} \<union> (S'' - {Neg B}) \<union> {Neg (And A B)}) \<union> {Neg B}. S \<in> C"
+          using sc by blast
+        then have "S'' \<in> C" by blast
+        then show False using \<open>S'' \<notin> C\<close> by blast
+      qed
+    qed }
+    
+  { assume *: "\<forall>S. S \<in> C \<longrightarrow> (\<forall>A B. Impl A B \<in> S \<longrightarrow> S \<union> {Neg A} \<in> C \<or> S \<union> {B} \<in> C)"
+    show " \<forall>A B. Impl A B \<in> S \<longrightarrow>
+            S \<union> {Neg A} \<in> {S. \<forall>S'\<subseteq>S. finite S' \<longrightarrow> S' \<in> C} \<or>
+            S \<union> {B} \<in> {S. \<forall>S'\<subseteq>S. finite S' \<longrightarrow> S' \<in> C}"
+    proof (intro allI impI, rule ccontr, simp, elim conjE exE)
+      fix A B S' S''
+      assume "Impl A B \<in> S"
+        and " S' \<subseteq> insert (Neg A) S" "finite S'"  "S' \<notin> C"
+        and "S'' \<subseteq> insert B S" "finite S''" "S'' \<notin> C"
+      
+      then have "(S' - {Neg A}) \<union> (S'' - {B}) \<union> {Impl A B} \<subseteq> S"
+        by blast
+      also have "finite (S' - {Neg A} \<union> (S'' - {B}) \<union> {Impl A B})"
+        using \<open>finite S'\<close> \<open>finite S''\<close> by blast
+      moreover have **: "(S' - {Neg A}) \<union> (S'' - {B}) \<union> {Impl A B} \<in> C"
+        using calculation sc' by blast
+      then have
+        "((S' - {Neg A}) \<union> (S'' - {B}) \<union> {Impl A B}) \<union> {Neg A} \<in> C \<or>
+         ((S' - {Neg A}) \<union> (S'' - {B}) \<union> {Impl A B}) \<union> {B} \<in> C"
+        using * by blast
+      then show False proof
+        assume "S' - {Neg A} \<union> (S'' - {B}) \<union> {Impl A B} \<union> {Neg A} \<in> C"
+        then have "\<forall>S \<subseteq> (S' - {Neg A} \<union> (S'' - {B}) \<union> {Impl A B}) \<union> {Neg A}. S \<in> C"
+          using sc by blast
+        then have "S' \<in> C" by blast
+        then show False using \<open>S' \<notin> C\<close> by blast
+      next
+        assume "S' - {Neg A} \<union> (S'' - {B}) \<union> {Impl A B} \<union> {B} \<in> C"
+        then have "\<forall>S \<subseteq> (S' - {Neg A} \<union> (S'' - {B}) \<union> {Impl A B}) \<union> {B}. S \<in> C"
+          using sc by blast
+        then have "S'' \<in> C" by blast
+        then show False using \<open>S'' \<notin> C\<close> by blast
+      qed
+    qed }
+    
+  { assume *: "\<forall>S. S \<in> C \<longrightarrow> (\<forall>A B. Neg (Impl A B) \<in> S \<longrightarrow> S \<union> {A, Neg B} \<in> C)"
+    show "\<forall>A B. Neg (Impl A B) \<in> S \<longrightarrow> S \<union> {A, Neg B} \<in> {S. \<forall>S'\<subseteq>S. finite S' \<longrightarrow> S' \<in> C}"
+    proof (intro allI impI CollectI)
+      fix A B S'
+      assume "Neg (Impl A B) \<in> S" and "S' \<subseteq> S \<union> {A, Neg B}" and "finite S'"
+      then have "S' - {A, Neg B} \<union> {Neg (Impl A B)} \<subseteq> S"
+        by blast
+      also have "finite (S' - {A, Neg B} \<union> {Neg (Impl A B)})"
+        using \<open>finite S'\<close> by blast
+      moreover have "S' - {A, Neg B} \<union> {Neg (Impl A B)} \<in> C"
+        using calculation sc' by blast
+      ultimately have "S' - {A, Neg B} \<union> {Neg (Impl A B)} \<union> {A, Neg B} \<in> C"
+        using * by blast
+      then have "\<forall>S \<subseteq> (S' - {A, Neg B} \<union> {Neg (Impl A B)} \<union> {A, Neg B}). S \<in> C"
+        using sc by blast
+      then show "S' \<in> C" by blast
+    qed }
+   
+  { assume *: " \<forall>S. S \<in> C \<longrightarrow> (\<forall>P t. closedt 0 t \<longrightarrow> Forall P \<in> S \<longrightarrow> S \<union> {P[t/0]} \<in> C)"
+    show "\<forall>P t. closedt 0 t \<longrightarrow> Forall P \<in> S \<longrightarrow> S \<union> {P[t/0]} \<in> {S. \<forall>S'\<subseteq>S. finite S' \<longrightarrow> S' \<in> C}"
+    proof (intro allI impI CollectI)
+      fix P t S'
+      assume "closedt 0 t"
+        and "Forall P \<in> S"
+        and "S' \<subseteq> S \<union> {subst P t 0}"
+        and "finite S'"
+        
+      then have "S' - {P[t/0]} \<union> {Forall P} \<subseteq> S"
+        by blast
+      moreover have "finite (S' - {P[t/0]} \<union> {Forall P})"
+        using \<open>finite S'\<close> by blast
+      moreover have "S' - {P[t/0]} \<union> {Forall P} \<in> C"
+        using calculation sc' by blast
+      ultimately have "S' - {P[t/0]} \<union> {Forall P} \<union> {P[t/0]} \<in> C"
+        using * \<open>closedt 0 t\<close> by blast
+      then have "\<forall>S \<subseteq> (S' - {P[t/0]} \<union> {Forall P} \<union> {P[t/0]}). S \<in> C"
+        using sc by blast
+      then show "S' \<in> C" by blast
+    qed }
+    
+  { assume *: " \<forall>S. S \<in> C \<longrightarrow> (\<forall>P t. closedt 0 t \<longrightarrow> Neg (Exists P) \<in> S \<longrightarrow> S \<union> {Neg (P[t/0])} \<in> C)"
+    show "\<forall>P t. closedt 0 t \<longrightarrow> Neg (Exists P) \<in> S \<longrightarrow> S \<union> {Neg (P[t/0])} \<in> {S. \<forall>S'\<subseteq>S. finite S' \<longrightarrow> S' \<in> C}"
+    proof (intro allI impI CollectI)
+      fix P t S'
+      assume "closedt 0 t"
+        and "Neg (Exists P) \<in> S"
+        and "S' \<subseteq> S \<union> {Neg (subst P t 0)}"
+        and "finite S'"
+        
+      then have "S' - {Neg (P[t/0])} \<union> {Neg (Exists P)} \<subseteq> S"
+        by blast
+      moreover have "finite (S' - {Neg (P[t/0])} \<union> {Neg (Exists P)})"
+        using \<open>finite S'\<close> by blast
+      moreover have "S' - {Neg (P[t/0])} \<union> {Neg (Exists P)} \<in> C"
+        using calculation sc' by blast
+      ultimately have "S' - {Neg (P[t/0])} \<union> {Neg (Exists P)} \<union> {Neg (P[t/0])} \<in> C"
+        using * \<open>closedt 0 t\<close> by blast
+      then have "\<forall>S \<subseteq> (S' - {Neg (P[t/0])} \<union> {Neg (Exists P)} \<union> {Neg (P[t/0])}). S \<in> C"
+        using sc by blast
+      then show "S' \<in> C" by blast
+    qed }
+    
+  { assume *: " \<forall>S. S \<in> C \<longrightarrow> (\<forall>P x. (\<forall>a\<in>S. x \<notin> params a) \<longrightarrow> Exists P \<in> S \<longrightarrow> S \<union> {P[App x []/0]} \<in> C)"
+    show "\<forall>P x. (\<forall>a\<in>S. x \<notin> params a) \<longrightarrow> Exists P \<in> S \<longrightarrow> S \<union> {P[App x []/0]} \<in> {S. \<forall>S'\<subseteq>S. finite S' \<longrightarrow> S' \<in> C}"
+    proof (intro allI impI CollectI)
+      fix P x S'
+      assume "\<forall>a\<in>S. x \<notin> params a"
+        and "Exists P \<in> S"
+        and "S' \<subseteq> S \<union> {P[App x []/0]}"
+        and "finite S'"
+        
+      then have "S' - {P[App x []/0]} \<union> {Exists P} \<subseteq> S"
+        by blast
+      moreover have "finite (S' - {P[App x []/0]} \<union> {Exists P})"
+        using \<open>finite S'\<close> by blast
+      moreover have "S' - {P[App x []/0]} \<union> {Exists P} \<in> C"
+        using calculation sc' by blast
+      ultimately have "S' - {P[App x []/0]} \<union> {Exists P} \<union> {P[App x []/0]} \<in> C"
+        using * \<open>\<forall>a\<in>S. x \<notin> params a\<close> by blast
+      then have "\<forall>S \<subseteq> (S' - {P[App x []/0]} \<union> {Exists P} \<union> {P[App x []/0]}). S \<in> C"
+        using sc by blast
+      then show "S' \<in> C" by blast
+    qed }
+    
+  { assume *: " \<forall>S. S \<in> C \<longrightarrow> (\<forall>P x. (\<forall>a\<in>S. x \<notin> params a) \<longrightarrow> Neg (Forall P) \<in> S \<longrightarrow> S \<union> {Neg (P[App x []/0])} \<in> C)"
+    show "\<forall>P x. (\<forall>a\<in>S. x \<notin> params a) \<longrightarrow> Neg (Forall P) \<in> S \<longrightarrow> S \<union> {Neg (P[App x []/0])} \<in> {S. \<forall>S'\<subseteq>S. finite S' \<longrightarrow> S' \<in> C}"
+    proof (intro allI impI CollectI)
+      fix P x S'
+      assume "\<forall>a\<in>S. x \<notin> params a"
+        and "Neg (Forall P) \<in> S"
+        and "S' \<subseteq> S \<union> {Neg (P[App x []/0])}"
+        and "finite S'"
+        
+      then have "S' - {Neg (P[App x []/0])} \<union> {Neg (Forall P)} \<subseteq> S"
+        by blast
+      moreover have "finite (S' - {Neg (P[App x []/0])} \<union> {Neg (Forall P)})"
+        using \<open>finite S'\<close> by blast
+      moreover have "S' - {Neg (P[App x []/0])} \<union> {Neg (Forall P)} \<in> C"
+        using calculation sc' by blast
+      ultimately have "S' - {Neg (P[App x []/0])} \<union> {Neg (Forall P)} \<union> {Neg (P[App x []/0])} \<in> C"
+        using * \<open>\<forall>a\<in>S. x \<notin> params a\<close> by blast
+      then have "\<forall>S \<subseteq> (S' - {Neg (P[App x []/0])} \<union> {Neg (Forall P)} \<union> {Neg (P[App x []/0])}). S \<in> C"
+        using sc by blast
+      then show "S' \<in> C" by blast
+    qed }
+qed
 
 theorem finite_char: "finite_char (mk_finite_char C)"
-  by (unfold finite_char_def mk_finite_char_def) blast
+  unfolding finite_char_def mk_finite_char_def by blast
 
 theorem finite_char_closed: "finite_char C \<Longrightarrow> subset_closed C"
-  apply (unfold finite_char_def subset_closed_def)
-  apply (rule ballI allI impI)+
-  apply (frule spec)
-  apply (erule iffD2)
-  apply blast
-  done
+  unfolding finite_char_def subset_closed_def
+proof (intro ballI allI impI)
+  fix S S'
+  assume *: "\<forall>S. (S \<in> C) = (\<forall>S'. finite S' \<longrightarrow> S' \<subseteq> S \<longrightarrow> S' \<in> C)"
+    and "S' \<in> C"
+    and "S \<subseteq> S'"
+  then have "\<forall>S'. finite S' \<longrightarrow> S' \<subseteq> S \<longrightarrow> S' \<in> C" by blast
+  then show "S \<in> C" using * by blast
+qed
 
 theorem finite_char_subset: "subset_closed C \<Longrightarrow> C \<subseteq> mk_finite_char C"
-  by (unfold mk_finite_char_def subset_closed_def) blast
-
+  unfolding mk_finite_char_def subset_closed_def by blast
 
 subsection {* Enumerating datatypes *}
 
