@@ -838,8 +838,11 @@ proof -
   then show ?thesis using superset_sound resolution_superset by metis
 qed
 
-lemma msound_step: "mresolution_step Cs Cs' \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs'"
-proof (induction rule: mresolution_step.induct)
+lemma mstep_sound: 
+  assumes "mresolution_step Cs Cs'"
+  assumes "eval\<^sub>c\<^sub>s F G Cs"
+  shows "eval\<^sub>c\<^sub>s F G Cs'"
+using assms proof (induction rule: mresolution_step.induct)
   case (mresolution_rule C\<^sub>1 Cs C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)
   then have "eval\<^sub>c F G C\<^sub>1 \<and> eval\<^sub>c F G C\<^sub>2" unfolding eval\<^sub>c\<^sub>s_def by auto
   then have "eval\<^sub>c F G (mresolution C\<^sub>1 C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>)" 
@@ -877,7 +880,7 @@ using assms unfolding mresolution_deriv_def
 proof (induction rule: rtranclp.induct)
   case rtrancl_refl then show ?case by auto
 next
-  case (rtrancl_into_rtrancl Cs\<^sub>1 Cs\<^sub>2 Cs\<^sub>3) then show ?case using msound_step by auto
+  case (rtrancl_into_rtrancl Cs\<^sub>1 Cs\<^sub>2 Cs\<^sub>3) then show ?case using mstep_sound by auto
 qed
 
 lemma derivation_sound: 

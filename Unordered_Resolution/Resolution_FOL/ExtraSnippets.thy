@@ -14,6 +14,16 @@ proof
   then show "False" by blast
 qed
 text_raw {*}%EndSnippet*}
+  
+text_raw {*\DefineSnippet{idexample}{*}
+theorem "id (id (id x)) = x"
+proof -
+  have "id (id (id x)) = id (id x)" by auto
+  also have "... = id x" by auto
+  also have "... = x" by auto
+  finally show "id (id (id x)) = x" by -
+qed
+text_raw {*}%EndSnippet*}
 
 end
 
