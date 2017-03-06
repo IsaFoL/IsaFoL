@@ -5,7 +5,7 @@ theory ExtraSnippets imports Main begin
 (* Adapted from Nipkow and Klein's Concrete semantics *)  
   
 text_raw {*\DefineSnippet{cantor}{*}
-lemma "\<not> surj(f :: 'a \<Rightarrow> 'a set)"
+theorem cantor: "\<not> surj(f :: 'a \<Rightarrow> 'a set)"
 proof
   assume "surj f"
   then have "\<forall>A. \<exists>a. A = f a" using surj_def by metis
@@ -16,12 +16,14 @@ qed
 text_raw {*}%EndSnippet*}
   
 text_raw {*\DefineSnippet{idexample}{*}
-theorem "id (id (id x)) = x"
+theorem 
+  assumes "\<forall>y. identity y = y"
+  shows "identity (identity (identity x)) = x"
 proof -
-  have "id (id (id x)) = id (id x)" by auto
-  also have "... = id x" by auto
-  also have "... = x" by auto
-  finally show "id (id (id x)) = x" by -
+  have "identity (identity (identity x)) = identity (identity x)" using assms by auto
+  also have "... = identity x" using assms by auto
+  also have "... = x" using assms by auto
+  finally show "identity (identity (identity x)) = x" by -
 qed
 text_raw {*}%EndSnippet*}
 

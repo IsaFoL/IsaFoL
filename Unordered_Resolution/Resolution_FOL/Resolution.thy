@@ -733,7 +733,7 @@ lemma subst_sound:
  shows "eval\<^sub>c F G (C \<cdot>\<^sub>l\<^sub>s \<sigma>)"
 unfolding eval\<^sub>c_def proof
   fix E
-  from asm have "\<forall>E'. \<exists>l \<in> C. eval\<^sub>l E' F G l" unfolding eval\<^sub>c_def by auto
+  from asm have "\<forall>E'. \<exists>l \<in> C. eval\<^sub>l E' F G l" using eval\<^sub>c_def by blast
   then have "\<exists>l \<in> C. eval\<^sub>l (evalsub E F \<sigma>) F G l" by auto
   then show "\<exists>l \<in> C \<cdot>\<^sub>l\<^sub>s \<sigma>. eval\<^sub>l E F G l" using substitution by blast
 qed
