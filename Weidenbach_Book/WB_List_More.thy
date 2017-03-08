@@ -87,7 +87,7 @@ subsection \<open>@{term upt}\<close>
 text \<open>
   The simplification rules are not very handy, because theorem @{thm [source] upt.simps(2)}
   (i.e.\ @{thm upt.simps(2)}) leads to a case distinction, that we usually do not want if the
-  condition is not in the context.
+  condition is not already in the context.
 \<close>
 lemma upt_Suc_le_append: \<open>\<not>i \<le> j \<Longrightarrow> [i..<Suc j] = []\<close>
   by auto
@@ -460,7 +460,7 @@ proof -
     by (simp add: ivl_disj_un_two(3))
   show ?thesis
   apply (induction b)
-   apply simp
+   apply (simp; fail)
   apply (case_tac \<open>\<not>k < a \<and> k < Suc b\<close>)
    apply (rule sorted_mset_unique)
       apply ((auto simp add: sorted_append sorted_insort sorted_Cons ac_simps mset_set_Union
@@ -544,17 +544,18 @@ proof -
   have \<open>{j. Suc j \<in> A} =  (\<lambda>j. j-1) ` (A - {0})\<close> for A
     using DiffI by (fastforce simp: image_iff)
   have 1: \<open>{0..<b} \<subseteq> {j. Suc j \<in> A} \<longleftrightarrow> (\<forall>x. x-1 < b \<longrightarrow> x \<noteq> 0 \<longrightarrow> x \<in> A)\<close>
-    for A xs b
+    for A :: \<open>nat set\<close> and b :: nat
     by auto
   have [simp]: \<open>{0..<b} \<subseteq> {j. Suc j \<in> A} \<longleftrightarrow> (\<forall>x. x-1 < b \<longrightarrow> x \<in> A)\<close>
-    if \<open>0\<in> A\<close>for A b
+    if \<open>0 \<in> A\<close> for A :: \<open>nat set\<close> and b :: nat
     using that unfolding 1 by auto
-  have [simp]: \<open>sublist xs {j. Suc j \<in> A} = a # xs \<longleftrightarrow> False\<close> for a xs A
+  have [simp]: \<open>sublist xs {j. Suc j \<in> A} = a # xs \<longleftrightarrow> False\<close>
+    for a :: 'a and xs :: \<open>'a list\<close> and A :: \<open>nat set\<close>
     using mset_sublist_subset_mset[of xs \<open>{j. Suc j \<in> A}\<close>] by auto
   show ?thesis -- \<open>TODO tune proof\<close>
     apply (induction xs arbitrary: A)
      apply (auto simp: sublist_Cons less_Suc_eq)
-    by (fastforce simp:  less_Suc_eq)+
+    by (fastforce simp: less_Suc_eq)+
 qed
 
 lemma sublist_shift_lemma':
@@ -587,7 +588,7 @@ next
     have 4: \<open>map fst [p\<leftarrow>zip xs [1..<n] . snd p + b + i \<in> A] =
                  map fst [p\<leftarrow>zip xs [0..<m] . Suc (snd p + b + i) \<in> A]\<close>
       using Cons[of \<open>b+i\<close> 1 m] unfolding n Suc_eq_plus1_left add.commute[of 1]
-      by (simp_all del: upt_Suc add: ac_simps)
+      by (simp_all add: ac_simps)
     show ?thesis
       apply (subst upt_conv_Cons)
       using n apply (simp; fail)
@@ -608,7 +609,7 @@ lemma sublist_Cons_upt_Suc: \<open>sublist (a # xs) {0..<Suc n} = a # sublist xs
   apply (subst upt_conv_Cons)
    apply simp
   using sublist_shift_lemma'[of 0 \<open>{0..<Suc n}\<close> \<open>xs\<close> 1 \<open>length xs\<close>]
-  by (simp_all del: upt_Suc add: ac_simps)
+  by (simp_all add: ac_simps)
 
 
 lemma sublist_empty_iff: \<open>sublist xs A = [] \<longleftrightarrow> {..<length xs} \<inter> A = {}\<close>
@@ -617,7 +618,7 @@ proof (induction xs arbitrary: A)
   then show ?case by auto
 next
   case (Cons a xs) note IH = this(1)
-  moreover have \<open>{..<length xs} \<inter> {j. Suc j \<in> A} = {} \<Longrightarrow> (\<forall>x<length xs. x \<noteq> 0 \<longrightarrow> x \<notin> A)\<close>
+  have \<open>{..<length xs} \<inter> {j. Suc j \<in> A} = {} \<Longrightarrow> (\<forall>x<length xs. x \<noteq> 0 \<longrightarrow> x \<notin> A)\<close>
     apply auto
      apply (metis IntI empty_iff gr0_implies_Suc lessI lessThan_iff less_trans mem_Collect_eq)
     done
@@ -699,30 +700,30 @@ lemma prod_induct12 [case_names fields, induct type]:
   by (cases x) blast
 
 
-subsection \<open>More about @{term list_all2}\<close>
+subsection \<open>More about @{term list_all2} and @{term map}\<close>
 
 lemma list_all2_op_eq_map_right_iff: \<open>list_all2 (\<lambda>L. op = (f L)) a aa \<longleftrightarrow> aa = map f a \<close>
   apply (induction a arbitrary: aa)
-   apply auto[]
-  by (case_tac aa) (auto)
+   apply (auto; fail)
+  by (rename_tac aa, case_tac aa) (auto)
 
 lemma list_all2_op_eq_map_left_iff: \<open>list_all2 (\<lambda>L' L. L'  = (f L)) a aa \<longleftrightarrow> a = map f aa\<close>
   apply (induction a arbitrary: aa)
-   apply auto[]
-  by (case_tac aa) (auto)
+   apply (auto; fail)
+  by (rename_tac aa, case_tac aa) (auto)
 
 lemma list_all2_op_eq_map_map_right_iff:
   \<open>list_all2 (list_all2 (\<lambda>L. op = (f L))) xs' x \<longleftrightarrow> x = map (map f) xs'\<close> for x
     apply (induction xs' arbitrary: x)
-     apply auto[]
+     apply (auto; fail)
     apply (case_tac x)
   by (auto simp: list_all2_op_eq_map_right_iff)
 
 lemma list_all2_op_eq_map_map_left_iff:
   \<open>list_all2 (list_all2 (\<lambda>L' L. L' = f L)) xs' x \<longleftrightarrow> xs' = map (map f) x\<close>
     apply (induction xs' arbitrary: x)
-     apply auto[]
-    apply (case_tac x)
+     apply (auto; fail)
+    apply (rename_tac x, case_tac x)
   by (auto simp: list_all2_op_eq_map_left_iff)
 
 end

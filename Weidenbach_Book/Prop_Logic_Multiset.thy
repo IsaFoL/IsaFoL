@@ -109,7 +109,7 @@ text \<open>When a formula is in CNF form, then there is equisatisfiability betw
   @{term Partial_Clausal_Logic.true_clss} uses a set where being in the list means entailment of a 
   literal.
   \<close>
-theorem 
+theorem cnf_eval_true_clss:
   fixes \<phi> :: "'v propo"
   assumes "is_cnf \<phi>"
   shows "eval A \<phi> \<longleftrightarrow> Partial_Clausal_Logic.true_clss ({Pos v|v. A v} \<union> {Neg v|v. \<not>A v})

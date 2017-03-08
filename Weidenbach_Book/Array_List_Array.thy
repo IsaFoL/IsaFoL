@@ -1,5 +1,5 @@
 theory Array_List_Array
-imports Array_Array_List "~~/src/HOL/Library/Code_Target_Numeral"
+imports Array_Array_List
 begin
 
 subsection \<open>Array of Array Lists\<close>

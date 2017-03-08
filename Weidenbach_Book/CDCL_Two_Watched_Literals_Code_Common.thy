@@ -56,6 +56,13 @@ proof standard
     by blast
 qed
 
+instantiation literal :: (default) default
+begin
+definition default_literal where
+\<open>default_literal = Pos default\<close>
+instance by standard
+end
+
 
 subsection \<open>Declaration of some Operators and Implementation\<close>
 
