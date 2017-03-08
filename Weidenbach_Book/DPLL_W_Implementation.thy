@@ -158,7 +158,7 @@ function DPLL_ci :: "int dpll\<^sub>W_ann_lits \<Rightarrow> int literal list li
 termination
 proof (relation "{(S', S).  (toS' S', toS' S) \<in> {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W S S'}}")
   show "wf {(S', S).(toS' S', toS' S) \<in> {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W S S'}}"
-    using wf_if_measure_f[OF dpll\<^sub>W_wf, of "toS'"] by auto
+    using wf_if_measure_f[OF wf_dpll\<^sub>W, of "toS'"] by auto
 next
   fix Ms :: "int dpll\<^sub>W_ann_lits" and N x xa y
   assume"\<not> \<not> dpll\<^sub>W_all_inv (toS Ms N)"
@@ -253,7 +253,7 @@ lemma dpll\<^sub>W_all_inv_dpll\<^sub>W_tranclp_irrefl:
   and "dpll\<^sub>W\<^sup>+\<^sup>+ (Ms, N) (Ms, N)"
   shows "False"
 proof -
-  have 1: "wf {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W\<^sup>+\<^sup>+ S S'}" using dpll\<^sub>W_wf_tranclp by auto
+  have 1: "wf {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W\<^sup>+\<^sup>+ S S'}" using wf_dpll\<^sub>W_tranclp by auto
   have "((Ms, N), (Ms, N)) \<in> {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W\<^sup>+\<^sup>+ S S'}" using assms by auto
   then show False using wf_not_refl[OF 1] by blast
 qed
@@ -408,7 +408,7 @@ proof (relation "{(T', T).
           (rough_state_of b, rough_state_of a)
             \<in> {(b, a). (toS' b, toS' a)
               \<in> {(b, a). dpll\<^sub>W_all_inv a \<and> dpll\<^sub>W a b}}}"
-    using wf_if_measure_f[OF wf_if_measure_f[OF dpll\<^sub>W_wf, of "toS'"], of rough_state_of] .
+    using wf_if_measure_f[OF wf_if_measure_f[OF wf_dpll\<^sub>W, of "toS'"], of rough_state_of] .
 next
   fix S x
   assume x: "x = DPLL_step' S"
