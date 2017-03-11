@@ -1484,35 +1484,46 @@ theorem diag_le1: "fst (diag (Suc n)) < Suc n"
   by (induct n) (simp_all add: Let_def split_def split: nat.split)
 
 theorem diag_le2: "snd (diag (Suc (Suc n))) < Suc (Suc n)"
-  apply (induct n)
-  apply (simp_all add: Let_def split_def split: nat.split nat.split_asm)
-  apply (rule impI)
-  apply (case_tac n)
-  apply simp
-  apply hypsubst
-  apply (rule diag_le1)
-  done
-
+proof (induct n)
+  case 0
+  then show ?case by simp
+next
+  case (Suc n')
+  then show ?case proof (induct n')
+    case 0
+    then show ?case by simp
+  next
+    case (Suc _)
+    then show ?case using diag_le1
+      by (simp add: Let_def split_def split: nat.split)
+  qed
+qed
+  
 theorem diag_le3: "fst (diag n) = Suc x \<Longrightarrow> snd (diag n) < n"
-  apply (case_tac n)
-  apply simp
-  apply (case_tac nat)
-  apply (simp add: Let_def)
-  apply hypsubst
-  apply (rule diag_le2)
-  done
+proof (induct n)
+  case 0
+  then show ?case by simp
+next
+  case (Suc n')
+  then show ?case proof (induct n')
+    case 0
+    then show ?case by simp
+  next
+    case (Suc n'')
+    then show ?case using diag_le2 by simp
+  qed
+qed
 
 theorem diag_le4: "fst (diag n) = Suc x \<Longrightarrow> x < n"
-  apply (case_tac n)
-  apply simp
-  apply (case_tac nat)
-  apply (simp add: Let_def)
-  apply hypsubst_thin
-  apply (drule sym)
-  apply (drule ord_eq_less_trans)
-  apply (rule diag_le1)
-  apply simp
-  done
+proof (induct n)
+  case 0
+  then show ?case by simp
+next
+  case (Suc n')
+  then have "fst (diag (Suc n')) < Suc n'"
+    using diag_le1 by blast
+  then show ?case using Suc by simp
+qed
 
 function
   undiag :: "nat \<times> nat \<Rightarrow> nat"
@@ -1521,13 +1532,11 @@ where
 | "undiag (0, Suc y) = Suc (undiag (y, 0))"
 | "undiag (Suc x, y) = Suc (undiag (x, Suc y))"
   by pat_completeness auto
-
 termination
   by (relation "measure (\<lambda>(x, y). ((x + y) * (x + y + 1)) div 2 + x)") auto
 
 theorem diag_undiag [simp]: "diag (undiag (x, y)) = (x, y)"
-  by (rule undiag.induct) (simp add: Let_def)+
-
+  by (induct rule: undiag.induct) simp_all
 
 subsubsection {* Enumerating trees *}
 
@@ -1548,9 +1557,8 @@ where
        0 \<Rightarrow> Leaf (snd (diag n))
      | Suc x \<Rightarrow> Branch (diag_btree x) (diag_btree (snd (diag n))))"
   by auto
-
 termination
-  by (relation "measure (\<lambda>x. x)") (auto intro: diag_le3 diag_le4)
+  by (relation "measure id") (auto intro: diag_le3 diag_le4)
 
 primrec
   undiag_btree :: "btree \<Rightarrow> nat"
@@ -1560,7 +1568,7 @@ where
      undiag (Suc (undiag_btree t1), undiag_btree t2)"
 
 theorem diag_undiag_btree [simp]: "diag_btree (undiag_btree t) = t"
-  by (induct t) (simp_all add: Let_def)
+  by (induct t) simp_all
 
 declare diag_btree.simps [simp del] undiag_btree.simps [simp del]
 
@@ -1614,10 +1622,10 @@ where
 | "btree_of_term_list f [] = Leaf 0"
 | "btree_of_term_list f (t # ts) = Branch (btree_of_term f t) (btree_of_term_list f ts)"
 
-theorem term_btree: assumes du: "\<And>x. d (u x) = x"
+theorem term_btree: assumes "\<And>x. d (u x) = x"
   shows "term_of_btree d (btree_of_term u t) = t"
   and "term_list_of_btree d (btree_of_term_list u ts) = ts"
-  by (induct t and ts rule: btree_of_term.induct btree_of_term_list.induct) (simp_all add: du)
+  by (induct t and ts rule: btree_of_term.induct btree_of_term_list.induct) (simp_all add: assms)
 
 definition
   diag_term :: "(nat \<Rightarrow> 'a) \<Rightarrow> nat \<Rightarrow> 'a term" where
