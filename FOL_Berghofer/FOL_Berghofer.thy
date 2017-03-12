@@ -731,8 +731,8 @@ theorem alt_consistency:
 proof (clarify, elim allE impE, simp, simp, simp, elim conj_forward)
   fix f :: "'a \<Rightarrow> 'a" and S :: "('a, 'b) form set"
     
-  assume sc: "psubst f ` S \<in> C" (is "?S' \<in> C")
-      
+  assume sc: "psubst f ` S \<in> C" (is "?S' \<in> C") 
+    
   show "\<forall>p ts. \<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)"
   proof (intro allI, simp, intro impI)
     fix p ts
@@ -1437,8 +1437,7 @@ theorem finite_char_closed: "finite_char C \<Longrightarrow> subset_closed C"
 proof (intro ballI allI impI)
   fix S S'
   assume *: "\<forall>S. (S \<in> C) = (\<forall>S'. finite S' \<longrightarrow> S' \<subseteq> S \<longrightarrow> S' \<in> C)"
-    and "S' \<in> C"
-    and "S \<subseteq> S'"
+    and "S' \<in> C" and "S \<subseteq> S'"
   then have "\<forall>S'. finite S' \<longrightarrow> S' \<subseteq> S \<longrightarrow> S' \<in> C" by blast
   then show "S \<in> C" using * by blast
 qed
@@ -1719,48 +1718,67 @@ definition
   "is_chain f = (\<forall>n. f n \<subseteq> f (Suc n))"
 
 theorem is_chainD: "is_chain f \<Longrightarrow> x \<in> f m \<Longrightarrow> x \<in> f (m + n)"
-  by (induct n) (fastforce simp add: is_chain_def)+
+  by (induct n) (auto simp: is_chain_def)
 
 theorem is_chainD': "is_chain f \<Longrightarrow> x \<in> f m \<Longrightarrow> m \<le> k \<Longrightarrow> x \<in> f k"
-  apply (subgoal_tac "\<exists>n. k = m + n")
-  apply (erule exE)
-  apply simp
-  apply (erule_tac n=n in is_chainD)
-  apply assumption
-  apply arith
-  done
+proof -
+  assume "is_chain f" and "x \<in> f m" and "m \<le> k"
+  then have "\<exists>n. k = m + n" by arith
+  then obtain n where "k = m + n" by blast
+  then show "x \<in> f k"
+    using \<open>is_chain f\<close> \<open>x \<in> f m\<close>
+    by (simp add: is_chainD)
+qed
 
 theorem chain_index:
   assumes ch: "is_chain f" and fin: "finite F"
-  shows "F \<subseteq> (\<Union>n. f n) \<Longrightarrow> \<exists>n. F \<subseteq> f n" using fin
-  apply (induct rule: finite_induct)
-  apply blast
-  apply (insert ch)
-  apply simp
-  apply (erule conjE exE)+
-  apply (rule_tac x="max n xa" in exI)
-  apply (rule conjI)
-  apply (erule is_chainD')
-  apply assumption
-  apply (simp add: max_def)
-  apply (rule subsetI)
-  apply (drule_tac B="f n" in subsetD)
-  apply assumption
-  apply (erule is_chainD')
-  apply assumption
-  apply (simp add: max_def)
-  done
+  shows "F \<subseteq> (\<Union>n. f n) \<Longrightarrow> \<exists>n. F \<subseteq> f n"
+  using fin proof (induct rule: finite_induct)
+  case empty
+  then show ?case by blast
+next
+  case (insert x F)
+  then have "\<exists>n. F \<subseteq> f n" and "\<exists>m. x \<in> f m" and "F \<subseteq> (\<Union>x. f x)"
+    using ch by simp_all
+  then obtain n and m where "F \<subseteq> f n" and "x \<in> f m"
+    by blast
+  have "m \<le> max n m" and "n \<le> max n m" by simp_all
+  have "x \<in> f (max n m)"
+    using is_chainD' ch \<open>x \<in> f m\<close> \<open>m \<le> max n m\<close> by fast
+  also have "F \<subseteq> f (max n m)"
+    using is_chainD' ch \<open>F \<subseteq> f n\<close> \<open>n \<le> max n m\<close> by fast
+  moreover have "x \<in> f (max n m) \<and> F \<subseteq> f (max n m)"
+    using calculation by blast
+  ultimately show ?case by blast
+qed
+
+lemma chain_union_closed':
+  assumes "is_chain f" and "(\<forall>n. f n \<in> C)" and "\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C"
+  shows "\<forall>S'. finite S' \<longrightarrow> S' \<subseteq> (\<Union>n. f n) \<longrightarrow> S' \<in> C" 
+proof (intro allI impI)
+  fix S'
+  assume "finite S'" and "S' \<subseteq> (\<Union>n. f n)"
+  then obtain n where "S' \<subseteq> f n"
+    using chain_index \<open>is_chain f\<close> by blast
+  also have "f n \<in> C" using \<open>\<forall>n. f n \<in> C\<close> by blast
+  ultimately show "S' \<in> C"
+    using \<open>\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C\<close> by blast
+qed
   
 theorem chain_union_closed:
-  "finite_char C \<Longrightarrow> is_chain f \<Longrightarrow> \<forall>n. f n \<in> C \<Longrightarrow> (\<Union>n. f n) \<in> C"
-  apply (frule finite_char_closed)
-  apply (unfold finite_char_def subset_closed_def)
-  apply (drule spec)
-  apply (erule iffD2)
-  apply (rule allI impI)+
-  apply (drule chain_index)
-  apply blast+
-  done
+  assumes "finite_char C" and "is_chain f" and "\<forall>n. f n \<in> C"
+  shows "(\<Union>n. f n) \<in> C"
+proof -
+  have "subset_closed C"
+    using finite_char_closed \<open>finite_char C\<close> by blast
+  then have "\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C"
+    using subset_closed_def by blast
+  then have "\<forall>S'. finite S' \<longrightarrow> S' \<subseteq> (\<Union>n. f n) \<longrightarrow> S' \<in> C" 
+    using chain_union_closed' assms by blast
+  moreover have "((\<Union>n. f n) \<in> C) = (\<forall>S'. finite S' \<longrightarrow> S' \<subseteq> (\<Union>n. f n) \<longrightarrow> S' \<in> C)"
+    using \<open>finite_char C\<close> unfolding finite_char_def by blast
+  ultimately show ?thesis by blast
+qed
 
 text {*
 We can now define a function @{text Extend} that extends a consistent
@@ -1821,65 +1839,90 @@ theorem finite_params_extend [simp]:
 
 theorem extend_in_C: "alt_consistency C \<Longrightarrow>
   S \<in> C \<Longrightarrow> \<not> finite (- (\<Union>p \<in> S. params p)) \<Longrightarrow> extend S C f n \<in> C"
-  apply (induct n)
-  apply simp_all
-  apply (rule conjI impI)+
-  apply (erule exE)+
-  apply simp
-  apply (simp add: alt_consistency_def)
-  apply (rule impI)+
-  apply (erule exE)
-  apply (erule_tac x="insert (f n) (extend S C f n)" in allE)
-  apply (erule impE)
-  apply assumption
-  apply ((drule conjunct2)+,
-    erule_tac x=p in allE,
-    erule_tac x="SOME k.
-      k \<notin> (\<Union>x\<in>extend S C f n \<union> {f n}. params x)" in allE)
-  apply (erule impE)
-  apply (subgoal_tac "\<not> finite (- (\<Union>x\<in>extend S C f n \<union> {f n}. params x))")
-  prefer 2
-  apply simp
-  apply (rule ballI)
-  apply (drule_tac A="- S" for S in infinite_nonempty)
-  apply (erule exE)
-  apply (rule someI2)
-  apply (simp only: Compl_iff [symmetric])
-  apply fast
-  apply simp
-  apply (rule impI)+
-  apply (erule exE)
-  apply (simp add: alt_consistency_def)
-  apply (erule_tac x="insert (Exists p) (extend S C f n)" in allE)
-  apply (erule impE)
-  apply assumption
-  apply (drule conjunct2)
-  apply (drule conjunct2)
-  apply (drule conjunct2)
-  apply (drule conjunct2)
-  apply (drule conjunct2)
-  apply (drule conjunct2)
-  apply (drule conjunct2)
-  apply (drule conjunct2)
-  apply (drule conjunct2)
-  apply (drule conjunct2)
-  apply (drule conjunct2)
-  apply (drule conjunct2)
-  apply (drule conjunct1)
-  apply (erule_tac x=p in allE)
-  apply (erule_tac x="SOME k.
-      k \<notin> (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x)" in allE)
-  apply (erule impE)
-  apply (subgoal_tac "\<not> finite (- (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x))")
-  prefer 2
-  apply simp
-  apply (rule ballI)
-  apply (drule_tac A="- S" for S in infinite_nonempty)
-  apply (erule exE)
-  apply (rule someI2)
-  apply (simp only: Compl_iff [symmetric])
-  apply auto
-  done
+proof (induct n)
+  case 0
+  then show ?case by simp
+next
+  case (Suc n)
+  then show ?case proof (simp, intro conjI impI)
+    assume "\<exists>p. f n = Neg (Forall p)" and "\<exists>p. f n = Exists p"
+    then show "insert (dest_Exists (f n)[App
+                (SOME k. k \<notin> params (f n) \<and> (\<forall>x\<in>extend S C f n. k \<notin> params x)) []/0])
+                (insert (f n) (extend S C f n)) \<in> C"
+      by auto
+  next
+    fix p
+    assume "alt_consistency C"
+      and "infinite (\<Inter>x\<in>S. - params x)"
+      and "\<exists>p. f n = Neg (Forall p)"
+      and "\<forall>p. f n \<noteq> Exists p"
+      and "insert (f n) (extend S C f n) \<in> C"
+    moreover have "\<forall>P x.
+          (\<forall>a\<in>insert (f n) (extend S C f n). x \<notin> params a) \<longrightarrow>
+          Neg (Forall P) \<in> insert (f n) (extend S C f n) \<longrightarrow>
+          insert (Neg (P[App x []/0])) (insert (f n) (extend S C f n)) \<in> C"
+      using calculation by (simp add: alt_consistency_def)
+    moreover have "f n \<noteq> Exists p" using \<open>\<forall>p. f n \<noteq> Exists p\<close> by blast
+    have "\<not> finite (- (\<Union>x\<in>extend S C f n \<union> {f n}. params x))"
+      using calculation by simp
+    then have "infinite (- (\<Union>x\<in>extend S C f n \<union> {f n}. params x))"
+      by simp
+    then obtain x where "x \<in> - (\<Union>x\<in>extend S C f n \<union> {f n}. params x)"
+      using infinite_nonempty by blast
+    moreover have "insert (Neg (dest_Forall (dest_Neg (f n))[App x []/0]))
+                      (insert (f n) (extend S C f n)) \<in> C"
+      using calculation by fastforce
+    show "insert (Neg (dest_Forall (dest_Neg (f n))[
+            App (SOME k. k \<notin> params (f n) \<and> (\<forall>x\<in>extend S C f n. k \<notin> params x)) []/0]))
+           (insert (f n) (extend S C f n)) \<in> C"
+    proof (rule someI2)
+      show "x \<notin> params (f n) \<and> (\<forall>x'\<in>extend S C f n. x \<notin> params x')"
+        using calculation(7) by blast
+    next
+      fix x
+      assume "x \<notin> params (f n) \<and> (\<forall>x'\<in>extend S C f n. x \<notin> params x')"
+      then show "insert (Neg (dest_Forall (dest_Neg (f n))[App x []/0]))
+                  (insert (f n) (extend S C f n)) \<in> C"
+        using calculation(3) calculation(6) by auto
+    qed
+  next
+    assume "alt_consistency C"
+      and "infinite (\<Inter>x\<in>S. - params x)"
+      and "\<forall>p. f n \<noteq> Neg (Forall p)"
+      and "\<exists>p. f n = Exists p"
+      and "insert (f n) (extend S C f n) \<in> C"
+    moreover obtain p where "f n = Exists p"
+      using \<open>\<exists>p. f n = Exists p\<close> by blast
+    moreover have "(\<forall>a\<in>insert (Exists p) (extend S C f n). (SOME k. k \<notin> (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x)) \<notin> params a) \<longrightarrow>
+           Exists p \<in> insert (Exists p) (extend S C f n) \<longrightarrow>
+           insert (p[App (SOME k. k \<notin> (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x)) []/0]) (insert (Exists p) (extend S C f n)) \<in> C"
+      using calculation by (simp add: alt_consistency_def)
+    moreover have "infinite (- (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x))"
+      using calculation by simp
+    then obtain x where *: "x \<in> - (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x)"
+      using infinite_nonempty by blast
+    have "\<forall>a\<in>insert (Exists p) (extend S C f n). 
+          (SOME k. k \<notin> (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x)) \<notin> params a"
+    proof
+      fix a
+      assume "a \<in> insert (Exists p) (extend S C f n)"
+      show "(SOME k. k \<notin> (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x)) \<notin> params a" 
+      proof (rule someI2)
+        show "x \<notin> (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x)"
+          using * by blast
+      next
+        fix x
+        assume "x \<notin> (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x)"
+        then show "x \<notin> params a"
+          using \<open>a \<in> insert (Exists p) (extend S C f n)\<close> by blast
+      qed
+    qed
+    ultimately show "insert (dest_Exists (f n)[App (SOME k.
+                  k \<notin> params (f n) \<and> (\<forall>x\<in>extend S C f n. k \<notin> params x))
+              []/0]) (insert (f n) (extend S C f n)) \<in> C"
+      by simp
+  qed
+qed
 
 text {*
 The main theorem about @{text Extend} says that if @{text C} is an
@@ -1890,18 +1933,18 @@ parameters, then @{text "Extend S C f"} is again consistent.
 
 theorem Extend_in_C: "alt_consistency C \<Longrightarrow> finite_char C \<Longrightarrow>
   S \<in> C \<Longrightarrow> \<not> finite (- (\<Union>p \<in> S. params p)) \<Longrightarrow> Extend S C f \<in> C"
-  apply (unfold Extend_def)
-  apply (erule chain_union_closed)
-  apply (rule is_chain_extend)
-  apply (rule allI)
-  by (rule extend_in_C)
+  unfolding Extend_def
+  using chain_union_closed is_chain_extend extend_in_C
+  by blast
 
 theorem Extend_subset: "S \<subseteq> Extend S C f"
-  apply (rule subsetI)
-  apply (simp add: Extend_def)
-  apply (rule_tac x=0 in exI)
-  apply simp
-  done
+proof
+  fix x
+  assume "x \<in> S"
+  then have "x \<in> extend S C f 0" by simp
+  then have "\<exists>n. x \<in> extend S C f n" by blast
+  then show "x \<in> Extend S C f" by (simp add: Extend_def)
+qed
 
 text {*
 The @{text Extend} function yields a maximal set:
@@ -1911,38 +1954,45 @@ definition
   maximal :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
   "maximal S C = (\<forall>S'\<in>C. S \<subseteq> S' \<longrightarrow> S = S')"
 
-theorem extend_maximal: "\<forall>y. \<exists>n. y = f n \<Longrightarrow>
-  finite_char C \<Longrightarrow> maximal (Extend S C f) C"
-  apply (simp add: maximal_def Extend_def)
-  apply (rule ballI impI)+
-  apply (rule subset_antisym)
-  apply assumption
-  apply (rule ccontr)
-  apply (subgoal_tac "\<exists>z. z \<in> S' \<and> z \<notin> (\<Union>x. extend S C f x)")
-  prefer 2
-  apply blast
-  apply (erule exE conjE)+
-  apply (erule_tac x=z in allE)
-  apply (erule exE)
-  apply (subgoal_tac "extend S C f n \<union> {f n} \<subseteq> S'")
-  prefer 2
-  apply simp
-  apply (rule subset_trans)
-  prefer 2
-  apply assumption
-  apply (rule UN_upper [OF UNIV_I])
-  apply (drule finite_char_closed)
-  apply (unfold subset_closed_def)
-  apply (drule bspec)
-  apply assumption
-  apply (erule_tac x="a \<union> b" for a b in allE)
-  apply (erule impE)
-  apply assumption
-  apply (erule_tac P="a \<in> b" for a b in notE)
-  apply (rule_tac a="Suc n" in UN_I [OF UNIV_I])
-  apply simp
-  done
+theorem extend_maximal:
+  "\<forall>y. \<exists>n. y = f n \<Longrightarrow> finite_char C \<Longrightarrow> maximal (Extend S C f) C"
+  unfolding maximal_def Extend_def
+proof (intro ballI impI)
+  fix S'
+  assume "\<forall>y. \<exists>n. y = f n"
+    and "finite_char C"
+    and "S' \<in> C"
+    and "UNION UNIV (extend S C f) \<subseteq> S'"
+  moreover have "S' \<subseteq> (\<Union>x. extend S C f x)"
+  proof (rule ccontr)
+    assume "\<not> S' \<subseteq> (\<Union>x. extend S C f x)"
+    then have "\<exists>z. z \<in> S' \<and> z \<notin> (\<Union>x. extend S C f x)"
+      by blast
+    then obtain z where "z \<in> S'" and *: "z \<notin> (\<Union>x. extend S C f x)"
+      by blast
+    then obtain n where "z = f n"
+      using \<open>\<forall>y. \<exists>n. y = f n\<close> by blast
+    
+    from \<open>(\<Union>x. extend S C f x) \<subseteq> S'\<close> \<open>z = f n\<close> \<open>z \<in> S'\<close>
+    have "extend S C f n \<union> {f n} \<subseteq> S'" by blast
 
+    from \<open>finite_char C\<close>
+    have "subset_closed C" using finite_char_closed by blast
+    then have "\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C"
+      unfolding subset_closed_def by simp
+    then have "\<forall>S\<subseteq>S'. S \<in> C"
+      using \<open>S' \<in> C\<close> by blast
+    then have "extend S C f n \<union> {f n} \<in> C"
+      using \<open>extend S C f n \<union> {f n} \<subseteq> S'\<close>
+      by blast
+    then have "z \<in> extend S C f (Suc n)"
+      using \<open>z \<notin> (\<Union>x. extend S C f x)\<close> \<open>z = f n\<close>
+      by simp
+    then show False using * by blast
+  qed
+  ultimately show "(\<Union>x. extend S C f x) = S'"
+    by simp
+qed
 
 subsection {* Hintikka sets and Herbrand models *}
 
