@@ -2284,10 +2284,10 @@ that @{term "Extend S C f"} yields Hintikka sets:
 
 theorem extend_hintikka:
   assumes fin_ch: "finite_char C"
-    and infin_p: "\<not> finite (- (\<Union>p\<in>S. params p))"
+    and infin_p: "infinite (- (\<Union>p\<in>S. params p))"
     and surj: "\<forall>y. \<exists>n. y = f n"
     and altc: "alt_consistency C"
-    and sc: "S \<in> C"
+    and "S \<in> C"
   shows "hintikka (Extend S C f)"
 proof -
   have "maximal (Extend S C f) C"
@@ -2423,29 +2423,41 @@ it follows that each consistent set @{text S} has a Herbrand model:
 *}
 
 theorem model_existence:
-  "consistency C \<Longrightarrow> S \<in> C \<Longrightarrow> \<not> finite (- (\<Union>p \<in> S. params p)) \<Longrightarrow>
-    p \<in> S \<Longrightarrow> closed 0 p \<Longrightarrow> eval e HApp (\<lambda>a ts.
-      Pred a (terms_of_hterms ts) \<in> Extend S
+  assumes "consistency C"
+    and "S \<in> C"
+    and "infinite (- (\<Union>p \<in> S. params p))"
+    and "p \<in> S"
+    and "closed 0 p"
+  shows "eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> Extend S
         (mk_finite_char (mk_alt_consistency (close C))) diag_form') p"
-  apply (rule hintikka_model [THEN conjunct1, THEN mp, THEN mp])
-  apply (rule extend_hintikka)
-  apply (rule finite_char)
-  apply assumption
-  apply (rule allI)
-  apply (rule_tac x="undiag_form' y" in exI)
-  apply simp
-  apply (rule finite_alt_consistency)
-  apply (rule alt_consistency)
-  apply (erule close_consistency)
-  apply (rule mk_alt_consistency_closed)
-  apply (rule close_closed)
-  apply (drule close_subset [THEN subsetD])
-  apply (drule mk_alt_consistency_subset [THEN subsetD])
-  apply (erule finite_char_subset
-    [OF mk_alt_consistency_closed, OF close_closed, THEN subsetD])
-  apply (erule Extend_subset [THEN subsetD])
-  apply assumption
-  done
+proof (rule hintikka_model [THEN conjunct1, THEN mp, THEN mp])
+  have "finite_char (mk_finite_char (mk_alt_consistency (close C)))"
+    by (simp add: finite_char)
+  moreover have "closed 0 p \<Longrightarrow> infinite (- (\<Union>p\<in>S. params p))"
+    using \<open>infinite (- (\<Union>p \<in> S. params p))\<close> by blast
+  moreover have "\<forall>y. y = diag_form' (undiag_form' y)"
+    by simp
+  then have "\<forall>y. \<exists>n. y = diag_form' n"
+    by blast
+  moreover have "alt_consistency (mk_finite_char (mk_alt_consistency (close C)))"
+    using alt_consistency close_closed close_consistency
+      \<open>consistency C\<close> finite_alt_consistency mk_alt_consistency_closed
+    by blast
+  moreover have "S \<in> close C"
+    using close_subset \<open>S \<in> C\<close> by blast
+  then have "S \<in> mk_alt_consistency (close C)"
+    using mk_alt_consistency_subset by blast
+  then have "S \<in> mk_finite_char (mk_alt_consistency (close C))"
+    using close_closed finite_char_subset mk_alt_consistency_closed by blast
+  ultimately show "hintikka (Extend S (mk_finite_char (mk_alt_consistency (close C))) diag_form')"
+    using extend_hintikka \<open>infinite (- (\<Union>p \<in> S. params p))\<close> by blast
+next
+  show "p \<in> Extend S (mk_finite_char (mk_alt_consistency (close C))) diag_form'"
+    using Extend_subset \<open>p \<in> S\<close> by blast
+next
+  show "closed 0 p"
+    using \<open>closed 0 p\<close> by simp
+qed
 
 
 subsection {* Completeness for Natural Deduction *}
