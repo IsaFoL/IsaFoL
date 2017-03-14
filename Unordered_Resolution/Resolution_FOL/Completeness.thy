@@ -173,7 +173,7 @@ proof -
   then show "falsifies\<^sub>l B lo" using loB\<^sub>2 shorter_falsifies\<^sub>l by blast
 qed
 
-
+text_raw {*\DefineSnippet{completenessprime}{*}
 theorem completeness':
   shows "closed_tree T Cs \<Longrightarrow> \<forall>C\<in>Cs. finite C \<Longrightarrow> \<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
 proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
@@ -186,15 +186,18 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
   
   { -- {* Base case: *}
     assume "treesize T = 0"
+text_raw {*}%EndSnippet*}
     then have "T=Leaf" using treesize_Leaf by auto
     then have "closed_branch [] Leaf Cs" using branch_inv_Leaf clo unfolding closed_tree_def by auto
     then have "falsifies\<^sub>c\<^sub>s [] Cs" by auto
     then have "{} \<in> Cs" using falsifies\<^sub>c\<^sub>s_empty by auto
+text_raw {*\DefineSnippet{completenessprimetwo}{*}
     then have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" unfolding resolution_deriv_def by auto
   }
   moreover
   { -- {* Induction case: *}
     assume "treesize T > 0"
+text_raw {*}%EndSnippet*}
     then have "\<exists>l r. T=Branching l r" by (cases T) auto
     
     -- {* Finding sibling branches and their corresponding clauses: *}
@@ -350,10 +353,12 @@ proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
     }
     -- {* Combining the two derivations, we get the desired derivation from @{term Cs} of @{term "{}"}: *}
     ultimately have "resolution_deriv Cs Cs''"  unfolding resolution_deriv_def by auto
+text_raw {*\DefineSnippet{completenessprimethree}{*}
     then have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" using Cs''_p by auto
   }
   ultimately show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" by auto
 qed
+text_raw {*}%EndSnippet*}
 
 theorem completeness:
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
