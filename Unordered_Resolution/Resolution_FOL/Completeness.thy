@@ -358,6 +358,8 @@ text_raw {*}%EndSnippet*}
 text_raw {*\DefineSnippet{completenessprimethree}{*}
     then have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" using Cs''_p by auto
   }
+text_raw {*}%EndSnippet*}
+text_raw {*\DefineSnippet{completenessprimefour}{*}
   ultimately show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" by auto
 qed
 text_raw {*}%EndSnippet*}
