@@ -411,14 +411,29 @@ qed
     
 lemma asdfff:
   assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
-  shows "G_conv b_of_a G x11 (eval\<^sub>t\<^sub>s (E_conv b_of_a E) (F_conv b_of_a F) x12) = G x11 (eval\<^sub>t\<^sub>s E F x12)" 
+  shows "G_conv b_of_a G p (eval\<^sub>t\<^sub>s (E_conv b_of_a E) (F_conv b_of_a F) ts) = G p (eval\<^sub>t\<^sub>s E F ts)" 
   using assms using asdffff
-   by (smt G_conv_def UNIV_I bij_betw_inv_into_left map_eq_conv map_map o_def) 
+proof -
+  have "map (inv b_of_a \<circ> eval\<^sub>t (E_conv b_of_a E) (F_conv b_of_a F)) ts = eval\<^sub>t\<^sub>s E F ts"
+    using asdffff assms bij_is_inj by fastforce
+  then show ?thesis
+    by (metis (no_types) G_conv_def map_map)
+qed
+   
   
 lemma asdff:
   assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
-  shows "eval\<^sub>l (E_conv b_of_a E) (F_conv b_of_a F) (G_conv b_of_a G) x = eval\<^sub>l E F G x"
-  using assms asdfff by (cases x;auto) blast+ (* meh... *)
+  shows "eval\<^sub>l (E_conv b_of_a E) (F_conv b_of_a F) (G_conv b_of_a G) l = eval\<^sub>l E F G l"
+  using assms asdfff 
+proof (cases l)
+  case (Pos p ts)
+  then show ?thesis
+    by (simp add: asdfff assms) 
+next
+  case (Neg p ts)
+  then show ?thesis
+    by (simp add: asdfff assms)
+qed 
             
 lemma asdf:
   assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
@@ -464,11 +479,20 @@ proof -
   obtain nat_of_b where TYUI: "bij (nat_of_b :: 'b \<Rightarrow> nat)" using countableE_infinite[of ?T] by blast
       
   let ?b_of_a = "\<lambda>a. (inv nat_of_b) (nat_of_a a)"
-  have "bij ?b_of_a" using QWER TYUI
-    unfolding bij_def
-    apply auto
-     apply (smt inj_on_def surj_f_inv_f)
-    by (metis UNIV_I image_image image_inv_f_f)
+    
+  have f2: "\<And>n. nat_of_b (inv nat_of_b n) = n"
+    using TYUI bij_betw_inv_into_right by fastforce
+  have "\<And>a. inv nat_of_a (nat_of_a a) = a"
+    by (meson QWER UNIV_I bij_betw_inv_into_left) 
+  then have "inj (\<lambda>a. inv nat_of_b (nat_of_a a))"
+    using f2 injI by (metis (no_types))
+  moreover
+  have "range (\<lambda>a. inv nat_of_b (nat_of_a a)) = UNIV"
+    by (metis QWER TYUI bij_def image_image inj_imp_surj_inv)
+  ultimately
+  have "bij ?b_of_a"
+    unfolding bij_def by auto
+      
   then show ?thesis by auto
 qed
   
