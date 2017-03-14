@@ -380,7 +380,7 @@ definition G_conv :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a pred_denot \<Righta
   "G_conv b_of_a G \<equiv> \<lambda>p bs. (G p (map (inv b_of_a) bs))"
 text_raw {*}%EndSnippet*}
   
-lemma asdffff:
+lemma eval\<^sub>t_bij:
   assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
   shows"eval\<^sub>t (E_conv b_of_a E) (F_conv b_of_a F) t = b_of_a (eval\<^sub>t E F t)"
 proof (induction t)
@@ -408,84 +408,84 @@ next
   case (Var x)
   then show ?case using assms unfolding E_conv_def by auto
 qed
-    
-lemma asdfff:
+
+lemma eval\<^sub>t\<^sub>s_bij:
   assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
   shows "G_conv b_of_a G p (eval\<^sub>t\<^sub>s (E_conv b_of_a E) (F_conv b_of_a F) ts) = G p (eval\<^sub>t\<^sub>s E F ts)" 
-  using assms using asdffff
+  using assms using eval\<^sub>t_bij
 proof -
   have "map (inv b_of_a \<circ> eval\<^sub>t (E_conv b_of_a E) (F_conv b_of_a F)) ts = eval\<^sub>t\<^sub>s E F ts"
-    using asdffff assms bij_is_inj by fastforce
+    using eval\<^sub>t_bij assms bij_is_inj by fastforce
   then show ?thesis
     by (metis (no_types) G_conv_def map_map)
 qed
    
   
-lemma asdff:
+lemma eval\<^sub>l_bij:
   assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
   shows "eval\<^sub>l (E_conv b_of_a E) (F_conv b_of_a F) (G_conv b_of_a G) l = eval\<^sub>l E F G l"
-  using assms asdfff 
+  using assms eval\<^sub>t\<^sub>s_bij 
 proof (cases l)
   case (Pos p ts)
   then show ?thesis
-    by (simp add: asdfff assms) 
+    by (simp add: eval\<^sub>t\<^sub>s_bij assms) 
 next
   case (Neg p ts)
   then show ?thesis
-    by (simp add: asdfff assms)
+    by (simp add: eval\<^sub>t\<^sub>s_bij assms)
 qed 
             
-lemma asdf:
+lemma eval\<^sub>c_bij:
   assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
   shows "eval\<^sub>c (F_conv b_of_a F) (G_conv b_of_a G) C = eval\<^sub>c F G C"
 proof -
   {
     fix E :: "char list \<Rightarrow> 'b"
-    assume bb: "bij b_of_a"
-    assume aa: "\<forall>E :: char list \<Rightarrow> 'a. \<exists>x\<in>C. eval\<^sub>l E F G x" 
-    have eee: "E = E_conv b_of_a (E_conv (inv b_of_a) E)" 
-      unfolding E_conv_def using bb
+    assume bij_b_of_a: "bij b_of_a"
+    assume C_sat: "\<forall>E :: char list \<Rightarrow> 'a. \<exists>l\<in>C. eval\<^sub>l E F G l" 
+    have E_p: "E = E_conv b_of_a (E_conv (inv b_of_a) E)" 
+      unfolding E_conv_def using bij_b_of_a
       using bij_betw_inv_into_right by fastforce 
-    have "\<exists>x\<in>C. eval\<^sub>l (E_conv b_of_a (E_conv (inv b_of_a) E)) (F_conv b_of_a F) (G_conv b_of_a G) x"
-      using asdff bb aa by blast
-    then have "\<exists>x\<in>C. eval\<^sub>l E (F_conv b_of_a F) (G_conv b_of_a G) x" using eee by auto 
+    have "\<exists>l\<in>C. eval\<^sub>l (E_conv b_of_a (E_conv (inv b_of_a) E)) (F_conv b_of_a F) (G_conv b_of_a G) l"
+      using eval\<^sub>l_bij bij_b_of_a C_sat by blast
+    then have "\<exists>l\<in>C. eval\<^sub>l E (F_conv b_of_a F) (G_conv b_of_a G) l" using E_p by auto 
   }
   then show ?thesis
-    by (meson asdff assms eval\<^sub>c_def) 
+    by (meson eval\<^sub>l_bij assms eval\<^sub>c_def) 
 qed
 
-lemma asd:
+lemma eval\<^sub>c\<^sub>s_bij:
   assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
   shows "eval\<^sub>c\<^sub>s (F_conv b_of_a F) (G_conv b_of_a G) Cs \<longleftrightarrow> eval\<^sub>c\<^sub>s F G Cs"
-    by (meson asdf assms eval\<^sub>c\<^sub>s_def)
+    by (meson eval\<^sub>c_bij assms eval\<^sub>c\<^sub>s_def)
     
-lemma bijbijbij:
-  assumes aaa: "infinite (UNIV :: ('a ::countable) set)"
-  assumes bbb: "infinite (UNIV :: ('b ::countable) set)"
+lemma countably_inf_bij:
+  assumes inf_a_uni: "infinite (UNIV :: ('a ::countable) set)"
+  assumes inf_b_uni: "infinite (UNIV :: ('b ::countable) set)"
   shows "\<exists>b_of_a :: 'a \<Rightarrow> 'b. bij b_of_a"
 proof -
   let ?S = "UNIV :: (('a::countable)) set"
   have "countable ?S" by auto
   moreover
-  have "infinite ?S" using aaa by auto
+  have "infinite ?S" using inf_a_uni by auto
   ultimately
   obtain nat_of_a where QWER: "bij (nat_of_a :: 'a \<Rightarrow> nat)" using countableE_infinite[of ?S] by blast
       
   let ?T = "UNIV :: (('b::countable)) set"
   have "countable ?T" by auto
   moreover
-  have "infinite ?T" using bbb by auto
+  have "infinite ?T" using inf_b_uni by auto
   ultimately
   obtain nat_of_b where TYUI: "bij (nat_of_b :: 'b \<Rightarrow> nat)" using countableE_infinite[of ?T] by blast
       
   let ?b_of_a = "\<lambda>a. (inv nat_of_b) (nat_of_a a)"
     
-  have f2: "\<And>n. nat_of_b (inv nat_of_b n) = n"
+  have bij_nat_of_b: "\<forall>n. nat_of_b (inv nat_of_b n) = n"
     using TYUI bij_betw_inv_into_right by fastforce
-  have "\<And>a. inv nat_of_a (nat_of_a a) = a"
+  have "\<forall>a. inv nat_of_a (nat_of_a a) = a"
     by (meson QWER UNIV_I bij_betw_inv_into_left) 
   then have "inj (\<lambda>a. inv nat_of_b (nat_of_a a))"
-    using f2 injI by (metis (no_types))
+    using bij_nat_of_b injI by (metis (no_types))
   moreover
   have "range (\<lambda>a. inv nat_of_b (nat_of_a a)) = UNIV"
     by (metis QWER TYUI bij_def image_image inj_imp_surj_inv)
@@ -507,7 +507,7 @@ proof -
 qed
 
 theorem completeness_countable:
-  assumes iii: "infinite (UNIV :: ('u :: countable) set)"
+  assumes inf_uni: "infinite (UNIV :: ('u :: countable) set)"
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
   assumes unsat: "\<forall>(F::'u fun_denot) (G::'u pred_denot). \<not>eval\<^sub>c\<^sub>s F G Cs"
   shows "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
@@ -517,14 +517,14 @@ proof -
     fix F :: "hterm fun_denot"
     fix G :: "hterm pred_denot"
       
-    obtain u_of_hterm :: "hterm \<Rightarrow> 'u" where bb: "bij u_of_hterm"
-      using bijbijbij iii infinite_hterms by auto
+    obtain u_of_hterm :: "hterm \<Rightarrow> 'u" where p_u_of_hterm: "bij u_of_hterm"
+      using countably_inf_bij inf_uni infinite_hterms by auto
         
     let ?F = "F_conv u_of_hterm F"
     let ?G = "G_conv u_of_hterm G"
     
     have "\<not> eval\<^sub>c\<^sub>s ?F ?G Cs" using unsat by auto
-    then show "\<not> eval\<^sub>c\<^sub>s F G Cs" using asd using bb by auto
+    then show "\<not> eval\<^sub>c\<^sub>s F G Cs" using eval\<^sub>c\<^sub>s_bij using p_u_of_hterm by auto
   qed
   then show "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" using finite_cs completeness by auto
 qed
