@@ -180,8 +180,8 @@ theorem completeness':
 proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
   fix T::tree
   fix Cs :: "fterm clause set"
-  assume ih: "(\<And>T' Cs. treesize T' < treesize T \<Longrightarrow> closed_tree T' Cs \<Longrightarrow> \<forall>C\<in>Cs. finite C \<Longrightarrow>
-                 \<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs')"
+  assume ih: "(\<And>T' Cs. treesize T' < treesize T \<Longrightarrow> closed_tree T' Cs \<Longrightarrow> 
+                            \<forall>C\<in>Cs. finite C \<Longrightarrow> \<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs')"
   assume clo: "closed_tree T Cs"
   assume finite_Cs: "\<forall>C\<in>Cs. finite C"
   
@@ -193,7 +193,8 @@ text_raw {*}%EndSnippet*}
     then have "falsifies\<^sub>c\<^sub>s [] Cs" by auto
     then have "{} \<in> Cs" using falsifies\<^sub>c\<^sub>s_empty by auto
 text_raw {*\DefineSnippet{completenessprimetwo}{*}
-    then have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" unfolding resolution_deriv_def by auto
+    then have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" 
+      unfolding resolution_deriv_def by auto
   }
   moreover
   { -- {* Induction case: *}
