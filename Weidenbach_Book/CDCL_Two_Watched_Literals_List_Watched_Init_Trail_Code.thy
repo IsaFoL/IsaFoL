@@ -344,20 +344,13 @@ proof -
           twl_array_code.N\<^sub>0''_def twl_array_code.N\<^sub>0'_def
           twl_array_code.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
     subgoal by (auto simp: HH_def)
-    subgoal by (cases C) (clarsimp_all simp: HH_def correct_watching.simps clause_to_update_def
-          lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset twl_array_code.N\<^sub>1_def
-          twl_array_code.N\<^sub>0''_def twl_array_code.N\<^sub>0'_def
-          twl_array_code.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
-    subgoal by (cases C) (clarsimp_all simp: HH_def correct_watching.simps clause_to_update_def
-          lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset twl_array_code.N\<^sub>1_def
-          twl_array_code.N\<^sub>0''_def twl_array_code.N\<^sub>0'_def
-          twl_array_code.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
-    subgoal by (cases C) (clarsimp_all simp: HH_def
-          lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset image_image
-          twl_array_code.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
-    subgoal by (cases C; cases \<open>tl C\<close>) (clarsimp_all simp: HH_def
-          lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset image_image
-          twl_array_code.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
+    subgoal by (cases C)
+        (clarsimp_all simp: HH_def lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset)
+    subgoal by (auto simp only: HH_def)
+    subgoal by (cases C)
+        (clarsimp_all simp: HH_def lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset)
+    subgoal by (cases C; cases \<open>tl C\<close>)
+        (clarsimp_all simp: HH_def lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset)
     subgoal by (cases C) (clarsimp_all simp: HH_def correct_watching.simps clause_to_update_def
           lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset twl_array_code.N\<^sub>1_def
           twl_array_code.N\<^sub>0''_def twl_array_code.N\<^sub>0'_def image_image
