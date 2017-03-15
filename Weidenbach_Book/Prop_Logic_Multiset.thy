@@ -22,7 +22,7 @@ fun mset_of_formula :: "'a propo \<Rightarrow> 'a literal multiset set" where
 
 subsection \<open>Equisatisfiability of the two Versions\<close>
 
-lemma is_conj_with_TF_FNot: 
+lemma is_conj_with_TF_FNot:
   "is_conj_with_TF (FNot \<phi>) \<longleftrightarrow> (\<exists>v. \<phi> = FVar v \<or> \<phi> = FF \<or> \<phi> = FT)"
   unfolding is_conj_with_TF_def apply (rule iffI)
   apply (induction "FNot \<phi>" rule: super_grouped_by.induct)
@@ -32,7 +32,7 @@ lemma is_conj_with_TF_FNot:
   apply auto
   done
 
-lemma grouped_by_COr_FNot: 
+lemma grouped_by_COr_FNot:
   "grouped_by COr (FNot \<phi>) \<longleftrightarrow> (\<exists>v. \<phi> = FVar v \<or> \<phi> = FF \<or> \<phi> = FT)"
   unfolding is_conj_with_TF_def apply (rule iffI)
   apply (induction "FNot \<phi>" rule: grouped_by.induct)
@@ -41,7 +41,7 @@ lemma grouped_by_COr_FNot:
   apply auto
   done
 
-lemma 
+lemma
   shows no_T_F_FF[simp]: "\<not>no_T_F FF" and
     no_T_F_FT[simp]: "\<not>no_T_F FT"
   unfolding no_T_F_def all_subformula_st_def by auto
@@ -58,7 +58,7 @@ lemma grouped_by_COr_FOr:
   apply (induction "FOr \<phi>1 \<phi>2" rule: grouped_by.induct)
   using connected_is_group[of COr \<phi>1 \<phi>2] by auto
 
-  
+
 lemma grouped_by_COr_FAnd[simp]: "\<not> grouped_by COr (FAnd \<phi>1 \<phi>2)"
   apply clarify
    apply (induction "FAnd \<phi>1 \<phi>2" rule: grouped_by.induct)
@@ -103,10 +103,10 @@ lemma grouped_by_COr_mset_of_formula:
   "grouped_by COr \<phi> \<Longrightarrow> mset_of_formula \<phi> = (if \<phi> = FT then {} else {mset_of_conj \<phi>})"
   by (induction \<phi>) (auto simp add: grouped_by_COr_FNot)
 
-text \<open>When a formula is in CNF form, then there is equisatisfiability between the multiset version 
-  and the CNF form. Remark that the definition for the entailment are slightly different: 
-  @{term eval} uses a function assigning @{term True} or @{term False}, while 
-  @{term Partial_Clausal_Logic.true_clss} uses a set where being in the list means entailment of a 
+text \<open>When a formula is in CNF form, then there is equisatisfiability between the multiset version
+  and the CNF form. Remark that the definition for the entailment are slightly different:
+  @{term eval} uses a function assigning @{term True} or @{term False}, while
+  @{term Partial_Clausal_Logic.true_clss} uses a set where being in the list means entailment of a
   literal.
   \<close>
 theorem cnf_eval_true_clss:
@@ -114,7 +114,7 @@ theorem cnf_eval_true_clss:
   assumes "is_cnf \<phi>"
   shows "eval A \<phi> \<longleftrightarrow> Partial_Clausal_Logic.true_clss ({Pos v|v. A v} \<union> {Neg v|v. \<not>A v})
     (mset_of_formula \<phi>)"
-  using assms 
+  using assms
 proof (induction \<phi>)
   case FF
   then show ?case by auto
@@ -132,7 +132,7 @@ next
 next
   case (FOr \<phi> \<psi>)
   then have [simp]: "mset_of_formula \<phi> = {mset_of_conj \<phi>}" "mset_of_formula \<psi> = {mset_of_conj \<psi>}"
-    unfolding is_cnf_def by (auto dest!:is_conj_with_TF_FOr simp: grouped_by_COr_mset_of_formula 
+    unfolding is_cnf_def by (auto dest!:is_conj_with_TF_FOr simp: grouped_by_COr_mset_of_formula
       split: if_splits)
   have "is_conj_with_TF \<phi>" "is_conj_with_TF \<psi>"
     using FOr(3) unfolding is_cnf_def no_T_F_def
@@ -149,7 +149,7 @@ next
     unfolding is_cnf_def by auto
 next
   case (FNot \<phi>)
-  then show ?case 
+  then show ?case
     unfolding is_cnf_def by (auto simp: is_conj_with_TF_FNot)
 qed
 
