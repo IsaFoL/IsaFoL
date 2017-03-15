@@ -53,6 +53,7 @@ definition init_dt_step_wl :: \<open>nat list \<Rightarrow> nat clause_l \<Right
         let WS = WS((hd (tl C)) := WS (hd (tl C)) @ [U]);
         RETURN (M, N @ [op_array_of_list C], U, Some D, NP, UP, {#}, WS)}
   }\<close>
+
 definition arl_of_list_raa :: "'a::heap list \<Rightarrow> ('a array_list) Heap" where
   \<open>arl_of_list_raa xs = do {
     ys \<leftarrow> Array.of_list xs;
@@ -112,63 +113,6 @@ definition extract_lits_clss:: \<open>'a clauses_l \<Rightarrow> 'a literal list
 
 declare atm_of_hnr[sepref_fr_rules]
 
-
-definition find_first_eq_map :: "('b \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'b list \<Rightarrow> nat nres" where
-  \<open>find_first_eq_map f x xs = WHILE\<^sub>T\<^bsup>\<lambda>i. i \<le> length xs\<^esup>
-       (\<lambda>i. i < length xs \<and> f (xs!i) \<noteq> x)
-       (\<lambda>i. RETURN (i+1))
-       0\<close>
-
-lemma find_first_eq_map_index:
-  shows \<open>find_first_eq_map f x xs \<le> \<Down> nat_rel (RETURN (index (map f xs) x))\<close>
-proof -
-  have H:
-    \<open>WHILE\<^sub>T\<^bsup>\<lambda>i. i \<le> length xs\<^esup>
-       (\<lambda>i. i < length xs \<and> f (xs!i) \<noteq> x)
-       (\<lambda>i. RETURN (i+1))
-       k
-     \<le> \<Down> nat_rel
-       (RETURN (k + index (sublist (map f xs) {k..<length xs}) x))\<close>
-    if \<open>k < length xs\<close> for k
-    using that
-  proof (cases xs)
-    case Nil
-    then show ?thesis using that by simp
-  next
-    case xs: (Cons a xs')
-    have index_first: \<open>index (sublist (a # xs') {n..<Suc (length xs')}) ((a # xs') ! n) = 0\<close>
-      if \<open>n < length xs'\<close> for n
-      using that by (metis index_Cons length_Cons less_SucI sublist_upt_Suc)
-    have [simp]: "sublist (f a # map f xs') {n..<Suc (length xs')} =
-    (f a # map f xs') ! n # sublist (f a # map f xs') {Suc n..<Suc (length xs')}"
-      if a2: "n < length xs'" for n -- \<open>auto is not able to derive it automatically
-      because of @{thm length_Cons}\<close>
-      using a2
-      apply (subst length_Cons[of a, symmetric])+
-      apply (subst length_map[of f \<open>a # xs'\<close>, symmetric])+
-      by (metis length_Cons length_map less_SucI sublist_upt_Suc)
-    have [simp]: \<open>(f a # map f xs') ! n = f ((a # xs') ! n)\<close> if \<open>n < length (a#xs')\<close> for n
-      unfolding list.map[symmetric]
-      by (subst nth_map) (use that in auto)
-
-    have \<open>k < Suc (length xs')\<close>
-      using that xs by auto
-    then show ?thesis
-      unfolding find_first_eq_def less_eq_Suc_le Suc_le_mono xs
-      apply (induction rule: inc_induct)
-      subgoal by (auto simp: sublist_single_if WHILEIT_unfold )[]
-      subgoal by (subst WHILEIT_unfold) (auto simp: sublist_single_if index_first sublist_upt_Suc)
-      done
-  qed
-  have [simp]: \<open>find_first_eq_map f x [] \<le> RETURN 0\<close>
-    unfolding find_first_eq_map_def by (auto simp: WHILEIT_unfold)[]
-  have [simp]: \<open>sublist (map f xs) {0..<length xs} = map f xs\<close>
-    by (simp add: sublist_id_iff)
-  show ?thesis
-    apply (cases \<open>xs = []\<close>)
-     apply (solves simp)
-    using H[of 0] unfolding find_first_eq_map_def by simp
-qed
 
 sepref_definition find_first_eq_map_atm_of_code
   is \<open>uncurry (find_first_eq_map atm_of)\<close>
@@ -280,9 +224,6 @@ lemma clause_to_update_append: \<open>N \<noteq> [] \<Longrightarrow> clause_to_
   unfolding clause_to_update_def get_clauses_l.simps
   apply (auto simp: clause_to_update_def nth_append)
   by meson
-
-lemma literal_of_nat_literal_of_nat_eq[iff]: \<open>literal_of_nat x = literal_of_nat xa \<longleftrightarrow> x = xa\<close>
-  by auto presburger+
 
 definition HH :: \<open>nat literal multiset \<Rightarrow> (nat twl_st_wl \<times> nat twl_st_l) set\<close> where
   \<open>HH N\<^sub>1 = {((M', N', U', D', NP', UP', Q', WS'), (M, N, U, D, NP, UP, WS, Q)).
@@ -475,7 +416,7 @@ proof -
     add_invs_T: \<open>additional_WS_invs T\<close> and
     le_T: \<open>get_learned_l T = length (get_clauses_l T) - 1\<close> and
     confl_in_clss_T: \<open>get_conflict_l T \<noteq> None \<longrightarrow> the (get_conflict_l T) \<in># mset `# mset (rev CS)\<close>
-    by (use assms(3-) in \<open>simp add: T_def[symmetric]  w_q tr_T_S p_T_S c_T_S l_T_S cl_T_S\<close>)+
+    by (use assms(3-) in \<open>simp add: T_def[symmetric] w_q tr_T_S p_T_S c_T_S l_T_S cl_T_S\<close>)+
   note init = init_dt_full[of \<open>rev CS\<close> T, OF dist_T length_T taut_T struct_T w_q_T tr_T c_T
       add_invs_T le_T stgy_T ] init_dt_confl_in_clauses[OF confl_in_clss_T]
   have i: \<open>init_dt_l CS T \<le> \<Down> Id (SPEC(\<lambda>T. twl_struct_invs (twl_st_of None T) \<and> twl_stgy_invs (twl_st_of None T) \<and>
@@ -1209,7 +1150,7 @@ proof -
 qed
 
 lemma \<open>(SAT_wl_code, SAT')
-    \<in> [\<lambda>x. Multiset.Ball x distinct_mset \<and> (\<forall>C\<in>#x. Suc 0 \<le> size C) \<and> (\<forall>C\<in>#x. \<not> tautology C)]\<^sub>a
+    \<in> [\<lambda>N. Multiset.Ball N distinct_mset \<and> (\<forall>C\<in>#N. Suc 0 \<le> size C) \<and> (\<forall>C\<in>#N. \<not> tautology C)]\<^sub>a
       clauses_l_assn\<^sup>d \<rightarrow> bool_assn\<close>
 proof -
   have 1: \<open>(H \<bind>

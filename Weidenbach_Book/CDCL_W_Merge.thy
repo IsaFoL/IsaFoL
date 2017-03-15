@@ -385,10 +385,9 @@ proof -
   have lev_l': "get_level M\<^sub>T L = backtrack_lvl S"
     using lev_l LD by (auto simp: H)
   have [simp]: "trail (reduce_trail_to M1 T) = M1"
-    using T decomp M nm by (smt M\<^sub>T append_assoc beginning_not_decided_invert
-      get_all_ann_decomposition_exists_prepend reduce_trail_to_trail_tl_trail_decomp)
+    by (metis (no_types) M M\<^sub>T append_assoc get_all_ann_decomposition_exists_prepend[OF decomp] nm
+        reduce_trail_to_trail_tl_trail_decomp beginning_not_decided_invert)
   obtain c where c: \<open>M\<^sub>T = c @ Decided K # M1\<close>
-    apply atomize
     using nm decomp by (auto dest!: get_all_ann_decomposition_exists_prepend
         simp: M\<^sub>T[symmetric] M append_assoc[symmetric]
         simp del: append_assoc
@@ -762,10 +761,8 @@ next
   have "\<not>?RB S W" and "\<not>?SB S W"
     proof (clarify, goal_cases)
       case (1 T U V)
-      have "skip_or_resolve\<^sup>*\<^sup>* S T"
-        using 1(1) by (auto dest!: rtranclp_and_rtranclp_left)
       then show False
-        by (metis (no_types, lifting) "1"(5) backtrack_no_cdcl\<^sub>W_bj local.bj)
+        by (metis backtrack_no_cdcl\<^sub>W_bj local.bj)
     next
       case 2
       then show ?case by (metis backtrack_no_cdcl\<^sub>W_bj local.bj)

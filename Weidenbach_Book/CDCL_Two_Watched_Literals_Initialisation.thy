@@ -107,13 +107,13 @@ next
   then have [simp]: \<open>take U (tl N) = tl N\<close> \<open>drop (Suc U) N = []\<close> \<open>drop U (tl N) = []\<close>
     by auto
   show ?case using w_q
-    by (cases D) (auto simp: S Let_def init_dt_step_def)
+    by (cases D) (auto simp: S Let_def)
   case 3
   show ?case
-    using dec_M by (cases D) (auto simp: S Let_def init_dt_step_def)
+    using dec_M by (cases D) (auto simp: S Let_def)
   case 4
   show ?case
-    using pending' by (cases D) (auto simp: S Let_def init_dt_step_def)
+    using pending' by (cases D) (auto simp: S Let_def)
   have a_D: \<open>\<exists>x y a'. a = x # y # a'\<close> if \<open>\<forall>L. a \<noteq> [L]\<close>
     apply (case_tac a, (use length in simp; fail))
     apply (rename_tac aa list, case_tac list; use that in simp)
@@ -125,24 +125,21 @@ next
   show ?case
     using clss' U_len_N N_not_empty by (cases D)
       (auto simp: S Let_def clauses_def length_list_Suc_0 cdcl\<^sub>W_restart_mset_state mset_tl_N
-          init_dt_step_def
         dest!: a_D)
   case 6
   show ?case
-    using learned' U_len_N apply (cases D)
-     apply (simp add: S clauses_def)
-    apply (auto simp: S Let_def clauses_def length_list_Suc_0 cdcl\<^sub>W_restart_mset_state init_dt_step_def)
-    done
+    using learned' U_len_N by (cases D) (auto simp: S Let_def clauses_def length_list_Suc_0
+        cdcl\<^sub>W_restart_mset_state)
 
   case 7
   show ?case
     using add_inv' N_not_empty
     by (cases D) (fastforce simp add: U_len_N S clauses_def additional_WS_invs_def Let_def nth_append
-        cdcl\<^sub>W_restart_mset_state init_dt_step_def)+
+        cdcl\<^sub>W_restart_mset_state)+
   case 8
   show ?case
     by (cases D) (auto simp add: U_len_N S clauses_def additional_WS_invs_def Let_def nth_append
-        cdcl\<^sub>W_restart_mset_state init_dt_step_def)
+        cdcl\<^sub>W_restart_mset_state)
 
   let ?S' = \<open>(convert_lits_l N M, twl_clause_of `# mset (take U (tl N)),
        twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#}, Q)\<close>
@@ -250,10 +247,9 @@ next
         unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S'[symmetric]
         apply (intro conjI)
         subgoal
-          using alien apply (auto simp: a S cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+          using alien by (auto simp: a S cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
               cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def Let_def dest: in_lits_of_l_defined_litD split: if_splits)
-          done
-          subgoal
+        subgoal
           using all_struct by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset_state
               cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S Let_def split: if_splits)
         subgoal
@@ -286,22 +282,13 @@ next
           using struct S' by (auto simp: a S split: if_splits)[]
         subgoal
           using H S' dec' nm by (auto simp: twl_struct_invs_def a S twl_st_inv.simps
-            twl_lazy_update.simps twl_st_exception_inv.simps
-            watched_literals_false_of_max_level.simps
-          propa_cands_enqueued.simps
-          valid_annotation.simps
               split: if_splits)
         subgoal
           using H S' dec' nm by (auto simp: twl_struct_invs_def a S twl_st_inv.simps
-            twl_lazy_update.simps twl_st_exception_inv.simps
-            watched_literals_false_of_max_level.simps
-          propa_cands_enqueued.simps
-          valid_annotation.simps
               split: if_splits)
         subgoal
           using H S' valid by (auto simp: twl_struct_invs_def a S twl_st_inv.simps
-            get_level_cons_if
-              split: if_splits)
+            get_level_cons_if split: if_splits)
         subgoal using all_inv' .
         subgoal
           using S' no_taut by (auto simp: a S cdcl\<^sub>W_restart_mset_state split: if_splits)
@@ -310,8 +297,8 @@ next
               cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
         subgoal
           using S' excep by (auto simp: a S cdcl\<^sub>W_restart_mset_state
-              twl_exception_inv.simps uminus_lit_swap
-              cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def dest: in_M_IN_QD split: if_splits)
+              twl_exception_inv.simps cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def
+              dest!: in_M_IN_QD split: if_splits)
         subgoal
           using S' no_dup by (auto simp: a S cdcl\<^sub>W_restart_mset_state
             twl_exception_inv.simps uminus_lit_swap
@@ -371,8 +358,7 @@ next
               split: if_splits)
         subgoal
           using confl by (auto simp: a cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_restart_mset_state
-              cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S Let_def propagated_trail_decomp_iff
-              Decided_Propagated_in_iff_in_lits_of_l
+              cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S Let_def Decided_Propagated_in_iff_in_lits_of_l
               split: if_splits)
         subgoal
           apply (cases \<open>get_all_ann_decomposition (convert_lits_l N M)\<close>)
@@ -393,17 +379,9 @@ next
           using struct S' by (auto simp: a S split: if_splits)[]
         subgoal
           using H S' dec by (auto simp: twl_struct_invs_def a S twl_st_inv.simps
-            twl_lazy_update.simps twl_st_exception_inv.simps
-            watched_literals_false_of_max_level.simps
-          propa_cands_enqueued.simps
-          valid_annotation.simps
               split: if_splits)
         subgoal
           using H S' dec by (auto simp: twl_struct_invs_def a S twl_st_inv.simps
-            twl_lazy_update.simps twl_st_exception_inv.simps
-            watched_literals_false_of_max_level.simps
-          propa_cands_enqueued.simps
-          valid_annotation.simps
               split: if_splits)
         subgoal
           using H S' valid by (auto simp: twl_struct_invs_def a S twl_st_inv.simps
@@ -506,25 +484,14 @@ next
       unfolding twl_struct_invs_def S' twl_st_inv.simps
       apply (intro conjI)
       subgoal
-        apply (cases D)
-        using S' dist struct N_not_empty apply (auto simp: S Let_def a split: if_splits)
-        done
-      subgoal
-        apply (cases D)
-        using H S' dec apply (auto simp: twl_struct_invs_def a S twl_st_inv.simps
-            twl_lazy_update.simps twl_st_exception_inv.simps
-            watched_literals_false_of_max_level.simps
-            propa_cands_enqueued.simps
-            valid_annotation.simps
-            split: if_splits)
-        done
+        using S' dist struct N_not_empty by (cases D) (auto simp: S Let_def a split: if_splits)
       subgoal
         apply (cases D)
         using H S' dec by (auto simp: twl_struct_invs_def a S twl_st_inv.simps
-            twl_lazy_update.simps twl_st_exception_inv.simps
-            watched_literals_false_of_max_level.simps
-            propa_cands_enqueued.simps
-            valid_annotation.simps
+            split: if_splits)
+      subgoal
+        apply (cases D)
+        using H S' dec by (auto simp: twl_struct_invs_def a S twl_st_inv.simps
             split: if_splits)
       subgoal
         apply (cases D)
@@ -533,8 +500,7 @@ next
             split: if_splits)
       subgoal using all_inv' .
       subgoal
-        apply (cases D)
-        using S' no_taut no_taut_Cs N_not_empty by (auto simp: a S cdcl\<^sub>W_restart_mset_state split: if_splits)
+        using S' no_taut no_taut_Cs N_not_empty by (cases D) (auto simp: a S cdcl\<^sub>W_restart_mset_state split: if_splits)
       subgoal
         apply (cases D)
         using S' no_smaller by (auto simp: a S cdcl\<^sub>W_restart_mset_state

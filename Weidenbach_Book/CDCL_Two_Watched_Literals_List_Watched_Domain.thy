@@ -73,6 +73,9 @@ lemma uminus_lit_of_nat:
   \<open>- (literal_of_nat n) = (if even n then literal_of_nat (n+1) else literal_of_nat (n-1))\<close>
   by (auto elim!: oddE)
 
+lemma literal_of_nat_literal_of_nat_eq[iff]: \<open>literal_of_nat x = literal_of_nat xa \<longleftrightarrow> x = xa\<close>
+  by auto presburger+
+
 definition lit_of_natP where
   \<open>lit_of_natP L L' \<longleftrightarrow> literal_of_nat L = L'\<close>
 
