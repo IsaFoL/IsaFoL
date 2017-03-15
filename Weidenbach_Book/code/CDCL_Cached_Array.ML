@@ -172,13 +172,19 @@ val ord_integer =
     less = (fn a => fn b => IntInf.< (a, b))}
   : IntInf.int ord;
 
+datatype int = Int_of_integer of IntInf.int;
+
+fun integer_of_int (Int_of_integer k) = k;
+
+fun max A_ a b = (if less_eq A_ a b then b else a);
+
+fun nat k = Nat (max ord_integer (0 : IntInf.int) (integer_of_int k));
+
 fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
 
 val one_nat : nat = Nat (1 : IntInf.int);
 
 fun suc n = plus_nat n one_nat;
-
-fun max A_ a b = (if less_eq A_ a b then b else a);
 
 fun minus_nat m n =
   Nat (max ord_integer (0 : IntInf.int)
@@ -211,9 +217,6 @@ fun upd A_ i x a =
 fun null [] = true
   | null (x :: xs) = false;
 
-fun make A_ n f =
-  (fn () => Array.tabulate (integer_of_nat n, f o nat_of_integer));
-
 fun hd (x21 :: x22) = x21;
 
 fun tl [] = []
@@ -228,8 +231,6 @@ fun gen_length n (x :: xs) = gen_length (suc n) xs
   | gen_length n [] = n;
 
 fun the (SOME x2) = x2;
-
-fun apsnd f (x, y) = (x, f y);
 
 fun op_list_hd x = hd x;
 
@@ -408,6 +409,8 @@ fun update_aa A_ a i j y =
 
 fun length_ra A_ xs = arl_length (heap_array (typerep_heap A_)) xs;
 
+fun int_of_nat n = Int_of_integer (integer_of_nat n);
+
 fun times_nat m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
 
 fun arl_append (A1_, A2_) =
@@ -451,28 +454,6 @@ fun length_raa A_ xs i =
             end);
 
 fun is_Nil a = (case a of [] => true | _ :: _ => false);
-
-fun sgn_integer k =
-  (if ((k : IntInf.int) = (0 : IntInf.int)) then (0 : IntInf.int)
-    else (if IntInf.< (k, (0 : IntInf.int)) then (~1 : IntInf.int)
-           else (1 : IntInf.int)));
-
-fun divmod_integer k l =
-  (if ((k : IntInf.int) = (0 : IntInf.int))
-    then ((0 : IntInf.int), (0 : IntInf.int))
-    else (if ((l : IntInf.int) = (0 : IntInf.int)) then ((0 : IntInf.int), k)
-           else (apsnd o (fn a => fn b => IntInf.* (a, b)) o sgn_integer) l
-                  (if (((sgn_integer k) : IntInf.int) = (sgn_integer l))
-                    then IntInf.divMod (IntInf.abs k, IntInf.abs l)
-                    else let
-                           val (r, s) =
-                             IntInf.divMod (IntInf.abs k, IntInf.abs l);
-                         in
-                           (if ((s : IntInf.int) = (0 : IntInf.int))
-                             then (IntInf.~ r, (0 : IntInf.int))
-                             else (IntInf.- (IntInf.~ r, (1 : IntInf.int)),
-                                    IntInf.- (IntInf.abs l, s)))
-                         end)));
 
 val minimum_capacity : nat = nat_of_integer (16 : IntInf.int);
 
@@ -531,6 +512,9 @@ fun set_butlast_aa A_ a i =
       upd (heap_prod (heap_array (typerep_heap A_)) heap_nat) i aa a ()
     end);
 
+fun bitXOR_int (Int_of_integer i) (Int_of_integer j) =
+  Int_of_integer (IntInf.xorb (i, j));
+
 fun arl_of_array_raa A_ xs = (fn () => let
  val n = len A_ xs ();
                                        in
@@ -551,8 +535,7 @@ fun arrayO_raa_append (A1_, A2_) =
         else let
                val newcap = times_nat (nat_of_integer (2 : IntInf.int)) lena;
              in
-               (fn f_ => fn () => f_ ((make A2_ zero_nata (fn _ => default A1_))
-                 ()) ())
+               (fn f_ => fn () => f_ ((new A2_ zero_nata (default A1_)) ()) ())
                  (fn defaulta =>
                    (fn f_ => fn () => f_
                      ((array_grow (heap_array (typerep_heap A2_)) a newcap
@@ -566,30 +549,20 @@ fun arrayO_raa_append (A1_, A2_) =
         ()
     end);
 
-fun divide_integer k l = fst (divmod_integer k l);
-
-fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
-
-fun modulo_integer k l = snd (divmod_integer k l);
-
-fun modulo_nat m n = Nat (modulo_integer (integer_of_nat m) (integer_of_nat n));
+fun bitXOR_nat i j = nat (bitXOR_int (int_of_nat i) (int_of_nat j));
 
 fun equal_bool p true = p
   | equal_bool p false = not p
   | equal_bool true p = p
   | equal_bool false p = not p;
 
-fun decided l = (l, NONE);
-
-fun propagated l c = (l, SOME c);
-
 fun option_bool_eq_impl la l =
   (if is_None la then (if is_None l then true else false)
     else (if is_None l then false else equal_bool (the la) (the l)));
 
-fun uminus_lit_imp l =
-  (if equal_nat (modulo_nat l (nat_of_integer (2 : IntInf.int))) zero_nata
-    then plus_nat l one_nat else minus_nat l one_nat);
+fun decided l = (l, NONE);
+
+fun propagated l c = (l, SOME c);
 
 fun find_first_eq_code x =
   (fn ai => fn bi =>
@@ -628,9 +601,10 @@ fun get_level_wl_code x =
         imp_for zero_nata (op_list_length ai)
           (fn xb => fn (a1, a2) =>
             (if equal_nat
-                  (divide_nat (fst (op_list_get ai xb))
-                    (nat_of_integer (2 : IntInf.int)))
-                  (divide_nat bi (nat_of_integer (2 : IntInf.int))) orelse
+                  ((nat_of_integer(IntInf.~>>
+                    (integer_of_nat(fst (op_list_get ai xb)), Word.fromInt 1))))
+                  ((nat_of_integer(IntInf.~>> (integer_of_nat(bi),
+                    Word.fromInt 1)))) orelse
                   a1
               then (fn f_ => fn () => f_
                      ((is_decided_wl_code (op_list_get ai xb)) ()) ())
@@ -665,6 +639,8 @@ fun maximum_level_remove_code x =
       snd xb
     end)
     x;
+
+fun uminus_lit_imp l = bitXOR_nat l one_nat;
 
 fun find_lit_of_max_level_wl_imp_code x =
   (fn ai => fn _ => fn _ => fn bie => fn _ => fn _ => fn _ => fn _ => fn bi =>
@@ -703,14 +679,10 @@ fun count_decided_wl_code x =
       zero_nata)
     x;
 
-fun uminus_lit_impa l =
-  (if equal_nat (modulo_nat l (nat_of_integer (2 : IntInf.int))) zero_nata
-    then plus_nat l one_nat else minus_nat l one_nat);
-
 fun find_decomp_wl_imp_codea x =
   (fn ai => fn bia => fn bi => fn () =>
     let
-      val xa = maximum_level_remove_code ai bia (uminus_lit_impa bi) ();
+      val xa = maximum_level_remove_code ai bia (uminus_lit_imp bi) ();
       val x_b = count_decided_wl_code ai ();
       val a =
         heap_WHILET (fn (a1, _) => (fn () => (less_nat xa a1)))
@@ -803,8 +775,11 @@ fun valued_impl x =
       (fn xa => fn _ =>
         (fn () =>
           (if equal_nat bi (fst xa) then SOME true
-            else (if equal_nat (divide_nat bi (nat_of_integer (2 : IntInf.int)))
-                       (divide_nat (fst xa) (nat_of_integer (2 : IntInf.int)))
+            else (if equal_nat
+                       ((nat_of_integer(IntInf.~>> (integer_of_nat(bi),
+                         Word.fromInt 1))))
+                       ((nat_of_integer(IntInf.~>> (integer_of_nat(fst xa),
+                         Word.fromInt 1))))
                    then SOME false else NONE))))
       NONE)
     x;
