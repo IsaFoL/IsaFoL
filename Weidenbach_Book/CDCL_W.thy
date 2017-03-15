@@ -1,6 +1,7 @@
 theory CDCL_W
 imports WB_List_More CDCL_W_Level Wellfounded_More Partial_Annotated_Clausal_Logic
 begin
+
 chapter \<open>Weidenbach's CDCL\<close>
 
 text \<open>The organisation of the development is the following:
@@ -21,7 +22,8 @@ We have some variants build on the top of Weidenbach's CDCL calculus:
   are doing it is not compatible with @{file CDCL_W_Merge.thy} , because we add conflicts and the
   @{file CDCL_W_Merge.thy} cannot analyse conflicts added externally, because the conflict and
   analyse are merged.
-  \<^item> @{file CDCL_W_Restart.thy} adds restart. It is built on the top of @{file CDCL_W_Merge.thy}.
+  \<^item> @{file CDCL_W_Restart.thy} adds restart and forget while restarting. It is built on the top of
+  @{file CDCL_W_Merge.thy}.
 \<close>
 section \<open>Weidenbach's CDCL with Multisets\<close>
 declare upt.simps(2)[simp del]
@@ -286,7 +288,6 @@ lemma
     state_eq_clauses[state_simp]: "S \<sim> T \<Longrightarrow> clauses S = clauses T" and
     state_eq_undefined_lit[state_simp]: "S \<sim> T \<Longrightarrow> undefined_lit (trail S) L = undefined_lit (trail T) L" and
     state_eq_backtrack_lvl[state_simp]: "S \<sim> T \<Longrightarrow> backtrack_lvl S = backtrack_lvl T"
-
   using state_eq_state unfolding clauses_def by auto
 
 lemma state_eq_conflicting_None:
@@ -423,7 +424,7 @@ lemma trail_reduce_trail_to_drop:
     else [])"
   apply (induction F S rule: reduce_trail_to.induct)
   apply (rename_tac F S, case_tac "trail S")
-   apply auto[]
+   apply (auto; fail)
   apply (rename_tac list, case_tac "Suc (length list) > length F")
    prefer 2 apply (metis diff_is_0_eq drop_Cons' length_Cons nat_le_linear nat_less_le
      reduce_trail_to_eq_length trail_reduce_trail_to_length_le)
@@ -1156,9 +1157,9 @@ proof -
     by (meson SS' T TT' state_eq_sym state_eq_trans tl_trail_state_eq)
   show ?thesis
     apply (rule skip_rule)
-       using tr raw L E T SS' apply auto[]
-      using E' apply simp
-     using E' SS' L raw E apply auto[2]
+       using tr raw L E T SS' apply (auto; fail)[]
+      using E' apply (simp; fail)
+     using E' SS' L raw E apply ((auto; fail)+)[2]
     using T' by auto
 qed
 
@@ -4046,7 +4047,7 @@ lemma rtranclp_cdcl\<^sub>W_stgy_no_smaller_propa:
     inv: \<open>cdcl\<^sub>W_all_struct_inv S\<close>
   shows \<open>no_smaller_propa T\<close>
   using cdcl apply (induction rule: rtranclp_induct)
-    using smaller_propa apply simp
+    using smaller_propa apply (simp; fail)
   using inv by (auto intro: rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv
       cdcl\<^sub>W_stgy_no_smaller_propa)
 
@@ -4111,7 +4112,7 @@ lemma cdcl\<^sub>W_restart_no_false_clause:
     \<open>no_false_clause S\<close>
   shows \<open>no_false_clause T\<close>
   using assms unfolding no_false_clause_def
-  by (induction rule: cdcl\<^sub>W_restart_all_induct) (auto simp add: clauses_def state_prop)
+  by (induction rule: cdcl\<^sub>W_restart_all_induct) (auto simp add: clauses_def)
 
 text \<open>
   The proofs works smoothly thanks to the side-conditions about levels of the rule
@@ -4124,7 +4125,7 @@ lemma cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0:
     \<open>conflict_non_zero_unless_level_0 S\<close>
   shows \<open>conflict_non_zero_unless_level_0 T\<close>
   using assms by (induction rule: cdcl\<^sub>W_restart_all_induct)
-  (auto simp add: conflict_non_zero_unless_level_0_def no_false_clause_def)
+    (auto simp add: conflict_non_zero_unless_level_0_def no_false_clause_def)
 
 lemma rtranclp_cdcl\<^sub>W_restart_no_false_clause:
   assumes
@@ -4140,7 +4141,7 @@ lemma rtranclp_cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0:
     \<open>conflict_non_zero_unless_level_0 S\<close>
   shows \<open>conflict_non_zero_unless_level_0 T\<close>
   using assms by (induction rule: rtranclp_induct)
-  (auto intro: rtranclp_cdcl\<^sub>W_restart_no_false_clause cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0)
+    (auto intro: rtranclp_cdcl\<^sub>W_restart_no_false_clause cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0)
 
 end
 end

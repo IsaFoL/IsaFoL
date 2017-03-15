@@ -40,7 +40,7 @@ next
 next
   case (backtrack S M' L M D) note extracted = this(1) and no_dup = this(5)
   show ?case
-    using no_dup backtrack_split_list_eq[of "trail S", symmetric] unfolding extracted 
+    using no_dup backtrack_split_list_eq[of "trail S", symmetric] unfolding extracted
     by (auto dest: no_dup_appendD)
 qed
 
@@ -131,7 +131,7 @@ next
             and
           "atms_of_ms (unmark_l c) \<subseteq> atms_of_ms (set (map unmark a)
             \<union> set_mset (clauses S))"
-           using atms_incl cnot 
+           using atms_incl cnot
            apply (auto simp: atms_of_def dest!: true_annots_CNot_all_atms_defined; fail)[]
           using inS atms_of_atms_of_ms_mono atms_incl by (fastforce simp: h')
 

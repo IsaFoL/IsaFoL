@@ -387,8 +387,18 @@ declare rough_state_of_inverse[simp]
 
 lemma DPLL_step_dpll\<^sub>W_conc_inv:
   "DPLL_step (rough_state_of S) \<in> {(M, N). dpll\<^sub>W_all_inv (toS M N)}"
-  by (smt DPLL_ci.simps DPLL_ci_dpll\<^sub>W_rtranclp case_prodE case_prodI2 rough_state_of
-    mem_Collect_eq old.prod.case prod.sel(2) rtranclp_dpll\<^sub>W_all_inv snd_DPLL_step)
+proof -
+  obtain M N where
+    S: \<open>rough_state_of S = (M, N)\<close>
+    by (cases \<open>rough_state_of S\<close>)
+  obtain M' N' where
+    S': \<open>DPLL_step (rough_state_of S) = (M', N')\<close>
+    by (cases \<open>DPLL_step (rough_state_of S)\<close>)
+  have \<open>dpll\<^sub>W\<^sup>*\<^sup>*  (toS M N) (toS M' N')\<close>
+    by (metis DPLL_step_is_a_dpll\<^sub>W_step S S' fst_conv r_into_rtranclp rtranclp.rtrancl_refl snd_conv)
+  then show ?thesis
+    using rough_state_of[of S] unfolding S' unfolding S by (auto intro: rtranclp_dpll\<^sub>W_all_inv)
+qed
 
 lemma rough_state_of_DPLL_step'_DPLL_step[simp]:
   "rough_state_of (DPLL_step' S) = DPLL_step (rough_state_of S)"
@@ -517,7 +527,9 @@ proof -
     rtranclp_dpll\<^sub>W_inv(3) rtranclp_dpll\<^sub>W_inv_starting_from_0)
 qed
 
+
 subsubsection \<open>Code export\<close>
+
 paragraph \<open>A conversion to @{typ dpll\<^sub>W_state}\<close>
 definition Con :: "(int, unit) ann_lits \<times> int literal list list
                      \<Rightarrow> dpll\<^sub>W_state" where
