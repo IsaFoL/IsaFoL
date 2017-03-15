@@ -1,5 +1,5 @@
-ISABELLE2016-1=/home/zmaths/isabelle/Isabelle2016-1
-ISABELLE=/home/zmaths/isabelle/isabelle
+ISABELLE2016-1=/home/zmaths/Documents/isabelle/Isabelle2016-1
+ISABELLE=/home/zmaths/Documents/isabelle/isabelle
 
 RUN_ISABELLE="$(ISABELLE)/bin/isabelle"
 RUN_ISABELLE2016-1="$(ISABELLE2016-1)/bin/isabelle"
@@ -33,7 +33,14 @@ Bachmair_Ganzinger: HOL
 Unordered_Resolution: HOL
 	$(RUN_ISABELLE2016-1) build -o browser_info -v -D Unordered_Resolution
 
-all: Weidenbach_Book Bachmair_Ganzinger Unordered_Resolution
+GRAT: HOL
+	$(RUN_ISABELLE2016-1) build -d '$$AFP' -b Refine_Imperative_HOL
+	$(RUN_ISABELLE2016-1) build -o browser_info -o "document=pdf" -v -D GRAT/gratchk
+
+FOL_Berghofer: HOL
+	$(RUN_ISABELLE2016-1) build -v -D FOL_Berghofer
+
+all: Weidenbach_Book Bachmair_Ganzinger Unordered_Resolution GRAT FOL_Berghofer
 
 # build the documentation and the files
 current: Bachmair_Ganzinger Unordered_Resolution
