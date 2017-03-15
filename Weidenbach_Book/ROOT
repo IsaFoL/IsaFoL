@@ -134,6 +134,18 @@ session "Two_Watched_Literals" (Weidenbach_Book) = "CDCL_Base"  +
     CDCL_Two_Watched_Literals_List_Simple_Code
     CDCL_Two_Watched_Literals_List_Watched_Initialisation
     CDCL_Two_Watched_Literals_List_Watched
+
+    Array_Array_List
+    Array_List_Array
+
+    CDCL_Two_Watched_Literals_List_Watched_Code
+    CDCL_Two_Watched_Literals_List_Watched_Init_Code
+
+    CDCL_Two_Watched_Literals_List_Watched_Domain
+    CDCL_Two_Watched_Literals_List_Watched_Code_Common
+    CDCL_Two_Watched_Literals_List_Watched_Trail_Code
+    CDCL_Two_Watched_Literals_List_Watched_Init_Code
+    CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code
   document_files
     "root.tex"
     "biblio.bib"
@@ -152,7 +164,8 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
     Eisbach
     "~~/src/HOL/Eisbach/Eisbach_Tools"
     RBT_More
-
+    "~~/src/HOL/Word/Bits_Bit"
+    "~~/src/HOL/Word/Bool_List_Representation"
   theories [quick_and_dirty = false, document = true]
     Doc_Libraries
     Wellfounded_More
@@ -211,10 +224,15 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
     CDCL_Two_Watched_Literals_List_Watched
     Array_Array_List
     Array_List_Array
-  
+    Bits_Natural
+
     CDCL_Two_Watched_Literals_List_Watched_Code
     CDCL_Two_Watched_Literals_List_Watched_Init_Code
 
+    CDCL_Two_Watched_Literals_List_Watched_Domain
+    CDCL_Two_Watched_Literals_List_Watched_Code_Common
+    CDCL_Two_Watched_Literals_List_Watched_Trail_Code
+    CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code
     Weidenbach_Book
   document_files
     "root.tex"
